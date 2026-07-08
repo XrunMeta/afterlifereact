@@ -3,6 +3,15 @@ _HERE = os.path.dirname(__file__)
 _STATIC = os.path.join(_HERE, "..", "static")
 
 
+def test_html_source_has_no_hardcoded_plaintext_password():
+    # opus 최종리뷰 Minor: 로그인 비번은 VCS 추적 정적 소스에 하드코딩하지 않는다
+    # (serve-time LAB_TUNER_DEV_PASSWORD 주입으로 대체, app.py index 핸들러 참조).
+    with open(os.path.join(_STATIC, "tuner.html")) as f:
+        html = f.read()
+    assert "oth-password" not in html
+    assert 'id="login-pw" type="password" placeholder="password" autocomplete="current-password" value=""' in html
+
+
 def test_html_has_required_elements():
     with open(os.path.join(_STATIC, "tuner.html")) as f:
         html = f.read()
@@ -112,3 +121,168 @@ def test_js_does_not_use_localstorage_for_token():
     # (설명 주석에서 개념을 언급하는 것은 허용, 실제 API 호출만 금지).
     assert "localStorage.setItem" not in js
     assert "localStorage.getItem" not in js
+
+
+# ---------------------------------------------------------------------------
+# T-114: 믹서 채널 스트립 렌더
+# ---------------------------------------------------------------------------
+
+def test_js_renders_number_stepper():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    # number 노브에 증감 스텝퍼(±) 배선.
+    assert "step-up" in js and "step-down" in js
+
+
+def test_js_tts_qwen_only_dim():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    # tts.engine=openvoice일 때 qwen 전용 필드 dim.
+    assert "refreshTtsDim" in js
+    assert "TTS_QWEN_ONLY_FIELDS" in js
+
+
+def test_js_channel_strip_render():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    # 섹션별 채널 스트립 클래스.
+    assert "channel" in js
+
+
+def test_js_say_enter_to_send():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    # Enter 전송 + 한글 IME 조합중 오전송 방지.
+    assert "keydown" in js
+    assert "'Enter'" in js or '"Enter"' in js
+    assert "isComposing" in js
+
+
+def test_js_status_meter():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    # 죽은 SSE 대신 클라 실상태 미터 렌더.
+    assert "renderMeter" in js
+    # SSE 구독 계약은 유지.
+    assert "EventSource" in js and "/metrics" in js
+
+
+# ---------------------------------------------------------------------------
+# T-114 Task 6: promote 배선 (죽은 버튼 살리기)
+# ---------------------------------------------------------------------------
+
+def test_js_promote_wired():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    assert "/promote/preview" in js
+    assert "/promote/apply" in js
+
+
+def test_js_no_browser_modals():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    # 브라우저 모달은 확장 세션을 블록 → 금지(인라인 UI 사용).
+    assert "alert(" not in js
+    assert "confirm(" not in js
+    assert "prompt(" not in js
+
+
+# ---------------------------------------------------------------------------
+# T-114 최종리뷰 fix: promote 비-2xx 정직표기 + Enter 성공시만 클리어
+# ---------------------------------------------------------------------------
+
+def test_js_promote_apply_handles_non_2xx():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    # 401/403 외 비-2xx(예: 400 화이트리스트 위반)도 실패로 정직하게 표기해야 함.
+    assert "!r.ok" in js
+    # 서버가 절대 안 주는 e.value 폴백(dead code)은 제거되어야 함.
+    assert "e.value" not in js
+
+
+# ---------------------------------------------------------------------------
+# T-113 Task3-A: prethird 재기동 버튼 (render_mode 등 next_call 노브 반영)
+# ---------------------------------------------------------------------------
+
+def test_html_has_restart_button():
+    with open(os.path.join(_STATIC, "tuner.html")) as f:
+        html = f.read()
+    assert 'id="restart-prethird"' in html
+
+
+def test_js_restart_wired_with_two_stage_confirm_body():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    assert "/promote/restart" in js
+    # app.py promote_restart 계약: confirm:"RESTART" + confirm2:true 둘 다 필요.
+    assert '"RESTART"' in js or "'RESTART'" in js
+    assert "confirm2" in js
+    # 브라우저 모달 금지 원칙은 재기동 확인에도 적용(인라인 UX).
+    assert "restart-confirm" in js
+
+
+# ---------------------------------------------------------------------------
+# T-113 Task3-C: 노브 옆 실제 running 값 + 선택↔실제 drift 배지(render_mode)
+# ---------------------------------------------------------------------------
+
+def test_js_render_mode_has_running_drift_badge_wired():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    assert "KNOB_ENV_MAP" in js
+    assert "'fifth.render_mode': 'PRETHIRD_RENDER_MODE'" in js
+    assert "applyKnobDriftBadges" in js
+    assert "재기동 필요" in js
+    # running 캐시가 loadKnobs 재렌더·loadProdStatus 갱신 양쪽에서 반영되는지.
+    assert js.count("applyKnobDriftBadges()") >= 2
+
+
+# ---------------------------------------------------------------------------
+# T-113 Task3 sion 게이트 fix1(BLOCKER): restart 후 stale drift 방지(폴링)
+# ---------------------------------------------------------------------------
+
+def test_js_restart_polls_for_new_mainpid_before_refresh():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    assert "pollForNewMainPid" in js
+    restart_apply_block = js[js.index("async function restartApply"):]
+    # 응답 직후 바로 loadProdStatus 하지 말고 폴링(MainPID 변경 확인) 완료 후에만 호출.
+    assert "pollForNewMainPid" in restart_apply_block
+    assert "await loadProdStatus()" in restart_apply_block
+
+
+# ---------------------------------------------------------------------------
+# T-113 Task3 sion 게이트 fix2(MAJOR): 재기동 전 미적용(promote 안됨) 변경 경고
+# ---------------------------------------------------------------------------
+
+def test_js_restart_confirm_warns_unapplied_promote_changes():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    confirm_block = js[js.index("async function restartShowConfirm"):js.index("async function pollForNewMainPid")]
+    assert "/promote/preview" in confirm_block
+    assert "라이브 적용" in confirm_block
+
+
+# ---------------------------------------------------------------------------
+# T-113: /dev-token 로컬 전용 토큰 자동주입(promote-token 수동입력 제거)
+# ---------------------------------------------------------------------------
+
+def test_js_loads_dev_token_and_wires_promote_token_input():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    assert "/dev-token" in js
+    assert "loadDevToken()" in js   # 초기화 시퀀스에서 호출됨(loadKnobs 등과 함께)
+    dev_token_block = js[js.index("async function loadDevToken"):]
+    assert "promote-token" in dev_token_block
+    # 소스에 하드코딩된 토큰 값이 없어야 함(env 이름 언급은 UI 안내문구라 허용) —
+    # loadDevToken은 서버 /dev-token 응답의 d.token만 읽어 input.value에 세팅한다.
+    assert "d.token" in dev_token_block
+
+
+def test_js_send_say_returns_boolean_and_gates_clear():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    # sendSay가 전송 성공 여부를 boolean으로 반환.
+    assert "return true" in js
+    assert "return false" in js
+    # Enter 클리어는 sendSay() 성공 시에만 수행(dc 미개통 시 입력 유실 방지).
+    assert "if (sendSay())" in js

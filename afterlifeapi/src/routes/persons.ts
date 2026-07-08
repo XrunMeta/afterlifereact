@@ -351,9 +351,9 @@ persons.delete("/:id", requireAuth, async (c) => {
 
 persons.get("/", requireAuth, async (c) => {
   const userId = c.get("userId")!;
+  const cloneIdRaw = c.req.query("cloneId");
 
-  const rows = await c.env.DB.prepare(
-    `SELECT
+  const cols = `SELECT
        id,
        user_id       AS userId,
        clone_id      AS cloneId,
@@ -361,20 +361,33 @@ persons.get("/", requireAuth, async (c) => {
        consent_state AS consentState,
        consent_at    AS consentAt,
        created_at    AS createdAt
-     FROM persons
-     WHERE user_id = ?
-     ORDER BY created_at DESC`
-  )
-    .bind(userId)
-    .all<{
-      id: number;
-      userId: number;
-      cloneId: number | null;
-      displayName: string | null;
-      consentState: string;
-      consentAt: number | null;
-      createdAt: number;
-    }>();
+     FROM persons`;
+  type Row = {
+    id: number;
+    userId: number;
+    cloneId: number | null;
+    displayName: string | null;
+    consentState: string;
+    consentAt: number | null;
+    createdAt: number;
+  };
+
+  let rows;
+  if (cloneIdRaw !== undefined) {
+    const cloneId = Number(cloneIdRaw);
+    if (!Number.isInteger(cloneId) || cloneId <= 0) {
+      throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    }
+    rows = await c.env.DB.prepare(
+      `${cols} WHERE user_id = ? AND (clone_id = ? OR clone_id IS NULL) ORDER BY created_at DESC`
+    )
+      .bind(userId, cloneId)
+      .all<Row>();
+  } else {
+    rows = await c.env.DB.prepare(`${cols} WHERE user_id = ? ORDER BY created_at DESC`)
+      .bind(userId)
+      .all<Row>();
+  }
 
   return c.json({ data: rows.results });
 });

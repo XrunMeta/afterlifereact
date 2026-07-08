@@ -13,6 +13,7 @@ import {
   Animated,
   Platform,
   KeyboardAvoidingView,
+  Keyboard,
   TextInput,
   Alert,
   Linking,
@@ -45,6 +46,7 @@ import { FACE_DIAG_ENABLED, formatFaceHud, type FaceDiag } from "../../config/fa
 import TermsModal from "../../components/common/TermsModal";
 import { FaceEnrollCard } from "../../components/call/FaceEnrollCard";
 import { useAvatarCall } from "../../realtime/useAvatarCall";
+import { submitDevText } from "../../realtime/devCallText";
 import { CALL_ROUTE } from "../../config/callRoute";
 import { GREETING_ENABLED, GREETING_FALLBACK_TEXT, GREET_TIMEOUT_MS } from "../../config/greeting";
 import { useHandsFreeController } from "../../realtime/useHandsFreeController";
@@ -73,14 +75,7 @@ import { AuthApiError } from "../../api/auth";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
-
-const WM_SYMBOL = require("../../../assets/images/symbol.png");
-const WM_TILE = 74; 
-const WM_GAP = 48; 
-const WM_STEP = WM_TILE + WM_GAP;
-const WM_COLS = Math.ceil(SCREEN_W / WM_STEP) + 1;
-const WM_ROWS = Math.ceil(SCREEN_H / WM_STEP) + 1;
+const { width: SCREEN_W } = Dimensions.get("window");
 const gifts = giftsData as Gift[];
 
 interface FloatingGift {
@@ -201,6 +196,21 @@ export default function CallScreen({ route, navigation }: Props) {
     lastSignal,
     sendFaceEvent,
   } = useAvatarCall({ cloneId, accessToken: accessToken ?? "", onEnrollSuggest: handleEnrollSuggest });
+
+  const [devText, setDevText] = useState("");
+
+  const [devKbHeight, setDevKbHeight] = useState(0);
+  useEffect(() => {
+    if (!__DEV__) return;
+    const showSub = Keyboard.addListener("keyboardDidShow", (e) =>
+      setDevKbHeight(e.endCoordinates.height),
+    );
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => setDevKbHeight(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const greetingOn = GREETING_ENABLED && typeof greet === 'function';
 
@@ -779,6 +789,42 @@ export default function CallScreen({ route, navigation }: Props) {
         </View>
       ) : null}
 
+      {__DEV__ && liveState === "live" ? (
+        <View
+          style={{
+            position: "absolute",
+            left: 8,
+            right: 8,
+
+            bottom: devKbHeight > 0 ? devKbHeight + 58 : bottomInset + 96,
+            zIndex: 20,
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: "rgba(0,0,0,0.6)",
+            borderRadius: 6,
+            padding: 4,
+          }}
+        >
+          <TextInput
+            style={{ flex: 1, color: "#0f0", fontSize: 13, paddingHorizontal: 8, paddingVertical: 6 }}
+            value={devText}
+            onChangeText={setDevText}
+            placeholder="[DEV] 텍스트로 발화"
+            placeholderTextColor="#6b7280"
+            autoCapitalize="none"
+            returnKeyType="send"
+            blurOnSubmit={false}
+            onSubmitEditing={() => submitDevText(devText, say, setDevText)}
+          />
+          <TouchableOpacity
+            onPress={() => submitDevText(devText, say, setDevText)}
+            style={{ paddingHorizontal: 12, paddingVertical: 6 }}
+          >
+            <Text style={{ color: "#0f0", fontSize: 13, fontWeight: "600" }}>전송</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
       {}
       {!dialingDone && (
         <DialingScreen
@@ -1000,19 +1046,13 @@ export default function CallScreen({ route, navigation }: Props) {
         </Pressable>
       ) : null}
 
-      {}
-      <View style={s.watermarkLayer} pointerEvents="none">
-        {Array.from({ length: WM_ROWS }).map((_, r) => (
-          <View key={r} style={s.watermarkRow}>
-            {Array.from({ length: WM_COLS }).map((_, c) => (
-              <View key={c} style={s.watermarkCell}>
-                {(r + c) % 2 === 0 ? (
-                  <Image source={WM_SYMBOL} style={s.watermarkTile} resizeMode="contain" />
-                ) : null}
-              </View>
-            ))}
-          </View>
-        ))}
+      {
+}
+      <View
+        style={[s.watermarkLayer, { bottom: bottomInset + 96 }]}
+        pointerEvents="none"
+      >
+        <Text style={s.watermarkText}>afterlife</Text>
       </View>
 
       {}
@@ -1176,22 +1216,19 @@ export default function CallScreen({ route, navigation }: Props) {
 const s = StyleSheet.create({
 
   watermarkLayer: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 0.3,
-    overflow: "hidden",
+    position: "absolute",
+    right: 16,
+    alignItems: "flex-end",
   },
-  watermarkRow: {
-    flexDirection: "row",
-  },
-  watermarkCell: {
-    width: WM_STEP,
-    height: WM_STEP,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  watermarkTile: {
-    width: WM_TILE,
-    height: WM_TILE,
+  watermarkText: {
+    color: "rgba(255, 255, 255, 0.5)",
+    fontSize: 20,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+
+    textShadowColor: "rgba(60, 60, 60, 0.9)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 2,
   },
   container: {
     flex: 1,

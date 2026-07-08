@@ -65,3 +65,27 @@ def test_replace_resets_dirty():
     assert r.dirty() == {"tts.speed"}
     r.replace(RunKnobs())
     assert r.dirty() == set()
+
+# ---------------------------------------------------------------------------
+# T-113 Task3-B: dirty는 "실제 값이 바뀐 키"만 마킹(전체 스냅샷 POST 방지).
+# ---------------------------------------------------------------------------
+
+def test_update_same_value_as_current_not_dirty():
+    r = KnobsRegistry()
+    r.update({"tts": {"speed": 1.0}})   # 기본값과 동일한 값으로 update
+    assert r.dirty() == set()
+
+def test_update_only_actually_changed_key_marked_dirty():
+    r = KnobsRegistry()
+    # cfg_scale은 기본값(2.0)과 동일(미변경), render_mode만 실제로 바뀜.
+    r.update({"fifth": {"render_mode": "batch", "cfg_scale": 2.0}})
+    assert r.dirty() == {"fifth.render_mode"}
+
+def test_update_reapply_same_value_does_not_add_duplicate_dirty():
+    r = KnobsRegistry()
+    r.update({"tts": {"speed": 1.5}})
+    assert r.dirty() == {"tts.speed"}
+    r.update({"tts": {"speed": 1.5}})   # 동일 값 재적용 — 이미 dirty이지만 새 오염 없음
+    assert r.dirty() == {"tts.speed"}
+    r.update({"fifth": {"cfg_scale": 2.0}})  # 기본값과 동일 — dirty 늘지 않아야 함
+    assert r.dirty() == {"tts.speed"}

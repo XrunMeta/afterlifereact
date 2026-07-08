@@ -48,6 +48,9 @@
   <input id="verifyPass" type="password" placeholder="verify password (선택)" value="0lu0hxnb2fCxlCCl" style="min-width:140px" />
   <button id="loadClones">클론 불러오기</button>
   <select id="clone"><option value="">— 클론 —</option></select>
+  <select id="person"><option value="">— 화자(전체 페르소나) —</option></select>
+  <input id="newPerson" type="text" placeholder="새 화자 이름" style="width:110px" />
+  <button id="addPerson">화자+</button>
   <input id="model" type="text" placeholder="model (기본값)" style="width:130px" />
   <label>temp <input id="temp" type="number" min="0" max="2" step="0.1" style="width:60px" /></label>
   <label><input id="multiturn" type="checkbox" checked /> 멀티턴</label>
@@ -259,6 +262,61 @@ async function loadBundle(highlight){
   if (!ok) { renderL1(l1); renderL2(l2, highlight); }
 }
 
+async function loadPersons(){
+  const sel = $("person");
+  sel.innerHTML = '<option value="">— 화자(전체 페르소나) —</option>';
+  const cloneId = parseInt($("clone").value, 10);
+  if(!cloneId) return;
+  try{
+    const r = await fetch("/oth-path?clone_id="+cloneId, { headers: authHeaders() });
+    if(!r.ok) return;
+    const { persons } = await r.json();
+    for(const p of (persons||[])){
+      const o = document.createElement("option");
+      o.value = String(p.id); o.textContent = (p.name || ("#"+p.id));
+      sel.appendChild(o);
+    }
+  }catch(e){  }
+}
+
+async function addPerson(){
+  const cloneId = parseInt($("clone").value, 10);
+  const name = $("newPerson").value.trim();
+  if(!cloneId || !name){ return; }
+  const r = await fetch("/oth-path", {
+    method:"POST", headers: authHeaders({"Content-Type":"application/json"}),
+    body: JSON.stringify({ clone_id: cloneId, display_name: name }),
+  });
+  if(r.ok){ $("newPerson").value=""; await loadPersons(); }
+  else { alert("화자 생성 실패: "+r.status); }
+}
+$("addPerson").addEventListener("click", addPerson);
+
+async function refreshL2View(opts){
+  const cloneId = parseInt($("clone").value, 10);
+  if(!cloneId) return false;
+  const pid = parseInt($("person").value, 10);
+  const owner = $("l2owner");
+  if(pid){
+    const name = $("person").options[$("person").selectedIndex].textContent;
+    if(owner) owner.textContent = "· 화자: " + name + " (L2′)";
+    try{
+      const r = await fetch("/oth-path?clone_id="+cloneId+"&person_id="+pid, { headers: authHeaders() });
+      if(r.ok){
+        const res = await r.json();
+        renderL2Raw({ data: (res && res.data) || {} }, opts && opts.changedKeys);
+        return true;
+      }
+      if(!(opts && opts.silent)) renderL2RawError(r.status);
+    }catch(e){ if(!(opts && opts.silent)) renderL2RawError("fetch-fail"); }
+    return false;
+  }
+  if(owner) owner.textContent = "· 전체(생성자)";
+  return await refreshOntRaw(cloneId, opts);
+}
+
+$("person").addEventListener("change", () => refreshL2View());
+
 function authHeaders(extra){
   const h = Object.assign({}, extra || {});
   const token = $("token").value;
@@ -344,6 +402,8 @@ async function send() {
     if ($("model").value.trim()) body.model = $("model").value.trim();
     if ($("temp").value !== "") body.temperature = parseFloat($("temp").value);
     if ($("useOverride").checked && $("overrideText").value.trim()) body.system_override = $("overrideText").value;
+    const pid = parseInt($("person").value, 10);
+    if (pid) { body.person_id = pid; }
 
     const bubble = addBubble("assistant", "");
     let acc = "";
@@ -402,13 +462,16 @@ async function learn(userText, assistantText) {
   const cloneId = parseInt($("clone").value, 10);
   if (!cloneId) return;
   $("extracted").textContent = "추출 중…"; $("extracted").className = "";
+  const learnPayload = { clone_id: cloneId, turns: [
+    { role: "user", content: userText },
+    { role: "assistant", content: assistantText },
+  ] };
+  const pid = parseInt($("person").value, 10);
+  if (pid) { learnPayload.person_id = pid; }
   const r = await fetch("/oth-path", {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ clone_id: cloneId, turns: [
-      { role: "user", content: userText },
-      { role: "assistant", content: assistantText },
-    ] }),
+    body: JSON.stringify(learnPayload),
   });
   if (!r.ok) { $("extracted").textContent = "[학습 오류 " + r.status + "]"; return; }
 
@@ -427,7 +490,7 @@ async function learn(userText, assistantText) {
     live && (live.textContent = "● 실시간");
   }
 
-  await refreshOntRaw(cloneId, { changedKeys, silent: true });
+  await refreshL2View({ changedKeys, silent: true });
 }
 
 $("l2reset").onclick = async () => {
@@ -446,7 +509,7 @@ $("l2reset").onclick = async () => {
   _turnNo = 0;
 };
 
-$("clone").addEventListener("change", () => loadBundle(false));
+$("clone").addEventListener("change", () => { loadBundle(false); loadPersons(); });
 
 window.addEventListener("DOMContentLoaded", () => {
   if (!$("token").value && $("email").value && $("password").value) {

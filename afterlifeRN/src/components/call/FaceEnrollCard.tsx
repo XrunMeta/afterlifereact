@@ -2,6 +2,7 @@
 
 import React from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS, RADIUS } from "../constants";
 
 export const FACE_ENROLL_NAME_MAX_LENGTH = 30;
@@ -26,6 +27,7 @@ export interface FaceEnrollCardProps {
 
 export function FaceEnrollCard(props: FaceEnrollCardProps): React.ReactElement | null {
   const { visible, name, onChangeName, onConfirm, onDismiss, onViewPolicy, busy } = props;
+  const insets = useSafeAreaInsets();
   if (!visible) return null;
 
   const trimmed = name.trim();
@@ -33,7 +35,10 @@ export function FaceEnrollCard(props: FaceEnrollCardProps): React.ReactElement |
   const dismissDisabled = !!busy;
 
   return (
-    <View style={styles.container} testID="face-enroll-card">
+    <View
+      style={[styles.container, { bottom: insets.bottom + 112 }]}
+      testID="face-enroll-card"
+    >
       <Text style={styles.title}>이 분을 기억할까요?</Text>
       <TextInput
         style={styles.input}
@@ -84,7 +89,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 16,
     right: 16,
-    bottom: 24,
+
     backgroundColor: COLORS.zinc900,
     borderRadius: RADIUS.lg,
     padding: 16,

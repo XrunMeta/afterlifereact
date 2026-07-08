@@ -28,6 +28,7 @@ import { createJob, getJob, setStatus, linkClone } from "../lib/assetJobs";
 import { maskUsername } from "../lib/utils";
 import { triggerPrebuild } from "../lib/prebuildClient";
 import { buildCallBundle } from "../lib/callBundle";
+import { triggerGuideJob } from "../lib/guideJob";
 
 export const clones = new Hono<AppEnv>();
 
@@ -494,6 +495,17 @@ clones.post(
                 .catch(() => setStatus(c.env.DB, fillerJobId, "failed")),
             );
           }
+
+          await triggerGuideJob(c.env.DB, {
+            cloneId,
+            userId,
+            faceSrcFileId: idleJob.src_file_id,
+            voiceRawUrl,
+            origin: new URL(c.req.url).origin,
+            orchestratorUrl: c.env.ORCHESTRATOR_URL,
+            orchSecret: c.env.ORCH_SECRET,
+            waitUntil: (p) => c.executionCtx.waitUntil(p),
+          });
         }
       }
     }

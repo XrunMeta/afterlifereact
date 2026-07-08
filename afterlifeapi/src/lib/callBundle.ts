@@ -16,6 +16,8 @@ export interface CallBundle {
     faceUrl: string | null;
 
     fillerVideoUrls: string[];
+
+    guideVideoUrls: string[];
   };
 }
 
@@ -90,6 +92,19 @@ export async function buildCallBundle(db: D1Database, clone: CloneRow, userId: n
     }
   }
 
+  let guideVideoUrls: string[] = [];
+  if (clone.guide_video_urls) {
+    try {
+      const parsed = JSON.parse(clone.guide_video_urls);
+      if (Array.isArray(parsed)) {
+        guideVideoUrls = parsed.filter((u): u is string => typeof u === "string");
+      }
+    } catch {
+
+      guideVideoUrls = [];
+    }
+  }
+
   const assets = {
     idleVideoUrl: clone.idle_video_url ?? null,
     voiceSeUrl,
@@ -98,6 +113,7 @@ export async function buildCallBundle(db: D1Database, clone: CloneRow, userId: n
     avatarUrl: clone.avatar_url ?? null,
     faceUrl,
     fillerVideoUrls,
+    guideVideoUrls,
   };
 
   return { personaBundle, assets };

@@ -1,9 +1,10 @@
 
 import { Hono } from "hono";
 import type { AppEnv } from "../lib/env";
-import { claimJob, claimJobRunning, failJob, finalizeFillerJob, finalizeJob, getJob } from "../lib/assetJobs";
+import { claimJob, claimJobRunning, failJob, finalizeFillerJob, finalizeMultiUrlJob, finalizeJob, getJob } from "../lib/assetJobs";
 import { z } from "../lib/validate";
 import { loadCloneById } from "../lib/cloneAccess";
+import { triggerGuideJob } from "../lib/guideJob";
 import {
   readOnt, updateOntFromExtraction, type L2Extraction,
   readOntPerson, updateOntPersonFromExtraction,
@@ -231,6 +232,10 @@ internal.post("/filler-job-done", async (c) => {
     bufs.push(buf);
   }
 
+  if (job.kind !== "filler") {
+    return c.json({ error: "kind_mismatch" }, 409);
+  }
+
   const claimed = await claimJobRunning(c.env.DB, jobId);
   if (!claimed) {
     return c.json({ ok: true, idempotent: true });
@@ -288,6 +293,157 @@ internal.post("/filler-job-done", async (c) => {
   }
 
   return c.json({ ok: true, filler_video_urls: urls });
+});
+
+const GUIDE_CONTENT_TYPE = "video/mp4";
+
+const GUIDE_MAX_FILE_SIZE = 50 * 1024 * 1024;
+
+const GUIDE_FILE_MIN = 1;
+const GUIDE_FILE_MAX = 3;
+
+internal.post("/guide-job-done", async (c) => {
+
+  const auth = c.req.header("Authorization") ?? "";
+  const tok = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!tok || !c.env.ORCH_SECRET || !safeEqual(tok, c.env.ORCH_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+
+  const form = await c.req.formData();
+  const jobId = String(form.get("job_id") ?? "");
+  const status = String(form.get("status") ?? "");
+  if (!jobId) return c.json({ error: "job_id required" }, 400);
+
+  const job = await getJob(c.env.DB, jobId);
+  if (!job) return c.json({ error: "job not found" }, 404);
+
+  const callbackToken = String(form.get("callback_token") ?? "");
+  if (!job.callback_token || !callbackToken || !safeEqual(callbackToken, job.callback_token)) {
+    return c.json({ error: "invalid callback_token" }, 403);
+  }
+
+  if (status === "failed") {
+    await failJob(c.env.DB, jobId, String(form.get("error") ?? "generation failed"));
+    return c.json({ ok: true });
+  }
+
+  if (form.get(`file${GUIDE_FILE_MAX}`) !== null) {
+    return c.json(
+      { error: `too many files: max ${GUIDE_FILE_MAX} (file0..file${GUIDE_FILE_MAX - 1})` },
+      400,
+    );
+  }
+  const fileEntries: File[] = [];
+  for (let i = 0; i < GUIDE_FILE_MAX; i++) {
+    const entry = form.get(`file${i}`);
+    if (entry === null) break;
+    if (typeof entry === "string") {
+      return c.json({ error: `file${i} must be a file` }, 400);
+    }
+    fileEntries.push(entry as File);
+  }
+  if (fileEntries.length < GUIDE_FILE_MIN) {
+    return c.json(
+      { error: `file0..file${GUIDE_FILE_MIN - 1} required (need ${GUIDE_FILE_MIN}~${GUIDE_FILE_MAX} files)` },
+      400,
+    );
+  }
+
+  for (let i = fileEntries.length + 1; i < GUIDE_FILE_MAX; i++) {
+    if (form.get(`file${i}`) !== null) {
+      return c.json({ error: `file index gap: file${fileEntries.length} missing but file${i} present` }, 400);
+    }
+  }
+  const fileCount = fileEntries.length;
+
+  for (let i = 0; i < fileCount; i++) {
+    const f = fileEntries[i];
+    if (!f) {
+      return c.json({ error: `file${i} missing` }, 400);
+    }
+    if (f.size === 0) {
+      return c.json({ error: `file${i} is empty (0 bytes)` }, 400);
+    }
+    if (f.size > GUIDE_MAX_FILE_SIZE) {
+      return c.json(
+        { error: `file${i} too large: ${f.size} > ${GUIDE_MAX_FILE_SIZE} bytes` },
+        400,
+      );
+    }
+  }
+
+  const bufs: ArrayBuffer[] = [];
+  for (let i = 0; i < fileCount; i++) {
+    const buf = await fileEntries[i]?.arrayBuffer();
+    if (!buf) {
+      return c.json({ error: `file${i} read failed` }, 400);
+    }
+    bufs.push(buf);
+  }
+
+  if (job.kind !== "guide") {
+    return c.json({ error: "kind_mismatch" }, 409);
+  }
+
+  const claimed = await claimJobRunning(c.env.DB, jobId);
+  if (!claimed) {
+    return c.json({ ok: true, idempotent: true });
+  }
+
+  const origin = new URL(c.req.url).origin;
+  const r2Entries: Array<{ r2Key: string; sizeBytes: number }> = [];
+  try {
+    for (let i = 0; i < fileCount; i++) {
+      const buf = bufs[i];
+      if (!buf) {
+        throw new Error(`buf${i} missing`);
+      }
+      const uuid = crypto.randomUUID();
+      const r2Key = `assets/guide/${uuid}.mp4`;
+      await c.env.R2_ARCHIVE.put(r2Key, buf, {
+        httpMetadata: { contentType: GUIDE_CONTENT_TYPE },
+      });
+      r2Entries.push({ r2Key, sizeBytes: buf.byteLength });
+    }
+  } catch (err) {
+
+    for (const { r2Key } of r2Entries) {
+      await c.env.R2_ARCHIVE.delete(r2Key).catch(() => {});
+    }
+    await failJob(c.env.DB, jobId, `r2_upload_failed: ${String(err).slice(0, 400)}`);
+    return c.json({ error: "r2_upload_failed" }, 500);
+  }
+
+  let urls: string[] | null;
+  try {
+    urls = await finalizeMultiUrlJob(
+      c.env.DB,
+      jobId,
+      r2Entries,
+      job.user_id,
+      claimed.clone_id,
+      origin,
+      "guide",
+    );
+  } catch (err) {
+
+    for (const { r2Key } of r2Entries) {
+      await c.env.R2_ARCHIVE.delete(r2Key).catch(() => {});
+    }
+    await failJob(c.env.DB, jobId, `db_commit_failed: ${String(err).slice(0, 400)}`);
+    return c.json({ error: "db_commit_failed" }, 500);
+  }
+
+  if (urls === null) {
+
+    for (const { r2Key } of r2Entries) {
+      await c.env.R2_ARCHIVE.delete(r2Key).catch(() => {});
+    }
+    return c.json({ ok: true, idempotent: true });
+  }
+
+  return c.json({ ok: true, guide_video_urls: urls });
 });
 
 const l2LearnSchema = z.object({
@@ -444,6 +600,158 @@ internal.post("/dev/clones/:id/ont-merge", async (c) => {
   } catch {  }
 
   return c.json({ rev: result.rev, skipped: result.skipped, data });
+});
+
+internal.get("/dev/clones/:id/l2p-raw", async (c) => {
+  const auth = c.req.header("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || !c.env.DEV_SECRET || !safeEqual(token, c.env.DEV_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  const cloneId = Number(c.req.param("id"));
+  const personId = Number(c.req.query("personId"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0 || !Number.isInteger(personId) || personId <= 0) {
+    return c.json({ error: "invalid clone_id or personId" }, 400);
+  }
+
+  const clone = await loadCloneById(c.env.DB, cloneId);
+  if (!clone) return c.json({ error: "clone_not_found" }, 404);
+
+  const person = await c.env.DB.prepare(
+    "SELECT user_id, display_name FROM persons WHERE id = ? AND (clone_id = ? OR clone_id IS NULL)"
+  ).bind(personId, cloneId).first<{ user_id: number; display_name: string | null }>();
+  if (!person) return c.json({ error: "person_not_found" }, 404);
+  const raw = await readOntPerson(c.env, cloneId, personId);
+  let data: unknown = null;
+  if (raw) { try { data = JSON.parse(raw); } catch { data = null; } }
+  try {
+    await logActivity(c, { userId: person.user_id, action: "dev.l2p_raw.read", details: { cloneId, personId } });
+  } catch {  }
+  return c.json({ data, displayName: person.display_name ?? null });
+});
+
+const devOntMergePersonSchema = z.object({
+  personId: z.number().int().positive(),
+  extracted: z.object({
+    preference_personal: z
+      .record(z.string().max(100), z.union([z.string().max(200), z.number(), z.boolean()]))
+      .optional(),
+    relation: z.string().max(200).nullable().optional(),
+    memories_personal: z.array(z.string().max(500)).max(20).optional(),
+  }),
+  source: z.enum(["call", "chat"]),
+});
+
+internal.post("/dev/clones/:id/ont-merge-person", async (c) => {
+  const auth = c.req.header("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || !c.env.DEV_SECRET || !safeEqual(token, c.env.DEV_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    return c.json({ error: "bad_clone_id" }, 400);
+  }
+  const parsed = devOntMergePersonSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return c.json({ error: "bad_body", issues: parsed.error.issues }, 400);
+  }
+  const { personId, extracted, source } = parsed.data;
+
+  const clone = await loadCloneById(c.env.DB, cloneId);
+  if (!clone) return c.json({ error: "clone_not_found" }, 404);
+
+  const person = await c.env.DB.prepare(
+    "SELECT user_id FROM persons WHERE id = ? AND (clone_id = ? OR clone_id IS NULL)"
+  ).bind(personId, cloneId).first<{ user_id: number }>();
+  if (!person) return c.json({ error: "person_not_found" }, 404);
+
+  let result: { rev: number; skipped: boolean };
+  try {
+    result = await updateOntPersonFromExtraction(c.env, cloneId, personId, extracted as L2Extraction, source);
+  } catch (err) {
+    return c.json({ error: "merge_failed", message: (err as Error).message }, 400);
+  }
+
+  const raw = await readOntPerson(c.env, cloneId, personId);
+  let data: unknown = null;
+  if (raw) { try { data = JSON.parse(raw); } catch { data = null; } }
+  try {
+    await logActivity(c, { userId: person.user_id, action: "dev.l2p_merge.write", details: { cloneId, personId, rev: result.rev } });
+  } catch {  }
+  return c.json({ rev: result.rev, skipped: result.skipped, data });
+});
+
+internal.get("/dev/guide-backfill-targets", async (c) => {
+  const auth = c.req.header("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || !c.env.DEV_SECRET || !safeEqual(token, c.env.DEV_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  const rows = await c.env.DB.prepare(
+    `SELECT c.id AS id, c.owner_id AS user_id,
+            (SELECT src_file_id FROM clone_asset_jobs
+              WHERE clone_id = c.id AND kind = 'idle_video' AND status = 'done'
+              ORDER BY created_at DESC, rowid DESC LIMIT 1) AS face_src_file_id,
+            (SELECT src_file_id FROM clone_asset_jobs
+              WHERE clone_id = c.id AND kind = 'voice_clone' AND status = 'done'
+              ORDER BY created_at DESC, rowid DESC LIMIT 1) AS voice_src_file_id
+       FROM clones c
+      WHERE c.guide_video_urls IS NULL AND c.deleted_at IS NULL`,
+  ).all<{ id: number; user_id: number; face_src_file_id: number | null; voice_src_file_id: number | null }>();
+
+  const data = (rows.results ?? []).filter(
+    (r) => r.face_src_file_id != null && r.voice_src_file_id != null,
+  );
+  return c.json({ data });
+});
+
+internal.post("/dev/clones/:id/guide-job", async (c) => {
+  const auth = c.req.header("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || !c.env.DEV_SECRET || !safeEqual(token, c.env.DEV_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    return c.json({ error: "bad_clone_id" }, 400);
+  }
+  const clone = await loadCloneById(c.env.DB, cloneId);
+  if (!clone) return c.json({ error: "clone_not_found" }, 404);
+
+  if (clone.guide_video_urls) {
+    return c.json({ skipped: true, guide_video_urls: clone.guide_video_urls }, 200);
+  }
+
+  const idleJob = await c.env.DB.prepare(
+    `SELECT src_file_id FROM clone_asset_jobs
+      WHERE clone_id = ? AND kind = 'idle_video' AND status = 'done'
+      ORDER BY created_at DESC, rowid DESC LIMIT 1`,
+  ).bind(cloneId).first<{ src_file_id: number }>();
+  const voiceJob = await c.env.DB.prepare(
+    `SELECT src_file_id FROM clone_asset_jobs
+      WHERE clone_id = ? AND kind = 'voice_clone' AND status = 'done'
+      ORDER BY created_at DESC, rowid DESC LIMIT 1`,
+  ).bind(cloneId).first<{ src_file_id: number }>();
+  if (!idleJob || !voiceJob) {
+    return c.json({ error: "asset_jobs_missing" }, 400);
+  }
+
+  const origin = new URL(c.req.url).origin;
+  const voiceRawUrl = `${origin}/oth-path${voiceJob.src_file_id}`;
+
+  const result = await triggerGuideJob(c.env.DB, {
+    cloneId,
+    userId: clone.owner_id,
+    faceSrcFileId: idleJob.src_file_id,
+    voiceRawUrl,
+    origin,
+    orchestratorUrl: c.env.ORCHESTRATOR_URL,
+    orchSecret: c.env.ORCH_SECRET,
+    waitUntil: (p) => c.executionCtx.waitUntil(p),
+  });
+
+  return c.json({ guideJobId: result.guideJobId }, 201);
 });
 
 async function personOwnsCloneSession(db: D1Database, personId: number, cloneId: number): Promise<boolean> {

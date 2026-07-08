@@ -73,6 +73,42 @@ async function forceJobPending(jobId: string): Promise<void> {
     .run();
 }
 
+async function seedGuideJobRunning(
+  userId: number,
+  srcFileId: number,
+  cloneId: number | null,
+): Promise<{ jobId: string; callbackToken: string }> {
+  const db = env.DB as unknown as D1Database;
+  const jobId = crypto.randomUUID();
+  const callbackToken = crypto.randomUUID();
+  await db
+    .prepare(
+      `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, clone_id, callback_token)
+       VALUES (?, ?, 'guide', ?, 'running', ?, ?)`,
+    )
+    .bind(jobId, userId, srcFileId, cloneId, callbackToken)
+    .run();
+  return { jobId, callbackToken };
+}
+
+async function seedGuideJobFailed(
+  userId: number,
+  srcFileId: number,
+  cloneId: number | null,
+): Promise<{ jobId: string; callbackToken: string }> {
+  const db = env.DB as unknown as D1Database;
+  const jobId = crypto.randomUUID();
+  const callbackToken = crypto.randomUUID();
+  await db
+    .prepare(
+      `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, clone_id, callback_token, error)
+       VALUES (?, ?, 'guide', ?, 'failed', ?, ?, 'upstream failure')`,
+    )
+    .bind(jobId, userId, srcFileId, cloneId, callbackToken)
+    .run();
+  return { jobId, callbackToken };
+}
+
 const SECRET = () =>
   (env as { ORCH_SECRET?: string }).ORCH_SECRET ?? "test-orch-secret";
 
@@ -395,6 +431,90 @@ describe("POST /oth-path — 정상 처리", () => {
       .bind(jobId)
       .first<{ status: string }>();
     expect(jobRow!.status).toBe("done");
+  });
+});
+
+describe("POST /oth-path — cross-kind 콜백 오염 차단 (mizu Important)", () => {
+  it("kind='guide' running 잡 + filler 콜백 제출 → 409 kind_mismatch, filler_video_urls NULL 유지·R2 미기록", async () => {
+    const uid = await seedUser("filler_xkind@test.com");
+    const fid = await seedFile(uid, "filler-xkind");
+    const cid = await seedClone(uid, "fillerxkind");
+
+    const { jobId, callbackToken } = await seedGuideJobRunning(uid, fid, cid);
+
+    const fd = makeForm(jobId, callbackToken, [
+      { data: TINY_MP4, name: "f0.mp4" },
+      { data: TINY_MP4, name: "f1.mp4" },
+      { data: TINY_MP4, name: "f2.mp4" },
+    ]);
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${SECRET()}` },
+      body: fd,
+    });
+    expect(res.status).toBe(409);
+    const body = await res.json<{ error: string }>();
+    expect(body.error).toBe("kind_mismatch");
+
+    const db = env.DB as unknown as D1Database;
+    const cloneRow = await db
+      .prepare(`SELECT filler_video_urls FROM clones WHERE id = ?`)
+      .bind(cid)
+      .first<{ filler_video_urls: string | null }>();
+    expect(cloneRow!.filler_video_urls).toBeNull();
+
+    const jobRow = await db
+      .prepare(`SELECT status, kind FROM clone_asset_jobs WHERE id = ?`)
+      .bind(jobId)
+      .first<{ status: string; kind: string }>();
+    expect(jobRow!.status).toBe("running");
+    expect(jobRow!.kind).toBe("guide");
+
+    const filesCount = await db
+      .prepare(
+        `SELECT COUNT(*) as cnt FROM files WHERE purpose = 'asset_filler' AND owner_user_id = ?`,
+      )
+      .bind(uid)
+      .first<{ cnt: number }>();
+    expect(filesCount!.cnt).toBe(0);
+  });
+
+  it("kind='guide' failed 잡 + filler 콜백 제출 → 409 kind_mismatch, status는 'failed' 그대로 불변 (final review — claim 이전 차단 확인)", async () => {
+    const uid = await seedUser("filler_xkind_failed@test.com");
+    const fid = await seedFile(uid, "filler-xkind-failed");
+    const cid = await seedClone(uid, "fillerxkindfailed");
+
+    const { jobId, callbackToken } = await seedGuideJobFailed(uid, fid, cid);
+
+    const fd = makeForm(jobId, callbackToken, [
+      { data: TINY_MP4, name: "f0.mp4" },
+      { data: TINY_MP4, name: "f1.mp4" },
+      { data: TINY_MP4, name: "f2.mp4" },
+    ]);
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${SECRET()}` },
+      body: fd,
+    });
+    expect(res.status).toBe(409);
+    const body = await res.json<{ error: string }>();
+    expect(body.error).toBe("kind_mismatch");
+
+    const db = env.DB as unknown as D1Database;
+    const jobRow = await db
+      .prepare(`SELECT status, kind, error FROM clone_asset_jobs WHERE id = ?`)
+      .bind(jobId)
+      .first<{ status: string; kind: string; error: string | null }>();
+
+    expect(jobRow!.status).toBe("failed");
+    expect(jobRow!.kind).toBe("guide");
+    expect(jobRow!.error).toBe("upstream failure");
+
+    const cloneRow = await db
+      .prepare(`SELECT filler_video_urls FROM clones WHERE id = ?`)
+      .bind(cid)
+      .first<{ filler_video_urls: string | null }>();
+    expect(cloneRow!.filler_video_urls).toBeNull();
   });
 });
 
