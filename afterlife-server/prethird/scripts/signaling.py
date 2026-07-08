@@ -606,6 +606,12 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                             _applied = clone_mp4_enabled()
                             if _applied:
                                 sess.video_track.set_idle_video(dest)
+                                # clone idle mp4 적용 플래그 — server.py factory가 이걸 보고
+                                # prebake를 스킵(좋은 clone mp4를 무음 prebake로 안 덮음).
+                                # ⚠️ 이 대입은 pipeline_factory(sess) 호출(아래 offer 흐름)
+                                #    이전에 반드시 완료돼야 한다 — idle mp4 pull을 asyncio
+                                #    create_task 등 fire-and-forget으로 바꾸지 말 것(순서 무력화).
+                                sess.idle_video_applied = True
                             log.info("idle video pull OK clone=%s dest=%s applied=%s", clone_id, dest, _applied)
                         except Exception as e:
                             log.warning("idle video pull 실패 clone=%s: %s", clone_id, e)
