@@ -31,11 +31,14 @@ rm -f "$TMP"
 echo "=== 4) fifth_render_server 재기동 (FIFTH_EYE_SOURCE_LOCK=1) ==="
 docker exec "$CONTAINER" pkill -f fifth_render_server.py 2>/dev/null || true
 sleep 3
+# T-120-l: INPUT_NORMALIZE 정책 변경 시 source 캐시(576 정규화본)를 반드시 삭제 —
+# 캐시가 남으면 옛 크기(줌인)가 재사용돼 idle/발화 크기 점프 재발. 통화 시 512 원본 재생성.
+docker exec "$CONTAINER" sh -c "rm -rf /tmp/fifth_cache/[0-9]*" 2>/dev/null || true
 docker exec -d "$CONTAINER" bash -lc "cd /root/FasterLivePortrait && \
   LD_LIBRARY_PATH=/opt/TensorRT-8.6.1.6/targets/x86_64-linux-gnu/lib \
   FIFTH_CFG_YAML=configs/trt_infer.yaml FIFTH_LIP_OPEN=0.24 FIFTH_CFG_SCALE=2.0 \
   FIFTH_BLINK=1 FIFTH_HEAD_SMOOTH=3.5 FIFTH_RENDER_TIMING=1 \
-  FIFTH_INPUT_NORMALIZE=1 FIFTH_PASTEBACK_OUTPUT=1 \
+  FIFTH_INPUT_NORMALIZE=0 FIFTH_PASTEBACK_OUTPUT=1 \
   FIFTH_EYE_SOURCE_LOCK=1 FIFTH_EYE_TARGET_SCALE=0.8 \
   nohup /root/miniconda3/bin/python fifth_render_server.py > /tmp/fifth_render_server.log 2>&1 &"
 
