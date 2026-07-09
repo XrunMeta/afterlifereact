@@ -74,7 +74,7 @@ export async function v_b48b59(
   const v_f63e09 = Math.round(v_bbda62.totalXrun * 0.1 * 1_000_000) / 1_000_000;
   await v_76be17
     .prepare(
-      `INSERT INTO SettlementRecords
+      `INSERT INTO AfterlifeSettlementRecords
          (session_id, member, wallet_address, krw_amount, xrun_amount, xrun_price,
           level, source_callback_id, source_type, status)
          VALUES (?, ?, ?, 0, ?, 0, 2, ?, 'afterlife_gift', 'pending')`,
@@ -137,7 +137,7 @@ export async function v_0ebe1e(
   const v_f63e09 = Math.round(v_bbda62.totalXrun * 1_000_000) / 1_000_000;
   await v_76be17
     .prepare(
-      `INSERT INTO SettlementRecords
+      `INSERT INTO AfterlifeSettlementRecords
          (session_id, member, wallet_address, krw_amount, xrun_amount, xrun_price,
           level, source_callback_id, source_type, status)
          VALUES (?, 0, ?, 0, ?, 0, 0, ?, 'afterlife_persona', 'pending')`,
