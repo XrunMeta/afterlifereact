@@ -1758,9 +1758,10 @@ v_2a805f('defaultFifthRender: 터미네이터 없이 종료 → terminator rejec
   }
 });
 
-v_2a805f('FILLER_SPECS render_opts: 공통 lip_lock·eyes_open_lock, 2·3만 머리 크게 (T-120)', () => {
+v_2a805f('FILLER_SPECS render_opts: 공통 source_face_lock·eyes_open_lock, 2·3만 머리 크게 (T-120)', () => {
   v_ce93bd.equal(v_ddfcca.length, 6);
-  v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.lip_lock === true));
+
+  v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.source_face_lock === true));
   v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.eyes_open_lock === true));
   v_ce93bd.equal(v_ddfcca[0].render_opts.head_sway_amp, 0.0);
   v_ce93bd.equal(v_ddfcca[2].render_opts.head_sway_amp > 0, true);
