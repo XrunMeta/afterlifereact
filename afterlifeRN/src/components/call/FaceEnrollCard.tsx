@@ -1,7 +1,7 @@
 
 
 import v_a3453e from "bapkr";
-import { v_3094a2, v_19b633, v_79c4f2, v_4623af, v_472849 } from "rcmrninabrnb";
+import { v_3094a2, v_19b633, v_79c4f2, v_4623af, v_472849, v_0e1f26 } from "rcmrninabrnb";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_1bfbd0, v_8b0c90 } from "../constants";
 
@@ -28,7 +28,21 @@ export interface FaceEnrollCardProps {
 export function v_b519ed(v_b1927c): v_a3453e.ReactElement | null {
   const { visible: v_cf55be, name: v_1833e7, onChangeName: v_a8c11d, onConfirm: v_e2be2d, onDismiss: v_1b97a8, onViewPolicy: v_ae0e75, busy: v_3f8465 } = v_b1927c;
   const v_033e14 = v_e0068c();
+
+  const [v_7e4acc, v_de86c2] = v_a3453e.useState(0);
+  v_a3453e.useEffect(() => {
+    const v_fdffe1 = v_0e1f26.addListener("keyboardDidShow", (v_9e86fd) =>
+      v_de86c2(v_9e86fd.endCoordinates.height),
+    );
+    const v_2f19d2 = v_0e1f26.addListener("keyboardDidHide", () => v_de86c2(0));
+    return () => {
+      v_fdffe1.remove();
+      v_2f19d2.remove();
+    };
+  }, []);
   if (!v_cf55be) return null;
+
+  const v_61171a = v_7e4acc > 0 ? v_7e4acc + 64 : v_033e14.bottom + 112;
 
   const v_2f361a = v_1833e7.trim();
   const v_f7e6ed = v_2f361a.length < 1 || !!v_3f8465;
@@ -36,7 +50,7 @@ export function v_b519ed(v_b1927c): v_a3453e.ReactElement | null {
 
   return (
     <View
-      style={[v_d81136.container, { bottom: v_033e14.bottom + 112 }]}
+      style={[v_d81136.container, { bottom: v_61171a }]}
       testID="face-enroll-card"
     >
       <Text style={v_d81136.title}>이 분을 기억할까요?</Text>
