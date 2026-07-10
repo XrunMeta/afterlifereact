@@ -394,3 +394,142 @@ def test_head_sway_ramps_from_zero_at_edges():
     ml = _make_ml(40)
     _apply_head_sway(ml, 40, 1.0)
     assert np.allclose(ml[0]["R"], np.eye(3)[None], atol=2e-2)
+
+
+# ---------------------------------------------------------------------------
+# T-120: stream_wav_frames lip_lock / head_sway_amp / eyes_open_lock 배선 테스트
+# ---------------------------------------------------------------------------
+
+class _CdlCeCaptureEngine:
+    """c_d_lip / c_eyes 인자를 캡처하는 fake engine (T-120 배선 검증용)."""
+    def __init__(self):
+        self.cdls = []
+        self.ces = []
+
+    def render(self, motion, c_eyes, c_d_lip, first_frame, src_img=None, src_info=None):
+        self.cdls.append(float(c_d_lip))
+        self.ces.append(c_eyes)
+        return np.zeros((512, 512, 3), np.uint8)
+
+
+class _FakeJPWithEyes:
+    """JoyVASA 네이티브 c_eyes_lst를 반환하는 fake (ce_raw truthy 분기 검증, エル 게이트).
+
+    기존 _FakeJP는 항상 c_eyes_lst=[] 라 ce_raw truthy 분기가 미검증이었다.
+    """
+    def __init__(self, n=25):
+        self.n = n
+
+    def gen_motion_sequence(self, wav_path):
+        motion = [
+            {
+                "R": np.eye(3)[None].astype(np.float32),
+                "t": np.zeros((1, 3), np.float32),
+                "exp": np.zeros((1, 21, 3), np.float32),
+            }
+            for _ in range(self.n)
+        ]
+        # 네이티브 눈: 중간 프레임을 "감김"(작은 값)으로 → blink:false로는 못 막음.
+        # shape (1,1) — make_blink_sequence/FLP calc_combined_eye_ratio 실제 계약.
+        ce = [np.array([[0.3]], np.float32) for _ in range(self.n)]
+        ce[self.n // 2] = np.array([[0.02]], np.float32)
+        return {"motion": motion, "c_eyes_lst": ce, "n_frames": self.n}
+
+
+def _silent_wav(tmp_path, sec=1.0, sr=16000):
+    p = str(tmp_path / "sil.wav")
+    sf.write(p, np.zeros(int(sec * sr), np.float32), sr)
+    return p
+
+
+def _single_sources():
+    return {
+        "mode": "single",
+        "open_s": {
+            "src_img": object(),
+            "src_info": [[None, np.zeros((106, 2))]],
+            "lip_close_ratio": 0.0023,
+        },
+    }
+
+
+def test_lip_lock_forces_closed_cdl(tmp_path):
+    from fifth_render import stream_wav_frames
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJP(25)
+    sources = _single_sources()
+    stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+        lip_lock=True,
+    )
+    assert eng.cdls and all(abs(c - cfg.lip_closed) < 1e-6 for c in eng.cdls)
+
+
+def test_eyes_open_lock_overrides_native_c_eyes(tmp_path):
+    """ce_raw truthy(네이티브 감김)여도 eyes_open_lock=True면 전 프레임 눈 뜸."""
+    from fifth_render import stream_wav_frames
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJPWithEyes(n=25)
+    sources = _single_sources()
+    stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+        eyes_open_lock=True,
+    )
+    assert all(float(np.min(c)) > 0.1 for c in eng.ces), (
+        "eyes_open_lock이 네이티브 감김을 덮어야 함"
+    )
+
+
+def test_eyes_open_lock_none_keeps_native_c_eyes(tmp_path):
+    """미전달 시 네이티브 ce_raw 그대로 소비(회귀 0) → 감김 프레임 존재."""
+    from fifth_render import stream_wav_frames
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJPWithEyes(n=25)
+    sources = _single_sources()
+    stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+    )
+    assert any(float(np.min(c)) < 0.1 for c in eng.ces), "미전달 시 네이티브 감김 유지"
+
+
+def test_head_sway_amp_applied_when_positive(tmp_path, monkeypatch):
+    import fifth_render
+    calls = {"n": 0, "amp": None}
+    monkeypatch.setattr(
+        fifth_render, "_apply_head_sway",
+        lambda ml, nj, amp, phase_offset=0: calls.update(n=calls["n"] + 1, amp=amp),
+    )
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJP(25)
+    sources = _single_sources()
+    fifth_render.stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+        head_sway_amp=0.6,
+    )
+    assert calls["n"] == 1 and calls["amp"] == 0.6
+
+
+def test_head_sway_none_does_not_call(tmp_path, monkeypatch):
+    import fifth_render
+    calls = {"n": 0}
+    monkeypatch.setattr(
+        fifth_render, "_apply_head_sway",
+        lambda *a, **k: calls.update(n=calls["n"] + 1),
+    )
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJP(25)
+    sources = _single_sources()
+    fifth_render.stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+    )
+    assert calls["n"] == 0
