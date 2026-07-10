@@ -42,6 +42,8 @@ import { useFaceEnroll, FACE_ENROLL_VECTOR_COUNT } from "../../face/useFaceEnrol
 import { shouldCleanupOrphanOnSuggest } from "../../face/faceEnrollGuard";
 import type { SpeakerEvent } from "../../face/speakerIdReducer";
 import { createPerson, saveFaceConsent, listPersons, deletePerson, type Person } from "../../api/persons";
+import { getFaceBiometricConsent } from "../../api/consent";
+import { decideEnrollSuggestAction } from "../../face/autoEnrollGuard";
 import { FACE_DIAG_ENABLED, formatFaceHud, type FaceDiag } from "../../config/faceDiag";
 import TermsModal from "../../components/common/TermsModal";
 import { FaceEnrollCard } from "../../components/call/FaceEnrollCard";
@@ -172,6 +174,31 @@ export default function CallScreen({ route, navigation }: Props) {
 
   }, [accessToken]);
 
+  const [faceBiometricConsent, setFaceBiometricConsent] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!accessToken) return;
+    let cancelled = false;
+    getFaceBiometricConsent(accessToken)
+      .then((r) => {
+        if (cancelled) return;
+        setFaceBiometricConsent(r.state === "granted");
+        console.log(`[Call][face] getFaceBiometricConsent ← granted=${r.state === "granted"}`);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setFaceBiometricConsent(false); 
+        console.warn("[Call][face] getFaceBiometricConsent failed, fallback to card flow:", err);
+      });
+    return () => {
+      cancelled = true;
+    };
+
+  }, [accessToken]);
+
+  const autoEnrolledNoNameRef = useRef<Set<number>>(new Set());
+
+  const silentEnrollRef = useRef(false);
+
   const [enrollCardVisible, setEnrollCardVisible] = useState(false);
   const [enrollName, setEnrollName] = useState("");
   const [enrollPolicyModalVisible, setEnrollPolicyModalVisible] = useState(false);
@@ -277,7 +304,21 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const handleEnrollSuggestImpl = useCallback(
     (name: string) => {
-      if (faceEnroll.status === "enrolling") return;
+      const action = decideEnrollSuggestAction({
+        personId: undefined, 
+        faceBiometricConsent,
+        autoEnrolledNoName: false, 
+        enrolling: faceEnroll.status === "enrolling",
+      });
+
+      if (action.kind === "ignore") return;
+
+      if (action.kind === "silent") {
+
+        silentEnrollRef.current = true;
+        void faceEnroll.enrollSilent();
+        return;
+      }
 
       const pendingId = faceEnroll.getPendingPersonId();
       const shouldCleanup = shouldCleanupOrphanOnSuggest({
@@ -298,7 +339,7 @@ export default function CallScreen({ route, navigation }: Props) {
       setEnrollName(name);
       setEnrollCardVisible(true);
     },
-    [faceEnroll, accessToken],
+    [faceEnroll, accessToken, faceBiometricConsent],
   );
   useEffect(() => {
     enrollSuggestImplRef.current = handleEnrollSuggestImpl;
@@ -430,13 +471,26 @@ export default function CallScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     if (faceEnroll.status === "success") {
-      setToastMessage(`${submittedEnrollNameRef.current}님, 이제 기억할게요`);
-      setEnrollCardVisible(false);
-      setEnrollName("");
+      if (silentEnrollRef.current) {
+
+        const pid = faceEnroll.getEnrolledPersonId();
+        if (pid != null) autoEnrolledNoNameRef.current.add(pid);
+        silentEnrollRef.current = false;
+      } else {
+        setToastMessage(`${submittedEnrollNameRef.current}님, 이제 기억할게요`);
+        setEnrollCardVisible(false);
+        setEnrollName("");
+      }
       faceEnroll.reset();
       unknownFaceSnapshotRef.current = null; 
     } else if (faceEnroll.status === "error") {
-      setToastMessage("등록에 실패했어요. 다시 시도해 주세요");
+      if (silentEnrollRef.current) {
+
+        silentEnrollRef.current = false;
+        faceEnroll.reset();
+      } else {
+        setToastMessage("등록에 실패했어요. 다시 시도해 주세요");
+      }
     }
 
   }, [faceEnroll.status]);

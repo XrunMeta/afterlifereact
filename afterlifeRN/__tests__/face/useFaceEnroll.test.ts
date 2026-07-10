@@ -432,3 +432,62 @@ test("getEnrolledPersonId: reset() 후 null(카드 enroll()과 동일 상태 공
   });
   expect(result.current.getEnrolledPersonId()).toBeNull();
 });
+
+test("reset() 없이 두 번째 silent 후보를 등록하면 이전 person id 로 오귀속(reset 누락의 위험성 증명)", async () => {
+  const personA = { id: 201, consentState: "granted" as const };
+  const createPersonFn = jest.fn().mockResolvedValueOnce(personA); 
+  const saveFaceConsentFn = jest.fn();
+  const enrollFacesFn = jest.fn().mockResolvedValue({ enrolled: 1 });
+  const bufferA = makeBuffer([[1, 1]]);
+
+  const { result } = renderHook(() =>
+    useFaceEnroll({
+      accessToken: "tok",
+      getBuffer: () => bufferA,
+      deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
+    }),
+  );
+
+  await act(async () => {
+    await result.current.enrollSilent();
+  });
+  expect(result.current.getEnrolledPersonId()).toBe(201);
+
+  await act(async () => {
+    await result.current.enrollSilent();
+  });
+  expect(createPersonFn).toHaveBeenCalledTimes(1); 
+  expect(result.current.getEnrolledPersonId()).toBe(201); 
+});
+
+test("reset() 이 두 번째 silent 후보 등록 전에 선행되면 각 후보가 독립된 person 으로 생성됨(CallScreen 배선 전제)", async () => {
+  const personA = { id: 301, consentState: "granted" as const };
+  const personB = { id: 302, consentState: "granted" as const };
+  const createPersonFn = jest.fn().mockResolvedValueOnce(personA).mockResolvedValueOnce(personB);
+  const saveFaceConsentFn = jest.fn();
+  const enrollFacesFn = jest.fn().mockResolvedValue({ enrolled: 1 });
+  const buffer = makeBuffer([[1, 1]]);
+
+  const { result } = renderHook(() =>
+    useFaceEnroll({
+      accessToken: "tok",
+      getBuffer: () => buffer,
+      deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
+    }),
+  );
+
+  await act(async () => {
+    await result.current.enrollSilent();
+  });
+  expect(result.current.getEnrolledPersonId()).toBe(301);
+  act(() => {
+    result.current.reset();
+  });
+  expect(result.current.getEnrolledPersonId()).toBeNull();
+
+  await act(async () => {
+    await result.current.enrollSilent();
+  });
+  expect(createPersonFn).toHaveBeenCalledTimes(2);
+  expect(result.current.getEnrolledPersonId()).toBe(302);
+});
