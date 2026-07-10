@@ -9,12 +9,12 @@ import path from 'node:path';
 import { suggestGuideMents as defaultSuggestGuideMents } from '../lib/guideMentSuggest.js';
 
 export const FILLER_SPECS = [
-  { text: '음..... 음... 음..' },
-  { text: '음... 음.....' },
-  { text: '으음... 음.....' },
-  { text: '아........ 음...' },
-  { text: '음... 아.....' },
-  { text: '아.....', atempo: 0.55 },
+  { text: '음..... 음... 음..', render_opts: { eyes_open_lock: true, lip_lock: true, head_sway_amp: 0.0 } },
+  { text: '음... 음.....', render_opts: { eyes_open_lock: true, lip_lock: true, head_sway_amp: 0.0 } },
+  { text: '으음... 음.....', render_opts: { eyes_open_lock: true, lip_lock: true, head_sway_amp: 0.6 } },
+  { text: '음..... 음...', render_opts: { eyes_open_lock: true, lip_lock: true, head_sway_amp: 0.6 } }, 
+  { text: '음... 으음...', render_opts: { eyes_open_lock: true, lip_lock: true, head_sway_amp: 0.0 } }, 
+  { text: '흠.....', atempo: 0.55, render_opts: { eyes_open_lock: true, lip_lock: true, head_sway_amp: 0.3 } }, 
 ];
 
 export const FILLER_TEXTS = FILLER_SPECS.map((s) => s.text);
@@ -150,7 +150,7 @@ export async function defaultQwenTts(text, cloneId, ttsUrl, fetchFn) {
   return Buffer.from(await r.arrayBuffer());
 }
 
-export async function defaultFifthRender(wavPath, facePath, renderUrl) {
+export async function defaultFifthRender(wavPath, facePath, renderUrl, renderOpts = null) {
   const { default: http } = await import('node:http');
   const { default: https } = await import('node:https');
 
@@ -160,7 +160,10 @@ export async function defaultFifthRender(wavPath, facePath, renderUrl) {
       return reject(new Error(`invalid fifthRenderUrl: ${renderUrl}`));
     }
     const mod = u.protocol === 'https:' ? https : http;
-    const bodyBuf = Buffer.from(JSON.stringify({ wav_path: wavPath, video_path: facePath }));
+
+    const bodyObj = { wav_path: wavPath, video_path: facePath };
+    if (renderOpts && typeof renderOpts === 'object') Object.assign(bodyObj, renderOpts);
+    const bodyBuf = Buffer.from(JSON.stringify(bodyObj));
 
     const req = mod.request(
       {
@@ -250,7 +253,7 @@ export function createAssetJobRunner({
   let running = false;
 
   const qwenTtsFn = _qwenTtsFn ?? ((text, cloneId, url, fetchFn) => defaultQwenTts(text, cloneId, url, fetchFn));
-  const fifthRenderFn = _fifthRenderFn ?? ((wavPath, facePath, url) => defaultFifthRender(wavPath, facePath, url));
+  const fifthRenderFn = _fifthRenderFn ?? ((wavPath, facePath, url, renderOpts) => defaultFifthRender(wavPath, facePath, url, renderOpts));
   const ensureVoiceWavFn = _ensureVoiceWavFn ?? defaultEnsureVoiceWav;
 
   async function drain() {
@@ -370,7 +373,7 @@ export function createAssetJobRunner({
       const padCmd = ffmpegPadCmd(rawWavPath, fillerWavPath, targetDur, spec.atempo);
       await run(padCmd.bin, padCmd.args, spawnImpl);
 
-      const frames = await fifthRenderFn(fillerWavPath, faceJpgPath, fifthRenderUrl);
+      const frames = await fifthRenderFn(fillerWavPath, faceJpgPath, fifthRenderUrl, spec.render_opts);
       if (frames.length === 0) {
         throw new Error(
           `fifth returned 0 frames for filler[${i}] — face source may be unsuitable (non-frontal or low-resolution)`
