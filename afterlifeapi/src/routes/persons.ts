@@ -6,6 +6,7 @@ import { APIError } from "../lib/errors";
 import { requireAuth } from "../middleware/auth";
 import { getFaceIndex } from "../lib/faceVectors";
 import { deletePersonCascade } from "../lib/personDelete";
+import { assertValidDisplayName } from "../lib/displayName";
 
 export const persons = new Hono<AppEnv>();
 
@@ -26,18 +27,7 @@ persons.post("/", requireAuth, async (c) => {
 
   let displayName: string | null = null;
   if (body.displayName !== undefined) {
-    if (typeof body.displayName !== "string") {
-      throw new APIError("VALIDATION_FAILED", "displayName은 문자열이어야 합니다.");
-    }
-    const trimmed = body.displayName.trim();
-    if (trimmed.length < 1 || trimmed.length > 30) {
-      throw new APIError("VALIDATION_FAILED", "displayName은 1~30자여야 합니다.");
-    }
-
-    if (/[\x00-\x1f\x7f​-‏‪-‮⁠-⁯﻿]/.test(trimmed)) {
-      throw new APIError("VALIDATION_FAILED", "displayName에 제어문자를 사용할 수 없습니다.");
-    }
-    displayName = trimmed;
+    displayName = assertValidDisplayName(body.displayName);
   }
 
   let enrolledVia: "card" | "auto_biometric" = "card";
@@ -347,16 +337,7 @@ persons.patch("/:id", requireAuth, async (c) => {
   const personId = parsePersonId(c);
   const body = await c.req.json<{ displayName?: string }>().catch(() => ({}) as { displayName?: string });
 
-  if (typeof body.displayName !== "string") {
-    throw new APIError("VALIDATION_FAILED", "displayName은 문자열이어야 합니다.");
-  }
-  const trimmed = body.displayName.trim();
-  if (trimmed.length < 1 || trimmed.length > 30) {
-    throw new APIError("VALIDATION_FAILED", "displayName은 1~30자여야 합니다.");
-  }
-  if (/[\x00-\x1f\x7f​-‏‪-‮⁠-⁯﻿]/.test(trimmed)) {
-    throw new APIError("VALIDATION_FAILED", "displayName에 제어문자를 사용할 수 없습니다.");
-  }
+  const trimmed = assertValidDisplayName(body.displayName);
 
   const owned = await c.env.DB.prepare(`SELECT id FROM persons WHERE id = ? AND user_id = ?`)
     .bind(personId, userId)
