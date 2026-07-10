@@ -1,6 +1,9 @@
 
 
-import { saveCallLearningConsent, getCallLearningConsent } from '../../src/api/consent';
+import {
+  saveCallLearningConsent, getCallLearningConsent,
+  saveFaceBiometricConsent, getFaceBiometricConsent,
+} from '../../src/api/consent';
 
 jest.mock('../../src/lib/authFetch', () => ({
   authFetch: jest.fn(),
@@ -88,5 +91,63 @@ describe('getCallLearningConsent', () => {
     const s = await getCallLearningConsent(ACCESS_TOKEN);
 
     expect(s).toBe('none');
+  });
+});
+
+describe('saveFaceBiometricConsent', () => {
+  it('POST /oth-path 를 state·옵션과 함께 호출', async () => {
+    mockAuthFetch.mockResolvedValueOnce({ ok: true, state: 'granted' });
+
+    const r = await saveFaceBiometricConsent(ACCESS_TOKEN, 'granted', { termsVersion: 'v1', channel: 'signup' });
+
+    expect(mockAuthFetch).toHaveBeenCalledTimes(1);
+    const [path, token, init] = mockAuthFetch.mock.calls[0] as unknown as [string, string, RequestInit, ...unknown[]];
+    expect(path).toBe('/oth-path');
+    expect(token).toBe(ACCESS_TOKEN);
+    expect(init.method).toBe('POST');
+
+    const body = JSON.parse(init.body as string) as Record<string, unknown>;
+    expect(body.state).toBe('granted');
+    expect(body.termsVersion).toBe('v1');
+    expect(body.channel).toBe('signup');
+    expect(r.state).toBe('granted');
+  });
+
+  it('옵션 없이 호출하면 body 에 state 만 포함된다', async () => {
+    mockAuthFetch.mockResolvedValueOnce({ ok: true, state: 'revoked' });
+
+    await saveFaceBiometricConsent(ACCESS_TOKEN, 'revoked');
+
+    const [, , init] = mockAuthFetch.mock.calls[0] as unknown as [string, string, RequestInit, ...unknown[]];
+    const body = JSON.parse(init.body as string) as Record<string, unknown>;
+    expect(body).not.toHaveProperty('termsVersion');
+    expect(body).not.toHaveProperty('channel');
+  });
+});
+
+describe('getFaceBiometricConsent', () => {
+  it('GET /oth-path 의 face_biometric 필드 반환', async () => {
+    mockAuthFetch.mockResolvedValueOnce({
+      call_learning: { state: 'none', at: null },
+      face_biometric: { state: 'granted', at: 123, version: 'v1' },
+    });
+
+    const r = await getFaceBiometricConsent(ACCESS_TOKEN);
+
+    expect(mockAuthFetch).toHaveBeenCalledTimes(1);
+    const [path, , init] = mockAuthFetch.mock.calls[0] as unknown as [string, string, RequestInit, ...unknown[]];
+    expect(path).toBe('/oth-path');
+    expect(init.method).toBe('GET');
+    expect(r).toEqual({ state: 'granted', at: 123, version: 'v1' });
+  });
+
+  it('미동의 상태 {state:"none", version:null} 도 그대로 반환', async () => {
+    mockAuthFetch.mockResolvedValueOnce({
+      call_learning: { state: 'none', at: null },
+      face_biometric: { state: 'none', at: null, version: null },
+    });
+
+    const r = await getFaceBiometricConsent(ACCESS_TOKEN);
+    expect(r).toEqual({ state: 'none', at: null, version: null });
   });
 });
