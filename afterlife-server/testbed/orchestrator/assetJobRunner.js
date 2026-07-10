@@ -44,6 +44,8 @@ const v_b6be30 = 600;
 
 export const v_ae5012 = 0.3;
 
+const v_6c5db3 = -20;
+
 export function v_aefc06(v_58fa67, v_3a62ab, v_b236cc, v_2fd1e9) {
   const v_5cce2c = v_2fd1e9 ? `atempo=${v_2fd1e9},` : '';
   return {
@@ -57,7 +59,8 @@ export function v_aefc06(v_58fa67, v_3a62ab, v_b236cc, v_2fd1e9) {
   };
 }
 
-export function v_7e9d02(v_7746b5, v_f2bb81, v_dc7792) {
+export function v_7e9d02(v_7746b5, v_f2bb81, v_dc7792, v_db78a8 = null) {
+  const v_23f9d9 = v_db78a8 != null ? ['-af', `volume=${v_db78a8}dB`] : [];
   return {
     bin: 'ffmpeg',
     args: [
@@ -67,6 +70,7 @@ export function v_7e9d02(v_7746b5, v_f2bb81, v_dc7792) {
       '-i', v_f2bb81,
       '-c:v', 'libx264',
       '-pix_fmt', 'yuv420p',
+      ...v_23f9d9,
       '-c:a', 'aac',
       '-shortest',
       v_dc7792,
@@ -388,7 +392,7 @@ export function v_47bade({
       }
 
       const v_f1812c = v_9fe22d.join(v_b7cff2, `filler_${v_ebec57}.mp4`);
-      const v_10dec2 = v_59eea3(v_7746b5, v_6f2e2a, v_f1812c);
+      const v_10dec2 = v_59eea3(v_7746b5, v_6f2e2a, v_f1812c, v_6c5db3);
       await v_d9b231(v_10dec2.bin, v_10dec2.args, v_b1d1a2);
       v_163edf.push(await v_c6410d(v_f1812c));
     }

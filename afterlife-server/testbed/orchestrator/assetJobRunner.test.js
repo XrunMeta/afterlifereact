@@ -4,7 +4,7 @@ import { v_354e0a, v_f4ad91, v_cdd5c2 } from 'fnffflguqbrqugbi';
 import { v_eaee41, v_086912 } from 'hbppvrg';
 import { v_315113 } from 'wiosxndes';
 import { v_171b31 } from 'xxkrszo';
-import { v_47bade, v_ddfcca, v_9aedb6, v_af8891, v_15296d, v_aefc06, v_ff5f5c } from './assetJobRunner.js';
+import { v_47bade, v_ddfcca, v_9aedb6, v_af8891, v_15296d, v_aefc06, v_7e9d02, v_ff5f5c } from './assetJobRunner.js';
 
 const v_cc9198 = 'https://oth-path.example.com';
 
@@ -1874,4 +1874,54 @@ v_2a805f('defaultFifthRender: renderOpts 미전달 시 body 불변(회귀 0, T-1
   } finally {
     v_9bdcf4.close();
   }
+});
+
+v_2a805f('defaultFfmpegMuxCmd: audioVolumeDb 전달 시 -af volume=<N>dB 포함, 미전달 시 없음', () => {
+  const v_31aa7e = v_7e9d02('/tmp/frames', '/tmp/a.wav', '/tmp/out.mp4', -20);
+  const v_5687e5 = v_31aa7e.args.join(' ');
+  v_ce93bd.match(v_5687e5, /-af volume=-20dB/, '-af volume=-20dB 포함 필요');
+
+  const v_05f015 = v_31aa7e.args.indexOf('-af');
+  const v_d00821 = v_31aa7e.args.indexOf('-c:a');
+  v_ce93bd.ok(v_05f015 >= 0 && v_d00821 >= 0 && v_05f015 < v_d00821, '-af 는 -c:a 앞에 위치해야 함');
+
+  const v_484958 = v_7e9d02('/tmp/frames', '/tmp/a.wav', '/tmp/out.mp4');
+  v_ce93bd.equal(v_484958.args.includes('-af'), false, '미전달 시 -af 없어야 함(회귀 0)');
+  v_ce93bd.equal(v_484958.args[v_484958.args.length - 1], '/tmp/out.mp4', '마지막 인자=출력 경로 계약 유지');
+});
+
+v_2a805f('filler mux 호출은 항상 audioVolumeDb=-20 을 4번째 인자로 받음(T-120)', async () => {
+  const v_0a664b = [];
+  const v_7eab3e = [];
+  const v_4bd74e = [];
+
+  const v_e3ee5d = (v_7746b5, v_f2bb81, v_dc7792, v_db78a8) => {
+    v_4bd74e.push(v_db78a8);
+    return { bin: 'echo', args: [v_dc7792] };
+  };
+
+  const v_eedf31 = v_47bade({
+    apiBaseUrl: v_cc9198,
+    fetchImpl: v_d73cc8({ callbackCalls: v_0a664b, fillerCallbackCalls: v_7eab3e }),
+    spawnImpl: v_142ee6(0),
+    _qwenTtsFn: v_b41a6d(),
+    _fifthRenderFn: v_1fb003({ framesCount: 3 }),
+    ffmpegMuxCmd: v_e3ee5d,
+    _ensureVoiceWavFn: v_096d67(),
+  });
+
+  v_eedf31.enqueue({
+    job_id: 'fj_mux_db',
+    kind: 'filler',
+    clone_id: '9055',
+    face_url: `${v_cc9198}/oth-path`,
+    voice_raw_url: `${v_cc9198}/oth-path`,
+    callback_token: 'tok_fj_mux_db',
+  });
+
+  await v_26eff3(v_eedf31, 4000);
+
+  v_ce93bd.equal(v_7eab3e.length, 1, '전부 성공해야 함');
+  v_ce93bd.equal(v_4bd74e.length, v_ddfcca.length);
+  v_ce93bd.ok(v_4bd74e.every((v_a1651b) => v_a1651b === -20), 'mux 호출마다 audioVolumeDb=-20 이어야 함');
 });
