@@ -1742,3 +1742,43 @@ def test_render_body_override_partial_beats_batch_env(tmp_path, monkeypatch):
     # partial 경로: 첫 프레임부터 즉시 write → 관찰 시점마다 buf 가 이미 커져 있음
     assert observed_mid_render_lengths[0] > 0
     assert all(x > 0 for x in observed_mid_render_lengths)
+
+
+# ---------------------------------------------------------------------------
+# T-120: lip_lock / head_sway_amp / eyes_open_lock 파싱 + _idle_kwargs 확장
+# ---------------------------------------------------------------------------
+
+
+def test_parse_render_body_extracts_new_opts():
+    import json
+    from fifth_render_server import _parse_render_body
+
+    body = json.dumps({
+        "wav_path": "/x/a.wav",
+        "video_path": "/x/f.jpg",
+        "lip_lock": True,
+        "head_sway_amp": 0.6,
+        "eyes_open_lock": True,
+    }).encode()
+    _, _, _, o = _parse_render_body(body)
+    assert o["lip_lock"] is True and o["head_sway_amp"] == 0.6 and o["eyes_open_lock"] is True
+
+
+def test_parse_render_body_defaults_none():
+    import json
+    from fifth_render_server import _parse_render_body
+
+    body = json.dumps({"wav_path": "/x/a.wav", "video_path": "/x/f.jpg"}).encode()
+    _, _, _, o = _parse_render_body(body)
+    assert o["lip_lock"] is None and o["head_sway_amp"] is None and o["eyes_open_lock"] is None
+
+
+def test_idle_kwargs_includes_new_opts_and_excludes_none():
+    from fifth_render_server import _idle_kwargs
+
+    assert _idle_kwargs({
+        "lip_lock": True, "head_sway_amp": 0.6, "eyes_open_lock": True, "blink": False,
+    }) == {"lip_lock": True, "head_sway_amp": 0.6, "eyes_open_lock": True}
+    assert _idle_kwargs({
+        "lip_lock": None, "head_sway_amp": None, "eyes_open_lock": None,
+    }) == {}
