@@ -15,6 +15,12 @@ import soundfile as sf
 from audio2lip import compute_rms_envelope, rms_to_cdlip
 from phase_token import PhaseToken
 
+# T-120: LivePortrait exp(21 keypoints) 중 입 관련 keypoint 인덱스
+# (faster_live_portrait_pipeline.py lip_idx 계약). source_face_lock=True 시
+# 이 6개만 소스 exp로 고정하고 나머지 15개(눈·눈썹 등)는 JoyVASA 원본 모션을
+# 유지해 눈동자 움직임을 살린다(히즈키 피드백, 클로 컨테이너 실증).
+_LIP_IDX = [6, 12, 14, 17, 19, 20]
+
 
 def _tok_passthrough(tok: PhaseToken) -> PhaseToken:
     """출력 프레임 0장(count==0) — 위상 불진전 토큰 반환.
@@ -258,9 +264,11 @@ def stream_wav_frames(
     None(기본)이면 no-op — 기존 동작과 100% 동일(회귀 0). lip_lock=True 시 c_d_lip 를
     cfg.lip_closed 로 고정, head_sway_amp>0 시 절차적 머리 흔들림 주입,
     eyes_open_lock=True 시 c_eyes 를 열림값으로 고정(JoyVASA 네이티브 c_eyes_lst와
-    합성 blink 모두 무시). source_face_lock=True 시 exp 를 소스(원본 사진) exp로,
-    c_d_lip 를 소스 lip_close_ratio 로 고정 — 입이 오디오와 무관하게 원본 사진
-    그대로 유지된다(lip_lock의 c_d_lip 강제 닫힘보다 강함; exp 자체를 잠근다).
+    합성 blink 모두 무시). source_face_lock=True 시 exp 의 lip 키포인트(_LIP_IDX,
+    6개)만 소스(원본 사진) exp로 고정하고 c_d_lip 도 소스 lip_close_ratio 로 고정 —
+    입이 오디오와 무관하게 원본 사진 그대로 유지된다(lip_lock의 c_d_lip 강제 닫힘보다
+    강함). 나머지 15개 keypoint(눈·눈썹 등)는 JoyVASA 원본 모션을 유지해 눈동자
+    움직임을 살린다(히즈키 피드백: 전체 exp 고정 → lip-only 고정으로 전환).
 
     blink_interval_sec: eyes_open_lock=True 일 때 make_blink_sequence 의
     avg_interval_sec 로 사용(눈 깜빡임 재도입, None이면 기존 1e9=무깜빡).
@@ -320,13 +328,17 @@ def stream_wav_frames(
             pitch_offset_deg=(head_pitch_offset or 0.0),
         )
 
-    # T-120: source_face_lock — exp를 소스(원본 사진) exp로 고정(오디오·JoyVASA 무관).
+    # T-120: source_face_lock — exp의 lip 키포인트(_LIP_IDX, 6개)만 소스(원본 사진)
+    # exp로 고정(오디오·JoyVASA 무관). 나머지 15개(눈·눈썹 등)는 JoyVASA 원본 모션을
+    # 유지해 눈동자 움직임을 살린다(히즈키 피드백: 전체 고정→lip-only 전환).
     # head_sway는 R만 건드리므로 순서는 무관하나, exp 최종 확정을 위해 head_sway 뒤에 적용.
     if source_face_lock:
         src_exp = np.asarray(sources["open_s"]["src_info"][0][0]["exp"]).astype(np.float32)
         for i in range(nj):
             m = dict(ml[i])
-            m["exp"] = src_exp.copy()
+            e = np.asarray(m["exp"]).astype(np.float32).copy()
+            e[:, _LIP_IDX, :] = src_exp[:, _LIP_IDX, :]
+            m["exp"] = e
             ml[i] = m
 
     # §6+§7 후 실제 시각 상태를 head_last 로 직렬화 (다음 청크 slew 출발점).
