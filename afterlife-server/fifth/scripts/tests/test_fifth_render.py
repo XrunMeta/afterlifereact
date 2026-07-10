@@ -439,14 +439,16 @@ def test_head_sway_nj_less_than_ramp():
 # ---------------------------------------------------------------------------
 
 class _CdlCeCaptureEngine:
-    """c_d_lip / c_eyes 인자를 캡처하는 fake engine (T-120 배선 검증용)."""
+    """c_d_lip / c_eyes / motion(exp) 인자를 캡처하는 fake engine (T-120 배선 검증용)."""
     def __init__(self):
         self.cdls = []
         self.ces = []
+        self.exps = []
 
     def render(self, motion, c_eyes, c_d_lip, first_frame, src_img=None, src_info=None):
         self.cdls.append(float(c_d_lip))
         self.ces.append(c_eyes)
+        self.exps.append(np.asarray(motion["exp"]).copy())
         return np.zeros((512, 512, 3), np.uint8)
 
 
@@ -481,12 +483,14 @@ def _silent_wav(tmp_path, sec=1.0, sr=16000):
 
 
 def _single_sources():
+    # src_info[0][0]: x_s_info dict(exp 포함, T-120 source_face_lock 계약).
+    # src_info[0][1]: source_lmk(106,2) — 기존 mouth_mask/_eye_open_ratio 경로용.
     return {
         "mode": "single",
         "open_s": {
             "src_img": object(),
-            "src_info": [[None, np.zeros((106, 2))]],
-            "lip_close_ratio": 0.0023,
+            "src_info": [[{"exp": np.full((1, 21, 3), 0.42, dtype=np.float32)}, np.zeros((106, 2))]],
+            "lip_close_ratio": 0.081,
         },
     }
 
@@ -571,3 +575,54 @@ def test_head_sway_none_does_not_call(tmp_path, monkeypatch):
         on_frame=lambda f: None, blink_enabled=False,
     )
     assert calls["n"] == 0
+
+
+# ---------------------------------------------------------------------------
+# T-120: source_face_lock — exp를 소스(원본 사진) exp로 고정 + cdl=소스 립비율
+# ---------------------------------------------------------------------------
+
+def test_source_face_lock_forces_exp_to_source(tmp_path):
+    """source_face_lock=True 시 모든 프레임의 motion["exp"]가 소스 exp와 동일해야 함."""
+    from fifth_render import stream_wav_frames
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJP(25)
+    sources = _single_sources()
+    stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+        source_face_lock=True,
+    )
+    src_exp = sources["open_s"]["src_info"][0][0]["exp"]
+    assert eng.exps and all(np.array_equal(e, src_exp) for e in eng.exps)
+
+
+def test_source_face_lock_forces_cdl_to_source_lip_ratio(tmp_path):
+    """source_face_lock=True 시 c_d_lip 전부 open_s["lip_close_ratio"](소스 원본 입) 고정."""
+    from fifth_render import stream_wav_frames
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJP(25)
+    sources = _single_sources()
+    stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+        source_face_lock=True,
+    )
+    expected = float(sources["open_s"]["lip_close_ratio"])
+    assert eng.cdls and all(abs(c - expected) < 1e-6 for c in eng.cdls)
+
+
+def test_source_face_lock_none_keeps_native_exp(tmp_path):
+    """미전달 시 JoyVASA 원본 exp 그대로 유지(회귀 0) — _FakeJP 는 exp=0 반환."""
+    from fifth_render import stream_wav_frames
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJP(25)
+    sources = _single_sources()
+    stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+    )
+    zeros = np.zeros((1, 21, 3), np.float32)
+    assert eng.exps and all(np.array_equal(e, zeros) for e in eng.exps)

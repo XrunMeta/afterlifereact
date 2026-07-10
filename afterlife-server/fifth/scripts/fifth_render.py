@@ -215,6 +215,7 @@ def stream_wav_frames(
     lip_lock: bool | None = None,
     head_sway_amp: float | None = None,
     eyes_open_lock: bool | None = None,
+    source_face_lock: bool | None = None,
 ) -> tuple[int, PhaseToken]:
     """wav 한 문장 → 프레임 생성마다 on_frame(rgb) 호출. 반환: (프레임 수, 끝 위상 토큰).
 
@@ -228,11 +229,13 @@ def stream_wav_frames(
     인자 우선, None(기본, 미지정)이면 기존 env(FIFTH_IDLE_MOTION_SCALE 등) 사용
     → 인자 미지정 시 기존 동작 100% 동일(회귀 0).
 
-    T-120 필러 표정: lip_lock/head_sway_amp/eyes_open_lock 은 모두 None(기본)이면
-    no-op — 기존 동작과 100% 동일(회귀 0). lip_lock=True 시 c_d_lip 를
+    T-120 필러 표정: lip_lock/head_sway_amp/eyes_open_lock/source_face_lock 은 모두
+    None(기본)이면 no-op — 기존 동작과 100% 동일(회귀 0). lip_lock=True 시 c_d_lip 를
     cfg.lip_closed 로 고정, head_sway_amp>0 시 절차적 머리 흔들림 주입,
     eyes_open_lock=True 시 c_eyes 를 열림값으로 고정(JoyVASA 네이티브 c_eyes_lst와
-    합성 blink 모두 무시).
+    합성 blink 모두 무시). source_face_lock=True 시 exp 를 소스(원본 사진) exp로,
+    c_d_lip 를 소스 lip_close_ratio 로 고정 — 입이 오디오와 무관하게 원본 사진
+    그대로 유지된다(lip_lock의 c_d_lip 강제 닫힘보다 강함; exp 자체를 잠근다).
     """
     from base_source import base_blend_weight
 
@@ -279,6 +282,15 @@ def stream_wav_frames(
     if head_sway_amp is not None:
         _apply_head_sway(ml, nj, float(head_sway_amp), phase_offset=tok.blink_phase)
 
+    # T-120: source_face_lock — exp를 소스(원본 사진) exp로 고정(오디오·JoyVASA 무관).
+    # head_sway는 R만 건드리므로 순서는 무관하나, exp 최종 확정을 위해 head_sway 뒤에 적용.
+    if source_face_lock:
+        src_exp = np.asarray(sources["open_s"]["src_info"][0][0]["exp"]).astype(np.float32)
+        for i in range(nj):
+            m = dict(ml[i])
+            m["exp"] = src_exp.copy()
+            ml[i] = m
+
     # §6+§7 후 실제 시각 상태를 head_last 로 직렬화 (다음 청크 slew 출발점).
     # 슬루는 첫 K 프레임만 수정 → 마지막 프레임(nj-1)은 idle 억제만 반영.
     # head_last가 실제 렌더된 마지막 head pose를 가리켜야 다음 청크 slew가 자연스럽게 연결됨.
@@ -312,10 +324,10 @@ def stream_wav_frames(
 
     if sources["mode"] == "single":
         count = _stream_single(eng, cfg, sources["open_s"], env, ml, ce, nj, n, on_frame, tok,
-                                lip_lock=bool(lip_lock))
+                                lip_lock=bool(lip_lock), source_face_lock=bool(source_face_lock))
     else:
         count = _stream_blend(eng, cfg, sources, env, ml, ce, nj, n, on_frame, base_blend_weight, tok,
-                               lip_lock=bool(lip_lock))
+                               lip_lock=bool(lip_lock), source_face_lock=bool(source_face_lock))
 
     if count == 0:
         # wav 는 있으나 eng.render() 가 전부 None → 출력 0장 → 위상 불진전.
@@ -346,13 +358,18 @@ def _eye_open_ratio(src_d: dict) -> float:
 
 
 def _stream_single(eng, cfg, open_s, env, ml, ce, nj, n, on_frame, tok: PhaseToken,
-                    lip_lock: bool = False) -> int:
+                    lip_lock: bool = False, source_face_lock: bool = False) -> int:
     """단일 소스(open_s만) 렌더 루프. render_offline.py L653~668 이식.
 
     T-120: lip_lock=True 시 c_d_lip 전체를 cfg.lip_closed 로 고정(오디오 무관).
+    source_face_lock=True 시 c_d_lip 전체를 open_s["lip_close_ratio"](소스 원본 입
+    비율)로 고정 — exp 잠금(stream_wav_frames)과 짝을 이뤄 원본 사진 입을 그대로
+    유지한다. lip_lock 보다 우선(source_face_lock이 exp까지 잠그는 상위 개념).
     """
     lip_closed = cfg.lip_closed
-    if lip_lock:
+    if source_face_lock:
+        cdl = np.full(max(n, 1), float(open_s["lip_close_ratio"]), dtype=np.float32)
+    elif lip_lock:
         cdl = np.full(max(n, 1), lip_closed, dtype=np.float32)
     else:
         cdl = rms_to_cdlip(
@@ -385,13 +402,17 @@ def _stream_single(eng, cfg, open_s, env, ml, ce, nj, n, on_frame, tok: PhaseTok
 
 
 def _stream_blend(eng, cfg, sources, env, ml, ce, nj, n, on_frame, base_blend_weight, tok: PhaseToken,
-                   lip_lock: bool = False) -> int:
+                   lip_lock: bool = False, source_face_lock: bool = False) -> int:
     """입마스크 블렌드 렌더 루프. render_offline.py L500~556 (blend_region="mouth") 이식.
 
     T-120: lip_lock=True 시 cdl_o/cdl_c 를 각각 lc_open/lc_closed 로 고정(오디오 무관).
     주의(エル 게이트): blend 모드의 lip_lock은 cfg.lip_closed 완전닫힘이 아니라
     source 의 lip_close_ratio 기준값 — 완전 닫힘이 보장되지 않을 수 있다. 필러는
     항상 single 모드로만 렌더되므로 이 경로는 실질적으로 도달하지 않는다(무해).
+
+    source_face_lock=True 시 cdl_o/cdl_c 를 각각 open_s/closed_s 의 원본
+    lip_close_ratio(비클램프)로 고정 — exp 잠금과 동일 개념. 필러는 항상 single
+    모드이므로 이 분기도 실질적으로 도달하지 않는다(무해, single 우선 구현).
     """
     open_s = sources["open_s"]
     closed_s = sources["closed_s"]
@@ -403,7 +424,10 @@ def _stream_blend(eng, cfg, sources, env, ml, ce, nj, n, on_frame, base_blend_we
     lc_open = _clamp(open_s["lip_close_ratio"])
     lc_closed = _clamp(closed_s["lip_close_ratio"])
 
-    if lip_lock:
+    if source_face_lock:
+        cdl_o = np.full(max(n, 1), float(open_s["lip_close_ratio"]), dtype=np.float32)
+        cdl_c = np.full(max(n, 1), float(closed_s["lip_close_ratio"]), dtype=np.float32)
+    elif lip_lock:
         cdl_o = np.full(max(n, 1), lc_open, dtype=np.float32)
         cdl_c = np.full(max(n, 1), lc_closed, dtype=np.float32)
     else:
