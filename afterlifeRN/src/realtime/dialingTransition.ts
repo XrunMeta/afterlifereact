@@ -10,7 +10,7 @@ export interface DialingConfig {
   timeoutMs: number;
 }
 
-export const DEFAULT_DIALING_CONFIG: DialingConfig = { minMs: 3000, timeoutMs: 20000 };
+export const DEFAULT_DIALING_CONFIG: DialingConfig = { minMs: 500, timeoutMs: 20000 };
 
 export function dialingOutcome(
   liveState: LiveAvatarState,
