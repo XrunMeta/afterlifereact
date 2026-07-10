@@ -1759,9 +1759,11 @@ def test_parse_render_body_extracts_new_opts():
         "lip_lock": True,
         "head_sway_amp": 0.6,
         "eyes_open_lock": True,
+        "source_face_lock": True,
     }).encode()
     _, _, _, o = _parse_render_body(body)
     assert o["lip_lock"] is True and o["head_sway_amp"] == 0.6 and o["eyes_open_lock"] is True
+    assert o["source_face_lock"] is True
 
 
 def test_parse_render_body_defaults_none():
@@ -1771,14 +1773,20 @@ def test_parse_render_body_defaults_none():
     body = json.dumps({"wav_path": "/x/a.wav", "video_path": "/x/f.jpg"}).encode()
     _, _, _, o = _parse_render_body(body)
     assert o["lip_lock"] is None and o["head_sway_amp"] is None and o["eyes_open_lock"] is None
+    assert o["source_face_lock"] is None
 
 
 def test_idle_kwargs_includes_new_opts_and_excludes_none():
     from fifth_render_server import _idle_kwargs
 
     assert _idle_kwargs({
-        "lip_lock": True, "head_sway_amp": 0.6, "eyes_open_lock": True, "blink": False,
-    }) == {"lip_lock": True, "head_sway_amp": 0.6, "eyes_open_lock": True}
+        "lip_lock": True, "head_sway_amp": 0.6, "eyes_open_lock": True,
+        "source_face_lock": True, "blink": False,
+    }) == {
+        "lip_lock": True, "head_sway_amp": 0.6, "eyes_open_lock": True,
+        "source_face_lock": True,
+    }
     assert _idle_kwargs({
         "lip_lock": None, "head_sway_amp": None, "eyes_open_lock": None,
+        "source_face_lock": None,
     }) == {}
