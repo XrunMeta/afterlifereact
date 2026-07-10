@@ -31,6 +31,23 @@ async function issueAccessToken(userId: number): Promise<string> {
   return await issueToken({ sub: userId, kind: "access" }, secret, 60 * 10);
 }
 
+async function seedUserWithToken(email: string): Promise<{ id: number; token: string }> {
+  const { hashPassword } = await import("../src/lib/password");
+  const db = env.DB as unknown as D1Database;
+  await db
+    .prepare(`INSERT INTO users (email, password_hash, name, created_at) VALUES (?, ?, 'U', CURRENT_TIMESTAMP)`)
+    .bind(email, await hashPassword("Passw0rd!!"))
+    .run();
+  const u = await db.prepare("SELECT id FROM users WHERE email = ?").bind(email).first<{ id: number }>();
+  const res = await SELF.fetch("http://localhost/oth-path", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password: "Passw0rd!!" }),
+  });
+  const token = (await res.json<{ accessToken: string }>()).accessToken;
+  return { id: u!.id, token };
+}
+
 describe("persons route", () => {
 
   it("POST /oth-path — person 생성, consentState 기본 'none', 201", async () => {
@@ -538,5 +555,47 @@ describe("persons route", () => {
     expect(logs.results[0].state).toBe("granted");
     expect(logs.results[1].state).toBe("revoked");
     expect(logs.results[2].state).toBe("granted");
+  });
+
+  it("enrolledVia='auto_biometric' → consentState='granted' 자동 부여 + persons.enrolled_via 반영", async () => {
+    const { token } = await seedUserWithToken("auto-biometric@test.test");
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ enrolledVia: "auto_biometric" }),
+    });
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { id: number; consentState: string; enrolledVia: string };
+    expect(body.consentState).toBe("granted");
+    expect(body.enrolledVia).toBe("auto_biometric");
+
+    const row = await (env as any).DB.prepare(
+      "SELECT consent_state, enrolled_via, display_name FROM persons WHERE id = ?",
+    ).bind(body.id).first<{ consent_state: string; enrolled_via: string; display_name: string | null }>();
+    expect(row?.consent_state).toBe("granted");
+    expect(row?.enrolled_via).toBe("auto_biometric");
+    expect(row?.display_name).toBeNull();
+  });
+
+  it("enrolledVia 미지정 → 기존과 동일하게 'card'/consentState 'none'(회귀)", async () => {
+    const { token } = await seedUserWithToken("card-default@test.test");
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    const body = (await res.json()) as { consentState: string; enrolledVia: string };
+    expect(body.consentState).toBe("none");
+    expect(body.enrolledVia).toBe("card");
+  });
+
+  it("enrolledVia 잘못된 값 → 422 VALIDATION_FAILED", async () => {
+    const { token } = await seedUserWithToken("bad-enrolled-via@test.test");
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ enrolledVia: "bogus" }),
+    });
+    expect(res.status).toBe(422);
   });
 });
