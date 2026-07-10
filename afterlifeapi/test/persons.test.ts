@@ -557,8 +557,12 @@ describe("persons route", () => {
     expect(logs.results[2].state).toBe("granted");
   });
 
-  it("enrolledVia='auto_biometric' → consentState='granted' 자동 부여 + persons.enrolled_via 반영", async () => {
-    const { token } = await seedUserWithToken("auto-biometric@test.test");
+  it("mizu CRITICAL fix: user.face_biometric_consent=1 + enrolledVia='auto_biometric' → consentState='granted' 서버 재확인 통과", async () => {
+    const { id: userId, token } = await seedUserWithToken("auto-biometric-consented@test.test");
+
+    await (env as any).DB.prepare("UPDATE users SET face_biometric_consent = 1 WHERE id = ?")
+      .bind(userId).run();
+
     const res = await SELF.fetch("http://localhost/oth-path", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -575,6 +579,28 @@ describe("persons route", () => {
     expect(row?.consent_state).toBe("granted");
     expect(row?.enrolled_via).toBe("auto_biometric");
     expect(row?.display_name).toBeNull();
+  });
+
+  it("mizu CRITICAL fix: user.face_biometric_consent 미동의(기본0) + enrolledVia='auto_biometric' → 서버가 card/none 로 폴백(granted 미부여)", async () => {
+    const { token } = await seedUserWithToken("auto-biometric-unconsented@test.test");
+
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ enrolledVia: "auto_biometric" }),
+    });
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { id: number; consentState: string; enrolledVia: string };
+
+    expect(body.consentState).toBe("none");
+    expect(body.enrolledVia).toBe("card");
+
+    const row = await (env as any).DB.prepare(
+      "SELECT consent_state, enrolled_via, consent_at FROM persons WHERE id = ?",
+    ).bind(body.id).first<{ consent_state: string; enrolled_via: string; consent_at: number | null }>();
+    expect(row?.consent_state).toBe("none");
+    expect(row?.enrolled_via).toBe("card");
+    expect(row?.consent_at).toBeNull();
   });
 
   it("enrolledVia 미지정 → 기존과 동일하게 'card'/consentState 'none'(회귀)", async () => {

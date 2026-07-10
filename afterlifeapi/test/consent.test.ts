@@ -126,6 +126,11 @@ describe("POST /oth-path", () => {
   it("revoked → auto_biometric person만 연쇄 삭제, card person 보존", async () => {
     const { id: userId, token } = await seedUserWithToken("face_consent_revoke@test.test");
 
+    await SELF.fetch("http://localhost/oth-path", {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ state: "granted", termsVersion: "v1", channel: "signup" }),
+    });
+
     const autoRes = await SELF.fetch("http://localhost/oth-path", {
       method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ enrolledVia: "auto_biometric" }),
@@ -139,11 +144,6 @@ describe("POST /oth-path", () => {
     await SELF.fetch(`http://localhost/oth-path${cardPersonId}/consent`, {
       method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ state: "granted" }),
-    });
-
-    await SELF.fetch("http://localhost/oth-path", {
-      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ state: "granted", termsVersion: "v1", channel: "signup" }),
     });
 
     const res = await SELF.fetch("http://localhost/oth-path", {

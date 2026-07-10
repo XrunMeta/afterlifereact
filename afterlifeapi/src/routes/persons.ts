@@ -38,6 +38,14 @@ persons.post("/", requireAuth, async (c) => {
     enrolledVia = body.enrolledVia;
   }
 
+  if (enrolledVia === "auto_biometric") {
+    const user = await c.env.DB.prepare(`SELECT face_biometric_consent FROM users WHERE id = ?`)
+      .bind(userId)
+      .first<{ face_biometric_consent: number }>();
+    if (!user || user.face_biometric_consent !== 1) {
+      enrolledVia = "card";
+    }
+  }
   const consentState: "none" | "granted" = enrolledVia === "auto_biometric" ? "granted" : "none";
   const consentAt: number | null = enrolledVia === "auto_biometric" ? Date.now() : null;
 
