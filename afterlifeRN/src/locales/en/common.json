@@ -688,6 +688,12 @@
         "toggleLabel": "Allow learning from my call conversations",
         "viewTerms": "View terms",
         "saveError": "Failed to save. Please try again."
+      },
+      "faceBiometric": {
+        "sectionTitle": "Facial Recognition (Biometric)",
+        "description": "Lets your clone quietly remember a new face during a call without a confirmation card, so it recognizes them more naturally next time. You can turn this on/off anytime. Turning it off deletes speakers registered this way (manually registered speakers are unaffected).",
+        "toggleLabel": "Allow silent auto-registration",
+        "saveError": "Failed to save your setting. Please try again."
       }
     },
     "saved": {

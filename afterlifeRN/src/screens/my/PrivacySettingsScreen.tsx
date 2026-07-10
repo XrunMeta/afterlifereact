@@ -36,7 +36,10 @@ import {
 import {
   v_7f847d,
   v_b14b3b,
+  v_421733,
+  v_0f8436,
   type v_6a3f07,
+  type v_f8228d,
 } from "../../api/consent";
 
 const v_28895b = (it: v_370311) => `${v_23805a.type}-${v_23805a.blockId}`;
@@ -59,6 +62,10 @@ export default function v_9232cf() {
   const [v_53569b, v_147f73] = v_5ab095(true);
   const [v_1dead4, v_578637] = v_5ab095(false);
   const [v_312a6a, v_344e2f] = v_5ab095(false);
+
+  const [v_ef3473, v_a782b8] = v_5ab095<v_f8228d>("none");
+  const [v_2fe581, v_5d7683] = v_5ab095(true);
+  const [v_09250c, v_07c9fd] = v_5ab095(false);
 
   const v_62f9dc = (item: v_370311) => {
     if (v_8c0b26.type === "user") {
@@ -146,18 +153,37 @@ export default function v_9232cf() {
     }
   }, [v_2ca7e0]);
 
+  const v_ffac69 = v_de06a3(async () => {
+    if (!v_2ca7e0) {
+      v_a782b8("none");
+      v_5d7683(false);
+      return;
+    }
+    v_5d7683(true);
+    try {
+      const v_cb35cb = await v_0f8436(v_2ca7e0);
+      v_a782b8(v_cb35cb.state);
+    } catch (v_49263d) {
+      console.warn("[Privacy] getFaceBiometricConsent failed:", v_49263d);
+    } finally {
+      v_5d7683(false);
+    }
+  }, [v_2ca7e0]);
+
   v_c4deb2(() => {
     v_1a1b9b();
     v_ae477e();
     v_fbea7d();
-  }, [v_1a1b9b, v_ae477e, v_fbea7d]);
+    v_ffac69();
+  }, [v_1a1b9b, v_ae477e, v_fbea7d, v_ffac69]);
 
   v_cf763b(
     v_a3453e.useCallback(() => {
       v_1a1b9b();
       v_ae477e();
       v_fbea7d();
-    }, [v_1a1b9b, v_ae477e, v_fbea7d]),
+      v_ffac69();
+    }, [v_1a1b9b, v_ae477e, v_fbea7d, v_ffac69]),
   );
 
   const v_da6541 = async (v_3b402b) => {
@@ -179,6 +205,27 @@ export default function v_9232cf() {
       v_889fad(v_8d41d7("common.error"), v_badeaf);
     } finally {
       v_578637(false);
+    }
+  };
+
+  const v_e334fb = async (v_3b402b) => {
+    if (!v_2ca7e0 || v_09250c) return;
+    const v_ba2215 = v_ef3473;
+    v_07c9fd(true);
+    v_a782b8(v_3b402b ? "granted" : "none");
+    try {
+      const v_cb35cb = await v_421733(
+        v_2ca7e0,
+        v_3b402b ? "granted" : "revoked",
+        v_3b402b ? { termsVersion: "v1", channel: "settings" } : { channel: "settings" },
+      );
+      v_a782b8(v_cb35cb.state === "granted" ? "granted" : "none");
+    } catch (v_49263d) {
+      v_a782b8(v_ba2215);
+      const v_badeaf = v_49263d instanceof Error ? v_49263d.message : v_8d41d7("settings.privacy.faceBiometric.saveError");
+      v_889fad(v_8d41d7("common.error"), v_badeaf);
+    } finally {
+      v_07c9fd(false);
     }
   };
 
@@ -375,6 +422,15 @@ export default function v_9232cf() {
         t={v_8d41d7}
       />
 
+      {}
+      <FaceBiometricConsentSection
+        state={v_ef3473}
+        loading={v_2fe581}
+        saving={v_09250c}
+        onToggle={v_e334fb}
+        t={v_8d41d7}
+      />
+
       <TermsModal
         visible={v_312a6a}
         type={5}
@@ -504,6 +560,51 @@ function v_efb928({
           ) : (
             <Switch
               testID="call-learning-consent-toggle"
+              value={v_b6e533 === "granted"}
+              onValueChange={v_0a2cea}
+              disabled={v_35bf26}
+              trackColor={{ false: v_1bfbd0.zinc200, true: v_1bfbd0.violet600 }}
+              thumbColor={v_1bfbd0.white}
+            />
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+interface FaceBiometricConsentSectionProps {
+  state: v_f8228d;
+  loading: boolean;
+  saving: boolean;
+  onToggle: (value: boolean) => void;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}
+
+function v_b8358a({
+  state: v_b6e533,
+  loading: v_683210,
+  saving: v_35bf26,
+  onToggle: v_0a2cea,
+  t: v_8d41d7,
+}: FaceBiometricConsentSectionProps) {
+  return (
+    <View
+      testID="face-biometric-consent-section"
+      style={[v_fd5f43.content, { paddingTop: 0, paddingBottom: 32 }]}
+    >
+      <Text style={v_fd5f43.sectionTitle}>{v_8d41d7("settings.privacy.faceBiometric.sectionTitle")}</Text>
+      <View style={v_fd5f43.card}>
+        <View style={v_fd5f43.row}>
+          <View style={{ flex: 1 }}>
+            <Text style={v_fd5f43.rowName}>{v_8d41d7("settings.privacy.faceBiometric.toggleLabel")}</Text>
+            <Text style={v_fd5f43.rowSub}>{v_8d41d7("settings.privacy.faceBiometric.description")}</Text>
+          </View>
+          {v_683210 ? (
+            <ActivityIndicator color={v_1bfbd0.zinc500} />
+          ) : (
+            <Switch
+              testID="face-biometric-consent-toggle"
               value={v_b6e533 === "granted"}
               onValueChange={v_0a2cea}
               disabled={v_35bf26}

@@ -7,6 +7,7 @@ import { v_1ed7d9 } from '../../src/stores/authStore';
 import * as v_f7ee97 from '../../src/api/persons';
 import * as v_2d6fda from '../../src/api/clones';
 import * as v_014465 from '../../src/stores/dialogStore';
+import * as v_40343b from '../../src/api/consent';
 
 jest.mock('bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv', () =>
   require('jmodvmzutjjlqeiajiskycccgqlnemzvelnxpqdutwgcosijlniottagirzjjqcnb'),
@@ -38,6 +39,8 @@ const v_bbf8ff = jest.spyOn(v_2d6fda, 'listMyBlocks');
 const v_e2084e = jest.spyOn(v_f7ee97, 'listPersons');
 const v_f86b82 = jest.spyOn(v_f7ee97, 'saveFaceConsent');
 const v_3c743e = jest.spyOn(v_014465, 'showAlert');
+const v_64000e = jest.spyOn(v_40343b, 'getFaceBiometricConsent');
+const v_35d451 = jest.spyOn(v_40343b, 'saveFaceBiometricConsent');
 
 beforeEach(async () => {
   jest.clearAllMocks();
@@ -46,6 +49,7 @@ beforeEach(async () => {
   v_bbf8ff.mockResolvedValue({ items: [] });
   v_e2084e.mockResolvedValue({ items: [] });
   v_3c743e.mockImplementation(() => {});
+  v_64000e.mockResolvedValue({ state: 'none', version: null, at: null });
 });
 
 test('face-consent-section 이 항상 렌더됨', () => {
@@ -103,4 +107,28 @@ test('listPersons 는 items 배열 반환', async () => {
   const v_43c42e = await v_f7ee97.listPersons('test-token');
   expect(v_43c42e.items).toHaveLength(1);
   expect(v_43c42e.items[0].consentState).toBe('granted');
+});
+
+test('face-biometric-consent-section 이 항상 렌더됨', () => {
+  v_624657(<PrivacySettingsScreen />);
+  expect(v_53746a.getByTestId('face-biometric-consent-section')).toBeTruthy();
+});
+
+test('getFaceBiometricConsent granted → 토글 on', async () => {
+
+  v_1ed7d9.setState({ accessToken: 'test-token' });
+  v_64000e.mockResolvedValue({ state: 'granted', version: 'v1', at: 1 });
+  v_624657(<PrivacySettingsScreen />);
+  await v_53746a.findByTestId('face-biometric-consent-toggle');
+  expect(v_53746a.getByTestId('face-biometric-consent-toggle').props.value).toBe(true);
+});
+
+test('토글 off → saveFaceBiometricConsent(revoked) 호출', async () => {
+  v_1ed7d9.setState({ accessToken: 'test-token' });
+  v_64000e.mockResolvedValue({ state: 'granted', version: 'v1', at: 1 });
+  v_35d451.mockResolvedValue({ ok: true, state: 'revoked' });
+  v_624657(<PrivacySettingsScreen />);
+  const v_09f2bd = await v_53746a.findByTestId('face-biometric-consent-toggle');
+  v_77aa68(v_09f2bd, 'valueChange', false);
+  expect(v_35d451).toHaveBeenCalledWith('test-token', 'revoked', { channel: 'settings' });
 });
