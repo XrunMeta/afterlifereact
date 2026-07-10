@@ -38,9 +38,13 @@ export interface UseFaceEnrollResult {
 
   enroll: (name: string) => Promise<void>;
 
+  enrollSilent: () => Promise<void>;
+
   reset: () => void;
 
   getPendingPersonId: () => number | null;
+
+  getEnrolledPersonId: () => number | null;
 }
 
 export function v_3fc8fd(v_328259): UseFaceEnrollResult {
@@ -91,6 +95,36 @@ export function v_3fc8fd(v_328259): UseFaceEnrollResult {
     [v_2ca7e0, v_b84ee1, v_172c9f, v_84b93d],
   );
 
+  const v_957fe3 = v_de06a3(async () => {
+    if (v_28ec48.current) return; 
+    v_28ec48.current = true;
+    v_5193f8("enrolling");
+    v_3a7d09(null);
+    try {
+      let v_306a28 = v_9d3e9b.current;
+      if (!v_306a28) {
+        v_306a28 = await v_84b93d.createPersonFn(v_2ca7e0, { enrolledVia: "auto_biometric" });
+        v_9d3e9b.current = v_306a28;
+      }
+
+      v_9dac17.current = true;
+      const v_5392c4 = v_172c9f?.() ?? null;
+      if (v_5392c4 == null) {
+        console.warn(
+          "[useFaceEnroll] enrollSilent getSnapshot 미제공/null — getBuffer() 현재값으로 폴백(오염 가능성 있음)",
+        );
+      }
+      const v_f94e64 = v_5392c4 ?? v_b84ee1().latest(v_9e3bb7);
+      await v_84b93d.enrollFacesFn(v_2ca7e0, v_306a28.id, v_f94e64);
+      v_5193f8("success");
+    } catch (v_9e86fd) {
+      v_5193f8("error");
+      v_3a7d09(v_9e86fd as Error);
+    } finally {
+      v_28ec48.current = false;
+    }
+  }, [v_2ca7e0, v_b84ee1, v_172c9f, v_84b93d]);
+
   const v_487a25 = v_de06a3(() => {
     v_5193f8("idle");
     v_3a7d09(null);
@@ -103,5 +137,9 @@ export function v_3fc8fd(v_328259): UseFaceEnrollResult {
     return v_9d3e9b.current?.id ?? null;
   }, [v_d308b5]);
 
-  return { status: v_d308b5, error: v_5e9bfe, enroll: v_298ecf, reset: v_487a25, getPendingPersonId: v_2ceab1 };
+  const v_0cbf96 = v_de06a3((): number | null => {
+    return v_9d3e9b.current?.id ?? null;
+  }, []);
+
+  return { status: v_d308b5, error: v_5e9bfe, enroll: v_298ecf, enrollSilent: v_957fe3, reset: v_487a25, getPendingPersonId: v_2ceab1, getEnrolledPersonId: v_0cbf96 };
 }
