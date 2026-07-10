@@ -1758,9 +1758,10 @@ test('defaultFifthRender: 터미네이터 없이 종료 → terminator reject �
   }
 });
 
-test('FILLER_SPECS render_opts: 공통 lip_lock·eyes_open_lock, 2·3만 머리 크게 (T-120)', () => {
+test('FILLER_SPECS render_opts: 공통 source_face_lock·eyes_open_lock, 2·3만 머리 크게 (T-120)', () => {
   assert.equal(FILLER_SPECS.length, 6);
-  assert.ok(FILLER_SPECS.every((s) => s.render_opts.lip_lock === true));
+
+  assert.ok(FILLER_SPECS.every((s) => s.render_opts.source_face_lock === true));
   assert.ok(FILLER_SPECS.every((s) => s.render_opts.eyes_open_lock === true));
   assert.equal(FILLER_SPECS[0].render_opts.head_sway_amp, 0.0);
   assert.equal(FILLER_SPECS[2].render_opts.head_sway_amp > 0, true);
