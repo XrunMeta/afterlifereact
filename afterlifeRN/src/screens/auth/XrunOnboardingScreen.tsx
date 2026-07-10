@@ -17,6 +17,7 @@ import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_bf4124 } from "../../mocks/interestHelpers";
 import { v_f3a3a5, v_97ea8d, v_84a859, v_7ef860 } from "../../api/auth";
 import { v_421733 } from "../../api/consent";
+import { v_d2929b } from "./faceBiometricSignupFlag";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_704bef } from "../../lib/pushNotifications";
 import { v_ea1c99 } from "../../lib/deviceId";
@@ -194,12 +195,13 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         platform: v_ea920b ?? undefined,
       });
 
-      if (v_a03498) {
-        try {
-          await v_421733(v_8f00b9.accessToken, "granted", { termsVersion: "v1", channel: "signup" });
-        } catch (v_49263d) {
-          console.warn("[AUTH/xrun] saveFaceBiometricConsent failed:", v_49263d);
-        }
+      try {
+        await v_421733(v_8f00b9.accessToken, v_d2929b(v_a03498), {
+          termsVersion: "v1",
+          channel: "signup",
+        });
+      } catch (v_49263d) {
+        console.warn("[AUTH/xrun] saveFaceBiometricConsent failed:", v_49263d);
       }
 
       console.log("[AUTH/xrun] success");

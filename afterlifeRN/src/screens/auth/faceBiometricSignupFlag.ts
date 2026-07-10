@@ -1,5 +1,5 @@
 
 
-export function v_d883e4(v_a03498): boolean {
-  return v_a03498;
+export function v_d2929b(v_a03498): 'granted' | 'revoked' {
+  return v_a03498 ? 'granted' : 'revoked';
 }

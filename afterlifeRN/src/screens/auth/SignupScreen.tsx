@@ -23,6 +23,7 @@ import v_c0caa9, { type v_3ac6ea } from "../../components/common/TermsModal";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_97ea8d, v_35200c, v_84a859 } from "../../api/auth";
 import { v_7f847d, v_421733 } from "../../api/consent";
+import { v_d2929b } from "./faceBiometricSignupFlag";
 import { v_704bef } from "../../lib/pushNotifications";
 import { v_ea1c99 } from "../../lib/deviceId";
 import type { v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
@@ -219,12 +220,14 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             console.warn("[AUTH/signup] saveCallLearningConsent (google) failed:", v_49263d);
           }
         }
-        if (v_a03498) {
-          try {
-            await v_421733(v_8f00b9.accessToken, "granted", { termsVersion: "v1", channel: "signup" });
-          } catch (v_49263d) {
-            console.warn("[AUTH/signup] saveFaceBiometricConsent (google) failed:", v_49263d);
-          }
+
+        try {
+          await v_421733(v_8f00b9.accessToken, v_d2929b(v_a03498), {
+            termsVersion: "v1",
+            channel: "signup",
+          });
+        } catch (v_49263d) {
+          console.warn("[AUTH/signup] saveFaceBiometricConsent (google) failed:", v_49263d);
         }
 
         v_c65f5d.replace("SignupComplete", {
