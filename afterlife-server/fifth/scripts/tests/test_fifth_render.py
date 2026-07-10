@@ -355,3 +355,42 @@ def test_prepare_sources_blend_mode_aligns_and_masks():
     assert src["mode"] == "blend"
     assert src["closed_s"]["aligned"] == "affine"
     assert src["mouth_mask"].shape == (512, 512, 1)
+
+
+# ---------------------------------------------------------------------------
+# T-120: _apply_head_sway 테스트
+# ---------------------------------------------------------------------------
+
+def _make_ml(nj):
+    return [{"R": np.eye(3)[None].astype(np.float32),
+             "t": np.zeros((1, 3), np.float32),
+             "exp": np.zeros((1, 21, 3), np.float32)} for _ in range(nj)]
+
+
+def test_head_sway_amp_zero_is_noop():
+    from fifth_render import _apply_head_sway
+    ml = _make_ml(30)
+    before = [m["R"].copy() for m in ml]
+    _apply_head_sway(ml, 30, 0.0)
+    for m, b in zip(ml, before):
+        assert np.array_equal(m["R"], b)
+
+
+def test_head_sway_positive_deterministic_and_valid_rotation():
+    from fifth_render import _apply_head_sway
+    ml1, ml2 = _make_ml(30), _make_ml(30)
+    _apply_head_sway(ml1, 30, 0.6)
+    _apply_head_sway(ml2, 30, 0.6)
+    for a, b in zip(ml1, ml2):
+        assert np.array_equal(a["R"], b["R"])
+    Rm = ml1[15]["R"][0]
+    assert not np.allclose(Rm, np.eye(3), atol=1e-4)
+    assert np.allclose(Rm @ Rm.T, np.eye(3), atol=1e-3)
+    assert abs(np.linalg.det(Rm) - 1.0) < 1e-3
+
+
+def test_head_sway_ramps_from_zero_at_edges():
+    from fifth_render import _apply_head_sway
+    ml = _make_ml(40)
+    _apply_head_sway(ml, 40, 1.0)
+    assert np.allclose(ml[0]["R"], np.eye(3)[None], atol=2e-2)
