@@ -557,8 +557,12 @@ v_469bf2("persons route", () => {
     v_4d37e3(v_056206.results[2].state).toBe("granted");
   });
 
-  v_23805a("enrolledVia='auto_biometric' → consentState='granted' 자동 부여 + persons.enrolled_via 반영", async () => {
-    const { token: v_21cc31 } = await v_d33950("auto-biometric@test.test");
+  v_23805a("mizu CRITICAL fix: user.face_biometric_consent=1 + enrolledVia='auto_biometric' → consentState='granted' 서버 재확인 통과", async () => {
+    const { id: v_43e90c, token: v_21cc31 } = await v_d33950("auto-biometric-consented@test.test");
+
+    await (v_c9c489 as any).DB.prepare("UPDATE users SET face_biometric_consent = 1 WHERE id = ?")
+      .bind(v_43e90c).run();
+
     const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
       method: "POST",
       headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
@@ -575,6 +579,28 @@ v_469bf2("persons route", () => {
     v_4d37e3(v_3ac7e7?.consent_state).toBe("granted");
     v_4d37e3(v_3ac7e7?.enrolled_via).toBe("auto_biometric");
     v_4d37e3(v_3ac7e7?.display_name).toBeNull();
+  });
+
+  v_23805a("mizu CRITICAL fix: user.face_biometric_consent 미동의(기본0) + enrolledVia='auto_biometric' → 서버가 card/none 로 폴백(granted 미부여)", async () => {
+    const { token: v_21cc31 } = await v_d33950("auto-biometric-unconsented@test.test");
+
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ enrolledVia: "auto_biometric" }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(201);
+    const v_4d33b2 = (await v_8f00b9.json()) as { id: number; consentState: string; enrolledVia: string };
+
+    v_4d37e3(v_4d33b2.consentState).toBe("none");
+    v_4d37e3(v_4d33b2.enrolledVia).toBe("card");
+
+    const v_3ac7e7 = await (v_c9c489 as any).DB.prepare(
+      "SELECT consent_state, enrolled_via, consent_at FROM persons WHERE id = ?",
+    ).bind(v_4d33b2.id).first<{ consent_state: string; enrolled_via: string; consent_at: number | null }>();
+    v_4d37e3(v_3ac7e7?.consent_state).toBe("none");
+    v_4d37e3(v_3ac7e7?.enrolled_via).toBe("card");
+    v_4d37e3(v_3ac7e7?.consent_at).toBeNull();
   });
 
   v_23805a("enrolledVia 미지정 → 기존과 동일하게 'card'/consentState 'none'(회귀)", async () => {

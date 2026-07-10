@@ -38,6 +38,14 @@ v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
     v_926d89 = v_4d33b2.enrolledVia;
   }
 
+  if (v_926d89 === "auto_biometric") {
+    const v_625c74 = await v_3f4e2e.env.DB.prepare(`SELECT face_biometric_consent FROM users WHERE id = ?`)
+      .bind(v_43e90c)
+      .first<{ face_biometric_consent: number }>();
+    if (!v_625c74 || v_625c74.face_biometric_consent !== 1) {
+      v_926d89 = "card";
+    }
+  }
   const v_40c2c9 = v_926d89 === "auto_biometric" ? "granted" : "none";
   const v_322d60 = v_926d89 === "auto_biometric" ? Date.now() : null;
 

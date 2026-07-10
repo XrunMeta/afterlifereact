@@ -126,6 +126,11 @@ v_469bf2("POST /oth-path", () => {
   v_23805a("revoked → auto_biometric person만 연쇄 삭제, card person 보존", async () => {
     const { id: v_43e90c, token: v_21cc31 } = await v_d33950("face_consent_revoke@test.test");
 
+    await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST", headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ state: "granted", termsVersion: "v1", channel: "signup" }),
+    });
+
     const v_00f373 = await v_1df298.fetch("http://localhost/oth-path", {
       method: "POST", headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
       body: JSON.stringify({ enrolledVia: "auto_biometric" }),
@@ -139,11 +144,6 @@ v_469bf2("POST /oth-path", () => {
     await v_1df298.fetch(`http://localhost/oth-path${v_0d6853}/consent`, {
       method: "POST", headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
       body: JSON.stringify({ state: "granted" }),
-    });
-
-    await v_1df298.fetch("http://localhost/oth-path", {
-      method: "POST", headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ state: "granted", termsVersion: "v1", channel: "signup" }),
     });
 
     const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
