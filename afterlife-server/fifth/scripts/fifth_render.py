@@ -156,26 +156,48 @@ def _apply_head_slew(ml: list, nj: int, head_last: list, slew_k: int) -> None:
         ml[i] = m_new
 
 
-def _apply_head_sway(ml: list, nj: int, amp: float, phase_offset: int = 0) -> None:
-    """절차적 머리 흔들림 — ml[i]["R"]에 저주파 yaw/pitch 회전 주입(in-place).
+def _apply_head_sway(
+    ml: list,
+    nj: int,
+    amp: float,
+    phase_offset: int = 0,
+    yaw_offset_deg: float = 0.0,
+    pitch_offset_deg: float = 0.0,
+) -> None:
+    """절차적 머리 흔들림 + 상수 시선 오프셋 — ml[i]["R"]에 yaw/pitch 회전 주입(in-place).
 
-    T-120: 오디오·라이브와 무관, 프레임 인덱스 기반 결정론. 무음/lip_lock 필러에서
-    자연스러운 머리 움직임을 만든다. amp<=0 또는 nj<=0이면 no-op(회귀 0).
-    램프인/아웃(앞뒤 RAMP 프레임)으로 경계 튐을 방지한다. amp 1에서 yaw ±10°, pitch ±6°.
+    T-120: 오디오·라이브와 무관, 프레임 인덱스 기반 결정론. 무음/필러 렌더에서
+    자연스러운 머리 움직임(sway)과 상수 좌우·상하 시선 바이어스(offset)를 만든다.
+    amp<=0 이고 offset도 0이면 no-op(회귀 0). nj<=0이면 no-op.
+    sway는 램프인/아웃(앞뒤 RAMP 프레임)으로 경계 튐을 방지하고, offset은
+    램프인 후 유지(시선을 그 방향으로 유지) — sway와 램프 곡선이 다르다.
+    amp 1에서 sway yaw ±10°, pitch ±6°.
+
+    ⚠️ yaw_offset_deg/pitch_offset_deg 부호(좌/우·상/하 방향)는 코드로 확신할 수
+    없음 — 렌더 실측(클로 담당)으로 방향 확인 후 필요 시 부호를 조정할 것.
+
+    Args:
+        yaw_offset_deg: 상수 좌우 시선 바이어스(도). 0이면 오프셋 없음.
+        pitch_offset_deg: 상수 상하 시선 바이어스(도). 0이면 오프셋 없음.
     """
-    if not amp or amp <= 0 or nj <= 0:
+    has_off = abs(yaw_offset_deg) > 1e-6 or abs(pitch_offset_deg) > 1e-6
+    _amp = float(amp) if (amp and amp > 0) else 0.0
+    if _amp <= 0 and not has_off:
         return
-    max_yaw = math.radians(10.0) * float(amp)
-    max_pitch = math.radians(6.0) * float(amp)
+    if nj <= 0:
+        return
+    max_yaw = math.radians(10.0) * _amp
+    max_pitch = math.radians(6.0) * _amp
+    yaw_off = math.radians(float(yaw_offset_deg))
+    pitch_off = math.radians(float(pitch_offset_deg))
     yaw_period, pitch_period = 80.0, 110.0   # frames (~3.2s/4.4s @ 25fps)
     ramp = min(12, nj)
     for i in range(nj):
         t = i + phase_offset
-        yaw = max_yaw * math.sin(2.0 * math.pi * t / yaw_period)
-        pitch = max_pitch * math.sin(2.0 * math.pi * t / pitch_period + 1.3)
-        r = min(i + 1, nj - i, ramp) / ramp   # 0→1→0 램프
-        yaw *= r
-        pitch *= r
+        off_r = min(i + 1, ramp) / ramp             # 오프셋: 램프인 후 홀드(시선 유지)
+        sway_r = min(i + 1, nj - i, ramp) / ramp     # sway: 램프 인·아웃
+        yaw = yaw_off * off_r + max_yaw * math.sin(2.0 * math.pi * t / yaw_period) * sway_r
+        pitch = pitch_off * off_r + max_pitch * math.sin(2.0 * math.pi * t / pitch_period + 1.3) * sway_r
         cy, sy = math.cos(yaw), math.sin(yaw)
         cp, sp = math.cos(pitch), math.sin(pitch)
         r_yaw = np.array([[cy, 0.0, sy], [0.0, 1.0, 0.0], [-sy, 0.0, cy]], dtype=np.float32)
@@ -216,6 +238,9 @@ def stream_wav_frames(
     head_sway_amp: float | None = None,
     eyes_open_lock: bool | None = None,
     source_face_lock: bool | None = None,
+    blink_interval_sec: float | None = None,
+    head_yaw_offset: float | None = None,
+    head_pitch_offset: float | None = None,
 ) -> tuple[int, PhaseToken]:
     """wav 한 문장 → 프레임 생성마다 on_frame(rgb) 호출. 반환: (프레임 수, 끝 위상 토큰).
 
@@ -236,6 +261,12 @@ def stream_wav_frames(
     합성 blink 모두 무시). source_face_lock=True 시 exp 를 소스(원본 사진) exp로,
     c_d_lip 를 소스 lip_close_ratio 로 고정 — 입이 오디오와 무관하게 원본 사진
     그대로 유지된다(lip_lock의 c_d_lip 강제 닫힘보다 강함; exp 자체를 잠근다).
+
+    blink_interval_sec: eyes_open_lock=True 일 때 make_blink_sequence 의
+    avg_interval_sec 로 사용(눈 깜빡임 재도입, None이면 기존 1e9=무깜빡).
+    head_yaw_offset/head_pitch_offset(도): 상수 좌우/상하 시선 바이어스.
+    head_sway_amp가 None이어도 offset이 있으면 _apply_head_sway가 호출된다.
+    ⚠️ 부호(좌/우·상/하) 방향은 코드로 확신 못 함 — 렌더 실측 후 조정 필요.
     """
     from base_source import base_blend_weight
 
@@ -278,9 +309,16 @@ def stream_wav_frames(
         else float(os.environ.get("FIFTH_IDLE_RMS_HIGH", "0.3"))
     _apply_idle_suppression(ml, env, nj, _idle_scale, _rms_low, _rms_high)
 
-    # T-120: 절차적 머리 흔들림(필러 전용). None/0이면 no-op(회귀 0).
-    if head_sway_amp is not None:
-        _apply_head_sway(ml, nj, float(head_sway_amp), phase_offset=tok.blink_phase)
+    # T-120: 절차적 머리 흔들림 + 시선 오프셋(필러 전용).
+    # 셋 다 None(미전달)이면 호출 자체 없음(회귀 0). head_sway_amp가 None이어도
+    # head_yaw_offset/head_pitch_offset 중 하나라도 있으면 호출돼야 시선 바이어스가 먹는다.
+    if head_sway_amp is not None or head_yaw_offset is not None or head_pitch_offset is not None:
+        _apply_head_sway(
+            ml, nj, head_sway_amp,
+            phase_offset=tok.blink_phase,
+            yaw_offset_deg=(head_yaw_offset or 0.0),
+            pitch_offset_deg=(head_pitch_offset or 0.0),
+        )
 
     # T-120: source_face_lock — exp를 소스(원본 사진) exp로 고정(오디오·JoyVASA 무관).
     # head_sway는 R만 건드리므로 순서는 무관하나, exp 최종 확정을 위해 head_sway 뒤에 적용.
@@ -303,13 +341,15 @@ def stream_wav_frames(
     n = max(len(env), nj)
 
     if eyes_open_lock:
-        # T-120: 눈 강제 오픈 — 네이티브 ce_raw·합성 blink 모두 무시(エル BLOCKER 해소).
-        # avg_interval_sec을 매우 크게 → blink_starts 가 생기지 않아 전프레임 오픈.
+        # T-120: 눈 강제 오픈 기반 + 선택적 깜빡임 재도입(blink_interval_sec).
+        # 네이티브 ce_raw는 무시(エル BLOCKER 해소). blink_interval_sec=None(기본)이면
+        # avg_interval_sec=1e9 → blink_starts 가 생기지 않아 전프레임 오픈(회귀 0).
         from render_offline import make_blink_sequence
         eye_open = _eye_open_ratio(sources["open_s"])
+        _interval = blink_interval_sec if blink_interval_sec is not None else 1e9
         ce = make_blink_sequence(
             n, cfg.fps, eye_open, 0.0,
-            phase_offset=0, avg_interval_sec=1e9, blink_dur_frames=6,
+            phase_offset=tok.blink_phase, avg_interval_sec=_interval, blink_dur_frames=6,
         )
     else:
         ce = ce_raw if ce_raw else None

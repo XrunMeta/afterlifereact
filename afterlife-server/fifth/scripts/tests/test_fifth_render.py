@@ -435,6 +435,56 @@ def test_head_sway_nj_less_than_ramp():
 
 
 # ---------------------------------------------------------------------------
+# T-120: _apply_head_sway 시선 오프셋(yaw_offset_deg/pitch_offset_deg) 확장
+# ⚠️ 부호(좌/우·상/하) 방향은 코드로 확신 못 함 — 클로가 렌더 실측으로 확인/조정.
+# 여기서는 "오프셋이 R을 변화시킨다"/"유효 회전행렬 유지"/"no-op 조건" 만 검증.
+# ---------------------------------------------------------------------------
+
+def test_head_sway_yaw_offset_changes_r_even_when_amp_zero():
+    """amp=0 이어도 yaw_offset_deg!=0 이면 R이 변화해야 함(시선 바이어스는 amp 무관)."""
+    from fifth_render import _apply_head_sway
+    ml = _make_ml(20)
+    _apply_head_sway(ml, 20, 0.0, yaw_offset_deg=15.0)
+    Rm = ml[10]["R"][0]
+    assert not np.allclose(Rm, np.eye(3), atol=1e-4)
+    assert np.allclose(Rm @ Rm.T, np.eye(3), atol=1e-3)
+    assert abs(np.linalg.det(Rm) - 1.0) < 1e-3
+
+
+def test_head_sway_pitch_offset_changes_r_even_when_amp_zero():
+    """amp=0 이어도 pitch_offset_deg!=0 이면 R이 변화해야 함."""
+    from fifth_render import _apply_head_sway
+    ml = _make_ml(20)
+    _apply_head_sway(ml, 20, 0.0, pitch_offset_deg=8.0)
+    Rm = ml[10]["R"][0]
+    assert not np.allclose(Rm, np.eye(3), atol=1e-4)
+    assert np.allclose(Rm @ Rm.T, np.eye(3), atol=1e-3)
+    assert abs(np.linalg.det(Rm) - 1.0) < 1e-3
+
+
+def test_head_sway_offset_zero_and_amp_zero_is_noop():
+    """amp=0 + yaw_offset_deg=0 + pitch_offset_deg=0 → 완전 no-op(회귀 0)."""
+    from fifth_render import _apply_head_sway
+    ml = _make_ml(20)
+    before = [m["R"].copy() for m in ml]
+    _apply_head_sway(ml, 20, 0.0, yaw_offset_deg=0.0, pitch_offset_deg=0.0)
+    for m, b in zip(ml, before):
+        assert np.array_equal(m["R"], b)
+
+
+def test_head_sway_offset_holds_after_ramp_in_no_ramp_out():
+    """오프셋은 램프인(0→1) 후 유지(sway처럼 램프아웃 안 됨) — 중반과 말미 편차가 비슷해야 함."""
+    from fifth_render import _apply_head_sway
+    ml = _make_ml(30)
+    _apply_head_sway(ml, 30, 0.0, yaw_offset_deg=10.0)
+    dev_mid = np.linalg.norm(ml[15]["R"][0] - np.eye(3))
+    dev_last = np.linalg.norm(ml[29]["R"][0] - np.eye(3))
+    assert dev_mid > 0
+    assert dev_last > 0
+    assert abs(dev_mid - dev_last) < 0.05
+
+
+# ---------------------------------------------------------------------------
 # T-120: stream_wav_frames lip_lock / head_sway_amp / eyes_open_lock 배선 테스트
 # ---------------------------------------------------------------------------
 
@@ -545,7 +595,8 @@ def test_head_sway_amp_applied_when_positive(tmp_path, monkeypatch):
     calls = {"n": 0, "amp": None}
     monkeypatch.setattr(
         fifth_render, "_apply_head_sway",
-        lambda ml, nj, amp, phase_offset=0: calls.update(n=calls["n"] + 1, amp=amp),
+        lambda ml, nj, amp, phase_offset=0, yaw_offset_deg=0.0, pitch_offset_deg=0.0:
+            calls.update(n=calls["n"] + 1, amp=amp),
     )
     cfg = FifthConfig.from_env()
     eng = _CdlCeCaptureEngine()
@@ -560,6 +611,7 @@ def test_head_sway_amp_applied_when_positive(tmp_path, monkeypatch):
 
 
 def test_head_sway_none_does_not_call(tmp_path, monkeypatch):
+    """head_sway_amp/head_yaw_offset/head_pitch_offset 전부 미전달 → 호출 자체 없음(회귀 0)."""
     import fifth_render
     calls = {"n": 0}
     monkeypatch.setattr(
@@ -575,6 +627,106 @@ def test_head_sway_none_does_not_call(tmp_path, monkeypatch):
         on_frame=lambda f: None, blink_enabled=False,
     )
     assert calls["n"] == 0
+
+
+def test_head_yaw_offset_calls_apply_head_sway_even_when_amp_none(tmp_path, monkeypatch):
+    """head_sway_amp 미전달이어도 head_yaw_offset만 있으면 _apply_head_sway 호출돼야 함."""
+    import fifth_render
+    calls = {"n": 0, "kwargs": None}
+
+    def _spy(ml, nj, amp, phase_offset=0, yaw_offset_deg=0.0, pitch_offset_deg=0.0):
+        calls["n"] += 1
+        calls["kwargs"] = dict(amp=amp, yaw_offset_deg=yaw_offset_deg, pitch_offset_deg=pitch_offset_deg)
+
+    monkeypatch.setattr(fifth_render, "_apply_head_sway", _spy)
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJP(25)
+    sources = _single_sources()
+    fifth_render.stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+        head_yaw_offset=-12.0,
+    )
+    assert calls["n"] == 1
+    assert calls["kwargs"]["amp"] is None
+    assert calls["kwargs"]["yaw_offset_deg"] == -12.0
+    assert calls["kwargs"]["pitch_offset_deg"] == 0.0
+
+
+def test_head_pitch_offset_calls_apply_head_sway_even_when_amp_none(tmp_path, monkeypatch):
+    """head_sway_amp 미전달이어도 head_pitch_offset만 있으면 _apply_head_sway 호출돼야 함."""
+    import fifth_render
+    calls = {"n": 0, "kwargs": None}
+
+    def _spy(ml, nj, amp, phase_offset=0, yaw_offset_deg=0.0, pitch_offset_deg=0.0):
+        calls["n"] += 1
+        calls["kwargs"] = dict(amp=amp, yaw_offset_deg=yaw_offset_deg, pitch_offset_deg=pitch_offset_deg)
+
+    monkeypatch.setattr(fifth_render, "_apply_head_sway", _spy)
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJP(25)
+    sources = _single_sources()
+    fifth_render.stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+        head_pitch_offset=8.0,
+    )
+    assert calls["n"] == 1
+    assert calls["kwargs"]["amp"] is None
+    assert calls["kwargs"]["yaw_offset_deg"] == 0.0
+    assert calls["kwargs"]["pitch_offset_deg"] == 8.0
+
+
+def test_blink_interval_sec_passed_to_make_blink_sequence(tmp_path, monkeypatch):
+    """eyes_open_lock=True + blink_interval_sec 지정 시 avg_interval_sec로 그대로 전달."""
+    import fifth_render
+    import render_offline
+    calls = {}
+    orig = render_offline.make_blink_sequence
+
+    def _spy(n, fps, eye_open, eye_closed, phase_offset=0, avg_interval_sec=3.2, blink_dur_frames=6):
+        calls["avg_interval_sec"] = avg_interval_sec
+        return orig(n, fps, eye_open, eye_closed, phase_offset=phase_offset,
+                    avg_interval_sec=avg_interval_sec, blink_dur_frames=blink_dur_frames)
+
+    monkeypatch.setattr(render_offline, "make_blink_sequence", _spy)
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJP(25)
+    sources = _single_sources()
+    fifth_render.stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+        eyes_open_lock=True, blink_interval_sec=3.5,
+    )
+    assert calls["avg_interval_sec"] == 3.5
+
+
+def test_blink_interval_sec_none_defaults_to_1e9(tmp_path, monkeypatch):
+    """blink_interval_sec 미전달 시 기존 동작(avg_interval_sec=1e9, 무깜빡) 유지(회귀 0)."""
+    import fifth_render
+    import render_offline
+    calls = {}
+    orig = render_offline.make_blink_sequence
+
+    def _spy(n, fps, eye_open, eye_closed, phase_offset=0, avg_interval_sec=3.2, blink_dur_frames=6):
+        calls["avg_interval_sec"] = avg_interval_sec
+        return orig(n, fps, eye_open, eye_closed, phase_offset=phase_offset,
+                    avg_interval_sec=avg_interval_sec, blink_dur_frames=blink_dur_frames)
+
+    monkeypatch.setattr(render_offline, "make_blink_sequence", _spy)
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJP(25)
+    sources = _single_sources()
+    fifth_render.stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+        eyes_open_lock=True,
+    )
+    assert calls["avg_interval_sec"] == 1e9
 
 
 # ---------------------------------------------------------------------------
