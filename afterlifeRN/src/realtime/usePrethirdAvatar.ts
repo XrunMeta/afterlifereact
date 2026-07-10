@@ -78,7 +78,7 @@ export function usePrethirdAvatar(opts: {
   accessToken: string; 
   deps?: PrethirdAvatarDeps;
 
-  onEnrollSuggest?: (name: string) => void;
+  onEnrollSuggest?: (name: string, personId?: number) => void;
 }): AvatarCall {
   const { cloneId, accessToken, onEnrollSuggest } = opts;
   const deps = opts.deps ?? defaultDeps;
@@ -243,7 +243,8 @@ export function usePrethirdAvatar(opts: {
           if (m.type === 'speech_end') notifySpeechEnd();
         } else if (m.type === 'enroll_suggest') {
 
-          onEnrollSuggestRef.current?.(typeof m.name === 'string' ? m.name : '');
+          const personId = typeof m.personId === 'number' ? m.personId : undefined;
+          onEnrollSuggestRef.current?.(typeof m.name === 'string' ? m.name : '', personId);
         }
       } catch {  }
     };

@@ -41,7 +41,14 @@ import { useFaceIdentify } from "../../face/useFaceIdentify";
 import { useFaceEnroll, FACE_ENROLL_VECTOR_COUNT } from "../../face/useFaceEnroll";
 import { shouldCleanupOrphanOnSuggest } from "../../face/faceEnrollGuard";
 import type { SpeakerEvent } from "../../face/speakerIdReducer";
-import { createPerson, saveFaceConsent, listPersons, deletePerson, type Person } from "../../api/persons";
+import {
+  createPerson,
+  saveFaceConsent,
+  listPersons,
+  deletePerson,
+  updatePersonName,
+  type Person,
+} from "../../api/persons";
 import { getFaceBiometricConsent } from "../../api/consent";
 import { decideEnrollSuggestAction, decideOrphanCleanupBeforeSilent } from "../../face/autoEnrollGuard";
 import { FACE_DIAG_ENABLED, formatFaceHud, type FaceDiag } from "../../config/faceDiag";
@@ -205,9 +212,9 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const submittedEnrollNameRef = useRef("");
 
-  const enrollSuggestImplRef = useRef<(name: string) => void>(() => {});
-  const handleEnrollSuggest = useCallback((name: string) => {
-    enrollSuggestImplRef.current(name);
+  const enrollSuggestImplRef = useRef<(name: string, personId?: number) => void>(() => {});
+  const handleEnrollSuggest = useCallback((name: string, personId?: number) => {
+    enrollSuggestImplRef.current(name, personId);
   }, []);
 
   const {
@@ -303,15 +310,29 @@ export default function CallScreen({ route, navigation }: Props) {
   });
 
   const handleEnrollSuggestImpl = useCallback(
-    (name: string) => {
+    (name: string, personId?: number) => {
       const action = decideEnrollSuggestAction({
-        personId: undefined, 
+        personId,
         faceBiometricConsent,
-        autoEnrolledNoName: false, 
+        autoEnrolledNoName: personId !== undefined && autoEnrolledNoNameRef.current.has(personId),
         enrolling: faceEnroll.status === "enrolling",
       });
 
       if (action.kind === "ignore") return;
+
+      if (action.kind === "reflect_name") {
+
+        if (accessToken && personId !== undefined) {
+          void updatePersonName(accessToken, personId, name)
+            .then(() => {
+              autoEnrolledNoNameRef.current.delete(personId);
+            })
+            .catch((err) => {
+              console.warn("[Call][face] updatePersonName failed:", err);
+            });
+        }
+        return;
+      }
 
       if (action.kind === "silent") {
 
