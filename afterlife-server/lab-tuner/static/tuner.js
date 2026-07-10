@@ -92,6 +92,8 @@ async function connect() {
     return;
   }
   cst.textContent = '연결 중...';
+  document.getElementById('connect-btn').disabled = true;
+  document.getElementById('hangup-btn').disabled = false;
   pc = new RTCPeerConnection();
   pc.addTransceiver('video', {direction: 'recvonly'});
   pc.addTransceiver('audio', {direction: 'recvonly'});
@@ -125,6 +127,20 @@ async function connect() {
   const ans = await r.json();
   await pc.setRemoteDescription(ans);
   cst.textContent = 'answer 수신 — dc 개통 대기';
+}
+
+function hangup() {
+  try { if (dc) dc.close(); } catch (_) {}
+  try { if (pc) pc.close(); } catch (_) {}
+  pc = null; dc = null;
+  const v = document.getElementById('clone-video');
+  if (v) v.srcObject = null;
+  document.getElementById('say-input').disabled = true;
+  document.getElementById('say-btn').disabled = true;
+  document.getElementById('conn-status').textContent = '끊김 — 재연결 가능';
+  document.getElementById('hangup-btn').disabled = true;
+  document.getElementById('connect-btn').disabled = false;
+  renderMeter();
 }
 
 const REFLOW_NOTE = {
@@ -400,8 +416,9 @@ async function restartShowConfirm() {
     const d = await (await fetch('/promote/preview', {method:'POST',
       headers:{'Content-Type':'application/json'}, body:'{}'})).json();
     if ((d.entries || []).length) {
-      warnHtml = '<div style="color:var(--red)"><b>⚠️ 아직 라이브 적용(promote) 안 된 변경이 있습니다. '+
-        '재기동해도 반영 안 돼요 — 먼저 &#39;라이브 적용&#39;을 하세요.</b></div>';
+      warnHtml = '<div style="color:var(--red)"><b>⚠️ 선택값이 아직 실행 중 프로세스와 다릅니다.</b><br>'+
+        '라이브 적용(promote)을 <u>안 했으면</u> 먼저 하세요. '+
+        '<b>이미 &#39;적용됨&#39;을 보셨다면 아래 &#39;확인·재기동&#39;만 누르면 반영됩니다</b>(취소하지 마세요).</div>';
     }
   } catch (e) {  }
   cbox.innerHTML = warnHtml +
@@ -486,6 +503,7 @@ document.getElementById('refresh-runs').onclick = loadRuns;
 document.getElementById('refresh-prod').onclick = loadProdStatus;
 document.getElementById('login-btn').onclick = login;
 document.getElementById('connect-btn').onclick = connect;
+document.getElementById('hangup-btn').onclick = hangup;
 
 loadKnobs(); startMetrics(); loadRuns(); loadProdStatus(); loadDevToken();
 renderMeter();

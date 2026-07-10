@@ -59,6 +59,7 @@ import { submitDevText } from "../../realtime/devCallText";
 import { CALL_ROUTE } from "../../config/callRoute";
 import { GREETING_ENABLED, GREETING_FALLBACK_TEXT, GREET_TIMEOUT_MS } from "../../config/greeting";
 import { useHandsFreeController } from "../../realtime/useHandsFreeController";
+import { useVideoStatsDiag } from "../../realtime/useVideoStatsDiag";
 import { DialingScreen } from "../../components/call/DialingScreen";
 import { CallStatusGlow } from "../../components/call/CallStatusGlow";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -117,6 +118,8 @@ export default function CallScreen({ route, navigation }: Props) {
   const [cameraFacing, setCameraFacing] = useState<"front" | "back">("front");
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+
+  const [faceProcOff, setFaceProcOff] = useState(false);
 
   const [dialingDone, setDialingDone] = useState(false);
 
@@ -247,6 +250,8 @@ export default function CallScreen({ route, navigation }: Props) {
   }, []);
 
   const greetingOn = GREETING_ENABLED && typeof greet === 'function';
+
+  useVideoStatsDiag({ getStatsReport, enabled: __DEV__ && liveState === "live" });
 
   const faceEmbedModelPlugin = useTensorflowModel(
     require("../../../assets/models/w600k_mbf.tflite"),
@@ -919,6 +924,16 @@ export default function CallScreen({ route, navigation }: Props) {
           >
             <Text style={{ color: "#0f0", fontSize: 13, fontWeight: "600" }}>전송</Text>
           </TouchableOpacity>
+          {
+}
+          <TouchableOpacity
+            onPress={() => setFaceProcOff((v) => !v)}
+            style={{ paddingHorizontal: 10, paddingVertical: 6 }}
+          >
+            <Text style={{ color: faceProcOff ? "#f87171" : "#0f0", fontSize: 13, fontWeight: "600" }}>
+              얼굴{faceProcOff ? "OFF" : "ON"}
+            </Text>
+          </TouchableOpacity>
         </View>
       ) : null}
 
@@ -928,7 +943,6 @@ export default function CallScreen({ route, navigation }: Props) {
           liveState={liveState}
           personaName={personaName}
           personaImage={typeof personaImage === "string" ? personaImage : ""}
-          greetingStarted={greetingOn ? greetingStarted : undefined}
           onConnected={() => setDialingDone(true)}
           onCancel={async () => { await stopLive(); navigation.goBack(); }}
           onRetry={() => { setGreetingStarted(false); void startLive(); }}
@@ -964,7 +978,8 @@ export default function CallScreen({ route, navigation }: Props) {
             isActive={!isVideoOff}
 
             androidPreviewViewType="texture-view"
-            frameProcessor={consentGranted ? faceFrameProcessor : undefined}
+
+            frameProcessor={consentGranted && !faceProcOff ? faceFrameProcessor : undefined}
             onError={(e) =>
               console.log("[Call][face] camera error:", e.code, e.message)
             }

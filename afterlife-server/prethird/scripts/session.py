@@ -21,6 +21,7 @@ class Session:
         self.persona_messages = []   # bundle_to_messages 결과
         self.se_path = None          # 클론별 voice se 경로(None이면 기본)
         self.video_path = None       # 클론별 idle/musetalk reference video(None이면 halbae 기본)
+        self.idle_video_applied = False  # clone idle mp4가 idle_track에 적용됐는지. server.py factory가 읽어 prebake 스킵 판단(적용됐으면 좋은 mp4 유지). signaling set_idle_video 성공 시 True.
         self.face_path = None        # 클론 정면사진(faceUrl) 로컬 경로. fifth source 우선.
         self.recorder = None         # CallRecorder | NullRecorder (offer에서 부착)
         self.offer_time = None       # offer 수신 unixtime(첫턴 지연 측정용)

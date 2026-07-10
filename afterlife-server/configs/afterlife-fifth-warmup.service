@@ -1,0 +1,15 @@
+[Unit]
+Description=afterlife fifth renderer warmup (T-120-j cold-start kill — 1발 더미 렌더로 TensorRT/CUDA 워밍업)
+After=docker.service network-online.target
+Wants=docker.service
+# 렌더러(도커) 시작 후 커널 콜드(~5s)를 미리 흡수 → 첫 실통화 greet 부터 warm.
+
+[Service]
+Type=oneshot
+ExecStart=/home/afterlife/afterlife-server/scripts/fifth_warmup.sh
+User=root
+# 도커 소켓 접근 필요 → root. 실패해도 graceful(exit 0), 본 서비스는 non-critical.
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target
