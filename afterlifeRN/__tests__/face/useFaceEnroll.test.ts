@@ -432,3 +432,62 @@ test("getEnrolledPersonId: reset() 후 null(카드 enroll()과 동일 상태 공
   });
   expect(v_43c42e.current.getEnrolledPersonId()).toBeNull();
 });
+
+test("reset() 없이 두 번째 silent 후보를 등록하면 이전 person id 로 오귀속(reset 누락의 위험성 증명)", async () => {
+  const v_34af88 = { id: 201, consentState: "granted" as const };
+  const v_f290ff = jest.fn().mockResolvedValueOnce(v_34af88); 
+  const v_a18c0d = jest.fn();
+  const v_c48ab5 = jest.fn().mockResolvedValue({ enrolled: 1 });
+  const v_99dce9 = v_a11615([[1, 1]]);
+
+  const { result: v_43c42e } = v_0da18b(() =>
+    v_3fc8fd({
+      accessToken: "tok",
+      getBuffer: () => v_99dce9,
+      deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
+    }),
+  );
+
+  await v_be73a0(async () => {
+    await v_43c42e.current.enrollSilent();
+  });
+  expect(v_43c42e.current.getEnrolledPersonId()).toBe(201);
+
+  await v_be73a0(async () => {
+    await v_43c42e.current.enrollSilent();
+  });
+  expect(v_f290ff).toHaveBeenCalledTimes(1); 
+  expect(v_43c42e.current.getEnrolledPersonId()).toBe(201); 
+});
+
+test("reset() 이 두 번째 silent 후보 등록 전에 선행되면 각 후보가 독립된 person 으로 생성됨(CallScreen 배선 전제)", async () => {
+  const v_34af88 = { id: 301, consentState: "granted" as const };
+  const v_b57ac3 = { id: 302, consentState: "granted" as const };
+  const v_f290ff = jest.fn().mockResolvedValueOnce(v_34af88).mockResolvedValueOnce(v_b57ac3);
+  const v_a18c0d = jest.fn();
+  const v_c48ab5 = jest.fn().mockResolvedValue({ enrolled: 1 });
+  const v_062bb0 = v_a11615([[1, 1]]);
+
+  const { result: v_43c42e } = v_0da18b(() =>
+    v_3fc8fd({
+      accessToken: "tok",
+      getBuffer: () => v_062bb0,
+      deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
+    }),
+  );
+
+  await v_be73a0(async () => {
+    await v_43c42e.current.enrollSilent();
+  });
+  expect(v_43c42e.current.getEnrolledPersonId()).toBe(301);
+  v_be73a0(() => {
+    v_43c42e.current.reset();
+  });
+  expect(v_43c42e.current.getEnrolledPersonId()).toBeNull();
+
+  await v_be73a0(async () => {
+    await v_43c42e.current.enrollSilent();
+  });
+  expect(v_f290ff).toHaveBeenCalledTimes(2);
+  expect(v_43c42e.current.getEnrolledPersonId()).toBe(302);
+});
