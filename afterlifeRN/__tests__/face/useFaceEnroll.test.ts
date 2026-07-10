@@ -325,3 +325,110 @@ test("getSnapshot 미제공 시: 기존 폴백대로 getBuffer().latest() 사용
 
   expect(enrollFacesFn).toHaveBeenCalledWith("tok", 56, [[2, 2]]);
 });
+
+test("enrollSilent 성공: createPerson(enrolledVia='auto_biometric')만 호출, saveFaceConsent는 skip, enrollFaces 호출, status=success", async () => {
+  const person = { id: 77, consentState: "granted" as const };
+  const createPersonFn = jest.fn().mockResolvedValue(person);
+  const saveFaceConsentFn = jest.fn();
+  const enrollFacesFn = jest.fn().mockResolvedValue({ enrolled: 1 });
+  const buffer = makeBuffer([[5, 5]]);
+
+  const { result } = renderHook(() =>
+    useFaceEnroll({
+      accessToken: "tok",
+      getBuffer: () => buffer,
+      deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
+    }),
+  );
+
+  await act(async () => {
+    await result.current.enrollSilent();
+  });
+
+  expect(createPersonFn).toHaveBeenCalledWith("tok", { enrolledVia: "auto_biometric" });
+  expect(saveFaceConsentFn).not.toHaveBeenCalled();
+  expect(enrollFacesFn).toHaveBeenCalledWith("tok", 77, [[5, 5]]);
+  expect(result.current.status).toBe("success");
+  expect(result.current.getEnrolledPersonId()).toBe(77);
+});
+
+test("enrollSilent: createPerson 실패 → status=error, enrollFaces 미호출, getEnrolledPersonId는 null(person 미생성)", async () => {
+  const createPersonFn = jest.fn().mockRejectedValue(new Error("net"));
+  const saveFaceConsentFn = jest.fn();
+  const enrollFacesFn = jest.fn();
+  const buffer = makeBuffer([[1, 1]]);
+
+  const { result } = renderHook(() =>
+    useFaceEnroll({
+      accessToken: "tok",
+      getBuffer: () => buffer,
+      deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
+    }),
+  );
+
+  await act(async () => {
+    await result.current.enrollSilent();
+  });
+
+  expect(enrollFacesFn).not.toHaveBeenCalled();
+  expect(result.current.status).toBe("error");
+  expect(result.current.getEnrolledPersonId()).toBeNull();
+});
+
+test("enrollSilent: enrollFaces 실패 후 재호출 시 createPerson 재실행 없이 enrollFaces만 재시도", async () => {
+  const person = { id: 88, consentState: "granted" as const };
+  const createPersonFn = jest.fn().mockResolvedValue(person);
+  const saveFaceConsentFn = jest.fn();
+  const enrollFacesFn = jest
+    .fn()
+    .mockRejectedValueOnce(new Error("net"))
+    .mockResolvedValueOnce({ enrolled: 1 });
+  const buffer = makeBuffer([[2, 2]]);
+
+  const { result } = renderHook(() =>
+    useFaceEnroll({
+      accessToken: "tok",
+      getBuffer: () => buffer,
+      deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
+    }),
+  );
+
+  await act(async () => {
+    await result.current.enrollSilent();
+  });
+  expect(result.current.status).toBe("error");
+  expect(result.current.getEnrolledPersonId()).toBe(88); 
+
+  await act(async () => {
+    await result.current.enrollSilent();
+  });
+  expect(createPersonFn).toHaveBeenCalledTimes(1);
+  expect(enrollFacesFn).toHaveBeenCalledTimes(2);
+  expect(result.current.status).toBe("success");
+});
+
+test("getEnrolledPersonId: reset() 후 null(카드 enroll()과 동일 상태 공유 확인)", async () => {
+  const person = { id: 99, consentState: "granted" as const };
+  const createPersonFn = jest.fn().mockResolvedValue(person);
+  const saveFaceConsentFn = jest.fn();
+  const enrollFacesFn = jest.fn().mockResolvedValue({ enrolled: 1 });
+  const buffer = makeBuffer([[3, 3]]);
+
+  const { result } = renderHook(() =>
+    useFaceEnroll({
+      accessToken: "tok",
+      getBuffer: () => buffer,
+      deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
+    }),
+  );
+
+  await act(async () => {
+    await result.current.enrollSilent();
+  });
+  expect(result.current.getEnrolledPersonId()).toBe(99);
+
+  act(() => {
+    result.current.reset();
+  });
+  expect(result.current.getEnrolledPersonId()).toBeNull();
+});
