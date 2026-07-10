@@ -733,12 +733,39 @@ def test_blink_interval_sec_none_defaults_to_1e9(tmp_path, monkeypatch):
 # T-120: source_face_lock — exp를 소스(원본 사진) exp로 고정 + cdl=소스 립비율
 # ---------------------------------------------------------------------------
 
-def test_source_face_lock_forces_exp_to_source(tmp_path):
-    """source_face_lock=True 시 모든 프레임의 motion["exp"]가 소스 exp와 동일해야 함."""
-    from fifth_render import stream_wav_frames
+class _FakeJPWithDistinctExp:
+    """keypoint(21개)마다 서로 다른 exp값을 반환하는 fake — lip-only 잠금 검증용.
+
+    히즈키 피드백: source_face_lock은 exp 전체가 아니라 lip 키포인트(6개)만
+    소스로 고정 → 나머지 15개(눈·눈썹 등)는 JoyVASA 원본 유지(눈동자 움직임 확보).
+    _single_sources()의 소스 exp(0.42 균일)와 겹치지 않는 값을 써서 lip/non-lip
+    구분이 명확하도록 한다.
+    """
+    def __init__(self, n=25):
+        self.n = n
+
+    def gen_motion_sequence(self, wav_path):
+        exp_template = np.zeros((1, 21, 3), np.float32)
+        for k in range(21):
+            exp_template[0, k, :] = 0.10 + 0.01 * k  # 0.10~0.30, keypoint별 고유
+        motion = [
+            {
+                "R": np.eye(3)[None].astype(np.float32),
+                "t": np.zeros((1, 3), np.float32),
+                "exp": exp_template.copy(),
+            }
+            for _ in range(self.n)
+        ]
+        return {"motion": motion, "c_eyes_lst": [], "n_frames": self.n}
+
+
+def test_source_face_lock_forces_lip_keypoints_only(tmp_path):
+    """source_face_lock=True 시 lip 키포인트(_LIP_IDX, 6개)만 소스 exp로 고정,
+    non-lip 키포인트(15개)는 JoyVASA 원본 유지(히즈키 피드백: 눈동자 움직임 확보)."""
+    from fifth_render import stream_wav_frames, _LIP_IDX
     cfg = FifthConfig.from_env()
     eng = _CdlCeCaptureEngine()
-    jp = _FakeJP(25)
+    jp = _FakeJPWithDistinctExp(25)
     sources = _single_sources()
     stream_wav_frames(
         eng, jp, cfg, sources, _silent_wav(tmp_path),
@@ -746,7 +773,16 @@ def test_source_face_lock_forces_exp_to_source(tmp_path):
         source_face_lock=True,
     )
     src_exp = sources["open_s"]["src_info"][0][0]["exp"]
-    assert eng.exps and all(np.array_equal(e, src_exp) for e in eng.exps)
+    non_lip_idx = [i for i in range(21) if i not in _LIP_IDX]
+    assert eng.exps
+    for e in eng.exps:
+        # lip 키포인트: 소스 exp와 일치해야 함(입 고정)
+        assert np.array_equal(e[:, _LIP_IDX, :], src_exp[:, _LIP_IDX, :])
+        # non-lip 키포인트: JoyVASA 원본(소스 exp 0.42와 다른 keypoint별 고유값) 유지
+        for k in non_lip_idx:
+            assert not np.allclose(e[0, k, :], src_exp[0, k, :]), (
+                f"non-lip keypoint {k} 가 소스 exp로 덮였음 — 전체 잠금 회귀"
+            )
 
 
 def test_source_face_lock_forces_cdl_to_source_lip_ratio(tmp_path):
