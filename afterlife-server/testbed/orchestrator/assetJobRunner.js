@@ -11,10 +11,10 @@ import { v_b74bce as v_6f549a } from '../lib/guideMentSuggest.js';
 export const v_ddfcca = [
   { text: '음..... 음... 음..', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 3.5, head_sway_amp: 0.0, head_yaw_offset: 0, head_pitch_offset: 0 } },
   { text: '음... 음.....', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 3.5, head_sway_amp: 0.0, head_yaw_offset: -12 } },
-  { text: '으음... 음.....', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 3.5, head_sway_amp: 0.6, head_yaw_offset: 12 } },
-  { text: '음..... 음...', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 3.5, head_sway_amp: 0.6, head_pitch_offset: 8 } }, 
+  { text: '으음... 음.....', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 3.5, head_sway_amp: 0.4, head_yaw_offset: 12 } },
+  { text: '음..... 음...', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 3.5, head_sway_amp: 0.4, head_pitch_offset: 8 } }, 
   { text: '음... 으음...', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 3.5, head_sway_amp: 0.0, head_pitch_offset: -8 } }, 
-  { text: '흠.....', atempo: 0.55, render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 3.5, head_sway_amp: 0.3 } }, 
+  { text: '흠.....', atempo: 0.55, render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 3.5, head_sway_amp: 0.2 } }, 
 ];
 
 export const v_9aedb6 = v_ddfcca.map((v_fd5f43) => v_fd5f43.text);

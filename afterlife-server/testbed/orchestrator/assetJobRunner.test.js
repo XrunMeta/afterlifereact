@@ -1766,9 +1766,11 @@ v_2a805f('FILLER_SPECS render_opts: 공통 source_face_lock·eyes_open_lock·bli
 
   v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.blink_interval_sec === 3.5));
   v_ce93bd.equal(v_ddfcca[0].render_opts.head_sway_amp, 0.0);
-  v_ce93bd.equal(v_ddfcca[2].render_opts.head_sway_amp > 0, true);
-  v_ce93bd.equal(v_ddfcca[3].render_opts.head_sway_amp > 0, true);
+
+  v_ce93bd.equal(v_ddfcca[2].render_opts.head_sway_amp, 0.4);
+  v_ce93bd.equal(v_ddfcca[3].render_opts.head_sway_amp, 0.4);
   v_ce93bd.equal(v_ddfcca[4].render_opts.head_sway_amp, 0.0);
+  v_ce93bd.equal(v_ddfcca[5].render_opts.head_sway_amp, 0.2);
 
   v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => !v_fd5f43.text.includes('아')));
 });
