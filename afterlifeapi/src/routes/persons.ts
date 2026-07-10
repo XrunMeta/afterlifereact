@@ -5,6 +5,8 @@ import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_6690d9 } from "../middleware/auth";
 import { v_a8d2cc } from "../lib/faceVectors";
+import { v_430d2b } from "../lib/personDelete";
+import { v_d0fd96 } from "../lib/displayName";
 
 export const v_fded81 = new v_b7c41b<v_de0a25>();
 
@@ -18,26 +20,34 @@ function v_5c8583(v_3f4e2e): number {
 v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_4d33b2 = await v_3f4e2e.req
-    .json<{ cloneId?: number; displayName?: string }>()
-    .catch(() => ({}) as { cloneId?: number; displayName?: string });
+    .json<{ cloneId?: number; displayName?: string; enrolledVia?: string }>()
+    .catch(() => ({}) as { cloneId?: number; displayName?: string; enrolledVia?: string });
 
   const v_6e0fd3 = v_4d33b2.cloneId ?? null;
 
   let v_8a1355 = null;
   if (v_4d33b2.displayName !== undefined) {
-    if (typeof v_4d33b2.displayName !== "string") {
-      throw new v_3ebe58("VALIDATION_FAILED", "displayName은 문자열이어야 합니다.");
-    }
-    const v_2f361a = v_4d33b2.displayName.trim();
-    if (v_2f361a.length < 1 || v_2f361a.length > 30) {
-      throw new v_3ebe58("VALIDATION_FAILED", "displayName은 1~30자여야 합니다.");
-    }
-
-    if (/[\x00-\x1f\x7f​-‏‪-‮⁠-⁯﻿]/.test(v_2f361a)) {
-      throw new v_3ebe58("VALIDATION_FAILED", "displayName에 제어문자를 사용할 수 없습니다.");
-    }
-    v_8a1355 = v_2f361a;
+    v_8a1355 = v_d0fd96(v_4d33b2.displayName);
   }
+
+  let v_926d89 = "card";
+  if (v_4d33b2.enrolledVia !== undefined) {
+    if (v_4d33b2.enrolledVia !== "card" && v_4d33b2.enrolledVia !== "auto_biometric") {
+      throw new v_3ebe58("VALIDATION_FAILED", "enrolledVia는 'card' 또는 'auto_biometric'이어야 합니다.");
+    }
+    v_926d89 = v_4d33b2.enrolledVia;
+  }
+
+  if (v_926d89 === "auto_biometric") {
+    const v_625c74 = await v_3f4e2e.env.DB.prepare(`SELECT face_biometric_consent FROM users WHERE id = ?`)
+      .bind(v_43e90c)
+      .first<{ face_biometric_consent: number }>();
+    if (!v_625c74 || v_625c74.face_biometric_consent !== 1) {
+      v_926d89 = "card";
+    }
+  }
+  const v_40c2c9 = v_926d89 === "auto_biometric" ? "granted" : "none";
+  const v_322d60 = v_926d89 === "auto_biometric" ? Date.now() : null;
 
   if (v_6e0fd3 !== null) {
     const v_2461e1 = await v_3f4e2e.env.DB.prepare(
@@ -55,10 +65,10 @@ v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
   let v_43c42e;
   try {
     v_43c42e = await v_3f4e2e.env.DB.prepare(
-      `INSERT INTO persons (user_id, clone_id, display_name, consent_state, created_at)
-       VALUES (?, ?, ?, 'none', ?)`
+      `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
     )
-      .bind(v_43e90c, v_6e0fd3, v_8a1355, v_9e67a6)
+      .bind(v_43e90c, v_6e0fd3, v_8a1355, v_40c2c9, v_322d60, v_926d89, v_9e67a6)
       .run();
   } catch (v_49263d) {
     const v_badeaf = (v_49263d as Error).message ?? "";
@@ -77,8 +87,9 @@ v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
       userId: v_43e90c,
       cloneId: v_6e0fd3,
       displayName: v_8a1355,
-      consentState: "none" as const,
-      consentAt: null,
+      consentState: v_40c2c9,
+      consentAt: v_322d60,
+      enrolledVia: v_926d89,
       createdAt: v_9e67a6,
     },
     201
@@ -322,31 +333,38 @@ v_fded81.delete("/:id", v_6690d9, async (v_3f4e2e) => {
     .first<{ id: number }>();
   if (!v_306a28) throw new v_3ebe58("NOT_FOUND", "person이 존재하지 않습니다.");
 
-  const v_61c797 = await v_3f4e2e.env.DB.prepare("SELECT vectorize_id FROM face_embeddings WHERE person_id = ?")
-    .bind(v_ca1ec5)
-    .all<{ vectorize_id: string | null }>();
-  const v_23dafb = v_61c797.results.map((v_cb35cb) => v_cb35cb.vectorize_id).filter((v_81e2ef): v_81e2ef is string => Boolean(v_81e2ef));
+  const { deletedEmbeddings: v_2395e5 } = await v_430d2b(v_3f4e2e.env, v_ca1ec5, v_43e90c);
 
-  if (v_23dafb.length) await v_a8d2cc(v_3f4e2e.env).deleteByIds(v_23dafb);
-
-  const v_bee926 = Date.now();
-
-  await v_3f4e2e.env.DB.batch([
-    v_3f4e2e.env.DB.prepare("DELETE FROM face_embeddings WHERE person_id = ?").bind(v_ca1ec5),
-
-    v_3f4e2e.env.DB.prepare(
-      `INSERT INTO persons_consent_log (person_id, state, terms_version, channel, changed_at)
-       VALUES (?, 'revoked', NULL, 'face_delete', ?)`
-    ).bind(v_ca1ec5, v_bee926),
-    v_3f4e2e.env.DB.prepare("UPDATE call_turns SET speaker_person_id = NULL WHERE speaker_person_id = ?").bind(v_ca1ec5),
-
-    v_3f4e2e.env.DB.prepare("DELETE FROM clone_ont_person WHERE person_id = ?").bind(v_ca1ec5),
-    v_3f4e2e.env.DB.prepare("DELETE FROM persons WHERE id = ? AND user_id = ?").bind(v_ca1ec5, v_43e90c),
-  ]);
-
-  console.log(JSON.stringify({ event: "face_person_deleted", personId: v_ca1ec5, userId: v_43e90c, deletedEmbeddings: v_23dafb.length }));
+  console.log(JSON.stringify({ event: "face_person_deleted", personId: v_ca1ec5, userId: v_43e90c, deletedEmbeddings: v_2395e5 }));
 
   return v_3f4e2e.json({ deleted: true });
+});
+
+v_fded81.patch("/:id", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_ca1ec5 = v_5c8583(v_3f4e2e);
+  const v_4d33b2 = await v_3f4e2e.req.json<{ displayName?: string }>().catch(() => ({}) as { displayName?: string });
+
+  const v_2f361a = v_d0fd96(v_4d33b2.displayName);
+
+  const v_2461e1 = await v_3f4e2e.env.DB.prepare(`SELECT id FROM persons WHERE id = ? AND user_id = ?`)
+    .bind(v_ca1ec5, v_43e90c)
+    .first<{ id: number }>();
+  if (!v_2461e1) throw new v_3ebe58("NOT_FOUND", "person이 존재하지 않습니다.");
+
+  try {
+    await v_3f4e2e.env.DB.prepare(`UPDATE persons SET display_name = ? WHERE id = ? AND user_id = ?`)
+      .bind(v_2f361a, v_ca1ec5, v_43e90c)
+      .run();
+  } catch (v_49263d) {
+    const v_badeaf = (v_49263d as Error).message ?? "";
+    if (/UNIQUE constraint failed/i.test(v_badeaf)) {
+      throw new v_3ebe58("VALIDATION_FAILED", "이미 등록된 이름입니다.");
+    }
+    throw v_49263d;
+  }
+
+  return v_3f4e2e.json({ id: v_ca1ec5, displayName: v_2f361a });
 });
 
 v_fded81.get("/", v_6690d9, async (v_3f4e2e) => {

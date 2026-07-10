@@ -31,6 +31,23 @@ async function v_86c39f(v_43e90c): Promise<string> {
   return await v_b2eae5({ sub: v_43e90c, kind: "access" }, v_43fd42, 60 * 10);
 }
 
+async function v_d33950(v_e0c7e8): Promise<{ id: number; token: string }> {
+  const { hashPassword: v_54846c } = await import("../src/lib/password");
+  const v_a1651b = v_c9c489.DB as unknown as D1Database;
+  await v_a1651b
+    .prepare(`INSERT INTO users (email, password_hash, name, created_at) VALUES (?, ?, 'U', CURRENT_TIMESTAMP)`)
+    .bind(v_e0c7e8, await v_54846c("Passw0rd!!"))
+    .run();
+  const v_ceb55a = await v_a1651b.prepare("SELECT id FROM users WHERE email = ?").bind(v_e0c7e8).first<{ id: number }>();
+  const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: v_e0c7e8, password: "Passw0rd!!" }),
+  });
+  const v_21cc31 = (await v_8f00b9.json<{ accessToken: string }>()).accessToken;
+  return { id: v_ceb55a!.id, token: v_21cc31 };
+}
+
 v_469bf2("persons route", () => {
 
   v_23805a("POST /oth-path — person 생성, consentState 기본 'none', 201", async () => {
@@ -538,5 +555,73 @@ v_469bf2("persons route", () => {
     v_4d37e3(v_056206.results[0].state).toBe("granted");
     v_4d37e3(v_056206.results[1].state).toBe("revoked");
     v_4d37e3(v_056206.results[2].state).toBe("granted");
+  });
+
+  v_23805a("mizu CRITICAL fix: user.face_biometric_consent=1 + enrolledVia='auto_biometric' → consentState='granted' 서버 재확인 통과", async () => {
+    const { id: v_43e90c, token: v_21cc31 } = await v_d33950("auto-biometric-consented@test.test");
+
+    await (v_c9c489 as any).DB.prepare("UPDATE users SET face_biometric_consent = 1 WHERE id = ?")
+      .bind(v_43e90c).run();
+
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ enrolledVia: "auto_biometric" }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(201);
+    const v_4d33b2 = (await v_8f00b9.json()) as { id: number; consentState: string; enrolledVia: string };
+    v_4d37e3(v_4d33b2.consentState).toBe("granted");
+    v_4d37e3(v_4d33b2.enrolledVia).toBe("auto_biometric");
+
+    const v_3ac7e7 = await (v_c9c489 as any).DB.prepare(
+      "SELECT consent_state, enrolled_via, display_name FROM persons WHERE id = ?",
+    ).bind(v_4d33b2.id).first<{ consent_state: string; enrolled_via: string; display_name: string | null }>();
+    v_4d37e3(v_3ac7e7?.consent_state).toBe("granted");
+    v_4d37e3(v_3ac7e7?.enrolled_via).toBe("auto_biometric");
+    v_4d37e3(v_3ac7e7?.display_name).toBeNull();
+  });
+
+  v_23805a("mizu CRITICAL fix: user.face_biometric_consent 미동의(기본0) + enrolledVia='auto_biometric' → 서버가 card/none 로 폴백(granted 미부여)", async () => {
+    const { token: v_21cc31 } = await v_d33950("auto-biometric-unconsented@test.test");
+
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ enrolledVia: "auto_biometric" }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(201);
+    const v_4d33b2 = (await v_8f00b9.json()) as { id: number; consentState: string; enrolledVia: string };
+
+    v_4d37e3(v_4d33b2.consentState).toBe("none");
+    v_4d37e3(v_4d33b2.enrolledVia).toBe("card");
+
+    const v_3ac7e7 = await (v_c9c489 as any).DB.prepare(
+      "SELECT consent_state, enrolled_via, consent_at FROM persons WHERE id = ?",
+    ).bind(v_4d33b2.id).first<{ consent_state: string; enrolled_via: string; consent_at: number | null }>();
+    v_4d37e3(v_3ac7e7?.consent_state).toBe("none");
+    v_4d37e3(v_3ac7e7?.enrolled_via).toBe("card");
+    v_4d37e3(v_3ac7e7?.consent_at).toBeNull();
+  });
+
+  v_23805a("enrolledVia 미지정 → 기존과 동일하게 'card'/consentState 'none'(회귀)", async () => {
+    const { token: v_21cc31 } = await v_d33950("card-default@test.test");
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    const v_4d33b2 = (await v_8f00b9.json()) as { consentState: string; enrolledVia: string };
+    v_4d37e3(v_4d33b2.consentState).toBe("none");
+    v_4d37e3(v_4d33b2.enrolledVia).toBe("card");
+  });
+
+  v_23805a("enrolledVia 잘못된 값 → 422 VALIDATION_FAILED", async () => {
+    const { token: v_21cc31 } = await v_d33950("bad-enrolled-via@test.test");
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ enrolledVia: "bogus" }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(422);
   });
 });

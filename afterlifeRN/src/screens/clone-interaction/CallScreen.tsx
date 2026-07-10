@@ -41,7 +41,16 @@ import { v_e9685b } from "../../face/useFaceIdentify";
 import { v_3fc8fd, v_9e3bb7 } from "../../face/useFaceEnroll";
 import { v_19be88 } from "../../face/faceEnrollGuard";
 import type { v_b26216 } from "../../face/speakerIdReducer";
-import { v_4e7b87, v_31967f, v_865d38, v_a94a1b, type v_5c12dc } from "../../api/persons";
+import {
+  v_4e7b87,
+  v_31967f,
+  v_865d38,
+  v_a94a1b,
+  v_137542,
+  type v_5c12dc,
+} from "../../api/persons";
+import { v_0f8436 } from "../../api/consent";
+import { v_0362e7, v_de73d9 } from "../../face/autoEnrollGuard";
 import { v_55dbc4, v_8682a9, type v_8a6b56 } from "../../config/faceDiag";
 import v_c0caa9 from "../../components/common/TermsModal";
 import { v_b519ed } from "../../components/call/FaceEnrollCard";
@@ -172,15 +181,40 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   }, [v_2ca7e0]);
 
+  const [v_f0ea4e, v_abf57b] = v_5ab095<boolean | null>(null);
+  v_c4deb2(() => {
+    if (!v_2ca7e0) return;
+    let v_2008a4 = false;
+    v_0f8436(v_2ca7e0)
+      .then((v_cb35cb) => {
+        if (v_2008a4) return;
+        v_abf57b(v_cb35cb.state === "granted");
+        console.log(`[Call][face] getFaceBiometricConsent ← granted=${v_cb35cb.state === "granted"}`);
+      })
+      .catch((v_49263d) => {
+        if (v_2008a4) return;
+        v_abf57b(false); 
+        console.warn("[Call][face] getFaceBiometricConsent failed, fallback to card flow:", v_49263d);
+      });
+    return () => {
+      v_2008a4 = true;
+    };
+
+  }, [v_2ca7e0]);
+
+  const v_888b49 = v_e662ae<Set<number>>(new Set());
+
+  const v_25cb51 = v_e662ae(false);
+
   const [v_85a067, v_5218ba] = v_5ab095(false);
   const [v_ef20d7, v_3c66cd] = v_5ab095("");
   const [v_28545c, v_a13abd] = v_5ab095(false);
 
   const v_821084 = v_e662ae("");
 
-  const v_243c4f = v_e662ae<(name: string) => void>(() => {});
-  const v_b12d63 = v_de06a3((v_1833e7) => {
-    v_243c4f.current(v_1833e7);
+  const v_243c4f = v_e662ae<(name: string, personId?: number) => void>(() => {});
+  const v_b12d63 = v_de06a3((v_1833e7, v_ca1ec5) => {
+    v_243c4f.current(v_1833e7, v_ca1ec5);
   }, []);
 
   const {
@@ -276,8 +310,58 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   });
 
   const v_f8e6ef = v_de06a3(
-    (v_1833e7) => {
-      if (v_20ef58.status === "enrolling") return;
+    (v_1833e7, v_ca1ec5) => {
+      const v_9b064f = v_0362e7({
+        personId: v_ca1ec5,
+        faceBiometricConsent: v_f0ea4e,
+        autoEnrolledNoName: v_ca1ec5 !== undefined && v_888b49.current.has(v_ca1ec5),
+        enrolling: v_20ef58.status === "enrolling",
+      });
+
+      if (v_9b064f.kind === "ignore") return;
+
+      if (v_9b064f.kind === "reflect_name") {
+
+        if (v_2ca7e0 && v_ca1ec5 !== undefined) {
+          void v_137542(v_2ca7e0, v_ca1ec5, v_1833e7)
+            .then(() => {
+              v_888b49.current.delete(v_ca1ec5);
+            })
+            .catch((v_49263d) => {
+              console.warn("[Call][face] updatePersonName failed:", v_49263d);
+            });
+        }
+        return;
+      }
+
+      if (v_9b064f.kind === "silent") {
+
+        const v_fde8d3 = v_20ef58.getPendingPersonId();
+        const v_0e4853 = v_20ef58.getEnrolledPersonId();
+        const v_a983d4 = v_de73d9({
+          enrolling: false,
+          pendingPersonId: v_fde8d3,
+          enrolledPersonId: v_0e4853,
+          incomingName: v_1833e7,
+          lastName: v_821084.current,
+        });
+        if (v_a983d4 === "delete") {
+          if (v_2ca7e0 && v_fde8d3 != null) {
+            void v_a94a1b(v_2ca7e0, v_fde8d3).catch((v_49263d) => {
+              console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", v_49263d);
+            });
+          }
+          v_20ef58.reset();
+        } else if (v_a983d4 === "detach") {
+
+          v_20ef58.reset();
+        }
+        v_821084.current = v_1833e7;
+
+        v_25cb51.current = true;
+        void v_20ef58.enrollSilent();
+        return;
+      }
 
       const v_fde8d3 = v_20ef58.getPendingPersonId();
       const v_3da205 = v_19be88({
@@ -298,7 +382,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       v_3c66cd(v_1833e7);
       v_5218ba(true);
     },
-    [v_20ef58, v_2ca7e0],
+    [v_20ef58, v_2ca7e0, v_f0ea4e],
   );
   v_c4deb2(() => {
     v_243c4f.current = v_f8e6ef;
@@ -430,13 +514,26 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   v_c4deb2(() => {
     if (v_20ef58.status === "success") {
-      v_15c939(`${v_821084.current}님, 이제 기억할게요`);
-      v_5218ba(false);
-      v_3c66cd("");
+      if (v_25cb51.current) {
+
+        const v_d4923e = v_20ef58.getEnrolledPersonId();
+        if (v_d4923e != null) v_888b49.current.add(v_d4923e);
+        v_25cb51.current = false;
+      } else {
+        v_15c939(`${v_821084.current}님, 이제 기억할게요`);
+        v_5218ba(false);
+        v_3c66cd("");
+      }
       v_20ef58.reset();
       v_b1a2e8.current = null; 
     } else if (v_20ef58.status === "error") {
-      v_15c939("등록에 실패했어요. 다시 시도해 주세요");
+      if (v_25cb51.current) {
+
+        v_25cb51.current = false;
+        v_20ef58.reset();
+      } else {
+        v_15c939("등록에 실패했어요. 다시 시도해 주세요");
+      }
     }
 
   }, [v_20ef58.status]);

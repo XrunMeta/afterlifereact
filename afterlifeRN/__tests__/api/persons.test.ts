@@ -1,6 +1,6 @@
 
 
-import { v_4e7b87, v_31967f, v_865d38 } from '../../src/api/persons';
+import { v_4e7b87, v_31967f, v_865d38, v_137542 } from '../../src/api/persons';
 
 jest.mock('../../src/lib/authFetch', () => ({
   authFetch: jest.fn(),
@@ -118,5 +118,45 @@ describe('listPersons', () => {
 
     expect(v_43c42e.items).toHaveLength(2);
     expect(v_43c42e.items[0].id).toBe(1);
+  });
+});
+
+describe('updatePersonName', () => {
+  it('PATCH /oth-path 를 displayName body와 함께 호출', async () => {
+    v_09509b.mockResolvedValueOnce({ id: 42, displayName: '민지' });
+
+    const v_43c42e = await v_137542(v_4ac7fe, 42, '민지');
+
+    expect(v_09509b).toHaveBeenCalledTimes(1);
+    const [v_9fe22d, v_21cc31, v_00cfc6] = v_09509b.mock.calls[0] as unknown as [string, string, RequestInit, ...unknown[]];
+    expect(v_9fe22d).toBe('/oth-path');
+    expect(v_21cc31).toBe(v_4ac7fe);
+    expect(v_00cfc6.method).toBe('PATCH');
+
+    const v_4d33b2 = JSON.parse(v_00cfc6.body as string) as Record<string, unknown>;
+    expect(v_4d33b2.displayName).toBe('민지');
+    expect(v_43c42e).toEqual({ id: 42, displayName: '민지' });
+  });
+});
+
+describe('createPerson enrolledVia', () => {
+  it('enrolledVia 를 넘기면 body 에 포함된다', async () => {
+    v_09509b.mockResolvedValueOnce({ id: 9, consentState: 'granted' });
+
+    await v_4e7b87(v_4ac7fe, { enrolledVia: 'auto_biometric' });
+
+    const [, , v_00cfc6] = v_09509b.mock.calls[0] as unknown as [string, string, RequestInit, ...unknown[]];
+    const v_4d33b2 = JSON.parse(v_00cfc6.body as string) as Record<string, unknown>;
+    expect(v_4d33b2.enrolledVia).toBe('auto_biometric');
+  });
+
+  it('enrolledVia 없이 호출하면 body 에 포함되지 않는다(회귀)', async () => {
+    v_09509b.mockResolvedValueOnce({ id: 10, consentState: 'none' });
+
+    await v_4e7b87(v_4ac7fe);
+
+    const [, , v_00cfc6] = v_09509b.mock.calls[0] as unknown as [string, string, RequestInit, ...unknown[]];
+    const v_4d33b2 = JSON.parse(v_00cfc6.body as string) as Record<string, unknown>;
+    expect(v_4d33b2).not.toHaveProperty('enrolledVia');
   });
 });
