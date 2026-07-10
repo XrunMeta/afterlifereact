@@ -58,6 +58,11 @@ class CosyEngine:
             if data.size == 0:
                 raise ValueError(f"empty voice.wav: {voice_wav!r}")
             data = data[: int(config.REF_CLIP_MAX_SEC * sr)]        # 앞 10s 트림(ref_text 정합)
+            # 프롬프트 끝 무음 패딩 → 하드컷 경계 아티팩트("똥" 선행 환청) 제거 + 과생성 완화.
+            # 실측(5회): 뒤침묵 없으면 lead-RMS 1607(아티팩트), 있으면 16(클린). ref_text 는 길이불변.
+            if config.PROMPT_TAIL_SILENCE_MS > 0:
+                tail = np.zeros(int(config.PROMPT_TAIL_SILENCE_MS / 1000 * sr), dtype=data.dtype)
+                data = np.concatenate([data, tail])
             ppath = os.path.join(config.PROMPT_CACHE_DIR, f"{clone_id}_prompt.wav")
             sf.write(ppath, data, sr, format="WAV")
             # ref_text 없으면 빈문자(cross-lingual 유사) — 있으면 ICL 프롬프트 텍스트로 사용.

@@ -30,3 +30,7 @@ DEFAULT_SPEED = float(os.environ.get("COSYVOICE_DEFAULT_SPEED", "1.0"))
 # 정규화 후 빈 텍스트(문장부호만·이모지)로 CV2가 무음일 때 반환할 무음 길이(ms).
 # 503 드롭 대신 짧은 멈춤으로 처리 → 스트리밍 파이프라인 무중단.
 EMPTY_SILENCE_MS = int(os.environ.get("COSYVOICE_EMPTY_SILENCE_MS", "120"))
+
+# 프롬프트 끝 무음 패딩(ms) — 하드컷 경계로 인한 선행 아티팩트("똥" 환청) 제거.
+# 0 이면 비활성. 실측 최적 300ms(lead-RMS 1607→16).
+PROMPT_TAIL_SILENCE_MS = int(os.environ.get("COSYVOICE_PROMPT_TAIL_SILENCE_MS", "300"))
