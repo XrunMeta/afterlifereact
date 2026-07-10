@@ -22,7 +22,7 @@ import v_57037e from "../../components/common/CountryRegionPicker";
 import v_c0caa9, { type v_3ac6ea } from "../../components/common/TermsModal";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_97ea8d, v_35200c, v_84a859 } from "../../api/auth";
-import { v_7f847d } from "../../api/consent";
+import { v_7f847d, v_421733 } from "../../api/consent";
 import { v_704bef } from "../../lib/pushNotifications";
 import { v_ea1c99 } from "../../lib/deviceId";
 import type { v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
@@ -78,6 +78,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_8c98c4, v_e378a4] = v_5ab095(false);
 
   const [v_7f128f, v_06ec09] = v_5ab095(false);
+
+  const [v_a03498, v_d34fc9] = v_5ab095(false);
 
   const v_5c764d = v_51b53b && v_09b7fa;
   const v_33f2ba = v_5c764d && v_8c98c4;
@@ -217,6 +219,13 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             console.warn("[AUTH/signup] saveCallLearningConsent (google) failed:", v_49263d);
           }
         }
+        if (v_a03498) {
+          try {
+            await v_421733(v_8f00b9.accessToken, "granted", { termsVersion: "v1", channel: "signup" });
+          } catch (v_49263d) {
+            console.warn("[AUTH/signup] saveFaceBiometricConsent (google) failed:", v_49263d);
+          }
+        }
 
         v_c65f5d.replace("SignupComplete", {
           accessToken: v_8f00b9.accessToken,
@@ -238,6 +247,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         region: v_222917,
         marketingConsent: v_8c98c4,
         agreeCallLearning: v_7f128f,
+        agreeFaceBiometric: v_a03498,
         pushToken: v_1a29d0 ?? undefined,
         platform: v_ea920b ?? undefined,
         deviceId: v_929b58 ?? undefined,
@@ -502,6 +512,27 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                 </Text>
               </TouchableOpacity>
             </View>
+
+            {}
+            <View style={v_d81136.checkRow}>
+              <TouchableOpacity
+                onPress={() => v_d34fc9(!v_a03498)}
+                hitSlop={8}
+              >
+                <View style={[v_d81136.checkbox, v_a03498 && v_d81136.checkboxChecked]}>
+                  {v_a03498 && <Feather name="check" size={14} color={v_1bfbd0.white} />}
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={v_d81136.termTextWrap}
+                onPress={() => v_fe0d62(4)}
+                activeOpacity={0.7}
+              >
+                <Text style={[v_d81136.termText, v_d81136.termLink]}>
+                  {v_8d41d7("auth.signup.faceBiometricConsent")}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {}
@@ -536,6 +567,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         onAgree={() => {
           if (v_d39271 === 1) v_c8f346(true);
           else if (v_d39271 === 3) v_1d4807(true);
+          else if (v_d39271 === 4) v_d34fc9(true);
           else if (v_d39271 === 5) v_06ec09(true);
           v_fe0d62(null);
         }}
