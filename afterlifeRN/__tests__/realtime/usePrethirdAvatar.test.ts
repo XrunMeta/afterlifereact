@@ -340,14 +340,14 @@ describe('sendFaceEvent', () => {
 describe('enroll_suggest 수신 → onEnrollSuggest 콜백', () => {
   beforeEach(() => { v_897bd0(); });
 
-  it('datachannel {type:"enroll_suggest", name} 수신 → onEnrollSuggest(name) 호출', async () => {
+  it('datachannel {type:"enroll_suggest", name} 수신 → onEnrollSuggest(name, undefined) 호출', async () => {
     const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
     const v_46947d = jest.fn();
     const { result: v_43c42e } = v_0da18b(() =>
       v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never, onEnrollSuggest: v_46947d }));
     await v_be73a0(async () => { await v_43c42e.current.start(); });
     v_be73a0(() => { v_32dc97.emitMessage(JSON.stringify({ type: 'enroll_suggest', name: '민지' })); });
-    expect(v_46947d).toHaveBeenCalledWith('민지');
+    expect(v_46947d).toHaveBeenCalledWith('민지', undefined);
   });
 
   it('name 빈 문자열(수동 입력 폴백)도 그대로 전달', async () => {
@@ -357,7 +357,27 @@ describe('enroll_suggest 수신 → onEnrollSuggest 콜백', () => {
       v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never, onEnrollSuggest: v_46947d }));
     await v_be73a0(async () => { await v_43c42e.current.start(); });
     v_be73a0(() => { v_32dc97.emitMessage(JSON.stringify({ type: 'enroll_suggest', name: '' })); });
-    expect(v_46947d).toHaveBeenCalledWith('');
+    expect(v_46947d).toHaveBeenCalledWith('', undefined);
+  });
+
+  it('T-126 Task7 — personId(number) 포함 시 그대로 전달(이름 반영 시나리오)', async () => {
+    const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
+    const v_46947d = jest.fn();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never, onEnrollSuggest: v_46947d }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    v_be73a0(() => { v_32dc97.emitMessage(JSON.stringify({ type: 'enroll_suggest', name: '민지', personId: 42 })); });
+    expect(v_46947d).toHaveBeenCalledWith('민지', 42);
+  });
+
+  it('T-126 Task7 — personId 가 number 가 아니면(문자열/null) undefined 로 폴백', async () => {
+    const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
+    const v_46947d = jest.fn();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never, onEnrollSuggest: v_46947d }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    v_be73a0(() => { v_32dc97.emitMessage(JSON.stringify({ type: 'enroll_suggest', name: '민지', personId: '42' })); });
+    expect(v_46947d).toHaveBeenCalledWith('민지', undefined);
   });
 
   it('onEnrollSuggest 미제공이어도 크래시 없음(speech_start 등 기존 분기 무영향)', async () => {

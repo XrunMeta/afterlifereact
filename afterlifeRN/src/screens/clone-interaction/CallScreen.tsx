@@ -41,7 +41,14 @@ import { v_e9685b } from "../../face/useFaceIdentify";
 import { v_3fc8fd, v_9e3bb7 } from "../../face/useFaceEnroll";
 import { v_19be88 } from "../../face/faceEnrollGuard";
 import type { v_b26216 } from "../../face/speakerIdReducer";
-import { v_4e7b87, v_31967f, v_865d38, v_a94a1b, type v_5c12dc } from "../../api/persons";
+import {
+  v_4e7b87,
+  v_31967f,
+  v_865d38,
+  v_a94a1b,
+  v_137542,
+  type v_5c12dc,
+} from "../../api/persons";
 import { v_0f8436 } from "../../api/consent";
 import { v_0362e7, v_de73d9 } from "../../face/autoEnrollGuard";
 import { v_55dbc4, v_8682a9, type v_8a6b56 } from "../../config/faceDiag";
@@ -205,9 +212,9 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const v_821084 = v_e662ae("");
 
-  const v_243c4f = v_e662ae<(name: string) => void>(() => {});
-  const v_b12d63 = v_de06a3((v_1833e7) => {
-    v_243c4f.current(v_1833e7);
+  const v_243c4f = v_e662ae<(name: string, personId?: number) => void>(() => {});
+  const v_b12d63 = v_de06a3((v_1833e7, v_ca1ec5) => {
+    v_243c4f.current(v_1833e7, v_ca1ec5);
   }, []);
 
   const {
@@ -303,15 +310,29 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   });
 
   const v_f8e6ef = v_de06a3(
-    (v_1833e7) => {
+    (v_1833e7, v_ca1ec5) => {
       const v_9b064f = v_0362e7({
-        personId: undefined, 
+        personId: v_ca1ec5,
         faceBiometricConsent: v_f0ea4e,
-        autoEnrolledNoName: false, 
+        autoEnrolledNoName: v_ca1ec5 !== undefined && v_888b49.current.has(v_ca1ec5),
         enrolling: v_20ef58.status === "enrolling",
       });
 
       if (v_9b064f.kind === "ignore") return;
+
+      if (v_9b064f.kind === "reflect_name") {
+
+        if (v_2ca7e0 && v_ca1ec5 !== undefined) {
+          void v_137542(v_2ca7e0, v_ca1ec5, v_1833e7)
+            .then(() => {
+              v_888b49.current.delete(v_ca1ec5);
+            })
+            .catch((v_49263d) => {
+              console.warn("[Call][face] updatePersonName failed:", v_49263d);
+            });
+        }
+        return;
+      }
 
       if (v_9b064f.kind === "silent") {
 
