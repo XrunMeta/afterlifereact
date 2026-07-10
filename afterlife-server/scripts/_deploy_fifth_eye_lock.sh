@@ -40,7 +40,12 @@ docker exec -d "$CONTAINER" bash -lc "cd /root/FasterLivePortrait && \
   FIFTH_BLINK=1 FIFTH_HEAD_SMOOTH=3.5 FIFTH_RENDER_TIMING=1 \
   FIFTH_INPUT_NORMALIZE=0 FIFTH_PASTEBACK_OUTPUT=1 \
   FIFTH_EYE_SOURCE_LOCK=1 FIFTH_EYE_TARGET_SCALE=0.8 \
+  FIFTH_IDLE_MOTION_SCALE=1.0 \
   nohup /root/miniconda3/bin/python fifth_render_server.py > /tmp/fifth_render_server.log 2>&1 &"
+# T-120: FIFTH_IDLE_MOTION_SCALE=1.0(감쇠 OFF) — 기본 0.15는 음절 사이 저에너지 프레임의
+# 머리·표정 모션을 15%로 감쇠해 발화 렌더가 "뚝뚝"(근사중복 57~72%) 끊겨 보이는 주범이었다.
+# 1.0(감쇠 없음)으로 근사중복 9~10%(실촬영보다 매끈)·최장정지 0.6s→0.12s. idle은 별도 clone idle mp4를
+# 쓰므로 감쇠 OFF가 대기 화질에 무영향(순수 개선). 실측 근거: mpdecimate 프레임 분석(2026-07-10).
 
 echo "=== 5) health 대기 ==="
 ok=0
