@@ -36,7 +36,10 @@ import {
 import {
   saveCallLearningConsent,
   getCallLearningConsent,
+  saveFaceBiometricConsent,
+  getFaceBiometricConsent,
   type CallLearningState,
+  type FaceBiometricState,
 } from "../../api/consent";
 
 const itemKey = (it: BlockedItem) => `${it.type}-${it.blockId}`;
@@ -59,6 +62,10 @@ export default function PrivacySettingsScreen() {
   const [callLearningLoading, setCallLearningLoading] = useState(true);
   const [callLearningSaving, setCallLearningSaving] = useState(false);
   const [callLearningTermsOpen, setCallLearningTermsOpen] = useState(false);
+
+  const [faceBiometric, setFaceBiometric] = useState<FaceBiometricState>("none");
+  const [faceBiometricLoading, setFaceBiometricLoading] = useState(true);
+  const [faceBiometricSaving, setFaceBiometricSaving] = useState(false);
 
   const goToItem = (item: BlockedItem) => {
     if (item.type === "user") {
@@ -146,18 +153,37 @@ export default function PrivacySettingsScreen() {
     }
   }, [accessToken]);
 
+  const refreshFaceBiometric = useCallback(async () => {
+    if (!accessToken) {
+      setFaceBiometric("none");
+      setFaceBiometricLoading(false);
+      return;
+    }
+    setFaceBiometricLoading(true);
+    try {
+      const r = await getFaceBiometricConsent(accessToken);
+      setFaceBiometric(r.state);
+    } catch (err) {
+      console.warn("[Privacy] getFaceBiometricConsent failed:", err);
+    } finally {
+      setFaceBiometricLoading(false);
+    }
+  }, [accessToken]);
+
   useEffect(() => {
     refresh();
     refreshPersons();
     refreshCallLearning();
-  }, [refresh, refreshPersons, refreshCallLearning]);
+    refreshFaceBiometric();
+  }, [refresh, refreshPersons, refreshCallLearning, refreshFaceBiometric]);
 
   useFocusEffect(
     React.useCallback(() => {
       refresh();
       refreshPersons();
       refreshCallLearning();
-    }, [refresh, refreshPersons, refreshCallLearning]),
+      refreshFaceBiometric();
+    }, [refresh, refreshPersons, refreshCallLearning, refreshFaceBiometric]),
   );
 
   const handleToggleCallLearning = async (value: boolean) => {
@@ -179,6 +205,27 @@ export default function PrivacySettingsScreen() {
       showAlert(t("common.error"), msg);
     } finally {
       setCallLearningSaving(false);
+    }
+  };
+
+  const handleToggleFaceBiometric = async (value: boolean) => {
+    if (!accessToken || faceBiometricSaving) return;
+    const prev = faceBiometric;
+    setFaceBiometricSaving(true);
+    setFaceBiometric(value ? "granted" : "none");
+    try {
+      const r = await saveFaceBiometricConsent(
+        accessToken,
+        value ? "granted" : "revoked",
+        value ? { termsVersion: "v1", channel: "settings" } : { channel: "settings" },
+      );
+      setFaceBiometric(r.state === "granted" ? "granted" : "none");
+    } catch (err) {
+      setFaceBiometric(prev);
+      const msg = err instanceof Error ? err.message : t("settings.privacy.faceBiometric.saveError");
+      showAlert(t("common.error"), msg);
+    } finally {
+      setFaceBiometricSaving(false);
     }
   };
 
@@ -375,6 +422,15 @@ export default function PrivacySettingsScreen() {
         t={t}
       />
 
+      {}
+      <FaceBiometricConsentSection
+        state={faceBiometric}
+        loading={faceBiometricLoading}
+        saving={faceBiometricSaving}
+        onToggle={handleToggleFaceBiometric}
+        t={t}
+      />
+
       <TermsModal
         visible={callLearningTermsOpen}
         type={5}
@@ -504,6 +560,51 @@ function CallLearningConsentSection({
           ) : (
             <Switch
               testID="call-learning-consent-toggle"
+              value={state === "granted"}
+              onValueChange={onToggle}
+              disabled={saving}
+              trackColor={{ false: COLORS.zinc200, true: COLORS.violet600 }}
+              thumbColor={COLORS.white}
+            />
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+interface FaceBiometricConsentSectionProps {
+  state: FaceBiometricState;
+  loading: boolean;
+  saving: boolean;
+  onToggle: (value: boolean) => void;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}
+
+function FaceBiometricConsentSection({
+  state,
+  loading,
+  saving,
+  onToggle,
+  t,
+}: FaceBiometricConsentSectionProps) {
+  return (
+    <View
+      testID="face-biometric-consent-section"
+      style={[s.content, { paddingTop: 0, paddingBottom: 32 }]}
+    >
+      <Text style={s.sectionTitle}>{t("settings.privacy.faceBiometric.sectionTitle")}</Text>
+      <View style={s.card}>
+        <View style={s.row}>
+          <View style={{ flex: 1 }}>
+            <Text style={s.rowName}>{t("settings.privacy.faceBiometric.toggleLabel")}</Text>
+            <Text style={s.rowSub}>{t("settings.privacy.faceBiometric.description")}</Text>
+          </View>
+          {loading ? (
+            <ActivityIndicator color={COLORS.zinc500} />
+          ) : (
+            <Switch
+              testID="face-biometric-consent-toggle"
               value={state === "granted"}
               onValueChange={onToggle}
               disabled={saving}

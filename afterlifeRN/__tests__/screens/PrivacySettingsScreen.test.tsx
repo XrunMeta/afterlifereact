@@ -7,6 +7,7 @@ import { useAuthStore } from '../../src/stores/authStore';
 import * as personsApi from '../../src/api/persons';
 import * as clonesApi from '../../src/api/clones';
 import * as dialogStore from '../../src/stores/dialogStore';
+import * as consentApi from '../../src/api/consent';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -38,6 +39,8 @@ const mockListMyBlocks = jest.spyOn(clonesApi, 'listMyBlocks');
 const mockListPersons = jest.spyOn(personsApi, 'listPersons');
 const mockSaveFaceConsent = jest.spyOn(personsApi, 'saveFaceConsent');
 const mockShowAlert = jest.spyOn(dialogStore, 'showAlert');
+const mockGetFaceBiometricConsent = jest.spyOn(consentApi, 'getFaceBiometricConsent');
+const mockSaveFaceBiometricConsent = jest.spyOn(consentApi, 'saveFaceBiometricConsent');
 
 beforeEach(async () => {
   jest.clearAllMocks();
@@ -46,6 +49,7 @@ beforeEach(async () => {
   mockListMyBlocks.mockResolvedValue({ items: [] });
   mockListPersons.mockResolvedValue({ items: [] });
   mockShowAlert.mockImplementation(() => {});
+  mockGetFaceBiometricConsent.mockResolvedValue({ state: 'none', version: null, at: null });
 });
 
 test('face-consent-section 이 항상 렌더됨', () => {
@@ -103,4 +107,28 @@ test('listPersons 는 items 배열 반환', async () => {
   const result = await personsApi.listPersons('test-token');
   expect(result.items).toHaveLength(1);
   expect(result.items[0].consentState).toBe('granted');
+});
+
+test('face-biometric-consent-section 이 항상 렌더됨', () => {
+  render(<PrivacySettingsScreen />);
+  expect(screen.getByTestId('face-biometric-consent-section')).toBeTruthy();
+});
+
+test('getFaceBiometricConsent granted → 토글 on', async () => {
+
+  useAuthStore.setState({ accessToken: 'test-token' });
+  mockGetFaceBiometricConsent.mockResolvedValue({ state: 'granted', version: 'v1', at: 1 });
+  render(<PrivacySettingsScreen />);
+  await screen.findByTestId('face-biometric-consent-toggle');
+  expect(screen.getByTestId('face-biometric-consent-toggle').props.value).toBe(true);
+});
+
+test('토글 off → saveFaceBiometricConsent(revoked) 호출', async () => {
+  useAuthStore.setState({ accessToken: 'test-token' });
+  mockGetFaceBiometricConsent.mockResolvedValue({ state: 'granted', version: 'v1', at: 1 });
+  mockSaveFaceBiometricConsent.mockResolvedValue({ ok: true, state: 'revoked' });
+  render(<PrivacySettingsScreen />);
+  const toggle = await screen.findByTestId('face-biometric-consent-toggle');
+  fireEvent(toggle, 'valueChange', false);
+  expect(mockSaveFaceBiometricConsent).toHaveBeenCalledWith('test-token', 'revoked', { channel: 'settings' });
 });
