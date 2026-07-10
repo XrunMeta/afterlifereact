@@ -6,6 +6,7 @@ import { v_3ebe58 } from "../lib/errors";
 import { v_6690d9 } from "../middleware/auth";
 import { v_a8d2cc } from "../lib/faceVectors";
 import { v_430d2b } from "../lib/personDelete";
+import { v_d0fd96 } from "../lib/displayName";
 
 export const v_fded81 = new v_b7c41b<v_de0a25>();
 
@@ -26,18 +27,7 @@ v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
 
   let v_8a1355 = null;
   if (v_4d33b2.displayName !== undefined) {
-    if (typeof v_4d33b2.displayName !== "string") {
-      throw new v_3ebe58("VALIDATION_FAILED", "displayName은 문자열이어야 합니다.");
-    }
-    const v_2f361a = v_4d33b2.displayName.trim();
-    if (v_2f361a.length < 1 || v_2f361a.length > 30) {
-      throw new v_3ebe58("VALIDATION_FAILED", "displayName은 1~30자여야 합니다.");
-    }
-
-    if (/[\x00-\x1f\x7f​-‏‪-‮⁠-⁯﻿]/.test(v_2f361a)) {
-      throw new v_3ebe58("VALIDATION_FAILED", "displayName에 제어문자를 사용할 수 없습니다.");
-    }
-    v_8a1355 = v_2f361a;
+    v_8a1355 = v_d0fd96(v_4d33b2.displayName);
   }
 
   let v_926d89 = "card";
@@ -347,16 +337,7 @@ v_fded81.patch("/:id", v_6690d9, async (v_3f4e2e) => {
   const v_ca1ec5 = v_5c8583(v_3f4e2e);
   const v_4d33b2 = await v_3f4e2e.req.json<{ displayName?: string }>().catch(() => ({}) as { displayName?: string });
 
-  if (typeof v_4d33b2.displayName !== "string") {
-    throw new v_3ebe58("VALIDATION_FAILED", "displayName은 문자열이어야 합니다.");
-  }
-  const v_2f361a = v_4d33b2.displayName.trim();
-  if (v_2f361a.length < 1 || v_2f361a.length > 30) {
-    throw new v_3ebe58("VALIDATION_FAILED", "displayName은 1~30자여야 합니다.");
-  }
-  if (/[\x00-\x1f\x7f​-‏‪-‮⁠-⁯﻿]/.test(v_2f361a)) {
-    throw new v_3ebe58("VALIDATION_FAILED", "displayName에 제어문자를 사용할 수 없습니다.");
-  }
+  const v_2f361a = v_d0fd96(v_4d33b2.displayName);
 
   const v_2461e1 = await v_3f4e2e.env.DB.prepare(`SELECT id FROM persons WHERE id = ? AND user_id = ?`)
     .bind(v_ca1ec5, v_43e90c)
