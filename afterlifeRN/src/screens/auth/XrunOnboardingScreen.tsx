@@ -16,6 +16,7 @@ import PageHeader from "../../components/common/PageHeader";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { ALL_INTERESTS } from "../../mocks/interestHelpers";
 import { xrunComplete, requestEmailCode, AuthApiError, getMe } from "../../api/auth";
+import { saveFaceBiometricConsent } from "../../api/consent";
 import { useAuthStore } from "../../stores/authStore";
 import { requestPushPermission } from "../../lib/pushNotifications";
 import { getOrCreateDeviceId } from "../../lib/deviceId";
@@ -41,6 +42,8 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [agreeRequired, setAgreeRequired] = useState(false);
   const [agreeMarketing, setAgreeMarketing] = useState(false);
+
+  const [agreeFaceBiometric, setAgreeFaceBiometric] = useState(false);
   const [requestingPush, setRequestingPush] = useState(false);
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [pushPlatform, setPushPlatform] = useState<"ios" | "android" | "web" | null>(null);
@@ -191,6 +194,14 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
         platform: pushPlatform ?? undefined,
       });
 
+      if (agreeFaceBiometric) {
+        try {
+          await saveFaceBiometricConsent(res.accessToken, "granted", { termsVersion: "v1", channel: "signup" });
+        } catch (err) {
+          console.warn("[AUTH/xrun] saveFaceBiometricConsent failed:", err);
+        }
+      }
+
       console.log("[AUTH/xrun] success");
       navigation.replace("SignupComplete", {
         accessToken: res.accessToken,
@@ -328,6 +339,15 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
                 {t("auth.signup.marketingConsent")}
                 {requestingPush ? ` (${t("auth.signup.verifying")})` : ""}
               </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setAgreeFaceBiometric(!agreeFaceBiometric)}
+              style={styles.checkRow}
+            >
+              <View style={[styles.checkbox, agreeFaceBiometric && styles.checkboxChecked]}>
+                {agreeFaceBiometric && <Feather name="check" size={14} color={COLORS.white} />}
+              </View>
+              <Text style={styles.termText}>{t("auth.signup.faceBiometricConsent")}</Text>
             </TouchableOpacity>
           </View>
 

@@ -447,6 +447,7 @@
       "termsCallLearningFallback": "About Call Conversation Learning\n\nIf you agree, your clone learns from your call conversations to provide more natural, personalized conversations. This consent is optional and can be withdrawn anytime in Settings. If you withdraw, only future call conversations are excluded from learning; content already learned is retained, not deleted. (Learned data is erased only when you delete your account or request full personal-data deletion.)",
       "marketingConsent": "(Optional) I agree to receive marketing info",
       "callLearningConsent": "(Optional) I agree to learning from my call conversations",
+      "faceBiometricConsent": "(Optional) I agree to the use of facial recognition (biometric) data",
       "signingUp": "Signing up...",
       "next": "Next",
       "signupBtn": "Sign Up",
