@@ -26,3 +26,7 @@ WARMUP_CLONE = os.environ.get("COSYVOICE_WARMUP_CLONE", "9075")
 
 # CV2 기본 발화속도. 벤치상 CV2가 천천히 말해(dur 큼) 통화 톤에 speed>1.0 튜닝 여지.
 DEFAULT_SPEED = float(os.environ.get("COSYVOICE_DEFAULT_SPEED", "1.0"))
+
+# 정규화 후 빈 텍스트(문장부호만·이모지)로 CV2가 무음일 때 반환할 무음 길이(ms).
+# 503 드롭 대신 짧은 멈춤으로 처리 → 스트리밍 파이프라인 무중단.
+EMPTY_SILENCE_MS = int(os.environ.get("COSYVOICE_EMPTY_SILENCE_MS", "120"))
