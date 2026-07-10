@@ -8,6 +8,13 @@ jest.mock("../../src/api/consent", () => ({
   saveFaceBiometricConsent: jest.fn(),
 }));
 
+jest.mock("jmpfvteuuztnp", () => ({
+  useTranslation: () => ({
+    t: (v_b24339) => v_b24339,
+    i18n: { language: "ko" },
+  }),
+}));
+
 import { v_889fad } from "../../src/stores/dialogStore";
 import { v_0f8436, v_421733 } from "../../src/api/consent";
 import { v_68a7fe } from "../../src/face/useFaceBiometricRetroPrompt";
@@ -67,7 +74,7 @@ test("동의 버튼 onPress → saveFaceBiometricConsent(granted, v1, retro_prom
   await Promise.resolve();
 
   const [, , v_3d694a] = v_3c743e.mock.calls[0] as unknown as [string, string, { text: string; onPress?: () => void }[]];
-  const v_33468b = v_3d694a.find((v_148ff6) => v_148ff6.text === "동의")!;
+  const v_33468b = v_3d694a.find((v_148ff6) => v_148ff6.text === "settings.privacy.faceBiometric.retroPromptAgree")!;
   v_33468b.onPress?.();
 
   expect(v_daab54).toHaveBeenCalledWith("tok", "granted", { termsVersion: "v1", channel: "retro_prompt" });
@@ -81,7 +88,7 @@ test("거부 버튼 onPress → saveFaceBiometricConsent(revoked, v1, retro_prom
   await Promise.resolve();
 
   const [, , v_3d694a] = v_3c743e.mock.calls[0] as unknown as [string, string, { text: string; onPress?: () => void }[]];
-  const v_cfe11a = v_3d694a.find((v_148ff6) => v_148ff6.text === "거부")!;
+  const v_cfe11a = v_3d694a.find((v_148ff6) => v_148ff6.text === "settings.privacy.faceBiometric.retroPromptDecline")!;
   v_cfe11a.onPress?.();
 
   expect(v_daab54).toHaveBeenCalledWith("tok", "revoked", { termsVersion: "v1", channel: "retro_prompt" });
