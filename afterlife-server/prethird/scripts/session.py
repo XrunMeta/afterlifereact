@@ -30,6 +30,10 @@ class Session:
         self.reacted_keys = {}       # face_event 쿨다운: key(personId str|"unknown")→마지막 react 단조시각
         self.pending_enroll = False  # unknown_face/multi_face 이후 등록 대기 플래그(Task 11이 소비)
         self.current_speaker = None  # (personId:int, displayName:str|None) | None — 최근 확인된 화자
+        # T-126 Task8 — 이번 통화에서 이미 이름 추출을 시도한 personId 집합(1인당 1회만 LLM 호출).
+        # current_speaker[1](displayName)이 채워지면 자연히 더 이상 필요 없어지지만, RN의 PATCH가
+        # 이 세션에 반영되지 않으므로(별도 프로세스) 세션 로컬 가드로 중복 호출만 억제한다.
+        self.name_extract_sent = set()
         self.base_persona_messages = None  # L2 화자별 스왑 전 원본 persona_messages 백업(Task 12가 소비)
         self.busy_lock = asyncio.Lock()  # say/speak/greet/react 상호배제(동시 트랙 push 방지, §6.2)
         self.pending_react = None    # 발화 중 도착한 react 단일 대기 슬롯(dict|None, latest-wins)

@@ -42,7 +42,7 @@ export type UseAvatarCall = (opts: {
   cloneId: number;
   accessToken: string;
 
-  onEnrollSuggest?: (name: string) => void;
+  onEnrollSuggest?: (name: string, personId?: number) => void;
 }) => AvatarCall;
 
 export function classifyTrack(
