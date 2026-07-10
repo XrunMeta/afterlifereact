@@ -50,6 +50,7 @@ import { v_f22ce9 } from "../../realtime/devCallText";
 import { v_c6d1f4 } from "../../config/callRoute";
 import { v_a6928f, v_0e2cb4, v_71f13f } from "../../config/greeting";
 import { v_7df8a4 } from "../../realtime/useHandsFreeController";
+import { v_eba6cc } from "../../realtime/useVideoStatsDiag";
 import { v_1980fb } from "../../components/call/DialingScreen";
 import { v_8bbe5d } from "../../components/call/CallStatusGlow";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
@@ -108,6 +109,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_5bb98b, v_fce7f9] = v_5ab095<"front" | "back">("front");
   const [v_4e2aec, v_326ca4] = v_5ab095(false);
   const [v_9e64e1, v_e064ce] = v_5ab095(false);
+
+  const [v_67b98a, v_9739b5] = v_5ab095(false);
 
   const [v_b2ccaa, v_82a4b3] = v_5ab095(false);
 
@@ -213,6 +216,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   }, []);
 
   const v_d7cf17 = v_a6928f && typeof v_009e58 === 'function';
+
+  v_eba6cc({ getStatsReport: v_791152, enabled: __DEV__ && v_6cc918 === "live" });
 
   const v_d35913 = v_b24f74(
     require("../../../assets/models/w600k_mbf.tflite"),
@@ -822,6 +827,16 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           >
             <Text style={{ color: "#0f0", fontSize: 13, fontWeight: "600" }}>전송</Text>
           </TouchableOpacity>
+          {
+}
+          <TouchableOpacity
+            onPress={() => v_9739b5((v_81e2ef) => !v_81e2ef)}
+            style={{ paddingHorizontal: 10, paddingVertical: 6 }}
+          >
+            <Text style={{ color: v_67b98a ? "#f87171" : "#0f0", fontSize: 13, fontWeight: "600" }}>
+              얼굴{v_67b98a ? "OFF" : "ON"}
+            </Text>
+          </TouchableOpacity>
         </View>
       ) : null}
 
@@ -831,7 +846,6 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           liveState={v_6cc918}
           personaName={v_dfb220}
           personaImage={typeof v_0e38ad === "string" ? v_0e38ad : ""}
-          greetingStarted={v_d7cf17 ? v_7a419e : undefined}
           onConnected={() => v_82a4b3(true)}
           onCancel={async () => { await v_cd8b64(); v_c65f5d.goBack(); }}
           onRetry={() => { v_717e64(false); void v_223067(); }}
@@ -867,7 +881,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             isActive={!v_9e64e1}
 
             androidPreviewViewType="texture-view"
-            frameProcessor={v_58656e ? v_a61ebf : undefined}
+
+            frameProcessor={v_58656e && !v_67b98a ? v_a61ebf : undefined}
             onError={(v_9e86fd) =>
               console.log("[Call][face] camera error:", v_9e86fd.code, v_9e86fd.message)
             }
