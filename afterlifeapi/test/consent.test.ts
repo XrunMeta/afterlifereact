@@ -84,3 +84,118 @@ describe("GET /oth-path", () => {
     expect(json.call_learning.state).toBe("granted");
   });
 });
+
+describe("POST /oth-path", () => {
+  it("미인증 401", async () => {
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ state: "granted" }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it("granted → users 스냅샷 1 + face_consent_version 기록 + user_consent_log append", async () => {
+    const { id, token } = await seedUserWithToken("face_consent_grant@test.test");
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ state: "granted", termsVersion: "v1", channel: "signup" }),
+    });
+    expect(res.status).toBe(200);
+    const u = await E.DB.prepare(
+      "SELECT face_biometric_consent AS c, face_consent_at AS at, face_consent_version AS v FROM users WHERE id = ?",
+    ).bind(id).first<{ c: number; at: number | null; v: string | null }>();
+    expect(u!.c).toBe(1);
+    expect(typeof u!.at).toBe("number");
+    expect(u!.v).toBe("v1");
+    const log = await E.DB.prepare(
+      "SELECT state, terms_version, channel FROM user_consent_log WHERE user_id = ? AND consent_type = 'face_biometric'",
+    ).bind(id).all<{ state: string; terms_version: string; channel: string }>();
+    expect(log.results).toHaveLength(1);
+    expect(log.results[0]).toMatchObject({ state: "granted", terms_version: "v1", channel: "signup" });
+  });
+
+  it("잘못된 state → 422 (VALIDATION_FAILED)", async () => {
+    const { token } = await seedUserWithToken("face_consent_bad@test.test");
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ state: "maybe" }),
+    });
+    expect(res.status).toBe(422);
+  });
+
+  it("revoked → auto_biometric person만 연쇄 삭제, card person 보존", async () => {
+    const { id: userId, token } = await seedUserWithToken("face_consent_revoke@test.test");
+
+    const autoRes = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ enrolledVia: "auto_biometric" }),
+    });
+    const { id: autoPersonId } = (await autoRes.json()) as { id: number };
+    const cardRes = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: "카드등록" }),
+    });
+    const { id: cardPersonId } = (await cardRes.json()) as { id: number };
+    await SELF.fetch(`http://localhost/oth-path${cardPersonId}/consent`, {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ state: "granted" }),
+    });
+
+    await SELF.fetch("http://localhost/oth-path", {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ state: "granted", termsVersion: "v1", channel: "signup" }),
+    });
+
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ state: "revoked", termsVersion: "v1", channel: "settings" }),
+    });
+    expect(res.status).toBe(200);
+
+    const u = await E.DB.prepare("SELECT face_biometric_consent AS c FROM users WHERE id = ?").bind(userId).first<{ c: number }>();
+    expect(u!.c).toBe(0);
+
+    const autoCount = await E.DB.prepare("SELECT COUNT(*) c FROM persons WHERE id = ?").bind(autoPersonId).first<{ c: number }>();
+    expect(autoCount?.c).toBe(0); 
+
+    const cardCount = await E.DB.prepare("SELECT COUNT(*) c FROM persons WHERE id = ?").bind(cardPersonId).first<{ c: number }>();
+    expect(cardCount?.c).toBe(1); 
+  });
+
+  it("revoked인데 auto_biometric person이 없으면 no-op으로 200", async () => {
+    const { token } = await seedUserWithToken("face_consent_revoke_empty@test.test");
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ state: "revoked", termsVersion: "v1" }),
+    });
+    expect(res.status).toBe(200);
+  });
+});
+
+describe("GET /oth-path — face_biometric 필드", () => {
+  it("동의 전 기본값 {state:'none', at:null, version:null}", async () => {
+    const { token } = await seedUserWithToken("face_consent_get_default@test.test");
+    const res = await SELF.fetch("http://localhost/oth-path", { headers: { Authorization: `Bearer ${token}` } });
+    const json = await res.json<{ face_biometric: { state: string; at: number | null; version: string | null } }>();
+    expect(json.face_biometric).toEqual({ state: "none", at: null, version: null });
+  });
+
+  it("동의 후 {state:'granted', version:'v1'}", async () => {
+    const { token } = await seedUserWithToken("face_consent_get_granted@test.test");
+    await SELF.fetch("http://localhost/oth-path", {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ state: "granted", termsVersion: "v1" }),
+    });
+    const res = await SELF.fetch("http://localhost/oth-path", { headers: { Authorization: `Bearer ${token}` } });
+    const json = await res.json<{ face_biometric: { state: string; version: string | null } }>();
+    expect(json.face_biometric.state).toBe("granted");
+    expect(json.face_biometric.version).toBe("v1");
+  });
+
+  it("call_learning 필드는 기존 그대로(회귀 확인)", async () => {
+    const { token } = await seedUserWithToken("face_consent_regress@test.test");
+    const res = await SELF.fetch("http://localhost/oth-path", { headers: { Authorization: `Bearer ${token}` } });
+    const json = await res.json<{ call_learning: { state: string; at: number | null } }>();
+    expect(json.call_learning).toEqual({ state: "none", at: null });
+  });
+});
