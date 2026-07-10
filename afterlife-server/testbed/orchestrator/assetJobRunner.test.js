@@ -1766,9 +1766,11 @@ test('FILLER_SPECS render_opts: 공통 source_face_lock·eyes_open_lock·blink_i
 
   assert.ok(FILLER_SPECS.every((s) => s.render_opts.blink_interval_sec === 3.5));
   assert.equal(FILLER_SPECS[0].render_opts.head_sway_amp, 0.0);
-  assert.equal(FILLER_SPECS[2].render_opts.head_sway_amp > 0, true);
-  assert.equal(FILLER_SPECS[3].render_opts.head_sway_amp > 0, true);
+
+  assert.equal(FILLER_SPECS[2].render_opts.head_sway_amp, 0.4);
+  assert.equal(FILLER_SPECS[3].render_opts.head_sway_amp, 0.4);
   assert.equal(FILLER_SPECS[4].render_opts.head_sway_amp, 0.0);
+  assert.equal(FILLER_SPECS[5].render_opts.head_sway_amp, 0.2);
 
   assert.ok(FILLER_SPECS.every((s) => !s.text.includes('아')));
 });
