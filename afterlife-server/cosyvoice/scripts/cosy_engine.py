@@ -28,7 +28,18 @@ class CosyEngine:
         from cosyvoice.cli.cosyvoice import CosyVoice2
         self.model = CosyVoice2(config.MODEL_DIR, load_jit=False, load_trt=False, fp16=config.FP16)
         self.sr = self.model.sample_rate
+        if config.SAMPLING_TOP_K > 0:
+            self._set_sampling(config.SAMPLING_TOP_K)
+            log.info("sampling override: top_p=%s top_k=%s (fallback top_k=%s)",
+                     config.SAMPLING_TOP_P, config.SAMPLING_TOP_K, config.RAMBLE_FALLBACK_TOP_K)
         log.info("cosyvoice2 loaded: dir=%s sr=%s fp16=%s", config.MODEL_DIR, self.sr, config.FP16)
+
+    def _set_sampling(self, top_k: int):
+        """LLM 샘플링 top_k 교체(폭주 저감). _synth_lock 내에서만 호출(레이스 방지)."""
+        import functools
+        from cosyvoice.utils.common import ras_sampling
+        self.model.llm.sampling = functools.partial(
+            ras_sampling, top_p=config.SAMPLING_TOP_P, top_k=top_k, win_size=10, tau_r=0.1)
 
     def warmup(self):
         wc = config.WARMUP_CLONE
@@ -70,24 +81,55 @@ class CosyEngine:
             self._registered.add(clone_id)
             log.info("prompt cached: clone=%s (%.1fs, icl=%s)", clone_id, len(data) / sr, ref_text is not None)
 
-    def synth(self, text: str, clone_id: str, voice_wav: str,
-              ref_text: str | None, speed: float = 1.0) -> bytes:
+    def _synth_once(self, text: str, clone_id: str, speed: float, top_k: int | None = None):
+        """1회 합성 → float32 [T] numpy (빈 텍스트면 None). GPU 직렬화.
+        top_k 지정 시 이 합성만 해당 샘플링 사용(폭주 재합성 폴백용)·이후 기본값 복원."""
         import torch
-        self._ensure_prompt(clone_id, voice_wav, ref_text)
         chunks = []
         with self._synth_lock:
-            for out in self.model.inference_zero_shot(
-                text, "", "", zero_shot_spk_id=clone_id, stream=False, speed=speed
-            ):
-                chunks.append(out["tts_speech"])
+            if top_k is not None and config.SAMPLING_TOP_K > 0:
+                self._set_sampling(top_k)
+            try:
+                for out in self.model.inference_zero_shot(
+                    text, "", "", zero_shot_spk_id=clone_id, stream=False, speed=speed
+                ):
+                    chunks.append(out["tts_speech"])
+            finally:
+                if top_k is not None and config.SAMPLING_TOP_K > 0:
+                    self._set_sampling(config.SAMPLING_TOP_K)  # 기본(자연성) 복원
         if not chunks:
-            # 정규화 후 빈 텍스트(문장부호만·이모지 등) → CV2가 무음. 503 대신 짧은 무음 wav 반환.
-            # 스트리밍에서 문장분할이 이런 조각을 내보내도 발화 드롭·에러 없이 자연스러운 멈춤 처리.
-            log.info("empty audio (정규화후 빈 텍스트) clone=%s text=%r → 무음 반환", clone_id, text[:40])
-            return self._silence_wav(config.EMPTY_SILENCE_MS)
-        audio = torch.concat(chunks, dim=1).squeeze(0).cpu().numpy().astype(np.float32)  # [T]
+            return None
+        return torch.concat(chunks, dim=1).squeeze(0).cpu().numpy().astype(np.float32)
+
+    def synth(self, text: str, clone_id: str, voice_wav: str,
+              ref_text: str | None, speed: float = 1.0) -> bytes:
+        self._ensure_prompt(clone_id, voice_wav, ref_text)
+
+        # 폭주(hallucination) 가드: CV2가 드물게 텍스트 대비 과생성해 의미없는 노이즈를 뱉음
+        # (LLM max_token_text_ratio=20·top-k 샘플링 변동). 예상길이(문자수 기반) 크게 초과 시 재합성,
+        # 모두 초과면 가장 짧은 결과 반환(최선). 정상은 1회로 통과(회귀·지연 무영향).
+        expected_max = config.RAMBLE_BASE_SEC + len(text) * config.RAMBLE_PER_CHAR_SEC
+        best = None
+        for attempt in range(config.RAMBLE_RETRIES + 1):
+            # 1차=기본 샘플링(자연성 top_k=5), 재합성=폴백 top_k(greedy 1, 폭주율↓).
+            tk = None if attempt == 0 else config.RAMBLE_FALLBACK_TOP_K
+            audio = self._synth_once(text, clone_id, speed, top_k=tk)
+            if audio is None:
+                # 정규화 후 빈 텍스트(문장부호·이모지) → 짧은 무음(스트리밍 무중단·503 방지).
+                log.info("empty audio clone=%s text=%r → 무음 반환", clone_id, text[:40])
+                return self._silence_wav(config.EMPTY_SILENCE_MS)
+            dur = len(audio) / self.sr
+            if dur <= expected_max:
+                if attempt > 0:
+                    log.info("ramble 회복: clone=%s dur=%.1fs (attempt=%d)", clone_id, dur, attempt)
+                best = audio
+                break
+            log.warning("ramble 의심 clone=%s text=%r dur=%.1fs > max=%.1fs → 재합성(%d/%d)",
+                        clone_id, text[:30], dur, expected_max, attempt + 1, config.RAMBLE_RETRIES)
+            if best is None or len(audio) < len(best):
+                best = audio  # 모두 초과 시 가장 짧은 것
         buf = io.BytesIO()
-        sf.write(buf, audio, self.sr, format="WAV", subtype="PCM_16")
+        sf.write(buf, best, self.sr, format="WAV", subtype="PCM_16")
         return buf.getvalue()
 
     def _silence_wav(self, ms: int) -> bytes:
