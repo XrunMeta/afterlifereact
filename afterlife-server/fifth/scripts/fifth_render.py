@@ -5,6 +5,7 @@ render_offline.py(오프라인 mp4 도구)의 검증된 렌더 로직을 실시�
 """
 from __future__ import annotations
 
+import math
 import os
 from typing import Callable
 
@@ -152,6 +153,37 @@ def _apply_head_slew(ml: list, nj: int, head_last: list, slew_k: int) -> None:
                       + alpha * np.asarray(m_orig["R"])).astype(np.float32)
         m_new["t"] = ((1 - alpha) * head_t_last
                       + alpha * np.asarray(m_orig["t"])).astype(np.float32)
+        ml[i] = m_new
+
+
+def _apply_head_sway(ml: list, nj: int, amp: float, phase_offset: int = 0) -> None:
+    """절차적 머리 흔들림 — ml[i]["R"]에 저주파 yaw/pitch 회전 주입(in-place).
+
+    T-120: 오디오·라이브와 무관, 프레임 인덱스 기반 결정론. 무음/lip_lock 필러에서
+    자연스러운 머리 움직임을 만든다. amp<=0 또는 nj<=0이면 no-op(회귀 0).
+    램프인/아웃(앞뒤 RAMP 프레임)으로 경계 튐을 방지한다. amp 1에서 yaw ±10°, pitch ±6°.
+    """
+    if not amp or amp <= 0 or nj <= 0:
+        return
+    max_yaw = math.radians(10.0) * float(amp)
+    max_pitch = math.radians(6.0) * float(amp)
+    yaw_period, pitch_period = 80.0, 110.0   # frames (~3.2s/4.4s @ 25fps)
+    ramp = min(12, nj)
+    for i in range(nj):
+        t = i + phase_offset
+        yaw = max_yaw * math.sin(2.0 * math.pi * t / yaw_period)
+        pitch = max_pitch * math.sin(2.0 * math.pi * t / pitch_period + 1.3)
+        r = min(i + 1, nj - i, ramp) / ramp   # 0→1→0 램프
+        yaw *= r
+        pitch *= r
+        cy, sy = math.cos(yaw), math.sin(yaw)
+        cp, sp = math.cos(pitch), math.sin(pitch)
+        r_yaw = np.array([[cy, 0.0, sy], [0.0, 1.0, 0.0], [-sy, 0.0, cy]], dtype=np.float32)
+        r_pitch = np.array([[1.0, 0.0, 0.0], [0.0, cp, -sp], [0.0, sp, cp]], dtype=np.float32)
+        r_sway = (r_pitch @ r_yaw).astype(np.float32)
+        m_new = dict(ml[i])
+        r_o = np.asarray(m_new["R"]).astype(np.float32)   # (1,3,3)
+        m_new["R"] = (r_sway @ r_o[0])[None].astype(np.float32)
         ml[i] = m_new
 
 
