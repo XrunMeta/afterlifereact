@@ -123,12 +123,69 @@ test('getFaceBiometricConsent granted → 토글 on', async () => {
   expect(v_53746a.getByTestId('face-biometric-consent-toggle').props.value).toBe(true);
 });
 
-test('토글 off → saveFaceBiometricConsent(revoked) 호출', async () => {
+test('토글 on → saveFaceBiometricConsent(granted, termsVersion+channel) 호출', async () => {
+  v_1ed7d9.setState({ accessToken: 'test-token' });
+  v_64000e.mockResolvedValue({ state: 'none', version: null, at: null });
+  v_35d451.mockResolvedValue({ ok: true, state: 'granted' });
+  v_624657(<PrivacySettingsScreen />);
+  const v_09f2bd = await v_53746a.findByTestId('face-biometric-consent-toggle');
+  v_77aa68(v_09f2bd, 'valueChange', true);
+  expect(v_35d451).toHaveBeenCalledWith('test-token', 'granted', {
+    termsVersion: 'v1',
+    channel: 'settings',
+  });
+});
+
+test('토글 off → 즉시 저장하지 않고 확인 다이얼로그(destructive)를 먼저 띄움', async () => {
+  v_1ed7d9.setState({ accessToken: 'test-token' });
+  v_64000e.mockResolvedValue({ state: 'granted', version: 'v1', at: 1 });
+  v_624657(<PrivacySettingsScreen />);
+  const v_09f2bd = await v_53746a.findByTestId('face-biometric-consent-toggle');
+  v_77aa68(v_09f2bd, 'valueChange', false);
+
+  expect(v_35d451).not.toHaveBeenCalled();
+  expect(v_3c743e).toHaveBeenCalledWith(
+    'settings.privacy.faceBiometric.revokeConfirmTitle',
+    'settings.privacy.faceBiometric.revokeConfirmMessage',
+    expect.arrayContaining([
+      expect.objectContaining({ style: 'destructive' }),
+      expect.objectContaining({ style: 'cancel' }),
+    ]),
+  );
+});
+
+test('토글 off + 확인(destructive) 클릭 → saveFaceBiometricConsent(revoked) 호출', async () => {
   v_1ed7d9.setState({ accessToken: 'test-token' });
   v_64000e.mockResolvedValue({ state: 'granted', version: 'v1', at: 1 });
   v_35d451.mockResolvedValue({ ok: true, state: 'revoked' });
   v_624657(<PrivacySettingsScreen />);
   const v_09f2bd = await v_53746a.findByTestId('face-biometric-consent-toggle');
   v_77aa68(v_09f2bd, 'valueChange', false);
+
+  const v_3d694a = v_3c743e.mock.calls[v_3c743e.mock.calls.length - 1][2] as Array<{
+    style?: string;
+    onPress?: () => void;
+  }>;
+  const v_bb1b97 = v_3d694a.find((v_148ff6) => v_148ff6.style === 'destructive');
+  await v_bb1b97?.onPress?.();
+
   expect(v_35d451).toHaveBeenCalledWith('test-token', 'revoked', { channel: 'settings' });
+});
+
+test('토글 off + 취소 클릭 → saveFaceBiometricConsent 미호출(토글 ON 유지)', async () => {
+  v_1ed7d9.setState({ accessToken: 'test-token' });
+  v_64000e.mockResolvedValue({ state: 'granted', version: 'v1', at: 1 });
+  v_624657(<PrivacySettingsScreen />);
+  const v_09f2bd = await v_53746a.findByTestId('face-biometric-consent-toggle');
+  v_77aa68(v_09f2bd, 'valueChange', false);
+
+  const v_3d694a = v_3c743e.mock.calls[v_3c743e.mock.calls.length - 1][2] as Array<{
+    style?: string;
+    onPress?: () => void;
+  }>;
+  const v_50ddf4 = v_3d694a.find((v_148ff6) => v_148ff6.style === 'cancel');
+  v_50ddf4?.onPress?.();
+
+  expect(v_35d451).not.toHaveBeenCalled();
+  expect(v_53746a.getByTestId('face-biometric-consent-toggle').props.value).toBe(true);
 });
