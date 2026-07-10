@@ -369,6 +369,12 @@ class DialoguePipeline:
           회귀가 확인됨 — greet/react 는 _system_utterance 가 이 플래그로
           강제 partial 배선. say()/speak()(사용자 응답, batch 대상)는
           force_partial 을 전달하지 않아(기본 False) 절대 영향받지 않는다."""
+        # 리드 버퍼(pre-roll): 사용자 응답(say/speak)만 무장 — 문장 사이 갭을 버퍼로
+        # 흡수한다. greet/react(force_partial=True, 단문·세그먼트 갭 없음)는 제외해
+        # TTFF 회귀(GREET_TIMEOUT 고착)를 방지. batch 경로엔 무해(일괄 push→즉시 해제).
+        # PRETHIRD_PREROLL_FRAMES=0(기본)이면 begin_response 자체가 no-op(회귀 0).
+        if not force_partial:
+            self.vt.begin_response()
         if self._render_mode == "batch" and not force_partial:
             await self._run_batch(produce, turn, on_first_audio, on_response_ready)
         else:
