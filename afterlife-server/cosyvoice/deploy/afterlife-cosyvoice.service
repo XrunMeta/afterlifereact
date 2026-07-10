@@ -1,0 +1,23 @@
+# CosyVoice2 어댑터 systemd unit (가비아, GPU1). qwen3tts unit 미러. T-120 cosyvoice.
+# 설치: sudo cp afterlife-cosyvoice.service /etc/systemd/system/ && sudo systemctl daemon-reload
+#       sudo systemctl enable --now afterlife-cosyvoice
+[Unit]
+Description=afterlife CosyVoice2 TTS adapter (:8203)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=afterlife
+WorkingDirectory=/home/afterlife/afterlife-server/cosyvoice/scripts
+Environment=CUDA_VISIBLE_DEVICES=1
+Environment=COSYVOICE_PORT=8203
+Environment=PYTHONPATH=/home/afterlife/cosyvoice-poc/repo:/home/afterlife/cosyvoice-poc/repo/third_party/Matcha-TTS
+# conda env cosyvoice-poc 의 uvicorn 절대경로 사용(로그인 셸 비의존)
+ExecStart=/home/afterlife/miniconda3/envs/cosyvoice-poc/bin/uvicorn server:app --host 127.0.0.1 --port 8203 --app-dir /home/afterlife/afterlife-server/cosyvoice/scripts
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target

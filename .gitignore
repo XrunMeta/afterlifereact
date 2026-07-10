@@ -53,3 +53,7 @@ afterlife-server/scripts/.t067-model/
 
 # T-067 Task 8 픽스처 — 사진(.jpg)만 제외, manifest.json은 감사추적(인물↔샷↔원본 매핑)용 커밋
 afterlife-server/fixtures/t067-faces/**/*.jpg
+
+# CosyVoice2 PoC 벤치 산출물(로컬 전용, 커밋 제외) — T-120 cosyvoice
+bench_listen_9075/
+afterlife-server/cosyvoice/**/*.wav
