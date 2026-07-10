@@ -695,7 +695,11 @@
         "toggleLabel": "Allow silent auto-registration",
         "saveError": "Failed to save your setting. Please try again.",
         "revokeConfirmTitle": "Turn Off Silent Auto-Registration",
-        "revokeConfirmMessage": "Turning this off immediately deletes the facial recognition data for every speaker registered this way. Manually registered speakers are unaffected. This cannot be undone. Continue?"
+        "revokeConfirmMessage": "Turning this off immediately deletes the facial recognition data for every speaker registered this way. Manually registered speakers are unaffected. This cannot be undone. Continue?",
+        "retroPromptTitle": "Would you like to enable facial recognition (biometric data)?",
+        "retroPromptMessage": "If you agree, your clone will quietly remember a new face during calls without a confirmation card, so it recognizes them more naturally next time. You can change this anytime in Settings.",
+        "retroPromptAgree": "Agree",
+        "retroPromptDecline": "Decline"
       }
     },
     "saved": {

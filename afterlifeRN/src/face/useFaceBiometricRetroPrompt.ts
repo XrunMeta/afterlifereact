@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { showAlert } from "../stores/dialogStore";
 import { getFaceBiometricConsent, saveFaceBiometricConsent } from "../api/consent";
 import { shouldShowFaceBiometricRetroPrompt } from "./faceBiometricRetroPrompt";
@@ -6,6 +7,7 @@ import { shouldShowFaceBiometricRetroPrompt } from "./faceBiometricRetroPrompt";
 export const FACE_BIOMETRIC_RETRO_TERMS_VERSION = "v1";
 
 export function useFaceBiometricRetroPrompt(accessToken: string | null): void {
+  const { t } = useTranslation();
   const shownRef = useRef(false);
 
   useEffect(() => {
@@ -18,11 +20,11 @@ export function useFaceBiometricRetroPrompt(accessToken: string | null): void {
         if (cancelled) return;
         if (!shouldShowFaceBiometricRetroPrompt(consent)) return;
         showAlert(
-          "얼굴 인식(생체정보) 활용에 동의하시겠어요?",
-          "동의하시면 통화 중 처음 보는 얼굴을 별도 확인 없이 조용히 기억해 다음 통화부터 더 자연스럽게 알아봐요. 설정에서 언제든 변경할 수 있어요.",
+          t("settings.privacy.faceBiometric.retroPromptTitle"),
+          t("settings.privacy.faceBiometric.retroPromptMessage"),
           [
             {
-              text: "거부",
+              text: t("settings.privacy.faceBiometric.retroPromptDecline"),
               style: "cancel",
               onPress: () => {
                 void saveFaceBiometricConsent(accessToken, "revoked", {
@@ -34,7 +36,7 @@ export function useFaceBiometricRetroPrompt(accessToken: string | null): void {
               },
             },
             {
-              text: "동의",
+              text: t("settings.privacy.faceBiometric.retroPromptAgree"),
               onPress: () => {
                 void saveFaceBiometricConsent(accessToken, "granted", {
                   termsVersion: FACE_BIOMETRIC_RETRO_TERMS_VERSION,

@@ -8,6 +8,13 @@ jest.mock("../../src/api/consent", () => ({
   saveFaceBiometricConsent: jest.fn(),
 }));
 
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+    i18n: { language: "ko" },
+  }),
+}));
+
 import { showAlert } from "../../src/stores/dialogStore";
 import { getFaceBiometricConsent, saveFaceBiometricConsent } from "../../src/api/consent";
 import { useFaceBiometricRetroPrompt } from "../../src/face/useFaceBiometricRetroPrompt";
@@ -67,7 +74,7 @@ test("동의 버튼 onPress → saveFaceBiometricConsent(granted, v1, retro_prom
   await Promise.resolve();
 
   const [, , buttons] = mockShowAlert.mock.calls[0] as unknown as [string, string, { text: string; onPress?: () => void }[]];
-  const agreeBtn = buttons.find((b) => b.text === "동의")!;
+  const agreeBtn = buttons.find((b) => b.text === "settings.privacy.faceBiometric.retroPromptAgree")!;
   agreeBtn.onPress?.();
 
   expect(mockSave).toHaveBeenCalledWith("tok", "granted", { termsVersion: "v1", channel: "retro_prompt" });
@@ -81,7 +88,7 @@ test("거부 버튼 onPress → saveFaceBiometricConsent(revoked, v1, retro_prom
   await Promise.resolve();
 
   const [, , buttons] = mockShowAlert.mock.calls[0] as unknown as [string, string, { text: string; onPress?: () => void }[]];
-  const declineBtn = buttons.find((b) => b.text === "거부")!;
+  const declineBtn = buttons.find((b) => b.text === "settings.privacy.faceBiometric.retroPromptDecline")!;
   declineBtn.onPress?.();
 
   expect(mockSave).toHaveBeenCalledWith("tok", "revoked", { termsVersion: "v1", channel: "retro_prompt" });
