@@ -9,12 +9,12 @@ import path from 'node:path';
 import { suggestGuideMents as defaultSuggestGuideMents } from '../lib/guideMentSuggest.js';
 
 export const FILLER_SPECS = [
-  { text: '음..... 음... 음..', render_opts: { eyes_open_lock: true, source_face_lock: true, head_sway_amp: 0.0 } },
-  { text: '음... 음.....', render_opts: { eyes_open_lock: true, source_face_lock: true, head_sway_amp: 0.0 } },
-  { text: '으음... 음.....', render_opts: { eyes_open_lock: true, source_face_lock: true, head_sway_amp: 0.6 } },
-  { text: '음..... 음...', render_opts: { eyes_open_lock: true, source_face_lock: true, head_sway_amp: 0.6 } }, 
-  { text: '음... 으음...', render_opts: { eyes_open_lock: true, source_face_lock: true, head_sway_amp: 0.0 } }, 
-  { text: '흠.....', atempo: 0.55, render_opts: { eyes_open_lock: true, source_face_lock: true, head_sway_amp: 0.3 } }, 
+  { text: '음..... 음... 음..', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 3.5, head_sway_amp: 0.0, head_yaw_offset: 0, head_pitch_offset: 0 } },
+  { text: '음... 음.....', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 3.5, head_sway_amp: 0.0, head_yaw_offset: -12 } },
+  { text: '으음... 음.....', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 3.5, head_sway_amp: 0.6, head_yaw_offset: 12 } },
+  { text: '음..... 음...', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 3.5, head_sway_amp: 0.6, head_pitch_offset: 8 } }, 
+  { text: '음... 으음...', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 3.5, head_sway_amp: 0.0, head_pitch_offset: -8 } }, 
+  { text: '흠.....', atempo: 0.55, render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 3.5, head_sway_amp: 0.3 } }, 
 ];
 
 export const FILLER_TEXTS = FILLER_SPECS.map((s) => s.text);

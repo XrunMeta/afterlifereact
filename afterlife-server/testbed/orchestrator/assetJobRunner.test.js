@@ -1758,17 +1758,32 @@ test('defaultFifthRender: 터미네이터 없이 종료 → terminator reject �
   }
 });
 
-test('FILLER_SPECS render_opts: 공통 source_face_lock·eyes_open_lock, 2·3만 머리 크게 (T-120)', () => {
+test('FILLER_SPECS render_opts: 공통 source_face_lock·eyes_open_lock·blink_interval_sec, 2·3만 머리 크게 (T-120)', () => {
   assert.equal(FILLER_SPECS.length, 6);
 
   assert.ok(FILLER_SPECS.every((s) => s.render_opts.source_face_lock === true));
   assert.ok(FILLER_SPECS.every((s) => s.render_opts.eyes_open_lock === true));
+
+  assert.ok(FILLER_SPECS.every((s) => s.render_opts.blink_interval_sec === 3.5));
   assert.equal(FILLER_SPECS[0].render_opts.head_sway_amp, 0.0);
   assert.equal(FILLER_SPECS[2].render_opts.head_sway_amp > 0, true);
   assert.equal(FILLER_SPECS[3].render_opts.head_sway_amp > 0, true);
   assert.equal(FILLER_SPECS[4].render_opts.head_sway_amp, 0.0);
 
   assert.ok(FILLER_SPECS.every((s) => !s.text.includes('아')));
+});
+
+test('FILLER_SPECS render_opts: 시선 오프셋 세트(idx0 정면·1/2 좌우·3/4 상하·5 오프셋없음) (T-120)', () => {
+
+  assert.equal(FILLER_SPECS[0].render_opts.head_yaw_offset, 0);
+  assert.equal(FILLER_SPECS[0].render_opts.head_pitch_offset, 0);
+  assert.equal(FILLER_SPECS[1].render_opts.head_yaw_offset, -12);
+  assert.equal(FILLER_SPECS[2].render_opts.head_yaw_offset, 12);
+  assert.equal(FILLER_SPECS[3].render_opts.head_pitch_offset, 8);
+  assert.equal(FILLER_SPECS[4].render_opts.head_pitch_offset, -8);
+
+  assert.equal(FILLER_SPECS[5].render_opts.head_yaw_offset, undefined);
+  assert.equal(FILLER_SPECS[5].render_opts.head_pitch_offset, undefined);
 });
 
 test('processFillerJob이 spec.render_opts를 fifthRenderFn 4번째 인자로 전달 (T-120)', async () => {
