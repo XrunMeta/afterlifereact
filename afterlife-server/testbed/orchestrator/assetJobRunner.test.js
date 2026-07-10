@@ -4,7 +4,7 @@ import { writeFile, mkdtemp, rm } from 'node:fs/promises';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { createAssetJobRunner, FILLER_SPECS, FILLER_TEXTS, defaultEnsureVoiceWav, defaultFifthRender, defaultFfmpegPadCmd, _MAX_VOICE_WAV_BYTES } from './assetJobRunner.js';
+import { createAssetJobRunner, FILLER_SPECS, FILLER_TEXTS, defaultEnsureVoiceWav, defaultFifthRender, defaultFfmpegPadCmd, defaultFfmpegMuxCmd, _MAX_VOICE_WAV_BYTES } from './assetJobRunner.js';
 
 const API_BASE = 'https://oth-path.example.com';
 
@@ -1874,4 +1874,54 @@ test('defaultFifthRender: renderOpts 미전달 시 body 불변(회귀 0, T-120)'
   } finally {
     srv.close();
   }
+});
+
+test('defaultFfmpegMuxCmd: audioVolumeDb 전달 시 -af volume=<N>dB 포함, 미전달 시 없음', () => {
+  const withDb = defaultFfmpegMuxCmd('/tmp/frames', '/tmp/a.wav', '/tmp/out.mp4', -20);
+  const argsWithDb = withDb.args.join(' ');
+  assert.match(argsWithDb, /-af volume=-20dB/, '-af volume=-20dB 포함 필요');
+
+  const afIdx = withDb.args.indexOf('-af');
+  const caIdx = withDb.args.indexOf('-c:a');
+  assert.ok(afIdx >= 0 && caIdx >= 0 && afIdx < caIdx, '-af 는 -c:a 앞에 위치해야 함');
+
+  const withoutDb = defaultFfmpegMuxCmd('/tmp/frames', '/tmp/a.wav', '/tmp/out.mp4');
+  assert.equal(withoutDb.args.includes('-af'), false, '미전달 시 -af 없어야 함(회귀 0)');
+  assert.equal(withoutDb.args[withoutDb.args.length - 1], '/tmp/out.mp4', '마지막 인자=출력 경로 계약 유지');
+});
+
+test('filler mux 호출은 항상 audioVolumeDb=-20 을 4번째 인자로 받음(T-120)', async () => {
+  const callbackCalls = [];
+  const fillerCallbackCalls = [];
+  const muxCalls = [];
+
+  const capturingMuxCmd = (framesDir, wavPath, outPath, audioVolumeDb) => {
+    muxCalls.push(audioVolumeDb);
+    return { bin: 'echo', args: [outPath] };
+  };
+
+  const runner = createAssetJobRunner({
+    apiBaseUrl: API_BASE,
+    fetchImpl: makeFetchFiller({ callbackCalls, fillerCallbackCalls }),
+    spawnImpl: makeSpawn(0),
+    _qwenTtsFn: makeQwenTts(),
+    _fifthRenderFn: makeFifthRender({ framesCount: 3 }),
+    ffmpegMuxCmd: capturingMuxCmd,
+    _ensureVoiceWavFn: makeEnsureVoiceWav(),
+  });
+
+  runner.enqueue({
+    job_id: 'fj_mux_db',
+    kind: 'filler',
+    clone_id: '9055',
+    face_url: `${API_BASE}/oth-path`,
+    voice_raw_url: `${API_BASE}/oth-path`,
+    callback_token: 'tok_fj_mux_db',
+  });
+
+  await waitDrain(runner, 4000);
+
+  assert.equal(fillerCallbackCalls.length, 1, '전부 성공해야 함');
+  assert.equal(muxCalls.length, FILLER_SPECS.length);
+  assert.ok(muxCalls.every((db) => db === -20), 'mux 호출마다 audioVolumeDb=-20 이어야 함');
 });

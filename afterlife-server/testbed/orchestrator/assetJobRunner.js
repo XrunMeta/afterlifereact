@@ -44,6 +44,8 @@ const FILLER_LEAD_SILENCE_MS = 600;
 
 export const FILLER_VOLUME = 0.3;
 
+const FILLER_MUX_VOLUME_DB = -20;
+
 export function defaultFfmpegPadCmd(inWav, outWav, wholeDurSec, atempo) {
   const pre = atempo ? `atempo=${atempo},` : '';
   return {
@@ -57,7 +59,8 @@ export function defaultFfmpegPadCmd(inWav, outWav, wholeDurSec, atempo) {
   };
 }
 
-export function defaultFfmpegMuxCmd(framesDir, wavPath, outPath) {
+export function defaultFfmpegMuxCmd(framesDir, wavPath, outPath, audioVolumeDb = null) {
+  const af = audioVolumeDb != null ? ['-af', `volume=${audioVolumeDb}dB`] : [];
   return {
     bin: 'ffmpeg',
     args: [
@@ -67,6 +70,7 @@ export function defaultFfmpegMuxCmd(framesDir, wavPath, outPath) {
       '-i', wavPath,
       '-c:v', 'libx264',
       '-pix_fmt', 'yuv420p',
+      ...af,
       '-c:a', 'aac',
       '-shortest',
       outPath,
@@ -388,7 +392,7 @@ export function createAssetJobRunner({
       }
 
       const mp4Path = path.join(dir, `filler_${i}.mp4`);
-      const cmd = ffmpegMuxCmd(framesDir, fillerWavPath, mp4Path);
+      const cmd = ffmpegMuxCmd(framesDir, fillerWavPath, mp4Path, FILLER_MUX_VOLUME_DB);
       await run(cmd.bin, cmd.args, spawnImpl);
       mp4Bufs.push(await readFile(mp4Path));
     }
