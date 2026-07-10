@@ -396,6 +396,44 @@ def test_head_sway_ramps_from_zero_at_edges():
     assert np.allclose(ml[0]["R"], np.eye(3)[None], atol=2e-2)
 
 
+def test_head_sway_negative_is_noop():
+    """amp<0 도 amp<=0 조건에 포함 — no-op(회귀 0)."""
+    from fifth_render import _apply_head_sway
+    ml = _make_ml(20)
+    before = [m["R"].copy() for m in ml]
+    _apply_head_sway(ml, 20, -0.5)
+    for m, b in zip(ml, before):
+        assert np.array_equal(m["R"], b)
+
+
+def test_head_sway_large_amplitude_maintains_orthogonality():
+    """amp 극값(5.0)에서도 회전각만 커질 뿐 각 프레임 R은 유효 회전행렬(직교·det=1) 유지."""
+    from fifth_render import _apply_head_sway
+    ml = _make_ml(30)
+    _apply_head_sway(ml, 30, 5.0)
+    for m in ml:
+        Rm = m["R"][0]
+        assert np.allclose(Rm @ Rm.T, np.eye(3), atol=1e-3)
+        assert abs(np.linalg.det(Rm) - 1.0) < 1e-3
+
+
+def test_head_sway_nj_less_than_ramp():
+    """nj < ramp(12) 극단 케이스 — 크래시 없이 동작 + 램프가 의도대로(양끝<중앙) 적용."""
+    from fifth_render import _apply_head_sway
+
+    # nj=1: ramp=min(12,1)=1 → ZeroDivisionError 없이 동작.
+    ml1 = _make_ml(1)
+    _apply_head_sway(ml1, 1, 1.0)
+    assert ml1[0]["R"].shape == (1, 3, 3)
+
+    # nj=5: ramp=min(12,5)=5 → 양끝(0,4)의 회전 편차가 중앙(2)보다 작아야 함.
+    ml5 = _make_ml(5)
+    _apply_head_sway(ml5, 5, 1.0)
+    dev = [float(np.linalg.norm(m["R"][0] - np.eye(3))) for m in ml5]
+    assert dev[0] < dev[2]
+    assert dev[4] < dev[2]
+
+
 # ---------------------------------------------------------------------------
 # T-120: stream_wav_frames lip_lock / head_sway_amp / eyes_open_lock 배선 테스트
 # ---------------------------------------------------------------------------
