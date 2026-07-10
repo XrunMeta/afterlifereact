@@ -208,8 +208,8 @@ export default function PrivacySettingsScreen() {
     }
   };
 
-  const handleToggleFaceBiometric = async (value: boolean) => {
-    if (!accessToken || faceBiometricSaving) return;
+  const saveFaceBiometricToggle = async (value: boolean) => {
+    if (!accessToken) return;
     const prev = faceBiometric;
     setFaceBiometricSaving(true);
     setFaceBiometric(value ? "granted" : "none");
@@ -227,6 +227,28 @@ export default function PrivacySettingsScreen() {
     } finally {
       setFaceBiometricSaving(false);
     }
+  };
+
+  const handleToggleFaceBiometric = (value: boolean) => {
+    if (!accessToken || faceBiometricSaving) return;
+    if (!value) {
+      showAlert(
+        t("settings.privacy.faceBiometric.revokeConfirmTitle"),
+        t("settings.privacy.faceBiometric.revokeConfirmMessage"),
+        [
+          { text: t("settings.privacy.faceConsent.revokeConfirmCancel"), style: "cancel" },
+          {
+            text: t("settings.privacy.faceConsent.revokeConfirmOk"),
+            style: "destructive",
+            onPress: () => {
+              void saveFaceBiometricToggle(false);
+            },
+          },
+        ],
+      );
+      return; 
+    }
+    void saveFaceBiometricToggle(true);
   };
 
   const handleRevoke = (person: Person) => {
