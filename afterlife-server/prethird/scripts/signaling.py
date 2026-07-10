@@ -323,9 +323,13 @@ def _handle_face_event(sess, data: dict) -> None:
     asyncio.ensure_future(_run())
 
 
-async def _send_enroll_suggest(sess, channel, text: str) -> None:
-    """[T-067 Task 11] pending_enroll 상태에서 도착한 첫 say의 텍스트로 화자 본인 이름을
-    추출해 RN 동의 카드에 프리필시킨다("저 딸 민지예요" → name="민지").
+async def _send_enroll_suggest(sess, channel, text: str, person_id: Optional[int] = None) -> None:
+    """[T-067 Task 11 + T-126 Task 8] 두 시나리오에서 호출된다:
+    1) pending_enroll(신규 unknown_face) 상태에서 도착한 첫 say — person_id=None, 기존 4케이스
+       계약(payload에 personId 키 자체가 없음)을 그대로 유지(회귀 0).
+    2) current_speaker(이미 auto_biometric 등록된 무명 화자)가 말했을 때 — person_id=현재 화자
+       personId. RN 은 personId 를 보고 새 person 을 만들지 않고 기존 person 의 이름만 PATCH 한다
+       (T-126 스펙 §5, 신규등록 폭주 방지).
 
     fire-and-forget — say 본 흐름(pipeline.say 호출)을 전혀 지연·변경하지 않는다.
     이름 추출 실패(LLM 예외/타임아웃/파싱실패)해도 name=""로 enroll_suggest를 보낸다
@@ -339,8 +343,11 @@ async def _send_enroll_suggest(sess, channel, text: str) -> None:
                     getattr(sess, "session_id", "?"), e)
         name = ""
     if channel is not None and getattr(channel, "readyState", None) == "open":
+        payload = {"type": "enroll_suggest", "name": name}
+        if person_id is not None:
+            payload["personId"] = person_id
         try:
-            channel.send(json.dumps({"type": "enroll_suggest", "name": name}))
+            channel.send(json.dumps(payload))
         except Exception as exc:
             log.warning("session %s enroll_suggest send failed: %s",
                         getattr(sess, "session_id", "?"), exc)
@@ -377,6 +384,19 @@ def _make_dc_handler(sess, channel):
         if mtype == "say" and getattr(sess, "pending_enroll", False):
             sess.pending_enroll = False
             asyncio.ensure_future(_send_enroll_suggest(sess, channel, text))
+        elif (
+            mtype == "say"
+            and getattr(sess, "current_speaker", None) is not None
+            and not sess.current_speaker[1]
+            and sess.current_speaker[0] not in getattr(sess, "name_extract_sent", set())
+        ):
+            # T-126 Task8 — 이미 auto_biometric 로 등록됐지만 아직 이름이 없는 화자가 말한 경우,
+            # 이번 발화에서 이름을 뽑아 personId 와 함께 RN에 통보한다(1콜당 1회만 시도 —
+            # name_extract_sent 로 중복 LLM 호출 방지). pending_enroll(신규 unknown)과는 상호
+            # 배타적(elif) — 두 payload가 동시에 나가지 않는다.
+            pid = sess.current_speaker[0]
+            sess.name_extract_sent.add(pid)
+            asyncio.ensure_future(_send_enroll_suggest(sess, channel, text, person_id=pid))
         seq = data.get("seq")   # RN이 부여(없으면 None), echo 전용
         sess.set_state("speaking")
 
