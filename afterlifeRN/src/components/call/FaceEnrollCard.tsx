@@ -1,7 +1,7 @@
 
 
 import React from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Keyboard } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS, RADIUS } from "../constants";
 
@@ -28,7 +28,21 @@ export interface FaceEnrollCardProps {
 export function FaceEnrollCard(props: FaceEnrollCardProps): React.ReactElement | null {
   const { visible, name, onChangeName, onConfirm, onDismiss, onViewPolicy, busy } = props;
   const insets = useSafeAreaInsets();
+
+  const [keyboardHeight, setKeyboardHeight] = React.useState(0);
+  React.useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", (e) =>
+      setKeyboardHeight(e.endCoordinates.height),
+    );
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardHeight(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
   if (!visible) return null;
+
+  const cardBottom = keyboardHeight > 0 ? keyboardHeight + 64 : insets.bottom + 112;
 
   const trimmed = name.trim();
   const confirmDisabled = trimmed.length < 1 || !!busy;
@@ -36,7 +50,7 @@ export function FaceEnrollCard(props: FaceEnrollCardProps): React.ReactElement |
 
   return (
     <View
-      style={[styles.container, { bottom: insets.bottom + 112 }]}
+      style={[styles.container, { bottom: cardBottom }]}
       testID="face-enroll-card"
     >
       <Text style={styles.title}>이 분을 기억할까요?</Text>
