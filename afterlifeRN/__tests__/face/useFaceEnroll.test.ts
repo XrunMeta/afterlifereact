@@ -3,6 +3,7 @@ import { renderHook, act } from "@testing-library/react-native";
 import { useFaceEnroll, FACE_ENROLL_VECTOR_COUNT } from "../../src/face/useFaceEnroll";
 import { EmbeddingBuffer } from "../../src/face/embeddingBuffer";
 import { shouldCleanupOrphanOnSuggest } from "../../src/face/faceEnrollGuard";
+import { decideOrphanCleanupBeforeSilent } from "../../src/face/autoEnrollGuard";
 
 function makeBuffer(vectors: number[][]): EmbeddingBuffer {
   const buf = new EmbeddingBuffer();
@@ -490,4 +491,128 @@ test("reset() 이 두 번째 silent 후보 등록 전에 선행되면 각 후보
   });
   expect(createPersonFn).toHaveBeenCalledTimes(2);
   expect(result.current.getEnrolledPersonId()).toBe(302);
+});
+
+test("[wiring] 카드 경로 error 잔여(personRef=A) 상태에서 다른 후보 B의 silent 제안 → 가드가 cleanup 후 B를 신규 person 으로 생성(A id 오귀속 없음)", async () => {
+  const personA = { id: 401, consentState: "none" as const };
+  const personB = { id: 402, consentState: "none" as const };
+  const createPersonFn = jest.fn().mockResolvedValueOnce(personA).mockResolvedValueOnce(personB);
+
+  const saveFaceConsentFn = jest.fn().mockRejectedValueOnce(new Error("net")).mockResolvedValue("granted");
+  const enrollFacesFn = jest.fn().mockResolvedValue({ enrolled: 1 });
+  const deletePersonFn = jest.fn().mockResolvedValue({ deleted: true });
+  const buffer = makeBuffer([[1, 1]]);
+
+  const { result } = renderHook(() =>
+    useFaceEnroll({
+      accessToken: "tok",
+      getBuffer: () => buffer,
+      deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
+    }),
+  );
+
+  await act(async () => {
+    await result.current.enroll("A");
+  });
+  expect(result.current.status).toBe("error");
+  expect(result.current.getPendingPersonId()).toBe(401); 
+
+  const cleanup = decideOrphanCleanupBeforeSilent({
+    enrolling: result.current.status === "enrolling",
+    pendingPersonId: result.current.getPendingPersonId(),
+    enrolledPersonId: result.current.getEnrolledPersonId(),
+    incomingName: "B",
+    lastName: "A",
+  });
+  expect(cleanup).toBe("delete"); 
+
+  if (cleanup === "delete") {
+    await deletePersonFn("tok", result.current.getPendingPersonId());
+    act(() => {
+      result.current.reset();
+    });
+  }
+  expect(deletePersonFn).toHaveBeenCalledWith("tok", 401);
+  expect(result.current.getEnrolledPersonId()).toBeNull(); 
+
+  await act(async () => {
+    await result.current.enrollSilent();
+  });
+  expect(createPersonFn).toHaveBeenCalledTimes(2);
+  expect(result.current.getEnrolledPersonId()).toBe(402); 
+  expect(enrollFacesFn).toHaveBeenLastCalledWith("tok", 402, [[1, 1]]); 
+});
+
+test("[wiring] cleanup 을 생략하면(버그 재현) B의 얼굴벡터가 실제로 A(401)의 person id 에 오귀속됨 — 가드의 필요성 증명", async () => {
+  const personA = { id: 401, consentState: "none" as const };
+  const createPersonFn = jest.fn().mockResolvedValueOnce(personA);
+  const saveFaceConsentFn = jest.fn().mockRejectedValueOnce(new Error("net"));
+  const enrollFacesFn = jest.fn().mockResolvedValue({ enrolled: 1 });
+  const buffer = makeBuffer([[9, 9]]); 
+
+  const { result } = renderHook(() =>
+    useFaceEnroll({
+      accessToken: "tok",
+      getBuffer: () => buffer,
+      deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
+    }),
+  );
+
+  await act(async () => {
+    await result.current.enroll("A");
+  });
+  expect(result.current.status).toBe("error");
+
+  await act(async () => {
+    await result.current.enrollSilent();
+  });
+  expect(createPersonFn).toHaveBeenCalledTimes(1); 
+  expect(enrollFacesFn).toHaveBeenLastCalledWith("tok", 401, [[9, 9]]); 
+});
+
+test("[wiring] success~reset() 사이 레이스(personRef=A, status=success, reset 미실행) 상태에서 다른 후보 B의 silent 제안 → detach(삭제 없이 ref만 분리) 후 B가 신규 person 으로 생성됨", async () => {
+  const personA = { id: 501, consentState: "granted" as const };
+  const personB = { id: 502, consentState: "granted" as const };
+  const createPersonFn = jest.fn().mockResolvedValueOnce(personA).mockResolvedValueOnce(personB);
+  const saveFaceConsentFn = jest.fn();
+  const enrollFacesFn = jest.fn().mockResolvedValue({ enrolled: 1 });
+  const deletePersonFn = jest.fn();
+  const buffer = makeBuffer([[2, 2]]);
+
+  const { result } = renderHook(() =>
+    useFaceEnroll({
+      accessToken: "tok",
+      getBuffer: () => buffer,
+      deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
+    }),
+  );
+
+  await act(async () => {
+    await result.current.enrollSilent();
+  });
+  expect(result.current.status).toBe("success");
+  expect(result.current.getPendingPersonId()).toBeNull(); 
+  expect(result.current.getEnrolledPersonId()).toBe(501); 
+
+  const cleanup = decideOrphanCleanupBeforeSilent({
+    enrolling: false,
+    pendingPersonId: result.current.getPendingPersonId(),
+    enrolledPersonId: result.current.getEnrolledPersonId(),
+    incomingName: "B",
+    lastName: "A",
+  });
+  expect(cleanup).toBe("detach"); 
+
+  if (cleanup === "detach") {
+    act(() => {
+      result.current.reset();
+    });
+  }
+  expect(deletePersonFn).not.toHaveBeenCalled(); 
+
+  await act(async () => {
+    await result.current.enrollSilent();
+  });
+  expect(createPersonFn).toHaveBeenCalledTimes(2);
+  expect(result.current.getEnrolledPersonId()).toBe(502); 
 });

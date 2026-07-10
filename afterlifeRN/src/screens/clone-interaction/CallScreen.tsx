@@ -43,7 +43,7 @@ import { shouldCleanupOrphanOnSuggest } from "../../face/faceEnrollGuard";
 import type { SpeakerEvent } from "../../face/speakerIdReducer";
 import { createPerson, saveFaceConsent, listPersons, deletePerson, type Person } from "../../api/persons";
 import { getFaceBiometricConsent } from "../../api/consent";
-import { decideEnrollSuggestAction } from "../../face/autoEnrollGuard";
+import { decideEnrollSuggestAction, decideOrphanCleanupBeforeSilent } from "../../face/autoEnrollGuard";
 import { FACE_DIAG_ENABLED, formatFaceHud, type FaceDiag } from "../../config/faceDiag";
 import TermsModal from "../../components/common/TermsModal";
 import { FaceEnrollCard } from "../../components/call/FaceEnrollCard";
@@ -314,6 +314,28 @@ export default function CallScreen({ route, navigation }: Props) {
       if (action.kind === "ignore") return;
 
       if (action.kind === "silent") {
+
+        const pendingId = faceEnroll.getPendingPersonId();
+        const enrolledId = faceEnroll.getEnrolledPersonId();
+        const cleanup = decideOrphanCleanupBeforeSilent({
+          enrolling: false,
+          pendingPersonId: pendingId,
+          enrolledPersonId: enrolledId,
+          incomingName: name,
+          lastName: submittedEnrollNameRef.current,
+        });
+        if (cleanup === "delete") {
+          if (accessToken && pendingId != null) {
+            void deletePerson(accessToken, pendingId).catch((err) => {
+              console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", err);
+            });
+          }
+          faceEnroll.reset();
+        } else if (cleanup === "detach") {
+
+          faceEnroll.reset();
+        }
+        submittedEnrollNameRef.current = name;
 
         silentEnrollRef.current = true;
         void faceEnroll.enrollSilent();
