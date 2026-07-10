@@ -7,6 +7,10 @@ export type ConsentState = 'none' | 'granted' | 'revoked';
 export interface Person {
   id: number;
   consentState: ConsentState;
+
+  displayName?: string | null;
+
+  enrolledVia?: 'card' | 'auto_biometric';
   cloneId?: number | null;
   termsVersion?: string | null;
   channel?: string | null;
@@ -18,6 +22,8 @@ export interface CreatePersonPayload {
   cloneId?: number;
 
   displayName?: string;
+
+  enrolledVia?: 'card' | 'auto_biometric';
 }
 
 export interface CreatePersonResponse {
@@ -40,6 +46,9 @@ export async function v_4e7b87(
   }
   if (v_931bf0?.displayName !== undefined) {
     v_4d33b2.displayName = v_931bf0.displayName;
+  }
+  if (v_931bf0?.enrolledVia !== undefined) {
+    v_4d33b2.enrolledVia = v_931bf0.enrolledVia;
   }
   return v_04b58a<CreatePersonResponse>(
     '/oth-path',
@@ -120,6 +129,18 @@ export async function v_a94a1b(
     `/oth-path${v_ca1ec5}`,
     v_2ca7e0,
     { method: 'DELETE' },
+  );
+}
+
+export async function v_137542(
+  v_2ca7e0,
+  v_ca1ec5,
+  v_8a1355,
+): Promise<{ id: number; displayName: string }> {
+  return v_04b58a<{ id: number; displayName: string }>(
+    `/oth-path${v_ca1ec5}`,
+    v_2ca7e0,
+    { method: 'PATCH', body: JSON.stringify({ displayName: v_8a1355 }) },
   );
 }
 
