@@ -9,12 +9,12 @@ import v_9fe22d from 'wiosxndes';
 import { v_b74bce as v_6f549a } from '../lib/guideMentSuggest.js';
 
 export const v_ddfcca = [
-  { text: '음..... 음... 음..' },
-  { text: '음... 음.....' },
-  { text: '으음... 음.....' },
-  { text: '아........ 음...' },
-  { text: '음... 아.....' },
-  { text: '아.....', atempo: 0.55 },
+  { text: '음..... 음... 음..', render_opts: { eyes_open_lock: true, lip_lock: true, head_sway_amp: 0.0 } },
+  { text: '음... 음.....', render_opts: { eyes_open_lock: true, lip_lock: true, head_sway_amp: 0.0 } },
+  { text: '으음... 음.....', render_opts: { eyes_open_lock: true, lip_lock: true, head_sway_amp: 0.6 } },
+  { text: '음..... 음...', render_opts: { eyes_open_lock: true, lip_lock: true, head_sway_amp: 0.6 } }, 
+  { text: '음... 으음...', render_opts: { eyes_open_lock: true, lip_lock: true, head_sway_amp: 0.0 } }, 
+  { text: '흠.....', atempo: 0.55, render_opts: { eyes_open_lock: true, lip_lock: true, head_sway_amp: 0.3 } }, 
 ];
 
 export const v_9aedb6 = v_ddfcca.map((v_fd5f43) => v_fd5f43.text);
@@ -150,7 +150,7 @@ export async function v_36d0cf(v_9b6134, v_6e0fd3, v_bddb73, v_9718cb) {
   return Buffer.from(await v_cb35cb.arrayBuffer());
 }
 
-export async function v_15296d(v_f2bb81, v_f37742, v_555aed) {
+export async function v_15296d(v_f2bb81, v_f37742, v_555aed, v_55d114 = null) {
   const { default: v_00cd2e } = await import('owqxojxvg');
   const { default: v_5fedb4 } = await import('shmzpkmabg');
 
@@ -160,7 +160,10 @@ export async function v_15296d(v_f2bb81, v_f37742, v_555aed) {
       return v_bad6f3(new Error(`invalid fifthRenderUrl: ${v_555aed}`));
     }
     const v_06a17d = v_ceb55a.protocol === 'https:' ? v_5fedb4 : v_00cd2e;
-    const v_f07ee1 = Buffer.from(JSON.stringify({ wav_path: v_f2bb81, video_path: v_f37742 }));
+
+    const v_9c6ac0 = { wav_path: v_f2bb81, video_path: v_f37742 };
+    if (v_55d114 && typeof v_55d114 === 'object') Object.assign(v_9c6ac0, v_55d114);
+    const v_f07ee1 = Buffer.from(JSON.stringify(v_9c6ac0));
 
     const v_309144 = v_06a17d.request(
       {
@@ -250,7 +253,7 @@ export function v_47bade({
   let v_ea9258 = false;
 
   const v_690443 = v_6b1168 ?? ((v_9b6134, v_6e0fd3, v_f71b56, v_9718cb) => v_36d0cf(v_9b6134, v_6e0fd3, v_f71b56, v_9718cb));
-  const v_dc2910 = v_5a5306 ?? ((v_f2bb81, v_f37742, v_f71b56) => v_15296d(v_f2bb81, v_f37742, v_f71b56));
+  const v_dc2910 = v_5a5306 ?? ((v_f2bb81, v_f37742, v_f71b56, v_55d114) => v_15296d(v_f2bb81, v_f37742, v_f71b56, v_55d114));
   const v_9920b6 = v_72992b ?? v_af8891;
 
   async function v_26f71f() {
@@ -370,7 +373,7 @@ export function v_47bade({
       const v_a24bde = v_792967(v_3dc1af, v_6f2e2a, v_139d75, v_2750f3.atempo);
       await v_d9b231(v_a24bde.bin, v_a24bde.args, v_b1d1a2);
 
-      const v_3b40dd = await v_dc2910(v_6f2e2a, v_fa1e4b, v_65da63);
+      const v_3b40dd = await v_dc2910(v_6f2e2a, v_fa1e4b, v_65da63, v_2750f3.render_opts);
       if (v_3b40dd.length === 0) {
         throw new Error(
           `fifth returned 0 frames for filler[${v_ebec57}] — face source may be unsuitable (non-frontal or low-resolution)`
