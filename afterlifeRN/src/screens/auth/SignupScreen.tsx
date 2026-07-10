@@ -23,6 +23,7 @@ import TermsModal, { type AgreementType } from "../../components/common/TermsMod
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { requestEmailCode, signup, AuthApiError } from "../../api/auth";
 import { saveCallLearningConsent, saveFaceBiometricConsent } from "../../api/consent";
+import { faceBiometricSignupState } from "./faceBiometricSignupFlag";
 import { requestPushPermission } from "../../lib/pushNotifications";
 import { getOrCreateDeviceId } from "../../lib/deviceId";
 import type { RouteProp } from "@react-navigation/native";
@@ -219,12 +220,14 @@ export default function SignupScreen({ navigation, route }: Props) {
             console.warn("[AUTH/signup] saveCallLearningConsent (google) failed:", err);
           }
         }
-        if (agreeFaceBiometric) {
-          try {
-            await saveFaceBiometricConsent(res.accessToken, "granted", { termsVersion: "v1", channel: "signup" });
-          } catch (err) {
-            console.warn("[AUTH/signup] saveFaceBiometricConsent (google) failed:", err);
-          }
+
+        try {
+          await saveFaceBiometricConsent(res.accessToken, faceBiometricSignupState(agreeFaceBiometric), {
+            termsVersion: "v1",
+            channel: "signup",
+          });
+        } catch (err) {
+          console.warn("[AUTH/signup] saveFaceBiometricConsent (google) failed:", err);
         }
 
         navigation.replace("SignupComplete", {

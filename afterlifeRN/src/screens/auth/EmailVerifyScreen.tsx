@@ -21,6 +21,7 @@ import PageHeader from "../../components/common/PageHeader";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { requestEmailCode, signup, AuthApiError } from "../../api/auth";
 import { saveCallLearningConsent, saveFaceBiometricConsent } from "../../api/consent";
+import { faceBiometricSignupState } from "./faceBiometricSignupFlag";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "EmailVerify">;
 
@@ -91,12 +92,13 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
         }
       }
 
-      if (params.agreeFaceBiometric) {
-        try {
-          await saveFaceBiometricConsent(res.accessToken, "granted", { termsVersion: "v1", channel: "signup" });
-        } catch (err) {
-          console.warn("[AUTH/signup] saveFaceBiometricConsent failed:", err);
-        }
+      try {
+        await saveFaceBiometricConsent(res.accessToken, faceBiometricSignupState(!!params.agreeFaceBiometric), {
+          termsVersion: "v1",
+          channel: "signup",
+        });
+      } catch (err) {
+        console.warn("[AUTH/signup] saveFaceBiometricConsent failed:", err);
       }
 
       console.log("[AUTH/signup] success, accessExpiresIn:", res.accessExpiresIn);

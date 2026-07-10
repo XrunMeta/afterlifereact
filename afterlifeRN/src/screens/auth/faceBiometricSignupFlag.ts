@@ -1,5 +1,5 @@
 
 
-export function shouldSaveFaceBiometricOnSignup(agreeFaceBiometric: boolean): boolean {
-  return agreeFaceBiometric;
+export function faceBiometricSignupState(agreeFaceBiometric: boolean): 'granted' | 'revoked' {
+  return agreeFaceBiometric ? 'granted' : 'revoked';
 }

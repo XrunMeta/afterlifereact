@@ -17,6 +17,7 @@ import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { ALL_INTERESTS } from "../../mocks/interestHelpers";
 import { xrunComplete, requestEmailCode, AuthApiError, getMe } from "../../api/auth";
 import { saveFaceBiometricConsent } from "../../api/consent";
+import { faceBiometricSignupState } from "./faceBiometricSignupFlag";
 import { useAuthStore } from "../../stores/authStore";
 import { requestPushPermission } from "../../lib/pushNotifications";
 import { getOrCreateDeviceId } from "../../lib/deviceId";
@@ -194,12 +195,13 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
         platform: pushPlatform ?? undefined,
       });
 
-      if (agreeFaceBiometric) {
-        try {
-          await saveFaceBiometricConsent(res.accessToken, "granted", { termsVersion: "v1", channel: "signup" });
-        } catch (err) {
-          console.warn("[AUTH/xrun] saveFaceBiometricConsent failed:", err);
-        }
+      try {
+        await saveFaceBiometricConsent(res.accessToken, faceBiometricSignupState(agreeFaceBiometric), {
+          termsVersion: "v1",
+          channel: "signup",
+        });
+      } catch (err) {
+        console.warn("[AUTH/xrun] saveFaceBiometricConsent failed:", err);
       }
 
       console.log("[AUTH/xrun] success");
