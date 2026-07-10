@@ -43,7 +43,7 @@ import { v_19be88 } from "../../face/faceEnrollGuard";
 import type { v_b26216 } from "../../face/speakerIdReducer";
 import { v_4e7b87, v_31967f, v_865d38, v_a94a1b, type v_5c12dc } from "../../api/persons";
 import { v_0f8436 } from "../../api/consent";
-import { v_0362e7 } from "../../face/autoEnrollGuard";
+import { v_0362e7, v_de73d9 } from "../../face/autoEnrollGuard";
 import { v_55dbc4, v_8682a9, type v_8a6b56 } from "../../config/faceDiag";
 import v_c0caa9 from "../../components/common/TermsModal";
 import { v_b519ed } from "../../components/call/FaceEnrollCard";
@@ -314,6 +314,28 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       if (v_9b064f.kind === "ignore") return;
 
       if (v_9b064f.kind === "silent") {
+
+        const v_fde8d3 = v_20ef58.getPendingPersonId();
+        const v_0e4853 = v_20ef58.getEnrolledPersonId();
+        const v_a983d4 = v_de73d9({
+          enrolling: false,
+          pendingPersonId: v_fde8d3,
+          enrolledPersonId: v_0e4853,
+          incomingName: v_1833e7,
+          lastName: v_821084.current,
+        });
+        if (v_a983d4 === "delete") {
+          if (v_2ca7e0 && v_fde8d3 != null) {
+            void v_a94a1b(v_2ca7e0, v_fde8d3).catch((v_49263d) => {
+              console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", v_49263d);
+            });
+          }
+          v_20ef58.reset();
+        } else if (v_a983d4 === "detach") {
+
+          v_20ef58.reset();
+        }
+        v_821084.current = v_1833e7;
 
         v_25cb51.current = true;
         void v_20ef58.enrollSilent();

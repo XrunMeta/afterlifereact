@@ -3,6 +3,7 @@ import { v_0da18b, v_be73a0 } from "dtbzepbezvovgqcnbkbssjenbxhgn";
 import { v_3fc8fd, v_9e3bb7 } from "../../src/face/useFaceEnroll";
 import { v_4f64ba } from "../../src/face/embeddingBuffer";
 import { v_19be88 } from "../../src/face/faceEnrollGuard";
+import { v_de73d9 } from "../../src/face/autoEnrollGuard";
 
 function v_a11615(v_f94e64): v_4f64ba {
   const v_83ee53 = new v_4f64ba();
@@ -490,4 +491,128 @@ test("reset() 이 두 번째 silent 후보 등록 전에 선행되면 각 후보
   });
   expect(v_f290ff).toHaveBeenCalledTimes(2);
   expect(v_43c42e.current.getEnrolledPersonId()).toBe(302);
+});
+
+test("[wiring] 카드 경로 error 잔여(personRef=A) 상태에서 다른 후보 B의 silent 제안 → 가드가 cleanup 후 B를 신규 person 으로 생성(A id 오귀속 없음)", async () => {
+  const v_34af88 = { id: 401, consentState: "none" as const };
+  const v_b57ac3 = { id: 402, consentState: "none" as const };
+  const v_f290ff = jest.fn().mockResolvedValueOnce(v_34af88).mockResolvedValueOnce(v_b57ac3);
+
+  const v_a18c0d = jest.fn().mockRejectedValueOnce(new Error("net")).mockResolvedValue("granted");
+  const v_c48ab5 = jest.fn().mockResolvedValue({ enrolled: 1 });
+  const v_521ad6 = jest.fn().mockResolvedValue({ deleted: true });
+  const v_062bb0 = v_a11615([[1, 1]]);
+
+  const { result: v_43c42e } = v_0da18b(() =>
+    v_3fc8fd({
+      accessToken: "tok",
+      getBuffer: () => v_062bb0,
+      deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
+    }),
+  );
+
+  await v_be73a0(async () => {
+    await v_43c42e.current.enroll("A");
+  });
+  expect(v_43c42e.current.status).toBe("error");
+  expect(v_43c42e.current.getPendingPersonId()).toBe(401); 
+
+  const v_a983d4 = v_de73d9({
+    enrolling: v_43c42e.current.status === "enrolling",
+    pendingPersonId: v_43c42e.current.getPendingPersonId(),
+    enrolledPersonId: v_43c42e.current.getEnrolledPersonId(),
+    incomingName: "B",
+    lastName: "A",
+  });
+  expect(v_a983d4).toBe("delete"); 
+
+  if (v_a983d4 === "delete") {
+    await v_521ad6("tok", v_43c42e.current.getPendingPersonId());
+    v_be73a0(() => {
+      v_43c42e.current.reset();
+    });
+  }
+  expect(v_521ad6).toHaveBeenCalledWith("tok", 401);
+  expect(v_43c42e.current.getEnrolledPersonId()).toBeNull(); 
+
+  await v_be73a0(async () => {
+    await v_43c42e.current.enrollSilent();
+  });
+  expect(v_f290ff).toHaveBeenCalledTimes(2);
+  expect(v_43c42e.current.getEnrolledPersonId()).toBe(402); 
+  expect(v_c48ab5).toHaveBeenLastCalledWith("tok", 402, [[1, 1]]); 
+});
+
+test("[wiring] cleanup 을 생략하면(버그 재현) B의 얼굴벡터가 실제로 A(401)의 person id 에 오귀속됨 — 가드의 필요성 증명", async () => {
+  const v_34af88 = { id: 401, consentState: "none" as const };
+  const v_f290ff = jest.fn().mockResolvedValueOnce(v_34af88);
+  const v_a18c0d = jest.fn().mockRejectedValueOnce(new Error("net"));
+  const v_c48ab5 = jest.fn().mockResolvedValue({ enrolled: 1 });
+  const v_062bb0 = v_a11615([[9, 9]]); 
+
+  const { result: v_43c42e } = v_0da18b(() =>
+    v_3fc8fd({
+      accessToken: "tok",
+      getBuffer: () => v_062bb0,
+      deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
+    }),
+  );
+
+  await v_be73a0(async () => {
+    await v_43c42e.current.enroll("A");
+  });
+  expect(v_43c42e.current.status).toBe("error");
+
+  await v_be73a0(async () => {
+    await v_43c42e.current.enrollSilent();
+  });
+  expect(v_f290ff).toHaveBeenCalledTimes(1); 
+  expect(v_c48ab5).toHaveBeenLastCalledWith("tok", 401, [[9, 9]]); 
+});
+
+test("[wiring] success~reset() 사이 레이스(personRef=A, status=success, reset 미실행) 상태에서 다른 후보 B의 silent 제안 → detach(삭제 없이 ref만 분리) 후 B가 신규 person 으로 생성됨", async () => {
+  const v_34af88 = { id: 501, consentState: "granted" as const };
+  const v_b57ac3 = { id: 502, consentState: "granted" as const };
+  const v_f290ff = jest.fn().mockResolvedValueOnce(v_34af88).mockResolvedValueOnce(v_b57ac3);
+  const v_a18c0d = jest.fn();
+  const v_c48ab5 = jest.fn().mockResolvedValue({ enrolled: 1 });
+  const v_521ad6 = jest.fn();
+  const v_062bb0 = v_a11615([[2, 2]]);
+
+  const { result: v_43c42e } = v_0da18b(() =>
+    v_3fc8fd({
+      accessToken: "tok",
+      getBuffer: () => v_062bb0,
+      deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
+    }),
+  );
+
+  await v_be73a0(async () => {
+    await v_43c42e.current.enrollSilent();
+  });
+  expect(v_43c42e.current.status).toBe("success");
+  expect(v_43c42e.current.getPendingPersonId()).toBeNull(); 
+  expect(v_43c42e.current.getEnrolledPersonId()).toBe(501); 
+
+  const v_a983d4 = v_de73d9({
+    enrolling: false,
+    pendingPersonId: v_43c42e.current.getPendingPersonId(),
+    enrolledPersonId: v_43c42e.current.getEnrolledPersonId(),
+    incomingName: "B",
+    lastName: "A",
+  });
+  expect(v_a983d4).toBe("detach"); 
+
+  if (v_a983d4 === "detach") {
+    v_be73a0(() => {
+      v_43c42e.current.reset();
+    });
+  }
+  expect(v_521ad6).not.toHaveBeenCalled(); 
+
+  await v_be73a0(async () => {
+    await v_43c42e.current.enrollSilent();
+  });
+  expect(v_f290ff).toHaveBeenCalledTimes(2);
+  expect(v_43c42e.current.getEnrolledPersonId()).toBe(502); 
 });
