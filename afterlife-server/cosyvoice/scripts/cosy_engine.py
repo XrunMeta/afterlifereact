@@ -76,10 +76,19 @@ class CosyEngine:
             ):
                 chunks.append(out["tts_speech"])
         if not chunks:
-            raise ValueError(f"no audio produced for clone '{clone_id}'")
+            # 정규화 후 빈 텍스트(문장부호만·이모지 등) → CV2가 무음. 503 대신 짧은 무음 wav 반환.
+            # 스트리밍에서 문장분할이 이런 조각을 내보내도 발화 드롭·에러 없이 자연스러운 멈춤 처리.
+            log.info("empty audio (정규화후 빈 텍스트) clone=%s text=%r → 무음 반환", clone_id, text[:40])
+            return self._silence_wav(config.EMPTY_SILENCE_MS)
         audio = torch.concat(chunks, dim=1).squeeze(0).cpu().numpy().astype(np.float32)  # [T]
         buf = io.BytesIO()
         sf.write(buf, audio, self.sr, format="WAV", subtype="PCM_16")
+        return buf.getvalue()
+
+    def _silence_wav(self, ms: int) -> bytes:
+        n = max(1, int(self.sr * ms / 1000))
+        buf = io.BytesIO()
+        sf.write(buf, np.zeros(n, dtype=np.float32), self.sr, format="WAV", subtype="PCM_16")
         return buf.getvalue()
 
     def synth_stream(self, text: str, clone_id: str, voice_wav: str,
