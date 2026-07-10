@@ -104,7 +104,7 @@ class _Pipeline:
 
 
 class _Sess:
-    def __init__(self, pending_enroll=False):
+    def __init__(self, pending_enroll=False, current_speaker=None):
         self.pipeline = _Pipeline()
         self.session_id = "s1"
         self.se_path = None
@@ -113,8 +113,9 @@ class _Sess:
         self.state = None
         self.reacted_keys = {}
         self.pending_enroll = pending_enroll
-        self.current_speaker = None
+        self.current_speaker = current_speaker
         self.pending_react = None
+        self.name_extract_sent = set()
     def set_state(self, s): self.state = s
 
 
@@ -250,3 +251,98 @@ def test_concurrent_say_while_first_extract_in_flight_sends_once(monkeypatch):
     finally:
         asyncio.set_event_loop(None)
         loop.close()
+
+
+# ---------------------------------------------------------------------------
+# T-126 Task8: current_speaker 기반 이름 재추출(personId 포함 enroll_suggest)
+# ---------------------------------------------------------------------------
+
+def test_current_speaker_no_name_say_sends_enroll_suggest_with_personid(monkeypatch):
+    async def _fake_extract(text):
+        return "민지"
+    monkeypatch.setattr(name_extract, "extract_name", _fake_extract)
+
+    sess = _Sess(current_speaker=(55, None))
+    ch = _Channel()
+    _run_handler(sess, ch, {"type": "say", "text": "저 민지예요", "seq": 1})
+
+    suggests = [m for m in ch.sent if m["type"] == "enroll_suggest"]
+    assert suggests == [{"type": "enroll_suggest", "name": "민지", "personId": 55}]
+    assert sess.pipeline.say_calls == ["저 민지예요"]
+
+
+def test_current_speaker_with_name_already_set_does_not_trigger(monkeypatch):
+    called = {"n": 0}
+    async def _fake_extract(text):
+        called["n"] += 1
+        return "민지"
+    monkeypatch.setattr(name_extract, "extract_name", _fake_extract)
+
+    sess = _Sess(current_speaker=(55, "철수"))  # 이미 이름 있음 — 재추출 불필요
+    ch = _Channel()
+    _run_handler(sess, ch, {"type": "say", "text": "안녕하세요", "seq": 1})
+
+    assert called["n"] == 0
+    assert [m for m in ch.sent if m["type"] == "enroll_suggest"] == []
+
+
+def test_current_speaker_second_say_does_not_resend(monkeypatch):
+    called = {"n": 0}
+    async def _fake_extract(text):
+        called["n"] += 1
+        return "민지"
+    monkeypatch.setattr(name_extract, "extract_name", _fake_extract)
+
+    sess = _Sess(current_speaker=(55, None))
+    ch = _Channel()
+    _run_handler(sess, ch, {"type": "say", "text": "저 민지예요", "seq": 1})
+    _run_handler(sess, ch, {"type": "say", "text": "네 맞아요", "seq": 2})
+
+    assert called["n"] == 1  # name_extract_sent 로 1회만
+    suggests = [m for m in ch.sent if m["type"] == "enroll_suggest"]
+    assert len(suggests) == 1
+
+
+def test_current_speaker_none_no_trigger(monkeypatch):
+    called = {"n": 0}
+    async def _fake_extract(text):
+        called["n"] += 1
+        return "민지"
+    monkeypatch.setattr(name_extract, "extract_name", _fake_extract)
+
+    sess = _Sess(current_speaker=None)
+    ch = _Channel()
+    _run_handler(sess, ch, {"type": "say", "text": "안녕하세요", "seq": 1})
+
+    assert called["n"] == 0
+    assert [m for m in ch.sent if m["type"] == "enroll_suggest"] == []
+
+
+def test_pending_enroll_priority_over_current_speaker(monkeypatch):
+    """pending_enroll(신규 unknown)과 current_speaker(기존 무명 화자)가 동시에 설정된(비정상이지만
+    방어적) 상태에서는 pending_enroll 분기가 우선하고 personId 없는 기존 payload가 나간다(elif로
+    상호배타 — 두 payload가 동시에 나가지 않음을 명시적으로 고정)."""
+    async def _fake_extract(text):
+        return "민지"
+    monkeypatch.setattr(name_extract, "extract_name", _fake_extract)
+
+    sess = _Sess(pending_enroll=True, current_speaker=(55, None))
+    ch = _Channel()
+    _run_handler(sess, ch, {"type": "say", "text": "저 민지예요", "seq": 1})
+
+    suggests = [m for m in ch.sent if m["type"] == "enroll_suggest"]
+    assert suggests == [{"type": "enroll_suggest", "name": "민지"}]  # personId 없음(기존 계약)
+    assert sess.pending_enroll is False
+
+
+def test_current_speaker_extract_exception_still_sends_with_personid(monkeypatch):
+    async def _boom(text):
+        raise RuntimeError("ollama down")
+    monkeypatch.setattr(name_extract, "extract_name", _boom)
+
+    sess = _Sess(current_speaker=(9, None))
+    ch = _Channel()
+    _run_handler(sess, ch, {"type": "say", "text": "음...", "seq": 1})
+
+    suggests = [m for m in ch.sent if m["type"] == "enroll_suggest"]
+    assert suggests == [{"type": "enroll_suggest", "name": "", "personId": 9}]
