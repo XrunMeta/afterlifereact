@@ -92,6 +92,8 @@ async function v_1857f4() {
     return;
   }
   v_0b0398.textContent = '연결 중...';
+  document.getElementById('connect-btn').disabled = true;
+  document.getElementById('hangup-btn').disabled = false;
   v_12cd99 = new RTCPeerConnection();
   v_12cd99.addTransceiver('video', {direction: 'recvonly'});
   v_12cd99.addTransceiver('audio', {direction: 'recvonly'});
@@ -125,6 +127,20 @@ async function v_1857f4() {
   const v_7c0968 = await v_cb35cb.json();
   await v_12cd99.setRemoteDescription(v_7c0968);
   v_0b0398.textContent = 'answer 수신 — dc 개통 대기';
+}
+
+function v_cad05d() {
+  try { if (v_32dc97) v_32dc97.close(); } catch (v_37eab7) {}
+  try { if (v_12cd99) v_12cd99.close(); } catch (v_37eab7) {}
+  v_12cd99 = null; v_32dc97 = null;
+  const v_81e2ef = document.getElementById('clone-video');
+  if (v_81e2ef) v_81e2ef.srcObject = null;
+  document.getElementById('say-input').disabled = true;
+  document.getElementById('say-btn').disabled = true;
+  document.getElementById('conn-status').textContent = '끊김 — 재연결 가능';
+  document.getElementById('hangup-btn').disabled = true;
+  document.getElementById('connect-btn').disabled = false;
+  v_5af772();
 }
 
 const v_a7deb0 = {
@@ -400,8 +416,9 @@ async function v_3fd5d1() {
     const v_d5dda0 = await (await fetch('/promote/preview', {method:'POST',
       headers:{'Content-Type':'application/json'}, body:'{}'})).json();
     if ((v_d5dda0.entries || []).length) {
-      v_383206 = '<div style="color:var(--red)"><b>⚠️ 아직 라이브 적용(promote) 안 된 변경이 있습니다. '+
-        '재기동해도 반영 안 돼요 — 먼저 &#39;라이브 적용&#39;을 하세요.</b></div>';
+      v_383206 = '<div style="color:var(--red)"><b>⚠️ 선택값이 아직 실행 중 프로세스와 다릅니다.</b><br>'+
+        '라이브 적용(promote)을 <u>안 했으면</u> 먼저 하세요. '+
+        '<b>이미 &#39;적용됨&#39;을 보셨다면 아래 &#39;확인·재기동&#39;만 누르면 반영됩니다</b>(취소하지 마세요).</div>';
     }
   } catch (v_9e86fd) {  }
   v_e926e3.innerHTML = v_383206 +
@@ -486,6 +503,7 @@ document.getElementById('refresh-runs').onclick = v_315473;
 document.getElementById('refresh-prod').onclick = v_187e1c;
 document.getElementById('login-btn').onclick = v_182fdb;
 document.getElementById('connect-btn').onclick = v_1857f4;
+document.getElementById('hangup-btn').onclick = v_cad05d;
 
 v_858a0a(); v_e1242b(); v_315473(); v_187e1c(); v_d73d4a();
 v_5af772();

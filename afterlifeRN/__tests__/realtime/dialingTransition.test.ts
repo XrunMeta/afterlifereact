@@ -3,7 +3,7 @@ import { v_f135e1, v_cfc2ee } from '../../src/realtime/dialingTransition';
 const v_01dcf5 = v_cfc2ee; 
 
 it('live지만 최소노출 전 → dialing', () => {
-  expect(v_f135e1('live', 1000, v_01dcf5)).toBe('dialing');
+  expect(v_f135e1('live', 300, v_01dcf5)).toBe('dialing');
 });
 
 it('live + 최소노출 경과 → connected', () => {
@@ -44,7 +44,7 @@ describe('dialingOutcome — greeting 게이팅', () => {
   });
 
   it('greetingStarted=true 라도 minMs 전이면 dialing(깜빡임 방지)', () => {
-    expect(v_f135e1('live', 1000, v_01dcf5, true)).toBe('dialing');
+    expect(v_f135e1('live', 300, v_01dcf5, true)).toBe('dialing');
   });
 
   it('greetingStarted 인자 생략(undefined) 시 기존 동작(live=connected) 무회귀', () => {

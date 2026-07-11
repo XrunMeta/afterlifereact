@@ -439,3 +439,41 @@ v_2a805f('직렬 큐 — filler + guide 혼합 시 순서대로 처리 (회귀 �
   v_ce93bd.ok(v_959aaf >= 0 && v_9b4259 >= 0);
   v_ce93bd.ok(v_959aaf < v_9b4259, `직렬 실패: filler(${v_959aaf}) 이후 guide(${v_9b4259}) 이어야 함`);
 });
+
+v_2a805f('guide mux 호출은 audioVolumeDb 를 받지 않음(4번째 인자 undefined, 필러 -20dB 감쇠 무영향)', async () => {
+  const v_0a664b = [];
+  const v_ed0369 = [];
+  const v_4bd74e = [];
+
+  const v_e3ee5d = (v_7746b5, v_f2bb81, v_dc7792, v_db78a8) => {
+    v_4bd74e.push(v_db78a8);
+    return { bin: 'echo', args: [v_dc7792] };
+  };
+
+  const v_eedf31 = v_47bade({
+    apiBaseUrl: v_cc9198,
+    fetchImpl: v_89faa2({ callbackCalls: v_0a664b, guideCallbackCalls: v_ed0369 }),
+    spawnImpl: v_142ee6(0),
+    _qwenTtsFn: v_b41a6d(),
+    _fifthRenderFn: v_1fb003({ framesCount: 2 }),
+    ffmpegMuxCmd: v_e3ee5d,
+    _ensureVoiceWavFn: v_096d67(),
+    suggestGuideMentsFn: async () => ['인사1', '인사2'],
+  });
+
+  v_eedf31.enqueue({
+    job_id: 'gj_mux_novol',
+    kind: 'guide',
+    clone_id: '9055',
+    face_url: `${v_cc9198}/oth-path`,
+    voice_raw_url: `${v_cc9198}/oth-path`,
+    callback_token: 'tok_gj_mux_novol',
+    persona: { l0: { tone: 'warm' } },
+  });
+
+  await v_26eff3(v_eedf31);
+
+  v_ce93bd.equal(v_ed0369.length, 1, '전부 성공해야 함');
+  v_ce93bd.equal(v_4bd74e.length, 2, '멘트 2개 → mux 2회');
+  v_ce93bd.ok(v_4bd74e.every((v_a1651b) => v_a1651b === undefined), 'guide mux 는 audioVolumeDb 미전달(감쇠 없음)이어야 함');
+});

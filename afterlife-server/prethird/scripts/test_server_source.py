@@ -71,3 +71,57 @@ def test_source_for_renderer_musetalk_ignores_face():
 
 def test_source_for_renderer_musetalk_no_video_none():
     assert server._source_for_renderer("musetalk", "/a/face.jpg", None, lambda p: False) is None
+
+
+# --- _should_prebake: prebake를 "clone idle mp4 미적용 시에만" 폴백으로 실행 ---
+
+def test_should_prebake_runs_when_no_clone_idle():
+    # clone idle mp4 미확보 → prebake 폴백(클론 얼굴)로 실행
+    assert server._should_prebake(
+        "fifth", "/a/face.jpg",
+        prebake_env_on=True, prebake_policy_on=True, idle_video_applied=False,
+    ) is True
+
+
+def test_should_prebake_skips_when_clone_idle_applied():
+    # 핵심 회귀 방지: clone idle mp4가 이미 적용됐으면 prebake 스킵
+    # (좋은 clone mp4를 무음 prebake 나쁜 표정으로 덮지 않는다)
+    assert server._should_prebake(
+        "fifth", "/a/face.jpg",
+        prebake_env_on=True, prebake_policy_on=True, idle_video_applied=True,
+    ) is False
+
+
+def test_should_prebake_false_when_not_fifth():
+    assert server._should_prebake(
+        "musetalk", "/a/face.jpg",
+        prebake_env_on=True, prebake_policy_on=True, idle_video_applied=False,
+    ) is False
+
+
+def test_should_prebake_false_when_env_off():
+    assert server._should_prebake(
+        "fifth", "/a/face.jpg",
+        prebake_env_on=False, prebake_policy_on=True, idle_video_applied=False,
+    ) is False
+
+
+def test_should_prebake_false_when_policy_off():
+    assert server._should_prebake(
+        "fifth", "/a/face.jpg",
+        prebake_env_on=True, prebake_policy_on=False, idle_video_applied=False,
+    ) is False
+
+
+def test_should_prebake_false_when_src_not_image():
+    assert server._should_prebake(
+        "fifth", "/b/idle.mp4",
+        prebake_env_on=True, prebake_policy_on=True, idle_video_applied=False,
+    ) is False
+
+
+def test_should_prebake_false_when_no_src():
+    assert server._should_prebake(
+        "fifth", None,
+        prebake_env_on=True, prebake_policy_on=True, idle_video_applied=False,
+    ) is False
