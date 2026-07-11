@@ -1773,6 +1773,8 @@ test('FILLER_SPECS render_opts: 공통 source_face_lock·eyes_open_lock·blink_i
   assert.equal(FILLER_SPECS[5].render_opts.head_sway_amp, 0.2);
 
   assert.ok(FILLER_SPECS.every((s) => !s.text.includes('아')));
+
+  assert.ok(FILLER_SPECS.every((s) => s.render_opts.head_sway_slow === 2.0));
 });
 
 test('FILLER_SPECS render_opts: 시선 오프셋 세트(idx0 정면·1/2 좌우·3/4 상하·5 오프셋없음) (T-120)', () => {

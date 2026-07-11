@@ -169,6 +169,7 @@ def _apply_head_sway(
     phase_offset: int = 0,
     yaw_offset_deg: float = 0.0,
     pitch_offset_deg: float = 0.0,
+    slow: float = 1.0,
 ) -> None:
     """절차적 머리 흔들림 + 상수 시선 오프셋 — ml[i]["R"]에 yaw/pitch 회전 주입(in-place).
 
@@ -185,6 +186,10 @@ def _apply_head_sway(
     Args:
         yaw_offset_deg: 상수 좌우 시선 바이어스(도). 0이면 오프셋 없음.
         pitch_offset_deg: 상수 상하 시선 바이어스(도). 0이면 오프셋 없음.
+        slow: 모션 감속 배율(>1이면 느리게). sway 주기(yaw/pitch)와 시선전환 ramp를
+            함께 배로 늘려 머리 각속도를 1/slow 로 만든다. 진폭(각도)은 불변 —
+            "같은 움직임을 더 천천히". slow<=1이면 기존과 동일(회귀 0). T-120 히즈키
+            피드백("움직임이 너무 빠름")로 도입. slow=2 → yaw 6.4s·pitch 8.8s·ramp 0.96s.
     """
     has_off = abs(yaw_offset_deg) > 1e-6 or abs(pitch_offset_deg) > 1e-6
     _amp = float(amp) if (amp and amp > 0) else 0.0
@@ -192,12 +197,15 @@ def _apply_head_sway(
         return
     if nj <= 0:
         return
+    _slow = float(slow) if (slow and slow > 0) else 1.0
     max_yaw = math.radians(10.0) * _amp
     max_pitch = math.radians(6.0) * _amp
     yaw_off = math.radians(float(yaw_offset_deg))
     pitch_off = math.radians(float(pitch_offset_deg))
-    yaw_period, pitch_period = 80.0, 110.0   # frames (~3.2s/4.4s @ 25fps)
-    ramp = min(12, nj)
+    # slow 배율로 주기·ramp를 늘려 각속도를 1/slow 로. 기본 80/110f(~3.2s/4.4s @ 25fps).
+    yaw_period, pitch_period = 80.0 * _slow, 110.0 * _slow   # frames
+    ramp = min(int(round(12 * _slow)), nj)
+    ramp = max(ramp, 1)
     for i in range(nj):
         t = i + phase_offset
         off_r = min(i + 1, ramp) / ramp             # 오프셋: 램프인 후 홀드(시선 유지)
@@ -247,6 +255,7 @@ def stream_wav_frames(
     blink_interval_sec: float | None = None,
     head_yaw_offset: float | None = None,
     head_pitch_offset: float | None = None,
+    head_sway_slow: float | None = None,
 ) -> tuple[int, PhaseToken]:
     """wav 한 문장 → 프레임 생성마다 on_frame(rgb) 호출. 반환: (프레임 수, 끝 위상 토큰).
 
@@ -275,6 +284,8 @@ def stream_wav_frames(
     head_yaw_offset/head_pitch_offset(도): 상수 좌우/상하 시선 바이어스.
     head_sway_amp가 None이어도 offset이 있으면 _apply_head_sway가 호출된다.
     ⚠️ 부호(좌/우·상/하) 방향은 코드로 확신 못 함 — 렌더 실측 후 조정 필요.
+    head_sway_slow: 절차적 머리 모션 감속 배율(>1이면 느리게, None=1.0=기존).
+    sway 주기·시선전환 ramp를 배로 늘려 각속도를 1/slow 로 만든다(진폭 불변).
     """
     from base_source import base_blend_weight
 
@@ -326,6 +337,7 @@ def stream_wav_frames(
             phase_offset=tok.blink_phase,
             yaw_offset_deg=(head_yaw_offset or 0.0),
             pitch_offset_deg=(head_pitch_offset or 0.0),
+            slow=(head_sway_slow if head_sway_slow is not None else 1.0),
         )
 
     # T-120: source_face_lock — exp의 lip 키포인트(_LIP_IDX, 6개)만 소스(원본 사진)
