@@ -10,17 +10,13 @@ import {
   type HandsFreeEffect,
 } from './handsFree';
 import { extractCloneAudioLevel, type CloneSilenceConfig } from './cloneSilence';
+import { useTimingConfigStore } from './timingConfig';
+import { emitTimingEvent } from './timingEvents';
 
 const CLONE_GATE_LEVEL = 0.05; 
 
 const GREET_TIMEOUT_MS_DEFAULT = 3000;
 const GREETING_FALLBACK_TEXT_DEFAULT = '여보세요?';
-
-const CLONE_GATE_MS = 3500;
-
-const CLONE_RESUME_MS = 600;
-
-const CLONE_TAIL_GRACE_MS = 1000;
 
 export function useHandsFreeController(opts: {
 
@@ -82,9 +78,10 @@ export function useHandsFreeController(opts: {
     onFinalResult: (text) => {
 
       const sinceClone = Date.now() - cloneSpokeAtRef.current;
-      if (sinceClone < CLONE_GATE_MS) {
+      if (sinceClone < useTimingConfigStore.getState().echoGateMs) {
         return; 
       }
+      emitTimingEvent('vad_endpoint');
       dispatchRef.current({ type: 'FINAL_RESULT', text });
     },
   });
@@ -104,11 +101,13 @@ export function useHandsFreeController(opts: {
           case 'START_STT':
             sttSuppressedRef.current = false; 
             setSttSuppressed(false);
+            emitTimingEvent('stt_open');
             void speech.startListening();
             break;
           case 'STOP_STT':
             sttSuppressedRef.current = false;
             setSttSuppressed(false);
+            emitTimingEvent('stt_close');
             speech.stopListening();
             break;
           case 'SAY':
@@ -164,7 +163,7 @@ export function useHandsFreeController(opts: {
       const fromSpeakingOrSending =
         prev.phase === 'speaking' || prev.phase === 'sending';
       if (fromSpeakingOrSending && next.phase === 'listening') {
-        cloneTailGraceUntilRef.current = Date.now() + CLONE_TAIL_GRACE_MS;
+        cloneTailGraceUntilRef.current = Date.now() + useTimingConfigStore.getState().cloneTailGraceMs;
       }
 
       if (prev.phase === 'greeting' && next.phase === 'speaking') {
@@ -198,8 +197,8 @@ export function useHandsFreeController(opts: {
   useEffect(() => {
     const sig = opts.lastSignal;
     if (!sig) return;
-    if (sig.type === 'speech_start') dispatchRef.current({ type: 'SPEECH_START' });
-    else if (sig.type === 'speech_end') dispatchRef.current({ type: 'RESPONSE_END' });
+    if (sig.type === 'speech_start') { emitTimingEvent('speech_start'); dispatchRef.current({ type: 'SPEECH_START' }); }
+    else if (sig.type === 'speech_end') { emitTimingEvent('speech_end'); dispatchRef.current({ type: 'RESPONSE_END' }); }
   }, [opts.lastSignal]);
 
   const getStatsRef = useRef(opts.getStatsReport);
@@ -225,15 +224,19 @@ export function useHandsFreeController(opts: {
             speechRef.current.stopListening();
             sttSuppressedRef.current = true;
             setSttSuppressed(true); 
+            emitTimingEvent('suppress_on');
+            emitTimingEvent('stt_close');
           }
         } else if (
           !cloneSpeaking &&
           sttSuppressedRef.current &&
-          now - cloneSpokeAtRef.current > CLONE_RESUME_MS
+          now - cloneSpokeAtRef.current > useTimingConfigStore.getState().cloneResumeMs
         ) {
           void speechRef.current.startListening();
           sttSuppressedRef.current = false;
           setSttSuppressed(false); 
+          emitTimingEvent('suppress_off');
+          emitTimingEvent('stt_open');
         }
       }).catch(() => {});
     }, 200);
@@ -262,6 +265,15 @@ export function useHandsFreeController(opts: {
     dispatchRef.current(stateRef.current.micOn ? { type: 'MIC_OFF' } : { type: 'MIC_ON' });
   }, []);
 
+  const devForceListen = useCallback(() => {
+    sttSuppressedRef.current = false;
+    setSttSuppressed(false);
+    cloneTailGraceUntilRef.current = 0;
+    emitTimingEvent('dev_listen_now');
+    emitTimingEvent('stt_open');
+    void speechRef.current.startListening();
+  }, []);
+
   const sttActive = speech.listeningDebounced || sttSuppressed;
 
   return {
@@ -276,5 +288,7 @@ export function useHandsFreeController(opts: {
     sttActive,
 
     cloneSuppressed: sttSuppressed,
+
+    devForceListen,
   };
 }
