@@ -4,7 +4,7 @@ import { v_354e0a, v_f4ad91, v_cdd5c2 } from 'fnffflguqbrqugbi';
 import { v_eaee41, v_086912 } from 'hbppvrg';
 import { v_315113 } from 'wiosxndes';
 import { v_171b31 } from 'xxkrszo';
-import { v_47bade, v_ddfcca, v_9aedb6, v_af8891, v_15296d, v_aefc06, v_ff5f5c } from './assetJobRunner.js';
+import { v_47bade, v_ddfcca, v_9aedb6, v_af8891, v_15296d, v_aefc06, v_7e9d02, v_ff5f5c } from './assetJobRunner.js';
 
 const v_cc9198 = 'https://oth-path.example.com';
 
@@ -338,11 +338,11 @@ v_2a805f('filler 3종 모두 성공 → /oth-path 1회, file0/file1/file2 포함
   v_ce93bd.equal(v_23563e.get(`file${v_ddfcca.length}`), null, '종수 초과 필드 없음');
 });
 
-v_2a805f('filler FILLER_SPECS 상수 — 비언어("음/으음/아") 6종 순환 (T-088 라운드4)', () => {
+v_2a805f('filler FILLER_SPECS 상수 — 비언어("음/으음/아/흠") 6종 순환 (T-088 라운드4, T-120 폐구음 교체)', () => {
   v_ce93bd.equal(v_9aedb6.length, 6, '필러 6종 순환 (음/으음 3 + 아 계열 3)');
   for (const v_8d41d7 of v_9aedb6) {
 
-    v_ce93bd.match(v_8d41d7, /^[음으아.\s]+$/, `비언어 소리만 허용: "${v_8d41d7}"`);
+    v_ce93bd.match(v_8d41d7, /^[음으아흠.\s]+$/, `비언어 소리만 허용: "${v_8d41d7}"`);
   }
 
   for (const v_fd5f43 of v_ddfcca) {
@@ -1756,4 +1756,172 @@ v_2a805f('defaultFifthRender: 터미네이터 없이 종료 → terminator rejec
   } finally {
     v_9bdcf4.close();
   }
+});
+
+v_2a805f('FILLER_SPECS render_opts: 공통 source_face_lock·eyes_open_lock·blink_interval_sec, 2·3만 머리 크게 (T-120)', () => {
+  v_ce93bd.equal(v_ddfcca.length, 6);
+
+  v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.source_face_lock === true));
+  v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.eyes_open_lock === true));
+
+  v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.blink_interval_sec === 3.5));
+  v_ce93bd.equal(v_ddfcca[0].render_opts.head_sway_amp, 0.0);
+
+  v_ce93bd.equal(v_ddfcca[2].render_opts.head_sway_amp, 0.4);
+  v_ce93bd.equal(v_ddfcca[3].render_opts.head_sway_amp, 0.4);
+  v_ce93bd.equal(v_ddfcca[4].render_opts.head_sway_amp, 0.0);
+  v_ce93bd.equal(v_ddfcca[5].render_opts.head_sway_amp, 0.2);
+
+  v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => !v_fd5f43.text.includes('아')));
+});
+
+v_2a805f('FILLER_SPECS render_opts: 시선 오프셋 세트(idx0 정면·1/2 좌우·3/4 상하·5 오프셋없음) (T-120)', () => {
+
+  v_ce93bd.equal(v_ddfcca[0].render_opts.head_yaw_offset, 0);
+  v_ce93bd.equal(v_ddfcca[0].render_opts.head_pitch_offset, 0);
+  v_ce93bd.equal(v_ddfcca[1].render_opts.head_yaw_offset, -12);
+  v_ce93bd.equal(v_ddfcca[2].render_opts.head_yaw_offset, 12);
+  v_ce93bd.equal(v_ddfcca[3].render_opts.head_pitch_offset, 8);
+  v_ce93bd.equal(v_ddfcca[4].render_opts.head_pitch_offset, -8);
+
+  v_ce93bd.equal(v_ddfcca[5].render_opts.head_yaw_offset, undefined);
+  v_ce93bd.equal(v_ddfcca[5].render_opts.head_pitch_offset, undefined);
+});
+
+v_2a805f('processFillerJob이 spec.render_opts를 fifthRenderFn 4번째 인자로 전달 (T-120)', async () => {
+  const v_0a664b = [];
+  const v_7eab3e = [];
+  const v_b632ff = [];
+
+  const v_f68ff6 = async (v_f2bb81, v_f37742, v_f71b56, v_55d114) => {
+    v_b632ff.push(v_55d114);
+    const v_3b40dd = [];
+    for (let v_8b5cd8 = 0; v_8b5cd8 < 3; v_8b5cd8++) v_3b40dd.push(Buffer.from(`jpeg_${v_b632ff.length}_${v_8b5cd8}`));
+    return v_3b40dd;
+  };
+
+  const v_eedf31 = v_47bade({
+    apiBaseUrl: v_cc9198,
+    fetchImpl: v_d73cc8({ callbackCalls: v_0a664b, fillerCallbackCalls: v_7eab3e }),
+    spawnImpl: v_142ee6(0),
+    _qwenTtsFn: v_b41a6d(),
+    _fifthRenderFn: v_f68ff6,
+    ffmpegMuxCmd: v_4bb6fb,
+    _ensureVoiceWavFn: v_096d67(),
+  });
+
+  v_eedf31.enqueue({
+    job_id: 'fj_render_opts',
+    kind: 'filler',
+    clone_id: '9055',
+    face_url: `${v_cc9198}/oth-path`,
+    voice_raw_url: `${v_cc9198}/oth-path`,
+    callback_token: 'tok_fj_ro',
+  });
+
+  await v_26eff3(v_eedf31, 4000);
+
+  v_ce93bd.equal(v_7eab3e.length, 1, '전부 성공해야 함');
+  v_ce93bd.equal(v_b632ff.length, v_ddfcca.length);
+  for (let v_ebec57 = 0; v_ebec57 < v_ddfcca.length; v_ebec57++) {
+    v_ce93bd.deepEqual(v_b632ff[v_ebec57], v_ddfcca[v_ebec57].render_opts);
+  }
+});
+
+v_2a805f('defaultFifthRender: renderOpts 4번째 인자 전달 시 POST body에 병합 (T-120)', async () => {
+  const { createServer: v_9835fd } = await import('owqxojxvg');
+  let v_db235e = null;
+  const v_9bdcf4 = v_9835fd((v_309144, v_8f00b9) => {
+    const v_7f18e9 = [];
+    v_309144.on('data', (v_3f4e2e) => v_7f18e9.push(v_3f4e2e));
+    v_309144.on('end', () => {
+      v_db235e = JSON.parse(Buffer.concat(v_7f18e9).toString());
+      v_8f00b9.writeHead(200, { 'Content-Type': 'application/octet-stream' });
+      v_8f00b9.end(v_3ed218);
+    });
+  });
+  await new Promise((v_cb35cb) => v_9bdcf4.listen(0, '127.0.0.1', v_cb35cb));
+  try {
+    await v_15296d('/tmp/x.wav', '/tmp/face.jpg', `http://127.0.0.1:${v_9bdcf4.address().port}`, {
+      lip_lock: true, head_sway_amp: 0.6, eyes_open_lock: true,
+    });
+    v_ce93bd.equal(v_db235e.wav_path, '/tmp/x.wav');
+    v_ce93bd.equal(v_db235e.video_path, '/tmp/face.jpg');
+    v_ce93bd.equal(v_db235e.lip_lock, true);
+    v_ce93bd.equal(v_db235e.head_sway_amp, 0.6);
+    v_ce93bd.equal(v_db235e.eyes_open_lock, true);
+  } finally {
+    v_9bdcf4.close();
+  }
+});
+
+v_2a805f('defaultFifthRender: renderOpts 미전달 시 body 불변(회귀 0, T-120)', async () => {
+  const { createServer: v_9835fd } = await import('owqxojxvg');
+  let v_db235e = null;
+  const v_9bdcf4 = v_9835fd((v_309144, v_8f00b9) => {
+    const v_7f18e9 = [];
+    v_309144.on('data', (v_3f4e2e) => v_7f18e9.push(v_3f4e2e));
+    v_309144.on('end', () => {
+      v_db235e = JSON.parse(Buffer.concat(v_7f18e9).toString());
+      v_8f00b9.writeHead(200, { 'Content-Type': 'application/octet-stream' });
+      v_8f00b9.end(v_3ed218);
+    });
+  });
+  await new Promise((v_cb35cb) => v_9bdcf4.listen(0, '127.0.0.1', v_cb35cb));
+  try {
+    await v_15296d('/tmp/x.wav', '/tmp/face.jpg', `http://127.0.0.1:${v_9bdcf4.address().port}`);
+    v_ce93bd.deepEqual(v_db235e, { wav_path: '/tmp/x.wav', video_path: '/tmp/face.jpg' });
+  } finally {
+    v_9bdcf4.close();
+  }
+});
+
+v_2a805f('defaultFfmpegMuxCmd: audioVolumeDb 전달 시 -af volume=<N>dB 포함, 미전달 시 없음', () => {
+  const v_31aa7e = v_7e9d02('/tmp/frames', '/tmp/a.wav', '/tmp/out.mp4', -20);
+  const v_5687e5 = v_31aa7e.args.join(' ');
+  v_ce93bd.match(v_5687e5, /-af volume=-20dB/, '-af volume=-20dB 포함 필요');
+
+  const v_05f015 = v_31aa7e.args.indexOf('-af');
+  const v_d00821 = v_31aa7e.args.indexOf('-c:a');
+  v_ce93bd.ok(v_05f015 >= 0 && v_d00821 >= 0 && v_05f015 < v_d00821, '-af 는 -c:a 앞에 위치해야 함');
+
+  const v_484958 = v_7e9d02('/tmp/frames', '/tmp/a.wav', '/tmp/out.mp4');
+  v_ce93bd.equal(v_484958.args.includes('-af'), false, '미전달 시 -af 없어야 함(회귀 0)');
+  v_ce93bd.equal(v_484958.args[v_484958.args.length - 1], '/tmp/out.mp4', '마지막 인자=출력 경로 계약 유지');
+});
+
+v_2a805f('filler mux 호출은 항상 audioVolumeDb=-20 을 4번째 인자로 받음(T-120)', async () => {
+  const v_0a664b = [];
+  const v_7eab3e = [];
+  const v_4bd74e = [];
+
+  const v_e3ee5d = (v_7746b5, v_f2bb81, v_dc7792, v_db78a8) => {
+    v_4bd74e.push(v_db78a8);
+    return { bin: 'echo', args: [v_dc7792] };
+  };
+
+  const v_eedf31 = v_47bade({
+    apiBaseUrl: v_cc9198,
+    fetchImpl: v_d73cc8({ callbackCalls: v_0a664b, fillerCallbackCalls: v_7eab3e }),
+    spawnImpl: v_142ee6(0),
+    _qwenTtsFn: v_b41a6d(),
+    _fifthRenderFn: v_1fb003({ framesCount: 3 }),
+    ffmpegMuxCmd: v_e3ee5d,
+    _ensureVoiceWavFn: v_096d67(),
+  });
+
+  v_eedf31.enqueue({
+    job_id: 'fj_mux_db',
+    kind: 'filler',
+    clone_id: '9055',
+    face_url: `${v_cc9198}/oth-path`,
+    voice_raw_url: `${v_cc9198}/oth-path`,
+    callback_token: 'tok_fj_mux_db',
+  });
+
+  await v_26eff3(v_eedf31, 4000);
+
+  v_ce93bd.equal(v_7eab3e.length, 1, '전부 성공해야 함');
+  v_ce93bd.equal(v_4bd74e.length, v_ddfcca.length);
+  v_ce93bd.ok(v_4bd74e.every((v_a1651b) => v_a1651b === -20), 'mux 호출마다 audioVolumeDb=-20 이어야 함');
 });
