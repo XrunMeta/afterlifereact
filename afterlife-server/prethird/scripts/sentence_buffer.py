@@ -30,14 +30,14 @@ class SentenceBuffer:
 
     @classmethod
     def from_env(cls) -> "SentenceBuffer":
-        """env(PRETHIRD_SENT_*)로 파라미터 결정. 미설정 시 현행 기본(4/30/first=min_len) — 회귀 0.
+        """env(PRETHIRD_SENTENCE_*)로 파라미터 결정. 미설정 시 현행 기본(4/30/first=min_len) — 회귀 0.
 
         T-120 B(세그먼트 병합): 라이브에서 min_len↑·force_flush↑로 과분절을 줄이고,
         first_min_len(작게)으로 첫 응답 지연을 방지하기 위한 런타임 튜닝 진입점.
         """
-        min_len = int(os.environ.get("PRETHIRD_SENT_MIN_LEN", "4"))
-        force_flush = int(os.environ.get("PRETHIRD_SENT_FORCE_FLUSH", "30"))
-        _fml = os.environ.get("PRETHIRD_SENT_FIRST_MIN_LEN")
+        min_len = int(os.environ.get("PRETHIRD_SENTENCE_MIN_LEN", "4"))
+        force_flush = int(os.environ.get("PRETHIRD_SENTENCE_FORCE_FLUSH", "30"))
+        _fml = os.environ.get("PRETHIRD_SENTENCE_FIRST_MIN_LEN")
         first_min_len = int(_fml) if _fml not in (None, "") else None
         return cls(min_len, force_flush, first_min_len)
 
