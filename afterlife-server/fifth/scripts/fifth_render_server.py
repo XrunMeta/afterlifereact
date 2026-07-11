@@ -147,7 +147,8 @@ def _idle_kwargs(idle_opts: dict | None) -> dict:
         return {}
     keys = ("idle_motion_scale", "idle_rms_low", "idle_rms_high", "head_slew_frames",
             "lip_lock", "head_sway_amp", "eyes_open_lock", "source_face_lock",
-            "blink_interval_sec", "head_yaw_offset", "head_pitch_offset")
+            "blink_interval_sec", "head_yaw_offset", "head_pitch_offset",
+            "head_sway_slow")
     return {k: idle_opts[k] for k in keys if idle_opts.get(k) is not None}
 
 
@@ -552,6 +553,7 @@ def _parse_render_body(raw: bytes) -> tuple[str, str, Optional[object], dict]:
         "blink_interval_sec": req.get("blink_interval_sec"),
         "head_yaw_offset": req.get("head_yaw_offset"),
         "head_pitch_offset": req.get("head_pitch_offset"),
+        "head_sway_slow": req.get("head_sway_slow"),
         # 빈 문자열("")은 None으로 정규화 → is_batch(None)이 env fallback을 타게 함
         # (""는 non-batch override로 오해되어 env 무력화되는 것을 방지, 회귀 0).
         "render_mode": req.get("render_mode") or None,
