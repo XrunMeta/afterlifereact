@@ -4,7 +4,7 @@ import { writeFile, mkdtemp, rm } from 'node:fs/promises';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { createAssetJobRunner, FILLER_SPECS, FILLER_TEXTS, defaultEnsureVoiceWav, defaultFifthRender, defaultFfmpegPadCmd, defaultFfmpegMuxCmd, _MAX_VOICE_WAV_BYTES } from './assetJobRunner.js';
+import { createAssetJobRunner, FILLER_SPECS, FILLER_TEXTS, FILLER_TARGET_DUR_SEC, defaultEnsureVoiceWav, defaultFifthRender, defaultFfmpegPadCmd, defaultFfmpegMuxCmd, _MAX_VOICE_WAV_BYTES } from './assetJobRunner.js';
 
 const API_BASE = 'https://oth-path.example.com';
 
@@ -1764,7 +1764,7 @@ test('FILLER_SPECS render_opts: 공통 source_face_lock·eyes_open_lock·blink_i
   assert.ok(FILLER_SPECS.every((s) => s.render_opts.source_face_lock === true));
   assert.ok(FILLER_SPECS.every((s) => s.render_opts.eyes_open_lock === true));
 
-  assert.ok(FILLER_SPECS.every((s) => s.render_opts.blink_interval_sec === 3.5));
+  assert.ok(FILLER_SPECS.every((s) => s.render_opts.blink_interval_sec === 6.0));
   assert.equal(FILLER_SPECS[0].render_opts.head_sway_amp, 0.0);
 
   assert.equal(FILLER_SPECS[2].render_opts.head_sway_amp, 0.4);
@@ -1773,6 +1773,14 @@ test('FILLER_SPECS render_opts: 공통 source_face_lock·eyes_open_lock·blink_i
   assert.equal(FILLER_SPECS[5].render_opts.head_sway_amp, 0.2);
 
   assert.ok(FILLER_SPECS.every((s) => !s.text.includes('아')));
+
+  assert.ok(FILLER_SPECS.every((s) => s.render_opts.head_sway_slow === 2.0));
+});
+
+test('FILLER_TARGET_DUR_SEC: 긴 버전 확정 12~17s (히즈키 "긴버전 좋다", T-120)', () => {
+
+  assert.deepEqual(FILLER_TARGET_DUR_SEC, [12.0, 13.0, 14.0, 15.0, 16.0, 17.0]);
+  assert.equal(FILLER_TARGET_DUR_SEC.length, FILLER_SPECS.length);
 });
 
 test('FILLER_SPECS render_opts: 시선 오프셋 세트(idx0 정면·1/2 좌우·3/4 상하·5 오프셋없음) (T-120)', () => {

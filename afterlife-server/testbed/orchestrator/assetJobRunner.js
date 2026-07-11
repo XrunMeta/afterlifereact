@@ -8,13 +8,15 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { suggestGuideMents as defaultSuggestGuideMents } from '../lib/guideMentSuggest.js';
 
+const FILLER_SWAY_SLOW = 2.0;
+
 export const FILLER_SPECS = [
-  { text: '음..... 음... 음..', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 3.5, head_sway_amp: 0.0, head_yaw_offset: 0, head_pitch_offset: 0 } },
-  { text: '음... 음.....', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 3.5, head_sway_amp: 0.0, head_yaw_offset: -12 } },
-  { text: '으음... 음.....', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 3.5, head_sway_amp: 0.4, head_yaw_offset: 12 } },
-  { text: '음..... 음...', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 3.5, head_sway_amp: 0.4, head_pitch_offset: 8 } }, 
-  { text: '음... 으음...', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 3.5, head_sway_amp: 0.0, head_pitch_offset: -8 } }, 
-  { text: '흠.....', atempo: 0.55, render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 3.5, head_sway_amp: 0.2 } }, 
+  { text: '음..... 음... 음..', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 6.0, head_sway_amp: 0.0, head_yaw_offset: 0, head_pitch_offset: 0, head_sway_slow: FILLER_SWAY_SLOW } },
+  { text: '음... 음.....', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 6.0, head_sway_amp: 0.0, head_yaw_offset: -12, head_sway_slow: FILLER_SWAY_SLOW } },
+  { text: '으음... 음.....', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 6.0, head_sway_amp: 0.4, head_yaw_offset: 12, head_sway_slow: FILLER_SWAY_SLOW } },
+  { text: '음..... 음...', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 6.0, head_sway_amp: 0.4, head_pitch_offset: 8, head_sway_slow: FILLER_SWAY_SLOW } }, 
+  { text: '음... 으음...', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 6.0, head_sway_amp: 0.0, head_pitch_offset: -8, head_sway_slow: FILLER_SWAY_SLOW } }, 
+  { text: '흠.....', atempo: 0.55, render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 6.0, head_sway_amp: 0.2, head_sway_slow: FILLER_SWAY_SLOW } }, 
 ];
 
 export const FILLER_TEXTS = FILLER_SPECS.map((s) => s.text);
@@ -38,7 +40,7 @@ export function defaultExtractSeCmd(src, out) {
   return { bin: OPENVOICE_PY, args: [AFL_EXTRACT_SE_IO, src, out] };
 }
 
-export const FILLER_TARGET_DUR_SEC = [6.0, 6.5, 7.0, 7.5, 8.0, 8.5];
+export const FILLER_TARGET_DUR_SEC = [12.0, 13.0, 14.0, 15.0, 16.0, 17.0];
 
 const FILLER_LEAD_SILENCE_MS = 600;
 
