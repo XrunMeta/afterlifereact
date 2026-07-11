@@ -17,6 +17,7 @@ export function v_94a663(v_f80480): void { v_b52a6e = v_f80480; }
 
 function v_c226a5(): void {
   const v_5392c4 = v_062bb0.slice();
+
   v_ab371b.forEach((v_16dbdb) => v_16dbdb(v_5392c4));
 }
 
