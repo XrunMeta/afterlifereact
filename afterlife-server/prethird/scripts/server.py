@@ -83,6 +83,24 @@ def _source_for_renderer(renderer_name, face_path, video_path, isfile=os.path.is
     return _pick_source(face, video_path, isfile)
 
 
+def _should_prebake(renderer_name, src, *, prebake_env_on, prebake_policy_on, idle_video_applied):
+    """idle prebake(무음 렌더 폴백) 실행 여부 — 순수 함수.
+
+    clone idle mp4가 이미 idle_track에 적용됐으면(idle_video_applied=True) 스킵한다.
+    좋은 clone idle mp4(사전 렌더)를 무음 prebake(눈큼·입벌림 나쁜 표정)가 덮어쓰는
+    회귀를 막기 위함. clone idle mp4가 없을 때만 prebake로 폴백해 최소한 클론 얼굴로
+    idle을 채운다(idle mp4 부재 시 halbae 초기값 노출 회피).
+    """
+    return (
+        renderer_name == "fifth"
+        and bool(src)
+        and _is_image_source(src)
+        and prebake_env_on
+        and prebake_policy_on
+        and not idle_video_applied
+    )
+
+
 def _build_pipeline_factory():
     """렌더러(musetalk/fifth) 1회 load + 세션별 DialoguePipeline factory.
 
@@ -145,8 +163,15 @@ def _build_pipeline_factory():
                 )
             return renderer.infer(wav, cb, video_path=_src)
 
-        # idle prebake: fifth 렌더러 + 정면사진 source일 때만 실행
-        if renderer_name == "fifth" and _src and _is_image_source(_src) and os.environ.get("FIFTH_IDLE_PREBAKE", "1") == "1" and prebake_enabled():
+        # idle prebake: clone idle mp4 미적용 시에만 폴백 실행(_should_prebake 참조).
+        # clone idle mp4가 이미 적용됐으면(sess.idle_video_applied) 좋은 영상 유지 —
+        # 무음 prebake(나쁜 표정)로 덮지 않는다. 없을 때만 클론 얼굴 폴백.
+        if _should_prebake(
+            renderer_name, _src,
+            prebake_env_on=os.environ.get("FIFTH_IDLE_PREBAKE", "1") == "1",
+            prebake_policy_on=prebake_enabled(),
+            idle_video_applied=bool(getattr(sess, "idle_video_applied", False)),
+        ):
             from idle_prebake import start_prebake
             _tmp = os.environ.get("TMPDIR", "/tmp")
             start_prebake(renderer, _src, sess.video_track, wav_dir=_tmp)
