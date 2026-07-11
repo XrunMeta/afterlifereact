@@ -38,7 +38,8 @@ class CosyEngine:
         """LLM 샘플링 top_k 교체(폭주 저감). _synth_lock 내에서만 호출(레이스 방지)."""
         import functools
         from cosyvoice.utils.common import ras_sampling
-        self.model.llm.sampling = functools.partial(
+        # CosyVoice2 래퍼는 실제 LLM을 self.model(CosyVoice2Model) 안에 둔다 → .model.model.llm
+        self.model.model.llm.sampling = functools.partial(
             ras_sampling, top_p=config.SAMPLING_TOP_P, top_k=top_k, win_size=10, tau_r=0.1)
 
     def warmup(self):
