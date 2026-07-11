@@ -62,6 +62,10 @@ import { useHandsFreeController } from "../../realtime/useHandsFreeController";
 import { useVideoStatsDiag } from "../../realtime/useVideoStatsDiag";
 import { DialingScreen } from "../../components/call/DialingScreen";
 import { CallStatusGlow } from "../../components/call/CallStatusGlow";
+import { CallTimingHUD } from "../../components/call/CallTimingHUD";
+import { CallTimingPanel } from "../../components/call/CallTimingPanel";
+import { useTimingConfigStore } from "../../realtime/timingConfig";
+import { startTimingLog } from "../../realtime/timingLog";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
 import { useTranslation } from "react-i18next";
@@ -458,6 +462,7 @@ export default function CallScreen({ route, navigation }: Props) {
     ],
   );
 
+  const sttEndpointMs = useTimingConfigStore((s) => s.sttEndpointMs);
   const {
     phase,
     pendingText,
@@ -466,6 +471,7 @@ export default function CallScreen({ route, navigation }: Props) {
     interimTranscript,
     sttActive,
     cloneSuppressed,
+    devForceListen,
   } = useHandsFreeController({
     enabled: liveState === "live",
     say,
@@ -477,6 +483,7 @@ export default function CallScreen({ route, navigation }: Props) {
     lastSignal,
     greetTimeoutMs: GREET_TIMEOUT_MS,
     fallbackText: GREETING_FALLBACK_TEXT,
+    silenceMs: sttEndpointMs,
   });
 
   const [greetingStarted, setGreetingStarted] = useState(false);
@@ -488,6 +495,11 @@ export default function CallScreen({ route, navigation }: Props) {
     if (!accessToken) return;
     void startLive();
 
+  }, []);
+
+  useEffect(() => {
+    if (!__DEV__) return;
+    return startTimingLog();
   }, []);
 
   const [showGifts, setShowGifts] = useState(false);
@@ -956,6 +968,17 @@ export default function CallScreen({ route, navigation }: Props) {
       />
 
       {dialingDone ? <CallStatusGlow phase={phase} sttActive={sttActive} suppressed={cloneSuppressed} /> : null}
+
+      {__DEV__ && liveState === "live" ? <CallTimingHUD /> : null}
+      {__DEV__ && liveState === "live" ? (
+
+        <View
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: bottomInset }}
+          pointerEvents="box-none"
+        >
+          <CallTimingPanel onForceListen={devForceListen} />
+        </View>
+      ) : null}
 
       {
 
