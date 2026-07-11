@@ -12,11 +12,12 @@ FILES="pipeline.py server.py fifth_inproc.py signaling.py media_tracks.py sessio
 SERVICE=afterlife-prethird.service
 PORT=8600
 
-# 1) 백업
-ssh "$HOST" "cd $REMOTE && mkdir -p .bak-t127-$TS && cp $FILES continuation_loop.py .bak-t127-$TS/ 2>/dev/null || true"
+# 1) 백업 — 6파일(정본)은 엄격 백업(실패 시 중단), continuation_loop.py는 존재 불확실하므로 관용 처리
+ssh "$HOST" "cd $REMOTE && mkdir -p .bak-t127-$TS && cp $FILES .bak-t127-$TS/"
+ssh "$HOST" "cd $REMOTE && cp continuation_loop.py .bak-t127-$TS/ 2>/dev/null || true"
 # 2) 6파일 원자적 배포(임시 업로드 후 일괄 mv)
 for f in $FILES; do scp -q "$LOCAL/$f" "$HOST:$REMOTE/.stage-$f"; done
-ssh "$HOST" "cd $REMOTE && for f in $FILES; do mv .stage-\$f \$f; done"
+ssh "$HOST" "set -e; cd $REMOTE && for f in $FILES; do mv .stage-\$f \$f; done"
 # 3) continuation 제거
 ssh "$HOST" "cd $REMOTE && rm -f continuation_loop.py"
 # 4) idle_policy.py 등 의존 모듈 존재 확인(signaling import)
