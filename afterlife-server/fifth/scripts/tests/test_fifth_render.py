@@ -355,3 +355,462 @@ def test_prepare_sources_blend_mode_aligns_and_masks():
     assert src["mode"] == "blend"
     assert src["closed_s"]["aligned"] == "affine"
     assert src["mouth_mask"].shape == (512, 512, 1)
+
+
+# ---------------------------------------------------------------------------
+# T-120: _apply_head_sway 테스트
+# ---------------------------------------------------------------------------
+
+def _make_ml(nj):
+    return [{"R": np.eye(3)[None].astype(np.float32),
+             "t": np.zeros((1, 3), np.float32),
+             "exp": np.zeros((1, 21, 3), np.float32)} for _ in range(nj)]
+
+
+def test_head_sway_amp_zero_is_noop():
+    from fifth_render import _apply_head_sway
+    ml = _make_ml(30)
+    before = [m["R"].copy() for m in ml]
+    _apply_head_sway(ml, 30, 0.0)
+    for m, b in zip(ml, before):
+        assert np.array_equal(m["R"], b)
+
+
+def test_head_sway_positive_deterministic_and_valid_rotation():
+    from fifth_render import _apply_head_sway
+    ml1, ml2 = _make_ml(30), _make_ml(30)
+    _apply_head_sway(ml1, 30, 0.6)
+    _apply_head_sway(ml2, 30, 0.6)
+    for a, b in zip(ml1, ml2):
+        assert np.array_equal(a["R"], b["R"])
+    Rm = ml1[15]["R"][0]
+    assert not np.allclose(Rm, np.eye(3), atol=1e-4)
+    assert np.allclose(Rm @ Rm.T, np.eye(3), atol=1e-3)
+    assert abs(np.linalg.det(Rm) - 1.0) < 1e-3
+
+
+def test_head_sway_ramps_from_zero_at_edges():
+    from fifth_render import _apply_head_sway
+    ml = _make_ml(40)
+    _apply_head_sway(ml, 40, 1.0)
+    assert np.allclose(ml[0]["R"], np.eye(3)[None], atol=2e-2)
+
+
+def test_head_sway_negative_is_noop():
+    """amp<0 도 amp<=0 조건에 포함 — no-op(회귀 0)."""
+    from fifth_render import _apply_head_sway
+    ml = _make_ml(20)
+    before = [m["R"].copy() for m in ml]
+    _apply_head_sway(ml, 20, -0.5)
+    for m, b in zip(ml, before):
+        assert np.array_equal(m["R"], b)
+
+
+def test_head_sway_large_amplitude_maintains_orthogonality():
+    """amp 극값(5.0)에서도 회전각만 커질 뿐 각 프레임 R은 유효 회전행렬(직교·det=1) 유지."""
+    from fifth_render import _apply_head_sway
+    ml = _make_ml(30)
+    _apply_head_sway(ml, 30, 5.0)
+    for m in ml:
+        Rm = m["R"][0]
+        assert np.allclose(Rm @ Rm.T, np.eye(3), atol=1e-3)
+        assert abs(np.linalg.det(Rm) - 1.0) < 1e-3
+
+
+def test_head_sway_nj_less_than_ramp():
+    """nj < ramp(12) 극단 케이스 — 크래시 없이 동작 + 램프가 의도대로(양끝<중앙) 적용."""
+    from fifth_render import _apply_head_sway
+
+    # nj=1: ramp=min(12,1)=1 → ZeroDivisionError 없이 동작.
+    ml1 = _make_ml(1)
+    _apply_head_sway(ml1, 1, 1.0)
+    assert ml1[0]["R"].shape == (1, 3, 3)
+
+    # nj=5: ramp=min(12,5)=5 → 양끝(0,4)의 회전 편차가 중앙(2)보다 작아야 함.
+    ml5 = _make_ml(5)
+    _apply_head_sway(ml5, 5, 1.0)
+    dev = [float(np.linalg.norm(m["R"][0] - np.eye(3))) for m in ml5]
+    assert dev[0] < dev[2]
+    assert dev[4] < dev[2]
+
+
+# ---------------------------------------------------------------------------
+# T-120: _apply_head_sway 시선 오프셋(yaw_offset_deg/pitch_offset_deg) 확장
+# ⚠️ 부호(좌/우·상/하) 방향은 코드로 확신 못 함 — 클로가 렌더 실측으로 확인/조정.
+# 여기서는 "오프셋이 R을 변화시킨다"/"유효 회전행렬 유지"/"no-op 조건" 만 검증.
+# ---------------------------------------------------------------------------
+
+def test_head_sway_yaw_offset_changes_r_even_when_amp_zero():
+    """amp=0 이어도 yaw_offset_deg!=0 이면 R이 변화해야 함(시선 바이어스는 amp 무관)."""
+    from fifth_render import _apply_head_sway
+    ml = _make_ml(20)
+    _apply_head_sway(ml, 20, 0.0, yaw_offset_deg=15.0)
+    Rm = ml[10]["R"][0]
+    assert not np.allclose(Rm, np.eye(3), atol=1e-4)
+    assert np.allclose(Rm @ Rm.T, np.eye(3), atol=1e-3)
+    assert abs(np.linalg.det(Rm) - 1.0) < 1e-3
+
+
+def test_head_sway_pitch_offset_changes_r_even_when_amp_zero():
+    """amp=0 이어도 pitch_offset_deg!=0 이면 R이 변화해야 함."""
+    from fifth_render import _apply_head_sway
+    ml = _make_ml(20)
+    _apply_head_sway(ml, 20, 0.0, pitch_offset_deg=8.0)
+    Rm = ml[10]["R"][0]
+    assert not np.allclose(Rm, np.eye(3), atol=1e-4)
+    assert np.allclose(Rm @ Rm.T, np.eye(3), atol=1e-3)
+    assert abs(np.linalg.det(Rm) - 1.0) < 1e-3
+
+
+def test_head_sway_offset_zero_and_amp_zero_is_noop():
+    """amp=0 + yaw_offset_deg=0 + pitch_offset_deg=0 → 완전 no-op(회귀 0)."""
+    from fifth_render import _apply_head_sway
+    ml = _make_ml(20)
+    before = [m["R"].copy() for m in ml]
+    _apply_head_sway(ml, 20, 0.0, yaw_offset_deg=0.0, pitch_offset_deg=0.0)
+    for m, b in zip(ml, before):
+        assert np.array_equal(m["R"], b)
+
+
+def test_head_sway_offset_holds_after_ramp_in_no_ramp_out():
+    """오프셋은 램프인(0→1) 후 유지(sway처럼 램프아웃 안 됨) — 중반과 말미 편차가 비슷해야 함."""
+    from fifth_render import _apply_head_sway
+    ml = _make_ml(30)
+    _apply_head_sway(ml, 30, 0.0, yaw_offset_deg=10.0)
+    dev_mid = np.linalg.norm(ml[15]["R"][0] - np.eye(3))
+    dev_last = np.linalg.norm(ml[29]["R"][0] - np.eye(3))
+    assert dev_mid > 0
+    assert dev_last > 0
+    assert abs(dev_mid - dev_last) < 0.05
+
+
+# ---------------------------------------------------------------------------
+# T-120: stream_wav_frames lip_lock / head_sway_amp / eyes_open_lock 배선 테스트
+# ---------------------------------------------------------------------------
+
+class _CdlCeCaptureEngine:
+    """c_d_lip / c_eyes / motion(exp) 인자를 캡처하는 fake engine (T-120 배선 검증용)."""
+    def __init__(self):
+        self.cdls = []
+        self.ces = []
+        self.exps = []
+
+    def render(self, motion, c_eyes, c_d_lip, first_frame, src_img=None, src_info=None):
+        self.cdls.append(float(c_d_lip))
+        self.ces.append(c_eyes)
+        self.exps.append(np.asarray(motion["exp"]).copy())
+        return np.zeros((512, 512, 3), np.uint8)
+
+
+class _FakeJPWithEyes:
+    """JoyVASA 네이티브 c_eyes_lst를 반환하는 fake (ce_raw truthy 분기 검증, エル 게이트).
+
+    기존 _FakeJP는 항상 c_eyes_lst=[] 라 ce_raw truthy 분기가 미검증이었다.
+    """
+    def __init__(self, n=25):
+        self.n = n
+
+    def gen_motion_sequence(self, wav_path):
+        motion = [
+            {
+                "R": np.eye(3)[None].astype(np.float32),
+                "t": np.zeros((1, 3), np.float32),
+                "exp": np.zeros((1, 21, 3), np.float32),
+            }
+            for _ in range(self.n)
+        ]
+        # 네이티브 눈: 중간 프레임을 "감김"(작은 값)으로 → blink:false로는 못 막음.
+        # shape (1,1) — make_blink_sequence/FLP calc_combined_eye_ratio 실제 계약.
+        ce = [np.array([[0.3]], np.float32) for _ in range(self.n)]
+        ce[self.n // 2] = np.array([[0.02]], np.float32)
+        return {"motion": motion, "c_eyes_lst": ce, "n_frames": self.n}
+
+
+def _silent_wav(tmp_path, sec=1.0, sr=16000):
+    p = str(tmp_path / "sil.wav")
+    sf.write(p, np.zeros(int(sec * sr), np.float32), sr)
+    return p
+
+
+def _single_sources():
+    # src_info[0][0]: x_s_info dict(exp 포함, T-120 source_face_lock 계약).
+    # src_info[0][1]: source_lmk(106,2) — 기존 mouth_mask/_eye_open_ratio 경로용.
+    return {
+        "mode": "single",
+        "open_s": {
+            "src_img": object(),
+            "src_info": [[{"exp": np.full((1, 21, 3), 0.42, dtype=np.float32)}, np.zeros((106, 2))]],
+            "lip_close_ratio": 0.081,
+        },
+    }
+
+
+def test_lip_lock_forces_closed_cdl(tmp_path):
+    from fifth_render import stream_wav_frames
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJP(25)
+    sources = _single_sources()
+    stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+        lip_lock=True,
+    )
+    assert eng.cdls and all(abs(c - cfg.lip_closed) < 1e-6 for c in eng.cdls)
+
+
+def test_eyes_open_lock_overrides_native_c_eyes(tmp_path):
+    """ce_raw truthy(네이티브 감김)여도 eyes_open_lock=True면 전 프레임 눈 뜸."""
+    from fifth_render import stream_wav_frames
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJPWithEyes(n=25)
+    sources = _single_sources()
+    stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+        eyes_open_lock=True,
+    )
+    assert all(float(np.min(c)) > 0.1 for c in eng.ces), (
+        "eyes_open_lock이 네이티브 감김을 덮어야 함"
+    )
+
+
+def test_eyes_open_lock_none_keeps_native_c_eyes(tmp_path):
+    """미전달 시 네이티브 ce_raw 그대로 소비(회귀 0) → 감김 프레임 존재."""
+    from fifth_render import stream_wav_frames
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJPWithEyes(n=25)
+    sources = _single_sources()
+    stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+    )
+    assert any(float(np.min(c)) < 0.1 for c in eng.ces), "미전달 시 네이티브 감김 유지"
+
+
+def test_head_sway_amp_applied_when_positive(tmp_path, monkeypatch):
+    import fifth_render
+    calls = {"n": 0, "amp": None}
+    monkeypatch.setattr(
+        fifth_render, "_apply_head_sway",
+        lambda ml, nj, amp, phase_offset=0, yaw_offset_deg=0.0, pitch_offset_deg=0.0:
+            calls.update(n=calls["n"] + 1, amp=amp),
+    )
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJP(25)
+    sources = _single_sources()
+    fifth_render.stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+        head_sway_amp=0.6,
+    )
+    assert calls["n"] == 1 and calls["amp"] == 0.6
+
+
+def test_head_sway_none_does_not_call(tmp_path, monkeypatch):
+    """head_sway_amp/head_yaw_offset/head_pitch_offset 전부 미전달 → 호출 자체 없음(회귀 0)."""
+    import fifth_render
+    calls = {"n": 0}
+    monkeypatch.setattr(
+        fifth_render, "_apply_head_sway",
+        lambda *a, **k: calls.update(n=calls["n"] + 1),
+    )
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJP(25)
+    sources = _single_sources()
+    fifth_render.stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+    )
+    assert calls["n"] == 0
+
+
+def test_head_yaw_offset_calls_apply_head_sway_even_when_amp_none(tmp_path, monkeypatch):
+    """head_sway_amp 미전달이어도 head_yaw_offset만 있으면 _apply_head_sway 호출돼야 함."""
+    import fifth_render
+    calls = {"n": 0, "kwargs": None}
+
+    def _spy(ml, nj, amp, phase_offset=0, yaw_offset_deg=0.0, pitch_offset_deg=0.0):
+        calls["n"] += 1
+        calls["kwargs"] = dict(amp=amp, yaw_offset_deg=yaw_offset_deg, pitch_offset_deg=pitch_offset_deg)
+
+    monkeypatch.setattr(fifth_render, "_apply_head_sway", _spy)
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJP(25)
+    sources = _single_sources()
+    fifth_render.stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+        head_yaw_offset=-12.0,
+    )
+    assert calls["n"] == 1
+    assert calls["kwargs"]["amp"] is None
+    assert calls["kwargs"]["yaw_offset_deg"] == -12.0
+    assert calls["kwargs"]["pitch_offset_deg"] == 0.0
+
+
+def test_head_pitch_offset_calls_apply_head_sway_even_when_amp_none(tmp_path, monkeypatch):
+    """head_sway_amp 미전달이어도 head_pitch_offset만 있으면 _apply_head_sway 호출돼야 함."""
+    import fifth_render
+    calls = {"n": 0, "kwargs": None}
+
+    def _spy(ml, nj, amp, phase_offset=0, yaw_offset_deg=0.0, pitch_offset_deg=0.0):
+        calls["n"] += 1
+        calls["kwargs"] = dict(amp=amp, yaw_offset_deg=yaw_offset_deg, pitch_offset_deg=pitch_offset_deg)
+
+    monkeypatch.setattr(fifth_render, "_apply_head_sway", _spy)
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJP(25)
+    sources = _single_sources()
+    fifth_render.stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+        head_pitch_offset=8.0,
+    )
+    assert calls["n"] == 1
+    assert calls["kwargs"]["amp"] is None
+    assert calls["kwargs"]["yaw_offset_deg"] == 0.0
+    assert calls["kwargs"]["pitch_offset_deg"] == 8.0
+
+
+def test_blink_interval_sec_passed_to_make_blink_sequence(tmp_path, monkeypatch):
+    """eyes_open_lock=True + blink_interval_sec 지정 시 avg_interval_sec로 그대로 전달."""
+    import fifth_render
+    import render_offline
+    calls = {}
+    orig = render_offline.make_blink_sequence
+
+    def _spy(n, fps, eye_open, eye_closed, phase_offset=0, avg_interval_sec=3.2, blink_dur_frames=6):
+        calls["avg_interval_sec"] = avg_interval_sec
+        return orig(n, fps, eye_open, eye_closed, phase_offset=phase_offset,
+                    avg_interval_sec=avg_interval_sec, blink_dur_frames=blink_dur_frames)
+
+    monkeypatch.setattr(render_offline, "make_blink_sequence", _spy)
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJP(25)
+    sources = _single_sources()
+    fifth_render.stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+        eyes_open_lock=True, blink_interval_sec=3.5,
+    )
+    assert calls["avg_interval_sec"] == 3.5
+
+
+def test_blink_interval_sec_none_defaults_to_1e9(tmp_path, monkeypatch):
+    """blink_interval_sec 미전달 시 기존 동작(avg_interval_sec=1e9, 무깜빡) 유지(회귀 0)."""
+    import fifth_render
+    import render_offline
+    calls = {}
+    orig = render_offline.make_blink_sequence
+
+    def _spy(n, fps, eye_open, eye_closed, phase_offset=0, avg_interval_sec=3.2, blink_dur_frames=6):
+        calls["avg_interval_sec"] = avg_interval_sec
+        return orig(n, fps, eye_open, eye_closed, phase_offset=phase_offset,
+                    avg_interval_sec=avg_interval_sec, blink_dur_frames=blink_dur_frames)
+
+    monkeypatch.setattr(render_offline, "make_blink_sequence", _spy)
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJP(25)
+    sources = _single_sources()
+    fifth_render.stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+        eyes_open_lock=True,
+    )
+    assert calls["avg_interval_sec"] == 1e9
+
+
+# ---------------------------------------------------------------------------
+# T-120: source_face_lock — exp를 소스(원본 사진) exp로 고정 + cdl=소스 립비율
+# ---------------------------------------------------------------------------
+
+class _FakeJPWithDistinctExp:
+    """keypoint(21개)마다 서로 다른 exp값을 반환하는 fake — lip-only 잠금 검증용.
+
+    히즈키 피드백: source_face_lock은 exp 전체가 아니라 lip 키포인트(6개)만
+    소스로 고정 → 나머지 15개(눈·눈썹 등)는 JoyVASA 원본 유지(눈동자 움직임 확보).
+    _single_sources()의 소스 exp(0.42 균일)와 겹치지 않는 값을 써서 lip/non-lip
+    구분이 명확하도록 한다.
+    """
+    def __init__(self, n=25):
+        self.n = n
+
+    def gen_motion_sequence(self, wav_path):
+        exp_template = np.zeros((1, 21, 3), np.float32)
+        for k in range(21):
+            exp_template[0, k, :] = 0.10 + 0.01 * k  # 0.10~0.30, keypoint별 고유
+        motion = [
+            {
+                "R": np.eye(3)[None].astype(np.float32),
+                "t": np.zeros((1, 3), np.float32),
+                "exp": exp_template.copy(),
+            }
+            for _ in range(self.n)
+        ]
+        return {"motion": motion, "c_eyes_lst": [], "n_frames": self.n}
+
+
+def test_source_face_lock_forces_lip_keypoints_only(tmp_path):
+    """source_face_lock=True 시 lip 키포인트(_LIP_IDX, 6개)만 소스 exp로 고정,
+    non-lip 키포인트(15개)는 JoyVASA 원본 유지(히즈키 피드백: 눈동자 움직임 확보)."""
+    from fifth_render import stream_wav_frames, _LIP_IDX
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJPWithDistinctExp(25)
+    sources = _single_sources()
+    stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+        source_face_lock=True,
+    )
+    src_exp = sources["open_s"]["src_info"][0][0]["exp"]
+    non_lip_idx = [i for i in range(21) if i not in _LIP_IDX]
+    assert eng.exps
+    for e in eng.exps:
+        # lip 키포인트: 소스 exp와 일치해야 함(입 고정)
+        assert np.array_equal(e[:, _LIP_IDX, :], src_exp[:, _LIP_IDX, :])
+        # non-lip 키포인트: JoyVASA 원본(소스 exp 0.42와 다른 keypoint별 고유값) 유지
+        for k in non_lip_idx:
+            assert not np.allclose(e[0, k, :], src_exp[0, k, :]), (
+                f"non-lip keypoint {k} 가 소스 exp로 덮였음 — 전체 잠금 회귀"
+            )
+
+
+def test_source_face_lock_forces_cdl_to_source_lip_ratio(tmp_path):
+    """source_face_lock=True 시 c_d_lip 전부 open_s["lip_close_ratio"](소스 원본 입) 고정."""
+    from fifth_render import stream_wav_frames
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJP(25)
+    sources = _single_sources()
+    stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+        source_face_lock=True,
+    )
+    expected = float(sources["open_s"]["lip_close_ratio"])
+    assert eng.cdls and all(abs(c - expected) < 1e-6 for c in eng.cdls)
+
+
+def test_source_face_lock_none_keeps_native_exp(tmp_path):
+    """미전달 시 JoyVASA 원본 exp 그대로 유지(회귀 0) — _FakeJP 는 exp=0 반환."""
+    from fifth_render import stream_wav_frames
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJP(25)
+    sources = _single_sources()
+    stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+    )
+    zeros = np.zeros((1, 21, 3), np.float32)
+    assert eng.exps and all(np.array_equal(e, zeros) for e in eng.exps)

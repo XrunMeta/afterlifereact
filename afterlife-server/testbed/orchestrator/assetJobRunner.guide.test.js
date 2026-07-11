@@ -439,3 +439,41 @@ test('직렬 큐 — filler + guide 혼합 시 순서대로 처리 (회귀 확�
   assert.ok(fidx >= 0 && gidx >= 0);
   assert.ok(fidx < gidx, `직렬 실패: filler(${fidx}) 이후 guide(${gidx}) 이어야 함`);
 });
+
+test('guide mux 호출은 audioVolumeDb 를 받지 않음(4번째 인자 undefined, 필러 -20dB 감쇠 무영향)', async () => {
+  const callbackCalls = [];
+  const guideCallbackCalls = [];
+  const muxCalls = [];
+
+  const capturingMuxCmd = (framesDir, wavPath, outPath, audioVolumeDb) => {
+    muxCalls.push(audioVolumeDb);
+    return { bin: 'echo', args: [outPath] };
+  };
+
+  const runner = createAssetJobRunner({
+    apiBaseUrl: API_BASE,
+    fetchImpl: makeFetchGuide({ callbackCalls, guideCallbackCalls }),
+    spawnImpl: makeSpawn(0),
+    _qwenTtsFn: makeQwenTts(),
+    _fifthRenderFn: makeFifthRender({ framesCount: 2 }),
+    ffmpegMuxCmd: capturingMuxCmd,
+    _ensureVoiceWavFn: makeEnsureVoiceWav(),
+    suggestGuideMentsFn: async () => ['인사1', '인사2'],
+  });
+
+  runner.enqueue({
+    job_id: 'gj_mux_novol',
+    kind: 'guide',
+    clone_id: '9055',
+    face_url: `${API_BASE}/oth-path`,
+    voice_raw_url: `${API_BASE}/oth-path`,
+    callback_token: 'tok_gj_mux_novol',
+    persona: { l0: { tone: 'warm' } },
+  });
+
+  await waitDrain(runner);
+
+  assert.equal(guideCallbackCalls.length, 1, '전부 성공해야 함');
+  assert.equal(muxCalls.length, 2, '멘트 2개 → mux 2회');
+  assert.ok(muxCalls.every((db) => db === undefined), 'guide mux 는 audioVolumeDb 미전달(감쇠 없음)이어야 함');
+});
