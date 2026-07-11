@@ -26,6 +26,30 @@ from recorder import NULL_TURN
 
 log = logging.getLogger("prethird.pipeline")
 
+# [T-120 e2e] 계측 로그(`[seg]`/`[turn]`)를 /data 영구 파일로 tee (additive).
+#   기존 동작 무변경 — 로깅만 추가. env `PRETHIRD_E2E_METRICS=0` 으로 비활성.
+#   파일 경로: PRETHIRD_METRICS_PATH (기본 /data/afterlife/metrics/e2e/prethird_seg.log)
+_E2E_METRICS_PATH = os.environ.get(
+    "PRETHIRD_METRICS_PATH", "/data/afterlife/metrics/e2e/prethird_seg.log"
+)
+if os.environ.get("PRETHIRD_E2E_METRICS", "1") not in ("0", "false", ""):
+    try:
+        os.makedirs(os.path.dirname(_E2E_METRICS_PATH), exist_ok=True)
+        _mh = logging.FileHandler(_E2E_METRICS_PATH)
+        _mh.setLevel(logging.INFO)
+        _mh.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
+        # `[seg]`/`[turn]` 계측 라인만 파일로 — 다른 INFO 로그는 제외.
+        _mh.addFilter(
+            lambda r: r.getMessage().startswith("[seg]")
+            or r.getMessage().startswith("[turn]")
+        )
+        log.addHandler(_mh)
+        if log.level == logging.NOTSET or log.level > logging.INFO:
+            log.setLevel(logging.INFO)
+        log.info("[turn] metrics-file-init path=%s", _E2E_METRICS_PATH)
+    except Exception as _exc:  # 파일핸들러 실패가 발화를 막지 않게 흡수
+        log.warning("[T-120] metrics file handler init failed: %s", _exc)
+
 _RENDER_MODES = {"partial", "batch"}
 
 
