@@ -1,6 +1,6 @@
 """DialoguePipeline이 SentenceBuffer 파라미터를 env로 배선하는지 검증. T-120 B.
 
-_sb_factory()가 env(PRETHIRD_SENT_*)를 반영해야 라이브에서 런타임 튜닝이 가능하다.
+_sb_factory()가 env(PRETHIRD_SENTENCE_*)를 반영해야 라이브에서 런타임 튜닝이 가능하다.
 """
 import pathlib
 import sys
@@ -15,9 +15,9 @@ def _mk():
 
 
 def test_sb_factory_reads_env(monkeypatch):
-    monkeypatch.setenv("PRETHIRD_SENT_MIN_LEN", "16")
-    monkeypatch.setenv("PRETHIRD_SENT_FORCE_FLUSH", "48")
-    monkeypatch.setenv("PRETHIRD_SENT_FIRST_MIN_LEN", "6")
+    monkeypatch.setenv("PRETHIRD_SENTENCE_MIN_LEN", "16")
+    monkeypatch.setenv("PRETHIRD_SENTENCE_FORCE_FLUSH", "48")
+    monkeypatch.setenv("PRETHIRD_SENTENCE_FIRST_MIN_LEN", "6")
     sb = _mk()._sb_factory()
     assert sb.min_len == 16
     assert sb.force_flush == 48
@@ -25,7 +25,7 @@ def test_sb_factory_reads_env(monkeypatch):
 
 
 def test_sb_factory_defaults(monkeypatch):
-    for k in ("PRETHIRD_SENT_MIN_LEN", "PRETHIRD_SENT_FORCE_FLUSH", "PRETHIRD_SENT_FIRST_MIN_LEN"):
+    for k in ("PRETHIRD_SENTENCE_MIN_LEN", "PRETHIRD_SENTENCE_FORCE_FLUSH", "PRETHIRD_SENTENCE_FIRST_MIN_LEN"):
         monkeypatch.delenv(k, raising=False)
     sb = _mk()._sb_factory()
     assert sb.min_len == 4

@@ -83,7 +83,7 @@ def test_reset_clears_emitted_counter():
 
 def test_from_env_defaults(monkeypatch):
     """env 미설정 시 현행 기본(4, 30, first=min_len) — 회귀 0."""
-    for k in ("PRETHIRD_SENT_MIN_LEN", "PRETHIRD_SENT_FORCE_FLUSH", "PRETHIRD_SENT_FIRST_MIN_LEN"):
+    for k in ("PRETHIRD_SENTENCE_MIN_LEN", "PRETHIRD_SENTENCE_FORCE_FLUSH", "PRETHIRD_SENTENCE_FIRST_MIN_LEN"):
         monkeypatch.delenv(k, raising=False)
     sb = SentenceBuffer.from_env()
     assert sb.min_len == 4
@@ -93,8 +93,8 @@ def test_from_env_defaults(monkeypatch):
 
 def test_from_env_override(monkeypatch):
     """env로 병합 파라미터 주입(B 튜닝값)."""
-    monkeypatch.setenv("PRETHIRD_SENT_MIN_LEN", "16")
-    monkeypatch.setenv("PRETHIRD_SENT_FORCE_FLUSH", "48")
-    monkeypatch.setenv("PRETHIRD_SENT_FIRST_MIN_LEN", "6")
+    monkeypatch.setenv("PRETHIRD_SENTENCE_MIN_LEN", "16")
+    monkeypatch.setenv("PRETHIRD_SENTENCE_FORCE_FLUSH", "48")
+    monkeypatch.setenv("PRETHIRD_SENTENCE_FIRST_MIN_LEN", "6")
     sb = SentenceBuffer.from_env()
     assert (sb.min_len, sb.force_flush, sb.first_min_len) == (16, 48, 6)
