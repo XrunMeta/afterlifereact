@@ -522,6 +522,11 @@ class DialoguePipeline:
         sentence_q: asyncio.Queue = asyncio.Queue()
         wav_q: asyncio.Queue = asyncio.Queue(maxsize=2)
         fired = {"v": False}
+        # [T-120] 턴계측: _t_turn=턴 시작(say 진입) 기준시각.
+        #   first_sent_ms: 첫 문장이 tts_worker 에 dequeue 된 시점.
+        #   first_audio_ms: 첫 세그먼트 render+오디오 push 완료 시각.
+        _t_turn = time.perf_counter()
+        _m = {"first_sent_ms": None, "first_audio_ms": None, "n_seg": 0, "last_end": None}
 
         async def tts_worker():
             while True:
@@ -529,8 +534,11 @@ class DialoguePipeline:
                 if s is None:
                     await wav_q.put(None)
                     break
+                if _m["first_sent_ms"] is None:
+                    _m["first_sent_ms"] = int((time.perf_counter() - _t_turn) * 1000)
                 wav_bytes, pcm48 = await self._tts_stage(s)
                 turn.append_wav(wav_bytes)
+                _m["n_seg"] += 1
                 await wav_q.put((wav_bytes, pcm48))
 
         async def infer_worker():
@@ -549,6 +557,8 @@ class DialoguePipeline:
                     _first_infer = False
                     _hook = on_response_ready
                 await self._infer_stage(wav_bytes, pcm48, turn, on_before_push=_hook)
+                if _m["first_audio_ms"] is None:
+                    _m["first_audio_ms"] = int((time.perf_counter() - _t_turn) * 1000)
                 # 첫 오디오 프레임 송출 직후 1회 통지(연결 중 화면 종료·speech_start echo).
                 if not fired["v"] and on_first_audio is not None:
                     fired["v"] = True
@@ -571,5 +581,10 @@ class DialoguePipeline:
             await asyncio.gather(*tasks, return_exceptions=True)
             raise
         finally:
+            # [T-120] 턴 요약 1줄 — 체감 첫 응답(first_audio_ms)이 핵심 지표.
+            log.info(
+                "[turn] first_sent_ms=%s first_audio_ms=%s n_seg=%d",
+                _m["first_sent_ms"], _m["first_audio_ms"], _m["n_seg"],
+            )
             self.vt.signal_end()
             self.at.signal_end()
