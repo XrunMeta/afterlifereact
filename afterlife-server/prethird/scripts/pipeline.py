@@ -81,8 +81,9 @@ class DialoguePipeline:
     infer_fn : (wav_path, on_frame) → int  ※blocking, run_in_executor 로 실행
     persona_messages : list[dict]  시스템 페르소나 메시지
     se_path : str | None  TTS 화자 임베딩 경로
-    min_len : int  SentenceBuffer 최소 문장 길이
-    force_flush : int  SentenceBuffer 강제 플러시 길이
+
+    SentenceBuffer 파라미터(min_len/force_flush/first_min_len)는 env(PRETHIRD_SENT_*)로
+    주입한다 — SentenceBuffer.from_env() 참조(T-120 B 세그먼트 병합 튜닝, 미설정 시 회귀 0).
     """
 
     def __init__(
@@ -96,8 +97,6 @@ class DialoguePipeline:
         persona_messages: list | None = None,
         se_path: str | None = None,
         clone_locked: bool = False,
-        min_len: int = 4,
-        force_flush: int = 30,
     ) -> None:
         from sentence_buffer import SentenceBuffer
         from audio_utils import (
@@ -114,7 +113,9 @@ class DialoguePipeline:
         self.persona_messages = persona_messages or []
         self.se_path = se_path
         self.clone_locked = clone_locked
-        self._sb_factory = lambda: SentenceBuffer(min_len, force_flush)
+        # SentenceBuffer 파라미터는 env(PRETHIRD_SENT_*)로 주입 → 세그먼트 병합 런타임 튜닝
+        # (T-120 B: 과분절 해소, first_min_len 으로 첫 응답 지연 방지). 미설정 시 회귀 0.
+        self._sb_factory = lambda: SentenceBuffer.from_env()
         self._resample = _resample_int16
         self._balance = _balance_pcm_to_video
         self._edge_fade = _apply_edge_fade
