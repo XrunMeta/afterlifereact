@@ -4,7 +4,7 @@ import { v_354e0a, v_f4ad91, v_cdd5c2 } from 'fnffflguqbrqugbi';
 import { v_eaee41, v_086912 } from 'hbppvrg';
 import { v_315113 } from 'wiosxndes';
 import { v_171b31 } from 'xxkrszo';
-import { v_47bade, v_ddfcca, v_9aedb6, v_af8891, v_15296d, v_aefc06, v_7e9d02, v_ff5f5c } from './assetJobRunner.js';
+import { v_47bade, v_ddfcca, v_9aedb6, v_7e5b4f, v_af8891, v_15296d, v_aefc06, v_7e9d02, v_ff5f5c } from './assetJobRunner.js';
 
 const v_cc9198 = 'https://oth-path.example.com';
 
@@ -1764,7 +1764,7 @@ v_2a805f('FILLER_SPECS render_opts: 공통 source_face_lock·eyes_open_lock·bli
   v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.source_face_lock === true));
   v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.eyes_open_lock === true));
 
-  v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.blink_interval_sec === 3.5));
+  v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.blink_interval_sec === 6.0));
   v_ce93bd.equal(v_ddfcca[0].render_opts.head_sway_amp, 0.0);
 
   v_ce93bd.equal(v_ddfcca[2].render_opts.head_sway_amp, 0.4);
@@ -1775,6 +1775,12 @@ v_2a805f('FILLER_SPECS render_opts: 공통 source_face_lock·eyes_open_lock·bli
   v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => !v_fd5f43.text.includes('아')));
 
   v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.head_sway_slow === 2.0));
+});
+
+v_2a805f('FILLER_TARGET_DUR_SEC: 긴 버전 확정 12~17s (히즈키 "긴버전 좋다", T-120)', () => {
+
+  v_ce93bd.deepEqual(v_7e5b4f, [12.0, 13.0, 14.0, 15.0, 16.0, 17.0]);
+  v_ce93bd.equal(v_7e5b4f.length, v_ddfcca.length);
 });
 
 v_2a805f('FILLER_SPECS render_opts: 시선 오프셋 세트(idx0 정면·1/2 좌우·3/4 상하·5 오프셋없음) (T-120)', () => {
