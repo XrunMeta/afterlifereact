@@ -17,6 +17,7 @@ export function __setTimingClock(fn: () => number): void { clock = fn; }
 
 function notify(): void {
   const snapshot = buffer.slice();
+
   subs.forEach((cb) => cb(snapshot));
 }
 
