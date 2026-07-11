@@ -62,6 +62,10 @@ import { v_7df8a4 } from "../../realtime/useHandsFreeController";
 import { v_eba6cc } from "../../realtime/useVideoStatsDiag";
 import { v_1980fb } from "../../components/call/DialingScreen";
 import { v_8bbe5d } from "../../components/call/CallStatusGlow";
+import { v_cdcb08 } from "../../components/call/CallTimingHUD";
+import { v_e68007 } from "../../components/call/CallTimingPanel";
+import { v_7347b3 } from "../../realtime/timingConfig";
+import { v_1b1534 } from "../../realtime/timingLog";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -458,6 +462,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     ],
   );
 
+  const v_280eae = v_7347b3((v_fd5f43) => v_fd5f43.sttEndpointMs);
   const {
     phase: v_ab4803,
     pendingText: v_def12c,
@@ -466,6 +471,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     interimTranscript: v_a2d9d1,
     sttActive: v_b3ae82,
     cloneSuppressed: v_caa8ce,
+    devForceListen: v_a8e03f,
   } = v_7df8a4({
     enabled: v_6cc918 === "live",
     say: v_3e2c87,
@@ -477,6 +483,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     lastSignal: v_88c591,
     greetTimeoutMs: v_71f13f,
     fallbackText: v_0e2cb4,
+    silenceMs: v_280eae,
   });
 
   const [v_7a419e, v_717e64] = v_5ab095(false);
@@ -488,6 +495,11 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     if (!v_2ca7e0) return;
     void v_223067();
 
+  }, []);
+
+  v_c4deb2(() => {
+    if (!__DEV__) return;
+    return v_1b1534();
   }, []);
 
   const [v_d416b8, v_2a4980] = v_5ab095(false);
@@ -956,6 +968,17 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       />
 
       {v_b2ccaa ? <CallStatusGlow phase={v_ab4803} sttActive={v_b3ae82} suppressed={v_caa8ce} /> : null}
+
+      {__DEV__ && v_6cc918 === "live" ? <CallTimingHUD /> : null}
+      {__DEV__ && v_6cc918 === "live" ? (
+
+        <View
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: v_53dd92 }}
+          pointerEvents="box-none"
+        >
+          <CallTimingPanel onForceListen={v_a8e03f} />
+        </View>
+      ) : null}
 
       {
 
