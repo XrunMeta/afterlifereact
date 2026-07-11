@@ -26,6 +26,30 @@ from recorder import NULL_TURN
 
 log = logging.getLogger("prethird.pipeline")
 
+# [T-120 e2e] 계측 로그(`[seg]`/`[turn]`)를 /data 영구 파일로 tee (additive).
+#   기존 동작 무변경 — 로깅만 추가. env `PRETHIRD_E2E_METRICS=0` 으로 비활성.
+#   파일 경로: PRETHIRD_METRICS_PATH (기본 /data/afterlife/metrics/e2e/prethird_seg.log)
+_E2E_METRICS_PATH = os.environ.get(
+    "PRETHIRD_METRICS_PATH", "/data/afterlife/metrics/e2e/prethird_seg.log"
+)
+if os.environ.get("PRETHIRD_E2E_METRICS", "1") not in ("0", "false", ""):
+    try:
+        os.makedirs(os.path.dirname(_E2E_METRICS_PATH), exist_ok=True)
+        _mh = logging.FileHandler(_E2E_METRICS_PATH)
+        _mh.setLevel(logging.INFO)
+        _mh.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
+        # `[seg]`/`[turn]` 계측 라인만 파일로 — 다른 INFO 로그는 제외.
+        _mh.addFilter(
+            lambda r: r.getMessage().startswith("[seg]")
+            or r.getMessage().startswith("[turn]")
+        )
+        log.addHandler(_mh)
+        if log.level == logging.NOTSET or log.level > logging.INFO:
+            log.setLevel(logging.INFO)
+        log.info("[turn] metrics-file-init path=%s", _E2E_METRICS_PATH)
+    except Exception as _exc:  # 파일핸들러 실패가 발화를 막지 않게 흡수
+        log.warning("[T-120] metrics file handler init failed: %s", _exc)
+
 _RENDER_MODES = {"partial", "batch"}
 
 
@@ -498,6 +522,11 @@ class DialoguePipeline:
         sentence_q: asyncio.Queue = asyncio.Queue()
         wav_q: asyncio.Queue = asyncio.Queue(maxsize=2)
         fired = {"v": False}
+        # [T-120] 턴계측: _t_turn=턴 시작(say 진입) 기준시각.
+        #   first_sent_ms: 첫 문장이 tts_worker 에 dequeue 된 시점.
+        #   first_audio_ms: 첫 세그먼트 render+오디오 push 완료 시각.
+        _t_turn = time.perf_counter()
+        _m = {"first_sent_ms": None, "first_audio_ms": None, "n_seg": 0, "last_end": None}
 
         async def tts_worker():
             while True:
@@ -505,8 +534,11 @@ class DialoguePipeline:
                 if s is None:
                     await wav_q.put(None)
                     break
+                if _m["first_sent_ms"] is None:
+                    _m["first_sent_ms"] = int((time.perf_counter() - _t_turn) * 1000)
                 wav_bytes, pcm48 = await self._tts_stage(s)
                 turn.append_wav(wav_bytes)
+                _m["n_seg"] += 1
                 await wav_q.put((wav_bytes, pcm48))
 
         async def infer_worker():
@@ -525,6 +557,8 @@ class DialoguePipeline:
                     _first_infer = False
                     _hook = on_response_ready
                 await self._infer_stage(wav_bytes, pcm48, turn, on_before_push=_hook)
+                if _m["first_audio_ms"] is None:
+                    _m["first_audio_ms"] = int((time.perf_counter() - _t_turn) * 1000)
                 # 첫 오디오 프레임 송출 직후 1회 통지(연결 중 화면 종료·speech_start echo).
                 if not fired["v"] and on_first_audio is not None:
                     fired["v"] = True
@@ -547,5 +581,10 @@ class DialoguePipeline:
             await asyncio.gather(*tasks, return_exceptions=True)
             raise
         finally:
+            # [T-120] 턴 요약 1줄 — 체감 첫 응답(first_audio_ms)이 핵심 지표.
+            log.info(
+                "[turn] first_sent_ms=%s first_audio_ms=%s n_seg=%d",
+                _m["first_sent_ms"], _m["first_audio_ms"], _m["n_seg"],
+            )
             self.vt.signal_end()
             self.at.signal_end()
