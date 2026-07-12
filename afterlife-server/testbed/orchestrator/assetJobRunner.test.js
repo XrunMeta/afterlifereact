@@ -1762,6 +1762,8 @@ test('FILLER_SPECS render_opts: 공통 source_face_lock·eyes_open_lock·blink_i
   assert.equal(FILLER_SPECS.length, 6);
 
   assert.ok(FILLER_SPECS.every((s) => s.render_opts.source_face_lock === true));
+
+  assert.ok(FILLER_SPECS.every((s) => s.render_opts.source_face_lock_full === true));
   assert.ok(FILLER_SPECS.every((s) => s.render_opts.eyes_open_lock === true));
 
   assert.ok(FILLER_SPECS.every((s) => s.render_opts.blink_interval_sec === 6.0));
