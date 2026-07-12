@@ -115,6 +115,8 @@ export interface UseFaceIdentifyResult {
   onEmbedding: (raw: number[]) => void;
 
   getBuffer: () => v_4f64ba;
+
+  resetRecognition: () => void;
 }
 
 export function v_e9685b(v_328259): UseFaceIdentifyResult {
@@ -125,6 +127,11 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
   const v_8d3dea = v_e662ae<IdentifyCycleState>(v_48b3dc);
   const v_5228f1 = v_e662ae<v_4f64ba>(new v_4f64ba());
   const v_9468fd = v_e662ae(false);
+
+  const v_4921f9 = v_de06a3(() => {
+    const { state: v_60d563 } = v_be2f9f(v_8d3dea.current.speaker, { type: "RESET_RECOGNITION" });
+    v_8d3dea.current = { ...v_8d3dea.current, speaker: v_60d563 };
+  }, []);
 
   const v_7167fd = v_de06a3(
     (v_479f05) => {
@@ -173,5 +180,5 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
     [v_d20c84, v_2ca7e0, v_68885c, v_32837c, v_faccce, v_84b93d, v_5de650],
   );
 
-  return { onEmbedding: v_7167fd, getBuffer: () => v_5228f1.current };
+  return { onEmbedding: v_7167fd, getBuffer: () => v_5228f1.current, resetRecognition: v_4921f9 };
 }
