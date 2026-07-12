@@ -644,3 +644,19 @@ v_469bf2("persons route", () => {
     });
   });
 });
+
+v_469bf2("wrangler.toml FACE_CONSENT_ENFORCED 정적 안전망(production=true 회귀 방지)", () => {
+  v_23805a("[vars]·[env.preview.vars]는 \"false\", [env.production.vars]는 \"true\"여야 한다", async () => {
+
+    const { default: v_6e2bcc } = await import("../wrangler.toml?raw");
+
+    const v_a49907 = [...(v_6e2bcc as string).matchAll(/FACE_CONSENT_ENFORCED\s*=\s*"([^"]*)"/g)].map((v_35f85c) => v_35f85c[1]);
+
+    v_4d37e3(v_a49907.length).toBe(3);
+    const [v_694b25, v_2ccff1, v_3a9689] = v_a49907;
+    v_4d37e3(v_694b25).toBe("false");
+    v_4d37e3(v_2ccff1).toBe("false");
+
+    v_4d37e3(v_3a9689).toBe("true");
+  });
+});
