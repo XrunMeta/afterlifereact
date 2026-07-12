@@ -219,8 +219,6 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const silentEnrollRef = useRef(false);
 
-  const [enrollPolicyModalVisible, setEnrollPolicyModalVisible] = useState(false);
-
   const submittedEnrollNameRef = useRef("");
 
   const enrollSuggestImplRef = useRef<(name: string, personId?: number) => void>(() => {});
@@ -1112,15 +1110,6 @@ export default function CallScreen({ route, navigation }: Props) {
             setConsentLoading(false);
           }
         }}
-      />
-
-      {
-}
-      <TermsModal
-        visible={enrollPolicyModalVisible}
-        type={4}
-        onClose={() => setEnrollPolicyModalVisible(false)}
-        onAgree={() => setEnrollPolicyModalVisible(false)}
       />
 
       {
