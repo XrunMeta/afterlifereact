@@ -13,7 +13,7 @@ export interface GateDecision {
 
   canRequest: boolean;
 
-  mustOpenSettings: boolean;
+  showSettingsHint: boolean;
 }
 
 export function normalizeCameraStatus(
@@ -25,6 +25,7 @@ export function normalizeCameraStatus(
     case 'not-determined':
       return 'undetermined';
     case 'restricted':
+
       return 'blocked';
     case 'denied':
       return 'denied';
@@ -35,18 +36,19 @@ export function normalizeCameraStatus(
 
 export function normalizeMicStatus(raw: {
   status: 'granted' | 'denied' | 'undetermined';
-  canAskAgain: boolean;
+  canAskAgain?: boolean;
 }): PermStatus {
   if (raw.status === 'granted') return 'granted';
   if (raw.status === 'undetermined') return 'undetermined';
 
-  return raw.canAskAgain ? 'denied' : 'blocked';
+  return raw.canAskAgain === false ? 'blocked' : 'denied';
 }
 
 export function gateDecision(state: GateState): GateDecision {
-  const values: PermStatus[] = [state.camera, state.mic];
-  const pass = values.every((s) => s === 'granted');
-  const canRequest = values.some((s) => s === 'undetermined' || s === 'denied');
-  const mustOpenSettings = values.some((s) => s === 'blocked');
-  return { pass, canRequest, mustOpenSettings };
+  const pass = state.camera === 'granted' && state.mic === 'granted';
+  return {
+    pass,
+    canRequest: !pass,
+    showSettingsHint: !pass,
+  };
 }

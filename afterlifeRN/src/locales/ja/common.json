@@ -100,6 +100,8 @@
     "statusBlocked": "ブロック済み",
     "requestButton": "権限を許可",
     "settingsButton": "設定で権限をオンにする",
-    "loading": "権限を確認中..."
+    "settingsHint": "権限ダイアログが表示されない場合は設定でオンにしてください",
+    "loading": "権限を確認中...",
+    "logout": "ログアウト"
   }
 }

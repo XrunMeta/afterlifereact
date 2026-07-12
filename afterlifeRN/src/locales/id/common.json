@@ -100,6 +100,8 @@
     "statusBlocked": "Diblokir",
     "requestButton": "Izinkan",
     "settingsButton": "Buka pengaturan",
-    "loading": "Memeriksa izin..."
+    "settingsHint": "Jika dialog izin tidak muncul, aktifkan lewat pengaturan",
+    "loading": "Memeriksa izin...",
+    "logout": "Keluar"
   }
 }

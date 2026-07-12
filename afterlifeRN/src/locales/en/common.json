@@ -730,6 +730,8 @@
     "statusBlocked": "Blocked",
     "requestButton": "Allow permissions",
     "settingsButton": "Open settings",
-    "loading": "Checking permissions..."
+    "settingsHint": "If the permission dialog doesn't appear, turn it on in Settings",
+    "loading": "Checking permissions...",
+    "logout": "Log out"
   }
 }

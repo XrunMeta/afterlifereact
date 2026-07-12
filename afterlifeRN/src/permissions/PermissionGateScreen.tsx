@@ -1,12 +1,13 @@
 
 
 import React from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Feather } from '@expo/vector-icons';
 import SafeView from '../components/ui/SafeView';
 import Button from '../components/ui/Button';
 import { COLORS, SIZES, RADIUS } from '../components/constants';
+import { useAuthStore } from '../stores/authStore';
 import { usePermissionGate } from './usePermissionGate';
 import type { PermStatus } from './permissionGate';
 
@@ -54,7 +55,8 @@ function PermRow({ icon, label, status }: { icon: 'camera' | 'mic'; label: strin
 
 export default function PermissionGateScreen() {
   const { t } = useTranslation();
-  const { state, decision, loading, request, openSettings } = usePermissionGate();
+  const { state, decision, loading, error, request, openSettings, recheck } = usePermissionGate();
+  const apiLogout = useAuthStore((s) => s.apiLogout);
 
   return (
     <SafeView backgroundColor={COLORS.zinc50}>
@@ -71,6 +73,12 @@ export default function PermissionGateScreen() {
           <PermRow icon="mic" label={t('permissionGate.micLabel')} status={state.mic} />
         </View>
 
+        {error && (
+          <View style={styles.errorBox} accessibilityLiveRegion="assertive">
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
         {loading ? (
           <View style={styles.loadingRow} accessibilityLiveRegion="polite">
             <ActivityIndicator color={COLORS.zinc500} />
@@ -78,24 +86,44 @@ export default function PermissionGateScreen() {
           </View>
         ) : (
           <View style={styles.actions}>
-            {decision.mustOpenSettings && (
+            {error ? (
               <Button
-                title={t('permissionGate.settingsButton')}
-                onPress={openSettings}
+                title={t('common.retry')}
+                onPress={() => void recheck()}
                 variant="primary"
-                testID="permission-gate-open-settings"
+                testID="permission-gate-retry"
               />
+            ) : (
+              decision.canRequest && (
+                <Button
+                  title={t('permissionGate.requestButton')}
+                  onPress={() => void request()}
+                  variant="primary"
+                  testID="permission-gate-request"
+                />
+              )
             )}
-            {decision.canRequest && !decision.mustOpenSettings && (
-              <Button
-                title={t('permissionGate.requestButton')}
-                onPress={() => void request()}
-                variant="primary"
-                testID="permission-gate-request"
-              />
+
+            {decision.showSettingsHint && (
+              <TouchableOpacity
+                onPress={openSettings}
+                style={styles.settingsLink}
+                testID="permission-gate-open-settings"
+              >
+                <Text style={styles.settingsLinkText}>{t('permissionGate.settingsHint')}</Text>
+              </TouchableOpacity>
             )}
           </View>
         )}
+
+        {}
+        <TouchableOpacity
+          onPress={() => void apiLogout()}
+          style={styles.logoutLink}
+          testID="permission-gate-logout"
+        >
+          <Text style={styles.logoutLinkText}>{t('permissionGate.logout')}</Text>
+        </TouchableOpacity>
       </View>
     </SafeView>
   );
@@ -175,10 +203,24 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: COLORS.divider,
   },
+  errorBox: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: COLORS.amber50 ?? '#fffbeb',
+    borderRadius: RADIUS.md,
+    paddingVertical: SIZES.small,
+    paddingHorizontal: SIZES.medium,
+  },
+  errorText: {
+    fontSize: 13,
+    color: COLORS.amber800 ?? COLORS.error,
+    lineHeight: 18,
+  },
   actions: {
     width: '100%',
     maxWidth: 420,
     marginTop: SIZES.medium,
+    gap: SIZES.small,
   },
   loadingRow: {
     flexDirection: 'row',
@@ -189,5 +231,24 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 14,
     color: COLORS.zinc500,
+  },
+  settingsLink: {
+    alignItems: 'center',
+    paddingVertical: SIZES.small,
+  },
+  settingsLinkText: {
+    fontSize: 13,
+    color: COLORS.zinc500,
+    textDecorationLine: 'underline',
+  },
+  logoutLink: {
+    marginTop: SIZES.xlarge,
+    paddingVertical: SIZES.small,
+    paddingHorizontal: SIZES.medium,
+  },
+  logoutLinkText: {
+    fontSize: 13,
+    color: COLORS.zinc400,
+    textDecorationLine: 'underline',
   },
 });

@@ -10,17 +10,37 @@ import {
   normalizeMicStatus,
   type GateDecision,
   type GateState,
+  type PermStatus,
 } from './permissionGate';
 
-async function queryMicStatus(): Promise<{ status: 'granted' | 'denied' | 'undetermined'; canAskAgain: boolean }> {
-  const res = await ExpoSpeechRecognitionModule.getPermissionsAsync();
-  return { status: res.status as 'granted' | 'denied' | 'undetermined', canAskAgain: res.canAskAgain };
+function queryCameraStatus(): { status: PermStatus; error: string | null } {
+  try {
+    return { status: normalizeCameraStatus(VisionCamera.getCameraPermissionStatus()), error: null };
+  } catch (err) {
+    console.warn('[usePermissionGate] camera status query failed:', err);
+    return { status: 'undetermined', error: '카메라 권한 상태를 확인하지 못했어요.' };
+  }
+}
+
+async function queryMicStatus(): Promise<{ status: PermStatus; error: string | null }> {
+  try {
+    const res = await ExpoSpeechRecognitionModule.getPermissionsAsync();
+    return {
+      status: normalizeMicStatus({ status: res.status as 'granted' | 'denied' | 'undetermined', canAskAgain: res.canAskAgain }),
+      error: null,
+    };
+  } catch (err) {
+    console.warn('[usePermissionGate] mic status query failed:', err);
+    return { status: 'undetermined', error: '마이크 권한 상태를 확인하지 못했어요.' };
+  }
 }
 
 export interface UsePermissionGateResult {
   decision: GateDecision;
   state: GateState;
   loading: boolean;
+
+  error: string | null;
 
   request: () => Promise<void>;
 
@@ -32,30 +52,29 @@ export interface UsePermissionGateResult {
 export function usePermissionGate(): UsePermissionGateResult {
   const [state, setState] = useState<GateState>({ camera: 'undetermined', mic: 'undetermined' });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const cameraBlockedOverrideRef = useRef(false);
+  const recheckInFlightRef = useRef(false);
+  const requestInFlightRef = useRef(false);
 
   const recheck = useCallback(async () => {
-    const rawCam = VisionCamera.getCameraPermissionStatus();
-    let camera = normalizeCameraStatus(rawCam);
-    if (camera === 'denied' && cameraBlockedOverrideRef.current) {
-      camera = 'blocked';
+    if (recheckInFlightRef.current) return;
+    recheckInFlightRef.current = true;
+    try {
+      const cam = queryCameraStatus();
+      const mic = await queryMicStatus();
+      setState({ camera: cam.status, mic: mic.status });
+
+      setError(cam.error ?? mic.error);
+    } finally {
+
+      setLoading(false);
+      recheckInFlightRef.current = false;
     }
-    const micRaw = await queryMicStatus();
-    const mic = normalizeMicStatus(micRaw);
-    setState({ camera, mic });
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    (async () => {
-      await recheck();
-      if (!cancelled) setLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
+    void recheck();
 
   }, []);
 
@@ -69,29 +88,43 @@ export function usePermissionGate(): UsePermissionGateResult {
   }, [recheck]);
 
   const request = useCallback(async () => {
+    if (requestInFlightRef.current) return;
+    requestInFlightRef.current = true;
+    try {
 
-    const beforeCam = normalizeCameraStatus(VisionCamera.getCameraPermissionStatus());
-    if (beforeCam !== 'granted' && !(beforeCam === 'denied' && cameraBlockedOverrideRef.current)) {
-      const camResult = await VisionCamera.requestCameraPermission();
-      if (camResult === 'denied' && beforeCam === 'denied') {
-
-        cameraBlockedOverrideRef.current = true;
+      try {
+        const camStatus = normalizeCameraStatus(VisionCamera.getCameraPermissionStatus());
+        if (camStatus !== 'granted') {
+          await VisionCamera.requestCameraPermission();
+        }
+      } catch (err) {
+        console.warn('[usePermissionGate] camera permission request failed:', err);
       }
-    }
 
-    const beforeMic = await queryMicStatus();
-    if (beforeMic.status !== 'granted' && beforeMic.canAskAgain) {
-      await ExpoSpeechRecognitionModule.requestPermissionsAsync();
-    }
+      try {
+        const micRaw = await ExpoSpeechRecognitionModule.getPermissionsAsync();
+        if (micRaw.status !== 'granted') {
+          await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+        }
+      } catch (err) {
+        console.warn('[usePermissionGate] mic permission request failed:', err);
+      }
 
-    await recheck();
+      await recheck();
+    } finally {
+      requestInFlightRef.current = false;
+    }
   }, [recheck]);
 
   const openSettings = useCallback(() => {
-    Linking.openSettings();
+    try {
+      Linking.openSettings();
+    } catch (err) {
+      console.warn('[usePermissionGate] openSettings failed:', err);
+    }
   }, []);
 
   const decision = useMemo(() => gateDecision(state), [state]);
 
-  return { decision, state, loading, request, openSettings, recheck };
+  return { decision, state, loading, error, request, openSettings, recheck };
 }
