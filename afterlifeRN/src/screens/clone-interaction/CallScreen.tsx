@@ -42,6 +42,13 @@ import { useFaceEnroll, FACE_ENROLL_VECTOR_COUNT } from "../../face/useFaceEnrol
 import { shouldCleanupOrphanOnSuggest } from "../../face/faceEnrollGuard";
 import type { SpeakerEvent } from "../../face/speakerIdReducer";
 import {
+  speakerHandoffReducer,
+  initSpeakerHandoffState,
+  type SpeakerHandoffEvent,
+  type SpeakerHandoffAction,
+} from "../../realtime/speakerHandoff";
+import { isFaceConsentEnforced } from "../../config/faceConsent";
+import {
   createPerson,
   saveFaceConsent,
   listPersons,
@@ -272,6 +279,12 @@ export default function CallScreen({ route, navigation }: Props) {
     handleSpeakerEventRef.current(evt);
   }, []);
 
+  const shStateRef = useRef(initSpeakerHandoffState());
+  const dispatchShRef = useRef<(event: SpeakerHandoffEvent) => void>(() => {});
+  const dispatchSh = useCallback((event: SpeakerHandoffEvent) => {
+    dispatchShRef.current(event);
+  }, []);
+
   const unknownFaceSnapshotRef = useRef<number[][] | null>(null);
 
   const calibrateOpt = useMemo(
@@ -279,7 +292,11 @@ export default function CallScreen({ route, navigation }: Props) {
     [accessToken, gtPersonId],
   );
 
-  const { onEmbedding: onFaceEmbedding, getBuffer: getFaceEmbeddingBuffer } = useFaceIdentify({
+  const {
+    onEmbedding: onFaceEmbedding,
+    getBuffer: getFaceEmbeddingBuffer,
+    resetRecognition: resetSpeakerRecognition,
+  } = useFaceIdentify({
     enabled: consentGranted && liveState === "live",
     accessToken: accessToken ?? "",
     onEvent: handleSpeakerEventTrampoline,
@@ -291,19 +308,25 @@ export default function CallScreen({ route, navigation }: Props) {
     (evt: SpeakerEvent) => {
       if (!evt) return;
       if (evt.type === "speaker_confirmed") {
+
+        const name = evt.displayName ?? persons.find((p) => p.id === evt.personId)?.displayName ?? null;
+        if (name) {
+          dispatchSh({ type: "SPEAKER_CONFIRMED", personId: evt.personId, name });
+        }
         sendFaceEvent?.({
           event: "speaker_confirmed",
           personId: evt.personId,
           displayName: evt.displayName,
         });
       } else if (evt.type === "unknown_face") {
+        dispatchSh({ type: "UNKNOWN_FACE" });
 
         unknownFaceSnapshotRef.current = getFaceEmbeddingBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
         sendFaceEvent?.({ event: "unknown_face" });
       }
     },
 
-    [sendFaceEvent, getFaceEmbeddingBuffer],
+    [sendFaceEvent, getFaceEmbeddingBuffer, dispatchSh, persons],
   );
   useEffect(() => {
     handleSpeakerEventRef.current = handleSpeakerEvent;
@@ -315,11 +338,52 @@ export default function CallScreen({ route, navigation }: Props) {
     getSnapshot: () => unknownFaceSnapshotRef.current,
   });
 
+  const NAMING_TIMEOUT_MS = 20000;
+  const namingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const runShActions = useCallback(
+    (actions: SpeakerHandoffAction[]) => {
+      for (const a of actions) {
+        if (a.type === "SAY") {
+          void say(a.text);
+        } else if (a.type === "BEGIN_NAMING") {
+          if (namingTimerRef.current) clearTimeout(namingTimerRef.current);
+          namingTimerRef.current = setTimeout(() => {
+            dispatchShRef.current({ type: "NAMING_TIMEOUT" });
+          }, NAMING_TIMEOUT_MS);
+        } else if (a.type === "END_NAMING") {
+          if (namingTimerRef.current) {
+            clearTimeout(namingTimerRef.current);
+            namingTimerRef.current = null;
+          }
+        } else if (a.type === "DISCARD_RECOGNITION") {
+
+          faceEnroll.reset();
+          resetSpeakerRecognition();
+        }
+      }
+    },
+    [say, faceEnroll, resetSpeakerRecognition],
+  );
+  useEffect(() => {
+    dispatchShRef.current = (event: SpeakerHandoffEvent) => {
+      const { state, actions } = speakerHandoffReducer(shStateRef.current, event);
+      shStateRef.current = state;
+      runShActions(actions);
+    };
+  }, [runShActions]);
+
+  useEffect(() => {
+    return () => {
+      if (namingTimerRef.current) clearTimeout(namingTimerRef.current);
+    };
+  }, []);
+
   const handleEnrollSuggestImpl = useCallback(
     (name: string, personId?: number) => {
+
       const action = decideEnrollSuggestAction({
         personId,
-        faceBiometricConsent,
+        faceBiometricConsent: isFaceConsentEnforced() ? faceBiometricConsent : true,
         autoEnrolledNoName: personId !== undefined && autoEnrolledNoNameRef.current.has(personId),
         enrolling: faceEnroll.status === "enrolling",
       });
@@ -369,6 +433,23 @@ export default function CallScreen({ route, navigation }: Props) {
         return;
       }
 
+      const pendingId = faceEnroll.getPendingPersonId();
+      const shouldCleanup = shouldCleanupOrphanOnSuggest({
+        enrolling: false,
+        pendingPersonId: pendingId,
+        incomingName: name,
+        lastName: submittedEnrollNameRef.current,
+      });
+      if (shouldCleanup) {
+        if (accessToken && pendingId != null) {
+          void deletePerson(accessToken, pendingId).catch((err) => {
+            console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", err);
+          });
+        }
+        faceEnroll.reset();
+      }
+      submittedEnrollNameRef.current = name;
+      void faceEnroll.enroll(name);
       return;
     },
     [faceEnroll, accessToken, faceBiometricConsent],
@@ -491,14 +572,20 @@ export default function CallScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     if (faceEnroll.status === "success") {
+      const enrolledId = faceEnroll.getEnrolledPersonId();
       if (silentEnrollRef.current) {
 
-        const pid = faceEnroll.getEnrolledPersonId();
-        if (pid != null) autoEnrolledNoNameRef.current.add(pid);
+        if (enrolledId != null) autoEnrolledNoNameRef.current.add(enrolledId);
         silentEnrollRef.current = false;
       } else {
         setToastMessage(`${submittedEnrollNameRef.current}님, 이제 기억할게요`);
       }
+
+      dispatchSh({
+        type: "NAME_ENROLLED",
+        personId: enrolledId ?? undefined,
+        name: submittedEnrollNameRef.current,
+      });
       faceEnroll.reset();
       unknownFaceSnapshotRef.current = null; 
     } else if (faceEnroll.status === "error") {
