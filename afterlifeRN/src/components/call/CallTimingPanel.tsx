@@ -6,7 +6,13 @@ import { v_7347b3, v_2e0251, type v_702ae4 } from '../../realtime/timingConfig';
 
 const KEYS: Array<keyof v_702ae4> = ['sttEndpointMs', 'echoGateMs', 'cloneResumeMs', 'cloneTailGraceMs'];
 
-export const CallTimingPanel: v_a3453e.FC<{ onForceListen: () => void }> = ({ onForceListen: v_cd33c0 }) => {
+export const CallTimingPanel: v_a3453e.FC<{
+  onForceListen: () => void;
+
+  micOn: boolean;
+
+  onToggleMic: () => void;
+}> = ({ onForceListen: v_cd33c0, micOn: v_1065f7, onToggleMic: v_e4f17c }) => {
   const [v_207c31, v_3cc8fd] = v_5ab095(false);
   const v_01dcf5 = v_7347b3();
   const v_880a26 = v_7347b3((v_fd5f43) => v_fd5f43.setField);
@@ -22,6 +28,12 @@ export const CallTimingPanel: v_a3453e.FC<{ onForceListen: () => void }> = ({ on
         </TouchableOpacity>
         <TouchableOpacity onPress={v_cd33c0} style={v_d81136.listenBtn}>
           <Text style={v_d81136.listenTxt}>지금 들어</Text>
+        </TouchableOpacity>
+        {}
+        <TouchableOpacity onPress={v_e4f17c} style={v_1065f7 ? v_d81136.micOnBtn : v_d81136.micLockBtn}>
+          <Text style={v_1065f7 ? v_d81136.micOnTxt : v_d81136.micLockTxt}>
+            {v_1065f7 ? '🎤 녹음ON' : '🔒 녹음금지'}
+          </Text>
         </TouchableOpacity>
       </View>
       {v_207c31 ? (
@@ -58,12 +70,16 @@ const v_d81136 = v_472849.create({
     backgroundColor: 'rgba(0,0,0,0.72)', borderWidth: 1, borderColor: '#f59e0b',
     borderRadius: 2, padding: 5, maxWidth: 260,
   },
-  row: { flexDirection: 'row', alignItems: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
   badge: { color: '#000', backgroundColor: '#f59e0b', fontSize: 9, fontWeight: '700', fontFamily: v_671f54, paddingHorizontal: 4, marginRight: 6 },
   tuneBtn: { paddingHorizontal: 6, paddingVertical: 3, borderWidth: 1, borderColor: '#f59e0b', marginRight: 6 },
   tuneTxt: { color: '#f59e0b', fontSize: 11, fontFamily: v_671f54 },
   listenBtn: { paddingHorizontal: 8, paddingVertical: 3, backgroundColor: '#2fbf6b' },
   listenTxt: { color: '#000', fontSize: 11, fontWeight: '700', fontFamily: v_671f54 },
+  micOnBtn: { paddingHorizontal: 8, paddingVertical: 3, marginLeft: 6, borderWidth: 1, borderColor: '#2fbf6b' },
+  micOnTxt: { color: '#2fbf6b', fontSize: 11, fontWeight: '700', fontFamily: v_671f54 },
+  micLockBtn: { paddingHorizontal: 8, paddingVertical: 3, marginLeft: 6, backgroundColor: '#e5484d' },
+  micLockTxt: { color: '#000', fontSize: 11, fontWeight: '700', fontFamily: v_671f54 },
   body: { marginTop: 5 },
   stepRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 3 },
   stepLabel: { color: '#f59e0b', fontSize: 10, fontFamily: v_671f54, width: 118 },

@@ -469,6 +469,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_280eae = v_7347b3((v_fd5f43) => v_fd5f43.sttEndpointMs);
   const {
     phase: v_ab4803,
+    micOn: v_1065f7,
+    toggleMic: v_6e1295,
     pendingText: v_def12c,
     cancelConfirm: v_5b4fb2,
     transcript: v_0885ca,
@@ -987,7 +989,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: v_53dd92 }}
           pointerEvents="box-none"
         >
-          <CallTimingPanel onForceListen={v_a8e03f} />
+          <CallTimingPanel onForceListen={v_a8e03f} micOn={v_1065f7} onToggleMic={v_6e1295} />
         </View>
       ) : null}
 
