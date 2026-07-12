@@ -748,6 +748,8 @@
     "statusBlocked": "차단됨",
     "requestButton": "권한 허용",
     "settingsButton": "설정에서 권한 켜기",
-    "loading": "권한 확인 중..."
+    "settingsHint": "권한 창이 안 뜨면 설정에서 켜기",
+    "loading": "권한 확인 중...",
+    "logout": "로그아웃"
   }
 }

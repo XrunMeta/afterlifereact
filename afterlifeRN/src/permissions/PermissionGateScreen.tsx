@@ -1,12 +1,13 @@
 
 
 import v_a3453e from 'bapkr';
-import { v_3094a2, v_19b633, v_472849, v_39a996 } from 'rcmrninabrnb';
+import { v_3094a2, v_19b633, v_472849, v_39a996, v_4623af } from 'rcmrninabrnb';
 import { v_772971 } from 'jmpfvteuuztnp';
 import { v_dec439 } from 'zvyjokvuouwvifyzks';
 import v_556baf from '../components/ui/SafeView';
 import v_1a40c4 from '../components/ui/Button';
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from '../components/constants';
+import { v_1ed7d9 } from '../stores/authStore';
 import { v_b5d684 } from './usePermissionGate';
 import type { v_2455ca } from './permissionGate';
 
@@ -54,7 +55,8 @@ function v_fb542f({ icon: v_9ddfab, label: v_2869c1, status: v_d308b5 }: { icon:
 
 export default function v_6d377c() {
   const { t: v_8d41d7 } = v_772971();
-  const { state: v_b6e533, decision: v_403b73, loading: v_683210, request: v_576f5a, openSettings: v_063c7a } = v_b5d684();
+  const { state: v_b6e533, decision: v_403b73, loading: v_683210, error: v_5e9bfe, request: v_576f5a, openSettings: v_063c7a, recheck: v_f3f9e8 } = v_b5d684();
+  const v_9b51bc = v_1ed7d9((v_fd5f43) => v_fd5f43.apiLogout);
 
   return (
     <SafeView backgroundColor={v_1bfbd0.zinc50}>
@@ -71,6 +73,12 @@ export default function v_6d377c() {
           <PermRow icon="mic" label={v_8d41d7('permissionGate.micLabel')} status={v_b6e533.mic} />
         </View>
 
+        {v_5e9bfe && (
+          <View style={v_d81136.errorBox} accessibilityLiveRegion="assertive">
+            <Text style={v_d81136.errorText}>{v_5e9bfe}</Text>
+          </View>
+        )}
+
         {v_683210 ? (
           <View style={v_d81136.loadingRow} accessibilityLiveRegion="polite">
             <ActivityIndicator color={v_1bfbd0.zinc500} />
@@ -78,24 +86,44 @@ export default function v_6d377c() {
           </View>
         ) : (
           <View style={v_d81136.actions}>
-            {v_403b73.mustOpenSettings && (
+            {v_5e9bfe ? (
               <Button
-                title={v_8d41d7('permissionGate.settingsButton')}
-                onPress={v_063c7a}
+                title={v_8d41d7('common.retry')}
+                onPress={() => void v_f3f9e8()}
                 variant="primary"
-                testID="permission-gate-open-settings"
+                testID="permission-gate-retry"
               />
+            ) : (
+              v_403b73.canRequest && (
+                <Button
+                  title={v_8d41d7('permissionGate.requestButton')}
+                  onPress={() => void v_576f5a()}
+                  variant="primary"
+                  testID="permission-gate-request"
+                />
+              )
             )}
-            {v_403b73.canRequest && !v_403b73.mustOpenSettings && (
-              <Button
-                title={v_8d41d7('permissionGate.requestButton')}
-                onPress={() => void v_576f5a()}
-                variant="primary"
-                testID="permission-gate-request"
-              />
+
+            {v_403b73.showSettingsHint && (
+              <TouchableOpacity
+                onPress={v_063c7a}
+                style={v_d81136.settingsLink}
+                testID="permission-gate-open-settings"
+              >
+                <Text style={v_d81136.settingsLinkText}>{v_8d41d7('permissionGate.settingsHint')}</Text>
+              </TouchableOpacity>
             )}
           </View>
         )}
+
+        {}
+        <TouchableOpacity
+          onPress={() => void v_9b51bc()}
+          style={v_d81136.logoutLink}
+          testID="permission-gate-logout"
+        >
+          <Text style={v_d81136.logoutLinkText}>{v_8d41d7('permissionGate.logout')}</Text>
+        </TouchableOpacity>
       </View>
     </SafeView>
   );
@@ -175,10 +203,24 @@ const v_d81136 = v_472849.create({
     height: 1,
     backgroundColor: v_1bfbd0.divider,
   },
+  errorBox: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: v_1bfbd0.amber50 ?? '#fffbeb',
+    borderRadius: v_8b0c90.md,
+    paddingVertical: v_9b1a04.small,
+    paddingHorizontal: v_9b1a04.medium,
+  },
+  errorText: {
+    fontSize: 13,
+    color: v_1bfbd0.amber800 ?? v_1bfbd0.error,
+    lineHeight: 18,
+  },
   actions: {
     width: '100%',
     maxWidth: 420,
     marginTop: v_9b1a04.medium,
+    gap: v_9b1a04.small,
   },
   loadingRow: {
     flexDirection: 'row',
@@ -189,5 +231,24 @@ const v_d81136 = v_472849.create({
   loadingText: {
     fontSize: 14,
     color: v_1bfbd0.zinc500,
+  },
+  settingsLink: {
+    alignItems: 'center',
+    paddingVertical: v_9b1a04.small,
+  },
+  settingsLinkText: {
+    fontSize: 13,
+    color: v_1bfbd0.zinc500,
+    textDecorationLine: 'underline',
+  },
+  logoutLink: {
+    marginTop: v_9b1a04.xlarge,
+    paddingVertical: v_9b1a04.small,
+    paddingHorizontal: v_9b1a04.medium,
+  },
+  logoutLinkText: {
+    fontSize: 13,
+    color: v_1bfbd0.zinc400,
+    textDecorationLine: 'underline',
   },
 });

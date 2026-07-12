@@ -10,17 +10,37 @@ import {
   v_b5b955,
   type v_075e4f,
   type v_0bf4a6,
+  type v_2455ca,
 } from './permissionGate';
 
-async function v_32601b(): Promise<{ status: 'granted' | 'denied' | 'undetermined'; canAskAgain: boolean }> {
-  const v_8f00b9 = await v_e243ee.getPermissionsAsync();
-  return { status: v_8f00b9.status as 'granted' | 'denied' | 'undetermined', canAskAgain: v_8f00b9.canAskAgain };
+function v_5674ca(): { status: v_2455ca; error: string | null } {
+  try {
+    return { status: v_c1dff7(v_628d75.getCameraPermissionStatus()), error: null };
+  } catch (v_49263d) {
+    console.warn('[usePermissionGate] camera status query failed:', v_49263d);
+    return { status: 'undetermined', error: '카메라 권한 상태를 확인하지 못했어요.' };
+  }
+}
+
+async function v_32601b(): Promise<{ status: v_2455ca; error: string | null }> {
+  try {
+    const v_8f00b9 = await v_e243ee.getPermissionsAsync();
+    return {
+      status: v_b5b955({ status: v_8f00b9.status as 'granted' | 'denied' | 'undetermined', canAskAgain: v_8f00b9.canAskAgain }),
+      error: null,
+    };
+  } catch (v_49263d) {
+    console.warn('[usePermissionGate] mic status query failed:', v_49263d);
+    return { status: 'undetermined', error: '마이크 권한 상태를 확인하지 못했어요.' };
+  }
 }
 
 export interface UsePermissionGateResult {
   decision: v_075e4f;
   state: v_0bf4a6;
   loading: boolean;
+
+  error: string | null;
 
   request: () => Promise<void>;
 
@@ -32,30 +52,29 @@ export interface UsePermissionGateResult {
 export function v_b5d684(): UsePermissionGateResult {
   const [v_b6e533, v_1fa668] = v_5ab095<v_0bf4a6>({ camera: 'undetermined', mic: 'undetermined' });
   const [v_683210, v_34a50a] = v_5ab095(true);
+  const [v_5e9bfe, v_3a7d09] = v_5ab095<string | null>(null);
 
-  const v_8773f3 = v_e662ae(false);
+  const v_d33b2e = v_e662ae(false);
+  const v_423866 = v_e662ae(false);
 
   const v_f3f9e8 = v_de06a3(async () => {
-    const v_f6643f = v_628d75.getCameraPermissionStatus();
-    let v_ef4dc3 = v_c1dff7(v_f6643f);
-    if (v_ef4dc3 === 'denied' && v_8773f3.current) {
-      v_ef4dc3 = 'blocked';
+    if (v_d33b2e.current) return;
+    v_d33b2e.current = true;
+    try {
+      const v_375edd = v_5674ca();
+      const v_43e44f = await v_32601b();
+      v_1fa668({ camera: v_375edd.status, mic: v_43e44f.status });
+
+      v_3a7d09(v_375edd.error ?? v_43e44f.error);
+    } finally {
+
+      v_34a50a(false);
+      v_d33b2e.current = false;
     }
-    const v_e44f92 = await v_32601b();
-    const v_43e44f = v_b5b955(v_e44f92);
-    v_1fa668({ camera: v_ef4dc3, mic: v_43e44f });
   }, []);
 
   v_c4deb2(() => {
-    let v_2008a4 = false;
-    v_34a50a(true);
-    (async () => {
-      await v_f3f9e8();
-      if (!v_2008a4) v_34a50a(false);
-    })();
-    return () => {
-      v_2008a4 = true;
-    };
+    void v_f3f9e8();
 
   }, []);
 
@@ -69,29 +88,43 @@ export function v_b5d684(): UsePermissionGateResult {
   }, [v_f3f9e8]);
 
   const v_576f5a = v_de06a3(async () => {
+    if (v_423866.current) return;
+    v_423866.current = true;
+    try {
 
-    const v_d7f55f = v_c1dff7(v_628d75.getCameraPermissionStatus());
-    if (v_d7f55f !== 'granted' && !(v_d7f55f === 'denied' && v_8773f3.current)) {
-      const v_7abfe4 = await v_628d75.requestCameraPermission();
-      if (v_7abfe4 === 'denied' && v_d7f55f === 'denied') {
-
-        v_8773f3.current = true;
+      try {
+        const v_e5b83d = v_c1dff7(v_628d75.getCameraPermissionStatus());
+        if (v_e5b83d !== 'granted') {
+          await v_628d75.requestCameraPermission();
+        }
+      } catch (v_49263d) {
+        console.warn('[usePermissionGate] camera permission request failed:', v_49263d);
       }
-    }
 
-    const v_f40466 = await v_32601b();
-    if (v_f40466.status !== 'granted' && v_f40466.canAskAgain) {
-      await v_e243ee.requestPermissionsAsync();
-    }
+      try {
+        const v_e44f92 = await v_e243ee.getPermissionsAsync();
+        if (v_e44f92.status !== 'granted') {
+          await v_e243ee.requestPermissionsAsync();
+        }
+      } catch (v_49263d) {
+        console.warn('[usePermissionGate] mic permission request failed:', v_49263d);
+      }
 
-    await v_f3f9e8();
+      await v_f3f9e8();
+    } finally {
+      v_423866.current = false;
+    }
   }, [v_f3f9e8]);
 
   const v_063c7a = v_de06a3(() => {
-    v_f2c756.openSettings();
+    try {
+      v_f2c756.openSettings();
+    } catch (v_49263d) {
+      console.warn('[usePermissionGate] openSettings failed:', v_49263d);
+    }
   }, []);
 
   const v_403b73 = v_df9f57(() => v_000b82(v_b6e533), [v_b6e533]);
 
-  return { decision: v_403b73, state: v_b6e533, loading: v_683210, request: v_576f5a, openSettings: v_063c7a, recheck: v_f3f9e8 };
+  return { decision: v_403b73, state: v_b6e533, loading: v_683210, error: v_5e9bfe, request: v_576f5a, openSettings: v_063c7a, recheck: v_f3f9e8 };
 }
