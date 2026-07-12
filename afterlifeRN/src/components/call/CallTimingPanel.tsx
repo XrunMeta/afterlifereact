@@ -6,7 +6,13 @@ import { useTimingConfigStore, TIMING_BOUNDS, type TimingConfig } from '../../re
 
 const KEYS: Array<keyof TimingConfig> = ['sttEndpointMs', 'echoGateMs', 'cloneResumeMs', 'cloneTailGraceMs'];
 
-export const CallTimingPanel: React.FC<{ onForceListen: () => void }> = ({ onForceListen }) => {
+export const CallTimingPanel: React.FC<{
+  onForceListen: () => void;
+
+  micOn: boolean;
+
+  onToggleMic: () => void;
+}> = ({ onForceListen, micOn, onToggleMic }) => {
   const [open, setOpen] = useState(false);
   const cfg = useTimingConfigStore();
   const setField = useTimingConfigStore((s) => s.setField);
@@ -22,6 +28,12 @@ export const CallTimingPanel: React.FC<{ onForceListen: () => void }> = ({ onFor
         </TouchableOpacity>
         <TouchableOpacity onPress={onForceListen} style={styles.listenBtn}>
           <Text style={styles.listenTxt}>지금 들어</Text>
+        </TouchableOpacity>
+        {}
+        <TouchableOpacity onPress={onToggleMic} style={micOn ? styles.micOnBtn : styles.micLockBtn}>
+          <Text style={micOn ? styles.micOnTxt : styles.micLockTxt}>
+            {micOn ? '🎤 녹음ON' : '🔒 녹음금지'}
+          </Text>
         </TouchableOpacity>
       </View>
       {open ? (
@@ -58,12 +70,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.72)', borderWidth: 1, borderColor: '#f59e0b',
     borderRadius: 2, padding: 5, maxWidth: 260,
   },
-  row: { flexDirection: 'row', alignItems: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
   badge: { color: '#000', backgroundColor: '#f59e0b', fontSize: 9, fontWeight: '700', fontFamily: MONO, paddingHorizontal: 4, marginRight: 6 },
   tuneBtn: { paddingHorizontal: 6, paddingVertical: 3, borderWidth: 1, borderColor: '#f59e0b', marginRight: 6 },
   tuneTxt: { color: '#f59e0b', fontSize: 11, fontFamily: MONO },
   listenBtn: { paddingHorizontal: 8, paddingVertical: 3, backgroundColor: '#2fbf6b' },
   listenTxt: { color: '#000', fontSize: 11, fontWeight: '700', fontFamily: MONO },
+  micOnBtn: { paddingHorizontal: 8, paddingVertical: 3, marginLeft: 6, borderWidth: 1, borderColor: '#2fbf6b' },
+  micOnTxt: { color: '#2fbf6b', fontSize: 11, fontWeight: '700', fontFamily: MONO },
+  micLockBtn: { paddingHorizontal: 8, paddingVertical: 3, marginLeft: 6, backgroundColor: '#e5484d' },
+  micLockTxt: { color: '#000', fontSize: 11, fontWeight: '700', fontFamily: MONO },
   body: { marginTop: 5 },
   stepRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 3 },
   stepLabel: { color: '#f59e0b', fontSize: 10, fontFamily: MONO, width: 118 },

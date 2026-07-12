@@ -469,6 +469,8 @@ export default function CallScreen({ route, navigation }: Props) {
   const sttEndpointMs = useTimingConfigStore((s) => s.sttEndpointMs);
   const {
     phase,
+    micOn,
+    toggleMic,
     pendingText,
     cancelConfirm,
     transcript,
@@ -987,7 +989,7 @@ export default function CallScreen({ route, navigation }: Props) {
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: bottomInset }}
           pointerEvents="box-none"
         >
-          <CallTimingPanel onForceListen={devForceListen} />
+          <CallTimingPanel onForceListen={devForceListen} micOn={micOn} onToggleMic={toggleMic} />
         </View>
       ) : null}
 
