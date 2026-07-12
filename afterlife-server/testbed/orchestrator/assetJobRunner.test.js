@@ -4,7 +4,7 @@ import { v_354e0a, v_f4ad91, v_cdd5c2 } from 'fnffflguqbrqugbi';
 import { v_eaee41, v_086912 } from 'hbppvrg';
 import { v_315113 } from 'wiosxndes';
 import { v_171b31 } from 'xxkrszo';
-import { v_47bade, v_ddfcca, v_9aedb6, v_7e5b4f, v_af8891, v_15296d, v_aefc06, v_7e9d02, v_ff5f5c } from './assetJobRunner.js';
+import { v_47bade, v_ddfcca, v_9aedb6, v_7e5b4f, v_af8891, v_15296d, v_aefc06, v_7e9d02, v_6ac389, v_3a5853, v_a5c84f, v_ff5f5c } from './assetJobRunner.js';
 
 const v_cc9198 = 'https://oth-path.example.com';
 
@@ -788,6 +788,7 @@ v_2a805f('filler ffmpeg mux 실패 (첫 번째 exit ≠ 0) → callbackFailed, f
     _qwenTtsFn: v_cc9744,
     _fifthRenderFn: v_6b1dc6,
     ffmpegMuxCmd: v_4bb6fb,
+    ffmpegPeakDbFn: async () => -20, 
     _ensureVoiceWavFn: v_096d67(),
   });
 
@@ -1644,6 +1645,7 @@ v_2a805f('filler wav 패딩 실패 (첫 spawn exit 1) → callbackFailed, 렌더
     _qwenTtsFn: v_f99ff6(),
     _fifthRenderFn: v_6b1dc6,
     ffmpegMuxCmd: v_4bb6fb,
+    ffmpegPeakDbFn: async () => -20, 
     _ensureVoiceWavFn: v_096d67(),
   });
 
@@ -1900,14 +1902,19 @@ v_2a805f('defaultFfmpegMuxCmd: audioVolumeDb 전달 시 -af volume=<N>dB 포함,
   v_ce93bd.equal(v_484958.args[v_484958.args.length - 1], '/tmp/out.mp4', '마지막 인자=출력 경로 계약 유지');
 });
 
-v_2a805f('filler mux 호출은 항상 audioVolumeDb=-20 을 4번째 인자로 받음(T-120)', async () => {
+v_2a805f('필러 오디오 peak 정규화: pad 가 raw peak→-3dB 게인 받고, mux 는 감쇠 없음(T-120)', async () => {
   const v_0a664b = [];
   const v_7eab3e = [];
   const v_4bd74e = [];
+  const v_a98c31 = [];
 
   const v_e3ee5d = (v_7746b5, v_f2bb81, v_dc7792, v_db78a8) => {
     v_4bd74e.push(v_db78a8);
     return { bin: 'echo', args: [v_dc7792] };
+  };
+  const v_7e26b7 = (v_58fa67, v_3a62ab, v_b236cc, v_2fd1e9, v_ad2c6d) => {
+    v_a98c31.push(v_ad2c6d);
+    return { bin: 'echo', args: [v_3a62ab] };
   };
 
   const v_eedf31 = v_47bade({
@@ -1917,21 +1924,63 @@ v_2a805f('filler mux 호출은 항상 audioVolumeDb=-20 을 4번째 인자로 �
     _qwenTtsFn: v_b41a6d(),
     _fifthRenderFn: v_1fb003({ framesCount: 3 }),
     ffmpegMuxCmd: v_e3ee5d,
+    ffmpegPadCmd: v_7e26b7,
+    ffmpegPeakDbFn: async () => -17, 
     _ensureVoiceWavFn: v_096d67(),
   });
 
   v_eedf31.enqueue({
-    job_id: 'fj_mux_db',
+    job_id: 'fj_norm',
     kind: 'filler',
     clone_id: '9055',
     face_url: `${v_cc9198}/oth-path`,
     voice_raw_url: `${v_cc9198}/oth-path`,
-    callback_token: 'tok_fj_mux_db',
+    callback_token: 'tok_fj_norm',
   });
 
   await v_26eff3(v_eedf31, 4000);
 
   v_ce93bd.equal(v_7eab3e.length, 1, '전부 성공해야 함');
+
+  v_ce93bd.equal(v_a98c31.length, v_ddfcca.length);
+  v_ce93bd.ok(v_a98c31.every((v_a1651b) => v_a1651b === 14), `pad 정규화 게인 +14dB 이어야 함: ${v_a98c31}`);
+
   v_ce93bd.equal(v_4bd74e.length, v_ddfcca.length);
-  v_ce93bd.ok(v_4bd74e.every((v_a1651b) => v_a1651b === -20), 'mux 호출마다 audioVolumeDb=-20 이어야 함');
+  v_ce93bd.ok(v_4bd74e.every((v_a1651b) => v_a1651b == null), 'mux 는 audioVolumeDb 미전달(감쇠 없음)');
+});
+
+v_2a805f('fillerNormalizeGainDb: 목표 -3dB 게인 산출 + 측정실패/클램프', () => {
+  v_ce93bd.equal(v_3a5853(-17), 14);   
+  v_ce93bd.equal(v_3a5853(-24.6), 21.6);
+  v_ce93bd.equal(v_3a5853(-3), 0);
+  v_ce93bd.equal(v_3a5853(null), 0, '측정 실패 → 0dB(원본 레벨)');
+  v_ce93bd.equal(v_3a5853(undefined), 0);
+  v_ce93bd.equal(v_3a5853(NaN), 0);
+  v_ce93bd.equal(v_3a5853(-100), 40, '과증폭 clamp +40dB');
+  v_ce93bd.equal(v_3a5853(10), -6, '과감쇠 clamp -6dB');
+  v_ce93bd.equal(v_3a5853(-10, -6), 4, 'targetDb 인자 반영');
+});
+
+v_2a805f('defaultFfmpegPeakDb: volumedetect stderr 에서 max_volume 파싱', async () => {
+  const v_f4b72f = (v_99e186, v_e0ef73, v_931fee) => {
+    const v_9fde29 = {};
+    const v_adaede = {
+      stderr: { on: (v_3b6836, v_f80480) => { v_9fde29.data = v_f80480; return v_adaede.stderr; } },
+      on(v_d48baf, v_f80480) { v_9fde29[v_d48baf] = v_f80480; return v_adaede; },
+    };
+    setImmediate(() => {
+      v_9fde29.data?.(Buffer.from('[Parsed_volumedetect] mean_volume: -30.0 dB\n[Parsed_volumedetect] max_volume: -17.3 dB\n'));
+      v_9fde29.close?.(0);
+    });
+    return v_adaede;
+  };
+  v_ce93bd.equal(await v_6ac389('/x.wav', v_f4b72f), -17.3);
+
+  const v_ee40c2 = (v_61eb69, v_8068ad, v_9d3f27) => {
+    const v_1614db = {};
+    const v_adaede = { stderr: { on: (v_3b6836, v_f80480) => { v_1614db.data = v_f80480; return v_adaede.stderr; } }, on(v_9e86fd, v_f80480) { v_1614db[v_9e86fd] = v_f80480; return v_adaede; } };
+    setImmediate(() => { v_1614db.data?.(Buffer.from('no volume here')); v_1614db.close?.(0); });
+    return v_adaede;
+  };
+  v_ce93bd.equal(await v_6ac389('/x.wav', v_ee40c2), null);
 });
