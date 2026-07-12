@@ -1942,17 +1942,18 @@ test('필러 오디오 peak 정규화: pad 가 raw peak→-3dB 게인 받고, mu
 
   assert.equal(fillerCallbackCalls.length, 1, '전부 성공해야 함');
 
+  const expectedGain = FILLER_PEAK_TARGET_DB - (-17);
   assert.equal(padVolCalls.length, FILLER_SPECS.length);
-  assert.ok(padVolCalls.every((db) => db === 14), `pad 정규화 게인 +14dB 이어야 함: ${padVolCalls}`);
+  assert.ok(padVolCalls.every((db) => db === expectedGain), `pad 정규화 게인 ${expectedGain}dB 이어야 함: ${padVolCalls}`);
 
   assert.equal(muxCalls.length, FILLER_SPECS.length);
   assert.ok(muxCalls.every((db) => db == null), 'mux 는 audioVolumeDb 미전달(감쇠 없음)');
 });
 
-test('fillerNormalizeGainDb: 목표 -3dB 게인 산출 + 측정실패/클램프', () => {
-  assert.equal(fillerNormalizeGainDb(-17), 14);   
-  assert.equal(fillerNormalizeGainDb(-24.6), 21.6);
-  assert.equal(fillerNormalizeGainDb(-3), 0);
+test('fillerNormalizeGainDb: 목표까지 게인 산출 + 측정실패/클램프', () => {
+  const T = FILLER_PEAK_TARGET_DB;
+  assert.equal(fillerNormalizeGainDb(-17), Math.max(-6, Math.min(40, T - (-17))));
+  assert.equal(fillerNormalizeGainDb(T), 0, '이미 목표면 게인 0');
   assert.equal(fillerNormalizeGainDb(null), 0, '측정 실패 → 0dB(원본 레벨)');
   assert.equal(fillerNormalizeGainDb(undefined), 0);
   assert.equal(fillerNormalizeGainDb(NaN), 0);

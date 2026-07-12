@@ -46,7 +46,7 @@ const FILLER_LEAD_SILENCE_MS = 600;
 
 export const FILLER_VOLUME = 0.3;
 
-export const FILLER_PEAK_TARGET_DB = -3;
+export const FILLER_PEAK_TARGET_DB = -6;
 
 export function defaultFfmpegPeakDb(wavPath, spawnFn = spawn) {
   return new Promise((resolve) => {
