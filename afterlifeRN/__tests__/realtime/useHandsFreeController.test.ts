@@ -54,6 +54,7 @@ it('STT final → confirming 경유 → confirmMs 경과 후 say 호출 + sendin
     speechEngine: engine,
     silenceMs: 20,
     confirmMs: 500,
+    confirmGate: true, 
   });
   await waitFor(() => expect(engine.start).toHaveBeenCalled());
 
@@ -99,6 +100,7 @@ it('FINAL_RESULT 후 confirmMs 경과 시 자동 전송(say 호출)', async () =
     confirmMs: 2000,
     getStatsReport: () => null,
     notifySpeechEnd: jest.fn(),
+    confirmGate: true, 
   });
   await waitFor(() => expect(engine.start).toHaveBeenCalled());
 
@@ -131,6 +133,7 @@ it('연쇄 FINAL_RESULT가 카운트다운을 리셋 — 마지막 발화 기준
     confirmMs,
     getStatsReport: () => null,
     notifySpeechEnd: jest.fn(),
+    confirmGate: true, 
   });
   await waitFor(() => expect(engine.start).toHaveBeenCalled());
   jest.useFakeTimers();
@@ -407,6 +410,7 @@ it('[B] say reject → sending→listening(RESPONSE_END) 직후 grace 내 suppre
     speechEngine: engine,
     silenceMs: 20,
     confirmMs: 50, 
+    confirmGate: true, 
   });
   await waitFor(() => expect(engine.start).toHaveBeenCalled());
   act(() => { engine.emit('start'); });
@@ -642,6 +646,7 @@ it('confirming 중 cancelConfirm() → listening, say 미호출', async () => {
     confirmMs: 2000,
     getStatsReport: () => null,
     notifySpeechEnd: jest.fn(),
+    confirmGate: true, 
   });
   await waitFor(() => expect(engine.start).toHaveBeenCalled());
   jest.useFakeTimers();
