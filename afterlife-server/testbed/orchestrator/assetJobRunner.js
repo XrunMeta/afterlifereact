@@ -46,7 +46,7 @@ const v_b6be30 = 600;
 
 export const v_ae5012 = 0.3;
 
-export const v_a5c84f = -3;
+export const v_a5c84f = -6;
 
 export function v_6ac389(v_f2bb81, v_80b7f4 = v_0d816f) {
   return new Promise((v_6f7712) => {

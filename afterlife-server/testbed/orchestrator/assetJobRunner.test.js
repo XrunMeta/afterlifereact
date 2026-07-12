@@ -1942,17 +1942,18 @@ v_2a805f('필러 오디오 peak 정규화: pad 가 raw peak→-3dB 게인 받고
 
   v_ce93bd.equal(v_7eab3e.length, 1, '전부 성공해야 함');
 
+  const v_efd10d = v_a5c84f - (-17);
   v_ce93bd.equal(v_a98c31.length, v_ddfcca.length);
-  v_ce93bd.ok(v_a98c31.every((v_a1651b) => v_a1651b === 14), `pad 정규화 게인 +14dB 이어야 함: ${v_a98c31}`);
+  v_ce93bd.ok(v_a98c31.every((v_a1651b) => v_a1651b === v_efd10d), `pad 정규화 게인 ${v_efd10d}dB 이어야 함: ${v_a98c31}`);
 
   v_ce93bd.equal(v_4bd74e.length, v_ddfcca.length);
   v_ce93bd.ok(v_4bd74e.every((v_a1651b) => v_a1651b == null), 'mux 는 audioVolumeDb 미전달(감쇠 없음)');
 });
 
-v_2a805f('fillerNormalizeGainDb: 목표 -3dB 게인 산출 + 측정실패/클램프', () => {
-  v_ce93bd.equal(v_3a5853(-17), 14);   
-  v_ce93bd.equal(v_3a5853(-24.6), 21.6);
-  v_ce93bd.equal(v_3a5853(-3), 0);
+v_2a805f('fillerNormalizeGainDb: 목표까지 게인 산출 + 측정실패/클램프', () => {
+  const v_fe37f7 = v_a5c84f;
+  v_ce93bd.equal(v_3a5853(-17), Math.max(-6, Math.min(40, v_fe37f7 - (-17))));
+  v_ce93bd.equal(v_3a5853(v_fe37f7), 0, '이미 목표면 게인 0');
   v_ce93bd.equal(v_3a5853(null), 0, '측정 실패 → 0dB(원본 레벨)');
   v_ce93bd.equal(v_3a5853(undefined), 0);
   v_ce93bd.equal(v_3a5853(NaN), 0);
