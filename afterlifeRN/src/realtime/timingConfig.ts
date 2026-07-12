@@ -33,13 +33,19 @@ const v_ffa902 = (v_b24339, v_81e2ef): number => {
   return Math.min(v_d2c6bf, Math.max(v_43e24b, v_81e2ef));
 };
 
+export const v_deb2f6 = false;
+
 interface TimingConfigState extends TimingConfig {
+  confirmGateEnabled: boolean;
   setField: (key: keyof TimingConfig, value: number) => void;
+  setConfirmGateEnabled: (v: boolean) => void;
   reset: () => void;
 }
 
 export const v_7347b3 = v_a7c0d4<TimingConfigState>((v_bb8024) => ({
   ...v_183224,
+  confirmGateEnabled: v_deb2f6,
   setField: (v_b24339, v_3b402b) => v_bb8024({ [v_b24339]: v_ffa902(v_b24339, v_3b402b) } as Pick<TimingConfig, typeof v_b24339>),
-  reset: () => v_bb8024({ ...v_183224 }),
+  setConfirmGateEnabled: (v_81e2ef) => v_bb8024({ confirmGateEnabled: v_81e2ef }),
+  reset: () => v_bb8024({ ...v_183224, confirmGateEnabled: v_deb2f6 }),
 }));

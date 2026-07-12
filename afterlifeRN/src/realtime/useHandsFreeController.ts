@@ -43,6 +43,8 @@ export function v_7df8a4(opts: {
   greetTimeoutMs?: number;
 
   fallbackText?: string;
+
+  confirmGate?: boolean;
 }) {
   const [v_b6e533, v_1fa668] = v_5ab095(v_3075fa());
   const v_8d3dea = v_e662ae(v_b6e533);
@@ -191,7 +193,9 @@ export function v_7df8a4(opts: {
 
   v_c4deb2(() => {
     v_700737.current(
-      v_328259.enabled ? { type: 'CALL_LIVE', greeting: v_328259.greeting } : { type: 'CALL_ENDED' });
+      v_328259.enabled
+        ? { type: 'CALL_LIVE', greeting: v_328259.greeting, confirmGate: v_328259.confirmGate }
+        : { type: 'CALL_ENDED' });
   }, [v_328259.enabled]); 
 
   v_c4deb2(() => {
