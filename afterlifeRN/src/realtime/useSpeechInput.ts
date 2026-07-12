@@ -109,6 +109,8 @@ export function useSpeechInput(opts?: {
     subs.current.push(
 
       engine.addListener('result', (p: any) => {
+
+        if (!wantListeningRef.current) return;
         const t: string = p?.results?.[0]?.transcript ?? '';
         const isFinal: boolean = p?.isFinal === true;
 
@@ -185,6 +187,8 @@ export function useSpeechInput(opts?: {
       }),
 
       engine.addListener('start', (_p: any) => {
+
+        if (!wantListeningRef.current) return;
         confirmListening();
       }),
       engine.addListener('speechstart', (_p: any) => {}),
