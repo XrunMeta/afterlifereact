@@ -40,6 +40,7 @@ import { v_6e58ce } from "../../face/newFaceDetector";
 import { v_e9685b } from "../../face/useFaceIdentify";
 import { v_3fc8fd, v_9e3bb7 } from "../../face/useFaceEnroll";
 import { v_19be88 } from "../../face/faceEnrollGuard";
+import { v_d89c6c } from "../../face/enrollCardTiming";
 import type { v_b26216 } from "../../face/speakerIdReducer";
 import {
   v_4e7b87,
@@ -215,6 +216,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const [v_85a067, v_5218ba] = v_5ab095(false);
   const [v_ef20d7, v_3c66cd] = v_5ab095("");
+
+  const [v_4c3394, v_30279a] = v_5ab095(false);
   const [v_28545c, v_a13abd] = v_5ab095(false);
 
   const v_821084 = v_e662ae("");
@@ -389,7 +392,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       }
       v_821084.current = v_1833e7;
       v_3c66cd(v_1833e7);
-      v_5218ba(true);
+
+      v_30279a(true);
     },
     [v_20ef58, v_2ca7e0, v_f0ea4e],
   );
@@ -485,6 +489,13 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     fallbackText: v_0e2cb4,
     silenceMs: v_280eae,
   });
+
+  v_c4deb2(() => {
+    if (v_4c3394 && v_d89c6c(v_ab4803) && !v_85a067) {
+      v_5218ba(true);
+      v_30279a(false);
+    }
+  }, [v_ab4803, v_4c3394, v_85a067]);
 
   const [v_7a419e, v_717e64] = v_5ab095(false);
   v_c4deb2(() => {
