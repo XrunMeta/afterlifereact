@@ -2,6 +2,10 @@
 
 export type MatchCycle = { personId: number | null; displayName: string | null; score: number };
 
+export type ResetRecognitionAction = { type: "RESET_RECOGNITION" };
+
+export type SpeakerIdAction = MatchCycle | ResetRecognitionAction;
+
 export type SpeakerEvent =
   | { type: "speaker_confirmed"; personId: number; displayName: string | null }
   | { type: "unknown_face" }
@@ -27,8 +31,13 @@ function candidateKeyOf(cycle: MatchCycle): number | "unknown" {
 
 export function speakerIdReducer(
   s: SpeakerIdState,
-  cycle: MatchCycle
+  action: SpeakerIdAction
 ): { state: SpeakerIdState; event: SpeakerEvent } {
+  if ("type" in action && action.type === "RESET_RECOGNITION") {
+    return { state: INITIAL_SPEAKER_STATE, event: null };
+  }
+
+  const cycle = action as MatchCycle;
   const key = candidateKeyOf(cycle);
   const streak = key === s.candidate ? s.streak + 1 : 1;
 

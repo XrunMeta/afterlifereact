@@ -17,6 +17,10 @@ function parsePersonId(c: { req: { param: (k: string) => string } }): number {
   return id;
 }
 
+export function isFaceConsentEnforced(env: { FACE_CONSENT_ENFORCED?: string }): boolean {
+  return env.FACE_CONSENT_ENFORCED === "true";
+}
+
 persons.post("/", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const body = await c.req
@@ -38,7 +42,7 @@ persons.post("/", requireAuth, async (c) => {
     enrolledVia = body.enrolledVia;
   }
 
-  if (enrolledVia === "auto_biometric") {
+  if (enrolledVia === "auto_biometric" && isFaceConsentEnforced(c.env)) {
     const user = await c.env.DB.prepare(`SELECT face_biometric_consent FROM users WHERE id = ?`)
       .bind(userId)
       .first<{ face_biometric_consent: number }>();

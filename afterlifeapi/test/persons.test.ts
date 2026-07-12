@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { SELF, env } from "cloudflare:test";
+import { isFaceConsentEnforced } from "../src/routes/persons";
 
 async function seedUser(email: string): Promise<number> {
   const db = env.DB as unknown as D1Database;
@@ -623,5 +624,39 @@ describe("persons route", () => {
       body: JSON.stringify({ enrolledVia: "bogus" }),
     });
     expect(res.status).toBe(422);
+  });
+
+  describe("isFaceConsentEnforced (단위) — 기본 OFF 불변식", () => {
+    it("env var 없음(미설정) → false — enroll 시 서버 재확인 스킵(카드 폴백 아님)", () => {
+      expect(isFaceConsentEnforced({})).toBe(false);
+    });
+    it("'false' → false", () => {
+      expect(isFaceConsentEnforced({ FACE_CONSENT_ENFORCED: "false" })).toBe(false);
+    });
+    it("'1'·기타 값 → false(엄격히 'true' 문자열만 on)", () => {
+      expect(isFaceConsentEnforced({ FACE_CONSENT_ENFORCED: "1" })).toBe(false);
+    });
+    it("'' (빈 문자열) → false", () => {
+      expect(isFaceConsentEnforced({ FACE_CONSENT_ENFORCED: "" })).toBe(false);
+    });
+    it("'true' → true", () => {
+      expect(isFaceConsentEnforced({ FACE_CONSENT_ENFORCED: "true" })).toBe(true);
+    });
+  });
+});
+
+describe("wrangler.toml FACE_CONSENT_ENFORCED 정적 안전망(production=true 회귀 방지)", () => {
+  it("[vars]·[env.preview.vars]는 \"false\", [env.production.vars]는 \"true\"여야 한다", async () => {
+
+    const { default: toml } = await import("../wrangler.toml?raw");
+
+    const matches = [...(toml as string).matchAll(/FACE_CONSENT_ENFORCED\s*=\s*"([^"]*)"/g)].map((m) => m[1]);
+
+    expect(matches.length).toBe(3);
+    const [base, preview, production] = matches;
+    expect(base).toBe("false");
+    expect(preview).toBe("false");
+
+    expect(production).toBe("true");
   });
 });

@@ -83,6 +83,7 @@ PAYMENT_CURRENCY      = "18"
 CALL_PRETHIRD_BASE = "https://rtc.example.invalid/prethird"
 CALL_ROUTE = "prethird"
 FACE_CALIBRATE_ENABLED = "0"   # T-111: 개통 전 제거
+FACE_CONSENT_ENFORCED = "false"  # T-126 Task6: dev 기본 OFF(preview와 동일)
 
 # M-6: cron — orphan clones 정기 스윕 (매일 03:00 UTC)
 [triggers]
@@ -158,6 +159,7 @@ PAYMENT_CURRENCY      = "18"
 CALL_PRETHIRD_BASE = "https://rtc.example.invalid/prethird"
 CALL_ROUTE = "prethird"
 FACE_CALIBRATE_ENABLED = "0"   # T-111: 개통 전 제거
+FACE_CONSENT_ENFORCED = "false"  # T-126 Task6: preview 기본 OFF — auto_biometric 조용한 자동등록 실기검증
 # preview/dev 전용 결제 우회 PIN — 이 PIN 으로 페르소나 결제 시 xrun 송금 스킵(테스트).
 # production([env.production])에는 절대 추가 금지. preview 한정.
 DEV_PAYMENT_BYPASS_PIN = "424242"
@@ -230,6 +232,7 @@ PAYMENT_CURRENCY      = "18"
 CALL_PRETHIRD_BASE = "https://rtc.example.invalid/prethird"
 CALL_ROUTE = "prethird"
 FACE_CALIBRATE_ENABLED = "0"   # T-111: 개통 전 제거
+FACE_CONSENT_ENFORCED = "true"  # T-126 Task6: production만 mizu CRITICAL 재확인 강제(승격 게이트)
 
 [env.production.triggers]
 crons = ["0 3 * * *"]
