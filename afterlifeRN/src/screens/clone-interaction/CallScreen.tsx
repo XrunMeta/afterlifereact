@@ -40,7 +40,6 @@ import { v_6e58ce } from "../../face/newFaceDetector";
 import { v_e9685b } from "../../face/useFaceIdentify";
 import { v_3fc8fd, v_9e3bb7 } from "../../face/useFaceEnroll";
 import { v_19be88 } from "../../face/faceEnrollGuard";
-import { v_d89c6c } from "../../face/enrollCardTiming";
 import type { v_b26216 } from "../../face/speakerIdReducer";
 import {
   v_4e7b87,
@@ -54,7 +53,6 @@ import { v_0f8436 } from "../../api/consent";
 import { v_0362e7, v_de73d9 } from "../../face/autoEnrollGuard";
 import { v_55dbc4, v_8682a9, type v_8a6b56 } from "../../config/faceDiag";
 import v_c0caa9 from "../../components/common/TermsModal";
-import { v_b519ed } from "../../components/call/FaceEnrollCard";
 import { v_2ab825 } from "../../realtime/useAvatarCall";
 import { v_f22ce9 } from "../../realtime/devCallText";
 import { v_c6d1f4 } from "../../config/callRoute";
@@ -214,10 +212,6 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const v_25cb51 = v_e662ae(false);
 
-  const [v_85a067, v_5218ba] = v_5ab095(false);
-  const [v_ef20d7, v_3c66cd] = v_5ab095("");
-
-  const [v_4c3394, v_30279a] = v_5ab095(false);
   const [v_28545c, v_a13abd] = v_5ab095(false);
 
   const v_821084 = v_e662ae("");
@@ -375,25 +369,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         return;
       }
 
-      const v_fde8d3 = v_20ef58.getPendingPersonId();
-      const v_3da205 = v_19be88({
-        enrolling: false,
-        pendingPersonId: v_fde8d3,
-        incomingName: v_1833e7,
-        lastName: v_821084.current,
-      });
-      if (v_3da205) {
-        if (v_2ca7e0 && v_fde8d3 != null) {
-          void v_a94a1b(v_2ca7e0, v_fde8d3).catch((v_49263d) => {
-            console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", v_49263d);
-          });
-        }
-        v_20ef58.reset();
-      }
-      v_821084.current = v_1833e7;
-      v_3c66cd(v_1833e7);
-
-      v_30279a(true);
+      return;
     },
     [v_20ef58, v_2ca7e0, v_f0ea4e],
   );
@@ -492,13 +468,6 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     silenceMs: v_280eae,
   });
 
-  v_c4deb2(() => {
-    if (v_4c3394 && v_d89c6c(v_ab4803) && !v_85a067) {
-      v_5218ba(true);
-      v_30279a(false);
-    }
-  }, [v_ab4803, v_4c3394, v_85a067]);
-
   const [v_7a419e, v_717e64] = v_5ab095(false);
   v_c4deb2(() => {
     if (v_88c591?.type === 'speech_start') v_717e64(true);
@@ -520,28 +489,6 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_e2c945, v_06e986] = v_5ab095<number>(0);
   const [v_8282fa, v_15c939] = v_5ab095<string | null>(null);
 
-  const v_405500 = v_de06a3(
-    (v_affc3e) => {
-      v_821084.current = v_affc3e;
-      void v_20ef58.enroll(v_affc3e);
-    },
-    [v_20ef58],
-  );
-
-  const v_36f0ed = v_de06a3(() => {
-
-    const v_fde8d3 = v_20ef58.getPendingPersonId();
-    if (v_fde8d3 != null && v_2ca7e0) {
-      void v_a94a1b(v_2ca7e0, v_fde8d3).catch((v_49263d) => {
-        console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", v_49263d);
-      });
-    }
-    v_5218ba(false);
-    v_3c66cd("");
-    v_20ef58.reset();
-    v_b1a2e8.current = null; 
-  }, [v_20ef58, v_2ca7e0]);
-
   v_c4deb2(() => {
     if (v_20ef58.status === "success") {
       if (v_25cb51.current) {
@@ -551,8 +498,6 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         v_25cb51.current = false;
       } else {
         v_15c939(`${v_821084.current}님, 이제 기억할게요`);
-        v_5218ba(false);
-        v_3c66cd("");
       }
       v_20ef58.reset();
       v_b1a2e8.current = null; 
@@ -1080,17 +1025,6 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             v_603e38(false);
           }
         }}
-      />
-
-      {}
-      <FaceEnrollCard
-        visible={v_85a067}
-        name={v_ef20d7}
-        onChangeName={v_3c66cd}
-        onConfirm={v_405500}
-        onDismiss={v_36f0ed}
-        onViewPolicy={() => v_a13abd(true)}
-        busy={v_20ef58.status === "enrolling"}
       />
 
       {
