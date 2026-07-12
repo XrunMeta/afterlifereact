@@ -40,12 +40,15 @@ const ENV_KEYS: Record<keyof TimingConfig, string> = {
   cloneTailGraceMs: 'EXPO_PUBLIC_TIMING_CLONE_TAIL_GRACE_MS',
 };
 
+const PURE_INT_RE = /^\d+$/;
+
 export function resolveTimingDefaults(env: Record<string, string | undefined>): TimingConfig {
   const result = {} as TimingConfig;
   (Object.keys(ENV_KEYS) as Array<keyof TimingConfig>).forEach((key) => {
     const raw = env[ENV_KEYS[key]];
-    const parsed = parseInt(raw as string, 10);
-    result[key] = Number.isFinite(parsed) ? clamp(key, parsed) : FALLBACK_TIMING_DEFAULTS[key];
+    const trimmed = raw?.trim();
+    result[key] =
+      trimmed && PURE_INT_RE.test(trimmed) ? clamp(key, parseInt(trimmed, 10)) : FALLBACK_TIMING_DEFAULTS[key];
   });
   if (result.cloneResumeMs >= result.cloneTailGraceMs) {
 

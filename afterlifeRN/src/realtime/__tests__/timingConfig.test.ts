@@ -87,9 +87,15 @@ describe('resolveTimingDefaults', () => {
     const { max } = TIMING_BOUNDS.echoGateMs;
     const result = resolveTimingDefaults({ EXPO_PUBLIC_TIMING_ECHO_GATE_MS: String(max + 9999) });
     expect(result.echoGateMs).toBe(max);
+
     const { min } = TIMING_BOUNDS.cloneResumeMs;
-    const result2 = resolveTimingDefaults({ EXPO_PUBLIC_TIMING_CLONE_RESUME_MS: String(min - 9999) });
+    const result2 = resolveTimingDefaults({ EXPO_PUBLIC_TIMING_CLONE_RESUME_MS: String(Math.max(0, min - 50)) });
     expect(result2.cloneResumeMs).toBe(min);
+  });
+
+  it('falls back (not clamps) on a negative-number env string, since it is not a pure integer', () => {
+    const result = resolveTimingDefaults({ EXPO_PUBLIC_TIMING_CLONE_RESUME_MS: '-50' });
+    expect(result.cloneResumeMs).toBe(FALLBACK_TIMING_DEFAULTS.cloneResumeMs);
   });
 
   it('resolves each field independently', () => {
@@ -98,6 +104,50 @@ describe('resolveTimingDefaults', () => {
     expect(result.sttEndpointMs).toBe(FALLBACK_TIMING_DEFAULTS.sttEndpointMs);
     expect(result.echoGateMs).toBe(FALLBACK_TIMING_DEFAULTS.echoGateMs);
     expect(result.cloneTailGraceMs).toBe(FALLBACK_TIMING_DEFAULTS.cloneTailGraceMs);
+  });
+
+  it('falls back on partial-numeric strings that parseInt would silently truncate', () => {
+    const r1 = resolveTimingDefaults({ EXPO_PUBLIC_TIMING_STT_ENDPOINT_MS: '1.9e3' });
+    expect(r1.sttEndpointMs).toBe(FALLBACK_TIMING_DEFAULTS.sttEndpointMs);
+    const r2 = resolveTimingDefaults({ EXPO_PUBLIC_TIMING_STT_ENDPOINT_MS: '1500abc' });
+    expect(r2.sttEndpointMs).toBe(FALLBACK_TIMING_DEFAULTS.sttEndpointMs);
+    const r3 = resolveTimingDefaults({ EXPO_PUBLIC_TIMING_ECHO_GATE_MS: '2200px' });
+    expect(r3.echoGateMs).toBe(FALLBACK_TIMING_DEFAULTS.echoGateMs);
+  });
+
+  it('accepts a pure integer string with surrounding whitespace (trimmed)', () => {
+    const result = resolveTimingDefaults({ EXPO_PUBLIC_TIMING_ECHO_GATE_MS: ' 2200 ' });
+    expect(result.echoGateMs).toBe(2200);
+  });
+
+  it('accepts "0" and clamps it up to the field minimum', () => {
+    const { min } = TIMING_BOUNDS.cloneResumeMs;
+    const result = resolveTimingDefaults({ EXPO_PUBLIC_TIMING_CLONE_RESUME_MS: '0' });
+    expect(result.cloneResumeMs).toBe(min);
+  });
+
+  it('does not hard-correct an invariant-violating env combination, but warns', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const result = resolveTimingDefaults({
+      EXPO_PUBLIC_TIMING_CLONE_RESUME_MS: '3000', 
+      EXPO_PUBLIC_TIMING_CLONE_TAIL_GRACE_MS: '200', 
+    });
+    expect(result.cloneResumeMs).toBe(3000);
+    expect(result.cloneTailGraceMs).toBe(200);
+    expect(result.cloneResumeMs).toBeGreaterThanOrEqual(result.cloneTailGraceMs);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('cloneResumeMs >= cloneTailGraceMs'),
+      expect.objectContaining({ cloneResumeMs: 3000, cloneTailGraceMs: 200 }),
+    );
+    warnSpy.mockRestore();
+  });
+
+  it('does not warn when the invariant holds', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    resolveTimingDefaults({});
+    expect(warnSpy).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
   });
 });
 
