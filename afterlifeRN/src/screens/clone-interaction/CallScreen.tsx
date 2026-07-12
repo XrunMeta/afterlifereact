@@ -40,7 +40,6 @@ import { detectNewFaces } from "../../face/newFaceDetector";
 import { useFaceIdentify } from "../../face/useFaceIdentify";
 import { useFaceEnroll, FACE_ENROLL_VECTOR_COUNT } from "../../face/useFaceEnroll";
 import { shouldCleanupOrphanOnSuggest } from "../../face/faceEnrollGuard";
-import { canRevealEnrollCard } from "../../face/enrollCardTiming";
 import type { SpeakerEvent } from "../../face/speakerIdReducer";
 import {
   createPerson,
@@ -54,7 +53,6 @@ import { getFaceBiometricConsent } from "../../api/consent";
 import { decideEnrollSuggestAction, decideOrphanCleanupBeforeSilent } from "../../face/autoEnrollGuard";
 import { FACE_DIAG_ENABLED, formatFaceHud, type FaceDiag } from "../../config/faceDiag";
 import TermsModal from "../../components/common/TermsModal";
-import { FaceEnrollCard } from "../../components/call/FaceEnrollCard";
 import { useAvatarCall } from "../../realtime/useAvatarCall";
 import { submitDevText } from "../../realtime/devCallText";
 import { CALL_ROUTE } from "../../config/callRoute";
@@ -214,10 +212,6 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const silentEnrollRef = useRef(false);
 
-  const [enrollCardVisible, setEnrollCardVisible] = useState(false);
-  const [enrollName, setEnrollName] = useState("");
-
-  const [pendingEnrollReveal, setPendingEnrollReveal] = useState(false);
   const [enrollPolicyModalVisible, setEnrollPolicyModalVisible] = useState(false);
 
   const submittedEnrollNameRef = useRef("");
@@ -375,25 +369,7 @@ export default function CallScreen({ route, navigation }: Props) {
         return;
       }
 
-      const pendingId = faceEnroll.getPendingPersonId();
-      const shouldCleanup = shouldCleanupOrphanOnSuggest({
-        enrolling: false,
-        pendingPersonId: pendingId,
-        incomingName: name,
-        lastName: submittedEnrollNameRef.current,
-      });
-      if (shouldCleanup) {
-        if (accessToken && pendingId != null) {
-          void deletePerson(accessToken, pendingId).catch((err) => {
-            console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", err);
-          });
-        }
-        faceEnroll.reset();
-      }
-      submittedEnrollNameRef.current = name;
-      setEnrollName(name);
-
-      setPendingEnrollReveal(true);
+      return;
     },
     [faceEnroll, accessToken, faceBiometricConsent],
   );
@@ -492,13 +468,6 @@ export default function CallScreen({ route, navigation }: Props) {
     silenceMs: sttEndpointMs,
   });
 
-  useEffect(() => {
-    if (pendingEnrollReveal && canRevealEnrollCard(phase) && !enrollCardVisible) {
-      setEnrollCardVisible(true);
-      setPendingEnrollReveal(false);
-    }
-  }, [phase, pendingEnrollReveal, enrollCardVisible]);
-
   const [greetingStarted, setGreetingStarted] = useState(false);
   useEffect(() => {
     if (lastSignal?.type === 'speech_start') setGreetingStarted(true);
@@ -520,28 +489,6 @@ export default function CallScreen({ route, navigation }: Props) {
   const [credits, setCredits] = useState<number>(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const handleEnrollConfirm = useCallback(
-    (trimmedName: string) => {
-      submittedEnrollNameRef.current = trimmedName;
-      void faceEnroll.enroll(trimmedName);
-    },
-    [faceEnroll],
-  );
-
-  const handleEnrollDismiss = useCallback(() => {
-
-    const pendingId = faceEnroll.getPendingPersonId();
-    if (pendingId != null && accessToken) {
-      void deletePerson(accessToken, pendingId).catch((err) => {
-        console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", err);
-      });
-    }
-    setEnrollCardVisible(false);
-    setEnrollName("");
-    faceEnroll.reset();
-    unknownFaceSnapshotRef.current = null; 
-  }, [faceEnroll, accessToken]);
-
   useEffect(() => {
     if (faceEnroll.status === "success") {
       if (silentEnrollRef.current) {
@@ -551,8 +498,6 @@ export default function CallScreen({ route, navigation }: Props) {
         silentEnrollRef.current = false;
       } else {
         setToastMessage(`${submittedEnrollNameRef.current}님, 이제 기억할게요`);
-        setEnrollCardVisible(false);
-        setEnrollName("");
       }
       faceEnroll.reset();
       unknownFaceSnapshotRef.current = null; 
@@ -1080,17 +1025,6 @@ export default function CallScreen({ route, navigation }: Props) {
             setConsentLoading(false);
           }
         }}
-      />
-
-      {}
-      <FaceEnrollCard
-        visible={enrollCardVisible}
-        name={enrollName}
-        onChangeName={setEnrollName}
-        onConfirm={handleEnrollConfirm}
-        onDismiss={handleEnrollDismiss}
-        onViewPolicy={() => setEnrollPolicyModalVisible(true)}
-        busy={faceEnroll.status === "enrolling"}
       />
 
       {
