@@ -718,5 +718,18 @@
       "zh-CN": "简体中文",
       "id": "Bahasa Indonesia"
     }
+  },
+  "permissionGate": {
+    "title": "Camera & Microphone Access Needed",
+    "desc": "We need camera and microphone access for video calls",
+    "cameraLabel": "Camera",
+    "micLabel": "Microphone",
+    "statusGranted": "Allowed",
+    "statusDenied": "Denied",
+    "statusUndetermined": "Needs permission",
+    "statusBlocked": "Blocked",
+    "requestButton": "Allow permissions",
+    "settingsButton": "Open settings",
+    "loading": "Checking permissions..."
   }
 }
