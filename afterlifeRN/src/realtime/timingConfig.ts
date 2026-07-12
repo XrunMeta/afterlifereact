@@ -13,7 +13,7 @@ export interface TimingConfig {
   cloneTailGraceMs: number;
 }
 
-export const v_183224 = {
+export const v_5c20ea = {
   sttEndpointMs: 1500,
   echoGateMs: 3500,
   cloneResumeMs: 600,
@@ -28,10 +28,41 @@ export const v_2e0251 = {
 };
 
 const v_ffa902 = (v_b24339, v_81e2ef): number => {
-  if (!Number.isFinite(v_81e2ef)) return v_183224[v_b24339];
+  if (!Number.isFinite(v_81e2ef)) return v_5c20ea[v_b24339];
   const { min: v_43e24b, max: v_d2c6bf } = v_2e0251[v_b24339];
   return Math.min(v_d2c6bf, Math.max(v_43e24b, v_81e2ef));
 };
+
+const v_c38a4b = {
+  sttEndpointMs: 'EXPO_PUBLIC_TIMING_STT_ENDPOINT_MS',
+  echoGateMs: 'EXPO_PUBLIC_TIMING_ECHO_GATE_MS',
+  cloneResumeMs: 'EXPO_PUBLIC_TIMING_CLONE_RESUME_MS',
+  cloneTailGraceMs: 'EXPO_PUBLIC_TIMING_CLONE_TAIL_GRACE_MS',
+};
+
+export function v_1dd45a(v_c9c489): TimingConfig {
+  const v_43c42e = {} as TimingConfig;
+  (Object.keys(v_c38a4b) as Array<keyof TimingConfig>).forEach((v_b24339) => {
+    const v_479f05 = v_c9c489[v_c38a4b[v_b24339]];
+    const v_8decf8 = parseInt(v_479f05 as string, 10);
+    v_43c42e[v_b24339] = Number.isFinite(v_8decf8) ? v_ffa902(v_b24339, v_8decf8) : v_5c20ea[v_b24339];
+  });
+  if (v_43c42e.cloneResumeMs >= v_43c42e.cloneTailGraceMs) {
+
+    console.warn('[timingConfig] cloneResumeMs >= cloneTailGraceMs after ENV resolve (loop risk)', v_43c42e);
+  }
+  return v_43c42e;
+}
+
+export function v_d14be3(v_01dcf5): string {
+  return (Object.keys(v_c38a4b) as Array<keyof TimingConfig>)
+    .map((v_b24339) => `${v_c38a4b[v_b24339]}=${v_01dcf5[v_b24339]}`)
+    .join('\n');
+}
+
+export const v_183224 = v_1dd45a(
+  process.env as unknown as Record<string, string | undefined>,
+);
 
 export const v_deb2f6 = false;
 
