@@ -8,10 +8,12 @@ export interface HandsFreeState {
   micOn: boolean;
 
   pendingText: string;
+
+  confirmGate: boolean;
 }
 
 export type HandsFreeEvent =
-  | { type: 'CALL_LIVE'; greeting?: boolean }
+  | { type: 'CALL_LIVE'; greeting?: boolean; confirmGate?: boolean }
   | { type: 'SPEECH_START' }
   | { type: 'GREET_TIMEOUT' }
   | { type: 'FINAL_RESULT'; text: string }
@@ -34,17 +36,20 @@ export interface HandsFreeResult {
 }
 
 export const initHandsFreeState = (): HandsFreeState => ({
-  phase: 'idle', micOn: true, pendingText: '',
+  phase: 'idle', micOn: true, pendingText: '', confirmGate: false,
 });
 
 export function handsFreeReducer(state: HandsFreeState, ev: HandsFreeEvent): HandsFreeResult {
   switch (ev.type) {
-    case 'CALL_LIVE':
-      if (!state.micOn) return { state: { ...state, phase: 'paused' }, effects: [] };
-      if (state.phase !== 'idle') return { state, effects: [] };
+    case 'CALL_LIVE': {
 
-      if (ev.greeting) return { state: { ...state, phase: 'greeting' }, effects: ['GREET'] };
-      return { state: { ...state, phase: 'listening' }, effects: ['START_STT'] };
+      const confirmGate = ev.confirmGate ?? state.confirmGate;
+      if (!state.micOn) return { state: { ...state, phase: 'paused', confirmGate }, effects: [] };
+      if (state.phase !== 'idle') return { state: { ...state, confirmGate }, effects: [] };
+
+      if (ev.greeting) return { state: { ...state, phase: 'greeting', confirmGate }, effects: ['GREET'] };
+      return { state: { ...state, phase: 'listening', confirmGate }, effects: ['START_STT'] };
+    }
 
     case 'SPEECH_START':
 
@@ -63,6 +68,14 @@ export function handsFreeReducer(state: HandsFreeState, ev: HandsFreeEvent): Han
       }
       const text = ev.text.trim();
       if (!text) return { state, effects: [] };
+      if (!state.confirmGate) {
+
+        return {
+          state: { ...state, phase: 'sending', pendingText: text },
+          effects: ['STOP_STT', 'SAY', 'START_DETECTOR'],
+          sayText: text,
+        };
+      }
       const pendingText =
         state.phase === 'confirming' && state.pendingText
           ? `${state.pendingText} ${text}`.trim()
@@ -96,19 +109,20 @@ export function handsFreeReducer(state: HandsFreeState, ev: HandsFreeEvent): Han
       if (state.phase !== 'speaking' && state.phase !== 'sending' && state.phase !== 'greeting') {
         return { state, effects: [] };
       }
-      if (!state.micOn) return { state: { ...state, phase: 'paused' }, effects: ['STOP_DETECTOR'] };
-      return { state: { ...state, phase: 'listening' }, effects: ['STOP_DETECTOR', 'START_STT'] };
+
+      if (!state.micOn) return { state: { ...state, phase: 'paused', pendingText: '' }, effects: ['STOP_DETECTOR'] };
+      return { state: { ...state, phase: 'listening', pendingText: '' }, effects: ['STOP_DETECTOR', 'START_STT'] };
 
     case 'MIC_OFF':
       if (!state.micOn) return { state, effects: [] };
-      return { state: { phase: 'paused', micOn: false, pendingText: '' }, effects: ['STOP_STT', 'STOP_DETECTOR'] };
+      return { state: { phase: 'paused', micOn: false, pendingText: '', confirmGate: state.confirmGate }, effects: ['STOP_STT', 'STOP_DETECTOR'] };
 
     case 'MIC_ON':
       if (state.micOn) return { state, effects: [] };
-      return { state: { phase: 'listening', micOn: true, pendingText: '' }, effects: ['START_STT'] };
+      return { state: { phase: 'listening', micOn: true, pendingText: '', confirmGate: state.confirmGate }, effects: ['START_STT'] };
 
     case 'CALL_ENDED':
-      return { state: { phase: 'idle', micOn: true, pendingText: '' }, effects: ['STOP_STT', 'STOP_DETECTOR'] };
+      return { state: { phase: 'idle', micOn: true, pendingText: '', confirmGate: false }, effects: ['STOP_STT', 'STOP_DETECTOR'] };
 
     default:
       return { state, effects: [] };

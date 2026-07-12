@@ -33,13 +33,19 @@ const clamp = (key: keyof TimingConfig, v: number): number => {
   return Math.min(max, Math.max(min, v));
 };
 
+export const CONFIRM_GATE_DEFAULT = false;
+
 interface TimingConfigState extends TimingConfig {
+  confirmGateEnabled: boolean;
   setField: (key: keyof TimingConfig, value: number) => void;
+  setConfirmGateEnabled: (v: boolean) => void;
   reset: () => void;
 }
 
 export const useTimingConfigStore = create<TimingConfigState>((set) => ({
   ...TIMING_DEFAULTS,
+  confirmGateEnabled: CONFIRM_GATE_DEFAULT,
   setField: (key, value) => set({ [key]: clamp(key, value) } as Pick<TimingConfig, typeof key>),
-  reset: () => set({ ...TIMING_DEFAULTS }),
+  setConfirmGateEnabled: (v) => set({ confirmGateEnabled: v }),
+  reset: () => set({ ...TIMING_DEFAULTS, confirmGateEnabled: CONFIRM_GATE_DEFAULT }),
 }));

@@ -1,7 +1,7 @@
 
 
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Switch } from 'react-native';
 import { useTimingConfigStore, TIMING_BOUNDS, type TimingConfig } from '../../realtime/timingConfig';
 
 const KEYS: Array<keyof TimingConfig> = ['sttEndpointMs', 'echoGateMs', 'cloneResumeMs', 'cloneTailGraceMs'];
@@ -17,6 +17,8 @@ export const CallTimingPanel: React.FC<{
   const cfg = useTimingConfigStore();
   const setField = useTimingConfigStore((s) => s.setField);
   const reset = useTimingConfigStore((s) => s.reset);
+  const confirmGateEnabled = useTimingConfigStore((s) => s.confirmGateEnabled);
+  const setConfirmGateEnabled = useTimingConfigStore((s) => s.setConfirmGateEnabled);
   const invariantWarn = cfg.cloneResumeMs >= cfg.cloneTailGraceMs;
 
   return (
@@ -54,6 +56,10 @@ export const CallTimingPanel: React.FC<{
             );
           })}
           {invariantWarn ? <Text style={styles.warn}>⚠ resume ≥ tailGrace (루프 위험)</Text> : null}
+          <View style={styles.stepRow}>
+            <Text style={styles.stepLabel}>확인 게이트(2초 대기)</Text>
+            <Switch value={confirmGateEnabled} onValueChange={setConfirmGateEnabled} />
+          </View>
           <TouchableOpacity onPress={reset} style={styles.resetBtn}>
             <Text style={styles.resetTxt}>reset</Text>
           </TouchableOpacity>

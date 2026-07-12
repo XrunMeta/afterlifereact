@@ -524,6 +524,8 @@ export default function CallScreen({ route, navigation }: Props) {
   );
 
   const sttEndpointMs = useTimingConfigStore((s) => s.sttEndpointMs);
+
+  const confirmGateEnabled = useTimingConfigStore((s) => s.confirmGateEnabled);
   const {
     phase,
     micOn,
@@ -547,6 +549,7 @@ export default function CallScreen({ route, navigation }: Props) {
     greetTimeoutMs: GREET_TIMEOUT_MS,
     fallbackText: GREETING_FALLBACK_TEXT,
     silenceMs: sttEndpointMs,
+    confirmGate: __DEV__ && confirmGateEnabled,
   });
 
   const [greetingStarted, setGreetingStarted] = useState(false);
@@ -1204,6 +1207,17 @@ export default function CallScreen({ route, navigation }: Props) {
             <Text style={s.confirmHint}>탭하여 취소 · 잠시 후 전송</Text>
           </View>
         </Pressable>
+      ) : null}
+
+      {
+
+}
+      {(phase === 'sending' || phase === 'speaking') && !!pendingText ? (
+        <View style={s.subtitleContainer} pointerEvents="none">
+          <Text style={s.subtitleText} numberOfLines={2} ellipsizeMode="tail">
+            {pendingText}
+          </Text>
+        </View>
       ) : null}
 
       {

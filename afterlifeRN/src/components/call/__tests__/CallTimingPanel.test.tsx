@@ -31,6 +31,17 @@ describe('CallTimingPanel', () => {
     expect(onForceListen).toHaveBeenCalled();
   });
 
+  it('confirm-gate switch toggles store value', () => {
+    const { getByText, getByRole } = renderPanel();
+    fireEvent.press(getByText(/tune/i));
+    expect(useTimingConfigStore.getState().confirmGateEnabled).toBe(false);
+    const sw = getByRole('switch');
+    fireEvent(sw, 'valueChange', true);
+    expect(useTimingConfigStore.getState().confirmGateEnabled).toBe(true);
+    fireEvent(sw, 'valueChange', false);
+    expect(useTimingConfigStore.getState().confirmGateEnabled).toBe(false);
+  });
+
   it('mic-lock button reflects micOn state and toggles', () => {
     const onToggleMic = jest.fn();
     const { getByText, queryByText, rerender } = render(

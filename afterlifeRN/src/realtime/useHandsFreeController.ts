@@ -43,6 +43,8 @@ export function useHandsFreeController(opts: {
   greetTimeoutMs?: number;
 
   fallbackText?: string;
+
+  confirmGate?: boolean;
 }) {
   const [state, setState] = useState(initHandsFreeState());
   const stateRef = useRef(state);
@@ -191,7 +193,9 @@ export function useHandsFreeController(opts: {
 
   useEffect(() => {
     dispatchRef.current(
-      opts.enabled ? { type: 'CALL_LIVE', greeting: opts.greeting } : { type: 'CALL_ENDED' });
+      opts.enabled
+        ? { type: 'CALL_LIVE', greeting: opts.greeting, confirmGate: opts.confirmGate }
+        : { type: 'CALL_ENDED' });
   }, [opts.enabled]); 
 
   useEffect(() => {
