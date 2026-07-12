@@ -40,6 +40,7 @@ import { detectNewFaces } from "../../face/newFaceDetector";
 import { useFaceIdentify } from "../../face/useFaceIdentify";
 import { useFaceEnroll, FACE_ENROLL_VECTOR_COUNT } from "../../face/useFaceEnroll";
 import { shouldCleanupOrphanOnSuggest } from "../../face/faceEnrollGuard";
+import { canRevealEnrollCard } from "../../face/enrollCardTiming";
 import type { SpeakerEvent } from "../../face/speakerIdReducer";
 import {
   createPerson,
@@ -215,6 +216,8 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const [enrollCardVisible, setEnrollCardVisible] = useState(false);
   const [enrollName, setEnrollName] = useState("");
+
+  const [pendingEnrollReveal, setPendingEnrollReveal] = useState(false);
   const [enrollPolicyModalVisible, setEnrollPolicyModalVisible] = useState(false);
 
   const submittedEnrollNameRef = useRef("");
@@ -389,7 +392,8 @@ export default function CallScreen({ route, navigation }: Props) {
       }
       submittedEnrollNameRef.current = name;
       setEnrollName(name);
-      setEnrollCardVisible(true);
+
+      setPendingEnrollReveal(true);
     },
     [faceEnroll, accessToken, faceBiometricConsent],
   );
@@ -465,6 +469,8 @@ export default function CallScreen({ route, navigation }: Props) {
   const sttEndpointMs = useTimingConfigStore((s) => s.sttEndpointMs);
   const {
     phase,
+    micOn,
+    toggleMic,
     pendingText,
     cancelConfirm,
     transcript,
@@ -485,6 +491,13 @@ export default function CallScreen({ route, navigation }: Props) {
     fallbackText: GREETING_FALLBACK_TEXT,
     silenceMs: sttEndpointMs,
   });
+
+  useEffect(() => {
+    if (pendingEnrollReveal && canRevealEnrollCard(phase) && !enrollCardVisible) {
+      setEnrollCardVisible(true);
+      setPendingEnrollReveal(false);
+    }
+  }, [phase, pendingEnrollReveal, enrollCardVisible]);
 
   const [greetingStarted, setGreetingStarted] = useState(false);
   useEffect(() => {
@@ -976,7 +989,7 @@ export default function CallScreen({ route, navigation }: Props) {
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: bottomInset }}
           pointerEvents="box-none"
         >
-          <CallTimingPanel onForceListen={devForceListen} />
+          <CallTimingPanel onForceListen={devForceListen} micOn={micOn} onToggleMic={toggleMic} />
         </View>
       ) : null}
 

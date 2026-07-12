@@ -27,7 +27,7 @@ export const CallTimingHUD: React.FC = () => {
 const MONO = 'monospace';
 const styles = StyleSheet.create({
   wrap: {
-    position: 'absolute', top: 90, left: 8, zIndex: 30,
+    position: 'absolute', top: '30%', left: 8, zIndex: 30,
     backgroundColor: 'rgba(0,0,0,0.72)',
     borderWidth: 1, borderColor: '#f59e0b', 
     borderRadius: 2, paddingHorizontal: 6, paddingVertical: 4, maxWidth: 220,
