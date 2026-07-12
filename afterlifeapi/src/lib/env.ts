@@ -50,6 +50,8 @@ export interface Bindings {
 
   FACE_CALIBRATE_ENABLED?: string;
 
+  FACE_CONSENT_ENFORCED?: string;
+
   PREBUILD_SECRET?: string;        
   PRETHIRD_PUBLIC_BASE?: string;   
 

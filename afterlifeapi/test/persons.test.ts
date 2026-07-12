@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { SELF, env } from "cloudflare:test";
+import { isFaceConsentEnforced } from "../src/routes/persons";
 
 async function seedUser(email: string): Promise<number> {
   const db = env.DB as unknown as D1Database;
@@ -623,5 +624,23 @@ describe("persons route", () => {
       body: JSON.stringify({ enrolledVia: "bogus" }),
     });
     expect(res.status).toBe(422);
+  });
+
+  describe("isFaceConsentEnforced (단위) — 기본 OFF 불변식", () => {
+    it("env var 없음(미설정) → false — enroll 시 서버 재확인 스킵(카드 폴백 아님)", () => {
+      expect(isFaceConsentEnforced({})).toBe(false);
+    });
+    it("'false' → false", () => {
+      expect(isFaceConsentEnforced({ FACE_CONSENT_ENFORCED: "false" })).toBe(false);
+    });
+    it("'1'·기타 값 → false(엄격히 'true' 문자열만 on)", () => {
+      expect(isFaceConsentEnforced({ FACE_CONSENT_ENFORCED: "1" })).toBe(false);
+    });
+    it("'' (빈 문자열) → false", () => {
+      expect(isFaceConsentEnforced({ FACE_CONSENT_ENFORCED: "" })).toBe(false);
+    });
+    it("'true' → true", () => {
+      expect(isFaceConsentEnforced({ FACE_CONSENT_ENFORCED: "true" })).toBe(true);
+    });
   });
 });
