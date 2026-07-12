@@ -644,3 +644,19 @@ describe("persons route", () => {
     });
   });
 });
+
+describe("wrangler.toml FACE_CONSENT_ENFORCED 정적 안전망(production=true 회귀 방지)", () => {
+  it("[vars]·[env.preview.vars]는 \"false\", [env.production.vars]는 \"true\"여야 한다", async () => {
+
+    const { default: toml } = await import("../wrangler.toml?raw");
+
+    const matches = [...(toml as string).matchAll(/FACE_CONSENT_ENFORCED\s*=\s*"([^"]*)"/g)].map((m) => m[1]);
+
+    expect(matches.length).toBe(3);
+    const [base, preview, production] = matches;
+    expect(base).toBe("false");
+    expect(preview).toBe("false");
+
+    expect(production).toBe("true");
+  });
+});
