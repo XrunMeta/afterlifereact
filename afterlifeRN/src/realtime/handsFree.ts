@@ -8,10 +8,12 @@ export interface HandsFreeState {
   micOn: boolean;
 
   pendingText: string;
+
+  confirmGate: boolean;
 }
 
 export type HandsFreeEvent =
-  | { type: 'CALL_LIVE'; greeting?: boolean }
+  | { type: 'CALL_LIVE'; greeting?: boolean; confirmGate?: boolean }
   | { type: 'SPEECH_START' }
   | { type: 'GREET_TIMEOUT' }
   | { type: 'FINAL_RESULT'; text: string }
@@ -34,17 +36,20 @@ export interface HandsFreeResult {
 }
 
 export const v_3075fa = (): HandsFreeState => ({
-  phase: 'idle', micOn: true, pendingText: '',
+  phase: 'idle', micOn: true, pendingText: '', confirmGate: false,
 });
 
 export function v_6920f0(v_b6e533, v_1d299c): HandsFreeResult {
   switch (v_1d299c.type) {
-    case 'CALL_LIVE':
-      if (!v_b6e533.micOn) return { state: { ...v_b6e533, phase: 'paused' }, effects: [] };
-      if (v_b6e533.phase !== 'idle') return { state: v_b6e533, effects: [] };
+    case 'CALL_LIVE': {
 
-      if (v_1d299c.greeting) return { state: { ...v_b6e533, phase: 'greeting' }, effects: ['GREET'] };
-      return { state: { ...v_b6e533, phase: 'listening' }, effects: ['START_STT'] };
+      const v_c6928f = v_1d299c.confirmGate ?? v_b6e533.confirmGate;
+      if (!v_b6e533.micOn) return { state: { ...v_b6e533, phase: 'paused', confirmGate: v_c6928f }, effects: [] };
+      if (v_b6e533.phase !== 'idle') return { state: { ...v_b6e533, confirmGate: v_c6928f }, effects: [] };
+
+      if (v_1d299c.greeting) return { state: { ...v_b6e533, phase: 'greeting', confirmGate: v_c6928f }, effects: ['GREET'] };
+      return { state: { ...v_b6e533, phase: 'listening', confirmGate: v_c6928f }, effects: ['START_STT'] };
+    }
 
     case 'SPEECH_START':
 
@@ -63,6 +68,14 @@ export function v_6920f0(v_b6e533, v_1d299c): HandsFreeResult {
       }
       const v_9b6134 = v_1d299c.text.trim();
       if (!v_9b6134) return { state: v_b6e533, effects: [] };
+      if (!v_b6e533.confirmGate) {
+
+        return {
+          state: { ...v_b6e533, phase: 'sending', pendingText: v_9b6134 },
+          effects: ['STOP_STT', 'SAY', 'START_DETECTOR'],
+          sayText: v_9b6134,
+        };
+      }
       const v_def12c =
         v_b6e533.phase === 'confirming' && v_b6e533.pendingText
           ? `${v_b6e533.pendingText} ${v_9b6134}`.trim()
@@ -96,19 +109,20 @@ export function v_6920f0(v_b6e533, v_1d299c): HandsFreeResult {
       if (v_b6e533.phase !== 'speaking' && v_b6e533.phase !== 'sending' && v_b6e533.phase !== 'greeting') {
         return { state: v_b6e533, effects: [] };
       }
-      if (!v_b6e533.micOn) return { state: { ...v_b6e533, phase: 'paused' }, effects: ['STOP_DETECTOR'] };
-      return { state: { ...v_b6e533, phase: 'listening' }, effects: ['STOP_DETECTOR', 'START_STT'] };
+
+      if (!v_b6e533.micOn) return { state: { ...v_b6e533, phase: 'paused', pendingText: '' }, effects: ['STOP_DETECTOR'] };
+      return { state: { ...v_b6e533, phase: 'listening', pendingText: '' }, effects: ['STOP_DETECTOR', 'START_STT'] };
 
     case 'MIC_OFF':
       if (!v_b6e533.micOn) return { state: v_b6e533, effects: [] };
-      return { state: { phase: 'paused', micOn: false, pendingText: '' }, effects: ['STOP_STT', 'STOP_DETECTOR'] };
+      return { state: { phase: 'paused', micOn: false, pendingText: '', confirmGate: v_b6e533.confirmGate }, effects: ['STOP_STT', 'STOP_DETECTOR'] };
 
     case 'MIC_ON':
       if (v_b6e533.micOn) return { state: v_b6e533, effects: [] };
-      return { state: { phase: 'listening', micOn: true, pendingText: '' }, effects: ['START_STT'] };
+      return { state: { phase: 'listening', micOn: true, pendingText: '', confirmGate: v_b6e533.confirmGate }, effects: ['START_STT'] };
 
     case 'CALL_ENDED':
-      return { state: { phase: 'idle', micOn: true, pendingText: '' }, effects: ['STOP_STT', 'STOP_DETECTOR'] };
+      return { state: { phase: 'idle', micOn: true, pendingText: '', confirmGate: false }, effects: ['STOP_STT', 'STOP_DETECTOR'] };
 
     default:
       return { state: v_b6e533, effects: [] };

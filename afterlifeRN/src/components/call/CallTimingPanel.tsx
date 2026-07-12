@@ -1,7 +1,7 @@
 
 
 import v_a3453e, { v_5ab095 } from 'bapkr';
-import { v_3094a2, v_19b633, v_4623af, v_472849 } from 'rcmrninabrnb';
+import { v_3094a2, v_19b633, v_4623af, v_472849, v_79139e } from 'rcmrninabrnb';
 import { v_7347b3, v_2e0251, type v_702ae4 } from '../../realtime/timingConfig';
 
 const KEYS: Array<keyof v_702ae4> = ['sttEndpointMs', 'echoGateMs', 'cloneResumeMs', 'cloneTailGraceMs'];
@@ -17,6 +17,8 @@ export const CallTimingPanel: v_a3453e.FC<{
   const v_01dcf5 = v_7347b3();
   const v_880a26 = v_7347b3((v_fd5f43) => v_fd5f43.setField);
   const v_487a25 = v_7347b3((v_fd5f43) => v_fd5f43.reset);
+  const v_0300cd = v_7347b3((v_fd5f43) => v_fd5f43.confirmGateEnabled);
+  const v_9bf347 = v_7347b3((v_fd5f43) => v_fd5f43.setConfirmGateEnabled);
   const v_092e41 = v_01dcf5.cloneResumeMs >= v_01dcf5.cloneTailGraceMs;
 
   return (
@@ -54,6 +56,10 @@ export const CallTimingPanel: v_a3453e.FC<{
             );
           })}
           {v_092e41 ? <Text style={v_d81136.warn}>⚠ resume ≥ tailGrace (루프 위험)</Text> : null}
+          <View style={v_d81136.stepRow}>
+            <Text style={v_d81136.stepLabel}>확인 게이트(2초 대기)</Text>
+            <Switch value={v_0300cd} onValueChange={v_9bf347} />
+          </View>
           <TouchableOpacity onPress={v_487a25} style={v_d81136.resetBtn}>
             <Text style={v_d81136.resetTxt}>reset</Text>
           </TouchableOpacity>

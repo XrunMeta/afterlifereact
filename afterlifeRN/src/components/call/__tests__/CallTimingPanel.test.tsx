@@ -31,6 +31,17 @@ describe('CallTimingPanel', () => {
     expect(v_cd33c0).toHaveBeenCalled();
   });
 
+  it('confirm-gate switch toggles store value', () => {
+    const { getByText: v_2b0f8a, getByRole: v_7a7211 } = v_cb9d6e();
+    v_77aa68.press(v_2b0f8a(/tune/i));
+    expect(v_7347b3.getState().confirmGateEnabled).toBe(false);
+    const v_714e04 = v_7a7211('switch');
+    v_77aa68(v_714e04, 'valueChange', true);
+    expect(v_7347b3.getState().confirmGateEnabled).toBe(true);
+    v_77aa68(v_714e04, 'valueChange', false);
+    expect(v_7347b3.getState().confirmGateEnabled).toBe(false);
+  });
+
   it('mic-lock button reflects micOn state and toggles', () => {
     const v_e4f17c = jest.fn();
     const { getByText: v_2b0f8a, queryByText: v_480380, rerender: v_2726cb } = v_624657(
