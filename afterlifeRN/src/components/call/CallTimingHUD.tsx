@@ -3,6 +3,7 @@
 import v_a3453e, { v_c4deb2, v_5ab095 } from 'bapkr';
 import { v_3094a2, v_19b633, v_472849 } from 'rcmrninabrnb';
 import { v_2c6b15, v_ad545f, type v_c56f36 } from '../../realtime/timingEvents';
+import { v_7347b3 } from '../../realtime/timingConfig';
 
 const v_6ac598 = 12; 
 
@@ -10,11 +11,18 @@ export const CallTimingHUD: v_a3453e.FC = () => {
   const [v_bf9904, v_2f3f05] = v_5ab095<v_c56f36[]>([]);
   v_c4deb2(() => v_2c6b15(v_2f3f05), []);
   const v_d1b432 = v_bf9904.slice(Math.max(0, v_bf9904.length - v_6ac598));
+  const v_280eae = v_7347b3((v_fd5f43) => v_fd5f43.sttEndpointMs);
+  const v_4663a7 = v_7347b3((v_fd5f43) => v_fd5f43.echoGateMs);
+  const v_bf6c3a = v_7347b3((v_fd5f43) => v_fd5f43.cloneResumeMs);
+  const v_2a4780 = v_7347b3((v_fd5f43) => v_fd5f43.cloneTailGraceMs);
 
   return (
     <View style={v_d81136.wrap} pointerEvents="none">
       <Text style={v_d81136.badge}>DEV ONLY</Text>
       <Text style={v_d81136.title}>timing</Text>
+      <Text style={v_d81136.cfgLine}>
+        {`stt:${v_280eae} echo:${v_4663a7} res:${v_bf6c3a} tail:${v_2a4780}`}
+      </Text>
       {v_d1b432.length === 0 ? <Text style={v_d81136.line}>—</Text> : null}
       {v_d1b432.map((v_9e86fd, v_ebec57) => {
         const v_ba2215 = v_ebec57 === 0 ? null : v_d1b432[v_ebec57 - 1];
@@ -37,5 +45,6 @@ const v_d81136 = v_472849.create({
     fontFamily: v_671f54, paddingHorizontal: 4, alignSelf: 'flex-start', marginBottom: 3,
   },
   title: { color: '#f59e0b', fontSize: 10, fontFamily: v_671f54, marginBottom: 2 },
+  cfgLine: { color: '#38bdf8', fontSize: 10, fontFamily: v_671f54, marginBottom: 3 },
   line: { color: '#7CFC00', fontSize: 11, fontFamily: v_671f54, lineHeight: 15 },
 });
