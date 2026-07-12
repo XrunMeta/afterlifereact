@@ -40,12 +40,15 @@ const v_c38a4b = {
   cloneTailGraceMs: 'EXPO_PUBLIC_TIMING_CLONE_TAIL_GRACE_MS',
 };
 
+const v_1a3a5b = /^\d+$/;
+
 export function v_1dd45a(v_c9c489): TimingConfig {
   const v_43c42e = {} as TimingConfig;
   (Object.keys(v_c38a4b) as Array<keyof TimingConfig>).forEach((v_b24339) => {
     const v_479f05 = v_c9c489[v_c38a4b[v_b24339]];
-    const v_8decf8 = parseInt(v_479f05 as string, 10);
-    v_43c42e[v_b24339] = Number.isFinite(v_8decf8) ? v_ffa902(v_b24339, v_8decf8) : v_5c20ea[v_b24339];
+    const v_2f361a = v_479f05?.trim();
+    v_43c42e[v_b24339] =
+      v_2f361a && v_1a3a5b.test(v_2f361a) ? v_ffa902(v_b24339, parseInt(v_2f361a, 10)) : v_5c20ea[v_b24339];
   });
   if (v_43c42e.cloneResumeMs >= v_43c42e.cloneTailGraceMs) {
 
