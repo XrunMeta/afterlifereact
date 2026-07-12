@@ -46,16 +46,42 @@ const FILLER_LEAD_SILENCE_MS = 600;
 
 export const FILLER_VOLUME = 0.3;
 
-const FILLER_MUX_VOLUME_DB = -20;
+export const FILLER_PEAK_TARGET_DB = -3;
 
-export function defaultFfmpegPadCmd(inWav, outWav, wholeDurSec, atempo) {
+export function defaultFfmpegPeakDb(wavPath, spawnFn = spawn) {
+  return new Promise((resolve) => {
+    let err = '';
+    let p;
+    try {
+      p = spawnFn('ffmpeg', ['-i', wavPath, '-af', 'volumedetect', '-f', 'null', '-'],
+        { stdio: ['ignore', 'ignore', 'pipe'] });
+    } catch {
+      resolve(null);
+      return;
+    }
+    p.stderr.on('data', (d) => { err += d; });
+    p.on('close', () => {
+      const m = err.match(/max_volume:\s*(-?\d+(?:\.\d+)?)\s*dB/);
+      resolve(m ? parseFloat(m[1]) : null);
+    });
+    p.on('error', () => resolve(null));
+  });
+}
+
+export function fillerNormalizeGainDb(peakDb, targetDb = FILLER_PEAK_TARGET_DB) {
+  if (peakDb == null || !Number.isFinite(peakDb)) return 0;
+  return Math.max(-6, Math.min(40, targetDb - peakDb));
+}
+
+export function defaultFfmpegPadCmd(inWav, outWav, wholeDurSec, atempo, volumeDb) {
   const pre = atempo ? `atempo=${atempo},` : '';
+  const vol = volumeDb != null ? `volume=${volumeDb}dB` : `volume=${FILLER_VOLUME}`;
   return {
     bin: 'ffmpeg',
     args: [
       '-y',
       '-i', inWav,
-      '-af', `${pre}volume=${FILLER_VOLUME},adelay=${FILLER_LEAD_SILENCE_MS}:all=1,apad=whole_dur=${wholeDurSec}`,
+      '-af', `${pre}${vol},adelay=${FILLER_LEAD_SILENCE_MS}:all=1,apad=whole_dur=${wholeDurSec}`,
       outWav,
     ],
   };
@@ -246,6 +272,7 @@ export function createAssetJobRunner({
   fifthRenderUrl = process.env.FIFTH_RENDER_URL ?? 'http://127.0.0.1:8810',
   ffmpegMuxCmd = defaultFfmpegMuxCmd,
   ffmpegPadCmd = defaultFfmpegPadCmd,
+  ffmpegPeakDbFn = defaultFfmpegPeakDb, 
   _qwenTtsFn = null,    
   _fifthRenderFn = null, 
 
@@ -374,9 +401,12 @@ export function createAssetJobRunner({
       const rawWavPath = path.join(dir, `filler_${i}_raw.wav`);
       await writeFile(rawWavPath, wavBuf);
 
+      const rawPeakDb = await ffmpegPeakDbFn(rawWavPath, spawnImpl);
+      const normGainDb = fillerNormalizeGainDb(rawPeakDb);
+
       const fillerWavPath = path.join(dir, `filler_${i}.wav`);
       const targetDur = Math.max(6, FILLER_TARGET_DUR_SEC[i] ?? 6.5);
-      const padCmd = ffmpegPadCmd(rawWavPath, fillerWavPath, targetDur, spec.atempo);
+      const padCmd = ffmpegPadCmd(rawWavPath, fillerWavPath, targetDur, spec.atempo, normGainDb);
       await run(padCmd.bin, padCmd.args, spawnImpl);
 
       const frames = await fifthRenderFn(fillerWavPath, faceJpgPath, fifthRenderUrl, spec.render_opts);
@@ -394,7 +424,7 @@ export function createAssetJobRunner({
       }
 
       const mp4Path = path.join(dir, `filler_${i}.mp4`);
-      const cmd = ffmpegMuxCmd(framesDir, fillerWavPath, mp4Path, FILLER_MUX_VOLUME_DB);
+      const cmd = ffmpegMuxCmd(framesDir, fillerWavPath, mp4Path);
       await run(cmd.bin, cmd.args, spawnImpl);
       mp4Bufs.push(await readFile(mp4Path));
     }
