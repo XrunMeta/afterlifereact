@@ -2,6 +2,10 @@
 
 export type MatchCycle = { personId: number | null; displayName: string | null; score: number };
 
+export type ResetRecognitionAction = { type: "RESET_RECOGNITION" };
+
+export type SpeakerIdAction = MatchCycle | ResetRecognitionAction;
+
 export type SpeakerEvent =
   | { type: "speaker_confirmed"; personId: number; displayName: string | null }
   | { type: "unknown_face" }
@@ -27,8 +31,13 @@ function v_b4205a(v_bdad26): number | "unknown" {
 
 export function v_be2f9f(
   v_fd5f43,
-  v_bdad26
+  v_9b064f
 ): { state: SpeakerIdState; event: SpeakerEvent } {
+  if ("type" in v_9b064f && v_9b064f.type === "RESET_RECOGNITION") {
+    return { state: v_22f27b, event: null };
+  }
+
+  const v_bdad26 = v_9b064f as MatchCycle;
   const v_b24339 = v_b4205a(v_bdad26);
   const v_e2b7d1 = v_b24339 === v_fd5f43.candidate ? v_fd5f43.streak + 1 : 1;
 

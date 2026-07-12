@@ -17,6 +17,10 @@ function v_5c8583(v_3f4e2e): number {
   return v_389afb;
 }
 
+export function v_565c6d(v_c9c489): boolean {
+  return v_c9c489.FACE_CONSENT_ENFORCED === "true";
+}
+
 v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_4d33b2 = await v_3f4e2e.req
@@ -38,7 +42,7 @@ v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
     v_926d89 = v_4d33b2.enrolledVia;
   }
 
-  if (v_926d89 === "auto_biometric") {
+  if (v_926d89 === "auto_biometric" && v_565c6d(v_3f4e2e.env)) {
     const v_625c74 = await v_3f4e2e.env.DB.prepare(`SELECT face_biometric_consent FROM users WHERE id = ?`)
       .bind(v_43e90c)
       .first<{ face_biometric_consent: number }>();

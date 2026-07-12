@@ -1,5 +1,6 @@
 import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
+import { v_565c6d } from "../src/routes/persons";
 
 async function v_bfb240(v_e0c7e8): Promise<number> {
   const v_a1651b = v_c9c489.DB as unknown as D1Database;
@@ -623,5 +624,39 @@ v_469bf2("persons route", () => {
       body: JSON.stringify({ enrolledVia: "bogus" }),
     });
     v_4d37e3(v_8f00b9.status).toBe(422);
+  });
+
+  v_469bf2("isFaceConsentEnforced (단위) — 기본 OFF 불변식", () => {
+    v_23805a("env var 없음(미설정) → false — enroll 시 서버 재확인 스킵(카드 폴백 아님)", () => {
+      v_4d37e3(v_565c6d({})).toBe(false);
+    });
+    v_23805a("'false' → false", () => {
+      v_4d37e3(v_565c6d({ FACE_CONSENT_ENFORCED: "false" })).toBe(false);
+    });
+    v_23805a("'1'·기타 값 → false(엄격히 'true' 문자열만 on)", () => {
+      v_4d37e3(v_565c6d({ FACE_CONSENT_ENFORCED: "1" })).toBe(false);
+    });
+    v_23805a("'' (빈 문자열) → false", () => {
+      v_4d37e3(v_565c6d({ FACE_CONSENT_ENFORCED: "" })).toBe(false);
+    });
+    v_23805a("'true' → true", () => {
+      v_4d37e3(v_565c6d({ FACE_CONSENT_ENFORCED: "true" })).toBe(true);
+    });
+  });
+});
+
+v_469bf2("wrangler.toml FACE_CONSENT_ENFORCED 정적 안전망(production=true 회귀 방지)", () => {
+  v_23805a("[vars]·[env.preview.vars]는 \"false\", [env.production.vars]는 \"true\"여야 한다", async () => {
+
+    const { default: v_6e2bcc } = await import("../wrangler.toml?raw");
+
+    const v_a49907 = [...(v_6e2bcc as string).matchAll(/FACE_CONSENT_ENFORCED\s*=\s*"([^"]*)"/g)].map((v_35f85c) => v_35f85c[1]);
+
+    v_4d37e3(v_a49907.length).toBe(3);
+    const [v_694b25, v_2ccff1, v_3a9689] = v_a49907;
+    v_4d37e3(v_694b25).toBe("false");
+    v_4d37e3(v_2ccff1).toBe("false");
+
+    v_4d37e3(v_3a9689).toBe("true");
   });
 });

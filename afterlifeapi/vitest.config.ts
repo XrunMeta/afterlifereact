@@ -43,6 +43,8 @@ export default v_eede73(async () => {
               ALE_KEK: "oth-envelope",
 
               FACE_CALIBRATE_ENABLED: "1",
+
+              FACE_CONSENT_ENFORCED: "true",
             },
           },
         },

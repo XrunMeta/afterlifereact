@@ -129,3 +129,33 @@ it("streak은 항상 정수이며 음수/NaN이 되지 않는다(경계)", () =>
   expect(v_cb35cb.state.streak).toBe(1);
   expect(Number.isInteger(v_cb35cb.state.streak)).toBe(true);
 });
+
+it("RESET_RECOGNITION 후 동일 unknown 얼굴이 다시 confirm 전이를 낼 수 있다", () => {
+  let s: v_4fd509 = v_22f27b;
+  const v_ceb55a = { personId: null, displayName: null, score: 0 };
+
+  let v_cb35cb = v_be2f9f(v_fd5f43, v_ceb55a);
+  v_fd5f43 = v_cb35cb.state;
+  v_cb35cb = v_be2f9f(v_fd5f43, v_ceb55a);
+  v_fd5f43 = v_cb35cb.state;
+  v_cb35cb = v_be2f9f(v_fd5f43, v_ceb55a);
+  expect(v_cb35cb.event).toEqual({ type: "unknown_face" });
+  v_fd5f43 = v_cb35cb.state;
+  expect(v_fd5f43.confirmed).toBe("unknown");
+
+  v_cb35cb = v_be2f9f(v_fd5f43, v_ceb55a);
+  expect(v_cb35cb.event).toBeNull();
+  v_fd5f43 = v_cb35cb.state;
+
+  v_cb35cb = v_be2f9f(v_fd5f43, { type: "RESET_RECOGNITION" });
+  expect(v_cb35cb.event).toBeNull();
+  v_fd5f43 = v_cb35cb.state;
+  expect(v_fd5f43).toEqual(v_22f27b);
+
+  v_cb35cb = v_be2f9f(v_fd5f43, v_ceb55a);
+  v_fd5f43 = v_cb35cb.state;
+  v_cb35cb = v_be2f9f(v_fd5f43, v_ceb55a);
+  v_fd5f43 = v_cb35cb.state;
+  v_cb35cb = v_be2f9f(v_fd5f43, v_ceb55a);
+  expect(v_cb35cb.event).toEqual({ type: "unknown_face" });
+});
