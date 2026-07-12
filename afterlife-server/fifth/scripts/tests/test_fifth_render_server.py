@@ -1764,6 +1764,7 @@ def test_parse_render_body_extracts_new_opts():
         "head_yaw_offset": -12.0,
         "head_pitch_offset": 8.0,
         "head_sway_slow": 2.0,
+        "source_face_lock_full": True,
     }).encode()
     _, _, _, o = _parse_render_body(body)
     assert o["lip_lock"] is True and o["head_sway_amp"] == 0.6 and o["eyes_open_lock"] is True
@@ -1772,6 +1773,7 @@ def test_parse_render_body_extracts_new_opts():
     assert o["head_yaw_offset"] == -12.0
     assert o["head_pitch_offset"] == 8.0
     assert o["head_sway_slow"] == 2.0
+    assert o["source_face_lock_full"] is True
 
 
 def test_parse_render_body_defaults_none():
@@ -1786,6 +1788,7 @@ def test_parse_render_body_defaults_none():
     assert o["head_yaw_offset"] is None
     assert o["head_pitch_offset"] is None
     assert o["head_sway_slow"] is None
+    assert o["source_face_lock_full"] is None
 
 
 def test_idle_kwargs_includes_new_opts_and_excludes_none():
@@ -1795,16 +1798,16 @@ def test_idle_kwargs_includes_new_opts_and_excludes_none():
         "lip_lock": True, "head_sway_amp": 0.6, "eyes_open_lock": True,
         "source_face_lock": True, "blink_interval_sec": 3.5,
         "head_yaw_offset": -12.0, "head_pitch_offset": 8.0,
-        "head_sway_slow": 2.0, "blink": False,
+        "head_sway_slow": 2.0, "source_face_lock_full": True, "blink": False,
     }) == {
         "lip_lock": True, "head_sway_amp": 0.6, "eyes_open_lock": True,
         "source_face_lock": True, "blink_interval_sec": 3.5,
         "head_yaw_offset": -12.0, "head_pitch_offset": 8.0,
-        "head_sway_slow": 2.0,
+        "head_sway_slow": 2.0, "source_face_lock_full": True,
     }
     assert _idle_kwargs({
         "lip_lock": None, "head_sway_amp": None, "eyes_open_lock": None,
         "source_face_lock": None, "blink_interval_sec": None,
         "head_yaw_offset": None, "head_pitch_offset": None,
-        "head_sway_slow": None,
+        "head_sway_slow": None, "source_face_lock_full": None,
     }) == {}

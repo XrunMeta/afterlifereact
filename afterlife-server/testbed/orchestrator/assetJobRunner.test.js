@@ -1762,6 +1762,8 @@ v_2a805f('FILLER_SPECS render_opts: 공통 source_face_lock·eyes_open_lock·bli
   v_ce93bd.equal(v_ddfcca.length, 6);
 
   v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.source_face_lock === true));
+
+  v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.source_face_lock_full === true));
   v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.eyes_open_lock === true));
 
   v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.blink_interval_sec === 6.0));

@@ -937,6 +937,50 @@ def test_source_face_lock_forces_lip_keypoints_only(tmp_path):
             )
 
 
+def test_source_face_lock_full_forces_all_keypoints(tmp_path):
+    """source_face_lock_full=True 시 21개 전체 exp를 소스로 고정(눈·눈썹까지 중립표정).
+
+    히즈키: 필러 눈이 idle보다 커 보임 → JoyVASA 눈/눈썹 exp 제거 위해 전체 고정.
+    lip-only(full=False)와 대비 — non-lip 키포인트도 소스와 일치해야 함.
+    """
+    from fifth_render import stream_wav_frames, _LIP_IDX
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJPWithDistinctExp(25)
+    sources = _single_sources()
+    stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+        source_face_lock=True, source_face_lock_full=True,
+    )
+    src_exp = sources["open_s"]["src_info"][0][0]["exp"]
+    assert eng.exps
+    for e in eng.exps:
+        # 21개 전체(lip + non-lip)가 소스 exp와 일치
+        assert np.array_equal(e, src_exp), "전체 exp가 소스로 고정되지 않음"
+
+
+def test_source_face_lock_full_false_is_lip_only(tmp_path):
+    """source_face_lock_full=False(명시)는 lip-only 경로와 동일(non-lip은 JoyVASA 유지)."""
+    from fifth_render import stream_wav_frames, _LIP_IDX
+    cfg = FifthConfig.from_env()
+    eng = _CdlCeCaptureEngine()
+    jp = _FakeJPWithDistinctExp(25)
+    sources = _single_sources()
+    stream_wav_frames(
+        eng, jp, cfg, sources, _silent_wav(tmp_path),
+        on_frame=lambda f: None, blink_enabled=False,
+        source_face_lock=True, source_face_lock_full=False,
+    )
+    src_exp = sources["open_s"]["src_info"][0][0]["exp"]
+    non_lip_idx = [i for i in range(21) if i not in _LIP_IDX]
+    assert eng.exps
+    for e in eng.exps:
+        assert np.array_equal(e[:, _LIP_IDX, :], src_exp[:, _LIP_IDX, :])
+        for k in non_lip_idx:
+            assert not np.allclose(e[0, k, :], src_exp[0, k, :])
+
+
 def test_source_face_lock_forces_cdl_to_source_lip_ratio(tmp_path):
     """source_face_lock=True 시 c_d_lip 전부 open_s["lip_close_ratio"](소스 원본 입) 고정."""
     from fifth_render import stream_wav_frames

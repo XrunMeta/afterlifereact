@@ -256,6 +256,7 @@ def stream_wav_frames(
     head_yaw_offset: float | None = None,
     head_pitch_offset: float | None = None,
     head_sway_slow: float | None = None,
+    source_face_lock_full: bool | None = None,
 ) -> tuple[int, PhaseToken]:
     """wav 한 문장 → 프레임 생성마다 on_frame(rgb) 호출. 반환: (프레임 수, 끝 위상 토큰).
 
@@ -340,16 +341,23 @@ def stream_wav_frames(
             slow=(head_sway_slow if head_sway_slow is not None else 1.0),
         )
 
-    # T-120: source_face_lock — exp의 lip 키포인트(_LIP_IDX, 6개)만 소스(원본 사진)
-    # exp로 고정(오디오·JoyVASA 무관). 나머지 15개(눈·눈썹 등)는 JoyVASA 원본 모션을
-    # 유지해 눈동자 움직임을 살린다(히즈키 피드백: 전체 고정→lip-only 전환).
+    # T-120: source_face_lock — exp를 소스(원본 사진) exp로 고정(오디오·JoyVASA 무관).
+    # source_face_lock_full=False(기본): lip 키포인트(_LIP_IDX, 6개)만 고정 → 나머지
+    #   15개(눈·눈썹)는 JoyVASA 모션 유지 → 눈동자 움직임 살아있음(단, 눈이 커 보일 수 있음).
+    # source_face_lock_full=True: 21개 전체 고정 → 눈·눈썹까지 원본 중립표정(idle처럼).
+    #   JoyVASA 눈/눈썹 exp(눈 확대 원인) 제거. blink(c_eyes)·head_sway는 별도라 유지됨.
+    #   (히즈키: 필러 눈이 idle보다 커 보임 → 전체 고정 옵션 재도입.)
     # head_sway는 R만 건드리므로 순서는 무관하나, exp 최종 확정을 위해 head_sway 뒤에 적용.
     if source_face_lock:
         src_exp = np.asarray(sources["open_s"]["src_info"][0][0]["exp"]).astype(np.float32)
+        _full = bool(source_face_lock_full)
         for i in range(nj):
             m = dict(ml[i])
             e = np.asarray(m["exp"]).astype(np.float32).copy()
-            e[:, _LIP_IDX, :] = src_exp[:, _LIP_IDX, :]
+            if _full:
+                e[:, :, :] = src_exp[:, :, :]
+            else:
+                e[:, _LIP_IDX, :] = src_exp[:, _LIP_IDX, :]
             m["exp"] = e
             ml[i] = m
 
