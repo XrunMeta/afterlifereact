@@ -402,7 +402,9 @@ export default function CallScreen({ route, navigation }: Props) {
         return;
       }
 
-      if (action.kind === "silent") {
+      const hasSpokenName = name.trim().length > 0;
+
+      if (action.kind === "silent" && !hasSpokenName) {
 
         const pendingId = faceEnroll.getPendingPersonId();
         const enrolledId = faceEnroll.getEnrolledPersonId();
