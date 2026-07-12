@@ -88,5 +88,18 @@
     "intimacyL2": "親しくなる段階",
     "intimacyL3": "深い絆",
     "intimacyL4": "最高の親密度"
+  },
+  "permissionGate": {
+    "title": "カメラとマイクの権限が必要です",
+    "desc": "ビデオ通話のためにカメラとマイクの権限が必要です",
+    "cameraLabel": "カメラ",
+    "micLabel": "マイク",
+    "statusGranted": "許可済み",
+    "statusDenied": "拒否",
+    "statusUndetermined": "権限が必要",
+    "statusBlocked": "ブロック済み",
+    "requestButton": "権限を許可",
+    "settingsButton": "設定で権限をオンにする",
+    "loading": "権限を確認中..."
   }
 }
