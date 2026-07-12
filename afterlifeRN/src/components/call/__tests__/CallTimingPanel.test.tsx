@@ -1,13 +1,21 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render, fireEvent, act } from '@testing-library/react-native';
 import { CallTimingPanel } from '../CallTimingPanel';
-import { useTimingConfigStore, TIMING_DEFAULTS } from '../../../realtime/timingConfig';
+import { useTimingConfigStore, TIMING_DEFAULTS, formatTimingEnv } from '../../../realtime/timingConfig';
+
+jest.mock('expo-clipboard', () => ({
+  setStringAsync: jest.fn(),
+}));
+import * as Clipboard from 'expo-clipboard';
 
 const renderPanel = (over: Partial<React.ComponentProps<typeof CallTimingPanel>> = {}) =>
   render(<CallTimingPanel onForceListen={() => {}} micOn={true} onToggleMic={() => {}} {...over} />);
 
 describe('CallTimingPanel', () => {
-  beforeEach(() => useTimingConfigStore.setState({ ...TIMING_DEFAULTS }));
+  beforeEach(() => {
+    useTimingConfigStore.setState({ ...TIMING_DEFAULTS });
+    jest.clearAllMocks();
+  });
 
   it('expands and steps a constant up', () => {
     const { getByText } = renderPanel();
@@ -53,5 +61,36 @@ describe('CallTimingPanel', () => {
 
     rerender(<CallTimingPanel onForceListen={() => {}} micOn={false} onToggleMic={onToggleMic} />);
     expect(queryByText(/녹음금지/)).toBeTruthy();
+  });
+
+  it('copy env button copies the current 4 values to clipboard and logs a backup', () => {
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const { getByText } = renderPanel();
+    fireEvent.press(getByText(/tune/i));
+    fireEvent.press(getByText('[copy env]'));
+    const expected = formatTimingEnv({
+      sttEndpointMs: TIMING_DEFAULTS.sttEndpointMs,
+      echoGateMs: TIMING_DEFAULTS.echoGateMs,
+      cloneResumeMs: TIMING_DEFAULTS.cloneResumeMs,
+      cloneTailGraceMs: TIMING_DEFAULTS.cloneTailGraceMs,
+    });
+    expect(Clipboard.setStringAsync).toHaveBeenCalledWith(expected);
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('[timing-env]'));
+    logSpy.mockRestore();
+  });
+
+  it('copy env button shows and then clears an inline "copied" status (no Alert)', () => {
+    jest.useFakeTimers();
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    const alertSpy = jest.spyOn(require('react-native/Libraries/Alert/Alert'), 'alert');
+    const { getByText, queryByText } = renderPanel();
+    fireEvent.press(getByText(/tune/i));
+    fireEvent.press(getByText('[copy env]'));
+    expect(queryByText('copied ✓')).toBeTruthy();
+    expect(alertSpy).not.toHaveBeenCalled();
+    act(() => { jest.advanceTimersByTime(2100); });
+    expect(queryByText('copied ✓')).toBeFalsy();
+    jest.useRealTimers();
+    (console.log as jest.Mock).mockRestore?.();
   });
 });

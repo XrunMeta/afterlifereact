@@ -1,8 +1,9 @@
 
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Switch } from 'react-native';
-import { useTimingConfigStore, TIMING_BOUNDS, type TimingConfig } from '../../realtime/timingConfig';
+import * as Clipboard from 'expo-clipboard';
+import { useTimingConfigStore, TIMING_BOUNDS, formatTimingEnv, type TimingConfig } from '../../realtime/timingConfig';
 
 const KEYS: Array<keyof TimingConfig> = ['sttEndpointMs', 'echoGateMs', 'cloneResumeMs', 'cloneTailGraceMs'];
 
@@ -20,6 +21,27 @@ export const CallTimingPanel: React.FC<{
   const confirmGateEnabled = useTimingConfigStore((s) => s.confirmGateEnabled);
   const setConfirmGateEnabled = useTimingConfigStore((s) => s.setConfirmGateEnabled);
   const invariantWarn = cfg.cloneResumeMs >= cfg.cloneTailGraceMs;
+  const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (copiedTimer.current) clearTimeout(copiedTimer.current);
+  }, []);
+
+  const handleCopyEnv = () => {
+    const str = formatTimingEnv({
+      sttEndpointMs: cfg.sttEndpointMs,
+      echoGateMs: cfg.echoGateMs,
+      cloneResumeMs: cfg.cloneResumeMs,
+      cloneTailGraceMs: cfg.cloneTailGraceMs,
+    });
+
+    console.log('[timing-env]\n' + str);
+    Clipboard.setStringAsync(str);
+    setCopied(true);
+    if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    copiedTimer.current = setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <View style={styles.wrap}>
@@ -60,9 +82,15 @@ export const CallTimingPanel: React.FC<{
             <Text style={styles.stepLabel}>확인 게이트(2초 대기)</Text>
             <Switch value={confirmGateEnabled} onValueChange={setConfirmGateEnabled} />
           </View>
-          <TouchableOpacity onPress={reset} style={styles.resetBtn}>
-            <Text style={styles.resetTxt}>reset</Text>
-          </TouchableOpacity>
+          <View style={styles.stepRow}>
+            <TouchableOpacity onPress={reset} style={styles.resetBtn}>
+              <Text style={styles.resetTxt}>reset</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleCopyEnv} style={styles.copyBtn}>
+              <Text style={styles.copyTxt}>[copy env]</Text>
+            </TouchableOpacity>
+            {copied ? <Text style={styles.copiedTxt}>copied ✓</Text> : null}
+          </View>
         </View>
       ) : null}
     </View>
@@ -95,4 +123,7 @@ const styles = StyleSheet.create({
   warn: { color: '#f87171', fontSize: 10, fontFamily: MONO, marginVertical: 2 },
   resetBtn: { marginTop: 3, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: '#f59e0b', alignSelf: 'flex-start' },
   resetTxt: { color: '#f59e0b', fontSize: 11, fontFamily: MONO },
+  copyBtn: { marginTop: 3, marginLeft: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: '#38bdf8', alignSelf: 'flex-start' },
+  copyTxt: { color: '#38bdf8', fontSize: 11, fontFamily: MONO },
+  copiedTxt: { marginTop: 3, marginLeft: 6, color: '#7CFC00', fontSize: 11, fontFamily: MONO, alignSelf: 'center' },
 });
