@@ -1771,10 +1771,10 @@ test('FILLER_SPECS render_opts: 공통 source_face_lock·eyes_open_lock·blink_i
   assert.ok(FILLER_SPECS.every((s) => s.render_opts.blink_interval_sec === 6.0));
   assert.equal(FILLER_SPECS[0].render_opts.head_sway_amp, 0.0);
 
-  assert.equal(FILLER_SPECS[2].render_opts.head_sway_amp, 0.4);
-  assert.equal(FILLER_SPECS[3].render_opts.head_sway_amp, 0.4);
+  assert.equal(FILLER_SPECS[2].render_opts.head_sway_amp, 0.2);
+  assert.equal(FILLER_SPECS[3].render_opts.head_sway_amp, 0.2);
   assert.equal(FILLER_SPECS[4].render_opts.head_sway_amp, 0.0);
-  assert.equal(FILLER_SPECS[5].render_opts.head_sway_amp, 0.2);
+  assert.equal(FILLER_SPECS[5].render_opts.head_sway_amp, 0.1);
 
   assert.ok(FILLER_SPECS.every((s) => !s.text.includes('아')));
 
@@ -1791,10 +1791,10 @@ test('FILLER_SPECS render_opts: 시선 오프셋 세트(idx0 정면·1/2 좌우�
 
   assert.equal(FILLER_SPECS[0].render_opts.head_yaw_offset, 0);
   assert.equal(FILLER_SPECS[0].render_opts.head_pitch_offset, 0);
-  assert.equal(FILLER_SPECS[1].render_opts.head_yaw_offset, -12);
-  assert.equal(FILLER_SPECS[2].render_opts.head_yaw_offset, 12);
-  assert.equal(FILLER_SPECS[3].render_opts.head_pitch_offset, 8);
-  assert.equal(FILLER_SPECS[4].render_opts.head_pitch_offset, -8);
+  assert.equal(FILLER_SPECS[1].render_opts.head_yaw_offset, -6);
+  assert.equal(FILLER_SPECS[2].render_opts.head_yaw_offset, 6);
+  assert.equal(FILLER_SPECS[3].render_opts.head_pitch_offset, 4);
+  assert.equal(FILLER_SPECS[4].render_opts.head_pitch_offset, -4);
 
   assert.equal(FILLER_SPECS[5].render_opts.head_yaw_offset, undefined);
   assert.equal(FILLER_SPECS[5].render_opts.head_pitch_offset, undefined);
