@@ -11,12 +11,12 @@ import { v_b74bce as v_6f549a } from '../lib/guideMentSuggest.js';
 const v_0b3156 = 2.0;
 
 export const v_ddfcca = [
-  { text: '음..... 음... 음..', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 6.0, head_sway_amp: 0.0, head_yaw_offset: 0, head_pitch_offset: 0, head_sway_slow: v_0b3156 } },
-  { text: '음... 음.....', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 6.0, head_sway_amp: 0.0, head_yaw_offset: -12, head_sway_slow: v_0b3156 } },
-  { text: '으음... 음.....', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 6.0, head_sway_amp: 0.4, head_yaw_offset: 12, head_sway_slow: v_0b3156 } },
-  { text: '음..... 음...', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 6.0, head_sway_amp: 0.4, head_pitch_offset: 8, head_sway_slow: v_0b3156 } }, 
-  { text: '음... 으음...', render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 6.0, head_sway_amp: 0.0, head_pitch_offset: -8, head_sway_slow: v_0b3156 } }, 
-  { text: '흠.....', atempo: 0.55, render_opts: { eyes_open_lock: true, source_face_lock: true, blink_interval_sec: 6.0, head_sway_amp: 0.2, head_sway_slow: v_0b3156 } }, 
+  { text: '음..... 음... 음..', render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.0, head_yaw_offset: 0, head_pitch_offset: 0, head_sway_slow: v_0b3156 } },
+  { text: '음... 음.....', render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.0, head_yaw_offset: -6, head_sway_slow: v_0b3156 } },
+  { text: '으음... 음.....', render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.2, head_yaw_offset: 6, head_sway_slow: v_0b3156 } },
+  { text: '음..... 음...', render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.2, head_pitch_offset: 4, head_sway_slow: v_0b3156 } }, 
+  { text: '음... 으음...', render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.0, head_pitch_offset: -4, head_sway_slow: v_0b3156 } }, 
+  { text: '흠.....', atempo: 0.55, render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.1, head_sway_slow: v_0b3156 } }, 
 ];
 
 export const v_9aedb6 = v_ddfcca.map((v_fd5f43) => v_fd5f43.text);
@@ -46,16 +46,42 @@ const v_b6be30 = 600;
 
 export const v_ae5012 = 0.3;
 
-const v_6c5db3 = -20;
+export const v_a5c84f = -12;
 
-export function v_aefc06(v_58fa67, v_3a62ab, v_b236cc, v_2fd1e9) {
+export function v_6ac389(v_f2bb81, v_80b7f4 = v_0d816f) {
+  return new Promise((v_6f7712) => {
+    let v_49263d = '';
+    let v_e2a85c;
+    try {
+      v_e2a85c = v_80b7f4('ffmpeg', ['-i', v_f2bb81, '-af', 'volumedetect', '-f', 'null', '-'],
+        { stdio: ['ignore', 'ignore', 'pipe'] });
+    } catch {
+      v_6f7712(null);
+      return;
+    }
+    v_e2a85c.stderr.on('data', (v_d5dda0) => { v_49263d += v_d5dda0; });
+    v_e2a85c.on('close', () => {
+      const v_35f85c = v_49263d.match(/max_volume:\s*(-?\d+(?:\.\d+)?)\s*dB/);
+      v_6f7712(v_35f85c ? parseFloat(v_35f85c[1]) : null);
+    });
+    v_e2a85c.on('error', () => v_6f7712(null));
+  });
+}
+
+export function v_3a5853(v_ec74f7, v_60d981 = v_a5c84f) {
+  if (v_ec74f7 == null || !Number.isFinite(v_ec74f7)) return 0;
+  return Math.max(-6, Math.min(40, v_60d981 - v_ec74f7));
+}
+
+export function v_aefc06(v_58fa67, v_3a62ab, v_b236cc, v_2fd1e9, v_ad2c6d) {
   const v_5cce2c = v_2fd1e9 ? `atempo=${v_2fd1e9},` : '';
+  const v_ea00eb = v_ad2c6d != null ? `volume=${v_ad2c6d}dB` : `volume=${v_ae5012}`;
   return {
     bin: 'ffmpeg',
     args: [
       '-y',
       '-i', v_58fa67,
-      '-af', `${v_5cce2c}volume=${v_ae5012},adelay=${v_b6be30}:all=1,apad=whole_dur=${v_b236cc}`,
+      '-af', `${v_5cce2c}${v_ea00eb},adelay=${v_b6be30}:all=1,apad=whole_dur=${v_b236cc}`,
       v_3a62ab,
     ],
   };
@@ -246,6 +272,7 @@ export function v_47bade({
   fifthRenderUrl: v_65da63 = process.env.FIFTH_RENDER_URL ?? 'http://127.0.0.1:8810',
   ffmpegMuxCmd: v_59eea3 = v_7e9d02,
   ffmpegPadCmd: v_792967 = v_aefc06,
+  ffmpegPeakDbFn: v_6eee2a = v_6ac389, 
   _qwenTtsFn: v_6b1168 = null,    
   _fifthRenderFn: v_5a5306 = null, 
 
@@ -374,9 +401,12 @@ export function v_47bade({
       const v_3dc1af = v_9fe22d.join(v_b7cff2, `filler_${v_ebec57}_raw.wav`);
       await v_354e0a(v_3dc1af, v_055b42);
 
+      const v_25a59b = await v_6eee2a(v_3dc1af, v_b1d1a2);
+      const v_743a8f = v_3a5853(v_25a59b);
+
       const v_6f2e2a = v_9fe22d.join(v_b7cff2, `filler_${v_ebec57}.wav`);
       const v_139d75 = Math.max(6, v_7e5b4f[v_ebec57] ?? 6.5);
-      const v_a24bde = v_792967(v_3dc1af, v_6f2e2a, v_139d75, v_2750f3.atempo);
+      const v_a24bde = v_792967(v_3dc1af, v_6f2e2a, v_139d75, v_2750f3.atempo, v_743a8f);
       await v_d9b231(v_a24bde.bin, v_a24bde.args, v_b1d1a2);
 
       const v_3b40dd = await v_dc2910(v_6f2e2a, v_fa1e4b, v_65da63, v_2750f3.render_opts);
@@ -394,7 +424,7 @@ export function v_47bade({
       }
 
       const v_f1812c = v_9fe22d.join(v_b7cff2, `filler_${v_ebec57}.mp4`);
-      const v_10dec2 = v_59eea3(v_7746b5, v_6f2e2a, v_f1812c, v_6c5db3);
+      const v_10dec2 = v_59eea3(v_7746b5, v_6f2e2a, v_f1812c);
       await v_d9b231(v_10dec2.bin, v_10dec2.args, v_b1d1a2);
       v_163edf.push(await v_c6410d(v_f1812c));
     }
