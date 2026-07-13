@@ -2,6 +2,8 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import type { RootStackParamList, AuthStackParamList } from "./types";
 import { useAuthStore } from "../stores/authStore";
+import { usePermissionGate } from "../permissions/usePermissionGate";
+import PermissionGateScreen from "../permissions/PermissionGateScreen";
 
 import LoginScreen from "../screens/auth/LoginScreen";
 import SignupScreen from "../screens/auth/SignupScreen";
@@ -44,6 +46,15 @@ function AuthNavigator() {
 
 export default function RootNavigator() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+
+  const { decision, loading: permLoading } = usePermissionGate();
+
+  const permGateBlocking = isLoggedIn && (permLoading || !decision.pass);
+
+  if (permGateBlocking) {
+
+    return <PermissionGateScreen />;
+  }
 
   return (
     <RootStack.Navigator screenOptions={{ headerShown: false }}>
