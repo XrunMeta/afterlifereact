@@ -12,11 +12,11 @@ const v_0b3156 = 2.0;
 
 export const v_ddfcca = [
   { text: '음..... 음... 음..', render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.0, head_yaw_offset: 0, head_pitch_offset: 0, head_sway_slow: v_0b3156 } },
-  { text: '음... 음.....', render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.0, head_yaw_offset: -12, head_sway_slow: v_0b3156 } },
-  { text: '으음... 음.....', render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.4, head_yaw_offset: 12, head_sway_slow: v_0b3156 } },
-  { text: '음..... 음...', render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.4, head_pitch_offset: 8, head_sway_slow: v_0b3156 } }, 
-  { text: '음... 으음...', render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.0, head_pitch_offset: -8, head_sway_slow: v_0b3156 } }, 
-  { text: '흠.....', atempo: 0.55, render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.2, head_sway_slow: v_0b3156 } }, 
+  { text: '음... 음.....', render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.0, head_yaw_offset: -6, head_sway_slow: v_0b3156 } },
+  { text: '으음... 음.....', render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.2, head_yaw_offset: 6, head_sway_slow: v_0b3156 } },
+  { text: '음..... 음...', render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.2, head_pitch_offset: 4, head_sway_slow: v_0b3156 } }, 
+  { text: '음... 으음...', render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.0, head_pitch_offset: -4, head_sway_slow: v_0b3156 } }, 
+  { text: '흠.....', atempo: 0.55, render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.1, head_sway_slow: v_0b3156 } }, 
 ];
 
 export const v_9aedb6 = v_ddfcca.map((v_fd5f43) => v_fd5f43.text);
@@ -46,7 +46,7 @@ const v_b6be30 = 600;
 
 export const v_ae5012 = 0.3;
 
-export const v_a5c84f = -6;
+export const v_a5c84f = -12;
 
 export function v_6ac389(v_f2bb81, v_80b7f4 = v_0d816f) {
   return new Promise((v_6f7712) => {

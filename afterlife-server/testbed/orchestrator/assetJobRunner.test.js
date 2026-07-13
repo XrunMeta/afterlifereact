@@ -1771,10 +1771,10 @@ v_2a805f('FILLER_SPECS render_opts: 공통 source_face_lock·eyes_open_lock·bli
   v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.blink_interval_sec === 6.0));
   v_ce93bd.equal(v_ddfcca[0].render_opts.head_sway_amp, 0.0);
 
-  v_ce93bd.equal(v_ddfcca[2].render_opts.head_sway_amp, 0.4);
-  v_ce93bd.equal(v_ddfcca[3].render_opts.head_sway_amp, 0.4);
+  v_ce93bd.equal(v_ddfcca[2].render_opts.head_sway_amp, 0.2);
+  v_ce93bd.equal(v_ddfcca[3].render_opts.head_sway_amp, 0.2);
   v_ce93bd.equal(v_ddfcca[4].render_opts.head_sway_amp, 0.0);
-  v_ce93bd.equal(v_ddfcca[5].render_opts.head_sway_amp, 0.2);
+  v_ce93bd.equal(v_ddfcca[5].render_opts.head_sway_amp, 0.1);
 
   v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => !v_fd5f43.text.includes('아')));
 
@@ -1791,10 +1791,10 @@ v_2a805f('FILLER_SPECS render_opts: 시선 오프셋 세트(idx0 정면·1/2 좌
 
   v_ce93bd.equal(v_ddfcca[0].render_opts.head_yaw_offset, 0);
   v_ce93bd.equal(v_ddfcca[0].render_opts.head_pitch_offset, 0);
-  v_ce93bd.equal(v_ddfcca[1].render_opts.head_yaw_offset, -12);
-  v_ce93bd.equal(v_ddfcca[2].render_opts.head_yaw_offset, 12);
-  v_ce93bd.equal(v_ddfcca[3].render_opts.head_pitch_offset, 8);
-  v_ce93bd.equal(v_ddfcca[4].render_opts.head_pitch_offset, -8);
+  v_ce93bd.equal(v_ddfcca[1].render_opts.head_yaw_offset, -6);
+  v_ce93bd.equal(v_ddfcca[2].render_opts.head_yaw_offset, 6);
+  v_ce93bd.equal(v_ddfcca[3].render_opts.head_pitch_offset, 4);
+  v_ce93bd.equal(v_ddfcca[4].render_opts.head_pitch_offset, -4);
 
   v_ce93bd.equal(v_ddfcca[5].render_opts.head_yaw_offset, undefined);
   v_ce93bd.equal(v_ddfcca[5].render_opts.head_pitch_offset, undefined);
