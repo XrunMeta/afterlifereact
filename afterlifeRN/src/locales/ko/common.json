@@ -557,7 +557,13 @@
       "memlowNote": "사진은 지금 추가하거나, 나중에 추가할 수 있어요.",
       "memlowSelectHint": "사진을 선택하거나 건너뛸 수 있어요",
       "memlowRights": "사진 사용에 대한 권리를 확인했어요 (가족 동의·초상권).",
-      "cropFailed": "사진 크롭에 실패했어요. 다시 시도해 주세요."
+      "cropFailed": "사진 크롭에 실패했어요. 다시 시도해 주세요.",
+      "sourceTitle": "사진 추가",
+      "sourceCamera": "사진 촬영",
+      "sourceLibrary": "앨범에서 선택",
+      "cameraPermTitle": "카메라 권한",
+      "cameraPermDeniedMsg": "카메라 권한이 필요해요. 촬영하려면 권한을 허용해주세요.",
+      "cameraPermBlockedMsg": "카메라 권한이 꺼져 있어요. 설정에서 카메라 권한을 켜주세요."
     },
     "voice": {
       "presets": "기본 음성 프리셋",

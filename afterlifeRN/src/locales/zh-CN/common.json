@@ -63,7 +63,13 @@
   },
   "create": {
     "image": {
-      "cropFailed": "图片裁剪失败，请重试。"
+      "cropFailed": "图片裁剪失败，请重试。",
+      "sourceTitle": "添加照片",
+      "sourceCamera": "拍照",
+      "sourceLibrary": "从相册选择",
+      "cameraPermTitle": "相机权限",
+      "cameraPermDeniedMsg": "需要相机权限才能拍照，请允许访问相机。",
+      "cameraPermBlockedMsg": "相机权限已关闭，请在设置中开启相机权限。"
     }
   },
   "feed": {
