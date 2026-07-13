@@ -74,7 +74,7 @@ export async function recordAfterlifeGiftCommission(
   const amount = Math.round(input.totalXrun * 0.1 * 1_000_000) / 1_000_000;
   await xrun
     .prepare(
-      `INSERT INTO SettlementRecords
+      `INSERT INTO AfterlifeSettlementRecords
          (session_id, member, wallet_address, krw_amount, xrun_amount, xrun_price,
           level, source_callback_id, source_type, status)
          VALUES (?, ?, ?, 0, ?, 0, 2, ?, 'afterlife_gift', 'pending')`,
@@ -137,7 +137,7 @@ export async function recordAfterlifePersonaPayment(
   const amount = Math.round(input.totalXrun * 1_000_000) / 1_000_000;
   await xrun
     .prepare(
-      `INSERT INTO SettlementRecords
+      `INSERT INTO AfterlifeSettlementRecords
          (session_id, member, wallet_address, krw_amount, xrun_amount, xrun_price,
           level, source_callback_id, source_type, status)
          VALUES (?, 0, ?, 0, ?, 0, 0, ?, 'afterlife_persona', 'pending')`,

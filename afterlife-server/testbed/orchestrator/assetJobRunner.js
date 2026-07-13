@@ -8,13 +8,15 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { suggestGuideMents as defaultSuggestGuideMents } from '../lib/guideMentSuggest.js';
 
+const FILLER_SWAY_SLOW = 2.0;
+
 export const FILLER_SPECS = [
-  { text: '음..... 음... 음..' },
-  { text: '음... 음.....' },
-  { text: '으음... 음.....' },
-  { text: '아........ 음...' },
-  { text: '음... 아.....' },
-  { text: '아.....', atempo: 0.55 },
+  { text: '음..... 음... 음..', render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.0, head_yaw_offset: 0, head_pitch_offset: 0, head_sway_slow: FILLER_SWAY_SLOW } },
+  { text: '음... 음.....', render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.0, head_yaw_offset: -6, head_sway_slow: FILLER_SWAY_SLOW } },
+  { text: '으음... 음.....', render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.2, head_yaw_offset: 6, head_sway_slow: FILLER_SWAY_SLOW } },
+  { text: '음..... 음...', render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.2, head_pitch_offset: 4, head_sway_slow: FILLER_SWAY_SLOW } }, 
+  { text: '음... 으음...', render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.0, head_pitch_offset: -4, head_sway_slow: FILLER_SWAY_SLOW } }, 
+  { text: '흠.....', atempo: 0.55, render_opts: { eyes_open_lock: true, source_face_lock: true, source_face_lock_full: true, blink_interval_sec: 6.0, head_sway_amp: 0.1, head_sway_slow: FILLER_SWAY_SLOW } }, 
 ];
 
 export const FILLER_TEXTS = FILLER_SPECS.map((s) => s.text);
@@ -38,26 +40,55 @@ export function defaultExtractSeCmd(src, out) {
   return { bin: OPENVOICE_PY, args: [AFL_EXTRACT_SE_IO, src, out] };
 }
 
-export const FILLER_TARGET_DUR_SEC = [6.0, 6.5, 7.0, 7.5, 8.0, 8.5];
+export const FILLER_TARGET_DUR_SEC = [12.0, 13.0, 14.0, 15.0, 16.0, 17.0];
 
 const FILLER_LEAD_SILENCE_MS = 600;
 
 export const FILLER_VOLUME = 0.3;
 
-export function defaultFfmpegPadCmd(inWav, outWav, wholeDurSec, atempo) {
+export const FILLER_PEAK_TARGET_DB = -12;
+
+export function defaultFfmpegPeakDb(wavPath, spawnFn = spawn) {
+  return new Promise((resolve) => {
+    let err = '';
+    let p;
+    try {
+      p = spawnFn('ffmpeg', ['-i', wavPath, '-af', 'volumedetect', '-f', 'null', '-'],
+        { stdio: ['ignore', 'ignore', 'pipe'] });
+    } catch {
+      resolve(null);
+      return;
+    }
+    p.stderr.on('data', (d) => { err += d; });
+    p.on('close', () => {
+      const m = err.match(/max_volume:\s*(-?\d+(?:\.\d+)?)\s*dB/);
+      resolve(m ? parseFloat(m[1]) : null);
+    });
+    p.on('error', () => resolve(null));
+  });
+}
+
+export function fillerNormalizeGainDb(peakDb, targetDb = FILLER_PEAK_TARGET_DB) {
+  if (peakDb == null || !Number.isFinite(peakDb)) return 0;
+  return Math.max(-6, Math.min(40, targetDb - peakDb));
+}
+
+export function defaultFfmpegPadCmd(inWav, outWav, wholeDurSec, atempo, volumeDb) {
   const pre = atempo ? `atempo=${atempo},` : '';
+  const vol = volumeDb != null ? `volume=${volumeDb}dB` : `volume=${FILLER_VOLUME}`;
   return {
     bin: 'ffmpeg',
     args: [
       '-y',
       '-i', inWav,
-      '-af', `${pre}volume=${FILLER_VOLUME},adelay=${FILLER_LEAD_SILENCE_MS}:all=1,apad=whole_dur=${wholeDurSec}`,
+      '-af', `${pre}${vol},adelay=${FILLER_LEAD_SILENCE_MS}:all=1,apad=whole_dur=${wholeDurSec}`,
       outWav,
     ],
   };
 }
 
-export function defaultFfmpegMuxCmd(framesDir, wavPath, outPath) {
+export function defaultFfmpegMuxCmd(framesDir, wavPath, outPath, audioVolumeDb = null) {
+  const af = audioVolumeDb != null ? ['-af', `volume=${audioVolumeDb}dB`] : [];
   return {
     bin: 'ffmpeg',
     args: [
@@ -67,6 +98,7 @@ export function defaultFfmpegMuxCmd(framesDir, wavPath, outPath) {
       '-i', wavPath,
       '-c:v', 'libx264',
       '-pix_fmt', 'yuv420p',
+      ...af,
       '-c:a', 'aac',
       '-shortest',
       outPath,
@@ -150,7 +182,7 @@ export async function defaultQwenTts(text, cloneId, ttsUrl, fetchFn) {
   return Buffer.from(await r.arrayBuffer());
 }
 
-export async function defaultFifthRender(wavPath, facePath, renderUrl) {
+export async function defaultFifthRender(wavPath, facePath, renderUrl, renderOpts = null) {
   const { default: http } = await import('node:http');
   const { default: https } = await import('node:https');
 
@@ -160,7 +192,10 @@ export async function defaultFifthRender(wavPath, facePath, renderUrl) {
       return reject(new Error(`invalid fifthRenderUrl: ${renderUrl}`));
     }
     const mod = u.protocol === 'https:' ? https : http;
-    const bodyBuf = Buffer.from(JSON.stringify({ wav_path: wavPath, video_path: facePath }));
+
+    const bodyObj = { wav_path: wavPath, video_path: facePath };
+    if (renderOpts && typeof renderOpts === 'object') Object.assign(bodyObj, renderOpts);
+    const bodyBuf = Buffer.from(JSON.stringify(bodyObj));
 
     const req = mod.request(
       {
@@ -237,6 +272,7 @@ export function createAssetJobRunner({
   fifthRenderUrl = process.env.FIFTH_RENDER_URL ?? 'http://127.0.0.1:8810',
   ffmpegMuxCmd = defaultFfmpegMuxCmd,
   ffmpegPadCmd = defaultFfmpegPadCmd,
+  ffmpegPeakDbFn = defaultFfmpegPeakDb, 
   _qwenTtsFn = null,    
   _fifthRenderFn = null, 
 
@@ -250,7 +286,7 @@ export function createAssetJobRunner({
   let running = false;
 
   const qwenTtsFn = _qwenTtsFn ?? ((text, cloneId, url, fetchFn) => defaultQwenTts(text, cloneId, url, fetchFn));
-  const fifthRenderFn = _fifthRenderFn ?? ((wavPath, facePath, url) => defaultFifthRender(wavPath, facePath, url));
+  const fifthRenderFn = _fifthRenderFn ?? ((wavPath, facePath, url, renderOpts) => defaultFifthRender(wavPath, facePath, url, renderOpts));
   const ensureVoiceWavFn = _ensureVoiceWavFn ?? defaultEnsureVoiceWav;
 
   async function drain() {
@@ -365,12 +401,15 @@ export function createAssetJobRunner({
       const rawWavPath = path.join(dir, `filler_${i}_raw.wav`);
       await writeFile(rawWavPath, wavBuf);
 
+      const rawPeakDb = await ffmpegPeakDbFn(rawWavPath, spawnImpl);
+      const normGainDb = fillerNormalizeGainDb(rawPeakDb);
+
       const fillerWavPath = path.join(dir, `filler_${i}.wav`);
       const targetDur = Math.max(6, FILLER_TARGET_DUR_SEC[i] ?? 6.5);
-      const padCmd = ffmpegPadCmd(rawWavPath, fillerWavPath, targetDur, spec.atempo);
+      const padCmd = ffmpegPadCmd(rawWavPath, fillerWavPath, targetDur, spec.atempo, normGainDb);
       await run(padCmd.bin, padCmd.args, spawnImpl);
 
-      const frames = await fifthRenderFn(fillerWavPath, faceJpgPath, fifthRenderUrl);
+      const frames = await fifthRenderFn(fillerWavPath, faceJpgPath, fifthRenderUrl, spec.render_opts);
       if (frames.length === 0) {
         throw new Error(
           `fifth returned 0 frames for filler[${i}] — face source may be unsuitable (non-frontal or low-resolution)`

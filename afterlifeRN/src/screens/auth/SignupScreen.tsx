@@ -22,7 +22,8 @@ import CountryRegionPicker from "../../components/common/CountryRegionPicker";
 import TermsModal, { type AgreementType } from "../../components/common/TermsModal";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { requestEmailCode, signup, AuthApiError } from "../../api/auth";
-import { saveCallLearningConsent } from "../../api/consent";
+import { saveCallLearningConsent, saveFaceBiometricConsent } from "../../api/consent";
+import { faceBiometricSignupState } from "./faceBiometricSignupFlag";
 import { requestPushPermission } from "../../lib/pushNotifications";
 import { getOrCreateDeviceId } from "../../lib/deviceId";
 import type { RouteProp } from "@react-navigation/native";
@@ -78,6 +79,8 @@ export default function SignupScreen({ navigation, route }: Props) {
   const [agreeMarketing, setAgreeMarketing] = useState(false);
 
   const [agreeCallLearning, setAgreeCallLearning] = useState(false);
+
+  const [agreeFaceBiometric, setAgreeFaceBiometric] = useState(false);
 
   const agreeRequired = agreeService && agreePrivacy;
   const agreeAll = agreeRequired && agreeMarketing;
@@ -218,6 +221,15 @@ export default function SignupScreen({ navigation, route }: Props) {
           }
         }
 
+        try {
+          await saveFaceBiometricConsent(res.accessToken, faceBiometricSignupState(agreeFaceBiometric), {
+            termsVersion: "v1",
+            channel: "signup",
+          });
+        } catch (err) {
+          console.warn("[AUTH/signup] saveFaceBiometricConsent (google) failed:", err);
+        }
+
         navigation.replace("SignupComplete", {
           accessToken: res.accessToken,
           persist: true,
@@ -238,6 +250,7 @@ export default function SignupScreen({ navigation, route }: Props) {
         region: regionCode,
         marketingConsent: agreeMarketing,
         agreeCallLearning,
+        agreeFaceBiometric,
         pushToken: pushToken ?? undefined,
         platform: pushPlatform ?? undefined,
         deviceId: deviceId ?? undefined,
@@ -502,6 +515,27 @@ export default function SignupScreen({ navigation, route }: Props) {
                 </Text>
               </TouchableOpacity>
             </View>
+
+            {}
+            <View style={styles.checkRow}>
+              <TouchableOpacity
+                onPress={() => setAgreeFaceBiometric(!agreeFaceBiometric)}
+                hitSlop={8}
+              >
+                <View style={[styles.checkbox, agreeFaceBiometric && styles.checkboxChecked]}>
+                  {agreeFaceBiometric && <Feather name="check" size={14} color={COLORS.white} />}
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.termTextWrap}
+                onPress={() => setTermsModalType(4)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.termText, styles.termLink]}>
+                  {t("auth.signup.faceBiometricConsent")}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {}
@@ -536,6 +570,7 @@ export default function SignupScreen({ navigation, route }: Props) {
         onAgree={() => {
           if (termsModalType === 1) setAgreeService(true);
           else if (termsModalType === 3) setAgreePrivacy(true);
+          else if (termsModalType === 4) setAgreeFaceBiometric(true);
           else if (termsModalType === 5) setAgreeCallLearning(true);
           setTermsModalType(null);
         }}

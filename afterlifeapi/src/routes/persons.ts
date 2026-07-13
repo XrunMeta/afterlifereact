@@ -5,6 +5,8 @@ import type { AppEnv } from "../lib/env";
 import { APIError } from "../lib/errors";
 import { requireAuth } from "../middleware/auth";
 import { getFaceIndex } from "../lib/faceVectors";
+import { deletePersonCascade } from "../lib/personDelete";
+import { assertValidDisplayName } from "../lib/displayName";
 
 export const persons = new Hono<AppEnv>();
 
@@ -15,29 +17,41 @@ function parsePersonId(c: { req: { param: (k: string) => string } }): number {
   return id;
 }
 
+export function isFaceConsentEnforced(env: { FACE_CONSENT_ENFORCED?: string }): boolean {
+  return env.FACE_CONSENT_ENFORCED === "true";
+}
+
 persons.post("/", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const body = await c.req
-    .json<{ cloneId?: number; displayName?: string }>()
-    .catch(() => ({}) as { cloneId?: number; displayName?: string });
+    .json<{ cloneId?: number; displayName?: string; enrolledVia?: string }>()
+    .catch(() => ({}) as { cloneId?: number; displayName?: string; enrolledVia?: string });
 
   const cloneId = body.cloneId ?? null;
 
   let displayName: string | null = null;
   if (body.displayName !== undefined) {
-    if (typeof body.displayName !== "string") {
-      throw new APIError("VALIDATION_FAILED", "displayName은 문자열이어야 합니다.");
-    }
-    const trimmed = body.displayName.trim();
-    if (trimmed.length < 1 || trimmed.length > 30) {
-      throw new APIError("VALIDATION_FAILED", "displayName은 1~30자여야 합니다.");
-    }
-
-    if (/[\x00-\x1f\x7f​-‏‪-‮⁠-⁯﻿]/.test(trimmed)) {
-      throw new APIError("VALIDATION_FAILED", "displayName에 제어문자를 사용할 수 없습니다.");
-    }
-    displayName = trimmed;
+    displayName = assertValidDisplayName(body.displayName);
   }
+
+  let enrolledVia: "card" | "auto_biometric" = "card";
+  if (body.enrolledVia !== undefined) {
+    if (body.enrolledVia !== "card" && body.enrolledVia !== "auto_biometric") {
+      throw new APIError("VALIDATION_FAILED", "enrolledVia는 'card' 또는 'auto_biometric'이어야 합니다.");
+    }
+    enrolledVia = body.enrolledVia;
+  }
+
+  if (enrolledVia === "auto_biometric" && isFaceConsentEnforced(c.env)) {
+    const user = await c.env.DB.prepare(`SELECT face_biometric_consent FROM users WHERE id = ?`)
+      .bind(userId)
+      .first<{ face_biometric_consent: number }>();
+    if (!user || user.face_biometric_consent !== 1) {
+      enrolledVia = "card";
+    }
+  }
+  const consentState: "none" | "granted" = enrolledVia === "auto_biometric" ? "granted" : "none";
+  const consentAt: number | null = enrolledVia === "auto_biometric" ? Date.now() : null;
 
   if (cloneId !== null) {
     const owned = await c.env.DB.prepare(
@@ -55,10 +69,10 @@ persons.post("/", requireAuth, async (c) => {
   let result;
   try {
     result = await c.env.DB.prepare(
-      `INSERT INTO persons (user_id, clone_id, display_name, consent_state, created_at)
-       VALUES (?, ?, ?, 'none', ?)`
+      `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
     )
-      .bind(userId, cloneId, displayName, createdAt)
+      .bind(userId, cloneId, displayName, consentState, consentAt, enrolledVia, createdAt)
       .run();
   } catch (err) {
     const msg = (err as Error).message ?? "";
@@ -77,8 +91,9 @@ persons.post("/", requireAuth, async (c) => {
       userId,
       cloneId,
       displayName,
-      consentState: "none" as const,
-      consentAt: null,
+      consentState,
+      consentAt,
+      enrolledVia,
       createdAt,
     },
     201
@@ -322,31 +337,38 @@ persons.delete("/:id", requireAuth, async (c) => {
     .first<{ id: number }>();
   if (!person) throw new APIError("NOT_FOUND", "person이 존재하지 않습니다.");
 
-  const embs = await c.env.DB.prepare("SELECT vectorize_id FROM face_embeddings WHERE person_id = ?")
-    .bind(personId)
-    .all<{ vectorize_id: string | null }>();
-  const vids = embs.results.map((r) => r.vectorize_id).filter((v): v is string => Boolean(v));
+  const { deletedEmbeddings } = await deletePersonCascade(c.env, personId, userId);
 
-  if (vids.length) await getFaceIndex(c.env).deleteByIds(vids);
-
-  const deletedAt = Date.now();
-
-  await c.env.DB.batch([
-    c.env.DB.prepare("DELETE FROM face_embeddings WHERE person_id = ?").bind(personId),
-
-    c.env.DB.prepare(
-      `INSERT INTO persons_consent_log (person_id, state, terms_version, channel, changed_at)
-       VALUES (?, 'revoked', NULL, 'face_delete', ?)`
-    ).bind(personId, deletedAt),
-    c.env.DB.prepare("UPDATE call_turns SET speaker_person_id = NULL WHERE speaker_person_id = ?").bind(personId),
-
-    c.env.DB.prepare("DELETE FROM clone_ont_person WHERE person_id = ?").bind(personId),
-    c.env.DB.prepare("DELETE FROM persons WHERE id = ? AND user_id = ?").bind(personId, userId),
-  ]);
-
-  console.log(JSON.stringify({ event: "face_person_deleted", personId, userId, deletedEmbeddings: vids.length }));
+  console.log(JSON.stringify({ event: "face_person_deleted", personId, userId, deletedEmbeddings }));
 
   return c.json({ deleted: true });
+});
+
+persons.patch("/:id", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const personId = parsePersonId(c);
+  const body = await c.req.json<{ displayName?: string }>().catch(() => ({}) as { displayName?: string });
+
+  const trimmed = assertValidDisplayName(body.displayName);
+
+  const owned = await c.env.DB.prepare(`SELECT id FROM persons WHERE id = ? AND user_id = ?`)
+    .bind(personId, userId)
+    .first<{ id: number }>();
+  if (!owned) throw new APIError("NOT_FOUND", "person이 존재하지 않습니다.");
+
+  try {
+    await c.env.DB.prepare(`UPDATE persons SET display_name = ? WHERE id = ? AND user_id = ?`)
+      .bind(trimmed, personId, userId)
+      .run();
+  } catch (err) {
+    const msg = (err as Error).message ?? "";
+    if (/UNIQUE constraint failed/i.test(msg)) {
+      throw new APIError("VALIDATION_FAILED", "이미 등록된 이름입니다.");
+    }
+    throw err;
+  }
+
+  return c.json({ id: personId, displayName: trimmed });
 });
 
 persons.get("/", requireAuth, async (c) => {

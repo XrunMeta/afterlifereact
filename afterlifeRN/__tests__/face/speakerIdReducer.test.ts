@@ -129,3 +129,33 @@ it("streak은 항상 정수이며 음수/NaN이 되지 않는다(경계)", () =>
   expect(r.state.streak).toBe(1);
   expect(Number.isInteger(r.state.streak)).toBe(true);
 });
+
+it("RESET_RECOGNITION 후 동일 unknown 얼굴이 다시 confirm 전이를 낼 수 있다", () => {
+  let s: SpeakerIdState = INITIAL_SPEAKER_STATE;
+  const u = { personId: null, displayName: null, score: 0 };
+
+  let r = speakerIdReducer(s, u);
+  s = r.state;
+  r = speakerIdReducer(s, u);
+  s = r.state;
+  r = speakerIdReducer(s, u);
+  expect(r.event).toEqual({ type: "unknown_face" });
+  s = r.state;
+  expect(s.confirmed).toBe("unknown");
+
+  r = speakerIdReducer(s, u);
+  expect(r.event).toBeNull();
+  s = r.state;
+
+  r = speakerIdReducer(s, { type: "RESET_RECOGNITION" });
+  expect(r.event).toBeNull();
+  s = r.state;
+  expect(s).toEqual(INITIAL_SPEAKER_STATE);
+
+  r = speakerIdReducer(s, u);
+  s = r.state;
+  r = speakerIdReducer(s, u);
+  s = r.state;
+  r = speakerIdReducer(s, u);
+  expect(r.event).toEqual({ type: "unknown_face" });
+});

@@ -447,6 +447,7 @@
       "termsCallLearningFallback": "About Call Conversation Learning\n\nIf you agree, your clone learns from your call conversations to provide more natural, personalized conversations. This consent is optional and can be withdrawn anytime in Settings. If you withdraw, only future call conversations are excluded from learning; content already learned is retained, not deleted. (Learned data is erased only when you delete your account or request full personal-data deletion.)",
       "marketingConsent": "(Optional) I agree to receive marketing info",
       "callLearningConsent": "(Optional) I agree to learning from my call conversations",
+      "faceBiometricConsent": "(Optional) I agree to the use of facial recognition (biometric) data",
       "signingUp": "Signing up...",
       "next": "Next",
       "signupBtn": "Sign Up",
@@ -555,7 +556,13 @@
       "memlowNote": "You can add the photo now or later.",
       "memlowSelectHint": "Pick a photo or skip",
       "memlowRights": "I confirm the rights to use this photo (family consent, image rights).",
-      "cropFailed": "Failed to crop the photo. Please try again."
+      "cropFailed": "Failed to crop the photo. Please try again.",
+      "sourceTitle": "Add photo",
+      "sourceCamera": "Take photo",
+      "sourceLibrary": "Choose from library",
+      "cameraPermTitle": "Camera permission",
+      "cameraPermDeniedMsg": "Camera access is needed. Please allow permission to take a photo.",
+      "cameraPermBlockedMsg": "Camera access is turned off. Please enable camera permission in Settings."
     },
     "voice": {
       "presets": "Default voice presets",
@@ -687,6 +694,18 @@
         "toggleLabel": "Allow learning from my call conversations",
         "viewTerms": "View terms",
         "saveError": "Failed to save. Please try again."
+      },
+      "faceBiometric": {
+        "sectionTitle": "Facial Recognition (Biometric)",
+        "description": "Lets your clone quietly remember a new face during a call without a confirmation card, so it recognizes them more naturally next time. You can turn this on/off anytime. Turning it off deletes speakers registered this way (manually registered speakers are unaffected).",
+        "toggleLabel": "Allow silent auto-registration",
+        "saveError": "Failed to save your setting. Please try again.",
+        "revokeConfirmTitle": "Turn Off Silent Auto-Registration",
+        "revokeConfirmMessage": "Turning this off immediately deletes the facial recognition data for every speaker registered this way. Manually registered speakers are unaffected. This cannot be undone. Continue?",
+        "retroPromptTitle": "Would you like to enable facial recognition (biometric data)?",
+        "retroPromptMessage": "If you agree, your clone will quietly remember a new face during calls without a confirmation card, so it recognizes them more naturally next time. You can change this anytime in Settings.",
+        "retroPromptAgree": "Agree",
+        "retroPromptDecline": "Decline"
       }
     },
     "saved": {
@@ -705,5 +724,20 @@
       "zh-CN": "简体中文",
       "id": "Bahasa Indonesia"
     }
+  },
+  "permissionGate": {
+    "title": "Camera & Microphone Access Needed",
+    "desc": "We need camera and microphone access for video calls",
+    "cameraLabel": "Camera",
+    "micLabel": "Microphone",
+    "statusGranted": "Allowed",
+    "statusDenied": "Denied",
+    "statusUndetermined": "Needs permission",
+    "statusBlocked": "Blocked",
+    "requestButton": "Allow permissions",
+    "settingsButton": "Open settings",
+    "settingsHint": "If the permission dialog doesn't appear, turn it on in Settings",
+    "loading": "Checking permissions...",
+    "logout": "Log out"
   }
 }

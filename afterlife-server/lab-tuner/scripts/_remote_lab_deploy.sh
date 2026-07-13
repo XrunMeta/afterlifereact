@@ -41,6 +41,10 @@ export TMPDIR=/home/afterlife/afterlife-server/.fifth-tmp
 export PRETHIRD_TTS_URL=http://127.0.0.1:8201
 export PRETHIRD_TTS_PATH=/tts/kr
 export LAB_TUNER_TOKEN="$TOKEN"
+# dev-token 자동주입 활성 — 이 호스트는 단일테넌트 SSH-터널 개발 전용이라
+# loopback /dev-token 으로 UI 가 admin 토큰을 받아 promote(apply/restart) 인증을 통과한다.
+# ⚠️ 공유/멀티테넌트 호스트에선 절대 설정 금지(app.py 주석 참조).
+export LAB_TUNER_DEV_TOKEN_ENABLE=1
 
 # 파이썬은 라이브 prethird와 동일 conda env(aiortc/av/numpy 보유).
 setsid /home/afterlife/miniconda3/envs/musetalk/bin/python run_testbed.py \

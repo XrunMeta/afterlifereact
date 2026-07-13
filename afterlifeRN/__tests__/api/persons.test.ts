@@ -1,6 +1,6 @@
 
 
-import { createPerson, saveFaceConsent, listPersons } from '../../src/api/persons';
+import { createPerson, saveFaceConsent, listPersons, updatePersonName } from '../../src/api/persons';
 
 jest.mock('../../src/lib/authFetch', () => ({
   authFetch: jest.fn(),
@@ -118,5 +118,45 @@ describe('listPersons', () => {
 
     expect(result.items).toHaveLength(2);
     expect(result.items[0].id).toBe(1);
+  });
+});
+
+describe('updatePersonName', () => {
+  it('PATCH /oth-path 를 displayName body와 함께 호출', async () => {
+    mockAuthFetch.mockResolvedValueOnce({ id: 42, displayName: '민지' });
+
+    const result = await updatePersonName(ACCESS_TOKEN, 42, '민지');
+
+    expect(mockAuthFetch).toHaveBeenCalledTimes(1);
+    const [path, token, init] = mockAuthFetch.mock.calls[0] as unknown as [string, string, RequestInit, ...unknown[]];
+    expect(path).toBe('/oth-path');
+    expect(token).toBe(ACCESS_TOKEN);
+    expect(init.method).toBe('PATCH');
+
+    const body = JSON.parse(init.body as string) as Record<string, unknown>;
+    expect(body.displayName).toBe('민지');
+    expect(result).toEqual({ id: 42, displayName: '민지' });
+  });
+});
+
+describe('createPerson enrolledVia', () => {
+  it('enrolledVia 를 넘기면 body 에 포함된다', async () => {
+    mockAuthFetch.mockResolvedValueOnce({ id: 9, consentState: 'granted' });
+
+    await createPerson(ACCESS_TOKEN, { enrolledVia: 'auto_biometric' });
+
+    const [, , init] = mockAuthFetch.mock.calls[0] as unknown as [string, string, RequestInit, ...unknown[]];
+    const body = JSON.parse(init.body as string) as Record<string, unknown>;
+    expect(body.enrolledVia).toBe('auto_biometric');
+  });
+
+  it('enrolledVia 없이 호출하면 body 에 포함되지 않는다(회귀)', async () => {
+    mockAuthFetch.mockResolvedValueOnce({ id: 10, consentState: 'none' });
+
+    await createPerson(ACCESS_TOKEN);
+
+    const [, , init] = mockAuthFetch.mock.calls[0] as unknown as [string, string, RequestInit, ...unknown[]];
+    const body = JSON.parse(init.body as string) as Record<string, unknown>;
+    expect(body).not.toHaveProperty('enrolledVia');
   });
 });

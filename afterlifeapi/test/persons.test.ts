@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { SELF, env } from "cloudflare:test";
+import { isFaceConsentEnforced } from "../src/routes/persons";
 
 async function seedUser(email: string): Promise<number> {
   const db = env.DB as unknown as D1Database;
@@ -29,6 +30,23 @@ async function issueAccessToken(userId: number): Promise<string> {
   const secret = (env as { JWT_ACCESS_SECRET?: string }).JWT_ACCESS_SECRET;
   if (!secret) throw new Error("JWT_ACCESS_SECRET missing in test env");
   return await issueToken({ sub: userId, kind: "access" }, secret, 60 * 10);
+}
+
+async function seedUserWithToken(email: string): Promise<{ id: number; token: string }> {
+  const { hashPassword } = await import("../src/lib/password");
+  const db = env.DB as unknown as D1Database;
+  await db
+    .prepare(`INSERT INTO users (email, password_hash, name, created_at) VALUES (?, ?, 'U', CURRENT_TIMESTAMP)`)
+    .bind(email, await hashPassword("Passw0rd!!"))
+    .run();
+  const u = await db.prepare("SELECT id FROM users WHERE email = ?").bind(email).first<{ id: number }>();
+  const res = await SELF.fetch("http://localhost/oth-path", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password: "Passw0rd!!" }),
+  });
+  const token = (await res.json<{ accessToken: string }>()).accessToken;
+  return { id: u!.id, token };
 }
 
 describe("persons route", () => {
@@ -538,5 +556,107 @@ describe("persons route", () => {
     expect(logs.results[0].state).toBe("granted");
     expect(logs.results[1].state).toBe("revoked");
     expect(logs.results[2].state).toBe("granted");
+  });
+
+  it("mizu CRITICAL fix: user.face_biometric_consent=1 + enrolledVia='auto_biometric' → consentState='granted' 서버 재확인 통과", async () => {
+    const { id: userId, token } = await seedUserWithToken("auto-biometric-consented@test.test");
+
+    await (env as any).DB.prepare("UPDATE users SET face_biometric_consent = 1 WHERE id = ?")
+      .bind(userId).run();
+
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ enrolledVia: "auto_biometric" }),
+    });
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { id: number; consentState: string; enrolledVia: string };
+    expect(body.consentState).toBe("granted");
+    expect(body.enrolledVia).toBe("auto_biometric");
+
+    const row = await (env as any).DB.prepare(
+      "SELECT consent_state, enrolled_via, display_name FROM persons WHERE id = ?",
+    ).bind(body.id).first<{ consent_state: string; enrolled_via: string; display_name: string | null }>();
+    expect(row?.consent_state).toBe("granted");
+    expect(row?.enrolled_via).toBe("auto_biometric");
+    expect(row?.display_name).toBeNull();
+  });
+
+  it("mizu CRITICAL fix: user.face_biometric_consent 미동의(기본0) + enrolledVia='auto_biometric' → 서버가 card/none 로 폴백(granted 미부여)", async () => {
+    const { token } = await seedUserWithToken("auto-biometric-unconsented@test.test");
+
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ enrolledVia: "auto_biometric" }),
+    });
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { id: number; consentState: string; enrolledVia: string };
+
+    expect(body.consentState).toBe("none");
+    expect(body.enrolledVia).toBe("card");
+
+    const row = await (env as any).DB.prepare(
+      "SELECT consent_state, enrolled_via, consent_at FROM persons WHERE id = ?",
+    ).bind(body.id).first<{ consent_state: string; enrolled_via: string; consent_at: number | null }>();
+    expect(row?.consent_state).toBe("none");
+    expect(row?.enrolled_via).toBe("card");
+    expect(row?.consent_at).toBeNull();
+  });
+
+  it("enrolledVia 미지정 → 기존과 동일하게 'card'/consentState 'none'(회귀)", async () => {
+    const { token } = await seedUserWithToken("card-default@test.test");
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    const body = (await res.json()) as { consentState: string; enrolledVia: string };
+    expect(body.consentState).toBe("none");
+    expect(body.enrolledVia).toBe("card");
+  });
+
+  it("enrolledVia 잘못된 값 → 422 VALIDATION_FAILED", async () => {
+    const { token } = await seedUserWithToken("bad-enrolled-via@test.test");
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ enrolledVia: "bogus" }),
+    });
+    expect(res.status).toBe(422);
+  });
+
+  describe("isFaceConsentEnforced (단위) — 기본 OFF 불변식", () => {
+    it("env var 없음(미설정) → false — enroll 시 서버 재확인 스킵(카드 폴백 아님)", () => {
+      expect(isFaceConsentEnforced({})).toBe(false);
+    });
+    it("'false' → false", () => {
+      expect(isFaceConsentEnforced({ FACE_CONSENT_ENFORCED: "false" })).toBe(false);
+    });
+    it("'1'·기타 값 → false(엄격히 'true' 문자열만 on)", () => {
+      expect(isFaceConsentEnforced({ FACE_CONSENT_ENFORCED: "1" })).toBe(false);
+    });
+    it("'' (빈 문자열) → false", () => {
+      expect(isFaceConsentEnforced({ FACE_CONSENT_ENFORCED: "" })).toBe(false);
+    });
+    it("'true' → true", () => {
+      expect(isFaceConsentEnforced({ FACE_CONSENT_ENFORCED: "true" })).toBe(true);
+    });
+  });
+});
+
+describe("wrangler.toml FACE_CONSENT_ENFORCED 정적 안전망(production=true 회귀 방지)", () => {
+  it("[vars]·[env.preview.vars]는 \"false\", [env.production.vars]는 \"true\"여야 한다", async () => {
+
+    const { default: toml } = await import("../wrangler.toml?raw");
+
+    const matches = [...(toml as string).matchAll(/FACE_CONSENT_ENFORCED\s*=\s*"([^"]*)"/g)].map((m) => m[1]);
+
+    expect(matches.length).toBe(3);
+    const [base, preview, production] = matches;
+    expect(base).toBe("false");
+    expect(preview).toBe("false");
+
+    expect(production).toBe("true");
   });
 });

@@ -46,6 +46,8 @@ export type AuthStackParamList = {
 
     agreeCallLearning?: boolean;
 
+    agreeFaceBiometric?: boolean;
+
     pushToken?: string;
     platform?: "ios" | "android" | "web";
     deviceId?: string;

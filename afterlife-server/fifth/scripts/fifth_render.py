@@ -5,6 +5,7 @@ render_offline.py(오프라인 mp4 도구)의 검증된 렌더 로직을 실시�
 """
 from __future__ import annotations
 
+import math
 import os
 from typing import Callable
 
@@ -13,6 +14,12 @@ import soundfile as sf
 
 from audio2lip import compute_rms_envelope, rms_to_cdlip
 from phase_token import PhaseToken
+
+# T-120: LivePortrait exp(21 keypoints) 중 입 관련 keypoint 인덱스
+# (faster_live_portrait_pipeline.py lip_idx 계약). source_face_lock=True 시
+# 이 6개만 소스 exp로 고정하고 나머지 15개(눈·눈썹 등)는 JoyVASA 원본 모션을
+# 유지해 눈동자 움직임을 살린다(히즈키 피드백, 클로 컨테이너 실증).
+_LIP_IDX = [6, 12, 14, 17, 19, 20]
 
 
 def _tok_passthrough(tok: PhaseToken) -> PhaseToken:
@@ -155,6 +162,67 @@ def _apply_head_slew(ml: list, nj: int, head_last: list, slew_k: int) -> None:
         ml[i] = m_new
 
 
+def _apply_head_sway(
+    ml: list,
+    nj: int,
+    amp: float,
+    phase_offset: int = 0,
+    yaw_offset_deg: float = 0.0,
+    pitch_offset_deg: float = 0.0,
+    slow: float = 1.0,
+) -> None:
+    """절차적 머리 흔들림 + 상수 시선 오프셋 — ml[i]["R"]에 yaw/pitch 회전 주입(in-place).
+
+    T-120: 오디오·라이브와 무관, 프레임 인덱스 기반 결정론. 무음/필러 렌더에서
+    자연스러운 머리 움직임(sway)과 상수 좌우·상하 시선 바이어스(offset)를 만든다.
+    amp<=0 이고 offset도 0이면 no-op(회귀 0). nj<=0이면 no-op.
+    sway는 램프인/아웃(앞뒤 RAMP 프레임)으로 경계 튐을 방지하고, offset은
+    램프인 후 유지(시선을 그 방향으로 유지) — sway와 램프 곡선이 다르다.
+    amp 1에서 sway yaw ±10°, pitch ±6°.
+
+    ⚠️ yaw_offset_deg/pitch_offset_deg 부호(좌/우·상/하 방향)는 코드로 확신할 수
+    없음 — 렌더 실측(클로 담당)으로 방향 확인 후 필요 시 부호를 조정할 것.
+
+    Args:
+        yaw_offset_deg: 상수 좌우 시선 바이어스(도). 0이면 오프셋 없음.
+        pitch_offset_deg: 상수 상하 시선 바이어스(도). 0이면 오프셋 없음.
+        slow: 모션 감속 배율(>1이면 느리게). sway 주기(yaw/pitch)와 시선전환 ramp를
+            함께 배로 늘려 머리 각속도를 1/slow 로 만든다. 진폭(각도)은 불변 —
+            "같은 움직임을 더 천천히". slow<=1이면 기존과 동일(회귀 0). T-120 히즈키
+            피드백("움직임이 너무 빠름")로 도입. slow=2 → yaw 6.4s·pitch 8.8s·ramp 0.96s.
+    """
+    has_off = abs(yaw_offset_deg) > 1e-6 or abs(pitch_offset_deg) > 1e-6
+    _amp = float(amp) if (amp and amp > 0) else 0.0
+    if _amp <= 0 and not has_off:
+        return
+    if nj <= 0:
+        return
+    _slow = float(slow) if (slow and slow > 0) else 1.0
+    max_yaw = math.radians(10.0) * _amp
+    max_pitch = math.radians(6.0) * _amp
+    yaw_off = math.radians(float(yaw_offset_deg))
+    pitch_off = math.radians(float(pitch_offset_deg))
+    # slow 배율로 주기·ramp를 늘려 각속도를 1/slow 로. 기본 80/110f(~3.2s/4.4s @ 25fps).
+    yaw_period, pitch_period = 80.0 * _slow, 110.0 * _slow   # frames
+    ramp = min(int(round(12 * _slow)), nj)
+    ramp = max(ramp, 1)
+    for i in range(nj):
+        t = i + phase_offset
+        off_r = min(i + 1, ramp) / ramp             # 오프셋: 램프인 후 홀드(시선 유지)
+        sway_r = min(i + 1, nj - i, ramp) / ramp     # sway: 램프 인·아웃
+        yaw = yaw_off * off_r + max_yaw * math.sin(2.0 * math.pi * t / yaw_period) * sway_r
+        pitch = pitch_off * off_r + max_pitch * math.sin(2.0 * math.pi * t / pitch_period + 1.3) * sway_r
+        cy, sy = math.cos(yaw), math.sin(yaw)
+        cp, sp = math.cos(pitch), math.sin(pitch)
+        r_yaw = np.array([[cy, 0.0, sy], [0.0, 1.0, 0.0], [-sy, 0.0, cy]], dtype=np.float32)
+        r_pitch = np.array([[1.0, 0.0, 0.0], [0.0, cp, -sp], [0.0, sp, cp]], dtype=np.float32)
+        r_sway = (r_pitch @ r_yaw).astype(np.float32)
+        m_new = dict(ml[i])
+        r_o = np.asarray(m_new["R"]).astype(np.float32)   # (1,3,3)
+        m_new["R"] = (r_sway @ r_o[0])[None].astype(np.float32)
+        ml[i] = m_new
+
+
 def _load_wav_16k(wav_path: str):
     y, sr = sf.read(wav_path, dtype="float32")
     if y.ndim > 1:
@@ -180,6 +248,15 @@ def stream_wav_frames(
     idle_rms_low: float | None = None,
     idle_rms_high: float | None = None,
     head_slew_frames: int | None = None,
+    lip_lock: bool | None = None,
+    head_sway_amp: float | None = None,
+    eyes_open_lock: bool | None = None,
+    source_face_lock: bool | None = None,
+    blink_interval_sec: float | None = None,
+    head_yaw_offset: float | None = None,
+    head_pitch_offset: float | None = None,
+    head_sway_slow: float | None = None,
+    source_face_lock_full: bool | None = None,
 ) -> tuple[int, PhaseToken]:
     """wav 한 문장 → 프레임 생성마다 on_frame(rgb) 호출. 반환: (프레임 수, 끝 위상 토큰).
 
@@ -192,6 +269,24 @@ def stream_wav_frames(
     T-109 lab-tuner: idle_motion_scale/idle_rms_low/idle_rms_high/head_slew_frames
     인자 우선, None(기본, 미지정)이면 기존 env(FIFTH_IDLE_MOTION_SCALE 등) 사용
     → 인자 미지정 시 기존 동작 100% 동일(회귀 0).
+
+    T-120 필러 표정: lip_lock/head_sway_amp/eyes_open_lock/source_face_lock 은 모두
+    None(기본)이면 no-op — 기존 동작과 100% 동일(회귀 0). lip_lock=True 시 c_d_lip 를
+    cfg.lip_closed 로 고정, head_sway_amp>0 시 절차적 머리 흔들림 주입,
+    eyes_open_lock=True 시 c_eyes 를 열림값으로 고정(JoyVASA 네이티브 c_eyes_lst와
+    합성 blink 모두 무시). source_face_lock=True 시 exp 의 lip 키포인트(_LIP_IDX,
+    6개)만 소스(원본 사진) exp로 고정하고 c_d_lip 도 소스 lip_close_ratio 로 고정 —
+    입이 오디오와 무관하게 원본 사진 그대로 유지된다(lip_lock의 c_d_lip 강제 닫힘보다
+    강함). 나머지 15개 keypoint(눈·눈썹 등)는 JoyVASA 원본 모션을 유지해 눈동자
+    움직임을 살린다(히즈키 피드백: 전체 exp 고정 → lip-only 고정으로 전환).
+
+    blink_interval_sec: eyes_open_lock=True 일 때 make_blink_sequence 의
+    avg_interval_sec 로 사용(눈 깜빡임 재도입, None이면 기존 1e9=무깜빡).
+    head_yaw_offset/head_pitch_offset(도): 상수 좌우/상하 시선 바이어스.
+    head_sway_amp가 None이어도 offset이 있으면 _apply_head_sway가 호출된다.
+    ⚠️ 부호(좌/우·상/하) 방향은 코드로 확신 못 함 — 렌더 실측 후 조정 필요.
+    head_sway_slow: 절차적 머리 모션 감속 배율(>1이면 느리게, None=1.0=기존).
+    sway 주기·시선전환 ramp를 배로 늘려 각속도를 1/slow 로 만든다(진폭 불변).
     """
     from base_source import base_blend_weight
 
@@ -234,6 +329,38 @@ def stream_wav_frames(
         else float(os.environ.get("FIFTH_IDLE_RMS_HIGH", "0.3"))
     _apply_idle_suppression(ml, env, nj, _idle_scale, _rms_low, _rms_high)
 
+    # T-120: 절차적 머리 흔들림 + 시선 오프셋(필러 전용).
+    # 셋 다 None(미전달)이면 호출 자체 없음(회귀 0). head_sway_amp가 None이어도
+    # head_yaw_offset/head_pitch_offset 중 하나라도 있으면 호출돼야 시선 바이어스가 먹는다.
+    if head_sway_amp is not None or head_yaw_offset is not None or head_pitch_offset is not None:
+        _apply_head_sway(
+            ml, nj, head_sway_amp,
+            phase_offset=tok.blink_phase,
+            yaw_offset_deg=(head_yaw_offset or 0.0),
+            pitch_offset_deg=(head_pitch_offset or 0.0),
+            slow=(head_sway_slow if head_sway_slow is not None else 1.0),
+        )
+
+    # T-120: source_face_lock — exp를 소스(원본 사진) exp로 고정(오디오·JoyVASA 무관).
+    # source_face_lock_full=False(기본): lip 키포인트(_LIP_IDX, 6개)만 고정 → 나머지
+    #   15개(눈·눈썹)는 JoyVASA 모션 유지 → 눈동자 움직임 살아있음(단, 눈이 커 보일 수 있음).
+    # source_face_lock_full=True: 21개 전체 고정 → 눈·눈썹까지 원본 중립표정(idle처럼).
+    #   JoyVASA 눈/눈썹 exp(눈 확대 원인) 제거. blink(c_eyes)·head_sway는 별도라 유지됨.
+    #   (히즈키: 필러 눈이 idle보다 커 보임 → 전체 고정 옵션 재도입.)
+    # head_sway는 R만 건드리므로 순서는 무관하나, exp 최종 확정을 위해 head_sway 뒤에 적용.
+    if source_face_lock:
+        src_exp = np.asarray(sources["open_s"]["src_info"][0][0]["exp"]).astype(np.float32)
+        _full = bool(source_face_lock_full)
+        for i in range(nj):
+            m = dict(ml[i])
+            e = np.asarray(m["exp"]).astype(np.float32).copy()
+            if _full:
+                e[:, :, :] = src_exp[:, :, :]
+            else:
+                e[:, _LIP_IDX, :] = src_exp[:, _LIP_IDX, :]
+            m["exp"] = e
+            ml[i] = m
+
     # §6+§7 후 실제 시각 상태를 head_last 로 직렬화 (다음 청크 slew 출발점).
     # 슬루는 첫 K 프레임만 수정 → 마지막 프레임(nj-1)은 idle 억제만 반영.
     # head_last가 실제 렌더된 마지막 head pose를 가리켜야 다음 청크 slew가 자연스럽게 연결됨.
@@ -245,20 +372,34 @@ def stream_wav_frames(
     # 루프 내 ji = min(i, nj-1) 클램프로 motion 인덱스 안전.
     n = max(len(env), nj)
 
-    ce = ce_raw if ce_raw else None
-    if not ce_raw and blink_enabled:
+    if eyes_open_lock:
+        # T-120: 눈 강제 오픈 기반 + 선택적 깜빡임 재도입(blink_interval_sec).
+        # 네이티브 ce_raw는 무시(エル BLOCKER 해소). blink_interval_sec=None(기본)이면
+        # avg_interval_sec=1e9 → blink_starts 가 생기지 않아 전프레임 오픈(회귀 0).
         from render_offline import make_blink_sequence
         eye_open = _eye_open_ratio(sources["open_s"])
+        _interval = blink_interval_sec if blink_interval_sec is not None else 1e9
         ce = make_blink_sequence(
             n, cfg.fps, eye_open, 0.0,
-            phase_offset=tok.blink_phase,
-            avg_interval_sec=3.2, blink_dur_frames=6,
+            phase_offset=tok.blink_phase, avg_interval_sec=_interval, blink_dur_frames=6,
         )
+    else:
+        ce = ce_raw if ce_raw else None
+        if not ce_raw and blink_enabled:
+            from render_offline import make_blink_sequence
+            eye_open = _eye_open_ratio(sources["open_s"])
+            ce = make_blink_sequence(
+                n, cfg.fps, eye_open, 0.0,
+                phase_offset=tok.blink_phase,
+                avg_interval_sec=3.2, blink_dur_frames=6,
+            )
 
     if sources["mode"] == "single":
-        count = _stream_single(eng, cfg, sources["open_s"], env, ml, ce, nj, n, on_frame, tok)
+        count = _stream_single(eng, cfg, sources["open_s"], env, ml, ce, nj, n, on_frame, tok,
+                                lip_lock=bool(lip_lock), source_face_lock=bool(source_face_lock))
     else:
-        count = _stream_blend(eng, cfg, sources, env, ml, ce, nj, n, on_frame, base_blend_weight, tok)
+        count = _stream_blend(eng, cfg, sources, env, ml, ce, nj, n, on_frame, base_blend_weight, tok,
+                               lip_lock=bool(lip_lock), source_face_lock=bool(source_face_lock))
 
     if count == 0:
         # wav 는 있으나 eng.render() 가 전부 None → 출력 0장 → 위상 불진전.
@@ -288,16 +429,28 @@ def _eye_open_ratio(src_d: dict) -> float:
         return 0.37
 
 
-def _stream_single(eng, cfg, open_s, env, ml, ce, nj, n, on_frame, tok: PhaseToken) -> int:
-    """단일 소스(open_s만) 렌더 루프. render_offline.py L653~668 이식."""
+def _stream_single(eng, cfg, open_s, env, ml, ce, nj, n, on_frame, tok: PhaseToken,
+                    lip_lock: bool = False, source_face_lock: bool = False) -> int:
+    """단일 소스(open_s만) 렌더 루프. render_offline.py L653~668 이식.
+
+    T-120: lip_lock=True 시 c_d_lip 전체를 cfg.lip_closed 로 고정(오디오 무관).
+    source_face_lock=True 시 c_d_lip 전체를 open_s["lip_close_ratio"](소스 원본 입
+    비율)로 고정 — exp 잠금(stream_wav_frames)과 짝을 이뤄 원본 사진 입을 그대로
+    유지한다. lip_lock 보다 우선(source_face_lock이 exp까지 잠그는 상위 개념).
+    """
     lip_closed = cfg.lip_closed
-    cdl = rms_to_cdlip(
-        env,
-        lip_closed=lip_closed,
-        lip_open=cfg.lip_open,
-        open_scale=cfg.open_scale,
-        offset=cfg.offset,
-    )
+    if source_face_lock:
+        cdl = np.full(max(n, 1), float(open_s["lip_close_ratio"]), dtype=np.float32)
+    elif lip_lock:
+        cdl = np.full(max(n, 1), lip_closed, dtype=np.float32)
+    else:
+        cdl = rms_to_cdlip(
+            env,
+            lip_closed=lip_closed,
+            lip_open=cfg.lip_open,
+            open_scale=cfg.open_scale,
+            offset=cfg.offset,
+        )
     count = 0
     for i in range(n):
         ji = min(i, nj - 1)
@@ -320,8 +473,19 @@ def _stream_single(eng, cfg, open_s, env, ml, ce, nj, n, on_frame, tok: PhaseTok
     return count
 
 
-def _stream_blend(eng, cfg, sources, env, ml, ce, nj, n, on_frame, base_blend_weight, tok: PhaseToken) -> int:
-    """입마스크 블렌드 렌더 루프. render_offline.py L500~556 (blend_region="mouth") 이식."""
+def _stream_blend(eng, cfg, sources, env, ml, ce, nj, n, on_frame, base_blend_weight, tok: PhaseToken,
+                   lip_lock: bool = False, source_face_lock: bool = False) -> int:
+    """입마스크 블렌드 렌더 루프. render_offline.py L500~556 (blend_region="mouth") 이식.
+
+    T-120: lip_lock=True 시 cdl_o/cdl_c 를 각각 lc_open/lc_closed 로 고정(오디오 무관).
+    주의(エル 게이트): blend 모드의 lip_lock은 cfg.lip_closed 완전닫힘이 아니라
+    source 의 lip_close_ratio 기준값 — 완전 닫힘이 보장되지 않을 수 있다. 필러는
+    항상 single 모드로만 렌더되므로 이 경로는 실질적으로 도달하지 않는다(무해).
+
+    source_face_lock=True 시 cdl_o/cdl_c 를 각각 open_s/closed_s 의 원본
+    lip_close_ratio(비클램프)로 고정 — exp 잠금과 동일 개념. 필러는 항상 single
+    모드이므로 이 분기도 실질적으로 도달하지 않는다(무해, single 우선 구현).
+    """
     open_s = sources["open_s"]
     closed_s = sources["closed_s"]
     M = sources["mouth_mask"]
@@ -332,14 +496,21 @@ def _stream_blend(eng, cfg, sources, env, ml, ce, nj, n, on_frame, base_blend_we
     lc_open = _clamp(open_s["lip_close_ratio"])
     lc_closed = _clamp(closed_s["lip_close_ratio"])
 
-    cdl_o = rms_to_cdlip(
-        env, lip_closed=lc_open, lip_open=cfg.lip_open,
-        open_scale=cfg.open_scale, offset=cfg.offset,
-    )
-    cdl_c = rms_to_cdlip(
-        env, lip_closed=lc_closed, lip_open=cfg.lip_open,
-        open_scale=cfg.open_scale, offset=cfg.offset,
-    )
+    if source_face_lock:
+        cdl_o = np.full(max(n, 1), float(open_s["lip_close_ratio"]), dtype=np.float32)
+        cdl_c = np.full(max(n, 1), float(closed_s["lip_close_ratio"]), dtype=np.float32)
+    elif lip_lock:
+        cdl_o = np.full(max(n, 1), lc_open, dtype=np.float32)
+        cdl_c = np.full(max(n, 1), lc_closed, dtype=np.float32)
+    else:
+        cdl_o = rms_to_cdlip(
+            env, lip_closed=lc_open, lip_open=cfg.lip_open,
+            open_scale=cfg.open_scale, offset=cfg.offset,
+        )
+        cdl_c = rms_to_cdlip(
+            env, lip_closed=lc_closed, lip_open=cfg.lip_open,
+            open_scale=cfg.open_scale, offset=cfg.offset,
+        )
 
     w_seq = np.array(
         [base_blend_weight(float(env[min(i, len(env) - 1)]), cfg.closed_thresh, cfg.open_thresh)

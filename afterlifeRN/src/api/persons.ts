@@ -7,6 +7,10 @@ export type ConsentState = 'none' | 'granted' | 'revoked';
 export interface Person {
   id: number;
   consentState: ConsentState;
+
+  displayName?: string | null;
+
+  enrolledVia?: 'card' | 'auto_biometric';
   cloneId?: number | null;
   termsVersion?: string | null;
   channel?: string | null;
@@ -18,6 +22,8 @@ export interface CreatePersonPayload {
   cloneId?: number;
 
   displayName?: string;
+
+  enrolledVia?: 'card' | 'auto_biometric';
 }
 
 export interface CreatePersonResponse {
@@ -40,6 +46,9 @@ export async function createPerson(
   }
   if (payload?.displayName !== undefined) {
     body.displayName = payload.displayName;
+  }
+  if (payload?.enrolledVia !== undefined) {
+    body.enrolledVia = payload.enrolledVia;
   }
   return authFetch<CreatePersonResponse>(
     '/oth-path',
@@ -120,6 +129,18 @@ export async function deletePerson(
     `/oth-path${personId}`,
     accessToken,
     { method: 'DELETE' },
+  );
+}
+
+export async function updatePersonName(
+  accessToken: string,
+  personId: number,
+  displayName: string,
+): Promise<{ id: number; displayName: string }> {
+  return authFetch<{ id: number; displayName: string }>(
+    `/oth-path${personId}`,
+    accessToken,
+    { method: 'PATCH', body: JSON.stringify({ displayName }) },
   );
 }
 

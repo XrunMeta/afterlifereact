@@ -119,6 +119,8 @@ export interface UseFaceIdentifyResult {
   onEmbedding: (raw: number[]) => void;
 
   getBuffer: () => EmbeddingBuffer;
+
+  resetRecognition: () => void;
 }
 
 export function useFaceIdentify(opts: UseFaceIdentifyOptions): UseFaceIdentifyResult {
@@ -129,6 +131,11 @@ export function useFaceIdentify(opts: UseFaceIdentifyOptions): UseFaceIdentifyRe
   const stateRef = useRef<IdentifyCycleState>(INITIAL_IDENTIFY_CYCLE_STATE);
   const bufferRef = useRef<EmbeddingBuffer>(new EmbeddingBuffer());
   const inFlightRef = useRef(false);
+
+  const resetRecognition = useCallback(() => {
+    const { state: speaker } = speakerIdReducer(stateRef.current.speaker, { type: "RESET_RECOGNITION" });
+    stateRef.current = { ...stateRef.current, speaker };
+  }, []);
 
   const onEmbedding = useCallback(
     (raw: number[]) => {
@@ -177,5 +184,5 @@ export function useFaceIdentify(opts: UseFaceIdentifyOptions): UseFaceIdentifyRe
     [enabled, accessToken, onEvent, onDiag, calibrate, deps, nowFn],
   );
 
-  return { onEmbedding, getBuffer: () => bufferRef.current };
+  return { onEmbedding, getBuffer: () => bufferRef.current, resetRecognition };
 }

@@ -26,6 +26,7 @@ import { useFocusEffect, useNavigation, CommonActions } from "@react-navigation/
 import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
+import { useFaceBiometricRetroPrompt } from "../../face/useFaceBiometricRetroPrompt";
 import FeedCard from "../../components/ui/FeedCard";
 import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
 import ReportReasonModal from "../../components/common/ReportReasonModal";
@@ -174,6 +175,8 @@ export default function HomeScreen() {
   const [comments, setComments] = useState<FeedComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const accessToken = useAuthStore((s) => s.accessToken);
+
+  useFaceBiometricRetroPrompt(accessToken);
   const myUserId = useAuthStore((s) => s.apiUser?.id ?? s.user?.id ?? null);
 
   const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);

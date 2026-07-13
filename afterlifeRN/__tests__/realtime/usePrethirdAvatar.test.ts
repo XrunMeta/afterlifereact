@@ -340,14 +340,14 @@ describe('sendFaceEvent', () => {
 describe('enroll_suggest 수신 → onEnrollSuggest 콜백', () => {
   beforeEach(() => { mockOfferFetch(); });
 
-  it('datachannel {type:"enroll_suggest", name} 수신 → onEnrollSuggest(name) 호출', async () => {
+  it('datachannel {type:"enroll_suggest", name} 수신 → onEnrollSuggest(name, undefined) 호출', async () => {
     const { dc, pc } = makeConnectedPc();
     const onEnrollSuggest = jest.fn();
     const { result } = renderHook(() =>
       usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never, onEnrollSuggest }));
     await act(async () => { await result.current.start(); });
     act(() => { dc.emitMessage(JSON.stringify({ type: 'enroll_suggest', name: '민지' })); });
-    expect(onEnrollSuggest).toHaveBeenCalledWith('민지');
+    expect(onEnrollSuggest).toHaveBeenCalledWith('민지', undefined);
   });
 
   it('name 빈 문자열(수동 입력 폴백)도 그대로 전달', async () => {
@@ -357,7 +357,27 @@ describe('enroll_suggest 수신 → onEnrollSuggest 콜백', () => {
       usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never, onEnrollSuggest }));
     await act(async () => { await result.current.start(); });
     act(() => { dc.emitMessage(JSON.stringify({ type: 'enroll_suggest', name: '' })); });
-    expect(onEnrollSuggest).toHaveBeenCalledWith('');
+    expect(onEnrollSuggest).toHaveBeenCalledWith('', undefined);
+  });
+
+  it('T-126 Task7 — personId(number) 포함 시 그대로 전달(이름 반영 시나리오)', async () => {
+    const { dc, pc } = makeConnectedPc();
+    const onEnrollSuggest = jest.fn();
+    const { result } = renderHook(() =>
+      usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never, onEnrollSuggest }));
+    await act(async () => { await result.current.start(); });
+    act(() => { dc.emitMessage(JSON.stringify({ type: 'enroll_suggest', name: '민지', personId: 42 })); });
+    expect(onEnrollSuggest).toHaveBeenCalledWith('민지', 42);
+  });
+
+  it('T-126 Task7 — personId 가 number 가 아니면(문자열/null) undefined 로 폴백', async () => {
+    const { dc, pc } = makeConnectedPc();
+    const onEnrollSuggest = jest.fn();
+    const { result } = renderHook(() =>
+      usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never, onEnrollSuggest }));
+    await act(async () => { await result.current.start(); });
+    act(() => { dc.emitMessage(JSON.stringify({ type: 'enroll_suggest', name: '민지', personId: '42' })); });
+    expect(onEnrollSuggest).toHaveBeenCalledWith('민지', undefined);
   });
 
   it('onEnrollSuggest 미제공이어도 크래시 없음(speech_start 등 기존 분기 무영향)', async () => {

@@ -168,11 +168,15 @@ it('engine 재등록(리렌더로 effect 재실행) 중에도 진행 중 침묵 
   const e1 = makeMockEngine();
   const e2 = makeMockEngine();
   const onFinalResult = jest.fn();
-  const { rerender } = renderHook(
+  const { result, rerender } = renderHook(
     ({ eng }: { eng: ReturnType<typeof makeMockEngine> }) =>
       useSpeechInput({ engine: eng, onFinalResult, silenceMs: SILENCE }),
     { initialProps: { eng: e1 } },
   );
+
+  await act(async () => {
+    await result.current.startListening();
+  });
 
   act(() => {
     e1.emit('result', { results: [{ transcript: '안녕하세요' }], isFinal: true });
@@ -437,6 +441,69 @@ it('[MINOR-1] end 재시작 후 start 미도착(워치독 만료) → listening=
 
   act(() => { jest.advanceTimersByTime(STT_WATCHDOG_MS + 10); });
   expect(result.current.listening).toBe(false);
+});
+
+it('[STOP-REOPEN] stopListening 후 늦게 도착한 result → listening=false 유지, onFinalResult 미호출', async () => {
+
+  const engine = makeMockEngine();
+  const onFinalResult = jest.fn();
+  const { result } = renderHook(() => useSpeechInput({ engine, onFinalResult, silenceMs: SILENCE }));
+  await act(async () => {
+    await result.current.startListening();
+  });
+  act(() => { engine.emit('start'); });
+  act(() => {
+    engine.emit('result', { results: [{ transcript: '안녕' }], isFinal: false });
+  });
+  expect(result.current.listening).toBe(true);
+
+  act(() => { result.current.stopListening(); });
+  expect(result.current.listening).toBe(false);
+
+  act(() => {
+    engine.emit('result', { results: [{ transcript: '늦은잔여' }], isFinal: true });
+  });
+  expect(result.current.listening).toBe(false);
+  act(() => {
+    jest.advanceTimersByTime(SILENCE + 20);
+  });
+  expect(result.current.listening).toBe(false);
+  expect(onFinalResult).not.toHaveBeenCalled();
+});
+
+it('[STOP-REOPEN] stopListening 후 늦게 도착한 start 이벤트 → listening=false 유지', async () => {
+  const engine = makeMockEngine();
+  const { result } = renderHook(() => useSpeechInput({ engine, silenceMs: SILENCE }));
+  await act(async () => {
+    await result.current.startListening();
+  });
+  act(() => { engine.emit('start'); });
+  expect(result.current.listening).toBe(true);
+  act(() => { result.current.stopListening(); });
+  expect(result.current.listening).toBe(false);
+
+  act(() => { engine.emit('start'); });
+  expect(result.current.listening).toBe(false);
+});
+
+it('[STOP-REOPEN] stopListening 후 재차 startListening → 이어지는 result/start는 정상 확정(listening=true)', async () => {
+
+  const engine = makeMockEngine();
+  const { result } = renderHook(() => useSpeechInput({ engine, silenceMs: SILENCE }));
+  await act(async () => {
+    await result.current.startListening();
+  });
+  act(() => { engine.emit('start'); });
+  expect(result.current.listening).toBe(true);
+  act(() => { result.current.stopListening(); });
+  expect(result.current.listening).toBe(false);
+
+  await act(async () => {
+    await result.current.startListening();
+  });
+  expect(result.current.listening).toBe(false); 
+  act(() => { engine.emit('start'); });
+  expect(result.current.listening).toBe(true);
 });
 
 it('전송 후 누적 리셋 → 다음 발화는 이전 텍스트 안 섞임', async () => {

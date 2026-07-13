@@ -41,17 +41,38 @@ import { useFaceIdentify } from "../../face/useFaceIdentify";
 import { useFaceEnroll, FACE_ENROLL_VECTOR_COUNT } from "../../face/useFaceEnroll";
 import { shouldCleanupOrphanOnSuggest } from "../../face/faceEnrollGuard";
 import type { SpeakerEvent } from "../../face/speakerIdReducer";
-import { createPerson, saveFaceConsent, listPersons, deletePerson, type Person } from "../../api/persons";
+import {
+  speakerHandoffReducer,
+  initSpeakerHandoffState,
+  type SpeakerHandoffEvent,
+  type SpeakerHandoffAction,
+} from "../../realtime/speakerHandoff";
+import { isFaceConsentEnforced } from "../../config/faceConsent";
+import {
+  createPerson,
+  saveFaceConsent,
+  listPersons,
+  deletePerson,
+  updatePersonName,
+  type Person,
+} from "../../api/persons";
+import { getFaceBiometricConsent } from "../../api/consent";
+import { decideEnrollSuggestAction, decideOrphanCleanupBeforeSilent } from "../../face/autoEnrollGuard";
 import { FACE_DIAG_ENABLED, formatFaceHud, type FaceDiag } from "../../config/faceDiag";
 import TermsModal from "../../components/common/TermsModal";
-import { FaceEnrollCard } from "../../components/call/FaceEnrollCard";
 import { useAvatarCall } from "../../realtime/useAvatarCall";
 import { submitDevText } from "../../realtime/devCallText";
 import { CALL_ROUTE } from "../../config/callRoute";
 import { GREETING_ENABLED, GREETING_FALLBACK_TEXT, GREET_TIMEOUT_MS } from "../../config/greeting";
 import { useHandsFreeController } from "../../realtime/useHandsFreeController";
+import { useVideoStatsDiag } from "../../realtime/useVideoStatsDiag";
 import { DialingScreen } from "../../components/call/DialingScreen";
 import { CallStatusGlow } from "../../components/call/CallStatusGlow";
+import { CallVoiceBall } from "../../components/call/CallVoiceBall";
+import { CallTimingHUD } from "../../components/call/CallTimingHUD";
+import { CallTimingPanel } from "../../components/call/CallTimingPanel";
+import { useTimingConfigStore } from "../../realtime/timingConfig";
+import { startTimingLog } from "../../realtime/timingLog";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
 import { useTranslation } from "react-i18next";
@@ -108,6 +129,8 @@ export default function CallScreen({ route, navigation }: Props) {
   const [cameraFacing, setCameraFacing] = useState<"front" | "back">("front");
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+
+  const [faceProcOff, setFaceProcOff] = useState(false);
 
   const [dialingDone, setDialingDone] = useState(false);
 
@@ -172,15 +195,36 @@ export default function CallScreen({ route, navigation }: Props) {
 
   }, [accessToken]);
 
-  const [enrollCardVisible, setEnrollCardVisible] = useState(false);
-  const [enrollName, setEnrollName] = useState("");
-  const [enrollPolicyModalVisible, setEnrollPolicyModalVisible] = useState(false);
+  const [faceBiometricConsent, setFaceBiometricConsent] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!accessToken) return;
+    let cancelled = false;
+    getFaceBiometricConsent(accessToken)
+      .then((r) => {
+        if (cancelled) return;
+        setFaceBiometricConsent(r.state === "granted");
+        console.log(`[Call][face] getFaceBiometricConsent ← granted=${r.state === "granted"}`);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setFaceBiometricConsent(false); 
+        console.warn("[Call][face] getFaceBiometricConsent failed, fallback to card flow:", err);
+      });
+    return () => {
+      cancelled = true;
+    };
+
+  }, [accessToken]);
+
+  const autoEnrolledNoNameRef = useRef<Set<number>>(new Set());
+
+  const silentEnrollRef = useRef(false);
 
   const submittedEnrollNameRef = useRef("");
 
-  const enrollSuggestImplRef = useRef<(name: string) => void>(() => {});
-  const handleEnrollSuggest = useCallback((name: string) => {
-    enrollSuggestImplRef.current(name);
+  const enrollSuggestImplRef = useRef<(name: string, personId?: number) => void>(() => {});
+  const handleEnrollSuggest = useCallback((name: string, personId?: number) => {
+    enrollSuggestImplRef.current(name, personId);
   }, []);
 
   const {
@@ -214,6 +258,8 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const greetingOn = GREETING_ENABLED && typeof greet === 'function';
 
+  useVideoStatsDiag({ getStatsReport, enabled: __DEV__ && liveState === "live" });
+
   const faceEmbedModelPlugin = useTensorflowModel(
     require("../../../assets/models/w600k_mbf.tflite"),
   );
@@ -232,6 +278,12 @@ export default function CallScreen({ route, navigation }: Props) {
     handleSpeakerEventRef.current(evt);
   }, []);
 
+  const shStateRef = useRef(initSpeakerHandoffState());
+  const dispatchShRef = useRef<(event: SpeakerHandoffEvent) => void>(() => {});
+  const dispatchSh = useCallback((event: SpeakerHandoffEvent) => {
+    dispatchShRef.current(event);
+  }, []);
+
   const unknownFaceSnapshotRef = useRef<number[][] | null>(null);
 
   const calibrateOpt = useMemo(
@@ -239,7 +291,11 @@ export default function CallScreen({ route, navigation }: Props) {
     [accessToken, gtPersonId],
   );
 
-  const { onEmbedding: onFaceEmbedding, getBuffer: getFaceEmbeddingBuffer } = useFaceIdentify({
+  const {
+    onEmbedding: onFaceEmbedding,
+    getBuffer: getFaceEmbeddingBuffer,
+    resetRecognition: resetSpeakerRecognition,
+  } = useFaceIdentify({
     enabled: consentGranted && liveState === "live",
     accessToken: accessToken ?? "",
     onEvent: handleSpeakerEventTrampoline,
@@ -251,19 +307,25 @@ export default function CallScreen({ route, navigation }: Props) {
     (evt: SpeakerEvent) => {
       if (!evt) return;
       if (evt.type === "speaker_confirmed") {
+
+        const name = evt.displayName ?? persons.find((p) => p.id === evt.personId)?.displayName ?? null;
+        if (name) {
+          dispatchSh({ type: "SPEAKER_CONFIRMED", personId: evt.personId, name });
+        }
         sendFaceEvent?.({
           event: "speaker_confirmed",
           personId: evt.personId,
           displayName: evt.displayName,
         });
       } else if (evt.type === "unknown_face") {
+        dispatchSh({ type: "UNKNOWN_FACE" });
 
         unknownFaceSnapshotRef.current = getFaceEmbeddingBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
         sendFaceEvent?.({ event: "unknown_face" });
       }
     },
 
-    [sendFaceEvent, getFaceEmbeddingBuffer],
+    [sendFaceEvent, getFaceEmbeddingBuffer, dispatchSh, persons],
   );
   useEffect(() => {
     handleSpeakerEventRef.current = handleSpeakerEvent;
@@ -275,9 +337,102 @@ export default function CallScreen({ route, navigation }: Props) {
     getSnapshot: () => unknownFaceSnapshotRef.current,
   });
 
+  const NAMING_TIMEOUT_MS = 20000;
+  const namingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const runShActions = useCallback(
+    (actions: SpeakerHandoffAction[]) => {
+      for (const a of actions) {
+        if (a.type === "SAY") {
+          void say(a.text);
+        } else if (a.type === "BEGIN_NAMING") {
+          if (namingTimerRef.current) clearTimeout(namingTimerRef.current);
+          namingTimerRef.current = setTimeout(() => {
+            dispatchShRef.current({ type: "NAMING_TIMEOUT" });
+          }, NAMING_TIMEOUT_MS);
+        } else if (a.type === "END_NAMING") {
+          if (namingTimerRef.current) {
+            clearTimeout(namingTimerRef.current);
+            namingTimerRef.current = null;
+          }
+        } else if (a.type === "DISCARD_RECOGNITION") {
+
+          faceEnroll.reset();
+          resetSpeakerRecognition();
+        }
+      }
+    },
+    [say, faceEnroll, resetSpeakerRecognition],
+  );
+  useEffect(() => {
+    dispatchShRef.current = (event: SpeakerHandoffEvent) => {
+      const { state, actions } = speakerHandoffReducer(shStateRef.current, event);
+      shStateRef.current = state;
+      runShActions(actions);
+    };
+  }, [runShActions]);
+
+  useEffect(() => {
+    return () => {
+      if (namingTimerRef.current) clearTimeout(namingTimerRef.current);
+    };
+  }, []);
+
   const handleEnrollSuggestImpl = useCallback(
-    (name: string) => {
-      if (faceEnroll.status === "enrolling") return;
+    (name: string, personId?: number) => {
+
+      const action = decideEnrollSuggestAction({
+        personId,
+        faceBiometricConsent: isFaceConsentEnforced() ? faceBiometricConsent : true,
+        autoEnrolledNoName: personId !== undefined && autoEnrolledNoNameRef.current.has(personId),
+        enrolling: faceEnroll.status === "enrolling",
+      });
+
+      if (action.kind === "ignore") return;
+
+      if (action.kind === "reflect_name") {
+
+        if (accessToken && personId !== undefined) {
+          void updatePersonName(accessToken, personId, name)
+            .then(() => {
+              autoEnrolledNoNameRef.current.delete(personId);
+            })
+            .catch((err) => {
+              console.warn("[Call][face] updatePersonName failed:", err);
+            });
+        }
+        return;
+      }
+
+      const hasSpokenName = name.trim().length > 0;
+
+      if (action.kind === "silent" && !hasSpokenName) {
+
+        const pendingId = faceEnroll.getPendingPersonId();
+        const enrolledId = faceEnroll.getEnrolledPersonId();
+        const cleanup = decideOrphanCleanupBeforeSilent({
+          enrolling: false,
+          pendingPersonId: pendingId,
+          enrolledPersonId: enrolledId,
+          incomingName: name,
+          lastName: submittedEnrollNameRef.current,
+        });
+        if (cleanup === "delete") {
+          if (accessToken && pendingId != null) {
+            void deletePerson(accessToken, pendingId).catch((err) => {
+              console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", err);
+            });
+          }
+          faceEnroll.reset();
+        } else if (cleanup === "detach") {
+
+          faceEnroll.reset();
+        }
+        submittedEnrollNameRef.current = name;
+
+        silentEnrollRef.current = true;
+        void faceEnroll.enrollSilent();
+        return;
+      }
 
       const pendingId = faceEnroll.getPendingPersonId();
       const shouldCleanup = shouldCleanupOrphanOnSuggest({
@@ -295,10 +450,10 @@ export default function CallScreen({ route, navigation }: Props) {
         faceEnroll.reset();
       }
       submittedEnrollNameRef.current = name;
-      setEnrollName(name);
-      setEnrollCardVisible(true);
+      void faceEnroll.enroll(name);
+      return;
     },
-    [faceEnroll, accessToken],
+    [faceEnroll, accessToken, faceBiometricConsent],
   );
   useEffect(() => {
     enrollSuggestImplRef.current = handleEnrollSuggestImpl;
@@ -369,14 +524,22 @@ export default function CallScreen({ route, navigation }: Props) {
     ],
   );
 
+  const sttEndpointMs = useTimingConfigStore((s) => s.sttEndpointMs);
+
+  const confirmGateEnabled = useTimingConfigStore((s) => s.confirmGateEnabled);
   const {
     phase,
+    micOn,
+    toggleMic,
     pendingText,
     cancelConfirm,
     transcript,
     interimTranscript,
     sttActive,
     cloneSuppressed,
+    devForceListen,
+    micLevel,
+    cloneAudioLevel,
   } = useHandsFreeController({
     enabled: liveState === "live",
     say,
@@ -388,6 +551,8 @@ export default function CallScreen({ route, navigation }: Props) {
     lastSignal,
     greetTimeoutMs: GREET_TIMEOUT_MS,
     fallbackText: GREETING_FALLBACK_TEXT,
+    silenceMs: sttEndpointMs,
+    confirmGate: __DEV__ && confirmGateEnabled,
   });
 
   const [greetingStarted, setGreetingStarted] = useState(false);
@@ -401,42 +566,42 @@ export default function CallScreen({ route, navigation }: Props) {
 
   }, []);
 
+  useEffect(() => {
+    if (!__DEV__) return;
+    return startTimingLog();
+  }, []);
+
   const [showGifts, setShowGifts] = useState(false);
 
   const [credits, setCredits] = useState<number>(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const handleEnrollConfirm = useCallback(
-    (trimmedName: string) => {
-      submittedEnrollNameRef.current = trimmedName;
-      void faceEnroll.enroll(trimmedName);
-    },
-    [faceEnroll],
-  );
-
-  const handleEnrollDismiss = useCallback(() => {
-
-    const pendingId = faceEnroll.getPendingPersonId();
-    if (pendingId != null && accessToken) {
-      void deletePerson(accessToken, pendingId).catch((err) => {
-        console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", err);
-      });
-    }
-    setEnrollCardVisible(false);
-    setEnrollName("");
-    faceEnroll.reset();
-    unknownFaceSnapshotRef.current = null; 
-  }, [faceEnroll, accessToken]);
-
   useEffect(() => {
     if (faceEnroll.status === "success") {
-      setToastMessage(`${submittedEnrollNameRef.current}님, 이제 기억할게요`);
-      setEnrollCardVisible(false);
-      setEnrollName("");
+      const enrolledId = faceEnroll.getEnrolledPersonId();
+      if (silentEnrollRef.current) {
+
+        if (enrolledId != null) autoEnrolledNoNameRef.current.add(enrolledId);
+        silentEnrollRef.current = false;
+      } else {
+        setToastMessage(`${submittedEnrollNameRef.current}님, 이제 기억할게요`);
+      }
+
+      dispatchSh({
+        type: "NAME_ENROLLED",
+        personId: enrolledId ?? undefined,
+        name: submittedEnrollNameRef.current,
+      });
       faceEnroll.reset();
       unknownFaceSnapshotRef.current = null; 
     } else if (faceEnroll.status === "error") {
-      setToastMessage("등록에 실패했어요. 다시 시도해 주세요");
+      if (silentEnrollRef.current) {
+
+        silentEnrollRef.current = false;
+        faceEnroll.reset();
+      } else {
+        setToastMessage("등록에 실패했어요. 다시 시도해 주세요");
+      }
     }
 
   }, [faceEnroll.status]);
@@ -822,6 +987,16 @@ export default function CallScreen({ route, navigation }: Props) {
           >
             <Text style={{ color: "#0f0", fontSize: 13, fontWeight: "600" }}>전송</Text>
           </TouchableOpacity>
+          {
+}
+          <TouchableOpacity
+            onPress={() => setFaceProcOff((v) => !v)}
+            style={{ paddingHorizontal: 10, paddingVertical: 6 }}
+          >
+            <Text style={{ color: faceProcOff ? "#f87171" : "#0f0", fontSize: 13, fontWeight: "600" }}>
+              얼굴{faceProcOff ? "OFF" : "ON"}
+            </Text>
+          </TouchableOpacity>
         </View>
       ) : null}
 
@@ -831,7 +1006,6 @@ export default function CallScreen({ route, navigation }: Props) {
           liveState={liveState}
           personaName={personaName}
           personaImage={typeof personaImage === "string" ? personaImage : ""}
-          greetingStarted={greetingOn ? greetingStarted : undefined}
           onConnected={() => setDialingDone(true)}
           onCancel={async () => { await stopLive(); navigation.goBack(); }}
           onRetry={() => { setGreetingStarted(false); void startLive(); }}
@@ -845,6 +1019,17 @@ export default function CallScreen({ route, navigation }: Props) {
       />
 
       {dialingDone ? <CallStatusGlow phase={phase} sttActive={sttActive} suppressed={cloneSuppressed} /> : null}
+
+      {__DEV__ && liveState === "live" ? <CallTimingHUD /> : null}
+      {__DEV__ && liveState === "live" ? (
+
+        <View
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: bottomInset }}
+          pointerEvents="box-none"
+        >
+          <CallTimingPanel onForceListen={devForceListen} micOn={micOn} onToggleMic={toggleMic} />
+        </View>
+      ) : null}
 
       {
 
@@ -867,7 +1052,8 @@ export default function CallScreen({ route, navigation }: Props) {
             isActive={!isVideoOff}
 
             androidPreviewViewType="texture-view"
-            frameProcessor={consentGranted ? faceFrameProcessor : undefined}
+
+            frameProcessor={consentGranted && !faceProcOff ? faceFrameProcessor : undefined}
             onError={(e) =>
               console.log("[Call][face] camera error:", e.code, e.message)
             }
@@ -932,26 +1118,6 @@ export default function CallScreen({ route, navigation }: Props) {
             setConsentLoading(false);
           }
         }}
-      />
-
-      {}
-      <FaceEnrollCard
-        visible={enrollCardVisible}
-        name={enrollName}
-        onChangeName={setEnrollName}
-        onConfirm={handleEnrollConfirm}
-        onDismiss={handleEnrollDismiss}
-        onViewPolicy={() => setEnrollPolicyModalVisible(true)}
-        busy={faceEnroll.status === "enrolling"}
-      />
-
-      {
-}
-      <TermsModal
-        visible={enrollPolicyModalVisible}
-        type={4}
-        onClose={() => setEnrollPolicyModalVisible(false)}
-        onAgree={() => setEnrollPolicyModalVisible(false)}
       />
 
       {
@@ -1022,20 +1188,27 @@ export default function CallScreen({ route, navigation }: Props) {
         </Animated.Text>
       ))}
 
+      {
+
+}
+
       {}
       {phase === 'listening' && (!!interimTranscript || !!transcript) ? (
-        <View style={s.subtitleContainer} pointerEvents="none">
-          <Text style={s.subtitleText} numberOfLines={2} ellipsizeMode="tail">
+        <View style={[s.subtitleContainer, { top: insets.top + 8 }]} pointerEvents="none">
+          <Text style={s.subtitleText}>
             {interimTranscript || transcript}
           </Text>
         </View>
       ) : null}
 
-      {}
+      {
+
+}
       {phase === 'confirming' && !!pendingText ? (
-        <Pressable style={s.confirmTapArea} onPress={cancelConfirm}>
-          <View style={s.subtitleContainer} pointerEvents="none">
-            <Text style={s.subtitleText} numberOfLines={2} ellipsizeMode="tail">
+        <>
+          <Pressable style={s.confirmTapArea} onPress={cancelConfirm} />
+          <View style={[s.subtitleContainer, { top: insets.top + 8 }]} pointerEvents="none">
+            <Text style={s.subtitleText}>
               {pendingText}
             </Text>
             <View style={s.confirmBarTrack}>
@@ -1043,7 +1216,18 @@ export default function CallScreen({ route, navigation }: Props) {
             </View>
             <Text style={s.confirmHint}>탭하여 취소 · 잠시 후 전송</Text>
           </View>
-        </Pressable>
+        </>
+      ) : null}
+
+      {
+
+}
+      {(phase === 'sending' || phase === 'speaking') && !!pendingText ? (
+        <View style={[s.subtitleContainer, { top: insets.top + 8 }]} pointerEvents="none">
+          <Text style={s.subtitleText}>
+            {pendingText}
+          </Text>
+        </View>
       ) : null}
 
       {
@@ -1054,6 +1238,17 @@ export default function CallScreen({ route, navigation }: Props) {
       >
         <Text style={s.watermarkText}>afterlife</Text>
       </View>
+
+      {
+}
+      {dialingDone ? (
+        <View
+          style={[s.voiceBallLayer, { bottom: bottomInset + 24 + 56 + 16 }]}
+          pointerEvents="none"
+        >
+          <CallVoiceBall phase={phase} micLevel={micLevel} cloneLevel={cloneAudioLevel} />
+        </View>
+      ) : null}
 
       {}
       <View style={[s.controls, { paddingBottom: bottomInset + 24 }]}>
@@ -1220,6 +1415,14 @@ const s = StyleSheet.create({
     right: 16,
     alignItems: "flex-end",
   },
+
+  voiceBallLayer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 14,
+  },
   watermarkText: {
     color: "rgba(255, 255, 255, 0.5)",
     fontSize: 20,
@@ -1345,10 +1548,9 @@ const s = StyleSheet.create({
 
   subtitleContainer: {
     position: 'absolute',
-    bottom: 150,
-    left: 48,
-    right: 48,
-    alignItems: 'center',
+    left: 124,
+    right: 16,
+    alignItems: 'flex-start',
     zIndex: 15,
   },
   subtitleText: {
@@ -1359,14 +1561,14 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 10,
-    textAlign: 'center',
-    overflow: 'hidden',
+    textAlign: 'left',
+    alignSelf: 'stretch',
   },
+
   confirmTapArea: {
     position: 'absolute',
     left: 0, right: 0, bottom: 0,
     height: '33%',
-    justifyContent: 'center',
     zIndex: 16,
   },
   confirmHint: {

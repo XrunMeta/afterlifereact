@@ -3,7 +3,7 @@ import { dialingOutcome, DEFAULT_DIALING_CONFIG } from '../../src/realtime/diali
 const cfg = DEFAULT_DIALING_CONFIG; 
 
 it('live지만 최소노출 전 → dialing', () => {
-  expect(dialingOutcome('live', 1000, cfg)).toBe('dialing');
+  expect(dialingOutcome('live', 300, cfg)).toBe('dialing');
 });
 
 it('live + 최소노출 경과 → connected', () => {
@@ -44,7 +44,7 @@ describe('dialingOutcome — greeting 게이팅', () => {
   });
 
   it('greetingStarted=true 라도 minMs 전이면 dialing(깜빡임 방지)', () => {
-    expect(dialingOutcome('live', 1000, cfg, true)).toBe('dialing');
+    expect(dialingOutcome('live', 300, cfg, true)).toBe('dialing');
   });
 
   it('greetingStarted 인자 생략(undefined) 시 기존 동작(live=connected) 무회귀', () => {

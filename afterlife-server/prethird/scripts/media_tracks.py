@@ -12,6 +12,19 @@ from config import (QUEUE_MAX_DEFAULT, AUDIO_QUEUE_MAX_DEFAULT, AUDIO_OUTPUT_SR,
                     VIDEO_PTS_INCREMENT, VIDEO_TIME_BASE, IDLE_MP4_PATH)
 log = logging.getLogger("prethird.tracks")
 
+def prebuffer_should_release(qsize: int, target: int, stream_ended: bool) -> bool:
+    """리드 버퍼(pre-roll) 해제 판정 (순수).
+
+    응답 시작 시 비디오 큐에 target 프레임이 쌓일 때까지 드레인을 보류해
+    문장 사이 갭(LLM/TTS/렌더 지터)을 버퍼로 흡수한다. 다음 중 하나면 해제:
+      - target<=0: 비활성(기존 동작, 회귀 0) → 항상 즉시 해제
+      - qsize>=target: 목표만큼 버퍼링 완료
+      - stream_ended: 짧은 응답이라 목표 미달이어도 스트림이 끝남(무한 대기 방지)
+    """
+    if target <= 0:
+        return True
+    return qsize >= target or stream_ended
+
 class AvatarVideoTrack(VideoStreamTrack):
     """모드 토글 가능한 video track.
 
@@ -46,6 +59,11 @@ class AvatarVideoTrack(VideoStreamTrack):
         self._idle_blend_n = int(os.environ.get("PRETHIRD_IDLE_BLEND_FRAMES", "5"))
         self._blend_from: Optional[np.ndarray] = None
         self._blend_i = 0
+        # 리드 버퍼(pre-roll): 응답 시작 시 큐에 _prebuffer_target 프레임이 쌓일 때까지
+        # 드레인 보류(idle 표시·audio gate 미개방) → 문장 사이 갭을 흡수. 0=비활성(회귀0).
+        # begin_response()가 턴 시작마다 _prebuffering 을 재무장한다.
+        self._prebuffer_target = int(os.environ.get("PRETHIRD_PREROLL_FRAMES", "0"))
+        self._prebuffering = False
 
     def set_mode(self, mode: str) -> None:
         if mode not in ("dummy", "queue"):
@@ -86,6 +104,16 @@ class AvatarVideoTrack(VideoStreamTrack):
         alpha = (self._blend_i + 1) / float(self._idle_blend_n)
         self._blend_i += 1
         return _blend_frames(self._blend_from, idle_arr, alpha)
+
+    def begin_response(self) -> None:
+        """응답(턴) 시작 시 리드 버퍼 재무장. _prebuffer_target>0 이면 다음 recv 부터
+        큐가 목표만큼 찰 때까지 드레인을 보류한다. target=0 이면 no-op(회귀 0).
+
+        _stream_ended 도 리셋 — 직전 턴 signal_end(True)가 남아 새 턴 버퍼링을 즉시
+        해제시키는 것을 막는다. 파이프라인이 첫 세그먼트 push 직전에 호출한다."""
+        if self._prebuffer_target > 0:
+            self._prebuffering = True
+            self._stream_ended = False
 
     def push_ndarray(self, arr: np.ndarray) -> dict:
         """외부에서 frame 적재. 큐 가득 차면 oldest drop."""
@@ -151,7 +179,17 @@ class AvatarVideoTrack(VideoStreamTrack):
         arr: Optional[np.ndarray] = None
 
         if self.mode == "queue":
+            # 리드 버퍼: 목표 프레임이 쌓이면 해제(이후 정상 드레인). 버퍼링 중엔 아래
+            # try 에서 큐를 소비하지 않고 idle 폴백 경로를 재사용 → audio gate 미개방 유지
+            # (오디오 버퍼도 gate 로 함께 대기 → 재생 시작 시 A/V 동기 보존).
+            if self._prebuffering and prebuffer_should_release(
+                self.queue.qsize(), self._prebuffer_target, self._stream_ended
+            ):
+                self._prebuffering = False
             try:
+                if self._prebuffering:
+                    # 버퍼링 중 — 큐 미소비, idle/hold 폴백(except 경로 재사용)
+                    raise asyncio.TimeoutError
                 # 짧은 timeout 으로 폴링 — 비면 idle/last/dummy fallback
                 arr = await asyncio.wait_for(self.queue.get(), timeout=0.02)
                 self._last_frame = arr

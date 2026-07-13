@@ -7,6 +7,12 @@
     "development": {
       "distribution": "internal",
       "developmentClient": true,
+      "env": {
+        "EXPO_PUBLIC_TIMING_STT_ENDPOINT_MS": "2000",
+        "EXPO_PUBLIC_TIMING_ECHO_GATE_MS": "3750",
+        "EXPO_PUBLIC_TIMING_CLONE_RESUME_MS": "600",
+        "EXPO_PUBLIC_TIMING_CLONE_TAIL_GRACE_MS": "1000"
+      },
       "android": {
         "image": "latest",
         "gradleCommand": ":app:assembleDebug"
@@ -18,6 +24,12 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_TIMING_STT_ENDPOINT_MS": "2000",
+        "EXPO_PUBLIC_TIMING_ECHO_GATE_MS": "3750",
+        "EXPO_PUBLIC_TIMING_CLONE_RESUME_MS": "600",
+        "EXPO_PUBLIC_TIMING_CLONE_TAIL_GRACE_MS": "1000"
+      },
       "android": {
         "buildType": "apk"
       },
@@ -30,7 +42,11 @@
       "autoIncrement": true,
       "channel": "production",
       "env": {
-        "EXPO_PUBLIC_API_BASE": "https://edge-alt.example.invalid"
+        "EXPO_PUBLIC_API_BASE": "https://edge-alt.example.invalid",
+        "EXPO_PUBLIC_TIMING_STT_ENDPOINT_MS": "2000",
+        "EXPO_PUBLIC_TIMING_ECHO_GATE_MS": "3750",
+        "EXPO_PUBLIC_TIMING_CLONE_RESUME_MS": "600",
+        "EXPO_PUBLIC_TIMING_CLONE_TAIL_GRACE_MS": "1000"
       },
       "android": {
         "distribution": "store"

@@ -43,6 +43,8 @@ export default defineWorkersConfig(async () => {
               ALE_KEK: "dGVzdC1hbGUta2VrLTMyYnl0ZXMtcGFkZGluZyEhISE=",
 
               FACE_CALIBRATE_ENABLED: "1",
+
+              FACE_CONSENT_ENFORCED: "true",
             },
           },
         },

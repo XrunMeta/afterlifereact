@@ -4,7 +4,7 @@ import { writeFile, mkdtemp, rm } from 'node:fs/promises';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { createAssetJobRunner, FILLER_SPECS, FILLER_TEXTS, defaultEnsureVoiceWav, defaultFifthRender, defaultFfmpegPadCmd, _MAX_VOICE_WAV_BYTES } from './assetJobRunner.js';
+import { createAssetJobRunner, FILLER_SPECS, FILLER_TEXTS, FILLER_TARGET_DUR_SEC, defaultEnsureVoiceWav, defaultFifthRender, defaultFfmpegPadCmd, defaultFfmpegMuxCmd, defaultFfmpegPeakDb, fillerNormalizeGainDb, FILLER_PEAK_TARGET_DB, _MAX_VOICE_WAV_BYTES } from './assetJobRunner.js';
 
 const API_BASE = 'https://oth-path.example.com';
 
@@ -338,11 +338,11 @@ test('filler 3종 모두 성공 → /oth-path 1회, file0/file1/file2 포함', a
   assert.equal(fd.get(`file${FILLER_SPECS.length}`), null, '종수 초과 필드 없음');
 });
 
-test('filler FILLER_SPECS 상수 — 비언어("음/으음/아") 6종 순환 (T-088 라운드4)', () => {
+test('filler FILLER_SPECS 상수 — 비언어("음/으음/아/흠") 6종 순환 (T-088 라운드4, T-120 폐구음 교체)', () => {
   assert.equal(FILLER_TEXTS.length, 6, '필러 6종 순환 (음/으음 3 + 아 계열 3)');
   for (const t of FILLER_TEXTS) {
 
-    assert.match(t, /^[음으아.\s]+$/, `비언어 소리만 허용: "${t}"`);
+    assert.match(t, /^[음으아흠.\s]+$/, `비언어 소리만 허용: "${t}"`);
   }
 
   for (const s of FILLER_SPECS) {
@@ -788,6 +788,7 @@ test('filler ffmpeg mux 실패 (첫 번째 exit ≠ 0) → callbackFailed, fille
     _qwenTtsFn: qwenFn,
     _fifthRenderFn: fifthFn,
     ffmpegMuxCmd: fillerFfmpegCmd,
+    ffmpegPeakDbFn: async () => -20, 
     _ensureVoiceWavFn: makeEnsureVoiceWav(),
   });
 
@@ -1644,6 +1645,7 @@ test('filler wav 패딩 실패 (첫 spawn exit 1) → callbackFailed, 렌더 미
     _qwenTtsFn: makeQwenTtsTracked(),
     _fifthRenderFn: fifthFn,
     ffmpegMuxCmd: fillerFfmpegCmd,
+    ffmpegPeakDbFn: async () => -20, 
     _ensureVoiceWavFn: makeEnsureVoiceWav(),
   });
 
@@ -1756,4 +1758,230 @@ test('defaultFifthRender: 터미네이터 없이 종료 → terminator reject �
   } finally {
     srv.close();
   }
+});
+
+test('FILLER_SPECS render_opts: 공통 source_face_lock·eyes_open_lock·blink_interval_sec, 2·3만 머리 크게 (T-120)', () => {
+  assert.equal(FILLER_SPECS.length, 6);
+
+  assert.ok(FILLER_SPECS.every((s) => s.render_opts.source_face_lock === true));
+
+  assert.ok(FILLER_SPECS.every((s) => s.render_opts.source_face_lock_full === true));
+  assert.ok(FILLER_SPECS.every((s) => s.render_opts.eyes_open_lock === true));
+
+  assert.ok(FILLER_SPECS.every((s) => s.render_opts.blink_interval_sec === 6.0));
+  assert.equal(FILLER_SPECS[0].render_opts.head_sway_amp, 0.0);
+
+  assert.equal(FILLER_SPECS[2].render_opts.head_sway_amp, 0.2);
+  assert.equal(FILLER_SPECS[3].render_opts.head_sway_amp, 0.2);
+  assert.equal(FILLER_SPECS[4].render_opts.head_sway_amp, 0.0);
+  assert.equal(FILLER_SPECS[5].render_opts.head_sway_amp, 0.1);
+
+  assert.ok(FILLER_SPECS.every((s) => !s.text.includes('아')));
+
+  assert.ok(FILLER_SPECS.every((s) => s.render_opts.head_sway_slow === 2.0));
+});
+
+test('FILLER_TARGET_DUR_SEC: 긴 버전 확정 12~17s (히즈키 "긴버전 좋다", T-120)', () => {
+
+  assert.deepEqual(FILLER_TARGET_DUR_SEC, [12.0, 13.0, 14.0, 15.0, 16.0, 17.0]);
+  assert.equal(FILLER_TARGET_DUR_SEC.length, FILLER_SPECS.length);
+});
+
+test('FILLER_SPECS render_opts: 시선 오프셋 세트(idx0 정면·1/2 좌우·3/4 상하·5 오프셋없음) (T-120)', () => {
+
+  assert.equal(FILLER_SPECS[0].render_opts.head_yaw_offset, 0);
+  assert.equal(FILLER_SPECS[0].render_opts.head_pitch_offset, 0);
+  assert.equal(FILLER_SPECS[1].render_opts.head_yaw_offset, -6);
+  assert.equal(FILLER_SPECS[2].render_opts.head_yaw_offset, 6);
+  assert.equal(FILLER_SPECS[3].render_opts.head_pitch_offset, 4);
+  assert.equal(FILLER_SPECS[4].render_opts.head_pitch_offset, -4);
+
+  assert.equal(FILLER_SPECS[5].render_opts.head_yaw_offset, undefined);
+  assert.equal(FILLER_SPECS[5].render_opts.head_pitch_offset, undefined);
+});
+
+test('processFillerJob이 spec.render_opts를 fifthRenderFn 4번째 인자로 전달 (T-120)', async () => {
+  const callbackCalls = [];
+  const fillerCallbackCalls = [];
+  const renderOptsCalls = [];
+
+  const capturingFifthRender = async (wavPath, facePath, url, renderOpts) => {
+    renderOptsCalls.push(renderOpts);
+    const frames = [];
+    for (let f = 0; f < 3; f++) frames.push(Buffer.from(`jpeg_${renderOptsCalls.length}_${f}`));
+    return frames;
+  };
+
+  const runner = createAssetJobRunner({
+    apiBaseUrl: API_BASE,
+    fetchImpl: makeFetchFiller({ callbackCalls, fillerCallbackCalls }),
+    spawnImpl: makeSpawn(0),
+    _qwenTtsFn: makeQwenTts(),
+    _fifthRenderFn: capturingFifthRender,
+    ffmpegMuxCmd: fillerFfmpegCmd,
+    _ensureVoiceWavFn: makeEnsureVoiceWav(),
+  });
+
+  runner.enqueue({
+    job_id: 'fj_render_opts',
+    kind: 'filler',
+    clone_id: '9055',
+    face_url: `${API_BASE}/oth-path`,
+    voice_raw_url: `${API_BASE}/oth-path`,
+    callback_token: 'tok_fj_ro',
+  });
+
+  await waitDrain(runner, 4000);
+
+  assert.equal(fillerCallbackCalls.length, 1, '전부 성공해야 함');
+  assert.equal(renderOptsCalls.length, FILLER_SPECS.length);
+  for (let i = 0; i < FILLER_SPECS.length; i++) {
+    assert.deepEqual(renderOptsCalls[i], FILLER_SPECS[i].render_opts);
+  }
+});
+
+test('defaultFifthRender: renderOpts 4번째 인자 전달 시 POST body에 병합 (T-120)', async () => {
+  const { createServer } = await import('node:http');
+  let receivedBody = null;
+  const srv = createServer((req, res) => {
+    const chunks = [];
+    req.on('data', (c) => chunks.push(c));
+    req.on('end', () => {
+      receivedBody = JSON.parse(Buffer.concat(chunks).toString());
+      res.writeHead(200, { 'Content-Type': 'application/octet-stream' });
+      res.end(TERMINATOR);
+    });
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  try {
+    await defaultFifthRender('/tmp/x.wav', '/tmp/face.jpg', `http://127.0.0.1:${srv.address().port}`, {
+      lip_lock: true, head_sway_amp: 0.6, eyes_open_lock: true,
+    });
+    assert.equal(receivedBody.wav_path, '/tmp/x.wav');
+    assert.equal(receivedBody.video_path, '/tmp/face.jpg');
+    assert.equal(receivedBody.lip_lock, true);
+    assert.equal(receivedBody.head_sway_amp, 0.6);
+    assert.equal(receivedBody.eyes_open_lock, true);
+  } finally {
+    srv.close();
+  }
+});
+
+test('defaultFifthRender: renderOpts 미전달 시 body 불변(회귀 0, T-120)', async () => {
+  const { createServer } = await import('node:http');
+  let receivedBody = null;
+  const srv = createServer((req, res) => {
+    const chunks = [];
+    req.on('data', (c) => chunks.push(c));
+    req.on('end', () => {
+      receivedBody = JSON.parse(Buffer.concat(chunks).toString());
+      res.writeHead(200, { 'Content-Type': 'application/octet-stream' });
+      res.end(TERMINATOR);
+    });
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  try {
+    await defaultFifthRender('/tmp/x.wav', '/tmp/face.jpg', `http://127.0.0.1:${srv.address().port}`);
+    assert.deepEqual(receivedBody, { wav_path: '/tmp/x.wav', video_path: '/tmp/face.jpg' });
+  } finally {
+    srv.close();
+  }
+});
+
+test('defaultFfmpegMuxCmd: audioVolumeDb 전달 시 -af volume=<N>dB 포함, 미전달 시 없음', () => {
+  const withDb = defaultFfmpegMuxCmd('/tmp/frames', '/tmp/a.wav', '/tmp/out.mp4', -20);
+  const argsWithDb = withDb.args.join(' ');
+  assert.match(argsWithDb, /-af volume=-20dB/, '-af volume=-20dB 포함 필요');
+
+  const afIdx = withDb.args.indexOf('-af');
+  const caIdx = withDb.args.indexOf('-c:a');
+  assert.ok(afIdx >= 0 && caIdx >= 0 && afIdx < caIdx, '-af 는 -c:a 앞에 위치해야 함');
+
+  const withoutDb = defaultFfmpegMuxCmd('/tmp/frames', '/tmp/a.wav', '/tmp/out.mp4');
+  assert.equal(withoutDb.args.includes('-af'), false, '미전달 시 -af 없어야 함(회귀 0)');
+  assert.equal(withoutDb.args[withoutDb.args.length - 1], '/tmp/out.mp4', '마지막 인자=출력 경로 계약 유지');
+});
+
+test('필러 오디오 peak 정규화: pad 가 raw peak→-3dB 게인 받고, mux 는 감쇠 없음(T-120)', async () => {
+  const callbackCalls = [];
+  const fillerCallbackCalls = [];
+  const muxCalls = [];
+  const padVolCalls = [];
+
+  const capturingMuxCmd = (framesDir, wavPath, outPath, audioVolumeDb) => {
+    muxCalls.push(audioVolumeDb);
+    return { bin: 'echo', args: [outPath] };
+  };
+  const capturingPadCmd = (inWav, outWav, wholeDurSec, atempo, volumeDb) => {
+    padVolCalls.push(volumeDb);
+    return { bin: 'echo', args: [outWav] };
+  };
+
+  const runner = createAssetJobRunner({
+    apiBaseUrl: API_BASE,
+    fetchImpl: makeFetchFiller({ callbackCalls, fillerCallbackCalls }),
+    spawnImpl: makeSpawn(0),
+    _qwenTtsFn: makeQwenTts(),
+    _fifthRenderFn: makeFifthRender({ framesCount: 3 }),
+    ffmpegMuxCmd: capturingMuxCmd,
+    ffmpegPadCmd: capturingPadCmd,
+    ffmpegPeakDbFn: async () => -17, 
+    _ensureVoiceWavFn: makeEnsureVoiceWav(),
+  });
+
+  runner.enqueue({
+    job_id: 'fj_norm',
+    kind: 'filler',
+    clone_id: '9055',
+    face_url: `${API_BASE}/oth-path`,
+    voice_raw_url: `${API_BASE}/oth-path`,
+    callback_token: 'tok_fj_norm',
+  });
+
+  await waitDrain(runner, 4000);
+
+  assert.equal(fillerCallbackCalls.length, 1, '전부 성공해야 함');
+
+  const expectedGain = FILLER_PEAK_TARGET_DB - (-17);
+  assert.equal(padVolCalls.length, FILLER_SPECS.length);
+  assert.ok(padVolCalls.every((db) => db === expectedGain), `pad 정규화 게인 ${expectedGain}dB 이어야 함: ${padVolCalls}`);
+
+  assert.equal(muxCalls.length, FILLER_SPECS.length);
+  assert.ok(muxCalls.every((db) => db == null), 'mux 는 audioVolumeDb 미전달(감쇠 없음)');
+});
+
+test('fillerNormalizeGainDb: 목표까지 게인 산출 + 측정실패/클램프', () => {
+  const T = FILLER_PEAK_TARGET_DB;
+  assert.equal(fillerNormalizeGainDb(-17), Math.max(-6, Math.min(40, T - (-17))));
+  assert.equal(fillerNormalizeGainDb(T), 0, '이미 목표면 게인 0');
+  assert.equal(fillerNormalizeGainDb(null), 0, '측정 실패 → 0dB(원본 레벨)');
+  assert.equal(fillerNormalizeGainDb(undefined), 0);
+  assert.equal(fillerNormalizeGainDb(NaN), 0);
+  assert.equal(fillerNormalizeGainDb(-100), 40, '과증폭 clamp +40dB');
+  assert.equal(fillerNormalizeGainDb(10), -6, '과감쇠 clamp -6dB');
+  assert.equal(fillerNormalizeGainDb(-10, -6), 4, 'targetDb 인자 반영');
+});
+
+test('defaultFfmpegPeakDb: volumedetect stderr 에서 max_volume 파싱', async () => {
+  const spawnStub = (_bin, _args, _opts) => {
+    const listeners = {};
+    const proc = {
+      stderr: { on: (_e, fn) => { listeners.data = fn; return proc.stderr; } },
+      on(event, fn) { listeners[event] = fn; return proc; },
+    };
+    setImmediate(() => {
+      listeners.data?.(Buffer.from('[Parsed_volumedetect] mean_volume: -30.0 dB\n[Parsed_volumedetect] max_volume: -17.3 dB\n'));
+      listeners.close?.(0);
+    });
+    return proc;
+  };
+  assert.equal(await defaultFfmpegPeakDb('/x.wav', spawnStub), -17.3);
+
+  const spawnNo = (_b, _a, _o) => {
+    const l = {};
+    const proc = { stderr: { on: (_e, fn) => { l.data = fn; return proc.stderr; } }, on(e, fn) { l[e] = fn; return proc; } };
+    setImmediate(() => { l.data?.(Buffer.from('no volume here')); l.close?.(0); });
+    return proc;
+  };
+  assert.equal(await defaultFfmpegPeakDb('/x.wav', spawnNo), null);
 });
