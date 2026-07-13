@@ -1,10 +1,16 @@
 
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { normalizeMicLevel, shouldUpdateLevel } from './voiceBall';
 
 export interface SpeechEngine {
   requestPermissionsAsync(): Promise<{ granted: boolean }>;
-  start(opts?: { lang?: string; interimResults?: boolean; continuous?: boolean }): void;
+  start(opts?: {
+    lang?: string;
+    interimResults?: boolean;
+    continuous?: boolean;
+    volumeChangeEventOptions?: { enabled?: boolean; intervalMillis?: number };
+  }): void;
   stop(): void;
   addListener(event: string, cb: (payload: any) => void): { remove: () => void };
 }
@@ -40,6 +46,10 @@ export function useSpeechInput(opts?: {
   const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
   const [listening, setListening] = useState(false);
+
+  const [micLevel, setMicLevel] = useState(0);
+
+  const micLevelRef = useRef(0);
 
   const [listeningDebounced, setListeningDebounced] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -144,6 +154,8 @@ export function useSpeechInput(opts?: {
         }
         pendingStartRef.current = false;
         setListening(false);
+        micLevelRef.current = 0;
+        setMicLevel(0); 
 
         if (stalledTimerRef.current) clearTimeout(stalledTimerRef.current);
         stalledTimerRef.current = setTimeout(() => {
@@ -154,6 +166,8 @@ export function useSpeechInput(opts?: {
       }),
       engine.addListener('end', () => {
         setListening(false);
+        micLevelRef.current = 0;
+        setMicLevel(0); 
 
         if (stalledTimerRef.current) clearTimeout(stalledTimerRef.current);
         stalledTimerRef.current = setTimeout(() => {
@@ -170,7 +184,12 @@ export function useSpeechInput(opts?: {
             try {
 
               pendingStartRef.current = true; 
-              engine.start({ lang, interimResults: true, continuous: true });
+              engine.start({
+                lang,
+                interimResults: true,
+                continuous: true,
+                volumeChangeEventOptions: { enabled: true, intervalMillis: 100 },
+              });
 
               if (watchdogRef.current) clearTimeout(watchdogRef.current);
               watchdogRef.current = setTimeout(() => {
@@ -198,6 +217,17 @@ export function useSpeechInput(opts?: {
       engine.addListener('soundstart', (_p: any) => {}),
       engine.addListener('soundend', (_p: any) => {}),
       engine.addListener('nomatch', (_p: any) => {}),
+
+      engine.addListener('volumechange', (p: any) => {
+        if (!wantListeningRef.current) return;
+        const raw = typeof p?.value === 'number' && !Number.isNaN(p.value) ? p.value : undefined;
+        if (raw === undefined) return;
+        const next = normalizeMicLevel(raw);
+        if (shouldUpdateLevel(micLevelRef.current, next)) {
+          micLevelRef.current = next;
+          setMicLevel(next);
+        }
+      }),
     );
     return () => {
       subs.current.forEach((s) => s.remove());
@@ -251,7 +281,12 @@ export function useSpeechInput(opts?: {
     }, STT_WATCHDOG_MS);
     try {
 
-      engine.start({ lang, interimResults: true, continuous: true });
+      engine.start({
+        lang,
+        interimResults: true,
+        continuous: true,
+        volumeChangeEventOptions: { enabled: true, intervalMillis: 100 },
+      });
     } catch (startErr: unknown) {
       const e = startErr instanceof Error ? startErr : new Error(String(startErr));
       if (watchdogRef.current) {
@@ -281,6 +316,8 @@ export function useSpeechInput(opts?: {
     engine.stop();
     setListening(false);
     setListeningDebounced(false);
+    micLevelRef.current = 0;
+    setMicLevel(0); 
 
     if (stalledTimerRef.current) {
       clearTimeout(stalledTimerRef.current);
@@ -288,7 +325,17 @@ export function useSpeechInput(opts?: {
     }
   }, [engine, resetBuffer]);
 
-  return { transcript, interimTranscript, listening, listeningDebounced, error, startListening, stopListening };
+  return {
+    transcript,
+    interimTranscript,
+    listening,
+    listeningDebounced,
+    error,
+    startListening,
+    stopListening,
+
+    micLevel,
+  };
 }
 
 function getDefaultEngine(): SpeechEngine {
@@ -300,6 +347,7 @@ function getDefaultEngine(): SpeechEngine {
     start: (o) =>
       ExpoSpeechRecognitionModule.start({
         lang: o?.lang,
+        volumeChangeEventOptions: o?.volumeChangeEventOptions,
         interimResults: o?.interimResults,
         continuous: o?.continuous,
       }),

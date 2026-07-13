@@ -12,6 +12,7 @@ import {
 import { extractCloneAudioLevel, type CloneSilenceConfig } from './cloneSilence';
 import { useTimingConfigStore } from './timingConfig';
 import { emitTimingEvent } from './timingEvents';
+import { shouldUpdateLevel } from './voiceBall';
 
 const CLONE_GATE_LEVEL = 0.05; 
 
@@ -93,6 +94,10 @@ export function useHandsFreeController(opts: {
 
   const [sttSuppressed, setSttSuppressed] = useState(false);
   const sttSuppressedRef = useRef(false);
+
+  const [cloneAudioLevel, setCloneAudioLevel] = useState(0);
+
+  const cloneAudioLevelRef = useRef(0);
 
   const cloneTailGraceUntilRef = useRef(0);
 
@@ -208,12 +213,23 @@ export function useHandsFreeController(opts: {
   const getStatsRef = useRef(opts.getStatsReport);
   useEffect(() => { getStatsRef.current = opts.getStatsReport; });
   useEffect(() => {
-    if (!opts.enabled) return;
+    if (!opts.enabled) {
+
+      cloneAudioLevelRef.current = 0;
+      setCloneAudioLevel(0);
+      return;
+    }
     const id = setInterval(() => {
       const p = getStatsRef.current();
       if (!p) return;
       p.then((report) => {
         const lv = extractCloneAudioLevel(report);
+
+        const nextCloneLevel = typeof lv === 'number' ? Math.min(1, Math.max(0, lv)) : 0;
+        if (shouldUpdateLevel(cloneAudioLevelRef.current, nextCloneLevel)) {
+          cloneAudioLevelRef.current = nextCloneLevel;
+          setCloneAudioLevel(nextCloneLevel);
+        }
         const now = Date.now();
         const cloneSpeaking = typeof lv === 'number' && lv > CLONE_GATE_LEVEL;
         if (cloneSpeaking) cloneSpokeAtRef.current = now;
@@ -294,5 +310,9 @@ export function useHandsFreeController(opts: {
     cloneSuppressed: sttSuppressed,
 
     devForceListen,
+
+    micLevel: speech.micLevel,
+
+    cloneAudioLevel,
   };
 }
