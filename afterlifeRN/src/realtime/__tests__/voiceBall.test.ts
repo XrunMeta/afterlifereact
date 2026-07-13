@@ -1,0 +1,118 @@
+
+
+import {
+  normalizeMicLevel,
+  ballVisualForPhase,
+  radiusForLevel,
+  shouldUpdateLevel,
+  BALL_COLORS,
+  BALL_SIZE,
+  BALL_LEVEL_EPSILON,
+} from '../voiceBall';
+import type { HandsFreePhase } from '../handsFree';
+
+describe('normalizeMicLevel', () => {
+  it('하한(-2)은 0', () => {
+    expect(normalizeMicLevel(-2)).toBe(0);
+  });
+  it('0은 하한(-2)~상한(10) 사이 비율로 정규화된다', () => {
+
+    expect(normalizeMicLevel(0)).toBeCloseTo(2 / 12, 5);
+  });
+  it('상한(10)은 1', () => {
+    expect(normalizeMicLevel(10)).toBe(1);
+  });
+  it('상한 초과(12)는 1로 clamp', () => {
+    expect(normalizeMicLevel(12)).toBe(1);
+  });
+  it('하한 미만은 0으로 clamp', () => {
+    expect(normalizeMicLevel(-10)).toBe(0);
+  });
+});
+
+describe('ballVisualForPhase', () => {
+  it('idle — 회색, pulse 없음, orbit 정지, 라벨 없음', () => {
+    const v = ballVisualForPhase('idle');
+    expect(v).toEqual({ color: BALL_COLORS.idle, pulseSource: 'none', orbit: false, label: null });
+  });
+  it('listening — 녹색, mic pulse, orbit 회전, "입력중"', () => {
+    const v = ballVisualForPhase('listening');
+    expect(v).toEqual({ color: BALL_COLORS.listening, pulseSource: 'mic', orbit: true, label: '입력중' });
+  });
+  it('confirming — 녹색, mic pulse, orbit 회전, "입력중"', () => {
+    const v = ballVisualForPhase('confirming');
+    expect(v).toEqual({ color: BALL_COLORS.confirming, pulseSource: 'mic', orbit: true, label: '입력중' });
+  });
+  it('sending — 검정, pulse 없음, orbit 회전, 라벨 없음', () => {
+    const v = ballVisualForPhase('sending');
+    expect(v).toEqual({ color: BALL_COLORS.sending, pulseSource: 'none', orbit: true, label: null });
+  });
+  it('greeting — 검정, clone pulse, orbit 회전, "발화중"', () => {
+    const v = ballVisualForPhase('greeting');
+    expect(v).toEqual({ color: BALL_COLORS.greeting, pulseSource: 'clone', orbit: true, label: '발화중' });
+  });
+  it('speaking — 검정, clone pulse, orbit 회전, "발화중"', () => {
+    const v = ballVisualForPhase('speaking');
+    expect(v).toEqual({ color: BALL_COLORS.speaking, pulseSource: 'clone', orbit: true, label: '발화중' });
+  });
+  it('paused — 회색, pulse 없음, orbit 정지(멈춤), 라벨 없음', () => {
+    const v = ballVisualForPhase('paused');
+    expect(v).toEqual({ color: BALL_COLORS.paused, pulseSource: 'none', orbit: false, label: null });
+  });
+
+  it('모든 HandsFreePhase 값을 커버한다', () => {
+    const phases: HandsFreePhase[] = [
+      'idle', 'greeting', 'listening', 'confirming', 'sending', 'speaking', 'paused',
+    ];
+    for (const p of phases) {
+      expect(() => ballVisualForPhase(p)).not.toThrow();
+    }
+  });
+});
+
+describe('radiusForLevel (반환값=지름 px)', () => {
+  const size = BALL_SIZE;
+  it('level=0 → min(지름 28px)', () => {
+    expect(radiusForLevel(0, size)).toBeCloseTo(size.min, 5);
+    expect(radiusForLevel(0, size)).toBe(28);
+  });
+  it('level=1 → max(지름 88px)', () => {
+    expect(radiusForLevel(1, size)).toBeCloseTo(size.max, 5);
+    expect(radiusForLevel(1, size)).toBe(88);
+  });
+  it('level=0.5 → min과 max 사이 보간', () => {
+    const r = radiusForLevel(0.5, size);
+    expect(r).toBeGreaterThan(size.min);
+    expect(r).toBeLessThan(size.max);
+    expect(r).toBeCloseTo((size.min + size.max) / 2, 5);
+  });
+  it('idle=true — base×idleScale (level 무시) — 지름 24px', () => {
+    expect(radiusForLevel(0, size, true)).toBeCloseTo(size.base * size.idleScale, 5);
+    expect(radiusForLevel(1, size, true)).toBeCloseTo(size.base * size.idleScale, 5);
+    expect(radiusForLevel(0, size, true)).toBe(24);
+  });
+  it('level이 1 초과해도 max로 clamp', () => {
+    expect(radiusForLevel(1.5, size)).toBeCloseTo(size.max, 5);
+  });
+  it('level이 음수여도 min 이하로 내려가지 않음(0으로 clamp)', () => {
+    expect(radiusForLevel(-0.5, size)).toBeCloseTo(size.min, 5);
+  });
+});
+
+describe('shouldUpdateLevel (BLOCKER2 — setState 폭주 방지 gate)', () => {
+  it('epsilon 미만 변화는 false(무시)', () => {
+    expect(shouldUpdateLevel(0.5, 0.5 + BALL_LEVEL_EPSILON / 2)).toBe(false);
+  });
+  it('epsilon 이상 변화는 true', () => {
+    expect(shouldUpdateLevel(0.5, 0.5 + BALL_LEVEL_EPSILON)).toBe(true);
+  });
+  it('0→양수(미세값이라도) 전환은 true — 발화 시작을 놓치지 않음', () => {
+    expect(shouldUpdateLevel(0, 0.001)).toBe(true);
+  });
+  it('양수→0 전환도 true — 발화 종료를 놓치지 않음', () => {
+    expect(shouldUpdateLevel(0.3, 0)).toBe(true);
+  });
+  it('동일값(0→0)은 false', () => {
+    expect(shouldUpdateLevel(0, 0)).toBe(false);
+  });
+});
