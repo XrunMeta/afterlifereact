@@ -87,7 +87,10 @@ def _run_handler(sess, channel, msg):
 
 
 def test_face_event_disabled_by_default(monkeypatch):
+    """[T-135] 두 게이트 다 off 일 때만 구(T-067 이전) 동작과 완전 동일 — 회귀 0.
+    SPEAKER_IDENTITY는 기본 on(dev/preview 전제)이라 명시적으로 꺼야 old 동작을 재현한다."""
     monkeypatch.delenv("PRETHIRD_FACE_REACT_ENABLED", raising=False)
+    monkeypatch.setenv("PRETHIRD_SPEAKER_IDENTITY_ENABLED", "0")
     sess, ch = _Sess(), _Channel()
     _run_handler(sess, ch, {
         "type": "face_event", "event": "speaker_confirmed",
@@ -98,6 +101,110 @@ def test_face_event_disabled_by_default(monkeypatch):
     assert sess.pending_enroll is False
     assert sess.current_speaker is None
     assert ch.sent == []
+
+
+def test_speaker_identity_default_on_sets_current_speaker_without_react(monkeypatch):
+    """[T-135] 기본값(SPEAKER_IDENTITY on, FACE_REACT off 기본값) — current_speaker/L2'
+    주입은 동작하지만 react 발화·쿨다운·pending_enroll은 여전히 무동작이어야 한다."""
+    monkeypatch.delenv("PRETHIRD_FACE_REACT_ENABLED", raising=False)
+    monkeypatch.delenv("PRETHIRD_SPEAKER_IDENTITY_ENABLED", raising=False)
+    sess, ch = _Sess(), _Channel()
+    _run_handler(sess, ch, {
+        "type": "face_event", "event": "speaker_confirmed",
+        "personId": 3, "displayName": "민지", "seq": 12,
+    })
+    assert sess.current_speaker == (3, "민지")
+    assert sess.pipeline.react_calls == []  # react 게이트는 여전히 off
+    assert sess.reacted_keys == {}
+    assert sess.pending_enroll is False
+    assert ch.sent == []
+
+
+def test_speaker_identity_off_react_on_reacts_without_current_speaker(monkeypatch):
+    """[T-135] 반대 매트릭스 — identity off + react on: react/발화는 동작하지만
+    current_speaker/L2' 스왑은 트리거되지 않아야 한다(관심사 완전 분리)."""
+    monkeypatch.setenv("PRETHIRD_FACE_REACT_ENABLED", "1")
+    monkeypatch.setenv("PRETHIRD_SPEAKER_IDENTITY_ENABLED", "0")
+    sess, ch = _Sess(), _Channel()
+    _run_handler(sess, ch, {
+        "type": "face_event", "event": "speaker_confirmed",
+        "personId": 3, "displayName": "민지", "seq": 12,
+    })
+    assert sess.pipeline.react_calls == [("known", "민지")]
+    assert sess.current_speaker is None
+
+
+def test_unknown_face_clears_current_speaker_when_identity_on(monkeypatch):
+    """[T-135 v2] 화자 확실성 게이팅 — confirmed로 확정된 상태에서 unknown_face가
+    오면 current_speaker가 즉시 None으로 해제된다(이름/L2' 오염 차단)."""
+    monkeypatch.delenv("PRETHIRD_FACE_REACT_ENABLED", raising=False)
+    monkeypatch.delenv("PRETHIRD_SPEAKER_IDENTITY_ENABLED", raising=False)  # 기본 on
+    sess, ch = _Sess(), _Channel()
+    _run_handler(sess, ch, {
+        "type": "face_event", "event": "speaker_confirmed",
+        "personId": 3, "displayName": "민지", "seq": 1,
+    })
+    assert sess.current_speaker == (3, "민지")
+
+    _run_handler(sess, ch, {"type": "face_event", "event": "unknown_face", "seq": 2})
+    assert sess.current_speaker is None
+
+
+def test_multi_face_clears_current_speaker_when_identity_on(monkeypatch):
+    monkeypatch.delenv("PRETHIRD_FACE_REACT_ENABLED", raising=False)
+    monkeypatch.delenv("PRETHIRD_SPEAKER_IDENTITY_ENABLED", raising=False)
+    sess, ch = _Sess(), _Channel()
+    _run_handler(sess, ch, {
+        "type": "face_event", "event": "speaker_confirmed",
+        "personId": 3, "displayName": "민지", "seq": 1,
+    })
+    assert sess.current_speaker == (3, "민지")
+
+    _run_handler(sess, ch, {"type": "face_event", "event": "multi_face", "seq": 2})
+    assert sess.current_speaker is None
+
+
+def test_confirmed_unknown_confirmed_transition_restores_speaker(monkeypatch):
+    """[T-135 v2] confirmed→unknown→confirmed 전이 — 해제됐다가 재확정 시 다시
+    화자로 복귀한다(같은 사람이든 다른 사람이든 speaker_confirmed가 오면 확정)."""
+    monkeypatch.delenv("PRETHIRD_FACE_REACT_ENABLED", raising=False)
+    monkeypatch.delenv("PRETHIRD_SPEAKER_IDENTITY_ENABLED", raising=False)
+    sess, ch = _Sess(), _Channel()
+
+    _run_handler(sess, ch, {
+        "type": "face_event", "event": "speaker_confirmed",
+        "personId": 3, "displayName": "민지", "seq": 1,
+    })
+    assert sess.current_speaker == (3, "민지")
+
+    _run_handler(sess, ch, {"type": "face_event", "event": "unknown_face", "seq": 2})
+    assert sess.current_speaker is None
+
+    _run_handler(sess, ch, {
+        "type": "face_event", "event": "speaker_confirmed",
+        "personId": 3, "displayName": "민지", "seq": 3,
+    })
+    assert sess.current_speaker == (3, "민지")
+
+
+def test_unknown_face_noop_when_already_none(monkeypatch):
+    """current_speaker가 이미 None인 상태에서 unknown_face가 와도 예외 없이 no-op."""
+    monkeypatch.delenv("PRETHIRD_FACE_REACT_ENABLED", raising=False)
+    monkeypatch.delenv("PRETHIRD_SPEAKER_IDENTITY_ENABLED", raising=False)
+    sess, ch = _Sess(), _Channel()
+    _run_handler(sess, ch, {"type": "face_event", "event": "unknown_face", "seq": 1})
+    assert sess.current_speaker is None
+
+
+def test_unknown_face_does_not_clear_when_identity_gate_off(monkeypatch):
+    """identity 게이트 off면 confirmed로 current_speaker가 설정될 수 없으므로
+    (원래 항상 None) unknown_face도 아무 영향이 없다 — 관심사 분리 회귀 확인."""
+    monkeypatch.setenv("PRETHIRD_SPEAKER_IDENTITY_ENABLED", "0")
+    monkeypatch.setenv("PRETHIRD_FACE_REACT_ENABLED", "1")
+    sess, ch = _Sess(), _Channel()
+    sess.current_speaker = (3, "민지")  # identity off 상태에서도 외부에서 세팅된 값이 있다면
+    _run_handler(sess, ch, {"type": "face_event", "event": "unknown_face", "seq": 1})
+    assert sess.current_speaker == (3, "민지")  # identity off → 게이팅 로직 자체가 스킵
 
 
 def test_known_face_react(monkeypatch):
