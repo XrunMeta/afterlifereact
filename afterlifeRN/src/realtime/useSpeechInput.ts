@@ -1,10 +1,16 @@
 
 
 import { v_de06a3, v_c4deb2, v_df9f57, v_e662ae, v_5ab095 } from 'bapkr';
+import { v_d08429, v_3032b0 } from './voiceBall';
 
 export interface SpeechEngine {
   requestPermissionsAsync(): Promise<{ granted: boolean }>;
-  start(opts?: { lang?: string; interimResults?: boolean; continuous?: boolean }): void;
+  start(opts?: {
+    lang?: string;
+    interimResults?: boolean;
+    continuous?: boolean;
+    volumeChangeEventOptions?: { enabled?: boolean; intervalMillis?: number };
+  }): void;
   stop(): void;
   addListener(event: string, cb: (payload: any) => void): { remove: () => void };
 }
@@ -33,6 +39,10 @@ export function v_fee12d(v_328259) {
   const [v_0885ca, v_8028c0] = v_5ab095('');
   const [v_a2d9d1, v_60039d] = v_5ab095('');
   const [v_177ff2, v_b680bc] = v_5ab095(false);
+
+  const [v_9afd2d, v_d404a7] = v_5ab095(0);
+
+  const v_23245d = v_e662ae(0);
 
   const [v_23db84, v_17e228] = v_5ab095(false);
   const [v_5e9bfe, v_3a7d09] = v_5ab095<Error | null>(null);
@@ -137,6 +147,8 @@ export function v_fee12d(v_328259) {
         }
         v_b5958d.current = false;
         v_b680bc(false);
+        v_23245d.current = 0;
+        v_d404a7(0); 
 
         if (v_3dd9b4.current) clearTimeout(v_3dd9b4.current);
         v_3dd9b4.current = setTimeout(() => {
@@ -147,6 +159,8 @@ export function v_fee12d(v_328259) {
       }),
       v_1e3df0.addListener('end', () => {
         v_b680bc(false);
+        v_23245d.current = 0;
+        v_d404a7(0); 
 
         if (v_3dd9b4.current) clearTimeout(v_3dd9b4.current);
         v_3dd9b4.current = setTimeout(() => {
@@ -163,7 +177,12 @@ export function v_fee12d(v_328259) {
             try {
 
               v_b5958d.current = true; 
-              v_1e3df0.start({ lang: v_5254bf, interimResults: true, continuous: true });
+              v_1e3df0.start({
+                lang: v_5254bf,
+                interimResults: true,
+                continuous: true,
+                volumeChangeEventOptions: { enabled: true, intervalMillis: 100 },
+              });
 
               if (v_168497.current) clearTimeout(v_168497.current);
               v_168497.current = setTimeout(() => {
@@ -191,6 +210,17 @@ export function v_fee12d(v_328259) {
       v_1e3df0.addListener('soundstart', (v_2d3e87) => {}),
       v_1e3df0.addListener('soundend', (v_2d3e87) => {}),
       v_1e3df0.addListener('nomatch', (v_2d3e87) => {}),
+
+      v_1e3df0.addListener('volumechange', (v_e2a85c) => {
+        if (!v_fe2b35.current) return;
+        const v_479f05 = typeof v_e2a85c?.value === 'number' && !Number.isNaN(v_e2a85c.value) ? v_e2a85c.value : undefined;
+        if (v_479f05 === undefined) return;
+        const v_a448ad = v_d08429(v_479f05);
+        if (v_3032b0(v_23245d.current, v_a448ad)) {
+          v_23245d.current = v_a448ad;
+          v_d404a7(v_a448ad);
+        }
+      }),
     );
     return () => {
       v_ab371b.current.forEach((v_fd5f43) => v_fd5f43.remove());
@@ -244,7 +274,12 @@ export function v_fee12d(v_328259) {
     }, v_74fd06);
     try {
 
-      v_1e3df0.start({ lang: v_5254bf, interimResults: true, continuous: true });
+      v_1e3df0.start({
+        lang: v_5254bf,
+        interimResults: true,
+        continuous: true,
+        volumeChangeEventOptions: { enabled: true, intervalMillis: 100 },
+      });
     } catch (v_b17aaa) {
       const v_9e86fd = v_b17aaa instanceof Error ? v_b17aaa : new Error(String(v_b17aaa));
       if (v_168497.current) {
@@ -274,6 +309,8 @@ export function v_fee12d(v_328259) {
     v_1e3df0.stop();
     v_b680bc(false);
     v_17e228(false);
+    v_23245d.current = 0;
+    v_d404a7(0); 
 
     if (v_3dd9b4.current) {
       clearTimeout(v_3dd9b4.current);
@@ -281,7 +318,17 @@ export function v_fee12d(v_328259) {
     }
   }, [v_1e3df0, v_f59c40]);
 
-  return { transcript: v_0885ca, interimTranscript: v_a2d9d1, listening: v_177ff2, listeningDebounced: v_23db84, error: v_5e9bfe, startListening: v_770cae, stopListening: v_ad03b1 };
+  return {
+    transcript: v_0885ca,
+    interimTranscript: v_a2d9d1,
+    listening: v_177ff2,
+    listeningDebounced: v_23db84,
+    error: v_5e9bfe,
+    startListening: v_770cae,
+    stopListening: v_ad03b1,
+
+    micLevel: v_9afd2d,
+  };
 }
 
 function v_0fc68d(): SpeechEngine {
@@ -293,6 +340,7 @@ function v_0fc68d(): SpeechEngine {
     start: (v_b6c474) =>
       v_e243ee.start({
         lang: v_b6c474?.lang,
+        volumeChangeEventOptions: v_b6c474?.volumeChangeEventOptions,
         interimResults: v_b6c474?.interimResults,
         continuous: v_b6c474?.continuous,
       }),

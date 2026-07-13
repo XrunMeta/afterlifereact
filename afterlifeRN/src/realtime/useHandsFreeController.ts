@@ -12,6 +12,7 @@ import {
 import { v_7be8d9, type v_5a4c65 } from './cloneSilence';
 import { v_7347b3 } from './timingConfig';
 import { v_d7f7b1 } from './timingEvents';
+import { v_3032b0 } from './voiceBall';
 
 const v_5443e5 = 0.05; 
 
@@ -93,6 +94,10 @@ export function v_7df8a4(opts: {
 
   const [v_ea4519, v_d3b587] = v_5ab095(false);
   const v_afaf7a = v_e662ae(false);
+
+  const [v_09b641, v_c2783a] = v_5ab095(0);
+
+  const v_105c0b = v_e662ae(0);
 
   const v_246863 = v_e662ae(0);
 
@@ -208,12 +213,23 @@ export function v_7df8a4(opts: {
   const v_b8908d = v_e662ae(v_328259.getStatsReport);
   v_c4deb2(() => { v_b8908d.current = v_328259.getStatsReport; });
   v_c4deb2(() => {
-    if (!v_328259.enabled) return;
+    if (!v_328259.enabled) {
+
+      v_105c0b.current = 0;
+      v_c2783a(0);
+      return;
+    }
     const v_389afb = setInterval(() => {
       const v_e2a85c = v_b8908d.current();
       if (!v_e2a85c) return;
       v_e2a85c.then((v_2888b4) => {
         const v_0f0c77 = v_7be8d9(v_2888b4);
+
+        const v_3ec588 = typeof v_0f0c77 === 'number' ? Math.min(1, Math.max(0, v_0f0c77)) : 0;
+        if (v_3032b0(v_105c0b.current, v_3ec588)) {
+          v_105c0b.current = v_3ec588;
+          v_c2783a(v_3ec588);
+        }
         const v_5c2f9f = Date.now();
         const v_22312b = typeof v_0f0c77 === 'number' && v_0f0c77 > v_5443e5;
         if (v_22312b) v_84a65f.current = v_5c2f9f;
@@ -294,5 +310,9 @@ export function v_7df8a4(opts: {
     cloneSuppressed: v_ea4519,
 
     devForceListen: v_a8e03f,
+
+    micLevel: v_60bef6.micLevel,
+
+    cloneAudioLevel: v_09b641,
   };
 }
