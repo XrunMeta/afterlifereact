@@ -63,7 +63,13 @@
   },
   "create": {
     "image": {
-      "cropFailed": "Gagal memotong gambar. Silakan coba lagi."
+      "cropFailed": "Gagal memotong gambar. Silakan coba lagi.",
+      "sourceTitle": "Tambah foto",
+      "sourceCamera": "Ambil foto",
+      "sourceLibrary": "Pilih dari galeri",
+      "cameraPermTitle": "Izin kamera",
+      "cameraPermDeniedMsg": "Diperlukan izin kamera untuk mengambil foto. Mohon izinkan akses kamera.",
+      "cameraPermBlockedMsg": "Akses kamera dimatikan. Mohon aktifkan izin kamera di Pengaturan."
     }
   },
   "feed": {

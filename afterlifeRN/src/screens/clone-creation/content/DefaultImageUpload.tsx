@@ -5,7 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import type { CloneCreationDraft } from '../../../types/clone';
 import { COLORS, RADIUS } from '../../../components/constants';
-import { pickOriginalImage } from '../../../lib/imagePicker';
+import { runImageSourcePick } from './pickImageSource';
 import CropImageModal from './CropImageModal';
 
 interface Props {
@@ -22,13 +22,17 @@ function Component({ draft, onChange }: Props) {
     t('create.image.guide3'),
   ];
 
-  const onPickPress = async () => {
-    try {
-      const picked = await pickOriginalImage();
-      if (picked) setSource(picked);
-    } catch {
-      showAlert(t('common.error'), t('create.image.loadFailed'));
-    }
+  const runPick = async (fromCamera: boolean) => {
+    const picked = await runImageSourcePick(fromCamera, t);
+    if (picked) setSource(picked);
+  };
+
+  const onPickPress = () => {
+    showAlert(t('create.image.sourceTitle'), undefined, [
+      { text: t('create.image.sourceCamera'), onPress: () => runPick(true) },
+      { text: t('create.image.sourceLibrary'), onPress: () => runPick(false) },
+      { text: t('common.cancel'), style: 'cancel' },
+    ]);
   };
 
   return (

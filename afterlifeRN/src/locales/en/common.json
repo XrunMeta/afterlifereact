@@ -556,7 +556,13 @@
       "memlowNote": "You can add the photo now or later.",
       "memlowSelectHint": "Pick a photo or skip",
       "memlowRights": "I confirm the rights to use this photo (family consent, image rights).",
-      "cropFailed": "Failed to crop the photo. Please try again."
+      "cropFailed": "Failed to crop the photo. Please try again.",
+      "sourceTitle": "Add photo",
+      "sourceCamera": "Take photo",
+      "sourceLibrary": "Choose from library",
+      "cameraPermTitle": "Camera permission",
+      "cameraPermDeniedMsg": "Camera access is needed. Please allow permission to take a photo.",
+      "cameraPermBlockedMsg": "Camera access is turned off. Please enable camera permission in Settings."
     },
     "voice": {
       "presets": "Default voice presets",

@@ -63,7 +63,13 @@
   },
   "create": {
     "image": {
-      "cropFailed": "画像の切り抜きに失敗しました。もう一度お試しください。"
+      "cropFailed": "画像の切り抜きに失敗しました。もう一度お試しください。",
+      "sourceTitle": "写真を追加",
+      "sourceCamera": "写真を撮る",
+      "sourceLibrary": "アルバムから選択",
+      "cameraPermTitle": "カメラの権限",
+      "cameraPermDeniedMsg": "カメラへのアクセスが必要です。撮影するには権限を許可してください。",
+      "cameraPermBlockedMsg": "カメラへのアクセスがオフになっています。設定でカメラの権限をオンにしてください。"
     }
   },
   "feed": {
