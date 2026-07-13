@@ -68,6 +68,7 @@ import { useHandsFreeController } from "../../realtime/useHandsFreeController";
 import { useVideoStatsDiag } from "../../realtime/useVideoStatsDiag";
 import { DialingScreen } from "../../components/call/DialingScreen";
 import { CallStatusGlow } from "../../components/call/CallStatusGlow";
+import { CallVoiceBall } from "../../components/call/CallVoiceBall";
 import { CallTimingHUD } from "../../components/call/CallTimingHUD";
 import { CallTimingPanel } from "../../components/call/CallTimingPanel";
 import { useTimingConfigStore } from "../../realtime/timingConfig";
@@ -537,6 +538,8 @@ export default function CallScreen({ route, navigation }: Props) {
     sttActive,
     cloneSuppressed,
     devForceListen,
+    micLevel,
+    cloneAudioLevel,
   } = useHandsFreeController({
     enabled: liveState === "live",
     say,
@@ -1185,20 +1188,27 @@ export default function CallScreen({ route, navigation }: Props) {
         </Animated.Text>
       ))}
 
+      {
+
+}
+
       {}
       {phase === 'listening' && (!!interimTranscript || !!transcript) ? (
-        <View style={s.subtitleContainer} pointerEvents="none">
-          <Text style={s.subtitleText} numberOfLines={2} ellipsizeMode="tail">
+        <View style={[s.subtitleContainer, { top: insets.top + 8 }]} pointerEvents="none">
+          <Text style={s.subtitleText}>
             {interimTranscript || transcript}
           </Text>
         </View>
       ) : null}
 
-      {}
+      {
+
+}
       {phase === 'confirming' && !!pendingText ? (
-        <Pressable style={s.confirmTapArea} onPress={cancelConfirm}>
-          <View style={s.subtitleContainer} pointerEvents="none">
-            <Text style={s.subtitleText} numberOfLines={2} ellipsizeMode="tail">
+        <>
+          <Pressable style={s.confirmTapArea} onPress={cancelConfirm} />
+          <View style={[s.subtitleContainer, { top: insets.top + 8 }]} pointerEvents="none">
+            <Text style={s.subtitleText}>
               {pendingText}
             </Text>
             <View style={s.confirmBarTrack}>
@@ -1206,15 +1216,15 @@ export default function CallScreen({ route, navigation }: Props) {
             </View>
             <Text style={s.confirmHint}>탭하여 취소 · 잠시 후 전송</Text>
           </View>
-        </Pressable>
+        </>
       ) : null}
 
       {
 
 }
       {(phase === 'sending' || phase === 'speaking') && !!pendingText ? (
-        <View style={s.subtitleContainer} pointerEvents="none">
-          <Text style={s.subtitleText} numberOfLines={2} ellipsizeMode="tail">
+        <View style={[s.subtitleContainer, { top: insets.top + 8 }]} pointerEvents="none">
+          <Text style={s.subtitleText}>
             {pendingText}
           </Text>
         </View>
@@ -1228,6 +1238,17 @@ export default function CallScreen({ route, navigation }: Props) {
       >
         <Text style={s.watermarkText}>afterlife</Text>
       </View>
+
+      {
+}
+      {dialingDone ? (
+        <View
+          style={[s.voiceBallLayer, { bottom: bottomInset + 24 + 56 + 16 }]}
+          pointerEvents="none"
+        >
+          <CallVoiceBall phase={phase} micLevel={micLevel} cloneLevel={cloneAudioLevel} />
+        </View>
+      ) : null}
 
       {}
       <View style={[s.controls, { paddingBottom: bottomInset + 24 }]}>
@@ -1394,6 +1415,14 @@ const s = StyleSheet.create({
     right: 16,
     alignItems: "flex-end",
   },
+
+  voiceBallLayer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 14,
+  },
   watermarkText: {
     color: "rgba(255, 255, 255, 0.5)",
     fontSize: 20,
@@ -1519,10 +1548,9 @@ const s = StyleSheet.create({
 
   subtitleContainer: {
     position: 'absolute',
-    bottom: 150,
-    left: 48,
-    right: 48,
-    alignItems: 'center',
+    left: 124,
+    right: 16,
+    alignItems: 'flex-start',
     zIndex: 15,
   },
   subtitleText: {
@@ -1533,14 +1561,14 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 10,
-    textAlign: 'center',
-    overflow: 'hidden',
+    textAlign: 'left',
+    alignSelf: 'stretch',
   },
+
   confirmTapArea: {
     position: 'absolute',
     left: 0, right: 0, bottom: 0,
     height: '33%',
-    justifyContent: 'center',
     zIndex: 16,
   },
   confirmHint: {
