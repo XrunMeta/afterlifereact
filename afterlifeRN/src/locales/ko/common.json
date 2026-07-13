@@ -736,5 +736,20 @@
       "openXrun": "xrun 앱 열기",
       "verify": "확인"
     }
+  },
+  "permissionGate": {
+    "title": "카메라·마이크 권한이 필요해요",
+    "desc": "영상통화를 위해 카메라와 마이크 권한이 필요해요",
+    "cameraLabel": "카메라",
+    "micLabel": "마이크",
+    "statusGranted": "허용됨",
+    "statusDenied": "거부됨",
+    "statusUndetermined": "권한 필요",
+    "statusBlocked": "차단됨",
+    "requestButton": "권한 허용",
+    "settingsButton": "설정에서 권한 켜기",
+    "settingsHint": "권한 창이 안 뜨면 설정에서 켜기",
+    "loading": "권한 확인 중...",
+    "logout": "로그아웃"
   }
 }

@@ -102,6 +102,8 @@ export function v_fee12d(v_328259) {
     v_ab371b.current.push(
 
       v_1e3df0.addListener('result', (v_e2a85c) => {
+
+        if (!v_fe2b35.current) return;
         const v_8d41d7 = v_e2a85c?.results?.[0]?.transcript ?? '';
         const v_f6e5b7 = v_e2a85c?.isFinal === true;
 
@@ -178,6 +180,8 @@ export function v_fee12d(v_328259) {
       }),
 
       v_1e3df0.addListener('start', (v_2d3e87) => {
+
+        if (!v_fe2b35.current) return;
         v_9061f1();
       }),
       v_1e3df0.addListener('speechstart', (v_2d3e87) => {}),
