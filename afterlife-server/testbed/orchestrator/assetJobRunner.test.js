@@ -4,7 +4,7 @@ import { writeFile, mkdtemp, rm } from 'node:fs/promises';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { createAssetJobRunner, FILLER_SPECS, FILLER_TEXTS, FILLER_TARGET_DUR_SEC, defaultEnsureVoiceWav, defaultFifthRender, defaultFfmpegPadCmd, defaultFfmpegMuxCmd, _MAX_VOICE_WAV_BYTES } from './assetJobRunner.js';
+import { createAssetJobRunner, FILLER_SPECS, FILLER_TEXTS, FILLER_TARGET_DUR_SEC, defaultEnsureVoiceWav, defaultFifthRender, defaultFfmpegPadCmd, defaultFfmpegMuxCmd, defaultFfmpegPeakDb, fillerNormalizeGainDb, FILLER_PEAK_TARGET_DB, _MAX_VOICE_WAV_BYTES } from './assetJobRunner.js';
 
 const API_BASE = 'https://oth-path.example.com';
 
@@ -788,6 +788,7 @@ test('filler ffmpeg mux 실패 (첫 번째 exit ≠ 0) → callbackFailed, fille
     _qwenTtsFn: qwenFn,
     _fifthRenderFn: fifthFn,
     ffmpegMuxCmd: fillerFfmpegCmd,
+    ffmpegPeakDbFn: async () => -20, 
     _ensureVoiceWavFn: makeEnsureVoiceWav(),
   });
 
@@ -1644,6 +1645,7 @@ test('filler wav 패딩 실패 (첫 spawn exit 1) → callbackFailed, 렌더 미
     _qwenTtsFn: makeQwenTtsTracked(),
     _fifthRenderFn: fifthFn,
     ffmpegMuxCmd: fillerFfmpegCmd,
+    ffmpegPeakDbFn: async () => -20, 
     _ensureVoiceWavFn: makeEnsureVoiceWav(),
   });
 
@@ -1762,15 +1764,17 @@ test('FILLER_SPECS render_opts: 공통 source_face_lock·eyes_open_lock·blink_i
   assert.equal(FILLER_SPECS.length, 6);
 
   assert.ok(FILLER_SPECS.every((s) => s.render_opts.source_face_lock === true));
+
+  assert.ok(FILLER_SPECS.every((s) => s.render_opts.source_face_lock_full === true));
   assert.ok(FILLER_SPECS.every((s) => s.render_opts.eyes_open_lock === true));
 
   assert.ok(FILLER_SPECS.every((s) => s.render_opts.blink_interval_sec === 6.0));
   assert.equal(FILLER_SPECS[0].render_opts.head_sway_amp, 0.0);
 
-  assert.equal(FILLER_SPECS[2].render_opts.head_sway_amp, 0.4);
-  assert.equal(FILLER_SPECS[3].render_opts.head_sway_amp, 0.4);
+  assert.equal(FILLER_SPECS[2].render_opts.head_sway_amp, 0.2);
+  assert.equal(FILLER_SPECS[3].render_opts.head_sway_amp, 0.2);
   assert.equal(FILLER_SPECS[4].render_opts.head_sway_amp, 0.0);
-  assert.equal(FILLER_SPECS[5].render_opts.head_sway_amp, 0.2);
+  assert.equal(FILLER_SPECS[5].render_opts.head_sway_amp, 0.1);
 
   assert.ok(FILLER_SPECS.every((s) => !s.text.includes('아')));
 
@@ -1787,10 +1791,10 @@ test('FILLER_SPECS render_opts: 시선 오프셋 세트(idx0 정면·1/2 좌우�
 
   assert.equal(FILLER_SPECS[0].render_opts.head_yaw_offset, 0);
   assert.equal(FILLER_SPECS[0].render_opts.head_pitch_offset, 0);
-  assert.equal(FILLER_SPECS[1].render_opts.head_yaw_offset, -12);
-  assert.equal(FILLER_SPECS[2].render_opts.head_yaw_offset, 12);
-  assert.equal(FILLER_SPECS[3].render_opts.head_pitch_offset, 8);
-  assert.equal(FILLER_SPECS[4].render_opts.head_pitch_offset, -8);
+  assert.equal(FILLER_SPECS[1].render_opts.head_yaw_offset, -6);
+  assert.equal(FILLER_SPECS[2].render_opts.head_yaw_offset, 6);
+  assert.equal(FILLER_SPECS[3].render_opts.head_pitch_offset, 4);
+  assert.equal(FILLER_SPECS[4].render_opts.head_pitch_offset, -4);
 
   assert.equal(FILLER_SPECS[5].render_opts.head_yaw_offset, undefined);
   assert.equal(FILLER_SPECS[5].render_opts.head_pitch_offset, undefined);
@@ -1898,14 +1902,19 @@ test('defaultFfmpegMuxCmd: audioVolumeDb 전달 시 -af volume=<N>dB 포함, 미
   assert.equal(withoutDb.args[withoutDb.args.length - 1], '/tmp/out.mp4', '마지막 인자=출력 경로 계약 유지');
 });
 
-test('filler mux 호출은 항상 audioVolumeDb=-20 을 4번째 인자로 받음(T-120)', async () => {
+test('필러 오디오 peak 정규화: pad 가 raw peak→-3dB 게인 받고, mux 는 감쇠 없음(T-120)', async () => {
   const callbackCalls = [];
   const fillerCallbackCalls = [];
   const muxCalls = [];
+  const padVolCalls = [];
 
   const capturingMuxCmd = (framesDir, wavPath, outPath, audioVolumeDb) => {
     muxCalls.push(audioVolumeDb);
     return { bin: 'echo', args: [outPath] };
+  };
+  const capturingPadCmd = (inWav, outWav, wholeDurSec, atempo, volumeDb) => {
+    padVolCalls.push(volumeDb);
+    return { bin: 'echo', args: [outWav] };
   };
 
   const runner = createAssetJobRunner({
@@ -1915,21 +1924,64 @@ test('filler mux 호출은 항상 audioVolumeDb=-20 을 4번째 인자로 받음
     _qwenTtsFn: makeQwenTts(),
     _fifthRenderFn: makeFifthRender({ framesCount: 3 }),
     ffmpegMuxCmd: capturingMuxCmd,
+    ffmpegPadCmd: capturingPadCmd,
+    ffmpegPeakDbFn: async () => -17, 
     _ensureVoiceWavFn: makeEnsureVoiceWav(),
   });
 
   runner.enqueue({
-    job_id: 'fj_mux_db',
+    job_id: 'fj_norm',
     kind: 'filler',
     clone_id: '9055',
     face_url: `${API_BASE}/oth-path`,
     voice_raw_url: `${API_BASE}/oth-path`,
-    callback_token: 'tok_fj_mux_db',
+    callback_token: 'tok_fj_norm',
   });
 
   await waitDrain(runner, 4000);
 
   assert.equal(fillerCallbackCalls.length, 1, '전부 성공해야 함');
+
+  const expectedGain = FILLER_PEAK_TARGET_DB - (-17);
+  assert.equal(padVolCalls.length, FILLER_SPECS.length);
+  assert.ok(padVolCalls.every((db) => db === expectedGain), `pad 정규화 게인 ${expectedGain}dB 이어야 함: ${padVolCalls}`);
+
   assert.equal(muxCalls.length, FILLER_SPECS.length);
-  assert.ok(muxCalls.every((db) => db === -20), 'mux 호출마다 audioVolumeDb=-20 이어야 함');
+  assert.ok(muxCalls.every((db) => db == null), 'mux 는 audioVolumeDb 미전달(감쇠 없음)');
+});
+
+test('fillerNormalizeGainDb: 목표까지 게인 산출 + 측정실패/클램프', () => {
+  const T = FILLER_PEAK_TARGET_DB;
+  assert.equal(fillerNormalizeGainDb(-17), Math.max(-6, Math.min(40, T - (-17))));
+  assert.equal(fillerNormalizeGainDb(T), 0, '이미 목표면 게인 0');
+  assert.equal(fillerNormalizeGainDb(null), 0, '측정 실패 → 0dB(원본 레벨)');
+  assert.equal(fillerNormalizeGainDb(undefined), 0);
+  assert.equal(fillerNormalizeGainDb(NaN), 0);
+  assert.equal(fillerNormalizeGainDb(-100), 40, '과증폭 clamp +40dB');
+  assert.equal(fillerNormalizeGainDb(10), -6, '과감쇠 clamp -6dB');
+  assert.equal(fillerNormalizeGainDb(-10, -6), 4, 'targetDb 인자 반영');
+});
+
+test('defaultFfmpegPeakDb: volumedetect stderr 에서 max_volume 파싱', async () => {
+  const spawnStub = (_bin, _args, _opts) => {
+    const listeners = {};
+    const proc = {
+      stderr: { on: (_e, fn) => { listeners.data = fn; return proc.stderr; } },
+      on(event, fn) { listeners[event] = fn; return proc; },
+    };
+    setImmediate(() => {
+      listeners.data?.(Buffer.from('[Parsed_volumedetect] mean_volume: -30.0 dB\n[Parsed_volumedetect] max_volume: -17.3 dB\n'));
+      listeners.close?.(0);
+    });
+    return proc;
+  };
+  assert.equal(await defaultFfmpegPeakDb('/x.wav', spawnStub), -17.3);
+
+  const spawnNo = (_b, _a, _o) => {
+    const l = {};
+    const proc = { stderr: { on: (_e, fn) => { l.data = fn; return proc.stderr; } }, on(e, fn) { l[e] = fn; return proc; } };
+    setImmediate(() => { l.data?.(Buffer.from('no volume here')); l.close?.(0); });
+    return proc;
+  };
+  assert.equal(await defaultFfmpegPeakDb('/x.wav', spawnNo), null);
 });

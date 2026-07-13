@@ -10,6 +10,7 @@ from voice_fetch import ensure_voice_wav
 from prebuild import prebuild_handler
 from recorder import make_recorder
 from idle_policy import clone_mp4_enabled, filler_order_pre_speak
+from filler_cache import filler_cache_dest, prune_stale_fillers
 
 REF_VOICES_ROOT = os.environ.get(
     "PRETHIRD_REF_VOICES_ROOT",
@@ -645,8 +646,11 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                             _filler_root = f"{VIDEO_REF_ROOT}/{clone_id}"
 
                             async def _dl_filler(url, idx):
-                                """단일 filler mp4 다운로드. 존재 시 skip(fetch_to 패턴). 실패는 None 반환."""
-                                dest = f"{_filler_root}/{clone_id}-filler-{idx}.mp4"
+                                """단일 filler mp4 다운로드. dest에 file_id 포함(재생성 자동
+                                캐시버스트) + 같은 idx의 stale 캐시 정리. 존재 시 skip(fetch_to).
+                                실패는 None 반환(idle 폴백)."""
+                                dest = filler_cache_dest(_filler_root, clone_id, idx, url)
+                                prune_stale_fillers(_filler_root, clone_id, idx, dest)
                                 try:
                                     await fetch_to(url, dest)
                                     return dest
