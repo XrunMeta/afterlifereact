@@ -237,7 +237,8 @@ export function v_3d8d48(v_328259): v_b01667 {
           if (v_35f85c.type === 'speech_end') v_811f30();
         } else if (v_35f85c.type === 'enroll_suggest') {
 
-          v_de567c.current?.(typeof v_35f85c.name === 'string' ? v_35f85c.name : '');
+          const v_ca1ec5 = typeof v_35f85c.personId === 'number' ? v_35f85c.personId : undefined;
+          v_de567c.current?.(typeof v_35f85c.name === 'string' ? v_35f85c.name : '', v_ca1ec5);
         }
       } catch {  }
     };

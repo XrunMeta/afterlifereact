@@ -63,7 +63,13 @@
   },
   "create": {
     "image": {
-      "cropFailed": "Gagal memotong gambar. Silakan coba lagi."
+      "cropFailed": "Gagal memotong gambar. Silakan coba lagi.",
+      "sourceTitle": "Tambah foto",
+      "sourceCamera": "Ambil foto",
+      "sourceLibrary": "Pilih dari galeri",
+      "cameraPermTitle": "Izin kamera",
+      "cameraPermDeniedMsg": "Diperlukan izin kamera untuk mengambil foto. Mohon izinkan akses kamera.",
+      "cameraPermBlockedMsg": "Akses kamera dimatikan. Mohon aktifkan izin kamera di Pengaturan."
     }
   },
   "feed": {
@@ -88,5 +94,20 @@
     "intimacyL2": "Mulai akrab",
     "intimacyL3": "Ikatan mendalam",
     "intimacyL4": "Keintiman tertinggi"
+  },
+  "permissionGate": {
+    "title": "Izin Kamera & Mikrofon Diperlukan",
+    "desc": "Kami memerlukan izin kamera dan mikrofon untuk panggilan video",
+    "cameraLabel": "Kamera",
+    "micLabel": "Mikrofon",
+    "statusGranted": "Diizinkan",
+    "statusDenied": "Ditolak",
+    "statusUndetermined": "Perlu izin",
+    "statusBlocked": "Diblokir",
+    "requestButton": "Izinkan",
+    "settingsButton": "Buka pengaturan",
+    "settingsHint": "Jika dialog izin tidak muncul, aktifkan lewat pengaturan",
+    "loading": "Memeriksa izin...",
+    "logout": "Keluar"
   }
 }

@@ -168,11 +168,15 @@ it('engine 재등록(리렌더로 effect 재실행) 중에도 진행 중 침묵 
   const v_9ba3c9 = v_c2295a();
   const v_85f11a = v_c2295a();
   const v_f28164 = jest.fn();
-  const { rerender: v_2726cb } = v_0da18b(
+  const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
     ({ eng: v_3be5d5 }: { eng: ReturnType<typeof v_c2295a> }) =>
       v_fee12d({ engine: v_3be5d5, onFinalResult: v_f28164, silenceMs: v_6d843a }),
     { initialProps: { eng: v_9ba3c9 } },
   );
+
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
 
   v_be73a0(() => {
     v_9ba3c9.emit('result', { results: [{ transcript: '안녕하세요' }], isFinal: true });
@@ -437,6 +441,69 @@ it('[MINOR-1] end 재시작 후 start 미도착(워치독 만료) → listening=
 
   v_be73a0(() => { jest.advanceTimersByTime(v_74fd06 + 10); });
   expect(v_43c42e.current.listening).toBe(false);
+});
+
+it('[STOP-REOPEN] stopListening 후 늦게 도착한 result → listening=false 유지, onFinalResult 미호출', async () => {
+
+  const v_1e3df0 = v_c2295a();
+  const v_f28164 = jest.fn();
+  const { result: v_43c42e } = v_0da18b(() => v_fee12d({ engine: v_1e3df0, onFinalResult: v_f28164, silenceMs: v_6d843a }));
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+  v_be73a0(() => { v_1e3df0.emit('start'); });
+  v_be73a0(() => {
+    v_1e3df0.emit('result', { results: [{ transcript: '안녕' }], isFinal: false });
+  });
+  expect(v_43c42e.current.listening).toBe(true);
+
+  v_be73a0(() => { v_43c42e.current.stopListening(); });
+  expect(v_43c42e.current.listening).toBe(false);
+
+  v_be73a0(() => {
+    v_1e3df0.emit('result', { results: [{ transcript: '늦은잔여' }], isFinal: true });
+  });
+  expect(v_43c42e.current.listening).toBe(false);
+  v_be73a0(() => {
+    jest.advanceTimersByTime(v_6d843a + 20);
+  });
+  expect(v_43c42e.current.listening).toBe(false);
+  expect(v_f28164).not.toHaveBeenCalled();
+});
+
+it('[STOP-REOPEN] stopListening 후 늦게 도착한 start 이벤트 → listening=false 유지', async () => {
+  const v_1e3df0 = v_c2295a();
+  const { result: v_43c42e } = v_0da18b(() => v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a }));
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+  v_be73a0(() => { v_1e3df0.emit('start'); });
+  expect(v_43c42e.current.listening).toBe(true);
+  v_be73a0(() => { v_43c42e.current.stopListening(); });
+  expect(v_43c42e.current.listening).toBe(false);
+
+  v_be73a0(() => { v_1e3df0.emit('start'); });
+  expect(v_43c42e.current.listening).toBe(false);
+});
+
+it('[STOP-REOPEN] stopListening 후 재차 startListening → 이어지는 result/start는 정상 확정(listening=true)', async () => {
+
+  const v_1e3df0 = v_c2295a();
+  const { result: v_43c42e } = v_0da18b(() => v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a }));
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+  v_be73a0(() => { v_1e3df0.emit('start'); });
+  expect(v_43c42e.current.listening).toBe(true);
+  v_be73a0(() => { v_43c42e.current.stopListening(); });
+  expect(v_43c42e.current.listening).toBe(false);
+
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+  expect(v_43c42e.current.listening).toBe(false); 
+  v_be73a0(() => { v_1e3df0.emit('start'); });
+  expect(v_43c42e.current.listening).toBe(true);
 });
 
 it('전송 후 누적 리셋 → 다음 발화는 이전 텍스트 안 섞임', async () => {

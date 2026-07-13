@@ -16,6 +16,8 @@ import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_bf4124 } from "../../mocks/interestHelpers";
 import { v_f3a3a5, v_97ea8d, v_84a859, v_7ef860 } from "../../api/auth";
+import { v_421733 } from "../../api/consent";
+import { v_d2929b } from "./faceBiometricSignupFlag";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_704bef } from "../../lib/pushNotifications";
 import { v_ea1c99 } from "../../lib/deviceId";
@@ -41,6 +43,8 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_976e06, v_770327] = v_5ab095<string[]>([]);
   const [v_5c764d, v_c5baa3] = v_5ab095(false);
   const [v_8c98c4, v_e378a4] = v_5ab095(false);
+
+  const [v_a03498, v_d34fc9] = v_5ab095(false);
   const [v_8d0e18, v_3bb4d3] = v_5ab095(false);
   const [v_1a29d0, v_704175] = v_5ab095<string | null>(null);
   const [v_ea920b, v_73f064] = v_5ab095<"ios" | "android" | "web" | null>(null);
@@ -191,6 +195,15 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         platform: v_ea920b ?? undefined,
       });
 
+      try {
+        await v_421733(v_8f00b9.accessToken, v_d2929b(v_a03498), {
+          termsVersion: "v1",
+          channel: "signup",
+        });
+      } catch (v_49263d) {
+        console.warn("[AUTH/xrun] saveFaceBiometricConsent failed:", v_49263d);
+      }
+
       console.log("[AUTH/xrun] success");
       v_c65f5d.replace("SignupComplete", {
         accessToken: v_8f00b9.accessToken,
@@ -328,6 +341,15 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                 {v_8d41d7("auth.signup.marketingConsent")}
                 {v_8d0e18 ? ` (${v_8d41d7("auth.signup.verifying")})` : ""}
               </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => v_d34fc9(!v_a03498)}
+              style={v_d81136.checkRow}
+            >
+              <View style={[v_d81136.checkbox, v_a03498 && v_d81136.checkboxChecked]}>
+                {v_a03498 && <Feather name="check" size={14} color={v_1bfbd0.white} />}
+              </View>
+              <Text style={v_d81136.termText}>{v_8d41d7("auth.signup.faceBiometricConsent")}</Text>
             </TouchableOpacity>
           </View>
 

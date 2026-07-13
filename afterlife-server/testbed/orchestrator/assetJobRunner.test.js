@@ -4,7 +4,7 @@ import { v_354e0a, v_f4ad91, v_cdd5c2 } from 'fnffflguqbrqugbi';
 import { v_eaee41, v_086912 } from 'hbppvrg';
 import { v_315113 } from 'wiosxndes';
 import { v_171b31 } from 'xxkrszo';
-import { v_47bade, v_ddfcca, v_9aedb6, v_af8891, v_15296d, v_aefc06, v_ff5f5c } from './assetJobRunner.js';
+import { v_47bade, v_ddfcca, v_9aedb6, v_7e5b4f, v_af8891, v_15296d, v_aefc06, v_7e9d02, v_6ac389, v_3a5853, v_a5c84f, v_ff5f5c } from './assetJobRunner.js';
 
 const v_cc9198 = 'https://oth-path.example.com';
 
@@ -338,11 +338,11 @@ v_2a805f('filler 3종 모두 성공 → /oth-path 1회, file0/file1/file2 포함
   v_ce93bd.equal(v_23563e.get(`file${v_ddfcca.length}`), null, '종수 초과 필드 없음');
 });
 
-v_2a805f('filler FILLER_SPECS 상수 — 비언어("음/으음/아") 6종 순환 (T-088 라운드4)', () => {
+v_2a805f('filler FILLER_SPECS 상수 — 비언어("음/으음/아/흠") 6종 순환 (T-088 라운드4, T-120 폐구음 교체)', () => {
   v_ce93bd.equal(v_9aedb6.length, 6, '필러 6종 순환 (음/으음 3 + 아 계열 3)');
   for (const v_8d41d7 of v_9aedb6) {
 
-    v_ce93bd.match(v_8d41d7, /^[음으아.\s]+$/, `비언어 소리만 허용: "${v_8d41d7}"`);
+    v_ce93bd.match(v_8d41d7, /^[음으아흠.\s]+$/, `비언어 소리만 허용: "${v_8d41d7}"`);
   }
 
   for (const v_fd5f43 of v_ddfcca) {
@@ -788,6 +788,7 @@ v_2a805f('filler ffmpeg mux 실패 (첫 번째 exit ≠ 0) → callbackFailed, f
     _qwenTtsFn: v_cc9744,
     _fifthRenderFn: v_6b1dc6,
     ffmpegMuxCmd: v_4bb6fb,
+    ffmpegPeakDbFn: async () => -20, 
     _ensureVoiceWavFn: v_096d67(),
   });
 
@@ -1644,6 +1645,7 @@ v_2a805f('filler wav 패딩 실패 (첫 spawn exit 1) → callbackFailed, 렌더
     _qwenTtsFn: v_f99ff6(),
     _fifthRenderFn: v_6b1dc6,
     ffmpegMuxCmd: v_4bb6fb,
+    ffmpegPeakDbFn: async () => -20, 
     _ensureVoiceWavFn: v_096d67(),
   });
 
@@ -1756,4 +1758,230 @@ v_2a805f('defaultFifthRender: 터미네이터 없이 종료 → terminator rejec
   } finally {
     v_9bdcf4.close();
   }
+});
+
+v_2a805f('FILLER_SPECS render_opts: 공통 source_face_lock·eyes_open_lock·blink_interval_sec, 2·3만 머리 크게 (T-120)', () => {
+  v_ce93bd.equal(v_ddfcca.length, 6);
+
+  v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.source_face_lock === true));
+
+  v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.source_face_lock_full === true));
+  v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.eyes_open_lock === true));
+
+  v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.blink_interval_sec === 6.0));
+  v_ce93bd.equal(v_ddfcca[0].render_opts.head_sway_amp, 0.0);
+
+  v_ce93bd.equal(v_ddfcca[2].render_opts.head_sway_amp, 0.2);
+  v_ce93bd.equal(v_ddfcca[3].render_opts.head_sway_amp, 0.2);
+  v_ce93bd.equal(v_ddfcca[4].render_opts.head_sway_amp, 0.0);
+  v_ce93bd.equal(v_ddfcca[5].render_opts.head_sway_amp, 0.1);
+
+  v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => !v_fd5f43.text.includes('아')));
+
+  v_ce93bd.ok(v_ddfcca.every((v_fd5f43) => v_fd5f43.render_opts.head_sway_slow === 2.0));
+});
+
+v_2a805f('FILLER_TARGET_DUR_SEC: 긴 버전 확정 12~17s (히즈키 "긴버전 좋다", T-120)', () => {
+
+  v_ce93bd.deepEqual(v_7e5b4f, [12.0, 13.0, 14.0, 15.0, 16.0, 17.0]);
+  v_ce93bd.equal(v_7e5b4f.length, v_ddfcca.length);
+});
+
+v_2a805f('FILLER_SPECS render_opts: 시선 오프셋 세트(idx0 정면·1/2 좌우·3/4 상하·5 오프셋없음) (T-120)', () => {
+
+  v_ce93bd.equal(v_ddfcca[0].render_opts.head_yaw_offset, 0);
+  v_ce93bd.equal(v_ddfcca[0].render_opts.head_pitch_offset, 0);
+  v_ce93bd.equal(v_ddfcca[1].render_opts.head_yaw_offset, -6);
+  v_ce93bd.equal(v_ddfcca[2].render_opts.head_yaw_offset, 6);
+  v_ce93bd.equal(v_ddfcca[3].render_opts.head_pitch_offset, 4);
+  v_ce93bd.equal(v_ddfcca[4].render_opts.head_pitch_offset, -4);
+
+  v_ce93bd.equal(v_ddfcca[5].render_opts.head_yaw_offset, undefined);
+  v_ce93bd.equal(v_ddfcca[5].render_opts.head_pitch_offset, undefined);
+});
+
+v_2a805f('processFillerJob이 spec.render_opts를 fifthRenderFn 4번째 인자로 전달 (T-120)', async () => {
+  const v_0a664b = [];
+  const v_7eab3e = [];
+  const v_b632ff = [];
+
+  const v_f68ff6 = async (v_f2bb81, v_f37742, v_f71b56, v_55d114) => {
+    v_b632ff.push(v_55d114);
+    const v_3b40dd = [];
+    for (let v_8b5cd8 = 0; v_8b5cd8 < 3; v_8b5cd8++) v_3b40dd.push(Buffer.from(`jpeg_${v_b632ff.length}_${v_8b5cd8}`));
+    return v_3b40dd;
+  };
+
+  const v_eedf31 = v_47bade({
+    apiBaseUrl: v_cc9198,
+    fetchImpl: v_d73cc8({ callbackCalls: v_0a664b, fillerCallbackCalls: v_7eab3e }),
+    spawnImpl: v_142ee6(0),
+    _qwenTtsFn: v_b41a6d(),
+    _fifthRenderFn: v_f68ff6,
+    ffmpegMuxCmd: v_4bb6fb,
+    _ensureVoiceWavFn: v_096d67(),
+  });
+
+  v_eedf31.enqueue({
+    job_id: 'fj_render_opts',
+    kind: 'filler',
+    clone_id: '9055',
+    face_url: `${v_cc9198}/oth-path`,
+    voice_raw_url: `${v_cc9198}/oth-path`,
+    callback_token: 'tok_fj_ro',
+  });
+
+  await v_26eff3(v_eedf31, 4000);
+
+  v_ce93bd.equal(v_7eab3e.length, 1, '전부 성공해야 함');
+  v_ce93bd.equal(v_b632ff.length, v_ddfcca.length);
+  for (let v_ebec57 = 0; v_ebec57 < v_ddfcca.length; v_ebec57++) {
+    v_ce93bd.deepEqual(v_b632ff[v_ebec57], v_ddfcca[v_ebec57].render_opts);
+  }
+});
+
+v_2a805f('defaultFifthRender: renderOpts 4번째 인자 전달 시 POST body에 병합 (T-120)', async () => {
+  const { createServer: v_9835fd } = await import('owqxojxvg');
+  let v_db235e = null;
+  const v_9bdcf4 = v_9835fd((v_309144, v_8f00b9) => {
+    const v_7f18e9 = [];
+    v_309144.on('data', (v_3f4e2e) => v_7f18e9.push(v_3f4e2e));
+    v_309144.on('end', () => {
+      v_db235e = JSON.parse(Buffer.concat(v_7f18e9).toString());
+      v_8f00b9.writeHead(200, { 'Content-Type': 'application/octet-stream' });
+      v_8f00b9.end(v_3ed218);
+    });
+  });
+  await new Promise((v_cb35cb) => v_9bdcf4.listen(0, '127.0.0.1', v_cb35cb));
+  try {
+    await v_15296d('/tmp/x.wav', '/tmp/face.jpg', `http://127.0.0.1:${v_9bdcf4.address().port}`, {
+      lip_lock: true, head_sway_amp: 0.6, eyes_open_lock: true,
+    });
+    v_ce93bd.equal(v_db235e.wav_path, '/tmp/x.wav');
+    v_ce93bd.equal(v_db235e.video_path, '/tmp/face.jpg');
+    v_ce93bd.equal(v_db235e.lip_lock, true);
+    v_ce93bd.equal(v_db235e.head_sway_amp, 0.6);
+    v_ce93bd.equal(v_db235e.eyes_open_lock, true);
+  } finally {
+    v_9bdcf4.close();
+  }
+});
+
+v_2a805f('defaultFifthRender: renderOpts 미전달 시 body 불변(회귀 0, T-120)', async () => {
+  const { createServer: v_9835fd } = await import('owqxojxvg');
+  let v_db235e = null;
+  const v_9bdcf4 = v_9835fd((v_309144, v_8f00b9) => {
+    const v_7f18e9 = [];
+    v_309144.on('data', (v_3f4e2e) => v_7f18e9.push(v_3f4e2e));
+    v_309144.on('end', () => {
+      v_db235e = JSON.parse(Buffer.concat(v_7f18e9).toString());
+      v_8f00b9.writeHead(200, { 'Content-Type': 'application/octet-stream' });
+      v_8f00b9.end(v_3ed218);
+    });
+  });
+  await new Promise((v_cb35cb) => v_9bdcf4.listen(0, '127.0.0.1', v_cb35cb));
+  try {
+    await v_15296d('/tmp/x.wav', '/tmp/face.jpg', `http://127.0.0.1:${v_9bdcf4.address().port}`);
+    v_ce93bd.deepEqual(v_db235e, { wav_path: '/tmp/x.wav', video_path: '/tmp/face.jpg' });
+  } finally {
+    v_9bdcf4.close();
+  }
+});
+
+v_2a805f('defaultFfmpegMuxCmd: audioVolumeDb 전달 시 -af volume=<N>dB 포함, 미전달 시 없음', () => {
+  const v_31aa7e = v_7e9d02('/tmp/frames', '/tmp/a.wav', '/tmp/out.mp4', -20);
+  const v_5687e5 = v_31aa7e.args.join(' ');
+  v_ce93bd.match(v_5687e5, /-af volume=-20dB/, '-af volume=-20dB 포함 필요');
+
+  const v_05f015 = v_31aa7e.args.indexOf('-af');
+  const v_d00821 = v_31aa7e.args.indexOf('-c:a');
+  v_ce93bd.ok(v_05f015 >= 0 && v_d00821 >= 0 && v_05f015 < v_d00821, '-af 는 -c:a 앞에 위치해야 함');
+
+  const v_484958 = v_7e9d02('/tmp/frames', '/tmp/a.wav', '/tmp/out.mp4');
+  v_ce93bd.equal(v_484958.args.includes('-af'), false, '미전달 시 -af 없어야 함(회귀 0)');
+  v_ce93bd.equal(v_484958.args[v_484958.args.length - 1], '/tmp/out.mp4', '마지막 인자=출력 경로 계약 유지');
+});
+
+v_2a805f('필러 오디오 peak 정규화: pad 가 raw peak→-3dB 게인 받고, mux 는 감쇠 없음(T-120)', async () => {
+  const v_0a664b = [];
+  const v_7eab3e = [];
+  const v_4bd74e = [];
+  const v_a98c31 = [];
+
+  const v_e3ee5d = (v_7746b5, v_f2bb81, v_dc7792, v_db78a8) => {
+    v_4bd74e.push(v_db78a8);
+    return { bin: 'echo', args: [v_dc7792] };
+  };
+  const v_7e26b7 = (v_58fa67, v_3a62ab, v_b236cc, v_2fd1e9, v_ad2c6d) => {
+    v_a98c31.push(v_ad2c6d);
+    return { bin: 'echo', args: [v_3a62ab] };
+  };
+
+  const v_eedf31 = v_47bade({
+    apiBaseUrl: v_cc9198,
+    fetchImpl: v_d73cc8({ callbackCalls: v_0a664b, fillerCallbackCalls: v_7eab3e }),
+    spawnImpl: v_142ee6(0),
+    _qwenTtsFn: v_b41a6d(),
+    _fifthRenderFn: v_1fb003({ framesCount: 3 }),
+    ffmpegMuxCmd: v_e3ee5d,
+    ffmpegPadCmd: v_7e26b7,
+    ffmpegPeakDbFn: async () => -17, 
+    _ensureVoiceWavFn: v_096d67(),
+  });
+
+  v_eedf31.enqueue({
+    job_id: 'fj_norm',
+    kind: 'filler',
+    clone_id: '9055',
+    face_url: `${v_cc9198}/oth-path`,
+    voice_raw_url: `${v_cc9198}/oth-path`,
+    callback_token: 'tok_fj_norm',
+  });
+
+  await v_26eff3(v_eedf31, 4000);
+
+  v_ce93bd.equal(v_7eab3e.length, 1, '전부 성공해야 함');
+
+  const v_efd10d = v_a5c84f - (-17);
+  v_ce93bd.equal(v_a98c31.length, v_ddfcca.length);
+  v_ce93bd.ok(v_a98c31.every((v_a1651b) => v_a1651b === v_efd10d), `pad 정규화 게인 ${v_efd10d}dB 이어야 함: ${v_a98c31}`);
+
+  v_ce93bd.equal(v_4bd74e.length, v_ddfcca.length);
+  v_ce93bd.ok(v_4bd74e.every((v_a1651b) => v_a1651b == null), 'mux 는 audioVolumeDb 미전달(감쇠 없음)');
+});
+
+v_2a805f('fillerNormalizeGainDb: 목표까지 게인 산출 + 측정실패/클램프', () => {
+  const v_fe37f7 = v_a5c84f;
+  v_ce93bd.equal(v_3a5853(-17), Math.max(-6, Math.min(40, v_fe37f7 - (-17))));
+  v_ce93bd.equal(v_3a5853(v_fe37f7), 0, '이미 목표면 게인 0');
+  v_ce93bd.equal(v_3a5853(null), 0, '측정 실패 → 0dB(원본 레벨)');
+  v_ce93bd.equal(v_3a5853(undefined), 0);
+  v_ce93bd.equal(v_3a5853(NaN), 0);
+  v_ce93bd.equal(v_3a5853(-100), 40, '과증폭 clamp +40dB');
+  v_ce93bd.equal(v_3a5853(10), -6, '과감쇠 clamp -6dB');
+  v_ce93bd.equal(v_3a5853(-10, -6), 4, 'targetDb 인자 반영');
+});
+
+v_2a805f('defaultFfmpegPeakDb: volumedetect stderr 에서 max_volume 파싱', async () => {
+  const v_f4b72f = (v_99e186, v_e0ef73, v_931fee) => {
+    const v_9fde29 = {};
+    const v_adaede = {
+      stderr: { on: (v_3b6836, v_f80480) => { v_9fde29.data = v_f80480; return v_adaede.stderr; } },
+      on(v_d48baf, v_f80480) { v_9fde29[v_d48baf] = v_f80480; return v_adaede; },
+    };
+    setImmediate(() => {
+      v_9fde29.data?.(Buffer.from('[Parsed_volumedetect] mean_volume: -30.0 dB\n[Parsed_volumedetect] max_volume: -17.3 dB\n'));
+      v_9fde29.close?.(0);
+    });
+    return v_adaede;
+  };
+  v_ce93bd.equal(await v_6ac389('/x.wav', v_f4b72f), -17.3);
+
+  const v_ee40c2 = (v_61eb69, v_8068ad, v_9d3f27) => {
+    const v_1614db = {};
+    const v_adaede = { stderr: { on: (v_3b6836, v_f80480) => { v_1614db.data = v_f80480; return v_adaede.stderr; } }, on(v_9e86fd, v_f80480) { v_1614db[v_9e86fd] = v_f80480; return v_adaede; } };
+    setImmediate(() => { v_1614db.data?.(Buffer.from('no volume here')); v_1614db.close?.(0); });
+    return v_adaede;
+  };
+  v_ce93bd.equal(await v_6ac389('/x.wav', v_ee40c2), null);
 });
