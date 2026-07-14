@@ -242,7 +242,7 @@ export async function verifyXrunCredentials(
   try {
     res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: internalHeaders(env),
       body: JSON.stringify({ email, pin }),
     });
   } catch (err) {
@@ -269,7 +269,7 @@ export async function lookupXrunWalletByEmail(
   const url = `${env.XRUN_API_URL}/oth-path?email=${encodeURIComponent(email)}`;
   let res: Response;
   try {
-    res = await fetch(url, { method: "GET" });
+    res = await fetch(url, { method: "GET", headers: internalHeaders(env) });
   } catch (err) {
     return { found: false, reason: `network: ${(err as Error).message}` };
   }
@@ -317,6 +317,13 @@ function gatewayHeaders(env: Bindings): Record<string, string> {
   return {
     "Content-Type": "application/json",
     Authorization: `Bearer ${env.XRUN_GATEWAY_TOKEN ?? ""}`,
+  };
+}
+
+function internalHeaders(env: Bindings): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    "X-Internal-Secret": env.XRUN_INTERNAL_SECRET ?? "",
   };
 }
 
@@ -471,14 +478,14 @@ export async function getXrunMemberInfo(
 }
 
 export async function closeXrunMember(env: Bindings, member: number): Promise<XrunCloseResult> {
-  if (!env.XRUN_GATEWAY_TOKEN) {
-    return { ok: false, closed: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  if (!env.XRUN_INTERNAL_SECRET) {
+    return { ok: false, closed: false, reason: "missing XRUN_INTERNAL_SECRET" };
   }
   let res: Response;
   try {
     res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
       method: "POST",
-      headers: gatewayHeaders(env),
+      headers: internalHeaders(env),
       body: JSON.stringify({ member, source: "afterlife" }),
     });
   } catch (err) {
