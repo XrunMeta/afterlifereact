@@ -7,6 +7,7 @@ import {
   Text,
   StyleSheet,
   Alert,
+  TouchableOpacity,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -221,6 +222,32 @@ export default function CloneEditScreen({ route, navigation }: Props) {
           multiline
           containerStyle={{ marginTop: 12 }}
         />
+
+        {}
+        <TouchableOpacity
+          onPress={() => navigation.navigate("CloneLearn", { cloneId })}
+          activeOpacity={0.8}
+          style={{
+            marginTop: 24,
+            padding: 16,
+            borderRadius: RADIUS.md,
+            borderWidth: 1,
+            borderColor: COLORS.violet500,
+            backgroundColor: COLORS.violet100,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15, fontWeight: "700", color: COLORS.violet500 }}>
+              학습하기 →
+            </Text>
+            <Text style={{ fontSize: 12, color: COLORS.zinc600, marginTop: 4 }}>
+              관리자 질문에 답변해서 클론에게 지식을 쌓아주세요
+            </Text>
+          </View>
+        </TouchableOpacity>
       </View>
 
       {}

@@ -9,6 +9,9 @@ import { requestKekProvider } from "../lib/kekProvider";
 import { writeDecryptionAudit } from "../lib/auditChain";
 import { loadSystemPersona } from "../lib/systemPersona";
 import { loadPersonaQuestions, validatePersonaQuestions } from "../lib/personaQuestions";
+import { loadKnowledgeQuestions, validateKnowledgeQuestions } from "../lib/knowledgeQuestions";
+import { loadBlacklist, validateBlacklist } from "../lib/knowledgeBlacklist";
+import { normalizeKnowledge } from "../lib/knowledgeStore";
 import { notify } from "../lib/notify";
 
 export const admin = new Hono<AppEnv>();
@@ -326,6 +329,56 @@ admin.put("/persona-questions", requireSuperAdmin, async (c) => {
   return c.json({ ok: true });
 });
 
+admin.get("/knowledge-questions", requireAdmin, async (c) => {
+  const questions = await loadKnowledgeQuestions(c.env.DB);
+  return c.json({ questions });
+});
+
+admin.put("/knowledge-questions", requireSuperAdmin, async (c) => {
+  const adminId = c.get("adminUserId") ?? null;
+  const body = await c.req
+    .json<{ questions?: unknown }>()
+    .catch(() => ({}) as { questions?: unknown });
+  const result = validateKnowledgeQuestions(body.questions);
+  if (!result.ok) return c.json({ error: result.error }, 400);
+  await c.env.DB.prepare(
+    `INSERT INTO knowledge_question_schema (id, schema_json, updated_by, updated_at)
+     VALUES (1, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       schema_json = excluded.schema_json,
+       updated_by  = excluded.updated_by,
+       updated_at  = excluded.updated_at`,
+  )
+    .bind(JSON.stringify(result.questions), adminId, Date.now())
+    .run();
+  return c.json({ ok: true });
+});
+
+admin.get("/knowledge-blacklist", requireAdmin, async (c) => {
+  const words = await loadBlacklist(c.env.DB);
+  return c.json({ words });
+});
+
+admin.put("/knowledge-blacklist", requireAdmin, async (c) => {
+  const adminId = c.get("adminUserId") ?? null;
+  const body = await c.req
+    .json<{ words?: unknown }>()
+    .catch(() => ({}) as { words?: unknown });
+  const result = validateBlacklist(body.words);
+  if (!result.ok) return c.json({ error: result.error }, 400);
+  await c.env.DB.prepare(
+    `INSERT INTO knowledge_blacklist (id, blacklist_json, updated_by, updated_at)
+     VALUES (1, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       blacklist_json = excluded.blacklist_json,
+       updated_by     = excluded.updated_by,
+       updated_at     = excluded.updated_at`,
+  )
+    .bind(JSON.stringify(result.words), adminId, Date.now())
+    .run();
+  return c.json({ ok: true });
+});
+
 admin.get("/voices", requireAdmin, async (c) => {
   const rows = await c.env.DB
     .prepare(
@@ -581,6 +634,89 @@ admin.get("/oth-path", requireAdmin, async (c) => {
       .all()
   ).results;
   return c.json({ items: rows });
+});
+
+admin.get("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0)
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  const row = await c.env.DB
+    .prepare(
+      "SELECT id, name, username, l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL",
+    )
+    .bind(id)
+    .first<{ id: number; name: string; username: string; l1_profile: string | null }>();
+  if (!row) throw new APIError("NOT_FOUND", "Clone not found.");
+  let l1: unknown = null;
+  if (row.l1_profile) {
+    try {
+      l1 = JSON.parse(row.l1_profile);
+    } catch {
+
+    }
+  }
+  return c.json({ id: row.id, name: row.name, username: row.username, l1_profile: l1 });
+});
+
+const adminL1UpdateSchema = z.object({
+  l1_profile: z.object({
+    attrs: z.record(z.string(), z.string()).optional(),
+    notes: z.string().max(4000).optional(),
+    personality_core: z.string().max(500).optional(),
+    tone: z.string().max(500).optional(),
+    knowledge: z
+      .array(
+        z.object({
+          key: z.string().max(50).nullish(),
+          q: z.string().max(200).nullish(),
+          a: z.string().max(3000),
+        }),
+      )
+      .max(60) 
+      .optional(),
+  }),
+});
+
+admin.put("/oth-path", requireSuperAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0)
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  const body = await parseJson(c, adminL1UpdateSchema);
+  const row = await c.env.DB
+    .prepare("SELECT l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
+    .bind(id)
+    .first<{ l1_profile: string | null }>();
+  if (!row) throw new APIError("NOT_FOUND", "Clone not found.");
+
+  let prev: Record<string, unknown> = {};
+  if (row.l1_profile) {
+    try {
+      const p = JSON.parse(row.l1_profile);
+      if (p && typeof p === "object") prev = p as Record<string, unknown>;
+    } catch {
+
+    }
+  }
+
+  const next: Record<string, unknown> = { ...prev };
+  const upd = body.l1_profile;
+  if (upd.attrs !== undefined) next.attrs = upd.attrs;
+  if (upd.notes !== undefined) next.notes = upd.notes;
+  if (upd.personality_core !== undefined) next.personality_core = upd.personality_core;
+  if (upd.tone !== undefined) next.tone = upd.tone;
+  if (upd.knowledge !== undefined) {
+    const norm = normalizeKnowledge(upd.knowledge as never, Date.now());
+    if (!norm.ok) throw new APIError("VALIDATION_FAILED", norm.error);
+    next.knowledge = norm.items;
+  }
+
+  await c.env.DB
+    .prepare(
+      "UPDATE clones SET l1_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL",
+    )
+    .bind(JSON.stringify(next), id)
+    .run();
+  return c.json({ ok: true, l1_profile: next });
 });
 
 admin.get("/oth-path", requireAdmin, async (c) => {
