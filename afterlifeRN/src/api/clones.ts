@@ -158,11 +158,19 @@ export async function v_7b4be8(
   return v_4d33b2.items ?? [];
 }
 
+export interface PutKnowledgeResult {
+  ok?: boolean;
+  items?: KnowledgeItem[];
+  error?: string;
+  message?: string;
+  matched?: string;
+  key?: string;
+}
 export async function v_085a16(
   v_2ca7e0,
   v_6e0fd3,
   v_4622b9,
-): Promise<{ ok?: boolean; items?: KnowledgeItem[]; error?: string }> {
+): Promise<PutKnowledgeResult> {
   const v_8f00b9 = await fetch(`${v_cc9198}/oth-path${v_6e0fd3}/knowledge`, {
     method: "PUT",
     headers: {
@@ -171,7 +179,7 @@ export async function v_085a16(
     },
     body: JSON.stringify({ items: v_4622b9 }),
   });
-  return (await v_8f00b9.json()) as { ok?: boolean; items?: KnowledgeItem[]; error?: string };
+  return (await v_8f00b9.json()) as PutKnowledgeResult;
 }
 
 export async function v_4bf019(

@@ -129,8 +129,22 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     v_04e389(true);
     try {
       const v_8f00b9 = await v_085a16(v_2ca7e0, v_6e0fd3, v_931bf0);
+      if (v_8f00b9.error === "blacklist_hit") {
+
+        v_889fad(
+          v_8d41d7("learn.blacklistTitle", { defaultValue: "다른 질문 부탁드립니다" }),
+          v_8d41d7("learn.blacklistDesc", {
+            defaultValue:
+              v_8f00b9.message ||
+              "이 답변에는 등록할 수 없는 표현이 포함되어 있어요. 다른 질문으로 이동합니다.",
+            matched: v_8f00b9.matched,
+          }),
+        );
+        v_78ac9c();
+        return;
+      }
       if (v_8f00b9.error) {
-        v_889fad(v_8d41d7("common.error"), v_8f00b9.error);
+        v_889fad(v_8d41d7("common.error"), v_8f00b9.message || v_8f00b9.error);
         return;
       }
       const v_3871e2 = v_8f00b9.items ?? [];
