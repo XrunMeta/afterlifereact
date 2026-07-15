@@ -158,11 +158,19 @@ export async function getCloneKnowledge(
   return body.items ?? [];
 }
 
+export interface PutKnowledgeResult {
+  ok?: boolean;
+  items?: KnowledgeItem[];
+  error?: string;
+  message?: string;
+  matched?: string;
+  key?: string;
+}
 export async function putCloneKnowledge(
   accessToken: string,
   cloneId: number,
   items: Array<{ key?: string; q?: string | null; a: string }>,
-): Promise<{ ok?: boolean; items?: KnowledgeItem[]; error?: string }> {
+): Promise<PutKnowledgeResult> {
   const res = await fetch(`${API_BASE}/oth-path${cloneId}/knowledge`, {
     method: "PUT",
     headers: {
@@ -171,7 +179,7 @@ export async function putCloneKnowledge(
     },
     body: JSON.stringify({ items }),
   });
-  return (await res.json()) as { ok?: boolean; items?: KnowledgeItem[]; error?: string };
+  return (await res.json()) as PutKnowledgeResult;
 }
 
 export async function personaSuggest(

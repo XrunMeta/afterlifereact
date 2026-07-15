@@ -129,8 +129,22 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
     setSaving(true);
     try {
       const res = await putCloneKnowledge(accessToken, cloneId, payload);
+      if (res.error === "blacklist_hit") {
+
+        showAlert(
+          t("learn.blacklistTitle", { defaultValue: "다른 질문 부탁드립니다" }),
+          t("learn.blacklistDesc", {
+            defaultValue:
+              res.message ||
+              "이 답변에는 등록할 수 없는 표현이 포함되어 있어요. 다른 질문으로 이동합니다.",
+            matched: res.matched,
+          }),
+        );
+        handleSkip();
+        return;
+      }
       if (res.error) {
-        showAlert(t("common.error"), res.error);
+        showAlert(t("common.error"), res.message || res.error);
         return;
       }
       const fresh = res.items ?? [];
