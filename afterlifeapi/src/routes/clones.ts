@@ -24,6 +24,9 @@ import {
 import { v_7a6fc0 } from "../lib/xrun";
 import { v_c226a5, v_80a022 } from "../lib/notify";
 import { v_0b44ec } from "../lib/personaQuestions";
+import { v_70b594 } from "../lib/knowledgeQuestions";
+import { v_038cdc } from "../lib/knowledgeStore";
+import { v_71b908, v_cba618 } from "../lib/knowledgeBlacklist";
 import { v_041f8e, v_4b949c, v_5193f8, v_f64843 } from "../lib/assetJobs";
 import { v_5acfc3 } from "../lib/utils";
 import { v_67dc73 } from "../lib/prebuildClient";
@@ -827,6 +830,110 @@ v_f891e6.get("/persona-questions", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ questions: v_c3519b });
 });
 
+v_f891e6.get("/knowledge-questions", v_6690d9, async (v_3f4e2e) => {
+  const v_c3519b = await v_70b594(v_3f4e2e.env.DB);
+  return v_3f4e2e.json({ questions: v_c3519b });
+});
+
+v_f891e6.get("/knowledge-blacklist", v_6690d9, async (v_3f4e2e) => {
+  const v_1468d5 = await v_cba618(v_3f4e2e.env.DB);
+  return v_3f4e2e.json({ words: v_1468d5 });
+});
+
+v_f891e6.get("/:id/knowledge", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId") as number;
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  const v_2aec08 =
+    v_eb25ce.owner_id === v_43e90c ||
+    (await v_7adf64(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c)) === "owner";
+  if (!v_2aec08) throw new v_3ebe58("FORBIDDEN", "소유자만 조회할 수 있어요.");
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare("SELECT l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
+    .bind(v_6e0fd3)
+    .first<{ l1_profile: string | null }>();
+  let v_4622b9 = [];
+  if (v_3ac7e7?.l1_profile) {
+    try {
+      const v_e2a85c = JSON.parse(v_3ac7e7.l1_profile);
+      if (v_e2a85c && typeof v_e2a85c === "object" && Array.isArray(v_e2a85c.knowledge)) v_4622b9 = v_e2a85c.knowledge;
+    } catch {
+
+    }
+  }
+  return v_3f4e2e.json({ items: v_4622b9 });
+});
+
+v_f891e6.put("/:id/knowledge", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId") as number;
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  const v_a1651b = v_3f4e2e.env.DB;
+
+  const v_eb25ce = await v_5d4a51(v_a1651b, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  const v_2aec08 =
+    v_eb25ce.owner_id === v_43e90c ||
+    (await v_7adf64(v_a1651b, v_6e0fd3, v_43e90c)) === "owner";
+  if (!v_2aec08) throw new v_3ebe58("FORBIDDEN", "소유자만 변경할 수 있어요.");
+
+  const v_3ac7e7 = await v_a1651b
+    .prepare(
+      "SELECT primary_editor_user_id, l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL",
+    )
+    .bind(v_6e0fd3)
+    .first<{ primary_editor_user_id: number | null; l1_profile: string | null }>();
+  if (v_3ac7e7?.primary_editor_user_id !== v_43e90c)
+    throw new v_3ebe58("FORBIDDEN", "주 편집자만 페르소나 정보를 수정할 수 있어요.");
+
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ items?: unknown }>()
+    .catch(() => ({}) as { items?: unknown });
+  const v_b50631 = Array.isArray(v_4d33b2.items) ? v_4d33b2.items : [];
+  const v_825625 = v_038cdc(v_b50631 as never, Date.now());
+  if (!v_825625.ok) throw new v_3ebe58("VALIDATION_FAILED", v_825625.error);
+
+  const v_43516e = await v_cba618(v_a1651b);
+  if (v_43516e.length > 0) {
+    for (const v_23805a of v_825625.items) {
+      const v_715950 = v_71b908(v_23805a.a, v_43516e);
+      if (v_715950) {
+        return v_3f4e2e.json(
+          {
+            error: "blacklist_hit",
+            message: "다른 질문 부탁드립니다.",
+            matched: v_715950,
+            key: v_23805a.key,
+          },
+          400,
+        );
+      }
+    }
+  }
+
+  let v_020b4b = {};
+  if (v_3ac7e7?.l1_profile) {
+    try {
+      const v_e2a85c = JSON.parse(v_3ac7e7.l1_profile);
+      if (v_e2a85c && typeof v_e2a85c === "object") v_020b4b = v_e2a85c;
+    } catch {
+
+    }
+  }
+  v_020b4b.knowledge = v_825625.items;
+  await v_a1651b
+    .prepare(
+      "UPDATE clones SET l1_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL",
+    )
+    .bind(JSON.stringify(v_020b4b), v_6e0fd3)
+    .run();
+  return v_3f4e2e.json({ ok: true, items: v_825625.items });
+});
+
 const v_32333b = v_1f4ea7.record(
   v_1f4ea7.string().max(50),
   v_1f4ea7.union([v_1f4ea7.string().max(200), v_1f4ea7.array(v_1f4ea7.string().max(50)).max(20)]),
@@ -1149,8 +1256,26 @@ v_f891e6.patch("/:id", v_6690d9, async (v_3f4e2e) => {
     v_f73a2d.push("voice_preset_id");
   }
   if (v_4d33b2.l1_profile !== undefined) {
+
+    const v_b41be3 = { ...(v_4d33b2.l1_profile as Record<string, unknown>) };
+    if (v_b41be3.knowledge === undefined) {
+      const v_c3bc75 = await v_a1651b
+        .prepare("SELECT l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
+        .bind(v_6e0fd3)
+        .first<{ l1_profile: string | null }>();
+      if (v_c3bc75?.l1_profile) {
+        try {
+          const v_ba2215 = JSON.parse(v_c3bc75.l1_profile);
+          if (v_ba2215 && typeof v_ba2215 === "object" && v_ba2215.knowledge !== undefined) {
+            v_b41be3.knowledge = v_ba2215.knowledge;
+          }
+        } catch {
+
+        }
+      }
+    }
     v_75ae3e.push(`l1_profile = ?`);
-    v_925171.push(JSON.stringify(v_4d33b2.l1_profile));
+    v_925171.push(JSON.stringify(v_b41be3));
     v_f73a2d.push("l1_profile");
   }
   v_75ae3e.push(`updated_at = CURRENT_TIMESTAMP`);

@@ -1,5 +1,5 @@
 from __future__ import annotations
-import asyncio, os, time, pathlib, logging, json
+import asyncio, os, re, time, pathlib, logging, json
 from typing import Callable, Optional
 from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
@@ -32,6 +32,12 @@ def _face_diag_on() -> bool:
     T-111: 개통 전 제거 대상(FACE_DIAG_LOG env·본 헬퍼·아래 face_diag log.info 5지점).
     """
     return os.environ.get("FACE_DIAG_LOG", "0") == "1"
+
+
+def _speaker_identity_enabled() -> bool:
+    """[T-135] 화자 identity/L2' 주입 게이트. 기본 on — 프로세스 시작 후에도 env 재평가
+    (테스트 monkeypatch 호환, 기존 _FACE_REACT_ENABLED_KEY 관례와 동일)."""
+    return os.environ.get(_SPEAKER_IDENTITY_ENABLED_KEY, "1") == "1"
 # fail-closed 안전장치: clone_id 지정 통화에서 bundle 조회 실패 시 halbae 폴백 차단.
 # "0" 이면 기존 폴백 동작 유지(롤백 안전장치).
 _STRICT_CLONE_BUNDLE = os.environ.get("PRETHIRD_STRICT_CLONE_BUNDLE", "1") == "1"
@@ -41,6 +47,12 @@ _FILLER_ENABLED = os.environ.get("PRETHIRD_FILLER", "0") == "1"
 # [T-067] face_event 선제 발화 토글: 기본 off — off면 face_event 수신해도 완전 무동작
 # (기존 say/speak/greet 경로 바이트 단위 동일, 회귀 0). 프로세스 시작 후에도 env 재평가.
 _FACE_REACT_ENABLED_KEY = "PRETHIRD_FACE_REACT_ENABLED"
+# [T-135 v2] 화자 identity/L2' 주입 토글: 기본 "1"(on, dev/preview 전제) — FACE_REACT와
+# 완전 독립. off면 current_speaker 설정/해제(face_event)·_maybe_swap_l2p 스케줄 전부
+# 무동작(구 동작과 바이트 단위 동일). identity 소스는 face_event(생체검증) 단일 경로
+# — say는 personId/speakerName을 읽지 않는다(v1 폐기). react(재인사 등 발화)는 여전히
+# FACE_REACT 단독 게이트 — 두 게이트가 둘 다 off일 때만 기존(T-067 이전) 동작과 완전 동일.
+_SPEAKER_IDENTITY_ENABLED_KEY = "PRETHIRD_SPEAKER_IDENTITY_ENABLED"
 # 아는 얼굴(personId)=통화당 1회(영구), unknown/multi_face=이 초 동안 쿨다운.
 REACT_COOLDOWN_S = float(os.environ.get("PRETHIRD_REACT_COOLDOWN_S", "60"))
 # react가 다른 발화(say/speak/greet/react) 진행 중 도착하면 단일 pending 슬롯에 대기(latest-wins,
@@ -155,9 +167,57 @@ def _summarize_l2p_fields(data: dict) -> str:
     return "; ".join(parts) if parts else "(없음)"
 
 
+def _diag_summarize_l2p(l2p_data) -> dict:
+    """[T-135] dev diag 로그 전용 l2p_data 요약 — memories_personal/preference_personal
+    등 원문 값은 절대 포함하지 않고 존재여부/길이/키 목록만 남긴다(mizu MEDIUM1 PII 로그
+    마스킹). relation은 자유서술 개인정보라 값 자체 대신 길이만 기록."""
+    if not isinstance(l2p_data, dict):
+        return {}
+    out: dict = {}
+    rel = l2p_data.get("relation")
+    if isinstance(rel, str) and rel:
+        out["relation_len"] = len(rel)
+    pp = l2p_data.get("preference_personal")
+    if isinstance(pp, dict) and pp:
+        out["preference_personal_keys"] = sorted(pp.keys())
+    mems = l2p_data.get("memories_personal")
+    if isinstance(mems, list) and mems:
+        out["memories_personal_count"] = len(mems)
+    return out
+
+
+_DISPLAY_NAME_CONTROL_RE = re.compile(
+    "[\x00-\x1f\x7f​-‏‪-‮⁠-⁯﻿]"
+)
+
+
+def _sanitize_display_name(raw) -> Optional[str]:
+    """[T-135] face_event displayName 검증 — afterlifeapi `assertValidDisplayName`
+    (`afterlifeapi/src/lib/displayName.ts`)과 동등 기준(길이 1~30·제어문자·제로폭/bidi
+    포맷문자 차단). 실시간 datachannel 메시지라 검증 실패로 이벤트 전체를 버리지 않고
+    이름만 신뢰하지 않는다(None으로 강등 → build_l2p_hint가 이름 라인 생략). 프롬프트
+    인젝션 완화(mizu HIGH1)."""
+    if not isinstance(raw, str):
+        return None
+    trimmed = raw.strip()
+    if not trimmed or len(trimmed) > 30:
+        return None
+    if _DISPLAY_NAME_CONTROL_RE.search(trimmed):
+        return None
+    return trimmed
+
+
 def build_l2p_hint(name, l2p_data) -> str:
-    """[T-116] 화자별 L2' 시스템 힌트 한 줄. 실통화(_maybe_swap_l2p)와 verify가 공유.
-    l2p_data가 있으면 관계요약 포함, 없으면 이름만."""
+    """[T-116/T-135] 화자별 L2' 시스템 힌트 한 줄. 실통화(_maybe_swap_l2p)와 verify가 공유.
+    l2p_data가 있으면 관계요약 포함, 없으면 이름만.
+    [T-135] name이 falsy(None/공백)면 "현재 화면의 화자: {name}" 라인을 생략한다 — 화자가
+    불확실(unknown_face/multi_face로 current_speaker 해제)한 상태에서 "화자: None" 같은
+    오염된 힌트가 프롬프트에 들어가는 것을 방지. l2p_data만 있으면 관계기억 라인만,
+    둘 다 없으면 빈 문자열(호출부가 힌트 자체를 스킵해야 함)."""
+    if not name:
+        if l2p_data:
+            return f"이 사람과의 관계 기억: {_summarize_l2p_fields(l2p_data)}"
+        return ""
     if l2p_data:
         return f"현재 화면의 화자: {name}. 이 사람과의 관계 기억: {_summarize_l2p_fields(l2p_data)}"
     return f"현재 화면의 화자: {name}"
@@ -206,42 +266,108 @@ async def _maybe_swap_l2p(sess, pid: int, name) -> None:
 
         hint = build_l2p_hint(name, l2p_data)
 
-        new_messages = sess.base_persona_messages + [{"role": "system", "content": hint}]
+        # [T-135] name이 sanitize 결과 None(공백/malformed 강등)이고 l2p_data도 없으면
+        # hint == "" — 빈 system 메시지를 덧붙이지 않고 base만 재적용(이전 화자의 잔여
+        # 힌트가 있었다면 정리, 새 오염 힌트는 추가하지 않음).
+        new_messages = (
+            sess.base_persona_messages + [{"role": "system", "content": hint}]
+            if hint else list(sess.base_persona_messages)
+        )
         update = getattr(pipeline, "update_persona", None)
         if callable(update):
             update(new_messages)
             if _face_diag_on():
+                # [T-135] l2p_data 원문(memories_personal/preference_personal 값)은 절대
+                # 로깅하지 않는다 — 요약(_diag_summarize_l2p: 키/길이/개수만)만 남긴다
+                # (mizu MEDIUM1). hint 문자열의 실명(displayName)도 <name>으로 마스킹
+                # (기존 face_diag 규약 — T-067 Task6 "personId만 로그, 실명 미포함").
+                _hint_masked = hint.replace(str(name), "<name>") if name else hint
                 log.info(
-                    "face_diag l2p_swapped session=%s person=%s",
+                    "face_diag l2p_swapped session=%s person=%s l2p_summary=%s hint=%s",
                     getattr(sess, "session_id", "?"), pid,
+                    json.dumps(_diag_summarize_l2p(l2p_data), ensure_ascii=False),
+                    _hint_masked,
                 )
     except Exception as e:
         log.warning("session %s _maybe_swap_l2p failed: %s", getattr(sess, "session_id", "?"), e)
 
 
+def _clear_current_speaker(sess, event: str) -> None:
+    """[T-135 v2] 화자 확실성 게이팅 — `unknown_face`/`multi_face` 수신 시
+    `sess.current_speaker`를 익명(None)으로 해제한다.
+
+    이미 None이면 아무것도 하지 않는다(no-op, 중복 리셋 방지). None이 아니었다면:
+    1) current_speaker=None으로 즉시 해제 — 이후 `_maybe_swap_l2p`의 stale 가드
+       (`current is None or current[0] != pid`)가 늦게 도착하는 이전 화자의 스왑도
+       자동 드랍한다(이중 방어). `learn_writeback` person 귀속도 이 시점부터 즉시
+       익명(person_id=None)으로 보류된다(호출부가 매 turn `sess.current_speaker`를
+       그때그때 읽으므로 별도 배선 불필요).
+    2) base_persona_messages가 이미 백업돼 있으면(과거에 한 번이라도 스왑이 있었다는
+       뜻) persona를 base로 동기 리셋 — 직전 화자의 이름/L2' 힌트가 다음 턴 프롬프트에
+       잔류하는 것을 막는다(그렇지 않으면 "낯선 사람인데 이전 화자 이름으로 계속
+       불림" 오염이 발생). base가 없으면(스왑이 한 번도 없었음) 리셋할 것도 없다.
+    """
+    if sess.current_speaker is None:
+        return
+    sess.current_speaker = None
+    if _face_diag_on():
+        log.info(
+            "face_diag speaker session=%s event=%s cleared=1",
+            getattr(sess, "session_id", "?"), event,
+        )
+    try:
+        pipeline = getattr(sess, "pipeline", None)
+        base = getattr(sess, "base_persona_messages", None)
+        if pipeline is not None and base is not None:
+            update = getattr(pipeline, "update_persona", None)
+            if callable(update):
+                update(list(base))
+    except Exception as e:
+        log.warning(
+            "session %s _clear_current_speaker persona reset failed: %s",
+            getattr(sess, "session_id", "?"), e,
+        )
+
+
 def _handle_face_event(sess, data: dict) -> None:
-    """[T-067] datachannel face_event 메시지 처리.
+    """[T-067/T-135] datachannel face_event 메시지 처리.
 
     RN → `{"type":"face_event","event":"speaker_confirmed"|"unknown_face"|"multi_face",
     "personId":3,"displayName":"민지","seq":12}`.
 
-    토글 `PRETHIRD_FACE_REACT_ENABLED`(기본 "0") off 면 완전 무동작 — say/speak/greet
-    경로와 완전히 독립적이라 off 상태에서 기존 동작에 어떤 영향도 주지 않는다(회귀 0).
+    [T-135] 게이트 2개로 분리(관심사 분리, 서로 완전 독립):
+    - `PRETHIRD_SPEAKER_IDENTITY_ENABLED`(기본 "1" on) — current_speaker 설정/해제 +
+      `_maybe_swap_l2p`(L2'/이름 persona 주입) 스케줄만 관장.
+    - `PRETHIRD_FACE_REACT_ENABLED`(기본 "0" off) — 얼굴 react 발화(재인사·"누구시죠" 등)
+      + 쿨다운 기록 + pending_enroll 플래그만 관장(기존 T-067 동작 그대로).
+    둘 다 off일 때만 완전 무동작(구 T-067 이전 동작과 바이트 단위 동일, 회귀 0).
     쿨다운: 아는 얼굴(personId)=통화당 1회(영구), unknown/multi_face=REACT_COOLDOWN_S(60s).
     다른 발화가 진행 중이면(busy_lock) 겹쳐 push하지 않고 단일 pending 슬롯에 대기시켜
     발화 종료 후 재생한다(_drain_pending_react, 플랜 §6.2).
+
+    [T-135 v2] 화자 확실성 게이팅(오염 차단) — identity_on일 때 `unknown_face`/
+    `multi_face` 수신 시 `sess.current_speaker`를 **None으로 해제**한다. 생체검증으로
+    "누구인지 확실"할 때(speaker_confirmed)만 이름/L2' 주입·learn_writeback person
+    귀속을 허용하고, 불확실해지면 즉시 익명으로 되돌아간다 — "낯선 사람을 이전
+    화자로 오인해 그 사람 이름/기억을 계속 주입·학습"하는 사고를 차단한다.
+    speaker_confirmed로 재확정될 때만 그 사람으로 복귀한다.
 
     Task 11(pending_enroll)은 이 함수 밖(say 처리부)에서 소비. Task 12(L2' 화자별
     persona 스왑)는 _maybe_swap_l2p — 화자가 바뀔 때(쿨다운과 무관) fire-and-forget으로
     스케줄되며 react(_run, 쿨다운 게이트 대상)와는 완전히 분리된 별도 태스크(§6.4).
     """
-    if os.environ.get(_FACE_REACT_ENABLED_KEY, "0") != "1":
-        return
     if sess.pipeline is None:
         return
+    identity_on = _speaker_identity_enabled()
+    react_on = os.environ.get(_FACE_REACT_ENABLED_KEY, "0") == "1"
+    if not identity_on and not react_on:
+        return  # 둘 다 off — 완전 무동작(회귀 0)
+
     event = data.get("event")
     pid = data.get("personId")
-    name = data.get("displayName")
+    # [T-135] displayName 검증 — 길이/제어문자/제로폭 위반이면 None으로 강등(이벤트
+    # 자체는 계속 처리, 이름만 신뢰하지 않음). 프롬프트 인젝션 완화(mizu HIGH1).
+    name = _sanitize_display_name(data.get("displayName"))
 
     if _face_diag_on():
         log.info(
@@ -264,11 +390,11 @@ def _handle_face_event(sess, data: dict) -> None:
             )
             return
 
-    # [T-067 Task 12 / 스펙 §6.4] persona 스왑 트리거는 react 쿨다운과 완전히 무관 —
-    # 화자가 실제로 바뀌었으면(현재 sess.current_speaker와 다른 personId) 쿨다운으로
-    # react가 눌려도(복귀 화자 A→B→A 등) 매번 다시 트리거해야 persona가 최신 화자에
-    # 고착되지 않는다. fire-and-forget(swap이 react를 절대 지연시키지 않음).
-    if event == "speaker_confirmed":
+    # [T-135] identity/L2' 주입 — SPEAKER_IDENTITY 게이트 단독, react 게이트/쿨다운과 무관.
+    # [T-067 Task 12 / 스펙 §6.4] 화자가 실제로 바뀌었으면(현재 sess.current_speaker와
+    # 다른 personId) 매번 다시 트리거해야 persona가 최신 화자에 고착되지 않는다.
+    # fire-and-forget(swap이 react를 절대 지연시키지 않음).
+    if event == "speaker_confirmed" and identity_on:
         prev = sess.current_speaker
         if prev is None or prev[0] != pid_int:
             sess.current_speaker = (pid_int, name)
@@ -278,6 +404,15 @@ def _handle_face_event(sess, data: dict) -> None:
                     getattr(sess, "session_id", "?"), pid_int,
                 )
             asyncio.ensure_future(_maybe_swap_l2p(sess, pid_int, name))
+    elif event in ("unknown_face", "multi_face") and identity_on:
+        # [T-135 v2] 화자 확실성 게이팅 — 낯선 얼굴/다중 얼굴이면 즉시 익명으로 해제.
+        # speaker_confirmed로 재확정될 때까지 이름/L2' 주입·learn_writeback person
+        # 귀속을 보류한다(_maybe_swap_l2p의 stale 가드가 current_speaker None을 보고
+        # 이후 늦게 도착하는 이전 화자의 스왑도 자동 드랍 — 이중 방어).
+        _clear_current_speaker(sess, event)
+
+    if not react_on:
+        return  # react(쿨다운·발화·pending_enroll)는 FACE_REACT 게이트 단독 — off면 여기서 종료
 
     key = str(pid_int) if event == "speaker_confirmed" else "unknown"
     now = time.monotonic()
@@ -380,6 +515,10 @@ def _make_dc_handler(sess, channel):
         text = data.get("text", "")
         if mtype in ("say", "speak") and not text:
             return  # say/speak 는 텍스트 필수. greet 는 텍스트 불필요.
+        # [T-135 v2] say payload의 personId/speakerName은 더 이상 읽지 않는다(v1 폐기 —
+        # 클라이언트가 자기주장하는 identity를 서버가 그대로 신뢰하는 경로는 IDOR 표면.
+        # identity 소스는 face_event(생체검증) 단일 경로로 확정 — _handle_face_event만이
+        # sess.current_speaker를 설정/해제한다). say는 원문 text만 소비(기존 그대로).
         # [T-067 Task 11] 즉석등록: pending_enroll 상태의 첫 say에서만 1회 발화(플래그를
         # 즉시 내려 재진입 차단) — fire-and-forget이라 say 본 흐름은 지연되지 않는다.
         if mtype == "say" and getattr(sess, "pending_enroll", False):

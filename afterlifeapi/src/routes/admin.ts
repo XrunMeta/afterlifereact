@@ -9,6 +9,9 @@ import { v_e44d97 } from "../lib/kekProvider";
 import { v_e56fb3 } from "../lib/auditChain";
 import { v_b60bdd } from "../lib/systemPersona";
 import { v_0b44ec, v_02d529 } from "../lib/personaQuestions";
+import { v_70b594, v_4db5dd } from "../lib/knowledgeQuestions";
+import { v_cba618, v_1809f7 } from "../lib/knowledgeBlacklist";
+import { v_038cdc } from "../lib/knowledgeStore";
 import { v_c226a5 } from "../lib/notify";
 
 export const v_b7f2b4 = new v_b7c41b<v_de0a25>();
@@ -326,6 +329,56 @@ v_b7f2b4.put("/persona-questions", v_b09138, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true });
 });
 
+v_b7f2b4.get("/knowledge-questions", v_c0a297, async (v_3f4e2e) => {
+  const v_c3519b = await v_70b594(v_3f4e2e.env.DB);
+  return v_3f4e2e.json({ questions: v_c3519b });
+});
+
+v_b7f2b4.put("/knowledge-questions", v_b09138, async (v_3f4e2e) => {
+  const v_db9be1 = v_3f4e2e.get("adminUserId") ?? null;
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ questions?: unknown }>()
+    .catch(() => ({}) as { questions?: unknown });
+  const v_43c42e = v_4db5dd(v_4d33b2.questions);
+  if (!v_43c42e.ok) return v_3f4e2e.json({ error: v_43c42e.error }, 400);
+  await v_3f4e2e.env.DB.prepare(
+    `INSERT INTO knowloth-secrethema (id, schema_json, updated_by, updated_at)
+     VALUES (1, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       schema_json = excluded.schema_json,
+       updated_by  = excluded.updated_by,
+       updated_at  = excluded.updated_at`,
+  )
+    .bind(JSON.stringify(v_43c42e.questions), v_db9be1, Date.now())
+    .run();
+  return v_3f4e2e.json({ ok: true });
+});
+
+v_b7f2b4.get("/knowledge-blacklist", v_c0a297, async (v_3f4e2e) => {
+  const v_1468d5 = await v_cba618(v_3f4e2e.env.DB);
+  return v_3f4e2e.json({ words: v_1468d5 });
+});
+
+v_b7f2b4.put("/knowledge-blacklist", v_c0a297, async (v_3f4e2e) => {
+  const v_db9be1 = v_3f4e2e.get("adminUserId") ?? null;
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ words?: unknown }>()
+    .catch(() => ({}) as { words?: unknown });
+  const v_43c42e = v_1809f7(v_4d33b2.words);
+  if (!v_43c42e.ok) return v_3f4e2e.json({ error: v_43c42e.error }, 400);
+  await v_3f4e2e.env.DB.prepare(
+    `INSERT INTO knowledge_blacklist (id, blacklist_json, updated_by, updated_at)
+     VALUES (1, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       blacklist_json = excluded.blacklist_json,
+       updated_by     = excluded.updated_by,
+       updated_at     = excluded.updated_at`,
+  )
+    .bind(JSON.stringify(v_43c42e.words), v_db9be1, Date.now())
+    .run();
+  return v_3f4e2e.json({ ok: true });
+});
+
 v_b7f2b4.get("/voices", v_c0a297, async (v_3f4e2e) => {
   const v_18b8bf = await v_3f4e2e.env.DB
     .prepare(
@@ -581,6 +634,89 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
       .all()
   ).results;
   return v_3f4e2e.json({ items: v_18b8bf });
+});
+
+v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0)
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare(
+      "SELECT id, name, username, l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL",
+    )
+    .bind(v_389afb)
+    .first<{ id: number; name: string; username: string; l1_profile: string | null }>();
+  if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  let v_020b4b = null;
+  if (v_3ac7e7.l1_profile) {
+    try {
+      v_020b4b = JSON.parse(v_3ac7e7.l1_profile);
+    } catch {
+
+    }
+  }
+  return v_3f4e2e.json({ id: v_3ac7e7.id, name: v_3ac7e7.name, username: v_3ac7e7.username, l1_profile: v_020b4b });
+});
+
+const v_d03300 = v_1f4ea7.object({
+  l1_profile: v_1f4ea7.object({
+    attrs: v_1f4ea7.record(v_1f4ea7.string(), v_1f4ea7.string()).optional(),
+    notes: v_1f4ea7.string().max(4000).optional(),
+    personality_core: v_1f4ea7.string().max(500).optional(),
+    tone: v_1f4ea7.string().max(500).optional(),
+    knowledge: v_1f4ea7
+      .array(
+        v_1f4ea7.object({
+          key: v_1f4ea7.string().max(50).nullish(),
+          q: v_1f4ea7.string().max(200).nullish(),
+          a: v_1f4ea7.string().max(3000),
+        }),
+      )
+      .max(60) 
+      .optional(),
+  }),
+});
+
+v_b7f2b4.put("/oth-path", v_b09138, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0)
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_d03300);
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare("SELECT l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
+    .bind(v_389afb)
+    .first<{ l1_profile: string | null }>();
+  if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+
+  let v_ba2215 = {};
+  if (v_3ac7e7.l1_profile) {
+    try {
+      const v_e2a85c = JSON.parse(v_3ac7e7.l1_profile);
+      if (v_e2a85c && typeof v_e2a85c === "object") v_ba2215 = v_e2a85c as Record<string, unknown>;
+    } catch {
+
+    }
+  }
+
+  const v_a448ad = { ...v_ba2215 };
+  const v_b1eff4 = v_4d33b2.l1_profile;
+  if (v_b1eff4.attrs !== undefined) v_a448ad.attrs = v_b1eff4.attrs;
+  if (v_b1eff4.notes !== undefined) v_a448ad.notes = v_b1eff4.notes;
+  if (v_b1eff4.personality_core !== undefined) v_a448ad.personality_core = v_b1eff4.personality_core;
+  if (v_b1eff4.tone !== undefined) v_a448ad.tone = v_b1eff4.tone;
+  if (v_b1eff4.knowledge !== undefined) {
+    const v_825625 = v_038cdc(v_b1eff4.knowledge as never, Date.now());
+    if (!v_825625.ok) throw new v_3ebe58("VALIDATION_FAILED", v_825625.error);
+    v_a448ad.knowledge = v_825625.items;
+  }
+
+  await v_3f4e2e.env.DB
+    .prepare(
+      "UPDATE clones SET l1_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL",
+    )
+    .bind(JSON.stringify(v_a448ad), v_389afb)
+    .run();
+  return v_3f4e2e.json({ ok: true, l1_profile: v_a448ad });
 });
 
 v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {

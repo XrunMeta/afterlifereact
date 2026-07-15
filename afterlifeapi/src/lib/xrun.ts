@@ -237,7 +237,7 @@ export async function v_937e23(
   try {
     v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: v_9765c6(v_c9c489),
       body: JSON.stringify({ email: v_e0c7e8, pin: v_6bee94 }),
     });
   } catch (v_49263d) {
@@ -264,7 +264,7 @@ export async function v_a0ec33(
   const v_f71b56 = `${v_c9c489.XRUN_API_URL}/oth-path?email=${encodeURIComponent(v_e0c7e8)}`;
   let v_8f00b9;
   try {
-    v_8f00b9 = await fetch(v_f71b56, { method: "GET" });
+    v_8f00b9 = await fetch(v_f71b56, { method: "GET", headers: v_9765c6(v_c9c489) });
   } catch (v_49263d) {
     return { found: false, reason: `network: ${(v_49263d as Error).message}` };
   }
@@ -307,6 +307,13 @@ function v_4d1f4f(env: v_273a0c): Record<string, string> {
   return {
     "Content-Type": "application/json",
     Authorization: `Bearer ${v_c9c489.XRUN_GATEWAY_TOKEN ?? ""}`,
+  };
+}
+
+function v_9765c6(env: v_273a0c): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    "X-Internal-Secret": v_c9c489.XRUN_INTERNAL_SECRET ?? "",
   };
 }
 
@@ -456,14 +463,14 @@ export async function v_d19f98(
 }
 
 export async function v_a33f6b(env: v_273a0c, v_660822): Promise<XrunCloseResult> {
-  if (!v_c9c489.XRUN_GATEWAY_TOKEN) {
-    return { ok: false, closed: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  if (!v_c9c489.XRUN_INTERNAL_SECRET) {
+    return { ok: false, closed: false, reason: "missing XRUN_INTERNAL_SECRET" };
   }
   let v_8f00b9;
   try {
     v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
       method: "POST",
-      headers: v_4d1f4f(v_c9c489),
+      headers: v_9765c6(v_c9c489),
       body: JSON.stringify({ member: v_660822, source: "afterlife" }),
     });
   } catch (v_49263d) {
