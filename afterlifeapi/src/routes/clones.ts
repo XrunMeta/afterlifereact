@@ -26,6 +26,7 @@ import { v_c226a5, v_80a022 } from "../lib/notify";
 import { v_0b44ec } from "../lib/personaQuestions";
 import { v_70b594 } from "../lib/knowledgeQuestions";
 import { v_038cdc } from "../lib/knowledgeStore";
+import { v_71b908, v_cba618 } from "../lib/knowledgeBlacklist";
 import { v_041f8e, v_4b949c, v_5193f8, v_f64843 } from "../lib/assetJobs";
 import { v_5acfc3 } from "../lib/utils";
 import { v_67dc73 } from "../lib/prebuildClient";
@@ -834,6 +835,11 @@ v_f891e6.get("/knowledge-questions", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ questions: v_c3519b });
 });
 
+v_f891e6.get("/knowledge-blacklist", v_6690d9, async (v_3f4e2e) => {
+  const v_1468d5 = await v_cba618(v_3f4e2e.env.DB);
+  return v_3f4e2e.json({ words: v_1468d5 });
+});
+
 v_f891e6.get("/:id/knowledge", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId") as number;
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
@@ -890,6 +896,24 @@ v_f891e6.put("/:id/knowledge", v_6690d9, async (v_3f4e2e) => {
   const v_b50631 = Array.isArray(v_4d33b2.items) ? v_4d33b2.items : [];
   const v_825625 = v_038cdc(v_b50631 as never, Date.now());
   if (!v_825625.ok) throw new v_3ebe58("VALIDATION_FAILED", v_825625.error);
+
+  const v_43516e = await v_cba618(v_a1651b);
+  if (v_43516e.length > 0) {
+    for (const v_23805a of v_825625.items) {
+      const v_715950 = v_71b908(v_23805a.a, v_43516e);
+      if (v_715950) {
+        return v_3f4e2e.json(
+          {
+            error: "blacklist_hit",
+            message: "다른 질문 부탁드립니다.",
+            matched: v_715950,
+            key: v_23805a.key,
+          },
+          400,
+        );
+      }
+    }
+  }
 
   let v_020b4b = {};
   if (v_3ac7e7?.l1_profile) {

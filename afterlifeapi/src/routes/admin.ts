@@ -10,6 +10,7 @@ import { v_e56fb3 } from "../lib/auditChain";
 import { v_b60bdd } from "../lib/systemPersona";
 import { v_0b44ec, v_02d529 } from "../lib/personaQuestions";
 import { v_70b594, v_4db5dd } from "../lib/knowledgeQuestions";
+import { v_cba618, v_1809f7 } from "../lib/knowledgeBlacklist";
 import { v_038cdc } from "../lib/knowledgeStore";
 import { v_c226a5 } from "../lib/notify";
 
@@ -349,6 +350,31 @@ v_b7f2b4.put("/knowledge-questions", v_b09138, async (v_3f4e2e) => {
        updated_at  = excluded.updated_at`,
   )
     .bind(JSON.stringify(v_43c42e.questions), v_db9be1, Date.now())
+    .run();
+  return v_3f4e2e.json({ ok: true });
+});
+
+v_b7f2b4.get("/knowledge-blacklist", v_c0a297, async (v_3f4e2e) => {
+  const v_1468d5 = await v_cba618(v_3f4e2e.env.DB);
+  return v_3f4e2e.json({ words: v_1468d5 });
+});
+
+v_b7f2b4.put("/knowledge-blacklist", v_c0a297, async (v_3f4e2e) => {
+  const v_db9be1 = v_3f4e2e.get("adminUserId") ?? null;
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ words?: unknown }>()
+    .catch(() => ({}) as { words?: unknown });
+  const v_43c42e = v_1809f7(v_4d33b2.words);
+  if (!v_43c42e.ok) return v_3f4e2e.json({ error: v_43c42e.error }, 400);
+  await v_3f4e2e.env.DB.prepare(
+    `INSERT INTO knowledge_blacklist (id, blacklist_json, updated_by, updated_at)
+     VALUES (1, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       blacklist_json = excluded.blacklist_json,
+       updated_by     = excluded.updated_by,
+       updated_at     = excluded.updated_at`,
+  )
+    .bind(JSON.stringify(v_43c42e.words), v_db9be1, Date.now())
     .run();
   return v_3f4e2e.json({ ok: true });
 });
