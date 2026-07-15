@@ -10,6 +10,7 @@ import { writeDecryptionAudit } from "../lib/auditChain";
 import { loadSystemPersona } from "../lib/systemPersona";
 import { loadPersonaQuestions, validatePersonaQuestions } from "../lib/personaQuestions";
 import { loadKnowledgeQuestions, validateKnowledgeQuestions } from "../lib/knowledgeQuestions";
+import { loadBlacklist, validateBlacklist } from "../lib/knowledgeBlacklist";
 import { normalizeKnowledge } from "../lib/knowledgeStore";
 import { notify } from "../lib/notify";
 
@@ -349,6 +350,31 @@ admin.put("/knowledge-questions", requireSuperAdmin, async (c) => {
        updated_at  = excluded.updated_at`,
   )
     .bind(JSON.stringify(result.questions), adminId, Date.now())
+    .run();
+  return c.json({ ok: true });
+});
+
+admin.get("/knowledge-blacklist", requireAdmin, async (c) => {
+  const words = await loadBlacklist(c.env.DB);
+  return c.json({ words });
+});
+
+admin.put("/knowledge-blacklist", requireAdmin, async (c) => {
+  const adminId = c.get("adminUserId") ?? null;
+  const body = await c.req
+    .json<{ words?: unknown }>()
+    .catch(() => ({}) as { words?: unknown });
+  const result = validateBlacklist(body.words);
+  if (!result.ok) return c.json({ error: result.error }, 400);
+  await c.env.DB.prepare(
+    `INSERT INTO knowledge_blacklist (id, blacklist_json, updated_by, updated_at)
+     VALUES (1, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       blacklist_json = excluded.blacklist_json,
+       updated_by     = excluded.updated_by,
+       updated_at     = excluded.updated_at`,
+  )
+    .bind(JSON.stringify(result.words), adminId, Date.now())
     .run();
   return c.json({ ok: true });
 });

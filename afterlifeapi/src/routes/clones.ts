@@ -26,6 +26,7 @@ import { notify, notifyCloneEvent } from "../lib/notify";
 import { loadPersonaQuestions } from "../lib/personaQuestions";
 import { loadKnowledgeQuestions } from "../lib/knowledgeQuestions";
 import { normalizeKnowledge } from "../lib/knowledgeStore";
+import { findBlacklistHit, loadBlacklist } from "../lib/knowledgeBlacklist";
 import { createJob, getJob, setStatus, linkClone } from "../lib/assetJobs";
 import { maskUsername } from "../lib/utils";
 import { triggerPrebuild } from "../lib/prebuildClient";
@@ -847,6 +848,11 @@ clones.get("/knowledge-questions", requireAuth, async (c) => {
   return c.json({ questions });
 });
 
+clones.get("/knowledge-blacklist", requireAuth, async (c) => {
+  const words = await loadBlacklist(c.env.DB);
+  return c.json({ words });
+});
+
 clones.get("/:id/knowledge", requireAuth, async (c) => {
   const userId = c.get("userId") as number;
   const cloneId = Number(c.req.param("id"));
@@ -903,6 +909,24 @@ clones.put("/:id/knowledge", requireAuth, async (c) => {
   const inputs = Array.isArray(body.items) ? body.items : [];
   const norm = normalizeKnowledge(inputs as never, Date.now());
   if (!norm.ok) throw new APIError("VALIDATION_FAILED", norm.error);
+
+  const blacklist = await loadBlacklist(db);
+  if (blacklist.length > 0) {
+    for (const it of norm.items) {
+      const hit = findBlacklistHit(it.a, blacklist);
+      if (hit) {
+        return c.json(
+          {
+            error: "blacklist_hit",
+            message: "다른 질문 부탁드립니다.",
+            matched: hit,
+            key: it.key,
+          },
+          400,
+        );
+      }
+    }
+  }
 
   let l1: Record<string, unknown> = {};
   if (row?.l1_profile) {
