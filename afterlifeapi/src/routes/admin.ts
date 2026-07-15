@@ -9,6 +9,7 @@ import { requestKekProvider } from "../lib/kekProvider";
 import { writeDecryptionAudit } from "../lib/auditChain";
 import { loadSystemPersona } from "../lib/systemPersona";
 import { loadPersonaQuestions, validatePersonaQuestions } from "../lib/personaQuestions";
+import { loadKnowledgeQuestions, validateKnowledgeQuestions } from "../lib/knowledgeQuestions";
 import { notify } from "../lib/notify";
 
 export const admin = new Hono<AppEnv>();
@@ -315,6 +316,31 @@ admin.put("/persona-questions", requireSuperAdmin, async (c) => {
   if (!result.ok) return c.json({ error: result.error }, 400);
   await c.env.DB.prepare(
     `INSERT INTO persona_question_schema (id, schema_json, updated_by, updated_at)
+     VALUES (1, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       schema_json = excluded.schema_json,
+       updated_by  = excluded.updated_by,
+       updated_at  = excluded.updated_at`,
+  )
+    .bind(JSON.stringify(result.questions), adminId, Date.now())
+    .run();
+  return c.json({ ok: true });
+});
+
+admin.get("/knowledge-questions", requireAdmin, async (c) => {
+  const questions = await loadKnowledgeQuestions(c.env.DB);
+  return c.json({ questions });
+});
+
+admin.put("/knowledge-questions", requireSuperAdmin, async (c) => {
+  const adminId = c.get("adminUserId") ?? null;
+  const body = await c.req
+    .json<{ questions?: unknown }>()
+    .catch(() => ({}) as { questions?: unknown });
+  const result = validateKnowledgeQuestions(body.questions);
+  if (!result.ok) return c.json({ error: result.error }, 400);
+  await c.env.DB.prepare(
+    `INSERT INTO knowledge_question_schema (id, schema_json, updated_by, updated_at)
      VALUES (1, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        schema_json = excluded.schema_json,

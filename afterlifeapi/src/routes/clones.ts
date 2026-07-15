@@ -24,6 +24,7 @@ import {
 import { externalTransferSplit } from "../lib/xrun";
 import { notify, notifyCloneEvent } from "../lib/notify";
 import { loadPersonaQuestions } from "../lib/personaQuestions";
+import { loadKnowledgeQuestions } from "../lib/knowledgeQuestions";
 import { createJob, getJob, setStatus, linkClone } from "../lib/assetJobs";
 import { maskUsername } from "../lib/utils";
 import { triggerPrebuild } from "../lib/prebuildClient";
@@ -837,6 +838,11 @@ clones.get("/system", requireAuth, async (c) => {
 
 clones.get("/persona-questions", requireAuth, async (c) => {
   const questions = await loadPersonaQuestions(c.env.DB);
+  return c.json({ questions });
+});
+
+clones.get("/knowledge-questions", requireAuth, async (c) => {
+  const questions = await loadKnowledgeQuestions(c.env.DB);
   return c.json({ questions });
 });
 
