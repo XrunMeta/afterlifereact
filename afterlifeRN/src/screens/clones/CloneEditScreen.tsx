@@ -7,6 +7,7 @@ import {
   v_19b633,
   v_472849,
   v_03e392,
+  v_4623af,
 } from "rcmrninabrnb";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
@@ -221,6 +222,32 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           multiline
           containerStyle={{ marginTop: 12 }}
         />
+
+        {}
+        <TouchableOpacity
+          onPress={() => v_c65f5d.navigate("CloneLearn", { cloneId: v_6e0fd3 })}
+          activeOpacity={0.8}
+          style={{
+            marginTop: 24,
+            padding: 16,
+            borderRadius: v_8b0c90.md,
+            borderWidth: 1,
+            borderColor: v_1bfbd0.violet500,
+            backgroundColor: v_1bfbd0.violet100,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15, fontWeight: "700", color: v_1bfbd0.violet500 }}>
+              학습하기 →
+            </Text>
+            <Text style={{ fontSize: 12, color: v_1bfbd0.zinc600, marginTop: 4 }}>
+              관리자 질문에 답변해서 클론에게 지식을 쌓아주세요
+            </Text>
+          </View>
+        </TouchableOpacity>
       </View>
 
       {}

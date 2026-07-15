@@ -14,6 +14,7 @@ import v_c316d8 from "../screens/home/HomeScreen";
 import v_def15b from "../screens/clones/MyClonesDashboardScreen";
 import v_51ae06 from "../screens/clones/CloneDetailScreen";
 import v_541fbd from "../screens/clones/CloneEditScreen";
+import v_78da96 from "../screens/clones/CloneLearnScreen";
 import v_07335f from "../screens/clones/CloneInviteScreen";
 
 import v_8e5b58 from "../screens/clone-creation/PersonaAssistantScreen";
@@ -48,6 +49,7 @@ function v_aedede() {
       <ClonesStack.Screen name="Dashboard" component={v_def15b} />
       <ClonesStack.Screen name="CloneDetail" component={v_51ae06} />
       <ClonesStack.Screen name="CloneEdit" component={v_541fbd} />
+      <ClonesStack.Screen name="CloneLearn" component={v_78da96} />
       <ClonesStack.Screen name="CloneInvite" component={v_07335f} />
       <ClonesStack.Screen name="InviteStatus" component={v_14fa9c} />
     </ClonesStack.Navigator>

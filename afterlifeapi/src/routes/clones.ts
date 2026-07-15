@@ -834,6 +834,33 @@ v_f891e6.get("/knowledge-questions", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ questions: v_c3519b });
 });
 
+v_f891e6.get("/:id/knowledge", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId") as number;
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  const v_2aec08 =
+    v_eb25ce.owner_id === v_43e90c ||
+    (await v_7adf64(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c)) === "owner";
+  if (!v_2aec08) throw new v_3ebe58("FORBIDDEN", "소유자만 조회할 수 있어요.");
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare("SELECT l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
+    .bind(v_6e0fd3)
+    .first<{ l1_profile: string | null }>();
+  let v_4622b9 = [];
+  if (v_3ac7e7?.l1_profile) {
+    try {
+      const v_e2a85c = JSON.parse(v_3ac7e7.l1_profile);
+      if (v_e2a85c && typeof v_e2a85c === "object" && Array.isArray(v_e2a85c.knowledge)) v_4622b9 = v_e2a85c.knowledge;
+    } catch {
+
+    }
+  }
+  return v_3f4e2e.json({ items: v_4622b9 });
+});
+
 v_f891e6.put("/:id/knowledge", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId") as number;
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));

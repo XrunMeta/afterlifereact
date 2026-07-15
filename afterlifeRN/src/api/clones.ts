@@ -123,6 +123,57 @@ export async function v_61a853(
   return v_4d33b2.questions ?? [];
 }
 
+export interface KnowledgeQuestion {
+  key: string;
+  label: string;
+  hint?: string;
+  optional?: boolean;
+}
+export interface KnowledgeItem {
+  key: string;
+  q: string | null;
+  a: string;
+  updated_at?: number;
+}
+export async function v_d7e0ab(
+  v_2ca7e0,
+): Promise<KnowledgeQuestion[]> {
+  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path`, {
+    headers: { Authorization: `Bearer ${v_2ca7e0}` },
+  });
+  if (!v_8f00b9.ok) throw new Error(`knowledge-questions ${v_8f00b9.status}`);
+  const v_4d33b2 = (await v_8f00b9.json()) as { questions: KnowledgeQuestion[] };
+  return v_4d33b2.questions ?? [];
+}
+
+export async function v_7b4be8(
+  v_2ca7e0,
+  v_6e0fd3,
+): Promise<KnowledgeItem[]> {
+  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path${v_6e0fd3}/knowledge`, {
+    headers: { Authorization: `Bearer ${v_2ca7e0}` },
+  });
+  if (!v_8f00b9.ok) throw new Error(`knowledge ${v_8f00b9.status}`);
+  const v_4d33b2 = (await v_8f00b9.json()) as { items: KnowledgeItem[] };
+  return v_4d33b2.items ?? [];
+}
+
+export async function v_085a16(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_4622b9,
+): Promise<{ ok?: boolean; items?: KnowledgeItem[]; error?: string }> {
+  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path${v_6e0fd3}/knowledge`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${v_2ca7e0}`,
+    },
+    body: JSON.stringify({ items: v_4622b9 }),
+  });
+  return (await v_8f00b9.json()) as { ok?: boolean; items?: KnowledgeItem[]; error?: string };
+}
+
 export async function v_4bf019(
   v_2ca7e0,
   v_727031,
