@@ -59,6 +59,8 @@ export interface Bindings {
 
   XRUN_GATEWAY_TOKEN?: string;
 
+  XRUN_INTERNAL_SECRET?: string;
+
   COMPANY_CHARGE_WALLET?: string;  
   COMPANY_GIFT_WALLET?: string;    
 
