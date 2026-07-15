@@ -88,6 +88,7 @@ export type ClonesStackParamList = {
   CloneEdit: { cloneId: number };
   CloneVisibility: { cloneId: number };
   CloneInvite: { cloneId: number };
+  CloneLearn: { cloneId: number };
   InviteStatus: undefined;
 };
 

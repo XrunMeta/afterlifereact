@@ -123,6 +123,57 @@ export async function getPersonaQuestions(
   return body.questions ?? [];
 }
 
+export interface KnowledgeQuestion {
+  key: string;
+  label: string;
+  hint?: string;
+  optional?: boolean;
+}
+export interface KnowledgeItem {
+  key: string;
+  q: string | null;
+  a: string;
+  updated_at?: number;
+}
+export async function getKnowledgeQuestions(
+  accessToken: string,
+): Promise<KnowledgeQuestion[]> {
+  const res = await fetch(`${API_BASE}/oth-path`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error(`knowledge-questions ${res.status}`);
+  const body = (await res.json()) as { questions: KnowledgeQuestion[] };
+  return body.questions ?? [];
+}
+
+export async function getCloneKnowledge(
+  accessToken: string,
+  cloneId: number,
+): Promise<KnowledgeItem[]> {
+  const res = await fetch(`${API_BASE}/oth-path${cloneId}/knowledge`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error(`knowledge ${res.status}`);
+  const body = (await res.json()) as { items: KnowledgeItem[] };
+  return body.items ?? [];
+}
+
+export async function putCloneKnowledge(
+  accessToken: string,
+  cloneId: number,
+  items: Array<{ key?: string; q?: string | null; a: string }>,
+): Promise<{ ok?: boolean; items?: KnowledgeItem[]; error?: string }> {
+  const res = await fetch(`${API_BASE}/oth-path${cloneId}/knowledge`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ items }),
+  });
+  return (await res.json()) as { ok?: boolean; items?: KnowledgeItem[]; error?: string };
+}
+
 export async function personaSuggest(
   accessToken: string,
   profile: Record<string, unknown>,

@@ -14,6 +14,7 @@ import HomeScreen from "../screens/home/HomeScreen";
 import MyClonesDashboardScreen from "../screens/clones/MyClonesDashboardScreen";
 import CloneDetailScreen from "../screens/clones/CloneDetailScreen";
 import CloneEditScreen from "../screens/clones/CloneEditScreen";
+import CloneLearnScreen from "../screens/clones/CloneLearnScreen";
 import CloneInviteScreen from "../screens/clones/CloneInviteScreen";
 
 import PersonaAssistantScreen from "../screens/clone-creation/PersonaAssistantScreen";
@@ -48,6 +49,7 @@ function ClonesStackNavigator() {
       <ClonesStack.Screen name="Dashboard" component={MyClonesDashboardScreen} />
       <ClonesStack.Screen name="CloneDetail" component={CloneDetailScreen} />
       <ClonesStack.Screen name="CloneEdit" component={CloneEditScreen} />
+      <ClonesStack.Screen name="CloneLearn" component={CloneLearnScreen} />
       <ClonesStack.Screen name="CloneInvite" component={CloneInviteScreen} />
       <ClonesStack.Screen name="InviteStatus" component={InviteStatusScreen} />
     </ClonesStack.Navigator>

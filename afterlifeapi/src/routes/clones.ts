@@ -847,6 +847,33 @@ clones.get("/knowledge-questions", requireAuth, async (c) => {
   return c.json({ questions });
 });
 
+clones.get("/:id/knowledge", requireAuth, async (c) => {
+  const userId = c.get("userId") as number;
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0)
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  const clone = await loadCloneById(c.env.DB, cloneId);
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  const isOwner =
+    clone.owner_id === userId ||
+    (await hasAcceptedShare(c.env.DB, cloneId, userId)) === "owner";
+  if (!isOwner) throw new APIError("FORBIDDEN", "소유자만 조회할 수 있어요.");
+  const row = await c.env.DB
+    .prepare("SELECT l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
+    .bind(cloneId)
+    .first<{ l1_profile: string | null }>();
+  let items: unknown[] = [];
+  if (row?.l1_profile) {
+    try {
+      const p = JSON.parse(row.l1_profile);
+      if (p && typeof p === "object" && Array.isArray(p.knowledge)) items = p.knowledge;
+    } catch {
+
+    }
+  }
+  return c.json({ items });
+});
+
 clones.put("/:id/knowledge", requireAuth, async (c) => {
   const userId = c.get("userId") as number;
   const cloneId = Number(c.req.param("id"));
