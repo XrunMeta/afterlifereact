@@ -25,6 +25,7 @@ import { externalTransferSplit } from "../lib/xrun";
 import { notify, notifyCloneEvent } from "../lib/notify";
 import { loadPersonaQuestions } from "../lib/personaQuestions";
 import { loadKnowledgeQuestions } from "../lib/knowledgeQuestions";
+import { normalizeKnowledge } from "../lib/knowledgeStore";
 import { createJob, getJob, setStatus, linkClone } from "../lib/assetJobs";
 import { maskUsername } from "../lib/utils";
 import { triggerPrebuild } from "../lib/prebuildClient";
@@ -846,6 +847,55 @@ clones.get("/knowledge-questions", requireAuth, async (c) => {
   return c.json({ questions });
 });
 
+clones.put("/:id/knowledge", requireAuth, async (c) => {
+  const userId = c.get("userId") as number;
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0)
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  const db = c.env.DB;
+
+  const clone = await loadCloneById(db, cloneId);
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  const isOwner =
+    clone.owner_id === userId ||
+    (await hasAcceptedShare(db, cloneId, userId)) === "owner";
+  if (!isOwner) throw new APIError("FORBIDDEN", "소유자만 변경할 수 있어요.");
+
+  const row = await db
+    .prepare(
+      "SELECT primary_editor_user_id, l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL",
+    )
+    .bind(cloneId)
+    .first<{ primary_editor_user_id: number | null; l1_profile: string | null }>();
+  if (row?.primary_editor_user_id !== userId)
+    throw new APIError("FORBIDDEN", "주 편집자만 페르소나 정보를 수정할 수 있어요.");
+
+  const body = await c.req
+    .json<{ items?: unknown }>()
+    .catch(() => ({}) as { items?: unknown });
+  const inputs = Array.isArray(body.items) ? body.items : [];
+  const norm = normalizeKnowledge(inputs as never, Date.now());
+  if (!norm.ok) throw new APIError("VALIDATION_FAILED", norm.error);
+
+  let l1: Record<string, unknown> = {};
+  if (row?.l1_profile) {
+    try {
+      const p = JSON.parse(row.l1_profile);
+      if (p && typeof p === "object") l1 = p;
+    } catch {
+
+    }
+  }
+  l1.knowledge = norm.items;
+  await db
+    .prepare(
+      "UPDATE clones SET l1_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL",
+    )
+    .bind(JSON.stringify(l1), cloneId)
+    .run();
+  return c.json({ ok: true, items: norm.items });
+});
+
 const suggestProfileSchema = z.record(
   z.string().max(50),
   z.union([z.string().max(200), z.array(z.string().max(50)).max(20)]),
@@ -1168,8 +1218,26 @@ clones.patch("/:id", requireAuth, async (c) => {
     updatedFields.push("voice_preset_id");
   }
   if (body.l1_profile !== undefined) {
+
+    const nextL1 = { ...(body.l1_profile as Record<string, unknown>) };
+    if (nextL1.knowledge === undefined) {
+      const cur = await db
+        .prepare("SELECT l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
+        .bind(cloneId)
+        .first<{ l1_profile: string | null }>();
+      if (cur?.l1_profile) {
+        try {
+          const prev = JSON.parse(cur.l1_profile);
+          if (prev && typeof prev === "object" && prev.knowledge !== undefined) {
+            nextL1.knowledge = prev.knowledge;
+          }
+        } catch {
+
+        }
+      }
+    }
     sets.push(`l1_profile = ?`);
-    binds.push(JSON.stringify(body.l1_profile));
+    binds.push(JSON.stringify(nextL1));
     updatedFields.push("l1_profile");
   }
   sets.push(`updated_at = CURRENT_TIMESTAMP`);
