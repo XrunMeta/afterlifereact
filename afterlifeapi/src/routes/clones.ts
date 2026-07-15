@@ -24,6 +24,7 @@ import {
 import { v_7a6fc0 } from "../lib/xrun";
 import { v_c226a5, v_80a022 } from "../lib/notify";
 import { v_0b44ec } from "../lib/personaQuestions";
+import { v_70b594 } from "../lib/knowledgeQuestions";
 import { v_041f8e, v_4b949c, v_5193f8, v_f64843 } from "../lib/assetJobs";
 import { v_5acfc3 } from "../lib/utils";
 import { v_67dc73 } from "../lib/prebuildClient";
@@ -824,6 +825,11 @@ v_f891e6.get("/system", v_6690d9, async (v_3f4e2e) => {
 
 v_f891e6.get("/persona-questions", v_6690d9, async (v_3f4e2e) => {
   const v_c3519b = await v_0b44ec(v_3f4e2e.env.DB);
+  return v_3f4e2e.json({ questions: v_c3519b });
+});
+
+v_f891e6.get("/knowledge-questions", v_6690d9, async (v_3f4e2e) => {
+  const v_c3519b = await v_70b594(v_3f4e2e.env.DB);
   return v_3f4e2e.json({ questions: v_c3519b });
 });
 

@@ -9,6 +9,7 @@ import { v_e44d97 } from "../lib/kekProvider";
 import { v_e56fb3 } from "../lib/auditChain";
 import { v_b60bdd } from "../lib/systemPersona";
 import { v_0b44ec, v_02d529 } from "../lib/personaQuestions";
+import { v_70b594, v_4db5dd } from "../lib/knowledgeQuestions";
 import { v_c226a5 } from "../lib/notify";
 
 export const v_b7f2b4 = new v_b7c41b<v_de0a25>();
@@ -315,6 +316,31 @@ v_b7f2b4.put("/persona-questions", v_b09138, async (v_3f4e2e) => {
   if (!v_43c42e.ok) return v_3f4e2e.json({ error: v_43c42e.error }, 400);
   await v_3f4e2e.env.DB.prepare(
     `INSERT INTO persoth-secretema (id, schema_json, updated_by, updated_at)
+     VALUES (1, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       schema_json = excluded.schema_json,
+       updated_by  = excluded.updated_by,
+       updated_at  = excluded.updated_at`,
+  )
+    .bind(JSON.stringify(v_43c42e.questions), v_db9be1, Date.now())
+    .run();
+  return v_3f4e2e.json({ ok: true });
+});
+
+v_b7f2b4.get("/knowledge-questions", v_c0a297, async (v_3f4e2e) => {
+  const v_c3519b = await v_70b594(v_3f4e2e.env.DB);
+  return v_3f4e2e.json({ questions: v_c3519b });
+});
+
+v_b7f2b4.put("/knowledge-questions", v_b09138, async (v_3f4e2e) => {
+  const v_db9be1 = v_3f4e2e.get("adminUserId") ?? null;
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ questions?: unknown }>()
+    .catch(() => ({}) as { questions?: unknown });
+  const v_43c42e = v_4db5dd(v_4d33b2.questions);
+  if (!v_43c42e.ok) return v_3f4e2e.json({ error: v_43c42e.error }, 400);
+  await v_3f4e2e.env.DB.prepare(
+    `INSERT INTO knowloth-secrethema (id, schema_json, updated_by, updated_at)
      VALUES (1, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        schema_json = excluded.schema_json,
