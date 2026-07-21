@@ -123,11 +123,16 @@ export async function getPersonaQuestions(
   return body.questions ?? [];
 }
 
+export interface KnowledgeQuestionSlot {
+  key: string;
+  label: string;
+}
 export interface KnowledgeQuestion {
   key: string;
   label: string;
   hint?: string;
   optional?: boolean;
+  slots?: KnowledgeQuestionSlot[];
 }
 export interface KnowledgeItem {
   key: string;
@@ -180,6 +185,33 @@ export async function putCloneKnowledge(
     body: JSON.stringify({ items }),
   });
   return (await res.json()) as PutKnowledgeResult;
+}
+
+export interface InterpretKnowledgeResult {
+  slots?: KnowledgeItem[];
+  reply?: string;
+  error?: string;
+  message?: string;
+  matched?: string;
+}
+export async function interpretCloneKnowledge(
+  accessToken: string,
+  cloneId: number,
+  questionKey: string,
+  answer: string,
+): Promise<InterpretKnowledgeResult> {
+  const res = await fetch(
+    `${API_BASE}/oth-path${cloneId}/knowledge/interpret`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ questionKey, answer }),
+    },
+  );
+  return (await res.json()) as InterpretKnowledgeResult;
 }
 
 export async function personaSuggest(

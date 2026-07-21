@@ -27,6 +27,7 @@ import {
   getCloneDetail,
   getCloneKnowledge,
   getKnowledgeQuestions,
+  interpretCloneKnowledge,
   putCloneKnowledge,
   type KnowledgeItem,
   type KnowledgeQuestion,
@@ -49,6 +50,13 @@ interface KnowledgePayload {
   a: string;
 }
 
+interface PendingConfirm {
+  questionKey: string;
+  slots: KnowledgeItem[]; 
+  reply: string;          
+  userAnswer: string;     
+}
+
 export default function CloneLearnScreen({ navigation, route }: Props) {
   const { t } = useTranslation();
   const cloneId = route.params.cloneId;
@@ -61,6 +69,7 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
   const [items, setItems] = useState<KnowledgeItem[]>([]);
   const [currentKey, setCurrentKey] = useState<string | null>(null);
   const [answer, setAnswer] = useState<string>("");
+  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
   const answeredKeys = useMemo(() => new Set(items.map((i) => i.key)), [items]);
@@ -144,13 +153,14 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
       );
       return;
     }
-    const payload: KnowledgePayload[] = [
-      ...items.map((it) => ({ key: it.key, q: it.q, a: it.a })),
-      { key: currentQuestion.key, q: currentQuestion.label, a },
-    ];
     setSaving(true);
     try {
-      const res = await putCloneKnowledge(accessToken, cloneId, payload);
+      const res = await interpretCloneKnowledge(
+        accessToken,
+        cloneId,
+        currentQuestion.key,
+        a,
+      );
       if (res.error === "blacklist_hit") {
         showAlert(
           t("learn.blacklistTitle", { defaultValue: "다른 질문 부탁드립니다" }),
@@ -167,9 +177,17 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
         showAlert(t("common.error"), res.message || res.error);
         return;
       }
-      const fresh = res.items ?? [];
-      setItems(fresh);
-      goNext(fresh, currentQuestion.key);
+      const slots = res.slots ?? [];
+      const reply =
+        res.reply?.trim() ||
+        t("learn.defaultConfirm", { defaultValue: "이렇게 정리하면 맞을까?" });
+      setPendingConfirm({
+        questionKey: currentQuestion.key,
+        slots,
+        reply,
+        userAnswer: a,
+      });
+      setAnswer("");
     } catch (err) {
       showAlert(t("common.error"), (err as Error).message);
     } finally {
@@ -177,10 +195,56 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
     }
   };
 
+  const handleConfirmYes = async () => {
+    if (!accessToken || !pendingConfirm) return;
+    const validSlots = pendingConfirm.slots.filter((s) => s.a && s.a.trim());
+    if (validSlots.length === 0) {
+
+      const answered = new Set(items.map((i) => i.key));
+      answered.add(pendingConfirm.questionKey);
+      const pool = questions.filter((q) => !answered.has(q.key));
+      setCurrentKey(pickRandom(pool));
+      setPendingConfirm(null);
+      return;
+    }
+    const payload: KnowledgePayload[] = [
+      ...items.map((it) => ({ key: it.key, q: it.q, a: it.a })),
+      ...validSlots.map((s) => ({ key: s.key, q: s.q, a: s.a })),
+    ];
+    setSaving(true);
+    try {
+      const res = await putCloneKnowledge(accessToken, cloneId, payload);
+      if (res.error) {
+        showAlert(t("common.error"), res.message || res.error);
+        return;
+      }
+      const fresh = res.items ?? [];
+      setItems(fresh);
+
+      const answered = new Set(fresh.map((i) => i.key));
+      answered.add(pendingConfirm.questionKey);
+      for (const s of validSlots) answered.add(s.key);
+      const pool = questions.filter((q) => !answered.has(q.key));
+      setCurrentKey(pickRandom(pool));
+      setPendingConfirm(null);
+    } catch (err) {
+      showAlert(t("common.error"), (err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleConfirmNo = () => {
+    if (!pendingConfirm) return;
+    setAnswer(pendingConfirm.userAnswer);
+    setPendingConfirm(null);
+  };
+
   const handleSkip = () => {
     const pool = unansweredPool.filter((q) => q.key !== currentQuestion?.key);
     setCurrentKey(pickRandom(pool));
     setAnswer("");
+    setPendingConfirm(null);
   };
 
   return (
@@ -271,6 +335,23 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
                   </View>
                 )}
 
+                {pendingConfirm && (
+                  <>
+                    <View style={[styles.bubbleRow, styles.bubbleRowRight]}>
+                      <View style={[styles.bubble, styles.bubbleUser]}>
+                        <Text style={[styles.bubbleText, { color: COLORS.white }]}>
+                          {pendingConfirm.userAnswer}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={[styles.bubbleRow, styles.bubbleRowLeft]}>
+                      <View style={[styles.bubble, styles.bubbleBot]}>
+                        <Text style={styles.bubbleText}>{pendingConfirm.reply}</Text>
+                      </View>
+                    </View>
+                  </>
+                )}
+
                 {!currentQuestion && chatHistory.length > 0 && (
                   <View style={styles.doneCard}>
                     <Text style={styles.doneIcon}>🎉</Text>
@@ -288,49 +369,86 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
 
         {!loading && currentQuestion && (
           <View style={styles.footer}>
-            <View style={styles.suggestionRow}>
-              <TouchableOpacity
-                onPress={handleSkip}
-                disabled={saving || unansweredPool.length <= 1}
-                style={[
-                  styles.suggestionBtn,
-                  (saving || unansweredPool.length <= 1) && styles.btnDisabled,
-                ]}
-              >
-                <Text style={styles.suggestionText}>
-                  {t("learn.skip", { defaultValue: "다른 질문" })}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            {pendingConfirm ? (
+              <View style={styles.confirmRow}>
+                <TouchableOpacity
+                  onPress={handleConfirmNo}
+                  disabled={saving}
+                  style={[
+                    styles.confirmBtn,
+                    styles.confirmBtnNo,
+                    saving && styles.btnDisabled,
+                  ]}
+                >
+                  <Text style={styles.confirmBtnNoText}>
+                    {t("learn.confirmNo", { defaultValue: "아니요" })}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleConfirmYes}
+                  disabled={saving}
+                  style={[
+                    styles.confirmBtn,
+                    styles.confirmBtnYes,
+                    saving && styles.btnDisabled,
+                  ]}
+                >
+                  <Text style={styles.confirmBtnYesText}>
+                    {saving
+                      ? t("learn.saving", { defaultValue: "저장 중..." })
+                      : t("learn.confirmYes", { defaultValue: "예" })}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <>
+                <View style={styles.suggestionRow}>
+                  <TouchableOpacity
+                    onPress={handleSkip}
+                    disabled={saving || unansweredPool.length <= 1}
+                    style={[
+                      styles.suggestionBtn,
+                      (saving || unansweredPool.length <= 1) && styles.btnDisabled,
+                    ]}
+                  >
+                    <Text style={styles.suggestionText}>
+                      {t("learn.skip", { defaultValue: "다른 질문" })}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
 
-            <View style={styles.inputRow}>
-              <TextInput
-                value={answer}
-                onChangeText={(v) => setAnswer(v.slice(0, 3000))}
-                placeholder={
-                  currentQuestion.hint ||
-                  t("learn.answerPlaceholder", { defaultValue: "메시지를 입력하세요..." })
-                }
-                placeholderTextColor={COLORS.zinc400}
-                multiline
-                style={styles.input}
-                editable={!saving}
-              />
-              <TouchableOpacity
-                onPress={handleSend}
-                disabled={saving || !answer.trim()}
-                style={[
-                  styles.sendBtn,
-                  (saving || !answer.trim()) && styles.sendBtnDisabled,
-                ]}
-              >
-                <Feather
-                  name="send"
-                  size={18}
-                  color={saving || !answer.trim() ? COLORS.zinc400 : COLORS.white}
-                />
-              </TouchableOpacity>
-            </View>
+                <View style={styles.inputRow}>
+                  <TextInput
+                    value={answer}
+                    onChangeText={(v) => setAnswer(v.slice(0, 3000))}
+                    placeholder={
+                      currentQuestion.hint ||
+                      t("learn.answerPlaceholder", {
+                        defaultValue: "메시지를 입력하세요...",
+                      })
+                    }
+                    placeholderTextColor={COLORS.zinc400}
+                    multiline
+                    style={styles.input}
+                    editable={!saving}
+                  />
+                  <TouchableOpacity
+                    onPress={handleSend}
+                    disabled={saving || !answer.trim()}
+                    style={[
+                      styles.sendBtn,
+                      (saving || !answer.trim()) && styles.sendBtnDisabled,
+                    ]}
+                  >
+                    <Feather
+                      name="send"
+                      size={18}
+                      color={saving || !answer.trim() ? COLORS.zinc400 : COLORS.white}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
           </View>
         )}
       </KeyboardAvoidingView>
@@ -461,6 +579,35 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   btnDisabled: { opacity: 0.4 },
+  confirmRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  confirmBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: RADIUS.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmBtnYes: {
+    backgroundColor: COLORS.violet500,
+  },
+  confirmBtnYesText: {
+    color: COLORS.white,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  confirmBtnNo: {
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.zinc300,
+  },
+  confirmBtnNoText: {
+    color: COLORS.zinc700,
+    fontSize: 15,
+    fontWeight: "600",
+  },
   inputRow: {
     flexDirection: "row",
     alignItems: "flex-end",
