@@ -880,6 +880,83 @@ clones.get("/:id/knowledge", requireAuth, async (c) => {
   return c.json({ items });
 });
 
+clones.post("/:id/knowledge/interpret", requireAuth, async (c) => {
+  const userId = c.get("userId") as number;
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0)
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  const db = c.env.DB;
+
+  const clone = await loadCloneById(db, cloneId);
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  const isOwner =
+    clone.owner_id === userId ||
+    (await hasAcceptedShare(db, cloneId, userId)) === "owner";
+  if (!isOwner) throw new APIError("FORBIDDEN", "소유자만 요청할 수 있어요.");
+
+  const body = await c.req
+    .json<{ questionKey?: unknown; answer?: unknown }>()
+    .catch(() => ({}) as { questionKey?: unknown; answer?: unknown });
+  const questionKey = typeof body.questionKey === "string" ? body.questionKey.trim() : "";
+  const answer = typeof body.answer === "string" ? body.answer.trim() : "";
+  if (!questionKey)
+    throw new APIError("VALIDATION_FAILED", "questionKey 가 필요해요.");
+  if (!answer || answer.length > 3000)
+    throw new APIError("VALIDATION_FAILED", "답변이 비어있거나 너무 길어요.");
+
+  const questions = await loadKnowledgeQuestions(db);
+  const q = questions.find((x) => x.key === questionKey);
+  if (!q) throw new APIError("NOT_FOUND", "질문을 찾을 수 없어요.");
+  const slots = q.slots ?? [];
+  if (slots.length === 0)
+    throw new APIError("VALIDATION_FAILED", "질문에 카테고리(slot)가 없어요.");
+
+  const blacklist = await loadBlacklist(db);
+  if (blacklist.length > 0) {
+    const hit = findBlacklistHit(answer, blacklist);
+    if (hit) {
+      return c.json(
+        { error: "blacklist_hit", message: "다른 질문 부탁드립니다.", matched: hit },
+        400,
+      );
+    }
+  }
+
+  const base = c.env.PRETHIRD_PUBLIC_BASE;
+  if (!base)
+    throw new APIError("SERVICE_UNAVAILABLE", "interpret 서비스가 설정되지 않았어요.");
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (c.env.KNOWLEDGE_INTERPRET_SECRET)
+    headers["X-Internal-Secret"] = c.env.KNOWLEDGE_INTERPRET_SECRET;
+
+  let interpretResp: { slots?: unknown; reply?: unknown } = {};
+  try {
+    const resp = await fetch(`${base}/prethird/knowledge/interpret`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        question: q.label,
+        answer,
+        slots: slots.map((s) => ({ key: s.key, label: s.label })),
+      }),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!resp.ok) {
+      console.warn("[knowledge-interpret] gabia HTTP", resp.status);
+      throw new APIError("UPSTREAM_FAILURE", "해석 서비스가 응답하지 않아요.");
+    }
+    interpretResp = await resp.json();
+  } catch (e) {
+    if (e instanceof APIError) throw e;
+    console.warn("[knowledge-interpret] gabia fetch failed:", e);
+    throw new APIError("UPSTREAM_FAILURE", "해석 서비스 오류");
+  }
+
+  const slotsOut = Array.isArray(interpretResp.slots) ? interpretResp.slots : [];
+  const reply = typeof interpretResp.reply === "string" ? interpretResp.reply : "";
+  return c.json({ slots: slotsOut, reply });
+});
+
 clones.put("/:id/knowledge", requireAuth, async (c) => {
   const userId = c.get("userId") as number;
   const cloneId = Number(c.req.param("id"));
