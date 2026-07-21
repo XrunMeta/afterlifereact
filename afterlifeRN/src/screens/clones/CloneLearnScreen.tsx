@@ -124,8 +124,10 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     }
   }, [v_fa0e39.length, v_c84c22, v_683210]);
 
-  const v_219251 = (fresh: v_1d8a7b[]) => {
+  const v_219251 = (fresh: v_1d8a7b[], v_566831) => {
+
     const v_ca2c14 = new Set(v_3871e2.map((v_ebec57) => v_ebec57.key));
+    if (v_566831) v_ca2c14.add(v_566831);
     const v_75fbef = v_c3519b.filter((v_ab6401) => !v_ca2c14.has(v_ab6401.key));
     v_056f5c(v_35ad8d(v_75fbef));
     v_2f6757("");
@@ -167,7 +169,7 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       }
       const v_3871e2 = v_8f00b9.items ?? [];
       v_fa923c(v_3871e2);
-      v_219251(v_3871e2);
+      v_219251(v_3871e2, v_2a8f35.key);
     } catch (v_49263d) {
       v_889fad(v_8d41d7("common.error"), (v_49263d as Error).message);
     } finally {
@@ -191,7 +193,7 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+        behavior={v_326be8.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={0}
       >
         {!v_683210 && v_c3519b.length > 0 && (
@@ -297,18 +299,6 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
               >
                 <Text style={v_d81136.suggestionText}>
                   {v_8d41d7("learn.skip", { defaultValue: "다른 질문" })}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={v_78ac9c}
-                disabled={v_35bf26 || v_e97ea1.length <= 1}
-                style={[
-                  v_d81136.suggestionBtn,
-                  (v_35bf26 || v_e97ea1.length <= 1) && v_d81136.btnDisabled,
-                ]}
-              >
-                <Text style={v_d81136.suggestionText}>
-                  {v_8d41d7("learn.skipAlt", { defaultValue: "건너뛰기" })}
                 </Text>
               </TouchableOpacity>
             </View>
