@@ -184,7 +184,7 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   };
 
   return (
-    <SafeView bottomBackgroundColor={v_1bfbd0.white}>
+    <SafeView showBottomBackground={false}>
       <PageHeader
         title={v_f2ff36 || v_8d41d7("learn.title", { defaultValue: "학습하기" })}
         subtitle={v_8d41d7("learn.aiCloneSubtitle", { defaultValue: "AI 클론" })}
