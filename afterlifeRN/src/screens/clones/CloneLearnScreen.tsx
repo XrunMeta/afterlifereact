@@ -32,6 +32,7 @@ import {
   type KnowledgeItem,
   type KnowledgeQuestion,
 } from "../../api/clones";
+import { fillName } from "../../utils/nameParticle";
 
 type Props = {
   navigation: NativeStackNavigationProp<ClonesStackParamList, "CloneLearn">;
@@ -94,11 +95,12 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
   const chatHistory: ChatMessage[] = useMemo(() => {
     const out: ChatMessage[] = [];
     for (const it of items) {
-      if (it.q) out.push({ role: "bot", key: `${it.key}-q`, text: it.q });
+      if (it.q)
+        out.push({ role: "bot", key: `${it.key}-q`, text: fillName(it.q, cloneName) });
       out.push({ role: "user", key: `${it.key}-a`, text: it.a });
     }
     return out;
-  }, [items]);
+  }, [items, cloneName]);
 
   const load = async () => {
     if (!accessToken) return;
@@ -330,7 +332,9 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
                 {currentQuestion && (
                   <View style={[styles.bubbleRow, styles.bubbleRowLeft]}>
                     <View style={[styles.bubble, styles.bubbleBot]}>
-                      <Text style={styles.bubbleText}>{currentQuestion.label}</Text>
+                      <Text style={styles.bubbleText}>
+                        {fillName(currentQuestion.label, cloneName)}
+                      </Text>
                     </View>
                   </View>
                 )}
