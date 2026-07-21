@@ -925,6 +925,8 @@ v_f891e6.post("/:id/knowledge/interpret", v_6690d9, async (v_3f4e2e) => {
         question: v_ab6401.label,
         answer: v_343c90,
         slots: v_966a46.map((v_fd5f43) => ({ key: v_fd5f43.key, label: v_fd5f43.label })),
+
+        persona_name: v_eb25ce.name ?? null,
       }),
       signal: AbortSignal.timeout(20000),
     });
