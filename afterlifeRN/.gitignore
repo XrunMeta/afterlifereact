@@ -1,7 +1,8 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
 # dependencies
-node_modules/
+# trailing slash 없이 — 디렉토리뿐 아니라 잘못 만들어진 node_modules 심링크(파일)도 무시
+node_modules
 
 # Expo
 .expo/
