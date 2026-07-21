@@ -867,6 +867,83 @@ v_f891e6.get("/:id/knowledge", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ items: v_4622b9 });
 });
 
+v_f891e6.post("/:id/knowledge/interpret", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId") as number;
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  const v_a1651b = v_3f4e2e.env.DB;
+
+  const v_eb25ce = await v_5d4a51(v_a1651b, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  const v_2aec08 =
+    v_eb25ce.owner_id === v_43e90c ||
+    (await v_7adf64(v_a1651b, v_6e0fd3, v_43e90c)) === "owner";
+  if (!v_2aec08) throw new v_3ebe58("FORBIDDEN", "소유자만 요청할 수 있어요.");
+
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ questionKey?: unknown; answer?: unknown }>()
+    .catch(() => ({}) as { questionKey?: unknown; answer?: unknown });
+  const v_3960ea = typeof v_4d33b2.questionKey === "string" ? v_4d33b2.questionKey.trim() : "";
+  const v_343c90 = typeof v_4d33b2.answer === "string" ? v_4d33b2.answer.trim() : "";
+  if (!v_3960ea)
+    throw new v_3ebe58("VALIDATION_FAILED", "questionKey 가 필요해요.");
+  if (!v_343c90 || v_343c90.length > 3000)
+    throw new v_3ebe58("VALIDATION_FAILED", "답변이 비어있거나 너무 길어요.");
+
+  const v_c3519b = await v_70b594(v_a1651b);
+  const v_ab6401 = v_c3519b.find((v_62c214) => v_62c214.key === v_3960ea);
+  if (!v_ab6401) throw new v_3ebe58("NOT_FOUND", "질문을 찾을 수 없어요.");
+  const v_966a46 = v_ab6401.slots ?? [];
+  if (v_966a46.length === 0)
+    throw new v_3ebe58("VALIDATION_FAILED", "질문에 카테고리(slot)가 없어요.");
+
+  const v_43516e = await v_cba618(v_a1651b);
+  if (v_43516e.length > 0) {
+    const v_715950 = v_71b908(v_343c90, v_43516e);
+    if (v_715950) {
+      return v_3f4e2e.json(
+        { error: "blacklist_hit", message: "다른 질문 부탁드립니다.", matched: v_715950 },
+        400,
+      );
+    }
+  }
+
+  const v_694b25 = v_3f4e2e.env.PRETHIRD_PUBLIC_BASE;
+  if (!v_694b25)
+    throw new v_3ebe58("SERVICE_UNAVAILABLE", "interpret 서비스가 설정되지 않았어요.");
+  const v_3f4675 = { "Content-Type": "application/json" };
+  if (v_3f4e2e.env.KNOWLEDGE_INTERPRET_SECRET)
+    v_3f4675["X-Internal-Secret"] = v_3f4e2e.env.KNOWLEDGE_INTERPRET_SECRET;
+
+  let v_5fbc62 = {};
+  try {
+    const v_eb792a = await fetch(`${v_694b25}/prethird/knowledge/interpret`, {
+      method: "POST",
+      headers: v_3f4675,
+      body: JSON.stringify({
+        question: v_ab6401.label,
+        answer: v_343c90,
+        slots: v_966a46.map((v_fd5f43) => ({ key: v_fd5f43.key, label: v_fd5f43.label })),
+      }),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!v_eb792a.ok) {
+      console.warn("[knowledge-interpret] gabia HTTP", v_eb792a.status);
+      throw new v_3ebe58("UPSTREAM_FAILURE", "해석 서비스가 응답하지 않아요.");
+    }
+    v_5fbc62 = await v_eb792a.json();
+  } catch (v_9e86fd) {
+    if (v_9e86fd instanceof v_3ebe58) throw v_9e86fd;
+    console.warn("[knowledge-interpret] gabia fetch failed:", v_9e86fd);
+    throw new v_3ebe58("UPSTREAM_FAILURE", "해석 서비스 오류");
+  }
+
+  const v_f13f1f = Array.isArray(v_5fbc62.slots) ? v_5fbc62.slots : [];
+  const v_677216 = typeof v_5fbc62.reply === "string" ? v_5fbc62.reply : "";
+  return v_3f4e2e.json({ slots: v_f13f1f, reply: v_677216 });
+});
+
 v_f891e6.put("/:id/knowledge", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId") as number;
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
