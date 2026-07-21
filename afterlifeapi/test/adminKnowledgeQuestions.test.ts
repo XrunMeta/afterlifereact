@@ -42,7 +42,10 @@ describe("admin knowledge-questions", () => {
     const get = await req("knowledge-questions", "GET", token);
     expect(get.status).toBe(200);
     const json = (await get.json()) as { questions: unknown[] };
-    expect(json.questions).toEqual([{ key: "job", label: "직업은?" }]);
+
+    expect(json.questions).toEqual([
+      { key: "job", label: "직업은?", slots: [{ key: "job_val", label: "직업은?" }] },
+    ]);
   });
 
   it("PUT rejects invalid schema with 400", async () => {
