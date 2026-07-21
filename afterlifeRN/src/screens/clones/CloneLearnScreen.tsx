@@ -124,8 +124,10 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
     }
   }, [chatHistory.length, currentKey, loading]);
 
-  const goNext = (fresh: KnowledgeItem[]) => {
+  const goNext = (fresh: KnowledgeItem[], justAnsweredKey?: string) => {
+
     const answered = new Set(fresh.map((i) => i.key));
+    if (justAnsweredKey) answered.add(justAnsweredKey);
     const pool = questions.filter((q) => !answered.has(q.key));
     setCurrentKey(pickRandom(pool));
     setAnswer("");
@@ -167,7 +169,7 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
       }
       const fresh = res.items ?? [];
       setItems(fresh);
-      goNext(fresh);
+      goNext(fresh, currentQuestion.key);
     } catch (err) {
       showAlert(t("common.error"), (err as Error).message);
     } finally {
@@ -191,7 +193,7 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
       />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={0}
       >
         {!loading && questions.length > 0 && (
@@ -297,18 +299,6 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
               >
                 <Text style={styles.suggestionText}>
                   {t("learn.skip", { defaultValue: "다른 질문" })}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleSkip}
-                disabled={saving || unansweredPool.length <= 1}
-                style={[
-                  styles.suggestionBtn,
-                  (saving || unansweredPool.length <= 1) && styles.btnDisabled,
-                ]}
-              >
-                <Text style={styles.suggestionText}>
-                  {t("learn.skipAlt", { defaultValue: "건너뛰기" })}
                 </Text>
               </TouchableOpacity>
             </View>
