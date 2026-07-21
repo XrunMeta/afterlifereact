@@ -897,4 +897,9 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
         from chat_endpoint import register_verify_routes
         register_verify_routes(app)
 
+    # T-117 학습하기 답변 해석 endpoint — Cloudflare Workers 만 호출 (X-Internal-Secret 방어).
+    # 등록 flag 없이 항상 켬. auth 는 endpoint 내부에서 처리.
+    from knowledge_interpret_endpoint import register_knowledge_interpret_routes
+    register_knowledge_interpret_routes(app)
+
     return app
