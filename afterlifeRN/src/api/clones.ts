@@ -163,6 +163,15 @@ export async function getCloneKnowledge(
   return body.items ?? [];
 }
 
+function unwrapApiError<T extends { error?: unknown; message?: string }>(data: T): T {
+  const e = data.error;
+  if (e && typeof e === "object" && "code" in (e as Record<string, unknown>)) {
+    const obj = e as { code: string; message?: string };
+    return { ...data, error: obj.code, message: data.message ?? obj.message };
+  }
+  return data;
+}
+
 export interface PutKnowledgeResult {
   ok?: boolean;
   items?: KnowledgeItem[];
@@ -184,7 +193,7 @@ export async function putCloneKnowledge(
     },
     body: JSON.stringify({ items }),
   });
-  return (await res.json()) as PutKnowledgeResult;
+  return unwrapApiError((await res.json()) as PutKnowledgeResult);
 }
 
 export interface InterpretKnowledgeResult {
@@ -211,7 +220,7 @@ export async function interpretCloneKnowledge(
       body: JSON.stringify({ questionKey, answer }),
     },
   );
-  return (await res.json()) as InterpretKnowledgeResult;
+  return unwrapApiError((await res.json()) as InterpretKnowledgeResult);
 }
 
 export async function personaSuggest(
