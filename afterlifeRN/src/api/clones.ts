@@ -163,6 +163,15 @@ export async function v_7b4be8(
   return v_4d33b2.items ?? [];
 }
 
+function v_c4728e<T extends { error?: unknown; message?: string }>(v_9390e8): T {
+  const v_9e86fd = v_9390e8.error;
+  if (v_9e86fd && typeof v_9e86fd === "object" && "code" in (v_9e86fd as Record<string, unknown>)) {
+    const v_8839e3 = v_9e86fd as { code: string; message?: string };
+    return { ...v_9390e8, error: v_8839e3.code, message: v_9390e8.message ?? v_8839e3.message };
+  }
+  return v_9390e8;
+}
+
 export interface PutKnowledgeResult {
   ok?: boolean;
   items?: KnowledgeItem[];
@@ -184,7 +193,7 @@ export async function v_085a16(
     },
     body: JSON.stringify({ items: v_4622b9 }),
   });
-  return (await v_8f00b9.json()) as PutKnowledgeResult;
+  return v_c4728e((await v_8f00b9.json()) as PutKnowledgeResult);
 }
 
 export interface InterpretKnowledgeResult {
@@ -211,7 +220,7 @@ export async function v_c2fd24(
       body: JSON.stringify({ questionKey: v_3960ea, answer: v_343c90 }),
     },
   );
-  return (await v_8f00b9.json()) as InterpretKnowledgeResult;
+  return v_c4728e((await v_8f00b9.json()) as InterpretKnowledgeResult);
 }
 
 export async function v_4bf019(
