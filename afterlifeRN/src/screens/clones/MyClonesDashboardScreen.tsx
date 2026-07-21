@@ -735,7 +735,7 @@ export default function MyClonesDashboardScreen() {
         <View style={s.actionsRow}>
           <TouchableOpacity
             style={s.actionBtn}
-            onPress={() => rootNav.navigate("Chat", { cloneId: clone.id })}
+            onPress={() => navigation.navigate("CloneLearn", { cloneId: clone.id })}
           >
             <Feather name="message-circle" size={16} color={COLORS.zinc700} />
             <Text style={s.actionText}>{t("dashboard.actionLearn")}</Text>

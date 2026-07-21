@@ -1,6 +1,6 @@
 
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,10 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
+import { Feather } from "@expo/vector-icons";
 import type { RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
@@ -17,7 +20,6 @@ import { useTranslation } from "react-i18next";
 import type { ClonesStackParamList } from "../../navigation/types";
 import SafeView from "../../components/ui/SafeView";
 import PageHeader from "../../components/common/PageHeader";
-import Button from "../../components/ui/Button";
 import { COLORS, RADIUS, SIZES } from "../../components/constants";
 import { showAlert } from "../../stores/dialogStore";
 import { useAuthStore } from "../../stores/authStore";
@@ -34,6 +36,12 @@ type Props = {
   navigation: NativeStackNavigationProp<ClonesStackParamList, "CloneLearn">;
   route: RouteProp<ClonesStackParamList, "CloneLearn">;
 };
+
+interface ChatMessage {
+  role: "bot" | "user";
+  key: string;
+  text: string;
+}
 
 interface KnowledgePayload {
   key?: string;
@@ -53,6 +61,7 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
   const [items, setItems] = useState<KnowledgeItem[]>([]);
   const [currentKey, setCurrentKey] = useState<string | null>(null);
   const [answer, setAnswer] = useState<string>("");
+  const scrollRef = useRef<ScrollView>(null);
 
   const answeredKeys = useMemo(() => new Set(items.map((i) => i.key)), [items]);
   const unansweredPool = useMemo(
@@ -63,12 +72,24 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
     () => questions.find((q) => q.key === currentKey) ?? null,
     [questions, currentKey],
   );
+  const progressPct = questions.length
+    ? Math.round((items.length / questions.length) * 100)
+    : 0;
 
   const pickRandom = (pool: KnowledgeQuestion[]): string | null => {
     if (pool.length === 0) return null;
     const idx = Math.floor(Math.random() * pool.length);
     return pool[idx].key;
   };
+
+  const chatHistory: ChatMessage[] = useMemo(() => {
+    const out: ChatMessage[] = [];
+    for (const it of items) {
+      if (it.q) out.push({ role: "bot", key: `${it.key}-q`, text: it.q });
+      out.push({ role: "user", key: `${it.key}-a`, text: it.a });
+    }
+    return out;
+  }, [items]);
 
   const load = async () => {
     if (!accessToken) return;
@@ -97,6 +118,12 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
 
   }, [cloneId, accessToken]);
 
+  useEffect(() => {
+    if (!loading && scrollRef.current) {
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+    }
+  }, [chatHistory.length, currentKey, loading]);
+
   const goNext = (fresh: KnowledgeItem[]) => {
     const answered = new Set(fresh.map((i) => i.key));
     const pool = questions.filter((q) => !answered.has(q.key));
@@ -104,16 +131,10 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
     setAnswer("");
   };
 
-  const handleSaveAndNext = async () => {
+  const handleSend = async () => {
     if (!accessToken || !currentQuestion) return;
     const a = answer.trim();
-    if (!a) {
-      showAlert(
-        t("common.notice", { defaultValue: "안내" }),
-        t("learn.emptyAnswer", { defaultValue: "답변을 입력해주세요." }),
-      );
-      return;
-    }
+    if (!a) return;
     if (items.length >= 30 && !answeredKeys.has(currentQuestion.key)) {
       showAlert(
         t("common.notice", { defaultValue: "안내" }),
@@ -121,7 +142,6 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
       );
       return;
     }
-
     const payload: KnowledgePayload[] = [
       ...items.map((it) => ({ key: it.key, q: it.q, a: it.a })),
       { key: currentQuestion.key, q: currentQuestion.label, a },
@@ -130,14 +150,12 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
     try {
       const res = await putCloneKnowledge(accessToken, cloneId, payload);
       if (res.error === "blacklist_hit") {
-
         showAlert(
           t("learn.blacklistTitle", { defaultValue: "다른 질문 부탁드립니다" }),
           t("learn.blacklistDesc", {
             defaultValue:
               res.message ||
               "이 답변에는 등록할 수 없는 표현이 포함되어 있어요. 다른 질문으로 이동합니다.",
-            matched: res.matched,
           }),
         );
         handleSkip();
@@ -158,7 +176,6 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
   };
 
   const handleSkip = () => {
-
     const pool = unansweredPool.filter((q) => q.key !== currentQuestion?.key);
     setCurrentKey(pickRandom(pool));
     setAnswer("");
@@ -167,194 +184,321 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
   return (
     <SafeView>
       <PageHeader
-        title={t("learn.title", { defaultValue: "학습하기" })}
+        title={cloneName || t("learn.title", { defaultValue: "학습하기" })}
+        subtitle={t("learn.aiCloneSubtitle", { defaultValue: "AI 클론" })}
         showBackButton
         onBackPress={() => navigation.goBack()}
       />
-      <ScrollView contentContainerStyle={styles.content}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={0}
+      >
+        {!loading && questions.length > 0 && (
+          <View style={styles.progressCard}>
+            <View style={styles.progressHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Feather name="zap" size={16} color={COLORS.violet500} />
+                <Text style={styles.progressTitle}>
+                  {t("learn.progressTitle", { defaultValue: "클론 학습" })}
+                </Text>
+              </View>
+              <Text style={styles.progressPct}>{progressPct}%</Text>
+            </View>
+            <View style={styles.progressBarBg}>
+              <View style={[styles.progressBarFill, { width: `${progressPct}%` }]} />
+            </View>
+            <Text style={styles.progressDesc}>
+              {t("learn.progressDesc", {
+                defaultValue: "대화를 통해 클론이 학습하고 있습니다",
+              })}
+            </Text>
+          </View>
+        )}
+
         {loading ? (
           <ActivityIndicator color={COLORS.violet500} style={{ marginTop: 48 }} />
         ) : (
-          <>
-            {cloneName ? (
-              <Text style={styles.subtitle}>{cloneName}</Text>
-            ) : null}
-
-            <Text style={styles.progress}>
-              {t("learn.progress", {
-                defaultValue: `답변한 질문 ${items.length}/${questions.length}`,
-                answered: items.length,
-                total: questions.length,
-              })}
-            </Text>
-
+          <ScrollView
+            ref={scrollRef}
+            style={styles.chatScroll}
+            contentContainerStyle={styles.chatContent}
+          >
             {questions.length === 0 ? (
               <View style={styles.empty}>
                 <Text style={styles.emptyText}>
                   {t("learn.noQuestions", {
-                    defaultValue: "아직 등록된 질문이 없어요. 관리자가 질문을 추가하면 나타나요.",
+                    defaultValue:
+                      "아직 등록된 질문이 없어요. 관리자가 질문을 추가하면 나타나요.",
                   })}
                 </Text>
-              </View>
-            ) : !currentQuestion ? (
-              <View style={styles.empty}>
-                <Text style={styles.emptyIcon}>🎉</Text>
-                <Text style={styles.emptyText}>
-                  {t("learn.allDone", {
-                    defaultValue: "모든 질문에 답했어요! 통화에서 클론이 이 정보를 활용합니다.",
-                  })}
-                </Text>
-                <TouchableOpacity onPress={load} style={styles.reloadBtn}>
-                  <Text style={styles.reloadBtnText}>
-                    {t("learn.reload", { defaultValue: "새로고침" })}
-                  </Text>
-                </TouchableOpacity>
               </View>
             ) : (
               <>
-                <View style={styles.card}>
-                  <Text style={styles.questionLabel}>
-                    {t("learn.questionLabel", { defaultValue: "질문" })}
-                  </Text>
-                  <Text style={styles.questionText}>{currentQuestion.label}</Text>
-
-                  <TextInput
-                    value={answer}
-                    onChangeText={(v) => setAnswer(v.slice(0, 3000))}
-                    placeholder={
-                      currentQuestion.hint ||
-                      t("learn.answerPlaceholder", { defaultValue: "여기에 답변을 입력하세요" })
-                    }
-                    placeholderTextColor={COLORS.zinc400}
-                    multiline
-                    style={styles.input}
-                    editable={!saving}
-                  />
-                  <Text style={styles.charCount}>{answer.length} / 3000</Text>
-                </View>
-
-                <View style={styles.actions}>
-                  <TouchableOpacity
-                    onPress={handleSkip}
-                    disabled={saving || unansweredPool.length <= 1}
+                {chatHistory.map((msg) => (
+                  <View
+                    key={msg.key}
                     style={[
-                      styles.skipBtn,
-                      (saving || unansweredPool.length <= 1) && styles.btnDisabled,
+                      styles.bubbleRow,
+                      msg.role === "user" ? styles.bubbleRowRight : styles.bubbleRowLeft,
                     ]}
                   >
-                    <Text style={styles.skipBtnText}>
-                      {t("learn.skip", { defaultValue: "다른 질문" })}
-                    </Text>
-                  </TouchableOpacity>
-                  <View style={{ flex: 1 }}>
-                    <Button
-                      title={
-                        saving
-                          ? t("learn.saving", { defaultValue: "저장 중..." })
-                          : t("learn.saveAndNext", { defaultValue: "저장 후 다음" })
-                      }
-                      onPress={handleSaveAndNext}
-                      disabled={saving}
-                    />
+                    <View
+                      style={[
+                        styles.bubble,
+                        msg.role === "user" ? styles.bubbleUser : styles.bubbleBot,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.bubbleText,
+                          msg.role === "user" && { color: COLORS.white },
+                        ]}
+                      >
+                        {msg.text}
+                      </Text>
+                    </View>
                   </View>
-                </View>
+                ))}
+
+                {currentQuestion && (
+                  <View style={[styles.bubbleRow, styles.bubbleRowLeft]}>
+                    <View style={[styles.bubble, styles.bubbleBot]}>
+                      <Text style={styles.bubbleText}>{currentQuestion.label}</Text>
+                    </View>
+                  </View>
+                )}
+
+                {!currentQuestion && chatHistory.length > 0 && (
+                  <View style={styles.doneCard}>
+                    <Text style={styles.doneIcon}>🎉</Text>
+                    <Text style={styles.doneText}>
+                      {t("learn.allDone", {
+                        defaultValue: "모든 질문에 답했어요! 통화에서 반영됩니다.",
+                      })}
+                    </Text>
+                  </View>
+                )}
               </>
             )}
-          </>
+          </ScrollView>
         )}
-      </ScrollView>
+
+        {!loading && currentQuestion && (
+          <View style={styles.footer}>
+            <View style={styles.suggestionRow}>
+              <TouchableOpacity
+                onPress={handleSkip}
+                disabled={saving || unansweredPool.length <= 1}
+                style={[
+                  styles.suggestionBtn,
+                  (saving || unansweredPool.length <= 1) && styles.btnDisabled,
+                ]}
+              >
+                <Text style={styles.suggestionText}>
+                  {t("learn.skip", { defaultValue: "다른 질문" })}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSkip}
+                disabled={saving || unansweredPool.length <= 1}
+                style={[
+                  styles.suggestionBtn,
+                  (saving || unansweredPool.length <= 1) && styles.btnDisabled,
+                ]}
+              >
+                <Text style={styles.suggestionText}>
+                  {t("learn.skipAlt", { defaultValue: "건너뛰기" })}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputRow}>
+              <TextInput
+                value={answer}
+                onChangeText={(v) => setAnswer(v.slice(0, 3000))}
+                placeholder={
+                  currentQuestion.hint ||
+                  t("learn.answerPlaceholder", { defaultValue: "메시지를 입력하세요..." })
+                }
+                placeholderTextColor={COLORS.zinc400}
+                multiline
+                style={styles.input}
+                editable={!saving}
+              />
+              <TouchableOpacity
+                onPress={handleSend}
+                disabled={saving || !answer.trim()}
+                style={[
+                  styles.sendBtn,
+                  (saving || !answer.trim()) && styles.sendBtnDisabled,
+                ]}
+              >
+                <Feather
+                  name="send"
+                  size={18}
+                  color={saving || !answer.trim() ? COLORS.zinc400 : COLORS.white}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </KeyboardAvoidingView>
     </SafeView>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    paddingHorizontal: SIZES.xlarge,
-    paddingVertical: SIZES.large,
+  progressCard: {
+    marginHorizontal: SIZES.large,
+    marginTop: 8,
+    padding: 14,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.zinc50,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+  },
+  progressHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  progressTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.zinc900,
+    marginLeft: 6,
+  },
+  progressPct: { fontSize: 13, color: COLORS.zinc700, fontWeight: "600" },
+  progressBarBg: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.zinc200,
+    overflow: "hidden",
+  },
+  progressBarFill: {
+    height: "100%",
+    backgroundColor: COLORS.violet500,
+    borderRadius: 4,
+  },
+  progressDesc: {
+    fontSize: 11,
+    color: COLORS.zinc500,
+    marginTop: 6,
+  },
+  chatScroll: { flex: 1 },
+  chatContent: {
+    paddingHorizontal: SIZES.large,
+    paddingVertical: 12,
+    paddingBottom: 24,
     flexGrow: 1,
   },
-  subtitle: {
+  bubbleRow: {
+    flexDirection: "row",
+    marginBottom: 8,
+  },
+  bubbleRowLeft: { justifyContent: "flex-start" },
+  bubbleRowRight: { justifyContent: "flex-end" },
+  bubble: {
+    maxWidth: "80%",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 16,
+  },
+  bubbleBot: {
+    backgroundColor: COLORS.zinc100,
+    borderBottomLeftRadius: 4,
+  },
+  bubbleUser: {
+    backgroundColor: COLORS.violet500,
+    borderBottomRightRadius: 4,
+  },
+  bubbleText: {
     fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.zinc700,
-    marginBottom: 4,
+    lineHeight: 20,
+    color: COLORS.zinc900,
   },
-  progress: {
-    fontSize: 12,
-    color: COLORS.zinc500,
-    marginBottom: SIZES.large,
-  },
-  empty: {
-    flex: 1,
+  doneCard: {
+    marginTop: 32,
+    padding: 24,
     alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 64,
   },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyText: {
+  doneIcon: { fontSize: 48, marginBottom: 12 },
+  doneText: {
     fontSize: 14,
     color: COLORS.zinc600,
     textAlign: "center",
     lineHeight: 22,
   },
-  reloadBtn: {
-    marginTop: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: COLORS.violet500,
-    borderRadius: RADIUS.md,
+  empty: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: 80,
   },
-  reloadBtnText: { color: COLORS.violet500, fontSize: 14, fontWeight: "600" },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: RADIUS.lg,
-    padding: SIZES.large,
-    borderWidth: 1,
-    borderColor: COLORS.zinc200,
-    marginBottom: SIZES.large,
-  },
-  questionLabel: {
-    fontSize: 11,
-    color: COLORS.violet500,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    marginBottom: 6,
-  },
-  questionText: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.zinc900,
-    lineHeight: 26,
-    marginBottom: SIZES.large,
-  },
-  input: {
-    minHeight: 120,
-    borderWidth: 1,
-    borderColor: COLORS.zinc300,
-    borderRadius: RADIUS.md,
-    padding: 12,
+  emptyText: {
     fontSize: 14,
-    color: COLORS.zinc900,
-    textAlignVertical: "top",
+    color: COLORS.zinc500,
+    textAlign: "center",
+    lineHeight: 22,
+    paddingHorizontal: SIZES.large,
   },
-  charCount: {
-    fontSize: 11,
-    color: COLORS.zinc400,
-    marginTop: 6,
-    textAlign: "right",
+  footer: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.zinc200,
+    paddingHorizontal: SIZES.large,
+    paddingTop: 8,
+    paddingBottom: 12,
+    backgroundColor: COLORS.white,
   },
-  actions: {
+  suggestionRow: {
     flexDirection: "row",
     gap: 8,
+    marginBottom: 8,
   },
-  skipBtn: {
-    paddingHorizontal: 16,
-    justifyContent: "center",
+  suggestionBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
     borderWidth: 1,
     borderColor: COLORS.zinc300,
-    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.white,
   },
-  skipBtnText: { fontSize: 13, color: COLORS.zinc700, fontWeight: "600" },
+  suggestionText: {
+    fontSize: 12,
+    color: COLORS.zinc700,
+    fontWeight: "500",
+  },
   btnDisabled: { opacity: 0.4 },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
+  },
+  input: {
+    flex: 1,
+    minHeight: 40,
+    maxHeight: 120,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.zinc300,
+    fontSize: 14,
+    color: COLORS.zinc900,
+    backgroundColor: COLORS.white,
+    textAlignVertical: "center",
+  },
+  sendBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.violet500,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  sendBtnDisabled: {
+    backgroundColor: COLORS.zinc200,
+  },
 });
