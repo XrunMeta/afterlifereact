@@ -32,6 +32,7 @@ import {
   type v_1d8a7b,
   type v_1a6ece,
 } from "../../api/clones";
+import { v_c50f83 } from "../../utils/nameParticle";
 
 type Props = {
   navigation: v_390fcc<v_2d88fc, "CloneLearn">;
@@ -94,11 +95,12 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const v_fa0e39 = v_df9f57(() => {
     const v_8d4337 = [];
     for (const v_23805a of v_4622b9) {
-      if (v_23805a.q) v_8d4337.push({ role: "bot", key: `${v_23805a.key}-q`, text: v_23805a.q });
+      if (v_23805a.q)
+        v_8d4337.push({ role: "bot", key: `${v_23805a.key}-q`, text: v_c50f83(v_23805a.q, v_f2ff36) });
       v_8d4337.push({ role: "user", key: `${v_23805a.key}-a`, text: v_23805a.a });
     }
     return v_8d4337;
-  }, [v_4622b9]);
+  }, [v_4622b9, v_f2ff36]);
 
   const v_f6f5de = async () => {
     if (!v_2ca7e0) return;
@@ -330,7 +332,9 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                 {v_2a8f35 && (
                   <View style={[v_d81136.bubbleRow, v_d81136.bubbleRowLeft]}>
                     <View style={[v_d81136.bubble, v_d81136.bubbleBot]}>
-                      <Text style={v_d81136.bubbleText}>{v_2a8f35.label}</Text>
+                      <Text style={v_d81136.bubbleText}>
+                        {v_c50f83(v_2a8f35.label, v_f2ff36)}
+                      </Text>
                     </View>
                   </View>
                 )}
