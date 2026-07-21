@@ -938,6 +938,8 @@ clones.post("/:id/knowledge/interpret", requireAuth, async (c) => {
         question: q.label,
         answer,
         slots: slots.map((s) => ({ key: s.key, label: s.label })),
+
+        persona_name: clone.name ?? null,
       }),
       signal: AbortSignal.timeout(20000),
     });
