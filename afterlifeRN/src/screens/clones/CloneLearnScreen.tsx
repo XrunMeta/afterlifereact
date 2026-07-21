@@ -184,7 +184,7 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
   };
 
   return (
-    <SafeView>
+    <SafeView bottomBackgroundColor={COLORS.white}>
       <PageHeader
         title={cloneName || t("learn.title", { defaultValue: "학습하기" })}
         subtitle={t("learn.aiCloneSubtitle", { defaultValue: "AI 클론" })}
