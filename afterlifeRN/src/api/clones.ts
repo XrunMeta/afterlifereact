@@ -123,11 +123,16 @@ export async function v_61a853(
   return v_4d33b2.questions ?? [];
 }
 
+export interface KnowledgeQuestionSlot {
+  key: string;
+  label: string;
+}
 export interface KnowledgeQuestion {
   key: string;
   label: string;
   hint?: string;
   optional?: boolean;
+  slots?: KnowledgeQuestionSlot[];
 }
 export interface KnowledgeItem {
   key: string;
@@ -180,6 +185,33 @@ export async function v_085a16(
     body: JSON.stringify({ items: v_4622b9 }),
   });
   return (await v_8f00b9.json()) as PutKnowledgeResult;
+}
+
+export interface InterpretKnowledgeResult {
+  slots?: KnowledgeItem[];
+  reply?: string;
+  error?: string;
+  message?: string;
+  matched?: string;
+}
+export async function v_c2fd24(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_3960ea,
+  v_343c90,
+): Promise<InterpretKnowledgeResult> {
+  const v_8f00b9 = await fetch(
+    `${v_cc9198}/oth-path${v_6e0fd3}/knowledge/interpret`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${v_2ca7e0}`,
+      },
+      body: JSON.stringify({ questionKey: v_3960ea, answer: v_343c90 }),
+    },
+  );
+  return (await v_8f00b9.json()) as InterpretKnowledgeResult;
 }
 
 export async function v_4bf019(
