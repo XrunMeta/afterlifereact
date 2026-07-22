@@ -1,6 +1,6 @@
 
 
-import v_a3453e, { v_e662ae, v_c4deb2 } from "bapkr";
+import v_a3453e, { v_e662ae } from "bapkr";
 import { v_3094a2, v_19b633, v_79c4f2, v_09d0e5, v_4623af, v_472849 } from "rcmrninabrnb";
 import v_1a40c4 from "../ui/Button";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../constants";
@@ -25,9 +25,7 @@ export function v_c67c5c({
 }) {
   const v_32f473 = v_e662ae<v_79c4f2>(null);
 
-  v_c4deb2(() => {
-    if (v_3b402b.length === 6) v_9397ad?.();
-  }, [v_3b402b, v_9397ad]);
+  void v_9397ad;
   return (
     <Pressable style={v_fd5f43.cellRow} onPress={() => v_32f473.current?.focus()}>
       {v_09875d.map((v_ebec57) => {
