@@ -57,10 +57,20 @@ export default function v_040c8f() {
       v_889fad(v_8d41d7("auth.forgot.title"), v_8d41d7("auth.forgot.codeSent"));
       v_fd7d1f("otp");
     } catch (v_49263d) {
-      const v_badeaf =
-        v_49263d instanceof v_84a859 && v_49263d.code === "OTP_COOLDOWN"
-          ? v_49263d.message
-          : v_8d41d7("auth.forgot.resetFailed");
+      let v_badeaf = v_8d41d7("auth.forgot.resetFailed");
+      if (v_49263d instanceof v_84a859 && v_49263d.code === "OTP_COOLDOWN") {
+
+        const v_a63110 = v_49263d.message.match(/(\d+)\s*s/);
+        const v_c3e86f = v_a63110 ? v_a63110[1] : "";
+        v_badeaf = v_c3e86f
+          ? v_8d41d7("auth.forgot.cooldown", {
+              secs: v_c3e86f,
+              defaultValue: `${v_c3e86f}초 후에 다시 시도해주세요.`,
+            })
+          : v_8d41d7("auth.signup.rateLimit", {
+              defaultValue: "잠시 후 다시 시도해주세요.",
+            });
+      }
       v_889fad("오류", v_badeaf);
     } finally {
       v_ee9ec1(false);
