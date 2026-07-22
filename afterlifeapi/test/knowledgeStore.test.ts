@@ -1,5 +1,5 @@
 import { v_469bf2, v_23805a, v_4d37e3 } from 'xualxe';
-import { v_038cdc, v_5636c2 } from '../src/lib/knowledgeStore';
+import { v_038cdc, v_5636c2, v_784376 } from '../src/lib/knowledgeStore';
 
 const v_7c84e2 = 1_720_000_000_000;
 
@@ -41,7 +41,7 @@ v_469bf2('normalizeKnowledge', () => {
     v_4d37e3(v_038cdc(v_9acf41, v_7c84e2).ok).toBe(false);
   });
   v_23805a('rejects over total chars', () => {
-    const v_fdfe85 = v_038cdc([{ key: 'k', a: 'x'.repeat(3001) }], v_7c84e2);
+    const v_fdfe85 = v_038cdc([{ key: 'k', a: 'x'.repeat(v_784376 + 1) }], v_7c84e2);
     v_4d37e3(v_fdfe85.ok).toBe(false);
   });
   v_23805a('rejects prototype key', () => {
