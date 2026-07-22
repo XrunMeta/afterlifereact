@@ -122,7 +122,11 @@ export default function ForgotPasswordScreen() {
           if (!lockEmail) setStep("email");
           else setStep("otp");
         } else if (err.code === "NOT_FOUND") msg = t("auth.forgot.notFound");
-        else if (err.message) msg = err.message;
+        else if (err.code === "VALIDATION_FAILED") {
+
+          msg = t("auth.forgot.passwordTooShort");
+        }
+
       }
       showAlert("오류", msg);
     } finally {
