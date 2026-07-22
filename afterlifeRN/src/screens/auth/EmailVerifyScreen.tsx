@@ -19,9 +19,13 @@ import Button from "../../components/ui/Button";
 import OtpVerifyView from "../../components/auth/OtpVerifyView";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
-import { requestEmailCode, signup, AuthApiError } from "../../api/auth";
+import { requestEmailCode, signup, googleCheck, googleSignIn, AuthApiError, getMe } from "../../api/auth";
 import { saveCallLearningConsent, saveFaceBiometricConsent } from "../../api/consent";
 import { faceBiometricSignupState } from "./faceBiometricSignupFlag";
+import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
+import { getOrCreateDeviceId } from "../../lib/deviceId";
+import { useAuthStore } from "../../stores/authStore";
+import { Platform } from "react-native";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "EmailVerify">;
 
@@ -35,6 +39,91 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
   const [resendIn, setResendIn] = useState(RESEND_COOLDOWN_SEC);
   const [resending, setResending] = useState(false);
   const inputRef = useRef<TextInput>(null);
+  const setApiAuth = useAuthStore((s) => s.setApiAuth);
+  const hydrate = useAuthStore((s) => s.hydrate);
+
+  const goToComplete = (accessToken: string) => {
+    navigation.replace("SignupComplete", {
+      accessToken,
+      persist: true,
+      email: params.email,
+    });
+  };
+
+  const promptGoogleLink = (accessToken: string) => {
+    showAlert(
+      t("auth.emailVerify.googleLinkTitle", { defaultValue: "구글 계정 연동" }),
+      t("auth.emailVerify.googleLinkDesc", {
+        defaultValue:
+          "가입하신 Gmail 계정을 Google 로그인과 연동하시겠어요?\n연동하면 다음부터 간편하게 로그인할 수 있습니다.",
+      }),
+      [
+        {
+          text: t("auth.emailVerify.later", { defaultValue: "나중에" }),
+          style: "cancel",
+          onPress: () => goToComplete(accessToken),
+        },
+        {
+          text: t("auth.emailVerify.linkNow", { defaultValue: "연동하기" }),
+          onPress: () => void tryGoogleLink(accessToken),
+        },
+      ],
+    );
+  };
+
+  const tryGoogleLink = async (accessToken: string) => {
+    try {
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      try {
+        await GoogleSignin.signOut();
+      } catch {
+
+      }
+      const userInfo = (await GoogleSignin.signIn()) as unknown as {
+        idToken?: string | null;
+        data?: { idToken?: string | null };
+      };
+      const idToken = userInfo?.idToken ?? userInfo?.data?.idToken;
+      if (!idToken) {
+        console.warn("[google-link] no idToken");
+        goToComplete(accessToken);
+        return;
+      }
+
+      const check = await googleCheck(idToken);
+      const googleEmail = (check.email ?? "").toLowerCase();
+      const signupEmail = params.email.toLowerCase();
+      if (googleEmail !== signupEmail) {
+        showAlert(
+          t("common.notice"),
+          t("auth.emailVerify.googleEmailMismatch", {
+            defaultValue:
+              "가입 시 입력하신 이메일과 구글 로그인 이메일이 다릅니다. 연동 없이 계속 진행합니다.",
+          }),
+          [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: () => goToComplete(accessToken) }],
+        );
+        return;
+      }
+
+      const deviceId = await getOrCreateDeviceId();
+      const gRes = await googleSignIn({
+        idToken,
+        deviceId,
+        platform: Platform.OS === "ios" ? "ios" : "android",
+      });
+      const meRes = await getMe(gRes.accessToken);
+      await setApiAuth(gRes.accessToken, meRes.user, { persist: true });
+      await hydrate();
+    } catch (err: unknown) {
+      const errAny = err as { code?: string };
+      if (errAny?.code === statusCodes.SIGN_IN_CANCELLED) {
+        goToComplete(accessToken);
+        return;
+      }
+      console.warn("[google-link] failed:", err);
+      goToComplete(accessToken);
+    }
+  };
 
   useEffect(() => {
     const t = setInterval(() => setResendIn((s) => (s > 0 ? s - 1 : 0)), 1000);
@@ -107,11 +196,12 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
       }
 
       console.log("[AUTH/signup] success, accessExpiresIn:", res.accessExpiresIn);
-      navigation.replace("SignupComplete", {
-        accessToken: res.accessToken,
-        persist: true,
-        email: params.email,
-      });
+
+      if (params.email.toLowerCase().endsWith("@gmail.com")) {
+        promptGoogleLink(res.accessToken);
+      } else {
+        goToComplete(res.accessToken);
+      }
     } catch (err) {
       let msg = t("auth.signup.signupFailed");
       if (err instanceof AuthApiError) {
