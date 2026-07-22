@@ -840,7 +840,14 @@ v_68f0aa.post("/password/request-reset", async (v_3f4e2e) => {
 const v_18702b = v_1f4ea7.object({
   email: v_1f4ea7.email().max(200),
   verificationCode: v_1f4ea7.string().regex(/^\d{6}$/),
-  newPassword: v_1f4ea7.string().min(8).max(128),
+
+  newPassword: v_1f4ea7
+    .string()
+    .min(7)
+    .max(200)
+    .regex(/[a-z]/, "must contain a lowercase letter")
+    .regex(/[A-Z]/, "must contain an uppercase letter")
+    .regex(/\d/, "must contain a digit"),
 });
 v_68f0aa.post("/password/reset", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_18702b);
