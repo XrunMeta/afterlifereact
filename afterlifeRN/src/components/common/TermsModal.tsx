@@ -30,7 +30,7 @@ const AFTERLIFE_TYPE: Record<AgreementType, number | null> = {
   1: 1,
   2: null,
   3: 2,
-  4: null,
+  4: 4,
   5: 5,
 };
 
