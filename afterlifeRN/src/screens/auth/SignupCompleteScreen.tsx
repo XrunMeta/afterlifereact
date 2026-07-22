@@ -8,9 +8,6 @@ import {
   v_cf9c33,
   v_4623af,
   v_472849,
-  v_03e392,
-  v_f2c756,
-  v_326be8,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -23,44 +20,7 @@ import v_1a40c4 from "../../components/ui/Button";
 import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../../components/constants";
 import { v_7ef860, v_84a859 } from "../../api/auth";
 import { v_1ed7d9 } from "../../stores/authStore";
-
-const v_6847f9 = "xrun://";
-const v_afac13 =
-  "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
-const v_8220cd =
-  "https://apps.apple.com/app/id1492389867"; 
-const v_15fd6d = "https://apps.apple.com/search?term=xrun";
-
-async function v_ca0728(v_e0c7e8) {
-  const v_6045c3 = v_e0c7e8
-    ? `${v_6847f9}?email=${encodeURIComponent(v_e0c7e8)}&signup=1&from=afterlife`
-    : v_6847f9;
-  try {
-    const v_20e8d1 = await v_f2c756.canOpenURL(v_6045c3);
-    if (v_20e8d1) {
-      await v_f2c756.openURL(v_6045c3);
-      return;
-    }
-  } catch (v_49263d) {
-    console.warn("[SignupComplete] openXrun deepLink failed:", v_49263d);
-  }
-
-  const v_b71a74 =
-    v_326be8.OS === "android" ? v_afac13 : v_8220cd;
-  try {
-    const v_20e8d1 = await v_f2c756.canOpenURL(v_b71a74);
-    if (v_20e8d1) {
-      await v_f2c756.openURL(v_b71a74);
-      return;
-    }
-  } catch (v_49263d) {
-    console.warn("[SignupComplete] openXrun store failed:", v_49263d);
-  }
-
-  if (v_326be8.OS === "ios") {
-    v_f2c756.openURL(v_15fd6d).catch(() => {});
-  }
-}
+import { v_0c2802 } from "../../utils/openXrunApp";
 
 type Props = v_432191<v_384e19, "SignupComplete">;
 
@@ -163,7 +123,7 @@ export default function v_933130({ route: v_c7daf6 }: Props) {
               rightIcon={
                 <Feather name="external-link" size={16} color={v_1bfbd0.zinc500} />
               }
-              onPress={() => v_ca0728(v_e0c7e8)}
+              onPress={() => v_0c2802({ email: v_e0c7e8, signup: true })}
             />
           </View>
         </View>
