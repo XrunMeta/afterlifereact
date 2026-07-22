@@ -115,6 +115,125 @@ async def verify_persons(req: web.Request) -> web.Response:
         {"id": it.get("id"), "name": it.get("displayName")} for it in items if it.get("id") is not None
     ]})
 
+async def verify_knowledge_questions(req: web.Request) -> web.Response:
+    """L1 학습 질문 세트 — api GET /oth-path 프록시."""
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
+    token = _bearer(req)
+    if not token:
+        return web.json_response({"error": "missing bearer token"}, status=401)
+    url = f"{API_BASE}/oth-path"
+    try:
+        timeout = aiohttp.ClientTimeout(total=_API_TIMEOUT_S)
+        async with aiohttp.ClientSession(timeout=timeout) as sess:
+            async with sess.get(url, headers={
+                "Authorization": f"Bearer {token}", "User-Agent": _BROWSER_UA,
+            }) as r:
+                if r.status != 200:
+                    return web.json_response({"error": f"api {r.status}"}, status=r.status)
+                data = await r.json()
+    except Exception as e:
+        log.warning("verify_knowledge_questions failed: %s", type(e).__name__)
+        return web.json_response({"error": "upstream error"}, status=502)
+    return web.json_response({"questions": data.get("questions") or []})
+
+async def verify_knowledge(req: web.Request) -> web.Response:
+    """클론의 현재 학습된 knowledge 배열 — api GET /oth-path 프록시."""
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
+    token = _bearer(req)
+    if not token:
+        return web.json_response({"error": "missing bearer token"}, status=401)
+    raw_cid = req.query.get("clone_id")
+    try:
+        cid = int(raw_cid)
+    except (TypeError, ValueError):
+        return web.json_response({"error": "invalid clone_id"}, status=400)
+    url = f"{API_BASE}/oth-path"
+    try:
+        timeout = aiohttp.ClientTimeout(total=_API_TIMEOUT_S)
+        async with aiohttp.ClientSession(timeout=timeout) as sess:
+            async with sess.get(url, headers={
+                "Authorization": f"Bearer {token}", "User-Agent": _BROWSER_UA,
+            }) as r:
+                if r.status != 200:
+                    return web.json_response({"error": f"api {r.status}"}, status=r.status)
+                data = await r.json()
+    except Exception as e:
+        log.warning("verify_knowledge failed: %s", type(e).__name__)
+        return web.json_response({"error": "upstream error"}, status=502)
+    return web.json_response({"items": data.get("items") or []})
+
+async def verify_knowledge_interpret(req: web.Request) -> web.Response:
+    """답변 → slot 요약 + 리플라이 — api POST /oth-path 프록시.
+    body: {clone_id, questionKey, answer}. api 는 Bearer 게이트라 X-Internal-Secret 불필요."""
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
+    token = _bearer(req)
+    if not token:
+        return web.json_response({"error": "missing bearer token"}, status=401)
+    try:
+        body = await req.json()
+    except Exception:
+        return web.json_response({"error": "invalid json body"}, status=400)
+    try:
+        cid = int(body.get("clone_id"))
+    except (TypeError, ValueError):
+        return web.json_response({"error": "invalid clone_id"}, status=400)
+    payload = {"questionKey": body.get("questionKey"), "answer": body.get("answer")}
+    url = f"{API_BASE}/oth-path"
+    try:
+        # interpret 은 가비아 LLM 왕복 포함 — api 쪽 20s. 여유롭게 25s.
+        timeout = aiohttp.ClientTimeout(total=25.0)
+        async with aiohttp.ClientSession(timeout=timeout) as sess:
+            async with sess.post(url, json=payload, headers={
+                "Authorization": f"Bearer {token}", "User-Agent": _BROWSER_UA,
+            }) as r:
+                data = await r.json()
+                if r.status != 200:
+                    # blacklist_hit(400) 등은 그대로 전달
+                    return web.json_response(data, status=r.status)
+    except Exception as e:
+        log.warning("verify_knowledge_interpret failed: %s", type(e).__name__)
+        return web.json_response({"error": "upstream error"}, status=502)
+    return web.json_response({
+        "slots": data.get("slots") or [], "reply": data.get("reply") or "",
+    })
+
+async def verify_knowledge_save(req: web.Request) -> web.Response:
+    """knowledge 전량 저장 — api PUT /oth-path 프록시.
+    body: {clone_id, items:[{key?,q?,a}]}"""
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
+    token = _bearer(req)
+    if not token:
+        return web.json_response({"error": "missing bearer token"}, status=401)
+    try:
+        body = await req.json()
+    except Exception:
+        return web.json_response({"error": "invalid json body"}, status=400)
+    try:
+        cid = int(body.get("clone_id"))
+    except (TypeError, ValueError):
+        return web.json_response({"error": "invalid clone_id"}, status=400)
+    items = body.get("items")
+    if not isinstance(items, list):
+        return web.json_response({"error": "invalid items"}, status=400)
+    url = f"{API_BASE}/oth-path"
+    try:
+        timeout = aiohttp.ClientTimeout(total=_API_TIMEOUT_S)
+        async with aiohttp.ClientSession(timeout=timeout) as sess:
+            async with sess.put(url, json={"items": items}, headers={
+                "Authorization": f"Bearer {token}", "User-Agent": _BROWSER_UA,
+            }) as r:
+                if r.status != 200:
+                    txt = await r.text()
+                    return web.json_response({"error": f"api {r.status}", "detail": txt[:300]}, status=r.status)
+    except Exception as e:
+        log.warning("verify_knowledge_save failed: %s", type(e).__name__)
+        return web.json_response({"error": "upstream error"}, status=502)
+    return web.json_response({"ok": True})
+
 async def verify_person_create(req: web.Request) -> web.Response:
     """새 화자 생성 — api POST /oth-path 프록시({cloneId, displayName})."""
     if not _check_verify_pass(req):
@@ -527,3 +646,7 @@ def register_verify_routes(app: web.Application) -> None:
     app.router.add_get("/oth-path", verify_bundle)
     app.router.add_get("/oth-path", verify_ont_raw)
     app.router.add_get("/oth-path", verify_l2p)
+    app.router.add_get("/oth-path", verify_knowledge_questions)
+    app.router.add_get("/oth-path", verify_knowledge)
+    app.router.add_post("/oth-path", verify_knowledge_interpret)
+    app.router.add_put("/oth-path", verify_knowledge_save)
