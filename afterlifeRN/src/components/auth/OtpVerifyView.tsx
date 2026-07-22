@@ -1,6 +1,6 @@
 
 
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import { View, Text, TextInput, Pressable, TouchableOpacity, StyleSheet } from "react-native";
 import Button from "../ui/Button";
 import { COLORS, SIZES, RADIUS } from "../constants";
@@ -24,6 +24,10 @@ export function OtpCodeInput({
   masked?: boolean;
 }) {
   const inputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    if (value.length === 6) onComplete?.();
+  }, [value, onComplete]);
   return (
     <Pressable style={s.cellRow} onPress={() => inputRef.current?.focus()}>
       {CELLS.map((i) => {
@@ -43,7 +47,6 @@ export function OtpCodeInput({
           const digits = txt.replace(/\D/g, "").slice(0, 6);
           onChange(digits);
 
-          if (digits.length === 6) setTimeout(() => onComplete?.(), 0);
         }}
         keyboardType="number-pad"
 
