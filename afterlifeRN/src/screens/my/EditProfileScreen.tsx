@@ -238,19 +238,20 @@ export default function EditProfileScreen() {
               <Feather name="globe" size={18} color={COLORS.zinc500} />
               <View style={{ flex: 1 }}>
                 {country ? (
-                  <Text style={s.pickerValue} numberOfLines={1}>
-                    {t(`countries:${country.iso2.toUpperCase()}`, {
-                      defaultValue: country.name,
-                    })}
+                  <>
+                    <Text style={s.pickerValue} numberOfLines={1}>
+                      {t(`countries:${country.iso2.toUpperCase()}`, {
+                        defaultValue: country.name,
+                      })}
+                    </Text>
                     {region && region.iso2 !== "global" && (
-                      <Text style={s.pickerRegion}>
-                        {"  ·  "}
+                      <Text style={s.pickerRegion} numberOfLines={1}>
                         {t(`regions:${region.countryCode}_${region.dialCode}`, {
                           defaultValue: region.name,
                         })}
                       </Text>
                     )}
-                  </Text>
+                  </>
                 ) : (
                   <Text style={s.pickerPlaceholder}>국가를 선택해주세요</Text>
                 )}
