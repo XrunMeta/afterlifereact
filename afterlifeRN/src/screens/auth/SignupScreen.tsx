@@ -106,7 +106,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_a03498, v_d34fc9] = v_5ab095(false);
 
   const v_5c764d = v_51b53b && v_09b7fa;
-  const v_33f2ba = v_5c764d && v_8c98c4;
+  const v_33f2ba =
+    v_5c764d && v_8c98c4 && v_7f128f && v_a03498;
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
 
   const [v_1a29d0, v_704175] = v_5ab095<string | null>(null);
@@ -120,6 +121,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       v_c8f346(false);
       v_1d4807(false);
       v_e378a4(false);
+      v_06ec09(false);
+      v_d34fc9(false);
       v_704175(null);
       v_73f064(null);
       v_94f796(null);
@@ -128,6 +131,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
     v_c8f346(true);
     v_1d4807(true);
+    v_06ec09(true);
+    v_d34fc9(true);
     if (!v_8c98c4) {
       await v_349606();
     }
