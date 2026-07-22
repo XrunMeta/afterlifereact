@@ -17,6 +17,7 @@ import aiohttp
 from aiohttp import web
 
 from clone_dialog import fetch_bundle, bundle_to_messages, chat_stream, extract_l2
+from clone_dialog.llm_client import chat_once
 from signaling import build_l2p_hint
 
 log = logging.getLogger("prethird.verify")
@@ -233,6 +234,48 @@ async def verify_knowledge_save(req: web.Request) -> web.Response:
         log.warning("verify_knowledge_save failed: %s", type(e).__name__)
         return web.json_response({"error": "upstream error"}, status=502)
     return web.json_response({"ok": True})
+
+_AUTOANSWER_SYSTEM = (
+    "너는 어떤 사람(페르소나)의 성격·취향·습관을 잘 아는 화자다. "
+    "주어진 질문에 대해 그 사람 입장에서 자연스러운 한국어 구어체로 한두 문장, "
+    "40자 내외로 사실적인 답을 한다. 질문을 되묻거나 메타발화('~라고 답할게요')를 하지 않고 "
+    "답 내용만 말한다. 양자택일 질문이면 한쪽을 분명히 고른다."
+)
+
+async def verify_knowledge_autoanswer(req: web.Request) -> web.Response:
+    """풀오토 e2e 용 — 질문에 대한 가상 오너 답변을 LLM 으로 생성. body: {question, hint?, persona_name?}"""
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
+    if not _bearer(req):
+        return web.json_response({"error": "missing bearer token"}, status=401)
+    try:
+        body = await req.json()
+    except Exception:
+        return web.json_response({"error": "invalid json body"}, status=400)
+    question = (body.get("question") or "").strip()
+    if not question or len(question) > 500:
+        return web.json_response({"error": "invalid question"}, status=400)
+    hint = (body.get("hint") or "").strip()
+    persona = (body.get("persona_name") or "").strip()
+    user = question
+    if persona:
+        user = f"[대상: {persona}] {user}"
+    if hint:
+        user = f"{user}\n(참고: {hint})"
+    messages = [
+        {"role": "system", "content": _AUTOANSWER_SYSTEM},
+        {"role": "user", "content": user},
+    ]
+    try:
+        raw = await chat_once(messages, temperature=0.8)
+    except Exception as e:
+        log.warning("verify_knowledge_autoanswer LLM failed: %s", type(e).__name__)
+        return web.json_response({"error": "llm_failed"}, status=502)
+    stripped = (raw or "").strip().strip('"')
+    answer = stripped.splitlines()[0][:300] if stripped else ""
+    if not answer:
+        return web.json_response({"error": "empty_answer"}, status=502)
+    return web.json_response({"answer": answer})
 
 async def verify_person_create(req: web.Request) -> web.Response:
     """새 화자 생성 — api POST /oth-path 프록시({cloneId, displayName})."""
@@ -650,3 +693,4 @@ def register_verify_routes(app: web.Application) -> None:
     app.router.add_get("/oth-path", verify_knowledge)
     app.router.add_post("/oth-path", verify_knowledge_interpret)
     app.router.add_put("/oth-path", verify_knowledge_save)
+    app.router.add_post("/oth-path", verify_knowledge_autoanswer)
