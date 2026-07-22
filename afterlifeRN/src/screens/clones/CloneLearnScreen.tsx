@@ -131,9 +131,9 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     if (!loading && scrollRef.current) {
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
     }
-  }, [chatHistory.length, currentKey, loading]);
+  }, [chatHistory.length, currentKey, loading, pendingConfirm]);
 
   const goNext = (fresh: KnowledgeItem[], justAnsweredKey?: string) => {
 
