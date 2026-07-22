@@ -43,20 +43,33 @@ export default function SignupScreen({ navigation, route }: Props) {
     { value: "female" as const, label: t("auth.signup.female") },
   ];
 
-  const BIRTH_YEAR_OPTIONS = React.useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const maxYear = currentYear - 13; 
-    const minYear = currentYear - 120;
-    const years: { value: string; label: string }[] = [];
-    for (let y = maxYear; y >= minYear; y--) {
-      const yStr = String(y);
-      years.push({
-        value: yStr,
-        label: t("auth.signup.birthYearLabel", { year: yStr, defaultValue: `${yStr}년생` }),
-      });
+  const AGE_RANGE_OPTIONS = React.useMemo(
+    () => [
+      { value: "10", label: t("auth.signup.ageRange10", { defaultValue: "10대" }) },
+      { value: "20", label: t("auth.signup.ageRange20", { defaultValue: "20대" }) },
+      { value: "30", label: t("auth.signup.ageRange30", { defaultValue: "30대" }) },
+      { value: "40", label: t("auth.signup.ageRange40", { defaultValue: "40대" }) },
+      { value: "50+", label: t("auth.signup.ageRange50Plus", { defaultValue: "50대 이상" }) },
+    ],
+    [t],
+  );
+
+  const ageRangeToAge = (r: string): number => {
+    switch (r) {
+      case "10":
+        return 15;
+      case "20":
+        return 25;
+      case "30":
+        return 35;
+      case "40":
+        return 45;
+      case "50+":
+        return 55;
+      default:
+        return 0;
     }
-    return years;
-  }, [t]);
+  };
   const google = route.params?.google;
 
   const [name, setName] = useState(google?.name ?? "");
@@ -66,7 +79,7 @@ export default function SignupScreen({ navigation, route }: Props) {
   const [phone, setPhone] = useState("");
   const [gender, setGender] = useState<"male" | "female" | "">("");
 
-  const [birthYear, setBirthYear] = useState<string>("");
+  const [ageRange, setAgeRange] = useState<string>("");
   const [country, setCountry] = useState<CountryDialCode | null>(null);
   const [region, setRegion] = useState<CountryDialCode | null>(null);
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
@@ -234,10 +247,10 @@ export default function SignupScreen({ navigation, route }: Props) {
       );
       return;
     }
-    if (!birthYear) {
+    if (!ageRange) {
       showAlert(
         t("common.notice"),
-        t("auth.signup.birthYearRequired", { defaultValue: "출생연도를 선택해주세요." }),
+        t("auth.signup.ageRangeRequired", { defaultValue: "연령대를 선택해주세요." }),
       );
       return;
     }
@@ -250,10 +263,8 @@ export default function SignupScreen({ navigation, route }: Props) {
       return;
     }
 
-    const birthYearNum = parseInt(birthYear, 10);
-    const currentYear = new Date().getFullYear();
-    const ageNum = currentYear - birthYearNum;
-    if (Number.isNaN(ageNum) || ageNum < 13 || ageNum > 120) {
+    const ageNum = ageRangeToAge(ageRange);
+    if (ageNum <= 0) {
       showAlert(t("common.notice"), t("auth.signup.ageInvalid"));
       return;
     }
@@ -463,10 +474,10 @@ export default function SignupScreen({ navigation, route }: Props) {
             </View>
             <View style={{ flex: 1 }}>
               <SelectField<string>
-                options={BIRTH_YEAR_OPTIONS}
-                value={birthYear}
-                onChange={setBirthYear}
-                placeholder={t("auth.signup.birthYearPlaceholder")}
+                options={AGE_RANGE_OPTIONS}
+                value={ageRange}
+                onChange={setAgeRange}
+                placeholder={t("auth.signup.ageRangePlaceholder", { defaultValue: "연령대" })}
               />
             </View>
           </View>
