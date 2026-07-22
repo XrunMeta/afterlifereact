@@ -123,11 +123,16 @@ export async function v_61a853(
   return v_4d33b2.questions ?? [];
 }
 
+export interface KnowledgeQuestionSlot {
+  key: string;
+  label: string;
+}
 export interface KnowledgeQuestion {
   key: string;
   label: string;
   hint?: string;
   optional?: boolean;
+  slots?: KnowledgeQuestionSlot[];
 }
 export interface KnowledgeItem {
   key: string;
@@ -158,6 +163,15 @@ export async function v_7b4be8(
   return v_4d33b2.items ?? [];
 }
 
+function v_c4728e<T extends { error?: unknown; message?: string }>(v_9390e8): T {
+  const v_9e86fd = v_9390e8.error;
+  if (v_9e86fd && typeof v_9e86fd === "object" && "code" in (v_9e86fd as Record<string, unknown>)) {
+    const v_8839e3 = v_9e86fd as { code: string; message?: string };
+    return { ...v_9390e8, error: v_8839e3.code, message: v_9390e8.message ?? v_8839e3.message };
+  }
+  return v_9390e8;
+}
+
 export interface PutKnowledgeResult {
   ok?: boolean;
   items?: KnowledgeItem[];
@@ -179,7 +193,34 @@ export async function v_085a16(
     },
     body: JSON.stringify({ items: v_4622b9 }),
   });
-  return (await v_8f00b9.json()) as PutKnowledgeResult;
+  return v_c4728e((await v_8f00b9.json()) as PutKnowledgeResult);
+}
+
+export interface InterpretKnowledgeResult {
+  slots?: KnowledgeItem[];
+  reply?: string;
+  error?: string;
+  message?: string;
+  matched?: string;
+}
+export async function v_c2fd24(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_3960ea,
+  v_343c90,
+): Promise<InterpretKnowledgeResult> {
+  const v_8f00b9 = await fetch(
+    `${v_cc9198}/oth-path${v_6e0fd3}/knowledge/interpret`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${v_2ca7e0}`,
+      },
+      body: JSON.stringify({ questionKey: v_3960ea, answer: v_343c90 }),
+    },
+  );
+  return v_c4728e((await v_8f00b9.json()) as InterpretKnowledgeResult);
 }
 
 export async function v_4bf019(

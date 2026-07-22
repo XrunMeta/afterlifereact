@@ -43,6 +43,7 @@
       ]
     },
     "plugins": [
+      "./withCustomPodfile.js",
       [
         "expo-camera",
         {
@@ -92,9 +93,13 @@
         {
           "android": {
             "minSdkVersion": 26
+          },
+          "ios": {
+            "deploymentTarget": "16.4"
           }
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "web": {
       "favicon": "./assets/favicon.png"

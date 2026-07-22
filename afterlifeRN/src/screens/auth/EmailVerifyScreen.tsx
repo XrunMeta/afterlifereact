@@ -33,6 +33,7 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_c99bd2, v_537cbb] = v_5ab095("");
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
   const [v_600d5b, v_ec979d] = v_5ab095(v_d812cb);
+  const [v_77cdad, v_13dcee] = v_5ab095(false);
   const v_32f473 = v_e662ae<v_79c4f2>(null);
 
   v_c4deb2(() => {
@@ -46,15 +47,19 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   }, []);
 
   const v_cf9840 = async () => {
-    if (v_600d5b > 0) return;
+
+    if (v_600d5b > 0 || v_77cdad) return;
+    v_13dcee(true);
+    v_ec979d(v_d812cb);
     try {
       await v_97ea8d(v_24baff.email);
-      v_ec979d(v_d812cb);
       v_889fad(v_8d41d7("auth.emailVerify.resend"), v_8d41d7("auth.emailVerify.resentToast"));
     } catch (v_49263d) {
       const v_badeaf =
         v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("common.error");
       v_889fad(v_8d41d7("common.error"), v_badeaf);
+    } finally {
+      v_13dcee(false);
     }
   };
 

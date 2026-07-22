@@ -33,7 +33,7 @@ const v_15fd6d = "https://apps.apple.com/search?term=xrun";
 
 async function v_ca0728(v_e0c7e8) {
   const v_6045c3 = v_e0c7e8
-    ? `${v_6847f9}?email=${encodeURIComponent(v_e0c7e8)}&from=afterlife`
+    ? `${v_6847f9}?email=${encodeURIComponent(v_e0c7e8)}&signup=1&from=afterlife`
     : v_6847f9;
   try {
     const v_20e8d1 = await v_f2c756.canOpenURL(v_6045c3);

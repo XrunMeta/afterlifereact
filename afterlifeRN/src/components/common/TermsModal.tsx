@@ -9,7 +9,7 @@ import {
   v_472849,
   v_122070,
   v_39a996,
-  v_09d0e5,
+  v_e45a99,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -29,7 +29,7 @@ const v_b7b41f = {
   1: 1,
   2: null,
   3: 2,
-  4: null,
+  4: 4,
   5: 5,
 };
 
@@ -76,6 +76,9 @@ const v_9fab8c = {
 
 export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v_0890f8, onAgree: v_5cccfe }: Props) {
   const { t: v_8d41d7, i18n: v_9c213b } = v_772971();
+
+  const { height: v_ce40bc } = v_e45a99();
+  const v_3d6201 = Math.min(v_ce40bc * 0.8, v_ce40bc - 80);
   const [v_b43b74, v_f435cb] = v_5ab095<string>("");
   const [v_c61b34, v_1083a7] = v_5ab095<string>("");
   const [v_683210, v_34a50a] = v_5ab095(false);
@@ -150,8 +153,10 @@ export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v
       animationType="fade"
       onRequestClose={v_0890f8}
     >
-      <Pressable style={v_fd5f43.overlay} onPress={v_0890f8}>
-        <Pressable style={v_fd5f43.card} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+      {
+}
+      <View style={v_fd5f43.overlay}>
+        <View style={[v_fd5f43.card, { height: v_3d6201 }]}>
           {}
           <View style={v_fd5f43.header}>
             <View style={v_fd5f43.headerBtn} />
@@ -166,6 +171,8 @@ export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v
             style={v_fd5f43.contentScroll}
             contentContainerStyle={v_fd5f43.contentInner}
             showsVerticalScrollIndicator
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
           >
             {v_683210 ? (
               <ActivityIndicator
@@ -205,8 +212,8 @@ export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v
               </Text>
             </TouchableOpacity>
           </View>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }
@@ -223,7 +230,6 @@ const v_fd5f43 = v_472849.create({
   card: {
     width: "92%",
     maxWidth: 480,
-    height: "80%",
     backgroundColor: v_1bfbd0.white,
     borderRadius: v_8b0c90.lg,
     overflow: "hidden",

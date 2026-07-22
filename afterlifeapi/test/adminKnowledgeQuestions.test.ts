@@ -42,7 +42,10 @@ v_469bf2("admin knowledge-questions", () => {
     const v_38715b = await v_309144("knowledge-questions", "GET", v_21cc31);
     v_4d37e3(v_38715b.status).toBe(200);
     const v_7ecfd1 = (await v_38715b.json()) as { questions: unknown[] };
-    v_4d37e3(v_7ecfd1.questions).toEqual([{ key: "job", label: "직업은?" }]);
+
+    v_4d37e3(v_7ecfd1.questions).toEqual([
+      { key: "job", label: "직업은?", slots: [{ key: "job_val", label: "직업은?" }] },
+    ]);
   });
 
   v_23805a("PUT rejects invalid schema with 400", async () => {
