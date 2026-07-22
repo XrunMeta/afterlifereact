@@ -421,6 +421,7 @@ $("loadClones").onclick = async () => {
     o.value = c.id; o.textContent = `${c.name} (#${c.id})`;
     sel.appendChild(o);
   }
+  await loadKnowledgeQuestions();
 };
 
 let _sending = false;
@@ -534,6 +535,118 @@ async function learn(userText, assistantText) {
   await refreshL2View({ changedKeys, silent: true });
 }
 
+let _kQuestions = [];   
+let _kItems = [];       
+
+async function loadKnowledgeQuestions() {
+  try {
+    const r = await fetch("/oth-path", { headers: authHeaders() });
+    if (!r.ok) { _kQuestions = []; }
+    else {
+      const { questions } = await r.json();
+      _kQuestions = Array.isArray(questions) ? questions : [];
+    }
+  } catch (e) { _kQuestions = []; }
+  const sel = $("kqSelect");
+  sel.innerHTML = '<option value="">— 질문 선택 —</option>';
+  for (const q of _kQuestions) {
+    const o = document.createElement("option");
+    o.value = q.key; o.textContent = q.label;
+    sel.appendChild(o);
+  }
+}
+
+async function loadKnowledgeItems() {
+  const cloneId = parseInt($("clone").value, 10);
+  if (!cloneId) { _kItems = []; renderLearnProgress(); renderLearnList(); return; }
+  try {
+    const r = await fetch("/oth-path?clone_id=" + cloneId, { headers: authHeaders() });
+    _kItems = r.ok ? ((await r.json()).items || []) : [];
+  } catch (e) { _kItems = []; }
+  renderLearnProgress();
+  renderLearnList();
+}
+
+function renderLearnProgress() {
+  const total = _kQuestions.length;
+  const answered = new Set(_kItems.map((i) => i.key));
+  const done = _kQuestions.filter((q) => answered.has(q.key)).length;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  $("learnBar").firstElementChild.style.width = pct + "%";
+  $("learnPct").innerHTML = total
+    ? `진행 ${done}/${total} 질문 · <b>${pct}%</b> · 지식 항목 ${_kItems.length}개`
+    : '<span class="muted">질문 없음</span>';
+}
+
+function renderLearnList() {
+  if (!_kQuestions.length) { $("learnList").innerHTML = '<span class="muted">질문 없음</span>'; return; }
+  const byKey = {};
+  for (const it of _kItems) { (byKey[it.key] = byKey[it.key] || []).push(it); }
+  const answered = _kQuestions.filter((q) => byKey[q.key]);
+  const rest = _kQuestions.filter((q) => !byKey[q.key]);
+  const card = (q) => {
+    const items = byKey[q.key] || [];
+    const done = items.length > 0;
+    const slotLabel = {};
+    for (const s of (q.slots || [])) slotLabel[s.key] = s.label;
+    const answerText = items.map((i) => i.a).filter(Boolean).join(" · ");
+    const slotRows = items.map((i) =>
+      `<b>${esc(slotLabel[i.key] || i.key)}</b>: ${esc(i.a)}`).join(" / ");
+    return `<div class="kq ${done ? "done" : ""}">
+      <div class="q">${esc(q.label)}</div>
+      ${done
+        ? `<div class="a">${esc(answerText)}</div><div class="slots">${slotRows}</div>`
+        : `<div class="empty">미답변</div>`}
+    </div>`;
+  };
+  $("learnList").innerHTML = answered.map(card).join("") + rest.map(card).join("");
+}
+
+async function learnOne(questionKey, answer) {
+  const cloneId = parseInt($("clone").value, 10);
+  if (!cloneId || !questionKey || !answer) return { ok: false, error: "invalid" };
+
+  let interp;
+  try {
+    const r = await fetch("/oth-path", {
+      method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ clone_id: cloneId, questionKey, answer }),
+    });
+    interp = await r.json();
+    if (interp.error) return { ok: false, error: interp.error, reply: interp.reply };
+    if (!r.ok) return { ok: false, error: interp.error || ("http " + r.status) };
+  } catch (e) { return { ok: false, error: "interpret-fail" }; }
+  const slots = (interp.slots || []).filter((s) => s && s.a && String(s.a).trim());
+  if (!slots.length) return { ok: false, error: "no-slots", reply: interp.reply };
+
+  const kept = _kItems.filter((i) => !slots.some((s) => s.key === i.key));
+  const nextItems = kept.concat(slots.map((s) => ({ key: s.key, q: s.q, a: s.a })));
+  try {
+    const r = await fetch("/oth-path", {
+      method: "PUT", headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ clone_id: cloneId, items: nextItems }),
+    });
+    if (!r.ok) return { ok: false, error: "save-fail " + r.status, reply: interp.reply };
+  } catch (e) { return { ok: false, error: "save-fail", reply: interp.reply }; }
+  await loadKnowledgeItems();
+  return { ok: true, reply: interp.reply };
+}
+
+$("learnOne").onclick = async () => {
+  const qk = $("kqSelect").value;
+  const a = $("kqAnswer").value.trim();
+  if (!qk) { alert("질문을 선택하세요"); return; }
+  if (!a) { alert("답변을 입력하세요"); return; }
+  $("learnOne").disabled = true;
+  $("autoStatus").textContent = "학습 중…";
+  const res = await learnOne(qk, a);
+  $("learnOne").disabled = false;
+  $("kqAnswer").value = "";
+  $("autoStatus").textContent = res.ok
+    ? "저장됨: " + (res.reply || "")
+    : "실패: " + (res.error || "");
+};
+
 $("l2reset").onclick = async () => {
   const cloneId = parseInt($("clone").value, 10);
   if (!cloneId) { alert("클론을 선택하세요"); return; }
@@ -550,7 +663,7 @@ $("l2reset").onclick = async () => {
   _turnNo = 0;
 };
 
-$("clone").addEventListener("change", () => { loadBundle(false); loadPersons(); });
+$("clone").addEventListener("change", () => { loadBundle(false); loadPersons(); loadKnowledgeItems(); });
 
 window.addEventListener("DOMContentLoaded", () => {
   if (!$("token").value && $("email").value && $("password").value) {
