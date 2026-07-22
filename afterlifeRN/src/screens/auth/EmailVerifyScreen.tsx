@@ -19,12 +19,11 @@ import Button from "../../components/ui/Button";
 import OtpVerifyView from "../../components/auth/OtpVerifyView";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
-import { requestEmailCode, signup, googleCheck, googleSignIn, AuthApiError, getMe } from "../../api/auth";
+import { requestEmailCode, signup, googleCheck, googleSignIn, AuthApiError } from "../../api/auth";
 import { saveCallLearningConsent, saveFaceBiometricConsent } from "../../api/consent";
 import { faceBiometricSignupState } from "./faceBiometricSignupFlag";
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 import { getOrCreateDeviceId } from "../../lib/deviceId";
-import { useAuthStore } from "../../stores/authStore";
 import { Platform } from "react-native";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "EmailVerify">;
@@ -39,8 +38,6 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
   const [resendIn, setResendIn] = useState(RESEND_COOLDOWN_SEC);
   const [resending, setResending] = useState(false);
   const inputRef = useRef<TextInput>(null);
-  const setApiAuth = useAuthStore((s) => s.setApiAuth);
-  const hydrate = useAuthStore((s) => s.hydrate);
 
   const goToComplete = (accessToken: string) => {
     navigation.replace("SignupComplete", {
@@ -111,9 +108,7 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
         deviceId,
         platform: Platform.OS === "ios" ? "ios" : "android",
       });
-      const meRes = await getMe(gRes.accessToken);
-      await setApiAuth(gRes.accessToken, meRes.user, { persist: true });
-      await hydrate();
+      goToComplete(gRes.accessToken);
     } catch (err: unknown) {
       const errAny = err as { code?: string };
       if (errAny?.code === statusCodes.SIGN_IN_CANCELLED) {
