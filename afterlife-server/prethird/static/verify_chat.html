@@ -178,7 +178,22 @@ function renderL1(l1){
 
 function renderL1Raw(l1){
   if(!l1 || !Object.keys(l1).length){ $("tblL1").innerHTML = '<span class="muted">없음</span>'; return; }
-  $("tblL1").innerHTML = `<pre>${esc(JSON.stringify(l1, null, 2))}</pre>`;
+  let rows = "";
+  const attrs = l1.attrs || {};
+  for (const [k, v] of Object.entries(attrs)) {
+    rows += `<tr><td class="lv">attrs.${esc(k)}</td><td>${esc(v)}</td></tr>`;
+  }
+  for (const [k, v] of Object.entries(l1)) {
+    if (k === "attrs" || k === "knowledge") continue;
+    if (v === null || v === undefined || v === "") continue;
+    const val = (typeof v === "object") ? JSON.stringify(v) : String(v);
+    rows += `<tr><td class="lv">${esc(k)}</td><td>${esc(val)}</td></tr>`;
+  }
+  const kn = Array.isArray(l1.knowledge) ? l1.knowledge : [];
+  rows += `<tr><td class="lv">knowledge</td><td>${kn.length}개 — 가운데 L1 학습 패널 참조</td></tr>`;
+  $("tblL1").innerHTML =
+    `<table class="kv">${rows}</table>` +
+    `<details><summary>원문 JSON</summary><pre>${esc(JSON.stringify(l1, null, 2))}</pre></details>`;
 }
 
 const L2_SRC = {
