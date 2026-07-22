@@ -238,19 +238,20 @@ export default function v_e2b396() {
               <Feather name="globe" size={18} color={v_1bfbd0.zinc500} />
               <View style={{ flex: 1 }}>
                 {v_b9bbbd ? (
-                  <Text style={v_fd5f43.pickerValue} numberOfLines={1}>
-                    {v_8d41d7(`countries:${v_b9bbbd.iso2.toUpperCase()}`, {
-                      defaultValue: v_b9bbbd.name,
-                    })}
+                  <>
+                    <Text style={v_fd5f43.pickerValue} numberOfLines={1}>
+                      {v_8d41d7(`countries:${v_b9bbbd.iso2.toUpperCase()}`, {
+                        defaultValue: v_b9bbbd.name,
+                      })}
+                    </Text>
                     {v_a6c30b && v_a6c30b.iso2 !== "global" && (
-                      <Text style={v_fd5f43.pickerRegion}>
-                        {"  ·  "}
+                      <Text style={v_fd5f43.pickerRegion} numberOfLines={1}>
                         {v_8d41d7(`regions:${v_a6c30b.countryCode}_${v_a6c30b.dialCode}`, {
                           defaultValue: v_a6c30b.name,
                         })}
                       </Text>
                     )}
-                  </Text>
+                  </>
                 ) : (
                   <Text style={v_fd5f43.pickerPlaceholder}>국가를 선택해주세요</Text>
                 )}
