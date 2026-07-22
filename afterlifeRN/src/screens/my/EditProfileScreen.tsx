@@ -105,10 +105,11 @@ export default function v_e2b396() {
       v_889fad("알림", "이름은 비워둘 수 없습니다.");
       return;
     }
-    if (
-      v_435fbe !== "" &&
-      (!Number.isInteger(v_f4fe8e) || v_f4fe8e! < 13 || v_f4fe8e! > 120)
-    ) {
+    if (v_435fbe === "") {
+      v_889fad("알림", "나이를 입력해주세요.");
+      return;
+    }
+    if (!Number.isInteger(v_f4fe8e) || v_f4fe8e! < 13 || v_f4fe8e! > 120) {
       v_889fad("알림", "나이는 13~120 사이의 숫자여야 합니다.");
       return;
     }
