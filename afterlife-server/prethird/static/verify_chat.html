@@ -804,6 +804,8 @@ async function runAutoE2E() {
   if (!cloneId) { alert("클론을 선택하세요"); return; }
   if (!_kQuestions.length) { alert("질문이 없습니다"); return; }
   if (!confirm("이 클론(테스트 계정)에 미답변 질문을 LLM 자동답변으로 학습시킵니다. 진행할까요?")) return;
+  _kPending = null;
+  hideConfirm();
   _autoStop = false;
   $("autoRun").style.display = "none";
   $("autoStop").style.display = "";
