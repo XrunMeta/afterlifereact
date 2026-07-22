@@ -45,8 +45,10 @@ export function OtpCodeInput({
           if (digits.length === 6) onComplete?.();
         }}
         keyboardType="number-pad"
-        textContentType={masked ? "password" : "oneTimeCode"}
-        autoComplete={masked ? "off" : "sms-otp"}
+
+        textContentType="none"
+        autoComplete="off"
+        importantForAutofill="no"
         secureTextEntry={masked}
         maxLength={6}
         autoFocus={autoFocus}
