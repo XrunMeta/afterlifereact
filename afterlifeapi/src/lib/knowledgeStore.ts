@@ -11,8 +11,8 @@ export interface KnowledgeInput {
   a: string;
 }
 
-export const KNOWLEDGE_MAX_ITEMS = 30;
-export const KNOWLEDGE_MAX_TOTAL_CHARS = 3000;
+export const KNOWLEDGE_MAX_ITEMS = 200;
+export const KNOWLEDGE_MAX_TOTAL_CHARS = 20000;
 const KEY_BLOCKED = new Set(["__proto__", "constructor", "prototype"]);
 const FREE_RE = /^_free_(\d+)$/;
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeKnowledge, KNOWLEDGE_MAX_ITEMS } from '../src/lib/knowledgeStore';
+import { normalizeKnowledge, KNOWLEDGE_MAX_ITEMS, KNOWLEDGE_MAX_TOTAL_CHARS } from '../src/lib/knowledgeStore';
 
 const NOW = 1_720_000_000_000;
 
@@ -41,7 +41,7 @@ describe('normalizeKnowledge', () => {
     expect(normalizeKnowledge(many, NOW).ok).toBe(false);
   });
   it('rejects over total chars', () => {
-    const big = normalizeKnowledge([{ key: 'k', a: 'x'.repeat(3001) }], NOW);
+    const big = normalizeKnowledge([{ key: 'k', a: 'x'.repeat(KNOWLEDGE_MAX_TOTAL_CHARS + 1) }], NOW);
     expect(big.ok).toBe(false);
   });
   it('rejects prototype key', () => {
