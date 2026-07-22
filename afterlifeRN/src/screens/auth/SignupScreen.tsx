@@ -106,7 +106,8 @@ export default function SignupScreen({ navigation, route }: Props) {
   const [agreeFaceBiometric, setAgreeFaceBiometric] = useState(false);
 
   const agreeRequired = agreeService && agreePrivacy;
-  const agreeAll = agreeRequired && agreeMarketing;
+  const agreeAll =
+    agreeRequired && agreeMarketing && agreeCallLearning && agreeFaceBiometric;
   const [submitting, setSubmitting] = useState(false);
 
   const [pushToken, setPushToken] = useState<string | null>(null);
@@ -120,6 +121,8 @@ export default function SignupScreen({ navigation, route }: Props) {
       setAgreeService(false);
       setAgreePrivacy(false);
       setAgreeMarketing(false);
+      setAgreeCallLearning(false);
+      setAgreeFaceBiometric(false);
       setPushToken(null);
       setPushPlatform(null);
       setDeviceId(null);
@@ -128,6 +131,8 @@ export default function SignupScreen({ navigation, route }: Props) {
 
     setAgreeService(true);
     setAgreePrivacy(true);
+    setAgreeCallLearning(true);
+    setAgreeFaceBiometric(true);
     if (!agreeMarketing) {
       await toggleMarketing();
     }
