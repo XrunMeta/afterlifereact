@@ -122,7 +122,11 @@ export default function v_040c8f() {
           if (!v_c76a8b) v_fd7d1f("email");
           else v_fd7d1f("otp");
         } else if (v_49263d.code === "NOT_FOUND") v_badeaf = v_8d41d7("auth.forgot.notFound");
-        else if (v_49263d.message) v_badeaf = v_49263d.message;
+        else if (v_49263d.code === "VALIDATION_FAILED") {
+
+          v_badeaf = v_8d41d7("auth.forgot.passwordTooShort");
+        }
+
       }
       v_889fad("오류", v_badeaf);
     } finally {
