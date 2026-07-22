@@ -61,6 +61,18 @@
   #autoRun { background: #16a34a; }
   #autoStop { background: #d33; }
   #autoStatus { flex: 1 1 100%; font-size: 11px; color: #65676b; min-height: 14px; }
+
+  #learnConfirm { border-top: 1px solid #ddd; padding: 8px 14px; background: #f0f6ff; }
+  #learnConfirm .cq { font-size: 12px; color: #65676b; margin-bottom: 4px; }
+  #learnConfirm .ua { font-size: 12px; color: #0b4fc4; margin-bottom: 4px; white-space: pre-wrap; }
+  #learnConfirm .reply { font-size: 13px; margin-bottom: 8px; white-space: pre-wrap; }
+  #learnConfirm .btns { display: flex; gap: 8px; }
+  #learnConfirm button { padding: 4px 16px; border-radius: 6px; border: 0; color: #fff; cursor: pointer; }
+  #learnConfirm .yes { background: #16a34a; }
+  #learnConfirm .no { background: #d33; }
+  .kq .badge-done { display:inline-block; padding:0 6px; border-radius:8px; font-size:10px; font-weight:700; color:#fff; background:#16a34a; margin-right:4px; }
+  .kq .badge-todo { display:inline-block; padding:0 6px; border-radius:8px; font-size:10px; font-weight:700; color:#fff; background:#b0b3b8; margin-right:4px; }
+  .kq .reply { font-size:11px; color:#4a7a52; margin-top:3px; white-space:pre-wrap; }
 </style>
 </head>
 <body>
@@ -99,6 +111,7 @@
       <div id="learnPct"><span class="muted">클론 선택 시 표시</span></div>
     </div>
     <div id="learnList"><span class="muted">클론 선택 시 표시</span></div>
+    <div id="learnConfirm" style="display:none"></div>
     <div id="learnInbar">
       <select id="kqSelect"><option value="">— 질문 선택 —</option></select>
       <textarea id="kqAnswer" placeholder="답변 (수동 학습)"></textarea>
@@ -537,6 +550,38 @@ async function learn(userText, assistantText) {
 
 let _kQuestions = [];   
 let _kItems = [];       
+let _kCloneName = "";   
+let _kPending = null;   
+const _kReplies = {};   
+
+function kqFillName(text) {
+  return String(text || "").replace(/\{name\}/g, _kCloneName || "클론");
+}
+
+function kqSlotKeys(q) {
+  return (q.slots && q.slots.length) ? q.slots.map((s) => s.key) : [q.key];
+}
+
+function kqAnsweredSet() {
+  const itemKeys = new Set(_kItems.map((i) => i.key));
+  const answered = new Set();
+  for (const q of _kQuestions) {
+    if (kqSlotKeys(q).some((k) => itemKeys.has(k))) answered.add(q.key);
+  }
+  return answered;
+}
+
+function renderKqSelect() {
+  const sel = $("kqSelect");
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">— 질문 선택 —</option>';
+  for (const q of _kQuestions) {
+    const o = document.createElement("option");
+    o.value = q.key; o.textContent = kqFillName(q.label);
+    sel.appendChild(o);
+  }
+  if (prev) sel.value = prev;
+}
 
 async function loadKnowledgeQuestions() {
   try {
@@ -547,30 +592,28 @@ async function loadKnowledgeQuestions() {
       _kQuestions = Array.isArray(questions) ? questions : [];
     }
   } catch (e) { _kQuestions = []; }
-  const sel = $("kqSelect");
-  sel.innerHTML = '<option value="">— 질문 선택 —</option>';
-  for (const q of _kQuestions) {
-    const o = document.createElement("option");
-    o.value = q.key; o.textContent = q.label;
-    sel.appendChild(o);
-  }
+  renderKqSelect();
 }
 
 async function loadKnowledgeItems() {
-  const cloneId = parseInt($("clone").value, 10);
-  if (!cloneId) { _kItems = []; renderLearnProgress(); renderLearnList(); return; }
+  const sel = $("clone");
+  _kCloneName = (sel.selectedIndex > 0)
+    ? sel.options[sel.selectedIndex].textContent.replace(/\s*\(#\d+\)\s*$/, "")
+    : "";
+  const cloneId = parseInt(sel.value, 10);
+  if (!cloneId) { _kItems = []; renderKqSelect(); renderLearnProgress(); renderLearnList(); return; }
   try {
     const r = await fetch("/oth-path?clone_id=" + cloneId, { headers: authHeaders() });
     _kItems = r.ok ? ((await r.json()).items || []) : [];
   } catch (e) { _kItems = []; }
+  renderKqSelect();
   renderLearnProgress();
   renderLearnList();
 }
 
 function renderLearnProgress() {
   const total = _kQuestions.length;
-  const answered = new Set(_kItems.map((i) => i.key));
-  const done = _kQuestions.filter((q) => answered.has(q.key)).length;
+  const done = kqAnsweredSet().size;
   const pct = total ? Math.round((done / total) * 100) : 0;
   $("learnBar").firstElementChild.style.width = pct + "%";
   $("learnPct").innerHTML = total
@@ -581,31 +624,35 @@ function renderLearnProgress() {
 function renderLearnList() {
   if (!_kQuestions.length) { $("learnList").innerHTML = '<span class="muted">질문 없음</span>'; return; }
   const byKey = {};
-  for (const it of _kItems) { (byKey[it.key] = byKey[it.key] || []).push(it); }
-  const answered = _kQuestions.filter((q) => byKey[q.key]);
-  const rest = _kQuestions.filter((q) => !byKey[q.key]);
+  for (const it of _kItems) { byKey[it.key] = it; }
+  const answeredSet = kqAnsweredSet();
+  const answered = _kQuestions.filter((q) => answeredSet.has(q.key));
+  const rest = _kQuestions.filter((q) => !answeredSet.has(q.key));
   const card = (q) => {
-    const items = byKey[q.key] || [];
-    const done = items.length > 0;
+    const done = answeredSet.has(q.key);
+    const label = esc(kqFillName(q.label));
+    if (!done) {
+      return `<div class="kq">
+        <div class="q"><span class="badge-todo">미답변</span>${label}</div>
+      </div>`;
+    }
     const slotLabel = {};
     for (const s of (q.slots || [])) slotLabel[s.key] = s.label;
-    const answerText = items.map((i) => i.a).filter(Boolean).join(" · ");
-    const slotRows = items.map((i) =>
-      `<b>${esc(slotLabel[i.key] || i.key)}</b>: ${esc(i.a)}`).join(" / ");
-    return `<div class="kq ${done ? "done" : ""}">
-      <div class="q">${esc(q.label)}</div>
-      ${done
-        ? `<div class="a">${esc(answerText)}</div><div class="slots">${slotRows}</div>`
-        : `<div class="empty">미답변</div>`}
+    const matched = kqSlotKeys(q).map((k) => byKey[k]).filter(Boolean);
+    const slotRows = matched.map((it) =>
+      `<b>${esc(kqFillName(slotLabel[it.key] || it.key))}</b>: ${esc(it.a)}`).join(" / ");
+    const reply = _kReplies[q.key];
+    return `<div class="kq done">
+      <div class="q"><span class="badge-done">✅ 완료</span>${label}</div>
+      <div class="slots">${slotRows}</div>
+      ${reply ? `<div class="reply">${esc(reply)}</div>` : ""}
     </div>`;
   };
   $("learnList").innerHTML = answered.map(card).join("") + rest.map(card).join("");
 }
 
-async function learnOne(questionKey, answer) {
+async function interpretOne(questionKey, answer) {
   const cloneId = parseInt($("clone").value, 10);
-  if (!cloneId || !questionKey || !answer) return { ok: false, error: "invalid" };
-
   let interp;
   try {
     const r = await fetch("/oth-path", {
@@ -613,12 +660,16 @@ async function learnOne(questionKey, answer) {
       body: JSON.stringify({ clone_id: cloneId, questionKey, answer }),
     });
     interp = await r.json();
-    if (interp.error) return { ok: false, error: interp.error, reply: interp.reply };
-    if (!r.ok) return { ok: false, error: interp.error || ("http " + r.status) };
-  } catch (e) { return { ok: false, error: "interpret-fail" }; }
+    if (interp.error) return { error: interp.error, reply: interp.reply };
+    if (!r.ok) return { error: "http " + r.status };
+  } catch (e) { return { error: "interpret-fail" }; }
   const slots = (interp.slots || []).filter((s) => s && s.a && String(s.a).trim());
-  if (!slots.length) return { ok: false, error: "no-slots", reply: interp.reply };
+  if (!slots.length) return { error: "no-slots", reply: interp.reply };
+  return { slots, reply: interp.reply || "" };
+}
 
+async function saveSlots(slots) {
+  const cloneId = parseInt($("clone").value, 10);
   const kept = _kItems.filter((i) => !slots.some((s) => s.key === i.key));
   const nextItems = kept.concat(slots.map((s) => ({ key: s.key, q: s.q, a: s.a })));
   try {
@@ -626,9 +677,61 @@ async function learnOne(questionKey, answer) {
       method: "PUT", headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ clone_id: cloneId, items: nextItems }),
     });
-    if (!r.ok) return { ok: false, error: "save-fail " + r.status, reply: interp.reply };
-  } catch (e) { return { ok: false, error: "save-fail", reply: interp.reply }; }
+    if (!r.ok) return { ok: false, error: "save-fail " + r.status };
+  } catch (e) { return { ok: false, error: "save-fail" }; }
   await loadKnowledgeItems();
+  return { ok: true };
+}
+
+function showConfirm(pending) {
+  const q = _kQuestions.find((qq) => qq.key === pending.questionKey);
+  const qLabel = q ? kqFillName(q.label) : pending.questionKey;
+  const el = $("learnConfirm");
+  el.innerHTML =
+    `<div class="cq">${esc(qLabel)}</div>` +
+    `<div class="ua">${esc(pending.userAnswer)}</div>` +
+    `<div class="reply">${esc(pending.reply || "")}</div>` +
+    `<div class="btns"><button class="yes" type="button">예, 맞아요</button><button class="no" type="button">아니요</button></div>`;
+  el.style.display = "";
+  el.querySelector(".yes").addEventListener("click", confirmYes);
+  el.querySelector(".no").addEventListener("click", confirmNo);
+}
+
+function hideConfirm() {
+  $("learnConfirm").style.display = "none";
+  $("learnConfirm").innerHTML = "";
+  $("learnOne").disabled = false;
+}
+
+async function confirmYes() {
+  if (!_kPending) return;
+  const { questionKey, slots, reply } = _kPending;
+  const res = await saveSlots(slots);
+  _kPending = null;
+  hideConfirm();
+  $("kqAnswer").value = "";
+  $("autoStatus").textContent = res.ok
+    ? "저장됨: " + (reply || "")
+    : "실패: " + (res.error || "");
+  if (res.ok) _kReplies[questionKey] = reply;
+}
+
+function confirmNo() {
+  if (!_kPending) return;
+  $("kqAnswer").value = _kPending.userAnswer;
+  $("kqSelect").value = _kPending.questionKey;
+  _kPending = null;
+  hideConfirm();
+  $("autoStatus").textContent = "";
+}
+
+async function learnOne(questionKey, answer) {
+  if (!questionKey || !answer) return { ok: false, error: "invalid" };
+  const interp = await interpretOne(questionKey, answer);
+  if (interp.error) return { ok: false, error: interp.error, reply: interp.reply };
+  const res = await saveSlots(interp.slots);
+  if (!res.ok) return { ok: false, error: res.error, reply: interp.reply };
+  _kReplies[questionKey] = interp.reply || "";
   return { ok: true, reply: interp.reply };
 }
 
@@ -639,12 +742,16 @@ $("learnOne").onclick = async () => {
   if (!a) { alert("답변을 입력하세요"); return; }
   $("learnOne").disabled = true;
   $("autoStatus").textContent = "학습 중…";
-  const res = await learnOne(qk, a);
-  $("learnOne").disabled = false;
-  $("kqAnswer").value = "";
-  $("autoStatus").textContent = res.ok
-    ? "저장됨: " + (res.reply || "")
-    : "실패: " + (res.error || "");
+  const interp = await interpretOne(qk, a);
+  if (interp.error) {
+    $("learnOne").disabled = false;
+    $("autoStatus").textContent = "실패: " + interp.error + (interp.reply ? " (" + interp.reply + ")" : "");
+    return;
+  }
+  $("autoStatus").textContent = "";
+  _kPending = { questionKey: qk, slots: interp.slots, reply: interp.reply || "", userAnswer: a };
+  showConfirm(_kPending);
+
 };
 
 let _autoStop = false;
