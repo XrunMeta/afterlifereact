@@ -2,7 +2,7 @@
 
 import { v_f2c756, v_326be8 } from "rcmrninabrnb";
 
-const v_6847f9 = "xrun://";
+const v_6847f9 = "xrun://open";
 const v_afac13 =
   "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
 const v_8220cd = "https://apps.apple.com/app/id1492389867";
@@ -21,6 +21,7 @@ export async function v_0c2802(v_328259 = {}): Promise<void> {
   v_24baff.push("from=afterlife");
   const v_6045c3 = `${v_6847f9}?${v_24baff.join("&")}`;
 
+  console.log("[openXrunApp] opening:", v_6045c3);
   try {
     await v_f2c756.openURL(v_6045c3);
     return;
@@ -28,8 +29,17 @@ export async function v_0c2802(v_328259 = {}): Promise<void> {
     console.warn("[openXrunApp] deepLink failed, falling back to store:", v_49263d);
   }
 
-  const v_b71a74 =
-    v_326be8.OS === "android" ? v_afac13 : v_8220cd;
+  let v_b71a74;
+  if (v_326be8.OS === "android") {
+    if (v_e0c7e8 && v_35200c) {
+      const v_6d4ed3 = `utm_source=afterlife_signup&utm_content=${encodeURIComponent(v_e0c7e8)}`;
+      v_b71a74 = `${v_afac13}&referrer=${encodeURIComponent(v_6d4ed3)}`;
+    } else {
+      v_b71a74 = v_afac13;
+    }
+  } else {
+    v_b71a74 = v_8220cd;
+  }
   try {
     await v_f2c756.openURL(v_b71a74);
     return;
