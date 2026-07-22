@@ -1,11 +1,12 @@
 import { v_889fad } from "../../stores/dialogStore";
-import v_a3453e, { v_5ab095 } from "bapkr";
+import v_a3453e, { v_5ab095, v_e662ae } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
   v_4623af,
   v_472849,
   v_03e392,
+  v_79c4f2,
 } from "rcmrninabrnb";
 import v_1a40c4 from "../../components/ui/Button";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
@@ -73,6 +74,15 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_d39271, v_fe0d62] = v_5ab095<v_3ac6ea | null>(null);
   const [v_b5ab16, v_b7733b] = v_5ab095(false);
   const [v_0b85b1, v_3c4c2d] = v_5ab095(false);
+
+  const v_237bb3 = v_e662ae<v_79c4f2>(null);
+  const v_776c12 = v_e662ae<v_79c4f2>(null);
+  const v_15e85c = v_e662ae<v_79c4f2>(null);
+  const v_68cd31 = v_e662ae<v_79c4f2>(null);
+  const v_11ccfc = v_e662ae<v_79c4f2>(null);
+  const v_8fb688 = (ref: v_a3453e.RefObject<v_79c4f2 | null>) => () => {
+    setTimeout(() => v_6d4ed3.current?.focus(), 100);
+  };
 
   const [v_51b53b, v_c8f346] = v_5ab095(false);
   const [v_09b7fa, v_1d4807] = v_5ab095(false);
@@ -143,29 +153,96 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   };
 
   const v_585b02 = async () => {
-    if (!v_1833e7 || !v_e0c7e8 || !v_adc076 || !v_d74a81 || !v_c3eac4 || !v_a95e84) {
-      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.requiredFields"));
+
+    if (!v_1833e7.trim()) {
+      v_889fad(
+        v_8d41d7("common.notice"),
+        v_8d41d7("auth.signup.nameRequired", { defaultValue: "이름을 입력해주세요." }),
+        [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: v_8fb688(v_237bb3) }],
+      );
       return;
     }
-    if (!v_b9bbbd) {
-      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.countryRequired"));
+    if (!v_e0c7e8.trim()) {
+      v_889fad(
+        v_8d41d7("common.notice"),
+        v_8d41d7("auth.signup.emailRequired", { defaultValue: "이메일을 입력해주세요." }),
+        [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: v_8fb688(v_776c12) }],
+      );
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v_e0c7e8)) {
-      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.emailInvalid"));
+      v_889fad(
+        v_8d41d7("common.notice"),
+        v_8d41d7("auth.signup.emailInvalid"),
+        [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: v_8fb688(v_776c12) }],
+      );
+      return;
+    }
+    if (!v_adc076) {
+      v_889fad(
+        v_8d41d7("common.notice"),
+        v_8d41d7("auth.signup.passwordRequired", { defaultValue: "비밀번호를 입력해주세요." }),
+        [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: v_8fb688(v_15e85c) }],
+      );
       return;
     }
 
     if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/.test(v_adc076)) {
-      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.passwordTooShort"));
+      v_889fad(
+        v_8d41d7("common.notice"),
+        v_8d41d7("auth.signup.passwordTooShort"),
+        [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: v_8fb688(v_15e85c) }],
+      );
+      return;
+    }
+    if (!v_0b3ebe) {
+      v_889fad(
+        v_8d41d7("common.notice"),
+        v_8d41d7("auth.signup.passwordConfirmRequired", { defaultValue: "비밀번호 확인을 입력해주세요." }),
+        [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: v_8fb688(v_68cd31) }],
+      );
       return;
     }
     if (v_adc076 !== v_0b3ebe) {
-      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.passwordsNotMatch"));
+      v_889fad(
+        v_8d41d7("common.notice"),
+        v_8d41d7("auth.signup.passwordsNotMatch"),
+        [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: v_8fb688(v_68cd31) }],
+      );
+      return;
+    }
+    if (!v_d74a81.trim()) {
+      v_889fad(
+        v_8d41d7("common.notice"),
+        v_8d41d7("auth.signup.phoneRequired", { defaultValue: "전화번호를 입력해주세요." }),
+        [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: v_8fb688(v_11ccfc) }],
+      );
       return;
     }
     if (v_d74a81.length < 4) {
-      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.phoneTooShort"));
+      v_889fad(
+        v_8d41d7("common.notice"),
+        v_8d41d7("auth.signup.phoneTooShort"),
+        [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: v_8fb688(v_11ccfc) }],
+      );
+      return;
+    }
+    if (!v_c3eac4) {
+      v_889fad(
+        v_8d41d7("common.notice"),
+        v_8d41d7("auth.signup.genderRequired", { defaultValue: "성별을 선택해주세요." }),
+      );
+      return;
+    }
+    if (!v_a95e84) {
+      v_889fad(
+        v_8d41d7("common.notice"),
+        v_8d41d7("auth.signup.birthYearRequired", { defaultValue: "출생연도를 선택해주세요." }),
+      );
+      return;
+    }
+    if (!v_b9bbbd) {
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.countryRequired"));
       return;
     }
     if (!v_5c764d) {
@@ -300,6 +377,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         <View style={v_d81136.container}>
           {}
           <TextField
+            ref={v_237bb3}
             placeholder={v_8d41d7("auth.signup.name")}
             value={v_1833e7}
             onChangeText={v_318f24}
@@ -309,6 +387,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           {
 }
           <TextField
+            ref={v_776c12}
             placeholder={v_8d41d7("auth.signup.email")}
             value={v_e0c7e8}
             onChangeText={v_a8d185 ? undefined : v_fedf34}
@@ -327,6 +406,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           {}
           <View>
             <TextField
+              ref={v_15e85c}
               placeholder={v_8d41d7("auth.signup.password")}
               value={v_adc076}
               onChangeText={v_52b279}
@@ -343,6 +423,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
           {}
           <TextField
+            ref={v_68cd31}
             placeholder={v_8d41d7("auth.signup.passwordConfirm")}
             value={v_0b3ebe}
             onChangeText={v_241a35}
@@ -362,6 +443,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
           {}
           <TextField
+            ref={v_11ccfc}
             placeholder={v_8d41d7("auth.signup.phone")}
             value={v_d74a81}
             onChangeText={v_fcce73}
