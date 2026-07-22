@@ -9,7 +9,6 @@ import {
   v_472849,
   v_122070,
   v_39a996,
-  v_09d0e5,
   v_e45a99,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
@@ -154,10 +153,9 @@ export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v
       animationType="fade"
       onRequestClose={v_0890f8}
     >
-      <Pressable style={v_fd5f43.overlay} onPress={v_0890f8}>
-        {
-
+      {
 }
+      <View style={v_fd5f43.overlay}>
         <View style={[v_fd5f43.card, { height: v_3d6201 }]}>
           {}
           <View style={v_fd5f43.header}>
@@ -215,7 +213,7 @@ export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v
             </TouchableOpacity>
           </View>
         </View>
-      </Pressable>
+      </View>
     </Modal>
   );
 }
