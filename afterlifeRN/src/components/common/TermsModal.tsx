@@ -9,7 +9,6 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Pressable,
   useWindowDimensions,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
@@ -154,10 +153,9 @@ export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
       animationType="fade"
       onRequestClose={onClose}
     >
-      <Pressable style={s.overlay} onPress={onClose}>
-        {
-
+      {
 }
+      <View style={s.overlay}>
         <View style={[s.card, { height: cardHeight }]}>
           {}
           <View style={s.header}>
@@ -215,7 +213,7 @@ export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
             </TouchableOpacity>
           </View>
         </View>
-      </Pressable>
+      </View>
     </Modal>
   );
 }
