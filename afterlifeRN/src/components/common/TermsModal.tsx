@@ -10,6 +10,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Pressable,
+  useWindowDimensions,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -76,6 +77,9 @@ const TITLE_FALLBACK: Record<AgreementType, string> = {
 
 export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
   const { t, i18n } = useTranslation();
+
+  const { height: winHeight } = useWindowDimensions();
+  const cardHeight = Math.min(winHeight * 0.8, winHeight - 80);
   const [content, setContent] = useState<string>("");
   const [returnedLang, setReturnedLang] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -151,7 +155,10 @@ export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
       onRequestClose={onClose}
     >
       <Pressable style={s.overlay} onPress={onClose}>
-        <Pressable style={s.card} onPress={(e) => e.stopPropagation()}>
+        {
+
+}
+        <View style={[s.card, { height: cardHeight }]}>
           {}
           <View style={s.header}>
             <View style={s.headerBtn} />
@@ -166,6 +173,8 @@ export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
             style={s.contentScroll}
             contentContainerStyle={s.contentInner}
             showsVerticalScrollIndicator
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
           >
             {loading ? (
               <ActivityIndicator
@@ -205,7 +214,7 @@ export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
               </Text>
             </TouchableOpacity>
           </View>
-        </Pressable>
+        </View>
       </Pressable>
     </Modal>
   );
@@ -223,7 +232,6 @@ const s = StyleSheet.create({
   card: {
     width: "92%",
     maxWidth: 480,
-    height: "80%",
     backgroundColor: COLORS.white,
     borderRadius: RADIUS.lg,
     overflow: "hidden",
