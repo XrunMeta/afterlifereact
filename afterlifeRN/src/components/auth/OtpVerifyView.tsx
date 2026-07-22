@@ -1,6 +1,6 @@
 
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef } from "react";
 import { View, Text, TextInput, Pressable, TouchableOpacity, StyleSheet } from "react-native";
 import Button from "../ui/Button";
 import { COLORS, SIZES, RADIUS } from "../constants";
@@ -25,9 +25,7 @@ export function OtpCodeInput({
 }) {
   const inputRef = useRef<TextInput>(null);
 
-  useEffect(() => {
-    if (value.length === 6) onComplete?.();
-  }, [value, onComplete]);
+  void onComplete;
   return (
     <Pressable style={s.cellRow} onPress={() => inputRef.current?.focus()}>
       {CELLS.map((i) => {
