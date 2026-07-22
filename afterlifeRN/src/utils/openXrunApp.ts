@@ -2,7 +2,7 @@
 
 import { Linking, Platform } from "react-native";
 
-const XRUN_SCHEME = "xrun://";
+const XRUN_SCHEME = "xrun://open";
 const XRUN_PLAY_STORE_URL =
   "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
 const XRUN_APP_STORE_URL = "https://apps.apple.com/app/id1492389867";
@@ -21,6 +21,7 @@ export async function openXrunApp(opts: OpenXrunOptions = {}): Promise<void> {
   params.push("from=afterlife");
   const deepLink = `${XRUN_SCHEME}?${params.join("&")}`;
 
+  console.log("[openXrunApp] opening:", deepLink);
   try {
     await Linking.openURL(deepLink);
     return;
@@ -28,8 +29,17 @@ export async function openXrunApp(opts: OpenXrunOptions = {}): Promise<void> {
     console.warn("[openXrunApp] deepLink failed, falling back to store:", err);
   }
 
-  const storeUrl =
-    Platform.OS === "android" ? XRUN_PLAY_STORE_URL : XRUN_APP_STORE_URL;
+  let storeUrl: string;
+  if (Platform.OS === "android") {
+    if (email && signup) {
+      const ref = `utm_source=afterlife_signup&utm_content=${encodeURIComponent(email)}`;
+      storeUrl = `${XRUN_PLAY_STORE_URL}&referrer=${encodeURIComponent(ref)}`;
+    } else {
+      storeUrl = XRUN_PLAY_STORE_URL;
+    }
+  } else {
+    storeUrl = XRUN_APP_STORE_URL;
+  }
   try {
     await Linking.openURL(storeUrl);
     return;
