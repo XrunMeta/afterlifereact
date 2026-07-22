@@ -105,10 +105,11 @@ export default function EditProfileScreen() {
       showAlert("알림", "이름은 비워둘 수 없습니다.");
       return;
     }
-    if (
-      ageRaw !== "" &&
-      (!Number.isInteger(ageNum) || ageNum! < 13 || ageNum! > 120)
-    ) {
+    if (ageRaw === "") {
+      showAlert("알림", "나이를 입력해주세요.");
+      return;
+    }
+    if (!Number.isInteger(ageNum) || ageNum! < 13 || ageNum! > 120) {
       showAlert("알림", "나이는 13~120 사이의 숫자여야 합니다.");
       return;
     }
