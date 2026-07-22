@@ -152,3 +152,104 @@ async def test_autoanswer_llm_exception_returns_502(monkeypatch):
         assert resp.status == 502
         data = await resp.json()
         assert data.get("error") == "llm_failed"
+
+
+_CONFIRM_CHECK_BODY = {
+    "question": "산이 좋아요, 바다가 좋아요?",
+    "answer": "바다가 더 좋아",
+    "reply": "오너는 바다를 더 좋아한다고 확인했습니다.",
+}
+
+
+@pytest.mark.asyncio
+async def test_confirm_check_route_disabled_by_default(monkeypatch):
+    monkeypatch.delenv("PRETHIRD_VERIFY_ENABLED", raising=False)
+    app = make_app(pipeline_factory=None)
+    async with TestClient(TestServer(app)) as client:
+        resp = await client.post("/oth-path")
+        assert resp.status == 404  # 라우트 미등록
+
+
+@pytest.mark.asyncio
+async def test_confirm_check_route_enabled_requires_bearer(monkeypatch):
+    monkeypatch.setenv("PRETHIRD_VERIFY_ENABLED", "1")
+    app = make_app(pipeline_factory=None)
+    async with TestClient(TestServer(app)) as client:
+        # 토큰 없이 호출 → 라우트는 존재하므로 401(404 아님)
+        resp = await client.post("/oth-path")
+        assert resp.status == 401
+
+
+@pytest.mark.asyncio
+async def test_confirm_check_missing_fields_returns_400(monkeypatch):
+    monkeypatch.setenv("PRETHIRD_VERIFY_ENABLED", "1")
+    app = make_app(pipeline_factory=None)
+    async with TestClient(TestServer(app)) as client:
+        resp = await client.post("/oth-path",
+                                  headers={"Authorization": "Bearer T"},
+                                  json={"question": "q", "answer": "a"})  # reply 누락
+        assert resp.status == 400
+
+
+@pytest.mark.asyncio
+async def test_confirm_check_field_too_long_returns_400(monkeypatch):
+    monkeypatch.setenv("PRETHIRD_VERIFY_ENABLED", "1")
+    app = make_app(pipeline_factory=None)
+    async with TestClient(TestServer(app)) as client:
+        body = dict(_CONFIRM_CHECK_BODY)
+        body["reply"] = "x" * 1001
+        resp = await client.post("/oth-path",
+                                  headers={"Authorization": "Bearer T"},
+                                  json=body)
+        assert resp.status == 400
+
+
+@pytest.mark.asyncio
+async def test_confirm_check_consistent_false_parsed_returns_200(monkeypatch):
+    monkeypatch.setenv("PRETHIRD_VERIFY_ENABLED", "1")
+    monkeypatch.setattr(
+        chat_endpoint, "chat_once",
+        _fake_chat_once(return_value='{"consistent": false, "reason": "부정 반전"}'),
+    )
+    app = make_app(pipeline_factory=None)
+    async with TestClient(TestServer(app)) as client:
+        resp = await client.post("/oth-path",
+                                  headers={"Authorization": "Bearer T"},
+                                  json=_CONFIRM_CHECK_BODY)
+        assert resp.status == 200
+        data = await resp.json()
+        assert data == {"consistent": False, "reason": "부정 반전"}
+
+
+@pytest.mark.asyncio
+async def test_confirm_check_non_json_reply_returns_502_parse_failed(monkeypatch):
+    monkeypatch.setenv("PRETHIRD_VERIFY_ENABLED", "1")
+    monkeypatch.setattr(
+        chat_endpoint, "chat_once",
+        _fake_chat_once(return_value="이건 JSON이 아니야"),
+    )
+    app = make_app(pipeline_factory=None)
+    async with TestClient(TestServer(app)) as client:
+        resp = await client.post("/oth-path",
+                                  headers={"Authorization": "Bearer T"},
+                                  json=_CONFIRM_CHECK_BODY)
+        assert resp.status == 502
+        data = await resp.json()
+        assert data.get("error") == "parse_failed"
+
+
+@pytest.mark.asyncio
+async def test_confirm_check_llm_exception_returns_502_llm_failed(monkeypatch):
+    monkeypatch.setenv("PRETHIRD_VERIFY_ENABLED", "1")
+    monkeypatch.setattr(
+        chat_endpoint, "chat_once",
+        _fake_chat_once(raise_exc=RuntimeError("boom")),
+    )
+    app = make_app(pipeline_factory=None)
+    async with TestClient(TestServer(app)) as client:
+        resp = await client.post("/oth-path",
+                                  headers={"Authorization": "Bearer T"},
+                                  json=_CONFIRM_CHECK_BODY)
+        assert resp.status == 502
+        data = await resp.json()
+        assert data.get("error") == "llm_failed"
