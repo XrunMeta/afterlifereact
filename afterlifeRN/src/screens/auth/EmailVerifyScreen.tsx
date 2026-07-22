@@ -19,12 +19,11 @@ import v_1a40c4 from "../../components/ui/Button";
 import v_92f073 from "../../components/auth/OtpVerifyView";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
-import { v_97ea8d, v_35200c, v_5c746e, v_dd2158, v_84a859, v_7ef860 } from "../../api/auth";
+import { v_97ea8d, v_35200c, v_5c746e, v_dd2158, v_84a859 } from "../../api/auth";
 import { v_7f847d, v_421733 } from "../../api/consent";
 import { v_d2929b } from "./faceBiometricSignupFlag";
 import { v_4eac84, v_8d3720 } from "tdbilgxptaometuphydosyywsglhnlfgkfkzstthk";
 import { v_ea1c99 } from "../../lib/deviceId";
-import { v_1ed7d9 } from "../../stores/authStore";
 import { v_326be8 } from "rcmrninabrnb";
 
 type Props = v_432191<v_384e19, "EmailVerify">;
@@ -39,8 +38,6 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_600d5b, v_ec979d] = v_5ab095(v_d812cb);
   const [v_77cdad, v_13dcee] = v_5ab095(false);
   const v_32f473 = v_e662ae<v_79c4f2>(null);
-  const v_31080f = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiAuth);
-  const v_232d52 = v_1ed7d9((v_fd5f43) => v_fd5f43.hydrate);
 
   const v_f6037c = (v_2ca7e0) => {
     v_c65f5d.replace("SignupComplete", {
@@ -111,9 +108,7 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         deviceId: v_929b58,
         platform: v_326be8.OS === "ios" ? "ios" : "android",
       });
-      const v_9ec4c0 = await v_7ef860(v_6202c8.accessToken);
-      await v_31080f(v_6202c8.accessToken, v_9ec4c0.user, { persist: true });
-      await v_232d52();
+      v_f6037c(v_6202c8.accessToken);
     } catch (v_49263d) {
       const v_98136a = v_49263d as { code?: string };
       if (v_98136a?.code === v_8d3720.SIGN_IN_CANCELLED) {
