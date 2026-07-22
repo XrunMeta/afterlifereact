@@ -148,10 +148,10 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     if (!v_2ca7e0 || !v_2a8f35) return;
     const v_779914 = v_343c90.trim();
     if (!v_779914) return;
-    if (v_4622b9.length >= 30 && !v_31c649.has(v_2a8f35.key)) {
+    if (v_4622b9.length >= 200 && !v_31c649.has(v_2a8f35.key)) {
       v_889fad(
         v_8d41d7("common.notice", { defaultValue: "안내" }),
-        v_8d41d7("learn.maxItems", { defaultValue: "지식 항목이 최대 30개까지에요." }),
+        v_8d41d7("learn.maxItems", { defaultValue: "지식 항목이 최대 200개까지에요." }),
       );
       return;
     }

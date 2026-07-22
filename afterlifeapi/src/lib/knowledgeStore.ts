@@ -11,8 +11,8 @@ export interface KnowledgeInput {
   a: string;
 }
 
-export const v_5636c2 = 30;
-export const v_784376 = 3000;
+export const v_5636c2 = 200;
+export const v_784376 = 20000;
 const v_5fbfe3 = new Set(["__proto__", "constructor", "prototype"]);
 const v_783c98 = /^_free_(\d+)$/;
 
