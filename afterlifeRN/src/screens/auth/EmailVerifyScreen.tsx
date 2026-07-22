@@ -19,9 +19,13 @@ import v_1a40c4 from "../../components/ui/Button";
 import v_92f073 from "../../components/auth/OtpVerifyView";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
-import { v_97ea8d, v_35200c, v_84a859 } from "../../api/auth";
+import { v_97ea8d, v_35200c, v_5c746e, v_dd2158, v_84a859, v_7ef860 } from "../../api/auth";
 import { v_7f847d, v_421733 } from "../../api/consent";
 import { v_d2929b } from "./faceBiometricSignupFlag";
+import { v_4eac84, v_8d3720 } from "tdbilgxptaometuphydosyywsglhnlfgkfkzstthk";
+import { v_ea1c99 } from "../../lib/deviceId";
+import { v_1ed7d9 } from "../../stores/authStore";
+import { v_326be8 } from "rcmrninabrnb";
 
 type Props = v_432191<v_384e19, "EmailVerify">;
 
@@ -35,6 +39,91 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_600d5b, v_ec979d] = v_5ab095(v_d812cb);
   const [v_77cdad, v_13dcee] = v_5ab095(false);
   const v_32f473 = v_e662ae<v_79c4f2>(null);
+  const v_31080f = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiAuth);
+  const v_232d52 = v_1ed7d9((v_fd5f43) => v_fd5f43.hydrate);
+
+  const v_f6037c = (v_2ca7e0) => {
+    v_c65f5d.replace("SignupComplete", {
+      accessToken: v_2ca7e0,
+      persist: true,
+      email: v_24baff.email,
+    });
+  };
+
+  const v_1fe71f = (v_2ca7e0) => {
+    v_889fad(
+      v_8d41d7("auth.emailVerify.googleLinkTitle", { defaultValue: "구글 계정 연동" }),
+      v_8d41d7("auth.emailVerify.googleLinkDesc", {
+        defaultValue:
+          "가입하신 Gmail 계정을 Google 로그인과 연동하시겠어요?\n연동하면 다음부터 간편하게 로그인할 수 있습니다.",
+      }),
+      [
+        {
+          text: v_8d41d7("auth.emailVerify.later", { defaultValue: "나중에" }),
+          style: "cancel",
+          onPress: () => v_f6037c(v_2ca7e0),
+        },
+        {
+          text: v_8d41d7("auth.emailVerify.linkNow", { defaultValue: "연동하기" }),
+          onPress: () => void v_ac1a42(v_2ca7e0),
+        },
+      ],
+    );
+  };
+
+  const v_ac1a42 = async (v_2ca7e0) => {
+    try {
+      await v_4eac84.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      try {
+        await v_4eac84.signOut();
+      } catch {
+
+      }
+      const v_bb789b = (await v_4eac84.signIn()) as unknown as {
+        idToken?: string | null;
+        data?: { idToken?: string | null };
+      };
+      const v_b50834 = v_bb789b?.idToken ?? v_bb789b?.data?.idToken;
+      if (!v_b50834) {
+        console.warn("[google-link] no idToken");
+        v_f6037c(v_2ca7e0);
+        return;
+      }
+
+      const v_de130a = await v_5c746e(v_b50834);
+      const v_3639b5 = (v_de130a.email ?? "").toLowerCase();
+      const v_b450eb = v_24baff.email.toLowerCase();
+      if (v_3639b5 !== v_b450eb) {
+        v_889fad(
+          v_8d41d7("common.notice"),
+          v_8d41d7("auth.emailVerify.googleEmailMismatch", {
+            defaultValue:
+              "가입 시 입력하신 이메일과 구글 로그인 이메일이 다릅니다. 연동 없이 계속 진행합니다.",
+          }),
+          [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: () => v_f6037c(v_2ca7e0) }],
+        );
+        return;
+      }
+
+      const v_929b58 = await v_ea1c99();
+      const v_6202c8 = await v_dd2158({
+        idToken: v_b50834,
+        deviceId: v_929b58,
+        platform: v_326be8.OS === "ios" ? "ios" : "android",
+      });
+      const v_9ec4c0 = await v_7ef860(v_6202c8.accessToken);
+      await v_31080f(v_6202c8.accessToken, v_9ec4c0.user, { persist: true });
+      await v_232d52();
+    } catch (v_49263d) {
+      const v_98136a = v_49263d as { code?: string };
+      if (v_98136a?.code === v_8d3720.SIGN_IN_CANCELLED) {
+        v_f6037c(v_2ca7e0);
+        return;
+      }
+      console.warn("[google-link] failed:", v_49263d);
+      v_f6037c(v_2ca7e0);
+    }
+  };
 
   v_c4deb2(() => {
     const v_8d41d7 = setInterval(() => v_ec979d((v_fd5f43) => (v_fd5f43 > 0 ? v_fd5f43 - 1 : 0)), 1000);
@@ -107,11 +196,12 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       }
 
       console.log("[AUTH/signup] success, accessExpiresIn:", v_8f00b9.accessExpiresIn);
-      v_c65f5d.replace("SignupComplete", {
-        accessToken: v_8f00b9.accessToken,
-        persist: true,
-        email: v_24baff.email,
-      });
+
+      if (v_24baff.email.toLowerCase().endsWith("@gmail.com")) {
+        v_1fe71f(v_8f00b9.accessToken);
+      } else {
+        v_f6037c(v_8f00b9.accessToken);
+      }
     } catch (v_49263d) {
       let v_badeaf = v_8d41d7("auth.signup.signupFailed");
       if (v_49263d instanceof v_84a859) {
