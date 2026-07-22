@@ -770,6 +770,20 @@ async function autoAnswerOne(q) {
   return answer;
 }
 
+async function confirmCheckOne(q, answer, reply) {
+  try {
+    const r = await fetch("/oth-path", {
+      method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ question: kqFillName(q.label), answer, reply }),
+    });
+    if (!r.ok) return { consistent: true, reason: "check-skip(http " + r.status + ")" };
+    const data = await r.json();
+    return { consistent: !!data.consistent, reason: data.reason || "" };
+  } catch (e) {
+    return { consistent: true, reason: "check-skip(http err)" };
+  }
+}
+
 async function runAutoE2E() {
   const cloneId = parseInt($("clone").value, 10);
   if (!cloneId) { alert("클론을 선택하세요"); return; }
@@ -779,21 +793,53 @@ async function runAutoE2E() {
   $("autoRun").style.display = "none";
   $("autoStop").style.display = "";
   $("learnOne").disabled = true;
-  const answered = new Set(_kItems.map((i) => i.key));
-  const pending = _kQuestions.filter((q) => !answered.has(q.key));
-  let ok = 0, fail = 0;
+  const answeredSet = kqAnsweredSet();
+  const pending = _kQuestions.filter((q) => !answeredSet.has(q.key));
+  let saved = 0, distort = 0, recovered = 0, skipped = 0, fail = 0;
   for (let i = 0; i < pending.length; i++) {
     if (_autoStop) { $("autoStatus").textContent = `중단됨 (${i}/${pending.length})`; break; }
     const q = pending[i];
-    $("autoStatus").textContent = `[${i + 1}/${pending.length}] ${q.label} — 답변 생성 중…`;
+    const qLabel = kqFillName(q.label);
     try {
+      $("autoStatus").textContent = `[${i + 1}/${pending.length}] ${qLabel} — 답변 생성 중…`;
       const answer = await autoAnswerOne(q);
-      $("autoStatus").textContent = `[${i + 1}/${pending.length}] ${q.label} → "${answer}" 학습 중…`;
-      const res = await learnOne(q.key, answer);  
-      res.ok ? ok++ : fail++;
+
+      $("autoStatus").textContent = `[${i + 1}/${pending.length}] ${qLabel} — 해석 중…`;
+      const interp = await interpretOne(q.key, answer);
+      if (interp.error) { fail++; continue; }
+
+      $("autoStatus").textContent = `[${i + 1}/${pending.length}] ${qLabel} — 판정 중…`;
+      const check = await confirmCheckOne(q, answer, interp.reply);
+      if (check.consistent) {
+        const res = await saveSlots(interp.slots);
+        if (!res.ok) { fail++; continue; }
+        _kReplies[q.key] = interp.reply || "";
+        saved++;
+        $("autoStatus").textContent = `[${i + 1}/${pending.length}] ${qLabel} — 저장됨(${check.reason || "일치"})`;
+        continue;
+      }
+
+      distort++;
+      $("autoStatus").textContent = `[${i + 1}/${pending.length}] ${qLabel} — 왜곡감지(${check.reason || "불일치"}), 재해석 중…`;
+      const interp2 = await interpretOne(q.key, answer);
+      if (interp2.error) { skipped++; continue; }
+      const check2 = await confirmCheckOne(q, answer, interp2.reply);
+      if (check2.consistent) {
+        const res2 = await saveSlots(interp2.slots);
+        if (!res2.ok) { fail++; continue; }
+        _kReplies[q.key] = interp2.reply || "";
+        saved++; recovered++;
+        $("autoStatus").textContent = `[${i + 1}/${pending.length}] ${qLabel} — 재해석 복구·저장됨(${check2.reason || "일치"})`;
+      } else {
+        skipped++;
+        $("autoStatus").textContent = `[${i + 1}/${pending.length}] ${qLabel} — 재해석도 왜곡(${check2.reason || "불일치"}), 스킵`;
+      }
     } catch (e) { fail++; }
   }
-  if (!_autoStop) $("autoStatus").textContent = `완료: 성공 ${ok} · 실패 ${fail}. L2 채팅에서 맥락 검증 가능.`;
+  if (!_autoStop) {
+    $("autoStatus").textContent =
+      `완료: 저장 ${saved} · 왜곡감지 ${distort}(재해석 복구 ${recovered}) · 스킵 ${skipped} · 실패 ${fail} — L2 채팅에서 맥락 검증 가능.`;
+  }
   $("autoRun").style.display = "";
   $("autoStop").style.display = "none";
   $("learnOne").disabled = false;
