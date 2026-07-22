@@ -34,6 +34,7 @@ import v_3cb56d, {
 } from "../../components/my/PaymentPinPromptModal";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_e57140 } from "../../navigation/types";
+import { v_0c2802 } from "../../utils/openXrunApp";
 
 const v_b9d568 = 1;
 
@@ -285,6 +286,13 @@ export default function v_ed02a5() {
       labelKey: "my.coin.transactions",
       descKey: "my.coin.viewAll",
       route: "Transactions",
+    },
+    {
+
+      icon: "external-link",
+      labelKey: "my.menu.openXrun",
+      descKey: "my.menu.openXrunDesc",
+      action: () => void v_0c2802({ email: v_b113dd?.email }),
     },
     {
       icon: "trash-2",

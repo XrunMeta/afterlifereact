@@ -329,6 +329,8 @@
       "inviteStatus": "Invite Status",
       "inviteStatusDesc": "All co-admin invites you sent",
       "language": "Language Settings",
+      "openXrun": "Open XRUN",
+      "openXrunDesc": "Launch XRUN app (or store if not installed)",
       "logout": "Logout"
     }
   },
