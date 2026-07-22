@@ -45,8 +45,10 @@ export function v_c67c5c({
           if (v_e6d4a6.length === 6) v_9397ad?.();
         }}
         keyboardType="number-pad"
-        textContentType={v_0b292c ? "password" : "oneTimeCode"}
-        autoComplete={v_0b292c ? "off" : "sms-otp"}
+
+        textContentType="none"
+        autoComplete="off"
+        importantForAutofill="no"
         secureTextEntry={v_0b292c}
         maxLength={6}
         autoFocus={v_f04c26}
