@@ -277,6 +277,47 @@ async def verify_knowledge_autoanswer(req: web.Request) -> web.Response:
         return web.json_response({"error": "empty_answer"}, status=502)
     return web.json_response({"answer": answer})
 
+_CONFIRM_CHECK_SYSTEM = (
+    "너는 논리 검증기다. 오너가 질문에 답했고, 시스템이 그 답을 3인칭 확인문구로 정리했다. "
+    "확인문구가 오너 답변의 긍정/부정 방향과 선택(양자택일이면 오너가 고른 쪽)을 보존하면 consistent=true, "
+    "반전·왜곡했으면 consistent=false 다. "
+    'JSON 으로만 답하라: {"consistent": true, "reason": "한 문장"}'
+)
+
+async def verify_knowledge_confirm_check(req: web.Request) -> web.Response:
+    """풀오토 e2e 용 — 확인문구(reply)가 원답변의 논리 방향을 보존하는지 LLM 판정.
+    body: {question, answer, reply} → {consistent, reason}"""
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
+    if not _bearer(req):
+        return web.json_response({"error": "missing bearer token"}, status=401)
+    try:
+        body = await req.json()
+    except Exception:
+        return web.json_response({"error": "invalid json body"}, status=400)
+    question = (body.get("question") or "").strip()
+    answer = (body.get("answer") or "").strip()
+    reply = (body.get("reply") or "").strip()
+    if not question or not answer or not reply or max(len(question), len(answer), len(reply)) > 1000:
+        return web.json_response({"error": "invalid fields"}, status=400)
+    user = f"질문: {question}\n오너 답변: {answer}\n확인문구: {reply}"
+    messages = [
+        {"role": "system", "content": _CONFIRM_CHECK_SYSTEM},
+        {"role": "user", "content": user},
+    ]
+    try:
+        raw = await chat_once(messages, fmt="json", temperature=0.0)
+    except Exception as e:
+        log.warning("verify_knowledge_confirm_check LLM failed: %s", type(e).__name__)
+        return web.json_response({"error": "llm_failed"}, status=502)
+    try:
+        data = json.loads(raw or "")
+        consistent = bool(data.get("consistent"))
+        reason = str(data.get("reason") or "")[:300]
+    except Exception:
+        return web.json_response({"error": "parse_failed"}, status=502)
+    return web.json_response({"consistent": consistent, "reason": reason})
+
 async def verify_person_create(req: web.Request) -> web.Response:
     """새 화자 생성 — api POST /oth-path 프록시({cloneId, displayName})."""
     if not _check_verify_pass(req):
@@ -694,3 +735,4 @@ def register_verify_routes(app: web.Application) -> None:
     app.router.add_post("/oth-path", verify_knowledge_interpret)
     app.router.add_put("/oth-path", verify_knowledge_save)
     app.router.add_post("/oth-path", verify_knowledge_autoanswer)
+    app.router.add_post("/oth-path", verify_knowledge_confirm_check)
