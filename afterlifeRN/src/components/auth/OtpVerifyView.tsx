@@ -42,7 +42,8 @@ export function OtpCodeInput({
         onChangeText={(txt) => {
           const digits = txt.replace(/\D/g, "").slice(0, 6);
           onChange(digits);
-          if (digits.length === 6) onComplete?.();
+
+          if (digits.length === 6) setTimeout(() => onComplete?.(), 0);
         }}
         keyboardType="number-pad"
 
