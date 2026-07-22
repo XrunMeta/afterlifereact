@@ -8,9 +8,6 @@ import {
   Image,
   TouchableOpacity,
   StyleSheet,
-  Alert,
-  Linking,
-  Platform,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -23,44 +20,7 @@ import Button from "../../components/ui/Button";
 import { COLORS, RADIUS, SIZES } from "../../components/constants";
 import { getMe, AuthApiError } from "../../api/auth";
 import { useAuthStore } from "../../stores/authStore";
-
-const XRUN_SCHEME = "xrun://";
-const XRUN_PLAY_STORE_URL =
-  "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
-const XRUN_APP_STORE_URL =
-  "https://apps.apple.com/app/id1492389867"; 
-const XRUN_APP_STORE_SEARCH = "https://apps.apple.com/search?term=xrun";
-
-async function openXrunOrStore(email?: string) {
-  const deepLink = email
-    ? `${XRUN_SCHEME}?email=${encodeURIComponent(email)}&signup=1&from=afterlife`
-    : XRUN_SCHEME;
-  try {
-    const canOpen = await Linking.canOpenURL(deepLink);
-    if (canOpen) {
-      await Linking.openURL(deepLink);
-      return;
-    }
-  } catch (err) {
-    console.warn("[SignupComplete] openXrun deepLink failed:", err);
-  }
-
-  const storeUrl =
-    Platform.OS === "android" ? XRUN_PLAY_STORE_URL : XRUN_APP_STORE_URL;
-  try {
-    const canOpen = await Linking.canOpenURL(storeUrl);
-    if (canOpen) {
-      await Linking.openURL(storeUrl);
-      return;
-    }
-  } catch (err) {
-    console.warn("[SignupComplete] openXrun store failed:", err);
-  }
-
-  if (Platform.OS === "ios") {
-    Linking.openURL(XRUN_APP_STORE_SEARCH).catch(() => {});
-  }
-}
+import { openXrunApp } from "../../utils/openXrunApp";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "SignupComplete">;
 
@@ -163,7 +123,7 @@ export default function SignupCompleteScreen({ route }: Props) {
               rightIcon={
                 <Feather name="external-link" size={16} color={COLORS.zinc500} />
               }
-              onPress={() => openXrunOrStore(email)}
+              onPress={() => openXrunApp({ email, signup: true })}
             />
           </View>
         </View>

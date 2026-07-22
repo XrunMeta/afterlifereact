@@ -22,27 +22,20 @@ export async function openXrunApp(opts: OpenXrunOptions = {}): Promise<void> {
   const deepLink = `${XRUN_SCHEME}?${params.join("&")}`;
 
   try {
-    const canOpen = await Linking.canOpenURL(deepLink);
-    if (canOpen) {
-      await Linking.openURL(deepLink);
-      return;
-    }
+    await Linking.openURL(deepLink);
+    return;
   } catch (err) {
-    console.warn("[openXrunApp] deepLink failed:", err);
+    console.warn("[openXrunApp] deepLink failed, falling back to store:", err);
   }
 
   const storeUrl =
     Platform.OS === "android" ? XRUN_PLAY_STORE_URL : XRUN_APP_STORE_URL;
   try {
-    const canOpen = await Linking.canOpenURL(storeUrl);
-    if (canOpen) {
-      await Linking.openURL(storeUrl);
-      return;
-    }
+    await Linking.openURL(storeUrl);
+    return;
   } catch (err) {
     console.warn("[openXrunApp] store failed:", err);
   }
-
   if (Platform.OS === "ios") {
     Linking.openURL(XRUN_APP_STORE_SEARCH).catch(() => {});
   }
