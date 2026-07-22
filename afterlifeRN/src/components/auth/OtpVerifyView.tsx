@@ -42,7 +42,8 @@ export function v_c67c5c({
         onChangeText={(v_c70495) => {
           const v_e6d4a6 = v_c70495.replace(/\D/g, "").slice(0, 6);
           v_b187d9(v_e6d4a6);
-          if (v_e6d4a6.length === 6) v_9397ad?.();
+
+          if (v_e6d4a6.length === 6) setTimeout(() => v_9397ad?.(), 0);
         }}
         keyboardType="number-pad"
 
