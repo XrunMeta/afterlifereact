@@ -8,9 +8,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:migrate:local": "wrangler d1 migrations apply afterlife-db --local",
-    "db:migrate:remote": "wrangler d1 migrations apply afterlife-db --remote",
-    "db:reset:local": "wrangler d1 execute afterlife-db --local --command=\"SELECT 1\" && rm -rf .wrangler/state/v3/d1 && npm run db:migrate:local"
+    "db:migrate:local": "wrangler d1 migrations apply afterlife-db-preview --local",
+    "db:migrate:remote": "wrangler d1 migrations apply afterlife-db-preview --remote --env preview",
+    "db:migrate:remote:prod": "wrangler d1 migrations apply afterlife-db --remote --env production",
+    "db:reset:local": "wrangler d1 execute afterlife-db-preview --local --command=\"SELECT 1\" && rm -rf .wrangler/state/v3/d1 && npm run db:migrate:local"
   },
   "keywords": [],
   "author": "",

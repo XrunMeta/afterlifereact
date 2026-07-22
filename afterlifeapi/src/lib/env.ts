@@ -55,6 +55,8 @@ export interface Bindings {
   PREBUILD_SECRET?: string;        
   PRETHIRD_PUBLIC_BASE?: string;   
 
+  KNOWLEDGE_INTERPRET_SECRET?: string;
+
   XRUN_API_URL: string;            
 
   XRUN_GATEWAY_TOKEN?: string;

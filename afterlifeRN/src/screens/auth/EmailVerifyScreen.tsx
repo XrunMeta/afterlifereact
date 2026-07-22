@@ -33,6 +33,7 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [resendIn, setResendIn] = useState(RESEND_COOLDOWN_SEC);
+  const [resending, setResending] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
@@ -46,15 +47,19 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
   }, []);
 
   const handleResend = async () => {
-    if (resendIn > 0) return;
+
+    if (resendIn > 0 || resending) return;
+    setResending(true);
+    setResendIn(RESEND_COOLDOWN_SEC);
     try {
       await requestEmailCode(params.email);
-      setResendIn(RESEND_COOLDOWN_SEC);
       showAlert(t("auth.emailVerify.resend"), t("auth.emailVerify.resentToast"));
     } catch (err) {
       const msg =
         err instanceof AuthApiError ? err.message : t("common.error");
       showAlert(t("common.error"), msg);
+    } finally {
+      setResending(false);
     }
   };
 

@@ -1,11 +1,12 @@
 import { showAlert } from "../../stores/dialogStore";
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   Alert,
+  TextInput,
 } from "react-native";
 import Button from "../../components/ui/Button";
 import { Feather } from "@expo/vector-icons";
@@ -73,6 +74,15 @@ export default function SignupScreen({ navigation, route }: Props) {
   const [termsModalType, setTermsModalType] = useState<AgreementType | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const nameRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
+  const phoneRef = useRef<TextInput>(null);
+  const focusAfterAlert = (ref: React.RefObject<TextInput | null>) => () => {
+    setTimeout(() => ref.current?.focus(), 100);
+  };
 
   const [agreeService, setAgreeService] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
@@ -143,29 +153,96 @@ export default function SignupScreen({ navigation, route }: Props) {
   };
 
   const handleSubmit = async () => {
-    if (!name || !email || !password || !phone || !gender || !birthYear) {
-      showAlert(t("common.notice"), t("auth.signup.requiredFields"));
+
+    if (!name.trim()) {
+      showAlert(
+        t("common.notice"),
+        t("auth.signup.nameRequired", { defaultValue: "이름을 입력해주세요." }),
+        [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: focusAfterAlert(nameRef) }],
+      );
       return;
     }
-    if (!country) {
-      showAlert(t("common.notice"), t("auth.signup.countryRequired"));
+    if (!email.trim()) {
+      showAlert(
+        t("common.notice"),
+        t("auth.signup.emailRequired", { defaultValue: "이메일을 입력해주세요." }),
+        [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: focusAfterAlert(emailRef) }],
+      );
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      showAlert(t("common.notice"), t("auth.signup.emailInvalid"));
+      showAlert(
+        t("common.notice"),
+        t("auth.signup.emailInvalid"),
+        [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: focusAfterAlert(emailRef) }],
+      );
+      return;
+    }
+    if (!password) {
+      showAlert(
+        t("common.notice"),
+        t("auth.signup.passwordRequired", { defaultValue: "비밀번호를 입력해주세요." }),
+        [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: focusAfterAlert(passwordRef) }],
+      );
       return;
     }
 
     if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/.test(password)) {
-      showAlert(t("common.notice"), t("auth.signup.passwordTooShort"));
+      showAlert(
+        t("common.notice"),
+        t("auth.signup.passwordTooShort"),
+        [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: focusAfterAlert(passwordRef) }],
+      );
+      return;
+    }
+    if (!confirmPassword) {
+      showAlert(
+        t("common.notice"),
+        t("auth.signup.passwordConfirmRequired", { defaultValue: "비밀번호 확인을 입력해주세요." }),
+        [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: focusAfterAlert(confirmPasswordRef) }],
+      );
       return;
     }
     if (password !== confirmPassword) {
-      showAlert(t("common.notice"), t("auth.signup.passwordsNotMatch"));
+      showAlert(
+        t("common.notice"),
+        t("auth.signup.passwordsNotMatch"),
+        [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: focusAfterAlert(confirmPasswordRef) }],
+      );
+      return;
+    }
+    if (!phone.trim()) {
+      showAlert(
+        t("common.notice"),
+        t("auth.signup.phoneRequired", { defaultValue: "전화번호를 입력해주세요." }),
+        [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: focusAfterAlert(phoneRef) }],
+      );
       return;
     }
     if (phone.length < 4) {
-      showAlert(t("common.notice"), t("auth.signup.phoneTooShort"));
+      showAlert(
+        t("common.notice"),
+        t("auth.signup.phoneTooShort"),
+        [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: focusAfterAlert(phoneRef) }],
+      );
+      return;
+    }
+    if (!gender) {
+      showAlert(
+        t("common.notice"),
+        t("auth.signup.genderRequired", { defaultValue: "성별을 선택해주세요." }),
+      );
+      return;
+    }
+    if (!birthYear) {
+      showAlert(
+        t("common.notice"),
+        t("auth.signup.birthYearRequired", { defaultValue: "출생연도를 선택해주세요." }),
+      );
+      return;
+    }
+    if (!country) {
+      showAlert(t("common.notice"), t("auth.signup.countryRequired"));
       return;
     }
     if (!agreeRequired) {
@@ -300,6 +377,7 @@ export default function SignupScreen({ navigation, route }: Props) {
         <View style={styles.container}>
           {}
           <TextField
+            ref={nameRef}
             placeholder={t("auth.signup.name")}
             value={name}
             onChangeText={setName}
@@ -309,6 +387,7 @@ export default function SignupScreen({ navigation, route }: Props) {
           {
 }
           <TextField
+            ref={emailRef}
             placeholder={t("auth.signup.email")}
             value={email}
             onChangeText={google ? undefined : setEmail}
@@ -327,6 +406,7 @@ export default function SignupScreen({ navigation, route }: Props) {
           {}
           <View>
             <TextField
+              ref={passwordRef}
               placeholder={t("auth.signup.password")}
               value={password}
               onChangeText={setPassword}
@@ -343,6 +423,7 @@ export default function SignupScreen({ navigation, route }: Props) {
 
           {}
           <TextField
+            ref={confirmPasswordRef}
             placeholder={t("auth.signup.passwordConfirm")}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
@@ -362,6 +443,7 @@ export default function SignupScreen({ navigation, route }: Props) {
 
           {}
           <TextField
+            ref={phoneRef}
             placeholder={t("auth.signup.phone")}
             value={phone}
             onChangeText={setPhone}

@@ -33,7 +33,7 @@ const XRUN_APP_STORE_SEARCH = "https://apps.apple.com/search?term=xrun";
 
 async function openXrunOrStore(email?: string) {
   const deepLink = email
-    ? `${XRUN_SCHEME}?email=${encodeURIComponent(email)}&from=afterlife`
+    ? `${XRUN_SCHEME}?email=${encodeURIComponent(email)}&signup=1&from=afterlife`
     : XRUN_SCHEME;
   try {
     const canOpen = await Linking.canOpenURL(deepLink);
