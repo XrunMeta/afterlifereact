@@ -34,6 +34,7 @@ import PaymentPinPromptModal, {
 } from "../../components/my/PaymentPinPromptModal";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { MyStackParamList } from "../../navigation/types";
+import { openXrunApp } from "../../utils/openXrunApp";
 
 const DEFAULT_USER_ID = 1;
 
@@ -285,6 +286,13 @@ export default function MyScreen() {
       labelKey: "my.coin.transactions",
       descKey: "my.coin.viewAll",
       route: "Transactions",
+    },
+    {
+
+      icon: "external-link",
+      labelKey: "my.menu.openXrun",
+      descKey: "my.menu.openXrunDesc",
+      action: () => void openXrunApp({ email: apiUser?.email }),
     },
     {
       icon: "trash-2",

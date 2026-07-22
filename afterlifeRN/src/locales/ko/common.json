@@ -330,6 +330,8 @@
       "inviteStatusDesc": "내가 보낸 공동관리자 초대 전체",
       "language": "언어 설정",
       "paymentPin": "결제 비밀번호 입력",
+      "openXrun": "XRUN 바로가기",
+      "openXrunDesc": "XRUN 앱 열기 (없으면 스토어)",
       "logout": "로그아웃"
     }
   },
