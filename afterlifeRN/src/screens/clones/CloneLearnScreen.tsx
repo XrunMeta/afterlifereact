@@ -131,9 +131,9 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
   v_c4deb2(() => {
     if (!v_683210 && v_5ca6b8.current) {
-      setTimeout(() => v_5ca6b8.current?.scrollToEnd({ animated: true }), 100);
+      setTimeout(() => v_5ca6b8.current?.scrollToEnd({ animated: true }), 150);
     }
-  }, [v_fa0e39.length, v_c84c22, v_683210]);
+  }, [v_fa0e39.length, v_c84c22, v_683210, v_365b18]);
 
   const v_219251 = (fresh: v_1d8a7b[], v_566831) => {
 
