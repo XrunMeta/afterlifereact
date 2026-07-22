@@ -647,6 +647,55 @@ $("learnOne").onclick = async () => {
     : "실패: " + (res.error || "");
 };
 
+let _autoStop = false;
+
+async function autoAnswerOne(q) {
+  const cloneId = parseInt($("clone").value, 10);
+  const personaName = ($("clone").selectedIndex > 0)
+    ? $("clone").options[$("clone").selectedIndex].textContent.replace(/\s*\(#\d+\)\s*$/, "")
+    : "";
+  const r = await fetch("/oth-path", {
+    method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ question: q.label, hint: q.hint || "", persona_name: personaName }),
+  });
+  if (!r.ok) throw new Error("autoanswer " + r.status);
+  const { answer } = await r.json();
+  return answer;
+}
+
+async function runAutoE2E() {
+  const cloneId = parseInt($("clone").value, 10);
+  if (!cloneId) { alert("클론을 선택하세요"); return; }
+  if (!_kQuestions.length) { alert("질문이 없습니다"); return; }
+  if (!confirm("이 클론(테스트 계정)에 미답변 질문을 LLM 자동답변으로 학습시킵니다. 진행할까요?")) return;
+  _autoStop = false;
+  $("autoRun").style.display = "none";
+  $("autoStop").style.display = "";
+  $("learnOne").disabled = true;
+  const answered = new Set(_kItems.map((i) => i.key));
+  const pending = _kQuestions.filter((q) => !answered.has(q.key));
+  let ok = 0, fail = 0;
+  for (let i = 0; i < pending.length; i++) {
+    if (_autoStop) { $("autoStatus").textContent = `중단됨 (${i}/${pending.length})`; break; }
+    const q = pending[i];
+    $("autoStatus").textContent = `[${i + 1}/${pending.length}] ${q.label} — 답변 생성 중…`;
+    try {
+      const answer = await autoAnswerOne(q);
+      $("autoStatus").textContent = `[${i + 1}/${pending.length}] ${q.label} → "${answer}" 학습 중…`;
+      const res = await learnOne(q.key, answer);  
+      res.ok ? ok++ : fail++;
+    } catch (e) { fail++; }
+  }
+  if (!_autoStop) $("autoStatus").textContent = `완료: 성공 ${ok} · 실패 ${fail}. L2 채팅에서 맥락 검증 가능.`;
+  $("autoRun").style.display = "";
+  $("autoStop").style.display = "none";
+  $("learnOne").disabled = false;
+  await loadKnowledgeItems();
+}
+
+$("autoRun").onclick = runAutoE2E;
+$("autoStop").onclick = () => { _autoStop = true; $("autoStatus").textContent = "중단 요청됨…"; };
+
 $("l2reset").onclick = async () => {
   const cloneId = parseInt($("clone").value, 10);
   if (!cloneId) { alert("클론을 선택하세요"); return; }
