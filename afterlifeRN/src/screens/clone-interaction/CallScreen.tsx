@@ -67,7 +67,6 @@ import { GREETING_ENABLED, GREETING_FALLBACK_TEXT, GREET_TIMEOUT_MS } from "../.
 import { useHandsFreeController } from "../../realtime/useHandsFreeController";
 import { useVideoStatsDiag } from "../../realtime/useVideoStatsDiag";
 import { DialingScreen } from "../../components/call/DialingScreen";
-import { CallStatusGlow } from "../../components/call/CallStatusGlow";
 import { CallVoiceBall } from "../../components/call/CallVoiceBall";
 import { CallTimingHUD } from "../../components/call/CallTimingHUD";
 import { CallTimingPanel } from "../../components/call/CallTimingPanel";
@@ -535,8 +534,6 @@ export default function CallScreen({ route, navigation }: Props) {
     cancelConfirm,
     transcript,
     interimTranscript,
-    sttActive,
-    cloneSuppressed,
     devForceListen,
     micLevel,
     cloneAudioLevel,
@@ -553,11 +550,24 @@ export default function CallScreen({ route, navigation }: Props) {
     fallbackText: GREETING_FALLBACK_TEXT,
     silenceMs: sttEndpointMs,
     confirmGate: __DEV__ && confirmGateEnabled,
+
+    signalGating: typeof greet === 'function',
   });
 
   const [greetingStarted, setGreetingStarted] = useState(false);
   useEffect(() => {
     if (lastSignal?.type === 'speech_start') setGreetingStarted(true);
+  }, [lastSignal]);
+
+  const [cloneSubtitle, setCloneSubtitle] = useState('');
+  useEffect(() => {
+    if (!lastSignal) return;
+    if (lastSignal.type === 'speech_text' && lastSignal.text) {
+      const t = lastSignal.text;
+      setCloneSubtitle((prev) => (prev ? `${prev} ${t}` : t));
+    } else if (lastSignal.type === 'speech_end') {
+      setCloneSubtitle('');
+    }
   }, [lastSignal]);
 
   useEffect(() => {
@@ -901,6 +911,8 @@ export default function CallScreen({ route, navigation }: Props) {
     setShowGifts(false);
   };
 
+  const subtitleBottom = bottomInset + 96 + 112 + 12;
+
   return (
     <View style={s.container}>
       {}
@@ -1017,8 +1029,6 @@ export default function CallScreen({ route, navigation }: Props) {
         locations={[0, 0.4, 1]}
         style={StyleSheet.absoluteFill}
       />
-
-      {dialingDone ? <CallStatusGlow phase={phase} sttActive={sttActive} suppressed={cloneSuppressed} /> : null}
 
       {__DEV__ && liveState === "live" ? <CallTimingHUD /> : null}
       {__DEV__ && liveState === "live" ? (
@@ -1189,13 +1199,12 @@ export default function CallScreen({ route, navigation }: Props) {
       ))}
 
       {
-
 }
 
       {}
       {phase === 'listening' && (!!interimTranscript || !!transcript) ? (
-        <View style={[s.subtitleContainer, { top: insets.top + 8 }]} pointerEvents="none">
-          <Text style={s.subtitleText}>
+        <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
+          <Text style={s.subtitleText} numberOfLines={1} ellipsizeMode="head">
             {interimTranscript || transcript}
           </Text>
         </View>
@@ -1207,8 +1216,8 @@ export default function CallScreen({ route, navigation }: Props) {
       {phase === 'confirming' && !!pendingText ? (
         <>
           <Pressable style={s.confirmTapArea} onPress={cancelConfirm} />
-          <View style={[s.subtitleContainer, { top: insets.top + 8 }]} pointerEvents="none">
-            <Text style={s.subtitleText}>
+          <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
+            <Text style={s.subtitleText} numberOfLines={1} ellipsizeMode="head">
               {pendingText}
             </Text>
             <View style={s.confirmBarTrack}>
@@ -1222,10 +1231,20 @@ export default function CallScreen({ route, navigation }: Props) {
       {
 
 }
-      {(phase === 'sending' || phase === 'speaking') && !!pendingText ? (
-        <View style={[s.subtitleContainer, { top: insets.top + 8 }]} pointerEvents="none">
-          <Text style={s.subtitleText}>
+      {(phase === 'sending' || phase === 'speaking') && !!pendingText && !cloneSubtitle ? (
+        <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
+          <Text style={s.subtitleText} numberOfLines={1} ellipsizeMode="head">
             {pendingText}
+          </Text>
+        </View>
+      ) : null}
+
+      {
+}
+      {(phase === 'speaking' || phase === 'greeting') && !!cloneSubtitle ? (
+        <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
+          <Text style={s.subtitleText} numberOfLines={1} ellipsizeMode="head">
+            {cloneSubtitle}
           </Text>
         </View>
       ) : null}
@@ -1548,9 +1567,9 @@ const s = StyleSheet.create({
 
   subtitleContainer: {
     position: 'absolute',
-    left: 124,
+    left: 16,
     right: 16,
-    alignItems: 'flex-start',
+    alignItems: 'center',
     zIndex: 15,
   },
   subtitleText: {
@@ -1561,8 +1580,9 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 10,
-    textAlign: 'left',
-    alignSelf: 'stretch',
+    textAlign: 'center',
+    alignSelf: 'center',
+    maxWidth: '100%',
   },
 
   confirmTapArea: {
