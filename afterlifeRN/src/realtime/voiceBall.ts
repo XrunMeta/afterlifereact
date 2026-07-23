@@ -29,6 +29,12 @@ export const BALL_ORBIT = {
 
 export const BALL_LABEL_COLOR = '#ffffff';
 
+export const BALL_THINK = {
+  scaleBase: 0.65,
+  ampScale: 0.06,
+  periodMs: 700,
+} as const;
+
 export const BALL_LEVEL_EPSILON = 0.02;
 
 export function shouldUpdateLevel(prev: number, next: number): boolean {
@@ -59,7 +65,7 @@ export function normalizeMicLevel(raw: number): number {
 
 export interface BallVisual {
   color: string;
-  pulseSource: 'mic' | 'clone' | 'none';
+  pulseSource: 'mic' | 'clone' | 'think' | 'none';
   orbit: boolean;
   label: string | null;
 }
@@ -73,7 +79,7 @@ export function ballVisualForPhase(phase: HandsFreePhase): BallVisual {
     case 'confirming':
       return { color: BALL_COLORS.confirming, pulseSource: 'mic', orbit: true, label: '입력중' };
     case 'sending':
-      return { color: BALL_COLORS.sending, pulseSource: 'none', orbit: false, label: null };
+      return { color: BALL_COLORS.sending, pulseSource: 'think', orbit: false, label: null };
     case 'greeting':
       return { color: BALL_COLORS.greeting, pulseSource: 'clone', orbit: false, label: '발화중' };
     case 'speaking':

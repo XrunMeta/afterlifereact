@@ -9,6 +9,7 @@ import {
   BALL_SIZE,
   BALL_ORBIT,
   BALL_LEVEL_EPSILON,
+  BALL_THINK,
 } from '../voiceBall';
 import type { HandsFreePhase } from '../handsFree';
 
@@ -44,9 +45,9 @@ describe('ballVisualForPhase', () => {
     const v = ballVisualForPhase('confirming');
     expect(v).toEqual({ color: BALL_COLORS.confirming, pulseSource: 'mic', orbit: true, label: '입력중' });
   });
-  it('sending — 파랑, pulse 없음, orbit 정지, 라벨 없음', () => {
+  it('sending — 파랑, think pulse(생각 중 축소+맥동), orbit 정지, 라벨 없음', () => {
     const v = ballVisualForPhase('sending');
-    expect(v).toEqual({ color: BALL_COLORS.sending, pulseSource: 'none', orbit: false, label: null });
+    expect(v).toEqual({ color: BALL_COLORS.sending, pulseSource: 'think', orbit: false, label: null });
   });
   it('greeting — 파랑, clone pulse, orbit 정지, "발화중"', () => {
     const v = ballVisualForPhase('greeting');
@@ -134,5 +135,20 @@ describe('2026-07-23 인디케이터 UX 명확화', () => {
   it('orbit 궤도 반경은 볼 최대원 내접(트랙+dot ≤ 최대반지름), 불투명도 0.3 이하', () => {
     expect(BALL_ORBIT.trackRadius + BALL_ORBIT.dotRadius).toBeLessThanOrEqual(BALL_SIZE.max / 2);
     expect(BALL_ORBIT.opacity).toBeLessThanOrEqual(0.3);
+  });
+});
+
+describe('T-151 Task12 — 생각 중(sending) 축소+맥동', () => {
+  it('sending phase는 pulseSource=think', () => {
+    expect(ballVisualForPhase('sending').pulseSource).toBe('think');
+  });
+  it('BALL_THINK — base 지름 48×0.65≈31px, ±6% 맥동, 0.7s 주기', () => {
+    expect(BALL_THINK.scaleBase).toBe(0.65);
+    expect(BALL_SIZE.base * BALL_THINK.scaleBase).toBeCloseTo(31.2, 5);
+    expect(BALL_THINK.ampScale).toBe(0.06);
+    expect(BALL_THINK.periodMs).toBe(700);
+  });
+  it('sending 축소 지름은 base(정적 기준)보다 작다', () => {
+    expect(BALL_SIZE.base * BALL_THINK.scaleBase).toBeLessThan(BALL_SIZE.base);
   });
 });

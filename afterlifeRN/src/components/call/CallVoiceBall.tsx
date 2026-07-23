@@ -8,6 +8,7 @@ import {
   BALL_SIZE,
   BALL_ORBIT,
   BALL_TUNING,
+  BALL_THINK,
   BALL_LABEL_COLOR,
   ballVisualForPhase,
   radiusForLevel,
@@ -36,6 +37,8 @@ export function CallVoiceBall({ phase, micLevel, cloneLevel }: CallVoiceBallProp
   const targetDiameter = useMemo(() => {
     if (visual.pulseSource === 'mic') return radiusForLevel(micLevel, BALL_SIZE, false);
     if (visual.pulseSource === 'clone') return radiusForLevel(cloneLevel, BALL_SIZE, false);
+
+    if (visual.pulseSource === 'think') return BALL_SIZE.base * BALL_THINK.scaleBase;
 
     return idle ? radiusForLevel(0, BALL_SIZE, true) : BALL_SIZE.base;
   }, [visual.pulseSource, micLevel, cloneLevel, idle]);
@@ -75,6 +78,41 @@ export function CallVoiceBall({ phase, micLevel, cloneLevel }: CallVoiceBallProp
 
   const rotateDeg = rotateAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
+  const thinkPulseAnim = useRef(new Animated.Value(1)).current;
+  const thinkLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+  const isThinking = visual.pulseSource === 'think';
+  useEffect(() => {
+    if (isThinking) {
+      thinkLoopRef.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(thinkPulseAnim, {
+            toValue: 1 + BALL_THINK.ampScale,
+            duration: BALL_THINK.periodMs / 2,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(thinkPulseAnim, {
+            toValue: 1 - BALL_THINK.ampScale,
+            duration: BALL_THINK.periodMs / 2,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+      thinkLoopRef.current.start();
+    } else {
+      thinkLoopRef.current?.stop();
+      thinkLoopRef.current = null;
+      thinkPulseAnim.setValue(1);
+    }
+    return () => {
+      thinkLoopRef.current?.stop();
+      thinkLoopRef.current = null;
+    };
+  }, [isThinking, thinkPulseAnim]);
+
+  const combinedScale = Animated.multiply(scaleAnim, thinkPulseAnim);
+
   return (
     <View style={styles.stage} pointerEvents="none">
       <View style={[styles.center, { width: STAGE, height: STAGE }]}>
@@ -106,7 +144,7 @@ export function CallVoiceBall({ phase, micLevel, cloneLevel }: CallVoiceBallProp
         <AnimatedSvg
           width={STAGE}
           height={STAGE}
-          style={[styles.svgLayer, { transform: [{ scale: scaleAnim }] }]}
+          style={[styles.svgLayer, { transform: [{ scale: combinedScale }] }]}
         >
           <Circle cx={CENTER} cy={CENTER} r={BALL_MAX_RADIUS} fill={visual.color} />
         </AnimatedSvg>
