@@ -1,4 +1,12 @@
-import { v_f98917, v_e70373 } from "../cropImage";
+import {
+  v_f98917,
+  v_0916d7,
+  v_f965d7,
+  v_e70373,
+  v_622116,
+  v_66052e,
+  v_d0c8d8,
+} from "../cropImage";
 
 describe("baseCoverScale", () => {
   it("정사각 이미지에 1:2 프레임 → 더 큰 축(세로) 기준", () => {
@@ -95,5 +103,87 @@ describe("computeCropRect", () => {
     expect(() => v_e70373({ width: 0, height: 0 }, v_143cb5, v_0288f8)).toThrow();
     expect(() => v_e70373({ width: 0, height: 100 }, v_143cb5, v_0288f8)).toThrow();
     expect(() => v_e70373({ width: 100, height: 0 }, v_143cb5, v_0288f8)).toThrow();
+  });
+});
+
+describe("clampGestureScale", () => {
+  it("ZOOM_MIN 미만은 ZOOM_MIN으로 클램프", () => {
+    expect(v_0916d7(0.3)).toBe(v_d0c8d8);
+    expect(v_0916d7(-5)).toBe(v_d0c8d8);
+  });
+
+  it("ZOOM_MAX 초과는 ZOOM_MAX로 클램프", () => {
+    expect(v_0916d7(999)).toBe(v_66052e);
+  });
+
+  it("범위 내 값은 그대로 통과", () => {
+    expect(v_0916d7(3.5)).toBe(3.5);
+  });
+
+  it("커스텀 min/max 오버라이드", () => {
+    expect(v_0916d7(50, 2, 20)).toBe(20);
+    expect(v_0916d7(1, 2, 20)).toBe(2);
+  });
+});
+
+describe("clampPanOffset", () => {
+  const v_7ddb73 = { width: 1000, height: 1000 };
+  const v_143cb5 = { width: 100, height: 200 }; 
+
+  it("scale=1(커버 배율)에서 offset=0은 그대로 0", () => {
+    expect(v_f965d7(v_7ddb73, v_143cb5, 1, { x: 0, y: 0 })).toEqual({ x: 0, y: 0 });
+  });
+
+  it("scale=1에서는 여유가 X축에만 존재(Y축은 여유 없음 → 0으로 클램프)", () => {
+
+    const v_cb35cb = v_f965d7(v_7ddb73, v_143cb5, 1, { x: 999, y: 999 });
+    expect(v_cb35cb.x).toBeCloseTo(50);
+    expect(v_cb35cb.y).toBe(0);
+  });
+
+  it("확대(scale=2)하면 허용 오프셋 범위가 넓어짐", () => {
+
+    const v_cb35cb = v_f965d7(v_7ddb73, v_143cb5, 2, { x: 999, y: 999 });
+    expect(v_cb35cb.x).toBeCloseTo(150);
+    expect(v_cb35cb.y).toBeCloseTo(100);
+  });
+
+  it("범위 내 offset은 그대로 통과", () => {
+    const v_cb35cb = v_f965d7(v_7ddb73, v_143cb5, 2, { x: 10, y: -20 });
+    expect(v_cb35cb).toEqual({ x: 10, y: -20 });
+  });
+
+  it("음수 방향도 대칭 클램프", () => {
+    const v_cb35cb = v_f965d7(v_7ddb73, v_143cb5, 1, { x: -999, y: -999 });
+    expect(v_cb35cb.x).toBeCloseTo(-50);
+    expect(v_cb35cb.y).toBeCloseTo(0);
+  });
+});
+
+describe("coversCropArea", () => {
+  const v_7ddb73 = { width: 1000, height: 1000 };
+  const v_143cb5 = { width: 100, height: 200 };
+  const v_6c4b91 = { image: v_7ddb73, frame: v_143cb5 };
+
+  it("scale=1·offset=0(중앙 정렬 커버 배율): 항상 덮음 → true", () => {
+    expect(v_622116(v_6c4b91, 1, { x: 0, y: 0 })).toBe(true);
+  });
+
+  it("clampPanOffset이 반환한 경계값은 항상 덮음 → true", () => {
+    const v_665c62 = v_f965d7(v_7ddb73, v_143cb5, 1, { x: 999, y: 999 });
+    expect(v_622116(v_6c4b91, 1, v_665c62)).toBe(true);
+  });
+
+  it("클램프 경계를 벗어난 offset은 덮지 못함 → false", () => {
+    expect(v_622116(v_6c4b91, 1, { x: 51, y: 0 })).toBe(false);
+    expect(v_622116(v_6c4b91, 1, { x: 0, y: 1 })).toBe(false);
+  });
+
+  it("확대(scale=2) 상태에서 확대 전 최대 offset은 이제 덮음 → true", () => {
+    expect(v_622116(v_6c4b91, 2, { x: 50, y: 0 })).toBe(true);
+  });
+
+  it("오차 허용범위(EPS) 이내의 미세 초과는 true로 관대하게 판정", () => {
+    expect(v_622116(v_6c4b91, 1, { x: 50.3, y: 0 })).toBe(true);
   });
 });

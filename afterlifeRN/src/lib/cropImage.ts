@@ -9,6 +9,48 @@ export function v_f98917(v_7ddb73, v_143cb5): number {
 
 const v_ffa902 = (v_81e2ef, v_bc6da1, v_d54b9c) => Math.min(Math.max(v_81e2ef, v_bc6da1), v_d54b9c);
 
+export const v_d0c8d8 = 1;
+export const v_66052e = 10;
+
+export function v_0916d7(v_479f05, v_43e24b = v_d0c8d8, v_d2c6bf = v_66052e): number {
+  return v_ffa902(v_479f05, v_43e24b, v_d2c6bf);
+}
+
+export function v_f965d7(
+  v_7ddb73,
+  v_143cb5,
+  v_a37637,
+  v_3bbadf,
+): { x: number; y: number } {
+  const v_ca01e0 = v_f98917(v_7ddb73, v_143cb5);
+  const v_fd5f43 = v_ca01e0 * Math.max(v_d0c8d8, v_a37637);
+  const v_1a63bc = Math.max(0, (v_7ddb73.width * v_fd5f43 - v_143cb5.width) / 2);
+  const v_6705a2 = Math.max(0, (v_7ddb73.height * v_fd5f43 - v_143cb5.height) / 2);
+  return {
+    x: v_ffa902(v_3bbadf.x, -v_1a63bc, v_1a63bc),
+    y: v_ffa902(v_3bbadf.y, -v_6705a2, v_6705a2),
+  };
+}
+
+export interface CropLayout { image: Size; frame: Size }
+
+export function v_622116(
+  v_6c4b91,
+  v_a37637,
+  v_3bbadf,
+): boolean {
+  const { image: v_7ddb73, frame: v_143cb5 } = v_6c4b91;
+  const v_99d446 = 0.5; 
+  const v_ca01e0 = v_f98917(v_7ddb73, v_143cb5);
+  const v_fd5f43 = v_ca01e0 * Math.max(v_d0c8d8, v_a37637);
+  const v_0fb40d = v_7ddb73.width * v_fd5f43;
+  const v_5d608b = v_7ddb73.height * v_fd5f43;
+  if (v_0fb40d < v_143cb5.width - v_99d446 || v_5d608b < v_143cb5.height - v_99d446) return false;
+  const v_1a63bc = (v_0fb40d - v_143cb5.width) / 2;
+  const v_6705a2 = (v_5d608b - v_143cb5.height) / 2;
+  return Math.abs(v_3bbadf.x) <= v_1a63bc + v_99d446 && Math.abs(v_3bbadf.y) <= v_6705a2 + v_99d446;
+}
+
 export function v_e70373(v_7ddb73, v_143cb5, v_0d09bb): CropRect {
   if (v_7ddb73.width <= 0 || v_7ddb73.height <= 0) {
     throw new Error("computeCropRect: image size must be positive");
