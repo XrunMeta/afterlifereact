@@ -1153,6 +1153,32 @@ admin.get("/reports", requireAdmin, async (c) => {
   return c.json({ items: rows, total: totalRow?.cnt ?? 0, offset, limit });
 });
 
+async function notifyReporterOfReportOutcome(
+  c: Context<AppEnv>,
+  reportType: "user" | "clone" | "comment",
+  reporterId: number | null | undefined,
+  status: string,
+  reporterMessage: string | null,
+): Promise<void> {
+  if (!reporterId) return;
+  const label =
+    status === "reviewed" ? "수락되었어요"
+    : status === "dismissed" ? "반려되었어요"
+    : status === "actioned" ? "조치되었어요"
+    : "처리되었어요";
+  const body = reporterMessage?.trim() || `내가 접수한 신고가 ${label}.`;
+  await notify(c.env, {
+    userId: reporterId,
+    type: "moderation",
+    title: "내 신고 처리 안내",
+    body,
+
+    url: "afterlife://reports/made",
+    data: { reportType, status },
+    skipEmail: true,
+  }).catch(() => {});
+}
+
 async function issueReportWarning(
   c: Context<AppEnv>,
   reportType: "user" | "clone" | "comment",
@@ -1230,6 +1256,14 @@ admin.patch("/oth-path", requireAdmin, async (c) => {
       .first<{ ownerId: number; cloneId: number }>();
     warningCount = await issueReportWarning(c, "clone", id, owner?.ownerId, owner?.cloneId, adminMessage);
   }
+
+  if (!isOpen) {
+    const rep = await c.env.DB
+      .prepare(`SELECT reporter_id AS reporterId FROM clone_reports WHERE id = ?`)
+      .bind(id)
+      .first<{ reporterId: number | null }>();
+    await notifyReporterOfReportOutcome(c, "clone", rep?.reporterId, status, reporterMessage);
+  }
   return c.json({ ok: true, id, status, adminMessage, warningCount });
 });
 admin.delete("/oth-path", requireAdmin, async (c) => {
@@ -1271,6 +1305,14 @@ admin.patch("/oth-path", requireAdmin, async (c) => {
       .bind(id)
       .first<{ targetId: number }>();
     warningCount = await issueReportWarning(c, "user", id, rep?.targetId, null, adminMessage);
+  }
+
+  if (!isOpen) {
+    const rep = await c.env.DB
+      .prepare(`SELECT reporter_id AS reporterId FROM user_reports WHERE id = ?`)
+      .bind(id)
+      .first<{ reporterId: number | null }>();
+    await notifyReporterOfReportOutcome(c, "user", rep?.reporterId, status, reporterMessage);
   }
   return c.json({ ok: true, id, status, adminMessage, warningCount });
 });
@@ -1317,6 +1359,14 @@ admin.patch("/comments/reports/:id", requireAdmin, async (c) => {
       .bind(id)
       .first<{ cloneId: number }>();
     warningCount = await issueReportWarning(c, "comment", id, author?.authorId, cmrClone?.cloneId, adminMessage);
+  }
+
+  if (!isOpen) {
+    const rep = await c.env.DB
+      .prepare(`SELECT reporter_id AS reporterId FROM comment_reports WHERE id = ?`)
+      .bind(id)
+      .first<{ reporterId: number | null }>();
+    await notifyReporterOfReportOutcome(c, "comment", rep?.reporterId, status, reporterMessage);
   }
   return c.json({ ok: true, id, status, adminMessage, warningCount });
 });
