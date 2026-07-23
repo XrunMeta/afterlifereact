@@ -241,6 +241,11 @@ export function usePrethirdAvatar(opts: {
         if (m.type === 'speech_start' || m.type === 'speech_end') {
           setLastSignal({ type: m.type, seq: m.seq, ts: nowMs() });
           if (m.type === 'speech_end') notifySpeechEnd();
+        } else if (m.type === 'speech_text') {
+
+          if (typeof m.text === 'string' && m.text) {
+            setLastSignal({ type: 'speech_text', seq: m.seq, ts: nowMs(), text: m.text });
+          }
         } else if (m.type === 'enroll_suggest') {
 
           const personId = typeof m.personId === 'number' ? m.personId : undefined;
