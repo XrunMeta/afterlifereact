@@ -60,6 +60,10 @@
       "ios": {
         "distribution": "store"
       }
+    },
+    "production-ios": {
+      "extends": "production",
+      "credentialsSource": "local"
     }
   },
   "submit": {
