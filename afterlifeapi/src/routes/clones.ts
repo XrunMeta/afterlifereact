@@ -6,6 +6,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireIdempotencyKey } from "../middleware/idempotency";
 import { logActivity } from "../lib/logger";
 import { similarityScore, SEARCH_SIMILARITY_THRESHOLD } from "../lib/similarity";
+import { getPersonaPriceXrun } from "../lib/appConfig";
 import {
   hasAcceptedShare,
   isFollower,
@@ -149,8 +150,6 @@ const createSchema = z.object({
   voice_clone_job_id: z.string().uuid().optional(),
 });
 
-const PERSONA_PAID_PRICE_XRUN = 100;
-
 const TEST_PRICE_EMAILS = new Set(["oth-user@example.invalid", "oth-test@example.invalid"]);
 const isTestPriceEmail = (e?: string | null): boolean => !!e && TEST_PRICE_EMAILS.has(e);
 const TEST_PRICE_XRUN = 0.05;
@@ -208,7 +207,9 @@ clones.post(
       .prepare(`SELECT email FROM users WHERE id = ?`)
       .bind(userId)
       .first<{ email: string | null }>();
-    const personaPrice = isTestPriceEmail(me?.email) ? TEST_PRICE_XRUN : PERSONA_PAID_PRICE_XRUN;
+    const personaPrice = isTestPriceEmail(me?.email)
+      ? TEST_PRICE_XRUN
+      : await getPersonaPriceXrun(c.env);
 
     if (usedCount >= 100) {
       throw new APIError(

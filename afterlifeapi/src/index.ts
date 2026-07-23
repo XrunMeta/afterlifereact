@@ -36,6 +36,7 @@ import { notifications } from "./routes/notifications";
 import { persons } from "./routes/persons";
 import { agreements, adminAgreements } from "./routes/agreements";
 import { callConfig } from "./routes/call-config";
+import { pricingConfig } from "./routes/pricing-config";
 import { consent } from "./routes/consent";
 
 const app = new Hono<AppEnv>();
@@ -130,6 +131,7 @@ app.route("/oth-path", agreements);
 app.route("/oth-path", adminAgreements);
 
 app.route("/oth-path", callConfig);
+app.route("/oth-path", pricingConfig);
 
 export default {
   fetch: app.fetch,

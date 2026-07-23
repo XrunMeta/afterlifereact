@@ -13,10 +13,25 @@ import { loadKnowledgeQuestions, validateKnowledgeQuestions } from "../lib/knowl
 import { loadBlacklist, validateBlacklist } from "../lib/knowledgeBlacklist";
 import { normalizeKnowledge } from "../lib/knowledgeStore";
 import { notify } from "../lib/notify";
+import { getPersonaPriceXrun, setPersonaPriceXrun } from "../lib/appConfig";
 
 export const admin = new Hono<AppEnv>();
 
 admin.get("/health", (c) => c.json({ ok: true, module: "admin" }));
+
+admin.get("/config/persona-price", requireAdmin, async (c) => {
+  const priceXrun = await getPersonaPriceXrun(c.env);
+  return c.json({ priceXrun });
+});
+admin.patch("/config/persona-price", requireAdmin, async (c) => {
+  const body = await c.req.json<{ priceXrun?: unknown }>().catch(() => ({} as { priceXrun?: unknown }));
+  const price = Number(body.priceXrun);
+  if (!Number.isFinite(price) || price < 0) {
+    throw new APIError("VALIDATION_FAILED", "priceXrun must be a non-negative number.");
+  }
+  await setPersonaPriceXrun(c.env, price);
+  return c.json({ ok: true, priceXrun: price });
+});
 
 const openSchema = z.object({
   resourceType: z.enum(["message.content", "user.phone", "user.age"]),
