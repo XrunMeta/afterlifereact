@@ -73,14 +73,15 @@ v_a35f69.get("/balance", async (v_3f4e2e) => {
     return Number.isFinite(v_f4e98d) ? v_f4e98d : null;
   };
 
-  void v_1166ee;
-  const v_4c90cc = v_14e183(11);
+  const v_5f9081 = await v_1166ee(v_3f4e2e.env, v_660822).catch(() => null);
+  const v_4c90cc = v_5f9081 ?? v_14e183(18);
   return v_3f4e2e.json({
     linked: true,
     balances: v_7f8c56.map((v_148ff6) => ({
       currency: Number(v_148ff6.currency),
       symbol: v_148ff6.symbol,
-      amount: v_148ff6.amount,
+
+      amount: (Number(v_148ff6.currency) === 18 && v_5f9081 != null) ? v_5f9081.toFixed(8) : v_148ff6.amount,
       address: v_148ff6.address,
     })),
     xrun: v_4c90cc,
