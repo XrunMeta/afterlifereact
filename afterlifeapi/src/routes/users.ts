@@ -9,6 +9,7 @@ import { v_74defc } from "../lib/logger";
 import { v_344b9e } from "../lib/memoryStore";
 import { v_c226a5 } from "../lib/notify";
 import { v_e0041f, v_cfdcb0 } from "../lib/similarity";
+import { v_fb09c6 } from "../lib/xrun";
 
 export const v_de7ba7 = new v_b7c41b<v_de0a25>();
 
@@ -410,6 +411,23 @@ v_de7ba7.post("/me/devices", v_6690d9, async (v_3f4e2e) => {
     )
     .bind(v_43e90c, v_4d33b2.deviceId, v_4d33b2.pushToken, v_4d33b2.platform)
     .run();
+
+  try {
+    const v_38066f = await v_3f4e2e.env.DB
+      .prepare(`SELECT xrun_member_id FROM users WHERE id = ? LIMIT 1`)
+      .bind(v_43e90c)
+      .first<{ xrun_member_id: number | null }>();
+    const v_e2be75 = v_38066f?.xrun_member_id ?? null;
+    if (v_e2be75) {
+      const v_cb35cb = await v_fb09c6(v_3f4e2e.env, v_e2be75, v_4d33b2.pushToken);
+      if (!v_cb35cb.ok) {
+        console.warn(`[users/devices] xrun push sync failed member=${v_e2be75} reason=${v_cb35cb.reason}`);
+      }
+    }
+  } catch (v_49263d) {
+    console.warn("[users/devices] xrun push sync error:", (v_49263d as Error).message);
+  }
+
   return v_3f4e2e.json({ ok: true });
 });
 
