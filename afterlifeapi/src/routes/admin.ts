@@ -1259,7 +1259,7 @@ admin.patch("/oth-path", requireAdmin, async (c) => {
 
   if (!isOpen) {
     const rep = await c.env.DB
-      .prepare(`SELECT reporter_id AS reporterId FROM clone_reports WHERE id = ?`)
+      .prepare(`SELECT user_id AS reporterId FROM clone_reports WHERE id = ?`)
       .bind(id)
       .first<{ reporterId: number | null }>();
     await notifyReporterOfReportOutcome(c, "clone", rep?.reporterId, status, reporterMessage);
@@ -1363,7 +1363,7 @@ admin.patch("/comments/reports/:id", requireAdmin, async (c) => {
 
   if (!isOpen) {
     const rep = await c.env.DB
-      .prepare(`SELECT reporter_id AS reporterId FROM comment_reports WHERE id = ?`)
+      .prepare(`SELECT user_id AS reporterId FROM comment_reports WHERE id = ?`)
       .bind(id)
       .first<{ reporterId: number | null }>();
     await notifyReporterOfReportOutcome(c, "comment", rep?.reporterId, status, reporterMessage);
