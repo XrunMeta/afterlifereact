@@ -186,7 +186,7 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
             <Text style={styles.title}>클론 생성 결제</Text>
             <Text style={styles.desc}>
               두 번째 클론부터 {PERSONA_PAID_PRICE_XRUN} XRUN 이 부과돼요.{"\n"}
-              결제 비밀번호 6자리를 입력해주세요.
+              XRUN PIN 6자리를 입력해주세요.
             </Text>
             {balance !== null && (
               <Text style={[styles.balance, insufficient && styles.balanceLow]}>
@@ -238,7 +238,7 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
                 style={styles.pinSetupLinkWrap}
               >
                 <Text style={styles.pinSetupLink}>
-                  xrun 비밀번호 재설정
+                  XRUN PIN 재설정
                 </Text>
               </TouchableOpacity>
             )}
