@@ -1,3 +1,5 @@
+import type { CloneType } from "./domain";
+
 export interface FeedItem {
   id: number;
   cloneId: number;
@@ -5,6 +7,8 @@ export interface FeedItem {
   cloneOwnerId?: number;
 
   cloneVisibility?: string;
+
+  cloneType?: CloneType;
   author: string;
   username: string;
   authorAvatar: string | number;

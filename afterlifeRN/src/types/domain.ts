@@ -1,4 +1,4 @@
-export type CloneType = 'memlow' | 'friend' | 'mentor' | 'celeb';
+export type CloneType = 'memlow' | 'friend' | 'mentor' | 'celeb' | 'expert';
 export type ShortStatus = 'queued' | 'processing' | 'ready' | 'failed';
 
 export interface L1Profile {

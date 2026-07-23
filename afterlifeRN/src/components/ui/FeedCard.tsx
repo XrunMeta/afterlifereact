@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { COLORS, SIZES, RADIUS } from "../constants";
 import type { FeedItem } from "../../types/feed";
 import HashtagText from "../common/HashtagText";
+import ExpertBadge from "./ExpertBadge";
 
 interface FeedCardProps {
   item: FeedItem;
@@ -96,7 +97,10 @@ const FeedCard: React.FC<FeedCardProps> = ({
           <View style={styles.bottomContent}>
             <View style={styles.profileRow}>
               <View style={styles.profileInfo}>
-                <Text style={styles.authorName}>{item.author}</Text>
+                <View style={styles.authorRow}>
+                  <Text style={styles.authorName}>{item.author}</Text>
+                  {item.cloneType === "expert" && <ExpertBadge size={22} />}
+                </View>
                 <Text style={styles.username}>{item.username}</Text>
               </View>
               {!isOwn && (
@@ -184,6 +188,14 @@ const styles = StyleSheet.create({
   },
   profileInfo: {
     flex: 1,
+    overflow: "visible",
+  },
+
+  authorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    overflow: "visible",
   },
   authorName: {
     fontSize: 16,
