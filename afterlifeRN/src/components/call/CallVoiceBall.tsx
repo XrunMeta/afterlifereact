@@ -25,8 +25,8 @@ const AnimatedSvg = Animated.createAnimatedComponent(Svg);
 
 const BALL_MAX_RADIUS = BALL_SIZE.max / 2; 
 
-const ORBIT_TRACK_RADIUS = BALL_MAX_RADIUS + BALL_ORBIT.gap; 
-const STAGE = (ORBIT_TRACK_RADIUS + BALL_ORBIT.dotRadius) * 2; 
+const ORBIT_TRACK_RADIUS = BALL_ORBIT.trackRadius; 
+const STAGE = Math.max(BALL_SIZE.max, (ORBIT_TRACK_RADIUS + BALL_ORBIT.dotRadius) * 2); 
 const CENTER = STAGE / 2; 
 
 export function CallVoiceBall({ phase, micLevel, cloneLevel }: CallVoiceBallProps) {
@@ -79,26 +79,28 @@ export function CallVoiceBall({ phase, micLevel, cloneLevel }: CallVoiceBallProp
     <View style={styles.stage} pointerEvents="none">
       <View style={[styles.center, { width: STAGE, height: STAGE }]}>
         {}
-        <Animated.View
-          style={[
-            styles.orbitWrap,
-            { width: STAGE, height: STAGE, transform: [{ rotate: rotateDeg }] },
-          ]}
-        >
-          <View
+        {visual.orbit ? (
+          <Animated.View
             style={[
-              styles.orbitDot,
-              {
-                width: BALL_ORBIT.dotRadius * 2,
-                height: BALL_ORBIT.dotRadius * 2,
-                borderRadius: BALL_ORBIT.dotRadius,
-                backgroundColor: BALL_ORBIT.color,
-                left: CENTER - BALL_ORBIT.dotRadius,
-                top: CENTER - ORBIT_TRACK_RADIUS - BALL_ORBIT.dotRadius,
-              },
+              styles.orbitWrap,
+              { width: STAGE, height: STAGE, opacity: BALL_ORBIT.opacity, transform: [{ rotate: rotateDeg }] },
             ]}
-          />
-        </Animated.View>
+          >
+            <View
+              style={[
+                styles.orbitDot,
+                {
+                  width: BALL_ORBIT.dotRadius * 2,
+                  height: BALL_ORBIT.dotRadius * 2,
+                  borderRadius: BALL_ORBIT.dotRadius,
+                  backgroundColor: BALL_ORBIT.color,
+                  left: CENTER - BALL_ORBIT.dotRadius,
+                  top: CENTER - ORBIT_TRACK_RADIUS - BALL_ORBIT.dotRadius,
+                },
+              ]}
+            />
+          </Animated.View>
+        ) : null}
 
         {}
         <AnimatedSvg
