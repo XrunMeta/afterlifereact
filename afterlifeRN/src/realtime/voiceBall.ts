@@ -5,9 +5,9 @@ import type { v_3f42e4 } from './handsFree';
 export const v_5c8991 = {
   idle: '#9ca3af', 
   listening: '#2fbf6b', 
-  sending: '#111111', 
-  speaking: '#111111', 
-  greeting: '#111111', 
+  sending: '#3b82f6', 
+  speaking: '#3b82f6', 
+  greeting: '#3b82f6', 
   confirming: '#2fbf6b', 
   paused: '#9ca3af', 
 } as const;
@@ -21,9 +21,10 @@ export const v_80c227 = {
 
 export const v_a1197d = {
   dotRadius: 4, 
-  gap: 7, 
+  trackRadius: 40, 
   periodMs: 1400, 
   color: '#ffffff',
+  opacity: 0.3, 
 } as const;
 
 export const v_db5c73 = '#ffffff';
@@ -72,11 +73,11 @@ export function v_d45de2(phase: v_3f42e4): BallVisual {
     case 'confirming':
       return { color: v_5c8991.confirming, pulseSource: 'mic', orbit: true, label: '입력중' };
     case 'sending':
-      return { color: v_5c8991.sending, pulseSource: 'none', orbit: true, label: null };
+      return { color: v_5c8991.sending, pulseSource: 'none', orbit: false, label: null };
     case 'greeting':
-      return { color: v_5c8991.greeting, pulseSource: 'clone', orbit: true, label: '발화중' };
+      return { color: v_5c8991.greeting, pulseSource: 'clone', orbit: false, label: '발화중' };
     case 'speaking':
-      return { color: v_5c8991.speaking, pulseSource: 'clone', orbit: true, label: '발화중' };
+      return { color: v_5c8991.speaking, pulseSource: 'clone', orbit: false, label: '발화중' };
     case 'paused':
       return { color: v_5c8991.paused, pulseSource: 'none', orbit: false, label: null };
     default:

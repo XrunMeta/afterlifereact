@@ -7,6 +7,7 @@ import {
   v_3032b0,
   v_5c8991,
   v_80c227,
+  v_a1197d,
   v_e744f2,
 } from '../voiceBall';
 import type { v_3f42e4 } from '../handsFree';
@@ -43,17 +44,17 @@ describe('ballVisualForPhase', () => {
     const v_81e2ef = v_d45de2('confirming');
     expect(v_81e2ef).toEqual({ color: v_5c8991.confirming, pulseSource: 'mic', orbit: true, label: '입력중' });
   });
-  it('sending — 검정, pulse 없음, orbit 회전, 라벨 없음', () => {
+  it('sending — 파랑, pulse 없음, orbit 정지, 라벨 없음', () => {
     const v_81e2ef = v_d45de2('sending');
-    expect(v_81e2ef).toEqual({ color: v_5c8991.sending, pulseSource: 'none', orbit: true, label: null });
+    expect(v_81e2ef).toEqual({ color: v_5c8991.sending, pulseSource: 'none', orbit: false, label: null });
   });
-  it('greeting — 검정, clone pulse, orbit 회전, "발화중"', () => {
+  it('greeting — 파랑, clone pulse, orbit 정지, "발화중"', () => {
     const v_81e2ef = v_d45de2('greeting');
-    expect(v_81e2ef).toEqual({ color: v_5c8991.greeting, pulseSource: 'clone', orbit: true, label: '발화중' });
+    expect(v_81e2ef).toEqual({ color: v_5c8991.greeting, pulseSource: 'clone', orbit: false, label: '발화중' });
   });
-  it('speaking — 검정, clone pulse, orbit 회전, "발화중"', () => {
+  it('speaking — 파랑, clone pulse, orbit 정지, "발화중"', () => {
     const v_81e2ef = v_d45de2('speaking');
-    expect(v_81e2ef).toEqual({ color: v_5c8991.speaking, pulseSource: 'clone', orbit: true, label: '발화중' });
+    expect(v_81e2ef).toEqual({ color: v_5c8991.speaking, pulseSource: 'clone', orbit: false, label: '발화중' });
   });
   it('paused — 회색, pulse 없음, orbit 정지(멈춤), 라벨 없음', () => {
     const v_81e2ef = v_d45de2('paused');
@@ -114,5 +115,24 @@ describe('shouldUpdateLevel (BLOCKER2 — setState 폭주 방지 gate)', () => {
   });
   it('동일값(0→0)은 false', () => {
     expect(v_3032b0(0, 0)).toBe(false);
+  });
+});
+
+describe('2026-07-23 인디케이터 UX 명확화', () => {
+  it('마이크 닫힘 상태(sending/speaking/greeting)는 파란색', () => {
+    expect(v_5c8991.sending).toBe('#3b82f6');
+    expect(v_5c8991.speaking).toBe('#3b82f6');
+    expect(v_5c8991.greeting).toBe('#3b82f6');
+  });
+  it('orbit은 마이크 열림(listening/confirming)에서만 true', () => {
+    expect(v_d45de2('listening').orbit).toBe(true);
+    expect(v_d45de2('confirming').orbit).toBe(true);
+    for (const v_e2a85c of ['sending', 'speaking', 'greeting', 'idle', 'paused'] as const) {
+      expect(v_d45de2(v_e2a85c).orbit).toBe(false);
+    }
+  });
+  it('orbit 궤도 반경은 볼 최대원 내접(트랙+dot ≤ 최대반지름), 불투명도 0.3 이하', () => {
+    expect(v_a1197d.trackRadius + v_a1197d.dotRadius).toBeLessThanOrEqual(v_80c227.max / 2);
+    expect(v_a1197d.opacity).toBeLessThanOrEqual(0.3);
   });
 });
