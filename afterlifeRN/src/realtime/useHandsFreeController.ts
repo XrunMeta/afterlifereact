@@ -13,6 +13,7 @@ import { extractCloneAudioLevel, type CloneSilenceConfig } from './cloneSilence'
 import { useTimingConfigStore } from './timingConfig';
 import { emitTimingEvent } from './timingEvents';
 import { shouldUpdateLevel } from './voiceBall';
+import { ensureQuestionMark } from './questionMark';
 
 const CLONE_GATE_LEVEL = 0.05; 
 
@@ -93,7 +94,8 @@ export function useHandsFreeController(opts: {
         return; 
       }
       emitTimingEvent('vad_endpoint');
-      dispatchRef.current({ type: 'FINAL_RESULT', text });
+
+      dispatchRef.current({ type: 'FINAL_RESULT', text: ensureQuestionMark(text) });
     },
   });
 
