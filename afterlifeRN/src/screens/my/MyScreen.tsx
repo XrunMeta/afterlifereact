@@ -292,7 +292,7 @@ export default function v_ed02a5() {
       icon: "external-link",
       labelKey: "my.menu.openXrun",
       descKey: "my.menu.openXrunDesc",
-      action: () => void v_0c2802({ email: v_b113dd?.email }),
+      action: () => void v_0c2802({ email: v_b113dd?.email, signup: true }),
     },
     {
       icon: "trash-2",

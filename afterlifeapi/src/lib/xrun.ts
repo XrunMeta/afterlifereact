@@ -152,7 +152,11 @@ export async function v_6e4cc8(
   try {
     v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+
+      headers: {
+        "Content-Type": "application/json",
+        "X-Internal-Secret": v_c9c489.XRUN_INTERNAL_SECRET ?? "",
+      },
       body: JSON.stringify(v_4d33b2),
     });
   } catch (v_49263d) {

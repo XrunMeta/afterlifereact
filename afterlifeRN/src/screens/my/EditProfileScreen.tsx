@@ -48,6 +48,36 @@ export default function v_e2b396() {
     [v_8d41d7],
   );
 
+  const v_ac0935 = v_df9f57(
+    () => [
+      { value: "10", label: v_8d41d7("auth.signup.ageRange10", { defaultValue: "10대" }) },
+      { value: "20", label: v_8d41d7("auth.signup.ageRange20", { defaultValue: "20대" }) },
+      { value: "30", label: v_8d41d7("auth.signup.ageRange30", { defaultValue: "30대" }) },
+      { value: "40", label: v_8d41d7("auth.signup.ageRange40", { defaultValue: "40대" }) },
+      { value: "50+", label: v_8d41d7("auth.signup.ageRange50Plus", { defaultValue: "50대 이상" }) },
+    ],
+    [v_8d41d7],
+  );
+  const v_56f818 = (v_cb35cb): number | null => {
+    switch (v_cb35cb) {
+      case "10": return 15;
+      case "20": return 25;
+      case "30": return 35;
+      case "40": return 45;
+      case "50+": return 55;
+      default: return null;
+    }
+  };
+
+  const v_a09cf3 = (v_779914): string => {
+    if (v_779914 == null || !Number.isFinite(v_779914)) return "";
+    if (v_779914 < 20) return "10";
+    if (v_779914 < 30) return "20";
+    if (v_779914 < 40) return "30";
+    if (v_779914 < 50) return "40";
+    return "50+";
+  };
+
   const [v_1833e7, v_318f24] = v_5ab095(v_b113dd?.name ?? "");
   const [v_d74a81, v_fcce73] = v_5ab095(v_b113dd?.phone ?? "");
 
@@ -56,9 +86,8 @@ export default function v_e2b396() {
       ? v_b113dd.gender
       : "",
   );
-  const [v_8894cf, v_d74734] = v_5ab095(
-    v_b113dd?.age != null ? String(v_b113dd.age) : "",
-  );
+
+  const [v_f83808, v_64a312] = v_5ab095<string>(v_a09cf3(v_b113dd?.age));
 
   const v_686096 = v_df9f57<v_da1883 | null>(() => {
     if (!v_b113dd?.country) return null;
@@ -81,7 +110,7 @@ export default function v_e2b396() {
   const [v_35bf26, v_04e389] = v_5ab095(false);
 
   const v_12b1d1 = v_df9f57(() => {
-    const v_f4fe8e = v_8894cf.trim() === "" ? null : Number(v_8894cf.trim());
+    const v_f4fe8e = v_56f818(v_f83808);
     return (
       v_1833e7.trim() !== (v_b113dd?.name ?? "") ||
       v_d74a81.trim() !== (v_b113dd?.phone ?? "") ||
@@ -91,26 +120,21 @@ export default function v_e2b396() {
       (v_a6c30b && v_a6c30b.iso2 !== "global" ? v_a6c30b.dialCode : null) !==
         (v_b113dd?.region ?? null)
     );
-  }, [v_1833e7, v_d74a81, v_c3eac4, v_8894cf, v_b9bbbd, v_a6c30b, v_b113dd]);
+  }, [v_1833e7, v_d74a81, v_c3eac4, v_f83808, v_b9bbbd, v_a6c30b, v_b113dd]);
 
   const v_1b8283 = async () => {
     if (!v_2ca7e0 || !v_b113dd || v_35bf26 || !v_12b1d1) return;
 
     const v_affc3e = v_1833e7.trim();
     const v_d1d8b2 = v_d74a81.trim();
-    const v_435fbe = v_8894cf.trim();
-    const v_f4fe8e = v_435fbe === "" ? null : Number(v_435fbe);
+    const v_f4fe8e = v_56f818(v_f83808);
 
     if (v_affc3e.length === 0) {
       v_889fad("알림", "이름은 비워둘 수 없습니다.");
       return;
     }
-    if (v_435fbe === "") {
-      v_889fad("알림", "나이를 입력해주세요.");
-      return;
-    }
-    if (!Number.isInteger(v_f4fe8e) || v_f4fe8e! < 13 || v_f4fe8e! > 120) {
-      v_889fad("알림", "나이는 13~120 사이의 숫자여야 합니다.");
+    if (v_f4fe8e == null) {
+      v_889fad("알림", "연령대를 선택해주세요.");
       return;
     }
     if (v_d1d8b2 !== "" && v_d1d8b2.length < 4) {
@@ -213,23 +237,22 @@ export default function v_e2b396() {
           <View style={v_fd5f43.divider} />
 
           {}
-          <View style={v_fd5f43.fieldRow}>
-            <Text style={v_fd5f43.fieldLabel}>{v_8d41d7("settings.editProfile.fields.age")}</Text>
-            <TextInput
-              style={v_fd5f43.fieldInput}
-              value={v_8894cf}
-              onChangeText={(v_81e2ef) => v_d74734(v_81e2ef.replace(/[^\d]/g, ""))}
-              placeholder="—"
-              placeholderTextColor={v_1bfbd0.zinc400}
-              keyboardType="numeric"
-              maxLength={3}
-            />
+          <View style={v_fd5f43.fieldRowStack}>
+            <Text style={v_fd5f43.fieldLabelStack}>{v_8d41d7("settings.editProfile.fields.age")}</Text>
+            <View style={v_fd5f43.selectWrap}>
+              <SelectField<string>
+                options={v_ac0935}
+                value={v_f83808}
+                onChange={v_64a312}
+                placeholder={v_8d41d7("auth.signup.ageRangePlaceholder", { defaultValue: "연령대" })}
+              />
+            </View>
           </View>
           <View style={v_fd5f43.divider} />
 
           {}
           <View style={v_fd5f43.fieldRowStack}>
-            <Text style={v_fd5f43.fieldLabelStack}>국가 / 지역</Text>
+            <Text style={v_fd5f43.fieldLabelStack}>국가</Text>
             <TouchableOpacity
               style={v_fd5f43.pickerField}
               onPress={() => v_7168a2(true)}
@@ -238,22 +261,40 @@ export default function v_e2b396() {
               <Feather name="globe" size={18} color={v_1bfbd0.zinc500} />
               <View style={{ flex: 1 }}>
                 {v_b9bbbd ? (
-                  <>
-                    <Text style={v_fd5f43.pickerValue} numberOfLines={1}>
-                      {v_8d41d7(`countries:${v_b9bbbd.iso2.toUpperCase()}`, {
-                        defaultValue: v_b9bbbd.name,
-                      })}
-                    </Text>
-                    {v_a6c30b && v_a6c30b.iso2 !== "global" && (
-                      <Text style={v_fd5f43.pickerRegion} numberOfLines={1}>
-                        {v_8d41d7(`regions:${v_a6c30b.countryCode}_${v_a6c30b.dialCode}`, {
-                          defaultValue: v_a6c30b.name,
-                        })}
-                      </Text>
-                    )}
-                  </>
+                  <Text style={v_fd5f43.pickerValue} numberOfLines={1}>
+                    {v_8d41d7(`countries:${v_b9bbbd.iso2.toUpperCase()}`, {
+                      defaultValue: v_b9bbbd.name,
+                    })}
+                  </Text>
                 ) : (
                   <Text style={v_fd5f43.pickerPlaceholder}>국가를 선택해주세요</Text>
+                )}
+              </View>
+              <Feather name="chevron-down" size={18} color={v_1bfbd0.zinc500} />
+            </TouchableOpacity>
+          </View>
+          <View style={v_fd5f43.divider} />
+
+          {}
+          <View style={v_fd5f43.fieldRowStack}>
+            <Text style={v_fd5f43.fieldLabelStack}>지역</Text>
+            <TouchableOpacity
+              style={v_fd5f43.pickerField}
+              onPress={() => v_7168a2(true)}
+              activeOpacity={0.7}
+            >
+              <Feather name="map-pin" size={18} color={v_1bfbd0.zinc500} />
+              <View style={{ flex: 1 }}>
+                {v_a6c30b && v_a6c30b.iso2 !== "global" ? (
+                  <Text style={v_fd5f43.pickerValue} numberOfLines={1}>
+                    {v_8d41d7(`regions:${v_a6c30b.countryCode}_${v_a6c30b.dialCode}`, {
+                      defaultValue: v_a6c30b.name,
+                    })}
+                  </Text>
+                ) : (
+                  <Text style={v_fd5f43.pickerPlaceholder}>
+                    {v_b9bbbd ? "지역을 선택해주세요" : "먼저 국가를 선택해주세요"}
+                  </Text>
                 )}
               </View>
               <Feather name="chevron-down" size={18} color={v_1bfbd0.zinc500} />
