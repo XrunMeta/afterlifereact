@@ -99,6 +99,8 @@ type Props = NativeStackScreenProps<RootStackParamList, "Call">;
 const { width: SCREEN_W } = Dimensions.get("window");
 const gifts = giftsData as Gift[];
 
+const VIDEO_EDGE_TRIM_PX = 1;
+
 interface FloatingGift {
   id: number;
   emoji: string;
@@ -920,11 +922,14 @@ export default function CallScreen({ route, navigation }: Props) {
       {}
       {}
       {remoteStream ? (
-        <RTCView
-          streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
-          objectFit="contain"
-          style={[StyleSheet.absoluteFill, { width: "100%", height: "100%" }]}
-        />
+
+        <View style={[StyleSheet.absoluteFill, s.videoEdgeMask]}>
+          <RTCView
+            streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
+            objectFit="contain"
+            style={[StyleSheet.absoluteFill, s.videoEdgeTrim]}
+          />
+        </View>
       ) : personaImage ? (
         <Image
           source={typeof personaImage === "number" ? personaImage : { uri: personaImage }}
@@ -1455,6 +1460,15 @@ const s = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.zinc950,
+  },
+
+  videoEdgeMask: {
+    overflow: "hidden",
+  },
+  videoEdgeTrim: {
+    width: "100%",
+    height: "100%",
+    marginHorizontal: -VIDEO_EDGE_TRIM_PX,
   },
 
   pip: {

@@ -1,7 +1,7 @@
 
 
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, StyleSheet, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import type { HandsFreePhase } from '../../realtime/handsFree';
 import {
@@ -9,7 +9,6 @@ import {
   BALL_ORBIT,
   BALL_TUNING,
   BALL_THINK,
-  BALL_LABEL_COLOR,
   ballVisualForPhase,
   radiusForLevel,
 } from '../../realtime/voiceBall';
@@ -149,8 +148,6 @@ export function CallVoiceBall({ phase, micLevel, cloneLevel }: CallVoiceBallProp
           <Circle cx={CENTER} cy={CENTER} r={BALL_MAX_RADIUS} fill={visual.color} />
         </AnimatedSvg>
       </View>
-
-      {visual.label ? <Text style={styles.label}>{visual.label}</Text> : null}
     </View>
   );
 }
@@ -172,14 +169,5 @@ const styles = StyleSheet.create({
   },
   orbitDot: {
     position: 'absolute',
-  },
-  label: {
-    marginTop: 4,
-    fontSize: 12,
-    fontWeight: '600',
-    color: BALL_LABEL_COLOR,
-    textShadowColor: 'rgba(0,0,0,0.6)',
-    textShadowRadius: 3,
-    textShadowOffset: { width: 0, height: 1 },
   },
 });
