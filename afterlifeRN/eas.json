@@ -61,5 +61,14 @@
         "distribution": "store"
       }
     }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "oth-staff@example.invalid",
+        "ascAppId": "TODO_APP_STORE_CONNECT_APP_ID",
+        "appleTeamId": "TODO_APPLE_TEAM_ID"
+      }
+    }
   }
 }
