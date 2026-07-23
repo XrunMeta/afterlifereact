@@ -78,7 +78,7 @@ XRUN_API_URL = "https://oth-path-gw.example.invalid"
 # 결제 wallets — 회사 보유 외부 EOA. 사용자 wallet 에서 분할 송금 대상.
 COMPANY_CHARGE_WALLET = "0x869D509b78135B7b325E31adD2d42871F3967524"
 COMPANY_GIFT_WALLET   = "0xe2b76Fc0341032EAc600af08f338577455C5F858"
-PAYMENT_CURRENCY      = "11"
+PAYMENT_CURRENCY      = "18"
 # 통화 엔드포인트 원격 config — D1(app_config) 미조회 시 폴백. 값 = 현재 라이브 rtc.example.invalid.
 CALL_PRETHIRD_BASE = "https://rtc.example.invalid/prethird"
 CALL_ROUTE = "prethird"
@@ -154,7 +154,7 @@ XRUN_API_URL = "https://oth-path-gw.example.invalid"
 # 결제 wallets — 회사 보유 외부 EOA. 사용자 wallet 에서 분할 송금 대상.
 COMPANY_CHARGE_WALLET = "0x869D509b78135B7b325E31adD2d42871F3967524"
 COMPANY_GIFT_WALLET   = "0xe2b76Fc0341032EAc600af08f338577455C5F858"
-PAYMENT_CURRENCY      = "11"
+PAYMENT_CURRENCY      = "18"
 # 통화 엔드포인트 원격 config — D1(app_config) 미조회 시 폴백. 값 = 현재 라이브 rtc.example.invalid.
 CALL_PRETHIRD_BASE = "https://rtc.example.invalid/prethird"
 CALL_ROUTE = "prethird"
@@ -227,7 +227,7 @@ XRUN_API_URL = "https://oth-path-gw.example.invalid"
 # 결제 wallets — 회사 보유 외부 EOA. 사용자 wallet 에서 분할 송금 대상.
 COMPANY_CHARGE_WALLET = "0x869D509b78135B7b325E31adD2d42871F3967524"
 COMPANY_GIFT_WALLET   = "0xe2b76Fc0341032EAc600af08f338577455C5F858"
-PAYMENT_CURRENCY      = "11"
+PAYMENT_CURRENCY      = "18"
 # 통화 엔드포인트 원격 config — D1(app_config) 미조회 시 폴백. 값 = 현재 라이브 rtc.example.invalid.
 CALL_PRETHIRD_BASE = "https://rtc.example.invalid/prethird"
 CALL_ROUTE = "prethird"
