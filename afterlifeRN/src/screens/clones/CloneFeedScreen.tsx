@@ -98,6 +98,7 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
     title: feed.clone.name,
     description,
     type: feed.clone.cloneType,
+    cloneType: feed.clone.cloneType,
     mainCategory: "",
     interests: feed.interests,
     likes: String(likesCount),

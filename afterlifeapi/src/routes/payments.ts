@@ -73,15 +73,14 @@ payments.get("/balance", async (c) => {
     return Number.isFinite(n) ? n : null;
   };
 
-  const onchainXrun = await getXrunOnchainXrunBalance(c.env, member).catch(() => null);
-  const xrunAmount = onchainXrun ?? find(18);
+  void getXrunOnchainXrunBalance;
+  const xrunAmount = find(11);
   return c.json({
     linked: true,
     balances: validBalances.map((b) => ({
       currency: Number(b.currency),
       symbol: b.symbol,
-
-      amount: (Number(b.currency) === 18 && onchainXrun != null) ? onchainXrun.toFixed(8) : b.amount,
+      amount: b.amount,
       address: b.address,
     })),
     xrun: xrunAmount,

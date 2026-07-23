@@ -7,7 +7,9 @@ import {
   shouldUpdateLevel,
   BALL_COLORS,
   BALL_SIZE,
+  BALL_ORBIT,
   BALL_LEVEL_EPSILON,
+  BALL_THINK,
 } from '../voiceBall';
 import type { HandsFreePhase } from '../handsFree';
 
@@ -43,17 +45,17 @@ describe('ballVisualForPhase', () => {
     const v = ballVisualForPhase('confirming');
     expect(v).toEqual({ color: BALL_COLORS.confirming, pulseSource: 'mic', orbit: true, label: '입력중' });
   });
-  it('sending — 검정, pulse 없음, orbit 회전, 라벨 없음', () => {
+  it('sending — 파랑, think pulse(생각 중 축소+맥동), orbit 정지, 라벨 없음', () => {
     const v = ballVisualForPhase('sending');
-    expect(v).toEqual({ color: BALL_COLORS.sending, pulseSource: 'none', orbit: true, label: null });
+    expect(v).toEqual({ color: BALL_COLORS.sending, pulseSource: 'think', orbit: false, label: null });
   });
-  it('greeting — 검정, clone pulse, orbit 회전, "발화중"', () => {
+  it('greeting — 파랑, clone pulse, orbit 정지, "발화중"', () => {
     const v = ballVisualForPhase('greeting');
-    expect(v).toEqual({ color: BALL_COLORS.greeting, pulseSource: 'clone', orbit: true, label: '발화중' });
+    expect(v).toEqual({ color: BALL_COLORS.greeting, pulseSource: 'clone', orbit: false, label: '발화중' });
   });
-  it('speaking — 검정, clone pulse, orbit 회전, "발화중"', () => {
+  it('speaking — 파랑, clone pulse, orbit 정지, "발화중"', () => {
     const v = ballVisualForPhase('speaking');
-    expect(v).toEqual({ color: BALL_COLORS.speaking, pulseSource: 'clone', orbit: true, label: '발화중' });
+    expect(v).toEqual({ color: BALL_COLORS.speaking, pulseSource: 'clone', orbit: false, label: '발화중' });
   });
   it('paused — 회색, pulse 없음, orbit 정지(멈춤), 라벨 없음', () => {
     const v = ballVisualForPhase('paused');
@@ -114,5 +116,39 @@ describe('shouldUpdateLevel (BLOCKER2 — setState 폭주 방지 gate)', () => {
   });
   it('동일값(0→0)은 false', () => {
     expect(shouldUpdateLevel(0, 0)).toBe(false);
+  });
+});
+
+describe('2026-07-23 인디케이터 UX 명확화', () => {
+  it('마이크 닫힘 상태(sending/speaking/greeting)는 파란색', () => {
+    expect(BALL_COLORS.sending).toBe('#3b82f6');
+    expect(BALL_COLORS.speaking).toBe('#3b82f6');
+    expect(BALL_COLORS.greeting).toBe('#3b82f6');
+  });
+  it('orbit은 마이크 열림(listening/confirming)에서만 true', () => {
+    expect(ballVisualForPhase('listening').orbit).toBe(true);
+    expect(ballVisualForPhase('confirming').orbit).toBe(true);
+    for (const p of ['sending', 'speaking', 'greeting', 'idle', 'paused'] as const) {
+      expect(ballVisualForPhase(p).orbit).toBe(false);
+    }
+  });
+  it('orbit 궤도 반경은 볼 최대원 내접(트랙+dot ≤ 최대반지름), 불투명도 0.3 이하', () => {
+    expect(BALL_ORBIT.trackRadius + BALL_ORBIT.dotRadius).toBeLessThanOrEqual(BALL_SIZE.max / 2);
+    expect(BALL_ORBIT.opacity).toBeLessThanOrEqual(0.3);
+  });
+});
+
+describe('T-151 Task12 — 생각 중(sending) 축소+맥동', () => {
+  it('sending phase는 pulseSource=think', () => {
+    expect(ballVisualForPhase('sending').pulseSource).toBe('think');
+  });
+  it('BALL_THINK — base 지름 48×0.65≈31px, ±6% 맥동, 0.7s 주기', () => {
+    expect(BALL_THINK.scaleBase).toBe(0.65);
+    expect(BALL_SIZE.base * BALL_THINK.scaleBase).toBeCloseTo(31.2, 5);
+    expect(BALL_THINK.ampScale).toBe(0.06);
+    expect(BALL_THINK.periodMs).toBe(700);
+  });
+  it('sending 축소 지름은 base(정적 기준)보다 작다', () => {
+    expect(BALL_SIZE.base * BALL_THINK.scaleBase).toBeLessThan(BALL_SIZE.base);
   });
 });

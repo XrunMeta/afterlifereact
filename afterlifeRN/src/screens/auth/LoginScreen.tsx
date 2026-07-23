@@ -86,8 +86,18 @@ export default function LoginScreen({ navigation }: Props) {
   }, []);
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      showAlert(t("common.notice"), t("auth.signup.emailRequired"));
+    if (!email.trim()) {
+      showAlert(
+        t("common.notice"),
+        t("auth.signup.emailRequired", { defaultValue: "이메일을 입력해주세요." }),
+      );
+      return;
+    }
+    if (!password) {
+      showAlert(
+        t("common.notice"),
+        t("auth.signup.passwordRequired", { defaultValue: "비밀번호를 입력해주세요." }),
+      );
       return;
     }
     setLoggingIn(true);

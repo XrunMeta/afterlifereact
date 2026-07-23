@@ -20,6 +20,7 @@ const CATEGORY_BY_TYPE: Record<CloneType, string> = {
   friend: 'friend',
   mentor: 'mentor',
   celeb: 'celeb',
+  expert: 'expert',
 };
 
 export function deriveUsername(clone: DomainClone): string {

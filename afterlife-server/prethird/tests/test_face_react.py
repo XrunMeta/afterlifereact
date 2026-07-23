@@ -21,15 +21,15 @@ class _Pipeline:
         self.say_calls = []
         self.speak_calls = []
         self.react_calls = []
-    async def greet(self, turn=None, on_first_audio=None):
+    async def greet(self, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None):
         self.greet_calls += 1
         if on_first_audio:
             on_first_audio()
-    async def say(self, text, turn=None, on_first_audio=None, on_response_ready=None):
+    async def say(self, text, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None):
         self.say_calls.append(text)
         if on_first_audio:
             on_first_audio()
-    async def speak(self, text, turn=None, on_first_audio=None, on_response_ready=None):
+    async def speak(self, text, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None):
         self.speak_calls.append(text)
         if on_first_audio:
             on_first_audio()
@@ -42,7 +42,7 @@ class _GatedPipeline(_Pipeline):
     def __init__(self):
         super().__init__()
         self.say_gate = asyncio.Event()
-    async def say(self, text, turn=None, on_first_audio=None, on_response_ready=None):
+    async def say(self, text, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None):
         self.say_calls.append(text)
         if on_first_audio:
             on_first_audio()

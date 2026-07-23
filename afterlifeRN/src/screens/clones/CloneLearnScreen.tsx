@@ -131,9 +131,9 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     if (!loading && scrollRef.current) {
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
     }
-  }, [chatHistory.length, currentKey, loading]);
+  }, [chatHistory.length, currentKey, loading, pendingConfirm]);
 
   const goNext = (fresh: KnowledgeItem[], justAnsweredKey?: string) => {
 
@@ -148,10 +148,10 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
     if (!accessToken || !currentQuestion) return;
     const a = answer.trim();
     if (!a) return;
-    if (items.length >= 30 && !answeredKeys.has(currentQuestion.key)) {
+    if (items.length >= 200 && !answeredKeys.has(currentQuestion.key)) {
       showAlert(
         t("common.notice", { defaultValue: "안내" }),
-        t("learn.maxItems", { defaultValue: "지식 항목이 최대 30개까지에요." }),
+        t("learn.maxItems", { defaultValue: "지식 항목이 최대 200개까지에요." }),
       );
       return;
     }

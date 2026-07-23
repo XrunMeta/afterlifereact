@@ -9,6 +9,7 @@ import { logActivity } from "../lib/logger";
 import { purgeUserOntology } from "../lib/memoryStore";
 import { notify } from "../lib/notify";
 import { similarityScore, SEARCH_SIMILARITY_THRESHOLD } from "../lib/similarity";
+import { syncPushTokenToXrun } from "../lib/xrun";
 
 export const users = new Hono<AppEnv>();
 
@@ -410,6 +411,23 @@ users.post("/me/devices", requireAuth, async (c) => {
     )
     .bind(userId, body.deviceId, body.pushToken, body.platform)
     .run();
+
+  try {
+    const linked = await c.env.DB
+      .prepare(`SELECT xrun_member_id FROM users WHERE id = ? LIMIT 1`)
+      .bind(userId)
+      .first<{ xrun_member_id: number | null }>();
+    const xMember = linked?.xrun_member_id ?? null;
+    if (xMember) {
+      const r = await syncPushTokenToXrun(c.env, xMember, body.pushToken);
+      if (!r.ok) {
+        console.warn(`[users/devices] xrun push sync failed member=${xMember} reason=${r.reason}`);
+      }
+    }
+  } catch (err) {
+    console.warn("[users/devices] xrun push sync error:", (err as Error).message);
+  }
+
   return c.json({ ok: true });
 });
 

@@ -152,7 +152,11 @@ export async function registerXrunForAfterlifeUser(
   try {
     res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+
+      headers: {
+        "Content-Type": "application/json",
+        "X-Internal-Secret": env.XRUN_INTERNAL_SECRET ?? "",
+      },
       body: JSON.stringify(body),
     });
   } catch (err) {
@@ -328,12 +332,13 @@ function internalHeaders(env: Bindings): Record<string, string> {
 }
 
 export async function hasXrunPaymentPin(env: Bindings, member: number): Promise<PaymentPinStatus> {
-  if (!env.XRUN_GATEWAY_TOKEN) return { ok: false, hasPin: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  if (!env.XRUN_INTERNAL_SECRET) return { ok: false, hasPin: false, reason: "missing XRUN_INTERNAL_SECRET" };
   let res: Response;
   try {
+
     res = await fetch(
       `${env.XRUN_API_URL}/oth-path?member=${encodeURIComponent(String(member))}`,
-      { method: "GET", headers: gatewayHeaders(env) },
+      { method: "GET", headers: internalHeaders(env) },
     );
   } catch (err) {
     return { ok: false, hasPin: false, reason: `network: ${(err as Error).message}` };
@@ -358,12 +363,13 @@ export async function verifyXrunPaymentPin(
   member: number,
   pin: string,
 ): Promise<PaymentPinVerifyResult> {
-  if (!env.XRUN_GATEWAY_TOKEN) return { ok: false, match: false, hasPin: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  if (!env.XRUN_INTERNAL_SECRET) return { ok: false, match: false, hasPin: false, reason: "missing XRUN_INTERNAL_SECRET" };
   let res: Response;
   try {
+
     res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
       method: "POST",
-      headers: gatewayHeaders(env),
+      headers: internalHeaders(env),
       body: JSON.stringify({ member, pin }),
     });
   } catch (err) {
@@ -512,6 +518,31 @@ export async function closeXrunMember(env: Bindings, member: number): Promise<Xr
     closed: false,
     reason: `xrun ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}`,
   };
+}
+
+export async function syncPushTokenToXrun(
+  env: Bindings,
+  member: number,
+  pushToken: string | null,
+): Promise<{ ok: boolean; reason?: string }> {
+  if (!env.XRUN_INTERNAL_SECRET) {
+    return { ok: false, reason: "missing XRUN_INTERNAL_SECRET" };
+  }
+  try {
+    const res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: internalHeaders(env),
+      body: JSON.stringify({ member, pushToken }),
+    });
+    if (!res.ok) {
+      return { ok: false, reason: `HTTP ${res.status}` };
+    }
+    const json = (await res.json()) as { status?: string; message?: string };
+    if (json.status === "success") return { ok: true };
+    return { ok: false, reason: json.message ?? "unknown" };
+  } catch (err) {
+    return { ok: false, reason: `network: ${(err as Error).message}` };
+  }
 }
 
 export async function getXrunBalances(env: Bindings, member: number): Promise<XrunBalancesResult> {

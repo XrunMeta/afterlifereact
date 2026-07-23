@@ -48,6 +48,36 @@ export default function EditProfileScreen() {
     [t],
   );
 
+  const AGE_RANGE_OPTIONS = useMemo(
+    () => [
+      { value: "10", label: t("auth.signup.ageRange10", { defaultValue: "10대" }) },
+      { value: "20", label: t("auth.signup.ageRange20", { defaultValue: "20대" }) },
+      { value: "30", label: t("auth.signup.ageRange30", { defaultValue: "30대" }) },
+      { value: "40", label: t("auth.signup.ageRange40", { defaultValue: "40대" }) },
+      { value: "50+", label: t("auth.signup.ageRange50Plus", { defaultValue: "50대 이상" }) },
+    ],
+    [t],
+  );
+  const ageRangeToAge = (r: string): number | null => {
+    switch (r) {
+      case "10": return 15;
+      case "20": return 25;
+      case "30": return 35;
+      case "40": return 45;
+      case "50+": return 55;
+      default: return null;
+    }
+  };
+
+  const ageToRange = (a: number | null | undefined): string => {
+    if (a == null || !Number.isFinite(a)) return "";
+    if (a < 20) return "10";
+    if (a < 30) return "20";
+    if (a < 40) return "30";
+    if (a < 50) return "40";
+    return "50+";
+  };
+
   const [name, setName] = useState(apiUser?.name ?? "");
   const [phone, setPhone] = useState(apiUser?.phone ?? "");
 
@@ -56,9 +86,8 @@ export default function EditProfileScreen() {
       ? apiUser.gender
       : "",
   );
-  const [ageStr, setAgeStr] = useState(
-    apiUser?.age != null ? String(apiUser.age) : "",
-  );
+
+  const [ageRange, setAgeRange] = useState<string>(ageToRange(apiUser?.age));
 
   const initialCountry = useMemo<CountryDialCode | null>(() => {
     if (!apiUser?.country) return null;
@@ -81,7 +110,7 @@ export default function EditProfileScreen() {
   const [saving, setSaving] = useState(false);
 
   const dirty = useMemo(() => {
-    const ageNum = ageStr.trim() === "" ? null : Number(ageStr.trim());
+    const ageNum = ageRangeToAge(ageRange);
     return (
       name.trim() !== (apiUser?.name ?? "") ||
       phone.trim() !== (apiUser?.phone ?? "") ||
@@ -91,25 +120,21 @@ export default function EditProfileScreen() {
       (region && region.iso2 !== "global" ? region.dialCode : null) !==
         (apiUser?.region ?? null)
     );
-  }, [name, phone, gender, ageStr, country, region, apiUser]);
+  }, [name, phone, gender, ageRange, country, region, apiUser]);
 
   const handleSave = async () => {
     if (!accessToken || !apiUser || saving || !dirty) return;
 
     const trimmedName = name.trim();
     const trimmedPhone = phone.trim();
-    const ageRaw = ageStr.trim();
-    const ageNum = ageRaw === "" ? null : Number(ageRaw);
+    const ageNum = ageRangeToAge(ageRange);
 
     if (trimmedName.length === 0) {
       showAlert("알림", "이름은 비워둘 수 없습니다.");
       return;
     }
-    if (
-      ageRaw !== "" &&
-      (!Number.isInteger(ageNum) || ageNum! < 13 || ageNum! > 120)
-    ) {
-      showAlert("알림", "나이는 13~120 사이의 숫자여야 합니다.");
+    if (ageNum == null) {
+      showAlert("알림", "연령대를 선택해주세요.");
       return;
     }
     if (trimmedPhone !== "" && trimmedPhone.length < 4) {
@@ -212,23 +237,22 @@ export default function EditProfileScreen() {
           <View style={s.divider} />
 
           {}
-          <View style={s.fieldRow}>
-            <Text style={s.fieldLabel}>{t("settings.editProfile.fields.age")}</Text>
-            <TextInput
-              style={s.fieldInput}
-              value={ageStr}
-              onChangeText={(v) => setAgeStr(v.replace(/[^\d]/g, ""))}
-              placeholder="—"
-              placeholderTextColor={COLORS.zinc400}
-              keyboardType="numeric"
-              maxLength={3}
-            />
+          <View style={s.fieldRowStack}>
+            <Text style={s.fieldLabelStack}>{t("settings.editProfile.fields.age")}</Text>
+            <View style={s.selectWrap}>
+              <SelectField<string>
+                options={AGE_RANGE_OPTIONS}
+                value={ageRange}
+                onChange={setAgeRange}
+                placeholder={t("auth.signup.ageRangePlaceholder", { defaultValue: "연령대" })}
+              />
+            </View>
           </View>
           <View style={s.divider} />
 
           {}
           <View style={s.fieldRowStack}>
-            <Text style={s.fieldLabelStack}>국가 / 지역</Text>
+            <Text style={s.fieldLabelStack}>국가</Text>
             <TouchableOpacity
               style={s.pickerField}
               onPress={() => setCountryPickerOpen(true)}
@@ -241,17 +265,36 @@ export default function EditProfileScreen() {
                     {t(`countries:${country.iso2.toUpperCase()}`, {
                       defaultValue: country.name,
                     })}
-                    {region && region.iso2 !== "global" && (
-                      <Text style={s.pickerRegion}>
-                        {"  ·  "}
-                        {t(`regions:${region.countryCode}_${region.dialCode}`, {
-                          defaultValue: region.name,
-                        })}
-                      </Text>
-                    )}
                   </Text>
                 ) : (
                   <Text style={s.pickerPlaceholder}>국가를 선택해주세요</Text>
+                )}
+              </View>
+              <Feather name="chevron-down" size={18} color={COLORS.zinc500} />
+            </TouchableOpacity>
+          </View>
+          <View style={s.divider} />
+
+          {}
+          <View style={s.fieldRowStack}>
+            <Text style={s.fieldLabelStack}>지역</Text>
+            <TouchableOpacity
+              style={s.pickerField}
+              onPress={() => setCountryPickerOpen(true)}
+              activeOpacity={0.7}
+            >
+              <Feather name="map-pin" size={18} color={COLORS.zinc500} />
+              <View style={{ flex: 1 }}>
+                {region && region.iso2 !== "global" ? (
+                  <Text style={s.pickerValue} numberOfLines={1}>
+                    {t(`regions:${region.countryCode}_${region.dialCode}`, {
+                      defaultValue: region.name,
+                    })}
+                  </Text>
+                ) : (
+                  <Text style={s.pickerPlaceholder}>
+                    {country ? "지역을 선택해주세요" : "먼저 국가를 선택해주세요"}
+                  </Text>
                 )}
               </View>
               <Feather name="chevron-down" size={18} color={COLORS.zinc500} />

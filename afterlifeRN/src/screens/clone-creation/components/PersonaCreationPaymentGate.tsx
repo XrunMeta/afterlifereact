@@ -20,10 +20,10 @@ import { COLORS, RADIUS } from "../../../components/constants";
 import { useAuthStore } from "../../../stores/authStore";
 import { useCloneStore } from "../../../stores/cloneStore";
 import { listMyClones } from "../../../api/clones";
-import { getXrunBalance, getPaymentPinStatus } from "../../../api/payments";
+import { getXrunBalance, getPaymentPinStatus, verifyPaymentPin } from "../../../api/payments";
 import { API_BASE, API_BASE_PREVIEW } from "../../../config/apiBase";
 
-const PERSONA_FULL_PRICE_XRUN = 100;
+const PERSONA_FULL_PRICE_XRUN_FALLBACK = 0.001;
 
 const TEST_PRICE_EMAILS = ["oth-user@example.invalid", "oth-test@example.invalid"];
 const TEST_PRICE_XRUN = 0.05;
@@ -40,8 +40,12 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
   const userEmail = useAuthStore((s) => s.apiUser?.email ?? null);
   const setCreationDraft = useCloneStore((s) => s.setCreationDraft);
 
+  const [serverPrice, setServerPrice] = useState<number | null>(null);
+
   const PERSONA_PAID_PRICE_XRUN =
-    userEmail && TEST_PRICE_EMAILS.includes(userEmail) ? TEST_PRICE_XRUN : PERSONA_FULL_PRICE_XRUN;
+    userEmail && TEST_PRICE_EMAILS.includes(userEmail)
+      ? TEST_PRICE_XRUN
+      : (serverPrice ?? PERSONA_FULL_PRICE_XRUN_FALLBACK);
 
   const [loading, setLoading] = useState(true);
   const [needPay, setNeedPay] = useState(false);
@@ -60,6 +64,22 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
     );
     const hide = Keyboard.addListener("keyboardDidHide", () => setKbHeight(0));
     return () => { show.remove(); hide.remove(); };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/oth-path`);
+        if (!res.ok) return;
+        const json = (await res.json()) as { priceXrun?: unknown };
+        const n = Number(json?.priceXrun);
+        if (!cancelled && Number.isFinite(n) && n >= 0) setServerPrice(n);
+      } catch (err) {
+        console.warn("[PaymentGate] persona-price fetch failed:", err);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -144,14 +164,37 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
     }
   };
 
-  const handleConfirm = () => {
-
+  const [verifying, setVerifying] = useState(false);
+  const handleConfirm = async () => {
     if (blockInput) return;
     if (pin.length !== 6) {
       setError("PIN 6자리를 입력해주세요.");
       return;
     }
+    if (!accessToken) {
+      setError("로그인이 필요해요.");
+      return;
+    }
 
+    setVerifying(true);
+    setError(null);
+    try {
+      const r = await verifyPaymentPin(accessToken, pin);
+      if (!r.hasPin) {
+        setHasPin(false);
+        setError("XRUN PIN이 설정돼있지 않아요. xrun 앱에서 먼저 설정해주세요.");
+        return;
+      }
+      if (!r.match) {
+        setError("XRUN PIN이 일치하지 않아요.");
+        return;
+      }
+    } catch (err) {
+      setError("PIN 확인 중 오류가 났어요. 잠시 후 다시 시도해주세요.");
+      return;
+    } finally {
+      setVerifying(false);
+    }
     setCreationDraft({ pin });
     onProceed();
   };
@@ -186,7 +229,7 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
             <Text style={styles.title}>클론 생성 결제</Text>
             <Text style={styles.desc}>
               두 번째 클론부터 {PERSONA_PAID_PRICE_XRUN} XRUN 이 부과돼요.{"\n"}
-              결제 비밀번호 6자리를 입력해주세요.
+              XRUN PIN 6자리를 입력해주세요.
             </Text>
             {balance !== null && (
               <Text style={[styles.balance, insufficient && styles.balanceLow]}>
@@ -222,7 +265,7 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
                   (pin.length !== 6 || blockInput) && styles.disabled,
                 ]}
                 onPress={handleConfirm}
-                disabled={pin.length !== 6 || blockInput}
+                disabled={pin.length !== 6 || blockInput || verifying}
               >
                 <Text style={styles.confirmText}>
                   결제
@@ -238,7 +281,7 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
                 style={styles.pinSetupLinkWrap}
               >
                 <Text style={styles.pinSetupLink}>
-                  xrun 비밀번호 재설정
+                  XRUN PIN 재설정
                 </Text>
               </TouchableOpacity>
             )}

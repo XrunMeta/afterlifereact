@@ -24,6 +24,8 @@ export function OtpCodeInput({
   masked?: boolean;
 }) {
   const inputRef = useRef<TextInput>(null);
+
+  void onComplete;
   return (
     <Pressable style={s.cellRow} onPress={() => inputRef.current?.focus()}>
       {CELLS.map((i) => {
@@ -42,7 +44,7 @@ export function OtpCodeInput({
         onChangeText={(txt) => {
           const digits = txt.replace(/\D/g, "").slice(0, 6);
           onChange(digits);
-          if (digits.length === 6) onComplete?.();
+
         }}
         keyboardType="number-pad"
 

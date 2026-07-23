@@ -67,10 +67,10 @@ import { GREETING_ENABLED, GREETING_FALLBACK_TEXT, GREET_TIMEOUT_MS } from "../.
 import { useHandsFreeController } from "../../realtime/useHandsFreeController";
 import { useVideoStatsDiag } from "../../realtime/useVideoStatsDiag";
 import { DialingScreen } from "../../components/call/DialingScreen";
-import { CallStatusGlow } from "../../components/call/CallStatusGlow";
 import { CallVoiceBall } from "../../components/call/CallVoiceBall";
 import { CallTimingHUD } from "../../components/call/CallTimingHUD";
 import { CallTimingPanel } from "../../components/call/CallTimingPanel";
+import { CloneSubtitleTicker } from "../../components/call/CloneSubtitleTicker";
 import { useTimingConfigStore } from "../../realtime/timingConfig";
 import { startTimingLog } from "../../realtime/timingLog";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -93,6 +93,7 @@ import {
   postCloneCallEvent,
 } from "../../api/clones";
 import { AuthApiError } from "../../api/auth";
+import ExpertBadge from "../../components/ui/ExpertBadge";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
 
@@ -535,8 +536,6 @@ export default function CallScreen({ route, navigation }: Props) {
     cancelConfirm,
     transcript,
     interimTranscript,
-    sttActive,
-    cloneSuppressed,
     devForceListen,
     micLevel,
     cloneAudioLevel,
@@ -553,11 +552,24 @@ export default function CallScreen({ route, navigation }: Props) {
     fallbackText: GREETING_FALLBACK_TEXT,
     silenceMs: sttEndpointMs,
     confirmGate: __DEV__ && confirmGateEnabled,
+
+    signalGating: typeof greet === 'function',
   });
 
   const [greetingStarted, setGreetingStarted] = useState(false);
   useEffect(() => {
     if (lastSignal?.type === 'speech_start') setGreetingStarted(true);
+  }, [lastSignal]);
+
+  const [cloneSubtitle, setCloneSubtitle] = useState('');
+  useEffect(() => {
+    if (!lastSignal) return;
+    if (lastSignal.type === 'speech_text' && lastSignal.text) {
+      const t = lastSignal.text;
+      setCloneSubtitle((prev) => (prev ? `${prev} ${t}` : t));
+    } else if (lastSignal.type === 'speech_end') {
+      setCloneSubtitle('');
+    }
   }, [lastSignal]);
 
   useEffect(() => {
@@ -797,12 +809,12 @@ export default function CallScreen({ route, navigation }: Props) {
       let pinSetup = false;   
       if (err instanceof AuthApiError) {
         if (err.code === "PAYMENT_PIN_INVALID" || err.code === "UNAUTHENTICATED") {
-          title = "결제 비밀번호 오류";
-          msg = "결제 비밀번호가 일치하지 않아요.\n다시 입력해 주세요.";
+          title = "XRUN PIN 오류";
+          msg = "XRUN PIN가 일치하지 않아요.\n다시 입력해 주세요.";
           pinRetry = true;
         } else if (err.code === "PAYMENT_PIN_REQUIRED") {
-          title = "결제 비밀번호 미설정";
-          msg = "아직 결제 비밀번호(6자리)가 설정되어 있지 않아요.\nXRUN에서 설정 후 다시 시도해 주세요.";
+          title = "XRUN PIN 미설정";
+          msg = "아직 XRUN PIN(6자리)가 설정되어 있지 않아요.\nXRUN에서 설정 후 다시 시도해 주세요.";
           pinSetup = true;
         } else if (err.code === "INSUFFICIENT_FUNDS") {
           isInsufficient = true;
@@ -855,7 +867,7 @@ export default function CallScreen({ route, navigation }: Props) {
       } else if (pinSetup) {
         actions = [
           { text: "다음에 하기", style: "cancel" },
-          { text: "xrun 비밀번호 재설정", onPress: () => void openXrunApp() },
+          { text: "XRUN PIN 재설정", onPress: () => void openXrunApp() },
         ];
       }
       showAlert(title, msg, actions);
@@ -900,6 +912,8 @@ export default function CallScreen({ route, navigation }: Props) {
 
     setShowGifts(false);
   };
+
+  const subtitleBottom = bottomInset + 96 + 112 + 12;
 
   return (
     <View style={s.container}>
@@ -1018,8 +1032,6 @@ export default function CallScreen({ route, navigation }: Props) {
         style={StyleSheet.absoluteFill}
       />
 
-      {dialingDone ? <CallStatusGlow phase={phase} sttActive={sttActive} suppressed={cloneSuppressed} /> : null}
-
       {__DEV__ && liveState === "live" ? <CallTimingHUD /> : null}
       {__DEV__ && liveState === "live" ? (
 
@@ -1132,6 +1144,15 @@ export default function CallScreen({ route, navigation }: Props) {
       </View>
 
       {
+
+}
+      {clone?.cloneType === "expert" && (
+        <View style={[s.expertBadge, { top: insets.top + 24 }]}>
+          <ExpertBadge size={44} />
+        </View>
+      )}
+
+      {
 }
       {!isOwnClone && (
       <View style={s.rightActions}>
@@ -1189,13 +1210,12 @@ export default function CallScreen({ route, navigation }: Props) {
       ))}
 
       {
-
 }
 
       {}
       {phase === 'listening' && (!!interimTranscript || !!transcript) ? (
-        <View style={[s.subtitleContainer, { top: insets.top + 8 }]} pointerEvents="none">
-          <Text style={s.subtitleText}>
+        <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
+          <Text style={s.subtitleText} numberOfLines={1} ellipsizeMode="head">
             {interimTranscript || transcript}
           </Text>
         </View>
@@ -1207,8 +1227,8 @@ export default function CallScreen({ route, navigation }: Props) {
       {phase === 'confirming' && !!pendingText ? (
         <>
           <Pressable style={s.confirmTapArea} onPress={cancelConfirm} />
-          <View style={[s.subtitleContainer, { top: insets.top + 8 }]} pointerEvents="none">
-            <Text style={s.subtitleText}>
+          <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
+            <Text style={s.subtitleText} numberOfLines={1} ellipsizeMode="head">
               {pendingText}
             </Text>
             <View style={s.confirmBarTrack}>
@@ -1222,11 +1242,20 @@ export default function CallScreen({ route, navigation }: Props) {
       {
 
 }
-      {(phase === 'sending' || phase === 'speaking') && !!pendingText ? (
-        <View style={[s.subtitleContainer, { top: insets.top + 8 }]} pointerEvents="none">
-          <Text style={s.subtitleText}>
+      {(phase === 'sending' || phase === 'speaking') && !!pendingText && !cloneSubtitle ? (
+        <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
+          <Text style={s.subtitleText} numberOfLines={1} ellipsizeMode="head">
             {pendingText}
           </Text>
+        </View>
+      ) : null}
+
+      {
+
+}
+      {(phase === 'speaking' || phase === 'greeting') && !!cloneSubtitle ? (
+        <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
+          <CloneSubtitleTicker text={cloneSubtitle} style={s.subtitleText} />
         </View>
       ) : null}
 
@@ -1359,7 +1388,7 @@ export default function CallScreen({ route, navigation }: Props) {
               <View style={s.pinIconWrap}>
                 <Feather name="lock" size={26} color={COLORS.violet600} />
               </View>
-              <Text style={s.pinTitle}>결제 비밀번호</Text>
+              <Text style={s.pinTitle}>XRUN PIN</Text>
               {pendingGift && (
                 <Text style={s.pinDesc}>
                   {pendingGift.emoji} {pendingGift.name} · {pendingGift.price} XRUN
@@ -1499,6 +1528,8 @@ const s = StyleSheet.create({
     alignItems: "center",
     zIndex: 10,
   },
+
+  expertBadge: { position: "absolute", right: 16, zIndex: 41 },
   callName: {
     fontSize: 24,
     fontWeight: "700",
@@ -1548,9 +1579,9 @@ const s = StyleSheet.create({
 
   subtitleContainer: {
     position: 'absolute',
-    left: 124,
+    left: 16,
     right: 16,
-    alignItems: 'flex-start',
+    alignItems: 'center',
     zIndex: 15,
   },
   subtitleText: {
@@ -1561,8 +1592,9 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 10,
-    textAlign: 'left',
-    alignSelf: 'stretch',
+    textAlign: 'center',
+    alignSelf: 'center',
+    maxWidth: '100%',
   },
 
   confirmTapArea: {

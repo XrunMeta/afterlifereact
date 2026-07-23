@@ -9,6 +9,7 @@ const CLONE_TYPE_LABEL: Record<CloneType, string> = {
   friend: "친구",
   mentor: "멘토",
   celeb: "셀럽",
+  expert: "전문가",
 };
 
 const LOCAL_IMAGE_BY_CLONE_ID: Record<number, number> = {
@@ -57,6 +58,7 @@ export function toFeedItem(f: DomainFeed): FeedItem {
     title: c?.displayName ?? "",
     description,
     type: c ? CLONE_TYPE_LABEL[c.cloneType] : "친구",
+    cloneType: c?.cloneType,
     mainCategory: "",
 
     interests: interestsList,

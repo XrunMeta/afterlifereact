@@ -137,3 +137,39 @@ def test_empty_preference_history_no_line():
         "displayName": "정진스님", "preference_history": [],
     }))
     assert "취향 변화" not in msgs[0]["content"]
+
+
+def test_knowledge_formatted_as_section():
+    """knowledge([{key,q,a,updated_at}]) → '## 전문 지식' 섹션, dict repr 유출 금지."""
+    bundle = {"personaBundle": {"l0": {}, "cloneId": "1", "persona": {
+        "tone": "차분함",
+        "knowledge": [
+            {"key": "k1", "q": "[꽃말] 프리지아", "a": "당신의 시작을 응원한다는 의미.", "updated_at": 1},
+            {"key": "k2", "q": None, "a": "질문 없는 항목.", "updated_at": 2},
+        ],
+    }}}
+    text = bundle_to_messages(bundle)[0]["content"]
+    assert "## 전문 지식" in text
+    assert "- [꽃말] 프리지아: 당신의 시작을 응원한다는 의미." in text
+    assert "- 질문 없는 항목." in text
+    assert "updated_at" not in text and "{'" not in text  # repr 유출 금지
+
+
+def test_no_knowledge_no_section():
+    msgs = bundle_to_messages(_bundle({"tone": "x"}))
+    assert "## 전문 지식" not in msgs[0]["content"]
+
+
+def test_empty_knowledge_no_section():
+    msgs = bundle_to_messages(_bundle({"tone": "x", "knowledge": []}))
+    assert "## 전문 지식" not in msgs[0]["content"]
+
+
+def test_knowledge_excluded_from_persona_fallback_loop():
+    """knowledge 키는 '나머지 속성' 루프에서 dict repr로 새지 않아야 한다."""
+    msgs = bundle_to_messages(_bundle({
+        "tone": "x",
+        "knowledge": [{"key": "k1", "q": "q1", "a": "a1", "updated_at": 1}],
+    }))
+    content = msgs[0]["content"]
+    assert "- knowledge:" not in content

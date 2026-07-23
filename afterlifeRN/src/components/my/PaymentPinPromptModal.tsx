@@ -96,9 +96,9 @@ export default function PaymentPinPromptModal({ visible, onClose }: Props) {
           <View style={s.iconCircle}>
             <Feather name="lock" size={28} color={COLORS.violet500} />
           </View>
-          <Text style={s.title}>결제 비밀번호를 설정해주세요</Text>
+          <Text style={s.title}>XRUN PIN를 설정해주세요</Text>
           <Text style={s.body}>
-            xrun 앱에서 6자리 결제 비밀번호를 등록해야 결제 기능을 사용할 수 있어요.
+            xrun 앱에서 6자리 XRUN PIN를 등록해야 결제 기능을 사용할 수 있어요.
           </Text>
 
           <TouchableOpacity style={s.primaryBtn} onPress={handleOpenXrun}>

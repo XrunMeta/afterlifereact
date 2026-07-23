@@ -13,10 +13,25 @@ import { loadKnowledgeQuestions, validateKnowledgeQuestions } from "../lib/knowl
 import { loadBlacklist, validateBlacklist } from "../lib/knowledgeBlacklist";
 import { normalizeKnowledge } from "../lib/knowledgeStore";
 import { notify } from "../lib/notify";
+import { getPersonaPriceXrun, setPersonaPriceXrun } from "../lib/appConfig";
 
 export const admin = new Hono<AppEnv>();
 
 admin.get("/health", (c) => c.json({ ok: true, module: "admin" }));
+
+admin.get("/config/persona-price", requireAdmin, async (c) => {
+  const priceXrun = await getPersonaPriceXrun(c.env);
+  return c.json({ priceXrun });
+});
+admin.patch("/config/persona-price", requireAdmin, async (c) => {
+  const body = await c.req.json<{ priceXrun?: unknown }>().catch(() => ({} as { priceXrun?: unknown }));
+  const price = Number(body.priceXrun);
+  if (!Number.isFinite(price) || price < 0) {
+    throw new APIError("VALIDATION_FAILED", "priceXrun must be a non-negative number.");
+  }
+  await setPersonaPriceXrun(c.env, price);
+  return c.json({ ok: true, priceXrun: price });
+});
 
 const openSchema = z.object({
   resourceType: z.enum(["message.content", "user.phone", "user.age"]),
@@ -1153,6 +1168,32 @@ admin.get("/reports", requireAdmin, async (c) => {
   return c.json({ items: rows, total: totalRow?.cnt ?? 0, offset, limit });
 });
 
+async function notifyReporterOfReportOutcome(
+  c: Context<AppEnv>,
+  reportType: "user" | "clone" | "comment",
+  reporterId: number | null | undefined,
+  status: string,
+  reporterMessage: string | null,
+): Promise<void> {
+  if (!reporterId) return;
+  const label =
+    status === "reviewed" ? "수락되었어요"
+    : status === "dismissed" ? "반려되었어요"
+    : status === "actioned" ? "조치되었어요"
+    : "처리되었어요";
+  const body = reporterMessage?.trim() || `내가 접수한 신고가 ${label}.`;
+  await notify(c.env, {
+    userId: reporterId,
+    type: "moderation",
+    title: "내 신고 처리 안내",
+    body,
+
+    url: "afterlife://reports/made",
+    data: { reportType, status },
+    skipEmail: true,
+  }).catch(() => {});
+}
+
 async function issueReportWarning(
   c: Context<AppEnv>,
   reportType: "user" | "clone" | "comment",
@@ -1213,7 +1254,8 @@ admin.patch("/oth-path", requireAdmin, async (c) => {
   const targetMessage = isOpen ? null : (body.targetMessage ?? body.adminMessage ?? null);
 
   const adminMessage = targetMessage;
-  const reviewedClause = isOpen ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+
+  const reviewedClause = isOpen ? "reviewed_at = NULL" : "reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP)";
   const r = await c.env.DB
     .prepare(`UPDATE clone_reports SET status = ?, ${reviewedClause}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
     .bind(status, adminMessage, reporterMessage, targetMessage, id)
@@ -1229,6 +1271,14 @@ admin.patch("/oth-path", requireAdmin, async (c) => {
       .bind(id)
       .first<{ ownerId: number; cloneId: number }>();
     warningCount = await issueReportWarning(c, "clone", id, owner?.ownerId, owner?.cloneId, adminMessage);
+  }
+
+  if (!isOpen) {
+    const rep = await c.env.DB
+      .prepare(`SELECT user_id AS reporterId FROM clone_reports WHERE id = ?`)
+      .bind(id)
+      .first<{ reporterId: number | null }>();
+    await notifyReporterOfReportOutcome(c, "clone", rep?.reporterId, status, reporterMessage);
   }
   return c.json({ ok: true, id, status, adminMessage, warningCount });
 });
@@ -1257,7 +1307,8 @@ admin.patch("/oth-path", requireAdmin, async (c) => {
   const targetMessage = isOpen ? null : (body.targetMessage ?? body.adminMessage ?? null);
 
   const adminMessage = targetMessage;
-  const reviewedClause = isOpen ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+
+  const reviewedClause = isOpen ? "reviewed_at = NULL" : "reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP)";
   const r = await c.env.DB
     .prepare(`UPDATE user_reports SET status = ?, ${reviewedClause}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
     .bind(status, adminMessage, reporterMessage, targetMessage, id)
@@ -1271,6 +1322,14 @@ admin.patch("/oth-path", requireAdmin, async (c) => {
       .bind(id)
       .first<{ targetId: number }>();
     warningCount = await issueReportWarning(c, "user", id, rep?.targetId, null, adminMessage);
+  }
+
+  if (!isOpen) {
+    const rep = await c.env.DB
+      .prepare(`SELECT reporter_id AS reporterId FROM user_reports WHERE id = ?`)
+      .bind(id)
+      .first<{ reporterId: number | null }>();
+    await notifyReporterOfReportOutcome(c, "user", rep?.reporterId, status, reporterMessage);
   }
   return c.json({ ok: true, id, status, adminMessage, warningCount });
 });
@@ -1299,7 +1358,8 @@ admin.patch("/comments/reports/:id", requireAdmin, async (c) => {
   const targetMessage = isOpen ? null : (body.targetMessage ?? body.adminMessage ?? null);
 
   const adminMessage = targetMessage;
-  const reviewedClause = isOpen ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+
+  const reviewedClause = isOpen ? "reviewed_at = NULL" : "reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP)";
   const r = await c.env.DB
     .prepare(`UPDATE comment_reports SET status = ?, ${reviewedClause}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
     .bind(status, adminMessage, reporterMessage, targetMessage, id)
@@ -1317,6 +1377,14 @@ admin.patch("/comments/reports/:id", requireAdmin, async (c) => {
       .bind(id)
       .first<{ cloneId: number }>();
     warningCount = await issueReportWarning(c, "comment", id, author?.authorId, cmrClone?.cloneId, adminMessage);
+  }
+
+  if (!isOpen) {
+    const rep = await c.env.DB
+      .prepare(`SELECT user_id AS reporterId FROM comment_reports WHERE id = ?`)
+      .bind(id)
+      .first<{ reporterId: number | null }>();
+    await notifyReporterOfReportOutcome(c, "comment", rep?.reporterId, status, reporterMessage);
   }
   return c.json({ ok: true, id, status, adminMessage, warningCount });
 });

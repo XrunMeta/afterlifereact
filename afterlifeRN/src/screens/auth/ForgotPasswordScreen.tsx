@@ -57,10 +57,20 @@ export default function ForgotPasswordScreen() {
       showAlert(t("auth.forgot.title"), t("auth.forgot.codeSent"));
       setStep("otp");
     } catch (err) {
-      const msg =
-        err instanceof AuthApiError && err.code === "OTP_COOLDOWN"
-          ? err.message
-          : t("auth.forgot.resetFailed");
+      let msg = t("auth.forgot.resetFailed");
+      if (err instanceof AuthApiError && err.code === "OTP_COOLDOWN") {
+
+        const match = err.message.match(/(\d+)\s*s/);
+        const secs = match ? match[1] : "";
+        msg = secs
+          ? t("auth.forgot.cooldown", {
+              secs,
+              defaultValue: `${secs}초 후에 다시 시도해주세요.`,
+            })
+          : t("auth.signup.rateLimit", {
+              defaultValue: "잠시 후 다시 시도해주세요.",
+            });
+      }
       showAlert("오류", msg);
     } finally {
       setSubmitting(false);
@@ -112,7 +122,11 @@ export default function ForgotPasswordScreen() {
           if (!lockEmail) setStep("email");
           else setStep("otp");
         } else if (err.code === "NOT_FOUND") msg = t("auth.forgot.notFound");
-        else if (err.message) msg = err.message;
+        else if (err.code === "VALIDATION_FAILED") {
+
+          msg = t("auth.forgot.passwordTooShort");
+        }
+
       }
       showAlert("오류", msg);
     } finally {

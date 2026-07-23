@@ -63,7 +63,7 @@ describe('CallTimingPanel', () => {
     expect(queryByText(/녹음금지/)).toBeTruthy();
   });
 
-  it('copy env button copies the current 4 values to clipboard and logs a backup', () => {
+  it('copy env button copies the current 5 values to clipboard and logs a backup', () => {
     const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
     const { getByText } = renderPanel();
     fireEvent.press(getByText(/tune/i));
@@ -73,6 +73,7 @@ describe('CallTimingPanel', () => {
       echoGateMs: TIMING_DEFAULTS.echoGateMs,
       cloneResumeMs: TIMING_DEFAULTS.cloneResumeMs,
       cloneTailGraceMs: TIMING_DEFAULTS.cloneTailGraceMs,
+      responseDoneTimeoutMs: TIMING_DEFAULTS.responseDoneTimeoutMs,
     });
     expect(Clipboard.setStringAsync).toHaveBeenCalledWith(expected);
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('[timing-env]'));

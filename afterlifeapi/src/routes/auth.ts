@@ -842,7 +842,14 @@ auth.post("/password/request-reset", async (c) => {
 const resetPasswordSchema = z.object({
   email: z.email().max(200),
   verificationCode: z.string().regex(/^\d{6}$/),
-  newPassword: z.string().min(8).max(128),
+
+  newPassword: z
+    .string()
+    .min(7)
+    .max(200)
+    .regex(/[a-z]/, "must contain a lowercase letter")
+    .regex(/[A-Z]/, "must contain an uppercase letter")
+    .regex(/\d/, "must contain a digit"),
 });
 auth.post("/password/reset", async (c) => {
   const body = await parseJson(c, resetPasswordSchema);

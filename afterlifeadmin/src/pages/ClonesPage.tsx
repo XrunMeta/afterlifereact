@@ -27,12 +27,28 @@ const renderDeletionState = (v?: string) => {
   );
 };
 
+const EXPERT_BADGE_STYLE: React.CSSProperties = {
+  background: "#D4A017",
+  color: "#fff",
+  borderRadius: 4,
+  padding: "1px 6px",
+  fontSize: 12,
+  fontWeight: 700,
+};
+
+const renderCloneType = (v?: string) => {
+  if (v === "expert") {
+    return <span style={EXPERT_BADGE_STYLE}>전문가</span>;
+  }
+  return v;
+};
+
 const columns = [
   { key: "id", label: "ID" },
   { key: "deletionState", label: "상태", render: renderDeletionState },
   { key: "name", label: "Name" },
   { key: "username", label: "클론 ID" },
-  { key: "cloneType", label: "Type" },
+  { key: "cloneType", label: "Type", render: renderCloneType },
   { key: "visibility", label: "Visibility" },
   { key: "trainingStatus", label: "Status" },
   { key: "ownerName", label: "Owner" },

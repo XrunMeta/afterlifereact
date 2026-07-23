@@ -33,7 +33,7 @@ class _Pipeline:
     def update_persona(self, messages):
         self.update_calls.append(list(messages))
         self.persona_messages = list(messages)
-    async def say(self, text, turn=None, on_first_audio=None, on_response_ready=None):
+    async def say(self, text, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None):
         self.say_calls.append(text)
         if on_first_audio:
             on_first_audio()
