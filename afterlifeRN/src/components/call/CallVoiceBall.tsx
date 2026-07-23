@@ -25,8 +25,8 @@ const v_0f64a0 = v_a2349e.createAnimatedComponent(v_f595b9);
 
 const v_18f5ee = v_80c227.max / 2; 
 
-const v_4dc014 = v_18f5ee + v_a1197d.gap; 
-const v_905201 = (v_4dc014 + v_a1197d.dotRadius) * 2; 
+const v_4dc014 = v_a1197d.trackRadius; 
+const v_905201 = Math.max(v_80c227.max, (v_4dc014 + v_a1197d.dotRadius) * 2); 
 const v_fc2005 = v_905201 / 2; 
 
 export function v_9204e2({ phase: v_ab4803, micLevel: v_9afd2d, cloneLevel: v_4eaf6a }: CallVoiceBallProps) {
@@ -79,26 +79,28 @@ export function v_9204e2({ phase: v_ab4803, micLevel: v_9afd2d, cloneLevel: v_4e
     <View style={v_d81136.stage} pointerEvents="none">
       <View style={[v_d81136.center, { width: v_905201, height: v_905201 }]}>
         {}
-        <Animated.View
-          style={[
-            v_d81136.orbitWrap,
-            { width: v_905201, height: v_905201, transform: [{ rotate: v_4dc9c6 }] },
-          ]}
-        >
-          <View
+        {v_23604c.orbit ? (
+          <Animated.View
             style={[
-              v_d81136.orbitDot,
-              {
-                width: v_a1197d.dotRadius * 2,
-                height: v_a1197d.dotRadius * 2,
-                borderRadius: v_a1197d.dotRadius,
-                backgroundColor: v_a1197d.color,
-                left: v_fc2005 - v_a1197d.dotRadius,
-                top: v_fc2005 - v_4dc014 - v_a1197d.dotRadius,
-              },
+              v_d81136.orbitWrap,
+              { width: v_905201, height: v_905201, opacity: v_a1197d.opacity, transform: [{ rotate: v_4dc9c6 }] },
             ]}
-          />
-        </Animated.View>
+          >
+            <View
+              style={[
+                v_d81136.orbitDot,
+                {
+                  width: v_a1197d.dotRadius * 2,
+                  height: v_a1197d.dotRadius * 2,
+                  borderRadius: v_a1197d.dotRadius,
+                  backgroundColor: v_a1197d.color,
+                  left: v_fc2005 - v_a1197d.dotRadius,
+                  top: v_fc2005 - v_4dc014 - v_a1197d.dotRadius,
+                },
+              ]}
+            />
+          </Animated.View>
+        ) : null}
 
         {}
         <AnimatedSvg
