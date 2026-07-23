@@ -636,7 +636,7 @@ adminData.post("/oth-path", async (c) => {
 
     await c.env.DB
       .prepare(
-        `UPDATE user_reports SET status = 'actioned', reviewed_at = CURRENT_TIMESTAMP, admin_message = ?
+        `UPDATE user_reports SET status = 'actioned', reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP), admin_message = ?
           WHERE id = ?`,
       )
       .bind(body.reason ?? null, body.reportId)
@@ -729,9 +729,10 @@ adminData.post("/oth-path", async (c) => {
   } catch {
 
   }
+
   const res = await c.env.DB
     .prepare(
-      `UPDATE user_reports SET status = 'dismissed', reviewed_at = CURRENT_TIMESTAMP, admin_message = ?
+      `UPDATE user_reports SET status = 'dismissed', reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP), admin_message = ?
         WHERE id = ? AND status IN ('open', 'reviewed')`,
     )
     .bind(body.message ?? null, reportId)
