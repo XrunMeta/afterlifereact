@@ -636,7 +636,7 @@ v_133c2c.post("/oth-path", async (v_3f4e2e) => {
 
     await v_3f4e2e.env.DB
       .prepare(
-        `UPDATE user_reports SET status = 'actioned', reviewed_at = CURRENT_TIMESTAMP, admin_message = ?
+        `UPDATE user_reports SET status = 'actioned', reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP), admin_message = ?
           WHERE id = ?`,
       )
       .bind(v_4d33b2.reason ?? null, v_4d33b2.reportId)
@@ -729,9 +729,10 @@ v_133c2c.post("/oth-path", async (v_3f4e2e) => {
   } catch {
 
   }
+
   const v_8f00b9 = await v_3f4e2e.env.DB
     .prepare(
-      `UPDATE user_reports SET status = 'dismissed', reviewed_at = CURRENT_TIMESTAMP, admin_message = ?
+      `UPDATE user_reports SET status = 'dismissed', reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP), admin_message = ?
         WHERE id = ? AND status IN ('open', 'reviewed')`,
     )
     .bind(v_4d33b2.message ?? null, v_99000e)
