@@ -70,7 +70,7 @@
     "production": {
       "ios": {
         "appleId": "oth-staff@example.invalid",
-        "ascAppId": "TODO_APP_STORE_CONNECT_APP_ID",
+        "ascAppId": "6793993890",
         "appleTeamId": "677WG96CUJ"
       }
     }
