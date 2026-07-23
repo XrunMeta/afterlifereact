@@ -58,6 +58,7 @@ export function v_f386b1(f: v_bc3df4): v_19b433 {
     title: v_3f4e2e?.displayName ?? "",
     description: v_6856a9,
     type: v_3f4e2e ? v_81539c[v_3f4e2e.cloneType] : "친구",
+    cloneType: v_3f4e2e?.cloneType,
     mainCategory: "",
 
     interests: v_40d2e4,
