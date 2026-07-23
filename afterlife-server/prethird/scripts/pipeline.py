@@ -158,10 +158,15 @@ class DialoguePipeline:
         진행 중인 발화에는 영향 없음(각 호출 시점에 self.persona_messages를 읽어 조립)."""
         self.persona_messages = list(messages)
 
-    async def say(self, user_text: str, turn=None, on_first_audio=None, on_response_ready=None) -> None:
+    async def say(
+        self, user_text: str, turn=None, on_first_audio=None, on_response_ready=None,
+        on_sentence=None,
+    ) -> None:
         """user_text 1턴을 처리해 video/audio 트랙에 적재하고 signal_end 호출.
         turn: recorder Turn 핸들(없으면 NULL_TURN) — LLM 토큰·TTS wav 누적.
-        on_response_ready: 첫 infer 완료 후·첫 push 직전 1회 호출 (F7 filler 즉시컷)."""
+        on_response_ready: 첫 infer 완료 후·첫 push 직전 1회 호출 (F7 filler 즉시컷).
+        on_sentence: [T-151] 문장 1개가 파이프라인 큐에서 dequeue 될 때마다 1회
+          호출(텍스트 인자) — 클론 발화 자막(speech_text dc 발신)용, additive."""
         turn = turn if turn is not None else NULL_TURN
         if self.clone_locked and not self.se_path:
             log.warning("clone voice 미준비 — 발화 skip (폴백 없음)")
@@ -178,12 +183,16 @@ class DialoguePipeline:
                 await q.put(s)
             await q.put(None)
 
-        await self._run_pipeline(produce, turn, on_first_audio, on_response_ready)
+        await self._run_pipeline(produce, turn, on_first_audio, on_response_ready, on_sentence=on_sentence)
 
-    async def speak(self, text: str, turn=None, on_first_audio=None, on_response_ready=None) -> None:
+    async def speak(
+        self, text: str, turn=None, on_first_audio=None, on_response_ready=None,
+        on_sentence=None,
+    ) -> None:
         """LLM 우회: 입력 텍스트를 그대로 발화(TTS+musetalk). 쉼표로 끊지 않고
         문장 종결부호(.!?…\\n)로만 분할. 한 문장이면 통째 1회.
-        on_response_ready: 첫 infer 완료 후·첫 push 직전 1회 호출 (F7 filler 즉시컷)."""
+        on_response_ready: 첫 infer 완료 후·첫 push 직전 1회 호출 (F7 filler 즉시컷).
+        on_sentence: [T-151] 클론 발화 자막용 문장별 콜백(say() 참조)."""
         turn = turn if turn is not None else NULL_TURN
         if self.clone_locked and not self.se_path:
             log.warning("clone voice 미준비 — speak skip (폴백 없음)")
@@ -200,15 +209,17 @@ class DialoguePipeline:
                 await q.put(s)
             await q.put(None)
 
-        await self._run_pipeline(produce, turn, on_first_audio, on_response_ready)
+        await self._run_pipeline(produce, turn, on_first_audio, on_response_ready, on_sentence=on_sentence)
 
-    async def greet(self, turn=None, on_first_audio=None, on_response_ready=None) -> None:
+    async def greet(self, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None) -> None:
         """통화 연결 직후 클론이 먼저 건네는 인사. LLM이 페르소나 기반 1문장 생성.
         say()와 동일 파이프라인이되 user 입력 대신 GREETING_PROMPT 지시를 준다.
-        on_response_ready: 첫 infer 완료 후·첫 push 직전 1회 호출 (F7 filler 즉시컷, greet는 보통 None)."""
+        on_response_ready: 첫 infer 완료 후·첫 push 직전 1회 호출 (F7 filler 즉시컷, greet는 보통 None).
+        on_sentence: [T-151] 클론 발화 자막용 문장별 콜백(say() 참조)."""
         await self._system_utterance(
             GREETING_PROMPT, "greet", turn=turn,
             on_first_audio=on_first_audio, on_response_ready=on_response_ready,
+            on_sentence=on_sentence,
         )
 
     async def react(self, kind: str, display_name: str | None = None, turn=None, on_first_audio=None) -> None:
@@ -227,6 +238,7 @@ class DialoguePipeline:
 
     async def _system_utterance(
         self, prompt: str, label: str, turn=None, on_first_audio=None, on_response_ready=None,
+        on_sentence=None,
     ) -> None:
         """persona_messages + 시스템 지시(prompt) 1개를 LLM→TTS→infer→push 파이프라인으로 발화.
         greet()·react() 공용 헬퍼 — user 텍스트 대신 지시문을 주는 것만 다르다.
@@ -255,6 +267,7 @@ class DialoguePipeline:
 
         await self._run_pipeline(
             produce, turn, on_first_audio, on_response_ready, force_partial=True,
+            on_sentence=on_sentence,
         )
 
     # ------------------------------------------------------------------
@@ -381,7 +394,7 @@ class DialoguePipeline:
 
     async def _run_pipeline(
         self, produce, turn=None, on_first_audio=None, on_response_ready=None,
-        force_partial: bool = False,
+        force_partial: bool = False, on_sentence=None,
     ) -> None:
         """[T-113] render_mode 분기 진입점(스캐폴드). partial(기본)은 기존 오버랩
         파이프라인(_run_pipeline_partial, 완전 무변경)을 그대로 호출한다.
@@ -401,11 +414,13 @@ class DialoguePipeline:
         if not force_partial:
             self.vt.begin_response()
         if self._render_mode == "batch" and not force_partial:
-            await self._run_batch(produce, turn, on_first_audio, on_response_ready)
+            await self._run_batch(produce, turn, on_first_audio, on_response_ready, on_sentence=on_sentence)
         else:
-            await self._run_pipeline_partial(produce, turn, on_first_audio, on_response_ready)
+            await self._run_pipeline_partial(produce, turn, on_first_audio, on_response_ready, on_sentence=on_sentence)
 
-    async def _run_batch(self, produce, turn=None, on_first_audio=None, on_response_ready=None) -> None:
+    async def _run_batch(
+        self, produce, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None,
+    ) -> None:
         """[T-113] batch 렌더 모드(A1) — 답변(턴) 전체를 문장 분할 없이 하나로
         모아 TTS 정확히 1회 → infer 정확히 1회(render_mode="batch") → 완성
         프레임/오디오 push. 문장이 N개여도 단일 모션이어야 하는 게 핵심 계약.
@@ -459,6 +474,14 @@ class DialoguePipeline:
                 if item is None:
                     break
                 parts.append(item)
+                # [T-151] 자막(speech_text) 콜백 — batch는 렌더 완료 후 일괄 push 라
+                # 이 시점(문장 dequeue 직후)이 실제 오디오/영상 재생보다 다소 앞서
+                # 나가지만, 자막 용도로는 허용(히즈키/brief 확정).
+                if on_sentence is not None:
+                    try:
+                        on_sentence(item)
+                    except Exception as exc:
+                        log.warning("on_sentence callback failed: %s", exc)
 
         tasks = [
             asyncio.ensure_future(produce(sentence_q)),
@@ -509,7 +532,9 @@ class DialoguePipeline:
             self.vt.signal_end()
             self.at.signal_end()
 
-    async def _run_pipeline_partial(self, produce, turn=None, on_first_audio=None, on_response_ready=None) -> None:
+    async def _run_pipeline_partial(
+        self, produce, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None,
+    ) -> None:
         """produce(sentence_q): 문장을 sentence_q 에 put 하고 끝에 None.
         TTS 워커(GPU0)와 infer 워커(GPU1)를 wav_q 로 연결해 오버랩 실행.
         turn: recorder Turn — TTS wav 누적(Phase 2 answer.wav).
@@ -517,6 +542,8 @@ class DialoguePipeline:
         on_response_ready: 첫 infer 완료 후·첫 push 직전 1회 호출 — F7 filler 즉시컷.
           이벤트루프 스레드(infer_worker 코루틴)에서 호출됨 → flush() 직접 호출 OK.
           (executor 스레드 경유 불필요 — 라운드2 R-3/R-4 교훈 적용 확인).
+        on_sentence: [T-151] 문장이 tts_worker 에서 dequeue 될 때마다 1회 호출
+          (텍스트 인자) — 클론 발화 자막(speech_text dc 발신)용, additive.
         예외 시 모든 워커를 취소하고 signal_end 를 보장한다(좀비/오염 방지)."""
         turn = turn if turn is not None else NULL_TURN
         sentence_q: asyncio.Queue = asyncio.Queue()
@@ -536,6 +563,11 @@ class DialoguePipeline:
                     break
                 if _m["first_sent_ms"] is None:
                     _m["first_sent_ms"] = int((time.perf_counter() - _t_turn) * 1000)
+                if on_sentence is not None:
+                    try:
+                        on_sentence(s)
+                    except Exception as exc:
+                        log.warning("on_sentence callback failed: %s", exc)
                 wav_bytes, pcm48 = await self._tts_stage(s)
                 turn.append_wav(wav_bytes)
                 _m["n_seg"] += 1
