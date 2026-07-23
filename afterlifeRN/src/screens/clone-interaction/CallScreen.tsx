@@ -70,6 +70,7 @@ import { DialingScreen } from "../../components/call/DialingScreen";
 import { CallVoiceBall } from "../../components/call/CallVoiceBall";
 import { CallTimingHUD } from "../../components/call/CallTimingHUD";
 import { CallTimingPanel } from "../../components/call/CallTimingPanel";
+import { CloneSubtitleTicker } from "../../components/call/CloneSubtitleTicker";
 import { useTimingConfigStore } from "../../realtime/timingConfig";
 import { startTimingLog } from "../../realtime/timingLog";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -1240,12 +1241,11 @@ export default function CallScreen({ route, navigation }: Props) {
       ) : null}
 
       {
+
 }
       {(phase === 'speaking' || phase === 'greeting') && !!cloneSubtitle ? (
         <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
-          <Text style={s.subtitleText} numberOfLines={1} ellipsizeMode="head">
-            {cloneSubtitle}
-          </Text>
+          <CloneSubtitleTicker text={cloneSubtitle} style={s.subtitleText} />
         </View>
       ) : null}
 
