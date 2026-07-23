@@ -1236,7 +1236,11 @@ export default function CallScreen({ route, navigation }: Props) {
         style={[s.watermarkLayer, { bottom: bottomInset + 96 }]}
         pointerEvents="none"
       >
-        <Text style={s.watermarkText}>afterlife</Text>
+        <Image
+          source={require("../../../assets/images/brand/watermark-logo.png")}
+          style={s.watermarkLogo}
+          resizeMode="contain"
+        />
       </View>
 
       {
@@ -1423,15 +1427,11 @@ const s = StyleSheet.create({
     alignItems: "center",
     zIndex: 14,
   },
-  watermarkText: {
-    color: "rgba(255, 255, 255, 0.5)",
-    fontSize: 20,
-    fontWeight: "600",
-    letterSpacing: 0.5,
 
-    textShadowColor: "rgba(60, 60, 60, 0.9)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 2,
+  watermarkLogo: {
+    width: 88,
+    aspectRatio: 800 / 715,
+    tintColor: "rgba(255, 255, 255, 0.55)",
   },
   container: {
     flex: 1,
