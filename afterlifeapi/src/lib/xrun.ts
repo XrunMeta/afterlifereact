@@ -322,12 +322,13 @@ function v_9765c6(env: v_273a0c): Record<string, string> {
 }
 
 export async function v_807b74(env: v_273a0c, v_660822): Promise<PaymentPinStatus> {
-  if (!v_c9c489.XRUN_GATEWAY_TOKEN) return { ok: false, hasPin: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  if (!v_c9c489.XRUN_INTERNAL_SECRET) return { ok: false, hasPin: false, reason: "missing XRUN_INTERNAL_SECRET" };
   let v_8f00b9;
   try {
+
     v_8f00b9 = await fetch(
       `${v_c9c489.XRUN_API_URL}/oth-path?member=${encodeURIComponent(String(v_660822))}`,
-      { method: "GET", headers: v_4d1f4f(v_c9c489) },
+      { method: "GET", headers: v_9765c6(v_c9c489) },
     );
   } catch (v_49263d) {
     return { ok: false, hasPin: false, reason: `network: ${(v_49263d as Error).message}` };
