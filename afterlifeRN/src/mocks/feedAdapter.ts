@@ -9,6 +9,7 @@ const CLONE_TYPE_LABEL: Record<v_d79d7f, string> = {
   friend: "친구",
   mentor: "멘토",
   celeb: "셀럽",
+  expert: "전문가",
 };
 
 const v_7bc7b9 = {

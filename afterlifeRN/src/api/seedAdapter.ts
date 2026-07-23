@@ -20,6 +20,7 @@ const CATEGORY_BY_TYPE: Record<v_d79d7f, string> = {
   friend: 'friend',
   mentor: 'mentor',
   celeb: 'celeb',
+  expert: 'expert',
 };
 
 export function v_0c40d8(clone: v_4b85a1): string {
