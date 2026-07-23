@@ -635,6 +635,96 @@ describe('greeting=false off-path speech_end 안전성', () => {
   });
 });
 
+describe('signalGating 배선', () => {
+  const gatedOpts = (over: any = {}) => ({
+    enabled: true,
+    say: jest.fn().mockResolvedValue(undefined),
+    getStatsReport: () => null,
+    notifySpeechEnd: jest.fn(),
+    speechEngine: makeMockEngine(),
+    signalGating: true,
+    ...over,
+  });
+
+  it('speech_end 신호 → listening 복귀(RESPONSE_DONE 경로)', async () => {
+    const engine = makeMockEngine();
+    const { result, rerender } = renderHook(
+      (props: any) => useHandsFreeController(gatedOpts({ speechEngine: engine, silenceMs: 20, lastSignal: props.signal })),
+      { initialProps: { signal: null as any } },
+    );
+    await waitFor(() => expect(result.current.phase).toBe('listening'));
+
+    act(() => { engine.emitFinal('안녕'); });
+    await waitFor(() => expect(result.current.phase).toBe('sending'));
+
+    rerender({ signal: { type: 'speech_end', seq: 1, ts: 1 } });
+    await waitFor(() => expect(result.current.phase).toBe('listening'));
+  });
+
+  it('감지기 onResponseEnd 는 게이팅 중 무시 — sending 유지', async () => {
+
+    const engine = makeMockEngine();
+    const getStatsReport = jest.fn(() =>
+      Promise.resolve(new Map([['a', { type: 'inbound-rtp', kind: 'audio', audioLevel: 0 }]])));
+    const { result } = renderController(gatedOpts({ speechEngine: engine, silenceMs: 20, getStatsReport }));
+    await waitFor(() => expect(result.current.phase).toBe('listening'));
+
+    jest.useFakeTimers();
+    try {
+      act(() => { engine.emitFinal('안녕'); });
+      await waitFor(() => expect(result.current.phase).toBe('sending'));
+
+      await act(async () => { await jest.advanceTimersByTimeAsync(8200); });
+      expect(result.current.phase).toBe('sending');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('신호 없음 responseDoneTimeoutMs 경과 → 강제 listening(폴백)', async () => {
+    const engine = makeMockEngine();
+    const { result } = renderController(gatedOpts({ speechEngine: engine, silenceMs: 20 }));
+    await waitFor(() => expect(result.current.phase).toBe('listening'));
+
+    jest.useFakeTimers();
+    try {
+      act(() => { engine.emitFinal('안녕'); });
+      await waitFor(() => expect(result.current.phase).toBe('sending'));
+
+      act(() => { jest.advanceTimersByTime(45000); });
+      await waitFor(() => expect(result.current.phase).toBe('listening'));
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('speech_text 수신은 폴백 타이머를 리셋한다', async () => {
+    const engine = makeMockEngine();
+    const { result, rerender } = renderHook(
+      (props: any) => useHandsFreeController(gatedOpts({ speechEngine: engine, silenceMs: 20, lastSignal: props.signal })),
+      { initialProps: { signal: null as any } },
+    );
+    await waitFor(() => expect(result.current.phase).toBe('listening'));
+
+    act(() => { engine.emitFinal('안녕'); });
+    await waitFor(() => expect(result.current.phase).toBe('sending'));
+
+    jest.useFakeTimers();
+    try {
+      act(() => { jest.advanceTimersByTime(40000); });
+      expect(result.current.phase).toBe('sending');
+
+      rerender({ signal: { type: 'speech_text', seq: 1, ts: 1, text: '말하는 중' } });
+
+      act(() => { jest.advanceTimersByTime(40000); });
+
+      expect(result.current.phase).toBe('sending');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});
+
 it('confirming 중 cancelConfirm() → listening, say 미호출', async () => {
   const say = jest.fn().mockResolvedValue(undefined);
   const engine = makeMockEngine();

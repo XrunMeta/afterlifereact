@@ -46,6 +46,8 @@ export function useHandsFreeController(opts: {
   fallbackText?: string;
 
   confirmGate?: boolean;
+
+  signalGating?: boolean;
 }) {
   const [state, setState] = useState(initHandsFreeState());
   const stateRef = useRef(state);
@@ -119,10 +121,10 @@ export function useHandsFreeController(opts: {
             break;
           case 'SAY':
             if (sayText) {
-              sayRef.current(sayText).catch(() => dispatchRef.current({ type: 'RESPONSE_END' }));
+              sayRef.current(sayText).catch(() => dispatchRef.current({ type: 'RESPONSE_DONE' }));
             } else {
 
-              dispatchRef.current({ type: 'RESPONSE_END' });
+              dispatchRef.current({ type: 'RESPONSE_DONE' });
             }
             break;
           case 'START_DETECTOR':
@@ -147,14 +149,14 @@ export function useHandsFreeController(opts: {
           case 'SPEAK_FALLBACK':
 
             if (speakRef.current) {
-              speakRef.current(fallbackText).catch(() => dispatchRef.current({ type: 'RESPONSE_END' }));
+              speakRef.current(fallbackText).catch(() => dispatchRef.current({ type: 'RESPONSE_DONE' }));
             } else {
-              dispatchRef.current({ type: 'RESPONSE_END' });
+              dispatchRef.current({ type: 'RESPONSE_DONE' });
             }
 
             if (greetTimerRef.current) clearTimeout(greetTimerRef.current);
             greetTimerRef.current = setTimeout(
-              () => dispatchRef.current({ type: 'RESPONSE_END' }), greetTimeoutMs);
+              () => dispatchRef.current({ type: 'RESPONSE_DONE' }), greetTimeoutMs);
             break;
         }
       }
@@ -197,9 +199,17 @@ export function useHandsFreeController(opts: {
   }, []);
 
   useEffect(() => {
+    if (!opts.signalGating) return;
+    if (state.phase !== 'sending' && state.phase !== 'speaking') return;
+    const ms = useTimingConfigStore.getState().responseDoneTimeoutMs;
+    const id = setTimeout(() => dispatchRef.current({ type: 'RESPONSE_DONE' }), ms);
+    return () => clearTimeout(id);
+  }, [state.phase, opts.lastSignal, opts.signalGating]);
+
+  useEffect(() => {
     dispatchRef.current(
       opts.enabled
-        ? { type: 'CALL_LIVE', greeting: opts.greeting, confirmGate: opts.confirmGate }
+        ? { type: 'CALL_LIVE', greeting: opts.greeting, confirmGate: opts.confirmGate, signalGating: opts.signalGating }
         : { type: 'CALL_ENDED' });
   }, [opts.enabled]); 
 
@@ -207,7 +217,8 @@ export function useHandsFreeController(opts: {
     const sig = opts.lastSignal;
     if (!sig) return;
     if (sig.type === 'speech_start') { emitTimingEvent('speech_start'); dispatchRef.current({ type: 'SPEECH_START' }); }
-    else if (sig.type === 'speech_end') { emitTimingEvent('speech_end'); dispatchRef.current({ type: 'RESPONSE_END' }); }
+    else if (sig.type === 'speech_end') { emitTimingEvent('speech_end'); dispatchRef.current({ type: 'RESPONSE_DONE' }); }
+
   }, [opts.lastSignal]);
 
   const getStatsRef = useRef(opts.getStatsReport);
