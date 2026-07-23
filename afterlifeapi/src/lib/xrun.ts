@@ -353,12 +353,13 @@ export async function v_de391e(
   v_660822,
   v_6bee94,
 ): Promise<PaymentPinVerifyResult> {
-  if (!v_c9c489.XRUN_GATEWAY_TOKEN) return { ok: false, match: false, hasPin: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  if (!v_c9c489.XRUN_INTERNAL_SECRET) return { ok: false, match: false, hasPin: false, reason: "missing XRUN_INTERNAL_SECRET" };
   let v_8f00b9;
   try {
+
     v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
       method: "POST",
-      headers: v_4d1f4f(v_c9c489),
+      headers: v_9765c6(v_c9c489),
       body: JSON.stringify({ member: v_660822, pin: v_6bee94 }),
     });
   } catch (v_49263d) {
