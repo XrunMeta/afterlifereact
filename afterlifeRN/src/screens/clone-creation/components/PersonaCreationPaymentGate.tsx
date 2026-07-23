@@ -23,7 +23,7 @@ import { v_d60cdf } from "../../../api/clones";
 import { v_5c99c1, v_9b8cb3 } from "../../../api/payments";
 import { v_cc9198, v_138fd4 } from "../../../config/apiBase";
 
-const v_f72031 = 100;
+const v_898771 = 0.001;
 
 const v_34d2d5 = ["oth-user@example.invalid", "oth-test@example.invalid"];
 const v_8e9814 = 0.05;
@@ -40,8 +40,12 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
   const v_f4fb5e = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? null);
   const v_5795de = v_194498((v_fd5f43) => v_fd5f43.setCreationDraft);
 
+  const [v_ef934b, v_695d27] = v_5ab095<number | null>(null);
+
   const v_c02c4c =
-    v_f4fb5e && v_34d2d5.includes(v_f4fb5e) ? v_8e9814 : v_f72031;
+    v_f4fb5e && v_34d2d5.includes(v_f4fb5e)
+      ? v_8e9814
+      : (v_ef934b ?? v_898771);
 
   const [v_683210, v_34a50a] = v_5ab095(true);
   const [v_f99e34, v_337a5f] = v_5ab095(false);
@@ -60,6 +64,22 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
     );
     const v_2f19d2 = v_0e1f26.addListener("keyboardDidHide", () => v_a02771(0));
     return () => { v_fdffe1.remove(); v_2f19d2.remove(); };
+  }, []);
+
+  v_c4deb2(() => {
+    let v_2008a4 = false;
+    (async () => {
+      try {
+        const v_8f00b9 = await fetch(`${v_cc9198}/oth-path`);
+        if (!v_8f00b9.ok) return;
+        const v_7ecfd1 = (await v_8f00b9.json()) as { priceXrun?: unknown };
+        const v_f4e98d = Number(v_7ecfd1?.priceXrun);
+        if (!v_2008a4 && Number.isFinite(v_f4e98d) && v_f4e98d >= 0) v_695d27(v_f4e98d);
+      } catch (v_49263d) {
+        console.warn("[PaymentGate] persona-price fetch failed:", v_49263d);
+      }
+    })();
+    return () => { v_2008a4 = true; };
   }, []);
 
   v_c4deb2(() => {

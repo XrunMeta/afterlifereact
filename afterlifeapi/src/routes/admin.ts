@@ -13,10 +13,25 @@ import { v_70b594, v_4db5dd } from "../lib/knowledgeQuestions";
 import { v_cba618, v_1809f7 } from "../lib/knowledgeBlacklist";
 import { v_038cdc } from "../lib/knowledgeStore";
 import { v_c226a5 } from "../lib/notify";
+import { v_916830, v_5d3436 } from "../lib/appConfig";
 
 export const v_b7f2b4 = new v_b7c41b<v_de0a25>();
 
 v_b7f2b4.get("/health", (v_3f4e2e) => v_3f4e2e.json({ ok: true, module: "admin" }));
+
+v_b7f2b4.get("/config/persona-price", v_c0a297, async (v_3f4e2e) => {
+  const v_318e8b = await v_916830(v_3f4e2e.env);
+  return v_3f4e2e.json({ priceXrun: v_318e8b });
+});
+v_b7f2b4.patch("/config/persona-price", v_c0a297, async (v_3f4e2e) => {
+  const v_4d33b2 = await v_3f4e2e.req.json<{ priceXrun?: unknown }>().catch(() => ({} as { priceXrun?: unknown }));
+  const v_6bbb57 = Number(v_4d33b2.priceXrun);
+  if (!Number.isFinite(v_6bbb57) || v_6bbb57 < 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "priceXrun must be a non-negative number.");
+  }
+  await v_5d3436(v_3f4e2e.env, v_6bbb57);
+  return v_3f4e2e.json({ ok: true, priceXrun: v_6bbb57 });
+});
 
 const v_c325e5 = v_1f4ea7.object({
   resourceType: v_1f4ea7.enum(["message.content", "user.phone", "user.age"]),
