@@ -16,6 +16,8 @@ import { shouldUpdateLevel } from './voiceBall';
 
 const CLONE_GATE_LEVEL = 0.05; 
 
+const RESPONSE_DONE_TAIL_MAX_MS = 5000;
+
 const GREET_TIMEOUT_MS_DEFAULT = 3000;
 const GREETING_FALLBACK_TEXT_DEFAULT = '여보세요?';
 
@@ -69,6 +71,10 @@ export function useHandsFreeController(opts: {
   const dispatchRef = useRef<(ev: HandsFreeEvent) => void>(() => {});
 
   const cloneSpokeAtRef = useRef(0);
+
+  const pendingDoneAtRef = useRef<number | null>(null);
+
+  const pendingDoneTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const detector = useCloneSilenceDetector({
     getStatsReport: opts.getStatsReport,
@@ -164,8 +170,20 @@ export function useHandsFreeController(opts: {
     [speech, detector, greetTimeoutMs, fallbackText],
   );
 
+  const clearPendingDone = useCallback(() => {
+    pendingDoneAtRef.current = null;
+    if (pendingDoneTimerRef.current) {
+      clearTimeout(pendingDoneTimerRef.current);
+      pendingDoneTimerRef.current = null;
+    }
+  }, []);
+
   const dispatch = useCallback(
     (ev: HandsFreeEvent) => {
+
+      if (ev.type === 'RESPONSE_DONE' || ev.type === 'RESPONSE_END' || ev.type === 'CALL_ENDED') {
+        clearPendingDone();
+      }
       const prev = stateRef.current;
       const { state: next, effects, sayText } = handsFreeReducer(prev, ev);
 
@@ -182,7 +200,7 @@ export function useHandsFreeController(opts: {
       setState(next);
       runEffects(effects, sayText);
     },
-    [runEffects],
+    [runEffects, clearPendingDone],
   );
 
   dispatchRef.current = dispatch;
@@ -213,16 +231,31 @@ export function useHandsFreeController(opts: {
         : { type: 'CALL_ENDED' });
   }, [opts.enabled]); 
 
+  const getStatsRef = useRef(opts.getStatsReport);
+  useEffect(() => { getStatsRef.current = opts.getStatsReport; });
+
   useEffect(() => {
     const sig = opts.lastSignal;
     if (!sig) return;
     if (sig.type === 'speech_start') { emitTimingEvent('speech_start'); dispatchRef.current({ type: 'SPEECH_START' }); }
-    else if (sig.type === 'speech_end') { emitTimingEvent('speech_end'); dispatchRef.current({ type: 'RESPONSE_DONE' }); }
+    else if (sig.type === 'speech_end') {
+      emitTimingEvent('speech_end');
+
+      if (getStatsRef.current() === null) {
+        dispatchRef.current({ type: 'RESPONSE_DONE' });
+      } else {
+        pendingDoneAtRef.current = Date.now();
+        if (pendingDoneTimerRef.current) clearTimeout(pendingDoneTimerRef.current);
+        pendingDoneTimerRef.current = setTimeout(() => {
+          pendingDoneTimerRef.current = null;
+          pendingDoneAtRef.current = null;
+          dispatchRef.current({ type: 'RESPONSE_DONE' });
+        }, RESPONSE_DONE_TAIL_MAX_MS);
+      }
+    }
 
   }, [opts.lastSignal]);
 
-  const getStatsRef = useRef(opts.getStatsReport);
-  useEffect(() => { getStatsRef.current = opts.getStatsReport; });
   useEffect(() => {
     if (!opts.enabled) {
 
@@ -244,6 +277,15 @@ export function useHandsFreeController(opts: {
         const now = Date.now();
         const cloneSpeaking = typeof lv === 'number' && lv > CLONE_GATE_LEVEL;
         if (cloneSpeaking) cloneSpokeAtRef.current = now;
+
+        if (
+          pendingDoneAtRef.current !== null &&
+          !cloneSpeaking &&
+          now - cloneSpokeAtRef.current > useTimingConfigStore.getState().cloneResumeMs
+        ) {
+          clearPendingDone();
+          dispatchRef.current({ type: 'RESPONSE_DONE' });
+        }
 
         const st = stateRef.current;
         if ((st.phase !== 'listening' && st.phase !== 'confirming') || !st.micOn) return;
@@ -290,6 +332,7 @@ export function useHandsFreeController(opts: {
 
   useEffect(() => () => {
     if (greetTimerRef.current) clearTimeout(greetTimerRef.current);
+    if (pendingDoneTimerRef.current) clearTimeout(pendingDoneTimerRef.current);
   }, []);
 
   const toggleMic = useCallback(() => {
