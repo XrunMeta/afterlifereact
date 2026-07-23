@@ -34,6 +34,7 @@ export const CallTimingPanel: v_a3453e.FC<{
       echoGateMs: v_01dcf5.echoGateMs,
       cloneResumeMs: v_01dcf5.cloneResumeMs,
       cloneTailGraceMs: v_01dcf5.cloneTailGraceMs,
+      responseDoneTimeoutMs: v_01dcf5.responseDoneTimeoutMs,
     });
 
     console.log('[timing-env]\n' + v_fba864);

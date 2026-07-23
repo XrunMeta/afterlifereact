@@ -1213,7 +1213,8 @@ v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_94b0c4 = v_c403c7 ? null : (v_4d33b2.targetMessage ?? v_4d33b2.adminMessage ?? null);
 
   const v_7e89c9 = v_94b0c4;
-  const v_901936 = v_c403c7 ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+
+  const v_901936 = v_c403c7 ? "reviewed_at = NULL" : "reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP)";
   const v_cb35cb = await v_3f4e2e.env.DB
     .prepare(`UPDATE clone_reports SET status = ?, ${v_901936}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
     .bind(v_d308b5, v_7e89c9, v_2bd5e3, v_94b0c4, v_389afb)
@@ -1257,7 +1258,8 @@ v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_94b0c4 = v_c403c7 ? null : (v_4d33b2.targetMessage ?? v_4d33b2.adminMessage ?? null);
 
   const v_7e89c9 = v_94b0c4;
-  const v_901936 = v_c403c7 ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+
+  const v_901936 = v_c403c7 ? "reviewed_at = NULL" : "reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP)";
   const v_cb35cb = await v_3f4e2e.env.DB
     .prepare(`UPDATE user_reports SET status = ?, ${v_901936}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
     .bind(v_d308b5, v_7e89c9, v_2bd5e3, v_94b0c4, v_389afb)
@@ -1299,7 +1301,8 @@ v_b7f2b4.patch("/comments/reports/:id", v_c0a297, async (v_3f4e2e) => {
   const v_94b0c4 = v_c403c7 ? null : (v_4d33b2.targetMessage ?? v_4d33b2.adminMessage ?? null);
 
   const v_7e89c9 = v_94b0c4;
-  const v_901936 = v_c403c7 ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+
+  const v_901936 = v_c403c7 ? "reviewed_at = NULL" : "reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP)";
   const v_cb35cb = await v_3f4e2e.env.DB
     .prepare(`UPDATE comment_reports SET status = ?, ${v_901936}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
     .bind(v_d308b5, v_7e89c9, v_2bd5e3, v_94b0c4, v_389afb)

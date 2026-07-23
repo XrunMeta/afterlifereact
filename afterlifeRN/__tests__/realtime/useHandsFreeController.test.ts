@@ -635,6 +635,240 @@ describe('greeting=false off-path speech_end 안전성', () => {
   });
 });
 
+describe('signalGating 배선', () => {
+  const v_5320d1 = (v_b71f86 = {}) => ({
+    enabled: true,
+    say: jest.fn().mockResolvedValue(undefined),
+    getStatsReport: () => null,
+    notifySpeechEnd: jest.fn(),
+    speechEngine: v_c2295a(),
+    signalGating: true,
+    ...v_b71f86,
+  });
+
+  it('speech_end 신호 → listening 복귀(RESPONSE_DONE 경로)', async () => {
+    const v_1e3df0 = v_c2295a();
+    const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
+      (v_b1927c) => v_7df8a4(v_5320d1({ speechEngine: v_1e3df0, silenceMs: 20, lastSignal: v_b1927c.signal })),
+      { initialProps: { signal: null as any } },
+    );
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+
+    v_be73a0(() => { v_1e3df0.emitFinal('안녕'); });
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('sending'));
+
+    v_2726cb({ signal: { type: 'speech_end', seq: 1, ts: 1 } });
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+  });
+
+  it('감지기 onResponseEnd 는 게이팅 중 무시 — sending 유지', async () => {
+
+    const v_1e3df0 = v_c2295a();
+    const v_791152 = jest.fn(() =>
+      Promise.resolve(new Map([['a', { type: 'inbound-rtp', kind: 'audio', audioLevel: 0 }]])));
+    const { result: v_43c42e } = v_d84520(v_5320d1({ speechEngine: v_1e3df0, silenceMs: 20, getStatsReport: v_791152 }));
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+
+    jest.useFakeTimers();
+    try {
+      v_be73a0(() => { v_1e3df0.emitFinal('안녕'); });
+      await v_81e49f(() => expect(v_43c42e.current.phase).toBe('sending'));
+
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(8200); });
+      expect(v_43c42e.current.phase).toBe('sending');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('신호 없음 responseDoneTimeoutMs 경과 → 강제 listening(폴백)', async () => {
+    const v_1e3df0 = v_c2295a();
+    const { result: v_43c42e } = v_d84520(v_5320d1({ speechEngine: v_1e3df0, silenceMs: 20 }));
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+
+    jest.useFakeTimers();
+    try {
+      v_be73a0(() => { v_1e3df0.emitFinal('안녕'); });
+      await v_81e49f(() => expect(v_43c42e.current.phase).toBe('sending'));
+
+      v_be73a0(() => { jest.advanceTimersByTime(45000); });
+      await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('speech_text 수신은 폴백 타이머를 리셋한다', async () => {
+    const v_1e3df0 = v_c2295a();
+    const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
+      (v_b1927c) => v_7df8a4(v_5320d1({ speechEngine: v_1e3df0, silenceMs: 20, lastSignal: v_b1927c.signal })),
+      { initialProps: { signal: null as any } },
+    );
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+
+    v_be73a0(() => { v_1e3df0.emitFinal('안녕'); });
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('sending'));
+
+    jest.useFakeTimers();
+    try {
+      v_be73a0(() => { jest.advanceTimersByTime(40000); });
+      expect(v_43c42e.current.phase).toBe('sending');
+
+      v_2726cb({ signal: { type: 'speech_text', seq: 1, ts: 1, text: '말하는 중' } });
+
+      v_be73a0(() => { jest.advanceTimersByTime(40000); });
+
+      expect(v_43c42e.current.phase).toBe('sending');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});
+
+describe('Task 13: speech_end 오디오 꼬리 대기', () => {
+  const v_b2d8b4 = (v_b71f86 = {}) => ({
+    enabled: true,
+    say: jest.fn().mockResolvedValue(undefined),
+    notifySpeechEnd: jest.fn(),
+    greeting: true,
+    greet: jest.fn().mockResolvedValue(undefined),
+    ...v_b71f86,
+  });
+
+  afterEach(() => { jest.useRealTimers(); });
+
+  it('(a) 클론 오디오가 이미 무음이면 speech_end 후 폴링 틱에서 listening 전환', async () => {
+    jest.useFakeTimers();
+    const v_1e3df0 = v_c2295a();
+    const v_791152 = jest.fn(() => v_cde30b(0)); 
+    const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
+      (v_b1927c) =>
+        v_7df8a4(v_b2d8b4({ speechEngine: v_1e3df0, getStatsReport: v_791152, lastSignal: v_b1927c.signal })),
+      { initialProps: { signal: null as any } },
+    );
+    await v_be73a0(async () => {});
+    expect(v_43c42e.current.phase).toBe('greeting');
+
+    v_2726cb({ signal: { type: 'speech_start', seq: 1, ts: 1 } });
+    expect(v_43c42e.current.phase).toBe('speaking');
+
+    v_2726cb({ signal: { type: 'speech_end', seq: 1, ts: 2 } });
+
+    expect(v_43c42e.current.phase).toBe('speaking');
+
+    await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(800); });
+    expect(v_43c42e.current.phase).toBe('listening');
+  });
+
+  it('(b) 클론 오디오 재생 중(level 높음)이면 전환 안 됨 — 무음 전환 후에야 listening', async () => {
+    jest.useFakeTimers();
+    const v_1e3df0 = v_c2295a();
+    let v_fbe91e = 0.9; 
+    const v_791152 = jest.fn(() => v_cde30b(v_fbe91e));
+    const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
+      (v_b1927c) =>
+        v_7df8a4(v_b2d8b4({ speechEngine: v_1e3df0, getStatsReport: v_791152, lastSignal: v_b1927c.signal })),
+      { initialProps: { signal: null as any } },
+    );
+    await v_be73a0(async () => {});
+    v_2726cb({ signal: { type: 'speech_start', seq: 1, ts: 1 } });
+    expect(v_43c42e.current.phase).toBe('speaking');
+
+    v_2726cb({ signal: { type: 'speech_end', seq: 1, ts: 2 } });
+
+    await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(1000); });
+    expect(v_43c42e.current.phase).toBe('speaking');
+
+    v_fbe91e = 0.01;
+    await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(1000); });
+    expect(v_43c42e.current.phase).toBe('listening');
+  });
+
+  it('(c) 안전망 RESPONSE_DONE_TAIL_MAX_MS(5s) — 무음 확인 실패해도 강제 전환', async () => {
+    jest.useFakeTimers();
+    const v_1e3df0 = v_c2295a();
+
+    const v_791152 = jest.fn(() => v_cde30b(0.9));
+    const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
+      (v_b1927c) =>
+        v_7df8a4(v_b2d8b4({ speechEngine: v_1e3df0, getStatsReport: v_791152, lastSignal: v_b1927c.signal })),
+      { initialProps: { signal: null as any } },
+    );
+    await v_be73a0(async () => {});
+    v_2726cb({ signal: { type: 'speech_start', seq: 1, ts: 1 } });
+    expect(v_43c42e.current.phase).toBe('speaking');
+
+    v_2726cb({ signal: { type: 'speech_end', seq: 1, ts: 2 } });
+
+    await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(4900); });
+    expect(v_43c42e.current.phase).toBe('speaking');
+
+    await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(200); });
+    expect(v_43c42e.current.phase).toBe('listening');
+  });
+
+  it('(d) pending 활성 중 CALL_ENDED(enabled=false) → 안전망 타이머 정리, 5s 경과해도 dispatch 없음', async () => {
+    jest.useFakeTimers();
+    const v_1e3df0 = v_c2295a();
+
+    const v_791152 = jest.fn(() => v_cde30b(0.9));
+    const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
+      (v_b1927c) =>
+        v_7df8a4(v_b2d8b4({
+          enabled: v_b1927c.enabled, speechEngine: v_1e3df0, getStatsReport: v_791152, lastSignal: v_b1927c.signal,
+        })),
+      { initialProps: { enabled: true, signal: null as any } },
+    );
+    await v_be73a0(async () => {});
+    v_2726cb({ enabled: true, signal: { type: 'speech_start', seq: 1, ts: 1 } });
+    expect(v_43c42e.current.phase).toBe('speaking');
+
+    v_2726cb({ enabled: true, signal: { type: 'speech_end', seq: 1, ts: 2 } });
+    expect(v_43c42e.current.phase).toBe('speaking'); 
+
+    await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(1000); });
+    expect(v_43c42e.current.phase).toBe('speaking');
+
+    const v_f202d4 = jest.getTimerCount();
+
+    v_2726cb({ enabled: false, signal: { type: 'speech_end', seq: 1, ts: 2 } });
+    await v_be73a0(async () => {});
+    expect(v_43c42e.current.phase).toBe('idle');
+
+    expect(jest.getTimerCount()).toBeLessThan(v_f202d4);
+
+    await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(5000); });
+    expect(v_43c42e.current.phase).toBe('idle');
+  });
+
+  it('(e) pending 활성 중 언마운트 → 안전망 타이머 정리(getTimerCount 0, 이후 advance 무해)', async () => {
+    jest.useFakeTimers();
+    const v_1e3df0 = v_c2295a();
+    const v_791152 = jest.fn(() => v_cde30b(0.9)); 
+    const { result: v_43c42e, rerender: v_2726cb, unmount: v_67a0e6 } = v_0da18b(
+      (v_b1927c) =>
+        v_7df8a4(v_b2d8b4({ speechEngine: v_1e3df0, getStatsReport: v_791152, lastSignal: v_b1927c.signal })),
+      { initialProps: { signal: null as any } },
+    );
+    await v_be73a0(async () => {});
+    v_2726cb({ signal: { type: 'speech_start', seq: 1, ts: 1 } });
+    expect(v_43c42e.current.phase).toBe('speaking');
+
+    v_2726cb({ signal: { type: 'speech_end', seq: 1, ts: 2 } });
+    expect(v_43c42e.current.phase).toBe('speaking'); 
+
+    await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(1000); });
+    expect(v_43c42e.current.phase).toBe('speaking');
+
+    v_67a0e6();
+
+    expect(jest.getTimerCount()).toBe(0);
+
+    expect(() => { jest.advanceTimersByTime(5000); }).not.toThrow();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+});
+
 it('confirming 중 cancelConfirm() → listening, say 미호출', async () => {
   const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
   const v_1e3df0 = v_c2295a();
