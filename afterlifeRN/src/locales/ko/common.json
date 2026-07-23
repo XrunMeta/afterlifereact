@@ -322,6 +322,7 @@
       "editProfile": "개인정보 관리",
       "notifications": "알림 설정",
       "privacy": "차단 관리",
+      "agreements": "동의",
       "reports": "신고",
       "reportsDesc": "내가 한 신고 · 신고당한 내역",
       "saved": "저장됨",
@@ -674,6 +675,9 @@
       "tokenNone": "발급된 토큰 없음",
       "copyToken": "복사",
       "copied": "토큰이 복사되었습니다."
+    },
+    "agreements": {
+      "title": "동의"
     },
     "privacy": {
       "title": "차단 관리",
