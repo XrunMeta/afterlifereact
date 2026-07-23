@@ -16,15 +16,18 @@ class _Pipeline:
         self.greet_calls = 0
         self.say_calls = []
         self.speak_calls = []
-    async def greet(self, turn=None, on_first_audio=None):
+    async def greet(self, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None):
         self.greet_calls += 1
         if on_first_audio:
             on_first_audio()  # 발화 시작 모사
-    async def say(self, text, turn=None, on_first_audio=None):
+    async def say(self, text, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None):
         self.say_calls.append(text)
+        if on_sentence:
+            on_sentence("첫 문장입니다.")
+            on_sentence("둘째 문장입니다.")
         if on_first_audio:
             on_first_audio()
-    async def speak(self, text, turn=None, on_first_audio=None):
+    async def speak(self, text, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None):
         self.speak_calls.append(text)
         if on_first_audio:
             on_first_audio()
@@ -83,6 +86,17 @@ def test_speak_also_emits_speech_start():
     assert ("speech_start", 5) in types
     assert ("speech_end", 5) in types
     assert types.index(("speech_start", 5)) < types.index(("speech_end", 5))
+
+
+def test_say_emits_speech_text_per_sentence():
+    sess, ch = _Sess(), _Channel()
+    _run_handler(sess, ch, {"type": "say", "text": "안녕", "seq": 9})
+    texts = [(m["type"], m.get("text"), m.get("seq")) for m in ch.sent]
+    assert ("speech_text", "첫 문장입니다.", 9) in texts
+    assert ("speech_text", "둘째 문장입니다.", 9) in texts
+    # 순서: speech_text 들은 speech_end 이전
+    types = [m["type"] for m in ch.sent]
+    assert types.index("speech_text") < types.index("speech_end")
 
 
 def test_greet_disabled_ignored(monkeypatch):

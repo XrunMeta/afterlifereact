@@ -251,6 +251,33 @@ describe('greet/speak/lastSignal', () => {
     expect(result.current.lastSignal?.seq).toBe(5);
   });
 
+  it('speech_text 수신 → lastSignal { type, text } 노출·notifySpeechEnd 미호출', async () => {
+    const { dc, pc } = makeConnectedPc();
+    const { result } = renderHook(() =>
+      usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never }));
+    await act(async () => { await result.current.start(); });
+
+    await act(async () => { await result.current.say('안녕'); });
+    expect(result.current.phase).toBe('speaking');
+    act(() => { dc.emitMessage(JSON.stringify({ type: 'speech_text', text: '안녕하세요', seq: 1 })); });
+    expect(result.current.lastSignal?.type).toBe('speech_text');
+    expect(result.current.lastSignal?.text).toBe('안녕하세요');
+    expect(result.current.lastSignal?.seq).toBe(1);
+
+    expect(result.current.phase).toBe('speaking');
+  });
+
+  it('speech_text 수신 시 text 비문자열/빈문자열이면 lastSignal 무시', async () => {
+    const { dc, pc } = makeConnectedPc();
+    const { result } = renderHook(() =>
+      usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never }));
+    await act(async () => { await result.current.start(); });
+    act(() => { dc.emitMessage(JSON.stringify({ type: 'speech_text', seq: 1 })); }); 
+    expect(result.current.lastSignal).toBeNull();
+    act(() => { dc.emitMessage(JSON.stringify({ type: 'speech_text', text: '', seq: 2 })); }); 
+    expect(result.current.lastSignal).toBeNull();
+  });
+
   it('연속 동일 타입 신호도 ts 로 구분(새 객체)', async () => {
     const { dc, pc } = makeConnectedPc();
     const { result } = renderHook(() =>

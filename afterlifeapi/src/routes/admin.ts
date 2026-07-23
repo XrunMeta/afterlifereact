@@ -1254,7 +1254,8 @@ admin.patch("/oth-path", requireAdmin, async (c) => {
   const targetMessage = isOpen ? null : (body.targetMessage ?? body.adminMessage ?? null);
 
   const adminMessage = targetMessage;
-  const reviewedClause = isOpen ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+
+  const reviewedClause = isOpen ? "reviewed_at = NULL" : "reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP)";
   const r = await c.env.DB
     .prepare(`UPDATE clone_reports SET status = ?, ${reviewedClause}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
     .bind(status, adminMessage, reporterMessage, targetMessage, id)
@@ -1306,7 +1307,8 @@ admin.patch("/oth-path", requireAdmin, async (c) => {
   const targetMessage = isOpen ? null : (body.targetMessage ?? body.adminMessage ?? null);
 
   const adminMessage = targetMessage;
-  const reviewedClause = isOpen ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+
+  const reviewedClause = isOpen ? "reviewed_at = NULL" : "reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP)";
   const r = await c.env.DB
     .prepare(`UPDATE user_reports SET status = ?, ${reviewedClause}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
     .bind(status, adminMessage, reporterMessage, targetMessage, id)
@@ -1356,7 +1358,8 @@ admin.patch("/comments/reports/:id", requireAdmin, async (c) => {
   const targetMessage = isOpen ? null : (body.targetMessage ?? body.adminMessage ?? null);
 
   const adminMessage = targetMessage;
-  const reviewedClause = isOpen ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+
+  const reviewedClause = isOpen ? "reviewed_at = NULL" : "reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP)";
   const r = await c.env.DB
     .prepare(`UPDATE comment_reports SET status = ?, ${reviewedClause}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
     .bind(status, adminMessage, reporterMessage, targetMessage, id)
