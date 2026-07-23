@@ -18,6 +18,7 @@ describe('timingConfig store', () => {
     expect(s.echoGateMs).toBe(3500);
     expect(s.cloneResumeMs).toBe(600);
     expect(s.cloneTailGraceMs).toBe(1000);
+    expect(s.responseDoneTimeoutMs).toBe(45000);
   });
 
   it('setField updates one field', () => {
@@ -51,6 +52,7 @@ describe('resolveTimingDefaults', () => {
     EXPO_PUBLIC_TIMING_ECHO_GATE_MS: '4000',
     EXPO_PUBLIC_TIMING_CLONE_RESUME_MS: '700',
     EXPO_PUBLIC_TIMING_CLONE_TAIL_GRACE_MS: '1200',
+    EXPO_PUBLIC_TIMING_RESPONSE_DONE_TIMEOUT_MS: '60000',
   };
 
   it('falls back to hardcoded defaults when env unset', () => {
@@ -63,6 +65,7 @@ describe('resolveTimingDefaults', () => {
       echoGateMs: 4000,
       cloneResumeMs: 700,
       cloneTailGraceMs: 1200,
+      responseDoneTimeoutMs: 60000,
     });
   });
 
@@ -72,6 +75,7 @@ describe('resolveTimingDefaults', () => {
     expect(result.echoGateMs).toBe(FALLBACK_TIMING_DEFAULTS.echoGateMs);
     expect(result.cloneResumeMs).toBe(FALLBACK_TIMING_DEFAULTS.cloneResumeMs);
     expect(result.cloneTailGraceMs).toBe(FALLBACK_TIMING_DEFAULTS.cloneTailGraceMs);
+    expect(result.responseDoneTimeoutMs).toBe(FALLBACK_TIMING_DEFAULTS.responseDoneTimeoutMs);
   });
 
   it('falls back on NaN and empty-string env values', () => {
@@ -104,6 +108,18 @@ describe('resolveTimingDefaults', () => {
     expect(result.sttEndpointMs).toBe(FALLBACK_TIMING_DEFAULTS.sttEndpointMs);
     expect(result.echoGateMs).toBe(FALLBACK_TIMING_DEFAULTS.echoGateMs);
     expect(result.cloneTailGraceMs).toBe(FALLBACK_TIMING_DEFAULTS.cloneTailGraceMs);
+    expect(result.responseDoneTimeoutMs).toBe(FALLBACK_TIMING_DEFAULTS.responseDoneTimeoutMs);
+  });
+
+  it('responseDoneTimeoutMs 기본 45000, ENV 오버라이드·clamp', () => {
+    expect(FALLBACK_TIMING_DEFAULTS.responseDoneTimeoutMs).toBe(45000);
+    expect(
+      resolveTimingDefaults({ EXPO_PUBLIC_TIMING_RESPONSE_DONE_TIMEOUT_MS: '20000' }).responseDoneTimeoutMs,
+    ).toBe(20000);
+    expect(resolveTimingDefaults({ EXPO_PUBLIC_TIMING_RESPONSE_DONE_TIMEOUT_MS: '1' }).responseDoneTimeoutMs).toBe(
+      5000,
+    ); 
+    expect(resolveTimingDefaults({}).responseDoneTimeoutMs).toBe(45000);
   });
 
   it('falls back on partial-numeric strings that parseInt would silently truncate', () => {
@@ -152,12 +168,13 @@ describe('resolveTimingDefaults', () => {
 });
 
 describe('formatTimingEnv', () => {
-  it('formats exactly 4 EXPO_PUBLIC_TIMING_* lines', () => {
+  it('formats exactly 5 EXPO_PUBLIC_TIMING_* lines', () => {
     const str = formatTimingEnv({
       sttEndpointMs: 1500,
       echoGateMs: 3500,
       cloneResumeMs: 600,
       cloneTailGraceMs: 1000,
+      responseDoneTimeoutMs: 45000,
     });
     expect(str).toBe(
       [
@@ -165,6 +182,7 @@ describe('formatTimingEnv', () => {
         'EXPO_PUBLIC_TIMING_ECHO_GATE_MS=3500',
         'EXPO_PUBLIC_TIMING_CLONE_RESUME_MS=600',
         'EXPO_PUBLIC_TIMING_CLONE_TAIL_GRACE_MS=1000',
+        'EXPO_PUBLIC_TIMING_RESPONSE_DONE_TIMEOUT_MS=45000',
       ].join('\n'),
     );
   });

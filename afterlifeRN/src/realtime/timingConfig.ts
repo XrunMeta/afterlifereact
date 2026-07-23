@@ -11,6 +11,8 @@ export interface TimingConfig {
   cloneResumeMs: number;
 
   cloneTailGraceMs: number;
+
+  responseDoneTimeoutMs: number;
 }
 
 export const FALLBACK_TIMING_DEFAULTS: TimingConfig = {
@@ -18,6 +20,7 @@ export const FALLBACK_TIMING_DEFAULTS: TimingConfig = {
   echoGateMs: 3500,
   cloneResumeMs: 600,
   cloneTailGraceMs: 1000,
+  responseDoneTimeoutMs: 45000,
 };
 
 export const TIMING_BOUNDS: Record<keyof TimingConfig, { min: number; max: number; step: number }> = {
@@ -25,6 +28,7 @@ export const TIMING_BOUNDS: Record<keyof TimingConfig, { min: number; max: numbe
   echoGateMs: { min: 0, max: 6000, step: 250 },
   cloneResumeMs: { min: 100, max: 3000, step: 100 },
   cloneTailGraceMs: { min: 200, max: 4000, step: 100 },
+  responseDoneTimeoutMs: { min: 5000, max: 120000, step: 5000 },
 };
 
 const clamp = (key: keyof TimingConfig, v: number): number => {
@@ -38,6 +42,7 @@ const ENV_KEYS: Record<keyof TimingConfig, string> = {
   echoGateMs: 'EXPO_PUBLIC_TIMING_ECHO_GATE_MS',
   cloneResumeMs: 'EXPO_PUBLIC_TIMING_CLONE_RESUME_MS',
   cloneTailGraceMs: 'EXPO_PUBLIC_TIMING_CLONE_TAIL_GRACE_MS',
+  responseDoneTimeoutMs: 'EXPO_PUBLIC_TIMING_RESPONSE_DONE_TIMEOUT_MS',
 };
 
 const PURE_INT_RE = /^\d+$/;
