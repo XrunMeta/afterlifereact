@@ -9,6 +9,7 @@ import {
   v_80c227,
   v_a1197d,
   v_e744f2,
+  v_c388f3,
 } from '../voiceBall';
 import type { v_3f42e4 } from '../handsFree';
 
@@ -44,9 +45,9 @@ describe('ballVisualForPhase', () => {
     const v_81e2ef = v_d45de2('confirming');
     expect(v_81e2ef).toEqual({ color: v_5c8991.confirming, pulseSource: 'mic', orbit: true, label: '입력중' });
   });
-  it('sending — 파랑, pulse 없음, orbit 정지, 라벨 없음', () => {
+  it('sending — 파랑, think pulse(생각 중 축소+맥동), orbit 정지, 라벨 없음', () => {
     const v_81e2ef = v_d45de2('sending');
-    expect(v_81e2ef).toEqual({ color: v_5c8991.sending, pulseSource: 'none', orbit: false, label: null });
+    expect(v_81e2ef).toEqual({ color: v_5c8991.sending, pulseSource: 'think', orbit: false, label: null });
   });
   it('greeting — 파랑, clone pulse, orbit 정지, "발화중"', () => {
     const v_81e2ef = v_d45de2('greeting');
@@ -134,5 +135,20 @@ describe('2026-07-23 인디케이터 UX 명확화', () => {
   it('orbit 궤도 반경은 볼 최대원 내접(트랙+dot ≤ 최대반지름), 불투명도 0.3 이하', () => {
     expect(v_a1197d.trackRadius + v_a1197d.dotRadius).toBeLessThanOrEqual(v_80c227.max / 2);
     expect(v_a1197d.opacity).toBeLessThanOrEqual(0.3);
+  });
+});
+
+describe('T-151 Task12 — 생각 중(sending) 축소+맥동', () => {
+  it('sending phase는 pulseSource=think', () => {
+    expect(v_d45de2('sending').pulseSource).toBe('think');
+  });
+  it('BALL_THINK — base 지름 48×0.65≈31px, ±6% 맥동, 0.7s 주기', () => {
+    expect(v_c388f3.scaleBase).toBe(0.65);
+    expect(v_80c227.base * v_c388f3.scaleBase).toBeCloseTo(31.2, 5);
+    expect(v_c388f3.ampScale).toBe(0.06);
+    expect(v_c388f3.periodMs).toBe(700);
+  });
+  it('sending 축소 지름은 base(정적 기준)보다 작다', () => {
+    expect(v_80c227.base * v_c388f3.scaleBase).toBeLessThan(v_80c227.base);
   });
 });

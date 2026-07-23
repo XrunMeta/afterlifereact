@@ -29,6 +29,12 @@ export const v_a1197d = {
 
 export const v_db5c73 = '#ffffff';
 
+export const v_c388f3 = {
+  scaleBase: 0.65,
+  ampScale: 0.06,
+  periodMs: 700,
+} as const;
+
 export const v_e744f2 = 0.02;
 
 export function v_3032b0(v_ba2215, v_a448ad): boolean {
@@ -59,7 +65,7 @@ export function v_d08429(v_479f05): number {
 
 export interface BallVisual {
   color: string;
-  pulseSource: 'mic' | 'clone' | 'none';
+  pulseSource: 'mic' | 'clone' | 'think' | 'none';
   orbit: boolean;
   label: string | null;
 }
@@ -73,7 +79,7 @@ export function v_d45de2(phase: v_3f42e4): BallVisual {
     case 'confirming':
       return { color: v_5c8991.confirming, pulseSource: 'mic', orbit: true, label: '입력중' };
     case 'sending':
-      return { color: v_5c8991.sending, pulseSource: 'none', orbit: false, label: null };
+      return { color: v_5c8991.sending, pulseSource: 'think', orbit: false, label: null };
     case 'greeting':
       return { color: v_5c8991.greeting, pulseSource: 'clone', orbit: false, label: '발화중' };
     case 'speaking':
