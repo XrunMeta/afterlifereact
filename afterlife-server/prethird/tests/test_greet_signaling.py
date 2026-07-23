@@ -105,3 +105,26 @@ def test_greet_disabled_ignored(monkeypatch):
     _run_handler(sess, ch, {"type": "greet", "seq": 1})
     assert sess.pipeline.greet_calls == 0
     assert ch.sent == []
+
+
+class _AudioTrack:
+    def __init__(self, samples):
+        self._samples = samples
+    def queue_depth_samples(self):
+        return self._samples
+
+
+def test_speech_end_includes_remaining_ms_when_audio_track_reports_depth():
+    sess, ch = _Sess(), _Channel()
+    sess.audio_track = _AudioTrack(96000)  # 96000/48 = 2000ms
+    _run_handler(sess, ch, {"type": "greet", "seq": 11})
+    speech_end = next(m for m in ch.sent if m["type"] == "speech_end")
+    assert speech_end["remaining_ms"] == 2000
+
+
+def test_speech_end_omits_remaining_ms_without_audio_track():
+    sess, ch = _Sess(), _Channel()
+    # 기본 _Sess() 에는 audio_track 이 없음 — 필드 자체가 생략돼야 함.
+    _run_handler(sess, ch, {"type": "greet", "seq": 12})
+    speech_end = next(m for m in ch.sent if m["type"] == "speech_end")
+    assert "remaining_ms" not in speech_end
