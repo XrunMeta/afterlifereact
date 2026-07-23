@@ -23,7 +23,7 @@ import { listMyClones } from "../../../api/clones";
 import { getXrunBalance, getPaymentPinStatus } from "../../../api/payments";
 import { API_BASE, API_BASE_PREVIEW } from "../../../config/apiBase";
 
-const PERSONA_FULL_PRICE_XRUN = 100;
+const PERSONA_FULL_PRICE_XRUN_FALLBACK = 0.001;
 
 const TEST_PRICE_EMAILS = ["oth-user@example.invalid", "oth-test@example.invalid"];
 const TEST_PRICE_XRUN = 0.05;
@@ -40,8 +40,12 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
   const userEmail = useAuthStore((s) => s.apiUser?.email ?? null);
   const setCreationDraft = useCloneStore((s) => s.setCreationDraft);
 
+  const [serverPrice, setServerPrice] = useState<number | null>(null);
+
   const PERSONA_PAID_PRICE_XRUN =
-    userEmail && TEST_PRICE_EMAILS.includes(userEmail) ? TEST_PRICE_XRUN : PERSONA_FULL_PRICE_XRUN;
+    userEmail && TEST_PRICE_EMAILS.includes(userEmail)
+      ? TEST_PRICE_XRUN
+      : (serverPrice ?? PERSONA_FULL_PRICE_XRUN_FALLBACK);
 
   const [loading, setLoading] = useState(true);
   const [needPay, setNeedPay] = useState(false);
@@ -60,6 +64,22 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
     );
     const hide = Keyboard.addListener("keyboardDidHide", () => setKbHeight(0));
     return () => { show.remove(); hide.remove(); };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/oth-path`);
+        if (!res.ok) return;
+        const json = (await res.json()) as { priceXrun?: unknown };
+        const n = Number(json?.priceXrun);
+        if (!cancelled && Number.isFinite(n) && n >= 0) setServerPrice(n);
+      } catch (err) {
+        console.warn("[PaymentGate] persona-price fetch failed:", err);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
