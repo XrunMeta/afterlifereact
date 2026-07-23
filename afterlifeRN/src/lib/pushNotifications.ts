@@ -7,6 +7,15 @@ import { Platform } from "react-native";
 import { API_BASE } from "../config/apiBase";
 import { getOrCreateDeviceId } from "./deviceId";
 
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
+
 export interface PushRegistration {
   token: string | null;
   platform: "ios" | "android" | "web";
