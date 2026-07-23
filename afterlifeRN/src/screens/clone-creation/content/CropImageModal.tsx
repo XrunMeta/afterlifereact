@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions } from "react-native";
 import {
   GestureHandlerRootView,
@@ -10,7 +10,14 @@ import {
 } from "react-native-gesture-handler";
 import { useTranslation } from "react-i18next";
 import UpperBodyGuide from "../../../components/clone/UpperBodyGuide";
-import { baseCoverScale, cropToAvatar, type GestureState } from "../../../lib/cropImage";
+import {
+  baseCoverScale,
+  clampGestureScale,
+  clampPanOffset,
+  coversCropArea,
+  cropToAvatar,
+  type GestureState,
+} from "../../../lib/cropImage";
 import { COLORS } from "../../../components/constants";
 import { showAlert } from "../../../stores/dialogStore";
 
@@ -38,6 +45,11 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
 
   const baseScaleNum = useRef(1);
 
+  const pinchHandlerRef = useRef(null);
+  const panHandlerRef = useRef(null);
+
+  const [covers, setCovers] = useState(true);
+
   useEffect(() => {
     if (!source) return;
     gesture.current = { translateX: 0, translateY: 0, scale: 1 };
@@ -48,9 +60,27 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
     pan.setValue({ x: 0, y: 0 });
     baseScale.setValue(1);
     scale.setValue(1);
+    setCovers(true);
   }, [source?.uri]); 
 
   const processing = useRef(false);
+
+  const applyCoverageClamp = () => {
+    if (!source) return;
+    const image = { width: source.width, height: source.height };
+    const frame = { width: frameW, height: frameH };
+    const clampedPan = clampPanOffset(image, frame, baseScaleNum.current, {
+      x: baseTranslate.x,
+      y: baseTranslate.y,
+    });
+    baseTranslate.x = clampedPan.x;
+    baseTranslate.y = clampedPan.y;
+    pan.setOffset({ x: baseTranslate.x, y: baseTranslate.y });
+    pan.setValue({ x: 0, y: 0 });
+    gesture.current.translateX = baseTranslate.x;
+    gesture.current.translateY = baseTranslate.y;
+    setCovers(coversCropArea({ image, frame }, baseScaleNum.current, clampedPan));
+  };
 
   const onPanEvent = Animated.event([{ nativeEvent: { translationX: pan.x, translationY: pan.y } }], {
     useNativeDriver: false,
@@ -60,10 +90,8 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
     if (st === State.END) {
       baseTranslate.x += e.nativeEvent.translationX;
       baseTranslate.y += e.nativeEvent.translationY;
-      pan.setOffset({ x: baseTranslate.x, y: baseTranslate.y });
-      pan.setValue({ x: 0, y: 0 });
-      gesture.current.translateX = baseTranslate.x;
-      gesture.current.translateY = baseTranslate.y;
+
+      applyCoverageClamp();
     } else if (st === State.CANCELLED || st === State.FAILED) {
 
       pan.setOffset({ x: baseTranslate.x, y: baseTranslate.y });
@@ -74,11 +102,14 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
   const onPinchEvent = Animated.event([{ nativeEvent: { scale } }], { useNativeDriver: false });
   const onPinchStateChange = (e: PinchGestureHandlerStateChangeEvent) => {
     if (e.nativeEvent.state === State.END) {
-      const next = Math.max(1, baseScaleNum.current * e.nativeEvent.scale);
+
+      const next = clampGestureScale(baseScaleNum.current * e.nativeEvent.scale);
       baseScale.setValue(next);
       baseScaleNum.current = next;
       gesture.current.scale = next;
       scale.setValue(1);
+
+      applyCoverageClamp();
     }
   };
 
@@ -88,6 +119,16 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
     if (!source) return;
 
     if (processing.current) return;
+
+    if (
+      !coversCropArea(
+        { image: { width: source.width, height: source.height }, frame: { width: frameW, height: frameH } },
+        baseScaleNum.current,
+        { x: baseTranslate.x, y: baseTranslate.y },
+      )
+    ) {
+      return;
+    }
     processing.current = true;
     try {
       const uri = await cropToAvatar(
@@ -124,9 +165,19 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <GestureHandlerRootView style={s.root}>
-        <PinchGestureHandler onGestureEvent={onPinchEvent} onHandlerStateChange={onPinchStateChange}>
+        <PinchGestureHandler
+          ref={pinchHandlerRef}
+          simultaneousHandlers={panHandlerRef}
+          onGestureEvent={onPinchEvent}
+          onHandlerStateChange={onPinchStateChange}
+        >
           <Animated.View style={s.fill}>
-            <PanGestureHandler onGestureEvent={onPanEvent} onHandlerStateChange={onPanStateChange}>
+            <PanGestureHandler
+              ref={panHandlerRef}
+              simultaneousHandlers={pinchHandlerRef}
+              onGestureEvent={onPanEvent}
+              onHandlerStateChange={onPanStateChange}
+            >
               <Animated.View style={s.fill}>
                 <Animated.Image source={{ uri: source.uri }} style={imgStyle as any} resizeMode="cover" />
               </Animated.View>
@@ -152,7 +203,11 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
           <TouchableOpacity style={s.btn} onPress={onCancel}>
             <Text style={s.btnText}>{t('common.cancel')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[s.btn, s.btnPrimary]} onPress={confirm}>
+          <TouchableOpacity
+            style={[s.btn, s.btnPrimary, !covers && s.btnDisabled]}
+            onPress={confirm}
+            disabled={!covers}
+          >
             <Text style={[s.btnText, s.btnPrimaryText]}>{t('common.confirm')}</Text>
           </TouchableOpacity>
         </View>
@@ -170,6 +225,7 @@ const s = StyleSheet.create({
   actions: { position: "absolute", bottom: 40, left: 0, right: 0, flexDirection: "row", justifyContent: "center", gap: 16 },
   btn: { paddingVertical: 12, paddingHorizontal: 28, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.15)" },
   btnPrimary: { backgroundColor: COLORS.white },
+  btnDisabled: { opacity: 0.4 },
   btnText: { color: COLORS.white, fontWeight: "600" },
   btnPrimaryText: { color: COLORS.zinc900 },
 });
