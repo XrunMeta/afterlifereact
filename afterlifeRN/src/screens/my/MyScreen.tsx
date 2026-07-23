@@ -292,7 +292,7 @@ export default function MyScreen() {
       icon: "external-link",
       labelKey: "my.menu.openXrun",
       descKey: "my.menu.openXrunDesc",
-      action: () => void openXrunApp({ email: apiUser?.email }),
+      action: () => void openXrunApp({ email: apiUser?.email, signup: true }),
     },
     {
       icon: "trash-2",

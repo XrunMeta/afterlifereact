@@ -152,7 +152,11 @@ export async function registerXrunForAfterlifeUser(
   try {
     res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+
+      headers: {
+        "Content-Type": "application/json",
+        "X-Internal-Secret": env.XRUN_INTERNAL_SECRET ?? "",
+      },
       body: JSON.stringify(body),
     });
   } catch (err) {
