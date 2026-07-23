@@ -6,6 +6,7 @@ import { v_6690d9 } from "../middleware/auth";
 import { v_a04a51 } from "../middleware/idempotency";
 import { v_74defc } from "../lib/logger";
 import { v_e0041f, v_cfdcb0 } from "../lib/similarity";
+import { v_916830 } from "../lib/appConfig";
 import {
   v_7adf64,
   v_ab84f6,
@@ -149,8 +150,6 @@ const v_722b6d = v_1f4ea7.object({
   voice_clone_job_id: v_1f4ea7.string().uuid().optional(),
 });
 
-const v_c02c4c = 100;
-
 const v_34d2d5 = new Set(["oth-user@example.invalid", "oth-test@example.invalid"]);
 const v_d548ed = (v_9e86fd): boolean => !!v_9e86fd && v_34d2d5.has(v_9e86fd);
 const v_8e9814 = 0.05;
@@ -208,7 +207,9 @@ v_f891e6.post(
       .prepare(`SELECT email FROM users WHERE id = ?`)
       .bind(v_43e90c)
       .first<{ email: string | null }>();
-    const v_2ab8bf = v_d548ed(v_b32680?.email) ? v_8e9814 : v_c02c4c;
+    const v_2ab8bf = v_d548ed(v_b32680?.email)
+      ? v_8e9814
+      : await v_916830(v_3f4e2e.env);
 
     if (v_faa47d >= 100) {
       throw new v_3ebe58(
