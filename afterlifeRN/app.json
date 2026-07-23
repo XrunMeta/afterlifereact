@@ -29,7 +29,8 @@
           "xrun"
         ],
         "NSSpeechRecognitionUsageDescription": "통화 중 회원님의 음성을 텍스트로 변환해 클론과 대화하기 위해 음성 인식을 사용합니다."
-      }
+      },
+      "appleTeamId": "677WG96CUJ"
     },
     "android": {
       "package": "run.xrun.afterlifeRN",
