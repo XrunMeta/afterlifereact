@@ -5,9 +5,9 @@ import type { HandsFreePhase } from './handsFree';
 export const BALL_COLORS = {
   idle: '#9ca3af', 
   listening: '#2fbf6b', 
-  sending: '#111111', 
-  speaking: '#111111', 
-  greeting: '#111111', 
+  sending: '#3b82f6', 
+  speaking: '#3b82f6', 
+  greeting: '#3b82f6', 
   confirming: '#2fbf6b', 
   paused: '#9ca3af', 
 } as const;
@@ -21,9 +21,10 @@ export const BALL_SIZE = {
 
 export const BALL_ORBIT = {
   dotRadius: 4, 
-  gap: 7, 
+  trackRadius: 40, 
   periodMs: 1400, 
   color: '#ffffff',
+  opacity: 0.3, 
 } as const;
 
 export const BALL_LABEL_COLOR = '#ffffff';
@@ -72,11 +73,11 @@ export function ballVisualForPhase(phase: HandsFreePhase): BallVisual {
     case 'confirming':
       return { color: BALL_COLORS.confirming, pulseSource: 'mic', orbit: true, label: '입력중' };
     case 'sending':
-      return { color: BALL_COLORS.sending, pulseSource: 'none', orbit: true, label: null };
+      return { color: BALL_COLORS.sending, pulseSource: 'none', orbit: false, label: null };
     case 'greeting':
-      return { color: BALL_COLORS.greeting, pulseSource: 'clone', orbit: true, label: '발화중' };
+      return { color: BALL_COLORS.greeting, pulseSource: 'clone', orbit: false, label: '발화중' };
     case 'speaking':
-      return { color: BALL_COLORS.speaking, pulseSource: 'clone', orbit: true, label: '발화중' };
+      return { color: BALL_COLORS.speaking, pulseSource: 'clone', orbit: false, label: '발화중' };
     case 'paused':
       return { color: BALL_COLORS.paused, pulseSource: 'none', orbit: false, label: null };
     default:
