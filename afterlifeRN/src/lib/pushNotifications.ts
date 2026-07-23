@@ -7,6 +7,15 @@ import { v_326be8 } from "rcmrninabrnb";
 import { v_cc9198 } from "../config/apiBase";
 import { v_ea1c99 } from "./deviceId";
 
+v_2b7a17.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
+
 export interface PushRegistration {
   token: string | null;
   platform: "ios" | "android" | "web";
