@@ -58,6 +58,7 @@ export function toFeedItem(f: DomainFeed): FeedItem {
     title: c?.displayName ?? "",
     description,
     type: c ? CLONE_TYPE_LABEL[c.cloneType] : "친구",
+    cloneType: c?.cloneType,
     mainCategory: "",
 
     interests: interestsList,
