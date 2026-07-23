@@ -56,6 +56,22 @@ def _format_val(val) -> str:
     return str(val)
 
 
+def _format_knowledge(val) -> str:
+    """[{key,q,a,updated_at}] → '- q: a' 줄 목록. q 없으면 '- a'. dict repr 유출 방지."""
+    if not isinstance(val, (list, tuple)):
+        return ""
+    lines = []
+    for x in val:
+        if not isinstance(x, dict):
+            continue
+        a = str(x.get("a", "")).strip()
+        if not a:
+            continue
+        q = str(x.get("q") or "").strip()
+        lines.append(f"- {q}: {a}" if q else f"- {a}")
+    return "\n".join(lines)
+
+
 def _format_pref_history(val) -> str:
     """[{key,from,to,at}] → '음료: 콜라→사이다; 음식: 김치→라면'. dict repr 노출 방지."""
     if not isinstance(val, (list, tuple)):
@@ -104,8 +120,8 @@ def bundle_to_messages(bundle: dict | None) -> list[dict]:
         if text.strip():
             persona_lines.append(f"- {label}: {text}")
 
-    # 위 목록에 없는 나머지 속성도 포함
-    known_keys = {k for k, _ in _KNOWN_PERSONA_LABELS}
+    # 위 목록에 없는 나머지 속성도 포함 (knowledge는 전용 섹션으로 분리하므로 제외)
+    known_keys = {k for k, _ in _KNOWN_PERSONA_LABELS} | {"knowledge"}
     for key, val in persona.items():
         if key in known_keys or val is None:
             continue
@@ -113,13 +129,19 @@ def bundle_to_messages(bundle: dict | None) -> list[dict]:
         if text.strip():
             persona_lines.append(f"- {key}: {text}")
 
-    if not persona_lines and not lines:
-        # l0도 없고 persona 속성도 없으면 의미 없음
+    knowledge_text = _format_knowledge(persona.get("knowledge"))
+
+    if not persona_lines and not lines and not knowledge_text:
+        # l0도 없고 persona 속성도 없고 knowledge도 없으면 의미 없음
         return []
 
     if persona_lines:
         lines.append("## 페르소나")
         lines.extend(persona_lines)
+
+    if knowledge_text:
+        lines.append("## 전문 지식")
+        lines.append(knowledge_text)
 
     content = "\n".join(lines).strip()
     if not content:

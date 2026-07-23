@@ -27,12 +27,28 @@ const v_9f536f = (v_81e2ef) => {
   );
 };
 
+const v_52701d = {
+  background: "#D4A017",
+  color: "#fff",
+  borderRadius: 4,
+  padding: "1px 6px",
+  fontSize: 12,
+  fontWeight: 700,
+};
+
+const v_c9798c = (v_81e2ef) => {
+  if (v_81e2ef === "expert") {
+    return <span style={v_52701d}>전문가</span>;
+  }
+  return v_81e2ef;
+};
+
 const v_b9fa58 = [
   { key: "id", label: "ID" },
   { key: "deletionState", label: "상태", render: v_9f536f },
   { key: "name", label: "Name" },
   { key: "username", label: "클론 ID" },
-  { key: "cloneType", label: "Type" },
+  { key: "cloneType", label: "Type", render: v_c9798c },
   { key: "visibility", label: "Visibility" },
   { key: "trainingStatus", label: "Status" },
   { key: "ownerName", label: "Owner" },

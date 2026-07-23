@@ -13,6 +13,7 @@ import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../constants";
 import type { v_19b433 } from "../../types/feed";
 import v_5778ce from "../common/HashtagText";
+import v_8fba67 from "./ExpertBadge";
 
 interface FeedCardProps {
   item: v_19b433;
@@ -96,7 +97,10 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
           <View style={v_d81136.bottomContent}>
             <View style={v_d81136.profileRow}>
               <View style={v_d81136.profileInfo}>
-                <Text style={v_d81136.authorName}>{v_8c0b26.author}</Text>
+                <View style={v_d81136.authorRow}>
+                  <Text style={v_d81136.authorName}>{v_8c0b26.author}</Text>
+                  {v_8c0b26.cloneType === "expert" && <ExpertBadge size={22} />}
+                </View>
                 <Text style={v_d81136.username}>{v_8c0b26.username}</Text>
               </View>
               {!v_799eb5 && (
@@ -184,6 +188,14 @@ const v_d81136 = v_472849.create({
   },
   profileInfo: {
     flex: 1,
+    overflow: "visible",
+  },
+
+  authorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    overflow: "visible",
   },
   authorName: {
     fontSize: 16,
