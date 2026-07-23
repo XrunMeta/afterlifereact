@@ -332,12 +332,13 @@ function internalHeaders(env: Bindings): Record<string, string> {
 }
 
 export async function hasXrunPaymentPin(env: Bindings, member: number): Promise<PaymentPinStatus> {
-  if (!env.XRUN_GATEWAY_TOKEN) return { ok: false, hasPin: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  if (!env.XRUN_INTERNAL_SECRET) return { ok: false, hasPin: false, reason: "missing XRUN_INTERNAL_SECRET" };
   let res: Response;
   try {
+
     res = await fetch(
       `${env.XRUN_API_URL}/oth-path?member=${encodeURIComponent(String(member))}`,
-      { method: "GET", headers: gatewayHeaders(env) },
+      { method: "GET", headers: internalHeaders(env) },
     );
   } catch (err) {
     return { ok: false, hasPin: false, reason: `network: ${(err as Error).message}` };
