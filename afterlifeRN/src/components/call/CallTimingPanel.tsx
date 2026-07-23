@@ -34,6 +34,7 @@ export const CallTimingPanel: React.FC<{
       echoGateMs: cfg.echoGateMs,
       cloneResumeMs: cfg.cloneResumeMs,
       cloneTailGraceMs: cfg.cloneTailGraceMs,
+      responseDoneTimeoutMs: cfg.responseDoneTimeoutMs,
     });
 
     console.log('[timing-env]\n' + str);
