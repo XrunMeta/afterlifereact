@@ -290,32 +290,12 @@ export async function createClone(
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
-  const res = await fetch(`${API_BASE}/oth-path`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-      "X-Idempotency-Key": key,
-    },
-    body: JSON.stringify(payload),
-  });
-  const text = await res.text();
-  let parsed: unknown = null;
-  try {
-    parsed = text ? JSON.parse(text) : null;
-  } catch {
-
-  }
-  if (!res.ok) {
-    const body = parsed as ApiErrorBody | null;
-    throw new AuthApiError(
-      res.status,
-      body?.error?.code ?? "HTTP_ERROR",
-      body?.error?.message ?? `HTTP ${res.status}`,
-      body?.error?.details,
-    );
-  }
-  return parsed as CreateCloneResponse;
+  return _libAuthFetch<CreateCloneResponse>(
+    `/oth-path`,
+    accessToken,
+    { method: "POST", body: JSON.stringify(payload) },
+    key,
+  );
 }
 
 export type AssetJobKind = 'idle_video' | 'voice_clone';
