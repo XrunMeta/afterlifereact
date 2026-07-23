@@ -518,6 +518,31 @@ export async function closeXrunMember(env: Bindings, member: number): Promise<Xr
   };
 }
 
+export async function syncPushTokenToXrun(
+  env: Bindings,
+  member: number,
+  pushToken: string | null,
+): Promise<{ ok: boolean; reason?: string }> {
+  if (!env.XRUN_INTERNAL_SECRET) {
+    return { ok: false, reason: "missing XRUN_INTERNAL_SECRET" };
+  }
+  try {
+    const res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: internalHeaders(env),
+      body: JSON.stringify({ member, pushToken }),
+    });
+    if (!res.ok) {
+      return { ok: false, reason: `HTTP ${res.status}` };
+    }
+    const json = (await res.json()) as { status?: string; message?: string };
+    if (json.status === "success") return { ok: true };
+    return { ok: false, reason: json.message ?? "unknown" };
+  } catch (err) {
+    return { ok: false, reason: `network: ${(err as Error).message}` };
+  }
+}
+
 export async function getXrunBalances(env: Bindings, member: number): Promise<XrunBalancesResult> {
   if (!env.XRUN_GATEWAY_TOKEN) {
     return { ok: false, balances: [], reason: "missing XRUN_GATEWAY_TOKEN" };
