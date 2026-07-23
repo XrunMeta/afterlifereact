@@ -468,7 +468,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
         ) {
           const details = (err.details ?? {}) as { priceXrun?: number };
           if (typeof details.priceXrun === "number") setPayPrice(details.priceXrun);
-          if (err.code === "PAYMENT_PIN_INVALID") setPinError("결제 비밀번호가 일치하지 않아요");
+          if (err.code === "PAYMENT_PIN_INVALID") setPinError("XRUN PIN가 일치하지 않아요");
           setPaymentModal(true);
           setPosting(false);
           return;
@@ -525,7 +525,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
     } catch (err) {
       let msg = "결제에 실패했어요.";
       if (err instanceof AuthApiError) {
-        if (err.code === "UNAUTHENTICATED") msg = "결제 비밀번호가 일치하지 않아요";
+        if (err.code === "UNAUTHENTICATED") msg = "XRUN PIN가 일치하지 않아요";
         else if (err.code === "INSUFFICIENT_FUNDS") msg = "XRUN 잔액이 부족해요";
         else if (err.code === "CONFLICT") msg = err.message;
         else if (err.code === "UPSTREAM_NOT_IMPLEMENTED")
@@ -702,7 +702,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
               <Text style={payStyles.title}>클론 생성 결제</Text>
               <Text style={payStyles.desc}>
                 두 번째 클론부터 {payPrice} XRUN 이 부과돼요{"\n"}
-                결제 비밀번호 6자리를 입력해 주세요
+                XRUN PIN 6자리를 입력해 주세요
               </Text>
               <OtpCodeInput
                 value={pinInput}
