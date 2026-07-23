@@ -363,12 +363,13 @@ export async function verifyXrunPaymentPin(
   member: number,
   pin: string,
 ): Promise<PaymentPinVerifyResult> {
-  if (!env.XRUN_GATEWAY_TOKEN) return { ok: false, match: false, hasPin: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  if (!env.XRUN_INTERNAL_SECRET) return { ok: false, match: false, hasPin: false, reason: "missing XRUN_INTERNAL_SECRET" };
   let res: Response;
   try {
+
     res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
       method: "POST",
-      headers: gatewayHeaders(env),
+      headers: internalHeaders(env),
       body: JSON.stringify({ member, pin }),
     });
   } catch (err) {
