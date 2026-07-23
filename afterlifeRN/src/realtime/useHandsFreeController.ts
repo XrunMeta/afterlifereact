@@ -46,6 +46,8 @@ export function v_7df8a4(opts: {
   fallbackText?: string;
 
   confirmGate?: boolean;
+
+  signalGating?: boolean;
 }) {
   const [v_b6e533, v_1fa668] = v_5ab095(v_3075fa());
   const v_8d3dea = v_e662ae(v_b6e533);
@@ -119,10 +121,10 @@ export function v_7df8a4(opts: {
             break;
           case 'SAY':
             if (v_b03676) {
-              v_bcde6b.current(v_b03676).catch(() => v_700737.current({ type: 'RESPONSE_END' }));
+              v_bcde6b.current(v_b03676).catch(() => v_700737.current({ type: 'RESPONSE_DONE' }));
             } else {
 
-              v_700737.current({ type: 'RESPONSE_END' });
+              v_700737.current({ type: 'RESPONSE_DONE' });
             }
             break;
           case 'START_DETECTOR':
@@ -147,14 +149,14 @@ export function v_7df8a4(opts: {
           case 'SPEAK_FALLBACK':
 
             if (v_5069ec.current) {
-              v_5069ec.current(v_c6145f).catch(() => v_700737.current({ type: 'RESPONSE_END' }));
+              v_5069ec.current(v_c6145f).catch(() => v_700737.current({ type: 'RESPONSE_DONE' }));
             } else {
-              v_700737.current({ type: 'RESPONSE_END' });
+              v_700737.current({ type: 'RESPONSE_DONE' });
             }
 
             if (v_3f36e6.current) clearTimeout(v_3f36e6.current);
             v_3f36e6.current = setTimeout(
-              () => v_700737.current({ type: 'RESPONSE_END' }), v_a3a40c);
+              () => v_700737.current({ type: 'RESPONSE_DONE' }), v_a3a40c);
             break;
         }
       }
@@ -197,9 +199,17 @@ export function v_7df8a4(opts: {
   }, []);
 
   v_c4deb2(() => {
+    if (!v_328259.signalGating) return;
+    if (v_b6e533.phase !== 'sending' && v_b6e533.phase !== 'speaking') return;
+    const v_d799e2 = v_7347b3.getState().responseDoneTimeoutMs;
+    const v_389afb = setTimeout(() => v_700737.current({ type: 'RESPONSE_DONE' }), v_d799e2);
+    return () => clearTimeout(v_389afb);
+  }, [v_b6e533.phase, v_328259.lastSignal, v_328259.signalGating]);
+
+  v_c4deb2(() => {
     v_700737.current(
       v_328259.enabled
-        ? { type: 'CALL_LIVE', greeting: v_328259.greeting, confirmGate: v_328259.confirmGate }
+        ? { type: 'CALL_LIVE', greeting: v_328259.greeting, confirmGate: v_328259.confirmGate, signalGating: v_328259.signalGating }
         : { type: 'CALL_ENDED' });
   }, [v_328259.enabled]); 
 
@@ -207,7 +217,8 @@ export function v_7df8a4(opts: {
     const v_f2c979 = v_328259.lastSignal;
     if (!v_f2c979) return;
     if (v_f2c979.type === 'speech_start') { v_d7f7b1('speech_start'); v_700737.current({ type: 'SPEECH_START' }); }
-    else if (v_f2c979.type === 'speech_end') { v_d7f7b1('speech_end'); v_700737.current({ type: 'RESPONSE_END' }); }
+    else if (v_f2c979.type === 'speech_end') { v_d7f7b1('speech_end'); v_700737.current({ type: 'RESPONSE_DONE' }); }
+
   }, [v_328259.lastSignal]);
 
   const v_b8908d = v_e662ae(v_328259.getStatsReport);

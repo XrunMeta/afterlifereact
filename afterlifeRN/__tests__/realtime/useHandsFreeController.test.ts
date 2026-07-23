@@ -635,6 +635,96 @@ describe('greeting=false off-path speech_end 안전성', () => {
   });
 });
 
+describe('signalGating 배선', () => {
+  const v_5320d1 = (v_b71f86 = {}) => ({
+    enabled: true,
+    say: jest.fn().mockResolvedValue(undefined),
+    getStatsReport: () => null,
+    notifySpeechEnd: jest.fn(),
+    speechEngine: v_c2295a(),
+    signalGating: true,
+    ...v_b71f86,
+  });
+
+  it('speech_end 신호 → listening 복귀(RESPONSE_DONE 경로)', async () => {
+    const v_1e3df0 = v_c2295a();
+    const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
+      (v_b1927c) => v_7df8a4(v_5320d1({ speechEngine: v_1e3df0, silenceMs: 20, lastSignal: v_b1927c.signal })),
+      { initialProps: { signal: null as any } },
+    );
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+
+    v_be73a0(() => { v_1e3df0.emitFinal('안녕'); });
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('sending'));
+
+    v_2726cb({ signal: { type: 'speech_end', seq: 1, ts: 1 } });
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+  });
+
+  it('감지기 onResponseEnd 는 게이팅 중 무시 — sending 유지', async () => {
+
+    const v_1e3df0 = v_c2295a();
+    const v_791152 = jest.fn(() =>
+      Promise.resolve(new Map([['a', { type: 'inbound-rtp', kind: 'audio', audioLevel: 0 }]])));
+    const { result: v_43c42e } = v_d84520(v_5320d1({ speechEngine: v_1e3df0, silenceMs: 20, getStatsReport: v_791152 }));
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+
+    jest.useFakeTimers();
+    try {
+      v_be73a0(() => { v_1e3df0.emitFinal('안녕'); });
+      await v_81e49f(() => expect(v_43c42e.current.phase).toBe('sending'));
+
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(8200); });
+      expect(v_43c42e.current.phase).toBe('sending');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('신호 없음 responseDoneTimeoutMs 경과 → 강제 listening(폴백)', async () => {
+    const v_1e3df0 = v_c2295a();
+    const { result: v_43c42e } = v_d84520(v_5320d1({ speechEngine: v_1e3df0, silenceMs: 20 }));
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+
+    jest.useFakeTimers();
+    try {
+      v_be73a0(() => { v_1e3df0.emitFinal('안녕'); });
+      await v_81e49f(() => expect(v_43c42e.current.phase).toBe('sending'));
+
+      v_be73a0(() => { jest.advanceTimersByTime(45000); });
+      await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('speech_text 수신은 폴백 타이머를 리셋한다', async () => {
+    const v_1e3df0 = v_c2295a();
+    const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
+      (v_b1927c) => v_7df8a4(v_5320d1({ speechEngine: v_1e3df0, silenceMs: 20, lastSignal: v_b1927c.signal })),
+      { initialProps: { signal: null as any } },
+    );
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+
+    v_be73a0(() => { v_1e3df0.emitFinal('안녕'); });
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('sending'));
+
+    jest.useFakeTimers();
+    try {
+      v_be73a0(() => { jest.advanceTimersByTime(40000); });
+      expect(v_43c42e.current.phase).toBe('sending');
+
+      v_2726cb({ signal: { type: 'speech_text', seq: 1, ts: 1, text: '말하는 중' } });
+
+      v_be73a0(() => { jest.advanceTimersByTime(40000); });
+
+      expect(v_43c42e.current.phase).toBe('sending');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});
+
 it('confirming 중 cancelConfirm() → listening, say 미호출', async () => {
   const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
   const v_1e3df0 = v_c2295a();
