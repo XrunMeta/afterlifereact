@@ -8,9 +8,11 @@ export type LiveAvatarState =
 export type CallPhase = 'idle' | 'listening' | 'sending' | 'speaking';
 
 export interface SpeechSignal {
-  type: 'speech_start' | 'speech_end';
+  type: 'speech_start' | 'speech_end' | 'speech_text';
   seq?: number;
   ts: number;
+
+  text?: string;
 }
 
 export interface FaceEvent {

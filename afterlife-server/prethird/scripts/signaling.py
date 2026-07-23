@@ -553,6 +553,15 @@ def _make_dc_handler(sess, channel):
                     log.warning("session %s speech_start send failed: %s",
                                 sess.session_id, exc)
 
+        def _emit_speech_text(text, seq=seq):
+            # 문장 세그먼트 push 시작 → 클론 발화 자막(additive — 구 클라이언트는 무시).
+            if channel is not None and getattr(channel, "readyState", None) == "open":
+                try:
+                    channel.send(_json.dumps({"type": "speech_text", "text": text, "seq": seq}))
+                except Exception as exc:
+                    log.warning("session %s speech_text send failed: %s",
+                                sess.session_id, exc)
+
         async def _run(mode=mtype, text=text, seq=seq, turn=turn):
             _se_present = bool(getattr(sess, "se_path", None))
             _offer_t = getattr(sess, "offer_time", None)
@@ -590,15 +599,20 @@ def _make_dc_handler(sess, channel):
                             text, turn=turn,
                             on_first_audio=_emit_speech_start,
                             on_response_ready=_response_hook,
+                            on_sentence=_emit_speech_text,
                         )
                     elif mode == "greet":
                         # greet: 사용자 발화 없으므로 filler 미사용(on_response_ready=None)
-                        await sess.pipeline.greet(turn=turn, on_first_audio=_emit_speech_start)
+                        await sess.pipeline.greet(
+                            turn=turn, on_first_audio=_emit_speech_start,
+                            on_sentence=_emit_speech_text,
+                        )
                     else:
                         await sess.pipeline.say(
                             text, turn=turn,
                             on_first_audio=_emit_speech_start,
                             on_response_ready=_response_hook,
+                            on_sentence=_emit_speech_text,
                         )
             except asyncio.CancelledError:
                 log.warning("session %s %s cancelled", sess.session_id, mode)

@@ -11,6 +11,8 @@ export interface TimingConfig {
   cloneResumeMs: number;
 
   cloneTailGraceMs: number;
+
+  responseDoneTimeoutMs: number;
 }
 
 export const v_5c20ea = {
@@ -18,6 +20,7 @@ export const v_5c20ea = {
   echoGateMs: 3500,
   cloneResumeMs: 600,
   cloneTailGraceMs: 1000,
+  responseDoneTimeoutMs: 45000,
 };
 
 export const v_2e0251 = {
@@ -25,6 +28,7 @@ export const v_2e0251 = {
   echoGateMs: { min: 0, max: 6000, step: 250 },
   cloneResumeMs: { min: 100, max: 3000, step: 100 },
   cloneTailGraceMs: { min: 200, max: 4000, step: 100 },
+  responseDoneTimeoutMs: { min: 5000, max: 120000, step: 5000 },
 };
 
 const v_ffa902 = (v_b24339, v_81e2ef): number => {
@@ -38,6 +42,7 @@ const v_c38a4b = {
   echoGateMs: 'EXPO_PUBLIC_TIMING_ECHO_GATE_MS',
   cloneResumeMs: 'EXPO_PUBLIC_TIMING_CLONE_RESUME_MS',
   cloneTailGraceMs: 'EXPO_PUBLIC_TIMING_CLONE_TAIL_GRACE_MS',
+  responseDoneTimeoutMs: 'EXPO_PUBLIC_TIMING_RESPONSE_DONE_TIMEOUT_MS',
 };
 
 const v_1a3a5b = /^\d+$/;

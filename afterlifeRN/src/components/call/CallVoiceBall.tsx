@@ -8,6 +8,7 @@ import {
   v_80c227,
   v_a1197d,
   v_b2c642,
+  v_c388f3,
   v_db5c73,
   v_d45de2,
   v_d6dc8c,
@@ -25,8 +26,8 @@ const v_0f64a0 = v_a2349e.createAnimatedComponent(v_f595b9);
 
 const v_18f5ee = v_80c227.max / 2; 
 
-const v_4dc014 = v_18f5ee + v_a1197d.gap; 
-const v_905201 = (v_4dc014 + v_a1197d.dotRadius) * 2; 
+const v_4dc014 = v_a1197d.trackRadius; 
+const v_905201 = Math.max(v_80c227.max, (v_4dc014 + v_a1197d.dotRadius) * 2); 
 const v_fc2005 = v_905201 / 2; 
 
 export function v_9204e2({ phase: v_ab4803, micLevel: v_9afd2d, cloneLevel: v_4eaf6a }: CallVoiceBallProps) {
@@ -36,6 +37,8 @@ export function v_9204e2({ phase: v_ab4803, micLevel: v_9afd2d, cloneLevel: v_4e
   const v_f4ee6f = v_df9f57(() => {
     if (v_23604c.pulseSource === 'mic') return v_d6dc8c(v_9afd2d, v_80c227, false);
     if (v_23604c.pulseSource === 'clone') return v_d6dc8c(v_4eaf6a, v_80c227, false);
+
+    if (v_23604c.pulseSource === 'think') return v_80c227.base * v_c388f3.scaleBase;
 
     return v_4ab1ee ? v_d6dc8c(0, v_80c227, true) : v_80c227.base;
   }, [v_23604c.pulseSource, v_9afd2d, v_4eaf6a, v_4ab1ee]);
@@ -75,36 +78,73 @@ export function v_9204e2({ phase: v_ab4803, micLevel: v_9afd2d, cloneLevel: v_4e
 
   const v_4dc9c6 = v_34cf80.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
+  const v_a5f72b = v_e662ae(new v_a2349e.Value(1)).current;
+  const v_710535 = v_e662ae<v_a2349e.CompositeAnimation | null>(null);
+  const v_18b43e = v_23604c.pulseSource === 'think';
+  v_c4deb2(() => {
+    if (v_18b43e) {
+      v_710535.current = v_a2349e.loop(
+        v_a2349e.sequence([
+          v_a2349e.timing(v_a5f72b, {
+            toValue: 1 + v_c388f3.ampScale,
+            duration: v_c388f3.periodMs / 2,
+            easing: v_cdbae1.inOut(v_cdbae1.sin),
+            useNativeDriver: true,
+          }),
+          v_a2349e.timing(v_a5f72b, {
+            toValue: 1 - v_c388f3.ampScale,
+            duration: v_c388f3.periodMs / 2,
+            easing: v_cdbae1.inOut(v_cdbae1.sin),
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+      v_710535.current.start();
+    } else {
+      v_710535.current?.stop();
+      v_710535.current = null;
+      v_a5f72b.setValue(1);
+    }
+    return () => {
+      v_710535.current?.stop();
+      v_710535.current = null;
+    };
+  }, [v_18b43e, v_a5f72b]);
+
+  const v_a546c1 = v_a2349e.multiply(v_d859fb, v_a5f72b);
+
   return (
     <View style={v_d81136.stage} pointerEvents="none">
       <View style={[v_d81136.center, { width: v_905201, height: v_905201 }]}>
         {}
-        <Animated.View
-          style={[
-            v_d81136.orbitWrap,
-            { width: v_905201, height: v_905201, transform: [{ rotate: v_4dc9c6 }] },
-          ]}
-        >
-          <View
+        {v_23604c.orbit ? (
+          <Animated.View
             style={[
-              v_d81136.orbitDot,
-              {
-                width: v_a1197d.dotRadius * 2,
-                height: v_a1197d.dotRadius * 2,
-                borderRadius: v_a1197d.dotRadius,
-                backgroundColor: v_a1197d.color,
-                left: v_fc2005 - v_a1197d.dotRadius,
-                top: v_fc2005 - v_4dc014 - v_a1197d.dotRadius,
-              },
+              v_d81136.orbitWrap,
+              { width: v_905201, height: v_905201, opacity: v_a1197d.opacity, transform: [{ rotate: v_4dc9c6 }] },
             ]}
-          />
-        </Animated.View>
+          >
+            <View
+              style={[
+                v_d81136.orbitDot,
+                {
+                  width: v_a1197d.dotRadius * 2,
+                  height: v_a1197d.dotRadius * 2,
+                  borderRadius: v_a1197d.dotRadius,
+                  backgroundColor: v_a1197d.color,
+                  left: v_fc2005 - v_a1197d.dotRadius,
+                  top: v_fc2005 - v_4dc014 - v_a1197d.dotRadius,
+                },
+              ]}
+            />
+          </Animated.View>
+        ) : null}
 
         {}
         <AnimatedSvg
           width={v_905201}
           height={v_905201}
-          style={[v_d81136.svgLayer, { transform: [{ scale: v_d859fb }] }]}
+          style={[v_d81136.svgLayer, { transform: [{ scale: v_a546c1 }] }]}
         >
           <Circle cx={v_fc2005} cy={v_fc2005} r={v_18f5ee} fill={v_23604c.color} />
         </AnimatedSvg>
