@@ -9,6 +9,7 @@ const CLONE_TYPE_LABEL: Record<CloneType, string> = {
   friend: "친구",
   mentor: "멘토",
   celeb: "셀럽",
+  expert: "전문가",
 };
 
 const LOCAL_IMAGE_BY_CLONE_ID: Record<number, number> = {
