@@ -13,6 +13,7 @@ import { v_7be8d9, type v_5a4c65 } from './cloneSilence';
 import { v_7347b3 } from './timingConfig';
 import { v_d7f7b1 } from './timingEvents';
 import { v_3032b0 } from './voiceBall';
+import { v_fb305c } from './questionMark';
 
 const v_5443e5 = 0.05; 
 
@@ -93,7 +94,8 @@ export function v_7df8a4(opts: {
         return; 
       }
       v_d7f7b1('vad_endpoint');
-      v_700737.current({ type: 'FINAL_RESULT', text: v_9b6134 });
+
+      v_700737.current({ type: 'FINAL_RESULT', text: v_fb305c(v_9b6134) });
     },
   });
 
