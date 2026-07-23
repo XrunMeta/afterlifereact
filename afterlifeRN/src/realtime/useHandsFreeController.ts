@@ -77,6 +77,8 @@ export function v_7df8a4(opts: {
 
   const v_d65758 = v_e662ae<ReturnType<typeof setTimeout> | null>(null);
 
+  const v_c2616d = v_e662ae(0);
+
   const v_1f41d7 = v_724dd4({
     getStatsReport: v_328259.getStatsReport,
     onResponseStart: () => v_700737.current({ type: 'CLONE_SPEAKING' }),
@@ -174,6 +176,7 @@ export function v_7df8a4(opts: {
 
   const v_1ab00a = v_de06a3(() => {
     v_8a777f.current = null;
+    v_c2616d.current = 0;
     if (v_d65758.current) {
       clearTimeout(v_d65758.current);
       v_d65758.current = null;
@@ -246,13 +249,17 @@ export function v_7df8a4(opts: {
       if (v_b8908d.current() === null) {
         v_700737.current({ type: 'RESPONSE_DONE' });
       } else {
+
+        const v_2d99a5 = v_f2c979.remainingMs ?? 0;
+        v_c2616d.current = Date.now() + v_2d99a5;
         v_8a777f.current = Date.now();
         if (v_d65758.current) clearTimeout(v_d65758.current);
         v_d65758.current = setTimeout(() => {
           v_d65758.current = null;
           v_8a777f.current = null;
+          v_c2616d.current = 0;
           v_700737.current({ type: 'RESPONSE_DONE' });
-        }, v_d641fa);
+        }, v_2d99a5 + v_d641fa);
       }
     }
 
@@ -283,7 +290,8 @@ export function v_7df8a4(opts: {
         if (
           v_8a777f.current !== null &&
           !v_22312b &&
-          v_5c2f9f - v_84a65f.current > v_7347b3.getState().cloneResumeMs
+          v_5c2f9f - v_84a65f.current > v_7347b3.getState().cloneResumeMs &&
+          v_5c2f9f >= v_c2616d.current
         ) {
           v_1ab00a();
           v_700737.current({ type: 'RESPONSE_DONE' });
@@ -335,6 +343,7 @@ export function v_7df8a4(opts: {
   v_c4deb2(() => () => {
     if (v_3f36e6.current) clearTimeout(v_3f36e6.current);
     if (v_d65758.current) clearTimeout(v_d65758.current);
+    v_c2616d.current = 0; 
   }, []);
 
   const v_6e1295 = v_de06a3(() => {
