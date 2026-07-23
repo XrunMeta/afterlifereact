@@ -10,6 +10,8 @@ import { type AvatarCall, type LiveAvatarState, type CallPhase, type SpeechSigna
 
 const nowMs = () => Date.now();
 
+const REMAINING_MS_MAX = 30000;
+
 export const ICE_SERVERS = [
   { urls: 'stun:stun.cloudflare.com:3478' },
   { urls: 'stun:stun.l.google.com:19302' },
@@ -239,7 +241,12 @@ export function usePrethirdAvatar(opts: {
       try {
         const m = JSON.parse(ev?.data ?? '');
         if (m.type === 'speech_start' || m.type === 'speech_end') {
-          setLastSignal({ type: m.type, seq: m.seq, ts: nowMs() });
+
+          const remainingMs =
+            m.type === 'speech_end' && typeof m.remaining_ms === 'number' && m.remaining_ms >= 0
+              ? Math.min(m.remaining_ms, REMAINING_MS_MAX)
+              : undefined;
+          setLastSignal({ type: m.type, seq: m.seq, ts: nowMs(), remainingMs });
           if (m.type === 'speech_end') notifySpeechEnd();
         } else if (m.type === 'speech_text') {
 
