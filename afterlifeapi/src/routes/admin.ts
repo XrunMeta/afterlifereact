@@ -1259,7 +1259,7 @@ v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
 
   if (!v_c403c7) {
     const v_f10744 = await v_3f4e2e.env.DB
-      .prepare(`SELECT reporter_id AS reporterId FROM clone_reports WHERE id = ?`)
+      .prepare(`SELECT user_id AS reporterId FROM clone_reports WHERE id = ?`)
       .bind(v_389afb)
       .first<{ reporterId: number | null }>();
     await v_d1a2ff(v_3f4e2e, "clone", v_f10744?.reporterId, v_d308b5, v_2bd5e3);
@@ -1363,7 +1363,7 @@ v_b7f2b4.patch("/comments/reports/:id", v_c0a297, async (v_3f4e2e) => {
 
   if (!v_c403c7) {
     const v_f10744 = await v_3f4e2e.env.DB
-      .prepare(`SELECT reporter_id AS reporterId FROM comment_reports WHERE id = ?`)
+      .prepare(`SELECT user_id AS reporterId FROM comment_reports WHERE id = ?`)
       .bind(v_389afb)
       .first<{ reporterId: number | null }>();
     await v_d1a2ff(v_3f4e2e, "comment", v_f10744?.reporterId, v_d308b5, v_2bd5e3);
