@@ -93,6 +93,7 @@ import {
   postCloneCallEvent,
 } from "../../api/clones";
 import { AuthApiError } from "../../api/auth";
+import ExpertBadge from "../../components/ui/ExpertBadge";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
 
@@ -1132,6 +1133,15 @@ export default function CallScreen({ route, navigation }: Props) {
       </View>
 
       {
+
+}
+      {clone?.cloneType === "expert" && (
+        <View style={[s.expertBadge, { top: insets.top + 24 }]}>
+          <ExpertBadge size={44} />
+        </View>
+      )}
+
+      {
 }
       {!isOwnClone && (
       <View style={s.rightActions}>
@@ -1499,6 +1509,8 @@ const s = StyleSheet.create({
     alignItems: "center",
     zIndex: 10,
   },
+
+  expertBadge: { position: "absolute", right: 16, zIndex: 41 },
   callName: {
     fontSize: 24,
     fontWeight: "700",
