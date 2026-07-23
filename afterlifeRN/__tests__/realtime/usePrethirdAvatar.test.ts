@@ -251,6 +251,33 @@ describe('greet/speak/lastSignal', () => {
     expect(v_43c42e.current.lastSignal?.seq).toBe(5);
   });
 
+  it('speech_text 수신 → lastSignal { type, text } 노출·notifySpeechEnd 미호출', async () => {
+    const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+
+    await v_be73a0(async () => { await v_43c42e.current.say('안녕'); });
+    expect(v_43c42e.current.phase).toBe('speaking');
+    v_be73a0(() => { v_32dc97.emitMessage(JSON.stringify({ type: 'speech_text', text: '안녕하세요', seq: 1 })); });
+    expect(v_43c42e.current.lastSignal?.type).toBe('speech_text');
+    expect(v_43c42e.current.lastSignal?.text).toBe('안녕하세요');
+    expect(v_43c42e.current.lastSignal?.seq).toBe(1);
+
+    expect(v_43c42e.current.phase).toBe('speaking');
+  });
+
+  it('speech_text 수신 시 text 비문자열/빈문자열이면 lastSignal 무시', async () => {
+    const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    v_be73a0(() => { v_32dc97.emitMessage(JSON.stringify({ type: 'speech_text', seq: 1 })); }); 
+    expect(v_43c42e.current.lastSignal).toBeNull();
+    v_be73a0(() => { v_32dc97.emitMessage(JSON.stringify({ type: 'speech_text', text: '', seq: 2 })); }); 
+    expect(v_43c42e.current.lastSignal).toBeNull();
+  });
+
   it('연속 동일 타입 신호도 ts 로 구분(새 객체)', async () => {
     const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
     const { result: v_43c42e } = v_0da18b(() =>

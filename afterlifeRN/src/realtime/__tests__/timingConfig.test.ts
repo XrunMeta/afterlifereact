@@ -18,6 +18,7 @@ describe('timingConfig store', () => {
     expect(v_fd5f43.echoGateMs).toBe(3500);
     expect(v_fd5f43.cloneResumeMs).toBe(600);
     expect(v_fd5f43.cloneTailGraceMs).toBe(1000);
+    expect(v_fd5f43.responseDoneTimeoutMs).toBe(45000);
   });
 
   it('setField updates one field', () => {
@@ -51,6 +52,7 @@ describe('resolveTimingDefaults', () => {
     EXPO_PUBLIC_TIMING_ECHO_GATE_MS: '4000',
     EXPO_PUBLIC_TIMING_CLONE_RESUME_MS: '700',
     EXPO_PUBLIC_TIMING_CLONE_TAIL_GRACE_MS: '1200',
+    EXPO_PUBLIC_TIMING_RESPONSE_DONE_TIMEOUT_MS: '60000',
   };
 
   it('falls back to hardcoded defaults when env unset', () => {
@@ -63,6 +65,7 @@ describe('resolveTimingDefaults', () => {
       echoGateMs: 4000,
       cloneResumeMs: 700,
       cloneTailGraceMs: 1200,
+      responseDoneTimeoutMs: 60000,
     });
   });
 
@@ -72,6 +75,7 @@ describe('resolveTimingDefaults', () => {
     expect(v_43c42e.echoGateMs).toBe(v_5c20ea.echoGateMs);
     expect(v_43c42e.cloneResumeMs).toBe(v_5c20ea.cloneResumeMs);
     expect(v_43c42e.cloneTailGraceMs).toBe(v_5c20ea.cloneTailGraceMs);
+    expect(v_43c42e.responseDoneTimeoutMs).toBe(v_5c20ea.responseDoneTimeoutMs);
   });
 
   it('falls back on NaN and empty-string env values', () => {
@@ -104,6 +108,18 @@ describe('resolveTimingDefaults', () => {
     expect(v_43c42e.sttEndpointMs).toBe(v_5c20ea.sttEndpointMs);
     expect(v_43c42e.echoGateMs).toBe(v_5c20ea.echoGateMs);
     expect(v_43c42e.cloneTailGraceMs).toBe(v_5c20ea.cloneTailGraceMs);
+    expect(v_43c42e.responseDoneTimeoutMs).toBe(v_5c20ea.responseDoneTimeoutMs);
+  });
+
+  it('responseDoneTimeoutMs 기본 45000, ENV 오버라이드·clamp', () => {
+    expect(v_5c20ea.responseDoneTimeoutMs).toBe(45000);
+    expect(
+      v_1dd45a({ EXPO_PUBLIC_TIMING_RESPONSE_DONE_TIMEOUT_MS: '20000' }).responseDoneTimeoutMs,
+    ).toBe(20000);
+    expect(v_1dd45a({ EXPO_PUBLIC_TIMING_RESPONSE_DONE_TIMEOUT_MS: '1' }).responseDoneTimeoutMs).toBe(
+      5000,
+    ); 
+    expect(v_1dd45a({}).responseDoneTimeoutMs).toBe(45000);
   });
 
   it('falls back on partial-numeric strings that parseInt would silently truncate', () => {
@@ -152,12 +168,13 @@ describe('resolveTimingDefaults', () => {
 });
 
 describe('formatTimingEnv', () => {
-  it('formats exactly 4 EXPO_PUBLIC_TIMING_* lines', () => {
+  it('formats exactly 5 EXPO_PUBLIC_TIMING_* lines', () => {
     const v_fba864 = v_d14be3({
       sttEndpointMs: 1500,
       echoGateMs: 3500,
       cloneResumeMs: 600,
       cloneTailGraceMs: 1000,
+      responseDoneTimeoutMs: 45000,
     });
     expect(v_fba864).toBe(
       [
@@ -165,6 +182,7 @@ describe('formatTimingEnv', () => {
         'EXPO_PUBLIC_TIMING_ECHO_GATE_MS=3500',
         'EXPO_PUBLIC_TIMING_CLONE_RESUME_MS=600',
         'EXPO_PUBLIC_TIMING_CLONE_TAIL_GRACE_MS=1000',
+        'EXPO_PUBLIC_TIMING_RESPONSE_DONE_TIMEOUT_MS=45000',
       ].join('\n'),
     );
   });

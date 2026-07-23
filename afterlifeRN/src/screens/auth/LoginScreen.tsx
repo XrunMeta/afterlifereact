@@ -86,8 +86,18 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
   }, []);
 
   const v_ec4736 = async () => {
-    if (!v_e0c7e8 || !v_adc076) {
-      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.emailRequired"));
+    if (!v_e0c7e8.trim()) {
+      v_889fad(
+        v_8d41d7("common.notice"),
+        v_8d41d7("auth.signup.emailRequired", { defaultValue: "이메일을 입력해주세요." }),
+      );
+      return;
+    }
+    if (!v_adc076) {
+      v_889fad(
+        v_8d41d7("common.notice"),
+        v_8d41d7("auth.signup.passwordRequired", { defaultValue: "비밀번호를 입력해주세요." }),
+      );
       return;
     }
     v_7ba4a6(true);

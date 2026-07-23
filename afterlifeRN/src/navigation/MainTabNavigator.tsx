@@ -30,6 +30,7 @@ import v_ed02a5 from "../screens/my/MyScreen";
 import v_e2b396 from "../screens/my/EditProfileScreen";
 import v_4036d1 from "../screens/my/NotificationSettingsScreen";
 import v_9232cf from "../screens/my/PrivacySettingsScreen";
+import v_c78d4f from "../screens/my/AgreementsScreen";
 import v_e797c6 from "../screens/my/SavedItemsScreen";
 import v_99450d from "../screens/my/AcquaintanceManagementScreen";
 import v_d3b6fb from "../screens/my/LanguageSettingsScreen";
@@ -87,6 +88,7 @@ function v_d9c5dd() {
       <MyStack.Screen name="EditProfile" component={v_e2b396} />
       <MyStack.Screen name="NotificationSettings" component={v_4036d1} />
       <MyStack.Screen name="PrivacySettings" component={v_9232cf} />
+      <MyStack.Screen name="Agreements" component={v_c78d4f} />
       <MyStack.Screen name="SavedItems" component={v_e797c6} />
       <MyStack.Screen name="AcquaintanceManagement" component={v_99450d} />
       <MyStack.Screen name="LanguageSettings" component={v_d3b6fb} />

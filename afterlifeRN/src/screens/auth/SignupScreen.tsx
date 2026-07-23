@@ -43,20 +43,33 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     { value: "female" as const, label: v_8d41d7("auth.signup.female") },
   ];
 
-  const v_f701fd = v_a3453e.useMemo(() => {
-    const v_7d8cc0 = new Date().getFullYear();
-    const v_8ce3bd = v_7d8cc0 - 13; 
-    const v_b77ebc = v_7d8cc0 - 120;
-    const v_d47c2d = [];
-    for (let v_64877a = v_8ce3bd; v_64877a >= v_b77ebc; v_64877a--) {
-      const v_1f7c90 = String(v_64877a);
-      v_d47c2d.push({
-        value: v_1f7c90,
-        label: v_8d41d7("auth.signup.birthYearLabel", { year: v_1f7c90, defaultValue: `${v_1f7c90}년생` }),
-      });
+  const v_ac0935 = v_a3453e.useMemo(
+    () => [
+      { value: "10", label: v_8d41d7("auth.signup.ageRange10", { defaultValue: "10대" }) },
+      { value: "20", label: v_8d41d7("auth.signup.ageRange20", { defaultValue: "20대" }) },
+      { value: "30", label: v_8d41d7("auth.signup.ageRange30", { defaultValue: "30대" }) },
+      { value: "40", label: v_8d41d7("auth.signup.ageRange40", { defaultValue: "40대" }) },
+      { value: "50+", label: v_8d41d7("auth.signup.ageRange50Plus", { defaultValue: "50대 이상" }) },
+    ],
+    [v_8d41d7],
+  );
+
+  const v_56f818 = (v_cb35cb): number => {
+    switch (v_cb35cb) {
+      case "10":
+        return 15;
+      case "20":
+        return 25;
+      case "30":
+        return 35;
+      case "40":
+        return 45;
+      case "50+":
+        return 55;
+      default:
+        return 0;
     }
-    return v_d47c2d;
-  }, [v_8d41d7]);
+  };
   const v_a8d185 = v_c7daf6.params?.google;
 
   const [v_1833e7, v_318f24] = v_5ab095(v_a8d185?.name ?? "");
@@ -66,7 +79,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_d74a81, v_fcce73] = v_5ab095("");
   const [v_c3eac4, v_bdc43c] = v_5ab095<"male" | "female" | "">("");
 
-  const [v_a95e84, v_8d7b85] = v_5ab095<string>("");
+  const [v_f83808, v_64a312] = v_5ab095<string>("");
   const [v_b9bbbd, v_b7066f] = v_5ab095<v_da1883 | null>(null);
   const [v_a6c30b, v_c030e3] = v_5ab095<v_da1883 | null>(null);
   const [v_9d56c4, v_7168a2] = v_5ab095(false);
@@ -93,7 +106,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_a03498, v_d34fc9] = v_5ab095(false);
 
   const v_5c764d = v_51b53b && v_09b7fa;
-  const v_33f2ba = v_5c764d && v_8c98c4;
+  const v_33f2ba =
+    v_5c764d && v_8c98c4 && v_7f128f && v_a03498;
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
 
   const [v_1a29d0, v_704175] = v_5ab095<string | null>(null);
@@ -107,6 +121,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       v_c8f346(false);
       v_1d4807(false);
       v_e378a4(false);
+      v_06ec09(false);
+      v_d34fc9(false);
       v_704175(null);
       v_73f064(null);
       v_94f796(null);
@@ -115,6 +131,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
     v_c8f346(true);
     v_1d4807(true);
+    v_06ec09(true);
+    v_d34fc9(true);
     if (!v_8c98c4) {
       await v_349606();
     }
@@ -234,10 +252,10 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       );
       return;
     }
-    if (!v_a95e84) {
+    if (!v_f83808) {
       v_889fad(
         v_8d41d7("common.notice"),
-        v_8d41d7("auth.signup.birthYearRequired", { defaultValue: "출생연도를 선택해주세요." }),
+        v_8d41d7("auth.signup.ageRangeRequired", { defaultValue: "연령대를 선택해주세요." }),
       );
       return;
     }
@@ -250,10 +268,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       return;
     }
 
-    const v_dc9d4a = parseInt(v_a95e84, 10);
-    const v_7d8cc0 = new Date().getFullYear();
-    const v_f4fe8e = v_7d8cc0 - v_dc9d4a;
-    if (Number.isNaN(v_f4fe8e) || v_f4fe8e < 13 || v_f4fe8e > 120) {
+    const v_f4fe8e = v_56f818(v_f83808);
+    if (v_f4fe8e <= 0) {
       v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.ageInvalid"));
       return;
     }
@@ -463,10 +479,10 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             </View>
             <View style={{ flex: 1 }}>
               <SelectField<string>
-                options={v_f701fd}
-                value={v_a95e84}
-                onChange={v_8d7b85}
-                placeholder={v_8d41d7("auth.signup.birthYearPlaceholder")}
+                options={v_ac0935}
+                value={v_f83808}
+                onChange={v_64a312}
+                placeholder={v_8d41d7("auth.signup.ageRangePlaceholder", { defaultValue: "연령대" })}
               />
             </View>
           </View>

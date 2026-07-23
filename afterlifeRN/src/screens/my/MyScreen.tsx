@@ -275,6 +275,12 @@ export default function v_ed02a5() {
       route: "PrivacySettings",
     },
     {
+      icon: "check-square",
+      labelKey: "my.menu.agreements",
+      descKey: "settings.agreements.title",
+      route: "Agreements",
+    },
+    {
       icon: "flag",
       labelKey: "my.menu.reports",
       descKey: "my.menu.reportsDesc",
@@ -286,6 +292,7 @@ export default function v_ed02a5() {
       descKey: "my.coin.viewAll",
       route: "Transactions",
     },
+
     {
       icon: "trash-2",
       labelKey: "settings.privacy.deleteAccount",

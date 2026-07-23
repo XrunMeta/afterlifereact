@@ -235,6 +235,11 @@ export function v_3d8d48(v_328259): v_b01667 {
         if (v_35f85c.type === 'speech_start' || v_35f85c.type === 'speech_end') {
           v_8c8005({ type: v_35f85c.type, seq: v_35f85c.seq, ts: v_67e77e() });
           if (v_35f85c.type === 'speech_end') v_811f30();
+        } else if (v_35f85c.type === 'speech_text') {
+
+          if (typeof v_35f85c.text === 'string' && v_35f85c.text) {
+            v_8c8005({ type: 'speech_text', seq: v_35f85c.seq, ts: v_67e77e(), text: v_35f85c.text });
+          }
         } else if (v_35f85c.type === 'enroll_suggest') {
 
           const v_ca1ec5 = typeof v_35f85c.personId === 'number' ? v_35f85c.personId : undefined;

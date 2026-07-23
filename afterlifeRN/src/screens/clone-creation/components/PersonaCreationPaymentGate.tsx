@@ -20,10 +20,10 @@ import { v_1bfbd0, v_8b0c90 } from "../../../components/constants";
 import { v_1ed7d9 } from "../../../stores/authStore";
 import { v_194498 } from "../../../stores/cloneStore";
 import { v_d60cdf } from "../../../api/clones";
-import { v_5c99c1, v_9b8cb3 } from "../../../api/payments";
+import { v_5c99c1, v_9b8cb3, v_5b2249 } from "../../../api/payments";
 import { v_cc9198, v_138fd4 } from "../../../config/apiBase";
 
-const v_f72031 = 100;
+const v_898771 = 0.001;
 
 const v_34d2d5 = ["oth-user@example.invalid", "oth-test@example.invalid"];
 const v_8e9814 = 0.05;
@@ -40,8 +40,12 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
   const v_f4fb5e = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? null);
   const v_5795de = v_194498((v_fd5f43) => v_fd5f43.setCreationDraft);
 
+  const [v_ef934b, v_695d27] = v_5ab095<number | null>(null);
+
   const v_c02c4c =
-    v_f4fb5e && v_34d2d5.includes(v_f4fb5e) ? v_8e9814 : v_f72031;
+    v_f4fb5e && v_34d2d5.includes(v_f4fb5e)
+      ? v_8e9814
+      : (v_ef934b ?? v_898771);
 
   const [v_683210, v_34a50a] = v_5ab095(true);
   const [v_f99e34, v_337a5f] = v_5ab095(false);
@@ -60,6 +64,22 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
     );
     const v_2f19d2 = v_0e1f26.addListener("keyboardDidHide", () => v_a02771(0));
     return () => { v_fdffe1.remove(); v_2f19d2.remove(); };
+  }, []);
+
+  v_c4deb2(() => {
+    let v_2008a4 = false;
+    (async () => {
+      try {
+        const v_8f00b9 = await fetch(`${v_cc9198}/oth-path`);
+        if (!v_8f00b9.ok) return;
+        const v_7ecfd1 = (await v_8f00b9.json()) as { priceXrun?: unknown };
+        const v_f4e98d = Number(v_7ecfd1?.priceXrun);
+        if (!v_2008a4 && Number.isFinite(v_f4e98d) && v_f4e98d >= 0) v_695d27(v_f4e98d);
+      } catch (v_49263d) {
+        console.warn("[PaymentGate] persona-price fetch failed:", v_49263d);
+      }
+    })();
+    return () => { v_2008a4 = true; };
   }, []);
 
   v_c4deb2(() => {
@@ -144,14 +164,37 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
     }
   };
 
-  const v_03cae9 = () => {
-
+  const [v_177bdd, v_ae32d6] = v_5ab095(false);
+  const v_03cae9 = async () => {
     if (v_cae92d) return;
     if (v_6bee94.length !== 6) {
       v_3a7d09("PIN 6자리를 입력해주세요.");
       return;
     }
+    if (!v_2ca7e0) {
+      v_3a7d09("로그인이 필요해요.");
+      return;
+    }
 
+    v_ae32d6(true);
+    v_3a7d09(null);
+    try {
+      const v_cb35cb = await v_5b2249(v_2ca7e0, v_6bee94);
+      if (!v_cb35cb.hasPin) {
+        v_2a7a8f(false);
+        v_3a7d09("XRUN PIN이 설정돼있지 않아요. xrun 앱에서 먼저 설정해주세요.");
+        return;
+      }
+      if (!v_cb35cb.match) {
+        v_3a7d09("XRUN PIN이 일치하지 않아요.");
+        return;
+      }
+    } catch (v_49263d) {
+      v_3a7d09("PIN 확인 중 오류가 났어요. 잠시 후 다시 시도해주세요.");
+      return;
+    } finally {
+      v_ae32d6(false);
+    }
     v_5795de({ pin: v_6bee94 });
     v_4b3759();
   };
@@ -186,7 +229,7 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
             <Text style={v_d81136.title}>클론 생성 결제</Text>
             <Text style={v_d81136.desc}>
               두 번째 클론부터 {v_c02c4c} XRUN 이 부과돼요.{"\n"}
-              결제 비밀번호 6자리를 입력해주세요.
+              XRUN PIN 6자리를 입력해주세요.
             </Text>
             {v_c88e9b !== null && (
               <Text style={[v_d81136.balance, v_f6096a && v_d81136.balanceLow]}>
@@ -222,7 +265,7 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
                   (v_6bee94.length !== 6 || v_cae92d) && v_d81136.disabled,
                 ]}
                 onPress={v_03cae9}
-                disabled={v_6bee94.length !== 6 || v_cae92d}
+                disabled={v_6bee94.length !== 6 || v_cae92d || v_177bdd}
               >
                 <Text style={v_d81136.confirmText}>
                   결제
@@ -238,7 +281,7 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
                 style={v_d81136.pinSetupLinkWrap}
               >
                 <Text style={v_d81136.pinSetupLink}>
-                  xrun 비밀번호 재설정
+                  XRUN PIN 재설정
                 </Text>
               </TouchableOpacity>
             )}

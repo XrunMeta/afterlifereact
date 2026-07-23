@@ -322,6 +322,7 @@
       "editProfile": "개인정보 관리",
       "notifications": "알림 설정",
       "privacy": "차단 관리",
+      "agreements": "동의",
       "reports": "신고",
       "reportsDesc": "내가 한 신고 · 신고당한 내역",
       "saved": "저장됨",
@@ -329,7 +330,9 @@
       "inviteStatus": "초대 현황",
       "inviteStatusDesc": "내가 보낸 공동관리자 초대 전체",
       "language": "언어 설정",
-      "paymentPin": "결제 비밀번호 입력",
+      "paymentPin": "XRUN PIN 입력",
+      "openXrun": "XRUN 바로가기",
+      "openXrunDesc": "XRUN 앱 열기 (없으면 스토어)",
       "logout": "로그아웃"
     }
   },
@@ -673,6 +676,9 @@
       "copyToken": "복사",
       "copied": "토큰이 복사되었습니다."
     },
+    "agreements": {
+      "title": "동의"
+    },
     "privacy": {
       "title": "차단 관리",
       "profileVisibility": "프로필 공개 범위",
@@ -733,12 +739,12 @@
       "id": "Bahasa Indonesia"
     },
     "paymentPin": {
-      "title": "결제 비밀번호 입력",
-      "subtitle": "xrun에서 설정한 6자리 결제 비밀번호를 입력해주세요",
+      "title": "XRUN PIN 입력",
+      "subtitle": "xrun에서 설정한 6자리 XRUN PIN를 입력해주세요",
       "wrong": "비밀번호가 일치하지 않습니다",
       "attemptsLeft": "남은 시도 횟수: {{count}}회",
       "lockedTitle": "5회 모두 틀렸어요",
-      "lockedDesc": "결제 비밀번호는 xrun 앱에서 변경할 수 있어요",
+      "lockedDesc": "XRUN PIN는 xrun 앱에서 변경할 수 있어요",
       "openXrun": "xrun 앱 열기",
       "verify": "확인"
     }

@@ -24,6 +24,8 @@ export function v_c67c5c({
   masked?: boolean;
 }) {
   const v_32f473 = v_e662ae<v_79c4f2>(null);
+
+  void v_9397ad;
   return (
     <Pressable style={v_fd5f43.cellRow} onPress={() => v_32f473.current?.focus()}>
       {v_09875d.map((v_ebec57) => {
@@ -42,7 +44,7 @@ export function v_c67c5c({
         onChangeText={(v_c70495) => {
           const v_e6d4a6 = v_c70495.replace(/\D/g, "").slice(0, 6);
           v_b187d9(v_e6d4a6);
-          if (v_e6d4a6.length === 6) v_9397ad?.();
+
         }}
         keyboardType="number-pad"
 

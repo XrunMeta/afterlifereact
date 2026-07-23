@@ -152,7 +152,11 @@ export async function v_6e4cc8(
   try {
     v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+
+      headers: {
+        "Content-Type": "application/json",
+        "X-Internal-Secret": v_c9c489.XRUN_INTERNAL_SECRET ?? "",
+      },
       body: JSON.stringify(v_4d33b2),
     });
   } catch (v_49263d) {
@@ -318,12 +322,13 @@ function v_9765c6(env: v_273a0c): Record<string, string> {
 }
 
 export async function v_807b74(env: v_273a0c, v_660822): Promise<PaymentPinStatus> {
-  if (!v_c9c489.XRUN_GATEWAY_TOKEN) return { ok: false, hasPin: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  if (!v_c9c489.XRUN_INTERNAL_SECRET) return { ok: false, hasPin: false, reason: "missing XRUN_INTERNAL_SECRET" };
   let v_8f00b9;
   try {
+
     v_8f00b9 = await fetch(
       `${v_c9c489.XRUN_API_URL}/oth-path?member=${encodeURIComponent(String(v_660822))}`,
-      { method: "GET", headers: v_4d1f4f(v_c9c489) },
+      { method: "GET", headers: v_9765c6(v_c9c489) },
     );
   } catch (v_49263d) {
     return { ok: false, hasPin: false, reason: `network: ${(v_49263d as Error).message}` };
@@ -348,12 +353,13 @@ export async function v_de391e(
   v_660822,
   v_6bee94,
 ): Promise<PaymentPinVerifyResult> {
-  if (!v_c9c489.XRUN_GATEWAY_TOKEN) return { ok: false, match: false, hasPin: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  if (!v_c9c489.XRUN_INTERNAL_SECRET) return { ok: false, match: false, hasPin: false, reason: "missing XRUN_INTERNAL_SECRET" };
   let v_8f00b9;
   try {
+
     v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
       method: "POST",
-      headers: v_4d1f4f(v_c9c489),
+      headers: v_9765c6(v_c9c489),
       body: JSON.stringify({ member: v_660822, pin: v_6bee94 }),
     });
   } catch (v_49263d) {
@@ -497,6 +503,31 @@ export async function v_a33f6b(env: v_273a0c, v_660822): Promise<XrunCloseResult
     closed: false,
     reason: `xrun ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}`,
   };
+}
+
+export async function v_fb09c6(
+  env: v_273a0c,
+  v_660822,
+  v_1a29d0,
+): Promise<{ ok: boolean; reason?: string }> {
+  if (!v_c9c489.XRUN_INTERNAL_SECRET) {
+    return { ok: false, reason: "missing XRUN_INTERNAL_SECRET" };
+  }
+  try {
+    const v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: v_9765c6(v_c9c489),
+      body: JSON.stringify({ member: v_660822, pushToken: v_1a29d0 }),
+    });
+    if (!v_8f00b9.ok) {
+      return { ok: false, reason: `HTTP ${v_8f00b9.status}` };
+    }
+    const v_7ecfd1 = (await v_8f00b9.json()) as { status?: string; message?: string };
+    if (v_7ecfd1.status === "success") return { ok: true };
+    return { ok: false, reason: v_7ecfd1.message ?? "unknown" };
+  } catch (v_49263d) {
+    return { ok: false, reason: `network: ${(v_49263d as Error).message}` };
+  }
 }
 
 export async function v_5f6369(env: v_273a0c, v_660822): Promise<XrunBalancesResult> {

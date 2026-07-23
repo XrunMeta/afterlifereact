@@ -13,8 +13,11 @@ import { v_7be8d9, type v_5a4c65 } from './cloneSilence';
 import { v_7347b3 } from './timingConfig';
 import { v_d7f7b1 } from './timingEvents';
 import { v_3032b0 } from './voiceBall';
+import { v_fb305c } from './questionMark';
 
 const v_5443e5 = 0.05; 
+
+const v_d641fa = 5000;
 
 const v_d30826 = 3000;
 const v_e1d3e1 = '여보세요?';
@@ -46,6 +49,8 @@ export function v_7df8a4(opts: {
   fallbackText?: string;
 
   confirmGate?: boolean;
+
+  signalGating?: boolean;
 }) {
   const [v_b6e533, v_1fa668] = v_5ab095(v_3075fa());
   const v_8d3dea = v_e662ae(v_b6e533);
@@ -68,6 +73,10 @@ export function v_7df8a4(opts: {
 
   const v_84a65f = v_e662ae(0);
 
+  const v_8a777f = v_e662ae<number | null>(null);
+
+  const v_d65758 = v_e662ae<ReturnType<typeof setTimeout> | null>(null);
+
   const v_1f41d7 = v_724dd4({
     getStatsReport: v_328259.getStatsReport,
     onResponseStart: () => v_700737.current({ type: 'CLONE_SPEAKING' }),
@@ -85,7 +94,8 @@ export function v_7df8a4(opts: {
         return; 
       }
       v_d7f7b1('vad_endpoint');
-      v_700737.current({ type: 'FINAL_RESULT', text: v_9b6134 });
+
+      v_700737.current({ type: 'FINAL_RESULT', text: v_fb305c(v_9b6134) });
     },
   });
 
@@ -119,10 +129,10 @@ export function v_7df8a4(opts: {
             break;
           case 'SAY':
             if (v_b03676) {
-              v_bcde6b.current(v_b03676).catch(() => v_700737.current({ type: 'RESPONSE_END' }));
+              v_bcde6b.current(v_b03676).catch(() => v_700737.current({ type: 'RESPONSE_DONE' }));
             } else {
 
-              v_700737.current({ type: 'RESPONSE_END' });
+              v_700737.current({ type: 'RESPONSE_DONE' });
             }
             break;
           case 'START_DETECTOR':
@@ -147,14 +157,14 @@ export function v_7df8a4(opts: {
           case 'SPEAK_FALLBACK':
 
             if (v_5069ec.current) {
-              v_5069ec.current(v_c6145f).catch(() => v_700737.current({ type: 'RESPONSE_END' }));
+              v_5069ec.current(v_c6145f).catch(() => v_700737.current({ type: 'RESPONSE_DONE' }));
             } else {
-              v_700737.current({ type: 'RESPONSE_END' });
+              v_700737.current({ type: 'RESPONSE_DONE' });
             }
 
             if (v_3f36e6.current) clearTimeout(v_3f36e6.current);
             v_3f36e6.current = setTimeout(
-              () => v_700737.current({ type: 'RESPONSE_END' }), v_a3a40c);
+              () => v_700737.current({ type: 'RESPONSE_DONE' }), v_a3a40c);
             break;
         }
       }
@@ -162,8 +172,20 @@ export function v_7df8a4(opts: {
     [v_60bef6, v_1f41d7, v_a3a40c, v_c6145f],
   );
 
+  const v_1ab00a = v_de06a3(() => {
+    v_8a777f.current = null;
+    if (v_d65758.current) {
+      clearTimeout(v_d65758.current);
+      v_d65758.current = null;
+    }
+  }, []);
+
   const v_6be210 = v_de06a3(
     (ev: v_01cdf6) => {
+
+      if (v_1d299c.type === 'RESPONSE_DONE' || v_1d299c.type === 'RESPONSE_END' || v_1d299c.type === 'CALL_ENDED') {
+        v_1ab00a();
+      }
       const v_ba2215 = v_8d3dea.current;
       const { state: v_a448ad, effects: v_27ef63, sayText: v_b03676 } = v_6920f0(v_ba2215, v_1d299c);
 
@@ -180,7 +202,7 @@ export function v_7df8a4(opts: {
       v_1fa668(v_a448ad);
       v_2bfd1e(v_27ef63, v_b03676);
     },
-    [v_2bfd1e],
+    [v_2bfd1e, v_1ab00a],
   );
 
   v_700737.current = v_6be210;
@@ -197,21 +219,45 @@ export function v_7df8a4(opts: {
   }, []);
 
   v_c4deb2(() => {
+    if (!v_328259.signalGating) return;
+    if (v_b6e533.phase !== 'sending' && v_b6e533.phase !== 'speaking') return;
+    const v_d799e2 = v_7347b3.getState().responseDoneTimeoutMs;
+    const v_389afb = setTimeout(() => v_700737.current({ type: 'RESPONSE_DONE' }), v_d799e2);
+    return () => clearTimeout(v_389afb);
+  }, [v_b6e533.phase, v_328259.lastSignal, v_328259.signalGating]);
+
+  v_c4deb2(() => {
     v_700737.current(
       v_328259.enabled
-        ? { type: 'CALL_LIVE', greeting: v_328259.greeting, confirmGate: v_328259.confirmGate }
+        ? { type: 'CALL_LIVE', greeting: v_328259.greeting, confirmGate: v_328259.confirmGate, signalGating: v_328259.signalGating }
         : { type: 'CALL_ENDED' });
   }, [v_328259.enabled]); 
+
+  const v_b8908d = v_e662ae(v_328259.getStatsReport);
+  v_c4deb2(() => { v_b8908d.current = v_328259.getStatsReport; });
 
   v_c4deb2(() => {
     const v_f2c979 = v_328259.lastSignal;
     if (!v_f2c979) return;
     if (v_f2c979.type === 'speech_start') { v_d7f7b1('speech_start'); v_700737.current({ type: 'SPEECH_START' }); }
-    else if (v_f2c979.type === 'speech_end') { v_d7f7b1('speech_end'); v_700737.current({ type: 'RESPONSE_END' }); }
+    else if (v_f2c979.type === 'speech_end') {
+      v_d7f7b1('speech_end');
+
+      if (v_b8908d.current() === null) {
+        v_700737.current({ type: 'RESPONSE_DONE' });
+      } else {
+        v_8a777f.current = Date.now();
+        if (v_d65758.current) clearTimeout(v_d65758.current);
+        v_d65758.current = setTimeout(() => {
+          v_d65758.current = null;
+          v_8a777f.current = null;
+          v_700737.current({ type: 'RESPONSE_DONE' });
+        }, v_d641fa);
+      }
+    }
+
   }, [v_328259.lastSignal]);
 
-  const v_b8908d = v_e662ae(v_328259.getStatsReport);
-  v_c4deb2(() => { v_b8908d.current = v_328259.getStatsReport; });
   v_c4deb2(() => {
     if (!v_328259.enabled) {
 
@@ -233,6 +279,15 @@ export function v_7df8a4(opts: {
         const v_5c2f9f = Date.now();
         const v_22312b = typeof v_0f0c77 === 'number' && v_0f0c77 > v_5443e5;
         if (v_22312b) v_84a65f.current = v_5c2f9f;
+
+        if (
+          v_8a777f.current !== null &&
+          !v_22312b &&
+          v_5c2f9f - v_84a65f.current > v_7347b3.getState().cloneResumeMs
+        ) {
+          v_1ab00a();
+          v_700737.current({ type: 'RESPONSE_DONE' });
+        }
 
         const v_72c7a6 = v_8d3dea.current;
         if ((v_72c7a6.phase !== 'listening' && v_72c7a6.phase !== 'confirming') || !v_72c7a6.micOn) return;
@@ -279,6 +334,7 @@ export function v_7df8a4(opts: {
 
   v_c4deb2(() => () => {
     if (v_3f36e6.current) clearTimeout(v_3f36e6.current);
+    if (v_d65758.current) clearTimeout(v_d65758.current);
   }, []);
 
   const v_6e1295 = v_de06a3(() => {

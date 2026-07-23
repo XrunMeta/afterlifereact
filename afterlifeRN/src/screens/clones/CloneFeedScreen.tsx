@@ -98,6 +98,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     title: v_2db2a5.clone.name,
     description: v_6856a9,
     type: v_2db2a5.clone.cloneType,
+    cloneType: v_2db2a5.clone.cloneType,
     mainCategory: "",
     interests: v_2db2a5.interests,
     likes: String(v_58313d),
