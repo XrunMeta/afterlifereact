@@ -20,7 +20,7 @@ import { COLORS, RADIUS } from "../../../components/constants";
 import { useAuthStore } from "../../../stores/authStore";
 import { useCloneStore } from "../../../stores/cloneStore";
 import { listMyClones } from "../../../api/clones";
-import { getXrunBalance, getPaymentPinStatus } from "../../../api/payments";
+import { getXrunBalance, getPaymentPinStatus, verifyPaymentPin } from "../../../api/payments";
 import { API_BASE, API_BASE_PREVIEW } from "../../../config/apiBase";
 
 const PERSONA_FULL_PRICE_XRUN_FALLBACK = 0.001;
@@ -164,14 +164,37 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
     }
   };
 
-  const handleConfirm = () => {
-
+  const [verifying, setVerifying] = useState(false);
+  const handleConfirm = async () => {
     if (blockInput) return;
     if (pin.length !== 6) {
       setError("PIN 6자리를 입력해주세요.");
       return;
     }
+    if (!accessToken) {
+      setError("로그인이 필요해요.");
+      return;
+    }
 
+    setVerifying(true);
+    setError(null);
+    try {
+      const r = await verifyPaymentPin(accessToken, pin);
+      if (!r.hasPin) {
+        setHasPin(false);
+        setError("XRUN PIN이 설정돼있지 않아요. xrun 앱에서 먼저 설정해주세요.");
+        return;
+      }
+      if (!r.match) {
+        setError("XRUN PIN이 일치하지 않아요.");
+        return;
+      }
+    } catch (err) {
+      setError("PIN 확인 중 오류가 났어요. 잠시 후 다시 시도해주세요.");
+      return;
+    } finally {
+      setVerifying(false);
+    }
     setCreationDraft({ pin });
     onProceed();
   };
@@ -242,7 +265,7 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
                   (pin.length !== 6 || blockInput) && styles.disabled,
                 ]}
                 onPress={handleConfirm}
-                disabled={pin.length !== 6 || blockInput}
+                disabled={pin.length !== 6 || blockInput || verifying}
               >
                 <Text style={styles.confirmText}>
                   결제
