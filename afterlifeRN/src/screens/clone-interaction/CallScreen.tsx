@@ -797,12 +797,12 @@ export default function CallScreen({ route, navigation }: Props) {
       let pinSetup = false;   
       if (err instanceof AuthApiError) {
         if (err.code === "PAYMENT_PIN_INVALID" || err.code === "UNAUTHENTICATED") {
-          title = "결제 비밀번호 오류";
-          msg = "결제 비밀번호가 일치하지 않아요.\n다시 입력해 주세요.";
+          title = "XRUN PIN 오류";
+          msg = "XRUN PIN가 일치하지 않아요.\n다시 입력해 주세요.";
           pinRetry = true;
         } else if (err.code === "PAYMENT_PIN_REQUIRED") {
-          title = "결제 비밀번호 미설정";
-          msg = "아직 결제 비밀번호(6자리)가 설정되어 있지 않아요.\nXRUN에서 설정 후 다시 시도해 주세요.";
+          title = "XRUN PIN 미설정";
+          msg = "아직 XRUN PIN(6자리)가 설정되어 있지 않아요.\nXRUN에서 설정 후 다시 시도해 주세요.";
           pinSetup = true;
         } else if (err.code === "INSUFFICIENT_FUNDS") {
           isInsufficient = true;
@@ -855,7 +855,7 @@ export default function CallScreen({ route, navigation }: Props) {
       } else if (pinSetup) {
         actions = [
           { text: "다음에 하기", style: "cancel" },
-          { text: "xrun 비밀번호 재설정", onPress: () => void openXrunApp() },
+          { text: "XRUN PIN 재설정", onPress: () => void openXrunApp() },
         ];
       }
       showAlert(title, msg, actions);
@@ -1359,7 +1359,7 @@ export default function CallScreen({ route, navigation }: Props) {
               <View style={s.pinIconWrap}>
                 <Feather name="lock" size={26} color={COLORS.violet600} />
               </View>
-              <Text style={s.pinTitle}>결제 비밀번호</Text>
+              <Text style={s.pinTitle}>XRUN PIN</Text>
               {pendingGift && (
                 <Text style={s.pinDesc}>
                   {pendingGift.emoji} {pendingGift.name} · {pendingGift.price} XRUN

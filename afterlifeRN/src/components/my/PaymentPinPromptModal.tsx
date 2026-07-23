@@ -96,9 +96,9 @@ export default function v_3cb56d({ visible: v_cf55be, onClose: v_0890f8 }: Props
           <View style={v_fd5f43.iconCircle}>
             <Feather name="lock" size={28} color={v_1bfbd0.violet500} />
           </View>
-          <Text style={v_fd5f43.title}>결제 비밀번호를 설정해주세요</Text>
+          <Text style={v_fd5f43.title}>XRUN PIN를 설정해주세요</Text>
           <Text style={v_fd5f43.body}>
-            xrun 앱에서 6자리 결제 비밀번호를 등록해야 결제 기능을 사용할 수 있어요.
+            xrun 앱에서 6자리 XRUN PIN를 등록해야 결제 기능을 사용할 수 있어요.
           </Text>
 
           <TouchableOpacity style={v_fd5f43.primaryBtn} onPress={v_44c6f8}>

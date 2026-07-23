@@ -186,7 +186,7 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
             <Text style={v_d81136.title}>클론 생성 결제</Text>
             <Text style={v_d81136.desc}>
               두 번째 클론부터 {v_c02c4c} XRUN 이 부과돼요.{"\n"}
-              결제 비밀번호 6자리를 입력해주세요.
+              XRUN PIN 6자리를 입력해주세요.
             </Text>
             {v_c88e9b !== null && (
               <Text style={[v_d81136.balance, v_f6096a && v_d81136.balanceLow]}>
@@ -238,7 +238,7 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
                 style={v_d81136.pinSetupLinkWrap}
               >
                 <Text style={v_d81136.pinSetupLink}>
-                  xrun 비밀번호 재설정
+                  XRUN PIN 재설정
                 </Text>
               </TouchableOpacity>
             )}

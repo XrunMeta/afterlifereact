@@ -468,7 +468,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         ) {
           const v_5ab5bd = (v_49263d.details ?? {}) as { priceXrun?: number };
           if (typeof v_5ab5bd.priceXrun === "number") v_26e048(v_5ab5bd.priceXrun);
-          if (v_49263d.code === "PAYMENT_PIN_INVALID") v_04103a("결제 비밀번호가 일치하지 않아요");
+          if (v_49263d.code === "PAYMENT_PIN_INVALID") v_04103a("XRUN PIN가 일치하지 않아요");
           v_148b42(true);
           v_4b9b17(false);
           return;
@@ -525,7 +525,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     } catch (v_49263d) {
       let v_badeaf = "결제에 실패했어요.";
       if (v_49263d instanceof v_84a859) {
-        if (v_49263d.code === "UNAUTHENTICATED") v_badeaf = "결제 비밀번호가 일치하지 않아요";
+        if (v_49263d.code === "UNAUTHENTICATED") v_badeaf = "XRUN PIN가 일치하지 않아요";
         else if (v_49263d.code === "INSUFFICIENT_FUNDS") v_badeaf = "XRUN 잔액이 부족해요";
         else if (v_49263d.code === "CONFLICT") v_badeaf = v_49263d.message;
         else if (v_49263d.code === "UPSTREAM_NOT_IMPLEMENTED")
@@ -702,7 +702,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
               <Text style={v_9b1720.title}>클론 생성 결제</Text>
               <Text style={v_9b1720.desc}>
                 두 번째 클론부터 {v_2b566e} XRUN 이 부과돼요{"\n"}
-                결제 비밀번호 6자리를 입력해 주세요
+                XRUN PIN 6자리를 입력해 주세요
               </Text>
               <OtpCodeInput
                 value={v_c924cc}
