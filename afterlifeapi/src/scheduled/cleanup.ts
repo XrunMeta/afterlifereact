@@ -25,9 +25,9 @@ export async function v_09b071(env: v_de0a25["Bindings"]): Promise<CleanupResult
     await v_a1651b
       .prepare(
         `SELECT c.id FROM clones c
-           LEFT JOIN clone_shares s ON s.clone_id = c.id
+           LEFT JOIN users u ON u.id = c.owner_id
           WHERE c.deleted_at IS NULL
-            AND s.id IS NULL
+            AND u.id IS NULL
             AND c.created_at < datetime('now', '-5 minutes')
           LIMIT 100`,
       )
