@@ -70,3 +70,6 @@ docs/voices/
 
 # 로컬 도구 작업 디렉터리
 .claire/
+
+# 학습/평가 데이터셋 (KsponSpeech 등 대용량, 커밋 금지 — 로컬 전용)
+/data/
