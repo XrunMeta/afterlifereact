@@ -233,6 +233,9 @@ CALL_PRETHIRD_BASE = "https://rtc.example.invalid/prethird"
 CALL_ROUTE = "prethird"
 FACE_CALIBRATE_ENABLED = "0"   # T-111: 개통 전 제거
 FACE_CONSENT_ENFORCED = "true"  # T-126 Task6: production만 mizu CRITICAL 재확인 강제(승격 게이트)
+# T-155(임시): prod XRUN_GATEWAY_TOKEN 미확보 → 유료 클론 생성 PIN 요구·실결제·정산 스킵(게시 무조건 성공).
+#   실송금·정산 기록 없음. ⚠️ 실 XRUN_GATEWAY_TOKEN 확보(T-156) 후 이 줄과 clones.ts 우회 분기 반드시 제거.
+CLONE_PAYMENT_BYPASS = "1"
 
 [env.production.triggers]
 crons = ["0 3 * * *"]
