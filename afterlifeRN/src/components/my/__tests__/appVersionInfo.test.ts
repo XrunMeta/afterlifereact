@@ -1,17 +1,4 @@
-import { formatOtaLine, formatUpdateTime, formatVersionLine } from "../appVersionInfo";
-
-describe("formatUpdateTime", () => {
-  it("Date → MM-DD HH:mm (제로패딩)", () => {
-
-    const d = new Date(2026, 6, 24, 9, 5);
-    expect(formatUpdateTime(d)).toBe("07-24 09:05");
-  });
-
-  it("null/undefined → 빈 문자열", () => {
-    expect(formatUpdateTime(null)).toBe("");
-    expect(formatUpdateTime(undefined)).toBe("");
-  });
-});
+import { formatOtaLine, formatVersionLine } from "../appVersionInfo";
 
 describe("formatOtaLine", () => {
   it("내장 실행 → embedded", () => {
@@ -24,17 +11,16 @@ describe("formatOtaLine", () => {
     ).toBe("OTA 비상실행(embedded fallback)");
   });
 
-  it("OTA 다운로드 실행 → 앞 8자리 + 시각", () => {
+  it("OTA 다운로드 실행 → 앞 8자리(시각 미표기)", () => {
     expect(
       formatOtaLine({
         isEmbeddedLaunch: false,
-        updateId: "019f922c-5b0a-73ff-98bf-789143586df2",
-        createdAt: new Date(2026, 6, 24, 12, 30),
+        updateId: "019f9247-7a30-743b-b7b9-79289a612de8",
       }),
-    ).toBe("OTA 019f922c · 07-24 12:30");
+    ).toBe("OTA 019f9247");
   });
 
-  it("updateId 없으면 — 표기, createdAt 없으면 시각 생략", () => {
+  it("updateId 없으면 — 표기", () => {
     expect(formatOtaLine({ isEmbeddedLaunch: false })).toBe("OTA —");
   });
 });
