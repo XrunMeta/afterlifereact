@@ -25,9 +25,9 @@ export async function runCleanup(env: AppEnv["Bindings"]): Promise<CleanupResult
     await db
       .prepare(
         `SELECT c.id FROM clones c
-           LEFT JOIN clone_shares s ON s.clone_id = c.id
+           LEFT JOIN users u ON u.id = c.owner_id
           WHERE c.deleted_at IS NULL
-            AND s.id IS NULL
+            AND u.id IS NULL
             AND c.created_at < datetime('now', '-5 minutes')
           LIMIT 100`,
       )
