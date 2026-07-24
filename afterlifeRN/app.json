@@ -27,8 +27,13 @@
         "NSPhotoLibraryUsageDescription": "프로필 사진 및 이미지 업로드를 위해 사진 라이브러리 접근 권한이 필요합니다.",
         "LSApplicationQueriesSchemes": [
           "xrun"
-        ]
-      }
+        ],
+        "NSSpeechRecognitionUsageDescription": "통화 중 회원님의 음성을 텍스트로 변환해 클론과 대화하기 위해 음성 인식을 사용합니다.",
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "이 앱은 위치 정보를 직접 사용하지 않습니다. 카메라 관련 라이브러리가 접근을 요청할 수 있어 안내드립니다."
+      },
+      "appleTeamId": "677WG96CUJ",
+      "buildNumber": "7"
     },
     "android": {
       "package": "run.xrun.afterlifeRN",

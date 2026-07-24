@@ -21,6 +21,12 @@
         "simulator": false
       }
     },
+    "preview-sim": {
+      "extends": "preview",
+      "ios": {
+        "simulator": true
+      }
+    },
     "preview": {
       "distribution": "internal",
       "channel": "preview",
@@ -53,6 +59,19 @@
       },
       "ios": {
         "distribution": "store"
+      }
+    },
+    "production-ios": {
+      "extends": "production",
+      "credentialsSource": "local"
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "oth-staff@example.invalid",
+        "ascAppId": "6793993890",
+        "appleTeamId": "677WG96CUJ"
       }
     }
   }

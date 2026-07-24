@@ -1,4 +1,12 @@
-import { baseCoverScale, computeCropRect } from "../cropImage";
+import {
+  baseCoverScale,
+  clampGestureScale,
+  clampPanOffset,
+  computeCropRect,
+  coversCropArea,
+  ZOOM_MAX,
+  ZOOM_MIN,
+} from "../cropImage";
 
 describe("baseCoverScale", () => {
   it("정사각 이미지에 1:2 프레임 → 더 큰 축(세로) 기준", () => {
@@ -95,5 +103,87 @@ describe("computeCropRect", () => {
     expect(() => computeCropRect({ width: 0, height: 0 }, frame, center)).toThrow();
     expect(() => computeCropRect({ width: 0, height: 100 }, frame, center)).toThrow();
     expect(() => computeCropRect({ width: 100, height: 0 }, frame, center)).toThrow();
+  });
+});
+
+describe("clampGestureScale", () => {
+  it("ZOOM_MIN 미만은 ZOOM_MIN으로 클램프", () => {
+    expect(clampGestureScale(0.3)).toBe(ZOOM_MIN);
+    expect(clampGestureScale(-5)).toBe(ZOOM_MIN);
+  });
+
+  it("ZOOM_MAX 초과는 ZOOM_MAX로 클램프", () => {
+    expect(clampGestureScale(999)).toBe(ZOOM_MAX);
+  });
+
+  it("범위 내 값은 그대로 통과", () => {
+    expect(clampGestureScale(3.5)).toBe(3.5);
+  });
+
+  it("커스텀 min/max 오버라이드", () => {
+    expect(clampGestureScale(50, 2, 20)).toBe(20);
+    expect(clampGestureScale(1, 2, 20)).toBe(2);
+  });
+});
+
+describe("clampPanOffset", () => {
+  const image = { width: 1000, height: 1000 };
+  const frame = { width: 100, height: 200 }; 
+
+  it("scale=1(커버 배율)에서 offset=0은 그대로 0", () => {
+    expect(clampPanOffset(image, frame, 1, { x: 0, y: 0 })).toEqual({ x: 0, y: 0 });
+  });
+
+  it("scale=1에서는 여유가 X축에만 존재(Y축은 여유 없음 → 0으로 클램프)", () => {
+
+    const r = clampPanOffset(image, frame, 1, { x: 999, y: 999 });
+    expect(r.x).toBeCloseTo(50);
+    expect(r.y).toBe(0);
+  });
+
+  it("확대(scale=2)하면 허용 오프셋 범위가 넓어짐", () => {
+
+    const r = clampPanOffset(image, frame, 2, { x: 999, y: 999 });
+    expect(r.x).toBeCloseTo(150);
+    expect(r.y).toBeCloseTo(100);
+  });
+
+  it("범위 내 offset은 그대로 통과", () => {
+    const r = clampPanOffset(image, frame, 2, { x: 10, y: -20 });
+    expect(r).toEqual({ x: 10, y: -20 });
+  });
+
+  it("음수 방향도 대칭 클램프", () => {
+    const r = clampPanOffset(image, frame, 1, { x: -999, y: -999 });
+    expect(r.x).toBeCloseTo(-50);
+    expect(r.y).toBeCloseTo(0);
+  });
+});
+
+describe("coversCropArea", () => {
+  const image = { width: 1000, height: 1000 };
+  const frame = { width: 100, height: 200 };
+  const layout = { image, frame };
+
+  it("scale=1·offset=0(중앙 정렬 커버 배율): 항상 덮음 → true", () => {
+    expect(coversCropArea(layout, 1, { x: 0, y: 0 })).toBe(true);
+  });
+
+  it("clampPanOffset이 반환한 경계값은 항상 덮음 → true", () => {
+    const clamped = clampPanOffset(image, frame, 1, { x: 999, y: 999 });
+    expect(coversCropArea(layout, 1, clamped)).toBe(true);
+  });
+
+  it("클램프 경계를 벗어난 offset은 덮지 못함 → false", () => {
+    expect(coversCropArea(layout, 1, { x: 51, y: 0 })).toBe(false);
+    expect(coversCropArea(layout, 1, { x: 0, y: 1 })).toBe(false);
+  });
+
+  it("확대(scale=2) 상태에서 확대 전 최대 offset은 이제 덮음 → true", () => {
+    expect(coversCropArea(layout, 2, { x: 50, y: 0 })).toBe(true);
+  });
+
+  it("오차 허용범위(EPS) 이내의 미세 초과는 true로 관대하게 판정", () => {
+    expect(coversCropArea(layout, 1, { x: 50.3, y: 0 })).toBe(true);
   });
 });

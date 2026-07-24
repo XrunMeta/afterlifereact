@@ -77,6 +77,8 @@ export function useHandsFreeController(opts: {
 
   const pendingDoneTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const releaseNotBeforeRef = useRef(0);
+
   const detector = useCloneSilenceDetector({
     getStatsReport: opts.getStatsReport,
     onResponseStart: () => dispatchRef.current({ type: 'CLONE_SPEAKING' }),
@@ -174,6 +176,7 @@ export function useHandsFreeController(opts: {
 
   const clearPendingDone = useCallback(() => {
     pendingDoneAtRef.current = null;
+    releaseNotBeforeRef.current = 0;
     if (pendingDoneTimerRef.current) {
       clearTimeout(pendingDoneTimerRef.current);
       pendingDoneTimerRef.current = null;
@@ -246,13 +249,17 @@ export function useHandsFreeController(opts: {
       if (getStatsRef.current() === null) {
         dispatchRef.current({ type: 'RESPONSE_DONE' });
       } else {
+
+        const remainingMs = sig.remainingMs ?? 0;
+        releaseNotBeforeRef.current = Date.now() + remainingMs;
         pendingDoneAtRef.current = Date.now();
         if (pendingDoneTimerRef.current) clearTimeout(pendingDoneTimerRef.current);
         pendingDoneTimerRef.current = setTimeout(() => {
           pendingDoneTimerRef.current = null;
           pendingDoneAtRef.current = null;
+          releaseNotBeforeRef.current = 0;
           dispatchRef.current({ type: 'RESPONSE_DONE' });
-        }, RESPONSE_DONE_TAIL_MAX_MS);
+        }, remainingMs + RESPONSE_DONE_TAIL_MAX_MS);
       }
     }
 
@@ -283,7 +290,8 @@ export function useHandsFreeController(opts: {
         if (
           pendingDoneAtRef.current !== null &&
           !cloneSpeaking &&
-          now - cloneSpokeAtRef.current > useTimingConfigStore.getState().cloneResumeMs
+          now - cloneSpokeAtRef.current > useTimingConfigStore.getState().cloneResumeMs &&
+          now >= releaseNotBeforeRef.current
         ) {
           clearPendingDone();
           dispatchRef.current({ type: 'RESPONSE_DONE' });
@@ -335,6 +343,7 @@ export function useHandsFreeController(opts: {
   useEffect(() => () => {
     if (greetTimerRef.current) clearTimeout(greetTimerRef.current);
     if (pendingDoneTimerRef.current) clearTimeout(pendingDoneTimerRef.current);
+    releaseNotBeforeRef.current = 0; 
   }, []);
 
   const toggleMic = useCallback(() => {

@@ -9,6 +9,48 @@ export function baseCoverScale(image: Size, frame: Size): number {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
+export const ZOOM_MIN = 1;
+export const ZOOM_MAX = 10;
+
+export function clampGestureScale(raw: number, min: number = ZOOM_MIN, max: number = ZOOM_MAX): number {
+  return clamp(raw, min, max);
+}
+
+export function clampPanOffset(
+  image: Size,
+  frame: Size,
+  scale: number,
+  offset: { x: number; y: number },
+): { x: number; y: number } {
+  const s0 = baseCoverScale(image, frame);
+  const s = s0 * Math.max(ZOOM_MIN, scale);
+  const maxOffsetX = Math.max(0, (image.width * s - frame.width) / 2);
+  const maxOffsetY = Math.max(0, (image.height * s - frame.height) / 2);
+  return {
+    x: clamp(offset.x, -maxOffsetX, maxOffsetX),
+    y: clamp(offset.y, -maxOffsetY, maxOffsetY),
+  };
+}
+
+export interface CropLayout { image: Size; frame: Size }
+
+export function coversCropArea(
+  layout: CropLayout,
+  scale: number,
+  offset: { x: number; y: number },
+): boolean {
+  const { image, frame } = layout;
+  const EPS = 0.5; 
+  const s0 = baseCoverScale(image, frame);
+  const s = s0 * Math.max(ZOOM_MIN, scale);
+  const dispW = image.width * s;
+  const dispH = image.height * s;
+  if (dispW < frame.width - EPS || dispH < frame.height - EPS) return false;
+  const maxOffsetX = (dispW - frame.width) / 2;
+  const maxOffsetY = (dispH - frame.height) / 2;
+  return Math.abs(offset.x) <= maxOffsetX + EPS && Math.abs(offset.y) <= maxOffsetY + EPS;
+}
+
 export function computeCropRect(image: Size, frame: Size, gesture: GestureState): CropRect {
   if (image.width <= 0 || image.height <= 0) {
     throw new Error("computeCropRect: image size must be positive");

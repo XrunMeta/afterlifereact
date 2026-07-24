@@ -64,3 +64,7 @@ eas-build.log
 pnpm-lock.yaml
 
 .superpowers/
+
+# T-153: 로컬 서명 자산(절대 커밋 금지 — 정본은 KB/secrets/afterlife-ios)
+credentials.json
+credentials/

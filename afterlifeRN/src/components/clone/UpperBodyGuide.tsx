@@ -1,19 +1,21 @@
 import React from "react";
-import Svg, { Circle, Path } from "react-native-svg";
+import Svg, { Path } from "react-native-svg";
 
 interface Props { width: number; color?: string; opacity?: number }
+
+const PERSON_OUTLINE_PATH =
+  "M50.0 7.0 L46.0 7.3 L42.1 8.3 L38.6 10.1 L35.4 12.5 L32.7 15.7 L30.5 19.7 L28.2 28.0 L28.0 42.2 L28.8 47.9 L30.1 52.9 L32.0 57.0 L34.4 59.6 L37.9 61.4 L42.5 62.3 L43.0 64.0 L42.5 68.0 L29.2 73.6 L23.6 76.9 L18.6 80.8 L12.7 87.7 L10.6 92.1 L8.9 98.0 L7.1 109.0 L6.4 122.0 L6.5 200.0 L93.5 200.0 L93.6 122.0 L92.9 109.0 L91.1 98.0 L89.4 92.1 L87.3 87.7 L81.4 80.8 L76.4 76.9 L70.8 73.6 L57.5 68.0 L57.0 64.0 L57.5 62.3 L62.1 61.4 L65.6 59.6 L68.0 57.0 L69.9 52.9 L71.2 47.9 L72.0 42.2 L71.8 28.0 L69.5 19.7 L67.3 15.7 L64.6 12.5 L61.4 10.1 L57.9 8.3 L54.0 7.3 L50.0 7.0 Z";
 
 export default function UpperBodyGuide({ width, color = "#FFFFFF", opacity = 0.6 }: Props) {
   const height = width * 2;
   return (
     <Svg width={width} height={height} viewBox="0 0 100 200" opacity={opacity}>
-      <Circle cx="50" cy="48" r="24" stroke={color} strokeWidth="2.5" fill="none" />
       <Path
-        d="M14 200 C14 150 26 120 50 120 C74 120 86 150 86 200"
+        d={PERSON_OUTLINE_PATH}
         stroke={color}
-        strokeWidth="2.5"
+        strokeWidth={1.2}
         fill="none"
-        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </Svg>
   );
