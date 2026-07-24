@@ -10,6 +10,8 @@ export const v_5c8991 = {
   greeting: '#3b82f6', 
   confirming: '#2fbf6b', 
   paused: '#9ca3af', 
+
+  notReceiving: '#e5e7eb', 
 } as const;
 
 export const v_80c227 = {
@@ -70,14 +72,18 @@ export interface BallVisual {
   label: string | null;
 }
 
-export function v_d45de2(phase: v_3f42e4): BallVisual {
+export function v_d45de2(phase: v_3f42e4, v_b3ae82 = true): BallVisual {
   switch (v_ab4803) {
     case 'idle':
       return { color: v_5c8991.idle, pulseSource: 'none', orbit: false, label: null };
     case 'listening':
-      return { color: v_5c8991.listening, pulseSource: 'mic', orbit: true, label: '입력중' };
+      return v_b3ae82
+        ? { color: v_5c8991.listening, pulseSource: 'mic', orbit: true, label: '입력중' }
+        : { color: v_5c8991.notReceiving, pulseSource: 'mic', orbit: false, label: '대기중' };
     case 'confirming':
-      return { color: v_5c8991.confirming, pulseSource: 'mic', orbit: true, label: '입력중' };
+      return v_b3ae82
+        ? { color: v_5c8991.confirming, pulseSource: 'mic', orbit: true, label: '입력중' }
+        : { color: v_5c8991.notReceiving, pulseSource: 'mic', orbit: false, label: '대기중' };
     case 'sending':
       return { color: v_5c8991.sending, pulseSource: 'think', orbit: false, label: null };
     case 'greeting':
