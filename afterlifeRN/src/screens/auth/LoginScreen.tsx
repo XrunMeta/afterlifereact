@@ -238,7 +238,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
         <View style={v_d81136.container}>
           {}
           <View style={v_d81136.logoContainer}>
-            <Image source={require("../../../assets/images/symbol.png")} style={v_d81136.symbolImage} />
+            {}
             <Image source={require("../../../assets/images/logo.png")} style={v_d81136.logoImage} resizeMode="contain" />
           </View>
 
@@ -383,14 +383,9 @@ const v_d81136 = v_472849.create({
     alignItems: "center",
     marginBottom: 16,
   },
-  symbolImage: {
-    width: 60,
-    height: 48,
-    marginBottom: 8,
-  },
   logoImage: {
-    width: 120,
-    height: 24,
+    width: 140,
+    height: 105,
   },
   tabRow: {
     flexDirection: "row",
