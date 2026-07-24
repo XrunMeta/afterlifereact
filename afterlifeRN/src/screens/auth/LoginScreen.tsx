@@ -238,7 +238,7 @@ export default function LoginScreen({ navigation }: Props) {
         <View style={styles.container}>
           {}
           <View style={styles.logoContainer}>
-            <Image source={require("../../../assets/images/symbol.png")} style={styles.symbolImage} />
+            {}
             <Image source={require("../../../assets/images/logo.png")} style={styles.logoImage} resizeMode="contain" />
           </View>
 
@@ -383,14 +383,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
   },
-  symbolImage: {
-    width: 60,
-    height: 48,
-    marginBottom: 8,
-  },
   logoImage: {
-    width: 120,
-    height: 24,
+    width: 140,
+    height: 105,
   },
   tabRow: {
     flexDirection: "row",
