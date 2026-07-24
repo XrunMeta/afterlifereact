@@ -32,6 +32,7 @@ import { v_9b8cb3, v_5c99c1 } from "../../api/payments";
 import v_3cb56d, {
   v_b1f897,
 } from "../../components/my/PaymentPinPromptModal";
+import v_0e3f52 from "../../components/my/AppVersionFooter";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_e57140 } from "../../navigation/types";
 
@@ -371,6 +372,9 @@ export default function v_ed02a5() {
             );
           })}
         </View>
+
+        {}
+        <AppVersionFooter />
       </View>
 
       {
