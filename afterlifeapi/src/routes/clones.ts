@@ -219,7 +219,10 @@ v_f891e6.post(
     }
     if (v_faa47d >= 1) {
 
-      if (!v_4d33b2.pin) {
+      const v_b702a8 =
+        String((v_3f4e2e.env as unknown as { CLONE_PAYMENT_BYPASS?: string }).CLONE_PAYMENT_BYPASS ?? "") === "1";
+
+      if (!v_b702a8 && !v_4d33b2.pin) {
         throw new v_3ebe58("PAYMENT_REQUIRED", "Persona creation requires payment.", {
           priceXrun: v_2ab8bf,
           message: `2번째 페르소나부터 ${v_2ab8bf} XRUN 이 부과됩니다.`,
@@ -227,7 +230,12 @@ v_f891e6.post(
       }
 
       const v_1111d7 = (v_3f4e2e.env as unknown as { DEV_PAYMENT_BYPASS_PIN?: string }).DEV_PAYMENT_BYPASS_PIN;
-      if (!v_1111d7 || v_4d33b2.pin !== v_1111d7) {
+      if (v_b702a8) {
+        console.warn(
+          "[T-155][CLONE_PAYMENT_BYPASS] persona creation fully bypassed — no PIN/transfer/settlement, userId=",
+          v_43e90c,
+        );
+      } else if (!v_1111d7 || v_4d33b2.pin !== v_1111d7) {
 
         const v_72b02d = v_3f4e2e.env.COMPANY_CHARGE_WALLET;
         if (!v_72b02d) {
@@ -246,7 +254,8 @@ v_f891e6.post(
           fromMember: v_3645f3.xrun_member_id,
           recipients: [{ toAddress: v_72b02d, amount: String(v_2ab8bf) }],
           currency: v_a832b3,
-          pin: v_4d33b2.pin,
+
+          pin: v_4d33b2.pin!,
           source: "afterlife.persona-create",
         });
 
