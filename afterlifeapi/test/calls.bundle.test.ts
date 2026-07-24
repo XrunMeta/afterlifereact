@@ -245,6 +245,83 @@ v_469bf2("GET /oth-path", () => {
     v_4d37e3(v_7adc95.faceUrl).toBeNull();
   });
 
+  v_23805a("faceUrl: clone.idle_video_url(prod 도메인)과 job.out_url(preview 도메인)이 달라도 /oth-path 경로로 매칭 (T-159 회귀)", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_1badb6 = await v_bfb240("bundle-face-domain@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "bundle_face_domain_clone");
+
+    await v_a1651b
+      .prepare(
+        `INSERT INTO files (r2_key, content_type, size_bytes, owner_user_id, purpose)
+         VALUES ('uploadedfiles/face/domain.jpg', 'image/jpeg', 55000, ?, 'clone_src')`,
+      )
+      .bind(v_1badb6)
+      .run();
+    const v_8b5cd8 = await v_a1651b
+      .prepare("SELECT id FROM files WHERE r2_key = 'uploadedfiles/face/domain.jpg'")
+      .first<{ id: number }>();
+
+    const v_5cb2ae = 999321;
+    const v_532874 = `https://edge-alt.example.invalid/oth-path${v_5cb2ae}`;
+    const v_26997d = `https://edge-alt-preview.example.invalid/oth-path${v_5cb2ae}`;
+    await v_a1651b
+      .prepare("UPDATE clones SET idle_video_url = ? WHERE id = ?")
+      .bind(v_532874, v_6e0fd3)
+      .run();
+    await v_a1651b
+      .prepare(
+        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, out_url)
+         VALUES ('job-face-domain', ?, 'idle_video', ?, 'done', ?)`,
+      )
+      .bind(v_1badb6, v_8b5cd8!.id, v_26997d)
+      .run();
+    const v_21cc31 = await v_86c39f(v_1badb6);
+
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/bundle`, {
+      headers: { Authorization: `Bearer ${v_21cc31}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const { assets: v_7adc95 } = (await v_8f00b9.json()) as { assets: { faceUrl: string | null } };
+
+    v_4d37e3(v_7adc95.faceUrl).toBe(`http://localhost/oth-path${v_8b5cd8!.id}`);
+  });
+
+  v_23805a("faceUrl: /oth-path 와 /oth-path 는 경계 오탐 없이 비매칭 (T-159 경계)", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_1badb6 = await v_bfb240("bundle-face-boundary@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "bundle_face_boundary_clone");
+    await v_a1651b
+      .prepare(
+        `INSERT INTO files (r2_key, content_type, size_bytes, owner_user_id, purpose)
+         VALUES ('uploadedfiles/face/boundary.jpg', 'image/jpeg', 55000, ?, 'clone_src')`,
+      )
+      .bind(v_1badb6)
+      .run();
+    const v_8b5cd8 = await v_a1651b
+      .prepare("SELECT id FROM files WHERE r2_key = 'uploadedfiles/face/boundary.jpg'")
+      .first<{ id: number }>();
+
+    await v_a1651b
+      .prepare("UPDATE clones SET idle_video_url = ? WHERE id = ?")
+      .bind("https://edge-alt.example.invalid/oth-path", v_6e0fd3)
+      .run();
+    await v_a1651b
+      .prepare(
+        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, out_url)
+         VALUES ('job-face-boundary', ?, 'idle_video', ?, 'done', ?)`,
+      )
+      .bind(v_1badb6, v_8b5cd8!.id, "https://edge-alt-preview.example.invalid/oth-path")
+      .run();
+    const v_21cc31 = await v_86c39f(v_1badb6);
+
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/bundle`, {
+      headers: { Authorization: `Bearer ${v_21cc31}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const { assets: v_7adc95 } = (await v_8f00b9.json()) as { assets: { faceUrl: string | null } };
+    v_4d37e3(v_7adc95.faceUrl).toBeNull();
+  });
+
   v_23805a("fillerVideoUrls: filler_video_urls NULL → []", async () => {
     const v_1badb6 = await v_bfb240("bundle-filler-null@test.local");
     const v_6e0fd3 = await v_4d24a9(v_1badb6, "bundle_filler_null_clone");
