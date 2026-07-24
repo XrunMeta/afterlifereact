@@ -1265,13 +1265,14 @@ export default function CallScreen({ route, navigation }: Props) {
       ) : null}
 
       {
+
 }
       <View
         style={[s.watermarkLayer, { bottom: bottomInset + 96 }]}
         pointerEvents="none"
       >
         <Image
-          source={require("../../../assets/images/brand/watermark-logo.png")}
+          source={require("../../../assets/images/logo.png")}
           style={s.watermarkLogo}
           resizeMode="contain"
         />
@@ -1463,9 +1464,9 @@ const s = StyleSheet.create({
   },
 
   watermarkLogo: {
-    width: 88,
-    aspectRatio: 800 / 715,
-    tintColor: "rgba(255, 255, 255, 0.55)",
+    width: 104,
+    aspectRatio: 212 / 42,
+    tintColor: "rgba(255, 255, 255, 0.5)",
   },
   container: {
     flex: 1,
