@@ -93,10 +93,14 @@ crons = ["0 3 * * *"]
 [env.preview]
 # name 미지정 → wrangler가 자동으로 "afterlife-api-preview" 사용
 
+# ⚠️ 임시(히즈키 요청): preview 워커가 PROD DB(afterlife-db)를 바라본다.
+#   → preview 빌드 테스트가 prod 데이터를 읽고 **쓴다**(신규 클론 등 prod 기록).
+#   원복: database_name/id 를 afterlife-db-preview(a9d363db-...)로 되돌리고 재배포.
+#   ⚠️ preview cron·`d1 migrations apply --env preview`도 prod DB 대상이 되니 주의.
 [[env.preview.d1_databases]]
 binding = "DB"
-database_name = "afterlife-db-preview"
-database_id = "a9d363db-5838-4697-acf9-c49eb04c6359"
+database_name = "afterlife-db"
+database_id = "09507858-14f8-4f3a-89e5-784244d592a4"
 migrations_dir = "migrations"
 
 [[env.preview.d1_databases]]
