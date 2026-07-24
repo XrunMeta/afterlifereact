@@ -19,6 +19,8 @@ export interface CallVoiceBallProps {
   micLevel: number;
 
   cloneLevel: number;
+
+  sttActive?: boolean;
 }
 
 const v_0f64a0 = v_a2349e.createAnimatedComponent(v_f595b9);
@@ -29,9 +31,22 @@ const v_4dc014 = v_a1197d.trackRadius;
 const v_905201 = Math.max(v_80c227.max, (v_4dc014 + v_a1197d.dotRadius) * 2); 
 const v_fc2005 = v_905201 / 2; 
 
-export function v_9204e2({ phase: v_ab4803, micLevel: v_9afd2d, cloneLevel: v_4eaf6a }: CallVoiceBallProps) {
-  const v_23604c = v_df9f57(() => v_d45de2(v_ab4803), [v_ab4803]);
+export function v_9204e2({ phase: v_ab4803, micLevel: v_9afd2d, cloneLevel: v_4eaf6a, sttActive: v_b3ae82 = true }: CallVoiceBallProps) {
+  const v_23604c = v_df9f57(() => v_d45de2(v_ab4803, v_b3ae82), [v_ab4803, v_b3ae82]);
   const v_4ab1ee = v_ab4803 === 'idle';
+
+  const v_ed0c6f = v_ab4803 === 'listening' || v_ab4803 === 'confirming';
+  const v_e9b367 = v_e662ae(new v_a2349e.Value(v_ed0c6f ? 0 : 1)).current; 
+  v_c4deb2(() => {
+    v_a2349e.timing(v_e9b367, {
+      toValue: v_ed0c6f ? 0 : 1,
+      duration: 260,
+      easing: v_cdbae1.out(v_cdbae1.quad),
+      useNativeDriver: true,
+    }).start();
+  }, [v_ed0c6f, v_e9b367]);
+  const v_cea344 = v_e9b367.interpolate({ inputRange: [0, 1], outputRange: [0, 96] });
+  const v_39ef13 = v_e9b367.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
 
   const v_f4ee6f = v_df9f57(() => {
     if (v_23604c.pulseSource === 'mic') return v_d6dc8c(v_9afd2d, v_80c227, false);
@@ -113,7 +128,10 @@ export function v_9204e2({ phase: v_ab4803, micLevel: v_9afd2d, cloneLevel: v_4e
   const v_a546c1 = v_a2349e.multiply(v_d859fb, v_a5f72b);
 
   return (
-    <View style={v_d81136.stage} pointerEvents="none">
+    <Animated.View
+      style={[v_d81136.stage, { opacity: v_39ef13, transform: [{ translateY: v_cea344 }] }]}
+      pointerEvents="none"
+    >
       <View style={[v_d81136.center, { width: v_905201, height: v_905201 }]}>
         {}
         {v_23604c.orbit ? (
@@ -148,7 +166,7 @@ export function v_9204e2({ phase: v_ab4803, micLevel: v_9afd2d, cloneLevel: v_4e
           <Circle cx={v_fc2005} cy={v_fc2005} r={v_18f5ee} fill={v_23604c.color} />
         </AnimatedSvg>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
