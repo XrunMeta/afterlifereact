@@ -1452,7 +1452,7 @@ const s = StyleSheet.create({
 
   watermarkLayer: {
     position: "absolute",
-    right: 16,
+    right: -34,
     alignItems: "flex-end",
   },
 
@@ -1465,8 +1465,8 @@ const s = StyleSheet.create({
   },
 
   watermarkLogo: {
-    width: 72,
-    height: 14,
+    width: 200,
+    height: 40,
     resizeMode: "contain",
     tintColor: "rgba(255, 255, 255, 0.85)",
   },
