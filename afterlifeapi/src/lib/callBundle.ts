@@ -47,6 +47,14 @@ export async function buildCallBundle(db: D1Database, clone: CloneRow, userId: n
     voiceSeKey = vp?.se_key ?? null;
   }
 
+  const filesPathSuffix = (u: string): string => {
+    const m = u.match(/\/oth-path\/files\/\d+$/);
+    return m ? m[0] : u; 
+  };
+
+  const escapeLike = (s: string): string => s.replace(/[\\%_]/g, "\\$&");
+  const likeSuffix = (u: string): string => `%${escapeLike(filesPathSuffix(u))}`;
+
   let voiceRawUrl: string | null = null;
   if (clone.voice_se_url) {
     const jobRow = await db
@@ -54,11 +62,11 @@ export async function buildCallBundle(db: D1Database, clone: CloneRow, userId: n
         `SELECT f.id AS file_id
            FROM clone_asset_jobs j
            JOIN files f ON j.src_file_id = f.id
-          WHERE j.out_url = ? AND j.kind = 'voice_clone' AND j.status = 'done'
+          WHERE j.out_url LIKE ? ESCAPE '\\' AND j.kind = 'voice_clone' AND j.status = 'done'
           ORDER BY j.created_at DESC
           LIMIT 1`,
       )
-      .bind(clone.voice_se_url)
+      .bind(likeSuffix(clone.voice_se_url))
       .first<{ file_id: number }>();
     voiceRawUrl = jobRow ? `${origin}/oth-path${jobRow.file_id}` : null;
   }
@@ -70,11 +78,11 @@ export async function buildCallBundle(db: D1Database, clone: CloneRow, userId: n
         `SELECT f.id AS file_id
            FROM clone_asset_jobs j
            JOIN files f ON j.src_file_id = f.id
-          WHERE j.out_url = ? AND j.kind = 'idle_video' AND j.status = 'done'
+          WHERE j.out_url LIKE ? ESCAPE '\\' AND j.kind = 'idle_video' AND j.status = 'done'
           ORDER BY j.created_at DESC, j.rowid DESC
           LIMIT 1`,
       )
-      .bind(clone.idle_video_url)
+      .bind(likeSuffix(clone.idle_video_url))
       .first<{ file_id: number }>();
     faceUrl = faceJob ? `${origin}/oth-path${faceJob.file_id}` : null;
   }
