@@ -93,10 +93,14 @@ crons = ["0 3 * * *"]
 [env.preview]
 # name 미지정 → wrangler가 자동으로 "afterlife-api-preview" 사용
 
+# ⚠️ 임시(히즈키 요청): preview 워커가 PROD DB(afterlife-db)를 바라본다.
+#   → preview 빌드 테스트가 prod 데이터를 읽고 **쓴다**(신규 클론 등 prod 기록).
+#   원복: database_name/id 를 afterlife-db-preview(a9d363db-...)로 되돌리고 재배포.
+#   ⚠️ preview cron·`d1 migrations apply --env preview`도 prod DB 대상이 되니 주의.
 [[env.preview.d1_databases]]
 binding = "DB"
-database_name = "afterlife-db-preview"
-database_id = "a9d363db-5838-4697-acf9-c49eb04c6359"
+database_name = "afterlife-db"
+database_id = "09507858-14f8-4f3a-89e5-784244d592a4"
 migrations_dir = "migrations"
 
 [[env.preview.d1_databases]]
@@ -163,6 +167,9 @@ FACE_CONSENT_ENFORCED = "false"  # T-126 Task6: preview 기본 OFF — auto_biom
 # preview/dev 전용 결제 우회 PIN — 이 PIN 으로 페르소나 결제 시 xrun 송금 스킵(테스트).
 # production([env.production])에는 절대 추가 금지. preview 한정.
 DEV_PAYMENT_BYPASS_PIN = "424242"
+# T-155: preview 도 클론 생성 결제 우회(PIN 없이 무료 게시). prod 와 동일 정책.
+#   ⚠️ 실 XRUN_GATEWAY_TOKEN 확보(T-156) 후 원복 시 prod·preview 양쪽에서 제거.
+CLONE_PAYMENT_BYPASS = "1"
 
 [env.preview.triggers]
 crons = ["0 3 * * *"]

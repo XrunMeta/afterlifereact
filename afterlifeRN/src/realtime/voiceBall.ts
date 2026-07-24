@@ -10,6 +10,8 @@ export const BALL_COLORS = {
   greeting: '#3b82f6', 
   confirming: '#2fbf6b', 
   paused: '#9ca3af', 
+
+  notReceiving: '#e5e7eb', 
 } as const;
 
 export const BALL_SIZE = {
@@ -70,14 +72,18 @@ export interface BallVisual {
   label: string | null;
 }
 
-export function ballVisualForPhase(phase: HandsFreePhase): BallVisual {
+export function ballVisualForPhase(phase: HandsFreePhase, sttActive: boolean = true): BallVisual {
   switch (phase) {
     case 'idle':
       return { color: BALL_COLORS.idle, pulseSource: 'none', orbit: false, label: null };
     case 'listening':
-      return { color: BALL_COLORS.listening, pulseSource: 'mic', orbit: true, label: '입력중' };
+      return sttActive
+        ? { color: BALL_COLORS.listening, pulseSource: 'mic', orbit: true, label: '입력중' }
+        : { color: BALL_COLORS.notReceiving, pulseSource: 'mic', orbit: false, label: '대기중' };
     case 'confirming':
-      return { color: BALL_COLORS.confirming, pulseSource: 'mic', orbit: true, label: '입력중' };
+      return sttActive
+        ? { color: BALL_COLORS.confirming, pulseSource: 'mic', orbit: true, label: '입력중' }
+        : { color: BALL_COLORS.notReceiving, pulseSource: 'mic', orbit: false, label: '대기중' };
     case 'sending':
       return { color: BALL_COLORS.sending, pulseSource: 'think', orbit: false, label: null };
     case 'greeting':

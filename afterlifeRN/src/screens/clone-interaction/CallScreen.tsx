@@ -541,6 +541,7 @@ export default function CallScreen({ route, navigation }: Props) {
     devForceListen,
     micLevel,
     cloneAudioLevel,
+    sttActive,
   } = useHandsFreeController({
     enabled: liveState === "live",
     say,
@@ -1265,13 +1266,14 @@ export default function CallScreen({ route, navigation }: Props) {
       ) : null}
 
       {
+
 }
       <View
-        style={[s.watermarkLayer, { bottom: bottomInset + 96 }]}
+        style={[s.watermarkLayer, { bottom: bottomInset + 150 }]}
         pointerEvents="none"
       >
         <Image
-          source={require("../../../assets/images/brand/watermark-logo.png")}
+          source={require("../../../assets/images/logo.png")}
           style={s.watermarkLogo}
           resizeMode="contain"
         />
@@ -1284,7 +1286,7 @@ export default function CallScreen({ route, navigation }: Props) {
           style={[s.voiceBallLayer, { bottom: bottomInset + 24 + 56 + 16 }]}
           pointerEvents="none"
         >
-          <CallVoiceBall phase={phase} micLevel={micLevel} cloneLevel={cloneAudioLevel} />
+          <CallVoiceBall phase={phase} micLevel={micLevel} cloneLevel={cloneAudioLevel} sttActive={sttActive} />
         </View>
       ) : null}
 
@@ -1450,7 +1452,7 @@ const s = StyleSheet.create({
 
   watermarkLayer: {
     position: "absolute",
-    right: 16,
+    right: -34,
     alignItems: "flex-end",
   },
 
@@ -1463,9 +1465,10 @@ const s = StyleSheet.create({
   },
 
   watermarkLogo: {
-    width: 88,
-    aspectRatio: 800 / 715,
-    tintColor: "rgba(255, 255, 255, 0.55)",
+    width: 200,
+    height: 40,
+    resizeMode: "contain",
+    tintColor: "rgba(255, 255, 255, 0.85)",
   },
   container: {
     flex: 1,
