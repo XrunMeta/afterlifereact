@@ -541,6 +541,7 @@ export default function CallScreen({ route, navigation }: Props) {
     devForceListen,
     micLevel,
     cloneAudioLevel,
+    sttActive,
   } = useHandsFreeController({
     enabled: liveState === "live",
     say,
@@ -1284,7 +1285,7 @@ export default function CallScreen({ route, navigation }: Props) {
           style={[s.voiceBallLayer, { bottom: bottomInset + 24 + 56 + 16 }]}
           pointerEvents="none"
         >
-          <CallVoiceBall phase={phase} micLevel={micLevel} cloneLevel={cloneAudioLevel} />
+          <CallVoiceBall phase={phase} micLevel={micLevel} cloneLevel={cloneAudioLevel} sttActive={sttActive} />
         </View>
       ) : null}
 

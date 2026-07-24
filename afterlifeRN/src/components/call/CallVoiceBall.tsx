@@ -19,6 +19,8 @@ export interface CallVoiceBallProps {
   micLevel: number;
 
   cloneLevel: number;
+
+  sttActive?: boolean;
 }
 
 const AnimatedSvg = Animated.createAnimatedComponent(Svg);
@@ -29,9 +31,22 @@ const ORBIT_TRACK_RADIUS = BALL_ORBIT.trackRadius;
 const STAGE = Math.max(BALL_SIZE.max, (ORBIT_TRACK_RADIUS + BALL_ORBIT.dotRadius) * 2); 
 const CENTER = STAGE / 2; 
 
-export function CallVoiceBall({ phase, micLevel, cloneLevel }: CallVoiceBallProps) {
-  const visual = useMemo(() => ballVisualForPhase(phase), [phase]);
+export function CallVoiceBall({ phase, micLevel, cloneLevel, sttActive = true }: CallVoiceBallProps) {
+  const visual = useMemo(() => ballVisualForPhase(phase, sttActive), [phase, sttActive]);
   const idle = phase === 'idle';
+
+  const isUserTurn = phase === 'listening' || phase === 'confirming';
+  const slideAnim = useRef(new Animated.Value(isUserTurn ? 0 : 1)).current; 
+  useEffect(() => {
+    Animated.timing(slideAnim, {
+      toValue: isUserTurn ? 0 : 1,
+      duration: 260,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+  }, [isUserTurn, slideAnim]);
+  const slideTranslateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 96] });
+  const slideOpacity = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
 
   const targetDiameter = useMemo(() => {
     if (visual.pulseSource === 'mic') return radiusForLevel(micLevel, BALL_SIZE, false);
@@ -113,7 +128,10 @@ export function CallVoiceBall({ phase, micLevel, cloneLevel }: CallVoiceBallProp
   const combinedScale = Animated.multiply(scaleAnim, thinkPulseAnim);
 
   return (
-    <View style={styles.stage} pointerEvents="none">
+    <Animated.View
+      style={[styles.stage, { opacity: slideOpacity, transform: [{ translateY: slideTranslateY }] }]}
+      pointerEvents="none"
+    >
       <View style={[styles.center, { width: STAGE, height: STAGE }]}>
         {}
         {visual.orbit ? (
@@ -148,7 +166,7 @@ export function CallVoiceBall({ phase, micLevel, cloneLevel }: CallVoiceBallProp
           <Circle cx={CENTER} cy={CENTER} r={BALL_MAX_RADIUS} fill={visual.color} />
         </AnimatedSvg>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
