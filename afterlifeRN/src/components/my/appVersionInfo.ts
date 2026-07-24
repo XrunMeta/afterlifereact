@@ -15,10 +15,9 @@ export function formatOtaLine(info: CurrentlyRunningLike): string {
 
 export function formatVersionLine(
   version: string | undefined,
-  iosBuild: string | undefined,
-  androidVersionCode: number | undefined,
+  build: string | number | undefined | null,
 ): string {
   const v = version ?? "?";
-  const build = iosBuild ?? (androidVersionCode != null ? String(androidVersionCode) : "?");
-  return `v${v} (${build})`;
+  const b = build != null && `${build}` !== "" ? `${build}` : "?";
+  return `v${v} (${b})`;
 }

@@ -1,7 +1,7 @@
 
 
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Platform } from "react-native";
 import Constants from "expo-constants";
 import { useUpdates } from "expo-updates";
 import { COLORS } from "../constants";
@@ -9,11 +9,12 @@ import { formatOtaLine, formatVersionLine } from "./appVersionInfo";
 
 export default function AppVersionFooter() {
   const { currentlyRunning } = useUpdates();
-  const versionLine = formatVersionLine(
-    Constants.expoConfig?.version,
-    Constants.expoConfig?.ios?.buildNumber,
-    Constants.expoConfig?.android?.versionCode ?? undefined,
-  );
+
+  const build =
+    Platform.OS === "ios"
+      ? Constants.expoConfig?.ios?.buildNumber
+      : Constants.expoConfig?.android?.versionCode;
+  const versionLine = formatVersionLine(Constants.expoConfig?.version, build);
   const otaLine = formatOtaLine(currentlyRunning);
   const channel = currentlyRunning.channel;
 
