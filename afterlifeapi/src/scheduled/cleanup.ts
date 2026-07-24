@@ -21,21 +21,24 @@ export interface CleanupResult {
 export async function v_09b071(env: v_de0a25["Bindings"]): Promise<CleanupResult> {
   const v_a1651b = v_c9c489.DB;
 
-  const v_8d925d = (
-    await v_a1651b
-      .prepare(
-        `SELECT c.id FROM clones c
-           LEFT JOIN users u ON u.id = c.owner_id
-          WHERE c.deleted_at IS NULL
-            AND u.id IS NULL
-            AND c.created_at < datetime('now', '-5 minutes')
-          LIMIT 100`,
-      )
-      .all<{ id: number }>()
-  ).results;
+  const v_d70458 = v_c9c489.CLEANUP_ORPHAN_SWEEP === "1";
+  const v_8d925d = v_d70458
+    ? (
+        await v_a1651b
+          .prepare(
+            `SELECT c.id FROM clones c
+               LEFT JOIN users u ON u.id = c.owner_id
+              WHERE c.deleted_at IS NULL
+                AND u.id IS NULL
+                AND c.created_at < datetime('now', '-5 minutes')
+              LIMIT 100`,
+          )
+          .all<{ id: number }>()
+      ).results
+    : [];
 
   let v_77311a = 0;
-  if (v_8d925d.length > 0) {
+  if (v_d70458 && v_8d925d.length > 0) {
     const v_52e08b = v_8d925d.map((v_cb35cb) => v_cb35cb.id);
     const v_1cdc07 = v_52e08b.map(() => "?").join(",");
     const v_8f00b9 = await v_a1651b
