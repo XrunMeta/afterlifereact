@@ -163,6 +163,9 @@ FACE_CONSENT_ENFORCED = "false"  # T-126 Task6: preview 기본 OFF — auto_biom
 # preview/dev 전용 결제 우회 PIN — 이 PIN 으로 페르소나 결제 시 xrun 송금 스킵(테스트).
 # production([env.production])에는 절대 추가 금지. preview 한정.
 DEV_PAYMENT_BYPASS_PIN = "424242"
+# T-155: preview 도 클론 생성 결제 우회(PIN 없이 무료 게시). prod 와 동일 정책.
+#   ⚠️ 실 XRUN_GATEWAY_TOKEN 확보(T-156) 후 원복 시 prod·preview 양쪽에서 제거.
+CLONE_PAYMENT_BYPASS = "1"
 
 [env.preview.triggers]
 crons = ["0 3 * * *"]
