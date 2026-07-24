@@ -32,6 +32,7 @@ import { getPaymentPinStatus, getXrunBalance } from "../../api/payments";
 import PaymentPinPromptModal, {
   shouldShowPaymentPinPrompt,
 } from "../../components/my/PaymentPinPromptModal";
+import AppVersionFooter from "../../components/my/AppVersionFooter";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { MyStackParamList } from "../../navigation/types";
 
@@ -371,6 +372,9 @@ export default function MyScreen() {
             );
           })}
         </View>
+
+        {}
+        <AppVersionFooter />
       </View>
 
       {
