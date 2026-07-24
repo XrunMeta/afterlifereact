@@ -13,6 +13,8 @@ export interface SpeechSignal {
   ts: number;
 
   text?: string;
+
+  remainingMs?: number;
 }
 
 export interface FaceEvent {

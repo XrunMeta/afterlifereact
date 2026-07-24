@@ -652,7 +652,20 @@ def _make_dc_handler(sess, channel):
                 # 클로저 인자 channel(캡처 시점 고정)로만 전송한다.
                 if channel is not None and getattr(channel, "readyState", None) == "open":
                     try:
-                        channel.send(_json.dumps({"type": "speech_end", "seq": seq}))
+                        # [T-151 Task18] push 완료 시점의 미재생 잔량(48kHz 샘플)을
+                        # ms로 환산해 동승 — RN이 speech_end 후 그만큼 대기하고
+                        # 녹음을 재개하도록. 미가용(속성 없음/None/예외/음수)이면
+                        # 필드 자체를 생략(additive, 구클라이언트 영향 없음).
+                        _payload = {"type": "speech_end", "seq": seq}
+                        try:
+                            _at = getattr(sess, "audio_track", None)
+                            _qds = getattr(_at, "queue_depth_samples", None)
+                            _remaining = _qds() if _qds is not None else None
+                            if isinstance(_remaining, (int, float)) and _remaining >= 0:
+                                _payload["remaining_ms"] = int(_remaining / 48)
+                        except Exception:
+                            pass
+                        channel.send(_json.dumps(_payload))
                     except Exception as exc:
                         log.warning(
                             "session %s speech_end send failed: %s",
