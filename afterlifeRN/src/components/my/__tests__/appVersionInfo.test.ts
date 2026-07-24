@@ -26,15 +26,20 @@ describe("formatOtaLine", () => {
 });
 
 describe("formatVersionLine", () => {
-  it("iOS 빌드번호 우선", () => {
-    expect(v_8f6de1("1.0.0", "7", 12)).toBe("v1.0.0 (7)");
+  it("문자열 빌드(iOS buildNumber)", () => {
+    expect(v_8f6de1("1.0.0", "8")).toBe("v1.0.0 (8)");
   });
 
-  it("iOS 없으면 android versionCode fallback", () => {
-    expect(v_8f6de1("1.0.0", undefined, 12)).toBe("v1.0.0 (12)");
+  it("숫자 빌드(Android versionCode)", () => {
+    expect(v_8f6de1("1.0.0", 8)).toBe("v1.0.0 (8)");
   });
 
-  it("둘 다 없으면 ?", () => {
-    expect(v_8f6de1(undefined, undefined, undefined)).toBe("v? (?)");
+  it("build 없으면 ?", () => {
+    expect(v_8f6de1("1.0.0", undefined)).toBe("v1.0.0 (?)");
+    expect(v_8f6de1("1.0.0", null)).toBe("v1.0.0 (?)");
+  });
+
+  it("version·build 둘 다 없으면 ?", () => {
+    expect(v_8f6de1(undefined, undefined)).toBe("v? (?)");
   });
 });
