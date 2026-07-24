@@ -74,6 +74,8 @@ export interface Bindings {
   WEBAUTHN_RP_ORIGIN: string;    
 
   ENVIRONMENT: "development" | "staging" | "production";
+
+  CLEANUP_ORPHAN_SWEEP?: string;
 }
 
 export type AppEnv = {

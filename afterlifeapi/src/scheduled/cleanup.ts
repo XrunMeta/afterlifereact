@@ -21,21 +21,24 @@ export interface CleanupResult {
 export async function runCleanup(env: AppEnv["Bindings"]): Promise<CleanupResult> {
   const db = env.DB;
 
-  const orphans = (
-    await db
-      .prepare(
-        `SELECT c.id FROM clones c
-           LEFT JOIN users u ON u.id = c.owner_id
-          WHERE c.deleted_at IS NULL
-            AND u.id IS NULL
-            AND c.created_at < datetime('now', '-5 minutes')
-          LIMIT 100`,
-      )
-      .all<{ id: number }>()
-  ).results;
+  const orphanSweepEnabled = env.CLEANUP_ORPHAN_SWEEP === "1";
+  const orphans = orphanSweepEnabled
+    ? (
+        await db
+          .prepare(
+            `SELECT c.id FROM clones c
+               LEFT JOIN users u ON u.id = c.owner_id
+              WHERE c.deleted_at IS NULL
+                AND u.id IS NULL
+                AND c.created_at < datetime('now', '-5 minutes')
+              LIMIT 100`,
+          )
+          .all<{ id: number }>()
+      ).results
+    : [];
 
   let orphansSoftDeleted = 0;
-  if (orphans.length > 0) {
+  if (orphanSweepEnabled && orphans.length > 0) {
     const ids = orphans.map((r) => r.id);
     const placeholders = ids.map(() => "?").join(",");
     const res = await db
