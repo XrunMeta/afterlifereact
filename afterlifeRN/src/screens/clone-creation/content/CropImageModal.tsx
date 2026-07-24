@@ -1,4 +1,4 @@
-import v_a3453e, { v_c4deb2, v_df9f57, v_e662ae } from "bapkr";
+import v_a3453e, { v_c4deb2, v_df9f57, v_e662ae, v_5ab095 } from "bapkr";
 import { v_aa7413, v_3094a2, v_19b633, v_4623af, v_472849, v_a2349e, v_700696 } from "rcmrninabrnb";
 import {
   v_70c669,
@@ -10,7 +10,14 @@ import {
 } from "zwwvjiopxcaovigclhtwpklelhlr";
 import { v_772971 } from "jmpfvteuuztnp";
 import v_11c5c8 from "../../../components/clone/UpperBodyGuide";
-import { v_f98917, v_34b1b1, type v_49127c } from "../../../lib/cropImage";
+import {
+  v_f98917,
+  v_0916d7,
+  v_f965d7,
+  v_622116,
+  v_34b1b1,
+  type v_49127c,
+} from "../../../lib/cropImage";
 import { v_1bfbd0 } from "../../../components/constants";
 import { v_889fad } from "../../../stores/dialogStore";
 
@@ -38,6 +45,11 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
 
   const v_e0371c = v_e662ae(1);
 
+  const v_3ca9ce = v_e662ae(null);
+  const v_f60c75 = v_e662ae(null);
+
+  const [v_29e4ca, v_40496c] = v_5ab095(true);
+
   v_c4deb2(() => {
     if (!v_04e790) return;
     v_0d09bb.current = { translateX: 0, translateY: 0, scale: 1 };
@@ -48,9 +60,27 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
     v_1dd864.setValue({ x: 0, y: 0 });
     v_475100.setValue(1);
     v_a37637.setValue(1);
+    v_40496c(true);
   }, [v_04e790?.uri]); 
 
   const v_231e09 = v_e662ae(false);
+
+  const v_9942bb = () => {
+    if (!v_04e790) return;
+    const v_7ddb73 = { width: v_04e790.width, height: v_04e790.height };
+    const v_143cb5 = { width: v_e0560a, height: v_fc2e4f };
+    const v_c7ca32 = v_f965d7(v_7ddb73, v_143cb5, v_e0371c.current, {
+      x: v_72e87f.x,
+      y: v_72e87f.y,
+    });
+    v_72e87f.x = v_c7ca32.x;
+    v_72e87f.y = v_c7ca32.y;
+    v_1dd864.setOffset({ x: v_72e87f.x, y: v_72e87f.y });
+    v_1dd864.setValue({ x: 0, y: 0 });
+    v_0d09bb.current.translateX = v_72e87f.x;
+    v_0d09bb.current.translateY = v_72e87f.y;
+    v_40496c(v_622116({ image: v_7ddb73, frame: v_143cb5 }, v_e0371c.current, v_c7ca32));
+  };
 
   const v_0403eb = v_a2349e.event([{ nativeEvent: { translationX: v_1dd864.x, translationY: v_1dd864.y } }], {
     useNativeDriver: false,
@@ -60,10 +90,8 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
     if (v_72c7a6 === v_944e0c.END) {
       v_72e87f.x += v_9e86fd.nativeEvent.translationX;
       v_72e87f.y += v_9e86fd.nativeEvent.translationY;
-      v_1dd864.setOffset({ x: v_72e87f.x, y: v_72e87f.y });
-      v_1dd864.setValue({ x: 0, y: 0 });
-      v_0d09bb.current.translateX = v_72e87f.x;
-      v_0d09bb.current.translateY = v_72e87f.y;
+
+      v_9942bb();
     } else if (v_72c7a6 === v_944e0c.CANCELLED || v_72c7a6 === v_944e0c.FAILED) {
 
       v_1dd864.setOffset({ x: v_72e87f.x, y: v_72e87f.y });
@@ -74,11 +102,14 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
   const v_b0e95b = v_a2349e.event([{ nativeEvent: { scale: v_a37637 } }], { useNativeDriver: false });
   const v_4129f2 = (e: v_bd225c) => {
     if (v_9e86fd.nativeEvent.state === v_944e0c.END) {
-      const v_a448ad = Math.max(1, v_e0371c.current * v_9e86fd.nativeEvent.scale);
+
+      const v_a448ad = v_0916d7(v_e0371c.current * v_9e86fd.nativeEvent.scale);
       v_475100.setValue(v_a448ad);
       v_e0371c.current = v_a448ad;
       v_0d09bb.current.scale = v_a448ad;
       v_a37637.setValue(1);
+
+      v_9942bb();
     }
   };
 
@@ -88,6 +119,16 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
     if (!v_04e790) return;
 
     if (v_231e09.current) return;
+
+    if (
+      !v_622116(
+        { image: { width: v_04e790.width, height: v_04e790.height }, frame: { width: v_e0560a, height: v_fc2e4f } },
+        v_e0371c.current,
+        { x: v_72e87f.x, y: v_72e87f.y },
+      )
+    ) {
+      return;
+    }
     v_231e09.current = true;
     try {
       const v_cd1446 = await v_34b1b1(
@@ -124,9 +165,19 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
   return (
     <Modal visible={v_cf55be} transparent animationType="fade" onRequestClose={v_c7001c}>
       <GestureHandlerRootView style={v_fd5f43.root}>
-        <PinchGestureHandler onGestureEvent={v_b0e95b} onHandlerStateChange={v_4129f2}>
+        <PinchGestureHandler
+          ref={v_3ca9ce}
+          simultaneousHandlers={v_f60c75}
+          onGestureEvent={v_b0e95b}
+          onHandlerStateChange={v_4129f2}
+        >
           <Animated.View style={v_fd5f43.fill}>
-            <PanGestureHandler onGestureEvent={v_0403eb} onHandlerStateChange={v_b4ecf6}>
+            <PanGestureHandler
+              ref={v_f60c75}
+              simultaneousHandlers={v_3ca9ce}
+              onGestureEvent={v_0403eb}
+              onHandlerStateChange={v_b4ecf6}
+            >
               <Animated.View style={v_fd5f43.fill}>
                 <Animated.Image source={{ uri: v_04e790.uri }} style={v_a576ef as any} resizeMode="cover" />
               </Animated.View>
@@ -152,7 +203,11 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
           <TouchableOpacity style={v_fd5f43.btn} onPress={v_c7001c}>
             <Text style={v_fd5f43.btnText}>{v_8d41d7('common.cancel')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[v_fd5f43.btn, v_fd5f43.btnPrimary]} onPress={v_ce9295}>
+          <TouchableOpacity
+            style={[v_fd5f43.btn, v_fd5f43.btnPrimary, !v_29e4ca && v_fd5f43.btnDisabled]}
+            onPress={v_ce9295}
+            disabled={!v_29e4ca}
+          >
             <Text style={[v_fd5f43.btnText, v_fd5f43.btnPrimaryText]}>{v_8d41d7('common.confirm')}</Text>
           </TouchableOpacity>
         </View>
@@ -170,6 +225,7 @@ const v_fd5f43 = v_472849.create({
   actions: { position: "absolute", bottom: 40, left: 0, right: 0, flexDirection: "row", justifyContent: "center", gap: 16 },
   btn: { paddingVertical: 12, paddingHorizontal: 28, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.15)" },
   btnPrimary: { backgroundColor: v_1bfbd0.white },
+  btnDisabled: { opacity: 0.4 },
   btnText: { color: v_1bfbd0.white, fontWeight: "600" },
   btnPrimaryText: { color: v_1bfbd0.zinc900 },
 });

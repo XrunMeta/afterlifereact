@@ -1,7 +1,7 @@
 
 
 import v_a3453e, { v_c4deb2, v_df9f57, v_e662ae } from 'bapkr';
-import { v_a2349e, v_cdbae1, v_472849, v_19b633, v_3094a2 } from 'rcmrninabrnb';
+import { v_a2349e, v_cdbae1, v_472849, v_3094a2 } from 'rcmrninabrnb';
 import v_f595b9, { v_bf60de } from 'vpztcxjmsfanunln';
 import type { v_3f42e4 } from '../../realtime/handsFree';
 import {
@@ -9,7 +9,6 @@ import {
   v_a1197d,
   v_b2c642,
   v_c388f3,
-  v_db5c73,
   v_d45de2,
   v_d6dc8c,
 } from '../../realtime/voiceBall';
@@ -149,8 +148,6 @@ export function v_9204e2({ phase: v_ab4803, micLevel: v_9afd2d, cloneLevel: v_4e
           <Circle cx={v_fc2005} cy={v_fc2005} r={v_18f5ee} fill={v_23604c.color} />
         </AnimatedSvg>
       </View>
-
-      {v_23604c.label ? <Text style={v_d81136.label}>{v_23604c.label}</Text> : null}
     </View>
   );
 }
@@ -172,14 +169,5 @@ const v_d81136 = v_472849.create({
   },
   orbitDot: {
     position: 'absolute',
-  },
-  label: {
-    marginTop: 4,
-    fontSize: 12,
-    fontWeight: '600',
-    color: v_db5c73,
-    textShadowColor: 'rgba(0,0,0,0.6)',
-    textShadowRadius: 3,
-    textShadowOffset: { width: 0, height: 1 },
   },
 });

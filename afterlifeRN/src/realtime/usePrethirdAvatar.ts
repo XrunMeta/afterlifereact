@@ -10,6 +10,8 @@ import { type v_b01667, type v_d20273, type v_b190e4, type v_9d43cd, type v_14f2
 
 const v_67e77e = () => Date.now();
 
+const v_6e8ef7 = 30000;
+
 export const v_506dd1 = [
   { urls: 'stun:stun.cloudflare.com:3478' },
   { urls: 'stun:stun.l.google.com:19302' },
@@ -233,7 +235,12 @@ export function v_3d8d48(v_328259): v_b01667 {
       try {
         const v_35f85c = JSON.parse(v_1d299c?.data ?? '');
         if (v_35f85c.type === 'speech_start' || v_35f85c.type === 'speech_end') {
-          v_8c8005({ type: v_35f85c.type, seq: v_35f85c.seq, ts: v_67e77e() });
+
+          const v_2d99a5 =
+            v_35f85c.type === 'speech_end' && typeof v_35f85c.remaining_ms === 'number' && v_35f85c.remaining_ms >= 0
+              ? Math.min(v_35f85c.remaining_ms, v_6e8ef7)
+              : undefined;
+          v_8c8005({ type: v_35f85c.type, seq: v_35f85c.seq, ts: v_67e77e(), remainingMs: v_2d99a5 });
           if (v_35f85c.type === 'speech_end') v_811f30();
         } else if (v_35f85c.type === 'speech_text') {
 
