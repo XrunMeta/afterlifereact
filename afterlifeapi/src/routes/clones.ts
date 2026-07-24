@@ -219,7 +219,10 @@ clones.post(
     }
     if (usedCount >= 1) {
 
-      if (!body.pin) {
+      const cloneCreatePaymentBypass =
+        String((c.env as unknown as { CLONE_PAYMENT_BYPASS?: string }).CLONE_PAYMENT_BYPASS ?? "") === "1";
+
+      if (!cloneCreatePaymentBypass && !body.pin) {
         throw new APIError("PAYMENT_REQUIRED", "Persona creation requires payment.", {
           priceXrun: personaPrice,
           message: `2번째 페르소나부터 ${personaPrice} XRUN 이 부과됩니다.`,
@@ -227,7 +230,12 @@ clones.post(
       }
 
       const bypassPin = (c.env as unknown as { DEV_PAYMENT_BYPASS_PIN?: string }).DEV_PAYMENT_BYPASS_PIN;
-      if (!bypassPin || body.pin !== bypassPin) {
+      if (cloneCreatePaymentBypass) {
+        console.warn(
+          "[T-155][CLONE_PAYMENT_BYPASS] persona creation fully bypassed — no PIN/transfer/settlement, userId=",
+          userId,
+        );
+      } else if (!bypassPin || body.pin !== bypassPin) {
 
         const companyAddr = c.env.COMPANY_CHARGE_WALLET;
         if (!companyAddr) {
@@ -246,7 +254,8 @@ clones.post(
           fromMember: senderRow.xrun_member_id,
           recipients: [{ toAddress: companyAddr, amount: String(personaPrice) }],
           currency,
-          pin: body.pin,
+
+          pin: body.pin!,
           source: "afterlife.persona-create",
         });
 
