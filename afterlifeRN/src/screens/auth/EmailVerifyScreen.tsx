@@ -192,7 +192,7 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
       console.log("[AUTH/signup] success, accessExpiresIn:", v_8f00b9.accessExpiresIn);
 
-      if (v_24baff.email.toLowerCase().endsWith("@gmail.com")) {
+      if (v_326be8.OS !== "ios" && v_24baff.email.toLowerCase().endsWith("@gmail.com")) {
         v_1fe71f(v_8f00b9.accessToken);
       } else {
         v_f6037c(v_8f00b9.accessToken);

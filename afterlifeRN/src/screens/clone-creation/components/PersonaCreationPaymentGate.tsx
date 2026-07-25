@@ -22,6 +22,7 @@ import { v_194498 } from "../../../stores/cloneStore";
 import { v_d60cdf } from "../../../api/clones";
 import { v_5c99c1, v_9b8cb3, v_5b2249 } from "../../../api/payments";
 import { v_cc9198, v_138fd4 } from "../../../config/apiBase";
+import { v_d615ad } from "ixigazcpvfldbecwtbvavtbi";
 
 const v_898771 = 0.001;
 
@@ -36,6 +37,8 @@ interface Props {
 }
 
 export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Props) {
+
+  const v_161e5a = v_d615ad();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_f4fb5e = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? null);
   const v_5795de = v_194498((v_fd5f43) => v_fd5f43.setCreationDraft);
@@ -210,7 +213,7 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
   if (!v_f99e34) return null; 
 
   return (
-    <Modal visible transparent statusBarTranslucent animationType="fade">
+    <Modal visible={v_161e5a} transparent statusBarTranslucent animationType="fade">
       {}
       <View style={{ flex: 1 }}>
         {
