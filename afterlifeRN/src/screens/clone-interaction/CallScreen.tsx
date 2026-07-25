@@ -564,6 +564,15 @@ export default function CallScreen({ route, navigation }: Props) {
     if (lastSignal?.type === 'speech_start') setGreetingStarted(true);
   }, [lastSignal]);
 
+  useEffect(() => {
+    const audio = (remoteStream as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })
+      ?.getAudioTracks?.() ?? [];
+    const shouldEnable = dialingDone && !isMuted;
+    audio.forEach((t) => {
+      t.enabled = shouldEnable;
+    });
+  }, [remoteStream, dialingDone, isMuted]);
+
   const [cloneSubtitle, setCloneSubtitle] = useState('');
   useEffect(() => {
     if (!lastSignal) return;
@@ -1026,6 +1035,8 @@ export default function CallScreen({ route, navigation }: Props) {
           liveState={liveState}
           personaName={personaName}
           personaImage={typeof personaImage === "string" ? personaImage : ""}
+
+          greetingStarted={greetingOn ? phase !== "greeting" && phase !== "idle" : undefined}
           onConnected={() => setDialingDone(true)}
           onCancel={async () => { await stopLive(); navigation.goBack(); }}
           onRetry={() => { setGreetingStarted(false); void startLive(); }}
