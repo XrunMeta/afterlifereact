@@ -245,6 +245,116 @@ describe("GET /oth-path", () => {
     expect(assets.faceUrl).toBeNull();
   });
 
+  it("faceUrl: clone.idle_video_url(prod 도메인)과 job.out_url(preview 도메인)이 달라도 /oth-path 경로로 매칭 (T-159 회귀)", async () => {
+    const db = env.DB as unknown as D1Database;
+    const ownerId = await seedUser("bundle-face-domain@test.local");
+    const cloneId = await seedClone(ownerId, "bundle_face_domain_clone");
+
+    await db
+      .prepare(
+        `INSERT INTO files (r2_key, content_type, size_bytes, owner_user_id, purpose)
+         VALUES ('uploadedfiles/face/domain.jpg', 'image/jpeg', 55000, ?, 'clone_src')`,
+      )
+      .bind(ownerId)
+      .run();
+    const f = await db
+      .prepare("SELECT id FROM files WHERE r2_key = 'uploadedfiles/face/domain.jpg'")
+      .first<{ id: number }>();
+
+    const idleId = 999321;
+    const cloneIdleUrl = `https://edge-alt.example.invalid/oth-path${idleId}`;
+    const jobOutUrl = `https://edge-alt-preview.example.invalid/oth-path${idleId}`;
+    await db
+      .prepare("UPDATE clones SET idle_video_url = ? WHERE id = ?")
+      .bind(cloneIdleUrl, cloneId)
+      .run();
+    await db
+      .prepare(
+        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, out_url)
+         VALUES ('job-face-domain', ?, 'idle_video', ?, 'done', ?)`,
+      )
+      .bind(ownerId, f!.id, jobOutUrl)
+      .run();
+    const token = await issueAccessToken(ownerId);
+
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/bundle`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    const { assets } = (await res.json()) as { assets: { faceUrl: string | null } };
+
+    expect(assets.faceUrl).toBe(`http://localhost/oth-path${f!.id}`);
+  });
+
+  it("faceUrl: /oth-path 와 /oth-path 는 경계 오탐 없이 비매칭 (T-159 경계)", async () => {
+    const db = env.DB as unknown as D1Database;
+    const ownerId = await seedUser("bundle-face-boundary@test.local");
+    const cloneId = await seedClone(ownerId, "bundle_face_boundary_clone");
+    await db
+      .prepare(
+        `INSERT INTO files (r2_key, content_type, size_bytes, owner_user_id, purpose)
+         VALUES ('uploadedfiles/face/boundary.jpg', 'image/jpeg', 55000, ?, 'clone_src')`,
+      )
+      .bind(ownerId)
+      .run();
+    const f = await db
+      .prepare("SELECT id FROM files WHERE r2_key = 'uploadedfiles/face/boundary.jpg'")
+      .first<{ id: number }>();
+
+    await db
+      .prepare("UPDATE clones SET idle_video_url = ? WHERE id = ?")
+      .bind("https://edge-alt.example.invalid/oth-path", cloneId)
+      .run();
+    await db
+      .prepare(
+        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, out_url)
+         VALUES ('job-face-boundary', ?, 'idle_video', ?, 'done', ?)`,
+      )
+      .bind(ownerId, f!.id, "https://edge-alt-preview.example.invalid/oth-path")
+      .run();
+    const token = await issueAccessToken(ownerId);
+
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/bundle`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    const { assets } = (await res.json()) as { assets: { faceUrl: string | null } };
+    expect(assets.faceUrl).toBeNull();
+  });
+
+  it("idleVideoUrl/fillerVideoUrls: 저장 도메인(prod)과 무관하게 요청 origin 으로 방출 (T-159 가비아 allowlist)", async () => {
+    const db = env.DB as unknown as D1Database;
+    const ownerId = await seedUser("bundle-origin-rebase@test.local");
+    const cloneId = await seedClone(ownerId, "bundle_origin_rebase_clone");
+
+    await db
+      .prepare("UPDATE clones SET idle_video_url = ?, filler_video_urls = ? WHERE id = ?")
+      .bind(
+        "https://edge-alt.example.invalid/oth-path",
+        JSON.stringify([
+          "https://edge-alt.example.invalid/oth-path",
+          "https://edge-alt.example.invalid/oth-path",
+        ]),
+        cloneId,
+      )
+      .run();
+    const token = await issueAccessToken(ownerId);
+
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/bundle`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    const { assets } = (await res.json()) as {
+      assets: { idleVideoUrl: string | null; fillerVideoUrls: string[] };
+    };
+
+    expect(assets.idleVideoUrl).toBe("http://localhost/oth-path");
+    expect(assets.fillerVideoUrls).toEqual([
+      "http://localhost/oth-path",
+      "http://localhost/oth-path",
+    ]);
+  });
+
   it("fillerVideoUrls: filler_video_urls NULL → []", async () => {
     const ownerId = await seedUser("bundle-filler-null@test.local");
     const cloneId = await seedClone(ownerId, "bundle_filler_null_clone");
