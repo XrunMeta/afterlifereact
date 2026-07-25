@@ -192,7 +192,7 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
 
       console.log("[AUTH/signup] success, accessExpiresIn:", res.accessExpiresIn);
 
-      if (params.email.toLowerCase().endsWith("@gmail.com")) {
+      if (Platform.OS !== "ios" && params.email.toLowerCase().endsWith("@gmail.com")) {
         promptGoogleLink(res.accessToken);
       } else {
         goToComplete(res.accessToken);
