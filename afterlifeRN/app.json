@@ -33,11 +33,11 @@
         "NSLocationWhenInUseUsageDescription": "이 앱은 위치 정보를 직접 사용하지 않습니다. 카메라 관련 라이브러리가 접근을 요청할 수 있어 안내드립니다."
       },
       "appleTeamId": "677WG96CUJ",
-      "buildNumber": "8"
+      "buildNumber": "9"
     },
     "android": {
       "package": "run.xrun.afterlifeRN",
-      "versionCode": 8,
+      "versionCode": 11,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -50,6 +50,7 @@
     },
     "plugins": [
       "./withCustomPodfile.js",
+      "./plugins/withAndroidAbiFilters.js",
       [
         "expo-splash-screen",
         {
