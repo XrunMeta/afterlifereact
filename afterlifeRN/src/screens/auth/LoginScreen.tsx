@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Image,
   Alert,
+  Platform,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -337,21 +338,27 @@ export default function LoginScreen({ navigation }: Props) {
             </>
           )}
 
-          {}
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>—</Text>
-            <View style={styles.dividerLine} />
-          </View>
+          {
 
-          {}
-          <Button
-            title={t("auth.login.googleBtn")}
-            onPress={() => handleSocialLogin("google")}
-            variant="secondary"
-            size="md"
-            leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}>G</Text>}
-          />
+}
+          {Platform.OS !== "ios" && (
+            <>
+              {}
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>—</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <Button
+                title={t("auth.login.googleBtn")}
+                onPress={() => handleSocialLogin("google")}
+                variant="secondary"
+                size="md"
+                leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}>G</Text>}
+              />
+            </>
+          )}
 
           {}
           <View style={styles.signupRow}>

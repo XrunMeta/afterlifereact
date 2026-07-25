@@ -22,6 +22,7 @@ import { useCloneStore } from "../../../stores/cloneStore";
 import { listMyClones } from "../../../api/clones";
 import { getXrunBalance, getPaymentPinStatus, verifyPaymentPin } from "../../../api/payments";
 import { API_BASE, API_BASE_PREVIEW } from "../../../config/apiBase";
+import { useIsFocused } from "@react-navigation/native";
 
 const PERSONA_FULL_PRICE_XRUN_FALLBACK = 0.001;
 
@@ -36,6 +37,8 @@ interface Props {
 }
 
 export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Props) {
+
+  const isFocused = useIsFocused();
   const accessToken = useAuthStore((s) => s.accessToken);
   const userEmail = useAuthStore((s) => s.apiUser?.email ?? null);
   const setCreationDraft = useCloneStore((s) => s.setCreationDraft);
@@ -210,7 +213,7 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
   if (!needPay) return null; 
 
   return (
-    <Modal visible transparent statusBarTranslucent animationType="fade">
+    <Modal visible={isFocused} transparent statusBarTranslucent animationType="fade">
       {}
       <View style={{ flex: 1 }}>
         {
