@@ -55,6 +55,12 @@ export async function v_87cfd2(v_a1651b, clone: v_b107dc, v_43e90c, v_f17108): P
   const v_a05ffe = (v_fd5f43): string => v_fd5f43.replace(/[\\%_]/g, "\\$&");
   const v_f39241 = (v_ceb55a): string => `%${v_a05ffe(v_c50dde(v_ceb55a))}`;
 
+  const v_b484d5 = (v_ceb55a): string | null => {
+    if (!v_ceb55a) return v_ceb55a;
+    const v_35f85c = v_ceb55a.match(/\/oth-path\/files\/\d+$/);
+    return v_35f85c ? `${v_f17108}${v_35f85c[0]}` : v_ceb55a; 
+  };
+
   let v_35d74b = null;
   if (v_eb25ce.voice_se_url) {
     const v_d5e460 = await v_a1651b
@@ -114,14 +120,15 @@ export async function v_87cfd2(v_a1651b, clone: v_b107dc, v_43e90c, v_f17108): P
   }
 
   const v_7adc95 = {
-    idleVideoUrl: v_eb25ce.idle_video_url ?? null,
+
+    idleVideoUrl: v_b484d5(v_eb25ce.idle_video_url ?? null),
     voiceSeUrl: v_c910d9,
     voiceSeKey: v_4f80ac,
     voiceRawUrl: v_35d74b,
-    avatarUrl: v_eb25ce.avatar_url ?? null,
+    avatarUrl: v_b484d5(v_eb25ce.avatar_url ?? null),
     faceUrl: v_2d0601,
-    fillerVideoUrls: v_c53bd1,
-    guideVideoUrls: v_fa8b40,
+    fillerVideoUrls: v_c53bd1.map((v_ceb55a) => v_b484d5(v_ceb55a) ?? v_ceb55a),
+    guideVideoUrls: v_fa8b40.map((v_ceb55a) => v_b484d5(v_ceb55a) ?? v_ceb55a),
   };
 
   return { personaBundle: v_ba0fde, assets: v_7adc95 };
