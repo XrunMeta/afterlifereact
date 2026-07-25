@@ -1,0 +1,15 @@
+diff --git a/node_modules/react-native-fast-tflite/android/CMakeLists.txt b/node_modules/react-native-fast-tflite/android/CMakeLists.txt
+index 100468c..69e9deb 100644
+--- a/node_modules/react-native-fast-tflite/android/CMakeLists.txt
++++ b/node_modules/react-native-fast-tflite/android/CMakeLists.txt
+@@ -1,6 +1,10 @@
+ project(VisionCameraTflite)
+ cmake_minimum_required(VERSION 3.9.0)
+ 
++# 16KB page size support (Google Play requirement for Android 15+).
++# Force 16KB ELF segment alignment on libVisionCameraTflite.so.
++set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-z,max-page-size=16384")
++
+ set (CMAKE_VERBOSE_MAKEFILE ON)
+ set (PACKAGE_NAME "VisionCameraTflite")
+ set (CMAKE_CXX_STANDARD 17)
