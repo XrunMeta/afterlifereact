@@ -322,6 +322,39 @@ describe("GET /oth-path", () => {
     expect(assets.faceUrl).toBeNull();
   });
 
+  it("idleVideoUrl/fillerVideoUrls: 저장 도메인(prod)과 무관하게 요청 origin 으로 방출 (T-159 가비아 allowlist)", async () => {
+    const db = env.DB as unknown as D1Database;
+    const ownerId = await seedUser("bundle-origin-rebase@test.local");
+    const cloneId = await seedClone(ownerId, "bundle_origin_rebase_clone");
+
+    await db
+      .prepare("UPDATE clones SET idle_video_url = ?, filler_video_urls = ? WHERE id = ?")
+      .bind(
+        "https://edge-alt.example.invalid/oth-path",
+        JSON.stringify([
+          "https://edge-alt.example.invalid/oth-path",
+          "https://edge-alt.example.invalid/oth-path",
+        ]),
+        cloneId,
+      )
+      .run();
+    const token = await issueAccessToken(ownerId);
+
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/bundle`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    const { assets } = (await res.json()) as {
+      assets: { idleVideoUrl: string | null; fillerVideoUrls: string[] };
+    };
+
+    expect(assets.idleVideoUrl).toBe("http://localhost/oth-path");
+    expect(assets.fillerVideoUrls).toEqual([
+      "http://localhost/oth-path",
+      "http://localhost/oth-path",
+    ]);
+  });
+
   it("fillerVideoUrls: filler_video_urls NULL → []", async () => {
     const ownerId = await seedUser("bundle-filler-null@test.local");
     const cloneId = await seedClone(ownerId, "bundle_filler_null_clone");

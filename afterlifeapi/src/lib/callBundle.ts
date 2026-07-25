@@ -55,6 +55,12 @@ export async function buildCallBundle(db: D1Database, clone: CloneRow, userId: n
   const escapeLike = (s: string): string => s.replace(/[\\%_]/g, "\\$&");
   const likeSuffix = (u: string): string => `%${escapeLike(filesPathSuffix(u))}`;
 
+  const rebaseOrigin = (u: string | null): string | null => {
+    if (!u) return u;
+    const m = u.match(/\/oth-path\/files\/\d+$/);
+    return m ? `${origin}${m[0]}` : u; 
+  };
+
   let voiceRawUrl: string | null = null;
   if (clone.voice_se_url) {
     const jobRow = await db
@@ -114,14 +120,15 @@ export async function buildCallBundle(db: D1Database, clone: CloneRow, userId: n
   }
 
   const assets = {
-    idleVideoUrl: clone.idle_video_url ?? null,
+
+    idleVideoUrl: rebaseOrigin(clone.idle_video_url ?? null),
     voiceSeUrl,
     voiceSeKey,
     voiceRawUrl,
-    avatarUrl: clone.avatar_url ?? null,
+    avatarUrl: rebaseOrigin(clone.avatar_url ?? null),
     faceUrl,
-    fillerVideoUrls,
-    guideVideoUrls,
+    fillerVideoUrls: fillerVideoUrls.map((u) => rebaseOrigin(u) ?? u),
+    guideVideoUrls: guideVideoUrls.map((u) => rebaseOrigin(u) ?? u),
   };
 
   return { personaBundle, assets };
