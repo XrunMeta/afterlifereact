@@ -47,6 +47,20 @@ export async function v_87cfd2(v_a1651b, clone: v_b107dc, v_43e90c, v_f17108): P
     v_4f80ac = v_f653fc?.se_key ?? null;
   }
 
+  const v_c50dde = (v_ceb55a): string => {
+    const v_35f85c = v_ceb55a.match(/\/oth-path\/files\/\d+$/);
+    return v_35f85c ? v_35f85c[0] : v_ceb55a; 
+  };
+
+  const v_a05ffe = (v_fd5f43): string => v_fd5f43.replace(/[\\%_]/g, "\\$&");
+  const v_f39241 = (v_ceb55a): string => `%${v_a05ffe(v_c50dde(v_ceb55a))}`;
+
+  const v_b484d5 = (v_ceb55a): string | null => {
+    if (!v_ceb55a) return v_ceb55a;
+    const v_35f85c = v_ceb55a.match(/\/oth-path\/files\/\d+$/);
+    return v_35f85c ? `${v_f17108}${v_35f85c[0]}` : v_ceb55a; 
+  };
+
   let v_35d74b = null;
   if (v_eb25ce.voice_se_url) {
     const v_d5e460 = await v_a1651b
@@ -54,11 +68,11 @@ export async function v_87cfd2(v_a1651b, clone: v_b107dc, v_43e90c, v_f17108): P
         `SELECT f.id AS file_id
            FROM clone_asset_jobs j
            JOIN files f ON j.src_file_id = f.id
-          WHERE j.out_url = ? AND j.kind = 'voice_clone' AND j.status = 'done'
+          WHERE j.out_url LIKE ? ESCAPE '\\' AND j.kind = 'voice_clone' AND j.status = 'done'
           ORDER BY j.created_at DESC
           LIMIT 1`,
       )
-      .bind(v_eb25ce.voice_se_url)
+      .bind(v_f39241(v_eb25ce.voice_se_url))
       .first<{ file_id: number }>();
     v_35d74b = v_d5e460 ? `${v_f17108}/oth-path${v_d5e460.file_id}` : null;
   }
@@ -70,11 +84,11 @@ export async function v_87cfd2(v_a1651b, clone: v_b107dc, v_43e90c, v_f17108): P
         `SELECT f.id AS file_id
            FROM clone_asset_jobs j
            JOIN files f ON j.src_file_id = f.id
-          WHERE j.out_url = ? AND j.kind = 'idle_video' AND j.status = 'done'
+          WHERE j.out_url LIKE ? ESCAPE '\\' AND j.kind = 'idle_video' AND j.status = 'done'
           ORDER BY j.created_at DESC, j.rowid DESC
           LIMIT 1`,
       )
-      .bind(v_eb25ce.idle_video_url)
+      .bind(v_f39241(v_eb25ce.idle_video_url))
       .first<{ file_id: number }>();
     v_2d0601 = v_dcfd51 ? `${v_f17108}/oth-path${v_dcfd51.file_id}` : null;
   }
@@ -106,14 +120,15 @@ export async function v_87cfd2(v_a1651b, clone: v_b107dc, v_43e90c, v_f17108): P
   }
 
   const v_7adc95 = {
-    idleVideoUrl: v_eb25ce.idle_video_url ?? null,
+
+    idleVideoUrl: v_b484d5(v_eb25ce.idle_video_url ?? null),
     voiceSeUrl: v_c910d9,
     voiceSeKey: v_4f80ac,
     voiceRawUrl: v_35d74b,
-    avatarUrl: v_eb25ce.avatar_url ?? null,
+    avatarUrl: v_b484d5(v_eb25ce.avatar_url ?? null),
     faceUrl: v_2d0601,
-    fillerVideoUrls: v_c53bd1,
-    guideVideoUrls: v_fa8b40,
+    fillerVideoUrls: v_c53bd1.map((v_ceb55a) => v_b484d5(v_ceb55a) ?? v_ceb55a),
+    guideVideoUrls: v_fa8b40.map((v_ceb55a) => v_b484d5(v_ceb55a) ?? v_ceb55a),
   };
 
   return { personaBundle: v_ba0fde, assets: v_7adc95 };
