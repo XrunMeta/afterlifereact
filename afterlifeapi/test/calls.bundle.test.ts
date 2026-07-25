@@ -322,6 +322,39 @@ v_469bf2("GET /oth-path", () => {
     v_4d37e3(v_7adc95.faceUrl).toBeNull();
   });
 
+  v_23805a("idleVideoUrl/fillerVideoUrls: 저장 도메인(prod)과 무관하게 요청 origin 으로 방출 (T-159 가비아 allowlist)", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_1badb6 = await v_bfb240("bundle-origin-rebase@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "bundle_origin_rebase_clone");
+
+    await v_a1651b
+      .prepare("UPDATE clones SET idle_video_url = ?, filler_video_urls = ? WHERE id = ?")
+      .bind(
+        "https://edge-alt.example.invalid/oth-path",
+        JSON.stringify([
+          "https://edge-alt.example.invalid/oth-path",
+          "https://edge-alt.example.invalid/oth-path",
+        ]),
+        v_6e0fd3,
+      )
+      .run();
+    const v_21cc31 = await v_86c39f(v_1badb6);
+
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/bundle`, {
+      headers: { Authorization: `Bearer ${v_21cc31}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const { assets: v_7adc95 } = (await v_8f00b9.json()) as {
+      assets: { idleVideoUrl: string | null; fillerVideoUrls: string[] };
+    };
+
+    v_4d37e3(v_7adc95.idleVideoUrl).toBe("http://localhost/oth-path");
+    v_4d37e3(v_7adc95.fillerVideoUrls).toEqual([
+      "http://localhost/oth-path",
+      "http://localhost/oth-path",
+    ]);
+  });
+
   v_23805a("fillerVideoUrls: filler_video_urls NULL → []", async () => {
     const v_1badb6 = await v_bfb240("bundle-filler-null@test.local");
     const v_6e0fd3 = await v_4d24a9(v_1badb6, "bundle_filler_null_clone");
