@@ -53,6 +53,63 @@ export async function v_6e82f0(env: v_273a0c, v_ddf1dc): Promise<void> {
     .run();
 }
 
+const v_3a3341 = "gift.catalog";
+const v_555ada = [
+  { id: "gift-starcandy", name: "별사탕", emoji: "🍬", price: 10 },
+  { id: "gift-bouquet",   name: "꽃다발", emoji: "💐", price: 10 },
+  { id: "gift-like",      name: "좋아요", emoji: "👍", price: 10 },
+  { id: "gift-heartbeat", name: "두근두근", emoji: "💓", price: 10 },
+];
+
+export interface GiftCatalogItem {
+  id: string;
+  name: string;
+  emoji: string;
+  price: number;
+}
+
+export async function v_0edc13(env: v_273a0c): Promise<GiftCatalogItem[]> {
+  try {
+    const v_3ac7e7 = await v_c9c489.DB
+      .prepare(`SELECT value FROM app_config WHERE key = ? LIMIT 1`)
+      .bind(v_3a3341)
+      .first<{ value: string }>();
+    if (!v_3ac7e7?.value) return v_555ada;
+    const v_8decf8 = JSON.parse(v_3ac7e7.value) as unknown;
+    if (!Array.isArray(v_8decf8)) return v_555ada;
+    const v_4622b9 = [];
+    for (const v_23805a of v_8decf8) {
+      if (
+        v_23805a && typeof v_23805a === "object" &&
+        typeof (v_23805a as GiftCatalogItem).id === "string" &&
+        typeof (v_23805a as GiftCatalogItem).name === "string" &&
+        typeof (v_23805a as GiftCatalogItem).emoji === "string" &&
+        typeof (v_23805a as GiftCatalogItem).price === "number"
+      ) {
+        v_4622b9.push({
+          id: (v_23805a as GiftCatalogItem).id,
+          name: (v_23805a as GiftCatalogItem).name,
+          emoji: (v_23805a as GiftCatalogItem).emoji,
+          price: (v_23805a as GiftCatalogItem).price,
+        });
+      }
+    }
+    return v_4622b9.length > 0 ? v_4622b9 : v_555ada;
+  } catch {
+    return v_555ada;
+  }
+}
+
+export async function v_9459da(env: v_273a0c, v_4622b9): Promise<void> {
+  await v_c9c489.DB
+    .prepare(
+      `INSERT INTO app_config (key, value, updated_at) VALUES (?, ?, unixepoch())
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = unixepoch()`,
+    )
+    .bind(v_3a3341, JSON.stringify(v_4622b9))
+    .run();
+}
+
 export async function v_e35611(env: v_273a0c): Promise<string> {
   const v_479f05 = await v_399bbb(v_c9c489);
   if (!v_479f05) return "";

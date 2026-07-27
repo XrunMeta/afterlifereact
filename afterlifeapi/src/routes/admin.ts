@@ -18,6 +18,9 @@ import {
   v_5d3436,
   v_399bbb,
   v_6e82f0,
+  v_0edc13,
+  v_9459da,
+  type v_83f27d,
 } from "../lib/appConfig";
 
 export const v_b7f2b4 = new v_b7c41b<v_de0a25>();
@@ -51,6 +54,37 @@ v_b7f2b4.patch("/config/knowledge-rules", v_c0a297, async (v_3f4e2e) => {
   }
   await v_6e82f0(v_3f4e2e.env, v_ddf1dc);
   return v_3f4e2e.json({ ok: true, rules: v_ddf1dc });
+});
+
+const v_8295db = 200;
+v_b7f2b4.get("/config/gift-catalog", v_c0a297, async (v_3f4e2e) => {
+  const v_4622b9 = await v_0edc13(v_3f4e2e.env);
+  return v_3f4e2e.json({ items: v_4622b9 });
+});
+v_b7f2b4.patch("/config/gift-catalog", v_c0a297, async (v_3f4e2e) => {
+  const v_4d33b2 = await v_3f4e2e.req.json<{ items?: unknown }>().catch(() => ({} as { items?: unknown }));
+  if (!Array.isArray(v_4d33b2.items)) {
+    throw new v_3ebe58("VALIDATION_FAILED", "items must be an array.");
+  }
+  if (v_4d33b2.items.length > v_8295db) {
+    throw new v_3ebe58("VALIDATION_FAILED", `too many items (max ${v_8295db}).`);
+  }
+  const clean: v_83f27d[] = [];
+  for (const v_479f05 of v_4d33b2.items) {
+    if (!v_479f05 || typeof v_479f05 !== "object") {
+      throw new v_3ebe58("VALIDATION_FAILED", "each item must be an object.");
+    }
+    const v_23805a = v_479f05 as Partial<v_83f27d>;
+    if (typeof v_23805a.id !== "string" || !v_23805a.id.trim()) throw new v_3ebe58("VALIDATION_FAILED", "id required.");
+    if (typeof v_23805a.name !== "string" || !v_23805a.name.trim()) throw new v_3ebe58("VALIDATION_FAILED", "name required.");
+    if (typeof v_23805a.emoji !== "string" || !v_23805a.emoji.trim()) throw new v_3ebe58("VALIDATION_FAILED", "emoji required.");
+    if (typeof v_23805a.price !== "number" || !Number.isFinite(v_23805a.price) || v_23805a.price < 0) {
+      throw new v_3ebe58("VALIDATION_FAILED", "price must be non-negative number.");
+    }
+    v_76a373.push({ id: v_23805a.id.trim(), name: v_23805a.name.trim(), emoji: v_23805a.emoji.trim(), price: v_23805a.price });
+  }
+  await v_9459da(v_3f4e2e.env, v_76a373);
+  return v_3f4e2e.json({ ok: true, items: v_76a373 });
 });
 
 const v_c325e5 = v_1f4ea7.object({
