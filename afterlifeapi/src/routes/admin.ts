@@ -13,7 +13,12 @@ import { v_70b594, v_4db5dd } from "../lib/knowledgeQuestions";
 import { v_cba618, v_1809f7 } from "../lib/knowledgeBlacklist";
 import { v_038cdc } from "../lib/knowledgeStore";
 import { v_c226a5 } from "../lib/notify";
-import { v_916830, v_5d3436 } from "../lib/appConfig";
+import {
+  v_916830,
+  v_5d3436,
+  v_399bbb,
+  v_6e82f0,
+} from "../lib/appConfig";
 
 export const v_b7f2b4 = new v_b7c41b<v_de0a25>();
 
@@ -31,6 +36,21 @@ v_b7f2b4.patch("/config/persona-price", v_c0a297, async (v_3f4e2e) => {
   }
   await v_5d3436(v_3f4e2e.env, v_6bbb57);
   return v_3f4e2e.json({ ok: true, priceXrun: v_6bbb57 });
+});
+
+const v_46964b = 8000;
+v_b7f2b4.get("/config/knowledge-rules", v_c0a297, async (v_3f4e2e) => {
+  const v_ddf1dc = await v_399bbb(v_3f4e2e.env);
+  return v_3f4e2e.json({ rules: v_ddf1dc });
+});
+v_b7f2b4.patch("/config/knowledge-rules", v_c0a297, async (v_3f4e2e) => {
+  const v_4d33b2 = await v_3f4e2e.req.json<{ rules?: unknown }>().catch(() => ({} as { rules?: unknown }));
+  const v_ddf1dc = typeof v_4d33b2.rules === "string" ? v_4d33b2.rules : "";
+  if (v_ddf1dc.length > v_46964b) {
+    throw new v_3ebe58("VALIDATION_FAILED", `rules must be ≤ ${v_46964b} chars.`);
+  }
+  await v_6e82f0(v_3f4e2e.env, v_ddf1dc);
+  return v_3f4e2e.json({ ok: true, rules: v_ddf1dc });
 });
 
 const v_c325e5 = v_1f4ea7.object({

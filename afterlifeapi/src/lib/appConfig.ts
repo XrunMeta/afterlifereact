@@ -28,3 +28,27 @@ export async function v_5d3436(env: v_273a0c, v_6bbb57): Promise<void> {
     .bind(v_f419a5, String(v_6bbb57))
     .run();
 }
+
+const v_ca1841 = "knowledge.interpret_extra_rules";
+
+export async function v_399bbb(env: v_273a0c): Promise<string> {
+  try {
+    const v_3ac7e7 = await v_c9c489.DB
+      .prepare(`SELECT value FROM app_config WHERE key = ? LIMIT 1`)
+      .bind(v_ca1841)
+      .first<{ value: string }>();
+    return v_3ac7e7?.value ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export async function v_6e82f0(env: v_273a0c, v_ddf1dc): Promise<void> {
+  await v_c9c489.DB
+    .prepare(
+      `INSERT INTO app_config (key, value, updated_at) VALUES (?, ?, unixepoch())
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = unixepoch()`,
+    )
+    .bind(v_ca1841, v_ddf1dc)
+    .run();
+}

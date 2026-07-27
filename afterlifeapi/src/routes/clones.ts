@@ -6,7 +6,7 @@ import { v_6690d9 } from "../middleware/auth";
 import { v_a04a51 } from "../middleware/idempotency";
 import { v_74defc } from "../lib/logger";
 import { v_e0041f, v_cfdcb0 } from "../lib/similarity";
-import { v_916830 } from "../lib/appConfig";
+import { v_916830, v_399bbb } from "../lib/appConfig";
 import {
   v_7adf64,
   v_ab84f6,
@@ -926,6 +926,8 @@ v_f891e6.post("/:id/knowledge/interpret", v_6690d9, async (v_3f4e2e) => {
   if (v_3f4e2e.env.KNOWLEDGE_INTERPRET_SECRET)
     v_3f4675["X-Internal-Secret"] = v_3f4e2e.env.KNOWLEDGE_INTERPRET_SECRET;
 
+  const v_02f320 = await v_399bbb(v_3f4e2e.env);
+
   let v_5fbc62 = {};
   try {
     const v_eb792a = await fetch(`${v_694b25}/prethird/knowledge/interpret`, {
@@ -937,6 +939,7 @@ v_f891e6.post("/:id/knowledge/interpret", v_6690d9, async (v_3f4e2e) => {
         slots: v_966a46.map((v_fd5f43) => ({ key: v_fd5f43.key, label: v_fd5f43.label })),
 
         persona_name: v_eb25ce.name ?? null,
+        extra_rules: v_02f320 || null,
       }),
       signal: AbortSignal.timeout(20000),
     });
