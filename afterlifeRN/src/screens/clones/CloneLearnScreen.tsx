@@ -435,6 +435,10 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
                     multiline
                     style={styles.input}
                     editable={!saving}
+                    onFocus={() => {
+
+                      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
+                    }}
                   />
                   <TouchableOpacity
                     onPress={handleSend}
