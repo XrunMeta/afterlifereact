@@ -1,4 +1,4 @@
-import v_a3453e, { v_5ab095 } from "bapkr";
+import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -20,14 +20,12 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_694b7f } from "../../api/source";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
-import type { v_84fd28 } from "../../types/gift";
-import v_feb82c from "../../mocks/gifts.json";
+
+import { v_599b97, type v_83f27d } from "../../api/gifts";
 
 type Props = v_432191<v_2d88fc, "CloneDetail">;
 
 const { width: v_0d9f50, height: v_28d8d8 } = v_700696.get("window");
-
-const v_68bb66 = v_feb82c as v_84fd28[];
 
 export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
   const { t: v_8d41d7 } = v_772971();
@@ -36,6 +34,27 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_625c74 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
   const v_033e14 = v_e0068c();
   const [v_a7e879, v_88d896] = v_5ab095(false);
+  const [v_8282fa, v_15c939] = v_5ab095<string | null>(null);
+  const [v_68bb66, v_3bae81] = v_5ab095<v_83f27d[]>([]);
+  v_c4deb2(() => {
+    let v_2008a4 = false;
+    void v_599b97().then((v_4622b9) => {
+      if (!v_2008a4) v_3bae81(v_4622b9);
+    });
+    return () => {
+      v_2008a4 = true;
+    };
+  }, []);
+
+  v_c4deb2(() => {
+    if (!v_8282fa) return;
+    const v_cb36b1 = setTimeout(() => v_15c939(null), 2000);
+    return () => clearTimeout(v_cb36b1);
+  }, [v_8282fa]);
+  const v_368174 = () => {
+    v_88d896(false);
+    v_15c939("결제 준비 중이에요");
+  };
 
   const v_c279e3 =
     v_eb25ce && v_eb25ce.cloneType === "memlow"
@@ -59,13 +78,12 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     v_625c74?.id != null &&
     (v_625c74.id === v_eb25ce.ownerId || v_625c74.id === v_eb25ce.primaryEditorUserId);
 
-  const v_992a8f = ({ item: v_8c0b26 }: { item: v_84fd28 }) => (
-    <TouchableOpacity style={v_fd5f43.giftItem}>
+  const v_992a8f = ({ item: v_8c0b26 }: { item: v_83f27d }) => (
+    <TouchableOpacity style={v_fd5f43.giftItem} activeOpacity={0.7} onPress={v_368174}>
       <View style={v_fd5f43.giftEmojiWrap}>
         <Text style={v_fd5f43.giftEmoji}>{v_8c0b26.emoji}</Text>
       </View>
       <Text style={v_fd5f43.giftName}>{v_8c0b26.name}</Text>
-      <Text style={v_fd5f43.giftPrice}>{v_8c0b26.price} XRUN</Text>
     </TouchableOpacity>
   );
 
@@ -174,10 +192,6 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             </Text>
 
             {}
-            <View style={v_fd5f43.balanceRow}>
-              <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("detail.balance")}</Text>
-              <Text style={v_fd5f43.balanceValue}>1,250</Text>
-            </View>
 
             {}
             <FlatList
@@ -191,12 +205,19 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             />
 
             {}
-            <TouchableOpacity style={v_fd5f43.sendGiftBtn} activeOpacity={0.8}>
+            <TouchableOpacity style={v_fd5f43.sendGiftBtn} activeOpacity={0.8} onPress={v_368174}>
               <Text style={v_fd5f43.sendGiftText}>{v_8d41d7("detail.send")}</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>
+
+      {}
+      {v_8282fa && (
+        <View style={v_fd5f43.toast}>
+          <Text style={v_fd5f43.toastText}>{v_8282fa}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -338,17 +359,6 @@ const v_fd5f43 = v_472849.create({
     color: v_1bfbd0.zinc400,
     marginBottom: 20,
   },
-  balanceRow: {
-    backgroundColor: v_1bfbd0.zinc800,
-    borderRadius: v_8b0c90.lg,
-    padding: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  balanceLabel: { fontSize: 14, color: v_1bfbd0.zinc400 },
-  balanceValue: { fontSize: 20, fontWeight: "700", color: v_1bfbd0.white },
   giftGrid: { gap: 12 },
   giftRow: { gap: 12 },
   giftItem: {
@@ -369,7 +379,6 @@ const v_fd5f43 = v_472849.create({
   },
   giftEmoji: { fontSize: 28 },
   giftName: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.white, marginBottom: 4 },
-  giftPrice: { fontSize: 12, fontWeight: "700", color: v_1bfbd0.violet500 },
   sendGiftBtn: {
     height: 48,
     borderRadius: v_8b0c90.lg,
@@ -379,6 +388,18 @@ const v_fd5f43 = v_472849.create({
     marginTop: 20,
   },
   sendGiftText: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.white },
+
+  toast: {
+    position: "absolute",
+    bottom: 140,
+    alignSelf: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: "rgba(0,0,0,0.8)",
+    borderRadius: v_8b0c90.full,
+    zIndex: 50,
+  },
+  toastText: { fontSize: 14, color: v_1bfbd0.white },
 
   notFound: {
     flex: 1,

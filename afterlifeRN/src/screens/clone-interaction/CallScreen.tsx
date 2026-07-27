@@ -1,980 +1,800 @@
-import { showAlert } from "../../stores/dialogStore";
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import v_a3453e, { v_5ab095, v_c4deb2, v_e662ae, v_de06a3, v_df9f57 } from "bapkr";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  Dimensions,
-  FlatList,
-  Modal,
-  Pressable,
-  Animated,
-  Platform,
-  KeyboardAvoidingView,
-  Keyboard,
-  TextInput,
-  Alert,
-  Linking,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { Feather, Ionicons } from "@expo/vector-icons";
-import { RTCView } from "react-native-webrtc";
+  v_3094a2,
+  v_19b633,
+  v_472849,
+  v_4623af,
+  v_cf9c33,
+  v_700696,
+  v_9cabcb,
+  v_aa7413,
+  v_09d0e5,
+  v_a2349e,
+  v_326be8,
+  v_0e1f26,
+  v_79c4f2,
+} from "rcmrninabrnb";
+import { v_5ade23 } from "xbfwaaanosqvazmrqoah";
+import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
+import { v_bab832 } from "rthlnescfffbyxfmhgq";
 import {
-  Camera as VisionCamera,
-  useCameraDevice,
-  useFrameProcessor,
-} from "react-native-vision-camera";
-import { Worklets } from "react-native-worklets-core";
-import { useFaceDetector } from "react-native-vision-camera-face-detector";
-import type { Face as DetectorFace } from "react-native-vision-camera-face-detector";
-import { useTensorflowModel } from "react-native-fast-tflite";
-import { useResizePlugin } from "vision-camera-resize-plugin";
-import { useSharedValue } from "react-native-worklets-core";
-import { useFaceDetection } from "../../hooks/useFaceDetection";
-import { largestFace } from "../../face/largestFace";
-import { shouldRunEmbedding } from "../../face/embeddingThrottle";
-import { normalizeFrameTimestampMs } from "../../face/frameTimestamp";
-import { detectNewFaces } from "../../face/newFaceDetector";
-import { useFaceIdentify } from "../../face/useFaceIdentify";
-import { useFaceEnroll, FACE_ENROLL_VECTOR_COUNT } from "../../face/useFaceEnroll";
-import { shouldCleanupOrphanOnSuggest } from "../../face/faceEnrollGuard";
-import type { SpeakerEvent } from "../../face/speakerIdReducer";
+  v_862296 as v_628d75,
+  v_db5a6b,
+  v_b08ef3,
+} from "mkqptszwrsxiemcjrtdlshyxlm";
+import { v_d73d29 } from "fkysyevuehkssftyrtweoolhfw";
+import { v_ac8611 } from "gegbzaufjmeglxlxrodgpkwzmpoxabawfpabkiqb";
+import type { v_ab3a39 as v_1faf6a } from "gegbzaufjmeglxlxrodgpkwzmpoxabawfpabkiqb";
+import { v_b24f74 } from "hpkstesipoootxeqkajlxyxt";
+import { v_cb507d } from "hbzwhsuegbhzscystubugxnkiwe";
+import { v_fc0657 } from "fkysyevuehkssftyrtweoolhfw";
+import { v_b83839 } from "../../hooks/useFaceDetection";
+import { v_e74bab } from "../../face/largestFace";
+import { v_f7b672 } from "../../face/embeddingThrottle";
+import { v_a40fe8 } from "../../face/frameTimestamp";
+import { v_6e58ce } from "../../face/newFaceDetector";
+import { v_e9685b } from "../../face/useFaceIdentify";
+import { v_3fc8fd, v_9e3bb7 } from "../../face/useFaceEnroll";
+import { v_19be88 } from "../../face/faceEnrollGuard";
+import type { v_b26216 } from "../../face/speakerIdReducer";
 import {
-  speakerHandoffReducer,
-  initSpeakerHandoffState,
-  type SpeakerHandoffEvent,
-  type SpeakerHandoffAction,
+  v_5ecb22,
+  v_047711,
+  type v_cdfa61,
+  type v_05f3fa,
 } from "../../realtime/speakerHandoff";
-import { isFaceConsentEnforced } from "../../config/faceConsent";
+import { v_565c6d } from "../../config/faceConsent";
 import {
-  createPerson,
-  saveFaceConsent,
-  listPersons,
-  deletePerson,
-  updatePersonName,
-  type Person,
+  v_4e7b87,
+  v_31967f,
+  v_865d38,
+  v_a94a1b,
+  v_137542,
+  type v_5c12dc,
 } from "../../api/persons";
-import { getFaceBiometricConsent } from "../../api/consent";
-import { decideEnrollSuggestAction, decideOrphanCleanupBeforeSilent } from "../../face/autoEnrollGuard";
-import { FACE_DIAG_ENABLED, formatFaceHud, type FaceDiag } from "../../config/faceDiag";
-import TermsModal from "../../components/common/TermsModal";
-import { useAvatarCall } from "../../realtime/useAvatarCall";
-import { submitDevText } from "../../realtime/devCallText";
-import { CALL_ROUTE } from "../../config/callRoute";
-import { GREETING_ENABLED, GREETING_FALLBACK_TEXT, GREET_TIMEOUT_MS } from "../../config/greeting";
-import { useHandsFreeController } from "../../realtime/useHandsFreeController";
-import { useVideoStatsDiag } from "../../realtime/useVideoStatsDiag";
-import { DialingScreen } from "../../components/call/DialingScreen";
-import { CallVoiceBall } from "../../components/call/CallVoiceBall";
-import { CallTimingHUD } from "../../components/call/CallTimingHUD";
-import { CallTimingPanel } from "../../components/call/CallTimingPanel";
-import { CloneSubtitleTicker } from "../../components/call/CloneSubtitleTicker";
-import { useTimingConfigStore } from "../../realtime/timingConfig";
-import { startTimingLog } from "../../realtime/timingLog";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
-import { useTranslation } from "react-i18next";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import type { RootStackParamList } from "../../navigation/types";
-import { useCloneStore } from "../../stores/cloneStore";
-import { useAuthStore } from "../../stores/authStore";
-import { COLORS, RADIUS } from "../../components/constants";
-import { OtpCodeInput } from "../../components/auth/OtpVerifyView";
-import type { Gift } from "../../types/gift";
-import giftsData from "../../mocks/gifts.json";
-import { getXrunBalance } from "../../api/payments";
+import { v_0f8436 } from "../../api/consent";
+import { v_0362e7, v_de73d9 } from "../../face/autoEnrollGuard";
+import { v_55dbc4, v_8682a9, type v_8a6b56 } from "../../config/faceDiag";
+import v_c0caa9 from "../../components/common/TermsModal";
+import { v_2ab825 } from "../../realtime/useAvatarCall";
+import { v_f22ce9 } from "../../realtime/devCallText";
+import { v_c6d1f4 } from "../../config/callRoute";
+import { v_a6928f, v_0e2cb4, v_71f13f } from "../../config/greeting";
+import { v_7df8a4 } from "../../realtime/useHandsFreeController";
+import { v_eba6cc } from "../../realtime/useVideoStatsDiag";
+import { v_1980fb } from "../../components/call/DialingScreen";
+import { v_9204e2 } from "../../components/call/CallVoiceBall";
+import { v_cdcb08 } from "../../components/call/CallTimingHUD";
+import { v_e68007 } from "../../components/call/CallTimingPanel";
+import { v_fb3568 } from "../../components/call/CloneSubtitleTicker";
+import { v_7347b3 } from "../../realtime/timingConfig";
+import { v_1b1534 } from "../../realtime/timingLog";
+import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
+import { v_772971 } from "jmpfvteuuztnp";
+import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
+import type { v_8ad91b } from "../../navigation/types";
+import { v_194498 } from "../../stores/cloneStore";
+import { v_1ed7d9 } from "../../stores/authStore";
+import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
+
+import { v_599b97, type v_83f27d } from "../../api/gifts";
 import {
-  getCloneLikeStatus,
-  likeClone,
-  unlikeClone,
-  sendGiftToClone,
-  postCloneCallEvent,
+  v_6d41b9,
+  v_b14fce,
+  v_0ff331,
+  v_c0681d,
 } from "../../api/clones";
-import { AuthApiError } from "../../api/auth";
-import ExpertBadge from "../../components/ui/ExpertBadge";
+import v_8fba67 from "../../components/ui/ExpertBadge";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Call">;
+type Props = v_432191<v_8ad91b, "Call">;
 
-const { width: SCREEN_W } = Dimensions.get("window");
-const gifts = giftsData as Gift[];
+const { width: v_437248 } = v_700696.get("window");
 
-const VIDEO_EDGE_TRIM_PX = 1;
+const v_5ac7d6 = 1;
 
 interface FloatingGift {
   id: number;
   emoji: string;
-  animY: Animated.Value;
-  animOpacity: Animated.Value;
+  animY: v_a2349e.Value;
+  animOpacity: v_a2349e.Value;
   x: number;
 }
 
-export default function CallScreen({ route, navigation }: Props) {
-  const { t } = useTranslation();
-  const { cloneId, name: paramName, image: paramImage } = route.params;
-  const clone = useCloneStore((s) => s.getCloneById(cloneId));
-  const accessToken = useAuthStore((s) => s.accessToken);
-  const userEmail = useAuthStore((s) => s.apiUser?.email ?? null);
-  const currentUserId = useAuthStore((s) => s.apiUser?.id ?? null);
+export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
+  const { t: v_8d41d7 } = v_772971();
+  const { cloneId: v_6e0fd3, name: v_a4744c, image: v_c1e151 } = v_c7daf6.params;
+  const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
+  const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const v_493eec = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.id ?? null);
 
-  const isOwnClone =
-    !!clone && clone.ownerId != null && currentUserId != null && clone.ownerId === currentUserId;
-  const insets = useSafeAreaInsets();
+  const v_336a6a =
+    !!v_eb25ce && v_eb25ce.ownerId != null && v_493eec != null && v_eb25ce.ownerId === v_493eec;
+  const v_033e14 = v_e0068c();
+  const v_f9771e = v_c18c22(0);
+  const v_53dd92 =
+    v_326be8.OS === "ios" ? v_033e14.bottom : Math.max(v_f9771e, v_033e14.bottom);
 
-  const TEST_PRICE_EMAILS = ["oth-user@example.invalid", "oth-test@example.invalid"];
-  const giftPriceFor = (g: Gift) =>
-    userEmail && TEST_PRICE_EMAILS.includes(userEmail) ? 0.05 : g.price;
-  const navBarHeight = useAndroidNavigationBarHeight(0);
-  const bottomInset =
-    Platform.OS === "ios" ? insets.bottom : Math.max(navBarHeight, insets.bottom);
+  const [v_5bb98b, v_fce7f9] = v_5ab095<"front" | "back">("front");
+  const [v_4e2aec, v_326ca4] = v_5ab095(false);
+  const [v_9e64e1, v_e064ce] = v_5ab095(false);
 
-  const [cameraFacing, setCameraFacing] = useState<"front" | "back">("front");
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [v_67b98a, v_9739b5] = v_5ab095(false);
 
-  const [faceProcOff, setFaceProcOff] = useState(false);
+  const [v_b2ccaa, v_82a4b3] = v_5ab095(false);
 
-  const [dialingDone, setDialingDone] = useState(false);
+  const v_49a70b = v_db5a6b(v_5bb98b === "front" ? "front" : "back");
 
-  const vcDevice = useCameraDevice(cameraFacing === "front" ? "front" : "back");
-
-  const { faceState, onFaces } = useFaceDetection();
-  const { detectFaces, stopListeners } = useFaceDetector({
+  const { faceState: v_bbb3d3, onFaces: v_dfbd9a } = v_b83839();
+  const { detectFaces: v_de4d76, stopListeners: v_62fe07 } = v_ac8611({
     performanceMode: "fast",
     trackingEnabled: true,
   });
 
-  const pipCameraRef = useRef<VisionCamera>(null);
+  const v_f15637 = v_e662ae<v_628d75>(null);
 
-  useEffect(() => {
+  v_c4deb2(() => {
     return () => {
-      stopListeners();
+      v_62fe07();
     };
-  }, [stopListeners]);
+  }, [v_62fe07]);
 
-  const handleFacesOnJS = React.useMemo(
+  const v_8090fb = v_a3453e.useMemo(
     () =>
-      Worklets.createRunOnJS((faces: DetectorFace[]) => {
-        const bridged = faces.map((f) => ({
-          trackingID: f.trackingId,
-          bounds: f.bounds,
+      v_d73d29.createRunOnJS((faces: v_1faf6a[]) => {
+        const v_29a122 = v_a51d09.map((v_8b5cd8) => ({
+          trackingID: v_8b5cd8.trackingId,
+          bounds: v_8b5cd8.bounds,
         }));
-        onFaces(bridged);
+        v_dfbd9a(v_29a122);
       }),
 
     [],
   );
 
-  const [consentGranted, setConsentGranted] = useState(false);
-  const [termsModalVisible, setTermsModalVisible] = useState(false);
+  const [v_58656e, v_071915] = v_5ab095(false);
+  const [v_550809, v_566132] = v_5ab095(false);
 
-  const [consentLoading, setConsentLoading] = useState(false);
+  const [v_a6086d, v_603e38] = v_5ab095(false);
 
-  const [faceDiag, setFaceDiag] = useState<FaceDiag | null>(null);
-  const [gtPersonId, setGtPersonId] = useState<number | null>(null);
-  const [persons, setPersons] = useState<Person[]>([]);
+  const [v_488209, v_5b715f] = v_5ab095<v_8a6b56 | null>(null);
+  const [v_e7824f, v_0981e9] = v_5ab095<number | null>(null);
+  const [v_fded81, v_1b22c3] = v_5ab095<v_5c12dc[]>([]);
 
-  useEffect(() => {
+  v_c4deb2(() => {
 
-    void VisionCamera.requestCameraPermission();
+    void v_628d75.requestCameraPermission();
 
-    if (!accessToken) return;
-    let cancelled = false;
-    listPersons(accessToken)
-      .then(({ items }) => {
-        if (cancelled) return;
-        const hasConsent = items.some((p) => p.consentState === "granted");
-        setConsentGranted(hasConsent);
-        setPersons(items); 
-        console.log(`[Call][face] listPersons ← granted=${hasConsent} (total=${items.length})`);
+    if (!v_2ca7e0) return;
+    let v_2008a4 = false;
+    v_865d38(v_2ca7e0)
+      .then(({ items: v_4622b9 }) => {
+        if (v_2008a4) return;
+        const v_5f7d15 = v_4622b9.some((v_e2a85c) => v_e2a85c.consentState === "granted");
+        v_071915(v_5f7d15);
+        v_1b22c3(v_4622b9); 
+        console.log(`[Call][face] listPersons ← granted=${v_5f7d15} (total=${v_4622b9.length})`);
       })
-      .catch((err) => {
-        console.warn("[Call][face] listPersons failed:", err);
+      .catch((v_49263d) => {
+        console.warn("[Call][face] listPersons failed:", v_49263d);
       });
     return () => {
-      cancelled = true;
+      v_2008a4 = true;
     };
 
-  }, [accessToken]);
+  }, [v_2ca7e0]);
 
-  const [faceBiometricConsent, setFaceBiometricConsent] = useState<boolean | null>(null);
-  useEffect(() => {
-    if (!accessToken) return;
-    let cancelled = false;
-    getFaceBiometricConsent(accessToken)
-      .then((r) => {
-        if (cancelled) return;
-        setFaceBiometricConsent(r.state === "granted");
-        console.log(`[Call][face] getFaceBiometricConsent ← granted=${r.state === "granted"}`);
+  const [v_f0ea4e, v_abf57b] = v_5ab095<boolean | null>(null);
+  v_c4deb2(() => {
+    if (!v_2ca7e0) return;
+    let v_2008a4 = false;
+    v_0f8436(v_2ca7e0)
+      .then((v_cb35cb) => {
+        if (v_2008a4) return;
+        v_abf57b(v_cb35cb.state === "granted");
+        console.log(`[Call][face] getFaceBiometricConsent ← granted=${v_cb35cb.state === "granted"}`);
       })
-      .catch((err) => {
-        if (cancelled) return;
-        setFaceBiometricConsent(false); 
-        console.warn("[Call][face] getFaceBiometricConsent failed, fallback to card flow:", err);
+      .catch((v_49263d) => {
+        if (v_2008a4) return;
+        v_abf57b(false); 
+        console.warn("[Call][face] getFaceBiometricConsent failed, fallback to card flow:", v_49263d);
       });
     return () => {
-      cancelled = true;
+      v_2008a4 = true;
     };
 
-  }, [accessToken]);
+  }, [v_2ca7e0]);
 
-  const autoEnrolledNoNameRef = useRef<Set<number>>(new Set());
+  const v_888b49 = v_e662ae<Set<number>>(new Set());
 
-  const silentEnrollRef = useRef(false);
+  const v_25cb51 = v_e662ae(false);
 
-  const submittedEnrollNameRef = useRef("");
+  const v_821084 = v_e662ae("");
 
-  const enrollSuggestImplRef = useRef<(name: string, personId?: number) => void>(() => {});
-  const handleEnrollSuggest = useCallback((name: string, personId?: number) => {
-    enrollSuggestImplRef.current(name, personId);
+  const v_243c4f = v_e662ae<(name: string, personId?: number) => void>(() => {});
+  const v_b12d63 = v_de06a3((v_1833e7, v_ca1ec5) => {
+    v_243c4f.current(v_1833e7, v_ca1ec5);
   }, []);
 
   const {
-    state: liveState,
-    remoteStream,
-    start: startLive,
-    stop: stopLive,
-    say,
-    getStatsReport,
-    notifySpeechEnd,
-    greet,
-    speak,
-    lastSignal,
-    sendFaceEvent,
-  } = useAvatarCall({ cloneId, accessToken: accessToken ?? "", onEnrollSuggest: handleEnrollSuggest });
+    state: v_6cc918,
+    remoteStream: v_b4d824,
+    start: v_223067,
+    stop: v_cd8b64,
+    say: v_3e2c87,
+    getStatsReport: v_791152,
+    notifySpeechEnd: v_811f30,
+    greet: v_009e58,
+    speak: v_a1d9db,
+    lastSignal: v_88c591,
+    sendFaceEvent: v_11f4a1,
+  } = v_2ab825({ cloneId: v_6e0fd3, accessToken: v_2ca7e0 ?? "", onEnrollSuggest: v_b12d63 });
 
-  const [devText, setDevText] = useState("");
+  const [v_69c045, v_58e7a2] = v_5ab095("");
 
-  const [devKbHeight, setDevKbHeight] = useState(0);
-  useEffect(() => {
+  const [v_e35303, v_71afec] = v_5ab095(0);
+  v_c4deb2(() => {
     if (!__DEV__) return;
-    const showSub = Keyboard.addListener("keyboardDidShow", (e) =>
-      setDevKbHeight(e.endCoordinates.height),
+    const v_53f5d7 = v_0e1f26.addListener("keyboardDidShow", (v_9e86fd) =>
+      v_71afec(v_9e86fd.endCoordinates.height),
     );
-    const hideSub = Keyboard.addListener("keyboardDidHide", () => setDevKbHeight(0));
+    const v_52528b = v_0e1f26.addListener("keyboardDidHide", () => v_71afec(0));
     return () => {
-      showSub.remove();
-      hideSub.remove();
+      v_53f5d7.remove();
+      v_52528b.remove();
     };
   }, []);
 
-  const greetingOn = GREETING_ENABLED && typeof greet === 'function';
+  const v_d7cf17 = v_a6928f && typeof v_009e58 === 'function';
 
-  useVideoStatsDiag({ getStatsReport, enabled: __DEV__ && liveState === "live" });
+  v_eba6cc({ getStatsReport: v_791152, enabled: __DEV__ && v_6cc918 === "live" });
 
-  const faceEmbedModelPlugin = useTensorflowModel(
+  const v_d35913 = v_b24f74(
     require("../../../assets/models/w600k_mbf.tflite"),
   );
-  const faceEmbedModel =
-    faceEmbedModelPlugin.state === "loaded" ? faceEmbedModelPlugin.model : undefined;
-  const { resize } = useResizePlugin();
+  const v_23f1a4 =
+    v_d35913.state === "loaded" ? v_d35913.model : undefined;
+  const { resize: v_2e11e8 } = v_cb507d();
 
-  const isAndroidFrame = Platform.OS === "android";
+  const v_44c2eb = v_326be8.OS === "android";
 
-  const lastEmbedTs = useSharedValue(0);
+  const v_5111a7 = v_fc0657(0);
 
-  const seenFaceIdsRef = useRef<Set<number>>(new Set());
+  const v_a0880b = v_e662ae<Set<number>>(new Set());
 
-  const handleSpeakerEventRef = useRef<(evt: SpeakerEvent) => void>(() => {});
-  const handleSpeakerEventTrampoline = useCallback((evt: SpeakerEvent) => {
-    handleSpeakerEventRef.current(evt);
+  const v_acaf61 = v_e662ae<(evt: v_b26216) => void>(() => {});
+  const v_e881de = v_de06a3((evt: v_b26216) => {
+    v_acaf61.current(v_9e6ec9);
   }, []);
 
-  const shStateRef = useRef(initSpeakerHandoffState());
-  const dispatchShRef = useRef<(event: SpeakerHandoffEvent) => void>(() => {});
-  const dispatchSh = useCallback((event: SpeakerHandoffEvent) => {
-    dispatchShRef.current(event);
+  const v_a82708 = v_e662ae(v_047711());
+  const v_de3311 = v_e662ae<(event: v_cdfa61) => void>(() => {});
+  const v_ea326d = v_de06a3((event: v_cdfa61) => {
+    v_de3311.current(v_d48baf);
   }, []);
 
-  const unknownFaceSnapshotRef = useRef<number[][] | null>(null);
+  const v_b1a2e8 = v_e662ae<number[][] | null>(null);
 
-  const calibrateOpt = useMemo(
-    () => (FACE_DIAG_ENABLED ? { accessToken: accessToken ?? "", groundTruthPersonId: gtPersonId } : null),
-    [accessToken, gtPersonId],
+  const v_bea660 = v_df9f57(
+    () => (v_55dbc4 ? { accessToken: v_2ca7e0 ?? "", groundTruthPersonId: v_e7824f } : null),
+    [v_2ca7e0, v_e7824f],
   );
 
   const {
-    onEmbedding: onFaceEmbedding,
-    getBuffer: getFaceEmbeddingBuffer,
-    resetRecognition: resetSpeakerRecognition,
-  } = useFaceIdentify({
-    enabled: consentGranted && liveState === "live",
-    accessToken: accessToken ?? "",
-    onEvent: handleSpeakerEventTrampoline,
-    onDiag: setFaceDiag,
-    calibrate: calibrateOpt,
+    onEmbedding: v_88bed2,
+    getBuffer: v_c4d644,
+    resetRecognition: v_82c47a,
+  } = v_e9685b({
+    enabled: v_58656e && v_6cc918 === "live",
+    accessToken: v_2ca7e0 ?? "",
+    onEvent: v_e881de,
+    onDiag: v_5b715f,
+    calibrate: v_bea660,
   });
 
-  const handleSpeakerEvent = useCallback(
-    (evt: SpeakerEvent) => {
-      if (!evt) return;
-      if (evt.type === "speaker_confirmed") {
+  const v_3033e0 = v_de06a3(
+    (evt: v_b26216) => {
+      if (!v_9e6ec9) return;
+      if (v_9e6ec9.type === "speaker_confirmed") {
 
-        const name = evt.displayName ?? persons.find((p) => p.id === evt.personId)?.displayName ?? null;
-        if (name) {
-          dispatchSh({ type: "SPEAKER_CONFIRMED", personId: evt.personId, name });
+        const v_1833e7 = v_9e6ec9.displayName ?? v_fded81.find((v_e2a85c) => v_e2a85c.id === v_9e6ec9.personId)?.displayName ?? null;
+        if (v_1833e7) {
+          v_ea326d({ type: "SPEAKER_CONFIRMED", personId: v_9e6ec9.personId, name: v_1833e7 });
         }
-        sendFaceEvent?.({
+        v_11f4a1?.({
           event: "speaker_confirmed",
-          personId: evt.personId,
-          displayName: evt.displayName,
+          personId: v_9e6ec9.personId,
+          displayName: v_9e6ec9.displayName,
         });
-      } else if (evt.type === "unknown_face") {
-        dispatchSh({ type: "UNKNOWN_FACE" });
+      } else if (v_9e6ec9.type === "unknown_face") {
+        v_ea326d({ type: "UNKNOWN_FACE" });
 
-        unknownFaceSnapshotRef.current = getFaceEmbeddingBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
-        sendFaceEvent?.({ event: "unknown_face" });
+        v_b1a2e8.current = v_c4d644().latest(v_9e3bb7);
+        v_11f4a1?.({ event: "unknown_face" });
       }
     },
 
-    [sendFaceEvent, getFaceEmbeddingBuffer, dispatchSh, persons],
+    [v_11f4a1, v_c4d644, v_ea326d, v_fded81],
   );
-  useEffect(() => {
-    handleSpeakerEventRef.current = handleSpeakerEvent;
-  }, [handleSpeakerEvent]);
+  v_c4deb2(() => {
+    v_acaf61.current = v_3033e0;
+  }, [v_3033e0]);
 
-  const faceEnroll = useFaceEnroll({
-    accessToken: accessToken ?? "",
-    getBuffer: getFaceEmbeddingBuffer,
-    getSnapshot: () => unknownFaceSnapshotRef.current,
+  const v_20ef58 = v_3fc8fd({
+    accessToken: v_2ca7e0 ?? "",
+    getBuffer: v_c4d644,
+    getSnapshot: () => v_b1a2e8.current,
   });
 
-  const NAMING_TIMEOUT_MS = 20000;
-  const namingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const runShActions = useCallback(
-    (actions: SpeakerHandoffAction[]) => {
-      for (const a of actions) {
-        if (a.type === "SAY") {
-          void say(a.text);
-        } else if (a.type === "BEGIN_NAMING") {
-          if (namingTimerRef.current) clearTimeout(namingTimerRef.current);
-          namingTimerRef.current = setTimeout(() => {
-            dispatchShRef.current({ type: "NAMING_TIMEOUT" });
-          }, NAMING_TIMEOUT_MS);
-        } else if (a.type === "END_NAMING") {
-          if (namingTimerRef.current) {
-            clearTimeout(namingTimerRef.current);
-            namingTimerRef.current = null;
+  const v_87cd9e = 20000;
+  const v_b78a25 = v_e662ae<ReturnType<typeof setTimeout> | null>(null);
+  const v_400cd9 = v_de06a3(
+    (actions: v_05f3fa[]) => {
+      for (const v_779914 of v_dd943a) {
+        if (v_779914.type === "SAY") {
+          void v_3e2c87(v_779914.text);
+        } else if (v_779914.type === "BEGIN_NAMING") {
+          if (v_b78a25.current) clearTimeout(v_b78a25.current);
+          v_b78a25.current = setTimeout(() => {
+            v_de3311.current({ type: "NAMING_TIMEOUT" });
+          }, v_87cd9e);
+        } else if (v_779914.type === "END_NAMING") {
+          if (v_b78a25.current) {
+            clearTimeout(v_b78a25.current);
+            v_b78a25.current = null;
           }
-        } else if (a.type === "DISCARD_RECOGNITION") {
+        } else if (v_779914.type === "DISCARD_RECOGNITION") {
 
-          faceEnroll.reset();
-          resetSpeakerRecognition();
+          v_20ef58.reset();
+          v_82c47a();
         }
       }
     },
-    [say, faceEnroll, resetSpeakerRecognition],
+    [v_3e2c87, v_20ef58, v_82c47a],
   );
-  useEffect(() => {
-    dispatchShRef.current = (event: SpeakerHandoffEvent) => {
-      const { state, actions } = speakerHandoffReducer(shStateRef.current, event);
-      shStateRef.current = state;
-      runShActions(actions);
+  v_c4deb2(() => {
+    v_de3311.current = (event: v_cdfa61) => {
+      const { state: v_b6e533, actions: v_dd943a } = v_5ecb22(v_a82708.current, v_d48baf);
+      v_a82708.current = v_b6e533;
+      v_400cd9(v_dd943a);
     };
-  }, [runShActions]);
+  }, [v_400cd9]);
 
-  useEffect(() => {
+  v_c4deb2(() => {
     return () => {
-      if (namingTimerRef.current) clearTimeout(namingTimerRef.current);
+      if (v_b78a25.current) clearTimeout(v_b78a25.current);
     };
   }, []);
 
-  const handleEnrollSuggestImpl = useCallback(
-    (name: string, personId?: number) => {
+  const v_f8e6ef = v_de06a3(
+    (v_1833e7, v_ca1ec5) => {
 
-      const action = decideEnrollSuggestAction({
-        personId,
-        faceBiometricConsent: isFaceConsentEnforced() ? faceBiometricConsent : true,
-        autoEnrolledNoName: personId !== undefined && autoEnrolledNoNameRef.current.has(personId),
-        enrolling: faceEnroll.status === "enrolling",
+      const v_9b064f = v_0362e7({
+        personId: v_ca1ec5,
+        faceBiometricConsent: v_565c6d() ? v_f0ea4e : true,
+        autoEnrolledNoName: v_ca1ec5 !== undefined && v_888b49.current.has(v_ca1ec5),
+        enrolling: v_20ef58.status === "enrolling",
       });
 
-      if (action.kind === "ignore") return;
+      if (v_9b064f.kind === "ignore") return;
 
-      if (action.kind === "reflect_name") {
+      if (v_9b064f.kind === "reflect_name") {
 
-        if (accessToken && personId !== undefined) {
-          void updatePersonName(accessToken, personId, name)
+        if (v_2ca7e0 && v_ca1ec5 !== undefined) {
+          void v_137542(v_2ca7e0, v_ca1ec5, v_1833e7)
             .then(() => {
-              autoEnrolledNoNameRef.current.delete(personId);
+              v_888b49.current.delete(v_ca1ec5);
             })
-            .catch((err) => {
-              console.warn("[Call][face] updatePersonName failed:", err);
+            .catch((v_49263d) => {
+              console.warn("[Call][face] updatePersonName failed:", v_49263d);
             });
         }
         return;
       }
 
-      const hasSpokenName = name.trim().length > 0;
+      const v_03b239 = v_1833e7.trim().length > 0;
 
-      if (action.kind === "silent" && !hasSpokenName) {
+      if (v_9b064f.kind === "silent" && !v_03b239) {
 
-        const pendingId = faceEnroll.getPendingPersonId();
-        const enrolledId = faceEnroll.getEnrolledPersonId();
-        const cleanup = decideOrphanCleanupBeforeSilent({
+        const v_fde8d3 = v_20ef58.getPendingPersonId();
+        const v_0e4853 = v_20ef58.getEnrolledPersonId();
+        const v_a983d4 = v_de73d9({
           enrolling: false,
-          pendingPersonId: pendingId,
-          enrolledPersonId: enrolledId,
-          incomingName: name,
-          lastName: submittedEnrollNameRef.current,
+          pendingPersonId: v_fde8d3,
+          enrolledPersonId: v_0e4853,
+          incomingName: v_1833e7,
+          lastName: v_821084.current,
         });
-        if (cleanup === "delete") {
-          if (accessToken && pendingId != null) {
-            void deletePerson(accessToken, pendingId).catch((err) => {
-              console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", err);
+        if (v_a983d4 === "delete") {
+          if (v_2ca7e0 && v_fde8d3 != null) {
+            void v_a94a1b(v_2ca7e0, v_fde8d3).catch((v_49263d) => {
+              console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", v_49263d);
             });
           }
-          faceEnroll.reset();
-        } else if (cleanup === "detach") {
+          v_20ef58.reset();
+        } else if (v_a983d4 === "detach") {
 
-          faceEnroll.reset();
+          v_20ef58.reset();
         }
-        submittedEnrollNameRef.current = name;
+        v_821084.current = v_1833e7;
 
-        silentEnrollRef.current = true;
-        void faceEnroll.enrollSilent();
+        v_25cb51.current = true;
+        void v_20ef58.enrollSilent();
         return;
       }
 
-      const pendingId = faceEnroll.getPendingPersonId();
-      const shouldCleanup = shouldCleanupOrphanOnSuggest({
+      const v_fde8d3 = v_20ef58.getPendingPersonId();
+      const v_3da205 = v_19be88({
         enrolling: false,
-        pendingPersonId: pendingId,
-        incomingName: name,
-        lastName: submittedEnrollNameRef.current,
+        pendingPersonId: v_fde8d3,
+        incomingName: v_1833e7,
+        lastName: v_821084.current,
       });
-      if (shouldCleanup) {
-        if (accessToken && pendingId != null) {
-          void deletePerson(accessToken, pendingId).catch((err) => {
-            console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", err);
+      if (v_3da205) {
+        if (v_2ca7e0 && v_fde8d3 != null) {
+          void v_a94a1b(v_2ca7e0, v_fde8d3).catch((v_49263d) => {
+            console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", v_49263d);
           });
         }
-        faceEnroll.reset();
+        v_20ef58.reset();
       }
-      submittedEnrollNameRef.current = name;
-      void faceEnroll.enroll(name);
+      v_821084.current = v_1833e7;
+      void v_20ef58.enroll(v_1833e7);
       return;
     },
-    [faceEnroll, accessToken, faceBiometricConsent],
+    [v_20ef58, v_2ca7e0, v_f0ea4e],
   );
-  useEffect(() => {
-    enrollSuggestImplRef.current = handleEnrollSuggestImpl;
-  }, [handleEnrollSuggestImpl]);
+  v_c4deb2(() => {
+    v_243c4f.current = v_f8e6ef;
+  }, [v_f8e6ef]);
 
-  const handleEmbeddingOnJS = React.useMemo(
+  const v_998534 = v_a3453e.useMemo(
     () =>
-      Worklets.createRunOnJS(
-        (vector: number[], faceCount: number, trackingIds: number[]) => {
-          if (faceCount > 1) {
-            const { newIds, seen } = detectNewFaces(seenFaceIdsRef.current, trackingIds);
-            seenFaceIdsRef.current = seen;
-            if (newIds.length > 0) {
-              sendFaceEvent?.({ event: "multi_face" });
+      v_d73d29.createRunOnJS(
+        (v_f9a45c, v_0b2889, v_3e0537) => {
+          if (v_0b2889 > 1) {
+            const { newIds: v_f1e765, seen: v_110a8b } = v_6e58ce(v_a0880b.current, v_3e0537);
+            v_a0880b.current = v_110a8b;
+            if (v_f1e765.length > 0) {
+              v_11f4a1?.({ event: "multi_face" });
             }
           }
-          onFaceEmbedding(vector);
+          v_88bed2(v_f9a45c);
         },
       ),
 
-    [onFaceEmbedding, sendFaceEvent],
+    [v_88bed2, v_11f4a1],
   );
 
-  const faceFrameProcessor = useFrameProcessor(
-    (frame) => {
+  const v_a61ebf = v_b08ef3(
+    (v_143cb5) => {
       "worklet";
-      const faces = detectFaces(frame);
-      handleFacesOnJS(faces); 
+      const v_a51d09 = v_de4d76(v_143cb5);
+      v_8090fb(v_a51d09); 
 
-      const nowMs = normalizeFrameTimestampMs(frame.timestamp, isAndroidFrame);
+      const v_67e77e = v_a40fe8(v_143cb5.timestamp, v_44c2eb);
 
-      if (faceEmbedModel != null && shouldRunEmbedding(lastEmbedTs.value, nowMs)) {
-        lastEmbedTs.value = nowMs;
-        const primary = largestFace(faces);
-        if (primary != null) {
-          const resized = resize(frame, {
+      if (v_23f1a4 != null && v_f7b672(v_5111a7.value, v_67e77e)) {
+        v_5111a7.value = v_67e77e;
+        const v_127e92 = v_e74bab(v_a51d09);
+        if (v_127e92 != null) {
+          const v_2d3c27 = v_2e11e8(v_143cb5, {
             crop: {
-              x: primary.bounds.x,
-              y: primary.bounds.y,
-              width: primary.bounds.width,
-              height: primary.bounds.height,
+              x: v_127e92.bounds.x,
+              y: v_127e92.bounds.y,
+              width: v_127e92.bounds.width,
+              height: v_127e92.bounds.height,
             },
             scale: { width: 112, height: 112 },
             pixelFormat: "rgb",
             dataType: "float32",
           });
 
-          const normalized = new Float32Array(resized.length);
-          for (let i = 0; i < resized.length; i++) {
-            normalized[i] = resized[i] * 2 - 1;
+          const v_75195c = new Float32Array(v_2d3c27.length);
+          for (let v_ebec57 = 0; v_ebec57 < v_2d3c27.length; v_ebec57++) {
+            v_75195c[v_ebec57] = v_2d3c27[v_ebec57] * 2 - 1;
           }
-          const out = faceEmbedModel.runSync([normalized])[0] as Float32Array;
-          const trackingIds = faces
-            .map((f) => f.trackingId)
-            .filter((id): id is number => typeof id === "number");
-          handleEmbeddingOnJS(Array.from(out), faces.length, trackingIds);
+          const v_8d4337 = v_23f1a4.runSync([v_75195c])[0] as Float32Array;
+          const v_3e0537 = v_a51d09
+            .map((v_8b5cd8) => v_8b5cd8.trackingId)
+            .filter((v_389afb): v_389afb is number => typeof v_389afb === "number");
+          v_998534(Array.from(v_8d4337), v_a51d09.length, v_3e0537);
         }
       }
     },
     [
-      detectFaces,
-      handleFacesOnJS,
-      faceEmbedModel,
-      resize,
-      lastEmbedTs,
-      isAndroidFrame,
-      handleEmbeddingOnJS,
+      v_de4d76,
+      v_8090fb,
+      v_23f1a4,
+      v_2e11e8,
+      v_5111a7,
+      v_44c2eb,
+      v_998534,
     ],
   );
 
-  const sttEndpointMs = useTimingConfigStore((s) => s.sttEndpointMs);
+  const v_280eae = v_7347b3((v_fd5f43) => v_fd5f43.sttEndpointMs);
 
-  const confirmGateEnabled = useTimingConfigStore((s) => s.confirmGateEnabled);
+  const v_0300cd = v_7347b3((v_fd5f43) => v_fd5f43.confirmGateEnabled);
   const {
-    phase,
-    micOn,
-    toggleMic,
-    pendingText,
-    cancelConfirm,
-    transcript,
-    interimTranscript,
-    devForceListen,
-    micLevel,
-    cloneAudioLevel,
-    sttActive,
-  } = useHandsFreeController({
-    enabled: liveState === "live",
-    say,
-    getStatsReport,
-    notifySpeechEnd,
-    greeting: greetingOn,
-    greet,
-    speak,
-    lastSignal,
-    greetTimeoutMs: GREET_TIMEOUT_MS,
-    fallbackText: GREETING_FALLBACK_TEXT,
-    silenceMs: sttEndpointMs,
-    confirmGate: __DEV__ && confirmGateEnabled,
+    phase: v_ab4803,
+    micOn: v_1065f7,
+    toggleMic: v_6e1295,
+    pendingText: v_def12c,
+    cancelConfirm: v_5b4fb2,
+    transcript: v_0885ca,
+    interimTranscript: v_a2d9d1,
+    devForceListen: v_a8e03f,
+    micLevel: v_9afd2d,
+    cloneAudioLevel: v_09b641,
+    sttActive: v_b3ae82,
+  } = v_7df8a4({
+    enabled: v_6cc918 === "live",
+    say: v_3e2c87,
+    getStatsReport: v_791152,
+    notifySpeechEnd: v_811f30,
+    greeting: v_d7cf17,
+    greet: v_009e58,
+    speak: v_a1d9db,
+    lastSignal: v_88c591,
+    greetTimeoutMs: v_71f13f,
+    fallbackText: v_0e2cb4,
+    silenceMs: v_280eae,
+    confirmGate: __DEV__ && v_0300cd,
 
-    signalGating: typeof greet === 'function',
+    signalGating: typeof v_009e58 === 'function',
   });
 
-  const [greetingStarted, setGreetingStarted] = useState(false);
-  useEffect(() => {
-    if (lastSignal?.type === 'speech_start') setGreetingStarted(true);
-  }, [lastSignal]);
+  const [v_7a419e, v_717e64] = v_5ab095(false);
+  v_c4deb2(() => {
+    if (v_88c591?.type === 'speech_start') v_717e64(true);
+  }, [v_88c591]);
 
-  useEffect(() => {
-    const audio = (remoteStream as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })
+  v_c4deb2(() => {
+    const v_ff0300 = (v_b4d824 as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })
       ?.getAudioTracks?.() ?? [];
-    const shouldEnable = dialingDone && !isMuted;
-    audio.forEach((t) => {
-      t.enabled = shouldEnable;
+    const v_da66c7 = v_b2ccaa && !v_4e2aec;
+    v_ff0300.forEach((v_8d41d7) => {
+      v_8d41d7.enabled = v_da66c7;
     });
-  }, [remoteStream, dialingDone, isMuted]);
+  }, [v_b4d824, v_b2ccaa, v_4e2aec]);
 
-  const [cloneSubtitle, setCloneSubtitle] = useState('');
-  useEffect(() => {
-    if (!lastSignal) return;
-    if (lastSignal.type === 'speech_text' && lastSignal.text) {
-      const t = lastSignal.text;
-      setCloneSubtitle((prev) => (prev ? `${prev} ${t}` : t));
-    } else if (lastSignal.type === 'speech_end') {
-      setCloneSubtitle('');
+  const [v_0c5416, v_2e6b8a] = v_5ab095('');
+  v_c4deb2(() => {
+    if (!v_88c591) return;
+    if (v_88c591.type === 'speech_text' && v_88c591.text) {
+      const v_8d41d7 = v_88c591.text;
+      v_2e6b8a((v_ba2215) => (v_ba2215 ? `${v_ba2215} ${v_8d41d7}` : v_8d41d7));
+    } else if (v_88c591.type === 'speech_end') {
+      v_2e6b8a('');
     }
-  }, [lastSignal]);
+  }, [v_88c591]);
 
-  useEffect(() => {
-    if (!accessToken) return;
-    void startLive();
+  v_c4deb2(() => {
+    if (!v_2ca7e0) return;
+    void v_223067();
 
   }, []);
 
-  useEffect(() => {
+  v_c4deb2(() => {
     if (!__DEV__) return;
-    return startTimingLog();
+    return v_1b1534();
   }, []);
 
-  const [showGifts, setShowGifts] = useState(false);
+  const [v_d416b8, v_2a4980] = v_5ab095(false);
 
-  const [credits, setCredits] = useState<number>(0);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [v_68bb66, v_3bae81] = v_5ab095<v_83f27d[]>([]);
+  v_c4deb2(() => {
+    let v_2008a4 = false;
+    void v_599b97().then((v_4622b9) => {
+      if (!v_2008a4) v_3bae81(v_4622b9);
+    });
+    return () => {
+      v_2008a4 = true;
+    };
+  }, []);
+  const [v_8282fa, v_15c939] = v_5ab095<string | null>(null);
 
-  useEffect(() => {
-    if (faceEnroll.status === "success") {
-      const enrolledId = faceEnroll.getEnrolledPersonId();
-      if (silentEnrollRef.current) {
+  v_c4deb2(() => {
+    if (v_20ef58.status === "success") {
+      const v_0e4853 = v_20ef58.getEnrolledPersonId();
+      if (v_25cb51.current) {
 
-        if (enrolledId != null) autoEnrolledNoNameRef.current.add(enrolledId);
-        silentEnrollRef.current = false;
+        if (v_0e4853 != null) v_888b49.current.add(v_0e4853);
+        v_25cb51.current = false;
       } else {
-        setToastMessage(`${submittedEnrollNameRef.current}님, 이제 기억할게요`);
+        v_15c939(`${v_821084.current}님, 이제 기억할게요`);
       }
 
-      dispatchSh({
+      v_ea326d({
         type: "NAME_ENROLLED",
-        personId: enrolledId ?? undefined,
-        name: submittedEnrollNameRef.current,
+        personId: v_0e4853 ?? undefined,
+        name: v_821084.current,
       });
-      faceEnroll.reset();
-      unknownFaceSnapshotRef.current = null; 
-    } else if (faceEnroll.status === "error") {
-      if (silentEnrollRef.current) {
+      v_20ef58.reset();
+      v_b1a2e8.current = null; 
+    } else if (v_20ef58.status === "error") {
+      if (v_25cb51.current) {
 
-        silentEnrollRef.current = false;
-        faceEnroll.reset();
+        v_25cb51.current = false;
+        v_20ef58.reset();
       } else {
-        setToastMessage("등록에 실패했어요. 다시 시도해 주세요");
+        v_15c939("등록에 실패했어요. 다시 시도해 주세요");
       }
     }
 
-  }, [faceEnroll.status]);
+  }, [v_20ef58.status]);
 
-  const [isLiked, setIsLiked] = useState(false);
-  const [floatingGifts, setFloatingGifts] = useState<FloatingGift[]>([]);
-  const giftCounterRef = useRef(0);
+  const [v_85c07b, v_ff0eb0] = v_5ab095(false);
+  const [v_605664, v_0f07a9] = v_5ab095<FloatingGift[]>([]);
+  const v_63eb29 = v_e662ae(0);
 
-  const [callSeconds, setCallSeconds] = useState(0);
-  useEffect(() => {
-    if (liveState !== "live") return;
-    const id = setInterval(() => setCallSeconds((s) => s + 1), 1000);
-    return () => clearInterval(id);
-  }, [liveState]);
+  const [v_5a751a, v_6d75b1] = v_5ab095(0);
+  v_c4deb2(() => {
+    if (v_6cc918 !== "live") return;
+    const v_389afb = setInterval(() => v_6d75b1((v_fd5f43) => v_fd5f43 + 1), 1000);
+    return () => clearInterval(v_389afb);
+  }, [v_6cc918]);
 
-  const confirmProgress = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    if (phase !== 'confirming') { confirmProgress.setValue(0); return; }
-    confirmProgress.setValue(1);
-    const anim = Animated.timing(confirmProgress, { toValue: 0, duration: 2000, useNativeDriver: true });
-    anim.start();
-    return () => anim.stop();
-  }, [phase, pendingText, confirmProgress]);
+  const v_796faa = v_e662ae(new v_a2349e.Value(0)).current;
+  v_c4deb2(() => {
+    if (v_ab4803 !== 'confirming') { v_796faa.setValue(0); return; }
+    v_796faa.setValue(1);
+    const v_f582ff = v_a2349e.timing(v_796faa, { toValue: 0, duration: 2000, useNativeDriver: true });
+    v_f582ff.start();
+    return () => v_f582ff.stop();
+  }, [v_ab4803, v_def12c, v_796faa]);
 
-  const callStartRef = useRef<number>(Date.now());
-  const tokenRef = useRef(accessToken);
-  const cloneIdRef = useRef(cloneId);
-  useEffect(() => {
-    tokenRef.current = accessToken;
-    cloneIdRef.current = cloneId;
-  }, [accessToken, cloneId]);
-  useEffect(() => {
+  const v_1406a6 = v_e662ae<number>(Date.now());
+  const v_4d96d4 = v_e662ae(v_2ca7e0);
+  const v_32c215 = v_e662ae(v_6e0fd3);
+  v_c4deb2(() => {
+    v_4d96d4.current = v_2ca7e0;
+    v_32c215.current = v_6e0fd3;
+  }, [v_2ca7e0, v_6e0fd3]);
+  v_c4deb2(() => {
     return () => {
-      const token = tokenRef.current;
-      const cid = cloneIdRef.current;
-      console.log(`[Call] 화면 종료 — call-event 전송 시도 token=${!!token} cloneId=${cid}`);
-      if (!token || !cid) {
-        console.warn(`[Call] call-event 전송 SKIP (token=${!!token} cid=${cid})`);
+      const v_21cc31 = v_4d96d4.current;
+      const v_062ae9 = v_32c215.current;
+      console.log(`[Call] 화면 종료 — call-event 전송 시도 token=${!!v_21cc31} cloneId=${v_062ae9}`);
+      if (!v_21cc31 || !v_062ae9) {
+        console.warn(`[Call] call-event 전송 SKIP (token=${!!v_21cc31} cid=${v_062ae9})`);
         return;
       }
-      const durationSeconds = Math.floor((Date.now() - callStartRef.current) / 1000);
-      console.log(`[Call] POST /oth-path${cid}/call-event { durationSeconds: ${durationSeconds} }`);
+      const v_40c855 = Math.floor((Date.now() - v_1406a6.current) / 1000);
+      console.log(`[Call] POST /oth-path${v_062ae9}/call-event { durationSeconds: ${v_40c855} }`);
 
-      postCloneCallEvent(token, cid, { durationSeconds })
-        .then((res) =>
-          console.log(`[Call] call-event ← ok scoreApplied=${(res as { scoreApplied?: number }).scoreApplied ?? 0}°C (duration=${durationSeconds}s, >=1200 이면 +15°C)`),
+      v_c0681d(v_21cc31, v_062ae9, { durationSeconds: v_40c855 })
+        .then((v_8f00b9) =>
+          console.log(`[Call] call-event ← ok scoreApplied=${(v_8f00b9 as { scoreApplied?: number }).scoreApplied ?? 0}°C (duration=${v_40c855}s, >=1200 이면 +15°C)`),
         )
-        .catch((err) => console.warn("[Call] postCloneCallEvent failed:", err));
+        .catch((v_49263d) => console.warn("[Call] postCloneCallEvent failed:", v_49263d));
     };
   }, []);
 
-  useEffect(() => {
-    console.log(`[Call] 진입 cloneId=${cloneId} name=${paramName ?? "?"} (likedByMe fetch 중...)`);
-    if (!accessToken) return;
-    let cancelled = false;
-    getCloneLikeStatus(accessToken, cloneId)
-      .then((r) => {
-        if (cancelled) return;
-        console.log(`[Call] likedByMe fetch ← ${r.liked}`);
-        setIsLiked(r.liked);
+  v_c4deb2(() => {
+    console.log(`[Call] 진입 cloneId=${v_6e0fd3} name=${v_a4744c ?? "?"} (likedByMe fetch 중...)`);
+    if (!v_2ca7e0) return;
+    let v_2008a4 = false;
+    v_6d41b9(v_2ca7e0, v_6e0fd3)
+      .then((v_cb35cb) => {
+        if (v_2008a4) return;
+        console.log(`[Call] likedByMe fetch ← ${v_cb35cb.liked}`);
+        v_ff0eb0(v_cb35cb.liked);
       })
-      .catch((err) => {
-        console.warn("[Call] likedByMe fetch failed:", err);
+      .catch((v_49263d) => {
+        console.warn("[Call] likedByMe fetch failed:", v_49263d);
       });
     return () => {
-      cancelled = true;
+      v_2008a4 = true;
     };
 
-  }, [accessToken, cloneId]);
-  const callTimeStr = `${String(Math.floor(callSeconds / 60)).padStart(2, "0")}:${String(callSeconds % 60).padStart(2, "0")}`;
+  }, [v_2ca7e0, v_6e0fd3]);
+  const v_813acc = `${String(Math.floor(v_5a751a / 60)).padStart(2, "0")}:${String(v_5a751a % 60).padStart(2, "0")}`;
 
-  const refreshBalance = useCallback(async () => {
-    if (!accessToken) return;
-    try {
-      const r = await getXrunBalance(accessToken);
-      if (r.linked && typeof r.xrun === "number") setCredits(r.xrun);
-    } catch (err) {
-      console.warn("[Call] getXrunBalance failed:", err);
+  const v_dfb220 = v_a4744c || v_eb25ce?.displayName || v_8d41d7("chat.personaFallback");
+  const v_0e38ad = v_c1e151 || v_eb25ce?.imageUrl || "";
+
+  v_c4deb2(() => {
+    if (v_8282fa) {
+      const v_cb36b1 = setTimeout(() => v_15c939(null), 2000);
+      return () => clearTimeout(v_cb36b1);
     }
-  }, [accessToken]);
-  useEffect(() => {
-    void refreshBalance();
-  }, [refreshBalance]);
+  }, [v_8282fa]);
 
-  const personaName = paramName || clone?.displayName || t("chat.personaFallback");
-  const personaImage = paramImage || clone?.imageUrl || "";
-
-  useEffect(() => {
-    if (toastMessage) {
-      const timer = setTimeout(() => setToastMessage(null), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [toastMessage]);
-
-  const [pinModalVisible, setPinModalVisible] = useState(false);
-  const [pendingGift, setPendingGift] = useState<Gift | null>(null);
-  const [pinInput, setPinInput] = useState("");
-  const [paying, setPaying] = useState(false);
-
-  const openXrunApp = async () => {
-    const email = useAuthStore.getState().apiUser?.email ?? null;
-    const deeplink = email
-      ? `xrun://?email=${encodeURIComponent(email)}&from=afterlife`
-      : "xrun://";
-    try {
-      await Linking.openURL(deeplink);
-    } catch {
-      const storeUrl =
-        Platform.OS === "ios"
-          ? "https://apps.apple.com/app/xrun/id1602489406"
-          : "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
-      try {
-        await Linking.openURL(storeUrl);
-      } catch {
-
-      }
-    }
+  const v_25b14f = (gift: v_83f27d) => {
+    console.log(`[Call][gift-tap] giftId=${v_bbee9c.id} name=${v_bbee9c.name} (결제 준비 중)`);
+    v_2a4980(false);
+    v_15c939("결제 준비 중이에요");
+    v_161a89(v_bbee9c);
   };
 
-  const handleGiftSend = (gift: Gift) => {
-    const price = giftPriceFor(gift);
-    console.log(
-      `[Call][gift-tap] giftId=${gift.id} name=${gift.name} price=${price} ` +
-        `myCredits=${credits} (typeof=${typeof credits}) enough=${credits >= price}`,
-    );
-    if (credits < price) {
-      const shortage = Math.max(0, price - credits);
-      console.log(
-        `[Call][gift-insufficient-precheck] ${credits} < ${gift.price} (shortage=${shortage}) → block PIN modal`,
-      );
-      showAlert(
-        `${shortage} 잔액이 부족합니다`,
-        `선물을 보내기 위해 ${shortage} XRUN이 더 필요해요.\nXRUN에서 암호화폐를 얻어보세요!`,
-        [
-          { text: "다음에 하기", style: "cancel" },
-          { text: "XRUN 충전하기", onPress: () => void openXrunApp() },
-        ],
-      );
-      return;
-    }
-    setPendingGift(gift);
-    setPinInput("");
-    setShowGifts(false);
-    setPinModalVisible(true);
-    console.log(`[Call][gift-pin-open] open PIN modal for gift=${gift.name}`);
-  };
+  const v_161a89 = (gift: v_83f27d) => {
 
-  const submitGift = async () => {
-    if (!pendingGift || !accessToken) return;
-    if (!/^\d{6}$/.test(pinInput)) {
-      setToastMessage("PIN 6자리를 입력해 주세요");
-      return;
-    }
-    const submitPrice = giftPriceFor(pendingGift);
-    console.log(
-      `[Call][gift-submit] giftId=${pendingGift.id} amount=${submitPrice} ` +
-        `myCredits=${credits} cloneId=${cloneId} pin=*** (${pinInput.length} chars)`,
-    );
-    setPaying(true);
-    try {
-      const res = await sendGiftToClone(accessToken, cloneId, {
-        giftId: pendingGift.id,
-        giftName: pendingGift.name,
-        amount: submitPrice,
-        pin: pinInput,
-      });
-      console.log("[Call][gift-ok] gift sent:", res.gift);
-      const gift = pendingGift;
+    const v_389afb = v_63eb29.current++;
+    const v_15f379 = new v_a2349e.Value(0);
+    const v_3929b3 = new v_a2349e.Value(0);
+    const v_62c214 = v_437248 / 2 + (Math.random() * 120 - 60);
 
-      if (res.gift.newBalance != null && !Number.isNaN(Number(res.gift.newBalance))) {
-        setCredits(Number(res.gift.newBalance));
-        console.log(`[Call] credits = ${res.gift.newBalance} (from newBalance)`);
-      }
-      void refreshBalance().then(() => console.log("[Call] balance refetched after gift"));
-      setPinModalVisible(false);
-      setPendingGift(null);
-      setPinInput("");
+    const v_90ca83 = { id: v_389afb, emoji: v_bbee9c.emoji, animY: v_15f379, animOpacity: v_3929b3, x: v_62c214 };
+    v_0f07a9((v_ba2215) => [...v_ba2215, v_90ca83]);
 
-      playGiftAnimation(gift);
-    } catch (err) {
-      console.warn("[Call][gift-fail] raw err =", err);
-      if (err instanceof AuthApiError) {
-        console.warn(
-          `[Call][gift-fail] code=${err.code} status=${err.status} msg="${err.message}" details=${JSON.stringify(err.details)}`,
-        );
-      } else if (err instanceof Error) {
-        console.warn(`[Call][gift-fail] non-AuthApiError name=${err.name} msg=${err.message}`);
-      }
-      let title = "송금 실패";
-      let msg = "송금에 실패했어요.";
-      let isInsufficient = false;
-      let pinRetry = false;   
-      let pinSetup = false;   
-      if (err instanceof AuthApiError) {
-        if (err.code === "PAYMENT_PIN_INVALID" || err.code === "UNAUTHENTICATED") {
-          title = "XRUN PIN 오류";
-          msg = "XRUN PIN가 일치하지 않아요.\n다시 입력해 주세요.";
-          pinRetry = true;
-        } else if (err.code === "PAYMENT_PIN_REQUIRED") {
-          title = "XRUN PIN 미설정";
-          msg = "아직 XRUN PIN(6자리)가 설정되어 있지 않아요.\nXRUN에서 설정 후 다시 시도해 주세요.";
-          pinSetup = true;
-        } else if (err.code === "INSUFFICIENT_FUNDS") {
-          isInsufficient = true;
-
-          const shortage = pendingGift
-            ? Math.max(0, pendingGift.price - credits)
-            : 0;
-          title = shortage > 0
-            ? `${shortage} 잔액이 부족합니다`
-            : "잔액이 부족합니다";
-          msg = shortage > 0
-            ? `선물을 보내기 위해 ${shortage} XRUN이 더 필요해요.\nXRUN에서 암호화폐를 얻어보세요!`
-            : "선물을 보내기에 XRUN 이 부족해요.\nXRUN에서 암호화폐를 얻어보세요!";
-        } else if (err.code === "CONFLICT") msg = err.message;
-        else if (err.code === "UPSTREAM_NOT_IMPLEMENTED")
-          msg = "xrun 게이트웨이 송금 기능이 아직 준비 중이에요.";
-        else if (err.code === "UPSTREAM_FAILURE") {
-
-          if (/insufficient|잔액|balance/i.test(err.message)) {
-            isInsufficient = true;
-            const shortage = pendingGift
-              ? Math.max(0, pendingGift.price - credits)
-              : 0;
-            title = shortage > 0
-              ? `${shortage} 잔액이 부족합니다`
-              : "잔액이 부족합니다";
-            msg = shortage > 0
-              ? `선물을 보내기 위해 ${shortage} XRUN이 더 필요해요.\nXRUN에서 암호화폐를 얻어보세요!`
-              : "선물을 보내기에 XRUN 이 부족해요.\nXRUN에서 암호화폐를 얻어보세요!";
-          } else {
-            msg = "xrun 송금 처리 중 오류가 발생했어요.";
-          }
-        } else msg = err.message;
-      }
-
-      setPinModalVisible(false);
-      setPinInput("");
-      let actions: Parameters<typeof showAlert>[2];
-      if (isInsufficient) {
-        actions = [
-          { text: "다음에 하기", style: "cancel" },
-          { text: "XRUN 충전하기", onPress: () => void openXrunApp() },
-        ];
-      } else if (pinRetry) {
-
-        actions = [
-          { text: "취소", style: "cancel" },
-          { text: "다시 입력", onPress: () => { setPinInput(""); setPinModalVisible(true); } },
-        ];
-      } else if (pinSetup) {
-        actions = [
-          { text: "다음에 하기", style: "cancel" },
-          { text: "XRUN PIN 재설정", onPress: () => void openXrunApp() },
-        ];
-      }
-      showAlert(title, msg, actions);
-    } finally {
-      setPaying(false);
-    }
-  };
-
-  const playGiftAnimation = (gift: Gift) => {
-    setToastMessage(t("call.giftSent", { name: gift.name }));
-
-    const id = giftCounterRef.current++;
-    const animY = new Animated.Value(0);
-    const animOpacity = new Animated.Value(0);
-    const x = SCREEN_W / 2 + (Math.random() * 120 - 60);
-
-    const newGift: FloatingGift = { id, emoji: gift.emoji, animY, animOpacity, x };
-    setFloatingGifts((prev) => [...prev, newGift]);
-
-    Animated.parallel([
-      Animated.timing(animY, {
+    v_a2349e.parallel([
+      v_a2349e.timing(v_15f379, {
         toValue: -400,
         duration: 2500,
         useNativeDriver: true,
       }),
-      Animated.sequence([
-        Animated.timing(animOpacity, {
+      v_a2349e.sequence([
+        v_a2349e.timing(v_3929b3, {
           toValue: 1,
           duration: 300,
           useNativeDriver: true,
         }),
-        Animated.delay(1500),
-        Animated.timing(animOpacity, {
+        v_a2349e.delay(1500),
+        v_a2349e.timing(v_3929b3, {
           toValue: 0,
           duration: 700,
           useNativeDriver: true,
         }),
       ]),
     ]).start(() => {
-      setFloatingGifts((prev) => prev.filter((g) => g.id !== id));
+      v_0f07a9((v_ba2215) => v_ba2215.filter((v_206b88) => v_206b88.id !== v_389afb));
     });
 
-    setShowGifts(false);
+    v_2a4980(false);
   };
 
-  const subtitleBottom = bottomInset + 96 + 112 + 12;
+  const v_47b41c = v_53dd92 + 96 + 112 + 12;
 
   return (
-    <View style={s.container}>
+    <View style={v_fd5f43.container}>
       {}
       {}
       {}
-      {remoteStream ? (
+      {v_b4d824 ? (
 
-        <View style={[StyleSheet.absoluteFill, s.videoEdgeMask]}>
+        <View style={[v_472849.absoluteFill, v_fd5f43.videoEdgeMask]}>
           <RTCView
-            streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
+            streamURL={(v_b4d824 as unknown as { toURL: () => string }).toURL()}
             objectFit="contain"
-            style={[StyleSheet.absoluteFill, s.videoEdgeTrim]}
+            style={[v_472849.absoluteFill, v_fd5f43.videoEdgeTrim]}
           />
         </View>
-      ) : personaImage ? (
+      ) : v_0e38ad ? (
         <Image
-          source={typeof personaImage === "number" ? personaImage : { uri: personaImage }}
-          style={[StyleSheet.absoluteFill, { width: "100%", height: "100%" }]}
+          source={typeof v_0e38ad === "number" ? v_0e38ad : { uri: v_0e38ad }}
+          style={[v_472849.absoluteFill, { width: "100%", height: "100%" }]}
           resizeMode="contain"
         />
       ) : (
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.zinc900 }]} />
+        <View style={[v_472849.absoluteFill, { backgroundColor: v_1bfbd0.zinc900 }]} />
       )}
 
       {__DEV__ ? (
         <View style={{ position: "absolute", top: 8, right: 8, zIndex: 10,
           backgroundColor: "rgba(0,0,0,0.5)", padding: 4 }}>
-          <Text style={{ color: "#0f0", fontSize: 10 }}>route:{CALL_ROUTE}</Text>
-          {FACE_DIAG_ENABLED ? (
+          <Text style={{ color: "#0f0", fontSize: 10 }}>route:{v_c6d1f4}</Text>
+          {v_55dbc4 ? (
             <>
               <Text style={{ color: "#0f0", fontSize: 10 }}>
-                {faceDiag ? formatFaceHud(faceDiag) : "face -"}
+                {v_488209 ? v_8682a9(v_488209) : "face -"}
               </Text>
               {}
               <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
                 <Text
-                  onPress={() => setGtPersonId(null)}
-                  style={{ color: gtPersonId == null ? "#ff0" : "#0f0", fontSize: 10, marginRight: 6 }}
+                  onPress={() => v_0981e9(null)}
+                  style={{ color: v_e7824f == null ? "#ff0" : "#0f0", fontSize: 10, marginRight: 6 }}
                 >
                   unknown
                 </Text>
-                {persons.map((p) => (
+                {v_fded81.map((v_e2a85c) => (
                   <Text
-                    key={p.id}
-                    onPress={() => setGtPersonId(p.id)}
-                    style={{ color: gtPersonId === p.id ? "#ff0" : "#0f0", fontSize: 10, marginRight: 6 }}
+                    key={v_e2a85c.id}
+                    onPress={() => v_0981e9(v_e2a85c.id)}
+                    style={{ color: v_e7824f === v_e2a85c.id ? "#ff0" : "#0f0", fontSize: 10, marginRight: 6 }}
                   >
-                    #{p.id}
+                    #{v_e2a85c.id}
                   </Text>
                 ))}
               </View>
@@ -983,14 +803,14 @@ export default function CallScreen({ route, navigation }: Props) {
         </View>
       ) : null}
 
-      {__DEV__ && liveState === "live" ? (
+      {__DEV__ && v_6cc918 === "live" ? (
         <View
           style={{
             position: "absolute",
             left: 8,
             right: 8,
 
-            bottom: devKbHeight > 0 ? devKbHeight + 58 : bottomInset + 96,
+            bottom: v_e35303 > 0 ? v_e35303 + 58 : v_53dd92 + 96,
             zIndex: 20,
             flexDirection: "row",
             alignItems: "center",
@@ -1001,17 +821,17 @@ export default function CallScreen({ route, navigation }: Props) {
         >
           <TextInput
             style={{ flex: 1, color: "#0f0", fontSize: 13, paddingHorizontal: 8, paddingVertical: 6 }}
-            value={devText}
-            onChangeText={setDevText}
+            value={v_69c045}
+            onChangeText={v_58e7a2}
             placeholder="[DEV] 텍스트로 발화"
             placeholderTextColor="#6b7280"
             autoCapitalize="none"
             returnKeyType="send"
             blurOnSubmit={false}
-            onSubmitEditing={() => submitDevText(devText, say, setDevText)}
+            onSubmitEditing={() => v_f22ce9(v_69c045, v_3e2c87, v_58e7a2)}
           />
           <TouchableOpacity
-            onPress={() => submitDevText(devText, say, setDevText)}
+            onPress={() => v_f22ce9(v_69c045, v_3e2c87, v_58e7a2)}
             style={{ paddingHorizontal: 12, paddingVertical: 6 }}
           >
             <Text style={{ color: "#0f0", fontSize: 13, fontWeight: "600" }}>전송</Text>
@@ -1019,44 +839,44 @@ export default function CallScreen({ route, navigation }: Props) {
           {
 }
           <TouchableOpacity
-            onPress={() => setFaceProcOff((v) => !v)}
+            onPress={() => v_9739b5((v_81e2ef) => !v_81e2ef)}
             style={{ paddingHorizontal: 10, paddingVertical: 6 }}
           >
-            <Text style={{ color: faceProcOff ? "#f87171" : "#0f0", fontSize: 13, fontWeight: "600" }}>
-              얼굴{faceProcOff ? "OFF" : "ON"}
+            <Text style={{ color: v_67b98a ? "#f87171" : "#0f0", fontSize: 13, fontWeight: "600" }}>
+              얼굴{v_67b98a ? "OFF" : "ON"}
             </Text>
           </TouchableOpacity>
         </View>
       ) : null}
 
       {}
-      {!dialingDone && (
+      {!v_b2ccaa && (
         <DialingScreen
-          liveState={liveState}
-          personaName={personaName}
-          personaImage={typeof personaImage === "string" ? personaImage : ""}
+          liveState={v_6cc918}
+          personaName={v_dfb220}
+          personaImage={typeof v_0e38ad === "string" ? v_0e38ad : ""}
 
-          greetingStarted={greetingOn ? phase !== "greeting" && phase !== "idle" : undefined}
-          onConnected={() => setDialingDone(true)}
-          onCancel={async () => { await stopLive(); navigation.goBack(); }}
-          onRetry={() => { setGreetingStarted(false); void startLive(); }}
+          greetingStarted={v_d7cf17 ? v_ab4803 !== "greeting" && v_ab4803 !== "idle" : undefined}
+          onConnected={() => v_82a4b3(true)}
+          onCancel={async () => { await v_cd8b64(); v_c65f5d.goBack(); }}
+          onRetry={() => { v_717e64(false); void v_223067(); }}
         />
       )}
 
       <LinearGradient
         colors={["rgba(0,0,0,0.2)", "transparent", "rgba(9,9,11,0.5)"]}
         locations={[0, 0.4, 1]}
-        style={StyleSheet.absoluteFill}
+        style={v_472849.absoluteFill}
       />
 
-      {__DEV__ && liveState === "live" ? <CallTimingHUD /> : null}
-      {__DEV__ && liveState === "live" ? (
+      {__DEV__ && v_6cc918 === "live" ? <CallTimingHUD /> : null}
+      {__DEV__ && v_6cc918 === "live" ? (
 
         <View
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: bottomInset }}
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: v_53dd92 }}
           pointerEvents="box-none"
         >
-          <CallTimingPanel onForceListen={devForceListen} micOn={micOn} onToggleMic={toggleMic} />
+          <CallTimingPanel onForceListen={v_a8e03f} micOn={v_1065f7} onToggleMic={v_6e1295} />
         </View>
       ) : null}
 
@@ -1064,41 +884,41 @@ export default function CallScreen({ route, navigation }: Props) {
 
 }
       <TouchableOpacity
-        style={[s.pip, { top: insets.top + 8 }]}
+        style={[v_fd5f43.pip, { top: v_033e14.top + 8 }]}
         activeOpacity={0.9}
-        onPress={() => setCameraFacing((f) => (f === "front" ? "back" : "front"))}
+        onPress={() => v_fce7f9((v_8b5cd8) => (v_8b5cd8 === "front" ? "back" : "front"))}
       >
-        {isVideoOff ? (
-          <View style={s.pipOff}>
-            <Feather name="video-off" size={20} color={COLORS.zinc600} />
+        {v_9e64e1 ? (
+          <View style={v_fd5f43.pipOff}>
+            <Feather name="video-off" size={20} color={v_1bfbd0.zinc600} />
           </View>
-        ) : vcDevice ? (
+        ) : v_49a70b ? (
 
           <VisionCamera
-            ref={pipCameraRef}
-            style={s.pipCamera}
-            device={vcDevice}
-            isActive={!isVideoOff}
+            ref={v_f15637}
+            style={v_fd5f43.pipCamera}
+            device={v_49a70b}
+            isActive={!v_9e64e1}
 
             androidPreviewViewType="texture-view"
 
-            frameProcessor={consentGranted && !faceProcOff ? faceFrameProcessor : undefined}
-            onError={(e) =>
-              console.log("[Call][face] camera error:", e.code, e.message)
+            frameProcessor={v_58656e && !v_67b98a ? v_a61ebf : undefined}
+            onError={(v_9e86fd) =>
+              console.log("[Call][face] camera error:", v_9e86fd.code, v_9e86fd.message)
             }
           />
         ) : (
-          <View style={s.pipOff}>
-            <Feather name="camera-off" size={20} color={COLORS.zinc600} />
+          <View style={v_fd5f43.pipOff}>
+            <Feather name="camera-off" size={20} color={v_1bfbd0.zinc600} />
           </View>
         )}
 
         {}
-        {consentGranted && !isVideoOff && vcDevice ? (
+        {v_58656e && !v_9e64e1 && v_49a70b ? (
           <View
             style={[
-              s.faceIndicator,
-              faceState.status === "detected" ? s.faceIndicatorOn : s.faceIndicatorOff,
+              v_fd5f43.faceIndicator,
+              v_bbb3d3.status === "detected" ? v_fd5f43.faceIndicatorOn : v_fd5f43.faceIndicatorOff,
             ]}
           />
         ) : null}
@@ -1107,102 +927,101 @@ export default function CallScreen({ route, navigation }: Props) {
       {
 
 }
-      {!consentGranted && !isVideoOff && (
+      {!v_58656e && !v_9e64e1 && (
         <TouchableOpacity
-          style={[s.faceConsentBtn, { top: insets.top + 8 + 140 + 6 }]}
-          disabled={consentLoading}
+          style={[v_fd5f43.faceConsentBtn, { top: v_033e14.top + 8 + 140 + 6 }]}
+          disabled={v_a6086d}
           onPress={() => {
-            if (!accessToken) return;
+            if (!v_2ca7e0) return;
 
-            setTermsModalVisible(true);
+            v_566132(true);
           }}
         >
-          <Text style={s.faceConsentText}>{t("call.faceConsentHint")}</Text>
+          <Text style={v_fd5f43.faceConsentText}>{v_8d41d7("call.faceConsentHint")}</Text>
         </TouchableOpacity>
       )}
 
       <TermsModal
-        visible={termsModalVisible}
+        visible={v_550809}
         type={4}
         onClose={() => {
 
-          setTermsModalVisible(false);
+          v_566132(false);
         }}
         onAgree={async () => {
 
-          if (!accessToken) { setTermsModalVisible(false); return; }
-          setConsentLoading(true);
-          setTermsModalVisible(false);
+          if (!v_2ca7e0) { v_566132(false); return; }
+          v_603e38(true);
+          v_566132(false);
           try {
-            const { id } = await createPerson(accessToken, { cloneId });
-            console.log(`[Call][face] createPerson ok personId=${id}`);
-            await saveFaceConsent(accessToken, id, "granted", { termsVersion: "biometric-v1" });
-            setConsentGranted(true);
-            console.log(`[Call][face] consent granted personId=${id}`);
-          } catch (err) {
-            console.warn("[Call][face] createPerson/saveFaceConsent failed:", err);
+            const { id: v_389afb } = await v_4e7b87(v_2ca7e0, { cloneId: v_6e0fd3 });
+            console.log(`[Call][face] createPerson ok personId=${v_389afb}`);
+            await v_31967f(v_2ca7e0, v_389afb, "granted", { termsVersion: "biometric-v1" });
+            v_071915(true);
+            console.log(`[Call][face] consent granted personId=${v_389afb}`);
+          } catch (v_49263d) {
+            console.warn("[Call][face] createPerson/saveFaceConsent failed:", v_49263d);
 
-            setToastMessage(t("call.faceConsentError"));
+            v_15c939(v_8d41d7("call.faceConsentError"));
           } finally {
-            setConsentLoading(false);
+            v_603e38(false);
           }
         }}
       />
 
-      {
-}
+      {}
 
       {}
-      <View style={[s.callInfo, { top: insets.top + 24 }]}>
-        <Text style={s.callName}>{personaName}</Text>
-        <Text style={s.callTimeText}>
-          {liveState === "live" ? callTimeStr : "연결 중…"}
+      <View style={[v_fd5f43.callInfo, { top: v_033e14.top + 24 }]}>
+        <Text style={v_fd5f43.callName}>{v_dfb220}</Text>
+        <Text style={v_fd5f43.callTimeText}>
+          {v_6cc918 === "live" ? v_813acc : "연결 중…"}
         </Text>
       </View>
 
       {
 
 }
-      {clone?.cloneType === "expert" && (
-        <View style={[s.expertBadge, { top: insets.top + 24 }]}>
+      {v_eb25ce?.cloneType === "expert" && (
+        <View style={[v_fd5f43.expertBadge, { top: v_033e14.top + 24 }]}>
           <ExpertBadge size={44} />
         </View>
       )}
 
       {
 }
-      {!isOwnClone && (
-      <View style={s.rightActions}>
+      {!v_336a6a && (
+      <View style={v_fd5f43.rightActions}>
         <TouchableOpacity
-          style={[s.sideBtn, showGifts && s.sideBtnActive]}
-          onPress={() => setShowGifts(!showGifts)}
+          style={[v_fd5f43.sideBtn, v_d416b8 && v_fd5f43.sideBtnActive]}
+          onPress={() => v_2a4980(!v_d416b8)}
         >
-          <Feather name="gift" size={22} color={COLORS.white} />
+          <Feather name="gift" size={22} color={v_1bfbd0.white} />
         </TouchableOpacity>
         <TouchableOpacity
-          style={s.sideBtn}
+          style={v_fd5f43.sideBtn}
           onPress={async () => {
-            const next = !isLiked;
+            const v_a448ad = !v_85c07b;
             console.log(
-              `[Call] 좋아요 클릭 cloneId=${cloneId} ${isLiked ? "true" : "false"} → ${next ? "true" : "false"}`,
+              `[Call] 좋아요 클릭 cloneId=${v_6e0fd3} ${v_85c07b ? "true" : "false"} → ${v_a448ad ? "true" : "false"}`,
             );
-            setIsLiked(next); 
-            if (!accessToken) return;
+            v_ff0eb0(v_a448ad); 
+            if (!v_2ca7e0) return;
             try {
-              if (next) await likeClone(accessToken, cloneId);
-              else await unlikeClone(accessToken, cloneId);
-              console.log(`[Call] 좋아요 API ← ok next=${next}`);
-            } catch (err) {
-              console.warn("[Call] 좋아요 API 실패:", err);
-              setIsLiked(!next); 
+              if (v_a448ad) await v_b14fce(v_2ca7e0, v_6e0fd3);
+              else await v_0ff331(v_2ca7e0, v_6e0fd3);
+              console.log(`[Call] 좋아요 API ← ok next=${v_a448ad}`);
+            } catch (v_49263d) {
+              console.warn("[Call] 좋아요 API 실패:", v_49263d);
+              v_ff0eb0(!v_a448ad); 
             }
           }}
         >
           {}
           <Ionicons
-            name={isLiked ? "heart" : "heart-outline"}
+            name={v_85c07b ? "heart" : "heart-outline"}
             size={24}
-            color={isLiked ? "#ef4444" : COLORS.white}
+            color={v_85c07b ? "#ef4444" : v_1bfbd0.white}
           />
         </TouchableOpacity>
         {}
@@ -1210,19 +1029,19 @@ export default function CallScreen({ route, navigation }: Props) {
       )}
 
       {}
-      {floatingGifts.map((g) => (
+      {v_605664.map((v_206b88) => (
         <Animated.Text
-          key={g.id}
+          key={v_206b88.id}
           style={[
-            s.floatingEmoji,
+            v_fd5f43.floatingEmoji,
             {
-              left: g.x,
-              transform: [{ translateY: g.animY }],
-              opacity: g.animOpacity,
+              left: v_206b88.x,
+              transform: [{ translateY: v_206b88.animY }],
+              opacity: v_206b88.animOpacity,
             },
           ]}
         >
-          {g.emoji}
+          {v_206b88.emoji}
         </Animated.Text>
       ))}
 
@@ -1230,10 +1049,10 @@ export default function CallScreen({ route, navigation }: Props) {
 }
 
       {}
-      {phase === 'listening' && (!!interimTranscript || !!transcript) ? (
-        <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
-          <Text style={s.subtitleText} numberOfLines={1} ellipsizeMode="head">
-            {interimTranscript || transcript}
+      {v_ab4803 === 'listening' && (!!v_a2d9d1 || !!v_0885ca) ? (
+        <View style={[v_fd5f43.subtitleContainer, { bottom: v_47b41c }]} pointerEvents="none">
+          <Text style={v_fd5f43.subtitleText} numberOfLines={1} ellipsizeMode="head">
+            {v_a2d9d1 || v_0885ca}
           </Text>
         </View>
       ) : null}
@@ -1241,17 +1060,17 @@ export default function CallScreen({ route, navigation }: Props) {
       {
 
 }
-      {phase === 'confirming' && !!pendingText ? (
+      {v_ab4803 === 'confirming' && !!v_def12c ? (
         <>
-          <Pressable style={s.confirmTapArea} onPress={cancelConfirm} />
-          <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
-            <Text style={s.subtitleText} numberOfLines={1} ellipsizeMode="head">
-              {pendingText}
+          <Pressable style={v_fd5f43.confirmTapArea} onPress={v_5b4fb2} />
+          <View style={[v_fd5f43.subtitleContainer, { bottom: v_47b41c }]} pointerEvents="none">
+            <Text style={v_fd5f43.subtitleText} numberOfLines={1} ellipsizeMode="head">
+              {v_def12c}
             </Text>
-            <View style={s.confirmBarTrack}>
-              <Animated.View style={[s.confirmBarFill, { transform: [{ scaleX: confirmProgress }] }]} />
+            <View style={v_fd5f43.confirmBarTrack}>
+              <Animated.View style={[v_fd5f43.confirmBarFill, { transform: [{ scaleX: v_796faa }] }]} />
             </View>
-            <Text style={s.confirmHint}>탭하여 취소 · 잠시 후 전송</Text>
+            <Text style={v_fd5f43.confirmHint}>탭하여 취소 · 잠시 후 전송</Text>
           </View>
         </>
       ) : null}
@@ -1259,10 +1078,10 @@ export default function CallScreen({ route, navigation }: Props) {
       {
 
 }
-      {(phase === 'sending' || phase === 'speaking') && !!pendingText && !cloneSubtitle ? (
-        <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
-          <Text style={s.subtitleText} numberOfLines={1} ellipsizeMode="head">
-            {pendingText}
+      {(v_ab4803 === 'sending' || v_ab4803 === 'speaking') && !!v_def12c && !v_0c5416 ? (
+        <View style={[v_fd5f43.subtitleContainer, { bottom: v_47b41c }]} pointerEvents="none">
+          <Text style={v_fd5f43.subtitleText} numberOfLines={1} ellipsizeMode="head">
+            {v_def12c}
           </Text>
         </View>
       ) : null}
@@ -1270,9 +1089,9 @@ export default function CallScreen({ route, navigation }: Props) {
       {
 
 }
-      {(phase === 'speaking' || phase === 'greeting') && !!cloneSubtitle ? (
-        <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
-          <CloneSubtitleTicker text={cloneSubtitle} style={s.subtitleText} />
+      {(v_ab4803 === 'speaking' || v_ab4803 === 'greeting') && !!v_0c5416 ? (
+        <View style={[v_fd5f43.subtitleContainer, { bottom: v_47b41c }]} pointerEvents="none">
+          <CloneSubtitleTicker text={v_0c5416} style={v_fd5f43.subtitleText} />
         </View>
       ) : null}
 
@@ -1280,112 +1099,105 @@ export default function CallScreen({ route, navigation }: Props) {
 
 }
       <View
-        style={[s.watermarkLayer, { bottom: bottomInset + 150 }]}
+        style={[v_fd5f43.watermarkLayer, { bottom: v_53dd92 + 150 }]}
         pointerEvents="none"
       >
         <Image
           source={require("../../../assets/images/logo.png")}
-          style={s.watermarkLogo}
+          style={v_fd5f43.watermarkLogo}
           resizeMode="contain"
         />
       </View>
 
       {
 }
-      {dialingDone ? (
+      {v_b2ccaa ? (
         <View
-          style={[s.voiceBallLayer, { bottom: bottomInset + 24 + 56 + 16 }]}
+          style={[v_fd5f43.voiceBallLayer, { bottom: v_53dd92 + 24 + 56 + 16 }]}
           pointerEvents="none"
         >
-          <CallVoiceBall phase={phase} micLevel={micLevel} cloneLevel={cloneAudioLevel} sttActive={sttActive} />
+          <CallVoiceBall phase={v_ab4803} micLevel={v_9afd2d} cloneLevel={v_09b641} sttActive={v_b3ae82} />
         </View>
       ) : null}
 
       {}
-      <View style={[s.controls, { paddingBottom: bottomInset + 24 }]}>
+      <View style={[v_fd5f43.controls, { paddingBottom: v_53dd92 + 24 }]}>
         <TouchableOpacity
-          style={[s.controlBtn, isMuted && s.controlBtnDanger]}
+          style={[v_fd5f43.controlBtn, v_4e2aec && v_fd5f43.controlBtnDanger]}
           onPress={() => {
-            const next = !isMuted;
-            setIsMuted(next);
+            const v_a448ad = !v_4e2aec;
+            v_326ca4(v_a448ad);
 
-            const audio = (remoteStream as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })
+            const v_ff0300 = (v_b4d824 as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })
               ?.getAudioTracks?.() ?? [];
-            audio.forEach((t) => {
-              t.enabled = !next;
+            v_ff0300.forEach((v_8d41d7) => {
+              v_8d41d7.enabled = !v_a448ad;
             });
           }}
         >
-          <Feather name={isMuted ? "mic-off" : "mic"} size={24} color={COLORS.white} />
+          <Feather name={v_4e2aec ? "mic-off" : "mic"} size={24} color={v_1bfbd0.white} />
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={s.endCallBtn}
+          style={v_fd5f43.endCallBtn}
           onPress={async () => {
-            await stopLive();
-            navigation.goBack();
+            await v_cd8b64();
+            v_c65f5d.goBack();
           }}
         >
-          <Feather name="phone" size={28} color={COLORS.white} style={{ transform: [{ rotate: "135deg" }] }} />
+          <Feather name="phone" size={28} color={v_1bfbd0.white} style={{ transform: [{ rotate: "135deg" }] }} />
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[s.controlBtn, isVideoOff && s.controlBtnDanger]}
-          onPress={() => setIsVideoOff(!isVideoOff)}
+          style={[v_fd5f43.controlBtn, v_9e64e1 && v_fd5f43.controlBtnDanger]}
+          onPress={() => v_e064ce(!v_9e64e1)}
         >
-          <Feather name={isVideoOff ? "video-off" : "video"} size={24} color={COLORS.white} />
+          <Feather name={v_9e64e1 ? "video-off" : "video"} size={24} color={v_1bfbd0.white} />
         </TouchableOpacity>
       </View>
 
       {}
       <Modal
-        visible={showGifts}
+        visible={v_d416b8}
         transparent
         animationType="slide"
-        onShow={() => void refreshBalance()}
       >
-        <Pressable style={s.giftOverlay} onPress={() => setShowGifts(false)}>
+        <Pressable style={v_fd5f43.giftOverlay} onPress={() => v_2a4980(false)}>
           <Pressable
-            style={[s.giftSheet, { paddingBottom: 24 + bottomInset }]}
-            onPress={(e) => e.stopPropagation()}
+            style={[v_fd5f43.giftSheet, { paddingBottom: 24 + v_53dd92 }]}
+            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
           >
             {}
-            <View style={s.giftHeader}>
-              <View style={s.giftHeaderLeft}>
-                <Text style={s.giftTitle}>{t("call.giftTitle")}</Text>
-                <View style={s.creditsPill}>
-                  <Text style={s.creditsPillText}>
-                    {credits.toLocaleString()} XRUN
-                  </Text>
-                </View>
+            <View style={v_fd5f43.giftHeader}>
+              <View style={v_fd5f43.giftHeaderLeft}>
+                <Text style={v_fd5f43.giftTitle}>{v_8d41d7("call.giftTitle")}</Text>
               </View>
               <TouchableOpacity
-                style={s.closeBtn}
-                onPress={() => setShowGifts(false)}
+                style={v_fd5f43.closeBtn}
+                onPress={() => v_2a4980(false)}
               >
-                <Feather name="x" size={18} color={COLORS.zinc600} />
+                <Feather name="x" size={18} color={v_1bfbd0.zinc600} />
               </TouchableOpacity>
             </View>
 
             {}
             <FlatList
-              data={gifts}
-              keyExtractor={(item) => item.id}
+              data={v_68bb66}
+              keyExtractor={(v_8c0b26) => v_8c0b26.id}
               numColumns={3}
-              columnWrapperStyle={s.giftRow}
-              contentContainerStyle={s.giftGrid}
+              columnWrapperStyle={v_fd5f43.giftRow}
+              contentContainerStyle={v_fd5f43.giftGrid}
               scrollEnabled={false}
-              renderItem={({ item }) => (
+              renderItem={({ item: v_8c0b26 }) => (
                 <TouchableOpacity
-                  style={s.giftItem}
-                  onPress={() => handleGiftSend(item)}
+                  style={v_fd5f43.giftItem}
+                  onPress={() => v_25b14f(v_8c0b26)}
                   activeOpacity={0.7}
                 >
-                  <View style={s.giftEmojiWrap}>
-                    <Text style={s.giftEmoji}>{item.emoji}</Text>
+                  <View style={v_fd5f43.giftEmojiWrap}>
+                    <Text style={v_fd5f43.giftEmoji}>{v_8c0b26.emoji}</Text>
                   </View>
-                  <Text style={s.giftName}>{item.name}</Text>
-                  <Text style={s.giftPrice}>{giftPriceFor(item)} XRUN</Text>
+                  <Text style={v_fd5f43.giftName}>{v_8c0b26.name}</Text>
                 </TouchableOpacity>
               )}
             />
@@ -1394,72 +1206,19 @@ export default function CallScreen({ route, navigation }: Props) {
       </Modal>
 
       {}
-
-      {
-}
-      <Modal visible={pinModalVisible} transparent statusBarTranslucent animationType="fade">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={{ flex: 1 }}
-        >
-          <Pressable
-            style={s.pinOverlay}
-            onPress={() => !paying && setPinModalVisible(false)}
-          >
-            <Pressable style={s.pinBox} onPress={(e) => e.stopPropagation()}>
-              <View style={s.pinIconWrap}>
-                <Feather name="lock" size={26} color={COLORS.violet600} />
-              </View>
-              <Text style={s.pinTitle}>XRUN PIN</Text>
-              {pendingGift && (
-                <Text style={s.pinDesc}>
-                  {pendingGift.emoji} {pendingGift.name} · {pendingGift.price} XRUN
-                  {"\n"}선물하시려면 6자리 PIN 을 입력해 주세요
-                </Text>
-              )}
-              {}
-              <View style={s.pinCodeWrap}>
-                <OtpCodeInput
-                  value={pinInput}
-                  onChange={setPinInput}
-                  masked
-                  autoFocus
-                  editable={!paying}
-                  onComplete={submitGift}
-                />
-              </View>
-              <View style={s.pinBtns}>
-                <TouchableOpacity
-                  style={s.pinCancelBtn}
-                  onPress={() => setPinModalVisible(false)}
-                  disabled={paying}
-                >
-                  <Text style={s.pinCancelText}>취소</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[s.pinConfirmBtn, (pinInput.length !== 6 || paying) && s.pinBtnDisabled]}
-                  onPress={submitGift}
-                  disabled={pinInput.length !== 6 || paying}
-                >
-                  <Text style={s.pinConfirmText}>{paying ? "선물 중..." : "선물하기"}</Text>
-                </TouchableOpacity>
-              </View>
-            </Pressable>
-          </Pressable>
-        </KeyboardAvoidingView>
-      </Modal>
+      {}
 
       {}
-      {toastMessage && (
-        <View style={s.toast}>
-          <Text style={s.toastText}>{toastMessage}</Text>
+      {v_8282fa && (
+        <View style={v_fd5f43.toast}>
+          <Text style={v_fd5f43.toastText}>{v_8282fa}</Text>
         </View>
       )}
     </View>
   );
 }
 
-const s = StyleSheet.create({
+const v_fd5f43 = v_472849.create({
 
   watermarkLayer: {
     position: "absolute",
@@ -1483,7 +1242,7 @@ const s = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: COLORS.zinc950,
+    backgroundColor: v_1bfbd0.zinc950,
   },
 
   videoEdgeMask: {
@@ -1492,7 +1251,7 @@ const s = StyleSheet.create({
   videoEdgeTrim: {
     width: "100%",
     height: "100%",
-    marginHorizontal: -VIDEO_EDGE_TRIM_PX,
+    marginHorizontal: -v_5ac7d6,
   },
 
   pip: {
@@ -1524,7 +1283,7 @@ const s = StyleSheet.create({
     backgroundColor: "#22c55e", 
   },
   faceIndicatorOff: {
-    backgroundColor: COLORS.zinc500, 
+    backgroundColor: v_1bfbd0.zinc500, 
   },
 
   faceConsentBtn: {
@@ -1538,13 +1297,13 @@ const s = StyleSheet.create({
   },
   faceConsentText: {
     fontSize: 10,
-    color: COLORS.zinc200,
+    color: v_1bfbd0.zinc200,
   },
 
   pipOff: {
     width: "100%",
     height: "100%",
-    backgroundColor: COLORS.zinc900,
+    backgroundColor: v_1bfbd0.zinc900,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1561,7 +1320,7 @@ const s = StyleSheet.create({
   callName: {
     fontSize: 24,
     fontWeight: "700",
-    color: COLORS.white,
+    color: v_1bfbd0.white,
     marginBottom: 8,
     textShadowColor: "rgba(0,0,0,0.5)",
     textShadowOffset: { width: 0, height: 1 },
@@ -1571,7 +1330,7 @@ const s = StyleSheet.create({
   callTimeText: {
     fontSize: 16,
     fontWeight: "600",
-    color: COLORS.white,
+    color: v_1bfbd0.white,
     textShadowColor: "rgba(0,0,0,0.5)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
@@ -1595,7 +1354,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   sideBtnActive: {
-    backgroundColor: COLORS.violet500,
+    backgroundColor: v_1bfbd0.violet500,
   },
 
   floatingEmoji: {
@@ -1614,7 +1373,7 @@ const s = StyleSheet.create({
   },
   subtitleText: {
     backgroundColor: 'rgba(0,0,0,0.6)',
-    color: COLORS.white,
+    color: v_1bfbd0.white,
     fontSize: 15,
     fontWeight: '500',
     paddingHorizontal: 16,
@@ -1634,7 +1393,7 @@ const s = StyleSheet.create({
   confirmHint: {
     marginTop: 6,
     fontSize: 11,
-    color: COLORS.zinc300,
+    color: v_1bfbd0.zinc300,
     textAlign: 'center',
   },
   confirmBarTrack: {
@@ -1650,7 +1409,7 @@ const s = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 2,
-    backgroundColor: COLORS.white,
+    backgroundColor: v_1bfbd0.white,
   },
 
   controls: {
@@ -1673,17 +1432,17 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   controlBtnDanger: {
-    backgroundColor: COLORS.error,
+    backgroundColor: v_1bfbd0.error,
   },
   endCallBtn: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: COLORS.error,
+    backgroundColor: v_1bfbd0.error,
     alignItems: "center",
     justifyContent: "center",
     elevation: 8,
-    shadowColor: COLORS.error,
+    shadowColor: v_1bfbd0.error,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
     shadowRadius: 12,
@@ -1695,7 +1454,7 @@ const s = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.4)",
   },
   giftSheet: {
-    backgroundColor: COLORS.white,
+    backgroundColor: v_1bfbd0.white,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingBottom: 24,
@@ -1710,17 +1469,10 @@ const s = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.zinc200,
+    borderBottomColor: v_1bfbd0.zinc200,
   },
   giftHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-  giftTitle: { fontSize: 18, fontWeight: "700", color: COLORS.zinc900 },
-  creditsPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    backgroundColor: COLORS.violet100,
-    borderRadius: RADIUS.full,
-  },
-  creditsPillText: { fontSize: 13, fontWeight: "700", color: COLORS.violet600 },
+  giftTitle: { fontSize: 18, fontWeight: "700", color: v_1bfbd0.zinc900 },
   closeBtn: {
     width: 32,
     height: 32,
@@ -1734,26 +1486,25 @@ const s = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     padding: 14,
-    backgroundColor: COLORS.zinc50,
-    borderRadius: RADIUS.lg,
+    backgroundColor: v_1bfbd0.zinc50,
+    borderRadius: v_8b0c90.lg,
   },
   giftEmojiWrap: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: COLORS.white,
+    backgroundColor: v_1bfbd0.white,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 8,
     elevation: 2,
-    shadowColor: COLORS.black,
+    shadowColor: v_1bfbd0.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
   },
   giftEmoji: { fontSize: 24 },
-  giftName: { fontSize: 13, fontWeight: "600", color: COLORS.zinc900, marginBottom: 2 },
-  giftPrice: { fontSize: 12, fontWeight: "700", color: COLORS.violet600 },
+  giftName: { fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc900, marginBottom: 2 },
 
   toast: {
     position: "absolute",
@@ -1762,77 +1513,9 @@ const s = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     backgroundColor: "rgba(0,0,0,0.8)",
-    borderRadius: RADIUS.full,
+    borderRadius: v_8b0c90.full,
     zIndex: 50,
   },
-  toastText: { fontSize: 14, color: COLORS.white },
+  toastText: { fontSize: 14, color: v_1bfbd0.white },
 
-  pinOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 32,
-  },
-  pinBox: {
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
-    paddingHorizontal: 28,
-    paddingTop: 28,
-    paddingBottom: 20,
-    width: "100%",
-    maxWidth: 360,
-    alignItems: "center",
-  },
-  pinIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.violet100,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  pinTitle: { fontSize: 17, fontWeight: "700", color: COLORS.zinc900, marginBottom: 10 },
-  pinDesc: {
-    fontSize: 13,
-    color: COLORS.zinc600,
-    textAlign: "center",
-    lineHeight: 20,
-    marginBottom: 18,
-  },
-  pinInput: {
-    width: "100%",
-    height: 52,
-    borderWidth: 1,
-    borderColor: COLORS.zinc200,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 20,
-    textAlign: "center",
-    letterSpacing: 4, 
-    color: COLORS.zinc900,
-    backgroundColor: COLORS.zinc50,
-    marginBottom: 18,
-  },
-  pinCodeWrap: { width: "100%", marginBottom: 18 },
-  pinBtns: { flexDirection: "row", gap: 8, width: "100%" },
-  pinCancelBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.zinc200,
-    alignItems: "center",
-  },
-  pinCancelText: { fontSize: 14, fontWeight: "600", color: COLORS.zinc600 },
-  pinConfirmBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: COLORS.violet600,
-    alignItems: "center",
-  },
-  pinConfirmText: { fontSize: 14, fontWeight: "700", color: COLORS.white },
-  pinBtnDisabled: { backgroundColor: COLORS.zinc300 },
 });
