@@ -435,6 +435,10 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                     multiline
                     style={v_d81136.input}
                     editable={!v_35bf26}
+                    onFocus={() => {
+
+                      setTimeout(() => v_5ca6b8.current?.scrollToEnd({ animated: true }), 150);
+                    }}
                   />
                   <TouchableOpacity
                     onPress={v_465869}
