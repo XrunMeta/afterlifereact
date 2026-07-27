@@ -18,6 +18,9 @@ import {
   setPersonaPriceXrun,
   getKnowledgeInterpretRules,
   setKnowledgeInterpretRules,
+  getGiftCatalog,
+  setGiftCatalog,
+  type GiftCatalogItem,
 } from "../lib/appConfig";
 
 export const admin = new Hono<AppEnv>();
@@ -51,6 +54,37 @@ admin.patch("/config/knowledge-rules", requireAdmin, async (c) => {
   }
   await setKnowledgeInterpretRules(c.env, rules);
   return c.json({ ok: true, rules });
+});
+
+const GIFT_CATALOG_MAX_ITEMS = 200;
+admin.get("/config/gift-catalog", requireAdmin, async (c) => {
+  const items = await getGiftCatalog(c.env);
+  return c.json({ items });
+});
+admin.patch("/config/gift-catalog", requireAdmin, async (c) => {
+  const body = await c.req.json<{ items?: unknown }>().catch(() => ({} as { items?: unknown }));
+  if (!Array.isArray(body.items)) {
+    throw new APIError("VALIDATION_FAILED", "items must be an array.");
+  }
+  if (body.items.length > GIFT_CATALOG_MAX_ITEMS) {
+    throw new APIError("VALIDATION_FAILED", `too many items (max ${GIFT_CATALOG_MAX_ITEMS}).`);
+  }
+  const clean: GiftCatalogItem[] = [];
+  for (const raw of body.items) {
+    if (!raw || typeof raw !== "object") {
+      throw new APIError("VALIDATION_FAILED", "each item must be an object.");
+    }
+    const it = raw as Partial<GiftCatalogItem>;
+    if (typeof it.id !== "string" || !it.id.trim()) throw new APIError("VALIDATION_FAILED", "id required.");
+    if (typeof it.name !== "string" || !it.name.trim()) throw new APIError("VALIDATION_FAILED", "name required.");
+    if (typeof it.emoji !== "string" || !it.emoji.trim()) throw new APIError("VALIDATION_FAILED", "emoji required.");
+    if (typeof it.price !== "number" || !Number.isFinite(it.price) || it.price < 0) {
+      throw new APIError("VALIDATION_FAILED", "price must be non-negative number.");
+    }
+    clean.push({ id: it.id.trim(), name: it.name.trim(), emoji: it.emoji.trim(), price: it.price });
+  }
+  await setGiftCatalog(c.env, clean);
+  return c.json({ ok: true, items: clean });
 });
 
 const openSchema = z.object({
