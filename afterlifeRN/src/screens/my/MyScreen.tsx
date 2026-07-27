@@ -11,8 +11,6 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
-  Linking,
-  Platform,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation, CommonActions } from "@react-navigation/native";
@@ -28,10 +26,7 @@ import { seedSource } from "../../api/source";
 import { deleteMe, AuthApiError } from "../../api/auth";
 import { listMyClones, listMyFollowedClones, type FollowedClone, type MyClone } from "../../api/clones";
 import { useFocusEffect } from "@react-navigation/native";
-import { getPaymentPinStatus, getXrunBalance } from "../../api/payments";
-import PaymentPinPromptModal, {
-  shouldShowPaymentPinPrompt,
-} from "../../components/my/PaymentPinPromptModal";
+
 import AppVersionFooter from "../../components/my/AppVersionFooter";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { MyStackParamList } from "../../navigation/types";
@@ -51,77 +46,6 @@ export default function MyScreen() {
   const isFollowing = useFollowStore((s) => s.isFollowing);
   const toggleFollow = useFollowStore((s) => s.toggleFollow);
   const localClones = useCloneStore((s) => s.localClones);
-  const [showComingSoon, setShowComingSoon] = useState(false);
-  const [showPinPrompt, setShowPinPrompt] = useState(false);
-
-  const [xrunBalance, setXrunBalance] = useState<number | null | undefined>(undefined);
-  const [adBalance, setAdBalance] = useState<number | null | undefined>(undefined);
-  const [xrunBalanceLoading, setXrunBalanceLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!accessToken) return;
-      const allowed = await shouldShowPaymentPinPrompt();
-      if (!allowed || cancelled) return;
-      try {
-        const status = await getPaymentPinStatus(accessToken);
-        console.log("[PIN-STATUS]", status);
-        if (cancelled) return;
-
-        if (status.linked && !status.hasPin) {
-          setShowPinPrompt(true);
-        }
-      } catch (err) {
-        console.warn("[PIN-STATUS] fetch failed:", err);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken]);
-
-  useFocusEffect(useCallback(() => {
-    let cancelled = false;
-    if (!accessToken) {
-
-      setXrunBalanceLoading(false);
-      setXrunBalance(undefined);
-      setAdBalance(undefined);
-      return;
-    }
-    setXrunBalanceLoading(true);
-    (async () => {
-      try {
-        const res = await getXrunBalance(accessToken);
-        console.log("[XRUN-BALANCE]", res);
-        if (cancelled) return;
-        if (res.linked) {
-
-          setXrunBalance(res.xrun ?? 0);
-          setAdBalance(res.ad ?? 0);
-        } else {
-          setXrunBalance(undefined);
-          setAdBalance(undefined);
-        }
-      } catch (err) {
-        console.warn("[XRUN-BALANCE] fetch failed:", err);
-        if (!cancelled) {
-          setXrunBalance(undefined);
-          setAdBalance(undefined);
-        }
-      } finally {
-        if (!cancelled) setXrunBalanceLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken]));
-
-  const balanceLoading = xrunBalanceLoading;
-  const xrunDisplay = xrunBalance ?? null;
-  const adDisplay = adBalance ?? null;
 
   const uid = apiUser?.id ?? user?.id ?? DEFAULT_USER_ID;
   const [apiFollowingCount, setApiFollowingCount] = useState<number | null>(null);
@@ -139,26 +63,6 @@ export default function MyScreen() {
   const [apiFollowingList, setApiFollowingList] = useState<FollowedClone[] | null>(null);
   const [apiMyClonesList, setApiMyClonesList] = useState<MyClone[] | null>(null);
   const [statsModal, setStatsModal] = useState<"following" | "myClones" | null>(null);
-  const [chargeModalVisible, setChargeModalVisible] = useState(false);
-
-  const handleOpenXrunApp = async () => {
-    setChargeModalVisible(false);
-    const playStoreScheme = "market://details?id=run.xrun.xrunapp";
-    const playStoreWeb = "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
-    const appStoreSearch = "https://apps.apple.com/kr/search?term=xrun";
-    try {
-      if (Platform.OS === "android") {
-
-        const canMarket = await Linking.canOpenURL(playStoreScheme);
-        await Linking.openURL(canMarket ? playStoreScheme : playStoreWeb);
-      } else {
-        await Linking.openURL(appStoreSearch);
-      }
-    } catch (err) {
-      console.warn("[MyScreen] open xrun app failed:", err);
-      showAlert("오류", "스토어를 열 수 없어요. 직접 xrun 을 검색해 주세요.");
-    }
-  };
 
   useFocusEffect(
     React.useCallback(() => {
@@ -377,40 +281,7 @@ export default function MyScreen() {
         <AppVersionFooter />
       </View>
 
-      {
-}
-      <PaymentPinPromptModal
-        visible={false}
-        onClose={() => setShowPinPrompt(false)}
-      />
-
       {}
-      <Modal visible={chargeModalVisible} transparent animationType="fade">
-        <Pressable style={s.chargeOverlay} onPress={() => setChargeModalVisible(false)}>
-          <Pressable style={s.chargeBox} onPress={(e) => e.stopPropagation()}>
-            <View style={s.chargeIconWrap}>
-              <Feather name="zap" size={28} color={COLORS.violet600} />
-            </View>
-            <Text style={s.chargeTitle}>암호화폐 충전 안내</Text>
-            <Text style={s.chargeDesc}>
-              금액을 충전하고 싶다면{"\n"}xrun 앱에서 암호화폐를 얻어보세요
-            </Text>
-            <Text style={s.chargeHint}>※ 같은 아이디로 로그인 하셔야 합니다</Text>
-            <View style={s.chargeBtns}>
-              <TouchableOpacity
-                style={s.chargeCancelBtn}
-                onPress={() => setChargeModalVisible(false)}
-              >
-                <Text style={s.chargeCancelText}>닫기</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={s.chargeGoBtn} onPress={handleOpenXrunApp}>
-                <Feather name="external-link" size={14} color={COLORS.white} />
-                <Text style={s.chargeGoText}>바로가기</Text>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
 
       {}
       <Modal visible={statsModal !== null} transparent animationType="slide">
