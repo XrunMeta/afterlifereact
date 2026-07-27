@@ -51,7 +51,10 @@ describe("GET /oth-path — guideVideoUrls", () => {
     });
     expect(res.status).toBe(200);
     const { assets } = (await res.json()) as { assets: { guideVideoUrls: string[] } };
-    expect(assets.guideVideoUrls).toEqual(urls);
+
+    expect(assets.guideVideoUrls).toHaveLength(2);
+    expect(assets.guideVideoUrls[0]).toMatch(/\/oth-path\/files\/1$/);
+    expect(assets.guideVideoUrls[1]).toMatch(/\/oth-path\/files\/2$/);
   });
 
   it("guide_video_urls NULL이면 []", async () => {
