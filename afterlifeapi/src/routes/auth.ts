@@ -16,7 +16,8 @@ import {
 import { requireAuth } from "../middleware/auth";
 import { logActivity } from "../lib/logger";
 import { requestSignupOtp, verifySignupOtp } from "../lib/otp";
-import { registerXrunForAfterlifeUser, lookupXrunWalletByEmail, verifyXrunCredentials } from "../lib/xrun";
+import { lookupXrunWalletByEmail, verifyXrunCredentials } from "../lib/xrun";
+
 import { verifyGoogleIdToken } from "../lib/googleAuth";
 
 export const auth = new Hono<AppEnv>();
@@ -73,15 +74,9 @@ auth.post("/google/check", async (c) => {
     .bind(payload.email)
     .first<{ id: number }>();
 
-  let xrunExists = false;
-  if (!afterlife) {
-    const lookup = await lookupXrunWalletByEmail(c.env, payload.email);
-    xrunExists = lookup.found;
-  }
-
   return c.json({
     afterlifeExists: !!afterlife,
-    xrunExists,
+    xrunExists: false,
     email: payload.email,
     name: payload.name ?? null,
     picture: payload.picture ?? null,
@@ -128,44 +123,6 @@ auth.post("/google", async (c) => {
       .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null }>();
     if (!inserted) throw new APIError("INTERNAL_ERROR", "Failed to create user.");
     userRow = inserted;
-
-    try {
-      const xrun = await registerXrunForAfterlifeUser(c.env, {
-        email: payload.email,
-        name: fallbackName,
-
-      });
-      let xMember: number | null = null;
-      let xGuid: string | null = null;
-      let xWallet: string | null = null;
-      if (xrun.status === "created" && xrun.member) {
-        xMember = xrun.member;
-        xGuid = xrun.guid ?? null;
-        xWallet = xrun.wallet ?? null;
-      } else if (xrun.status === "duplicate") {
-        const lookup = await lookupXrunWalletByEmail(c.env, payload.email);
-        if (lookup.found && lookup.member) {
-          xMember = lookup.member;
-          xGuid = lookup.guid ?? null;
-          xWallet = lookup.wallet ?? null;
-        }
-      }
-      if (xMember) {
-        await db
-          .prepare(
-            `UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_wallet = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`,
-          )
-          .bind(xMember, xGuid, xWallet, inserted.id)
-          .run();
-      }
-      await logActivity(c, {
-        userId: inserted.id,
-        action: "xrun.link",
-        details: { result: xrun.status, member: xMember, guid: xGuid, wallet: xWallet, reason: xrun.reason ?? null },
-      });
-    } catch (err) {
-      console.error(`[GOOGLE_SIGNIN_XRUN_LINK_FAIL] user_id=${inserted.id} err=${(err as Error).message}`);
-    }
 
     await logActivity(c, {
       userId: inserted.id,
@@ -561,65 +518,6 @@ auth.post("/signup", async (c) => {
   } catch (err) {
     await db.prepare(`DELETE FROM users WHERE id = ?`).bind(inserted.id).run();
     throw err;
-  }
-
-  try {
-    const xrun = await registerXrunForAfterlifeUser(c.env, {
-      email: body.email,
-      name: body.name,
-      phone: body.phone,
-      gender: body.gender,
-      age: body.age,
-
-      country: body.country,
-      mobileCode: body.mobileCode,
-      region: body.region,
-    });
-
-    let memberToSave: number | null = null;
-    let guidToSave: string | null = null;
-    let walletToSave: string | null = null;
-    let resultLabel: string = xrun.status;
-
-    if (xrun.status === "created" && xrun.member && xrun.guid) {
-      memberToSave = xrun.member;
-      guidToSave = xrun.guid;
-
-      walletToSave = xrun.wallet ?? null;
-    } else if (xrun.status === "duplicate") {
-      const lookup = await lookupXrunWalletByEmail(c.env, body.email);
-      if (lookup.found && lookup.member) {
-        memberToSave = lookup.member;
-        guidToSave = lookup.guid ?? null;
-        walletToSave = lookup.wallet ?? null;
-        resultLabel = "duplicate-linked";
-      } else {
-        resultLabel = "duplicate-lookup-miss";
-      }
-    }
-
-    if (memberToSave) {
-      await db
-        .prepare(
-          `UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_wallet = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`,
-        )
-        .bind(memberToSave, guidToSave, walletToSave, inserted.id)
-        .run();
-    }
-
-    await logActivity(c, {
-      userId: inserted.id,
-      action: "xrun.link",
-      details: {
-        result: resultLabel,
-        member: memberToSave,
-        guid: guidToSave,
-        wallet: walletToSave,
-        reason: xrun.reason ?? null,
-      },
-    });
-  } catch (err) {
-    console.error(`[XRUN_LINK_FAIL] user_id=${inserted.id} err=${(err as Error).message}`);
   }
 
   const { accessToken, refreshToken, accessExpiresIn } = await issueSession(
