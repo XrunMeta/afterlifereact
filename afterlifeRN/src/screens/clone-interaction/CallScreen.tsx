@@ -1,4 +1,3 @@
-import { showAlert } from "../../stores/dialogStore";
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   View,
@@ -12,11 +11,8 @@ import {
   Pressable,
   Animated,
   Platform,
-  KeyboardAvoidingView,
   Keyboard,
   TextInput,
-  Alert,
-  Linking,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
@@ -81,24 +77,19 @@ import type { RootStackParamList } from "../../navigation/types";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { COLORS, RADIUS } from "../../components/constants";
-import { OtpCodeInput } from "../../components/auth/OtpVerifyView";
-import type { Gift } from "../../types/gift";
-import giftsData from "../../mocks/gifts.json";
-import { getXrunBalance } from "../../api/payments";
+
+import { fetchGiftCatalog, type GiftCatalogItem } from "../../api/gifts";
 import {
   getCloneLikeStatus,
   likeClone,
   unlikeClone,
-  sendGiftToClone,
   postCloneCallEvent,
 } from "../../api/clones";
-import { AuthApiError } from "../../api/auth";
 import ExpertBadge from "../../components/ui/ExpertBadge";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
 
 const { width: SCREEN_W } = Dimensions.get("window");
-const gifts = giftsData as Gift[];
 
 const VIDEO_EDGE_TRIM_PX = 1;
 
@@ -115,16 +106,11 @@ export default function CallScreen({ route, navigation }: Props) {
   const { cloneId, name: paramName, image: paramImage } = route.params;
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
   const accessToken = useAuthStore((s) => s.accessToken);
-  const userEmail = useAuthStore((s) => s.apiUser?.email ?? null);
   const currentUserId = useAuthStore((s) => s.apiUser?.id ?? null);
 
   const isOwnClone =
     !!clone && clone.ownerId != null && currentUserId != null && clone.ownerId === currentUserId;
   const insets = useSafeAreaInsets();
-
-  const TEST_PRICE_EMAILS = ["oth-user@example.invalid", "oth-test@example.invalid"];
-  const giftPriceFor = (g: Gift) =>
-    userEmail && TEST_PRICE_EMAILS.includes(userEmail) ? 0.05 : g.price;
   const navBarHeight = useAndroidNavigationBarHeight(0);
   const bottomInset =
     Platform.OS === "ios" ? insets.bottom : Math.max(navBarHeight, insets.bottom);
@@ -597,7 +583,16 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const [showGifts, setShowGifts] = useState(false);
 
-  const [credits, setCredits] = useState<number>(0);
+  const [gifts, setGifts] = useState<GiftCatalogItem[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    void fetchGiftCatalog().then((items) => {
+      if (!cancelled) setGifts(items);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -697,19 +692,6 @@ export default function CallScreen({ route, navigation }: Props) {
   }, [accessToken, cloneId]);
   const callTimeStr = `${String(Math.floor(callSeconds / 60)).padStart(2, "0")}:${String(callSeconds % 60).padStart(2, "0")}`;
 
-  const refreshBalance = useCallback(async () => {
-    if (!accessToken) return;
-    try {
-      const r = await getXrunBalance(accessToken);
-      if (r.linked && typeof r.xrun === "number") setCredits(r.xrun);
-    } catch (err) {
-      console.warn("[Call] getXrunBalance failed:", err);
-    }
-  }, [accessToken]);
-  useEffect(() => {
-    void refreshBalance();
-  }, [refreshBalance]);
-
   const personaName = paramName || clone?.displayName || t("chat.personaFallback");
   const personaImage = paramImage || clone?.imageUrl || "";
 
@@ -720,176 +702,14 @@ export default function CallScreen({ route, navigation }: Props) {
     }
   }, [toastMessage]);
 
-  const [pinModalVisible, setPinModalVisible] = useState(false);
-  const [pendingGift, setPendingGift] = useState<Gift | null>(null);
-  const [pinInput, setPinInput] = useState("");
-  const [paying, setPaying] = useState(false);
-
-  const openXrunApp = async () => {
-    const email = useAuthStore.getState().apiUser?.email ?? null;
-    const deeplink = email
-      ? `xrun://?email=${encodeURIComponent(email)}&from=afterlife`
-      : "xrun://";
-    try {
-      await Linking.openURL(deeplink);
-    } catch {
-      const storeUrl =
-        Platform.OS === "ios"
-          ? "https://apps.apple.com/app/xrun/id1602489406"
-          : "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
-      try {
-        await Linking.openURL(storeUrl);
-      } catch {
-
-      }
-    }
-  };
-
-  const handleGiftSend = (gift: Gift) => {
-    const price = giftPriceFor(gift);
-    console.log(
-      `[Call][gift-tap] giftId=${gift.id} name=${gift.name} price=${price} ` +
-        `myCredits=${credits} (typeof=${typeof credits}) enough=${credits >= price}`,
-    );
-    if (credits < price) {
-      const shortage = Math.max(0, price - credits);
-      console.log(
-        `[Call][gift-insufficient-precheck] ${credits} < ${gift.price} (shortage=${shortage}) → block PIN modal`,
-      );
-      showAlert(
-        `${shortage} 잔액이 부족합니다`,
-        `선물을 보내기 위해 ${shortage} XRUN이 더 필요해요.\nXRUN에서 암호화폐를 얻어보세요!`,
-        [
-          { text: "다음에 하기", style: "cancel" },
-          { text: "XRUN 충전하기", onPress: () => void openXrunApp() },
-        ],
-      );
-      return;
-    }
-    setPendingGift(gift);
-    setPinInput("");
+  const handleGiftSend = (gift: GiftCatalogItem) => {
+    console.log(`[Call][gift-tap] giftId=${gift.id} name=${gift.name} (결제 준비 중)`);
     setShowGifts(false);
-    setPinModalVisible(true);
-    console.log(`[Call][gift-pin-open] open PIN modal for gift=${gift.name}`);
+    setToastMessage("결제 준비 중이에요");
+    playGiftAnimation(gift);
   };
 
-  const submitGift = async () => {
-    if (!pendingGift || !accessToken) return;
-    if (!/^\d{6}$/.test(pinInput)) {
-      setToastMessage("PIN 6자리를 입력해 주세요");
-      return;
-    }
-    const submitPrice = giftPriceFor(pendingGift);
-    console.log(
-      `[Call][gift-submit] giftId=${pendingGift.id} amount=${submitPrice} ` +
-        `myCredits=${credits} cloneId=${cloneId} pin=*** (${pinInput.length} chars)`,
-    );
-    setPaying(true);
-    try {
-      const res = await sendGiftToClone(accessToken, cloneId, {
-        giftId: pendingGift.id,
-        giftName: pendingGift.name,
-        amount: submitPrice,
-        pin: pinInput,
-      });
-      console.log("[Call][gift-ok] gift sent:", res.gift);
-      const gift = pendingGift;
-
-      if (res.gift.newBalance != null && !Number.isNaN(Number(res.gift.newBalance))) {
-        setCredits(Number(res.gift.newBalance));
-        console.log(`[Call] credits = ${res.gift.newBalance} (from newBalance)`);
-      }
-      void refreshBalance().then(() => console.log("[Call] balance refetched after gift"));
-      setPinModalVisible(false);
-      setPendingGift(null);
-      setPinInput("");
-
-      playGiftAnimation(gift);
-    } catch (err) {
-      console.warn("[Call][gift-fail] raw err =", err);
-      if (err instanceof AuthApiError) {
-        console.warn(
-          `[Call][gift-fail] code=${err.code} status=${err.status} msg="${err.message}" details=${JSON.stringify(err.details)}`,
-        );
-      } else if (err instanceof Error) {
-        console.warn(`[Call][gift-fail] non-AuthApiError name=${err.name} msg=${err.message}`);
-      }
-      let title = "송금 실패";
-      let msg = "송금에 실패했어요.";
-      let isInsufficient = false;
-      let pinRetry = false;   
-      let pinSetup = false;   
-      if (err instanceof AuthApiError) {
-        if (err.code === "PAYMENT_PIN_INVALID" || err.code === "UNAUTHENTICATED") {
-          title = "XRUN PIN 오류";
-          msg = "XRUN PIN가 일치하지 않아요.\n다시 입력해 주세요.";
-          pinRetry = true;
-        } else if (err.code === "PAYMENT_PIN_REQUIRED") {
-          title = "XRUN PIN 미설정";
-          msg = "아직 XRUN PIN(6자리)가 설정되어 있지 않아요.\nXRUN에서 설정 후 다시 시도해 주세요.";
-          pinSetup = true;
-        } else if (err.code === "INSUFFICIENT_FUNDS") {
-          isInsufficient = true;
-
-          const shortage = pendingGift
-            ? Math.max(0, pendingGift.price - credits)
-            : 0;
-          title = shortage > 0
-            ? `${shortage} 잔액이 부족합니다`
-            : "잔액이 부족합니다";
-          msg = shortage > 0
-            ? `선물을 보내기 위해 ${shortage} XRUN이 더 필요해요.\nXRUN에서 암호화폐를 얻어보세요!`
-            : "선물을 보내기에 XRUN 이 부족해요.\nXRUN에서 암호화폐를 얻어보세요!";
-        } else if (err.code === "CONFLICT") msg = err.message;
-        else if (err.code === "UPSTREAM_NOT_IMPLEMENTED")
-          msg = "xrun 게이트웨이 송금 기능이 아직 준비 중이에요.";
-        else if (err.code === "UPSTREAM_FAILURE") {
-
-          if (/insufficient|잔액|balance/i.test(err.message)) {
-            isInsufficient = true;
-            const shortage = pendingGift
-              ? Math.max(0, pendingGift.price - credits)
-              : 0;
-            title = shortage > 0
-              ? `${shortage} 잔액이 부족합니다`
-              : "잔액이 부족합니다";
-            msg = shortage > 0
-              ? `선물을 보내기 위해 ${shortage} XRUN이 더 필요해요.\nXRUN에서 암호화폐를 얻어보세요!`
-              : "선물을 보내기에 XRUN 이 부족해요.\nXRUN에서 암호화폐를 얻어보세요!";
-          } else {
-            msg = "xrun 송금 처리 중 오류가 발생했어요.";
-          }
-        } else msg = err.message;
-      }
-
-      setPinModalVisible(false);
-      setPinInput("");
-      let actions: Parameters<typeof showAlert>[2];
-      if (isInsufficient) {
-        actions = [
-          { text: "다음에 하기", style: "cancel" },
-          { text: "XRUN 충전하기", onPress: () => void openXrunApp() },
-        ];
-      } else if (pinRetry) {
-
-        actions = [
-          { text: "취소", style: "cancel" },
-          { text: "다시 입력", onPress: () => { setPinInput(""); setPinModalVisible(true); } },
-        ];
-      } else if (pinSetup) {
-        actions = [
-          { text: "다음에 하기", style: "cancel" },
-          { text: "XRUN PIN 재설정", onPress: () => void openXrunApp() },
-        ];
-      }
-      showAlert(title, msg, actions);
-    } finally {
-      setPaying(false);
-    }
-  };
-
-  const playGiftAnimation = (gift: Gift) => {
-    setToastMessage(t("call.giftSent", { name: gift.name }));
+  const playGiftAnimation = (gift: GiftCatalogItem) => {
 
     const id = giftCounterRef.current++;
     const animY = new Animated.Value(0);
@@ -1149,8 +969,7 @@ export default function CallScreen({ route, navigation }: Props) {
         }}
       />
 
-      {
-}
+      {}
 
       {}
       <View style={[s.callInfo, { top: insets.top + 24 }]}>
@@ -1342,7 +1161,6 @@ export default function CallScreen({ route, navigation }: Props) {
         visible={showGifts}
         transparent
         animationType="slide"
-        onShow={() => void refreshBalance()}
       >
         <Pressable style={s.giftOverlay} onPress={() => setShowGifts(false)}>
           <Pressable
@@ -1353,11 +1171,6 @@ export default function CallScreen({ route, navigation }: Props) {
             <View style={s.giftHeader}>
               <View style={s.giftHeaderLeft}>
                 <Text style={s.giftTitle}>{t("call.giftTitle")}</Text>
-                <View style={s.creditsPill}>
-                  <Text style={s.creditsPillText}>
-                    {credits.toLocaleString()} XRUN
-                  </Text>
-                </View>
               </View>
               <TouchableOpacity
                 style={s.closeBtn}
@@ -1385,7 +1198,6 @@ export default function CallScreen({ route, navigation }: Props) {
                     <Text style={s.giftEmoji}>{item.emoji}</Text>
                   </View>
                   <Text style={s.giftName}>{item.name}</Text>
-                  <Text style={s.giftPrice}>{giftPriceFor(item)} XRUN</Text>
                 </TouchableOpacity>
               )}
             />
@@ -1394,60 +1206,7 @@ export default function CallScreen({ route, navigation }: Props) {
       </Modal>
 
       {}
-
-      {
-}
-      <Modal visible={pinModalVisible} transparent statusBarTranslucent animationType="fade">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={{ flex: 1 }}
-        >
-          <Pressable
-            style={s.pinOverlay}
-            onPress={() => !paying && setPinModalVisible(false)}
-          >
-            <Pressable style={s.pinBox} onPress={(e) => e.stopPropagation()}>
-              <View style={s.pinIconWrap}>
-                <Feather name="lock" size={26} color={COLORS.violet600} />
-              </View>
-              <Text style={s.pinTitle}>XRUN PIN</Text>
-              {pendingGift && (
-                <Text style={s.pinDesc}>
-                  {pendingGift.emoji} {pendingGift.name} · {pendingGift.price} XRUN
-                  {"\n"}선물하시려면 6자리 PIN 을 입력해 주세요
-                </Text>
-              )}
-              {}
-              <View style={s.pinCodeWrap}>
-                <OtpCodeInput
-                  value={pinInput}
-                  onChange={setPinInput}
-                  masked
-                  autoFocus
-                  editable={!paying}
-                  onComplete={submitGift}
-                />
-              </View>
-              <View style={s.pinBtns}>
-                <TouchableOpacity
-                  style={s.pinCancelBtn}
-                  onPress={() => setPinModalVisible(false)}
-                  disabled={paying}
-                >
-                  <Text style={s.pinCancelText}>취소</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[s.pinConfirmBtn, (pinInput.length !== 6 || paying) && s.pinBtnDisabled]}
-                  onPress={submitGift}
-                  disabled={pinInput.length !== 6 || paying}
-                >
-                  <Text style={s.pinConfirmText}>{paying ? "선물 중..." : "선물하기"}</Text>
-                </TouchableOpacity>
-              </View>
-            </Pressable>
-          </Pressable>
-        </KeyboardAvoidingView>
-      </Modal>
+      {}
 
       {}
       {toastMessage && (
@@ -1714,13 +1473,6 @@ const s = StyleSheet.create({
   },
   giftHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   giftTitle: { fontSize: 18, fontWeight: "700", color: COLORS.zinc900 },
-  creditsPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    backgroundColor: COLORS.violet100,
-    borderRadius: RADIUS.full,
-  },
-  creditsPillText: { fontSize: 13, fontWeight: "700", color: COLORS.violet600 },
   closeBtn: {
     width: 32,
     height: 32,
@@ -1753,7 +1505,6 @@ const s = StyleSheet.create({
   },
   giftEmoji: { fontSize: 24 },
   giftName: { fontSize: 13, fontWeight: "600", color: COLORS.zinc900, marginBottom: 2 },
-  giftPrice: { fontSize: 12, fontWeight: "700", color: COLORS.violet600 },
 
   toast: {
     position: "absolute",
@@ -1767,72 +1518,4 @@ const s = StyleSheet.create({
   },
   toastText: { fontSize: 14, color: COLORS.white },
 
-  pinOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 32,
-  },
-  pinBox: {
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
-    paddingHorizontal: 28,
-    paddingTop: 28,
-    paddingBottom: 20,
-    width: "100%",
-    maxWidth: 360,
-    alignItems: "center",
-  },
-  pinIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.violet100,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  pinTitle: { fontSize: 17, fontWeight: "700", color: COLORS.zinc900, marginBottom: 10 },
-  pinDesc: {
-    fontSize: 13,
-    color: COLORS.zinc600,
-    textAlign: "center",
-    lineHeight: 20,
-    marginBottom: 18,
-  },
-  pinInput: {
-    width: "100%",
-    height: 52,
-    borderWidth: 1,
-    borderColor: COLORS.zinc200,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 20,
-    textAlign: "center",
-    letterSpacing: 4, 
-    color: COLORS.zinc900,
-    backgroundColor: COLORS.zinc50,
-    marginBottom: 18,
-  },
-  pinCodeWrap: { width: "100%", marginBottom: 18 },
-  pinBtns: { flexDirection: "row", gap: 8, width: "100%" },
-  pinCancelBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.zinc200,
-    alignItems: "center",
-  },
-  pinCancelText: { fontSize: 14, fontWeight: "600", color: COLORS.zinc600 },
-  pinConfirmBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: COLORS.violet600,
-    alignItems: "center",
-  },
-  pinConfirmText: { fontSize: 14, fontWeight: "700", color: COLORS.white },
-  pinBtnDisabled: { backgroundColor: COLORS.zinc300 },
 });
