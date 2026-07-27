@@ -168,6 +168,15 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
     } catch (v_49263d) {
       console.warn("[authStore] reset on apiLogout failed:", v_49263d);
     }
+
+    try {
+      const { navigationRef: v_94c936 } = await import("../navigation/navigationRef");
+      if (v_94c936.isReady()) {
+        v_94c936.reset({ index: 0, routes: [{ name: "Auth" as never }] });
+      }
+    } catch (v_49263d) {
+      console.warn("[authStore] navigation reset failed:", v_49263d);
+    }
   },
 
   refreshApiUser: async () => {
