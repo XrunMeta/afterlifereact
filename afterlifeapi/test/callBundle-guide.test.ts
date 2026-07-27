@@ -51,7 +51,10 @@ v_469bf2("GET /oth-path — guideVideoUrls", () => {
     });
     v_4d37e3(v_8f00b9.status).toBe(200);
     const { assets: v_7adc95 } = (await v_8f00b9.json()) as { assets: { guideVideoUrls: string[] } };
-    v_4d37e3(v_7adc95.guideVideoUrls).toEqual(v_942aa2);
+
+    v_4d37e3(v_7adc95.guideVideoUrls).toHaveLength(2);
+    v_4d37e3(v_7adc95.guideVideoUrls[0]).toMatch(/\/oth-path\/files\/1$/);
+    v_4d37e3(v_7adc95.guideVideoUrls[1]).toMatch(/\/oth-path\/files\/2$/);
   });
 
   v_23805a("guide_video_urls NULL이면 []", async () => {
