@@ -23,7 +23,7 @@ import type { v_2b51a5 } from "../../navigation/types";
 import v_556baf from "../../components/ui/SafeView";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
-import { v_c67c5c } from "../../components/auth/OtpVerifyView";
+
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
@@ -93,11 +93,6 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const [v_805753, v_c7169b] = v_5ab095(false);
   const [v_5e9bfe, v_3a7d09] = v_5ab095<string | null>(null);
 
-  const [v_db004a, v_148b42] = v_5ab095(false);
-  const [v_2b566e, v_26e048] = v_5ab095<number>(100);
-  const [v_c924cc, v_d0452a] = v_5ab095("");
-  const [v_904d6c, v_a8bf66] = v_5ab095(false);
-  const [v_8a43e1, v_04103a] = v_5ab095<string | null>(null);
   const v_b12f33 = v_e662ae(false);
 
   const v_6de415 = v_e662ae<string | undefined>(undefined);
@@ -203,7 +198,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const [v_c3de9c, v_4b9b17] = v_5ab095(false);
 
   const v_140aea = v_de06a3(
-    async (v_6bee94): Promise<number> => {
+    async (): Promise<number> => {
       const v_f04727 = v_194498.getState().creationDraft;
       console.log("[CLONE-CREATE] attemptCreate start. draft snapshot:", {
         cloneType: v_f04727.cloneType,
@@ -278,7 +273,6 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         username: v_556427,
         visibility: v_818579,
         hasAvatar: !!v_bf6b43,
-        hasPin: !!v_6bee94,
       });
 
       const v_85010a = v_f04727.voiceCloneJobId
@@ -305,7 +299,6 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
         ...(v_f04727.idleVideoJobId ? { idle_video_job_id: v_f04727.idleVideoJobId } : {}),
 
-        ...((v_6bee94 ?? v_f04727.pin) ? { pin: v_6bee94 ?? v_f04727.pin } : {}),
       });
       console.log("[CLONE-CREATE] success:", v_8f00b9);
       const v_94519a = v_8f00b9.clone;
@@ -461,18 +454,6 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       v_c7169b(false);
       if (v_49263d instanceof v_84a859) {
 
-        if (
-          v_49263d.code === "PAYMENT_REQUIRED" ||
-          v_49263d.code === "PAYMENT_PIN_INVALID" ||
-          v_49263d.code === "PAYMENT_PIN_REQUIRED"
-        ) {
-          const v_5ab5bd = (v_49263d.details ?? {}) as { priceXrun?: number };
-          if (typeof v_5ab5bd.priceXrun === "number") v_26e048(v_5ab5bd.priceXrun);
-          if (v_49263d.code === "PAYMENT_PIN_INVALID") v_04103a("XRUN PIN가 일치하지 않아요");
-          v_148b42(true);
-          v_4b9b17(false);
-          return;
-        }
         if (v_49263d.code === "CONFLICT" && v_49263d.message.includes("아이디")) {
           v_889fad("아이디 중복", v_49263d.message);
           v_4b9b17(false);
@@ -494,51 +475,6 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     v_4b9b17(false);
     v_7a77e1();
     if (v_80a1e3) v_c65f5d.replace("Step8", { cloneId: v_80a1e3 });
-  };
-
-  const v_24584b = async () => {
-    if (!/^\d{6}$/.test(v_c924cc)) {
-      v_04103a("PIN 6자리를 입력해 주세요");
-      return;
-    }
-    v_a8bf66(true);
-    v_04103a(null);
-    try {
-      v_c7169b(true);
-      const v_ceee18 = await v_140aea(v_c924cc);
-      v_148b42(false);
-
-      const v_2f361a = v_6044a8.trim();
-      if (v_2f361a.length > 0 && v_2ca7e0) {
-        try {
-          const v_1458b7 = v_6de415.current ?? null;
-          await v_5e388b(v_2ca7e0, v_ceee18, {
-            content: v_2f361a,
-            ...(v_1458b7 ? { mediaUrl: v_1458b7, mediaType: "image" } : {}),
-          });
-        } catch (v_57fcbe) {
-          console.warn("[CLONE-CREATE] post-payment feed failed:", v_57fcbe);
-        }
-        v_7a77e1();
-        v_c65f5d.replace("Step8", { cloneId: v_ceee18 });
-      }
-    } catch (v_49263d) {
-      let v_badeaf = "결제에 실패했어요.";
-      if (v_49263d instanceof v_84a859) {
-        if (v_49263d.code === "UNAUTHENTICATED") v_badeaf = "XRUN PIN가 일치하지 않아요";
-        else if (v_49263d.code === "INSUFFICIENT_FUNDS") v_badeaf = "XRUN 잔액이 부족해요";
-        else if (v_49263d.code === "CONFLICT") v_badeaf = v_49263d.message;
-        else if (v_49263d.code === "UPSTREAM_NOT_IMPLEMENTED")
-          v_badeaf = "xrun 송금 기능이 아직 준비 중입니다";
-        else v_badeaf = v_49263d.message;
-      } else if (v_49263d instanceof Error) {
-        v_badeaf = v_49263d.message;
-      }
-      v_04103a(v_badeaf);
-      v_c7169b(false);
-    } finally {
-      v_a8bf66(false);
-    }
   };
 
   const v_8a1355 = v_f04727.name ?? "사용자 이름";
@@ -686,115 +622,9 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       </KeyboardAvoidingView>
 
       {}
-      <Modal visible={v_db004a} transparent animationType="fade">
-        <KeyboardAvoidingView
-          behavior={v_326be8.OS === "ios" ? "padding" : undefined}
-          style={{ flex: 1 }}
-        >
-          <Pressable
-            style={v_9b1720.overlay}
-            onPress={() => !v_904d6c && v_148b42(false)}
-          >
-            <Pressable style={v_9b1720.box} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
-              <View style={v_9b1720.iconWrap}>
-                <Feather name="credit-card" size={26} color={v_1bfbd0.violet600} />
-              </View>
-              <Text style={v_9b1720.title}>클론 생성 결제</Text>
-              <Text style={v_9b1720.desc}>
-                두 번째 클론부터 {v_2b566e} XRUN 이 부과돼요{"\n"}
-                XRUN PIN 6자리를 입력해 주세요
-              </Text>
-              <OtpCodeInput
-                value={v_c924cc}
-                onChange={(v_81e2ef) => v_d0452a(v_81e2ef)}
-                masked
-                autoFocus
-                editable={!v_904d6c}
-              />
-              {v_8a43e1 && <Text style={v_9b1720.error}>{v_8a43e1}</Text>}
-              <View style={v_9b1720.btns}>
-                <TouchableOpacity
-                  style={v_9b1720.cancel}
-                  onPress={() => v_148b42(false)}
-                  disabled={v_904d6c}
-                >
-                  <Text style={v_9b1720.cancelText}>취소</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[v_9b1720.confirm, (v_c924cc.length !== 6 || v_904d6c) && v_9b1720.disabled]}
-                  onPress={v_24584b}
-                  disabled={v_c924cc.length !== 6 || v_904d6c}
-                >
-                  <Text style={v_9b1720.confirmText}>
-                    {v_904d6c ? "결제 중..." : "결제"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </Pressable>
-          </Pressable>
-        </KeyboardAvoidingView>
-      </Modal>
     </SafeView>
   );
 }
-
-const v_9b1720 = v_472849.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 32,
-  },
-  box: {
-    width: "100%",
-    maxWidth: 360,
-    backgroundColor: v_1bfbd0.white,
-    borderRadius: 20,
-    paddingHorizontal: 28,
-    paddingTop: 28,
-    paddingBottom: 20,
-    alignItems: "center",
-  },
-  iconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: v_1bfbd0.violet100,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  title: { fontSize: 17, fontWeight: "700", color: v_1bfbd0.zinc900, marginBottom: 10 },
-  desc: { fontSize: 13, color: v_1bfbd0.zinc600, textAlign: "center", lineHeight: 20, marginBottom: 18 },
-  input: {
-    width: "100%",
-    height: 52,
-    borderWidth: 1,
-    borderColor: v_1bfbd0.zinc200,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 20,
-    textAlign: "center",
-    letterSpacing: 4,
-    color: v_1bfbd0.zinc900,
-    backgroundColor: v_1bfbd0.zinc50,
-    marginBottom: 12,
-  },
-  error: { fontSize: 12, color: "#ef4444", marginBottom: 12, textAlign: "center" },
-  btns: { flexDirection: "row", gap: 8, width: "100%" },
-  cancel: {
-    flex: 1, paddingVertical: 12, borderRadius: 10,
-    borderWidth: 1, borderColor: v_1bfbd0.zinc200, alignItems: "center",
-  },
-  cancelText: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc600 },
-  confirm: {
-    flex: 1.5, paddingVertical: 12, borderRadius: 10,
-    backgroundColor: v_1bfbd0.violet600, alignItems: "center",
-  },
-  confirmText: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.white },
-  disabled: { backgroundColor: v_1bfbd0.zinc300 },
-});
 
 const v_d81136 = v_472849.create({
 
