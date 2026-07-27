@@ -95,8 +95,6 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
     path === "/oth-path" ||
     path === "/oth-path" ||
     path === "/oth-path" ||
-    path === "/oth-path" ||
-    path === "/oth-path" ||
     path === "/oth-path";
   const emailHint =
     typeof body === "object" && body !== null && "email" in body
@@ -172,29 +170,6 @@ export async function emailLogin(payload: {
   pushToken?: string;
   platform?: "ios" | "android" | "web";
 }): Promise<LoginResponse> {
-  return postJson("/oth-path", payload);
-}
-
-export async function xrunVerify(email: string, pin: string): Promise<{ ok: true; expiresInSec: number }> {
-  return postJson("/oth-path", { email, pin });
-}
-
-export interface XrunCompletePayload {
-  email: string;
-  pin?: string;
-  verificationCode?: string;
-  googleIdToken?: string;
-  name?: string;
-  phone?: string;
-  gender?: "male" | "female" | "other";
-  age?: number;
-  interests?: string[];
-  marketingConsent?: boolean;
-  deviceId?: string;
-  pushToken?: string;
-  platform?: "ios" | "android" | "web";
-}
-export async function xrunComplete(payload: XrunCompletePayload): Promise<SignupResponse> {
   return postJson("/oth-path", payload);
 }
 
