@@ -52,3 +52,35 @@ export async function setKnowledgeInterpretRules(env: Bindings, rules: string): 
     .bind(KNOWLEDGE_INTERPRET_RULES_KEY, rules)
     .run();
 }
+
+export async function getKnowledgeInterpretRulesText(env: Bindings): Promise<string> {
+  const raw = await getKnowledgeInterpretRules(env);
+  if (!raw) return "";
+  const trimmed = raw.trim();
+  if (!(trimmed.startsWith("[") || trimmed.startsWith("{"))) return raw;
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (!Array.isArray(parsed)) return raw;
+    const blocks: string[] = [];
+    for (const item of parsed) {
+      if (typeof item === "string") {
+        const s = item.trim();
+        if (s) blocks.push(s);
+        continue;
+      }
+      if (item && typeof item === "object") {
+        const body = typeof (item as { body?: unknown }).body === "string"
+          ? ((item as { body: string }).body).trim()
+          : "";
+        if (!body) continue;
+        const title = typeof (item as { title?: unknown }).title === "string"
+          ? ((item as { title: string }).title).trim()
+          : "";
+        blocks.push(title ? `[${title}]\n${body}` : body);
+      }
+    }
+    return blocks.join("\n\n");
+  } catch {
+    return raw;
+  }
+}

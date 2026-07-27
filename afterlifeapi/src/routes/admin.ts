@@ -38,7 +38,7 @@ admin.patch("/config/persona-price", requireAdmin, async (c) => {
   return c.json({ ok: true, priceXrun: price });
 });
 
-const KNOWLEDGE_RULES_MAX = 8000;
+const KNOWLEDGE_RULES_MAX = 16000;
 admin.get("/config/knowledge-rules", requireAdmin, async (c) => {
   const rules = await getKnowledgeInterpretRules(c.env);
   return c.json({ rules });

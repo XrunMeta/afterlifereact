@@ -6,7 +6,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireIdempotencyKey } from "../middleware/idempotency";
 import { logActivity } from "../lib/logger";
 import { similarityScore, SEARCH_SIMILARITY_THRESHOLD } from "../lib/similarity";
-import { getPersonaPriceXrun, getKnowledgeInterpretRules } from "../lib/appConfig";
+import { getPersonaPriceXrun, getKnowledgeInterpretRulesText } from "../lib/appConfig";
 import {
   hasAcceptedShare,
   isFollower,
@@ -939,7 +939,7 @@ clones.post("/:id/knowledge/interpret", requireAuth, async (c) => {
   if (c.env.KNOWLEDGE_INTERPRET_SECRET)
     headers["X-Internal-Secret"] = c.env.KNOWLEDGE_INTERPRET_SECRET;
 
-  const extraRules = await getKnowledgeInterpretRules(c.env);
+  const extraRules = await getKnowledgeInterpretRulesText(c.env);
 
   let interpretResp: { slots?: unknown; reply?: unknown } = {};
   try {
