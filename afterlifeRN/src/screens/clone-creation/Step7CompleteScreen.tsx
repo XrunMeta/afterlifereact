@@ -23,7 +23,7 @@ import type { CreateStackParamList } from "../../navigation/types";
 import SafeView from "../../components/ui/SafeView";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
-import { OtpCodeInput } from "../../components/auth/OtpVerifyView";
+
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
@@ -93,11 +93,6 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [paymentModal, setPaymentModal] = useState(false);
-  const [payPrice, setPayPrice] = useState<number>(100);
-  const [pinInput, setPinInput] = useState("");
-  const [paying, setPaying] = useState(false);
-  const [pinError, setPinError] = useState<string | null>(null);
   const cancelledRef = useRef(false);
 
   const avatarUrlRef = useRef<string | undefined>(undefined);
@@ -203,7 +198,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   const [posting, setPosting] = useState(false);
 
   const attemptCreate = useCallback(
-    async (pin?: string): Promise<number> => {
+    async (): Promise<number> => {
       const draft = useCloneStore.getState().creationDraft;
       console.log("[CLONE-CREATE] attemptCreate start. draft snapshot:", {
         cloneType: draft.cloneType,
@@ -278,7 +273,6 @@ export default function Step7CompleteScreen({ navigation }: Props) {
         username,
         visibility,
         hasAvatar: !!avatarUrl,
-        hasPin: !!pin,
       });
 
       const voicePayload = draft.voiceCloneJobId
@@ -305,7 +299,6 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
         ...(draft.idleVideoJobId ? { idle_video_job_id: draft.idleVideoJobId } : {}),
 
-        ...((pin ?? draft.pin) ? { pin: pin ?? draft.pin } : {}),
       });
       console.log("[CLONE-CREATE] success:", res);
       const createdClone = res.clone;
@@ -461,18 +454,6 @@ export default function Step7CompleteScreen({ navigation }: Props) {
       setCreating(false);
       if (err instanceof AuthApiError) {
 
-        if (
-          err.code === "PAYMENT_REQUIRED" ||
-          err.code === "PAYMENT_PIN_INVALID" ||
-          err.code === "PAYMENT_PIN_REQUIRED"
-        ) {
-          const details = (err.details ?? {}) as { priceXrun?: number };
-          if (typeof details.priceXrun === "number") setPayPrice(details.priceXrun);
-          if (err.code === "PAYMENT_PIN_INVALID") setPinError("XRUN PIN가 일치하지 않아요");
-          setPaymentModal(true);
-          setPosting(false);
-          return;
-        }
         if (err.code === "CONFLICT" && err.message.includes("아이디")) {
           showAlert("아이디 중복", err.message);
           setPosting(false);
@@ -494,51 +475,6 @@ export default function Step7CompleteScreen({ navigation }: Props) {
     setPosting(false);
     resetCreationDraft();
     if (newCloneId) navigation.replace("Step8", { cloneId: newCloneId });
-  };
-
-  const handleConfirmPayment = async () => {
-    if (!/^\d{6}$/.test(pinInput)) {
-      setPinError("PIN 6자리를 입력해 주세요");
-      return;
-    }
-    setPaying(true);
-    setPinError(null);
-    try {
-      setCreating(true);
-      const newId = await attemptCreate(pinInput);
-      setPaymentModal(false);
-
-      const trimmed = caption.trim();
-      if (trimmed.length > 0 && accessToken) {
-        try {
-          const mediaUrl = avatarUrlRef.current ?? null;
-          await createCloneFeed(accessToken, newId, {
-            content: trimmed,
-            ...(mediaUrl ? { mediaUrl, mediaType: "image" } : {}),
-          });
-        } catch (feedErr) {
-          console.warn("[CLONE-CREATE] post-payment feed failed:", feedErr);
-        }
-        resetCreationDraft();
-        navigation.replace("Step8", { cloneId: newId });
-      }
-    } catch (err) {
-      let msg = "결제에 실패했어요.";
-      if (err instanceof AuthApiError) {
-        if (err.code === "UNAUTHENTICATED") msg = "XRUN PIN가 일치하지 않아요";
-        else if (err.code === "INSUFFICIENT_FUNDS") msg = "XRUN 잔액이 부족해요";
-        else if (err.code === "CONFLICT") msg = err.message;
-        else if (err.code === "UPSTREAM_NOT_IMPLEMENTED")
-          msg = "xrun 송금 기능이 아직 준비 중입니다";
-        else msg = err.message;
-      } else if (err instanceof Error) {
-        msg = err.message;
-      }
-      setPinError(msg);
-      setCreating(false);
-    } finally {
-      setPaying(false);
-    }
   };
 
   const displayName = draft.name ?? "사용자 이름";
@@ -686,115 +622,9 @@ export default function Step7CompleteScreen({ navigation }: Props) {
       </KeyboardAvoidingView>
 
       {}
-      <Modal visible={paymentModal} transparent animationType="fade">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={{ flex: 1 }}
-        >
-          <Pressable
-            style={payStyles.overlay}
-            onPress={() => !paying && setPaymentModal(false)}
-          >
-            <Pressable style={payStyles.box} onPress={(e) => e.stopPropagation()}>
-              <View style={payStyles.iconWrap}>
-                <Feather name="credit-card" size={26} color={COLORS.violet600} />
-              </View>
-              <Text style={payStyles.title}>클론 생성 결제</Text>
-              <Text style={payStyles.desc}>
-                두 번째 클론부터 {payPrice} XRUN 이 부과돼요{"\n"}
-                XRUN PIN 6자리를 입력해 주세요
-              </Text>
-              <OtpCodeInput
-                value={pinInput}
-                onChange={(v) => setPinInput(v)}
-                masked
-                autoFocus
-                editable={!paying}
-              />
-              {pinError && <Text style={payStyles.error}>{pinError}</Text>}
-              <View style={payStyles.btns}>
-                <TouchableOpacity
-                  style={payStyles.cancel}
-                  onPress={() => setPaymentModal(false)}
-                  disabled={paying}
-                >
-                  <Text style={payStyles.cancelText}>취소</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[payStyles.confirm, (pinInput.length !== 6 || paying) && payStyles.disabled]}
-                  onPress={handleConfirmPayment}
-                  disabled={pinInput.length !== 6 || paying}
-                >
-                  <Text style={payStyles.confirmText}>
-                    {paying ? "결제 중..." : "결제"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </Pressable>
-          </Pressable>
-        </KeyboardAvoidingView>
-      </Modal>
     </SafeView>
   );
 }
-
-const payStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 32,
-  },
-  box: {
-    width: "100%",
-    maxWidth: 360,
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
-    paddingHorizontal: 28,
-    paddingTop: 28,
-    paddingBottom: 20,
-    alignItems: "center",
-  },
-  iconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.violet100,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  title: { fontSize: 17, fontWeight: "700", color: COLORS.zinc900, marginBottom: 10 },
-  desc: { fontSize: 13, color: COLORS.zinc600, textAlign: "center", lineHeight: 20, marginBottom: 18 },
-  input: {
-    width: "100%",
-    height: 52,
-    borderWidth: 1,
-    borderColor: COLORS.zinc200,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 20,
-    textAlign: "center",
-    letterSpacing: 4,
-    color: COLORS.zinc900,
-    backgroundColor: COLORS.zinc50,
-    marginBottom: 12,
-  },
-  error: { fontSize: 12, color: "#ef4444", marginBottom: 12, textAlign: "center" },
-  btns: { flexDirection: "row", gap: 8, width: "100%" },
-  cancel: {
-    flex: 1, paddingVertical: 12, borderRadius: 10,
-    borderWidth: 1, borderColor: COLORS.zinc200, alignItems: "center",
-  },
-  cancelText: { fontSize: 14, fontWeight: "600", color: COLORS.zinc600 },
-  confirm: {
-    flex: 1.5, paddingVertical: 12, borderRadius: 10,
-    backgroundColor: COLORS.violet600, alignItems: "center",
-  },
-  confirmText: { fontSize: 14, fontWeight: "700", color: COLORS.white },
-  disabled: { backgroundColor: COLORS.zinc300 },
-});
 
 const styles = StyleSheet.create({
 
