@@ -16,7 +16,8 @@ import {
 import { v_6690d9 } from "../middleware/auth";
 import { v_74defc } from "../lib/logger";
 import { v_b78f7e, v_656e8b } from "../lib/otp";
-import { v_6e4cc8, v_a0ec33, v_937e23 } from "../lib/xrun";
+import { v_a0ec33, v_937e23 } from "../lib/xrun";
+
 import { v_a32f1d } from "../lib/googleAuth";
 
 export const v_68f0aa = new v_b7c41b<v_de0a25>();
@@ -73,15 +74,9 @@ v_68f0aa.post("/google/check", async (v_3f4e2e) => {
     .bind(v_931bf0.email)
     .first<{ id: number }>();
 
-  let v_5c805d = false;
-  if (!v_ed2073) {
-    const v_534695 = await v_a0ec33(v_3f4e2e.env, v_931bf0.email);
-    v_5c805d = v_534695.found;
-  }
-
   return v_3f4e2e.json({
     afterlifeExists: !!v_ed2073,
-    xrunExists: v_5c805d,
+    xrunExists: false,
     email: v_931bf0.email,
     name: v_931bf0.name ?? null,
     picture: v_931bf0.picture ?? null,
@@ -128,44 +123,6 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
       .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null }>();
     if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user.");
     v_d1b635 = v_81161e;
-
-    try {
-      const v_76be17 = await v_6e4cc8(v_3f4e2e.env, {
-        email: v_931bf0.email,
-        name: v_ef7664,
-
-      });
-      let v_e2be75 = null;
-      let v_3f61e9 = null;
-      let v_8c2a4f = null;
-      if (v_76be17.status === "created" && v_76be17.member) {
-        v_e2be75 = v_76be17.member;
-        v_3f61e9 = v_76be17.guid ?? null;
-        v_8c2a4f = v_76be17.wallet ?? null;
-      } else if (v_76be17.status === "duplicate") {
-        const v_534695 = await v_a0ec33(v_3f4e2e.env, v_931bf0.email);
-        if (v_534695.found && v_534695.member) {
-          v_e2be75 = v_534695.member;
-          v_3f61e9 = v_534695.guid ?? null;
-          v_8c2a4f = v_534695.wallet ?? null;
-        }
-      }
-      if (v_e2be75) {
-        await v_a1651b
-          .prepare(
-            `UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_wallet = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`,
-          )
-          .bind(v_e2be75, v_3f61e9, v_8c2a4f, v_81161e.id)
-          .run();
-      }
-      await v_74defc(v_3f4e2e, {
-        userId: v_81161e.id,
-        action: "xrun.link",
-        details: { result: v_76be17.status, member: v_e2be75, guid: v_3f61e9, wallet: v_8c2a4f, reason: v_76be17.reason ?? null },
-      });
-    } catch (v_49263d) {
-      console.error(`[GOOGLE_SIGNIN_XRUN_LINK_FAIL] user_id=${v_81161e.id} err=${(v_49263d as Error).message}`);
-    }
 
     await v_74defc(v_3f4e2e, {
       userId: v_81161e.id,
@@ -559,65 +516,6 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
   } catch (v_49263d) {
     await v_a1651b.prepare(`DELETE FROM users WHERE id = ?`).bind(v_81161e.id).run();
     throw v_49263d;
-  }
-
-  try {
-    const v_76be17 = await v_6e4cc8(v_3f4e2e.env, {
-      email: v_4d33b2.email,
-      name: v_4d33b2.name,
-      phone: v_4d33b2.phone,
-      gender: v_4d33b2.gender,
-      age: v_4d33b2.age,
-
-      country: v_4d33b2.country,
-      mobileCode: v_4d33b2.mobileCode,
-      region: v_4d33b2.region,
-    });
-
-    let v_d03cc0 = null;
-    let v_4aee34 = null;
-    let v_a5f7d2 = null;
-    let v_f55a40 = v_76be17.status;
-
-    if (v_76be17.status === "created" && v_76be17.member && v_76be17.guid) {
-      v_d03cc0 = v_76be17.member;
-      v_4aee34 = v_76be17.guid;
-
-      v_a5f7d2 = v_76be17.wallet ?? null;
-    } else if (v_76be17.status === "duplicate") {
-      const v_534695 = await v_a0ec33(v_3f4e2e.env, v_4d33b2.email);
-      if (v_534695.found && v_534695.member) {
-        v_d03cc0 = v_534695.member;
-        v_4aee34 = v_534695.guid ?? null;
-        v_a5f7d2 = v_534695.wallet ?? null;
-        v_f55a40 = "duplicate-linked";
-      } else {
-        v_f55a40 = "duplicate-lookup-miss";
-      }
-    }
-
-    if (v_d03cc0) {
-      await v_a1651b
-        .prepare(
-          `UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_wallet = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`,
-        )
-        .bind(v_d03cc0, v_4aee34, v_a5f7d2, v_81161e.id)
-        .run();
-    }
-
-    await v_74defc(v_3f4e2e, {
-      userId: v_81161e.id,
-      action: "xrun.link",
-      details: {
-        result: v_f55a40,
-        member: v_d03cc0,
-        guid: v_4aee34,
-        wallet: v_a5f7d2,
-        reason: v_76be17.reason ?? null,
-      },
-    });
-  } catch (v_49263d) {
-    console.error(`[XRUN_LINK_FAIL] user_id=${v_81161e.id} err=${(v_49263d as Error).message}`);
   }
 
   const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(
