@@ -28,6 +28,7 @@ import {
   v_7b4be8,
   v_d7e0ab,
   v_c2fd24,
+  v_5344d9,
   v_085a16,
   type v_1d8a7b,
   type v_1a6ece,
@@ -58,6 +59,12 @@ interface PendingConfirm {
   userAnswer: string;     
 }
 
+interface FollowupState {
+  baseKey: string;        
+  question: string;       
+  slotKey: string;        
+}
+
 export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Props) {
   const { t: v_8d41d7 } = v_772971();
   const v_6e0fd3 = v_c7daf6.params.cloneId;
@@ -71,6 +78,7 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_c84c22, v_056f5c] = v_5ab095<string | null>(null);
   const [v_343c90, v_2f6757] = v_5ab095<string>("");
   const [v_365b18, v_323ec3] = v_5ab095<PendingConfirm | null>(null);
+  const [v_e3e25f, v_8f1d4b] = v_5ab095<FollowupState | null>(null);
   const v_5ca6b8 = v_e662ae<v_122070>(null);
 
   const v_31c649 = v_df9f57(() => new Set(v_4622b9.map((v_ebec57) => v_ebec57.key)), [v_4622b9]);
@@ -133,7 +141,7 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     if (!v_683210 && v_5ca6b8.current) {
       setTimeout(() => v_5ca6b8.current?.scrollToEnd({ animated: true }), 150);
     }
-  }, [v_fa0e39.length, v_c84c22, v_683210, v_365b18]);
+  }, [v_fa0e39.length, v_c84c22, v_683210, v_365b18, v_e3e25f]);
 
   const v_219251 = (fresh: v_1d8a7b[], v_566831) => {
 
@@ -144,7 +152,52 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     v_2f6757("");
   };
 
+  const v_332b0f = async () => {
+    if (!v_2ca7e0 || !v_e3e25f) return;
+    const v_779914 = v_343c90.trim();
+    if (!v_779914) {
+      v_fd6a6b();
+      return;
+    }
+    v_04e389(true);
+    try {
+      const v_931bf0 = [
+        ...v_4622b9.map((v_23805a) => ({ key: v_23805a.key, q: v_23805a.q, a: v_23805a.a })),
+        { key: v_e3e25f.slotKey, q: v_e3e25f.question, a: v_779914 },
+      ];
+      const v_8f00b9 = await v_085a16(v_2ca7e0, v_6e0fd3, v_931bf0);
+      if (v_8f00b9.error) {
+        v_889fad(v_8d41d7("common.error"), v_8f00b9.message || v_8f00b9.error);
+        return;
+      }
+      const v_3871e2 = v_8f00b9.items ?? [];
+      v_fa923c(v_3871e2);
+      const v_ca2c14 = new Set(v_3871e2.map((v_ebec57) => v_ebec57.key));
+      v_ca2c14.add(v_e3e25f.baseKey);
+      const v_75fbef = v_c3519b.filter((v_ab6401) => !v_ca2c14.has(v_ab6401.key));
+      v_056f5c(v_35ad8d(v_75fbef));
+      v_8f1d4b(null);
+      v_2f6757("");
+    } catch (v_49263d) {
+      v_889fad(v_8d41d7("common.error"), (v_49263d as Error).message);
+    } finally {
+      v_04e389(false);
+    }
+  };
+
+  const v_fd6a6b = () => {
+
+    const v_ca2c14 = new Set(v_4622b9.map((v_ebec57) => v_ebec57.key));
+    if (v_e3e25f) v_ca2c14.add(v_e3e25f.baseKey);
+    const v_75fbef = v_c3519b.filter((v_ab6401) => !v_ca2c14.has(v_ab6401.key));
+    v_056f5c(v_35ad8d(v_75fbef));
+    v_8f1d4b(null);
+    v_2f6757("");
+  };
+
   const v_465869 = async () => {
+
+    if (v_e3e25f) return v_332b0f();
     if (!v_2ca7e0 || !v_2a8f35) return;
     const v_779914 = v_343c90.trim();
     if (!v_779914) return;
@@ -200,35 +253,49 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const v_6d687a = async () => {
     if (!v_2ca7e0 || !v_365b18) return;
     const v_934ae5 = v_365b18.slots.filter((v_fd5f43) => v_fd5f43.a && v_fd5f43.a.trim());
-    if (v_934ae5.length === 0) {
-
-      const v_ca2c14 = new Set(v_4622b9.map((v_ebec57) => v_ebec57.key));
-      v_ca2c14.add(v_365b18.questionKey);
-      const v_75fbef = v_c3519b.filter((v_ab6401) => !v_ca2c14.has(v_ab6401.key));
-      v_056f5c(v_35ad8d(v_75fbef));
-      v_323ec3(null);
-      return;
-    }
-    const v_931bf0 = [
-      ...v_4622b9.map((v_23805a) => ({ key: v_23805a.key, q: v_23805a.q, a: v_23805a.a })),
-      ...v_934ae5.map((v_fd5f43) => ({ key: v_fd5f43.key, q: v_fd5f43.q, a: v_fd5f43.a })),
-    ];
-    v_04e389(true);
-    try {
-      const v_8f00b9 = await v_085a16(v_2ca7e0, v_6e0fd3, v_931bf0);
-      if (v_8f00b9.error) {
-        v_889fad(v_8d41d7("common.error"), v_8f00b9.message || v_8f00b9.error);
-        return;
-      }
-      const v_3871e2 = v_8f00b9.items ?? [];
-      v_fa923c(v_3871e2);
-
+    const v_6845e8 = v_365b18.questionKey;
+    const v_67f24f = v_c3519b.find((v_ab6401) => v_ab6401.key === v_6845e8);
+    const v_46ab36 = v_365b18.userAnswer;
+    const v_88b6a2 = (fresh: v_1d8a7b[]) => {
       const v_ca2c14 = new Set(v_3871e2.map((v_ebec57) => v_ebec57.key));
-      v_ca2c14.add(v_365b18.questionKey);
+      v_ca2c14.add(v_6845e8);
       for (const v_fd5f43 of v_934ae5) v_ca2c14.add(v_fd5f43.key);
       const v_75fbef = v_c3519b.filter((v_ab6401) => !v_ca2c14.has(v_ab6401.key));
       v_056f5c(v_35ad8d(v_75fbef));
+    };
+    v_04e389(true);
+    try {
+      let v_3871e2 = v_4622b9;
+      if (v_934ae5.length > 0) {
+        const v_931bf0 = [
+          ...v_4622b9.map((v_23805a) => ({ key: v_23805a.key, q: v_23805a.q, a: v_23805a.a })),
+          ...v_934ae5.map((v_fd5f43) => ({ key: v_fd5f43.key, q: v_fd5f43.q, a: v_fd5f43.a })),
+        ];
+        const v_8f00b9 = await v_085a16(v_2ca7e0, v_6e0fd3, v_931bf0);
+        if (v_8f00b9.error) {
+          v_889fad(v_8d41d7("common.error"), v_8f00b9.message || v_8f00b9.error);
+          return;
+        }
+        v_3871e2 = v_8f00b9.items ?? [];
+        v_fa923c(v_3871e2);
+      }
       v_323ec3(null);
+
+      const v_2869c1 = v_67f24f?.label ?? "";
+      const v_5c8505 = v_2869c1
+        ? await v_5344d9(v_2ca7e0, v_6e0fd3, v_2869c1, v_46ab36)
+        : { followup: "" };
+      if (v_5c8505.followup && v_5c8505.followup.trim()) {
+        v_8f1d4b({
+          baseKey: v_6845e8,
+          question: v_5c8505.followup.trim(),
+
+          slotKey: `${v_6845e8}_followup`,
+        });
+        v_2f6757("");
+        return;
+      }
+      v_88b6a2(v_3871e2);
     } catch (v_49263d) {
       v_889fad(v_8d41d7("common.error"), (v_49263d as Error).message);
     } finally {
@@ -356,6 +423,14 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                   </>
                 )}
 
+                {v_e3e25f && (
+                  <View style={[v_d81136.bubbleRow, v_d81136.bubbleRowLeft]}>
+                    <View style={[v_d81136.bubble, v_d81136.bubbleBot]}>
+                      <Text style={v_d81136.bubbleText}>{v_e3e25f.question}</Text>
+                    </View>
+                  </View>
+                )}
+
                 {!v_2a8f35 && v_fa0e39.length > 0 && (
                   <View style={v_d81136.doneCard}>
                     <Text style={v_d81136.doneIcon}>🎉</Text>
@@ -408,15 +483,17 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
               <>
                 <View style={v_d81136.suggestionRow}>
                   <TouchableOpacity
-                    onPress={v_78ac9c}
-                    disabled={v_35bf26 || v_e97ea1.length <= 1}
+                    onPress={v_e3e25f ? v_fd6a6b : v_78ac9c}
+                    disabled={v_35bf26 || (!v_e3e25f && v_e97ea1.length <= 1)}
                     style={[
                       v_d81136.suggestionBtn,
-                      (v_35bf26 || v_e97ea1.length <= 1) && v_d81136.btnDisabled,
+                      (v_35bf26 || (!v_e3e25f && v_e97ea1.length <= 1)) && v_d81136.btnDisabled,
                     ]}
                   >
                     <Text style={v_d81136.suggestionText}>
-                      {v_8d41d7("learn.skip", { defaultValue: "다른 질문" })}
+                      {v_e3e25f
+                        ? v_8d41d7("learn.followupSkip", { defaultValue: "건너뛰기" })
+                        : v_8d41d7("learn.skip", { defaultValue: "다른 질문" })}
                     </Text>
                   </TouchableOpacity>
                 </View>
