@@ -95,8 +95,6 @@ async function v_c34e2f<T>(v_9fe22d, v_4d33b2): Promise<T> {
     v_9fe22d === "/oth-path" ||
     v_9fe22d === "/oth-path" ||
     v_9fe22d === "/oth-path" ||
-    v_9fe22d === "/oth-path" ||
-    v_9fe22d === "/oth-path" ||
     v_9fe22d === "/oth-path";
   const v_1936ee =
     typeof v_4d33b2 === "object" && v_4d33b2 !== null && "email" in v_4d33b2
@@ -162,29 +160,6 @@ export async function v_1d5b64(v_e0c7e8): Promise<{ ok: true; expiresInSec: numb
 }
 
 export async function v_c0c425(v_931bf0): Promise<LoginResponse> {
-  return v_c34e2f("/oth-path", v_931bf0);
-}
-
-export async function v_dd506d(v_e0c7e8, v_6bee94): Promise<{ ok: true; expiresInSec: number }> {
-  return v_c34e2f("/oth-path", { email: v_e0c7e8, pin: v_6bee94 });
-}
-
-export interface XrunCompletePayload {
-  email: string;
-  pin?: string;
-  verificationCode?: string;
-  googleIdToken?: string;
-  name?: string;
-  phone?: string;
-  gender?: "male" | "female" | "other";
-  age?: number;
-  interests?: string[];
-  marketingConsent?: boolean;
-  deviceId?: string;
-  pushToken?: string;
-  platform?: "ios" | "android" | "web";
-}
-export async function v_f3a3a5(v_931bf0): Promise<SignupResponse> {
   return v_c34e2f("/oth-path", v_931bf0);
 }
 

@@ -8,9 +8,7 @@ import v_6d377c from "../permissions/PermissionGateScreen";
 import v_f4f851 from "../screens/auth/LoginScreen";
 import v_f40fc5 from "../screens/auth/SignupScreen";
 import v_e1aa8b from "../screens/auth/EmailVerifyScreen";
-import v_61d670 from "../screens/auth/XrunLoginScreen";
-import v_e24882 from "../screens/auth/XrunOtpScreen";
-import v_033f95 from "../screens/auth/XrunOnboardingScreen";
+
 import v_415807 from "../screens/auth/EmailOtpLoginScreen";
 import v_040c8f from "../screens/auth/ForgotPasswordScreen";
 import v_933130 from "../screens/auth/SignupCompleteScreen";
@@ -34,9 +32,7 @@ function v_aebbaf() {
       <AuthStack.Screen name="Login" component={v_f4f851} />
       <AuthStack.Screen name="Signup" component={v_f40fc5} />
       <AuthStack.Screen name="EmailVerify" component={v_e1aa8b} />
-      <AuthStack.Screen name="XrunLogin" component={v_61d670} />
-      <AuthStack.Screen name="XrunOtp" component={v_e24882} />
-      <AuthStack.Screen name="XrunOnboarding" component={v_033f95} />
+      {}
       <AuthStack.Screen name="EmailOtpLogin" component={v_415807} />
       <AuthStack.Screen name="ForgotPassword" component={v_040c8f} />
       <AuthStack.Screen name="SignupComplete" component={v_933130} />
