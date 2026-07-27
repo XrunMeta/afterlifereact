@@ -168,6 +168,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (err) {
       console.warn("[authStore] reset on apiLogout failed:", err);
     }
+
+    try {
+      const { navigationRef } = await import("../navigation/navigationRef");
+      if (navigationRef.isReady()) {
+        navigationRef.reset({ index: 0, routes: [{ name: "Auth" as never }] });
+      }
+    } catch (err) {
+      console.warn("[authStore] navigation reset failed:", err);
+    }
   },
 
   refreshApiUser: async () => {
