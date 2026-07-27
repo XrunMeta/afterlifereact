@@ -13,7 +13,12 @@ import { loadKnowledgeQuestions, validateKnowledgeQuestions } from "../lib/knowl
 import { loadBlacklist, validateBlacklist } from "../lib/knowledgeBlacklist";
 import { normalizeKnowledge } from "../lib/knowledgeStore";
 import { notify } from "../lib/notify";
-import { getPersonaPriceXrun, setPersonaPriceXrun } from "../lib/appConfig";
+import {
+  getPersonaPriceXrun,
+  setPersonaPriceXrun,
+  getKnowledgeInterpretRules,
+  setKnowledgeInterpretRules,
+} from "../lib/appConfig";
 
 export const admin = new Hono<AppEnv>();
 
@@ -31,6 +36,21 @@ admin.patch("/config/persona-price", requireAdmin, async (c) => {
   }
   await setPersonaPriceXrun(c.env, price);
   return c.json({ ok: true, priceXrun: price });
+});
+
+const KNOWLEDGE_RULES_MAX = 8000;
+admin.get("/config/knowledge-rules", requireAdmin, async (c) => {
+  const rules = await getKnowledgeInterpretRules(c.env);
+  return c.json({ rules });
+});
+admin.patch("/config/knowledge-rules", requireAdmin, async (c) => {
+  const body = await c.req.json<{ rules?: unknown }>().catch(() => ({} as { rules?: unknown }));
+  const rules = typeof body.rules === "string" ? body.rules : "";
+  if (rules.length > KNOWLEDGE_RULES_MAX) {
+    throw new APIError("VALIDATION_FAILED", `rules must be ≤ ${KNOWLEDGE_RULES_MAX} chars.`);
+  }
+  await setKnowledgeInterpretRules(c.env, rules);
+  return c.json({ ok: true, rules });
 });
 
 const openSchema = z.object({

@@ -28,3 +28,27 @@ export async function setPersonaPriceXrun(env: Bindings, price: number): Promise
     .bind(PERSONA_PRICE_KEY, String(price))
     .run();
 }
+
+const KNOWLEDGE_INTERPRET_RULES_KEY = "knowledge.interpret_extra_rules";
+
+export async function getKnowledgeInterpretRules(env: Bindings): Promise<string> {
+  try {
+    const row = await env.DB
+      .prepare(`SELECT value FROM app_config WHERE key = ? LIMIT 1`)
+      .bind(KNOWLEDGE_INTERPRET_RULES_KEY)
+      .first<{ value: string }>();
+    return row?.value ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export async function setKnowledgeInterpretRules(env: Bindings, rules: string): Promise<void> {
+  await env.DB
+    .prepare(
+      `INSERT INTO app_config (key, value, updated_at) VALUES (?, ?, unixepoch())
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = unixepoch()`,
+    )
+    .bind(KNOWLEDGE_INTERPRET_RULES_KEY, rules)
+    .run();
+}
