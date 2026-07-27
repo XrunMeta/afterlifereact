@@ -1074,42 +1074,28 @@ users.get("/me/reports/received", requireAuth, async (c) => {
   const items = (
     await c.env.DB
       .prepare(
-        `SELECT r.id AS id, r.reason AS reason,
-                r.createdAt AS createdAt, r.reviewedAt AS reviewedAt,
-                r.adminMessage AS adminMessage, r.reportType AS reportType,
-                r.cloneName AS cloneName, r.content AS content,
-                w.reason AS warningReason, w.created_at AS warnedAt
-           FROM (
-             SELECT 'user' AS reportType, ur.id AS id, ur.reason AS reason,
-                    ur.created_at AS createdAt, ur.reviewed_at AS reviewedAt,
-                    COALESCE(ur.target_message, ur.admin_message) AS adminMessage,
-                    NULL AS cloneName, NULL AS content
-               FROM user_reports ur
-              WHERE ur.target_id = ? AND ur.status IN ('actioned', 'reviewed')
-             UNION ALL
-             SELECT 'clone' AS reportType, cr.id AS id, cr.reason AS reason,
-                    cr.created_at AS createdAt, cr.reviewed_at AS reviewedAt,
-                    COALESCE(cr.target_message, cr.admin_message) AS adminMessage,
-                    c.name AS cloneName, NULL AS content
-               FROM clone_reports cr
-               JOIN clones c ON c.id = cr.clone_id
-              WHERE c.owner_id = ? AND cr.status IN ('actioned', 'reviewed')
-             UNION ALL
-             SELECT 'comment' AS reportType, cmr.id AS id, cmr.reason AS reason,
-                    cmr.created_at AS createdAt, cmr.reviewed_at AS reviewedAt,
-                    COALESCE(cmr.target_message, cmr.admin_message) AS adminMessage,
-                    cc.name AS cloneName, fc.content AS content
-               FROM comment_reports cmr
-               JOIN feed_comments fc ON fc.id = cmr.comment_id
-               LEFT JOIN clones cc ON cc.id = cmr.clone_id
-              WHERE fc.user_id = ? AND cmr.status IN ('actioned', 'reviewed')
-           ) r
-           LEFT JOIN user_warnings w
-             ON w.report_id = r.id AND w.report_type = r.reportType AND w.user_id = ?
-          ORDER BY r.createdAt DESC
+        `SELECT w.report_id AS id, w.report_type AS reportType,
+                w.reason AS warningReason, w.created_at AS warnedAt,
+                COALESCE(ur.reason, cr.reason, cmr.reason) AS reason,
+                COALESCE(ur.created_at, cr.created_at, cmr.created_at) AS createdAt,
+                COALESCE(ur.reviewed_at, cr.reviewed_at, cmr.reviewed_at) AS reviewedAt,
+                COALESCE(ur.target_message, ur.admin_message,
+                         cr.target_message, cr.admin_message,
+                         cmr.target_message, cmr.admin_message) AS adminMessage,
+                COALESCE(c.name, cc.name) AS cloneName,
+                fc.content AS content
+           FROM user_warnings w
+           LEFT JOIN user_reports ur    ON w.report_type = 'user'    AND ur.id  = w.report_id
+           LEFT JOIN clone_reports cr   ON w.report_type = 'clone'   AND cr.id  = w.report_id
+           LEFT JOIN clones c           ON w.report_type = 'clone'   AND c.id   = cr.clone_id
+           LEFT JOIN comment_reports cmr ON w.report_type = 'comment' AND cmr.id = w.report_id
+           LEFT JOIN feed_comments fc   ON w.report_type = 'comment' AND fc.id  = cmr.comment_id
+           LEFT JOIN clones cc          ON w.report_type = 'comment' AND cc.id  = cmr.clone_id
+          WHERE w.user_id = ?
+          ORDER BY w.created_at DESC
           LIMIT 100`,
       )
-      .bind(userId, userId, userId, userId)
+      .bind(userId)
       .all()
   ).results;
   const wc = await c.env.DB
