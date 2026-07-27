@@ -52,3 +52,35 @@ export async function v_6e82f0(env: v_273a0c, v_ddf1dc): Promise<void> {
     .bind(v_ca1841, v_ddf1dc)
     .run();
 }
+
+export async function v_e35611(env: v_273a0c): Promise<string> {
+  const v_479f05 = await v_399bbb(v_c9c489);
+  if (!v_479f05) return "";
+  const v_2f361a = v_479f05.trim();
+  if (!(v_2f361a.startsWith("[") || v_2f361a.startsWith("{"))) return v_479f05;
+  try {
+    const v_8decf8 = JSON.parse(v_2f361a) as unknown;
+    if (!Array.isArray(v_8decf8)) return v_479f05;
+    const v_1412c1 = [];
+    for (const v_8c0b26 of v_8decf8) {
+      if (typeof v_8c0b26 === "string") {
+        const v_fd5f43 = v_8c0b26.trim();
+        if (v_fd5f43) v_1412c1.push(v_fd5f43);
+        continue;
+      }
+      if (v_8c0b26 && typeof v_8c0b26 === "object") {
+        const v_4d33b2 = typeof (v_8c0b26 as { body?: unknown }).body === "string"
+          ? ((v_8c0b26 as { body: string }).body).trim()
+          : "";
+        if (!v_4d33b2) continue;
+        const v_9f1622 = typeof (v_8c0b26 as { title?: unknown }).title === "string"
+          ? ((v_8c0b26 as { title: string }).title).trim()
+          : "";
+        v_1412c1.push(v_9f1622 ? `[${v_9f1622}]\n${v_4d33b2}` : v_4d33b2);
+      }
+    }
+    return v_1412c1.join("\n\n");
+  } catch {
+    return v_479f05;
+  }
+}

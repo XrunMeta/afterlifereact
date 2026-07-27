@@ -38,7 +38,7 @@ v_b7f2b4.patch("/config/persona-price", v_c0a297, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true, priceXrun: v_6bbb57 });
 });
 
-const v_46964b = 8000;
+const v_46964b = 16000;
 v_b7f2b4.get("/config/knowledge-rules", v_c0a297, async (v_3f4e2e) => {
   const v_ddf1dc = await v_399bbb(v_3f4e2e.env);
   return v_3f4e2e.json({ rules: v_ddf1dc });
