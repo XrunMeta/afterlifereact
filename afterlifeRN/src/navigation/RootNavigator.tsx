@@ -1,9 +1,11 @@
-import v_a3453e from "bapkr";
+import v_a3453e, { v_c4deb2 } from "bapkr";
 import { v_709be7 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_8ad91b, v_384e19 } from "./types";
 import { v_1ed7d9 } from "../stores/authStore";
 import { v_b5d684 } from "../permissions/usePermissionGate";
 import v_6d377c from "../permissions/PermissionGateScreen";
+
+import { v_54ca39 } from "../lib/iap";
 
 import v_f4f851 from "../screens/auth/LoginScreen";
 import v_f40fc5 from "../screens/auth/SignupScreen";
@@ -42,6 +44,12 @@ function v_aebbaf() {
 
 export default function v_3b950c() {
   const v_042a8b = v_1ed7d9((v_fd5f43) => v_fd5f43.isLoggedIn);
+
+  v_c4deb2(() => {
+    if (!v_042a8b) return;
+    const v_3d0b03 = v_54ca39();
+    return () => v_3d0b03();
+  }, [v_042a8b]);
 
   const { decision: v_403b73, loading: v_decd98 } = v_b5d684();
 

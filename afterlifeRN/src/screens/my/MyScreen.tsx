@@ -191,6 +191,13 @@ export default function v_ed02a5() {
       descKey: "my.menu.reportsDesc",
       route: "Reports",
     },
+
+    {
+      icon: "credit-card",
+      labelKey: "my.menu.purchase",
+      descKey: "my.menu.purchaseDesc",
+      route: "Purchase",
+    },
     {
       icon: "file-text",
       labelKey: "my.coin.transactions",
