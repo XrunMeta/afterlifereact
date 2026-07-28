@@ -18,6 +18,7 @@ import { logActivity } from "../lib/logger";
 import { requestSignupOtp, verifySignupOtp } from "../lib/otp";
 
 import { verifyGoogleIdToken } from "../lib/googleAuth";
+import { grantSignupFreeCredits } from "../lib/credits";
 
 export const auth = new Hono<AppEnv>();
 
@@ -128,6 +129,12 @@ auth.post("/google", async (c) => {
       action: "auth.google.signup",
       details: { sub: payload.sub, email: payload.email },
     });
+
+    try {
+      await grantSignupFreeCredits(c, inserted.id);
+    } catch (err) {
+      console.error(`[SIGNUP_GRANT_FAIL] user_id=${inserted.id} err=${(err as Error).message}`);
+    }
   } else {
 
     if (userRow.deletion_state !== "active") {
@@ -330,6 +337,12 @@ auth.post("/signup", async (c) => {
   } catch (err) {
     await db.prepare(`DELETE FROM users WHERE id = ?`).bind(inserted.id).run();
     throw err;
+  }
+
+  try {
+    await grantSignupFreeCredits(c, inserted.id);
+  } catch (err) {
+    console.error(`[SIGNUP_GRANT_FAIL] user_id=${inserted.id} err=${(err as Error).message}`);
   }
 
   const { accessToken, refreshToken, accessExpiresIn } = await issueSession(

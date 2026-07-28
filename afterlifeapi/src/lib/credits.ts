@@ -72,6 +72,48 @@ export async function spend(c: Context<AppEnv>, args: SpendArgs): Promise<void> 
   }
 }
 
+export async function grantSignupFreeCredits(
+  c: Context<AppEnv>,
+  userId: number,
+): Promise<{ granted: boolean }> {
+  const db = c.env.DB;
+  const idemKey = `signup:${userId}`;
+  const AMOUNT = 3000; 
+
+  try {
+    const results = await db.batch([
+
+      db
+        .prepare(
+          `INSERT INTO credit_ledgers (user_id, amount, type, ref_id, idempotency_key)
+             VALUES (?, ?, 'signup_grant', 'signup', ?)`,
+        )
+        .bind(userId, AMOUNT, idemKey),
+
+      db
+        .prepare(
+          `UPDATE users
+              SET credits_free    = credits_free + ?,
+                  credits         = credits + ?,
+                  free_granted_at = CAST(strftime('%s','now') AS INTEGER) * 1000,
+                  updated_at      = CURRENT_TIMESTAMP
+            WHERE id = ? AND deleted_at IS NULL
+              AND free_granted_at IS NULL`,
+        )
+        .bind(AMOUNT, AMOUNT, userId),
+    ]);
+    const updateChanges = results[1]?.meta?.changes ?? 0;
+    return { granted: updateChanges > 0 };
+  } catch (err) {
+    const msg = (err as Error).message ?? "";
+    if (/UNIQUE constraint failed: credit_ledgers/.test(msg)) {
+
+      return { granted: false };
+    }
+    throw err;
+  }
+}
+
 export interface SpendCallResult {
   billedSec: number;
   unbilledSec: number;
