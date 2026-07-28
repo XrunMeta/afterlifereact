@@ -1,9 +1,11 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import type { RootStackParamList, AuthStackParamList } from "./types";
 import { useAuthStore } from "../stores/authStore";
 import { usePermissionGate } from "../permissions/usePermissionGate";
 import PermissionGateScreen from "../permissions/PermissionGateScreen";
+
+import { registerPurchaseListeners } from "../lib/iap";
 
 import LoginScreen from "../screens/auth/LoginScreen";
 import SignupScreen from "../screens/auth/SignupScreen";
@@ -42,6 +44,12 @@ function AuthNavigator() {
 
 export default function RootNavigator() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    const unregister = registerPurchaseListeners();
+    return () => unregister();
+  }, [isLoggedIn]);
 
   const { decision, loading: permLoading } = usePermissionGate();
 

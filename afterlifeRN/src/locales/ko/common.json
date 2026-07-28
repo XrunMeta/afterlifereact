@@ -333,6 +333,8 @@
       "paymentPin": "XRUN PIN 입력",
       "openXrun": "XRUN 바로가기",
       "openXrunDesc": "XRUN 앱 열기 (없으면 스토어)",
+      "purchase": "크레딧 충전 · 구독",
+      "purchaseDesc": "월 구독 · 충전으로 통화 시간 추가",
       "logout": "로그아웃"
     }
   },

@@ -4,7 +4,7 @@
     "slug": "afterlifeRN",
     "scheme": "afterlife",
     "version": "1.0.0",
-    "runtimeVersion": "1.0.0",
+    "runtimeVersion": "1.1.0",
     "updates": {
       "url": "https://u.expo.dev/430bccd3-e48e-45e6-b819-a22816a1dad3",
       "checkAutomatically": "ON_LOAD",
@@ -33,7 +33,7 @@
         "NSLocationWhenInUseUsageDescription": "이 앱은 위치 정보를 직접 사용하지 않습니다. 카메라 관련 라이브러리가 접근을 요청할 수 있어 안내드립니다."
       },
       "appleTeamId": "677WG96CUJ",
-      "buildNumber": "10"
+      "buildNumber": "11"
     },
     "android": {
       "package": "run.xrun.afterlifeRN",
