@@ -51,6 +51,7 @@
     "plugins": [
       "./withCustomPodfile.js",
       "./plugins/withAndroidAbiFilters.js",
+      "./plugins/withReactNativeIapStore.js",
       [
         "expo-splash-screen",
         {
