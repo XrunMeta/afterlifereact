@@ -1,13 +1,17 @@
 
 
 import { env } from "cloudflare:test";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 
 describe("0095 ledger types", () => {
-  it("신규 타입 call_usage 를 받는다", async () => {
+
+  beforeEach(async () => {
     await env.DB.prepare(
-      `INSERT INTO users (id, email, password_hash) VALUES (9941, 't167b@test.local', 'x')`,
+      `INSERT OR IGNORE INTO users (id, email, password_hash) VALUES (9941, 't167b@test.local', 'x')`,
     ).run();
+  });
+
+  it("신규 타입 call_usage 를 받는다", async () => {
     await env.DB.prepare(
       `INSERT INTO credit_ledgers (user_id, amount, type, idempotency_key)
        VALUES (9941, -600, 'call_usage', 'call:test1')`,
