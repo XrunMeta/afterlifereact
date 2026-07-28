@@ -14,11 +14,18 @@ describe("lookupProduct", () => {
   });
 
   it("구독 5종 모두 planCode 존재", () => {
-    const codes = ["light", "basic", "standard", "plus", "premium"] as const;
-    for (const c of codes) {
-      const p = lookupProduct(`run.xrun.afterlife.sub.${c}`);
+
+    const cases: { id: string; code: "light" | "basic" | "standard" | "plus" | "premium" }[] = [
+      { id: "run.xrun.afterlife.sub.light", code: "light" },
+      { id: "run.xrun.afterlife.sub.basic.v3", code: "basic" },
+      { id: "run.xrun.afterlife.sub.standard", code: "standard" },
+      { id: "run.xrun.afterlife.sub.plus", code: "plus" },
+      { id: "run.xrun.afterlife.sub.premium", code: "premium" },
+    ];
+    for (const { id, code } of cases) {
+      const p = lookupProduct(id);
       expect(p?.kind).toBe("subscription");
-      expect(p?.planCode).toBe(c);
+      expect(p?.planCode).toBe(code);
     }
   });
 

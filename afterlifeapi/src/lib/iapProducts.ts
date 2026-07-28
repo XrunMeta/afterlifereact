@@ -14,7 +14,8 @@ const PREFIX = "run.xrun.afterlife";
 const PRODUCTS: readonly IapProduct[] = [
 
   { productId: `${PREFIX}.sub.light`,    kind: "subscription", creditsSec: 3000,  planCode: "light" },
-  { productId: `${PREFIX}.sub.basic`,    kind: "subscription", creditsSec: 6000,  planCode: "basic" },
+
+  { productId: `${PREFIX}.sub.basic.v3`, kind: "subscription", creditsSec: 6000,  planCode: "basic" },
   { productId: `${PREFIX}.sub.standard`, kind: "subscription", creditsSec: 12000, planCode: "standard" },
   { productId: `${PREFIX}.sub.plus`,     kind: "subscription", creditsSec: 24000, planCode: "plus" },
   { productId: `${PREFIX}.sub.premium`,  kind: "subscription", creditsSec: 36000, planCode: "premium" },
