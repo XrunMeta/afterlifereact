@@ -76,6 +76,11 @@ export interface Bindings {
   ENVIRONMENT: "development" | "staging" | "production";
 
   CLEANUP_ORPHAN_SWEEP?: string;
+
+  APPLE_IAP_KEY_P8?: string;       
+  APPLE_IAP_KEY_ID?: string;       
+  APPLE_IAP_ISSUER_ID?: string;    
+  APPLE_IAP_BUNDLE_ID?: string;    
 }
 
 export type AppEnv = {
