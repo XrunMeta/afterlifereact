@@ -137,22 +137,6 @@ v_20e160.post("/:cloneId/call/:callId/say", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true }, 202);
 });
 
-v_20e160.post("/:cloneId/call/:callId/greeted", v_6690d9, async (v_3f4e2e) => {
-  v_31113b(v_3f4e2e);
-  const v_be62d3 = v_3f4e2e.req.param("callId");
-  const v_43e90c = v_3f4e2e.get("userId")!;
-  if (!/^[0-9a-fA-F-]{8,64}$/.test(v_be62d3)) return v_3f4e2e.json({ ok: true });
-  const v_d7296e = await v_3f4e2e.env.DB.prepare(
-    "SELECT user_id, greeted_at FROM call_sessions WHERE call_id = ? AND ended_at IS NULL"
-  ).bind(v_be62d3).first<{ user_id: number; greeted_at: number | null }>();
-  if (!v_d7296e || v_d7296e.user_id !== v_43e90c) return v_3f4e2e.json({ ok: true }); 
-  if (v_d7296e.greeted_at !== null) return v_3f4e2e.json({ ok: true }); 
-  await v_3f4e2e.env.DB.prepare(
-    `UPDATE call_sessions SET greeted_at = ? WHERE call_id = ? AND greeted_at IS NULL`
-  ).bind(Date.now(), v_be62d3).run();
-  return v_3f4e2e.json({ ok: true });
-});
-
 v_20e160.post("/:cloneId/call/:callId/end", v_6690d9, async (v_3f4e2e) => {
   v_31113b(v_3f4e2e);
   const v_be62d3 = v_3f4e2e.req.param("callId");
