@@ -34,6 +34,7 @@ import { v_ff9685 } from "./routes/files";
 import { v_a35f69 } from "./routes/payments";
 import { v_68bb66 } from "./routes/gifts";
 import { v_9e7c53 } from "./routes/iapWebhooks";
+import { v_4f6450 } from "./lib/freeDecay";
 import { v_b9c00c } from "./routes/notifications";
 import { v_fded81 } from "./routes/persons";
 import { v_cbf5ec, v_e0a537 } from "./routes/agreements";
@@ -153,6 +154,16 @@ export default {
           ),
         )
         .catch((v_49263d) => console.error(`[CRON_FAIL] ${(v_49263d as Error).message}`)),
+    );
+
+    v_16e2dd.waitUntil(
+      v_4f6450(v_c9c489)
+        .then((v_cb35cb) =>
+          console.log(
+            `[CRON] free-decay done candidates=${v_cb35cb.candidatesFound} processed=${v_cb35cb.processed} totalDecayed=${v_cb35cb.totalDecayed} skipped=${v_cb35cb.skipped}`,
+          ),
+        )
+        .catch((v_49263d) => console.error(`[CRON_FAIL] free-decay ${(v_49263d as Error).message}`)),
     );
   },
 };

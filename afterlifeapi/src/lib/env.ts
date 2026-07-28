@@ -84,6 +84,8 @@ export interface Bindings {
 
   GOOGLE_PLAY_SERVICE_ACCOUNT_JSON?: string;  
   ANDROID_PACKAGE_NAME?: string;              
+
+  CREDIT_DECAY_DRY_RUN?: string;
 }
 
 export type AppEnv = {
