@@ -34,6 +34,7 @@ import { files } from "./routes/files";
 import { payments } from "./routes/payments";
 import { gifts } from "./routes/gifts";
 import { iapWebhooks } from "./routes/iapWebhooks";
+import { runFreeDecayCron } from "./lib/freeDecay";
 import { notifications } from "./routes/notifications";
 import { persons } from "./routes/persons";
 import { agreements, adminAgreements } from "./routes/agreements";
@@ -153,6 +154,16 @@ export default {
           ),
         )
         .catch((err) => console.error(`[CRON_FAIL] ${(err as Error).message}`)),
+    );
+
+    ctx.waitUntil(
+      runFreeDecayCron(env)
+        .then((r) =>
+          console.log(
+            `[CRON] free-decay done candidates=${r.candidatesFound} processed=${r.processed} totalDecayed=${r.totalDecayed} skipped=${r.skipped}`,
+          ),
+        )
+        .catch((err) => console.error(`[CRON_FAIL] free-decay ${(err as Error).message}`)),
     );
   },
 };

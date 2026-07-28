@@ -137,6 +137,22 @@ calls.post("/:cloneId/call/:callId/say", requireAuth, async (c) => {
   return c.json({ ok: true }, 202);
 });
 
+calls.post("/:cloneId/call/:callId/greeted", requireAuth, async (c) => {
+  parseCloneId(c);
+  const callId = c.req.param("callId");
+  const userId = c.get("userId")!;
+  if (!/^[0-9a-fA-F-]{8,64}$/.test(callId)) return c.json({ ok: true });
+  const sess = await c.env.DB.prepare(
+    "SELECT user_id, greeted_at FROM call_sessions WHERE call_id = ? AND ended_at IS NULL"
+  ).bind(callId).first<{ user_id: number; greeted_at: number | null }>();
+  if (!sess || sess.user_id !== userId) return c.json({ ok: true }); 
+  if (sess.greeted_at !== null) return c.json({ ok: true }); 
+  await c.env.DB.prepare(
+    `UPDATE call_sessions SET greeted_at = ? WHERE call_id = ? AND greeted_at IS NULL`
+  ).bind(Date.now(), callId).run();
+  return c.json({ ok: true });
+});
+
 calls.post("/:cloneId/call/:callId/end", requireAuth, async (c) => {
   parseCloneId(c);
   const callId = c.req.param("callId");
@@ -145,14 +161,39 @@ calls.post("/:cloneId/call/:callId/end", requireAuth, async (c) => {
   if (!/^[0-9a-fA-F-]{8,64}$/.test(callId)) return c.json({ ok: true });
 
   const sess = await c.env.DB.prepare(
-    "SELECT user_id FROM call_sessions WHERE call_id = ? AND ended_at IS NULL"
-  ).bind(callId).first<{ user_id: number }>();
+    "SELECT user_id, greeted_at FROM call_sessions WHERE call_id = ? AND ended_at IS NULL"
+  ).bind(callId).first<{ user_id: number; greeted_at: number | null }>();
   if (sess && sess.user_id !== userId) return c.json({ ok: true }); 
 
   const endedAt = Date.now();
   await c.env.DB.prepare(
     `UPDATE call_sessions SET ended_at = ?, duration_sec = MAX(0, (? - started_at) / 1000) WHERE call_id = ? AND ended_at IS NULL`
   ).bind(endedAt, endedAt, callId).run();
+
+  if (sess?.greeted_at) {
+    const billableMs = Math.max(0, endedAt - sess.greeted_at);
+    const rawSec = Math.floor(billableMs / 1000);
+    const billableSec = Math.floor(rawSec / 10) * 10; 
+    if (billableSec > 0) {
+      try {
+        const { spendCallTime } = await import("../lib/credits");
+        const spendResult = await spendCallTime(c, {
+          userId,
+          amountSec: billableSec,
+          callId,
+        });
+        await c.env.DB.prepare(
+          `UPDATE call_sessions
+              SET billed_sec = ?, unbilled_sec = ?, billed_at = ?
+            WHERE call_id = ?`,
+        )
+          .bind(spendResult.billedSec, spendResult.unbilledSec, endedAt, callId)
+          .run();
+      } catch (err) {
+        console.error(`[t167] call bill fail callId=${callId} err=${(err as Error).message}`);
+      }
+    }
+  }
   try {
     await fetch(`${c.env.ORCHESTRATOR_URL}/oth-path${callId}`, {
       method: "DELETE",
