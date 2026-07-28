@@ -5,6 +5,8 @@ import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_6690d9 } from "../middleware/auth";
 import { v_a04a51 } from "../middleware/idempotency";
 import { v_696c65 } from "../lib/credits";
+import { v_824292 } from "../lib/appleIap";
+import { v_83773a, v_6ec970 } from "../lib/iapProducts";
 
 export const v_e2c945 = new v_b7c41b<v_de0a25>();
 
@@ -255,3 +257,190 @@ v_e2c945.post(
     });
   },
 );
+
+const v_63704e = v_1f4ea7.object({
+  platform: v_1f4ea7.enum(["ios", "android"]),
+  transactionId: v_1f4ea7.string().min(1).max(200),
+  productId: v_1f4ea7.string().min(1).max(200), 
+});
+
+v_e2c945.post("/purchase", v_6690d9, async (v_3f4e2e) => {
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_63704e);
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_a1651b = v_3f4e2e.env.DB;
+
+  let v_20a7b6;
+  let v_da4b3c;
+  let v_0b8131 = null;
+  let v_f9eb69;
+
+  if (v_4d33b2.platform === "ios") {
+    const v_34d5e3 = await v_824292(v_3f4e2e.env, v_4d33b2.transactionId);
+    v_20a7b6 = v_34d5e3.productId;
+    v_da4b3c = v_34d5e3.purchaseDate;
+    v_0b8131 = v_34d5e3.expiresDate ?? null;
+    v_f9eb69 = v_34d5e3.originalTransactionId;
+  } else {
+
+    throw new v_3ebe58("UPSTREAM_FAILURE", "Android IAP verification not implemented yet.");
+  }
+
+  const v_01bee9 = v_83773a(v_20a7b6);
+  if (!v_01bee9) {
+    throw new v_3ebe58(
+      "VALIDATION_FAILED",
+      `Unknown productId: ${v_20a7b6}`,
+    );
+  }
+
+  const v_67e77e = Date.now();
+  try {
+    await v_a1651b
+      .prepare(
+        `INSERT INTO iap_transactions
+           (platform, transaction_id, user_id, product_id, kind, credits, verified_at, raw_payload)
+         VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`,
+      )
+      .bind(
+        v_4d33b2.platform,
+        v_4d33b2.transactionId,
+        v_43e90c,
+        v_20a7b6,
+        v_01bee9.kind,
+        v_01bee9.creditsSec,
+        v_67e77e,
+      )
+      .run();
+  } catch (v_49263d) {
+    const v_badeaf = (v_49263d as Error).message ?? "";
+    if (/UNIQUE constraint failed: iap_transactions/.test(v_badeaf)) {
+
+      const v_8dd686 = await v_a1651b
+        .prepare(
+          `SELECT credits, credits_free, credits_sub, credits_topup
+             FROM users WHERE id = ?`,
+        )
+        .bind(v_43e90c)
+        .first<{
+          credits: number;
+          credits_free: number;
+          credits_sub: number;
+          credits_topup: number;
+        }>();
+      return v_3f4e2e.json({
+        ok: true,
+        replay: true,
+        productId: v_20a7b6,
+        creditsSec: v_01bee9.creditsSec,
+        balance: v_8dd686 ?? null,
+      });
+    }
+    throw v_49263d;
+  }
+
+  if (v_01bee9.kind === "consumable") {
+
+    const v_c7e149 = `apple:consumable:${v_4d33b2.transactionId}`;
+    const v_a7f568 = await v_a1651b.batch([
+      v_a1651b
+        .prepare(
+          `INSERT INTO credit_ledgers (user_id, amount, type, ref_id, idempotency_key)
+             VALUES (?, ?, 'charge_inapp', ?, ?)`,
+        )
+        .bind(v_43e90c, v_01bee9.creditsSec, v_20a7b6, v_c7e149),
+      v_a1651b
+        .prepare(
+          `UPDATE users
+              SET credits       = credits + ?,
+                  credits_topup = credits_topup + ?,
+                  updated_at    = CURRENT_TIMESTAMP
+            WHERE id = ?`,
+        )
+        .bind(v_01bee9.creditsSec, v_01bee9.creditsSec, v_43e90c),
+    ]);
+    const v_b9e521 = Number(v_a7f568[0]?.meta?.last_row_id ?? 0);
+    if (v_b9e521 > 0) {
+      await v_a1651b
+        .prepare(
+          `INSERT INTO credit_lots
+             (user_id, amount, remaining, granted_at, expires_at, ledger_id)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(
+          v_43e90c,
+          v_01bee9.creditsSec,
+          v_01bee9.creditsSec,
+          v_da4b3c,
+          v_da4b3c + v_6ec970,
+          v_b9e521,
+        )
+        .run();
+    }
+  } else {
+
+    if (!v_01bee9.planCode) {
+      throw new v_3ebe58("UPSTREAM_FAILURE", `Subscription product missing planCode: ${v_20a7b6}`);
+    }
+    const v_c7e149 = `apple:sub:${v_4d33b2.transactionId}`;
+    await v_a1651b.batch([
+      v_a1651b
+        .prepare(
+          `INSERT INTO credit_ledgers (user_id, amount, type, ref_id, idempotency_key)
+             VALUES (?, ?, 'subscription_grant', ?, ?)`,
+        )
+        .bind(v_43e90c, v_01bee9.creditsSec, v_20a7b6, v_c7e149),
+      v_a1651b
+        .prepare(
+          `UPDATE users
+              SET credits     = credits + ?,
+                  credits_sub = credits_sub + ?,
+                  updated_at  = CURRENT_TIMESTAMP
+            WHERE id = ?`,
+        )
+        .bind(v_01bee9.creditsSec, v_01bee9.creditsSec, v_43e90c),
+      v_a1651b
+        .prepare(
+          `INSERT INTO subscriptions
+             (user_id, platform, product_id, plan_code, status, original_tx_id,
+              current_period_start, current_period_end, auto_renew, updated_at)
+           VALUES (?, 'ios', ?, ?, 'active', ?, ?, ?, 1, ?)
+           ON CONFLICT(platform, original_tx_id) DO UPDATE SET
+             status = 'active',
+             current_period_start = excluded.current_period_start,
+             current_period_end = excluded.current_period_end,
+             updated_at = excluded.updated_at`,
+        )
+        .bind(
+          v_43e90c,
+          v_20a7b6,
+          v_01bee9.planCode,
+          v_f9eb69,
+          v_da4b3c,
+          v_0b8131 ?? (v_da4b3c + 30 * 24 * 60 * 60 * 1000), 
+          v_67e77e,
+        ),
+    ]);
+  }
+
+  const v_8dd686 = await v_a1651b
+    .prepare(
+      `SELECT credits, credits_free, credits_sub, credits_topup
+         FROM users WHERE id = ?`,
+    )
+    .bind(v_43e90c)
+    .first<{
+      credits: number;
+      credits_free: number;
+      credits_sub: number;
+      credits_topup: number;
+    }>();
+
+  return v_3f4e2e.json({
+    ok: true,
+    replay: false,
+    productId: v_20a7b6,
+    kind: v_01bee9.kind,
+    creditsSec: v_01bee9.creditsSec,
+    balance: v_8dd686 ?? null,
+  });
+});
