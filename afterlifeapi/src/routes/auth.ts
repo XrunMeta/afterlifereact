@@ -18,6 +18,7 @@ import { v_74defc } from "../lib/logger";
 import { v_b78f7e, v_656e8b } from "../lib/otp";
 
 import { v_a32f1d } from "../lib/googleAuth";
+import { v_4960d7 } from "../lib/credits";
 
 export const v_68f0aa = new v_b7c41b<v_de0a25>();
 
@@ -128,6 +129,12 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
       action: "auth.google.signup",
       details: { sub: v_931bf0.sub, email: v_931bf0.email },
     });
+
+    try {
+      await v_4960d7(v_3f4e2e, v_81161e.id);
+    } catch (v_49263d) {
+      console.error(`[SIGNUP_GRANT_FAIL] user_id=${v_81161e.id} err=${(v_49263d as Error).message}`);
+    }
   } else {
 
     if (v_d1b635.deletion_state !== "active") {
@@ -328,6 +335,12 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
   } catch (v_49263d) {
     await v_a1651b.prepare(`DELETE FROM users WHERE id = ?`).bind(v_81161e.id).run();
     throw v_49263d;
+  }
+
+  try {
+    await v_4960d7(v_3f4e2e, v_81161e.id);
+  } catch (v_49263d) {
+    console.error(`[SIGNUP_GRANT_FAIL] user_id=${v_81161e.id} err=${(v_49263d as Error).message}`);
   }
 
   const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(

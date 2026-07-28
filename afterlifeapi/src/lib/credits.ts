@@ -72,6 +72,48 @@ export async function v_20a4f4(c: v_437670<v_de0a25>, v_4317d1): Promise<void> {
   }
 }
 
+export async function v_4960d7(
+  c: v_437670<v_de0a25>,
+  v_43e90c,
+): Promise<{ granted: boolean }> {
+  const v_a1651b = v_3f4e2e.env.DB;
+  const v_62c866 = `signup:${v_43e90c}`;
+  const v_4e95b5 = 3000; 
+
+  try {
+    const v_a7f568 = await v_a1651b.batch([
+
+      v_a1651b
+        .prepare(
+          `INSERT INTO credit_ledgers (user_id, amount, type, ref_id, idempotency_key)
+             VALUES (?, ?, 'signup_grant', 'signup', ?)`,
+        )
+        .bind(v_43e90c, v_4e95b5, v_62c866),
+
+      v_a1651b
+        .prepare(
+          `UPDATE users
+              SET credits_free    = credits_free + ?,
+                  credits         = credits + ?,
+                  free_granted_at = CAST(strftime('%s','now') AS INTEGER) * 1000,
+                  updated_at      = CURRENT_TIMESTAMP
+            WHERE id = ? AND deleted_at IS NULL
+              AND free_granted_at IS NULL`,
+        )
+        .bind(v_4e95b5, v_4e95b5, v_43e90c),
+    ]);
+    const v_1758ac = v_a7f568[1]?.meta?.changes ?? 0;
+    return { granted: v_1758ac > 0 };
+  } catch (v_49263d) {
+    const v_badeaf = (v_49263d as Error).message ?? "";
+    if (/UNIQUE constraint failed: credit_ledgers/.test(v_badeaf)) {
+
+      return { granted: false };
+    }
+    throw v_49263d;
+  }
+}
+
 export interface SpendCallResult {
   billedSec: number;
   unbilledSec: number;

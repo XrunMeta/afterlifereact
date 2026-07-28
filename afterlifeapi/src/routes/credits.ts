@@ -10,6 +10,85 @@ export const v_e2c945 = new v_b7c41b<v_de0a25>();
 
 v_e2c945.get("/health", (v_3f4e2e) => v_3f4e2e.json({ ok: true, module: "credits" }));
 
+v_e2c945.get("/balance", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_a1651b = v_3f4e2e.env.DB;
+
+  const v_ceb55a = await v_a1651b
+    .prepare(
+      `SELECT credits, credits_free, credits_sub, credits_topup,
+              free_granted_at, free_decayed_months
+         FROM users WHERE id = ? AND deleted_at IS NULL`,
+    )
+    .bind(v_43e90c)
+    .first<{
+      credits: number;
+      credits_free: number;
+      credits_sub: number;
+      credits_topup: number;
+      free_granted_at: number | null;
+      free_decayed_months: number;
+    }>();
+  if (!v_ceb55a) throw new v_3ebe58("NOT_FOUND", "User not found.");
+
+  const v_1ae212 = await v_a1651b
+    .prepare(
+      `SELECT platform, product_id, plan_code, status,
+              current_period_start, current_period_end, auto_renew
+         FROM subscriptions
+        WHERE user_id = ? AND status IN ('active','grace')
+        ORDER BY current_period_end DESC LIMIT 1`,
+    )
+    .bind(v_43e90c)
+    .first<{
+      platform: "ios" | "android";
+      product_id: string;
+      plan_code: "light" | "basic" | "standard" | "plus" | "premium";
+      status: "active" | "grace";
+      current_period_start: number;
+      current_period_end: number;
+      auto_renew: number;
+    }>();
+
+  const v_f7f38a = await v_a1651b
+    .prepare(
+      `SELECT expires_at, remaining
+         FROM credit_lots
+        WHERE user_id = ? AND remaining > 0
+        ORDER BY expires_at ASC LIMIT 1`,
+    )
+    .bind(v_43e90c)
+    .first<{ expires_at: number; remaining: number }>();
+
+  return v_3f4e2e.json({
+
+    totalSec: v_ceb55a.credits,
+
+    freeSec: v_ceb55a.credits_free,
+    subSec: v_ceb55a.credits_sub,
+    topupSec: v_ceb55a.credits_topup,
+
+    freeGrantedAt: v_ceb55a.free_granted_at,   
+    freeDecayedMonths: v_ceb55a.free_decayed_months,
+
+    subscription: v_1ae212
+      ? {
+          platform: v_1ae212.platform,
+          productId: v_1ae212.product_id,
+          planCode: v_1ae212.plan_code,
+          status: v_1ae212.status,
+          periodStart: v_1ae212.current_period_start,
+          periodEnd: v_1ae212.current_period_end,
+          autoRenew: v_1ae212.auto_renew === 1,
+        }
+      : null,
+
+    nextExpiry: v_f7f38a
+      ? { expiresAt: v_f7f38a.expires_at, remainingSec: v_f7f38a.remaining }
+      : null,
+  });
+});
+
 v_e2c945.get("/me", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_a1651b = v_3f4e2e.env.DB;
