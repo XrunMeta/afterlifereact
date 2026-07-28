@@ -33,6 +33,7 @@ import { v_19f1fa } from "./routes/adminDeletion";
 import { v_ff9685 } from "./routes/files";
 import { v_a35f69 } from "./routes/payments";
 import { v_68bb66 } from "./routes/gifts";
+import { v_9e7c53 } from "./routes/iapWebhooks";
 import { v_b9c00c } from "./routes/notifications";
 import { v_fded81 } from "./routes/persons";
 import { v_cbf5ec, v_e0a537 } from "./routes/agreements";
@@ -115,6 +116,8 @@ v_466992.route("/oth-path", v_98b245);
 v_466992.route("/oth-path", v_e2c945);
 v_466992.route("/oth-path", v_a35f69);
 v_466992.route("/oth-path", v_68bb66);
+
+v_466992.route("/webhooks", v_9e7c53);
 v_466992.route("/oth-path", v_b9c00c);
 v_466992.route("/oth-path", v_d26494);
 v_466992.route("/oth-path", v_fcbd5b);
