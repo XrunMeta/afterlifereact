@@ -11,7 +11,13 @@ export type LedgerType =
   | "clone_create"
   | "message_send"
   | "refund"
-  | "admin_grant";
+  | "admin_grant"
+
+  | "call_usage"
+  | "signup_grant"
+  | "subscription_grant"
+  | "free_decay"
+  | "topup_expire";
 
 export interface SpendArgs {
   userId: number;
@@ -64,6 +70,122 @@ export async function v_20a4f4(c: v_437670<v_de0a25>, v_4317d1): Promise<void> {
     }
     throw v_49263d;
   }
+}
+
+export interface SpendCallResult {
+  billedSec: number;
+  unbilledSec: number;
+}
+
+interface BucketRow {
+  credits_free: number;
+  credits_sub: number;
+  credits_topup: number;
+}
+
+export async function v_a025af(
+  c: v_437670<v_de0a25>,
+  v_4317d1,
+): Promise<SpendCallResult> {
+  const { userId: v_43e90c, amountSec: v_b1cc8a, callId: v_be62d3 } = v_4317d1;
+  if (!Number.isInteger(v_b1cc8a) || v_b1cc8a < 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "amountSec must be a non-negative integer.");
+  }
+  if (v_b1cc8a === 0) return { billedSec: 0, unbilledSec: 0 };
+
+  const v_a1651b = v_3f4e2e.env.DB;
+
+  for (let v_bc21cd = 0; v_bc21cd < 2; v_bc21cd++) {
+    const v_3ac7e7 = await v_a1651b
+      .prepare(
+        `SELECT credits_free, credits_sub, credits_topup
+           FROM users WHERE id = ? AND deleted_at IS NULL`,
+      )
+      .bind(v_43e90c)
+      .first<BucketRow>();
+    if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "User not found.");
+
+    const v_c6935f = Math.min(v_b1cc8a, v_3ac7e7.credits_free);
+    const v_adc4ac = Math.min(v_b1cc8a - v_c6935f, v_3ac7e7.credits_sub);
+    const v_413d81 = Math.min(v_b1cc8a - v_c6935f - v_adc4ac, v_3ac7e7.credits_topup);
+    const v_49e7a6 = v_c6935f + v_adc4ac + v_413d81;
+    const v_79d5f0 = v_b1cc8a - v_49e7a6;
+
+    if (v_49e7a6 === 0) return { billedSec: 0, unbilledSec: v_b1cc8a };
+
+    const v_be9ad5 = [
+      v_a1651b
+        .prepare(
+          `INSERT INTO credit_ledgers (user_id, amount, type, ref_id, idempotency_key)
+             VALUES (?, ?, 'call_usage', ?, ?)`,
+        )
+        .bind(v_43e90c, -v_49e7a6, v_be62d3, v_be62d3),
+      v_a1651b
+        .prepare(
+          `UPDATE users
+              SET credits_free  = credits_free  - ?,
+                  credits_sub   = credits_sub   - ?,
+                  credits_topup = credits_topup - ?,
+                  credits       = credits       - ?,
+                  updated_at    = CURRENT_TIMESTAMP
+            WHERE id = ?
+              AND credits_free  >= ?
+              AND credits_sub   >= ?
+              AND credits_topup >= ?`,
+        )
+        .bind(v_c6935f, v_adc4ac, v_413d81, v_49e7a6, v_43e90c, v_c6935f, v_adc4ac, v_413d81),
+    ];
+
+    if (v_413d81 > 0) {
+
+      const v_9fdb66 = await v_a1651b
+        .prepare(
+          `SELECT id, remaining FROM credit_lots
+            WHERE user_id = ? AND remaining > 0
+            ORDER BY expires_at ASC, id ASC`,
+        )
+        .bind(v_43e90c)
+        .all<{ id: number; remaining: number }>();
+
+      let v_dbaa7f = v_413d81;
+      for (const v_41d9f0 of v_9fdb66.results ?? []) {
+        if (v_dbaa7f <= 0) break;
+        const v_04326c = Math.min(v_dbaa7f, v_41d9f0.remaining);
+        v_be9ad5.push(
+          v_a1651b
+            .prepare(
+              `UPDATE credit_lots SET remaining = remaining - ? WHERE id = ? AND remaining >= ?`,
+            )
+            .bind(v_04326c, v_41d9f0.id, v_04326c),
+        );
+        v_dbaa7f -= v_04326c;
+      }
+    }
+
+    try {
+      const v_a7f568 = await v_a1651b.batch(v_be9ad5);
+      const v_1758ac = v_a7f568[1]?.meta?.changes ?? 0;
+      if (v_1758ac === 0) continue; 
+      return { billedSec: v_49e7a6, unbilledSec: v_79d5f0 };
+    } catch (v_49263d) {
+      const v_badeaf = (v_49263d as Error).message ?? "";
+      if (/UNIQUE constraint failed: credit_ledgers/.test(v_badeaf)) {
+
+        const v_2662e0 = await v_a1651b
+          .prepare(
+            `SELECT amount FROM credit_ledgers
+              WHERE type = 'call_usage' AND idempotency_key = ? LIMIT 1`,
+          )
+          .bind(v_be62d3)
+          .first<{ amount: number }>();
+        const v_ba2215 = v_2662e0 ? -v_2662e0.amount : 0;
+        return { billedSec: v_ba2215, unbilledSec: Math.max(0, v_b1cc8a - v_ba2215) };
+      }
+      throw v_49263d;
+    }
+  }
+
+  throw new v_3ebe58("CONFLICT", "Credit balance changed concurrently; retry failed.");
 }
 
 export async function v_696c65(
