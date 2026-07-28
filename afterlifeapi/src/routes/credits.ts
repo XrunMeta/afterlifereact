@@ -6,6 +6,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireIdempotencyKey } from "../middleware/idempotency";
 import { grant } from "../lib/credits";
 import { verifyAppleTransaction } from "../lib/appleIap";
+import { verifyGooglePlayTransaction, acknowledgeGooglePlayConsumable } from "../lib/googlePlayIap";
 import { lookupProduct, TOPUP_TTL_MS } from "../lib/iapProducts";
 
 export const credits = new Hono<AppEnv>();
@@ -260,7 +261,8 @@ credits.post(
 
 const purchaseSchema = z.object({
   platform: z.enum(["ios", "android"]),
-  transactionId: z.string().min(1).max(200),
+
+  transactionId: z.string().min(1).max(2000),
   productId: z.string().min(1).max(200), 
 });
 
@@ -282,7 +284,27 @@ credits.post("/purchase", requireAuth, async (c) => {
     originalTxId = info.originalTransactionId;
   } else {
 
-    throw new APIError("UPSTREAM_FAILURE", "Android IAP verification not implemented yet.");
+    const preliminary = lookupProduct(body.productId);
+    if (!preliminary) {
+      throw new APIError("VALIDATION_FAILED", `Unknown productId: ${body.productId}`);
+    }
+    const info = await verifyGooglePlayTransaction(c.env, {
+      productId: body.productId,
+      purchaseToken: body.transactionId,
+      kind: preliminary.kind,
+    });
+    verifiedProductId = info.productId;
+    purchaseDate = info.purchaseTime;
+    expiresAt = info.expiryTime ?? null;
+
+    originalTxId = info.orderId || body.transactionId;
+
+    if (preliminary.kind === "consumable") {
+      void acknowledgeGooglePlayConsumable(c.env, {
+        productId: body.productId,
+        purchaseToken: body.transactionId,
+      });
+    }
   }
 
   const product = lookupProduct(verifiedProductId);
@@ -340,7 +362,7 @@ credits.post("/purchase", requireAuth, async (c) => {
 
   if (product.kind === "consumable") {
 
-    const ledgerIdemKey = `apple:consumable:${body.transactionId}`;
+    const ledgerIdemKey = `${body.platform}:consumable:${body.transactionId}`;
     const results = await db.batch([
       db
         .prepare(
@@ -381,7 +403,7 @@ credits.post("/purchase", requireAuth, async (c) => {
     if (!product.planCode) {
       throw new APIError("UPSTREAM_FAILURE", `Subscription product missing planCode: ${verifiedProductId}`);
     }
-    const ledgerIdemKey = `apple:sub:${body.transactionId}`;
+    const ledgerIdemKey = `${body.platform}:sub:${body.transactionId}`;
     await db.batch([
       db
         .prepare(
@@ -403,7 +425,7 @@ credits.post("/purchase", requireAuth, async (c) => {
           `INSERT INTO subscriptions
              (user_id, platform, product_id, plan_code, status, original_tx_id,
               current_period_start, current_period_end, auto_renew, updated_at)
-           VALUES (?, 'ios', ?, ?, 'active', ?, ?, ?, 1, ?)
+           VALUES (?, ?, ?, ?, 'active', ?, ?, ?, 1, ?)
            ON CONFLICT(platform, original_tx_id) DO UPDATE SET
              status = 'active',
              current_period_start = excluded.current_period_start,
@@ -412,6 +434,7 @@ credits.post("/purchase", requireAuth, async (c) => {
         )
         .bind(
           userId,
+          body.platform,
           verifiedProductId,
           product.planCode,
           originalTxId,
