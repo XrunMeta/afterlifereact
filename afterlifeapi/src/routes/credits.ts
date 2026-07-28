@@ -6,6 +6,7 @@ import { v_6690d9 } from "../middleware/auth";
 import { v_a04a51 } from "../middleware/idempotency";
 import { v_696c65 } from "../lib/credits";
 import { v_824292 } from "../lib/appleIap";
+import { v_33874d, v_bc5949 } from "../lib/googlePlayIap";
 import { v_83773a, v_6ec970 } from "../lib/iapProducts";
 
 export const v_e2c945 = new v_b7c41b<v_de0a25>();
@@ -260,7 +261,8 @@ v_e2c945.post(
 
 const v_63704e = v_1f4ea7.object({
   platform: v_1f4ea7.enum(["ios", "android"]),
-  transactionId: v_1f4ea7.string().min(1).max(200),
+
+  transactionId: v_1f4ea7.string().min(1).max(2000),
   productId: v_1f4ea7.string().min(1).max(200), 
 });
 
@@ -282,7 +284,27 @@ v_e2c945.post("/purchase", v_6690d9, async (v_3f4e2e) => {
     v_f9eb69 = v_34d5e3.originalTransactionId;
   } else {
 
-    throw new v_3ebe58("UPSTREAM_FAILURE", "Android IAP verification not implemented yet.");
+    const v_4566d9 = v_83773a(v_4d33b2.productId);
+    if (!v_4566d9) {
+      throw new v_3ebe58("VALIDATION_FAILED", `Unknown productId: ${v_4d33b2.productId}`);
+    }
+    const v_34d5e3 = await v_33874d(v_3f4e2e.env, {
+      productId: v_4d33b2.productId,
+      purchaseToken: v_4d33b2.transactionId,
+      kind: v_4566d9.kind,
+    });
+    v_20a7b6 = v_34d5e3.productId;
+    v_da4b3c = v_34d5e3.purchaseTime;
+    v_0b8131 = v_34d5e3.expiryTime ?? null;
+
+    v_f9eb69 = v_34d5e3.orderId || v_4d33b2.transactionId;
+
+    if (v_4566d9.kind === "consumable") {
+      void v_bc5949(v_3f4e2e.env, {
+        productId: v_4d33b2.productId,
+        purchaseToken: v_4d33b2.transactionId,
+      });
+    }
   }
 
   const v_01bee9 = v_83773a(v_20a7b6);
@@ -340,7 +362,7 @@ v_e2c945.post("/purchase", v_6690d9, async (v_3f4e2e) => {
 
   if (v_01bee9.kind === "consumable") {
 
-    const v_c7e149 = `apple:consumable:${v_4d33b2.transactionId}`;
+    const v_c7e149 = `${v_4d33b2.platform}:consumable:${v_4d33b2.transactionId}`;
     const v_a7f568 = await v_a1651b.batch([
       v_a1651b
         .prepare(
@@ -381,7 +403,7 @@ v_e2c945.post("/purchase", v_6690d9, async (v_3f4e2e) => {
     if (!v_01bee9.planCode) {
       throw new v_3ebe58("UPSTREAM_FAILURE", `Subscription product missing planCode: ${v_20a7b6}`);
     }
-    const v_c7e149 = `apple:sub:${v_4d33b2.transactionId}`;
+    const v_c7e149 = `${v_4d33b2.platform}:sub:${v_4d33b2.transactionId}`;
     await v_a1651b.batch([
       v_a1651b
         .prepare(
@@ -403,7 +425,7 @@ v_e2c945.post("/purchase", v_6690d9, async (v_3f4e2e) => {
           `INSERT INTO subscriptions
              (user_id, platform, product_id, plan_code, status, original_tx_id,
               current_period_start, current_period_end, auto_renew, updated_at)
-           VALUES (?, 'ios', ?, ?, 'active', ?, ?, ?, 1, ?)
+           VALUES (?, ?, ?, ?, 'active', ?, ?, ?, 1, ?)
            ON CONFLICT(platform, original_tx_id) DO UPDATE SET
              status = 'active',
              current_period_start = excluded.current_period_start,
@@ -412,6 +434,7 @@ v_e2c945.post("/purchase", v_6690d9, async (v_3f4e2e) => {
         )
         .bind(
           v_43e90c,
+          v_4d33b2.platform,
           v_20a7b6,
           v_01bee9.planCode,
           v_f9eb69,
