@@ -14,11 +14,18 @@ v_469bf2("lookupProduct", () => {
   });
 
   v_23805a("구독 5종 모두 planCode 존재", () => {
-    const v_99e9de = ["light", "basic", "standard", "plus", "premium"] as const;
-    for (const v_3f4e2e of v_99e9de) {
-      const v_e2a85c = v_83773a(`run.xrun.afterlife.sub.${v_3f4e2e}`);
+
+    const v_0f1aa6 = [
+      { id: "run.xrun.afterlife.sub.light", code: "light" },
+      { id: "run.xrun.afterlife.sub.basic.v3", code: "basic" },
+      { id: "run.xrun.afterlife.sub.standard", code: "standard" },
+      { id: "run.xrun.afterlife.sub.plus", code: "plus" },
+      { id: "run.xrun.afterlife.sub.premium", code: "premium" },
+    ];
+    for (const { id: v_389afb, code: v_c99bd2 } of v_0f1aa6) {
+      const v_e2a85c = v_83773a(v_389afb);
       v_4d37e3(v_e2a85c?.kind).toBe("subscription");
-      v_4d37e3(v_e2a85c?.planCode).toBe(v_3f4e2e);
+      v_4d37e3(v_e2a85c?.planCode).toBe(v_c99bd2);
     }
   });
 

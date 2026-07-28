@@ -14,7 +14,8 @@ const v_939dae = "run.xrun.afterlife";
 const v_97eac4 = [
 
   { productId: `${v_939dae}.sub.light`,    kind: "subscription", creditsSec: 3000,  planCode: "light" },
-  { productId: `${v_939dae}.sub.basic`,    kind: "subscription", creditsSec: 6000,  planCode: "basic" },
+
+  { productId: `${v_939dae}.sub.basic.v3`, kind: "subscription", creditsSec: 6000,  planCode: "basic" },
   { productId: `${v_939dae}.sub.standard`, kind: "subscription", creditsSec: 12000, planCode: "standard" },
   { productId: `${v_939dae}.sub.plus`,     kind: "subscription", creditsSec: 24000, planCode: "plus" },
   { productId: `${v_939dae}.sub.premium`,  kind: "subscription", creditsSec: 36000, planCode: "premium" },
