@@ -137,22 +137,6 @@ calls.post("/:cloneId/call/:callId/say", requireAuth, async (c) => {
   return c.json({ ok: true }, 202);
 });
 
-calls.post("/:cloneId/call/:callId/greeted", requireAuth, async (c) => {
-  parseCloneId(c);
-  const callId = c.req.param("callId");
-  const userId = c.get("userId")!;
-  if (!/^[0-9a-fA-F-]{8,64}$/.test(callId)) return c.json({ ok: true });
-  const sess = await c.env.DB.prepare(
-    "SELECT user_id, greeted_at FROM call_sessions WHERE call_id = ? AND ended_at IS NULL"
-  ).bind(callId).first<{ user_id: number; greeted_at: number | null }>();
-  if (!sess || sess.user_id !== userId) return c.json({ ok: true }); 
-  if (sess.greeted_at !== null) return c.json({ ok: true }); 
-  await c.env.DB.prepare(
-    `UPDATE call_sessions SET greeted_at = ? WHERE call_id = ? AND greeted_at IS NULL`
-  ).bind(Date.now(), callId).run();
-  return c.json({ ok: true });
-});
-
 calls.post("/:cloneId/call/:callId/end", requireAuth, async (c) => {
   parseCloneId(c);
   const callId = c.req.param("callId");
