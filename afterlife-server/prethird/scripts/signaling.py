@@ -10,6 +10,9 @@ from voice_fetch import ensure_voice_wav
 from prebuild import prebuild_handler
 from recorder import make_recorder
 from idle_policy import clone_mp4_enabled, filler_order_pre_speak
+from json import dumps as _json_dumps
+from call_lifecycle import call_greeted
+from credit_guard import CreditGuard, DEFAULT_WARN_OFFSETS_SEC
 from filler_cache import filler_cache_dest, prune_stale_fillers
 
 REF_VOICES_ROOT = os.environ.get(
@@ -62,6 +65,147 @@ if not _STRICT_CLONE_BUNDLE:
     logging.getLogger("prethird.signaling").warning(
         "PRETHIRD_STRICT_CLONE_BUNDLE=0: 고인 신원 오표시 폴백 활성화 — 운영 배포 금지"
     )
+# [T-167] 크레딧 강제 게이트. 기본 off — 트랙 A(서버)가 bundle 에 allowedSec 를
+# 실어 보내기 전에 이 코드를 배포하면 allowedSec 가 항상 0 이라 전 통화가 거부된다.
+# A 배포·검증 후 on 으로 올린다. 프로세스 시작 후에도 env 재평가(기존 게이트 관례).
+_CREDIT_ENFORCED_KEY = "PRETHIRD_CREDIT_ENFORCED"
+
+
+def _credit_enforced() -> bool:
+    return os.environ.get(_CREDIT_ENFORCED_KEY, "0") == "1"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ⚠️ [T-167 트랙 A 담당자에게] 이 파일은 과금의 신뢰 경계다.
+#
+# prethird 는 아래 두 가지를 서버에서 받아야 과금이 작동한다.
+#   1) call bundle 응답의 `allowedSec` (정수, 초)  — 잔여 통화 가능 시간
+#   2) POST /oth-path 응답의 `{allowedSec, maxEndAt}`
+#      · `maxEndAt` = 절대 시각(epoch **ms**). prethird 는 이 값만 보고
+#        카운트다운한다. greeted_at + allowedSec 을 로컬에서 재계산하지 않는다
+#        (서버와 시계가 어긋나면 과금 구간과 종료 시점이 불일치한다).
+#      · 인증 = `Authorization: Bearer <LEARN_SECRET>` (call_end 와 동일)
+#
+# 둘 중 하나라도 없으면 prethird 는 fail-closed 로 동작한다 —
+# 통화는 되지만 강제 종료 타이머가 걸리지 않아 **무제한 통화**가 된다.
+#
+# 배포 순서(반드시 지킬 것):
+#   ① 트랙 A 를 preview 에 먼저 올린다
+#   ② prethird 를 올린다 (이 시점까지 PRETHIRD_CREDIT_ENFORCED 는 off)
+#   ③ 실통화로 greeted/정산을 확인한 뒤 PRETHIRD_CREDIT_ENFORCED=1 로 올린다
+# 순서를 뒤집어 ①보다 먼저 ③을 하면 allowedSec 부재로 전 통화가 402 거부된다.
+#
+# 통화기록·과금 분리 정책:
+#   · call_sessions(통화기록)는 학습 여부와 무관하게 **항상** 남긴다.
+#     call_start/call_end 의 PRETHIRD_LEARN_ENABLED 게이트를 제거한 이유다.
+#   · 과금 제외(학습 통화 등)는 기록을 지우는 방식이 아니라 별도 플래그로 한다.
+# ─────────────────────────────────────────────────────────────────────────────
+if not _credit_enforced():
+    logging.getLogger("prethird.signaling").warning(
+        "[T-167] PRETHIRD_CREDIT_ENFORCED=0: 크레딧 잔액 검사 비활성 — 관찰만 한다. "
+        "트랙 A(서버)의 allowedSec·/greeted 가 preview 에 반영되고 실통화 검증이 끝나면 "
+        "1 로 올릴 것. 그때까지 잔액 0 계정도 통화가 가능하다."
+    )
+
+
+def _cancel_credit_guard(sess) -> None:
+    """[T-167] 크레딧 가드 정리 — 남은 타이머가 종료 후 발화하지 않도록.
+    가드가 없는 세션(통보 실패·greet 이전 종료)에서도 안전해야 한다."""
+    guard = getattr(sess, "credit_guard", None)
+    if guard is None:
+        return
+    try:
+        guard.cancel()
+    except Exception as e:
+        log.warning("session %s credit guard cancel failed: %s", sess.session_id, e)
+    sess.credit_guard = None
+
+
+def _warn_offsets_from_env() -> tuple[float, ...]:
+    """PRETHIRD_CREDIT_WARN_SEC='180,60' 형식. 파싱 실패 시 기본값."""
+    raw = os.environ.get("PRETHIRD_CREDIT_WARN_SEC", "")
+    if not raw.strip():
+        return DEFAULT_WARN_OFFSETS_SEC
+    try:
+        return tuple(sorted((float(x) for x in raw.split(",") if x.strip()), reverse=True))
+    except ValueError:
+        return DEFAULT_WARN_OFFSETS_SEC
+
+
+async def _start_credit_billing(sess, channel, api_base) -> None:
+    """[T-167] 클론 인사 시작 = 과금 개시.
+
+    서버에 greeted 를 알려 데드라인을 받고 카운트다운을 건다.
+    통보 실패 시 가드를 걸지 않는다 — 서버측 max_end_at 수거(2층)가 받는다.
+
+    강제 종료는 sess.pc.close() 로 한다. pc 종료가 connectionstatechange 훅을
+    태워 기존 정리 경로 + call_end(정산)까지 그대로 흐른다 — 별도 종료 경로를
+    새로 만들지 않는다.
+    """
+    if sess.credit_guard is not None or getattr(sess, "_credit_starting", False):
+        return  # 이미 시작됐거나 시작 중(멱등) — 첫 오디오 콜백이 겹쳐도 1회만 통보
+    sess._credit_starting = True
+    try:
+        info = await call_greeted(api_base, sess.session_id)
+    finally:
+        sess._credit_starting = False
+    if not info or not info.get("maxEndAt"):
+        log.warning(
+            "[T-167] session %s greeted 통보 실패/maxEndAt 부재 — 로컬 강제종료 타이머 없음. "
+            "트랙 A 의 POST /oth-path 가 {allowedSec, maxEndAt(epoch ms)} 를 "
+            "반환해야 한다. 지금은 서버측 max_end_at 수거(2층)에만 의존한다.",
+            sess.session_id,
+        )
+        return
+    if sess.credit_guard is not None:
+        return  # await 중 다른 경로가 먼저 붙였다
+
+    sess.max_end_at_ms = info["maxEndAt"]
+
+    def _send(payload: dict) -> None:
+        if channel is not None and getattr(channel, "readyState", None) == "open":
+            try:
+                channel.send(_json_dumps(payload))
+            except Exception as exc:
+                log.warning("session %s credit event send failed: %s", sess.session_id, exc)
+
+    def _on_warn(remaining_sec) -> None:
+        _send({"type": "credit_warning", "remaining_sec": remaining_sec})
+
+    async def _on_exhausted() -> None:
+        # send 가 실패해도 종료는 반드시 수행한다 — 아니면 잔액 0으로 무한 통화가 된다.
+        _send({"type": "credit_exhausted"})
+        pc = getattr(sess, "pc", None)
+        if pc is not None:
+            # 하드 컷 — 발화 중이어도 유예를 주지 않는다.
+            await pc.close()
+
+    sess.credit_guard = CreditGuard(
+        max_end_at_ms=sess.max_end_at_ms,
+        on_warn=_on_warn,
+        on_exhausted=_on_exhausted,
+        warn_offsets_sec=_warn_offsets_from_env(),
+    )
+    sess.credit_guard.start()
+    log.info("session %s 과금 개시 — %d초 허용", sess.session_id, info["allowedSec"])
+
+
+def _extract_allowed_sec(bundle) -> int:
+    """[T-167] bundle 에서 허용 통화 초를 뽑는다.
+
+    fail-closed — 필드가 없거나 이상하면 0(통화 불가)으로 본다.
+    무제한으로 열어두면 그게 과금 우회 구멍이 된다.
+    소수는 내림 — 올림하면 과금하지 않은 시간을 주게 된다(10초 내림 규약과 같은 방향).
+    """
+    try:
+        if not bundle:
+            return 0
+        raw = bundle.get("allowedSec")
+        if raw is None:
+            return 0
+        return max(0, int(float(raw)))
+    except (TypeError, ValueError):
+        return 0
 
 
 async def _fetch_face(assets: dict, clone_id, fetch_fn=fetch_to):
@@ -552,6 +696,12 @@ def _make_dc_handler(sess, channel):
                 except Exception as exc:
                     log.warning("session %s speech_start send failed: %s",
                                 sess.session_id, exc)
+            # [T-167] greet 의 첫 오디오 = 과금 시작점(클론이 인사를 시작한 순간).
+            # say/speak(사용자 발화 응답)에는 걸지 않는다 — 과금은 인사부터다.
+            if mtype == "greet":
+                asyncio.ensure_future(_start_credit_billing(
+                    sess, channel, os.environ.get("PRETHIRD_API_BASE"),
+                ))
 
         def _emit_speech_text(text, seq=seq):
             # 문장 세그먼트 push 시작 → 클론 발화 자막(additive — 구 클라이언트는 무시).
@@ -749,6 +899,27 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                         status=424,
                     )
                 if bundle:
+                    # [T-167] 허용 통화 시간. fail-closed(부재=0)이지만 실제 거부는
+                    # _credit_enforced() 게이트 뒤 — 트랙 A 배포 전에는 관찰만 한다.
+                    sess.allowed_sec = _extract_allowed_sec(bundle)
+                    if sess.allowed_sec <= 0:
+                        if _credit_enforced():
+                            log.warning(
+                                "크레딧 잔액 없음 → 통화 거부 clone=%s session=%s",
+                                sess.clone_id, sess.session_id,
+                            )
+                            await pc.close()
+                            mgr.remove(sess.session_id)
+                            return web.json_response(
+                                {"error": "insufficient_credits", "clone_id": sess.clone_id},
+                                status=402,
+                            )
+                        log.warning(
+                            "[T-167] bundle 에 allowedSec 없음/0 — CREDIT_ENFORCED off라 "
+                            "통화는 진행하지만 과금 상한이 없다. 트랙 A 가 bundle 응답에 "
+                            "allowedSec(정수, 초)를 실어야 한다. clone=%s",
+                            sess.clone_id,
+                        )
                     sess.persona_messages = bundle_to_messages(bundle)
                     assets = bundle.get("assets") or {}
                     se_key = assets.get("voiceSeKey")
@@ -890,6 +1061,9 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                         _filler_cleanup.close()
                         sess.filler_player = None
                         log.info("session %s FillerPlayer closed (cleanup)", sess.session_id)
+                    # [T-167] 크레딧 가드 정리 — 남은 타이머가 종료 후 발화하면
+                    # 이미 끊긴 통화를 또 끊으려 든다. pc.close() 이전에 수행.
+                    _cancel_credit_guard(sess)
                     await pc.close()
                     # Phase B: 통화 종료 통보(best-effort). 여러 번 fire돼도 api가 멱등(ended_at IS NULL).
                     # sess 필드는 mgr.remove 전에 로컬 추출 — 세션 제거 후 참조(use-after-free) 방어.

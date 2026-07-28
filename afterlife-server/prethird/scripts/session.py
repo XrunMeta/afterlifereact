@@ -36,6 +36,10 @@ class Session:
         # 이 세션에 반영되지 않으므로(별도 프로세스) 세션 로컬 가드로 중복 호출만 억제한다.
         self.name_extract_sent = set()
         self.base_persona_messages = None  # L2 화자별 스왑 전 원본 persona_messages 백업(Task 12가 소비)
+        # --- T-167 크레딧 과금 ---
+        self.allowed_sec = 0        # bundle allowedSec (fail-closed 0 = 통화 불가)
+        self.credit_guard = None    # CreditGuard | None — greet 시점에 부착, cleanup에서 cancel
+        self.max_end_at_ms = 0      # 서버가 준 절대 데드라인(epoch ms). 로컬 재계산 금지.
         self.busy_lock = asyncio.Lock()  # say/speak/greet/react 상호배제(동시 트랙 push 방지, §6.2)
         self.pending_react = None    # 발화 중 도착한 react 단일 대기 슬롯(dict|None, latest-wins)
 
