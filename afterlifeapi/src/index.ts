@@ -33,6 +33,7 @@ import { adminDeletion } from "./routes/adminDeletion";
 import { files } from "./routes/files";
 import { payments } from "./routes/payments";
 import { gifts } from "./routes/gifts";
+import { iapWebhooks } from "./routes/iapWebhooks";
 import { notifications } from "./routes/notifications";
 import { persons } from "./routes/persons";
 import { agreements, adminAgreements } from "./routes/agreements";
@@ -115,6 +116,8 @@ app.route("/oth-path", inviteTokens);
 app.route("/oth-path", credits);
 app.route("/oth-path", payments);
 app.route("/oth-path", gifts);
+
+app.route("/webhooks", iapWebhooks);
 app.route("/oth-path", notifications);
 app.route("/oth-path", adminAuth);
 app.route("/oth-path", adminWebauthn);
