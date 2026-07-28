@@ -81,6 +81,9 @@ export interface Bindings {
   APPLE_IAP_KEY_ID?: string;       
   APPLE_IAP_ISSUER_ID?: string;    
   APPLE_IAP_BUNDLE_ID?: string;    
+
+  GOOGLE_PLAY_SERVICE_ACCOUNT_JSON?: string;  
+  ANDROID_PACKAGE_NAME?: string;              
 }
 
 export type AppEnv = {
