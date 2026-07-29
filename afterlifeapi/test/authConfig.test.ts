@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { env } from "cloudflare:test";
+import { env, SELF } from "cloudflare:test";
 import { parseEnabledFlag, getGoogleEnabled } from "../src/lib/appConfig";
 
 describe("parseEnabledFlag", () => {
@@ -62,5 +62,43 @@ describe("getGoogleEnabled", () => {
     expect(g.ios).toBe(false);
     expect(g.android).toBe(true);
     expect(g.updatedAt).toBe(0);
+  });
+});
+
+describe("GET /oth-path", () => {
+  it("마이그레이션 seed 기준으로 ios=false, android=true 를 반환", async () => {
+    const r = await SELF.fetch("https://example.com/oth-path");
+    expect(r.status).toBe(200);
+    const j = (await r.json()) as { googleEnabled: { ios: boolean; android: boolean } };
+    expect(j.googleEnabled.ios).toBe(false);
+    expect(j.googleEnabled.android).toBe(true);
+  });
+
+  it("D1 값을 바꾸면 응답도 바뀐다", async () => {
+    await env.DB.prepare(
+      "UPDATE app_config SET value = '1' WHERE key = 'auth.google_enabled_ios'",
+    ).run();
+    const r = await SELF.fetch("https://example.com/oth-path");
+    const j = (await r.json()) as { googleEnabled: { ios: boolean } };
+    expect(j.googleEnabled.ios).toBe(true);
+
+    await env.DB.prepare(
+      "UPDATE app_config SET value = '0' WHERE key = 'auth.google_enabled_ios'",
+    ).run();
+  });
+
+  it("60초 공개 캐시 헤더를 준다", async () => {
+    const r = await SELF.fetch("https://example.com/oth-path");
+    expect(r.headers.get("Cache-Control")).toBe("public, max-age=60");
+  });
+
+  it("인증 없이 접근 가능하다 (로그인 이전 호출)", async () => {
+    const r = await SELF.fetch("https://example.com/oth-path");
+    expect(r.status).not.toBe(401);
+  });
+
+  it("기존 /oth-path 와 공존한다", async () => {
+    const r = await SELF.fetch("https://example.com/oth-path");
+    expect(r.status).toBe(200);
   });
 });
