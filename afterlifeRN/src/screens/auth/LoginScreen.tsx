@@ -34,15 +34,17 @@ import { COLORS, SIZES, RADIUS } from "../../components/constants";
 const GOOGLE_WEB_CLIENT_ID =
   "oth-client.googleusercontent.invalid";
 
-if (Platform.OS === "android") {
-  try {
-    GoogleSignin.configure({
-      webClientId: GOOGLE_WEB_CLIENT_ID,
-      offlineAccess: false,
-    });
-  } catch (err) {
-    console.warn("[GoogleSignin] configure failed:", err);
-  }
+const GOOGLE_IOS_CLIENT_ID =
+  "oth-client.googleusercontent.invalid";
+
+try {
+  GoogleSignin.configure({
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    iosClientId: GOOGLE_IOS_CLIENT_ID,
+    offlineAccess: false,
+  });
+} catch (err) {
+  console.warn("[GoogleSignin] configure failed:", err);
 }
 
 type Props = {
