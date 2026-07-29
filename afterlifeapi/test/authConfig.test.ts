@@ -34,9 +34,9 @@ describe("getGoogleEnabled", () => {
     expect(g.android).toBe(false);
   });
 
-  it("D1 값이 없으면 코드 상수(ios=false, android=true)", async () => {
+  it("D1 값이 없으면 코드 상수(양 플랫폼 true)", async () => {
     const g = await getGoogleEnabled(env as never);
-    expect(g.ios).toBe(false);
+    expect(g.ios).toBe(true);
     expect(g.android).toBe(true);
   });
 
@@ -59,31 +59,31 @@ describe("getGoogleEnabled", () => {
       },
     };
     const g = await getGoogleEnabled(broken as never);
-    expect(g.ios).toBe(false);
+    expect(g.ios).toBe(true);
     expect(g.android).toBe(true);
     expect(g.updatedAt).toBe(0);
   });
 });
 
 describe("GET /oth-path", () => {
-  it("마이그레이션 seed 기준으로 ios=false, android=true 를 반환", async () => {
+  it("마이그레이션 seed 기준으로 양 플랫폼 true 를 반환", async () => {
     const r = await SELF.fetch("https://example.com/oth-path");
     expect(r.status).toBe(200);
     const j = (await r.json()) as { googleEnabled: { ios: boolean; android: boolean } };
-    expect(j.googleEnabled.ios).toBe(false);
+    expect(j.googleEnabled.ios).toBe(true);
     expect(j.googleEnabled.android).toBe(true);
   });
 
-  it("D1 값을 바꾸면 응답도 바뀐다", async () => {
+  it("D1 값을 바꾸면 응답도 바뀐다 (운영 중 원격 차단)", async () => {
     await env.DB.prepare(
-      "UPDATE app_config SET value = '1' WHERE key = 'auth.google_enabled_ios'",
+      "UPDATE app_config SET value = '0' WHERE key = 'auth.google_enabled_ios'",
     ).run();
     const r = await SELF.fetch("https://example.com/oth-path");
     const j = (await r.json()) as { googleEnabled: { ios: boolean } };
-    expect(j.googleEnabled.ios).toBe(true);
+    expect(j.googleEnabled.ios).toBe(false);
 
     await env.DB.prepare(
-      "UPDATE app_config SET value = '0' WHERE key = 'auth.google_enabled_ios'",
+      "UPDATE app_config SET value = '1' WHERE key = 'auth.google_enabled_ios'",
     ).run();
   });
 

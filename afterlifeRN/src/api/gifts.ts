@@ -7,6 +7,8 @@ export interface GiftCatalogItem {
   name: string;
   emoji: string;
   price: number;
+
+  imageUrl?: string;
 }
 
 export async function fetchGiftCatalog(): Promise<GiftCatalogItem[]> {

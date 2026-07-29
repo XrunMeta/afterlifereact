@@ -5,6 +5,9 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 export const GOOGLE_WEB_CLIENT_ID =
   'oth-client.googleusercontent.invalid';
 
+export const GOOGLE_IOS_CLIENT_ID =
+  'oth-client.googleusercontent.invalid';
+
 let attempted = false;
 let configured = false;
 
@@ -15,6 +18,7 @@ export function ensureGoogleConfigured(): boolean {
 
     const r = GoogleSignin.configure({
       webClientId: GOOGLE_WEB_CLIENT_ID,
+      iosClientId: GOOGLE_IOS_CLIENT_ID,
       offlineAccess: false,
     }) as unknown;
     if (r && typeof (r as Promise<void>).catch === 'function') {

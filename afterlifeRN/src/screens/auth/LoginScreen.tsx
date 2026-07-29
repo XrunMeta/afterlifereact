@@ -23,6 +23,7 @@ import { useAuthStore } from "../../stores/authStore";
 import {
   AuthApiError,
   googleSignIn,
+  appleSignIn,
   googleCheck,
   getMe,
   requestEmailLoginCode,
@@ -234,6 +235,58 @@ export default function LoginScreen({ navigation }: Props) {
       }
       return;
     }
+    if (provider === "apple") {
+      if (Platform.OS !== "ios") {
+        showAlert("안내", "Apple 로그인은 iOS 에서만 지원돼요.");
+        return;
+      }
+      try {
+        const AppleAuth = await import("expo-apple-authentication");
+        const credential = await AppleAuth.signInAsync({
+          requestedScopes: [
+            AppleAuth.AppleAuthenticationScope.FULL_NAME,
+            AppleAuth.AppleAuthenticationScope.EMAIL,
+          ],
+        });
+        if (!credential.identityToken) {
+          showAlert("오류", "Apple identityToken 을 받지 못했어요.");
+          return;
+        }
+        const deviceId = await getOrCreateDeviceId();
+        const res = await appleSignIn({
+          identityToken: credential.identityToken,
+          fullName: credential.fullName
+            ? { givenName: credential.fullName.givenName, familyName: credential.fullName.familyName }
+            : null,
+          deviceId,
+          platform: "ios",
+        });
+        const meRes = await getMe(res.accessToken);
+        await setApiAuth(res.accessToken, meRes.user, { persist: autoLogin });
+        const appleRefreshToken = (res as { refreshToken?: string }).refreshToken;
+        if (appleRefreshToken) {
+          await setApiTokens(res.accessToken, appleRefreshToken, { persist: autoLogin });
+        }
+        if (autoLogin) {
+          await AsyncStorage.setItem(AUTO_LOGIN_PREF_KEY, "1");
+          await AsyncStorage.setItem(LAST_EMAIL_KEY, meRes.user.email);
+        } else {
+          await AsyncStorage.removeItem(AUTO_LOGIN_PREF_KEY);
+          await AsyncStorage.removeItem(LAST_EMAIL_KEY);
+        }
+        console.log("[AUTH/apple] user:", meRes.user);
+        await hydrate();
+      } catch (err: any) {
+        if (err?.code === "ERR_REQUEST_CANCELED") return;
+        if (err instanceof AuthApiError && err.code === "ACCOUNT_DELETED") {
+          showAlert(t("auth.login.accountDeletedTitle"), t("auth.login.accountDeletedMessage"));
+          return;
+        }
+        const msg = (err instanceof AuthApiError ? err.message : err?.message) || "Apple 로그인 실패";
+        showAlert("Apple 로그인 실패", msg);
+      }
+      return;
+    }
     console.log("Social login:", provider);
   };
 
@@ -351,27 +404,38 @@ export default function LoginScreen({ navigation }: Props) {
           {
 
 }
+          {(Platform.OS === "ios" || googleEnabled !== false) && (
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>—</Text>
+              <View style={styles.dividerLine} />
+            </View>
+          )}
+
           {googleEnabled === null ? (
 
             <View style={styles.googleButtonPlaceholder} />
           ) : googleEnabled ? (
-            <>
-              {}
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>—</Text>
-                <View style={styles.dividerLine} />
-              </View>
+            <Button
+              title={t("auth.login.googleBtn")}
+              onPress={() => handleSocialLogin("google")}
+              variant="secondary"
+              size="md"
+              leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}>G</Text>}
+            />
+          ) : null}
 
+          {Platform.OS === "ios" && (
+            <View style={{ marginTop: 10 }}>
               <Button
-                title={t("auth.login.googleBtn")}
-                onPress={() => handleSocialLogin("google")}
+                title="Apple 로 로그인"
+                onPress={() => handleSocialLogin("apple")}
                 variant="secondary"
                 size="md"
-                leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}>G</Text>}
+                leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}></Text>}
               />
-            </>
-          ) : null}
+            </View>
+          )}
 
           {}
           <View style={styles.signupRow}>
