@@ -23,6 +23,7 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import {
   v_84a859,
   v_dd2158,
+  v_c93bd8,
   v_5c746e,
   v_7ef860,
   v_1d5b64,
@@ -232,6 +233,58 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
       }
       return;
     }
+    if (v_e38ca2 === "apple") {
+      if (v_326be8.OS !== "ios") {
+        v_889fad("안내", "Apple 로그인은 iOS 에서만 지원돼요.");
+        return;
+      }
+      try {
+        const v_c8d70e = await import("rpswwnotkqebxswfnogjwnyum");
+        const v_68e4c4 = await v_c8d70e.signInAsync({
+          requestedScopes: [
+            v_c8d70e.AppleAuthenticationScope.FULL_NAME,
+            v_c8d70e.AppleAuthenticationScope.EMAIL,
+          ],
+        });
+        if (!v_68e4c4.identityToken) {
+          v_889fad("오류", "Apple identityToken 을 받지 못했어요.");
+          return;
+        }
+        const v_929b58 = await v_ea1c99();
+        const v_8f00b9 = await v_c93bd8({
+          identityToken: v_68e4c4.identityToken,
+          fullName: v_68e4c4.fullName
+            ? { givenName: v_68e4c4.fullName.givenName, familyName: v_68e4c4.fullName.familyName }
+            : null,
+          deviceId: v_929b58,
+          platform: "ios",
+        });
+        const v_9ec4c0 = await v_7ef860(v_8f00b9.accessToken);
+        await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user, { persist: v_f53eaa });
+        const v_5d337e = (v_8f00b9 as { refreshToken?: string }).refreshToken;
+        if (v_5d337e) {
+          await v_3345cb(v_8f00b9.accessToken, v_5d337e, { persist: v_f53eaa });
+        }
+        if (v_f53eaa) {
+          await v_e84827.setItem(v_101856, "1");
+          await v_e84827.setItem(v_6a7868, v_9ec4c0.user.email);
+        } else {
+          await v_e84827.removeItem(v_101856);
+          await v_e84827.removeItem(v_6a7868);
+        }
+        console.log("[AUTH/apple] user:", v_9ec4c0.user);
+        await v_232d52();
+      } catch (v_49263d) {
+        if (v_49263d?.code === "ERR_REQUEST_CANCELED") return;
+        if (v_49263d instanceof v_84a859 && v_49263d.code === "ACCOUNT_DELETED") {
+          v_889fad(v_8d41d7("auth.login.accountDeletedTitle"), v_8d41d7("auth.login.accountDeletedMessage"));
+          return;
+        }
+        const v_badeaf = (v_49263d instanceof v_84a859 ? v_49263d.message : v_49263d?.message) || "Apple 로그인 실패";
+        v_889fad("Apple 로그인 실패", v_badeaf);
+      }
+      return;
+    }
     console.log("Social login:", v_e38ca2);
   };
 
@@ -365,6 +418,17 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
                 size="md"
                 leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}>G</Text>}
               />
+              {v_326be8.OS === "ios" && (
+                <View style={{ marginTop: 10 }}>
+                  <Button
+                    title="Apple 로 로그인"
+                    onPress={() => v_78c15c("apple")}
+                    variant="secondary"
+                    size="md"
+                    leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}></Text>}
+                  />
+                </View>
+              )}
             </>
           )}
 
