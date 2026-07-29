@@ -11,7 +11,7 @@ import {
   Alert,
   Platform,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { Product, ProductSubscription } from "react-native-iap";
 import SafeView from "../../components/ui/SafeView";
 import PageHeader from "../../components/common/PageHeader";
@@ -49,6 +49,7 @@ const MOCK_CONSUMABLES: Product[] = [
 const isMockSku = (id: string): boolean => id.startsWith(MOCK_PREFIX);
 
 export default function PurchaseScreen() {
+  const navigation = useNavigation();
   const accessToken = useAuthStore((s) => s.accessToken);
   const [balance, setBalance] = useState<CreditBalance | null>(null);
   const [balLoading, setBalLoading] = useState(true);
@@ -145,7 +146,11 @@ export default function PurchaseScreen() {
 
   return (
     <SafeView backgroundColor={COLORS.white}>
-      <PageHeader title="크레딧 충전 · 구독" showBackButton />
+      <PageHeader
+        title="크레딧 충전 · 구독"
+        showBackButton
+        onBackPress={() => navigation.goBack()}
+      />
 
       <ScrollView contentContainerStyle={{ padding: SIZES.large, paddingBottom: 40 }}>
         {}
