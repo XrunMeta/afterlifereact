@@ -1195,7 +1195,11 @@ export default function CallScreen({ route, navigation }: Props) {
                   activeOpacity={0.7}
                 >
                   <View style={s.giftEmojiWrap}>
-                    <Text style={s.giftEmoji}>{item.emoji}</Text>
+                    {item.imageUrl ? (
+                      <Image source={{ uri: item.imageUrl }} style={s.giftImage} />
+                    ) : (
+                      <Text style={s.giftEmoji}>{item.emoji}</Text>
+                    )}
                   </View>
                   <Text style={s.giftName}>{item.name}</Text>
                 </TouchableOpacity>
@@ -1504,6 +1508,7 @@ const s = StyleSheet.create({
     shadowRadius: 4,
   },
   giftEmoji: { fontSize: 24 },
+  giftImage: { width: 40, height: 40, borderRadius: 8 },
   giftName: { fontSize: 13, fontWeight: "600", color: COLORS.zinc900, marginBottom: 2 },
 
   toast: {
