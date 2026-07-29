@@ -1105,5 +1105,7 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     # 등록 flag 없이 항상 켬. auth 는 endpoint 내부에서 처리.
     from knowledge_interpret_endpoint import register_knowledge_interpret_routes
     register_knowledge_interpret_routes(app)
+    from knowledge_followup_endpoint import register_knowledge_followup_routes
+    register_knowledge_followup_routes(app)
 
     return app
