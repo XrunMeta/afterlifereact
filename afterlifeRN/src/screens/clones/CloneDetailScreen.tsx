@@ -81,7 +81,11 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_992a8f = ({ item: v_8c0b26 }: { item: v_83f27d }) => (
     <TouchableOpacity style={v_fd5f43.giftItem} activeOpacity={0.7} onPress={v_368174}>
       <View style={v_fd5f43.giftEmojiWrap}>
-        <Text style={v_fd5f43.giftEmoji}>{v_8c0b26.emoji}</Text>
+        {v_8c0b26.imageUrl ? (
+          <Image source={{ uri: v_8c0b26.imageUrl }} style={v_fd5f43.giftImage} />
+        ) : (
+          <Text style={v_fd5f43.giftEmoji}>{v_8c0b26.emoji}</Text>
+        )}
       </View>
       <Text style={v_fd5f43.giftName}>{v_8c0b26.name}</Text>
     </TouchableOpacity>
@@ -378,6 +382,7 @@ const v_fd5f43 = v_472849.create({
     marginBottom: 10,
   },
   giftEmoji: { fontSize: 28 },
+  giftImage: { width: 44, height: 44, borderRadius: 8 },
   giftName: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.white, marginBottom: 4 },
   sendGiftBtn: {
     height: 48,

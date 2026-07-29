@@ -1195,7 +1195,11 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                   activeOpacity={0.7}
                 >
                   <View style={v_fd5f43.giftEmojiWrap}>
-                    <Text style={v_fd5f43.giftEmoji}>{v_8c0b26.emoji}</Text>
+                    {v_8c0b26.imageUrl ? (
+                      <Image source={{ uri: v_8c0b26.imageUrl }} style={v_fd5f43.giftImage} />
+                    ) : (
+                      <Text style={v_fd5f43.giftEmoji}>{v_8c0b26.emoji}</Text>
+                    )}
                   </View>
                   <Text style={v_fd5f43.giftName}>{v_8c0b26.name}</Text>
                 </TouchableOpacity>
@@ -1504,6 +1508,7 @@ const v_fd5f43 = v_472849.create({
     shadowRadius: 4,
   },
   giftEmoji: { fontSize: 24 },
+  giftImage: { width: 40, height: 40, borderRadius: 8 },
   giftName: { fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc900, marginBottom: 2 },
 
   toast: {

@@ -12,14 +12,14 @@ import {
   v_326be8,
 } from "rcmrninabrnb";
 import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
-import type { v_678322, v_813adb } from "bvpcozhmvsrfxgke";
+import type { v_678322, v_23b84c } from "bvpcozhmvsrfxgke";
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_48981e, type v_2b70d7 } from "../../api/credits";
 import {
-  v_43431d,
+  v_1c6d94,
   v_e02ccf,
   v_7c6fd6,
   type v_a9d25e,
@@ -36,7 +36,7 @@ export default function v_0035e1() {
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const [v_c88e9b, v_de20d8] = v_5ab095<v_2b70d7 | null>(null);
   const [v_55599a, v_530cbd] = v_5ab095(true);
-  const [v_ab371b, v_0cf94e] = v_5ab095<v_813adb[]>([]);
+  const [v_ab371b, v_0cf94e] = v_5ab095<v_23b84c[]>([]);
   const [v_275767, v_cb5356] = v_5ab095<v_678322[]>([]);
   const [v_723218, v_6d964e] = v_5ab095(true);
   const [v_c63375, v_ce0cde] = v_5ab095<string | null>(null);
@@ -64,7 +64,7 @@ export default function v_0035e1() {
     (async () => {
       v_6d964e(true);
       try {
-        const { subscriptions: v_60a14d, consumables: v_cfc98b } = await v_43431d();
+        const { subscriptions: v_60a14d, consumables: v_cfc98b } = await v_1c6d94();
         v_0cf94e(v_60a14d);
         v_cb5356(v_cfc98b);
         console.log(`[purchase] loaded ${v_60a14d.length} subs, ${v_cfc98b.length} consumables`);
@@ -159,18 +159,18 @@ export default function v_0035e1() {
         ) : (
           v_ab371b.map((v_e2a85c) => (
             <TouchableOpacity
-              key={v_e2a85c.productId}
-              style={[v_fd5f43.card, v_c63375 === v_e2a85c.productId && v_fd5f43.cardDisabled]}
-              onPress={() => v_0b9762(v_e2a85c.productId as v_a9d25e)}
+              key={v_e2a85c.id}
+              style={[v_fd5f43.card, v_c63375 === v_e2a85c.id && v_fd5f43.cardDisabled]}
+              onPress={() => v_0b9762(v_e2a85c.id as v_a9d25e)}
               disabled={v_c63375 !== null}
             >
               <View style={{ flex: 1 }}>
-                <Text style={v_fd5f43.cardName}>{v_e2a85c.title || v_e2a85c.productId}</Text>
+                <Text style={v_fd5f43.cardName}>{v_e2a85c.title || v_e2a85c.id}</Text>
                 <Text style={v_fd5f43.cardDesc}>{v_e2a85c.description || ""}</Text>
               </View>
               <View style={v_fd5f43.cardPriceCol}>
-                <Text style={v_fd5f43.cardPrice}>{v_e2a85c.localizedPrice}</Text>
-                {v_c63375 === v_e2a85c.productId && (
+                <Text style={v_fd5f43.cardPrice}>{v_e2a85c.displayPrice}</Text>
+                {v_c63375 === v_e2a85c.id && (
                   <ActivityIndicator color={v_1bfbd0.violet600} size="small" />
                 )}
               </View>
@@ -189,18 +189,18 @@ export default function v_0035e1() {
         ) : (
           v_275767.map((v_e2a85c) => (
             <TouchableOpacity
-              key={v_e2a85c.productId}
-              style={[v_fd5f43.card, v_c63375 === v_e2a85c.productId && v_fd5f43.cardDisabled]}
-              onPress={() => v_bdb045(v_e2a85c.productId as v_a81007)}
+              key={v_e2a85c.id}
+              style={[v_fd5f43.card, v_c63375 === v_e2a85c.id && v_fd5f43.cardDisabled]}
+              onPress={() => v_bdb045(v_e2a85c.id as v_a81007)}
               disabled={v_c63375 !== null}
             >
               <View style={{ flex: 1 }}>
-                <Text style={v_fd5f43.cardName}>{v_e2a85c.title || v_e2a85c.productId}</Text>
+                <Text style={v_fd5f43.cardName}>{v_e2a85c.title || v_e2a85c.id}</Text>
                 <Text style={v_fd5f43.cardDesc}>{v_e2a85c.description || ""}</Text>
               </View>
               <View style={v_fd5f43.cardPriceCol}>
-                <Text style={v_fd5f43.cardPrice}>{v_e2a85c.localizedPrice}</Text>
-                {v_c63375 === v_e2a85c.productId && (
+                <Text style={v_fd5f43.cardPrice}>{v_e2a85c.displayPrice}</Text>
+                {v_c63375 === v_e2a85c.id && (
                   <ActivityIndicator color={v_1bfbd0.violet600} size="small" />
                 )}
               </View>
