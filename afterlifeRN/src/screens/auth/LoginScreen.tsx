@@ -345,28 +345,27 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           {
 
 }
-          {v_326be8.OS !== "ios" &&
-            (v_c39df9 === null ? (
+          {v_c39df9 === null ? (
 
-              <View style={v_d81136.googleButtonPlaceholder} />
-            ) : v_c39df9 ? (
-              <>
-                {}
-                <View style={v_d81136.divider}>
-                  <View style={v_d81136.dividerLine} />
-                  <Text style={v_d81136.dividerText}>—</Text>
-                  <View style={v_d81136.dividerLine} />
-                </View>
+            <View style={v_d81136.googleButtonPlaceholder} />
+          ) : v_c39df9 ? (
+            <>
+              {}
+              <View style={v_d81136.divider}>
+                <View style={v_d81136.dividerLine} />
+                <Text style={v_d81136.dividerText}>—</Text>
+                <View style={v_d81136.dividerLine} />
+              </View>
 
-                <Button
-                  title={v_8d41d7("auth.login.googleBtn")}
-                  onPress={() => v_78c15c("google")}
-                  variant="secondary"
-                  size="md"
-                  leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}>G</Text>}
-                />
-              </>
-            ) : null)}
+              <Button
+                title={v_8d41d7("auth.login.googleBtn")}
+                onPress={() => v_78c15c("google")}
+                variant="secondary"
+                size="md"
+                leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}>G</Text>}
+              />
+            </>
+          ) : null}
 
           {}
           <View style={v_d81136.signupRow}>
