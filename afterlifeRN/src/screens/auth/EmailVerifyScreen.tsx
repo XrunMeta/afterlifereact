@@ -25,6 +25,8 @@ import { faceBiometricSignupState } from "./faceBiometricSignupFlag";
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 import { getOrCreateDeviceId } from "../../lib/deviceId";
 import { Platform } from "react-native";
+import { useAuthConfigStore } from "../../stores/authConfigStore";
+import { ensureGoogleConfigured } from "../../lib/googleAuth";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "EmailVerify">;
 
@@ -69,6 +71,11 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
   };
 
   const tryGoogleLink = async (accessToken: string) => {
+
+    if (!ensureGoogleConfigured()) {
+      goToComplete(accessToken);
+      return;
+    }
     try {
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       try {
@@ -192,7 +199,10 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
 
       console.log("[AUTH/signup] success, accessExpiresIn:", res.accessExpiresIn);
 
-      if (Platform.OS !== "ios" && params.email.toLowerCase().endsWith("@gmail.com")) {
+      if (
+        useAuthConfigStore.getState().googleEnabled === true &&
+        params.email.toLowerCase().endsWith("@gmail.com")
+      ) {
         promptGoogleLink(res.accessToken);
       } else {
         goToComplete(res.accessToken);

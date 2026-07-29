@@ -43,6 +43,7 @@ const GIFT_CATALOG = giftsData as Gift[];
 import { formatRelativeKo } from "../../lib/relativeTime";
 import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
 import { AuthApiError, patchMe } from "../../api/auth";
+import { getCreditBalance, type CreditBalance } from "../../api/credits";
 
 import { uploadFile } from "../../api/files";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
@@ -119,6 +120,9 @@ export default function MyClonesDashboardScreen() {
 
   const [systemClones, setSystemClones] = useState<SystemClone[]>([]);
 
+  const [balance, setBalance] = useState<CreditBalance | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+
   const fetchMyClones = useCallback(async (isRefresh = false) => {
     if (!accessToken) {
       setApiClones(null);
@@ -156,7 +160,15 @@ export default function MyClonesDashboardScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchMyClones(false);
-    }, [fetchMyClones]),
+
+      if (accessToken) {
+        setBalanceLoading(true);
+        getCreditBalance(accessToken)
+          .then((b) => setBalance(b))
+          .catch((err) => console.warn("[MyClonesDashboard] balance fail:", err))
+          .finally(() => setBalanceLoading(false));
+      }
+    }, [fetchMyClones, accessToken]),
   );
 
   const myClones = useMemo<Clone[]>(() => {
@@ -854,6 +866,47 @@ export default function MyClonesDashboardScreen() {
             </View>
 
             {}
+            <TouchableOpacity
+              style={s.balanceCard}
+              activeOpacity={0.85}
+              onPress={() => {
+                navigation.getParent()?.dispatch(
+                  CommonActions.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                );
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={s.balanceLabel}>남은 통화 시간</Text>
+                {balanceLoading && !balance ? (
+                  <ActivityIndicator color={COLORS.violet600} style={{ marginTop: 6 }} />
+                ) : balance ? (
+                  <>
+                    <Text style={s.balanceTotal}>
+                      {(() => {
+                        const s = Math.max(0, Math.floor(balance.totalSec));
+                        const m = Math.floor(s / 60);
+                        const rem = s % 60;
+                        if (m === 0) return `${rem}초`;
+                        return rem > 0 ? `${m}분 ${rem}초` : `${m}분`;
+                      })()}
+                    </Text>
+                    <Text style={s.balanceBreakdown}>
+                      무료 {Math.floor(balance.freeSec / 60)}분
+                      {balance.subSec > 0 ? ` · 구독 ${Math.floor(balance.subSec / 60)}분` : ""}
+                      {balance.topupSec > 0 ? ` · 충전 ${Math.floor(balance.topupSec / 60)}분` : ""}
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={s.balanceEmpty}>잔액 조회 실패</Text>
+                )}
+              </View>
+              <View style={s.balanceCta}>
+                <Text style={s.balanceCtaText}>충전</Text>
+                <Feather name="chevron-right" size={16} color="#fff" />
+              </View>
+            </TouchableOpacity>
+
+            {}
 
             {
 }
@@ -1454,6 +1507,29 @@ const s = StyleSheet.create({
   },
   inviteStatusBtnText: { fontSize: 12, fontWeight: "600", color: COLORS.violet600 },
   dashSubText: { fontSize: 13, color: COLORS.zinc500, marginTop: 4 },
+
+  balanceCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.violet100,
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    marginBottom: 16,
+  },
+  balanceLabel: { fontSize: 12, color: COLORS.zinc600, marginBottom: 4 },
+  balanceTotal: { fontSize: 22, fontWeight: "700", color: COLORS.violet700 },
+  balanceBreakdown: { fontSize: 12, color: COLORS.zinc600, marginTop: 4 },
+  balanceEmpty: { fontSize: 13, color: COLORS.zinc500, marginTop: 6 },
+  balanceCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.violet600,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  balanceCtaText: { fontSize: 13, fontWeight: "700", color: "#fff" },
 
   coinRow: {
     flexDirection: "row",

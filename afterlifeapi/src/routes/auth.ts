@@ -18,6 +18,7 @@ import { logActivity } from "../lib/logger";
 import { requestSignupOtp, verifySignupOtp } from "../lib/otp";
 
 import { verifyGoogleIdToken } from "../lib/googleAuth";
+import { verifyAppleIdToken } from "../lib/appleAuth";
 import { grantSignupFreeCredits } from "../lib/credits";
 
 export const auth = new Hono<AppEnv>();
@@ -173,6 +174,111 @@ auth.post("/google", async (c) => {
            updated_at = CURRENT_TIMESTAMP`,
       )
       .bind(userRow.id, body.deviceId, body.pushToken, body.platform ?? "web")
+      .run();
+  }
+
+  const { accessToken, refreshToken, accessExpiresIn } = await issueSession(c, userRow.id, body.deviceId);
+  setRefreshCookie(c, refreshToken);
+
+  return c.json({
+    accessToken,
+    refreshToken,
+    accessExpiresIn,
+    user: {
+      id: userRow.id,
+      name: userRow.name,
+      email: userRow.email,
+      funnelStage: userRow.funnelStage,
+    },
+  });
+});
+
+const appleSignInSchema = z.object({
+  identityToken: z.string().min(20),
+  fullName: z.object({ givenName: z.string().nullable().optional(), familyName: z.string().nullable().optional() }).optional(),
+  deviceId: z.string().min(1).max(200).optional(),
+  pushToken: z.string().min(1).max(500).optional(),
+  platform: z.enum(["ios", "android", "web"]).optional(),
+});
+auth.post("/apple", async (c) => {
+  const body = await parseJson(c, appleSignInSchema);
+  const db = c.env.DB;
+  const payload = await verifyAppleIdToken(c.env, body.identityToken);
+
+  let userRow = await db
+    .prepare(
+      `SELECT id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until FROM users
+        WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
+    )
+    .bind(payload.email)
+    .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null }>();
+
+  if (!userRow) {
+
+    const randomSecret = crypto.randomUUID() + crypto.randomUUID();
+    const passwordHash = await hashPassword(randomSecret);
+    const fallbackName =
+      [body.fullName?.givenName, body.fullName?.familyName].filter(Boolean).join(" ") ||
+      (payload.is_private_email ? "Apple User" : payload.email.split("@")[0]) ||
+      "user";
+    const inserted = await db
+      .prepare(
+        `INSERT INTO users (name, email, password_hash, avatar_url)
+         VALUES (?, ?, ?, NULL)
+         RETURNING id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until`,
+      )
+      .bind(fallbackName, payload.email, passwordHash)
+      .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null }>();
+    if (!inserted) throw new APIError("INTERNAL_ERROR", "Failed to create user.");
+    userRow = inserted;
+
+    await logActivity(c, {
+      userId: inserted.id,
+      action: "auth.apple.signup",
+      details: { sub: payload.sub, isPrivateEmail: payload.is_private_email },
+    });
+
+    try {
+      await grantSignupFreeCredits(c, inserted.id);
+    } catch (err) {
+      console.error(`[SIGNUP_GRANT_FAIL] user_id=${inserted.id} err=${(err as Error).message}`);
+    }
+  } else {
+    if (userRow.deletion_state !== "active") {
+      throw new APIError("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
+    }
+    if (userRow.banned_until && parseSqliteTimestamp(userRow.banned_until) > Date.now()) {
+      throw new APIError("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
+        bannedUntil: userRow.banned_until,
+      });
+    }
+    await logActivity(c, {
+      userId: userRow.id,
+      action: "auth.apple.login",
+      details: { sub: payload.sub },
+    });
+  }
+
+  if (body.deviceId && body.pushToken) {
+    await db
+      .prepare(
+        `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+           WHERE push_token = ? AND user_id != ? AND is_active = 1`,
+      )
+      .bind(body.pushToken, userRow.id)
+      .run();
+    await db
+      .prepare(
+        `INSERT INTO user_devices (user_id, device_id, push_token, platform, last_active_at)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(user_id, device_id) DO UPDATE SET
+           push_token = excluded.push_token,
+           platform   = excluded.platform,
+           is_active  = 1,
+           last_active_at = CURRENT_TIMESTAMP,
+           updated_at = CURRENT_TIMESTAMP`,
+      )
+      .bind(userRow.id, body.deviceId, body.pushToken, body.platform ?? "ios")
       .run();
   }
 
