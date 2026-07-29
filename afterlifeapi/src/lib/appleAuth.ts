@@ -66,6 +66,10 @@ function v_d46e6b<T>(v_fd5f43): T {
 
 async function v_8380e8(v_b50834, v_1e9000): Promise<boolean> {
   const [v_65a2cd, v_e2a85c, v_f2c979] = v_b50834.split(".");
+
+  if (!v_65a2cd || !v_e2a85c || !v_f2c979) {
+    throw new v_3ebe58("UNAUTHENTICATED", "Malformed Apple identity token.");
+  }
   const v_a567ea = new TextEncoder().encode(`${v_65a2cd}.${v_e2a85c}`);
   const v_47ee1b = v_fb5305(v_f2c979);
   const v_b24339 = await crypto.subtle.importKey(
@@ -83,10 +87,12 @@ export async function v_bb3c56(
   v_b50834,
 ): Promise<AppleIdTokenPayload> {
   const v_468545 = v_b50834.split(".");
-  if (v_468545.length !== 3) {
+  const [v_f8308a, v_aa57be] = v_468545;
+
+  if (v_468545.length !== 3 || !v_f8308a || !v_aa57be) {
     throw new v_3ebe58("UNAUTHENTICATED", "Malformed Apple identity token.");
   }
-  const v_ad8d0d = v_d46e6b<{ alg: string; kid: string }>(v_468545[0]);
+  const v_ad8d0d = v_d46e6b<{ alg: string; kid: string }>(v_f8308a);
   if (v_ad8d0d.alg !== "RS256") {
     throw new v_3ebe58("UNAUTHENTICATED", `Unsupported alg: ${v_ad8d0d.alg}`);
   }
@@ -115,7 +121,7 @@ export async function v_bb3c56(
     email?: string;
     email_verified?: string | boolean;
     is_private_email?: string | boolean;
-  }>(v_468545[1]);
+  }>(v_aa57be);
 
   if (v_931bf0.iss !== v_73afa0) {
     throw new v_3ebe58("UNAUTHENTICATED", `Token issuer mismatch: ${v_931bf0.iss}`);
