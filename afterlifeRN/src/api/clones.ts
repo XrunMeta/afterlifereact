@@ -223,6 +223,32 @@ export async function interpretCloneKnowledge(
   return unwrapApiError((await res.json()) as InterpretKnowledgeResult);
 }
 
+export async function followupCloneKnowledge(
+  accessToken: string,
+  cloneId: number,
+  questionLabel: string,
+  answer: string,
+): Promise<{ followup: string }> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/oth-path${cloneId}/knowledge/followup`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ questionLabel, answer }),
+      },
+    );
+    if (!res.ok) return { followup: "" };
+    const body = (await res.json()) as { followup?: string };
+    return { followup: typeof body.followup === "string" ? body.followup : "" };
+  } catch {
+    return { followup: "" };
+  }
+}
+
 export async function personaSuggest(
   accessToken: string,
   profile: Record<string, unknown>,

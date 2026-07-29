@@ -5,10 +5,92 @@ import { parseJson, z } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
 import { requireIdempotencyKey } from "../middleware/idempotency";
 import { grant } from "../lib/credits";
+import { verifyAppleTransaction } from "../lib/appleIap";
+import { verifyGooglePlayTransaction, acknowledgeGooglePlayConsumable } from "../lib/googlePlayIap";
+import { lookupProduct, TOPUP_TTL_MS } from "../lib/iapProducts";
 
 export const credits = new Hono<AppEnv>();
 
 credits.get("/health", (c) => c.json({ ok: true, module: "credits" }));
+
+credits.get("/balance", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const db = c.env.DB;
+
+  const u = await db
+    .prepare(
+      `SELECT credits, credits_free, credits_sub, credits_topup,
+              free_granted_at, free_decayed_months
+         FROM users WHERE id = ? AND deleted_at IS NULL`,
+    )
+    .bind(userId)
+    .first<{
+      credits: number;
+      credits_free: number;
+      credits_sub: number;
+      credits_topup: number;
+      free_granted_at: number | null;
+      free_decayed_months: number;
+    }>();
+  if (!u) throw new APIError("NOT_FOUND", "User not found.");
+
+  const sub = await db
+    .prepare(
+      `SELECT platform, product_id, plan_code, status,
+              current_period_start, current_period_end, auto_renew
+         FROM subscriptions
+        WHERE user_id = ? AND status IN ('active','grace')
+        ORDER BY current_period_end DESC LIMIT 1`,
+    )
+    .bind(userId)
+    .first<{
+      platform: "ios" | "android";
+      product_id: string;
+      plan_code: "light" | "basic" | "standard" | "plus" | "premium";
+      status: "active" | "grace";
+      current_period_start: number;
+      current_period_end: number;
+      auto_renew: number;
+    }>();
+
+  const nextLot = await db
+    .prepare(
+      `SELECT expires_at, remaining
+         FROM credit_lots
+        WHERE user_id = ? AND remaining > 0
+        ORDER BY expires_at ASC LIMIT 1`,
+    )
+    .bind(userId)
+    .first<{ expires_at: number; remaining: number }>();
+
+  return c.json({
+
+    totalSec: u.credits,
+
+    freeSec: u.credits_free,
+    subSec: u.credits_sub,
+    topupSec: u.credits_topup,
+
+    freeGrantedAt: u.free_granted_at,   
+    freeDecayedMonths: u.free_decayed_months,
+
+    subscription: sub
+      ? {
+          platform: sub.platform,
+          productId: sub.product_id,
+          planCode: sub.plan_code,
+          status: sub.status,
+          periodStart: sub.current_period_start,
+          periodEnd: sub.current_period_end,
+          autoRenew: sub.auto_renew === 1,
+        }
+      : null,
+
+    nextExpiry: nextLot
+      ? { expiresAt: nextLot.expires_at, remainingSec: nextLot.remaining }
+      : null,
+  });
+});
 
 credits.get("/me", requireAuth, async (c) => {
   const userId = c.get("userId")!;
@@ -176,3 +258,212 @@ credits.post(
     });
   },
 );
+
+const purchaseSchema = z.object({
+  platform: z.enum(["ios", "android"]),
+
+  transactionId: z.string().min(1).max(2000),
+  productId: z.string().min(1).max(200), 
+});
+
+credits.post("/purchase", requireAuth, async (c) => {
+  const body = await parseJson(c, purchaseSchema);
+  const userId = c.get("userId")!;
+  const db = c.env.DB;
+
+  let verifiedProductId: string;
+  let purchaseDate: number;
+  let expiresAt: number | null = null;
+  let originalTxId: string;
+
+  if (body.platform === "ios") {
+    const info = await verifyAppleTransaction(c.env, body.transactionId);
+    verifiedProductId = info.productId;
+    purchaseDate = info.purchaseDate;
+    expiresAt = info.expiresDate ?? null;
+    originalTxId = info.originalTransactionId;
+  } else {
+
+    const preliminary = lookupProduct(body.productId);
+    if (!preliminary) {
+      throw new APIError("VALIDATION_FAILED", `Unknown productId: ${body.productId}`);
+    }
+    const info = await verifyGooglePlayTransaction(c.env, {
+      productId: body.productId,
+      purchaseToken: body.transactionId,
+      kind: preliminary.kind,
+    });
+    verifiedProductId = info.productId;
+    purchaseDate = info.purchaseTime;
+    expiresAt = info.expiryTime ?? null;
+
+    originalTxId = info.orderId || body.transactionId;
+
+    if (preliminary.kind === "consumable") {
+      void acknowledgeGooglePlayConsumable(c.env, {
+        productId: body.productId,
+        purchaseToken: body.transactionId,
+      });
+    }
+  }
+
+  const product = lookupProduct(verifiedProductId);
+  if (!product) {
+    throw new APIError(
+      "VALIDATION_FAILED",
+      `Unknown productId: ${verifiedProductId}`,
+    );
+  }
+
+  const nowMs = Date.now();
+  try {
+    await db
+      .prepare(
+        `INSERT INTO iap_transactions
+           (platform, transaction_id, user_id, product_id, kind, credits, verified_at, raw_payload)
+         VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`,
+      )
+      .bind(
+        body.platform,
+        body.transactionId,
+        userId,
+        verifiedProductId,
+        product.kind,
+        product.creditsSec,
+        nowMs,
+      )
+      .run();
+  } catch (err) {
+    const msg = (err as Error).message ?? "";
+    if (/UNIQUE constraint failed: iap_transactions/.test(msg)) {
+
+      const balRow = await db
+        .prepare(
+          `SELECT credits, credits_free, credits_sub, credits_topup
+             FROM users WHERE id = ?`,
+        )
+        .bind(userId)
+        .first<{
+          credits: number;
+          credits_free: number;
+          credits_sub: number;
+          credits_topup: number;
+        }>();
+      return c.json({
+        ok: true,
+        replay: true,
+        productId: verifiedProductId,
+        creditsSec: product.creditsSec,
+        balance: balRow ?? null,
+      });
+    }
+    throw err;
+  }
+
+  if (product.kind === "consumable") {
+
+    const ledgerIdemKey = `${body.platform}:consumable:${body.transactionId}`;
+    const results = await db.batch([
+      db
+        .prepare(
+          `INSERT INTO credit_ledgers (user_id, amount, type, ref_id, idempotency_key)
+             VALUES (?, ?, 'charge_inapp', ?, ?)`,
+        )
+        .bind(userId, product.creditsSec, verifiedProductId, ledgerIdemKey),
+      db
+        .prepare(
+          `UPDATE users
+              SET credits       = credits + ?,
+                  credits_topup = credits_topup + ?,
+                  updated_at    = CURRENT_TIMESTAMP
+            WHERE id = ?`,
+        )
+        .bind(product.creditsSec, product.creditsSec, userId),
+    ]);
+    const ledgerId = Number(results[0]?.meta?.last_row_id ?? 0);
+    if (ledgerId > 0) {
+      await db
+        .prepare(
+          `INSERT INTO credit_lots
+             (user_id, amount, remaining, granted_at, expires_at, ledger_id)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(
+          userId,
+          product.creditsSec,
+          product.creditsSec,
+          purchaseDate,
+          purchaseDate + TOPUP_TTL_MS,
+          ledgerId,
+        )
+        .run();
+    }
+  } else {
+
+    if (!product.planCode) {
+      throw new APIError("UPSTREAM_FAILURE", `Subscription product missing planCode: ${verifiedProductId}`);
+    }
+    const ledgerIdemKey = `${body.platform}:sub:${body.transactionId}`;
+    await db.batch([
+      db
+        .prepare(
+          `INSERT INTO credit_ledgers (user_id, amount, type, ref_id, idempotency_key)
+             VALUES (?, ?, 'subscription_grant', ?, ?)`,
+        )
+        .bind(userId, product.creditsSec, verifiedProductId, ledgerIdemKey),
+      db
+        .prepare(
+          `UPDATE users
+              SET credits     = credits + ?,
+                  credits_sub = credits_sub + ?,
+                  updated_at  = CURRENT_TIMESTAMP
+            WHERE id = ?`,
+        )
+        .bind(product.creditsSec, product.creditsSec, userId),
+      db
+        .prepare(
+          `INSERT INTO subscriptions
+             (user_id, platform, product_id, plan_code, status, original_tx_id,
+              current_period_start, current_period_end, auto_renew, updated_at)
+           VALUES (?, ?, ?, ?, 'active', ?, ?, ?, 1, ?)
+           ON CONFLICT(platform, original_tx_id) DO UPDATE SET
+             status = 'active',
+             current_period_start = excluded.current_period_start,
+             current_period_end = excluded.current_period_end,
+             updated_at = excluded.updated_at`,
+        )
+        .bind(
+          userId,
+          body.platform,
+          verifiedProductId,
+          product.planCode,
+          originalTxId,
+          purchaseDate,
+          expiresAt ?? (purchaseDate + 30 * 24 * 60 * 60 * 1000), 
+          nowMs,
+        ),
+    ]);
+  }
+
+  const balRow = await db
+    .prepare(
+      `SELECT credits, credits_free, credits_sub, credits_topup
+         FROM users WHERE id = ?`,
+    )
+    .bind(userId)
+    .first<{
+      credits: number;
+      credits_free: number;
+      credits_sub: number;
+      credits_topup: number;
+    }>();
+
+  return c.json({
+    ok: true,
+    replay: false,
+    productId: verifiedProductId,
+    kind: product.kind,
+    creditsSec: product.creditsSec,
+    balance: balRow ?? null,
+  });
+});

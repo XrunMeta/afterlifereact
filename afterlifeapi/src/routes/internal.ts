@@ -60,11 +60,82 @@ internal.post("/oth-path", async (c) => {
 
   if (!/^[0-9a-f]{12}$/.test(callId)) return c.json({ ok: true });
   const endedAt = Date.now();
+
+  const sess = await c.env.DB
+    .prepare(
+      `SELECT user_id, greeted_at FROM call_sessions WHERE call_id = ? AND ended_at IS NULL`,
+    )
+    .bind(callId)
+    .first<{ user_id: number; greeted_at: number | null }>();
   await c.env.DB.prepare(
     `UPDATE call_sessions SET ended_at = ?, duration_sec = MAX(0, (? - started_at) / 1000)
      WHERE call_id = ? AND ended_at IS NULL`,
   ).bind(endedAt, endedAt, callId).run();
+
+  if (sess?.greeted_at && sess?.user_id) {
+    const billableMs = Math.max(0, endedAt - sess.greeted_at);
+    const rawSec = Math.floor(billableMs / 1000);
+    const billableSec = Math.floor(rawSec / 10) * 10;
+    if (billableSec > 0) {
+      try {
+        const { spendCallTime } = await import("../lib/credits");
+        const r = await spendCallTime(c, {
+          userId: sess.user_id,
+          amountSec: billableSec,
+          callId,
+        });
+        await c.env.DB
+          .prepare(
+            `UPDATE call_sessions SET billed_sec = ?, unbilled_sec = ?, billed_at = ? WHERE call_id = ?`,
+          )
+          .bind(r.billedSec, r.unbilledSec, endedAt, callId)
+          .run();
+      } catch (err) {
+        console.error(`[t167] internal call bill fail callId=${callId} err=${(err as Error).message}`);
+      }
+    }
+  }
   return c.json({ ok: true });
+});
+
+internal.post("/oth-path", async (c) => {
+  const auth = c.req.header("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || !c.env.LEARN_SECRET || !safeEqual(token, c.env.LEARN_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  const callId = c.req.param("callId");
+  if (!/^[0-9a-f]{12}$/.test(callId)) {
+    return c.json({ ok: true, allowedSec: 0, maxEndAt: 0 });
+  }
+  const sess = await c.env.DB
+    .prepare(
+      `SELECT user_id, greeted_at FROM call_sessions
+        WHERE call_id = ? AND ended_at IS NULL`,
+    )
+    .bind(callId)
+    .first<{ user_id: number; greeted_at: number | null }>();
+  if (!sess) {
+
+    return c.json({ ok: true, allowedSec: 0, maxEndAt: 0 });
+  }
+
+  const greetedAt = sess.greeted_at ?? Date.now();
+  if (sess.greeted_at === null) {
+    await c.env.DB
+      .prepare(`UPDATE call_sessions SET greeted_at = ? WHERE call_id = ? AND greeted_at IS NULL`)
+      .bind(greetedAt, callId)
+      .run();
+  }
+
+  const balRow = await c.env.DB
+    .prepare(`SELECT credits FROM users WHERE id = ? AND deleted_at IS NULL`)
+    .bind(sess.user_id)
+    .first<{ credits: number }>();
+  const allowedSec = Math.max(0, balRow?.credits ?? 0);
+  const maxEndAt = greetedAt + allowedSec * 1000;
+
+  return c.json({ ok: true, allowedSec, maxEndAt, greetedAt });
 });
 
 const SIZE_LIMITS: Record<string, number> = {

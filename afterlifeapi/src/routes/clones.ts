@@ -6,7 +6,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireIdempotencyKey } from "../middleware/idempotency";
 import { logActivity } from "../lib/logger";
 import { similarityScore, SEARCH_SIMILARITY_THRESHOLD } from "../lib/similarity";
-import { getPersonaPriceXrun } from "../lib/appConfig";
+import { getPersonaPriceXrun, getKnowledgeInterpretRulesText } from "../lib/appConfig";
 import {
   hasAcceptedShare,
   isFollower,
@@ -939,6 +939,8 @@ clones.post("/:id/knowledge/interpret", requireAuth, async (c) => {
   if (c.env.KNOWLEDGE_INTERPRET_SECRET)
     headers["X-Internal-Secret"] = c.env.KNOWLEDGE_INTERPRET_SECRET;
 
+  const extraRules = await getKnowledgeInterpretRulesText(c.env);
+
   let interpretResp: { slots?: unknown; reply?: unknown } = {};
   try {
     const resp = await fetch(`${base}/prethird/knowledge/interpret`, {
@@ -950,6 +952,7 @@ clones.post("/:id/knowledge/interpret", requireAuth, async (c) => {
         slots: slots.map((s) => ({ key: s.key, label: s.label })),
 
         persona_name: clone.name ?? null,
+        extra_rules: extraRules || null,
       }),
       signal: AbortSignal.timeout(20000),
     });
@@ -967,6 +970,60 @@ clones.post("/:id/knowledge/interpret", requireAuth, async (c) => {
   const slotsOut = Array.isArray(interpretResp.slots) ? interpretResp.slots : [];
   const reply = typeof interpretResp.reply === "string" ? interpretResp.reply : "";
   return c.json({ slots: slotsOut, reply });
+});
+
+clones.post("/:id/knowledge/followup", requireAuth, async (c) => {
+  const userId = c.get("userId") as number;
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0)
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  const db = c.env.DB;
+
+  const clone = await loadCloneById(db, cloneId);
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  const isOwner =
+    clone.owner_id === userId ||
+    (await hasAcceptedShare(db, cloneId, userId)) === "owner";
+  if (!isOwner) throw new APIError("FORBIDDEN", "소유자만 요청할 수 있어요.");
+
+  const body = await c.req
+    .json<{ questionLabel?: unknown; answer?: unknown }>()
+    .catch(() => ({}) as { questionLabel?: unknown; answer?: unknown });
+  const questionLabel = typeof body.questionLabel === "string" ? body.questionLabel.trim() : "";
+  const answer = typeof body.answer === "string" ? body.answer.trim() : "";
+  if (!questionLabel || !answer) {
+    throw new APIError("VALIDATION_FAILED", "questionLabel, answer 가 필요해요.");
+  }
+
+  const base = c.env.PRETHIRD_PUBLIC_BASE;
+  if (!base) throw new APIError("SERVICE_UNAVAILABLE", "follow-up 서비스가 설정되지 않았어요.");
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (c.env.KNOWLEDGE_INTERPRET_SECRET)
+    headers["X-Internal-Secret"] = c.env.KNOWLEDGE_INTERPRET_SECRET;
+
+  let followupResp: { followup?: unknown } = {};
+  try {
+    const resp = await fetch(`${base}/prethird/knowledge/followup`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        question: questionLabel,
+        answer,
+        persona_name: clone.name ?? null,
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!resp.ok) {
+      console.warn("[knowledge-followup] gabia HTTP", resp.status);
+      return c.json({ followup: "" });
+    }
+    followupResp = await resp.json();
+  } catch (e) {
+    console.warn("[knowledge-followup] gabia fetch failed:", e);
+    return c.json({ followup: "" });
+  }
+  const followup = typeof followupResp.followup === "string" ? followupResp.followup : "";
+  return c.json({ followup });
 });
 
 clones.put("/:id/knowledge", requireAuth, async (c) => {

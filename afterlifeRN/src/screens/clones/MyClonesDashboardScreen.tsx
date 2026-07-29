@@ -43,8 +43,7 @@ const GIFT_CATALOG = giftsData as Gift[];
 import { formatRelativeKo } from "../../lib/relativeTime";
 import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
 import { AuthApiError, patchMe } from "../../api/auth";
-import { getXrunBalance, getPaymentPinStatus } from "../../api/payments";
-import PaymentPinPromptModal from "../../components/my/PaymentPinPromptModal";
+
 import { uploadFile } from "../../api/files";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone, Visibility } from "../../types/clone";
@@ -195,33 +194,10 @@ export default function MyClonesDashboardScreen() {
   const [hiddenCloneIds, setHiddenCloneIds] = useState<Set<number>>(new Set());
   const [menuCloneId, setMenuCloneId] = useState<number | null>(null);
 
-  const [xrunBalance, setXrunBalance] = useState<number | null | undefined>(undefined);
-  const [xrunBalanceLoading, setXrunBalanceLoading] = useState(true);
-
-  const [showPinPrompt, setShowPinPrompt] = useState(false);
-  useEffect(() => {
-    if (!accessToken) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const status = await getPaymentPinStatus(accessToken);
-        if (cancelled) return;
-        if (status.linked && !status.hasPin) setShowPinPrompt(true);
-      } catch (err) {
-        console.warn("[Dashboard] PIN status fetch failed:", err);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken]);
-
   const followingCount = (apiUser as { followingCount?: number } | null)?.followingCount ?? 0;
   const followersCount = (apiUser as { followersCount?: number } | null)?.followersCount ?? 0;
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-
-  const [chargeModalVisible, setChargeModalVisible] = useState(false);
 
   const [statsModal, setStatsModal] = useState<{
     type: "likes" | "interactions" | "comments" | "followers";
@@ -397,45 +373,6 @@ export default function MyClonesDashboardScreen() {
     setMenuCloneId(null);
   };
 
-  useEffect(() => {
-    if (!accessToken) {
-      setXrunBalanceLoading(false);
-      setXrunBalance(undefined);
-      return;
-    }
-    let cancelled = false;
-    setXrunBalanceLoading(true);
-    getXrunBalance(accessToken)
-      .then((res) => {
-        if (cancelled) return;
-        console.log(
-          "[Dashboard] xrun balance ←",
-          "linked=", res.linked,
-          "xrun=", res.xrun,
-          "balances.length=", res.balances?.length ?? 0,
-          "balances=", JSON.stringify(res.balances),
-        );
-
-        if (!res.linked) {
-          setXrunBalance(undefined);
-        } else if (typeof res.xrun === "number" && Number.isFinite(res.xrun)) {
-          setXrunBalance(res.xrun);
-        } else {
-          setXrunBalance(undefined);
-        }
-      })
-      .catch((err) => {
-        console.warn("[Dashboard] xrun balance fetch failed:", err);
-        if (!cancelled) setXrunBalance(undefined);
-      })
-      .finally(() => {
-        if (!cancelled) setXrunBalanceLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken]);
-
   const handleEditAvatar = async () => {
     if (!accessToken) {
       showAlert(t("common.notice", { defaultValue: "알림" }), t("my.loginRequired", { defaultValue: "로그인이 필요해요." }));
@@ -473,22 +410,6 @@ export default function MyClonesDashboardScreen() {
       showAlert(t("common.error", { defaultValue: "오류" }), msg);
     } finally {
       setUploadingAvatar(false);
-    }
-  };
-
-  const openXrunStore = async () => {
-    const playStore = "market://details?id=run.xrun.xrunapp";
-    const playStoreWeb = "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
-    const appStore = "https://apps.apple.com/app/id1492389867";
-    try {
-      if (Platform.OS === "android") {
-        const canMarket = await Linking.canOpenURL(playStore);
-        await Linking.openURL(canMarket ? playStore : playStoreWeb);
-      } else {
-        await Linking.openURL(appStore);
-      }
-    } catch (err) {
-      console.warn("[Dashboard] open xrun store failed:", err);
     }
   };
 
@@ -932,36 +853,7 @@ export default function MyClonesDashboardScreen() {
               </View>
             </View>
 
-            {
-}
-            <View style={s.coinRow}>
-              <Image
-                source={require("../../../assets/images/xrun-round-logo.png")}
-                style={s.coinIcon}
-              />
-              <View style={{ flex: 1 }} />
-              <View style={s.coinAmountWrap}>
-                {xrunBalanceLoading ? (
-                  <ActivityIndicator color={COLORS.zinc900} />
-                ) : xrunBalance != null ? (
-                  <Text style={s.coinAmountText}>
-                    {xrunBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })}
-                    <Text style={s.coinUnit}> XRUN</Text>
-                  </Text>
-                ) : (
-                  <Text style={s.coinAmountText}>
-                    —<Text style={s.coinUnit}> XRUN</Text>
-                  </Text>
-                )}
-              </View>
-              <TouchableOpacity
-                style={s.coinChargeBtn}
-                onPress={() => setChargeModalVisible(true)}
-                hitSlop={8}
-              >
-                <Feather name="plus-circle" size={24} color={COLORS.violet600} />
-              </TouchableOpacity>
-            </View>
+            {}
 
             {
 }
@@ -1185,43 +1077,7 @@ export default function MyClonesDashboardScreen() {
 
 }
 
-      {
-}
-      <Modal visible={chargeModalVisible} transparent animationType="fade">
-        <Pressable
-          style={s.chargeOverlay}
-          onPress={() => setChargeModalVisible(false)}
-        >
-          <Pressable style={s.chargeBox} onPress={(e) => e.stopPropagation()}>
-            <View style={s.chargeIconWrap}>
-              <Feather name="zap" size={28} color={COLORS.violet600} />
-            </View>
-            <Text style={s.chargeTitle}>암호화폐 충전 안내</Text>
-            <Text style={s.chargeDesc}>
-              금액을 충전하고 싶다면{"\n"}xrun 앱에서 암호화폐를 얻어보세요
-            </Text>
-            <Text style={s.chargeHint}>※ 같은 아이디로 로그인 하셔야 합니다</Text>
-            <View style={s.chargeBtns}>
-              <TouchableOpacity
-                style={s.chargeCancelBtn}
-                onPress={() => setChargeModalVisible(false)}
-              >
-                <Text style={s.chargeCancelText}>닫기</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={s.chargeGoBtn}
-                onPress={() => {
-                  setChargeModalVisible(false);
-                  openXrunStore();
-                }}
-              >
-                <Feather name="external-link" size={14} color={COLORS.white} />
-                <Text style={s.chargeGoText}>바로가기</Text>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      {}
 
       {}
       <Modal visible={!!statsModal} transparent animationType="slide">
@@ -1454,10 +1310,6 @@ export default function MyClonesDashboardScreen() {
       </Modal>
 
       {}
-      <PaymentPinPromptModal
-        visible={showPinPrompt}
-        onClose={() => setShowPinPrompt(false)}
-      />
     </SafeView>
   );
 }

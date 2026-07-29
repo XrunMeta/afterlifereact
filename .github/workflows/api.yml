@@ -82,16 +82,13 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        # 환경별 D1 데이터베이스 이름:
-        #   preview    → afterlife-db-preview
+        # 환경별 D1 데이터베이스 이름 — wrangler.toml env 블록과 일치해야 함.
+        #   preview    → afterlife-db      (PR #487 chore/preview-use-prod-db 이후 prod DB 공유)
         #   production → afterlife-db
+        # wrangler 3.x 는 db name 을 인자로 요구 (binding 명 'DB' 로는 안됨).
         run: |
-          if [ "${{ steps.env.outputs.env }}" = "production" ]; then
-            DB_NAME="afterlife-db"
-          else
-            DB_NAME="afterlife-db-preview"
-          fi
-          echo "Applying migrations to $DB_NAME..."
+          DB_NAME="afterlife-db"
+          echo "Applying migrations to $DB_NAME (env=${{ steps.env.outputs.env }})..."
           npx wrangler d1 migrations apply "$DB_NAME" --remote --env ${{ steps.env.outputs.env }}
 
       - name: Deploy (wrangler)

@@ -52,8 +52,6 @@ export type AuthStackParamList = {
     platform?: "ios" | "android" | "web";
     deviceId?: string;
   };
-  XrunLogin: undefined;
-  XrunOtp: { email: string; pin: string };
 
   EmailOtpLogin: { email: string; autoLogin: boolean };
   ForgotPassword: undefined;
@@ -63,11 +61,8 @@ export type AuthStackParamList = {
 
     refreshToken?: string;
     persist: boolean; 
-    email?: string;  
+    email?: string;
   };
-  XrunOnboarding:
-    | { email: string; pin: string; verificationCode: string; google?: undefined }
-    | { email: string; pin?: undefined; verificationCode?: undefined; google: { idToken: string } };
 };
 
 export type MainTabParamList = {
@@ -119,5 +114,6 @@ export type MyStackParamList = {
   InviteStatus: undefined;
   BlockedList: undefined;
   Transactions: undefined;
+  Purchase: undefined; 
   Reports: { tab?: "made" | "received" } | undefined;
 };

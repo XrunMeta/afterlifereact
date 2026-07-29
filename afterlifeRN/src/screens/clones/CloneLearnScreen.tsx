@@ -28,6 +28,7 @@ import {
   getCloneKnowledge,
   getKnowledgeQuestions,
   interpretCloneKnowledge,
+  followupCloneKnowledge,
   putCloneKnowledge,
   type KnowledgeItem,
   type KnowledgeQuestion,
@@ -58,6 +59,12 @@ interface PendingConfirm {
   userAnswer: string;     
 }
 
+interface FollowupState {
+  baseKey: string;        
+  question: string;       
+  slotKey: string;        
+}
+
 export default function CloneLearnScreen({ navigation, route }: Props) {
   const { t } = useTranslation();
   const cloneId = route.params.cloneId;
@@ -71,6 +78,7 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
   const [currentKey, setCurrentKey] = useState<string | null>(null);
   const [answer, setAnswer] = useState<string>("");
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
+  const [followup, setFollowup] = useState<FollowupState | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
   const answeredKeys = useMemo(() => new Set(items.map((i) => i.key)), [items]);
@@ -133,7 +141,7 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
     if (!loading && scrollRef.current) {
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
     }
-  }, [chatHistory.length, currentKey, loading, pendingConfirm]);
+  }, [chatHistory.length, currentKey, loading, pendingConfirm, followup]);
 
   const goNext = (fresh: KnowledgeItem[], justAnsweredKey?: string) => {
 
@@ -144,7 +152,52 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
     setAnswer("");
   };
 
+  const handleFollowupSend = async () => {
+    if (!accessToken || !followup) return;
+    const a = answer.trim();
+    if (!a) {
+      handleFollowupSkip();
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload: KnowledgePayload[] = [
+        ...items.map((it) => ({ key: it.key, q: it.q, a: it.a })),
+        { key: followup.slotKey, q: followup.question, a },
+      ];
+      const res = await putCloneKnowledge(accessToken, cloneId, payload);
+      if (res.error) {
+        showAlert(t("common.error"), res.message || res.error);
+        return;
+      }
+      const fresh = res.items ?? [];
+      setItems(fresh);
+      const answered = new Set(fresh.map((i) => i.key));
+      answered.add(followup.baseKey);
+      const pool = questions.filter((q) => !answered.has(q.key));
+      setCurrentKey(pickRandom(pool));
+      setFollowup(null);
+      setAnswer("");
+    } catch (err) {
+      showAlert(t("common.error"), (err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleFollowupSkip = () => {
+
+    const answered = new Set(items.map((i) => i.key));
+    if (followup) answered.add(followup.baseKey);
+    const pool = questions.filter((q) => !answered.has(q.key));
+    setCurrentKey(pickRandom(pool));
+    setFollowup(null);
+    setAnswer("");
+  };
+
   const handleSend = async () => {
+
+    if (followup) return handleFollowupSend();
     if (!accessToken || !currentQuestion) return;
     const a = answer.trim();
     if (!a) return;
@@ -200,35 +253,49 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
   const handleConfirmYes = async () => {
     if (!accessToken || !pendingConfirm) return;
     const validSlots = pendingConfirm.slots.filter((s) => s.a && s.a.trim());
-    if (validSlots.length === 0) {
-
-      const answered = new Set(items.map((i) => i.key));
-      answered.add(pendingConfirm.questionKey);
-      const pool = questions.filter((q) => !answered.has(q.key));
-      setCurrentKey(pickRandom(pool));
-      setPendingConfirm(null);
-      return;
-    }
-    const payload: KnowledgePayload[] = [
-      ...items.map((it) => ({ key: it.key, q: it.q, a: it.a })),
-      ...validSlots.map((s) => ({ key: s.key, q: s.q, a: s.a })),
-    ];
-    setSaving(true);
-    try {
-      const res = await putCloneKnowledge(accessToken, cloneId, payload);
-      if (res.error) {
-        showAlert(t("common.error"), res.message || res.error);
-        return;
-      }
-      const fresh = res.items ?? [];
-      setItems(fresh);
-
+    const baseKey = pendingConfirm.questionKey;
+    const baseQuestion = questions.find((q) => q.key === baseKey);
+    const userAnswerSnapshot = pendingConfirm.userAnswer;
+    const advanceToNext = (fresh: KnowledgeItem[]) => {
       const answered = new Set(fresh.map((i) => i.key));
-      answered.add(pendingConfirm.questionKey);
+      answered.add(baseKey);
       for (const s of validSlots) answered.add(s.key);
       const pool = questions.filter((q) => !answered.has(q.key));
       setCurrentKey(pickRandom(pool));
+    };
+    setSaving(true);
+    try {
+      let fresh = items;
+      if (validSlots.length > 0) {
+        const payload: KnowledgePayload[] = [
+          ...items.map((it) => ({ key: it.key, q: it.q, a: it.a })),
+          ...validSlots.map((s) => ({ key: s.key, q: s.q, a: s.a })),
+        ];
+        const res = await putCloneKnowledge(accessToken, cloneId, payload);
+        if (res.error) {
+          showAlert(t("common.error"), res.message || res.error);
+          return;
+        }
+        fresh = res.items ?? [];
+        setItems(fresh);
+      }
       setPendingConfirm(null);
+
+      const label = baseQuestion?.label ?? "";
+      const fRes = label
+        ? await followupCloneKnowledge(accessToken, cloneId, label, userAnswerSnapshot)
+        : { followup: "" };
+      if (fRes.followup && fRes.followup.trim()) {
+        setFollowup({
+          baseKey,
+          question: fRes.followup.trim(),
+
+          slotKey: `${baseKey}_followup`,
+        });
+        setAnswer("");
+        return;
+      }
+      advanceToNext(fresh);
     } catch (err) {
       showAlert(t("common.error"), (err as Error).message);
     } finally {
@@ -356,6 +423,14 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
                   </>
                 )}
 
+                {followup && (
+                  <View style={[styles.bubbleRow, styles.bubbleRowLeft]}>
+                    <View style={[styles.bubble, styles.bubbleBot]}>
+                      <Text style={styles.bubbleText}>{followup.question}</Text>
+                    </View>
+                  </View>
+                )}
+
                 {!currentQuestion && chatHistory.length > 0 && (
                   <View style={styles.doneCard}>
                     <Text style={styles.doneIcon}>🎉</Text>
@@ -408,15 +483,17 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
               <>
                 <View style={styles.suggestionRow}>
                   <TouchableOpacity
-                    onPress={handleSkip}
-                    disabled={saving || unansweredPool.length <= 1}
+                    onPress={followup ? handleFollowupSkip : handleSkip}
+                    disabled={saving || (!followup && unansweredPool.length <= 1)}
                     style={[
                       styles.suggestionBtn,
-                      (saving || unansweredPool.length <= 1) && styles.btnDisabled,
+                      (saving || (!followup && unansweredPool.length <= 1)) && styles.btnDisabled,
                     ]}
                   >
                     <Text style={styles.suggestionText}>
-                      {t("learn.skip", { defaultValue: "다른 질문" })}
+                      {followup
+                        ? t("learn.followupSkip", { defaultValue: "건너뛰기" })
+                        : t("learn.skip", { defaultValue: "다른 질문" })}
                     </Text>
                   </TouchableOpacity>
                 </View>

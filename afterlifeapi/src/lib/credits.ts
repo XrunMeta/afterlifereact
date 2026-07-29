@@ -11,7 +11,13 @@ export type LedgerType =
   | "clone_create"
   | "message_send"
   | "refund"
-  | "admin_grant";
+  | "admin_grant"
+
+  | "call_usage"
+  | "signup_grant"
+  | "subscription_grant"
+  | "free_decay"
+  | "topup_expire";
 
 export interface SpendArgs {
   userId: number;
@@ -64,6 +70,164 @@ export async function spend(c: Context<AppEnv>, args: SpendArgs): Promise<void> 
     }
     throw err;
   }
+}
+
+export async function grantSignupFreeCredits(
+  c: Context<AppEnv>,
+  userId: number,
+): Promise<{ granted: boolean }> {
+  const db = c.env.DB;
+  const idemKey = `signup:${userId}`;
+  const AMOUNT = 3000; 
+
+  try {
+    const results = await db.batch([
+
+      db
+        .prepare(
+          `INSERT INTO credit_ledgers (user_id, amount, type, ref_id, idempotency_key)
+             VALUES (?, ?, 'signup_grant', 'signup', ?)`,
+        )
+        .bind(userId, AMOUNT, idemKey),
+
+      db
+        .prepare(
+          `UPDATE users
+              SET credits_free    = credits_free + ?,
+                  credits         = credits + ?,
+                  free_granted_at = CAST(strftime('%s','now') AS INTEGER) * 1000,
+                  updated_at      = CURRENT_TIMESTAMP
+            WHERE id = ? AND deleted_at IS NULL
+              AND free_granted_at IS NULL`,
+        )
+        .bind(AMOUNT, AMOUNT, userId),
+    ]);
+    const updateChanges = results[1]?.meta?.changes ?? 0;
+    return { granted: updateChanges > 0 };
+  } catch (err) {
+    const msg = (err as Error).message ?? "";
+    if (/UNIQUE constraint failed: credit_ledgers/.test(msg)) {
+
+      return { granted: false };
+    }
+    throw err;
+  }
+}
+
+export interface SpendCallResult {
+  billedSec: number;
+  unbilledSec: number;
+}
+
+interface BucketRow {
+  credits_free: number;
+  credits_sub: number;
+  credits_topup: number;
+}
+
+export async function spendCallTime(
+  c: Context<AppEnv>,
+  args: { userId: number; amountSec: number; callId: string },
+): Promise<SpendCallResult> {
+  const { userId, amountSec, callId } = args;
+  if (!Number.isInteger(amountSec) || amountSec < 0) {
+    throw new APIError("VALIDATION_FAILED", "amountSec must be a non-negative integer.");
+  }
+  if (amountSec === 0) return { billedSec: 0, unbilledSec: 0 };
+
+  const db = c.env.DB;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const row = await db
+      .prepare(
+        `SELECT credits_free, credits_sub, credits_topup
+           FROM users WHERE id = ? AND deleted_at IS NULL`,
+      )
+      .bind(userId)
+      .first<BucketRow>();
+    if (!row) throw new APIError("NOT_FOUND", "User not found.");
+
+    const useFree = Math.min(amountSec, row.credits_free);
+    const useSub = Math.min(amountSec - useFree, row.credits_sub);
+    const useTopup = Math.min(amountSec - useFree - useSub, row.credits_topup);
+    const billedSec = useFree + useSub + useTopup;
+    const unbilledSec = amountSec - billedSec;
+
+    if (billedSec === 0) return { billedSec: 0, unbilledSec: amountSec };
+
+    const statements = [
+      db
+        .prepare(
+          `INSERT INTO credit_ledgers (user_id, amount, type, ref_id, idempotency_key)
+             VALUES (?, ?, 'call_usage', ?, ?)`,
+        )
+        .bind(userId, -billedSec, callId, callId),
+      db
+        .prepare(
+          `UPDATE users
+              SET credits_free  = credits_free  - ?,
+                  credits_sub   = credits_sub   - ?,
+                  credits_topup = credits_topup - ?,
+                  credits       = credits       - ?,
+                  updated_at    = CURRENT_TIMESTAMP
+            WHERE id = ?
+              AND credits_free  >= ?
+              AND credits_sub   >= ?
+              AND credits_topup >= ?`,
+        )
+        .bind(useFree, useSub, useTopup, billedSec, userId, useFree, useSub, useTopup),
+    ];
+
+    if (useTopup > 0) {
+
+      const lots = await db
+        .prepare(
+          `SELECT id, remaining FROM credit_lots
+            WHERE user_id = ? AND remaining > 0
+            ORDER BY expires_at ASC, id ASC`,
+        )
+        .bind(userId)
+        .all<{ id: number; remaining: number }>();
+
+      let left = useTopup;
+      for (const lot of lots.results ?? []) {
+        if (left <= 0) break;
+        const take = Math.min(left, lot.remaining);
+        statements.push(
+          db
+            .prepare(
+              `UPDATE credit_lots SET remaining = remaining - ? WHERE id = ? AND remaining >= ?`,
+            )
+            .bind(take, lot.id, take),
+        );
+        left -= take;
+      }
+    }
+
+    try {
+      const results = await db.batch(statements);
+      const updateChanges = results[1]?.meta?.changes ?? 0;
+      if (updateChanges === 0) continue; 
+      return { billedSec, unbilledSec };
+    } catch (err) {
+      const msg = (err as Error).message ?? "";
+      if (/UNIQUE constraint failed: credit_ledgers/.test(msg)) {
+
+        const prior = await db
+          .prepare(
+            `SELECT amount FROM credit_ledgers
+              WHERE type = 'call_usage' AND idempotency_key = ? LIMIT 1`,
+          )
+          .bind(callId)
+          .first<{ amount: number }>();
+        const prev = prior ? -prior.amount : 0;
+        return { billedSec: prev, unbilledSec: Math.max(0, amountSec - prev) };
+      }
+      throw err;
+    }
+  }
+
+  throw new APIError("CONFLICT", "Credit balance changed concurrently; retry failed.");
 }
 
 export async function grant(

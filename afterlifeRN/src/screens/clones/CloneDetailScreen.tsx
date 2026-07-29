@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -20,14 +20,12 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { seedSource } from "../../api/source";
 import { COLORS, RADIUS } from "../../components/constants";
-import type { Gift } from "../../types/gift";
-import giftsData from "../../mocks/gifts.json";
+
+import { fetchGiftCatalog, type GiftCatalogItem } from "../../api/gifts";
 
 type Props = NativeStackScreenProps<ClonesStackParamList, "CloneDetail">;
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-
-const gifts = giftsData as Gift[];
 
 export default function CloneDetailScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
@@ -36,6 +34,27 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
   const user = useAuthStore((s) => s.user);
   const insets = useSafeAreaInsets();
   const [showGiftModal, setShowGiftModal] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [gifts, setGifts] = useState<GiftCatalogItem[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    void fetchGiftCatalog().then((items) => {
+      if (!cancelled) setGifts(items);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = setTimeout(() => setToastMessage(null), 2000);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
+  const notifyPaymentPending = () => {
+    setShowGiftModal(false);
+    setToastMessage("결제 준비 중이에요");
+  };
 
   const approvedCoowners =
     clone && clone.cloneType === "memlow"
@@ -59,13 +78,16 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
     user?.id != null &&
     (user.id === clone.ownerId || user.id === clone.primaryEditorUserId);
 
-  const renderGift = ({ item }: { item: Gift }) => (
-    <TouchableOpacity style={s.giftItem}>
+  const renderGift = ({ item }: { item: GiftCatalogItem }) => (
+    <TouchableOpacity style={s.giftItem} activeOpacity={0.7} onPress={notifyPaymentPending}>
       <View style={s.giftEmojiWrap}>
-        <Text style={s.giftEmoji}>{item.emoji}</Text>
+        {item.imageUrl ? (
+          <Image source={{ uri: item.imageUrl }} style={s.giftImage} />
+        ) : (
+          <Text style={s.giftEmoji}>{item.emoji}</Text>
+        )}
       </View>
       <Text style={s.giftName}>{item.name}</Text>
-      <Text style={s.giftPrice}>{item.price} XRUN</Text>
     </TouchableOpacity>
   );
 
@@ -174,10 +196,6 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
             </Text>
 
             {}
-            <View style={s.balanceRow}>
-              <Text style={s.balanceLabel}>{t("detail.balance")}</Text>
-              <Text style={s.balanceValue}>1,250</Text>
-            </View>
 
             {}
             <FlatList
@@ -191,12 +209,19 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
             />
 
             {}
-            <TouchableOpacity style={s.sendGiftBtn} activeOpacity={0.8}>
+            <TouchableOpacity style={s.sendGiftBtn} activeOpacity={0.8} onPress={notifyPaymentPending}>
               <Text style={s.sendGiftText}>{t("detail.send")}</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>
+
+      {}
+      {toastMessage && (
+        <View style={s.toast}>
+          <Text style={s.toastText}>{toastMessage}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -338,17 +363,6 @@ const s = StyleSheet.create({
     color: COLORS.zinc400,
     marginBottom: 20,
   },
-  balanceRow: {
-    backgroundColor: COLORS.zinc800,
-    borderRadius: RADIUS.lg,
-    padding: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  balanceLabel: { fontSize: 14, color: COLORS.zinc400 },
-  balanceValue: { fontSize: 20, fontWeight: "700", color: COLORS.white },
   giftGrid: { gap: 12 },
   giftRow: { gap: 12 },
   giftItem: {
@@ -368,8 +382,8 @@ const s = StyleSheet.create({
     marginBottom: 10,
   },
   giftEmoji: { fontSize: 28 },
+  giftImage: { width: 44, height: 44, borderRadius: 8 },
   giftName: { fontSize: 14, fontWeight: "600", color: COLORS.white, marginBottom: 4 },
-  giftPrice: { fontSize: 12, fontWeight: "700", color: COLORS.violet500 },
   sendGiftBtn: {
     height: 48,
     borderRadius: RADIUS.lg,
@@ -379,6 +393,18 @@ const s = StyleSheet.create({
     marginTop: 20,
   },
   sendGiftText: { fontSize: 16, fontWeight: "700", color: COLORS.white },
+
+  toast: {
+    position: "absolute",
+    bottom: 140,
+    alignSelf: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: "rgba(0,0,0,0.8)",
+    borderRadius: RADIUS.full,
+    zIndex: 50,
+  },
+  toastText: { fontSize: 14, color: COLORS.white },
 
   notFound: {
     flex: 1,

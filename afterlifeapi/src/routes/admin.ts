@@ -13,7 +13,15 @@ import { loadKnowledgeQuestions, validateKnowledgeQuestions } from "../lib/knowl
 import { loadBlacklist, validateBlacklist } from "../lib/knowledgeBlacklist";
 import { normalizeKnowledge } from "../lib/knowledgeStore";
 import { notify } from "../lib/notify";
-import { getPersonaPriceXrun, setPersonaPriceXrun } from "../lib/appConfig";
+import {
+  getPersonaPriceXrun,
+  setPersonaPriceXrun,
+  getKnowledgeInterpretRules,
+  setKnowledgeInterpretRules,
+  getGiftCatalog,
+  setGiftCatalog,
+  type GiftCatalogItem,
+} from "../lib/appConfig";
 
 export const admin = new Hono<AppEnv>();
 
@@ -31,6 +39,135 @@ admin.patch("/config/persona-price", requireAdmin, async (c) => {
   }
   await setPersonaPriceXrun(c.env, price);
   return c.json({ ok: true, priceXrun: price });
+});
+
+const KNOWLEDGE_RULES_MAX = 16000;
+admin.get("/config/knowledge-rules", requireAdmin, async (c) => {
+  const rules = await getKnowledgeInterpretRules(c.env);
+  return c.json({ rules });
+});
+admin.patch("/config/knowledge-rules", requireAdmin, async (c) => {
+  const body = await c.req.json<{ rules?: unknown }>().catch(() => ({} as { rules?: unknown }));
+  const rules = typeof body.rules === "string" ? body.rules : "";
+  if (rules.length > KNOWLEDGE_RULES_MAX) {
+    throw new APIError("VALIDATION_FAILED", `rules must be ≤ ${KNOWLEDGE_RULES_MAX} chars.`);
+  }
+  await setKnowledgeInterpretRules(c.env, rules);
+  return c.json({ ok: true, rules });
+});
+
+const GIFT_CATALOG_MAX_ITEMS = 200;
+admin.get("/config/gift-catalog", requireAdmin, async (c) => {
+  const items = await getGiftCatalog(c.env);
+  return c.json({ items });
+});
+admin.patch("/config/gift-catalog", requireAdmin, async (c) => {
+  const body = await c.req.json<{ items?: unknown }>().catch(() => ({} as { items?: unknown }));
+  if (!Array.isArray(body.items)) {
+    throw new APIError("VALIDATION_FAILED", "items must be an array.");
+  }
+  if (body.items.length > GIFT_CATALOG_MAX_ITEMS) {
+    throw new APIError("VALIDATION_FAILED", `too many items (max ${GIFT_CATALOG_MAX_ITEMS}).`);
+  }
+  const clean: GiftCatalogItem[] = [];
+  for (const raw of body.items) {
+    if (!raw || typeof raw !== "object") {
+      throw new APIError("VALIDATION_FAILED", "each item must be an object.");
+    }
+    const it = raw as Partial<GiftCatalogItem>;
+    if (typeof it.id !== "string" || !it.id.trim()) throw new APIError("VALIDATION_FAILED", "id required.");
+    if (typeof it.name !== "string" || !it.name.trim()) throw new APIError("VALIDATION_FAILED", "name required.");
+    if (typeof it.emoji !== "string" || !it.emoji.trim()) throw new APIError("VALIDATION_FAILED", "emoji required.");
+    if (typeof it.price !== "number" || !Number.isFinite(it.price) || it.price < 0) {
+      throw new APIError("VALIDATION_FAILED", "price must be non-negative number.");
+    }
+    const clean1: GiftCatalogItem = {
+      id: it.id.trim(),
+      name: it.name.trim(),
+      emoji: it.emoji.trim(),
+      price: it.price,
+    };
+    if (it.imageUrl !== undefined && it.imageUrl !== null) {
+      if (typeof it.imageUrl !== "string") {
+        throw new APIError("VALIDATION_FAILED", "imageUrl must be string.");
+      }
+      const trimmed = it.imageUrl.trim();
+      if (trimmed.length > 0) {
+        if (trimmed.length > 500) {
+          throw new APIError("VALIDATION_FAILED", "imageUrl too long.");
+        }
+        clean1.imageUrl = trimmed;
+      }
+    }
+    clean.push(clean1);
+  }
+  await setGiftCatalog(c.env, clean);
+  return c.json({ ok: true, items: clean });
+});
+
+admin.post("/files/gift-image", requireAdmin, async (c) => {
+  let form: FormData;
+  try {
+    form = await c.req.formData();
+  } catch {
+    throw new APIError("VALIDATION_FAILED", "multipart/form-data required.");
+  }
+  const raw = form.get("file");
+  if (
+    !raw ||
+    typeof raw !== "object" ||
+    typeof (raw as { arrayBuffer?: unknown }).arrayBuffer !== "function"
+  ) {
+    throw new APIError("VALIDATION_FAILED", "Missing 'file' field.");
+  }
+  const file = raw as {
+    type: string;
+    size: number;
+    arrayBuffer: () => Promise<ArrayBuffer>;
+  };
+  const GIFT_IMG_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+  const GIFT_IMG_MAX = 2 * 1024 * 1024; 
+  if (!GIFT_IMG_TYPES.has(file.type)) {
+    throw new APIError(
+      "VALIDATION_FAILED",
+      `Unsupported type: ${file.type}. jpeg/png/webp only.`,
+    );
+  }
+  if (file.size > GIFT_IMG_MAX) {
+    throw new APIError(
+      "VALIDATION_FAILED",
+      `File too large (${file.size} bytes). Max ${GIFT_IMG_MAX} bytes.`,
+    );
+  }
+  const ext =
+    file.type === "image/jpeg" ? ".jpg" : file.type === "image/png" ? ".png" : ".webp";
+  const rand = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+  const t = Date.now().toString(36);
+  const r2Key = `uploadedfiles/admin/gift/${t}${rand}${ext}`;
+  const buf = await file.arrayBuffer();
+  await c.env.R2_ARCHIVE.put(r2Key, buf, {
+    httpMetadata: { contentType: file.type },
+    customMetadata: { purpose: "gift.catalog", uploader: "admin" },
+  });
+  const inserted = await c.env.DB
+    .prepare(
+      `INSERT INTO files (r2_key, content_type, size_bytes, owner_user_id, purpose)
+       VALUES (?, ?, ?, NULL, ?)
+       RETURNING id`,
+    )
+    .bind(r2Key, file.type, file.size, "gift.catalog")
+    .first<{ id: number }>();
+  if (!inserted) {
+    await c.env.R2_ARCHIVE.delete(r2Key);
+    throw new APIError("INTERNAL_ERROR", "Failed to register file.");
+  }
+  const origin = new URL(c.req.url).origin;
+  return c.json({
+    id: inserted.id,
+    url: `${origin}/oth-path${inserted.id}`,
+    contentType: file.type,
+    sizeBytes: file.size,
+  }, 201);
 });
 
 const openSchema = z.object({
