@@ -34,7 +34,8 @@
       },
       "appleTeamId": "677WG96CUJ",
       "buildNumber": "11",
-      "googleServicesFile": "./GoogleService-Info.plist"
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "run.xrun.afterlifeRN",
@@ -83,6 +84,7 @@
         }
       ],
       "expo-localization",
+      "expo-apple-authentication",
       "expo-audio",
       "expo-video",
       [
