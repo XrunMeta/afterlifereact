@@ -282,6 +282,16 @@ export default function LoginScreen({ navigation }: Props) {
           showAlert(t("auth.login.accountDeletedTitle"), t("auth.login.accountDeletedMessage"));
           return;
         }
+
+        const rawMsg = typeof err?.message === "string" ? err.message : "";
+        if (
+          rawMsg.includes("authorization attempt failed for an unknown reason") ||
+          err?.code === "ERR_REQUEST_UNKNOWN" ||
+          err?.code === "ERR_REQUEST_NOT_HANDLED"
+        ) {
+          console.warn("[AppleAuth] system noise (silent):", rawMsg || err?.code);
+          return;
+        }
         const msg = (err instanceof AuthApiError ? err.message : err?.message) || "Apple 로그인 실패";
         showAlert("Apple 로그인 실패", msg);
       }
