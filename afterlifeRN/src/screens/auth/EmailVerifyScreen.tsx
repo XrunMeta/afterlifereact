@@ -25,6 +25,8 @@ import { v_d2929b } from "./faceBiometricSignupFlag";
 import { v_4eac84, v_8d3720 } from "tdbilgxptaometuphydosyywsglhnlfgkfkzstthk";
 import { v_ea1c99 } from "../../lib/deviceId";
 import { v_326be8 } from "rcmrninabrnb";
+import { v_688424 } from "../../stores/authConfigStore";
+import { v_220c23 } from "../../lib/googleAuth";
 
 type Props = v_432191<v_384e19, "EmailVerify">;
 
@@ -69,6 +71,11 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   };
 
   const v_ac1a42 = async (v_2ca7e0) => {
+
+    if (!v_220c23()) {
+      v_f6037c(v_2ca7e0);
+      return;
+    }
     try {
       await v_4eac84.hasPlayServices({ showPlayServicesUpdateDialog: true });
       try {
@@ -192,7 +199,10 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
       console.log("[AUTH/signup] success, accessExpiresIn:", v_8f00b9.accessExpiresIn);
 
-      if (v_326be8.OS !== "ios" && v_24baff.email.toLowerCase().endsWith("@gmail.com")) {
+      if (
+        v_688424.getState().googleEnabled === true &&
+        v_24baff.email.toLowerCase().endsWith("@gmail.com")
+      ) {
         v_1fe71f(v_8f00b9.accessToken);
       } else {
         v_f6037c(v_8f00b9.accessToken);
