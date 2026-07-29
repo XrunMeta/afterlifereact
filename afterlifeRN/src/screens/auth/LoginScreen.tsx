@@ -282,6 +282,16 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           v_889fad(v_8d41d7("auth.login.accountDeletedTitle"), v_8d41d7("auth.login.accountDeletedMessage"));
           return;
         }
+
+        const v_44854f = typeof v_49263d?.message === "string" ? v_49263d.message : "";
+        if (
+          v_44854f.includes("authorization attempt failed for an unknown reason") ||
+          v_49263d?.code === "ERR_REQUEST_UNKNOWN" ||
+          v_49263d?.code === "ERR_REQUEST_NOT_HANDLED"
+        ) {
+          console.warn("[AppleAuth] system noise (silent):", v_44854f || v_49263d?.code);
+          return;
+        }
         const v_badeaf = (v_49263d instanceof v_84a859 ? v_49263d.message : v_49263d?.message) || "Apple 로그인 실패";
         v_889fad("Apple 로그인 실패", v_badeaf);
       }
