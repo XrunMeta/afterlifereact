@@ -25,6 +25,7 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_694b7f } from "../../api/source";
 import { v_55fc7c, v_84a859 } from "../../api/auth";
 import { v_d60cdf, v_7281a5, type v_c33ae3, type v_fa0201 } from "../../api/clones";
+import { v_48981e, type v_2b70d7 } from "../../api/credits";
 import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 
 import v_0e3f52 from "../../components/my/AppVersionFooter";
@@ -32,6 +33,14 @@ import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_e57140 } from "../../navigation/types";
 
 const v_b9d568 = 1;
+
+function v_a31ca1(v_b6a7e0): string {
+  const v_fd5f43 = Math.max(0, Math.floor(v_b6a7e0));
+  const v_35f85c = Math.floor(v_fd5f43 / 60);
+  const v_3300b9 = v_fd5f43 % 60;
+  if (v_35f85c === 0) return `${v_3300b9}초`;
+  return v_3300b9 > 0 ? `${v_35f85c}분 ${v_3300b9}초` : `${v_35f85c}분`;
+}
 
 type MyNav = v_390fcc<v_e57140>;
 
@@ -63,6 +72,9 @@ export default function v_ed02a5() {
   const [v_1f6f04, v_9127a1] = v_5ab095<v_c33ae3[] | null>(null);
   const [v_58e68f, v_6df89a] = v_5ab095<v_fa0201[] | null>(null);
   const [v_8bb912, v_d5cd7b] = v_5ab095<"following" | "myClones" | null>(null);
+
+  const [v_c88e9b, v_de20d8] = v_5ab095<v_2b70d7 | null>(null);
+  const [v_747a87, v_3e37d1] = v_5ab095(false);
 
   v_cf763b(
     v_a3453e.useCallback(() => {
@@ -98,6 +110,12 @@ export default function v_ed02a5() {
           }
         })
         .catch((v_49263d) => console.warn("[MyScreen] myClones fail:", v_49263d));
+
+      v_3e37d1(true);
+      v_48981e(v_2ca7e0)
+        .then((v_148ff6) => { if (!v_2008a4) v_de20d8(v_148ff6); })
+        .catch((v_49263d) => console.warn("[MyScreen] balance fail:", v_49263d))
+        .finally(() => { if (!v_2008a4) v_3e37d1(false); });
 
       return () => {
         v_2008a4 = true;
@@ -238,6 +256,37 @@ export default function v_ed02a5() {
       <View style={v_fd5f43.content}>
         {
 }
+
+        {}
+        <TouchableOpacity
+          style={v_fd5f43.balanceCard}
+          activeOpacity={0.85}
+          onPress={() => v_c65f5d.navigate("Purchase")}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={v_fd5f43.balanceLabel}>남은 통화 시간</Text>
+            {v_747a87 && !v_c88e9b ? (
+              <ActivityIndicator color={v_1bfbd0.violet600} style={{ marginTop: 6 }} />
+            ) : v_c88e9b ? (
+              <>
+                <Text style={v_fd5f43.balanceTotal}>
+                  {v_a31ca1(v_c88e9b.totalSec)}
+                </Text>
+                <Text style={v_fd5f43.balanceBreakdown}>
+                  무료 {v_a31ca1(v_c88e9b.freeSec)}
+                  {v_c88e9b.subSec > 0 ? ` · 구독 ${v_a31ca1(v_c88e9b.subSec)}` : ""}
+                  {v_c88e9b.topupSec > 0 ? ` · 충전 ${v_a31ca1(v_c88e9b.topupSec)}` : ""}
+                </Text>
+              </>
+            ) : (
+              <Text style={v_fd5f43.balanceEmpty}>잔액 조회 실패</Text>
+            )}
+          </View>
+          <View style={v_fd5f43.balanceCta}>
+            <Text style={v_fd5f43.balanceCtaText}>충전</Text>
+            <Feather name="chevron-right" size={16} color="#fff" />
+          </View>
+        </TouchableOpacity>
 
         {}
 
@@ -665,6 +714,29 @@ const v_fd5f43 = v_472849.create({
     borderTopColor: v_1bfbd0.zinc100,
   },
   viewAllText: { fontSize: 14, fontWeight: "500", color: v_1bfbd0.violet500 },
+
+  balanceCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: v_1bfbd0.violet100,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+  },
+  balanceLabel: { fontSize: 12, color: v_1bfbd0.zinc600, marginBottom: 4 },
+  balanceTotal: { fontSize: 24, fontWeight: "700", color: v_1bfbd0.violet700 },
+  balanceBreakdown: { fontSize: 12, color: v_1bfbd0.zinc600, marginTop: 4 },
+  balanceEmpty: { fontSize: 13, color: v_1bfbd0.zinc500, marginTop: 6 },
+  balanceCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: v_1bfbd0.violet600,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    gap: 2,
+  },
+  balanceCtaText: { fontSize: 13, fontWeight: "700", color: "#fff" },
 
   settingsCard: {
     backgroundColor: v_1bfbd0.white,

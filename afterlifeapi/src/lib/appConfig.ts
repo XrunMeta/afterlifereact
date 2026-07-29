@@ -148,3 +148,55 @@ export async function v_e35611(env: v_273a0c): Promise<string> {
     return v_479f05;
   }
 }
+
+const v_72d058 = "auth.google_enabled_ios";
+const v_250179 = "auth.google_enabled_android";
+const v_4517ff = true;
+const v_c438fb = true;
+
+export interface GoogleEnabled {
+  ios: boolean;
+  android: boolean;
+  updatedAt: number;
+}
+
+export function v_1ded13(
+  v_81e2ef,
+  v_0debf4,
+): boolean {
+  if (v_81e2ef === null || v_81e2ef === undefined) return v_0debf4;
+  return v_81e2ef === "1";
+}
+
+export async function v_508dab(env: v_273a0c): Promise<GoogleEnabled> {
+  try {
+    const v_8f00b9 = await v_c9c489.DB.prepare(
+      `SELECT key, value, updated_at FROM app_config WHERE key IN (?, ?)`,
+    )
+      .bind(v_72d058, v_250179)
+      .all<{ key: string; value: string; updated_at: number }>();
+
+    const v_18b8bf = v_8f00b9.results ?? [];
+    const v_8dcb51 = new Map(v_18b8bf.map((v_cb35cb) => [v_cb35cb.key, v_cb35cb.value]));
+    const v_3eee66 = v_18b8bf.reduce((v_35f85c, v_cb35cb) => Math.max(v_35f85c, v_cb35cb.updated_at ?? 0), 0);
+
+    return {
+      ios: v_1ded13(
+        v_8dcb51.get(v_72d058) ?? v_c9c489.AUTH_GOOGLE_ENABLED_IOS,
+        v_4517ff,
+      ),
+      android: v_1ded13(
+        v_8dcb51.get(v_250179) ?? v_c9c489.AUTH_GOOGLE_ENABLED_ANDROID,
+        v_c438fb,
+      ),
+      updatedAt: v_3eee66,
+    };
+  } catch {
+
+    return {
+      ios: v_1ded13(v_c9c489.AUTH_GOOGLE_ENABLED_IOS, v_4517ff),
+      android: v_1ded13(v_c9c489.AUTH_GOOGLE_ENABLED_ANDROID, v_c438fb),
+      updatedAt: 0,
+    };
+  }
+}

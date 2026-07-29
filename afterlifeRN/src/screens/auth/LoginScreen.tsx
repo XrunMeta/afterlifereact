@@ -23,6 +23,7 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import {
   v_84a859,
   v_dd2158,
+  v_c93bd8,
   v_5c746e,
   v_7ef860,
   v_1d5b64,
@@ -30,20 +31,8 @@ import {
 import { v_ea1c99 } from "../../lib/deviceId";
 import { v_4eac84, v_8d3720 } from "tdbilgxptaometuphydosyywsglhnlfgkfkzstthk";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
-
-const v_93942f =
-  "oth-client.googleusercontent.invalid";
-
-if (v_326be8.OS === "android") {
-  try {
-    v_4eac84.configure({
-      webClientId: v_93942f,
-      offlineAccess: false,
-    });
-  } catch (v_49263d) {
-    console.warn("[GoogleSignin] configure failed:", v_49263d);
-  }
-}
+import { v_688424 } from "../../stores/authConfigStore";
+import { v_220c23 } from "../../lib/googleAuth";
 
 type Props = {
   navigation: v_390fcc<v_384e19, "Login">;
@@ -62,6 +51,14 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
   const v_232d52 = v_1ed7d9((v_fd5f43) => v_fd5f43.hydrate);
   const v_957ace = v_1ed7d9((v_fd5f43) => v_fd5f43.loginWithApi);
   const [v_a5d73f, v_7ba4a6] = v_5ab095(false);
+
+  const v_c39df9 = v_688424((v_fd5f43) => v_fd5f43.googleEnabled);
+
+  v_c4deb2(() => {
+    if (v_688424.getState().loadedFrom === 'default') {
+      void v_688424.getState().refresh();
+    }
+  }, []);
 
   const [v_34e5bb, v_038d7f] = v_5ab095<"account" | "otp">("account");
   const [v_5a69f1, v_9d5a9f] = v_5ab095(false);
@@ -172,6 +169,10 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
   const v_78c15c = async (v_e38ca2) => {
     if (v_e38ca2 === "google") {
       try {
+        if (!v_220c23()) {
+          v_889fad("구글 로그인을 사용할 수 없어요", "잠시 후 다시 시도해 주세요.");
+          return;
+        }
         await v_4eac84.hasPlayServices({ showPlayServicesUpdateDialog: true });
         try {
           await v_4eac84.signOut();
@@ -193,7 +194,11 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
         if (v_de130a.afterlifeExists) {
 
           const v_929b58 = await v_ea1c99();
-          const v_8f00b9 = await v_dd2158({ idToken: v_b50834, deviceId: v_929b58, platform: "android" });
+          const v_8f00b9 = await v_dd2158({
+            idToken: v_b50834,
+            deviceId: v_929b58,
+            platform: v_326be8.OS === "ios" ? "ios" : "android",
+          });
           const v_9ec4c0 = await v_7ef860(v_8f00b9.accessToken);
           await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user, { persist: v_f53eaa });
 
@@ -227,6 +232,58 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
         if (v_49263d instanceof v_84a859) v_badeaf = v_49263d.message;
         else if (v_49263d?.message) v_badeaf = v_49263d.message;
         v_889fad(v_8d41d7("auth.login.googleFailed"), v_badeaf);
+      }
+      return;
+    }
+    if (v_e38ca2 === "apple") {
+      if (v_326be8.OS !== "ios") {
+        v_889fad("안내", "Apple 로그인은 iOS 에서만 지원돼요.");
+        return;
+      }
+      try {
+        const v_c8d70e = await import("rpswwnotkqebxswfnogjwnyum");
+        const v_68e4c4 = await v_c8d70e.signInAsync({
+          requestedScopes: [
+            v_c8d70e.AppleAuthenticationScope.FULL_NAME,
+            v_c8d70e.AppleAuthenticationScope.EMAIL,
+          ],
+        });
+        if (!v_68e4c4.identityToken) {
+          v_889fad("오류", "Apple identityToken 을 받지 못했어요.");
+          return;
+        }
+        const v_929b58 = await v_ea1c99();
+        const v_8f00b9 = await v_c93bd8({
+          identityToken: v_68e4c4.identityToken,
+          fullName: v_68e4c4.fullName
+            ? { givenName: v_68e4c4.fullName.givenName, familyName: v_68e4c4.fullName.familyName }
+            : null,
+          deviceId: v_929b58,
+          platform: "ios",
+        });
+        const v_9ec4c0 = await v_7ef860(v_8f00b9.accessToken);
+        await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user, { persist: v_f53eaa });
+        const v_5d337e = (v_8f00b9 as { refreshToken?: string }).refreshToken;
+        if (v_5d337e) {
+          await v_3345cb(v_8f00b9.accessToken, v_5d337e, { persist: v_f53eaa });
+        }
+        if (v_f53eaa) {
+          await v_e84827.setItem(v_101856, "1");
+          await v_e84827.setItem(v_6a7868, v_9ec4c0.user.email);
+        } else {
+          await v_e84827.removeItem(v_101856);
+          await v_e84827.removeItem(v_6a7868);
+        }
+        console.log("[AUTH/apple] user:", v_9ec4c0.user);
+        await v_232d52();
+      } catch (v_49263d) {
+        if (v_49263d?.code === "ERR_REQUEST_CANCELED") return;
+        if (v_49263d instanceof v_84a859 && v_49263d.code === "ACCOUNT_DELETED") {
+          v_889fad(v_8d41d7("auth.login.accountDeletedTitle"), v_8d41d7("auth.login.accountDeletedMessage"));
+          return;
+        }
+        const v_badeaf = (v_49263d instanceof v_84a859 ? v_49263d.message : v_49263d?.message) || "Apple 로그인 실패";
+        v_889fad("Apple 로그인 실패", v_badeaf);
       }
       return;
     }
@@ -347,23 +404,37 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           {
 
 }
-          {v_326be8.OS !== "ios" && (
-            <>
-              {}
-              <View style={v_d81136.divider}>
-                <View style={v_d81136.dividerLine} />
-                <Text style={v_d81136.dividerText}>—</Text>
-                <View style={v_d81136.dividerLine} />
-              </View>
+          {(v_326be8.OS === "ios" || v_c39df9 !== false) && (
+            <View style={v_d81136.divider}>
+              <View style={v_d81136.dividerLine} />
+              <Text style={v_d81136.dividerText}>—</Text>
+              <View style={v_d81136.dividerLine} />
+            </View>
+          )}
 
+          {v_c39df9 === null ? (
+
+            <View style={v_d81136.googleButtonPlaceholder} />
+          ) : v_c39df9 ? (
+            <Button
+              title={v_8d41d7("auth.login.googleBtn")}
+              onPress={() => v_78c15c("google")}
+              variant="secondary"
+              size="md"
+              leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}>G</Text>}
+            />
+          ) : null}
+
+          {v_326be8.OS === "ios" && (
+            <View style={{ marginTop: 10 }}>
               <Button
-                title={v_8d41d7("auth.login.googleBtn")}
-                onPress={() => v_78c15c("google")}
+                title="Apple 로 로그인"
+                onPress={() => v_78c15c("apple")}
                 variant="secondary"
                 size="md"
-                leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}>G</Text>}
+                leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}></Text>}
               />
-            </>
+            </View>
           )}
 
           {}
@@ -482,6 +553,10 @@ const v_d81136 = v_472849.create({
     marginHorizontal: v_9b1a04.medium,
     color: v_1bfbd0.zinc400,
     fontSize: 14,
+  },
+
+  googleButtonPlaceholder: {
+    height: 116,
   },
   signupRow: {
     flexDirection: "row",

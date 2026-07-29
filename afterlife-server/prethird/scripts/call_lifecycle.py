@@ -65,6 +65,7 @@ async def call_greeted(api_base: str | None, session_id: str | None) -> dict | N
 
 async def call_start(
     api_base: str | None, clone_id: int | None, session_id: str | None, access_token: str | None,
+    session_kind: str | None = None,
 ) -> None:
     """통화 시작 시 call_sessions 기록 생성. JWT(access_token)로 api가 userId 확정.
     실패는 흡수(통화 무영향). access_token은 로그에 절대 출력하지 않는다(mizu H-2).
@@ -78,7 +79,13 @@ async def call_start(
         if not api_base or not clone_id or not session_id or not access_token:
             return
         url = f"{api_base}/oth-path"
-        body = json.dumps({"sessionId": session_id}).encode("utf-8")
+        payload = {"sessionId": session_id}
+        # [T-167 §4.5.1] 세션 종류는 *요청*일 뿐이다 — prethird 는 검증하지 않는다.
+        # 자격 확인(내부 계정 여부·트레이닝 쿼터 잔여)과 강등은 전적으로 서버의 몫이다.
+        # prethird 가 판정하면 클라이언트 자칭이 그대로 통과해 무료 통화 구멍이 된다.
+        if session_kind:
+            payload["sessionKind"] = session_kind
+        body = json.dumps(payload).encode("utf-8")
         await _post(url, {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {access_token}",
