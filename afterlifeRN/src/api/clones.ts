@@ -223,6 +223,32 @@ export async function v_c2fd24(
   return v_c4728e((await v_8f00b9.json()) as InterpretKnowledgeResult);
 }
 
+export async function v_5344d9(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_4f2598,
+  v_343c90,
+): Promise<{ followup: string }> {
+  try {
+    const v_8f00b9 = await fetch(
+      `${v_cc9198}/oth-path${v_6e0fd3}/knowledge/followup`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${v_2ca7e0}`,
+        },
+        body: JSON.stringify({ questionLabel: v_4f2598, answer: v_343c90 }),
+      },
+    );
+    if (!v_8f00b9.ok) return { followup: "" };
+    const v_4d33b2 = (await v_8f00b9.json()) as { followup?: string };
+    return { followup: typeof v_4d33b2.followup === "string" ? v_4d33b2.followup : "" };
+  } catch {
+    return { followup: "" };
+  }
+}
+
 export async function v_4bf019(
   v_2ca7e0,
   v_727031,

@@ -10,7 +10,7 @@ type Payload = Record<string, unknown> & {
 };
 
 const v_870d56 = 15 * 60;
-const v_a94128 = 7 * 24 * 60 * 60;
+const v_a94128 = 365 * 24 * 60 * 60;
 
 export const v_25f673 = "afterlife-api";
 export const v_99b057 = "session";

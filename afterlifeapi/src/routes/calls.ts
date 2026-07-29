@@ -145,14 +145,39 @@ v_20e160.post("/:cloneId/call/:callId/end", v_6690d9, async (v_3f4e2e) => {
   if (!/^[0-9a-fA-F-]{8,64}$/.test(v_be62d3)) return v_3f4e2e.json({ ok: true });
 
   const v_d7296e = await v_3f4e2e.env.DB.prepare(
-    "SELECT user_id FROM call_sessions WHERE call_id = ? AND ended_at IS NULL"
-  ).bind(v_be62d3).first<{ user_id: number }>();
+    "SELECT user_id, greeted_at FROM call_sessions WHERE call_id = ? AND ended_at IS NULL"
+  ).bind(v_be62d3).first<{ user_id: number; greeted_at: number | null }>();
   if (v_d7296e && v_d7296e.user_id !== v_43e90c) return v_3f4e2e.json({ ok: true }); 
 
   const v_3a0669 = Date.now();
   await v_3f4e2e.env.DB.prepare(
     `UPDATE call_sessions SET ended_at = ?, duration_sec = MAX(0, (? - started_at) / 1000) WHERE call_id = ? AND ended_at IS NULL`
   ).bind(v_3a0669, v_3a0669, v_be62d3).run();
+
+  if (v_d7296e?.greeted_at) {
+    const v_c81699 = Math.max(0, v_3a0669 - v_d7296e.greeted_at);
+    const v_b62d44 = Math.floor(v_c81699 / 1000);
+    const v_d7bc64 = Math.floor(v_b62d44 / 10) * 10; 
+    if (v_d7bc64 > 0) {
+      try {
+        const { spendCallTime: v_a025af } = await import("../lib/credits");
+        const v_b16dde = await v_a025af(v_3f4e2e, {
+          userId: v_43e90c,
+          amountSec: v_d7bc64,
+          callId: v_be62d3,
+        });
+        await v_3f4e2e.env.DB.prepare(
+          `UPDATE call_sessions
+              SET billed_sec = ?, unbilled_sec = ?, billed_at = ?
+            WHERE call_id = ?`,
+        )
+          .bind(v_b16dde.billedSec, v_b16dde.unbilledSec, v_3a0669, v_be62d3)
+          .run();
+      } catch (v_49263d) {
+        console.error(`[t167] call bill fail callId=${v_be62d3} err=${(v_49263d as Error).message}`);
+      }
+    }
+  }
   try {
     await fetch(`${v_3f4e2e.env.ORCHESTRATOR_URL}/oth-path${v_be62d3}`, {
       method: "DELETE",

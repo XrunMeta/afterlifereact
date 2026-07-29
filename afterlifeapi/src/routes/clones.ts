@@ -6,7 +6,7 @@ import { v_6690d9 } from "../middleware/auth";
 import { v_a04a51 } from "../middleware/idempotency";
 import { v_74defc } from "../lib/logger";
 import { v_e0041f, v_cfdcb0 } from "../lib/similarity";
-import { v_916830 } from "../lib/appConfig";
+import { v_916830, v_e35611 } from "../lib/appConfig";
 import {
   v_7adf64,
   v_ab84f6,
@@ -926,6 +926,8 @@ v_f891e6.post("/:id/knowledge/interpret", v_6690d9, async (v_3f4e2e) => {
   if (v_3f4e2e.env.KNOWLEDGE_INTERPRET_SECRET)
     v_3f4675["X-Internal-Secret"] = v_3f4e2e.env.KNOWLEDGE_INTERPRET_SECRET;
 
+  const v_02f320 = await v_e35611(v_3f4e2e.env);
+
   let v_5fbc62 = {};
   try {
     const v_eb792a = await fetch(`${v_694b25}/prethird/knowledge/interpret`, {
@@ -937,6 +939,7 @@ v_f891e6.post("/:id/knowledge/interpret", v_6690d9, async (v_3f4e2e) => {
         slots: v_966a46.map((v_fd5f43) => ({ key: v_fd5f43.key, label: v_fd5f43.label })),
 
         persona_name: v_eb25ce.name ?? null,
+        extra_rules: v_02f320 || null,
       }),
       signal: AbortSignal.timeout(20000),
     });
@@ -954,6 +957,60 @@ v_f891e6.post("/:id/knowledge/interpret", v_6690d9, async (v_3f4e2e) => {
   const v_f13f1f = Array.isArray(v_5fbc62.slots) ? v_5fbc62.slots : [];
   const v_677216 = typeof v_5fbc62.reply === "string" ? v_5fbc62.reply : "";
   return v_3f4e2e.json({ slots: v_f13f1f, reply: v_677216 });
+});
+
+v_f891e6.post("/:id/knowledge/followup", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId") as number;
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  const v_a1651b = v_3f4e2e.env.DB;
+
+  const v_eb25ce = await v_5d4a51(v_a1651b, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  const v_2aec08 =
+    v_eb25ce.owner_id === v_43e90c ||
+    (await v_7adf64(v_a1651b, v_6e0fd3, v_43e90c)) === "owner";
+  if (!v_2aec08) throw new v_3ebe58("FORBIDDEN", "소유자만 요청할 수 있어요.");
+
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ questionLabel?: unknown; answer?: unknown }>()
+    .catch(() => ({}) as { questionLabel?: unknown; answer?: unknown });
+  const v_4f2598 = typeof v_4d33b2.questionLabel === "string" ? v_4d33b2.questionLabel.trim() : "";
+  const v_343c90 = typeof v_4d33b2.answer === "string" ? v_4d33b2.answer.trim() : "";
+  if (!v_4f2598 || !v_343c90) {
+    throw new v_3ebe58("VALIDATION_FAILED", "questionLabel, answer 가 필요해요.");
+  }
+
+  const v_694b25 = v_3f4e2e.env.PRETHIRD_PUBLIC_BASE;
+  if (!v_694b25) throw new v_3ebe58("SERVICE_UNAVAILABLE", "follow-up 서비스가 설정되지 않았어요.");
+  const v_3f4675 = { "Content-Type": "application/json" };
+  if (v_3f4e2e.env.KNOWLEDGE_INTERPRET_SECRET)
+    v_3f4675["X-Internal-Secret"] = v_3f4e2e.env.KNOWLEDGE_INTERPRET_SECRET;
+
+  let v_e1d486 = {};
+  try {
+    const v_eb792a = await fetch(`${v_694b25}/prethird/knowledge/followup`, {
+      method: "POST",
+      headers: v_3f4675,
+      body: JSON.stringify({
+        question: v_4f2598,
+        answer: v_343c90,
+        persona_name: v_eb25ce.name ?? null,
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!v_eb792a.ok) {
+      console.warn("[knowledge-followup] gabia HTTP", v_eb792a.status);
+      return v_3f4e2e.json({ followup: "" });
+    }
+    v_e1d486 = await v_eb792a.json();
+  } catch (v_9e86fd) {
+    console.warn("[knowledge-followup] gabia fetch failed:", v_9e86fd);
+    return v_3f4e2e.json({ followup: "" });
+  }
+  const v_e3e25f = typeof v_e1d486.followup === "string" ? v_e1d486.followup : "";
+  return v_3f4e2e.json({ followup: v_e3e25f });
 });
 
 v_f891e6.put("/:id/knowledge", v_6690d9, async (v_3f4e2e) => {

@@ -76,6 +76,16 @@ export interface Bindings {
   ENVIRONMENT: "development" | "staging" | "production";
 
   CLEANUP_ORPHAN_SWEEP?: string;
+
+  APPLE_IAP_KEY_P8?: string;       
+  APPLE_IAP_KEY_ID?: string;       
+  APPLE_IAP_ISSUER_ID?: string;    
+  APPLE_IAP_BUNDLE_ID?: string;    
+
+  GOOGLE_PLAY_SERVICE_ACCOUNT_JSON?: string;  
+  ANDROID_PACKAGE_NAME?: string;              
+
+  CREDIT_DECAY_DRY_RUN?: string;
 }
 
 export type AppEnv = {

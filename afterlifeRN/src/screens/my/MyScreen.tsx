@@ -11,8 +11,6 @@ import {
   v_03e392,
   v_39a996,
   v_122070,
-  v_f2c756,
-  v_326be8,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
@@ -28,10 +26,7 @@ import { v_694b7f } from "../../api/source";
 import { v_55fc7c, v_84a859 } from "../../api/auth";
 import { v_d60cdf, v_7281a5, type v_c33ae3, type v_fa0201 } from "../../api/clones";
 import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
-import { v_9b8cb3, v_5c99c1 } from "../../api/payments";
-import v_3cb56d, {
-  v_b1f897,
-} from "../../components/my/PaymentPinPromptModal";
+
 import v_0e3f52 from "../../components/my/AppVersionFooter";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_e57140 } from "../../navigation/types";
@@ -51,77 +46,6 @@ export default function v_ed02a5() {
   const v_b30b81 = v_b4902e((v_fd5f43) => v_fd5f43.isFollowing);
   const v_3094d4 = v_b4902e((v_fd5f43) => v_fd5f43.toggleFollow);
   const v_06f32b = v_194498((v_fd5f43) => v_fd5f43.localClones);
-  const [v_47abd6, v_e12360] = v_5ab095(false);
-  const [v_fda1fd, v_7ece2f] = v_5ab095(false);
-
-  const [v_1d54f1, v_67ba02] = v_5ab095<number | null | undefined>(undefined);
-  const [v_969a3a, v_562b4b] = v_5ab095<number | null | undefined>(undefined);
-  const [v_19340b, v_14129c] = v_5ab095(true);
-
-  v_c4deb2(() => {
-    let v_2008a4 = false;
-    (async () => {
-      if (!v_2ca7e0) return;
-      const v_999957 = await v_b1f897();
-      if (!v_999957 || v_2008a4) return;
-      try {
-        const v_d308b5 = await v_9b8cb3(v_2ca7e0);
-        console.log("[PIN-STATUS]", v_d308b5);
-        if (v_2008a4) return;
-
-        if (v_d308b5.linked && !v_d308b5.hasPin) {
-          v_7ece2f(true);
-        }
-      } catch (v_49263d) {
-        console.warn("[PIN-STATUS] fetch failed:", v_49263d);
-      }
-    })();
-    return () => {
-      v_2008a4 = true;
-    };
-  }, [v_2ca7e0]);
-
-  v_cf763b(v_de06a3(() => {
-    let v_2008a4 = false;
-    if (!v_2ca7e0) {
-
-      v_14129c(false);
-      v_67ba02(undefined);
-      v_562b4b(undefined);
-      return;
-    }
-    v_14129c(true);
-    (async () => {
-      try {
-        const v_8f00b9 = await v_5c99c1(v_2ca7e0);
-        console.log("[XRUN-BALANCE]", v_8f00b9);
-        if (v_2008a4) return;
-        if (v_8f00b9.linked) {
-
-          v_67ba02(v_8f00b9.xrun ?? 0);
-          v_562b4b(v_8f00b9.ad ?? 0);
-        } else {
-          v_67ba02(undefined);
-          v_562b4b(undefined);
-        }
-      } catch (v_49263d) {
-        console.warn("[XRUN-BALANCE] fetch failed:", v_49263d);
-        if (!v_2008a4) {
-          v_67ba02(undefined);
-          v_562b4b(undefined);
-        }
-      } finally {
-        if (!v_2008a4) v_14129c(false);
-      }
-    })();
-    return () => {
-      v_2008a4 = true;
-    };
-  }, [v_2ca7e0]));
-
-  const v_747a87 = v_19340b;
-  const v_519444 = v_1d54f1 ?? null;
-  const v_30af0f = v_969a3a ?? null;
 
   const v_0c8987 = v_b113dd?.id ?? v_625c74?.id ?? v_b9d568;
   const [v_65adaf, v_b81b74] = v_5ab095<number | null>(null);
@@ -139,26 +63,6 @@ export default function v_ed02a5() {
   const [v_1f6f04, v_9127a1] = v_5ab095<v_c33ae3[] | null>(null);
   const [v_58e68f, v_6df89a] = v_5ab095<v_fa0201[] | null>(null);
   const [v_8bb912, v_d5cd7b] = v_5ab095<"following" | "myClones" | null>(null);
-  const [v_04e734, v_d6a117] = v_5ab095(false);
-
-  const v_d37d97 = async () => {
-    v_d6a117(false);
-    const v_41e43c = "market://details?id=run.xrun.xrunapp";
-    const v_5bca88 = "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
-    const v_2292ca = "https://apps.apple.com/kr/search?term=xrun";
-    try {
-      if (v_326be8.OS === "android") {
-
-        const v_e4c8cf = await v_f2c756.canOpenURL(v_41e43c);
-        await v_f2c756.openURL(v_e4c8cf ? v_41e43c : v_5bca88);
-      } else {
-        await v_f2c756.openURL(v_2292ca);
-      }
-    } catch (v_49263d) {
-      console.warn("[MyScreen] open xrun app failed:", v_49263d);
-      v_889fad("오류", "스토어를 열 수 없어요. 직접 xrun 을 검색해 주세요.");
-    }
-  };
 
   v_cf763b(
     v_a3453e.useCallback(() => {
@@ -287,6 +191,13 @@ export default function v_ed02a5() {
       descKey: "my.menu.reportsDesc",
       route: "Reports",
     },
+
+    {
+      icon: "credit-card",
+      labelKey: "my.menu.purchase",
+      descKey: "my.menu.purchaseDesc",
+      route: "Purchase",
+    },
     {
       icon: "file-text",
       labelKey: "my.coin.transactions",
@@ -377,40 +288,7 @@ export default function v_ed02a5() {
         <AppVersionFooter />
       </View>
 
-      {
-}
-      <PaymentPinPromptModal
-        visible={false}
-        onClose={() => v_7ece2f(false)}
-      />
-
       {}
-      <Modal visible={v_04e734} transparent animationType="fade">
-        <Pressable style={v_fd5f43.chargeOverlay} onPress={() => v_d6a117(false)}>
-          <Pressable style={v_fd5f43.chargeBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
-            <View style={v_fd5f43.chargeIconWrap}>
-              <Feather name="zap" size={28} color={v_1bfbd0.violet600} />
-            </View>
-            <Text style={v_fd5f43.chargeTitle}>암호화폐 충전 안내</Text>
-            <Text style={v_fd5f43.chargeDesc}>
-              금액을 충전하고 싶다면{"\n"}xrun 앱에서 암호화폐를 얻어보세요
-            </Text>
-            <Text style={v_fd5f43.chargeHint}>※ 같은 아이디로 로그인 하셔야 합니다</Text>
-            <View style={v_fd5f43.chargeBtns}>
-              <TouchableOpacity
-                style={v_fd5f43.chargeCancelBtn}
-                onPress={() => v_d6a117(false)}
-              >
-                <Text style={v_fd5f43.chargeCancelText}>닫기</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={v_fd5f43.chargeGoBtn} onPress={v_d37d97}>
-                <Feather name="external-link" size={14} color={v_1bfbd0.white} />
-                <Text style={v_fd5f43.chargeGoText}>바로가기</Text>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
 
       {}
       <Modal visible={v_8bb912 !== null} transparent animationType="slide">

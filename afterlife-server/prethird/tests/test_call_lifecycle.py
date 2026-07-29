@@ -2,17 +2,18 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
 import call_lifecycle as cl  # noqa: E402
 
-async def test_call_start_skips_when_disabled(monkeypatch):
+async def test_call_start_records_even_when_learning_disabled(monkeypatch):
+    """[T-167] 학습이 꺼져 있어도 통화기록은 남는다.
+    call_sessions 는 통화기록의 단일 출처이자 call_end 가 갱신할 대상 행이다."""
     monkeypatch.delenv("PRETHIRD_LEARN_ENABLED", raising=False)
     posted = {"n": 0}
     async def _fake_post(*a, **k):
         posted["n"] += 1
     monkeypatch.setattr(cl, "_post", _fake_post)
     await cl.call_start("http://x", 9201, "abcdef012345", "tok")
-    assert posted["n"] == 0
+    assert posted["n"] == 1
 
 async def test_call_start_skips_when_missing_args(monkeypatch):
-    monkeypatch.setenv("PRETHIRD_LEARN_ENABLED", "1")
     posted = {"n": 0}
     async def _fake_post(*a, **k):
         posted["n"] += 1

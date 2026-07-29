@@ -43,8 +43,7 @@ const v_bed6ed = v_feb82c as v_84fd28[];
 import { v_bfd883 } from "../../lib/relativeTime";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import { v_84a859, v_976b89 } from "../../api/auth";
-import { v_5c99c1, v_9b8cb3 } from "../../api/payments";
-import v_3cb56d from "../../components/my/PaymentPinPromptModal";
+
 import { v_7d2692 } from "../../api/files";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0, v_b0b271 } from "../../types/clone";
@@ -195,33 +194,10 @@ export default function v_def15b() {
   const [v_8769c2, v_fb07c9] = v_5ab095<Set<number>>(new Set());
   const [v_ce3af0, v_8d2d61] = v_5ab095<number | null>(null);
 
-  const [v_1d54f1, v_67ba02] = v_5ab095<number | null | undefined>(undefined);
-  const [v_19340b, v_14129c] = v_5ab095(true);
-
-  const [v_fda1fd, v_7ece2f] = v_5ab095(false);
-  v_c4deb2(() => {
-    if (!v_2ca7e0) return;
-    let v_2008a4 = false;
-    (async () => {
-      try {
-        const v_d308b5 = await v_9b8cb3(v_2ca7e0);
-        if (v_2008a4) return;
-        if (v_d308b5.linked && !v_d308b5.hasPin) v_7ece2f(true);
-      } catch (v_49263d) {
-        console.warn("[Dashboard] PIN status fetch failed:", v_49263d);
-      }
-    })();
-    return () => {
-      v_2008a4 = true;
-    };
-  }, [v_2ca7e0]);
-
   const v_48d264 = (v_b113dd as { followingCount?: number } | null)?.followingCount ?? 0;
   const v_a7e127 = (v_b113dd as { followersCount?: number } | null)?.followersCount ?? 0;
 
   const [v_026c2d, v_5eda29] = v_5ab095(false);
-
-  const [v_04e734, v_d6a117] = v_5ab095(false);
 
   const [v_8bb912, v_d5cd7b] = v_5ab095<{
     type: "likes" | "interactions" | "comments" | "followers";
@@ -397,45 +373,6 @@ export default function v_def15b() {
     v_8d2d61(null);
   };
 
-  v_c4deb2(() => {
-    if (!v_2ca7e0) {
-      v_14129c(false);
-      v_67ba02(undefined);
-      return;
-    }
-    let v_2008a4 = false;
-    v_14129c(true);
-    v_5c99c1(v_2ca7e0)
-      .then((v_8f00b9) => {
-        if (v_2008a4) return;
-        console.log(
-          "[Dashboard] xrun balance ←",
-          "linked=", v_8f00b9.linked,
-          "xrun=", v_8f00b9.xrun,
-          "balances.length=", v_8f00b9.balances?.length ?? 0,
-          "balances=", JSON.stringify(v_8f00b9.balances),
-        );
-
-        if (!v_8f00b9.linked) {
-          v_67ba02(undefined);
-        } else if (typeof v_8f00b9.xrun === "number" && Number.isFinite(v_8f00b9.xrun)) {
-          v_67ba02(v_8f00b9.xrun);
-        } else {
-          v_67ba02(undefined);
-        }
-      })
-      .catch((v_49263d) => {
-        console.warn("[Dashboard] xrun balance fetch failed:", v_49263d);
-        if (!v_2008a4) v_67ba02(undefined);
-      })
-      .finally(() => {
-        if (!v_2008a4) v_14129c(false);
-      });
-    return () => {
-      v_2008a4 = true;
-    };
-  }, [v_2ca7e0]);
-
   const v_d28ade = async () => {
     if (!v_2ca7e0) {
       v_889fad(v_8d41d7("common.notice", { defaultValue: "알림" }), v_8d41d7("my.loginRequired", { defaultValue: "로그인이 필요해요." }));
@@ -473,22 +410,6 @@ export default function v_def15b() {
       v_889fad(v_8d41d7("common.error", { defaultValue: "오류" }), v_badeaf);
     } finally {
       v_5eda29(false);
-    }
-  };
-
-  const v_63ceb4 = async () => {
-    const v_be4a9f = "market://details?id=run.xrun.xrunapp";
-    const v_5bca88 = "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
-    const v_789b41 = "https://apps.apple.com/app/id1492389867";
-    try {
-      if (v_326be8.OS === "android") {
-        const v_e4c8cf = await v_f2c756.canOpenURL(v_be4a9f);
-        await v_f2c756.openURL(v_e4c8cf ? v_be4a9f : v_5bca88);
-      } else {
-        await v_f2c756.openURL(v_789b41);
-      }
-    } catch (v_49263d) {
-      console.warn("[Dashboard] open xrun store failed:", v_49263d);
     }
   };
 
@@ -932,36 +853,7 @@ export default function v_def15b() {
               </View>
             </View>
 
-            {
-}
-            <View style={v_fd5f43.coinRow}>
-              <Image
-                source={require("../../../assets/images/xrun-round-logo.png")}
-                style={v_fd5f43.coinIcon}
-              />
-              <View style={{ flex: 1 }} />
-              <View style={v_fd5f43.coinAmountWrap}>
-                {v_19340b ? (
-                  <ActivityIndicator color={v_1bfbd0.zinc900} />
-                ) : v_1d54f1 != null ? (
-                  <Text style={v_fd5f43.coinAmountText}>
-                    {v_1d54f1.toLocaleString(undefined, { maximumFractionDigits: 4 })}
-                    <Text style={v_fd5f43.coinUnit}> XRUN</Text>
-                  </Text>
-                ) : (
-                  <Text style={v_fd5f43.coinAmountText}>
-                    —<Text style={v_fd5f43.coinUnit}> XRUN</Text>
-                  </Text>
-                )}
-              </View>
-              <TouchableOpacity
-                style={v_fd5f43.coinChargeBtn}
-                onPress={() => v_d6a117(true)}
-                hitSlop={8}
-              >
-                <Feather name="plus-circle" size={24} color={v_1bfbd0.violet600} />
-              </TouchableOpacity>
-            </View>
+            {}
 
             {
 }
@@ -1185,43 +1077,7 @@ export default function v_def15b() {
 
 }
 
-      {
-}
-      <Modal visible={v_04e734} transparent animationType="fade">
-        <Pressable
-          style={v_fd5f43.chargeOverlay}
-          onPress={() => v_d6a117(false)}
-        >
-          <Pressable style={v_fd5f43.chargeBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
-            <View style={v_fd5f43.chargeIconWrap}>
-              <Feather name="zap" size={28} color={v_1bfbd0.violet600} />
-            </View>
-            <Text style={v_fd5f43.chargeTitle}>암호화폐 충전 안내</Text>
-            <Text style={v_fd5f43.chargeDesc}>
-              금액을 충전하고 싶다면{"\n"}xrun 앱에서 암호화폐를 얻어보세요
-            </Text>
-            <Text style={v_fd5f43.chargeHint}>※ 같은 아이디로 로그인 하셔야 합니다</Text>
-            <View style={v_fd5f43.chargeBtns}>
-              <TouchableOpacity
-                style={v_fd5f43.chargeCancelBtn}
-                onPress={() => v_d6a117(false)}
-              >
-                <Text style={v_fd5f43.chargeCancelText}>닫기</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={v_fd5f43.chargeGoBtn}
-                onPress={() => {
-                  v_d6a117(false);
-                  v_63ceb4();
-                }}
-              >
-                <Feather name="external-link" size={14} color={v_1bfbd0.white} />
-                <Text style={v_fd5f43.chargeGoText}>바로가기</Text>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      {}
 
       {}
       <Modal visible={!!v_8bb912} transparent animationType="slide">
@@ -1454,10 +1310,6 @@ export default function v_def15b() {
       </Modal>
 
       {}
-      <PaymentPinPromptModal
-        visible={v_fda1fd}
-        onClose={() => v_7ece2f(false)}
-      />
     </SafeView>
   );
 }

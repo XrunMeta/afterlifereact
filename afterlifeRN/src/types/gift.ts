@@ -3,4 +3,6 @@ export interface Gift {
   name: string;
   emoji: string;
   price: number;
+
+  imageUrl?: string;
 }

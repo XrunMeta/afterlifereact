@@ -60,11 +60,82 @@ v_dcd415.post("/oth-path", async (v_3f4e2e) => {
 
   if (!/^[0-9a-f]{12}$/.test(v_be62d3)) return v_3f4e2e.json({ ok: true });
   const v_3a0669 = Date.now();
+
+  const v_d7296e = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT user_id, greeted_at FROM call_sessions WHERE call_id = ? AND ended_at IS NULL`,
+    )
+    .bind(v_be62d3)
+    .first<{ user_id: number; greeted_at: number | null }>();
   await v_3f4e2e.env.DB.prepare(
     `UPDATE call_sessions SET ended_at = ?, duration_sec = MAX(0, (? - started_at) / 1000)
      WHERE call_id = ? AND ended_at IS NULL`,
   ).bind(v_3a0669, v_3a0669, v_be62d3).run();
+
+  if (v_d7296e?.greeted_at && v_d7296e?.user_id) {
+    const v_c81699 = Math.max(0, v_3a0669 - v_d7296e.greeted_at);
+    const v_b62d44 = Math.floor(v_c81699 / 1000);
+    const v_d7bc64 = Math.floor(v_b62d44 / 10) * 10;
+    if (v_d7bc64 > 0) {
+      try {
+        const { spendCallTime: v_a025af } = await import("../lib/credits");
+        const v_cb35cb = await v_a025af(v_3f4e2e, {
+          userId: v_d7296e.user_id,
+          amountSec: v_d7bc64,
+          callId: v_be62d3,
+        });
+        await v_3f4e2e.env.DB
+          .prepare(
+            `UPDATE call_sessions SET billed_sec = ?, unbilled_sec = ?, billed_at = ? WHERE call_id = ?`,
+          )
+          .bind(v_cb35cb.billedSec, v_cb35cb.unbilledSec, v_3a0669, v_be62d3)
+          .run();
+      } catch (v_49263d) {
+        console.error(`[t167] internal call bill fail callId=${v_be62d3} err=${(v_49263d as Error).message}`);
+      }
+    }
+  }
   return v_3f4e2e.json({ ok: true });
+});
+
+v_dcd415.post("/oth-path", async (v_3f4e2e) => {
+  const v_68f0aa = v_3f4e2e.req.header("Authorization") ?? "";
+  const v_21cc31 = v_68f0aa.startsWith("Bearer ") ? v_68f0aa.slice(7) : "";
+  if (!v_21cc31 || !v_3f4e2e.env.LEARN_SECRET || !v_a155c4(v_21cc31, v_3f4e2e.env.LEARN_SECRET)) {
+    return v_3f4e2e.json({ error: "unauthorized" }, 401);
+  }
+  const v_be62d3 = v_3f4e2e.req.param("callId");
+  if (!/^[0-9a-f]{12}$/.test(v_be62d3)) {
+    return v_3f4e2e.json({ ok: true, allowedSec: 0, maxEndAt: 0 });
+  }
+  const v_d7296e = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT user_id, greeted_at FROM call_sessions
+        WHERE call_id = ? AND ended_at IS NULL`,
+    )
+    .bind(v_be62d3)
+    .first<{ user_id: number; greeted_at: number | null }>();
+  if (!v_d7296e) {
+
+    return v_3f4e2e.json({ ok: true, allowedSec: 0, maxEndAt: 0 });
+  }
+
+  const v_7063ed = v_d7296e.greeted_at ?? Date.now();
+  if (v_d7296e.greeted_at === null) {
+    await v_3f4e2e.env.DB
+      .prepare(`UPDATE call_sessions SET greeted_at = ? WHERE call_id = ? AND greeted_at IS NULL`)
+      .bind(v_7063ed, v_be62d3)
+      .run();
+  }
+
+  const v_8dd686 = await v_3f4e2e.env.DB
+    .prepare(`SELECT credits FROM users WHERE id = ? AND deleted_at IS NULL`)
+    .bind(v_d7296e.user_id)
+    .first<{ credits: number }>();
+  const v_4cfdf6 = Math.max(0, v_8dd686?.credits ?? 0);
+  const v_618da1 = v_7063ed + v_4cfdf6 * 1000;
+
+  return v_3f4e2e.json({ ok: true, allowedSec: v_4cfdf6, maxEndAt: v_618da1, greetedAt: v_7063ed });
 });
 
 const v_0c84a2 = {
