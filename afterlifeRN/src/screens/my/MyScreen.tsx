@@ -25,6 +25,7 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { seedSource } from "../../api/source";
 import { deleteMe, AuthApiError } from "../../api/auth";
 import { listMyClones, listMyFollowedClones, type FollowedClone, type MyClone } from "../../api/clones";
+import { getCreditBalance, type CreditBalance } from "../../api/credits";
 import { useFocusEffect } from "@react-navigation/native";
 
 import AppVersionFooter from "../../components/my/AppVersionFooter";
@@ -32,6 +33,14 @@ import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { MyStackParamList } from "../../navigation/types";
 
 const DEFAULT_USER_ID = 1;
+
+function formatMinutes(sec: number): string {
+  const s = Math.max(0, Math.floor(sec));
+  const m = Math.floor(s / 60);
+  const rem = s % 60;
+  if (m === 0) return `${rem}초`;
+  return rem > 0 ? `${m}분 ${rem}초` : `${m}분`;
+}
 
 type MyNav = NativeStackNavigationProp<MyStackParamList>;
 
@@ -63,6 +72,9 @@ export default function MyScreen() {
   const [apiFollowingList, setApiFollowingList] = useState<FollowedClone[] | null>(null);
   const [apiMyClonesList, setApiMyClonesList] = useState<MyClone[] | null>(null);
   const [statsModal, setStatsModal] = useState<"following" | "myClones" | null>(null);
+
+  const [balance, setBalance] = useState<CreditBalance | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -98,6 +110,12 @@ export default function MyScreen() {
           }
         })
         .catch((err) => console.warn("[MyScreen] myClones fail:", err));
+
+      setBalanceLoading(true);
+      getCreditBalance(accessToken)
+        .then((b) => { if (!cancelled) setBalance(b); })
+        .catch((err) => console.warn("[MyScreen] balance fail:", err))
+        .finally(() => { if (!cancelled) setBalanceLoading(false); });
 
       return () => {
         cancelled = true;
@@ -238,6 +256,37 @@ export default function MyScreen() {
       <View style={s.content}>
         {
 }
+
+        {}
+        <TouchableOpacity
+          style={s.balanceCard}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate("Purchase")}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={s.balanceLabel}>남은 통화 시간</Text>
+            {balanceLoading && !balance ? (
+              <ActivityIndicator color={COLORS.violet600} style={{ marginTop: 6 }} />
+            ) : balance ? (
+              <>
+                <Text style={s.balanceTotal}>
+                  {formatMinutes(balance.totalSec)}
+                </Text>
+                <Text style={s.balanceBreakdown}>
+                  무료 {formatMinutes(balance.freeSec)}
+                  {balance.subSec > 0 ? ` · 구독 ${formatMinutes(balance.subSec)}` : ""}
+                  {balance.topupSec > 0 ? ` · 충전 ${formatMinutes(balance.topupSec)}` : ""}
+                </Text>
+              </>
+            ) : (
+              <Text style={s.balanceEmpty}>잔액 조회 실패</Text>
+            )}
+          </View>
+          <View style={s.balanceCta}>
+            <Text style={s.balanceCtaText}>충전</Text>
+            <Feather name="chevron-right" size={16} color="#fff" />
+          </View>
+        </TouchableOpacity>
 
         {}
 
@@ -665,6 +714,29 @@ const s = StyleSheet.create({
     borderTopColor: COLORS.zinc100,
   },
   viewAllText: { fontSize: 14, fontWeight: "500", color: COLORS.violet500 },
+
+  balanceCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.violet100,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+  },
+  balanceLabel: { fontSize: 12, color: COLORS.zinc600, marginBottom: 4 },
+  balanceTotal: { fontSize: 24, fontWeight: "700", color: COLORS.violet700 },
+  balanceBreakdown: { fontSize: 12, color: COLORS.zinc600, marginTop: 4 },
+  balanceEmpty: { fontSize: 13, color: COLORS.zinc500, marginTop: 6 },
+  balanceCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.violet600,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    gap: 2,
+  },
+  balanceCtaText: { fontSize: 13, fontWeight: "700", color: "#fff" },
 
   settingsCard: {
     backgroundColor: COLORS.white,
