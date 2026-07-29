@@ -141,3 +141,55 @@ export async function getKnowledgeInterpretRulesText(env: Bindings): Promise<str
     return raw;
   }
 }
+
+const GOOGLE_IOS_KEY = "auth.google_enabled_ios";
+const GOOGLE_ANDROID_KEY = "auth.google_enabled_android";
+const GOOGLE_IOS_DEFAULT = false;
+const GOOGLE_ANDROID_DEFAULT = true;
+
+export interface GoogleEnabled {
+  ios: boolean;
+  android: boolean;
+  updatedAt: number;
+}
+
+export function parseEnabledFlag(
+  v: string | null | undefined,
+  fallback: boolean,
+): boolean {
+  if (v === null || v === undefined) return fallback;
+  return v === "1";
+}
+
+export async function getGoogleEnabled(env: Bindings): Promise<GoogleEnabled> {
+  try {
+    const res = await env.DB.prepare(
+      `SELECT key, value, updated_at FROM app_config WHERE key IN (?, ?)`,
+    )
+      .bind(GOOGLE_IOS_KEY, GOOGLE_ANDROID_KEY)
+      .all<{ key: string; value: string; updated_at: number }>();
+
+    const rows = res.results ?? [];
+    const map = new Map(rows.map((r) => [r.key, r.value]));
+    const updatedAt = rows.reduce((m, r) => Math.max(m, r.updated_at ?? 0), 0);
+
+    return {
+      ios: parseEnabledFlag(
+        map.get(GOOGLE_IOS_KEY) ?? env.AUTH_GOOGLE_ENABLED_IOS,
+        GOOGLE_IOS_DEFAULT,
+      ),
+      android: parseEnabledFlag(
+        map.get(GOOGLE_ANDROID_KEY) ?? env.AUTH_GOOGLE_ENABLED_ANDROID,
+        GOOGLE_ANDROID_DEFAULT,
+      ),
+      updatedAt,
+    };
+  } catch {
+
+    return {
+      ios: parseEnabledFlag(env.AUTH_GOOGLE_ENABLED_IOS, GOOGLE_IOS_DEFAULT),
+      android: parseEnabledFlag(env.AUTH_GOOGLE_ENABLED_ANDROID, GOOGLE_ANDROID_DEFAULT),
+      updatedAt: 0,
+    };
+  }
+}
