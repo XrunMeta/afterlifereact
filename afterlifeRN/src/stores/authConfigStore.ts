@@ -41,6 +41,8 @@ export const v_688424 = v_a7c0d4<AuthConfigState>((v_bb8024, v_38715b) => ({
       if (!v_479f05) return; 
       const v_e2a85c = JSON.parse(v_479f05) as unknown;
       if (v_76d02c(v_e2a85c)) {
+
+        if (v_38715b().googleEnabled !== null) return;
         v_bb8024({ googleEnabled: v_cf6f76(v_e2a85c), loadedFrom: 'cache' });
       }
     } catch {
