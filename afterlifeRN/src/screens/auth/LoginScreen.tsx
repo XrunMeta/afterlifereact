@@ -30,14 +30,8 @@ import {
 import { v_ea1c99 } from "../../lib/deviceId";
 import { v_4eac84, v_8d3720 } from "tdbilgxptaometuphydosyywsglhnlfgkfkzstthk";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
-
-const v_93942f =
-  "oth-client.googleusercontent.invalid";
-
-v_4eac84.configure({
-  webClientId: v_93942f,
-  offlineAccess: false,
-});
+import { v_688424 } from "../../stores/authConfigStore";
+import { v_220c23 } from "../../lib/googleAuth";
 
 type Props = {
   navigation: v_390fcc<v_384e19, "Login">;
@@ -56,6 +50,8 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
   const v_232d52 = v_1ed7d9((v_fd5f43) => v_fd5f43.hydrate);
   const v_957ace = v_1ed7d9((v_fd5f43) => v_fd5f43.loginWithApi);
   const [v_a5d73f, v_7ba4a6] = v_5ab095(false);
+
+  const v_c39df9 = v_688424((v_fd5f43) => v_fd5f43.googleEnabled);
 
   const [v_34e5bb, v_038d7f] = v_5ab095<"account" | "otp">("account");
   const [v_5a69f1, v_9d5a9f] = v_5ab095(false);
@@ -166,6 +162,10 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
   const v_78c15c = async (v_e38ca2) => {
     if (v_e38ca2 === "google") {
       try {
+        if (!v_220c23()) {
+          v_889fad("구글 로그인을 사용할 수 없어요", "잠시 후 다시 시도해 주세요.");
+          return;
+        }
         await v_4eac84.hasPlayServices({ showPlayServicesUpdateDialog: true });
         try {
           await v_4eac84.signOut();
@@ -187,7 +187,11 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
         if (v_de130a.afterlifeExists) {
 
           const v_929b58 = await v_ea1c99();
-          const v_8f00b9 = await v_dd2158({ idToken: v_b50834, deviceId: v_929b58, platform: "android" });
+          const v_8f00b9 = await v_dd2158({
+            idToken: v_b50834,
+            deviceId: v_929b58,
+            platform: v_326be8.OS === "ios" ? "ios" : "android",
+          });
           const v_9ec4c0 = await v_7ef860(v_8f00b9.accessToken);
           await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user, { persist: v_f53eaa });
 
@@ -341,24 +345,28 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           {
 
 }
-          {v_326be8.OS !== "ios" && (
-            <>
-              {}
-              <View style={v_d81136.divider}>
-                <View style={v_d81136.dividerLine} />
-                <Text style={v_d81136.dividerText}>—</Text>
-                <View style={v_d81136.dividerLine} />
-              </View>
+          {v_326be8.OS !== "ios" &&
+            (v_c39df9 === null ? (
 
-              <Button
-                title={v_8d41d7("auth.login.googleBtn")}
-                onPress={() => v_78c15c("google")}
-                variant="secondary"
-                size="md"
-                leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}>G</Text>}
-              />
-            </>
-          )}
+              <View style={v_d81136.googleButtonPlaceholder} />
+            ) : v_c39df9 ? (
+              <>
+                {}
+                <View style={v_d81136.divider}>
+                  <View style={v_d81136.dividerLine} />
+                  <Text style={v_d81136.dividerText}>—</Text>
+                  <View style={v_d81136.dividerLine} />
+                </View>
+
+                <Button
+                  title={v_8d41d7("auth.login.googleBtn")}
+                  onPress={() => v_78c15c("google")}
+                  variant="secondary"
+                  size="md"
+                  leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}>G</Text>}
+                />
+              </>
+            ) : null)}
 
           {}
           <View style={v_d81136.signupRow}>
@@ -476,6 +484,10 @@ const v_d81136 = v_472849.create({
     marginHorizontal: v_9b1a04.medium,
     color: v_1bfbd0.zinc400,
     fontSize: 14,
+  },
+
+  googleButtonPlaceholder: {
+    height: 116,
   },
   signupRow: {
     flexDirection: "row",
