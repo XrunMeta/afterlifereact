@@ -60,22 +60,23 @@ export default function PurchaseScreen() {
     }, [refresh]),
   );
 
-  useEffect(() => {
-    (async () => {
-      setProdLoading(true);
-      try {
-        const { subscriptions, consumables: cons } = await fetchAllProducts();
-        setSubs(subscriptions);
-        setConsumables(cons);
-        console.log(`[purchase] loaded ${subscriptions.length} subs, ${cons.length} consumables`);
-      } catch (err) {
-        console.warn("[purchase] product fetch failed:", err);
-        Alert.alert("상품 로드 실패", "잠시 후 다시 시도해주세요.");
-      } finally {
-        setProdLoading(false);
-      }
-    })();
+  const refreshProducts = useCallback(async () => {
+    setProdLoading(true);
+    try {
+      const { subscriptions, consumables: cons } = await fetchAllProducts();
+      setSubs(subscriptions);
+      setConsumables(cons);
+      console.log(`[purchase] loaded ${subscriptions.length} subs, ${cons.length} consumables`);
+    } catch (err) {
+      console.warn("[purchase] product fetch failed:", err);
+      Alert.alert("상품 로드 실패", "잠시 후 다시 시도해주세요.");
+    } finally {
+      setProdLoading(false);
+    }
   }, []);
+  useEffect(() => {
+    void refreshProducts();
+  }, [refreshProducts]);
 
   const handleBuySubscription = async (sku: SubscriptionSku) => {
     if (buying) return;
@@ -155,7 +156,21 @@ export default function PurchaseScreen() {
         {prodLoading ? (
           <ActivityIndicator color={COLORS.violet600} style={{ marginVertical: 20 }} />
         ) : subs.length === 0 ? (
-          <Text style={s.emptyText}>구독 상품을 불러올 수 없어요.</Text>
+          <View style={s.emptyBlock}>
+            <Text style={s.emptyText}>구독 상품을 불러올 수 없어요.</Text>
+            <Text style={s.emptyHint}>
+              {Platform.OS === "ios"
+                ? "설정 → App Store → Sandbox 계정 로그인 확인 후 다시 시도해주세요."
+                : "잠시 후 다시 시도해주세요."}
+            </Text>
+            <TouchableOpacity
+              style={s.retryBtn}
+              onPress={refreshProducts}
+              activeOpacity={0.85}
+            >
+              <Text style={s.retryBtnText}>다시 시도</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           subs.map((p) => (
             <TouchableOpacity
@@ -185,7 +200,16 @@ export default function PurchaseScreen() {
         {prodLoading ? (
           <ActivityIndicator color={COLORS.violet600} style={{ marginVertical: 20 }} />
         ) : consumables.length === 0 ? (
-          <Text style={s.emptyText}>충전 상품을 불러올 수 없어요.</Text>
+          <View style={s.emptyBlock}>
+            <Text style={s.emptyText}>충전 상품을 불러올 수 없어요.</Text>
+            <TouchableOpacity
+              style={s.retryBtn}
+              onPress={refreshProducts}
+              activeOpacity={0.85}
+            >
+              <Text style={s.retryBtnText}>다시 시도</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           consumables.map((p) => (
             <TouchableOpacity
@@ -260,6 +284,24 @@ const s = StyleSheet.create({
   cardPriceCol: { alignItems: "flex-end", gap: 4 },
   cardPrice: { fontSize: 15, fontWeight: "700", color: COLORS.violet600 },
 
-  emptyText: { fontSize: 13, color: COLORS.zinc500, textAlign: "center", marginVertical: 20 },
+  emptyText: { fontSize: 13, color: COLORS.zinc500, textAlign: "center", marginVertical: 8 },
+  emptyBlock: {
+    alignItems: "center",
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    borderStyle: "dashed",
+    borderRadius: RADIUS.medium,
+  },
+  emptyHint: { fontSize: 12, color: COLORS.zinc400, textAlign: "center", marginBottom: 12, lineHeight: 18 },
+  retryBtn: {
+    backgroundColor: COLORS.violet600,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 999,
+    marginTop: 4,
+  },
+  retryBtnText: { fontSize: 13, fontWeight: "700", color: "#fff" },
   footer: { fontSize: 11, color: COLORS.zinc500, textAlign: "center", lineHeight: 18 },
 });
