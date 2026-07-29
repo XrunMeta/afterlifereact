@@ -3,6 +3,7 @@
 import type { Context } from "hono";
 import type { AppEnv } from "./env";
 import { APIError } from "./errors";
+import { getSignupFreeCredits } from "./appConfig";
 
 export type LedgerType =
   | "charge_inapp"
@@ -78,7 +79,8 @@ export async function grantSignupFreeCredits(
 ): Promise<{ granted: boolean }> {
   const db = c.env.DB;
   const idemKey = `signup:${userId}`;
-  const AMOUNT = 3000; 
+  const AMOUNT = await getSignupFreeCredits(c.env);
+  if (AMOUNT <= 0) return { granted: false }; 
 
   try {
     const results = await db.batch([
