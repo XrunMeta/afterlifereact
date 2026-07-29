@@ -66,6 +66,10 @@ function b64urlDecodeToJson<T>(s: string): T {
 
 async function verifyJwsSignature(idToken: string, jwk: Jwk): Promise<boolean> {
   const [h, p, sig] = idToken.split(".");
+
+  if (!h || !p || !sig) {
+    throw new APIError("UNAUTHENTICATED", "Malformed Apple identity token.");
+  }
   const signingInput = new TextEncoder().encode(`${h}.${p}`);
   const signature = b64urlDecode(sig);
   const key = await crypto.subtle.importKey(
@@ -83,10 +87,12 @@ export async function verifyAppleIdToken(
   idToken: string,
 ): Promise<AppleIdTokenPayload> {
   const parts = idToken.split(".");
-  if (parts.length !== 3) {
+  const [headerB64, payloadB64] = parts;
+
+  if (parts.length !== 3 || !headerB64 || !payloadB64) {
     throw new APIError("UNAUTHENTICATED", "Malformed Apple identity token.");
   }
-  const header = b64urlDecodeToJson<{ alg: string; kid: string }>(parts[0]);
+  const header = b64urlDecodeToJson<{ alg: string; kid: string }>(headerB64);
   if (header.alg !== "RS256") {
     throw new APIError("UNAUTHENTICATED", `Unsupported alg: ${header.alg}`);
   }
@@ -115,7 +121,7 @@ export async function verifyAppleIdToken(
     email?: string;
     email_verified?: string | boolean;
     is_private_email?: string | boolean;
-  }>(parts[1]);
+  }>(payloadB64);
 
   if (payload.iss !== APPLE_ISSUER) {
     throw new APIError("UNAUTHENTICATED", `Token issuer mismatch: ${payload.iss}`);
