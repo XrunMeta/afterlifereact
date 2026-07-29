@@ -52,6 +52,14 @@ export default function LoginScreen({ navigation }: Props) {
   const [loggingIn, setLoggingIn] = useState(false);
 
   const googleEnabled = useAuthConfigStore((s) => s.googleEnabled);
+  const loadedFrom = useAuthConfigStore((s) => s.loadedFrom);
+
+  useEffect(() => {
+    if (loadedFrom !== 'remote') {
+      void useAuthConfigStore.getState().refresh();
+    }
+
+  }, []);
 
   const [mode, setMode] = useState<"account" | "otp">("account");
   const [otpBusy, setOtpBusy] = useState(false);
