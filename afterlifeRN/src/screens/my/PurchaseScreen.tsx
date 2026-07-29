@@ -60,22 +60,23 @@ export default function v_0035e1() {
     }, [v_1a1b9b]),
   );
 
-  v_c4deb2(() => {
-    (async () => {
-      v_6d964e(true);
-      try {
-        const { subscriptions: v_60a14d, consumables: v_cfc98b } = await v_1c6d94();
-        v_0cf94e(v_60a14d);
-        v_cb5356(v_cfc98b);
-        console.log(`[purchase] loaded ${v_60a14d.length} subs, ${v_cfc98b.length} consumables`);
-      } catch (v_49263d) {
-        console.warn("[purchase] product fetch failed:", v_49263d);
-        v_03e392.alert("상품 로드 실패", "잠시 후 다시 시도해주세요.");
-      } finally {
-        v_6d964e(false);
-      }
-    })();
+  const v_d5d7b5 = v_de06a3(async () => {
+    v_6d964e(true);
+    try {
+      const { subscriptions: v_60a14d, consumables: v_cfc98b } = await v_1c6d94();
+      v_0cf94e(v_60a14d);
+      v_cb5356(v_cfc98b);
+      console.log(`[purchase] loaded ${v_60a14d.length} subs, ${v_cfc98b.length} consumables`);
+    } catch (v_49263d) {
+      console.warn("[purchase] product fetch failed:", v_49263d);
+      v_03e392.alert("상품 로드 실패", "잠시 후 다시 시도해주세요.");
+    } finally {
+      v_6d964e(false);
+    }
   }, []);
+  v_c4deb2(() => {
+    void v_d5d7b5();
+  }, [v_d5d7b5]);
 
   const v_0b9762 = async (sku: v_a9d25e) => {
     if (v_c63375) return;
@@ -155,7 +156,21 @@ export default function v_0035e1() {
         {v_723218 ? (
           <ActivityIndicator color={v_1bfbd0.violet600} style={{ marginVertical: 20 }} />
         ) : v_ab371b.length === 0 ? (
-          <Text style={v_fd5f43.emptyText}>구독 상품을 불러올 수 없어요.</Text>
+          <View style={v_fd5f43.emptyBlock}>
+            <Text style={v_fd5f43.emptyText}>구독 상품을 불러올 수 없어요.</Text>
+            <Text style={v_fd5f43.emptyHint}>
+              {v_326be8.OS === "ios"
+                ? "설정 → App Store → Sandbox 계정 로그인 확인 후 다시 시도해주세요."
+                : "잠시 후 다시 시도해주세요."}
+            </Text>
+            <TouchableOpacity
+              style={v_fd5f43.retryBtn}
+              onPress={v_d5d7b5}
+              activeOpacity={0.85}
+            >
+              <Text style={v_fd5f43.retryBtnText}>다시 시도</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           v_ab371b.map((v_e2a85c) => (
             <TouchableOpacity
@@ -185,7 +200,16 @@ export default function v_0035e1() {
         {v_723218 ? (
           <ActivityIndicator color={v_1bfbd0.violet600} style={{ marginVertical: 20 }} />
         ) : v_275767.length === 0 ? (
-          <Text style={v_fd5f43.emptyText}>충전 상품을 불러올 수 없어요.</Text>
+          <View style={v_fd5f43.emptyBlock}>
+            <Text style={v_fd5f43.emptyText}>충전 상품을 불러올 수 없어요.</Text>
+            <TouchableOpacity
+              style={v_fd5f43.retryBtn}
+              onPress={v_d5d7b5}
+              activeOpacity={0.85}
+            >
+              <Text style={v_fd5f43.retryBtnText}>다시 시도</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           v_275767.map((v_e2a85c) => (
             <TouchableOpacity
@@ -260,6 +284,24 @@ const v_fd5f43 = v_472849.create({
   cardPriceCol: { alignItems: "flex-end", gap: 4 },
   cardPrice: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.violet600 },
 
-  emptyText: { fontSize: 13, color: v_1bfbd0.zinc500, textAlign: "center", marginVertical: 20 },
+  emptyText: { fontSize: 13, color: v_1bfbd0.zinc500, textAlign: "center", marginVertical: 8 },
+  emptyBlock: {
+    alignItems: "center",
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    borderStyle: "dashed",
+    borderRadius: v_8b0c90.medium,
+  },
+  emptyHint: { fontSize: 12, color: v_1bfbd0.zinc400, textAlign: "center", marginBottom: 12, lineHeight: 18 },
+  retryBtn: {
+    backgroundColor: v_1bfbd0.violet600,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 999,
+    marginTop: 4,
+  },
+  retryBtnText: { fontSize: 13, fontWeight: "700", color: "#fff" },
   footer: { fontSize: 11, color: v_1bfbd0.zinc500, textAlign: "center", lineHeight: 18 },
 });
