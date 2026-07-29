@@ -52,6 +52,14 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
   const [v_a5d73f, v_7ba4a6] = v_5ab095(false);
 
   const v_c39df9 = v_688424((v_fd5f43) => v_fd5f43.googleEnabled);
+  const v_86e763 = v_688424((v_fd5f43) => v_fd5f43.loadedFrom);
+
+  v_c4deb2(() => {
+    if (v_86e763 !== 'remote') {
+      void v_688424.getState().refresh();
+    }
+
+  }, []);
 
   const [v_34e5bb, v_038d7f] = v_5ab095<"account" | "otp">("account");
   const [v_5a69f1, v_9d5a9f] = v_5ab095(false);
