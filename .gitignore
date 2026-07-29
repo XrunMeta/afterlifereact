@@ -73,3 +73,10 @@ docs/voices/
 
 # 학습/평가 데이터셋 (KsponSpeech 등 대용량, 커밋 금지 — 로컬 전용)
 /data/
+
+# 로컬 빌드 APK/AAB (수백MB 대용량, 커밋 금지 — EAS·gradle 산출물)
+*.apk
+*.aab
+
+# 홈페이지는 별도 저장소(XrunMeta/afterlifehome) — nested git repo, 여기서 추적 금지
+/afterlifehome/
