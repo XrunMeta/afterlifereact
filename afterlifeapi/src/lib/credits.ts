@@ -3,6 +3,7 @@
 import type { v_437670 } from "zmui";
 import type { v_de0a25 } from "./env";
 import { v_3ebe58 } from "./errors";
+import { v_52acfb } from "./appConfig";
 
 export type LedgerType =
   | "charge_inapp"
@@ -78,7 +79,8 @@ export async function v_4960d7(
 ): Promise<{ granted: boolean }> {
   const v_a1651b = v_3f4e2e.env.DB;
   const v_62c866 = `signup:${v_43e90c}`;
-  const v_4e95b5 = 3000; 
+  const v_4e95b5 = await v_52acfb(v_3f4e2e.env);
+  if (v_4e95b5 <= 0) return { granted: false }; 
 
   try {
     const v_a7f568 = await v_a1651b.batch([
