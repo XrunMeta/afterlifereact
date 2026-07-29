@@ -105,6 +105,77 @@ admin.patch("/config/gift-catalog", requireAdmin, async (c) => {
   return c.json({ ok: true, items: clean });
 });
 
+admin.get("/call-sessions", requireAdmin, async (c) => {
+  const url = new URL(c.req.url);
+  const limitRaw = Number(url.searchParams.get("limit") ?? 100);
+  const limit = Math.max(1, Math.min(500, Number.isFinite(limitRaw) ? limitRaw : 100));
+  const userId = url.searchParams.get("userId");
+  const cloneId = url.searchParams.get("cloneId");
+  const q = (url.searchParams.get("q") ?? "").trim();
+  const from = url.searchParams.get("from");
+  const to = url.searchParams.get("to");
+
+  const where: string[] = [];
+  const binds: (string | number)[] = [];
+  if (userId) { where.push("cs.user_id = ?"); binds.push(Number(userId)); }
+  if (cloneId) { where.push("cs.clone_id = ?"); binds.push(Number(cloneId)); }
+  if (from) { where.push("cs.started_at >= ?"); binds.push(Number(from)); }
+  if (to) { where.push("cs.started_at <= ?"); binds.push(Number(to)); }
+  if (q) {
+    where.push("(u.email LIKE ? OR u.name LIKE ? OR c.name LIKE ? OR cs.call_id LIKE ?)");
+    const like = `%${q}%`;
+    binds.push(like, like, like, like);
+  }
+  const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
+
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT cs.call_id       AS callId,
+              cs.user_id       AS userId,
+              u.email          AS userEmail,
+              u.name           AS userName,
+              cs.clone_id      AS cloneId,
+              c.name           AS cloneName,
+              c.username       AS cloneUsername,
+              cs.persona_slug  AS personaSlug,
+              cs.started_at    AS startedAt,
+              cs.greeted_at    AS greetedAt,
+              cs.ended_at      AS endedAt,
+              cs.duration_sec  AS durationSec,
+              cs.allowed_sec   AS allowedSec,
+              cs.billed_sec    AS billedSec,
+              cs.unbilled_sec  AS unbilledSec,
+              cs.billed_at     AS billedAt
+         FROM call_sessions cs
+         LEFT JOIN users  u ON u.id = cs.user_id
+         LEFT JOIN clones c ON c.id = cs.clone_id
+         ${whereSql}
+         ORDER BY cs.started_at DESC
+         LIMIT ?`,
+    )
+    .bind(...binds, limit)
+    .all<{
+      callId: string;
+      userId: number;
+      userEmail: string | null;
+      userName: string | null;
+      cloneId: number;
+      cloneName: string | null;
+      cloneUsername: string | null;
+      personaSlug: string | null;
+      startedAt: number;
+      greetedAt: number | null;
+      endedAt: number | null;
+      durationSec: number | null;
+      allowedSec: number | null;
+      billedSec: number | null;
+      unbilledSec: number | null;
+      billedAt: number | null;
+    }>();
+
+  return c.json({ items: rows.results });
+});
+
 admin.post("/files/gift-image", requireAdmin, async (c) => {
   let form: FormData;
   try {
