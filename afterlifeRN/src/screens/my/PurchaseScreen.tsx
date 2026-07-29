@@ -12,14 +12,14 @@ import {
   Platform,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import type { Product, Subscription } from "react-native-iap";
+import type { Product, ProductSubscription } from "react-native-iap";
 import SafeView from "../../components/ui/SafeView";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, RADIUS, SIZES } from "../../components/constants";
 import { useAuthStore } from "../../stores/authStore";
 import { getCreditBalance, type CreditBalance } from "../../api/credits";
 import {
-  fetchProducts,
+  fetchAllProducts,
   buyConsumable,
   buySubscription,
   type SubscriptionSku,
@@ -36,7 +36,7 @@ export default function PurchaseScreen() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const [balance, setBalance] = useState<CreditBalance | null>(null);
   const [balLoading, setBalLoading] = useState(true);
-  const [subs, setSubs] = useState<Subscription[]>([]);
+  const [subs, setSubs] = useState<ProductSubscription[]>([]);
   const [consumables, setConsumables] = useState<Product[]>([]);
   const [prodLoading, setProdLoading] = useState(true);
   const [buying, setBuying] = useState<string | null>(null);
@@ -64,7 +64,7 @@ export default function PurchaseScreen() {
     (async () => {
       setProdLoading(true);
       try {
-        const { subscriptions, consumables: cons } = await fetchProducts();
+        const { subscriptions, consumables: cons } = await fetchAllProducts();
         setSubs(subscriptions);
         setConsumables(cons);
         console.log(`[purchase] loaded ${subscriptions.length} subs, ${cons.length} consumables`);
@@ -159,18 +159,18 @@ export default function PurchaseScreen() {
         ) : (
           subs.map((p) => (
             <TouchableOpacity
-              key={p.productId}
-              style={[s.card, buying === p.productId && s.cardDisabled]}
-              onPress={() => handleBuySubscription(p.productId as SubscriptionSku)}
+              key={p.id}
+              style={[s.card, buying === p.id && s.cardDisabled]}
+              onPress={() => handleBuySubscription(p.id as SubscriptionSku)}
               disabled={buying !== null}
             >
               <View style={{ flex: 1 }}>
-                <Text style={s.cardName}>{p.title || p.productId}</Text>
+                <Text style={s.cardName}>{p.title || p.id}</Text>
                 <Text style={s.cardDesc}>{p.description || ""}</Text>
               </View>
               <View style={s.cardPriceCol}>
-                <Text style={s.cardPrice}>{p.localizedPrice}</Text>
-                {buying === p.productId && (
+                <Text style={s.cardPrice}>{p.displayPrice}</Text>
+                {buying === p.id && (
                   <ActivityIndicator color={COLORS.violet600} size="small" />
                 )}
               </View>
@@ -189,18 +189,18 @@ export default function PurchaseScreen() {
         ) : (
           consumables.map((p) => (
             <TouchableOpacity
-              key={p.productId}
-              style={[s.card, buying === p.productId && s.cardDisabled]}
-              onPress={() => handleBuyConsumable(p.productId as ConsumableSku)}
+              key={p.id}
+              style={[s.card, buying === p.id && s.cardDisabled]}
+              onPress={() => handleBuyConsumable(p.id as ConsumableSku)}
               disabled={buying !== null}
             >
               <View style={{ flex: 1 }}>
-                <Text style={s.cardName}>{p.title || p.productId}</Text>
+                <Text style={s.cardName}>{p.title || p.id}</Text>
                 <Text style={s.cardDesc}>{p.description || ""}</Text>
               </View>
               <View style={s.cardPriceCol}>
-                <Text style={s.cardPrice}>{p.localizedPrice}</Text>
-                {buying === p.productId && (
+                <Text style={s.cardPrice}>{p.displayPrice}</Text>
+                {buying === p.id && (
                   <ActivityIndicator color={COLORS.violet600} size="small" />
                 )}
               </View>

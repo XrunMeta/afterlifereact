@@ -81,10 +81,93 @@ admin.patch("/config/gift-catalog", requireAdmin, async (c) => {
     if (typeof it.price !== "number" || !Number.isFinite(it.price) || it.price < 0) {
       throw new APIError("VALIDATION_FAILED", "price must be non-negative number.");
     }
-    clean.push({ id: it.id.trim(), name: it.name.trim(), emoji: it.emoji.trim(), price: it.price });
+    const clean1: GiftCatalogItem = {
+      id: it.id.trim(),
+      name: it.name.trim(),
+      emoji: it.emoji.trim(),
+      price: it.price,
+    };
+    if (it.imageUrl !== undefined && it.imageUrl !== null) {
+      if (typeof it.imageUrl !== "string") {
+        throw new APIError("VALIDATION_FAILED", "imageUrl must be string.");
+      }
+      const trimmed = it.imageUrl.trim();
+      if (trimmed.length > 0) {
+        if (trimmed.length > 500) {
+          throw new APIError("VALIDATION_FAILED", "imageUrl too long.");
+        }
+        clean1.imageUrl = trimmed;
+      }
+    }
+    clean.push(clean1);
   }
   await setGiftCatalog(c.env, clean);
   return c.json({ ok: true, items: clean });
+});
+
+admin.post("/files/gift-image", requireAdmin, async (c) => {
+  let form: FormData;
+  try {
+    form = await c.req.formData();
+  } catch {
+    throw new APIError("VALIDATION_FAILED", "multipart/form-data required.");
+  }
+  const raw = form.get("file");
+  if (
+    !raw ||
+    typeof raw !== "object" ||
+    typeof (raw as { arrayBuffer?: unknown }).arrayBuffer !== "function"
+  ) {
+    throw new APIError("VALIDATION_FAILED", "Missing 'file' field.");
+  }
+  const file = raw as {
+    type: string;
+    size: number;
+    arrayBuffer: () => Promise<ArrayBuffer>;
+  };
+  const GIFT_IMG_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+  const GIFT_IMG_MAX = 2 * 1024 * 1024; 
+  if (!GIFT_IMG_TYPES.has(file.type)) {
+    throw new APIError(
+      "VALIDATION_FAILED",
+      `Unsupported type: ${file.type}. jpeg/png/webp only.`,
+    );
+  }
+  if (file.size > GIFT_IMG_MAX) {
+    throw new APIError(
+      "VALIDATION_FAILED",
+      `File too large (${file.size} bytes). Max ${GIFT_IMG_MAX} bytes.`,
+    );
+  }
+  const ext =
+    file.type === "image/jpeg" ? ".jpg" : file.type === "image/png" ? ".png" : ".webp";
+  const rand = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+  const t = Date.now().toString(36);
+  const r2Key = `uploadedfiles/admin/gift/${t}${rand}${ext}`;
+  const buf = await file.arrayBuffer();
+  await c.env.R2_ARCHIVE.put(r2Key, buf, {
+    httpMetadata: { contentType: file.type },
+    customMetadata: { purpose: "gift.catalog", uploader: "admin" },
+  });
+  const inserted = await c.env.DB
+    .prepare(
+      `INSERT INTO files (r2_key, content_type, size_bytes, owner_user_id, purpose)
+       VALUES (?, ?, ?, NULL, ?)
+       RETURNING id`,
+    )
+    .bind(r2Key, file.type, file.size, "gift.catalog")
+    .first<{ id: number }>();
+  if (!inserted) {
+    await c.env.R2_ARCHIVE.delete(r2Key);
+    throw new APIError("INTERNAL_ERROR", "Failed to register file.");
+  }
+  const origin = new URL(c.req.url).origin;
+  return c.json({
+    id: inserted.id,
+    url: `${origin}/oth-path${inserted.id}`,
+    contentType: file.type,
+    sizeBytes: file.size,
+  }, 201);
 });
 
 const openSchema = z.object({

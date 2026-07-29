@@ -4,17 +4,14 @@ import { Platform } from "react-native";
 import {
   initConnection,
   endConnection,
-  getProducts,
-  getSubscriptions,
+  fetchProducts,
   requestPurchase,
-  requestSubscription,
   finishTransaction,
   purchaseUpdatedListener,
   purchaseErrorListener,
   type Product,
-  type Subscription,
-  type ProductPurchase,
-  type SubscriptionPurchase,
+  type ProductSubscription,
+  type Purchase,
   type PurchaseError,
 } from "react-native-iap";
 import { submitPurchase } from "../api/credits";
@@ -62,28 +59,34 @@ export async function shutdownIap(): Promise<void> {
   }
 }
 
-export async function fetchProducts(): Promise<{
-  subscriptions: Subscription[];
+export async function fetchAllProducts(): Promise<{
+  subscriptions: ProductSubscription[];
   consumables: Product[];
 }> {
   await initIap();
-  const [subscriptions, consumables] = await Promise.all([
-    getSubscriptions({ skus: [...SUBSCRIPTION_SKUS] }).catch((err) => {
-      console.warn("[iap] getSubscriptions failed:", err);
-      return [];
+  const [subsResult, consResult] = await Promise.all([
+    fetchProducts({ skus: [...SUBSCRIPTION_SKUS], type: "subs" }).catch((err) => {
+      console.warn("[iap] fetchProducts(subs) failed:", err);
+      return [] as ProductSubscription[];
     }),
-    getProducts({ skus: [...CONSUMABLE_SKUS] }).catch((err) => {
-      console.warn("[iap] getProducts failed:", err);
-      return [];
+    fetchProducts({ skus: [...CONSUMABLE_SKUS], type: "in-app" }).catch((err) => {
+      console.warn("[iap] fetchProducts(in-app) failed:", err);
+      return [] as Product[];
     }),
   ]);
-  return { subscriptions, consumables };
+  return {
+    subscriptions: subsResult as ProductSubscription[],
+    consumables: consResult as Product[],
+  };
 }
 
 export async function buySubscription(sku: SubscriptionSku): Promise<void> {
   await initIap();
   if (Platform.OS === "ios") {
-    await requestSubscription({ sku });
+    await requestPurchase({
+      request: { ios: { sku } },
+      type: "subs",
+    });
   } else {
 
     throw new Error("Android subscription not supported yet.");
@@ -92,7 +95,17 @@ export async function buySubscription(sku: SubscriptionSku): Promise<void> {
 
 export async function buyConsumable(sku: ConsumableSku): Promise<void> {
   await initIap();
-  await requestPurchase({ sku });
+  if (Platform.OS === "ios") {
+    await requestPurchase({
+      request: { ios: { sku } },
+      type: "in-app",
+    });
+  } else {
+    await requestPurchase({
+      request: { android: { skus: [sku] } },
+      type: "in-app",
+    });
+  }
 }
 
 let listenersRegistered = false;
@@ -104,8 +117,8 @@ export function registerPurchaseListeners(opts?: {
   if (listenersRegistered) return () => {};
   listenersRegistered = true;
 
-  const updSub = purchaseUpdatedListener(async (purchase: ProductPurchase | SubscriptionPurchase) => {
-    console.log("[iap] purchase update:", purchase.productId, purchase.transactionId);
+  const updSub = purchaseUpdatedListener(async (purchase: Purchase) => {
+    console.log("[iap] purchase update:", purchase.productId, purchase.id);
     const accessToken = useAuthStore.getState().accessToken;
     if (!accessToken) {
       console.warn("[iap] no accessToken, skipping server verify");
@@ -114,15 +127,14 @@ export function registerPurchaseListeners(opts?: {
     try {
       const result = await submitPurchase(accessToken, {
         platform: Platform.OS === "ios" ? "ios" : "android",
-        transactionId: purchase.transactionId!,
+        transactionId: purchase.id,
         productId: purchase.productId,
       });
       console.log("[iap] server verify ok:", result);
-
-      await finishTransaction({ purchase, isConsumable: CONSUMABLE_SKUS.includes(purchase.productId as ConsumableSku) });
+      const isConsumable = CONSUMABLE_SKUS.includes(purchase.productId as ConsumableSku);
+      await finishTransaction({ purchase, isConsumable });
       opts?.onSuccess?.(purchase.productId);
     } catch (err) {
-
       console.error("[iap] server verify failed:", err);
     }
   });

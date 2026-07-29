@@ -66,6 +66,8 @@ export interface GiftCatalogItem {
   name: string;
   emoji: string;
   price: number;
+
+  imageUrl?: string;
 }
 
 export async function getGiftCatalog(env: Bindings): Promise<GiftCatalogItem[]> {
@@ -86,12 +88,17 @@ export async function getGiftCatalog(env: Bindings): Promise<GiftCatalogItem[]> 
         typeof (it as GiftCatalogItem).emoji === "string" &&
         typeof (it as GiftCatalogItem).price === "number"
       ) {
-        items.push({
-          id: (it as GiftCatalogItem).id,
-          name: (it as GiftCatalogItem).name,
-          emoji: (it as GiftCatalogItem).emoji,
-          price: (it as GiftCatalogItem).price,
-        });
+        const raw = it as GiftCatalogItem;
+        const item: GiftCatalogItem = {
+          id: raw.id,
+          name: raw.name,
+          emoji: raw.emoji,
+          price: raw.price,
+        };
+        if (typeof raw.imageUrl === "string" && raw.imageUrl.length > 0) {
+          item.imageUrl = raw.imageUrl;
+        }
+        items.push(item);
       }
     }
     return items.length > 0 ? items : GIFT_CATALOG_DEFAULT;
