@@ -345,28 +345,27 @@ export default function LoginScreen({ navigation }: Props) {
           {
 
 }
-          {Platform.OS !== "ios" &&
-            (googleEnabled === null ? (
+          {googleEnabled === null ? (
 
-              <View style={styles.googleButtonPlaceholder} />
-            ) : googleEnabled ? (
-              <>
-                {}
-                <View style={styles.divider}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>—</Text>
-                  <View style={styles.dividerLine} />
-                </View>
+            <View style={styles.googleButtonPlaceholder} />
+          ) : googleEnabled ? (
+            <>
+              {}
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>—</Text>
+                <View style={styles.dividerLine} />
+              </View>
 
-                <Button
-                  title={t("auth.login.googleBtn")}
-                  onPress={() => handleSocialLogin("google")}
-                  variant="secondary"
-                  size="md"
-                  leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}>G</Text>}
-                />
-              </>
-            ) : null)}
+              <Button
+                title={t("auth.login.googleBtn")}
+                onPress={() => handleSocialLogin("google")}
+                variant="secondary"
+                size="md"
+                leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}>G</Text>}
+              />
+            </>
+          ) : null}
 
           {}
           <View style={styles.signupRow}>
