@@ -31,22 +31,8 @@ import {
 import { getOrCreateDeviceId } from "../../lib/deviceId";
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
-
-const GOOGLE_WEB_CLIENT_ID =
-  "oth-client.googleusercontent.invalid";
-
-const GOOGLE_IOS_CLIENT_ID =
-  "oth-client.googleusercontent.invalid";
-
-try {
-  GoogleSignin.configure({
-    webClientId: GOOGLE_WEB_CLIENT_ID,
-    iosClientId: GOOGLE_IOS_CLIENT_ID,
-    offlineAccess: false,
-  });
-} catch (err) {
-  console.warn("[GoogleSignin] configure failed:", err);
-}
+import { useAuthConfigStore } from "../../stores/authConfigStore";
+import { ensureGoogleConfigured } from "../../lib/googleAuth";
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Login">;
@@ -65,6 +51,14 @@ export default function LoginScreen({ navigation }: Props) {
   const hydrate = useAuthStore((s) => s.hydrate);
   const loginWithApi = useAuthStore((s) => s.loginWithApi);
   const [loggingIn, setLoggingIn] = useState(false);
+
+  const googleEnabled = useAuthConfigStore((s) => s.googleEnabled);
+
+  useEffect(() => {
+    if (useAuthConfigStore.getState().loadedFrom === 'default') {
+      void useAuthConfigStore.getState().refresh();
+    }
+  }, []);
 
   const [mode, setMode] = useState<"account" | "otp">("account");
   const [otpBusy, setOtpBusy] = useState(false);
@@ -175,6 +169,10 @@ export default function LoginScreen({ navigation }: Props) {
   const handleSocialLogin = async (provider: string) => {
     if (provider === "google") {
       try {
+        if (!ensureGoogleConfigured()) {
+          showAlert("구글 로그인을 사용할 수 없어요", "잠시 후 다시 시도해 주세요.");
+          return;
+        }
         await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
         try {
           await GoogleSignin.signOut();
@@ -196,7 +194,11 @@ export default function LoginScreen({ navigation }: Props) {
         if (check.afterlifeExists) {
 
           const deviceId = await getOrCreateDeviceId();
-          const res = await googleSignIn({ idToken, deviceId, platform: "android" });
+          const res = await googleSignIn({
+            idToken,
+            deviceId,
+            platform: Platform.OS === "ios" ? "ios" : "android",
+          });
           const meRes = await getMe(res.accessToken);
           await setApiAuth(res.accessToken, meRes.user, { persist: autoLogin });
 
@@ -402,34 +404,37 @@ export default function LoginScreen({ navigation }: Props) {
           {
 
 }
-          {Platform.OS !== "ios" && (
-            <>
-              {}
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>—</Text>
-                <View style={styles.dividerLine} />
-              </View>
+          {(Platform.OS === "ios" || googleEnabled !== false) && (
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>—</Text>
+              <View style={styles.dividerLine} />
+            </View>
+          )}
 
+          {googleEnabled === null ? (
+
+            <View style={styles.googleButtonPlaceholder} />
+          ) : googleEnabled ? (
+            <Button
+              title={t("auth.login.googleBtn")}
+              onPress={() => handleSocialLogin("google")}
+              variant="secondary"
+              size="md"
+              leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}>G</Text>}
+            />
+          ) : null}
+
+          {Platform.OS === "ios" && (
+            <View style={{ marginTop: 10 }}>
               <Button
-                title={t("auth.login.googleBtn")}
-                onPress={() => handleSocialLogin("google")}
+                title="Apple 로 로그인"
+                onPress={() => handleSocialLogin("apple")}
                 variant="secondary"
                 size="md"
-                leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}>G</Text>}
+                leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}></Text>}
               />
-              {Platform.OS === "ios" && (
-                <View style={{ marginTop: 10 }}>
-                  <Button
-                    title="Apple 로 로그인"
-                    onPress={() => handleSocialLogin("apple")}
-                    variant="secondary"
-                    size="md"
-                    leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}></Text>}
-                  />
-                </View>
-              )}
-            </>
+            </View>
           )}
 
           {}
@@ -548,6 +553,10 @@ const styles = StyleSheet.create({
     marginHorizontal: SIZES.medium,
     color: COLORS.zinc400,
     fontSize: 14,
+  },
+
+  googleButtonPlaceholder: {
+    height: 116,
   },
   signupRow: {
     flexDirection: "row",
