@@ -31,6 +31,9 @@ export interface Bindings {
 
   CALL_PRETHIRD_BASE?: string;
   CALL_ROUTE?: string;
+
+  AUTH_GOOGLE_ENABLED_IOS?: string;
+  AUTH_GOOGLE_ENABLED_ANDROID?: string;
   CALL_SECOND_BASE?: string;
 
   ADMIN_BOOTSTRAP_TOKEN?: string;
