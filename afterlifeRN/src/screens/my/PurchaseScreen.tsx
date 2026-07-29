@@ -11,7 +11,7 @@ import {
   v_03e392,
   v_326be8,
 } from "rcmrninabrnb";
-import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
+import { v_cf763b, v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_678322, v_23b84c } from "bvpcozhmvsrfxgke";
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
@@ -49,6 +49,7 @@ const MOCK_CONSUMABLES: v_678322[] = [
 const v_2cc272 = (v_389afb): boolean => v_389afb.startsWith(v_5348ba);
 
 export default function v_0035e1() {
+  const v_c65f5d = v_ada615();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const [v_c88e9b, v_de20d8] = v_5ab095<v_2b70d7 | null>(null);
   const [v_55599a, v_530cbd] = v_5ab095(true);
@@ -145,7 +146,11 @@ export default function v_0035e1() {
 
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
-      <PageHeader title="크레딧 충전 · 구독" showBackButton />
+      <PageHeader
+        title="크레딧 충전 · 구독"
+        showBackButton
+        onBackPress={() => v_c65f5d.goBack()}
+      />
 
       <ScrollView contentContainerStyle={{ padding: v_9b1a04.large, paddingBottom: 40 }}>
         {}
