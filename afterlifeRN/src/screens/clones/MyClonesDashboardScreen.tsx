@@ -43,6 +43,7 @@ const v_bed6ed = v_feb82c as v_84fd28[];
 import { v_bfd883 } from "../../lib/relativeTime";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import { v_84a859, v_976b89 } from "../../api/auth";
+import { v_48981e, type v_2b70d7 } from "../../api/credits";
 
 import { v_7d2692 } from "../../api/files";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
@@ -119,6 +120,9 @@ export default function v_def15b() {
 
   const [v_959d04, v_fd8761] = v_5ab095<v_a9d96d[]>([]);
 
+  const [v_c88e9b, v_de20d8] = v_5ab095<v_2b70d7 | null>(null);
+  const [v_747a87, v_3e37d1] = v_5ab095(false);
+
   const v_8e46f5 = v_de06a3(async (v_cc88f5 = false) => {
     if (!v_2ca7e0) {
       v_d42991(null);
@@ -156,7 +160,15 @@ export default function v_def15b() {
   v_cf763b(
     v_de06a3(() => {
       v_8e46f5(false);
-    }, [v_8e46f5]),
+
+      if (v_2ca7e0) {
+        v_3e37d1(true);
+        v_48981e(v_2ca7e0)
+          .then((v_148ff6) => v_de20d8(v_148ff6))
+          .catch((v_49263d) => console.warn("[MyClonesDashboard] balance fail:", v_49263d))
+          .finally(() => v_3e37d1(false));
+      }
+    }, [v_8e46f5, v_2ca7e0]),
   );
 
   const v_4cd149 = v_df9f57<v_affcc0[]>(() => {
@@ -854,6 +866,47 @@ export default function v_def15b() {
             </View>
 
             {}
+            <TouchableOpacity
+              style={v_fd5f43.balanceCard}
+              activeOpacity={0.85}
+              onPress={() => {
+                v_c65f5d.getParent()?.dispatch(
+                  v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                );
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={v_fd5f43.balanceLabel}>남은 통화 시간</Text>
+                {v_747a87 && !v_c88e9b ? (
+                  <ActivityIndicator color={v_1bfbd0.violet600} style={{ marginTop: 6 }} />
+                ) : v_c88e9b ? (
+                  <>
+                    <Text style={v_fd5f43.balanceTotal}>
+                      {(() => {
+                        const v_fd5f43 = Math.max(0, Math.floor(v_c88e9b.totalSec));
+                        const v_35f85c = Math.floor(v_fd5f43 / 60);
+                        const v_3300b9 = v_fd5f43 % 60;
+                        if (v_35f85c === 0) return `${v_3300b9}초`;
+                        return v_3300b9 > 0 ? `${v_35f85c}분 ${v_3300b9}초` : `${v_35f85c}분`;
+                      })()}
+                    </Text>
+                    <Text style={v_fd5f43.balanceBreakdown}>
+                      무료 {Math.floor(v_c88e9b.freeSec / 60)}분
+                      {v_c88e9b.subSec > 0 ? ` · 구독 ${Math.floor(v_c88e9b.subSec / 60)}분` : ""}
+                      {v_c88e9b.topupSec > 0 ? ` · 충전 ${Math.floor(v_c88e9b.topupSec / 60)}분` : ""}
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={v_fd5f43.balanceEmpty}>잔액 조회 실패</Text>
+                )}
+              </View>
+              <View style={v_fd5f43.balanceCta}>
+                <Text style={v_fd5f43.balanceCtaText}>충전</Text>
+                <Feather name="chevron-right" size={16} color="#fff" />
+              </View>
+            </TouchableOpacity>
+
+            {}
 
             {
 }
@@ -1454,6 +1507,29 @@ const v_fd5f43 = v_472849.create({
   },
   inviteStatusBtnText: { fontSize: 12, fontWeight: "600", color: v_1bfbd0.violet600 },
   dashSubText: { fontSize: 13, color: v_1bfbd0.zinc500, marginTop: 4 },
+
+  balanceCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: v_1bfbd0.violet100,
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    marginBottom: 16,
+  },
+  balanceLabel: { fontSize: 12, color: v_1bfbd0.zinc600, marginBottom: 4 },
+  balanceTotal: { fontSize: 22, fontWeight: "700", color: v_1bfbd0.violet700 },
+  balanceBreakdown: { fontSize: 12, color: v_1bfbd0.zinc600, marginTop: 4 },
+  balanceEmpty: { fontSize: 13, color: v_1bfbd0.zinc500, marginTop: 6 },
+  balanceCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: v_1bfbd0.violet600,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  balanceCtaText: { fontSize: 13, fontWeight: "700", color: "#fff" },
 
   coinRow: {
     flexDirection: "row",
