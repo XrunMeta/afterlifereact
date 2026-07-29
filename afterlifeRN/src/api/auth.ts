@@ -194,6 +194,17 @@ export async function googleCheck(idToken: string): Promise<GoogleCheckResponse>
   return postJson("/oth-path", { idToken });
 }
 
+export interface AppleSignInPayload {
+  identityToken: string;
+  fullName?: { givenName?: string | null; familyName?: string | null } | null;
+  deviceId?: string;
+  pushToken?: string;
+  platform?: "ios" | "android" | "web";
+}
+export async function appleSignIn(payload: AppleSignInPayload): Promise<LoginResponse> {
+  return postJson("/oth-path", payload);
+}
+
 export async function getMe(accessToken: string): Promise<{ user: AuthUser; interests: string[] }> {
   return _authFetch("/oth-path", accessToken);
 }
