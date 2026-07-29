@@ -32,6 +32,22 @@ function fmtSecToMin(sec: number): string {
   return s > 0 ? `${min}분 ${s}초` : `${min}분`;
 }
 
+const MOCK_PREFIX = "__mock__";
+const MOCK_SUBS: ProductSubscription[] = [
+  { id: "run.xrun.afterlife.sub.light", title: "xLight 30min", description: "월 30분 통화", displayPrice: "₩2,200", price: 2200, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
+  { id: "run.xrun.afterlife.sub.basic.v3", title: "xBasic 100min", description: "월 100분 통화", displayPrice: "₩6,600", price: 6600, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
+  { id: "run.xrun.afterlife.sub.standard", title: "xStandard 300min", description: "월 300분 통화", displayPrice: "₩19,900", price: 19900, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
+  { id: "run.xrun.afterlife.sub.plus", title: "xPlus 600min", description: "월 600분 통화", displayPrice: "₩39,900", price: 39900, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
+  { id: "run.xrun.afterlife.sub.premium", title: "xPremium 1000min", description: "월 1000분 통화", displayPrice: "₩69,900", price: 69900, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
+].map((p) => ({ ...p, id: `${MOCK_PREFIX}${p.id}` }) as ProductSubscription);
+const MOCK_CONSUMABLES: Product[] = [
+  { id: "run.xrun.afterlife.credit.30", title: "Recharge 30min", description: "30분 충전 · 5년 유효", displayPrice: "₩2,200", price: 2200, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
+  { id: "run.xrun.afterlife.credit.60", title: "Recharge 60min", description: "60분 충전 · 5년 유효", displayPrice: "₩4,400", price: 4400, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
+  { id: "run.xrun.afterlife.credit.150", title: "Recharge 150min", description: "150분 충전 · 5년 유효", displayPrice: "₩9,900", price: 9900, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
+  { id: "run.xrun.afterlife.credit.300", title: "Recharge 300min", description: "300분 충전 · 5년 유효", displayPrice: "₩19,900", price: 19900, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
+].map((p) => ({ ...p, id: `${MOCK_PREFIX}${p.id}` }) as Product);
+const isMockSku = (id: string): boolean => id.startsWith(MOCK_PREFIX);
+
 export default function PurchaseScreen() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const [balance, setBalance] = useState<CreditBalance | null>(null);
@@ -60,16 +76,24 @@ export default function PurchaseScreen() {
     }, [refresh]),
   );
 
+  const [mockMode, setMockMode] = useState(false);
   const refreshProducts = useCallback(async () => {
     setProdLoading(true);
     try {
       const { subscriptions, consumables: cons } = await fetchAllProducts();
-      setSubs(subscriptions);
-      setConsumables(cons);
-      console.log(`[purchase] loaded ${subscriptions.length} subs, ${cons.length} consumables`);
+
+      const useMocks = subscriptions.length === 0 && cons.length === 0;
+      setMockMode(useMocks);
+      setSubs(useMocks ? MOCK_SUBS : subscriptions);
+      setConsumables(useMocks ? MOCK_CONSUMABLES : cons);
+      console.log(
+        `[purchase] loaded ${subscriptions.length} subs, ${cons.length} consumables${useMocks ? " (mock 삽입)" : ""}`,
+      );
     } catch (err) {
-      console.warn("[purchase] product fetch failed:", err);
-      Alert.alert("상품 로드 실패", "잠시 후 다시 시도해주세요.");
+      console.warn("[purchase] product fetch failed, falling back to mocks:", err);
+      setMockMode(true);
+      setSubs(MOCK_SUBS);
+      setConsumables(MOCK_CONSUMABLES);
     } finally {
       setProdLoading(false);
     }
@@ -78,11 +102,15 @@ export default function PurchaseScreen() {
     void refreshProducts();
   }, [refreshProducts]);
 
-  const handleBuySubscription = async (sku: SubscriptionSku) => {
+  const handleBuySubscription = async (sku: string) => {
     if (buying) return;
+    if (isMockSku(sku)) {
+      Alert.alert("MOCK 상품", "유료 앱 계약 활성화 후 실제 결제 가능합니다.");
+      return;
+    }
     setBuying(sku);
     try {
-      await buySubscription(sku);
+      await buySubscription(sku as SubscriptionSku);
 
       setTimeout(() => refresh(), 2000);
     } catch (err) {
@@ -95,11 +123,15 @@ export default function PurchaseScreen() {
     }
   };
 
-  const handleBuyConsumable = async (sku: ConsumableSku) => {
+  const handleBuyConsumable = async (sku: string) => {
     if (buying) return;
+    if (isMockSku(sku)) {
+      Alert.alert("MOCK 상품", "유료 앱 계약 활성화 후 실제 결제 가능합니다.");
+      return;
+    }
     setBuying(sku);
     try {
-      await buyConsumable(sku);
+      await buyConsumable(sku as ConsumableSku);
       setTimeout(() => refresh(), 2000);
     } catch (err) {
       const msg = (err as Error).message ?? "";
@@ -116,6 +148,17 @@ export default function PurchaseScreen() {
       <PageHeader title="크레딧 충전 · 구독" showBackButton />
 
       <ScrollView contentContainerStyle={{ padding: SIZES.large, paddingBottom: 40 }}>
+        {}
+        {mockMode && (
+          <View style={s.mockBanner}>
+            <Text style={s.mockBannerTitle}>⚠ MOCK 데이터 (임시)</Text>
+            <Text style={s.mockBannerDesc}>
+              유료 앱 계약 미체결로 실제 상품이 안 뜹니다. UI 확인용 임시 카드예요.{"\n"}
+              탭해도 실제 결제 안 되고, 계약 활성화 후 자동 실상품 전환.
+            </Text>
+          </View>
+        )}
+
         {}
         <View style={s.balanceCard}>
           <Text style={s.balanceTitle}>남은 통화 시간</Text>
@@ -176,7 +219,7 @@ export default function PurchaseScreen() {
             <TouchableOpacity
               key={p.id}
               style={[s.card, buying === p.id && s.cardDisabled]}
-              onPress={() => handleBuySubscription(p.id as SubscriptionSku)}
+              onPress={() => handleBuySubscription(p.id)}
               disabled={buying !== null}
             >
               <View style={{ flex: 1 }}>
@@ -215,7 +258,7 @@ export default function PurchaseScreen() {
             <TouchableOpacity
               key={p.id}
               style={[s.card, buying === p.id && s.cardDisabled]}
-              onPress={() => handleBuyConsumable(p.id as ConsumableSku)}
+              onPress={() => handleBuyConsumable(p.id)}
               disabled={buying !== null}
             >
               <View style={{ flex: 1 }}>
@@ -303,5 +346,16 @@ const s = StyleSheet.create({
     marginTop: 4,
   },
   retryBtnText: { fontSize: 13, fontWeight: "700", color: "#fff" },
+
+  mockBanner: {
+    backgroundColor: "#fef3c7",
+    borderWidth: 1,
+    borderColor: "#f59e0b",
+    borderRadius: RADIUS.medium,
+    padding: 12,
+    marginBottom: 16,
+  },
+  mockBannerTitle: { fontSize: 13, fontWeight: "700", color: "#b45309", marginBottom: 4 },
+  mockBannerDesc: { fontSize: 11, color: "#92400e", lineHeight: 16 },
   footer: { fontSize: 11, color: COLORS.zinc500, textAlign: "center", lineHeight: 18 },
 });
