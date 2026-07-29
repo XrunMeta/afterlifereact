@@ -33,7 +33,8 @@
         "NSLocationWhenInUseUsageDescription": "이 앱은 위치 정보를 직접 사용하지 않습니다. 카메라 관련 라이브러리가 접근을 요청할 수 있어 안내드립니다."
       },
       "appleTeamId": "677WG96CUJ",
-      "buildNumber": "11"
+      "buildNumber": "11",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "package": "run.xrun.afterlifeRN",
@@ -75,7 +76,12 @@
         }
       ],
       "./plugins/withUCropColors.js",
-      "@react-native-google-signin/google-signin",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.1093051863087-fe9rs6sl5cf58idlig69vjga32ln6noq"
+        }
+      ],
       "expo-localization",
       "expo-audio",
       "expo-video",
