@@ -66,6 +66,8 @@ export interface GiftCatalogItem {
   name: string;
   emoji: string;
   price: number;
+
+  imageUrl?: string;
 }
 
 export async function v_0edc13(env: v_273a0c): Promise<GiftCatalogItem[]> {
@@ -86,12 +88,17 @@ export async function v_0edc13(env: v_273a0c): Promise<GiftCatalogItem[]> {
         typeof (v_23805a as GiftCatalogItem).emoji === "string" &&
         typeof (v_23805a as GiftCatalogItem).price === "number"
       ) {
-        v_4622b9.push({
-          id: (v_23805a as GiftCatalogItem).id,
-          name: (v_23805a as GiftCatalogItem).name,
-          emoji: (v_23805a as GiftCatalogItem).emoji,
-          price: (v_23805a as GiftCatalogItem).price,
-        });
+        const v_479f05 = v_23805a as GiftCatalogItem;
+        const v_8c0b26 = {
+          id: v_479f05.id,
+          name: v_479f05.name,
+          emoji: v_479f05.emoji,
+          price: v_479f05.price,
+        };
+        if (typeof v_479f05.imageUrl === "string" && v_479f05.imageUrl.length > 0) {
+          v_8c0b26.imageUrl = v_479f05.imageUrl;
+        }
+        v_4622b9.push(v_8c0b26);
       }
     }
     return v_4622b9.length > 0 ? v_4622b9 : v_555ada;

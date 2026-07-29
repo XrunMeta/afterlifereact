@@ -34,13 +34,15 @@ import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 const v_93942f =
   "oth-client.googleusercontent.invalid";
 
-try {
-  v_4eac84.configure({
-    webClientId: v_93942f,
-    offlineAccess: false,
-  });
-} catch (v_49263d) {
-  console.warn("[GoogleSignin] configure failed:", v_49263d);
+if (v_326be8.OS === "android") {
+  try {
+    v_4eac84.configure({
+      webClientId: v_93942f,
+      offlineAccess: false,
+    });
+  } catch (v_49263d) {
+    console.warn("[GoogleSignin] configure failed:", v_49263d);
+  }
 }
 
 type Props = {
