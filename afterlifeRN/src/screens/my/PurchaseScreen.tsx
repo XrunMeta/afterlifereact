@@ -32,6 +32,22 @@ function v_429a79(v_b6a7e0): string {
   return v_fd5f43 > 0 ? `${v_43e24b}분 ${v_fd5f43}초` : `${v_43e24b}분`;
 }
 
+const v_5348ba = "__mock__";
+const MOCK_SUBS: v_23b84c[] = [
+  { id: "run.xrun.afterlife.sub.light", title: "xLight 30min", description: "월 30분 통화", displayPrice: "₩2,200", price: 2200, currency: "KRW", platform: "ios", type: "subs" } as unknown as v_23b84c,
+  { id: "run.xrun.afterlife.sub.basic.v3", title: "xBasic 100min", description: "월 100분 통화", displayPrice: "₩6,600", price: 6600, currency: "KRW", platform: "ios", type: "subs" } as unknown as v_23b84c,
+  { id: "run.xrun.afterlife.sub.standard", title: "xStandard 300min", description: "월 300분 통화", displayPrice: "₩19,900", price: 19900, currency: "KRW", platform: "ios", type: "subs" } as unknown as v_23b84c,
+  { id: "run.xrun.afterlife.sub.plus", title: "xPlus 600min", description: "월 600분 통화", displayPrice: "₩39,900", price: 39900, currency: "KRW", platform: "ios", type: "subs" } as unknown as v_23b84c,
+  { id: "run.xrun.afterlife.sub.premium", title: "xPremium 1000min", description: "월 1000분 통화", displayPrice: "₩69,900", price: 69900, currency: "KRW", platform: "ios", type: "subs" } as unknown as v_23b84c,
+].map((v_e2a85c) => ({ ...v_e2a85c, id: `${v_5348ba}${v_e2a85c.id}` }) as v_23b84c);
+const MOCK_CONSUMABLES: v_678322[] = [
+  { id: "run.xrun.afterlife.credit.30", title: "Recharge 30min", description: "30분 충전 · 5년 유효", displayPrice: "₩2,200", price: 2200, currency: "KRW", platform: "ios", type: "in-app" } as unknown as v_678322,
+  { id: "run.xrun.afterlife.credit.60", title: "Recharge 60min", description: "60분 충전 · 5년 유효", displayPrice: "₩4,400", price: 4400, currency: "KRW", platform: "ios", type: "in-app" } as unknown as v_678322,
+  { id: "run.xrun.afterlife.credit.150", title: "Recharge 150min", description: "150분 충전 · 5년 유효", displayPrice: "₩9,900", price: 9900, currency: "KRW", platform: "ios", type: "in-app" } as unknown as v_678322,
+  { id: "run.xrun.afterlife.credit.300", title: "Recharge 300min", description: "300분 충전 · 5년 유효", displayPrice: "₩19,900", price: 19900, currency: "KRW", platform: "ios", type: "in-app" } as unknown as v_678322,
+].map((v_e2a85c) => ({ ...v_e2a85c, id: `${v_5348ba}${v_e2a85c.id}` }) as v_678322);
+const v_2cc272 = (v_389afb): boolean => v_389afb.startsWith(v_5348ba);
+
 export default function v_0035e1() {
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const [v_c88e9b, v_de20d8] = v_5ab095<v_2b70d7 | null>(null);
@@ -60,16 +76,24 @@ export default function v_0035e1() {
     }, [v_1a1b9b]),
   );
 
+  const [v_be7a92, v_8c27a2] = v_5ab095(false);
   const v_d5d7b5 = v_de06a3(async () => {
     v_6d964e(true);
     try {
       const { subscriptions: v_60a14d, consumables: v_cfc98b } = await v_1c6d94();
-      v_0cf94e(v_60a14d);
-      v_cb5356(v_cfc98b);
-      console.log(`[purchase] loaded ${v_60a14d.length} subs, ${v_cfc98b.length} consumables`);
+
+      const v_8626ec = v_60a14d.length === 0 && v_cfc98b.length === 0;
+      v_8c27a2(v_8626ec);
+      v_0cf94e(v_8626ec ? v_246db7 : v_60a14d);
+      v_cb5356(v_8626ec ? v_45e2bf : v_cfc98b);
+      console.log(
+        `[purchase] loaded ${v_60a14d.length} subs, ${v_cfc98b.length} consumables${v_8626ec ? " (mock 삽입)" : ""}`,
+      );
     } catch (v_49263d) {
-      console.warn("[purchase] product fetch failed:", v_49263d);
-      v_03e392.alert("상품 로드 실패", "잠시 후 다시 시도해주세요.");
+      console.warn("[purchase] product fetch failed, falling back to mocks:", v_49263d);
+      v_8c27a2(true);
+      v_0cf94e(v_246db7);
+      v_cb5356(v_45e2bf);
     } finally {
       v_6d964e(false);
     }
@@ -78,11 +102,15 @@ export default function v_0035e1() {
     void v_d5d7b5();
   }, [v_d5d7b5]);
 
-  const v_0b9762 = async (sku: v_a9d25e) => {
+  const v_0b9762 = async (v_399dbd) => {
     if (v_c63375) return;
+    if (v_2cc272(v_399dbd)) {
+      v_03e392.alert("MOCK 상품", "유료 앱 계약 활성화 후 실제 결제 가능합니다.");
+      return;
+    }
     v_ce0cde(v_399dbd);
     try {
-      await v_7c6fd6(v_399dbd);
+      await v_7c6fd6(v_399dbd as v_a9d25e);
 
       setTimeout(() => v_1a1b9b(), 2000);
     } catch (v_49263d) {
@@ -95,11 +123,15 @@ export default function v_0035e1() {
     }
   };
 
-  const v_bdb045 = async (sku: v_a81007) => {
+  const v_bdb045 = async (v_399dbd) => {
     if (v_c63375) return;
+    if (v_2cc272(v_399dbd)) {
+      v_03e392.alert("MOCK 상품", "유료 앱 계약 활성화 후 실제 결제 가능합니다.");
+      return;
+    }
     v_ce0cde(v_399dbd);
     try {
-      await v_e02ccf(v_399dbd);
+      await v_e02ccf(v_399dbd as v_a81007);
       setTimeout(() => v_1a1b9b(), 2000);
     } catch (v_49263d) {
       const v_badeaf = (v_49263d as Error).message ?? "";
@@ -116,6 +148,17 @@ export default function v_0035e1() {
       <PageHeader title="크레딧 충전 · 구독" showBackButton />
 
       <ScrollView contentContainerStyle={{ padding: v_9b1a04.large, paddingBottom: 40 }}>
+        {}
+        {v_be7a92 && (
+          <View style={v_fd5f43.mockBanner}>
+            <Text style={v_fd5f43.mockBannerTitle}>⚠ MOCK 데이터 (임시)</Text>
+            <Text style={v_fd5f43.mockBannerDesc}>
+              유료 앱 계약 미체결로 실제 상품이 안 뜹니다. UI 확인용 임시 카드예요.{"\n"}
+              탭해도 실제 결제 안 되고, 계약 활성화 후 자동 실상품 전환.
+            </Text>
+          </View>
+        )}
+
         {}
         <View style={v_fd5f43.balanceCard}>
           <Text style={v_fd5f43.balanceTitle}>남은 통화 시간</Text>
@@ -176,7 +219,7 @@ export default function v_0035e1() {
             <TouchableOpacity
               key={v_e2a85c.id}
               style={[v_fd5f43.card, v_c63375 === v_e2a85c.id && v_fd5f43.cardDisabled]}
-              onPress={() => v_0b9762(v_e2a85c.id as v_a9d25e)}
+              onPress={() => v_0b9762(v_e2a85c.id)}
               disabled={v_c63375 !== null}
             >
               <View style={{ flex: 1 }}>
@@ -215,7 +258,7 @@ export default function v_0035e1() {
             <TouchableOpacity
               key={v_e2a85c.id}
               style={[v_fd5f43.card, v_c63375 === v_e2a85c.id && v_fd5f43.cardDisabled]}
-              onPress={() => v_bdb045(v_e2a85c.id as v_a81007)}
+              onPress={() => v_bdb045(v_e2a85c.id)}
               disabled={v_c63375 !== null}
             >
               <View style={{ flex: 1 }}>
@@ -303,5 +346,16 @@ const v_fd5f43 = v_472849.create({
     marginTop: 4,
   },
   retryBtnText: { fontSize: 13, fontWeight: "700", color: "#fff" },
+
+  mockBanner: {
+    backgroundColor: "#fef3c7",
+    borderWidth: 1,
+    borderColor: "#f59e0b",
+    borderRadius: v_8b0c90.medium,
+    padding: 12,
+    marginBottom: 16,
+  },
+  mockBannerTitle: { fontSize: 13, fontWeight: "700", color: "#b45309", marginBottom: 4 },
+  mockBannerDesc: { fontSize: 11, color: "#92400e", lineHeight: 16 },
   footer: { fontSize: 11, color: v_1bfbd0.zinc500, textAlign: "center", lineHeight: 18 },
 });
