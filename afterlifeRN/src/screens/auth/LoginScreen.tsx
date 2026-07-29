@@ -34,10 +34,14 @@ import { COLORS, SIZES, RADIUS } from "../../components/constants";
 const GOOGLE_WEB_CLIENT_ID =
   "oth-client.googleusercontent.invalid";
 
-GoogleSignin.configure({
-  webClientId: GOOGLE_WEB_CLIENT_ID,
-  offlineAccess: false,
-});
+try {
+  GoogleSignin.configure({
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    offlineAccess: false,
+  });
+} catch (err) {
+  console.warn("[GoogleSignin] configure failed:", err);
+}
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Login">;
