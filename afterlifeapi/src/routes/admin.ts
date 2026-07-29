@@ -105,6 +105,77 @@ v_b7f2b4.patch("/config/gift-catalog", v_c0a297, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true, items: v_76a373 });
 });
 
+v_b7f2b4.get("/call-sessions", v_c0a297, async (v_3f4e2e) => {
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 100);
+  const v_02be30 = Math.max(1, Math.min(500, Number.isFinite(v_cf2260) ? v_cf2260 : 100));
+  const v_43e90c = v_f71b56.searchParams.get("userId");
+  const v_6e0fd3 = v_f71b56.searchParams.get("cloneId");
+  const v_ab6401 = (v_f71b56.searchParams.get("q") ?? "").trim();
+  const v_a13c2e = v_f71b56.searchParams.get("from");
+  const v_257132 = v_f71b56.searchParams.get("to");
+
+  const v_abcc8d = [];
+  const v_925171 = [];
+  if (v_43e90c) { v_abcc8d.push("cs.user_id = ?"); v_925171.push(Number(v_43e90c)); }
+  if (v_6e0fd3) { v_abcc8d.push("cs.clone_id = ?"); v_925171.push(Number(v_6e0fd3)); }
+  if (v_a13c2e) { v_abcc8d.push("cs.started_at >= ?"); v_925171.push(Number(v_a13c2e)); }
+  if (v_257132) { v_abcc8d.push("cs.started_at <= ?"); v_925171.push(Number(v_257132)); }
+  if (v_ab6401) {
+    v_abcc8d.push("(u.email LIKE ? OR u.name LIKE ? OR c.name LIKE ? OR cs.call_id LIKE ?)");
+    const v_2a1d60 = `%${v_ab6401}%`;
+    v_925171.push(v_2a1d60, v_2a1d60, v_2a1d60, v_2a1d60);
+  }
+  const v_8b4d7e = v_abcc8d.length > 0 ? `WHERE ${v_abcc8d.join(" AND ")}` : "";
+
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT cs.call_id       AS callId,
+              cs.user_id       AS userId,
+              u.email          AS userEmail,
+              u.name           AS userName,
+              cs.clone_id      AS cloneId,
+              c.name           AS cloneName,
+              c.username       AS cloneUsername,
+              cs.persona_slug  AS personaSlug,
+              cs.started_at    AS startedAt,
+              cs.greeted_at    AS greetedAt,
+              cs.ended_at      AS endedAt,
+              cs.duration_sec  AS durationSec,
+              cs.allowed_sec   AS allowedSec,
+              cs.billed_sec    AS billedSec,
+              cs.unbilled_sec  AS unbilledSec,
+              cs.billed_at     AS billedAt
+         FROM call_sessions cs
+         LEFT JOIN users  u ON u.id = cs.user_id
+         LEFT JOIN clones c ON c.id = cs.clone_id
+         ${v_8b4d7e}
+         ORDER BY cs.started_at DESC
+         LIMIT ?`,
+    )
+    .bind(...v_925171, v_02be30)
+    .all<{
+      callId: string;
+      userId: number;
+      userEmail: string | null;
+      userName: string | null;
+      cloneId: number;
+      cloneName: string | null;
+      cloneUsername: string | null;
+      personaSlug: string | null;
+      startedAt: number;
+      greetedAt: number | null;
+      endedAt: number | null;
+      durationSec: number | null;
+      allowedSec: number | null;
+      billedSec: number | null;
+      unbilledSec: number | null;
+      billedAt: number | null;
+    }>();
+
+  return v_3f4e2e.json({ items: v_18b8bf.results });
+});
+
 v_b7f2b4.post("/files/gift-image", v_c0a297, async (v_3f4e2e) => {
   let v_ebd523;
   try {
