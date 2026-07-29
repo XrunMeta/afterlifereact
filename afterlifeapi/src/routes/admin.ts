@@ -81,10 +81,93 @@ v_b7f2b4.patch("/config/gift-catalog", v_c0a297, async (v_3f4e2e) => {
     if (typeof v_23805a.price !== "number" || !Number.isFinite(v_23805a.price) || v_23805a.price < 0) {
       throw new v_3ebe58("VALIDATION_FAILED", "price must be non-negative number.");
     }
-    v_76a373.push({ id: v_23805a.id.trim(), name: v_23805a.name.trim(), emoji: v_23805a.emoji.trim(), price: v_23805a.price });
+    const clean1: v_83f27d = {
+      id: v_23805a.id.trim(),
+      name: v_23805a.name.trim(),
+      emoji: v_23805a.emoji.trim(),
+      price: v_23805a.price,
+    };
+    if (v_23805a.imageUrl !== undefined && v_23805a.imageUrl !== null) {
+      if (typeof v_23805a.imageUrl !== "string") {
+        throw new v_3ebe58("VALIDATION_FAILED", "imageUrl must be string.");
+      }
+      const v_2f361a = v_23805a.imageUrl.trim();
+      if (v_2f361a.length > 0) {
+        if (v_2f361a.length > 500) {
+          throw new v_3ebe58("VALIDATION_FAILED", "imageUrl too long.");
+        }
+        v_bd030e.imageUrl = v_2f361a;
+      }
+    }
+    v_76a373.push(v_bd030e);
   }
   await v_9459da(v_3f4e2e.env, v_76a373);
   return v_3f4e2e.json({ ok: true, items: v_76a373 });
+});
+
+v_b7f2b4.post("/files/gift-image", v_c0a297, async (v_3f4e2e) => {
+  let v_ebd523;
+  try {
+    v_ebd523 = await v_3f4e2e.req.formData();
+  } catch {
+    throw new v_3ebe58("VALIDATION_FAILED", "multipart/form-data required.");
+  }
+  const v_479f05 = v_ebd523.get("file");
+  if (
+    !v_479f05 ||
+    typeof v_479f05 !== "object" ||
+    typeof (v_479f05 as { arrayBuffer?: unknown }).arrayBuffer !== "function"
+  ) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Missing 'file' field.");
+  }
+  const v_4de33e = v_479f05 as {
+    type: string;
+    size: number;
+    arrayBuffer: () => Promise<ArrayBuffer>;
+  };
+  const v_58b649 = new Set(["image/jpeg", "image/png", "image/webp"]);
+  const v_f0f98a = 2 * 1024 * 1024; 
+  if (!v_58b649.has(v_4de33e.type)) {
+    throw new v_3ebe58(
+      "VALIDATION_FAILED",
+      `Unsupported type: ${v_4de33e.type}. jpeg/png/webp only.`,
+    );
+  }
+  if (v_4de33e.size > v_f0f98a) {
+    throw new v_3ebe58(
+      "VALIDATION_FAILED",
+      `File too large (${v_4de33e.size} bytes). Max ${v_f0f98a} bytes.`,
+    );
+  }
+  const v_40a923 =
+    v_4de33e.type === "image/jpeg" ? ".jpg" : v_4de33e.type === "image/png" ? ".png" : ".webp";
+  const v_fc3f08 = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+  const v_8d41d7 = Date.now().toString(36);
+  const v_0037e3 = `uploadedfiles/admin/gift/${v_8d41d7}${v_fc3f08}${v_40a923}`;
+  const v_83ee53 = await v_4de33e.arrayBuffer();
+  await v_3f4e2e.env.R2_ARCHIVE.put(v_0037e3, v_83ee53, {
+    httpMetadata: { contentType: v_4de33e.type },
+    customMetadata: { purpose: "gift.catalog", uploader: "admin" },
+  });
+  const v_81161e = await v_3f4e2e.env.DB
+    .prepare(
+      `INSERT INTO files (r2_key, content_type, size_bytes, owner_user_id, purpose)
+       VALUES (?, ?, ?, NULL, ?)
+       RETURNING id`,
+    )
+    .bind(v_0037e3, v_4de33e.type, v_4de33e.size, "gift.catalog")
+    .first<{ id: number }>();
+  if (!v_81161e) {
+    await v_3f4e2e.env.R2_ARCHIVE.delete(v_0037e3);
+    throw new v_3ebe58("INTERNAL_ERROR", "Failed to register file.");
+  }
+  const v_f17108 = new URL(v_3f4e2e.req.url).origin;
+  return v_3f4e2e.json({
+    id: v_81161e.id,
+    url: `${v_f17108}/oth-path${v_81161e.id}`,
+    contentType: v_4de33e.type,
+    sizeBytes: v_4de33e.size,
+  }, 201);
 });
 
 const v_c325e5 = v_1f4ea7.object({

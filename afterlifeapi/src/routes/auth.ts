@@ -18,6 +18,7 @@ import { v_74defc } from "../lib/logger";
 import { v_b78f7e, v_656e8b } from "../lib/otp";
 
 import { v_a32f1d } from "../lib/googleAuth";
+import { v_bb3c56 } from "../lib/appleAuth";
 import { v_4960d7 } from "../lib/credits";
 
 export const v_68f0aa = new v_b7c41b<v_de0a25>();
@@ -173,6 +174,111 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
            updated_at = CURRENT_TIMESTAMP`,
       )
       .bind(v_d1b635.id, v_4d33b2.deviceId, v_4d33b2.pushToken, v_4d33b2.platform ?? "web")
+      .run();
+  }
+
+  const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(v_3f4e2e, v_d1b635.id, v_4d33b2.deviceId);
+  v_56035d(v_3f4e2e, v_dfaee3);
+
+  return v_3f4e2e.json({
+    accessToken: v_2ca7e0,
+    refreshToken: v_dfaee3,
+    accessExpiresIn: v_ff8c95,
+    user: {
+      id: v_d1b635.id,
+      name: v_d1b635.name,
+      email: v_d1b635.email,
+      funnelStage: v_d1b635.funnelStage,
+    },
+  });
+});
+
+const v_ceba43 = v_1f4ea7.object({
+  identityToken: v_1f4ea7.string().min(20),
+  fullName: v_1f4ea7.object({ givenName: v_1f4ea7.string().nullable().optional(), familyName: v_1f4ea7.string().nullable().optional() }).optional(),
+  deviceId: v_1f4ea7.string().min(1).max(200).optional(),
+  pushToken: v_1f4ea7.string().min(1).max(500).optional(),
+  platform: v_1f4ea7.enum(["ios", "android", "web"]).optional(),
+});
+v_68f0aa.post("/apple", async (v_3f4e2e) => {
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_ceba43);
+  const v_a1651b = v_3f4e2e.env.DB;
+  const v_931bf0 = await v_bb3c56(v_3f4e2e.env, v_4d33b2.identityToken);
+
+  let v_d1b635 = await v_a1651b
+    .prepare(
+      `SELECT id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until FROM users
+        WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
+    )
+    .bind(v_931bf0.email)
+    .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null }>();
+
+  if (!v_d1b635) {
+
+    const v_c4820c = crypto.randomUUID() + crypto.randomUUID();
+    const v_df7439 = await v_54846c(v_c4820c);
+    const v_ef7664 =
+      [v_4d33b2.fullName?.givenName, v_4d33b2.fullName?.familyName].filter(Boolean).join(" ") ||
+      (v_931bf0.is_private_email ? "Apple User" : v_931bf0.email.split("@")[0]) ||
+      "user";
+    const v_81161e = await v_a1651b
+      .prepare(
+        `INSERT INTO users (name, email, password_hash, avatar_url)
+         VALUES (?, ?, ?, NULL)
+         RETURNING id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until`,
+      )
+      .bind(v_ef7664, v_931bf0.email, v_df7439)
+      .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null }>();
+    if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user.");
+    v_d1b635 = v_81161e;
+
+    await v_74defc(v_3f4e2e, {
+      userId: v_81161e.id,
+      action: "auth.apple.signup",
+      details: { sub: v_931bf0.sub, isPrivateEmail: v_931bf0.is_private_email },
+    });
+
+    try {
+      await v_4960d7(v_3f4e2e, v_81161e.id);
+    } catch (v_49263d) {
+      console.error(`[SIGNUP_GRANT_FAIL] user_id=${v_81161e.id} err=${(v_49263d as Error).message}`);
+    }
+  } else {
+    if (v_d1b635.deletion_state !== "active") {
+      throw new v_3ebe58("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
+    }
+    if (v_d1b635.banned_until && v_e8cd3d(v_d1b635.banned_until) > Date.now()) {
+      throw new v_3ebe58("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
+        bannedUntil: v_d1b635.banned_until,
+      });
+    }
+    await v_74defc(v_3f4e2e, {
+      userId: v_d1b635.id,
+      action: "auth.apple.login",
+      details: { sub: v_931bf0.sub },
+    });
+  }
+
+  if (v_4d33b2.deviceId && v_4d33b2.pushToken) {
+    await v_a1651b
+      .prepare(
+        `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+           WHERE push_token = ? AND user_id != ? AND is_active = 1`,
+      )
+      .bind(v_4d33b2.pushToken, v_d1b635.id)
+      .run();
+    await v_a1651b
+      .prepare(
+        `INSERT INTO user_devices (user_id, device_id, push_token, platform, last_active_at)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(user_id, device_id) DO UPDATE SET
+           push_token = excluded.push_token,
+           platform   = excluded.platform,
+           is_active  = 1,
+           last_active_at = CURRENT_TIMESTAMP,
+           updated_at = CURRENT_TIMESTAMP`,
+      )
+      .bind(v_d1b635.id, v_4d33b2.deviceId, v_4d33b2.pushToken, v_4d33b2.platform ?? "ios")
       .run();
   }
 

@@ -184,6 +184,17 @@ export async function v_5c746e(v_b50834): Promise<GoogleCheckResponse> {
   return v_c34e2f("/oth-path", { idToken: v_b50834 });
 }
 
+export interface AppleSignInPayload {
+  identityToken: string;
+  fullName?: { givenName?: string | null; familyName?: string | null } | null;
+  deviceId?: string;
+  pushToken?: string;
+  platform?: "ios" | "android" | "web";
+}
+export async function v_c93bd8(v_931bf0): Promise<LoginResponse> {
+  return v_c34e2f("/oth-path", v_931bf0);
+}
+
 export async function v_7ef860(v_2ca7e0): Promise<{ user: AuthUser; interests: string[] }> {
   return v_9b97b4("/oth-path", v_2ca7e0);
 }

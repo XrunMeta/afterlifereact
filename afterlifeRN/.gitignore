@@ -27,7 +27,8 @@ expo-env.d.ts
 #   EAS credentials 통해 빌드 서버에만 업로드되어 푸시 발송 시 사용됨.
 firebase-service-account.json
 *-firebase-adminsdk-*.json
-GoogleService-Info.plist
+# GoogleService-Info.plist — google-services.json 과 동급 (공개 client id + 번들 제한 API key).
+#   Firebase 공식 커밋 권장. EAS 빌드 시 앱 번들에 포함 필요.
 
 # Metro
 .metro-health-check*

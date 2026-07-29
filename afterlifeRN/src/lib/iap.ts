@@ -4,17 +4,14 @@ import { v_326be8 } from "rcmrninabrnb";
 import {
   v_84436a,
   v_ea1c3d,
-  v_519a14,
-  v_453d4b,
+  v_43431d,
   v_2218dc,
-  v_c83fe1,
   v_a5059e,
   v_475e07,
   v_ae7770,
   type v_678322,
-  type v_813adb,
-  type v_c064a4,
-  type v_533605,
+  type v_23b84c,
+  type v_a60d00,
   type v_b57693,
 } from "bvpcozhmvsrfxgke";
 import { v_bb6abc } from "../api/credits";
@@ -62,28 +59,34 @@ export async function v_ad3c15(): Promise<void> {
   }
 }
 
-export async function v_43431d(): Promise<{
-  subscriptions: v_813adb[];
+export async function v_1c6d94(): Promise<{
+  subscriptions: v_23b84c[];
   consumables: v_678322[];
 }> {
   await v_2f3103();
-  const [v_60a14d, v_275767] = await Promise.all([
-    v_453d4b({ skus: [...v_ca8f48] }).catch((v_49263d) => {
-      console.warn("[iap] getSubscriptions failed:", v_49263d);
-      return [];
+  const [v_83ca51, v_d4f953] = await Promise.all([
+    v_43431d({ skus: [...v_ca8f48], type: "subs" }).catch((v_49263d) => {
+      console.warn("[iap] fetchProducts(subs) failed:", v_49263d);
+      return [] as v_23b84c[];
     }),
-    v_519a14({ skus: [...v_a43d0e] }).catch((v_49263d) => {
-      console.warn("[iap] getProducts failed:", v_49263d);
-      return [];
+    v_43431d({ skus: [...v_a43d0e], type: "in-app" }).catch((v_49263d) => {
+      console.warn("[iap] fetchProducts(in-app) failed:", v_49263d);
+      return [] as v_678322[];
     }),
   ]);
-  return { subscriptions: v_60a14d, consumables: v_275767 };
+  return {
+    subscriptions: v_83ca51 as v_23b84c[],
+    consumables: v_d4f953 as v_678322[],
+  };
 }
 
 export async function v_7c6fd6(v_399dbd): Promise<void> {
   await v_2f3103();
   if (v_326be8.OS === "ios") {
-    await v_c83fe1({ sku: v_399dbd });
+    await v_2218dc({
+      request: { ios: { sku: v_399dbd } },
+      type: "subs",
+    });
   } else {
 
     throw new Error("Android subscription not supported yet.");
@@ -92,7 +95,17 @@ export async function v_7c6fd6(v_399dbd): Promise<void> {
 
 export async function v_e02ccf(v_399dbd): Promise<void> {
   await v_2f3103();
-  await v_2218dc({ sku: v_399dbd });
+  if (v_326be8.OS === "ios") {
+    await v_2218dc({
+      request: { ios: { sku: v_399dbd } },
+      type: "in-app",
+    });
+  } else {
+    await v_2218dc({
+      request: { android: { skus: [v_399dbd] } },
+      type: "in-app",
+    });
+  }
 }
 
 let v_07bdcd = false;
@@ -104,8 +117,8 @@ export function v_54ca39(opts?: {
   if (v_07bdcd) return () => {};
   v_07bdcd = true;
 
-  const v_58bc64 = v_475e07(async (purchase: v_c064a4 | v_533605) => {
-    console.log("[iap] purchase update:", v_54e15b.productId, v_54e15b.transactionId);
+  const v_58bc64 = v_475e07(async (purchase: v_a60d00) => {
+    console.log("[iap] purchase update:", v_54e15b.productId, v_54e15b.id);
     const v_2ca7e0 = v_1ed7d9.getState().accessToken;
     if (!v_2ca7e0) {
       console.warn("[iap] no accessToken, skipping server verify");
@@ -114,15 +127,14 @@ export function v_54ca39(opts?: {
     try {
       const v_43c42e = await v_bb6abc(v_2ca7e0, {
         platform: v_326be8.OS === "ios" ? "ios" : "android",
-        transactionId: v_54e15b.transactionId!,
+        transactionId: v_54e15b.id,
         productId: v_54e15b.productId,
       });
       console.log("[iap] server verify ok:", v_43c42e);
-
-      await v_a5059e({ purchase: v_54e15b, isConsumable: v_a43d0e.includes(v_54e15b.productId as ConsumableSku) });
+      const v_86e63b = v_a43d0e.includes(v_54e15b.productId as ConsumableSku);
+      await v_a5059e({ purchase: v_54e15b, isConsumable: v_86e63b });
       v_328259?.onSuccess?.(v_54e15b.productId);
     } catch (v_49263d) {
-
       console.error("[iap] server verify failed:", v_49263d);
     }
   });

@@ -34,9 +34,9 @@ v_469bf2("getGoogleEnabled", () => {
     v_4d37e3(v_206b88.android).toBe(false);
   });
 
-  v_23805a("D1 값이 없으면 코드 상수(ios=false, android=true)", async () => {
+  v_23805a("D1 값이 없으면 코드 상수(양 플랫폼 true)", async () => {
     const v_206b88 = await v_508dab(v_c9c489 as never);
-    v_4d37e3(v_206b88.ios).toBe(false);
+    v_4d37e3(v_206b88.ios).toBe(true);
     v_4d37e3(v_206b88.android).toBe(true);
   });
 
@@ -59,31 +59,31 @@ v_469bf2("getGoogleEnabled", () => {
       },
     };
     const v_206b88 = await v_508dab(v_e1be02 as never);
-    v_4d37e3(v_206b88.ios).toBe(false);
+    v_4d37e3(v_206b88.ios).toBe(true);
     v_4d37e3(v_206b88.android).toBe(true);
     v_4d37e3(v_206b88.updatedAt).toBe(0);
   });
 });
 
 v_469bf2("GET /oth-path", () => {
-  v_23805a("마이그레이션 seed 기준으로 ios=false, android=true 를 반환", async () => {
+  v_23805a("마이그레이션 seed 기준으로 양 플랫폼 true 를 반환", async () => {
     const v_cb35cb = await v_1df298.fetch("https://example.com/oth-path");
     v_4d37e3(v_cb35cb.status).toBe(200);
     const v_b75e36 = (await v_cb35cb.json()) as { googleEnabled: { ios: boolean; android: boolean } };
-    v_4d37e3(v_b75e36.googleEnabled.ios).toBe(false);
+    v_4d37e3(v_b75e36.googleEnabled.ios).toBe(true);
     v_4d37e3(v_b75e36.googleEnabled.android).toBe(true);
   });
 
-  v_23805a("D1 값을 바꾸면 응답도 바뀐다", async () => {
+  v_23805a("D1 값을 바꾸면 응답도 바뀐다 (운영 중 원격 차단)", async () => {
     await v_c9c489.DB.prepare(
-      "UPDATE app_config SET value = '1' WHERE key = 'auth.google_enabled_ios'",
+      "UPDATE app_config SET value = '0' WHERE key = 'auth.google_enabled_ios'",
     ).run();
     const v_cb35cb = await v_1df298.fetch("https://example.com/oth-path");
     const v_b75e36 = (await v_cb35cb.json()) as { googleEnabled: { ios: boolean } };
-    v_4d37e3(v_b75e36.googleEnabled.ios).toBe(true);
+    v_4d37e3(v_b75e36.googleEnabled.ios).toBe(false);
 
     await v_c9c489.DB.prepare(
-      "UPDATE app_config SET value = '0' WHERE key = 'auth.google_enabled_ios'",
+      "UPDATE app_config SET value = '1' WHERE key = 'auth.google_enabled_ios'",
     ).run();
   });
 

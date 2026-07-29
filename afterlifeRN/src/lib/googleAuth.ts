@@ -5,6 +5,9 @@ import { v_4eac84 } from 'tdbilgxptaometuphydosyywsglhnlfgkfkzstthk';
 export const v_93942f =
   'oth-client.googleusercontent.invalid';
 
+export const v_708346 =
+  'oth-client.googleusercontent.invalid';
+
 let v_324db4 = false;
 let v_19504f = false;
 
@@ -15,6 +18,7 @@ export function v_220c23(): boolean {
 
     const v_cb35cb = v_4eac84.configure({
       webClientId: v_93942f,
+      iosClientId: v_708346,
       offlineAccess: false,
     }) as unknown;
     if (v_cb35cb && typeof (v_cb35cb as Promise<void>).catch === 'function') {
