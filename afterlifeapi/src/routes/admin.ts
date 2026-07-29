@@ -20,6 +20,8 @@ import {
   v_6e82f0,
   v_0edc13,
   v_9459da,
+  v_52acfb,
+  v_b61290,
   type v_83f27d,
 } from "../lib/appConfig";
 
@@ -39,6 +41,25 @@ v_b7f2b4.patch("/config/persona-price", v_c0a297, async (v_3f4e2e) => {
   }
   await v_5d3436(v_3f4e2e.env, v_6bbb57);
   return v_3f4e2e.json({ ok: true, priceXrun: v_6bbb57 });
+});
+
+const v_b2c168 = 600000; 
+v_b7f2b4.get("/config/signup-free-credits", v_c0a297, async (v_3f4e2e) => {
+  const v_e2c945 = await v_52acfb(v_3f4e2e.env);
+  return v_3f4e2e.json({ credits: v_e2c945 });
+});
+v_b7f2b4.patch("/config/signup-free-credits", v_c0a297, async (v_3f4e2e) => {
+  const v_4d33b2 = await v_3f4e2e.req.json<{ credits?: unknown }>().catch(() => ({} as { credits?: unknown }));
+  const v_f4e98d = Number(v_4d33b2.credits);
+  if (!Number.isFinite(v_f4e98d) || v_f4e98d < 0 || v_f4e98d > v_b2c168) {
+    throw new v_3ebe58(
+      "VALIDATION_FAILED",
+      `credits must be an integer between 0 and ${v_b2c168}.`,
+    );
+  }
+  const v_e2c945 = Math.floor(v_f4e98d);
+  await v_b61290(v_3f4e2e.env, v_e2c945);
+  return v_3f4e2e.json({ ok: true, credits: v_e2c945 });
 });
 
 const v_46964b = 16000;
