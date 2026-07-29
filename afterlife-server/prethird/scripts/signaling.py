@@ -880,9 +880,12 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                     # finally del 직전. call_start는 graceful(실패해도 통화 진행). bundle 성공+user_id 있을 때만.
                     if bundle and sess.user_id:
                         from call_lifecycle import call_start
+                        # [T-167] 세션 종류 요청을 그대로 전달한다. 판정·강등은 서버가 한다.
+                        _kind = params.get("session_kind")
                         await call_start(
                             os.environ.get("PRETHIRD_API_BASE"),
                             sess.clone_id, sess.session_id, access_token,
+                            session_kind=_kind if isinstance(_kind, str) else None,
                         )
                 finally:
                     del access_token  # 토큰 세션 저장 금지 (mizu H-2) — 예외 경로에서도 소멸 보장
