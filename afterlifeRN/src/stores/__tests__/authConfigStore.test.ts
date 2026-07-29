@@ -85,6 +85,19 @@ test('refresh: 200 이지만 응답이 파손된 경우 false 로 확정', async
   expect(useAuthConfigStore.getState().googleEnabled).toBe(false);
 });
 
+test('hydrate: 이미 remote 로 확정된 값을 오래된 캐시로 덮어쓰지 않는다', async () => {
+  await AsyncStorage.setItem(
+    'afterlife.authConfig',
+    JSON.stringify({ ios: false, android: false }),
+  );
+  useAuthConfigStore.setState({ googleEnabled: true, loadedFrom: 'remote' });
+
+  await useAuthConfigStore.getState().hydrate();
+
+  expect(useAuthConfigStore.getState().googleEnabled).toBe(true);
+  expect(useAuthConfigStore.getState().loadedFrom).toBe('remote');
+});
+
 test('refresh: 비200 응답도 false 로 확정', async () => {
   global.fetch = jest.fn().mockResolvedValue({
     ok: false,

@@ -41,6 +41,8 @@ export const useAuthConfigStore = create<AuthConfigState>((set, get) => ({
       if (!raw) return; 
       const p = JSON.parse(raw) as unknown;
       if (isGoogleEnabledMap(p)) {
+
+        if (get().googleEnabled !== null) return;
         set({ googleEnabled: pickPlatform(p), loadedFrom: 'cache' });
       }
     } catch {
