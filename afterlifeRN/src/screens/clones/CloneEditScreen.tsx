@@ -189,36 +189,36 @@ export default function CloneEditScreen({ route, navigation }: Props) {
         />
 
         {}
-        <Text style={s.sectionHeader}>클론 설명</Text>
+        <Text style={s.sectionHeader}>{t("edit.cloneDescSection", { defaultValue: "클론 설명" })}</Text>
         <TextField
-          label="첫 만남"
+          label={t("edit.firstMeetingLabel", { defaultValue: "첫 만남" })}
           value={firstMeeting}
           onChangeText={setFirstMeeting}
-          placeholder="처음 만났을 때의 장면, 인상, 분위기..."
+          placeholder={t("edit.firstMeetingPlaceholder", { defaultValue: "처음 만났을 때의 장면, 인상, 분위기..." })}
           multiline
           containerStyle={{ marginTop: 8 }}
         />
         <TextField
-          label="습관/말투"
+          label={t("edit.habitLabel", { defaultValue: "습관/말투" })}
           value={habit}
           onChangeText={setHabit}
-          placeholder="자주 하던 말, 작은 습관, 좋아하던 자리..."
+          placeholder={t("edit.habitPlaceholder", { defaultValue: "자주 하던 말, 작은 습관, 좋아하던 자리..." })}
           multiline
           containerStyle={{ marginTop: 12 }}
         />
         <TextField
-          label="성격"
+          label={t("edit.personalityLabel", { defaultValue: "성격" })}
           value={personality}
           onChangeText={setPersonality}
-          placeholder="MBTI, 성격, 평소 분위기..."
+          placeholder={t("edit.personalityPlaceholder", { defaultValue: "MBTI, 성격, 평소 분위기..." })}
           multiline
           containerStyle={{ marginTop: 12 }}
         />
         <TextField
-          label="가장 선명한 추억"
+          label={t("edit.memoryLabel", { defaultValue: "가장 선명한 추억" })}
           value={memory}
           onChangeText={setMemory}
-          placeholder="가장 행복하게 웃고 있던 그 순간..."
+          placeholder={t("edit.memoryPlaceholder", { defaultValue: "가장 행복하게 웃고 있던 그 순간..." })}
           multiline
           containerStyle={{ marginTop: 12 }}
         />
@@ -241,10 +241,10 @@ export default function CloneEditScreen({ route, navigation }: Props) {
         >
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 15, fontWeight: "700", color: COLORS.violet500 }}>
-              학습하기 →
+              {t("edit.learnCtaTitle", { defaultValue: "학습하기 →" })}
             </Text>
             <Text style={{ fontSize: 12, color: COLORS.zinc600, marginTop: 4 }}>
-              관리자 질문에 답변해서 클론에게 지식을 쌓아주세요
+              {t("edit.learnCtaDesc", { defaultValue: "관리자 질문에 답변해서 클론에게 지식을 쌓아주세요" })}
             </Text>
           </View>
         </TouchableOpacity>

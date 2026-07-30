@@ -4,6 +4,7 @@ import { showAlert } from "../../stores/dialogStore";
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useTranslation } from "react-i18next";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../../navigation/types";
 
@@ -24,6 +25,7 @@ type Props = NativeStackScreenProps<AuthStackParamList, "EmailOtpLogin">;
 const RESEND_COOLDOWN_SEC = 60;
 
 export default function EmailOtpLoginScreen({ navigation, route }: Props) {
+  const { t } = useTranslation();
   const { email, autoLogin } = route.params;
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -45,10 +47,10 @@ export default function EmailOtpLoginScreen({ navigation, route }: Props) {
       await requestEmailLoginCode(email);
       setCode("");
       setResendIn(RESEND_COOLDOWN_SEC);
-      showAlert("인증코드 재발송", "이메일로 코드를 다시 보냈어요.");
+      showAlert(t("auth.emailOtpLogin.resendTitle"), t("auth.emailOtpLogin.resendToast"));
     } catch (err) {
-      const msg = err instanceof AuthApiError ? err.message : "코드 재발송에 실패했어요.";
-      showAlert("오류", msg);
+      const msg = err instanceof AuthApiError ? err.message : t("auth.emailOtpLogin.resendFailed");
+      showAlert(t("common.error"), msg);
     }
   };
 
@@ -71,18 +73,18 @@ export default function EmailOtpLoginScreen({ navigation, route }: Props) {
       }
       await hydrate();
     } catch (err) {
-      let msg = "로그인에 실패했어요.";
+      let msg = t("auth.emailOtpLogin.loginFailed");
       if (err instanceof AuthApiError) {
         if (err.code === "ACCOUNT_DELETED") {
-          showAlert("로그인 실패", "이미 탈퇴한 계정이에요.");
+          showAlert(t("auth.emailOtpLogin.loginFailedTitle"), t("auth.emailOtpLogin.accountDeleted"));
           return;
         }
-        if (err.code === "OTP_INVALID") msg = "인증코드가 올바르지 않아요.";
-        else if (err.code === "OTP_EXPIRED") msg = "인증코드가 만료됐어요. 다시 받아주세요.";
-        else if (err.code === "NOT_FOUND") msg = "가입된 이메일이 아니에요.";
+        if (err.code === "OTP_INVALID") msg = t("auth.emailOtpLogin.wrongCode");
+        else if (err.code === "OTP_EXPIRED") msg = t("auth.emailOtpLogin.expiredCode");
+        else if (err.code === "NOT_FOUND") msg = t("auth.emailOtpLogin.notFound");
         else msg = err.message;
       }
-      showAlert("로그인 실패", msg);
+      showAlert(t("auth.emailOtpLogin.loginFailedTitle"), msg);
     } finally {
       setSubmitting(false);
     }
@@ -90,7 +92,7 @@ export default function EmailOtpLoginScreen({ navigation, route }: Props) {
 
   return (
     <SafeView backgroundColor={COLORS.zinc50}>
-      <PageHeader title="이메일 OTP 로그인" showBackButton onBackPress={() => navigation.goBack()} />
+      <PageHeader title={t("auth.emailOtpLogin.title")} showBackButton onBackPress={() => navigation.goBack()} />
       <SafeScrollView
         contentContainerStyle={styles.content}
         autoAdjustKeyboardPadding
@@ -98,17 +100,17 @@ export default function EmailOtpLoginScreen({ navigation, route }: Props) {
       >
         <View style={styles.container}>
           <OtpVerifyView
-            title="이메일 OTP 로그인"
+            title={t("auth.emailOtpLogin.title")}
             email={email}
             code={code}
             onChangeCode={setCode}
             onSubmit={handleVerify}
             submitting={submitting}
-            submitLabel="로그인"
-            submittingLabel="로그인 중..."
+            submitLabel={t("auth.emailOtpLogin.loginBtn")}
+            submittingLabel={t("auth.emailOtpLogin.loggingIn")}
             resendIn={resendIn}
             onResend={handleResend}
-            resendLabel="코드 재발송"
+            resendLabel={t("auth.emailVerify.resend")}
           />
         </View>
       </SafeScrollView>

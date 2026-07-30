@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import TextField from '../../../components/ui/TextField';
 import type { PersonaQuestion } from '../../../types/clone';
 import { COLORS, RADIUS } from '../../../components/constants';
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function DynamicQuestion({ question, candidates, value, onAnswer }: Props) {
+  const { t } = useTranslation();
 
   const buttons =
     question.type === 'fixed_choice'
@@ -47,7 +49,7 @@ export default function DynamicQuestion({ question, candidates, value, onAnswer 
       {}
       {question.type !== 'fixed_choice' && (
         <TextField
-          placeholder="직접 입력"
+          placeholder={t('create.assistant.btnCustom', { defaultValue: '직접 입력' })}
           value={value ?? ''}
           onChangeText={(v) => onAnswer(question.key, v)}
         />

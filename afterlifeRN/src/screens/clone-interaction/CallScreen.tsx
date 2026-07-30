@@ -603,7 +603,12 @@ export default function CallScreen({ route, navigation }: Props) {
         if (enrolledId != null) autoEnrolledNoNameRef.current.add(enrolledId);
         silentEnrollRef.current = false;
       } else {
-        setToastMessage(`${submittedEnrollNameRef.current}님, 이제 기억할게요`);
+        setToastMessage(
+          t("call.enrollSuccessToast", {
+            name: submittedEnrollNameRef.current,
+            defaultValue: "{{name}}님, 이제 기억할게요",
+          }),
+        );
       }
 
       dispatchSh({
@@ -619,7 +624,9 @@ export default function CallScreen({ route, navigation }: Props) {
         silentEnrollRef.current = false;
         faceEnroll.reset();
       } else {
-        setToastMessage("등록에 실패했어요. 다시 시도해 주세요");
+        setToastMessage(
+          t("call.enrollFailToast", { defaultValue: "등록에 실패했어요. 다시 시도해 주세요" }),
+        );
       }
     }
 
@@ -705,7 +712,7 @@ export default function CallScreen({ route, navigation }: Props) {
   const handleGiftSend = (gift: GiftCatalogItem) => {
     console.log(`[Call][gift-tap] giftId=${gift.id} name=${gift.name} (결제 준비 중)`);
     setShowGifts(false);
-    setToastMessage("결제 준비 중이에요");
+    setToastMessage(t("call.paymentPreparingToast", { defaultValue: "결제 준비 중이에요" }));
     playGiftAnimation(gift);
   };
 
@@ -975,7 +982,9 @@ export default function CallScreen({ route, navigation }: Props) {
       <View style={[s.callInfo, { top: insets.top + 24 }]}>
         <Text style={s.callName}>{personaName}</Text>
         <Text style={s.callTimeText}>
-          {liveState === "live" ? callTimeStr : "연결 중…"}
+          {liveState === "live"
+            ? callTimeStr
+            : t("call.connecting", { defaultValue: "연결 중…" })}
         </Text>
       </View>
 
@@ -1070,7 +1079,9 @@ export default function CallScreen({ route, navigation }: Props) {
             <View style={s.confirmBarTrack}>
               <Animated.View style={[s.confirmBarFill, { transform: [{ scaleX: confirmProgress }] }]} />
             </View>
-            <Text style={s.confirmHint}>탭하여 취소 · 잠시 후 전송</Text>
+            <Text style={s.confirmHint}>
+              {t("call.confirmHint", { defaultValue: "탭하여 취소 · 잠시 후 전송" })}
+            </Text>
           </View>
         </>
       ) : null}

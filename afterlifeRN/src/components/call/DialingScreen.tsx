@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Animated, Easing } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { COLORS } from '../constants';
 import type { LiveAvatarState } from '../../realtime/avatarCall';
 import { dialingOutcome, DEFAULT_DIALING_CONFIG } from '../../realtime/dialingTransition';
@@ -22,6 +23,7 @@ export function DialingScreen(props: {
   greetingStarted?: boolean;
 }) {
   const { liveState, personaName, personaImage, greetingStarted, onConnected, onCancel, onRetry } = props;
+  const { t } = useTranslation();
   const startRef = useRef(Date.now());
   const graceUntilRef = useRef(0);
   const [retryCount, setRetryCount] = useState(0);
@@ -88,12 +90,12 @@ export function DialingScreen(props: {
         <Text style={styles.name}>{personaName}</Text>
         <Text style={styles.sub}>
           {exhausted
-            ? '지금은 연결이 어려워요\n잠시 후 다시 시도해 주세요'
+            ? t('call.connectExhausted', { defaultValue: '지금은 연결이 어려워요\n잠시 후 다시 시도해 주세요' })
             : outcome === 'error'
-            ? '연결에 실패했어요'
+            ? t('call.connectFailed', { defaultValue: '연결에 실패했어요' })
             : outcome === 'timeout'
-            ? '연결이 지연돼요'
-            : '전화 거는 중...'}
+            ? t('call.connectDelayed', { defaultValue: '연결이 지연돼요' })
+            : t('call.dialing', { defaultValue: '전화 거는 중...' })}
         </Text>
       </View>
 

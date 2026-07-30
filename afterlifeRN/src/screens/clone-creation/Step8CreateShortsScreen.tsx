@@ -4,6 +4,7 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { CommonActions } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { CreateStackParamList } from "../../navigation/types";
 import SafeView from "../../components/ui/SafeView";
@@ -13,6 +14,7 @@ import { COLORS, SIZES, RADIUS } from "../../components/constants";
 type Props = NativeStackScreenProps<CreateStackParamList, "Step8">;
 
 export default function Step8CreateShortsScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const handleGoToDashboard = () => {
     navigation.getParent()?.dispatch(
       CommonActions.navigate({ name: "ClonesTab" }),
@@ -25,15 +27,17 @@ export default function Step8CreateShortsScreen({ navigation }: Props) {
         <View style={styles.successCircle}>
           <Feather name="check" size={48} color={COLORS.white} />
         </View>
-        <Text style={styles.title}>클론이 완성되었습니다</Text>
+        <Text style={styles.title}>{t("create.step8.title", { defaultValue: "클론이 완성되었습니다" })}</Text>
         <Text style={styles.subtitle}>
-          이제 클론과 대화하거나{"\n"}새 게시물을 올릴 수 있어요.
+          {t("create.step8.subtitle", {
+            defaultValue: "이제 클론과 대화하거나\n새 게시물을 올릴 수 있어요.",
+          })}
         </Text>
       </View>
 
       <View style={styles.bottomBar}>
         <Button
-          title="대시보드로"
+          title={t("create.step8.toDashboard", { defaultValue: "대시보드로" })}
           onPress={handleGoToDashboard}
           variant="accent"
         />

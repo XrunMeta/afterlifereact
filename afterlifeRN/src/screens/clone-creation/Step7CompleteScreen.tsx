@@ -60,6 +60,7 @@ const COPY: Record<'memlow' | 'friend' | 'mentor' | 'celeb', { title: string; su
 };
 
 function IdleVideoPreview({ uri }: { uri: string }) {
+  const { t } = useTranslation();
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
     p.muted = true;
@@ -74,7 +75,9 @@ function IdleVideoPreview({ uri }: { uri: string }) {
         nativeControls={false}
       />
       <View style={styles.videoBadge}>
-        <Text style={styles.videoBadgeText}>영상 준비 완료</Text>
+        <Text style={styles.videoBadgeText}>
+          {t("create.step7.videoReady", { defaultValue: "영상 준비 완료" })}
+        </Text>
       </View>
     </View>
   );
@@ -149,7 +152,10 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   const handleReuploadPhoto = useCallback(async () => {
     if (reuploadLoading) return;
 
-    if (!accessToken) { showAlert('로그인 정보가 없어요. 다시 로그인해주세요.'); return; }
+    if (!accessToken) {
+      showAlert(t('create.step7.loginNeeded', { defaultValue: '로그인 정보가 없어요. 다시 로그인해주세요.' }));
+      return;
+    }
     try {
       const result = await pickAndCropImage({
         mediaTypes: ['images'],
@@ -189,11 +195,14 @@ export default function Step7CompleteScreen({ navigation }: Props) {
     } catch (err) {
       console.warn('[Step7] 재업로드 실패:', err);
 
-      showAlert('업로드 실패', '영상 생성 요청에 실패했어요. 다시 시도해주세요.');
+      showAlert(
+        t('create.step7.uploadFailedTitle', { defaultValue: '업로드 실패' }),
+        t('create.step7.uploadFailedMsg', { defaultValue: '영상 생성 요청에 실패했어요. 다시 시도해주세요.' }),
+      );
     } finally {
       setReuploadLoading(false);
     }
-  }, [reuploadLoading, accessToken, setCreationDraft]);
+  }, [reuploadLoading, accessToken, setCreationDraft, t]);
 
   const [posting, setPosting] = useState(false);
 
@@ -328,9 +337,9 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
   useEffect(() => {
     if (!draft.cloneType) {
-      setError("클론 정보가 없어요. 처음부터 다시 만들어주세요.");
+      setError(t("create.step7.missingCloneInfo", { defaultValue: "클론 정보가 없어요. 처음부터 다시 만들어주세요." }));
     }
-  }, [draft.cloneType]);
+  }, [draft.cloneType, t]);
 
   const cloneType = draft.cloneType ?? 'friend';
   const copy = {
@@ -367,7 +376,10 @@ export default function Step7CompleteScreen({ navigation }: Props) {
     if (creating || posting) return;
 
     if (idleBlocking) {
-      showAlert('잠깐요', '영상 생성이 완료되면 게시할 수 있어요.');
+      showAlert(
+        t('create.step7.waitTitle', { defaultValue: '잠깐요' }),
+        t('create.step7.waitVideoBuilding', { defaultValue: '영상 생성이 완료되면 게시할 수 있어요.' }),
+      );
       return;
     }
     const trimmed = caption.trim();
@@ -401,21 +413,27 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
     if (trimmed.length === 0) {
       console.log("[CLONE-CREATE] BLOCKED: caption empty");
-      showAlert("소개글", "한 줄 소개를 입력해주세요.");
+      showAlert(
+        t("create.step7.captionRequiredTitle", { defaultValue: "소개글" }),
+        t("create.step7.captionRequiredMsg", { defaultValue: "한 줄 소개를 입력해주세요." }),
+      );
       return;
     }
 
     if (!accessToken) {
       console.log("[CLONE-CREATE] BLOCKED: no accessToken");
-      showAlert("로그인 필요", "로그인 정보가 없어요. 다시 로그인해주세요.");
+      showAlert(
+        t("create.step7.loginRequiredTitle", { defaultValue: "로그인 필요" }),
+        t("create.step7.loginNeeded", { defaultValue: "로그인 정보가 없어요. 다시 로그인해주세요." }),
+      );
       return;
     }
 
     if (!draft.name || draft.name.trim().length === 0) {
       console.log("[CLONE-CREATE] BLOCKED: name missing");
       showAlert(
-        "이름 누락",
-        "클론 이름이 없어요. 이전 단계로 돌아가서 입력해주세요.",
+        t("create.step7.nameMissingTitle", { defaultValue: "이름 누락" }),
+        t("create.step7.nameMissingMsg", { defaultValue: "클론 이름이 없어요. 이전 단계로 돌아가서 입력해주세요." }),
       );
       return;
     }
@@ -455,18 +473,23 @@ export default function Step7CompleteScreen({ navigation }: Props) {
       if (err instanceof AuthApiError) {
 
         if (err.code === "CONFLICT" && err.message.includes("아이디")) {
-          showAlert("아이디 중복", err.message);
+          showAlert(t("create.step7.usernameConflictTitle", { defaultValue: "아이디 중복" }), err.message);
           setPosting(false);
           return;
         }
 
         setError(err.message);
-        showAlert(`게시 실패 (${err.code})`, err.message);
+        showAlert(
+          t("create.step7.postFailedWithCode", { code: err.code, defaultValue: `게시 실패 (${err.code})` }),
+          err.message,
+        );
       } else {
 
-        const msg = err instanceof Error ? err.message : "알 수 없는 오류";
+        const msg = err instanceof Error
+          ? err.message
+          : t("create.step7.unknownError", { defaultValue: "알 수 없는 오류" });
         setError(msg);
-        showAlert("게시 실패", msg);
+        showAlert(t("create.step7.postFailed", { defaultValue: "게시 실패" }), msg);
       }
       setPosting(false);
       return;
@@ -477,15 +500,15 @@ export default function Step7CompleteScreen({ navigation }: Props) {
     if (newCloneId) navigation.replace("Step8", { cloneId: newCloneId });
   };
 
-  const displayName = draft.name ?? "사용자 이름";
-  const displayHandle = draft.username ?? "아이디";
+  const displayName = draft.name ?? t("create.step7.displayNameFallback", { defaultValue: "사용자 이름" });
+  const displayHandle = draft.username ?? t("create.step7.displayHandleFallback", { defaultValue: "아이디" });
   const imageUri = draft.imageFile;
 
   return (
     <SafeView backgroundColor={COLORS.white}>
       {}
       <PageHeader
-        title="클론 정보 리뷰"
+        title={t("create.step7.reviewTitle", { defaultValue: "클론 정보 리뷰" })}
         showBackButton
         onBackPress={() => {
 
@@ -545,10 +568,14 @@ export default function Step7CompleteScreen({ navigation }: Props) {
                 {reuploadLoading ? (
                   <>
                     <ActivityIndicator size="small" color={COLORS.white} style={{ marginRight: 6 }} />
-                    <Text style={styles.videoBadgeText}>사진 올리는 중...</Text>
+                    <Text style={styles.videoBadgeText}>
+                      {t("create.step7.photoUploading", { defaultValue: "사진 올리는 중..." })}
+                    </Text>
                   </>
                 ) : (
-                  <Text style={styles.videoBadgeText}>사진 다시 올리기</Text>
+                  <Text style={styles.videoBadgeText}>
+                    {t("create.step7.reuploadPhoto", { defaultValue: "사진 다시 올리기" })}
+                  </Text>
                 )}
               </View>
             </TouchableOpacity>
@@ -560,14 +587,18 @@ export default function Step7CompleteScreen({ navigation }: Props) {
               )}
               <View style={[styles.videoBadge, styles.videoBadgePending]}>
                 <ActivityIndicator size="small" color={COLORS.white} style={{ marginRight: 6 }} />
-                <Text style={styles.videoBadgeText}>영상 준비 중</Text>
+                <Text style={styles.videoBadgeText}>
+                  {t("create.step7.videoPending", { defaultValue: "영상 준비 중" })}
+                </Text>
               </View>
             </View>
           ) : draft.imageFile ? (
             <Image source={{ uri: draft.imageFile }} style={styles.previewBox} resizeMode="cover" />
           ) : (
             <View style={styles.previewBox}>
-              <Text style={styles.previewText}>사진을 먼저 등록해 주세요</Text>
+              <Text style={styles.previewText}>
+                {t("create.step7.photoRequired", { defaultValue: "사진을 먼저 등록해 주세요" })}
+              </Text>
             </View>
           )}
 
@@ -576,7 +607,9 @@ export default function Step7CompleteScreen({ navigation }: Props) {
             style={styles.captionInput}
             value={caption}
             onChangeText={(v) => { setCaption(v); captionTouchedRef.current = true; }}
-            placeholder="소개글 작성 (예: #일상 #infp 케이팝 노래 좋아해요)"
+            placeholder={t("create.step7.captionPlaceholder", {
+              defaultValue: "소개글 작성 (예: #일상 #infp 케이팝 노래 좋아해요)",
+            })}
             placeholderTextColor={COLORS.zinc400}
             multiline
             maxLength={2000}
@@ -599,12 +632,12 @@ export default function Step7CompleteScreen({ navigation }: Props) {
             testID="share-post-button"
             title={
               error
-                ? "다시 시도"
+                ? t("common.retry", { defaultValue: "다시 시도" })
                 : createdCloneId != null
-                ? "다음"
+                ? t("create.step7.next", { defaultValue: "다음" })
                 : posting || creating
-                ? "잠시만요..."
-                : "다음"
+                ? t("create.submitting", { defaultValue: "잠시만요..." })
+                : t("create.step7.next", { defaultValue: "다음" })
             }
             onPress={
               error

@@ -16,6 +16,7 @@ import { Feather } from "@expo/vector-icons";
 import { useNavigation, CommonActions } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
 import NotificationBell from "../../components/common/NotificationBell";
@@ -34,12 +35,14 @@ import type { MyStackParamList } from "../../navigation/types";
 
 const DEFAULT_USER_ID = 1;
 
-function formatMinutes(sec: number): string {
+function formatMinutes(sec: number, t: TFunction): string {
   const s = Math.max(0, Math.floor(sec));
   const m = Math.floor(s / 60);
   const rem = s % 60;
-  if (m === 0) return `${rem}초`;
-  return rem > 0 ? `${m}분 ${rem}초` : `${m}분`;
+  if (m === 0) return t("common.durationSec", { s: rem, defaultValue: `${rem}초` });
+  return rem > 0
+    ? t("common.durationMinSec", { m, s: rem, defaultValue: `${m}분 ${rem}초` })
+    : t("common.durationMin", { m, defaultValue: `${m}분` });
 }
 
 type MyNav = NativeStackNavigationProp<MyStackParamList>;
@@ -136,15 +139,20 @@ export default function MyScreen() {
   const handleDeleteAccount = () => {
 
     const displayName =
-      apiUser?.name || apiUser?.email?.split("@")[0] || "회원";
+      apiUser?.name ||
+      apiUser?.email?.split("@")[0] ||
+      t("my.delete.userFallback", { defaultValue: "회원" });
     showAlert(
-      "벌써 떠나시나요?",
-      `${displayName} 님과 함께한 소중한 시간들을 기억할게요.\n계정과 클론은 영구적으로 사라져요.`,
+      t("my.delete.title", { defaultValue: "벌써 떠나시나요?" }),
+      t("my.delete.desc", {
+        name: displayName,
+        defaultValue: `${displayName} 님과 함께한 소중한 시간들을 기억할게요.\n계정과 클론은 영구적으로 사라져요.`,
+      }),
       [
 
-        { text: "조금 더 써볼래요", style: "cancel" },
+        { text: t("my.delete.stay", { defaultValue: "조금 더 써볼래요" }), style: "cancel" },
         {
-          text: "탈퇴하기",
+          text: t("my.delete.leave", { defaultValue: "탈퇴하기" }),
           style: "destructive",
           onPress: async () => {
             if (!accessToken) return;
@@ -153,15 +161,22 @@ export default function MyScreen() {
               await deleteMe(accessToken);
               await logout();
             } catch (err) {
-              const msg = err instanceof AuthApiError ? err.message : "탈퇴에 실패했어요.";
-              showAlert("오류", msg);
+              const msg =
+                err instanceof AuthApiError
+                  ? err.message
+                  : t("my.delete.failed", { defaultValue: "탈퇴에 실패했어요." });
+              showAlert(t("common.error", { defaultValue: "오류" }), msg);
               setDeleting(false);
             }
           },
         },
       ],
 
-      { subMessage: "xrun 가입자라면 xrun 계정은 유지됩니다" },
+      {
+        subMessage: t("my.delete.subMessage", {
+          defaultValue: "xrun 가입자라면 xrun 계정은 유지됩니다",
+        }),
+      },
     );
   };
 
@@ -240,7 +255,7 @@ export default function MyScreen() {
   return (
     <SafeScrollView backgroundColor={COLORS.white} showBottomBackground={false}>
       <PageHeader
-        title="설정"
+        title={t("my.headerTitle", { defaultValue: "설정" })}
         showBackButton
         onBackPress={() => {
 
@@ -264,26 +279,45 @@ export default function MyScreen() {
           onPress={() => navigation.navigate("Purchase")}
         >
           <View style={{ flex: 1 }}>
-            <Text style={s.balanceLabel}>남은 통화 시간</Text>
+            <Text style={s.balanceLabel}>
+              {t("my.balance.remainingTime", { defaultValue: "남은 통화 시간" })}
+            </Text>
             {balanceLoading && !balance ? (
               <ActivityIndicator color={COLORS.violet600} style={{ marginTop: 6 }} />
             ) : balance ? (
               <>
                 <Text style={s.balanceTotal}>
-                  {formatMinutes(balance.totalSec)}
+                  {formatMinutes(balance.totalSec, t)}
                 </Text>
                 <Text style={s.balanceBreakdown}>
-                  무료 {formatMinutes(balance.freeSec)}
-                  {balance.subSec > 0 ? ` · 구독 ${formatMinutes(balance.subSec)}` : ""}
-                  {balance.topupSec > 0 ? ` · 충전 ${formatMinutes(balance.topupSec)}` : ""}
+                  {t("my.balance.free", {
+                    time: formatMinutes(balance.freeSec, t),
+                    defaultValue: `무료 ${formatMinutes(balance.freeSec, t)}`,
+                  })}
+                  {balance.subSec > 0
+                    ? ` · ${t("my.balance.sub", {
+                        time: formatMinutes(balance.subSec, t),
+                        defaultValue: `구독 ${formatMinutes(balance.subSec, t)}`,
+                      })}`
+                    : ""}
+                  {balance.topupSec > 0
+                    ? ` · ${t("my.balance.topup", {
+                        time: formatMinutes(balance.topupSec, t),
+                        defaultValue: `충전 ${formatMinutes(balance.topupSec, t)}`,
+                      })}`
+                    : ""}
                 </Text>
               </>
             ) : (
-              <Text style={s.balanceEmpty}>잔액 조회 실패</Text>
+              <Text style={s.balanceEmpty}>
+                {t("my.balance.failed", { defaultValue: "잔액 조회 실패" })}
+              </Text>
             )}
           </View>
           <View style={s.balanceCta}>
-            <Text style={s.balanceCtaText}>충전</Text>
+            <Text style={s.balanceCtaText}>
+              {t("my.balance.charge", { defaultValue: "충전" })}
+            </Text>
             <Feather name="chevron-right" size={16} color="#fff" />
           </View>
         </TouchableOpacity>
@@ -352,7 +386,11 @@ export default function MyScreen() {
                 !apiFollowingList || apiFollowingList.length === 0 ? (
                   <View style={s.statsEmpty}>
                     <Feather name="users" size={28} color={COLORS.zinc300} />
-                    <Text style={s.statsEmptyText}>아직 구독한 클론이 없어요</Text>
+                    <Text style={s.statsEmptyText}>
+                      {t("my.stats.emptyFollowing", {
+                        defaultValue: "아직 구독한 클론이 없어요",
+                      })}
+                    </Text>
                   </View>
                 ) : (
                   apiFollowingList.map((c) => {
@@ -410,7 +448,9 @@ export default function MyScreen() {
                           style={[s.followToggleBtn, followed && s.followToggleBtnActive]}
                         >
                           <Text style={[s.followToggleText, followed && s.followToggleTextActive]}>
-                            {followed ? "구독 중" : "구독"}
+                            {followed
+                              ? t("feed.following", { defaultValue: "구독 중" })
+                              : t("feed.follow", { defaultValue: "구독" })}
                           </Text>
                         </TouchableOpacity>
                       </TouchableOpacity>
@@ -422,7 +462,11 @@ export default function MyScreen() {
                 !apiMyClonesList || apiMyClonesList.length === 0 ? (
                   <View style={s.statsEmpty}>
                     <Feather name="user" size={28} color={COLORS.zinc300} />
-                    <Text style={s.statsEmptyText}>아직 만든 클론이 없어요</Text>
+                    <Text style={s.statsEmptyText}>
+                      {t("my.stats.emptyMyClones", {
+                        defaultValue: "아직 만든 클론이 없어요",
+                      })}
+                    </Text>
                   </View>
                 ) : (
                   apiMyClonesList.map((c) => (

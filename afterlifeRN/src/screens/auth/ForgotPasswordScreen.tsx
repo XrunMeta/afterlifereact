@@ -48,7 +48,7 @@ export default function ForgotPasswordScreen() {
   const handleSendCode = async () => {
     const e = email.trim().toLowerCase();
     if (!/^\S+@\S+\.\S+$/.test(e)) {
-      showAlert("알림", "이메일 형식이 올바르지 않아요.");
+      showAlert(t("common.notice"), t("common.emailInvalid"));
       return;
     }
     setSubmitting(true);
@@ -63,15 +63,10 @@ export default function ForgotPasswordScreen() {
         const match = err.message.match(/(\d+)\s*s/);
         const secs = match ? match[1] : "";
         msg = secs
-          ? t("auth.forgot.cooldown", {
-              secs,
-              defaultValue: `${secs}초 후에 다시 시도해주세요.`,
-            })
-          : t("auth.signup.rateLimit", {
-              defaultValue: "잠시 후 다시 시도해주세요.",
-            });
+          ? t("auth.forgot.cooldown", { secs })
+          : t("auth.signup.rateLimit");
       }
-      showAlert("오류", msg);
+      showAlert(t("common.error"), msg);
     } finally {
       setSubmitting(false);
     }
@@ -85,7 +80,7 @@ export default function ForgotPasswordScreen() {
 
   const handleVerifyCode = () => {
     if (!/^\d{6}$/.test(code.trim())) {
-      showAlert("알림", t("auth.forgot.wrongCode"));
+      showAlert(t("common.notice"), t("auth.forgot.wrongCode"));
       return;
     }
 
@@ -95,11 +90,11 @@ export default function ForgotPasswordScreen() {
   const handleSavePassword = async () => {
 
     if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/.test(password)) {
-      showAlert("알림", t("auth.forgot.passwordTooShort"));
+      showAlert(t("common.notice"), t("auth.forgot.passwordTooShort"));
       return;
     }
     if (password !== passwordConfirm) {
-      showAlert("알림", t("auth.forgot.passwordMismatch"));
+      showAlert(t("common.notice"), t("auth.forgot.passwordMismatch"));
       return;
     }
     setSubmitting(true);
@@ -110,7 +105,7 @@ export default function ForgotPasswordScreen() {
         newPassword: password,
       });
       showAlert(t("auth.forgot.successTitle"), t("auth.forgot.successDesc"), [
-        { text: "확인", onPress: () => navigation.goBack() },
+        { text: t("common.confirm"), onPress: () => navigation.goBack() },
       ]);
     } catch (err) {
       let msg = t("auth.forgot.resetFailed");
@@ -128,7 +123,7 @@ export default function ForgotPasswordScreen() {
         }
 
       }
-      showAlert("오류", msg);
+      showAlert(t("common.error"), msg);
     } finally {
       setSubmitting(false);
     }
@@ -206,7 +201,7 @@ export default function ForgotPasswordScreen() {
               <TouchableOpacity
                 onPress={() => setShowPassword((v) => !v)}
                 hitSlop={8}
-                accessibilityLabel="비밀번호 표시 전환"
+                accessibilityLabel={t("auth.forgot.togglePasswordLabel")}
                 style={s.toggleBtn}
               >
                 <Feather
@@ -229,7 +224,7 @@ export default function ForgotPasswordScreen() {
               <TouchableOpacity
                 onPress={() => setShowPasswordConfirm((v) => !v)}
                 hitSlop={8}
-                accessibilityLabel="비밀번호 확인 표시 전환"
+                accessibilityLabel={t("auth.forgot.toggleConfirmLabel")}
                 style={s.toggleBtn}
               >
                 <Feather

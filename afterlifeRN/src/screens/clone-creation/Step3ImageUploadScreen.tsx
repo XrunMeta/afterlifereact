@@ -91,7 +91,7 @@ export default function Step3ImageUploadScreen({ navigation }: Props) {
       </SafeScrollView>
       <View style={styles.bottomBar}>
         <Button
-          title={submitting ? '잠시만요...' : t("create.next")}
+          title={submitting ? t("create.submitting", { defaultValue: "잠시만요..." }) : t("create.next")}
           onPress={handleNext}
           disabled={!canNext || submitting}
         />
