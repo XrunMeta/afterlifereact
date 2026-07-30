@@ -33,17 +33,9 @@ const linking: LinkingOptions<RootStackParamList> = {
         path: "invite/:token",
         parse: { token: (t: string) => decodeURIComponent(t) },
       },
-      Main: {
-        screens: {
-          ClonesTab: {
-            screens: {
-              CloneDetail: {
-                path: "clone/:cloneId",
-                parse: { cloneId: (id: string) => Number(id) },
-              },
-            },
-          },
-        },
+      CloneFeed: {
+        path: "clone/:cloneId",
+        parse: { cloneId: (id: string) => Number(id) },
       },
     },
   },

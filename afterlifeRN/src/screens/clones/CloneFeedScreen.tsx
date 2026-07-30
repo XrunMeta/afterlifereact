@@ -53,9 +53,58 @@ import { COLORS } from "../../components/constants";
 
 type Props = NativeStackScreenProps<RootStackParamList, "CloneFeed">;
 
-export default function CloneFeedScreen({ route, navigation }: Props) {
+export default function CloneFeedScreen(props: Props) {
+  const routeFeed = props.route.params?.feed;
+  const routeCloneId = props.route.params?.cloneId;
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const [synthFeed, setSynthFeed] = React.useState<import("../../api/clones").DiscoverFeedItem | null>(null);
+  const [fetchErr, setFetchErr] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (routeFeed || synthFeed || fetchErr) return;
+    if (!routeCloneId) return;
+    getCloneDetail(routeCloneId, accessToken ?? undefined)
+      .then((res) => {
+        const c = res.clone;
+        setSynthFeed({
+          id: -1 * Date.now(), 
+          cloneId: c.id,
+          content: c.description ?? null,
+          mediaUrl: c.avatarUrl ?? null,
+          mediaType: null,
+          likesCount: c.stats?.likes ?? 0,
+          likedByMe: c.likedByMe ?? false,
+          commentsCount: c.stats?.comments ?? 0,
+          createdAt: c.createdAt,
+          clone: {
+            id: c.id,
+            ownerId: c.ownerId,
+            name: c.name,
+            username: c.username ?? "",
+            avatarUrl: c.avatarUrl,
+            cloneType: c.cloneType,
+            visibility: c.visibility,
+          },
+          interests: c.interests ?? [],
+        });
+      })
+      .catch((err) => setFetchErr((err as Error).message));
+  }, [routeCloneId, routeFeed, synthFeed, fetchErr, accessToken]);
+
+  const feed = routeFeed ?? synthFeed;
+  if (!feed) {
+    return (
+      <View style={{ flex: 1, backgroundColor: COLORS.zinc950, alignItems: 'center', justifyContent: 'center' }}>
+        {fetchErr && <Text style={{ color: COLORS.zinc400, fontSize: 14 }}>클론을 불러올 수 없어요.</Text>}
+      </View>
+    );
+  }
+  return <CloneFeedInner {...props} feed={feed} />;
+}
+
+type InnerProps = Props & { feed: import("../../api/clones").DiscoverFeedItem };
+function CloneFeedInner({ route, navigation, feed }: InnerProps) {
   const { t } = useTranslation();
-  const { feed } = route.params;
   const insets = useSafeAreaInsets();
   const navBarHeight = useAndroidNavigationBarHeight(0);
 

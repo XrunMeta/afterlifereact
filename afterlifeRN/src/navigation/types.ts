@@ -19,7 +19,8 @@ export type RootStackParamList = {
   UserFollowList: { userId: number; mode: "followers" | "following"; userName?: string };
 
   CloneFeed: {
-    feed: import("../api/clones").DiscoverFeedItem;
+    feed?: import("../api/clones").DiscoverFeedItem;
+    cloneId?: number;
 
     openComments?: boolean;
   };
