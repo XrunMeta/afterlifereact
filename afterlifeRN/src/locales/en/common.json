@@ -966,9 +966,6 @@
       "push": "Push Notifications",
       "comment": "Comment Notifications",
       "like": "Like Notifications",
-<<<<<<< Updated upstream
-      "marketing": "Marketing Notifications"
-=======
       "marketing": "Marketing Notifications",
       "statusGranted": "Allowed",
       "statusDenied": "Denied",
@@ -997,7 +994,6 @@
       "promptDesc": "You need to register a 6-digit XRUN PIN in the xrun app to use payment features.",
       "promptOpen": "Set it up in the xrun app",
       "promptDismiss": "Don't show today"
->>>>>>> Stashed changes
     },
     "privacy": {
       "title": "Privacy and Visibility",
