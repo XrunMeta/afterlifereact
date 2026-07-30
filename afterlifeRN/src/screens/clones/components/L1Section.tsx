@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import type { L1Profile } from '../../../types/domain';
 
 const L1_KEYS = ['tone', 'hobby', 'style', 'catchphrase'] as const;
@@ -11,9 +12,10 @@ interface Props {
 }
 
 export function L1Section({ value, editable, onChange }: Props) {
+  const { t } = useTranslation();
   return (
     <View style={styles.root}>
-      <Text style={styles.title}>기본 성격 (L1)</Text>
+      <Text style={styles.title}>{t('edit.l1SectionTitle', { defaultValue: '기본 성격 (L1)' })}</Text>
       {L1_KEYS.map((k) => (
         <View key={k} style={styles.field}>
           <Text style={styles.label}>{k}</Text>
@@ -21,18 +23,18 @@ export function L1Section({ value, editable, onChange }: Props) {
             accessibilityLabel={`l1-attr-${k}`}
             value={value.attrs[k] ?? ''}
             editable={editable}
-            onChangeText={(t) => onChange({ ...value, attrs: { ...value.attrs, [k]: t } })}
+            onChangeText={(txt) => onChange({ ...value, attrs: { ...value.attrs, [k]: txt } })}
             style={[styles.input, !editable && styles.readonly]}
           />
         </View>
       ))}
-      <Text style={styles.label}>자유 메모</Text>
+      <Text style={styles.label}>{t('edit.l1NotesLabel', { defaultValue: '자유 메모' })}</Text>
       <TextInput
         accessibilityLabel="l1-notes"
         value={value.notes}
         editable={editable}
         multiline
-        onChangeText={(t) => onChange({ ...value, notes: t })}
+        onChangeText={(txt) => onChange({ ...value, notes: txt })}
         style={[styles.input, styles.notes, !editable && styles.readonly]}
       />
     </View>

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useNavigation } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuthStore } from "../stores/authStore";
 import { showAlert } from "../stores/dialogStore";
@@ -19,6 +20,7 @@ function toEpochMs(value: string): number {
 export function useReportAcceptedGate() {
   const navigation = useNavigation<any>();
   const accessToken = useAuthStore((s) => s.accessToken);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!accessToken || checkedForAccessToken === accessToken) return;
@@ -53,17 +55,21 @@ export function useReportAcceptedGate() {
           console.warn("[useReportAcceptedGate] failed to persist lastSeenReviewedAt", e);
         }
 
-        showAlert("신고를 받았습니다", "신고 내용을 확인해주세요.", [
-          {
-            text: "확인",
-            onPress: () => {
-              navigation.navigate("MyTab", {
-                screen: "Reports",
-                params: { tab: "received" },
-              });
+        showAlert(
+          t("reports.acceptedAlertTitle", { defaultValue: "신고를 받았습니다" }),
+          t("reports.acceptedAlertDesc", { defaultValue: "신고 내용을 확인해주세요." }),
+          [
+            {
+              text: t("common.ok", { defaultValue: "확인" }),
+              onPress: () => {
+                navigation.navigate("MyTab", {
+                  screen: "Reports",
+                  params: { tab: "received" },
+                });
+              },
             },
-          },
-        ]);
+          ],
+        );
       } catch {
 
         if (checkedForAccessToken === accessToken) {
@@ -71,7 +77,7 @@ export function useReportAcceptedGate() {
         }
       }
     })();
-  }, [accessToken, navigation]);
+  }, [accessToken, navigation, t]);
 }
 
 export function __resetReportAcceptedGateForTests(): void {

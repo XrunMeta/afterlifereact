@@ -66,7 +66,7 @@ export default function TransactionsScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       <PageHeader
-        title="전체 거래 내역"
+        title={t("transactions.title", { defaultValue: "전체 거래 내역" })}
         showBackButton
         onBackPress={() => navigation.goBack()}
       />
@@ -78,15 +78,16 @@ export default function TransactionsScreen() {
           </View>
         ) : items.length === 0 ? (
           <View style={s.center}>
-            <Text style={s.empty}>아직 거래 내역이 없어요</Text>
+            <Text style={s.empty}>{t("transactions.empty", { defaultValue: "아직 거래 내역이 없어요" })}</Text>
           </View>
         ) : (
           <View style={s.card}>
             {items.map((tx, i) => {
+              const cloneName = tx.cloneName ?? t("transactions.cloneFallback", { defaultValue: "클론" });
               const label =
                 tx.type === "gift_sent"
-                  ? `${tx.cloneName ?? "클론"}에게 ${tx.giftName} 선물`
-                  : `${tx.cloneName ?? "클론"}으로부터 ${tx.giftName} 선물 수익`;
+                  ? t("transactions.giftSentLabel", { clone: cloneName, gift: tx.giftName, defaultValue: "{{clone}}에게 {{gift}} 선물" })
+                  : t("transactions.giftReceivedLabel", { clone: cloneName, gift: tx.giftName, defaultValue: "{{clone}}으로부터 {{gift}} 선물 수익" });
               const positive = tx.amount > 0;
               return (
                 <View
