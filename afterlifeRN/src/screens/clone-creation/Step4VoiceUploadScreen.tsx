@@ -27,7 +27,11 @@ export default function v_710783({ navigation: v_c65f5d }: Props) {
       <PageHeader
         title={v_8d41d7("create.stepTitles.4")}
         showBackButton
-        onBackPress={() => v_c65f5d.goBack()}
+        onBackPress={() => {
+
+          if (v_c65f5d.canGoBack()) v_c65f5d.goBack();
+          else v_c65f5d.navigate('Step3');
+        }}
       />
       <SafeScrollView contentContainerStyle={v_d81136.content} showBottomBackground={false}>
         <Content draft={v_f04727} onChange={v_5795de} />

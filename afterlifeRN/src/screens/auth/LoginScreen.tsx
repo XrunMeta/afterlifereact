@@ -148,7 +148,6 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
   };
 
   const v_31080f = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiAuth);
-  const v_3345cb = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiTokens);
 
   const v_894a7c = async () => {
     const v_9e86fd = v_e0c7e8.trim().toLowerCase();
@@ -206,12 +205,10 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
             platform: v_326be8.OS === "ios" ? "ios" : "android",
           });
           const v_9ec4c0 = await v_7ef860(v_8f00b9.accessToken);
-          await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user, { persist: v_f53eaa });
-
-          const v_2d5dcc = (v_8f00b9 as { refreshToken?: string }).refreshToken;
-          if (v_2d5dcc) {
-            await v_3345cb(v_8f00b9.accessToken, v_2d5dcc, { persist: v_f53eaa });
-          }
+          await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user, {
+            persist: v_f53eaa,
+            refreshToken: v_8f00b9.refreshToken ?? null,
+          });
           if (v_f53eaa) {
             await v_e84827.setItem(v_101856, "1");
             await v_e84827.setItem(v_6a7868, v_9ec4c0.user.email);
@@ -268,11 +265,10 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           platform: "ios",
         });
         const v_9ec4c0 = await v_7ef860(v_8f00b9.accessToken);
-        await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user, { persist: v_f53eaa });
-        const v_5d337e = (v_8f00b9 as { refreshToken?: string }).refreshToken;
-        if (v_5d337e) {
-          await v_3345cb(v_8f00b9.accessToken, v_5d337e, { persist: v_f53eaa });
-        }
+        await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user, {
+          persist: v_f53eaa,
+          refreshToken: v_8f00b9.refreshToken ?? null,
+        });
         if (v_f53eaa) {
           await v_e84827.setItem(v_101856, "1");
           await v_e84827.setItem(v_6a7868, v_9ec4c0.user.email);
