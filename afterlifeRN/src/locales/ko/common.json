@@ -304,7 +304,12 @@
     "cloneLoadFailed": "클론을 불러올 수 없어요.",
     "reportCommentTitle": "댓글 신고",
     "reportCommentDesc": "이 댓글을 신고할까요?",
-    "reportAction": "신고"
+    "reportAction": "신고",
+    "followingEmptyHint": "홈에서 마음에 드는 클론을 구독해 보세요",
+    "summaryLabelChat": "채팅",
+    "summaryLabelCall": "통화",
+    "summaryLabelLearn": "탐색",
+    "summaryLabelFeed": "피드"
   },
   "detail": {
     "notFound": "클론을 찾을 수 없습니다.",
@@ -982,6 +987,7 @@
       "title": "차단 관리",
       "profileVisibility": "프로필 공개 범위",
       "blockList": "차단 목록",
+      "blockListEmpty": "차단한 대상이 없어요",
       "dataDownload": "내 데이터 다운로드",
       "deleteAccount": "회원 탈퇴",
       "faceConsent": {
@@ -1049,7 +1055,11 @@
       "promptTitle": "XRUN PIN를 설정해주세요",
       "promptDesc": "xrun 앱에서 6자리 XRUN PIN를 등록해야 결제 기능을 사용할 수 있어요.",
       "promptOpen": "xrun 앱에서 설정하기",
-      "promptDismiss": "오늘은 그만 보기"
+      "promptDismiss": "오늘은 그만 보기",
+      "verifyOkTitle": "확인",
+      "verifyOkMsg": "비밀번호가 확인되었습니다.",
+      "verifyError": "검증 중 오류가 발생했습니다.",
+      "xrunNotInstalled": "xrun 앱이 설치되어 있지 않습니다."
     }
   },
   "permissionGate": {
@@ -1124,5 +1134,85 @@
     "desc": "내가 팔로우 중인 사람 중에 공개할 친구를 선택하세요.",
     "empty": "아직 팔로우 중인 사람이 없어요",
     "confirmWithCount": "확인 ({{n}}명)"
+  },
+  "safety": {
+    "emergency": {
+      "title": "비상연락처 & 상속지정",
+      "helper": "일정 기간 미활동 시 지정된 연락처로 상속 이관 절차가 시작됩니다. 관리자 승인 후 이관이 집행됩니다.",
+      "emailLabel": "이메일",
+      "roleLabel": "역할",
+      "roleNotifyOnly": "(가) 알림만",
+      "rolePrimary": "(나) 1순위",
+      "roleSecondary": "(다) 2순위",
+      "inactivityLabel": "미활동 기준 (일)",
+      "inviteAction": "초대 발송",
+      "invalidEmail": "이메일 형식을 확인해주세요.",
+      "inviteSentTitle": "초대 발송",
+      "inviteSentDesc": "{{email}}에게 비상연락처 초대를 보냈습니다.",
+      "registeredContacts": "등록된 연락처",
+      "emptyContacts": "아직 등록된 연락처가 없습니다.",
+      "revoke": "철회"
+    },
+    "inheritance": {
+      "title": "상속 초대 응답",
+      "intro": "다른 사용자로부터 비상연락처/상속 지정 초대를 받으셨습니다. 초대 토큰을 확인한 후 수락 또는 거절을 선택해주세요. 수락 시 상속 이관 조건이 충족되면 관리자 승인 하에 일부 권한이 이관될 수 있습니다.",
+      "tokenLabel": "초대 토큰",
+      "tokenPlaceholder": "이메일에 포함된 토큰을 입력하세요",
+      "accept": "수락",
+      "decline": "거절",
+      "invalidToken": "유효한 초대 토큰이 필요합니다.",
+      "acceptDoneTitle": "수락 완료",
+      "declineDoneTitle": "거절 완료",
+      "acceptDoneDesc": "상속 지정이 수락되었습니다. 실제 이관은 관리자 검증 후 집행됩니다.",
+      "declineDoneDesc": "초대를 거절했습니다."
+    }
+  },
+  "reports": {
+    "title": "신고",
+    "tabMade": "신고 관리",
+    "tabReceived": "신고당한 내역",
+    "statusOpen": "대기중",
+    "statusReviewed": "처리 완료",
+    "statusActioned": "처리 완료",
+    "statusDismissed": "거절",
+    "typeUser": "유저",
+    "typeClone": "페르소나",
+    "typeComment": "댓글",
+    "typeFallback": "신고",
+    "cloneFallback": "페르소나",
+    "receivedTitleComment": "{{clone}}에서 내 댓글이 신고되어 조치됐어요",
+    "receivedTitleClone": "페르소나 '{{clone}}'가 신고되어 조치됐어요",
+    "receivedTitleUser": "회원님이 신고되어 조치됐어요",
+    "adminPrefix": "관리자: {{message}}",
+    "emptyReason": "(사유 없음)",
+    "emptyMade": "접수한 신고가 없어요",
+    "emptyReceived": "관리자가 조치한 신고가 없어요",
+    "warningBadge": "경고",
+    "statusMineTitle": "내 상태",
+    "warningCount": "받은 경고 {{n}}회",
+    "suspendedUntil": "활동 정지 중 (~{{date}}) — 페르소나 생성이 제한돼요",
+    "notSuspended": "활동 정지 없음",
+    "receivedAt": "접수 {{date}}",
+    "actionedAt": "조치 {{date}}"
+  },
+  "search": {
+    "placeholder": "태그나 닉네임 검색",
+    "tabRecommend": "추천",
+    "tabClone": "클론",
+    "tabAccount": "계정",
+    "tabTag": "태그",
+    "recentTitle": "최근 검색",
+    "emptyRecent": "최근 검색어가 없어요",
+    "clearAll": "모두 삭제",
+    "noResults": "검색 결과가 없어요",
+    "noClones": "일치하는 클론이 없어요",
+    "noAccounts": "일치하는 계정이 없어요",
+    "noTags": "일치하는 태그가 없어요"
+  },
+  "assetsHint": {
+    "title": "잠깐, 추가 정보가 필요해요",
+    "body": "사진과 음성은 대화 품질을 위해 필수입니다.\n지금 없으면 My Clones에서 언제든 추가할 수 있지만,\n그 전까지는 [생성대기중] 상태로 표시됩니다.",
+    "addNow": "지금 추가하러",
+    "later": "나중에 추가"
   }
 }

@@ -55,23 +55,6 @@ type ClonesNav = NativeStackNavigationProp<ClonesStackParamList>;
 
 const DEFAULT_USER_ID = 1;
 
-function formatRelativeShort(iso: string): string {
-  try {
-    const ms = new Date(iso.replace(" ", "T") + "Z").getTime();
-    const diff = Date.now() - ms;
-    if (diff < 60_000) return "방금";
-    const min = Math.floor(diff / 60_000);
-    if (min < 60) return `${min}분 전`;
-    const hr = Math.floor(min / 60);
-    if (hr < 24) return `${hr}시간 전`;
-    const d = Math.floor(hr / 24);
-    if (d < 30) return `${d}일 전`;
-    return new Date(ms).toLocaleDateString();
-  } catch {
-    return "";
-  }
-}
-
 function formatStat(n: number | null | undefined): string {
   if (typeof n !== "number" || !Number.isFinite(n)) return "0";
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
@@ -1183,7 +1166,7 @@ export default function MyClonesDashboardScreen() {
                             <View style={[s.commentAvatar, { backgroundColor: COLORS.zinc200 }]} />
                           )}
                           <Text style={s.commentName}>{cm.user.name ?? cm.user.email}</Text>
-                          <Text style={s.commentTime}>{formatRelativeShort(cm.createdAt)}</Text>
+                          <Text style={s.commentTime}>{formatRelativeKo(cm.createdAt)}</Text>
                           <TouchableOpacity
                             onPress={() => {
                               setStatsModal(null);

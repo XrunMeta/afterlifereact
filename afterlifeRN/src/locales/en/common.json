@@ -304,7 +304,12 @@
     "cloneLoadFailed": "Couldn't load the clone.",
     "reportCommentTitle": "Report Comment",
     "reportCommentDesc": "Report this comment?",
-    "reportAction": "Report"
+    "reportAction": "Report",
+    "followingEmptyHint": "Follow a persona you like from Home to see their posts here",
+    "summaryLabelChat": "Chat",
+    "summaryLabelCall": "Call",
+    "summaryLabelLearn": "Explore",
+    "summaryLabelFeed": "Feed"
   },
   "detail": {
     "notFound": "Persona not found.",
@@ -993,12 +998,17 @@
       "promptTitle": "Please set your XRUN PIN",
       "promptDesc": "You need to register a 6-digit XRUN PIN in the xrun app to use payment features.",
       "promptOpen": "Set it up in the xrun app",
-      "promptDismiss": "Don't show today"
+      "promptDismiss": "Don't show today",
+      "verifyOkTitle": "Verified",
+      "verifyOkMsg": "PIN verified.",
+      "verifyError": "Something went wrong during verification.",
+      "xrunNotInstalled": "xrun app isn't installed."
     },
     "privacy": {
       "title": "Privacy and Visibility",
       "profileVisibility": "Profile Visibility",
       "blockList": "Block List",
+      "blockListEmpty": "No one is blocked",
       "dataDownload": "Download My Data",
       "deleteAccount": "Delete Account",
       "faceConsent": {
@@ -1127,5 +1137,85 @@
     "desc": "Pick friends to share with from people you follow.",
     "empty": "You're not following anyone yet",
     "confirmWithCount": "Confirm ({{n}})"
+  },
+  "safety": {
+    "emergency": {
+      "title": "Emergency Contacts & Inheritance",
+      "helper": "If you're inactive for a set period, an inheritance transfer to your designated contacts will begin. Transfers are executed only after admin approval.",
+      "emailLabel": "Email",
+      "roleLabel": "Role",
+      "roleNotifyOnly": "(A) Notify only",
+      "rolePrimary": "(B) Primary",
+      "roleSecondary": "(C) Secondary",
+      "inactivityLabel": "Inactivity threshold (days)",
+      "inviteAction": "Send invite",
+      "invalidEmail": "Please check the email format.",
+      "inviteSentTitle": "Invite sent",
+      "inviteSentDesc": "Sent an emergency-contact invite to {{email}}.",
+      "registeredContacts": "Registered contacts",
+      "emptyContacts": "No contacts registered yet.",
+      "revoke": "Revoke"
+    },
+    "inheritance": {
+      "title": "Respond to Inheritance Invite",
+      "intro": "Another user has invited you as an emergency contact / inheritance designee. Please check the invite token, then choose to accept or decline. If you accept and the transfer conditions are met, certain permissions may be transferred to you upon admin approval.",
+      "tokenLabel": "Invite token",
+      "tokenPlaceholder": "Enter the token included in the email",
+      "accept": "Accept",
+      "decline": "Decline",
+      "invalidToken": "A valid invite token is required.",
+      "acceptDoneTitle": "Accepted",
+      "declineDoneTitle": "Declined",
+      "acceptDoneDesc": "Inheritance designation accepted. The actual transfer will be executed after admin verification.",
+      "declineDoneDesc": "You declined the invite."
+    }
+  },
+  "reports": {
+    "title": "Reports",
+    "tabMade": "Reports I made",
+    "tabReceived": "Reports against me",
+    "statusOpen": "Pending",
+    "statusReviewed": "Reviewed",
+    "statusActioned": "Actioned",
+    "statusDismissed": "Dismissed",
+    "typeUser": "User",
+    "typeClone": "Persona",
+    "typeComment": "Comment",
+    "typeFallback": "Report",
+    "cloneFallback": "Persona",
+    "receivedTitleComment": "Your comment on {{clone}} was reported and actioned",
+    "receivedTitleClone": "Your persona '{{clone}}' was reported and actioned",
+    "receivedTitleUser": "You were reported and actioned",
+    "adminPrefix": "Admin: {{message}}",
+    "emptyReason": "(No reason)",
+    "emptyMade": "You haven't submitted any reports",
+    "emptyReceived": "No reports have been actioned by admins",
+    "warningBadge": "Warning",
+    "statusMineTitle": "My status",
+    "warningCount": "{{n}} warnings received",
+    "suspendedUntil": "Suspended (~{{date}}) — persona creation is restricted",
+    "notSuspended": "No active suspension",
+    "receivedAt": "Received {{date}}",
+    "actionedAt": "Actioned {{date}}"
+  },
+  "search": {
+    "placeholder": "Search tags or usernames",
+    "tabRecommend": "Suggested",
+    "tabClone": "Clones",
+    "tabAccount": "Accounts",
+    "tabTag": "Tags",
+    "recentTitle": "Recent searches",
+    "emptyRecent": "No recent searches",
+    "clearAll": "Clear all",
+    "noResults": "No results found",
+    "noClones": "No matching clones",
+    "noAccounts": "No matching accounts",
+    "noTags": "No matching tags"
+  },
+  "assetsHint": {
+    "title": "Wait, we need a bit more info",
+    "body": "Photos and voice are essential for conversation quality.\nYou can add them from My Clones anytime, but until then this clone stays marked as [Waiting to be created].",
+    "addNow": "Add now",
+    "later": "Add later"
   }
 }
