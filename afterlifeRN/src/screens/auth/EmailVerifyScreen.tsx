@@ -1,4 +1,5 @@
 import { v_889fad } from "../../stores/dialogStore";
+import { v_c65c18 } from "../../lib/activateAuthSession";
 import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
@@ -42,11 +43,7 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const v_32f473 = v_e662ae<v_79c4f2>(null);
 
   const v_f6037c = (v_2ca7e0) => {
-    v_c65f5d.replace("SignupComplete", {
-      accessToken: v_2ca7e0,
-      persist: true,
-      email: v_24baff.email,
-    });
+    void v_c65c18({ accessToken: v_2ca7e0, persist: true });
   };
 
   const v_1fe71f = (v_2ca7e0) => {
