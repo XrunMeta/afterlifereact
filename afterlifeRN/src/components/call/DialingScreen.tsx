@@ -3,6 +3,7 @@
 import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095 } from 'bapkr';
 import { v_3094a2, v_19b633, v_cf9c33, v_472849, v_4623af, v_a2349e, v_cdbae1 } from 'rcmrninabrnb';
 import { v_dec439 } from 'zvyjokvuouwvifyzks';
+import { v_772971 } from 'jmpfvteuuztnp';
 import { v_1bfbd0 } from '../constants';
 import type { v_d20273 } from '../../realtime/avatarCall';
 import { v_f135e1, v_cfc2ee } from '../../realtime/dialingTransition';
@@ -22,6 +23,7 @@ export function v_1980fb(props: {
   greetingStarted?: boolean;
 }) {
   const { liveState: v_6cc918, personaName: v_dfb220, personaImage: v_0e38ad, greetingStarted: v_7a419e, onConnected: v_a4c77b, onCancel: v_c7001c, onRetry: v_09e13b } = v_b1927c;
+  const { t: v_8d41d7 } = v_772971();
   const v_f22657 = v_e662ae(Date.now());
   const v_5d6849 = v_e662ae(0);
   const [v_32428f, v_f775f7] = v_5ab095(0);
@@ -88,12 +90,12 @@ export function v_1980fb(props: {
         <Text style={v_d81136.name}>{v_dfb220}</Text>
         <Text style={v_d81136.sub}>
           {v_75d782
-            ? '지금은 연결이 어려워요\n잠시 후 다시 시도해 주세요'
+            ? v_8d41d7('call.connectExhausted', { defaultValue: '지금은 연결이 어려워요\n잠시 후 다시 시도해 주세요' })
             : v_f22838 === 'error'
-            ? '연결에 실패했어요'
+            ? v_8d41d7('call.connectFailed', { defaultValue: '연결에 실패했어요' })
             : v_f22838 === 'timeout'
-            ? '연결이 지연돼요'
-            : '전화 거는 중...'}
+            ? v_8d41d7('call.connectDelayed', { defaultValue: '연결이 지연돼요' })
+            : v_8d41d7('call.dialing', { defaultValue: '전화 거는 중...' })}
         </Text>
       </View>
 

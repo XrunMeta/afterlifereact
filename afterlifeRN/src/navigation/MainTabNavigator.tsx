@@ -6,6 +6,7 @@ import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_3094a2, v_472849, v_cf9c33, v_326be8 } from "rcmrninabrnb";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_97a9a8, v_2d88fc, v_2b51a5, v_e57140 } from "./types";
 import { v_1bfbd0 } from "../components/constants";
 import { v_1ed7d9 } from "../stores/authStore";
@@ -106,16 +107,17 @@ function v_d9c5dd() {
 
 const v_866a65 = v_cdbda8<v_97a9a8>();
 
-const TAB_CONFIG: Record<string, { icon: keyof typeof v_dec439.glyphMap; label: string }> = {
-  HomeTab: { icon: "home", label: "홈" },
-  SearchTab: { icon: "search", label: "검색" },
-  CreateTab: { icon: "plus-circle", label: "생성" },
-  ShortsTab: { icon: "user-check", label: "구독 중" },
-  ClonesTab: { icon: "users", label: "클론" },
-  MyTab: { icon: "user", label: "마이" },
+const TAB_CONFIG: Record<string, { icon: keyof typeof v_dec439.glyphMap; labelKey: string }> = {
+  HomeTab: { icon: "home", labelKey: "tabs.home" },
+  SearchTab: { icon: "search", labelKey: "tabs.search" },
+  CreateTab: { icon: "plus-circle", labelKey: "tabs.create" },
+  ShortsTab: { icon: "user-check", labelKey: "tabs.subscribing" },
+  ClonesTab: { icon: "users", labelKey: "tabs.clones" },
+  MyTab: { icon: "user", labelKey: "tabs.my" },
 };
 
 export default function v_19ba0e() {
+  const { t: v_8d41d7 } = v_772971();
   const v_625c74 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
   const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
 
@@ -133,6 +135,10 @@ export default function v_19ba0e() {
       screenOptions={({ route: v_c7daf6 }) => ({
         headerShown: false,
         tabBarShowLabel: false,
+
+        tabBarLabel: v_8d41d7(v_5efb19[v_c7daf6.name]?.labelKey ?? "", {
+          defaultValue: "",
+        }),
         tabBarStyle: {
           ...v_d81136.tabBar,
           height: 56 + v_53dd92,

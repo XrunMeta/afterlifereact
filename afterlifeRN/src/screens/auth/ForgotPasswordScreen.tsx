@@ -48,7 +48,7 @@ export default function v_040c8f() {
   const v_2de427 = async () => {
     const v_9e86fd = v_e0c7e8.trim().toLowerCase();
     if (!/^\S+@\S+\.\S+$/.test(v_9e86fd)) {
-      v_889fad("알림", "이메일 형식이 올바르지 않아요.");
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("common.emailInvalid"));
       return;
     }
     v_ee9ec1(true);
@@ -63,15 +63,10 @@ export default function v_040c8f() {
         const v_a63110 = v_49263d.message.match(/(\d+)\s*s/);
         const v_c3e86f = v_a63110 ? v_a63110[1] : "";
         v_badeaf = v_c3e86f
-          ? v_8d41d7("auth.forgot.cooldown", {
-              secs: v_c3e86f,
-              defaultValue: `${v_c3e86f}초 후에 다시 시도해주세요.`,
-            })
-          : v_8d41d7("auth.signup.rateLimit", {
-              defaultValue: "잠시 후 다시 시도해주세요.",
-            });
+          ? v_8d41d7("auth.forgot.cooldown", { secs: v_c3e86f })
+          : v_8d41d7("auth.signup.rateLimit");
       }
-      v_889fad("오류", v_badeaf);
+      v_889fad(v_8d41d7("common.error"), v_badeaf);
     } finally {
       v_ee9ec1(false);
     }
@@ -85,7 +80,7 @@ export default function v_040c8f() {
 
   const v_4f034c = () => {
     if (!/^\d{6}$/.test(v_c99bd2.trim())) {
-      v_889fad("알림", v_8d41d7("auth.forgot.wrongCode"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.forgot.wrongCode"));
       return;
     }
 
@@ -95,11 +90,11 @@ export default function v_040c8f() {
   const v_9831a6 = async () => {
 
     if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/.test(v_adc076)) {
-      v_889fad("알림", v_8d41d7("auth.forgot.passwordTooShort"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.forgot.passwordTooShort"));
       return;
     }
     if (v_adc076 !== v_1e51a9) {
-      v_889fad("알림", v_8d41d7("auth.forgot.passwordMismatch"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.forgot.passwordMismatch"));
       return;
     }
     v_ee9ec1(true);
@@ -110,7 +105,7 @@ export default function v_040c8f() {
         newPassword: v_adc076,
       });
       v_889fad(v_8d41d7("auth.forgot.successTitle"), v_8d41d7("auth.forgot.successDesc"), [
-        { text: "확인", onPress: () => v_c65f5d.goBack() },
+        { text: v_8d41d7("common.confirm"), onPress: () => v_c65f5d.goBack() },
       ]);
     } catch (v_49263d) {
       let v_badeaf = v_8d41d7("auth.forgot.resetFailed");
@@ -128,7 +123,7 @@ export default function v_040c8f() {
         }
 
       }
-      v_889fad("오류", v_badeaf);
+      v_889fad(v_8d41d7("common.error"), v_badeaf);
     } finally {
       v_ee9ec1(false);
     }
@@ -206,7 +201,7 @@ export default function v_040c8f() {
               <TouchableOpacity
                 onPress={() => v_b7733b((v_81e2ef) => !v_81e2ef)}
                 hitSlop={8}
-                accessibilityLabel="비밀번호 표시 전환"
+                accessibilityLabel={v_8d41d7("auth.forgot.togglePasswordLabel")}
                 style={v_fd5f43.toggleBtn}
               >
                 <Feather
@@ -229,7 +224,7 @@ export default function v_040c8f() {
               <TouchableOpacity
                 onPress={() => v_30513e((v_81e2ef) => !v_81e2ef)}
                 hitSlop={8}
-                accessibilityLabel="비밀번호 확인 표시 전환"
+                accessibilityLabel={v_8d41d7("auth.forgot.toggleConfirmLabel")}
                 style={v_fd5f43.toggleBtn}
               >
                 <Feather

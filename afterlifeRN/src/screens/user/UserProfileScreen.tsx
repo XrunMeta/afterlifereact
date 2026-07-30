@@ -16,6 +16,7 @@ import {
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
+import { v_772971 } from "jmpfvteuuztnp";
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
@@ -42,6 +43,7 @@ const v_ae5c4a = 4;
 const v_a564de = 3;
 
 export default function v_c501aa() {
+  const { t: v_8d41d7 } = v_772971();
   const v_c65f5d = v_ada615<NavProp>();
   const v_c7daf6 = v_2d8264<RouteProps>();
   const { userId: v_43e90c } = v_c7daf6.params;
@@ -69,7 +71,7 @@ export default function v_c501aa() {
 
   const v_f6f5de = v_de06a3(async () => {
     if (!v_2ca7e0) {
-      v_3a7d09("로그인이 필요합니다.");
+      v_3a7d09(v_8d41d7("user.loginRequired", { defaultValue: "로그인이 필요합니다." }));
       v_34a50a(false);
       return;
     }
@@ -82,11 +84,14 @@ export default function v_c501aa() {
       v_cd488d(v_43e90c, v_8f00b9.user.isFollowing);
     } catch (v_49263d) {
       console.warn("[UserProfile] load failed:", v_49263d);
-      v_3a7d09((v_49263d as Error).message ?? "프로필을 불러오지 못했어요.");
+      v_3a7d09(
+        (v_49263d as Error).message ??
+          v_8d41d7("user.profileLoadFailed", { defaultValue: "프로필을 불러오지 못했어요." }),
+      );
     } finally {
       v_34a50a(false);
     }
-  }, [v_2ca7e0, v_43e90c, v_cd488d]);
+  }, [v_2ca7e0, v_43e90c, v_cd488d, v_8d41d7]);
 
   v_c4deb2(() => {
     v_f6f5de();
@@ -190,7 +195,10 @@ export default function v_c501aa() {
   const v_8fecb8 = v_727031?.user.name ?? v_727031?.user.email ?? "";
   const v_0c8fa1 = v_727031?.user.isMe ?? false;
   const v_4258ec = v_727031?.user.isBlocked ?? false;
-  const v_b7489c = v_727031?.user.name ?? v_727031?.user.email ?? "이 사용자";
+  const v_b7489c =
+    v_727031?.user.name ??
+    v_727031?.user.email ??
+    v_8d41d7("user.fallbackTarget", { defaultValue: "이 사용자" });
 
   const v_21738e = async () => {
     v_eda097(false);
@@ -199,15 +207,21 @@ export default function v_c501aa() {
       if (v_4258ec) {
         await v_83b07d(v_2ca7e0, v_43e90c);
         v_4ffb1e((v_e2a85c) => (v_e2a85c ? { ...v_e2a85c, user: { ...v_e2a85c.user, isBlocked: false } } : v_e2a85c));
-        v_889fad("차단 해제", `${v_b7489c} 님을 차단 해제했어요.`);
+        v_889fad(
+          v_8d41d7("user.blockUndoneTitle", { defaultValue: "차단 해제" }),
+          v_8d41d7("user.blockUndoneDesc", { name: v_b7489c, defaultValue: "{{name}} 님을 차단 해제했어요." }),
+        );
       } else {
         v_889fad(
-          "차단하기",
-          `${v_b7489c} 님을 차단할까요?\n팔로우/팔로워 관계도 해제돼요.`,
+          v_8d41d7("user.blockOn", { defaultValue: "차단하기" }),
+          v_8d41d7("user.blockConfirmDesc", {
+            name: v_b7489c,
+            defaultValue: "{{name}} 님을 차단할까요?\n팔로우/팔로워 관계도 해제돼요.",
+          }),
           [
-            { text: "취소", style: "cancel" },
+            { text: v_8d41d7("common.cancel", { defaultValue: "취소" }), style: "cancel" },
             {
-              text: "차단하기",
+              text: v_8d41d7("user.blockOn", { defaultValue: "차단하기" }),
               style: "destructive",
               onPress: async () => {
                 try {
@@ -216,10 +230,19 @@ export default function v_c501aa() {
                     v_e2a85c ? { ...v_e2a85c, user: { ...v_e2a85c.user, isBlocked: true, isFollowing: false } } : v_e2a85c,
                   );
                   v_cd488d(v_43e90c, false);
-                  v_889fad("차단 완료", `${v_b7489c} 님을 차단했어요.`);
+                  v_889fad(
+                    v_8d41d7("user.blockDoneTitle", { defaultValue: "차단 완료" }),
+                    v_8d41d7("user.blockDoneDesc", {
+                      name: v_b7489c,
+                      defaultValue: "{{name}} 님을 차단했어요.",
+                    }),
+                  );
                 } catch (v_49263d) {
                   console.warn("[UserProfile] block failed:", v_49263d);
-                  v_889fad("실패", "차단에 실패했어요.");
+                  v_889fad(
+                    v_8d41d7("user.actionFailTitle", { defaultValue: "실패" }),
+                    v_8d41d7("user.blockFail", { defaultValue: "차단에 실패했어요." }),
+                  );
                 }
               },
             },
@@ -228,7 +251,10 @@ export default function v_c501aa() {
       }
     } catch (v_49263d) {
       console.warn("[UserProfile] toggle block failed:", v_49263d);
-      v_889fad("실패", "처리에 실패했어요.");
+      v_889fad(
+        v_8d41d7("user.actionFailTitle", { defaultValue: "실패" }),
+        v_8d41d7("user.actionFailDesc", { defaultValue: "처리에 실패했어요." }),
+      );
     }
   };
 
@@ -241,10 +267,16 @@ export default function v_c501aa() {
       v_cd488d(v_43e90c, false);
 
       v_c65f5d.navigate("Main", { screen: "HomeTab" } as never);
-      v_889fad("신고 완료", "신고가 접수됐어요. 이 사용자는 차단됐어요.");
+      v_889fad(
+        v_8d41d7("user.reportDoneTitle", { defaultValue: "신고 완료" }),
+        v_8d41d7("user.reportDoneDesc", { defaultValue: "신고가 접수됐어요. 이 사용자는 차단됐어요." }),
+      );
     } catch (v_49263d) {
       console.warn("[UserProfile] report failed:", v_49263d);
-      v_889fad("실패", "신고에 실패했어요.");
+      v_889fad(
+        v_8d41d7("user.actionFailTitle", { defaultValue: "실패" }),
+        v_8d41d7("user.reportFail", { defaultValue: "신고에 실패했어요." }),
+      );
     }
   };
 
@@ -261,7 +293,7 @@ export default function v_c501aa() {
               onPress={() => v_eda097(true)}
               hitSlop={12}
               style={{ padding: 8 }}
-              accessibilityLabel="더 보기"
+              accessibilityLabel={v_8d41d7("user.moreLabel", { defaultValue: "더 보기" })}
             >
               <Feather name="more-vertical" size={22} color={v_1bfbd0.zinc900} />
             </TouchableOpacity>
@@ -276,9 +308,11 @@ export default function v_c501aa() {
       ) : v_5e9bfe || !v_727031 ? (
         <View style={v_fd5f43.center}>
           <Feather name="alert-circle" size={32} color={v_1bfbd0.zinc400} />
-          <Text style={v_fd5f43.errorText}>{v_5e9bfe ?? "프로필을 불러올 수 없어요"}</Text>
+          <Text style={v_fd5f43.errorText}>
+            {v_5e9bfe ?? v_8d41d7("user.profileLoadEmpty", { defaultValue: "프로필을 불러올 수 없어요" })}
+          </Text>
           <TouchableOpacity onPress={v_f6f5de} style={v_fd5f43.retryBtn}>
-            <Text style={v_fd5f43.retryBtnText}>다시 시도</Text>
+            <Text style={v_fd5f43.retryBtnText}>{v_8d41d7("common.retry", { defaultValue: "다시 시도" })}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -310,7 +344,7 @@ export default function v_c501aa() {
                   )}
                   <View style={{ flex: 1, marginLeft: 26 }}>
                     <Text style={v_fd5f43.profileName} numberOfLines={1}>
-                      {v_727031.user.name ?? "사용자"}
+                      {v_727031.user.name ?? v_8d41d7("user.fallbackName", { defaultValue: "사용자" })}
                     </Text>
                     <View style={v_fd5f43.profileStatsRow}>
                       <TouchableOpacity
@@ -320,7 +354,9 @@ export default function v_c501aa() {
                         <Text style={v_fd5f43.profileStatValue}>
                           {v_727031.user.followersCount}
                         </Text>
-                        <Text style={v_fd5f43.profileStatLabel}>팔로워</Text>
+                        <Text style={v_fd5f43.profileStatLabel}>
+                          {v_8d41d7("user.statFollowers", { defaultValue: "팔로워" })}
+                        </Text>
                       </TouchableOpacity>
                       <View style={v_fd5f43.profileStatDivider} />
                       <TouchableOpacity
@@ -330,14 +366,18 @@ export default function v_c501aa() {
                         <Text style={v_fd5f43.profileStatValue}>
                           {v_727031.user.followingCount}
                         </Text>
-                        <Text style={v_fd5f43.profileStatLabel}>팔로잉</Text>
+                        <Text style={v_fd5f43.profileStatLabel}>
+                          {v_8d41d7("user.statFollowing", { defaultValue: "팔로잉" })}
+                        </Text>
                       </TouchableOpacity>
                       <View style={v_fd5f43.profileStatDivider} />
                       <View style={v_fd5f43.profileStatItem}>
                         <Text style={v_fd5f43.profileStatValue}>
                           {v_727031.clones.length}
                         </Text>
-                        <Text style={v_fd5f43.profileStatLabel}>클론</Text>
+                        <Text style={v_fd5f43.profileStatLabel}>
+                          {v_8d41d7("user.statClones", { defaultValue: "클론" })}
+                        </Text>
                       </View>
                     </View>
                   </View>
@@ -372,8 +412,8 @@ export default function v_c501aa() {
                         ]}
                       >
                         {v_e1bd47 || v_727031.user.isFollowing
-                          ? "팔로잉"
-                          : "팔로우"}
+                          ? v_8d41d7("user.followingBtn", { defaultValue: "팔로잉" })
+                          : v_8d41d7("user.followBtn", { defaultValue: "팔로우" })}
                       </Text>
                     )}
                   </TouchableOpacity>
@@ -381,14 +421,19 @@ export default function v_c501aa() {
               </View>
 
               <Text style={v_fd5f43.sectionTitle}>
-                만든 클론 ({v_727031.clones.length})
+                {v_8d41d7("user.clonesSection", {
+                  n: v_727031.clones.length,
+                  defaultValue: "만든 클론 ({{n}})",
+                })}
               </Text>
             </>
           }
           ListEmptyComponent={
             <View style={v_fd5f43.empty}>
               <Feather name="users" size={32} color={v_1bfbd0.zinc300} />
-              <Text style={v_fd5f43.emptyText}>아직 만든 클론이 없어요</Text>
+              <Text style={v_fd5f43.emptyText}>
+                {v_8d41d7("user.emptyClones", { defaultValue: "아직 만든 클론이 없어요" })}
+              </Text>
             </View>
           }
         />
@@ -411,7 +456,9 @@ export default function v_c501aa() {
               }}
             >
               <Feather name="flag" size={20} color="#ef4444" />
-              <Text style={[v_fd5f43.moreItemText, { color: "#ef4444" }]}>신고하기</Text>
+              <Text style={[v_fd5f43.moreItemText, { color: "#ef4444" }]}>
+                {v_8d41d7("user.reportAction", { defaultValue: "신고하기" })}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[v_fd5f43.moreItem, { borderBottomWidth: 0 }]}
@@ -423,7 +470,9 @@ export default function v_c501aa() {
                 color={v_1bfbd0.zinc900}
               />
               <Text style={v_fd5f43.moreItemText}>
-                {v_4258ec ? "차단 해제" : "차단하기"}
+                {v_4258ec
+                  ? v_8d41d7("user.blockOff", { defaultValue: "차단 해제" })
+                  : v_8d41d7("user.blockOn", { defaultValue: "차단하기" })}
               </Text>
             </TouchableOpacity>
           </SwipeDownSheet>

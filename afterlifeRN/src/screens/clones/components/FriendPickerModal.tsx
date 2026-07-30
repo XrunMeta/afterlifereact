@@ -15,6 +15,7 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_772971 } from "jmpfvteuuztnp";
 import { v_1ed7d9 } from "../../../stores/authStore";
 import { v_5959d8, type v_7428e9 } from "../../../api/users";
 import v_1a40c4 from "../../../components/ui/Button";
@@ -35,6 +36,7 @@ export default function v_4c2648({
   onClose: v_0890f8,
   onConfirm: v_e2be2d,
 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_f5f393 = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.id ?? v_fd5f43.user?.id ?? null);
   const v_033e14 = v_e0068c();
@@ -85,9 +87,13 @@ export default function v_4c2648({
           style={[v_fd5f43.box, { paddingBottom: v_284e24 }]}
         >
           <View style={v_fd5f43.handle} />
-          <Text style={v_fd5f43.title}>특정 친구에게만 공개</Text>
+          <Text style={v_fd5f43.title}>
+            {v_8d41d7("friendPicker.title", { defaultValue: "특정 친구에게만 공개" })}
+          </Text>
           <Text style={v_fd5f43.desc}>
-            내가 팔로우 중인 사람 중에 공개할 친구를 선택하세요.
+            {v_8d41d7("friendPicker.desc", {
+              defaultValue: "내가 팔로우 중인 사람 중에 공개할 친구를 선택하세요.",
+            })}
           </Text>
 
           {v_683210 ? (
@@ -95,7 +101,9 @@ export default function v_4c2648({
           ) : v_ba3f04.length === 0 ? (
             <View style={v_fd5f43.empty}>
               <Feather name="users" size={32} color={v_1bfbd0.zinc300} />
-              <Text style={v_fd5f43.emptyText}>아직 팔로우 중인 사람이 없어요</Text>
+              <Text style={v_fd5f43.emptyText}>
+                {v_8d41d7("friendPicker.empty", { defaultValue: "아직 팔로우 중인 사람이 없어요" })}
+              </Text>
             </View>
           ) : (
             <ScrollView style={v_fd5f43.list} keyboardShouldPersistTaps="handled">
@@ -133,9 +141,17 @@ export default function v_4c2648({
           )}
 
           <View style={v_fd5f43.actions}>
-            <Button title="취소" variant="ghost" onPress={v_0890f8} style={{ flex: 1 }} />
             <Button
-              title={`확인 (${v_587413.size}명)`}
+              title={v_8d41d7("common.cancel", { defaultValue: "취소" })}
+              variant="ghost"
+              onPress={v_0890f8}
+              style={{ flex: 1 }}
+            />
+            <Button
+              title={v_8d41d7("friendPicker.confirmWithCount", {
+                n: v_587413.size,
+                defaultValue: "확인 ({{n}}명)",
+              })}
               variant="primary"
               onPress={() => v_e2be2d(Array.from(v_587413))}
               style={{ flex: 1 }}

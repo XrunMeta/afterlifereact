@@ -187,7 +187,11 @@ export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v
               <>
                 {v_6cf134 && (
                   <Text style={v_fd5f43.langNotice}>
-                    ⚠️ {v_449829} → {v_c61b34} (해당 언어 약관 준비 중)
+                    {v_8d41d7("terms.langNotice", {
+                      expected: v_449829,
+                      returned: v_c61b34,
+                      defaultValue: "⚠️ {{expected}} → {{returned}} (해당 언어 약관 준비 중)",
+                    })}
                   </Text>
                 )}
                 <Text style={v_fd5f43.contentText}>{v_b43b74}</Text>

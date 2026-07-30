@@ -16,6 +16,7 @@ import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import { v_772971 } from "jmpfvteuuztnp";
+import type { v_75de9d } from "zqqvxke";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
 import v_0e981f from "../../components/common/NotificationBell";
@@ -34,12 +35,14 @@ import type { v_e57140 } from "../../navigation/types";
 
 const v_b9d568 = 1;
 
-function v_a31ca1(v_b6a7e0): string {
+function v_a31ca1(v_b6a7e0, t: v_75de9d): string {
   const v_fd5f43 = Math.max(0, Math.floor(v_b6a7e0));
   const v_35f85c = Math.floor(v_fd5f43 / 60);
   const v_3300b9 = v_fd5f43 % 60;
-  if (v_35f85c === 0) return `${v_3300b9}초`;
-  return v_3300b9 > 0 ? `${v_35f85c}분 ${v_3300b9}초` : `${v_35f85c}분`;
+  if (v_35f85c === 0) return v_8d41d7("common.durationSec", { s: v_3300b9, defaultValue: `${v_3300b9}초` });
+  return v_3300b9 > 0
+    ? v_8d41d7("common.durationMinSec", { m: v_35f85c, s: v_3300b9, defaultValue: `${v_35f85c}분 ${v_3300b9}초` })
+    : v_8d41d7("common.durationMin", { m: v_35f85c, defaultValue: `${v_35f85c}분` });
 }
 
 type MyNav = v_390fcc<v_e57140>;
@@ -136,15 +139,20 @@ export default function v_ed02a5() {
   const v_5bc46a = () => {
 
     const v_8a1355 =
-      v_b113dd?.name || v_b113dd?.email?.split("@")[0] || "회원";
+      v_b113dd?.name ||
+      v_b113dd?.email?.split("@")[0] ||
+      v_8d41d7("my.delete.userFallback", { defaultValue: "회원" });
     v_889fad(
-      "벌써 떠나시나요?",
-      `${v_8a1355} 님과 함께한 소중한 시간들을 기억할게요.\n계정과 클론은 영구적으로 사라져요.`,
+      v_8d41d7("my.delete.title", { defaultValue: "벌써 떠나시나요?" }),
+      v_8d41d7("my.delete.desc", {
+        name: v_8a1355,
+        defaultValue: `${v_8a1355} 님과 함께한 소중한 시간들을 기억할게요.\n계정과 클론은 영구적으로 사라져요.`,
+      }),
       [
 
-        { text: "조금 더 써볼래요", style: "cancel" },
+        { text: v_8d41d7("my.delete.stay", { defaultValue: "조금 더 써볼래요" }), style: "cancel" },
         {
-          text: "탈퇴하기",
+          text: v_8d41d7("my.delete.leave", { defaultValue: "탈퇴하기" }),
           style: "destructive",
           onPress: async () => {
             if (!v_2ca7e0) return;
@@ -153,15 +161,22 @@ export default function v_ed02a5() {
               await v_55fc7c(v_2ca7e0);
               await v_d7d5a2();
             } catch (v_49263d) {
-              const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : "탈퇴에 실패했어요.";
-              v_889fad("오류", v_badeaf);
+              const v_badeaf =
+                v_49263d instanceof v_84a859
+                  ? v_49263d.message
+                  : v_8d41d7("my.delete.failed", { defaultValue: "탈퇴에 실패했어요." });
+              v_889fad(v_8d41d7("common.error", { defaultValue: "오류" }), v_badeaf);
               v_bdf535(false);
             }
           },
         },
       ],
 
-      { subMessage: "xrun 가입자라면 xrun 계정은 유지됩니다" },
+      {
+        subMessage: v_8d41d7("my.delete.subMessage", {
+          defaultValue: "xrun 가입자라면 xrun 계정은 유지됩니다",
+        }),
+      },
     );
   };
 
@@ -240,7 +255,7 @@ export default function v_ed02a5() {
   return (
     <SafeScrollView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       <PageHeader
-        title="설정"
+        title={v_8d41d7("my.headerTitle", { defaultValue: "설정" })}
         showBackButton
         onBackPress={() => {
 
@@ -264,26 +279,45 @@ export default function v_ed02a5() {
           onPress={() => v_c65f5d.navigate("Purchase")}
         >
           <View style={{ flex: 1 }}>
-            <Text style={v_fd5f43.balanceLabel}>남은 통화 시간</Text>
+            <Text style={v_fd5f43.balanceLabel}>
+              {v_8d41d7("my.balance.remainingTime", { defaultValue: "남은 통화 시간" })}
+            </Text>
             {v_747a87 && !v_c88e9b ? (
               <ActivityIndicator color={v_1bfbd0.violet600} style={{ marginTop: 6 }} />
             ) : v_c88e9b ? (
               <>
                 <Text style={v_fd5f43.balanceTotal}>
-                  {v_a31ca1(v_c88e9b.totalSec)}
+                  {v_a31ca1(v_c88e9b.totalSec, v_8d41d7)}
                 </Text>
                 <Text style={v_fd5f43.balanceBreakdown}>
-                  무료 {v_a31ca1(v_c88e9b.freeSec)}
-                  {v_c88e9b.subSec > 0 ? ` · 구독 ${v_a31ca1(v_c88e9b.subSec)}` : ""}
-                  {v_c88e9b.topupSec > 0 ? ` · 충전 ${v_a31ca1(v_c88e9b.topupSec)}` : ""}
+                  {v_8d41d7("my.balance.free", {
+                    time: v_a31ca1(v_c88e9b.freeSec, v_8d41d7),
+                    defaultValue: `무료 ${v_a31ca1(v_c88e9b.freeSec, v_8d41d7)}`,
+                  })}
+                  {v_c88e9b.subSec > 0
+                    ? ` · ${v_8d41d7("my.balance.sub", {
+                        time: v_a31ca1(v_c88e9b.subSec, v_8d41d7),
+                        defaultValue: `구독 ${v_a31ca1(v_c88e9b.subSec, v_8d41d7)}`,
+                      })}`
+                    : ""}
+                  {v_c88e9b.topupSec > 0
+                    ? ` · ${v_8d41d7("my.balance.topup", {
+                        time: v_a31ca1(v_c88e9b.topupSec, v_8d41d7),
+                        defaultValue: `충전 ${v_a31ca1(v_c88e9b.topupSec, v_8d41d7)}`,
+                      })}`
+                    : ""}
                 </Text>
               </>
             ) : (
-              <Text style={v_fd5f43.balanceEmpty}>잔액 조회 실패</Text>
+              <Text style={v_fd5f43.balanceEmpty}>
+                {v_8d41d7("my.balance.failed", { defaultValue: "잔액 조회 실패" })}
+              </Text>
             )}
           </View>
           <View style={v_fd5f43.balanceCta}>
-            <Text style={v_fd5f43.balanceCtaText}>충전</Text>
+            <Text style={v_fd5f43.balanceCtaText}>
+              {v_8d41d7("my.balance.charge", { defaultValue: "충전" })}
+            </Text>
             <Feather name="chevron-right" size={16} color="#fff" />
           </View>
         </TouchableOpacity>
@@ -352,7 +386,11 @@ export default function v_ed02a5() {
                 !v_1f6f04 || v_1f6f04.length === 0 ? (
                   <View style={v_fd5f43.statsEmpty}>
                     <Feather name="users" size={28} color={v_1bfbd0.zinc300} />
-                    <Text style={v_fd5f43.statsEmptyText}>아직 구독한 클론이 없어요</Text>
+                    <Text style={v_fd5f43.statsEmptyText}>
+                      {v_8d41d7("my.stats.emptyFollowing", {
+                        defaultValue: "아직 구독한 클론이 없어요",
+                      })}
+                    </Text>
                   </View>
                 ) : (
                   v_1f6f04.map((v_3f4e2e) => {
@@ -410,7 +448,9 @@ export default function v_ed02a5() {
                           style={[v_fd5f43.followToggleBtn, v_10387a && v_fd5f43.followToggleBtnActive]}
                         >
                           <Text style={[v_fd5f43.followToggleText, v_10387a && v_fd5f43.followToggleTextActive]}>
-                            {v_10387a ? "구독 중" : "구독"}
+                            {v_10387a
+                              ? v_8d41d7("feed.following", { defaultValue: "구독 중" })
+                              : v_8d41d7("feed.follow", { defaultValue: "구독" })}
                           </Text>
                         </TouchableOpacity>
                       </TouchableOpacity>
@@ -422,7 +462,11 @@ export default function v_ed02a5() {
                 !v_58e68f || v_58e68f.length === 0 ? (
                   <View style={v_fd5f43.statsEmpty}>
                     <Feather name="user" size={28} color={v_1bfbd0.zinc300} />
-                    <Text style={v_fd5f43.statsEmptyText}>아직 만든 클론이 없어요</Text>
+                    <Text style={v_fd5f43.statsEmptyText}>
+                      {v_8d41d7("my.stats.emptyMyClones", {
+                        defaultValue: "아직 만든 클론이 없어요",
+                      })}
+                    </Text>
                   </View>
                 ) : (
                   v_58e68f.map((v_3f4e2e) => (

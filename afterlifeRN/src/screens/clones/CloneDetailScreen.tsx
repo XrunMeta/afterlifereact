@@ -90,7 +90,7 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   }, [v_8282fa]);
   const v_368174 = () => {
     v_88d896(false);
-    v_15c939("결제 준비 중이에요");
+    v_15c939(v_8d41d7("detail.paymentPending", { defaultValue: "결제 준비 중이에요" }));
   };
 
   const v_c279e3 =

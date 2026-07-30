@@ -125,7 +125,10 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
       }
 
       if (v_49263d instanceof v_84a859 && v_49263d.code === "ACCOUNT_SUSPENDED") {
-        v_889fad("계정 사용 정지", v_49263d.message || "신고 누적으로 계정 사용이 정지되었습니다.");
+        v_889fad(
+          v_8d41d7("auth.login.accountSuspendedTitle"),
+          v_49263d.message || v_8d41d7("auth.login.accountSuspendedMessage"),
+        );
         return;
       }
       let v_badeaf = v_8d41d7("auth.login.loginFailed");
@@ -150,7 +153,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
   const v_894a7c = async () => {
     const v_9e86fd = v_e0c7e8.trim().toLowerCase();
     if (!/^\S+@\S+\.\S+$/.test(v_9e86fd)) {
-      v_889fad(v_8d41d7("common.notice"), "이메일 형식이 올바르지 않아요.");
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("common.emailInvalid"));
       return;
     }
     v_9d5a9f(true);
@@ -170,7 +173,10 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
     if (v_e38ca2 === "google") {
       try {
         if (!v_220c23()) {
-          v_889fad("구글 로그인을 사용할 수 없어요", "잠시 후 다시 시도해 주세요.");
+          v_889fad(
+            v_8d41d7("auth.login.googleUnavailableTitle"),
+            v_8d41d7("auth.login.googleUnavailableMessage"),
+          );
           return;
         }
         await v_4eac84.hasPlayServices({ showPlayServicesUpdateDialog: true });
@@ -185,7 +191,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
         };
         const v_b50834 = v_bb789b?.idToken ?? v_bb789b?.data?.idToken;
         if (!v_b50834) {
-          v_889fad("오류", "Google 로그인 토큰을 받지 못했습니다.");
+          v_889fad(v_8d41d7("common.error"), v_8d41d7("auth.login.googleNoToken"));
           return;
         }
 
@@ -237,7 +243,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
     }
     if (v_e38ca2 === "apple") {
       if (v_326be8.OS !== "ios") {
-        v_889fad("안내", "Apple 로그인은 iOS 에서만 지원돼요.");
+        v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.login.appleIosOnly"));
         return;
       }
       try {
@@ -249,7 +255,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           ],
         });
         if (!v_68e4c4.identityToken) {
-          v_889fad("오류", "Apple identityToken 을 받지 못했어요.");
+          v_889fad(v_8d41d7("common.error"), v_8d41d7("auth.login.appleNoToken"));
           return;
         }
         const v_929b58 = await v_ea1c99();
@@ -292,8 +298,8 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           console.warn("[AppleAuth] system noise (silent):", v_44854f || v_49263d?.code);
           return;
         }
-        const v_badeaf = (v_49263d instanceof v_84a859 ? v_49263d.message : v_49263d?.message) || "Apple 로그인 실패";
-        v_889fad("Apple 로그인 실패", v_badeaf);
+        const v_badeaf = (v_49263d instanceof v_84a859 ? v_49263d.message : v_49263d?.message) || v_8d41d7("auth.login.appleFailed");
+        v_889fad(v_8d41d7("auth.login.appleFailed"), v_badeaf);
       }
       return;
     }
@@ -323,7 +329,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
               onPress={() => v_038d7f("account")}
             >
               <Text style={[v_d81136.tabText, v_34e5bb === "account" && v_d81136.tabTextActive]}>
-                계정 로그인
+                {v_8d41d7("auth.login.tabAccount")}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -331,7 +337,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
               onPress={() => v_038d7f("otp")}
             >
               <Text style={[v_d81136.tabText, v_34e5bb === "otp" && v_d81136.tabTextActive]}>
-                이메일 OTP 로그인
+                {v_8d41d7("auth.login.tabOtp")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -402,7 +408,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
                 <Text style={v_d81136.checkboxLabel}>{v_8d41d7("auth.login.autoLoginLabel")}</Text>
               </TouchableOpacity>
               <Button
-                title={v_5a69f1 ? "전송 중..." : "인증코드 받기"}
+                title={v_5a69f1 ? v_8d41d7("auth.login.sendingOtp") : v_8d41d7("auth.login.requestOtp")}
                 onPress={v_894a7c}
                 variant="primary"
                 disabled={v_5a69f1 || !v_e0c7e8.trim()}
@@ -438,7 +444,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           {v_326be8.OS === "ios" && (
             <View style={{ marginTop: 10 }}>
               <Button
-                title="Apple 로 로그인"
+                title={v_8d41d7("auth.login.appleBtn")}
                 onPress={() => v_78c15c("apple")}
                 variant="secondary"
                 size="md"

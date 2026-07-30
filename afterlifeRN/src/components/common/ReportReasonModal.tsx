@@ -15,6 +15,7 @@ import {
   v_e45a99,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
+import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0, v_8b0c90 } from "../constants";
 
 interface Props {
@@ -32,6 +33,7 @@ export default function v_4d58d7({
   onConfirm: v_e2be2d,
   onCancel: v_c7001c,
 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const [v_58ca36, v_b6141f] = v_5ab095("");
 
   const [v_7e4acc, v_de86c2] = v_5ab095(0);
@@ -89,16 +91,22 @@ export default function v_4d58d7({
             <View style={v_d81136.iconWrap}>
               <Feather name="flag" size={24} color="#ef4444" />
             </View>
-            <Text style={v_d81136.title}>신고하기</Text>
+            <Text style={v_d81136.title}>{v_8d41d7("report.title", { defaultValue: "신고하기" })}</Text>
             <Text style={v_d81136.desc}>
-              {v_8a1135 ? `'${v_8a1135}' ` : ""}클론을 신고하는 사유를{"\n"}
-              간단히 입력해주세요. (선택)
+              {v_8a1135
+                ? v_8d41d7("report.descWithName", {
+                    name: v_8a1135,
+                    defaultValue: "'{{name}}' 클론을 신고하는 사유를\n간단히 입력해주세요. (선택)",
+                  })
+                : v_8d41d7("report.descNoName", {
+                    defaultValue: "클론을 신고하는 사유를\n간단히 입력해주세요. (선택)",
+                  })}
             </Text>
             <TextInput
               style={v_d81136.input}
               value={v_58ca36}
               onChangeText={(v_81e2ef) => v_b6141f(v_81e2ef.slice(0, v_87edf7))}
-              placeholder="예: 부적절한 내용, 사칭, 스팸 등"
+              placeholder={v_8d41d7("report.placeholder", { defaultValue: "예: 부적절한 내용, 사칭, 스팸 등" })}
               placeholderTextColor={v_1bfbd0.zinc400}
               multiline
               numberOfLines={4}
@@ -110,10 +118,10 @@ export default function v_4d58d7({
             </Text>
             <View style={v_d81136.btns}>
               <TouchableOpacity style={v_d81136.cancel} onPress={v_c7001c}>
-                <Text style={v_d81136.cancelText}>취소</Text>
+                <Text style={v_d81136.cancelText}>{v_8d41d7("common.cancel", { defaultValue: "취소" })}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={v_d81136.confirm} onPress={v_fbb22a}>
-                <Text style={v_d81136.confirmText}>신고하기</Text>
+                <Text style={v_d81136.confirmText}>{v_8d41d7("report.submit", { defaultValue: "신고하기" })}</Text>
               </TouchableOpacity>
             </View>
           </Pressable>

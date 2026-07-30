@@ -288,12 +288,12 @@ export default function v_c316d8() {
   const v_b72645 = (v_d91518) => {
     if (v_ed660d == null || v_ed660d < 0 || !v_2ca7e0) return;
     v_889fad(
-      "댓글 삭제",
-      "이 댓글을 삭제하시겠습니까?",
+      v_8d41d7("home.commentDeleteTitle", { defaultValue: "댓글 삭제" }),
+      v_8d41d7("home.commentDeleteDesc", { defaultValue: "이 댓글을 삭제하시겠습니까?" }),
       [
-        { text: "취소", style: "cancel" },
+        { text: v_8d41d7("common.cancel", { defaultValue: "취소" }), style: "cancel" },
         {
-          text: "삭제",
+          text: v_8d41d7("common.delete", { defaultValue: "삭제" }),
           style: "destructive",
           onPress: async () => {
             try {
@@ -383,7 +383,11 @@ export default function v_c316d8() {
               const v_8f7097 = encodeURIComponent(v_8c0b26.author);
               const v_f71b56 = `https://www.xrun.run/clone?id=${v_8c0b26.cloneId}&name=${v_8f7097}`;
               await v_5f4661.share({
-                message: `${v_8c0b26.author} 클론과 만나보세요!\n${v_f71b56}`,
+                message: v_8d41d7("home.shareMessage", {
+                  name: v_8c0b26.author,
+                  url: v_f71b56,
+                  defaultValue: `${v_8c0b26.author} 클론과 만나보세요!\n${v_f71b56}`,
+                }),
                 title: v_8c0b26.author,
               });
             } catch (v_49263d) {
@@ -414,10 +418,14 @@ export default function v_c316d8() {
           <View style={v_d81136.emptyIconWrap}>
             <Feather name="users" size={36} color="rgba(255,255,255,0.7)" />
           </View>
-          <Text style={v_d81136.emptyTitle}>아직 만나볼 클론이 없어요</Text>
+          <Text style={v_d81136.emptyTitle}>
+            {v_8d41d7("home.emptyTitle", { defaultValue: "아직 만나볼 클론이 없어요" })}
+          </Text>
           <Text style={v_d81136.emptyDesc}>
-            첫 클론의 주인공이 되어보시는 건 어때요?{"\n"}
-            나만의 클론을 만들어 시작해 보세요
+            {v_8d41d7("home.emptyDesc", {
+              defaultValue:
+                "첫 클론의 주인공이 되어보시는 건 어때요?\n나만의 클론을 만들어 시작해 보세요",
+            })}
           </Text>
           <TouchableOpacity
             style={v_d81136.emptyBtn}
@@ -433,7 +441,9 @@ export default function v_c316d8() {
             }
           >
             <Feather name="plus" size={18} color={v_1bfbd0.zinc950} />
-            <Text style={v_d81136.emptyBtnText}>클론 만들기</Text>
+            <Text style={v_d81136.emptyBtnText}>
+              {v_8d41d7("home.createClone", { defaultValue: "클론 만들기" })}
+            </Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -530,7 +540,9 @@ export default function v_c316d8() {
                             })
                           }
                         >
-                          <Text style={v_d81136.replyActionText}>답글 달기</Text>
+                          <Text style={v_d81136.replyActionText}>
+                            {v_8d41d7("home.replyAction", { defaultValue: "답글 달기" })}
+                          </Text>
                         </TouchableOpacity>
                         {(v_3f4e2e.repliesCount ?? 0) > 0 && (
                           <TouchableOpacity
@@ -555,8 +567,11 @@ export default function v_c316d8() {
                           >
                             <Text style={v_d81136.replyToggleText}>
                               {v_f72477
-                                ? "── 답글 숨기기"
-                                : `── 답글 ${v_3f4e2e.repliesCount}개 더 보기`}
+                                ? v_8d41d7("home.repliesHide", { defaultValue: "── 답글 숨기기" })
+                                : v_8d41d7("home.repliesMore", {
+                                    n: v_3f4e2e.repliesCount,
+                                    defaultValue: `── 답글 ${v_3f4e2e.repliesCount}개 더 보기`,
+                                  })}
                             </Text>
                           </TouchableOpacity>
                         )}
@@ -637,7 +652,10 @@ export default function v_c316d8() {
             {v_90b93a && (
               <View style={v_d81136.replyingBanner}>
                 <Text style={v_d81136.replyingText}>
-                  @{v_90b93a.userName} 에게 답글
+                  {v_8d41d7("home.replyTo", {
+                    user: v_90b93a.userName,
+                    defaultValue: `@${v_90b93a.userName} 에게 답글`,
+                  })}
                 </Text>
                 <TouchableOpacity onPress={() => v_f1ad38(null)}>
                   <Feather name="x" size={14} color={v_1bfbd0.zinc500} />
@@ -649,7 +667,11 @@ export default function v_c316d8() {
                 style={v_d81136.commentInput}
                 value={v_48e7fe}
                 onChangeText={v_856f84}
-                placeholder={v_90b93a ? "답글 입력..." : v_8d41d7("feed.commentPlaceholder")}
+                placeholder={
+                  v_90b93a
+                    ? v_8d41d7("home.replyPlaceholder", { defaultValue: "답글 입력..." })
+                    : v_8d41d7("feed.commentPlaceholder")
+                }
                 placeholderTextColor={v_1bfbd0.zinc400}
               />
               <TouchableOpacity
@@ -709,7 +731,9 @@ export default function v_c316d8() {
                   }}
                 >
                   <Feather name="edit-3" size={20} color={v_1bfbd0.zinc900} />
-                  <Text style={v_d81136.moreItemText}>수정하기</Text>
+                  <Text style={v_d81136.moreItemText}>
+                    {v_8d41d7("home.more.edit", { defaultValue: "수정하기" })}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={v_d81136.moreItem}
@@ -730,11 +754,17 @@ export default function v_c316d8() {
                         },
                       }),
                     );
-                    v_15c939("클론 편집 → 공개 범위에서 변경하세요");
+                    v_15c939(
+                      v_8d41d7("home.toasts.editVisibilityHint", {
+                        defaultValue: "클론 편집 → 공개 범위에서 변경하세요",
+                      }),
+                    );
                   }}
                 >
                   <Feather name="eye" size={20} color={v_1bfbd0.zinc900} />
-                  <Text style={v_d81136.moreItemText}>공개 범위 수정</Text>
+                  <Text style={v_d81136.moreItemText}>
+                    {v_8d41d7("home.more.editVisibility", { defaultValue: "공개 범위 수정" })}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[v_d81136.moreItem, { borderBottomWidth: 0 }]}
@@ -744,18 +774,25 @@ export default function v_c316d8() {
                     if (!v_5f5d6d || !v_2ca7e0) return;
 
                     v_889fad(
-                      "클론 삭제",
-                      `'${v_5f5d6d.author}' 클론을 삭제할까요?\n복구 불가합니다.`,
+                      v_8d41d7("home.deleteTitle", { defaultValue: "클론 삭제" }),
+                      v_8d41d7("home.deleteDesc", {
+                        name: v_5f5d6d.author,
+                        defaultValue: `'${v_5f5d6d.author}' 클론을 삭제할까요?\n복구 불가합니다.`,
+                      }),
                       [
-                        { text: "취소", style: "cancel" },
+                        { text: v_8d41d7("common.cancel", { defaultValue: "취소" }), style: "cancel" },
                         {
-                          text: "삭제",
+                          text: v_8d41d7("common.delete", { defaultValue: "삭제" }),
                           style: "destructive",
                           onPress: async () => {
                             try {
                               const { deleteClone: v_f373d8 } = await import("../../api/clones");
                               await v_f373d8(v_2ca7e0, v_5f5d6d.cloneId);
-                              v_15c939("클론이 삭제됐어요");
+                              v_15c939(
+                                v_8d41d7("home.toasts.cloneDeleted", {
+                                  defaultValue: "클론이 삭제됐어요",
+                                }),
+                              );
                               const v_c3bc75 = v_37977a.getState().apiFeeds;
                               if (v_c3bc75) {
                                 v_37977a.setState({
@@ -765,7 +802,11 @@ export default function v_c316d8() {
                               void v_c600ef();
                             } catch (v_49263d) {
                               console.warn("[Delete clone] failed:", v_49263d);
-                              v_15c939("삭제에 실패했어요");
+                              v_15c939(
+                                v_8d41d7("home.toasts.deleteFailed", {
+                                  defaultValue: "삭제에 실패했어요",
+                                }),
+                              );
                             }
                           },
                         },
@@ -774,7 +815,9 @@ export default function v_c316d8() {
                   }}
                 >
                   <Feather name="trash-2" size={20} color="#ef4444" />
-                  <Text style={[v_d81136.moreItemText, { color: "#ef4444" }]}>삭제</Text>
+                  <Text style={[v_d81136.moreItemText, { color: "#ef4444" }]}>
+                    {v_8d41d7("home.more.delete", { defaultValue: "삭제" })}
+                  </Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -791,7 +834,9 @@ export default function v_c316d8() {
                     }}
                   >
                     <Feather name="user" size={20} color={v_1bfbd0.zinc900} />
-                    <Text style={v_d81136.moreItemText}>유저 정보보기</Text>
+                    <Text style={v_d81136.moreItemText}>
+                      {v_8d41d7("home.more.viewUser", { defaultValue: "유저 정보보기" })}
+                    </Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
@@ -805,7 +850,9 @@ export default function v_c316d8() {
                   }}
                 >
                   <Feather name="flag" size={20} color="#ef4444" />
-                  <Text style={[v_d81136.moreItemText, { color: "#ef4444" }]}>신고하기</Text>
+                  <Text style={[v_d81136.moreItemText, { color: "#ef4444" }]}>
+                    {v_8d41d7("home.more.report", { defaultValue: "신고하기" })}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[v_d81136.moreItem, { borderBottomWidth: 0 }]}
@@ -815,7 +862,11 @@ export default function v_c316d8() {
                     if (!v_5f5d6d || !v_2ca7e0) return;
                     try {
                       await v_97c75d(v_2ca7e0, v_5f5d6d.cloneId);
-                      v_15c939("이 클론이 차단됐어요");
+                      v_15c939(
+                        v_8d41d7("home.toasts.cloneBlocked", {
+                          defaultValue: "이 클론이 차단됐어요",
+                        }),
+                      );
                       const v_c3bc75 = v_37977a.getState().apiFeeds;
                       if (v_c3bc75) {
                         v_37977a.setState({
@@ -826,12 +877,18 @@ export default function v_c316d8() {
                       void v_c600ef();
                     } catch (v_49263d) {
                       console.warn(`[BLOCK] FAILED cloneId=${v_5f5d6d.cloneId}`, v_49263d);
-                      v_15c939("차단에 실패했어요");
+                      v_15c939(
+                        v_8d41d7("home.toasts.blockFailed", {
+                          defaultValue: "차단에 실패했어요",
+                        }),
+                      );
                     }
                   }}
                 >
                   <Feather name="slash" size={20} color={v_1bfbd0.zinc900} />
-                  <Text style={v_d81136.moreItemText}>차단하기</Text>
+                  <Text style={v_d81136.moreItemText}>
+                    {v_8d41d7("home.more.block", { defaultValue: "차단하기" })}
+                  </Text>
                 </TouchableOpacity>
               </>
             )}
@@ -857,10 +914,18 @@ export default function v_c316d8() {
               v_5f5d6d.commentId,
               v_58ca36 || undefined,
             );
-            v_15c939("댓글이 신고됐어요");
+            v_15c939(
+              v_8d41d7("home.toasts.commentReported", {
+                defaultValue: "댓글이 신고됐어요",
+              }),
+            );
           } catch (v_49263d) {
             console.warn(`[REPORT-COMMENT] FAILED commentId=${v_5f5d6d.commentId}`, v_49263d);
-            v_15c939("신고에 실패했어요");
+            v_15c939(
+              v_8d41d7("home.toasts.reportFailed", {
+                defaultValue: "신고에 실패했어요",
+              }),
+            );
           }
         }}
       />
@@ -878,7 +943,11 @@ export default function v_c316d8() {
           try {
             const { reportClone: v_9deb40 } = await import("../../api/clones");
             await v_9deb40(v_2ca7e0, v_5f5d6d.cloneId, v_58ca36 || undefined);
-            v_15c939("신고가 접수됐어요. 이 클론은 차단됐어요");
+            v_15c939(
+              v_8d41d7("home.toasts.reportSuccessBlocked", {
+                defaultValue: "신고가 접수됐어요. 이 클론은 차단됐어요",
+              }),
+            );
             const v_c3bc75 = v_37977a.getState().apiFeeds;
             if (v_c3bc75) {
               v_37977a.setState({
@@ -889,7 +958,11 @@ export default function v_c316d8() {
             void v_c600ef();
           } catch (v_49263d) {
             console.warn(`[REPORT] FAILED cloneId=${v_5f5d6d.cloneId}`, v_49263d);
-            v_15c939("신고에 실패했어요");
+            v_15c939(
+              v_8d41d7("home.toasts.reportFailed", {
+                defaultValue: "신고에 실패했어요",
+              }),
+            );
           }
         }}
       />

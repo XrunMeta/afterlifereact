@@ -16,6 +16,7 @@
     "notice": "Notice",
     "success": "Done",
     "ok": "OK",
+    "emailInvalid": "That doesn't look like a valid email.",
     "yes": "Yes",
     "no": "No",
     "min": "min",
@@ -24,7 +25,52 @@
     "now": "just now",
     "agoMinutes": "{{n}} min ago",
     "agoHours": "{{n}} hr ago",
-    "agoDays": "{{n}} d ago"
+    "agoDays": "{{n}} d ago",
+    "sec": "sec",
+    "durationSec": "{{s}}s",
+    "durationMin": "{{m}}m",
+    "durationMinSec": "{{m}}m {{s}}s"
+  },
+  "tabs": {
+    "home": "Home",
+    "search": "Search",
+    "create": "Create",
+    "subscribing": "Following",
+    "clones": "Clones",
+    "my": "My"
+  },
+  "home": {
+    "emptyTitle": "No clones to meet yet",
+    "emptyDesc": "How about becoming the star of the first clone?\nCreate your own clone to get started.",
+    "createClone": "Create a Clone",
+    "commentDeleteTitle": "Delete Comment",
+    "commentDeleteDesc": "Delete this comment?",
+    "replyPlaceholder": "Write a reply...",
+    "replyTo": "Reply to @{{user}}",
+    "replyAction": "Reply",
+    "repliesHide": "── Hide replies",
+    "repliesMore": "── View {{n}} more replies",
+    "shareMessage": "Meet the {{name}} clone!\n{{url}}",
+    "deleteTitle": "Delete Clone",
+    "deleteDesc": "Delete the '{{name}}' clone?\nThis cannot be undone.",
+    "more": {
+      "edit": "Edit",
+      "editVisibility": "Edit Visibility",
+      "delete": "Delete",
+      "viewUser": "View User",
+      "report": "Report",
+      "block": "Block"
+    },
+    "toasts": {
+      "editVisibilityHint": "Change it in Edit Clone → Visibility",
+      "cloneDeleted": "The clone was deleted.",
+      "deleteFailed": "Delete failed.",
+      "cloneBlocked": "This clone has been blocked.",
+      "blockFailed": "Block failed.",
+      "commentReported": "The comment was reported.",
+      "reportFailed": "Report failed.",
+      "reportSuccessBlocked": "Report received. This clone has been blocked."
+    }
   },
   "notifications": {
     "title": "Notifications",
@@ -129,6 +175,27 @@
     "failTitle": "Restore failed",
     "failMsg": "The recovery window (90 days) has expired or the state has changed."
   },
+  "purchase": {
+    "mockAlertTitle": "MOCK Product",
+    "mockAlertMessage": "Real payments will be available once the paid-app contract is active.",
+    "paymentErrorTitle": "Payment Error",
+    "mockBannerTitle": "⚠ MOCK data (temporary)",
+    "mockBannerDesc": "No real products are shown because the paid-app contract isn't set up yet. These are temporary cards for UI review.\nTapping won't charge you; real products will appear automatically once the contract is active.",
+    "bucketFree": "Free",
+    "bucketSub": "Subscription",
+    "bucketTopup": "Top-up",
+    "subActive": "{{plan}} subscription active · next renewal {{date}}",
+    "subSectionTitle": "Monthly Subscription",
+    "subSectionDesc": "Renews automatically each month. Cancel anytime.",
+    "subLoadFailed": "Couldn't load subscription products.",
+    "subLoadHintIos": "Settings → App Store → check your Sandbox account is signed in, then try again.",
+    "subLoadHintOther": "Please try again later.",
+    "topupSectionTitle": "Top-up (one-time)",
+    "topupSectionDesc": "Add call minutes separately from your subscription. Valid for 5 years.",
+    "topupLoadFailed": "Couldn't load top-up products.",
+    "androidNotReady": "Android payments aren't ready yet. Please use iOS for now.",
+    "termsFooter": "Auto-renewing subscriptions are charged each cycle until cancelled.\nCancel: Settings → Apple ID → Subscriptions → afterlife"
+  },
   "chat": {
     "personaFallback": "Persona",
     "subTitle": "AI Persona",
@@ -157,7 +224,16 @@
     "faceDetected": "Face detected",
     "faceNotDetected": "No face",
     "faceConsentHint": "Detects face position only — no face data is stored.",
-    "faceConsentError": "Failed to enable face detection. Please try again."
+    "faceConsentError": "Failed to enable face detection. Please try again.",
+    "dialing": "Calling...",
+    "connecting": "Connecting…",
+    "connectDelayed": "Connection is taking a while",
+    "connectFailed": "Connection failed",
+    "connectExhausted": "We can't connect right now.\nPlease try again in a moment.",
+    "enrollSuccessToast": "I'll remember you now, {{name}}",
+    "enrollFailToast": "Registration failed. Please try again.",
+    "paymentPreparingToast": "Preparing payment...",
+    "confirmHint": "Tap to cancel · sending shortly"
   },
   "feed": {
     "homeTitle": "Home",
@@ -224,7 +300,11 @@
     "searchResults": "Search results",
     "followingList": "Following list",
     "cancelBtn": "Cancel",
-    "confirmBtn": "Confirm"
+    "confirmBtn": "Confirm",
+    "cloneLoadFailed": "Couldn't load the clone.",
+    "reportCommentTitle": "Report Comment",
+    "reportCommentDesc": "Report this comment?",
+    "reportAction": "Report"
   },
   "detail": {
     "notFound": "Persona not found.",
@@ -232,10 +312,11 @@
     "giftTitle": "Send a Gift",
     "giftDesc": "Send a special gift to this persona",
     "balance": "XRUN Balance",
-    "send": "Send Gift"
+    "send": "Send Gift",
+    "paymentPending": "Preparing payment..."
   },
   "edit": {
-    "title": "Edit Persona",
+    "title": "Edit Clone",
     "save": "Save",
     "saveFailed": "Failed to save.",
     "basicSection": "Basic Info",
@@ -256,7 +337,18 @@
     "transferEditor": "Transfer editor rights",
     "requestEditor": "Request editor rights",
     "devBannerTitle": "🛠 Dev only — not for production",
-    "devBannerSub": "The L1/L2 sections below are for direct memory editing. The chips above are the actual user input."
+    "devBannerSub": "The L1/L2 sections below are for direct memory editing. The chips above are the actual user input.",
+    "cloneDescSection": "Clone Description",
+    "firstMeetingLabel": "First meeting",
+    "firstMeetingPlaceholder": "The scene, impression, atmosphere when you first met...",
+    "habitLabel": "Habits / Speech",
+    "habitPlaceholder": "Frequent phrases, small habits, favorite spots...",
+    "personalityLabel": "Personality",
+    "personalityPlaceholder": "MBTI, personality, usual vibe...",
+    "memoryLabel": "Most vivid memory",
+    "memoryPlaceholder": "That moment when they were laughing the happiest...",
+    "learnCtaTitle": "Start Learning →",
+    "learnCtaDesc": "Answer the admin's questions to teach knowledge to your clone"
   },
   "dashboard": {
     "title": "My Page",
@@ -293,10 +385,64 @@
     "inviteSearchHint": "Search by email or name (afterlife members only)",
     "inviteSearchEmpty": "Enter an email or name (2+ characters)",
     "inviteSearchEmptyHint": "Only afterlife members can be invited",
-    "inviteNoResults": "No results found"
+    "inviteNoResults": "No results found",
+    "visibilityPublic": "Public",
+    "visibilityFollowers": "Followers only",
+    "visibilitySelected": "Selected friends",
+    "visibilityPrivate": "Only me",
+    "followerCount": "{{n}} followers",
+    "statInteraction": "Interactions",
+    "pendingAssetsBadge": "Preparing",
+    "pendingAssetsCta": "Add photo / voice",
+    "shareMessage": "Chat with the {{name}} clone!\n{{url}}",
+    "emptyTitle": "Create your own clone",
+    "emptyDesc": "Tap the button below to create your first clone",
+    "profileStatFollowers": "Followers",
+    "profileStatFollowing": "Following",
+    "profileStatClones": "Clones",
+    "systemClonesTitle": "Available for calls",
+    "toggleActivateTitle": "Activate Clone",
+    "toggleDeactivateTitle": "Deactivate Clone",
+    "toggleActivateDesc": "Activate this clone? It will be visible to other users.",
+    "toggleDeactivateDesc": "Deactivate this clone? It will no longer be visible to other users.",
+    "visibilityChooseTitle": "Visibility",
+    "visibilityChooseDesc": "Who should be able to see this clone?",
+    "statsLikes": "Likes",
+    "statsInteractions": "Interactions",
+    "statsComments": "Comments",
+    "statsFollowers": "Followers",
+    "emptyLikes": "No likes yet",
+    "emptyFollowers": "No followers yet",
+    "emptyInteractions": "The detailed interactions list is coming soon",
+    "giftReceivedTitle": "Gifts Received",
+    "giftHeaderGift": "Gift",
+    "giftHeaderCount": "Count",
+    "giftHeaderSender": "Sender",
+    "emptyGift": "No gifts received yet",
+    "reportReceived": "Report received",
+    "uploadAvatarFailed": "Failed to upload image"
+  },
+  "learn": {
+    "title": "Learn",
+    "aiCloneSubtitle": "AI Clone",
+    "progressTitle": "Clone Learning",
+    "progressDesc": "Your clone is learning through this conversation",
+    "noQuestions": "No questions yet. New ones appear as the admin adds them.",
+    "allDone": "You've answered every question! It will show up on calls.",
+    "confirmYes": "Yes",
+    "confirmNo": "No",
+    "saving": "Saving...",
+    "followupSkip": "Skip",
+    "skip": "Different question",
+    "answerPlaceholder": "Type a message...",
+    "maxItems": "You've reached the maximum of 200 knowledge items.",
+    "blacklistTitle": "Let's try a different question",
+    "blacklistDesc": "This answer contains something we can't register. Moving to another question.",
+    "defaultConfirm": "Is this a good summary?"
   },
   "my": {
     "title": "My Page",
+    "headerTitle": "Settings",
     "userFallback": "User",
     "loginRequired": "Sign-in required.",
     "permTitle": "Permission required",
@@ -304,7 +450,26 @@
     "uploadFailed": "Image upload failed.",
     "stats": {
       "following": "Following",
-      "myPersona": "My Personas"
+      "myPersona": "My Personas",
+      "emptyFollowing": "You're not following any clones yet",
+      "emptyMyClones": "You haven't created any clones yet"
+    },
+    "balance": {
+      "remainingTime": "Remaining call time",
+      "free": "Free {{time}}",
+      "sub": "Subscription {{time}}",
+      "topup": "Top-up {{time}}",
+      "failed": "Couldn't load balance",
+      "charge": "Recharge"
+    },
+    "delete": {
+      "title": "Leaving so soon?",
+      "desc": "We'll remember the precious time we spent with you, {{name}}.\nYour account and clones will be gone permanently.",
+      "userFallback": "member",
+      "stay": "I'll stay a little longer",
+      "leave": "Delete account",
+      "failed": "Failed to delete your account.",
+      "subMessage": "If you're an xrun member, your xrun account will remain."
     },
     "coin": {
       "title": "xrun Coin",
@@ -322,6 +487,7 @@
       "editProfile": "Edit Profile",
       "notifications": "Notification Settings",
       "privacy": "Privacy and Visibility",
+      "agreements": "Consent",
       "reports": "Reports",
       "reportsDesc": "Reports I made · Actions received",
       "saved": "Saved",
@@ -329,6 +495,7 @@
       "inviteStatus": "Invite Status",
       "inviteStatusDesc": "All co-admin invites you sent",
       "language": "Language Settings",
+      "paymentPin": "XRUN PIN",
       "openXrun": "Open XRUN",
       "openXrunDesc": "Launch XRUN app (or store if not installed)",
       "purchase": "Buy Credits · Subscribe",
@@ -358,7 +525,20 @@
       "lockHint": "Account locks for 10 minutes after 5 failed attempts.",
       "accountLocked": "Account is locked. Try again in ~10 minutes, or reset your password.",
       "accountDeletedTitle": "This account was deleted",
-      "accountDeletedMessage": "This account has been deleted and can no longer sign in."
+      "accountDeletedMessage": "This account has been deleted and can no longer sign in.",
+      "accountSuspendedTitle": "Account suspended",
+      "accountSuspendedMessage": "This account has been suspended due to accumulated reports.",
+      "googleUnavailableTitle": "Google sign-in unavailable",
+      "googleUnavailableMessage": "Please try again in a moment.",
+      "googleNoToken": "Couldn't get a Google sign-in token.",
+      "appleBtn": "Sign in with Apple",
+      "appleIosOnly": "Apple sign-in is only supported on iOS.",
+      "appleNoToken": "Couldn't get an Apple identityToken.",
+      "appleFailed": "Apple sign-in failed",
+      "tabAccount": "Account sign-in",
+      "tabOtp": "Email OTP sign-in",
+      "requestOtp": "Get verification code",
+      "sendingOtp": "Sending..."
     },
     "forgot": {
       "title": "Reset Password",
@@ -383,32 +563,10 @@
       "wrongCode": "Wrong verification code.",
       "expiredCode": "Code expired. Please request a new one.",
       "notFound": "Email not registered.",
-      "resetFailed": "Reset failed. Please try again later."
-    },
-    "forgot": {
-      "title": "Reset Password",
-      "step1Desc": "Enter your registered email to receive a verification code.",
-      "emailPlaceholder": "Email",
-      "sendCode": "Send Code",
-      "sendingCode": "Sending...",
-      "codeSent": "Verification code sent to your email.",
-      "step2Desc": "Enter the 6-digit code from your email.",
-      "codePlaceholder": "6-digit code",
-      "verify": "Verify",
-      "verifying": "Verifying...",
-      "step3Desc": "Enter a new password (7+ chars with uppercase, lowercase, and digit).",
-      "newPasswordPlaceholder": "New password",
-      "confirmPasswordPlaceholder": "Confirm new password",
-      "save": "Change Password",
-      "saving": "Saving...",
-      "successTitle": "Done",
-      "successDesc": "Please sign in with your new password.",
-      "passwordTooShort": "Password must be 7+ chars with uppercase, lowercase, and digit.",
-      "passwordMismatch": "Passwords don't match.",
-      "wrongCode": "Wrong verification code.",
-      "expiredCode": "Code expired. Please request a new one.",
-      "notFound": "Email not registered.",
-      "resetFailed": "Reset failed. Please try again later."
+      "resetFailed": "Reset failed. Please try again later.",
+      "cooldown": "Please try again in {{secs}}s.",
+      "togglePasswordLabel": "Toggle password visibility",
+      "toggleConfirmLabel": "Toggle confirm password visibility"
     },
     "signup": {
       "title": "Sign Up",
@@ -432,6 +590,18 @@
       "age": "Age",
       "birthYearPlaceholder": "Birth Year",
       "birthYearLabel": "Born {{year}}",
+      "ageRange10": "Teens",
+      "ageRange20": "20s",
+      "ageRange30": "30s",
+      "ageRange40": "40s",
+      "ageRange50Plus": "50+",
+      "ageRangePlaceholder": "Age range",
+      "ageRangeRequired": "Please select an age range.",
+      "nameRequired": "Please enter your name.",
+      "passwordRequired": "Please enter your password.",
+      "passwordConfirmRequired": "Please confirm your password.",
+      "phoneRequired": "Please enter your phone number.",
+      "genderRequired": "Please select your gender.",
       "interests": "Choose interests (optional)",
       "country": "Country",
       "region": "Region",
@@ -482,7 +652,26 @@
       "resentToast": "Verification code resent.",
       "wrongCode": "Code doesn't match.",
       "expired": "Code expired. Please resend.",
-      "tooMany": "Too many attempts. Please try again later."
+      "tooMany": "Too many attempts. Please try again later.",
+      "googleLinkTitle": "Link Google Account",
+      "googleLinkDesc": "Would you like to link the Gmail account you signed up with to Google Sign-In?\nLinking makes future sign-ins easier.",
+      "later": "Later",
+      "linkNow": "Link now",
+      "googleEmailMismatch": "The email you signed up with differs from your Google account email. Continuing without linking."
+    },
+    "emailOtpLogin": {
+      "title": "Email OTP Sign In",
+      "loginBtn": "Sign In",
+      "loggingIn": "Signing in...",
+      "resendTitle": "Resend verification code",
+      "resendToast": "Code resent to your email.",
+      "resendFailed": "Failed to resend the code.",
+      "loginFailedTitle": "Sign-in failed",
+      "loginFailed": "Sign-in failed.",
+      "accountDeleted": "This account has already been deleted.",
+      "wrongCode": "The verification code is incorrect.",
+      "expiredCode": "The verification code has expired. Please request a new one.",
+      "notFound": "Email not registered."
     },
     "xrun": {
       "loginTitle": "Start with xrun",
@@ -514,14 +703,14 @@
       "8": "Intro Video"
     },
     "type": {
-      "memlowTitle": "Memorial Persona",
+      "memlowTitle": "Memorial Clone",
       "memlowDesc": "Continue conversations with someone you've lost",
       "memlowLabel": "Memorial",
       "memlowShortDesc": "Continue your time together through conversation",
-      "defaultTitle": "General Persona",
-      "defaultDesc": "Friend, mentor, celebrity, or any persona",
+      "defaultTitle": "General Clone",
+      "defaultDesc": "Friend, mentor, celebrity, or any clone",
       "defaultLabel": "General",
-      "defaultShortDesc": "Friend, mentor, celebrity, or any persona"
+      "defaultShortDesc": "Friend, mentor, celebrity, or any clone"
     },
     "relations": {
       "self": "Myself",
@@ -535,7 +724,7 @@
       "other": "Other"
     },
     "basicInfo": {
-      "namePlaceholder": "Persona name",
+      "namePlaceholder": "Clone name",
       "memlowNamePlaceholder": "Name (e.g. Mom)",
       "usernamePlaceholder": "Clone ID (@clon)",
       "descPlaceholder": "Short description",
@@ -591,6 +780,38 @@
         "Orion": "Trustworthy",
         "Luna": "Emotional",
         "Stella": "Elegant and delicate"
+      },
+      "modePreset": "Voice preset",
+      "modeRecord": "Record",
+      "modeUpload": "Upload file",
+      "choosePresetHint": "Please choose a voice.",
+      "presetLoadFailed": "Couldn't load the voice list.",
+      "presetPreparing": "Preparing voice…",
+      "pickFileErrorTitle": "File selection error",
+      "pickFileErrorMsg": "Couldn't select the file.",
+      "presetErrorTitle": "Voice selection error",
+      "presetErrorMsg": "Please try again in a moment.",
+      "scriptRequiredTitle": "Choose a script",
+      "scriptRequiredMsg": "Please pick a script to read first.",
+      "permTitle": "Permission required",
+      "permDesc": "Microphone permission is needed. Please allow it in Settings.",
+      "recordStartFailedTitle": "Recording error",
+      "recordStartFailedMsg": "Couldn't start recording. Please try again in a moment.",
+      "chooseScriptHint": "Please choose a script and read it aloud.",
+      "uploading": "Uploading...",
+      "cloneJobRegistered": "Cloning job registered",
+      "recordDoneUploadFailed": "Recording complete (upload failed — retrying)",
+      "uploadPromptHint": "Please upload a voice file",
+      "pickAnother": "Choose another file",
+      "pickFile": "Choose voice file",
+      "filePickedUploadFailed": "File selected (job registration failed — retrying)",
+      "scripts": {
+        "s1Title": "Everyday greeting",
+        "s1Text": "Hello. Today has been such a lovely day. The sun was warm and the breeze was gentle, perfect for a walk. Peaceful times like this feel truly precious. I hope you enjoy your day too.",
+        "s2Title": "Talking about food",
+        "s2Text": "What's your favorite food these days? I really love kimchi jjigae. That deep spicy flavor and a hot spoonful of broth wash away the day's fatigue. It tastes even better on a rainy day.",
+        "s3Title": "Recalling memories",
+        "s3Text": "The most memorable moment from my childhood is a beach trip with my family. The sound of the waves, the salty breeze, and running around on the sand — all of it is still vivid. That happy feeling comes back to me again."
       }
     },
     "visibility": {
@@ -605,7 +826,7 @@
       "privateDesc": "Only you"
     },
     "creating": {
-      "title": "Creating persona...",
+      "title": "Creating clone...",
       "subtitle": "Please wait a moment"
     },
     "complete": {
@@ -617,19 +838,19 @@
       "mentorSub": "Leave questions by topic.",
       "celebTitle": "Fan club started",
       "celebSub": "Send your first message.",
-      "creating": "Creating your persona...",
+      "creating": "Creating your clone...",
       "createFailed": "Creation failed",
       "featAutoLearn": "Auto-learning",
-      "featAutoLearnDesc": "The persona gets smarter as you chat",
+      "featAutoLearnDesc": "The clone gets smarter as you chat",
       "featSecurity": "Data Security",
       "featSecurityDesc": "All data is securely encrypted",
       "startVideo": "Make intro video",
-      "goDashboard": "Back to my personas"
+      "goDashboard": "Back to my clones"
     },
     "errors": {
-      "quotaExceeded": "You can only create one persona per type.",
+      "quotaExceeded": "You can only create one clone per type.",
       "usernameConflict": "This username is taken. Please try another.",
-      "createFailed": "Failed to create persona."
+      "createFailed": "Failed to create clone."
     },
     "shorts": {
       "title": "Intro Video",
@@ -646,8 +867,73 @@
       "typeLabel": "Personality (up to {{max}})",
       "typeShort": "Personality",
       "mbtiLabel": "MBTI",
-      "notesLabel": "Persona Description",
+      "notesLabel": "Clone Description",
       "notesPlaceholder": "Tone, habits, background — anything (optional)"
+    },
+    "submitting": "One moment...",
+    "assistant": {
+      "aiName": "Clone creation assistant",
+      "promptName": "Hello! I'm your clone creation assistant.\n\nWhat's the name of the clone you're creating?\nA usual name or nickname works too.",
+      "promptUsername": "What should the @ID be?\nLowercase letters, numbers, and _ only. Leave it blank and I'll generate one for you!",
+      "promptRelation": "What's the relationship?\nPlease pick one below.",
+      "placeholderName": "e.g. Byeori, Grandma, Mori",
+      "placeholderUsername": "e.g. starry_kim (auto-generated if empty)",
+      "placeholderRelationCustom": "e.g. grandfather, mentor, colleague...",
+      "placeholderText": "Feel free to write anything...",
+      "placeholderCustom": "Enter your own...",
+      "placeholderDefault": "Type your answer...",
+      "ackName": "Great, I've noted that down!",
+      "ackUsername": "Got it! On to the next question.",
+      "ackRelation": "Understood! Moving on.",
+      "ackDynamic": "Nice!",
+      "askRelationCustom": "Please tell me what the relationship is!",
+      "askCustomInput": "Please type it in!",
+      "allDone": "All done! Moving on to the next step.",
+      "btnCustom": "Type it in",
+      "btnSkip": "Skip",
+      "userSkip": "(skipped)",
+      "usernameAutoDerived": "(empty — auto-generated as {{derived}})",
+      "usernameFormatTitle": "Invalid ID format",
+      "usernameFormatMsg": "Only lowercase letters, numbers, and _ are allowed.",
+      "usernameLengthTitle": "ID length",
+      "usernameTooShortMsg": "The ID must be at least 3 characters.",
+      "usernameTooLongMsg": "The ID must be 30 characters or less.",
+      "usernameUnavailableTitle": "ID unavailable",
+      "usernameInUse": "That ID is already taken. Please choose another.",
+      "usernameReserved": "That ID is reserved. Please choose another.",
+      "usernameInvalid": "The ID format is invalid."
+    },
+    "step7": {
+      "reviewTitle": "Review clone info",
+      "displayNameFallback": "User name",
+      "displayHandleFallback": "ID",
+      "videoReady": "Video ready",
+      "videoPending": "Video is being prepared",
+      "reuploadPhoto": "Re-upload photo",
+      "photoUploading": "Uploading photo...",
+      "photoRequired": "Please add a photo first",
+      "captionPlaceholder": "Write a caption (e.g. #daily #infp love K-pop)",
+      "loginNeeded": "No sign-in info found. Please sign in again.",
+      "uploadFailedTitle": "Upload failed",
+      "uploadFailedMsg": "Failed to request video generation. Please try again.",
+      "missingCloneInfo": "Clone info is missing. Please start over.",
+      "waitTitle": "One moment",
+      "waitVideoBuilding": "You can post once the video finishes generating.",
+      "captionRequiredTitle": "Caption",
+      "captionRequiredMsg": "Please enter a short description.",
+      "loginRequiredTitle": "Sign-in required",
+      "nameMissingTitle": "Name missing",
+      "nameMissingMsg": "The clone name is empty. Please go back and enter it.",
+      "usernameConflictTitle": "ID already taken",
+      "postFailed": "Post failed",
+      "postFailedWithCode": "Post failed ({{code}})",
+      "unknownError": "Unknown error",
+      "next": "Next"
+    },
+    "step8": {
+      "title": "Your clone is ready",
+      "subtitle": "You can now chat with your clone\nor share a new post.",
+      "toDashboard": "To dashboard"
     }
   },
   "settings": {
@@ -659,15 +945,59 @@
         "phone": "Phone Number",
         "gender": "Gender",
         "age": "Age",
-        "interests": "Interests"
-      }
+        "interests": "Interests",
+        "country": "Country",
+        "region": "Region",
+        "password": "Password",
+        "passwordReset": "Reset"
+      },
+      "regionAfterCountry": "Please choose a country first",
+      "nameRequired": "Name cannot be empty.",
+      "phoneTooShort": "Enter at least 4 digits for the phone number, or leave it blank.",
+      "savedTitle": "Saved",
+      "savedMsg": "Your profile has been saved.",
+      "saveFailedTitle": "Save failed",
+      "saveFailedMsg": "Something went wrong while saving.",
+      "noEmailTitle": "No email",
+      "noEmailMsg": "There's no email on your account. Please sign out and use [Forgot password?] to continue."
     },
     "notifications": {
       "title": "Notification Settings",
       "push": "Push Notifications",
       "comment": "Comment Notifications",
       "like": "Like Notifications",
+<<<<<<< Updated upstream
       "marketing": "Marketing Notifications"
+=======
+      "marketing": "Marketing Notifications",
+      "statusGranted": "Allowed",
+      "statusDenied": "Denied",
+      "statusUnsupported": "Device not supported",
+      "deniedHint": "To receive notifications, please allow them in your system settings.",
+      "openSettings": "Open System Settings",
+      "tokenLabel": "Push token",
+      "tokenLoading": "Issuing token...",
+      "tokenNone": "No token issued",
+      "copyToken": "Copy",
+      "copied": "Token copied."
+    },
+    "agreements": {
+      "title": "Consent"
+    },
+    "paymentPin": {
+      "title": "XRUN PIN",
+      "subtitle": "Enter the 6-digit XRUN PIN you set in xrun.",
+      "wrong": "PIN doesn't match.",
+      "attemptsLeft": "Attempts left: {{count}}",
+      "lockedTitle": "5 wrong attempts",
+      "lockedDesc": "You can change your XRUN PIN in the xrun app.",
+      "openXrun": "Open xrun app",
+      "verify": "Confirm",
+      "promptTitle": "Please set your XRUN PIN",
+      "promptDesc": "You need to register a 6-digit XRUN PIN in the xrun app to use payment features.",
+      "promptOpen": "Set it up in the xrun app",
+      "promptDismiss": "Don't show today"
+>>>>>>> Stashed changes
     },
     "privacy": {
       "title": "Privacy and Visibility",
@@ -743,5 +1073,63 @@
     "settingsHint": "If the permission dialog doesn't appear, turn it on in Settings",
     "loading": "Checking permissions...",
     "logout": "Log out"
+  },
+  "terms": {
+    "langNotice": "⚠️ {{expected}} → {{returned}} (terms for this language are being prepared)"
+  },
+  "report": {
+    "title": "Report",
+    "descWithName": "Briefly tell us why you're reporting\nthe '{{name}}' clone. (optional)",
+    "descNoName": "Briefly tell us why you're reporting\nthis clone. (optional)",
+    "placeholder": "e.g. inappropriate content, impersonation, spam",
+    "submit": "Report"
+  },
+  "merge": {
+    "title": "Clone merge confirmation needed",
+    "body": "{{source}} is about to be merged with {{target}}.\n\nAfter the merge, the original clones will be archived (archived_merged) and a new unified clone will be created. All sharers must respond; if there's no response by the deadline ({{deadline}}), it defaults to disagree.\n\nThe original clones are preserved in a recoverable state, so you can still raise objections later.",
+    "agree": "Agree",
+    "decline": "Decline"
+  },
+  "otp": {
+    "defaultSubtitle": "Enter the 6-digit verification code sent to {{email}}.",
+    "resend": "Resend code"
+  },
+  "user": {
+    "loginRequired": "Sign-in required.",
+    "profileLoadFailed": "Couldn't load the profile.",
+    "profileLoadEmpty": "Profile is unavailable",
+    "fallbackName": "User",
+    "fallbackTarget": "this user",
+    "moreLabel": "More",
+    "statFollowers": "Followers",
+    "statFollowing": "Following",
+    "statClones": "Clones",
+    "followBtn": "Follow",
+    "followingBtn": "Following",
+    "clonesSection": "Created clones ({{n}})",
+    "emptyClones": "No clones created yet",
+    "reportAction": "Report",
+    "blockOn": "Block",
+    "blockOff": "Unblock",
+    "blockConfirmDesc": "Block {{name}}?\nAny follow / follower relationship will also be removed.",
+    "blockDoneTitle": "Blocked",
+    "blockDoneDesc": "{{name}} has been blocked.",
+    "blockUndoneTitle": "Unblocked",
+    "blockUndoneDesc": "{{name}} has been unblocked.",
+    "blockFail": "Block failed.",
+    "actionFailTitle": "Failed",
+    "actionFailDesc": "Something went wrong.",
+    "reportDoneTitle": "Report submitted",
+    "reportDoneDesc": "Report received. This user has been blocked.",
+    "reportFail": "Report failed.",
+    "followListLoadFailed": "Couldn't load the list.",
+    "followListEmptyFollowers": "No followers yet",
+    "followListEmptyFollowing": "Not following anyone yet"
+  },
+  "friendPicker": {
+    "title": "Share with selected friends only",
+    "desc": "Pick friends to share with from people you follow.",
+    "empty": "You're not following anyone yet",
+    "confirmWithCount": "Confirm ({{n}})"
   }
 }

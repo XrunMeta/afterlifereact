@@ -13,6 +13,7 @@ import {
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
+import { v_772971 } from "jmpfvteuuztnp";
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
@@ -29,6 +30,7 @@ type RouteProps = v_ee3714<v_8ad91b, "UserFollowList">;
 type NavProp = v_390fcc<v_8ad91b>;
 
 export default function v_7d236a() {
+  const { t: v_8d41d7 } = v_772971();
   const v_c65f5d = v_ada615<NavProp>();
   const v_c7daf6 = v_2d8264<RouteProps>();
 
@@ -63,11 +65,14 @@ export default function v_7d236a() {
       v_fa923c(v_8f00b9.items);
     } catch (v_49263d) {
       console.warn("[UserFollowList] load failed:", v_49263d);
-      v_3a7d09((v_49263d as Error).message ?? "불러오지 못했어요.");
+      v_3a7d09(
+        (v_49263d as Error).message ??
+          v_8d41d7("user.followListLoadFailed", { defaultValue: "불러오지 못했어요." }),
+      );
     } finally {
       v_34a50a(false);
     }
-  }, [v_2ca7e0, v_43e90c, v_34e5bb]);
+  }, [v_2ca7e0, v_43e90c, v_34e5bb, v_8d41d7]);
 
   v_c4deb2(() => {
     v_f6f5de();
@@ -108,7 +113,9 @@ export default function v_7d236a() {
             activeOpacity={0.8}
           >
             <Text style={[v_fd5f43.followBtnText, v_10387a && v_fd5f43.followBtnTextActive]}>
-              {v_10387a ? "팔로잉" : "팔로우"}
+              {v_10387a
+                ? v_8d41d7("user.followingBtn", { defaultValue: "팔로잉" })
+                : v_8d41d7("user.followBtn", { defaultValue: "팔로우" })}
             </Text>
           </TouchableOpacity>
         )}
@@ -116,7 +123,10 @@ export default function v_7d236a() {
     );
   };
 
-  const v_9f1622 = v_34e5bb === "followers" ? "팔로워" : "팔로잉";
+  const v_9f1622 =
+    v_34e5bb === "followers"
+      ? v_8d41d7("user.statFollowers", { defaultValue: "팔로워" })
+      : v_8d41d7("user.statFollowing", { defaultValue: "팔로잉" });
 
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
@@ -138,7 +148,9 @@ export default function v_7d236a() {
         <View style={v_fd5f43.center}>
           <Feather name="users" size={32} color={v_1bfbd0.zinc300} />
           <Text style={v_fd5f43.emptyText}>
-            {v_34e5bb === "followers" ? "아직 팔로워가 없어요" : "아직 팔로잉이 없어요"}
+            {v_34e5bb === "followers"
+              ? v_8d41d7("user.followListEmptyFollowers", { defaultValue: "아직 팔로워가 없어요" })
+              : v_8d41d7("user.followListEmptyFollowing", { defaultValue: "아직 팔로잉이 없어요" })}
           </Text>
         </View>
       ) : (
