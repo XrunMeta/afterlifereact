@@ -626,7 +626,8 @@ v_b7f2b4.put("/knowledge-blacklist", v_c0a297, async (v_3f4e2e) => {
 v_b7f2b4.get("/voices", v_c0a297, async (v_3f4e2e) => {
   const v_18b8bf = await v_3f4e2e.env.DB
     .prepare(
-      `SELECT id, name, gender, age_range, description, sort_order, is_active, r2_key, se_key
+      `SELECT id, name, name_en, name_ja, name_zh_cn, name_id,
+              gender, age_range, description, sort_order, is_active, r2_key, se_key
        FROM voice_presets ORDER BY sort_order ASC, id ASC`,
     )
     .all();
@@ -635,6 +636,10 @@ v_b7f2b4.get("/voices", v_c0a297, async (v_3f4e2e) => {
 
 const v_49b1e6 = v_1f4ea7.object({
   name: v_1f4ea7.string().min(1).max(80),
+  name_en: v_1f4ea7.string().max(80).optional(),
+  name_ja: v_1f4ea7.string().max(80).optional(),
+  name_zh_cn: v_1f4ea7.string().max(80).optional(),
+  name_id: v_1f4ea7.string().max(80).optional(),
   gender: v_1f4ea7.string().max(40).optional(),
   age_range: v_1f4ea7.string().max(40).optional(),
   description: v_1f4ea7.string().max(500).optional(),
@@ -646,6 +651,10 @@ const v_49b1e6 = v_1f4ea7.object({
 
 const v_a12944 = v_1f4ea7.object({
   name: v_1f4ea7.string().min(1).max(80).optional(),
+  name_en: v_1f4ea7.string().max(80).nullable().optional(),
+  name_ja: v_1f4ea7.string().max(80).nullable().optional(),
+  name_zh_cn: v_1f4ea7.string().max(80).nullable().optional(),
+  name_id: v_1f4ea7.string().max(80).nullable().optional(),
   gender: v_1f4ea7.string().max(40).optional(),
   age_range: v_1f4ea7.string().max(40).optional(),
   description: v_1f4ea7.string().max(500).optional(),
@@ -666,11 +675,17 @@ v_b7f2b4.post("/voices", v_b09138, async (v_3f4e2e) => {
   v_5e92ec(v_148ff6.r2_key);
   const v_43af15 = await v_3f4e2e.env.DB
     .prepare(
-      `INSERT INTO voice_presets (name, gender, age_range, description, sort_order, is_active, r2_key, se_key)
-       VALUES (?,?,?,?,?,?,?,?) RETURNING id`,
+      `INSERT INTO voice_presets
+         (name, name_en, name_ja, name_zh_cn, name_id,
+          gender, age_range, description, sort_order, is_active, r2_key, se_key)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id`,
     )
     .bind(
       v_148ff6.name,
+      v_148ff6.name_en ?? null,
+      v_148ff6.name_ja ?? null,
+      v_148ff6.name_zh_cn ?? null,
+      v_148ff6.name_id ?? null,
       v_148ff6.gender ?? null,
       v_148ff6.age_range ?? null,
       v_148ff6.description ?? null,
@@ -692,6 +707,10 @@ v_b7f2b4.put("/voices/:id", v_b09138, async (v_3f4e2e) => {
   const v_925171 = [];
   const mapping: Array<[keyof typeof v_148ff6, string]> = [
     ["name", "name"],
+    ["name_en", "name_en"],
+    ["name_ja", "name_ja"],
+    ["name_zh_cn", "name_zh_cn"],
+    ["name_id", "name_id"],
     ["gender", "gender"],
     ["age_range", "age_range"],
     ["description", "description"],

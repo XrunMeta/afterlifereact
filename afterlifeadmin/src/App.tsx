@@ -19,6 +19,7 @@ import { v_6cc6aa } from "./pages/TotpEnrollPage";
 import { v_4686cd } from "./pages/TotpVerifyPage";
 import { v_6c8b30 } from "./pages/L0PersonaEditPage";
 import { v_394bcd } from "./pages/PersonaQuestionsEditPage";
+import { v_9febbb } from "./pages/VoicePresetsPage";
 
 function v_4c0c15({ children: v_21f619 }: { children: v_4a8ba2 }) {
   return (
@@ -141,6 +142,14 @@ function v_6540c3() {
           element={
             <ProtectedLayout>
               <PersonaQuestionsEditPage />
+            </ProtectedLayout>
+          }
+        />
+        <Route
+          path="/oth-path"
+          element={
+            <ProtectedLayout>
+              <VoicePresetsPage />
             </ProtectedLayout>
           }
         />

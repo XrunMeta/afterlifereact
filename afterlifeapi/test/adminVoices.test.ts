@@ -112,4 +112,73 @@ v_469bf2("admin /oth-path", () => {
     });
     v_4d37e3(v_8f00b9.status).toBe(422);
   });
+
+  v_23805a("POST + GET — 다국어 name 필드 왕복 저장", async () => {
+    const v_21cc31 = await v_5d5cfb();
+    const v_68f0aa = { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" };
+    const v_28eeb6 = await v_1df298.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: v_68f0aa,
+      body: JSON.stringify({
+        name: "다국어테스트",
+        name_en: "Multilang Test",
+        name_ja: "多言語テスト",
+        name_zh_cn: "多语言测试",
+        name_id: "Uji Multibahasa",
+        r2_key: "voice/sample/i18n.mp3",
+      }),
+    });
+    v_4d37e3(v_28eeb6.status).toBe(201);
+    const { id: v_389afb } = await v_28eeb6.json<{ id: number }>();
+
+    const v_ef8ab1 = await v_1df298.fetch("https://x/oth-path", {
+      headers: { Authorization: `Bearer ${v_21cc31}` },
+    });
+    const v_4d33b2 = await v_ef8ab1.json<{
+      voices: Array<{
+        id: number;
+        name: string;
+        name_en: string | null;
+        name_ja: string | null;
+        name_zh_cn: string | null;
+        name_id: string | null;
+      }>;
+    }>();
+    const v_3ac7e7 = v_4d33b2.voices.find((v_81e2ef) => v_81e2ef.id === v_389afb);
+    v_4d37e3(v_3ac7e7).toBeDefined();
+    v_4d37e3(v_3ac7e7!.name_en).toBe("Multilang Test");
+    v_4d37e3(v_3ac7e7!.name_ja).toBe("多言語テスト");
+    v_4d37e3(v_3ac7e7!.name_zh_cn).toBe("多语言测试");
+    v_4d37e3(v_3ac7e7!.name_id).toBe("Uji Multibahasa");
+  });
+
+  v_23805a("PUT — 다국어 name 부분 수정 및 null 로 clear", async () => {
+    const v_21cc31 = await v_5d5cfb();
+    const v_68f0aa = { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" };
+    const v_28eeb6 = await v_1df298.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: v_68f0aa,
+      body: JSON.stringify({
+        name: "부분수정테스트",
+        name_en: "Initial EN",
+        r2_key: "voice/sample/partial.mp3",
+      }),
+    });
+    v_4d37e3(v_28eeb6.status).toBe(201);
+    const { id: v_389afb } = await v_28eeb6.json<{ id: number }>();
+
+    const v_b1eff4 = await v_1df298.fetch(`https://x/oth-path${v_389afb}`, {
+      method: "PUT",
+      headers: v_68f0aa,
+      body: JSON.stringify({ name_en: "Updated EN", name_ja: "追加JA" }),
+    });
+    v_4d37e3(v_b1eff4.status).toBe(200);
+
+    const v_3bda3b = await v_1df298.fetch(`https://x/oth-path${v_389afb}`, {
+      method: "PUT",
+      headers: v_68f0aa,
+      body: JSON.stringify({ name_en: null }),
+    });
+    v_4d37e3(v_3bda3b.status).toBe(200);
+  });
 });

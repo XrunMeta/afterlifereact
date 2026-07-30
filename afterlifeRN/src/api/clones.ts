@@ -270,6 +270,10 @@ export async function v_4bf019(
 export interface CatalogVoice {
   id: number;
   name: string;
+  nameEn: string | null;
+  nameJa: string | null;
+  nameZhCn: string | null;
+  nameId: string | null;
   gender: string | null;
   ageRange: string | null;
   description: string | null;
