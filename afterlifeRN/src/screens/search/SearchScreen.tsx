@@ -21,6 +21,7 @@ import type { v_5b8240 } from "ykfzqfftuciufdadykzsyvzknqnwb";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_34614d } from "ixigazcpvfldbecwtbvavtbi";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_772971 } from "jmpfvteuuztnp";
 import v_556baf from "../../components/ui/SafeView";
 import { v_1ed7d9 } from "../../stores/authStore";
 import {
@@ -43,14 +44,15 @@ const v_d056d4 = "@search_recent";
 const v_0ee015 = 10;
 
 type TabKey = "recommend" | "clone" | "account" | "tag";
-const v_1bc355 = [
-  { key: "recommend", label: "추천" },
-  { key: "clone", label: "클론" },
-  { key: "account", label: "계정" },
-  { key: "tag", label: "태그" },
+const v_322c3f = [
+  { key: "recommend", labelKey: "search.tabRecommend" },
+  { key: "clone", labelKey: "search.tabClone" },
+  { key: "account", labelKey: "search.tabAccount" },
+  { key: "tag", labelKey: "search.tabTag" },
 ];
 
 export default function v_5db6c6() {
+  const { t: v_8d41d7 } = v_772971();
   const v_3c9f12 = v_ada615<TabNav>();
   const v_c7daf6 = v_2d8264();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
@@ -424,7 +426,7 @@ export default function v_5db6c6() {
             style={v_fd5f43.searchInput}
             value={v_7c5791}
             onChangeText={v_c57190}
-            placeholder="태그나 닉네임 검색"
+            placeholder={v_8d41d7("search.placeholder")}
             placeholderTextColor={v_1bfbd0.zinc400}
             autoCapitalize="none"
             autoCorrect={false}
@@ -446,14 +448,14 @@ export default function v_5db6c6() {
         v_4cd692.length === 0 ? (
           <View style={v_fd5f43.empty}>
             <Feather name="clock" size={36} color={v_1bfbd0.zinc300} />
-            <Text style={v_fd5f43.emptyText}>최근 검색어가 없어요</Text>
+            <Text style={v_fd5f43.emptyText}>{v_8d41d7("search.emptyRecent")}</Text>
           </View>
         ) : (
           <View style={{ flex: 1 }}>
             <View style={v_fd5f43.recentHeader}>
-              <Text style={v_fd5f43.recentHeaderTitle}>최근 검색</Text>
+              <Text style={v_fd5f43.recentHeaderTitle}>{v_8d41d7("search.recentTitle")}</Text>
               <TouchableOpacity onPress={v_e51925} hitSlop={8}>
-                <Text style={v_fd5f43.recentClearText}>모두 삭제</Text>
+                <Text style={v_fd5f43.recentClearText}>{v_8d41d7("search.clearAll")}</Text>
               </TouchableOpacity>
             </View>
             <FlatList
@@ -469,7 +471,7 @@ export default function v_5db6c6() {
         <>
           {}
           <View style={v_fd5f43.tabRow}>
-            {v_1bc355.map((v_11083e) => {
+            {v_322c3f.map((v_11083e) => {
               const v_f8b770 = v_ac1d22 === v_11083e.key;
               return (
                 <TouchableOpacity
@@ -478,7 +480,7 @@ export default function v_5db6c6() {
                   onPress={() => v_02dd63(v_11083e.key)}
                 >
                   <Text style={[v_fd5f43.tabLabel, v_f8b770 && v_fd5f43.tabLabelActive]}>
-                    {v_11083e.label}
+                    {v_8d41d7(v_11083e.labelKey)}
                   </Text>
                   {v_f8b770 && <View style={v_fd5f43.tabUnderline} />}
                 </TouchableOpacity>
@@ -490,7 +492,7 @@ export default function v_5db6c6() {
             v_9debb9 ? (
               <ActivityIndicator style={v_fd5f43.loader} color={v_1bfbd0.zinc500} />
             ) : v_ff422a.length === 0 ? (
-              <EmptyResult label="검색 결과가 없어요" />
+              <EmptyResult label={v_8d41d7("search.noResults")} />
             ) : (
               <FlatList
                 data={v_ff422a}
@@ -505,7 +507,7 @@ export default function v_5db6c6() {
 
           {v_ac1d22 === "clone" && (
             v_e12281.length === 0 ? (
-              <EmptyResult label="일치하는 클론이 없어요" />
+              <EmptyResult label={v_8d41d7("search.noClones")} />
             ) : (
               <FlatList
                 data={v_e12281}
@@ -521,7 +523,7 @@ export default function v_5db6c6() {
             v_866dc6 ? (
               <ActivityIndicator style={v_fd5f43.loader} color={v_1bfbd0.zinc500} />
             ) : v_de7ba7.length === 0 ? (
-              <EmptyResult label="일치하는 계정이 없어요" />
+              <EmptyResult label={v_8d41d7("search.noAccounts")} />
             ) : (
               <FlatList
                 data={v_de7ba7}
@@ -535,7 +537,7 @@ export default function v_5db6c6() {
 
           {v_ac1d22 === "tag" && (
             v_fc704f.length === 0 ? (
-              <EmptyResult label="일치하는 태그가 없어요" />
+              <EmptyResult label={v_8d41d7("search.noTags")} />
             ) : (
               <FlatList
                 data={v_fc704f}

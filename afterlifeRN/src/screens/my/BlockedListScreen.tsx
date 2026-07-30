@@ -12,6 +12,7 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_772971 } from "jmpfvteuuztnp";
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1ed7d9 } from "../../stores/authStore";
@@ -20,6 +21,7 @@ import { v_83b07d } from "../../api/users";
 import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../../components/constants";
 
 export default function v_65df53() {
+  const { t: v_8d41d7 } = v_772971();
   const v_c65f5d = v_ada615();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const [v_4622b9, v_fa923c] = v_5ab095<v_370311[]>([]);
@@ -67,7 +69,7 @@ export default function v_65df53() {
   return (
     <SafeView backgroundColor={v_1bfbd0.zinc50}>
       <PageHeader
-        title="차단 목록"
+        title={v_8d41d7("settings.privacy.blockList")}
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
       />
@@ -78,7 +80,7 @@ export default function v_65df53() {
       ) : v_4622b9.length === 0 ? (
         <View style={v_fd5f43.center}>
           <Feather name="slash" size={32} color={v_1bfbd0.zinc300} />
-          <Text style={v_fd5f43.empty}>차단한 대상이 없어요</Text>
+          <Text style={v_fd5f43.empty}>{v_8d41d7("settings.privacy.blockListEmpty")}</Text>
         </View>
       ) : (
         <FlatList
@@ -107,7 +109,7 @@ export default function v_65df53() {
                   <Text style={v_fd5f43.sub}>{v_1ae212}</Text>
                 </View>
                 <TouchableOpacity style={v_fd5f43.unblockBtn} onPress={() => v_55b20d(v_8c0b26)}>
-                  <Text style={v_fd5f43.unblockText}>차단 해제</Text>
+                  <Text style={v_fd5f43.unblockText}>{v_8d41d7("user.blockOff")}</Text>
                 </TouchableOpacity>
               </View>
             );

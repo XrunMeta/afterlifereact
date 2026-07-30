@@ -1,5 +1,6 @@
 import v_a3453e from 'bapkr';
 import { v_aa7413, v_3094a2, v_19b633, v_472849 } from 'rcmrninabrnb';
+import { v_772971 } from 'jmpfvteuuztnp';
 import v_1a40c4 from '../ui/Button';
 import { v_1bfbd0, v_8b0c90, v_9b1a04 } from '../constants';
 
@@ -10,19 +11,16 @@ interface Props {
 }
 
 export default function v_f81454({ visible: v_cf55be, onAddNow: v_4a7b62, onLater: v_c77d15 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   return (
     <Modal transparent animationType="fade" visible={v_cf55be}>
       <View style={v_d81136.backdrop}>
         <View style={v_d81136.card}>
-          <Text style={v_d81136.title}>잠깐, 추가 정보가 필요해요</Text>
-          <Text style={v_d81136.body}>
-            사진과 음성은 대화 품질을 위해 <Text style={v_d81136.bold}>필수</Text>입니다.{'\n'}
-            지금 없으면 My Clones에서 언제든 추가할 수 있지만,{'\n'}
-            그 전까지는 <Text style={v_d81136.bold}>[생성대기중]</Text> 상태로 표시됩니다.
-          </Text>
+          <Text style={v_d81136.title}>{v_8d41d7('assetsHint.title')}</Text>
+          <Text style={v_d81136.body}>{v_8d41d7('assetsHint.body')}</Text>
           <View style={{ gap: 8, marginTop: 12 }}>
-            <Button title="지금 추가하러" onPress={v_4a7b62} />
-            <Button title="나중에 추가" variant="ghost" onPress={v_c77d15} />
+            <Button title={v_8d41d7('assetsHint.addNow')} onPress={v_4a7b62} />
+            <Button title={v_8d41d7('assetsHint.later')} variant="ghost" onPress={v_c77d15} />
           </View>
         </View>
       </View>
