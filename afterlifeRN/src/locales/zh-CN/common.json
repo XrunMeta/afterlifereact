@@ -1370,5 +1370,104 @@
     "pinMustBe6Digits": "PIN 必须为 6 位数字。",
     "authRequired": "需要登录。",
     "resourceIdInvalid": "资源 ID 无效。"
+  },
+  "question": {
+    "label": {
+      "ageRange": "他/她的年龄段是？",
+      "gender": "性别是？",
+      "mbti": "他/她是什么 MBTI 类型？",
+      "personalityCore": "他/她是什么样的性格？",
+      "tone": "他/她平时说话的方式是怎样的？",
+      "dialectRegion": "是哪个地区的方言？",
+      "dialectIntensity": "方言口音有多重？"
+    },
+    "option": {
+      "age": {
+        "10s": "10 多岁",
+        "20s": "20 多岁",
+        "30s": "30 多岁",
+        "40s": "40 多岁",
+        "50s": "50 多岁",
+        "60plus": "60 岁以上"
+      },
+      "gender": {
+        "male": "男",
+        "female": "女",
+        "other": "其他"
+      },
+      "personalityCore": {
+        "quiet": "安静的性格",
+        "impatient": "急躁的性格"
+      },
+      "tone": {
+        "dialect": "方言",
+        "normal": "普通话/标准语气"
+      },
+      "dialectRegion": {
+        "gyeongsang": "庆尚道",
+        "jeolla": "全罗道",
+        "chungcheong": "忠清道",
+        "jeju": "济州",
+        "gangwon": "江原",
+        "seoulGyeonggi": "首尔/京畿"
+      },
+      "dialectIntensity": {
+        "slight": "轻微",
+        "moderate": "一般",
+        "heavy": "很重"
+      }
+    },
+    "knowledgeLabel": {
+      "coreIdentity": "如果用一个词来定义 {name},会是什么？",
+      "mainTraits": "构成 {name} 性格的最主要的 3 个特征是什么？",
+      "internalConflict": "{name} 表面展示出的样子与内心真实的想法之间,有什么反差(反转)？",
+      "speechStyle": "{name} 的说话方式中最强烈流露出的氛围或情绪状态是怎样的？",
+      "verbalHabits": "{name} 说话时下意识经常使用的词语或标点符号习惯有哪些？",
+      "lifePhilosophy": "{name} 在生活中最重视的人生观是什么？",
+      "coreValue": "{name} 在任何情况下都绝对不能放弃的、唯一的核心价值观是什么？",
+      "hatedAttitude": "{name} 在他人身上发现时最鄙视或讨厌的性格态度是什么？",
+      "moralStandard": "{name} 的道德良知或正义感的标准有多严格？",
+      "unforgivableLine": "有人一旦跨越,{name} 绝对无法忍受的底线是什么？",
+      "lazyTrigger": "什么最能让 {name} 感到麻烦和无力？",
+      "actionStyle": "{name} 是凡事都会周密计划的人,还是即兴应对的人？",
+      "moneyMindset": "{name} 对物质财富或成功持有怎样的欲望或态度？",
+      "authorityView": "{name} 对社会规则、权力、上司的管控或命令会如何反应？",
+      "realistOrDreamer": "{name} 是冷静看待眼前现实的人,还是追逐理想和浪漫的人？",
+      "originStory": "{name} 现在的性格是否有一个决定性的过去契机促成？",
+      "deepestFear": "{name} 藏在内心最深处的最原始的恐惧或不安是什么？",
+      "regretfulMemory": "{name} 最后悔或最想重来的记忆是什么？",
+      "proudMoment": "{name} 一生中最理直气壮、最为自己感到骄傲的记忆是什么？",
+      "emotionalWound": "{name} 内心深处难以愈合的情感创伤或缺失是什么？",
+      "socialTrust": "{name} 是很容易信任并接纳他人的人,还是长期保持警惕、静观其变的人？",
+      "conflictApproach": "{name} 与他人发生争执或冲突时,主要采取怎样的行动方式来解决？",
+      "angryBehavior": "{name} 真正愤怒时,言行会比平时发生怎样的变化？",
+      "praiseResponse": "当有人真心夸赞时,{name} 是会感到害羞,还是理所当然地享受？",
+      "comfortMethod": "面对陷入困境的人时,{name} 独特的安慰方式是什么？",
+      "friendshipCriteria": "{name} 最愿意留在身边的、最令人安心的人是哪一类？",
+      "secretPride": "别人不怎么知道,但 {name} 内心暗暗引以为傲的优点是什么？",
+      "stressCoping": "承受巨大压力时,{name} 下意识会做什么？",
+      "difficultQuestions": "被问到难以回答的问题时,{name} 独有的应对小技巧是什么？",
+      "lonelinessFeeling": "{name} 独自一人时是会强烈感到孤独,还是完全享受独处？",
+      "happinessDefinition": "{name} 所定义的最理想、最完美的幸福是怎样的状态？",
+      "sadnessExpression": "当忧郁或悲伤袭来时,{name} 会向外表达出来,还是默默压在心里？",
+      "changeReaction": "{name} 面对新环境或突如其来的变化时,是灵活适应,还是感到抗拒？",
+      "obsessionPoints": "虽然不起眼,但一旦沉迷,{name} 会异常固执地执着的领域有哪些？",
+      "mentalDefense": "受到他人无礼的批评或攻击时,{name} 为保护自己而启动的防御机制是什么？",
+      "innerChild": "{name} 身上是否还残留着尚未长大的、像小孩般笨拙或不成熟的一面？在哪一部分？",
+      "selfEvaluation": "{name} 平时是自我评价很高、自信满满的人,还是不断怀疑自己的人？",
+      "stubbornnessLevel": "{name} 是能灵活接受他人建议或意见的人,还是坚持自己想法到底的人？",
+      "socialEnergy": "{name} 与人相处时是补充能量的人,还是被彻底吸干、精疲力尽的人？",
+      "ultimateGoal": "{name} 愿意倾尽一生想要达到的终极目的地是什么？",
+      "jokeStyle": "{name} 平时开玩笑或幽默时,主要使用哪种幽默风格？",
+      "jealousyExpression": "对某人感到嫉妒或羡慕时,{name} 会如何表现或掩饰？",
+      "empathyOrSolution": "当有人倾诉困难时,{name} 是善于给予情感共鸣的人,还是率先提供现实解决方案的人？",
+      "liesDetection": "{name} 是能凭直觉迅速看穿对方的伪装或谎言的人吗？",
+      "patienceLimit": "{name} 平时耐心强吗,还是稍有不快就容易生气？",
+      "comfortZone": "给 {name} 带来最大安全感和舒适感的想法或想象是什么？",
+      "shameReaction": "经历难堪或丢脸的事情后,{name} 会如何行动来恢复心态？",
+      "attachmentStyle": "{name} 是否会对一旦开始信任的对象或已经熟悉的事物表现出强烈的依恋？",
+      "secretHobby": "{name} 是否有一个与其性格完全不符、却在暗中喜爱或关注的反差爱好？",
+      "lastWords": "结束一天的日常后,{name} 独自安静时最有代表性的自言自语是什么？"
+    }
   }
 }

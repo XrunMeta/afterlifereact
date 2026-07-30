@@ -270,6 +270,10 @@ export async function personaSuggest(
 export interface CatalogVoice {
   id: number;
   name: string;
+  nameEn: string | null;
+  nameJa: string | null;
+  nameZhCn: string | null;
+  nameId: string | null;
   gender: string | null;
   ageRange: string | null;
   description: string | null;

@@ -626,7 +626,8 @@ admin.put("/knowledge-blacklist", requireAdmin, async (c) => {
 admin.get("/voices", requireAdmin, async (c) => {
   const rows = await c.env.DB
     .prepare(
-      `SELECT id, name, gender, age_range, description, sort_order, is_active, r2_key, se_key
+      `SELECT id, name, name_en, name_ja, name_zh_cn, name_id,
+              gender, age_range, description, sort_order, is_active, r2_key, se_key
        FROM voice_presets ORDER BY sort_order ASC, id ASC`,
     )
     .all();
@@ -635,6 +636,10 @@ admin.get("/voices", requireAdmin, async (c) => {
 
 const voicePostSchema = z.object({
   name: z.string().min(1).max(80),
+  name_en: z.string().max(80).optional(),
+  name_ja: z.string().max(80).optional(),
+  name_zh_cn: z.string().max(80).optional(),
+  name_id: z.string().max(80).optional(),
   gender: z.string().max(40).optional(),
   age_range: z.string().max(40).optional(),
   description: z.string().max(500).optional(),
@@ -646,6 +651,10 @@ const voicePostSchema = z.object({
 
 const voicePutSchema = z.object({
   name: z.string().min(1).max(80).optional(),
+  name_en: z.string().max(80).nullable().optional(),
+  name_ja: z.string().max(80).nullable().optional(),
+  name_zh_cn: z.string().max(80).nullable().optional(),
+  name_id: z.string().max(80).nullable().optional(),
   gender: z.string().max(40).optional(),
   age_range: z.string().max(40).optional(),
   description: z.string().max(500).optional(),
@@ -666,11 +675,17 @@ admin.post("/voices", requireSuperAdmin, async (c) => {
   assertR2KeyPrefix(b.r2_key);
   const ins = await c.env.DB
     .prepare(
-      `INSERT INTO voice_presets (name, gender, age_range, description, sort_order, is_active, r2_key, se_key)
-       VALUES (?,?,?,?,?,?,?,?) RETURNING id`,
+      `INSERT INTO voice_presets
+         (name, name_en, name_ja, name_zh_cn, name_id,
+          gender, age_range, description, sort_order, is_active, r2_key, se_key)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id`,
     )
     .bind(
       b.name,
+      b.name_en ?? null,
+      b.name_ja ?? null,
+      b.name_zh_cn ?? null,
+      b.name_id ?? null,
       b.gender ?? null,
       b.age_range ?? null,
       b.description ?? null,
@@ -692,6 +707,10 @@ admin.put("/voices/:id", requireSuperAdmin, async (c) => {
   const binds: unknown[] = [];
   const mapping: Array<[keyof typeof b, string]> = [
     ["name", "name"],
+    ["name_en", "name_en"],
+    ["name_ja", "name_ja"],
+    ["name_zh_cn", "name_zh_cn"],
+    ["name_id", "name_id"],
     ["gender", "gender"],
     ["age_range", "age_range"],
     ["description", "description"],

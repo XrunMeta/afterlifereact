@@ -1373,5 +1373,104 @@
     "pinMustBe6Digits": "PIN must be 6 digits.",
     "authRequired": "You need to sign in.",
     "resourceIdInvalid": "Invalid resource ID."
+  },
+  "question": {
+    "label": {
+      "ageRange": "What's their age range?",
+      "gender": "And their gender?",
+      "mbti": "What MBTI type are they?",
+      "personalityCore": "What was their personality like?",
+      "tone": "How did they usually speak?",
+      "dialectRegion": "Which region's dialect was it?",
+      "dialectIntensity": "How strong was the dialect?"
+    },
+    "option": {
+      "age": {
+        "10s": "Teens",
+        "20s": "20s",
+        "30s": "30s",
+        "40s": "40s",
+        "50s": "50s",
+        "60plus": "60+"
+      },
+      "gender": {
+        "male": "Male",
+        "female": "Female",
+        "other": "Other"
+      },
+      "personalityCore": {
+        "quiet": "Quiet",
+        "impatient": "Impatient"
+      },
+      "tone": {
+        "dialect": "Dialect",
+        "normal": "Standard speech"
+      },
+      "dialectRegion": {
+        "gyeongsang": "Gyeongsang",
+        "jeolla": "Jeolla",
+        "chungcheong": "Chungcheong",
+        "jeju": "Jeju",
+        "gangwon": "Gangwon",
+        "seoulGyeonggi": "Seoul/Gyeonggi"
+      },
+      "dialectIntensity": {
+        "slight": "Slight",
+        "moderate": "Moderate",
+        "heavy": "Strong"
+      }
+    },
+    "knowledgeLabel": {
+      "coreIdentity": "If you had to define {name} in one word, what would it be?",
+      "mainTraits": "What are the 3 most dominant traits that make up {name}'s personality?",
+      "internalConflict": "What gap (contrast) is there between the face {name} shows outwardly and their honest inner thoughts?",
+      "speechStyle": "What mood or emotional state comes through most strongly in {name}'s speech?",
+      "verbalHabits": "Are there words or punctuation habits {name} unconsciously uses often when speaking?",
+      "lifePhilosophy": "What life philosophy does {name} hold as most important in the way they live?",
+      "coreValue": "What is the one core value {name} would never give up under any circumstances?",
+      "hatedAttitude": "What personality trait does {name} most despise or dislike when they see it in others?",
+      "moralStandard": "How strict is {name}'s moral conscience or sense of justice?",
+      "unforgivableLine": "What boundary would {name} absolutely never tolerate anyone crossing?",
+      "lazyTrigger": "What makes {name} feel the most bothered and unmotivated?",
+      "actionStyle": "Does {name} tend to plan things meticulously, or handle them on the fly?",
+      "moneyMindset": "What desires or attitudes does {name} have toward material wealth or success?",
+      "authorityView": "How does {name} react to social rules, power, or a boss's control and orders?",
+      "realistOrDreamer": "Does {name} tend to see reality coldly, or chase ideals and romance?",
+      "originStory": "Is there a decisive past event that shaped {name}'s current personality?",
+      "deepestFear": "What primal fear or anxiety does {name} hide in the depths of their heart?",
+      "regretfulMemory": "Is there a memory {name} most regrets or wishes they could undo?",
+      "proudMoment": "What memory in {name}'s life made them feel proudest of themselves?",
+      "emotionalWound": "What deep emotional wound or lack in {name}'s heart doesn't heal easily?",
+      "socialTrust": "Does {name} trust and accept others easily, or watch and stay guarded for a long time?",
+      "conflictApproach": "How does {name} typically resolve arguments or conflicts with others?",
+      "angryBehavior": "When {name} is truly angry, how do their words or actions change from normal?",
+      "praiseResponse": "When someone praises {name} sincerely, do they get shy, or enjoy it as if it's only natural?",
+      "comfortMethod": "What is {name}'s unique way of comforting someone who is struggling?",
+      "friendshipCriteria": "What kind of person is {name} most comfortable keeping close?",
+      "secretPride": "What strength does {name} quietly take pride in that others don't really know about?",
+      "stressCoping": "What does {name} unconsciously do when under extreme stress?",
+      "difficultQuestions": "What is {name}'s trick for evading awkward or hard questions?",
+      "lonelinessFeeling": "Does {name} feel loneliness severely when alone, or enjoy solitude fully?",
+      "happinessDefinition": "What is the most ideal, perfect state of happiness according to {name}?",
+      "sadnessExpression": "When sadness or depression hits, does {name} express it outwardly, or bottle it up inside?",
+      "changeReaction": "Does {name} adapt flexibly to new environments or sudden changes, or feel resistance?",
+      "obsessionPoints": "Is there a small area {name} becomes unusually stubborn or fixated on once hooked?",
+      "mentalDefense": "What defense mechanism does {name} use to protect their mind from rude criticism or attacks?",
+      "innerChild": "In what way does {name} still show childish, clumsy, or immature sides that haven't grown up?",
+      "selfEvaluation": "Does {name} usually rate themselves highly and act confident, or endlessly doubt themselves?",
+      "stubbornnessLevel": "Does {name} accept others' advice or opinions flexibly, or push their own way to the end?",
+      "socialEnergy": "Does {name} gain energy from being with people, or get completely drained?",
+      "ultimateGoal": "What is the ultimate destination {name} wants to devote their life to reaching?",
+      "jokeStyle": "What kind of humor does {name} usually use when joking around?",
+      "jealousyExpression": "When {name} feels jealous or envious of someone, how do they show or hide it?",
+      "empathyOrSolution": "When someone shares a hard problem, does {name} give emotional empathy, or offer a practical solution first?",
+      "liesDetection": "Does {name} quickly see through others' pretense or lies intuitively?",
+      "patienceLimit": "Is {name} generally patient, or does anger flare up easily at the slightest frustration?",
+      "comfortZone": "What thought or fantasy gives {name} the greatest sense of safety and comfort?",
+      "shameReaction": "When {name} goes through something shameful or embarrassing, how do they act to recover their mental state?",
+      "attachmentStyle": "Does {name} show strong attachment to people or things they've come to trust or grow familiar with?",
+      "secretHobby": "Does {name} have a surprising hobby they secretly enjoy that doesn't match their personality at all?",
+      "lastWords": "What kind of monologue would {name} quietly mutter to themselves after finishing a day's work?"
+    }
   }
 }

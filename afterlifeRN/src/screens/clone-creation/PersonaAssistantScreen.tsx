@@ -41,6 +41,8 @@ import {
 import { MEMLOW_RELATIONS } from '../../mocks/cloneTypeCatalog';
 import type { PersonaQuestion } from '../../types/clone';
 
+import { translateQuestion, translateOption } from '../../lib/questionI18n';
+
 type Props = {
   navigation: NativeStackNavigationProp<CreateStackParamList, 'PersonaAssistant'>;
 };
@@ -307,7 +309,8 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
       }
 
       setPhase(`schema:${idx}`);
-      await pushAi(q.label, buttons.length > 0 ? buttons : undefined);
+
+      await pushAi(translateQuestion(q.label), buttons.length > 0 ? buttons : undefined);
     },
     [candidates, fetchGemma, navigation, pushAi, setCreationDraft],
   );
@@ -387,7 +390,7 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
         return;
       }
 
-      pushUser(value);
+      pushUser(translateOption(value));
       const prev = { ...answersRef.current.schemaAnswers, [q.key]: value };
 
       for (const oq of questions) {
@@ -701,7 +704,8 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
                         }}
                         activeOpacity={0.8}
                       >
-                        <Text style={s.quickReplyText}>{qr}</Text>
+                        {}
+                        <Text style={s.quickReplyText}>{translateOption(qr)}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>

@@ -19,6 +19,7 @@ import { TotpEnrollPage } from "./pages/TotpEnrollPage";
 import { TotpVerifyPage } from "./pages/TotpVerifyPage";
 import { L0PersonaEditPage } from "./pages/L0PersonaEditPage";
 import { PersonaQuestionsEditPage } from "./pages/PersonaQuestionsEditPage";
+import { VoicePresetsPage } from "./pages/VoicePresetsPage";
 
 function ProtectedLayout({ children }: { children: ReactNode }) {
   return (
@@ -141,6 +142,14 @@ function App() {
           element={
             <ProtectedLayout>
               <PersonaQuestionsEditPage />
+            </ProtectedLayout>
+          }
+        />
+        <Route
+          path="/oth-path"
+          element={
+            <ProtectedLayout>
+              <VoicePresetsPage />
             </ProtectedLayout>
           }
         />

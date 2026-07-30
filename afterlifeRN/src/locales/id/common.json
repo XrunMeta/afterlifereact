@@ -1370,5 +1370,104 @@
     "pinMustBe6Digits": "PIN harus 6 digit.",
     "authRequired": "Anda perlu masuk.",
     "resourceIdInvalid": "ID sumber daya tidak valid."
+  },
+  "question": {
+    "label": {
+      "ageRange": "Berapa rentang usianya?",
+      "gender": "Jenis kelaminnya?",
+      "mbti": "Tipe MBTI apa dia?",
+      "personalityCore": "Bagaimana kepribadiannya?",
+      "tone": "Bagaimana gaya bicaranya biasanya?",
+      "dialectRegion": "Dialek dari daerah mana?",
+      "dialectIntensity": "Seberapa kental dialeknya?"
+    },
+    "option": {
+      "age": {
+        "10s": "Usia belasan",
+        "20s": "Usia 20-an",
+        "30s": "Usia 30-an",
+        "40s": "Usia 40-an",
+        "50s": "Usia 50-an",
+        "60plus": "60 tahun ke atas"
+      },
+      "gender": {
+        "male": "Laki-laki",
+        "female": "Perempuan",
+        "other": "Lainnya"
+      },
+      "personalityCore": {
+        "quiet": "Pendiam",
+        "impatient": "Tidak sabaran"
+      },
+      "tone": {
+        "dialect": "Dialek daerah",
+        "normal": "Cara bicara biasa"
+      },
+      "dialectRegion": {
+        "gyeongsang": "Gyeongsang",
+        "jeolla": "Jeolla",
+        "chungcheong": "Chungcheong",
+        "jeju": "Jeju",
+        "gangwon": "Gangwon",
+        "seoulGyeonggi": "Seoul/Gyeonggi"
+      },
+      "dialectIntensity": {
+        "slight": "Sedikit",
+        "moderate": "Sedang",
+        "heavy": "Sangat kental"
+      }
+    },
+    "knowledgeLabel": {
+      "coreIdentity": "Jika harus mendefinisikan {name} dalam satu kata, kata apa itu?",
+      "mainTraits": "Apa 3 sifat paling dominan yang membentuk kepribadian {name}?",
+      "internalConflict": "Kesenjangan (kejutan) apa yang ada antara sisi luar yang ditunjukkan {name} dan pikiran jujur di dalam hatinya?",
+      "speechStyle": "Suasana atau kondisi emosi seperti apa yang paling kuat terasa dari gaya bicara {name}?",
+      "verbalHabits": "Apakah ada kata atau kebiasaan tanda baca yang sering dipakai {name} secara tidak sadar saat bicara?",
+      "lifePhilosophy": "Pandangan hidup apa yang paling dijunjung {name} dalam menjalani hidupnya?",
+      "coreValue": "Apa satu-satunya nilai inti yang tidak akan pernah ditinggalkan {name} dalam kondisi apa pun?",
+      "hatedAttitude": "Sikap kepribadian seperti apa yang paling dibenci atau tidak disukai {name} saat ditemukan pada orang lain?",
+      "moralStandard": "Seberapa ketat standar hati nurani atau rasa keadilan {name}?",
+      "unforgivableLine": "Batas apa yang tidak akan pernah ditoleransi {name} jika dilanggar seseorang?",
+      "lazyTrigger": "Apa yang paling membuat {name} merasa malas dan kehilangan semangat?",
+      "actionStyle": "Apakah {name} orang yang selalu merencanakan segalanya dengan matang, atau lebih spontan?",
+      "moneyMindset": "Bagaimana pandangan atau hasrat {name} terhadap kekayaan atau kesuksesan materi?",
+      "authorityView": "Bagaimana {name} bereaksi terhadap aturan sosial, kekuasaan, kendali atau perintah dari atasan?",
+      "realistOrDreamer": "Apakah {name} cenderung melihat realita di depan matanya dengan dingin, atau mengejar idealisme dan romantisme?",
+      "originStory": "Apakah ada peristiwa masa lalu yang menentukan pembentukan kepribadian {name} sekarang?",
+      "deepestFear": "Ketakutan atau kecemasan paling mendasar apa yang disembunyikan {name} jauh di lubuk hatinya?",
+      "regretfulMemory": "Kalau ada, kenangan apa yang paling disesali {name} atau ingin ia putar ulang?",
+      "proudMoment": "Kenangan apa dalam hidup {name} yang membuatnya paling percaya diri dan bangga pada diri sendiri?",
+      "emotionalWound": "Luka atau kekurangan emosional dalam hati {name} yang tidak mudah sembuh itu apa?",
+      "socialTrust": "Apakah {name} mudah mempercayai dan menerima orang lain, atau lama waspada dan mengamati dulu?",
+      "conflictApproach": "Bagaimana pola tindakan {name} dalam menyelesaikan pertengkaran atau konflik dengan orang lain?",
+      "angryBehavior": "Ketika {name} benar-benar marah, bagaimana kata-kata atau tindakannya berubah dari biasanya?",
+      "praiseResponse": "Saat seseorang memuji dengan tulus, apakah {name} merasa malu atau menikmatinya sebagai hal yang wajar?",
+      "comfortMethod": "Ketika bertemu orang yang sedang kesulitan, cara unik {name} menghibur mereka seperti apa?",
+      "friendshipCriteria": "Sosok manusia paling nyaman seperti apa yang ingin selalu berada di sekitar {name}?",
+      "secretPride": "Kelebihan apa yang tidak begitu diketahui orang lain, tetapi diam-diam dibanggakan {name} di dalam hati?",
+      "stressCoping": "Ketika mengalami stres berat, apa yang dilakukan {name} secara tidak sadar?",
+      "difficultQuestions": "Ketika ditanya pertanyaan yang sulit dijawab, trik khas {name} untuk mengelak seperti apa?",
+      "lonelinessFeeling": "Apakah {name} sangat merasa kesepian saat sendirian, atau justru menikmati kesendirian sepenuhnya?",
+      "happinessDefinition": "Definisi kebahagiaan paling ideal dan sempurna menurut {name} itu keadaan seperti apa?",
+      "sadnessExpression": "Ketika kesedihan atau depresi datang, apakah {name} mengekspresikannya ke luar atau memendamnya di dalam?",
+      "changeReaction": "Apakah {name} beradaptasi dengan lentur pada lingkungan baru atau perubahan mendadak, atau merasa menolak?",
+      "obsessionPoints": "Apakah ada area kecil yang begitu {name} tergila-gila, ia jadi sangat keras kepala dan terobsesi?",
+      "mentalDefense": "Mekanisme pertahanan apa yang bekerja untuk melindungi hati {name} saat menerima kritik atau serangan yang kasar?",
+      "innerChild": "Kalau ada, di bagian mana {name} masih menyimpan sisi kekanak-kanakan yang canggung atau belum dewasa?",
+      "selfEvaluation": "Apakah {name} biasanya menilai dirinya tinggi dan penuh percaya diri, atau terus-menerus meragukan diri sendiri?",
+      "stubbornnessLevel": "Apakah {name} lentur menerima nasihat atau pendapat orang lain, atau memaksakan pendapatnya sampai akhir?",
+      "socialEnergy": "Apakah {name} mendapatkan energi saat berkumpul dengan orang, atau justru merasa habis energi hingga lelah?",
+      "ultimateGoal": "Tujuan tertinggi apa yang ingin dicapai {name} bahkan dengan mengorbankan hidupnya?",
+      "jokeStyle": "Biasanya {name} pakai gaya humor seperti apa saat bercanda atau melempar lelucon?",
+      "jealousyExpression": "Ketika merasa cemburu atau iri pada seseorang, bagaimana {name} menampakkan atau menyembunyikannya?",
+      "empathyOrSolution": "Ketika seseorang curhat masalah berat, apakah {name} lebih baik memberi empati emosional, atau lebih dulu memberi solusi realistis?",
+      "liesDetection": "Apakah {name} cepat menangkap kepura-puraan atau kebohongan orang lain secara intuitif?",
+      "patienceLimit": "Apakah {name} biasanya sabar, atau mudah tersulut marah hanya karena sedikit tidak nyaman?",
+      "comfortZone": "Pikiran atau imajinasi apa yang paling memberi rasa aman dan nyaman secara psikologis bagi {name}?",
+      "shameReaction": "Ketika mengalami hal yang memalukan atau menyakitkan harga diri, bagaimana {name} bertindak untuk memulihkan mentalnya?",
+      "attachmentStyle": "Apakah {name} menunjukkan ikatan kuat pada orang yang mulai ia percayai atau hal-hal yang sudah biasa?",
+      "secretHobby": "Apakah {name} punya hobi mengejutkan yang tidak cocok dengan karakternya, tetapi diam-diam ia nikmati atau minati?",
+      "lastWords": "Setelah menyelesaikan kegiatan hari itu, gumaman khas apa yang mungkin dibisikkan {name} sendirian dalam diam?"
+    }
   }
 }
