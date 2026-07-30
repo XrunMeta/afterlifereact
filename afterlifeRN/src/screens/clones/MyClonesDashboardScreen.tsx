@@ -684,7 +684,8 @@ export default function v_def15b() {
             style={v_fd5f43.actionBtn}
             onPress={async () => {
 
-              const v_f71b56 = `https://afterlife.app/clone/${v_eb25ce.id}`;
+              const v_8f7097 = encodeURIComponent(v_eb25ce.displayName ?? "");
+              const v_f71b56 = `https://www.xrun.run/clone?id=${v_eb25ce.id}&name=${v_8f7097}`;
               const v_a8cd21 = `${v_eb25ce.displayName} 클론과 대화해보세요!\n${v_f71b56}`;
               try {
                 await v_5f4661.share(
