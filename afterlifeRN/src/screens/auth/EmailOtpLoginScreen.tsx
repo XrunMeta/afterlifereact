@@ -33,7 +33,6 @@ export default function EmailOtpLoginScreen({ navigation, route }: Props) {
 
   const hydrate = useAuthStore((s) => s.hydrate);
   const setApiAuth = useAuthStore((s) => s.setApiAuth);
-  const setApiTokens = useAuthStore((s) => s.setApiTokens);
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -61,9 +60,10 @@ export default function EmailOtpLoginScreen({ navigation, route }: Props) {
       const deviceId = await getOrCreateDeviceId();
       const res = await emailLogin({ email, verificationCode: code, deviceId });
       const meRes = await getMe(res.accessToken);
-      await setApiAuth(res.accessToken, meRes.user, { persist: autoLogin });
-      const rt = (res as { refreshToken?: string }).refreshToken;
-      if (rt) await setApiTokens(res.accessToken, rt, { persist: autoLogin });
+      await setApiAuth(res.accessToken, meRes.user, {
+        persist: autoLogin,
+        refreshToken: res.refreshToken ?? null,
+      });
       if (autoLogin) {
         await AsyncStorage.setItem(AUTO_LOGIN_PREF_KEY, "1");
         await AsyncStorage.setItem(LAST_EMAIL_KEY, email);
