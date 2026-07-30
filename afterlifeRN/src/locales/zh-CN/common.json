@@ -29,7 +29,8 @@
     "sec": "秒",
     "durationSec": "{{s}}秒",
     "durationMin": "{{m}}分钟",
-    "durationMinSec": "{{m}}分{{s}}秒"
+    "durationMinSec": "{{m}}分{{s}}秒",
+    "expertBadge": "专家"
   },
   "tabs": {
     "home": "首页",
@@ -353,7 +354,14 @@
     "memoryLabel": "最鲜明的回忆",
     "memoryPlaceholder": "笑得最开心的那一刻...",
     "learnCtaTitle": "学习 →",
-    "learnCtaDesc": "回答管理员问题，为克隆积累更多知识"
+    "learnCtaDesc": "回答管理员问题，为克隆积累更多知识",
+    "transferSubmit": "发送请求",
+    "l1SectionTitle": "基础性格 (L1)",
+    "l1NotesLabel": "自由备注",
+    "l2SectionTitle": "深度记忆 (L2) — 自动学习",
+    "l2MemoryCount": "已累积 {{n}} 条记忆。",
+    "l2LastUpdated": "最后更新：{{date}}",
+    "l2Hint": "L2 无法直接编辑，会通过对话和互动自动再学习。"
   },
   "dashboard": {
     "title": "My Page",
@@ -1025,7 +1033,19 @@
         "retroPromptAgree": "同意",
         "retroPromptDecline": "拒绝"
       },
-      "blockListEmpty": "尚无拉黑对象"
+      "blockListEmpty": "尚无拉黑对象",
+      "tabUser": "用户",
+      "tabClone": "角色",
+      "tabWithCount": "{{label}} ({{n}})",
+      "emptyUser": "没有拉黑的用户",
+      "emptyClone": "没有拉黑的角色",
+      "emptyUserHint": "可在用户资料中拉黑",
+      "emptyCloneHint": "可在角色菜单中拉黑",
+      "unblockBtn": "解除拉黑",
+      "unblockConfirmTitle": "解除拉黑",
+      "unblockConfirmDesc": "要解除对 {{name}} 的拉黑吗？",
+      "unblockConfirmOk": "解除",
+      "unblockFailed": "解除失败。"
     },
     "saved": {
       "title": "已保存",
@@ -1167,8 +1187,17 @@
       "declineDoneDesc": "已拒绝该邀请。"
     }
   },
+  "transactions": {
+    "title": "全部交易记录",
+    "empty": "还没有交易记录",
+    "cloneFallback": "克隆",
+    "giftSentLabel": "赠送 {{clone}} {{gift}} 礼物",
+    "giftReceivedLabel": "来自 {{clone}} 的 {{gift}} 礼物收益"
+  },
   "reports": {
     "title": "举报",
+    "acceptedAlertTitle": "已收到举报",
+    "acceptedAlertDesc": "请查看举报内容。",
     "tabMade": "举报管理",
     "tabReceived": "被举报记录",
     "statusOpen": "待处理",
