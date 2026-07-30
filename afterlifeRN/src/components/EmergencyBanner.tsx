@@ -1,6 +1,6 @@
 
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Modal,
   View,
@@ -8,6 +8,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Linking,
+  AppState,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -29,7 +30,7 @@ const SEVERITY_ICON_COLOR: Record<number, string> = {
 };
 const DEFAULT_ICON_COLOR = SEVERITY_ICON_COLOR[2];
 
-const POLL_MS = 5 * 60 * 1000; 
+const POLL_MS = 60 * 1000;
 
 async function fetchActive(signal: AbortSignal): Promise<EmergencyNotice | null> {
   try {
@@ -47,10 +48,12 @@ export default function EmergencyBanner() {
   const { t } = useTranslation();
   const [notice, setNotice] = useState<EmergencyNotice | null>(null);
 
+  const appStateRef = useRef(AppState.currentState);
+
   useEffect(() => {
 
     let cancelled = false;
-    const ctrl = new AbortController();
+    let ctrl = new AbortController();
 
     const tick = async () => {
       const n = await fetchActive(ctrl.signal);
@@ -60,10 +63,22 @@ export default function EmergencyBanner() {
     void tick();
     const id = setInterval(() => { void tick(); }, POLL_MS);
 
+    const sub = AppState.addEventListener("change", (next) => {
+      const prev = appStateRef.current;
+      appStateRef.current = next;
+      if (prev.match(/inactive|background/) && next === "active") {
+
+        ctrl.abort();
+        ctrl = new AbortController();
+        void tick();
+      }
+    });
+
     return () => {
       cancelled = true;
       ctrl.abort();
       clearInterval(id);
+      sub.remove();
     };
   }, []);
 
