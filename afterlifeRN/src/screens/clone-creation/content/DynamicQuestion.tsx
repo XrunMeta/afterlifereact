@@ -7,6 +7,8 @@ import TextField from '../../../components/ui/TextField';
 import type { PersonaQuestion } from '../../../types/clone';
 import { COLORS, RADIUS } from '../../../components/constants';
 
+import { translateQuestion, translateOption } from '../../../lib/questionI18n';
+
 interface Props {
   question: PersonaQuestion;
   candidates?: string[]; 
@@ -24,7 +26,7 @@ export default function DynamicQuestion({ question, candidates, value, onAnswer 
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.label}>{question.label}</Text>
+      <Text style={styles.label}>{translateQuestion(question.label)}</Text>
 
       {}
       {question.type !== 'text' && buttons.length > 0 && (
@@ -39,7 +41,7 @@ export default function DynamicQuestion({ question, candidates, value, onAnswer 
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
               >
-                <Text style={active ? styles.chipActiveText : styles.chipText}>{opt}</Text>
+                <Text style={active ? styles.chipActiveText : styles.chipText}>{translateOption(opt)}</Text>
               </TouchableOpacity>
             );
           })}
