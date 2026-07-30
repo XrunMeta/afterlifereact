@@ -1,5 +1,6 @@
 import v_a3453e from 'bapkr';
 import { v_3094a2, v_19b633, v_79c4f2, v_472849 } from 'rcmrninabrnb';
+import { v_772971 } from 'jmpfvteuuztnp';
 import type { v_eceede } from '../../../types/domain';
 
 const v_0d620a = ['tone', 'hobby', 'style', 'catchphrase'] as const;
@@ -11,9 +12,10 @@ interface Props {
 }
 
 export function v_f48a74({ value: v_3b402b, editable: v_87d063, onChange: v_b187d9 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   return (
     <View style={v_d81136.root}>
-      <Text style={v_d81136.title}>기본 성격 (L1)</Text>
+      <Text style={v_d81136.title}>{v_8d41d7('edit.l1SectionTitle', { defaultValue: '기본 성격 (L1)' })}</Text>
       {v_0d620a.map((v_0eb677) => (
         <View key={v_0eb677} style={v_d81136.field}>
           <Text style={v_d81136.label}>{v_0eb677}</Text>
@@ -21,18 +23,18 @@ export function v_f48a74({ value: v_3b402b, editable: v_87d063, onChange: v_b187
             accessibilityLabel={`l1-attr-${v_0eb677}`}
             value={v_3b402b.attrs[v_0eb677] ?? ''}
             editable={v_87d063}
-            onChangeText={(v_8d41d7) => v_b187d9({ ...v_3b402b, attrs: { ...v_3b402b.attrs, [v_0eb677]: v_8d41d7 } })}
+            onChangeText={(v_c70495) => v_b187d9({ ...v_3b402b, attrs: { ...v_3b402b.attrs, [v_0eb677]: v_c70495 } })}
             style={[v_d81136.input, !v_87d063 && v_d81136.readonly]}
           />
         </View>
       ))}
-      <Text style={v_d81136.label}>자유 메모</Text>
+      <Text style={v_d81136.label}>{v_8d41d7('edit.l1NotesLabel', { defaultValue: '자유 메모' })}</Text>
       <TextInput
         accessibilityLabel="l1-notes"
         value={v_3b402b.notes}
         editable={v_87d063}
         multiline
-        onChangeText={(v_8d41d7) => v_b187d9({ ...v_3b402b, notes: v_8d41d7 })}
+        onChangeText={(v_c70495) => v_b187d9({ ...v_3b402b, notes: v_c70495 })}
         style={[v_d81136.input, v_d81136.notes, !v_87d063 && v_d81136.readonly]}
       />
     </View>

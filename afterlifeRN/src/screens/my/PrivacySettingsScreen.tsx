@@ -106,12 +106,12 @@ export default function v_9232cf() {
         : v_8c0b26.user.name || v_8c0b26.user.email.split("@")[0];
     const v_b24339 = v_28895b(v_8c0b26);
     v_889fad(
-      "차단 해제",
-      `${v_2869c1} 차단을 해제하시겠어요?`,
+      v_8d41d7("settings.privacy.unblockConfirmTitle", { defaultValue: "차단 해제" }),
+      v_8d41d7("settings.privacy.unblockConfirmDesc", { name: v_2869c1, defaultValue: "{{name}} 차단을 해제하시겠어요?" }),
       [
-        { text: "취소", style: "cancel" },
+        { text: v_8d41d7("common.cancel", { defaultValue: "취소" }), style: "cancel" },
         {
-          text: "해제",
+          text: v_8d41d7("settings.privacy.unblockConfirmOk", { defaultValue: "해제" }),
           onPress: async () => {
             if (!v_2ca7e0) return;
             v_70378d(v_b24339);
@@ -123,8 +123,8 @@ export default function v_9232cf() {
               }
               v_fa923c((v_ba2215) => v_ba2215.filter((v_148ff6) => v_28895b(v_148ff6) !== v_b24339));
             } catch (v_49263d) {
-              const v_badeaf = v_49263d instanceof Error ? v_49263d.message : "해제에 실패했어요.";
-              v_889fad("오류", v_badeaf);
+              const v_badeaf = v_49263d instanceof Error ? v_49263d.message : v_8d41d7("settings.privacy.unblockFailed", { defaultValue: "해제에 실패했어요." });
+              v_889fad(v_8d41d7("common.error", { defaultValue: "오류" }), v_badeaf);
             } finally {
               v_70378d(null);
             }
@@ -147,6 +147,9 @@ export default function v_9232cf() {
         {(["user", "clone"] as const).map((v_9edd60) => {
           const v_9e8c70 = v_4622b9.filter((v_23805a) => v_23805a.type === v_9edd60).length;
           const v_f8b770 = v_11083e === v_9edd60;
+          const v_4c59c8 = v_9edd60 === "user"
+            ? v_8d41d7("settings.privacy.tabUser", { defaultValue: "유저" })
+            : v_8d41d7("settings.privacy.tabClone", { defaultValue: "페르소나" });
           return (
             <TouchableOpacity
               key={v_9edd60}
@@ -154,7 +157,9 @@ export default function v_9232cf() {
               onPress={() => v_94ee83(v_9edd60)}
             >
               <Text style={[v_fd5f43.tabText, v_f8b770 && v_fd5f43.tabTextActive]}>
-                {v_9edd60 === "user" ? "유저" : "페르소나"} {v_9e8c70 > 0 ? `(${v_9e8c70})` : ""}
+                {v_9e8c70 > 0
+                  ? v_8d41d7("settings.privacy.tabWithCount", { label: v_4c59c8, n: v_9e8c70, defaultValue: "{{label}} ({{n}})" })
+                  : v_4c59c8}
               </Text>
             </TouchableOpacity>
           );
@@ -172,12 +177,14 @@ export default function v_9232cf() {
                 <View style={v_fd5f43.empty}>
                   <Feather name="slash" size={36} color={v_1bfbd0.zinc300} />
                   <Text style={v_fd5f43.emptyText}>
-                    차단한 {v_11083e === "user" ? "유저" : "페르소나"}가 없어요
+                    {v_11083e === "user"
+                      ? v_8d41d7("settings.privacy.emptyUser", { defaultValue: "차단한 유저가 없어요" })
+                      : v_8d41d7("settings.privacy.emptyClone", { defaultValue: "차단한 페르소나가 없어요" })}
                   </Text>
                   <Text style={v_fd5f43.emptySub}>
                     {v_11083e === "user"
-                      ? "사용자 프로필에서 차단할 수 있어요"
-                      : "페르소나 메뉴에서 차단할 수 있어요"}
+                      ? v_8d41d7("settings.privacy.emptyUserHint", { defaultValue: "사용자 프로필에서 차단할 수 있어요" })
+                      : v_8d41d7("settings.privacy.emptyCloneHint", { defaultValue: "페르소나 메뉴에서 차단할 수 있어요" })}
                   </Text>
                 </View>
               );
@@ -227,7 +234,7 @@ export default function v_9232cf() {
                           {v_3f8465 ? (
                             <ActivityIndicator size="small" color={v_1bfbd0.white} />
                           ) : (
-                            <Text style={v_fd5f43.unblockText}>차단 해제</Text>
+                            <Text style={v_fd5f43.unblockText}>{v_8d41d7("settings.privacy.unblockBtn", { defaultValue: "차단 해제" })}</Text>
                           )}
                         </TouchableOpacity>
                       </View>

@@ -66,7 +66,7 @@ export default function v_9e01f7() {
       refreshControl={<RefreshControl refreshing={v_612e9f} onRefresh={v_d5345f} />}
     >
       <PageHeader
-        title="전체 거래 내역"
+        title={v_8d41d7("transactions.title", { defaultValue: "전체 거래 내역" })}
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
       />
@@ -78,15 +78,16 @@ export default function v_9e01f7() {
           </View>
         ) : v_4622b9.length === 0 ? (
           <View style={v_fd5f43.center}>
-            <Text style={v_fd5f43.empty}>아직 거래 내역이 없어요</Text>
+            <Text style={v_fd5f43.empty}>{v_8d41d7("transactions.empty", { defaultValue: "아직 거래 내역이 없어요" })}</Text>
           </View>
         ) : (
           <View style={v_fd5f43.card}>
             {v_4622b9.map((v_2f6fcc, v_ebec57) => {
+              const v_f2ff36 = v_2f6fcc.cloneName ?? v_8d41d7("transactions.cloneFallback", { defaultValue: "클론" });
               const v_2869c1 =
                 v_2f6fcc.type === "gift_sent"
-                  ? `${v_2f6fcc.cloneName ?? "클론"}에게 ${v_2f6fcc.giftName} 선물`
-                  : `${v_2f6fcc.cloneName ?? "클론"}으로부터 ${v_2f6fcc.giftName} 선물 수익`;
+                  ? v_8d41d7("transactions.giftSentLabel", { clone: v_f2ff36, gift: v_2f6fcc.giftName, defaultValue: "{{clone}}에게 {{gift}} 선물" })
+                  : v_8d41d7("transactions.giftReceivedLabel", { clone: v_f2ff36, gift: v_2f6fcc.giftName, defaultValue: "{{clone}}으로부터 {{gift}} 선물 수익" });
               const v_d39e5b = v_2f6fcc.amount > 0;
               return (
                 <View
