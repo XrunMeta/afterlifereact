@@ -9,6 +9,7 @@ import {
   v_39a996,
 } from "rcmrninabrnb";
 import { v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_e57140 } from "../../navigation/types";
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
@@ -21,22 +22,23 @@ import {
 } from "../../api/reports";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 
-const v_210e32 = {
-  open: { label: "대기중", color: "#1d4ed8", bg: "#dbeafe" },
-  reviewed: { label: "처리 완료", color: "#15803d", bg: "#dcfce7" },
-  actioned: { label: "처리 완료", color: "#15803d", bg: "#dcfce7" },
-  dismissed: { label: "거절", color: "#64748b", bg: "#f1f5f9" },
+const v_b0e85c = {
+  open: { color: "#1d4ed8", bg: "#dbeafe", labelKey: "reports.statusOpen" },
+  reviewed: { color: "#15803d", bg: "#dcfce7", labelKey: "reports.statusReviewed" },
+  actioned: { color: "#15803d", bg: "#dcfce7", labelKey: "reports.statusActioned" },
+  dismissed: { color: "#64748b", bg: "#f1f5f9", labelKey: "reports.statusDismissed" },
 };
 
-const v_a28029 = {
-  user: "유저",
-  clone: "페르소나",
-  comment: "댓글",
+const v_b69b0f = {
+  user: "reports.typeUser",
+  clone: "reports.typeClone",
+  comment: "reports.typeComment",
 };
 
 const v_85cf93 = (v_6fc191) => (v_6fc191 ? v_6fc191.slice(0, 16).replace("T", " ") : "—");
 
 export default function v_7e6637() {
+  const { t: v_8d41d7 } = v_772971();
   const v_c65f5d = v_ada615();
   const v_c7daf6 = v_2d8264<v_ee3714<v_e57140, "Reports">>();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
@@ -77,26 +79,27 @@ export default function v_7e6637() {
   const v_eb6255 = !!v_3e0055 && new Date(v_3e0055) > new Date();
 
   const v_757d4c = ({ item: v_8c0b26 }: { item: v_2a77a6 }) => {
-    const v_72c7a6 = v_210e32[v_8c0b26.status] ?? v_210e32.open;
+    const v_72c7a6 = v_b0e85c[v_8c0b26.status] ?? v_b0e85c.open;
+    const v_f419c5 = v_b69b0f[v_8c0b26.type];
     return (
       <View style={v_fd5f43.row}>
         <View style={{ flex: 1 }}>
-          <Text style={v_fd5f43.typeTag}>{v_a28029[v_8c0b26.type] ?? "신고"}</Text>
+          <Text style={v_fd5f43.typeTag}>{v_f419c5 ? v_8d41d7(v_f419c5) : v_8d41d7("reports.typeFallback")}</Text>
           <Text style={v_fd5f43.name} numberOfLines={1}>
             {v_8c0b26.targetName || v_8c0b26.targetEmail.split("@")[0] || "—"}
           </Text>
           <Text style={v_fd5f43.sub} numberOfLines={2}>
-            {v_8c0b26.reason || "(사유 없음)"}
+            {v_8c0b26.reason || v_8d41d7("reports.emptyReason")}
           </Text>
           {v_8c0b26.adminMessage ? (
             <Text style={v_fd5f43.adminMsg} numberOfLines={3}>
-              관리자: {v_8c0b26.adminMessage}
+              {v_8d41d7("reports.adminPrefix", { message: v_8c0b26.adminMessage })}
             </Text>
           ) : null}
           <Text style={v_fd5f43.date}>{v_85cf93(v_8c0b26.createdAt)}</Text>
         </View>
         <View style={[v_fd5f43.badge, { backgroundColor: v_72c7a6.bg }]}>
-          <Text style={[v_fd5f43.badgeText, { color: v_72c7a6.color }]}>{v_72c7a6.label}</Text>
+          <Text style={[v_fd5f43.badgeText, { color: v_72c7a6.color }]}>{v_8d41d7(v_72c7a6.labelKey)}</Text>
         </View>
       </View>
     );
@@ -106,14 +109,15 @@ export default function v_7e6637() {
 
     const v_9f1622 =
       v_8c0b26.reportType === "comment"
-        ? `${v_8c0b26.cloneName ?? "페르소나"}에서 내 댓글이 신고되어 조치됐어요`
+        ? v_8d41d7("reports.receivedTitleComment", { clone: v_8c0b26.cloneName ?? v_8d41d7("reports.cloneFallback") })
         : v_8c0b26.reportType === "clone"
-        ? `페르소나 '${v_8c0b26.cloneName ?? "—"}'가 신고되어 조치됐어요`
-        : "회원님이 신고되어 조치됐어요";
+        ? v_8d41d7("reports.receivedTitleClone", { clone: v_8c0b26.cloneName ?? "—" })
+        : v_8d41d7("reports.receivedTitleUser");
+    const v_f419c5 = v_b69b0f[v_8c0b26.reportType];
     return (
     <View style={v_fd5f43.row}>
       <View style={{ flex: 1 }}>
-        <Text style={v_fd5f43.typeTag}>{v_a28029[v_8c0b26.reportType] ?? "신고"}</Text>
+        <Text style={v_fd5f43.typeTag}>{v_f419c5 ? v_8d41d7(v_f419c5) : v_8d41d7("reports.typeFallback")}</Text>
         <Text style={v_fd5f43.name}>{v_9f1622}</Text>
         {v_8c0b26.reportType === "comment" && v_8c0b26.content ? (
           <Text style={v_fd5f43.quote} numberOfLines={2}>
@@ -122,16 +126,16 @@ export default function v_7e6637() {
         ) : null}
         {v_8c0b26.adminMessage || v_8c0b26.warningReason ? (
           <Text style={v_fd5f43.adminMsg} numberOfLines={3}>
-            관리자: {v_8c0b26.adminMessage || v_8c0b26.warningReason}
+            {v_8d41d7("reports.adminPrefix", { message: v_8c0b26.adminMessage || v_8c0b26.warningReason })}
           </Text>
         ) : null}
         <Text style={v_fd5f43.date}>
-          접수 {v_85cf93(v_8c0b26.createdAt)}
-          {v_8c0b26.warnedAt ? ` · 조치 ${v_85cf93(v_8c0b26.warnedAt)}` : ""}
+          {v_8d41d7("reports.receivedAt", { date: v_85cf93(v_8c0b26.createdAt) })}
+          {v_8c0b26.warnedAt ? ` · ${v_8d41d7("reports.actionedAt", { date: v_85cf93(v_8c0b26.warnedAt) })}` : ""}
         </Text>
       </View>
       <View style={[v_fd5f43.badge, { backgroundColor: "#fef3c7" }]}>
-        <Text style={[v_fd5f43.badgeText, { color: "#b45309" }]}>경고</Text>
+        <Text style={[v_fd5f43.badgeText, { color: "#b45309" }]}>{v_8d41d7("reports.warningBadge")}</Text>
       </View>
     </View>
     );
@@ -139,7 +143,7 @@ export default function v_7e6637() {
 
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
-      <PageHeader title="신고" showBackButton onBackPress={() => v_c65f5d.goBack()} />
+      <PageHeader title={v_8d41d7("reports.title")} showBackButton onBackPress={() => v_c65f5d.goBack()} />
 
       <View style={v_fd5f43.tabBar}>
         {(["made", "received"] as const).map((v_9edd60) => (
@@ -149,7 +153,7 @@ export default function v_7e6637() {
             onPress={() => v_94ee83(v_9edd60)}
           >
             <Text style={[v_fd5f43.tabText, v_11083e === v_9edd60 && v_fd5f43.tabTextActive]}>
-              {v_9edd60 === "made" ? "신고 관리" : "신고당한 내역"}
+              {v_9edd60 === "made" ? v_8d41d7("reports.tabMade") : v_8d41d7("reports.tabReceived")}
             </Text>
           </TouchableOpacity>
         ))}
@@ -164,7 +168,7 @@ export default function v_7e6637() {
           renderItem={v_757d4c}
           ListEmptyComponent={
             <View style={v_fd5f43.empty}>
-              <Text style={v_fd5f43.emptyText}>접수한 신고가 없어요</Text>
+              <Text style={v_fd5f43.emptyText}>{v_8d41d7("reports.emptyMade")}</Text>
             </View>
           }
           contentContainerStyle={v_51146d.length === 0 ? { flex: 1 } : { paddingVertical: 8 }}
@@ -176,20 +180,20 @@ export default function v_7e6637() {
           renderItem={v_30f616}
           ListHeaderComponent={
             <View style={v_fd5f43.statusCard}>
-              <Text style={v_fd5f43.statusTitle}>내 상태</Text>
-              <Text style={v_fd5f43.statusLine}>받은 경고 {v_e87618}회</Text>
+              <Text style={v_fd5f43.statusTitle}>{v_8d41d7("reports.statusMineTitle")}</Text>
+              <Text style={v_fd5f43.statusLine}>{v_8d41d7("reports.warningCount", { n: v_e87618 })}</Text>
               {v_eb6255 ? (
                 <Text style={[v_fd5f43.statusLine, { color: "#b91c1c" }]}>
-                  활동 정지 중 (~{v_85cf93(v_3e0055)}) — 페르소나 생성이 제한돼요
+                  {v_8d41d7("reports.suspendedUntil", { date: v_85cf93(v_3e0055) })}
                 </Text>
               ) : (
-                <Text style={[v_fd5f43.statusLine, { color: "#15803d" }]}>활동 정지 없음</Text>
+                <Text style={[v_fd5f43.statusLine, { color: "#15803d" }]}>{v_8d41d7("reports.notSuspended")}</Text>
               )}
             </View>
           }
           ListEmptyComponent={
             <View style={v_fd5f43.empty}>
-              <Text style={v_fd5f43.emptyText}>관리자가 조치한 신고가 없어요</Text>
+              <Text style={v_fd5f43.emptyText}>{v_8d41d7("reports.emptyReceived")}</Text>
             </View>
           }
           contentContainerStyle={{ paddingBottom: 24 }}

@@ -304,7 +304,12 @@
     "cloneLoadFailed": "クローンを読み込めません。",
     "reportCommentTitle": "コメント通報",
     "reportCommentDesc": "このコメントを通報しますか?",
-    "reportAction": "通報"
+    "reportAction": "通報",
+    "followingEmptyHint": "ホームでお気に入りのクローンをフォローしてみてください",
+    "summaryLabelChat": "チャット",
+    "summaryLabelCall": "通話",
+    "summaryLabelLearn": "探索",
+    "summaryLabelFeed": "フィード"
   },
   "detail": {
     "notFound": "クローンが見つかりません。",
@@ -985,6 +990,7 @@
       "title": "プライバシーと公開範囲",
       "profileVisibility": "プロフィール公開範囲",
       "blockList": "ブロックリスト",
+      "blockListEmpty": "ブロックした相手はいません",
       "dataDownload": "データをダウンロード",
       "deleteAccount": "アカウント削除",
       "faceConsent": {
@@ -1052,7 +1058,11 @@
       "promptTitle": "XRUN PIN を設定してください",
       "promptDesc": "xrun アプリで6桁の XRUN PIN を登録すると、決済機能を使用できます。",
       "promptOpen": "xrun アプリで設定する",
-      "promptDismiss": "今日はもう表示しない"
+      "promptDismiss": "今日はもう表示しない",
+      "verifyOkTitle": "確認",
+      "verifyOkMsg": "パスワードを確認しました。",
+      "verifyError": "検証中にエラーが発生しました。",
+      "xrunNotInstalled": "xrun アプリがインストールされていません。"
     }
   },
   "permissionGate": {
@@ -1127,5 +1137,85 @@
     "desc": "自分がフォロー中の人の中から、公開する友達を選択してください。",
     "empty": "まだフォロー中の人がいません",
     "confirmWithCount": "確認({{n}}名)"
+  },
+  "safety": {
+    "emergency": {
+      "title": "緊急連絡先と相続指定",
+      "helper": "一定期間活動がない場合、指定された連絡先へ相続移管の手続きが開始されます。管理者の承認後に移管が実行されます。",
+      "emailLabel": "メールアドレス",
+      "roleLabel": "役割",
+      "roleNotifyOnly": "(甲)通知のみ",
+      "rolePrimary": "(乙)第1順位",
+      "roleSecondary": "(丙)第2順位",
+      "inactivityLabel": "非活動基準(日)",
+      "inviteAction": "招待を送信",
+      "invalidEmail": "メールアドレスの形式をご確認ください。",
+      "inviteSentTitle": "招待を送信",
+      "inviteSentDesc": "{{email}} に緊急連絡先の招待を送信しました。",
+      "registeredContacts": "登録済みの連絡先",
+      "emptyContacts": "まだ登録された連絡先はありません。",
+      "revoke": "取り消し"
+    },
+    "inheritance": {
+      "title": "相続招待への応答",
+      "intro": "他のユーザーから緊急連絡先・相続指定の招待を受けました。招待トークンをご確認の上、承諾または拒否を選択してください。承諾すると相続移管の条件が満たされた場合、管理者の承認のもと一部の権限が移管されることがあります。",
+      "tokenLabel": "招待トークン",
+      "tokenPlaceholder": "メールに記載されたトークンを入力してください",
+      "accept": "承諾",
+      "decline": "拒否",
+      "invalidToken": "有効な招待トークンが必要です。",
+      "acceptDoneTitle": "承諾完了",
+      "declineDoneTitle": "拒否完了",
+      "acceptDoneDesc": "相続指定が承諾されました。実際の移管は管理者の確認後に実行されます。",
+      "declineDoneDesc": "招待を拒否しました。"
+    }
+  },
+  "reports": {
+    "title": "通報",
+    "tabMade": "通報管理",
+    "tabReceived": "通報された履歴",
+    "statusOpen": "処理待ち",
+    "statusReviewed": "処理完了",
+    "statusActioned": "処理完了",
+    "statusDismissed": "却下",
+    "typeUser": "ユーザー",
+    "typeClone": "ペルソナ",
+    "typeComment": "コメント",
+    "typeFallback": "通報",
+    "cloneFallback": "ペルソナ",
+    "receivedTitleComment": "{{clone}} で私のコメントが通報され、対応が行われました",
+    "receivedTitleClone": "ペルソナ「{{clone}}」が通報され、対応が行われました",
+    "receivedTitleUser": "お客様が通報され、対応が行われました",
+    "adminPrefix": "管理者: {{message}}",
+    "emptyReason": "(理由なし)",
+    "emptyMade": "受け付けた通報はありません",
+    "emptyReceived": "管理者が対応した通報はありません",
+    "warningBadge": "警告",
+    "statusMineTitle": "自分のステータス",
+    "warningCount": "受けた警告 {{n}}回",
+    "suspendedUntil": "活動停止中(〜{{date}}) — ペルソナの作成が制限されます",
+    "notSuspended": "活動停止なし",
+    "receivedAt": "受付 {{date}}",
+    "actionedAt": "対応 {{date}}"
+  },
+  "search": {
+    "placeholder": "タグやニックネームを検索",
+    "tabRecommend": "おすすめ",
+    "tabClone": "クローン",
+    "tabAccount": "アカウント",
+    "tabTag": "タグ",
+    "recentTitle": "最近の検索",
+    "emptyRecent": "最近の検索履歴はありません",
+    "clearAll": "すべて削除",
+    "noResults": "検索結果がありません",
+    "noClones": "一致するクローンはありません",
+    "noAccounts": "一致するアカウントはありません",
+    "noTags": "一致するタグはありません"
+  },
+  "assetsHint": {
+    "title": "少々お待ちください、追加情報が必要です",
+    "body": "写真と音声は会話の品質のために必須です。\n今なくても My Clones からいつでも追加できますが、\nそれまでは[作成待機中]の状態として表示されます。",
+    "addNow": "今すぐ追加する",
+    "later": "後で追加"
   }
 }
