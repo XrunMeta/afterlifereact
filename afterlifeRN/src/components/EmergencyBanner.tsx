@@ -2,13 +2,15 @@
 
 import { v_c4deb2, v_5ab095 } from "bapkr";
 import {
+  v_aa7413,
   v_3094a2,
   v_19b633,
   v_472849,
   v_4623af,
   v_f2c756,
 } from "rcmrninabrnb";
-import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_25515d } from "zvyjokvuouwvifyzks";
+import { v_772971 } from "jmpfvteuuztnp";
 import { v_cc9198 } from "../config/apiBase";
 import { v_1ed7d9 } from "../stores/authStore";
 
@@ -20,13 +22,13 @@ interface EmergencyNotice {
   severity_level: number;
 }
 
-const v_0178ee = {
+const v_c8eac4 = {
   1: "#3b82f6", 
   2: "#f59e0b", 
   3: "#ef4444", 
   4: "#dc2626", 
 };
-const v_2fdeb2 = v_0178ee[2];
+const v_c0bdad = v_c8eac4[2];
 
 const v_fbb4dd = 5 * 60 * 1000; 
 
@@ -43,7 +45,7 @@ async function v_0d4e58(v_361415): Promise<EmergencyNotice | null> {
 }
 
 export default function v_479450() {
-  const v_033e14 = v_e0068c();
+  const { t: v_8d41d7 } = v_772971();
   const v_042a8b = v_1ed7d9((v_fd5f43) => v_fd5f43.isLoggedIn);
   const [v_d48273, v_404431] = v_5ab095<EmergencyNotice | null>(null);
 
@@ -73,58 +75,127 @@ export default function v_479450() {
 
   if (!v_042a8b || !v_d48273) return null;
 
-  const v_6fe397 = v_0178ee[v_d48273.severity_level] ?? v_2fdeb2;
+  const v_ef160b = v_c8eac4[v_d48273.severity_level] ?? v_c0bdad;
 
-  const v_5ba0f2 = () => {
+  const v_4c3e84 = () => {
     if (!v_d48273.link) return;
-    void v_f2c756.openURL(v_d48273.link).catch(() => {
 
-    });
+    if (v_d48273.link.startsWith("http://") || v_d48273.link.startsWith("https://")) {
+      v_f2c756.openURL(v_d48273.link).catch((v_49263d) => {
+        console.error("[EmergencyBanner] failed to open URL:", v_49263d);
+      });
+    } else {
+      console.warn("[EmergencyBanner] non-http link ignored:", v_d48273.link);
+    }
   };
 
-  const v_db991d = (
-    <View style={v_d81136.inner}>
-      <Text style={v_d81136.title} numberOfLines={2}>
-        {v_d48273.title}
-      </Text>
-      {v_d48273.description ? (
-        <Text style={v_d81136.description} numberOfLines={3}>
-          {v_d48273.description}
-        </Text>
-      ) : null}
-    </View>
-  );
-
   return (
-    <View style={[v_d81136.container, { paddingTop: v_033e14.top, backgroundColor: v_6fe397 }]}>
-      {v_d48273.link ? (
-        <TouchableOpacity activeOpacity={0.8} onPress={v_5ba0f2}>
-          {v_db991d}
-        </TouchableOpacity>
-      ) : (
-        v_db991d
-      )}
-    </View>
+    <Modal
+      visible
+      animationType="slide"
+
+      onRequestClose={() => {  }}
+      presentationStyle="fullScreen"
+    >
+      <View style={v_d81136.container}>
+        <View style={v_d81136.header}>
+          <Text style={v_d81136.title}>
+            {v_8d41d7("common.emergencyStop.title", { defaultValue: "긴급 공지" })}
+          </Text>
+        </View>
+
+        <View style={v_d81136.divider} />
+
+        <View style={v_d81136.body}>
+          <View style={v_d81136.iconContainer}>
+            <Ionicons name="warning" size={64} color={v_ef160b} />
+          </View>
+          <Text style={v_d81136.headline}>{v_d48273.title}</Text>
+          {v_d48273.description ? (
+            <Text style={v_d81136.message}>{v_d48273.description}</Text>
+          ) : null}
+          {v_d48273.link ? (
+            <TouchableOpacity
+              style={v_d81136.linkButton}
+              onPress={v_4c3e84}
+              activeOpacity={0.7}
+            >
+              <Text style={v_d81136.linkText}>
+                {v_8d41d7("common.emergencyStop.viewDetails", { defaultValue: "자세히 보기" })}
+              </Text>
+              <Ionicons name="chevron-forward" size={20} color="#4c4e55" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </View>
+    </Modal>
   );
 }
 
 const v_d81136 = v_472849.create({
   container: {
-    width: "100%",
+    flex: 1,
+    backgroundColor: "#ffffff",
+    paddingTop: 60,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
   },
-  inner: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
   },
   title: {
-    color: "#ffffff",
-    fontSize: 14,
+    flex: 1,
+    fontSize: 22,
     fontWeight: "700",
+    color: "#121212",
+    textAlign: "center",
   },
-  description: {
-    color: "#ffffff",
-    fontSize: 12,
-    marginTop: 2,
-    opacity: 0.95,
+  divider: {
+    height: v_472849.hairlineWidth,
+    backgroundColor: "#e4e4e4",
+    marginBottom: 32,
+  },
+  body: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  iconContainer: {
+    marginBottom: 32,
+  },
+  headline: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#121212",
+    lineHeight: 26,
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  message: {
+    fontSize: 15,
+    color: "#4c4e55",
+    lineHeight: 24,
+    textAlign: "center",
+    marginBottom: 32,
+  },
+  linkButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: "#F8F8F8",
+    borderRadius: 12,
+    width: "100%",
+    maxWidth: 400,
+  },
+  linkText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#4c4e55",
   },
 });
