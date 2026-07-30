@@ -1,6 +1,7 @@
 import { showAlert } from "../../stores/dialogStore";
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, Alert } from "react-native";
+import { useTranslation } from "react-i18next";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
 import Button from "../../components/ui/Button";
@@ -17,6 +18,7 @@ interface Contact {
 }
 
 export default function EmergencyContactsScreen() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<Role>("primary_heir");
   const [inactivityDays, setInactivityDays] = useState("180");
@@ -24,10 +26,10 @@ export default function EmergencyContactsScreen() {
 
   async function invite() {
     if (!email.includes("@")) {
-      showAlert("이메일 형식을 확인해주세요.");
+      showAlert(t("safety.emergency.invalidEmail"));
       return;
     }
-    showAlert("초대 발송", `${email}에게 비상연락처 초대를 보냈습니다.`);
+    showAlert(t("safety.emergency.inviteSentTitle"), t("safety.emergency.inviteSentDesc", { email }));
     setContacts((prev) => [
       ...prev,
       {
@@ -48,13 +50,13 @@ export default function EmergencyContactsScreen() {
 
   return (
     <SafeScrollView backgroundColor={COLORS.white}>
-      <PageHeader title="비상연락처 & 상속지정" />
+      <PageHeader title={t("safety.emergency.title")} />
       <View style={s.wrap}>
         <Text style={s.helper}>
-          일정 기간 미활동 시 지정된 연락처로 상속 이관 절차가 시작됩니다. 관리자 승인 후 이관이 집행됩니다.
+          {t("safety.emergency.helper")}
         </Text>
 
-        <Text style={s.label}>이메일</Text>
+        <Text style={s.label}>{t("safety.emergency.emailLabel")}</Text>
         <TextInput
           value={email}
           onChangeText={setEmail}
@@ -64,7 +66,7 @@ export default function EmergencyContactsScreen() {
           keyboardType="email-address"
         />
 
-        <Text style={s.label}>역할</Text>
+        <Text style={s.label}>{t("safety.emergency.roleLabel")}</Text>
         <View style={s.roleRow}>
           {(["notify_only", "primary_heir", "secondary_heir"] as Role[]).map((r) => (
             <TouchableOpacity
@@ -73,13 +75,17 @@ export default function EmergencyContactsScreen() {
               onPress={() => setRole(r)}
             >
               <Text style={role === r ? s.roleTextActive : s.roleText}>
-                {r === "notify_only" ? "(가) 알림만" : r === "primary_heir" ? "(나) 1순위" : "(다) 2순위"}
+                {r === "notify_only"
+                  ? t("safety.emergency.roleNotifyOnly")
+                  : r === "primary_heir"
+                  ? t("safety.emergency.rolePrimary")
+                  : t("safety.emergency.roleSecondary")}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        <Text style={s.label}>미활동 기준 (일)</Text>
+        <Text style={s.label}>{t("safety.emergency.inactivityLabel")}</Text>
         <TextInput
           value={inactivityDays}
           onChangeText={setInactivityDays}
@@ -87,14 +93,14 @@ export default function EmergencyContactsScreen() {
           style={s.input}
         />
 
-        <Button title="초대 발송" onPress={invite} />
+        <Button title={t("safety.emergency.inviteAction")} onPress={invite} />
 
-        <Text style={[s.label, { marginTop: 32 }]}>등록된 연락처</Text>
+        <Text style={[s.label, { marginTop: 32 }]}>{t("safety.emergency.registeredContacts")}</Text>
         <FlatList
           data={contacts}
           keyExtractor={(i) => String(i.id)}
           scrollEnabled={false}
-          ListEmptyComponent={<Text style={s.empty}>아직 등록된 연락처가 없습니다.</Text>}
+          ListEmptyComponent={<Text style={s.empty}>{t("safety.emergency.emptyContacts")}</Text>}
           renderItem={({ item }) => (
             <View style={s.card}>
               <View style={{ flex: 1 }}>
@@ -104,7 +110,7 @@ export default function EmergencyContactsScreen() {
                 </Text>
               </View>
               <TouchableOpacity onPress={() => revoke(item.id)}>
-                <Text style={s.revoke}>철회</Text>
+                <Text style={s.revoke}>{t("safety.emergency.revoke")}</Text>
               </TouchableOpacity>
             </View>
           )}

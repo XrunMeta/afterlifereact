@@ -552,12 +552,12 @@ export default function FollowingScreen() {
   const deleteComment = (commentId: number) => {
     if (commentPostId == null || commentPostId < 0 || !accessToken) return;
     showAlert(
-      "댓글 삭제",
-      "이 댓글을 삭제하시겠습니까?",
+      t("home.commentDeleteTitle"),
+      t("home.commentDeleteDesc"),
       [
-        { text: "취소", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "삭제",
+          text: t("common.delete"),
           style: "destructive",
           onPress: async () => {
             try {
@@ -654,7 +654,7 @@ export default function FollowingScreen() {
                 const followed = isFollowingPersona(item.persona.id);
                 return (
                   <Button
-                    title={followed ? "구독 중" : "구독"}
+                    title={followed ? t("feed.following") : t("feed.follow")}
                     variant="ghost"
                     size="md"
                     leftIcon={
@@ -700,8 +700,8 @@ export default function FollowingScreen() {
         ListEmptyComponent={
           <View style={s.emptyWrap}>
             <Feather name="users" size={48} color={COLORS.zinc300} />
-            <Text style={s.emptyTitle}>아직 구독한 클론이 없어요</Text>
-            <Text style={s.emptyDesc}>홈에서 마음에 드는 클론을 구독해 보세요</Text>
+            <Text style={s.emptyTitle}>{t("feed.followingEmpty")}</Text>
+            <Text style={s.emptyDesc}>{t("feed.followingEmptyHint")}</Text>
           </View>
         }
       />
@@ -751,10 +751,10 @@ export default function FollowingScreen() {
                   </Text>
                 </View>
                 <View style={s.eventsBreakdownRow}>
-                  <Text style={s.eventsBreakdownItem}>채팅 <Text style={s.eventsBreakdownVal}>{intimacyEventsData.summary.chat}°C</Text></Text>
-                  <Text style={s.eventsBreakdownItem}>통화 <Text style={s.eventsBreakdownVal}>{intimacyEventsData.summary.call}°C</Text></Text>
-                  <Text style={s.eventsBreakdownItem}>탐색 <Text style={s.eventsBreakdownVal}>{intimacyEventsData.summary.learn}°C</Text></Text>
-                  <Text style={s.eventsBreakdownItem}>피드 <Text style={s.eventsBreakdownVal}>{intimacyEventsData.summary.feed}°C</Text></Text>
+                  <Text style={s.eventsBreakdownItem}>{t("feed.summaryLabelChat")} <Text style={s.eventsBreakdownVal}>{intimacyEventsData.summary.chat}°C</Text></Text>
+                  <Text style={s.eventsBreakdownItem}>{t("feed.summaryLabelCall")} <Text style={s.eventsBreakdownVal}>{intimacyEventsData.summary.call}°C</Text></Text>
+                  <Text style={s.eventsBreakdownItem}>{t("feed.summaryLabelLearn")} <Text style={s.eventsBreakdownVal}>{intimacyEventsData.summary.learn}°C</Text></Text>
+                  <Text style={s.eventsBreakdownItem}>{t("feed.summaryLabelFeed")} <Text style={s.eventsBreakdownVal}>{intimacyEventsData.summary.feed}°C</Text></Text>
                 </View>
               </View>
             )}
@@ -989,7 +989,7 @@ export default function FollowingScreen() {
                       onPress={() => { setShowCallModal(false); rootNav.navigate("Call", { cloneId: p.id, name: p.name, image: p.avatar }); }}
                     >
                       <Feather name="video" size={14} color={COLORS.white} />
-                      <Text style={s.callBtnText}>통화</Text>
+                      <Text style={s.callBtnText}>{t("feed.callRowAction")}</Text>
                     </TouchableOpacity>
                   </View>
                 )) : null}

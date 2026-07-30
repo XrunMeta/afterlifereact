@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 import type { MyStackParamList } from "../../navigation/types";
 import SafeView from "../../components/ui/SafeView";
 import PageHeader from "../../components/common/PageHeader";
@@ -21,22 +22,23 @@ import {
 } from "../../api/reports";
 import { COLORS, RADIUS } from "../../components/constants";
 
-const MADE_STATUS: Record<string, { label: string; color: string; bg: string }> = {
-  open: { label: "대기중", color: "#1d4ed8", bg: "#dbeafe" },
-  reviewed: { label: "처리 완료", color: "#15803d", bg: "#dcfce7" },
-  actioned: { label: "처리 완료", color: "#15803d", bg: "#dcfce7" },
-  dismissed: { label: "거절", color: "#64748b", bg: "#f1f5f9" },
+const MADE_STATUS_META: Record<string, { color: string; bg: string; labelKey: string }> = {
+  open: { color: "#1d4ed8", bg: "#dbeafe", labelKey: "reports.statusOpen" },
+  reviewed: { color: "#15803d", bg: "#dcfce7", labelKey: "reports.statusReviewed" },
+  actioned: { color: "#15803d", bg: "#dcfce7", labelKey: "reports.statusActioned" },
+  dismissed: { color: "#64748b", bg: "#f1f5f9", labelKey: "reports.statusDismissed" },
 };
 
-const TYPE_LABEL: Record<string, string> = {
-  user: "유저",
-  clone: "페르소나",
-  comment: "댓글",
+const TYPE_LABEL_KEYS: Record<string, string> = {
+  user: "reports.typeUser",
+  clone: "reports.typeClone",
+  comment: "reports.typeComment",
 };
 
 const fmt = (iso: string | null) => (iso ? iso.slice(0, 16).replace("T", " ") : "—");
 
 export default function ReportsScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const route = useRoute<RouteProp<MyStackParamList, "Reports">>();
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -77,26 +79,27 @@ export default function ReportsScreen() {
   const isSuspended = !!suspendedUntil && new Date(suspendedUntil) > new Date();
 
   const renderMade = ({ item }: { item: MyReportMade }) => {
-    const st = MADE_STATUS[item.status] ?? MADE_STATUS.open;
+    const st = MADE_STATUS_META[item.status] ?? MADE_STATUS_META.open;
+    const typeKey = TYPE_LABEL_KEYS[item.type];
     return (
       <View style={s.row}>
         <View style={{ flex: 1 }}>
-          <Text style={s.typeTag}>{TYPE_LABEL[item.type] ?? "신고"}</Text>
+          <Text style={s.typeTag}>{typeKey ? t(typeKey) : t("reports.typeFallback")}</Text>
           <Text style={s.name} numberOfLines={1}>
             {item.targetName || item.targetEmail.split("@")[0] || "—"}
           </Text>
           <Text style={s.sub} numberOfLines={2}>
-            {item.reason || "(사유 없음)"}
+            {item.reason || t("reports.emptyReason")}
           </Text>
           {item.adminMessage ? (
             <Text style={s.adminMsg} numberOfLines={3}>
-              관리자: {item.adminMessage}
+              {t("reports.adminPrefix", { message: item.adminMessage })}
             </Text>
           ) : null}
           <Text style={s.date}>{fmt(item.createdAt)}</Text>
         </View>
         <View style={[s.badge, { backgroundColor: st.bg }]}>
-          <Text style={[s.badgeText, { color: st.color }]}>{st.label}</Text>
+          <Text style={[s.badgeText, { color: st.color }]}>{t(st.labelKey)}</Text>
         </View>
       </View>
     );
@@ -106,14 +109,15 @@ export default function ReportsScreen() {
 
     const title =
       item.reportType === "comment"
-        ? `${item.cloneName ?? "페르소나"}에서 내 댓글이 신고되어 조치됐어요`
+        ? t("reports.receivedTitleComment", { clone: item.cloneName ?? t("reports.cloneFallback") })
         : item.reportType === "clone"
-        ? `페르소나 '${item.cloneName ?? "—"}'가 신고되어 조치됐어요`
-        : "회원님이 신고되어 조치됐어요";
+        ? t("reports.receivedTitleClone", { clone: item.cloneName ?? "—" })
+        : t("reports.receivedTitleUser");
+    const typeKey = TYPE_LABEL_KEYS[item.reportType];
     return (
     <View style={s.row}>
       <View style={{ flex: 1 }}>
-        <Text style={s.typeTag}>{TYPE_LABEL[item.reportType] ?? "신고"}</Text>
+        <Text style={s.typeTag}>{typeKey ? t(typeKey) : t("reports.typeFallback")}</Text>
         <Text style={s.name}>{title}</Text>
         {item.reportType === "comment" && item.content ? (
           <Text style={s.quote} numberOfLines={2}>
@@ -122,16 +126,16 @@ export default function ReportsScreen() {
         ) : null}
         {item.adminMessage || item.warningReason ? (
           <Text style={s.adminMsg} numberOfLines={3}>
-            관리자: {item.adminMessage || item.warningReason}
+            {t("reports.adminPrefix", { message: item.adminMessage || item.warningReason })}
           </Text>
         ) : null}
         <Text style={s.date}>
-          접수 {fmt(item.createdAt)}
-          {item.warnedAt ? ` · 조치 ${fmt(item.warnedAt)}` : ""}
+          {t("reports.receivedAt", { date: fmt(item.createdAt) })}
+          {item.warnedAt ? ` · ${t("reports.actionedAt", { date: fmt(item.warnedAt) })}` : ""}
         </Text>
       </View>
       <View style={[s.badge, { backgroundColor: "#fef3c7" }]}>
-        <Text style={[s.badgeText, { color: "#b45309" }]}>경고</Text>
+        <Text style={[s.badgeText, { color: "#b45309" }]}>{t("reports.warningBadge")}</Text>
       </View>
     </View>
     );
@@ -139,7 +143,7 @@ export default function ReportsScreen() {
 
   return (
     <SafeView backgroundColor={COLORS.white}>
-      <PageHeader title="신고" showBackButton onBackPress={() => navigation.goBack()} />
+      <PageHeader title={t("reports.title")} showBackButton onBackPress={() => navigation.goBack()} />
 
       <View style={s.tabBar}>
         {(["made", "received"] as const).map((tk) => (
@@ -149,7 +153,7 @@ export default function ReportsScreen() {
             onPress={() => setTab(tk)}
           >
             <Text style={[s.tabText, tab === tk && s.tabTextActive]}>
-              {tk === "made" ? "신고 관리" : "신고당한 내역"}
+              {tk === "made" ? t("reports.tabMade") : t("reports.tabReceived")}
             </Text>
           </TouchableOpacity>
         ))}
@@ -164,7 +168,7 @@ export default function ReportsScreen() {
           renderItem={renderMade}
           ListEmptyComponent={
             <View style={s.empty}>
-              <Text style={s.emptyText}>접수한 신고가 없어요</Text>
+              <Text style={s.emptyText}>{t("reports.emptyMade")}</Text>
             </View>
           }
           contentContainerStyle={made.length === 0 ? { flex: 1 } : { paddingVertical: 8 }}
@@ -176,20 +180,20 @@ export default function ReportsScreen() {
           renderItem={renderReceived}
           ListHeaderComponent={
             <View style={s.statusCard}>
-              <Text style={s.statusTitle}>내 상태</Text>
-              <Text style={s.statusLine}>받은 경고 {warningCount}회</Text>
+              <Text style={s.statusTitle}>{t("reports.statusMineTitle")}</Text>
+              <Text style={s.statusLine}>{t("reports.warningCount", { n: warningCount })}</Text>
               {isSuspended ? (
                 <Text style={[s.statusLine, { color: "#b91c1c" }]}>
-                  활동 정지 중 (~{fmt(suspendedUntil)}) — 페르소나 생성이 제한돼요
+                  {t("reports.suspendedUntil", { date: fmt(suspendedUntil) })}
                 </Text>
               ) : (
-                <Text style={[s.statusLine, { color: "#15803d" }]}>활동 정지 없음</Text>
+                <Text style={[s.statusLine, { color: "#15803d" }]}>{t("reports.notSuspended")}</Text>
               )}
             </View>
           }
           ListEmptyComponent={
             <View style={s.empty}>
-              <Text style={s.emptyText}>관리자가 조치한 신고가 없어요</Text>
+              <Text style={s.emptyText}>{t("reports.emptyReceived")}</Text>
             </View>
           }
           contentContainerStyle={{ paddingBottom: 24 }}

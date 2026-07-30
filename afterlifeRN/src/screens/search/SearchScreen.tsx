@@ -21,6 +21,7 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { CompositeNavigationProp } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import SafeView from "../../components/ui/SafeView";
 import { useAuthStore } from "../../stores/authStore";
 import {
@@ -43,14 +44,15 @@ const RECENT_STORAGE_KEY = "@search_recent";
 const RECENT_MAX = 10;
 
 type TabKey = "recommend" | "clone" | "account" | "tag";
-const TABS: Array<{ key: TabKey; label: string }> = [
-  { key: "recommend", label: "추천" },
-  { key: "clone", label: "클론" },
-  { key: "account", label: "계정" },
-  { key: "tag", label: "태그" },
+const TAB_KEYS: Array<{ key: TabKey; labelKey: string }> = [
+  { key: "recommend", labelKey: "search.tabRecommend" },
+  { key: "clone", labelKey: "search.tabClone" },
+  { key: "account", labelKey: "search.tabAccount" },
+  { key: "tag", labelKey: "search.tabTag" },
 ];
 
 export default function SearchScreen() {
+  const { t } = useTranslation();
   const nav = useNavigation<TabNav>();
   const route = useRoute();
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -424,7 +426,7 @@ export default function SearchScreen() {
             style={s.searchInput}
             value={query}
             onChangeText={setQuery}
-            placeholder="태그나 닉네임 검색"
+            placeholder={t("search.placeholder")}
             placeholderTextColor={COLORS.zinc400}
             autoCapitalize="none"
             autoCorrect={false}
@@ -446,14 +448,14 @@ export default function SearchScreen() {
         recent.length === 0 ? (
           <View style={s.empty}>
             <Feather name="clock" size={36} color={COLORS.zinc300} />
-            <Text style={s.emptyText}>최근 검색어가 없어요</Text>
+            <Text style={s.emptyText}>{t("search.emptyRecent")}</Text>
           </View>
         ) : (
           <View style={{ flex: 1 }}>
             <View style={s.recentHeader}>
-              <Text style={s.recentHeaderTitle}>최근 검색</Text>
+              <Text style={s.recentHeaderTitle}>{t("search.recentTitle")}</Text>
               <TouchableOpacity onPress={clearAllRecent} hitSlop={8}>
-                <Text style={s.recentClearText}>모두 삭제</Text>
+                <Text style={s.recentClearText}>{t("search.clearAll")}</Text>
               </TouchableOpacity>
             </View>
             <FlatList
@@ -469,7 +471,7 @@ export default function SearchScreen() {
         <>
           {}
           <View style={s.tabRow}>
-            {TABS.map((tab) => {
+            {TAB_KEYS.map((tab) => {
               const active = activeTab === tab.key;
               return (
                 <TouchableOpacity
@@ -478,7 +480,7 @@ export default function SearchScreen() {
                   onPress={() => setActiveTab(tab.key)}
                 >
                   <Text style={[s.tabLabel, active && s.tabLabelActive]}>
-                    {tab.label}
+                    {t(tab.labelKey)}
                   </Text>
                   {active && <View style={s.tabUnderline} />}
                 </TouchableOpacity>
@@ -490,7 +492,7 @@ export default function SearchScreen() {
             feedsLoading ? (
               <ActivityIndicator style={s.loader} color={COLORS.zinc500} />
             ) : filteredFeeds.length === 0 ? (
-              <EmptyResult label="검색 결과가 없어요" />
+              <EmptyResult label={t("search.noResults")} />
             ) : (
               <FlatList
                 data={filteredFeeds}
@@ -505,7 +507,7 @@ export default function SearchScreen() {
 
           {activeTab === "clone" && (
             filteredClones.length === 0 ? (
-              <EmptyResult label="일치하는 클론이 없어요" />
+              <EmptyResult label={t("search.noClones")} />
             ) : (
               <FlatList
                 data={filteredClones}
@@ -521,7 +523,7 @@ export default function SearchScreen() {
             usersLoading ? (
               <ActivityIndicator style={s.loader} color={COLORS.zinc500} />
             ) : users.length === 0 ? (
-              <EmptyResult label="일치하는 계정이 없어요" />
+              <EmptyResult label={t("search.noAccounts")} />
             ) : (
               <FlatList
                 data={users}
@@ -535,7 +537,7 @@ export default function SearchScreen() {
 
           {activeTab === "tag" && (
             filteredTags.length === 0 ? (
-              <EmptyResult label="일치하는 태그가 없어요" />
+              <EmptyResult label={t("search.noTags")} />
             ) : (
               <FlatList
                 data={filteredTags}

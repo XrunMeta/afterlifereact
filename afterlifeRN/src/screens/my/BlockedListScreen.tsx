@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 import SafeView from "../../components/ui/SafeView";
 import PageHeader from "../../components/common/PageHeader";
 import { useAuthStore } from "../../stores/authStore";
@@ -20,6 +21,7 @@ import { unblockUser } from "../../api/users";
 import { COLORS, RADIUS, SIZES } from "../../components/constants";
 
 export default function BlockedListScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const accessToken = useAuthStore((s) => s.accessToken);
   const [items, setItems] = useState<BlockedItem[]>([]);
@@ -67,7 +69,7 @@ export default function BlockedListScreen() {
   return (
     <SafeView backgroundColor={COLORS.zinc50}>
       <PageHeader
-        title="차단 목록"
+        title={t("settings.privacy.blockList")}
         showBackButton
         onBackPress={() => navigation.goBack()}
       />
@@ -78,7 +80,7 @@ export default function BlockedListScreen() {
       ) : items.length === 0 ? (
         <View style={s.center}>
           <Feather name="slash" size={32} color={COLORS.zinc300} />
-          <Text style={s.empty}>차단한 대상이 없어요</Text>
+          <Text style={s.empty}>{t("settings.privacy.blockListEmpty")}</Text>
         </View>
       ) : (
         <FlatList
@@ -107,7 +109,7 @@ export default function BlockedListScreen() {
                   <Text style={s.sub}>{sub}</Text>
                 </View>
                 <TouchableOpacity style={s.unblockBtn} onPress={() => handleUnblock(item)}>
-                  <Text style={s.unblockText}>차단 해제</Text>
+                  <Text style={s.unblockText}>{t("user.blockOff")}</Text>
                 </TouchableOpacity>
               </View>
             );
