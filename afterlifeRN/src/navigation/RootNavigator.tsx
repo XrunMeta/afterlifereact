@@ -13,7 +13,6 @@ import v_e1aa8b from "../screens/auth/EmailVerifyScreen";
 
 import v_415807 from "../screens/auth/EmailOtpLoginScreen";
 import v_040c8f from "../screens/auth/ForgotPasswordScreen";
-import v_933130 from "../screens/auth/SignupCompleteScreen";
 
 import v_19ba0e from "./MainTabNavigator";
 
@@ -37,7 +36,6 @@ function v_aebbaf() {
       {}
       <AuthStack.Screen name="EmailOtpLogin" component={v_415807} />
       <AuthStack.Screen name="ForgotPassword" component={v_040c8f} />
-      <AuthStack.Screen name="SignupComplete" component={v_933130} />
     </AuthStack.Navigator>
   );
 }
