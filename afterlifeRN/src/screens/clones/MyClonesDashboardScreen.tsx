@@ -684,7 +684,8 @@ export default function MyClonesDashboardScreen() {
             style={s.actionBtn}
             onPress={async () => {
 
-              const url = `https://afterlife.app/clone/${clone.id}`;
+              const nameParam = encodeURIComponent(clone.displayName ?? "");
+              const url = `https://www.xrun.run/clone?id=${clone.id}&name=${nameParam}`;
               const message = `${clone.displayName} 클론과 대화해보세요!\n${url}`;
               try {
                 await Share.share(
