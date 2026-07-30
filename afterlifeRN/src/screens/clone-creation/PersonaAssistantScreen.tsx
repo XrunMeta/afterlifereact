@@ -41,6 +41,8 @@ import {
 import { v_0a40d6 } from '../../mocks/cloneTypeCatalog';
 import type { v_c8af29 } from '../../types/clone';
 
+import { v_c28b95, v_41534e } from '../../lib/questionI18n';
+
 type Props = {
   navigation: v_390fcc<v_2b51a5, 'PersonaAssistant'>;
 };
@@ -307,7 +309,8 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
       }
 
       v_ae4844(`schema:${v_e86ad8}`);
-      await v_f76640(v_ab6401.label, v_3d694a.length > 0 ? v_3d694a : undefined);
+
+      await v_f76640(v_c28b95(v_ab6401.label), v_3d694a.length > 0 ? v_3d694a : undefined);
     },
     [v_6f7c85, v_fdd1bf, v_c65f5d, v_f76640, v_5795de],
   );
@@ -387,7 +390,7 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
         return;
       }
 
-      v_13cb29(v_3b402b);
+      v_13cb29(v_41534e(v_3b402b));
       const v_ba2215 = { ...v_03f138.current.schemaAnswers, [v_ab6401.key]: v_3b402b };
 
       for (const v_4936c6 of v_c3519b) {
@@ -701,7 +704,8 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
                         }}
                         activeOpacity={0.8}
                       >
-                        <Text style={v_fd5f43.quickReplyText}>{v_44aa64}</Text>
+                        {}
+                        <Text style={v_fd5f43.quickReplyText}>{v_41534e(v_44aa64)}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
