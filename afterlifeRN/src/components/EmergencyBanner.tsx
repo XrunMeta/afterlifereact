@@ -1,6 +1,6 @@
 
 
-import { v_c4deb2, v_5ab095 } from "bapkr";
+import { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import {
   v_aa7413,
   v_3094a2,
@@ -8,6 +8,7 @@ import {
   v_472849,
   v_4623af,
   v_f2c756,
+  v_6b5698,
 } from "rcmrninabrnb";
 import { v_25515d } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -29,7 +30,7 @@ const v_c8eac4 = {
 };
 const v_c0bdad = v_c8eac4[2];
 
-const v_fbb4dd = 5 * 60 * 1000; 
+const v_fbb4dd = 60 * 1000;
 
 async function v_0d4e58(v_361415): Promise<EmergencyNotice | null> {
   try {
@@ -47,10 +48,12 @@ export default function v_479450() {
   const { t: v_8d41d7 } = v_772971();
   const [v_d48273, v_404431] = v_5ab095<EmergencyNotice | null>(null);
 
+  const v_1b7402 = v_e662ae(v_6b5698.currentState);
+
   v_c4deb2(() => {
 
     let v_2008a4 = false;
-    const v_22d288 = new AbortController();
+    let v_22d288 = new AbortController();
 
     const v_9a5f22 = async () => {
       const v_f4e98d = await v_0d4e58(v_22d288.signal);
@@ -60,10 +63,22 @@ export default function v_479450() {
     void v_9a5f22();
     const v_389afb = setInterval(() => { void v_9a5f22(); }, v_fbb4dd);
 
+    const v_1ae212 = v_6b5698.addEventListener("change", (v_a448ad) => {
+      const v_ba2215 = v_1b7402.current;
+      v_1b7402.current = v_a448ad;
+      if (v_ba2215.match(/inactive|background/) && v_a448ad === "active") {
+
+        v_22d288.abort();
+        v_22d288 = new AbortController();
+        void v_9a5f22();
+      }
+    });
+
     return () => {
       v_2008a4 = true;
       v_22d288.abort();
       clearInterval(v_389afb);
+      v_1ae212.remove();
     };
   }, []);
 
