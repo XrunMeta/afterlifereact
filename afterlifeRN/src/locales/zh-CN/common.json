@@ -304,7 +304,12 @@
     "cloneLoadFailed": "无法加载克隆。",
     "reportCommentTitle": "举报评论",
     "reportCommentDesc": "要举报该评论吗？",
-    "reportAction": "举报"
+    "reportAction": "举报",
+    "followingEmptyHint": "在首页订阅您喜欢的克隆吧",
+    "summaryLabelCall": "通话",
+    "summaryLabelChat": "聊天",
+    "summaryLabelFeed": "动态",
+    "summaryLabelLearn": "探索"
   },
   "detail": {
     "notFound": "找不到克隆。",
@@ -1019,7 +1024,8 @@
         "retroPromptMessage": "同意后，通话中首次遇见的面孔将无需确认默默记住，下一次通话即可更自然地识别。可在设置中随时更改。",
         "retroPromptAgree": "同意",
         "retroPromptDecline": "拒绝"
-      }
+      },
+      "blockListEmpty": "尚无拉黑对象"
     },
     "saved": {
       "title": "已保存",
@@ -1049,7 +1055,11 @@
       "promptTitle": "请设置 XRUN PIN",
       "promptDesc": "需要在 xrun 应用中注册 6 位 XRUN PIN 才能使用支付功能。",
       "promptOpen": "去 xrun 应用设置",
-      "promptDismiss": "今天不再显示"
+      "promptDismiss": "今天不再显示",
+      "verifyOkTitle": "确认",
+      "verifyOkMsg": "密码验证成功。",
+      "verifyError": "验证过程中出现错误。",
+      "xrunNotInstalled": "尚未安装 xrun 应用。"
     }
   },
   "permissionGate": {
@@ -1124,5 +1134,85 @@
     "desc": "请从我关注的人中选择要公开的好友。",
     "empty": "还没有关注任何人",
     "confirmWithCount": "确认 ({{n}} 人)"
+  },
+  "safety": {
+    "emergency": {
+      "title": "紧急联系人与继承指定",
+      "helper": "在一段时间无活动后，将向指定联系人启动继承移交流程。经管理员审核后执行移交。",
+      "emailLabel": "邮箱",
+      "roleLabel": "身份",
+      "roleNotifyOnly": "(甲) 仅通知",
+      "rolePrimary": "(乙) 第一顺位",
+      "roleSecondary": "(丙) 第二顺位",
+      "inactivityLabel": "无活动判定期 (天)",
+      "inviteAction": "发送邀请",
+      "invalidEmail": "请检查邮箱格式。",
+      "inviteSentTitle": "邀请已发送",
+      "inviteSentDesc": "已向 {{email}} 发送紧急联系人邀请。",
+      "registeredContacts": "已登记的联系人",
+      "emptyContacts": "尚未登记任何联系人。",
+      "revoke": "撤销"
+    },
+    "inheritance": {
+      "title": "继承邀请响应",
+      "intro": "您收到了其他用户发来的紧急联系人/继承指定邀请。请确认邀请令牌后选择接受或拒绝。接受后，若满足继承移交条件，将在管理员审核下移交部分权限。",
+      "tokenLabel": "邀请令牌",
+      "tokenPlaceholder": "请输入邮件中包含的令牌",
+      "accept": "接受",
+      "decline": "拒绝",
+      "invalidToken": "请输入有效的邀请令牌。",
+      "acceptDoneTitle": "接受完成",
+      "declineDoneTitle": "拒绝完成",
+      "acceptDoneDesc": "已接受继承指定。实际移交将在管理员审核后执行。",
+      "declineDoneDesc": "已拒绝该邀请。"
+    }
+  },
+  "reports": {
+    "title": "举报",
+    "tabMade": "举报管理",
+    "tabReceived": "被举报记录",
+    "statusOpen": "待处理",
+    "statusReviewed": "处理完成",
+    "statusActioned": "处理完成",
+    "statusDismissed": "已驳回",
+    "typeUser": "用户",
+    "typeClone": "角色",
+    "typeComment": "评论",
+    "typeFallback": "举报",
+    "cloneFallback": "角色",
+    "receivedTitleComment": "{{clone}} 中我的评论因被举报已处理",
+    "receivedTitleClone": "角色 '{{clone}}' 因被举报已处理",
+    "receivedTitleUser": "您因被举报已处理",
+    "adminPrefix": "管理员：{{message}}",
+    "emptyReason": "（无理由）",
+    "emptyMade": "尚无已提交的举报",
+    "emptyReceived": "尚无管理员已处理的举报",
+    "warningBadge": "警告",
+    "statusMineTitle": "我的状态",
+    "warningCount": "共收到警告 {{n}} 次",
+    "suspendedUntil": "活动暂停中 (~{{date}}) — 角色创建受限",
+    "notSuspended": "无活动暂停",
+    "receivedAt": "受理 {{date}}",
+    "actionedAt": "处理 {{date}}"
+  },
+  "search": {
+    "placeholder": "搜索标签或昵称",
+    "tabRecommend": "推荐",
+    "tabClone": "克隆",
+    "tabAccount": "账户",
+    "tabTag": "标签",
+    "recentTitle": "最近搜索",
+    "emptyRecent": "尚无最近搜索",
+    "clearAll": "全部清除",
+    "noResults": "没有搜索结果",
+    "noClones": "没有匹配的克隆",
+    "noAccounts": "没有匹配的账户",
+    "noTags": "没有匹配的标签"
+  },
+  "assetsHint": {
+    "title": "稍等，还需要一些信息",
+    "body": "照片和语音是保证对话质量所必需的。\n如果现在没有，也可以随时在 My Clones 中添加，\n但在此之前将显示为 [等待生成] 状态。",
+    "addNow": "立即添加",
+    "later": "稍后添加"
   }
 }

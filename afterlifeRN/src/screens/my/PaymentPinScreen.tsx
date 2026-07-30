@@ -48,7 +48,7 @@ export default function PaymentPinScreen() {
         console.log("[PIN] mount status:", status);
         if (cancelled) return;
         if (!status.linked) {
-          showAlert("알림", "xrun 회원 매핑이 안 되어 있습니다.");
+          showAlert(t("common.notice"), t("my.coin.notMapped"));
           navigation.goBack();
           return;
         }
@@ -91,7 +91,7 @@ export default function PaymentPinScreen() {
     console.log("[PIN] verify clicked, len:", pin.length, "attemptsLeft:", attemptsLeft);
     if (pin.length !== PIN_LENGTH || verifying) return;
     if (!accessToken) {
-      showAlert("알림", "로그인이 필요합니다.");
+      showAlert(t("common.notice"), t("user.loginRequired"));
       return;
     }
     setVerifying(true);
@@ -105,7 +105,7 @@ export default function PaymentPinScreen() {
         return;
       }
       if (result.match) {
-        showAlert("확인", "비밀번호가 확인되었습니다.");
+        showAlert(t("settings.paymentPin.verifyOkTitle"), t("settings.paymentPin.verifyOkMsg"));
         navigation.goBack();
         return;
       }
@@ -121,9 +121,9 @@ export default function PaymentPinScreen() {
       }
     } catch (err) {
       console.log("[PIN] verify error:", err);
-      let msg = "검증 중 오류가 발생했습니다.";
+      let msg = t("settings.paymentPin.verifyError");
       if (err instanceof AuthApiError) {
-        if (err.code === "CONFLICT") msg = "xrun 회원 매핑이 안 되어 있습니다.";
+        if (err.code === "CONFLICT") msg = t("my.coin.notMapped");
         else msg = err.message;
       }
       setError(msg);
@@ -158,7 +158,7 @@ export default function PaymentPinScreen() {
       try {
         await Linking.openURL(storeUrl);
       } catch {
-        showAlert("알림", "xrun 앱이 설치되어 있지 않습니다.");
+        showAlert(t("common.notice"), t("settings.paymentPin.xrunNotInstalled"));
       }
     }
   };

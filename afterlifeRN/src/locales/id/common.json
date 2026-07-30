@@ -304,7 +304,12 @@
     "cloneLoadFailed": "Tidak dapat memuat klon.",
     "reportCommentTitle": "Laporkan Komentar",
     "reportCommentDesc": "Apakah Anda ingin melaporkan komentar ini?",
-    "reportAction": "Laporkan"
+    "reportAction": "Laporkan",
+    "followingEmptyHint": "Ikuti klon favorit Anda dari beranda",
+    "summaryLabelChat": "Obrolan",
+    "summaryLabelCall": "Panggilan",
+    "summaryLabelLearn": "Jelajahi",
+    "summaryLabelFeed": "Feed"
   },
   "detail": {
     "notFound": "Klon tidak ditemukan.",
@@ -982,6 +987,7 @@
       "title": "Privasi dan Visibilitas",
       "profileVisibility": "Visibilitas Profil",
       "blockList": "Daftar Blokir",
+      "blockListEmpty": "Tidak ada pengguna yang diblokir",
       "dataDownload": "Unduh Data Saya",
       "deleteAccount": "Hapus Akun",
       "faceConsent": {
@@ -1049,7 +1055,11 @@
       "promptTitle": "Silakan atur XRUN PIN",
       "promptDesc": "Anda perlu mendaftarkan XRUN PIN 6 digit di aplikasi xrun untuk menggunakan fitur pembayaran.",
       "promptOpen": "Atur di Aplikasi xrun",
-      "promptDismiss": "Jangan tampilkan hari ini"
+      "promptDismiss": "Jangan tampilkan hari ini",
+      "verifyOkTitle": "Berhasil",
+      "verifyOkMsg": "Kata sandi telah dikonfirmasi.",
+      "verifyError": "Terjadi kesalahan saat memverifikasi.",
+      "xrunNotInstalled": "Aplikasi xrun belum terpasang."
     }
   },
   "permissionGate": {
@@ -1124,5 +1134,85 @@
     "desc": "Pilih teman yang akan dibagikan di antara orang yang Anda ikuti.",
     "empty": "Belum ada orang yang Anda ikuti",
     "confirmWithCount": "Konfirmasi ({{n}} orang)"
+  },
+  "safety": {
+    "emergency": {
+      "title": "Kontak Darurat & Pewarisan",
+      "helper": "Jika Anda tidak aktif selama periode tertentu, proses pewarisan akan dimulai ke kontak yang ditentukan. Pengalihan dilaksanakan setelah persetujuan administrator.",
+      "emailLabel": "Email",
+      "roleLabel": "Peran",
+      "roleNotifyOnly": "(A) Hanya Notifikasi",
+      "rolePrimary": "(B) Prioritas 1",
+      "roleSecondary": "(C) Prioritas 2",
+      "inactivityLabel": "Kriteria Tidak Aktif (hari)",
+      "inviteAction": "Kirim Undangan",
+      "invalidEmail": "Silakan periksa format email.",
+      "inviteSentTitle": "Undangan Terkirim",
+      "inviteSentDesc": "Undangan kontak darurat telah dikirim ke {{email}}.",
+      "registeredContacts": "Kontak Terdaftar",
+      "emptyContacts": "Belum ada kontak yang terdaftar.",
+      "revoke": "Cabut"
+    },
+    "inheritance": {
+      "title": "Respons Undangan Pewarisan",
+      "intro": "Anda menerima undangan penunjukan kontak darurat/pewarisan dari pengguna lain. Silakan periksa token undangan lalu pilih terima atau tolak. Jika Anda menerima dan kondisi pewarisan terpenuhi, sebagian hak dapat dialihkan setelah persetujuan administrator.",
+      "tokenLabel": "Token Undangan",
+      "tokenPlaceholder": "Masukkan token yang disertakan dalam email",
+      "accept": "Terima",
+      "decline": "Tolak",
+      "invalidToken": "Token undangan yang valid diperlukan.",
+      "acceptDoneTitle": "Berhasil Diterima",
+      "declineDoneTitle": "Berhasil Ditolak",
+      "acceptDoneDesc": "Penunjukan pewarisan telah diterima. Pengalihan sebenarnya akan dilaksanakan setelah verifikasi administrator.",
+      "declineDoneDesc": "Undangan telah ditolak."
+    }
+  },
+  "reports": {
+    "title": "Laporan",
+    "tabMade": "Kelola Laporan",
+    "tabReceived": "Laporan yang Diterima",
+    "statusOpen": "Menunggu",
+    "statusReviewed": "Selesai Diproses",
+    "statusActioned": "Selesai Diproses",
+    "statusDismissed": "Ditolak",
+    "typeUser": "Pengguna",
+    "typeClone": "Persona",
+    "typeComment": "Komentar",
+    "typeFallback": "Laporan",
+    "cloneFallback": "Persona",
+    "receivedTitleComment": "Komentar Anda di {{clone}} dilaporkan dan telah ditindaklanjuti",
+    "receivedTitleClone": "Persona '{{clone}}' dilaporkan dan telah ditindaklanjuti",
+    "receivedTitleUser": "Anda dilaporkan dan telah ditindaklanjuti",
+    "adminPrefix": "Administrator: {{message}}",
+    "emptyReason": "(Tanpa alasan)",
+    "emptyMade": "Tidak ada laporan yang diajukan",
+    "emptyReceived": "Tidak ada laporan yang ditindaklanjuti administrator",
+    "warningBadge": "Peringatan",
+    "statusMineTitle": "Status Saya",
+    "warningCount": "Peringatan yang diterima {{n}} kali",
+    "suspendedUntil": "Sedang ditangguhkan (~{{date}}) — pembuatan persona dibatasi",
+    "notSuspended": "Tidak ada penangguhan",
+    "receivedAt": "Diterima {{date}}",
+    "actionedAt": "Ditindaklanjuti {{date}}"
+  },
+  "search": {
+    "placeholder": "Cari tag atau nama pengguna",
+    "tabRecommend": "Rekomendasi",
+    "tabClone": "Klon",
+    "tabAccount": "Akun",
+    "tabTag": "Tag",
+    "recentTitle": "Pencarian Terbaru",
+    "emptyRecent": "Belum ada pencarian terbaru",
+    "clearAll": "Hapus Semua",
+    "noResults": "Tidak ada hasil pencarian",
+    "noClones": "Tidak ada klon yang cocok",
+    "noAccounts": "Tidak ada akun yang cocok",
+    "noTags": "Tidak ada tag yang cocok"
+  },
+  "assetsHint": {
+    "title": "Sebentar, kami butuh informasi tambahan",
+    "body": "Foto dan suara penting untuk kualitas percakapan.\nJika belum ada sekarang, Anda dapat menambahkannya kapan saja di My Clones,\nnamun hingga saat itu akan ditampilkan dengan status [Menunggu Pembuatan].",
+    "addNow": "Tambahkan Sekarang",
+    "later": "Tambahkan Nanti"
   }
 }
