@@ -148,7 +148,6 @@ export default function LoginScreen({ navigation }: Props) {
   };
 
   const setApiAuth = useAuthStore((s) => s.setApiAuth);
-  const setApiTokens = useAuthStore((s) => s.setApiTokens);
 
   const handleSendOtp = async () => {
     const e = email.trim().toLowerCase();
@@ -206,12 +205,10 @@ export default function LoginScreen({ navigation }: Props) {
             platform: Platform.OS === "ios" ? "ios" : "android",
           });
           const meRes = await getMe(res.accessToken);
-          await setApiAuth(res.accessToken, meRes.user, { persist: autoLogin });
-
-          const googleRefreshToken = (res as { refreshToken?: string }).refreshToken;
-          if (googleRefreshToken) {
-            await setApiTokens(res.accessToken, googleRefreshToken, { persist: autoLogin });
-          }
+          await setApiAuth(res.accessToken, meRes.user, {
+            persist: autoLogin,
+            refreshToken: res.refreshToken ?? null,
+          });
           if (autoLogin) {
             await AsyncStorage.setItem(AUTO_LOGIN_PREF_KEY, "1");
             await AsyncStorage.setItem(LAST_EMAIL_KEY, meRes.user.email);
@@ -268,11 +265,10 @@ export default function LoginScreen({ navigation }: Props) {
           platform: "ios",
         });
         const meRes = await getMe(res.accessToken);
-        await setApiAuth(res.accessToken, meRes.user, { persist: autoLogin });
-        const appleRefreshToken = (res as { refreshToken?: string }).refreshToken;
-        if (appleRefreshToken) {
-          await setApiTokens(res.accessToken, appleRefreshToken, { persist: autoLogin });
-        }
+        await setApiAuth(res.accessToken, meRes.user, {
+          persist: autoLogin,
+          refreshToken: res.refreshToken ?? null,
+        });
         if (autoLogin) {
           await AsyncStorage.setItem(AUTO_LOGIN_PREF_KEY, "1");
           await AsyncStorage.setItem(LAST_EMAIL_KEY, meRes.user.email);

@@ -323,7 +323,11 @@ export default function SignupScreen({ navigation, route }: Props) {
           console.warn("[AUTH/signup] saveFaceBiometricConsent (google) failed:", err);
         }
 
-        void activateAuthSession({ accessToken: res.accessToken, persist: true });
+        void activateAuthSession({
+          accessToken: res.accessToken,
+          refreshToken: res.refreshToken ?? null,
+          persist: true,
+        });
         return;
       }
       await requestEmailCode(email);

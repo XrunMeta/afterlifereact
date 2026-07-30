@@ -42,11 +42,11 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
   const [resending, setResending] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
-  const goToComplete = (accessToken: string) => {
-    void activateAuthSession({ accessToken, persist: true });
+  const goToComplete = (accessToken: string, refreshToken?: string | null) => {
+    void activateAuthSession({ accessToken, refreshToken, persist: true });
   };
 
-  const promptGoogleLink = (accessToken: string) => {
+  const promptGoogleLink = (accessToken: string, refreshToken?: string | null) => {
     showAlert(
       t("auth.emailVerify.googleLinkTitle", { defaultValue: "구글 계정 연동" }),
       t("auth.emailVerify.googleLinkDesc", {
@@ -57,20 +57,20 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
         {
           text: t("auth.emailVerify.later", { defaultValue: "나중에" }),
           style: "cancel",
-          onPress: () => goToComplete(accessToken),
+          onPress: () => goToComplete(accessToken, refreshToken),
         },
         {
           text: t("auth.emailVerify.linkNow", { defaultValue: "연동하기" }),
-          onPress: () => void tryGoogleLink(accessToken),
+          onPress: () => void tryGoogleLink(accessToken, refreshToken),
         },
       ],
     );
   };
 
-  const tryGoogleLink = async (accessToken: string) => {
+  const tryGoogleLink = async (accessToken: string, refreshToken?: string | null) => {
 
     if (!ensureGoogleConfigured()) {
-      goToComplete(accessToken);
+      goToComplete(accessToken, refreshToken);
       return;
     }
     try {
@@ -87,7 +87,7 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
       const idToken = userInfo?.idToken ?? userInfo?.data?.idToken;
       if (!idToken) {
         console.warn("[google-link] no idToken");
-        goToComplete(accessToken);
+        goToComplete(accessToken, refreshToken);
         return;
       }
 
@@ -101,7 +101,7 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
             defaultValue:
               "가입 시 입력하신 이메일과 구글 로그인 이메일이 다릅니다. 연동 없이 계속 진행합니다.",
           }),
-          [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: () => goToComplete(accessToken) }],
+          [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: () => goToComplete(accessToken, refreshToken) }],
         );
         return;
       }
@@ -112,15 +112,15 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
         deviceId,
         platform: Platform.OS === "ios" ? "ios" : "android",
       });
-      goToComplete(gRes.accessToken);
+      goToComplete(gRes.accessToken, gRes.refreshToken ?? null);
     } catch (err: unknown) {
       const errAny = err as { code?: string };
       if (errAny?.code === statusCodes.SIGN_IN_CANCELLED) {
-        goToComplete(accessToken);
+        goToComplete(accessToken, refreshToken);
         return;
       }
       console.warn("[google-link] failed:", err);
-      goToComplete(accessToken);
+      goToComplete(accessToken, refreshToken);
     }
   };
 
@@ -200,9 +200,9 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
         useAuthConfigStore.getState().googleEnabled === true &&
         params.email.toLowerCase().endsWith("@gmail.com")
       ) {
-        promptGoogleLink(res.accessToken);
+        promptGoogleLink(res.accessToken, res.refreshToken ?? null);
       } else {
-        goToComplete(res.accessToken);
+        goToComplete(res.accessToken, res.refreshToken ?? null);
       }
     } catch (err) {
       let msg = t("auth.signup.signupFailed");
