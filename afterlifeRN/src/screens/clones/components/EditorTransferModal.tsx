@@ -1,5 +1,6 @@
 import v_a3453e, { v_5ab095 } from 'bapkr';
 import { v_aa7413, v_3094a2, v_19b633, v_4623af, v_472849, v_9cabcb } from 'rcmrninabrnb';
+import { v_772971 } from 'jmpfvteuuztnp';
 
 interface Coowner { userId: number; displayName: string; }
 interface Props {
@@ -11,11 +12,12 @@ interface Props {
 
 export function v_9b783f({ visible: v_cf55be, coowners: v_62c8fb, onClose: v_0890f8, onSubmit: v_3bfe4c }: Props) {
   const [v_587413, v_2122dd] = v_5ab095<number | null>(null);
+  const { t: v_8d41d7 } = v_772971();
   return (
     <Modal visible={v_cf55be} transparent animationType="fade" onRequestClose={v_0890f8}>
       <View style={v_d81136.wrap}>
         <View style={v_d81136.card}>
-          <Text style={v_d81136.title}>편집 권한 이전</Text>
+          <Text style={v_d81136.title}>{v_8d41d7('edit.transferEditor', { defaultValue: '편집 권한 이전' })}</Text>
           <FlatList
             data={v_62c8fb}
             keyExtractor={(v_3f4e2e) => String(v_3f4e2e.userId)}
@@ -30,13 +32,13 @@ export function v_9b783f({ visible: v_cf55be, coowners: v_62c8fb, onClose: v_089
             )}
           />
           <View style={v_d81136.actions}>
-            <TouchableOpacity onPress={v_0890f8}><Text>취소</Text></TouchableOpacity>
+            <TouchableOpacity onPress={v_0890f8}><Text>{v_8d41d7('common.cancel', { defaultValue: '취소' })}</Text></TouchableOpacity>
             <TouchableOpacity
               accessibilityLabel="transfer-submit"
               disabled={v_587413 == null}
               onPress={() => v_587413 != null && v_3bfe4c(v_587413)}
             >
-              <Text style={v_587413 == null ? v_d81136.disabled : v_d81136.cta}>요청 보내기</Text>
+              <Text style={v_587413 == null ? v_d81136.disabled : v_d81136.cta}>{v_8d41d7('edit.transferSubmit', { defaultValue: '요청 보내기' })}</Text>
             </TouchableOpacity>
           </View>
         </View>

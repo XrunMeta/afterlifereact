@@ -29,7 +29,8 @@
     "sec": "秒",
     "durationSec": "{{s}}秒",
     "durationMin": "{{m}}分",
-    "durationMinSec": "{{m}}分{{s}}秒"
+    "durationMinSec": "{{m}}分{{s}}秒",
+    "expertBadge": "エキスパート"
   },
   "tabs": {
     "home": "ホーム",
@@ -353,7 +354,14 @@
     "memoryLabel": "最も鮮明な思い出",
     "memoryPlaceholder": "最も幸せそうに笑っていたあの瞬間...",
     "learnCtaTitle": "学習する →",
-    "learnCtaDesc": "管理者の質問に答えて、クローンに知識を積んでください"
+    "learnCtaDesc": "管理者の質問に答えて、クローンに知識を積んでください",
+    "transferSubmit": "リクエストを送信",
+    "l1SectionTitle": "基本性格 (L1)",
+    "l1NotesLabel": "自由メモ",
+    "l2SectionTitle": "詳細記憶 (L2) — 自動学習",
+    "l2MemoryCount": "{{n}}件の記憶が蓄積されています。",
+    "l2LastUpdated": "最終更新: {{date}}",
+    "l2Hint": "L2 は直接編集できず、会話・やり取りを通じて自動的に再学習されます。"
   },
   "dashboard": {
     "title": "My Page",
@@ -993,6 +1001,18 @@
       "blockListEmpty": "ブロックした相手はいません",
       "dataDownload": "データをダウンロード",
       "deleteAccount": "アカウント削除",
+      "tabUser": "ユーザー",
+      "tabClone": "ペルソナ",
+      "tabWithCount": "{{label}} ({{n}})",
+      "emptyUser": "ブロックしたユーザーはいません",
+      "emptyClone": "ブロックしたペルソナはいません",
+      "emptyUserHint": "ユーザープロフィールからブロックできます",
+      "emptyCloneHint": "ペルソナメニューからブロックできます",
+      "unblockBtn": "ブロック解除",
+      "unblockConfirmTitle": "ブロック解除",
+      "unblockConfirmDesc": "{{name}} のブロックを解除しますか？",
+      "unblockConfirmOk": "解除",
+      "unblockFailed": "解除に失敗しました。",
       "faceConsent": {
         "sectionTitle": "顔検出同意",
         "noConsent": "同意履歴なし",
@@ -1170,8 +1190,17 @@
       "declineDoneDesc": "招待を拒否しました。"
     }
   },
+  "transactions": {
+    "title": "取引履歴",
+    "empty": "まだ取引履歴はありません",
+    "cloneFallback": "クローン",
+    "giftSentLabel": "{{clone}}に {{gift}} を贈る",
+    "giftReceivedLabel": "{{clone}}から {{gift}} ギフトの収益"
+  },
   "reports": {
     "title": "通報",
+    "acceptedAlertTitle": "通報を受け付けました",
+    "acceptedAlertDesc": "通報内容をご確認ください。",
     "tabMade": "通報管理",
     "tabReceived": "通報された履歴",
     "statusOpen": "処理待ち",

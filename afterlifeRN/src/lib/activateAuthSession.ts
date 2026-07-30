@@ -3,6 +3,7 @@
 import { v_889fad } from "../stores/dialogStore";
 import { v_7ef860, v_84a859 } from "../api/auth";
 import { v_1ed7d9 } from "../stores/authStore";
+import v_9c213b from "../i18n";
 
 interface ActivateOpts {
   accessToken: string;
@@ -25,7 +26,7 @@ export async function v_c65c18(v_328259): Promise<boolean> {
   } catch (v_49263d) {
     console.warn("[activateAuthSession] failed:", v_49263d);
     const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : String(v_49263d);
-    v_889fad(v_328259.errorTitle ?? "오류", v_badeaf);
+    v_889fad(v_328259.errorTitle ?? v_9c213b.t("common.error", { defaultValue: "오류" }), v_badeaf);
     return false;
   }
 }
