@@ -54,6 +54,7 @@ import { COLORS } from "../../components/constants";
 type Props = NativeStackScreenProps<RootStackParamList, "CloneFeed">;
 
 export default function CloneFeedScreen(props: Props) {
+  const { t } = useTranslation();
   const routeFeed = props.route.params?.feed;
   const routeCloneId = props.route.params?.cloneId;
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -95,7 +96,7 @@ export default function CloneFeedScreen(props: Props) {
   if (!feed) {
     return (
       <View style={{ flex: 1, backgroundColor: COLORS.zinc950, alignItems: 'center', justifyContent: 'center' }}>
-        {fetchErr && <Text style={{ color: COLORS.zinc400, fontSize: 14 }}>클론을 불러올 수 없어요.</Text>}
+        {fetchErr && <Text style={{ color: COLORS.zinc400, fontSize: 14 }}>{t("feed.cloneLoadFailed", { defaultValue: "클론을 불러올 수 없어요." })}</Text>}
       </View>
     );
   }
@@ -234,7 +235,7 @@ function CloneFeedInner({ route, navigation, feed }: InnerProps) {
       const nameParam = encodeURIComponent(item.author);
       const url = `https://www.xrun.run/clone?id=${item.cloneId}&name=${nameParam}`;
       await Share.share({
-        message: `${item.author} 클론과 만나보세요!\n${url}`,
+        message: t("home.shareMessage", { name: item.author, url }),
         title: item.author,
       });
     } catch (err) {
@@ -388,22 +389,26 @@ function CloneFeedInner({ route, navigation, feed }: InnerProps) {
   const reportComment = (commentId: number, commentFeedId?: number) => {
     const fid = realFeedId > 0 ? realFeedId : commentFeedId ?? 0;
     if (!fid || !accessToken) return;
-    showAlert("댓글 신고", "이 댓글을 신고할까요?", [
-      { text: "취소", style: "cancel" },
-      {
-        text: "신고",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await reportFeedComment(accessToken, fid, commentId);
-            setToastMessage("댓글을 신고했어요");
-          } catch (err) {
-            console.warn("[CloneFeed] reportFeedComment failed:", err);
-            setToastMessage("신고에 실패했어요");
-          }
+    showAlert(
+      t("feed.reportCommentTitle", { defaultValue: "댓글 신고" }),
+      t("feed.reportCommentDesc", { defaultValue: "이 댓글을 신고할까요?" }),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("feed.reportAction", { defaultValue: "신고" }),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await reportFeedComment(accessToken, fid, commentId);
+              setToastMessage(t("home.toasts.commentReported"));
+            } catch (err) {
+              console.warn("[CloneFeed] reportFeedComment failed:", err);
+              setToastMessage(t("home.toasts.reportFailed"));
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const deleteReply = (parentId: number, replyId: number) => {
@@ -592,7 +597,7 @@ function CloneFeedInner({ route, navigation, feed }: InnerProps) {
                             })
                           }
                         >
-                          <Text style={styles.replyActionText}>답글 달기</Text>
+                          <Text style={styles.replyActionText}>{t("home.replyAction")}</Text>
                         </TouchableOpacity>
                         {(c.repliesCount ?? 0) > 0 && (
                           <TouchableOpacity
@@ -618,8 +623,8 @@ function CloneFeedInner({ route, navigation, feed }: InnerProps) {
                           >
                             <Text style={styles.replyToggleText}>
                               {showReplies
-                                ? "── 답글 숨기기"
-                                : `── 답글 ${c.repliesCount}개 더 보기`}
+                                ? t("home.repliesHide")
+                                : t("home.repliesMore", { n: c.repliesCount })}
                             </Text>
                           </TouchableOpacity>
                         )}
@@ -715,7 +720,7 @@ function CloneFeedInner({ route, navigation, feed }: InnerProps) {
             </ScrollView>
             {replyingTo && (
               <View style={styles.replyingBanner}>
-                <Text style={styles.replyingText}>@{replyingTo.userName} 에게 답글</Text>
+                <Text style={styles.replyingText}>{t("home.replyTo", { user: replyingTo.userName })}</Text>
                 <TouchableOpacity onPress={() => setReplyingTo(null)}>
                   <Feather name="x" size={14} color={COLORS.zinc500} />
                 </TouchableOpacity>
@@ -727,7 +732,7 @@ function CloneFeedInner({ route, navigation, feed }: InnerProps) {
                 style={styles.commentInput}
                 value={commentText}
                 onChangeText={setCommentText}
-                placeholder={replyingTo ? "답글 입력..." : t("feed.commentPlaceholder")}
+                placeholder={replyingTo ? t("home.replyPlaceholder") : t("feed.commentPlaceholder")}
                 placeholderTextColor={COLORS.zinc400}
               />
               <TouchableOpacity
@@ -772,7 +777,7 @@ function CloneFeedInner({ route, navigation, feed }: InnerProps) {
                   }}
                 >
                   <Feather name="user" size={20} color="#0f172a" />
-                  <Text style={styles.moreItemText}>유저 정보보기</Text>
+                  <Text style={styles.moreItemText}>{t("home.more.viewUser")}</Text>
                 </TouchableOpacity>
                 )}
                 <TouchableOpacity
@@ -783,7 +788,7 @@ function CloneFeedInner({ route, navigation, feed }: InnerProps) {
                   }}
                 >
                   <Feather name="flag" size={20} color="#ef4444" />
-                  <Text style={[styles.moreItemText, { color: "#ef4444" }]}>신고하기</Text>
+                  <Text style={[styles.moreItemText, { color: "#ef4444" }]}>{t("home.more.report")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.moreItem, { borderBottomWidth: 0 }]}
@@ -792,16 +797,16 @@ function CloneFeedInner({ route, navigation, feed }: InnerProps) {
                     if (!accessToken) return;
                     try {
                       await blockClone(accessToken, item.cloneId);
-                      setToastMessage("이 클론이 차단됐어요");
+                      setToastMessage(t("home.toasts.cloneBlocked"));
                       navigation.goBack();
                     } catch (err) {
                       console.warn("[CloneFeed] block failed:", err);
-                      setToastMessage("차단에 실패했어요");
+                      setToastMessage(t("home.toasts.blockFailed"));
                     }
                   }}
                 >
                   <Feather name="slash" size={20} color="#0f172a" />
-                  <Text style={styles.moreItemText}>차단하기</Text>
+                  <Text style={styles.moreItemText}>{t("home.more.block")}</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -820,11 +825,11 @@ function CloneFeedInner({ route, navigation, feed }: InnerProps) {
           if (!target || !accessToken) return;
           try {
             await reportClone(accessToken, target.cloneId, reason || undefined);
-            setToastMessage("신고가 접수됐어요. 이 클론은 차단됐어요");
+            setToastMessage(t("home.toasts.reportSuccessBlocked"));
             navigation.goBack();
           } catch (err) {
             console.warn("[CloneFeed] report failed:", err);
-            setToastMessage("신고에 실패했어요");
+            setToastMessage(t("home.toasts.reportFailed"));
           }
         }}
       />

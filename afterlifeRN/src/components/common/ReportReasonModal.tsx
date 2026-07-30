@@ -15,6 +15,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS, RADIUS } from "../constants";
 
 interface Props {
@@ -32,6 +33,7 @@ export default function ReportReasonModal({
   onConfirm,
   onCancel,
 }: Props) {
+  const { t } = useTranslation();
   const [reason, setReason] = useState("");
 
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -89,16 +91,22 @@ export default function ReportReasonModal({
             <View style={styles.iconWrap}>
               <Feather name="flag" size={24} color="#ef4444" />
             </View>
-            <Text style={styles.title}>신고하기</Text>
+            <Text style={styles.title}>{t("report.title", { defaultValue: "신고하기" })}</Text>
             <Text style={styles.desc}>
-              {targetName ? `'${targetName}' ` : ""}클론을 신고하는 사유를{"\n"}
-              간단히 입력해주세요. (선택)
+              {targetName
+                ? t("report.descWithName", {
+                    name: targetName,
+                    defaultValue: "'{{name}}' 클론을 신고하는 사유를\n간단히 입력해주세요. (선택)",
+                  })
+                : t("report.descNoName", {
+                    defaultValue: "클론을 신고하는 사유를\n간단히 입력해주세요. (선택)",
+                  })}
             </Text>
             <TextInput
               style={styles.input}
               value={reason}
               onChangeText={(v) => setReason(v.slice(0, MAX_LEN))}
-              placeholder="예: 부적절한 내용, 사칭, 스팸 등"
+              placeholder={t("report.placeholder", { defaultValue: "예: 부적절한 내용, 사칭, 스팸 등" })}
               placeholderTextColor={COLORS.zinc400}
               multiline
               numberOfLines={4}
@@ -110,10 +118,10 @@ export default function ReportReasonModal({
             </Text>
             <View style={styles.btns}>
               <TouchableOpacity style={styles.cancel} onPress={onCancel}>
-                <Text style={styles.cancelText}>취소</Text>
+                <Text style={styles.cancelText}>{t("common.cancel", { defaultValue: "취소" })}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.confirm} onPress={submit}>
-                <Text style={styles.confirmText}>신고하기</Text>
+                <Text style={styles.confirmText}>{t("report.submit", { defaultValue: "신고하기" })}</Text>
               </TouchableOpacity>
             </View>
           </Pressable>

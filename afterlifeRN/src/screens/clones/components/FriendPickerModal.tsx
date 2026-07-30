@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../stores/authStore";
 import { listUserFollowing, type UserFollowItem } from "../../../api/users";
 import Button from "../../../components/ui/Button";
@@ -35,6 +36,7 @@ export default function FriendPickerModal({
   onClose,
   onConfirm,
 }: Props) {
+  const { t } = useTranslation();
   const accessToken = useAuthStore((s) => s.accessToken);
   const myUserId = useAuthStore((s) => s.apiUser?.id ?? s.user?.id ?? null);
   const insets = useSafeAreaInsets();
@@ -85,9 +87,13 @@ export default function FriendPickerModal({
           style={[s.box, { paddingBottom: bottomPad }]}
         >
           <View style={s.handle} />
-          <Text style={s.title}>특정 친구에게만 공개</Text>
+          <Text style={s.title}>
+            {t("friendPicker.title", { defaultValue: "특정 친구에게만 공개" })}
+          </Text>
           <Text style={s.desc}>
-            내가 팔로우 중인 사람 중에 공개할 친구를 선택하세요.
+            {t("friendPicker.desc", {
+              defaultValue: "내가 팔로우 중인 사람 중에 공개할 친구를 선택하세요.",
+            })}
           </Text>
 
           {loading ? (
@@ -95,7 +101,9 @@ export default function FriendPickerModal({
           ) : following.length === 0 ? (
             <View style={s.empty}>
               <Feather name="users" size={32} color={COLORS.zinc300} />
-              <Text style={s.emptyText}>아직 팔로우 중인 사람이 없어요</Text>
+              <Text style={s.emptyText}>
+                {t("friendPicker.empty", { defaultValue: "아직 팔로우 중인 사람이 없어요" })}
+              </Text>
             </View>
           ) : (
             <ScrollView style={s.list} keyboardShouldPersistTaps="handled">
@@ -133,9 +141,17 @@ export default function FriendPickerModal({
           )}
 
           <View style={s.actions}>
-            <Button title="취소" variant="ghost" onPress={onClose} style={{ flex: 1 }} />
             <Button
-              title={`확인 (${selected.size}명)`}
+              title={t("common.cancel", { defaultValue: "취소" })}
+              variant="ghost"
+              onPress={onClose}
+              style={{ flex: 1 }}
+            />
+            <Button
+              title={t("friendPicker.confirmWithCount", {
+                n: selected.size,
+                defaultValue: "확인 ({{n}}명)",
+              })}
               variant="primary"
               onPress={() => onConfirm(Array.from(selected))}
               style={{ flex: 1 }}

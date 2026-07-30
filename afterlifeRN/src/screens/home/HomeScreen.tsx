@@ -288,12 +288,12 @@ export default function HomeScreen() {
   const deleteComment = (commentId: number) => {
     if (commentFeedId == null || commentFeedId < 0 || !accessToken) return;
     showAlert(
-      "댓글 삭제",
-      "이 댓글을 삭제하시겠습니까?",
+      t("home.commentDeleteTitle", { defaultValue: "댓글 삭제" }),
+      t("home.commentDeleteDesc", { defaultValue: "이 댓글을 삭제하시겠습니까?" }),
       [
-        { text: "취소", style: "cancel" },
+        { text: t("common.cancel", { defaultValue: "취소" }), style: "cancel" },
         {
-          text: "삭제",
+          text: t("common.delete", { defaultValue: "삭제" }),
           style: "destructive",
           onPress: async () => {
             try {
@@ -383,7 +383,11 @@ export default function HomeScreen() {
               const nameParam = encodeURIComponent(item.author);
               const url = `https://www.xrun.run/clone?id=${item.cloneId}&name=${nameParam}`;
               await Share.share({
-                message: `${item.author} 클론과 만나보세요!\n${url}`,
+                message: t("home.shareMessage", {
+                  name: item.author,
+                  url,
+                  defaultValue: `${item.author} 클론과 만나보세요!\n${url}`,
+                }),
                 title: item.author,
               });
             } catch (err) {
@@ -414,10 +418,14 @@ export default function HomeScreen() {
           <View style={styles.emptyIconWrap}>
             <Feather name="users" size={36} color="rgba(255,255,255,0.7)" />
           </View>
-          <Text style={styles.emptyTitle}>아직 만나볼 클론이 없어요</Text>
+          <Text style={styles.emptyTitle}>
+            {t("home.emptyTitle", { defaultValue: "아직 만나볼 클론이 없어요" })}
+          </Text>
           <Text style={styles.emptyDesc}>
-            첫 클론의 주인공이 되어보시는 건 어때요?{"\n"}
-            나만의 클론을 만들어 시작해 보세요
+            {t("home.emptyDesc", {
+              defaultValue:
+                "첫 클론의 주인공이 되어보시는 건 어때요?\n나만의 클론을 만들어 시작해 보세요",
+            })}
           </Text>
           <TouchableOpacity
             style={styles.emptyBtn}
@@ -433,7 +441,9 @@ export default function HomeScreen() {
             }
           >
             <Feather name="plus" size={18} color={COLORS.zinc950} />
-            <Text style={styles.emptyBtnText}>클론 만들기</Text>
+            <Text style={styles.emptyBtnText}>
+              {t("home.createClone", { defaultValue: "클론 만들기" })}
+            </Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -530,7 +540,9 @@ export default function HomeScreen() {
                             })
                           }
                         >
-                          <Text style={styles.replyActionText}>답글 달기</Text>
+                          <Text style={styles.replyActionText}>
+                            {t("home.replyAction", { defaultValue: "답글 달기" })}
+                          </Text>
                         </TouchableOpacity>
                         {(c.repliesCount ?? 0) > 0 && (
                           <TouchableOpacity
@@ -555,8 +567,11 @@ export default function HomeScreen() {
                           >
                             <Text style={styles.replyToggleText}>
                               {showReplies
-                                ? "── 답글 숨기기"
-                                : `── 답글 ${c.repliesCount}개 더 보기`}
+                                ? t("home.repliesHide", { defaultValue: "── 답글 숨기기" })
+                                : t("home.repliesMore", {
+                                    n: c.repliesCount,
+                                    defaultValue: `── 답글 ${c.repliesCount}개 더 보기`,
+                                  })}
                             </Text>
                           </TouchableOpacity>
                         )}
@@ -637,7 +652,10 @@ export default function HomeScreen() {
             {replyingTo && (
               <View style={styles.replyingBanner}>
                 <Text style={styles.replyingText}>
-                  @{replyingTo.userName} 에게 답글
+                  {t("home.replyTo", {
+                    user: replyingTo.userName,
+                    defaultValue: `@${replyingTo.userName} 에게 답글`,
+                  })}
                 </Text>
                 <TouchableOpacity onPress={() => setReplyingTo(null)}>
                   <Feather name="x" size={14} color={COLORS.zinc500} />
@@ -649,7 +667,11 @@ export default function HomeScreen() {
                 style={styles.commentInput}
                 value={commentText}
                 onChangeText={setCommentText}
-                placeholder={replyingTo ? "답글 입력..." : t("feed.commentPlaceholder")}
+                placeholder={
+                  replyingTo
+                    ? t("home.replyPlaceholder", { defaultValue: "답글 입력..." })
+                    : t("feed.commentPlaceholder")
+                }
                 placeholderTextColor={COLORS.zinc400}
               />
               <TouchableOpacity
@@ -709,7 +731,9 @@ export default function HomeScreen() {
                   }}
                 >
                   <Feather name="edit-3" size={20} color={COLORS.zinc900} />
-                  <Text style={styles.moreItemText}>수정하기</Text>
+                  <Text style={styles.moreItemText}>
+                    {t("home.more.edit", { defaultValue: "수정하기" })}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.moreItem}
@@ -730,11 +754,17 @@ export default function HomeScreen() {
                         },
                       }),
                     );
-                    setToastMessage("클론 편집 → 공개 범위에서 변경하세요");
+                    setToastMessage(
+                      t("home.toasts.editVisibilityHint", {
+                        defaultValue: "클론 편집 → 공개 범위에서 변경하세요",
+                      }),
+                    );
                   }}
                 >
                   <Feather name="eye" size={20} color={COLORS.zinc900} />
-                  <Text style={styles.moreItemText}>공개 범위 수정</Text>
+                  <Text style={styles.moreItemText}>
+                    {t("home.more.editVisibility", { defaultValue: "공개 범위 수정" })}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.moreItem, { borderBottomWidth: 0 }]}
@@ -744,18 +774,25 @@ export default function HomeScreen() {
                     if (!target || !accessToken) return;
 
                     showAlert(
-                      "클론 삭제",
-                      `'${target.author}' 클론을 삭제할까요?\n복구 불가합니다.`,
+                      t("home.deleteTitle", { defaultValue: "클론 삭제" }),
+                      t("home.deleteDesc", {
+                        name: target.author,
+                        defaultValue: `'${target.author}' 클론을 삭제할까요?\n복구 불가합니다.`,
+                      }),
                       [
-                        { text: "취소", style: "cancel" },
+                        { text: t("common.cancel", { defaultValue: "취소" }), style: "cancel" },
                         {
-                          text: "삭제",
+                          text: t("common.delete", { defaultValue: "삭제" }),
                           style: "destructive",
                           onPress: async () => {
                             try {
                               const { deleteClone } = await import("../../api/clones");
                               await deleteClone(accessToken, target.cloneId);
-                              setToastMessage("클론이 삭제됐어요");
+                              setToastMessage(
+                                t("home.toasts.cloneDeleted", {
+                                  defaultValue: "클론이 삭제됐어요",
+                                }),
+                              );
                               const cur = useFeedStore.getState().apiFeeds;
                               if (cur) {
                                 useFeedStore.setState({
@@ -765,7 +802,11 @@ export default function HomeScreen() {
                               void loadDiscover();
                             } catch (err) {
                               console.warn("[Delete clone] failed:", err);
-                              setToastMessage("삭제에 실패했어요");
+                              setToastMessage(
+                                t("home.toasts.deleteFailed", {
+                                  defaultValue: "삭제에 실패했어요",
+                                }),
+                              );
                             }
                           },
                         },
@@ -774,7 +815,9 @@ export default function HomeScreen() {
                   }}
                 >
                   <Feather name="trash-2" size={20} color="#ef4444" />
-                  <Text style={[styles.moreItemText, { color: "#ef4444" }]}>삭제</Text>
+                  <Text style={[styles.moreItemText, { color: "#ef4444" }]}>
+                    {t("home.more.delete", { defaultValue: "삭제" })}
+                  </Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -791,7 +834,9 @@ export default function HomeScreen() {
                     }}
                   >
                     <Feather name="user" size={20} color={COLORS.zinc900} />
-                    <Text style={styles.moreItemText}>유저 정보보기</Text>
+                    <Text style={styles.moreItemText}>
+                      {t("home.more.viewUser", { defaultValue: "유저 정보보기" })}
+                    </Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
@@ -805,7 +850,9 @@ export default function HomeScreen() {
                   }}
                 >
                   <Feather name="flag" size={20} color="#ef4444" />
-                  <Text style={[styles.moreItemText, { color: "#ef4444" }]}>신고하기</Text>
+                  <Text style={[styles.moreItemText, { color: "#ef4444" }]}>
+                    {t("home.more.report", { defaultValue: "신고하기" })}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.moreItem, { borderBottomWidth: 0 }]}
@@ -815,7 +862,11 @@ export default function HomeScreen() {
                     if (!target || !accessToken) return;
                     try {
                       await blockClone(accessToken, target.cloneId);
-                      setToastMessage("이 클론이 차단됐어요");
+                      setToastMessage(
+                        t("home.toasts.cloneBlocked", {
+                          defaultValue: "이 클론이 차단됐어요",
+                        }),
+                      );
                       const cur = useFeedStore.getState().apiFeeds;
                       if (cur) {
                         useFeedStore.setState({
@@ -826,12 +877,18 @@ export default function HomeScreen() {
                       void loadDiscover();
                     } catch (err) {
                       console.warn(`[BLOCK] FAILED cloneId=${target.cloneId}`, err);
-                      setToastMessage("차단에 실패했어요");
+                      setToastMessage(
+                        t("home.toasts.blockFailed", {
+                          defaultValue: "차단에 실패했어요",
+                        }),
+                      );
                     }
                   }}
                 >
                   <Feather name="slash" size={20} color={COLORS.zinc900} />
-                  <Text style={styles.moreItemText}>차단하기</Text>
+                  <Text style={styles.moreItemText}>
+                    {t("home.more.block", { defaultValue: "차단하기" })}
+                  </Text>
                 </TouchableOpacity>
               </>
             )}
@@ -857,10 +914,18 @@ export default function HomeScreen() {
               target.commentId,
               reason || undefined,
             );
-            setToastMessage("댓글이 신고됐어요");
+            setToastMessage(
+              t("home.toasts.commentReported", {
+                defaultValue: "댓글이 신고됐어요",
+              }),
+            );
           } catch (err) {
             console.warn(`[REPORT-COMMENT] FAILED commentId=${target.commentId}`, err);
-            setToastMessage("신고에 실패했어요");
+            setToastMessage(
+              t("home.toasts.reportFailed", {
+                defaultValue: "신고에 실패했어요",
+              }),
+            );
           }
         }}
       />
@@ -878,7 +943,11 @@ export default function HomeScreen() {
           try {
             const { reportClone } = await import("../../api/clones");
             await reportClone(accessToken, target.cloneId, reason || undefined);
-            setToastMessage("신고가 접수됐어요. 이 클론은 차단됐어요");
+            setToastMessage(
+              t("home.toasts.reportSuccessBlocked", {
+                defaultValue: "신고가 접수됐어요. 이 클론은 차단됐어요",
+              }),
+            );
             const cur = useFeedStore.getState().apiFeeds;
             if (cur) {
               useFeedStore.setState({
@@ -889,7 +958,11 @@ export default function HomeScreen() {
             void loadDiscover();
           } catch (err) {
             console.warn(`[REPORT] FAILED cloneId=${target.cloneId}`, err);
-            setToastMessage("신고에 실패했어요");
+            setToastMessage(
+              t("home.toasts.reportFailed", {
+                defaultValue: "신고에 실패했어요",
+              }),
+            );
           }
         }}
       />

@@ -130,15 +130,30 @@ export default function EditProfileScreen() {
     const ageNum = ageRangeToAge(ageRange);
 
     if (trimmedName.length === 0) {
-      showAlert("알림", "이름은 비워둘 수 없습니다.");
+      showAlert(
+        t("common.notice", { defaultValue: "알림" }),
+        t("settings.editProfile.nameRequired", {
+          defaultValue: "이름은 비워둘 수 없습니다.",
+        }),
+      );
       return;
     }
     if (ageNum == null) {
-      showAlert("알림", "연령대를 선택해주세요.");
+      showAlert(
+        t("common.notice", { defaultValue: "알림" }),
+        t("auth.signup.ageRangeRequired", {
+          defaultValue: "연령대를 선택해주세요.",
+        }),
+      );
       return;
     }
     if (trimmedPhone !== "" && trimmedPhone.length < 4) {
-      showAlert("알림", "전화번호는 4자 이상 입력하거나 비워두세요.");
+      showAlert(
+        t("common.notice", { defaultValue: "알림" }),
+        t("settings.editProfile.phoneTooShort", {
+          defaultValue: "전화번호는 4자 이상 입력하거나 비워두세요.",
+        }),
+      );
       return;
     }
 
@@ -169,13 +184,25 @@ export default function EditProfileScreen() {
         await patchMe(accessToken, patch);
         patchApiUser(patch);
       }
-      showAlert("저장됨", "프로필이 저장되었습니다.", [
-        { text: "확인", onPress: () => navigation.goBack() },
-      ]);
+      showAlert(
+        t("settings.editProfile.savedTitle", { defaultValue: "저장됨" }),
+        t("settings.editProfile.savedMsg", { defaultValue: "프로필이 저장되었습니다." }),
+        [
+          {
+            text: t("common.ok", { defaultValue: "확인" }),
+            onPress: () => navigation.goBack(),
+          },
+        ],
+      );
     } catch (err) {
-      let msg = "저장 중 오류가 발생했습니다.";
+      let msg = t("settings.editProfile.saveFailedMsg", {
+        defaultValue: "저장 중 오류가 발생했습니다.",
+      });
       if (err instanceof AuthApiError) msg = err.message;
-      showAlert("저장 실패", msg);
+      showAlert(
+        t("settings.editProfile.saveFailedTitle", { defaultValue: "저장 실패" }),
+        msg,
+      );
     } finally {
       setSaving(false);
     }
@@ -252,7 +279,9 @@ export default function EditProfileScreen() {
 
           {}
           <View style={s.fieldRowStack}>
-            <Text style={s.fieldLabelStack}>국가</Text>
+            <Text style={s.fieldLabelStack}>
+              {t("settings.editProfile.fields.country", { defaultValue: "국가" })}
+            </Text>
             <TouchableOpacity
               style={s.pickerField}
               onPress={() => setCountryPickerOpen(true)}
@@ -267,7 +296,11 @@ export default function EditProfileScreen() {
                     })}
                   </Text>
                 ) : (
-                  <Text style={s.pickerPlaceholder}>국가를 선택해주세요</Text>
+                  <Text style={s.pickerPlaceholder}>
+                    {t("auth.signup.countryPlaceholder", {
+                      defaultValue: "국가를 선택해주세요",
+                    })}
+                  </Text>
                 )}
               </View>
               <Feather name="chevron-down" size={18} color={COLORS.zinc500} />
@@ -277,7 +310,9 @@ export default function EditProfileScreen() {
 
           {}
           <View style={s.fieldRowStack}>
-            <Text style={s.fieldLabelStack}>지역</Text>
+            <Text style={s.fieldLabelStack}>
+              {t("settings.editProfile.fields.region", { defaultValue: "지역" })}
+            </Text>
             <TouchableOpacity
               style={s.pickerField}
               onPress={() => setCountryPickerOpen(true)}
@@ -293,7 +328,13 @@ export default function EditProfileScreen() {
                   </Text>
                 ) : (
                   <Text style={s.pickerPlaceholder}>
-                    {country ? "지역을 선택해주세요" : "먼저 국가를 선택해주세요"}
+                    {country
+                      ? t("auth.signup.regionPlaceholder", {
+                          defaultValue: "지역을 선택해주세요",
+                        })
+                      : t("settings.editProfile.regionAfterCountry", {
+                          defaultValue: "먼저 국가를 선택해주세요",
+                        })}
                   </Text>
                 )}
               </View>
@@ -310,16 +351,25 @@ export default function EditProfileScreen() {
             onPress={() => {
               if (!apiUser?.email) {
                 showAlert(
-                  "이메일 없음",
-                  "계정 이메일이 없어요. 로그아웃 후 [비밀번호를 잊으셨나요?] 에서 진행해주세요.",
+                  t("settings.editProfile.noEmailTitle", {
+                    defaultValue: "이메일 없음",
+                  }),
+                  t("settings.editProfile.noEmailMsg", {
+                    defaultValue:
+                      "계정 이메일이 없어요. 로그아웃 후 [비밀번호를 잊으셨나요?] 에서 진행해주세요.",
+                  }),
                 );
                 return;
               }
               navigation.navigate("ResetPassword", { email: apiUser.email });
             }}
           >
-            <Text style={s.fieldLabel}>비밀번호</Text>
-            <Text style={[s.fieldValueLink]}>재설정</Text>
+            <Text style={s.fieldLabel}>
+              {t("settings.editProfile.fields.password", { defaultValue: "비밀번호" })}
+            </Text>
+            <Text style={[s.fieldValueLink]}>
+              {t("settings.editProfile.fields.passwordReset", { defaultValue: "재설정" })}
+            </Text>
             <Feather
               name="chevron-right"
               size={18}
@@ -337,7 +387,9 @@ export default function EditProfileScreen() {
           {saving ? (
             <ActivityIndicator color={COLORS.white} />
           ) : (
-            <Text style={s.saveBtnText}>저장</Text>
+            <Text style={s.saveBtnText}>
+              {t("common.save", { defaultValue: "저장" })}
+            </Text>
           )}
         </TouchableOpacity>
       </View>

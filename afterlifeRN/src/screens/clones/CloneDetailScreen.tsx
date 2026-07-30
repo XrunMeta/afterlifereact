@@ -90,7 +90,7 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
   }, [toastMessage]);
   const notifyPaymentPending = () => {
     setShowGiftModal(false);
-    setToastMessage("결제 준비 중이에요");
+    setToastMessage(t("detail.paymentPending", { defaultValue: "결제 준비 중이에요" }));
   };
 
   const approvedCoowners =
