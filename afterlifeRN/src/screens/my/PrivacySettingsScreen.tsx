@@ -106,12 +106,12 @@ export default function PrivacySettingsScreen() {
         : item.user.name || item.user.email.split("@")[0];
     const key = itemKey(item);
     showAlert(
-      "차단 해제",
-      `${label} 차단을 해제하시겠어요?`,
+      t("settings.privacy.unblockConfirmTitle", { defaultValue: "차단 해제" }),
+      t("settings.privacy.unblockConfirmDesc", { name: label, defaultValue: "{{name}} 차단을 해제하시겠어요?" }),
       [
-        { text: "취소", style: "cancel" },
+        { text: t("common.cancel", { defaultValue: "취소" }), style: "cancel" },
         {
-          text: "해제",
+          text: t("settings.privacy.unblockConfirmOk", { defaultValue: "해제" }),
           onPress: async () => {
             if (!accessToken) return;
             setUnblockingKey(key);
@@ -123,8 +123,8 @@ export default function PrivacySettingsScreen() {
               }
               setItems((prev) => prev.filter((b) => itemKey(b) !== key));
             } catch (err) {
-              const msg = err instanceof Error ? err.message : "해제에 실패했어요.";
-              showAlert("오류", msg);
+              const msg = err instanceof Error ? err.message : t("settings.privacy.unblockFailed", { defaultValue: "해제에 실패했어요." });
+              showAlert(t("common.error", { defaultValue: "오류" }), msg);
             } finally {
               setUnblockingKey(null);
             }
@@ -147,6 +147,9 @@ export default function PrivacySettingsScreen() {
         {(["user", "clone"] as const).map((tk) => {
           const count = items.filter((it) => it.type === tk).length;
           const active = tab === tk;
+          const tabLabel = tk === "user"
+            ? t("settings.privacy.tabUser", { defaultValue: "유저" })
+            : t("settings.privacy.tabClone", { defaultValue: "페르소나" });
           return (
             <TouchableOpacity
               key={tk}
@@ -154,7 +157,9 @@ export default function PrivacySettingsScreen() {
               onPress={() => setTab(tk)}
             >
               <Text style={[s.tabText, active && s.tabTextActive]}>
-                {tk === "user" ? "유저" : "페르소나"} {count > 0 ? `(${count})` : ""}
+                {count > 0
+                  ? t("settings.privacy.tabWithCount", { label: tabLabel, n: count, defaultValue: "{{label}} ({{n}})" })
+                  : tabLabel}
               </Text>
             </TouchableOpacity>
           );
@@ -172,12 +177,14 @@ export default function PrivacySettingsScreen() {
                 <View style={s.empty}>
                   <Feather name="slash" size={36} color={COLORS.zinc300} />
                   <Text style={s.emptyText}>
-                    차단한 {tab === "user" ? "유저" : "페르소나"}가 없어요
+                    {tab === "user"
+                      ? t("settings.privacy.emptyUser", { defaultValue: "차단한 유저가 없어요" })
+                      : t("settings.privacy.emptyClone", { defaultValue: "차단한 페르소나가 없어요" })}
                   </Text>
                   <Text style={s.emptySub}>
                     {tab === "user"
-                      ? "사용자 프로필에서 차단할 수 있어요"
-                      : "페르소나 메뉴에서 차단할 수 있어요"}
+                      ? t("settings.privacy.emptyUserHint", { defaultValue: "사용자 프로필에서 차단할 수 있어요" })
+                      : t("settings.privacy.emptyCloneHint", { defaultValue: "페르소나 메뉴에서 차단할 수 있어요" })}
                   </Text>
                 </View>
               );
@@ -227,7 +234,7 @@ export default function PrivacySettingsScreen() {
                           {busy ? (
                             <ActivityIndicator size="small" color={COLORS.white} />
                           ) : (
-                            <Text style={s.unblockText}>차단 해제</Text>
+                            <Text style={s.unblockText}>{t("settings.privacy.unblockBtn", { defaultValue: "차단 해제" })}</Text>
                           )}
                         </TouchableOpacity>
                       </View>

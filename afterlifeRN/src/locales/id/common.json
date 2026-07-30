@@ -29,7 +29,8 @@
     "sec": "detik",
     "durationSec": "{{s}} detik",
     "durationMin": "{{m}} menit",
-    "durationMinSec": "{{m}} menit {{s}} detik"
+    "durationMinSec": "{{m}} menit {{s}} detik",
+    "expertBadge": "Ahli"
   },
   "tabs": {
     "home": "Beranda",
@@ -353,7 +354,14 @@
     "memoryLabel": "Kenangan yang paling jelas",
     "memoryPlaceholder": "Momen ketika ia tertawa paling bahagia...",
     "learnCtaTitle": "Latih →",
-    "learnCtaDesc": "Jawab pertanyaan admin untuk menambah pengetahuan klon"
+    "learnCtaDesc": "Jawab pertanyaan admin untuk menambah pengetahuan klon",
+    "transferSubmit": "Kirim Permintaan",
+    "l1SectionTitle": "Kepribadian Dasar (L1)",
+    "l1NotesLabel": "Catatan Bebas",
+    "l2SectionTitle": "Memori Mendalam (L2) — Pembelajaran Otomatis",
+    "l2MemoryCount": "{{n}} memori telah terkumpul.",
+    "l2LastUpdated": "Pembaruan terakhir: {{date}}",
+    "l2Hint": "L2 tidak dapat diedit langsung, dan akan dilatih ulang secara otomatis melalui percakapan dan interaksi."
   },
   "dashboard": {
     "title": "My Page",
@@ -990,6 +998,18 @@
       "blockListEmpty": "Tidak ada pengguna yang diblokir",
       "dataDownload": "Unduh Data Saya",
       "deleteAccount": "Hapus Akun",
+      "tabUser": "Pengguna",
+      "tabClone": "Persona",
+      "tabWithCount": "{{label}} ({{n}})",
+      "emptyUser": "Tidak ada pengguna yang diblokir",
+      "emptyClone": "Tidak ada persona yang diblokir",
+      "emptyUserHint": "Anda dapat memblokir dari profil pengguna",
+      "emptyCloneHint": "Anda dapat memblokir dari menu persona",
+      "unblockBtn": "Buka Blokir",
+      "unblockConfirmTitle": "Buka Blokir",
+      "unblockConfirmDesc": "Buka blokir {{name}}?",
+      "unblockConfirmOk": "Buka",
+      "unblockFailed": "Gagal membuka blokir.",
       "faceConsent": {
         "sectionTitle": "Persetujuan Deteksi Wajah",
         "noConsent": "Tidak ada riwayat persetujuan",
@@ -1167,8 +1187,17 @@
       "declineDoneDesc": "Undangan telah ditolak."
     }
   },
+  "transactions": {
+    "title": "Riwayat Transaksi",
+    "empty": "Belum ada riwayat transaksi",
+    "cloneFallback": "Klon",
+    "giftSentLabel": "Hadiah {{gift}} kepada {{clone}}",
+    "giftReceivedLabel": "Pendapatan hadiah {{gift}} dari {{clone}}"
+  },
   "reports": {
     "title": "Laporan",
+    "acceptedAlertTitle": "Laporan Diterima",
+    "acceptedAlertDesc": "Silakan periksa isi laporan.",
     "tabMade": "Kelola Laporan",
     "tabReceived": "Laporan yang Diterima",
     "statusOpen": "Menunggu",

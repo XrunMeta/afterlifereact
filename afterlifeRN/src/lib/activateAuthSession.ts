@@ -3,6 +3,7 @@
 import { showAlert } from "../stores/dialogStore";
 import { getMe, AuthApiError } from "../api/auth";
 import { useAuthStore } from "../stores/authStore";
+import i18n from "../i18n";
 
 interface ActivateOpts {
   accessToken: string;
@@ -25,7 +26,7 @@ export async function activateAuthSession(opts: ActivateOpts): Promise<boolean> 
   } catch (err) {
     console.warn("[activateAuthSession] failed:", err);
     const msg = err instanceof AuthApiError ? err.message : String(err);
-    showAlert(opts.errorTitle ?? "오류", msg);
+    showAlert(opts.errorTitle ?? i18n.t("common.error", { defaultValue: "오류" }), msg);
     return false;
   }
 }
