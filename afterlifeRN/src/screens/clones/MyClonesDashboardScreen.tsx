@@ -55,23 +55,6 @@ type ClonesNav = v_390fcc<v_2d88fc>;
 
 const v_b9d568 = 1;
 
-function v_44b316(v_6fc191): string {
-  try {
-    const v_d799e2 = new Date(v_6fc191.replace(" ", "T") + "Z").getTime();
-    const v_a41a1b = Date.now() - v_d799e2;
-    if (v_a41a1b < 60_000) return "방금";
-    const v_43e24b = Math.floor(v_a41a1b / 60_000);
-    if (v_43e24b < 60) return `${v_43e24b}분 전`;
-    const v_1c3551 = Math.floor(v_43e24b / 60);
-    if (v_1c3551 < 24) return `${v_1c3551}시간 전`;
-    const v_d5dda0 = Math.floor(v_1c3551 / 24);
-    if (v_d5dda0 < 30) return `${v_d5dda0}일 전`;
-    return new Date(v_d799e2).toLocaleDateString();
-  } catch {
-    return "";
-  }
-}
-
 function v_5c66fc(v_f4e98d): string {
   if (typeof v_f4e98d !== "number" || !Number.isFinite(v_f4e98d)) return "0";
   if (v_f4e98d >= 1000) return `${(v_f4e98d / 1000).toFixed(1)}k`;
@@ -1183,7 +1166,7 @@ export default function v_def15b() {
                             <View style={[v_fd5f43.commentAvatar, { backgroundColor: v_1bfbd0.zinc200 }]} />
                           )}
                           <Text style={v_fd5f43.commentName}>{v_c9a376.user.name ?? v_c9a376.user.email}</Text>
-                          <Text style={v_fd5f43.commentTime}>{v_44b316(v_c9a376.createdAt)}</Text>
+                          <Text style={v_fd5f43.commentTime}>{v_bfd883(v_c9a376.createdAt)}</Text>
                           <TouchableOpacity
                             onPress={() => {
                               v_d5cd7b(null);

@@ -48,7 +48,7 @@ export default function v_da4f91() {
         console.log("[PIN] mount status:", v_d308b5);
         if (v_2008a4) return;
         if (!v_d308b5.linked) {
-          v_889fad("알림", "xrun 회원 매핑이 안 되어 있습니다.");
+          v_889fad(v_8d41d7("common.notice"), v_8d41d7("my.coin.notMapped"));
           v_c65f5d.goBack();
           return;
         }
@@ -91,7 +91,7 @@ export default function v_da4f91() {
     console.log("[PIN] verify clicked, len:", v_6bee94.length, "attemptsLeft:", v_0be067);
     if (v_6bee94.length !== v_50256d || v_177bdd) return;
     if (!v_2ca7e0) {
-      v_889fad("알림", "로그인이 필요합니다.");
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("user.loginRequired"));
       return;
     }
     v_ae32d6(true);
@@ -105,7 +105,7 @@ export default function v_da4f91() {
         return;
       }
       if (v_43c42e.match) {
-        v_889fad("확인", "비밀번호가 확인되었습니다.");
+        v_889fad(v_8d41d7("settings.paymentPin.verifyOkTitle"), v_8d41d7("settings.paymentPin.verifyOkMsg"));
         v_c65f5d.goBack();
         return;
       }
@@ -121,9 +121,9 @@ export default function v_da4f91() {
       }
     } catch (v_49263d) {
       console.log("[PIN] verify error:", v_49263d);
-      let v_badeaf = "검증 중 오류가 발생했습니다.";
+      let v_badeaf = v_8d41d7("settings.paymentPin.verifyError");
       if (v_49263d instanceof v_84a859) {
-        if (v_49263d.code === "CONFLICT") v_badeaf = "xrun 회원 매핑이 안 되어 있습니다.";
+        if (v_49263d.code === "CONFLICT") v_badeaf = v_8d41d7("my.coin.notMapped");
         else v_badeaf = v_49263d.message;
       }
       v_3a7d09(v_badeaf);
@@ -158,7 +158,7 @@ export default function v_da4f91() {
       try {
         await v_f2c756.openURL(v_b71a74);
       } catch {
-        v_889fad("알림", "xrun 앱이 설치되어 있지 않습니다.");
+        v_889fad(v_8d41d7("common.notice"), v_8d41d7("settings.paymentPin.xrunNotInstalled"));
       }
     }
   };

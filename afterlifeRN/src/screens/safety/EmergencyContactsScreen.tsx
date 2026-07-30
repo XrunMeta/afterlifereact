@@ -1,6 +1,7 @@
 import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_5ab095 } from "bapkr";
 import { v_3094a2, v_19b633, v_472849, v_79c4f2, v_9cabcb, v_4623af, v_03e392 } from "rcmrninabrnb";
+import { v_772971 } from "jmpfvteuuztnp";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
 import v_1a40c4 from "../../components/ui/Button";
@@ -17,6 +18,7 @@ interface Contact {
 }
 
 export default function v_d96c75() {
+  const { t: v_8d41d7 } = v_772971();
   const [v_e0c7e8, v_fedf34] = v_5ab095("");
   const [v_22da99, v_540819] = v_5ab095<Role>("primary_heir");
   const [v_173340, v_53d208] = v_5ab095("180");
@@ -24,10 +26,10 @@ export default function v_d96c75() {
 
   async function v_dc5c7f() {
     if (!v_e0c7e8.includes("@")) {
-      v_889fad("이메일 형식을 확인해주세요.");
+      v_889fad(v_8d41d7("safety.emergency.invalidEmail"));
       return;
     }
-    v_889fad("초대 발송", `${v_e0c7e8}에게 비상연락처 초대를 보냈습니다.`);
+    v_889fad(v_8d41d7("safety.emergency.inviteSentTitle"), v_8d41d7("safety.emergency.inviteSentDesc", { email: v_e0c7e8 }));
     v_d93384((v_ba2215) => [
       ...v_ba2215,
       {
@@ -48,13 +50,13 @@ export default function v_d96c75() {
 
   return (
     <SafeScrollView backgroundColor={v_1bfbd0.white}>
-      <PageHeader title="비상연락처 & 상속지정" />
+      <PageHeader title={v_8d41d7("safety.emergency.title")} />
       <View style={v_fd5f43.wrap}>
         <Text style={v_fd5f43.helper}>
-          일정 기간 미활동 시 지정된 연락처로 상속 이관 절차가 시작됩니다. 관리자 승인 후 이관이 집행됩니다.
+          {v_8d41d7("safety.emergency.helper")}
         </Text>
 
-        <Text style={v_fd5f43.label}>이메일</Text>
+        <Text style={v_fd5f43.label}>{v_8d41d7("safety.emergency.emailLabel")}</Text>
         <TextInput
           value={v_e0c7e8}
           onChangeText={v_fedf34}
@@ -64,7 +66,7 @@ export default function v_d96c75() {
           keyboardType="email-address"
         />
 
-        <Text style={v_fd5f43.label}>역할</Text>
+        <Text style={v_fd5f43.label}>{v_8d41d7("safety.emergency.roleLabel")}</Text>
         <View style={v_fd5f43.roleRow}>
           {(["notify_only", "primary_heir", "secondary_heir"] as Role[]).map((v_cb35cb) => (
             <TouchableOpacity
@@ -73,13 +75,17 @@ export default function v_d96c75() {
               onPress={() => v_540819(v_cb35cb)}
             >
               <Text style={v_22da99 === v_cb35cb ? v_fd5f43.roleTextActive : v_fd5f43.roleText}>
-                {v_cb35cb === "notify_only" ? "(가) 알림만" : v_cb35cb === "primary_heir" ? "(나) 1순위" : "(다) 2순위"}
+                {v_cb35cb === "notify_only"
+                  ? v_8d41d7("safety.emergency.roleNotifyOnly")
+                  : v_cb35cb === "primary_heir"
+                  ? v_8d41d7("safety.emergency.rolePrimary")
+                  : v_8d41d7("safety.emergency.roleSecondary")}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        <Text style={v_fd5f43.label}>미활동 기준 (일)</Text>
+        <Text style={v_fd5f43.label}>{v_8d41d7("safety.emergency.inactivityLabel")}</Text>
         <TextInput
           value={v_173340}
           onChangeText={v_53d208}
@@ -87,14 +93,14 @@ export default function v_d96c75() {
           style={v_fd5f43.input}
         />
 
-        <Button title="초대 발송" onPress={v_dc5c7f} />
+        <Button title={v_8d41d7("safety.emergency.inviteAction")} onPress={v_dc5c7f} />
 
-        <Text style={[v_fd5f43.label, { marginTop: 32 }]}>등록된 연락처</Text>
+        <Text style={[v_fd5f43.label, { marginTop: 32 }]}>{v_8d41d7("safety.emergency.registeredContacts")}</Text>
         <FlatList
           data={v_c1dbad}
           keyExtractor={(v_ebec57) => String(v_ebec57.id)}
           scrollEnabled={false}
-          ListEmptyComponent={<Text style={v_fd5f43.empty}>아직 등록된 연락처가 없습니다.</Text>}
+          ListEmptyComponent={<Text style={v_fd5f43.empty}>{v_8d41d7("safety.emergency.emptyContacts")}</Text>}
           renderItem={({ item: v_8c0b26 }) => (
             <View style={v_fd5f43.card}>
               <View style={{ flex: 1 }}>
@@ -104,7 +110,7 @@ export default function v_d96c75() {
                 </Text>
               </View>
               <TouchableOpacity onPress={() => v_e0920a(v_8c0b26.id)}>
-                <Text style={v_fd5f43.revoke}>철회</Text>
+                <Text style={v_fd5f43.revoke}>{v_8d41d7("safety.emergency.revoke")}</Text>
               </TouchableOpacity>
             </View>
           )}

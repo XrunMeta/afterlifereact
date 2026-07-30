@@ -547,12 +547,12 @@ export default function v_14b43e() {
   const v_b72645 = (v_d91518) => {
     if (v_5c83d5 == null || v_5c83d5 < 0 || !v_2ca7e0) return;
     v_889fad(
-      "댓글 삭제",
-      "이 댓글을 삭제하시겠습니까?",
+      v_8d41d7("home.commentDeleteTitle"),
+      v_8d41d7("home.commentDeleteDesc"),
       [
-        { text: "취소", style: "cancel" },
+        { text: v_8d41d7("common.cancel"), style: "cancel" },
         {
-          text: "삭제",
+          text: v_8d41d7("common.delete"),
           style: "destructive",
           onPress: async () => {
             try {
@@ -649,7 +649,7 @@ export default function v_14b43e() {
                 const v_10387a = v_57f5a9(v_8c0b26.persona.id);
                 return (
                   <Button
-                    title={v_10387a ? "구독 중" : "구독"}
+                    title={v_10387a ? v_8d41d7("feed.following") : v_8d41d7("feed.follow")}
                     variant="ghost"
                     size="md"
                     leftIcon={
@@ -695,8 +695,8 @@ export default function v_14b43e() {
         ListEmptyComponent={
           <View style={v_fd5f43.emptyWrap}>
             <Feather name="users" size={48} color={v_1bfbd0.zinc300} />
-            <Text style={v_fd5f43.emptyTitle}>아직 구독한 클론이 없어요</Text>
-            <Text style={v_fd5f43.emptyDesc}>홈에서 마음에 드는 클론을 구독해 보세요</Text>
+            <Text style={v_fd5f43.emptyTitle}>{v_8d41d7("feed.followingEmpty")}</Text>
+            <Text style={v_fd5f43.emptyDesc}>{v_8d41d7("feed.followingEmptyHint")}</Text>
           </View>
         }
       />
@@ -746,10 +746,10 @@ export default function v_14b43e() {
                   </Text>
                 </View>
                 <View style={v_fd5f43.eventsBreakdownRow}>
-                  <Text style={v_fd5f43.eventsBreakdownItem}>채팅 <Text style={v_fd5f43.eventsBreakdownVal}>{v_077f23.summary.chat}°C</Text></Text>
-                  <Text style={v_fd5f43.eventsBreakdownItem}>통화 <Text style={v_fd5f43.eventsBreakdownVal}>{v_077f23.summary.call}°C</Text></Text>
-                  <Text style={v_fd5f43.eventsBreakdownItem}>탐색 <Text style={v_fd5f43.eventsBreakdownVal}>{v_077f23.summary.learn}°C</Text></Text>
-                  <Text style={v_fd5f43.eventsBreakdownItem}>피드 <Text style={v_fd5f43.eventsBreakdownVal}>{v_077f23.summary.feed}°C</Text></Text>
+                  <Text style={v_fd5f43.eventsBreakdownItem}>{v_8d41d7("feed.summaryLabelChat")} <Text style={v_fd5f43.eventsBreakdownVal}>{v_077f23.summary.chat}°C</Text></Text>
+                  <Text style={v_fd5f43.eventsBreakdownItem}>{v_8d41d7("feed.summaryLabelCall")} <Text style={v_fd5f43.eventsBreakdownVal}>{v_077f23.summary.call}°C</Text></Text>
+                  <Text style={v_fd5f43.eventsBreakdownItem}>{v_8d41d7("feed.summaryLabelLearn")} <Text style={v_fd5f43.eventsBreakdownVal}>{v_077f23.summary.learn}°C</Text></Text>
+                  <Text style={v_fd5f43.eventsBreakdownItem}>{v_8d41d7("feed.summaryLabelFeed")} <Text style={v_fd5f43.eventsBreakdownVal}>{v_077f23.summary.feed}°C</Text></Text>
                 </View>
               </View>
             )}
@@ -984,7 +984,7 @@ export default function v_14b43e() {
                       onPress={() => { v_22a5cb(false); v_f4c991.navigate("Call", { cloneId: v_e2a85c.id, name: v_e2a85c.name, image: v_e2a85c.avatar }); }}
                     >
                       <Feather name="video" size={14} color={v_1bfbd0.white} />
-                      <Text style={v_fd5f43.callBtnText}>통화</Text>
+                      <Text style={v_fd5f43.callBtnText}>{v_8d41d7("feed.callRowAction")}</Text>
                     </TouchableOpacity>
                   </View>
                 )) : null}
