@@ -291,6 +291,38 @@ export const v_05a921 = {
       { method: "POST", body: JSON.stringify({ message: v_a8cd21 ?? null }) },
     ),
 
+  getVoicePresets: () =>
+    v_576f5a<{
+      voices: Array<{
+        id: number;
+        name: string;
+        name_en: string | null;
+        name_ja: string | null;
+        name_zh_cn: string | null;
+        name_id: string | null;
+        gender: string | null;
+        age_range: string | null;
+        description: string | null;
+        sort_order: number;
+        is_active: 0 | 1;
+        r2_key: string | null;
+        se_key: string | null;
+      }>;
+    }>(`/oth-path`),
+  createVoicePreset: (v_4d33b2) =>
+    v_576f5a<{ id: number }>(`/oth-path`, {
+      method: "POST",
+      body: JSON.stringify(v_4d33b2),
+    }),
+  updateVoicePreset: (
+    v_389afb,
+    v_4d33b2,
+  ) =>
+    v_576f5a<{ ok: true }>(`/oth-path${v_389afb}`, {
+      method: "PUT",
+      body: JSON.stringify(v_4d33b2),
+    }),
+
   getReportPenaltyRules: () =>
     v_576f5a<{
       items: Array<{

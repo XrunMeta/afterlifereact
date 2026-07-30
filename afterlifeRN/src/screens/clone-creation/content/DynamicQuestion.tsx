@@ -7,6 +7,8 @@ import v_e775af from '../../../components/ui/TextField';
 import type { v_c8af29 } from '../../../types/clone';
 import { v_1bfbd0, v_8b0c90 } from '../../../components/constants';
 
+import { v_c28b95, v_41534e } from '../../../lib/questionI18n';
+
 interface Props {
   question: v_c8af29;
   candidates?: string[]; 
@@ -24,7 +26,7 @@ export default function v_734250({ question: v_180423, candidates: v_6f7c85, val
 
   return (
     <View style={v_d81136.wrap}>
-      <Text style={v_d81136.label}>{v_180423.label}</Text>
+      <Text style={v_d81136.label}>{v_c28b95(v_180423.label)}</Text>
 
       {}
       {v_180423.type !== 'text' && v_3d694a.length > 0 && (
@@ -39,7 +41,7 @@ export default function v_734250({ question: v_180423, candidates: v_6f7c85, val
                 accessibilityRole="button"
                 accessibilityState={{ selected: v_f8b770 }}
               >
-                <Text style={v_f8b770 ? v_d81136.chipActiveText : v_d81136.chipText}>{v_68b2be}</Text>
+                <Text style={v_f8b770 ? v_d81136.chipActiveText : v_d81136.chipText}>{v_41534e(v_68b2be)}</Text>
               </TouchableOpacity>
             );
           })}

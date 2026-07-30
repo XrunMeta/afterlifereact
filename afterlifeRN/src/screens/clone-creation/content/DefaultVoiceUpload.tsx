@@ -20,6 +20,7 @@ import { v_1bfbd0, v_8b0c90 } from "../../../components/constants";
 import { v_3ee8c0, v_ab4719, type v_d80981 } from "../../../api/clones";
 import { v_7d2692 } from "../../../api/files";
 import { v_1ed7d9 } from "../../../stores/authStore";
+import { v_d7b329 } from "../../../lib/voicePresetName";
 
 export const v_e79da6 = [
   { id: "v1", name: "Nova" },
@@ -107,7 +108,7 @@ async function v_867b58(
 }
 
 function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
-  const { t: v_8d41d7 } = v_772971();
+  const { t: v_8d41d7, i18n: v_9c213b } = v_772971();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const [v_34e5bb, v_038d7f] = v_5ab095<Mode>("preset");
   const [v_53e1f3, v_de0f36] = v_5ab095<v_d80981[]>([]);
@@ -382,7 +383,9 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
                   onPress={() => v_0f4413(v_81e2ef)}
                 >
                   <View style={v_d81136.cardRow}>
-                    <Text style={[v_d81136.cardName, v_f8b770 && v_d81136.cardNameActive]}>{v_81e2ef.name}</Text>
+                    <Text style={[v_d81136.cardName, v_f8b770 && v_d81136.cardNameActive]}>
+                      {v_d7b329(v_81e2ef, v_9c213b.language)}
+                    </Text>
                     <TouchableOpacity
                       style={v_d81136.playBtn}
                       onPress={(v_9e86fd) => { v_9e86fd.stopPropagation(); v_1bf8db(v_81e2ef); }}

@@ -795,14 +795,32 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
 v_f891e6.get("/voices", v_6690d9, async (v_3f4e2e) => {
   const v_18b8bf = await v_3f4e2e.env.DB
     .prepare(
-      `SELECT id, name, gender, age_range, description, sort_order, src_file_id
+      `SELECT id, name, name_en, name_ja, name_zh_cn, name_id,
+              gender, age_range, description, sort_order, src_file_id
        FROM voice_presets WHERE is_active = 1 ORDER BY sort_order ASC, id ASC`,
     )
-    .all<{ id: number; name: string; gender: string | null; age_range: string | null; description: string | null; sort_order: number; src_file_id: number | null }>();
+    .all<{
+      id: number;
+      name: string;
+      name_en: string | null;
+      name_ja: string | null;
+      name_zh_cn: string | null;
+      name_id: string | null;
+      gender: string | null;
+      age_range: string | null;
+      description: string | null;
+      sort_order: number;
+      src_file_id: number | null;
+    }>();
   const v_f17108 = new URL(v_3f4e2e.req.url).origin;
+
   const v_53e1f3 = (v_18b8bf.results ?? []).map((v_cb35cb) => ({
     id: v_cb35cb.id,
     name: v_cb35cb.name,
+    nameEn: v_cb35cb.name_en,
+    nameJa: v_cb35cb.name_ja,
+    nameZhCn: v_cb35cb.name_zh_cn,
+    nameId: v_cb35cb.name_id,
     gender: v_cb35cb.gender,
     ageRange: v_cb35cb.age_range,
     description: v_cb35cb.description,
