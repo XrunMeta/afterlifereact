@@ -13,6 +13,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useTranslation } from "react-i18next";
 import SafeView from "../../components/ui/SafeView";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, RADIUS } from "../../components/constants";
@@ -29,6 +30,7 @@ type RouteProps = RouteProp<RootStackParamList, "UserFollowList">;
 type NavProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function UserFollowListScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RouteProps>();
 
@@ -63,11 +65,14 @@ export default function UserFollowListScreen() {
       setItems(res.items);
     } catch (err) {
       console.warn("[UserFollowList] load failed:", err);
-      setError((err as Error).message ?? "불러오지 못했어요.");
+      setError(
+        (err as Error).message ??
+          t("user.followListLoadFailed", { defaultValue: "불러오지 못했어요." }),
+      );
     } finally {
       setLoading(false);
     }
-  }, [accessToken, userId, mode]);
+  }, [accessToken, userId, mode, t]);
 
   useEffect(() => {
     load();
@@ -108,7 +113,9 @@ export default function UserFollowListScreen() {
             activeOpacity={0.8}
           >
             <Text style={[s.followBtnText, followed && s.followBtnTextActive]}>
-              {followed ? "팔로잉" : "팔로우"}
+              {followed
+                ? t("user.followingBtn", { defaultValue: "팔로잉" })
+                : t("user.followBtn", { defaultValue: "팔로우" })}
             </Text>
           </TouchableOpacity>
         )}
@@ -116,7 +123,10 @@ export default function UserFollowListScreen() {
     );
   };
 
-  const title = mode === "followers" ? "팔로워" : "팔로잉";
+  const title =
+    mode === "followers"
+      ? t("user.statFollowers", { defaultValue: "팔로워" })
+      : t("user.statFollowing", { defaultValue: "팔로잉" });
 
   return (
     <SafeView backgroundColor={COLORS.white}>
@@ -138,7 +148,9 @@ export default function UserFollowListScreen() {
         <View style={s.center}>
           <Feather name="users" size={32} color={COLORS.zinc300} />
           <Text style={s.emptyText}>
-            {mode === "followers" ? "아직 팔로워가 없어요" : "아직 팔로잉이 없어요"}
+            {mode === "followers"
+              ? t("user.followListEmptyFollowers", { defaultValue: "아직 팔로워가 없어요" })
+              : t("user.followListEmptyFollowing", { defaultValue: "아직 팔로잉이 없어요" })}
           </Text>
         </View>
       ) : (

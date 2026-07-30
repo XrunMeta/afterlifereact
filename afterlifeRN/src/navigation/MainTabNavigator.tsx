@@ -6,6 +6,7 @@ import { Feather } from "@expo/vector-icons";
 import { View, StyleSheet, Image, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
+import { useTranslation } from "react-i18next";
 import type { MainTabParamList, ClonesStackParamList, CreateStackParamList, MyStackParamList } from "./types";
 import { COLORS } from "../components/constants";
 import { useAuthStore } from "../stores/authStore";
@@ -106,16 +107,17 @@ function MyStackNavigator() {
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-const TAB_CONFIG: Record<string, { icon: keyof typeof Feather.glyphMap; label: string }> = {
-  HomeTab: { icon: "home", label: "홈" },
-  SearchTab: { icon: "search", label: "검색" },
-  CreateTab: { icon: "plus-circle", label: "생성" },
-  ShortsTab: { icon: "user-check", label: "구독 중" },
-  ClonesTab: { icon: "users", label: "클론" },
-  MyTab: { icon: "user", label: "마이" },
+const TAB_CONFIG: Record<string, { icon: keyof typeof Feather.glyphMap; labelKey: string }> = {
+  HomeTab: { icon: "home", labelKey: "tabs.home" },
+  SearchTab: { icon: "search", labelKey: "tabs.search" },
+  CreateTab: { icon: "plus-circle", labelKey: "tabs.create" },
+  ShortsTab: { icon: "user-check", labelKey: "tabs.subscribing" },
+  ClonesTab: { icon: "users", labelKey: "tabs.clones" },
+  MyTab: { icon: "user", labelKey: "tabs.my" },
 };
 
 export default function MainTabNavigator() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const apiUser = useAuthStore((s) => s.apiUser);
 
@@ -133,6 +135,10 @@ export default function MainTabNavigator() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarShowLabel: false,
+
+        tabBarLabel: t(TAB_CONFIG[route.name]?.labelKey ?? "", {
+          defaultValue: "",
+        }),
         tabBarStyle: {
           ...styles.tabBar,
           height: 56 + bottomInset,

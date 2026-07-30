@@ -2,6 +2,7 @@
 
 import React, { useRef } from "react";
 import { View, Text, TextInput, Pressable, TouchableOpacity, StyleSheet } from "react-native";
+import { useTranslation } from "react-i18next";
 import Button from "../ui/Button";
 import { COLORS, SIZES, RADIUS } from "../constants";
 
@@ -94,12 +95,17 @@ export default function OtpVerifyView({
 
   footer?: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={s.container}>
       <Text style={s.title}>{title}</Text>
       {(subtitle || email) && (
         <Text style={s.subtitle}>
-          {subtitle ?? `${email} 로 보낸 6자리 인증코드를 입력하세요.`}
+          {subtitle ??
+            t("otp.defaultSubtitle", {
+              email,
+              defaultValue: "{{email}} 로 보낸 6자리 인증코드를 입력하세요.",
+            })}
         </Text>
       )}
 
@@ -124,8 +130,8 @@ export default function OtpVerifyView({
           <TouchableOpacity onPress={onResend} disabled={resendIn > 0}>
             <Text style={[s.resendLink, resendIn > 0 && s.resendDisabled]}>
               {resendIn > 0
-                ? `${resendLabel ?? "코드 재발송"} (${resendIn}s)`
-                : resendLabel ?? "코드 재발송"}
+                ? `${resendLabel ?? t("otp.resend", { defaultValue: "코드 재발송" })} (${resendIn}s)`
+                : resendLabel ?? t("otp.resend", { defaultValue: "코드 재발송" })}
             </Text>
           </TouchableOpacity>
         </View>

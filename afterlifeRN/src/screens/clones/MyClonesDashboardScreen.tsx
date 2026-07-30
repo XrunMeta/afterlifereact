@@ -418,7 +418,7 @@ export default function MyClonesDashboardScreen() {
       await patchMe(accessToken, { avatarUrl: uploaded.url });
       patchApiUser({ avatarUrl: uploaded.url });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "이미지 업로드에 실패했어요";
+      const msg = err instanceof Error ? err.message : t("dashboard.uploadAvatarFailed", { defaultValue: "이미지 업로드에 실패했어요" });
       showAlert(t("common.error", { defaultValue: "오류" }), msg);
     } finally {
       setUploadingAvatar(false);
@@ -518,10 +518,10 @@ export default function MyClonesDashboardScreen() {
 
   const getVisibilityLabel = (v: Visibility) => {
     switch (v) {
-      case "public": return "전체 공개";
-      case "followers": return "팔로워만";
-      case "selected": return "특정 친구";
-      case "private": return "나만 보기";
+      case "public": return t("dashboard.visibilityPublic", { defaultValue: "전체 공개" });
+      case "followers": return t("dashboard.visibilityFollowers", { defaultValue: "팔로워만" });
+      case "selected": return t("dashboard.visibilitySelected", { defaultValue: "특정 친구" });
+      case "private": return t("dashboard.visibilityPrivate", { defaultValue: "나만 보기" });
     }
   };
 
@@ -628,7 +628,7 @@ export default function MyClonesDashboardScreen() {
             >
               <Feather name="user" size={14} color={COLORS.zinc500} />
               <Text style={s.statText} testID={`follower-count-${clone.id}`}>
-                {followerCount} 구독자
+                {t("dashboard.followerCount", { n: followerCount, defaultValue: "{{n}} 구독자" })}
               </Text>
             </TouchableOpacity>
             {
@@ -638,7 +638,7 @@ export default function MyClonesDashboardScreen() {
               onPress={() => setIntimacyModal({ cloneId: clone.id, cloneName: clone.displayName })}
             >
               <Ionicons name="chatbubbles-outline" size={14} color={COLORS.zinc500} />
-              <Text style={s.statText}>상호작용</Text>
+              <Text style={s.statText}>{t("dashboard.statInteraction", { defaultValue: "상호작용" })}</Text>
             </TouchableOpacity>
             {}
           </View>
@@ -648,9 +648,9 @@ export default function MyClonesDashboardScreen() {
         {clone.status === 'pending_assets' && (
           <View style={s.pendingBadge}>
             <Feather name="clock" size={12} color={COLORS.zinc600} />
-            <Text style={s.pendingText}>생성대기중</Text>
+            <Text style={s.pendingText}>{t("dashboard.pendingAssetsBadge", { defaultValue: "생성대기중" })}</Text>
             <TouchableOpacity onPress={() => navigation.navigate('CloneEdit', { cloneId: clone.id })}>
-              <Text style={s.pendingCta}>사진/음성 추가하기</Text>
+              <Text style={s.pendingCta}>{t("dashboard.pendingAssetsCta", { defaultValue: "사진/음성 추가하기" })}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -686,7 +686,11 @@ export default function MyClonesDashboardScreen() {
 
               const nameParam = encodeURIComponent(clone.displayName ?? "");
               const url = `https://www.xrun.run/clone?id=${clone.id}&name=${nameParam}`;
-              const message = `${clone.displayName} 클론과 대화해보세요!\n${url}`;
+              const message = t("dashboard.shareMessage", {
+                name: clone.displayName ?? "",
+                url,
+                defaultValue: "{{name}} 클론과 대화해보세요!\n{{url}}",
+              });
               try {
                 await Share.share(
                   Platform.OS === "ios"
@@ -740,7 +744,7 @@ export default function MyClonesDashboardScreen() {
       {accessToken && apiClones === null ? (
         <View style={s.dashLoading}>
           <ActivityIndicator color={COLORS.violet600} size="large" />
-          <Text style={s.dashLoadingText}>불러오는 중...</Text>
+          <Text style={s.dashLoadingText}>{t("common.loading")}</Text>
         </View>
       ) : (
       <FlatList
@@ -763,9 +767,9 @@ export default function MyClonesDashboardScreen() {
             <View style={s.dashEmptyIconWrap}>
               <Feather name="user-plus" size={32} color={COLORS.zinc400} />
             </View>
-            <Text style={s.dashEmptyTitle}>나만의 클론을 만들어보세요</Text>
+            <Text style={s.dashEmptyTitle}>{t("dashboard.emptyTitle", { defaultValue: "나만의 클론을 만들어보세요" })}</Text>
             <Text style={s.dashEmptyDesc}>
-              아래 버튼을 눌러 첫 클론을 만들 수 있어요
+              {t("dashboard.emptyDesc", { defaultValue: "아래 버튼을 눌러 첫 클론을 만들 수 있어요" })}
             </Text>
             <TouchableOpacity
               style={s.dashEmptyBtn}
@@ -781,7 +785,7 @@ export default function MyClonesDashboardScreen() {
               }
             >
               <Feather name="plus" size={18} color={COLORS.white} />
-              <Text style={s.dashEmptyBtnText}>클론 만들기</Text>
+              <Text style={s.dashEmptyBtnText}>{t("home.createClone")}</Text>
             </TouchableOpacity>
           </View>
         }
@@ -822,7 +826,7 @@ export default function MyClonesDashboardScreen() {
                 </View>
                 <View style={{ flex: 1, marginLeft: 26 }}>
                   <Text style={s.profileName} numberOfLines={1}>
-                    {apiUser?.name ?? authUser?.displayName ?? "사용자"}
+                    {apiUser?.name ?? authUser?.displayName ?? t("my.userFallback")}
                   </Text>
                   <View style={s.profileStatsRow}>
                     <TouchableOpacity
@@ -838,7 +842,7 @@ export default function MyClonesDashboardScreen() {
                       }}
                     >
                       <Text style={s.profileStatValue}>{followersCount}</Text>
-                      <Text style={s.profileStatLabel}>팔로워</Text>
+                      <Text style={s.profileStatLabel}>{t("dashboard.profileStatFollowers", { defaultValue: "팔로워" })}</Text>
                     </TouchableOpacity>
                     <View style={s.profileStatDivider} />
                     <TouchableOpacity
@@ -854,12 +858,12 @@ export default function MyClonesDashboardScreen() {
                       }}
                     >
                       <Text style={s.profileStatValue}>{followingCount}</Text>
-                      <Text style={s.profileStatLabel}>팔로잉</Text>
+                      <Text style={s.profileStatLabel}>{t("dashboard.profileStatFollowing", { defaultValue: "팔로잉" })}</Text>
                     </TouchableOpacity>
                     <View style={s.profileStatDivider} />
                     <View style={s.profileStatItem}>
                       <Text style={s.profileStatValue}>{visibleClones.length}</Text>
-                      <Text style={s.profileStatLabel}>클론</Text>
+                      <Text style={s.profileStatLabel}>{t("dashboard.profileStatClones", { defaultValue: "클론" })}</Text>
                     </View>
                   </View>
                 </View>
@@ -877,32 +881,38 @@ export default function MyClonesDashboardScreen() {
               }}
             >
               <View style={{ flex: 1 }}>
-                <Text style={s.balanceLabel}>남은 통화 시간</Text>
+                <Text style={s.balanceLabel}>{t("my.balance.remainingTime")}</Text>
                 {balanceLoading && !balance ? (
                   <ActivityIndicator color={COLORS.violet600} style={{ marginTop: 6 }} />
                 ) : balance ? (
                   <>
                     <Text style={s.balanceTotal}>
                       {(() => {
-                        const s = Math.max(0, Math.floor(balance.totalSec));
-                        const m = Math.floor(s / 60);
-                        const rem = s % 60;
-                        if (m === 0) return `${rem}초`;
-                        return rem > 0 ? `${m}분 ${rem}초` : `${m}분`;
+                        const totalSec = Math.max(0, Math.floor(balance.totalSec));
+                        const m = Math.floor(totalSec / 60);
+                        const rem = totalSec % 60;
+                        if (m === 0) return t("common.durationSec", { s: rem });
+                        return rem > 0
+                          ? t("common.durationMinSec", { m, s: rem })
+                          : t("common.durationMin", { m });
                       })()}
                     </Text>
                     <Text style={s.balanceBreakdown}>
-                      무료 {Math.floor(balance.freeSec / 60)}분
-                      {balance.subSec > 0 ? ` · 구독 ${Math.floor(balance.subSec / 60)}분` : ""}
-                      {balance.topupSec > 0 ? ` · 충전 ${Math.floor(balance.topupSec / 60)}분` : ""}
+                      {t("my.balance.free", { time: t("common.durationMin", { m: Math.floor(balance.freeSec / 60) }) })}
+                      {balance.subSec > 0
+                        ? ` · ${t("my.balance.sub", { time: t("common.durationMin", { m: Math.floor(balance.subSec / 60) }) })}`
+                        : ""}
+                      {balance.topupSec > 0
+                        ? ` · ${t("my.balance.topup", { time: t("common.durationMin", { m: Math.floor(balance.topupSec / 60) }) })}`
+                        : ""}
                     </Text>
                   </>
                 ) : (
-                  <Text style={s.balanceEmpty}>잔액 조회 실패</Text>
+                  <Text style={s.balanceEmpty}>{t("my.balance.failed")}</Text>
                 )}
               </View>
               <View style={s.balanceCta}>
-                <Text style={s.balanceCtaText}>충전</Text>
+                <Text style={s.balanceCtaText}>{t("my.balance.charge")}</Text>
                 <Feather name="chevron-right" size={16} color="#fff" />
               </View>
             </TouchableOpacity>
@@ -916,7 +926,7 @@ export default function MyClonesDashboardScreen() {
         ListFooterComponent={
           systemClones.length > 0 ? (
             <View style={s.systemClonesSection}>
-              <Text style={s.systemClonesSectionTitle}>통화 가능</Text>
+              <Text style={s.systemClonesSectionTitle}>{t("dashboard.systemClonesTitle", { defaultValue: "통화 가능" })}</Text>
               {systemClones.map((sc) => (
                 <View key={sc.id} style={s.card}>
                   <View style={s.cloneHeader}>
@@ -989,22 +999,24 @@ export default function MyClonesDashboardScreen() {
         <Pressable style={s.modalOverlay} onPress={() => setToggleModal(null)}>
           <Pressable style={s.modalBox} onPress={(e) => e.stopPropagation()}>
             <Text style={s.modalTitle}>
-              {toggleModal?.currentState ? "클론 비활성화" : "클론 활성화"}
+              {toggleModal?.currentState
+                ? t("dashboard.toggleDeactivateTitle", { defaultValue: "클론 비활성화" })
+                : t("dashboard.toggleActivateTitle", { defaultValue: "클론 활성화" })}
             </Text>
             <Text style={s.modalDesc}>
               {toggleModal?.currentState
-                ? "클론을 비활성화하시겠습니까? 비활성화 시 다른 사용자에게 노출되지 않습니다."
-                : "클론을 활성화하시겠습니까? 활성화 시 다른 사용자에게 노출됩니다."}
+                ? t("dashboard.toggleDeactivateDesc", { defaultValue: "클론을 비활성화하시겠습니까? 비활성화 시 다른 사용자에게 노출되지 않습니다." })
+                : t("dashboard.toggleActivateDesc", { defaultValue: "클론을 활성화하시겠습니까? 활성화 시 다른 사용자에게 노출됩니다." })}
             </Text>
             <View style={s.modalBtns}>
               <Button
-                title="취소"
+                title={t("common.cancel")}
                 variant="ghost"
                 onPress={() => setToggleModal(null)}
                 style={s.modalBtnHalf}
               />
               <Button
-                title="확인"
+                title={t("common.confirm")}
                 variant="primary"
                 onPress={confirmToggle}
                 style={s.modalBtnHalf}
@@ -1018,8 +1030,8 @@ export default function MyClonesDashboardScreen() {
       <Modal visible={!!visibilityModal} transparent animationType="fade">
         <Pressable style={s.modalOverlay} onPress={() => setVisibilityModal(null)}>
           <Pressable style={s.modalBox} onPress={(e) => e.stopPropagation()}>
-            <Text style={s.modalTitle}>공개 범위</Text>
-            <Text style={s.modalDesc}>이 클론을 누구에게 보일까요?</Text>
+            <Text style={s.modalTitle}>{t("dashboard.visibilityChooseTitle", { defaultValue: "공개 범위" })}</Text>
+            <Text style={s.modalDesc}>{t("dashboard.visibilityChooseDesc", { defaultValue: "이 클론을 누구에게 보일까요?" })}</Text>
             <View style={s.visibilityOptions}>
               {(["public", "followers", "selected", "private"] as Visibility[]).map((v) => {
                 const selected = visibilityModal?.currentVisibility === v;
@@ -1047,7 +1059,7 @@ export default function MyClonesDashboardScreen() {
               })}
             </View>
             <Button
-              title="취소"
+              title={t("common.cancel")}
               variant="ghost"
               onPress={() => setVisibilityModal(null)}
               style={{ marginTop: 12, width: "100%" }}
@@ -1095,13 +1107,13 @@ export default function MyClonesDashboardScreen() {
             </Text>
             <View style={s.modalBtns}>
               <Button
-                title="취소"
+                title={t("common.cancel")}
                 variant="ghost"
                 onPress={() => setDeleteModal(null)}
                 style={s.modalBtnHalf}
               />
               <Button
-                title="삭제"
+                title={t("common.delete")}
                 variant="danger"
                 onPress={confirmDelete}
                 style={s.modalBtnHalf}
@@ -1115,10 +1127,10 @@ export default function MyClonesDashboardScreen() {
       <Modal visible={!!deleteResultMessage} transparent animationType="fade">
         <Pressable style={s.modalOverlay} onPress={() => setDeleteResultMessage(null)}>
           <Pressable style={s.modalBox} onPress={(e) => e.stopPropagation()}>
-            <Text style={s.modalTitle}>알림</Text>
+            <Text style={s.modalTitle}>{t("common.notice")}</Text>
             <Text style={s.modalDesc}>{deleteResultMessage}</Text>
             <Button
-              title="확인"
+              title={t("common.confirm")}
               variant="primary"
               onPress={() => setDeleteResultMessage(null)}
               style={{ width: "100%" }}
@@ -1142,10 +1154,10 @@ export default function MyClonesDashboardScreen() {
           >
             <View style={s.sheetHandle} />
             <Text style={s.statsSheetTitle}>
-              {statsModal?.type === "likes" && "좋아요"}
-              {statsModal?.type === "interactions" && "상호작용"}
-              {statsModal?.type === "comments" && "댓글"}
-              {statsModal?.type === "followers" && "구독자"}
+              {statsModal?.type === "likes" && t("dashboard.statsLikes", { defaultValue: "좋아요" })}
+              {statsModal?.type === "interactions" && t("dashboard.statsInteractions", { defaultValue: "상호작용" })}
+              {statsModal?.type === "comments" && t("dashboard.statsComments", { defaultValue: "댓글" })}
+              {statsModal?.type === "followers" && t("dashboard.statsFollowers", { defaultValue: "구독자" })}
             </Text>
             <Text style={s.statsSheetSub}>
               {statsModal?.cloneName}
@@ -1159,7 +1171,7 @@ export default function MyClonesDashboardScreen() {
                     <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
                   ) : !commentsList || commentsList.length === 0 ? (
                     <View style={{ paddingVertical: 24, alignItems: "center" }}>
-                      <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>아직 댓글이 없어요</Text>
+                      <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>{t("feed.commentsEmpty")}</Text>
                     </View>
                   ) : (
                     commentsList.map((cm) => (
@@ -1175,7 +1187,7 @@ export default function MyClonesDashboardScreen() {
                           <TouchableOpacity
                             onPress={() => {
                               setStatsModal(null);
-                              setDeleteResultMessage("신고가 접수됐어요");
+                              setDeleteResultMessage(t("dashboard.reportReceived", { defaultValue: "신고가 접수됐어요" }));
                             }}
                             style={{ marginLeft: "auto", paddingHorizontal: 6, paddingVertical: 4 }}
                           >
@@ -1196,7 +1208,7 @@ export default function MyClonesDashboardScreen() {
                     <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
                   ) : !likesList || likesList.length === 0 ? (
                     <View style={{ paddingVertical: 24, alignItems: "center" }}>
-                      <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>아직 좋아요가 없어요</Text>
+                      <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>{t("dashboard.emptyLikes", { defaultValue: "아직 좋아요가 없어요" })}</Text>
                     </View>
                   ) : (
                     likesList.map((u) => (
@@ -1223,7 +1235,7 @@ export default function MyClonesDashboardScreen() {
                     <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
                   ) : !followersList || followersList.length === 0 ? (
                     <View style={{ paddingVertical: 24, alignItems: "center" }}>
-                      <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>아직 구독자가 없어요</Text>
+                      <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>{t("dashboard.emptyFollowers", { defaultValue: "아직 구독자가 없어요" })}</Text>
                     </View>
                   ) : (
                     followersList.map((u) => (
@@ -1248,7 +1260,7 @@ export default function MyClonesDashboardScreen() {
                 <View style={{ paddingVertical: 24, alignItems: "center" }}>
                   <Feather name="message-circle" size={28} color={COLORS.zinc300} />
                   <Text style={{ color: COLORS.zinc500, fontSize: 13, marginTop: 8 }}>
-                    상호작용 상세 목록은 준비 중이에요
+                    {t("dashboard.emptyInteractions", { defaultValue: "상호작용 상세 목록은 준비 중이에요" })}
                   </Text>
                 </View>
               )}
@@ -1268,16 +1280,16 @@ export default function MyClonesDashboardScreen() {
             <View style={s.sheetHandle} />
             <View style={s.intimacyTitleRow}>
               <View style={{ width: 28 }} />
-              <Text style={s.statsSheetTitle}>받은 선물</Text>
+              <Text style={s.statsSheetTitle}>{t("dashboard.giftReceivedTitle", { defaultValue: "받은 선물" })}</Text>
               <View style={{ width: 28 }} />
             </View>
             <Text style={s.statsSheetSub}>{intimacyModal?.cloneName}</Text>
 
             {}
             <View style={s.giftTableHeader}>
-              <Text style={[s.giftTableHeaderCell, { flex: 2 }]}>선물</Text>
-              <Text style={[s.giftTableHeaderCell, { flex: 1, textAlign: "center" }]}>갯수</Text>
-              <Text style={[s.giftTableHeaderCell, { flex: 2, textAlign: "right" }]}>보낸사람</Text>
+              <Text style={[s.giftTableHeaderCell, { flex: 2 }]}>{t("dashboard.giftHeaderGift", { defaultValue: "선물" })}</Text>
+              <Text style={[s.giftTableHeaderCell, { flex: 1, textAlign: "center" }]}>{t("dashboard.giftHeaderCount", { defaultValue: "갯수" })}</Text>
+              <Text style={[s.giftTableHeaderCell, { flex: 2, textAlign: "right" }]}>{t("dashboard.giftHeaderSender", { defaultValue: "보낸사람" })}</Text>
             </View>
 
             <ScrollView style={s.statsScrollArea} showsVerticalScrollIndicator={false}>
@@ -1286,7 +1298,7 @@ export default function MyClonesDashboardScreen() {
               ) : !giftReceipts || giftReceipts.length === 0 ? (
                 <View style={{ paddingVertical: 24, alignItems: "center" }}>
                   <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>
-                    아직 받은 선물이 없어요
+                    {t("dashboard.emptyGift", { defaultValue: "아직 받은 선물이 없어요" })}
                   </Text>
                 </View>
               ) : (

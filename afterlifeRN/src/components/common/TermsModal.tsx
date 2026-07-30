@@ -187,7 +187,11 @@ export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
               <>
                 {langMismatch && (
                   <Text style={s.langNotice}>
-                    ⚠️ {expectedLang} → {returnedLang} (해당 언어 약관 준비 중)
+                    {t("terms.langNotice", {
+                      expected: expectedLang,
+                      returned: returnedLang,
+                      defaultValue: "⚠️ {{expected}} → {{returned}} (해당 언어 약관 준비 중)",
+                    })}
                   </Text>
                 )}
                 <Text style={s.contentText}>{content}</Text>

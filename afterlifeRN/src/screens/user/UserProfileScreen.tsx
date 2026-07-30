@@ -16,6 +16,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useTranslation } from "react-i18next";
 import SafeView from "../../components/ui/SafeView";
 import PageHeader from "../../components/common/PageHeader";
 import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
@@ -42,6 +43,7 @@ const GRID_GAP = 4;
 const GRID_COLS = 3;
 
 export default function UserProfileScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RouteProps>();
   const { userId } = route.params;
@@ -69,7 +71,7 @@ export default function UserProfileScreen() {
 
   const load = useCallback(async () => {
     if (!accessToken) {
-      setError("로그인이 필요합니다.");
+      setError(t("user.loginRequired", { defaultValue: "로그인이 필요합니다." }));
       setLoading(false);
       return;
     }
@@ -82,11 +84,14 @@ export default function UserProfileScreen() {
       setFollowing(userId, res.user.isFollowing);
     } catch (err) {
       console.warn("[UserProfile] load failed:", err);
-      setError((err as Error).message ?? "프로필을 불러오지 못했어요.");
+      setError(
+        (err as Error).message ??
+          t("user.profileLoadFailed", { defaultValue: "프로필을 불러오지 못했어요." }),
+      );
     } finally {
       setLoading(false);
     }
-  }, [accessToken, userId, setFollowing]);
+  }, [accessToken, userId, setFollowing, t]);
 
   useEffect(() => {
     load();
@@ -190,7 +195,10 @@ export default function UserProfileScreen() {
   const headerName = profile?.user.name ?? profile?.user.email ?? "";
   const isMe = profile?.user.isMe ?? false;
   const isBlocked = profile?.user.isBlocked ?? false;
-  const targetLabel = profile?.user.name ?? profile?.user.email ?? "이 사용자";
+  const targetLabel =
+    profile?.user.name ??
+    profile?.user.email ??
+    t("user.fallbackTarget", { defaultValue: "이 사용자" });
 
   const handleToggleBlock = async () => {
     setMoreOpen(false);
@@ -199,15 +207,21 @@ export default function UserProfileScreen() {
       if (isBlocked) {
         await unblockUser(accessToken, userId);
         setProfile((p) => (p ? { ...p, user: { ...p.user, isBlocked: false } } : p));
-        showAlert("차단 해제", `${targetLabel} 님을 차단 해제했어요.`);
+        showAlert(
+          t("user.blockUndoneTitle", { defaultValue: "차단 해제" }),
+          t("user.blockUndoneDesc", { name: targetLabel, defaultValue: "{{name}} 님을 차단 해제했어요." }),
+        );
       } else {
         showAlert(
-          "차단하기",
-          `${targetLabel} 님을 차단할까요?\n팔로우/팔로워 관계도 해제돼요.`,
+          t("user.blockOn", { defaultValue: "차단하기" }),
+          t("user.blockConfirmDesc", {
+            name: targetLabel,
+            defaultValue: "{{name}} 님을 차단할까요?\n팔로우/팔로워 관계도 해제돼요.",
+          }),
           [
-            { text: "취소", style: "cancel" },
+            { text: t("common.cancel", { defaultValue: "취소" }), style: "cancel" },
             {
-              text: "차단하기",
+              text: t("user.blockOn", { defaultValue: "차단하기" }),
               style: "destructive",
               onPress: async () => {
                 try {
@@ -216,10 +230,19 @@ export default function UserProfileScreen() {
                     p ? { ...p, user: { ...p.user, isBlocked: true, isFollowing: false } } : p,
                   );
                   setFollowing(userId, false);
-                  showAlert("차단 완료", `${targetLabel} 님을 차단했어요.`);
+                  showAlert(
+                    t("user.blockDoneTitle", { defaultValue: "차단 완료" }),
+                    t("user.blockDoneDesc", {
+                      name: targetLabel,
+                      defaultValue: "{{name}} 님을 차단했어요.",
+                    }),
+                  );
                 } catch (err) {
                   console.warn("[UserProfile] block failed:", err);
-                  showAlert("실패", "차단에 실패했어요.");
+                  showAlert(
+                    t("user.actionFailTitle", { defaultValue: "실패" }),
+                    t("user.blockFail", { defaultValue: "차단에 실패했어요." }),
+                  );
                 }
               },
             },
@@ -228,7 +251,10 @@ export default function UserProfileScreen() {
       }
     } catch (err) {
       console.warn("[UserProfile] toggle block failed:", err);
-      showAlert("실패", "처리에 실패했어요.");
+      showAlert(
+        t("user.actionFailTitle", { defaultValue: "실패" }),
+        t("user.actionFailDesc", { defaultValue: "처리에 실패했어요." }),
+      );
     }
   };
 
@@ -241,10 +267,16 @@ export default function UserProfileScreen() {
       setFollowing(userId, false);
 
       navigation.navigate("Main", { screen: "HomeTab" } as never);
-      showAlert("신고 완료", "신고가 접수됐어요. 이 사용자는 차단됐어요.");
+      showAlert(
+        t("user.reportDoneTitle", { defaultValue: "신고 완료" }),
+        t("user.reportDoneDesc", { defaultValue: "신고가 접수됐어요. 이 사용자는 차단됐어요." }),
+      );
     } catch (err) {
       console.warn("[UserProfile] report failed:", err);
-      showAlert("실패", "신고에 실패했어요.");
+      showAlert(
+        t("user.actionFailTitle", { defaultValue: "실패" }),
+        t("user.reportFail", { defaultValue: "신고에 실패했어요." }),
+      );
     }
   };
 
@@ -261,7 +293,7 @@ export default function UserProfileScreen() {
               onPress={() => setMoreOpen(true)}
               hitSlop={12}
               style={{ padding: 8 }}
-              accessibilityLabel="더 보기"
+              accessibilityLabel={t("user.moreLabel", { defaultValue: "더 보기" })}
             >
               <Feather name="more-vertical" size={22} color={COLORS.zinc900} />
             </TouchableOpacity>
@@ -276,9 +308,11 @@ export default function UserProfileScreen() {
       ) : error || !profile ? (
         <View style={s.center}>
           <Feather name="alert-circle" size={32} color={COLORS.zinc400} />
-          <Text style={s.errorText}>{error ?? "프로필을 불러올 수 없어요"}</Text>
+          <Text style={s.errorText}>
+            {error ?? t("user.profileLoadEmpty", { defaultValue: "프로필을 불러올 수 없어요" })}
+          </Text>
           <TouchableOpacity onPress={load} style={s.retryBtn}>
-            <Text style={s.retryBtnText}>다시 시도</Text>
+            <Text style={s.retryBtnText}>{t("common.retry", { defaultValue: "다시 시도" })}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -310,7 +344,7 @@ export default function UserProfileScreen() {
                   )}
                   <View style={{ flex: 1, marginLeft: 26 }}>
                     <Text style={s.profileName} numberOfLines={1}>
-                      {profile.user.name ?? "사용자"}
+                      {profile.user.name ?? t("user.fallbackName", { defaultValue: "사용자" })}
                     </Text>
                     <View style={s.profileStatsRow}>
                       <TouchableOpacity
@@ -320,7 +354,9 @@ export default function UserProfileScreen() {
                         <Text style={s.profileStatValue}>
                           {profile.user.followersCount}
                         </Text>
-                        <Text style={s.profileStatLabel}>팔로워</Text>
+                        <Text style={s.profileStatLabel}>
+                          {t("user.statFollowers", { defaultValue: "팔로워" })}
+                        </Text>
                       </TouchableOpacity>
                       <View style={s.profileStatDivider} />
                       <TouchableOpacity
@@ -330,14 +366,18 @@ export default function UserProfileScreen() {
                         <Text style={s.profileStatValue}>
                           {profile.user.followingCount}
                         </Text>
-                        <Text style={s.profileStatLabel}>팔로잉</Text>
+                        <Text style={s.profileStatLabel}>
+                          {t("user.statFollowing", { defaultValue: "팔로잉" })}
+                        </Text>
                       </TouchableOpacity>
                       <View style={s.profileStatDivider} />
                       <View style={s.profileStatItem}>
                         <Text style={s.profileStatValue}>
                           {profile.clones.length}
                         </Text>
-                        <Text style={s.profileStatLabel}>클론</Text>
+                        <Text style={s.profileStatLabel}>
+                          {t("user.statClones", { defaultValue: "클론" })}
+                        </Text>
                       </View>
                     </View>
                   </View>
@@ -372,8 +412,8 @@ export default function UserProfileScreen() {
                         ]}
                       >
                         {isFollowingFromStore || profile.user.isFollowing
-                          ? "팔로잉"
-                          : "팔로우"}
+                          ? t("user.followingBtn", { defaultValue: "팔로잉" })
+                          : t("user.followBtn", { defaultValue: "팔로우" })}
                       </Text>
                     )}
                   </TouchableOpacity>
@@ -381,14 +421,19 @@ export default function UserProfileScreen() {
               </View>
 
               <Text style={s.sectionTitle}>
-                만든 클론 ({profile.clones.length})
+                {t("user.clonesSection", {
+                  n: profile.clones.length,
+                  defaultValue: "만든 클론 ({{n}})",
+                })}
               </Text>
             </>
           }
           ListEmptyComponent={
             <View style={s.empty}>
               <Feather name="users" size={32} color={COLORS.zinc300} />
-              <Text style={s.emptyText}>아직 만든 클론이 없어요</Text>
+              <Text style={s.emptyText}>
+                {t("user.emptyClones", { defaultValue: "아직 만든 클론이 없어요" })}
+              </Text>
             </View>
           }
         />
@@ -411,7 +456,9 @@ export default function UserProfileScreen() {
               }}
             >
               <Feather name="flag" size={20} color="#ef4444" />
-              <Text style={[s.moreItemText, { color: "#ef4444" }]}>신고하기</Text>
+              <Text style={[s.moreItemText, { color: "#ef4444" }]}>
+                {t("user.reportAction", { defaultValue: "신고하기" })}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[s.moreItem, { borderBottomWidth: 0 }]}
@@ -423,7 +470,9 @@ export default function UserProfileScreen() {
                 color={COLORS.zinc900}
               />
               <Text style={s.moreItemText}>
-                {isBlocked ? "차단 해제" : "차단하기"}
+                {isBlocked
+                  ? t("user.blockOff", { defaultValue: "차단 해제" })
+                  : t("user.blockOn", { defaultValue: "차단하기" })}
               </Text>
             </TouchableOpacity>
           </SwipeDownSheet>

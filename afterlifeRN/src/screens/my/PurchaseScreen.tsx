@@ -12,6 +12,8 @@ import {
   Platform,
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import type { Product, ProductSubscription } from "react-native-iap";
 import SafeView from "../../components/ui/SafeView";
 import PageHeader from "../../components/common/PageHeader";
@@ -26,10 +28,12 @@ import {
   type ConsumableSku,
 } from "../../lib/iap";
 
-function fmtSecToMin(sec: number): string {
+function fmtSecToMin(sec: number, t: TFunction): string {
   const min = Math.floor(sec / 60);
   const s = sec % 60;
-  return s > 0 ? `${min}분 ${s}초` : `${min}분`;
+  return s > 0
+    ? t("common.durationMinSec", { m: min, s, defaultValue: `${min}분 ${s}초` })
+    : t("common.durationMin", { m: min, defaultValue: `${min}분` });
 }
 
 const MOCK_PREFIX = "__mock__";
@@ -49,6 +53,7 @@ const MOCK_CONSUMABLES: Product[] = [
 const isMockSku = (id: string): boolean => id.startsWith(MOCK_PREFIX);
 
 export default function PurchaseScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const accessToken = useAuthStore((s) => s.accessToken);
   const [balance, setBalance] = useState<CreditBalance | null>(null);
@@ -106,7 +111,10 @@ export default function PurchaseScreen() {
   const handleBuySubscription = async (sku: string) => {
     if (buying) return;
     if (isMockSku(sku)) {
-      Alert.alert("MOCK 상품", "유료 앱 계약 활성화 후 실제 결제 가능합니다.");
+      Alert.alert(
+        t("purchase.mockAlertTitle", { defaultValue: "MOCK 상품" }),
+        t("purchase.mockAlertMessage", { defaultValue: "유료 앱 계약 활성화 후 실제 결제 가능합니다." }),
+      );
       return;
     }
     setBuying(sku);
@@ -117,7 +125,7 @@ export default function PurchaseScreen() {
     } catch (err) {
       const msg = (err as Error).message ?? "";
       if (!msg.includes("cancel")) {
-        Alert.alert("결제 오류", msg);
+        Alert.alert(t("purchase.paymentErrorTitle", { defaultValue: "결제 오류" }), msg);
       }
     } finally {
       setTimeout(() => setBuying(null), 3000);
@@ -127,7 +135,10 @@ export default function PurchaseScreen() {
   const handleBuyConsumable = async (sku: string) => {
     if (buying) return;
     if (isMockSku(sku)) {
-      Alert.alert("MOCK 상품", "유료 앱 계약 활성화 후 실제 결제 가능합니다.");
+      Alert.alert(
+        t("purchase.mockAlertTitle", { defaultValue: "MOCK 상품" }),
+        t("purchase.mockAlertMessage", { defaultValue: "유료 앱 계약 활성화 후 실제 결제 가능합니다." }),
+      );
       return;
     }
     setBuying(sku);
@@ -137,7 +148,7 @@ export default function PurchaseScreen() {
     } catch (err) {
       const msg = (err as Error).message ?? "";
       if (!msg.includes("cancel")) {
-        Alert.alert("결제 오류", msg);
+        Alert.alert(t("purchase.paymentErrorTitle", { defaultValue: "결제 오류" }), msg);
       }
     } finally {
       setTimeout(() => setBuying(null), 3000);
@@ -147,7 +158,7 @@ export default function PurchaseScreen() {
   return (
     <SafeView backgroundColor={COLORS.white}>
       <PageHeader
-        title="크레딧 충전 · 구독"
+        title={t("my.menu.purchase", { defaultValue: "크레딧 충전 · 구독" })}
         showBackButton
         onBackPress={() => navigation.goBack()}
       />
@@ -156,67 +167,73 @@ export default function PurchaseScreen() {
         {}
         {mockMode && (
           <View style={s.mockBanner}>
-            <Text style={s.mockBannerTitle}>⚠ MOCK 데이터 (임시)</Text>
+            <Text style={s.mockBannerTitle}>{t("purchase.mockBannerTitle", { defaultValue: "⚠ MOCK 데이터 (임시)" })}</Text>
             <Text style={s.mockBannerDesc}>
-              유료 앱 계약 미체결로 실제 상품이 안 뜹니다. UI 확인용 임시 카드예요.{"\n"}
-              탭해도 실제 결제 안 되고, 계약 활성화 후 자동 실상품 전환.
+              {t("purchase.mockBannerDesc", {
+                defaultValue:
+                  "유료 앱 계약 미체결로 실제 상품이 안 뜹니다. UI 확인용 임시 카드예요.\n탭해도 실제 결제 안 되고, 계약 활성화 후 자동 실상품 전환.",
+              })}
             </Text>
           </View>
         )}
 
         {}
         <View style={s.balanceCard}>
-          <Text style={s.balanceTitle}>남은 통화 시간</Text>
+          <Text style={s.balanceTitle}>{t("my.balance.remainingTime", { defaultValue: "남은 통화 시간" })}</Text>
           {balLoading ? (
             <ActivityIndicator color={COLORS.violet600} />
           ) : balance ? (
             <>
-              <Text style={s.balanceTotal}>{fmtSecToMin(balance.totalSec)}</Text>
+              <Text style={s.balanceTotal}>{fmtSecToMin(balance.totalSec, t)}</Text>
               <View style={s.balanceRow}>
                 <View style={s.balanceCol}>
-                  <Text style={s.balanceLabel}>무료</Text>
-                  <Text style={s.balanceVal}>{fmtSecToMin(balance.freeSec)}</Text>
+                  <Text style={s.balanceLabel}>{t("purchase.bucketFree", { defaultValue: "무료" })}</Text>
+                  <Text style={s.balanceVal}>{fmtSecToMin(balance.freeSec, t)}</Text>
                 </View>
                 <View style={s.balanceCol}>
-                  <Text style={s.balanceLabel}>구독</Text>
-                  <Text style={s.balanceVal}>{fmtSecToMin(balance.subSec)}</Text>
+                  <Text style={s.balanceLabel}>{t("purchase.bucketSub", { defaultValue: "구독" })}</Text>
+                  <Text style={s.balanceVal}>{fmtSecToMin(balance.subSec, t)}</Text>
                 </View>
                 <View style={s.balanceCol}>
-                  <Text style={s.balanceLabel}>충전</Text>
-                  <Text style={s.balanceVal}>{fmtSecToMin(balance.topupSec)}</Text>
+                  <Text style={s.balanceLabel}>{t("purchase.bucketTopup", { defaultValue: "충전" })}</Text>
+                  <Text style={s.balanceVal}>{fmtSecToMin(balance.topupSec, t)}</Text>
                 </View>
               </View>
               {balance.subscription && (
                 <Text style={s.subInfo}>
-                  {balance.subscription.planCode.toUpperCase()} 구독 활성 · 다음 갱신 {new Date(balance.subscription.periodEnd).toLocaleDateString("ko-KR")}
+                  {t("purchase.subActive", {
+                    plan: balance.subscription.planCode.toUpperCase(),
+                    date: new Date(balance.subscription.periodEnd).toLocaleDateString("ko-KR"),
+                    defaultValue: `${balance.subscription.planCode.toUpperCase()} 구독 활성 · 다음 갱신 ${new Date(balance.subscription.periodEnd).toLocaleDateString("ko-KR")}`,
+                  })}
                 </Text>
               )}
             </>
           ) : (
-            <Text style={s.balanceLabel}>잔액 조회 실패</Text>
+            <Text style={s.balanceLabel}>{t("my.balance.failed", { defaultValue: "잔액 조회 실패" })}</Text>
           )}
         </View>
 
         {}
-        <Text style={s.sectionTitle}>월 구독</Text>
-        <Text style={s.sectionDesc}>매월 자동 갱신. 언제든 해지 가능.</Text>
+        <Text style={s.sectionTitle}>{t("purchase.subSectionTitle", { defaultValue: "월 구독" })}</Text>
+        <Text style={s.sectionDesc}>{t("purchase.subSectionDesc", { defaultValue: "매월 자동 갱신. 언제든 해지 가능." })}</Text>
 
         {prodLoading ? (
           <ActivityIndicator color={COLORS.violet600} style={{ marginVertical: 20 }} />
         ) : subs.length === 0 ? (
           <View style={s.emptyBlock}>
-            <Text style={s.emptyText}>구독 상품을 불러올 수 없어요.</Text>
+            <Text style={s.emptyText}>{t("purchase.subLoadFailed", { defaultValue: "구독 상품을 불러올 수 없어요." })}</Text>
             <Text style={s.emptyHint}>
               {Platform.OS === "ios"
-                ? "설정 → App Store → Sandbox 계정 로그인 확인 후 다시 시도해주세요."
-                : "잠시 후 다시 시도해주세요."}
+                ? t("purchase.subLoadHintIos", { defaultValue: "설정 → App Store → Sandbox 계정 로그인 확인 후 다시 시도해주세요." })
+                : t("purchase.subLoadHintOther", { defaultValue: "잠시 후 다시 시도해주세요." })}
             </Text>
             <TouchableOpacity
               style={s.retryBtn}
               onPress={refreshProducts}
               activeOpacity={0.85}
             >
-              <Text style={s.retryBtnText}>다시 시도</Text>
+              <Text style={s.retryBtnText}>{t("common.retry", { defaultValue: "다시 시도" })}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -242,20 +259,20 @@ export default function PurchaseScreen() {
         )}
 
         {}
-        <Text style={[s.sectionTitle, { marginTop: 32 }]}>충전 (일회성)</Text>
-        <Text style={s.sectionDesc}>구독과 별개로 통화 시간을 추가할 수 있어요. 5년 유효.</Text>
+        <Text style={[s.sectionTitle, { marginTop: 32 }]}>{t("purchase.topupSectionTitle", { defaultValue: "충전 (일회성)" })}</Text>
+        <Text style={s.sectionDesc}>{t("purchase.topupSectionDesc", { defaultValue: "구독과 별개로 통화 시간을 추가할 수 있어요. 5년 유효." })}</Text>
 
         {prodLoading ? (
           <ActivityIndicator color={COLORS.violet600} style={{ marginVertical: 20 }} />
         ) : consumables.length === 0 ? (
           <View style={s.emptyBlock}>
-            <Text style={s.emptyText}>충전 상품을 불러올 수 없어요.</Text>
+            <Text style={s.emptyText}>{t("purchase.topupLoadFailed", { defaultValue: "충전 상품을 불러올 수 없어요." })}</Text>
             <TouchableOpacity
               style={s.retryBtn}
               onPress={refreshProducts}
               activeOpacity={0.85}
             >
-              <Text style={s.retryBtnText}>다시 시도</Text>
+              <Text style={s.retryBtnText}>{t("common.retry", { defaultValue: "다시 시도" })}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -282,15 +299,17 @@ export default function PurchaseScreen() {
 
         {Platform.OS === "android" && (
           <Text style={[s.emptyText, { marginTop: 20 }]}>
-            Android 결제는 준비 중이에요. iOS 로 먼저 이용해주세요.
+            {t("purchase.androidNotReady", { defaultValue: "Android 결제는 준비 중이에요. iOS 로 먼저 이용해주세요." })}
           </Text>
         )}
 
         {}
         <View style={{ marginTop: 32, alignItems: "center" }}>
           <Text style={s.footer}>
-            자동 갱신 구독은 해지 전까지 매 주기 결제됩니다.{"\n"}
-            해지: 설정 → Apple ID → 구독 → afterlife
+            {t("purchase.termsFooter", {
+              defaultValue:
+                "자동 갱신 구독은 해지 전까지 매 주기 결제됩니다.\n해지: 설정 → Apple ID → 구독 → afterlife",
+            })}
           </Text>
         </View>
       </ScrollView>

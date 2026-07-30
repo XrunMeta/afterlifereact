@@ -125,7 +125,10 @@ export default function LoginScreen({ navigation }: Props) {
       }
 
       if (err instanceof AuthApiError && err.code === "ACCOUNT_SUSPENDED") {
-        showAlert("계정 사용 정지", err.message || "신고 누적으로 계정 사용이 정지되었습니다.");
+        showAlert(
+          t("auth.login.accountSuspendedTitle"),
+          err.message || t("auth.login.accountSuspendedMessage"),
+        );
         return;
       }
       let msg = t("auth.login.loginFailed");
@@ -150,7 +153,7 @@ export default function LoginScreen({ navigation }: Props) {
   const handleSendOtp = async () => {
     const e = email.trim().toLowerCase();
     if (!/^\S+@\S+\.\S+$/.test(e)) {
-      showAlert(t("common.notice"), "이메일 형식이 올바르지 않아요.");
+      showAlert(t("common.notice"), t("common.emailInvalid"));
       return;
     }
     setOtpBusy(true);
@@ -170,7 +173,10 @@ export default function LoginScreen({ navigation }: Props) {
     if (provider === "google") {
       try {
         if (!ensureGoogleConfigured()) {
-          showAlert("구글 로그인을 사용할 수 없어요", "잠시 후 다시 시도해 주세요.");
+          showAlert(
+            t("auth.login.googleUnavailableTitle"),
+            t("auth.login.googleUnavailableMessage"),
+          );
           return;
         }
         await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
@@ -185,7 +191,7 @@ export default function LoginScreen({ navigation }: Props) {
         };
         const idToken = userInfo?.idToken ?? userInfo?.data?.idToken;
         if (!idToken) {
-          showAlert("오류", "Google 로그인 토큰을 받지 못했습니다.");
+          showAlert(t("common.error"), t("auth.login.googleNoToken"));
           return;
         }
 
@@ -237,7 +243,7 @@ export default function LoginScreen({ navigation }: Props) {
     }
     if (provider === "apple") {
       if (Platform.OS !== "ios") {
-        showAlert("안내", "Apple 로그인은 iOS 에서만 지원돼요.");
+        showAlert(t("common.notice"), t("auth.login.appleIosOnly"));
         return;
       }
       try {
@@ -249,7 +255,7 @@ export default function LoginScreen({ navigation }: Props) {
           ],
         });
         if (!credential.identityToken) {
-          showAlert("오류", "Apple identityToken 을 받지 못했어요.");
+          showAlert(t("common.error"), t("auth.login.appleNoToken"));
           return;
         }
         const deviceId = await getOrCreateDeviceId();
@@ -292,8 +298,8 @@ export default function LoginScreen({ navigation }: Props) {
           console.warn("[AppleAuth] system noise (silent):", rawMsg || err?.code);
           return;
         }
-        const msg = (err instanceof AuthApiError ? err.message : err?.message) || "Apple 로그인 실패";
-        showAlert("Apple 로그인 실패", msg);
+        const msg = (err instanceof AuthApiError ? err.message : err?.message) || t("auth.login.appleFailed");
+        showAlert(t("auth.login.appleFailed"), msg);
       }
       return;
     }
@@ -323,7 +329,7 @@ export default function LoginScreen({ navigation }: Props) {
               onPress={() => setMode("account")}
             >
               <Text style={[styles.tabText, mode === "account" && styles.tabTextActive]}>
-                계정 로그인
+                {t("auth.login.tabAccount")}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -331,7 +337,7 @@ export default function LoginScreen({ navigation }: Props) {
               onPress={() => setMode("otp")}
             >
               <Text style={[styles.tabText, mode === "otp" && styles.tabTextActive]}>
-                이메일 OTP 로그인
+                {t("auth.login.tabOtp")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -402,7 +408,7 @@ export default function LoginScreen({ navigation }: Props) {
                 <Text style={styles.checkboxLabel}>{t("auth.login.autoLoginLabel")}</Text>
               </TouchableOpacity>
               <Button
-                title={otpBusy ? "전송 중..." : "인증코드 받기"}
+                title={otpBusy ? t("auth.login.sendingOtp") : t("auth.login.requestOtp")}
                 onPress={handleSendOtp}
                 variant="primary"
                 disabled={otpBusy || !email.trim()}
@@ -438,7 +444,7 @@ export default function LoginScreen({ navigation }: Props) {
           {Platform.OS === "ios" && (
             <View style={{ marginTop: 10 }}>
               <Button
-                title="Apple 로 로그인"
+                title={t("auth.login.appleBtn")}
                 onPress={() => handleSocialLogin("apple")}
                 variant="secondary"
                 size="md"

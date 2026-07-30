@@ -14,6 +14,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Clipboard from "expo-clipboard";
+import { useTranslation } from "react-i18next";
 import { COLORS, RADIUS } from "../constants";
 import { useAuthStore } from "../../stores/authStore";
 
@@ -51,6 +52,7 @@ interface Props {
 }
 
 export default function PaymentPinPromptModal({ visible, onClose }: Props) {
+  const { t } = useTranslation();
   const email = useAuthStore((s) => s.apiUser?.email ?? null);
 
   const handleOpenXrun = async () => {
@@ -96,18 +98,26 @@ export default function PaymentPinPromptModal({ visible, onClose }: Props) {
           <View style={s.iconCircle}>
             <Feather name="lock" size={28} color={COLORS.violet500} />
           </View>
-          <Text style={s.title}>XRUN PIN를 설정해주세요</Text>
+          <Text style={s.title}>
+            {t("settings.paymentPin.promptTitle", { defaultValue: "XRUN PIN를 설정해주세요" })}
+          </Text>
           <Text style={s.body}>
-            xrun 앱에서 6자리 XRUN PIN를 등록해야 결제 기능을 사용할 수 있어요.
+            {t("settings.paymentPin.promptDesc", {
+              defaultValue: "xrun 앱에서 6자리 XRUN PIN를 등록해야 결제 기능을 사용할 수 있어요.",
+            })}
           </Text>
 
           <TouchableOpacity style={s.primaryBtn} onPress={handleOpenXrun}>
             <Feather name="external-link" size={16} color={COLORS.white} />
-            <Text style={s.primaryBtnText}>xrun 앱에서 설정하기</Text>
+            <Text style={s.primaryBtnText}>
+              {t("settings.paymentPin.promptOpen", { defaultValue: "xrun 앱에서 설정하기" })}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={s.secondaryBtn} onPress={handleDismiss}>
-            <Text style={s.secondaryBtnText}>오늘은 그만 보기</Text>
+            <Text style={s.secondaryBtnText}>
+              {t("settings.paymentPin.promptDismiss", { defaultValue: "오늘은 그만 보기" })}
+            </Text>
           </TouchableOpacity>
         </Pressable>
       </Pressable>

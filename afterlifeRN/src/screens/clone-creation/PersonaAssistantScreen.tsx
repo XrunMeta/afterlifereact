@@ -45,7 +45,6 @@ type Props = {
   navigation: NativeStackNavigationProp<CreateStackParamList, 'PersonaAssistant'>;
 };
 
-const AI_NAME = '클론 생성 도우미';
 const AI_AVATAR_SRC = require('../../../assets/images/symbol.png');
 
 function isVisible(q: PersonaQuestion, answers: Record<string, string>): boolean {
@@ -56,27 +55,6 @@ function isVisible(q: PersonaQuestion, answers: Record<string, string>): boolean
 }
 
 type SystemPhase = 'name' | 'username' | 'relation';
-
-const SYS_PROMPTS: Record<SystemPhase, string> = {
-  name: '안녕하세요! 클론 생성 도우미입니다.\n\n지금 생성하는 클론의 이름이 뭔가요?\n평소에 부르던 이름이나 별명도 좋아요.',
-  username:
-    '@아이디는 어떻게 할까요?\n영문 소문자, 숫자, _ 만 가능해요. 비워두시면 자동으로 만들어드릴게요!',
-  relation: '어떤 관계인가요?\n아래에서 선택해 주세요.',
-};
-
-const SYS_PLACEHOLDERS: Record<SystemPhase, string> = {
-  name: '예: 별이, 할머니, 모리',
-  username: '예: starry_kim (비워두면 자동 생성)',
-  relation: '',
-};
-
-const SYS_ACK: Record<SystemPhase, string> = {
-  name: '좋아요, 잘 기억해뒀어요!',
-  username: '확인했어요! 다음 질문이에요.',
-  relation: '알겠어요! 계속 진행할게요.',
-};
-
-const DYNAMIC_ACK = '좋아요!';
 
 interface ChatMessage {
   id: string;
@@ -103,6 +81,36 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const setCreationDraft = useCloneStore((s) => s.setCreationDraft);
   const accessToken = useAuthStore((s) => s.accessToken);
+
+  const AI_NAME = t('create.assistant.aiName', { defaultValue: '클론 생성 도우미' });
+  const SYS_PROMPTS: Record<SystemPhase, string> = {
+    name: t('create.assistant.promptName', {
+      defaultValue:
+        '안녕하세요! 클론 생성 도우미입니다.\n\n지금 생성하는 클론의 이름이 뭔가요?\n평소에 부르던 이름이나 별명도 좋아요.',
+    }),
+    username: t('create.assistant.promptUsername', {
+      defaultValue:
+        '@아이디는 어떻게 할까요?\n영문 소문자, 숫자, _ 만 가능해요. 비워두시면 자동으로 만들어드릴게요!',
+    }),
+    relation: t('create.assistant.promptRelation', {
+      defaultValue: '어떤 관계인가요?\n아래에서 선택해 주세요.',
+    }),
+  };
+  const SYS_PLACEHOLDERS: Record<SystemPhase, string> = {
+    name: t('create.assistant.placeholderName', { defaultValue: '예: 별이, 할머니, 모리' }),
+    username: t('create.assistant.placeholderUsername', {
+      defaultValue: '예: starry_kim (비워두면 자동 생성)',
+    }),
+    relation: '',
+  };
+  const SYS_ACK: Record<SystemPhase, string> = {
+    name: t('create.assistant.ackName', { defaultValue: '좋아요, 잘 기억해뒀어요!' }),
+    username: t('create.assistant.ackUsername', { defaultValue: '확인했어요! 다음 질문이에요.' }),
+    relation: t('create.assistant.ackRelation', { defaultValue: '알겠어요! 계속 진행할게요.' }),
+  };
+  const DYNAMIC_ACK = t('create.assistant.ackDynamic', { defaultValue: '좋아요!' });
+  const BTN_CUSTOM = t('create.assistant.btnCustom', { defaultValue: '직접 입력' });
+  const BTN_SKIP = t('create.assistant.btnSkip', { defaultValue: '건너뛰기' });
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [aiTyping, setAiTyping] = useState(false);
@@ -247,7 +255,11 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
       if (idx >= visible.length) {
 
         setPhase('done');
-        await pushAi('다 들었어요! 이제 다음 단계로 갈게요.', undefined, 500);
+        await pushAi(
+          t('create.assistant.allDone', { defaultValue: '다 들었어요! 이제 다음 단계로 갈게요.' }),
+          undefined,
+          500,
+        );
         setTimeout(() => {
           const answers = answersRef.current;
           setCreationDraft({
@@ -288,10 +300,10 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
 
         const forced = q.options_include ?? [];
         const merged = [...new Set([...forced, ...cands])].slice(0, 5);
-        buttons = merged.length > 0 ? [...merged, '직접 입력'] : ['직접 입력'];
+        buttons = merged.length > 0 ? [...merged, BTN_CUSTOM] : [BTN_CUSTOM];
       }
       if (q.type === 'fixed_choice' && (q.optional !== false)) {
-        buttons = [...buttons, '건너뛰기'];
+        buttons = [...buttons, BTN_SKIP];
       }
 
       setPhase(`schema:${idx}`);
@@ -321,7 +333,11 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
 
       if (relId === 'other') {
         setPhase('sys:relation-custom');
-        await pushAi('어떤 관계인지 직접 알려주세요!', undefined, 300);
+        await pushAi(
+          t('create.assistant.askRelationCustom', { defaultValue: '어떤 관계인지 직접 알려주세요!' }),
+          undefined,
+          300,
+        );
         return;
       }
 
@@ -341,9 +357,9 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
       if (currentVisibleIdx === null) return;
       markReplied(msgId);
 
-      if (value === '건너뛰기') {
+      if (value === BTN_SKIP) {
 
-        pushUser('(건너뛰기)');
+        pushUser(t('create.assistant.userSkip', { defaultValue: '(건너뛰기)' }));
 
         const next = { ...answersRef.current.schemaAnswers };
         delete next[q.key];
@@ -359,10 +375,14 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
         return;
       }
 
-      if (value === '직접 입력') {
+      if (value === BTN_CUSTOM) {
 
         markReplied(msgId);
-        await pushAi('직접 입력해 주세요!', undefined, 300);
+        await pushAi(
+          t('create.assistant.askCustomInput', { defaultValue: '직접 입력해 주세요!' }),
+          undefined,
+          300,
+        );
 
         return;
       }
@@ -402,7 +422,12 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
       if (text.length === 0) {
 
         const derived = deriveUsernameFromName(answersRef.current.name || 'user');
-        pushUser(`(빈 칸 — ${derived} 로 자동 생성)`);
+        pushUser(
+          t('create.assistant.usernameAutoDerived', {
+            derived,
+            defaultValue: `(빈 칸 — ${derived} 로 자동 생성)`,
+          }),
+        );
         answersRef.current.username = derived;
         setCreationDraft({ username: derived });
         setInput('');
@@ -415,25 +440,45 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
       }
       const raw = text.toLowerCase();
       if (!/^[a-z0-9_]+$/.test(raw)) {
-        showAlert('아이디 형식 오류', '영문 소문자, 숫자, _ 만 사용 가능해요.');
+        showAlert(
+          t('create.assistant.usernameFormatTitle', { defaultValue: '아이디 형식 오류' }),
+          t('create.assistant.usernameFormatMsg', { defaultValue: '영문 소문자, 숫자, _ 만 사용 가능해요.' }),
+        );
         return;
       }
       if (raw.length < 3) {
-        showAlert('아이디 길이', '아이디는 3자 이상이어야 해요.');
+        showAlert(
+          t('create.assistant.usernameLengthTitle', { defaultValue: '아이디 길이' }),
+          t('create.assistant.usernameTooShortMsg', { defaultValue: '아이디는 3자 이상이어야 해요.' }),
+        );
         return;
       }
       if (raw.length > 30) {
-        showAlert('아이디 길이', '아이디는 30자 이하여야 해요.');
+        showAlert(
+          t('create.assistant.usernameLengthTitle', { defaultValue: '아이디 길이' }),
+          t('create.assistant.usernameTooLongMsg', { defaultValue: '아이디는 30자 이하여야 해요.' }),
+        );
         return;
       }
       setCheckingUsername(true);
       try {
         const r = await checkCloneUsername(raw);
         if (!r.available) {
-          let msg = '이미 사용중인 아이디예요. 다른 걸 입력해주세요.';
-          if (r.reason === 'reserved') msg = '예약된 아이디입니다. 다른 아이디를 입력해주세요.';
-          else if (r.reason === 'invalid') msg = '아이디 형식이 올바르지 않아요.';
-          showAlert('사용할 수 없는 아이디', msg);
+          let msg = t('create.assistant.usernameInUse', {
+            defaultValue: '이미 사용중인 아이디예요. 다른 걸 입력해주세요.',
+          });
+          if (r.reason === 'reserved')
+            msg = t('create.assistant.usernameReserved', {
+              defaultValue: '예약된 아이디입니다. 다른 아이디를 입력해주세요.',
+            });
+          else if (r.reason === 'invalid')
+            msg = t('create.assistant.usernameInvalid', {
+              defaultValue: '아이디 형식이 올바르지 않아요.',
+            });
+          showAlert(
+            t('create.assistant.usernameUnavailableTitle', { defaultValue: '사용할 수 없는 아이디' }),
+            msg,
+          );
           return;
         }
       } catch {
@@ -519,16 +564,21 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
   const inputPlaceholder = (() => {
     if (phase === 'sys:name') return SYS_PLACEHOLDERS.name;
     if (phase === 'sys:username') return SYS_PLACEHOLDERS.username;
-    if (phase === 'sys:relation-custom') return '예: 할아버지, 은사님, 동료...';
+    if (phase === 'sys:relation-custom')
+      return t('create.assistant.placeholderRelationCustom', {
+        defaultValue: '예: 할아버지, 은사님, 동료...',
+      });
     if (phase.startsWith('schema:') && currentVisibleIdx !== null) {
       const visible = questions.filter((q) =>
         isVisible(q, answersRef.current.schemaAnswers),
       );
       const q = visible[currentVisibleIdx];
-      if (q?.type === 'text') return '자유롭게 입력해 주세요...';
-      if (q?.type === 'gemma_choice') return '직접 입력...';
+      if (q?.type === 'text')
+        return t('create.assistant.placeholderText', { defaultValue: '자유롭게 입력해 주세요...' });
+      if (q?.type === 'gemma_choice')
+        return t('create.assistant.placeholderCustom', { defaultValue: '직접 입력...' });
     }
-    return '답변을 입력하세요...';
+    return t('create.assistant.placeholderDefault', { defaultValue: '답변을 입력하세요...' });
   })();
 
   const isMultiline = (() => {
