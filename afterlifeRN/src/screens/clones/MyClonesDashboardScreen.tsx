@@ -418,7 +418,7 @@ export default function v_def15b() {
       await v_976b89(v_2ca7e0, { avatarUrl: v_57ac81.url });
       v_21f395({ avatarUrl: v_57ac81.url });
     } catch (v_49263d) {
-      const v_badeaf = v_49263d instanceof Error ? v_49263d.message : "이미지 업로드에 실패했어요";
+      const v_badeaf = v_49263d instanceof Error ? v_49263d.message : v_8d41d7("dashboard.uploadAvatarFailed", { defaultValue: "이미지 업로드에 실패했어요" });
       v_889fad(v_8d41d7("common.error", { defaultValue: "오류" }), v_badeaf);
     } finally {
       v_5eda29(false);
@@ -518,10 +518,10 @@ export default function v_def15b() {
 
   const v_82830c = (v: v_b0b271) => {
     switch (v_81e2ef) {
-      case "public": return "전체 공개";
-      case "followers": return "팔로워만";
-      case "selected": return "특정 친구";
-      case "private": return "나만 보기";
+      case "public": return v_8d41d7("dashboard.visibilityPublic", { defaultValue: "전체 공개" });
+      case "followers": return v_8d41d7("dashboard.visibilityFollowers", { defaultValue: "팔로워만" });
+      case "selected": return v_8d41d7("dashboard.visibilitySelected", { defaultValue: "특정 친구" });
+      case "private": return v_8d41d7("dashboard.visibilityPrivate", { defaultValue: "나만 보기" });
     }
   };
 
@@ -628,7 +628,7 @@ export default function v_def15b() {
             >
               <Feather name="user" size={14} color={v_1bfbd0.zinc500} />
               <Text style={v_fd5f43.statText} testID={`follower-count-${v_eb25ce.id}`}>
-                {v_e17daa} 구독자
+                {v_8d41d7("dashboard.followerCount", { n: v_e17daa, defaultValue: "{{n}} 구독자" })}
               </Text>
             </TouchableOpacity>
             {
@@ -638,7 +638,7 @@ export default function v_def15b() {
               onPress={() => v_598141({ cloneId: v_eb25ce.id, cloneName: v_eb25ce.displayName })}
             >
               <Ionicons name="chatbubbles-outline" size={14} color={v_1bfbd0.zinc500} />
-              <Text style={v_fd5f43.statText}>상호작용</Text>
+              <Text style={v_fd5f43.statText}>{v_8d41d7("dashboard.statInteraction", { defaultValue: "상호작용" })}</Text>
             </TouchableOpacity>
             {}
           </View>
@@ -648,9 +648,9 @@ export default function v_def15b() {
         {v_eb25ce.status === 'pending_assets' && (
           <View style={v_fd5f43.pendingBadge}>
             <Feather name="clock" size={12} color={v_1bfbd0.zinc600} />
-            <Text style={v_fd5f43.pendingText}>생성대기중</Text>
+            <Text style={v_fd5f43.pendingText}>{v_8d41d7("dashboard.pendingAssetsBadge", { defaultValue: "생성대기중" })}</Text>
             <TouchableOpacity onPress={() => v_c65f5d.navigate('CloneEdit', { cloneId: v_eb25ce.id })}>
-              <Text style={v_fd5f43.pendingCta}>사진/음성 추가하기</Text>
+              <Text style={v_fd5f43.pendingCta}>{v_8d41d7("dashboard.pendingAssetsCta", { defaultValue: "사진/음성 추가하기" })}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -686,7 +686,11 @@ export default function v_def15b() {
 
               const v_8f7097 = encodeURIComponent(v_eb25ce.displayName ?? "");
               const v_f71b56 = `https://www.xrun.run/clone?id=${v_eb25ce.id}&name=${v_8f7097}`;
-              const v_a8cd21 = `${v_eb25ce.displayName} 클론과 대화해보세요!\n${v_f71b56}`;
+              const v_a8cd21 = v_8d41d7("dashboard.shareMessage", {
+                name: v_eb25ce.displayName ?? "",
+                url: v_f71b56,
+                defaultValue: "{{name}} 클론과 대화해보세요!\n{{url}}",
+              });
               try {
                 await v_5f4661.share(
                   v_326be8.OS === "ios"
@@ -740,7 +744,7 @@ export default function v_def15b() {
       {v_2ca7e0 && v_8a7926 === null ? (
         <View style={v_fd5f43.dashLoading}>
           <ActivityIndicator color={v_1bfbd0.violet600} size="large" />
-          <Text style={v_fd5f43.dashLoadingText}>불러오는 중...</Text>
+          <Text style={v_fd5f43.dashLoadingText}>{v_8d41d7("common.loading")}</Text>
         </View>
       ) : (
       <FlatList
@@ -763,9 +767,9 @@ export default function v_def15b() {
             <View style={v_fd5f43.dashEmptyIconWrap}>
               <Feather name="user-plus" size={32} color={v_1bfbd0.zinc400} />
             </View>
-            <Text style={v_fd5f43.dashEmptyTitle}>나만의 클론을 만들어보세요</Text>
+            <Text style={v_fd5f43.dashEmptyTitle}>{v_8d41d7("dashboard.emptyTitle", { defaultValue: "나만의 클론을 만들어보세요" })}</Text>
             <Text style={v_fd5f43.dashEmptyDesc}>
-              아래 버튼을 눌러 첫 클론을 만들 수 있어요
+              {v_8d41d7("dashboard.emptyDesc", { defaultValue: "아래 버튼을 눌러 첫 클론을 만들 수 있어요" })}
             </Text>
             <TouchableOpacity
               style={v_fd5f43.dashEmptyBtn}
@@ -781,7 +785,7 @@ export default function v_def15b() {
               }
             >
               <Feather name="plus" size={18} color={v_1bfbd0.white} />
-              <Text style={v_fd5f43.dashEmptyBtnText}>클론 만들기</Text>
+              <Text style={v_fd5f43.dashEmptyBtnText}>{v_8d41d7("home.createClone")}</Text>
             </TouchableOpacity>
           </View>
         }
@@ -822,7 +826,7 @@ export default function v_def15b() {
                 </View>
                 <View style={{ flex: 1, marginLeft: 26 }}>
                   <Text style={v_fd5f43.profileName} numberOfLines={1}>
-                    {v_b113dd?.name ?? v_f38ee5?.displayName ?? "사용자"}
+                    {v_b113dd?.name ?? v_f38ee5?.displayName ?? v_8d41d7("my.userFallback")}
                   </Text>
                   <View style={v_fd5f43.profileStatsRow}>
                     <TouchableOpacity
@@ -838,7 +842,7 @@ export default function v_def15b() {
                       }}
                     >
                       <Text style={v_fd5f43.profileStatValue}>{v_a7e127}</Text>
-                      <Text style={v_fd5f43.profileStatLabel}>팔로워</Text>
+                      <Text style={v_fd5f43.profileStatLabel}>{v_8d41d7("dashboard.profileStatFollowers", { defaultValue: "팔로워" })}</Text>
                     </TouchableOpacity>
                     <View style={v_fd5f43.profileStatDivider} />
                     <TouchableOpacity
@@ -854,12 +858,12 @@ export default function v_def15b() {
                       }}
                     >
                       <Text style={v_fd5f43.profileStatValue}>{v_48d264}</Text>
-                      <Text style={v_fd5f43.profileStatLabel}>팔로잉</Text>
+                      <Text style={v_fd5f43.profileStatLabel}>{v_8d41d7("dashboard.profileStatFollowing", { defaultValue: "팔로잉" })}</Text>
                     </TouchableOpacity>
                     <View style={v_fd5f43.profileStatDivider} />
                     <View style={v_fd5f43.profileStatItem}>
                       <Text style={v_fd5f43.profileStatValue}>{v_fc7f92.length}</Text>
-                      <Text style={v_fd5f43.profileStatLabel}>클론</Text>
+                      <Text style={v_fd5f43.profileStatLabel}>{v_8d41d7("dashboard.profileStatClones", { defaultValue: "클론" })}</Text>
                     </View>
                   </View>
                 </View>
@@ -877,32 +881,38 @@ export default function v_def15b() {
               }}
             >
               <View style={{ flex: 1 }}>
-                <Text style={v_fd5f43.balanceLabel}>남은 통화 시간</Text>
+                <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("my.balance.remainingTime")}</Text>
                 {v_747a87 && !v_c88e9b ? (
                   <ActivityIndicator color={v_1bfbd0.violet600} style={{ marginTop: 6 }} />
                 ) : v_c88e9b ? (
                   <>
                     <Text style={v_fd5f43.balanceTotal}>
                       {(() => {
-                        const v_fd5f43 = Math.max(0, Math.floor(v_c88e9b.totalSec));
-                        const v_35f85c = Math.floor(v_fd5f43 / 60);
-                        const v_3300b9 = v_fd5f43 % 60;
-                        if (v_35f85c === 0) return `${v_3300b9}초`;
-                        return v_3300b9 > 0 ? `${v_35f85c}분 ${v_3300b9}초` : `${v_35f85c}분`;
+                        const v_b3dc28 = Math.max(0, Math.floor(v_c88e9b.totalSec));
+                        const v_35f85c = Math.floor(v_b3dc28 / 60);
+                        const v_3300b9 = v_b3dc28 % 60;
+                        if (v_35f85c === 0) return v_8d41d7("common.durationSec", { s: v_3300b9 });
+                        return v_3300b9 > 0
+                          ? v_8d41d7("common.durationMinSec", { m: v_35f85c, s: v_3300b9 })
+                          : v_8d41d7("common.durationMin", { m: v_35f85c });
                       })()}
                     </Text>
                     <Text style={v_fd5f43.balanceBreakdown}>
-                      무료 {Math.floor(v_c88e9b.freeSec / 60)}분
-                      {v_c88e9b.subSec > 0 ? ` · 구독 ${Math.floor(v_c88e9b.subSec / 60)}분` : ""}
-                      {v_c88e9b.topupSec > 0 ? ` · 충전 ${Math.floor(v_c88e9b.topupSec / 60)}분` : ""}
+                      {v_8d41d7("my.balance.free", { time: v_8d41d7("common.durationMin", { m: Math.floor(v_c88e9b.freeSec / 60) }) })}
+                      {v_c88e9b.subSec > 0
+                        ? ` · ${v_8d41d7("my.balance.sub", { time: v_8d41d7("common.durationMin", { m: Math.floor(v_c88e9b.subSec / 60) }) })}`
+                        : ""}
+                      {v_c88e9b.topupSec > 0
+                        ? ` · ${v_8d41d7("my.balance.topup", { time: v_8d41d7("common.durationMin", { m: Math.floor(v_c88e9b.topupSec / 60) }) })}`
+                        : ""}
                     </Text>
                   </>
                 ) : (
-                  <Text style={v_fd5f43.balanceEmpty}>잔액 조회 실패</Text>
+                  <Text style={v_fd5f43.balanceEmpty}>{v_8d41d7("my.balance.failed")}</Text>
                 )}
               </View>
               <View style={v_fd5f43.balanceCta}>
-                <Text style={v_fd5f43.balanceCtaText}>충전</Text>
+                <Text style={v_fd5f43.balanceCtaText}>{v_8d41d7("my.balance.charge")}</Text>
                 <Feather name="chevron-right" size={16} color="#fff" />
               </View>
             </TouchableOpacity>
@@ -916,7 +926,7 @@ export default function v_def15b() {
         ListFooterComponent={
           v_959d04.length > 0 ? (
             <View style={v_fd5f43.systemClonesSection}>
-              <Text style={v_fd5f43.systemClonesSectionTitle}>통화 가능</Text>
+              <Text style={v_fd5f43.systemClonesSectionTitle}>{v_8d41d7("dashboard.systemClonesTitle", { defaultValue: "통화 가능" })}</Text>
               {v_959d04.map((v_69bba6) => (
                 <View key={v_69bba6.id} style={v_fd5f43.card}>
                   <View style={v_fd5f43.cloneHeader}>
@@ -989,22 +999,24 @@ export default function v_def15b() {
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_3e0da5(null)}>
           <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
             <Text style={v_fd5f43.modalTitle}>
-              {v_16ef58?.currentState ? "클론 비활성화" : "클론 활성화"}
+              {v_16ef58?.currentState
+                ? v_8d41d7("dashboard.toggleDeactivateTitle", { defaultValue: "클론 비활성화" })
+                : v_8d41d7("dashboard.toggleActivateTitle", { defaultValue: "클론 활성화" })}
             </Text>
             <Text style={v_fd5f43.modalDesc}>
               {v_16ef58?.currentState
-                ? "클론을 비활성화하시겠습니까? 비활성화 시 다른 사용자에게 노출되지 않습니다."
-                : "클론을 활성화하시겠습니까? 활성화 시 다른 사용자에게 노출됩니다."}
+                ? v_8d41d7("dashboard.toggleDeactivateDesc", { defaultValue: "클론을 비활성화하시겠습니까? 비활성화 시 다른 사용자에게 노출되지 않습니다." })
+                : v_8d41d7("dashboard.toggleActivateDesc", { defaultValue: "클론을 활성화하시겠습니까? 활성화 시 다른 사용자에게 노출됩니다." })}
             </Text>
             <View style={v_fd5f43.modalBtns}>
               <Button
-                title="취소"
+                title={v_8d41d7("common.cancel")}
                 variant="ghost"
                 onPress={() => v_3e0da5(null)}
                 style={v_fd5f43.modalBtnHalf}
               />
               <Button
-                title="확인"
+                title={v_8d41d7("common.confirm")}
                 variant="primary"
                 onPress={v_a5c1a8}
                 style={v_fd5f43.modalBtnHalf}
@@ -1018,8 +1030,8 @@ export default function v_def15b() {
       <Modal visible={!!v_7462ec} transparent animationType="fade">
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_2dbd8f(null)}>
           <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
-            <Text style={v_fd5f43.modalTitle}>공개 범위</Text>
-            <Text style={v_fd5f43.modalDesc}>이 클론을 누구에게 보일까요?</Text>
+            <Text style={v_fd5f43.modalTitle}>{v_8d41d7("dashboard.visibilityChooseTitle", { defaultValue: "공개 범위" })}</Text>
+            <Text style={v_fd5f43.modalDesc}>{v_8d41d7("dashboard.visibilityChooseDesc", { defaultValue: "이 클론을 누구에게 보일까요?" })}</Text>
             <View style={v_fd5f43.visibilityOptions}>
               {(["public", "followers", "selected", "private"] as v_b0b271[]).map((v_81e2ef) => {
                 const v_587413 = v_7462ec?.currentVisibility === v_81e2ef;
@@ -1047,7 +1059,7 @@ export default function v_def15b() {
               })}
             </View>
             <Button
-              title="취소"
+              title={v_8d41d7("common.cancel")}
               variant="ghost"
               onPress={() => v_2dbd8f(null)}
               style={{ marginTop: 12, width: "100%" }}
@@ -1095,13 +1107,13 @@ export default function v_def15b() {
             </Text>
             <View style={v_fd5f43.modalBtns}>
               <Button
-                title="취소"
+                title={v_8d41d7("common.cancel")}
                 variant="ghost"
                 onPress={() => v_f32c49(null)}
                 style={v_fd5f43.modalBtnHalf}
               />
               <Button
-                title="삭제"
+                title={v_8d41d7("common.delete")}
                 variant="danger"
                 onPress={v_6ff8af}
                 style={v_fd5f43.modalBtnHalf}
@@ -1115,10 +1127,10 @@ export default function v_def15b() {
       <Modal visible={!!v_b10b7b} transparent animationType="fade">
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_b816d4(null)}>
           <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
-            <Text style={v_fd5f43.modalTitle}>알림</Text>
+            <Text style={v_fd5f43.modalTitle}>{v_8d41d7("common.notice")}</Text>
             <Text style={v_fd5f43.modalDesc}>{v_b10b7b}</Text>
             <Button
-              title="확인"
+              title={v_8d41d7("common.confirm")}
               variant="primary"
               onPress={() => v_b816d4(null)}
               style={{ width: "100%" }}
@@ -1142,10 +1154,10 @@ export default function v_def15b() {
           >
             <View style={v_fd5f43.sheetHandle} />
             <Text style={v_fd5f43.statsSheetTitle}>
-              {v_8bb912?.type === "likes" && "좋아요"}
-              {v_8bb912?.type === "interactions" && "상호작용"}
-              {v_8bb912?.type === "comments" && "댓글"}
-              {v_8bb912?.type === "followers" && "구독자"}
+              {v_8bb912?.type === "likes" && v_8d41d7("dashboard.statsLikes", { defaultValue: "좋아요" })}
+              {v_8bb912?.type === "interactions" && v_8d41d7("dashboard.statsInteractions", { defaultValue: "상호작용" })}
+              {v_8bb912?.type === "comments" && v_8d41d7("dashboard.statsComments", { defaultValue: "댓글" })}
+              {v_8bb912?.type === "followers" && v_8d41d7("dashboard.statsFollowers", { defaultValue: "구독자" })}
             </Text>
             <Text style={v_fd5f43.statsSheetSub}>
               {v_8bb912?.cloneName}
@@ -1159,7 +1171,7 @@ export default function v_def15b() {
                     <ActivityIndicator color={v_1bfbd0.zinc500} style={{ paddingVertical: 24 }} />
                   ) : !v_a9fce9 || v_a9fce9.length === 0 ? (
                     <View style={{ paddingVertical: 24, alignItems: "center" }}>
-                      <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>아직 댓글이 없어요</Text>
+                      <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>{v_8d41d7("feed.commentsEmpty")}</Text>
                     </View>
                   ) : (
                     v_a9fce9.map((v_c9a376) => (
@@ -1175,7 +1187,7 @@ export default function v_def15b() {
                           <TouchableOpacity
                             onPress={() => {
                               v_d5cd7b(null);
-                              v_b816d4("신고가 접수됐어요");
+                              v_b816d4(v_8d41d7("dashboard.reportReceived", { defaultValue: "신고가 접수됐어요" }));
                             }}
                             style={{ marginLeft: "auto", paddingHorizontal: 6, paddingVertical: 4 }}
                           >
@@ -1196,7 +1208,7 @@ export default function v_def15b() {
                     <ActivityIndicator color={v_1bfbd0.zinc500} style={{ paddingVertical: 24 }} />
                   ) : !v_067c32 || v_067c32.length === 0 ? (
                     <View style={{ paddingVertical: 24, alignItems: "center" }}>
-                      <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>아직 좋아요가 없어요</Text>
+                      <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>{v_8d41d7("dashboard.emptyLikes", { defaultValue: "아직 좋아요가 없어요" })}</Text>
                     </View>
                   ) : (
                     v_067c32.map((v_ceb55a) => (
@@ -1223,7 +1235,7 @@ export default function v_def15b() {
                     <ActivityIndicator color={v_1bfbd0.zinc500} style={{ paddingVertical: 24 }} />
                   ) : !v_e6e97a || v_e6e97a.length === 0 ? (
                     <View style={{ paddingVertical: 24, alignItems: "center" }}>
-                      <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>아직 구독자가 없어요</Text>
+                      <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>{v_8d41d7("dashboard.emptyFollowers", { defaultValue: "아직 구독자가 없어요" })}</Text>
                     </View>
                   ) : (
                     v_e6e97a.map((v_ceb55a) => (
@@ -1248,7 +1260,7 @@ export default function v_def15b() {
                 <View style={{ paddingVertical: 24, alignItems: "center" }}>
                   <Feather name="message-circle" size={28} color={v_1bfbd0.zinc300} />
                   <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13, marginTop: 8 }}>
-                    상호작용 상세 목록은 준비 중이에요
+                    {v_8d41d7("dashboard.emptyInteractions", { defaultValue: "상호작용 상세 목록은 준비 중이에요" })}
                   </Text>
                 </View>
               )}
@@ -1268,16 +1280,16 @@ export default function v_def15b() {
             <View style={v_fd5f43.sheetHandle} />
             <View style={v_fd5f43.intimacyTitleRow}>
               <View style={{ width: 28 }} />
-              <Text style={v_fd5f43.statsSheetTitle}>받은 선물</Text>
+              <Text style={v_fd5f43.statsSheetTitle}>{v_8d41d7("dashboard.giftReceivedTitle", { defaultValue: "받은 선물" })}</Text>
               <View style={{ width: 28 }} />
             </View>
             <Text style={v_fd5f43.statsSheetSub}>{v_d3a183?.cloneName}</Text>
 
             {}
             <View style={v_fd5f43.giftTableHeader}>
-              <Text style={[v_fd5f43.giftTableHeaderCell, { flex: 2 }]}>선물</Text>
-              <Text style={[v_fd5f43.giftTableHeaderCell, { flex: 1, textAlign: "center" }]}>갯수</Text>
-              <Text style={[v_fd5f43.giftTableHeaderCell, { flex: 2, textAlign: "right" }]}>보낸사람</Text>
+              <Text style={[v_fd5f43.giftTableHeaderCell, { flex: 2 }]}>{v_8d41d7("dashboard.giftHeaderGift", { defaultValue: "선물" })}</Text>
+              <Text style={[v_fd5f43.giftTableHeaderCell, { flex: 1, textAlign: "center" }]}>{v_8d41d7("dashboard.giftHeaderCount", { defaultValue: "갯수" })}</Text>
+              <Text style={[v_fd5f43.giftTableHeaderCell, { flex: 2, textAlign: "right" }]}>{v_8d41d7("dashboard.giftHeaderSender", { defaultValue: "보낸사람" })}</Text>
             </View>
 
             <ScrollView style={v_fd5f43.statsScrollArea} showsVerticalScrollIndicator={false}>
@@ -1286,7 +1298,7 @@ export default function v_def15b() {
               ) : !v_51c9ac || v_51c9ac.length === 0 ? (
                 <View style={{ paddingVertical: 24, alignItems: "center" }}>
                   <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>
-                    아직 받은 선물이 없어요
+                    {v_8d41d7("dashboard.emptyGift", { defaultValue: "아직 받은 선물이 없어요" })}
                   </Text>
                 </View>
               ) : (

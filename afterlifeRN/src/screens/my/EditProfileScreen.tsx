@@ -130,15 +130,30 @@ export default function v_e2b396() {
     const v_f4fe8e = v_56f818(v_f83808);
 
     if (v_affc3e.length === 0) {
-      v_889fad("알림", "이름은 비워둘 수 없습니다.");
+      v_889fad(
+        v_8d41d7("common.notice", { defaultValue: "알림" }),
+        v_8d41d7("settings.editProfile.nameRequired", {
+          defaultValue: "이름은 비워둘 수 없습니다.",
+        }),
+      );
       return;
     }
     if (v_f4fe8e == null) {
-      v_889fad("알림", "연령대를 선택해주세요.");
+      v_889fad(
+        v_8d41d7("common.notice", { defaultValue: "알림" }),
+        v_8d41d7("auth.signup.ageRangeRequired", {
+          defaultValue: "연령대를 선택해주세요.",
+        }),
+      );
       return;
     }
     if (v_d1d8b2 !== "" && v_d1d8b2.length < 4) {
-      v_889fad("알림", "전화번호는 4자 이상 입력하거나 비워두세요.");
+      v_889fad(
+        v_8d41d7("common.notice", { defaultValue: "알림" }),
+        v_8d41d7("settings.editProfile.phoneTooShort", {
+          defaultValue: "전화번호는 4자 이상 입력하거나 비워두세요.",
+        }),
+      );
       return;
     }
 
@@ -169,13 +184,25 @@ export default function v_e2b396() {
         await v_976b89(v_2ca7e0, v_17dc8a);
         v_21f395(v_17dc8a);
       }
-      v_889fad("저장됨", "프로필이 저장되었습니다.", [
-        { text: "확인", onPress: () => v_c65f5d.goBack() },
-      ]);
+      v_889fad(
+        v_8d41d7("settings.editProfile.savedTitle", { defaultValue: "저장됨" }),
+        v_8d41d7("settings.editProfile.savedMsg", { defaultValue: "프로필이 저장되었습니다." }),
+        [
+          {
+            text: v_8d41d7("common.ok", { defaultValue: "확인" }),
+            onPress: () => v_c65f5d.goBack(),
+          },
+        ],
+      );
     } catch (v_49263d) {
-      let v_badeaf = "저장 중 오류가 발생했습니다.";
+      let v_badeaf = v_8d41d7("settings.editProfile.saveFailedMsg", {
+        defaultValue: "저장 중 오류가 발생했습니다.",
+      });
       if (v_49263d instanceof v_84a859) v_badeaf = v_49263d.message;
-      v_889fad("저장 실패", v_badeaf);
+      v_889fad(
+        v_8d41d7("settings.editProfile.saveFailedTitle", { defaultValue: "저장 실패" }),
+        v_badeaf,
+      );
     } finally {
       v_04e389(false);
     }
@@ -252,7 +279,9 @@ export default function v_e2b396() {
 
           {}
           <View style={v_fd5f43.fieldRowStack}>
-            <Text style={v_fd5f43.fieldLabelStack}>국가</Text>
+            <Text style={v_fd5f43.fieldLabelStack}>
+              {v_8d41d7("settings.editProfile.fields.country", { defaultValue: "국가" })}
+            </Text>
             <TouchableOpacity
               style={v_fd5f43.pickerField}
               onPress={() => v_7168a2(true)}
@@ -267,7 +296,11 @@ export default function v_e2b396() {
                     })}
                   </Text>
                 ) : (
-                  <Text style={v_fd5f43.pickerPlaceholder}>국가를 선택해주세요</Text>
+                  <Text style={v_fd5f43.pickerPlaceholder}>
+                    {v_8d41d7("auth.signup.countryPlaceholder", {
+                      defaultValue: "국가를 선택해주세요",
+                    })}
+                  </Text>
                 )}
               </View>
               <Feather name="chevron-down" size={18} color={v_1bfbd0.zinc500} />
@@ -277,7 +310,9 @@ export default function v_e2b396() {
 
           {}
           <View style={v_fd5f43.fieldRowStack}>
-            <Text style={v_fd5f43.fieldLabelStack}>지역</Text>
+            <Text style={v_fd5f43.fieldLabelStack}>
+              {v_8d41d7("settings.editProfile.fields.region", { defaultValue: "지역" })}
+            </Text>
             <TouchableOpacity
               style={v_fd5f43.pickerField}
               onPress={() => v_7168a2(true)}
@@ -293,7 +328,13 @@ export default function v_e2b396() {
                   </Text>
                 ) : (
                   <Text style={v_fd5f43.pickerPlaceholder}>
-                    {v_b9bbbd ? "지역을 선택해주세요" : "먼저 국가를 선택해주세요"}
+                    {v_b9bbbd
+                      ? v_8d41d7("auth.signup.regionPlaceholder", {
+                          defaultValue: "지역을 선택해주세요",
+                        })
+                      : v_8d41d7("settings.editProfile.regionAfterCountry", {
+                          defaultValue: "먼저 국가를 선택해주세요",
+                        })}
                   </Text>
                 )}
               </View>
@@ -310,16 +351,25 @@ export default function v_e2b396() {
             onPress={() => {
               if (!v_b113dd?.email) {
                 v_889fad(
-                  "이메일 없음",
-                  "계정 이메일이 없어요. 로그아웃 후 [비밀번호를 잊으셨나요?] 에서 진행해주세요.",
+                  v_8d41d7("settings.editProfile.noEmailTitle", {
+                    defaultValue: "이메일 없음",
+                  }),
+                  v_8d41d7("settings.editProfile.noEmailMsg", {
+                    defaultValue:
+                      "계정 이메일이 없어요. 로그아웃 후 [비밀번호를 잊으셨나요?] 에서 진행해주세요.",
+                  }),
                 );
                 return;
               }
               v_c65f5d.navigate("ResetPassword", { email: v_b113dd.email });
             }}
           >
-            <Text style={v_fd5f43.fieldLabel}>비밀번호</Text>
-            <Text style={[v_fd5f43.fieldValueLink]}>재설정</Text>
+            <Text style={v_fd5f43.fieldLabel}>
+              {v_8d41d7("settings.editProfile.fields.password", { defaultValue: "비밀번호" })}
+            </Text>
+            <Text style={[v_fd5f43.fieldValueLink]}>
+              {v_8d41d7("settings.editProfile.fields.passwordReset", { defaultValue: "재설정" })}
+            </Text>
             <Feather
               name="chevron-right"
               size={18}
@@ -337,7 +387,9 @@ export default function v_e2b396() {
           {v_35bf26 ? (
             <ActivityIndicator color={v_1bfbd0.white} />
           ) : (
-            <Text style={v_fd5f43.saveBtnText}>저장</Text>
+            <Text style={v_fd5f43.saveBtnText}>
+              {v_8d41d7("common.save", { defaultValue: "저장" })}
+            </Text>
           )}
         </TouchableOpacity>
       </View>

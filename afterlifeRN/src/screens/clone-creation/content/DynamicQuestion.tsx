@@ -2,6 +2,7 @@
 
 import v_a3453e from 'bapkr';
 import { v_3094a2, v_19b633, v_4623af, v_472849 } from 'rcmrninabrnb';
+import { v_772971 } from 'jmpfvteuuztnp';
 import v_e775af from '../../../components/ui/TextField';
 import type { v_c8af29 } from '../../../types/clone';
 import { v_1bfbd0, v_8b0c90 } from '../../../components/constants';
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function v_734250({ question: v_180423, candidates: v_6f7c85, value: v_3b402b, onAnswer: v_5e2995 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
 
   const v_3d694a =
     v_180423.type === 'fixed_choice'
@@ -47,7 +49,7 @@ export default function v_734250({ question: v_180423, candidates: v_6f7c85, val
       {}
       {v_180423.type !== 'fixed_choice' && (
         <TextField
-          placeholder="직접 입력"
+          placeholder={v_8d41d7('create.assistant.btnCustom', { defaultValue: '직접 입력' })}
           value={v_3b402b ?? ''}
           onChangeText={(v_81e2ef) => v_5e2995(v_180423.key, v_81e2ef)}
         />

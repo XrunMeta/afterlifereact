@@ -67,12 +67,16 @@ interface Props {
 async function v_867b58(
   v_b187d9,
   v_2ca7e0,
+  v_8d41d7,
 ): Promise<void> {
   let result: Awaited<ReturnType<typeof v_c95b2c.getDocumentAsync>>;
   try {
     v_43c42e = await v_c95b2c.getDocumentAsync({ type: "audio/*" });
   } catch {
-    v_889fad("파일 선택 오류", "파일을 선택하지 못했어요.");
+    v_889fad(
+      v_8d41d7("create.voice.pickFileErrorTitle", { defaultValue: "파일 선택 오류" }),
+      v_8d41d7("create.voice.pickFileErrorMsg", { defaultValue: "파일을 선택하지 못했어요." }),
+    );
     return;
   }
   if (v_43c42e.canceled || !v_43c42e.assets[0]) return;
@@ -103,7 +107,6 @@ async function v_867b58(
 }
 
 function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
-
   const { t: v_8d41d7 } = v_772971();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const [v_34e5bb, v_038d7f] = v_5ab095<Mode>("preset");
@@ -175,7 +178,10 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
         v_523782(null);
         v_b187d9({ voiceCloneJobId: undefined, voicePresetId: undefined, voiceFile: undefined });
         console.warn("[DefaultVoice] preset job 생성 실패:", v_49263d);
-        v_889fad("음성 선택 오류", "잠시 후 다시 시도해 주세요.");
+        v_889fad(
+          v_8d41d7("create.voice.presetErrorTitle", { defaultValue: "음성 선택 오류" }),
+          v_8d41d7("create.voice.presetErrorMsg", { defaultValue: "잠시 후 다시 시도해 주세요." }),
+        );
       }
     } finally {
       if (v_1923e2 === v_64652e.current) v_bbded0(false);
@@ -226,13 +232,19 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
 
   const v_4d3015 = async () => {
     if (!v_0c0b03) {
-      v_889fad("스크립트 선택", "먼저 읽을 스크립트를 선택해주세요.");
+      v_889fad(
+        v_8d41d7("create.voice.scriptRequiredTitle", { defaultValue: "스크립트 선택" }),
+        v_8d41d7("create.voice.scriptRequiredMsg", { defaultValue: "먼저 읽을 스크립트를 선택해주세요." }),
+      );
       return;
     }
     try {
       const v_d60769 = await v_66d7d4();
       if (!v_d60769.granted) {
-        v_889fad("권한 필요", "마이크 권한이 필요해요. 설정에서 허용해주세요.");
+        v_889fad(
+          v_8d41d7("create.voice.permTitle", { defaultValue: "권한 필요" }),
+          v_8d41d7("create.voice.permDesc", { defaultValue: "마이크 권한이 필요해요. 설정에서 허용해주세요." }),
+        );
         return;
       }
 
@@ -242,7 +254,12 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       await v_5ebce3.record();
     } catch (v_49263d) {
       console.warn("[DefaultVoice] 녹음 시작 실패:", String(v_49263d));
-      v_889fad("녹음 오류", "녹음을 시작하지 못했어요. 잠시 후 다시 시도해주세요.");
+      v_889fad(
+        v_8d41d7("create.voice.recordStartFailedTitle", { defaultValue: "녹음 오류" }),
+        v_8d41d7("create.voice.recordStartFailedMsg", {
+          defaultValue: "녹음을 시작하지 못했어요. 잠시 후 다시 시도해주세요.",
+        }),
+      );
     }
   };
 
@@ -283,7 +300,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const v_a01a16 = async () => {
     v_bbded0(true);
     try {
-      await v_867b58(v_b187d9, v_2ca7e0);
+      await v_867b58(v_b187d9, v_2ca7e0, v_8d41d7);
     } finally {
       v_bbded0(false);
     }
@@ -292,12 +309,37 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const v_97c26f = v_b599c8.isRecording;
   const v_614d75 = !v_97c26f && v_5ebce3.uri ? v_5ebce3.uri : null;
 
+  const v_d849f9 = v_58b6a9.map((v_fd5f43) => {
+    if (v_fd5f43.id === "s1")
+      return {
+        id: v_fd5f43.id,
+        title: v_8d41d7("create.voice.scripts.s1Title", { defaultValue: v_fd5f43.title }),
+        text: v_8d41d7("create.voice.scripts.s1Text", { defaultValue: v_fd5f43.text }),
+      };
+    if (v_fd5f43.id === "s2")
+      return {
+        id: v_fd5f43.id,
+        title: v_8d41d7("create.voice.scripts.s2Title", { defaultValue: v_fd5f43.title }),
+        text: v_8d41d7("create.voice.scripts.s2Text", { defaultValue: v_fd5f43.text }),
+      };
+    return {
+      id: v_fd5f43.id,
+      title: v_8d41d7("create.voice.scripts.s3Title", { defaultValue: v_fd5f43.title }),
+      text: v_8d41d7("create.voice.scripts.s3Text", { defaultValue: v_fd5f43.text }),
+    };
+  });
+
   return (
     <View style={v_d81136.wrap}>
       {}
       <View style={v_d81136.modeRow}>
         {(["preset", "record", "upload"] as Mode[]).map((v_35f85c) => {
-          const v_2869c1 = v_35f85c === "preset" ? "음색 선택" : v_35f85c === "record" ? "직접 녹음" : "파일 업로드";
+          const v_2869c1 =
+            v_35f85c === "preset"
+              ? v_8d41d7("create.voice.modePreset", { defaultValue: "음색 선택" })
+              : v_35f85c === "record"
+              ? v_8d41d7("create.voice.modeRecord", { defaultValue: "직접 녹음" })
+              : v_8d41d7("create.voice.modeUpload", { defaultValue: "파일 업로드" });
           return (
             <TouchableOpacity
               key={v_35f85c}
@@ -313,14 +355,20 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       {}
       {v_34e5bb === "preset" && (
         <View style={{ gap: 8 }}>
-          <Text style={v_d81136.scriptHint}>목소리를 선택해 주세요.</Text>
+          <Text style={v_d81136.scriptHint}>
+            {v_8d41d7("create.voice.choosePresetHint", { defaultValue: "목소리를 선택해 주세요." })}
+          </Text>
           {v_fd3c7b && (
-            <Text style={v_d81136.scriptHint}>목소리 목록을 불러오지 못했어요.</Text>
+            <Text style={v_d81136.scriptHint}>
+              {v_8d41d7("create.voice.presetLoadFailed", { defaultValue: "목소리 목록을 불러오지 못했어요." })}
+            </Text>
           )}
           {v_11c383 && (
             <View style={v_d81136.recordedRow}>
               <ActivityIndicator size="small" color={v_1bfbd0.violet600} />
-              <Text style={v_d81136.recordedText}>음성 준비 중…</Text>
+              <Text style={v_d81136.recordedText}>
+                {v_8d41d7("create.voice.presetPreparing", { defaultValue: "음성 준비 중…" })}
+              </Text>
             </View>
           )}
           <View style={v_d81136.grid}>
@@ -361,9 +409,9 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       {v_34e5bb === "record" && (
         <View style={{ gap: 12 }}>
           <Text style={v_d81136.scriptHint}>
-            스크립트를 선택하고 읽어주세요.
+            {v_8d41d7("create.voice.chooseScriptHint", { defaultValue: "스크립트를 선택하고 읽어주세요." })}
           </Text>
-          {v_58b6a9.map((v_fd5f43) => (
+          {v_d849f9.map((v_fd5f43) => (
             <TouchableOpacity
               key={v_fd5f43.id}
               style={[v_d81136.scriptCard, v_0c0b03 === v_fd5f43.id && v_d81136.scriptCardActive]}
@@ -386,21 +434,29 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
           >
             <View style={[v_d81136.recordDot, v_97c26f && v_d81136.recordDotPulse]} />
             <Text style={v_d81136.recordBtnText}>
-              {v_97c26f ? "녹음 중지" : "녹음 시작"}
+              {v_97c26f
+                ? v_8d41d7("create.voice.recordStop", { defaultValue: "녹음 중지" })
+                : v_8d41d7("create.voice.recordStart", { defaultValue: "녹음 시작" })}
             </Text>
           </TouchableOpacity>
 
           {v_11c383 && (
             <View style={v_d81136.recordedRow}>
               <ActivityIndicator size="small" color={v_1bfbd0.violet600} />
-              <Text style={v_d81136.recordedText}>업로드 중...</Text>
+              <Text style={v_d81136.recordedText}>
+                {v_8d41d7("create.voice.uploading", { defaultValue: "업로드 중..." })}
+              </Text>
             </View>
           )}
           {!v_11c383 && v_614d75 && (
             <View style={v_d81136.recordedRow}>
               <Feather name="check-circle" size={16} color={v_1bfbd0.violet600} />
               <Text style={v_d81136.recordedText}>
-                {v_f04727.voiceCloneJobId ? "클로닝 잡 등록됨" : "녹음 완료 (업로드 실패 — 재시도됨)"}
+                {v_f04727.voiceCloneJobId
+                  ? v_8d41d7("create.voice.cloneJobRegistered", { defaultValue: "클로닝 잡 등록됨" })
+                  : v_8d41d7("create.voice.recordDoneUploadFailed", {
+                      defaultValue: "녹음 완료 (업로드 실패 — 재시도됨)",
+                    })}
               </Text>
             </View>
           )}
@@ -411,7 +467,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       {v_34e5bb === "upload" && (
         <View style={{ gap: 12 }}>
           <Text style={v_d81136.scriptHint}>
-            음성파일을 올려주세요
+            {v_8d41d7("create.voice.uploadPromptHint", { defaultValue: "음성파일을 올려주세요" })}
           </Text>
           <TouchableOpacity
             style={v_d81136.upload}
@@ -425,17 +481,21 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
             )}
             <Text style={v_d81136.uploadText}>
               {v_11c383
-                ? "업로드 중..."
+                ? v_8d41d7("create.voice.uploading", { defaultValue: "업로드 중..." })
                 : v_f04727.voiceFile
-                ? "다른 파일 선택"
-                : "음성 파일 선택"}
+                ? v_8d41d7("create.voice.pickAnother", { defaultValue: "다른 파일 선택" })
+                : v_8d41d7("create.voice.pickFile", { defaultValue: "음성 파일 선택" })}
             </Text>
           </TouchableOpacity>
           {!v_11c383 && v_f04727.voiceFile && (
             <View style={v_d81136.recordedRow}>
               <Feather name="check-circle" size={16} color={v_1bfbd0.violet600} />
               <Text style={v_d81136.recordedText}>
-                {v_f04727.voiceCloneJobId ? "클로닝 잡 등록됨" : "파일 선택됨 (잡 등록 실패 — 재시도됨)"}
+                {v_f04727.voiceCloneJobId
+                  ? v_8d41d7("create.voice.cloneJobRegistered", { defaultValue: "클로닝 잡 등록됨" })
+                  : v_8d41d7("create.voice.filePickedUploadFailed", {
+                      defaultValue: "파일 선택됨 (잡 등록 실패 — 재시도됨)",
+                    })}
               </Text>
             </View>
           )}

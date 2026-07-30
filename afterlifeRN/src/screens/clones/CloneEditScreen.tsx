@@ -189,36 +189,36 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         />
 
         {}
-        <Text style={v_fd5f43.sectionHeader}>클론 설명</Text>
+        <Text style={v_fd5f43.sectionHeader}>{v_8d41d7("edit.cloneDescSection", { defaultValue: "클론 설명" })}</Text>
         <TextField
-          label="첫 만남"
+          label={v_8d41d7("edit.firstMeetingLabel", { defaultValue: "첫 만남" })}
           value={v_9d451c}
           onChangeText={v_087901}
-          placeholder="처음 만났을 때의 장면, 인상, 분위기..."
+          placeholder={v_8d41d7("edit.firstMeetingPlaceholder", { defaultValue: "처음 만났을 때의 장면, 인상, 분위기..." })}
           multiline
           containerStyle={{ marginTop: 8 }}
         />
         <TextField
-          label="습관/말투"
+          label={v_8d41d7("edit.habitLabel", { defaultValue: "습관/말투" })}
           value={v_7fae74}
           onChangeText={v_e2f100}
-          placeholder="자주 하던 말, 작은 습관, 좋아하던 자리..."
+          placeholder={v_8d41d7("edit.habitPlaceholder", { defaultValue: "자주 하던 말, 작은 습관, 좋아하던 자리..." })}
           multiline
           containerStyle={{ marginTop: 12 }}
         />
         <TextField
-          label="성격"
+          label={v_8d41d7("edit.personalityLabel", { defaultValue: "성격" })}
           value={v_324a89}
           onChangeText={v_87462f}
-          placeholder="MBTI, 성격, 평소 분위기..."
+          placeholder={v_8d41d7("edit.personalityPlaceholder", { defaultValue: "MBTI, 성격, 평소 분위기..." })}
           multiline
           containerStyle={{ marginTop: 12 }}
         />
         <TextField
-          label="가장 선명한 추억"
+          label={v_8d41d7("edit.memoryLabel", { defaultValue: "가장 선명한 추억" })}
           value={v_773b4c}
           onChangeText={v_f714d9}
-          placeholder="가장 행복하게 웃고 있던 그 순간..."
+          placeholder={v_8d41d7("edit.memoryPlaceholder", { defaultValue: "가장 행복하게 웃고 있던 그 순간..." })}
           multiline
           containerStyle={{ marginTop: 12 }}
         />
@@ -241,10 +241,10 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         >
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 15, fontWeight: "700", color: v_1bfbd0.violet500 }}>
-              학습하기 →
+              {v_8d41d7("edit.learnCtaTitle", { defaultValue: "학습하기 →" })}
             </Text>
             <Text style={{ fontSize: 12, color: v_1bfbd0.zinc600, marginTop: 4 }}>
-              관리자 질문에 답변해서 클론에게 지식을 쌓아주세요
+              {v_8d41d7("edit.learnCtaDesc", { defaultValue: "관리자 질문에 답변해서 클론에게 지식을 쌓아주세요" })}
             </Text>
           </View>
         </TouchableOpacity>

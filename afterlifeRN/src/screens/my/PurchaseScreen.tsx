@@ -12,6 +12,8 @@ import {
   v_326be8,
 } from "rcmrninabrnb";
 import { v_cf763b, v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_772971 } from "jmpfvteuuztnp";
+import type { v_75de9d } from "zqqvxke";
 import type { v_678322, v_23b84c } from "bvpcozhmvsrfxgke";
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
@@ -26,10 +28,12 @@ import {
   type v_a81007,
 } from "../../lib/iap";
 
-function v_429a79(v_b6a7e0): string {
+function v_429a79(v_b6a7e0, t: v_75de9d): string {
   const v_43e24b = Math.floor(v_b6a7e0 / 60);
   const v_fd5f43 = v_b6a7e0 % 60;
-  return v_fd5f43 > 0 ? `${v_43e24b}분 ${v_fd5f43}초` : `${v_43e24b}분`;
+  return v_fd5f43 > 0
+    ? v_8d41d7("common.durationMinSec", { m: v_43e24b, s: v_fd5f43, defaultValue: `${v_43e24b}분 ${v_fd5f43}초` })
+    : v_8d41d7("common.durationMin", { m: v_43e24b, defaultValue: `${v_43e24b}분` });
 }
 
 const v_5348ba = "__mock__";
@@ -49,6 +53,7 @@ const MOCK_CONSUMABLES: v_678322[] = [
 const v_2cc272 = (v_389afb): boolean => v_389afb.startsWith(v_5348ba);
 
 export default function v_0035e1() {
+  const { t: v_8d41d7 } = v_772971();
   const v_c65f5d = v_ada615();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const [v_c88e9b, v_de20d8] = v_5ab095<v_2b70d7 | null>(null);
@@ -106,7 +111,10 @@ export default function v_0035e1() {
   const v_0b9762 = async (v_399dbd) => {
     if (v_c63375) return;
     if (v_2cc272(v_399dbd)) {
-      v_03e392.alert("MOCK 상품", "유료 앱 계약 활성화 후 실제 결제 가능합니다.");
+      v_03e392.alert(
+        v_8d41d7("purchase.mockAlertTitle", { defaultValue: "MOCK 상품" }),
+        v_8d41d7("purchase.mockAlertMessage", { defaultValue: "유료 앱 계약 활성화 후 실제 결제 가능합니다." }),
+      );
       return;
     }
     v_ce0cde(v_399dbd);
@@ -117,7 +125,7 @@ export default function v_0035e1() {
     } catch (v_49263d) {
       const v_badeaf = (v_49263d as Error).message ?? "";
       if (!v_badeaf.includes("cancel")) {
-        v_03e392.alert("결제 오류", v_badeaf);
+        v_03e392.alert(v_8d41d7("purchase.paymentErrorTitle", { defaultValue: "결제 오류" }), v_badeaf);
       }
     } finally {
       setTimeout(() => v_ce0cde(null), 3000);
@@ -127,7 +135,10 @@ export default function v_0035e1() {
   const v_bdb045 = async (v_399dbd) => {
     if (v_c63375) return;
     if (v_2cc272(v_399dbd)) {
-      v_03e392.alert("MOCK 상품", "유료 앱 계약 활성화 후 실제 결제 가능합니다.");
+      v_03e392.alert(
+        v_8d41d7("purchase.mockAlertTitle", { defaultValue: "MOCK 상품" }),
+        v_8d41d7("purchase.mockAlertMessage", { defaultValue: "유료 앱 계약 활성화 후 실제 결제 가능합니다." }),
+      );
       return;
     }
     v_ce0cde(v_399dbd);
@@ -137,7 +148,7 @@ export default function v_0035e1() {
     } catch (v_49263d) {
       const v_badeaf = (v_49263d as Error).message ?? "";
       if (!v_badeaf.includes("cancel")) {
-        v_03e392.alert("결제 오류", v_badeaf);
+        v_03e392.alert(v_8d41d7("purchase.paymentErrorTitle", { defaultValue: "결제 오류" }), v_badeaf);
       }
     } finally {
       setTimeout(() => v_ce0cde(null), 3000);
@@ -147,7 +158,7 @@ export default function v_0035e1() {
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
       <PageHeader
-        title="크레딧 충전 · 구독"
+        title={v_8d41d7("my.menu.purchase", { defaultValue: "크레딧 충전 · 구독" })}
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
       />
@@ -156,67 +167,73 @@ export default function v_0035e1() {
         {}
         {v_be7a92 && (
           <View style={v_fd5f43.mockBanner}>
-            <Text style={v_fd5f43.mockBannerTitle}>⚠ MOCK 데이터 (임시)</Text>
+            <Text style={v_fd5f43.mockBannerTitle}>{v_8d41d7("purchase.mockBannerTitle", { defaultValue: "⚠ MOCK 데이터 (임시)" })}</Text>
             <Text style={v_fd5f43.mockBannerDesc}>
-              유료 앱 계약 미체결로 실제 상품이 안 뜹니다. UI 확인용 임시 카드예요.{"\n"}
-              탭해도 실제 결제 안 되고, 계약 활성화 후 자동 실상품 전환.
+              {v_8d41d7("purchase.mockBannerDesc", {
+                defaultValue:
+                  "유료 앱 계약 미체결로 실제 상품이 안 뜹니다. UI 확인용 임시 카드예요.\n탭해도 실제 결제 안 되고, 계약 활성화 후 자동 실상품 전환.",
+              })}
             </Text>
           </View>
         )}
 
         {}
         <View style={v_fd5f43.balanceCard}>
-          <Text style={v_fd5f43.balanceTitle}>남은 통화 시간</Text>
+          <Text style={v_fd5f43.balanceTitle}>{v_8d41d7("my.balance.remainingTime", { defaultValue: "남은 통화 시간" })}</Text>
           {v_55599a ? (
             <ActivityIndicator color={v_1bfbd0.violet600} />
           ) : v_c88e9b ? (
             <>
-              <Text style={v_fd5f43.balanceTotal}>{v_429a79(v_c88e9b.totalSec)}</Text>
+              <Text style={v_fd5f43.balanceTotal}>{v_429a79(v_c88e9b.totalSec, v_8d41d7)}</Text>
               <View style={v_fd5f43.balanceRow}>
                 <View style={v_fd5f43.balanceCol}>
-                  <Text style={v_fd5f43.balanceLabel}>무료</Text>
-                  <Text style={v_fd5f43.balanceVal}>{v_429a79(v_c88e9b.freeSec)}</Text>
+                  <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("purchase.bucketFree", { defaultValue: "무료" })}</Text>
+                  <Text style={v_fd5f43.balanceVal}>{v_429a79(v_c88e9b.freeSec, v_8d41d7)}</Text>
                 </View>
                 <View style={v_fd5f43.balanceCol}>
-                  <Text style={v_fd5f43.balanceLabel}>구독</Text>
-                  <Text style={v_fd5f43.balanceVal}>{v_429a79(v_c88e9b.subSec)}</Text>
+                  <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("purchase.bucketSub", { defaultValue: "구독" })}</Text>
+                  <Text style={v_fd5f43.balanceVal}>{v_429a79(v_c88e9b.subSec, v_8d41d7)}</Text>
                 </View>
                 <View style={v_fd5f43.balanceCol}>
-                  <Text style={v_fd5f43.balanceLabel}>충전</Text>
-                  <Text style={v_fd5f43.balanceVal}>{v_429a79(v_c88e9b.topupSec)}</Text>
+                  <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("purchase.bucketTopup", { defaultValue: "충전" })}</Text>
+                  <Text style={v_fd5f43.balanceVal}>{v_429a79(v_c88e9b.topupSec, v_8d41d7)}</Text>
                 </View>
               </View>
               {v_c88e9b.subscription && (
                 <Text style={v_fd5f43.subInfo}>
-                  {v_c88e9b.subscription.planCode.toUpperCase()} 구독 활성 · 다음 갱신 {new Date(v_c88e9b.subscription.periodEnd).toLocaleDateString("ko-KR")}
+                  {v_8d41d7("purchase.subActive", {
+                    plan: v_c88e9b.subscription.planCode.toUpperCase(),
+                    date: new Date(v_c88e9b.subscription.periodEnd).toLocaleDateString("ko-KR"),
+                    defaultValue: `${v_c88e9b.subscription.planCode.toUpperCase()} 구독 활성 · 다음 갱신 ${new Date(v_c88e9b.subscription.periodEnd).toLocaleDateString("ko-KR")}`,
+                  })}
                 </Text>
               )}
             </>
           ) : (
-            <Text style={v_fd5f43.balanceLabel}>잔액 조회 실패</Text>
+            <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("my.balance.failed", { defaultValue: "잔액 조회 실패" })}</Text>
           )}
         </View>
 
         {}
-        <Text style={v_fd5f43.sectionTitle}>월 구독</Text>
-        <Text style={v_fd5f43.sectionDesc}>매월 자동 갱신. 언제든 해지 가능.</Text>
+        <Text style={v_fd5f43.sectionTitle}>{v_8d41d7("purchase.subSectionTitle", { defaultValue: "월 구독" })}</Text>
+        <Text style={v_fd5f43.sectionDesc}>{v_8d41d7("purchase.subSectionDesc", { defaultValue: "매월 자동 갱신. 언제든 해지 가능." })}</Text>
 
         {v_723218 ? (
           <ActivityIndicator color={v_1bfbd0.violet600} style={{ marginVertical: 20 }} />
         ) : v_ab371b.length === 0 ? (
           <View style={v_fd5f43.emptyBlock}>
-            <Text style={v_fd5f43.emptyText}>구독 상품을 불러올 수 없어요.</Text>
+            <Text style={v_fd5f43.emptyText}>{v_8d41d7("purchase.subLoadFailed", { defaultValue: "구독 상품을 불러올 수 없어요." })}</Text>
             <Text style={v_fd5f43.emptyHint}>
               {v_326be8.OS === "ios"
-                ? "설정 → App Store → Sandbox 계정 로그인 확인 후 다시 시도해주세요."
-                : "잠시 후 다시 시도해주세요."}
+                ? v_8d41d7("purchase.subLoadHintIos", { defaultValue: "설정 → App Store → Sandbox 계정 로그인 확인 후 다시 시도해주세요." })
+                : v_8d41d7("purchase.subLoadHintOther", { defaultValue: "잠시 후 다시 시도해주세요." })}
             </Text>
             <TouchableOpacity
               style={v_fd5f43.retryBtn}
               onPress={v_d5d7b5}
               activeOpacity={0.85}
             >
-              <Text style={v_fd5f43.retryBtnText}>다시 시도</Text>
+              <Text style={v_fd5f43.retryBtnText}>{v_8d41d7("common.retry", { defaultValue: "다시 시도" })}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -242,20 +259,20 @@ export default function v_0035e1() {
         )}
 
         {}
-        <Text style={[v_fd5f43.sectionTitle, { marginTop: 32 }]}>충전 (일회성)</Text>
-        <Text style={v_fd5f43.sectionDesc}>구독과 별개로 통화 시간을 추가할 수 있어요. 5년 유효.</Text>
+        <Text style={[v_fd5f43.sectionTitle, { marginTop: 32 }]}>{v_8d41d7("purchase.topupSectionTitle", { defaultValue: "충전 (일회성)" })}</Text>
+        <Text style={v_fd5f43.sectionDesc}>{v_8d41d7("purchase.topupSectionDesc", { defaultValue: "구독과 별개로 통화 시간을 추가할 수 있어요. 5년 유효." })}</Text>
 
         {v_723218 ? (
           <ActivityIndicator color={v_1bfbd0.violet600} style={{ marginVertical: 20 }} />
         ) : v_275767.length === 0 ? (
           <View style={v_fd5f43.emptyBlock}>
-            <Text style={v_fd5f43.emptyText}>충전 상품을 불러올 수 없어요.</Text>
+            <Text style={v_fd5f43.emptyText}>{v_8d41d7("purchase.topupLoadFailed", { defaultValue: "충전 상품을 불러올 수 없어요." })}</Text>
             <TouchableOpacity
               style={v_fd5f43.retryBtn}
               onPress={v_d5d7b5}
               activeOpacity={0.85}
             >
-              <Text style={v_fd5f43.retryBtnText}>다시 시도</Text>
+              <Text style={v_fd5f43.retryBtnText}>{v_8d41d7("common.retry", { defaultValue: "다시 시도" })}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -282,15 +299,17 @@ export default function v_0035e1() {
 
         {v_326be8.OS === "android" && (
           <Text style={[v_fd5f43.emptyText, { marginTop: 20 }]}>
-            Android 결제는 준비 중이에요. iOS 로 먼저 이용해주세요.
+            {v_8d41d7("purchase.androidNotReady", { defaultValue: "Android 결제는 준비 중이에요. iOS 로 먼저 이용해주세요." })}
           </Text>
         )}
 
         {}
         <View style={{ marginTop: 32, alignItems: "center" }}>
           <Text style={v_fd5f43.footer}>
-            자동 갱신 구독은 해지 전까지 매 주기 결제됩니다.{"\n"}
-            해지: 설정 → Apple ID → 구독 → afterlife
+            {v_8d41d7("purchase.termsFooter", {
+              defaultValue:
+                "자동 갱신 구독은 해지 전까지 매 주기 결제됩니다.\n해지: 설정 → Apple ID → 구독 → afterlife",
+            })}
           </Text>
         </View>
       </ScrollView>

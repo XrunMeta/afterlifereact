@@ -4,6 +4,7 @@ import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
 import { v_3094a2, v_472849 } from "rcmrninabrnb";
 import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_384e19 } from "../../navigation/types";
 
@@ -24,6 +25,7 @@ type Props = v_432191<v_384e19, "EmailOtpLogin">;
 const v_d812cb = 60;
 
 export default function v_415807({ navigation: v_c65f5d, route: v_c7daf6 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const { email: v_e0c7e8, autoLogin: v_f53eaa } = v_c7daf6.params;
   const [v_c99bd2, v_537cbb] = v_5ab095("");
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
@@ -45,10 +47,10 @@ export default function v_415807({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       await v_1d5b64(v_e0c7e8);
       v_537cbb("");
       v_ec979d(v_d812cb);
-      v_889fad("인증코드 재발송", "이메일로 코드를 다시 보냈어요.");
+      v_889fad(v_8d41d7("auth.emailOtpLogin.resendTitle"), v_8d41d7("auth.emailOtpLogin.resendToast"));
     } catch (v_49263d) {
-      const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : "코드 재발송에 실패했어요.";
-      v_889fad("오류", v_badeaf);
+      const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("auth.emailOtpLogin.resendFailed");
+      v_889fad(v_8d41d7("common.error"), v_badeaf);
     }
   };
 
@@ -71,18 +73,18 @@ export default function v_415807({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       }
       await v_232d52();
     } catch (v_49263d) {
-      let v_badeaf = "로그인에 실패했어요.";
+      let v_badeaf = v_8d41d7("auth.emailOtpLogin.loginFailed");
       if (v_49263d instanceof v_84a859) {
         if (v_49263d.code === "ACCOUNT_DELETED") {
-          v_889fad("로그인 실패", "이미 탈퇴한 계정이에요.");
+          v_889fad(v_8d41d7("auth.emailOtpLogin.loginFailedTitle"), v_8d41d7("auth.emailOtpLogin.accountDeleted"));
           return;
         }
-        if (v_49263d.code === "OTP_INVALID") v_badeaf = "인증코드가 올바르지 않아요.";
-        else if (v_49263d.code === "OTP_EXPIRED") v_badeaf = "인증코드가 만료됐어요. 다시 받아주세요.";
-        else if (v_49263d.code === "NOT_FOUND") v_badeaf = "가입된 이메일이 아니에요.";
+        if (v_49263d.code === "OTP_INVALID") v_badeaf = v_8d41d7("auth.emailOtpLogin.wrongCode");
+        else if (v_49263d.code === "OTP_EXPIRED") v_badeaf = v_8d41d7("auth.emailOtpLogin.expiredCode");
+        else if (v_49263d.code === "NOT_FOUND") v_badeaf = v_8d41d7("auth.emailOtpLogin.notFound");
         else v_badeaf = v_49263d.message;
       }
-      v_889fad("로그인 실패", v_badeaf);
+      v_889fad(v_8d41d7("auth.emailOtpLogin.loginFailedTitle"), v_badeaf);
     } finally {
       v_ee9ec1(false);
     }
@@ -90,7 +92,7 @@ export default function v_415807({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
   return (
     <SafeView backgroundColor={v_1bfbd0.zinc50}>
-      <PageHeader title="이메일 OTP 로그인" showBackButton onBackPress={() => v_c65f5d.goBack()} />
+      <PageHeader title={v_8d41d7("auth.emailOtpLogin.title")} showBackButton onBackPress={() => v_c65f5d.goBack()} />
       <SafeScrollView
         contentContainerStyle={v_d81136.content}
         autoAdjustKeyboardPadding
@@ -98,17 +100,17 @@ export default function v_415807({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       >
         <View style={v_d81136.container}>
           <OtpVerifyView
-            title="이메일 OTP 로그인"
+            title={v_8d41d7("auth.emailOtpLogin.title")}
             email={v_e0c7e8}
             code={v_c99bd2}
             onChangeCode={v_537cbb}
             onSubmit={v_83b05b}
             submitting={v_cb66b4}
-            submitLabel="로그인"
-            submittingLabel="로그인 중..."
+            submitLabel={v_8d41d7("auth.emailOtpLogin.loginBtn")}
+            submittingLabel={v_8d41d7("auth.emailOtpLogin.loggingIn")}
             resendIn={v_600d5b}
             onResend={v_cf9840}
-            resendLabel="코드 재발송"
+            resendLabel={v_8d41d7("auth.emailVerify.resend")}
           />
         </View>
       </SafeScrollView>

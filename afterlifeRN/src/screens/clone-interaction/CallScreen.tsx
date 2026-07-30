@@ -603,7 +603,12 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         if (v_0e4853 != null) v_888b49.current.add(v_0e4853);
         v_25cb51.current = false;
       } else {
-        v_15c939(`${v_821084.current}님, 이제 기억할게요`);
+        v_15c939(
+          v_8d41d7("call.enrollSuccessToast", {
+            name: v_821084.current,
+            defaultValue: "{{name}}님, 이제 기억할게요",
+          }),
+        );
       }
 
       v_ea326d({
@@ -619,7 +624,9 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         v_25cb51.current = false;
         v_20ef58.reset();
       } else {
-        v_15c939("등록에 실패했어요. 다시 시도해 주세요");
+        v_15c939(
+          v_8d41d7("call.enrollFailToast", { defaultValue: "등록에 실패했어요. 다시 시도해 주세요" }),
+        );
       }
     }
 
@@ -705,7 +712,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_25b14f = (gift: v_83f27d) => {
     console.log(`[Call][gift-tap] giftId=${v_bbee9c.id} name=${v_bbee9c.name} (결제 준비 중)`);
     v_2a4980(false);
-    v_15c939("결제 준비 중이에요");
+    v_15c939(v_8d41d7("call.paymentPreparingToast", { defaultValue: "결제 준비 중이에요" }));
     v_161a89(v_bbee9c);
   };
 
@@ -975,7 +982,9 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       <View style={[v_fd5f43.callInfo, { top: v_033e14.top + 24 }]}>
         <Text style={v_fd5f43.callName}>{v_dfb220}</Text>
         <Text style={v_fd5f43.callTimeText}>
-          {v_6cc918 === "live" ? v_813acc : "연결 중…"}
+          {v_6cc918 === "live"
+            ? v_813acc
+            : v_8d41d7("call.connecting", { defaultValue: "연결 중…" })}
         </Text>
       </View>
 
@@ -1070,7 +1079,9 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             <View style={v_fd5f43.confirmBarTrack}>
               <Animated.View style={[v_fd5f43.confirmBarFill, { transform: [{ scaleX: v_796faa }] }]} />
             </View>
-            <Text style={v_fd5f43.confirmHint}>탭하여 취소 · 잠시 후 전송</Text>
+            <Text style={v_fd5f43.confirmHint}>
+              {v_8d41d7("call.confirmHint", { defaultValue: "탭하여 취소 · 잠시 후 전송" })}
+            </Text>
           </View>
         </>
       ) : null}
