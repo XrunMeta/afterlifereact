@@ -495,7 +495,10 @@ function CloneFeedInner({ route, navigation, feed }: InnerProps) {
 
       {}
       <TouchableOpacity
-        onPress={() => navigation.goBack()}
+        onPress={() => {
+          if (navigation.canGoBack()) navigation.goBack();
+          else navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
+        }}
         style={[styles.backBtn, { top: insets.top + 8 }]}
         hitSlop={12}
       >
