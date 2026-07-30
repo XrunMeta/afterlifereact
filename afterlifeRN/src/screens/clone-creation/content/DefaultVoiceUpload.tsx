@@ -20,6 +20,7 @@ import { COLORS, RADIUS } from "../../../components/constants";
 import { getVoices, createAssetJob, type CatalogVoice } from "../../../api/clones";
 import { uploadFile } from "../../../api/files";
 import { useAuthStore } from "../../../stores/authStore";
+import { resolveVoicePresetName } from "../../../lib/voicePresetName";
 
 export const VOICE_SAMPLES = [
   { id: "v1", name: "Nova" },
@@ -107,7 +108,7 @@ async function pickAndClone(
 }
 
 function Component({ draft, onChange }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const accessToken = useAuthStore((s) => s.accessToken);
   const [mode, setMode] = useState<Mode>("preset");
   const [voices, setVoices] = useState<CatalogVoice[]>([]);
@@ -382,7 +383,9 @@ function Component({ draft, onChange }: Props) {
                   onPress={() => selectPresetVoice(v)}
                 >
                   <View style={styles.cardRow}>
-                    <Text style={[styles.cardName, active && styles.cardNameActive]}>{v.name}</Text>
+                    <Text style={[styles.cardName, active && styles.cardNameActive]}>
+                      {resolveVoicePresetName(v, i18n.language)}
+                    </Text>
                     <TouchableOpacity
                       style={styles.playBtn}
                       onPress={(e) => { e.stopPropagation(); togglePreview(v); }}

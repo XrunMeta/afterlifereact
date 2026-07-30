@@ -808,14 +808,32 @@ clones.get("/search", async (c) => {
 clones.get("/voices", requireAuth, async (c) => {
   const rows = await c.env.DB
     .prepare(
-      `SELECT id, name, gender, age_range, description, sort_order, src_file_id
+      `SELECT id, name, name_en, name_ja, name_zh_cn, name_id,
+              gender, age_range, description, sort_order, src_file_id
        FROM voice_presets WHERE is_active = 1 ORDER BY sort_order ASC, id ASC`,
     )
-    .all<{ id: number; name: string; gender: string | null; age_range: string | null; description: string | null; sort_order: number; src_file_id: number | null }>();
+    .all<{
+      id: number;
+      name: string;
+      name_en: string | null;
+      name_ja: string | null;
+      name_zh_cn: string | null;
+      name_id: string | null;
+      gender: string | null;
+      age_range: string | null;
+      description: string | null;
+      sort_order: number;
+      src_file_id: number | null;
+    }>();
   const origin = new URL(c.req.url).origin;
+
   const voices = (rows.results ?? []).map((r) => ({
     id: r.id,
     name: r.name,
+    nameEn: r.name_en,
+    nameJa: r.name_ja,
+    nameZhCn: r.name_zh_cn,
+    nameId: r.name_id,
     gender: r.gender,
     ageRange: r.age_range,
     description: r.description,

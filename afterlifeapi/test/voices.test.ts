@@ -41,6 +41,31 @@ describe("GET /oth-path", () => {
 
     expect(body.voices.some((v) => v.sampleUrl.includes("/samples/voice_"))).toBe(false);
   });
+
+  it("응답에 nameEn/Ja/ZhCn/Id 필드 포함 (초기 값 null 허용)", async () => {
+    const uid = await seedUser("voicesI18n@test.com");
+    const token = await issueAccessToken(uid);
+    const res = await SELF.fetch("https://x/oth-path", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json<{
+      voices: Array<{
+        id: number;
+        name: string;
+        nameEn: string | null;
+        nameJa: string | null;
+        nameZhCn: string | null;
+        nameId: string | null;
+      }>;
+    }>();
+    expect(body.voices.length).toBeGreaterThanOrEqual(1);
+    const first = body.voices[0];
+    expect(first).toHaveProperty("nameEn");
+    expect(first).toHaveProperty("nameJa");
+    expect(first).toHaveProperty("nameZhCn");
+    expect(first).toHaveProperty("nameId");
+  });
 });
 
 describe("GET /oth-path", () => {

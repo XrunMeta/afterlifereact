@@ -39,6 +39,7 @@ const menu: MenuGroup[] = [
       { path: "/oth-path", label: "System" },
       { path: "/oth-path", label: "L0 Persona" },
       { path: "/oth-path", label: "페르소나 질문" },
+      { path: "/oth-path", label: "음색 카탈로그" },
     ],
   },
 ];
