@@ -23,6 +23,9 @@ import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 
 import { v_599b97, type v_83f27d } from "../../api/gifts";
 
+import { v_003cf2 } from "../../api/clones";
+import type { v_affcc0 } from "../../types/clone";
+
 type Props = v_432191<v_2d88fc, "CloneDetail">;
 
 const { width: v_0d9f50, height: v_28d8d8 } = v_700696.get("window");
@@ -30,8 +33,42 @@ const { width: v_0d9f50, height: v_28d8d8 } = v_700696.get("window");
 export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
   const { t: v_8d41d7 } = v_772971();
   const { cloneId: v_6e0fd3 } = v_c7daf6.params;
-  const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
+  const v_6a109b = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
+  const v_7a98d1 = v_194498((v_fd5f43) => v_fd5f43.upsertClones);
+  const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_625c74 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
+
+  const [v_7b301e, v_62e455] = v_5ab095(false);
+  const [v_3b9363, v_e1198a] = v_5ab095(false);
+  v_c4deb2(() => {
+    if (v_6a109b || v_7b301e || v_3b9363) return;
+    v_62e455(true);
+    v_003cf2(v_6e0fd3, v_2ca7e0 ?? undefined)
+      .then((v_8f00b9) => {
+        const v_3f4e2e = v_8f00b9.clone;
+        const adapted: v_affcc0 = {
+          id: v_3f4e2e.id,
+          cloneType: v_3f4e2e.cloneType,
+          ownerId: v_3f4e2e.ownerId,
+          displayName: v_3f4e2e.name,
+          username: v_3f4e2e.username ?? undefined,
+          description: v_3f4e2e.description ?? "",
+          interests: v_3f4e2e.interests ?? [],
+          imageUrl: v_3f4e2e.avatarUrl ?? undefined,
+          visibility: v_3f4e2e.visibility,
+          status: (v_3f4e2e.trainingStatus as v_affcc0["status"]) ?? "active",
+          createdAt: v_3f4e2e.createdAt,
+        };
+        v_7a98d1([v_a15a8b]);
+      })
+      .catch((v_49263d) => {
+        console.warn("[CloneDetail] fetch failed:", v_49263d);
+        v_e1198a(true);
+      })
+      .finally(() => v_62e455(false));
+  }, [v_6e0fd3, v_6a109b, v_2ca7e0, v_7a98d1, v_7b301e, v_3b9363]);
+
+  const v_eb25ce = v_6a109b;
   const v_033e14 = v_e0068c();
   const [v_a7e879, v_88d896] = v_5ab095(false);
   const [v_8282fa, v_15c939] = v_5ab095<string | null>(null);
@@ -67,6 +104,10 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       : [];
 
   if (!v_eb25ce) {
+
+    if (v_7b301e || (!v_3b9363 && !v_6a109b)) {
+      return <View style={v_fd5f43.notFound} />;
+    }
     return (
       <View style={v_fd5f43.notFound}>
         <Text style={v_fd5f43.notFoundText}>{v_8d41d7("detail.notFound")}</Text>
