@@ -1373,5 +1373,104 @@
     "pinMustBe6Digits": "PIN は 6 桁の数字である必要があります。",
     "authRequired": "ログインが必要です。",
     "resourceIdInvalid": "リソース ID が正しくありません。"
+  },
+  "question": {
+    "label": {
+      "ageRange": "年代はどのくらいですか？",
+      "gender": "性別はどちらですか？",
+      "mbti": "MBTI はどのタイプですか？",
+      "personalityCore": "どんな性格でしたか？",
+      "tone": "どんな話し方をされていましたか？",
+      "dialectRegion": "どの地域の方言でしたか？",
+      "dialectIntensity": "方言はどのくらい強かったですか？"
+    },
+    "option": {
+      "age": {
+        "10s": "10代",
+        "20s": "20代",
+        "30s": "30代",
+        "40s": "40代",
+        "50s": "50代",
+        "60plus": "60代以上"
+      },
+      "gender": {
+        "male": "男性",
+        "female": "女性",
+        "other": "その他"
+      },
+      "personalityCore": {
+        "quiet": "物静かな性格",
+        "impatient": "せっかちな性格"
+      },
+      "tone": {
+        "dialect": "方言",
+        "normal": "標準的な話し方"
+      },
+      "dialectRegion": {
+        "gyeongsang": "慶尚道",
+        "jeolla": "全羅道",
+        "chungcheong": "忠清道",
+        "jeju": "済州",
+        "gangwon": "江原",
+        "seoulGyeonggi": "ソウル／京畿"
+      },
+      "dialectIntensity": {
+        "slight": "少し",
+        "moderate": "普通",
+        "heavy": "強い"
+      }
+    },
+    "knowledgeLabel": {
+      "coreIdentity": "{name}を一言で表すとしたら、どんな言葉ですか？",
+      "mainTraits": "{name}の性格を形づくる、最も支配的な3つの特徴は何ですか？",
+      "internalConflict": "{name}が表に見せる姿と、内心の本音との間には、どんなギャップ（意外な一面）がありますか？",
+      "speechStyle": "{name}の話し方に最も強くにじみ出る雰囲気や感情の状態はどのようなものですか？",
+      "verbalHabits": "{name}が話すとき、無意識によく使う言葉や記号のクセはありますか？",
+      "lifePhilosophy": "{name}が人生を歩むうえで、最も大切にしている人生観は何ですか？",
+      "coreValue": "{name}がどんな状況でも絶対に譲れない、たった一つの核となる価値観は何ですか？",
+      "hatedAttitude": "{name}が他人に見つけたとき、最も軽蔑したり嫌ったりする性格的な態度は何ですか？",
+      "moralStandard": "{name}の道徳的な良心や正義感の基準はどの程度ですか？",
+      "unforgivableLine": "これだけは踏み越えられたら{name}が絶対に我慢できない一線は何ですか？",
+      "lazyTrigger": "何が{name}を最も面倒に感じさせ、無気力にさせますか？",
+      "actionStyle": "{name}は物事を綿密に計画するタイプですか、それとも即興で対処するタイプですか？",
+      "moneyMindset": "{name}は物質的な富や成功に対して、どのような欲や視点を持っていますか？",
+      "authorityView": "{name}は社会のルールや権力、上司の管理や命令にどのように反応しますか？",
+      "realistOrDreamer": "{name}は目の前の現実を冷静に見るタイプですか、それとも理想やロマンを追うタイプですか？",
+      "originStory": "今の{name}の性格が形づくられた決定的な過去の出来事はありますか？",
+      "deepestFear": "{name}が心の奥深くに隠している、最も根源的な恐怖や不安は何ですか？",
+      "regretfulMemory": "{name}が最も後悔している、あるいはやり直したい記憶があるとしたら何ですか？",
+      "proudMoment": "{name}が人生で最も堂々と、自分を誇らしく感じた記憶は何ですか？",
+      "emotionalWound": "{name}がなかなか癒えない、心の奥にある感情的な傷や欠落は何ですか？",
+      "socialTrust": "{name}は他人を簡単に信じて受け入れるタイプですか、それとも長い間警戒して見守るタイプですか？",
+      "conflictApproach": "{name}が他の人と衝突や対立になったとき、主にどのように解決していく行動パターンですか？",
+      "angryBehavior": "{name}が本当に怒ったとき、普段と違って言葉や行動はどう変わりますか？",
+      "praiseResponse": "誰かが心から褒めてくれたとき、{name}は恥ずかしがりますか、それとも当然のように受け止めますか？",
+      "comfortMethod": "つらそうな人に出会ったとき、{name}ならではの独特な慰め方は何ですか？",
+      "friendshipCriteria": "{name}がそばに置いておきたい、最も心地よい人物像はどんなタイプですか？",
+      "secretPride": "周りはあまり気づかないけれど、{name}が内心ひそかに誇りに思っている長所は何ですか？",
+      "stressCoping": "強いストレスを受けたとき、{name}が無意識にする行動は何ですか？",
+      "difficultQuestions": "答えづらい質問をされたとき、{name}ならではの切り抜け方は何ですか？",
+      "lonelinessFeeling": "{name}は一人でいるとき寂しさを強く感じるタイプですか、それとも孤独をじっくり楽しむタイプですか？",
+      "happinessDefinition": "{name}が定義する、最も理想的で完璧な幸せとはどんな状態ですか？",
+      "sadnessExpression": "憂うつや悲しみに襲われたとき、{name}はそれを外に出しますか、内にぐっと抑え込みますか？",
+      "changeReaction": "{name}は新しい環境や突然の変化に柔軟に適応するタイプですか、それとも抵抗を感じますか？",
+      "obsessionPoints": "些細なことでも一度ハマると、{name}が異様なほど頑固に執着してしまう領域はありますか？",
+      "mentalDefense": "他人の失礼な批判や攻撃を受けたとき、{name}が心を守るために働かせる防衛機制は何ですか？",
+      "innerChild": "{name}にまだ大人になりきれていない、子どものように不器用で未熟な一面があるとしたらどの部分ですか？",
+      "selfEvaluation": "{name}は普段、自分を高く評価して自信満々なタイプですか、それとも絶えず自分を疑うタイプですか？",
+      "stubbornnessLevel": "{name}は他人の助言や意見を柔軟に受け入れますか、それとも自分のこだわりを最後まで押し通しますか？",
+      "socialEnergy": "{name}は人と交わることでエネルギーをもらうタイプですか、それとも気力を吸い取られて消耗するタイプですか？",
+      "ultimateGoal": "{name}が人生を捧げてでもたどり着きたい、究極の目的地はどこですか？",
+      "jokeStyle": "{name}は普段、冗談を言ったりユーモアを飛ばすとき、主にどんなユーモアのスタイルを使いますか？",
+      "jealousyExpression": "誰かに嫉妬や妬みを感じたとき、{name}はそれをどう表に出したり隠したりしますか？",
+      "empathyOrSolution": "誰かがつらい悩みを打ち明けたとき、{name}は感情的な共感を大切にするタイプですか、それとも現実的な解決策を先に示すタイプですか？",
+      "liesDetection": "{name}は相手の建前や嘘を直感的にすばやく見抜くタイプですか？",
+      "patienceLimit": "{name}は普段、忍耐強いタイプですか、それとも少し不快なだけで怒りが込み上げるタイプですか？",
+      "comfortZone": "{name}にとって、心理的に最も大きな安心感や安らぎをもたらしてくれる考えや空想は何ですか？",
+      "shameReaction": "恥ずかしい思いや面目を失うような出来事があったとき、{name}はメンタルを立て直すためにどう行動しますか？",
+      "attachmentStyle": "{name}は一度信頼し始めた相手や慣れ親しんだものに、強い愛着を見せるタイプですか？",
+      "secretHobby": "{name}に、性格とはまったく似合わないのにひそかに楽しんでいたり関心を持っている、意外な趣味はありますか？",
+      "lastWords": "一日を終えて一人静かにつぶやきそうな、{name}を象徴するひとりごとは何ですか？"
+    }
   }
 }

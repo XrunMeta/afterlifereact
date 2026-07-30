@@ -291,6 +291,64 @@ export const api = {
       { method: "POST", body: JSON.stringify({ message: message ?? null }) },
     ),
 
+  getVoicePresets: () =>
+    request<{
+      voices: Array<{
+        id: number;
+        name: string;
+        name_en: string | null;
+        name_ja: string | null;
+        name_zh_cn: string | null;
+        name_id: string | null;
+        gender: string | null;
+        age_range: string | null;
+        description: string | null;
+        sort_order: number;
+        is_active: 0 | 1;
+        r2_key: string | null;
+        se_key: string | null;
+      }>;
+    }>(`/oth-path`),
+  createVoicePreset: (body: {
+    name: string;
+    name_en?: string | null;
+    name_ja?: string | null;
+    name_zh_cn?: string | null;
+    name_id?: string | null;
+    gender?: string | null;
+    age_range?: string | null;
+    description?: string | null;
+    sort_order?: number;
+    is_active?: 0 | 1;
+    r2_key?: string | null;
+    se_key?: string | null;
+  }) =>
+    request<{ id: number }>(`/oth-path`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  updateVoicePreset: (
+    id: number,
+    body: {
+      name?: string;
+      name_en?: string | null;
+      name_ja?: string | null;
+      name_zh_cn?: string | null;
+      name_id?: string | null;
+      gender?: string | null;
+      age_range?: string | null;
+      description?: string | null;
+      sort_order?: number;
+      is_active?: 0 | 1;
+      r2_key?: string | null;
+      se_key?: string | null;
+    },
+  ) =>
+    request<{ ok: true }>(`/oth-path${id}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+
   getReportPenaltyRules: () =>
     request<{
       items: Array<{

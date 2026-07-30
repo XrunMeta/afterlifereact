@@ -112,4 +112,73 @@ describe("admin /oth-path", () => {
     });
     expect(res.status).toBe(422);
   });
+
+  it("POST + GET — 다국어 name 필드 왕복 저장", async () => {
+    const token = await issueSuperAdminToken();
+    const auth = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+    const created = await SELF.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify({
+        name: "다국어테스트",
+        name_en: "Multilang Test",
+        name_ja: "多言語テスト",
+        name_zh_cn: "多语言测试",
+        name_id: "Uji Multibahasa",
+        r2_key: "voice/sample/i18n.mp3",
+      }),
+    });
+    expect(created.status).toBe(201);
+    const { id } = await created.json<{ id: number }>();
+
+    const list = await SELF.fetch("https://x/oth-path", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const body = await list.json<{
+      voices: Array<{
+        id: number;
+        name: string;
+        name_en: string | null;
+        name_ja: string | null;
+        name_zh_cn: string | null;
+        name_id: string | null;
+      }>;
+    }>();
+    const row = body.voices.find((v) => v.id === id);
+    expect(row).toBeDefined();
+    expect(row!.name_en).toBe("Multilang Test");
+    expect(row!.name_ja).toBe("多言語テスト");
+    expect(row!.name_zh_cn).toBe("多语言测试");
+    expect(row!.name_id).toBe("Uji Multibahasa");
+  });
+
+  it("PUT — 다국어 name 부분 수정 및 null 로 clear", async () => {
+    const token = await issueSuperAdminToken();
+    const auth = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+    const created = await SELF.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify({
+        name: "부분수정테스트",
+        name_en: "Initial EN",
+        r2_key: "voice/sample/partial.mp3",
+      }),
+    });
+    expect(created.status).toBe(201);
+    const { id } = await created.json<{ id: number }>();
+
+    const upd = await SELF.fetch(`https://x/oth-path${id}`, {
+      method: "PUT",
+      headers: auth,
+      body: JSON.stringify({ name_en: "Updated EN", name_ja: "追加JA" }),
+    });
+    expect(upd.status).toBe(200);
+
+    const clr = await SELF.fetch(`https://x/oth-path${id}`, {
+      method: "PUT",
+      headers: auth,
+      body: JSON.stringify({ name_en: null }),
+    });
+    expect(clr.status).toBe(200);
+  });
 });
