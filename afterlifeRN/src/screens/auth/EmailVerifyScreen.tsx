@@ -1,4 +1,5 @@
 import { showAlert } from "../../stores/dialogStore";
+import { activateAuthSession } from "../../lib/activateAuthSession";
 import React, { useEffect, useRef, useState } from "react";
 import {
   View,
@@ -42,11 +43,7 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
   const inputRef = useRef<TextInput>(null);
 
   const goToComplete = (accessToken: string) => {
-    navigation.replace("SignupComplete", {
-      accessToken,
-      persist: true,
-      email: params.email,
-    });
+    void activateAuthSession({ accessToken, persist: true });
   };
 
   const promptGoogleLink = (accessToken: string) => {

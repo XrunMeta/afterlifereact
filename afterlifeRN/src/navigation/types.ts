@@ -56,13 +56,6 @@ export type AuthStackParamList = {
   EmailOtpLogin: { email: string; autoLogin: boolean };
   ForgotPassword: undefined;
 
-  SignupComplete: {
-    accessToken: string;
-
-    refreshToken?: string;
-    persist: boolean; 
-    email?: string;
-  };
 };
 
 export type MainTabParamList = {
