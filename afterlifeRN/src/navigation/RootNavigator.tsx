@@ -13,7 +13,6 @@ import EmailVerifyScreen from "../screens/auth/EmailVerifyScreen";
 
 import EmailOtpLoginScreen from "../screens/auth/EmailOtpLoginScreen";
 import ForgotPasswordScreen from "../screens/auth/ForgotPasswordScreen";
-import SignupCompleteScreen from "../screens/auth/SignupCompleteScreen";
 
 import MainTabNavigator from "./MainTabNavigator";
 
@@ -37,7 +36,6 @@ function AuthNavigator() {
       {}
       <AuthStack.Screen name="EmailOtpLogin" component={EmailOtpLoginScreen} />
       <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-      <AuthStack.Screen name="SignupComplete" component={SignupCompleteScreen} />
     </AuthStack.Navigator>
   );
 }
