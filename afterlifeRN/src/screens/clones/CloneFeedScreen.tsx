@@ -495,7 +495,10 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
 
       {}
       <TouchableOpacity
-        onPress={() => v_c65f5d.goBack()}
+        onPress={() => {
+          if (v_c65f5d.canGoBack()) v_c65f5d.goBack();
+          else v_c65f5d.reset({ index: 0, routes: [{ name: 'Main' }] });
+        }}
         style={[v_d81136.backBtn, { top: v_033e14.top + 8 }]}
         hitSlop={12}
       >
