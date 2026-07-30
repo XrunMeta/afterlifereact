@@ -3,11 +3,13 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
+import { useTranslation } from "react-i18next";
 
 const GOLD_DARK = "#D4A017";
 const GOLD_LIGHT = "#F0C64A";
 
 export default function ExpertBadge({ size = 44 }: { size?: number }) {
+  const { t } = useTranslation();
   const h = size * 1.5; 
   return (
     <View testID="expert-badge" style={{ width: size, height: h }}>
@@ -21,7 +23,7 @@ export default function ExpertBadge({ size = 44 }: { size?: number }) {
         <Circle cx="22" cy="22" r="14" fill={GOLD_DARK} />
       </Svg>
       <View style={[styles.labelWrap, { width: size, height: size }]}>
-        <Text style={[styles.label, { fontSize: size * 0.26 }]}>전문가</Text>
+        <Text style={[styles.label, { fontSize: size * 0.26 }]}>{t("common.expertBadge", { defaultValue: "전문가" })}</Text>
       </View>
     </View>
   );

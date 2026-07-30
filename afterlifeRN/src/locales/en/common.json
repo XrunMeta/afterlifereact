@@ -29,7 +29,8 @@
     "sec": "sec",
     "durationSec": "{{s}}s",
     "durationMin": "{{m}}m",
-    "durationMinSec": "{{m}}m {{s}}s"
+    "durationMinSec": "{{m}}m {{s}}s",
+    "expertBadge": "Expert"
   },
   "tabs": {
     "home": "Home",
@@ -353,7 +354,14 @@
     "memoryLabel": "Most vivid memory",
     "memoryPlaceholder": "That moment when they were laughing the happiest...",
     "learnCtaTitle": "Start Learning →",
-    "learnCtaDesc": "Answer the admin's questions to teach knowledge to your clone"
+    "learnCtaDesc": "Answer the admin's questions to teach knowledge to your clone",
+    "transferSubmit": "Send request",
+    "l1SectionTitle": "Core Personality (L1)",
+    "l1NotesLabel": "Free notes",
+    "l2SectionTitle": "Deep Memory (L2) — Auto-learned",
+    "l2MemoryCount": "{{n}} memories accumulated so far.",
+    "l2LastUpdated": "Last updated: {{date}}",
+    "l2Hint": "L2 can't be edited directly — it retrains automatically through conversations and interactions."
   },
   "dashboard": {
     "title": "My Page",
@@ -1011,6 +1019,18 @@
       "blockListEmpty": "No one is blocked",
       "dataDownload": "Download My Data",
       "deleteAccount": "Delete Account",
+      "tabUser": "Users",
+      "tabClone": "Personas",
+      "tabWithCount": "{{label}} ({{n}})",
+      "emptyUser": "No blocked users",
+      "emptyClone": "No blocked personas",
+      "emptyUserHint": "You can block users from their profile",
+      "emptyCloneHint": "You can block personas from the persona menu",
+      "unblockBtn": "Unblock",
+      "unblockConfirmTitle": "Unblock",
+      "unblockConfirmDesc": "Unblock {{name}}?",
+      "unblockConfirmOk": "Unblock",
+      "unblockFailed": "Failed to unblock.",
       "faceConsent": {
         "sectionTitle": "Face Detection Consent",
         "noConsent": "No consent records",
@@ -1170,8 +1190,17 @@
       "declineDoneDesc": "You declined the invite."
     }
   },
+  "transactions": {
+    "title": "All Transactions",
+    "empty": "No transactions yet",
+    "cloneFallback": "Clone",
+    "giftSentLabel": "Sent {{gift}} to {{clone}}",
+    "giftReceivedLabel": "Received {{gift}} gift revenue from {{clone}}"
+  },
   "reports": {
     "title": "Reports",
+    "acceptedAlertTitle": "Report received",
+    "acceptedAlertDesc": "Please review the report.",
     "tabMade": "Reports I made",
     "tabReceived": "Reports against me",
     "statusOpen": "Pending",

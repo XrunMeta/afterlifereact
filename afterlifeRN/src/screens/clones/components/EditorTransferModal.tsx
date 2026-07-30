@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface Coowner { userId: number; displayName: string; }
 interface Props {
@@ -11,11 +12,12 @@ interface Props {
 
 export function EditorTransferModal({ visible, coowners, onClose, onSubmit }: Props) {
   const [selected, setSelected] = useState<number | null>(null);
+  const { t } = useTranslation();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.wrap}>
         <View style={styles.card}>
-          <Text style={styles.title}>편집 권한 이전</Text>
+          <Text style={styles.title}>{t('edit.transferEditor', { defaultValue: '편집 권한 이전' })}</Text>
           <FlatList
             data={coowners}
             keyExtractor={(c) => String(c.userId)}
@@ -30,13 +32,13 @@ export function EditorTransferModal({ visible, coowners, onClose, onSubmit }: Pr
             )}
           />
           <View style={styles.actions}>
-            <TouchableOpacity onPress={onClose}><Text>취소</Text></TouchableOpacity>
+            <TouchableOpacity onPress={onClose}><Text>{t('common.cancel', { defaultValue: '취소' })}</Text></TouchableOpacity>
             <TouchableOpacity
               accessibilityLabel="transfer-submit"
               disabled={selected == null}
               onPress={() => selected != null && onSubmit(selected)}
             >
-              <Text style={selected == null ? styles.disabled : styles.cta}>요청 보내기</Text>
+              <Text style={selected == null ? styles.disabled : styles.cta}>{t('edit.transferSubmit', { defaultValue: '요청 보내기' })}</Text>
             </TouchableOpacity>
           </View>
         </View>
