@@ -181,8 +181,11 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const v_22cd2d = async () => {
     try {
+
+      const v_8f7097 = encodeURIComponent(v_8c0b26.author);
+      const v_f71b56 = `https://www.xrun.run/clone?id=${v_8c0b26.cloneId}&name=${v_8f7097}`;
       await v_5f4661.share({
-        message: `${v_8c0b26.author} 클론과 만나보세요!\nhttps://afterlife.app/clone/${v_8c0b26.cloneId}`,
+        message: `${v_8c0b26.author} 클론과 만나보세요!\n${v_f71b56}`,
         title: v_8c0b26.author,
       });
     } catch (v_49263d) {

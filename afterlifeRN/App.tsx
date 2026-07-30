@@ -1,5 +1,5 @@
 import './src/i18n';
-import { v_c4deb2, v_5ab095 } from "bapkr";
+import { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import { v_ac28fd, type v_4c916c } from "ixigazcpvfldbecwtbvavtbi";
 import { v_94c936 } from "./src/navigation/navigationRef";
 import { v_70c669 } from "zwwvjiopxcaovigclhtwpklelhlr";
@@ -15,10 +15,18 @@ import { v_0b10a6 } from "./src/stores/configStore";
 import { v_5b540b } from "./src/stores/callConfigStore";
 import { v_688424 } from "./src/stores/authConfigStore";
 import { v_9bedf5 } from "./src/lib/pushNotifications";
+import {
+  v_8237ac,
+  v_1d7e9a,
+} from "./src/lib/cloneShareDeferredLink";
 import type { v_8ad91b } from "./src/navigation/types";
 
 const linking: v_4c916c<v_8ad91b> = {
-  prefixes: ["afterlife://", "https://afterlife.app"],
+  prefixes: [
+    "afterlife://",
+    "https://afterlife.app",
+    "https://www.xrun.run",
+  ],
   config: {
     screens: {
       InviteAccept: {
@@ -64,7 +72,22 @@ export default function v_6540c3() {
       void v_5b540b.getState().refresh();
 
       void v_688424.getState().refresh();
+
+      v_8237ac();
     });
+  }, []);
+
+  const v_dbce95 = v_e662ae<string | null>(v_1ed7d9.getState().accessToken);
+  v_c4deb2(() => {
+    const v_69c966 = v_1ed7d9.subscribe((v_b6e533) => {
+      const v_ba2215 = v_dbce95.current;
+      const v_f9fd5d = v_b6e533.accessToken;
+      if (v_f9fd5d && !v_ba2215) {
+        setTimeout(() => { void v_1d7e9a(); }, 800);
+      }
+      v_dbce95.current = v_f9fd5d;
+    });
+    return v_69c966;
   }, []);
 
   if (!v_b1717e) {
