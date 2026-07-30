@@ -230,3 +230,87 @@ export async function v_508dab(env: v_273a0c): Promise<GoogleEnabled> {
     };
   }
 }
+
+const v_efcd03 = {
+  serverStatus: "system.server_status",
+  minVersionIos: "system.min_version_ios",
+  minVersionAndroid: "system.min_version_android",
+} as const;
+
+export type ServerStatus = "running" | "maintenance" | "stopped";
+
+export interface SystemFunctionConfig {
+  serverStatus: ServerStatus;
+  minVersionIos: string;
+  minVersionAndroid: string;
+  updatedAt: number;
+}
+
+const v_f9522f = {
+  serverStatus: "running",
+  minVersionIos: "",
+  minVersionAndroid: "",
+};
+
+function v_9423bc(v_81e2ef): ServerStatus {
+  if (v_81e2ef === "running" || v_81e2ef === "maintenance" || v_81e2ef === "stopped") return v_81e2ef;
+  return v_f9522f.serverStatus;
+}
+
+export function v_1f7eef(v_81e2ef): boolean {
+  if (v_81e2ef === "") return true;
+  return /^\d{1,6}\.\d{1,6}\.\d{1,6}$/.test(v_81e2ef);
+}
+
+export async function v_dc0a0b(env: v_273a0c): Promise<SystemFunctionConfig> {
+  try {
+    const v_8f00b9 = await v_c9c489.DB
+      .prepare(
+        `SELECT key, value, updated_at FROM app_config WHERE key IN (?, ?, ?)`,
+      )
+      .bind(
+        v_efcd03.serverStatus,
+        v_efcd03.minVersionIos,
+        v_efcd03.minVersionAndroid,
+      )
+      .all<{ key: string; value: string; updated_at: number }>();
+    const v_18b8bf = v_8f00b9.results ?? [];
+    const v_8dcb51 = new Map(v_18b8bf.map((v_cb35cb) => [v_cb35cb.key, v_cb35cb.value]));
+    const v_3eee66 = v_18b8bf.reduce((v_35f85c, v_cb35cb) => Math.max(v_35f85c, v_cb35cb.updated_at ?? 0), 0);
+    return {
+      serverStatus: v_9423bc(v_8dcb51.get(v_efcd03.serverStatus)),
+      minVersionIos: v_8dcb51.get(v_efcd03.minVersionIos) ?? v_f9522f.minVersionIos,
+      minVersionAndroid:
+        v_8dcb51.get(v_efcd03.minVersionAndroid) ?? v_f9522f.minVersionAndroid,
+      updatedAt: v_3eee66,
+    };
+  } catch {
+    return { ...v_f9522f, updatedAt: 0 };
+  }
+}
+
+export async function v_88bb3b(
+  env: v_273a0c,
+  v_17dc8a,
+): Promise<SystemFunctionConfig> {
+  const v_1e6eca = [];
+  if (v_17dc8a.serverStatus !== undefined) {
+    v_1e6eca.push([v_efcd03.serverStatus, v_17dc8a.serverStatus]);
+  }
+  if (v_17dc8a.minVersionIos !== undefined) {
+    v_1e6eca.push([v_efcd03.minVersionIos, v_17dc8a.minVersionIos]);
+  }
+  if (v_17dc8a.minVersionAndroid !== undefined) {
+    v_1e6eca.push([v_efcd03.minVersionAndroid, v_17dc8a.minVersionAndroid]);
+  }
+  for (const [v_0eb677, v_81e2ef] of v_1e6eca) {
+    await v_c9c489.DB
+      .prepare(
+        `INSERT INTO app_config (key, value, updated_at) VALUES (?, ?, unixepoch())
+           ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = unixepoch()`,
+      )
+      .bind(v_0eb677, v_81e2ef)
+      .run();
+  }
+  return v_dc0a0b(v_c9c489);
+}
