@@ -29,6 +29,36 @@ export async function setPersonaPriceXrun(env: Bindings, price: number): Promise
     .run();
 }
 
+const SIGNUP_FREE_CREDITS_KEY = "signup.free_credits";
+export const SIGNUP_FREE_CREDITS_DEFAULT = 3000;
+const SIGNUP_FREE_CREDITS_MAX = 600000; 
+
+export async function getSignupFreeCredits(env: Bindings): Promise<number> {
+  try {
+    const row = await env.DB
+      .prepare(`SELECT value FROM app_config WHERE key = ? LIMIT 1`)
+      .bind(SIGNUP_FREE_CREDITS_KEY)
+      .first<{ value: string }>();
+    if (!row) return SIGNUP_FREE_CREDITS_DEFAULT;
+    const n = Number(row.value);
+    return Number.isFinite(n) && n >= 0 && n <= SIGNUP_FREE_CREDITS_MAX
+      ? Math.floor(n)
+      : SIGNUP_FREE_CREDITS_DEFAULT;
+  } catch {
+    return SIGNUP_FREE_CREDITS_DEFAULT;
+  }
+}
+
+export async function setSignupFreeCredits(env: Bindings, credits: number): Promise<void> {
+  await env.DB
+    .prepare(
+      `INSERT INTO app_config (key, value, updated_at) VALUES (?, ?, unixepoch())
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = unixepoch()`,
+    )
+    .bind(SIGNUP_FREE_CREDITS_KEY, String(Math.floor(credits)))
+    .run();
+}
+
 const KNOWLEDGE_INTERPRET_RULES_KEY = "knowledge.interpret_extra_rules";
 
 export async function getKnowledgeInterpretRules(env: Bindings): Promise<string> {

@@ -20,6 +20,8 @@ import {
   setKnowledgeInterpretRules,
   getGiftCatalog,
   setGiftCatalog,
+  getSignupFreeCredits,
+  setSignupFreeCredits,
   type GiftCatalogItem,
 } from "../lib/appConfig";
 
@@ -39,6 +41,25 @@ admin.patch("/config/persona-price", requireAdmin, async (c) => {
   }
   await setPersonaPriceXrun(c.env, price);
   return c.json({ ok: true, priceXrun: price });
+});
+
+const SIGNUP_FREE_CREDITS_LIMIT = 600000; 
+admin.get("/config/signup-free-credits", requireAdmin, async (c) => {
+  const credits = await getSignupFreeCredits(c.env);
+  return c.json({ credits });
+});
+admin.patch("/config/signup-free-credits", requireAdmin, async (c) => {
+  const body = await c.req.json<{ credits?: unknown }>().catch(() => ({} as { credits?: unknown }));
+  const n = Number(body.credits);
+  if (!Number.isFinite(n) || n < 0 || n > SIGNUP_FREE_CREDITS_LIMIT) {
+    throw new APIError(
+      "VALIDATION_FAILED",
+      `credits must be an integer between 0 and ${SIGNUP_FREE_CREDITS_LIMIT}.`,
+    );
+  }
+  const credits = Math.floor(n);
+  await setSignupFreeCredits(c.env, credits);
+  return c.json({ ok: true, credits });
 });
 
 const KNOWLEDGE_RULES_MAX = 16000;

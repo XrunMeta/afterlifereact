@@ -1,5 +1,5 @@
 import './src/i18n';
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavigationContainer, type LinkingOptions } from "@react-navigation/native";
 import { navigationRef } from "./src/navigation/navigationRef";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -15,10 +15,18 @@ import { useConfigStore } from "./src/stores/configStore";
 import { useCallConfigStore } from "./src/stores/callConfigStore";
 import { useAuthConfigStore } from "./src/stores/authConfigStore";
 import { registerPushTokenIfReady } from "./src/lib/pushNotifications";
+import {
+  initCloneShareDeferredLink,
+  consumePendingCloneShare,
+} from "./src/lib/cloneShareDeferredLink";
 import type { RootStackParamList } from "./src/navigation/types";
 
 const linking: LinkingOptions<RootStackParamList> = {
-  prefixes: ["afterlife://", "https://afterlife.app"],
+  prefixes: [
+    "afterlife://",
+    "https://afterlife.app",
+    "https://www.xrun.run",
+  ],
   config: {
     screens: {
       InviteAccept: {
@@ -64,7 +72,22 @@ export default function App() {
       void useCallConfigStore.getState().refresh();
 
       void useAuthConfigStore.getState().refresh();
+
+      initCloneShareDeferredLink();
     });
+  }, []);
+
+  const prevTokenRef = useRef<string | null>(useAuthStore.getState().accessToken);
+  useEffect(() => {
+    const unsub = useAuthStore.subscribe((state) => {
+      const prev = prevTokenRef.current;
+      const curr = state.accessToken;
+      if (curr && !prev) {
+        setTimeout(() => { void consumePendingCloneShare(); }, 800);
+      }
+      prevTokenRef.current = curr;
+    });
+    return unsub;
   }, []);
 
   if (!ready) {
