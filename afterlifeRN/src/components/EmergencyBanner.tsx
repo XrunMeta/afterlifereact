@@ -12,7 +12,6 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { API_BASE } from "../config/apiBase";
-import { useAuthStore } from "../stores/authStore";
 
 interface EmergencyNotice {
   id: number;
@@ -46,15 +45,10 @@ async function fetchActive(signal: AbortSignal): Promise<EmergencyNotice | null>
 
 export default function EmergencyBanner() {
   const { t } = useTranslation();
-  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const [notice, setNotice] = useState<EmergencyNotice | null>(null);
 
   useEffect(() => {
 
-    if (!isLoggedIn) {
-      setNotice(null);
-      return;
-    }
     let cancelled = false;
     const ctrl = new AbortController();
 
@@ -71,9 +65,9 @@ export default function EmergencyBanner() {
       ctrl.abort();
       clearInterval(id);
     };
-  }, [isLoggedIn]);
+  }, []);
 
-  if (!isLoggedIn || !notice) return null;
+  if (!notice) return null;
 
   const iconColor = SEVERITY_ICON_COLOR[notice.severity_level] ?? DEFAULT_ICON_COLOR;
 
