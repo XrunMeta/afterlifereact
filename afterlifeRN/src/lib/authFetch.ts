@@ -2,6 +2,7 @@
 
 import { API_BASE } from "../config/apiBase";
 import { AuthApiError, type ApiErrorBody } from "../api/auth";
+import { translateApiError } from "./errorI18n";
 
 const REFRESH_TOKEN_PATH = "/oth-path";
 const REFRESH_COOKIE_PATH = "/oth-path";
@@ -129,7 +130,7 @@ export async function authFetch<T>(
       } catch {
 
       }
-      throw new AuthApiError(401, code, message, body?.error?.details);
+      throw new AuthApiError(401, code, translateApiError(code, message), body?.error?.details);
     }
 
     const res2 = await fetch(url, { ...init, headers: makeHeaders(newToken) });
@@ -156,7 +157,7 @@ export async function authFetch<T>(
 
       }
     }
-    throw new AuthApiError(res2.status, code2, message2, body2?.error?.details);
+    throw new AuthApiError(res2.status, code2, translateApiError(code2, message2), body2?.error?.details);
   }
 
   if (__DEV__) {
@@ -176,7 +177,7 @@ export async function authFetch<T>(
   } else {
     console.warn("[authFetch] failed:", method, url, "status=", res.status, "code=", code, "msg=", message);
   }
-  throw new AuthApiError(res.status, code, message, body?.error?.details);
+  throw new AuthApiError(res.status, code, translateApiError(code, message), body?.error?.details);
 }
 
 const TOKEN_REFRESH_BUFFER_SEC = 120;
