@@ -12,7 +12,6 @@ import {
 import { v_25515d } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_cc9198 } from "../config/apiBase";
-import { v_1ed7d9 } from "../stores/authStore";
 
 interface EmergencyNotice {
   id: number;
@@ -46,15 +45,10 @@ async function v_0d4e58(v_361415): Promise<EmergencyNotice | null> {
 
 export default function v_479450() {
   const { t: v_8d41d7 } = v_772971();
-  const v_042a8b = v_1ed7d9((v_fd5f43) => v_fd5f43.isLoggedIn);
   const [v_d48273, v_404431] = v_5ab095<EmergencyNotice | null>(null);
 
   v_c4deb2(() => {
 
-    if (!v_042a8b) {
-      v_404431(null);
-      return;
-    }
     let v_2008a4 = false;
     const v_22d288 = new AbortController();
 
@@ -71,9 +65,9 @@ export default function v_479450() {
       v_22d288.abort();
       clearInterval(v_389afb);
     };
-  }, [v_042a8b]);
+  }, []);
 
-  if (!v_042a8b || !v_d48273) return null;
+  if (!v_d48273) return null;
 
   const v_ef160b = v_c8eac4[v_d48273.severity_level] ?? v_c0bdad;
 
