@@ -8,6 +8,7 @@ import { StatusBar } from "expo-status-bar";
 import { StyleSheet, View } from "react-native";
 import RootNavigator from "./src/navigation/RootNavigator";
 import AppDialog from "./src/components/ui/AppDialog";
+import EmergencyBanner from "./src/components/EmergencyBanner";
 import { useAuthStore } from "./src/stores/authStore";
 import { useFollowStore } from "./src/stores/followStore";
 import { useUserFollowStore } from "./src/stores/userFollowStore";
@@ -89,10 +90,17 @@ export default function App() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <NavigationContainer ref={navigationRef} linking={linking}>
-          <RootNavigator />
-          <StatusBar style="dark" />
-        </NavigationContainer>
+        {
+}
+        <View style={styles.root}>
+          <EmergencyBanner />
+          <View style={styles.root}>
+            <NavigationContainer ref={navigationRef} linking={linking}>
+              <RootNavigator />
+              <StatusBar style="dark" />
+            </NavigationContainer>
+          </View>
+        </View>
         {}
         <AppDialog />
       </SafeAreaProvider>
