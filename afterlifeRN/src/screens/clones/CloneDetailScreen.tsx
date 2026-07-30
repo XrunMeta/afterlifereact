@@ -23,6 +23,9 @@ import { COLORS, RADIUS } from "../../components/constants";
 
 import { fetchGiftCatalog, type GiftCatalogItem } from "../../api/gifts";
 
+import { getCloneDetail } from "../../api/clones";
+import type { Clone } from "../../types/clone";
+
 type Props = NativeStackScreenProps<ClonesStackParamList, "CloneDetail">;
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -30,8 +33,42 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 export default function CloneDetailScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
   const { cloneId } = route.params;
-  const clone = useCloneStore((s) => s.getCloneById(cloneId));
+  const storeClone = useCloneStore((s) => s.getCloneById(cloneId));
+  const upsertClones = useCloneStore((s) => s.upsertClones);
+  const accessToken = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
+
+  const [fetching, setFetching] = useState(false);
+  const [fetchFailed, setFetchFailed] = useState(false);
+  useEffect(() => {
+    if (storeClone || fetching || fetchFailed) return;
+    setFetching(true);
+    getCloneDetail(cloneId, accessToken ?? undefined)
+      .then((res) => {
+        const c = res.clone;
+        const adapted: Clone = {
+          id: c.id,
+          cloneType: c.cloneType,
+          ownerId: c.ownerId,
+          displayName: c.name,
+          username: c.username ?? undefined,
+          description: c.description ?? "",
+          interests: c.interests ?? [],
+          imageUrl: c.avatarUrl ?? undefined,
+          visibility: c.visibility,
+          status: (c.trainingStatus as Clone["status"]) ?? "active",
+          createdAt: c.createdAt,
+        };
+        upsertClones([adapted]);
+      })
+      .catch((err) => {
+        console.warn("[CloneDetail] fetch failed:", err);
+        setFetchFailed(true);
+      })
+      .finally(() => setFetching(false));
+  }, [cloneId, storeClone, accessToken, upsertClones, fetching, fetchFailed]);
+
+  const clone = storeClone;
   const insets = useSafeAreaInsets();
   const [showGiftModal, setShowGiftModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -67,6 +104,10 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
       : [];
 
   if (!clone) {
+
+    if (fetching || (!fetchFailed && !storeClone)) {
+      return <View style={s.notFound} />;
+    }
     return (
       <View style={s.notFound}>
         <Text style={s.notFoundText}>{t("detail.notFound")}</Text>
