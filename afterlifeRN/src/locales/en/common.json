@@ -333,6 +333,8 @@
       "openXrunDesc": "Launch XRUN app (or store if not installed)",
       "purchase": "Buy Credits · Subscribe",
       "purchaseDesc": "Add call minutes with subscription or top-up",
+      "agreements": "Consent",
+      "paymentPin": "XRUN PIN",
       "logout": "Logout"
     }
   },
@@ -667,7 +669,30 @@
       "push": "Push Notifications",
       "comment": "Comment Notifications",
       "like": "Like Notifications",
-      "marketing": "Marketing Notifications"
+      "marketing": "Marketing Notifications",
+      "statusGranted": "Allowed",
+      "statusDenied": "Denied",
+      "statusUnsupported": "Device not supported",
+      "deniedHint": "To receive notifications, please allow them in your system settings.",
+      "openSettings": "Open System Settings",
+      "tokenLabel": "Push token",
+      "tokenLoading": "Issuing token...",
+      "tokenNone": "No token issued",
+      "copyToken": "Copy",
+      "copied": "Token copied."
+    },
+    "agreements": {
+      "title": "Consent"
+    },
+    "paymentPin": {
+      "title": "XRUN PIN",
+      "subtitle": "Enter the 6-digit XRUN PIN you set in xrun.",
+      "wrong": "PIN doesn't match.",
+      "attemptsLeft": "Attempts left: {{count}}",
+      "lockedTitle": "5 wrong attempts",
+      "lockedDesc": "You can change your XRUN PIN in the xrun app.",
+      "openXrun": "Open xrun app",
+      "verify": "Confirm"
     },
     "privacy": {
       "title": "Privacy and Visibility",
