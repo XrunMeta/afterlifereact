@@ -22,12 +22,62 @@ import {
   v_9459da,
   v_52acfb,
   v_b61290,
+  v_dc0a0b,
+  v_88bb3b,
+  v_1f7eef,
   type v_83f27d,
+  type v_f56907,
 } from "../lib/appConfig";
 
 export const v_b7f2b4 = new v_b7c41b<v_de0a25>();
 
 v_b7f2b4.get("/health", (v_3f4e2e) => v_3f4e2e.json({ ok: true, module: "admin" }));
+
+const v_8375f7 = new Set<v_f56907>(["running", "maintenance", "stopped"]);
+v_b7f2b4.get("/system/function-config", v_c0a297, async (v_3f4e2e) => {
+  const v_01dcf5 = await v_dc0a0b(v_3f4e2e.env);
+  return v_3f4e2e.json(v_01dcf5);
+});
+v_b7f2b4.patch("/system/function-config", v_c0a297, async (v_3f4e2e) => {
+  const v_4d33b2 = await v_3f4e2e.req.json<{
+    serverStatus?: unknown;
+    minVersionIos?: unknown;
+    minVersionAndroid?: unknown;
+  }>().catch(() => ({} as { serverStatus?: unknown; minVersionIos?: unknown; minVersionAndroid?: unknown }));
+
+  const patch: {
+    serverStatus?: v_f56907;
+    minVersionIos?: string;
+    minVersionAndroid?: string;
+  } = {};
+
+  if (v_4d33b2.serverStatus !== undefined) {
+    if (typeof v_4d33b2.serverStatus !== "string" || !v_8375f7.has(v_4d33b2.serverStatus as v_f56907)) {
+      throw new v_3ebe58(
+        "VALIDATION_FAILED",
+        "serverStatus must be one of running|maintenance|stopped.",
+      );
+    }
+    v_17dc8a.serverStatus = v_4d33b2.serverStatus as v_f56907;
+  }
+  if (v_4d33b2.minVersionIos !== undefined) {
+    if (typeof v_4d33b2.minVersionIos !== "string" || !v_1f7eef(v_4d33b2.minVersionIos)) {
+      throw new v_3ebe58("VALIDATION_FAILED", "minVersionIos must be empty or X.Y.Z (digits).");
+    }
+    v_17dc8a.minVersionIos = v_4d33b2.minVersionIos;
+  }
+  if (v_4d33b2.minVersionAndroid !== undefined) {
+    if (typeof v_4d33b2.minVersionAndroid !== "string" || !v_1f7eef(v_4d33b2.minVersionAndroid)) {
+      throw new v_3ebe58("VALIDATION_FAILED", "minVersionAndroid must be empty or X.Y.Z (digits).");
+    }
+    v_17dc8a.minVersionAndroid = v_4d33b2.minVersionAndroid;
+  }
+  if (Object.keys(v_17dc8a).length === 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "No fields to update.");
+  }
+  const v_01dcf5 = await v_88bb3b(v_3f4e2e.env, v_17dc8a);
+  return v_3f4e2e.json({ ok: true, ...v_01dcf5 });
+});
 
 v_b7f2b4.get("/config/persona-price", v_c0a297, async (v_3f4e2e) => {
   const v_318e8b = await v_916830(v_3f4e2e.env);

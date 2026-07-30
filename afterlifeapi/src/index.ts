@@ -26,6 +26,7 @@ import { v_fcbd5b } from "./routes/adminWebauthn";
 import { v_3182b3 } from "./routes/coldRecovery";
 import { v_83c76b } from "./routes/adminQuorum";
 import { v_ad9418, v_7fd263 } from "./routes/emergency";
+import { v_0197eb, v_29738c } from "./routes/emergencyNotices";
 import { v_a58945 } from "./routes/gdpr";
 import { v_87e8b2 } from "./routes/adminGdpr";
 import { v_dda4b9 } from "./routes/deletion";
@@ -129,6 +130,9 @@ v_466992.route("/oth-path", v_b7f2b4);
 v_466992.route("/oth-path", v_133c2c);
 v_466992.route("/oth-path", v_ad9418);
 v_466992.route("/oth-path", v_7fd263);
+
+v_466992.route("/oth-path", v_0197eb);
+v_466992.route("/oth-path", v_29738c);
 v_466992.route("/oth-path", v_a58945);
 v_466992.route("/oth-path", v_87e8b2);
 v_466992.route("/oth-path", v_19f1fa);

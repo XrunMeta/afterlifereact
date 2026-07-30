@@ -8,6 +8,7 @@ import { v_b5df25 } from "ernurodqvmtspux";
 import { v_472849, v_3094a2 } from "rcmrninabrnb";
 import v_3b950c from "./src/navigation/RootNavigator";
 import v_d714a5 from "./src/components/ui/AppDialog";
+import v_479450 from "./src/components/EmergencyBanner";
 import { v_1ed7d9 } from "./src/stores/authStore";
 import { v_b4902e } from "./src/stores/followStore";
 import { v_98d20a } from "./src/stores/userFollowStore";
@@ -89,10 +90,17 @@ export default function v_6540c3() {
   return (
     <GestureHandlerRootView style={v_d81136.root}>
       <SafeAreaProvider>
-        <NavigationContainer ref={v_94c936} linking={v_141151}>
-          <RootNavigator />
-          <StatusBar style="dark" />
-        </NavigationContainer>
+        {
+}
+        <View style={v_d81136.root}>
+          <EmergencyBanner />
+          <View style={v_d81136.root}>
+            <NavigationContainer ref={v_94c936} linking={v_141151}>
+              <RootNavigator />
+              <StatusBar style="dark" />
+            </NavigationContainer>
+          </View>
+        </View>
         {}
         <AppDialog />
       </SafeAreaProvider>
