@@ -2,6 +2,7 @@
 
 import { API_BASE } from "../config/apiBase";
 import { authFetch as _authFetch } from "../lib/authFetch";
+import { translateApiError } from "../lib/errorI18n";
 
 export interface SignupPayload {
   email: string;
@@ -127,7 +128,7 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
         `[OTP-API] ✗ ${path} ← ${res.status} code=${code} msg=${message}`,
       );
     }
-    throw new AuthApiError(res.status, code, message, errBody?.error?.details);
+    throw new AuthApiError(res.status, code, translateApiError(code, message), errBody?.error?.details);
   }
   if (isOtpTrigger) {
     console.log(`[OTP-API] ✓ ${path} ← ${res.status} (OTP 메일 발송됨, 어드민 /otp 에서 코드 확인)`);
