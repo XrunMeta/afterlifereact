@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import {
+  Modal,
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Linking,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { API_BASE } from "../config/apiBase";
 import { useAuthStore } from "../stores/authStore";
 
@@ -20,13 +22,13 @@ interface EmergencyNotice {
   severity_level: number;
 }
 
-const SEVERITY_BG: Record<number, string> = {
+const SEVERITY_ICON_COLOR: Record<number, string> = {
   1: "#3b82f6", 
   2: "#f59e0b", 
   3: "#ef4444", 
   4: "#dc2626", 
 };
-const DEFAULT_BG = SEVERITY_BG[2];
+const DEFAULT_ICON_COLOR = SEVERITY_ICON_COLOR[2];
 
 const POLL_MS = 5 * 60 * 1000; 
 
@@ -43,7 +45,7 @@ async function fetchActive(signal: AbortSignal): Promise<EmergencyNotice | null>
 }
 
 export default function EmergencyBanner() {
-  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const [notice, setNotice] = useState<EmergencyNotice | null>(null);
 
@@ -73,58 +75,127 @@ export default function EmergencyBanner() {
 
   if (!isLoggedIn || !notice) return null;
 
-  const bg = SEVERITY_BG[notice.severity_level] ?? DEFAULT_BG;
+  const iconColor = SEVERITY_ICON_COLOR[notice.severity_level] ?? DEFAULT_ICON_COLOR;
 
-  const handlePress = () => {
+  const handleLinkPress = () => {
     if (!notice.link) return;
-    void Linking.openURL(notice.link).catch(() => {
 
-    });
+    if (notice.link.startsWith("http://") || notice.link.startsWith("https://")) {
+      Linking.openURL(notice.link).catch((err) => {
+        console.error("[EmergencyBanner] failed to open URL:", err);
+      });
+    } else {
+      console.warn("[EmergencyBanner] non-http link ignored:", notice.link);
+    }
   };
 
-  const inner = (
-    <View style={styles.inner}>
-      <Text style={styles.title} numberOfLines={2}>
-        {notice.title}
-      </Text>
-      {notice.description ? (
-        <Text style={styles.description} numberOfLines={3}>
-          {notice.description}
-        </Text>
-      ) : null}
-    </View>
-  );
-
   return (
-    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: bg }]}>
-      {notice.link ? (
-        <TouchableOpacity activeOpacity={0.8} onPress={handlePress}>
-          {inner}
-        </TouchableOpacity>
-      ) : (
-        inner
-      )}
-    </View>
+    <Modal
+      visible
+      animationType="slide"
+
+      onRequestClose={() => {  }}
+      presentationStyle="fullScreen"
+    >
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>
+            {t("common.emergencyStop.title", { defaultValue: "긴급 공지" })}
+          </Text>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.body}>
+          <View style={styles.iconContainer}>
+            <Ionicons name="warning" size={64} color={iconColor} />
+          </View>
+          <Text style={styles.headline}>{notice.title}</Text>
+          {notice.description ? (
+            <Text style={styles.message}>{notice.description}</Text>
+          ) : null}
+          {notice.link ? (
+            <TouchableOpacity
+              style={styles.linkButton}
+              onPress={handleLinkPress}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.linkText}>
+                {t("common.emergencyStop.viewDetails", { defaultValue: "자세히 보기" })}
+              </Text>
+              <Ionicons name="chevron-forward" size={20} color="#4c4e55" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    width: "100%",
+    flex: 1,
+    backgroundColor: "#ffffff",
+    paddingTop: 60,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
   },
-  inner: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
   },
   title: {
-    color: "#ffffff",
-    fontSize: 14,
+    flex: 1,
+    fontSize: 22,
     fontWeight: "700",
+    color: "#121212",
+    textAlign: "center",
   },
-  description: {
-    color: "#ffffff",
-    fontSize: 12,
-    marginTop: 2,
-    opacity: 0.95,
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "#e4e4e4",
+    marginBottom: 32,
+  },
+  body: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  iconContainer: {
+    marginBottom: 32,
+  },
+  headline: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#121212",
+    lineHeight: 26,
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  message: {
+    fontSize: 15,
+    color: "#4c4e55",
+    lineHeight: 24,
+    textAlign: "center",
+    marginBottom: 32,
+  },
+  linkButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: "#F8F8F8",
+    borderRadius: 12,
+    width: "100%",
+    maxWidth: 400,
+  },
+  linkText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#4c4e55",
   },
 });
