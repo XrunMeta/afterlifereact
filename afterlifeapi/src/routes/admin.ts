@@ -22,12 +22,62 @@ import {
   setGiftCatalog,
   getSignupFreeCredits,
   setSignupFreeCredits,
+  getSystemFunctionConfig,
+  setSystemFunctionConfig,
+  isValidSemver,
   type GiftCatalogItem,
+  type ServerStatus,
 } from "../lib/appConfig";
 
 export const admin = new Hono<AppEnv>();
 
 admin.get("/health", (c) => c.json({ ok: true, module: "admin" }));
+
+const VALID_SERVER_STATUS = new Set<ServerStatus>(["running", "maintenance", "stopped"]);
+admin.get("/system/function-config", requireAdmin, async (c) => {
+  const cfg = await getSystemFunctionConfig(c.env);
+  return c.json(cfg);
+});
+admin.patch("/system/function-config", requireAdmin, async (c) => {
+  const body = await c.req.json<{
+    serverStatus?: unknown;
+    minVersionIos?: unknown;
+    minVersionAndroid?: unknown;
+  }>().catch(() => ({} as { serverStatus?: unknown; minVersionIos?: unknown; minVersionAndroid?: unknown }));
+
+  const patch: {
+    serverStatus?: ServerStatus;
+    minVersionIos?: string;
+    minVersionAndroid?: string;
+  } = {};
+
+  if (body.serverStatus !== undefined) {
+    if (typeof body.serverStatus !== "string" || !VALID_SERVER_STATUS.has(body.serverStatus as ServerStatus)) {
+      throw new APIError(
+        "VALIDATION_FAILED",
+        "serverStatus must be one of running|maintenance|stopped.",
+      );
+    }
+    patch.serverStatus = body.serverStatus as ServerStatus;
+  }
+  if (body.minVersionIos !== undefined) {
+    if (typeof body.minVersionIos !== "string" || !isValidSemver(body.minVersionIos)) {
+      throw new APIError("VALIDATION_FAILED", "minVersionIos must be empty or X.Y.Z (digits).");
+    }
+    patch.minVersionIos = body.minVersionIos;
+  }
+  if (body.minVersionAndroid !== undefined) {
+    if (typeof body.minVersionAndroid !== "string" || !isValidSemver(body.minVersionAndroid)) {
+      throw new APIError("VALIDATION_FAILED", "minVersionAndroid must be empty or X.Y.Z (digits).");
+    }
+    patch.minVersionAndroid = body.minVersionAndroid;
+  }
+  if (Object.keys(patch).length === 0) {
+    throw new APIError("VALIDATION_FAILED", "No fields to update.");
+  }
+  const cfg = await setSystemFunctionConfig(c.env, patch);
+  return c.json({ ok: true, ...cfg });
+});
 
 admin.get("/config/persona-price", requireAdmin, async (c) => {
   const priceXrun = await getPersonaPriceXrun(c.env);

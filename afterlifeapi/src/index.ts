@@ -26,6 +26,7 @@ import { adminWebauthn } from "./routes/adminWebauthn";
 import { coldRecovery } from "./routes/coldRecovery";
 import { adminQuorum } from "./routes/adminQuorum";
 import { emergency, inheritance } from "./routes/emergency";
+import { emergencyNoticesAdmin, emergencyNoticesPublic } from "./routes/emergencyNotices";
 import { gdpr } from "./routes/gdpr";
 import { adminGdpr } from "./routes/adminGdpr";
 import { deletion } from "./routes/deletion";
@@ -129,6 +130,9 @@ app.route("/oth-path", admin);
 app.route("/oth-path", adminData);
 app.route("/oth-path", emergency);
 app.route("/oth-path", inheritance);
+
+app.route("/oth-path", emergencyNoticesAdmin);
+app.route("/oth-path", emergencyNoticesPublic);
 app.route("/oth-path", gdpr);
 app.route("/oth-path", adminGdpr);
 app.route("/oth-path", adminDeletion);

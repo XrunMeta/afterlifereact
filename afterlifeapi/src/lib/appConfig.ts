@@ -230,3 +230,87 @@ export async function getGoogleEnabled(env: Bindings): Promise<GoogleEnabled> {
     };
   }
 }
+
+const SYSTEM_FUNCTION_KEYS = {
+  serverStatus: "system.server_status",
+  minVersionIos: "system.min_version_ios",
+  minVersionAndroid: "system.min_version_android",
+} as const;
+
+export type ServerStatus = "running" | "maintenance" | "stopped";
+
+export interface SystemFunctionConfig {
+  serverStatus: ServerStatus;
+  minVersionIos: string;
+  minVersionAndroid: string;
+  updatedAt: number;
+}
+
+const SYSTEM_FUNCTION_DEFAULTS: Omit<SystemFunctionConfig, "updatedAt"> = {
+  serverStatus: "running",
+  minVersionIos: "",
+  minVersionAndroid: "",
+};
+
+function parseServerStatus(v: string | null | undefined): ServerStatus {
+  if (v === "running" || v === "maintenance" || v === "stopped") return v;
+  return SYSTEM_FUNCTION_DEFAULTS.serverStatus;
+}
+
+export function isValidSemver(v: string): boolean {
+  if (v === "") return true;
+  return /^\d{1,6}\.\d{1,6}\.\d{1,6}$/.test(v);
+}
+
+export async function getSystemFunctionConfig(env: Bindings): Promise<SystemFunctionConfig> {
+  try {
+    const res = await env.DB
+      .prepare(
+        `SELECT key, value, updated_at FROM app_config WHERE key IN (?, ?, ?)`,
+      )
+      .bind(
+        SYSTEM_FUNCTION_KEYS.serverStatus,
+        SYSTEM_FUNCTION_KEYS.minVersionIos,
+        SYSTEM_FUNCTION_KEYS.minVersionAndroid,
+      )
+      .all<{ key: string; value: string; updated_at: number }>();
+    const rows = res.results ?? [];
+    const map = new Map(rows.map((r) => [r.key, r.value]));
+    const updatedAt = rows.reduce((m, r) => Math.max(m, r.updated_at ?? 0), 0);
+    return {
+      serverStatus: parseServerStatus(map.get(SYSTEM_FUNCTION_KEYS.serverStatus)),
+      minVersionIos: map.get(SYSTEM_FUNCTION_KEYS.minVersionIos) ?? SYSTEM_FUNCTION_DEFAULTS.minVersionIos,
+      minVersionAndroid:
+        map.get(SYSTEM_FUNCTION_KEYS.minVersionAndroid) ?? SYSTEM_FUNCTION_DEFAULTS.minVersionAndroid,
+      updatedAt,
+    };
+  } catch {
+    return { ...SYSTEM_FUNCTION_DEFAULTS, updatedAt: 0 };
+  }
+}
+
+export async function setSystemFunctionConfig(
+  env: Bindings,
+  patch: Partial<Omit<SystemFunctionConfig, "updatedAt">>,
+): Promise<SystemFunctionConfig> {
+  const entries: Array<[string, string]> = [];
+  if (patch.serverStatus !== undefined) {
+    entries.push([SYSTEM_FUNCTION_KEYS.serverStatus, patch.serverStatus]);
+  }
+  if (patch.minVersionIos !== undefined) {
+    entries.push([SYSTEM_FUNCTION_KEYS.minVersionIos, patch.minVersionIos]);
+  }
+  if (patch.minVersionAndroid !== undefined) {
+    entries.push([SYSTEM_FUNCTION_KEYS.minVersionAndroid, patch.minVersionAndroid]);
+  }
+  for (const [k, v] of entries) {
+    await env.DB
+      .prepare(
+        `INSERT INTO app_config (key, value, updated_at) VALUES (?, ?, unixepoch())
+           ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = unixepoch()`,
+      )
+      .bind(k, v)
+      .run();
+  }
+  return getSystemFunctionConfig(env);
+}
