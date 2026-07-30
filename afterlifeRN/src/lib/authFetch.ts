@@ -2,6 +2,7 @@
 
 import { v_cc9198 } from "../config/apiBase";
 import { v_84a859, type v_669377 } from "../api/auth";
+import { v_3be591 } from "./errorI18n";
 
 const v_a089f8 = "/oth-path";
 const v_d331e7 = "/oth-path";
@@ -129,7 +130,7 @@ export async function v_04b58a<T>(
       } catch {
 
       }
-      throw new v_84a859(401, v_c99bd2, v_a8cd21, v_4d33b2?.error?.details);
+      throw new v_84a859(401, v_c99bd2, v_3be591(v_c99bd2, v_a8cd21), v_4d33b2?.error?.details);
     }
 
     const v_48bbbd = await fetch(v_f71b56, { ...v_00cfc6, headers: v_bdc6fc(v_4094c3) });
@@ -156,7 +157,7 @@ export async function v_04b58a<T>(
 
       }
     }
-    throw new v_84a859(v_48bbbd.status, v_cfc601, v_3b61b3, v_ef157f?.error?.details);
+    throw new v_84a859(v_48bbbd.status, v_cfc601, v_3be591(v_cfc601, v_3b61b3), v_ef157f?.error?.details);
   }
 
   if (__DEV__) {
@@ -176,7 +177,7 @@ export async function v_04b58a<T>(
   } else {
     console.warn("[authFetch] failed:", v_bfe9b9, v_f71b56, "status=", v_8f00b9.status, "code=", v_c99bd2, "msg=", v_a8cd21);
   }
-  throw new v_84a859(v_8f00b9.status, v_c99bd2, v_a8cd21, v_4d33b2?.error?.details);
+  throw new v_84a859(v_8f00b9.status, v_c99bd2, v_3be591(v_c99bd2, v_a8cd21), v_4d33b2?.error?.details);
 }
 
 const v_d61279 = 120;

@@ -2,6 +2,7 @@
 
 import { v_cc9198 } from "../config/apiBase";
 import { v_04b58a as v_9b97b4 } from "../lib/authFetch";
+import { v_3be591 } from "../lib/errorI18n";
 
 export interface SignupPayload {
   email: string;
@@ -127,7 +128,7 @@ async function v_c34e2f<T>(v_9fe22d, v_4d33b2): Promise<T> {
         `[OTP-API] ✗ ${v_9fe22d} ← ${v_8f00b9.status} code=${v_c99bd2} msg=${v_a8cd21}`,
       );
     }
-    throw new v_84a859(v_8f00b9.status, v_c99bd2, v_a8cd21, v_9be017?.error?.details);
+    throw new v_84a859(v_8f00b9.status, v_c99bd2, v_3be591(v_c99bd2, v_a8cd21), v_9be017?.error?.details);
   }
   if (v_7611fb) {
     console.log(`[OTP-API] ✓ ${v_9fe22d} ← ${v_8f00b9.status} (OTP 메일 발송됨, 어드민 /otp 에서 코드 확인)`);
