@@ -41,6 +41,31 @@ v_469bf2("GET /oth-path", () => {
 
     v_4d37e3(v_4d33b2.voices.some((v_81e2ef) => v_81e2ef.sampleUrl.includes("/samples/voice_"))).toBe(false);
   });
+
+  v_23805a("응답에 nameEn/Ja/ZhCn/Id 필드 포함 (초기 값 null 허용)", async () => {
+    const v_0c8987 = await v_bfb240("voicesI18n@test.com");
+    const v_21cc31 = await v_86c39f(v_0c8987);
+    const v_8f00b9 = await v_1df298.fetch("https://x/oth-path", {
+      headers: { Authorization: `Bearer ${v_21cc31}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_4d33b2 = await v_8f00b9.json<{
+      voices: Array<{
+        id: number;
+        name: string;
+        nameEn: string | null;
+        nameJa: string | null;
+        nameZhCn: string | null;
+        nameId: string | null;
+      }>;
+    }>();
+    v_4d37e3(v_4d33b2.voices.length).toBeGreaterThanOrEqual(1);
+    const v_ea719c = v_4d33b2.voices[0];
+    v_4d37e3(v_ea719c).toHaveProperty("nameEn");
+    v_4d37e3(v_ea719c).toHaveProperty("nameJa");
+    v_4d37e3(v_ea719c).toHaveProperty("nameZhCn");
+    v_4d37e3(v_ea719c).toHaveProperty("nameId");
+  });
 });
 
 v_469bf2("GET /oth-path", () => {
