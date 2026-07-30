@@ -379,8 +379,11 @@ export default function HomeScreen() {
           }
           onSharePress={async () => {
             try {
+
+              const nameParam = encodeURIComponent(item.author);
+              const url = `https://www.xrun.run/clone?id=${item.cloneId}&name=${nameParam}`;
               await Share.share({
-                message: `${item.author} 클론과 만나보세요!\nhttps://afterlife.app/clone/${item.cloneId}`,
+                message: `${item.author} 클론과 만나보세요!\n${url}`,
                 title: item.author,
               });
             } catch (err) {
