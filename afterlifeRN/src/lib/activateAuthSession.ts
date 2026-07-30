@@ -17,10 +17,10 @@ export async function activateAuthSession(opts: ActivateOpts): Promise<boolean> 
   const persist = opts.persist ?? true;
   try {
     const meRes = await getMe(opts.accessToken);
-    await useAuthStore.getState().setApiAuth(opts.accessToken, meRes.user, { persist });
-    if (opts.refreshToken) {
-      await useAuthStore.getState().setApiTokens(opts.accessToken, opts.refreshToken, { persist });
-    }
+    await useAuthStore.getState().setApiAuth(opts.accessToken, meRes.user, {
+      persist,
+      refreshToken: opts.refreshToken ?? null,
+    });
     await useAuthStore.getState().hydrate();
     return true;
   } catch (err) {

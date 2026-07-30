@@ -27,7 +27,11 @@ export default function Step4VoiceUploadScreen({ navigation }: Props) {
       <PageHeader
         title={t("create.stepTitles.4")}
         showBackButton
-        onBackPress={() => navigation.goBack()}
+        onBackPress={() => {
+
+          if (navigation.canGoBack()) navigation.goBack();
+          else navigation.navigate('Step3');
+        }}
       />
       <SafeScrollView contentContainerStyle={styles.content} showBottomBackground={false}>
         <Content draft={draft} onChange={setCreationDraft} />

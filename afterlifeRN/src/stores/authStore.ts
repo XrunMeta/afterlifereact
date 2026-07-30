@@ -22,7 +22,11 @@ interface AuthState {
   refreshToken: string | null;
   apiUser: AuthUser | null;
   loginWithApi: (payload: LoginPayload, opts?: { persist?: boolean }) => Promise<AuthUser>;
-  setApiAuth: (token: string, user: AuthUser, opts?: { persist?: boolean }) => Promise<void>;
+  setApiAuth: (
+    token: string,
+    user: AuthUser,
+    opts?: { persist?: boolean; refreshToken?: string | null },
+  ) => Promise<void>;
 
   setApiTokens: (accessToken: string, refreshToken: string | null, opts?: { persist?: boolean }) => Promise<void>;
   apiLogout: () => Promise<void>;
@@ -131,13 +135,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   setApiAuth: async (token, user, opts) => {
     const persist = opts?.persist !== false;
+    const refreshToken = opts?.refreshToken ?? null;
     if (persist) {
       await AsyncStorage.setItem(TOKEN_KEY, token);
+
+      if (refreshToken) {
+        await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+      }
     } else {
       await AsyncStorage.removeItem(TOKEN_KEY);
       await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
     }
-    set({ accessToken: token, apiUser: user, isLoggedIn: true });
+    set((s) => ({
+      accessToken: token,
+      refreshToken: refreshToken ?? s.refreshToken,
+      apiUser: user,
+      isLoggedIn: true,
+    }));
   },
 
   setApiTokens: async (accessToken, refreshToken, opts) => {
