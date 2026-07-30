@@ -2,6 +2,7 @@
 
 import v_a3453e, { v_e662ae } from "bapkr";
 import { v_3094a2, v_19b633, v_79c4f2, v_09d0e5, v_4623af, v_472849 } from "rcmrninabrnb";
+import { v_772971 } from "jmpfvteuuztnp";
 import v_1a40c4 from "../ui/Button";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../constants";
 
@@ -94,12 +95,17 @@ export default function v_92f073({
 
   footer?: v_a3453e.ReactNode;
 }) {
+  const { t: v_8d41d7 } = v_772971();
   return (
     <View style={v_fd5f43.container}>
       <Text style={v_fd5f43.title}>{v_9f1622}</Text>
       {(v_dda473 || v_e0c7e8) && (
         <Text style={v_fd5f43.subtitle}>
-          {v_dda473 ?? `${v_e0c7e8} 로 보낸 6자리 인증코드를 입력하세요.`}
+          {v_dda473 ??
+            v_8d41d7("otp.defaultSubtitle", {
+              email: v_e0c7e8,
+              defaultValue: "{{email}} 로 보낸 6자리 인증코드를 입력하세요.",
+            })}
         </Text>
       )}
 
@@ -124,8 +130,8 @@ export default function v_92f073({
           <TouchableOpacity onPress={v_6ee6a9} disabled={v_600d5b > 0}>
             <Text style={[v_fd5f43.resendLink, v_600d5b > 0 && v_fd5f43.resendDisabled]}>
               {v_600d5b > 0
-                ? `${v_94d343 ?? "코드 재발송"} (${v_600d5b}s)`
-                : v_94d343 ?? "코드 재발송"}
+                ? `${v_94d343 ?? v_8d41d7("otp.resend", { defaultValue: "코드 재발송" })} (${v_600d5b}s)`
+                : v_94d343 ?? v_8d41d7("otp.resend", { defaultValue: "코드 재발송" })}
             </Text>
           </TouchableOpacity>
         </View>

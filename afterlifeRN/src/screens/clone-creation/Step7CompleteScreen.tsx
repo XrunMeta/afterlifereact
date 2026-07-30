@@ -60,6 +60,7 @@ const v_549a47 = {
 };
 
 function v_78ed2a({ uri: v_cd1446 }: { uri: string }) {
+  const { t: v_8d41d7 } = v_772971();
   const v_86394a = v_110960(v_cd1446, (v_e2a85c) => {
     v_e2a85c.loop = true;
     v_e2a85c.muted = true;
@@ -74,7 +75,9 @@ function v_78ed2a({ uri: v_cd1446 }: { uri: string }) {
         nativeControls={false}
       />
       <View style={v_d81136.videoBadge}>
-        <Text style={v_d81136.videoBadgeText}>영상 준비 완료</Text>
+        <Text style={v_d81136.videoBadgeText}>
+          {v_8d41d7("create.step7.videoReady", { defaultValue: "영상 준비 완료" })}
+        </Text>
       </View>
     </View>
   );
@@ -149,7 +152,10 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const v_a3d9bc = v_de06a3(async () => {
     if (v_f6dbfe) return;
 
-    if (!v_2ca7e0) { v_889fad('로그인 정보가 없어요. 다시 로그인해주세요.'); return; }
+    if (!v_2ca7e0) {
+      v_889fad(v_8d41d7('create.step7.loginNeeded', { defaultValue: '로그인 정보가 없어요. 다시 로그인해주세요.' }));
+      return;
+    }
     try {
       const v_43c42e = await v_04686a({
         mediaTypes: ['images'],
@@ -189,11 +195,14 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     } catch (v_49263d) {
       console.warn('[Step7] 재업로드 실패:', v_49263d);
 
-      v_889fad('업로드 실패', '영상 생성 요청에 실패했어요. 다시 시도해주세요.');
+      v_889fad(
+        v_8d41d7('create.step7.uploadFailedTitle', { defaultValue: '업로드 실패' }),
+        v_8d41d7('create.step7.uploadFailedMsg', { defaultValue: '영상 생성 요청에 실패했어요. 다시 시도해주세요.' }),
+      );
     } finally {
       v_f77874(false);
     }
-  }, [v_f6dbfe, v_2ca7e0, v_5795de]);
+  }, [v_f6dbfe, v_2ca7e0, v_5795de, v_8d41d7]);
 
   const [v_c3de9c, v_4b9b17] = v_5ab095(false);
 
@@ -328,9 +337,9 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   v_c4deb2(() => {
     if (!v_f04727.cloneType) {
-      v_3a7d09("클론 정보가 없어요. 처음부터 다시 만들어주세요.");
+      v_3a7d09(v_8d41d7("create.step7.missingCloneInfo", { defaultValue: "클론 정보가 없어요. 처음부터 다시 만들어주세요." }));
     }
-  }, [v_f04727.cloneType]);
+  }, [v_f04727.cloneType, v_8d41d7]);
 
   const v_3a8949 = v_f04727.cloneType ?? 'friend';
   const v_b38746 = {
@@ -367,7 +376,10 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     if (v_805753 || v_c3de9c) return;
 
     if (v_798360) {
-      v_889fad('잠깐요', '영상 생성이 완료되면 게시할 수 있어요.');
+      v_889fad(
+        v_8d41d7('create.step7.waitTitle', { defaultValue: '잠깐요' }),
+        v_8d41d7('create.step7.waitVideoBuilding', { defaultValue: '영상 생성이 완료되면 게시할 수 있어요.' }),
+      );
       return;
     }
     const v_2f361a = v_6044a8.trim();
@@ -401,21 +413,27 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
     if (v_2f361a.length === 0) {
       console.log("[CLONE-CREATE] BLOCKED: caption empty");
-      v_889fad("소개글", "한 줄 소개를 입력해주세요.");
+      v_889fad(
+        v_8d41d7("create.step7.captionRequiredTitle", { defaultValue: "소개글" }),
+        v_8d41d7("create.step7.captionRequiredMsg", { defaultValue: "한 줄 소개를 입력해주세요." }),
+      );
       return;
     }
 
     if (!v_2ca7e0) {
       console.log("[CLONE-CREATE] BLOCKED: no accessToken");
-      v_889fad("로그인 필요", "로그인 정보가 없어요. 다시 로그인해주세요.");
+      v_889fad(
+        v_8d41d7("create.step7.loginRequiredTitle", { defaultValue: "로그인 필요" }),
+        v_8d41d7("create.step7.loginNeeded", { defaultValue: "로그인 정보가 없어요. 다시 로그인해주세요." }),
+      );
       return;
     }
 
     if (!v_f04727.name || v_f04727.name.trim().length === 0) {
       console.log("[CLONE-CREATE] BLOCKED: name missing");
       v_889fad(
-        "이름 누락",
-        "클론 이름이 없어요. 이전 단계로 돌아가서 입력해주세요.",
+        v_8d41d7("create.step7.nameMissingTitle", { defaultValue: "이름 누락" }),
+        v_8d41d7("create.step7.nameMissingMsg", { defaultValue: "클론 이름이 없어요. 이전 단계로 돌아가서 입력해주세요." }),
       );
       return;
     }
@@ -455,18 +473,23 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       if (v_49263d instanceof v_84a859) {
 
         if (v_49263d.code === "CONFLICT" && v_49263d.message.includes("아이디")) {
-          v_889fad("아이디 중복", v_49263d.message);
+          v_889fad(v_8d41d7("create.step7.usernameConflictTitle", { defaultValue: "아이디 중복" }), v_49263d.message);
           v_4b9b17(false);
           return;
         }
 
         v_3a7d09(v_49263d.message);
-        v_889fad(`게시 실패 (${v_49263d.code})`, v_49263d.message);
+        v_889fad(
+          v_8d41d7("create.step7.postFailedWithCode", { code: v_49263d.code, defaultValue: `게시 실패 (${v_49263d.code})` }),
+          v_49263d.message,
+        );
       } else {
 
-        const v_badeaf = v_49263d instanceof Error ? v_49263d.message : "알 수 없는 오류";
+        const v_badeaf = v_49263d instanceof Error
+          ? v_49263d.message
+          : v_8d41d7("create.step7.unknownError", { defaultValue: "알 수 없는 오류" });
         v_3a7d09(v_badeaf);
-        v_889fad("게시 실패", v_badeaf);
+        v_889fad(v_8d41d7("create.step7.postFailed", { defaultValue: "게시 실패" }), v_badeaf);
       }
       v_4b9b17(false);
       return;
@@ -477,15 +500,15 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     if (v_80a1e3) v_c65f5d.replace("Step8", { cloneId: v_80a1e3 });
   };
 
-  const v_8a1355 = v_f04727.name ?? "사용자 이름";
-  const v_3e86f3 = v_f04727.username ?? "아이디";
+  const v_8a1355 = v_f04727.name ?? v_8d41d7("create.step7.displayNameFallback", { defaultValue: "사용자 이름" });
+  const v_3e86f3 = v_f04727.username ?? v_8d41d7("create.step7.displayHandleFallback", { defaultValue: "아이디" });
   const v_ee89db = v_f04727.imageFile;
 
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
       {}
       <PageHeader
-        title="클론 정보 리뷰"
+        title={v_8d41d7("create.step7.reviewTitle", { defaultValue: "클론 정보 리뷰" })}
         showBackButton
         onBackPress={() => {
 
@@ -545,10 +568,14 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
                 {v_f6dbfe ? (
                   <>
                     <ActivityIndicator size="small" color={v_1bfbd0.white} style={{ marginRight: 6 }} />
-                    <Text style={v_d81136.videoBadgeText}>사진 올리는 중...</Text>
+                    <Text style={v_d81136.videoBadgeText}>
+                      {v_8d41d7("create.step7.photoUploading", { defaultValue: "사진 올리는 중..." })}
+                    </Text>
                   </>
                 ) : (
-                  <Text style={v_d81136.videoBadgeText}>사진 다시 올리기</Text>
+                  <Text style={v_d81136.videoBadgeText}>
+                    {v_8d41d7("create.step7.reuploadPhoto", { defaultValue: "사진 다시 올리기" })}
+                  </Text>
                 )}
               </View>
             </TouchableOpacity>
@@ -560,14 +587,18 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
               )}
               <View style={[v_d81136.videoBadge, v_d81136.videoBadgePending]}>
                 <ActivityIndicator size="small" color={v_1bfbd0.white} style={{ marginRight: 6 }} />
-                <Text style={v_d81136.videoBadgeText}>영상 준비 중</Text>
+                <Text style={v_d81136.videoBadgeText}>
+                  {v_8d41d7("create.step7.videoPending", { defaultValue: "영상 준비 중" })}
+                </Text>
               </View>
             </View>
           ) : v_f04727.imageFile ? (
             <Image source={{ uri: v_f04727.imageFile }} style={v_d81136.previewBox} resizeMode="cover" />
           ) : (
             <View style={v_d81136.previewBox}>
-              <Text style={v_d81136.previewText}>사진을 먼저 등록해 주세요</Text>
+              <Text style={v_d81136.previewText}>
+                {v_8d41d7("create.step7.photoRequired", { defaultValue: "사진을 먼저 등록해 주세요" })}
+              </Text>
             </View>
           )}
 
@@ -576,7 +607,9 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
             style={v_d81136.captionInput}
             value={v_6044a8}
             onChangeText={(v_81e2ef) => { v_1d6b6a(v_81e2ef); v_d9bc63.current = true; }}
-            placeholder="소개글 작성 (예: #일상 #infp 케이팝 노래 좋아해요)"
+            placeholder={v_8d41d7("create.step7.captionPlaceholder", {
+              defaultValue: "소개글 작성 (예: #일상 #infp 케이팝 노래 좋아해요)",
+            })}
             placeholderTextColor={v_1bfbd0.zinc400}
             multiline
             maxLength={2000}
@@ -599,12 +632,12 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
             testID="share-post-button"
             title={
               v_5e9bfe
-                ? "다시 시도"
+                ? v_8d41d7("common.retry", { defaultValue: "다시 시도" })
                 : v_af4871 != null
-                ? "다음"
+                ? v_8d41d7("create.step7.next", { defaultValue: "다음" })
                 : v_c3de9c || v_805753
-                ? "잠시만요..."
-                : "다음"
+                ? v_8d41d7("create.submitting", { defaultValue: "잠시만요..." })
+                : v_8d41d7("create.step7.next", { defaultValue: "다음" })
             }
             onPress={
               v_5e9bfe

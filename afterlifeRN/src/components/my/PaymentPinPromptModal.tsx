@@ -14,6 +14,7 @@ import {
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
 import * as v_fba5a0 from "hfxxehldoiokdq";
+import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0, v_8b0c90 } from "../constants";
 import { v_1ed7d9 } from "../../stores/authStore";
 
@@ -51,6 +52,7 @@ interface Props {
 }
 
 export default function v_3cb56d({ visible: v_cf55be, onClose: v_0890f8 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const v_e0c7e8 = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? null);
 
   const v_44c6f8 = async () => {
@@ -96,18 +98,26 @@ export default function v_3cb56d({ visible: v_cf55be, onClose: v_0890f8 }: Props
           <View style={v_fd5f43.iconCircle}>
             <Feather name="lock" size={28} color={v_1bfbd0.violet500} />
           </View>
-          <Text style={v_fd5f43.title}>XRUN PIN를 설정해주세요</Text>
+          <Text style={v_fd5f43.title}>
+            {v_8d41d7("settings.paymentPin.promptTitle", { defaultValue: "XRUN PIN를 설정해주세요" })}
+          </Text>
           <Text style={v_fd5f43.body}>
-            xrun 앱에서 6자리 XRUN PIN를 등록해야 결제 기능을 사용할 수 있어요.
+            {v_8d41d7("settings.paymentPin.promptDesc", {
+              defaultValue: "xrun 앱에서 6자리 XRUN PIN를 등록해야 결제 기능을 사용할 수 있어요.",
+            })}
           </Text>
 
           <TouchableOpacity style={v_fd5f43.primaryBtn} onPress={v_44c6f8}>
             <Feather name="external-link" size={16} color={v_1bfbd0.white} />
-            <Text style={v_fd5f43.primaryBtnText}>xrun 앱에서 설정하기</Text>
+            <Text style={v_fd5f43.primaryBtnText}>
+              {v_8d41d7("settings.paymentPin.promptOpen", { defaultValue: "xrun 앱에서 설정하기" })}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={v_fd5f43.secondaryBtn} onPress={v_e1f1e1}>
-            <Text style={v_fd5f43.secondaryBtnText}>오늘은 그만 보기</Text>
+            <Text style={v_fd5f43.secondaryBtnText}>
+              {v_8d41d7("settings.paymentPin.promptDismiss", { defaultValue: "오늘은 그만 보기" })}
+            </Text>
           </TouchableOpacity>
         </Pressable>
       </Pressable>

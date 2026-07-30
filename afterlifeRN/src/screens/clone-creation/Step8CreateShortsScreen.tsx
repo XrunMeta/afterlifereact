@@ -4,6 +4,7 @@ import v_a3453e from "bapkr";
 import { v_3094a2, v_19b633, v_472849 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_2b51a5 } from "../../navigation/types";
 import v_556baf from "../../components/ui/SafeView";
@@ -13,6 +14,7 @@ import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 type Props = v_432191<v_2b51a5, "Step8">;
 
 export default function v_d19b01({ navigation: v_c65f5d }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const v_704242 = () => {
     v_c65f5d.getParent()?.dispatch(
       v_650cfa.navigate({ name: "ClonesTab" }),
@@ -25,15 +27,17 @@ export default function v_d19b01({ navigation: v_c65f5d }: Props) {
         <View style={v_d81136.successCircle}>
           <Feather name="check" size={48} color={v_1bfbd0.white} />
         </View>
-        <Text style={v_d81136.title}>클론이 완성되었습니다</Text>
+        <Text style={v_d81136.title}>{v_8d41d7("create.step8.title", { defaultValue: "클론이 완성되었습니다" })}</Text>
         <Text style={v_d81136.subtitle}>
-          이제 클론과 대화하거나{"\n"}새 게시물을 올릴 수 있어요.
+          {v_8d41d7("create.step8.subtitle", {
+            defaultValue: "이제 클론과 대화하거나\n새 게시물을 올릴 수 있어요.",
+          })}
         </Text>
       </View>
 
       <View style={v_d81136.bottomBar}>
         <Button
-          title="대시보드로"
+          title={v_8d41d7("create.step8.toDashboard", { defaultValue: "대시보드로" })}
           onPress={v_704242}
           variant="accent"
         />

@@ -45,7 +45,6 @@ type Props = {
   navigation: v_390fcc<v_2b51a5, 'PersonaAssistant'>;
 };
 
-const v_291e91 = '클론 생성 도우미';
 const v_90ef75 = require('../../../assets/images/symbol.png');
 
 function v_a7e583(q: v_c8af29, v_00da68): boolean {
@@ -56,27 +55,6 @@ function v_a7e583(q: v_c8af29, v_00da68): boolean {
 }
 
 type SystemPhase = 'name' | 'username' | 'relation';
-
-const v_d09784 = {
-  name: '안녕하세요! 클론 생성 도우미입니다.\n\n지금 생성하는 클론의 이름이 뭔가요?\n평소에 부르던 이름이나 별명도 좋아요.',
-  username:
-    '@아이디는 어떻게 할까요?\n영문 소문자, 숫자, _ 만 가능해요. 비워두시면 자동으로 만들어드릴게요!',
-  relation: '어떤 관계인가요?\n아래에서 선택해 주세요.',
-};
-
-const v_3aa5d1 = {
-  name: '예: 별이, 할머니, 모리',
-  username: '예: starry_kim (비워두면 자동 생성)',
-  relation: '',
-};
-
-const v_0ac987 = {
-  name: '좋아요, 잘 기억해뒀어요!',
-  username: '확인했어요! 다음 질문이에요.',
-  relation: '알겠어요! 계속 진행할게요.',
-};
-
-const v_035037 = '좋아요!';
 
 interface ChatMessage {
   id: string;
@@ -103,6 +81,36 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
   const v_033e14 = v_e0068c();
   const v_5795de = v_194498((v_fd5f43) => v_fd5f43.setCreationDraft);
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+
+  const v_291e91 = v_8d41d7('create.assistant.aiName', { defaultValue: '클론 생성 도우미' });
+  const v_d09784 = {
+    name: v_8d41d7('create.assistant.promptName', {
+      defaultValue:
+        '안녕하세요! 클론 생성 도우미입니다.\n\n지금 생성하는 클론의 이름이 뭔가요?\n평소에 부르던 이름이나 별명도 좋아요.',
+    }),
+    username: v_8d41d7('create.assistant.promptUsername', {
+      defaultValue:
+        '@아이디는 어떻게 할까요?\n영문 소문자, 숫자, _ 만 가능해요. 비워두시면 자동으로 만들어드릴게요!',
+    }),
+    relation: v_8d41d7('create.assistant.promptRelation', {
+      defaultValue: '어떤 관계인가요?\n아래에서 선택해 주세요.',
+    }),
+  };
+  const v_3aa5d1 = {
+    name: v_8d41d7('create.assistant.placeholderName', { defaultValue: '예: 별이, 할머니, 모리' }),
+    username: v_8d41d7('create.assistant.placeholderUsername', {
+      defaultValue: '예: starry_kim (비워두면 자동 생성)',
+    }),
+    relation: '',
+  };
+  const v_0ac987 = {
+    name: v_8d41d7('create.assistant.ackName', { defaultValue: '좋아요, 잘 기억해뒀어요!' }),
+    username: v_8d41d7('create.assistant.ackUsername', { defaultValue: '확인했어요! 다음 질문이에요.' }),
+    relation: v_8d41d7('create.assistant.ackRelation', { defaultValue: '알겠어요! 계속 진행할게요.' }),
+  };
+  const v_035037 = v_8d41d7('create.assistant.ackDynamic', { defaultValue: '좋아요!' });
+  const v_737a3f = v_8d41d7('create.assistant.btnCustom', { defaultValue: '직접 입력' });
+  const v_743f76 = v_8d41d7('create.assistant.btnSkip', { defaultValue: '건너뛰기' });
 
   const [v_fa56e0, v_41d55d] = v_5ab095<ChatMessage[]>([]);
   const [v_6bae32, v_a0f9c4] = v_5ab095(false);
@@ -247,7 +255,11 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
       if (v_e86ad8 >= v_cf55be.length) {
 
         v_ae4844('done');
-        await v_f76640('다 들었어요! 이제 다음 단계로 갈게요.', undefined, 500);
+        await v_f76640(
+          v_8d41d7('create.assistant.allDone', { defaultValue: '다 들었어요! 이제 다음 단계로 갈게요.' }),
+          undefined,
+          500,
+        );
         setTimeout(() => {
           const v_00da68 = v_03f138.current;
           v_5795de({
@@ -288,10 +300,10 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
 
         const v_9bfd73 = v_ab6401.options_include ?? [];
         const v_2b7a6d = [...new Set([...v_9bfd73, ...v_cc1380])].slice(0, 5);
-        v_3d694a = v_2b7a6d.length > 0 ? [...v_2b7a6d, '직접 입력'] : ['직접 입력'];
+        v_3d694a = v_2b7a6d.length > 0 ? [...v_2b7a6d, v_737a3f] : [v_737a3f];
       }
       if (v_ab6401.type === 'fixed_choice' && (v_ab6401.optional !== false)) {
-        v_3d694a = [...v_3d694a, '건너뛰기'];
+        v_3d694a = [...v_3d694a, v_743f76];
       }
 
       v_ae4844(`schema:${v_e86ad8}`);
@@ -321,7 +333,11 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
 
       if (v_5c27e3 === 'other') {
         v_ae4844('sys:relation-custom');
-        await v_f76640('어떤 관계인지 직접 알려주세요!', undefined, 300);
+        await v_f76640(
+          v_8d41d7('create.assistant.askRelationCustom', { defaultValue: '어떤 관계인지 직접 알려주세요!' }),
+          undefined,
+          300,
+        );
         return;
       }
 
@@ -341,9 +357,9 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
       if (v_d776c4 === null) return;
       v_add3fa(v_878e48);
 
-      if (v_3b402b === '건너뛰기') {
+      if (v_3b402b === v_743f76) {
 
-        v_13cb29('(건너뛰기)');
+        v_13cb29(v_8d41d7('create.assistant.userSkip', { defaultValue: '(건너뛰기)' }));
 
         const v_a448ad = { ...v_03f138.current.schemaAnswers };
         delete v_a448ad[v_ab6401.key];
@@ -359,10 +375,14 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
         return;
       }
 
-      if (v_3b402b === '직접 입력') {
+      if (v_3b402b === v_737a3f) {
 
         v_add3fa(v_878e48);
-        await v_f76640('직접 입력해 주세요!', undefined, 300);
+        await v_f76640(
+          v_8d41d7('create.assistant.askCustomInput', { defaultValue: '직접 입력해 주세요!' }),
+          undefined,
+          300,
+        );
 
         return;
       }
@@ -402,7 +422,12 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
       if (v_9b6134.length === 0) {
 
         const v_bff627 = v_b55477(v_03f138.current.name || 'user');
-        v_13cb29(`(빈 칸 — ${v_bff627} 로 자동 생성)`);
+        v_13cb29(
+          v_8d41d7('create.assistant.usernameAutoDerived', {
+            derived: v_bff627,
+            defaultValue: `(빈 칸 — ${v_bff627} 로 자동 생성)`,
+          }),
+        );
         v_03f138.current.username = v_bff627;
         v_5795de({ username: v_bff627 });
         v_c31db7('');
@@ -415,25 +440,45 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
       }
       const v_479f05 = v_9b6134.toLowerCase();
       if (!/^[a-z0-9_]+$/.test(v_479f05)) {
-        v_889fad('아이디 형식 오류', '영문 소문자, 숫자, _ 만 사용 가능해요.');
+        v_889fad(
+          v_8d41d7('create.assistant.usernameFormatTitle', { defaultValue: '아이디 형식 오류' }),
+          v_8d41d7('create.assistant.usernameFormatMsg', { defaultValue: '영문 소문자, 숫자, _ 만 사용 가능해요.' }),
+        );
         return;
       }
       if (v_479f05.length < 3) {
-        v_889fad('아이디 길이', '아이디는 3자 이상이어야 해요.');
+        v_889fad(
+          v_8d41d7('create.assistant.usernameLengthTitle', { defaultValue: '아이디 길이' }),
+          v_8d41d7('create.assistant.usernameTooShortMsg', { defaultValue: '아이디는 3자 이상이어야 해요.' }),
+        );
         return;
       }
       if (v_479f05.length > 30) {
-        v_889fad('아이디 길이', '아이디는 30자 이하여야 해요.');
+        v_889fad(
+          v_8d41d7('create.assistant.usernameLengthTitle', { defaultValue: '아이디 길이' }),
+          v_8d41d7('create.assistant.usernameTooLongMsg', { defaultValue: '아이디는 30자 이하여야 해요.' }),
+        );
         return;
       }
       v_08d488(true);
       try {
         const v_cb35cb = await v_6c3f29(v_479f05);
         if (!v_cb35cb.available) {
-          let v_badeaf = '이미 사용중인 아이디예요. 다른 걸 입력해주세요.';
-          if (v_cb35cb.reason === 'reserved') v_badeaf = '예약된 아이디입니다. 다른 아이디를 입력해주세요.';
-          else if (v_cb35cb.reason === 'invalid') v_badeaf = '아이디 형식이 올바르지 않아요.';
-          v_889fad('사용할 수 없는 아이디', v_badeaf);
+          let v_badeaf = v_8d41d7('create.assistant.usernameInUse', {
+            defaultValue: '이미 사용중인 아이디예요. 다른 걸 입력해주세요.',
+          });
+          if (v_cb35cb.reason === 'reserved')
+            v_badeaf = v_8d41d7('create.assistant.usernameReserved', {
+              defaultValue: '예약된 아이디입니다. 다른 아이디를 입력해주세요.',
+            });
+          else if (v_cb35cb.reason === 'invalid')
+            v_badeaf = v_8d41d7('create.assistant.usernameInvalid', {
+              defaultValue: '아이디 형식이 올바르지 않아요.',
+            });
+          v_889fad(
+            v_8d41d7('create.assistant.usernameUnavailableTitle', { defaultValue: '사용할 수 없는 아이디' }),
+            v_badeaf,
+          );
           return;
         }
       } catch {
@@ -519,16 +564,21 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
   const v_064334 = (() => {
     if (v_ab4803 === 'sys:name') return v_3aa5d1.name;
     if (v_ab4803 === 'sys:username') return v_3aa5d1.username;
-    if (v_ab4803 === 'sys:relation-custom') return '예: 할아버지, 은사님, 동료...';
+    if (v_ab4803 === 'sys:relation-custom')
+      return v_8d41d7('create.assistant.placeholderRelationCustom', {
+        defaultValue: '예: 할아버지, 은사님, 동료...',
+      });
     if (v_ab4803.startsWith('schema:') && v_d776c4 !== null) {
       const v_cf55be = v_c3519b.filter((v_ab6401) =>
         v_a7e583(v_ab6401, v_03f138.current.schemaAnswers),
       );
       const v_ab6401 = v_cf55be[v_d776c4];
-      if (v_ab6401?.type === 'text') return '자유롭게 입력해 주세요...';
-      if (v_ab6401?.type === 'gemma_choice') return '직접 입력...';
+      if (v_ab6401?.type === 'text')
+        return v_8d41d7('create.assistant.placeholderText', { defaultValue: '자유롭게 입력해 주세요...' });
+      if (v_ab6401?.type === 'gemma_choice')
+        return v_8d41d7('create.assistant.placeholderCustom', { defaultValue: '직접 입력...' });
     }
-    return '답변을 입력하세요...';
+    return v_8d41d7('create.assistant.placeholderDefault', { defaultValue: '답변을 입력하세요...' });
   })();
 
   const v_f05841 = (() => {

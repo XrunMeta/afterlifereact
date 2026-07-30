@@ -91,7 +91,7 @@ export default function v_3d9025({ navigation: v_c65f5d }: Props) {
       </SafeScrollView>
       <View style={v_d81136.bottomBar}>
         <Button
-          title={v_cb66b4 ? '잠시만요...' : v_8d41d7("create.next")}
+          title={v_cb66b4 ? v_8d41d7("create.submitting", { defaultValue: "잠시만요..." }) : v_8d41d7("create.next")}
           onPress={v_420661}
           disabled={!v_04fddf || v_cb66b4}
         />
