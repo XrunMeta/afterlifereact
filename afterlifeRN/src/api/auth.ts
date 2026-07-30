@@ -59,11 +59,15 @@ export interface SignupResponse {
   accessToken: string;
   accessExpiresIn: number;
   user: AuthUserBrief;
+
+  refreshToken?: string;
 }
 
 export interface LoginResponse {
   accessToken: string;
   accessExpiresIn: number;
+
+  refreshToken?: string;
 }
 
 export interface LoginPayload {

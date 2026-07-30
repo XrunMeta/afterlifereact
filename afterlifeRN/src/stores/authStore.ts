@@ -22,7 +22,11 @@ interface AuthState {
   refreshToken: string | null;
   apiUser: v_7289ef | null;
   loginWithApi: (payload: v_a93c97, opts?: { persist?: boolean }) => Promise<v_7289ef>;
-  setApiAuth: (token: string, user: v_7289ef, opts?: { persist?: boolean }) => Promise<void>;
+  setApiAuth: (
+    token: string,
+    user: v_7289ef,
+    opts?: { persist?: boolean; refreshToken?: string | null },
+  ) => Promise<void>;
 
   setApiTokens: (accessToken: string, refreshToken: string | null, opts?: { persist?: boolean }) => Promise<void>;
   apiLogout: () => Promise<void>;
@@ -131,13 +135,23 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
 
   setApiAuth: async (v_21cc31, v_625c74, v_328259) => {
     const v_3c038e = v_328259?.persist !== false;
+    const v_dfaee3 = v_328259?.refreshToken ?? null;
     if (v_3c038e) {
       await v_e84827.setItem(v_1278db, v_21cc31);
+
+      if (v_dfaee3) {
+        await v_e84827.setItem(v_a19d89, v_dfaee3);
+      }
     } else {
       await v_e84827.removeItem(v_1278db);
       await v_e84827.removeItem(v_a19d89);
     }
-    v_bb8024({ accessToken: v_21cc31, apiUser: v_625c74, isLoggedIn: true });
+    v_bb8024((v_fd5f43) => ({
+      accessToken: v_21cc31,
+      refreshToken: v_dfaee3 ?? v_fd5f43.refreshToken,
+      apiUser: v_625c74,
+      isLoggedIn: true,
+    }));
   },
 
   setApiTokens: async (v_2ca7e0, v_dfaee3, v_328259) => {

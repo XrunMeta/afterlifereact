@@ -33,7 +33,6 @@ export default function v_415807({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
   const v_232d52 = v_1ed7d9((v_fd5f43) => v_fd5f43.hydrate);
   const v_31080f = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiAuth);
-  const v_3345cb = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiTokens);
 
   v_c4deb2(() => {
     if (v_600d5b <= 0) return;
@@ -61,9 +60,10 @@ export default function v_415807({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       const v_929b58 = await v_ea1c99();
       const v_8f00b9 = await v_c0c425({ email: v_e0c7e8, verificationCode: v_c99bd2, deviceId: v_929b58 });
       const v_9ec4c0 = await v_7ef860(v_8f00b9.accessToken);
-      await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user, { persist: v_f53eaa });
-      const v_46eca9 = (v_8f00b9 as { refreshToken?: string }).refreshToken;
-      if (v_46eca9) await v_3345cb(v_8f00b9.accessToken, v_46eca9, { persist: v_f53eaa });
+      await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user, {
+        persist: v_f53eaa,
+        refreshToken: v_8f00b9.refreshToken ?? null,
+      });
       if (v_f53eaa) {
         await v_e84827.setItem(v_101856, "1");
         await v_e84827.setItem(v_6a7868, v_e0c7e8);

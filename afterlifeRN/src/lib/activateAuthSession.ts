@@ -17,10 +17,10 @@ export async function v_c65c18(v_328259): Promise<boolean> {
   const v_3c038e = v_328259.persist ?? true;
   try {
     const v_9ec4c0 = await v_7ef860(v_328259.accessToken);
-    await v_1ed7d9.getState().setApiAuth(v_328259.accessToken, v_9ec4c0.user, { persist: v_3c038e });
-    if (v_328259.refreshToken) {
-      await v_1ed7d9.getState().setApiTokens(v_328259.accessToken, v_328259.refreshToken, { persist: v_3c038e });
-    }
+    await v_1ed7d9.getState().setApiAuth(v_328259.accessToken, v_9ec4c0.user, {
+      persist: v_3c038e,
+      refreshToken: v_328259.refreshToken ?? null,
+    });
     await v_1ed7d9.getState().hydrate();
     return true;
   } catch (v_49263d) {

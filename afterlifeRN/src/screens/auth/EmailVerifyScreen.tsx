@@ -42,11 +42,11 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_77cdad, v_13dcee] = v_5ab095(false);
   const v_32f473 = v_e662ae<v_79c4f2>(null);
 
-  const v_f6037c = (v_2ca7e0) => {
-    void v_c65c18({ accessToken: v_2ca7e0, persist: true });
+  const v_f6037c = (v_2ca7e0, v_dfaee3) => {
+    void v_c65c18({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, persist: true });
   };
 
-  const v_1fe71f = (v_2ca7e0) => {
+  const v_1fe71f = (v_2ca7e0, v_dfaee3) => {
     v_889fad(
       v_8d41d7("auth.emailVerify.googleLinkTitle", { defaultValue: "구글 계정 연동" }),
       v_8d41d7("auth.emailVerify.googleLinkDesc", {
@@ -57,20 +57,20 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         {
           text: v_8d41d7("auth.emailVerify.later", { defaultValue: "나중에" }),
           style: "cancel",
-          onPress: () => v_f6037c(v_2ca7e0),
+          onPress: () => v_f6037c(v_2ca7e0, v_dfaee3),
         },
         {
           text: v_8d41d7("auth.emailVerify.linkNow", { defaultValue: "연동하기" }),
-          onPress: () => void v_ac1a42(v_2ca7e0),
+          onPress: () => void v_ac1a42(v_2ca7e0, v_dfaee3),
         },
       ],
     );
   };
 
-  const v_ac1a42 = async (v_2ca7e0) => {
+  const v_ac1a42 = async (v_2ca7e0, v_dfaee3) => {
 
     if (!v_220c23()) {
-      v_f6037c(v_2ca7e0);
+      v_f6037c(v_2ca7e0, v_dfaee3);
       return;
     }
     try {
@@ -87,7 +87,7 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       const v_b50834 = v_bb789b?.idToken ?? v_bb789b?.data?.idToken;
       if (!v_b50834) {
         console.warn("[google-link] no idToken");
-        v_f6037c(v_2ca7e0);
+        v_f6037c(v_2ca7e0, v_dfaee3);
         return;
       }
 
@@ -101,7 +101,7 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             defaultValue:
               "가입 시 입력하신 이메일과 구글 로그인 이메일이 다릅니다. 연동 없이 계속 진행합니다.",
           }),
-          [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: () => v_f6037c(v_2ca7e0) }],
+          [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: () => v_f6037c(v_2ca7e0, v_dfaee3) }],
         );
         return;
       }
@@ -112,15 +112,15 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         deviceId: v_929b58,
         platform: v_326be8.OS === "ios" ? "ios" : "android",
       });
-      v_f6037c(v_6202c8.accessToken);
+      v_f6037c(v_6202c8.accessToken, v_6202c8.refreshToken ?? null);
     } catch (v_49263d) {
       const v_98136a = v_49263d as { code?: string };
       if (v_98136a?.code === v_8d3720.SIGN_IN_CANCELLED) {
-        v_f6037c(v_2ca7e0);
+        v_f6037c(v_2ca7e0, v_dfaee3);
         return;
       }
       console.warn("[google-link] failed:", v_49263d);
-      v_f6037c(v_2ca7e0);
+      v_f6037c(v_2ca7e0, v_dfaee3);
     }
   };
 
@@ -200,9 +200,9 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         v_688424.getState().googleEnabled === true &&
         v_24baff.email.toLowerCase().endsWith("@gmail.com")
       ) {
-        v_1fe71f(v_8f00b9.accessToken);
+        v_1fe71f(v_8f00b9.accessToken, v_8f00b9.refreshToken ?? null);
       } else {
-        v_f6037c(v_8f00b9.accessToken);
+        v_f6037c(v_8f00b9.accessToken, v_8f00b9.refreshToken ?? null);
       }
     } catch (v_49263d) {
       let v_badeaf = v_8d41d7("auth.signup.signupFailed");
