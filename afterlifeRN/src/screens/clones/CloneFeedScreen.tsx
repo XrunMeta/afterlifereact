@@ -53,9 +53,58 @@ import { v_1bfbd0 } from "../../components/constants";
 
 type Props = v_432191<v_8ad91b, "CloneFeed">;
 
-export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
+export default function v_9887a2(v_b1927c) {
+  const v_066950 = v_b1927c.route.params?.feed;
+  const v_03ebf6 = v_b1927c.route.params?.cloneId;
+  const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const [v_137df0, v_9520f7] = v_a3453e.useState<import("../../api/clones").DiscoverFeedItem | null>(null);
+  const [v_da980a, v_98be7a] = v_a3453e.useState<string | null>(null);
+
+  v_a3453e.useEffect(() => {
+    if (v_066950 || v_137df0 || v_da980a) return;
+    if (!v_03ebf6) return;
+    v_003cf2(v_03ebf6, v_2ca7e0 ?? undefined)
+      .then((v_8f00b9) => {
+        const v_3f4e2e = v_8f00b9.clone;
+        v_9520f7({
+          id: -1 * Date.now(), 
+          cloneId: v_3f4e2e.id,
+          content: v_3f4e2e.description ?? null,
+          mediaUrl: v_3f4e2e.avatarUrl ?? null,
+          mediaType: null,
+          likesCount: v_3f4e2e.stats?.likes ?? 0,
+          likedByMe: v_3f4e2e.likedByMe ?? false,
+          commentsCount: v_3f4e2e.stats?.comments ?? 0,
+          createdAt: v_3f4e2e.createdAt,
+          clone: {
+            id: v_3f4e2e.id,
+            ownerId: v_3f4e2e.ownerId,
+            name: v_3f4e2e.name,
+            username: v_3f4e2e.username ?? "",
+            avatarUrl: v_3f4e2e.avatarUrl,
+            cloneType: v_3f4e2e.cloneType,
+            visibility: v_3f4e2e.visibility,
+          },
+          interests: v_3f4e2e.interests ?? [],
+        });
+      })
+      .catch((v_49263d) => v_98be7a((v_49263d as Error).message));
+  }, [v_03ebf6, v_066950, v_137df0, v_da980a, v_2ca7e0]);
+
+  const v_2db2a5 = v_066950 ?? v_137df0;
+  if (!v_2db2a5) {
+    return (
+      <View style={{ flex: 1, backgroundColor: v_1bfbd0.zinc950, alignItems: 'center', justifyContent: 'center' }}>
+        {v_da980a && <Text style={{ color: v_1bfbd0.zinc400, fontSize: 14 }}>클론을 불러올 수 없어요.</Text>}
+      </View>
+    );
+  }
+  return <CloneFeedInner {...v_b1927c} feed={v_2db2a5} />;
+}
+
+type InnerProps = Props & { feed: import("../../api/clones").DiscoverFeedItem };
+function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: InnerProps) {
   const { t: v_8d41d7 } = v_772971();
-  const { feed: v_2db2a5 } = v_c7daf6.params;
   const v_033e14 = v_e0068c();
   const v_f9771e = v_c18c22(0);
 
