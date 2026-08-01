@@ -9,6 +9,7 @@ import { v_80a022 } from "../lib/notify";
 import { v_dd9d7c, v_6f97bc, v_cf0463 } from "../lib/interactions";
 import {
   v_74c502,
+  v_a9ae28,
   v_7adf64,
   v_ab84f6,
   v_5d4a51,
@@ -150,22 +151,25 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
   const v_925171 = [];
 
   if (v_013af2) {
+
     v_abcc8d.push(
       `(
-         c.visibility = 'public'
-         OR (c.owner_id = ? AND c.visibility != 'private')
-         OR (c.visibility = 'followers' AND
-             EXISTS (SELECT 1 FROM clone_follows cf
-                      WHERE cf.clone_id = c.id AND cf.user_id = ?))
-         OR (c.visibility = 'selected' AND
-             EXISTS (SELECT 1 FROM clone_allowed_viewers cav
-                      WHERE cav.clone_id = c.id AND cav.user_id = ?))
+         (c.owner_id = ? AND c.visibility != 'private')
+         OR (${v_a9ae28("c")} AND (
+              c.visibility = 'public'
+              OR (c.visibility = 'followers' AND
+                  EXISTS (SELECT 1 FROM clone_follows cf
+                           WHERE cf.clone_id = c.id AND cf.user_id = ?))
+              OR (c.visibility = 'selected' AND
+                  EXISTS (SELECT 1 FROM clone_allowed_viewers cav
+                           WHERE cav.clone_id = c.id AND cav.user_id = ?))
+         ))
        )`,
     );
     v_925171.push(v_013af2, v_013af2, v_013af2);
   } else {
 
-    v_abcc8d.push("c.visibility = 'public'");
+    v_abcc8d.push(`c.visibility = 'public' AND ${v_a9ae28("c")}`);
   }
 
   if (v_013af2) {
