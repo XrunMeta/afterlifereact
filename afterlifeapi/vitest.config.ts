@@ -39,6 +39,8 @@ export default defineWorkersConfig(async () => {
 
               DEV_SECRET: "test-dev-secret",
 
+              AUDIT_SECRET: "test-audit-secret-for-vitest",
+
               MASTER_ROOT: "dGVzdC1tYXN0ZXItcm9vdC0zMmJ5dGVzLXBhZGRpbmc=",
               ALE_KEK: "dGVzdC1hbGUta2VrLTMyYnl0ZXMtcGFkZGluZyEhISE=",
 

@@ -105,7 +105,7 @@ adminData.get("/oth-path", async (c) => {
     binds.push(deletionState);
   } else {
 
-    where.push("c.deletion_state IN ('active', 'soft_deleted')");
+    where.push("c.deletion_state = 'active'");
   }
   if (q) {
     where.push(`(
@@ -146,6 +146,8 @@ adminData.get("/oth-path", async (c) => {
               c.deletion_state AS deletionState,
               c.soft_deleted_at AS softDeletedAt,
               c.deleted_at AS deletedAt,
+              c.admin_suspended_at AS adminSuspendedAt,
+              c.admin_suspend_reason AS adminSuspendReason,
               (SELECT COUNT(*) FROM clone_reports cr
                 WHERE cr.clone_id = c.id AND cr.status = 'reviewed') AS reportCount,
               (SELECT COUNT(*) FROM feed_comments fcc
@@ -199,7 +201,11 @@ adminData.get("/oth-path", async (c) => {
             c.training_status AS trainingStatus,
             c.owner_id AS ownerId, u.name AS ownerName,
             c.l1_profile AS l1Profile, c.l2_profile AS l2Profile,
-            c.created_at AS createdAt
+            c.created_at AS createdAt,
+            c.deletion_state AS deletionState,
+            c.soft_deleted_at AS softDeletedAt,
+            c.admin_suspended_at AS adminSuspendedAt,
+            c.admin_suspend_reason AS adminSuspendReason
        FROM clones c
        LEFT JOIN users u ON u.id = c.owner_id
       WHERE c.id = ?`,
