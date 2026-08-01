@@ -1599,6 +1599,13 @@ v_f891e6.post("/:id/follow", v_6690d9, async (v_3f4e2e) => {
     if (!v_22da99) throw new v_3ebe58("FORBIDDEN", "비공개 페르소나는 팔로우할 수 없어요.");
   }
 
+  if (v_eb25ce.admin_suspended_at && v_eb25ce.owner_id !== v_43e90c) {
+    const v_32b0ce = await v_7adf64(v_a1651b, v_6e0fd3, v_43e90c);
+    if (v_32b0ce !== "owner") {
+      throw new v_3ebe58("FORBIDDEN", "이 페르소나는 현재 일시 중지 상태예요.");
+    }
+  }
+
   const v_43c42e = await v_a1651b
     .prepare(
       `INSERT OR IGNORE INTO clone_follows (user_id, clone_id) VALUES (?, ?)`,

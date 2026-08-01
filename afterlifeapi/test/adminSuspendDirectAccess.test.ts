@@ -254,3 +254,72 @@ v_469bf2("GET /oth-path·shared·l2", () => {
     });
   }
 });
+
+v_469bf2("POST /oth-path — 신규 팔로우", () => {
+  async function v_7e59ce(v_6e0fd3, v_8d41d7): Promise<Response> {
+    return v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/follow`, {
+      method: "POST",
+      headers: v_68f0aa(v_8d41d7),
+    });
+  }
+  async function v_5918bb(v_6e0fd3, v_43e90c): Promise<number> {
+    const v_3ac7e7 = await v_a1651b()
+      .prepare(`SELECT COUNT(*) AS n FROM clone_follows WHERE clone_id = ? AND user_id = ?`)
+      .bind(v_6e0fd3, v_43e90c)
+      .first<{ n: number }>();
+    return v_3ac7e7?.n ?? 0;
+  }
+
+  v_23805a("타인은 403 + clone_follows 행 생성 안 됨, 소유자는 200 + 행 생성, 정상 클론은 타인도 200", async () => {
+    const v_257b90 = await v_bfb240();
+    const v_1c6644 = await v_bfb240();
+    const v_7f572b = await v_4d24a9(v_257b90);
+    const v_375bef = await v_4d24a9(v_257b90);
+    await v_c8e75a(v_7f572b);
+    const v_983772 = await v_21cc31(v_257b90);
+    const v_72c7a6 = await v_21cc31(v_1c6644);
+
+    const v_5ae0c1 = await v_7e59ce(v_7f572b, v_72c7a6);
+    v_4d37e3(v_5ae0c1.status).toBe(403);
+    v_4d37e3(await v_5918bb(v_7f572b, v_1c6644)).toBe(0);
+
+    const v_6f4e75 = await v_7e59ce(v_7f572b, v_983772);
+    v_4d37e3(v_6f4e75.status).toBe(200);
+    v_4d37e3(await v_5918bb(v_7f572b, v_257b90)).toBe(1);
+
+    const v_94155d = await v_7e59ce(v_375bef, v_72c7a6);
+    v_4d37e3(v_94155d.status).toBe(200);
+    v_4d37e3(await v_5918bb(v_375bef, v_1c6644)).toBe(1);
+  });
+
+  v_23805a("coowner 는 정지 중에도 팔로우 가능", async () => {
+    const v_257b90 = await v_bfb240();
+    const v_583293 = await v_bfb240();
+    const v_7f572b = await v_4d24a9(v_257b90);
+    await v_c8e75a(v_7f572b);
+    await v_9c78dc(v_7f572b, v_257b90, v_583293);
+    const v_930b2e = await v_21cc31(v_583293);
+
+    const v_8f00b9 = await v_7e59ce(v_7f572b, v_930b2e);
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    v_4d37e3(await v_5918bb(v_7f572b, v_583293)).toBe(1);
+  });
+
+  v_23805a("이미 팔로우 중이던 사람은 정지 후에도 언팔로우(DELETE) 가능 — 가둬두지 않는다", async () => {
+    const v_257b90 = await v_bfb240();
+    const v_7efac5 = await v_bfb240();
+    const v_6e0fd3 = await v_4d24a9(v_257b90);
+    const v_8db449 = await v_21cc31(v_7efac5);
+
+    v_4d37e3((await v_7e59ce(v_6e0fd3, v_8db449)).status).toBe(200);
+
+    await v_c8e75a(v_6e0fd3);
+
+    const v_e569dc = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/follow`, {
+      method: "DELETE",
+      headers: v_68f0aa(v_8db449),
+    });
+    v_4d37e3(v_e569dc.status).toBe(200);
+    v_4d37e3(await v_5918bb(v_6e0fd3, v_7efac5)).toBe(0);
+  });
+});

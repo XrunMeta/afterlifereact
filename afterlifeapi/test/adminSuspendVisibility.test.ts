@@ -234,4 +234,28 @@ v_469bf2("T-203 후속 — admin_suspended_at 외부 노출 차단", () => {
     v_4d37e3(await v_7f58d0(v_8db449)).not.toContain(v_6e0fd3);
     v_4d37e3(await v_865bd1(v_8db449)).not.toContain(v_6e0fd3);
   });
+
+  v_23805a("selected visibility 클론도 정지 시 등록된 타인에게 차단되고, 소유자는 여전히 검색 가능(괄호 결합 회귀)", async () => {
+    const v_257b90 = await v_bfb240();
+    const v_f49fe0 = await v_bfb240();
+    const v_6e0fd3 = await v_4d24a9(v_257b90, { visibility: "selected" });
+    await v_a1651b()
+      .prepare(`INSERT INTO clone_allowed_viewers (clone_id, user_id) VALUES (?, ?)`)
+      .bind(v_6e0fd3, v_f49fe0)
+      .run();
+
+    const v_6369b9 = await v_21cc31(v_f49fe0);
+    const v_983772 = await v_21cc31(v_257b90);
+
+    v_4d37e3(await v_7f58d0(v_6369b9)).toContain(v_6e0fd3);
+    v_4d37e3(await v_865bd1(v_6369b9)).toContain(v_6e0fd3);
+
+    await v_c8e75a(v_6e0fd3);
+
+    v_4d37e3(await v_7f58d0(v_6369b9)).not.toContain(v_6e0fd3);
+    v_4d37e3(await v_865bd1(v_6369b9)).not.toContain(v_6e0fd3);
+
+    v_4d37e3(await v_7f58d0(v_983772)).toContain(v_6e0fd3);
+    v_4d37e3(await v_865bd1(v_983772)).toContain(v_6e0fd3);
+  });
 });
