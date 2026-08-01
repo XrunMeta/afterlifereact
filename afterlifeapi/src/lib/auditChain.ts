@@ -11,7 +11,7 @@ export interface AuditActor {
 
 export interface DecryptionAuditEntry {
   actor: AuditActor;
-  op: "decrypt" | "shred" | "emergency" | "rotate" | "chain_verify" | "v2_migrate" | "shred_failed" | "archive_cold" | "hard_delete" | "cold_restore";
+  op: "decrypt" | "shred" | "emergency" | "rotate" | "chain_verify" | "v2_migrate" | "shred_failed" | "archive_cold" | "hard_delete" | "cold_restore" | "soft_delete" | "disable" | "activate";
   resourceType: string;   
   resourceId: string | number;
   reason: string | null;
