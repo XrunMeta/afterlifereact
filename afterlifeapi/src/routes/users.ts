@@ -462,8 +462,7 @@ users.get("/me/clones", requireAuth, async (c) => {
           COALESCE(cs.messages_count, 0) AS messagesCount
          FROM clones c
          LEFT JOIN clone_stats cs ON cs.clone_id = c.id
-        WHERE c.deletion_state = 'active'
-          AND c.deleted_at IS NULL
+        WHERE ${cloneActiveSql("c")}
           AND (
             c.owner_id = ?
             OR c.id IN (
@@ -816,12 +815,9 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
            LEFT JOIN clone_stats s ON s.clone_id = c.id
            LEFT JOIN user_clone_interactions uci
                   ON uci.user_id = ? AND uci.clone_id = c.id
-          WHERE c.deleted_at IS NULL
+          WHERE ${cloneActiveSql("c")}
             -- 소유자가 삭제(soft_deleted)한 페르소나는 즉시 구독 목록에서 제외.
-            --   삭제는 deletion_state='soft_deleted' 로만 바뀌고 deleted_at 은 크론 전까지
-            --   NULL 이라, deleted_at 체크만으로는 삭제된 클론이 계속 보이던 버그 수정.
-            --   검색/피드와 동일 정책(active 만).
-            AND c.deletion_state = 'active'
+            --   검색/피드와 동일 정책(active 만) — T-201: 술어를 cloneActiveSql() 로 통일.
             AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)
             -- 차단한 '유저'가 소유한 페르소나는 구독 목록에서도 제외 (검색/피드와 동일).
             AND c.owner_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
@@ -1426,8 +1422,7 @@ users.get("/:id", requireAuth, async (c) => {
            FROM clones c
            LEFT JOIN clone_stats cs ON cs.clone_id = c.id
           WHERE c.owner_id = ?
-            AND c.deletion_state = 'active'
-            AND c.deleted_at IS NULL
+            AND ${cloneActiveSql("c")}
             ${visibilityClause}
             ${blockedClause}
           ORDER BY c.id DESC

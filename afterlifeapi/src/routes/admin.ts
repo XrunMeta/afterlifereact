@@ -959,7 +959,7 @@ admin.get("/oth-path", requireAdmin, async (c) => {
     throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
   const row = await c.env.DB
     .prepare(
-      "SELECT id, name, username, l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL",
+      "SELECT id, name, username, l1_profile FROM clones WHERE id = ?",
     )
     .bind(id)
     .first<{ id: number; name: string; username: string; l1_profile: string | null }>();
@@ -1000,7 +1000,7 @@ admin.put("/oth-path", requireSuperAdmin, async (c) => {
     throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
   const body = await parseJson(c, adminL1UpdateSchema);
   const row = await c.env.DB
-    .prepare("SELECT l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
+    .prepare("SELECT l1_profile FROM clones WHERE id = ?")
     .bind(id)
     .first<{ l1_profile: string | null }>();
   if (!row) throw new APIError("NOT_FOUND", "Clone not found.");
@@ -1029,7 +1029,7 @@ admin.put("/oth-path", requireSuperAdmin, async (c) => {
 
   await c.env.DB
     .prepare(
-      "UPDATE clones SET l1_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL",
+      "UPDATE clones SET l1_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
     )
     .bind(JSON.stringify(next), id)
     .run();

@@ -22,3 +22,14 @@ UPDATE clones
    SET deleted_at = COALESCE(soft_deleted_at, archived_cold_at, CURRENT_TIMESTAMP)
  WHERE deletion_state != 'active'
    AND deleted_at IS NULL;
+
+-- 역방향 대칭 백필 (sei 게이트 요청).
+-- deletion_state='active' 인데 deleted_at 이 세팅된 행이 있으면 cloneActiveSql()
+-- (deleted_at IS NULL AND deletion_state='active') 이 정상 클론을 영구히 숨겨버린다
+-- (과거 67개 정상 클론 오삭제 사고와 같은 계열의 위험). 실측(prod·preview) 상 현재
+-- 0건이지만, 구버전 softRestore 가 deleted_at 을 클리어하지 않던 이력이 있어
+-- 방어적으로 넣는다. idempotent 하고 active 행에만 닿는 안전한 방향.
+UPDATE clones
+   SET deleted_at = NULL
+ WHERE deletion_state = 'active'
+   AND deleted_at IS NOT NULL;

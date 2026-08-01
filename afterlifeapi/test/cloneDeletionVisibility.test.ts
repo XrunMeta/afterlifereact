@@ -195,3 +195,55 @@ describe("T-201 — 클론 삭제 시 전면 비노출 + 상태 필드 정합화
     expect(feedIds).not.toContain(drop);
   });
 });
+
+describe("T-201 el/sei 게이트 — admin 은 삭제 상태와 무관하게 L1 프로필 조회·수정 가능", () => {
+
+  const SUPER_ADMIN_ID = 9101;
+
+  async function issueAdminToken(extra: Record<string, unknown>): Promise<string> {
+    const { issueToken: _issue } = await import("../src/lib/jwt");
+    const secret = (env as { JWT_ACCESS_SECRET?: string }).JWT_ACCESS_SECRET!;
+    return _issue(extra, secret, 600);
+  }
+
+  beforeAll(async () => {
+    const db = env.DB as unknown as D1Database;
+    await db
+      .prepare(
+        `INSERT OR REPLACE INTO admin_users (id, email, password_hash, role, is_active)
+         VALUES (?, ?, ?, 'super_admin', 1)`,
+      )
+      .bind(SUPER_ADMIN_ID, "t201-superadmin@afterlife.test", "hashed-placeholder")
+      .run();
+  });
+
+  it("GET/PUT /oth-path 은 soft_deleted 클론도 404 없이 조회·수정된다", async () => {
+    const owner = await seedUserWithPassword("t201-admin-l1@test.local", PW);
+    const cloneId = await seedClone(owner, "t201_admin_l1_clone");
+    const ownerToken = await issueAccessToken(owner);
+
+    expect((await authDelete(`/oth-path${cloneId}`, ownerToken)).status).toBe(200);
+    const deleted = await getClone(cloneId);
+    expect(deleted.deletion_state).toBe("soft_deleted");
+    expect(deleted.deleted_at).not.toBeNull();
+
+    const adminToken = await issueAdminToken({ sub: SUPER_ADMIN_ID, kind: "access", admin: true });
+
+    const getRes = await SELF.fetch(`http://localhost/oth-path${cloneId}/l1-profile`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    expect(getRes.status).toBe(200);
+    const getJson = (await getRes.json()) as { id: number };
+    expect(getJson.id).toBe(cloneId);
+
+    const putRes = await SELF.fetch(`http://localhost/oth-path${cloneId}/l1-profile`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${adminToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ l1_profile: { notes: "admin 조회 확인용" } }),
+    });
+    expect(putRes.status).toBe(200);
+    const putJson = (await putRes.json()) as { ok: boolean; l1_profile: { notes?: string } };
+    expect(putJson.ok).toBe(true);
+    expect(putJson.l1_profile.notes).toBe("admin 조회 확인용");
+  });
+});

@@ -197,8 +197,7 @@ clones.post(
       .prepare(
         `SELECT COUNT(*) AS n FROM clones
           WHERE owner_id = ?
-            AND deletion_state = 'active'
-            AND deleted_at IS NULL`,
+            AND ${cloneActiveSql()}`,
       )
       .bind(userId)
       .first<{ n: number }>();
@@ -662,7 +661,7 @@ clones.get("/search", async (c) => {
 
   const viewerId = await resolveOptionalUser(c);
 
-  const where: string[] = [`c.deleted_at IS NULL`, `c.deletion_state = 'active'`];
+  const where: string[] = [cloneActiveSql("c")];
   const binds: unknown[] = [];
   if (viewerId) {
     where.push(
