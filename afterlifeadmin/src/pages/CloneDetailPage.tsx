@@ -1,6 +1,7 @@
 import { v_c4deb2, v_5ab095 } from "bapkr";
 import { v_80cb8d, v_1a1e9e } from "pgmzxjkoagjpdcvd";
-import { v_8e836f } from "../api/client";
+import { v_8e836f, v_05a921 } from "../api/client";
+import { v_f3f4f0 } from "../components/ReasonPromptModal";
 
 interface CloneRow {
   id: number;
@@ -15,7 +16,14 @@ interface CloneRow {
   l1Profile: unknown;
   l2Profile: unknown;
   createdAt: string;
+
+  deletionState?: "active" | "soft_deleted" | "archived_cold" | "hard_deleted";
+  softDeletedAt?: string | null;
+  adminSuspendedAt?: string | null;
+  adminSuspendReason?: string | null;
 }
+
+type DetailPendingAction = "suspend" | "delete" | "restore";
 
 interface Share {
   id: number;
@@ -75,21 +83,34 @@ export function v_6e2f30() {
   const [v_9390e8, v_d57c80] = v_5ab095<DetailResp | null>(null);
   const [v_a936b7, v_c30959] = v_5ab095<GenealogyResp | null>(null);
   const [v_49263d, v_8a5996] = v_5ab095<string | null>(null);
+  const [v_483de2, v_266e0d] = v_5ab095<DetailPendingAction | null>(null);
+
+  const v_92fdf2 = async () => {
+    if (!v_389afb) return;
+    try {
+      const v_d5dda0 = await v_8e836f("GET", `/oth-path${v_389afb}/detail`);
+      if (!v_d5dda0.ok) throw new Error(`detail ${v_d5dda0.status}`);
+      v_d57c80(v_d5dda0.body as DetailResp);
+      const v_206b88 = await v_8e836f("GET", `/oth-path${v_389afb}/genealogy`);
+      if (v_206b88.ok) v_c30959(v_206b88.body as GenealogyResp);
+    } catch (v_9e86fd) {
+      v_8a5996((v_9e86fd as Error).message);
+    }
+  };
 
   v_c4deb2(() => {
-    if (!v_389afb) return;
-    (async () => {
-      try {
-        const v_d5dda0 = await v_8e836f("GET", `/oth-path${v_389afb}/detail`);
-        if (!v_d5dda0.ok) throw new Error(`detail ${v_d5dda0.status}`);
-        v_d57c80(v_d5dda0.body as DetailResp);
-        const v_206b88 = await v_8e836f("GET", `/oth-path${v_389afb}/genealogy`);
-        if (v_206b88.ok) v_c30959(v_206b88.body as GenealogyResp);
-      } catch (v_9e86fd) {
-        v_8a5996((v_9e86fd as Error).message);
-      }
-    })();
+    v_92fdf2();
+
   }, [v_389afb]);
+
+  const v_776d00 = async (v_58ca36) => {
+    if (!v_389afb || !v_483de2) return;
+    if (v_483de2 === "suspend") await v_05a921.suspendClone(v_389afb, v_58ca36);
+    else if (v_483de2 === "delete") await v_05a921.deleteClone(v_389afb, v_58ca36);
+    else await v_05a921.restoreClone(v_389afb, v_58ca36 || undefined);
+    v_266e0d(null);
+    await v_92fdf2();
+  };
 
   if (v_49263d) {
     return (
@@ -134,6 +155,64 @@ export function v_6e2f30() {
         </span>
         <span style={v_d81136.visBadge}>{v_eb25ce.visibility}</span>
       </div>
+
+      {}
+      <div style={v_d81136.statusBar}>
+        <span
+          style={{
+            ...v_d81136.statusBadge,
+            backgroundColor:
+              v_eb25ce.deletionState === "soft_deleted"
+                ? "#f59e0b"
+                : v_eb25ce.deletionState === "archived_cold"
+                  ? "#2563eb"
+                  : v_eb25ce.deletionState === "hard_deleted"
+                    ? "#b91c1c"
+                    : "#16a34a",
+          }}
+        >
+          {v_eb25ce.deletionState === "soft_deleted"
+            ? "삭제됨(복구가능)"
+            : v_eb25ce.deletionState === "archived_cold"
+              ? "보관됨(cold)"
+              : v_eb25ce.deletionState === "hard_deleted"
+                ? "영구 삭제"
+                : "활성"}
+        </span>
+        {v_eb25ce.adminSuspendedAt && (
+          <span style={{ ...v_d81136.statusBadge, backgroundColor: "#9a3412" }} title={v_eb25ce.adminSuspendReason ?? undefined}>
+            일시중지 · {v_eb25ce.adminSuspendReason ?? "사유 없음"}
+          </span>
+        )}
+        <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
+          {(v_eb25ce.deletionState ?? "active") === "active" && !v_eb25ce.adminSuspendedAt && (
+            <button style={v_83df2d("#f59e0b")} onClick={() => v_266e0d("suspend")}>
+              비활성화
+            </button>
+          )}
+          {(v_eb25ce.deletionState ?? "active") === "active" && v_eb25ce.adminSuspendedAt && (
+            <button style={v_83df2d("#3b82f6")} onClick={() => v_266e0d("restore")}>
+              중지 해제
+            </button>
+          )}
+          {(v_eb25ce.deletionState ?? "active") === "active" && (
+            <button style={v_83df2d("#ef4444")} onClick={() => v_266e0d("delete")}>
+              삭제
+            </button>
+          )}
+          {v_eb25ce.deletionState === "soft_deleted" && (
+            <button style={v_83df2d("#3b82f6")} onClick={() => v_266e0d("restore")}>
+              복구
+            </button>
+          )}
+          {(v_eb25ce.deletionState === "archived_cold" || v_eb25ce.deletionState === "hard_deleted") && (
+            <Link to="/oth-path" style={{ fontSize: 12, color: "#1d4ed8", alignSelf: "center" }}>
+              cold-recovery 에서 복구
+            </Link>
+          )}
+        </div>
+      </div>
+
       <div style={v_d81136.metaRow}>
         <span style={v_d81136.meta}>ID #{v_eb25ce.id}</span>
         <span style={v_d81136.meta}>
@@ -235,8 +314,44 @@ export function v_6e2f30() {
           </Link>
         </div>
       </Section>
+
+      {v_483de2 && (
+        <ReasonPromptModal
+          title={
+            v_483de2 === "suspend"
+              ? `"${v_eb25ce.name}" 비활성화(일시 중지)`
+              : v_483de2 === "delete"
+                ? `"${v_eb25ce.name}" 삭제`
+                : `"${v_eb25ce.name}" 복구`
+          }
+          description={
+            v_483de2 === "suspend"
+              ? "외부 노출은 막고 소유자에게는 계속 보이는 중간 상태로 전환합니다. 언제든 해제할 수 있어요."
+              : v_483de2 === "delete"
+                ? "소프트 삭제됩니다. 90일 내 복구 가능하며, 이후 관리자 전용 목록에서만 조회됩니다."
+                : "정상 상태로 되돌립니다. 원래 클론 ID가 이미 다른 클론에 재사용된 경우 충돌 오류가 날 수 있어요."
+          }
+          requireReason={v_483de2 !== "restore"}
+          confirmLabel={v_483de2 === "delete" ? "삭제" : v_483de2 === "suspend" ? "비활성화" : "복구"}
+          danger={v_483de2 === "delete"}
+          onCancel={() => v_266e0d(null)}
+          onConfirm={v_776d00}
+        />
+      )}
     </div>
   );
+}
+
+function v_83df2d(v_3c2a3a): React.CSSProperties {
+  return {
+    fontSize: 12,
+    padding: "5px 10px",
+    backgroundColor: v_3c2a3a,
+    color: "#fff",
+    border: "none",
+    borderRadius: 4,
+    cursor: "pointer",
+  };
 }
 
 function v_4ad497(v_8d41d7): string {
@@ -479,6 +594,17 @@ const v_d81136 = {
     fontSize: 11,
     fontWeight: 600,
     display: "inline-block",
+  },
+
+  statusBar: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 20,
+    padding: "10px 14px",
+    backgroundColor: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    borderRadius: 8,
   },
   apiChip: {
     fontFamily: "monospace",

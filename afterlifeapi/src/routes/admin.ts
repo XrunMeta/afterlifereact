@@ -785,12 +785,21 @@ v_b7f2b4.put("/voices/:id", v_b09138, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true });
 });
 
-v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
+const v_0a4de4 = v_1f4ea7.object({
+  reason: v_1f4ea7.string().min(10, "사유는 최소 10자 이상 입력해 주세요.").max(500),
+});
+const v_6a2a1e = v_1f4ea7.object({
+  reason: v_1f4ea7.string().min(10).max(500).optional(),
+});
+
+v_b7f2b4.delete("/oth-path", v_b09138, async (v_3f4e2e) => {
+  const v_105fc4 = v_3f4e2e.get("adminUserId")!;
   const v_2c44c0 = v_3f4e2e.req.param("id");
   const v_6e0fd3 = Number(v_2c44c0);
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
   }
+  const { reason: v_58ca36 } = await v_4c95c2(v_3f4e2e, v_0a4de4);
   const v_3c8572 = await v_3f4e2e.env.DB
     .prepare(`SELECT id, deletion_state FROM clones WHERE id = ?`)
     .bind(v_6e0fd3)
@@ -810,62 +819,110 @@ v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
     )
     .bind(v_6e0fd3)
     .run();
+  await v_e56fb3(v_3f4e2e.env.DB, v_3f4e2e.env.AUDIT_SECRET, {
+    actor: { type: "admin", id: v_105fc4 },
+    op: "soft_delete",
+    resourceType: "clone",
+    resourceId: v_6e0fd3,
+    reason: v_58ca36,
+  });
   return v_3f4e2e.json({ ok: true, deletedId: v_6e0fd3, deletionState: "soft_deleted" });
 });
 
-v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
+v_b7f2b4.post("/oth-path", v_b09138, async (v_3f4e2e) => {
+  const v_105fc4 = v_3f4e2e.get("adminUserId")!;
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
   }
+  const { reason: v_58ca36 } = await v_4c95c2(v_3f4e2e, v_0a4de4);
   const v_3c8572 = await v_3f4e2e.env.DB
-    .prepare(`SELECT id, deletion_state FROM clones WHERE id = ?`)
+    .prepare(`SELECT id, deletion_state, admin_suspended_at FROM clones WHERE id = ?`)
     .bind(v_6e0fd3)
-    .first<{ id: number; deletion_state: string }>();
+    .first<{ id: number; deletion_state: string; admin_suspended_at: string | null }>();
   if (!v_3c8572) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
   if (v_3c8572.deletion_state !== "active") {
-    return v_3f4e2e.json({ ok: true, alreadyDisabled: true, deletionState: v_3c8572.deletion_state });
+    throw new v_3ebe58(
+      "CONFLICT",
+      `Cannot suspend a clone in deletion_state '${v_3c8572.deletion_state}'.`,
+    );
   }
-
+  if (v_3c8572.admin_suspended_at) {
+    return v_3f4e2e.json({ ok: true, alreadySuspended: true, adminSuspendedAt: v_3c8572.admin_suspended_at });
+  }
   await v_3f4e2e.env.DB
     .prepare(
       `UPDATE clones
-          SET deletion_state = 'soft_deleted',
-              soft_deleted_at = CURRENT_TIMESTAMP,
-              deleted_at = CURRENT_TIMESTAMP
+          SET admin_suspended_at = CURRENT_TIMESTAMP,
+              admin_suspend_reason = ?
         WHERE id = ?`,
     )
-    .bind(v_6e0fd3)
+    .bind(v_58ca36, v_6e0fd3)
     .run();
-  return v_3f4e2e.json({ ok: true, cloneId: v_6e0fd3, deletionState: "soft_deleted" });
+  await v_e56fb3(v_3f4e2e.env.DB, v_3f4e2e.env.AUDIT_SECRET, {
+    actor: { type: "admin", id: v_105fc4 },
+    op: "disable",
+    resourceType: "clone",
+    resourceId: v_6e0fd3,
+    reason: v_58ca36,
+  });
+  return v_3f4e2e.json({ ok: true, cloneId: v_6e0fd3, suspended: true });
 });
 
-v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
+v_b7f2b4.post("/oth-path", v_b09138, async (v_3f4e2e) => {
+  const v_105fc4 = v_3f4e2e.get("adminUserId")!;
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
   }
-  const v_3c8572 = await v_3f4e2e.env.DB
-    .prepare(`SELECT id, deletion_state FROM clones WHERE id = ?`)
-    .bind(v_6e0fd3)
-    .first<{ id: number; deletion_state: string }>();
-  if (!v_3c8572) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
-  if (v_3c8572.deletion_state === "active") {
-    return v_3f4e2e.json({ ok: true, alreadyActive: true, deletionState: "active" });
+
+  let v_58ca36;
+  const v_525ffe = await v_3f4e2e.req.text();
+  if (v_525ffe.trim().length > 0) {
+    let v_7ecfd1;
+    try {
+      v_7ecfd1 = JSON.parse(v_525ffe);
+    } catch {
+      throw new v_3ebe58("VALIDATION_FAILED", "Invalid JSON body.");
+    }
+    const v_8decf8 = v_6a2a1e.safeParse(v_7ecfd1);
+    if (!v_8decf8.success) {
+      throw new v_3ebe58("VALIDATION_FAILED", "Body validation failed.", v_8decf8.error.issues);
+    }
+    v_58ca36 = v_8decf8.data.reason;
   }
+  const v_3c8572 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id, deletion_state, admin_suspended_at FROM clones WHERE id = ?`)
+    .bind(v_6e0fd3)
+    .first<{ id: number; deletion_state: string; admin_suspended_at: string | null }>();
+  if (!v_3c8572) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
   if (v_3c8572.deletion_state === "hard_deleted" || v_3c8572.deletion_state === "archived_cold") {
     throw new v_3ebe58("CONFLICT", `Cannot activate from state '${v_3c8572.deletion_state}'.`);
+  }
+  const v_80b6a0 = v_3c8572.deletion_state !== "active";
+  const v_22c815 = v_3c8572.admin_suspended_at !== null;
+  if (!v_80b6a0 && !v_22c815) {
+    return v_3f4e2e.json({ ok: true, alreadyActive: true, deletionState: "active" });
   }
   await v_3f4e2e.env.DB
     .prepare(
       `UPDATE clones
           SET deletion_state = 'active',
               soft_deleted_at = NULL,
-              deleted_at = NULL
+              deleted_at = NULL,
+              admin_suspended_at = NULL,
+              admin_suspend_reason = NULL
         WHERE id = ?`,
     )
     .bind(v_6e0fd3)
     .run();
+  await v_e56fb3(v_3f4e2e.env.DB, v_3f4e2e.env.AUDIT_SECRET, {
+    actor: { type: "admin", id: v_105fc4 },
+    op: "activate",
+    resourceType: "clone",
+    resourceId: v_6e0fd3,
+    reason: v_58ca36 ?? null,
+  });
   return v_3f4e2e.json({ ok: true, cloneId: v_6e0fd3, deletionState: "active" });
 });
 

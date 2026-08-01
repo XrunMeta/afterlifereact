@@ -9,6 +9,11 @@ export function v_74c502(v_81fc5c = ""): string {
   return `${v_e2a85c}deleted_at IS NULL AND ${v_e2a85c}deletion_state = 'active'`;
 }
 
+export function v_a234b3(v_81fc5c = ""): string {
+  const v_e2a85c = v_81fc5c ? `${v_81fc5c}.` : "";
+  return `${v_74c502(v_81fc5c)} AND ${v_e2a85c}admin_suspended_at IS NULL`;
+}
+
 export interface CloneRow {
   id: number;
   owner_id: number;
