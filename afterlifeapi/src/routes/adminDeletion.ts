@@ -70,8 +70,9 @@ adminDeletion.post("/:type/:id/restore-from-cold", requireAdmin, async (c) => {
 
   await restoreFromSnapshot(c.env.DB, snapshot);
 
+  const clearCols = coldType === "message" ? "" : ", soft_deleted_at = NULL, deleted_at = NULL, archived_cold_at = NULL";
   await c.env.DB.prepare(
-    `UPDATE ${table} SET deletion_state = 'active' WHERE id = ?`,
+    `UPDATE ${table} SET deletion_state = 'active'${clearCols} WHERE id = ?`,
   )
     .bind(id)
     .run();

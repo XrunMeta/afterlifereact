@@ -8,6 +8,7 @@ import { requireAuth } from "../middleware/auth";
 import { notifyCloneEvent } from "../lib/notify";
 import { bumpInteraction, addPerFeedIntimacyScore, INTIMACY_WEIGHTS } from "../lib/interactions";
 import {
+  cloneActiveSql,
   hasAcceptedShare,
   isFollower,
   loadCloneById,
@@ -357,7 +358,7 @@ async function loadFeedAccessible(
       `SELECT f.id AS id, f.clone_id AS cloneId, c.visibility AS visibility, c.owner_id AS ownerId
          FROM feeds f
          JOIN clones c ON c.id = f.clone_id
-        WHERE f.id = ? AND c.deleted_at IS NULL`,
+        WHERE f.id = ? AND ${cloneActiveSql("c")}`,
     )
     .bind(feedId)
     .first<{ id: number; cloneId: number; visibility: string; ownerId: number }>();

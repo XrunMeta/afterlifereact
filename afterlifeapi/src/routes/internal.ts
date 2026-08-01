@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import type { AppEnv } from "../lib/env";
 import { claimJob, claimJobRunning, failJob, finalizeFillerJob, finalizeMultiUrlJob, finalizeJob, getJob } from "../lib/assetJobs";
 import { z } from "../lib/validate";
-import { loadCloneById } from "../lib/cloneAccess";
+import { cloneActiveSql, loadCloneById } from "../lib/cloneAccess";
 import { triggerGuideJob } from "../lib/guideJob";
 import {
   readOnt, updateOntFromExtraction, type L2Extraction,
@@ -768,7 +768,7 @@ internal.get("/dev/guide-backfill-targets", async (c) => {
               WHERE clone_id = c.id AND kind = 'voice_clone' AND status = 'done'
               ORDER BY created_at DESC, rowid DESC LIMIT 1) AS voice_src_file_id
        FROM clones c
-      WHERE c.guide_video_urls IS NULL AND c.deleted_at IS NULL`,
+      WHERE c.guide_video_urls IS NULL AND ${cloneActiveSql("c")}`,
   ).all<{ id: number; user_id: number; face_src_file_id: number | null; voice_src_file_id: number | null }>();
 
   const data = (rows.results ?? []).filter(

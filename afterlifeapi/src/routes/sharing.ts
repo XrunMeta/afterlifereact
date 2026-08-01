@@ -8,6 +8,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireIdempotencyKey } from "../middleware/idempotency";
 import { logActivity } from "../lib/logger";
 import {
+  cloneActiveSql,
   hasAcceptedShare,
   loadCloneById,
 } from "../lib/cloneAccess";
@@ -256,7 +257,7 @@ inviteTokens.get("/:token", async (c) => {
       `SELECT i.clone_id, i.invite_email, i.relation, i.grant_owner, i.expires_at, i.used_at, i.cancelled_at,
               c.name, c.username, c.avatar_url, c.clone_type
          FROM invite_tokens i JOIN clones c ON c.id = i.clone_id
-        WHERE i.token_hash = ? AND c.deleted_at IS NULL`,
+        WHERE i.token_hash = ? AND ${cloneActiveSql("c")}`,
     )
     .bind(tokenHash)
     .first<{

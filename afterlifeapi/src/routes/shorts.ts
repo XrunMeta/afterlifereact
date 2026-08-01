@@ -4,7 +4,7 @@ import { Hono } from 'hono';
 import type { AppEnv } from '../lib/env';
 import { APIError } from '../lib/errors';
 import { requireAuth } from '../middleware/auth';
-import { hasAcceptedShare, loadCloneById } from '../lib/cloneAccess';
+import { cloneActiveSql, hasAcceptedShare, loadCloneById } from '../lib/cloneAccess';
 
 export const cloneShorts = new Hono<AppEnv>();
 
@@ -63,7 +63,7 @@ shortsFeed.get('/', requireAuth, async (c) => {
          FROM clone_shorts s
          JOIN clones c ON c.id = s.clone_id
         WHERE s.status = 'ready'
-          AND c.deleted_at IS NULL
+          AND ${cloneActiveSql("c")}
           AND (
             c.visibility = 'public'
             OR c.owner_id = ?

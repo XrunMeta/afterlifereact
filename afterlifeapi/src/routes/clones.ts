@@ -8,6 +8,7 @@ import { logActivity } from "../lib/logger";
 import { similarityScore, SEARCH_SIMILARITY_THRESHOLD } from "../lib/similarity";
 import { getPersonaPriceXrun, getKnowledgeInterpretRulesText } from "../lib/appConfig";
 import {
+  cloneActiveSql,
   hasAcceptedShare,
   isFollower,
   loadCloneById,
@@ -861,7 +862,7 @@ clones.get("/voices/:id/sample", async (c) => {
 
 clones.get("/system", requireAuth, async (c) => {
   const rows = await c.env.DB.prepare(
-    "SELECT id, username, name, avatar_url, is_system FROM clones WHERE is_system = 1 AND deleted_at IS NULL",
+    `SELECT id, username, name, avatar_url, is_system FROM clones WHERE is_system = 1 AND ${cloneActiveSql()}`,
   ).all<{ id: number; username: string; name: string; avatar_url: string | null; is_system: number }>();
   return c.json({ items: rows.results ?? [] });
 });
@@ -893,7 +894,7 @@ clones.get("/:id/knowledge", requireAuth, async (c) => {
     (await hasAcceptedShare(c.env.DB, cloneId, userId)) === "owner";
   if (!isOwner) throw new APIError("FORBIDDEN", "소유자만 조회할 수 있어요.");
   const row = await c.env.DB
-    .prepare("SELECT l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
+    .prepare(`SELECT l1_profile FROM clones WHERE id = ? AND ${cloneActiveSql()}`)
     .bind(cloneId)
     .first<{ l1_profile: string | null }>();
   let items: unknown[] = [];
@@ -1060,7 +1061,7 @@ clones.put("/:id/knowledge", requireAuth, async (c) => {
 
   const row = await db
     .prepare(
-      "SELECT primary_editor_user_id, l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL",
+      `SELECT primary_editor_user_id, l1_profile FROM clones WHERE id = ? AND ${cloneActiveSql()}`,
     )
     .bind(cloneId)
     .first<{ primary_editor_user_id: number | null; l1_profile: string | null }>();
@@ -1104,7 +1105,7 @@ clones.put("/:id/knowledge", requireAuth, async (c) => {
   l1.knowledge = norm.items;
   await db
     .prepare(
-      "UPDATE clones SET l1_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL",
+      `UPDATE clones SET l1_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND ${cloneActiveSql()}`,
     )
     .bind(JSON.stringify(l1), cloneId)
     .run();
@@ -1382,7 +1383,7 @@ clones.patch("/:id", requireAuth, async (c) => {
 
   if (body.l1_profile !== undefined) {
     const row = await db
-      .prepare("SELECT primary_editor_user_id FROM clones WHERE id = ? AND deleted_at IS NULL")
+      .prepare(`SELECT primary_editor_user_id FROM clones WHERE id = ? AND ${cloneActiveSql()}`)
       .bind(cloneId)
       .first<{ primary_editor_user_id: number | null }>();
     if (row?.primary_editor_user_id !== userId) {
@@ -1437,7 +1438,7 @@ clones.patch("/:id", requireAuth, async (c) => {
     const nextL1 = { ...(body.l1_profile as Record<string, unknown>) };
     if (nextL1.knowledge === undefined) {
       const cur = await db
-        .prepare("SELECT l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
+        .prepare(`SELECT l1_profile FROM clones WHERE id = ? AND ${cloneActiveSql()}`)
         .bind(cloneId)
         .first<{ l1_profile: string | null }>();
       if (cur?.l1_profile) {
@@ -1461,7 +1462,7 @@ clones.patch("/:id", requireAuth, async (c) => {
   const statements = [
     db
       .prepare(
-        `UPDATE clones SET ${sets.join(", ")} WHERE id = ? AND deleted_at IS NULL`,
+        `UPDATE clones SET ${sets.join(", ")} WHERE id = ? AND ${cloneActiveSql()}`,
       )
       .bind(...binds),
   ];
@@ -1721,7 +1722,7 @@ clones.post("/:id/gift", requireAuth, async (c) => {
   }
 
   const clone = await c.env.DB
-    .prepare(`SELECT id, owner_id FROM clones WHERE id = ? AND deleted_at IS NULL`)
+    .prepare(`SELECT id, owner_id FROM clones WHERE id = ? AND ${cloneActiveSql()}`)
     .bind(cloneId)
     .first<{ id: number; owner_id: number }>();
   if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");

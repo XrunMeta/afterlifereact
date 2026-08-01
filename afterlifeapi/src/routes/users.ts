@@ -10,6 +10,7 @@ import { purgeUserOntology } from "../lib/memoryStore";
 import { notify } from "../lib/notify";
 import { similarityScore, SEARCH_SIMILARITY_THRESHOLD } from "../lib/similarity";
 import { syncPushTokenToXrun } from "../lib/xrun";
+import { cloneActiveSql } from "../lib/cloneAccess";
 
 export const users = new Hono<AppEnv>();
 
@@ -328,7 +329,7 @@ users.get("/me/invites", requireAuth, async (c) => {
           c.avatar_url AS cloneAvatarUrl, c.clone_type AS cloneType
          FROM invite_tokens i
          JOIN clones c ON c.id = i.clone_id
-        WHERE i.owner_id = ? AND c.deleted_at IS NULL
+        WHERE i.owner_id = ? AND ${cloneActiveSql("c")}
         ORDER BY i.id DESC
         LIMIT 200`,
     )
@@ -525,7 +526,7 @@ users.get("/me/clones/:cloneId/intimacy-events", requireAuth, async (c) => {
     throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const clone = await c.env.DB
-    .prepare(`SELECT owner_id AS ownerId FROM clones WHERE id = ? AND deleted_at IS NULL`)
+    .prepare(`SELECT owner_id AS ownerId FROM clones WHERE id = ? AND ${cloneActiveSql()}`)
     .bind(cloneId)
     .first<{ ownerId: number }>();
   if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
@@ -952,7 +953,7 @@ users.get("/me/blocks", requireAuth, async (c) => {
                 c.visibility   AS cloneVisibility
            FROM clone_blocks b
            JOIN clones c ON c.id = b.clone_id
-          WHERE b.user_id = ? AND c.deleted_at IS NULL
+          WHERE b.user_id = ? AND ${cloneActiveSql("c")}
           ORDER BY b.id DESC`,
       )
       .bind(userId)
