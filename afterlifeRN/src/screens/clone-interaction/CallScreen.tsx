@@ -93,6 +93,8 @@ const { width: v_437248 } = v_700696.get("window");
 
 const v_5ac7d6 = 1;
 
+const v_42cf68 = __DEV__;
+
 interface FloatingGift {
   id: number;
   emoji: string;
@@ -1058,7 +1060,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 }
 
       {}
-      {v_ab4803 === 'listening' && (!!v_a2d9d1 || !!v_0885ca) ? (
+      {v_42cf68 && v_ab4803 === 'listening' && (!!v_a2d9d1 || !!v_0885ca) ? (
         <View style={[v_fd5f43.subtitleContainer, { bottom: v_47b41c }]} pointerEvents="none">
           <Text style={v_fd5f43.subtitleText} numberOfLines={1} ellipsizeMode="head">
             {v_a2d9d1 || v_0885ca}
@@ -1072,24 +1074,28 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       {v_ab4803 === 'confirming' && !!v_def12c ? (
         <>
           <Pressable style={v_fd5f43.confirmTapArea} onPress={v_5b4fb2} />
-          <View style={[v_fd5f43.subtitleContainer, { bottom: v_47b41c }]} pointerEvents="none">
-            <Text style={v_fd5f43.subtitleText} numberOfLines={1} ellipsizeMode="head">
-              {v_def12c}
-            </Text>
-            <View style={v_fd5f43.confirmBarTrack}>
-              <Animated.View style={[v_fd5f43.confirmBarFill, { transform: [{ scaleX: v_796faa }] }]} />
+          {
+}
+          {v_42cf68 ? (
+            <View style={[v_fd5f43.subtitleContainer, { bottom: v_47b41c }]} pointerEvents="none">
+              <Text style={v_fd5f43.subtitleText} numberOfLines={1} ellipsizeMode="head">
+                {v_def12c}
+              </Text>
+              <View style={v_fd5f43.confirmBarTrack}>
+                <Animated.View style={[v_fd5f43.confirmBarFill, { transform: [{ scaleX: v_796faa }] }]} />
+              </View>
+              <Text style={v_fd5f43.confirmHint}>
+                {v_8d41d7("call.confirmHint", { defaultValue: "탭하여 취소 · 잠시 후 전송" })}
+              </Text>
             </View>
-            <Text style={v_fd5f43.confirmHint}>
-              {v_8d41d7("call.confirmHint", { defaultValue: "탭하여 취소 · 잠시 후 전송" })}
-            </Text>
-          </View>
+          ) : null}
         </>
       ) : null}
 
       {
 
 }
-      {(v_ab4803 === 'sending' || v_ab4803 === 'speaking') && !!v_def12c && !v_0c5416 ? (
+      {v_42cf68 && (v_ab4803 === 'sending' || v_ab4803 === 'speaking') && !!v_def12c && !v_0c5416 ? (
         <View style={[v_fd5f43.subtitleContainer, { bottom: v_47b41c }]} pointerEvents="none">
           <Text style={v_fd5f43.subtitleText} numberOfLines={1} ellipsizeMode="head">
             {v_def12c}
