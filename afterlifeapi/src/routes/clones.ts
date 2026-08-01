@@ -9,6 +9,7 @@ import { similarityScore, SEARCH_SIMILARITY_THRESHOLD } from "../lib/similarity"
 import { getPersonaPriceXrun, getKnowledgeInterpretRulesText } from "../lib/appConfig";
 import {
   cloneActiveSql,
+  cloneNotSuspendedSql,
   hasAcceptedShare,
   isFollower,
   loadCloneById,
@@ -664,16 +665,19 @@ clones.get("/search", async (c) => {
   const where: string[] = [cloneActiveSql("c")];
   const binds: unknown[] = [];
   if (viewerId) {
+
     where.push(
       `(
-         c.visibility = 'public'
-         OR c.owner_id = ?
-         OR (c.visibility = 'followers' AND
-             EXISTS (SELECT 1 FROM clone_follows cf
-                      WHERE cf.clone_id = c.id AND cf.user_id = ?))
-         OR (c.visibility = 'selected' AND
-             EXISTS (SELECT 1 FROM clone_allowed_viewers cav
-                      WHERE cav.clone_id = c.id AND cav.user_id = ?))
+         c.owner_id = ?
+         OR (${cloneNotSuspendedSql("c")} AND (
+              c.visibility = 'public'
+              OR (c.visibility = 'followers' AND
+                  EXISTS (SELECT 1 FROM clone_follows cf
+                           WHERE cf.clone_id = c.id AND cf.user_id = ?))
+              OR (c.visibility = 'selected' AND
+                  EXISTS (SELECT 1 FROM clone_allowed_viewers cav
+                           WHERE cav.clone_id = c.id AND cav.user_id = ?))
+         ))
        )`,
     );
     binds.push(viewerId, viewerId, viewerId);
@@ -685,7 +689,8 @@ clones.get("/search", async (c) => {
     );
     binds.push(viewerId);
   } else {
-    where.push(`c.visibility = 'public'`);
+
+    where.push(`c.visibility = 'public' AND ${cloneNotSuspendedSql("c")}`);
   }
   if (params.type) {
     where.push(`c.clone_type = ?`);

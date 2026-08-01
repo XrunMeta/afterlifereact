@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import type { AppEnv } from "../lib/env";
 import { APIError } from "../lib/errors";
 import { requireAuth } from "../middleware/auth";
-import { loadCloneById, resolveResponseViewerRole } from "../lib/cloneAccess";
+import { isSuspendedForViewer, loadCloneById, resolveResponseViewerRole } from "../lib/cloneAccess";
 import { buildCallBundle } from "../lib/callBundle";
 import { z } from "../lib/validate";
 
@@ -25,6 +25,10 @@ calls.post("/:cloneId/call", requireAuth, async (c) => {
 
   if (!viewerRole && clone.visibility !== "public") {
     throw new APIError("FORBIDDEN", "No access to this clone for call.");
+  }
+
+  if (isSuspendedForViewer(clone, viewerRole)) {
+    throw new APIError("FORBIDDEN", "This clone is currently suspended.");
   }
 
   const { personaBundle, assets } = await buildCallBundle(c.env.DB, clone, userId, new URL(c.req.url).origin);
@@ -75,6 +79,9 @@ calls.get("/:cloneId/bundle", requireAuth, async (c) => {
   if (!viewerRole && clone.visibility !== "public") {
     throw new APIError("FORBIDDEN", "No access to this clone.");
   }
+  if (isSuspendedForViewer(clone, viewerRole)) {
+    throw new APIError("FORBIDDEN", "This clone is currently suspended.");
+  }
   const { personaBundle, assets } = await buildCallBundle(c.env.DB, clone, userId, new URL(c.req.url).origin);
   return c.json({ personaBundle, assets });
 });
@@ -95,6 +102,9 @@ calls.post("/:cloneId/call/prethird-start", requireAuth, async (c) => {
   const viewerRole = await resolveResponseViewerRole(c.env.DB, clone, userId);
   if (!viewerRole && clone.visibility !== "public") {
     throw new APIError("FORBIDDEN", "No access to this clone for call.");
+  }
+  if (isSuspendedForViewer(clone, viewerRole)) {
+    throw new APIError("FORBIDDEN", "This clone is currently suspended.");
   }
 
   await c.env.DB.prepare(

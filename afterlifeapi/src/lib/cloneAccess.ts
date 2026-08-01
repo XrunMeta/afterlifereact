@@ -14,6 +14,11 @@ export function cloneExternallyVisibleSql(alias = ""): string {
   return `${cloneActiveSql(alias)} AND ${p}admin_suspended_at IS NULL`;
 }
 
+export function cloneNotSuspendedSql(alias = ""): string {
+  const p = alias ? `${alias}.` : "";
+  return `${p}admin_suspended_at IS NULL`;
+}
+
 export interface CloneRow {
   id: number;
   owner_id: number;
@@ -43,6 +48,8 @@ export interface CloneRow {
   guide_video_urls: string | null;
 
   relation: string | null;
+
+  admin_suspended_at: string | null;
 }
 
 export async function loadCloneById(
@@ -56,7 +63,7 @@ export async function loadCloneById(
               c.voice_type, c.voice_preset_id, c.training_status, c.created_at,
               c.is_system,
               c.idle_video_url, c.voice_se_url, c.filler_video_urls, c.guide_video_urls,
-              c.relation,
+              c.relation, c.admin_suspended_at,
               COALESCE(s.followers_count, 0) AS followers_count,
               COALESCE(s.messages_count, 0)  AS messages_count,
               COALESCE(s.gifts_count, 0)     AS gifts_count
@@ -144,6 +151,14 @@ export async function resolveResponseViewerRole(
   if (share !== null) return "coowner";
   if (await isFollower(db, clone.id, userId)) return "follower";
   return null;
+}
+
+export function isSuspendedForViewer(
+  clone: Pick<CloneRow, "admin_suspended_at">,
+  viewerRole: ResponseViewerRole | null,
+): boolean {
+  if (!clone.admin_suspended_at) return false;
+  return viewerRole !== "owner" && viewerRole !== "coowner";
 }
 
 export async function resolveViewerRole(

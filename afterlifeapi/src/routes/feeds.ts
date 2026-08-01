@@ -9,6 +9,7 @@ import { notifyCloneEvent } from "../lib/notify";
 import { bumpInteraction, addPerFeedIntimacyScore, INTIMACY_WEIGHTS } from "../lib/interactions";
 import {
   cloneActiveSql,
+  cloneNotSuspendedSql,
   hasAcceptedShare,
   isFollower,
   loadCloneById,
@@ -150,22 +151,25 @@ feedsDiscover.get("/discover", async (c) => {
   const binds: unknown[] = [];
 
   if (viewerId) {
+
     where.push(
       `(
-         c.visibility = 'public'
-         OR (c.owner_id = ? AND c.visibility != 'private')
-         OR (c.visibility = 'followers' AND
-             EXISTS (SELECT 1 FROM clone_follows cf
-                      WHERE cf.clone_id = c.id AND cf.user_id = ?))
-         OR (c.visibility = 'selected' AND
-             EXISTS (SELECT 1 FROM clone_allowed_viewers cav
-                      WHERE cav.clone_id = c.id AND cav.user_id = ?))
+         (c.owner_id = ? AND c.visibility != 'private')
+         OR (${cloneNotSuspendedSql("c")} AND (
+              c.visibility = 'public'
+              OR (c.visibility = 'followers' AND
+                  EXISTS (SELECT 1 FROM clone_follows cf
+                           WHERE cf.clone_id = c.id AND cf.user_id = ?))
+              OR (c.visibility = 'selected' AND
+                  EXISTS (SELECT 1 FROM clone_allowed_viewers cav
+                           WHERE cav.clone_id = c.id AND cav.user_id = ?))
+         ))
        )`,
     );
     binds.push(viewerId, viewerId, viewerId);
   } else {
 
-    where.push("c.visibility = 'public'");
+    where.push(`c.visibility = 'public' AND ${cloneNotSuspendedSql("c")}`);
   }
 
   if (viewerId) {
