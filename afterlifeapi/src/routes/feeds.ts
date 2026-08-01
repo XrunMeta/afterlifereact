@@ -12,6 +12,7 @@ import {
   v_a9ae28,
   v_7adf64,
   v_ab84f6,
+  v_a697ec,
   v_5d4a51,
   v_efcb2d,
 } from "../lib/cloneAccess";
@@ -79,6 +80,10 @@ v_96e8d7.get("/:id/feeds", async (v_3f4e2e) => {
   }
   if (v_eb25ce.visibility === "followers" && !v_22da99) {
     throw new v_3ebe58("FORBIDDEN", "팔로워에게만 공개된 페르소나예요.");
+  }
+
+  if (v_a697ec(v_eb25ce, v_22da99)) {
+    throw new v_3ebe58("FORBIDDEN", "이 페르소나는 현재 일시 중지 상태예요.");
   }
 
   const v_f71b56 = new URL(v_3f4e2e.req.url);

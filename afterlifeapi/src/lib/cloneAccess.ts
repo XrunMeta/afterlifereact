@@ -190,3 +190,11 @@ export async function v_09d461(
   }
   return null;
 }
+
+export function v_7a9d93(
+  v_eb25ce,
+  v_22da99,
+): boolean {
+  if (!v_eb25ce.admin_suspended_at) return false;
+  return v_22da99 !== "owner";
+}

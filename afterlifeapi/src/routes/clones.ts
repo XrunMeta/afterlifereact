@@ -12,6 +12,7 @@ import {
   v_a9ae28,
   v_7adf64,
   v_ab84f6,
+  v_a697ec,
   v_5d4a51,
   v_efcb2d,
   v_d875d1,
@@ -1266,6 +1267,10 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
     if (!v_030f63) throw new v_3ebe58("FORBIDDEN", "이 페르소나에 접근할 권한이 없어요.");
   }
 
+  if (v_a697ec(v_eb25ce, v_00efe2)) {
+    throw new v_3ebe58("FORBIDDEN", "이 페르소나는 현재 일시 중지 상태예요.");
+  }
+
   const v_774c91 = (
     await v_3f4e2e.env.DB
       .prepare(`SELECT interest FROM clone_interests WHERE clone_id = ?`)
@@ -1552,6 +1557,10 @@ v_f891e6.patch("/:id/l2", v_6690d9, async (v_3f4e2e) => {
     throw new v_3ebe58("FORBIDDEN", "이 클론에 접근할 수 없어요.");
   }
 
+  if (v_a697ec(v_eb25ce, v_00efe2)) {
+    throw new v_3ebe58("FORBIDDEN", "이 클론은 현재 일시 중지 상태예요.");
+  }
+
   const v_479f05 = await v_3821c0(v_3f4e2e.env, v_6e0fd3, v_43e90c);
   let v_9390e8 = {};
   if (v_479f05) { try { v_9390e8 = JSON.parse(v_479f05); } catch { v_9390e8 = {}; } }
@@ -1713,13 +1722,20 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
   }
 
   const v_eb25ce = await v_3f4e2e.env.DB
-    .prepare(`SELECT id, owner_id FROM clones WHERE id = ? AND ${v_74c502()}`)
+    .prepare(`SELECT id, owner_id, admin_suspended_at FROM clones WHERE id = ? AND ${v_74c502()}`)
     .bind(v_6e0fd3)
-    .first<{ id: number; owner_id: number }>();
+    .first<{ id: number; owner_id: number; admin_suspended_at: string | null }>();
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
 
   if (v_eb25ce.owner_id === v_f7e120) {
     throw new v_3ebe58("VALIDATION_FAILED", "자기 자신의 페르소나에는 선물할 수 없어요.");
+  }
+
+  if (v_eb25ce.admin_suspended_at) {
+    const v_32b0ce = await v_7adf64(v_3f4e2e.env.DB, v_6e0fd3, v_f7e120);
+    if (v_32b0ce !== "owner") {
+      throw new v_3ebe58("FORBIDDEN", "일시 중지된 페르소나에는 선물할 수 없어요.");
+    }
   }
 
   const v_257b90 = await v_3f4e2e.env.DB
