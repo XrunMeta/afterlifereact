@@ -8,6 +8,7 @@ import { v_6690d9 } from "../middleware/auth";
 import { v_80a022 } from "../lib/notify";
 import { v_dd9d7c, v_6f97bc, v_cf0463 } from "../lib/interactions";
 import {
+  v_74c502,
   v_7adf64,
   v_ab84f6,
   v_5d4a51,
@@ -357,7 +358,7 @@ async function v_c39991(
       `SELECT f.id AS id, f.clone_id AS cloneId, c.visibility AS visibility, c.owner_id AS ownerId
          FROM feeds f
          JOIN clones c ON c.id = f.clone_id
-        WHERE f.id = ? AND c.deleted_at IS NULL`,
+        WHERE f.id = ? AND ${v_74c502("c")}`,
     )
     .bind(v_c09aa8)
     .first<{ id: number; cloneId: number; visibility: string; ownerId: number }>();

@@ -8,6 +8,7 @@ import { v_6690d9 } from "../middleware/auth";
 import { v_a04a51 } from "../middleware/idempotency";
 import { v_74defc } from "../lib/logger";
 import {
+  v_74c502,
   v_7adf64,
   v_5d4a51,
 } from "../lib/cloneAccess";
@@ -256,7 +257,7 @@ v_98b245.get("/:token", async (v_3f4e2e) => {
       `SELECT i.clone_id, i.invite_email, i.relation, i.grant_owner, i.expires_at, i.used_at, i.cancelled_at,
               c.name, c.username, c.avatar_url, c.clone_type
          FROM invite_tokens i JOIN clones c ON c.id = i.clone_id
-        WHERE i.token_hash = ? AND c.deleted_at IS NULL`,
+        WHERE i.token_hash = ? AND ${v_74c502("c")}`,
     )
     .bind(v_109fd8)
     .first<{

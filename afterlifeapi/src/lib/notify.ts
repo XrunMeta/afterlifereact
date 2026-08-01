@@ -3,6 +3,7 @@
 import type { v_273a0c } from "./env";
 import { v_a71d8b } from "./gmail";
 import { v_51b1f7 } from "./expoPush";
+import { v_74c502 } from "./cloneAccess";
 
 export type NotificationType =
   | "invite_received"
@@ -132,7 +133,7 @@ export async function v_80a022(
 ): Promise<void> {
   try {
     const v_eb25ce = await v_c9c489.DB
-      .prepare(`SELECT owner_id, name FROM clones WHERE id = ? AND deleted_at IS NULL`)
+      .prepare(`SELECT owner_id, name FROM clones WHERE id = ? AND ${v_74c502()}`)
       .bind(v_4317d1.cloneId)
       .first<{ owner_id: number; name: string }>();
     if (!v_eb25ce) return;
@@ -196,7 +197,7 @@ export async function v_33d48f(
   try {
     if (v_4317d1.score <= 0) return;
     const v_eb25ce = await v_c9c489.DB
-      .prepare(`SELECT owner_id, name FROM clones WHERE id = ? AND deleted_at IS NULL`)
+      .prepare(`SELECT owner_id, name FROM clones WHERE id = ? AND ${v_74c502()}`)
       .bind(v_4317d1.cloneId)
       .first<{ owner_id: number; name: string }>();
     if (!v_eb25ce) return;

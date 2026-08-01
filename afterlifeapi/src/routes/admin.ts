@@ -799,11 +799,13 @@ v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
   if (v_3c8572.deletion_state !== "active") {
     return v_3f4e2e.json({ ok: true, alreadyDeleted: true, deletionState: v_3c8572.deletion_state });
   }
+
   await v_3f4e2e.env.DB
     .prepare(
       `UPDATE clones
           SET deletion_state = 'soft_deleted',
-              soft_deleted_at = CURRENT_TIMESTAMP
+              soft_deleted_at = CURRENT_TIMESTAMP,
+              deleted_at = CURRENT_TIMESTAMP
         WHERE id = ?`,
     )
     .bind(v_6e0fd3)
@@ -824,11 +826,13 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   if (v_3c8572.deletion_state !== "active") {
     return v_3f4e2e.json({ ok: true, alreadyDisabled: true, deletionState: v_3c8572.deletion_state });
   }
+
   await v_3f4e2e.env.DB
     .prepare(
       `UPDATE clones
           SET deletion_state = 'soft_deleted',
-              soft_deleted_at = CURRENT_TIMESTAMP
+              soft_deleted_at = CURRENT_TIMESTAMP,
+              deleted_at = CURRENT_TIMESTAMP
         WHERE id = ?`,
     )
     .bind(v_6e0fd3)
@@ -1234,11 +1238,12 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
       v_c8eee3 = `${v_6a53fd || 30}일간 계정 사용이 정지됩니다.`;
       break;
     case "clone_deactivate":
-      await v_3f4e2e.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = NULL WHERE owner_id = ? AND deletion_state = 'active'`).bind(v_389afb).run();
+
+      await v_3f4e2e.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = NULL, deleted_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'active'`).bind(v_389afb).run();
       v_c8eee3 = "보유 페르소나가 비활성화되었습니다.";
       break;
     case "clone_delete":
-      await v_3f4e2e.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'active'`).bind(v_389afb).run();
+      await v_3f4e2e.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, deleted_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'active'`).bind(v_389afb).run();
       v_c8eee3 = "보유 페르소나가 삭제되었습니다.";
       break;
   }

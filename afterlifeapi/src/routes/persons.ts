@@ -7,6 +7,7 @@ import { v_6690d9 } from "../middleware/auth";
 import { v_a8d2cc } from "../lib/faceVectors";
 import { v_430d2b } from "../lib/personDelete";
 import { v_d0fd96 } from "../lib/displayName";
+import { v_74c502 } from "../lib/cloneAccess";
 
 export const v_fded81 = new v_b7c41b<v_de0a25>();
 
@@ -55,7 +56,7 @@ v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
 
   if (v_6e0fd3 !== null) {
     const v_2461e1 = await v_3f4e2e.env.DB.prepare(
-      `SELECT id FROM clones WHERE id = ? AND owner_id = ? AND deleted_at IS NULL`
+      `SELECT id FROM clones WHERE id = ? AND owner_id = ? AND ${v_74c502()}`
     )
       .bind(v_6e0fd3, v_43e90c)
       .first<{ id: number }>();
