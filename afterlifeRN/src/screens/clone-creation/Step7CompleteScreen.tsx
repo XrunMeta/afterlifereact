@@ -28,7 +28,7 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0 } from "../../types/clone";
-import { v_39eaf5, v_b55477, v_5e388b, v_b4f9f6, v_b20cba, v_ab4719, type v_e5d62a } from "../../api/clones";
+import { v_39eaf5, v_b55477, v_96d757, v_6c3f29, v_5e388b, v_b4f9f6, v_b20cba, v_ab4719, type v_e5d62a } from "../../api/clones";
 import { v_84a859 } from "../../api/auth";
 import { v_7d2692 } from "../../api/files";
 import { v_cf9c33 } from "rcmrninabrnb";
@@ -229,10 +229,12 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
       const v_818579 = v_f04727.visibility ?? "public";
 
-      const v_6be727 = /^[a-z0-9_]+$/;
       const v_ae88f2 = v_f04727.username?.trim() ?? "";
-      const v_a71df8 = v_ae88f2.length >= 3 && v_ae88f2.length <= 30 && v_6be727.test(v_ae88f2);
-      const v_556427 = v_a71df8 ? v_ae88f2 : v_b55477(v_ae88f2 || v_f04727.name || "user");
+      const v_aad0e1 = v_96d757(v_ae88f2);
+      if (v_ae88f2.length > 0 && v_aad0e1) {
+        throw new Error(v_aad0e1);
+      }
+      const v_556427 = v_ae88f2.length > 0 ? v_ae88f2 : v_b55477(v_f04727.name || "user");
 
       const v_55a58f = {
         ...(v_f04727.personaAge ? { age: v_f04727.personaAge } : {}),
@@ -436,6 +438,35 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         v_8d41d7("create.step7.nameMissingMsg", { defaultValue: "클론 이름이 없어요. 이전 단계로 돌아가서 입력해주세요." }),
       );
       return;
+    }
+
+    const v_62578e = v_f04727.username?.trim() ?? "";
+    if (v_62578e.length > 0) {
+      const v_b6f6e4 = v_96d757(v_62578e);
+      if (v_b6f6e4) {
+        console.log("[CLONE-CREATE] BLOCKED: username invalid ―", v_62578e);
+        v_889fad(
+          v_8d41d7("create.step7.usernameInvalidTitle", { defaultValue: "아이디 형식 오류" }),
+          v_b6f6e4,
+        );
+        return;
+      }
+
+      try {
+        const v_e2299a = await v_6c3f29(v_62578e);
+        if (!v_e2299a.available) {
+          console.log("[CLONE-CREATE] BLOCKED: username unavailable ―", v_e2299a.reason);
+          v_889fad(
+            v_8d41d7("create.step7.usernameConflictTitle", { defaultValue: "아이디 중복" }),
+            v_e2299a.reason === "reserved"
+              ? "예약된 아이디입니다. 다른 아이디를 입력해주세요."
+              : "이미 사용중인 아이디예요. 이전 단계에서 다른 아이디로 바꿔주세요.",
+          );
+          return;
+        }
+      } catch {
+
+      }
     }
     console.log("[CLONE-CREATE] sanity check passed → proceed to attemptCreate");
 
