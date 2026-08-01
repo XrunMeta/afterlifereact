@@ -1612,6 +1612,13 @@ clones.post("/:id/follow", requireAuth, async (c) => {
     if (!role) throw new APIError("FORBIDDEN", "비공개 페르소나는 팔로우할 수 없어요.");
   }
 
+  if (clone.admin_suspended_at && clone.owner_id !== userId) {
+    const shareRole = await hasAcceptedShare(db, cloneId, userId);
+    if (shareRole !== "owner") {
+      throw new APIError("FORBIDDEN", "이 페르소나는 현재 일시 중지 상태예요.");
+    }
+  }
+
   const result = await db
     .prepare(
       `INSERT OR IGNORE INTO clone_follows (user_id, clone_id) VALUES (?, ?)`,

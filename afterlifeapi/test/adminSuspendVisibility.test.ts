@@ -234,4 +234,28 @@ describe("T-203 후속 — admin_suspended_at 외부 노출 차단", () => {
     expect(await searchIds(ft)).not.toContain(cloneId);
     expect(await discoverIds(ft)).not.toContain(cloneId);
   });
+
+  it("selected visibility 클론도 정지 시 등록된 타인에게 차단되고, 소유자는 여전히 검색 가능(괄호 결합 회귀)", async () => {
+    const owner = await seedUser();
+    const allowedViewer = await seedUser();
+    const cloneId = await seedClone(owner, { visibility: "selected" });
+    await db()
+      .prepare(`INSERT INTO clone_allowed_viewers (clone_id, user_id) VALUES (?, ?)`)
+      .bind(cloneId, allowedViewer)
+      .run();
+
+    const vt = await token(allowedViewer);
+    const ot = await token(owner);
+
+    expect(await searchIds(vt)).toContain(cloneId);
+    expect(await discoverIds(vt)).toContain(cloneId);
+
+    await suspendClone(cloneId);
+
+    expect(await searchIds(vt)).not.toContain(cloneId);
+    expect(await discoverIds(vt)).not.toContain(cloneId);
+
+    expect(await searchIds(ot)).toContain(cloneId);
+    expect(await discoverIds(ot)).toContain(cloneId);
+  });
 });

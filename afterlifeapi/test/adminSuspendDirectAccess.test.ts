@@ -254,3 +254,72 @@ describe("GET /oth-path·shared·l2", () => {
     });
   }
 });
+
+describe("POST /oth-path — 신규 팔로우", () => {
+  async function follow(cloneId: number, t: string): Promise<Response> {
+    return SELF.fetch(`http://localhost/oth-path${cloneId}/follow`, {
+      method: "POST",
+      headers: auth(t),
+    });
+  }
+  async function followCount(cloneId: number, userId: number): Promise<number> {
+    const row = await db()
+      .prepare(`SELECT COUNT(*) AS n FROM clone_follows WHERE clone_id = ? AND user_id = ?`)
+      .bind(cloneId, userId)
+      .first<{ n: number }>();
+    return row?.n ?? 0;
+  }
+
+  it("타인은 403 + clone_follows 행 생성 안 됨, 소유자는 200 + 행 생성, 정상 클론은 타인도 200", async () => {
+    const owner = await seedUser();
+    const stranger = await seedUser();
+    const suspended = await seedClone(owner);
+    const normal = await seedClone(owner);
+    await suspendClone(suspended);
+    const ot = await token(owner);
+    const st = await token(stranger);
+
+    const strangerRes = await follow(suspended, st);
+    expect(strangerRes.status).toBe(403);
+    expect(await followCount(suspended, stranger)).toBe(0);
+
+    const ownerRes = await follow(suspended, ot);
+    expect(ownerRes.status).toBe(200);
+    expect(await followCount(suspended, owner)).toBe(1);
+
+    const normalRes = await follow(normal, st);
+    expect(normalRes.status).toBe(200);
+    expect(await followCount(normal, stranger)).toBe(1);
+  });
+
+  it("coowner 는 정지 중에도 팔로우 가능", async () => {
+    const owner = await seedUser();
+    const coowner = await seedUser();
+    const suspended = await seedClone(owner);
+    await suspendClone(suspended);
+    await grantCoowner(suspended, owner, coowner);
+    const ct = await token(coowner);
+
+    const res = await follow(suspended, ct);
+    expect(res.status).toBe(200);
+    expect(await followCount(suspended, coowner)).toBe(1);
+  });
+
+  it("이미 팔로우 중이던 사람은 정지 후에도 언팔로우(DELETE) 가능 — 가둬두지 않는다", async () => {
+    const owner = await seedUser();
+    const follower = await seedUser();
+    const cloneId = await seedClone(owner);
+    const ft = await token(follower);
+
+    expect((await follow(cloneId, ft)).status).toBe(200);
+
+    await suspendClone(cloneId);
+
+    const unfollowRes = await SELF.fetch(`http://localhost/oth-path${cloneId}/follow`, {
+      method: "DELETE",
+      headers: auth(ft),
+    });
+    expect(unfollowRes.status).toBe(200);
+    expect(await followCount(cloneId, follower)).toBe(0);
+  });
+});
