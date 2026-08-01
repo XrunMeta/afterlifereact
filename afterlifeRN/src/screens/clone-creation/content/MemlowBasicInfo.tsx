@@ -6,6 +6,7 @@ import { MEMLOW_RELATIONS } from '../../../mocks/cloneTypeCatalog';
 import type { CloneCreationDraft } from '../../../types/clone';
 import { COLORS, RADIUS } from '../../../components/constants';
 import PersonaSection from './PersonaSection';
+import CloneUsernameField, { isCloneUsernameReady } from './CloneUsernameField';
 
 interface Props {
   draft: CloneCreationDraft;
@@ -21,11 +22,10 @@ function Component({ draft, onChange }: Props) {
         value={draft.name ?? ''}
         onChangeText={v => onChange({ name: v })}
       />
-      <TextField
-        placeholder={t("create.basicInfo.usernamePlaceholder")}
+      {}
+      <CloneUsernameField
         value={draft.username ?? ''}
-        onChangeText={v => onChange({ username: v })}
-        autoCapitalize="none"
+        onChange={v => onChange({ username: v })}
       />
       <TextField
         placeholder={t("create.basicInfo.memlowDescPlaceholder")}
@@ -55,7 +55,7 @@ function Component({ draft, onChange }: Props) {
 }
 
 Component.validate = (d: CloneCreationDraft): boolean =>
-  Boolean(d.name?.trim() && d.username?.trim() && d.relation);
+  Boolean(d.name?.trim() && isCloneUsernameReady(d.username) && d.relation);
 
 const MemlowBasicInfo = Component as typeof Component & {
   validate: (d: CloneCreationDraft) => boolean;

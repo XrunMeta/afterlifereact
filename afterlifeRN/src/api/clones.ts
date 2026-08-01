@@ -99,6 +99,19 @@ export async function checkCloneUsername(
   };
 }
 
+export const CLONE_USERNAME_RE = /^[a-z0-9_]+$/;
+
+export function validateCloneUsername(raw: string): string | null {
+  const u = raw.trim();
+  if (u.length === 0) return "아이디를 입력해주세요.";
+  if (u.length < 3) return "아이디는 3자 이상이어야 해요.";
+  if (u.length > 30) return "아이디는 30자 이하여야 해요.";
+  if (!CLONE_USERNAME_RE.test(u)) {
+    return "아이디는 영문 소문자·숫자·밑줄(_) 만 사용할 수 있어요. (대문자·한글·공백 불가)";
+  }
+  return null;
+}
+
 export function deriveUsernameFromName(name: string): string {
   const ascii = name
     .toLowerCase()
