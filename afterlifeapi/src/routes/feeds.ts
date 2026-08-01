@@ -144,8 +144,7 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
   const v_013af2 = await v_efcb2d(v_3f4e2e);
 
   const v_abcc8d = [
-    "c.deletion_state = 'active'",
-    "c.deleted_at IS NULL",
+    v_74c502("c"),
     "c.clone_type != 'memlow'",
   ];
   const v_925171 = [];

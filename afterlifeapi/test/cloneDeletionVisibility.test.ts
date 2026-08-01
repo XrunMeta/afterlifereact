@@ -195,3 +195,55 @@ v_469bf2("T-201 — 클론 삭제 시 전면 비노출 + 상태 필드 정합화
     v_4d37e3(v_b8165d).not.toContain(v_08941a);
   });
 });
+
+v_469bf2("T-201 el/sei 게이트 — admin 은 삭제 상태와 무관하게 L1 프로필 조회·수정 가능", () => {
+
+  const v_d72b33 = 9101;
+
+  async function v_7c351e(v_f91f33): Promise<string> {
+    const { issueToken: v_c43006 } = await import("../src/lib/jwt");
+    const v_43fd42 = (v_c9c489 as { JWT_ACCESS_SECRET?: string }).JWT_ACCESS_SECRET!;
+    return v_c43006(v_f91f33, v_43fd42, 600);
+  }
+
+  v_ba7107(async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    await v_a1651b
+      .prepare(
+        `INSERT OR REPLACE INTO admin_users (id, email, password_hash, role, is_active)
+         VALUES (?, ?, ?, 'super_admin', 1)`,
+      )
+      .bind(v_d72b33, "t201-superadmin@afterlife.test", "hashed-placeholder")
+      .run();
+  });
+
+  v_23805a("GET/PUT /oth-path 은 soft_deleted 클론도 404 없이 조회·수정된다", async () => {
+    const v_257b90 = await v_5d1973("t201-admin-l1@test.local", v_8c880b);
+    const v_6e0fd3 = await v_4d24a9(v_257b90, "t201_admin_l1_clone");
+    const v_5294e1 = await v_86c39f(v_257b90);
+
+    v_4d37e3((await v_30bf80(`/oth-path${v_6e0fd3}`, v_5294e1)).status).toBe(200);
+    const v_86952f = await v_2adc1d(v_6e0fd3);
+    v_4d37e3(v_86952f.deletion_state).toBe("soft_deleted");
+    v_4d37e3(v_86952f.deleted_at).not.toBeNull();
+
+    const v_121982 = await v_7c351e({ sub: v_d72b33, kind: "access", admin: true });
+
+    const v_511cca = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/l1-profile`, {
+      headers: { Authorization: `Bearer ${v_121982}` },
+    });
+    v_4d37e3(v_511cca.status).toBe(200);
+    const v_fb3621 = (await v_511cca.json()) as { id: number };
+    v_4d37e3(v_fb3621.id).toBe(v_6e0fd3);
+
+    const v_072d0c = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/l1-profile`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${v_121982}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ l1_profile: { notes: "admin 조회 확인용" } }),
+    });
+    v_4d37e3(v_072d0c.status).toBe(200);
+    const v_7feef6 = (await v_072d0c.json()) as { ok: boolean; l1_profile: { notes?: string } };
+    v_4d37e3(v_7feef6.ok).toBe(true);
+    v_4d37e3(v_7feef6.l1_profile.notes).toBe("admin 조회 확인용");
+  });
+});

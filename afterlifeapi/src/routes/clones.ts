@@ -197,8 +197,7 @@ v_f891e6.post(
       .prepare(
         `SELECT COUNT(*) AS n FROM clones
           WHERE owner_id = ?
-            AND deletion_state = 'active'
-            AND deleted_at IS NULL`,
+            AND ${v_74c502()}`,
       )
       .bind(v_43e90c)
       .first<{ n: number }>();
@@ -653,7 +652,7 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
 
   const v_013af2 = await v_efcb2d(v_3f4e2e);
 
-  const v_abcc8d = [`c.deleted_at IS NULL`, `c.deletion_state = 'active'`];
+  const v_abcc8d = [v_74c502("c")];
   const v_925171 = [];
   if (v_013af2) {
     v_abcc8d.push(

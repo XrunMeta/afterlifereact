@@ -959,7 +959,7 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
   const v_3ac7e7 = await v_3f4e2e.env.DB
     .prepare(
-      "SELECT id, name, username, l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL",
+      "SELECT id, name, username, l1_profile FROM clones WHERE id = ?",
     )
     .bind(v_389afb)
     .first<{ id: number; name: string; username: string; l1_profile: string | null }>();
@@ -1000,7 +1000,7 @@ v_b7f2b4.put("/oth-path", v_b09138, async (v_3f4e2e) => {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_d03300);
   const v_3ac7e7 = await v_3f4e2e.env.DB
-    .prepare("SELECT l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
+    .prepare("SELECT l1_profile FROM clones WHERE id = ?")
     .bind(v_389afb)
     .first<{ l1_profile: string | null }>();
   if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
@@ -1029,7 +1029,7 @@ v_b7f2b4.put("/oth-path", v_b09138, async (v_3f4e2e) => {
 
   await v_3f4e2e.env.DB
     .prepare(
-      "UPDATE clones SET l1_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL",
+      "UPDATE clones SET l1_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
     )
     .bind(JSON.stringify(v_a448ad), v_389afb)
     .run();
