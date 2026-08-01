@@ -82,6 +82,8 @@ export function ClonesPage() {
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
   const [deletionState, setDeletionState] = useState("");
+
+  const [suspendedOnly, setSuspendedOnly] = useState(false);
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState<PendingAction | null>(null);
@@ -89,7 +91,13 @@ export function ClonesPage() {
   const load = () => {
     setLoading(true);
     api
-      .getClones({ deletionState: deletionState || undefined, q: q || undefined, offset, limit: PAGE_SIZE })
+      .getClones({
+        deletionState: deletionState || undefined,
+        suspended: suspendedOnly ? true : undefined,
+        q: q || undefined,
+        offset,
+        limit: PAGE_SIZE,
+      })
       .then((res) => {
         setClones(res.items);
         setTotal(res.total);
@@ -98,7 +106,7 @@ export function ClonesPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(load, [deletionState, offset]);
+  useEffect(load, [deletionState, suspendedOnly, offset]);
 
   const runSearch = () => {
     setOffset(0);
@@ -224,6 +232,17 @@ export function ClonesPage() {
             </option>
           ))}
         </select>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#334155" }}>
+          <input
+            type="checkbox"
+            checked={suspendedOnly}
+            onChange={(e) => {
+              setSuspendedOnly(e.target.checked);
+              setOffset(0);
+            }}
+          />
+          일시중지만 보기
+        </label>
         <input
           placeholder="이름 / 클론ID / 소유자 검색"
           value={q}

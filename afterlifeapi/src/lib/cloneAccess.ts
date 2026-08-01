@@ -9,11 +9,6 @@ export function cloneActiveSql(alias = ""): string {
   return `${p}deleted_at IS NULL AND ${p}deletion_state = 'active'`;
 }
 
-export function cloneExternallyVisibleSql(alias = ""): string {
-  const p = alias ? `${alias}.` : "";
-  return `${cloneActiveSql(alias)} AND ${p}admin_suspended_at IS NULL`;
-}
-
 export function cloneNotSuspendedSql(alias = ""): string {
   const p = alias ? `${alias}.` : "";
   return `${p}admin_suspended_at IS NULL`;

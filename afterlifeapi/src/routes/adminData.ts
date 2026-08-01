@@ -88,6 +88,8 @@ adminData.get("/oth-path", async (c) => {
   const url = new URL(c.req.url);
   const visibility = url.searchParams.get("visibility") ?? "";
   const deletionState = url.searchParams.get("deletionState") ?? "";
+
+  const suspendedParam = url.searchParams.get("suspended");
   const minReports = Number(url.searchParams.get("minReports") ?? 0);
   const q = (url.searchParams.get("q") ?? "").trim();
   const offset = Math.max(0, Number(url.searchParams.get("offset") ?? 0));
@@ -106,6 +108,11 @@ adminData.get("/oth-path", async (c) => {
   } else {
 
     where.push("c.deletion_state = 'active'");
+  }
+  if (suspendedParam === "1") {
+    where.push("c.admin_suspended_at IS NOT NULL");
+  } else if (suspendedParam === "0") {
+    where.push("c.admin_suspended_at IS NULL");
   }
   if (q) {
     where.push(`(

@@ -182,6 +182,8 @@ export interface AdminCloneListResponse {
 export interface AdminCloneListParams {
   visibility?: string;
   deletionState?: string;
+
+  suspended?: boolean;
   minReports?: number;
   q?: string;
   offset?: number;
@@ -199,6 +201,7 @@ export const api = {
     const qs = new URLSearchParams();
     if (params?.visibility) qs.set("visibility", params.visibility);
     if (params?.deletionState) qs.set("deletionState", params.deletionState);
+    if (params?.suspended !== undefined) qs.set("suspended", params.suspended ? "1" : "0");
     if (params?.minReports) qs.set("minReports", String(params.minReports));
     if (params?.q) qs.set("q", params.q);
     if (params?.offset) qs.set("offset", String(params.offset));

@@ -17,5 +17,8 @@
 ALTER TABLE clones ADD COLUMN admin_suspended_at TIMESTAMP;
 ALTER TABLE clones ADD COLUMN admin_suspend_reason TEXT;
 
+-- idx_clones_admin_suspended: adminData.ts GET /oth-path 의 "정지된 클론만 보기"
+-- 필터(suspended=1 → WHERE admin_suspended_at IS NOT NULL)가 실제 소비처. 정지 행
+-- 비율이 낮을 것으로 예상돼 partial index 로 좁혀도 쓰기 비용은 무시할 수준.
 CREATE INDEX idx_clones_admin_suspended ON clones(admin_suspended_at)
   WHERE admin_suspended_at IS NOT NULL;
