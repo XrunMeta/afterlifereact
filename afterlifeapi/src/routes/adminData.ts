@@ -88,6 +88,8 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_818579 = v_f71b56.searchParams.get("visibility") ?? "";
   const v_9d030b = v_f71b56.searchParams.get("deletionState") ?? "";
+
+  const v_c21509 = v_f71b56.searchParams.get("suspended");
   const v_e42ef7 = Number(v_f71b56.searchParams.get("minReports") ?? 0);
   const v_ab6401 = (v_f71b56.searchParams.get("q") ?? "").trim();
   const v_3bbadf = Math.max(0, Number(v_f71b56.searchParams.get("offset") ?? 0));
@@ -106,6 +108,11 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
   } else {
 
     v_abcc8d.push("c.deletion_state = 'active'");
+  }
+  if (v_c21509 === "1") {
+    v_abcc8d.push("c.admin_suspended_at IS NOT NULL");
+  } else if (v_c21509 === "0") {
+    v_abcc8d.push("c.admin_suspended_at IS NULL");
   }
   if (v_ab6401) {
     v_abcc8d.push(`(

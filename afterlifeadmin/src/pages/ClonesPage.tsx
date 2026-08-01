@@ -82,6 +82,8 @@ export function v_c7f476() {
   const [v_c83285, v_8eee5e] = v_5ab095(0);
   const [v_3bbadf, v_919214] = v_5ab095(0);
   const [v_9d030b, v_45fbb9] = v_5ab095("");
+
+  const [v_0dfeb6, v_a5c0e5] = v_5ab095(false);
   const [v_ab6401, v_8bd32f] = v_5ab095("");
   const [v_683210, v_34a50a] = v_5ab095(true);
   const [v_483de2, v_266e0d] = v_5ab095<PendingAction | null>(null);
@@ -89,7 +91,13 @@ export function v_c7f476() {
   const v_f6f5de = () => {
     v_34a50a(true);
     v_05a921
-      .getClones({ deletionState: v_9d030b || undefined, q: v_ab6401 || undefined, offset: v_3bbadf, limit: v_e8d408 })
+      .getClones({
+        deletionState: v_9d030b || undefined,
+        suspended: v_0dfeb6 ? true : undefined,
+        q: v_ab6401 || undefined,
+        offset: v_3bbadf,
+        limit: v_e8d408,
+      })
       .then((v_8f00b9) => {
         v_3302bc(v_8f00b9.items);
         v_8eee5e(v_8f00b9.total);
@@ -98,7 +106,7 @@ export function v_c7f476() {
       .finally(() => v_34a50a(false));
   };
 
-  v_c4deb2(v_f6f5de, [v_9d030b, v_3bbadf]);
+  v_c4deb2(v_f6f5de, [v_9d030b, v_0dfeb6, v_3bbadf]);
 
   const v_1d6a6c = () => {
     v_919214(0);
@@ -224,6 +232,17 @@ export function v_c7f476() {
             </option>
           ))}
         </select>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#334155" }}>
+          <input
+            type="checkbox"
+            checked={v_0dfeb6}
+            onChange={(v_9e86fd) => {
+              v_a5c0e5(v_9e86fd.target.checked);
+              v_919214(0);
+            }}
+          />
+          일시중지만 보기
+        </label>
         <input
           placeholder="이름 / 클론ID / 소유자 검색"
           value={v_ab6401}
