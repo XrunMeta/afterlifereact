@@ -12,6 +12,7 @@ import {
   cloneNotSuspendedSql,
   hasAcceptedShare,
   isFollower,
+  isSuspendedForViewer,
   loadCloneById,
   resolveOptionalUser,
 } from "../lib/cloneAccess";
@@ -79,6 +80,10 @@ cloneFeeds.get("/:id/feeds", async (c) => {
   }
   if (clone.visibility === "followers" && !role) {
     throw new APIError("FORBIDDEN", "팔로워에게만 공개된 페르소나예요.");
+  }
+
+  if (isSuspendedForViewer(clone, role)) {
+    throw new APIError("FORBIDDEN", "이 페르소나는 현재 일시 중지 상태예요.");
   }
 
   const url = new URL(c.req.url);

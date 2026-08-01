@@ -8,6 +8,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireIdempotencyKey } from "../middleware/idempotency";
 import { logActivity } from "../lib/logger";
 import {
+  isSuspendedForCloneRole,
   loadCloneById,
   resolveOptionalUser,
   resolveViewerRole,
@@ -35,6 +36,10 @@ memory.get("/:id/memory/l1", async (c) => {
   const userId = await resolveOptionalUser(c);
   const role = await resolveViewerRole(c, clone, userId);
   if (!role) throw new APIError("FORBIDDEN", "No access to this clone.");
+
+  if (isSuspendedForCloneRole(clone, role)) {
+    throw new APIError("FORBIDDEN", "This clone is currently suspended.");
+  }
 
   const raw = await readCtx(c.env, cloneId);
   if (!raw) {
@@ -86,6 +91,10 @@ memory.get("/:id/memory/shared", async (c) => {
   const role = await resolveViewerRole(c, clone, userId);
   if (!role) throw new APIError("FORBIDDEN", "No access to this clone.");
 
+  if (isSuspendedForCloneRole(clone, role)) {
+    throw new APIError("FORBIDDEN", "This clone is currently suspended.");
+  }
+
   const parsed = sharedQuery.safeParse(
     Object.fromEntries(new URL(c.req.url).searchParams.entries()),
   );
@@ -136,6 +145,10 @@ memory.get("/:id/memory/l2", requireAuth, async (c) => {
   if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
   const role = await resolveViewerRole(c, clone, userId);
   if (!role) throw new APIError("FORBIDDEN", "No access to this clone.");
+
+  if (isSuspendedForCloneRole(clone, role)) {
+    throw new APIError("FORBIDDEN", "This clone is currently suspended.");
+  }
 
   const raw = await readOnt(c.env, cloneId, userId);
   if (!raw) {

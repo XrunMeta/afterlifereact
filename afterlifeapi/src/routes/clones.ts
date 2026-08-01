@@ -12,6 +12,7 @@ import {
   cloneNotSuspendedSql,
   hasAcceptedShare,
   isFollower,
+  isSuspendedForViewer,
   loadCloneById,
   resolveOptionalUser,
   resolveResponseViewerRole,
@@ -1279,6 +1280,10 @@ clones.get("/:id", async (c) => {
     if (!isAllowed) throw new APIError("FORBIDDEN", "이 페르소나에 접근할 권한이 없어요.");
   }
 
+  if (isSuspendedForViewer(clone, viewerRole)) {
+    throw new APIError("FORBIDDEN", "이 페르소나는 현재 일시 중지 상태예요.");
+  }
+
   const interests = (
     await c.env.DB
       .prepare(`SELECT interest FROM clone_interests WHERE clone_id = ?`)
@@ -1565,6 +1570,10 @@ clones.patch("/:id/l2", requireAuth, async (c) => {
     throw new APIError("FORBIDDEN", "이 클론에 접근할 수 없어요.");
   }
 
+  if (isSuspendedForViewer(clone, viewerRole)) {
+    throw new APIError("FORBIDDEN", "이 클론은 현재 일시 중지 상태예요.");
+  }
+
   const raw = await readOnt(c.env, cloneId, userId);
   let data: Record<string, unknown> = {};
   if (raw) { try { data = JSON.parse(raw); } catch { data = {}; } }
@@ -1726,13 +1735,20 @@ clones.post("/:id/gift", requireAuth, async (c) => {
   }
 
   const clone = await c.env.DB
-    .prepare(`SELECT id, owner_id FROM clones WHERE id = ? AND ${cloneActiveSql()}`)
+    .prepare(`SELECT id, owner_id, admin_suspended_at FROM clones WHERE id = ? AND ${cloneActiveSql()}`)
     .bind(cloneId)
-    .first<{ id: number; owner_id: number }>();
+    .first<{ id: number; owner_id: number; admin_suspended_at: string | null }>();
   if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
 
   if (clone.owner_id === senderId) {
     throw new APIError("VALIDATION_FAILED", "자기 자신의 페르소나에는 선물할 수 없어요.");
+  }
+
+  if (clone.admin_suspended_at) {
+    const shareRole = await hasAcceptedShare(c.env.DB, cloneId, senderId);
+    if (shareRole !== "owner") {
+      throw new APIError("FORBIDDEN", "일시 중지된 페르소나에는 선물할 수 없어요.");
+    }
   }
 
   const owner = await c.env.DB

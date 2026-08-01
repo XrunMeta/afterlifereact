@@ -190,3 +190,11 @@ export async function resolveViewerRole(
   }
   return null;
 }
+
+export function isSuspendedForCloneRole(
+  clone: Pick<CloneRow, "admin_suspended_at">,
+  role: ViewerRole | null,
+): boolean {
+  if (!clone.admin_suspended_at) return false;
+  return role !== "owner";
+}
