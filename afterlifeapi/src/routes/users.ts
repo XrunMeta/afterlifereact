@@ -10,6 +10,7 @@ import { purgeUserOntology } from "../lib/memoryStore";
 import { notify } from "../lib/notify";
 import { similarityScore, SEARCH_SIMILARITY_THRESHOLD } from "../lib/similarity";
 import { syncPushTokenToXrun } from "../lib/xrun";
+import { cloneActiveSql } from "../lib/cloneAccess";
 
 export const users = new Hono<AppEnv>();
 
@@ -328,7 +329,7 @@ users.get("/me/invites", requireAuth, async (c) => {
           c.avatar_url AS cloneAvatarUrl, c.clone_type AS cloneType
          FROM invite_tokens i
          JOIN clones c ON c.id = i.clone_id
-        WHERE i.owner_id = ? AND c.deleted_at IS NULL
+        WHERE i.owner_id = ? AND ${cloneActiveSql("c")}
         ORDER BY i.id DESC
         LIMIT 200`,
     )
@@ -461,8 +462,7 @@ users.get("/me/clones", requireAuth, async (c) => {
           COALESCE(cs.messages_count, 0) AS messagesCount
          FROM clones c
          LEFT JOIN clone_stats cs ON cs.clone_id = c.id
-        WHERE c.deletion_state = 'active'
-          AND c.deleted_at IS NULL
+        WHERE ${cloneActiveSql("c")}
           AND (
             c.owner_id = ?
             OR c.id IN (
@@ -525,7 +525,7 @@ users.get("/me/clones/:cloneId/intimacy-events", requireAuth, async (c) => {
     throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const clone = await c.env.DB
-    .prepare(`SELECT owner_id AS ownerId FROM clones WHERE id = ? AND deleted_at IS NULL`)
+    .prepare(`SELECT owner_id AS ownerId FROM clones WHERE id = ? AND ${cloneActiveSql()}`)
     .bind(cloneId)
     .first<{ ownerId: number }>();
   if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
@@ -815,12 +815,9 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
            LEFT JOIN clone_stats s ON s.clone_id = c.id
            LEFT JOIN user_clone_interactions uci
                   ON uci.user_id = ? AND uci.clone_id = c.id
-          WHERE c.deleted_at IS NULL
+          WHERE ${cloneActiveSql("c")}
             -- 소유자가 삭제(soft_deleted)한 페르소나는 즉시 구독 목록에서 제외.
-            --   삭제는 deletion_state='soft_deleted' 로만 바뀌고 deleted_at 은 크론 전까지
-            --   NULL 이라, deleted_at 체크만으로는 삭제된 클론이 계속 보이던 버그 수정.
-            --   검색/피드와 동일 정책(active 만).
-            AND c.deletion_state = 'active'
+            --   검색/피드와 동일 정책(active 만) — T-201: 술어를 cloneActiveSql() 로 통일.
             AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)
             -- 차단한 '유저'가 소유한 페르소나는 구독 목록에서도 제외 (검색/피드와 동일).
             AND c.owner_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
@@ -952,7 +949,7 @@ users.get("/me/blocks", requireAuth, async (c) => {
                 c.visibility   AS cloneVisibility
            FROM clone_blocks b
            JOIN clones c ON c.id = b.clone_id
-          WHERE b.user_id = ? AND c.deleted_at IS NULL
+          WHERE b.user_id = ? AND ${cloneActiveSql("c")}
           ORDER BY b.id DESC`,
       )
       .bind(userId)
@@ -1425,8 +1422,7 @@ users.get("/:id", requireAuth, async (c) => {
            FROM clones c
            LEFT JOIN clone_stats cs ON cs.clone_id = c.id
           WHERE c.owner_id = ?
-            AND c.deletion_state = 'active'
-            AND c.deleted_at IS NULL
+            AND ${cloneActiveSql("c")}
             ${visibilityClause}
             ${blockedClause}
           ORDER BY c.id DESC

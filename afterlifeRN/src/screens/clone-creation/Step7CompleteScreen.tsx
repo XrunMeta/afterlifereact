@@ -28,7 +28,7 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone } from "../../types/clone";
-import { createClone, deriveUsernameFromName, createCloneFeed, updateClone, getAssetJob, createAssetJob, type AssetJob } from "../../api/clones";
+import { createClone, deriveUsernameFromName, validateCloneUsername, checkCloneUsername, createCloneFeed, updateClone, getAssetJob, createAssetJob, type AssetJob } from "../../api/clones";
 import { AuthApiError } from "../../api/auth";
 import { uploadFile } from "../../api/files";
 import { Image } from "react-native";
@@ -229,10 +229,12 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
       const visibility = draft.visibility ?? "public";
 
-      const USERNAME_RE = /^[a-z0-9_]+$/;
       const typed = draft.username?.trim() ?? "";
-      const isValid = typed.length >= 3 && typed.length <= 30 && USERNAME_RE.test(typed);
-      const username = isValid ? typed : deriveUsernameFromName(typed || draft.name || "user");
+      const usernameError = validateCloneUsername(typed);
+      if (typed.length > 0 && usernameError) {
+        throw new Error(usernameError);
+      }
+      const username = typed.length > 0 ? typed : deriveUsernameFromName(draft.name || "user");
 
       const l1Attrs: Record<string, string> = {
         ...(draft.personaAge ? { age: draft.personaAge } : {}),
@@ -436,6 +438,35 @@ export default function Step7CompleteScreen({ navigation }: Props) {
         t("create.step7.nameMissingMsg", { defaultValue: "클론 이름이 없어요. 이전 단계로 돌아가서 입력해주세요." }),
       );
       return;
+    }
+
+    const typedUsername = draft.username?.trim() ?? "";
+    if (typedUsername.length > 0) {
+      const formatError = validateCloneUsername(typedUsername);
+      if (formatError) {
+        console.log("[CLONE-CREATE] BLOCKED: username invalid ―", typedUsername);
+        showAlert(
+          t("create.step7.usernameInvalidTitle", { defaultValue: "아이디 형식 오류" }),
+          formatError,
+        );
+        return;
+      }
+
+      try {
+        const availability = await checkCloneUsername(typedUsername);
+        if (!availability.available) {
+          console.log("[CLONE-CREATE] BLOCKED: username unavailable ―", availability.reason);
+          showAlert(
+            t("create.step7.usernameConflictTitle", { defaultValue: "아이디 중복" }),
+            availability.reason === "reserved"
+              ? "예약된 아이디입니다. 다른 아이디를 입력해주세요."
+              : "이미 사용중인 아이디예요. 이전 단계에서 다른 아이디로 바꿔주세요.",
+          );
+          return;
+        }
+      } catch {
+
+      }
     }
     console.log("[CLONE-CREATE] sanity check passed → proceed to attemptCreate");
 

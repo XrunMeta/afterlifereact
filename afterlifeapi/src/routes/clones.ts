@@ -8,8 +8,11 @@ import { logActivity } from "../lib/logger";
 import { similarityScore, SEARCH_SIMILARITY_THRESHOLD } from "../lib/similarity";
 import { getPersonaPriceXrun, getKnowledgeInterpretRulesText } from "../lib/appConfig";
 import {
+  cloneActiveSql,
+  cloneNotSuspendedSql,
   hasAcceptedShare,
   isFollower,
+  isSuspendedForViewer,
   loadCloneById,
   resolveOptionalUser,
   resolveResponseViewerRole,
@@ -196,8 +199,7 @@ clones.post(
       .prepare(
         `SELECT COUNT(*) AS n FROM clones
           WHERE owner_id = ?
-            AND deletion_state = 'active'
-            AND deleted_at IS NULL`,
+            AND ${cloneActiveSql()}`,
       )
       .bind(userId)
       .first<{ n: number }>();
@@ -661,19 +663,22 @@ clones.get("/search", async (c) => {
 
   const viewerId = await resolveOptionalUser(c);
 
-  const where: string[] = [`c.deleted_at IS NULL`, `c.deletion_state = 'active'`];
+  const where: string[] = [cloneActiveSql("c")];
   const binds: unknown[] = [];
   if (viewerId) {
+
     where.push(
       `(
-         c.visibility = 'public'
-         OR c.owner_id = ?
-         OR (c.visibility = 'followers' AND
-             EXISTS (SELECT 1 FROM clone_follows cf
-                      WHERE cf.clone_id = c.id AND cf.user_id = ?))
-         OR (c.visibility = 'selected' AND
-             EXISTS (SELECT 1 FROM clone_allowed_viewers cav
-                      WHERE cav.clone_id = c.id AND cav.user_id = ?))
+         c.owner_id = ?
+         OR (${cloneNotSuspendedSql("c")} AND (
+              c.visibility = 'public'
+              OR (c.visibility = 'followers' AND
+                  EXISTS (SELECT 1 FROM clone_follows cf
+                           WHERE cf.clone_id = c.id AND cf.user_id = ?))
+              OR (c.visibility = 'selected' AND
+                  EXISTS (SELECT 1 FROM clone_allowed_viewers cav
+                           WHERE cav.clone_id = c.id AND cav.user_id = ?))
+         ))
        )`,
     );
     binds.push(viewerId, viewerId, viewerId);
@@ -685,7 +690,8 @@ clones.get("/search", async (c) => {
     );
     binds.push(viewerId);
   } else {
-    where.push(`c.visibility = 'public'`);
+
+    where.push(`c.visibility = 'public' AND ${cloneNotSuspendedSql("c")}`);
   }
   if (params.type) {
     where.push(`c.clone_type = ?`);
@@ -861,7 +867,7 @@ clones.get("/voices/:id/sample", async (c) => {
 
 clones.get("/system", requireAuth, async (c) => {
   const rows = await c.env.DB.prepare(
-    "SELECT id, username, name, avatar_url, is_system FROM clones WHERE is_system = 1 AND deleted_at IS NULL",
+    `SELECT id, username, name, avatar_url, is_system FROM clones WHERE is_system = 1 AND ${cloneActiveSql()}`,
   ).all<{ id: number; username: string; name: string; avatar_url: string | null; is_system: number }>();
   return c.json({ items: rows.results ?? [] });
 });
@@ -893,7 +899,7 @@ clones.get("/:id/knowledge", requireAuth, async (c) => {
     (await hasAcceptedShare(c.env.DB, cloneId, userId)) === "owner";
   if (!isOwner) throw new APIError("FORBIDDEN", "소유자만 조회할 수 있어요.");
   const row = await c.env.DB
-    .prepare("SELECT l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
+    .prepare(`SELECT l1_profile FROM clones WHERE id = ? AND ${cloneActiveSql()}`)
     .bind(cloneId)
     .first<{ l1_profile: string | null }>();
   let items: unknown[] = [];
@@ -1060,7 +1066,7 @@ clones.put("/:id/knowledge", requireAuth, async (c) => {
 
   const row = await db
     .prepare(
-      "SELECT primary_editor_user_id, l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL",
+      `SELECT primary_editor_user_id, l1_profile FROM clones WHERE id = ? AND ${cloneActiveSql()}`,
     )
     .bind(cloneId)
     .first<{ primary_editor_user_id: number | null; l1_profile: string | null }>();
@@ -1104,7 +1110,7 @@ clones.put("/:id/knowledge", requireAuth, async (c) => {
   l1.knowledge = norm.items;
   await db
     .prepare(
-      "UPDATE clones SET l1_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL",
+      `UPDATE clones SET l1_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND ${cloneActiveSql()}`,
     )
     .bind(JSON.stringify(l1), cloneId)
     .run();
@@ -1274,6 +1280,10 @@ clones.get("/:id", async (c) => {
     if (!isAllowed) throw new APIError("FORBIDDEN", "이 페르소나에 접근할 권한이 없어요.");
   }
 
+  if (isSuspendedForViewer(clone, viewerRole)) {
+    throw new APIError("FORBIDDEN", "이 페르소나는 현재 일시 중지 상태예요.");
+  }
+
   const interests = (
     await c.env.DB
       .prepare(`SELECT interest FROM clone_interests WHERE clone_id = ?`)
@@ -1382,7 +1392,7 @@ clones.patch("/:id", requireAuth, async (c) => {
 
   if (body.l1_profile !== undefined) {
     const row = await db
-      .prepare("SELECT primary_editor_user_id FROM clones WHERE id = ? AND deleted_at IS NULL")
+      .prepare(`SELECT primary_editor_user_id FROM clones WHERE id = ? AND ${cloneActiveSql()}`)
       .bind(cloneId)
       .first<{ primary_editor_user_id: number | null }>();
     if (row?.primary_editor_user_id !== userId) {
@@ -1437,7 +1447,7 @@ clones.patch("/:id", requireAuth, async (c) => {
     const nextL1 = { ...(body.l1_profile as Record<string, unknown>) };
     if (nextL1.knowledge === undefined) {
       const cur = await db
-        .prepare("SELECT l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
+        .prepare(`SELECT l1_profile FROM clones WHERE id = ? AND ${cloneActiveSql()}`)
         .bind(cloneId)
         .first<{ l1_profile: string | null }>();
       if (cur?.l1_profile) {
@@ -1461,7 +1471,7 @@ clones.patch("/:id", requireAuth, async (c) => {
   const statements = [
     db
       .prepare(
-        `UPDATE clones SET ${sets.join(", ")} WHERE id = ? AND deleted_at IS NULL`,
+        `UPDATE clones SET ${sets.join(", ")} WHERE id = ? AND ${cloneActiveSql()}`,
       )
       .bind(...binds),
   ];
@@ -1560,6 +1570,10 @@ clones.patch("/:id/l2", requireAuth, async (c) => {
     throw new APIError("FORBIDDEN", "이 클론에 접근할 수 없어요.");
   }
 
+  if (isSuspendedForViewer(clone, viewerRole)) {
+    throw new APIError("FORBIDDEN", "이 클론은 현재 일시 중지 상태예요.");
+  }
+
   const raw = await readOnt(c.env, cloneId, userId);
   let data: Record<string, unknown> = {};
   if (raw) { try { data = JSON.parse(raw); } catch { data = {}; } }
@@ -1596,6 +1610,13 @@ clones.post("/:id/follow", requireAuth, async (c) => {
         ? "owner"
         : await hasAcceptedShare(db, cloneId, userId);
     if (!role) throw new APIError("FORBIDDEN", "비공개 페르소나는 팔로우할 수 없어요.");
+  }
+
+  if (clone.admin_suspended_at && clone.owner_id !== userId) {
+    const shareRole = await hasAcceptedShare(db, cloneId, userId);
+    if (shareRole !== "owner") {
+      throw new APIError("FORBIDDEN", "이 페르소나는 현재 일시 중지 상태예요.");
+    }
   }
 
   const result = await db
@@ -1721,13 +1742,20 @@ clones.post("/:id/gift", requireAuth, async (c) => {
   }
 
   const clone = await c.env.DB
-    .prepare(`SELECT id, owner_id FROM clones WHERE id = ? AND deleted_at IS NULL`)
+    .prepare(`SELECT id, owner_id, admin_suspended_at FROM clones WHERE id = ? AND ${cloneActiveSql()}`)
     .bind(cloneId)
-    .first<{ id: number; owner_id: number }>();
+    .first<{ id: number; owner_id: number; admin_suspended_at: string | null }>();
   if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
 
   if (clone.owner_id === senderId) {
     throw new APIError("VALIDATION_FAILED", "자기 자신의 페르소나에는 선물할 수 없어요.");
+  }
+
+  if (clone.admin_suspended_at) {
+    const shareRole = await hasAcceptedShare(c.env.DB, cloneId, senderId);
+    if (shareRole !== "owner") {
+      throw new APIError("FORBIDDEN", "일시 중지된 페르소나에는 선물할 수 없어요.");
+    }
   }
 
   const owner = await c.env.DB

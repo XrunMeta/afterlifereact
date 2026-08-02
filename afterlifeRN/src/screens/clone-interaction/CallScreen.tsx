@@ -93,6 +93,8 @@ const { width: SCREEN_W } = Dimensions.get("window");
 
 const VIDEO_EDGE_TRIM_PX = 1;
 
+const SHOW_USER_TRANSCRIPT = __DEV__;
+
 interface FloatingGift {
   id: number;
   emoji: string;
@@ -1058,7 +1060,7 @@ export default function CallScreen({ route, navigation }: Props) {
 }
 
       {}
-      {phase === 'listening' && (!!interimTranscript || !!transcript) ? (
+      {SHOW_USER_TRANSCRIPT && phase === 'listening' && (!!interimTranscript || !!transcript) ? (
         <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
           <Text style={s.subtitleText} numberOfLines={1} ellipsizeMode="head">
             {interimTranscript || transcript}
@@ -1072,24 +1074,28 @@ export default function CallScreen({ route, navigation }: Props) {
       {phase === 'confirming' && !!pendingText ? (
         <>
           <Pressable style={s.confirmTapArea} onPress={cancelConfirm} />
-          <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
-            <Text style={s.subtitleText} numberOfLines={1} ellipsizeMode="head">
-              {pendingText}
-            </Text>
-            <View style={s.confirmBarTrack}>
-              <Animated.View style={[s.confirmBarFill, { transform: [{ scaleX: confirmProgress }] }]} />
+          {
+}
+          {SHOW_USER_TRANSCRIPT ? (
+            <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
+              <Text style={s.subtitleText} numberOfLines={1} ellipsizeMode="head">
+                {pendingText}
+              </Text>
+              <View style={s.confirmBarTrack}>
+                <Animated.View style={[s.confirmBarFill, { transform: [{ scaleX: confirmProgress }] }]} />
+              </View>
+              <Text style={s.confirmHint}>
+                {t("call.confirmHint", { defaultValue: "탭하여 취소 · 잠시 후 전송" })}
+              </Text>
             </View>
-            <Text style={s.confirmHint}>
-              {t("call.confirmHint", { defaultValue: "탭하여 취소 · 잠시 후 전송" })}
-            </Text>
-          </View>
+          ) : null}
         </>
       ) : null}
 
       {
 
 }
-      {(phase === 'sending' || phase === 'speaking') && !!pendingText && !cloneSubtitle ? (
+      {SHOW_USER_TRANSCRIPT && (phase === 'sending' || phase === 'speaking') && !!pendingText && !cloneSubtitle ? (
         <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
           <Text style={s.subtitleText} numberOfLines={1} ellipsizeMode="head">
             {pendingText}

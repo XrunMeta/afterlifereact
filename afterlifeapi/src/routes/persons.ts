@@ -7,6 +7,7 @@ import { requireAuth } from "../middleware/auth";
 import { getFaceIndex } from "../lib/faceVectors";
 import { deletePersonCascade } from "../lib/personDelete";
 import { assertValidDisplayName } from "../lib/displayName";
+import { cloneActiveSql } from "../lib/cloneAccess";
 
 export const persons = new Hono<AppEnv>();
 
@@ -55,7 +56,7 @@ persons.post("/", requireAuth, async (c) => {
 
   if (cloneId !== null) {
     const owned = await c.env.DB.prepare(
-      `SELECT id FROM clones WHERE id = ? AND owner_id = ? AND deleted_at IS NULL`
+      `SELECT id FROM clones WHERE id = ? AND owner_id = ? AND ${cloneActiveSql()}`
     )
       .bind(cloneId, userId)
       .first<{ id: number }>();

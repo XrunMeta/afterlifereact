@@ -12,7 +12,7 @@ import { getKekProvider, openAny, seal } from "../lib/ale";
 import { requestKekProvider } from "../lib/kekProvider";
 import { callMockAI, buildSystemPrompt } from "../lib/ai";
 import { spend } from "../lib/credits";
-import { loadCloneById, resolveViewerRole } from "../lib/cloneAccess";
+import { cloneActiveSql, isSuspendedForCloneRole, loadCloneById, resolveViewerRole } from "../lib/cloneAccess";
 import { estimateMessageCost } from "../lib/pricing";
 import { readCtx, readShared, readOnt } from "../lib/memoryStore";
 import { bumpInteraction, addIntimacyScore, INTIMACY_WEIGHTS } from "../lib/interactions";
@@ -56,6 +56,10 @@ cloneMessages.post(
     if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
     const role = await resolveViewerRole(c, clone, userId);
     if (!role) throw new APIError("FORBIDDEN", "No access to this clone.");
+
+    if (isSuspendedForCloneRole(clone, role)) {
+      throw new APIError("FORBIDDEN", "This clone is currently suspended.");
+    }
 
     const balance = await db
       .prepare(`SELECT credits FROM users WHERE id = ? AND deleted_at IS NULL`)
@@ -193,6 +197,10 @@ cloneMessages.post(
     if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
     const role = await resolveViewerRole(c, clone, userId);
     if (!role) throw new APIError("FORBIDDEN", "No access to this clone.");
+
+    if (isSuspendedForCloneRole(clone, role)) {
+      throw new APIError("FORBIDDEN", "This clone is currently suspended.");
+    }
 
     const balance = await db
       .prepare(`SELECT credits FROM users WHERE id = ? AND deleted_at IS NULL`)
@@ -464,11 +472,12 @@ async function assertMessageAccessible(
   userId: number,
 ): Promise<void> {
   const db = c.env.DB;
+
   const row = await db
     .prepare(
-      `SELECT m.id, m.clone_id, m.user_id, c.owner_id, c.visibility, c.deleted_at
+      `SELECT m.id, m.clone_id, m.user_id, c.owner_id, c.visibility
          FROM messages m JOIN clones c ON c.id = m.clone_id
-        WHERE m.id = ?`,
+        WHERE m.id = ? AND ${cloneActiveSql("c")}`,
     )
     .bind(messageId)
     .first<{
@@ -477,9 +486,8 @@ async function assertMessageAccessible(
       user_id: number;
       owner_id: number;
       visibility: string;
-      deleted_at: string | null;
     }>();
-  if (!row || row.deleted_at) throw new APIError("NOT_FOUND", "Message not found.");
+  if (!row) throw new APIError("NOT_FOUND", "Message not found.");
 
   if (row.user_id !== userId) throw new APIError("FORBIDDEN", "Not your conversation.");
   const role = await resolveViewerRole(

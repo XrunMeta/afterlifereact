@@ -4,6 +4,16 @@ import type { Context } from "hono";
 import type { AppEnv } from "./env";
 import { verifyToken } from "./jwt";
 
+export function cloneActiveSql(alias = ""): string {
+  const p = alias ? `${alias}.` : "";
+  return `${p}deleted_at IS NULL AND ${p}deletion_state = 'active'`;
+}
+
+export function cloneNotSuspendedSql(alias = ""): string {
+  const p = alias ? `${alias}.` : "";
+  return `${p}admin_suspended_at IS NULL`;
+}
+
 export interface CloneRow {
   id: number;
   owner_id: number;
@@ -33,6 +43,8 @@ export interface CloneRow {
   guide_video_urls: string | null;
 
   relation: string | null;
+
+  admin_suspended_at: string | null;
 }
 
 export async function loadCloneById(
@@ -46,13 +58,13 @@ export async function loadCloneById(
               c.voice_type, c.voice_preset_id, c.training_status, c.created_at,
               c.is_system,
               c.idle_video_url, c.voice_se_url, c.filler_video_urls, c.guide_video_urls,
-              c.relation,
+              c.relation, c.admin_suspended_at,
               COALESCE(s.followers_count, 0) AS followers_count,
               COALESCE(s.messages_count, 0)  AS messages_count,
               COALESCE(s.gifts_count, 0)     AS gifts_count
          FROM clones c
          LEFT JOIN clone_stats s ON s.clone_id = c.id
-        WHERE c.id = ? AND c.deleted_at IS NULL`,
+        WHERE c.id = ? AND ${cloneActiveSql("c")}`,
     )
     .bind(cloneId)
     .first<CloneRow>();
@@ -136,6 +148,14 @@ export async function resolveResponseViewerRole(
   return null;
 }
 
+export function isSuspendedForViewer(
+  clone: Pick<CloneRow, "admin_suspended_at">,
+  viewerRole: ResponseViewerRole | null,
+): boolean {
+  if (!clone.admin_suspended_at) return false;
+  return viewerRole !== "owner" && viewerRole !== "coowner";
+}
+
 export async function resolveViewerRole(
   c: Context<AppEnv>,
   clone: Pick<CloneRow, "id" | "owner_id" | "visibility">,
@@ -164,4 +184,12 @@ export async function resolveViewerRole(
     return null;
   }
   return null;
+}
+
+export function isSuspendedForCloneRole(
+  clone: Pick<CloneRow, "admin_suspended_at">,
+  role: ViewerRole | null,
+): boolean {
+  if (!clone.admin_suspended_at) return false;
+  return role !== "owner";
 }

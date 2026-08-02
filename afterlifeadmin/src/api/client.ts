@@ -149,6 +149,47 @@ export async function rawRequest(
   };
 }
 
+export interface AdminCloneListItem {
+  id: number;
+  name: string;
+  username: string;
+  avatarUrl: string | null;
+  cloneType: string;
+  visibility: string;
+  trainingStatus: string;
+  ownerId: number;
+  ownerName: string | null;
+  ownerXrunMemberId: string | null;
+  createdAt: string;
+  deletionState: "active" | "soft_deleted" | "archived_cold" | "hard_deleted";
+  softDeletedAt: string | null;
+  deletedAt: string | null;
+
+  adminSuspendedAt: string | null;
+  adminSuspendReason: string | null;
+  reportCount: number;
+  commentCount: number;
+  likeCount: number;
+  followerCount: number;
+  interactionCount: number;
+}
+export interface AdminCloneListResponse {
+  items: AdminCloneListItem[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+export interface AdminCloneListParams {
+  visibility?: string;
+  deletionState?: string;
+
+  suspended?: boolean;
+  minReports?: number;
+  q?: string;
+  offset?: number;
+  limit?: number;
+}
+
 export const api = {
 
   getUsers: () => request<any[]>("/oth-path"),
@@ -156,10 +197,31 @@ export const api = {
   deleteUser: (id: string | number) =>
     request(`/oth-path${id}`, { method: "DELETE" }),
 
-  getClones: () => request<any[]>("/oth-path"),
+  getClones: (params?: AdminCloneListParams) => {
+    const qs = new URLSearchParams();
+    if (params?.visibility) qs.set("visibility", params.visibility);
+    if (params?.deletionState) qs.set("deletionState", params.deletionState);
+    if (params?.suspended !== undefined) qs.set("suspended", params.suspended ? "1" : "0");
+    if (params?.minReports) qs.set("minReports", String(params.minReports));
+    if (params?.q) qs.set("q", params.q);
+    if (params?.offset) qs.set("offset", String(params.offset));
+    if (params?.limit) qs.set("limit", String(params.limit));
+    const tail = qs.toString();
+    return request<AdminCloneListResponse>(`/oth-path${tail ? `?${tail}` : ""}`);
+  },
   getClone: (id: string | number) => request<any>(`/oth-path${id}`),
-  deleteClone: (id: string | number) =>
-    request(`/oth-path${id}`, { method: "DELETE" }),
+
+  deleteClone: (id: string | number, reason: string) =>
+    request(`/oth-path${id}`, { method: "DELETE", body: JSON.stringify({ reason }) }),
+
+  suspendClone: (id: string | number, reason: string) =>
+    request(`/oth-path${id}/disable`, { method: "POST", body: JSON.stringify({ reason }) }),
+
+  restoreClone: (id: string | number, reason?: string) =>
+    request(`/oth-path${id}/activate`, {
+      method: "POST",
+      body: JSON.stringify(reason ? { reason } : {}),
+    }),
 
   getFeeds: () => request<any[]>("/oth-path"),
   deleteFeed: (id: string | number) =>

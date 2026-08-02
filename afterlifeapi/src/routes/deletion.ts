@@ -44,7 +44,9 @@ async function softDelete(
   if (row.deletion_state !== "active") return "already_deleted";
 
   const setClause = HAS_SOFT_DELETED_AT[type]
-    ? "deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP"
+    ? type === "clone"
+      ? "deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, deleted_at = CURRENT_TIMESTAMP"
+      : "deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP"
     : "deletion_state = 'soft_deleted'";
 
   await db
@@ -88,7 +90,9 @@ export async function softRestore(
   }
 
   const setClause = HAS_SOFT_DELETED_AT[type]
-    ? "deletion_state = 'active', soft_deleted_at = NULL"
+    ? type === "clone"
+      ? "deletion_state = 'active', soft_deleted_at = NULL, deleted_at = NULL"
+      : "deletion_state = 'active', soft_deleted_at = NULL"
     : "deletion_state = 'active'";
 
   await db
@@ -178,6 +182,7 @@ export async function cascadeSoftDeleteOwnedClones(
           `UPDATE clones
               SET deletion_state = 'soft_deleted',
                   soft_deleted_at = CURRENT_TIMESTAMP,
+                  deleted_at = CURRENT_TIMESTAMP,
                   owner_cascade_deleted_at = CURRENT_TIMESTAMP
             WHERE id = ? AND deletion_state = 'active'`,
         )
@@ -273,7 +278,8 @@ deletion.delete("/oth-path", requireAuth, async (c) => {
     await db
       .prepare(
         `UPDATE clones
-            SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP
+            SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP,
+                deleted_at = CURRENT_TIMESTAMP
           WHERE id = ?`,
       )
       .bind(cloneId)
