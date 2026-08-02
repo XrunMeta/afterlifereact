@@ -9,8 +9,10 @@ import { v_80a022 } from "../lib/notify";
 import { v_dd9d7c, v_6f97bc, v_cf0463 } from "../lib/interactions";
 import {
   v_74c502,
+  v_a9ae28,
   v_7adf64,
   v_ab84f6,
+  v_a697ec,
   v_5d4a51,
   v_efcb2d,
 } from "../lib/cloneAccess";
@@ -78,6 +80,10 @@ v_96e8d7.get("/:id/feeds", async (v_3f4e2e) => {
   }
   if (v_eb25ce.visibility === "followers" && !v_22da99) {
     throw new v_3ebe58("FORBIDDEN", "팔로워에게만 공개된 페르소나예요.");
+  }
+
+  if (v_a697ec(v_eb25ce, v_22da99)) {
+    throw new v_3ebe58("FORBIDDEN", "이 페르소나는 현재 일시 중지 상태예요.");
   }
 
   const v_f71b56 = new URL(v_3f4e2e.req.url);
@@ -150,22 +156,25 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
   const v_925171 = [];
 
   if (v_013af2) {
+
     v_abcc8d.push(
       `(
-         c.visibility = 'public'
-         OR (c.owner_id = ? AND c.visibility != 'private')
-         OR (c.visibility = 'followers' AND
-             EXISTS (SELECT 1 FROM clone_follows cf
-                      WHERE cf.clone_id = c.id AND cf.user_id = ?))
-         OR (c.visibility = 'selected' AND
-             EXISTS (SELECT 1 FROM clone_allowed_viewers cav
-                      WHERE cav.clone_id = c.id AND cav.user_id = ?))
+         (c.owner_id = ? AND c.visibility != 'private')
+         OR (${v_a9ae28("c")} AND (
+              c.visibility = 'public'
+              OR (c.visibility = 'followers' AND
+                  EXISTS (SELECT 1 FROM clone_follows cf
+                           WHERE cf.clone_id = c.id AND cf.user_id = ?))
+              OR (c.visibility = 'selected' AND
+                  EXISTS (SELECT 1 FROM clone_allowed_viewers cav
+                           WHERE cav.clone_id = c.id AND cav.user_id = ?))
+         ))
        )`,
     );
     v_925171.push(v_013af2, v_013af2, v_013af2);
   } else {
 
-    v_abcc8d.push("c.visibility = 'public'");
+    v_abcc8d.push(`c.visibility = 'public' AND ${v_a9ae28("c")}`);
   }
 
   if (v_013af2) {

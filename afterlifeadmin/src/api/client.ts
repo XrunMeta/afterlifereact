@@ -149,6 +149,47 @@ export async function v_8e836f(
   };
 }
 
+export interface AdminCloneListItem {
+  id: number;
+  name: string;
+  username: string;
+  avatarUrl: string | null;
+  cloneType: string;
+  visibility: string;
+  trainingStatus: string;
+  ownerId: number;
+  ownerName: string | null;
+  ownerXrunMemberId: string | null;
+  createdAt: string;
+  deletionState: "active" | "soft_deleted" | "archived_cold" | "hard_deleted";
+  softDeletedAt: string | null;
+  deletedAt: string | null;
+
+  adminSuspendedAt: string | null;
+  adminSuspendReason: string | null;
+  reportCount: number;
+  commentCount: number;
+  likeCount: number;
+  followerCount: number;
+  interactionCount: number;
+}
+export interface AdminCloneListResponse {
+  items: AdminCloneListItem[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+export interface AdminCloneListParams {
+  visibility?: string;
+  deletionState?: string;
+
+  suspended?: boolean;
+  minReports?: number;
+  q?: string;
+  offset?: number;
+  limit?: number;
+}
+
 export const v_05a921 = {
 
   getUsers: () => v_576f5a<any[]>("/oth-path"),
@@ -156,10 +197,31 @@ export const v_05a921 = {
   deleteUser: (v_389afb) =>
     v_576f5a(`/oth-path${v_389afb}`, { method: "DELETE" }),
 
-  getClones: () => v_576f5a<any[]>("/oth-path"),
+  getClones: (v_24baff) => {
+    const v_212049 = new URLSearchParams();
+    if (v_24baff?.visibility) v_212049.set("visibility", v_24baff.visibility);
+    if (v_24baff?.deletionState) v_212049.set("deletionState", v_24baff.deletionState);
+    if (v_24baff?.suspended !== undefined) v_212049.set("suspended", v_24baff.suspended ? "1" : "0");
+    if (v_24baff?.minReports) v_212049.set("minReports", String(v_24baff.minReports));
+    if (v_24baff?.q) v_212049.set("q", v_24baff.q);
+    if (v_24baff?.offset) v_212049.set("offset", String(v_24baff.offset));
+    if (v_24baff?.limit) v_212049.set("limit", String(v_24baff.limit));
+    const v_25c4f7 = v_212049.toString();
+    return v_576f5a<AdminCloneListResponse>(`/oth-path${v_25c4f7 ? `?${v_25c4f7}` : ""}`);
+  },
   getClone: (v_389afb) => v_576f5a<any>(`/oth-path${v_389afb}`),
-  deleteClone: (v_389afb) =>
-    v_576f5a(`/oth-path${v_389afb}`, { method: "DELETE" }),
+
+  deleteClone: (v_389afb, v_58ca36) =>
+    v_576f5a(`/oth-path${v_389afb}`, { method: "DELETE", body: JSON.stringify({ reason: v_58ca36 }) }),
+
+  suspendClone: (v_389afb, v_58ca36) =>
+    v_576f5a(`/oth-path${v_389afb}/disable`, { method: "POST", body: JSON.stringify({ reason: v_58ca36 }) }),
+
+  restoreClone: (v_389afb, v_58ca36) =>
+    v_576f5a(`/oth-path${v_389afb}/activate`, {
+      method: "POST",
+      body: JSON.stringify(v_58ca36 ? { reason: v_58ca36 } : {}),
+    }),
 
   getFeeds: () => v_576f5a<any[]>("/oth-path"),
   deleteFeed: (v_389afb) =>

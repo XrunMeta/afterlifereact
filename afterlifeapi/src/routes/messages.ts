@@ -12,7 +12,7 @@ import { v_a8614b, v_137694, v_85de88 } from "../lib/ale";
 import { v_e44d97 } from "../lib/kekProvider";
 import { v_295cc5, v_841e05 } from "../lib/ai";
 import { v_20a4f4 } from "../lib/credits";
-import { v_74c502, v_5d4a51, v_09d461 } from "../lib/cloneAccess";
+import { v_74c502, v_7a9d93, v_5d4a51, v_09d461 } from "../lib/cloneAccess";
 import { v_fbb58c } from "../lib/pricing";
 import { v_e86502, v_fda4d7, v_3821c0 } from "../lib/memoryStore";
 import { v_dd9d7c, v_721d54, v_cf0463 } from "../lib/interactions";
@@ -56,6 +56,10 @@ v_19e2a3.post(
     if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
     const v_22da99 = await v_09d461(v_3f4e2e, v_eb25ce, v_43e90c);
     if (!v_22da99) throw new v_3ebe58("FORBIDDEN", "No access to this clone.");
+
+    if (v_7a9d93(v_eb25ce, v_22da99)) {
+      throw new v_3ebe58("FORBIDDEN", "This clone is currently suspended.");
+    }
 
     const v_c88e9b = await v_a1651b
       .prepare(`SELECT credits FROM users WHERE id = ? AND deleted_at IS NULL`)
@@ -193,6 +197,10 @@ v_19e2a3.post(
     if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
     const v_22da99 = await v_09d461(v_3f4e2e, v_eb25ce, v_43e90c);
     if (!v_22da99) throw new v_3ebe58("FORBIDDEN", "No access to this clone.");
+
+    if (v_7a9d93(v_eb25ce, v_22da99)) {
+      throw new v_3ebe58("FORBIDDEN", "This clone is currently suspended.");
+    }
 
     const v_c88e9b = await v_a1651b
       .prepare(`SELECT credits FROM users WHERE id = ? AND deleted_at IS NULL`)

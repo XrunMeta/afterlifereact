@@ -9,6 +9,11 @@ export function v_74c502(v_81fc5c = ""): string {
   return `${v_e2a85c}deleted_at IS NULL AND ${v_e2a85c}deletion_state = 'active'`;
 }
 
+export function v_a9ae28(v_81fc5c = ""): string {
+  const v_e2a85c = v_81fc5c ? `${v_81fc5c}.` : "";
+  return `${v_e2a85c}admin_suspended_at IS NULL`;
+}
+
 export interface CloneRow {
   id: number;
   owner_id: number;
@@ -38,6 +43,8 @@ export interface CloneRow {
   guide_video_urls: string | null;
 
   relation: string | null;
+
+  admin_suspended_at: string | null;
 }
 
 export async function v_5d4a51(
@@ -51,7 +58,7 @@ export async function v_5d4a51(
               c.voice_type, c.voice_preset_id, c.training_status, c.created_at,
               c.is_system,
               c.idle_video_url, c.voice_se_url, c.filler_video_urls, c.guide_video_urls,
-              c.relation,
+              c.relation, c.admin_suspended_at,
               COALESCE(s.followers_count, 0) AS followers_count,
               COALESCE(s.messages_count, 0)  AS messages_count,
               COALESCE(s.gifts_count, 0)     AS gifts_count
@@ -141,6 +148,14 @@ export async function v_d875d1(
   return null;
 }
 
+export function v_a697ec(
+  v_eb25ce,
+  v_00efe2,
+): boolean {
+  if (!v_eb25ce.admin_suspended_at) return false;
+  return v_00efe2 !== "owner" && v_00efe2 !== "coowner";
+}
+
 export async function v_09d461(
   c: v_437670<v_de0a25>,
   v_eb25ce,
@@ -169,4 +184,12 @@ export async function v_09d461(
     return null;
   }
   return null;
+}
+
+export function v_7a9d93(
+  v_eb25ce,
+  v_22da99,
+): boolean {
+  if (!v_eb25ce.admin_suspended_at) return false;
+  return v_22da99 !== "owner";
 }
