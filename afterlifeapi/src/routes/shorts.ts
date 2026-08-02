@@ -4,7 +4,7 @@ import { v_b7c41b } from 'zmui';
 import type { v_de0a25 } from '../lib/env';
 import { v_3ebe58 } from '../lib/errors';
 import { v_6690d9 } from '../middleware/auth';
-import { v_7adf64, v_5d4a51 } from '../lib/cloneAccess';
+import { v_74c502, v_a9ae28, v_7adf64, v_5d4a51 } from '../lib/cloneAccess';
 
 export const v_f07b70 = new v_b7c41b<v_de0a25>();
 
@@ -63,9 +63,9 @@ v_521eb8.get('/', v_6690d9, async (v_3f4e2e) => {
          FROM clone_shorts s
          JOIN clones c ON c.id = s.clone_id
         WHERE s.status = 'ready'
-          AND c.deleted_at IS NULL
+          AND ${v_74c502("c")}
           AND (
-            c.visibility = 'public'
+            (c.visibility = 'public' AND ${v_a9ae28("c")})
             OR c.owner_id = ?
             OR EXISTS (
               SELECT 1 FROM clone_shares cs

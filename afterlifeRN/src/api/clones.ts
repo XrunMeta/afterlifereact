@@ -99,6 +99,19 @@ export async function v_6c3f29(
   };
 }
 
+export const v_46829f = /^[a-z0-9_]+$/;
+
+export function v_96d757(v_479f05): string | null {
+  const v_ceb55a = v_479f05.trim();
+  if (v_ceb55a.length === 0) return "아이디를 입력해주세요.";
+  if (v_ceb55a.length < 3) return "아이디는 3자 이상이어야 해요.";
+  if (v_ceb55a.length > 30) return "아이디는 30자 이하여야 해요.";
+  if (!v_46829f.test(v_ceb55a)) {
+    return "아이디는 영문 소문자·숫자·밑줄(_) 만 사용할 수 있어요. (대문자·한글·공백 불가)";
+  }
+  return null;
+}
+
 export function v_b55477(v_1833e7): string {
   const v_8f0374 = v_1833e7
     .toLowerCase()

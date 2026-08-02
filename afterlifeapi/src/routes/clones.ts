@@ -8,8 +8,11 @@ import { v_74defc } from "../lib/logger";
 import { v_e0041f, v_cfdcb0 } from "../lib/similarity";
 import { v_916830, v_e35611 } from "../lib/appConfig";
 import {
+  v_74c502,
+  v_a9ae28,
   v_7adf64,
   v_ab84f6,
+  v_a697ec,
   v_5d4a51,
   v_efcb2d,
   v_d875d1,
@@ -196,8 +199,7 @@ v_f891e6.post(
       .prepare(
         `SELECT COUNT(*) AS n FROM clones
           WHERE owner_id = ?
-            AND deletion_state = 'active'
-            AND deleted_at IS NULL`,
+            AND ${v_74c502()}`,
       )
       .bind(v_43e90c)
       .first<{ n: number }>();
@@ -652,19 +654,22 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
 
   const v_013af2 = await v_efcb2d(v_3f4e2e);
 
-  const v_abcc8d = [`c.deleted_at IS NULL`, `c.deletion_state = 'active'`];
+  const v_abcc8d = [v_74c502("c")];
   const v_925171 = [];
   if (v_013af2) {
+
     v_abcc8d.push(
       `(
-         c.visibility = 'public'
-         OR c.owner_id = ?
-         OR (c.visibility = 'followers' AND
-             EXISTS (SELECT 1 FROM clone_follows cf
-                      WHERE cf.clone_id = c.id AND cf.user_id = ?))
-         OR (c.visibility = 'selected' AND
-             EXISTS (SELECT 1 FROM clone_allowed_viewers cav
-                      WHERE cav.clone_id = c.id AND cav.user_id = ?))
+         c.owner_id = ?
+         OR (${v_a9ae28("c")} AND (
+              c.visibility = 'public'
+              OR (c.visibility = 'followers' AND
+                  EXISTS (SELECT 1 FROM clone_follows cf
+                           WHERE cf.clone_id = c.id AND cf.user_id = ?))
+              OR (c.visibility = 'selected' AND
+                  EXISTS (SELECT 1 FROM clone_allowed_viewers cav
+                           WHERE cav.clone_id = c.id AND cav.user_id = ?))
+         ))
        )`,
     );
     v_925171.push(v_013af2, v_013af2, v_013af2);
@@ -676,7 +681,8 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
     );
     v_925171.push(v_013af2);
   } else {
-    v_abcc8d.push(`c.visibility = 'public'`);
+
+    v_abcc8d.push(`c.visibility = 'public' AND ${v_a9ae28("c")}`);
   }
   if (v_24baff.type) {
     v_abcc8d.push(`c.clone_type = ?`);
@@ -848,7 +854,7 @@ v_f891e6.get("/voices/:id/sample", async (v_3f4e2e) => {
 
 v_f891e6.get("/system", v_6690d9, async (v_3f4e2e) => {
   const v_18b8bf = await v_3f4e2e.env.DB.prepare(
-    "SELECT id, username, name, avatar_url, is_system FROM clones WHERE is_system = 1 AND deleted_at IS NULL",
+    `SELECT id, username, name, avatar_url, is_system FROM clones WHERE is_system = 1 AND ${v_74c502()}`,
   ).all<{ id: number; username: string; name: string; avatar_url: string | null; is_system: number }>();
   return v_3f4e2e.json({ items: v_18b8bf.results ?? [] });
 });
@@ -880,7 +886,7 @@ v_f891e6.get("/:id/knowledge", v_6690d9, async (v_3f4e2e) => {
     (await v_7adf64(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c)) === "owner";
   if (!v_2aec08) throw new v_3ebe58("FORBIDDEN", "소유자만 조회할 수 있어요.");
   const v_3ac7e7 = await v_3f4e2e.env.DB
-    .prepare("SELECT l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
+    .prepare(`SELECT l1_profile FROM clones WHERE id = ? AND ${v_74c502()}`)
     .bind(v_6e0fd3)
     .first<{ l1_profile: string | null }>();
   let v_4622b9 = [];
@@ -1047,7 +1053,7 @@ v_f891e6.put("/:id/knowledge", v_6690d9, async (v_3f4e2e) => {
 
   const v_3ac7e7 = await v_a1651b
     .prepare(
-      "SELECT primary_editor_user_id, l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL",
+      `SELECT primary_editor_user_id, l1_profile FROM clones WHERE id = ? AND ${v_74c502()}`,
     )
     .bind(v_6e0fd3)
     .first<{ primary_editor_user_id: number | null; l1_profile: string | null }>();
@@ -1091,7 +1097,7 @@ v_f891e6.put("/:id/knowledge", v_6690d9, async (v_3f4e2e) => {
   v_020b4b.knowledge = v_825625.items;
   await v_a1651b
     .prepare(
-      "UPDATE clones SET l1_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL",
+      `UPDATE clones SET l1_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND ${v_74c502()}`,
     )
     .bind(JSON.stringify(v_020b4b), v_6e0fd3)
     .run();
@@ -1261,6 +1267,10 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
     if (!v_030f63) throw new v_3ebe58("FORBIDDEN", "이 페르소나에 접근할 권한이 없어요.");
   }
 
+  if (v_a697ec(v_eb25ce, v_00efe2)) {
+    throw new v_3ebe58("FORBIDDEN", "이 페르소나는 현재 일시 중지 상태예요.");
+  }
+
   const v_774c91 = (
     await v_3f4e2e.env.DB
       .prepare(`SELECT interest FROM clone_interests WHERE clone_id = ?`)
@@ -1369,7 +1379,7 @@ v_f891e6.patch("/:id", v_6690d9, async (v_3f4e2e) => {
 
   if (v_4d33b2.l1_profile !== undefined) {
     const v_3ac7e7 = await v_a1651b
-      .prepare("SELECT primary_editor_user_id FROM clones WHERE id = ? AND deleted_at IS NULL")
+      .prepare(`SELECT primary_editor_user_id FROM clones WHERE id = ? AND ${v_74c502()}`)
       .bind(v_6e0fd3)
       .first<{ primary_editor_user_id: number | null }>();
     if (v_3ac7e7?.primary_editor_user_id !== v_43e90c) {
@@ -1424,7 +1434,7 @@ v_f891e6.patch("/:id", v_6690d9, async (v_3f4e2e) => {
     const v_b41be3 = { ...(v_4d33b2.l1_profile as Record<string, unknown>) };
     if (v_b41be3.knowledge === undefined) {
       const v_c3bc75 = await v_a1651b
-        .prepare("SELECT l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
+        .prepare(`SELECT l1_profile FROM clones WHERE id = ? AND ${v_74c502()}`)
         .bind(v_6e0fd3)
         .first<{ l1_profile: string | null }>();
       if (v_c3bc75?.l1_profile) {
@@ -1448,7 +1458,7 @@ v_f891e6.patch("/:id", v_6690d9, async (v_3f4e2e) => {
   const v_be9ad5 = [
     v_a1651b
       .prepare(
-        `UPDATE clones SET ${v_75ae3e.join(", ")} WHERE id = ? AND deleted_at IS NULL`,
+        `UPDATE clones SET ${v_75ae3e.join(", ")} WHERE id = ? AND ${v_74c502()}`,
       )
       .bind(...v_925171),
   ];
@@ -1547,6 +1557,10 @@ v_f891e6.patch("/:id/l2", v_6690d9, async (v_3f4e2e) => {
     throw new v_3ebe58("FORBIDDEN", "이 클론에 접근할 수 없어요.");
   }
 
+  if (v_a697ec(v_eb25ce, v_00efe2)) {
+    throw new v_3ebe58("FORBIDDEN", "이 클론은 현재 일시 중지 상태예요.");
+  }
+
   const v_479f05 = await v_3821c0(v_3f4e2e.env, v_6e0fd3, v_43e90c);
   let v_9390e8 = {};
   if (v_479f05) { try { v_9390e8 = JSON.parse(v_479f05); } catch { v_9390e8 = {}; } }
@@ -1583,6 +1597,13 @@ v_f891e6.post("/:id/follow", v_6690d9, async (v_3f4e2e) => {
         ? "owner"
         : await v_7adf64(v_a1651b, v_6e0fd3, v_43e90c);
     if (!v_22da99) throw new v_3ebe58("FORBIDDEN", "비공개 페르소나는 팔로우할 수 없어요.");
+  }
+
+  if (v_eb25ce.admin_suspended_at && v_eb25ce.owner_id !== v_43e90c) {
+    const v_32b0ce = await v_7adf64(v_a1651b, v_6e0fd3, v_43e90c);
+    if (v_32b0ce !== "owner") {
+      throw new v_3ebe58("FORBIDDEN", "이 페르소나는 현재 일시 중지 상태예요.");
+    }
   }
 
   const v_43c42e = await v_a1651b
@@ -1708,13 +1729,20 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
   }
 
   const v_eb25ce = await v_3f4e2e.env.DB
-    .prepare(`SELECT id, owner_id FROM clones WHERE id = ? AND deleted_at IS NULL`)
+    .prepare(`SELECT id, owner_id, admin_suspended_at FROM clones WHERE id = ? AND ${v_74c502()}`)
     .bind(v_6e0fd3)
-    .first<{ id: number; owner_id: number }>();
+    .first<{ id: number; owner_id: number; admin_suspended_at: string | null }>();
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
 
   if (v_eb25ce.owner_id === v_f7e120) {
     throw new v_3ebe58("VALIDATION_FAILED", "자기 자신의 페르소나에는 선물할 수 없어요.");
+  }
+
+  if (v_eb25ce.admin_suspended_at) {
+    const v_32b0ce = await v_7adf64(v_3f4e2e.env.DB, v_6e0fd3, v_f7e120);
+    if (v_32b0ce !== "owner") {
+      throw new v_3ebe58("FORBIDDEN", "일시 중지된 페르소나에는 선물할 수 없어요.");
+    }
   }
 
   const v_257b90 = await v_3f4e2e.env.DB

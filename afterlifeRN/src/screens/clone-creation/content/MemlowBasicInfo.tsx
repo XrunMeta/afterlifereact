@@ -6,6 +6,7 @@ import { v_0a40d6 } from '../../../mocks/cloneTypeCatalog';
 import type { v_c2a674 } from '../../../types/clone';
 import { v_1bfbd0, v_8b0c90 } from '../../../components/constants';
 import v_78abf7 from './PersonaSection';
+import v_805cd1, { v_af8c0b } from './CloneUsernameField';
 
 interface Props {
   draft: v_c2a674;
@@ -21,11 +22,10 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
         value={v_f04727.name ?? ''}
         onChangeText={v_81e2ef => v_b187d9({ name: v_81e2ef })}
       />
-      <TextField
-        placeholder={v_8d41d7("create.basicInfo.usernamePlaceholder")}
+      {}
+      <CloneUsernameField
         value={v_f04727.username ?? ''}
-        onChangeText={v_81e2ef => v_b187d9({ username: v_81e2ef })}
-        autoCapitalize="none"
+        onChange={v_81e2ef => v_b187d9({ username: v_81e2ef })}
       />
       <TextField
         placeholder={v_8d41d7("create.basicInfo.memlowDescPlaceholder")}
@@ -55,7 +55,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
 }
 
 v_b0de9c.validate = (d: v_c2a674): boolean =>
-  Boolean(v_d5dda0.name?.trim() && v_d5dda0.username?.trim() && v_d5dda0.relation);
+  Boolean(v_d5dda0.name?.trim() && v_af8c0b(v_d5dda0.username) && v_d5dda0.relation);
 
 const v_770fd5 = v_b0de9c as typeof v_b0de9c & {
   validate: (d: v_c2a674) => boolean;

@@ -70,8 +70,9 @@ v_19f1fa.post("/:type/:id/restore-from-cold", v_c0a297, async (v_3f4e2e) => {
 
   await v_ff8d3b(v_3f4e2e.env.DB, v_5392c4);
 
+  const v_7242fb = v_194c75 === "message" ? "" : ", soft_deleted_at = NULL, deleted_at = NULL, archived_cold_at = NULL";
   await v_3f4e2e.env.DB.prepare(
-    `UPDATE ${v_cb9428} SET deletion_state = 'active' WHERE id = ?`,
+    `UPDATE ${v_cb9428} SET deletion_state = 'active'${v_7242fb} WHERE id = ?`,
   )
     .bind(v_389afb)
     .run();

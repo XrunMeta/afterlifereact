@@ -8,6 +8,7 @@ import { v_6690d9 } from "../middleware/auth";
 import { v_a04a51 } from "../middleware/idempotency";
 import { v_74defc } from "../lib/logger";
 import {
+  v_7a9d93,
   v_5d4a51,
   v_efcb2d,
   v_09d461,
@@ -35,6 +36,10 @@ v_773b4c.get("/:id/memory/l1", async (v_3f4e2e) => {
   const v_43e90c = await v_efcb2d(v_3f4e2e);
   const v_22da99 = await v_09d461(v_3f4e2e, v_eb25ce, v_43e90c);
   if (!v_22da99) throw new v_3ebe58("FORBIDDEN", "No access to this clone.");
+
+  if (v_7a9d93(v_eb25ce, v_22da99)) {
+    throw new v_3ebe58("FORBIDDEN", "This clone is currently suspended.");
+  }
 
   const v_479f05 = await v_e86502(v_3f4e2e.env, v_6e0fd3);
   if (!v_479f05) {
@@ -86,6 +91,10 @@ v_773b4c.get("/:id/memory/shared", async (v_3f4e2e) => {
   const v_22da99 = await v_09d461(v_3f4e2e, v_eb25ce, v_43e90c);
   if (!v_22da99) throw new v_3ebe58("FORBIDDEN", "No access to this clone.");
 
+  if (v_7a9d93(v_eb25ce, v_22da99)) {
+    throw new v_3ebe58("FORBIDDEN", "This clone is currently suspended.");
+  }
+
   const v_8decf8 = v_8ccb06.safeParse(
     Object.fromEntries(new URL(v_3f4e2e.req.url).searchParams.entries()),
   );
@@ -136,6 +145,10 @@ v_773b4c.get("/:id/memory/l2", v_6690d9, async (v_3f4e2e) => {
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
   const v_22da99 = await v_09d461(v_3f4e2e, v_eb25ce, v_43e90c);
   if (!v_22da99) throw new v_3ebe58("FORBIDDEN", "No access to this clone.");
+
+  if (v_7a9d93(v_eb25ce, v_22da99)) {
+    throw new v_3ebe58("FORBIDDEN", "This clone is currently suspended.");
+  }
 
   const v_479f05 = await v_3821c0(v_3f4e2e.env, v_6e0fd3, v_43e90c);
   if (!v_479f05) {

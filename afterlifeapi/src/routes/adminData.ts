@@ -88,6 +88,8 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_818579 = v_f71b56.searchParams.get("visibility") ?? "";
   const v_9d030b = v_f71b56.searchParams.get("deletionState") ?? "";
+
+  const v_c21509 = v_f71b56.searchParams.get("suspended");
   const v_e42ef7 = Number(v_f71b56.searchParams.get("minReports") ?? 0);
   const v_ab6401 = (v_f71b56.searchParams.get("q") ?? "").trim();
   const v_3bbadf = Math.max(0, Number(v_f71b56.searchParams.get("offset") ?? 0));
@@ -105,7 +107,12 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
     v_925171.push(v_9d030b);
   } else {
 
-    v_abcc8d.push("c.deletion_state IN ('active', 'soft_deleted')");
+    v_abcc8d.push("c.deletion_state = 'active'");
+  }
+  if (v_c21509 === "1") {
+    v_abcc8d.push("c.admin_suspended_at IS NOT NULL");
+  } else if (v_c21509 === "0") {
+    v_abcc8d.push("c.admin_suspended_at IS NULL");
   }
   if (v_ab6401) {
     v_abcc8d.push(`(
@@ -146,6 +153,8 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
               c.deletion_state AS deletionState,
               c.soft_deleted_at AS softDeletedAt,
               c.deleted_at AS deletedAt,
+              c.admin_suspended_at AS adminSuspendedAt,
+              c.admin_suspend_reason AS adminSuspendReason,
               (SELECT COUNT(*) FROM clone_reports cr
                 WHERE cr.clone_id = c.id AND cr.status = 'reviewed') AS reportCount,
               (SELECT COUNT(*) FROM feed_comments fcc
@@ -199,7 +208,11 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
             c.training_status AS trainingStatus,
             c.owner_id AS ownerId, u.name AS ownerName,
             c.l1_profile AS l1Profile, c.l2_profile AS l2Profile,
-            c.created_at AS createdAt
+            c.created_at AS createdAt,
+            c.deletion_state AS deletionState,
+            c.soft_deleted_at AS softDeletedAt,
+            c.admin_suspended_at AS adminSuspendedAt,
+            c.admin_suspend_reason AS adminSuspendReason
        FROM clones c
        LEFT JOIN users u ON u.id = c.owner_id
       WHERE c.id = ?`,

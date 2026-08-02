@@ -3,7 +3,7 @@ import { v_b7c41b } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_278a53, v_80401b, v_7a6ff6, v_c12e45, v_12ade7, v_2fb81a, v_4b949c } from "../lib/assetJobs";
 import { v_1f4ea7 } from "../lib/validate";
-import { v_5d4a51 } from "../lib/cloneAccess";
+import { v_74c502, v_5d4a51 } from "../lib/cloneAccess";
 import { v_842ce7 } from "../lib/guideJob";
 import {
   v_3821c0, v_0ac5b7, type v_d91e78,
@@ -768,7 +768,7 @@ v_dcd415.get("/dev/guide-backfill-targets", async (v_3f4e2e) => {
               WHERE clone_id = c.id AND kind = 'voice_clone' AND status = 'done'
               ORDER BY created_at DESC, rowid DESC LIMIT 1) AS voice_src_file_id
        FROM clones c
-      WHERE c.guide_video_urls IS NULL AND c.deleted_at IS NULL`,
+      WHERE c.guide_video_urls IS NULL AND ${v_74c502("c")}`,
   ).all<{ id: number; user_id: number; face_src_file_id: number | null; voice_src_file_id: number | null }>();
 
   const v_9390e8 = (v_18b8bf.results ?? []).filter(
