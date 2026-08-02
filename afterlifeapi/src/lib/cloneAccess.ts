@@ -4,6 +4,11 @@ import type { v_437670 } from "zmui";
 import type { v_de0a25 } from "./env";
 import { v_2703c5 } from "./jwt";
 
+export function v_74c502(v_81fc5c = ""): string {
+  const v_e2a85c = v_81fc5c ? `${v_81fc5c}.` : "";
+  return `${v_e2a85c}deleted_at IS NULL AND ${v_e2a85c}deletion_state = 'active'`;
+}
+
 export interface CloneRow {
   id: number;
   owner_id: number;
@@ -52,7 +57,7 @@ export async function v_5d4a51(
               COALESCE(s.gifts_count, 0)     AS gifts_count
          FROM clones c
          LEFT JOIN clone_stats s ON s.clone_id = c.id
-        WHERE c.id = ? AND c.deleted_at IS NULL`,
+        WHERE c.id = ? AND ${v_74c502("c")}`,
     )
     .bind(v_6e0fd3)
     .first<CloneRow>();

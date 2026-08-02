@@ -12,7 +12,7 @@ import { v_a8614b, v_137694, v_85de88 } from "../lib/ale";
 import { v_e44d97 } from "../lib/kekProvider";
 import { v_295cc5, v_841e05 } from "../lib/ai";
 import { v_20a4f4 } from "../lib/credits";
-import { v_5d4a51, v_09d461 } from "../lib/cloneAccess";
+import { v_74c502, v_5d4a51, v_09d461 } from "../lib/cloneAccess";
 import { v_fbb58c } from "../lib/pricing";
 import { v_e86502, v_fda4d7, v_3821c0 } from "../lib/memoryStore";
 import { v_dd9d7c, v_721d54, v_cf0463 } from "../lib/interactions";
@@ -464,11 +464,12 @@ async function v_778279(
   v_43e90c,
 ): Promise<void> {
   const v_a1651b = v_3f4e2e.env.DB;
+
   const v_3ac7e7 = await v_a1651b
     .prepare(
-      `SELECT m.id, m.clone_id, m.user_id, c.owner_id, c.visibility, c.deleted_at
+      `SELECT m.id, m.clone_id, m.user_id, c.owner_id, c.visibility
          FROM messages m JOIN clones c ON c.id = m.clone_id
-        WHERE m.id = ?`,
+        WHERE m.id = ? AND ${v_74c502("c")}`,
     )
     .bind(v_7f4466)
     .first<{
@@ -477,9 +478,8 @@ async function v_778279(
       user_id: number;
       owner_id: number;
       visibility: string;
-      deleted_at: string | null;
     }>();
-  if (!v_3ac7e7 || v_3ac7e7.deleted_at) throw new v_3ebe58("NOT_FOUND", "Message not found.");
+  if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "Message not found.");
 
   if (v_3ac7e7.user_id !== v_43e90c) throw new v_3ebe58("FORBIDDEN", "Not your conversation.");
   const v_22da99 = await v_09d461(

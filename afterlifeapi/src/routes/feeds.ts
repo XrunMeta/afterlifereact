@@ -8,6 +8,7 @@ import { v_6690d9 } from "../middleware/auth";
 import { v_80a022 } from "../lib/notify";
 import { v_dd9d7c, v_6f97bc, v_cf0463 } from "../lib/interactions";
 import {
+  v_74c502,
   v_7adf64,
   v_ab84f6,
   v_5d4a51,
@@ -143,8 +144,7 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
   const v_013af2 = await v_efcb2d(v_3f4e2e);
 
   const v_abcc8d = [
-    "c.deletion_state = 'active'",
-    "c.deleted_at IS NULL",
+    v_74c502("c"),
     "c.clone_type != 'memlow'",
   ];
   const v_925171 = [];
@@ -357,7 +357,7 @@ async function v_c39991(
       `SELECT f.id AS id, f.clone_id AS cloneId, c.visibility AS visibility, c.owner_id AS ownerId
          FROM feeds f
          JOIN clones c ON c.id = f.clone_id
-        WHERE f.id = ? AND c.deleted_at IS NULL`,
+        WHERE f.id = ? AND ${v_74c502("c")}`,
     )
     .bind(v_c09aa8)
     .first<{ id: number; cloneId: number; visibility: string; ownerId: number }>();

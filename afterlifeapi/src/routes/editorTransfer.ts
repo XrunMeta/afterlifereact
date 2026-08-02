@@ -3,6 +3,7 @@ import type { v_de0a25 } from '../lib/env';
 import { v_3ebe58 } from '../lib/errors';
 import { v_4c95c2, v_1f4ea7 } from '../lib/validate';
 import { v_6690d9 } from '../middleware/auth';
+import { v_74c502 } from '../lib/cloneAccess';
 
 export const v_1beee6 = new v_b7c41b<v_de0a25>();
 
@@ -23,7 +24,7 @@ v_1beee6.post('/:id/editor-transfer', v_6690d9, async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_722b6d);
 
   const v_eb25ce = await v_3f4e2e.env.DB
-    .prepare('SELECT primary_editor_user_id FROM clones WHERE id = ? AND deleted_at IS NULL')
+    .prepare(`SELECT primary_editor_user_id FROM clones WHERE id = ? AND ${v_74c502()}`)
     .bind(v_6e0fd3)
     .first<{ primary_editor_user_id: number | null }>();
   if (!v_eb25ce) throw new v_3ebe58('NOT_FOUND', 'Clone not found.');

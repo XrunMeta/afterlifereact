@@ -44,7 +44,9 @@ async function v_b4f765(
   if (v_3ac7e7.deletion_state !== "active") return "already_deleted";
 
   const v_24f50c = v_66e19e[v_3b27d9]
-    ? "deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP"
+    ? v_3b27d9 === "clone"
+      ? "deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, deleted_at = CURRENT_TIMESTAMP"
+      : "deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP"
     : "deletion_state = 'soft_deleted'";
 
   await v_a1651b
@@ -88,7 +90,9 @@ export async function v_c8311e(
   }
 
   const v_24f50c = v_66e19e[v_3b27d9]
-    ? "deletion_state = 'active', soft_deleted_at = NULL"
+    ? v_3b27d9 === "clone"
+      ? "deletion_state = 'active', soft_deleted_at = NULL, deleted_at = NULL"
+      : "deletion_state = 'active', soft_deleted_at = NULL"
     : "deletion_state = 'active'";
 
   await v_a1651b
@@ -178,6 +182,7 @@ export async function v_f51850(
           `UPDATE clones
               SET deletion_state = 'soft_deleted',
                   soft_deleted_at = CURRENT_TIMESTAMP,
+                  deleted_at = CURRENT_TIMESTAMP,
                   owner_cascade_deleted_at = CURRENT_TIMESTAMP
             WHERE id = ? AND deletion_state = 'active'`,
         )
@@ -273,7 +278,8 @@ v_dda4b9.delete("/oth-path", v_6690d9, async (v_3f4e2e) => {
     await v_a1651b
       .prepare(
         `UPDATE clones
-            SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP
+            SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP,
+                deleted_at = CURRENT_TIMESTAMP
           WHERE id = ?`,
       )
       .bind(v_6e0fd3)

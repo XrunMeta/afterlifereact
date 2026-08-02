@@ -8,6 +8,7 @@ import { v_74defc } from "../lib/logger";
 import { v_e0041f, v_cfdcb0 } from "../lib/similarity";
 import { v_916830, v_e35611 } from "../lib/appConfig";
 import {
+  v_74c502,
   v_7adf64,
   v_ab84f6,
   v_5d4a51,
@@ -196,8 +197,7 @@ v_f891e6.post(
       .prepare(
         `SELECT COUNT(*) AS n FROM clones
           WHERE owner_id = ?
-            AND deletion_state = 'active'
-            AND deleted_at IS NULL`,
+            AND ${v_74c502()}`,
       )
       .bind(v_43e90c)
       .first<{ n: number }>();
@@ -652,7 +652,7 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
 
   const v_013af2 = await v_efcb2d(v_3f4e2e);
 
-  const v_abcc8d = [`c.deleted_at IS NULL`, `c.deletion_state = 'active'`];
+  const v_abcc8d = [v_74c502("c")];
   const v_925171 = [];
   if (v_013af2) {
     v_abcc8d.push(
@@ -848,7 +848,7 @@ v_f891e6.get("/voices/:id/sample", async (v_3f4e2e) => {
 
 v_f891e6.get("/system", v_6690d9, async (v_3f4e2e) => {
   const v_18b8bf = await v_3f4e2e.env.DB.prepare(
-    "SELECT id, username, name, avatar_url, is_system FROM clones WHERE is_system = 1 AND deleted_at IS NULL",
+    `SELECT id, username, name, avatar_url, is_system FROM clones WHERE is_system = 1 AND ${v_74c502()}`,
   ).all<{ id: number; username: string; name: string; avatar_url: string | null; is_system: number }>();
   return v_3f4e2e.json({ items: v_18b8bf.results ?? [] });
 });
@@ -880,7 +880,7 @@ v_f891e6.get("/:id/knowledge", v_6690d9, async (v_3f4e2e) => {
     (await v_7adf64(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c)) === "owner";
   if (!v_2aec08) throw new v_3ebe58("FORBIDDEN", "소유자만 조회할 수 있어요.");
   const v_3ac7e7 = await v_3f4e2e.env.DB
-    .prepare("SELECT l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
+    .prepare(`SELECT l1_profile FROM clones WHERE id = ? AND ${v_74c502()}`)
     .bind(v_6e0fd3)
     .first<{ l1_profile: string | null }>();
   let v_4622b9 = [];
@@ -1047,7 +1047,7 @@ v_f891e6.put("/:id/knowledge", v_6690d9, async (v_3f4e2e) => {
 
   const v_3ac7e7 = await v_a1651b
     .prepare(
-      "SELECT primary_editor_user_id, l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL",
+      `SELECT primary_editor_user_id, l1_profile FROM clones WHERE id = ? AND ${v_74c502()}`,
     )
     .bind(v_6e0fd3)
     .first<{ primary_editor_user_id: number | null; l1_profile: string | null }>();
@@ -1091,7 +1091,7 @@ v_f891e6.put("/:id/knowledge", v_6690d9, async (v_3f4e2e) => {
   v_020b4b.knowledge = v_825625.items;
   await v_a1651b
     .prepare(
-      "UPDATE clones SET l1_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL",
+      `UPDATE clones SET l1_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND ${v_74c502()}`,
     )
     .bind(JSON.stringify(v_020b4b), v_6e0fd3)
     .run();
@@ -1369,7 +1369,7 @@ v_f891e6.patch("/:id", v_6690d9, async (v_3f4e2e) => {
 
   if (v_4d33b2.l1_profile !== undefined) {
     const v_3ac7e7 = await v_a1651b
-      .prepare("SELECT primary_editor_user_id FROM clones WHERE id = ? AND deleted_at IS NULL")
+      .prepare(`SELECT primary_editor_user_id FROM clones WHERE id = ? AND ${v_74c502()}`)
       .bind(v_6e0fd3)
       .first<{ primary_editor_user_id: number | null }>();
     if (v_3ac7e7?.primary_editor_user_id !== v_43e90c) {
@@ -1424,7 +1424,7 @@ v_f891e6.patch("/:id", v_6690d9, async (v_3f4e2e) => {
     const v_b41be3 = { ...(v_4d33b2.l1_profile as Record<string, unknown>) };
     if (v_b41be3.knowledge === undefined) {
       const v_c3bc75 = await v_a1651b
-        .prepare("SELECT l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
+        .prepare(`SELECT l1_profile FROM clones WHERE id = ? AND ${v_74c502()}`)
         .bind(v_6e0fd3)
         .first<{ l1_profile: string | null }>();
       if (v_c3bc75?.l1_profile) {
@@ -1448,7 +1448,7 @@ v_f891e6.patch("/:id", v_6690d9, async (v_3f4e2e) => {
   const v_be9ad5 = [
     v_a1651b
       .prepare(
-        `UPDATE clones SET ${v_75ae3e.join(", ")} WHERE id = ? AND deleted_at IS NULL`,
+        `UPDATE clones SET ${v_75ae3e.join(", ")} WHERE id = ? AND ${v_74c502()}`,
       )
       .bind(...v_925171),
   ];
@@ -1708,7 +1708,7 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
   }
 
   const v_eb25ce = await v_3f4e2e.env.DB
-    .prepare(`SELECT id, owner_id FROM clones WHERE id = ? AND deleted_at IS NULL`)
+    .prepare(`SELECT id, owner_id FROM clones WHERE id = ? AND ${v_74c502()}`)
     .bind(v_6e0fd3)
     .first<{ id: number; owner_id: number }>();
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
