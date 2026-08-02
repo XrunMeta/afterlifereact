@@ -3,6 +3,7 @@ import type { AppEnv } from '../lib/env';
 import { APIError } from '../lib/errors';
 import { parseJson, z } from '../lib/validate';
 import { requireAuth } from '../middleware/auth';
+import { cloneActiveSql } from '../lib/cloneAccess';
 
 export const cloneEditorTransfer = new Hono<AppEnv>();
 
@@ -23,7 +24,7 @@ cloneEditorTransfer.post('/:id/editor-transfer', requireAuth, async (c) => {
   const body = await parseJson(c, createSchema);
 
   const clone = await c.env.DB
-    .prepare('SELECT primary_editor_user_id FROM clones WHERE id = ? AND deleted_at IS NULL')
+    .prepare(`SELECT primary_editor_user_id FROM clones WHERE id = ? AND ${cloneActiveSql()}`)
     .bind(cloneId)
     .first<{ primary_editor_user_id: number | null }>();
   if (!clone) throw new APIError('NOT_FOUND', 'Clone not found.');

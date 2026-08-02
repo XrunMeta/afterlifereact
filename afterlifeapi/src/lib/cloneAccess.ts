@@ -4,6 +4,11 @@ import type { Context } from "hono";
 import type { AppEnv } from "./env";
 import { verifyToken } from "./jwt";
 
+export function cloneActiveSql(alias = ""): string {
+  const p = alias ? `${alias}.` : "";
+  return `${p}deleted_at IS NULL AND ${p}deletion_state = 'active'`;
+}
+
 export interface CloneRow {
   id: number;
   owner_id: number;
@@ -52,7 +57,7 @@ export async function loadCloneById(
               COALESCE(s.gifts_count, 0)     AS gifts_count
          FROM clones c
          LEFT JOIN clone_stats s ON s.clone_id = c.id
-        WHERE c.id = ? AND c.deleted_at IS NULL`,
+        WHERE c.id = ? AND ${cloneActiveSql("c")}`,
     )
     .bind(cloneId)
     .first<CloneRow>();

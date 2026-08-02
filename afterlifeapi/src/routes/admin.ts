@@ -799,11 +799,13 @@ admin.delete("/oth-path", requireAdmin, async (c) => {
   if (existing.deletion_state !== "active") {
     return c.json({ ok: true, alreadyDeleted: true, deletionState: existing.deletion_state });
   }
+
   await c.env.DB
     .prepare(
       `UPDATE clones
           SET deletion_state = 'soft_deleted',
-              soft_deleted_at = CURRENT_TIMESTAMP
+              soft_deleted_at = CURRENT_TIMESTAMP,
+              deleted_at = CURRENT_TIMESTAMP
         WHERE id = ?`,
     )
     .bind(cloneId)
@@ -824,11 +826,13 @@ admin.post("/oth-path", requireAdmin, async (c) => {
   if (existing.deletion_state !== "active") {
     return c.json({ ok: true, alreadyDisabled: true, deletionState: existing.deletion_state });
   }
+
   await c.env.DB
     .prepare(
       `UPDATE clones
           SET deletion_state = 'soft_deleted',
-              soft_deleted_at = CURRENT_TIMESTAMP
+              soft_deleted_at = CURRENT_TIMESTAMP,
+              deleted_at = CURRENT_TIMESTAMP
         WHERE id = ?`,
     )
     .bind(cloneId)
@@ -955,7 +959,7 @@ admin.get("/oth-path", requireAdmin, async (c) => {
     throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
   const row = await c.env.DB
     .prepare(
-      "SELECT id, name, username, l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL",
+      "SELECT id, name, username, l1_profile FROM clones WHERE id = ?",
     )
     .bind(id)
     .first<{ id: number; name: string; username: string; l1_profile: string | null }>();
@@ -996,7 +1000,7 @@ admin.put("/oth-path", requireSuperAdmin, async (c) => {
     throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
   const body = await parseJson(c, adminL1UpdateSchema);
   const row = await c.env.DB
-    .prepare("SELECT l1_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
+    .prepare("SELECT l1_profile FROM clones WHERE id = ?")
     .bind(id)
     .first<{ l1_profile: string | null }>();
   if (!row) throw new APIError("NOT_FOUND", "Clone not found.");
@@ -1025,7 +1029,7 @@ admin.put("/oth-path", requireSuperAdmin, async (c) => {
 
   await c.env.DB
     .prepare(
-      "UPDATE clones SET l1_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL",
+      "UPDATE clones SET l1_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
     )
     .bind(JSON.stringify(next), id)
     .run();
@@ -1234,11 +1238,12 @@ admin.post("/oth-path", requireAdmin, async (c) => {
       penaltyMsg = `${days || 30}일간 계정 사용이 정지됩니다.`;
       break;
     case "clone_deactivate":
-      await c.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = NULL WHERE owner_id = ? AND deletion_state = 'active'`).bind(id).run();
+
+      await c.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = NULL, deleted_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'active'`).bind(id).run();
       penaltyMsg = "보유 페르소나가 비활성화되었습니다.";
       break;
     case "clone_delete":
-      await c.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'active'`).bind(id).run();
+      await c.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, deleted_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'active'`).bind(id).run();
       penaltyMsg = "보유 페르소나가 삭제되었습니다.";
       break;
   }

@@ -3,6 +3,7 @@
 import type { Bindings } from "./env";
 import { sendMail } from "./gmail";
 import { sendPushToUser } from "./expoPush";
+import { cloneActiveSql } from "./cloneAccess";
 
 export type NotificationType =
   | "invite_received"
@@ -132,7 +133,7 @@ export async function notifyCloneEvent(
 ): Promise<void> {
   try {
     const clone = await env.DB
-      .prepare(`SELECT owner_id, name FROM clones WHERE id = ? AND deleted_at IS NULL`)
+      .prepare(`SELECT owner_id, name FROM clones WHERE id = ? AND ${cloneActiveSql()}`)
       .bind(args.cloneId)
       .first<{ owner_id: number; name: string }>();
     if (!clone) return;
@@ -201,7 +202,7 @@ export async function notifyIntimacyScore(
   try {
     if (args.score <= 0) return;
     const clone = await env.DB
-      .prepare(`SELECT owner_id, name FROM clones WHERE id = ? AND deleted_at IS NULL`)
+      .prepare(`SELECT owner_id, name FROM clones WHERE id = ? AND ${cloneActiveSql()}`)
       .bind(args.cloneId)
       .first<{ owner_id: number; name: string }>();
     if (!clone) return;
