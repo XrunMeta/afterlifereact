@@ -785,12 +785,21 @@ admin.put("/voices/:id", requireSuperAdmin, async (c) => {
   return c.json({ ok: true });
 });
 
-admin.delete("/oth-path", requireAdmin, async (c) => {
+const cloneModerationReasonSchema = z.object({
+  reason: z.string().min(10, "사유는 최소 10자 이상 입력해 주세요.").max(500),
+});
+const cloneRestoreReasonSchema = z.object({
+  reason: z.string().min(10).max(500).optional(),
+});
+
+admin.delete("/oth-path", requireSuperAdmin, async (c) => {
+  const adminUserId = c.get("adminUserId")!;
   const idRaw = c.req.param("id");
   const cloneId = Number(idRaw);
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
     throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
   }
+  const { reason } = await parseJson(c, cloneModerationReasonSchema);
   const existing = await c.env.DB
     .prepare(`SELECT id, deletion_state FROM clones WHERE id = ?`)
     .bind(cloneId)
@@ -810,62 +819,110 @@ admin.delete("/oth-path", requireAdmin, async (c) => {
     )
     .bind(cloneId)
     .run();
+  await writeDecryptionAudit(c.env.DB, c.env.AUDIT_SECRET, {
+    actor: { type: "admin", id: adminUserId },
+    op: "soft_delete",
+    resourceType: "clone",
+    resourceId: cloneId,
+    reason,
+  });
   return c.json({ ok: true, deletedId: cloneId, deletionState: "soft_deleted" });
 });
 
-admin.post("/oth-path", requireAdmin, async (c) => {
+admin.post("/oth-path", requireSuperAdmin, async (c) => {
+  const adminUserId = c.get("adminUserId")!;
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
     throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
   }
+  const { reason } = await parseJson(c, cloneModerationReasonSchema);
   const existing = await c.env.DB
-    .prepare(`SELECT id, deletion_state FROM clones WHERE id = ?`)
+    .prepare(`SELECT id, deletion_state, admin_suspended_at FROM clones WHERE id = ?`)
     .bind(cloneId)
-    .first<{ id: number; deletion_state: string }>();
+    .first<{ id: number; deletion_state: string; admin_suspended_at: string | null }>();
   if (!existing) throw new APIError("NOT_FOUND", "Clone not found.");
   if (existing.deletion_state !== "active") {
-    return c.json({ ok: true, alreadyDisabled: true, deletionState: existing.deletion_state });
+    throw new APIError(
+      "CONFLICT",
+      `Cannot suspend a clone in deletion_state '${existing.deletion_state}'.`,
+    );
   }
-
+  if (existing.admin_suspended_at) {
+    return c.json({ ok: true, alreadySuspended: true, adminSuspendedAt: existing.admin_suspended_at });
+  }
   await c.env.DB
     .prepare(
       `UPDATE clones
-          SET deletion_state = 'soft_deleted',
-              soft_deleted_at = CURRENT_TIMESTAMP,
-              deleted_at = CURRENT_TIMESTAMP
+          SET admin_suspended_at = CURRENT_TIMESTAMP,
+              admin_suspend_reason = ?
         WHERE id = ?`,
     )
-    .bind(cloneId)
+    .bind(reason, cloneId)
     .run();
-  return c.json({ ok: true, cloneId, deletionState: "soft_deleted" });
+  await writeDecryptionAudit(c.env.DB, c.env.AUDIT_SECRET, {
+    actor: { type: "admin", id: adminUserId },
+    op: "disable",
+    resourceType: "clone",
+    resourceId: cloneId,
+    reason,
+  });
+  return c.json({ ok: true, cloneId, suspended: true });
 });
 
-admin.post("/oth-path", requireAdmin, async (c) => {
+admin.post("/oth-path", requireSuperAdmin, async (c) => {
+  const adminUserId = c.get("adminUserId")!;
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
     throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
   }
-  const existing = await c.env.DB
-    .prepare(`SELECT id, deletion_state FROM clones WHERE id = ?`)
-    .bind(cloneId)
-    .first<{ id: number; deletion_state: string }>();
-  if (!existing) throw new APIError("NOT_FOUND", "Clone not found.");
-  if (existing.deletion_state === "active") {
-    return c.json({ ok: true, alreadyActive: true, deletionState: "active" });
+
+  let reason: string | undefined;
+  const rawBody = await c.req.text();
+  if (rawBody.trim().length > 0) {
+    let json: unknown;
+    try {
+      json = JSON.parse(rawBody);
+    } catch {
+      throw new APIError("VALIDATION_FAILED", "Invalid JSON body.");
+    }
+    const parsed = cloneRestoreReasonSchema.safeParse(json);
+    if (!parsed.success) {
+      throw new APIError("VALIDATION_FAILED", "Body validation failed.", parsed.error.issues);
+    }
+    reason = parsed.data.reason;
   }
+  const existing = await c.env.DB
+    .prepare(`SELECT id, deletion_state, admin_suspended_at FROM clones WHERE id = ?`)
+    .bind(cloneId)
+    .first<{ id: number; deletion_state: string; admin_suspended_at: string | null }>();
+  if (!existing) throw new APIError("NOT_FOUND", "Clone not found.");
   if (existing.deletion_state === "hard_deleted" || existing.deletion_state === "archived_cold") {
     throw new APIError("CONFLICT", `Cannot activate from state '${existing.deletion_state}'.`);
+  }
+  const needsRestore = existing.deletion_state !== "active";
+  const needsUnsuspend = existing.admin_suspended_at !== null;
+  if (!needsRestore && !needsUnsuspend) {
+    return c.json({ ok: true, alreadyActive: true, deletionState: "active" });
   }
   await c.env.DB
     .prepare(
       `UPDATE clones
           SET deletion_state = 'active',
               soft_deleted_at = NULL,
-              deleted_at = NULL
+              deleted_at = NULL,
+              admin_suspended_at = NULL,
+              admin_suspend_reason = NULL
         WHERE id = ?`,
     )
     .bind(cloneId)
     .run();
+  await writeDecryptionAudit(c.env.DB, c.env.AUDIT_SECRET, {
+    actor: { type: "admin", id: adminUserId },
+    op: "activate",
+    resourceType: "clone",
+    resourceId: cloneId,
+    reason: reason ?? null,
+  });
   return c.json({ ok: true, cloneId, deletionState: "active" });
 });
 

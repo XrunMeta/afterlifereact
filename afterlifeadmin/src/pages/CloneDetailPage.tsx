@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { rawRequest } from "../api/client";
+import { rawRequest, api } from "../api/client";
+import { ReasonPromptModal } from "../components/ReasonPromptModal";
 
 interface CloneRow {
   id: number;
@@ -15,7 +16,14 @@ interface CloneRow {
   l1Profile: unknown;
   l2Profile: unknown;
   createdAt: string;
+
+  deletionState?: "active" | "soft_deleted" | "archived_cold" | "hard_deleted";
+  softDeletedAt?: string | null;
+  adminSuspendedAt?: string | null;
+  adminSuspendReason?: string | null;
 }
+
+type DetailPendingAction = "suspend" | "delete" | "restore";
 
 interface Share {
   id: number;
@@ -75,21 +83,34 @@ export function CloneDetailPage() {
   const [data, setData] = useState<DetailResp | null>(null);
   const [gen, setGen] = useState<GenealogyResp | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [pending, setPending] = useState<DetailPendingAction | null>(null);
+
+  const reload = async () => {
+    if (!id) return;
+    try {
+      const d = await rawRequest("GET", `/oth-path${id}/detail`);
+      if (!d.ok) throw new Error(`detail ${d.status}`);
+      setData(d.body as DetailResp);
+      const g = await rawRequest("GET", `/oth-path${id}/genealogy`);
+      if (g.ok) setGen(g.body as GenealogyResp);
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+  };
 
   useEffect(() => {
-    if (!id) return;
-    (async () => {
-      try {
-        const d = await rawRequest("GET", `/oth-path${id}/detail`);
-        if (!d.ok) throw new Error(`detail ${d.status}`);
-        setData(d.body as DetailResp);
-        const g = await rawRequest("GET", `/oth-path${id}/genealogy`);
-        if (g.ok) setGen(g.body as GenealogyResp);
-      } catch (e) {
-        setErr((e as Error).message);
-      }
-    })();
+    reload();
+
   }, [id]);
+
+  const runAction = async (reason: string) => {
+    if (!id || !pending) return;
+    if (pending === "suspend") await api.suspendClone(id, reason);
+    else if (pending === "delete") await api.deleteClone(id, reason);
+    else await api.restoreClone(id, reason || undefined);
+    setPending(null);
+    await reload();
+  };
 
   if (err) {
     return (
@@ -134,6 +155,64 @@ export function CloneDetailPage() {
         </span>
         <span style={styles.visBadge}>{clone.visibility}</span>
       </div>
+
+      {}
+      <div style={styles.statusBar}>
+        <span
+          style={{
+            ...styles.statusBadge,
+            backgroundColor:
+              clone.deletionState === "soft_deleted"
+                ? "#f59e0b"
+                : clone.deletionState === "archived_cold"
+                  ? "#2563eb"
+                  : clone.deletionState === "hard_deleted"
+                    ? "#b91c1c"
+                    : "#16a34a",
+          }}
+        >
+          {clone.deletionState === "soft_deleted"
+            ? "삭제됨(복구가능)"
+            : clone.deletionState === "archived_cold"
+              ? "보관됨(cold)"
+              : clone.deletionState === "hard_deleted"
+                ? "영구 삭제"
+                : "활성"}
+        </span>
+        {clone.adminSuspendedAt && (
+          <span style={{ ...styles.statusBadge, backgroundColor: "#9a3412" }} title={clone.adminSuspendReason ?? undefined}>
+            일시중지 · {clone.adminSuspendReason ?? "사유 없음"}
+          </span>
+        )}
+        <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
+          {(clone.deletionState ?? "active") === "active" && !clone.adminSuspendedAt && (
+            <button style={detailActionBtnStyle("#f59e0b")} onClick={() => setPending("suspend")}>
+              비활성화
+            </button>
+          )}
+          {(clone.deletionState ?? "active") === "active" && clone.adminSuspendedAt && (
+            <button style={detailActionBtnStyle("#3b82f6")} onClick={() => setPending("restore")}>
+              중지 해제
+            </button>
+          )}
+          {(clone.deletionState ?? "active") === "active" && (
+            <button style={detailActionBtnStyle("#ef4444")} onClick={() => setPending("delete")}>
+              삭제
+            </button>
+          )}
+          {clone.deletionState === "soft_deleted" && (
+            <button style={detailActionBtnStyle("#3b82f6")} onClick={() => setPending("restore")}>
+              복구
+            </button>
+          )}
+          {(clone.deletionState === "archived_cold" || clone.deletionState === "hard_deleted") && (
+            <Link to="/oth-path" style={{ fontSize: 12, color: "#1d4ed8", alignSelf: "center" }}>
+              cold-recovery 에서 복구
+            </Link>
+          )}
+        </div>
+      </div>
+
       <div style={styles.metaRow}>
         <span style={styles.meta}>ID #{clone.id}</span>
         <span style={styles.meta}>
@@ -235,8 +314,44 @@ export function CloneDetailPage() {
           </Link>
         </div>
       </Section>
+
+      {pending && (
+        <ReasonPromptModal
+          title={
+            pending === "suspend"
+              ? `"${clone.name}" 비활성화(일시 중지)`
+              : pending === "delete"
+                ? `"${clone.name}" 삭제`
+                : `"${clone.name}" 복구`
+          }
+          description={
+            pending === "suspend"
+              ? "외부 노출은 막고 소유자에게는 계속 보이는 중간 상태로 전환합니다. 언제든 해제할 수 있어요."
+              : pending === "delete"
+                ? "소프트 삭제됩니다. 90일 내 복구 가능하며, 이후 관리자 전용 목록에서만 조회됩니다."
+                : "정상 상태로 되돌립니다. 원래 클론 ID가 이미 다른 클론에 재사용된 경우 충돌 오류가 날 수 있어요."
+          }
+          requireReason={pending !== "restore"}
+          confirmLabel={pending === "delete" ? "삭제" : pending === "suspend" ? "비활성화" : "복구"}
+          danger={pending === "delete"}
+          onCancel={() => setPending(null)}
+          onConfirm={runAction}
+        />
+      )}
     </div>
   );
+}
+
+function detailActionBtnStyle(color: string): React.CSSProperties {
+  return {
+    fontSize: 12,
+    padding: "5px 10px",
+    backgroundColor: color,
+    color: "#fff",
+    border: "none",
+    borderRadius: 4,
+    cursor: "pointer",
+  };
 }
 
 function cloneTypeColor(t: string): string {
@@ -479,6 +594,17 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 11,
     fontWeight: 600,
     display: "inline-block",
+  },
+
+  statusBar: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 20,
+    padding: "10px 14px",
+    backgroundColor: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    borderRadius: 8,
   },
   apiChip: {
     fontFamily: "monospace",

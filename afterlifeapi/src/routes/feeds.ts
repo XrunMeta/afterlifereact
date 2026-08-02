@@ -9,8 +9,10 @@ import { notifyCloneEvent } from "../lib/notify";
 import { bumpInteraction, addPerFeedIntimacyScore, INTIMACY_WEIGHTS } from "../lib/interactions";
 import {
   cloneActiveSql,
+  cloneNotSuspendedSql,
   hasAcceptedShare,
   isFollower,
+  isSuspendedForViewer,
   loadCloneById,
   resolveOptionalUser,
 } from "../lib/cloneAccess";
@@ -78,6 +80,10 @@ cloneFeeds.get("/:id/feeds", async (c) => {
   }
   if (clone.visibility === "followers" && !role) {
     throw new APIError("FORBIDDEN", "팔로워에게만 공개된 페르소나예요.");
+  }
+
+  if (isSuspendedForViewer(clone, role)) {
+    throw new APIError("FORBIDDEN", "이 페르소나는 현재 일시 중지 상태예요.");
   }
 
   const url = new URL(c.req.url);
@@ -150,22 +156,25 @@ feedsDiscover.get("/discover", async (c) => {
   const binds: unknown[] = [];
 
   if (viewerId) {
+
     where.push(
       `(
-         c.visibility = 'public'
-         OR (c.owner_id = ? AND c.visibility != 'private')
-         OR (c.visibility = 'followers' AND
-             EXISTS (SELECT 1 FROM clone_follows cf
-                      WHERE cf.clone_id = c.id AND cf.user_id = ?))
-         OR (c.visibility = 'selected' AND
-             EXISTS (SELECT 1 FROM clone_allowed_viewers cav
-                      WHERE cav.clone_id = c.id AND cav.user_id = ?))
+         (c.owner_id = ? AND c.visibility != 'private')
+         OR (${cloneNotSuspendedSql("c")} AND (
+              c.visibility = 'public'
+              OR (c.visibility = 'followers' AND
+                  EXISTS (SELECT 1 FROM clone_follows cf
+                           WHERE cf.clone_id = c.id AND cf.user_id = ?))
+              OR (c.visibility = 'selected' AND
+                  EXISTS (SELECT 1 FROM clone_allowed_viewers cav
+                           WHERE cav.clone_id = c.id AND cav.user_id = ?))
+         ))
        )`,
     );
     binds.push(viewerId, viewerId, viewerId);
   } else {
 
-    where.push("c.visibility = 'public'");
+    where.push(`c.visibility = 'public' AND ${cloneNotSuspendedSql("c")}`);
   }
 
   if (viewerId) {

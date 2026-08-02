@@ -12,7 +12,7 @@ import { getKekProvider, openAny, seal } from "../lib/ale";
 import { requestKekProvider } from "../lib/kekProvider";
 import { callMockAI, buildSystemPrompt } from "../lib/ai";
 import { spend } from "../lib/credits";
-import { cloneActiveSql, loadCloneById, resolveViewerRole } from "../lib/cloneAccess";
+import { cloneActiveSql, isSuspendedForCloneRole, loadCloneById, resolveViewerRole } from "../lib/cloneAccess";
 import { estimateMessageCost } from "../lib/pricing";
 import { readCtx, readShared, readOnt } from "../lib/memoryStore";
 import { bumpInteraction, addIntimacyScore, INTIMACY_WEIGHTS } from "../lib/interactions";
@@ -56,6 +56,10 @@ cloneMessages.post(
     if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
     const role = await resolveViewerRole(c, clone, userId);
     if (!role) throw new APIError("FORBIDDEN", "No access to this clone.");
+
+    if (isSuspendedForCloneRole(clone, role)) {
+      throw new APIError("FORBIDDEN", "This clone is currently suspended.");
+    }
 
     const balance = await db
       .prepare(`SELECT credits FROM users WHERE id = ? AND deleted_at IS NULL`)
@@ -193,6 +197,10 @@ cloneMessages.post(
     if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
     const role = await resolveViewerRole(c, clone, userId);
     if (!role) throw new APIError("FORBIDDEN", "No access to this clone.");
+
+    if (isSuspendedForCloneRole(clone, role)) {
+      throw new APIError("FORBIDDEN", "This clone is currently suspended.");
+    }
 
     const balance = await db
       .prepare(`SELECT credits FROM users WHERE id = ? AND deleted_at IS NULL`)
