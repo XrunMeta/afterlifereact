@@ -7,10 +7,10 @@
 -- clone_id 는 NULL 로 두면 앱 렌더에서 `Person #id` fallback → 그래도 이름은 display_name 우선.
 
 INSERT OR IGNORE INTO persons (user_id, clone_id, display_name, consent_state, consent_at, created_at)
-SELECT u.id, NULL, name, 'granted', unixepoch() * 1000, unixepoch() * 1000
+SELECT u.id, NULL, seed.display_name, 'granted', unixepoch() * 1000, unixepoch() * 1000
   FROM users u
  CROSS JOIN (
-   SELECT '엄마'      AS name UNION ALL
+   SELECT '엄마'      AS display_name UNION ALL
    SELECT '동생'      UNION ALL
    SELECT '친구 지영' UNION ALL
    SELECT '회사동료'  UNION ALL
