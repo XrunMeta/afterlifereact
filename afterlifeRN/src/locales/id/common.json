@@ -187,7 +187,7 @@
     "bucketTopup": "Isi Ulang",
     "subActive": "Langganan {{plan}} aktif · Pembaruan berikutnya {{date}}",
     "subSectionTitle": "Langganan Bulanan",
-    "subSectionDesc": "Diperbarui otomatis setiap bulan. Dapat dibatalkan kapan saja.",
+    "subSectionDesc": "Diperbarui otomatis setiap bulan.",
     "subLoadFailed": "Tidak dapat memuat produk langganan.",
     "subLoadHintIos": "Silakan periksa login akun Sandbox di Pengaturan → App Store lalu coba lagi.",
     "subLoadHintOther": "Silakan coba lagi nanti.",
