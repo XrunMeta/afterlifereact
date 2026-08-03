@@ -171,12 +171,6 @@ export default function MyScreen() {
           },
         },
       ],
-
-      {
-        subMessage: t("my.delete.subMessage", {
-          defaultValue: "xrun 가입자라면 xrun 계정은 유지됩니다",
-        }),
-      },
     );
   };
 
