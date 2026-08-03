@@ -171,12 +171,6 @@ export default function v_ed02a5() {
           },
         },
       ],
-
-      {
-        subMessage: v_8d41d7("my.delete.subMessage", {
-          defaultValue: "xrun 가입자라면 xrun 계정은 유지됩니다",
-        }),
-      },
     );
   };
 
