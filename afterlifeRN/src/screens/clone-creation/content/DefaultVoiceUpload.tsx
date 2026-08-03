@@ -143,8 +143,17 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   v_504bbe.current = v_5ebce3;
   v_c4deb2(() => {
     return () => {
-      v_504bbe.current.stop().catch(() => {});
-      v_86394a.pause();
+
+      try {
+        void v_504bbe.current.stop?.().catch(() => {});
+      } catch {
+
+      }
+      try {
+        v_86394a.pause();
+      } catch {
+
+      }
     };
 
   }, []);

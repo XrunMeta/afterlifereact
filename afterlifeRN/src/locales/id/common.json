@@ -30,7 +30,8 @@
     "durationSec": "{{s}} detik",
     "durationMin": "{{m}} menit",
     "durationMinSec": "{{m}} menit {{s}} detik",
-    "expertBadge": "Ahli"
+    "expertBadge": "Ahli",
+    "pressBackToExit": "Tekan kembali lagi untuk keluar"
   },
   "tabs": {
     "home": "Beranda",

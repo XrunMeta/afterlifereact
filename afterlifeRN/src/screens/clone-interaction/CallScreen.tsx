@@ -67,6 +67,7 @@ import { v_9204e2 } from "../../components/call/CallVoiceBall";
 import { v_cdcb08 } from "../../components/call/CallTimingHUD";
 import { v_e68007 } from "../../components/call/CallTimingPanel";
 import { v_fb3568 } from "../../components/call/CloneSubtitleTicker";
+import { v_434962 } from "../../stores/devOverlayStore";
 import { v_7347b3 } from "../../realtime/timingConfig";
 import { v_1b1534 } from "../../realtime/timingLog";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
@@ -93,7 +94,7 @@ const { width: v_437248 } = v_700696.get("window");
 
 const v_5ac7d6 = 1;
 
-const v_42cf68 = __DEV__;
+const v_42cf68 = __DEV__; 
 
 interface FloatingGift {
   id: number;
@@ -116,6 +117,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_f9771e = v_c18c22(0);
   const v_53dd92 =
     v_326be8.OS === "ios" ? v_033e14.bottom : Math.max(v_f9771e, v_033e14.bottom);
+  const v_5c2f05 = v_434962((v_fd5f43) => v_fd5f43.callDevUiVisible);
+  const v_c3a0ed = __DEV__ && v_5c2f05;
 
   const [v_5bb98b, v_fce7f9] = v_5ab095<"front" | "back">("front");
   const [v_4e2aec, v_326ca4] = v_5ab095(false);
@@ -780,7 +783,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         <View style={[v_472849.absoluteFill, { backgroundColor: v_1bfbd0.zinc900 }]} />
       )}
 
-      {__DEV__ ? (
+      {v_c3a0ed ? (
         <View style={{ position: "absolute", top: 8, right: 8, zIndex: 10,
           backgroundColor: "rgba(0,0,0,0.5)", padding: 4 }}>
           <Text style={{ color: "#0f0", fontSize: 10 }}>route:{v_c6d1f4}</Text>
@@ -812,7 +815,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         </View>
       ) : null}
 
-      {__DEV__ && v_6cc918 === "live" ? (
+      {v_c3a0ed && v_6cc918 === "live" ? (
         <View
           style={{
             position: "absolute",
@@ -878,8 +881,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         style={v_472849.absoluteFill}
       />
 
-      {__DEV__ && v_6cc918 === "live" ? <CallTimingHUD /> : null}
-      {__DEV__ && v_6cc918 === "live" ? (
+      {v_c3a0ed && v_6cc918 === "live" ? <CallTimingHUD /> : null}
+      {v_c3a0ed && v_6cc918 === "live" ? (
 
         <View
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: v_53dd92 }}
@@ -1060,7 +1063,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 }
 
       {}
-      {v_42cf68 && v_ab4803 === 'listening' && (!!v_a2d9d1 || !!v_0885ca) ? (
+      {v_c3a0ed && v_42cf68 && v_ab4803 === 'listening' && (!!v_a2d9d1 || !!v_0885ca) ? (
         <View style={[v_fd5f43.subtitleContainer, { bottom: v_47b41c }]} pointerEvents="none">
           <Text style={v_fd5f43.subtitleText} numberOfLines={1} ellipsizeMode="head">
             {v_a2d9d1 || v_0885ca}
@@ -1076,7 +1079,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           <Pressable style={v_fd5f43.confirmTapArea} onPress={v_5b4fb2} />
           {
 }
-          {v_42cf68 ? (
+          {v_c3a0ed && v_42cf68 ? (
             <View style={[v_fd5f43.subtitleContainer, { bottom: v_47b41c }]} pointerEvents="none">
               <Text style={v_fd5f43.subtitleText} numberOfLines={1} ellipsizeMode="head">
                 {v_def12c}
@@ -1095,7 +1098,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       {
 
 }
-      {v_42cf68 && (v_ab4803 === 'sending' || v_ab4803 === 'speaking') && !!v_def12c && !v_0c5416 ? (
+      {v_c3a0ed && v_42cf68 && (v_ab4803 === 'sending' || v_ab4803 === 'speaking') && !!v_def12c && !v_0c5416 ? (
         <View style={[v_fd5f43.subtitleContainer, { bottom: v_47b41c }]} pointerEvents="none">
           <Text style={v_fd5f43.subtitleText} numberOfLines={1} ellipsizeMode="head">
             {v_def12c}

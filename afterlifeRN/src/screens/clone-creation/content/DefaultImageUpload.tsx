@@ -1,4 +1,3 @@
-import { v_889fad } from "../../../stores/dialogStore";
 import v_a3453e, { v_5ab095 } from 'bapkr';
 import { v_3094a2, v_19b633, v_4623af, v_cf9c33, v_472849 } from 'rcmrninabrnb';
 import { v_dec439 } from 'zvyjokvuouwvifyzks';
@@ -7,6 +6,8 @@ import type { v_c2a674 } from '../../../types/clone';
 import { v_1bfbd0, v_8b0c90 } from '../../../components/constants';
 import { v_e0c5af } from './pickImageSource';
 import v_100dc2 from './CropImageModal';
+import v_e0961f from './CaptureWithGuideModal';
+import { v_aae248 } from './t208ImagePick';
 
 interface Props {
   draft: v_c2a674;
@@ -16,23 +17,30 @@ interface Props {
 function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const { t: v_8d41d7 } = v_772971();
   const [v_04e790, v_43f854] = v_5ab095<{ uri: string; width: number; height: number } | null>(null);
+  const [v_30246f, v_9bce1c] = v_5ab095(false);
   const v_3fa7fc = [
     v_8d41d7('create.image.guide1'),
     v_8d41d7('create.image.guide2'),
     v_8d41d7('create.image.guide3'),
   ];
 
-  const v_c70f06 = async (v_520fa9) => {
-    const v_07fb2e = await v_e0c5af(v_520fa9, v_8d41d7);
+  const v_e1c60b = async () => {
+    const v_07fb2e = await v_e0c5af(false, v_8d41d7);
     if (v_07fb2e) v_43f854(v_07fb2e);
   };
 
   const v_62ae11 = () => {
-    v_889fad(v_8d41d7('create.image.sourceTitle'), undefined, [
-      { text: v_8d41d7('create.image.sourceCamera'), onPress: () => v_c70f06(true) },
-      { text: v_8d41d7('create.image.sourceLibrary'), onPress: () => v_c70f06(false) },
-      { text: v_8d41d7('common.cancel'), style: 'cancel' },
-    ]);
+    v_aae248({
+      title: v_8d41d7('create.image.sourceTitle'),
+      cameraLabel: v_8d41d7('create.image.sourceCamera'),
+      libraryLabel: v_8d41d7('create.image.sourceLibrary'),
+      cancelLabel: v_8d41d7('common.cancel'),
+      onCamera: () => v_9bce1c(true),
+      onLibrary: () => {
+        void v_e1c60b();
+      },
+      onApplyT208Crop: (v_cd1446) => v_b187d9({ imageFile: v_cd1446 }),
+    });
   };
 
   return (
@@ -53,6 +61,14 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
           • {v_206b88}
         </Text>
       ))}
+      <CaptureWithGuideModal
+        visible={v_30246f}
+        onCancel={() => v_9bce1c(false)}
+        onCapture={(v_07fb2e) => {
+          v_9bce1c(false);
+          v_43f854(v_07fb2e);
+        }}
+      />
       <CropImageModal
         visible={!!v_04e790}
         source={v_04e790}
