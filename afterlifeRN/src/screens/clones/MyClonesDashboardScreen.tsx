@@ -50,6 +50,7 @@ import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0, v_b0b271 } from "../../types/clone";
 import type { v_2d88fc } from "../../navigation/types";
 import type { v_8ad91b } from "../../navigation/types";
+import { v_1a7803 } from "../../hooks/useHardwareBack";
 
 type ClonesNav = v_390fcc<v_2d88fc>;
 
@@ -88,6 +89,10 @@ export default function v_def15b() {
   const v_c65f5d = v_ada615<ClonesNav>();
   const v_f4c991 = v_ada615<v_390fcc<v_8ad91b>>();
   const { t: v_8d41d7 } = v_772971();
+
+  v_1a7803(
+    v_8d41d7("common.exitPrompt", { defaultValue: "한 번 더 누르면 종료됩니다" }),
+  );
   const v_033e14 = v_e0068c();
   const v_f38ee5 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
   const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
@@ -621,7 +626,7 @@ export default function v_def15b() {
               onPress={() => v_598141({ cloneId: v_eb25ce.id, cloneName: v_eb25ce.displayName })}
             >
               <Ionicons name="chatbubbles-outline" size={14} color={v_1bfbd0.zinc500} />
-              <Text style={v_fd5f43.statText}>{v_8d41d7("dashboard.statInteraction", { defaultValue: "상호작용" })}</Text>
+              <Text style={v_fd5f43.statText}>{v_8d41d7("dashboard.statInteraction", { defaultValue: "받은 선물" })}</Text>
             </TouchableOpacity>
             {}
           </View>
@@ -1138,7 +1143,7 @@ export default function v_def15b() {
             <View style={v_fd5f43.sheetHandle} />
             <Text style={v_fd5f43.statsSheetTitle}>
               {v_8bb912?.type === "likes" && v_8d41d7("dashboard.statsLikes", { defaultValue: "좋아요" })}
-              {v_8bb912?.type === "interactions" && v_8d41d7("dashboard.statsInteractions", { defaultValue: "상호작용" })}
+              {v_8bb912?.type === "interactions" && v_8d41d7("dashboard.statsInteractions", { defaultValue: "받은 선물" })}
               {v_8bb912?.type === "comments" && v_8d41d7("dashboard.statsComments", { defaultValue: "댓글" })}
               {v_8bb912?.type === "followers" && v_8d41d7("dashboard.statsFollowers", { defaultValue: "구독자" })}
             </Text>
