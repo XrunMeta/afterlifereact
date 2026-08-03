@@ -216,7 +216,7 @@ export default function PurchaseScreen() {
 
         {}
         <Text style={s.sectionTitle}>{t("purchase.subSectionTitle", { defaultValue: "월 구독" })}</Text>
-        <Text style={s.sectionDesc}>{t("purchase.subSectionDesc", { defaultValue: "매월 자동 갱신. 언제든 해지 가능." })}</Text>
+        <Text style={s.sectionDesc}>{t("purchase.subSectionDesc", { defaultValue: "매월 자동 갱신." })}</Text>
 
         {prodLoading ? (
           <ActivityIndicator color={COLORS.violet600} style={{ marginVertical: 20 }} />

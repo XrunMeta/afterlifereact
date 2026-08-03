@@ -187,7 +187,7 @@
     "bucketTopup": "充值",
     "subActive": "{{plan}} 订阅生效中 · 下次续订 {{date}}",
     "subSectionTitle": "月度订阅",
-    "subSectionDesc": "每月自动续订。可随时取消。",
+    "subSectionDesc": "每月自动续订。",
     "subLoadFailed": "无法加载订阅商品。",
     "subLoadHintIos": "请前往 设置 → App Store → 确认 Sandbox 账户已登录后重试。",
     "subLoadHintOther": "请稍后重试。",
