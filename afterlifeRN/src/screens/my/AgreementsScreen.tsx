@@ -268,6 +268,8 @@ interface FaceConsentSectionProps {
 }
 
 function v_afe1c9({ persons: v_fded81, loading: v_683210, revokingId: v_8728fe, onRevoke: v_9b29ab, t: v_8d41d7 }: FaceConsentSectionProps) {
+
+  const v_c65f5d = v_ada615<v_390fcc<v_e57140>>();
   const v_b4ca3a = v_fded81.filter((v_e2a85c) => v_e2a85c.consentState === "granted");
 
   return (
@@ -338,7 +340,7 @@ function v_afe1c9({ persons: v_fded81, loading: v_683210, revokingId: v_8728fe, 
           {v_b4ca3a.length > 3 ? (
             <TouchableOpacity
               style={v_fd5f43.viewAllRow}
-              onPress={() => (navigation as any).navigate("AcquaintanceManagement")}
+              onPress={() => v_c65f5d.navigate("AcquaintanceManagement")}
               accessibilityRole="button"
             >
               <Text style={v_fd5f43.viewAllText}>
