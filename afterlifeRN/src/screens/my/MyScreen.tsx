@@ -248,7 +248,23 @@ export default function MyScreen() {
       icon: "log-out",
       labelKey: "my.menu.logout",
       descKey: "my.menu.logout",
-      action: () => void logout(),
+      action: () => {
+
+        showAlert(
+          t("my.logout.title", { defaultValue: "로그아웃할까요?" }),
+          t("my.logout.desc", {
+            defaultValue: "다시 사용하려면 로그인이 필요해요.",
+          }),
+          [
+            { text: t("common.cancel", { defaultValue: "취소" }), style: "cancel" },
+            {
+              text: t("my.logout.confirm", { defaultValue: "로그아웃" }),
+              style: "destructive",
+              onPress: () => void logout(),
+            },
+          ],
+        );
+      },
     },
   ];
 
