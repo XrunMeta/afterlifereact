@@ -6,13 +6,11 @@ import {
   v_19b633,
   v_472849,
   v_39a996,
-  v_9cabcb,
-  v_6c4f62,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_cf763b, v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
 import { v_772971 } from "jmpfvteuuztnp";
-import v_556baf from "../../components/ui/SafeView";
+import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
@@ -25,7 +23,6 @@ export default function v_99450d() {
 
   const [v_4622b9, v_fa923c] = v_5ab095<v_5c12dc[]>([]);
   const [v_683210, v_34a50a] = v_5ab095(true);
-  const [v_612e9f, v_575aad] = v_5ab095(false);
 
   const v_1a1b9b = v_de06a3(async () => {
     if (!v_2ca7e0) {
@@ -41,89 +38,85 @@ export default function v_99450d() {
       console.warn("[Acquaintance] list failed:", v_49263d);
     } finally {
       v_34a50a(false);
-      v_575aad(false);
     }
   }, [v_2ca7e0]);
 
   v_c4deb2(() => { void v_1a1b9b(); }, [v_1a1b9b]);
   v_cf763b(v_de06a3(() => { void v_1a1b9b(); }, [v_1a1b9b]));
 
-  const v_fcf6ec = ({ item: v_8c0b26 }: { item: v_5c12dc }) => {
-    const v_531384 = v_8c0b26.displayName?.trim() || `Person #${v_8c0b26.id}`;
-    const v_b9912c = v_8c0b26.createdAt
-      ? new Date(v_8c0b26.createdAt).toLocaleDateString()
-      : "-";
-    const v_24c1e9 = v_8c0b26.cloneId ? `#${v_8c0b26.cloneId}` : "-";
-    return (
-      <View style={v_fd5f43.row}>
-        <View style={v_fd5f43.avatar}>
-          <Feather name="user" size={20} color={v_1bfbd0.zinc400} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={v_fd5f43.name} numberOfLines={1}>{v_531384}</Text>
-          <Text style={v_fd5f43.meta} numberOfLines={1}>
-            {v_8d41d7("settings.acquaintance.metaLine", {
-              date: v_b9912c,
-              clone: v_24c1e9,
-              defaultValue: `동의 ${v_b9912c} · 클론 ${v_24c1e9}`,
-            })}
-          </Text>
-        </View>
-      </View>
-    );
-  };
-
   return (
-    <SafeView backgroundColor={v_1bfbd0.white}>
+    <SafeScrollView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       <PageHeader
         title={v_8d41d7("settings.acquaintance.title")}
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
       />
 
-      {v_683210 ? (
-        <View style={v_fd5f43.emptyState}>
-          <ActivityIndicator color={v_1bfbd0.zinc400} />
-        </View>
-      ) : v_4622b9.length === 0 ? (
-        <View style={v_fd5f43.emptyState}>
-          <View style={v_fd5f43.emptyIcon}>
-            <Feather name="users" size={40} color={v_1bfbd0.zinc300} />
+      <View style={v_fd5f43.content}>
+        {v_683210 ? (
+          <View style={v_fd5f43.emptyState}>
+            <ActivityIndicator color={v_1bfbd0.zinc400} />
           </View>
-          <Text style={v_fd5f43.emptyText}>{v_8d41d7("settings.acquaintance.empty")}</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={v_4622b9}
-          keyExtractor={(v_e2a85c) => String(v_e2a85c.id)}
-          renderItem={v_fcf6ec}
-          contentContainerStyle={v_fd5f43.list}
-          ItemSeparatorComponent={() => <View style={v_fd5f43.divider} />}
-          refreshControl={
-            <RefreshControl
-              refreshing={v_612e9f}
-              onRefresh={() => { v_575aad(true); void v_1a1b9b(); }}
-              tintColor={v_1bfbd0.zinc400}
-            />
-          }
-        />
-      )}
-    </SafeView>
+        ) : v_4622b9.length === 0 ? (
+          <View style={v_fd5f43.emptyState}>
+            <View style={v_fd5f43.emptyIcon}>
+              <Feather name="users" size={40} color={v_1bfbd0.zinc300} />
+            </View>
+            <Text style={v_fd5f43.emptyText}>{v_8d41d7("settings.acquaintance.empty")}</Text>
+          </View>
+        ) : (
+          v_4622b9.map((v_8c0b26, v_ebec57) => {
+            const v_531384 = v_8c0b26.displayName?.trim() || `Person #${v_8c0b26.id}`;
+
+            let v_f8e6b9 = "-";
+            if (v_8c0b26.createdAt) {
+              const v_d5dda0 = new Date(v_8c0b26.createdAt as unknown as string | number);
+              if (!Number.isNaN(v_d5dda0.getTime())) {
+                v_f8e6b9 = v_d5dda0.toLocaleDateString();
+              }
+            }
+            const v_24c1e9 = v_8c0b26.cloneId ? `#${v_8c0b26.cloneId}` : "-";
+            return (
+              <View key={v_8c0b26.id}>
+                <View style={v_fd5f43.row}>
+                  <View style={v_fd5f43.avatar}>
+                    <Feather name="user" size={20} color={v_1bfbd0.zinc400} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={v_fd5f43.name} numberOfLines={1}>{v_531384}</Text>
+                    <Text style={v_fd5f43.meta} numberOfLines={1}>
+                      {v_8d41d7("settings.acquaintance.metaLine", {
+                        date: v_f8e6b9,
+                        clone: v_24c1e9,
+                        defaultValue: `동의 ${v_f8e6b9} · 클론 ${v_24c1e9}`,
+                      })}
+                    </Text>
+                  </View>
+                </View>
+                {v_ebec57 < v_4622b9.length - 1 && <View style={v_fd5f43.divider} />}
+              </View>
+            );
+          })
+        )}
+      </View>
+    </SafeScrollView>
   );
 }
 
 const v_fd5f43 = v_472849.create({
-  list: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
     paddingBottom: 40,
+    maxWidth: 780,
+    alignSelf: "center",
+    width: "100%",
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     paddingVertical: 14,
-    paddingHorizontal: 4,
   },
   avatar: {
     width: 40,
@@ -137,7 +130,6 @@ const v_fd5f43 = v_472849.create({
   meta: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
   divider: { height: v_472849.hairlineWidth, backgroundColor: v_1bfbd0.zinc100 },
   emptyState: {
-    flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingTop: 80,
