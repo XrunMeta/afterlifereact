@@ -286,7 +286,7 @@ function FaceConsentSection({ persons, loading, revokingId, onRevoke, t }: FaceC
         </View>
       ) : (
         <View style={s.card}>
-          {grantedPersons.map((person, i) => {
+          {grantedPersons.slice(0, 3).map((person, i) => {
             const busy = revokingId === person.id;
             const consentLabel = person.createdAt
               ? t("settings.privacy.faceConsent.consentedAt", {
@@ -297,6 +297,8 @@ function FaceConsentSection({ persons, loading, revokingId, onRevoke, t }: FaceC
               ? t("settings.privacy.faceConsent.cloneLabel", { cloneId: person.cloneId })
               : `Person #${person.id}`;
 
+            const primaryName = person.displayName?.trim() || cloneLabel;
+
             return (
               <View key={person.id}>
                 <View style={s.row}>
@@ -305,7 +307,7 @@ function FaceConsentSection({ persons, loading, revokingId, onRevoke, t }: FaceC
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={s.rowName} numberOfLines={1}>
-                      {cloneLabel}
+                      {primaryName}
                     </Text>
                     <Text style={s.rowSub} numberOfLines={1}>
                       {consentLabel}
@@ -328,10 +330,26 @@ function FaceConsentSection({ persons, loading, revokingId, onRevoke, t }: FaceC
                     )}
                   </TouchableOpacity>
                 </View>
-                {i < grantedPersons.length - 1 && <View style={s.divider} />}
+                {i < Math.min(grantedPersons.length, 3) - 1 && <View style={s.divider} />}
               </View>
             );
           })}
+          {}
+          {grantedPersons.length > 3 ? (
+            <TouchableOpacity
+              style={s.viewAllRow}
+              onPress={() => (navigation as any).navigate("AcquaintanceManagement")}
+              accessibilityRole="button"
+            >
+              <Text style={s.viewAllText}>
+                {t("settings.privacy.faceConsent.viewAll", {
+                  count: grantedPersons.length,
+                  defaultValue: `전체 보기 (${grantedPersons.length}명)`,
+                })}
+              </Text>
+              <Feather name="chevron-right" size={18} color={COLORS.zinc400} />
+            </TouchableOpacity>
+          ) : null}
         </View>
       )}
     </View>
@@ -486,6 +504,16 @@ const s = StyleSheet.create({
     alignItems: "center",
   },
   revokeBtnText: { fontSize: 12, fontWeight: "700", color: COLORS.white },
+  viewAllRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: COLORS.zinc100,
+  },
+  viewAllText: { fontSize: 13, color: COLORS.zinc700, fontWeight: "600" },
   callLearningTermsLink: {
     color: COLORS.zinc700,
     textDecorationLine: "underline",
