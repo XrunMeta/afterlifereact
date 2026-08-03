@@ -268,6 +268,8 @@ interface FaceConsentSectionProps {
 }
 
 function FaceConsentSection({ persons, loading, revokingId, onRevoke, t }: FaceConsentSectionProps) {
+
+  const navigation = useNavigation<NativeStackNavigationProp<MyStackParamList>>();
   const grantedPersons = persons.filter((p) => p.consentState === "granted");
 
   return (
@@ -338,7 +340,7 @@ function FaceConsentSection({ persons, loading, revokingId, onRevoke, t }: FaceC
           {grantedPersons.length > 3 ? (
             <TouchableOpacity
               style={s.viewAllRow}
-              onPress={() => (navigation as any).navigate("AcquaintanceManagement")}
+              onPress={() => navigation.navigate("AcquaintanceManagement")}
               accessibilityRole="button"
             >
               <Text style={s.viewAllText}>
