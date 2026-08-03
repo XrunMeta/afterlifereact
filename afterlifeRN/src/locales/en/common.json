@@ -187,7 +187,7 @@
     "bucketTopup": "Top-up",
     "subActive": "{{plan}} subscription active · next renewal {{date}}",
     "subSectionTitle": "Monthly Subscription",
-    "subSectionDesc": "Renews automatically each month. Cancel anytime.",
+    "subSectionDesc": "Renews automatically each month.",
     "subLoadFailed": "Couldn't load subscription products.",
     "subLoadHintIos": "Settings → App Store → check your Sandbox account is signed in, then try again.",
     "subLoadHintOther": "Please try again later.",
