@@ -1,16 +1,9 @@
 
 
 import React, { useCallback, useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-} from "react-native";
-import { Feather } from "@expo/vector-icons";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
-import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS } from "../../components/constants";
 import { useAuthStore } from "../../stores/authStore";
@@ -26,13 +19,11 @@ export default function AcquaintanceManagementScreen() {
 
   const refresh = useCallback(async () => {
     if (!accessToken) {
-      setItems([]);
       setLoading(false);
       return;
     }
     try {
       const res = await listPersons(accessToken);
-
       setItems(res.items.filter((p) => p.consentState === "granted"));
     } catch (err) {
       console.warn("[Acquaintance] list failed:", err);
@@ -45,107 +36,40 @@ export default function AcquaintanceManagementScreen() {
   useFocusEffect(useCallback(() => { void refresh(); }, [refresh]));
 
   return (
-    <SafeScrollView backgroundColor={COLORS.white} showBottomBackground={false}>
+    <View style={{ flex: 1, backgroundColor: COLORS.white }}>
       <PageHeader
-        title={t("settings.acquaintance.title")}
+        title={t("settings.acquaintance.title", { defaultValue: "지인 관리" })}
         showBackButton
         onBackPress={() => navigation.goBack()}
       />
-
-      <View style={s.content}>
+      <ScrollView contentContainerStyle={s.content}>
         {loading ? (
-          <View style={s.emptyState}>
-            <ActivityIndicator color={COLORS.zinc400} />
-          </View>
+          <ActivityIndicator color={COLORS.zinc400} style={{ marginTop: 40 }} />
         ) : items.length === 0 ? (
-          <View style={s.emptyState}>
-            <View style={s.emptyIcon}>
-              <Feather name="users" size={40} color={COLORS.zinc300} />
-            </View>
-            <Text style={s.emptyText}>{t("settings.acquaintance.empty")}</Text>
-          </View>
+          <Text style={s.empty}>
+            {t("settings.acquaintance.empty", { defaultValue: "등록된 지인이 없어요" })}
+          </Text>
         ) : (
-          items.map((item, i) => {
-            const primaryName = item.displayName?.trim() || `Person #${item.id}`;
-
-            let dateStr = "-";
-            if (item.createdAt) {
-              const d = new Date(item.createdAt as unknown as string | number);
-              if (!Number.isNaN(d.getTime())) {
-                dateStr = d.toLocaleDateString();
-              }
-            }
-            const cloneLabel = item.cloneId ? `#${item.cloneId}` : "-";
-            return (
-              <View key={item.id}>
-                <View style={s.row}>
-                  <View style={s.avatar}>
-                    <Feather name="user" size={20} color={COLORS.zinc400} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.name} numberOfLines={1}>{primaryName}</Text>
-                    <Text style={s.meta} numberOfLines={1}>
-                      {t("settings.acquaintance.metaLine", {
-                        date: dateStr,
-                        clone: cloneLabel,
-                        defaultValue: `동의 ${dateStr} · 클론 ${cloneLabel}`,
-                      })}
-                    </Text>
-                  </View>
-                </View>
-                {i < items.length - 1 && <View style={s.divider} />}
-              </View>
-            );
-          })
+          items.map((item) => (
+            <View key={item.id} style={s.row}>
+              <Text style={s.name} numberOfLines={1}>
+                {item.displayName?.trim() || `Person #${item.id}`}
+              </Text>
+            </View>
+          ))
         )}
-      </View>
-    </SafeScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 40,
-    maxWidth: 780,
-    alignSelf: "center",
-    width: "100%",
-  },
+  content: { padding: 20, paddingBottom: 60 },
   row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
     paddingVertical: 14,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.zinc100,
-    alignItems: "center",
-    justifyContent: "center",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: COLORS.zinc100,
   },
   name: { fontSize: 15, fontWeight: "600", color: COLORS.zinc900 },
-  meta: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: COLORS.zinc100 },
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingTop: 80,
-    gap: 16,
-  },
-  emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.zinc100,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyText: {
-    fontSize: 15,
-    color: COLORS.zinc500,
-    textAlign: "center",
-  },
+  empty: { fontSize: 15, color: COLORS.zinc500, textAlign: "center", marginTop: 60 },
 });
