@@ -187,7 +187,7 @@
     "bucketTopup": "チャージ",
     "subActive": "{{plan}}サブスク有効 · 次回更新 {{date}}",
     "subSectionTitle": "月額サブスク",
-    "subSectionDesc": "毎月自動更新。いつでも解約可能。",
+    "subSectionDesc": "毎月自動更新。",
     "subLoadFailed": "サブスク商品を読み込めません。",
     "subLoadHintIos": "設定 → App Store → Sandboxアカウントのログインをご確認のうえ、再度お試しください。",
     "subLoadHintOther": "しばらくしてから再度お試しください。",

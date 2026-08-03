@@ -216,7 +216,7 @@ export default function v_0035e1() {
 
         {}
         <Text style={v_fd5f43.sectionTitle}>{v_8d41d7("purchase.subSectionTitle", { defaultValue: "월 구독" })}</Text>
-        <Text style={v_fd5f43.sectionDesc}>{v_8d41d7("purchase.subSectionDesc", { defaultValue: "매월 자동 갱신. 언제든 해지 가능." })}</Text>
+        <Text style={v_fd5f43.sectionDesc}>{v_8d41d7("purchase.subSectionDesc", { defaultValue: "매월 자동 갱신." })}</Text>
 
         {v_723218 ? (
           <ActivityIndicator color={v_1bfbd0.violet600} style={{ marginVertical: 20 }} />
