@@ -30,7 +30,8 @@
     "durationSec": "{{s}}s",
     "durationMin": "{{m}}m",
     "durationMinSec": "{{m}}m {{s}}s",
-    "expertBadge": "Expert"
+    "expertBadge": "Expert",
+    "pressBackToExit": "Press back again to exit"
   },
   "tabs": {
     "home": "Home",

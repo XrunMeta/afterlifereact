@@ -67,6 +67,7 @@ import { CallVoiceBall } from "../../components/call/CallVoiceBall";
 import { CallTimingHUD } from "../../components/call/CallTimingHUD";
 import { CallTimingPanel } from "../../components/call/CallTimingPanel";
 import { CloneSubtitleTicker } from "../../components/call/CloneSubtitleTicker";
+import { useDevOverlayStore } from "../../stores/devOverlayStore";
 import { useTimingConfigStore } from "../../realtime/timingConfig";
 import { startTimingLog } from "../../realtime/timingLog";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -93,7 +94,7 @@ const { width: SCREEN_W } = Dimensions.get("window");
 
 const VIDEO_EDGE_TRIM_PX = 1;
 
-const SHOW_USER_TRANSCRIPT = __DEV__;
+const SHOW_USER_TRANSCRIPT = __DEV__; 
 
 interface FloatingGift {
   id: number;
@@ -116,6 +117,8 @@ export default function CallScreen({ route, navigation }: Props) {
   const navBarHeight = useAndroidNavigationBarHeight(0);
   const bottomInset =
     Platform.OS === "ios" ? insets.bottom : Math.max(navBarHeight, insets.bottom);
+  const callDevUi = useDevOverlayStore((s) => s.callDevUiVisible);
+  const showCallDev = __DEV__ && callDevUi;
 
   const [cameraFacing, setCameraFacing] = useState<"front" | "back">("front");
   const [isMuted, setIsMuted] = useState(false);
@@ -780,7 +783,7 @@ export default function CallScreen({ route, navigation }: Props) {
         <View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.zinc900 }]} />
       )}
 
-      {__DEV__ ? (
+      {showCallDev ? (
         <View style={{ position: "absolute", top: 8, right: 8, zIndex: 10,
           backgroundColor: "rgba(0,0,0,0.5)", padding: 4 }}>
           <Text style={{ color: "#0f0", fontSize: 10 }}>route:{CALL_ROUTE}</Text>
@@ -812,7 +815,7 @@ export default function CallScreen({ route, navigation }: Props) {
         </View>
       ) : null}
 
-      {__DEV__ && liveState === "live" ? (
+      {showCallDev && liveState === "live" ? (
         <View
           style={{
             position: "absolute",
@@ -878,8 +881,8 @@ export default function CallScreen({ route, navigation }: Props) {
         style={StyleSheet.absoluteFill}
       />
 
-      {__DEV__ && liveState === "live" ? <CallTimingHUD /> : null}
-      {__DEV__ && liveState === "live" ? (
+      {showCallDev && liveState === "live" ? <CallTimingHUD /> : null}
+      {showCallDev && liveState === "live" ? (
 
         <View
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: bottomInset }}
@@ -1060,7 +1063,7 @@ export default function CallScreen({ route, navigation }: Props) {
 }
 
       {}
-      {SHOW_USER_TRANSCRIPT && phase === 'listening' && (!!interimTranscript || !!transcript) ? (
+      {showCallDev && SHOW_USER_TRANSCRIPT && phase === 'listening' && (!!interimTranscript || !!transcript) ? (
         <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
           <Text style={s.subtitleText} numberOfLines={1} ellipsizeMode="head">
             {interimTranscript || transcript}
@@ -1076,7 +1079,7 @@ export default function CallScreen({ route, navigation }: Props) {
           <Pressable style={s.confirmTapArea} onPress={cancelConfirm} />
           {
 }
-          {SHOW_USER_TRANSCRIPT ? (
+          {showCallDev && SHOW_USER_TRANSCRIPT ? (
             <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
               <Text style={s.subtitleText} numberOfLines={1} ellipsizeMode="head">
                 {pendingText}
@@ -1095,7 +1098,7 @@ export default function CallScreen({ route, navigation }: Props) {
       {
 
 }
-      {SHOW_USER_TRANSCRIPT && (phase === 'sending' || phase === 'speaking') && !!pendingText && !cloneSubtitle ? (
+      {showCallDev && SHOW_USER_TRANSCRIPT && (phase === 'sending' || phase === 'speaking') && !!pendingText && !cloneSubtitle ? (
         <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
           <Text style={s.subtitleText} numberOfLines={1} ellipsizeMode="head">
             {pendingText}

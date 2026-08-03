@@ -143,8 +143,17 @@ function Component({ draft, onChange }: Props) {
   recorderRef.current = recorder;
   useEffect(() => {
     return () => {
-      recorderRef.current.stop().catch(() => {});
-      player.pause();
+
+      try {
+        void recorderRef.current.stop?.().catch(() => {});
+      } catch {
+
+      }
+      try {
+        player.pause();
+      } catch {
+
+      }
     };
 
   }, []);

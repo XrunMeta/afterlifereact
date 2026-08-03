@@ -1,7 +1,12 @@
+import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
+import { letterboxToAvatar } from "./letterboxAvatar";
+
 export interface Size { width: number; height: number }
 
 export interface GestureState { translateX: number; translateY: number; scale: number }
 export interface CropRect { originX: number; originY: number; width: number; height: number }
+
+export const AVATAR_OUT = { width: 512, height: 1024 };
 
 export function baseCoverScale(image: Size, frame: Size): number {
   return Math.max(frame.width / image.width, frame.height / image.height);
@@ -9,8 +14,10 @@ export function baseCoverScale(image: Size, frame: Size): number {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
-export const ZOOM_MIN = 1;
+export const ZOOM_MIN = 0.35;
 export const ZOOM_MAX = 10;
+
+export const COVER_SCALE = 1;
 
 export function clampGestureScale(raw: number, min: number = ZOOM_MIN, max: number = ZOOM_MAX): number {
   return clamp(raw, min, max);
@@ -24,8 +31,10 @@ export function clampPanOffset(
 ): { x: number; y: number } {
   const s0 = baseCoverScale(image, frame);
   const s = s0 * Math.max(ZOOM_MIN, scale);
-  const maxOffsetX = Math.max(0, (image.width * s - frame.width) / 2);
-  const maxOffsetY = Math.max(0, (image.height * s - frame.height) / 2);
+  const dispW = image.width * s;
+  const dispH = image.height * s;
+  const maxOffsetX = Math.abs(dispW - frame.width) / 2;
+  const maxOffsetY = Math.abs(dispH - frame.height) / 2;
   return {
     x: clamp(offset.x, -maxOffsetX, maxOffsetX),
     y: clamp(offset.y, -maxOffsetY, maxOffsetY),
@@ -45,9 +54,8 @@ export function coversCropArea(
   const s = s0 * Math.max(ZOOM_MIN, scale);
   const dispW = image.width * s;
   const dispH = image.height * s;
-  if (dispW < frame.width - EPS || dispH < frame.height - EPS) return false;
-  const maxOffsetX = (dispW - frame.width) / 2;
-  const maxOffsetY = (dispH - frame.height) / 2;
+  const maxOffsetX = Math.abs(dispW - frame.width) / 2;
+  const maxOffsetY = Math.abs(dispH - frame.height) / 2;
   return Math.abs(offset.x) <= maxOffsetX + EPS && Math.abs(offset.y) <= maxOffsetY + EPS;
 }
 
@@ -56,7 +64,7 @@ export function computeCropRect(image: Size, frame: Size, gesture: GestureState)
     throw new Error("computeCropRect: image size must be positive");
   }
   const s0 = baseCoverScale(image, frame);
-  const g = Math.max(1, gesture.scale);
+  const g = Math.max(COVER_SCALE, gesture.scale);
   const s = s0 * g;
   const width = frame.width / s;
   const height = frame.height / s;
@@ -70,9 +78,28 @@ export function computeCropRect(image: Size, frame: Size, gesture: GestureState)
   };
 }
 
-import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
-
-export const AVATAR_OUT = { width: 512, height: 1024 };
+export function computeLetterboxLayout(
+  image: Size,
+  frame: Size,
+  gesture: GestureState,
+): { contentW: number; contentH: number; outLeft: number; outTop: number } {
+  const s0 = baseCoverScale(image, frame);
+  const g = Math.max(ZOOM_MIN, Math.min(COVER_SCALE, gesture.scale));
+  const s = s0 * g;
+  const dispW = image.width * s;
+  const dispH = image.height * s;
+  const outScale = AVATAR_OUT.width / frame.width;
+  const contentW = dispW * outScale;
+  const contentH = dispH * outScale;
+  const imgLeft = (frame.width - dispW) / 2 + gesture.translateX;
+  const imgTop = (frame.height - dispH) / 2 + gesture.translateY;
+  return {
+    contentW,
+    contentH,
+    outLeft: imgLeft * outScale,
+    outTop: imgTop * outScale,
+  };
+}
 
 export async function cropToAvatar(
   uri: string,
@@ -80,6 +107,11 @@ export async function cropToAvatar(
   frame: Size,
   gesture: GestureState,
 ): Promise<string> {
+  if (gesture.scale < COVER_SCALE) {
+    const layout = computeLetterboxLayout(image, frame, gesture);
+    return letterboxToAvatar(uri, layout.contentW, layout.contentH, layout.outLeft, layout.outTop);
+  }
+
   const r = computeCropRect(image, frame, gesture);
   const result = await manipulateAsync(
     uri,
