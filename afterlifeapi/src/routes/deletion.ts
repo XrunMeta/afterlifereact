@@ -238,6 +238,35 @@ v_dda4b9.delete("/me", v_6690d9, async (v_3f4e2e) => {
     );
   }
 
+  if (!v_d7b02d) {
+    try {
+      const v_d1b635 = await v_3f4e2e.env.DB
+        .prepare(`SELECT email, name FROM users WHERE id = ?`)
+        .bind(v_43e90c)
+        .first<{ email: string | null; name: string | null }>();
+      if (v_d1b635?.email) {
+        const { sendMail: v_a71d8b } = await import("../lib/gmail");
+        const v_8a1355 = v_d1b635.name || v_d1b635.email.split("@")[0] || "회원";
+        await v_a71d8b(v_3f4e2e.env, {
+          to: v_d1b635.email,
+          subject: "[Afterlife] 탈퇴가 완료되었습니다",
+          html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;line-height:1.6;color:#111">
+            <p>안녕하세요, ${v_8a1355} 님.</p>
+            <p>Afterlife 탈퇴 요청이 정상적으로 처리되었습니다.</p>
+            <p>계정과 관련된 클론·대화·팔로우 관계는 모두 정리되었으며,
+            학습 데이터(음성·프롬프트)는 재사용 불가하도록 파기됩니다.</p>
+            <p style="margin-top:24px;color:#666;font-size:13px">
+            함께해 주셔서 감사했습니다. 언제든 다시 돌아오실 수 있습니다.<br/>
+            문의: <a href="mailto:oth-staff@example.invalid">oth-staff@example.invalid</a>
+            </p>
+          </div>`,
+        });
+      }
+    } catch (v_49263d) {
+      console.warn("[deletion.me] farewell mail failed (ignored):", (v_49263d as Error).message);
+    }
+  }
+
   return v_3f4e2e.json({ ok: true, state: "soft_deleted", alreadyDeleted: v_d7b02d });
 });
 
