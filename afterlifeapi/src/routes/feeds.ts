@@ -191,6 +191,12 @@ feedsDiscover.get("/discover", async (c) => {
     binds.push(cursor);
   }
 
+  const intimacySelect = viewerId
+    ? `COALESCE((SELECT MIN(100, SUM(ie.score)) FROM intimacy_events ie
+                  WHERE ie.user_id = ? AND ie.clone_id = c.id), 0) AS myIntimacy`
+    : `0 AS myIntimacy`;
+  const selectBinds: unknown[] = viewerId ? [viewerId] : [];
+
   const rows = (
     await c.env.DB
       .prepare(
@@ -212,7 +218,8 @@ feedsDiscover.get("/discover", async (c) => {
                   WHERE f2.clone_id = c.id) AS likesCount,
                 (SELECT COUNT(*) FROM feed_comments fc
                    JOIN feeds f3 ON f3.id = fc.feed_id
-                   WHERE f3.clone_id = c.id) AS commentsCount
+                   WHERE f3.clone_id = c.id) AS commentsCount,
+                ${intimacySelect}
            FROM clones c
            LEFT JOIN feeds f ON f.id = (
              SELECT id FROM feeds WHERE clone_id = c.id
@@ -222,7 +229,7 @@ feedsDiscover.get("/discover", async (c) => {
           ORDER BY c.id DESC
           LIMIT ?`,
       )
-      .bind(...binds, limit + 1)
+      .bind(...selectBinds, ...binds, limit + 1)
       .all<{
         cloneId: number;
         cloneOwnerId: number;
@@ -240,6 +247,7 @@ feedsDiscover.get("/discover", async (c) => {
         feedCreatedAt: string | null;
         likesCount: number;
         commentsCount: number;
+        myIntimacy: number;
       }>()
   ).results;
 
@@ -313,6 +321,8 @@ feedsDiscover.get("/discover", async (c) => {
         visibility: r.cloneVisibility,
       },
       interests: interestsByClone.get(r.cloneId) ?? [],
+
+      myIntimacy: Math.min(100, Math.max(0, r.myIntimacy ?? 0)),
     })),
     nextCursor,
   });

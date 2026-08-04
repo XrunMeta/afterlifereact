@@ -61,6 +61,15 @@ const FeedCard: React.FC<FeedCardProps> = ({
         style={styles.gradient}
       />
 
+      {
+}
+      {!isOwn && typeof item.myIntimacy === "number" && item.myIntimacy > 0 ? (
+        <View style={styles.intimacyBadge}>
+          <Feather name="thermometer" size={12} color="#fb923c" />
+          <Text style={styles.intimacyText}>{item.myIntimacy}°C</Text>
+        </View>
+      ) : null}
+
       {}
       {isActive && (
         <>
@@ -235,6 +244,25 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 24,
+  },
+
+  intimacyBadge: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: RADIUS.full,
+    zIndex: 10,
+  },
+  intimacyText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: COLORS.white,
   },
   actionBtn: {
     alignItems: "center",
