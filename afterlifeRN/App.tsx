@@ -26,12 +26,16 @@ import { v_af2b7c } from "./src/lib/errorReporting/ErrorBoundary";
 import {
   v_11e772,
   v_b28903,
+  v_61a1ef,
 } from "./src/lib/errorReporting/report";
+import { v_04fed4 } from "./src/lib/errorReporting/serverSink";
 import { v_0f28c1 } from "./src/components/dev/DevFloatingBall";
 import { v_82d3c2 } from "./src/lib/t208MeasureStore";
 import { v_434962 } from "./src/stores/devOverlayStore";
 
 v_b28903();
+
+v_61a1ef(v_04fed4);
 
 const linking: v_4c916c<v_8ad91b> = {
   prefixes: [

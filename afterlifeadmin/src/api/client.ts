@@ -407,4 +407,66 @@ export const v_05a921 = {
       `/oth-path${v_d361d7}`,
       { method: "DELETE" },
     ),
+
+  getCrashReports: (v_24baff) => {
+    const v_212049 = new URLSearchParams();
+    if (v_24baff?.fatal) v_212049.set("fatal", v_24baff.fatal);
+    if (v_24baff?.userId) v_212049.set("userId", String(v_24baff.userId));
+    if (v_24baff?.screen) v_212049.set("screen", v_24baff.screen);
+    if (v_24baff?.q) v_212049.set("q", v_24baff.q);
+    if (v_24baff?.limit) v_212049.set("limit", String(v_24baff.limit));
+    if (v_24baff?.offset) v_212049.set("offset", String(v_24baff.offset));
+    const v_25c4f7 = v_212049.toString();
+    return v_576f5a<{
+      items: Array<{
+        id: number;
+        userId: number | null;
+        userEmail: string | null;
+        ts: number;
+        receivedAt: number;
+        isFatal: boolean;
+        errorName: string | null;
+        message: string;
+        screen: string | null;
+        appVersion: string | null;
+        runtimeVersion: string | null;
+        updateId: string | null;
+        channel: string | null;
+        platform: string | null;
+        osVersion: string | null;
+        deviceModel: string | null;
+        locale: string | null;
+      }>;
+      total: number;
+      limit: number;
+      offset: number;
+    }>(`/oth-path${v_25c4f7 ? `?${v_25c4f7}` : ""}`);
+  },
+  getCrashReport: (v_389afb) =>
+    v_576f5a<{
+      item: {
+        id: number;
+        userId: number | null;
+        userEmail: string | null;
+        ts: number;
+        receivedAt: number;
+        isFatal: boolean;
+        errorName: string | null;
+        message: string;
+        stack: string | null;
+        screen: string | null;
+        breadcrumbs: Array<{ category: string; message: string; ts?: number; data?: Record<string, unknown> }>;
+        extra: Record<string, unknown> | null;
+        appVersion: string | null;
+        runtimeVersion: string | null;
+        updateId: string | null;
+        channel: string | null;
+        platform: string | null;
+        osVersion: string | null;
+        deviceModel: string | null;
+        locale: string | null;
+      };
+    }>(`/oth-path${v_389afb}`),
+  deleteCrashReport: (v_389afb) =>
+    v_576f5a<{ ok: true }>(`/oth-path${v_389afb}`, { method: "DELETE" }),
 };
