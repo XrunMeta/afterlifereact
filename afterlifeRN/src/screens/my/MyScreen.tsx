@@ -189,6 +189,17 @@ export default function MyScreen() {
       route: "EditProfile",
     },
     {
+
+      icon: "inbox",
+      labelKey: "my.menu.notificationsList",
+      descKey: "my.menu.notificationsListDesc",
+      action: () => {
+        navigation.getParent()?.dispatch(
+          CommonActions.navigate({ name: "Notifications" }),
+        );
+      },
+    },
+    {
       icon: "bell",
       labelKey: "my.menu.notifications",
       descKey: "settings.notifications.title",
