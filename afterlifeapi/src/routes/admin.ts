@@ -1979,3 +1979,58 @@ admin.get("/oth-path", requireAdmin, async (c) => {
   return c.json({ items: rows.results });
 });
 
+admin.get("/intimacy-events", requireAdmin, async (c) => {
+  const url = new URL(c.req.url);
+  const userIdStr = url.searchParams.get("userId");
+  const cloneIdStr = url.searchParams.get("cloneId");
+  const action = (url.searchParams.get("action") ?? "").trim();
+  const limitRaw = Number(url.searchParams.get("limit") ?? 100);
+  const limit = Math.max(1, Math.min(500, Number.isFinite(limitRaw) ? limitRaw : 100));
+  const offset = Math.max(0, Number(url.searchParams.get("offset") ?? 0));
+
+  const where: string[] = [];
+  const binds: (string | number)[] = [];
+  if (userIdStr && /^\d+$/.test(userIdStr)) {
+    where.push("ie.user_id = ?");
+    binds.push(Number(userIdStr));
+  }
+  if (cloneIdStr && /^\d+$/.test(cloneIdStr)) {
+    where.push("ie.clone_id = ?");
+    binds.push(Number(cloneIdStr));
+  }
+  if (action && ["chat", "call", "learn", "feed"].includes(action)) {
+    where.push("ie.action = ?");
+    binds.push(action);
+  }
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+  const totalRow = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM intimacy_events ie ${whereSql}`)
+    .bind(...binds)
+    .first<{ n: number }>();
+  const total = totalRow?.n ?? 0;
+
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT ie.id           AS id,
+              ie.created_at   AS createdAt,
+              ie.user_id      AS userId,
+              u.email         AS userEmail,
+              ie.clone_id     AS cloneId,
+              c.name          AS cloneName,
+              ie.action       AS action,
+              ie.score        AS score,
+              ie.feed_id      AS feedId
+         FROM intimacy_events ie
+         LEFT JOIN users u ON u.id = ie.user_id
+         LEFT JOIN clones c ON c.id = ie.clone_id
+         ${whereSql}
+        ORDER BY ie.created_at DESC, ie.id DESC
+        LIMIT ? OFFSET ?`,
+    )
+    .bind(...binds, limit, offset)
+    .all();
+
+  return c.json({ items: rows.results, total, limit, offset });
+});
+
