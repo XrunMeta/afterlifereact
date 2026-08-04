@@ -21,7 +21,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
 import { useTranslation } from "react-i18next";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { CommonActions } from "@react-navigation/native";
 import type { RootStackParamList } from "../../navigation/types";
+import { assertCanCall } from "../../lib/callGuard";
 import FeedCard from "../../components/ui/FeedCard";
 import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
 import type { FeedItem } from "../../types/feed";
@@ -221,7 +223,14 @@ function CloneFeedInner({ route, navigation, feed }: InnerProps) {
     }
   };
 
-  const handleCall = () => {
+  const handleCall = async () => {
+
+    const ok = await assertCanCall(accessToken, () => {
+      navigation.dispatch(
+        CommonActions.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+      );
+    });
+    if (!ok) return;
     navigation.navigate("Call", {
       cloneId: item.cloneId,
       name: item.author,
