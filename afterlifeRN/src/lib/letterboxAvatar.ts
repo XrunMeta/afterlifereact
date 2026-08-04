@@ -45,7 +45,7 @@ export async function v_a96eba(
 
   const v_16cbb7 = await v_042412(v_cd1446);
   if (v_16cbb7) {
-    v_31b50f(v_2b3f7c, v_16cbb7, v_a35347, v_92e88e, v_38d084.width, v_38d084.height);
+    v_31b50f(v_2b3f7c, v_82610d, v_044e2b, v_16cbb7, v_a35347, v_92e88e, v_38d084.width, v_38d084.height, v_093162);
   } else {
 
     v_a2a1a9(v_2b3f7c, { r: 0, g: 0, b: 0 });
@@ -64,6 +64,40 @@ export async function v_a73be8(v_cd1446): Promise<string | null> {
   if (!v_16cbb7) return null;
   const { r: v_cb35cb, g: v_206b88, b: v_148ff6 } = v_16cbb7.avg;
   return `rgb(${v_cb35cb}, ${v_206b88}, ${v_148ff6})`;
+}
+
+export const v_1fbf17 = 2;
+
+export async function v_43752b(
+  v_cd1446,
+  v_b6a07b,
+  v_8cde4c,
+  v_af05dc = 480,
+): Promise<string | null> {
+  const v_16cbb7 = await v_042412(v_cd1446);
+  if (!v_16cbb7) return null;
+  try {
+    const v_b66f2c = Date.now();
+    const v_e3bf0b = Math.max(1, Math.round((v_af05dc * v_8cde4c) / Math.max(1, v_b6a07b)));
+    const v_6b4aa2 = v_af05dc, v_10a17d = v_e3bf0b;
+    const v_956afe = v_6b4aa2 * v_1fbf17, v_65f6fa = v_10a17d * v_1fbf17;
+    const v_4148d9 = Math.round((v_956afe - v_6b4aa2) / 2), v_85ddfd = Math.round((v_65f6fa - v_10a17d) / 2);
+    const v_c43c95 = new v_f5692c({ width: v_956afe, height: v_65f6fa });
+    const v_79c9ab = Date.now();
+    v_31b50f(v_c43c95, v_956afe, v_65f6fa, v_16cbb7, v_4148d9, v_85ddfd, v_6b4aa2, v_10a17d, v_b4d288 * v_6b4aa2);
+    const v_c1e570 = Date.now();
+    const v_83ee53 = v_f5692c.sync.write(v_c43c95);
+    const v_1de493 = `data:image/png;base64,${v_83ee53.toString("base64")}`;
+    if (__DEV__) {
+      console.log(
+        `[T-244] padded bg ${v_956afe}x${v_65f6fa} (${((v_956afe * v_65f6fa) / 1e6).toFixed(2)}M px) · ` +
+        `fill ${v_c1e570 - v_79c9ab}ms · encode ${Date.now() - v_c1e570}ms · total ${Date.now() - v_b66f2c}ms`,
+      );
+    }
+    return v_1de493;
+  } catch {
+    return null;
+  }
 }
 
 interface Tiny { data: v_c8d567 | Uint8Array; width: number; height: number; avg: Rgb }
@@ -103,14 +137,14 @@ function v_a2a1a9(v_2b3f7c, v_3f4e2e): void {
 }
 
 function v_31b50f(
-  v_2b3f7c, v_16cbb7,
-  v_4148d9, v_85ddfd, v_6b4aa2, v_10a17d,
+  v_2b3f7c, v_e97fab, v_c577dc, v_16cbb7,
+  v_4148d9, v_85ddfd, v_6b4aa2, v_10a17d, v_60b9f9,
 ): void {
   const { avg: v_b94caa } = v_16cbb7;
   const v_049c76 = v_16cbb7.width, v_3018ef = v_16cbb7.height;
-  const v_6ec3fd = v_093162 * v_093162;
+  const v_6ec3fd = v_60b9f9 * v_60b9f9;
 
-  for (let v_64877a = 0; v_64877a < v_044e2b; v_64877a++) {
+  for (let v_64877a = 0; v_64877a < v_c577dc; v_64877a++) {
 
     const v_c20139 = v_64877a < v_85ddfd ? v_85ddfd - v_64877a : (v_64877a >= v_85ddfd + v_10a17d ? v_64877a - (v_85ddfd + v_10a17d - 1) : 0);
     const v_459e8c = v_c20139 * v_c20139;
@@ -118,8 +152,8 @@ function v_31b50f(
     const v_d1e044 = v_ffa902(((v_64877a - v_85ddfd) / Math.max(1, v_10a17d - 1)) * (v_3018ef - 1), 0, v_3018ef - 1);
     const v_33cd07 = Math.floor(v_d1e044), v_98efa0 = Math.min(v_33cd07 + 1, v_3018ef - 1), v_23962e = v_d1e044 - v_33cd07;
 
-    for (let v_62c214 = 0; v_62c214 < v_82610d; v_62c214++) {
-      const v_b6c474 = (v_64877a * v_82610d + v_62c214) * 4;
+    for (let v_62c214 = 0; v_62c214 < v_e97fab; v_62c214++) {
+      const v_b6c474 = (v_64877a * v_e97fab + v_62c214) * 4;
       v_2b3f7c.data[v_b6c474 + 3] = 255;
 
       const v_c40388 = v_62c214 < v_4148d9 ? v_4148d9 - v_62c214 : (v_62c214 >= v_4148d9 + v_6b4aa2 ? v_62c214 - (v_4148d9 + v_6b4aa2 - 1) : 0);
@@ -134,7 +168,7 @@ function v_31b50f(
       const v_855751 = Math.floor(v_8fbe32), v_f0b70d = Math.min(v_855751 + 1, v_049c76 - 1), v_f83453 = v_8fbe32 - v_855751;
       const v_4e8708 = (v_33cd07 * v_049c76 + v_855751) * 4, v_4fda6f = (v_33cd07 * v_049c76 + v_f0b70d) * 4;
       const v_e48981 = (v_98efa0 * v_049c76 + v_855751) * 4, v_a2a7a3 = (v_98efa0 * v_049c76 + v_f0b70d) * 4;
-      const v_8d41d7 = v_454b43 === 0 ? 0 : Math.sqrt(v_454b43) / v_093162;
+      const v_8d41d7 = v_454b43 === 0 ? 0 : Math.sqrt(v_454b43) / v_60b9f9;
 
       for (let v_0eb677 = 0; v_0eb677 < 3; v_0eb677++) {
         const v_fbc0a4 = v_16cbb7.data[v_4e8708 + v_0eb677] * (1 - v_f83453) + v_16cbb7.data[v_4fda6f + v_0eb677] * v_f83453;

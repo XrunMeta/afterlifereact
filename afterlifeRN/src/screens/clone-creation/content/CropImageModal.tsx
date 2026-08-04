@@ -8,6 +8,7 @@ import {
   v_a2349e,
   v_700696,
   v_326be8,
+  v_39a996,
 } from "rcmrninabrnb";
 import {
   v_70c669,
@@ -29,7 +30,7 @@ import {
   v_34b1b1,
   type v_49127c,
 } from "../../../lib/cropImage";
-import { v_a73be8 } from "../../../lib/letterboxAvatar";
+import { v_a73be8, v_43752b, v_1fbf17 } from "../../../lib/letterboxAvatar";
 import { v_1bfbd0 } from "../../../components/constants";
 import { v_889fad } from "../../../stores/dialogStore";
 import {
@@ -78,12 +79,22 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
   const [v_29e4ca, v_40496c] = v_5ab095(true);
 
   const [v_141453, v_44c4ec] = v_5ab095<string | null>(null);
+
+  const [v_00b5ab, v_2383ee] = v_5ab095<string | null>(null);
+
+  const [v_85adb5, v_2495a1] = v_5ab095(false);
   v_c4deb2(() => {
-    if (!v_04e790) { v_44c4ec(null); return; }
+    if (!v_04e790) { v_44c4ec(null); v_2383ee(null); v_2495a1(false); return; }
     let v_2008a4 = false;
+    v_2383ee(null);
+    v_2495a1(true);
+
     void v_a73be8(v_04e790.uri)
       .then((v_3f4e2e) => { if (!v_2008a4) v_44c4ec(v_3f4e2e); })
       .catch(() => {  });
+    void v_43752b(v_04e790.uri, v_04e790.width, v_04e790.height)
+      .then((v_ceb55a) => { if (!v_2008a4) { v_2383ee(v_ceb55a); v_2495a1(false); } })
+      .catch(() => { if (!v_2008a4) v_2495a1(false);  });
     return () => { v_2008a4 = true; };
   }, [v_04e790?.uri]); 
 
@@ -210,6 +221,15 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
     [v_04e790, v_e0560a, v_fc2e4f, v_1dd864, v_ee2cf4],
   );
 
+  const v_c74dad = v_df9f57(
+    () => ({
+      width: (v_a576ef.width as number) * v_1fbf17,
+      height: (v_a576ef.height as number) * v_1fbf17,
+      transform: v_a576ef.transform,
+    }),
+    [v_a576ef],
+  );
+
   if (!v_04e790) return null;
 
   return (
@@ -229,6 +249,13 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
               onHandlerStateChange={v_b4ecf6}
             >
               <Animated.View style={v_fd5f43.fill}>
+                {
+}
+                {v_00b5ab ? (
+                  <View style={[v_472849.absoluteFill, v_fd5f43.center]} pointerEvents="none">
+                    <Animated.Image source={{ uri: v_00b5ab }} style={v_c74dad as any} resizeMode="stretch" />
+                  </View>
+                ) : null}
                 <Animated.Image source={{ uri: v_04e790.uri }} style={v_a576ef as any} resizeMode="cover" />
               </Animated.View>
             </PanGestureHandler>
@@ -254,14 +281,24 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
           ) : null}
         </View>
 
+        {
+}
+        {v_85adb5 ? (
+          <View style={[v_472849.absoluteFill, v_fd5f43.center]} pointerEvents="none">
+            <View style={v_fd5f43.loadingChip}>
+              <ActivityIndicator color={v_1bfbd0.white} />
+            </View>
+          </View>
+        ) : null}
+
         <View style={[v_fd5f43.actions, { bottom: 16 + v_53dd92 }]}>
           <TouchableOpacity style={v_fd5f43.btn} onPress={v_c7001c}>
             <Text style={v_fd5f43.btnText}>{v_8d41d7('common.cancel')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[v_fd5f43.btn, v_fd5f43.btnPrimary, !v_29e4ca && v_fd5f43.btnDisabled]}
+            style={[v_fd5f43.btn, v_fd5f43.btnPrimary, (!v_29e4ca || v_85adb5) && v_fd5f43.btnDisabled]}
             onPress={v_ce9295}
-            disabled={!v_29e4ca}
+            disabled={!v_29e4ca || v_85adb5}
           >
             <Text style={[v_fd5f43.btnText, v_fd5f43.btnPrimaryText]}>{v_8d41d7('common.confirm')}</Text>
           </TouchableOpacity>
@@ -274,6 +311,13 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
 const v_fd5f43 = v_472849.create({
 
   root: { flex: 1, backgroundColor: "#000" },
+  center: { alignItems: "center", justifyContent: "center" },
+  loadingChip: {
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: 999,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
   fill: { ...v_472849.absoluteFillObject, alignItems: "center", justifyContent: "center" },
   dim: { position: "absolute", backgroundColor: "rgba(0,0,0,0.6)" },
   frame: { position: "absolute", borderWidth: 2, borderColor: "rgba(255,255,255,0.9)" },
