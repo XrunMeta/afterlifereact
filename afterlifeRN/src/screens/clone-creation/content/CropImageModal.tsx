@@ -29,6 +29,7 @@ import {
   v_34b1b1,
   type v_49127c,
 } from "../../../lib/cropImage";
+import { v_a73be8 } from "../../../lib/letterboxAvatar";
 import { v_1bfbd0 } from "../../../components/constants";
 import { v_889fad } from "../../../stores/dialogStore";
 import {
@@ -75,6 +76,16 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
   const v_f60c75 = v_e662ae(null);
 
   const [v_29e4ca, v_40496c] = v_5ab095(true);
+
+  const [v_141453, v_44c4ec] = v_5ab095<string | null>(null);
+  v_c4deb2(() => {
+    if (!v_04e790) { v_44c4ec(null); return; }
+    let v_2008a4 = false;
+    void v_a73be8(v_04e790.uri)
+      .then((v_3f4e2e) => { if (!v_2008a4) v_44c4ec(v_3f4e2e); })
+      .catch(() => {  });
+    return () => { v_2008a4 = true; };
+  }, [v_04e790?.uri]); 
 
   v_c4deb2(() => {
     if (!v_04e790) return;
@@ -203,7 +214,7 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
 
   return (
     <Modal visible={v_cf55be} transparent animationType="fade" onRequestClose={v_c7001c}>
-      <GestureHandlerRootView style={v_fd5f43.root}>
+      <GestureHandlerRootView style={[v_fd5f43.root, v_141453 ? { backgroundColor: v_141453 } : null]}>
         <PinchGestureHandler
           ref={v_3ca9ce}
           simultaneousHandlers={v_f60c75}
@@ -261,6 +272,7 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
 }
 
 const v_fd5f43 = v_472849.create({
+
   root: { flex: 1, backgroundColor: "#000" },
   fill: { ...v_472849.absoluteFillObject, alignItems: "center", justifyContent: "center" },
   dim: { position: "absolute", backgroundColor: "rgba(0,0,0,0.6)" },

@@ -14,7 +14,7 @@ export function v_f98917(v_7ddb73, v_143cb5): number {
 
 const v_ffa902 = (v_81e2ef, v_bc6da1, v_d54b9c) => Math.min(Math.max(v_81e2ef, v_bc6da1), v_d54b9c);
 
-export const v_d0c8d8 = 0.35;
+export const v_d0c8d8 = 0.5;
 export const v_66052e = 10;
 
 export const v_723b6d = 1;
