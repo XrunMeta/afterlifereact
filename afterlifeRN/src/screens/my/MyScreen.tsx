@@ -171,12 +171,6 @@ export default function v_ed02a5() {
           },
         },
       ],
-
-      {
-        subMessage: v_8d41d7("my.delete.subMessage", {
-          defaultValue: "xrun 가입자라면 xrun 계정은 유지됩니다",
-        }),
-      },
     );
   };
 
@@ -248,7 +242,23 @@ export default function v_ed02a5() {
       icon: "log-out",
       labelKey: "my.menu.logout",
       descKey: "my.menu.logout",
-      action: () => void v_d7d5a2(),
+      action: () => {
+
+        v_889fad(
+          v_8d41d7("my.logout.title", { defaultValue: "로그아웃할까요?" }),
+          v_8d41d7("my.logout.desc", {
+            defaultValue: "다시 사용하려면 로그인이 필요해요.",
+          }),
+          [
+            { text: v_8d41d7("common.cancel", { defaultValue: "취소" }), style: "cancel" },
+            {
+              text: v_8d41d7("my.logout.confirm", { defaultValue: "로그아웃" }),
+              style: "destructive",
+              onPress: () => void v_d7d5a2(),
+            },
+          ],
+        );
+      },
     },
   ];
 

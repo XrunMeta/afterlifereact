@@ -268,6 +268,8 @@ interface FaceConsentSectionProps {
 }
 
 function v_afe1c9({ persons: v_fded81, loading: v_683210, revokingId: v_8728fe, onRevoke: v_9b29ab, t: v_8d41d7 }: FaceConsentSectionProps) {
+
+  const v_c65f5d = v_ada615<v_390fcc<v_e57140>>();
   const v_b4ca3a = v_fded81.filter((v_e2a85c) => v_e2a85c.consentState === "granted");
 
   return (
@@ -286,7 +288,7 @@ function v_afe1c9({ persons: v_fded81, loading: v_683210, revokingId: v_8728fe, 
         </View>
       ) : (
         <View style={v_fd5f43.card}>
-          {v_b4ca3a.map((v_306a28, v_ebec57) => {
+          {v_b4ca3a.slice(0, 3).map((v_306a28, v_ebec57) => {
             const v_3f8465 = v_8728fe === v_306a28.id;
             const v_8f5b15 = v_306a28.createdAt
               ? v_8d41d7("settings.privacy.faceConsent.consentedAt", {
@@ -297,6 +299,8 @@ function v_afe1c9({ persons: v_fded81, loading: v_683210, revokingId: v_8728fe, 
               ? v_8d41d7("settings.privacy.faceConsent.cloneLabel", { cloneId: v_306a28.cloneId })
               : `Person #${v_306a28.id}`;
 
+            const v_531384 = v_306a28.displayName?.trim() || v_24c1e9;
+
             return (
               <View key={v_306a28.id}>
                 <View style={v_fd5f43.row}>
@@ -305,7 +309,7 @@ function v_afe1c9({ persons: v_fded81, loading: v_683210, revokingId: v_8728fe, 
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={v_fd5f43.rowName} numberOfLines={1}>
-                      {v_24c1e9}
+                      {v_531384}
                     </Text>
                     <Text style={v_fd5f43.rowSub} numberOfLines={1}>
                       {v_8f5b15}
@@ -328,10 +332,26 @@ function v_afe1c9({ persons: v_fded81, loading: v_683210, revokingId: v_8728fe, 
                     )}
                   </TouchableOpacity>
                 </View>
-                {v_ebec57 < v_b4ca3a.length - 1 && <View style={v_fd5f43.divider} />}
+                {v_ebec57 < Math.min(v_b4ca3a.length, 3) - 1 && <View style={v_fd5f43.divider} />}
               </View>
             );
           })}
+          {}
+          {v_b4ca3a.length > 3 ? (
+            <TouchableOpacity
+              style={v_fd5f43.viewAllRow}
+              onPress={() => v_c65f5d.navigate("AcquaintanceManagement")}
+              accessibilityRole="button"
+            >
+              <Text style={v_fd5f43.viewAllText}>
+                {v_8d41d7("settings.privacy.faceConsent.viewAll", {
+                  count: v_b4ca3a.length,
+                  defaultValue: `전체 보기 (${v_b4ca3a.length}명)`,
+                })}
+              </Text>
+              <Feather name="chevron-right" size={18} color={v_1bfbd0.zinc400} />
+            </TouchableOpacity>
+          ) : null}
         </View>
       )}
     </View>
@@ -486,6 +506,16 @@ const v_fd5f43 = v_472849.create({
     alignItems: "center",
   },
   revokeBtnText: { fontSize: 12, fontWeight: "700", color: v_1bfbd0.white },
+  viewAllRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderTopWidth: v_472849.hairlineWidth,
+    borderTopColor: v_1bfbd0.zinc100,
+  },
+  viewAllText: { fontSize: 13, color: v_1bfbd0.zinc700, fontWeight: "600" },
   callLearningTermsLink: {
     color: v_1bfbd0.zinc700,
     textDecorationLine: "underline",
