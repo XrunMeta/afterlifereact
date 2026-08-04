@@ -51,6 +51,7 @@ import {
   type v_52af9d,
 } from "../../api/clones";
 import { v_bfd883 } from "../../lib/relativeTime";
+import { v_84d546 } from "../../lib/callGuard";
 import { v_ab98d4 } from "../../hooks/useReportAcceptedGate";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import type { v_19b433 } from "../../types/feed";
@@ -377,7 +378,17 @@ export default function v_c316d8() {
           cardHeight={v_1be4da}
           onToggleLike={() => v_a96ced(v_8c0b26.id)}
           onToggleFollow={() => void v_3094d4(v_8c0b26.cloneId)}
-          onCallPress={() => v_f4c991.navigate("Call", { cloneId: v_8c0b26.cloneId, name: v_8c0b26.author, image: v_8c0b26.image })}
+          onCallPress={async () => {
+
+            const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
+              v_f4c991.dispatch(
+                v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+              );
+            });
+            if (v_3ed4c3) {
+              v_f4c991.navigate("Call", { cloneId: v_8c0b26.cloneId, name: v_8c0b26.author, image: v_8c0b26.image });
+            }
+          }}
           onCommentPress={() => v_b07dd3(v_8c0b26.id)}
           onMorePress={() =>
             v_949e66({
