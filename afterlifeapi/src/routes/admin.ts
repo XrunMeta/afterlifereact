@@ -1135,6 +1135,28 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
   return v_3f4e2e.json(v_3ac7e7);
 });
 
+v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid user id.");
+  }
+  const v_18b8bf = await v_3f4e2e.env.DB.prepare(
+    `SELECT device_id AS deviceId,
+            platform,
+            SUBSTR(push_token, 1, 24) AS pushTokenPrefix,
+            LENGTH(push_token) AS pushTokenLength,
+            is_active AS isActive,
+            last_active_at AS lastActiveAt,
+            created_at AS createdAt
+       FROM user_devices
+      WHERE user_id = ?
+      ORDER BY last_active_at DESC`,
+  )
+    .bind(v_389afb)
+    .all();
+  return v_3f4e2e.json({ userId: v_389afb, devices: v_18b8bf.results });
+});
+
 v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
   const v_9b82b4 = Number(v_3f4e2e.req.param("xrunMemberId"));
   if (!Number.isInteger(v_9b82b4) || v_9b82b4 <= 0) {
