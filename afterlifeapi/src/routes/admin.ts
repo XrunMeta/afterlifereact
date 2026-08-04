@@ -1135,6 +1135,57 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
   return v_3f4e2e.json(v_3ac7e7);
 });
 
+v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_43e90c = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_43e90c) || v_43e90c <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid user id.");
+  }
+  const v_4d33b2 = (await v_3f4e2e.req.json().catch(() => ({}))) as { seconds?: unknown; reason?: unknown };
+  const v_ec1a55 = Number(v_4d33b2.seconds);
+  if (!Number.isInteger(v_ec1a55) || v_ec1a55 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "seconds must be a positive integer.");
+  }
+  const v_67e77e = Date.now();
+  const v_fca18b = 5 * 365 * 24 * 60 * 60 * 1000;
+  const v_62c866 = `admin:${v_ec1a55}:${v_67e77e}`;
+  const v_58ca36 = typeof v_4d33b2.reason === "string" ? v_4d33b2.reason.slice(0, 200) : "admin grant";
+
+  const v_b92ed2 = await v_3f4e2e.env.DB
+    .prepare(
+      `INSERT INTO credit_ledgers (user_id, amount, type, ref_id, idempotency_key)
+         VALUES (?, ?, 'admin_grant', ?, ?)
+         RETURNING id`,
+    )
+    .bind(v_43e90c, v_ec1a55, v_58ca36, v_62c866)
+    .first<{ id: number }>();
+  if (!v_b92ed2) throw new v_3ebe58("INTERNAL_ERROR", "ledger insert failed.");
+
+  await v_3f4e2e.env.DB
+    .prepare(
+      `UPDATE users
+          SET credits       = credits + ?,
+              credits_topup = credits_topup + ?,
+              updated_at    = CURRENT_TIMESTAMP
+        WHERE id = ? AND deleted_at IS NULL`,
+    )
+    .bind(v_ec1a55, v_ec1a55, v_43e90c)
+    .run();
+
+  await v_3f4e2e.env.DB
+    .prepare(
+      `INSERT INTO credit_lots (user_id, amount, remaining, granted_at, expires_at, ledger_id)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(v_43e90c, v_ec1a55, v_ec1a55, v_67e77e, v_67e77e + v_fca18b, v_b92ed2.id)
+    .run();
+
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare(`SELECT credits, credits_topup FROM users WHERE id = ?`)
+    .bind(v_43e90c)
+    .first<{ credits: number; credits_topup: number }>();
+  return v_3f4e2e.json({ ok: true, granted: v_ec1a55, balance: v_3ac7e7 });
+});
+
 v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_389afb) || v_389afb <= 0) {
