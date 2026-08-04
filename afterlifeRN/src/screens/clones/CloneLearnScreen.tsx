@@ -68,6 +68,10 @@ interface LastSaved {
   slotKeys: string[];     
   userAnswer: string;     
   reply: string;          
+  followup?: {            
+    question: string;
+    slotKey: string;
+  };
 }
 
 interface FollowupState {
@@ -190,6 +194,14 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       }
       const v_3871e2 = v_8f00b9.items ?? [];
       v_fa923c(v_3871e2);
+
+      v_9a42bc({
+        baseKey: v_e3e25f.baseKey,
+        slotKeys: [v_e3e25f.slotKey],
+        userAnswer: v_779914,
+        reply: "",
+        followup: { question: v_e3e25f.question, slotKey: v_e3e25f.slotKey },
+      });
       const v_ca2c14 = new Set(v_3871e2.map((v_ebec57) => v_ebec57.key));
       v_ca2c14.add(v_e3e25f.baseKey);
       const v_75fbef = v_c3519b.filter((v_ab6401) => !v_ca2c14.has(v_ab6401.key));
@@ -365,7 +377,16 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       v_fa923c(v_8f00b9.items ?? []);
       v_056f5c(v_ce0b03.baseKey);
       v_2f6757(v_ce0b03.userAnswer);
-      v_8f1d4b(null);
+
+      if (v_ce0b03.followup) {
+        v_8f1d4b({
+          baseKey: v_ce0b03.baseKey,
+          question: v_ce0b03.followup.question,
+          slotKey: v_ce0b03.followup.slotKey,
+        });
+      } else {
+        v_8f1d4b(null);
+      }
       v_9a42bc(null);
     } catch (v_49263d) {
       v_889fad(v_8d41d7("common.error"), (v_49263d as Error).message);
