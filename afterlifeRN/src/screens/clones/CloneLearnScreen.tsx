@@ -486,7 +486,10 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                   </View>
                 )}
 
-                {v_2a8f35 && (
+                {
+
+}
+                {v_2a8f35 && !v_e3e25f && (
                   <View style={[v_d81136.bubbleRow, v_d81136.bubbleRowLeft]}>
                     <View style={[v_d81136.bubble, v_d81136.bubbleBot]}>
                       <Text style={v_d81136.bubbleText}>
