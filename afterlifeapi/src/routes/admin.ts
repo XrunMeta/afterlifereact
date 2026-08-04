@@ -1191,6 +1191,48 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   if (!Number.isInteger(v_43e90c) || v_43e90c <= 0) {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid user id.");
   }
+  const v_db0487 = [
+    { type: "intimacy_score", title: "🌡️ +1°C 온도 상승", body: "테스트 페르소나와의 친밀도가 올랐습니다." },
+    { type: "clone_like", title: "👍 좋아요 도착", body: "테스트 사용자가 내 페르소나를 좋아합니다." },
+    { type: "clone_comment", title: "💬 댓글 도착", body: "테스트 사용자가 내 페르소나에 댓글을 남겼습니다." },
+    { type: "clone_follow", title: "➕ 새 구독자", body: "테스트 사용자가 내 페르소나를 구독했습니다." },
+    { type: "clone_gift", title: "🎁 선물 도착", body: "테스트 사용자가 내 페르소나에 선물을 보냈습니다." },
+    { type: "user_follow", title: "👤 새 팔로워", body: "테스트 사용자가 나를 팔로우했습니다." },
+    { type: "followee_new_clone", title: "✨ 새 페르소나", body: "팔로우한 사용자가 새 페르소나를 만들었습니다." },
+    { type: "moderation", title: "⚠️ 제재 알림", body: "테스트 제재 안내." },
+    { type: "invite_received", title: "📨 초대 도착", body: "테스트 공동관리자 초대." },
+  ];
+  const v_a7f568 = [];
+  for (const v_8d41d7 of v_db0487) {
+    try {
+      const v_cb35cb = await v_c226a5(v_3f4e2e.env, {
+        userId: v_43e90c,
+        type: v_8d41d7.type,
+        title: v_8d41d7.title,
+        body: v_8d41d7.body,
+        skipEmail: true,
+      });
+      v_a7f568.push({
+        type: v_8d41d7.type,
+        inserted: v_cb35cb.inserted,
+        pushAttempted: v_cb35cb.pushAttempted,
+        pushSent: v_cb35cb.pushSent,
+      });
+    } catch (v_49263d) {
+      v_a7f568.push({
+        type: v_8d41d7.type,
+        error: (v_49263d as Error).message ?? String(v_49263d),
+      });
+    }
+  }
+  return v_3f4e2e.json({ userId: v_43e90c, count: v_db0487.length, results: v_a7f568 });
+});
+
+v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_43e90c = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_43e90c) || v_43e90c <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid user id.");
+  }
   const v_4d33b2 = (await v_3f4e2e.req.json().catch(() => ({}))) as { title?: unknown; body?: unknown };
   const v_9f1622 = typeof v_4d33b2.title === "string" && v_4d33b2.title ? v_4d33b2.title : "🧪 테스트 알림";
   const v_7ef175 = typeof v_4d33b2.body === "string" && v_4d33b2.body ? v_4d33b2.body : "관리자가 발송한 테스트 알림입니다.";
