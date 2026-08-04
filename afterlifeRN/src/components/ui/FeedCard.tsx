@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
 
   intimacyBadge: {
     position: "absolute",
-    top: 16,
+    top: 56,
     right: 16,
     flexDirection: "row",
     alignItems: "center",
