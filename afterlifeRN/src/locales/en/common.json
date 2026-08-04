@@ -235,7 +235,11 @@
     "enrollSuccessToast": "I'll remember you now, {{name}}",
     "enrollFailToast": "Registration failed. Please try again.",
     "paymentPreparingToast": "Preparing payment...",
-    "confirmHint": "Tap to cancel · sending shortly"
+    "confirmHint": "Tap to cancel · sending shortly",
+    "remainingWarnToast": "30 seconds of call time left. Ending soon.",
+    "exhaustedTitle": "Call Time Ended",
+    "exhaustedBody": "Recharge to keep talking.",
+    "exhaustedCharge": "Recharge"
   },
   "feed": {
     "homeTitle": "Home",
