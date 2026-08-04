@@ -433,4 +433,73 @@ export const api = {
       `/oth-path${threshold}`,
       { method: "DELETE" },
     ),
+
+  getCrashReports: (params?: {
+    fatal?: "0" | "1";
+    userId?: number;
+    screen?: string;
+    q?: string;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params?.fatal) qs.set("fatal", params.fatal);
+    if (params?.userId) qs.set("userId", String(params.userId));
+    if (params?.screen) qs.set("screen", params.screen);
+    if (params?.q) qs.set("q", params.q);
+    if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.offset) qs.set("offset", String(params.offset));
+    const tail = qs.toString();
+    return request<{
+      items: Array<{
+        id: number;
+        userId: number | null;
+        userEmail: string | null;
+        ts: number;
+        receivedAt: number;
+        isFatal: boolean;
+        errorName: string | null;
+        message: string;
+        screen: string | null;
+        appVersion: string | null;
+        runtimeVersion: string | null;
+        updateId: string | null;
+        channel: string | null;
+        platform: string | null;
+        osVersion: string | null;
+        deviceModel: string | null;
+        locale: string | null;
+      }>;
+      total: number;
+      limit: number;
+      offset: number;
+    }>(`/oth-path${tail ? `?${tail}` : ""}`);
+  },
+  getCrashReport: (id: number) =>
+    request<{
+      item: {
+        id: number;
+        userId: number | null;
+        userEmail: string | null;
+        ts: number;
+        receivedAt: number;
+        isFatal: boolean;
+        errorName: string | null;
+        message: string;
+        stack: string | null;
+        screen: string | null;
+        breadcrumbs: Array<{ category: string; message: string; ts?: number; data?: Record<string, unknown> }>;
+        extra: Record<string, unknown> | null;
+        appVersion: string | null;
+        runtimeVersion: string | null;
+        updateId: string | null;
+        channel: string | null;
+        platform: string | null;
+        osVersion: string | null;
+        deviceModel: string | null;
+        locale: string | null;
+      };
+    }>(`/oth-path${id}`),
+  deleteCrashReport: (id: number) =>
+    request<{ ok: true }>(`/oth-path${id}`, { method: "DELETE" }),
 };
