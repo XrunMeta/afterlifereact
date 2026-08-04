@@ -1,6 +1,6 @@
 
 
-const DEFAULT_VERIFY_URL = "https://rtc.example.invalid/prethird/verify";
+const DEFAULT_VERIFY_URL = "https://rtc.example.invalid/oth-path";
 
 const VERIFY_URL: string = import.meta.env.VITE_VERIFY_URL ?? DEFAULT_VERIFY_URL;
 
