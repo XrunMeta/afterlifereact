@@ -26,17 +26,17 @@ describe("t208MeasureStore", () => {
   });
 
   it("record 후 summary·ready·다음 배율 전환", async () => {
-    await recordT208Crop(0.75, "file:///a.jpg");
-    expect(getT208Crop(0.75)?.uri).toContain("file:///a.jpg");
-    expect(t208CropsSummary()).toContain("0.75: ✓");
+    await recordT208Crop(0.95, "file:///a.jpg");
+    expect(getT208Crop(0.95)?.uri).toContain("file:///a.jpg");
+    expect(t208CropsSummary()).toContain("0.95: ✓");
     expect(t208AllCropsReady()).toBe(false);
 
     const next = advanceT208ToNextIncompleteScale();
-    expect(next).toBe(0.5);
-    expect(getSilhouetteScale()).toBe(0.5);
+    expect(next).toBe(0.64);
+    expect(getSilhouetteScale()).toBe(0.64);
 
-    await recordT208Crop(0.5, "file:///b.jpg");
-    await recordT208Crop(0.4, "file:///c.jpg");
+    await recordT208Crop(0.64, "file:///b.jpg");
+    await recordT208Crop(0.52, "file:///c.jpg");
     expect(t208AllCropsReady()).toBe(true);
     expect(advanceT208ToNextIncompleteScale()).toBeNull();
   });

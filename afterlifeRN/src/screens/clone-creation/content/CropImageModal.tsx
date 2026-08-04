@@ -233,8 +233,9 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
           {}
           <View style={[s.frame, { top: (SH - frameH) / 2, left: (SW - frameW) / 2, width: frameW, height: frameH }]} />
           {}
+          {}
           <View style={[s.guide, { top: (SH - frameH) / 2, left: (SW - frameW) / 2, width: frameW, height: frameH }]}>
-            <UpperBodyGuide width={SW * silhouetteScale} />
+            <UpperBodyGuide width={frameW * silhouetteScale} />
           </View>
           {__DEV__ && isT208MeasureMode() ? (
             <View style={s.devBadge} pointerEvents="none">

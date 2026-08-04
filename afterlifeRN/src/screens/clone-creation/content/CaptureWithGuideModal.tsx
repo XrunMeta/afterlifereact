@@ -166,7 +166,8 @@ export default function CaptureWithGuideModal({ visible, onCapture, onCancel }: 
             </View>
           )}
           <View style={s.guideOverlay} pointerEvents="none">
-            <UpperBodyGuide width={SW * silhouetteScale} />
+            {}
+            <UpperBodyGuide width={frameW * silhouetteScale} />
           </View>
           <View style={s.frameBorder} pointerEvents="none" />
         </View>
