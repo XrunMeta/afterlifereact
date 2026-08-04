@@ -31,6 +31,10 @@ import FeedCard from "../../components/ui/FeedCard";
 import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
 import ReportReasonModal from "../../components/common/ReportReasonModal";
 
+import VisibilityPickerModal from "../clones/components/VisibilityPickerModal";
+import FriendPickerModal from "../clones/components/FriendPickerModal";
+import type { Visibility } from "../../types/clone";
+
 import { useFeedStore, apiFeedCountsCache } from "../../stores/feedStore";
 import { useFollowStore } from "../../stores/followStore";
 import { useAuthStore } from "../../stores/authStore";
@@ -110,6 +114,13 @@ export default function HomeScreen() {
     isOwn: boolean;
     visibility?: string;
   } | null>(null);
+
+  const [visibilityPicker, setVisibilityPicker] = useState<{
+    cloneId: number;
+    currentVisibility: Visibility;
+  } | null>(null);
+
+  const [friendPickerCloneId, setFriendPickerCloneId] = useState<number | null>(null);
 
   const [reportTarget, setReportTarget] = useState<{
     cloneId: number;
@@ -742,23 +753,8 @@ export default function HomeScreen() {
                     setMoreTarget(null);
                     if (!target) return;
 
-                    rootNav.dispatch(
-                      CommonActions.navigate({
-                        name: "Main",
-                        params: {
-                          screen: "ClonesTab",
-                          params: {
-                            screen: "CloneEdit",
-                            params: { cloneId: target.cloneId },
-                          },
-                        },
-                      }),
-                    );
-                    setToastMessage(
-                      t("home.toasts.editVisibilityHint", {
-                        defaultValue: "클론 편집 → 공개 범위에서 변경하세요",
-                      }),
-                    );
+                    const current = (target.visibility as Visibility | undefined) ?? "public";
+                    setVisibilityPicker({ cloneId: target.cloneId, currentVisibility: current });
                   }}
                 >
                   <Feather name="eye" size={20} color={COLORS.zinc900} />
@@ -972,6 +968,83 @@ export default function HomeScreen() {
           <Text style={styles.toastText}>{toastMessage}</Text>
         </View>
       )}
+
+      {}
+      <VisibilityPickerModal
+        visible={!!visibilityPicker}
+        currentVisibility={visibilityPicker?.currentVisibility ?? null}
+        onClose={() => setVisibilityPicker(null)}
+        onSelect={async (v) => {
+          const target = visibilityPicker;
+          setVisibilityPicker(null);
+          if (!target) return;
+          if (v === "selected") {
+            setFriendPickerCloneId(target.cloneId);
+            return;
+          }
+
+          const store = useFeedStore.getState();
+          if (store.apiFeeds) {
+            useFeedStore.setState({
+              apiFeeds: store.apiFeeds.map((f) =>
+                f.clone.id === target.cloneId
+                  ? { ...f, clone: { ...f.clone, visibility: v } }
+                  : f,
+              ),
+            });
+          }
+          if (!accessToken) return;
+          try {
+            const { patchClone } = await import("../../api/clones");
+            await patchClone(accessToken, target.cloneId, {
+              visibility: v,
+              allowed_viewers: [],
+            });
+            setToastMessage(
+              t("home.toasts.visibilityUpdated", { defaultValue: "공개 범위가 변경됐어요" }),
+            );
+          } catch (err) {
+            console.warn("[Home] update visibility failed:", err);
+            setToastMessage(
+              t("home.toasts.visibilityFailed", { defaultValue: "공개 범위 변경에 실패했어요" }),
+            );
+          }
+        }}
+      />
+
+      {}
+      <FriendPickerModal
+        visible={friendPickerCloneId != null}
+        onClose={() => setFriendPickerCloneId(null)}
+        onConfirm={async (userIds) => {
+          const cloneId = friendPickerCloneId;
+          setFriendPickerCloneId(null);
+          if (!cloneId) return;
+          const store = useFeedStore.getState();
+          if (store.apiFeeds) {
+            useFeedStore.setState({
+              apiFeeds: store.apiFeeds.map((f) =>
+                f.clone.id === cloneId
+                  ? { ...f, clone: { ...f.clone, visibility: "selected" } }
+                  : f,
+              ),
+            });
+          }
+          if (!accessToken) return;
+          try {
+            const { patchClone } = await import("../../api/clones");
+            await patchClone(accessToken, cloneId, {
+              visibility: "selected",
+              allowed_viewers: userIds,
+            });
+            setToastMessage(
+              t("home.toasts.visibilityUpdated", { defaultValue: "공개 범위가 변경됐어요" }),
+            );
+          } catch (err) {
+            console.warn("[Home] selected visibility PATCH failed:", err);
+          }
+        }}
+      />
     </View>
   );
 }
