@@ -66,6 +66,17 @@ export default function v_18ad36() {
     v_92fdf2();
   }, [v_92fdf2]);
 
+  v_c4deb2(() => {
+    if (!v_2ca7e0 || v_683210) return;
+    if (v_4622b9.length === 0) return;
+    if (!v_4622b9.some((v_23805a) => !v_23805a.isRead)) return;
+    v_fa923c((v_ba2215) => v_ba2215.map((v_23805a) => ({ ...v_23805a, isRead: true })));
+    v_b7d6d1(v_2ca7e0).catch((v_49263d) =>
+      console.warn("[Notifications] auto markAllRead failed:", v_49263d),
+    );
+
+  }, [v_2ca7e0, v_683210]);
+
   const v_00ff06 = async (v_6e0fd3, v_4400a9 = false, v_c09aa8) => {
     try {
       const v_7d5f12 = await v_003cf2(v_6e0fd3, v_2ca7e0 ?? undefined);
@@ -118,10 +129,51 @@ export default function v_18ad36() {
     const v_f71b56 = typeof v_d5dda0.url === "string" ? v_d5dda0.url : "";
     let v_35f85c;
 
-    if (v_f4e98d.type === "clone_follow" && typeof v_d5dda0.actorId === "number") {
+    const v_277683 = typeof v_d5dda0.cloneId === "number" ? v_d5dda0.cloneId : 0;
+    if (
+      v_f4e98d.type === "clone_like" ||
+      v_f4e98d.type === "clone_comment" ||
+      v_f4e98d.type === "clone_gift" ||
+      v_f4e98d.type === "clone_follow"
+    ) {
 
-      v_c65f5d.navigate("UserProfile", { userId: v_d5dda0.actorId });
-    } else if ((v_35f85c = v_f71b56.match(/^afterlife:\/\/invite\/(.+)$/))) {
+      if (v_277683 > 0) {
+        const v_11083e =
+          v_f4e98d.type === "clone_like"
+            ? ("likes" as const)
+            : v_f4e98d.type === "clone_comment"
+              ? ("comments" as const)
+              : v_f4e98d.type === "clone_gift"
+                ? ("gifts" as const)
+                : ("followers" as const);
+        v_c65f5d.navigate("Main", {
+          screen: "ClonesTab",
+          params: {
+            screen: "Dashboard",
+            params: { openStatsCloneId: v_277683, openStatsTab: v_11083e },
+          },
+        });
+        return;
+      }
+    }
+    if (v_f4e98d.type === "user_follow") {
+
+      const v_f1620a = v_1ed7d9.getState().apiUser?.id;
+      if (v_f1620a) {
+        v_c65f5d.navigate("UserFollowList", { userId: v_f1620a, mode: "followers" });
+        return;
+      }
+    }
+    if (v_f4e98d.type === "followee_new_clone" && v_277683 > 0) {
+
+      v_c65f5d.navigate("Main", {
+        screen: "ClonesTab",
+        params: { screen: "CloneDetail", params: { cloneId: v_277683 } },
+      });
+      return;
+    }
+
+    if ((v_35f85c = v_f71b56.match(/^afterlife:\/\/invite\/(.+)$/))) {
       v_c65f5d.navigate("InviteAccept", { token: decodeURIComponent(v_35f85c[1]) });
     } else if (v_f4e98d.type === "moderation" || v_f71b56.startsWith("afterlife://reports")) {
 
