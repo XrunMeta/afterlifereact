@@ -1135,6 +1135,28 @@ admin.get("/oth-path", requireAdmin, async (c) => {
   return c.json(row);
 });
 
+admin.get("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid user id.");
+  }
+  const rows = await c.env.DB.prepare(
+    `SELECT device_id AS deviceId,
+            platform,
+            SUBSTR(push_token, 1, 24) AS pushTokenPrefix,
+            LENGTH(push_token) AS pushTokenLength,
+            is_active AS isActive,
+            last_active_at AS lastActiveAt,
+            created_at AS createdAt
+       FROM user_devices
+      WHERE user_id = ?
+      ORDER BY last_active_at DESC`,
+  )
+    .bind(id)
+    .all();
+  return c.json({ userId: id, devices: rows.results });
+});
+
 admin.get("/by-xrun/:xrunMemberId/summary", requireAdmin, async (c) => {
   const xrunId = Number(c.req.param("xrunMemberId"));
   if (!Number.isInteger(xrunId) || xrunId <= 0) {
