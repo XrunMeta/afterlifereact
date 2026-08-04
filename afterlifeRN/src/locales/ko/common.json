@@ -500,6 +500,8 @@
     },
     "menu": {
       "editProfile": "개인정보 관리",
+      "notificationsList": "알림",
+      "notificationsListDesc": "받은 알림 전체 보기",
       "notifications": "알림 설정",
       "privacy": "차단 관리",
       "agreements": "동의",

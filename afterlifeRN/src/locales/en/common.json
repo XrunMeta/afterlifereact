@@ -500,6 +500,8 @@
     },
     "menu": {
       "editProfile": "Edit Profile",
+      "notificationsList": "Notifications",
+      "notificationsListDesc": "View all received notifications",
       "notifications": "Notification Settings",
       "privacy": "Privacy and Visibility",
       "agreements": "Consent",
