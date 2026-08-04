@@ -1191,6 +1191,61 @@ admin.post("/oth-path", requireAdmin, async (c) => {
   if (!Number.isInteger(userId) || userId <= 0) {
     throw new APIError("VALIDATION_FAILED", "Invalid user id.");
   }
+  const types: Array<{
+    type:
+      | "intimacy_score"
+      | "clone_like"
+      | "clone_comment"
+      | "clone_follow"
+      | "clone_gift"
+      | "user_follow"
+      | "followee_new_clone"
+      | "moderation"
+      | "invite_received";
+    title: string;
+    body: string;
+  }> = [
+    { type: "intimacy_score", title: "🌡️ +1°C 온도 상승", body: "테스트 페르소나와의 친밀도가 올랐습니다." },
+    { type: "clone_like", title: "👍 좋아요 도착", body: "테스트 사용자가 내 페르소나를 좋아합니다." },
+    { type: "clone_comment", title: "💬 댓글 도착", body: "테스트 사용자가 내 페르소나에 댓글을 남겼습니다." },
+    { type: "clone_follow", title: "➕ 새 구독자", body: "테스트 사용자가 내 페르소나를 구독했습니다." },
+    { type: "clone_gift", title: "🎁 선물 도착", body: "테스트 사용자가 내 페르소나에 선물을 보냈습니다." },
+    { type: "user_follow", title: "👤 새 팔로워", body: "테스트 사용자가 나를 팔로우했습니다." },
+    { type: "followee_new_clone", title: "✨ 새 페르소나", body: "팔로우한 사용자가 새 페르소나를 만들었습니다." },
+    { type: "moderation", title: "⚠️ 제재 알림", body: "테스트 제재 안내." },
+    { type: "invite_received", title: "📨 초대 도착", body: "테스트 공동관리자 초대." },
+  ];
+  const results = [];
+  for (const t of types) {
+    try {
+      const r = await notify(c.env, {
+        userId,
+        type: t.type,
+        title: t.title,
+        body: t.body,
+        skipEmail: true,
+      });
+      results.push({
+        type: t.type,
+        inserted: r.inserted,
+        pushAttempted: r.pushAttempted,
+        pushSent: r.pushSent,
+      });
+    } catch (err) {
+      results.push({
+        type: t.type,
+        error: (err as Error).message ?? String(err),
+      });
+    }
+  }
+  return c.json({ userId, count: types.length, results });
+});
+
+admin.post("/oth-path", requireAdmin, async (c) => {
+  const userId = Number(c.req.param("id"));
+  if (!Number.isInteger(userId) || userId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid user id.");
+  }
   const body = (await c.req.json().catch(() => ({}))) as { title?: unknown; body?: unknown };
   const title = typeof body.title === "string" && body.title ? body.title : "🧪 테스트 알림";
   const bodyText = typeof body.body === "string" && body.body ? body.body : "관리자가 발송한 테스트 알림입니다.";
