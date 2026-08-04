@@ -21,6 +21,7 @@ import { L0PersonaEditPage } from "./pages/L0PersonaEditPage";
 import { PersonaQuestionsEditPage } from "./pages/PersonaQuestionsEditPage";
 import { VoicePresetsPage } from "./pages/VoicePresetsPage";
 import { CrashReportsPage } from "./pages/CrashReportsPage";
+import { VerifyLabPage } from "./pages/VerifyLabPage";
 
 function ProtectedLayout({ children }: { children: ReactNode }) {
   return (
@@ -54,6 +55,7 @@ function App() {
         <Route path="/oth-path-reports" element={<ProtectedLayout><UserReportsPage /></ProtectedLayout>} />
         <Route path="/report-rules" element={<ProtectedLayout><ReportPenaltyRulesPage /></ProtectedLayout>} />
         <Route path="/testbed" element={<ProtectedLayout><ApiTestbedPage /></ProtectedLayout>} />
+        <Route path="/oth-path-lab" element={<ProtectedLayout><VerifyLabPage /></ProtectedLayout>} />
         <Route path="/crashes" element={<ProtectedLayout><CrashReportsPage /></ProtectedLayout>} />
         <Route
           path="/oth-path"
