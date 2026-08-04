@@ -445,6 +445,7 @@
     "allDone": "모든 질문에 답했습니다! 통화에서 반영됩니다.",
     "confirmYes": "예",
     "confirmNo": "아니요",
+    "undoLast": "답변 수정하기",
     "saving": "저장 중...",
     "followupSkip": "건너뛰기",
     "skip": "다른 질문",
