@@ -351,6 +351,23 @@ export default function MyClonesDashboardScreen() {
     setIntimacyModal({ cloneId: cid, cloneName: clone.displayName });
   }, [route.params?.openIntimacyCloneId, myClones]);
 
+  const openedStatsRef = useRef<string | null>(null);
+  useEffect(() => {
+    const cid = route.params?.openStatsCloneId;
+    const tab = route.params?.openStatsTab;
+    if (!cid || !tab) return;
+    const key = `${cid}:${tab}`;
+    if (openedStatsRef.current === key) return;
+    const clone = myClones.find((c) => c.id === cid);
+    if (!clone) return; 
+    openedStatsRef.current = key;
+    if (tab === "gifts") {
+      setIntimacyModal({ cloneId: cid, cloneName: clone.displayName });
+    } else {
+      setStatsModal({ type: tab, cloneId: cid, cloneName: clone.displayName });
+    }
+  }, [route.params?.openStatsCloneId, route.params?.openStatsTab, myClones]);
+
   const handleToggle = (cloneId: number) => {
     const currentState = cloneStates[cloneId]?.isActive ?? true;
     setToggleModal({ cloneId, currentState });

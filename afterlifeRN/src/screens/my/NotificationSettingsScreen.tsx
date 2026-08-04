@@ -22,9 +22,7 @@ import {
   requestPushPermission,
   registerPushTokenIfReady,
 } from "../../lib/pushNotifications";
-import { sendTestPush } from "../../api/notifications";
 import { useAuthStore } from "../../stores/authStore";
-import { TouchableOpacity } from "react-native";
 
 type PrefKey =
   | "newFollower"
@@ -67,7 +65,6 @@ export default function NotificationSettingsScreen() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const [granted, setGranted] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [testing, setTesting] = useState(false);
 
   const [prefs, setPrefs] = useState<Record<PrefKey, boolean>>({
     newFollower: true,
@@ -184,33 +181,6 @@ export default function NotificationSettingsScreen() {
 
   const subDisabled = !granted;
 
-  const handleTestPush = async () => {
-    if (!accessToken || testing) return;
-    setTesting(true);
-    try {
-      const res = await sendTestPush(accessToken);
-      if (res.attempted === 0) {
-        showAlert(
-          "테스트 알림",
-          res.error ?? "등록된 활성 토큰이 없습니다. 알림 권한을 다시 켜주세요.",
-        );
-      } else {
-        const ok = res.tickets.filter((t) => t.status === "ok").length;
-        const detail = res.tickets
-          .map((t) => `${t.platform}: ${t.status}${t.errorCode ? " (" + t.errorCode + ")" : ""}`)
-          .join("\n");
-        showAlert(
-          "테스트 알림 발송 결과",
-          `발송 ${res.attempted}건 · 성공 ${ok}건\n\n${detail}\n\n몇 초 안에 알림이 도착하는지 확인해주세요.`,
-        );
-      }
-    } catch (err) {
-      showAlert("테스트 알림", `발송 실패: ${(err as Error).message ?? String(err)}`);
-    } finally {
-      setTesting(false);
-    }
-  };
-
   return (
     <SafeScrollView backgroundColor={COLORS.white} showBottomBackground={false}>
       <PageHeader
@@ -263,19 +233,6 @@ export default function NotificationSettingsScreen() {
           ))}
         </View>
 
-        {}
-        <TouchableOpacity
-          onPress={handleTestPush}
-          disabled={!granted || testing}
-          style={[s.testBtn, (!granted || testing) && s.testBtnDisabled]}
-        >
-          {testing ? (
-            <ActivityIndicator color={COLORS.white} />
-          ) : (
-            <Text style={s.testBtnText}>테스트 알림 보내기</Text>
-          )}
-        </TouchableOpacity>
-
         {
 
 }
@@ -305,16 +262,6 @@ const s = StyleSheet.create({
     borderRadius: RADIUS.lg,
   },
   rowLabel: { fontSize: 15, fontWeight: "500", color: COLORS.zinc900 },
-  testBtn: {
-    marginTop: 20,
-    backgroundColor: COLORS.violet600,
-    paddingVertical: 14,
-    borderRadius: RADIUS.lg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  testBtnDisabled: { backgroundColor: COLORS.zinc300 },
-  testBtnText: { color: COLORS.white, fontSize: 15, fontWeight: "600" },
 
   subCard: {
     marginTop: 12,
