@@ -54,6 +54,8 @@ export const v_0b62e7 = new Map<number, v_4b85a1>();
 
 export const v_10e36e = new Map<number, { commentsCount: number }>();
 
+export const v_674b99 = new Map<number, number>();
+
 function v_0a5d7b(item: v_4c75cf): v_bc3df4 {
   v_0b62e7.set(v_8c0b26.cloneId, {
     id: v_8c0b26.clone.id,
@@ -72,6 +74,10 @@ function v_0a5d7b(item: v_4c75cf): v_bc3df4 {
   v_10e36e.set(v_8c0b26.id, {
     commentsCount: v_8c0b26.commentsCount ?? 0,
   });
+
+  if (typeof v_8c0b26.myIntimacy === "number") {
+    v_674b99.set(v_8c0b26.cloneId, Math.min(100, Math.max(0, v_8c0b26.myIntimacy)));
+  }
   return {
     id: v_8c0b26.id,
     cloneId: v_8c0b26.cloneId,
@@ -195,6 +201,7 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
   resetForLogout: () => {
     v_0b62e7.clear();
     v_10e36e.clear();
+    v_674b99.clear();
     v_bb8024({
       apiFeeds: null,
       apiLoading: false,
