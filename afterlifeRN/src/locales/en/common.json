@@ -445,6 +445,7 @@
     "allDone": "You've answered every question! It will show up on calls.",
     "confirmYes": "Yes",
     "confirmNo": "No",
+    "undoLast": "Edit answer",
     "saving": "Saving...",
     "followupSkip": "Skip",
     "skip": "Different question",

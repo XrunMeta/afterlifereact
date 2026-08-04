@@ -445,6 +445,7 @@
     "allDone": "所有问题都已回答！将在通话中体现。",
     "confirmYes": "是",
     "confirmNo": "否",
+    "undoLast": "修改答案",
     "saving": "保存中...",
     "followupSkip": "跳过",
     "skip": "换一题",
