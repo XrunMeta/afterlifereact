@@ -1135,7 +1135,12 @@ export default function v_def15b() {
               {v_8bb912?.cloneName}
             </Text>
 
-            <ScrollView style={v_fd5f43.statsScrollArea} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={v_fd5f43.statsScrollArea}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
               {}
               {v_8bb912?.type === "comments" && (
                 <>
@@ -1264,7 +1269,12 @@ export default function v_def15b() {
               <Text style={[v_fd5f43.giftTableHeaderCell, { flex: 2, textAlign: "right" }]}>{v_8d41d7("dashboard.giftHeaderSender", { defaultValue: "보낸사람" })}</Text>
             </View>
 
-            <ScrollView style={v_fd5f43.statsScrollArea} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={v_fd5f43.statsScrollArea}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
               {v_5101de ? (
                 <ActivityIndicator color={v_1bfbd0.zinc500} style={{ paddingVertical: 24 }} />
               ) : !v_51c9ac || v_51c9ac.length === 0 ? (
