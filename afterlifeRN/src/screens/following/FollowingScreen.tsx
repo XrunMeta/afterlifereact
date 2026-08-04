@@ -203,10 +203,8 @@ export default function FollowingScreen() {
       return apiFollowed.map((c) => {
 
         const my = c.myInteractions;
-        const rawInteractions = my ? my.total : deriveInteractionsFromStats(c.stats);
-        const rawIntimacy = my ? my.intimacy : Math.min(100, Math.floor(rawInteractions / 50));
-        const interactions = c.isOwn ? 0 : rawInteractions;
-        const intimacy = c.isOwn ? 0 : rawIntimacy;
+        const interactions = my ? my.total : deriveInteractionsFromStats(c.stats);
+        const intimacy = my ? my.intimacy : Math.min(100, Math.floor(interactions / 50));
         return {
           id: c.id,
           name: c.name,
