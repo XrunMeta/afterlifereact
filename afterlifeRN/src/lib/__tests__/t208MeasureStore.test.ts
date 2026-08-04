@@ -26,17 +26,17 @@ describe("t208MeasureStore", () => {
   });
 
   it("record 후 summary·ready·다음 배율 전환", async () => {
-    await v_87a25c(0.75, "file:///a.jpg");
-    expect(v_a83290(0.75)?.uri).toContain("file:///a.jpg");
-    expect(v_890a60()).toContain("0.75: ✓");
+    await v_87a25c(0.95, "file:///a.jpg");
+    expect(v_a83290(0.95)?.uri).toContain("file:///a.jpg");
+    expect(v_890a60()).toContain("0.95: ✓");
     expect(v_951fee()).toBe(false);
 
     const v_a448ad = v_d993b0();
-    expect(v_a448ad).toBe(0.5);
-    expect(v_069313()).toBe(0.5);
+    expect(v_a448ad).toBe(0.64);
+    expect(v_069313()).toBe(0.64);
 
-    await v_87a25c(0.5, "file:///b.jpg");
-    await v_87a25c(0.4, "file:///c.jpg");
+    await v_87a25c(0.64, "file:///b.jpg");
+    await v_87a25c(0.52, "file:///c.jpg");
     expect(v_951fee()).toBe(true);
     expect(v_d993b0()).toBeNull();
   });

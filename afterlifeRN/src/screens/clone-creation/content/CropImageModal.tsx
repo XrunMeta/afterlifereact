@@ -233,8 +233,9 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
           {}
           <View style={[v_fd5f43.frame, { top: (v_bd274b - v_fc2e4f) / 2, left: (v_df48e9 - v_e0560a) / 2, width: v_e0560a, height: v_fc2e4f }]} />
           {}
+          {}
           <View style={[v_fd5f43.guide, { top: (v_bd274b - v_fc2e4f) / 2, left: (v_df48e9 - v_e0560a) / 2, width: v_e0560a, height: v_fc2e4f }]}>
-            <UpperBodyGuide width={v_df48e9 * v_7b377a} />
+            <UpperBodyGuide width={v_e0560a * v_7b377a} />
           </View>
           {__DEV__ && v_6036cc() ? (
             <View style={v_fd5f43.devBadge} pointerEvents="none">
