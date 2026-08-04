@@ -235,7 +235,11 @@
     "enrollSuccessToast": "{{name}}, saya akan mengingat Anda mulai sekarang",
     "enrollFailToast": "Gagal mendaftar. Silakan coba lagi",
     "paymentPreparingToast": "Pembayaran sedang dipersiapkan",
-    "confirmHint": "Ketuk untuk membatalkan · Terkirim sebentar lagi"
+    "confirmHint": "Ketuk untuk membatalkan · Terkirim sebentar lagi",
+    "remainingWarnToast": "Sisa waktu panggilan 30 detik. Akan segera berakhir.",
+    "exhaustedTitle": "Waktu Panggilan Habis",
+    "exhaustedBody": "Isi ulang untuk melanjutkan panggilan.",
+    "exhaustedCharge": "Isi Ulang"
   },
   "feed": {
     "homeTitle": "Beranda",

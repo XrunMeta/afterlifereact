@@ -235,7 +235,11 @@
     "enrollSuccessToast": "{{name}}さん、これから覚えておきます",
     "enrollFailToast": "登録に失敗しました。再度お試しください",
     "paymentPreparingToast": "決済準備中です",
-    "confirmHint": "タップでキャンセル · まもなく送信"
+    "confirmHint": "タップでキャンセル · まもなく送信",
+    "remainingWarnToast": "残り通話時間は30秒です。まもなく終了します。",
+    "exhaustedTitle": "通話時間終了",
+    "exhaustedBody": "チャージすれば通話を続けられます。",
+    "exhaustedCharge": "チャージ"
   },
   "feed": {
     "homeTitle": "ホーム",
