@@ -1135,7 +1135,12 @@ export default function MyClonesDashboardScreen() {
               {statsModal?.cloneName}
             </Text>
 
-            <ScrollView style={s.statsScrollArea} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={s.statsScrollArea}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
               {}
               {statsModal?.type === "comments" && (
                 <>
@@ -1264,7 +1269,12 @@ export default function MyClonesDashboardScreen() {
               <Text style={[s.giftTableHeaderCell, { flex: 2, textAlign: "right" }]}>{t("dashboard.giftHeaderSender", { defaultValue: "보낸사람" })}</Text>
             </View>
 
-            <ScrollView style={s.statsScrollArea} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={s.statsScrollArea}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
               {giftLoading ? (
                 <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
               ) : !giftReceipts || giftReceipts.length === 0 ? (
