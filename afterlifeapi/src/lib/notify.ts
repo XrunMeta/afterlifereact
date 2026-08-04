@@ -206,7 +206,6 @@ export async function notifyIntimacyScore(
       .bind(args.cloneId)
       .first<{ owner_id: number; name: string }>();
     if (!clone) return;
-    if (clone.owner_id === args.actorId) return; 
 
     const ACTION_LABEL: Record<"chat" | "call" | "learn" | "feed", string> = {
       chat: "채팅",
@@ -215,21 +214,36 @@ export async function notifyIntimacyScore(
       feed: "피드 소통",
     };
     const label = ACTION_LABEL[args.action];
+    const data = {
+      cloneId: args.cloneId,
+      action: args.action,
+      score: args.score,
+      actorId: args.actorId,
+    };
+    const url = `afterlife://clone/${args.cloneId}/intimacy`;
+    const title = `🌡️ +${args.score}°C 온도 상승`;
 
     await notify(env, {
-      userId: clone.owner_id,
+      userId: args.actorId,
       type: "intimacy_score",
-      title: `🌡️ +${args.score}°C 온도 상승`,
-      body: `${clone.name} 의 친밀도가 ${label} 활동으로 ${args.score}°C 올랐어요`,
-      url: `afterlife://clone/${args.cloneId}/intimacy`,
-      data: {
-        cloneId: args.cloneId,
-        action: args.action,
-        score: args.score,
-        actorId: args.actorId,
-      },
+      title,
+      body: `${clone.name} 과의 친밀도가 ${label} 활동으로 ${args.score}°C 올랐어요`,
+      url,
+      data,
       skipEmail: true,
     });
+
+    if (clone.owner_id !== args.actorId) {
+      await notify(env, {
+        userId: clone.owner_id,
+        type: "intimacy_score",
+        title,
+        body: `${clone.name} 의 친밀도가 ${label} 활동으로 ${args.score}°C 올랐어요`,
+        url,
+        data,
+        skipEmail: true,
+      });
+    }
   } catch (err) {
     console.warn("[notifyIntimacyScore] failed:", (err as Error).message);
   }
