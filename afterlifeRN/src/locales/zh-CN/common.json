@@ -235,7 +235,11 @@
     "enrollSuccessToast": "{{name}}，现在会记住您了",
     "enrollFailToast": "注册失败，请重试",
     "paymentPreparingToast": "正在准备支付",
-    "confirmHint": "点击取消 · 稍后发送"
+    "confirmHint": "点击取消 · 稍后发送",
+    "remainingWarnToast": "剩余通话时间30秒，即将结束。",
+    "exhaustedTitle": "通话时间结束",
+    "exhaustedBody": "充值后可以继续通话。",
+    "exhaustedCharge": "充值"
   },
   "feed": {
     "homeTitle": "首页",
