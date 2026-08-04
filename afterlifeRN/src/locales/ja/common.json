@@ -445,6 +445,7 @@
     "allDone": "すべての質問に回答しました!通話に反映されます。",
     "confirmYes": "はい",
     "confirmNo": "いいえ",
+    "undoLast": "回答を修正する",
     "saving": "保存中...",
     "followupSkip": "スキップ",
     "skip": "別の質問",
