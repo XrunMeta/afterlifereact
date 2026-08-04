@@ -910,7 +910,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           <View style={v_fd5f43.pipOff}>
             <Feather name="video-off" size={20} color={v_1bfbd0.zinc600} />
           </View>
-        ) : v_49a70b ? (
+        ) : v_49a70b && v_b2ccaa ? (
 
           <VisionCamera
             ref={v_f15637}
