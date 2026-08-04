@@ -13,7 +13,7 @@ export async function v_84d546(
     if (v_c88e9b.totalSec > 0) return true;
     v_889fad(
       "남은 통화 시간이 없습니다",
-      "충전해주세요",
+      "크레딧을 충전하면 바로 이어서 통화할 수 있습니다.",
       [
         { text: "확인", style: "cancel" },
         { text: "충전하기", style: "default", onPress: v_c32cb1 },
