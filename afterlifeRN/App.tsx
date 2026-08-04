@@ -2,6 +2,7 @@ import './src/i18n';
 import { useEffect, useRef, useState } from "react";
 import { NavigationContainer, type LinkingOptions } from "@react-navigation/native";
 import { navigationRef } from "./src/navigation/navigationRef";
+import { useAndroidBackHandler } from "./src/navigation/useAndroidBackHandler";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -21,6 +22,16 @@ import {
   consumePendingCloneShare,
 } from "./src/lib/cloneShareDeferredLink";
 import type { RootStackParamList } from "./src/navigation/types";
+import { AppErrorBoundary } from "./src/lib/errorReporting/ErrorBoundary";
+import {
+  addBreadcrumb,
+  installGlobalErrorHandlers,
+} from "./src/lib/errorReporting/report";
+import { DevFloatingBall } from "./src/components/dev/DevFloatingBall";
+import { hydrateT208Crops } from "./src/lib/t208MeasureStore";
+import { useDevOverlayStore } from "./src/stores/devOverlayStore";
+
+installGlobalErrorHandlers();
 
 const linking: LinkingOptions<RootStackParamList> = {
   prefixes: [
@@ -45,6 +56,8 @@ const linking: LinkingOptions<RootStackParamList> = {
 export default function App() {
   const [ready, setReady] = useState(false);
 
+  useAndroidBackHandler();
+
   useEffect(() => {
     Promise.all([
       useAuthStore.getState().hydrate(),
@@ -52,6 +65,8 @@ export default function App() {
       useConfigStore.getState().hydrate(),
       useCallConfigStore.getState().hydrate(),
       useAuthConfigStore.getState().hydrate(),
+      __DEV__ ? hydrateT208Crops() : Promise.resolve(),
+      __DEV__ ? useDevOverlayStore.getState().hydrate() : Promise.resolve(),
     ]).then(() => {
       setReady(true);
 
@@ -95,10 +110,28 @@ export default function App() {
         <View style={styles.root}>
           <EmergencyBanner />
           <View style={styles.root}>
-            <NavigationContainer ref={navigationRef} linking={linking}>
-              <RootNavigator />
-              <StatusBar style="dark" />
-            </NavigationContainer>
+            <AppErrorBoundary>
+              <NavigationContainer
+                ref={navigationRef}
+                linking={linking}
+                onStateChange={() => {
+                  const name = navigationRef.getCurrentRoute()?.name;
+                  if (name) {
+                    addBreadcrumb({
+                      category: "navigation",
+                      message: name,
+                    });
+                  }
+                }}
+              >
+                <RootNavigator />
+                <StatusBar style="dark" />
+              </NavigationContainer>
+            </AppErrorBoundary>
+          </View>
+          {}
+          <View style={styles.devOverlay} pointerEvents="box-none">
+            <DevFloatingBall />
           </View>
         </View>
         {}
@@ -110,4 +143,9 @@ export default function App() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  devOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 99999,
+    elevation: 99999,
+  },
 });
