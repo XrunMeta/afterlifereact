@@ -170,7 +170,14 @@ export async function v_70d294(
   }
 
   if (v_418c2e.has(v_43e90c)) {
-    return v_4cc669(v_c9c489, v_43e90c, v_6e0fd3);
+    console.log(`[T-250 test] direct +1 for user=${v_43e90c} clone=${v_6e0fd3} dur=${v_40c855}`);
+    const v_cb35cb = await v_721d54(v_c9c489, v_43e90c, v_6e0fd3, 1, "call");
+    console.log(`[T-250 test] addIntimacyScore result applied=${v_cb35cb.applied} remaining=${v_cb35cb.dailyRemaining}`);
+    return {
+      crossedThreshold: v_cb35cb.applied > 0,
+      scoreApplied: v_cb35cb.applied,
+      totalSeconds: v_40c855,
+    };
   }
   const v_b24339 = `intimacy_call_total:${v_43e90c}:${v_6e0fd3}:${v_fc5b77()}`;
   let v_2dadc1 = 0;
