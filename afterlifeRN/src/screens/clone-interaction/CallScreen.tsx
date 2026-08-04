@@ -910,7 +910,7 @@ export default function CallScreen({ route, navigation }: Props) {
           <View style={s.pipOff}>
             <Feather name="video-off" size={20} color={COLORS.zinc600} />
           </View>
-        ) : vcDevice ? (
+        ) : vcDevice && dialingDone ? (
 
           <VisionCamera
             ref={pipCameraRef}
