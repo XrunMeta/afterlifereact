@@ -63,7 +63,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
 
       {
 }
-      {!isOwn && typeof item.myIntimacy === "number" && item.myIntimacy > 0 ? (
+      {typeof item.myIntimacy === "number" ? (
         <View style={styles.intimacyBadge}>
           <Feather name="thermometer" size={12} color="#fb923c" />
           <Text style={styles.intimacyText}>{item.myIntimacy}°C</Text>
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
 
   intimacyBadge: {
     position: "absolute",
-    top: 16,
+    top: 56,
     right: 16,
     flexDirection: "row",
     alignItems: "center",
