@@ -96,6 +96,10 @@ const v_5ac7d6 = 1;
 
 const v_42cf68 = __DEV__; 
 
+const v_a29eeb = false;
+
+const v_514359 = "#2fbf6b";
+
 interface FloatingGift {
   id: number;
   emoji: string;
@@ -554,6 +558,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   v_c4deb2(() => {
     if (v_88c591?.type === 'speech_start') v_717e64(true);
   }, [v_88c591]);
+
+  const v_324ec4 = (v_ab4803 === 'listening' || v_ab4803 === 'confirming') && v_b3ae82;
 
   v_c4deb2(() => {
     const v_ff0300 = (v_b4d824 as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })
@@ -1130,8 +1136,9 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       </View>
 
       {
+
 }
-      {v_b2ccaa ? (
+      {v_a29eeb && v_b2ccaa ? (
         <View
           style={[v_fd5f43.voiceBallLayer, { bottom: v_53dd92 + 24 + 56 + 16 }]}
           pointerEvents="none"
@@ -1158,8 +1165,16 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           <Feather name={v_4e2aec ? "mic-off" : "mic"} size={24} color={v_1bfbd0.white} />
         </TouchableOpacity>
 
+        {
+}
         <TouchableOpacity
-          style={v_fd5f43.endCallBtn}
+          style={[
+            v_fd5f43.endCallBtn,
+            v_324ec4 && { backgroundColor: v_514359, shadowColor: v_514359 },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={v_324ec4 ? "통화 종료 (지금 말할 수 있음)" : "통화 종료"}
+          accessibilityHint={v_324ec4 ? "지금 말해도 됩니다. 이 버튼을 누르면 통화가 종료됩니다." : undefined}
           onPress={async () => {
             await v_cd8b64();
             v_c65f5d.goBack();
