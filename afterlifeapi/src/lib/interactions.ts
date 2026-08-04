@@ -170,7 +170,14 @@ export async function addCallIntimacyDaily(
   }
 
   if (INTIMACY_CALL_TEST_USER_IDS.has(userId)) {
-    return addCallIntimacyDailyD1(env, userId, cloneId);
+    console.log(`[T-250 test] direct +1 for user=${userId} clone=${cloneId} dur=${durationSeconds}`);
+    const r = await addIntimacyScore(env, userId, cloneId, 1, "call");
+    console.log(`[T-250 test] addIntimacyScore result applied=${r.applied} remaining=${r.dailyRemaining}`);
+    return {
+      crossedThreshold: r.applied > 0,
+      scoreApplied: r.applied,
+      totalSeconds: durationSeconds,
+    };
   }
   const key = `intimacy_call_total:${userId}:${cloneId}:${kstDateYYYYMMDD()}`;
   let oldTotal = 0;
