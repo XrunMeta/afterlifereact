@@ -20,4 +20,6 @@ export interface FeedItem {
   interests: string[];
   likes: string;
   comments: number;
+
+  myIntimacy?: number;
 }

@@ -191,6 +191,12 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
     v_925171.push(v_75cbf4);
   }
 
+  const v_dd2234 = v_013af2
+    ? `COALESCE((SELECT MIN(100, SUM(ie.score)) FROM intimacy_events ie
+                  WHERE ie.user_id = ? AND ie.clone_id = c.id), 0) AS myIntimacy`
+    : `0 AS myIntimacy`;
+  const v_9434a4 = v_013af2 ? [v_013af2] : [];
+
   const v_18b8bf = (
     await v_3f4e2e.env.DB
       .prepare(
@@ -212,7 +218,8 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
                   WHERE f2.clone_id = c.id) AS likesCount,
                 (SELECT COUNT(*) FROM feed_comments fc
                    JOIN feeds f3 ON f3.id = fc.feed_id
-                   WHERE f3.clone_id = c.id) AS commentsCount
+                   WHERE f3.clone_id = c.id) AS commentsCount,
+                ${v_dd2234}
            FROM clones c
            LEFT JOIN feeds f ON f.id = (
              SELECT id FROM feeds WHERE clone_id = c.id
@@ -222,7 +229,7 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
           ORDER BY c.id DESC
           LIMIT ?`,
       )
-      .bind(...v_925171, v_02be30 + 1)
+      .bind(...v_9434a4, ...v_925171, v_02be30 + 1)
       .all<{
         cloneId: number;
         cloneOwnerId: number;
@@ -240,6 +247,7 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
         feedCreatedAt: string | null;
         likesCount: number;
         commentsCount: number;
+        myIntimacy: number;
       }>()
   ).results;
 
@@ -313,6 +321,8 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
         visibility: v_cb35cb.cloneVisibility,
       },
       interests: v_9afb14.get(v_cb35cb.cloneId) ?? [],
+
+      myIntimacy: Math.min(100, Math.max(0, v_cb35cb.myIntimacy ?? 0)),
     })),
     nextCursor: v_64f859,
   });

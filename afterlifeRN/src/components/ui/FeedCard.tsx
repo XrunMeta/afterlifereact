@@ -61,6 +61,15 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
         style={v_d81136.gradient}
       />
 
+      {
+}
+      {!v_799eb5 && typeof v_8c0b26.myIntimacy === "number" && v_8c0b26.myIntimacy > 0 ? (
+        <View style={v_d81136.intimacyBadge}>
+          <Feather name="thermometer" size={12} color="#fb923c" />
+          <Text style={v_d81136.intimacyText}>{v_8c0b26.myIntimacy}°C</Text>
+        </View>
+      ) : null}
+
       {}
       {v_26dce6 && (
         <>
@@ -235,6 +244,25 @@ const v_d81136 = v_472849.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 24,
+  },
+
+  intimacyBadge: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: v_8b0c90.full,
+    zIndex: 10,
+  },
+  intimacyText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: v_1bfbd0.white,
   },
   actionBtn: {
     alignItems: "center",
