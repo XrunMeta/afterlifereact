@@ -503,6 +503,8 @@
       "notificationsList": "通知",
       "notificationsListDesc": "查看所有收到的通知",
       "notifications": "通知设置",
+      "notificationRoutingTest": "通知跳转测试",
+      "notificationRoutingTestDesc": "验证点击各类通知后跳转到哪个页面",
       "privacy": "拉黑管理",
       "agreements": "同意事项",
       "reports": "举报",
