@@ -1186,6 +1186,56 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true, granted: v_ec1a55, balance: v_3ac7e7 });
 });
 
+v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_43e90c = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_43e90c) || v_43e90c <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid user id.");
+  }
+  const v_4d33b2 = (await v_3f4e2e.req.json().catch(() => ({}))) as { title?: unknown; body?: unknown };
+  const v_9f1622 = typeof v_4d33b2.title === "string" && v_4d33b2.title ? v_4d33b2.title : "🧪 테스트 알림";
+  const v_7ef175 = typeof v_4d33b2.body === "string" && v_4d33b2.body ? v_4d33b2.body : "관리자가 발송한 테스트 알림입니다.";
+
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT push_token, platform FROM user_devices
+        WHERE user_id = ? AND push_token IS NOT NULL AND is_active = 1`,
+    )
+    .bind(v_43e90c)
+    .all<{ push_token: string; platform: string }>();
+  const v_1ba7e1 = (v_18b8bf.results ?? []).filter(
+    (v_cb35cb) => v_cb35cb.push_token.startsWith("ExponentPushToken[") || v_cb35cb.push_token.startsWith("ExpoPushToken["),
+  );
+  if (v_1ba7e1.length === 0) {
+    return v_3f4e2e.json({ attempted: 0, tickets: [], error: "활성 토큰 없음" });
+  }
+  const v_fa56e0 = v_1ba7e1.map((v_d5dda0) => ({
+    to: v_d5dda0.push_token,
+    title: v_9f1622,
+    body: v_7ef175,
+    sound: "default" as const,
+  }));
+
+  const v_8f00b9 = await fetch("https://exp.host/--/api/v2/push/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(v_fa56e0),
+  });
+  const v_0b04f0 = (await v_8f00b9.json().catch(() => null)) as
+    | { data?: Array<{ status?: string; message?: string; details?: { error?: string } }> }
+    | null;
+  const v_30338f = v_1ba7e1.map((v_d5dda0, v_ebec57) => {
+    const v_8d41d7 = v_0b04f0?.data?.[v_ebec57];
+    return {
+      tokenPrefix: v_d5dda0.push_token.slice(0, 30),
+      platform: v_d5dda0.platform,
+      status: v_8d41d7?.status ?? "no-response",
+      errorCode: v_8d41d7?.details?.error ?? null,
+      message: v_8d41d7?.message ?? null,
+    };
+  });
+  return v_3f4e2e.json({ attempted: v_1ba7e1.length, httpStatus: v_8f00b9.status, tickets: v_30338f });
+});
+
 v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_389afb) || v_389afb <= 0) {
