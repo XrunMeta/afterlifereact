@@ -27,7 +27,7 @@ export async function sendPushToUser(
   const rows = await env.DB
     .prepare(
       `SELECT push_token FROM user_devices
-        WHERE user_id = ? AND push_token IS NOT NULL`,
+        WHERE user_id = ? AND push_token IS NOT NULL AND is_active = 1`,
     )
     .bind(userId)
     .all<{ push_token: string }>();
@@ -36,6 +36,7 @@ export async function sendPushToUser(
     .map((r) => r.push_token)
     .filter((t) => t.startsWith("ExponentPushToken[") || t.startsWith("ExpoPushToken["));
 
+  console.log(`[expoPush] userId=${userId} active tokens=${tokens.length}`);
   if (tokens.length === 0) {
     return { attempted: 0, sent: 0 };
   }
@@ -58,10 +59,50 @@ export async function sendPushToUser(
       body: JSON.stringify(messages),
     });
     if (!res.ok) {
-      console.warn(`[expoPush] HTTP ${res.status} userId=${userId}`);
+      const errBody = await res.text().catch(() => "");
+      console.warn(`[expoPush] HTTP ${res.status} userId=${userId} body=${errBody.slice(0, 300)}`);
       return { attempted: tokens.length, sent: 0 };
     }
-    return { attempted: tokens.length, sent: tokens.length };
+
+    const body = (await res.json().catch(() => null)) as
+      | { data?: Array<{ status?: string; message?: string; details?: { error?: string } }> }
+      | null;
+    if (!body || !Array.isArray(body.data)) {
+      console.warn(`[expoPush] unexpected response body userId=${userId}`);
+      return { attempted: tokens.length, sent: 0 };
+    }
+    let sent = 0;
+    const deadTokens: string[] = [];
+    body.data.forEach((ticket, i) => {
+      const token = tokens[i];
+      if (!token) return;
+      if (ticket.status === "ok") {
+        sent++;
+      } else {
+        const errCode = ticket.details?.error ?? ticket.status ?? "unknown";
+        console.warn(`[expoPush] ticket failed userId=${userId} token=${token.slice(0, 25)}... err=${errCode} msg=${ticket.message ?? ""}`);
+
+        if (errCode === "DeviceNotRegistered" || errCode === "InvalidCredentials") {
+          deadTokens.push(token);
+        }
+      }
+    });
+
+    if (deadTokens.length > 0) {
+      try {
+        for (const t of deadTokens) {
+          await env.DB
+            .prepare(`UPDATE user_devices SET is_active = 0 WHERE user_id = ? AND push_token = ?`)
+            .bind(userId, t)
+            .run();
+        }
+        console.log(`[expoPush] deactivated ${deadTokens.length} dead token(s) for userId=${userId}`);
+      } catch (deactErr) {
+        console.warn(`[expoPush] deactivate dead tokens failed:`, (deactErr as Error).message);
+      }
+    }
+    console.log(`[expoPush] userId=${userId} attempted=${tokens.length} sent=${sent}`);
+    return { attempted: tokens.length, sent };
   } catch (err) {
     console.warn("[expoPush] fetch failed:", (err as Error).message);
     return { attempted: tokens.length, sent: 0 };
