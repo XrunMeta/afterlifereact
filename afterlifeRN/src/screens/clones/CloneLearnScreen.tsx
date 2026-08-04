@@ -68,6 +68,10 @@ interface LastSaved {
   slotKeys: string[];     
   userAnswer: string;     
   reply: string;          
+  followup?: {            
+    question: string;
+    slotKey: string;
+  };
 }
 
 interface FollowupState {
@@ -190,6 +194,14 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
       }
       const fresh = res.items ?? [];
       setItems(fresh);
+
+      setLastSaved({
+        baseKey: followup.baseKey,
+        slotKeys: [followup.slotKey],
+        userAnswer: a,
+        reply: "",
+        followup: { question: followup.question, slotKey: followup.slotKey },
+      });
       const answered = new Set(fresh.map((i) => i.key));
       answered.add(followup.baseKey);
       const pool = questions.filter((q) => !answered.has(q.key));
@@ -365,7 +377,16 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
       setItems(res.items ?? []);
       setCurrentKey(lastSaved.baseKey);
       setAnswer(lastSaved.userAnswer);
-      setFollowup(null);
+
+      if (lastSaved.followup) {
+        setFollowup({
+          baseKey: lastSaved.baseKey,
+          question: lastSaved.followup.question,
+          slotKey: lastSaved.followup.slotKey,
+        });
+      } else {
+        setFollowup(null);
+      }
       setLastSaved(null);
     } catch (err) {
       showAlert(t("common.error"), (err as Error).message);
