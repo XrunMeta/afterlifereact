@@ -1119,7 +1119,7 @@ export default function CallScreen({ route, navigation }: Props) {
 
 }
       <View
-        style={[s.watermarkLayer, { bottom: bottomInset + 150 }]}
+        style={[s.watermarkLayer, { bottom: bottomInset + 24 + 56 + 16 }]}
         pointerEvents="none"
       >
         <Image
@@ -1262,7 +1262,7 @@ const s = StyleSheet.create({
     width: 200,
     height: 40,
     resizeMode: "contain",
-    tintColor: "rgba(255, 255, 255, 0.85)",
+    tintColor: "rgba(255, 255, 255, 0.3)",
   },
   container: {
     flex: 1,
