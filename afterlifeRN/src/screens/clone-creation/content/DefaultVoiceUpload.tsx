@@ -144,7 +144,8 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   v_c4deb2(() => {
     return () => {
       v_504bbe.current.stop().catch(() => {});
-      v_86394a.pause();
+
+      try { v_86394a.pause(); } catch {  }
     };
 
   }, []);
@@ -152,7 +153,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const v_0f4413 = async (v: v_d80981) => {
 
     if (v_cf954d != null) {
-      v_86394a.pause();
+      try { v_86394a.pause(); } catch {  }
       v_a4d7cc(null);
     }
     if (v_81e2ef.srcFileId == null) {
@@ -191,7 +192,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
 
   const v_1bf8db = (v: v_d80981) => {
     if (v_cf954d === v_81e2ef.id) {
-      v_86394a.pause();
+      try { v_86394a.pause(); } catch {  }
       v_a4d7cc(null);
       return;
     }
