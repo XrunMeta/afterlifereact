@@ -30,7 +30,6 @@ import SearchScreen from "../screens/search/SearchScreen";
 import MyScreen from "../screens/my/MyScreen";
 import EditProfileScreen from "../screens/my/EditProfileScreen";
 import NotificationSettingsScreen from "../screens/my/NotificationSettingsScreen";
-import NotificationRoutingTestScreen from "../screens/my/NotificationRoutingTestScreen";
 import PrivacySettingsScreen from "../screens/my/PrivacySettingsScreen";
 import AgreementsScreen from "../screens/my/AgreementsScreen";
 import SavedItemsScreen from "../screens/my/SavedItemsScreen";
@@ -91,7 +90,6 @@ function MyStackNavigator() {
       <MyStack.Screen name="MyHome" component={MyScreen} />
       <MyStack.Screen name="EditProfile" component={EditProfileScreen} />
       <MyStack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
-      <MyStack.Screen name="NotificationRoutingTest" component={NotificationRoutingTestScreen} />
       <MyStack.Screen name="PrivacySettings" component={PrivacySettingsScreen} />
       <MyStack.Screen name="Agreements" component={AgreementsScreen} />
       <MyStack.Screen name="SavedItems" component={SavedItemsScreen} />

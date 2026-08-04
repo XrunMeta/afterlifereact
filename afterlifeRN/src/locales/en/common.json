@@ -503,8 +503,6 @@
       "notificationsList": "Notifications",
       "notificationsListDesc": "View all received notifications",
       "notifications": "Notification Settings",
-      "notificationRoutingTest": "Notification Routing Test",
-      "notificationRoutingTestDesc": "Verify where each notification navigates to",
       "privacy": "Privacy and Visibility",
       "agreements": "Consent",
       "reports": "Reports",

@@ -503,8 +503,6 @@
       "notificationsList": "通知",
       "notificationsListDesc": "受信した通知をすべて表示",
       "notifications": "通知設定",
-      "notificationRoutingTest": "通知ルーティングテスト",
-      "notificationRoutingTestDesc": "各通知タップ時の遷移先を確認",
       "privacy": "プライバシーと公開範囲",
       "agreements": "同意",
       "reports": "報告",
