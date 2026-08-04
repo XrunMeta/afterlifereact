@@ -1,35 +1,23 @@
 
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  RefreshControl,
+  TouchableOpacity,
+} from "react-native";
+import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import PageHeader from "../../components/common/PageHeader";
-import { COLORS } from "../../components/constants";
+import { COLORS, RADIUS } from "../../components/constants";
 import { useAuthStore } from "../../stores/authStore";
-import { listPersons, type Person } from "../../api/persons";
-
-function initialOf(name: string): string {
-  const trimmed = name.trim();
-  return trimmed ? trimmed.charAt(0) : "?";
-}
-
-const AVATAR_BG = [
-  "#FEE2E2", "#FEF3C7", "#DCFCE7", "#DBEAFE", "#EDE9FE", "#FCE7F3", "#CFFAFE", "#FFEDD5",
-];
-function bgFor(name: string): string {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return AVATAR_BG[h % AVATAR_BG.length];
-}
-const AVATAR_FG = [
-  "#B91C1C", "#B45309", "#166534", "#1D4ED8", "#6D28D9", "#BE185D", "#0E7490", "#C2410C",
-];
-function fgFor(name: string): string {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return AVATAR_FG[h % AVATAR_FG.length];
-}
+import { showAlert } from "../../stores/dialogStore";
+import { listPersons, saveFaceConsent, type Person } from "../../api/persons";
 
 export default function AcquaintanceManagementScreen() {
   const navigation = useNavigation();
@@ -39,6 +27,7 @@ export default function AcquaintanceManagementScreen() {
   const [items, setItems] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [revokingId, setRevokingId] = useState<number | null>(null);
 
   const refresh = useCallback(async () => {
     if (!accessToken) {
@@ -64,13 +53,42 @@ export default function AcquaintanceManagementScreen() {
     void refresh();
   }, [refresh]);
 
-  const named = useMemo(
-    () =>
-      items.filter(
-        (p) => p.consentState === "granted" && !!p.displayName?.trim(),
-      ),
-    [items],
-  );
+  const handleRevoke = useCallback((person: Person) => {
+    showAlert(
+      t("settings.privacy.faceConsent.revokeConfirmTitle"),
+      t("settings.privacy.faceConsent.revokeConfirmMessage"),
+      [
+        { text: t("settings.privacy.faceConsent.revokeConfirmCancel"), style: "cancel" },
+        {
+          text: t("settings.privacy.faceConsent.revokeConfirmOk"),
+          style: "destructive",
+          onPress: async () => {
+            if (!accessToken) return;
+            setRevokingId(person.id);
+            try {
+              await saveFaceConsent(accessToken, person.id, "revoked");
+
+              setItems((prev) =>
+                prev.map((p) =>
+                  p.id === person.id ? { ...p, consentState: "revoked" } : p,
+                ),
+              );
+            } catch (err) {
+              const msg =
+                err instanceof Error
+                  ? err.message
+                  : t("settings.privacy.faceConsent.revokeError");
+              showAlert(t("settings.privacy.faceConsent.revokeConfirmTitle"), msg);
+            } finally {
+              setRevokingId(null);
+            }
+          },
+        },
+      ],
+    );
+  }, [accessToken, t]);
+
+  const granted = items.filter((p) => p.consentState === "granted");
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.white }}>
@@ -82,19 +100,26 @@ export default function AcquaintanceManagementScreen() {
       <ScrollView
         contentContainerStyle={s.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onPullRefresh} tintColor={COLORS.zinc400} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onPullRefresh}
+            tintColor={COLORS.zinc400}
+          />
         }
       >
         {loading ? (
           <ActivityIndicator color={COLORS.zinc400} style={{ marginTop: 40 }} />
-        ) : named.length === 0 ? (
-          <View style={s.emptyBox}>
-            <Text style={s.emptyTitle}>
-              {t("settings.acquaintance.empty", { defaultValue: "등록된 지인이 없어요" })}
+        ) : granted.length === 0 ? (
+          <View style={s.empty}>
+            <Feather name="eye-off" size={32} color={COLORS.zinc300} />
+            <Text style={s.emptyText}>
+              {t("settings.privacy.faceConsent.noConsent", {
+                defaultValue: "동의한 지인이 없어요",
+              })}
             </Text>
             <Text style={s.emptySub}>
-              {t("settings.acquaintance.emptySub", {
-                defaultValue: "동의한 지인이 여기에 표시돼요.",
+              {t("settings.privacy.faceConsent.noConsentSub", {
+                defaultValue: "얼굴 감지 동의가 여기에 표시돼요.",
               })}
             </Text>
           </View>
@@ -103,22 +128,58 @@ export default function AcquaintanceManagementScreen() {
             <Text style={s.countLabel}>
               {t("settings.acquaintance.count", {
                 defaultValue: "총 {{n}}명",
-                n: named.length,
+                n: granted.length,
               })}
             </Text>
-            {named.map((item) => {
-              const name = item.displayName!.trim();
-              return (
-                <View key={item.id} style={s.card}>
-                  <View style={[s.avatar, { backgroundColor: bgFor(name) }]}>
-                    <Text style={[s.avatarText, { color: fgFor(name) }]}>{initialOf(name)}</Text>
+            <View style={s.card}>
+              {granted.map((person, i) => {
+                const busy = revokingId === person.id;
+                const consentLabel = person.createdAt
+                  ? t("settings.privacy.faceConsent.consentedAt", {
+                      date: new Date(person.createdAt).toLocaleDateString(),
+                    })
+                  : t("settings.privacy.faceConsent.stateGranted");
+                const cloneLabel = person.cloneId
+                  ? t("settings.privacy.faceConsent.cloneLabel", { cloneId: person.cloneId })
+                  : `Person #${person.id}`;
+
+                const primaryName = person.displayName?.trim() || cloneLabel;
+                return (
+                  <View key={person.id}>
+                    <View style={s.row}>
+                      <View style={[s.avatar, s.avatarPh]}>
+                        <Feather name="eye" size={20} color={COLORS.zinc400} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.rowName} numberOfLines={1}>
+                          {primaryName}
+                        </Text>
+                        <Text style={s.rowSub} numberOfLines={1}>
+                          {consentLabel}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        testID={`revoke-btn-${person.id}`}
+                        style={[s.revokeBtn, busy && { opacity: 0.6 }]}
+                        onPress={() => handleRevoke(person)}
+                        disabled={busy}
+                        accessibilityLabel={t("settings.privacy.faceConsent.revokeButton")}
+                        accessibilityRole="button"
+                      >
+                        {busy ? (
+                          <ActivityIndicator size="small" color={COLORS.white} />
+                        ) : (
+                          <Text style={s.revokeBtnText}>
+                            {t("settings.privacy.faceConsent.revokeButton")}
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                    {i < granted.length - 1 && <View style={s.divider} />}
                   </View>
-                  <View style={s.cardBody}>
-                    <Text style={s.name} numberOfLines={1}>{name}</Text>
-                  </View>
-                </View>
-              );
-            })}
+                );
+              })}
+            </View>
           </>
         )}
       </ScrollView>
@@ -127,7 +188,7 @@ export default function AcquaintanceManagementScreen() {
 }
 
 const s = StyleSheet.create({
-  content: { padding: 20, paddingBottom: 60 },
+  content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 60 },
   countLabel: {
     fontSize: 13,
     color: COLORS.zinc500,
@@ -135,32 +196,39 @@ const s = StyleSheet.create({
     fontWeight: "500",
   },
   card: {
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.zinc100,
+    overflow: "hidden",
+  },
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 14,
-    marginBottom: 8,
-    borderRadius: 12,
-    backgroundColor: COLORS.zinc50,
+    gap: 12,
   },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  avatar: { width: 44, height: 44, borderRadius: 22 },
+  avatarPh: {
+    backgroundColor: COLORS.zinc100,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 14,
   },
-  avatarText: { fontSize: 18, fontWeight: "700" },
-  cardBody: { flex: 1 },
-  name: { fontSize: 15, fontWeight: "600", color: COLORS.zinc900 },
-  emptyBox: { alignItems: "center", marginTop: 80, paddingHorizontal: 24 },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: COLORS.zinc700,
-    marginBottom: 8,
+  rowName: { fontSize: 15, fontWeight: "600", color: COLORS.zinc900 },
+  rowSub: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
+  divider: { height: 1, backgroundColor: COLORS.zinc100, marginLeft: 72 },
+  revokeBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: COLORS.zinc900,
+    minWidth: 76,
+    alignItems: "center",
   },
+  revokeBtnText: { fontSize: 12, fontWeight: "700", color: COLORS.white },
+  empty: { alignItems: "center", paddingTop: 60, paddingHorizontal: 24, gap: 8 },
+  emptyText: { fontSize: 16, fontWeight: "600", color: COLORS.zinc700, marginTop: 8 },
   emptySub: {
     fontSize: 13,
     color: COLORS.zinc500,
