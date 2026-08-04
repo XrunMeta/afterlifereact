@@ -31,6 +31,7 @@ import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
 import v_5778ce from "../../components/common/HashtagText";
 import v_4c2648 from "./components/FriendPickerModal";
+import v_92380d from "./components/VisibilityPickerModal";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
@@ -1015,46 +1016,12 @@ export default function v_def15b() {
       </Modal>
 
       {}
-      <Modal visible={!!v_7462ec} transparent animationType="fade">
-        <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_2dbd8f(null)}>
-          <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
-            <Text style={v_fd5f43.modalTitle}>{v_8d41d7("dashboard.visibilityChooseTitle", { defaultValue: "공개 범위" })}</Text>
-            <Text style={v_fd5f43.modalDesc}>{v_8d41d7("dashboard.visibilityChooseDesc", { defaultValue: "이 클론을 누구에게 보일까요?" })}</Text>
-            <View style={v_fd5f43.visibilityOptions}>
-              {(["public", "followers", "selected", "private"] as v_b0b271[]).map((v_81e2ef) => {
-                const v_587413 = v_7462ec?.currentVisibility === v_81e2ef;
-                return (
-                  <TouchableOpacity
-                    key={v_81e2ef}
-                    style={[v_fd5f43.visibilityOption, v_587413 && v_fd5f43.visibilityOptionSelected]}
-                    onPress={() => v_c9f992(v_81e2ef)}
-                  >
-                    <Feather
-                      name={v_a6deb1(v_81e2ef)}
-                      size={16}
-                      color={v_587413 ? v_1bfbd0.white : v_1bfbd0.zinc700}
-                    />
-                    <Text
-                      style={[
-                        v_fd5f43.visibilityOptionText,
-                        v_587413 && { color: v_1bfbd0.white },
-                      ]}
-                    >
-                      {v_82830c(v_81e2ef)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <Button
-              title={v_8d41d7("common.cancel")}
-              variant="ghost"
-              onPress={() => v_2dbd8f(null)}
-              style={{ marginTop: 12, width: "100%" }}
-            />
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <VisibilityPickerModal
+        visible={!!v_7462ec}
+        currentVisibility={v_7462ec?.currentVisibility ?? null}
+        onSelect={v_c9f992}
+        onClose={() => v_2dbd8f(null)}
+      />
 
       {}
       <FriendPickerModal
