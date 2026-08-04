@@ -166,7 +166,8 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
             </View>
           )}
           <View style={v_fd5f43.guideOverlay} pointerEvents="none">
-            <UpperBodyGuide width={v_df48e9 * v_7b377a} />
+            {}
+            <UpperBodyGuide width={v_e0560a * v_7b377a} />
           </View>
           <View style={v_fd5f43.frameBorder} pointerEvents="none" />
         </View>
