@@ -72,7 +72,13 @@ export type MainTabParamList = {
 
 export type ClonesStackParamList = {
 
-  Dashboard: { openIntimacyCloneId?: number } | undefined;
+  Dashboard:
+    | {
+        openIntimacyCloneId?: number;
+        openStatsCloneId?: number;
+        openStatsTab?: "likes" | "comments" | "gifts" | "followers";
+      }
+    | undefined;
   CloneDetail: { cloneId: number };
   CloneEdit: { cloneId: number };
   CloneVisibility: { cloneId: number };

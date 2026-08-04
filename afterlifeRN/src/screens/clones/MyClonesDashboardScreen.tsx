@@ -351,6 +351,23 @@ export default function v_def15b() {
     v_598141({ cloneId: v_062ae9, cloneName: v_eb25ce.displayName });
   }, [v_c7daf6.params?.openIntimacyCloneId, v_4cd149]);
 
+  const v_9b5044 = v_e662ae<string | null>(null);
+  v_c4deb2(() => {
+    const v_062ae9 = v_c7daf6.params?.openStatsCloneId;
+    const v_11083e = v_c7daf6.params?.openStatsTab;
+    if (!v_062ae9 || !v_11083e) return;
+    const v_b24339 = `${v_062ae9}:${v_11083e}`;
+    if (v_9b5044.current === v_b24339) return;
+    const v_eb25ce = v_4cd149.find((v_3f4e2e) => v_3f4e2e.id === v_062ae9);
+    if (!v_eb25ce) return; 
+    v_9b5044.current = v_b24339;
+    if (v_11083e === "gifts") {
+      v_598141({ cloneId: v_062ae9, cloneName: v_eb25ce.displayName });
+    } else {
+      v_d5cd7b({ type: v_11083e, cloneId: v_062ae9, cloneName: v_eb25ce.displayName });
+    }
+  }, [v_c7daf6.params?.openStatsCloneId, v_c7daf6.params?.openStatsTab, v_4cd149]);
+
   const v_bf58a4 = (v_6e0fd3) => {
     const v_7d13fd = v_699459[v_6e0fd3]?.isActive ?? true;
     v_3e0da5({ cloneId: v_6e0fd3, currentState: v_7d13fd });

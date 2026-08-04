@@ -6,6 +6,7 @@ dist/
 
 # 시크릿/인프라 백업 (절대 커밋 금지)
 .secrets.*.json
+.secrets.data/
 infra-backup.local.md
 
 # 음색 카탈로그 변환 산출물 (바이너리, 커밋 제외)

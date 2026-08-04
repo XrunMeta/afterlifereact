@@ -22,9 +22,7 @@ import {
   v_704bef,
   v_9bedf5,
 } from "../../lib/pushNotifications";
-import { v_7bc674 } from "../../api/notifications";
 import { v_1ed7d9 } from "../../stores/authStore";
-import { v_4623af } from "rcmrninabrnb";
 
 type PrefKey =
   | "newFollower"
@@ -63,7 +61,6 @@ export default function v_4036d1() {
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const [v_b6d66b, v_a43b75] = v_5ab095(false);
   const [v_683210, v_34a50a] = v_5ab095(true);
-  const [v_a12759, v_c07211] = v_5ab095(false);
 
   const [v_207650, v_950221] = v_5ab095<Record<PrefKey, boolean>>({
     newFollower: true,
@@ -180,33 +177,6 @@ export default function v_4036d1() {
 
   const v_e44bd3 = !v_b6d66b;
 
-  const v_f40eee = async () => {
-    if (!v_2ca7e0 || v_a12759) return;
-    v_c07211(true);
-    try {
-      const v_8f00b9 = await v_7bc674(v_2ca7e0);
-      if (v_8f00b9.attempted === 0) {
-        v_889fad(
-          "테스트 알림",
-          v_8f00b9.error ?? "등록된 활성 토큰이 없습니다. 알림 권한을 다시 켜주세요.",
-        );
-      } else {
-        const v_3ed4c3 = v_8f00b9.tickets.filter((v_8d41d7) => v_8d41d7.status === "ok").length;
-        const v_3cfdfc = v_8f00b9.tickets
-          .map((v_8d41d7) => `${v_8d41d7.platform}: ${v_8d41d7.status}${v_8d41d7.errorCode ? " (" + v_8d41d7.errorCode + ")" : ""}`)
-          .join("\n");
-        v_889fad(
-          "테스트 알림 발송 결과",
-          `발송 ${v_8f00b9.attempted}건 · 성공 ${v_3ed4c3}건\n\n${v_3cfdfc}\n\n몇 초 안에 알림이 도착하는지 확인해주세요.`,
-        );
-      }
-    } catch (v_49263d) {
-      v_889fad("테스트 알림", `발송 실패: ${(v_49263d as Error).message ?? String(v_49263d)}`);
-    } finally {
-      v_c07211(false);
-    }
-  };
-
   return (
     <SafeScrollView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       <PageHeader
@@ -259,19 +229,6 @@ export default function v_4036d1() {
           ))}
         </View>
 
-        {}
-        <TouchableOpacity
-          onPress={v_f40eee}
-          disabled={!v_b6d66b || v_a12759}
-          style={[v_fd5f43.testBtn, (!v_b6d66b || v_a12759) && v_fd5f43.testBtnDisabled]}
-        >
-          {v_a12759 ? (
-            <ActivityIndicator color={v_1bfbd0.white} />
-          ) : (
-            <Text style={v_fd5f43.testBtnText}>테스트 알림 보내기</Text>
-          )}
-        </TouchableOpacity>
-
         {
 
 }
@@ -301,16 +258,6 @@ const v_fd5f43 = v_472849.create({
     borderRadius: v_8b0c90.lg,
   },
   rowLabel: { fontSize: 15, fontWeight: "500", color: v_1bfbd0.zinc900 },
-  testBtn: {
-    marginTop: 20,
-    backgroundColor: v_1bfbd0.violet600,
-    paddingVertical: 14,
-    borderRadius: v_8b0c90.lg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  testBtnDisabled: { backgroundColor: v_1bfbd0.zinc300 },
-  testBtnText: { color: v_1bfbd0.white, fontSize: 15, fontWeight: "600" },
 
   subCard: {
     marginTop: 12,
