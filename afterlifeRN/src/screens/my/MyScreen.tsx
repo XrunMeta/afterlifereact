@@ -189,6 +189,17 @@ export default function v_ed02a5() {
       route: "EditProfile",
     },
     {
+
+      icon: "inbox",
+      labelKey: "my.menu.notificationsList",
+      descKey: "my.menu.notificationsListDesc",
+      action: () => {
+        v_c65f5d.getParent()?.dispatch(
+          v_650cfa.navigate({ name: "Notifications" }),
+        );
+      },
+    },
+    {
       icon: "bell",
       labelKey: "my.menu.notifications",
       descKey: "settings.notifications.title",

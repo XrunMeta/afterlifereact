@@ -500,6 +500,8 @@
     },
     "menu": {
       "editProfile": "Kelola Profil",
+      "notificationsList": "Notifikasi",
+      "notificationsListDesc": "Lihat semua notifikasi yang diterima",
       "notifications": "Pengaturan Notifikasi",
       "privacy": "Privasi dan Visibilitas",
       "agreements": "Persetujuan",

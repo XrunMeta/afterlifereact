@@ -500,6 +500,8 @@
     },
     "menu": {
       "editProfile": "プロフィール管理",
+      "notificationsList": "通知",
+      "notificationsListDesc": "受信した通知をすべて表示",
       "notifications": "通知設定",
       "privacy": "プライバシーと公開範囲",
       "agreements": "同意",
