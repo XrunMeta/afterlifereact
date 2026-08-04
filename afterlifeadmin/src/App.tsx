@@ -20,6 +20,7 @@ import { v_4686cd } from "./pages/TotpVerifyPage";
 import { v_6c8b30 } from "./pages/L0PersonaEditPage";
 import { v_394bcd } from "./pages/PersonaQuestionsEditPage";
 import { v_9febbb } from "./pages/VoicePresetsPage";
+import { v_f731ac } from "./pages/CrashReportsPage";
 
 function v_4c0c15({ children: v_21f619 }: { children: v_4a8ba2 }) {
   return (
@@ -53,6 +54,7 @@ function v_6540c3() {
         <Route path="/oth-path-reports" element={<ProtectedLayout><UserReportsPage /></ProtectedLayout>} />
         <Route path="/report-rules" element={<ProtectedLayout><ReportPenaltyRulesPage /></ProtectedLayout>} />
         <Route path="/testbed" element={<ProtectedLayout><ApiTestbedPage /></ProtectedLayout>} />
+        <Route path="/crashes" element={<ProtectedLayout><CrashReportsPage /></ProtectedLayout>} />
         <Route
           path="/oth-path"
           element={
