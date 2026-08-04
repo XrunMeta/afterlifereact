@@ -96,6 +96,10 @@ const VIDEO_EDGE_TRIM_PX = 1;
 
 const SHOW_USER_TRANSCRIPT = __DEV__; 
 
+const SHOW_VOICE_BALL = false;
+
+const SPEAK_OK_COLOR = "#2fbf6b";
+
 interface FloatingGift {
   id: number;
   emoji: string;
@@ -554,6 +558,8 @@ export default function CallScreen({ route, navigation }: Props) {
   useEffect(() => {
     if (lastSignal?.type === 'speech_start') setGreetingStarted(true);
   }, [lastSignal]);
+
+  const canSpeak = (phase === 'listening' || phase === 'confirming') && sttActive;
 
   useEffect(() => {
     const audio = (remoteStream as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })
@@ -1119,7 +1125,7 @@ export default function CallScreen({ route, navigation }: Props) {
 
 }
       <View
-        style={[s.watermarkLayer, { bottom: bottomInset + 150 }]}
+        style={[s.watermarkLayer, { bottom: bottomInset + 24 + 56 + 16 }]}
         pointerEvents="none"
       >
         <Image
@@ -1130,8 +1136,9 @@ export default function CallScreen({ route, navigation }: Props) {
       </View>
 
       {
+
 }
-      {dialingDone ? (
+      {SHOW_VOICE_BALL && dialingDone ? (
         <View
           style={[s.voiceBallLayer, { bottom: bottomInset + 24 + 56 + 16 }]}
           pointerEvents="none"
@@ -1158,8 +1165,16 @@ export default function CallScreen({ route, navigation }: Props) {
           <Feather name={isMuted ? "mic-off" : "mic"} size={24} color={COLORS.white} />
         </TouchableOpacity>
 
+        {
+}
         <TouchableOpacity
-          style={s.endCallBtn}
+          style={[
+            s.endCallBtn,
+            canSpeak && { backgroundColor: SPEAK_OK_COLOR, shadowColor: SPEAK_OK_COLOR },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={canSpeak ? "통화 종료 (지금 말할 수 있음)" : "통화 종료"}
+          accessibilityHint={canSpeak ? "지금 말해도 됩니다. 이 버튼을 누르면 통화가 종료됩니다." : undefined}
           onPress={async () => {
             await stopLive();
             navigation.goBack();
@@ -1262,7 +1277,7 @@ const s = StyleSheet.create({
     width: 200,
     height: 40,
     resizeMode: "contain",
-    tintColor: "rgba(255, 255, 255, 0.85)",
+    tintColor: "rgba(255, 255, 255, 0.3)",
   },
   container: {
     flex: 1,
