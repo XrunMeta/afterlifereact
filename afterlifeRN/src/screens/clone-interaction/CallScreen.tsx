@@ -1119,7 +1119,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
 }
       <View
-        style={[v_fd5f43.watermarkLayer, { bottom: v_53dd92 + 150 }]}
+        style={[v_fd5f43.watermarkLayer, { bottom: v_53dd92 + 24 + 56 + 16 }]}
         pointerEvents="none"
       >
         <Image
@@ -1262,7 +1262,7 @@ const v_fd5f43 = v_472849.create({
     width: 200,
     height: 40,
     resizeMode: "contain",
-    tintColor: "rgba(255, 255, 255, 0.85)",
+    tintColor: "rgba(255, 255, 255, 0.3)",
   },
   container: {
     flex: 1,
