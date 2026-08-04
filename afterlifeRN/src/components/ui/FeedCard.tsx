@@ -248,7 +248,7 @@ const v_d81136 = v_472849.create({
 
   intimacyBadge: {
     position: "absolute",
-    top: 16,
+    top: 56,
     right: 16,
     flexDirection: "row",
     alignItems: "center",
