@@ -486,7 +486,10 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
                   </View>
                 )}
 
-                {currentQuestion && (
+                {
+
+}
+                {currentQuestion && !followup && (
                   <View style={[styles.bubbleRow, styles.bubbleRowLeft]}>
                     <View style={[styles.bubble, styles.bubbleBot]}>
                       <Text style={styles.bubbleText}>
