@@ -51,6 +51,7 @@ import {
   type FeedComment,
 } from "../../api/clones";
 import { formatRelativeKo } from "../../lib/relativeTime";
+import { assertCanCall } from "../../lib/callGuard";
 import { useReportAcceptedGate } from "../../hooks/useReportAcceptedGate";
 import { COLORS, RADIUS } from "../../components/constants";
 import type { FeedItem } from "../../types/feed";
@@ -377,7 +378,17 @@ export default function HomeScreen() {
           cardHeight={feedHeight}
           onToggleLike={() => toggleLike(item.id)}
           onToggleFollow={() => void toggleFollow(item.cloneId)}
-          onCallPress={() => rootNav.navigate("Call", { cloneId: item.cloneId, name: item.author, image: item.image })}
+          onCallPress={async () => {
+
+            const ok = await assertCanCall(accessToken, () => {
+              rootNav.dispatch(
+                CommonActions.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+              );
+            });
+            if (ok) {
+              rootNav.navigate("Call", { cloneId: item.cloneId, name: item.author, image: item.image });
+            }
+          }}
           onCommentPress={() => setCommentFeedId(item.id)}
           onMorePress={() =>
             setMoreTarget({
