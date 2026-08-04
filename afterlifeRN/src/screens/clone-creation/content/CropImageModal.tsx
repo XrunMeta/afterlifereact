@@ -8,6 +8,7 @@ import {
   Animated,
   Dimensions,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import {
   GestureHandlerRootView,
@@ -29,7 +30,7 @@ import {
   cropToAvatar,
   type GestureState,
 } from "../../../lib/cropImage";
-import { averagePaddingColor } from "../../../lib/letterboxAvatar";
+import { averagePaddingColor, buildPaddedBackground, PAD_SCALE } from "../../../lib/letterboxAvatar";
 import { COLORS } from "../../../components/constants";
 import { showAlert } from "../../../stores/dialogStore";
 import {
@@ -78,12 +79,22 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
   const [covers, setCovers] = useState(true);
 
   const [padColor, setPadColor] = useState<string | null>(null);
+
+  const [padUri, setPadUri] = useState<string | null>(null);
+
+  const [padLoading, setPadLoading] = useState(false);
   useEffect(() => {
-    if (!source) { setPadColor(null); return; }
+    if (!source) { setPadColor(null); setPadUri(null); setPadLoading(false); return; }
     let cancelled = false;
+    setPadUri(null);
+    setPadLoading(true);
+
     void averagePaddingColor(source.uri)
       .then((c) => { if (!cancelled) setPadColor(c); })
       .catch(() => {  });
+    void buildPaddedBackground(source.uri, source.width, source.height)
+      .then((u) => { if (!cancelled) { setPadUri(u); setPadLoading(false); } })
+      .catch(() => { if (!cancelled) setPadLoading(false);  });
     return () => { cancelled = true; };
   }, [source?.uri]); 
 
@@ -210,6 +221,15 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
     [source, frameW, frameH, pan, displayScale],
   );
 
+  const padStyle = useMemo(
+    () => ({
+      width: (imgStyle.width as number) * PAD_SCALE,
+      height: (imgStyle.height as number) * PAD_SCALE,
+      transform: imgStyle.transform,
+    }),
+    [imgStyle],
+  );
+
   if (!source) return null;
 
   return (
@@ -229,6 +249,13 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
               onHandlerStateChange={onPanStateChange}
             >
               <Animated.View style={s.fill}>
+                {
+}
+                {padUri ? (
+                  <View style={[StyleSheet.absoluteFill, s.center]} pointerEvents="none">
+                    <Animated.Image source={{ uri: padUri }} style={padStyle as any} resizeMode="stretch" />
+                  </View>
+                ) : null}
                 <Animated.Image source={{ uri: source.uri }} style={imgStyle as any} resizeMode="cover" />
               </Animated.View>
             </PanGestureHandler>
@@ -254,14 +281,24 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
           ) : null}
         </View>
 
+        {
+}
+        {padLoading ? (
+          <View style={[StyleSheet.absoluteFill, s.center]} pointerEvents="none">
+            <View style={s.loadingChip}>
+              <ActivityIndicator color={COLORS.white} />
+            </View>
+          </View>
+        ) : null}
+
         <View style={[s.actions, { bottom: 16 + bottomInset }]}>
           <TouchableOpacity style={s.btn} onPress={onCancel}>
             <Text style={s.btnText}>{t('common.cancel')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[s.btn, s.btnPrimary, !covers && s.btnDisabled]}
+            style={[s.btn, s.btnPrimary, (!covers || padLoading) && s.btnDisabled]}
             onPress={confirm}
-            disabled={!covers}
+            disabled={!covers || padLoading}
           >
             <Text style={[s.btnText, s.btnPrimaryText]}>{t('common.confirm')}</Text>
           </TouchableOpacity>
@@ -274,6 +311,13 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
 const s = StyleSheet.create({
 
   root: { flex: 1, backgroundColor: "#000" },
+  center: { alignItems: "center", justifyContent: "center" },
+  loadingChip: {
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: 999,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
   fill: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
   dim: { position: "absolute", backgroundColor: "rgba(0,0,0,0.6)" },
   frame: { position: "absolute", borderWidth: 2, borderColor: "rgba(255,255,255,0.9)" },

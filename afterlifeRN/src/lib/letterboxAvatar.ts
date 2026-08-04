@@ -45,7 +45,7 @@ export async function letterboxToAvatar(
 
   const tiny = await readTiny(uri);
   if (tiny) {
-    fillBlurPadding(dst, tiny, dx, dy, src.width, src.height);
+    fillBlurPadding(dst, OUT_W, OUT_H, tiny, dx, dy, src.width, src.height, RAMP);
   } else {
 
     fillSolid(dst, { r: 0, g: 0, b: 0 });
@@ -64,6 +64,40 @@ export async function averagePaddingColor(uri: string): Promise<string | null> {
   if (!tiny) return null;
   const { r, g, b } = tiny.avg;
   return `rgb(${r}, ${g}, ${b})`;
+}
+
+export const PAD_SCALE = 2;
+
+export async function buildPaddedBackground(
+  uri: string,
+  imgW: number,
+  imgH: number,
+  pw = 480,
+): Promise<string | null> {
+  const tiny = await readTiny(uri);
+  if (!tiny) return null;
+  try {
+    const t0 = Date.now();
+    const ph = Math.max(1, Math.round((pw * imgH) / Math.max(1, imgW)));
+    const cw = pw, ch = ph;
+    const W = cw * PAD_SCALE, H = ch * PAD_SCALE;
+    const cx = Math.round((W - cw) / 2), cy = Math.round((H - ch) / 2);
+    const png = new PNG({ width: W, height: H });
+    const tFill = Date.now();
+    fillBlurPadding(png, W, H, tiny, cx, cy, cw, ch, RAMP_RATIO * cw);
+    const tEnc = Date.now();
+    const buf = PNG.sync.write(png);
+    const uriOut = `data:image/png;base64,${buf.toString("base64")}`;
+    if (__DEV__) {
+      console.log(
+        `[T-244] padded bg ${W}x${H} (${((W * H) / 1e6).toFixed(2)}M px) · ` +
+        `fill ${tEnc - tFill}ms · encode ${Date.now() - tEnc}ms · total ${Date.now() - t0}ms`,
+      );
+    }
+    return uriOut;
+  } catch {
+    return null;
+  }
 }
 
 interface Tiny { data: Buffer | Uint8Array; width: number; height: number; avg: Rgb }
@@ -103,14 +137,14 @@ function fillSolid(dst: PngImage, c: Rgb): void {
 }
 
 function fillBlurPadding(
-  dst: PngImage, tiny: Tiny,
-  cx: number, cy: number, cw: number, ch: number,
+  dst: PngImage, dstW: number, dstH: number, tiny: Tiny,
+  cx: number, cy: number, cw: number, ch: number, ramp: number,
 ): void {
   const { avg } = tiny;
   const tw = tiny.width, th = tiny.height;
-  const RAMP2 = RAMP * RAMP;
+  const RAMP2 = ramp * ramp;
 
-  for (let y = 0; y < OUT_H; y++) {
+  for (let y = 0; y < dstH; y++) {
 
     const dyOut = y < cy ? cy - y : (y >= cy + ch ? y - (cy + ch - 1) : 0);
     const dy2 = dyOut * dyOut;
@@ -118,8 +152,8 @@ function fillBlurPadding(
     const fy = clamp(((y - cy) / Math.max(1, ch - 1)) * (th - 1), 0, th - 1);
     const y0 = Math.floor(fy), y1 = Math.min(y0 + 1, th - 1), wy = fy - y0;
 
-    for (let x = 0; x < OUT_W; x++) {
-      const o = (y * OUT_W + x) * 4;
+    for (let x = 0; x < dstW; x++) {
+      const o = (y * dstW + x) * 4;
       dst.data[o + 3] = 255;
 
       const dxOut = x < cx ? cx - x : (x >= cx + cw ? x - (cx + cw - 1) : 0);
@@ -134,7 +168,7 @@ function fillBlurPadding(
       const x0 = Math.floor(fx), x1 = Math.min(x0 + 1, tw - 1), wx = fx - x0;
       const i00 = (y0 * tw + x0) * 4, i01 = (y0 * tw + x1) * 4;
       const i10 = (y1 * tw + x0) * 4, i11 = (y1 * tw + x1) * 4;
-      const t = d2 === 0 ? 0 : Math.sqrt(d2) / RAMP;
+      const t = d2 === 0 ? 0 : Math.sqrt(d2) / ramp;
 
       for (let k = 0; k < 3; k++) {
         const top = tiny.data[i00 + k] * (1 - wx) + tiny.data[i01 + k] * wx;
