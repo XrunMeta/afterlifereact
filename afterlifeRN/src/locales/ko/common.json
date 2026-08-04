@@ -30,7 +30,8 @@
     "durationSec": "{{s}}초",
     "durationMin": "{{m}}분",
     "durationMinSec": "{{m}}분 {{s}}초",
-    "expertBadge": "전문가"
+    "expertBadge": "전문가",
+    "pressBackToExit": "한 번 더 누르면 종료됩니다"
   },
   "tabs": {
     "home": "홈",

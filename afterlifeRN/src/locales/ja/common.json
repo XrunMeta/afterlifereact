@@ -30,7 +30,8 @@
     "durationSec": "{{s}}秒",
     "durationMin": "{{m}}分",
     "durationMinSec": "{{m}}分{{s}}秒",
-    "expertBadge": "エキスパート"
+    "expertBadge": "エキスパート",
+    "pressBackToExit": "もう一度戻ると終了します"
   },
   "tabs": {
     "home": "ホーム",

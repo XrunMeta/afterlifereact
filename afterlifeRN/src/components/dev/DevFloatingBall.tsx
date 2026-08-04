@@ -97,7 +97,9 @@ export function DevFloatingBall() {
             </Text>
           </TouchableOpacity>
           {}
-          {false && actions.slice(1).map((a) => (
+          {actions
+            .filter((a) => a.label !== '유저 스위치')
+            .map((a) => (
             <TouchableOpacity
               key={a.label}
               style={styles.row}
@@ -237,7 +239,11 @@ function methodStyle(m: string) {
 }
 
 const styles = StyleSheet.create({
-  ball: { position: 'absolute', zIndex: 9999 },
+  ball: {
+    position: 'absolute',
+    zIndex: 99999,
+    elevation: 99999,
+  },
   bubble: {
     width: BALL,
     height: BALL,
@@ -246,6 +252,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     opacity: 0.85,
+    elevation: 24,
   },
   menu: {
     position: 'absolute',
@@ -255,6 +262,8 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
     minWidth: 180,
+    zIndex: 100000,
+    elevation: 25,
   },
   row: {
     flexDirection: 'row',
