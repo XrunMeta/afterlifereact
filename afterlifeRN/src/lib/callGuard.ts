@@ -13,7 +13,7 @@ export async function assertCanCall(
     if (balance.totalSec > 0) return true;
     showAlert(
       "남은 통화 시간이 없습니다",
-      "충전해주세요",
+      "크레딧을 충전하면 바로 이어서 통화할 수 있습니다.",
       [
         { text: "확인", style: "cancel" },
         { text: "충전하기", style: "default", onPress: onCharge },
