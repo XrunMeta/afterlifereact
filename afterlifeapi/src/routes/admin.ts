@@ -1186,6 +1186,56 @@ admin.post("/oth-path", requireAdmin, async (c) => {
   return c.json({ ok: true, granted: seconds, balance: row });
 });
 
+admin.post("/oth-path", requireAdmin, async (c) => {
+  const userId = Number(c.req.param("id"));
+  if (!Number.isInteger(userId) || userId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid user id.");
+  }
+  const body = (await c.req.json().catch(() => ({}))) as { title?: unknown; body?: unknown };
+  const title = typeof body.title === "string" && body.title ? body.title : "🧪 테스트 알림";
+  const bodyText = typeof body.body === "string" && body.body ? body.body : "관리자가 발송한 테스트 알림입니다.";
+
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT push_token, platform FROM user_devices
+        WHERE user_id = ? AND push_token IS NOT NULL AND is_active = 1`,
+    )
+    .bind(userId)
+    .all<{ push_token: string; platform: string }>();
+  const devices = (rows.results ?? []).filter(
+    (r) => r.push_token.startsWith("ExponentPushToken[") || r.push_token.startsWith("ExpoPushToken["),
+  );
+  if (devices.length === 0) {
+    return c.json({ attempted: 0, tickets: [], error: "활성 토큰 없음" });
+  }
+  const messages = devices.map((d) => ({
+    to: d.push_token,
+    title,
+    body: bodyText,
+    sound: "default" as const,
+  }));
+
+  const res = await fetch("https://exp.host/--/api/v2/push/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(messages),
+  });
+  const respBody = (await res.json().catch(() => null)) as
+    | { data?: Array<{ status?: string; message?: string; details?: { error?: string } }> }
+    | null;
+  const tickets = devices.map((d, i) => {
+    const t = respBody?.data?.[i];
+    return {
+      tokenPrefix: d.push_token.slice(0, 30),
+      platform: d.platform,
+      status: t?.status ?? "no-response",
+      errorCode: t?.details?.error ?? null,
+      message: t?.message ?? null,
+    };
+  });
+  return c.json({ attempted: devices.length, httpStatus: res.status, tickets });
+});
+
 admin.get("/oth-path", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) {
