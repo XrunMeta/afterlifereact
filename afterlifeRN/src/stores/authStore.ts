@@ -3,6 +3,7 @@ import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
 import { v_694b7f } from "../api/source";
 import type { v_b89f99 } from "../types/domain";
 import { v_182fdb as v_ac9e58, v_7ef860, type v_7289ef, type v_a93c97 } from "../api/auth";
+import { v_d4ff75 } from "../lib/errorReporting/report";
 
 const v_b6c376 = "@afterlifeRN/auth/currentUserId";
 const v_1278db = "@afterlifeRN/auth/accessToken";
@@ -125,6 +126,8 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
     } catch (v_49263d) {
       console.warn("[authStore] reset on logout failed:", v_49263d);
     }
+
+    v_d4ff75();
   },
 
   loginWithApi: async (v_931bf0, v_328259) => {

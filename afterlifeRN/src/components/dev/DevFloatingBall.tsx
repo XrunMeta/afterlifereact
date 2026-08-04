@@ -97,7 +97,9 @@ export function v_0f28c1() {
             </Text>
           </TouchableOpacity>
           {}
-          {false && v_dd943a.slice(1).map((v_779914) => (
+          {v_dd943a
+            .filter((v_779914) => v_779914.label !== '유저 스위치')
+            .map((v_779914) => (
             <TouchableOpacity
               key={v_779914.label}
               style={v_d81136.row}
@@ -237,7 +239,11 @@ function v_80dd7f(v_35f85c) {
 }
 
 const v_d81136 = v_472849.create({
-  ball: { position: 'absolute', zIndex: 9999 },
+  ball: {
+    position: 'absolute',
+    zIndex: 99999,
+    elevation: 99999,
+  },
   bubble: {
     width: v_88dc4d,
     height: v_88dc4d,
@@ -246,6 +252,7 @@ const v_d81136 = v_472849.create({
     alignItems: 'center',
     justifyContent: 'center',
     opacity: 0.85,
+    elevation: 24,
   },
   menu: {
     position: 'absolute',
@@ -255,6 +262,8 @@ const v_d81136 = v_472849.create({
     padding: 10,
     borderRadius: 8,
     minWidth: 180,
+    zIndex: 100000,
+    elevation: 25,
   },
   row: {
     flexDirection: 'row',

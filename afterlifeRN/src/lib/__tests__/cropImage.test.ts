@@ -108,16 +108,17 @@ describe("computeCropRect", () => {
 
 describe("clampGestureScale", () => {
   it("ZOOM_MIN 미만은 ZOOM_MIN으로 클램프", () => {
-    expect(v_0916d7(0.3)).toBe(v_d0c8d8);
+    expect(v_0916d7(0.1)).toBe(v_d0c8d8);
     expect(v_0916d7(-5)).toBe(v_d0c8d8);
   });
 
-  it("ZOOM_MAX 초과는 ZOOM_MAX로 클램프", () => {
+  it("ZOOM_MAX 초과는 ZOOM_MAX으로 클램프", () => {
     expect(v_0916d7(999)).toBe(v_66052e);
   });
 
   it("범위 내 값은 그대로 통과", () => {
     expect(v_0916d7(3.5)).toBe(3.5);
+    expect(v_0916d7(0.5)).toBe(0.5);
   });
 
   it("커스텀 min/max 오버라이드", () => {
@@ -158,6 +159,13 @@ describe("clampPanOffset", () => {
     expect(v_cb35cb.x).toBeCloseTo(-50);
     expect(v_cb35cb.y).toBeCloseTo(0);
   });
+
+  it("축소(scale=0.5)에서는 프레임 안 패닝 여유", () => {
+
+    const v_cb35cb = v_f965d7(v_7ddb73, v_143cb5, 0.5, { x: 999, y: 999 });
+    expect(v_cb35cb.x).toBeCloseTo(0);
+    expect(v_cb35cb.y).toBeCloseTo(50);
+  });
 });
 
 describe("coversCropArea", () => {
@@ -181,6 +189,10 @@ describe("coversCropArea", () => {
 
   it("확대(scale=2) 상태에서 확대 전 최대 offset은 이제 덮음 → true", () => {
     expect(v_622116(v_6c4b91, 2, { x: 50, y: 0 })).toBe(true);
+  });
+
+  it("축소(scale=0.5)에서도 팬이 경계 내면 true(레터박스 허용)", () => {
+    expect(v_622116(v_6c4b91, 0.5, { x: 0, y: 0 })).toBe(true);
   });
 
   it("오차 허용범위(EPS) 이내의 미세 초과는 true로 관대하게 판정", () => {

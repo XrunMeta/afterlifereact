@@ -1,5 +1,14 @@
 import v_a3453e, { v_c4deb2, v_df9f57, v_e662ae, v_5ab095 } from "bapkr";
-import { v_aa7413, v_3094a2, v_19b633, v_4623af, v_472849, v_a2349e, v_700696 } from "rcmrninabrnb";
+import {
+  v_aa7413,
+  v_3094a2,
+  v_19b633,
+  v_4623af,
+  v_472849,
+  v_a2349e,
+  v_700696,
+  v_326be8,
+} from "rcmrninabrnb";
 import {
   v_70c669,
   v_5bc116,
@@ -8,6 +17,8 @@ import {
   type v_905231,
   type v_bd225c,
 } from "zwwvjiopxcaovigclhtwpklelhlr";
+import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_772971 } from "jmpfvteuuztnp";
 import v_11c5c8 from "../../../components/clone/UpperBodyGuide";
 import {
@@ -20,6 +31,13 @@ import {
 } from "../../../lib/cropImage";
 import { v_1bfbd0 } from "../../../components/constants";
 import { v_889fad } from "../../../stores/dialogStore";
+import {
+  v_069313,
+  v_6036cc,
+  v_8b5209,
+  v_d43608,
+} from "../../../lib/t208SilhouetteScale";
+import { v_87a25c, v_951fee, v_890a60, v_d993b0 } from "../../../lib/t208MeasureStore";
 
 interface Source { uri: string; width: number; height: number }
 interface Props {
@@ -31,9 +49,17 @@ interface Props {
 
 export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfirm: v_e2be2d, onCancel: v_c7001c }: Props) {
   const { t: v_8d41d7 } = v_772971();
+  const v_033e14 = v_e0068c();
+  const v_f9771e = v_c18c22(0);
+
+  const v_53dd92 =
+    v_326be8.OS === "ios" ? v_033e14.bottom : Math.max(v_f9771e, v_033e14.bottom);
   const { width: v_df48e9, height: v_bd274b } = v_700696.get("window");
   const v_e0560a = Math.min(v_df48e9 * 0.86, (v_bd274b * 0.7) / 2);
   const v_fc2e4f = v_e0560a * 2;
+
+  const [v_7b377a, v_3bbf8c] = v_5ab095(v_069313);
+  v_c4deb2(() => v_d43608(() => v_3bbf8c(v_069313())), []);
 
   const v_0d09bb = v_e662ae<v_49127c>({ translateX: 0, translateY: 0, scale: 1 });
 
@@ -137,6 +163,19 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
         { width: v_e0560a, height: v_fc2e4f },
         v_0d09bb.current,
       );
+
+      if (v_6036cc()) {
+        const v_a37637 = v_069313();
+        await v_87a25c(v_a37637, v_cd1446);
+        const v_2fb8cc = v_951fee();
+        const v_a448ad = v_2fb8cc ? null : v_d993b0();
+        v_889fad(
+          `T-208 크롭 저장 · ${v_8b5209(v_a37637)}`,
+          v_2fb8cc
+            ? `3종 크롭 완료!\n${v_890a60()}\n\n다음: 생성→사진에서「T-208 … 불러오기」로 배율별 크롭을 넣어 클론 3개 생성(음성·페르소나 동일) → 가비아 동일 대사 렌더.`
+            : `기록됨.\n현황 ${v_890a60()}\n\n다음 배율로 전환: ${v_8b5209(v_a448ad ?? v_069313())}\n같은 사진으로 다시 크롭하세요.`,
+        );
+      }
       v_e2be2d(v_cd1446);
     } catch (v_49263d) {
       console.warn("[CropImageModal] cropToAvatar 실패:", v_49263d);
@@ -195,11 +234,16 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
           <View style={[v_fd5f43.frame, { top: (v_bd274b - v_fc2e4f) / 2, left: (v_df48e9 - v_e0560a) / 2, width: v_e0560a, height: v_fc2e4f }]} />
           {}
           <View style={[v_fd5f43.guide, { top: (v_bd274b - v_fc2e4f) / 2, left: (v_df48e9 - v_e0560a) / 2, width: v_e0560a, height: v_fc2e4f }]}>
-            <UpperBodyGuide width={v_df48e9 * 0.5} />
+            <UpperBodyGuide width={v_df48e9 * v_7b377a} />
           </View>
+          {__DEV__ && v_6036cc() ? (
+            <View style={v_fd5f43.devBadge} pointerEvents="none">
+              <Text style={v_fd5f43.devBadgeText}>T-208 실측 {v_8b5209(v_7b377a)}</Text>
+            </View>
+          ) : null}
         </View>
 
-        <View style={[v_fd5f43.actions]}>
+        <View style={[v_fd5f43.actions, { bottom: 16 + v_53dd92 }]}>
           <TouchableOpacity style={v_fd5f43.btn} onPress={v_c7001c}>
             <Text style={v_fd5f43.btnText}>{v_8d41d7('common.cancel')}</Text>
           </TouchableOpacity>
@@ -222,7 +266,25 @@ const v_fd5f43 = v_472849.create({
   dim: { position: "absolute", backgroundColor: "rgba(0,0,0,0.6)" },
   frame: { position: "absolute", borderWidth: 2, borderColor: "rgba(255,255,255,0.9)" },
   guide: { position: "absolute", alignItems: "center", justifyContent: "center", overflow: "hidden" },
-  actions: { position: "absolute", bottom: 40, left: 0, right: 0, flexDirection: "row", justifyContent: "center", gap: 16 },
+  devBadge: {
+    position: "absolute",
+    top: 48,
+    alignSelf: "center",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+  },
+  devBadgeText: {
+    color: "#fde68a",
+    fontSize: 12,
+    fontWeight: "700",
+    backgroundColor: "rgba(0,0,0,0.55)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    overflow: "hidden",
+    borderRadius: 8,
+  },
+  actions: { position: "absolute", left: 0, right: 0, flexDirection: "row", justifyContent: "center", gap: 16 },
   btn: { paddingVertical: 12, paddingHorizontal: 28, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.15)" },
   btnPrimary: { backgroundColor: v_1bfbd0.white },
   btnDisabled: { opacity: 0.4 },
