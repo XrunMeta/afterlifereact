@@ -1,6 +1,6 @@
 
 
-const v_7f7b1d = "https://rtc.example.invalid/prethird/verify";
+const v_7f7b1d = "https://rtc.example.invalid/oth-path";
 
 const v_e86257 = import.meta.env.VITE_VERIFY_URL ?? v_7f7b1d;
 
