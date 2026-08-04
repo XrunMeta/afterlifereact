@@ -30,6 +30,7 @@ import v_5db6c6 from "../screens/search/SearchScreen";
 import v_ed02a5 from "../screens/my/MyScreen";
 import v_e2b396 from "../screens/my/EditProfileScreen";
 import v_4036d1 from "../screens/my/NotificationSettingsScreen";
+import v_93ca57 from "../screens/my/NotificationRoutingTestScreen";
 import v_9232cf from "../screens/my/PrivacySettingsScreen";
 import v_c78d4f from "../screens/my/AgreementsScreen";
 import v_e797c6 from "../screens/my/SavedItemsScreen";
@@ -90,6 +91,7 @@ function v_d9c5dd() {
       <MyStack.Screen name="MyHome" component={v_ed02a5} />
       <MyStack.Screen name="EditProfile" component={v_e2b396} />
       <MyStack.Screen name="NotificationSettings" component={v_4036d1} />
+      <MyStack.Screen name="NotificationRoutingTest" component={v_93ca57} />
       <MyStack.Screen name="PrivacySettings" component={v_9232cf} />
       <MyStack.Screen name="Agreements" component={v_c78d4f} />
       <MyStack.Screen name="SavedItems" component={v_e797c6} />

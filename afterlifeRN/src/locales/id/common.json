@@ -503,6 +503,8 @@
       "notificationsList": "Notifikasi",
       "notificationsListDesc": "Lihat semua notifikasi yang diterima",
       "notifications": "Pengaturan Notifikasi",
+      "notificationRoutingTest": "Uji Rute Notifikasi",
+      "notificationRoutingTestDesc": "Verifikasi tujuan navigasi tiap notifikasi",
       "privacy": "Privasi dan Visibilitas",
       "agreements": "Persetujuan",
       "reports": "Laporan",
