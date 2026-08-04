@@ -1135,6 +1135,57 @@ admin.get("/oth-path", requireAdmin, async (c) => {
   return c.json(row);
 });
 
+admin.post("/oth-path", requireAdmin, async (c) => {
+  const userId = Number(c.req.param("id"));
+  if (!Number.isInteger(userId) || userId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid user id.");
+  }
+  const body = (await c.req.json().catch(() => ({}))) as { seconds?: unknown; reason?: unknown };
+  const seconds = Number(body.seconds);
+  if (!Number.isInteger(seconds) || seconds <= 0) {
+    throw new APIError("VALIDATION_FAILED", "seconds must be a positive integer.");
+  }
+  const nowMs = Date.now();
+  const fiveYearsMs = 5 * 365 * 24 * 60 * 60 * 1000;
+  const idemKey = `admin:${seconds}:${nowMs}`;
+  const reason = typeof body.reason === "string" ? body.reason.slice(0, 200) : "admin grant";
+
+  const ledgerRes = await c.env.DB
+    .prepare(
+      `INSERT INTO credit_ledgers (user_id, amount, type, ref_id, idempotency_key)
+         VALUES (?, ?, 'admin_grant', ?, ?)
+         RETURNING id`,
+    )
+    .bind(userId, seconds, reason, idemKey)
+    .first<{ id: number }>();
+  if (!ledgerRes) throw new APIError("INTERNAL_ERROR", "ledger insert failed.");
+
+  await c.env.DB
+    .prepare(
+      `UPDATE users
+          SET credits       = credits + ?,
+              credits_topup = credits_topup + ?,
+              updated_at    = CURRENT_TIMESTAMP
+        WHERE id = ? AND deleted_at IS NULL`,
+    )
+    .bind(seconds, seconds, userId)
+    .run();
+
+  await c.env.DB
+    .prepare(
+      `INSERT INTO credit_lots (user_id, amount, remaining, granted_at, expires_at, ledger_id)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(userId, seconds, seconds, nowMs, nowMs + fiveYearsMs, ledgerRes.id)
+    .run();
+
+  const row = await c.env.DB
+    .prepare(`SELECT credits, credits_topup FROM users WHERE id = ?`)
+    .bind(userId)
+    .first<{ credits: number; credits_topup: number }>();
+  return c.json({ ok: true, granted: seconds, balance: row });
+});
+
 admin.get("/oth-path", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) {
