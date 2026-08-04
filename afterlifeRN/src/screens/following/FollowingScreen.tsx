@@ -198,10 +198,8 @@ export default function v_14b43e() {
       return v_d92a4c.map((v_3f4e2e) => {
 
         const v_8fc8f0 = v_3f4e2e.myInteractions;
-        const v_db41cd = v_8fc8f0 ? v_8fc8f0.total : v_c8b54a(v_3f4e2e.stats);
-        const v_f40d9f = v_8fc8f0 ? v_8fc8f0.intimacy : Math.min(100, Math.floor(v_db41cd / 50));
-        const v_db07f5 = v_3f4e2e.isOwn ? 0 : v_db41cd;
-        const v_b74b9c = v_3f4e2e.isOwn ? 0 : v_f40d9f;
+        const v_db07f5 = v_8fc8f0 ? v_8fc8f0.total : v_c8b54a(v_3f4e2e.stats);
+        const v_b74b9c = v_8fc8f0 ? v_8fc8f0.intimacy : Math.min(100, Math.floor(v_db07f5 / 50));
         return {
           id: v_3f4e2e.id,
           name: v_3f4e2e.name,
