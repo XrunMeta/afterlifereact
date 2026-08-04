@@ -86,6 +86,9 @@ import {
   unlikeClone,
   postCloneCallEvent,
 } from "../../api/clones";
+import { getCreditBalance } from "../../api/credits";
+import { showAlert } from "../../stores/dialogStore";
+import { CommonActions } from "@react-navigation/native";
 import ExpertBadge from "../../components/ui/ExpertBadge";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
@@ -653,6 +656,75 @@ export default function CallScreen({ route, navigation }: Props) {
     const id = setInterval(() => setCallSeconds((s) => s + 1), 1000);
     return () => clearInterval(id);
   }, [liveState]);
+
+  const [remainingSec, setRemainingSec] = useState<number | null>(null);
+  const warnedRef = useRef(false);
+  const exhaustedRef = useRef(false);
+  useEffect(() => {
+    if (!accessToken) return;
+    let cancelled = false;
+    getCreditBalance(accessToken)
+      .then((b) => {
+        if (cancelled) return;
+        setRemainingSec(Math.max(0, Math.floor(b.totalSec ?? 0)));
+      })
+      .catch((err) => {
+        console.warn("[Call] balance fetch failed:", (err as Error)?.message ?? err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken]);
+  useEffect(() => {
+    if (liveState !== "live" || remainingSec === null) return;
+    const id = setInterval(() => {
+      setRemainingSec((prev) => {
+        if (prev === null) return prev;
+        const next = Math.max(0, prev - 1);
+        if (next === 30 && !warnedRef.current) {
+          warnedRef.current = true;
+          setToastMessage(
+            t("call.remainingWarnToast", {
+              defaultValue: "남은 통화 시간 30초입니다. 곧 종료됩니다.",
+            }),
+          );
+        }
+        if (next === 0 && !exhaustedRef.current) {
+          exhaustedRef.current = true;
+          showAlert(
+            t("call.exhaustedTitle", { defaultValue: "통화 시간 종료" }),
+            t("call.exhaustedBody", {
+              defaultValue: "충전하면 계속 통화할 수 있어요.",
+            }),
+            [
+              {
+                text: t("common.confirm", { defaultValue: "확인" }),
+                style: "cancel",
+                onPress: () => navigation.goBack(),
+              },
+              {
+                text: t("call.exhaustedCharge", { defaultValue: "충전하기" }),
+                style: "default",
+                onPress: () => {
+                  navigation.dispatch(
+                    CommonActions.navigate({
+                      name: "Main",
+                      params: {
+                        screen: "MyTab",
+                        params: { screen: "Purchase" },
+                      },
+                    }),
+                  );
+                },
+              },
+            ],
+          );
+        }
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [liveState, remainingSec !== null, navigation, t]);
 
   const confirmProgress = useRef(new Animated.Value(0)).current;
   useEffect(() => {
