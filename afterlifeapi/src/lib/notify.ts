@@ -201,7 +201,6 @@ export async function v_33d48f(
       .bind(v_4317d1.cloneId)
       .first<{ owner_id: number; name: string }>();
     if (!v_eb25ce) return;
-    if (v_eb25ce.owner_id === v_4317d1.actorId) return; 
 
     const v_b0b8c8 = {
       chat: "채팅",
@@ -210,21 +209,36 @@ export async function v_33d48f(
       feed: "피드 소통",
     };
     const v_2869c1 = v_b0b8c8[v_4317d1.action];
+    const v_9390e8 = {
+      cloneId: v_4317d1.cloneId,
+      action: v_4317d1.action,
+      score: v_4317d1.score,
+      actorId: v_4317d1.actorId,
+    };
+    const v_f71b56 = `afterlife://clone/${v_4317d1.cloneId}/intimacy`;
+    const v_9f1622 = `🌡️ +${v_4317d1.score}°C 온도 상승`;
 
     await v_c226a5(v_c9c489, {
-      userId: v_eb25ce.owner_id,
+      userId: v_4317d1.actorId,
       type: "intimacy_score",
-      title: `🌡️ +${v_4317d1.score}°C 온도 상승`,
-      body: `${v_eb25ce.name} 의 친밀도가 ${v_2869c1} 활동으로 ${v_4317d1.score}°C 올랐어요`,
-      url: `afterlife://clone/${v_4317d1.cloneId}/intimacy`,
-      data: {
-        cloneId: v_4317d1.cloneId,
-        action: v_4317d1.action,
-        score: v_4317d1.score,
-        actorId: v_4317d1.actorId,
-      },
+      title: v_9f1622,
+      body: `${v_eb25ce.name} 과의 친밀도가 ${v_2869c1} 활동으로 ${v_4317d1.score}°C 올랐어요`,
+      url: v_f71b56,
+      data: v_9390e8,
       skipEmail: true,
     });
+
+    if (v_eb25ce.owner_id !== v_4317d1.actorId) {
+      await v_c226a5(v_c9c489, {
+        userId: v_eb25ce.owner_id,
+        type: "intimacy_score",
+        title: v_9f1622,
+        body: `${v_eb25ce.name} 의 친밀도가 ${v_2869c1} 활동으로 ${v_4317d1.score}°C 올랐어요`,
+        url: v_f71b56,
+        data: v_9390e8,
+        skipEmail: true,
+      });
+    }
   } catch (v_49263d) {
     console.warn("[notifyIntimacyScore] failed:", (v_49263d as Error).message);
   }
