@@ -72,31 +72,38 @@ export async function requestPushPermission(): Promise<PushRegistration> {
 }
 
 export async function registerPushTokenIfReady(accessToken: string | null): Promise<void> {
-  if (!accessToken) return;
-  if (!Device.isDevice) return;
+
+  console.log(`[push] register start — platform=${Platform.OS} isDevice=${Device.isDevice} hasToken=${!!accessToken}`);
+  if (!accessToken) { console.log("[push] SKIP: no accessToken"); return; }
+  if (!Device.isDevice) { console.log("[push] SKIP: Device.isDevice=false (simulator?)"); return; }
 
   try {
     const existing = await Notifications.getPermissionsAsync();
-    if (existing.status !== "granted") return;
+    console.log(`[push] permission status=${existing.status} granted=${existing.granted} canAskAgain=${existing.canAskAgain}`);
+    if (existing.status !== "granted") { console.log("[push] SKIP: permission not granted"); return; }
 
     if (Platform.OS === "android") {
       await Notifications.setNotificationChannelAsync("default", {
         name: "default",
         importance: Notifications.AndroidImportance.DEFAULT,
       });
+      console.log("[push] android channel set");
     }
 
     const projectId = getProjectId();
+    console.log(`[push] projectId=${projectId ?? "(none)"}`);
     const tokenRes = await Notifications.getExpoPushTokenAsync(
       projectId ? { projectId } : undefined,
     );
     const token = tokenRes.data;
-    if (!token) return;
+    console.log(`[push] got expo token — prefix=${token ? token.slice(0, 30) : "(null)"}`);
+    if (!token) { console.log("[push] SKIP: no token from getExpoPushTokenAsync"); return; }
 
     const deviceId = await getOrCreateDeviceId();
     const platform: PushRegistration["platform"] =
       Platform.OS === "ios" ? "ios" : Platform.OS === "android" ? "android" : "web";
 
+    console.log(`[push] POST /oth-path deviceId=${deviceId} platform=${platform}`);
     const res = await fetch(`${API_BASE}/oth-path`, {
       method: "POST",
       headers: {
@@ -106,12 +113,13 @@ export async function registerPushTokenIfReady(accessToken: string | null): Prom
       body: JSON.stringify({ deviceId, pushToken: token, platform }),
     });
     if (!res.ok) {
-      console.warn("[push] device upsert failed:", res.status);
+      const body = await res.text().catch(() => "");
+      console.warn(`[push] device upsert failed status=${res.status} body=${body.slice(0, 200)}`);
       return;
     }
-    console.log("[push] device upserted, token=", token.slice(0, 30) + "...");
+    console.log(`[push] ✅ device upserted OK — platform=${platform} token=${token.slice(0, 30)}...`);
   } catch (err) {
-    console.warn("[push] registerPushTokenIfReady failed:", (err as Error)?.message ?? err);
+    console.warn("[push] registerPushTokenIfReady EXCEPTION:", (err as Error)?.message ?? err);
   }
 }
 
