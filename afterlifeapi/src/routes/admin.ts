@@ -1979,3 +1979,58 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
   return v_3f4e2e.json({ items: v_18b8bf.results });
 });
 
+v_b7f2b4.get("/intimacy-events", v_c0a297, async (v_3f4e2e) => {
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_2257df = v_f71b56.searchParams.get("userId");
+  const v_6c2092 = v_f71b56.searchParams.get("cloneId");
+  const v_9b064f = (v_f71b56.searchParams.get("action") ?? "").trim();
+  const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 100);
+  const v_02be30 = Math.max(1, Math.min(500, Number.isFinite(v_cf2260) ? v_cf2260 : 100));
+  const v_3bbadf = Math.max(0, Number(v_f71b56.searchParams.get("offset") ?? 0));
+
+  const v_abcc8d = [];
+  const v_925171 = [];
+  if (v_2257df && /^\d+$/.test(v_2257df)) {
+    v_abcc8d.push("ie.user_id = ?");
+    v_925171.push(Number(v_2257df));
+  }
+  if (v_6c2092 && /^\d+$/.test(v_6c2092)) {
+    v_abcc8d.push("ie.clone_id = ?");
+    v_925171.push(Number(v_6c2092));
+  }
+  if (v_9b064f && ["chat", "call", "learn", "feed"].includes(v_9b064f)) {
+    v_abcc8d.push("ie.action = ?");
+    v_925171.push(v_9b064f);
+  }
+  const v_8b4d7e = v_abcc8d.length ? `WHERE ${v_abcc8d.join(" AND ")}` : "";
+
+  const v_0dab8e = await v_3f4e2e.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM intimacy_events ie ${v_8b4d7e}`)
+    .bind(...v_925171)
+    .first<{ n: number }>();
+  const v_c83285 = v_0dab8e?.n ?? 0;
+
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT ie.id           AS id,
+              ie.created_at   AS createdAt,
+              ie.user_id      AS userId,
+              u.email         AS userEmail,
+              ie.clone_id     AS cloneId,
+              c.name          AS cloneName,
+              ie.action       AS action,
+              ie.score        AS score,
+              ie.feed_id      AS feedId
+         FROM intimacy_events ie
+         LEFT JOIN users u ON u.id = ie.user_id
+         LEFT JOIN clones c ON c.id = ie.clone_id
+         ${v_8b4d7e}
+        ORDER BY ie.created_at DESC, ie.id DESC
+        LIMIT ? OFFSET ?`,
+    )
+    .bind(...v_925171, v_02be30, v_3bbadf)
+    .all();
+
+  return v_3f4e2e.json({ items: v_18b8bf.results, total: v_c83285, limit: v_02be30, offset: v_3bbadf });
+});
+
