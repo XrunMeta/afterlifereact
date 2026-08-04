@@ -14,7 +14,7 @@ export function baseCoverScale(image: Size, frame: Size): number {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
-export const ZOOM_MIN = 0.35;
+export const ZOOM_MIN = 0.5;
 export const ZOOM_MAX = 10;
 
 export const COVER_SCALE = 1;

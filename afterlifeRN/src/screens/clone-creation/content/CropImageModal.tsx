@@ -29,6 +29,7 @@ import {
   cropToAvatar,
   type GestureState,
 } from "../../../lib/cropImage";
+import { averagePaddingColor } from "../../../lib/letterboxAvatar";
 import { COLORS } from "../../../components/constants";
 import { showAlert } from "../../../stores/dialogStore";
 import {
@@ -75,6 +76,16 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
   const panHandlerRef = useRef(null);
 
   const [covers, setCovers] = useState(true);
+
+  const [padColor, setPadColor] = useState<string | null>(null);
+  useEffect(() => {
+    if (!source) { setPadColor(null); return; }
+    let cancelled = false;
+    void averagePaddingColor(source.uri)
+      .then((c) => { if (!cancelled) setPadColor(c); })
+      .catch(() => {  });
+    return () => { cancelled = true; };
+  }, [source?.uri]); 
 
   useEffect(() => {
     if (!source) return;
@@ -203,7 +214,7 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <GestureHandlerRootView style={s.root}>
+      <GestureHandlerRootView style={[s.root, padColor ? { backgroundColor: padColor } : null]}>
         <PinchGestureHandler
           ref={pinchHandlerRef}
           simultaneousHandlers={panHandlerRef}
@@ -261,6 +272,7 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
 }
 
 const s = StyleSheet.create({
+
   root: { flex: 1, backgroundColor: "#000" },
   fill: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
   dim: { position: "absolute", backgroundColor: "rgba(0,0,0,0.6)" },
