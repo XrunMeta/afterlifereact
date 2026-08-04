@@ -503,6 +503,8 @@
       "notificationsList": "알림",
       "notificationsListDesc": "받은 알림 전체 보기",
       "notifications": "알림 설정",
+      "notificationRoutingTest": "알림 라우팅 테스트",
+      "notificationRoutingTestDesc": "각 알림 클릭 시 이동 화면 확인",
       "privacy": "차단 관리",
       "agreements": "동의",
       "reports": "신고",
