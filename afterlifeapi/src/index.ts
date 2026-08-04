@@ -43,6 +43,7 @@ import { callConfig } from "./routes/call-config";
 import { pricingConfig } from "./routes/pricing-config";
 import { authConfig } from "./routes/auth-config";
 import { consent } from "./routes/consent";
+import { crashes, crashesAdmin } from "./routes/crashes";
 
 const app = new Hono<AppEnv>();
 
@@ -133,6 +134,9 @@ app.route("/oth-path", inheritance);
 
 app.route("/oth-path", emergencyNoticesAdmin);
 app.route("/oth-path", emergencyNoticesPublic);
+
+app.route("/oth-path", crashes);
+app.route("/oth-path", crashesAdmin);
 app.route("/oth-path", gdpr);
 app.route("/oth-path", adminGdpr);
 app.route("/oth-path", adminDeletion);

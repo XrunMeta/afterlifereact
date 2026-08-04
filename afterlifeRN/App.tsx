@@ -26,12 +26,16 @@ import { AppErrorBoundary } from "./src/lib/errorReporting/ErrorBoundary";
 import {
   addBreadcrumb,
   installGlobalErrorHandlers,
+  setErrorReportingSink,
 } from "./src/lib/errorReporting/report";
+import { serverSink } from "./src/lib/errorReporting/serverSink";
 import { DevFloatingBall } from "./src/components/dev/DevFloatingBall";
 import { hydrateT208Crops } from "./src/lib/t208MeasureStore";
 import { useDevOverlayStore } from "./src/stores/devOverlayStore";
 
 installGlobalErrorHandlers();
+
+setErrorReportingSink(serverSink);
 
 const linking: LinkingOptions<RootStackParamList> = {
   prefixes: [
