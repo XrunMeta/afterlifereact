@@ -31,6 +31,7 @@ import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
 import HashtagText from "../../components/common/HashtagText";
 import FriendPickerModal from "./components/FriendPickerModal";
+import VisibilityPickerModal from "./components/VisibilityPickerModal";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
@@ -1015,46 +1016,12 @@ export default function MyClonesDashboardScreen() {
       </Modal>
 
       {}
-      <Modal visible={!!visibilityModal} transparent animationType="fade">
-        <Pressable style={s.modalOverlay} onPress={() => setVisibilityModal(null)}>
-          <Pressable style={s.modalBox} onPress={(e) => e.stopPropagation()}>
-            <Text style={s.modalTitle}>{t("dashboard.visibilityChooseTitle", { defaultValue: "공개 범위" })}</Text>
-            <Text style={s.modalDesc}>{t("dashboard.visibilityChooseDesc", { defaultValue: "이 클론을 누구에게 보일까요?" })}</Text>
-            <View style={s.visibilityOptions}>
-              {(["public", "followers", "selected", "private"] as Visibility[]).map((v) => {
-                const selected = visibilityModal?.currentVisibility === v;
-                return (
-                  <TouchableOpacity
-                    key={v}
-                    style={[s.visibilityOption, selected && s.visibilityOptionSelected]}
-                    onPress={() => confirmVisibility(v)}
-                  >
-                    <Feather
-                      name={getVisibilityIcon(v)}
-                      size={16}
-                      color={selected ? COLORS.white : COLORS.zinc700}
-                    />
-                    <Text
-                      style={[
-                        s.visibilityOptionText,
-                        selected && { color: COLORS.white },
-                      ]}
-                    >
-                      {getVisibilityLabel(v)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <Button
-              title={t("common.cancel")}
-              variant="ghost"
-              onPress={() => setVisibilityModal(null)}
-              style={{ marginTop: 12, width: "100%" }}
-            />
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <VisibilityPickerModal
+        visible={!!visibilityModal}
+        currentVisibility={visibilityModal?.currentVisibility ?? null}
+        onSelect={confirmVisibility}
+        onClose={() => setVisibilityModal(null)}
+      />
 
       {}
       <FriendPickerModal
