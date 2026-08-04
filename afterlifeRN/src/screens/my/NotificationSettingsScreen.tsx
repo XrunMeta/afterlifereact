@@ -20,6 +20,7 @@ import { COLORS, RADIUS } from "../../components/constants";
 import {
   getCurrentPushStatus,
   requestPushPermission,
+  registerPushTokenIfReady,
 } from "../../lib/pushNotifications";
 import { sendTestPush } from "../../api/notifications";
 import { useAuthStore } from "../../stores/authStore";
@@ -63,8 +64,10 @@ const PREF_ITEMS: Array<{
 export default function NotificationSettingsScreen() {
   const navigation = useNavigation();
   const { t } = useTranslation();
+  const accessToken = useAuthStore((s) => s.accessToken);
   const [granted, setGranted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [testing, setTesting] = useState(false);
 
   const [prefs, setPrefs] = useState<Record<PrefKey, boolean>>({
     newFollower: true,
@@ -125,6 +128,10 @@ export default function NotificationSettingsScreen() {
         const reg = await requestPushPermission();
         if (reg.granted) {
           setGranted(true);
+
+          if (accessToken) {
+            void registerPushTokenIfReady(accessToken);
+          }
         } else {
           showAlert(
             t("settings.notifications.permTitle", { defaultValue: "권한 필요" }),
@@ -177,8 +184,6 @@ export default function NotificationSettingsScreen() {
 
   const subDisabled = !granted;
 
-  const accessToken = useAuthStore((s) => s.accessToken);
-  const [testing, setTesting] = useState(false);
   const handleTestPush = async () => {
     if (!accessToken || testing) return;
     setTesting(true);
