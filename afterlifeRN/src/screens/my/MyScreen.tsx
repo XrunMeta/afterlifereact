@@ -206,6 +206,13 @@ export default function MyScreen() {
       route: "NotificationSettings",
     },
     {
+
+      icon: "navigation",
+      labelKey: "my.menu.notificationRoutingTest",
+      descKey: "my.menu.notificationRoutingTestDesc",
+      route: "NotificationRoutingTest",
+    },
+    {
       icon: "globe",
       labelKey: "my.menu.language",
       descKey: "settings.language.title",
