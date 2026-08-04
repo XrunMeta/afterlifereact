@@ -884,26 +884,11 @@ export async function v_5e388b(
   v_6e0fd3,
   v_931bf0,
 ): Promise<{ feed: { id: number; cloneId: number; content: string | null; mediaUrl: string | null } }> {
-  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path${v_6e0fd3}/oth-path`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${v_2ca7e0}`,
-    },
-    body: JSON.stringify(v_931bf0),
-  });
-  const v_9b6134 = await v_8f00b9.text();
-  const v_8decf8 = v_9b6134 ? (JSON.parse(v_9b6134) as unknown) : null;
-  if (!v_8f00b9.ok) {
-    const v_4d33b2 = v_8decf8 as v_669377 | null;
-    throw new v_84a859(
-      v_8f00b9.status,
-      v_4d33b2?.error?.code ?? "HTTP_ERROR",
-      v_4d33b2?.error?.message ?? `HTTP ${v_8f00b9.status}`,
-      v_4d33b2?.error?.details,
-    );
-  }
-  return v_8decf8 as { feed: { id: number; cloneId: number; content: string | null; mediaUrl: string | null } };
+  return v_3fc86a<{ feed: { id: number; cloneId: number; content: string | null; mediaUrl: string | null } }>(
+    `/oth-path${v_6e0fd3}/oth-path`,
+    v_2ca7e0,
+    { method: "POST", body: JSON.stringify(v_931bf0) },
+  );
 }
 
 export interface FeedLikeUser {
