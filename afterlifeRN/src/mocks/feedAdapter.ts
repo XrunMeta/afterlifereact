@@ -52,7 +52,12 @@ export function v_f386b1(f: v_bc3df4): v_19b433 {
     cloneOwnerId: v_3f4e2e?.ownerId,
     cloneVisibility: v_3f4e2e?.visibility,
     author: v_3f4e2e?.displayName ?? "알 수 없음",
-    username: v_3f4e2e ? `@${v_3f4e2e.cloneType}-${v_3f4e2e.id}` : "@unknown",
+
+    username: v_3f4e2e?.username
+      ? `@${v_3f4e2e.username}`
+      : v_3f4e2e
+      ? `@${v_3f4e2e.cloneType}-${v_3f4e2e.id}`
+      : "@unknown",
     authorAvatar: v_9ab3b1 ?? v_3f4e2e?.imageUrl ?? "",
     image: v_8b5cd8.mediaUrl ?? v_9ab3b1 ?? v_3f4e2e?.imageUrl ?? "",
     title: v_3f4e2e?.displayName ?? "",

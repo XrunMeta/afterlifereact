@@ -62,6 +62,8 @@ function v_0a5d7b(item: v_4c75cf): v_bc3df4 {
     cloneType: v_8c0b26.clone.cloneType,
 
     ownerId: v_8c0b26.clone.ownerId ?? -1,
+
+    username: v_8c0b26.clone.username,
     displayName: v_8c0b26.clone.name,
     description: "",
     interests: v_8c0b26.interests,
