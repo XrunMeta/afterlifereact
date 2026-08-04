@@ -856,6 +856,8 @@ export interface DiscoverFeedItem {
     visibility?: string;
   };
   interests: string[];
+
+  myIntimacy?: number;
 }
 
 export async function listDiscoverFeeds(opts?: {
