@@ -20,6 +20,7 @@ import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import {
   v_11921f,
   v_704bef,
+  v_9bedf5,
 } from "../../lib/pushNotifications";
 import { v_7bc674 } from "../../api/notifications";
 import { v_1ed7d9 } from "../../stores/authStore";
@@ -59,8 +60,10 @@ const v_a5887f = [
 export default function v_4036d1() {
   const v_c65f5d = v_ada615();
   const { t: v_8d41d7 } = v_772971();
+  const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const [v_b6d66b, v_a43b75] = v_5ab095(false);
   const [v_683210, v_34a50a] = v_5ab095(true);
+  const [v_a12759, v_c07211] = v_5ab095(false);
 
   const [v_207650, v_950221] = v_5ab095<Record<PrefKey, boolean>>({
     newFollower: true,
@@ -121,6 +124,10 @@ export default function v_4036d1() {
         const v_e43fa5 = await v_704bef();
         if (v_e43fa5.granted) {
           v_a43b75(true);
+
+          if (v_2ca7e0) {
+            void v_9bedf5(v_2ca7e0);
+          }
         } else {
           v_889fad(
             v_8d41d7("settings.notifications.permTitle", { defaultValue: "권한 필요" }),
@@ -173,8 +180,6 @@ export default function v_4036d1() {
 
   const v_e44bd3 = !v_b6d66b;
 
-  const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
-  const [v_a12759, v_c07211] = v_5ab095(false);
   const v_f40eee = async () => {
     if (!v_2ca7e0 || v_a12759) return;
     v_c07211(true);
