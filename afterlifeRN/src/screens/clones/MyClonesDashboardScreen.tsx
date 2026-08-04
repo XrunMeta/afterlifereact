@@ -50,6 +50,7 @@ import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone, Visibility } from "../../types/clone";
 import type { ClonesStackParamList } from "../../navigation/types";
 import type { RootStackParamList } from "../../navigation/types";
+import { useDoubleBackExit } from "../../hooks/useHardwareBack";
 
 type ClonesNav = NativeStackNavigationProp<ClonesStackParamList>;
 
@@ -88,6 +89,10 @@ export default function MyClonesDashboardScreen() {
   const navigation = useNavigation<ClonesNav>();
   const rootNav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { t } = useTranslation();
+
+  useDoubleBackExit(
+    t("common.exitPrompt", { defaultValue: "한 번 더 누르면 종료됩니다" }),
+  );
   const insets = useSafeAreaInsets();
   const authUser = useAuthStore((s) => s.user);
   const apiUser = useAuthStore((s) => s.apiUser);
@@ -621,7 +626,7 @@ export default function MyClonesDashboardScreen() {
               onPress={() => setIntimacyModal({ cloneId: clone.id, cloneName: clone.displayName })}
             >
               <Ionicons name="chatbubbles-outline" size={14} color={COLORS.zinc500} />
-              <Text style={s.statText}>{t("dashboard.statInteraction", { defaultValue: "상호작용" })}</Text>
+              <Text style={s.statText}>{t("dashboard.statInteraction", { defaultValue: "받은 선물" })}</Text>
             </TouchableOpacity>
             {}
           </View>
@@ -1138,7 +1143,7 @@ export default function MyClonesDashboardScreen() {
             <View style={s.sheetHandle} />
             <Text style={s.statsSheetTitle}>
               {statsModal?.type === "likes" && t("dashboard.statsLikes", { defaultValue: "좋아요" })}
-              {statsModal?.type === "interactions" && t("dashboard.statsInteractions", { defaultValue: "상호작용" })}
+              {statsModal?.type === "interactions" && t("dashboard.statsInteractions", { defaultValue: "받은 선물" })}
               {statsModal?.type === "comments" && t("dashboard.statsComments", { defaultValue: "댓글" })}
               {statsModal?.type === "followers" && t("dashboard.statsFollowers", { defaultValue: "구독자" })}
             </Text>

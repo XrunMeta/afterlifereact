@@ -149,6 +149,7 @@ function Component({ draft, onChange }: Props) {
       } catch {
 
       }
+
       try {
         player.pause();
       } catch {
@@ -161,7 +162,7 @@ function Component({ draft, onChange }: Props) {
   const selectPresetVoice = async (v: CatalogVoice) => {
 
     if (playingId != null) {
-      player.pause();
+      try { player.pause(); } catch {  }
       setPlayingId(null);
     }
     if (v.srcFileId == null) {
@@ -200,7 +201,7 @@ function Component({ draft, onChange }: Props) {
 
   const togglePreview = (v: CatalogVoice) => {
     if (playingId === v.id) {
-      player.pause();
+      try { player.pause(); } catch {  }
       setPlayingId(null);
       return;
     }

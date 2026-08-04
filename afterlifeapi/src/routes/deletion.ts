@@ -238,6 +238,35 @@ deletion.delete("/me", requireAuth, async (c) => {
     );
   }
 
+  if (!alreadyDeleted) {
+    try {
+      const userRow = await c.env.DB
+        .prepare(`SELECT email, name FROM users WHERE id = ?`)
+        .bind(userId)
+        .first<{ email: string | null; name: string | null }>();
+      if (userRow?.email) {
+        const { sendMail } = await import("../lib/gmail");
+        const displayName = userRow.name || userRow.email.split("@")[0] || "회원";
+        await sendMail(c.env, {
+          to: userRow.email,
+          subject: "[Afterlife] 탈퇴가 완료되었습니다",
+          html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;line-height:1.6;color:#111">
+            <p>안녕하세요, ${displayName} 님.</p>
+            <p>Afterlife 탈퇴 요청이 정상적으로 처리되었습니다.</p>
+            <p>계정과 관련된 클론·대화·팔로우 관계는 모두 정리되었으며,
+            학습 데이터(음성·프롬프트)는 재사용 불가하도록 파기됩니다.</p>
+            <p style="margin-top:24px;color:#666;font-size:13px">
+            함께해 주셔서 감사했습니다. 언제든 다시 돌아오실 수 있습니다.<br/>
+            문의: <a href="mailto:oth-staff@example.invalid">oth-staff@example.invalid</a>
+            </p>
+          </div>`,
+        });
+      }
+    } catch (err) {
+      console.warn("[deletion.me] farewell mail failed (ignored):", (err as Error).message);
+    }
+  }
+
   return c.json({ ok: true, state: "soft_deleted", alreadyDeleted });
 });
 
