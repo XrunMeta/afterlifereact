@@ -1,35 +1,23 @@
 
 
-import v_a3453e, { v_de06a3, v_c4deb2, v_df9f57, v_5ab095 } from "bapkr";
-import { v_3094a2, v_19b633, v_472849, v_122070, v_39a996, v_6c4f62 } from "rcmrninabrnb";
+import v_a3453e, { v_de06a3, v_c4deb2, v_5ab095 } from "bapkr";
+import {
+  v_3094a2,
+  v_19b633,
+  v_472849,
+  v_122070,
+  v_39a996,
+  v_6c4f62,
+  v_4623af,
+} from "rcmrninabrnb";
+import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_cf763b, v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
 import { v_772971 } from "jmpfvteuuztnp";
 import v_258c1c from "../../components/common/PageHeader";
-import { v_1bfbd0 } from "../../components/constants";
+import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
-import { v_865d38, type v_5c12dc } from "../../api/persons";
-
-function v_5d366d(v_1833e7): string {
-  const v_2f361a = v_1833e7.trim();
-  return v_2f361a ? v_2f361a.charAt(0) : "?";
-}
-
-const v_de5089 = [
-  "#FEE2E2", "#FEF3C7", "#DCFCE7", "#DBEAFE", "#EDE9FE", "#FCE7F3", "#CFFAFE", "#FFEDD5",
-];
-function v_9fa995(v_1833e7): string {
-  let v_65a2cd = 0;
-  for (let v_ebec57 = 0; v_ebec57 < v_1833e7.length; v_ebec57++) v_65a2cd = (v_65a2cd * 31 + v_1833e7.charCodeAt(v_ebec57)) >>> 0;
-  return v_de5089[v_65a2cd % v_de5089.length];
-}
-const v_845864 = [
-  "#B91C1C", "#B45309", "#166534", "#1D4ED8", "#6D28D9", "#BE185D", "#0E7490", "#C2410C",
-];
-function v_317493(v_1833e7): string {
-  let v_65a2cd = 0;
-  for (let v_ebec57 = 0; v_ebec57 < v_1833e7.length; v_ebec57++) v_65a2cd = (v_65a2cd * 31 + v_1833e7.charCodeAt(v_ebec57)) >>> 0;
-  return v_845864[v_65a2cd % v_845864.length];
-}
+import { v_889fad } from "../../stores/dialogStore";
+import { v_865d38, v_31967f, type v_5c12dc } from "../../api/persons";
 
 export default function v_99450d() {
   const v_c65f5d = v_ada615();
@@ -39,6 +27,7 @@ export default function v_99450d() {
   const [v_4622b9, v_fa923c] = v_5ab095<v_5c12dc[]>([]);
   const [v_683210, v_34a50a] = v_5ab095(true);
   const [v_612e9f, v_575aad] = v_5ab095(false);
+  const [v_8728fe, v_efdde3] = v_5ab095<number | null>(null);
 
   const v_1a1b9b = v_de06a3(async () => {
     if (!v_2ca7e0) {
@@ -64,13 +53,42 @@ export default function v_99450d() {
     void v_1a1b9b();
   }, [v_1a1b9b]);
 
-  const v_63db2f = v_df9f57(
-    () =>
-      v_4622b9.filter(
-        (v_e2a85c) => v_e2a85c.consentState === "granted" && !!v_e2a85c.displayName?.trim(),
-      ),
-    [v_4622b9],
-  );
+  const v_74c662 = v_de06a3((person: v_5c12dc) => {
+    v_889fad(
+      v_8d41d7("settings.privacy.faceConsent.revokeConfirmTitle"),
+      v_8d41d7("settings.privacy.faceConsent.revokeConfirmMessage"),
+      [
+        { text: v_8d41d7("settings.privacy.faceConsent.revokeConfirmCancel"), style: "cancel" },
+        {
+          text: v_8d41d7("settings.privacy.faceConsent.revokeConfirmOk"),
+          style: "destructive",
+          onPress: async () => {
+            if (!v_2ca7e0) return;
+            v_efdde3(v_306a28.id);
+            try {
+              await v_31967f(v_2ca7e0, v_306a28.id, "revoked");
+
+              v_fa923c((v_ba2215) =>
+                v_ba2215.map((v_e2a85c) =>
+                  v_e2a85c.id === v_306a28.id ? { ...v_e2a85c, consentState: "revoked" } : v_e2a85c,
+                ),
+              );
+            } catch (v_49263d) {
+              const v_badeaf =
+                v_49263d instanceof Error
+                  ? v_49263d.message
+                  : v_8d41d7("settings.privacy.faceConsent.revokeError");
+              v_889fad(v_8d41d7("settings.privacy.faceConsent.revokeConfirmTitle"), v_badeaf);
+            } finally {
+              v_efdde3(null);
+            }
+          },
+        },
+      ],
+    );
+  }, [v_2ca7e0, v_8d41d7]);
+
+  const v_b6d66b = v_4622b9.filter((v_e2a85c) => v_e2a85c.consentState === "granted");
 
   return (
     <View style={{ flex: 1, backgroundColor: v_1bfbd0.white }}>
@@ -82,19 +100,26 @@ export default function v_99450d() {
       <ScrollView
         contentContainerStyle={v_fd5f43.content}
         refreshControl={
-          <RefreshControl refreshing={v_612e9f} onRefresh={v_0cde43} tintColor={v_1bfbd0.zinc400} />
+          <RefreshControl
+            refreshing={v_612e9f}
+            onRefresh={v_0cde43}
+            tintColor={v_1bfbd0.zinc400}
+          />
         }
       >
         {v_683210 ? (
           <ActivityIndicator color={v_1bfbd0.zinc400} style={{ marginTop: 40 }} />
-        ) : v_63db2f.length === 0 ? (
-          <View style={v_fd5f43.emptyBox}>
-            <Text style={v_fd5f43.emptyTitle}>
-              {v_8d41d7("settings.acquaintance.empty", { defaultValue: "등록된 지인이 없어요" })}
+        ) : v_b6d66b.length === 0 ? (
+          <View style={v_fd5f43.empty}>
+            <Feather name="eye-off" size={32} color={v_1bfbd0.zinc300} />
+            <Text style={v_fd5f43.emptyText}>
+              {v_8d41d7("settings.privacy.faceConsent.noConsent", {
+                defaultValue: "동의한 지인이 없어요",
+              })}
             </Text>
             <Text style={v_fd5f43.emptySub}>
-              {v_8d41d7("settings.acquaintance.emptySub", {
-                defaultValue: "동의한 지인이 여기에 표시돼요.",
+              {v_8d41d7("settings.privacy.faceConsent.noConsentSub", {
+                defaultValue: "얼굴 감지 동의가 여기에 표시돼요.",
               })}
             </Text>
           </View>
@@ -103,22 +128,58 @@ export default function v_99450d() {
             <Text style={v_fd5f43.countLabel}>
               {v_8d41d7("settings.acquaintance.count", {
                 defaultValue: "총 {{n}}명",
-                n: v_63db2f.length,
+                n: v_b6d66b.length,
               })}
             </Text>
-            {v_63db2f.map((v_8c0b26) => {
-              const v_1833e7 = v_8c0b26.displayName!.trim();
-              return (
-                <View key={v_8c0b26.id} style={v_fd5f43.card}>
-                  <View style={[v_fd5f43.avatar, { backgroundColor: v_9fa995(v_1833e7) }]}>
-                    <Text style={[v_fd5f43.avatarText, { color: v_317493(v_1833e7) }]}>{v_5d366d(v_1833e7)}</Text>
+            <View style={v_fd5f43.card}>
+              {v_b6d66b.map((v_306a28, v_ebec57) => {
+                const v_3f8465 = v_8728fe === v_306a28.id;
+                const v_8f5b15 = v_306a28.createdAt
+                  ? v_8d41d7("settings.privacy.faceConsent.consentedAt", {
+                      date: new Date(v_306a28.createdAt).toLocaleDateString(),
+                    })
+                  : v_8d41d7("settings.privacy.faceConsent.stateGranted");
+                const v_24c1e9 = v_306a28.cloneId
+                  ? v_8d41d7("settings.privacy.faceConsent.cloneLabel", { cloneId: v_306a28.cloneId })
+                  : `Person #${v_306a28.id}`;
+
+                const v_531384 = v_306a28.displayName?.trim() || v_24c1e9;
+                return (
+                  <View key={v_306a28.id}>
+                    <View style={v_fd5f43.row}>
+                      <View style={[v_fd5f43.avatar, v_fd5f43.avatarPh]}>
+                        <Feather name="eye" size={20} color={v_1bfbd0.zinc400} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={v_fd5f43.rowName} numberOfLines={1}>
+                          {v_531384}
+                        </Text>
+                        <Text style={v_fd5f43.rowSub} numberOfLines={1}>
+                          {v_8f5b15}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        testID={`revoke-btn-${v_306a28.id}`}
+                        style={[v_fd5f43.revokeBtn, v_3f8465 && { opacity: 0.6 }]}
+                        onPress={() => v_74c662(v_306a28)}
+                        disabled={v_3f8465}
+                        accessibilityLabel={v_8d41d7("settings.privacy.faceConsent.revokeButton")}
+                        accessibilityRole="button"
+                      >
+                        {v_3f8465 ? (
+                          <ActivityIndicator size="small" color={v_1bfbd0.white} />
+                        ) : (
+                          <Text style={v_fd5f43.revokeBtnText}>
+                            {v_8d41d7("settings.privacy.faceConsent.revokeButton")}
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                    {v_ebec57 < v_b6d66b.length - 1 && <View style={v_fd5f43.divider} />}
                   </View>
-                  <View style={v_fd5f43.cardBody}>
-                    <Text style={v_fd5f43.name} numberOfLines={1}>{v_1833e7}</Text>
-                  </View>
-                </View>
-              );
-            })}
+                );
+              })}
+            </View>
           </>
         )}
       </ScrollView>
@@ -127,7 +188,7 @@ export default function v_99450d() {
 }
 
 const v_fd5f43 = v_472849.create({
-  content: { padding: 20, paddingBottom: 60 },
+  content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 60 },
   countLabel: {
     fontSize: 13,
     color: v_1bfbd0.zinc500,
@@ -135,32 +196,39 @@ const v_fd5f43 = v_472849.create({
     fontWeight: "500",
   },
   card: {
+    borderRadius: v_8b0c90.lg,
+    backgroundColor: v_1bfbd0.white,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc100,
+    overflow: "hidden",
+  },
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 14,
-    marginBottom: 8,
-    borderRadius: 12,
-    backgroundColor: v_1bfbd0.zinc50,
+    gap: 12,
   },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  avatar: { width: 44, height: 44, borderRadius: 22 },
+  avatarPh: {
+    backgroundColor: v_1bfbd0.zinc100,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 14,
   },
-  avatarText: { fontSize: 18, fontWeight: "700" },
-  cardBody: { flex: 1 },
-  name: { fontSize: 15, fontWeight: "600", color: v_1bfbd0.zinc900 },
-  emptyBox: { alignItems: "center", marginTop: 80, paddingHorizontal: 24 },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: v_1bfbd0.zinc700,
-    marginBottom: 8,
+  rowName: { fontSize: 15, fontWeight: "600", color: v_1bfbd0.zinc900 },
+  rowSub: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
+  divider: { height: 1, backgroundColor: v_1bfbd0.zinc100, marginLeft: 72 },
+  revokeBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: v_1bfbd0.zinc900,
+    minWidth: 76,
+    alignItems: "center",
   },
+  revokeBtnText: { fontSize: 12, fontWeight: "700", color: v_1bfbd0.white },
+  empty: { alignItems: "center", paddingTop: 60, paddingHorizontal: 24, gap: 8 },
+  emptyText: { fontSize: 16, fontWeight: "600", color: v_1bfbd0.zinc700, marginTop: 8 },
   emptySub: {
     fontSize: 13,
     color: v_1bfbd0.zinc500,
