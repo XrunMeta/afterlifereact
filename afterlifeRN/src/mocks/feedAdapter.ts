@@ -52,7 +52,12 @@ export function toFeedItem(f: DomainFeed): FeedItem {
     cloneOwnerId: c?.ownerId,
     cloneVisibility: c?.visibility,
     author: c?.displayName ?? "알 수 없음",
-    username: c ? `@${c.cloneType}-${c.id}` : "@unknown",
+
+    username: c?.username
+      ? `@${c.username}`
+      : c
+      ? `@${c.cloneType}-${c.id}`
+      : "@unknown",
     authorAvatar: localImage ?? c?.imageUrl ?? "",
     image: f.mediaUrl ?? localImage ?? c?.imageUrl ?? "",
     title: c?.displayName ?? "",

@@ -62,6 +62,8 @@ function toDomainFeed(item: DiscoverFeedItem): DomainFeed {
     cloneType: item.clone.cloneType,
 
     ownerId: item.clone.ownerId ?? -1,
+
+    username: item.clone.username,
     displayName: item.clone.name,
     description: "",
     interests: item.interests,
