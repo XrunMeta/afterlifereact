@@ -157,6 +157,8 @@ export async function v_721d54(
   }
 }
 
+const v_418c2e = new Set<number>([9007]);
+
 export async function v_70d294(
   env: v_273a0c,
   v_43e90c,
@@ -165,6 +167,10 @@ export async function v_70d294(
 ): Promise<{ crossedThreshold: boolean; scoreApplied: number; totalSeconds: number }> {
   if (!v_43e90c || !v_6e0fd3 || v_40c855 <= 0) {
     return { crossedThreshold: false, scoreApplied: 0, totalSeconds: 0 };
+  }
+
+  if (v_418c2e.has(v_43e90c)) {
+    return v_4cc669(v_c9c489, v_43e90c, v_6e0fd3);
   }
   const v_b24339 = `intimacy_call_total:${v_43e90c}:${v_6e0fd3}:${v_fc5b77()}`;
   let v_2dadc1 = 0;
@@ -185,6 +191,72 @@ export async function v_70d294(
   }
   const v_cb35cb = await v_721d54(v_c9c489, v_43e90c, v_6e0fd3, v_cf0463.call, "call");
   return { crossedThreshold: true, scoreApplied: v_cb35cb.applied, totalSeconds: v_b8f4d0 };
+}
+
+async function v_4cc669(
+  env: v_273a0c,
+  v_43e90c,
+  v_6e0fd3,
+): Promise<{ crossedThreshold: boolean; scoreApplied: number; totalSeconds: number }> {
+
+  const v_569bd4 = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const v_891da5 =
+    Date.UTC(v_569bd4.getUTCFullYear(), v_569bd4.getUTCMonth(), v_569bd4.getUTCDate()) -
+    9 * 60 * 60 * 1000;
+
+  const v_fbca3c = new Date(v_891da5)
+    .toISOString()
+    .replace("T", " ")
+    .slice(0, 19);
+
+  try {
+
+    const v_0dab8e = await v_c9c489.DB
+      .prepare(
+        `SELECT COALESCE(SUM(duration_sec), 0) AS total
+           FROM call_sessions
+          WHERE user_id = ? AND clone_id = ? AND started_at >= ?`,
+      )
+      .bind(v_43e90c, v_6e0fd3, v_891da5)
+      .first<{ total: number }>();
+    const v_b3dc28 = Math.floor(Number(v_0dab8e?.total ?? 0));
+    const v_0342f8 = Math.floor(v_b3dc28 / 60);
+
+    const v_00815b = await v_c9c489.DB
+      .prepare(
+        `SELECT COALESCE(SUM(score), 0) AS awarded
+           FROM intimacy_events
+          WHERE user_id = ? AND clone_id = ? AND action = 'call' AND created_at >= ?`,
+      )
+      .bind(v_43e90c, v_6e0fd3, v_fbca3c)
+      .first<{ awarded: number }>();
+    const v_6bed8c = Number(v_00815b?.awarded ?? 0);
+
+    const v_b78768 = Math.max(0, v_9cb764 - v_6bed8c);
+    const v_4f03a0 = Math.max(0, Math.min(v_0342f8 - v_6bed8c, v_b78768));
+
+    if (v_4f03a0 <= 0) {
+      return { crossedThreshold: false, scoreApplied: 0, totalSeconds: v_b3dc28 };
+    }
+
+    let v_3d2a86 = 0;
+    for (let v_ebec57 = 0; v_ebec57 < v_4f03a0; v_ebec57++) {
+      const v_cb35cb = await v_721d54(v_c9c489, v_43e90c, v_6e0fd3, 1, "call");
+      v_3d2a86 += v_cb35cb.applied;
+      if (v_cb35cb.applied === 0) break; 
+    }
+    return {
+      crossedThreshold: v_3d2a86 > 0,
+      scoreApplied: v_3d2a86,
+      totalSeconds: v_b3dc28,
+    };
+  } catch (v_49263d) {
+    console.warn(
+      `[interactions] addCallIntimacyDailyD1 failed:`,
+      (v_49263d as Error).message,
+    );
+    return { crossedThreshold: false, scoreApplied: 0, totalSeconds: 0 };
+  }
 }
 
 export async function v_6f97bc(
