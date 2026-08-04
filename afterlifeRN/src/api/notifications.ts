@@ -46,3 +46,18 @@ export async function v_8c796a(
 export async function v_b7d6d1(v_2ca7e0): Promise<{ ok: true }> {
   return v_593ce7(`/oth-path`, v_2ca7e0, { method: "POST" });
 }
+
+export interface TestPushTicket {
+  platform: string;
+  status: string; 
+  errorCode: string | null;
+  message: string | null;
+}
+export interface TestPushResult {
+  attempted: number;
+  tickets: TestPushTicket[];
+  error?: string;
+}
+export async function v_7bc674(v_2ca7e0): Promise<TestPushResult> {
+  return v_593ce7(`/oth-path`, v_2ca7e0, { method: "POST" });
+}
