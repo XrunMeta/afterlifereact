@@ -157,6 +157,36 @@ export async function v_721d54(
   }
 }
 
+export async function v_70d294(
+  env: v_273a0c,
+  v_43e90c,
+  v_6e0fd3,
+  v_40c855,
+): Promise<{ crossedThreshold: boolean; scoreApplied: number; totalSeconds: number }> {
+  if (!v_43e90c || !v_6e0fd3 || v_40c855 <= 0) {
+    return { crossedThreshold: false, scoreApplied: 0, totalSeconds: 0 };
+  }
+  const v_b24339 = `intimacy_call_total:${v_43e90c}:${v_6e0fd3}:${v_fc5b77()}`;
+  let v_2dadc1 = 0;
+  let v_b8f4d0 = v_40c855;
+  try {
+    const v_c1b1f6 = await v_c9c489.KV_RATE.get(v_b24339);
+    v_2dadc1 = v_c1b1f6 ? Number(v_c1b1f6) : 0;
+    v_b8f4d0 = v_2dadc1 + v_40c855;
+    await v_c9c489.KV_RATE.put(v_b24339, String(v_b8f4d0), { expirationTtl: 26 * 60 * 60 });
+  } catch (v_49263d) {
+    console.warn(`[interactions] addCallIntimacyDaily KV failed:`, (v_49263d as Error).message);
+    return { crossedThreshold: false, scoreApplied: 0, totalSeconds: v_b8f4d0 };
+  }
+  const v_75fa40 =
+    v_2dadc1 < v_22b4d2 && v_b8f4d0 >= v_22b4d2;
+  if (!v_75fa40) {
+    return { crossedThreshold: false, scoreApplied: 0, totalSeconds: v_b8f4d0 };
+  }
+  const v_cb35cb = await v_721d54(v_c9c489, v_43e90c, v_6e0fd3, v_cf0463.call, "call");
+  return { crossedThreshold: true, scoreApplied: v_cb35cb.applied, totalSeconds: v_b8f4d0 };
+}
+
 export async function v_6f97bc(
   env: v_273a0c,
   v_43e90c,

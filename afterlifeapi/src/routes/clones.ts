@@ -22,6 +22,7 @@ import {
   v_dd9d7c,
   v_1ad6ed,
   v_721d54,
+  v_70d294,
   v_cf0463,
   v_22b4d2,
 } from "../lib/interactions";
@@ -1987,11 +1988,8 @@ v_f891e6.post("/:id/call-event", v_6690d9, async (v_3f4e2e) => {
   await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "call");
 
   const v_a712cf = v_4d33b2.durationSeconds ?? 0;
-  let v_27e8db = 0;
-  if (v_a712cf >= v_22b4d2) {
-    const v_cb35cb = await v_721d54(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_cf0463.call, "call");
-    v_27e8db = v_cb35cb.applied;
-  }
+  const v_b72a1c = await v_70d294(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_a712cf);
+  const v_27e8db = v_b72a1c.scoreApplied;
   await v_74defc(v_3f4e2e, {
     userId: v_43e90c,
     action: "clone.call_event",
