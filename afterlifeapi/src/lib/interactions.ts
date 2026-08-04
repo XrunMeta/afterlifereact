@@ -170,7 +170,14 @@ export async function addCallIntimacyDaily(
   }
 
   if (INTIMACY_CALL_TEST_USER_IDS.has(userId)) {
-    return addCallIntimacyDailyD1(env, userId, cloneId);
+    console.log(`[T-250 test] direct +1 for user=${userId} clone=${cloneId} dur=${durationSeconds}`);
+    const r = await addIntimacyScore(env, userId, cloneId, 1, "call");
+    console.log(`[T-250 test] addIntimacyScore result applied=${r.applied} remaining=${r.dailyRemaining}`);
+    return {
+      crossedThreshold: r.applied > 0,
+      scoreApplied: r.applied,
+      totalSeconds: durationSeconds,
+    };
   }
   const key = `intimacy_call_total:${userId}:${cloneId}:${kstDateYYYYMMDD()}`;
   let oldTotal = 0;
@@ -191,72 +198,6 @@ export async function addCallIntimacyDaily(
   }
   const r = await addIntimacyScore(env, userId, cloneId, INTIMACY_WEIGHTS.call, "call");
   return { crossedThreshold: true, scoreApplied: r.applied, totalSeconds: newTotal };
-}
-
-async function addCallIntimacyDailyD1(
-  env: Bindings,
-  userId: number,
-  cloneId: number,
-): Promise<{ crossedThreshold: boolean; scoreApplied: number; totalSeconds: number }> {
-
-  const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
-  const kstMidnightUtcMs =
-    Date.UTC(kstNow.getUTCFullYear(), kstNow.getUTCMonth(), kstNow.getUTCDate()) -
-    9 * 60 * 60 * 1000;
-
-  const todayIsoStart = new Date(kstMidnightUtcMs)
-    .toISOString()
-    .replace("T", " ")
-    .slice(0, 19);
-
-  try {
-
-    const totalRow = await env.DB
-      .prepare(
-        `SELECT COALESCE(SUM(duration_sec), 0) AS total
-           FROM call_sessions
-          WHERE user_id = ? AND clone_id = ? AND started_at >= ?`,
-      )
-      .bind(userId, cloneId, kstMidnightUtcMs)
-      .first<{ total: number }>();
-    const totalSec = Math.floor(Number(totalRow?.total ?? 0));
-    const minutesAccrued = Math.floor(totalSec / 60);
-
-    const awardedRow = await env.DB
-      .prepare(
-        `SELECT COALESCE(SUM(score), 0) AS awarded
-           FROM intimacy_events
-          WHERE user_id = ? AND clone_id = ? AND action = 'call' AND created_at >= ?`,
-      )
-      .bind(userId, cloneId, todayIsoStart)
-      .first<{ awarded: number }>();
-    const alreadyAwarded = Number(awardedRow?.awarded ?? 0);
-
-    const remainingCap = Math.max(0, INTIMACY_DAILY_CAP - alreadyAwarded);
-    const toAward = Math.max(0, Math.min(minutesAccrued - alreadyAwarded, remainingCap));
-
-    if (toAward <= 0) {
-      return { crossedThreshold: false, scoreApplied: 0, totalSeconds: totalSec };
-    }
-
-    let totalApplied = 0;
-    for (let i = 0; i < toAward; i++) {
-      const r = await addIntimacyScore(env, userId, cloneId, 1, "call");
-      totalApplied += r.applied;
-      if (r.applied === 0) break; 
-    }
-    return {
-      crossedThreshold: totalApplied > 0,
-      scoreApplied: totalApplied,
-      totalSeconds: totalSec,
-    };
-  } catch (err) {
-    console.warn(
-      `[interactions] addCallIntimacyDailyD1 failed:`,
-      (err as Error).message,
-    );
-    return { crossedThreshold: false, scoreApplied: 0, totalSeconds: 0 };
-  }
 }
 
 export async function addPerFeedIntimacyScore(
