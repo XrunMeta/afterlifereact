@@ -63,7 +63,7 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
 
       {
 }
-      {!v_799eb5 && typeof v_8c0b26.myIntimacy === "number" && v_8c0b26.myIntimacy > 0 ? (
+      {typeof v_8c0b26.myIntimacy === "number" ? (
         <View style={v_d81136.intimacyBadge}>
           <Feather name="thermometer" size={12} color="#fb923c" />
           <Text style={v_d81136.intimacyText}>{v_8c0b26.myIntimacy}°C</Text>
@@ -248,7 +248,7 @@ const v_d81136 = v_472849.create({
 
   intimacyBadge: {
     position: "absolute",
-    top: 16,
+    top: 56,
     right: 16,
     flexDirection: "row",
     alignItems: "center",
