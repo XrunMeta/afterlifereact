@@ -17,6 +17,11 @@ import { v_0b10a6 } from "./src/stores/configStore";
 import { v_5b540b } from "./src/stores/callConfigStore";
 import { v_688424 } from "./src/stores/authConfigStore";
 import { v_9bedf5 } from "./src/lib/pushNotifications";
+import * as v_2b7a17 from "bpebbcghaffswkrsep";
+import {
+  v_798ed3,
+  v_125d64,
+} from "./src/lib/notificationRouting";
 import {
   v_8237ac,
   v_1d7e9a,
@@ -89,6 +94,25 @@ export default function v_6540c3() {
     });
   }, []);
 
+  v_c4deb2(() => {
+    v_2b7a17.getLastNotificationResponseAsync()
+      .then((v_cb35cb) => {
+        const v_9390e8 = v_cb35cb?.notification?.request?.content?.data as
+          | Record<string, unknown>
+          | undefined;
+        if (v_9390e8) v_798ed3(v_9390e8);
+      })
+      .catch((v_49263d) => console.warn("[push-tap] cold-start check failed:", (v_49263d as Error).message));
+
+    const v_1ae212 = v_2b7a17.addNotificationResponseReceivedListener((v_cb35cb) => {
+      const v_9390e8 = v_cb35cb?.notification?.request?.content?.data as
+        | Record<string, unknown>
+        | undefined;
+      if (v_9390e8) v_798ed3(v_9390e8);
+    });
+    return () => v_1ae212.remove();
+  }, []);
+
   const v_dbce95 = v_e662ae<string | null>(v_1ed7d9.getState().accessToken);
   v_c4deb2(() => {
     const v_69c966 = v_1ed7d9.subscribe((v_b6e533) => {
@@ -118,6 +142,10 @@ export default function v_6540c3() {
               <NavigationContainer
                 ref={v_94c936}
                 linking={v_141151}
+                onReady={() => {
+
+                  v_125d64();
+                }}
                 onStateChange={() => {
                   const v_1833e7 = v_94c936.getCurrentRoute()?.name;
                   if (v_1833e7) {
