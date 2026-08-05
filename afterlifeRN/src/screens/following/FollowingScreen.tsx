@@ -19,7 +19,7 @@ import {
   type v_da479e,
 } from "rcmrninabrnb";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
-import { v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_ada615, v_2d8264, v_650cfa, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import v_556baf from "../../components/ui/SafeView";
@@ -30,6 +30,7 @@ import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_8ad91b, v_97a9a8 } from "../../navigation/types";
 import { v_1ed7d9 } from "../../stores/authStore";
+import { v_84d546 } from "../../lib/callGuard";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
 import {
@@ -630,13 +631,20 @@ export default function v_14b43e() {
                 variant="secondary"
                 size="md"
                 leftIcon={<Feather name="video" size={14} color={v_1bfbd0.zinc900} />}
-                onPress={() =>
+                onPress={async () => {
+
+                  const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
+                    v_f4c991.dispatch(
+                      v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                    );
+                  });
+                  if (!v_3ed4c3) return;
                   v_f4c991.navigate("Call", {
                     cloneId: v_8c0b26.persona.id,
                     name: v_8c0b26.persona.name,
                     image: v_8c0b26.persona.avatar,
-                  })
-                }
+                  });
+                }}
                 style={v_fd5f43.overlayBtn}
                 textColor={v_1bfbd0.zinc900}
                 backgroundColor={v_1bfbd0.white}
@@ -979,7 +987,17 @@ export default function v_14b43e() {
                     </View>
                     <TouchableOpacity
                       style={v_fd5f43.callBtn}
-                      onPress={() => { v_22a5cb(false); v_f4c991.navigate("Call", { cloneId: v_e2a85c.id, name: v_e2a85c.name, image: v_e2a85c.avatar }); }}
+                      onPress={async () => {
+
+                        const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
+                          v_f4c991.dispatch(
+                            v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                          );
+                        });
+                        if (!v_3ed4c3) return;
+                        v_22a5cb(false);
+                        v_f4c991.navigate("Call", { cloneId: v_e2a85c.id, name: v_e2a85c.name, image: v_e2a85c.avatar });
+                      }}
                     >
                       <Feather name="video" size={14} color={v_1bfbd0.white} />
                       <Text style={v_fd5f43.callBtnText}>{v_8d41d7("feed.callRowAction")}</Text>
