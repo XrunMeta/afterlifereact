@@ -489,6 +489,15 @@ def face_event_clone_matches(session_clone_id, event_clone_id) -> bool:
     bool 은 파이썬에서 int 의 서브클래스라 `int(True) == 1` 처럼 우연히 세션
     clone_id 와 일치해버릴 수 있다 — clone_id 로 인정하지 않고 명시적으로
     불일치(False) 처리한다.
+
+    [재리뷰 fix] `except (TypeError, ValueError)` 로 예외 타입을 나열했더니
+    `int(float('inf'))` 가 던지는 `OverflowError` 가 새지 못하고 그대로
+    통과해버렸다(`_on_msg` 의 `json.loads` 는 표준 json 모듈 기본 동작상
+    `Infinity`/`-Infinity`/`NaN` 토큰을 허용하므로 `{"clone_id":Infinity}` 가
+    실제로 도달 가능하다). 타입을 나열하는 방식은 "네 번째 타입이 또 들어온다"는
+    구조적 문제가 있으므로, 이 함수는 **뭐가 오든 예외를 밖으로 내보내지 않는다**는
+    계약을 지키기 위해 `except Exception` 으로 광범위하게 잡는다. 원인 진단을
+    위해 예외 타입명은 로그에 남긴다.
     """
     if event_clone_id is None:
         return True
@@ -500,11 +509,14 @@ def face_event_clone_matches(session_clone_id, event_clone_id) -> bool:
         return False
     try:
         return int(session_clone_id) == int(event_clone_id)
-    except (TypeError, ValueError):
+    except Exception as e:
+        # 의도적으로 광범위하게 잡는다 — 이 함수의 계약은 "어떤 입력이 와도
+        # 예외를 던지지 않는다"이므로 특정 타입 나열은 다음 예외 타입(예:
+        # OverflowError)이 다시 새는 재발 패턴을 만든다. 원인은 타입명으로 로그.
         log.warning(
-            "face_event_clone_matches: clone_id 형식 이상(파싱 불가, garbage payload) "
+            "face_event_clone_matches: clone_id 형식 이상(파싱 불가, garbage payload, %s) "
             "session=%r event=%r",
-            session_clone_id, event_clone_id,
+            type(e).__name__, session_clone_id, event_clone_id,
         )
         return False
 
