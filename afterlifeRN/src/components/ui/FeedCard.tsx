@@ -73,36 +73,9 @@ const FeedCard: React.FC<FeedCardProps> = ({
       {}
       {isActive && (
         <>
-          {}
-          <View style={styles.rightActions}>
-            <TouchableOpacity onPress={onToggleLike} style={styles.actionBtn} activeOpacity={0.7}>
-              <Ionicons
-                name={isLiked ? "heart" : "heart-outline"}
-                size={32}
-                color={isLiked ? "#ef4444" : COLORS.white}
-              />
-              <Text style={styles.actionLabel}>{item.likes}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onCommentPress} style={styles.actionBtn} activeOpacity={0.7}>
-              <Feather name="message-circle" size={30} color={COLORS.white} />
-              <Text style={styles.actionLabel}>{item.comments}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onSharePress} style={styles.actionBtn} activeOpacity={0.7}>
-              <Feather name="share-2" size={28} color={COLORS.white} />
-            </TouchableOpacity>
-            {onMorePress && (
-              <TouchableOpacity
-                onPress={onMorePress}
-                style={styles.actionBtn}
-                activeOpacity={0.7}
-                accessibilityLabel="more-options"
-              >
-                <Feather name="more-vertical" size={28} color={COLORS.white} />
-              </TouchableOpacity>
-            )}
-          </View>
+          {
 
-          {}
+}
           <View style={styles.bottomContent}>
             <View style={styles.profileRow}>
               <View style={styles.profileInfo}>
@@ -139,7 +112,6 @@ const FeedCard: React.FC<FeedCardProps> = ({
             </View>
 
             {
-
 }
             {item.description ? (
               <HashtagText
@@ -149,6 +121,36 @@ const FeedCard: React.FC<FeedCardProps> = ({
                 {item.description}
               </HashtagText>
             ) : null}
+
+            {
+}
+            <View style={styles.actionsRow}>
+              <TouchableOpacity onPress={onToggleLike} style={styles.actionBtn} activeOpacity={0.7}>
+                <Ionicons
+                  name={isLiked ? "heart" : "heart-outline"}
+                  size={28}
+                  color={isLiked ? "#ef4444" : COLORS.white}
+                />
+                <Text style={styles.actionLabel}>{item.likes}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onCommentPress} style={styles.actionBtn} activeOpacity={0.7}>
+                <Feather name="message-circle" size={26} color={COLORS.white} />
+                <Text style={styles.actionLabel}>{item.comments}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onSharePress} style={styles.actionBtn} activeOpacity={0.7}>
+                <Feather name="share-2" size={24} color={COLORS.white} />
+              </TouchableOpacity>
+              {onMorePress && (
+                <TouchableOpacity
+                  onPress={onMorePress}
+                  style={styles.actionBtn}
+                  activeOpacity={0.7}
+                  accessibilityLabel="more-options"
+                >
+                  <Feather name="more-vertical" size={24} color={COLORS.white} />
+                </TouchableOpacity>
+              )}
+            </View>
 
             {}
             <TouchableOpacity
@@ -237,14 +239,12 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
 
-  rightActions: {
-    position: "absolute",
-    right: 12,
-    top: 0,
-    bottom: 0,
-    justifyContent: "center",
+  actionsRow: {
+    flexDirection: "row",
     alignItems: "center",
-    gap: 24,
+    justifyContent: "flex-end",
+    gap: 20,
+    marginBottom: 12,
   },
 
   intimacyBadge: {
@@ -265,13 +265,14 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.white,
   },
+
   actionBtn: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     gap: 4,
   },
   actionLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
     color: COLORS.white,
     textShadowColor: "rgba(0,0,0,0.5)",
@@ -285,7 +286,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 12,
 
-    paddingRight: 60,
   },
   callButton: {
     width: "100%",
