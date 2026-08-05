@@ -2,6 +2,9 @@ import {
   v_6920f0,
   v_3075fa,
   v_6fc7ac,
+  v_778702,
+  v_3711bb,
+  v_99c713,
 } from '../../src/realtime/handsFree';
 
 it('CALL_LIVE(micOn): listening + START_STT', () => {
@@ -146,7 +149,7 @@ it('RESPONSE_END(speaking, micOn): listening + STOP_DETECTOR + START_STT', () =>
   expect(v_cb35cb.effects).toEqual(expect.arrayContaining(['STOP_DETECTOR', 'START_STT']));
 });
 
-it('RESPONSE_END(speaking, micOff): paused, START_STT 없음', () => {
+it('[방어분기·도달불가 상태] RESPONSE_END(speaking, micOff): paused, START_STT 없음', () => {
   const v_fd5f43 = { phase: 'speaking' as const, micOn: false, pendingText: '', confirmGate: false, signalGating: false, activeSeq: null, nextSeq: 1, userSpeaking: false, pendingInterrupt: null, idleGreetCount: 0 };
   const v_cb35cb = v_6920f0(v_fd5f43, { type: 'RESPONSE_END' });
   expect(v_cb35cb.state.phase).toBe('paused');
@@ -429,7 +432,7 @@ describe('FACE_INTERRUPT — 적재와 즉시발화', () => {
     expect(v_cb35cb.state.pendingInterrupt).toBeNull();
   });
 
-  it('RESPONSE_END 로 paused 전이 시 pendingInterrupt 를 정리한다(적재 잔존 방지)', () => {
+  it('[방어분기·도달불가 상태] RESPONSE_END 로 paused 전이 시 pendingInterrupt 를 정리한다(적재 잔존 방지)', () => {
     const v_fd5f43 = {
       phase: 'speaking', micOn: false, pendingText: '', confirmGate: false, signalGating: false,
       activeSeq: null, nextSeq: 1, userSpeaking: false, idleGreetCount: 0,
@@ -440,7 +443,7 @@ describe('FACE_INTERRUPT — 적재와 즉시발화', () => {
     expect(v_cb35cb.state.pendingInterrupt).toBeNull();
   });
 
-  it('RESPONSE_DONE 으로 paused 전이 시 pendingInterrupt 를 정리한다(적재 잔존 방지)', () => {
+  it('[방어분기·도달불가 상태] RESPONSE_DONE 으로 paused 전이 시 pendingInterrupt 를 정리한다(적재 잔존 방지)', () => {
     const v_fd5f43 = {
       phase: 'speaking', micOn: false, pendingText: '', confirmGate: false, signalGating: false,
       activeSeq: null, nextSeq: 1, userSpeaking: false, idleGreetCount: 0,
@@ -474,7 +477,14 @@ describe('flush ① — 사용자 턴 뒤에 인터럽트 이어붙이기', () =
   it('flush 시 START_STT 를 내보내지 않는다(마이크 재개방 금지)', () => {
     const v_cb35cb = v_7d3aa6();
     expect(v_cb35cb.effects).not.toContain('START_STT');
-    expect(v_cb35cb.effects).toEqual(['SAY_INTERRUPT', 'START_DETECTOR']);
+
+    expect(v_cb35cb.effects).toEqual(['STOP_DETECTOR', 'SAY_INTERRUPT', 'START_DETECTOR']);
+  });
+
+  it('[I1] flush 는 아바타훅 phase 정리(STOP_DETECTOR)를 반드시 선행한다 — SAY_INTERRUPT 보다 앞', () => {
+    const v_cb35cb = v_7d3aa6();
+    expect(v_cb35cb.effects.indexOf('STOP_DETECTOR')).toBeGreaterThanOrEqual(0);
+    expect(v_cb35cb.effects.indexOf('STOP_DETECTOR')).toBeLessThan(v_cb35cb.effects.indexOf('SAY_INTERRUPT'));
   });
 
   it('인터럽트가 끝나면 그제서야 사용자 턴으로 복귀한다', () => {
@@ -484,13 +494,17 @@ describe('flush ① — 사용자 턴 뒤에 인터럽트 이어붙이기', () =
     expect(v_cb35cb.effects).toEqual(['STOP_DETECTOR', 'START_STT']);
   });
 
-  it('micOn=false 면 flush 하지 않고 paused 로 간다', () => {
+  it('micOn=false 면 flush 하지 않고 paused 를 유지한다(적재분 폐기 + 마이크 유지)', () => {
     const v_3f6eae = v_6920f0(v_bb280b(), { type: 'USER_SPEECH_START' }).state;
     const v_3756c2 = v_6920f0(v_3f6eae, v_7d769d).state;
     const v_d0786c = v_6920f0(v_3756c2, { type: 'FINAL_RESULT', text: '안녕' }).state;
     const v_121e28 = v_6920f0(v_d0786c, { type: 'MIC_OFF' }).state;
+    expect(v_121e28.pendingInterrupt).toBeNull(); 
     const v_cb35cb = v_6920f0(v_121e28, { type: 'RESPONSE_DONE' });
     expect(v_cb35cb.state.phase).toBe('paused');
+    expect(v_cb35cb.state.activeSeq).toBeNull();
+    expect(v_cb35cb.effects).not.toContain('START_STT');
+    expect(v_cb35cb.effects).not.toContain('SAY_INTERRUPT');
   });
 });
 
@@ -532,8 +546,167 @@ describe('인터럽트 밀림 상한 — confirmGate=false(즉발, 프로덕션 
     const v_121e28 = v_6920f0(v_d0786c, { type: 'SPEECH_START', seq: v_d0786c.activeSeq! }).state; 
     const v_cb35cb = v_6920f0(v_121e28, { type: 'RESPONSE_DONE', seq: v_d0786c.activeSeq! });
     expect(v_cb35cb.state.phase).toBe('interrupting');
-    expect(v_cb35cb.effects).toEqual(['SAY_INTERRUPT', 'START_DETECTOR']);
+    expect(v_cb35cb.effects).toEqual(['STOP_DETECTOR', 'SAY_INTERRUPT', 'START_DETECTOR']); 
     expect(v_cb35cb.effects).not.toContain('START_STT');
+  });
+});
+
+describe('[C3] 적재 인터럽트의 시간 기반 flush·폐기 (컨트롤러가 시간을 재고 이벤트로 보낸다)', () => {
+  const v_bb280b = () => v_6920f0(v_3075fa(), { type: 'CALL_LIVE' }).state;
+  const v_7d769d = { type: 'FACE_INTERRUPT' as const, text: '누구시죠?', faceKey: 'f1' };
+
+  const v_bf751c = () => {
+    const v_3f6eae = v_6920f0(v_bb280b(), { type: 'USER_SPEECH_START' }).state;
+    const v_3756c2 = v_6920f0(v_3f6eae, v_7d769d).state;
+    expect(v_3756c2.pendingInterrupt).not.toBeNull();
+    return v_3756c2;
+  };
+
+  it('회귀: 사용자가 말하다 침묵해 final 이 안 와도(턴 종료 이벤트 없음) INTERRUPT_FLUSH 로 발화된다', () => {
+
+    const v_6c8cf1 = v_6920f0(v_bf751c(), { type: 'USER_SPEECH_IDLE' }).state;
+    expect(v_6c8cf1.phase).toBe('listening');
+    const v_cb35cb = v_6920f0(v_6c8cf1, { type: 'INTERRUPT_FLUSH' });
+    expect(v_cb35cb.state.phase).toBe('interrupting');
+    expect(v_cb35cb.sayText).toBe('누구시죠?');
+    expect(v_cb35cb.state.pendingInterrupt).toBeNull();
+    expect(v_cb35cb.effects).toEqual(['STOP_STT', 'SAY_INTERRUPT', 'START_DETECTOR']);
+  });
+
+  it('겹침 금지: 사용자가 말하는 중이면 INTERRUPT_FLUSH 를 무시하고 적재를 유지한다', () => {
+    const v_fd5f43 = v_bf751c(); 
+    const v_cb35cb = v_6920f0(v_fd5f43, { type: 'INTERRUPT_FLUSH' });
+    expect(v_cb35cb.state).toBe(v_fd5f43);
+    expect(v_cb35cb.effects).toEqual([]);
+  });
+
+  it('겹침 금지: 재생 중(activeSeq 존재)이면 INTERRUPT_FLUSH 를 무시한다', () => {
+    const v_6c8cf1 = v_6920f0(v_bf751c(), { type: 'USER_SPEECH_IDLE' }).state;
+    const v_fd5f43 = { ...v_6c8cf1, activeSeq: 7 };
+    const v_cb35cb = v_6920f0(v_fd5f43, { type: 'INTERRUPT_FLUSH' });
+    expect(v_cb35cb.state).toBe(v_fd5f43);
+    expect(v_cb35cb.effects).toEqual([]);
+  });
+
+  it('겹침 금지: listening 이 아니면(speaking) INTERRUPT_FLUSH 를 무시한다', () => {
+    const v_3f6eae = v_6920f0(v_bb280b(), { type: 'FINAL_RESULT', text: '안녕' }).state; 
+    const v_3756c2 = v_6920f0(v_3f6eae, { type: 'SPEECH_START', seq: 1 }).state;           
+    const v_d0786c = v_6920f0(v_3756c2, v_7d769d).state;                                       
+    const v_cb35cb = v_6920f0(v_d0786c, { type: 'INTERRUPT_FLUSH' });
+    expect(v_cb35cb.state).toBe(v_d0786c);
+    expect(v_cb35cb.effects).toEqual([]);
+  });
+
+  it('겹침 금지: micOn=false 면 INTERRUPT_FLUSH 를 무시한다', () => {
+    const v_6c8cf1 = v_6920f0(v_bf751c(), { type: 'USER_SPEECH_IDLE' }).state;
+    const v_fd5f43 = { ...v_6c8cf1, micOn: false };
+    const v_cb35cb = v_6920f0(v_fd5f43, { type: 'INTERRUPT_FLUSH' });
+    expect(v_cb35cb.state).toBe(v_fd5f43);
+    expect(v_cb35cb.effects).toEqual([]);
+  });
+
+  it('적재분이 없으면 INTERRUPT_FLUSH 는 no-op(잘못된 발화 생성 금지)', () => {
+    const v_fd5f43 = v_bb280b();
+    const v_cb35cb = v_6920f0(v_fd5f43, { type: 'INTERRUPT_FLUSH' });
+    expect(v_cb35cb.state).toBe(v_fd5f43);
+    expect(v_cb35cb.effects).toEqual([]);
+  });
+
+  it('INTERRUPT_EXPIRED 는 적재분을 폐기한다(뒤늦은 인사 방지) — 발화는 하지 않는다', () => {
+    const v_cb35cb = v_6920f0(v_bf751c(), { type: 'INTERRUPT_EXPIRED', faceKey: 'f1' });
+    expect(v_cb35cb.state.pendingInterrupt).toBeNull();
+    expect(v_cb35cb.state.phase).toBe('listening');
+    expect(v_cb35cb.effects).toEqual([]);
+  });
+
+  it('INTERRUPT_EXPIRED 의 faceKey 가 다르면(이미 교체된 적재분) 무시한다', () => {
+    const v_fd5f43 = v_bf751c();
+    const v_cb35cb = v_6920f0(v_fd5f43, { type: 'INTERRUPT_EXPIRED', faceKey: 'other' });
+    expect(v_cb35cb.state).toBe(v_fd5f43);
+    expect(v_cb35cb.state.pendingInterrupt?.faceKey).toBe('f1');
+  });
+
+  it('폐기된 뒤에는 턴이 끝나도 flush 되지 않는다 — 정상 listening 복귀', () => {
+    const v_2699db = v_6920f0(v_bf751c(), { type: 'INTERRUPT_EXPIRED', faceKey: 'f1' }).state;
+    const v_d0786c = v_6920f0(v_2699db, { type: 'FINAL_RESULT', text: '안녕' }).state;
+    const v_cb35cb = v_6920f0(v_d0786c, { type: 'RESPONSE_DONE', seq: v_d0786c.activeSeq! });
+    expect(v_cb35cb.state.phase).toBe('listening');
+    expect(v_cb35cb.effects).toEqual(['STOP_DETECTOR', 'START_STT']);
+  });
+
+  it('정책 상수: flush 대기(3s)는 STT endpoint(1.5s)보다 길고, 폐기(15s)는 워치독 1차(30s)보다 짧다', () => {
+    expect(v_778702).toBe(3000);
+    expect(v_3711bb).toBe(15000);
+    expect(v_778702).toBeLessThan(v_3711bb);
+    expect(v_3711bb).toBeLessThan(v_6fc7ac[0]);
+    expect(v_99c713).toBe(10000);
+  });
+});
+
+describe('[I2] MIC_ON 은 진행 중인 클론 발화 위로 마이크를 열지 않는다', () => {
+  const v_bb280b = () => v_6920f0(v_3075fa(), { type: 'CALL_LIVE' }).state;
+
+  const v_b722a1 = () => {
+    const v_3f6eae = v_6920f0(v_bb280b(), { type: 'FINAL_RESULT', text: '안녕' }).state; 
+    return v_6920f0(v_3f6eae, { type: 'SPEECH_START', seq: 1 }).state;               
+  };
+
+  it('MIC_OFF 는 진행 중 발화 마커(activeSeq)를 보존한다 — 클론은 계속 말하고 있다', () => {
+    const v_9ab695 = v_6920f0(v_b722a1(), { type: 'MIC_OFF' }).state;
+    expect(v_9ab695.phase).toBe('paused');
+    expect(v_9ab695.activeSeq).toBe(1);
+    expect(v_9ab695.pendingInterrupt).toBeNull();
+  });
+
+  it('🔴회귀: 재생 중 MIC_ON 은 START_STT 를 내지 않는다(클론 음성 STT 유입 차단)', () => {
+    const v_9ab695 = v_6920f0(v_b722a1(), { type: 'MIC_OFF' }).state;
+    const v_cb35cb = v_6920f0(v_9ab695, { type: 'MIC_ON' });
+    expect(v_cb35cb.effects).not.toContain('START_STT');
+    expect(v_cb35cb.effects).toEqual(['START_DETECTOR']);
+    expect(v_cb35cb.state.micOn).toBe(true);
+    expect(v_cb35cb.state.phase).toBe('speaking');
+    expect(v_cb35cb.state.activeSeq).toBe(1); 
+  });
+
+  it('재생 중 MIC_ON 이후 그 발화가 끝나면 정상 복귀(STOP_DETECTOR+START_STT)', () => {
+    const v_9ab695 = v_6920f0(v_b722a1(), { type: 'MIC_OFF' }).state;
+    const v_358217 = v_6920f0(v_9ab695, { type: 'MIC_ON' }).state;
+    const v_cb35cb = v_6920f0(v_358217, { type: 'RESPONSE_DONE', seq: 1 });
+    expect(v_cb35cb.state.phase).toBe('listening');
+    expect(v_cb35cb.effects).toEqual(['STOP_DETECTOR', 'START_STT']);
+  });
+
+  it('paused 중 발화가 끝났으면(RESPONSE_DONE 수신) MIC_ON 은 기존대로 즉시 listening + START_STT', () => {
+    const v_9ab695 = v_6920f0(v_b722a1(), { type: 'MIC_OFF' }).state;
+    const v_2fb8cc = v_6920f0(v_9ab695, { type: 'RESPONSE_DONE', seq: 1 });
+    expect(v_2fb8cc.state.phase).toBe('paused'); 
+    expect(v_2fb8cc.state.activeSeq).toBeNull();
+    expect(v_2fb8cc.effects).toEqual([]);
+    const v_cb35cb = v_6920f0(v_2fb8cc.state, { type: 'MIC_ON' });
+    expect(v_cb35cb.state.phase).toBe('listening');
+    expect(v_cb35cb.effects).toEqual(['START_STT']);
+  });
+
+  it('paused 중 RESPONSE_END(비게이팅) 도 진행 중 마커를 걷는다', () => {
+    const v_9ab695 = v_6920f0(v_b722a1(), { type: 'MIC_OFF' }).state;
+    const v_cb35cb = v_6920f0(v_9ab695, { type: 'RESPONSE_END' });
+    expect(v_cb35cb.state.phase).toBe('paused');
+    expect(v_cb35cb.state.activeSeq).toBeNull();
+    expect(v_cb35cb.effects).toEqual([]);
+  });
+
+  it('paused 중 seq 가 다른 RESPONSE_DONE 은 마커를 걷지 않는다', () => {
+    const v_9ab695 = v_6920f0(v_b722a1(), { type: 'MIC_OFF' }).state;
+    const v_cb35cb = v_6920f0(v_9ab695, { type: 'RESPONSE_DONE', seq: 99 });
+    expect(v_cb35cb.state.activeSeq).toBe(1);
+  });
+
+  it('조용한 listening 에서의 MIC_OFF→MIC_ON 은 기존 동작 그대로(무회귀)', () => {
+    const v_9ab695 = v_6920f0(v_bb280b(), { type: 'MIC_OFF' }).state;
+    expect(v_9ab695.activeSeq).toBeNull();
+    const v_cb35cb = v_6920f0(v_9ab695, { type: 'MIC_ON' });
+    expect(v_cb35cb.state.phase).toBe('listening');
+    expect(v_cb35cb.effects).toEqual(['START_STT']);
   });
 });
 

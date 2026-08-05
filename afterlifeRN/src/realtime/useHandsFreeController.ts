@@ -7,6 +7,9 @@ import {
   v_6920f0,
   v_3075fa,
   v_6fc7ac,
+  v_778702,
+  v_3711bb,
+  v_99c713,
   type v_01cdf6,
   type v_a81c33,
 } from './handsFree';
@@ -82,6 +85,8 @@ export function v_7df8a4(opts: {
 
   const v_d27d23 = v_e662ae<number | null>(null);
 
+  const v_938712 = v_e662ae(0);
+
   const v_1f41d7 = v_724dd4({
     getStatsReport: v_328259.getStatsReport,
     onResponseStart: () => v_700737.current({ type: 'CLONE_SPEAKING' }),
@@ -138,12 +143,22 @@ export function v_7df8a4(opts: {
             v_700737.current({ type: 'USER_SPEECH_IDLE' });
             break;
           case 'SAY':
-          case 'SAY_INTERRUPT':
-          case 'SAY_IDLE_GREETING':
 
             if (v_b6611b != null) v_d27d23.current = v_b6611b;
             if (v_b03676) {
               v_bcde6b.current(v_b03676).catch(() => v_700737.current({ type: 'RESPONSE_DONE' }));
+            } else {
+              v_700737.current({ type: 'RESPONSE_DONE' });
+            }
+            break;
+          case 'SAY_INTERRUPT':
+          case 'SAY_IDLE_GREETING':
+
+            if (v_b6611b != null) v_d27d23.current = v_b6611b;
+
+            v_938712.current = Date.now() + v_99c713;
+            if (v_b03676 && v_5069ec.current) {
+              v_5069ec.current(v_b03676).catch(() => v_700737.current({ type: 'RESPONSE_DONE' }));
             } else {
               v_700737.current({ type: 'RESPONSE_DONE' });
             }
@@ -200,6 +215,8 @@ export function v_7df8a4(opts: {
       if (v_1d299c.type === 'RESPONSE_DONE' || v_1d299c.type === 'RESPONSE_END' || v_1d299c.type === 'CALL_ENDED') {
         v_1ab00a();
       }
+
+      if (v_1d299c.type === 'CALL_ENDED') v_938712.current = 0;
       const v_ba2215 = v_8d3dea.current;
       const { state: v_a448ad, effects: v_27ef63, sayText: v_b03676, saySeq: v_b6611b } = v_6920f0(v_ba2215, v_1d299c);
 
@@ -293,6 +310,31 @@ export function v_7df8a4(opts: {
   }, [v_b6e533.phase, v_b6e533.userSpeaking, v_b6e533.idleGreetCount]);
 
   v_c4deb2(() => {
+    if (!v_b6e533.pendingInterrupt) return;
+    if (v_b6e533.phase !== 'listening') return;
+    if (v_b6e533.userSpeaking) return;
+    if (v_b6e533.activeSeq !== null) return;
+    if (!v_b6e533.micOn) return;
+    if (v_d65758.current) return; 
+    const v_aa4609 = Math.max(0, v_c2616d.current - Date.now()); 
+    const v_389afb = setTimeout(
+      () => v_700737.current({ type: 'INTERRUPT_FLUSH' }),
+      v_778702 + v_aa4609,
+    );
+    return () => clearTimeout(v_389afb);
+  }, [v_b6e533.pendingInterrupt, v_b6e533.phase, v_b6e533.userSpeaking, v_b6e533.activeSeq, v_b6e533.micOn]);
+
+  v_c4deb2(() => {
+    const v_66d3ef = v_b6e533.pendingInterrupt;
+    if (!v_66d3ef) return;
+    const v_389afb = setTimeout(
+      () => v_700737.current({ type: 'INTERRUPT_EXPIRED', faceKey: v_66d3ef.faceKey }),
+      v_3711bb,
+    );
+    return () => clearTimeout(v_389afb);
+  }, [v_b6e533.pendingInterrupt]);
+
+  v_c4deb2(() => {
     if (!v_328259.enabled) {
 
       v_105c0b.current = 0;
@@ -334,6 +376,8 @@ export function v_7df8a4(opts: {
             v_5c8a52.current.stopListening();
             v_afaf7a.current = true;
             v_d3b587(true); 
+
+            v_700737.current({ type: 'USER_SPEECH_IDLE' });
             v_d7f7b1('suppress_on');
             v_d7f7b1('stt_close');
           }
@@ -345,6 +389,8 @@ export function v_7df8a4(opts: {
           void v_5c8a52.current.startListening();
           v_afaf7a.current = false;
           v_d3b587(false); 
+
+          v_700737.current({ type: 'USER_SPEECH_IDLE' });
           v_d7f7b1('suppress_off');
           v_d7f7b1('stt_open');
         }
@@ -378,6 +424,8 @@ export function v_7df8a4(opts: {
   }, []);
 
   const v_ac6fcd = v_de06a3((v_9b6134, v_74fb11) => {
+
+    if (Date.now() < v_938712.current) return;
     v_700737.current({ type: 'FACE_INTERRUPT', text: v_9b6134, faceKey: v_74fb11 });
   }, []);
 
@@ -387,6 +435,8 @@ export function v_7df8a4(opts: {
     v_246863.current = 0;
     v_d7f7b1('dev_listen_now');
     v_d7f7b1('stt_open');
+
+    v_700737.current({ type: 'USER_SPEECH_IDLE' });
     void v_5c8a52.current.startListening();
   }, []);
 
