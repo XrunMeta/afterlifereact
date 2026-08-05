@@ -62,13 +62,32 @@ type Mode = "upload" | "record" | "preset";
 
 const MODE_ORDER: Mode[] = ["upload", "record", "preset"];
 
+type VoicePick = Pick<
+  CloneCreationDraft,
+  "voicePresetId" | "voiceCloneJobId" | "voiceFile" | "voiceSampleId"
+>;
+
+const EMPTY_PICK: VoicePick = {
+  voicePresetId: undefined,
+  voiceCloneJobId: undefined,
+  voiceFile: undefined,
+  voiceSampleId: undefined,
+};
+
+function initialMode(d: CloneCreationDraft): Mode {
+  if (d.voiceMode) return d.voiceMode;
+  if (d.voicePresetId !== undefined) return "preset";
+  return "upload";
+}
+
 interface Props {
   draft: CloneCreationDraft;
   onChange: (patch: Partial<CloneCreationDraft>) => void;
 }
 
 async function pickAndClone(
-  onChange: Props["onChange"],
+
+  apply: (pick: VoicePick) => void,
   accessToken: string | null,
   t: (key: string, opts?: Record<string, unknown>) => string,
 ): Promise<void> {
@@ -85,7 +104,7 @@ async function pickAndClone(
   if (result.canceled || !result.assets[0]) return;
   const asset = result.assets[0];
 
-  onChange({ voiceFile: asset.uri, voiceSampleId: undefined, voicePresetId: undefined });
+  apply({ voiceFile: asset.uri });
 
   if (!accessToken) return;
   try {
@@ -99,11 +118,7 @@ async function pickAndClone(
       src_file_id: uploaded.id,
     });
     console.log("[DefaultVoice] voice_clone job created:", jobRes.job_id);
-    onChange({
-      voiceFile: asset.uri,
-      voiceCloneJobId: jobRes.job_id,
-      voicePresetId: undefined,
-    });
+    apply({ voiceFile: asset.uri, voiceCloneJobId: jobRes.job_id });
   } catch (err) {
     console.warn("[DefaultVoice] upload/job failed (voiceFile kept):", err);
   }
@@ -113,7 +128,31 @@ function Component({ draft, onChange }: Props) {
   const { t, i18n } = useTranslation();
   const accessToken = useAuthStore((s) => s.accessToken);
 
-  const [mode, setMode] = useState<Mode>("upload");
+  const [mode, setMode] = useState<Mode>(() => initialMode(draft));
+
+  const [byMode, setByMode] = useState<Record<Mode, VoicePick | null>>(() => {
+    const seeded: Record<Mode, VoicePick | null> = { upload: null, record: null, preset: null };
+    const m = initialMode(draft);
+    if (draft.voicePresetId !== undefined || draft.voiceCloneJobId || draft.voiceFile) {
+      seeded[m] = {
+        voicePresetId: draft.voicePresetId,
+        voiceCloneJobId: draft.voiceCloneJobId,
+        voiceFile: draft.voiceFile,
+        voiceSampleId: draft.voiceSampleId,
+      };
+    }
+    return seeded;
+  });
+
+  const applyPick = (m: Mode, pick: VoicePick) => {
+    setByMode((prev) => ({ ...prev, [m]: { ...EMPTY_PICK, ...pick } }));
+    onChange({ ...EMPTY_PICK, ...pick, voiceMode: m });
+  };
+
+  const switchMode = (m: Mode) => {
+    setMode(m);
+    onChange({ ...(byMode[m] ?? EMPTY_PICK), voiceMode: m });
+  };
   const [voices, setVoices] = useState<CatalogVoice[]>([]);
   const [loadErr, setLoadErr] = useState(false);
   const [selectedScript, setSelectedScript] = useState<string | null>(null);
@@ -171,26 +210,26 @@ function Component({ draft, onChange }: Props) {
     if (v.srcFileId == null) {
 
       setSelectedVoiceId(v.id);
-      onChange({ voicePresetId: v.id, voiceCloneJobId: undefined, voiceFile: undefined });
+      applyPick("preset", { voicePresetId: v.id });
       return;
     }
 
     if (!accessToken) return;
 
     setSelectedVoiceId(v.id);
-    onChange({ voicePresetId: undefined, voiceFile: undefined });
+    applyPick("preset", EMPTY_PICK);
     const seq = ++jobSeqRef.current;
     try {
       setUploading(true);
       const jobRes = await createAssetJob(accessToken, { kind: "voice_clone", src_file_id: v.srcFileId });
       if (seq !== jobSeqRef.current) return;  
       console.log("[DefaultVoice] preset voice_clone job created:", jobRes.job_id);
-      onChange({ voiceCloneJobId: jobRes.job_id, voicePresetId: undefined, voiceFile: undefined });
+      applyPick("preset", { voiceCloneJobId: jobRes.job_id });
     } catch (err) {
       if (seq === jobSeqRef.current) {
 
         setSelectedVoiceId(null);
-        onChange({ voiceCloneJobId: undefined, voicePresetId: undefined, voiceFile: undefined });
+        applyPick("preset", EMPTY_PICK);
         console.warn("[DefaultVoice] preset job 생성 실패:", err);
         showAlert(
           t("create.voice.presetErrorTitle", { defaultValue: "음성 선택 오류" }),
@@ -227,15 +266,7 @@ function Component({ draft, onChange }: Props) {
         if (!alive) return;
         setVoices(list);
 
-        if (draft.voicePresetId !== undefined) {
-          setSelectedVoiceId(draft.voicePresetId);
-          return;
-        }
-        if (draft.voiceCloneJobId || draft.voiceFile) return;
-
-        if (list.length) {
-          selectPresetVoice(list[0]);
-        }
+        if (draft.voicePresetId !== undefined) setSelectedVoiceId(draft.voicePresetId);
       } catch {
         if (alive) setLoadErr(true);
       }
@@ -243,6 +274,14 @@ function Component({ draft, onChange }: Props) {
     return () => { alive = false; };
 
   }, [accessToken]);
+
+  useEffect(() => {
+    if (mode !== "preset") return;
+    if (byMode.preset) return;
+    if (!voices.length) return;
+    selectPresetVoice(voices[0]);
+
+  }, [mode, voices, byMode.preset]);
 
   const handleStartRecord = async () => {
     if (!selectedScript) {
@@ -284,7 +323,7 @@ function Component({ draft, onChange }: Props) {
     const uri = recorder.uri;
     if (!uri) return;
 
-    onChange({ voiceFile: uri, voicePresetId: undefined, voiceSampleId: undefined });
+    applyPick("record", { voiceFile: uri });
 
     if (!accessToken) return;
     setUploading(true);
@@ -299,11 +338,7 @@ function Component({ draft, onChange }: Props) {
         src_file_id: uploaded.id,
       });
       console.log("[DefaultVoice] voice_clone job (record) created:", jobRes.job_id);
-      onChange({
-        voiceFile: uri,
-        voiceCloneJobId: jobRes.job_id,
-        voicePresetId: undefined,
-      });
+      applyPick("record", { voiceFile: uri, voiceCloneJobId: jobRes.job_id });
     } catch (err) {
       console.warn("[DefaultVoice] record upload/job failed (voiceFile kept):", err);
     } finally {
@@ -314,7 +349,7 @@ function Component({ draft, onChange }: Props) {
   const handlePickFile = async () => {
     setUploading(true);
     try {
-      await pickAndClone(onChange, accessToken, t);
+      await pickAndClone((pick) => applyPick("upload", pick), accessToken, t);
     } finally {
       setUploading(false);
     }
@@ -358,7 +393,7 @@ function Component({ draft, onChange }: Props) {
             <TouchableOpacity
               key={m}
               style={[styles.modeBtn, mode === m && styles.modeBtnActive]}
-              onPress={() => setMode(m)}
+              onPress={() => switchMode(m)}
             >
               <Text style={[styles.modeText, mode === m && styles.modeTextActive]}>{label}</Text>
             </TouchableOpacity>
