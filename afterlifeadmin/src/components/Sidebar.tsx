@@ -13,6 +13,7 @@ const v_714568 = [
     items: [
       { path: "/", label: "Dashboard", end: true },
       { path: "/testbed", label: "API Testbed" },
+      { path: "/oth-path-lab", label: "대화 트레이닝 랩" },
     ],
   },
   {

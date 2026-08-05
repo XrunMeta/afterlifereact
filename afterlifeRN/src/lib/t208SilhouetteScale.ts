@@ -1,9 +1,9 @@
 
 
-export const v_ba52cf = [0.75, 0.5, 0.4] as const;
+export const v_ba52cf = [0.95, 0.64, 0.52] as const;
 export type T208SilhouetteScale = (typeof v_ba52cf)[number];
 
-export const v_701c9e = 0.75 as const;
+export const v_701c9e = 0.95 as const;
 
 const v_9fde29 = new Set<() => void>();
 
@@ -23,7 +23,7 @@ export function v_eab35e(v_abacaa): void {
   v_768f0b = v_abacaa;
   if (v_abacaa) {
 
-    v_1e8cf7 = 0.75;
+    v_1e8cf7 = 0.95;
   } else {
     v_1e8cf7 = v_701c9e;
   }
@@ -59,8 +59,8 @@ export function v_d43608(v_8b0dd9): () => void {
 }
 
 export function v_8b5209(v_a37637 = v_069313()): string {
-  if (v_a37637 === 0.75) return "1·큼(0.75)";
-  if (v_a37637 === 0.4) return "3·작음(0.40)";
-  if (v_a37637 === 0.5) return "2·중간(0.50)";
+  if (v_a37637 === 0.95) return "1·큼(0.95)";
+  if (v_a37637 === 0.52) return "3·작음(0.52)";
+  if (v_a37637 === 0.64) return "2·중간(0.64)";
   return `배율(${v_a37637})`;
 }
