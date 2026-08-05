@@ -62,13 +62,32 @@ type Mode = "upload" | "record" | "preset";
 
 const v_128633 = ["upload", "record", "preset"];
 
+type VoicePick = Pick<
+  v_c2a674,
+  "voicePresetId" | "voiceCloneJobId" | "voiceFile" | "voiceSampleId"
+>;
+
+const v_884e4d = {
+  voicePresetId: undefined,
+  voiceCloneJobId: undefined,
+  voiceFile: undefined,
+  voiceSampleId: undefined,
+};
+
+function v_2ba26d(d: v_c2a674): Mode {
+  if (v_d5dda0.voiceMode) return v_d5dda0.voiceMode;
+  if (v_d5dda0.voicePresetId !== undefined) return "preset";
+  return "upload";
+}
+
 interface Props {
   draft: v_c2a674;
   onChange: (patch: Partial<v_c2a674>) => void;
 }
 
 async function v_867b58(
-  v_b187d9,
+
+  v_00b8d8,
   v_2ca7e0,
   v_8d41d7,
 ): Promise<void> {
@@ -85,7 +104,7 @@ async function v_867b58(
   if (v_43c42e.canceled || !v_43c42e.assets[0]) return;
   const v_b76cd8 = v_43c42e.assets[0];
 
-  v_b187d9({ voiceFile: v_b76cd8.uri, voiceSampleId: undefined, voicePresetId: undefined });
+  v_00b8d8({ voiceFile: v_b76cd8.uri });
 
   if (!v_2ca7e0) return;
   try {
@@ -99,11 +118,7 @@ async function v_867b58(
       src_file_id: v_57ac81.id,
     });
     console.log("[DefaultVoice] voice_clone job created:", v_94abbb.job_id);
-    v_b187d9({
-      voiceFile: v_b76cd8.uri,
-      voiceCloneJobId: v_94abbb.job_id,
-      voicePresetId: undefined,
-    });
+    v_00b8d8({ voiceFile: v_b76cd8.uri, voiceCloneJobId: v_94abbb.job_id });
   } catch (v_49263d) {
     console.warn("[DefaultVoice] upload/job failed (voiceFile kept):", v_49263d);
   }
@@ -113,7 +128,31 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const { t: v_8d41d7, i18n: v_9c213b } = v_772971();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
 
-  const [v_34e5bb, v_038d7f] = v_5ab095<Mode>("upload");
+  const [v_34e5bb, v_038d7f] = v_5ab095<Mode>(() => v_2ba26d(v_f04727));
+
+  const [v_404fe1, v_214f34] = v_5ab095<Record<Mode, VoicePick | null>>(() => {
+    const v_b56a36 = { upload: null, record: null, preset: null };
+    const v_35f85c = v_2ba26d(v_f04727);
+    if (v_f04727.voicePresetId !== undefined || v_f04727.voiceCloneJobId || v_f04727.voiceFile) {
+      v_b56a36[v_35f85c] = {
+        voicePresetId: v_f04727.voicePresetId,
+        voiceCloneJobId: v_f04727.voiceCloneJobId,
+        voiceFile: v_f04727.voiceFile,
+        voiceSampleId: v_f04727.voiceSampleId,
+      };
+    }
+    return v_b56a36;
+  });
+
+  const v_4a4814 = (v_35f85c, v_ff792b) => {
+    v_214f34((v_ba2215) => ({ ...v_ba2215, [v_35f85c]: { ...v_884e4d, ...v_ff792b } }));
+    v_b187d9({ ...v_884e4d, ...v_ff792b, voiceMode: v_35f85c });
+  };
+
+  const v_69341a = (v_35f85c) => {
+    v_038d7f(v_35f85c);
+    v_b187d9({ ...(v_404fe1[v_35f85c] ?? v_884e4d), voiceMode: v_35f85c });
+  };
   const [v_53e1f3, v_de0f36] = v_5ab095<v_d80981[]>([]);
   const [v_fd3c7b, v_4fbeaf] = v_5ab095(false);
   const [v_0c0b03, v_c98f46] = v_5ab095<string | null>(null);
@@ -171,26 +210,26 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     if (v_81e2ef.srcFileId == null) {
 
       v_523782(v_81e2ef.id);
-      v_b187d9({ voicePresetId: v_81e2ef.id, voiceCloneJobId: undefined, voiceFile: undefined });
+      v_4a4814("preset", { voicePresetId: v_81e2ef.id });
       return;
     }
 
     if (!v_2ca7e0) return;
 
     v_523782(v_81e2ef.id);
-    v_b187d9({ voicePresetId: undefined, voiceFile: undefined });
+    v_4a4814("preset", v_884e4d);
     const v_1923e2 = ++v_64652e.current;
     try {
       v_bbded0(true);
       const v_94abbb = await v_ab4719(v_2ca7e0, { kind: "voice_clone", src_file_id: v_81e2ef.srcFileId });
       if (v_1923e2 !== v_64652e.current) return;  
       console.log("[DefaultVoice] preset voice_clone job created:", v_94abbb.job_id);
-      v_b187d9({ voiceCloneJobId: v_94abbb.job_id, voicePresetId: undefined, voiceFile: undefined });
+      v_4a4814("preset", { voiceCloneJobId: v_94abbb.job_id });
     } catch (v_49263d) {
       if (v_1923e2 === v_64652e.current) {
 
         v_523782(null);
-        v_b187d9({ voiceCloneJobId: undefined, voicePresetId: undefined, voiceFile: undefined });
+        v_4a4814("preset", v_884e4d);
         console.warn("[DefaultVoice] preset job 생성 실패:", v_49263d);
         v_889fad(
           v_8d41d7("create.voice.presetErrorTitle", { defaultValue: "음성 선택 오류" }),
@@ -227,15 +266,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
         if (!v_759436) return;
         v_de0f36(v_ef8ab1);
 
-        if (v_f04727.voicePresetId !== undefined) {
-          v_523782(v_f04727.voicePresetId);
-          return;
-        }
-        if (v_f04727.voiceCloneJobId || v_f04727.voiceFile) return;
-
-        if (v_ef8ab1.length) {
-          v_0f4413(v_ef8ab1[0]);
-        }
+        if (v_f04727.voicePresetId !== undefined) v_523782(v_f04727.voicePresetId);
       } catch {
         if (v_759436) v_4fbeaf(true);
       }
@@ -243,6 +274,14 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     return () => { v_759436 = false; };
 
   }, [v_2ca7e0]);
+
+  v_c4deb2(() => {
+    if (v_34e5bb !== "preset") return;
+    if (v_404fe1.preset) return;
+    if (!v_53e1f3.length) return;
+    v_0f4413(v_53e1f3[0]);
+
+  }, [v_34e5bb, v_53e1f3, v_404fe1.preset]);
 
   const v_4d3015 = async () => {
     if (!v_0c0b03) {
@@ -284,7 +323,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     const v_cd1446 = v_5ebce3.uri;
     if (!v_cd1446) return;
 
-    v_b187d9({ voiceFile: v_cd1446, voicePresetId: undefined, voiceSampleId: undefined });
+    v_4a4814("record", { voiceFile: v_cd1446 });
 
     if (!v_2ca7e0) return;
     v_bbded0(true);
@@ -299,11 +338,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
         src_file_id: v_57ac81.id,
       });
       console.log("[DefaultVoice] voice_clone job (record) created:", v_94abbb.job_id);
-      v_b187d9({
-        voiceFile: v_cd1446,
-        voiceCloneJobId: v_94abbb.job_id,
-        voicePresetId: undefined,
-      });
+      v_4a4814("record", { voiceFile: v_cd1446, voiceCloneJobId: v_94abbb.job_id });
     } catch (v_49263d) {
       console.warn("[DefaultVoice] record upload/job failed (voiceFile kept):", v_49263d);
     } finally {
@@ -314,7 +349,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const v_a01a16 = async () => {
     v_bbded0(true);
     try {
-      await v_867b58(v_b187d9, v_2ca7e0, v_8d41d7);
+      await v_867b58((v_ff792b) => v_4a4814("upload", v_ff792b), v_2ca7e0, v_8d41d7);
     } finally {
       v_bbded0(false);
     }
@@ -358,7 +393,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
             <TouchableOpacity
               key={v_35f85c}
               style={[v_d81136.modeBtn, v_34e5bb === v_35f85c && v_d81136.modeBtnActive]}
-              onPress={() => v_038d7f(v_35f85c)}
+              onPress={() => v_69341a(v_35f85c)}
             >
               <Text style={[v_d81136.modeText, v_34e5bb === v_35f85c && v_d81136.modeTextActive]}>{v_2869c1}</Text>
             </TouchableOpacity>
