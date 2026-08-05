@@ -479,10 +479,34 @@ def face_event_clone_matches(session_clone_id, event_clone_id) -> bool:
     서버(/oth-path)가 이미 (user_id, clone_id) 스코프를 강제하므로
     이 검사는 방어 1층이다. event_clone_id 가 없으면(구 클라이언트) 통과시킨다 —
     서버 게이트가 정본이고, 여기서 막으면 하위호환이 깨진다.
+
+    event_clone_id 는 datachannel 로 들어오는 **완전히 신뢰할 수 없는 입력**이다
+    (T-135 IDOR 교훈). 이 함수는 전역(total) 함수여야 한다 — 어떤 입력이 와도
+    예외를 던지지 않고 반드시 bool 을 반환한다. 정수로 해석할 수 없는 값(문자열
+    "abc", list, dict 등)은 "해석 불가 = 불일치"로 취급해 False 를 반환한다
+    (호출부가 이를 이벤트 드랍으로 이어가므로 fail-closed).
+
+    bool 은 파이썬에서 int 의 서브클래스라 `int(True) == 1` 처럼 우연히 세션
+    clone_id 와 일치해버릴 수 있다 — clone_id 로 인정하지 않고 명시적으로
+    불일치(False) 처리한다.
     """
     if event_clone_id is None:
         return True
-    return int(session_clone_id) == int(event_clone_id)
+    if isinstance(event_clone_id, bool):
+        log.warning(
+            "face_event_clone_matches: clone_id가 bool(%r) — clone_id로 인정하지 않고 불일치 처리",
+            event_clone_id,
+        )
+        return False
+    try:
+        return int(session_clone_id) == int(event_clone_id)
+    except (TypeError, ValueError):
+        log.warning(
+            "face_event_clone_matches: clone_id 형식 이상(파싱 불가, garbage payload) "
+            "session=%r event=%r",
+            session_clone_id, event_clone_id,
+        )
+        return False
 
 
 def _handle_face_event(sess, data: dict) -> None:
