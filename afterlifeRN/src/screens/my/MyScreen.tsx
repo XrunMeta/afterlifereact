@@ -293,55 +293,8 @@ export default function MyScreen() {
         {
 }
 
-        {}
-        <TouchableOpacity
-          style={s.balanceCard}
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate("Purchase")}
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={s.balanceLabel}>
-              {t("my.balance.remainingTime", { defaultValue: "남은 통화 시간" })}
-            </Text>
-            {balanceLoading && !balance ? (
-              <ActivityIndicator color={COLORS.violet600} style={{ marginTop: 6 }} />
-            ) : balance ? (
-              <>
-                <Text style={s.balanceTotal}>
-                  {formatMinutes(balance.totalSec, t)}
-                </Text>
-                <Text style={s.balanceBreakdown}>
-                  {t("my.balance.free", {
-                    time: formatMinutes(balance.freeSec, t),
-                    defaultValue: `무료 ${formatMinutes(balance.freeSec, t)}`,
-                  })}
-                  {balance.subSec > 0
-                    ? ` · ${t("my.balance.sub", {
-                        time: formatMinutes(balance.subSec, t),
-                        defaultValue: `구독 ${formatMinutes(balance.subSec, t)}`,
-                      })}`
-                    : ""}
-                  {balance.topupSec > 0
-                    ? ` · ${t("my.balance.topup", {
-                        time: formatMinutes(balance.topupSec, t),
-                        defaultValue: `충전 ${formatMinutes(balance.topupSec, t)}`,
-                      })}`
-                    : ""}
-                </Text>
-              </>
-            ) : (
-              <Text style={s.balanceEmpty}>
-                {t("my.balance.failed", { defaultValue: "잔액 조회 실패" })}
-              </Text>
-            )}
-          </View>
-          <View style={s.balanceCta}>
-            <Text style={s.balanceCtaText}>
-              {t("my.balance.charge", { defaultValue: "충전" })}
-            </Text>
-            <Feather name="chevron-right" size={16} color="#fff" />
-          </View>
-        </TouchableOpacity>
+        {
+}
 
         {}
 
