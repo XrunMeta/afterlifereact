@@ -762,7 +762,12 @@ export default function v_14b43e() {
               </View>
             )}
 
-            <ScrollView style={v_fd5f43.eventsScrollArea} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={v_fd5f43.eventsScrollArea}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
               {v_34e317 ? (
                 <ActivityIndicator color={v_1bfbd0.zinc500} style={{ paddingVertical: 24 }} />
               ) : !v_077f23 || v_077f23.items.length === 0 ? (
