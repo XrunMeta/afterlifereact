@@ -1,9 +1,9 @@
 
 
-export const T208_SILHOUETTE_SCALES = [0.75, 0.5, 0.4] as const;
+export const T208_SILHOUETTE_SCALES = [0.95, 0.64, 0.52] as const;
 export type T208SilhouetteScale = (typeof T208_SILHOUETTE_SCALES)[number];
 
-export const DEFAULT_SILHOUETTE_SCALE = 0.75 as const;
+export const DEFAULT_SILHOUETTE_SCALE = 0.95 as const;
 
 const listeners = new Set<() => void>();
 
@@ -23,7 +23,7 @@ export function setT208MeasureMode(on: boolean): void {
   measureMode = on;
   if (on) {
 
-    devScale = 0.75;
+    devScale = 0.95;
   } else {
     devScale = DEFAULT_SILHOUETTE_SCALE;
   }
@@ -59,8 +59,8 @@ export function subscribeSilhouetteScale(listener: () => void): () => void {
 }
 
 export function silhouetteScaleLabel(scale: number = getSilhouetteScale()): string {
-  if (scale === 0.75) return "1·큼(0.75)";
-  if (scale === 0.4) return "3·작음(0.40)";
-  if (scale === 0.5) return "2·중간(0.50)";
+  if (scale === 0.95) return "1·큼(0.95)";
+  if (scale === 0.52) return "3·작음(0.52)";
+  if (scale === 0.64) return "2·중간(0.64)";
   return `배율(${scale})`;
 }
