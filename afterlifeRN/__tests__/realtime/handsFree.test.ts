@@ -307,6 +307,17 @@ describe('userSpeaking 플래그', () => {
     const s1 = handsFreeReducer(live(), { type: 'FINAL_RESULT', text: '안녕' }).state; 
     expect(handsFreeReducer(s1, { type: 'USER_SPEECH_START' }).state.userSpeaking).toBe(false);
   });
+
+  it('confirming phase 에서도 USER_SPEECH_START 로 true 가 된다', () => {
+    const s0 = handsFreeReducer(initHandsFreeState(), { type: 'CALL_LIVE', confirmGate: true }).state;
+    expect(s0.phase).toBe('listening');
+    const s1 = handsFreeReducer(s0, { type: 'FINAL_RESULT', text: '  테스트  ' }).state;
+    expect(s1.phase).toBe('confirming');
+    expect(s1.userSpeaking).toBe(false);
+    const s2 = handsFreeReducer(s1, { type: 'USER_SPEECH_START' }).state;
+    expect(s2.userSpeaking).toBe(true);
+    expect(s2.phase).toBe('confirming');
+  });
 });
 
 describe('seq 매칭', () => {
