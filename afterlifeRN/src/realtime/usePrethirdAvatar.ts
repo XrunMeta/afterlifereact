@@ -105,7 +105,10 @@ export function v_3d8d48(v_328259): v_b01667 {
   const v_3e2c87 = v_de06a3(async (v_9b6134) => {
     const v_32dc97 = v_fa9144.current;
     if (!v_f98743.current || !v_32dc97) return;
-    if (v_ab4803 === 'sending' || v_ab4803 === 'speaking') return;
+    if (v_ab4803 === 'sending' || v_ab4803 === 'speaking') {
+
+      throw new Error('prethird: busy');
+    }
     const v_8d41d7 = v_9b6134.trim();
     if (!v_8d41d7) return;
     if (v_32dc97.readyState !== 'open') { v_3a7d09(new Error('datachannel_not_open')); return; }

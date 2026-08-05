@@ -394,6 +394,8 @@ export function v_7df8a4(opts: {
     pendingText: v_b6e533.pendingText,
     toggleMic: v_6e1295,
     cancelConfirm: v_5b4fb2,
+
+    dispatch: v_6be210,
     transcript: v_60bef6.transcript,
     interimTranscript: v_60bef6.interimTranscript,
 

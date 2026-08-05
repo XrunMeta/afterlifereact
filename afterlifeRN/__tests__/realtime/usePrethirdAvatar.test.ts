@@ -172,7 +172,8 @@ it('say: dc.readyState!=="open" → error 세팅, send 미호출', async () => {
   expect(v_43c42e.current.error?.message).toBe('datachannel_not_open');
 });
 
-it('say 중복 가드: speaking 중 두 번째 say 무시(dc.send 1회만)', async () => {
+it('say 중복 가드: speaking 중 두 번째 say 는 거부(reject)되고 dc.send 는 1회만', async () => {
+
   v_897bd0();
   const v_32dc97 = v_9051ce();
   const v_12cd99 = v_e6273b(v_32dc97);
@@ -180,7 +181,9 @@ it('say 중복 가드: speaking 중 두 번째 say 무시(dc.send 1회만)', asy
     v_3d8d48({ cloneId: 7, accessToken: 't', deps: v_84b93d(v_12cd99) as never }));
   await v_be73a0(async () => { await v_43c42e.current.start(); });
   await v_be73a0(async () => { await v_43c42e.current.say('안녕'); }); 
-  await v_be73a0(async () => { await v_43c42e.current.say('또'); });   
+  await v_be73a0(async () => {
+    await expect(v_43c42e.current.say('또')).rejects.toThrow('prethird: busy'); 
+  });
   expect(v_32dc97.send).toHaveBeenCalledTimes(1);
 });
 

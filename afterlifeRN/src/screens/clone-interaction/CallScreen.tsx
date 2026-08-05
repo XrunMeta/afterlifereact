@@ -61,6 +61,7 @@ import { submitDevText } from "../../realtime/devCallText";
 import { CALL_ROUTE } from "../../config/callRoute";
 import { GREETING_ENABLED, GREETING_FALLBACK_TEXT, GREET_TIMEOUT_MS } from "../../config/greeting";
 import { useHandsFreeController } from "../../realtime/useHandsFreeController";
+import type { HandsFreeEvent } from "../../realtime/handsFree";
 import { useVideoStatsDiag } from "../../realtime/useVideoStatsDiag";
 import { DialingScreen } from "../../components/call/DialingScreen";
 import { CallVoiceBall } from "../../components/call/CallVoiceBall";
@@ -285,6 +286,8 @@ export default function CallScreen({ route, navigation }: Props) {
     dispatchShRef.current(event);
   }, []);
 
+  const handsFreeDispatchRef = useRef<(event: HandsFreeEvent) => void>(() => {});
+
   const unknownFaceSnapshotRef = useRef<number[][] | null>(null);
 
   const calibrateOpt = useMemo(
@@ -341,10 +344,11 @@ export default function CallScreen({ route, navigation }: Props) {
   const NAMING_TIMEOUT_MS = 20000;
   const namingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const runShActions = useCallback(
-    (actions: SpeakerHandoffAction[]) => {
+
+    (actions: SpeakerHandoffAction[], faceKey: string) => {
       for (const a of actions) {
         if (a.type === "SAY") {
-          void say(a.text);
+          handsFreeDispatchRef.current({ type: "FACE_INTERRUPT", text: a.text, faceKey });
         } else if (a.type === "BEGIN_NAMING") {
           if (namingTimerRef.current) clearTimeout(namingTimerRef.current);
           namingTimerRef.current = setTimeout(() => {
@@ -362,13 +366,15 @@ export default function CallScreen({ route, navigation }: Props) {
         }
       }
     },
-    [say, faceEnroll, resetSpeakerRecognition],
+    [faceEnroll, resetSpeakerRecognition],
   );
   useEffect(() => {
     dispatchShRef.current = (event: SpeakerHandoffEvent) => {
       const { state, actions } = speakerHandoffReducer(shStateRef.current, event);
+
+      const faceKey = event.type === "SPEAKER_CONFIRMED" ? `p${event.personId}` : "unknown";
       shStateRef.current = state;
-      runShActions(actions);
+      runShActions(actions, faceKey);
     };
   }, [runShActions]);
 
@@ -540,6 +546,7 @@ export default function CallScreen({ route, navigation }: Props) {
     micLevel,
     cloneAudioLevel,
     sttActive,
+    dispatch: handsFreeDispatch,
   } = useHandsFreeController({
     enabled: liveState === "live",
     say,
@@ -556,6 +563,10 @@ export default function CallScreen({ route, navigation }: Props) {
 
     signalGating: typeof greet === 'function',
   });
+
+  useEffect(() => {
+    handsFreeDispatchRef.current = handsFreeDispatch;
+  }, [handsFreeDispatch]);
 
   const [greetingStarted, setGreetingStarted] = useState(false);
   useEffect(() => {
