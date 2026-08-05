@@ -2112,3 +2112,16 @@ v_f891e6.post("/:cloneId/self-confirm", v_6690d9, async (v_3f4e2e) => {
   const v_43c42e = await v_4c5429(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vectors: v_f94e64, displayName: v_8a1355 });
   return v_3f4e2e.json(v_43c42e);
 });
+
+v_f891e6.get("/:cloneId/face-policy", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("cloneId"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
+    throw new v_3ebe58("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+
+  const v_eb25ce = await v_3f4e2e.env.DB.prepare(`SELECT clone_type FROM clones WHERE id = ? AND ${v_74c502()}`)
+    .bind(v_6e0fd3)
+    .first<{ clone_type: string }>();
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "클론을 찾을 수 없습니다.");
+
+  return v_3f4e2e.json({ faceIdentifyEnabled: v_eb25ce.clone_type !== "expert" });
+});

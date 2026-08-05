@@ -131,3 +131,49 @@ export async function v_4c5429(
 
   return { personId: v_ca1ec5, selfPersonId: v_ca1ec5 };
 }
+
+export async function v_840775(
+  env: v_273a0c,
+  v_328259,
+): Promise<number> {
+  const { userId: v_43e90c, cloneId: v_6e0fd3 } = v_328259;
+
+  const v_3c8572 = await v_c9c489.DB.prepare(
+    "SELECT id FROM persons WHERE user_id = ? AND clone_id = ? ORDER BY id ASC LIMIT 1",
+  )
+    .bind(v_43e90c, v_6e0fd3)
+    .first<{ id: number }>();
+
+  let v_ca1ec5;
+  if (v_3c8572) {
+    v_ca1ec5 = v_3c8572.id;
+  } else {
+    const v_5c2f9f = Date.now();
+    const v_43af15 = await v_c9c489.DB.prepare(
+      `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at)
+       VALUES (?, ?, NULL, 'none', NULL, 'card', ?)`,
+    )
+      .bind(v_43e90c, v_6e0fd3, v_5c2f9f)
+      .run();
+    const v_69586c = v_43af15.meta.last_row_id as number;
+
+    const v_b8eaee = await v_c9c489.DB.prepare(
+      "SELECT id FROM persons WHERE user_id = ? AND clone_id = ? ORDER BY id ASC LIMIT 1",
+    )
+      .bind(v_43e90c, v_6e0fd3)
+      .first<{ id: number }>();
+    v_ca1ec5 = v_b8eaee!.id;
+
+    if (v_ca1ec5 !== v_69586c) {
+
+      await v_c9c489.DB.prepare("DELETE FROM persons WHERE id = ?").bind(v_69586c).run();
+    }
+  }
+
+  const v_d94e57 = await v_0761b1(v_c9c489, v_6e0fd3, v_ca1ec5);
+  if (v_d94e57 === null) {
+    await v_862be2(v_c9c489, v_6e0fd3, v_ca1ec5, JSON.stringify({}), false);
+  }
+
+  return v_ca1ec5;
+}
