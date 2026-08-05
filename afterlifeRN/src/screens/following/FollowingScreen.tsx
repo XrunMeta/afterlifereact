@@ -19,7 +19,7 @@ import {
   type NativeScrollEvent,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
+import { useNavigation, useRoute, CommonActions, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SafeView from "../../components/ui/SafeView";
@@ -30,6 +30,7 @@ import { useTranslation } from "react-i18next";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { RootStackParamList, MainTabParamList } from "../../navigation/types";
 import { useAuthStore } from "../../stores/authStore";
+import { assertCanCall } from "../../lib/callGuard";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
 import {
@@ -635,13 +636,20 @@ export default function FollowingScreen() {
                 variant="secondary"
                 size="md"
                 leftIcon={<Feather name="video" size={14} color={COLORS.zinc900} />}
-                onPress={() =>
+                onPress={async () => {
+
+                  const ok = await assertCanCall(accessToken, () => {
+                    rootNav.dispatch(
+                      CommonActions.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                    );
+                  });
+                  if (!ok) return;
                   rootNav.navigate("Call", {
                     cloneId: item.persona.id,
                     name: item.persona.name,
                     image: item.persona.avatar,
-                  })
-                }
+                  });
+                }}
                 style={s.overlayBtn}
                 textColor={COLORS.zinc900}
                 backgroundColor={COLORS.white}
@@ -984,7 +992,17 @@ export default function FollowingScreen() {
                     </View>
                     <TouchableOpacity
                       style={s.callBtn}
-                      onPress={() => { setShowCallModal(false); rootNav.navigate("Call", { cloneId: p.id, name: p.name, image: p.avatar }); }}
+                      onPress={async () => {
+
+                        const ok = await assertCanCall(accessToken, () => {
+                          rootNav.dispatch(
+                            CommonActions.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                          );
+                        });
+                        if (!ok) return;
+                        setShowCallModal(false);
+                        rootNav.navigate("Call", { cloneId: p.id, name: p.name, image: p.avatar });
+                      }}
                     >
                       <Feather name="video" size={14} color={COLORS.white} />
                       <Text style={s.callBtnText}>{t("feed.callRowAction")}</Text>
