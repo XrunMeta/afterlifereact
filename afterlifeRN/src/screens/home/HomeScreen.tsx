@@ -28,6 +28,7 @@ import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 
 import { v_68a7fe } from "../../face/useFaceBiometricRetroPrompt";
 import v_9706a6 from "../../components/ui/FeedCard";
+import v_06b8c0 from "../../components/clone/IntimacyEventsSheet";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import v_4d58d7 from "../../components/common/ReportReasonModal";
 
@@ -107,6 +108,8 @@ export default function v_c316d8() {
 
   const [v_ed660d, v_b07dd3] = v_5ab095<number | null>(null);
   const [v_48e7fe, v_856f84] = v_5ab095("");
+
+  const [v_d3a183, v_598141] = v_5ab095<{ cloneId: number; cloneName: string } | null>(null);
 
   const [v_12fa22, v_949e66] = v_5ab095<{
     cloneId: number;
@@ -391,14 +394,7 @@ export default function v_c316d8() {
           }}
           onCommentPress={() => v_b07dd3(v_8c0b26.id)}
 
-          onIntimacyPress={() =>
-            v_f4c991.dispatch(
-              v_650cfa.navigate({
-                name: "ShortsTab",
-                params: { openIntimacyCloneId: v_8c0b26.cloneId },
-              }),
-            )
-          }
+          onIntimacyPress={() => v_598141({ cloneId: v_8c0b26.cloneId, cloneName: v_8c0b26.author })}
           onMorePress={() =>
             v_949e66({
               cloneId: v_8c0b26.cloneId,
@@ -1064,6 +1060,14 @@ export default function v_c316d8() {
             console.warn("[Home] selected visibility PATCH failed:", v_49263d);
           }
         }}
+      />
+
+      {}
+      <IntimacyEventsSheet
+        visible={!!v_d3a183}
+        cloneId={v_d3a183?.cloneId ?? null}
+        cloneName={v_d3a183?.cloneName ?? ""}
+        onClose={() => v_598141(null)}
       />
     </View>
   );
