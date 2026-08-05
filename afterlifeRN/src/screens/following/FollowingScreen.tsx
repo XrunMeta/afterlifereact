@@ -767,7 +767,12 @@ export default function FollowingScreen() {
               </View>
             )}
 
-            <ScrollView style={s.eventsScrollArea} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={s.eventsScrollArea}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
               {intimacyEventsLoading ? (
                 <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
               ) : !intimacyEventsData || intimacyEventsData.items.length === 0 ? (

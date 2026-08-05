@@ -111,7 +111,12 @@ export default function IntimacyEventsSheet({ visible, cloneId, cloneName, onClo
               </View>
             )}
 
-            <ScrollView style={s.eventsScrollArea} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={s.eventsScrollArea}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
               {loading ? (
                 <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
               ) : !data || data.items.length === 0 ? (
