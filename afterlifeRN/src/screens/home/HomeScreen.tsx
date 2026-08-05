@@ -390,6 +390,15 @@ export default function HomeScreen() {
             }
           }}
           onCommentPress={() => setCommentFeedId(item.id)}
+
+          onIntimacyPress={() =>
+            rootNav.dispatch(
+              CommonActions.navigate({
+                name: "ShortsTab",
+                params: { openIntimacyCloneId: item.cloneId },
+              }),
+            )
+          }
           onMorePress={() =>
             setMoreTarget({
               cloneId: item.cloneId,
