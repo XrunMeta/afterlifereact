@@ -286,7 +286,7 @@ const v_d81136 = v_472849.create({
     lineHeight: 20,
     marginBottom: 12,
 
-    paddingRight: 60,
+    paddingRight: 44,
   },
   callButton: {
     width: "100%",
