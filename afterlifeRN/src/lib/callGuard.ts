@@ -10,7 +10,8 @@ export async function assertCanCall(
   if (!accessToken) return true;
   try {
     const balance = await getCreditBalance(accessToken);
-    if (balance.totalSec > 0) return true;
+
+    if (Math.floor(balance.totalSec) > 0) return true;
     showAlert(
       "남은 통화 시간이 없습니다",
       "크레딧을 충전하면 바로 이어서 통화할 수 있습니다.",
