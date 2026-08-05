@@ -603,8 +603,10 @@ export default function v_def15b() {
           </View>
         </View>
 
-        {}
-        <HashtagText style={v_fd5f43.description} numberOfLines={2}>
+        {
+
+}
+        <HashtagText style={v_fd5f43.description}>
           {v_eb25ce.description}
         </HashtagText>
 

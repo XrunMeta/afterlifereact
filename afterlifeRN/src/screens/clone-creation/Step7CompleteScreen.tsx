@@ -561,6 +561,9 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
           showBottomBackground={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+
+          autoAdjustKeyboardPadding
+          additionalBottomPadding={80}
         >
           {}
           <View style={v_d81136.authorRow}>
@@ -633,7 +636,9 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
             </View>
           )}
 
-          {}
+          {
+
+}
           <TextInput
             style={v_d81136.captionInput}
             value={v_6044a8}
@@ -643,8 +648,9 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
             })}
             placeholderTextColor={v_1bfbd0.zinc400}
             multiline
-            maxLength={2000}
+            maxLength={200}
           />
+          <Text style={v_d81136.captionCounter}>{v_6044a8.length}/200</Text>
 
           {}
           {v_5e9bfe && (
@@ -782,6 +788,13 @@ const v_d81136 = v_472849.create({
     borderColor: v_1bfbd0.zinc200,
     borderRadius: v_8b0c90.md,
     backgroundColor: v_1bfbd0.zinc50,
+  },
+
+  captionCounter: {
+    marginTop: 6,
+    alignSelf: "flex-end",
+    fontSize: 12,
+    color: v_1bfbd0.zinc400,
   },
   errorBox: {
     flexDirection: "row",
