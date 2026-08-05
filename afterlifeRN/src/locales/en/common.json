@@ -925,7 +925,7 @@
       "usernameInvalid": "The ID format is invalid."
     },
     "step7": {
-      "reviewTitle": "Review clone info",
+      "reviewTitle": "Preview clone info",
       "displayNameFallback": "User name",
       "displayHandleFallback": "ID",
       "videoReady": "Video ready",

@@ -138,12 +138,13 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
               )}
             </View>
 
-            {}
+            {
+
+}
             {v_8c0b26.description ? (
               <HashtagText
                 style={v_d81136.description}
                 tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
-                numberOfLines={3}
               >
                 {v_8c0b26.description}
               </HashtagText>
@@ -283,6 +284,8 @@ const v_d81136 = v_472849.create({
     color: v_1bfbd0.white,
     lineHeight: 20,
     marginBottom: 12,
+
+    paddingRight: 60,
   },
   callButton: {
     width: "100%",

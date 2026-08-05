@@ -925,7 +925,7 @@
       "usernameInvalid": "Format ID tidak valid."
     },
     "step7": {
-      "reviewTitle": "Tinjauan Informasi Klon",
+      "reviewTitle": "Pratinjau Informasi Klon",
       "displayNameFallback": "Nama pengguna",
       "displayHandleFallback": "ID",
       "videoReady": "Video siap",

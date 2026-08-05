@@ -925,7 +925,7 @@
       "usernameInvalid": "ID の形式が正しくありません。"
     },
     "step7": {
-      "reviewTitle": "クローン情報のレビュー",
+      "reviewTitle": "クローン情報のプレビュー",
       "displayNameFallback": "ユーザー名",
       "displayHandleFallback": "ID",
       "videoReady": "動画準備完了",
