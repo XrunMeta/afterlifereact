@@ -377,6 +377,10 @@ export function v_7df8a4(opts: {
     v_700737.current(v_8d3dea.current.micOn ? { type: 'MIC_OFF' } : { type: 'MIC_ON' });
   }, []);
 
+  const v_ac6fcd = v_de06a3((v_9b6134, v_74fb11) => {
+    v_700737.current({ type: 'FACE_INTERRUPT', text: v_9b6134, faceKey: v_74fb11 });
+  }, []);
+
   const v_a8e03f = v_de06a3(() => {
     v_afaf7a.current = false;
     v_d3b587(false);
@@ -395,7 +399,7 @@ export function v_7df8a4(opts: {
     toggleMic: v_6e1295,
     cancelConfirm: v_5b4fb2,
 
-    dispatch: v_6be210,
+    notifyFaceInterrupt: v_ac6fcd,
     transcript: v_60bef6.transcript,
     interimTranscript: v_60bef6.interimTranscript,
 
