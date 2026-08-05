@@ -43,7 +43,8 @@ export default function CloneEditScreen({ route, navigation }: Props) {
   useEffect(() => {
     if (!clone) return;
     setName(clone.displayName);
-    setDescription(clone.description ?? "");
+
+    setDescription((clone.description ?? "").slice(0, 100));
     setVisibility((clone.visibility as Visibility) ?? "public");
   }, [clone]);
 
@@ -113,11 +114,13 @@ export default function CloneEditScreen({ route, navigation }: Props) {
         <TextField
           label={t("edit.descLabel")}
           value={description}
-          onChangeText={setDescription}
+          onChangeText={(v) => setDescription(v.slice(0, 100))}
           placeholder={t("edit.descPlaceholder")}
           multiline
+          maxLength={100}
           containerStyle={{ marginTop: 16 }}
         />
+        <Text style={s.descCounter}>{description.length}/100</Text>
 
         {}
         <TouchableOpacity
@@ -167,6 +170,13 @@ const s = StyleSheet.create({
     paddingHorizontal: SIZES.large,
     paddingTop: 24,
     paddingBottom: 32,
+  },
+
+  descCounter: {
+    marginTop: 6,
+    alignSelf: "flex-end",
+    fontSize: 12,
+    color: COLORS.zinc400,
   },
   bottomBar: {
     paddingHorizontal: SIZES.large,
