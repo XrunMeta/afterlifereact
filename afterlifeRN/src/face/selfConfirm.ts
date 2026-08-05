@@ -49,3 +49,9 @@ export function v_a5ab77(v_bbda62): SelfConfirmAction {
   }
   return { kind: 'confirm', vectors: v_dd108b };
 }
+
+export type SelfConfirmErrorClass = 'confirmed' | 'retryable';
+
+export function v_7a4056(v_d308b5): SelfConfirmErrorClass {
+  return v_d308b5 === 409 ? 'confirmed' : 'retryable';
+}

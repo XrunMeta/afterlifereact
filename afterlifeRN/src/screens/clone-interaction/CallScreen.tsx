@@ -37,6 +37,7 @@ import { useFaceIdentify } from "../../face/useFaceIdentify";
 import { useFaceEnroll, FACE_ENROLL_VECTOR_COUNT } from "../../face/useFaceEnroll";
 import {
   decideSelfConfirm,
+  classifySelfConfirmError,
   SELF_CONFIRM_INTERVAL_MS,
   SELF_CONFIRM_SAMPLE_COUNT,
 } from "../../face/selfConfirm";
@@ -59,6 +60,7 @@ import {
   fetchFacePolicy,
   type Person,
 } from "../../api/persons";
+import { AuthApiError } from "../../api/auth";
 import { getFaceBiometricConsent } from "../../api/consent";
 import { decideEnrollSuggestAction, decideOrphanCleanupBeforeSilent } from "../../face/autoEnrollGuard";
 import { FACE_DIAG_ENABLED, formatFaceHud, type FaceDiag } from "../../config/faceDiag";
@@ -352,7 +354,12 @@ export default function CallScreen({ route, navigation }: Props) {
         setFaceIdentifyEnabled(policy.faceIdentifyEnabled);
         setSelfConfirmed(clone?.selfPersonId != null);
       } catch (err) {
-        console.warn("[Call][self] face-policy 조회 실패:", err);
+        if (cancelled) return;
+        console.warn(
+          "[Call][self] face-policy 조회 실패 — 정책 불명, self 미확정으로 폴백(루프는 계속 진행):",
+          err,
+        );
+        setSelfConfirmed(false);
       }
     })();
     return () => {
@@ -361,8 +368,10 @@ export default function CallScreen({ route, navigation }: Props) {
   }, [accessToken, cloneId, clone?.selfPersonId]);
 
   useEffect(() => {
-    if (dialingDone || selfConfirmed || !faceIdentifyEnabled) return;
+    if (selfConfirmed || !faceIdentifyEnabled) return;
     if (!accessToken || !cloneId) return;
+
+    let cancelled = false;
 
     const timer = setInterval(() => {
       if (selfConfirmingRef.current) return;
@@ -388,13 +397,25 @@ export default function CallScreen({ route, navigation }: Props) {
       selfConfirmingRef.current = true;
       void selfConfirm(accessToken, cloneId, action.vectors)
         .then((res) => {
+          if (cancelled) return;
           console.log(`[Call][self] self 확정 personId=${res.selfPersonId}`);
           setSelfConfirmed(true);
         })
         .catch((err) => {
+          if (cancelled) return;
 
-          console.warn("[Call][self] self 확정 실패:", err);
-          setSelfConfirmed(true);
+          const status = err instanceof AuthApiError ? err.status : undefined;
+          const cls = classifySelfConfirmError(status);
+          if (cls === "confirmed") {
+            console.log("[Call][self] self 확정 실패 → 409(이미 확정) — 확정으로 간주, 재시도 중단");
+            setSelfConfirmed(true);
+          } else {
+            console.warn(
+              `[Call][self] self 확정 실패(재시도 예정) status=${status ?? "network"}:`,
+              err,
+            );
+
+          }
         })
         .finally(() => {
           selfConfirmingRef.current = false;
@@ -402,8 +423,11 @@ export default function CallScreen({ route, navigation }: Props) {
         });
     }, SELF_CONFIRM_INTERVAL_MS);
 
-    return () => clearInterval(timer);
-  }, [dialingDone, selfConfirmed, faceIdentifyEnabled, accessToken, cloneId, getFaceEmbeddingBuffer]);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [selfConfirmed, faceIdentifyEnabled, accessToken, cloneId, getFaceEmbeddingBuffer]);
 
   const NAMING_TIMEOUT_MS = 20000;
   const namingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

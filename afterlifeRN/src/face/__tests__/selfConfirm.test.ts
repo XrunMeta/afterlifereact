@@ -1,4 +1,4 @@
-import { v_a5ab77, v_3353a2 } from '../selfConfirm';
+import { v_a5ab77, v_3353a2, v_7a4056 } from '../selfConfirm';
 
 function v_46ff7a(v_bdb39e): number[] {
   const v_81e2ef = new Array(512).fill(0);
@@ -47,5 +47,23 @@ describe('decideSelfConfirm', () => {
       samples: [v_46ff7a(1), v_46ff7a(1), v_46ff7a(1)],
     });
     expect(v_cb35cb.kind).toBe('idle');
+  });
+});
+
+describe('classifySelfConfirmError', () => {
+  it('409(CONFLICT)는 confirmed — 이미 확정된 것으로 간주, 재시도 중단', () => {
+    expect(v_7a4056(409)).toBe('confirmed');
+  });
+
+  it('422(검증 실패)는 retryable — 확정된 게 아니므로 다음 tick 에 재시도해야 함', () => {
+    expect(v_7a4056(422)).toBe('retryable');
+  });
+
+  it('404(클론 없음/접근불가)는 retryable', () => {
+    expect(v_7a4056(404)).toBe('retryable');
+  });
+
+  it('status 없음(네트워크 실패 등 AuthApiError 가 아닌 에러)도 retryable', () => {
+    expect(v_7a4056(undefined)).toBe('retryable');
   });
 });
