@@ -73,36 +73,9 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
       {}
       {v_26dce6 && (
         <>
-          {}
-          <View style={v_d81136.rightActions}>
-            <TouchableOpacity onPress={v_5bca36} style={v_d81136.actionBtn} activeOpacity={0.7}>
-              <Ionicons
-                name={v_85c07b ? "heart" : "heart-outline"}
-                size={32}
-                color={v_85c07b ? "#ef4444" : v_1bfbd0.white}
-              />
-              <Text style={v_d81136.actionLabel}>{v_8c0b26.likes}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={v_48b0c1} style={v_d81136.actionBtn} activeOpacity={0.7}>
-              <Feather name="message-circle" size={30} color={v_1bfbd0.white} />
-              <Text style={v_d81136.actionLabel}>{v_8c0b26.comments}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={v_d51485} style={v_d81136.actionBtn} activeOpacity={0.7}>
-              <Feather name="share-2" size={28} color={v_1bfbd0.white} />
-            </TouchableOpacity>
-            {v_27b331 && (
-              <TouchableOpacity
-                onPress={v_27b331}
-                style={v_d81136.actionBtn}
-                activeOpacity={0.7}
-                accessibilityLabel="more-options"
-              >
-                <Feather name="more-vertical" size={28} color={v_1bfbd0.white} />
-              </TouchableOpacity>
-            )}
-          </View>
+          {
 
-          {}
+}
           <View style={v_d81136.bottomContent}>
             <View style={v_d81136.profileRow}>
               <View style={v_d81136.profileInfo}>
@@ -139,7 +112,6 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
             </View>
 
             {
-
 }
             {v_8c0b26.description ? (
               <HashtagText
@@ -149,6 +121,36 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
                 {v_8c0b26.description}
               </HashtagText>
             ) : null}
+
+            {
+}
+            <View style={v_d81136.actionsRow}>
+              <TouchableOpacity onPress={v_5bca36} style={v_d81136.actionBtn} activeOpacity={0.7}>
+                <Ionicons
+                  name={v_85c07b ? "heart" : "heart-outline"}
+                  size={28}
+                  color={v_85c07b ? "#ef4444" : v_1bfbd0.white}
+                />
+                <Text style={v_d81136.actionLabel}>{v_8c0b26.likes}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={v_48b0c1} style={v_d81136.actionBtn} activeOpacity={0.7}>
+                <Feather name="message-circle" size={26} color={v_1bfbd0.white} />
+                <Text style={v_d81136.actionLabel}>{v_8c0b26.comments}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={v_d51485} style={v_d81136.actionBtn} activeOpacity={0.7}>
+                <Feather name="share-2" size={24} color={v_1bfbd0.white} />
+              </TouchableOpacity>
+              {v_27b331 && (
+                <TouchableOpacity
+                  onPress={v_27b331}
+                  style={v_d81136.actionBtn}
+                  activeOpacity={0.7}
+                  accessibilityLabel="more-options"
+                >
+                  <Feather name="more-vertical" size={24} color={v_1bfbd0.white} />
+                </TouchableOpacity>
+              )}
+            </View>
 
             {}
             <TouchableOpacity
@@ -237,14 +239,12 @@ const v_d81136 = v_472849.create({
     color: v_1bfbd0.white,
   },
 
-  rightActions: {
-    position: "absolute",
-    right: 12,
-    top: 0,
-    bottom: 0,
-    justifyContent: "center",
+  actionsRow: {
+    flexDirection: "row",
     alignItems: "center",
-    gap: 24,
+    justifyContent: "flex-end",
+    gap: 20,
+    marginBottom: 12,
   },
 
   intimacyBadge: {
@@ -265,13 +265,14 @@ const v_d81136 = v_472849.create({
     fontWeight: "600",
     color: v_1bfbd0.white,
   },
+
   actionBtn: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     gap: 4,
   },
   actionLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
     color: v_1bfbd0.white,
     textShadowColor: "rgba(0,0,0,0.5)",
@@ -285,7 +286,6 @@ const v_d81136 = v_472849.create({
     lineHeight: 20,
     marginBottom: 12,
 
-    paddingRight: 60,
   },
   callButton: {
     width: "100%",
