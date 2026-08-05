@@ -51,7 +51,60 @@ describe("purgeUserOntology", () => {
   it("데이터 없는 user는 0건(멱등·throw 없음)", async () => {
     await seedUser(7703);
     const res = await purgeUserOntology(E, 7703);
-    expect(res).toEqual({ ontRows: 0, personRows: 0, kvKeys: 0 });
+    expect(res).toEqual({ ontRows: 0, personRows: 0, kvKeys: 0, vectorRows: 0 });
+  });
+
+  it("탈퇴 시 얼굴 벡터 장부도 함께 파기된다", async () => {
+    const db = env.DB as unknown as D1Database;
+    await db
+      .prepare(
+        `INSERT INTO users (email, password_hash, name, created_at, call_learning_consent)
+         VALUES ('t257purge@x.com', 'x', 'U', CURRENT_TIMESTAMP, 1)`,
+      )
+      .run();
+    const u = await db
+      .prepare("SELECT id FROM users WHERE email = 't257purge@x.com'")
+      .first<{ id: number }>();
+    const userId = u!.id;
+
+    await db
+      .prepare(
+        `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+         VALUES (?, 'C', 't257purge-clone', 'memlow', 'public', CURRENT_TIMESTAMP)`,
+      )
+      .bind(userId)
+      .run();
+    const cl = await db
+      .prepare("SELECT id FROM clones WHERE username = 't257purge-clone'")
+      .first<{ id: number }>();
+    const cloneId = cl!.id;
+
+    const ins = await db
+      .prepare(
+        `INSERT INTO persons (user_id, clone_id, display_name, consent_state, created_at)
+         VALUES (?, ?, 'X', 'granted', ?)`,
+      )
+      .bind(userId, cloneId, Date.now())
+      .run();
+    const personId = ins.meta.last_row_id as number;
+
+    await db
+      .prepare(
+        `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
+         VALUES (?, ?, 'vec-purge-1', 'w600k_mbf', 512, 'call', ?)`,
+      )
+      .bind(cloneId, personId, Date.now())
+      .run();
+
+    const { purgeUserOntology } = await import("../src/lib/memoryStore");
+    const purged = await purgeUserOntology(env as never, userId);
+    expect(purged.vectorRows).toBeGreaterThan(0);
+
+    const left = await db
+      .prepare("SELECT COUNT(*) AS n FROM clone_person_faces WHERE person_id = ?")
+      .bind(personId)
+      .first<{ n: number }>();
+    expect(left?.n).toBe(0);
   });
 });
 

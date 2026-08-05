@@ -230,7 +230,7 @@ deletion.delete("/me", requireAuth, async (c) => {
   try {
     const purged = await purgeUserOntology(c.env, userId);
     console.log(
-      `[deletion.me] ontology purged: ont=${purged.ontRows} person=${purged.personRows} kv=${purged.kvKeys}`,
+      `[deletion.me] ontology purged: ont=${purged.ontRows} person=${purged.personRows} kv=${purged.kvKeys} vec=${purged.vectorRows}`,
     );
   } catch (err) {
     console.error(

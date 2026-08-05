@@ -750,7 +750,7 @@ users.post("/me/delete/gdpr", requireAuth, async (c) => {
   try {
     const purgedOnt = await purgeUserOntology(c.env, userId);
     console.log(
-      `[gdpr] ontology purged: ont=${purgedOnt.ontRows} person=${purgedOnt.personRows} kv=${purgedOnt.kvKeys}`,
+      `[gdpr] ontology purged: ont=${purgedOnt.ontRows} person=${purgedOnt.personRows} kv=${purgedOnt.kvKeys} vec=${purgedOnt.vectorRows}`,
     );
   } catch (err) {
     console.error(
