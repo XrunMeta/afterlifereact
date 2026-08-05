@@ -1077,4 +1077,60 @@ describe('T-258: 무발화 워치독 · seq 배선', () => {
       jest.useRealTimers();
     }
   });
+
+  it('[Important 1] signalGating 중 interrupting phase에서 dc 신호가 유실되면 responseDoneTimeoutMs 후 강제 listening 복귀한다', async () => {
+    jest.useFakeTimers();
+    try {
+      const engine = makeMockEngine();
+      const say = jest.fn().mockResolvedValue(undefined);
+      const { result } = renderController({
+        enabled: true,
+        say,
+        getStatsReport: () => null,
+        notifySpeechEnd: jest.fn(),
+        speechEngine: engine,
+        signalGating: true,
+      });
+      await act(async () => { await jest.advanceTimersByTimeAsync(0); });
+      expect(result.current.phase).toBe('listening');
+
+      await act(async () => { await jest.advanceTimersByTimeAsync(IDLE_GREET_DELAYS_MS[0]); });
+      expect(say).toHaveBeenCalledWith(IDLE_GREET_TEXT);
+      expect(result.current.phase).toBe('interrupting');
+
+      await act(async () => { await jest.advanceTimersByTimeAsync(45000); });
+      expect(result.current.phase).toBe('listening');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('[Important 2] interim 없이 곧장 isFinal만 오는 STT(OEM 케이스)에서도 사용자 발화 중엔 워치독이 안 걸린다', async () => {
+    jest.useFakeTimers();
+    try {
+      const engine = makeMockEngine();
+      const say = jest.fn().mockResolvedValue(undefined);
+      const { result } = renderController({
+        enabled: true,
+        say,
+        getStatsReport: () => null,
+        notifySpeechEnd: jest.fn(),
+        speechEngine: engine,
+
+        silenceMs: 40000,
+      });
+      await act(async () => { await jest.advanceTimersByTimeAsync(0); });
+      expect(result.current.phase).toBe('listening');
+
+      act(() => { engine.emit('result', { results: [{ transcript: '안녕' }], isFinal: true }); });
+      expect(result.current.interimTranscript).toBe('');
+
+      await act(async () => { await jest.advanceTimersByTimeAsync(IDLE_GREET_DELAYS_MS[0]); });
+
+      expect(say).not.toHaveBeenCalledWith(IDLE_GREET_TEXT);
+      expect(result.current.phase).toBe('listening');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });
