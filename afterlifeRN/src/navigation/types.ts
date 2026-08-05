@@ -102,7 +102,7 @@ export type MyStackParamList = {
   PrivacySettings: undefined;
   Agreements: undefined;
   SavedItems: undefined;
-  AcquaintanceManagement: undefined;
+  RememberingClones: undefined;
   LanguageSettings: undefined;
   PaymentPin: undefined;
   InviteStatus: undefined;
