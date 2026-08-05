@@ -925,7 +925,7 @@
       "usernameInvalid": "아이디 형식이 올바르지 않습니다."
     },
     "step7": {
-      "reviewTitle": "클론 정보 리뷰",
+      "reviewTitle": "클론 정보 미리보기",
       "displayNameFallback": "사용자 이름",
       "displayHandleFallback": "아이디",
       "videoReady": "영상 준비 완료",

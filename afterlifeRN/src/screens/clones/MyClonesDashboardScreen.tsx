@@ -603,8 +603,10 @@ export default function MyClonesDashboardScreen() {
           </View>
         </View>
 
-        {}
-        <HashtagText style={s.description} numberOfLines={2}>
+        {
+
+}
+        <HashtagText style={s.description}>
           {clone.description}
         </HashtagText>
 

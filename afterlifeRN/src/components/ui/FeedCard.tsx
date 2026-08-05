@@ -138,12 +138,13 @@ const FeedCard: React.FC<FeedCardProps> = ({
               )}
             </View>
 
-            {}
+            {
+
+}
             {item.description ? (
               <HashtagText
                 style={styles.description}
                 tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
-                numberOfLines={3}
               >
                 {item.description}
               </HashtagText>
@@ -283,6 +284,8 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     lineHeight: 20,
     marginBottom: 12,
+
+    paddingRight: 60,
   },
   callButton: {
     width: "100%",

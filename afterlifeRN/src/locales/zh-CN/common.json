@@ -925,7 +925,7 @@
       "usernameInvalid": "ID 格式不正确。"
     },
     "step7": {
-      "reviewTitle": "克隆信息回顾",
+      "reviewTitle": "克隆信息预览",
       "displayNameFallback": "用户名",
       "displayHandleFallback": "ID",
       "videoReady": "视频准备完成",
