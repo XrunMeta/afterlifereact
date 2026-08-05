@@ -390,6 +390,15 @@ export default function v_c316d8() {
             }
           }}
           onCommentPress={() => v_b07dd3(v_8c0b26.id)}
+
+          onIntimacyPress={() =>
+            v_f4c991.dispatch(
+              v_650cfa.navigate({
+                name: "ShortsTab",
+                params: { openIntimacyCloneId: v_8c0b26.cloneId },
+              }),
+            )
+          }
           onMorePress={() =>
             v_949e66({
               cloneId: v_8c0b26.cloneId,
