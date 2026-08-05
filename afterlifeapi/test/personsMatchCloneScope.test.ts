@@ -151,3 +151,121 @@ describe("POST /oth-path — 클론 스코프", () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe("unknown → L2′ 생성 왕복", () => {
+  beforeEach(() => {
+    __resetMemoryFaceIndex();
+  });
+
+  it("등록 직후 같은 벡터가 hit 되고 L2′ 초기 행이 생긴다", async () => {
+    const userId = await seedUser("t257d@x.com");
+    const cloneId = await seedClone(userId, "t257d-clone");
+    const token = await issueAccessToken(userId);
+
+    const beforeRes = await SELF.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ vector: vec(9), cloneId }),
+    });
+    const before = await beforeRes.json<{ best: unknown | null }>();
+    expect(before.best).toBeNull();
+
+    const createRes = await SELF.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ cloneId, displayName: "민지", enrolledVia: "card" }),
+    });
+    const person = await createRes.json<{ id: number }>();
+    await SELF.fetch(`https://x/oth-path${person.id}/consent`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ state: "granted" }),
+    });
+    const enrollRes = await SELF.fetch(`https://x/oth-path${person.id}/faces`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ cloneId, vectors: [vec(9)] }),
+    });
+    expect(enrollRes.status).toBe(200);
+
+    const cpf = await db()
+      .prepare("SELECT COUNT(*) AS n FROM clone_person_faces WHERE clone_id = ? AND person_id = ?")
+      .bind(cloneId, person.id)
+      .first<{ n: number }>();
+    expect(cpf?.n).toBe(1);
+
+    const l2p = await db()
+      .prepare("SELECT data FROM clone_ont_person WHERE clone_id = ? AND person_id = ?")
+      .bind(cloneId, person.id)
+      .first<{ data: string }>();
+    expect(l2p).not.toBeNull();
+
+    const afterRes = await SELF.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ vector: vec(9), cloneId }),
+    });
+    const after = await afterRes.json<{ best: { personId: number } | null }>();
+    expect(after.best?.personId).toBe(person.id);
+  });
+
+  it("POST /oth-path 는 cloneId 없으면 422 VALIDATION_FAILED(브리프 400 정정)", async () => {
+    await seedUser("t257e@x.com");
+    const userId = await seedUser("t257e-2@x.com");
+    const token = await issueAccessToken(userId);
+    const res = await SELF.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ displayName: "누구" }),
+    });
+    expect(res.status).toBe(422);
+    const body = await res.json<{ error: { code: string } }>();
+    expect(body.error.code).toBe("VALIDATION_FAILED");
+  });
+
+  it("D1 이중 방어 — Vectorize엔 매치가 잡히지만 clone_person_faces가 다른 클론 소속이면 걸러진다", async () => {
+    const userId = await seedUser("t257m@x.com");
+    const cloneA = await seedClone(userId, "t257m-clone-a");
+    const cloneB = await seedClone(userId, "t257m-clone-b");
+    const token = await issueAccessToken(userId);
+
+    const createRes = await SELF.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ cloneId: cloneA, displayName: "이중방어", enrolledVia: "card" }),
+    });
+    const person = await createRes.json<{ id: number }>();
+    await SELF.fetch(`https://x/oth-path${person.id}/consent`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ state: "granted" }),
+    });
+
+    const vectorizeId = crypto.randomUUID();
+    await getFaceIndex(env as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string }).insert([
+      {
+        id: vectorizeId,
+        values: vec(11),
+        namespace: faceNamespace(userId, cloneB),
+        metadata: { personId: String(person.id) },
+      },
+    ]);
+    await db()
+      .prepare(
+        `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
+         VALUES (?, ?, ?, 'w600k_mbf', 512, 'enroll', ?)`,
+      )
+      .bind(cloneA, person.id, vectorizeId, Date.now())
+      .run();
+
+    const res = await SELF.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ vector: vec(11), cloneId: cloneB }),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json<{ best: unknown | null; matches: unknown[] }>();
+    expect(body.best).toBeNull();
+    expect(body.matches).toHaveLength(0);
+  });
+});

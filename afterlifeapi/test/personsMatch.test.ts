@@ -1,7 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { SELF, env } from "cloudflare:test";
-import { getFaceIndex } from "../src/lib/faceVectors";
-import { faceNamespace } from "../src/lib/cloneFaceScope";
 
 const db = () => env.DB as unknown as D1Database;
 
@@ -56,21 +54,11 @@ async function enrollFace(tok: string, userId: number, cloneId: number, personId
   const res = await SELF.fetch(`http://localhost/oth-path${personId}/faces`, {
     method: "POST",
     headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ vectors: [vector] }),
+    body: JSON.stringify({ cloneId, vectors: [vector] }),
   });
   expect(res.status).toBe(200);
 
-  const vectorizeId = crypto.randomUUID();
-  await getFaceIndex(env as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string }).insert([
-    { id: vectorizeId, values: vector, namespace: faceNamespace(userId, cloneId), metadata: { personId: String(personId) } },
-  ]);
-  await db()
-    .prepare(
-      `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
-       VALUES (?, ?, ?, 'w600k_mbf', 512, 'enroll', ?)`,
-    )
-    .bind(cloneId, personId, vectorizeId, Date.now())
-    .run();
+  void userId;
 }
 
 function vec(fill = 0.1): number[] {

@@ -4,6 +4,15 @@ import type { Bindings } from "../src/lib/env";
 
 const E = env as unknown as Bindings;
 
+async function seedClone(ownerId: number, username: string): Promise<number> {
+  await E.DB.prepare(
+    `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+     VALUES (?, 'TestClone', ?, 'memlow', 'public', CURRENT_TIMESTAMP)`,
+  ).bind(ownerId, username).run();
+  const c = await E.DB.prepare("SELECT id FROM clones WHERE username = ?").bind(username).first<{ id: number }>();
+  return c!.id;
+}
+
 async function seedUserWithToken(email: string): Promise<{ id: number; token: string }> {
   const { hashPassword } = await import("../src/lib/password");
   await E.DB.prepare(
@@ -131,14 +140,15 @@ describe("POST /oth-path", () => {
       body: JSON.stringify({ state: "granted", termsVersion: "v1", channel: "signup" }),
     });
 
+    const cloneId = await seedClone(userId, "face-consent-revoke-clone");
     const autoRes = await SELF.fetch("http://localhost/oth-path", {
       method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ enrolledVia: "auto_biometric" }),
+      body: JSON.stringify({ cloneId, enrolledVia: "auto_biometric" }),
     });
     const { id: autoPersonId } = (await autoRes.json()) as { id: number };
     const cardRes = await SELF.fetch("http://localhost/oth-path", {
       method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ displayName: "카드등록" }),
+      body: JSON.stringify({ cloneId, displayName: "카드등록" }),
     });
     const { id: cardPersonId } = (await cardRes.json()) as { id: number };
     await SELF.fetch(`http://localhost/oth-path${cardPersonId}/consent`, {

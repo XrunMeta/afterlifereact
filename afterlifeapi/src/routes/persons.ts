@@ -8,7 +8,7 @@ import { getFaceIndex } from "../lib/faceVectors";
 import { deletePersonCascade } from "../lib/personDelete";
 import { assertValidDisplayName } from "../lib/displayName";
 import { cloneActiveSql } from "../lib/cloneAccess";
-import { faceNamespace, queryCloneScope } from "../lib/cloneFaceScope";
+import { faceNamespace, queryCloneScope, enrollCloneScopeFaces } from "../lib/cloneFaceScope";
 
 export const persons = new Hono<AppEnv>();
 
@@ -29,7 +29,9 @@ persons.post("/", requireAuth, async (c) => {
     .json<{ cloneId?: number; displayName?: string; enrolledVia?: string }>()
     .catch(() => ({}) as { cloneId?: number; displayName?: string; enrolledVia?: string });
 
-  const cloneId = body.cloneId ?? null;
+  const cloneId = body.cloneId;
+  if (typeof cloneId !== "number" || !Number.isInteger(cloneId) || cloneId <= 0)
+    throw new APIError("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
 
   let displayName: string | null = null;
   if (body.displayName !== undefined) {
@@ -55,15 +57,13 @@ persons.post("/", requireAuth, async (c) => {
   const consentState: "none" | "granted" = enrolledVia === "auto_biometric" ? "granted" : "none";
   const consentAt: number | null = enrolledVia === "auto_biometric" ? Date.now() : null;
 
-  if (cloneId !== null) {
-    const owned = await c.env.DB.prepare(
-      `SELECT id FROM clones WHERE id = ? AND owner_id = ? AND ${cloneActiveSql()}`
-    )
-      .bind(cloneId, userId)
-      .first<{ id: number }>();
-    if (!owned) {
-      throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
-    }
+  const owned = await c.env.DB.prepare(
+    `SELECT id FROM clones WHERE id = ? AND owner_id = ? AND ${cloneActiveSql()}`
+  )
+    .bind(cloneId, userId)
+    .first<{ id: number }>();
+  if (!owned) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
   }
 
   const createdAt = Date.now();
@@ -296,7 +296,9 @@ persons.post("/:id/consent", requireAuth, async (c) => {
 persons.post("/:id/faces", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const personId = parsePersonId(c);
-  const body = await c.req.json<{ vectors?: number[][] }>().catch(() => ({}) as { vectors?: number[][] });
+  const body = await c.req
+    .json<{ vectors?: number[][]; cloneId?: number }>()
+    .catch(() => ({}) as { vectors?: number[][]; cloneId?: number });
   const vectors = body.vectors;
   if (
     !Array.isArray(vectors) ||
@@ -308,40 +310,31 @@ persons.post("/:id/faces", requireAuth, async (c) => {
   )
     throw new APIError("VALIDATION_FAILED", "vectors: 1~5개의 512차원 수치 배열이어야 합니다");
 
-  const person = await c.env.DB.prepare("SELECT id, consent_state FROM persons WHERE id = ? AND user_id = ?")
-    .bind(personId, userId)
+  const cloneId = body.cloneId;
+  if (typeof cloneId !== "number" || !Number.isInteger(cloneId) || cloneId <= 0)
+    throw new APIError("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+
+  const person = await c.env.DB.prepare(
+    "SELECT id, consent_state FROM persons WHERE id = ? AND user_id = ? AND clone_id = ?",
+  )
+    .bind(personId, userId, cloneId)
     .first<{ id: number; consent_state: string }>();
   if (!person) throw new APIError("NOT_FOUND", "person이 존재하지 않습니다.");
   if (person.consent_state !== "granted")
     throw new APIError("FORBIDDEN", "얼굴정보 저장 동의(consent granted)가 필요합니다"); 
 
-  const rows = vectors.map((values) => ({
-    id: crypto.randomUUID(),
-    values,
-    namespace: String(userId),
-    metadata: { personId: String(personId) },
-  }));
-
-  const createdAt = Date.now();
-  const insertStmt = c.env.DB.prepare(
-    `INSERT INTO face_embeddings (person_id, vectorize_id, model, dim, source, created_at)
-     VALUES (?, ?, 'w600k_mbf', 512, 'call', ?)`
-  );
-  await c.env.DB.batch(rows.map((r) => insertStmt.bind(personId, r.id, createdAt)));
-
-  const idx = getFaceIndex(c.env);
   try {
-    await idx.insert(rows);
+    const { enrolled } = await enrollCloneScopeFaces(c.env, {
+      userId,
+      cloneId,
+      personId,
+      vectors,
+      source: "call",
+    });
+    return c.json({ enrolled });
   } catch (e) {
-
-    const placeholders = rows.map(() => "?").join(",");
-    await c.env.DB.prepare(`DELETE FROM face_embeddings WHERE vectorize_id IN (${placeholders})`)
-      .bind(...rows.map((r) => r.id))
-      .run();
     throw new APIError("UPSTREAM_FAILURE", `얼굴 벡터 인덱스 저장 실패: ${(e as Error).message}`);
   }
-
-  return c.json({ enrolled: rows.length });
 });
 
 persons.delete("/:id", requireAuth, async (c) => {
