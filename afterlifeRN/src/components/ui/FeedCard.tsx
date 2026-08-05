@@ -47,6 +47,8 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
   onSharePress: v_d51485,
 }) => {
   const { t: v_8d41d7 } = v_772971();
+
+  const v_fd0962 = v_3d6201 < 640;
   return (
     <View style={[v_d81136.container, { height: v_3d6201 }]}>
       {}
@@ -73,9 +75,8 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
       {}
       {v_26dce6 && (
         <>
-          {
-}
-          <View style={v_d81136.rightActions}>
+          {}
+          <View style={[v_d81136.rightActions, v_fd0962 && v_d81136.rightActionsShift]}>
             <TouchableOpacity onPress={v_5bca36} style={v_d81136.actionBtn} activeOpacity={0.7}>
               <Ionicons
                 name={v_85c07b ? "heart" : "heart-outline"}
@@ -247,6 +248,10 @@ const v_d81136 = v_472849.create({
     gap: 24,
   },
 
+  rightActionsShift: {
+    bottom: 220,
+  },
+
   intimacyBadge: {
     position: "absolute",
     top: 56,
@@ -286,7 +291,6 @@ const v_d81136 = v_472849.create({
     lineHeight: 20,
     marginBottom: 12,
 
-    paddingRight: 60,
   },
   callButton: {
     width: "100%",
