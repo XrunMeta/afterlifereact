@@ -293,55 +293,8 @@ export default function v_ed02a5() {
         {
 }
 
-        {}
-        <TouchableOpacity
-          style={v_fd5f43.balanceCard}
-          activeOpacity={0.85}
-          onPress={() => v_c65f5d.navigate("Purchase")}
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={v_fd5f43.balanceLabel}>
-              {v_8d41d7("my.balance.remainingTime", { defaultValue: "남은 통화 시간" })}
-            </Text>
-            {v_747a87 && !v_c88e9b ? (
-              <ActivityIndicator color={v_1bfbd0.violet600} style={{ marginTop: 6 }} />
-            ) : v_c88e9b ? (
-              <>
-                <Text style={v_fd5f43.balanceTotal}>
-                  {v_a31ca1(v_c88e9b.totalSec, v_8d41d7)}
-                </Text>
-                <Text style={v_fd5f43.balanceBreakdown}>
-                  {v_8d41d7("my.balance.free", {
-                    time: v_a31ca1(v_c88e9b.freeSec, v_8d41d7),
-                    defaultValue: `무료 ${v_a31ca1(v_c88e9b.freeSec, v_8d41d7)}`,
-                  })}
-                  {v_c88e9b.subSec > 0
-                    ? ` · ${v_8d41d7("my.balance.sub", {
-                        time: v_a31ca1(v_c88e9b.subSec, v_8d41d7),
-                        defaultValue: `구독 ${v_a31ca1(v_c88e9b.subSec, v_8d41d7)}`,
-                      })}`
-                    : ""}
-                  {v_c88e9b.topupSec > 0
-                    ? ` · ${v_8d41d7("my.balance.topup", {
-                        time: v_a31ca1(v_c88e9b.topupSec, v_8d41d7),
-                        defaultValue: `충전 ${v_a31ca1(v_c88e9b.topupSec, v_8d41d7)}`,
-                      })}`
-                    : ""}
-                </Text>
-              </>
-            ) : (
-              <Text style={v_fd5f43.balanceEmpty}>
-                {v_8d41d7("my.balance.failed", { defaultValue: "잔액 조회 실패" })}
-              </Text>
-            )}
-          </View>
-          <View style={v_fd5f43.balanceCta}>
-            <Text style={v_fd5f43.balanceCtaText}>
-              {v_8d41d7("my.balance.charge", { defaultValue: "충전" })}
-            </Text>
-            <Feather name="chevron-right" size={16} color="#fff" />
-          </View>
-        </TouchableOpacity>
+        {
+}
 
         {}
 
