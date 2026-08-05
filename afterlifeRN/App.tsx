@@ -17,6 +17,11 @@ import { useConfigStore } from "./src/stores/configStore";
 import { useCallConfigStore } from "./src/stores/callConfigStore";
 import { useAuthConfigStore } from "./src/stores/authConfigStore";
 import { registerPushTokenIfReady } from "./src/lib/pushNotifications";
+import * as Notifications from "expo-notifications";
+import {
+  routeFromNotificationData,
+  flushPendingNotificationRoute,
+} from "./src/lib/notificationRouting";
 import {
   initCloneShareDeferredLink,
   consumePendingCloneShare,
@@ -89,6 +94,25 @@ export default function App() {
     });
   }, []);
 
+  useEffect(() => {
+    Notifications.getLastNotificationResponseAsync()
+      .then((r) => {
+        const data = r?.notification?.request?.content?.data as
+          | Record<string, unknown>
+          | undefined;
+        if (data) routeFromNotificationData(data);
+      })
+      .catch((err) => console.warn("[push-tap] cold-start check failed:", (err as Error).message));
+
+    const sub = Notifications.addNotificationResponseReceivedListener((r) => {
+      const data = r?.notification?.request?.content?.data as
+        | Record<string, unknown>
+        | undefined;
+      if (data) routeFromNotificationData(data);
+    });
+    return () => sub.remove();
+  }, []);
+
   const prevTokenRef = useRef<string | null>(useAuthStore.getState().accessToken);
   useEffect(() => {
     const unsub = useAuthStore.subscribe((state) => {
@@ -118,6 +142,10 @@ export default function App() {
               <NavigationContainer
                 ref={navigationRef}
                 linking={linking}
+                onReady={() => {
+
+                  flushPendingNotificationRoute();
+                }}
                 onStateChange={() => {
                   const name = navigationRef.getCurrentRoute()?.name;
                   if (name) {
