@@ -627,8 +627,9 @@ export default function FollowingScreen() {
               <Text style={s.creatorAccount}>{item.persona.creatorAccount}</Text>
             ) : null}
             {
+
 }
-            <HashtagText style={s.postContent} numberOfLines={3}>
+            <HashtagText style={s.postContent}>
               {item.feed.content}
             </HashtagText>
             <View style={s.overlayBtns}>
