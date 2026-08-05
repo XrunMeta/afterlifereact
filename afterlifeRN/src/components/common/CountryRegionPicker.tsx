@@ -32,6 +32,8 @@ type Props = {
   selectedCountry: CountryDialCode | null;
   selectedRegion: CountryDialCode | null;
   onSelect: (country: CountryDialCode, region: CountryDialCode | null) => void;
+
+  initialMode?: Mode;
 };
 
 export default function CountryRegionPicker({
@@ -40,17 +42,18 @@ export default function CountryRegionPicker({
   selectedCountry,
   selectedRegion,
   onSelect,
+  initialMode = "country",
 }: Props) {
   const { t } = useTranslation();
-  const [mode, setMode] = useState<Mode>("country");
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [query, setQuery] = useState("");
 
   useEffect(() => {
     if (visible) {
-      setMode("country");
+      setMode(initialMode === "region" && selectedCountry ? "region" : "country");
       setQuery("");
     }
-  }, [visible]);
+  }, [visible, initialMode, selectedCountry]);
 
   const countries = useMemo<CountryDialCode[]>(() => {
     const seen = new Set<string>();
