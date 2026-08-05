@@ -4,7 +4,7 @@ import { v_469bf2, v_23805a, v_4d37e3, v_ff107d } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
 import { v_b2eae5 } from "../src/lib/jwt";
 import { v_dbed3e, v_a8d2cc } from "../src/lib/faceVectors";
-import { v_929ead } from "../src/lib/cloneFaceScope";
+import { v_929ead, v_003ee1 } from "../src/lib/cloneFaceScope";
 
 const v_a1651b = () => v_c9c489.DB as unknown as D1Database;
 
@@ -267,5 +267,77 @@ v_469bf2("unknown → L2′ 생성 왕복", () => {
     const v_4d33b2 = await v_8f00b9.json<{ best: unknown | null; matches: unknown[] }>();
     v_4d37e3(v_4d33b2.best).toBeNull();
     v_4d37e3(v_4d33b2.matches).toHaveLength(0);
+  });
+});
+
+v_469bf2("enrollCloneScopeFaces — source 매핑(face_embeddings CHECK 어휘 축소)", () => {
+  v_ff107d(() => {
+    v_dbed3e();
+  });
+
+  async function v_b18d0e(v_43e90c, v_6e0fd3, v_1833e7): Promise<number> {
+    const v_5c2f9f = Date.now();
+    const v_43af15 = await v_a1651b()
+      .prepare(
+        `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at)
+         VALUES (?, ?, ?, 'granted', ?, 'card', ?)`,
+      )
+      .bind(v_43e90c, v_6e0fd3, v_1833e7, v_5c2f9f, v_5c2f9f)
+      .run();
+    return v_43af15.meta.last_row_id as number;
+  }
+
+  v_23805a("source:'self' → clone_person_faces엔 'self', face_embeddings엔 'enroll'로 좁혀 기록(둘 다 throw 없이 성공)", async () => {
+    const v_43e90c = await v_bfb240("t257n@x.com");
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "t257n-clone");
+    const v_ca1ec5 = await v_b18d0e(v_43e90c, v_6e0fd3, "셀프확정대상");
+
+    const v_43c42e = await v_003ee1(v_c9c489 as never, {
+      userId: v_43e90c,
+      cloneId: v_6e0fd3,
+      personId: v_ca1ec5,
+      vectors: [v_46ff7a(20)],
+      source: "self",
+    });
+    v_4d37e3(v_43c42e.enrolled).toBe(1);
+
+    const v_550b91 = await v_a1651b()
+      .prepare("SELECT source FROM clone_person_faces WHERE clone_id = ? AND person_id = ?")
+      .bind(v_6e0fd3, v_ca1ec5)
+      .first<{ source: string }>();
+    v_4d37e3(v_550b91?.source).toBe("self");
+
+    const v_ac752c = await v_a1651b()
+      .prepare("SELECT source FROM face_embeddings WHERE person_id = ?")
+      .bind(v_ca1ec5)
+      .first<{ source: string }>();
+    v_4d37e3(v_ac752c?.source).toBe("enroll");
+  });
+
+  v_23805a("source:'call'(기본값) → 두 장부 모두 'call'로 기록(회귀 확인)", async () => {
+    const v_43e90c = await v_bfb240("t257o@x.com");
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "t257o-clone");
+    const v_ca1ec5 = await v_b18d0e(v_43e90c, v_6e0fd3, "일반통화대상");
+
+    const v_43c42e = await v_003ee1(v_c9c489 as never, {
+      userId: v_43e90c,
+      cloneId: v_6e0fd3,
+      personId: v_ca1ec5,
+      vectors: [v_46ff7a(21)],
+
+    });
+    v_4d37e3(v_43c42e.enrolled).toBe(1);
+
+    const v_550b91 = await v_a1651b()
+      .prepare("SELECT source FROM clone_person_faces WHERE clone_id = ? AND person_id = ?")
+      .bind(v_6e0fd3, v_ca1ec5)
+      .first<{ source: string }>();
+    v_4d37e3(v_550b91?.source).toBe("call");
+
+    const v_ac752c = await v_a1651b()
+      .prepare("SELECT source FROM face_embeddings WHERE person_id = ?")
+      .bind(v_ca1ec5)
+      .first<{ source: string }>();
+    v_4d37e3(v_ac752c?.source).toBe("call");
   });
 });

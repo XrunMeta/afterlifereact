@@ -55,16 +55,19 @@ export async function v_003ee1(
   }));
 
   const v_9e67a6 = Date.now();
+
+  const v_9b9019 = v_04e790 === "self" ? "enroll" : v_04e790;
+
   const v_657f41 = v_c9c489.DB.prepare(
     `INSERT INTO face_embeddings (person_id, vectorize_id, model, dim, source, created_at)
-     VALUES (?, ?, 'w600k_mbf', 512, 'call', ?)`,
+     VALUES (?, ?, 'w600k_mbf', 512, ?, ?)`,
   );
   const v_eb55c5 = v_c9c489.DB.prepare(
     `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
      VALUES (?, ?, ?, 'w600k_mbf', 512, ?, ?)`,
   );
   await v_c9c489.DB.batch([
-    ...v_18b8bf.map((v_cb35cb) => v_657f41.bind(v_ca1ec5, v_cb35cb.id, v_9e67a6)),
+    ...v_18b8bf.map((v_cb35cb) => v_657f41.bind(v_ca1ec5, v_cb35cb.id, v_9b9019, v_9e67a6)),
     ...v_18b8bf.map((v_cb35cb) => v_eb55c5.bind(v_6e0fd3, v_ca1ec5, v_cb35cb.id, v_04e790, v_9e67a6)),
   ]);
 
