@@ -57,6 +57,33 @@ export const initHandsFreeState = (): HandsFreeState => ({
   activeSeq: null, nextSeq: 1, userSpeaking: false, pendingInterrupt: null,
 });
 
+function flushOrListen(state: HandsFreeState): HandsFreeResult {
+  if (!state.micOn) {
+
+    return {
+      state: { ...state, phase: 'paused', pendingText: '', activeSeq: null, userSpeaking: false, pendingInterrupt: null },
+      effects: ['STOP_DETECTOR'],
+    };
+  }
+  const pi = state.pendingInterrupt;
+  if (pi) {
+    const seq = state.nextSeq;
+    return {
+      state: {
+        ...state, phase: 'interrupting', pendingText: '', userSpeaking: false,
+        activeSeq: seq, nextSeq: seq + 1, pendingInterrupt: null,
+      },
+      effects: ['SAY_INTERRUPT', 'START_DETECTOR'],
+      sayText: pi.text,
+      saySeq: seq,
+    };
+  }
+  return {
+    state: { ...state, phase: 'listening', pendingText: '', activeSeq: null, userSpeaking: false },
+    effects: ['STOP_DETECTOR', 'START_STT'],
+  };
+}
+
 export function handsFreeReducer(state: HandsFreeState, ev: HandsFreeEvent): HandsFreeResult {
   switch (ev.type) {
     case 'CALL_LIVE': {
@@ -105,11 +132,18 @@ export function handsFreeReducer(state: HandsFreeState, ev: HandsFreeEvent): Han
       }
       const text = ev.text.trim();
       if (!text) return { state, effects: [] };
+
+      const pi = state.pendingInterrupt;
+      const nextPending =
+        pi == null ? null : pi.deferredTurns + 1 >= 2 ? null : { ...pi, deferredTurns: pi.deferredTurns + 1 };
       if (!state.confirmGate) {
 
         const seq = state.nextSeq;
         return {
-          state: { ...state, phase: 'sending', pendingText: text, activeSeq: seq, nextSeq: seq + 1, userSpeaking: false },
+          state: {
+            ...state, phase: 'sending', pendingText: text, activeSeq: seq, nextSeq: seq + 1, userSpeaking: false,
+            pendingInterrupt: nextPending,
+          },
           effects: ['STOP_STT', 'SAY', 'START_DETECTOR'],
           sayText: text,
           saySeq: seq,
@@ -119,7 +153,7 @@ export function handsFreeReducer(state: HandsFreeState, ev: HandsFreeEvent): Han
         state.phase === 'confirming' && state.pendingText
           ? `${state.pendingText} ${text}`.trim()
           : text;
-      return { state: { ...state, phase: 'confirming', pendingText, userSpeaking: false }, effects: [] };
+      return { state: { ...state, phase: 'confirming', pendingText, userSpeaking: false, pendingInterrupt: nextPending }, effects: [] };
     }
 
     case 'CONFIRM_SEND': {
@@ -154,11 +188,7 @@ export function handsFreeReducer(state: HandsFreeState, ev: HandsFreeEvent): Han
         return { state, effects: [] };
       }
 
-      if (!state.micOn) return { state: { ...state, phase: 'paused', pendingText: '', activeSeq: null, userSpeaking: false, pendingInterrupt: null }, effects: ['STOP_DETECTOR'] };
-      return {
-        state: { ...state, phase: 'listening', pendingText: '', activeSeq: null, userSpeaking: false },
-        effects: ['STOP_DETECTOR', 'START_STT'],
-      };
+      return flushOrListen(state);
 
     case 'RESPONSE_DONE':
 
@@ -171,11 +201,7 @@ export function handsFreeReducer(state: HandsFreeState, ev: HandsFreeEvent): Han
         return { state, effects: [] };
       }
 
-      if (!state.micOn) return { state: { ...state, phase: 'paused', pendingText: '', activeSeq: null, userSpeaking: false, pendingInterrupt: null }, effects: ['STOP_DETECTOR'] };
-      return {
-        state: { ...state, phase: 'listening', pendingText: '', activeSeq: null, userSpeaking: false },
-        effects: ['STOP_DETECTOR', 'START_STT'],
-      };
+      return flushOrListen(state);
 
     case 'MIC_OFF':
       if (!state.micOn) return { state, effects: [] };
