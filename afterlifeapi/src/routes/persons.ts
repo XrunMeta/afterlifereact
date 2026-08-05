@@ -117,7 +117,9 @@ persons.post("/match", requireAuth, async (c) => {
   if (typeof cloneId !== "number" || !Number.isInteger(cloneId) || cloneId <= 0)
     throw new APIError("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
 
-  const clone = await c.env.DB.prepare("SELECT id FROM clones WHERE id = ? AND owner_id = ?")
+  const clone = await c.env.DB.prepare(
+    `SELECT id FROM clones WHERE id = ? AND owner_id = ? AND ${cloneActiveSql()}`
+  )
     .bind(cloneId, userId)
     .first<{ id: number }>();
   if (!clone) throw new APIError("NOT_FOUND", "클론을 찾을 수 없습니다.");

@@ -133,4 +133,21 @@ describe("POST /oth-path — 클론 스코프", () => {
     });
     expect(res.status).toBe(404);
   });
+
+  it("소유자 본인이어도 소프트삭제된 클론이면 404(deletion_state≠active)", async () => {
+    const userId = await seedUser("t257d@x.com");
+    const cloneId = await seedClone(userId, "t257d-deleted");
+    await db()
+      .prepare(`UPDATE clones SET deletion_state = 'soft_deleted', deleted_at = CURRENT_TIMESTAMP WHERE id = ?`)
+      .bind(cloneId)
+      .run();
+    const token = await issueAccessToken(userId);
+
+    const res = await SELF.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ vector: vec(1), cloneId }),
+    });
+    expect(res.status).toBe(404);
+  });
 });
