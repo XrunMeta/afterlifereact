@@ -28,6 +28,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { useFaceBiometricRetroPrompt } from "../../face/useFaceBiometricRetroPrompt";
 import FeedCard from "../../components/ui/FeedCard";
+import IntimacyEventsSheet from "../../components/clone/IntimacyEventsSheet";
 import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
 import ReportReasonModal from "../../components/common/ReportReasonModal";
 
@@ -107,6 +108,8 @@ export default function HomeScreen() {
 
   const [commentFeedId, setCommentFeedId] = useState<number | null>(null);
   const [commentText, setCommentText] = useState("");
+
+  const [intimacyModal, setIntimacyModal] = useState<{ cloneId: number; cloneName: string } | null>(null);
 
   const [moreTarget, setMoreTarget] = useState<{
     cloneId: number;
@@ -391,14 +394,7 @@ export default function HomeScreen() {
           }}
           onCommentPress={() => setCommentFeedId(item.id)}
 
-          onIntimacyPress={() =>
-            rootNav.dispatch(
-              CommonActions.navigate({
-                name: "ShortsTab",
-                params: { openIntimacyCloneId: item.cloneId },
-              }),
-            )
-          }
+          onIntimacyPress={() => setIntimacyModal({ cloneId: item.cloneId, cloneName: item.author })}
           onMorePress={() =>
             setMoreTarget({
               cloneId: item.cloneId,
@@ -1064,6 +1060,14 @@ export default function HomeScreen() {
             console.warn("[Home] selected visibility PATCH failed:", err);
           }
         }}
+      />
+
+      {}
+      <IntimacyEventsSheet
+        visible={!!intimacyModal}
+        cloneId={intimacyModal?.cloneId ?? null}
+        cloneName={intimacyModal?.cloneName ?? ""}
+        onClose={() => setIntimacyModal(null)}
       />
     </View>
   );
