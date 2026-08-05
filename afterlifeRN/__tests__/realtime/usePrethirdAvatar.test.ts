@@ -172,7 +172,8 @@ it('say: dc.readyState!=="open" → error 세팅, send 미호출', async () => {
   expect(result.current.error?.message).toBe('datachannel_not_open');
 });
 
-it('say 중복 가드: speaking 중 두 번째 say 무시(dc.send 1회만)', async () => {
+it('say 중복 가드: speaking 중 두 번째 say 는 거부(reject)되고 dc.send 는 1회만', async () => {
+
   mockOfferFetch();
   const dc = makeMockDc();
   const pc = makeMockPc(dc);
@@ -180,7 +181,9 @@ it('say 중복 가드: speaking 중 두 번째 say 무시(dc.send 1회만)', asy
     usePrethirdAvatar({ cloneId: 7, accessToken: 't', deps: deps(pc) as never }));
   await act(async () => { await result.current.start(); });
   await act(async () => { await result.current.say('안녕'); }); 
-  await act(async () => { await result.current.say('또'); });   
+  await act(async () => {
+    await expect(result.current.say('또')).rejects.toThrow('prethird: busy'); 
+  });
   expect(dc.send).toHaveBeenCalledTimes(1);
 });
 

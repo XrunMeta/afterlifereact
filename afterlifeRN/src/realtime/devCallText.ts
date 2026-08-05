@@ -7,6 +7,7 @@ export function submitDevText(
 ): void {
   const trimmed = text.trim();
   if (!trimmed) return; 
-  void say(trimmed); 
+
+  Promise.resolve(say(trimmed)).catch(() => {});
   setText(""); 
 }

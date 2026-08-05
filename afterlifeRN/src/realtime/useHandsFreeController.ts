@@ -394,6 +394,8 @@ export function useHandsFreeController(opts: {
     pendingText: state.pendingText,
     toggleMic,
     cancelConfirm,
+
+    dispatch,
     transcript: speech.transcript,
     interimTranscript: speech.interimTranscript,
 

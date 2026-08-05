@@ -111,7 +111,10 @@ export function usePrethirdAvatar(opts: {
   const say = useCallback(async (text: string) => {
     const dc = dcRef.current;
     if (!pcRef.current || !dc) return;
-    if (phase === 'sending' || phase === 'speaking') return;
+    if (phase === 'sending' || phase === 'speaking') {
+
+      throw new Error('prethird: busy');
+    }
     const t = text.trim();
     if (!t) return;
     if (dc.readyState !== 'open') { setError(new Error('datachannel_not_open')); return; }
