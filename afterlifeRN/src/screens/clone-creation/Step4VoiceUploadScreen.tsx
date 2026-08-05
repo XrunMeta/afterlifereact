@@ -45,7 +45,13 @@ export default function Step4VoiceUploadScreen({ navigation }: Props) {
         msg = t('create.voice.nextBlockedPreset', { defaultValue: '먼저 목소리를 선택해 주십시오.' });
         break;
       default:
-        msg = t('create.voice.nextBlockedUpload', { defaultValue: '먼저 음성 파일을 업로드해 주십시오.' });
+
+        msg = draft.voiceFile
+          ? t('create.voice.nextBlockedUploadRegistering', {
+              defaultValue:
+                '음성 파일 등록이 끝나야 다음으로 넘어갈 수 있습니다. 실패했다면 다시 시도해 주십시오.',
+            })
+          : t('create.voice.nextBlockedUpload', { defaultValue: '먼저 음성 파일을 업로드해 주십시오.' });
     }
     showAlert(title, msg);
   };
