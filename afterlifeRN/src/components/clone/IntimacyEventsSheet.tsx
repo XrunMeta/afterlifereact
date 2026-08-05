@@ -3,6 +3,7 @@
 import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
 import {
   v_aa7413,
+  v_326be8,
   v_09d0e5,
   v_122070,
   v_472849,
@@ -36,7 +37,8 @@ export default function v_06b8c0({ visible: v_cf55be, cloneId: v_6e0fd3, cloneNa
   const v_033e14 = v_e0068c();
 
   const v_f9771e = v_c18c22(0);
-  const v_53dd92 = Math.max(v_033e14.bottom, v_f9771e);
+  const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
+  const v_53dd92 = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
 
   const [v_9390e8, v_d57c80] = v_5ab095<v_6349d0 | null>(null);

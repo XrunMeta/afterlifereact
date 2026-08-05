@@ -9,6 +9,7 @@ import {
   v_9cabcb,
   v_122070,
   v_aa7413,
+  v_326be8,
   v_09d0e5,
   v_79c4f2,
   v_700696,
@@ -110,7 +111,8 @@ export default function v_14b43e() {
   const v_033e14 = v_e0068c();
 
   const v_f9771e = v_c18c22(0);
-  const v_2b650d = Math.max(v_033e14.bottom, v_f9771e);
+  const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
+  const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
   const v_f4c991 = v_ada615<RootNav>();
   const v_f38ee5 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
   const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
