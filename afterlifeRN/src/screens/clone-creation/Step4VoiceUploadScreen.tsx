@@ -45,7 +45,13 @@ export default function v_710783({ navigation: v_c65f5d }: Props) {
         v_badeaf = v_8d41d7('create.voice.nextBlockedPreset', { defaultValue: '먼저 목소리를 선택해 주십시오.' });
         break;
       default:
-        v_badeaf = v_8d41d7('create.voice.nextBlockedUpload', { defaultValue: '먼저 음성 파일을 업로드해 주십시오.' });
+
+        v_badeaf = v_f04727.voiceFile
+          ? v_8d41d7('create.voice.nextBlockedUploadRegistering', {
+              defaultValue:
+                '음성 파일 등록이 끝나야 다음으로 넘어갈 수 있습니다. 실패했다면 다시 시도해 주십시오.',
+            })
+          : v_8d41d7('create.voice.nextBlockedUpload', { defaultValue: '먼저 음성 파일을 업로드해 주십시오.' });
     }
     v_889fad(v_9f1622, v_badeaf);
   };

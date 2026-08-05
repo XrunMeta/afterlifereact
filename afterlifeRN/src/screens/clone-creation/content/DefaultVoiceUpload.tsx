@@ -21,6 +21,7 @@ import { v_3ee8c0, v_ab4719, type v_d80981 } from "../../../api/clones";
 import { v_7d2692 } from "../../../api/files";
 import { v_1ed7d9 } from "../../../stores/authStore";
 import { v_d7b329 } from "../../../lib/voicePresetName";
+import { v_6c761f } from "../../../lib/audioFileCheck";
 
 export const v_e79da6 = [
   { id: "v1", name: "Nova" },
@@ -85,43 +86,51 @@ interface Props {
   onChange: (patch: Partial<v_c2a674>) => void;
 }
 
-async function v_867b58(
+interface VoiceSource {
+  uri: string;
+  mimeType: string;
+  fileName: string;
+}
 
-  v_00b8d8,
-  v_2ca7e0,
+async function v_48cafb(
   v_8d41d7,
-): Promise<void> {
+): Promise<VoiceSource | null> {
   let result: Awaited<ReturnType<typeof v_c95b2c.getDocumentAsync>>;
   try {
     v_43c42e = await v_c95b2c.getDocumentAsync({ type: "audio/*" });
   } catch {
     v_889fad(
       v_8d41d7("create.voice.pickFileErrorTitle", { defaultValue: "파일 선택 오류" }),
-      v_8d41d7("create.voice.pickFileErrorMsg", { defaultValue: "파일을 선택하지 못했어요." }),
+      v_8d41d7("create.voice.pickFileErrorMsg", { defaultValue: "파일을 선택하지 못했습니다." }),
     );
-    return;
+    return null;
   }
-  if (v_43c42e.canceled || !v_43c42e.assets[0]) return;
+  if (v_43c42e.canceled || !v_43c42e.assets[0]) return null;
   const v_b76cd8 = v_43c42e.assets[0];
 
-  v_00b8d8({ voiceFile: v_b76cd8.uri });
-
-  if (!v_2ca7e0) return;
-  try {
-    const v_57ac81 = await v_7d2692(v_2ca7e0, v_b76cd8.uri, {
-      purpose: "clone_voice",
-      mimeType: v_b76cd8.mimeType ?? "audio/mpeg",
-      fileName: v_b76cd8.name ?? "voice.mp3",
-    });
-    const v_94abbb = await v_ab4719(v_2ca7e0, {
-      kind: "voice_clone",
-      src_file_id: v_57ac81.id,
-    });
-    console.log("[DefaultVoice] voice_clone job created:", v_94abbb.job_id);
-    v_00b8d8({ voiceFile: v_b76cd8.uri, voiceCloneJobId: v_94abbb.job_id });
-  } catch (v_49263d) {
-    console.warn("[DefaultVoice] upload/job failed (voiceFile kept):", v_49263d);
+  const v_1b0e1d = await v_6c761f({
+    uri: v_b76cd8.uri,
+    name: v_b76cd8.name,
+    mimeType: v_b76cd8.mimeType,
+    size: v_b76cd8.size,
+  });
+  if (!v_1b0e1d.ok) {
+    v_889fad(
+      v_8d41d7("create.voice.notAudioTitle", { defaultValue: "음성 파일이 아닙니다" }),
+      v_1b0e1d.reason === "empty"
+        ? v_8d41d7("create.voice.notAudioEmpty", { defaultValue: "빈 파일입니다. 다른 파일을 선택해 주십시오." })
+        : v_8d41d7("create.voice.notAudioMsg", {
+            defaultValue: "오디오 파일만 등록할 수 있습니다. mp3·m4a·wav 등 음성 파일을 선택해 주십시오.",
+          }),
+    );
+    return null;
   }
+
+  return {
+    uri: v_b76cd8.uri,
+    mimeType: v_b76cd8.mimeType ?? "audio/mpeg",
+    fileName: v_b76cd8.name ?? "voice.mp3",
+  };
 }
 
 function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
@@ -144,9 +153,52 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     return v_b56a36;
   });
 
+  const v_b8b284 = v_e662ae(v_34e5bb);
+  v_b8b284.current = v_34e5bb;
+
   const v_4a4814 = (v_35f85c, v_ff792b) => {
-    v_214f34((v_ba2215) => ({ ...v_ba2215, [v_35f85c]: { ...v_884e4d, ...v_ff792b } }));
-    v_b187d9({ ...v_884e4d, ...v_ff792b, voiceMode: v_35f85c });
+    const v_a448ad = { ...v_884e4d, ...v_ff792b };
+    v_214f34((v_ba2215) => ({ ...v_ba2215, [v_35f85c]: v_a448ad }));
+    if (v_b8b284.current === v_35f85c) v_b187d9({ ...v_a448ad, voiceMode: v_35f85c });
+  };
+
+  const [v_04e790, v_43f854] = v_5ab095<Partial<Record<Mode, VoiceSource>>>({});
+  const [v_415c0c, v_2941d3] = v_5ab095<Partial<Record<Mode, boolean>>>({});
+
+  const v_a9e8f0 = async (v_35f85c, v_38d084) => {
+    v_43f854((v_ba2215) => ({ ...v_ba2215, [v_35f85c]: v_38d084 }));
+    v_2941d3((v_ba2215) => ({ ...v_ba2215, [v_35f85c]: false }));
+
+    v_4a4814(v_35f85c, { voiceFile: v_38d084.uri });
+
+    if (!v_2ca7e0) {
+      v_2941d3((v_ba2215) => ({ ...v_ba2215, [v_35f85c]: true }));
+      return;
+    }
+    v_bbded0(true);
+    try {
+      const v_57ac81 = await v_7d2692(v_2ca7e0, v_38d084.uri, {
+        purpose: "clone_voice",
+        mimeType: v_38d084.mimeType,
+        fileName: v_38d084.fileName,
+      });
+      const v_94abbb = await v_ab4719(v_2ca7e0, {
+        kind: "voice_clone",
+        src_file_id: v_57ac81.id,
+      });
+      console.log(`[DefaultVoice] voice_clone job (${v_35f85c}) created:`, v_94abbb.job_id);
+      v_4a4814(v_35f85c, { voiceFile: v_38d084.uri, voiceCloneJobId: v_94abbb.job_id });
+    } catch (v_49263d) {
+      console.warn(`[DefaultVoice] ${v_35f85c} upload/job failed:`, v_49263d);
+      v_2941d3((v_ba2215) => ({ ...v_ba2215, [v_35f85c]: true }));
+    } finally {
+      v_bbded0(false);
+    }
+  };
+
+  const v_402288 = (v_35f85c) => {
+    const v_38d084 = v_04e790[v_35f85c];
+    if (v_38d084) void v_a9e8f0(v_35f85c, v_38d084);
   };
 
   const v_69341a = (v_35f85c) => {
@@ -323,36 +375,18 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     const v_cd1446 = v_5ebce3.uri;
     if (!v_cd1446) return;
 
-    v_4a4814("record", { voiceFile: v_cd1446 });
-
-    if (!v_2ca7e0) return;
-    v_bbded0(true);
-    try {
-      const v_57ac81 = await v_7d2692(v_2ca7e0, v_cd1446, {
-        purpose: "clone_voice",
-        mimeType: "audio/m4a",
-        fileName: "voice_record.m4a",
-      });
-      const v_94abbb = await v_ab4719(v_2ca7e0, {
-        kind: "voice_clone",
-        src_file_id: v_57ac81.id,
-      });
-      console.log("[DefaultVoice] voice_clone job (record) created:", v_94abbb.job_id);
-      v_4a4814("record", { voiceFile: v_cd1446, voiceCloneJobId: v_94abbb.job_id });
-    } catch (v_49263d) {
-      console.warn("[DefaultVoice] record upload/job failed (voiceFile kept):", v_49263d);
-    } finally {
-      v_bbded0(false);
-    }
+    await v_a9e8f0("record", {
+      uri: v_cd1446,
+      mimeType: "audio/m4a",
+      fileName: "voice_record.m4a",
+    });
   };
 
   const v_a01a16 = async () => {
-    v_bbded0(true);
-    try {
-      await v_867b58((v_ff792b) => v_4a4814("upload", v_ff792b), v_2ca7e0, v_8d41d7);
-    } finally {
-      v_bbded0(false);
-    }
+
+    const v_38d084 = await v_48cafb(v_8d41d7);
+    if (!v_38d084) return;
+    await v_a9e8f0("upload", v_38d084);
   };
 
   const v_97c26f = v_b599c8.isRecording;
@@ -499,16 +533,31 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
               </Text>
             </View>
           )}
-          {!v_11c383 && v_614d75 && (
+          {!v_11c383 && v_614d75 && v_f04727.voiceCloneJobId && (
             <View style={v_d81136.recordedRow}>
               <Feather name="check-circle" size={16} color={v_1bfbd0.violet600} />
               <Text style={v_d81136.recordedText}>
-                {v_f04727.voiceCloneJobId
-                  ? v_8d41d7("create.voice.cloneJobRegistered", { defaultValue: "클로닝 잡 등록됨" })
-                  : v_8d41d7("create.voice.recordDoneUploadFailed", {
-                      defaultValue: "녹음 완료 (업로드 실패 — 재시도됨)",
-                    })}
+                {v_8d41d7("create.voice.cloneJobRegistered", { defaultValue: "클로닝 잡 등록됨" })}
               </Text>
+            </View>
+          )}
+          {}
+          {!v_11c383 && v_415c0c.record && (
+            <View style={{ gap: 8 }}>
+              <View style={v_d81136.recordedRow}>
+                <Feather name="alert-circle" size={16} color={v_1bfbd0.error} />
+                <Text style={[v_d81136.recordedText, { color: v_1bfbd0.error }]}>
+                  {v_8d41d7("create.voice.registerFailed", {
+                    defaultValue: "녹음 파일 등록에 실패했습니다.",
+                  })}
+                </Text>
+              </View>
+              <TouchableOpacity style={v_d81136.retryBtn} onPress={() => v_402288("record")}>
+                <Feather name="refresh-cw" size={16} color={v_1bfbd0.zinc900} />
+                <Text style={v_d81136.retryBtnText}>
+                  {v_8d41d7("create.voice.registerRetry", { defaultValue: "등록 다시 시도" })}
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -538,16 +587,31 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
                 : v_8d41d7("create.voice.pickFile", { defaultValue: "음성 파일 선택" })}
             </Text>
           </TouchableOpacity>
-          {!v_11c383 && v_f04727.voiceFile && (
+          {!v_11c383 && v_f04727.voiceFile && v_f04727.voiceCloneJobId && (
             <View style={v_d81136.recordedRow}>
               <Feather name="check-circle" size={16} color={v_1bfbd0.violet600} />
               <Text style={v_d81136.recordedText}>
-                {v_f04727.voiceCloneJobId
-                  ? v_8d41d7("create.voice.cloneJobRegistered", { defaultValue: "클로닝 잡 등록됨" })
-                  : v_8d41d7("create.voice.filePickedUploadFailed", {
-                      defaultValue: "파일 선택됨 (잡 등록 실패 — 재시도됨)",
-                    })}
+                {v_8d41d7("create.voice.cloneJobRegistered", { defaultValue: "클로닝 잡 등록됨" })}
               </Text>
+            </View>
+          )}
+          {}
+          {!v_11c383 && v_415c0c.upload && (
+            <View style={{ gap: 8 }}>
+              <View style={v_d81136.recordedRow}>
+                <Feather name="alert-circle" size={16} color={v_1bfbd0.error} />
+                <Text style={[v_d81136.recordedText, { color: v_1bfbd0.error }]}>
+                  {v_8d41d7("create.voice.registerFailedFile", {
+                    defaultValue: "음성 파일 등록에 실패했습니다.",
+                  })}
+                </Text>
+              </View>
+              <TouchableOpacity style={v_d81136.retryBtn} onPress={() => v_402288("upload")}>
+                <Feather name="refresh-cw" size={16} color={v_1bfbd0.zinc900} />
+                <Text style={v_d81136.retryBtnText}>
+                  {v_8d41d7("create.voice.registerRetry", { defaultValue: "등록 다시 시도" })}
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -557,7 +621,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
 }
 
 v_b0de9c.validate = (d: v_c2a674): boolean => {
-  if (v_d5dda0.voiceMode === "record") return Boolean(v_d5dda0.voiceCloneJobId);
+  if (v_d5dda0.voiceMode === "record" || v_d5dda0.voiceMode === "upload") return Boolean(v_d5dda0.voiceCloneJobId);
   return Boolean(v_d5dda0.voicePresetId) || Boolean(v_d5dda0.voiceCloneJobId) || Boolean(v_d5dda0.voiceFile);
 };
 
@@ -634,6 +698,19 @@ const v_d81136 = v_472849.create({
     paddingHorizontal: 4,
   },
   recordedText: { fontSize: 13, color: v_1bfbd0.violet700, fontWeight: "500" },
+
+  retryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    height: 44,
+    borderRadius: v_8b0c90.lg,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    backgroundColor: v_1bfbd0.white,
+  },
+  retryBtnText: { fontSize: 14, color: v_1bfbd0.zinc900, fontWeight: "600" },
   disabledNote: {
     fontSize: 12,
     color: v_1bfbd0.zinc500,
