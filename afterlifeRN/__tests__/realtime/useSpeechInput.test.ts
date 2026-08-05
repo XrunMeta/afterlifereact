@@ -528,3 +528,54 @@ it('전송 후 누적 리셋 → 다음 발화는 이전 텍스트 안 섞임', 
   expect(v_f28164).toHaveBeenNthCalledWith(1, '첫번째');
   expect(v_f28164).toHaveBeenNthCalledWith(2, '두번째');
 });
+
+describe('onSpeechActivity', () => {
+  it('non-final(interim) result 수신 시 호출된다', async () => {
+    const v_1e3df0 = v_c2295a();
+    const v_dafc66 = jest.fn();
+    const { result: v_43c42e } = v_0da18b(() => v_fee12d({ engine: v_1e3df0, onSpeechActivity: v_dafc66, silenceMs: v_6d843a }));
+    await v_be73a0(async () => { await v_43c42e.current.startListening(); });
+
+    v_be73a0(() => { v_1e3df0.emit('result', { results: [{ transcript: '음' }], isFinal: false }); });
+    expect(v_dafc66).toHaveBeenCalledTimes(1);
+  });
+
+  it('interim 없이 곧장 isFinal:true 만 오는 엔진에서도 호출된다(OEM 케이스)', async () => {
+
+    const v_1e3df0 = v_c2295a();
+    const v_dafc66 = jest.fn();
+    const v_f28164 = jest.fn();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_fee12d({ engine: v_1e3df0, onSpeechActivity: v_dafc66, onFinalResult: v_f28164, silenceMs: v_6d843a }));
+    await v_be73a0(async () => { await v_43c42e.current.startListening(); });
+
+    v_be73a0(() => { v_1e3df0.emit('result', { results: [{ transcript: '안녕' }], isFinal: true }); });
+    expect(v_dafc66).toHaveBeenCalledTimes(1);
+    expect(v_43c42e.current.interimTranscript).toBe(''); 
+
+    v_be73a0(() => { jest.advanceTimersByTime(v_6d843a + 20); });
+    expect(v_f28164).toHaveBeenCalledTimes(1);
+    expect(v_f28164).toHaveBeenCalledWith('안녕');
+  });
+
+  it('stopListening 이후(want=false) 잔여 result 이벤트엔 호출되지 않는다', async () => {
+    const v_1e3df0 = v_c2295a();
+    const v_dafc66 = jest.fn();
+    const { result: v_43c42e } = v_0da18b(() => v_fee12d({ engine: v_1e3df0, onSpeechActivity: v_dafc66, silenceMs: v_6d843a }));
+    await v_be73a0(async () => { await v_43c42e.current.startListening(); });
+    v_be73a0(() => { v_43c42e.current.stopListening(); });
+
+    v_be73a0(() => { v_1e3df0.emit('result', { results: [{ transcript: '늦은 응답' }], isFinal: true }); });
+    expect(v_dafc66).not.toHaveBeenCalled();
+  });
+
+  it('미지정이어도(옵션 생략) 기존 동작에 영향 없음', async () => {
+    const v_1e3df0 = v_c2295a();
+    const v_f28164 = jest.fn();
+    const { result: v_43c42e } = v_0da18b(() => v_fee12d({ engine: v_1e3df0, onFinalResult: v_f28164, silenceMs: v_6d843a }));
+    await v_be73a0(async () => { await v_43c42e.current.startListening(); });
+    v_be73a0(() => { v_1e3df0.emit('result', { results: [{ transcript: '안녕' }], isFinal: true }); });
+    v_be73a0(() => { jest.advanceTimersByTime(v_6d843a + 20); });
+    expect(v_f28164).toHaveBeenCalledWith('안녕');
+  });
+});
