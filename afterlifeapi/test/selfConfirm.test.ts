@@ -2,6 +2,9 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { SELF, env } from "cloudflare:test";
 import { __resetMemoryFaceIndex } from "../src/lib/faceVectors";
 import { issueToken } from "../src/lib/jwt";
+import { confirmSelf } from "../src/lib/cloneFaceScope";
+import { APIError } from "../src/lib/errors";
+import type { Bindings } from "../src/lib/env";
 
 async function seedUser(email: string): Promise<number> {
   const db = env.DB as unknown as D1Database;
@@ -119,5 +122,144 @@ describe("POST /oth-path", () => {
       body: JSON.stringify({ vectors: [vec(7), vec(7)] }),
     });
     expect(res.status).toBe(422);
+  });
+
+  it("타 사용자 소유 클론이면 404", async () => {
+    const ownerId = await seedUser("t257j-owner@x.com");
+    const cloneId = await seedClone(ownerId, "t257j-owner-clone");
+    await seedUser("t257j-other@x.com");
+    const token = await login("t257j-other@x.com");
+
+    const res = await SELF.fetch(`https://x/oth-path${cloneId}/self-confirm`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ vectors: [vec(8), vec(8), vec(8)] }),
+    });
+    expect(res.status).toBe(404);
+  });
+
+  it("소유자 본인이어도 소프트삭제된 클론이면 404(deletion_state≠active)", async () => {
+    const userId = await seedUser("t257k@x.com");
+    const cloneId = await seedClone(userId, "t257k-deleted");
+    const db = env.DB as unknown as D1Database;
+    await db
+      .prepare(`UPDATE clones SET deletion_state = 'soft_deleted', deleted_at = CURRENT_TIMESTAMP WHERE id = ?`)
+      .bind(cloneId)
+      .run();
+    const token = await login("t257k@x.com");
+
+    const res = await SELF.fetch(`https://x/oth-path${cloneId}/self-confirm`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ vectors: [vec(9), vec(9), vec(9)] }),
+    });
+    expect(res.status).toBe(404);
+  });
+});
+
+describe("confirmSelf() 경합 가드 — self_person_id UPDATE 영향행 0", () => {
+  beforeEach(() => {
+    __resetMemoryFaceIndex();
+  });
+
+  it("경합 패자는 CONFLICT를 던지고 자신이 만든 person/벡터를 정리한다(고아 없음)", async () => {
+    const userId = await seedUser("t257l@x.com");
+    const cloneId = await seedClone(userId, "t257l-clone");
+    const db = env.DB as unknown as D1Database;
+    const bindings = env as unknown as Bindings;
+
+    const winner = await confirmSelf(bindings, {
+      userId,
+      cloneId,
+      vectors: [vec(10), vec(10), vec(10)],
+      displayName: "승자",
+    });
+
+    let loserError: unknown = null;
+    try {
+      await confirmSelf(bindings, {
+        userId,
+        cloneId,
+        vectors: [vec(11), vec(11), vec(11)],
+        displayName: "패자",
+      });
+    } catch (e) {
+      loserError = e;
+    }
+    expect(loserError).toBeInstanceOf(APIError);
+    expect((loserError as APIError).code).toBe("CONFLICT");
+    expect((loserError as APIError).status).toBe(409);
+
+    const clone = await db
+      .prepare("SELECT self_person_id FROM clones WHERE id = ?")
+      .bind(cloneId)
+      .first<{ self_person_id: number | null }>();
+    expect(clone?.self_person_id).toBe(winner.personId);
+
+    const persons = await db
+      .prepare("SELECT COUNT(*) AS n FROM persons WHERE clone_id = ?")
+      .bind(cloneId)
+      .first<{ n: number }>();
+    expect(persons?.n).toBe(1);
+
+    const cpf = await db
+      .prepare("SELECT COUNT(*) AS n FROM clone_person_faces WHERE clone_id = ?")
+      .bind(cloneId)
+      .first<{ n: number }>();
+    expect(cpf?.n).toBe(3);
+  });
+});
+
+describe("confirmSelf() enroll 실패 → 고아 person 없음 + 재시도 성공", () => {
+  beforeEach(() => {
+    __resetMemoryFaceIndex();
+  });
+
+  it("Vectorize insert 실패 시 person 행이 남지 않고, 동일 displayName 재시도는 200으로 성공한다", async () => {
+    const userId = await seedUser("t257m@x.com");
+    const cloneId = await seedClone(userId, "t257m-clone");
+    const db = env.DB as unknown as D1Database;
+
+    const failingIndex = {
+      insert: async () => {
+        throw new Error("simulated vectorize insert failure");
+      },
+      query: async () => ({ matches: [] }),
+      deleteByIds: async () => {},
+    } as unknown as VectorizeIndex;
+    const failingBindings = new Proxy(env as unknown as Bindings, {
+      get(target, prop, receiver) {
+        if (prop === "FACE_VECTORS") return failingIndex;
+        return Reflect.get(target, prop, receiver);
+      },
+    });
+
+    await expect(
+      confirmSelf(failingBindings, {
+        userId,
+        cloneId,
+        vectors: [vec(12), vec(12), vec(12)],
+        displayName: "재시도",
+      }),
+    ).rejects.toThrow();
+
+    const persons = await db
+      .prepare("SELECT COUNT(*) AS n FROM persons WHERE clone_id = ?")
+      .bind(cloneId)
+      .first<{ n: number }>();
+    expect(persons?.n).toBe(0);
+    const clone = await db
+      .prepare("SELECT self_person_id FROM clones WHERE id = ?")
+      .bind(cloneId)
+      .first<{ self_person_id: number | null }>();
+    expect(clone?.self_person_id).toBeNull();
+
+    const token = await login("t257m@x.com");
+    const res = await SELF.fetch(`https://x/oth-path${cloneId}/self-confirm`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ vectors: [vec(13), vec(13), vec(13)], displayName: "재시도" }),
+    });
+    expect(res.status).toBe(200);
   });
 });

@@ -3,6 +3,8 @@
 import type { Bindings } from "./env";
 import { getFaceIndex } from "./faceVectors";
 import { writeOntPerson, readOntPerson } from "./memoryStore";
+import { deletePersonCascade } from "./personDelete";
+import { APIError } from "./errors";
 
 export function faceNamespace(userId: number, cloneId: number): string {
   return `${userId}:${cloneId}`;
@@ -117,11 +119,21 @@ export async function confirmSelf(
     .run();
   const personId = ins.meta.last_row_id as number;
 
-  await enrollCloneScopeFaces(env, { userId, cloneId, personId, vectors, source: "self" });
+  try {
+    await enrollCloneScopeFaces(env, { userId, cloneId, personId, vectors, source: "self" });
+  } catch (e) {
+    await deletePersonCascade(env, personId, userId);
+    throw e; 
+  }
 
-  await env.DB.prepare("UPDATE clones SET self_person_id = ? WHERE id = ? AND self_person_id IS NULL")
+  const upd = await env.DB.prepare("UPDATE clones SET self_person_id = ? WHERE id = ? AND self_person_id IS NULL")
     .bind(personId, cloneId)
     .run();
+  if (upd.meta.changes === 0) {
+
+    await deletePersonCascade(env, personId, userId);
+    throw new APIError("CONFLICT", "이미 self가 확정된 클론입니다.");
+  }
 
   return { personId, selfPersonId: personId };
 }
