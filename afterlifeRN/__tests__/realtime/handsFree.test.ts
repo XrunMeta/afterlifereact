@@ -578,4 +578,49 @@ describe('무발화 워치독', () => {
   it('지연 스케줄은 30초 → 60초 이다', () => {
     expect(v_6fc7ac).toEqual([30000, 60000]);
   });
+
+  it('격리: phase 는 listening 인데 activeSeq 만 남아있으면(진행 중 발화) 발동하지 않는다', () => {
+    const v_3f6eae = { ...v_bb280b(), activeSeq: 5 };
+    const v_cb35cb = v_6920f0(v_3f6eae, { type: 'IDLE_TIMEOUT' });
+    expect(v_cb35cb.state).toBe(v_3f6eae);
+    expect(v_cb35cb.effects).toEqual([]);
+  });
+
+  it('격리: phase 는 listening 인데 micOn 만 false 이면 발동하지 않는다', () => {
+    const v_3f6eae = { ...v_bb280b(), micOn: false };
+    const v_cb35cb = v_6920f0(v_3f6eae, { type: 'IDLE_TIMEOUT' });
+    expect(v_cb35cb.state).toBe(v_3f6eae);
+    expect(v_cb35cb.effects).toEqual([]);
+  });
+
+  it('연속 발동 end-to-end: 1차(0→1) → listening 복귀 → 2차(1→2) → listening 복귀 → 3차는 차단', () => {
+    const v_2d1eeb = v_6920f0(v_bb280b(), { type: 'IDLE_TIMEOUT' });
+    expect(v_2d1eeb.state.phase).toBe('interrupting');
+    expect(v_2d1eeb.state.idleGreetCount).toBe(1);
+
+    const v_3756c2 = v_6920f0(v_2d1eeb.state, { type: 'RESPONSE_DONE', seq: v_2d1eeb.state.activeSeq! }).state;
+    expect(v_3756c2.phase).toBe('listening');
+    expect(v_3756c2.idleGreetCount).toBe(1);
+
+    const v_b96973 = v_6920f0(v_3756c2, { type: 'IDLE_TIMEOUT' });
+    expect(v_b96973.state.phase).toBe('interrupting');
+    expect(v_b96973.state.idleGreetCount).toBe(2);
+
+    const v_d0786c = v_6920f0(v_b96973.state, { type: 'RESPONSE_DONE', seq: v_b96973.state.activeSeq! }).state;
+    expect(v_d0786c.phase).toBe('listening');
+    expect(v_d0786c.idleGreetCount).toBe(2);
+
+    const v_9e1cdb = v_6920f0(v_d0786c, { type: 'IDLE_TIMEOUT' });
+    expect(v_9e1cdb.state.phase).toBe('listening');
+    expect(v_9e1cdb.state.idleGreetCount).toBe(2);
+    expect(v_9e1cdb.effects).toEqual([]);
+  });
+
+  it('confirmGate=true(confirming) 경로에서도 FINAL_RESULT 가 idleGreetCount 를 리셋한다', () => {
+    const v_ca01e0 = v_6920f0(v_3075fa(), { type: 'CALL_LIVE', confirmGate: true }).state;
+    const v_3f6eae = { ...v_ca01e0, idleGreetCount: 2 };
+    const v_cb35cb = v_6920f0(v_3f6eae, { type: 'FINAL_RESULT', text: '안녕' });
+    expect(v_cb35cb.state.phase).toBe('confirming');
+    expect(v_cb35cb.state.idleGreetCount).toBe(0);
+  });
 });
