@@ -386,7 +386,10 @@ export default function v_def15b() {
   };
 
   const v_11e385 = (v_6e0fd3) => {
-    const v_275ccd = v_699459[v_6e0fd3]?.visibility ?? "public";
+
+    const v_2d567b = v_699459[v_6e0fd3]?.visibility;
+    const v_b43a3d = v_4cd149.find((v_3f4e2e) => v_3f4e2e.id === v_6e0fd3)?.visibility;
+    const v_275ccd = v_2d567b ?? v_b43a3d ?? "public";
     v_2dbd8f({ cloneId: v_6e0fd3, currentVisibility: v_275ccd });
     v_8d2d61(null);
   };
