@@ -96,3 +96,32 @@ export async function enrollCloneScopeFaces(
 
   return { enrolled: rows.length };
 }
+
+export interface SelfConfirmResult {
+  personId: number;
+  selfPersonId: number;
+}
+
+export async function confirmSelf(
+  env: Bindings,
+  opts: { userId: number; cloneId: number; vectors: number[][]; displayName?: string | null },
+): Promise<SelfConfirmResult> {
+  const { userId, cloneId, vectors, displayName = null } = opts;
+
+  const now = Date.now();
+  const ins = await env.DB.prepare(
+    `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at)
+     VALUES (?, ?, ?, 'granted', ?, 'auto_biometric', ?)`,
+  )
+    .bind(userId, cloneId, displayName, now, now)
+    .run();
+  const personId = ins.meta.last_row_id as number;
+
+  await enrollCloneScopeFaces(env, { userId, cloneId, personId, vectors, source: "self" });
+
+  await env.DB.prepare("UPDATE clones SET self_person_id = ? WHERE id = ? AND self_person_id IS NULL")
+    .bind(personId, cloneId)
+    .run();
+
+  return { personId, selfPersonId: personId };
+}
