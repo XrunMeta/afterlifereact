@@ -556,8 +556,10 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   );
 }
 
-v_b0de9c.validate = (d: v_c2a674): boolean =>
-  Boolean(v_d5dda0.voicePresetId) || Boolean(v_d5dda0.voiceCloneJobId) || Boolean(v_d5dda0.voiceFile);
+v_b0de9c.validate = (d: v_c2a674): boolean => {
+  if (v_d5dda0.voiceMode === "record") return Boolean(v_d5dda0.voiceCloneJobId);
+  return Boolean(v_d5dda0.voicePresetId) || Boolean(v_d5dda0.voiceCloneJobId) || Boolean(v_d5dda0.voiceFile);
+};
 
 const v_872645 = v_b0de9c as typeof v_b0de9c & {
   validate: (d: v_c2a674) => boolean;
