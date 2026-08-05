@@ -622,8 +622,9 @@ export default function v_14b43e() {
               <Text style={v_fd5f43.creatorAccount}>{v_8c0b26.persona.creatorAccount}</Text>
             ) : null}
             {
+
 }
-            <HashtagText style={v_fd5f43.postContent} numberOfLines={3}>
+            <HashtagText style={v_fd5f43.postContent}>
               {v_8c0b26.feed.content}
             </HashtagText>
             <View style={v_fd5f43.overlayBtns}>
