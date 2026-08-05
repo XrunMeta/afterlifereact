@@ -2,6 +2,7 @@
 
 import type { v_273a0c } from "./env";
 import { v_a8d2cc } from "./faceVectors";
+import { v_862be2, v_0761b1 } from "./memoryStore";
 
 export function v_929ead(v_43e90c, v_6e0fd3): string {
   return `${v_43e90c}:${v_6e0fd3}`;
@@ -34,4 +35,55 @@ export async function v_97be02(
   return [...v_8a69ab.entries()]
     .map(([v_ca1ec5, v_740dd8]) => ({ personId: v_ca1ec5, score: v_740dd8 }))
     .sort((v_779914, v_148ff6) => v_148ff6.score - v_779914.score);
+}
+
+export interface EnrollResult {
+  enrolled: number;
+}
+
+export async function v_003ee1(
+  env: v_273a0c,
+  v_328259,
+): Promise<EnrollResult> {
+  const { userId: v_43e90c, cloneId: v_6e0fd3, personId: v_ca1ec5, vectors: v_f94e64, source: v_04e790 = "call" } = v_328259;
+
+  const v_18b8bf = v_f94e64.map((v_6fea0b) => ({
+    id: crypto.randomUUID(),
+    values: v_6fea0b,
+    namespace: v_929ead(v_43e90c, v_6e0fd3),
+    metadata: { personId: String(v_ca1ec5) },
+  }));
+
+  const v_9e67a6 = Date.now();
+  const v_657f41 = v_c9c489.DB.prepare(
+    `INSERT INTO face_embeddings (person_id, vectorize_id, model, dim, source, created_at)
+     VALUES (?, ?, 'w600k_mbf', 512, 'call', ?)`,
+  );
+  const v_eb55c5 = v_c9c489.DB.prepare(
+    `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
+     VALUES (?, ?, ?, 'w600k_mbf', 512, ?, ?)`,
+  );
+  await v_c9c489.DB.batch([
+    ...v_18b8bf.map((v_cb35cb) => v_657f41.bind(v_ca1ec5, v_cb35cb.id, v_9e67a6)),
+    ...v_18b8bf.map((v_cb35cb) => v_eb55c5.bind(v_6e0fd3, v_ca1ec5, v_cb35cb.id, v_04e790, v_9e67a6)),
+  ]);
+
+  try {
+    await v_a8d2cc(v_c9c489).insert(v_18b8bf);
+  } catch (v_9e86fd) {
+    const v_1cdc07 = v_18b8bf.map(() => "?").join(",");
+    const v_23dafb = v_18b8bf.map((v_cb35cb) => v_cb35cb.id);
+    await v_c9c489.DB.batch([
+      v_c9c489.DB.prepare(`DELETE FROM face_embeddings WHERE vectorize_id IN (${v_1cdc07})`).bind(...v_23dafb),
+      v_c9c489.DB.prepare(`DELETE FROM clone_person_faces WHERE vectorize_id IN (${v_1cdc07})`).bind(...v_23dafb),
+    ]);
+    throw v_9e86fd; 
+  }
+
+  const v_3c8572 = await v_0761b1(v_c9c489, v_6e0fd3, v_ca1ec5);
+  if (v_3c8572 === null) {
+    await v_862be2(v_c9c489, v_6e0fd3, v_ca1ec5, JSON.stringify({}), false);
+  }
+
+  return { enrolled: v_18b8bf.length };
 }

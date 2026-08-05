@@ -8,7 +8,7 @@ import { v_a8d2cc } from "../lib/faceVectors";
 import { v_430d2b } from "../lib/personDelete";
 import { v_d0fd96 } from "../lib/displayName";
 import { v_74c502 } from "../lib/cloneAccess";
-import { v_929ead, v_97be02 } from "../lib/cloneFaceScope";
+import { v_929ead, v_97be02, v_003ee1 } from "../lib/cloneFaceScope";
 
 export const v_fded81 = new v_b7c41b<v_de0a25>();
 
@@ -29,7 +29,9 @@ v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
     .json<{ cloneId?: number; displayName?: string; enrolledVia?: string }>()
     .catch(() => ({}) as { cloneId?: number; displayName?: string; enrolledVia?: string });
 
-  const v_6e0fd3 = v_4d33b2.cloneId ?? null;
+  const v_6e0fd3 = v_4d33b2.cloneId;
+  if (typeof v_6e0fd3 !== "number" || !Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
+    throw new v_3ebe58("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
 
   let v_8a1355 = null;
   if (v_4d33b2.displayName !== undefined) {
@@ -55,15 +57,13 @@ v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
   const v_40c2c9 = v_926d89 === "auto_biometric" ? "granted" : "none";
   const v_322d60 = v_926d89 === "auto_biometric" ? Date.now() : null;
 
-  if (v_6e0fd3 !== null) {
-    const v_2461e1 = await v_3f4e2e.env.DB.prepare(
-      `SELECT id FROM clones WHERE id = ? AND owner_id = ? AND ${v_74c502()}`
-    )
-      .bind(v_6e0fd3, v_43e90c)
-      .first<{ id: number }>();
-    if (!v_2461e1) {
-      throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
-    }
+  const v_2461e1 = await v_3f4e2e.env.DB.prepare(
+    `SELECT id FROM clones WHERE id = ? AND owner_id = ? AND ${v_74c502()}`
+  )
+    .bind(v_6e0fd3, v_43e90c)
+    .first<{ id: number }>();
+  if (!v_2461e1) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
   }
 
   const v_9e67a6 = Date.now();
@@ -296,7 +296,9 @@ v_fded81.post("/:id/consent", v_6690d9, async (v_3f4e2e) => {
 v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_ca1ec5 = v_5c8583(v_3f4e2e);
-  const v_4d33b2 = await v_3f4e2e.req.json<{ vectors?: number[][] }>().catch(() => ({}) as { vectors?: number[][] });
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ vectors?: number[][]; cloneId?: number }>()
+    .catch(() => ({}) as { vectors?: number[][]; cloneId?: number });
   const v_f94e64 = v_4d33b2.vectors;
   if (
     !Array.isArray(v_f94e64) ||
@@ -308,40 +310,31 @@ v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
   )
     throw new v_3ebe58("VALIDATION_FAILED", "vectors: 1~5개의 512차원 수치 배열이어야 합니다");
 
-  const v_306a28 = await v_3f4e2e.env.DB.prepare("SELECT id, consent_state FROM persons WHERE id = ? AND user_id = ?")
-    .bind(v_ca1ec5, v_43e90c)
+  const v_6e0fd3 = v_4d33b2.cloneId;
+  if (typeof v_6e0fd3 !== "number" || !Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
+    throw new v_3ebe58("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+
+  const v_306a28 = await v_3f4e2e.env.DB.prepare(
+    "SELECT id, consent_state FROM persons WHERE id = ? AND user_id = ? AND clone_id = ?",
+  )
+    .bind(v_ca1ec5, v_43e90c, v_6e0fd3)
     .first<{ id: number; consent_state: string }>();
   if (!v_306a28) throw new v_3ebe58("NOT_FOUND", "person이 존재하지 않습니다.");
   if (v_306a28.consent_state !== "granted")
     throw new v_3ebe58("FORBIDDEN", "얼굴정보 저장 동의(consent granted)가 필요합니다"); 
 
-  const v_18b8bf = v_f94e64.map((v_6fea0b) => ({
-    id: crypto.randomUUID(),
-    values: v_6fea0b,
-    namespace: String(v_43e90c),
-    metadata: { personId: String(v_ca1ec5) },
-  }));
-
-  const v_9e67a6 = Date.now();
-  const v_a9cac6 = v_3f4e2e.env.DB.prepare(
-    `INSERT INTO face_embeddings (person_id, vectorize_id, model, dim, source, created_at)
-     VALUES (?, ?, 'w600k_mbf', 512, 'call', ?)`
-  );
-  await v_3f4e2e.env.DB.batch(v_18b8bf.map((v_cb35cb) => v_a9cac6.bind(v_ca1ec5, v_cb35cb.id, v_9e67a6)));
-
-  const v_e86ad8 = v_a8d2cc(v_3f4e2e.env);
   try {
-    await v_e86ad8.insert(v_18b8bf);
+    const { enrolled: v_570847 } = await v_003ee1(v_3f4e2e.env, {
+      userId: v_43e90c,
+      cloneId: v_6e0fd3,
+      personId: v_ca1ec5,
+      vectors: v_f94e64,
+      source: "call",
+    });
+    return v_3f4e2e.json({ enrolled: v_570847 });
   } catch (v_9e86fd) {
-
-    const v_1cdc07 = v_18b8bf.map(() => "?").join(",");
-    await v_3f4e2e.env.DB.prepare(`DELETE FROM face_embeddings WHERE vectorize_id IN (${v_1cdc07})`)
-      .bind(...v_18b8bf.map((v_cb35cb) => v_cb35cb.id))
-      .run();
     throw new v_3ebe58("UPSTREAM_FAILURE", `얼굴 벡터 인덱스 저장 실패: ${(v_9e86fd as Error).message}`);
   }
-
-  return v_3f4e2e.json({ enrolled: v_18b8bf.length });
 });
 
 v_fded81.delete("/:id", v_6690d9, async (v_3f4e2e) => {

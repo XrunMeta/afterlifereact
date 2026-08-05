@@ -1,7 +1,5 @@
 import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
-import { v_a8d2cc } from "../src/lib/faceVectors";
-import { v_929ead } from "../src/lib/cloneFaceScope";
 
 const v_a1651b = () => v_c9c489.DB as unknown as D1Database;
 
@@ -56,21 +54,11 @@ async function v_eb0ef3(v_ea333d, v_43e90c, v_6e0fd3, v_ca1ec5, v_f9a45c) {
   const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_ca1ec5}/faces`, {
     method: "POST",
     headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ vectors: [v_f9a45c] }),
+    body: JSON.stringify({ cloneId: v_6e0fd3, vectors: [v_f9a45c] }),
   });
   v_4d37e3(v_8f00b9.status).toBe(200);
 
-  const v_f8758e = crypto.randomUUID();
-  await v_a8d2cc(v_c9c489 as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string }).insert([
-    { id: v_f8758e, values: v_f9a45c, namespace: v_929ead(v_43e90c, v_6e0fd3), metadata: { personId: String(v_ca1ec5) } },
-  ]);
-  await v_a1651b()
-    .prepare(
-      `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
-       VALUES (?, ?, ?, 'w600k_mbf', 512, 'enroll', ?)`,
-    )
-    .bind(v_6e0fd3, v_ca1ec5, v_f8758e, Date.now())
-    .run();
+  void v_43e90c;
 }
 
 function v_46ff7a(v_4a1c36 = 0.1): number[] {

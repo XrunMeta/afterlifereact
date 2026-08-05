@@ -151,3 +151,121 @@ v_469bf2("POST /oth-path — 클론 스코프", () => {
     v_4d37e3(v_8f00b9.status).toBe(404);
   });
 });
+
+v_469bf2("unknown → L2′ 생성 왕복", () => {
+  v_ff107d(() => {
+    v_dbed3e();
+  });
+
+  v_23805a("등록 직후 같은 벡터가 hit 되고 L2′ 초기 행이 생긴다", async () => {
+    const v_43e90c = await v_bfb240("t257d@x.com");
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "t257d-clone");
+    const v_21cc31 = await v_86c39f(v_43e90c);
+
+    const v_702bb5 = await v_1df298.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${v_21cc31}` },
+      body: JSON.stringify({ vector: v_46ff7a(9), cloneId: v_6e0fd3 }),
+    });
+    const v_e98932 = await v_702bb5.json<{ best: unknown | null }>();
+    v_4d37e3(v_e98932.best).toBeNull();
+
+    const v_5d98f0 = await v_1df298.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${v_21cc31}` },
+      body: JSON.stringify({ cloneId: v_6e0fd3, displayName: "민지", enrolledVia: "card" }),
+    });
+    const v_306a28 = await v_5d98f0.json<{ id: number }>();
+    await v_1df298.fetch(`https://x/oth-path${v_306a28.id}/consent`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${v_21cc31}` },
+      body: JSON.stringify({ state: "granted" }),
+    });
+    const v_cdd22f = await v_1df298.fetch(`https://x/oth-path${v_306a28.id}/faces`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${v_21cc31}` },
+      body: JSON.stringify({ cloneId: v_6e0fd3, vectors: [v_46ff7a(9)] }),
+    });
+    v_4d37e3(v_cdd22f.status).toBe(200);
+
+    const v_550b91 = await v_a1651b()
+      .prepare("SELECT COUNT(*) AS n FROM clone_person_faces WHERE clone_id = ? AND person_id = ?")
+      .bind(v_6e0fd3, v_306a28.id)
+      .first<{ n: number }>();
+    v_4d37e3(v_550b91?.n).toBe(1);
+
+    const v_d94e57 = await v_a1651b()
+      .prepare("SELECT data FROM clone_ont_person WHERE clone_id = ? AND person_id = ?")
+      .bind(v_6e0fd3, v_306a28.id)
+      .first<{ data: string }>();
+    v_4d37e3(v_d94e57).not.toBeNull();
+
+    const v_4cfad4 = await v_1df298.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${v_21cc31}` },
+      body: JSON.stringify({ vector: v_46ff7a(9), cloneId: v_6e0fd3 }),
+    });
+    const v_33efc5 = await v_4cfad4.json<{ best: { personId: number } | null }>();
+    v_4d37e3(v_33efc5.best?.personId).toBe(v_306a28.id);
+  });
+
+  v_23805a("POST /oth-path 는 cloneId 없으면 422 VALIDATION_FAILED(브리프 400 정정)", async () => {
+    await v_bfb240("t257e@x.com");
+    const v_43e90c = await v_bfb240("t257e-2@x.com");
+    const v_21cc31 = await v_86c39f(v_43e90c);
+    const v_8f00b9 = await v_1df298.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${v_21cc31}` },
+      body: JSON.stringify({ displayName: "누구" }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(422);
+    const v_4d33b2 = await v_8f00b9.json<{ error: { code: string } }>();
+    v_4d37e3(v_4d33b2.error.code).toBe("VALIDATION_FAILED");
+  });
+
+  v_23805a("D1 이중 방어 — Vectorize엔 매치가 잡히지만 clone_person_faces가 다른 클론 소속이면 걸러진다", async () => {
+    const v_43e90c = await v_bfb240("t257m@x.com");
+    const v_c521ce = await v_4d24a9(v_43e90c, "t257m-clone-a");
+    const v_65cfbc = await v_4d24a9(v_43e90c, "t257m-clone-b");
+    const v_21cc31 = await v_86c39f(v_43e90c);
+
+    const v_5d98f0 = await v_1df298.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${v_21cc31}` },
+      body: JSON.stringify({ cloneId: v_c521ce, displayName: "이중방어", enrolledVia: "card" }),
+    });
+    const v_306a28 = await v_5d98f0.json<{ id: number }>();
+    await v_1df298.fetch(`https://x/oth-path${v_306a28.id}/consent`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${v_21cc31}` },
+      body: JSON.stringify({ state: "granted" }),
+    });
+
+    const v_f8758e = crypto.randomUUID();
+    await v_a8d2cc(v_c9c489 as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string }).insert([
+      {
+        id: v_f8758e,
+        values: v_46ff7a(11),
+        namespace: v_929ead(v_43e90c, v_65cfbc),
+        metadata: { personId: String(v_306a28.id) },
+      },
+    ]);
+    await v_a1651b()
+      .prepare(
+        `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
+         VALUES (?, ?, ?, 'w600k_mbf', 512, 'enroll', ?)`,
+      )
+      .bind(v_c521ce, v_306a28.id, v_f8758e, Date.now())
+      .run();
+
+    const v_8f00b9 = await v_1df298.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${v_21cc31}` },
+      body: JSON.stringify({ vector: v_46ff7a(11), cloneId: v_65cfbc }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_4d33b2 = await v_8f00b9.json<{ best: unknown | null; matches: unknown[] }>();
+    v_4d37e3(v_4d33b2.best).toBeNull();
+    v_4d37e3(v_4d33b2.matches).toHaveLength(0);
+  });
+});
