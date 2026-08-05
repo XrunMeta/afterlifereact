@@ -47,6 +47,8 @@ const FeedCard: React.FC<FeedCardProps> = ({
   onSharePress,
 }) => {
   const { t } = useTranslation();
+
+  const isSmallScreen = cardHeight < 640;
   return (
     <View style={[styles.container, { height: cardHeight }]}>
       {}
@@ -73,9 +75,8 @@ const FeedCard: React.FC<FeedCardProps> = ({
       {}
       {isActive && (
         <>
-          {
-}
-          <View style={styles.rightActions}>
+          {}
+          <View style={[styles.rightActions, isSmallScreen && styles.rightActionsShift]}>
             <TouchableOpacity onPress={onToggleLike} style={styles.actionBtn} activeOpacity={0.7}>
               <Ionicons
                 name={isLiked ? "heart" : "heart-outline"}
@@ -247,6 +248,10 @@ const styles = StyleSheet.create({
     gap: 24,
   },
 
+  rightActionsShift: {
+    bottom: 220,
+  },
+
   intimacyBadge: {
     position: "absolute",
     top: 56,
@@ -286,7 +291,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 12,
 
-    paddingRight: 60,
   },
   callButton: {
     width: "100%",
