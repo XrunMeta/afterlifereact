@@ -561,6 +561,9 @@ export default function Step7CompleteScreen({ navigation }: Props) {
           showBottomBackground={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+
+          autoAdjustKeyboardPadding
+          additionalBottomPadding={80}
         >
           {}
           <View style={styles.authorRow}>
@@ -633,7 +636,9 @@ export default function Step7CompleteScreen({ navigation }: Props) {
             </View>
           )}
 
-          {}
+          {
+
+}
           <TextInput
             style={styles.captionInput}
             value={caption}
@@ -643,8 +648,9 @@ export default function Step7CompleteScreen({ navigation }: Props) {
             })}
             placeholderTextColor={COLORS.zinc400}
             multiline
-            maxLength={2000}
+            maxLength={200}
           />
+          <Text style={styles.captionCounter}>{caption.length}/200</Text>
 
           {}
           {error && (
@@ -782,6 +788,13 @@ const styles = StyleSheet.create({
     borderColor: COLORS.zinc200,
     borderRadius: RADIUS.md,
     backgroundColor: COLORS.zinc50,
+  },
+
+  captionCounter: {
+    marginTop: 6,
+    alignSelf: "flex-end",
+    fontSize: 12,
+    color: COLORS.zinc400,
   },
   errorBox: {
     flexDirection: "row",
