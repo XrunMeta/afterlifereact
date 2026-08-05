@@ -30,6 +30,8 @@ interface FeedCardProps {
   onMorePress?: () => void;
 
   onSharePress?: () => void;
+
+  onIntimacyPress?: () => void;
 }
 
 const FeedCard: React.FC<FeedCardProps> = ({
@@ -45,6 +47,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
   onCommentPress,
   onMorePress,
   onSharePress,
+  onIntimacyPress,
 }) => {
   const { t } = useTranslation();
 
@@ -64,12 +67,19 @@ const FeedCard: React.FC<FeedCardProps> = ({
       />
 
       {
+
 }
       {typeof item.myIntimacy === "number" ? (
-        <View style={styles.intimacyBadge}>
+        <TouchableOpacity
+          style={styles.intimacyBadge}
+          onPress={onIntimacyPress}
+          activeOpacity={0.7}
+          disabled={!onIntimacyPress}
+          accessibilityLabel="intimacy-events"
+        >
           <Feather name="thermometer" size={12} color="#fb923c" />
           <Text style={styles.intimacyText}>{item.myIntimacy}°C</Text>
-        </View>
+        </TouchableOpacity>
       ) : null}
 
       {}
