@@ -35,3 +35,40 @@ export async function deletePersonCascade(
 
   return { deletedEmbeddings: vids.length };
 }
+
+export interface CloneScopeDeleteResult {
+  deletedPersons: number;
+  deletedVectors: number;
+}
+
+export async function deleteCloneScopeMemory(
+  env: Bindings,
+  opts: { userId: number; cloneId: number },
+): Promise<CloneScopeDeleteResult> {
+  const { userId, cloneId } = opts;
+
+  const persons = await env.DB.prepare("SELECT id FROM persons WHERE user_id = ? AND clone_id = ?")
+    .bind(userId, cloneId)
+    .all<{ id: number }>();
+
+  let deletedVectors = 0;
+  for (const p of persons.results) {
+
+    const scoped = await env.DB.prepare(
+      "SELECT vectorize_id FROM clone_person_faces WHERE clone_id = ? AND person_id = ?",
+    )
+      .bind(cloneId, p.id)
+      .all<{ vectorize_id: string }>();
+    const scopedIds = scoped.results.map((r) => r.vectorize_id).filter(Boolean);
+    if (scopedIds.length) await getFaceIndex(env).deleteByIds(scopedIds);
+
+    await env.DB.prepare("DELETE FROM clone_person_faces WHERE clone_id = ? AND person_id = ?")
+      .bind(cloneId, p.id)
+      .run();
+
+    const r = await deletePersonCascade(env, p.id, userId);
+    deletedVectors += Math.max(scopedIds.length, r.deletedEmbeddings);
+  }
+
+  return { deletedPersons: persons.results.length, deletedVectors };
+}

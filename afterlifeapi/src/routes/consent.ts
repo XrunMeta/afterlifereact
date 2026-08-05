@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import type { AppEnv } from "../lib/env";
 import { APIError } from "../lib/errors";
 import { requireAuth } from "../middleware/auth";
-import { deletePersonCascade } from "../lib/personDelete";
+import { deletePersonCascade, deleteCloneScopeMemory } from "../lib/personDelete";
 
 export const consent = new Hono<AppEnv>();
 
@@ -92,4 +92,31 @@ consent.get("/consent", requireAuth, async (c) => {
       version: row?.fbVer ?? null,
     },
   });
+});
+
+consent.get("/remembering-clones", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const rs = await c.env.DB.prepare(
+    `SELECT c.id AS cloneId, c.name, c.username, MAX(cop.updated_at) AS updatedAt
+       FROM clone_ont_person cop
+       JOIN clones  c ON c.id = cop.clone_id
+       JOIN persons p ON p.id = cop.person_id
+      WHERE p.user_id = ?
+        AND cop.person_id IS NOT c.self_person_id
+      GROUP BY c.id
+      ORDER BY updatedAt DESC`,
+  )
+    .bind(userId)
+    .all<{ cloneId: number; name: string; username: string; updatedAt: number }>();
+  return c.json({ clones: rs.results });
+});
+
+consent.delete("/remembering-clones/:cloneId", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const cloneId = Number(c.req.param("cloneId"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0)
+    throw new APIError("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+
+  const result = await deleteCloneScopeMemory(c.env, { userId, cloneId });
+  return c.json(result);
 });
