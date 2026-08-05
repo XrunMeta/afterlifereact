@@ -30,6 +30,8 @@ interface FeedCardProps {
   onMorePress?: () => void;
 
   onSharePress?: () => void;
+
+  onIntimacyPress?: () => void;
 }
 
 const FeedCard: v_a3453e.FC<FeedCardProps> = ({
@@ -45,6 +47,7 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
   onCommentPress: v_48b0c1,
   onMorePress: v_27b331,
   onSharePress: v_d51485,
+  onIntimacyPress: v_b85128,
 }) => {
   const { t: v_8d41d7 } = v_772971();
 
@@ -64,12 +67,19 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
       />
 
       {
+
 }
       {typeof v_8c0b26.myIntimacy === "number" ? (
-        <View style={v_d81136.intimacyBadge}>
+        <TouchableOpacity
+          style={v_d81136.intimacyBadge}
+          onPress={v_b85128}
+          activeOpacity={0.7}
+          disabled={!v_b85128}
+          accessibilityLabel="intimacy-events"
+        >
           <Feather name="thermometer" size={12} color="#fb923c" />
           <Text style={v_d81136.intimacyText}>{v_8c0b26.myIntimacy}°C</Text>
-        </View>
+        </TouchableOpacity>
       ) : null}
 
       {}
