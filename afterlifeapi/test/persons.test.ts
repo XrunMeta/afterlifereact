@@ -323,7 +323,7 @@ v_469bf2("persons route", () => {
     v_4d37e3(v_e2a85c).toHaveProperty("createdAt");
   });
 
-  v_23805a("POST /oth-path — cloneId 타인 소유 → VALIDATION_FAILED(422) IDOR 차단", async () => {
+  v_23805a("POST /oth-path — cloneId 타인 소유(공개 클론) → 201 성공(비소유자도 접근 가능)", async () => {
     const v_257b90 = await v_bfb240("clone-owner-idor@test.local");
     const v_53bb36 = await v_bfb240("clone-attacker-idor@test.local");
     const v_d82c92 = await v_86c39f(v_53bb36);
@@ -336,9 +336,37 @@ v_469bf2("persons route", () => {
       body: JSON.stringify({ cloneId: v_6e0fd3 }),
     });
 
-    v_4d37e3(v_8f00b9.status).toBe(422);
+    v_4d37e3(v_8f00b9.status).toBe(201);
+    const v_4d33b2 = (await v_8f00b9.json()) as { cloneId: number };
+    v_4d37e3(v_4d33b2.cloneId).toBe(v_6e0fd3);
+  });
+
+  v_23805a("POST /oth-path — cloneId 타인 소유(비공개 클론) → 404(진짜 비접근은 계속 차단)", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_257b90 = await v_bfb240("clone-owner-priv@test.local");
+    const v_53bb36 = await v_bfb240("clone-attacker-priv@test.local");
+    const v_d82c92 = await v_86c39f(v_53bb36);
+
+    await v_a1651b
+      .prepare(
+        `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+         VALUES (?, 'Private', 'priv-clone-idor', 'memlow', 'private', CURRENT_TIMESTAMP)`,
+      )
+      .bind(v_257b90)
+      .run();
+    const v_6e0fd3 = (
+      await v_a1651b.prepare("SELECT id FROM clones WHERE username = 'priv-clone-idor'").first<{ id: number }>()
+    )!.id;
+
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_d82c92}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ cloneId: v_6e0fd3 }),
+    });
+
+    v_4d37e3(v_8f00b9.status).toBe(404);
     const v_4d33b2 = (await v_8f00b9.json()) as { error: { code: string } };
-    v_4d37e3(v_4d33b2.error.code).toBe("VALIDATION_FAILED");
+    v_4d37e3(v_4d33b2.error.code).toBe("NOT_FOUND");
   });
 
   v_23805a("POST /oth-path — cloneId 본인 소유 → 201 성공", async () => {

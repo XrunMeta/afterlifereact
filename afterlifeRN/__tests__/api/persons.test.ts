@@ -128,6 +128,15 @@ describe('listPersons', () => {
     expect(v_43c42e.items).toHaveLength(2);
     expect(v_43c42e.items[0].id).toBe(1);
   });
+
+  it('cloneId 지정 시 쿼리스트링에 실어 GET /oth-path?cloneId= 를 호출한다', async () => {
+    v_09509b.mockResolvedValueOnce({ data: [] });
+
+    await v_865d38(v_4ac7fe, 10);
+
+    const [v_9fe22d] = v_09509b.mock.calls[0] as unknown as [string, string, RequestInit, ...unknown[]];
+    expect(v_9fe22d).toBe('/oth-path?cloneId=10');
+  });
 });
 
 describe('updatePersonName', () => {

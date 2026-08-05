@@ -203,6 +203,45 @@ v_469bf2("POST /oth-path", () => {
     v_4d37e3(v_4d33b2.error.code).toBe("NOT_FOUND");
   });
 
+  v_23805a("비소유자도 공개 클론이면 자신의 person에 얼굴 enroll 가능", async () => {
+    const v_257b90 = await v_bfb240("faces-nonowner-owner@test.local");
+    const v_910615 = await v_bfb240("faces-nonowner-guest@test.local");
+    const v_4030f2 = await v_86c39f(v_910615);
+    const v_6e0fd3 = await v_4d24a9(v_257b90, "faces-nonowner-clone");
+
+    const v_ca1ec5 = await v_4e7b87(v_4030f2, v_6e0fd3);
+    await v_a56201(v_4030f2, v_ca1ec5);
+
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_ca1ec5}/faces`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_4030f2}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ cloneId: v_6e0fd3, vectors: [v_46ff7a()] }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_4d33b2 = (await v_8f00b9.json()) as { enrolled: number };
+    v_4d37e3(v_4d33b2.enrolled).toBe(1);
+  });
+
+  v_23805a("enroll 이후 클론이 정지되면 비소유자는 자신의 person이어도 추가 enroll이 404", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_257b90 = await v_bfb240("faces-susp-owner@test.local");
+    const v_910615 = await v_bfb240("faces-susp-guest@test.local");
+    const v_4030f2 = await v_86c39f(v_910615);
+    const v_6e0fd3 = await v_4d24a9(v_257b90, "faces-susp-clone");
+
+    const v_ca1ec5 = await v_4e7b87(v_4030f2, v_6e0fd3);
+    await v_a56201(v_4030f2, v_ca1ec5);
+
+    await v_a1651b.prepare(`UPDATE clones SET admin_suspended_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(v_6e0fd3).run();
+
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_ca1ec5}/faces`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_4030f2}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ cloneId: v_6e0fd3, vectors: [v_46ff7a()] }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(404);
+  });
+
   v_23805a("비정수 person id(/faces) → 422 VALIDATION_FAILED (parsePersonId 재사용, 500 아님)", async () => {
     const v_43e90c = await v_bfb240("faces-nanid@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);

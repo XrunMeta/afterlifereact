@@ -112,7 +112,7 @@ v_469bf2("POST /oth-path", () => {
     v_4d37e3(v_4d33b2.best).toBeNull();
   });
 
-  v_23805a("사용자 B가 A 소유 클론으로 match 시도 → 404(클론 접근 검증)", async () => {
+  v_23805a("사용자 B가 A 소유 공개 클론으로 match 시도 → 200이지만 A의 등록은 보이지 않는다(namespace 격리)", async () => {
     const v_1badb6 = await v_bfb240("match-owner@test.local");
     const v_7f0625 = await v_bfb240("match-attacker@test.local");
     const v_40444e = await v_86c39f(v_1badb6);
@@ -124,6 +124,28 @@ v_469bf2("POST /oth-path", () => {
     await v_eb0ef3(v_40444e, v_1badb6, v_6e0fd3, v_ca1ec5, v_46ff7a(0.1));
 
     const v_8f00b9 = await v_a63110(v_d82c92, v_46ff7a(0.1), v_6e0fd3);
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_4d33b2 = (await v_8f00b9.json()) as { best: unknown | null; matches: unknown[] };
+    v_4d37e3(v_4d33b2.best).toBeNull();
+    v_4d37e3(v_4d33b2.matches).toHaveLength(0);
+  });
+
+  v_23805a("비공개(private) 클론으로 타인이 match 시도 → 404(진짜 비접근은 계속 차단)", async () => {
+    const v_1badb6 = await v_bfb240("match-priv-owner@test.local");
+    await v_a1651b()
+      .prepare(
+        `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+         VALUES (?, 'Private', 'match-priv-clone', 'memlow', 'private', CURRENT_TIMESTAMP)`,
+      )
+      .bind(v_1badb6)
+      .run();
+    const v_6e0fd3 = (
+      await v_a1651b().prepare("SELECT id FROM clones WHERE username = 'match-priv-clone'").first<{ id: number }>()
+    )!.id;
+    const v_0b00e8 = await v_bfb240("match-priv-stranger@test.local");
+    const v_36f9f9 = await v_86c39f(v_0b00e8);
+
+    const v_8f00b9 = await v_a63110(v_36f9f9, v_46ff7a(0.1), v_6e0fd3);
     v_4d37e3(v_8f00b9.status).toBe(404);
   });
 

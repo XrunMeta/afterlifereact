@@ -70,9 +70,11 @@ export async function v_31967f(
 
 export async function v_865d38(
   v_2ca7e0,
+  v_6e0fd3,
 ): Promise<{ items: Person[] }> {
+  const v_9fe22d = v_6e0fd3 !== undefined ? `/oth-path?cloneId=${v_6e0fd3}` : '/oth-path';
   const v_8f00b9 = await v_04b58a<{ data?: Person[] }>(
-    '/oth-path',
+    v_9fe22d,
     v_2ca7e0,
     { method: 'GET' },
   );

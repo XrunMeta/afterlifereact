@@ -7,7 +7,7 @@ import { v_6690d9 } from "../middleware/auth";
 import { v_a8d2cc } from "../lib/faceVectors";
 import { v_430d2b } from "../lib/personDelete";
 import { v_d0fd96 } from "../lib/displayName";
-import { v_74c502 } from "../lib/cloneAccess";
+import { v_0b07b9 } from "../lib/cloneAccess";
 import { v_929ead, v_97be02, v_003ee1 } from "../lib/cloneFaceScope";
 
 export const v_fded81 = new v_b7c41b<v_de0a25>();
@@ -57,13 +57,9 @@ v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
   const v_40c2c9 = v_926d89 === "auto_biometric" ? "granted" : "none";
   const v_322d60 = v_926d89 === "auto_biometric" ? Date.now() : null;
 
-  const v_2461e1 = await v_3f4e2e.env.DB.prepare(
-    `SELECT id FROM clones WHERE id = ? AND owner_id = ? AND ${v_74c502()}`
-  )
-    .bind(v_6e0fd3, v_43e90c)
-    .first<{ id: number }>();
-  if (!v_2461e1) {
-    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  const v_eb25ce = await v_0b07b9(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c);
+  if (!v_eb25ce) {
+    throw new v_3ebe58("NOT_FOUND", "클론을 찾을 수 없습니다.");
   }
 
   const v_9e67a6 = Date.now();
@@ -117,11 +113,7 @@ v_fded81.post("/match", v_6690d9, async (v_3f4e2e) => {
   if (typeof v_6e0fd3 !== "number" || !Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
     throw new v_3ebe58("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
 
-  const v_eb25ce = await v_3f4e2e.env.DB.prepare(
-    `SELECT id FROM clones WHERE id = ? AND owner_id = ? AND ${v_74c502()}`
-  )
-    .bind(v_6e0fd3, v_43e90c)
-    .first<{ id: number }>();
+  const v_eb25ce = await v_0b07b9(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c);
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "클론을 찾을 수 없습니다.");
 
   const v_01dcf5 = await v_3f4e2e.env.DB.prepare("SELECT value FROM app_config WHERE key = 'face.match_threshold'").first<{
@@ -313,6 +305,9 @@ v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = v_4d33b2.cloneId;
   if (typeof v_6e0fd3 !== "number" || !Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
     throw new v_3ebe58("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+
+  const v_eb25ce = await v_0b07b9(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "person이 존재하지 않습니다.");
 
   const v_306a28 = await v_3f4e2e.env.DB.prepare(
     "SELECT id, consent_state FROM persons WHERE id = ? AND user_id = ? AND clone_id = ?",

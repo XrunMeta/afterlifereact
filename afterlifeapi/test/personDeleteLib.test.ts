@@ -81,6 +81,59 @@ v_469bf2("deletePersonCascade (lib)", () => {
     v_4d37e3(v_ab6401.matches.length).toBe(0);
   });
 
+  v_23805a("self person을 삭제하면 clones.self_person_id가 NULL화된다", async () => {
+    const v_43e90c = await v_bfb240("lib-del-self-1@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "lib-del-self-1-clone");
+    const v_5c2f9f = Date.now();
+    const v_43af15 = await v_9542f7.DB.prepare(
+      `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at)
+       VALUES (?, ?, 'self', 'granted', ?, 'auto_biometric', ?)`,
+    )
+      .bind(v_43e90c, v_6e0fd3, v_5c2f9f, v_5c2f9f)
+      .run();
+    const v_ca1ec5 = v_43af15.meta.last_row_id as number;
+    await v_9542f7.DB.prepare("UPDATE clones SET self_person_id = ? WHERE id = ?").bind(v_ca1ec5, v_6e0fd3).run();
+
+    await v_430d2b(v_9542f7, v_ca1ec5, v_43e90c);
+
+    const v_eb25ce = await v_9542f7.DB.prepare("SELECT self_person_id FROM clones WHERE id = ?")
+      .bind(v_6e0fd3)
+      .first<{ self_person_id: number | null }>();
+    v_4d37e3(v_eb25ce?.self_person_id).toBeNull();
+  });
+
+  v_23805a("clone_person_faces에만 있는 vectorize_id도 회수해 Vectorize에서 삭제한다", async () => {
+    const v_43e90c = await v_bfb240("lib-del-cpf-1@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "lib-del-cpf-1-clone");
+    const v_5c2f9f = Date.now();
+    const v_43af15 = await v_9542f7.DB.prepare(
+      `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at)
+       VALUES (?, ?, 'cpf전용', 'granted', ?, 'card', ?)`,
+    )
+      .bind(v_43e90c, v_6e0fd3, v_5c2f9f, v_5c2f9f)
+      .run();
+    const v_ca1ec5 = v_43af15.meta.last_row_id as number;
+
+    const v_e86ad8 = v_a8d2cc(v_9542f7);
+    const v_f8758e = crypto.randomUUID();
+    await v_e86ad8.insert([
+      { id: v_f8758e, values: v_46ff7a(0.7), namespace: v_929ead(v_43e90c, v_6e0fd3), metadata: { personId: String(v_ca1ec5) } },
+    ]);
+
+    await v_9542f7.DB.prepare(
+      `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
+       VALUES (?, ?, ?, 'w600k_mbf', 512, 'enroll', ?)`,
+    )
+      .bind(v_6e0fd3, v_ca1ec5, v_f8758e, v_5c2f9f)
+      .run();
+
+    const v_43c42e = await v_430d2b(v_9542f7, v_ca1ec5, v_43e90c);
+    v_4d37e3(v_43c42e.deletedEmbeddings).toBe(1);
+
+    const v_ab6401 = await v_e86ad8.query(v_46ff7a(0.7), { topK: 3, namespace: v_929ead(v_43e90c, v_6e0fd3), returnMetadata: true });
+    v_4d37e3(v_ab6401.matches.length).toBe(0);
+  });
+
   v_23805a("임베딩 없는 person도 정상 삭제(deletedEmbeddings=0)", async () => {
     const v_43e90c = await v_bfb240("lib-del-2@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);

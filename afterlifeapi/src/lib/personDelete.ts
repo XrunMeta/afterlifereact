@@ -12,8 +12,13 @@ export async function v_430d2b(
   v_ca1ec5,
   v_43e90c,
 ): Promise<PersonDeleteResult> {
-  const v_61c797 = await v_c9c489.DB.prepare("SELECT vectorize_id FROM face_embeddings WHERE person_id = ?")
-    .bind(v_ca1ec5)
+
+  const v_61c797 = await v_c9c489.DB.prepare(
+    `SELECT vectorize_id FROM face_embeddings WHERE person_id = ?
+     UNION
+     SELECT vectorize_id FROM clone_person_faces WHERE person_id = ?`,
+  )
+    .bind(v_ca1ec5, v_ca1ec5)
     .all<{ vectorize_id: string | null }>();
   const v_23dafb = v_61c797.results.map((v_cb35cb) => v_cb35cb.vectorize_id).filter((v_81e2ef): v_81e2ef is string => Boolean(v_81e2ef));
 
@@ -23,6 +28,7 @@ export async function v_430d2b(
 
   await v_c9c489.DB.batch([
     v_c9c489.DB.prepare("DELETE FROM face_embeddings WHERE person_id = ?").bind(v_ca1ec5),
+    v_c9c489.DB.prepare("DELETE FROM clone_person_faces WHERE person_id = ?").bind(v_ca1ec5),
 
     v_c9c489.DB.prepare(
       `INSERT INTO persons_consent_log (person_id, state, terms_version, channel, changed_at)
@@ -30,6 +36,8 @@ export async function v_430d2b(
     ).bind(v_ca1ec5, v_bee926),
     v_c9c489.DB.prepare("UPDATE call_turns SET speaker_person_id = NULL WHERE speaker_person_id = ?").bind(v_ca1ec5),
     v_c9c489.DB.prepare("DELETE FROM clone_ont_person WHERE person_id = ?").bind(v_ca1ec5),
+
+    v_c9c489.DB.prepare("UPDATE clones SET self_person_id = NULL WHERE self_person_id = ?").bind(v_ca1ec5),
     v_c9c489.DB.prepare("DELETE FROM persons WHERE id = ? AND user_id = ?").bind(v_ca1ec5, v_43e90c),
   ]);
 
@@ -47,8 +55,12 @@ export async function v_714639(
 ): Promise<CloneScopeDeleteResult> {
   const { userId: v_43e90c, cloneId: v_6e0fd3 } = v_328259;
 
-  const v_fded81 = await v_c9c489.DB.prepare("SELECT id FROM persons WHERE user_id = ? AND clone_id = ?")
-    .bind(v_43e90c, v_6e0fd3)
+  const v_fded81 = await v_c9c489.DB.prepare(
+    `SELECT id FROM persons
+      WHERE user_id = ? AND clone_id = ?
+        AND id != COALESCE((SELECT self_person_id FROM clones WHERE id = ?), 0)`,
+  )
+    .bind(v_43e90c, v_6e0fd3, v_6e0fd3)
     .all<{ id: number }>();
 
   let v_834ce1 = 0;

@@ -120,7 +120,7 @@ v_469bf2("POST /oth-path — 클론 스코프", () => {
     v_4d37e3(v_90d74f.matches).toHaveLength(0);
   });
 
-  v_23805a("타 사용자 소유 클론이면 404", async () => {
+  v_23805a("타 사용자 소유 공개 클론이어도 접근 가능(비소유자 매칭)", async () => {
     const v_1badb6 = await v_bfb240("t257c-owner@x.com");
     const v_6e0fd3 = await v_4d24a9(v_1badb6, "t257c-owner-clone");
     const v_7a3219 = await v_bfb240("t257c-other@x.com");
@@ -131,7 +131,115 @@ v_469bf2("POST /oth-path — 클론 스코프", () => {
       headers: { "content-type": "application/json", authorization: `Bearer ${v_21cc31}` },
       body: JSON.stringify({ vector: v_46ff7a(1), cloneId: v_6e0fd3 }),
     });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_4d33b2 = await v_8f00b9.json<{ best: unknown | null; matches: unknown[] }>();
+    v_4d37e3(v_4d33b2.best).toBeNull();
+    v_4d37e3(v_4d33b2.matches).toHaveLength(0);
+  });
+
+  v_23805a("private 클론·비-follower는 여전히 404(접근 불가는 계속 차단)", async () => {
+    const v_1badb6 = await v_bfb240("t257priv-owner@x.com");
+    await v_a1651b()
+      .prepare(
+        `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+         VALUES (?, 'Private', 't257priv-clone', 'memlow', 'private', CURRENT_TIMESTAMP)`,
+      )
+      .bind(v_1badb6)
+      .run();
+    const v_6e0fd3 = (
+      await v_a1651b().prepare("SELECT id FROM clones WHERE username = 't257priv-clone'").first<{ id: number }>()
+    )!.id;
+    const v_0b00e8 = await v_bfb240("t257priv-stranger@x.com");
+    const v_21cc31 = await v_86c39f(v_0b00e8);
+
+    const v_8f00b9 = await v_1df298.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${v_21cc31}` },
+      body: JSON.stringify({ vector: v_46ff7a(1), cloneId: v_6e0fd3 }),
+    });
     v_4d37e3(v_8f00b9.status).toBe(404);
+  });
+
+  v_23805a("정지된(admin_suspended_at) 공개 클론은 소유자가 아니면 여전히 404", async () => {
+    const v_1badb6 = await v_bfb240("t257susp-owner@x.com");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "t257susp-clone");
+    await v_a1651b()
+      .prepare(`UPDATE clones SET admin_suspended_at = CURRENT_TIMESTAMP WHERE id = ?`)
+      .bind(v_6e0fd3)
+      .run();
+    const v_0b00e8 = await v_bfb240("t257susp-stranger@x.com");
+    const v_21cc31 = await v_86c39f(v_0b00e8);
+
+    const v_8f00b9 = await v_1df298.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${v_21cc31}` },
+      body: JSON.stringify({ vector: v_46ff7a(1), cloneId: v_6e0fd3 }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(404);
+  });
+
+  v_23805a("두 사용자가 같은 클론에 등록해도 서로 다른 person이고 서로 매칭되지 않는다", async () => {
+    const v_1badb6 = await v_bfb240("t257iso-owner@x.com");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "t257iso-clone");
+    const v_40efc8 = await v_bfb240("t257iso-a@x.com");
+    const v_4a3fe3 = await v_bfb240("t257iso-b@x.com");
+    const v_21b3f7 = await v_86c39f(v_40efc8);
+    const v_fef5a7 = await v_86c39f(v_4a3fe3);
+
+    const v_34af88 = await (
+      await v_1df298.fetch("https://x/oth-path", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${v_21b3f7}` },
+        body: JSON.stringify({ cloneId: v_6e0fd3, displayName: "A화자", enrolledVia: "card" }),
+      })
+    ).json<{ id: number }>();
+    await v_1df298.fetch(`https://x/oth-path${v_34af88.id}/consent`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${v_21b3f7}` },
+      body: JSON.stringify({ state: "granted" }),
+    });
+    await v_1df298.fetch(`https://x/oth-path${v_34af88.id}/faces`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${v_21b3f7}` },
+      body: JSON.stringify({ cloneId: v_6e0fd3, vectors: [v_46ff7a(30)] }),
+    });
+
+    const v_b57ac3 = await (
+      await v_1df298.fetch("https://x/oth-path", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${v_fef5a7}` },
+        body: JSON.stringify({ cloneId: v_6e0fd3, displayName: "B화자", enrolledVia: "card" }),
+      })
+    ).json<{ id: number }>();
+    await v_1df298.fetch(`https://x/oth-path${v_b57ac3.id}/consent`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${v_fef5a7}` },
+      body: JSON.stringify({ state: "granted" }),
+    });
+
+    await v_1df298.fetch(`https://x/oth-path${v_b57ac3.id}/faces`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${v_fef5a7}` },
+      body: JSON.stringify({ cloneId: v_6e0fd3, vectors: [v_46ff7a(30)] }),
+    });
+
+    v_4d37e3(v_34af88.id).not.toBe(v_b57ac3.id);
+
+    const v_f6fab1 = await v_1df298.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${v_21b3f7}` },
+      body: JSON.stringify({ vector: v_46ff7a(30), cloneId: v_6e0fd3 }),
+    });
+    const v_4e954e = await v_f6fab1.json<{ best: { personId: number } | null }>();
+    v_4d37e3(v_4e954e.best?.personId).toBe(v_34af88.id);
+
+    const v_63149c = await v_1df298.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${v_fef5a7}` },
+      body: JSON.stringify({ vector: v_46ff7a(30), cloneId: v_6e0fd3 }),
+    });
+    const v_0bfd68 = await v_63149c.json<{ best: { personId: number } | null }>();
+    v_4d37e3(v_0bfd68.best?.personId).toBe(v_b57ac3.id);
   });
 
   v_23805a("소유자 본인이어도 소프트삭제된 클론이면 404(deletion_state≠active)", async () => {

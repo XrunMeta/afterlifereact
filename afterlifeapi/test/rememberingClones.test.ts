@@ -146,6 +146,64 @@ v_469bf2("나를 기억하는 클론", () => {
     v_4d37e3(v_8f00b9.status).toBe(422);
   });
 
+  v_23805a("[지우기]는 self person과 그 clone_person_faces는 보존한다(비-self만 삭제)", async () => {
+    const v_43e90c = await v_bfb240("t257s@x.com");
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "t257s-clone");
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+
+    const v_7019c8 = await v_f86d7a(v_43e90c, v_6e0fd3, "제작자self");
+    await v_a1651b.prepare("UPDATE clones SET self_person_id = ? WHERE id = ?").bind(v_7019c8, v_6e0fd3).run();
+    await v_a1651b
+      .prepare(
+        `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
+         VALUES (?, ?, ?, 'w600k_mbf', 512, 'self', ?)`,
+      )
+      .bind(v_6e0fd3, v_7019c8, "vec-self-1", Date.now())
+      .run();
+
+    const v_912627 = await v_f86d7a(v_43e90c, v_6e0fd3, "친구P2");
+    await v_a1651b
+      .prepare(
+        `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
+         VALUES (?, ?, ?, 'w600k_mbf', 512, 'enroll', ?)`,
+      )
+      .bind(v_6e0fd3, v_912627, "vec-other-1", Date.now())
+      .run();
+
+    const v_21cc31 = await v_182fdb("t257s@x.com");
+    const v_8f00b9 = await v_1df298.fetch(`https://x/oth-path${v_6e0fd3}`, {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${v_21cc31}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_4d33b2 = await v_8f00b9.json<{ deletedPersons: number }>();
+    v_4d37e3(v_4d33b2.deletedPersons).toBe(1); 
+
+    const v_e1d594 = await v_a1651b
+      .prepare("SELECT COUNT(*) AS n FROM persons WHERE id = ?")
+      .bind(v_7019c8)
+      .first<{ n: number }>();
+    v_4d37e3(v_e1d594?.n).toBe(1);
+
+    const v_0576a4 = await v_a1651b
+      .prepare("SELECT COUNT(*) AS n FROM clone_person_faces WHERE person_id = ?")
+      .bind(v_7019c8)
+      .first<{ n: number }>();
+    v_4d37e3(v_0576a4?.n).toBe(1);
+
+    const v_eb25ce = await v_a1651b
+      .prepare("SELECT self_person_id FROM clones WHERE id = ?")
+      .bind(v_6e0fd3)
+      .first<{ self_person_id: number | null }>();
+    v_4d37e3(v_eb25ce?.self_person_id).toBe(v_7019c8);
+
+    const v_a9cbf1 = await v_a1651b
+      .prepare("SELECT COUNT(*) AS n FROM persons WHERE id = ?")
+      .bind(v_912627)
+      .first<{ n: number }>();
+    v_4d37e3(v_a9cbf1?.n).toBe(0);
+  });
+
   v_23805a("같은 클론을 두 번 지워도 에러 없이 멱등하다", async () => {
     const v_43e90c = await v_bfb240("t257r@x.com");
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "t257r-clone");

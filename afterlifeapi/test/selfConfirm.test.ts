@@ -210,6 +210,61 @@ v_469bf2("confirmSelf() 경합 가드 — self_person_id UPDATE 영향행 0", ()
   });
 });
 
+v_469bf2("DELETE /oth-path 로 self 삭제 → self_person_id NULL화 → 재확정 성공", () => {
+  v_ff107d(() => {
+    v_dbed3e();
+  });
+
+  v_23805a("self person 삭제 후 clones.self_person_id가 NULL이 되고, 동일 클론에 self-confirm 재시도가 200으로 성공한다", async () => {
+    const v_43e90c = await v_bfb240("t257selfdel@x.com");
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "t257selfdel-clone");
+    const v_21cc31 = await v_182fdb("t257selfdel@x.com");
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_3f4675 = { "content-type": "application/json", authorization: `Bearer ${v_21cc31}` };
+
+    const v_f4441a = await v_1df298.fetch(`https://x/oth-path${v_6e0fd3}/self-confirm`, {
+      method: "POST",
+      headers: v_3f4675,
+      body: JSON.stringify({ vectors: [v_46ff7a(40), v_46ff7a(40), v_46ff7a(40)], displayName: "지울제작자" }),
+    });
+    v_4d37e3(v_f4441a.status).toBe(200);
+    const { personId: v_ca1ec5 } = await v_f4441a.json<{ personId: number }>();
+
+    const v_0cfb8d = await v_a1651b
+      .prepare("SELECT self_person_id FROM clones WHERE id = ?")
+      .bind(v_6e0fd3)
+      .first<{ self_person_id: number | null }>();
+    v_4d37e3(v_0cfb8d?.self_person_id).toBe(v_ca1ec5);
+
+    const v_8bd83b = await v_1df298.fetch(`https://x/oth-path${v_ca1ec5}`, {
+      method: "DELETE",
+      headers: v_3f4675,
+    });
+    v_4d37e3(v_8bd83b.status).toBe(200);
+
+    const v_d0f0cb = await v_a1651b
+      .prepare("SELECT self_person_id FROM clones WHERE id = ?")
+      .bind(v_6e0fd3)
+      .first<{ self_person_id: number | null }>();
+    v_4d37e3(v_d0f0cb?.self_person_id).toBeNull();
+
+    const v_d6f419 = await v_1df298.fetch(`https://x/oth-path${v_6e0fd3}/self-confirm`, {
+      method: "POST",
+      headers: v_3f4675,
+      body: JSON.stringify({ vectors: [v_46ff7a(41), v_46ff7a(41), v_46ff7a(41)], displayName: "재확정제작자" }),
+    });
+    v_4d37e3(v_d6f419.status).toBe(200);
+    const v_82ea38 = await v_d6f419.json<{ personId: number }>();
+    v_4d37e3(v_82ea38.personId).not.toBe(v_ca1ec5);
+
+    const v_ca588a = await v_a1651b
+      .prepare("SELECT self_person_id FROM clones WHERE id = ?")
+      .bind(v_6e0fd3)
+      .first<{ self_person_id: number | null }>();
+    v_4d37e3(v_ca588a?.self_person_id).toBe(v_82ea38.personId);
+  });
+});
+
 v_469bf2("confirmSelf() enroll 실패 → 고아 person 없음 + 재시도 성공", () => {
   v_ff107d(() => {
     v_dbed3e();
