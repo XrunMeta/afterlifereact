@@ -386,7 +386,10 @@ export default function MyClonesDashboardScreen() {
   };
 
   const handleVisibility = (cloneId: number) => {
-    const current = cloneStates[cloneId]?.visibility ?? "public";
+
+    const stateVis = cloneStates[cloneId]?.visibility;
+    const cloneVis = myClones.find((c) => c.id === cloneId)?.visibility;
+    const current = stateVis ?? cloneVis ?? "public";
     setVisibilityModal({ cloneId, currentVisibility: current });
     setMenuCloneId(null);
   };
