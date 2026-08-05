@@ -556,8 +556,10 @@ function Component({ draft, onChange }: Props) {
   );
 }
 
-Component.validate = (d: CloneCreationDraft): boolean =>
-  Boolean(d.voicePresetId) || Boolean(d.voiceCloneJobId) || Boolean(d.voiceFile);
+Component.validate = (d: CloneCreationDraft): boolean => {
+  if (d.voiceMode === "record") return Boolean(d.voiceCloneJobId);
+  return Boolean(d.voicePresetId) || Boolean(d.voiceCloneJobId) || Boolean(d.voiceFile);
+};
 
 const DefaultVoiceUpload = Component as typeof Component & {
   validate: (d: CloneCreationDraft) => boolean;
