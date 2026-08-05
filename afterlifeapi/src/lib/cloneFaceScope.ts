@@ -61,16 +61,19 @@ export async function enrollCloneScopeFaces(
   }));
 
   const createdAt = Date.now();
+
+  const legacySource = source === "self" ? "enroll" : source;
+
   const legacyStmt = env.DB.prepare(
     `INSERT INTO face_embeddings (person_id, vectorize_id, model, dim, source, created_at)
-     VALUES (?, ?, 'w600k_mbf', 512, 'call', ?)`,
+     VALUES (?, ?, 'w600k_mbf', 512, ?, ?)`,
   );
   const scopeStmt = env.DB.prepare(
     `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
      VALUES (?, ?, ?, 'w600k_mbf', 512, ?, ?)`,
   );
   await env.DB.batch([
-    ...rows.map((r) => legacyStmt.bind(personId, r.id, createdAt)),
+    ...rows.map((r) => legacyStmt.bind(personId, r.id, legacySource, createdAt)),
     ...rows.map((r) => scopeStmt.bind(cloneId, personId, r.id, source, createdAt)),
   ]);
 

@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { SELF, env } from "cloudflare:test";
 import { issueToken } from "../src/lib/jwt";
 import { __resetMemoryFaceIndex, getFaceIndex } from "../src/lib/faceVectors";
-import { faceNamespace } from "../src/lib/cloneFaceScope";
+import { faceNamespace, enrollCloneScopeFaces } from "../src/lib/cloneFaceScope";
 
 const db = () => env.DB as unknown as D1Database;
 
@@ -267,5 +267,77 @@ describe("unknown → L2′ 생성 왕복", () => {
     const body = await res.json<{ best: unknown | null; matches: unknown[] }>();
     expect(body.best).toBeNull();
     expect(body.matches).toHaveLength(0);
+  });
+});
+
+describe("enrollCloneScopeFaces — source 매핑(face_embeddings CHECK 어휘 축소)", () => {
+  beforeEach(() => {
+    __resetMemoryFaceIndex();
+  });
+
+  async function seedGrantedPerson(userId: number, cloneId: number, name: string): Promise<number> {
+    const now = Date.now();
+    const ins = await db()
+      .prepare(
+        `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at)
+         VALUES (?, ?, ?, 'granted', ?, 'card', ?)`,
+      )
+      .bind(userId, cloneId, name, now, now)
+      .run();
+    return ins.meta.last_row_id as number;
+  }
+
+  it("source:'self' → clone_person_faces엔 'self', face_embeddings엔 'enroll'로 좁혀 기록(둘 다 throw 없이 성공)", async () => {
+    const userId = await seedUser("t257n@x.com");
+    const cloneId = await seedClone(userId, "t257n-clone");
+    const personId = await seedGrantedPerson(userId, cloneId, "셀프확정대상");
+
+    const result = await enrollCloneScopeFaces(env as never, {
+      userId,
+      cloneId,
+      personId,
+      vectors: [vec(20)],
+      source: "self",
+    });
+    expect(result.enrolled).toBe(1);
+
+    const cpf = await db()
+      .prepare("SELECT source FROM clone_person_faces WHERE clone_id = ? AND person_id = ?")
+      .bind(cloneId, personId)
+      .first<{ source: string }>();
+    expect(cpf?.source).toBe("self");
+
+    const fe = await db()
+      .prepare("SELECT source FROM face_embeddings WHERE person_id = ?")
+      .bind(personId)
+      .first<{ source: string }>();
+    expect(fe?.source).toBe("enroll");
+  });
+
+  it("source:'call'(기본값) → 두 장부 모두 'call'로 기록(회귀 확인)", async () => {
+    const userId = await seedUser("t257o@x.com");
+    const cloneId = await seedClone(userId, "t257o-clone");
+    const personId = await seedGrantedPerson(userId, cloneId, "일반통화대상");
+
+    const result = await enrollCloneScopeFaces(env as never, {
+      userId,
+      cloneId,
+      personId,
+      vectors: [vec(21)],
+
+    });
+    expect(result.enrolled).toBe(1);
+
+    const cpf = await db()
+      .prepare("SELECT source FROM clone_person_faces WHERE clone_id = ? AND person_id = ?")
+      .bind(cloneId, personId)
+      .first<{ source: string }>();
+    expect(cpf?.source).toBe("call");
+
+    const fe = await db()
+      .prepare("SELECT source FROM face_embeddings WHERE person_id = ?")
+      .bind(personId)
+      .first<{ source: string }>();
+    expect(fe?.source).toBe("call");
   });
 });
