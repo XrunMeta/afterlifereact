@@ -111,7 +111,12 @@ export default function v_06b8c0({ visible: v_cf55be, cloneId: v_6e0fd3, cloneNa
               </View>
             )}
 
-            <ScrollView style={v_fd5f43.eventsScrollArea} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={v_fd5f43.eventsScrollArea}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
               {v_683210 ? (
                 <ActivityIndicator color={v_1bfbd0.zinc500} style={{ paddingVertical: 24 }} />
               ) : !v_9390e8 || v_9390e8.items.length === 0 ? (
