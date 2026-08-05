@@ -578,4 +578,49 @@ describe('무발화 워치독', () => {
   it('지연 스케줄은 30초 → 60초 이다', () => {
     expect(IDLE_GREET_DELAYS_MS).toEqual([30000, 60000]);
   });
+
+  it('격리: phase 는 listening 인데 activeSeq 만 남아있으면(진행 중 발화) 발동하지 않는다', () => {
+    const s1 = { ...live(), activeSeq: 5 };
+    const r = handsFreeReducer(s1, { type: 'IDLE_TIMEOUT' });
+    expect(r.state).toBe(s1);
+    expect(r.effects).toEqual([]);
+  });
+
+  it('격리: phase 는 listening 인데 micOn 만 false 이면 발동하지 않는다', () => {
+    const s1 = { ...live(), micOn: false };
+    const r = handsFreeReducer(s1, { type: 'IDLE_TIMEOUT' });
+    expect(r.state).toBe(s1);
+    expect(r.effects).toEqual([]);
+  });
+
+  it('연속 발동 end-to-end: 1차(0→1) → listening 복귀 → 2차(1→2) → listening 복귀 → 3차는 차단', () => {
+    const r1 = handsFreeReducer(live(), { type: 'IDLE_TIMEOUT' });
+    expect(r1.state.phase).toBe('interrupting');
+    expect(r1.state.idleGreetCount).toBe(1);
+
+    const s2 = handsFreeReducer(r1.state, { type: 'RESPONSE_DONE', seq: r1.state.activeSeq! }).state;
+    expect(s2.phase).toBe('listening');
+    expect(s2.idleGreetCount).toBe(1);
+
+    const r2 = handsFreeReducer(s2, { type: 'IDLE_TIMEOUT' });
+    expect(r2.state.phase).toBe('interrupting');
+    expect(r2.state.idleGreetCount).toBe(2);
+
+    const s3 = handsFreeReducer(r2.state, { type: 'RESPONSE_DONE', seq: r2.state.activeSeq! }).state;
+    expect(s3.phase).toBe('listening');
+    expect(s3.idleGreetCount).toBe(2);
+
+    const r3 = handsFreeReducer(s3, { type: 'IDLE_TIMEOUT' });
+    expect(r3.state.phase).toBe('listening');
+    expect(r3.state.idleGreetCount).toBe(2);
+    expect(r3.effects).toEqual([]);
+  });
+
+  it('confirmGate=true(confirming) 경로에서도 FINAL_RESULT 가 idleGreetCount 를 리셋한다', () => {
+    const s0 = handsFreeReducer(initHandsFreeState(), { type: 'CALL_LIVE', confirmGate: true }).state;
+    const s1 = { ...s0, idleGreetCount: 2 };
+    const r = handsFreeReducer(s1, { type: 'FINAL_RESULT', text: '안녕' });
+    expect(r.state.phase).toBe('confirming');
+    expect(r.state.idleGreetCount).toBe(0);
+  });
 });
