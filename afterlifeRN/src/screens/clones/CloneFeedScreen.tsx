@@ -227,7 +227,10 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
 
     const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
       v_c65f5d.dispatch(
-        v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+        v_650cfa.navigate({
+          name: "Main",
+          params: { screen: "MyTab", params: { screen: "Purchase" } },
+        }),
       );
     });
     if (!v_3ed4c3) return;
