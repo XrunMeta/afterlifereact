@@ -4,6 +4,10 @@ export type HandsFreePhase =
   | 'idle' | 'greeting' | 'listening' | 'confirming' | 'sending' | 'speaking' | 'paused'
   | 'interrupting';
 
+export const v_6fc7ac = [30000, 60000];
+
+export const v_de0ee8 = '안녕하세요, 듣고 있어요';
+
 export interface HandsFreeState {
   phase: HandsFreePhase;
   micOn: boolean;
@@ -21,6 +25,8 @@ export interface HandsFreeState {
   userSpeaking: boolean;
 
   pendingInterrupt: { text: string; faceKey: string; deferredTurns: number } | null;
+
+  idleGreetCount: number;
 }
 
 export type HandsFreeEvent =
@@ -38,11 +44,12 @@ export type HandsFreeEvent =
   | { type: 'CALL_ENDED' }
   | { type: 'USER_SPEECH_START' }
   | { type: 'USER_SPEECH_IDLE' }
-  | { type: 'FACE_INTERRUPT'; text: string; faceKey: string };
+  | { type: 'FACE_INTERRUPT'; text: string; faceKey: string }
+  | { type: 'IDLE_TIMEOUT' };
 
 export type HandsFreeEffect =
   | 'START_STT' | 'STOP_STT' | 'SAY' | 'GREET' | 'SPEAK_FALLBACK'
-  | 'START_DETECTOR' | 'STOP_DETECTOR' | 'SAY_INTERRUPT';
+  | 'START_DETECTOR' | 'STOP_DETECTOR' | 'SAY_INTERRUPT' | 'SAY_IDLE_GREETING';
 
 export interface HandsFreeResult {
   state: HandsFreeState;
@@ -54,7 +61,7 @@ export interface HandsFreeResult {
 
 export const v_3075fa = (): HandsFreeState => ({
   phase: 'idle', micOn: true, pendingText: '', confirmGate: false, signalGating: false,
-  activeSeq: null, nextSeq: 1, userSpeaking: false, pendingInterrupt: null,
+  activeSeq: null, nextSeq: 1, userSpeaking: false, pendingInterrupt: null, idleGreetCount: 0,
 });
 
 function v_778049(v_b6e533): HandsFreeResult {
@@ -142,7 +149,7 @@ export function v_6920f0(v_b6e533, v_1d299c): HandsFreeResult {
         return {
           state: {
             ...v_b6e533, phase: 'sending', pendingText: v_9b6134, activeSeq: v_1923e2, nextSeq: v_1923e2 + 1, userSpeaking: false,
-            pendingInterrupt: v_0d45fe,
+            pendingInterrupt: v_0d45fe, idleGreetCount: 0,
           },
           effects: ['STOP_STT', 'SAY', 'START_DETECTOR'],
           sayText: v_9b6134,
@@ -153,7 +160,10 @@ export function v_6920f0(v_b6e533, v_1d299c): HandsFreeResult {
         v_b6e533.phase === 'confirming' && v_b6e533.pendingText
           ? `${v_b6e533.pendingText} ${v_9b6134}`.trim()
           : v_9b6134;
-      return { state: { ...v_b6e533, phase: 'confirming', pendingText: v_def12c, userSpeaking: false, pendingInterrupt: v_0d45fe }, effects: [] };
+      return {
+        state: { ...v_b6e533, phase: 'confirming', pendingText: v_def12c, userSpeaking: false, pendingInterrupt: v_0d45fe, idleGreetCount: 0 },
+        effects: [],
+      };
     }
 
     case 'CONFIRM_SEND': {
@@ -206,14 +216,14 @@ export function v_6920f0(v_b6e533, v_1d299c): HandsFreeResult {
     case 'MIC_OFF':
       if (!v_b6e533.micOn) return { state: v_b6e533, effects: [] };
       return {
-        state: { phase: 'paused', micOn: false, pendingText: '', confirmGate: v_b6e533.confirmGate, signalGating: v_b6e533.signalGating, activeSeq: null, nextSeq: v_b6e533.nextSeq, userSpeaking: false, pendingInterrupt: null },
+        state: { phase: 'paused', micOn: false, pendingText: '', confirmGate: v_b6e533.confirmGate, signalGating: v_b6e533.signalGating, activeSeq: null, nextSeq: v_b6e533.nextSeq, userSpeaking: false, pendingInterrupt: null, idleGreetCount: v_b6e533.idleGreetCount },
         effects: ['STOP_STT', 'STOP_DETECTOR'],
       };
 
     case 'MIC_ON':
       if (v_b6e533.micOn) return { state: v_b6e533, effects: [] };
       return {
-        state: { phase: 'listening', micOn: true, pendingText: '', confirmGate: v_b6e533.confirmGate, signalGating: v_b6e533.signalGating, activeSeq: null, nextSeq: v_b6e533.nextSeq, userSpeaking: false, pendingInterrupt: null },
+        state: { phase: 'listening', micOn: true, pendingText: '', confirmGate: v_b6e533.confirmGate, signalGating: v_b6e533.signalGating, activeSeq: null, nextSeq: v_b6e533.nextSeq, userSpeaking: false, pendingInterrupt: null, idleGreetCount: v_b6e533.idleGreetCount },
         effects: ['START_STT'],
       };
 
@@ -237,6 +247,25 @@ export function v_6920f0(v_b6e533, v_1d299c): HandsFreeResult {
         },
         effects: ['STOP_STT', 'SAY_INTERRUPT', 'START_DETECTOR'],
         sayText: v_1d299c.text,
+        saySeq: v_1923e2,
+      };
+    }
+
+    case 'IDLE_TIMEOUT': {
+
+      if (v_b6e533.phase !== 'listening') return { state: v_b6e533, effects: [] };
+      if (v_b6e533.activeSeq !== null) return { state: v_b6e533, effects: [] };
+      if (v_b6e533.userSpeaking) return { state: v_b6e533, effects: [] };
+      if (!v_b6e533.micOn) return { state: v_b6e533, effects: [] };
+      if (v_b6e533.idleGreetCount >= v_6fc7ac.length) return { state: v_b6e533, effects: [] };
+      const v_1923e2 = v_b6e533.nextSeq;
+      return {
+        state: {
+          ...v_b6e533, phase: 'interrupting', pendingText: '',
+          activeSeq: v_1923e2, nextSeq: v_1923e2 + 1, idleGreetCount: v_b6e533.idleGreetCount + 1,
+        },
+        effects: ['STOP_STT', 'SAY_IDLE_GREETING', 'START_DETECTOR'],
+        sayText: v_de0ee8,
         saySeq: v_1923e2,
       };
     }
