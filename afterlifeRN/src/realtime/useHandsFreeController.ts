@@ -102,15 +102,14 @@ export function useHandsFreeController(opts: {
 
       dispatchRef.current({ type: 'FINAL_RESULT', text: ensureQuestionMark(text) });
     },
+
+    onSpeechActivity: () => {
+      dispatchRef.current({ type: 'USER_SPEECH_START' });
+    },
   });
 
   const speechRef = useRef(speech);
   useEffect(() => { speechRef.current = speech; });
-
-  useEffect(() => {
-    if (!speech.interimTranscript) return;
-    dispatchRef.current({ type: 'USER_SPEECH_START' });
-  }, [speech.interimTranscript]);
 
   const [sttSuppressed, setSttSuppressed] = useState(false);
   const sttSuppressedRef = useRef(false);
@@ -139,14 +138,6 @@ export function useHandsFreeController(opts: {
             dispatchRef.current({ type: 'USER_SPEECH_IDLE' });
             break;
           case 'SAY':
-            if (saySeq != null) activeSeqRef.current = saySeq;
-            if (sayText) {
-              sayRef.current(sayText).catch(() => dispatchRef.current({ type: 'RESPONSE_DONE' }));
-            } else {
-
-              dispatchRef.current({ type: 'RESPONSE_DONE' });
-            }
-            break;
           case 'SAY_INTERRUPT':
           case 'SAY_IDLE_GREETING':
 
@@ -243,7 +234,7 @@ export function useHandsFreeController(opts: {
 
   useEffect(() => {
     if (!opts.signalGating) return;
-    if (state.phase !== 'sending' && state.phase !== 'speaking') return;
+    if (state.phase !== 'sending' && state.phase !== 'speaking' && state.phase !== 'interrupting') return;
     const ms = useTimingConfigStore.getState().responseDoneTimeoutMs;
     const id = setTimeout(() => dispatchRef.current({ type: 'RESPONSE_DONE' }), ms);
     return () => clearTimeout(id);
