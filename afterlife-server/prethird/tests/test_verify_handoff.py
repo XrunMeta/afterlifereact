@@ -202,3 +202,37 @@ def test_face_event_clone_matches_bool_never_matches():
 
     assert face_event_clone_matches(1, True) is False
     assert face_event_clone_matches(0, False) is False
+
+
+def test_face_event_clone_matches_infinity_never_raises():
+    """[재리뷰 fix] int(float('inf')) 는 ValueError/TypeError 가 아니라
+    OverflowError 를 던진다 — 이전 `except (TypeError, ValueError)` 로는 못 잡고
+    새어나갔다. `except Exception` 으로 광범위하게 잡아야 재발하지 않는다.
+    ±Infinity 둘 다 예외 없이 False(불일치)로 떨어져야 한다.
+    """
+    from signaling import face_event_clone_matches
+
+    assert face_event_clone_matches(42, float("inf")) is False
+    assert face_event_clone_matches(42, float("-inf")) is False
+
+
+def test_face_event_clone_matches_infinity_via_real_json_parse():
+    """[재리뷰 fix] 손으로 만든 파이썬 값이 아니라, 실제 공격 경로와 동일하게
+    원시 JSON 문자열을 `json.loads` 로 파싱해서 통과시킨다.
+
+    표준 json 모듈은 기본 `parse_constant` 로 `Infinity`/`-Infinity`/`NaN` 비표준
+    토큰을 허용한다 — `_on_msg`(signaling.py) 가 이 표준 `json.loads` 를 그대로
+    쓰므로 `{"type":"face_event","clone_id":Infinity}` 페이로드가 실제로
+    `face_event_clone_matches` 까지 float('inf') 로 도달할 수 있다. 이 테스트는
+    손으로 만든 파이썬 값이 아니라 그 실제 경로를 재현해야 이런 간극이
+    보인다(이전 테스트들은 전부 직접 파이썬 값을 넣어 이 간극을 놓쳤다).
+    """
+    import json
+    from signaling import face_event_clone_matches
+
+    payload = json.loads('{"type":"face_event","event":"speaker_confirmed","clone_id":Infinity}')
+    assert payload["clone_id"] == float("inf")
+    assert face_event_clone_matches(42, payload["clone_id"]) is False
+
+    payload_neg = json.loads('{"type":"face_event","event":"speaker_confirmed","clone_id":-Infinity}')
+    assert face_event_clone_matches(42, payload_neg["clone_id"]) is False
