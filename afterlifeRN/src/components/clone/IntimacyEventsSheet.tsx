@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import {
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -36,7 +37,8 @@ export default function IntimacyEventsSheet({ visible, cloneId, cloneName, onClo
   const insets = useSafeAreaInsets();
 
   const navBarHeight = useAndroidNavigationBarHeight(0);
-  const bottomInset = Math.max(insets.bottom, navBarHeight);
+  const androidMinNavBar = Platform.OS === "android" ? 56 : 0;
+  const bottomInset = Math.max(insets.bottom, navBarHeight, androidMinNavBar);
   const accessToken = useAuthStore((s) => s.accessToken);
 
   const [data, setData] = useState<IntimacyEventsResponse | null>(null);

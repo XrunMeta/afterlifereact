@@ -9,6 +9,7 @@ import {
   FlatList,
   ScrollView,
   Modal,
+  Platform,
   Pressable,
   TextInput,
   Dimensions,
@@ -115,7 +116,8 @@ export default function FollowingScreen() {
   const insets = useSafeAreaInsets();
 
   const navBarHeight = useAndroidNavigationBarHeight(0);
-  const sheetBottomInset = Math.max(insets.bottom, navBarHeight);
+  const androidMinNavBar = Platform.OS === "android" ? 56 : 0;
+  const sheetBottomInset = Math.max(insets.bottom, navBarHeight, androidMinNavBar);
   const rootNav = useNavigation<RootNav>();
   const authUser = useAuthStore((s) => s.user);
   const apiUser = useAuthStore((s) => s.apiUser);
