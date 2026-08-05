@@ -493,19 +493,45 @@ describe('flush ① — 사용자 턴 뒤에 인터럽트 이어붙이기', () =
   });
 });
 
-describe('2턴 폐기 규칙', () => {
-  const live = () => handsFreeReducer(initHandsFreeState(), { type: 'CALL_LIVE' }).state;
+describe('2턴 폐기 규칙 (confirmGate=true 경로에서만 유기적으로 발동)', () => {
+
   const face = { type: 'FACE_INTERRUPT' as const, text: '누구시죠?', faceKey: 'f1' };
 
-  it('사용자가 한 턴 더 말하면 deferredTurns 가 오르고, 2 이상이면 폐기된다', () => {
-    const s1 = handsFreeReducer(live(), { type: 'USER_SPEECH_START' }).state;
-    const s2 = handsFreeReducer(s1, face).state;
+  it('confirmGate=true: 사용자가 FINAL_RESULT 를 flush 없이 두 번(같은 confirming 턴에) 보내면 deferredTurns 가 1→2 로 올라 폐기된다', () => {
+    const s0 = handsFreeReducer(initHandsFreeState(), { type: 'CALL_LIVE', confirmGate: true }).state;
+    const s1 = handsFreeReducer(s0, { type: 'USER_SPEECH_START' }).state; 
+    const s2 = handsFreeReducer(s1, face).state; 
+    expect(s2.pendingInterrupt?.deferredTurns).toBe(0);
 
     const s3 = handsFreeReducer(s2, { type: 'FINAL_RESULT', text: '첫마디' }).state;
+    expect(s3.phase).toBe('confirming');
     expect(s3.pendingInterrupt?.deferredTurns).toBe(1);
 
-    const s4 = { ...s3, phase: 'listening' as const, activeSeq: null };
-    const s5 = handsFreeReducer(s4, { type: 'FINAL_RESULT', text: '둘째마디' }).state;
-    expect(s5.pendingInterrupt).toBeNull();
+    const s4 = handsFreeReducer(s3, { type: 'FINAL_RESULT', text: '둘째마디' }).state;
+    expect(s4.phase).toBe('confirming');
+    expect(s4.pendingInterrupt).toBeNull();
+  });
+});
+
+describe('인터럽트 밀림 상한 — confirmGate=false(즉발, 프로덕션 기본값)', () => {
+  const live = () => handsFreeReducer(initHandsFreeState(), { type: 'CALL_LIVE' }).state; 
+  const face = { type: 'FACE_INTERRUPT' as const, text: '누구시죠?', faceKey: 'f1' };
+
+  it('즉발 모드에서는 인터럽트가 최대 1턴만 밀리고, 사용자 응답이 끝나면 곧바로 flush 된다(START_STT 없이)', () => {
+    const s1 = handsFreeReducer(live(), { type: 'USER_SPEECH_START' }).state;
+    const s2 = handsFreeReducer(s1, face).state; 
+    const s3 = handsFreeReducer(s2, { type: 'FINAL_RESULT', text: '안녕' }).state; 
+    expect(s3.phase).toBe('sending');
+    expect(s3.pendingInterrupt?.deferredTurns).toBe(1);
+
+    const ignored = handsFreeReducer(s3, { type: 'FINAL_RESULT', text: '또 말함' });
+    expect(ignored.state).toBe(s3);
+    expect(ignored.effects).toEqual([]);
+
+    const s4 = handsFreeReducer(s3, { type: 'SPEECH_START', seq: s3.activeSeq! }).state; 
+    const r = handsFreeReducer(s4, { type: 'RESPONSE_DONE', seq: s3.activeSeq! });
+    expect(r.state.phase).toBe('interrupting');
+    expect(r.effects).toEqual(['SAY_INTERRUPT', 'START_DETECTOR']);
+    expect(r.effects).not.toContain('START_STT');
   });
 });
