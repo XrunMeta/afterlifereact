@@ -10,7 +10,8 @@ export async function v_84d546(
   if (!v_2ca7e0) return true;
   try {
     const v_c88e9b = await v_48981e(v_2ca7e0);
-    if (v_c88e9b.totalSec > 0) return true;
+
+    if (Math.floor(v_c88e9b.totalSec) > 0) return true;
     v_889fad(
       "남은 통화 시간이 없습니다",
       "크레딧을 충전하면 바로 이어서 통화할 수 있습니다.",
