@@ -392,12 +392,61 @@ describe('FACE_INTERRUPT — 적재와 즉시발화', () => {
     expect(handsFreeReducer(s1, face).state.pendingInterrupt).toBeNull();
   });
 
-  it('interrupting 종료 시 listening 으로 복귀한다', () => {
+  it('interrupting 종료 시 listening 으로 복귀한다 (RESPONSE_DONE)', () => {
     const s1 = handsFreeReducer(live(), face).state;
     const s2 = handsFreeReducer(s1, { type: 'SPEECH_START', seq: 1 }).state;
     expect(s2.phase).toBe('interrupting');
     const r = handsFreeReducer(s2, { type: 'RESPONSE_DONE', seq: 1 });
     expect(r.state.phase).toBe('listening');
     expect(r.effects).toEqual(['STOP_DETECTOR', 'START_STT']);
+  });
+
+  it('interrupting 종료 시 listening 으로 복귀한다 (RESPONSE_END, signalGating=false)', () => {
+    const s1 = handsFreeReducer(live(), face).state;
+    const s2 = handsFreeReducer(s1, { type: 'SPEECH_START', seq: 1 }).state;
+    expect(s2.phase).toBe('interrupting');
+    expect(s2.signalGating).toBe(false);
+    const r = handsFreeReducer(s2, { type: 'RESPONSE_END' });
+    expect(r.state.phase).toBe('listening');
+    expect(r.effects).toEqual(['STOP_DETECTOR', 'START_STT']);
+  });
+
+  it('confirming 중이면 FACE_INTERRUPT 는 즉시 발화하지 않고 적재만 한다(사용자 말을 자르지 않는다)', () => {
+    const s0 = handsFreeReducer(initHandsFreeState(), { type: 'CALL_LIVE', confirmGate: true }).state;
+    const s1 = handsFreeReducer(s0, { type: 'FINAL_RESULT', text: '안녕' }).state;
+    expect(s1.phase).toBe('confirming');
+    const r = handsFreeReducer(s1, face);
+    expect(r.state.phase).toBe('confirming');
+    expect(r.effects).toEqual([]);
+    expect(r.state.pendingInterrupt).toEqual({ text: '누구시죠?', faceKey: 'f1', deferredTurns: 0 });
+  });
+
+  it('idle 에서는 FACE_INTERRUPT 를 적재조차 하지 않는다', () => {
+    const r = handsFreeReducer(initHandsFreeState(), face);
+    expect(r.state.phase).toBe('idle');
+    expect(r.effects).toEqual([]);
+    expect(r.state.pendingInterrupt).toBeNull();
+  });
+
+  it('RESPONSE_END 로 paused 전이 시 pendingInterrupt 를 정리한다(적재 잔존 방지)', () => {
+    const s: import('../../src/realtime/handsFree').HandsFreeState = {
+      phase: 'speaking', micOn: false, pendingText: '', confirmGate: false, signalGating: false,
+      activeSeq: null, nextSeq: 1, userSpeaking: false,
+      pendingInterrupt: { text: '누구시죠?', faceKey: 'f1', deferredTurns: 0 },
+    };
+    const r = handsFreeReducer(s, { type: 'RESPONSE_END' });
+    expect(r.state.phase).toBe('paused');
+    expect(r.state.pendingInterrupt).toBeNull();
+  });
+
+  it('RESPONSE_DONE 으로 paused 전이 시 pendingInterrupt 를 정리한다(적재 잔존 방지)', () => {
+    const s: import('../../src/realtime/handsFree').HandsFreeState = {
+      phase: 'speaking', micOn: false, pendingText: '', confirmGate: false, signalGating: false,
+      activeSeq: null, nextSeq: 1, userSpeaking: false,
+      pendingInterrupt: { text: '누구시죠?', faceKey: 'f1', deferredTurns: 0 },
+    };
+    const r = handsFreeReducer(s, { type: 'RESPONSE_DONE' });
+    expect(r.state.phase).toBe('paused');
+    expect(r.state.pendingInterrupt).toBeNull();
   });
 });

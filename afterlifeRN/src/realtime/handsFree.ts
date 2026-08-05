@@ -154,7 +154,7 @@ export function handsFreeReducer(state: HandsFreeState, ev: HandsFreeEvent): Han
         return { state, effects: [] };
       }
 
-      if (!state.micOn) return { state: { ...state, phase: 'paused', pendingText: '', activeSeq: null, userSpeaking: false }, effects: ['STOP_DETECTOR'] };
+      if (!state.micOn) return { state: { ...state, phase: 'paused', pendingText: '', activeSeq: null, userSpeaking: false, pendingInterrupt: null }, effects: ['STOP_DETECTOR'] };
       return {
         state: { ...state, phase: 'listening', pendingText: '', activeSeq: null, userSpeaking: false },
         effects: ['STOP_DETECTOR', 'START_STT'],
@@ -170,7 +170,8 @@ export function handsFreeReducer(state: HandsFreeState, ev: HandsFreeEvent): Han
       if (ev.seq != null && state.activeSeq != null && ev.seq !== state.activeSeq) {
         return { state, effects: [] };
       }
-      if (!state.micOn) return { state: { ...state, phase: 'paused', pendingText: '', activeSeq: null, userSpeaking: false }, effects: ['STOP_DETECTOR'] };
+
+      if (!state.micOn) return { state: { ...state, phase: 'paused', pendingText: '', activeSeq: null, userSpeaking: false, pendingInterrupt: null }, effects: ['STOP_DETECTOR'] };
       return {
         state: { ...state, phase: 'listening', pendingText: '', activeSeq: null, userSpeaking: false },
         effects: ['STOP_DETECTOR', 'START_STT'],
