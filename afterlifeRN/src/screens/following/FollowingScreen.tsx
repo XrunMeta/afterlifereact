@@ -600,11 +600,12 @@ export default function v_14b43e() {
               <Feather name="thermometer" size={12} color="#fb923c" />
               <Text style={v_fd5f43.badgeText}>{v_8c0b26.persona.intimacy}</Text>
             </TouchableOpacity>
-            {}
+            {
+}
             <View style={v_fd5f43.badgeDivider} />
             <TouchableOpacity
               style={v_fd5f43.badgeBtn}
-              onPress={() => v_7cf37a(v_8c0b26.persona.id, v_8c0b26.feed.id > 0 ? v_8c0b26.feed.id : undefined)}
+              onPress={() => v_880166(v_8c0b26.feed.id)}
             >
               <Feather name="message-circle" size={12} color="#34d399" />
               <Text style={v_fd5f43.badgeText}>
