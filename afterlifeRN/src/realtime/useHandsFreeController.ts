@@ -102,15 +102,14 @@ export function v_7df8a4(opts: {
 
       v_700737.current({ type: 'FINAL_RESULT', text: v_fb305c(v_9b6134) });
     },
+
+    onSpeechActivity: () => {
+      v_700737.current({ type: 'USER_SPEECH_START' });
+    },
   });
 
   const v_5c8a52 = v_e662ae(v_60bef6);
   v_c4deb2(() => { v_5c8a52.current = v_60bef6; });
-
-  v_c4deb2(() => {
-    if (!v_60bef6.interimTranscript) return;
-    v_700737.current({ type: 'USER_SPEECH_START' });
-  }, [v_60bef6.interimTranscript]);
 
   const [v_ea4519, v_d3b587] = v_5ab095(false);
   const v_afaf7a = v_e662ae(false);
@@ -139,14 +138,6 @@ export function v_7df8a4(opts: {
             v_700737.current({ type: 'USER_SPEECH_IDLE' });
             break;
           case 'SAY':
-            if (v_b6611b != null) v_d27d23.current = v_b6611b;
-            if (v_b03676) {
-              v_bcde6b.current(v_b03676).catch(() => v_700737.current({ type: 'RESPONSE_DONE' }));
-            } else {
-
-              v_700737.current({ type: 'RESPONSE_DONE' });
-            }
-            break;
           case 'SAY_INTERRUPT':
           case 'SAY_IDLE_GREETING':
 
@@ -243,7 +234,7 @@ export function v_7df8a4(opts: {
 
   v_c4deb2(() => {
     if (!v_328259.signalGating) return;
-    if (v_b6e533.phase !== 'sending' && v_b6e533.phase !== 'speaking') return;
+    if (v_b6e533.phase !== 'sending' && v_b6e533.phase !== 'speaking' && v_b6e533.phase !== 'interrupting') return;
     const v_d799e2 = v_7347b3.getState().responseDoneTimeoutMs;
     const v_389afb = setTimeout(() => v_700737.current({ type: 'RESPONSE_DONE' }), v_d799e2);
     return () => clearTimeout(v_389afb);

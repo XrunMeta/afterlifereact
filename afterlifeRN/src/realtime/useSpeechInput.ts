@@ -31,6 +31,11 @@ export function v_fee12d(v_328259) {
   v_c4deb2(() => {
     v_dcd851.current = v_328259?.onFinalResult;
   });
+
+  const v_3dfa34 = v_e662ae(v_328259?.onSpeechActivity);
+  v_c4deb2(() => {
+    v_3dfa34.current = v_328259?.onSpeechActivity;
+  });
   const v_9a5dc9 = v_e662ae(v_05b2f6);
   v_c4deb2(() => {
     v_9a5dc9.current = v_05b2f6;
@@ -116,6 +121,8 @@ export function v_fee12d(v_328259) {
         if (!v_fe2b35.current) return;
         const v_8d41d7 = v_e2a85c?.results?.[0]?.transcript ?? '';
         const v_f6e5b7 = v_e2a85c?.isFinal === true;
+
+        v_3dfa34.current?.();
 
         v_9061f1();
         if (v_f6e5b7) {
