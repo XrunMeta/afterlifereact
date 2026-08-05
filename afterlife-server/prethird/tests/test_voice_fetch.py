@@ -54,9 +54,56 @@ async def test_fetches_then_converts(tmp_path):
     # 변환물이 dest로 원자적 이동
     assert os.path.isfile(expected)
     assert os.path.getsize(expected) >= 1024  # 가드 통과한 유효 산출물
-    # 임시파일(.src/.part) 전부 정리 — voice.wav만 남음
-    leftover = [f for f in os.listdir(clone_dir) if f != "voice.wav"]
-    assert leftover == []
+    # 임시파일(.src/.part) 정리 — voice.wav 와 진단용 원본(voice.raw)만 남음
+    leftover = sorted(f for f in os.listdir(clone_dir) if f != "voice.wav")
+    assert leftover == ["voice.raw"]
+
+async def test_keeps_original_for_diagnosis(tmp_path):
+    """변환 성공 시 원본을 voice.raw 로 보존한다.
+
+    클론 9104 진단 때 원본이 없어 '업로드가 노이즈'인지 '변환이 깨뜨렸는지'를
+    가릴 수 없었다. 원본은 API 에 있지만 조회에 사용자 토큰이 필요해 서버에서
+    닿지 않는다 → 변환 시점에 사본을 남긴다.
+    """
+    async def fake_fetch(u, dst):
+        with open(dst, "wb") as f:
+            f.write(b"ORIGINAL-UPLOAD-BYTES")
+        return dst
+
+    async def fake_convert(s, dst):
+        with open(dst, "wb") as f:
+            f.write(b"RIFF" + b"\x00" * 2000)
+        return dst
+
+    await voice_fetch.ensure_voice_wav(
+        "9104", "http://oth-path", str(tmp_path), _fetch=fake_fetch, _convert=fake_convert
+    )
+    raw = os.path.join(str(tmp_path), "9104", "voice.raw")
+    assert os.path.isfile(raw)
+    assert open(raw, "rb").read() == b"ORIGINAL-UPLOAD-BYTES"
+
+async def test_original_kept_is_overwritten_not_accumulated(tmp_path):
+    """원본은 클론당 1개만 유지 — 디스크 누적 방지(현재 사용률 85%)."""
+    clone_dir = tmp_path / "9105"
+    clone_dir.mkdir()
+    (clone_dir / "voice.raw").write_bytes(b"OLD")
+
+    async def fake_fetch(u, dst):
+        with open(dst, "wb") as f:
+            f.write(b"NEW-UPLOAD")
+        return dst
+
+    async def fake_convert(s, dst):
+        with open(dst, "wb") as f:
+            f.write(b"RIFF" + b"\x00" * 2000)
+        return dst
+
+    await voice_fetch.ensure_voice_wav(
+        "9105", "http://oth-path", str(tmp_path), _fetch=fake_fetch, _convert=fake_convert
+    )
+    files = sorted(os.listdir(str(clone_dir)))
+    assert files == ["voice.raw", "voice.wav"]
+    assert (clone_dir / "voice.raw").read_bytes() == b"NEW-UPLOAD"
 
 async def test_cleans_src_on_convert_failure(tmp_path):
     """변환 실패 시 예외 전파 + 임시파일 정리 + voice.wav 미생성."""

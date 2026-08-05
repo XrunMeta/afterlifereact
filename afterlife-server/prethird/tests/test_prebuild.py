@@ -88,6 +88,45 @@ async def test_prebuild_accepts_and_runs_background(monkeypatch):
     assert calls["stt"] == ["9099"]
 
 @pytest.mark.asyncio
+async def test_prebuild_checks_ref_quality_after_stt(monkeypatch):
+    """STT 직후 ref 품질을 판정한다 — 노이즈 ref 가 조용히 등록되던 구멍(클론 9104)."""
+    prebuild, calls = _make_app_with_prebuild(monkeypatch)
+    seen = []
+
+    def fake_check(ref_root, clone_id):
+        seen.append((ref_root, clone_id))
+        return {"density": 1.9, "threshold": 3.5, "ok": False, "reason": "문자밀도 낮음"}
+
+    monkeypatch.setattr(prebuild.ref_quality, "check", fake_check)
+    req = make_mocked_request("POST", "/prebuild",
+                              headers={"Authorization": "Bearer s3cr3t"})
+    async def _json(): return {"cloneId": "9104", "voiceRawUrl": "http://x/raw"}
+    req.json = _json
+    resp = await prebuild.prebuild_handler(req)
+    assert resp.status == 202
+    await prebuild._drain_tasks_for_test()
+    assert seen == [(prebuild.REF_VOICES_ROOT, "9104")]
+
+@pytest.mark.asyncio
+async def test_prebuild_quality_failure_does_not_block(monkeypatch):
+    """품질 미달은 경고일 뿐 — 등록 흐름을 막지 않는다(경고 전용 정책)."""
+    prebuild, calls = _make_app_with_prebuild(monkeypatch)
+
+    def boom_check(ref_root, clone_id):
+        raise RuntimeError("판정 중 예외")
+
+    monkeypatch.setattr(prebuild.ref_quality, "check", boom_check)
+    req = make_mocked_request("POST", "/prebuild",
+                              headers={"Authorization": "Bearer s3cr3t"})
+    async def _json(): return {"cloneId": "9104", "voiceRawUrl": "http://x/raw"}
+    req.json = _json
+    resp = await prebuild.prebuild_handler(req)
+    assert resp.status == 202
+    await prebuild._drain_tasks_for_test()
+    # 판정이 터져도 voice.wav 생성·STT 는 이미 끝난 상태 그대로여야 한다
+    assert calls["ensure"] and calls["stt"] == ["9104"]
+
+@pytest.mark.asyncio
 async def test_prebuild_rejects_path_traversal_clone_id(monkeypatch):
     prebuild, calls = _make_app_with_prebuild(monkeypatch)
     req = make_mocked_request("POST", "/prebuild",
