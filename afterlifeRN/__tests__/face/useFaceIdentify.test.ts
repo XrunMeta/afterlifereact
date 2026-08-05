@@ -35,15 +35,15 @@ describe("runIdentifyCycle (순수 로직)", () => {
     });
     let s: v_90fd14 = v_48b3dc;
 
-    let v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 1000, { matchFaceFn: v_a97841 });
+    let v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 999, 1000, { matchFaceFn: v_a97841 });
     expect(v_cb35cb.event).toBeNull();
     v_fd5f43 = v_cb35cb.state;
 
-    v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 2000, { matchFaceFn: v_a97841 });
+    v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 999, 2000, { matchFaceFn: v_a97841 });
     expect(v_cb35cb.event).toBeNull();
     v_fd5f43 = v_cb35cb.state;
 
-    v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 3000, { matchFaceFn: v_a97841 });
+    v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 999, 3000, { matchFaceFn: v_a97841 });
     expect(v_cb35cb.event).toEqual({ type: "speaker_confirmed", personId: 3, displayName: "철수" });
 
     expect(v_a97841).toHaveBeenCalledTimes(3);
@@ -52,18 +52,18 @@ describe("runIdentifyCycle (순수 로직)", () => {
   it("best 가 null(미매치) 3회 → unknown_face 1회", async () => {
     const v_a97841 = jest.fn().mockResolvedValue({ matches: [], best: null, threshold: 0.5 });
     let s: v_90fd14 = v_48b3dc;
-    let v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 1000, { matchFaceFn: v_a97841 });
+    let v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 999, 1000, { matchFaceFn: v_a97841 });
     v_fd5f43 = v_cb35cb.state;
-    v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 2000, { matchFaceFn: v_a97841 });
+    v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 999, 2000, { matchFaceFn: v_a97841 });
     v_fd5f43 = v_cb35cb.state;
-    v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 3000, { matchFaceFn: v_a97841 });
+    v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 999, 3000, { matchFaceFn: v_a97841 });
     expect(v_cb35cb.event).toEqual({ type: "unknown_face" });
   });
 
   it("matchFace 실패(네트워크) → 사이클 스킵, event null, 크래시 없음", async () => {
     const v_a97841 = jest.fn().mockRejectedValue(new Error("network"));
     const s: v_90fd14 = v_48b3dc;
-    const v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 1000, { matchFaceFn: v_a97841 });
+    const v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 999, 1000, { matchFaceFn: v_a97841 });
     expect(v_cb35cb.event).toBeNull();
     expect(v_cb35cb.state.consecutiveFailures).toBe(1);
     expect(v_cb35cb.state.speaker).toEqual(v_48b3dc.speaker); 
@@ -75,14 +75,14 @@ describe("runIdentifyCycle (순수 로직)", () => {
     let v_5c2f9f = 0;
     for (let v_ebec57 = 0; v_ebec57 < v_65c90d; v_ebec57++) {
       v_5c2f9f += 100;
-      const v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", v_5c2f9f, { matchFaceFn: v_a97841 });
+      const v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 999, v_5c2f9f, { matchFaceFn: v_a97841 });
       v_fd5f43 = v_cb35cb.state;
     }
     expect(v_fd5f43.consecutiveFailures).toBe(v_65c90d);
     expect(v_fd5f43.backoffUntilMs).toBe(v_5c2f9f + v_dd916a);
 
     const v_d928af = v_a97841.mock.calls.length;
-    const v_b96973 = await v_f644ce(v_fd5f43, v_87d4f2, "tok", v_5c2f9f + 1, { matchFaceFn: v_a97841 });
+    const v_b96973 = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 999, v_5c2f9f + 1, { matchFaceFn: v_a97841 });
     expect(v_a97841.mock.calls.length).toBe(v_d928af);
     expect(v_b96973.event).toBeNull();
     expect(v_b96973.state).toBe(v_fd5f43); 
@@ -99,13 +99,13 @@ describe("runIdentifyCycle (순수 로직)", () => {
     let v_5c2f9f = 0;
     for (let v_ebec57 = 0; v_ebec57 < 3; v_ebec57++) {
       v_5c2f9f += 100;
-      const v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", v_5c2f9f, { matchFaceFn: v_a97841 });
+      const v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 999, v_5c2f9f, { matchFaceFn: v_a97841 });
       v_fd5f43 = v_cb35cb.state;
     }
     expect(v_fd5f43.backoffUntilMs).toBeGreaterThan(v_5c2f9f);
 
     v_5c2f9f = v_fd5f43.backoffUntilMs + 1; 
-    const v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", v_5c2f9f, { matchFaceFn: v_a97841 });
+    const v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 999, v_5c2f9f, { matchFaceFn: v_a97841 });
     expect(v_cb35cb.state.consecutiveFailures).toBe(0);
     expect(v_cb35cb.state.backoffUntilMs).toBe(0);
   });
@@ -124,6 +124,7 @@ describe("useFaceIdentify (훅 오케스트레이션)", () => {
       v_e9685b({
         enabled: true,
         accessToken: "tok",
+        cloneId: 999,
         onEvent: v_68885c,
         deps: { matchFaceFn: v_a97841 },
         now: () => (v_8d41d7 += 1000),
@@ -143,7 +144,7 @@ describe("useFaceIdentify (훅 오케스트레이션)", () => {
   it("enabled=false → onEmbedding 호출해도 matchFaceFn 미호출", () => {
     const v_a97841 = jest.fn();
     const { result: v_43c42e } = v_0da18b(() =>
-      v_e9685b({ enabled: false, accessToken: "tok", onEvent: jest.fn(), deps: { matchFaceFn: v_a97841 } }),
+      v_e9685b({ enabled: false, accessToken: "tok", cloneId: 999, onEvent: jest.fn(), deps: { matchFaceFn: v_a97841 } }),
     );
     v_43c42e.current.onEmbedding(v_87d4f2);
     expect(v_a97841).not.toHaveBeenCalled();
@@ -162,7 +163,7 @@ describe("useFaceIdentify (훅 오케스트레이션)", () => {
       { enabled: boolean }
     >(
       ({ enabled: v_d20c84 }) =>
-        v_e9685b({ enabled: v_d20c84, accessToken: "tok", onEvent: v_68885c, deps: { matchFaceFn: v_a97841 } }),
+        v_e9685b({ enabled: v_d20c84, accessToken: "tok", cloneId: 999, onEvent: v_68885c, deps: { matchFaceFn: v_a97841 } }),
       { initialProps: { enabled: false } },
     );
 
@@ -184,7 +185,7 @@ describe("useFaceIdentify (훅 오케스트레이션)", () => {
   it("getBuffer() 로 최근 벡터 확인 가능(EmbeddingBuffer 사이드이펙트)", async () => {
     const v_a97841 = jest.fn().mockResolvedValue({ matches: [], best: null, threshold: 0.5 });
     const { result: v_43c42e } = v_0da18b(() =>
-      v_e9685b({ enabled: true, accessToken: "tok", onEvent: jest.fn(), deps: { matchFaceFn: v_a97841 } }),
+      v_e9685b({ enabled: true, accessToken: "tok", cloneId: 999, onEvent: jest.fn(), deps: { matchFaceFn: v_a97841 } }),
     );
     v_43c42e.current.onEmbedding(v_87d4f2);
     await v_81e49f(() => expect(v_a97841).toHaveBeenCalledTimes(1));
@@ -209,6 +210,7 @@ describe("useFaceIdentify (훅 오케스트레이션)", () => {
       v_e9685b({
         enabled: true,
         accessToken: "tok",
+        cloneId: 999,
         onEvent: jest.fn(),
         onDiag: v_32837c,
         calibrate: { accessToken: "tok", groundTruthPersonId: 5 },

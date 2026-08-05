@@ -19,7 +19,7 @@ describe('createPerson', () => {
   it('POST /oth-path 를 호출하고 {id, consentState} 를 반환한다', async () => {
     v_09509b.mockResolvedValueOnce({ id: 42, consentState: 'none' });
 
-    const v_43c42e = await v_4e7b87(v_4ac7fe);
+    const v_43c42e = await v_4e7b87(v_4ac7fe, { cloneId: 1 });
 
     expect(v_09509b).toHaveBeenCalledTimes(1);
     const [v_9fe22d, v_21cc31, v_00cfc6] = v_09509b.mock.calls[0] as unknown as [string, string, RequestInit, ...unknown[]];
@@ -40,14 +40,14 @@ describe('createPerson', () => {
     expect(v_4d33b2.cloneId).toBe(99);
   });
 
-  it('cloneId 없이 호출해도 body 에 cloneId 가 포함되지 않는다', async () => {
+  it('cloneId 는 항상 body 에 포함된다(person 은 클론 전속)', async () => {
     v_09509b.mockResolvedValueOnce({ id: 1, consentState: 'none' });
 
-    await v_4e7b87(v_4ac7fe);
+    await v_4e7b87(v_4ac7fe, { cloneId: 5 });
 
     const [, , v_00cfc6] = v_09509b.mock.calls[0] as unknown as [string, string, RequestInit, ...unknown[]];
     const v_4d33b2 = JSON.parse(v_00cfc6.body as string) as Record<string, unknown>;
-    expect(v_4d33b2).not.toHaveProperty('cloneId');
+    expect(v_4d33b2).toHaveProperty('cloneId', 5);
   });
 });
 
@@ -143,7 +143,7 @@ describe('createPerson enrolledVia', () => {
   it('enrolledVia 를 넘기면 body 에 포함된다', async () => {
     v_09509b.mockResolvedValueOnce({ id: 9, consentState: 'granted' });
 
-    await v_4e7b87(v_4ac7fe, { enrolledVia: 'auto_biometric' });
+    await v_4e7b87(v_4ac7fe, { cloneId: 1, enrolledVia: 'auto_biometric' });
 
     const [, , v_00cfc6] = v_09509b.mock.calls[0] as unknown as [string, string, RequestInit, ...unknown[]];
     const v_4d33b2 = JSON.parse(v_00cfc6.body as string) as Record<string, unknown>;
@@ -153,7 +153,7 @@ describe('createPerson enrolledVia', () => {
   it('enrolledVia 없이 호출하면 body 에 포함되지 않는다(회귀)', async () => {
     v_09509b.mockResolvedValueOnce({ id: 10, consentState: 'none' });
 
-    await v_4e7b87(v_4ac7fe);
+    await v_4e7b87(v_4ac7fe, { cloneId: 1 });
 
     const [, , v_00cfc6] = v_09509b.mock.calls[0] as unknown as [string, string, RequestInit, ...unknown[]];
     const v_4d33b2 = JSON.parse(v_00cfc6.body as string) as Record<string, unknown>;
