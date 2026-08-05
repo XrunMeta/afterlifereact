@@ -153,3 +153,17 @@ async def test_learn_routes_to_person_when_person_given(monkeypatch):
                   "turns": [{"role": "user", "content": "나 형이야"}, {"role": "assistant", "content": "안녕 형"}]})
         assert resp.status == 200
     assert calls.get("person_id") == 3
+
+
+def test_face_event_rejects_mismatched_clone():
+    """T-257: face_event 에 clone_id 가 실려 오면 세션 clone_id 와 대조한다.
+
+    서버(/match)가 이미 클론 스코프를 강제하지만, personId 를 신뢰하는 지점에
+    방어 1층을 둔다(T-135 IDOR 교훈 — say payload personId 신뢰가 CRITICAL 이었다).
+    """
+    from signaling import face_event_clone_matches
+
+    assert face_event_clone_matches(session_clone_id=42, event_clone_id=42) is True
+    assert face_event_clone_matches(session_clone_id=42, event_clone_id=43) is False
+    # clone_id 미포함(구 클라이언트)은 통과 — 서버 게이트가 정본이므로 하위호환 유지
+    assert face_event_clone_matches(session_clone_id=42, event_clone_id=None) is True

@@ -473,6 +473,18 @@ def _clear_current_speaker(sess, event: str) -> None:
         )
 
 
+def face_event_clone_matches(session_clone_id, event_clone_id) -> bool:
+    """[T-257] face_event 의 clone_id 가 세션 clone_id 와 일치하는지.
+
+    서버(/oth-path)가 이미 (user_id, clone_id) 스코프를 강제하므로
+    이 검사는 방어 1층이다. event_clone_id 가 없으면(구 클라이언트) 통과시킨다 —
+    서버 게이트가 정본이고, 여기서 막으면 하위호환이 깨진다.
+    """
+    if event_clone_id is None:
+        return True
+    return int(session_clone_id) == int(event_clone_id)
+
+
 def _handle_face_event(sess, data: dict) -> None:
     """[T-067/T-135] datachannel face_event 메시지 처리.
 
@@ -500,6 +512,15 @@ def _handle_face_event(sess, data: dict) -> None:
     persona 스왑)는 _maybe_swap_l2p — 화자가 바뀔 때(쿨다운과 무관) fire-and-forget으로
     스케줄되며 react(_run, 쿨다운 게이트 대상)와는 완전히 분리된 별도 태스크(§6.4).
     """
+    if not face_event_clone_matches(getattr(sess, "clone_id", None), data.get("clone_id")):
+        log.warning(
+            "session %s face_event clone_id 불일치(무시): session=%s event=%s",
+            sess.session_id,
+            getattr(sess, "clone_id", None),
+            data.get("clone_id"),
+        )
+        return
+
     if sess.pipeline is None:
         return
     identity_on = _speaker_identity_enabled()
