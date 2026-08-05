@@ -6,6 +6,7 @@ import { useCloneSilenceDetector } from './useCloneSilenceDetector';
 import {
   handsFreeReducer,
   initHandsFreeState,
+  IDLE_GREET_DELAYS_MS,
   type HandsFreeEvent,
   type HandsFreeEffect,
 } from './handsFree';
@@ -79,6 +80,8 @@ export function useHandsFreeController(opts: {
 
   const releaseNotBeforeRef = useRef(0);
 
+  const activeSeqRef = useRef<number | null>(null);
+
   const detector = useCloneSilenceDetector({
     getStatsReport: opts.getStatsReport,
     onResponseStart: () => dispatchRef.current({ type: 'CLONE_SPEAKING' }),
@@ -104,6 +107,11 @@ export function useHandsFreeController(opts: {
   const speechRef = useRef(speech);
   useEffect(() => { speechRef.current = speech; });
 
+  useEffect(() => {
+    if (!speech.interimTranscript) return;
+    dispatchRef.current({ type: 'USER_SPEECH_START' });
+  }, [speech.interimTranscript]);
+
   const [sttSuppressed, setSttSuppressed] = useState(false);
   const sttSuppressedRef = useRef(false);
 
@@ -114,7 +122,7 @@ export function useHandsFreeController(opts: {
   const cloneTailGraceUntilRef = useRef(0);
 
   const runEffects = useCallback(
-    (effects: HandsFreeEffect[], sayText?: string) => {
+    (effects: HandsFreeEffect[], sayText?: string, saySeq?: number) => {
       for (const e of effects) {
         switch (e) {
           case 'START_STT':
@@ -128,12 +136,24 @@ export function useHandsFreeController(opts: {
             setSttSuppressed(false);
             emitTimingEvent('stt_close');
             speech.stopListening();
+            dispatchRef.current({ type: 'USER_SPEECH_IDLE' });
             break;
           case 'SAY':
+            if (saySeq != null) activeSeqRef.current = saySeq;
             if (sayText) {
               sayRef.current(sayText).catch(() => dispatchRef.current({ type: 'RESPONSE_DONE' }));
             } else {
 
+              dispatchRef.current({ type: 'RESPONSE_DONE' });
+            }
+            break;
+          case 'SAY_INTERRUPT':
+          case 'SAY_IDLE_GREETING':
+
+            if (saySeq != null) activeSeqRef.current = saySeq;
+            if (sayText) {
+              sayRef.current(sayText).catch(() => dispatchRef.current({ type: 'RESPONSE_DONE' }));
+            } else {
               dispatchRef.current({ type: 'RESPONSE_DONE' });
             }
             break;
@@ -190,7 +210,7 @@ export function useHandsFreeController(opts: {
         clearPendingDone();
       }
       const prev = stateRef.current;
-      const { state: next, effects, sayText } = handsFreeReducer(prev, ev);
+      const { state: next, effects, sayText, saySeq } = handsFreeReducer(prev, ev);
 
       const fromSpeakingOrSending =
         prev.phase === 'speaking' || prev.phase === 'sending';
@@ -203,7 +223,7 @@ export function useHandsFreeController(opts: {
       }
       stateRef.current = next;
       setState(next);
-      runEffects(effects, sayText);
+      runEffects(effects, sayText, saySeq);
     },
     [runEffects, clearPendingDone],
   );
@@ -242,12 +262,17 @@ export function useHandsFreeController(opts: {
   useEffect(() => {
     const sig = opts.lastSignal;
     if (!sig) return;
-    if (sig.type === 'speech_start') { emitTimingEvent('speech_start'); dispatchRef.current({ type: 'SPEECH_START' }); }
+    if (sig.type === 'speech_start') {
+      emitTimingEvent('speech_start');
+      dispatchRef.current({ type: 'SPEECH_START', seq: activeSeqRef.current ?? undefined });
+    }
     else if (sig.type === 'speech_end') {
       emitTimingEvent('speech_end');
 
+      const endSeq = activeSeqRef.current ?? undefined;
+
       if (getStatsRef.current() === null) {
-        dispatchRef.current({ type: 'RESPONSE_DONE' });
+        dispatchRef.current({ type: 'RESPONSE_DONE', seq: endSeq });
       } else {
 
         const remainingMs = sig.remainingMs ?? 0;
@@ -258,12 +283,23 @@ export function useHandsFreeController(opts: {
           pendingDoneTimerRef.current = null;
           pendingDoneAtRef.current = null;
           releaseNotBeforeRef.current = 0;
-          dispatchRef.current({ type: 'RESPONSE_DONE' });
+          dispatchRef.current({ type: 'RESPONSE_DONE', seq: endSeq });
         }, remainingMs + RESPONSE_DONE_TAIL_MAX_MS);
       }
     }
 
   }, [opts.lastSignal]);
+
+  useEffect(() => {
+    if (state.phase !== 'listening') return;
+    if (state.userSpeaking) return;
+    if (state.idleGreetCount >= IDLE_GREET_DELAYS_MS.length) return;
+    if (pendingDoneTimerRef.current) return; 
+    const wait = Math.max(0, releaseNotBeforeRef.current - Date.now()); 
+    const delay = IDLE_GREET_DELAYS_MS[state.idleGreetCount] + wait;
+    const id = setTimeout(() => dispatchRef.current({ type: 'IDLE_TIMEOUT' }), delay);
+    return () => clearTimeout(id);
+  }, [state.phase, state.userSpeaking, state.idleGreetCount]);
 
   useEffect(() => {
     if (!opts.enabled) {
