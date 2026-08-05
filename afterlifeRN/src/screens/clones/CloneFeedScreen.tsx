@@ -227,7 +227,10 @@ function CloneFeedInner({ route, navigation, feed }: InnerProps) {
 
     const ok = await assertCanCall(accessToken, () => {
       navigation.dispatch(
-        CommonActions.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+        CommonActions.navigate({
+          name: "Main",
+          params: { screen: "MyTab", params: { screen: "Purchase" } },
+        }),
       );
     });
     if (!ok) return;
