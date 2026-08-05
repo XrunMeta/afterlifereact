@@ -58,7 +58,9 @@ const v_58b6a9 = [
   },
 ] as const;
 
-type Mode = "preset" | "record" | "upload";
+type Mode = "upload" | "record" | "preset";
+
+const v_128633 = ["upload", "record", "preset"];
 
 interface Props {
   draft: v_c2a674;
@@ -110,7 +112,8 @@ async function v_867b58(
 function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const { t: v_8d41d7, i18n: v_9c213b } = v_772971();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
-  const [v_34e5bb, v_038d7f] = v_5ab095<Mode>("preset");
+
+  const [v_34e5bb, v_038d7f] = v_5ab095<Mode>("upload");
   const [v_53e1f3, v_de0f36] = v_5ab095<v_d80981[]>([]);
   const [v_fd3c7b, v_4fbeaf] = v_5ab095(false);
   const [v_0c0b03, v_c98f46] = v_5ab095<string | null>(null);
@@ -344,7 +347,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     <View style={v_d81136.wrap}>
       {}
       <View style={v_d81136.modeRow}>
-        {(["preset", "record", "upload"] as Mode[]).map((v_35f85c) => {
+        {v_128633.map((v_35f85c) => {
           const v_2869c1 =
             v_35f85c === "preset"
               ? v_8d41d7("create.voice.modePreset", { defaultValue: "음색 선택" })
