@@ -307,6 +307,17 @@ describe('userSpeaking 플래그', () => {
     const v_3f6eae = v_6920f0(v_bb280b(), { type: 'FINAL_RESULT', text: '안녕' }).state; 
     expect(v_6920f0(v_3f6eae, { type: 'USER_SPEECH_START' }).state.userSpeaking).toBe(false);
   });
+
+  it('confirming phase 에서도 USER_SPEECH_START 로 true 가 된다', () => {
+    const v_ca01e0 = v_6920f0(v_3075fa(), { type: 'CALL_LIVE', confirmGate: true }).state;
+    expect(v_ca01e0.phase).toBe('listening');
+    const v_3f6eae = v_6920f0(v_ca01e0, { type: 'FINAL_RESULT', text: '  테스트  ' }).state;
+    expect(v_3f6eae.phase).toBe('confirming');
+    expect(v_3f6eae.userSpeaking).toBe(false);
+    const v_3756c2 = v_6920f0(v_3f6eae, { type: 'USER_SPEECH_START' }).state;
+    expect(v_3756c2.userSpeaking).toBe(true);
+    expect(v_3756c2.phase).toBe('confirming');
+  });
 });
 
 describe('seq 매칭', () => {
