@@ -450,3 +450,62 @@ describe('FACE_INTERRUPT — 적재와 즉시발화', () => {
     expect(v_cb35cb.state.pendingInterrupt).toBeNull();
   });
 });
+
+describe('flush ① — 사용자 턴 뒤에 인터럽트 이어붙이기', () => {
+  const v_bb280b = () => v_6920f0(v_3075fa(), { type: 'CALL_LIVE' }).state;
+  const v_7d769d = { type: 'FACE_INTERRUPT' as const, text: '누구시죠?', faceKey: 'f1' };
+
+  const v_7d3aa6 = () => {
+    const v_3f6eae = v_6920f0(v_bb280b(), { type: 'USER_SPEECH_START' }).state;
+    const v_3756c2 = v_6920f0(v_3f6eae, v_7d769d).state;                              
+    const v_d0786c = v_6920f0(v_3756c2, { type: 'FINAL_RESULT', text: '안녕' }).state; 
+    const v_121e28 = v_6920f0(v_d0786c, { type: 'SPEECH_START', seq: 1 }).state;  
+    return v_6920f0(v_121e28, { type: 'RESPONSE_DONE', seq: 1 });
+  };
+
+  it('사용자 응답 종료 시 listening 이 아니라 interrupting 으로 간다', () => {
+    const v_cb35cb = v_7d3aa6();
+    expect(v_cb35cb.state.phase).toBe('interrupting');
+    expect(v_cb35cb.sayText).toBe('누구시죠?');
+    expect(v_cb35cb.state.pendingInterrupt).toBeNull();
+  });
+
+  it('flush 시 START_STT 를 내보내지 않는다(마이크 재개방 금지)', () => {
+    const v_cb35cb = v_7d3aa6();
+    expect(v_cb35cb.effects).not.toContain('START_STT');
+    expect(v_cb35cb.effects).toEqual(['SAY_INTERRUPT', 'START_DETECTOR']);
+  });
+
+  it('인터럽트가 끝나면 그제서야 사용자 턴으로 복귀한다', () => {
+    const v_5b244b = v_7d3aa6().state;
+    const v_cb35cb = v_6920f0(v_5b244b, { type: 'RESPONSE_DONE', seq: v_5b244b.activeSeq! });
+    expect(v_cb35cb.state.phase).toBe('listening');
+    expect(v_cb35cb.effects).toEqual(['STOP_DETECTOR', 'START_STT']);
+  });
+
+  it('micOn=false 면 flush 하지 않고 paused 로 간다', () => {
+    const v_3f6eae = v_6920f0(v_bb280b(), { type: 'USER_SPEECH_START' }).state;
+    const v_3756c2 = v_6920f0(v_3f6eae, v_7d769d).state;
+    const v_d0786c = v_6920f0(v_3756c2, { type: 'FINAL_RESULT', text: '안녕' }).state;
+    const v_121e28 = v_6920f0(v_d0786c, { type: 'MIC_OFF' }).state;
+    const v_cb35cb = v_6920f0(v_121e28, { type: 'RESPONSE_DONE' });
+    expect(v_cb35cb.state.phase).toBe('paused');
+  });
+});
+
+describe('2턴 폐기 규칙', () => {
+  const v_bb280b = () => v_6920f0(v_3075fa(), { type: 'CALL_LIVE' }).state;
+  const v_7d769d = { type: 'FACE_INTERRUPT' as const, text: '누구시죠?', faceKey: 'f1' };
+
+  it('사용자가 한 턴 더 말하면 deferredTurns 가 오르고, 2 이상이면 폐기된다', () => {
+    const v_3f6eae = v_6920f0(v_bb280b(), { type: 'USER_SPEECH_START' }).state;
+    const v_3756c2 = v_6920f0(v_3f6eae, v_7d769d).state;
+
+    const v_d0786c = v_6920f0(v_3756c2, { type: 'FINAL_RESULT', text: '첫마디' }).state;
+    expect(v_d0786c.pendingInterrupt?.deferredTurns).toBe(1);
+
+    const v_121e28 = { ...v_d0786c, phase: 'listening' as const, activeSeq: null };
+    const v_5b244b = v_6920f0(v_121e28, { type: 'FINAL_RESULT', text: '둘째마디' }).state;
+    expect(v_5b244b.pendingInterrupt).toBeNull();
+  });
+});

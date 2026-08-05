@@ -57,6 +57,33 @@ export const v_3075fa = (): HandsFreeState => ({
   activeSeq: null, nextSeq: 1, userSpeaking: false, pendingInterrupt: null,
 });
 
+function v_778049(v_b6e533): HandsFreeResult {
+  if (!v_b6e533.micOn) {
+
+    return {
+      state: { ...v_b6e533, phase: 'paused', pendingText: '', activeSeq: null, userSpeaking: false, pendingInterrupt: null },
+      effects: ['STOP_DETECTOR'],
+    };
+  }
+  const v_66d3ef = v_b6e533.pendingInterrupt;
+  if (v_66d3ef) {
+    const v_1923e2 = v_b6e533.nextSeq;
+    return {
+      state: {
+        ...v_b6e533, phase: 'interrupting', pendingText: '', userSpeaking: false,
+        activeSeq: v_1923e2, nextSeq: v_1923e2 + 1, pendingInterrupt: null,
+      },
+      effects: ['SAY_INTERRUPT', 'START_DETECTOR'],
+      sayText: v_66d3ef.text,
+      saySeq: v_1923e2,
+    };
+  }
+  return {
+    state: { ...v_b6e533, phase: 'listening', pendingText: '', activeSeq: null, userSpeaking: false },
+    effects: ['STOP_DETECTOR', 'START_STT'],
+  };
+}
+
 export function v_6920f0(v_b6e533, v_1d299c): HandsFreeResult {
   switch (v_1d299c.type) {
     case 'CALL_LIVE': {
@@ -105,11 +132,18 @@ export function v_6920f0(v_b6e533, v_1d299c): HandsFreeResult {
       }
       const v_9b6134 = v_1d299c.text.trim();
       if (!v_9b6134) return { state: v_b6e533, effects: [] };
+
+      const v_66d3ef = v_b6e533.pendingInterrupt;
+      const v_0d45fe =
+        v_66d3ef == null ? null : v_66d3ef.deferredTurns + 1 >= 2 ? null : { ...v_66d3ef, deferredTurns: v_66d3ef.deferredTurns + 1 };
       if (!v_b6e533.confirmGate) {
 
         const v_1923e2 = v_b6e533.nextSeq;
         return {
-          state: { ...v_b6e533, phase: 'sending', pendingText: v_9b6134, activeSeq: v_1923e2, nextSeq: v_1923e2 + 1, userSpeaking: false },
+          state: {
+            ...v_b6e533, phase: 'sending', pendingText: v_9b6134, activeSeq: v_1923e2, nextSeq: v_1923e2 + 1, userSpeaking: false,
+            pendingInterrupt: v_0d45fe,
+          },
           effects: ['STOP_STT', 'SAY', 'START_DETECTOR'],
           sayText: v_9b6134,
           saySeq: v_1923e2,
@@ -119,7 +153,7 @@ export function v_6920f0(v_b6e533, v_1d299c): HandsFreeResult {
         v_b6e533.phase === 'confirming' && v_b6e533.pendingText
           ? `${v_b6e533.pendingText} ${v_9b6134}`.trim()
           : v_9b6134;
-      return { state: { ...v_b6e533, phase: 'confirming', pendingText: v_def12c, userSpeaking: false }, effects: [] };
+      return { state: { ...v_b6e533, phase: 'confirming', pendingText: v_def12c, userSpeaking: false, pendingInterrupt: v_0d45fe }, effects: [] };
     }
 
     case 'CONFIRM_SEND': {
@@ -154,11 +188,7 @@ export function v_6920f0(v_b6e533, v_1d299c): HandsFreeResult {
         return { state: v_b6e533, effects: [] };
       }
 
-      if (!v_b6e533.micOn) return { state: { ...v_b6e533, phase: 'paused', pendingText: '', activeSeq: null, userSpeaking: false, pendingInterrupt: null }, effects: ['STOP_DETECTOR'] };
-      return {
-        state: { ...v_b6e533, phase: 'listening', pendingText: '', activeSeq: null, userSpeaking: false },
-        effects: ['STOP_DETECTOR', 'START_STT'],
-      };
+      return v_778049(v_b6e533);
 
     case 'RESPONSE_DONE':
 
@@ -171,11 +201,7 @@ export function v_6920f0(v_b6e533, v_1d299c): HandsFreeResult {
         return { state: v_b6e533, effects: [] };
       }
 
-      if (!v_b6e533.micOn) return { state: { ...v_b6e533, phase: 'paused', pendingText: '', activeSeq: null, userSpeaking: false, pendingInterrupt: null }, effects: ['STOP_DETECTOR'] };
-      return {
-        state: { ...v_b6e533, phase: 'listening', pendingText: '', activeSeq: null, userSpeaking: false },
-        effects: ['STOP_DETECTOR', 'START_STT'],
-      };
+      return v_778049(v_b6e533);
 
     case 'MIC_OFF':
       if (!v_b6e533.micOn) return { state: v_b6e533, effects: [] };
