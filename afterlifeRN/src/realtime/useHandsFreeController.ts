@@ -377,6 +377,10 @@ export function useHandsFreeController(opts: {
     dispatchRef.current(stateRef.current.micOn ? { type: 'MIC_OFF' } : { type: 'MIC_ON' });
   }, []);
 
+  const notifyFaceInterrupt = useCallback((text: string, faceKey: string) => {
+    dispatchRef.current({ type: 'FACE_INTERRUPT', text, faceKey });
+  }, []);
+
   const devForceListen = useCallback(() => {
     sttSuppressedRef.current = false;
     setSttSuppressed(false);
@@ -395,7 +399,7 @@ export function useHandsFreeController(opts: {
     toggleMic,
     cancelConfirm,
 
-    dispatch,
+    notifyFaceInterrupt,
     transcript: speech.transcript,
     interimTranscript: speech.interimTranscript,
 
