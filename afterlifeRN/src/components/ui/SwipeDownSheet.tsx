@@ -1,7 +1,7 @@
 
 
 import React, { useRef } from "react";
-import { Animated, PanResponder, StyleSheet, View, type ViewStyle } from "react-native";
+import { Animated, PanResponder, Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 
 interface Props {
   onClose: () => void;
@@ -80,14 +80,14 @@ export default function SwipeDownSheet({
         { transform: [{ translateY: composedTranslateY }] },
       ]}
 
-      onStartShouldSetResponder={() => true}
     >
       {}
       <View
         {...panResponder.panHandlers}
         style={[styles.handleZone, { height: handleZoneHeight }]}
       />
-      {children}
+      {}
+      <Pressable onPress={() => {}}>{children}</Pressable>
     </Animated.View>
   );
 }

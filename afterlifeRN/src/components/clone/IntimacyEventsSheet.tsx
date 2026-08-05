@@ -220,7 +220,8 @@ const s = StyleSheet.create({
   eventsBreakdownRow: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   eventsBreakdownItem: { fontSize: 12, color: COLORS.zinc500 },
   eventsBreakdownVal: { color: COLORS.zinc900, fontWeight: "600" },
-  eventsScrollArea: { maxHeight: 400 },
+
+  eventsScrollArea: { flexShrink: 1 },
   eventRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.zinc100 },
   eventIcon: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   eventLabel: { fontSize: 14, fontWeight: "600", color: COLORS.zinc900 },
