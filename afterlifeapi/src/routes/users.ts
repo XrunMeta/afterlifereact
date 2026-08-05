@@ -750,7 +750,7 @@ v_de7ba7.post("/me/delete/gdpr", v_6690d9, async (v_3f4e2e) => {
   try {
     const v_2bcd5a = await v_344b9e(v_3f4e2e.env, v_43e90c);
     console.log(
-      `[gdpr] ontology purged: ont=${v_2bcd5a.ontRows} person=${v_2bcd5a.personRows} kv=${v_2bcd5a.kvKeys}`,
+      `[gdpr] ontology purged: ont=${v_2bcd5a.ontRows} person=${v_2bcd5a.personRows} kv=${v_2bcd5a.kvKeys} vec=${v_2bcd5a.vectorRows}`,
     );
   } catch (v_49263d) {
     console.error(

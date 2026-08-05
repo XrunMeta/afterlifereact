@@ -51,7 +51,60 @@ v_469bf2("purgeUserOntology", () => {
   v_23805a("데이터 없는 user는 0건(멱등·throw 없음)", async () => {
     await v_bfb240(7703);
     const v_8f00b9 = await v_344b9e(v_9542f7, 7703);
-    v_4d37e3(v_8f00b9).toEqual({ ontRows: 0, personRows: 0, kvKeys: 0 });
+    v_4d37e3(v_8f00b9).toEqual({ ontRows: 0, personRows: 0, kvKeys: 0, vectorRows: 0 });
+  });
+
+  v_23805a("탈퇴 시 얼굴 벡터 장부도 함께 파기된다", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    await v_a1651b
+      .prepare(
+        `INSERT INTO users (email, password_hash, name, created_at, call_learning_consent)
+         VALUES ('t257purge@x.com', 'x', 'U', CURRENT_TIMESTAMP, 1)`,
+      )
+      .run();
+    const v_ceb55a = await v_a1651b
+      .prepare("SELECT id FROM users WHERE email = 't257purge@x.com'")
+      .first<{ id: number }>();
+    const v_43e90c = v_ceb55a!.id;
+
+    await v_a1651b
+      .prepare(
+        `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+         VALUES (?, 'C', 't257purge-clone', 'memlow', 'public', CURRENT_TIMESTAMP)`,
+      )
+      .bind(v_43e90c)
+      .run();
+    const v_966588 = await v_a1651b
+      .prepare("SELECT id FROM clones WHERE username = 't257purge-clone'")
+      .first<{ id: number }>();
+    const v_6e0fd3 = v_966588!.id;
+
+    const v_43af15 = await v_a1651b
+      .prepare(
+        `INSERT INTO persons (user_id, clone_id, display_name, consent_state, created_at)
+         VALUES (?, ?, 'X', 'granted', ?)`,
+      )
+      .bind(v_43e90c, v_6e0fd3, Date.now())
+      .run();
+    const v_ca1ec5 = v_43af15.meta.last_row_id as number;
+
+    await v_a1651b
+      .prepare(
+        `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
+         VALUES (?, ?, 'vec-purge-1', 'w600k_mbf', 512, 'call', ?)`,
+      )
+      .bind(v_6e0fd3, v_ca1ec5, Date.now())
+      .run();
+
+    const { purgeUserOntology: v_344b9e } = await import("../src/lib/memoryStore");
+    const v_c690be = await v_344b9e(v_c9c489 as never, v_43e90c);
+    v_4d37e3(v_c690be.vectorRows).toBeGreaterThan(0);
+
+    const v_dbaa7f = await v_a1651b
+      .prepare("SELECT COUNT(*) AS n FROM clone_person_faces WHERE person_id = ?")
+      .bind(v_ca1ec5)
+      .first<{ n: number }>();
+    v_4d37e3(v_dbaa7f?.n).toBe(0);
   });
 });
 
