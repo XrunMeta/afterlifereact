@@ -605,11 +605,12 @@ export default function FollowingScreen() {
               <Feather name="thermometer" size={12} color="#fb923c" />
               <Text style={s.badgeText}>{item.persona.intimacy}</Text>
             </TouchableOpacity>
-            {}
+            {
+}
             <View style={s.badgeDivider} />
             <TouchableOpacity
               style={s.badgeBtn}
-              onPress={() => openCloneFeed(item.persona.id, item.feed.id > 0 ? item.feed.id : undefined)}
+              onPress={() => setCommentPostId(item.feed.id)}
             >
               <Feather name="message-circle" size={12} color="#34d399" />
               <Text style={s.badgeText}>
