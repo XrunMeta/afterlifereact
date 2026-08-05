@@ -8,6 +8,7 @@ import { getFaceIndex } from "../lib/faceVectors";
 import { deletePersonCascade } from "../lib/personDelete";
 import { assertValidDisplayName } from "../lib/displayName";
 import { cloneActiveSql } from "../lib/cloneAccess";
+import { faceNamespace, queryCloneScope } from "../lib/cloneFaceScope";
 
 export const persons = new Hono<AppEnv>();
 
@@ -105,40 +106,47 @@ const DEFAULT_FACE_THRESHOLD = 0.45;
 
 persons.post("/match", requireAuth, async (c) => {
   const userId = c.get("userId")!;
-  const body = await c.req.json<{ vector?: number[] }>().catch(() => ({}) as { vector?: number[] });
+  const body = await c.req
+    .json<{ vector?: number[]; cloneId?: number }>()
+    .catch(() => ({}) as { vector?: number[]; cloneId?: number });
   const v = body.vector;
   if (!Array.isArray(v) || v.length !== 512 || v.some((x) => typeof x !== "number" || !Number.isFinite(x)))
     throw new APIError("VALIDATION_FAILED", "vector: 512차원 수치 배열이어야 합니다");
+
+  const cloneId = body.cloneId;
+  if (typeof cloneId !== "number" || !Number.isInteger(cloneId) || cloneId <= 0)
+    throw new APIError("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+
+  const clone = await c.env.DB.prepare("SELECT id FROM clones WHERE id = ? AND owner_id = ?")
+    .bind(cloneId, userId)
+    .first<{ id: number }>();
+  if (!clone) throw new APIError("NOT_FOUND", "클론을 찾을 수 없습니다.");
 
   const cfg = await c.env.DB.prepare("SELECT value FROM app_config WHERE key = 'face.match_threshold'").first<{
     value: string;
   }>();
   const threshold = cfg?.value !== undefined && Number.isFinite(Number(cfg.value)) ? Number(cfg.value) : DEFAULT_FACE_THRESHOLD;
 
-  const idx = getFaceIndex(c.env);
-  const r = await idx.query(v, { topK: 3, namespace: String(userId), returnMetadata: true });
+  const scoped = await queryCloneScope(c.env, { userId, cloneId, vector: v, topK: 3 });
+  const ids = scoped.map((m) => m.personId);
 
-  const byPerson = new Map<number, number>(); 
-  for (const m of r.matches) {
-    const pid = Number(m.metadata?.personId);
-    if (!pid) continue;
-    byPerson.set(pid, Math.max(byPerson.get(pid) ?? -1, m.score));
-  }
-
-  const ids = [...byPerson.keys()];
   const names = new Map<number, string | null>();
   if (ids.length) {
     const rs = await c.env.DB.prepare(
-      `SELECT id, display_name FROM persons WHERE user_id = ? AND id IN (${ids.map(() => "?").join(",")})`
+      `SELECT p.id, p.display_name
+         FROM persons p
+         JOIN clone_person_faces f ON f.person_id = p.id AND f.clone_id = ?
+        WHERE p.user_id = ? AND p.clone_id = ? AND p.id IN (${ids.map(() => "?").join(",")})
+        GROUP BY p.id`,
     )
-      .bind(userId, ...ids)
+      .bind(cloneId, userId, cloneId, ...ids)
       .all<{ id: number; display_name: string | null }>();
     for (const row of rs.results) names.set(row.id, row.display_name);
   }
 
-  const matches = ids
-    .map((pid) => ({ personId: pid, displayName: names.get(pid) ?? null, score: byPerson.get(pid)! }))
-    .sort((a, b) => b.score - a.score);
+  const matches = scoped
+    .filter((m) => names.has(m.personId))
+    .map((m) => ({ personId: m.personId, displayName: names.get(m.personId) ?? null, score: m.score }));
 
   const best = matches[0] && matches[0].score >= threshold ? matches[0] : null;
 
@@ -153,8 +161,8 @@ persons.post("/calibrate", requireAuth, async (c) => {
   if (!isFaceCalibrateEnabled(c.env)) return c.notFound();
   const userId = c.get("userId")!;
   const body = await c.req
-    .json<{ vector?: unknown; groundTruthPersonId?: string | null }>()
-    .catch(() => ({}) as { vector?: unknown; groundTruthPersonId?: string | null });
+    .json<{ vector?: unknown; groundTruthPersonId?: string | null; cloneId?: number }>()
+    .catch(() => ({}) as { vector?: unknown; groundTruthPersonId?: string | null; cloneId?: number });
   const v = body.vector;
   if (!Array.isArray(v) || v.length !== 512 || !v.every((n) => typeof n === "number" && Number.isFinite(n))) {
     return c.json({ error: "invalid vector" }, 400); 
@@ -163,9 +171,14 @@ persons.post("/calibrate", requireAuth, async (c) => {
     value: string;
   }>();
   const threshold = cfg && Number.isFinite(Number(cfg.value)) ? Number(cfg.value) : DEFAULT_FACE_THRESHOLD;
+
+  const calibCloneId = body.cloneId;
+  if (typeof calibCloneId !== "number" || !Number.isInteger(calibCloneId) || calibCloneId <= 0) {
+    return c.json({ error: "invalid cloneId" }, 400);
+  }
   const { matches } = await getFaceIndex(c.env).query(v as number[], {
     topK: 100,
-    namespace: String(userId),
+    namespace: faceNamespace(userId, calibCloneId),
     returnMetadata: true,
   });
 
