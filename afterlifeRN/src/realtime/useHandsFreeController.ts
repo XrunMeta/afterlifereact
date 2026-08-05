@@ -7,6 +7,9 @@ import {
   handsFreeReducer,
   initHandsFreeState,
   IDLE_GREET_DELAYS_MS,
+  PENDING_INTERRUPT_FLUSH_QUIET_MS,
+  PENDING_INTERRUPT_EXPIRE_MS,
+  INTERRUPT_COOLDOWN_MS,
   type HandsFreeEvent,
   type HandsFreeEffect,
 } from './handsFree';
@@ -82,6 +85,8 @@ export function useHandsFreeController(opts: {
 
   const activeSeqRef = useRef<number | null>(null);
 
+  const interruptCooldownUntilRef = useRef(0);
+
   const detector = useCloneSilenceDetector({
     getStatsReport: opts.getStatsReport,
     onResponseStart: () => dispatchRef.current({ type: 'CLONE_SPEAKING' }),
@@ -138,12 +143,22 @@ export function useHandsFreeController(opts: {
             dispatchRef.current({ type: 'USER_SPEECH_IDLE' });
             break;
           case 'SAY':
-          case 'SAY_INTERRUPT':
-          case 'SAY_IDLE_GREETING':
 
             if (saySeq != null) activeSeqRef.current = saySeq;
             if (sayText) {
               sayRef.current(sayText).catch(() => dispatchRef.current({ type: 'RESPONSE_DONE' }));
+            } else {
+              dispatchRef.current({ type: 'RESPONSE_DONE' });
+            }
+            break;
+          case 'SAY_INTERRUPT':
+          case 'SAY_IDLE_GREETING':
+
+            if (saySeq != null) activeSeqRef.current = saySeq;
+
+            interruptCooldownUntilRef.current = Date.now() + INTERRUPT_COOLDOWN_MS;
+            if (sayText && speakRef.current) {
+              speakRef.current(sayText).catch(() => dispatchRef.current({ type: 'RESPONSE_DONE' }));
             } else {
               dispatchRef.current({ type: 'RESPONSE_DONE' });
             }
@@ -200,6 +215,8 @@ export function useHandsFreeController(opts: {
       if (ev.type === 'RESPONSE_DONE' || ev.type === 'RESPONSE_END' || ev.type === 'CALL_ENDED') {
         clearPendingDone();
       }
+
+      if (ev.type === 'CALL_ENDED') interruptCooldownUntilRef.current = 0;
       const prev = stateRef.current;
       const { state: next, effects, sayText, saySeq } = handsFreeReducer(prev, ev);
 
@@ -293,6 +310,31 @@ export function useHandsFreeController(opts: {
   }, [state.phase, state.userSpeaking, state.idleGreetCount]);
 
   useEffect(() => {
+    if (!state.pendingInterrupt) return;
+    if (state.phase !== 'listening') return;
+    if (state.userSpeaking) return;
+    if (state.activeSeq !== null) return;
+    if (!state.micOn) return;
+    if (pendingDoneTimerRef.current) return; 
+    const wait = Math.max(0, releaseNotBeforeRef.current - Date.now()); 
+    const id = setTimeout(
+      () => dispatchRef.current({ type: 'INTERRUPT_FLUSH' }),
+      PENDING_INTERRUPT_FLUSH_QUIET_MS + wait,
+    );
+    return () => clearTimeout(id);
+  }, [state.pendingInterrupt, state.phase, state.userSpeaking, state.activeSeq, state.micOn]);
+
+  useEffect(() => {
+    const pi = state.pendingInterrupt;
+    if (!pi) return;
+    const id = setTimeout(
+      () => dispatchRef.current({ type: 'INTERRUPT_EXPIRED', faceKey: pi.faceKey }),
+      PENDING_INTERRUPT_EXPIRE_MS,
+    );
+    return () => clearTimeout(id);
+  }, [state.pendingInterrupt]);
+
+  useEffect(() => {
     if (!opts.enabled) {
 
       cloneAudioLevelRef.current = 0;
@@ -334,6 +376,8 @@ export function useHandsFreeController(opts: {
             speechRef.current.stopListening();
             sttSuppressedRef.current = true;
             setSttSuppressed(true); 
+
+            dispatchRef.current({ type: 'USER_SPEECH_IDLE' });
             emitTimingEvent('suppress_on');
             emitTimingEvent('stt_close');
           }
@@ -345,6 +389,8 @@ export function useHandsFreeController(opts: {
           void speechRef.current.startListening();
           sttSuppressedRef.current = false;
           setSttSuppressed(false); 
+
+          dispatchRef.current({ type: 'USER_SPEECH_IDLE' });
           emitTimingEvent('suppress_off');
           emitTimingEvent('stt_open');
         }
@@ -378,6 +424,8 @@ export function useHandsFreeController(opts: {
   }, []);
 
   const notifyFaceInterrupt = useCallback((text: string, faceKey: string) => {
+
+    if (Date.now() < interruptCooldownUntilRef.current) return;
     dispatchRef.current({ type: 'FACE_INTERRUPT', text, faceKey });
   }, []);
 
@@ -387,6 +435,8 @@ export function useHandsFreeController(opts: {
     cloneTailGraceUntilRef.current = 0;
     emitTimingEvent('dev_listen_now');
     emitTimingEvent('stt_open');
+
+    dispatchRef.current({ type: 'USER_SPEECH_IDLE' });
     void speechRef.current.startListening();
   }, []);
 

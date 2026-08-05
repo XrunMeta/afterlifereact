@@ -1,6 +1,12 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useHandsFreeController } from '../../src/realtime/useHandsFreeController';
-import { IDLE_GREET_DELAYS_MS, IDLE_GREET_TEXT } from '../../src/realtime/handsFree';
+import {
+  IDLE_GREET_DELAYS_MS,
+  IDLE_GREET_TEXT,
+  PENDING_INTERRUPT_FLUSH_QUIET_MS,
+  PENDING_INTERRUPT_EXPIRE_MS,
+  INTERRUPT_COOLDOWN_MS,
+} from '../../src/realtime/handsFree';
 
 function makeMockEngine() {
   const listeners: Record<string, Array<(p?: any) => void>> = {};
@@ -979,7 +985,35 @@ it('confirming 중 cancelConfirm() → listening, say 미호출', async () => {
 
 describe('T-258: 무발화 워치독 · seq 배선', () => {
 
-  it('조용한 listening 이 IDLE_GREET_DELAYS_MS[0] 만큼 이어지면 SAY_IDLE_GREETING 이 일반 say 경로로 실행된다', async () => {
+  it('🔴[C1] 조용한 listening 이 IDLE_GREET_DELAYS_MS[0] 만큼 이어지면 워치독 문구가 speak(고정 문구) 경로로 나간다 — say(LLM 턴) 금지', async () => {
+    jest.useFakeTimers();
+    try {
+      const engine = makeMockEngine();
+      const say = jest.fn().mockResolvedValue(undefined);
+      const speak = jest.fn().mockResolvedValue(undefined);
+      const { result } = renderController({
+        enabled: true,
+        say,
+        speak,
+        getStatsReport: () => null,
+        notifySpeechEnd: jest.fn(),
+        speechEngine: engine,
+      });
+      await act(async () => { await jest.advanceTimersByTimeAsync(0); });
+      expect(result.current.phase).toBe('listening');
+
+      await act(async () => { await jest.advanceTimersByTimeAsync(IDLE_GREET_DELAYS_MS[0]); });
+
+      expect(speak).toHaveBeenCalledWith(IDLE_GREET_TEXT);
+      expect(say).not.toHaveBeenCalled();
+
+      expect(result.current.phase).toBe('interrupting');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('🔴[C1] speak 미제공 환경(second)에서는 워치독 문구를 say 로 흘리지 않고 RESPONSE_DONE 으로 안전 복구한다', async () => {
     jest.useFakeTimers();
     try {
       const engine = makeMockEngine();
@@ -992,12 +1026,9 @@ describe('T-258: 무발화 워치독 · seq 배선', () => {
         speechEngine: engine,
       });
       await act(async () => { await jest.advanceTimersByTimeAsync(0); });
-      expect(result.current.phase).toBe('listening');
-
       await act(async () => { await jest.advanceTimersByTimeAsync(IDLE_GREET_DELAYS_MS[0]); });
-      expect(say).toHaveBeenCalledWith(IDLE_GREET_TEXT);
-
-      expect(result.current.phase).toBe('interrupting');
+      expect(say).not.toHaveBeenCalled();
+      expect(result.current.phase).toBe('listening'); 
     } finally {
       jest.useRealTimers();
     }
@@ -1008,9 +1039,11 @@ describe('T-258: 무발화 워치독 · seq 배선', () => {
     try {
       const engine = makeMockEngine();
       const say = jest.fn().mockResolvedValue(undefined);
+      const speak = jest.fn().mockResolvedValue(undefined);
       const { result } = renderController({
         enabled: true,
         say,
+        speak,
         getStatsReport: () => null,
         notifySpeechEnd: jest.fn(),
         speechEngine: engine,
@@ -1023,6 +1056,7 @@ describe('T-258: 무발화 워치독 · seq 배선', () => {
 
       await act(async () => { await jest.advanceTimersByTimeAsync(IDLE_GREET_DELAYS_MS[0]); });
 
+      expect(speak).not.toHaveBeenCalledWith(IDLE_GREET_TEXT);
       expect(say).not.toHaveBeenCalledWith(IDLE_GREET_TEXT);
       expect(result.current.phase).toBe('listening');
     } finally {
@@ -1035,11 +1069,13 @@ describe('T-258: 무발화 워치독 · seq 배선', () => {
     try {
       const engine = makeMockEngine();
       const say = jest.fn().mockResolvedValue(undefined);
+      const speak = jest.fn().mockResolvedValue(undefined); 
       let signal: any = null;
       const { result, rerender } = renderHook(
         (props: any) => useHandsFreeController({
           enabled: true,
           say,
+          speak,
           getStatsReport: () => null,
           notifySpeechEnd: jest.fn(),
           speechEngine: engine,
@@ -1051,7 +1087,7 @@ describe('T-258: 무발화 워치독 · seq 배선', () => {
       expect(result.current.phase).toBe('listening');
 
       await act(async () => { await jest.advanceTimersByTimeAsync(IDLE_GREET_DELAYS_MS[0]); });
-      expect(say).toHaveBeenCalledTimes(1);
+      expect(speak).toHaveBeenCalledTimes(1);
       expect(result.current.phase).toBe('interrupting');
 
       signal = { type: 'speech_start', ts: Date.now() };
@@ -1061,7 +1097,7 @@ describe('T-258: 무발화 워치독 · seq 배선', () => {
       expect(result.current.phase).toBe('listening');
 
       await act(async () => { await jest.advanceTimersByTimeAsync(IDLE_GREET_DELAYS_MS[1]); });
-      expect(say).toHaveBeenCalledTimes(2);
+      expect(speak).toHaveBeenCalledTimes(2);
       expect(result.current.phase).toBe('interrupting');
 
       signal = { type: 'speech_start', ts: Date.now() };
@@ -1071,7 +1107,8 @@ describe('T-258: 무발화 워치독 · seq 배선', () => {
       expect(result.current.phase).toBe('listening');
 
       await act(async () => { await jest.advanceTimersByTimeAsync(IDLE_GREET_DELAYS_MS[1]); });
-      expect(say).toHaveBeenCalledTimes(2);
+      expect(speak).toHaveBeenCalledTimes(2);
+      expect(say).not.toHaveBeenCalled(); 
       expect(result.current.phase).toBe('listening');
     } finally {
       jest.useRealTimers();
@@ -1083,9 +1120,11 @@ describe('T-258: 무발화 워치독 · seq 배선', () => {
     try {
       const engine = makeMockEngine();
       const say = jest.fn().mockResolvedValue(undefined);
+      const speak = jest.fn().mockResolvedValue(undefined);
       const { result } = renderController({
         enabled: true,
         say,
+        speak,
         getStatsReport: () => null,
         notifySpeechEnd: jest.fn(),
         speechEngine: engine,
@@ -1095,7 +1134,7 @@ describe('T-258: 무발화 워치독 · seq 배선', () => {
       expect(result.current.phase).toBe('listening');
 
       await act(async () => { await jest.advanceTimersByTimeAsync(IDLE_GREET_DELAYS_MS[0]); });
-      expect(say).toHaveBeenCalledWith(IDLE_GREET_TEXT);
+      expect(speak).toHaveBeenCalledWith(IDLE_GREET_TEXT);
       expect(result.current.phase).toBe('interrupting');
 
       await act(async () => { await jest.advanceTimersByTimeAsync(45000); });
@@ -1110,9 +1149,11 @@ describe('T-258: 무발화 워치독 · seq 배선', () => {
     try {
       const engine = makeMockEngine();
       const say = jest.fn().mockResolvedValue(undefined);
+      const speak = jest.fn().mockResolvedValue(undefined);
       const { result } = renderController({
         enabled: true,
         say,
+        speak,
         getStatsReport: () => null,
         notifySpeechEnd: jest.fn(),
         speechEngine: engine,
@@ -1127,8 +1168,215 @@ describe('T-258: 무발화 워치독 · seq 배선', () => {
 
       await act(async () => { await jest.advanceTimersByTimeAsync(IDLE_GREET_DELAYS_MS[0]); });
 
+      expect(speak).not.toHaveBeenCalledWith(IDLE_GREET_TEXT);
       expect(say).not.toHaveBeenCalledWith(IDLE_GREET_TEXT);
       expect(result.current.phase).toBe('listening');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});
+
+describe('T-258 최종 리뷰 fix: 계층 경계 회귀', () => {
+  const INTERRUPT_TEXT = '누구시죠?';
+
+  const LONG_SILENCE_MS = 60000;
+
+  it('🔴[C1] 얼굴 인터럽트는 speak(고정 문구) 경로로 나간다 — say(LLM 턴)로 보내면 안 된다', async () => {
+    jest.useFakeTimers();
+    try {
+      const engine = makeMockEngine();
+      const say = jest.fn().mockResolvedValue(undefined);
+      const speak = jest.fn().mockResolvedValue(undefined);
+      const { result } = renderController({
+        enabled: true, say, speak,
+        getStatsReport: () => null, notifySpeechEnd: jest.fn(), speechEngine: engine,
+      });
+      await act(async () => { await jest.advanceTimersByTimeAsync(0); });
+      expect(result.current.phase).toBe('listening');
+
+      act(() => { result.current.notifyFaceInterrupt(INTERRUPT_TEXT, 'f1'); });
+      await act(async () => { await jest.advanceTimersByTimeAsync(0); });
+
+      expect(speak).toHaveBeenCalledWith(INTERRUPT_TEXT);
+      expect(say).not.toHaveBeenCalled();
+      expect(result.current.phase).toBe('interrupting');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('🔴[C2] 에코 억제로 STT 가 끊겨 final 이 유실돼도 userSpeaking 이 고착되지 않는다(워치독 부활)', async () => {
+    jest.useFakeTimers();
+    try {
+      const engine = makeMockEngine();
+      const say = jest.fn().mockResolvedValue(undefined);
+      const speak = jest.fn().mockResolvedValue(undefined);
+      let level = 0.01;
+      const { result } = renderController({
+        enabled: true, say, speak,
+        getStatsReport: () => makeAudioStats(level),
+        notifySpeechEnd: jest.fn(), speechEngine: engine,
+        silenceMs: LONG_SILENCE_MS, 
+      });
+      await act(async () => { await jest.advanceTimersByTimeAsync(0); });
+      expect(result.current.phase).toBe('listening');
+
+      act(() => { engine.emit('result', { results: [{ transcript: '어' }], isFinal: false }); });
+
+      level = 0.9;
+      await act(async () => { await jest.advanceTimersByTimeAsync(600); });
+      expect(result.current.cloneSuppressed).toBe(true);
+
+      level = 0.01;
+      await act(async () => { await jest.advanceTimersByTimeAsync(1200); });
+      expect(result.current.cloneSuppressed).toBe(false);
+
+      await act(async () => { await jest.advanceTimersByTimeAsync(IDLE_GREET_DELAYS_MS[0]); });
+      expect(speak).toHaveBeenCalledWith(IDLE_GREET_TEXT);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  async function runLoadedInterrupt(waitMs: number) {
+    const engine = makeMockEngine();
+    const say = jest.fn().mockResolvedValue(undefined);
+    const speak = jest.fn().mockResolvedValue(undefined);
+    let level = 0.01;
+    const { result } = renderController({
+      enabled: true, say, speak,
+      getStatsReport: () => makeAudioStats(level),
+      notifySpeechEnd: jest.fn(), speechEngine: engine,
+      silenceMs: LONG_SILENCE_MS,
+    });
+    await act(async () => { await jest.advanceTimersByTimeAsync(0); });
+
+    act(() => { engine.emit('result', { results: [{ transcript: '어' }], isFinal: false }); });
+    act(() => { result.current.notifyFaceInterrupt(INTERRUPT_TEXT, 'f1'); });
+    expect(speak).not.toHaveBeenCalled();
+    expect(result.current.phase).toBe('listening');
+
+    if (waitMs > 0) await act(async () => { await jest.advanceTimersByTimeAsync(waitMs); });
+
+    level = 0.9;
+    await act(async () => { await jest.advanceTimersByTimeAsync(600); });
+    level = 0.01;
+    await act(async () => { await jest.advanceTimersByTimeAsync(1200); });
+
+    await act(async () => { await jest.advanceTimersByTimeAsync(PENDING_INTERRUPT_FLUSH_QUIET_MS); });
+    return { result, say, speak };
+  }
+
+  it('🔴[C3] 턴 종료 이벤트가 없어도(final 유실) 조용해지면 적재 인터럽트가 발화된다', async () => {
+    jest.useFakeTimers();
+    try {
+      const { result, speak, say } = await runLoadedInterrupt(0);
+      expect(speak).toHaveBeenCalledWith(INTERRUPT_TEXT);
+      expect(say).not.toHaveBeenCalled();
+      expect(result.current.phase).toBe('interrupting');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('🔴[C3] 적재 후 PENDING_INTERRUPT_EXPIRE_MS 를 넘기면 폐기된다(뒤늦은 인사 방지)', async () => {
+    jest.useFakeTimers();
+    try {
+      const { result, speak } = await runLoadedInterrupt(PENDING_INTERRUPT_EXPIRE_MS);
+      expect(speak).not.toHaveBeenCalled();
+      expect(result.current.phase).toBe('listening');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('🔴[I2] 클론 발화 재생 중 MIC_ON 은 STT 를 열지 않고, 그 발화가 끝난 뒤에만 마이크가 열린다', async () => {
+    jest.useFakeTimers();
+    try {
+      const engine = makeMockEngine();
+      const say = jest.fn().mockResolvedValue(undefined);
+      let signal: any = null;
+      const { result, rerender } = renderHook(
+        (props: any) => useHandsFreeController({
+          enabled: true,
+          say,
+          speak: jest.fn().mockResolvedValue(undefined),
+          getStatsReport: () => null,
+          notifySpeechEnd: jest.fn(),
+          speechEngine: engine,
+          lastSignal: props.signal,
+          silenceMs: 20, 
+        }),
+        { initialProps: { signal } },
+      );
+      await act(async () => { await jest.advanceTimersByTimeAsync(0); });
+
+      act(() => { engine.emitFinal('안녕'); });
+      await act(async () => { await jest.advanceTimersByTimeAsync(50); });
+      expect(say).toHaveBeenCalledWith('안녕');
+      signal = { type: 'speech_start', ts: 1 };
+      act(() => { rerender({ signal }); });
+      expect(result.current.phase).toBe('speaking');
+
+      act(() => { result.current.toggleMic(); });
+      expect(result.current.phase).toBe('paused');
+      const startsBefore = engine.start.mock.calls.length;
+      act(() => { result.current.toggleMic(); });
+      await act(async () => { await jest.advanceTimersByTimeAsync(400); }); 
+      expect(result.current.micOn).toBe(true);
+      expect(result.current.phase).toBe('speaking');
+      expect(engine.start.mock.calls.length).toBe(startsBefore); 
+
+      signal = { type: 'speech_end', ts: 2 };
+      act(() => { rerender({ signal }); });
+      await act(async () => { await jest.advanceTimersByTimeAsync(0); });
+      expect(result.current.phase).toBe('listening');
+      expect(engine.start.mock.calls.length).toBeGreaterThan(startsBefore);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('🔴[I3] 인터럽트 발화 직후 쿨다운 동안 신규 얼굴 인터럽트를 무시한다(연쇄 상한)', async () => {
+    jest.useFakeTimers();
+    try {
+      const engine = makeMockEngine();
+      const speak = jest.fn().mockResolvedValue(undefined);
+      let signal: any = null;
+      const { result, rerender } = renderHook(
+        (props: any) => useHandsFreeController({
+          enabled: true,
+          say: jest.fn().mockResolvedValue(undefined),
+          speak,
+          getStatsReport: () => null,
+          notifySpeechEnd: jest.fn(),
+          speechEngine: engine,
+          lastSignal: props.signal,
+        }),
+        { initialProps: { signal } },
+      );
+      await act(async () => { await jest.advanceTimersByTimeAsync(0); });
+
+      act(() => { result.current.notifyFaceInterrupt('첫 얼굴', 'f1'); });
+      await act(async () => { await jest.advanceTimersByTimeAsync(0); });
+      expect(speak).toHaveBeenCalledTimes(1);
+      signal = { type: 'speech_start', ts: 1 };
+      act(() => { rerender({ signal }); });
+      signal = { type: 'speech_end', ts: 2 };
+      act(() => { rerender({ signal }); });
+      expect(result.current.phase).toBe('listening');
+
+      act(() => { result.current.notifyFaceInterrupt('둘째 얼굴', 'f2'); });
+      await act(async () => { await jest.advanceTimersByTimeAsync(PENDING_INTERRUPT_FLUSH_QUIET_MS + 500); });
+      expect(speak).toHaveBeenCalledTimes(1);
+      expect(result.current.phase).toBe('listening');
+
+      await act(async () => { await jest.advanceTimersByTimeAsync(INTERRUPT_COOLDOWN_MS); });
+      act(() => { result.current.notifyFaceInterrupt('셋째 얼굴', 'f3'); });
+      await act(async () => { await jest.advanceTimersByTimeAsync(0); });
+      expect(speak).toHaveBeenCalledTimes(2);
+      expect(speak).toHaveBeenLastCalledWith('셋째 얼굴');
     } finally {
       jest.useRealTimers();
     }

@@ -2,6 +2,9 @@ import {
   handsFreeReducer,
   initHandsFreeState,
   IDLE_GREET_DELAYS_MS,
+  PENDING_INTERRUPT_FLUSH_QUIET_MS,
+  PENDING_INTERRUPT_EXPIRE_MS,
+  INTERRUPT_COOLDOWN_MS,
 } from '../../src/realtime/handsFree';
 
 it('CALL_LIVE(micOn): listening + START_STT', () => {
@@ -146,7 +149,7 @@ it('RESPONSE_END(speaking, micOn): listening + STOP_DETECTOR + START_STT', () =>
   expect(r.effects).toEqual(expect.arrayContaining(['STOP_DETECTOR', 'START_STT']));
 });
 
-it('RESPONSE_END(speaking, micOff): paused, START_STT 없음', () => {
+it('[방어분기·도달불가 상태] RESPONSE_END(speaking, micOff): paused, START_STT 없음', () => {
   const s = { phase: 'speaking' as const, micOn: false, pendingText: '', confirmGate: false, signalGating: false, activeSeq: null, nextSeq: 1, userSpeaking: false, pendingInterrupt: null, idleGreetCount: 0 };
   const r = handsFreeReducer(s, { type: 'RESPONSE_END' });
   expect(r.state.phase).toBe('paused');
@@ -429,7 +432,7 @@ describe('FACE_INTERRUPT — 적재와 즉시발화', () => {
     expect(r.state.pendingInterrupt).toBeNull();
   });
 
-  it('RESPONSE_END 로 paused 전이 시 pendingInterrupt 를 정리한다(적재 잔존 방지)', () => {
+  it('[방어분기·도달불가 상태] RESPONSE_END 로 paused 전이 시 pendingInterrupt 를 정리한다(적재 잔존 방지)', () => {
     const s: import('../../src/realtime/handsFree').HandsFreeState = {
       phase: 'speaking', micOn: false, pendingText: '', confirmGate: false, signalGating: false,
       activeSeq: null, nextSeq: 1, userSpeaking: false, idleGreetCount: 0,
@@ -440,7 +443,7 @@ describe('FACE_INTERRUPT — 적재와 즉시발화', () => {
     expect(r.state.pendingInterrupt).toBeNull();
   });
 
-  it('RESPONSE_DONE 으로 paused 전이 시 pendingInterrupt 를 정리한다(적재 잔존 방지)', () => {
+  it('[방어분기·도달불가 상태] RESPONSE_DONE 으로 paused 전이 시 pendingInterrupt 를 정리한다(적재 잔존 방지)', () => {
     const s: import('../../src/realtime/handsFree').HandsFreeState = {
       phase: 'speaking', micOn: false, pendingText: '', confirmGate: false, signalGating: false,
       activeSeq: null, nextSeq: 1, userSpeaking: false, idleGreetCount: 0,
@@ -474,7 +477,14 @@ describe('flush ① — 사용자 턴 뒤에 인터럽트 이어붙이기', () =
   it('flush 시 START_STT 를 내보내지 않는다(마이크 재개방 금지)', () => {
     const r = runToUserResponseDone();
     expect(r.effects).not.toContain('START_STT');
-    expect(r.effects).toEqual(['SAY_INTERRUPT', 'START_DETECTOR']);
+
+    expect(r.effects).toEqual(['STOP_DETECTOR', 'SAY_INTERRUPT', 'START_DETECTOR']);
+  });
+
+  it('[I1] flush 는 아바타훅 phase 정리(STOP_DETECTOR)를 반드시 선행한다 — SAY_INTERRUPT 보다 앞', () => {
+    const r = runToUserResponseDone();
+    expect(r.effects.indexOf('STOP_DETECTOR')).toBeGreaterThanOrEqual(0);
+    expect(r.effects.indexOf('STOP_DETECTOR')).toBeLessThan(r.effects.indexOf('SAY_INTERRUPT'));
   });
 
   it('인터럽트가 끝나면 그제서야 사용자 턴으로 복귀한다', () => {
@@ -484,13 +494,17 @@ describe('flush ① — 사용자 턴 뒤에 인터럽트 이어붙이기', () =
     expect(r.effects).toEqual(['STOP_DETECTOR', 'START_STT']);
   });
 
-  it('micOn=false 면 flush 하지 않고 paused 로 간다', () => {
+  it('micOn=false 면 flush 하지 않고 paused 를 유지한다(적재분 폐기 + 마이크 유지)', () => {
     const s1 = handsFreeReducer(live(), { type: 'USER_SPEECH_START' }).state;
     const s2 = handsFreeReducer(s1, face).state;
     const s3 = handsFreeReducer(s2, { type: 'FINAL_RESULT', text: '안녕' }).state;
     const s4 = handsFreeReducer(s3, { type: 'MIC_OFF' }).state;
+    expect(s4.pendingInterrupt).toBeNull(); 
     const r = handsFreeReducer(s4, { type: 'RESPONSE_DONE' });
     expect(r.state.phase).toBe('paused');
+    expect(r.state.activeSeq).toBeNull();
+    expect(r.effects).not.toContain('START_STT');
+    expect(r.effects).not.toContain('SAY_INTERRUPT');
   });
 });
 
@@ -532,8 +546,167 @@ describe('인터럽트 밀림 상한 — confirmGate=false(즉발, 프로덕션 
     const s4 = handsFreeReducer(s3, { type: 'SPEECH_START', seq: s3.activeSeq! }).state; 
     const r = handsFreeReducer(s4, { type: 'RESPONSE_DONE', seq: s3.activeSeq! });
     expect(r.state.phase).toBe('interrupting');
-    expect(r.effects).toEqual(['SAY_INTERRUPT', 'START_DETECTOR']);
+    expect(r.effects).toEqual(['STOP_DETECTOR', 'SAY_INTERRUPT', 'START_DETECTOR']); 
     expect(r.effects).not.toContain('START_STT');
+  });
+});
+
+describe('[C3] 적재 인터럽트의 시간 기반 flush·폐기 (컨트롤러가 시간을 재고 이벤트로 보낸다)', () => {
+  const live = () => handsFreeReducer(initHandsFreeState(), { type: 'CALL_LIVE' }).state;
+  const face = { type: 'FACE_INTERRUPT' as const, text: '누구시죠?', faceKey: 'f1' };
+
+  const loaded = () => {
+    const s1 = handsFreeReducer(live(), { type: 'USER_SPEECH_START' }).state;
+    const s2 = handsFreeReducer(s1, face).state;
+    expect(s2.pendingInterrupt).not.toBeNull();
+    return s2;
+  };
+
+  it('회귀: 사용자가 말하다 침묵해 final 이 안 와도(턴 종료 이벤트 없음) INTERRUPT_FLUSH 로 발화된다', () => {
+
+    const quiet = handsFreeReducer(loaded(), { type: 'USER_SPEECH_IDLE' }).state;
+    expect(quiet.phase).toBe('listening');
+    const r = handsFreeReducer(quiet, { type: 'INTERRUPT_FLUSH' });
+    expect(r.state.phase).toBe('interrupting');
+    expect(r.sayText).toBe('누구시죠?');
+    expect(r.state.pendingInterrupt).toBeNull();
+    expect(r.effects).toEqual(['STOP_STT', 'SAY_INTERRUPT', 'START_DETECTOR']);
+  });
+
+  it('겹침 금지: 사용자가 말하는 중이면 INTERRUPT_FLUSH 를 무시하고 적재를 유지한다', () => {
+    const s = loaded(); 
+    const r = handsFreeReducer(s, { type: 'INTERRUPT_FLUSH' });
+    expect(r.state).toBe(s);
+    expect(r.effects).toEqual([]);
+  });
+
+  it('겹침 금지: 재생 중(activeSeq 존재)이면 INTERRUPT_FLUSH 를 무시한다', () => {
+    const quiet = handsFreeReducer(loaded(), { type: 'USER_SPEECH_IDLE' }).state;
+    const s = { ...quiet, activeSeq: 7 };
+    const r = handsFreeReducer(s, { type: 'INTERRUPT_FLUSH' });
+    expect(r.state).toBe(s);
+    expect(r.effects).toEqual([]);
+  });
+
+  it('겹침 금지: listening 이 아니면(speaking) INTERRUPT_FLUSH 를 무시한다', () => {
+    const s1 = handsFreeReducer(live(), { type: 'FINAL_RESULT', text: '안녕' }).state; 
+    const s2 = handsFreeReducer(s1, { type: 'SPEECH_START', seq: 1 }).state;           
+    const s3 = handsFreeReducer(s2, face).state;                                       
+    const r = handsFreeReducer(s3, { type: 'INTERRUPT_FLUSH' });
+    expect(r.state).toBe(s3);
+    expect(r.effects).toEqual([]);
+  });
+
+  it('겹침 금지: micOn=false 면 INTERRUPT_FLUSH 를 무시한다', () => {
+    const quiet = handsFreeReducer(loaded(), { type: 'USER_SPEECH_IDLE' }).state;
+    const s = { ...quiet, micOn: false };
+    const r = handsFreeReducer(s, { type: 'INTERRUPT_FLUSH' });
+    expect(r.state).toBe(s);
+    expect(r.effects).toEqual([]);
+  });
+
+  it('적재분이 없으면 INTERRUPT_FLUSH 는 no-op(잘못된 발화 생성 금지)', () => {
+    const s = live();
+    const r = handsFreeReducer(s, { type: 'INTERRUPT_FLUSH' });
+    expect(r.state).toBe(s);
+    expect(r.effects).toEqual([]);
+  });
+
+  it('INTERRUPT_EXPIRED 는 적재분을 폐기한다(뒤늦은 인사 방지) — 발화는 하지 않는다', () => {
+    const r = handsFreeReducer(loaded(), { type: 'INTERRUPT_EXPIRED', faceKey: 'f1' });
+    expect(r.state.pendingInterrupt).toBeNull();
+    expect(r.state.phase).toBe('listening');
+    expect(r.effects).toEqual([]);
+  });
+
+  it('INTERRUPT_EXPIRED 의 faceKey 가 다르면(이미 교체된 적재분) 무시한다', () => {
+    const s = loaded();
+    const r = handsFreeReducer(s, { type: 'INTERRUPT_EXPIRED', faceKey: 'other' });
+    expect(r.state).toBe(s);
+    expect(r.state.pendingInterrupt?.faceKey).toBe('f1');
+  });
+
+  it('폐기된 뒤에는 턴이 끝나도 flush 되지 않는다 — 정상 listening 복귀', () => {
+    const expired = handsFreeReducer(loaded(), { type: 'INTERRUPT_EXPIRED', faceKey: 'f1' }).state;
+    const s3 = handsFreeReducer(expired, { type: 'FINAL_RESULT', text: '안녕' }).state;
+    const r = handsFreeReducer(s3, { type: 'RESPONSE_DONE', seq: s3.activeSeq! });
+    expect(r.state.phase).toBe('listening');
+    expect(r.effects).toEqual(['STOP_DETECTOR', 'START_STT']);
+  });
+
+  it('정책 상수: flush 대기(3s)는 STT endpoint(1.5s)보다 길고, 폐기(15s)는 워치독 1차(30s)보다 짧다', () => {
+    expect(PENDING_INTERRUPT_FLUSH_QUIET_MS).toBe(3000);
+    expect(PENDING_INTERRUPT_EXPIRE_MS).toBe(15000);
+    expect(PENDING_INTERRUPT_FLUSH_QUIET_MS).toBeLessThan(PENDING_INTERRUPT_EXPIRE_MS);
+    expect(PENDING_INTERRUPT_EXPIRE_MS).toBeLessThan(IDLE_GREET_DELAYS_MS[0]);
+    expect(INTERRUPT_COOLDOWN_MS).toBe(10000);
+  });
+});
+
+describe('[I2] MIC_ON 은 진행 중인 클론 발화 위로 마이크를 열지 않는다', () => {
+  const live = () => handsFreeReducer(initHandsFreeState(), { type: 'CALL_LIVE' }).state;
+
+  const speakingTurn = () => {
+    const s1 = handsFreeReducer(live(), { type: 'FINAL_RESULT', text: '안녕' }).state; 
+    return handsFreeReducer(s1, { type: 'SPEECH_START', seq: 1 }).state;               
+  };
+
+  it('MIC_OFF 는 진행 중 발화 마커(activeSeq)를 보존한다 — 클론은 계속 말하고 있다', () => {
+    const paused = handsFreeReducer(speakingTurn(), { type: 'MIC_OFF' }).state;
+    expect(paused.phase).toBe('paused');
+    expect(paused.activeSeq).toBe(1);
+    expect(paused.pendingInterrupt).toBeNull();
+  });
+
+  it('🔴회귀: 재생 중 MIC_ON 은 START_STT 를 내지 않는다(클론 음성 STT 유입 차단)', () => {
+    const paused = handsFreeReducer(speakingTurn(), { type: 'MIC_OFF' }).state;
+    const r = handsFreeReducer(paused, { type: 'MIC_ON' });
+    expect(r.effects).not.toContain('START_STT');
+    expect(r.effects).toEqual(['START_DETECTOR']);
+    expect(r.state.micOn).toBe(true);
+    expect(r.state.phase).toBe('speaking');
+    expect(r.state.activeSeq).toBe(1); 
+  });
+
+  it('재생 중 MIC_ON 이후 그 발화가 끝나면 정상 복귀(STOP_DETECTOR+START_STT)', () => {
+    const paused = handsFreeReducer(speakingTurn(), { type: 'MIC_OFF' }).state;
+    const resumed = handsFreeReducer(paused, { type: 'MIC_ON' }).state;
+    const r = handsFreeReducer(resumed, { type: 'RESPONSE_DONE', seq: 1 });
+    expect(r.state.phase).toBe('listening');
+    expect(r.effects).toEqual(['STOP_DETECTOR', 'START_STT']);
+  });
+
+  it('paused 중 발화가 끝났으면(RESPONSE_DONE 수신) MIC_ON 은 기존대로 즉시 listening + START_STT', () => {
+    const paused = handsFreeReducer(speakingTurn(), { type: 'MIC_OFF' }).state;
+    const done = handsFreeReducer(paused, { type: 'RESPONSE_DONE', seq: 1 });
+    expect(done.state.phase).toBe('paused'); 
+    expect(done.state.activeSeq).toBeNull();
+    expect(done.effects).toEqual([]);
+    const r = handsFreeReducer(done.state, { type: 'MIC_ON' });
+    expect(r.state.phase).toBe('listening');
+    expect(r.effects).toEqual(['START_STT']);
+  });
+
+  it('paused 중 RESPONSE_END(비게이팅) 도 진행 중 마커를 걷는다', () => {
+    const paused = handsFreeReducer(speakingTurn(), { type: 'MIC_OFF' }).state;
+    const r = handsFreeReducer(paused, { type: 'RESPONSE_END' });
+    expect(r.state.phase).toBe('paused');
+    expect(r.state.activeSeq).toBeNull();
+    expect(r.effects).toEqual([]);
+  });
+
+  it('paused 중 seq 가 다른 RESPONSE_DONE 은 마커를 걷지 않는다', () => {
+    const paused = handsFreeReducer(speakingTurn(), { type: 'MIC_OFF' }).state;
+    const r = handsFreeReducer(paused, { type: 'RESPONSE_DONE', seq: 99 });
+    expect(r.state.activeSeq).toBe(1);
+  });
+
+  it('조용한 listening 에서의 MIC_OFF→MIC_ON 은 기존 동작 그대로(무회귀)', () => {
+    const paused = handsFreeReducer(live(), { type: 'MIC_OFF' }).state;
+    expect(paused.activeSeq).toBeNull();
+    const r = handsFreeReducer(paused, { type: 'MIC_ON' });
+    expect(r.state.phase).toBe('listening');
+    expect(r.effects).toEqual(['START_STT']);
   });
 });
 

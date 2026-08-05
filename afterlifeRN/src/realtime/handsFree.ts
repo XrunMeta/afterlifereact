@@ -8,6 +8,12 @@ export const IDLE_GREET_DELAYS_MS = [30000, 60000];
 
 export const IDLE_GREET_TEXT = '안녕하세요, 듣고 있어요';
 
+export const PENDING_INTERRUPT_FLUSH_QUIET_MS = 3000;
+
+export const PENDING_INTERRUPT_EXPIRE_MS = 15000;
+
+export const INTERRUPT_COOLDOWN_MS = 10000;
+
 export interface HandsFreeState {
   phase: HandsFreePhase;
   micOn: boolean;
@@ -45,7 +51,11 @@ export type HandsFreeEvent =
   | { type: 'USER_SPEECH_START' }
   | { type: 'USER_SPEECH_IDLE' }
   | { type: 'FACE_INTERRUPT'; text: string; faceKey: string }
-  | { type: 'IDLE_TIMEOUT' };
+  | { type: 'IDLE_TIMEOUT' }
+
+  | { type: 'INTERRUPT_FLUSH' }
+
+  | { type: 'INTERRUPT_EXPIRED'; faceKey?: string };
 
 export type HandsFreeEffect =
   | 'START_STT' | 'STOP_STT' | 'SAY' | 'GREET' | 'SPEAK_FALLBACK'
@@ -80,7 +90,8 @@ function flushOrListen(state: HandsFreeState): HandsFreeResult {
         ...state, phase: 'interrupting', pendingText: '', userSpeaking: false,
         activeSeq: seq, nextSeq: seq + 1, pendingInterrupt: null,
       },
-      effects: ['SAY_INTERRUPT', 'START_DETECTOR'],
+
+      effects: ['STOP_DETECTOR', 'SAY_INTERRUPT', 'START_DETECTOR'],
       sayText: pi.text,
       saySeq: seq,
     };
@@ -89,6 +100,11 @@ function flushOrListen(state: HandsFreeState): HandsFreeResult {
     state: { ...state, phase: 'listening', pendingText: '', activeSeq: null, userSpeaking: false },
     effects: ['STOP_DETECTOR', 'START_STT'],
   };
+}
+
+function clearPausedSpeech(state: HandsFreeState): HandsFreeResult {
+  if (state.activeSeq === null) return { state, effects: [] };
+  return { state: { ...state, activeSeq: null }, effects: [] };
 }
 
 export function handsFreeReducer(state: HandsFreeState, ev: HandsFreeEvent): HandsFreeResult {
@@ -193,6 +209,8 @@ export function handsFreeReducer(state: HandsFreeState, ev: HandsFreeEvent): Han
 
       if (state.signalGating) return { state, effects: [] };
 
+      if (state.phase === 'paused') return clearPausedSpeech(state);
+
       if (state.phase !== 'speaking' && state.phase !== 'sending' && state.phase !== 'greeting'
         && state.phase !== 'interrupting') {
         return { state, effects: [] };
@@ -202,6 +220,12 @@ export function handsFreeReducer(state: HandsFreeState, ev: HandsFreeEvent): Han
 
     case 'RESPONSE_DONE':
 
+      if (state.phase === 'paused') {
+        if (ev.seq != null && state.activeSeq != null && ev.seq !== state.activeSeq) {
+          return { state, effects: [] };
+        }
+        return clearPausedSpeech(state);
+      }
       if (state.phase !== 'speaking' && state.phase !== 'sending' && state.phase !== 'greeting'
         && state.phase !== 'interrupting') {
         return { state, effects: [] };
@@ -215,17 +239,27 @@ export function handsFreeReducer(state: HandsFreeState, ev: HandsFreeEvent): Han
 
     case 'MIC_OFF':
       if (!state.micOn) return { state, effects: [] };
+
       return {
-        state: { phase: 'paused', micOn: false, pendingText: '', confirmGate: state.confirmGate, signalGating: state.signalGating, activeSeq: null, nextSeq: state.nextSeq, userSpeaking: false, pendingInterrupt: null, idleGreetCount: state.idleGreetCount },
+        state: { phase: 'paused', micOn: false, pendingText: '', confirmGate: state.confirmGate, signalGating: state.signalGating, activeSeq: state.activeSeq, nextSeq: state.nextSeq, userSpeaking: false, pendingInterrupt: null, idleGreetCount: state.idleGreetCount },
         effects: ['STOP_STT', 'STOP_DETECTOR'],
       };
 
-    case 'MIC_ON':
+    case 'MIC_ON': {
       if (state.micOn) return { state, effects: [] };
-      return {
-        state: { phase: 'listening', micOn: true, pendingText: '', confirmGate: state.confirmGate, signalGating: state.signalGating, activeSeq: null, nextSeq: state.nextSeq, userSpeaking: false, pendingInterrupt: null, idleGreetCount: state.idleGreetCount },
-        effects: ['START_STT'],
+      const base = {
+        micOn: true, pendingText: '', confirmGate: state.confirmGate, signalGating: state.signalGating,
+        nextSeq: state.nextSeq, userSpeaking: false, pendingInterrupt: null, idleGreetCount: state.idleGreetCount,
       };
+      if (state.activeSeq !== null) {
+
+        return {
+          state: { ...base, phase: 'speaking', activeSeq: state.activeSeq },
+          effects: ['START_DETECTOR'],
+        };
+      }
+      return { state: { ...base, phase: 'listening', activeSeq: null }, effects: ['START_STT'] };
+    }
 
     case 'FACE_INTERRUPT': {
 
@@ -249,6 +283,34 @@ export function handsFreeReducer(state: HandsFreeState, ev: HandsFreeEvent): Han
         sayText: ev.text,
         saySeq: seq,
       };
+    }
+
+    case 'INTERRUPT_FLUSH': {
+
+      const pi = state.pendingInterrupt;
+      if (!pi) return { state, effects: [] };
+      if (state.phase !== 'listening') return { state, effects: [] };
+      if (state.activeSeq !== null) return { state, effects: [] };
+      if (state.userSpeaking) return { state, effects: [] };
+      if (!state.micOn) return { state, effects: [] };
+      const seq = state.nextSeq;
+      return {
+        state: {
+          ...state, phase: 'interrupting', pendingText: '', userSpeaking: false,
+          activeSeq: seq, nextSeq: seq + 1, pendingInterrupt: null,
+        },
+        effects: ['STOP_STT', 'SAY_INTERRUPT', 'START_DETECTOR'],
+        sayText: pi.text,
+        saySeq: seq,
+      };
+    }
+
+    case 'INTERRUPT_EXPIRED': {
+
+      const pi = state.pendingInterrupt;
+      if (!pi) return { state, effects: [] };
+      if (ev.faceKey != null && ev.faceKey !== pi.faceKey) return { state, effects: [] };
+      return { state: { ...state, pendingInterrupt: null }, effects: [] };
     }
 
     case 'IDLE_TIMEOUT': {
