@@ -90,3 +90,32 @@ export async function v_003ee1(
 
   return { enrolled: v_18b8bf.length };
 }
+
+export interface SelfConfirmResult {
+  personId: number;
+  selfPersonId: number;
+}
+
+export async function v_4c5429(
+  env: v_273a0c,
+  v_328259,
+): Promise<SelfConfirmResult> {
+  const { userId: v_43e90c, cloneId: v_6e0fd3, vectors: v_f94e64, displayName: v_8a1355 = null } = v_328259;
+
+  const v_5c2f9f = Date.now();
+  const v_43af15 = await v_c9c489.DB.prepare(
+    `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at)
+     VALUES (?, ?, ?, 'granted', ?, 'auto_biometric', ?)`,
+  )
+    .bind(v_43e90c, v_6e0fd3, v_8a1355, v_5c2f9f, v_5c2f9f)
+    .run();
+  const v_ca1ec5 = v_43af15.meta.last_row_id as number;
+
+  await v_003ee1(v_c9c489, { userId: v_43e90c, cloneId: v_6e0fd3, personId: v_ca1ec5, vectors: v_f94e64, source: "self" });
+
+  await v_c9c489.DB.prepare("UPDATE clones SET self_person_id = ? WHERE id = ? AND self_person_id IS NULL")
+    .bind(v_ca1ec5, v_6e0fd3)
+    .run();
+
+  return { personId: v_ca1ec5, selfPersonId: v_ca1ec5 };
+}

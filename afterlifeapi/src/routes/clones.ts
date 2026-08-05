@@ -36,6 +36,8 @@ import { v_5acfc3 } from "../lib/utils";
 import { v_67dc73 } from "../lib/prebuildClient";
 import { v_87cfd2 } from "../lib/callBundle";
 import { v_842ce7 } from "../lib/guideJob";
+import { v_4c5429 } from "../lib/cloneFaceScope";
+import { v_d0fd96 } from "../lib/displayName";
 
 export const v_f891e6 = new v_b7c41b<v_de0a25>();
 
@@ -2075,4 +2077,38 @@ v_f891e6.get("/:id/gifts/summary", v_6690d9, async (v_3f4e2e) => {
   }));
 
   return v_3f4e2e.json({ items: v_4622b9 });
+});
+
+v_f891e6.post("/:cloneId/self-confirm", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("cloneId"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
+    throw new v_3ebe58("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ vectors?: number[][]; displayName?: string }>()
+    .catch(() => ({}) as { vectors?: number[][]; displayName?: string });
+  const v_f94e64 = v_4d33b2.vectors;
+  if (
+    !Array.isArray(v_f94e64) ||
+    v_f94e64.length !== 3 ||
+    v_f94e64.some(
+      (v_81e2ef) => !Array.isArray(v_81e2ef) || v_81e2ef.length !== 512 || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214)),
+    )
+  )
+    throw new v_3ebe58("VALIDATION_FAILED", "vectors: 정확히 3개의 512차원 수치 배열이어야 합니다");
+
+  const v_eb25ce = await v_3f4e2e.env.DB.prepare(
+    `SELECT id, clone_type, self_person_id FROM clones WHERE id = ? AND owner_id = ? AND ${v_74c502()}`,
+  )
+    .bind(v_6e0fd3, v_43e90c)
+    .first<{ id: number; clone_type: string; self_person_id: number | null }>();
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "클론을 찾을 수 없습니다.");
+  if (v_eb25ce.clone_type === "expert")
+    throw new v_3ebe58("VALIDATION_FAILED", "전문가 클론은 self 개념이 없습니다.");
+  if (v_eb25ce.self_person_id !== null) throw new v_3ebe58("CONFLICT", "이미 self가 확정된 클론입니다.");
+
+  const v_8a1355 = v_4d33b2.displayName !== undefined ? v_d0fd96(v_4d33b2.displayName) : null;
+  const v_43c42e = await v_4c5429(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vectors: v_f94e64, displayName: v_8a1355 });
+  return v_3f4e2e.json(v_43c42e);
 });
