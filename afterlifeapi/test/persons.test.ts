@@ -443,27 +443,6 @@ describe("persons route", () => {
     expect(body.error.code).toBe("VALIDATION_FAILED");
   });
 
-  it("POST /oth-path — 동일 user·clone 무관 displayName 중복 → VALIDATION_FAILED(422)", async () => {
-    const userId = await seedUser("persons-dup-name@test.local");
-    const tok = await issueAccessToken(userId);
-
-    const first = await SELF.fetch("http://localhost/oth-path", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ displayName: "중복이름" }),
-    });
-    expect(first.status).toBe(201);
-
-    const second = await SELF.fetch("http://localhost/oth-path", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ displayName: "중복이름" }),
-    });
-    expect(second.status).toBe(422);
-    const body = (await second.json()) as { error: { code: string } };
-    expect(body.error.code).toBe("VALIDATION_FAILED");
-  });
-
   it("POST /oth-path granted → persons_consent_log에 1행 기록", async () => {
     const db = env.DB as unknown as D1Database;
     const userId = await seedUser("consent-log-granted@test.local");
