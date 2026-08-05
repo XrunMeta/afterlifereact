@@ -14,6 +14,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
 import SwipeDownSheet from "../ui/SwipeDownSheet";
 import { COLORS, RADIUS } from "../constants";
 import { useAuthStore } from "../../stores/authStore";
@@ -33,6 +34,9 @@ interface Props {
 export default function IntimacyEventsSheet({ visible, cloneId, cloneName, onClose }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+
+  const navBarHeight = useAndroidNavigationBarHeight(0);
+  const bottomInset = Math.max(insets.bottom, navBarHeight);
   const accessToken = useAuthStore((s) => s.accessToken);
 
   const [data, setData] = useState<IntimacyEventsResponse | null>(null);
@@ -75,7 +79,7 @@ export default function IntimacyEventsSheet({ visible, cloneId, cloneName, onClo
         <Pressable style={s.bottomOverlay} onPress={onClose}>
           <SwipeDownSheet
             onClose={onClose}
-            style={[s.eventsSheet, { paddingBottom: 32 + Math.max(insets.bottom, 0) }]}
+            style={[s.eventsSheet, { paddingBottom: 32 + bottomInset }]}
           >
             <View style={s.eventsSheetHandle} />
             <View style={s.eventsSheetTitleRow}>

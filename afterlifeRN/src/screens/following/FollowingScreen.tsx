@@ -22,6 +22,7 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute, CommonActions, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
 import SafeView from "../../components/ui/SafeView";
 import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
@@ -112,6 +113,9 @@ const formatCount = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : St
 export default function FollowingScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+
+  const navBarHeight = useAndroidNavigationBarHeight(0);
+  const sheetBottomInset = Math.max(insets.bottom, navBarHeight);
   const rootNav = useNavigation<RootNav>();
   const authUser = useAuthStore((s) => s.user);
   const apiUser = useAuthStore((s) => s.apiUser);
@@ -730,7 +734,7 @@ export default function FollowingScreen() {
         <Pressable style={s.bottomOverlay} onPress={() => setIntimacyEventsModal(null)}>
           <SwipeDownSheet
             onClose={() => setIntimacyEventsModal(null)}
-            style={[s.eventsSheet, { paddingBottom: 32 + Math.max(insets.bottom, 0) }]}
+            style={[s.eventsSheet, { paddingBottom: 32 + sheetBottomInset }]}
           >
             <View style={s.eventsSheetHandle} />
             <View style={s.eventsSheetTitleRow}>
@@ -863,7 +867,7 @@ export default function FollowingScreen() {
       <Modal visible={!!commentPostId} transparent animationType="slide">
         <Pressable style={s.bottomOverlay} onPress={() => setCommentPostId(null)}>
           <View
-            style={[s.commentSheet, { paddingBottom: 24 + Math.max(insets.bottom, 0) }]}
+            style={[s.commentSheet, { paddingBottom: 24 + sheetBottomInset }]}
             onStartShouldSetResponder={() => true}
           >
             <View style={s.sheetHandle} />
@@ -955,7 +959,7 @@ export default function FollowingScreen() {
       <Modal visible={showCallModal} transparent animationType="slide">
         <Pressable style={s.bottomOverlay} onPress={() => setShowCallModal(false)}>
           <View
-            style={[s.callSheet, { paddingBottom: 24 + Math.max(insets.bottom, 0) }]}
+            style={[s.callSheet, { paddingBottom: 24 + sheetBottomInset }]}
             onStartShouldSetResponder={() => true}
           >
             <View style={s.sheetHandle} />
