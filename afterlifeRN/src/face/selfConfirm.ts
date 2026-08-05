@@ -49,3 +49,9 @@ export function decideSelfConfirm(input: SelfConfirmInput): SelfConfirmAction {
   }
   return { kind: 'confirm', vectors: window };
 }
+
+export type SelfConfirmErrorClass = 'confirmed' | 'retryable';
+
+export function classifySelfConfirmError(status: number | undefined): SelfConfirmErrorClass {
+  return status === 409 ? 'confirmed' : 'retryable';
+}

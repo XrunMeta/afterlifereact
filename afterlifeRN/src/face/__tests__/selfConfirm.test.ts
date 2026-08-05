@@ -1,4 +1,4 @@
-import { decideSelfConfirm, cosine } from '../selfConfirm';
+import { decideSelfConfirm, cosine, classifySelfConfirmError } from '../selfConfirm';
 
 function vec(seed: number): number[] {
   const v = new Array(512).fill(0);
@@ -47,5 +47,23 @@ describe('decideSelfConfirm', () => {
       samples: [vec(1), vec(1), vec(1)],
     });
     expect(r.kind).toBe('idle');
+  });
+});
+
+describe('classifySelfConfirmError', () => {
+  it('409(CONFLICT)는 confirmed — 이미 확정된 것으로 간주, 재시도 중단', () => {
+    expect(classifySelfConfirmError(409)).toBe('confirmed');
+  });
+
+  it('422(검증 실패)는 retryable — 확정된 게 아니므로 다음 tick 에 재시도해야 함', () => {
+    expect(classifySelfConfirmError(422)).toBe('retryable');
+  });
+
+  it('404(클론 없음/접근불가)는 retryable', () => {
+    expect(classifySelfConfirmError(404)).toBe('retryable');
+  });
+
+  it('status 없음(네트워크 실패 등 AuthApiError 가 아닌 에러)도 retryable', () => {
+    expect(classifySelfConfirmError(undefined)).toBe('retryable');
   });
 });
