@@ -1,9 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { SELF, env } from "cloudflare:test";
 import { purgeUserOntology, writeOnt, readOnt, writeOntPerson, readOntPerson } from "../src/lib/memoryStore";
+import { getFaceIndex, __resetMemoryFaceIndex } from "../src/lib/faceVectors";
+import { faceNamespace } from "../src/lib/cloneFaceScope";
 import type { Bindings } from "../src/lib/env";
 
 const E = env as unknown as Bindings;
+
+function vec(fill: number): number[] {
+  return Array(512).fill(fill);
+}
 
 async function seedUser(id: number): Promise<void> {
   await E.DB.prepare(
@@ -54,7 +60,8 @@ describe("purgeUserOntology", () => {
     expect(res).toEqual({ ontRows: 0, personRows: 0, kvKeys: 0, vectorRows: 0 });
   });
 
-  it("탈퇴 시 얼굴 벡터 장부도 함께 파기된다", async () => {
+  it("탈퇴 시 얼굴 벡터 장부와 Vectorize 실체가 함께 파기된다(두 원장 clone_person_faces·face_embeddings 모두)", async () => {
+    __resetMemoryFaceIndex(); 
     const db = env.DB as unknown as D1Database;
     await db
       .prepare(
@@ -95,16 +102,41 @@ describe("purgeUserOntology", () => {
       )
       .bind(cloneId, personId, Date.now())
       .run();
+    await db
+      .prepare(
+        `INSERT INTO face_embeddings (person_id, vectorize_id, model, dim, source, created_at)
+         VALUES (?, 'vec-purge-2', 'w600k_mbf', 512, 'enroll', ?)`,
+      )
+      .bind(personId, Date.now())
+      .run();
+
+    const ns = faceNamespace(userId, cloneId);
+    const idx = getFaceIndex(env as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string });
+    await idx.insert([
+      { id: "vec-purge-1", values: vec(0.1), namespace: ns, metadata: { personId: String(personId) } },
+      { id: "vec-purge-2", values: vec(0.2), namespace: ns, metadata: { personId: String(personId) } },
+    ]);
+
+    const before = await idx.query(vec(0.1), { topK: 5, namespace: ns, returnMetadata: true });
+    expect(before.matches.length).toBe(2);
 
     const { purgeUserOntology } = await import("../src/lib/memoryStore");
     const purged = await purgeUserOntology(env as never, userId);
-    expect(purged.vectorRows).toBeGreaterThan(0);
+    expect(purged.vectorRows).toBe(2);
 
-    const left = await db
+    const leftCpf = await db
       .prepare("SELECT COUNT(*) AS n FROM clone_person_faces WHERE person_id = ?")
       .bind(personId)
       .first<{ n: number }>();
-    expect(left?.n).toBe(0);
+    expect(leftCpf?.n).toBe(0);
+    const leftFe = await db
+      .prepare("SELECT COUNT(*) AS n FROM face_embeddings WHERE person_id = ?")
+      .bind(personId)
+      .first<{ n: number }>();
+    expect(leftFe?.n).toBe(0);
+
+    const after = await idx.query(vec(0.1), { topK: 5, namespace: ns, returnMetadata: true });
+    expect(after.matches.length).toBe(0);
   });
 });
 
