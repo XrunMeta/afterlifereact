@@ -6,6 +6,7 @@ import { v_3ebe58 } from "../lib/errors";
 import { v_6690d9 } from "../middleware/auth";
 import { v_a697ec, v_5d4a51, v_d875d1 } from "../lib/cloneAccess";
 import { v_87cfd2 } from "../lib/callBundle";
+import { v_840775 } from "../lib/cloneFaceScope";
 import { v_1f4ea7 } from "../lib/validate";
 
 export const v_20e160 = new v_b7c41b<v_de0a25>();
@@ -14,6 +15,19 @@ function v_31113b(v_3f4e2e): number {
   const v_389afb = Number(v_3f4e2e.req.param("cloneId"));
   if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
   return v_389afb;
+}
+
+async function v_55d6b8(
+  env: Parameters<typeof v_840775>[0],
+  v_328259,
+): Promise<void> {
+  try {
+    await v_840775(v_c9c489, v_328259);
+  } catch (v_49263d) {
+    console.error(
+      `[calls] CRITICAL: ensureAccountPerson failed cloneId=${v_328259.cloneId} userId=${v_328259.userId} — L2′ 미확보, 재시도 필요: ${(v_49263d as Error).message}`,
+    );
+  }
 }
 
 v_20e160.post("/:cloneId/call", v_6690d9, async (v_3f4e2e) => {
@@ -29,6 +43,10 @@ v_20e160.post("/:cloneId/call", v_6690d9, async (v_3f4e2e) => {
 
   if (v_a697ec(v_eb25ce, v_00efe2)) {
     throw new v_3ebe58("FORBIDDEN", "This clone is currently suspended.");
+  }
+
+  if (v_eb25ce.clone_type === "expert") {
+    await v_55d6b8(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3 });
   }
 
   const { personaBundle: v_ba0fde, assets: v_7adc95 } = await v_87cfd2(v_3f4e2e.env.DB, v_eb25ce, v_43e90c, new URL(v_3f4e2e.req.url).origin);
@@ -105,6 +123,10 @@ v_20e160.post("/:cloneId/call/prethird-start", v_6690d9, async (v_3f4e2e) => {
   }
   if (v_a697ec(v_eb25ce, v_00efe2)) {
     throw new v_3ebe58("FORBIDDEN", "This clone is currently suspended.");
+  }
+
+  if (v_eb25ce.clone_type === "expert") {
+    await v_55d6b8(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3 });
   }
 
   await v_3f4e2e.env.DB.prepare(
