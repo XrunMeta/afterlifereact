@@ -2125,3 +2125,16 @@ clones.post("/:cloneId/self-confirm", requireAuth, async (c) => {
   const result = await confirmSelf(c.env, { userId, cloneId, vectors, displayName });
   return c.json(result);
 });
+
+clones.get("/:cloneId/face-policy", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("cloneId"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0)
+    throw new APIError("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+
+  const clone = await c.env.DB.prepare(`SELECT clone_type FROM clones WHERE id = ? AND ${cloneActiveSql()}`)
+    .bind(cloneId)
+    .first<{ clone_type: string }>();
+  if (!clone) throw new APIError("NOT_FOUND", "클론을 찾을 수 없습니다.");
+
+  return c.json({ faceIdentifyEnabled: clone.clone_type !== "expert" });
+});

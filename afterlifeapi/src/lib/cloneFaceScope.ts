@@ -137,3 +137,49 @@ export async function confirmSelf(
 
   return { personId, selfPersonId: personId };
 }
+
+export async function ensureAccountPerson(
+  env: Bindings,
+  opts: { userId: number; cloneId: number },
+): Promise<number> {
+  const { userId, cloneId } = opts;
+
+  const existing = await env.DB.prepare(
+    "SELECT id FROM persons WHERE user_id = ? AND clone_id = ? ORDER BY id ASC LIMIT 1",
+  )
+    .bind(userId, cloneId)
+    .first<{ id: number }>();
+
+  let personId: number;
+  if (existing) {
+    personId = existing.id;
+  } else {
+    const now = Date.now();
+    const ins = await env.DB.prepare(
+      `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at)
+       VALUES (?, ?, NULL, 'none', NULL, 'card', ?)`,
+    )
+      .bind(userId, cloneId, now)
+      .run();
+    const insertedId = ins.meta.last_row_id as number;
+
+    const canonical = await env.DB.prepare(
+      "SELECT id FROM persons WHERE user_id = ? AND clone_id = ? ORDER BY id ASC LIMIT 1",
+    )
+      .bind(userId, cloneId)
+      .first<{ id: number }>();
+    personId = canonical!.id;
+
+    if (personId !== insertedId) {
+
+      await env.DB.prepare("DELETE FROM persons WHERE id = ?").bind(insertedId).run();
+    }
+  }
+
+  const l2p = await readOntPerson(env, cloneId, personId);
+  if (l2p === null) {
+    await writeOntPerson(env, cloneId, personId, JSON.stringify({}), false);
+  }
+
+  return personId;
+}
