@@ -392,12 +392,61 @@ describe('FACE_INTERRUPT — 적재와 즉시발화', () => {
     expect(v_6920f0(v_3f6eae, v_7d769d).state.pendingInterrupt).toBeNull();
   });
 
-  it('interrupting 종료 시 listening 으로 복귀한다', () => {
+  it('interrupting 종료 시 listening 으로 복귀한다 (RESPONSE_DONE)', () => {
     const v_3f6eae = v_6920f0(v_bb280b(), v_7d769d).state;
     const v_3756c2 = v_6920f0(v_3f6eae, { type: 'SPEECH_START', seq: 1 }).state;
     expect(v_3756c2.phase).toBe('interrupting');
     const v_cb35cb = v_6920f0(v_3756c2, { type: 'RESPONSE_DONE', seq: 1 });
     expect(v_cb35cb.state.phase).toBe('listening');
     expect(v_cb35cb.effects).toEqual(['STOP_DETECTOR', 'START_STT']);
+  });
+
+  it('interrupting 종료 시 listening 으로 복귀한다 (RESPONSE_END, signalGating=false)', () => {
+    const v_3f6eae = v_6920f0(v_bb280b(), v_7d769d).state;
+    const v_3756c2 = v_6920f0(v_3f6eae, { type: 'SPEECH_START', seq: 1 }).state;
+    expect(v_3756c2.phase).toBe('interrupting');
+    expect(v_3756c2.signalGating).toBe(false);
+    const v_cb35cb = v_6920f0(v_3756c2, { type: 'RESPONSE_END' });
+    expect(v_cb35cb.state.phase).toBe('listening');
+    expect(v_cb35cb.effects).toEqual(['STOP_DETECTOR', 'START_STT']);
+  });
+
+  it('confirming 중이면 FACE_INTERRUPT 는 즉시 발화하지 않고 적재만 한다(사용자 말을 자르지 않는다)', () => {
+    const v_ca01e0 = v_6920f0(v_3075fa(), { type: 'CALL_LIVE', confirmGate: true }).state;
+    const v_3f6eae = v_6920f0(v_ca01e0, { type: 'FINAL_RESULT', text: '안녕' }).state;
+    expect(v_3f6eae.phase).toBe('confirming');
+    const v_cb35cb = v_6920f0(v_3f6eae, v_7d769d);
+    expect(v_cb35cb.state.phase).toBe('confirming');
+    expect(v_cb35cb.effects).toEqual([]);
+    expect(v_cb35cb.state.pendingInterrupt).toEqual({ text: '누구시죠?', faceKey: 'f1', deferredTurns: 0 });
+  });
+
+  it('idle 에서는 FACE_INTERRUPT 를 적재조차 하지 않는다', () => {
+    const v_cb35cb = v_6920f0(v_3075fa(), v_7d769d);
+    expect(v_cb35cb.state.phase).toBe('idle');
+    expect(v_cb35cb.effects).toEqual([]);
+    expect(v_cb35cb.state.pendingInterrupt).toBeNull();
+  });
+
+  it('RESPONSE_END 로 paused 전이 시 pendingInterrupt 를 정리한다(적재 잔존 방지)', () => {
+    const v_fd5f43 = {
+      phase: 'speaking', micOn: false, pendingText: '', confirmGate: false, signalGating: false,
+      activeSeq: null, nextSeq: 1, userSpeaking: false,
+      pendingInterrupt: { text: '누구시죠?', faceKey: 'f1', deferredTurns: 0 },
+    };
+    const v_cb35cb = v_6920f0(v_fd5f43, { type: 'RESPONSE_END' });
+    expect(v_cb35cb.state.phase).toBe('paused');
+    expect(v_cb35cb.state.pendingInterrupt).toBeNull();
+  });
+
+  it('RESPONSE_DONE 으로 paused 전이 시 pendingInterrupt 를 정리한다(적재 잔존 방지)', () => {
+    const v_fd5f43 = {
+      phase: 'speaking', micOn: false, pendingText: '', confirmGate: false, signalGating: false,
+      activeSeq: null, nextSeq: 1, userSpeaking: false,
+      pendingInterrupt: { text: '누구시죠?', faceKey: 'f1', deferredTurns: 0 },
+    };
+    const v_cb35cb = v_6920f0(v_fd5f43, { type: 'RESPONSE_DONE' });
+    expect(v_cb35cb.state.phase).toBe('paused');
+    expect(v_cb35cb.state.pendingInterrupt).toBeNull();
   });
 });

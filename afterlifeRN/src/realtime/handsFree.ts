@@ -154,7 +154,7 @@ export function v_6920f0(v_b6e533, v_1d299c): HandsFreeResult {
         return { state: v_b6e533, effects: [] };
       }
 
-      if (!v_b6e533.micOn) return { state: { ...v_b6e533, phase: 'paused', pendingText: '', activeSeq: null, userSpeaking: false }, effects: ['STOP_DETECTOR'] };
+      if (!v_b6e533.micOn) return { state: { ...v_b6e533, phase: 'paused', pendingText: '', activeSeq: null, userSpeaking: false, pendingInterrupt: null }, effects: ['STOP_DETECTOR'] };
       return {
         state: { ...v_b6e533, phase: 'listening', pendingText: '', activeSeq: null, userSpeaking: false },
         effects: ['STOP_DETECTOR', 'START_STT'],
@@ -170,7 +170,8 @@ export function v_6920f0(v_b6e533, v_1d299c): HandsFreeResult {
       if (v_1d299c.seq != null && v_b6e533.activeSeq != null && v_1d299c.seq !== v_b6e533.activeSeq) {
         return { state: v_b6e533, effects: [] };
       }
-      if (!v_b6e533.micOn) return { state: { ...v_b6e533, phase: 'paused', pendingText: '', activeSeq: null, userSpeaking: false }, effects: ['STOP_DETECTOR'] };
+
+      if (!v_b6e533.micOn) return { state: { ...v_b6e533, phase: 'paused', pendingText: '', activeSeq: null, userSpeaking: false, pendingInterrupt: null }, effects: ['STOP_DETECTOR'] };
       return {
         state: { ...v_b6e533, phase: 'listening', pendingText: '', activeSeq: null, userSpeaking: false },
         effects: ['STOP_DETECTOR', 'START_STT'],
