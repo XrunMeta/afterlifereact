@@ -167,3 +167,38 @@ def test_face_event_rejects_mismatched_clone():
     assert face_event_clone_matches(session_clone_id=42, event_clone_id=43) is False
     # clone_id 미포함(구 클라이언트)은 통과 — 서버 게이트가 정본이므로 하위호환 유지
     assert face_event_clone_matches(session_clone_id=42, event_clone_id=None) is True
+
+
+def test_face_event_clone_matches_malformed_input_never_raises():
+    """T-257 리뷰 수정: event_clone_id 는 datachannel 로 들어오는 신뢰 불가 입력이다.
+
+    정수로 해석 불가능한 값(비수치 문자열/list/dict)이 들어와도 예외를 던지지
+    않고 "해석 불가 = 불일치"로 fail-closed 되어야 한다(브리프 제약: 통화를
+    방해하는 예외가 아니라 로그+드랍). 리뷰에서 지적된 재현 사례를 그대로 고정한다.
+    """
+    from signaling import face_event_clone_matches
+
+    # 비수치 문자열 — ValueError 를 던지지 않고 False
+    assert face_event_clone_matches(42, "abc") is False
+    # list — TypeError 를 던지지 않고 False
+    assert face_event_clone_matches(42, [1, 2]) is False
+    # dict — TypeError 를 던지지 않고 False
+    assert face_event_clone_matches(42, {"a": 1}) is False
+
+
+def test_face_event_clone_matches_numeric_string_is_deliberate_match():
+    """숫자만 담은 문자열("42")은 int() 로 깔끔히 파싱되므로 매치로 취급한다
+    (의도적 결정 — 우연이 아니라 명시적으로 고정해 둔다)."""
+    from signaling import face_event_clone_matches
+
+    assert face_event_clone_matches(42, "42") is True
+    assert face_event_clone_matches(42, "43") is False
+
+
+def test_face_event_clone_matches_bool_never_matches():
+    """bool 은 int 서브클래스라 int(True)==1 처럼 우연히 일치할 수 있다 — clone_id
+    로 인정하지 않고 항상 불일치(False) 로 명시 처리한다(의도적 결정)."""
+    from signaling import face_event_clone_matches
+
+    assert face_event_clone_matches(1, True) is False
+    assert face_event_clone_matches(0, False) is False
