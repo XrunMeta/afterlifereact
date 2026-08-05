@@ -1,5 +1,7 @@
 import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
+import { v_a8d2cc } from "../src/lib/faceVectors";
+import { v_929ead } from "../src/lib/cloneFaceScope";
 
 const v_a1651b = () => v_c9c489.DB as unknown as D1Database;
 
@@ -12,6 +14,18 @@ async function v_bfb240(v_e0c7e8): Promise<number> {
   return v_ceb55a!.id;
 }
 
+async function v_4d24a9(v_1badb6, v_556427): Promise<number> {
+  await v_a1651b()
+    .prepare(
+      `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+       VALUES (?, 'TestClone', ?, 'memlow', 'public', CURRENT_TIMESTAMP)`,
+    )
+    .bind(v_1badb6, v_556427)
+    .run();
+  const v_3f4e2e = await v_a1651b().prepare("SELECT id FROM clones WHERE username = ?").bind(v_556427).first<{ id: number }>();
+  return v_3f4e2e!.id;
+}
+
 async function v_86c39f(v_43e90c): Promise<string> {
   const { issueToken: v_b2eae5 } = await import("../src/lib/jwt");
   const v_43fd42 = (v_c9c489 as { JWT_ACCESS_SECRET?: string }).JWT_ACCESS_SECRET;
@@ -19,11 +33,11 @@ async function v_86c39f(v_43e90c): Promise<string> {
   return await v_b2eae5({ sub: v_43e90c, kind: "access" }, v_43fd42, 60 * 10);
 }
 
-async function v_4e7b87(v_ea333d): Promise<number> {
+async function v_4e7b87(v_ea333d, v_6e0fd3): Promise<number> {
   const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
     method: "POST",
     headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
-    body: JSON.stringify({}),
+    body: JSON.stringify({ cloneId: v_6e0fd3 }),
   });
   const { id: v_389afb } = (await v_8f00b9.json()) as { id: number };
   return v_389afb;
@@ -38,13 +52,25 @@ async function v_a56201(v_ea333d, v_ca1ec5) {
   v_4d37e3(v_8f00b9.status).toBe(200);
 }
 
-async function v_eb0ef3(v_ea333d, v_ca1ec5, v_f9a45c) {
+async function v_eb0ef3(v_ea333d, v_43e90c, v_6e0fd3, v_ca1ec5, v_f9a45c) {
   const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_ca1ec5}/faces`, {
     method: "POST",
     headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
     body: JSON.stringify({ vectors: [v_f9a45c] }),
   });
   v_4d37e3(v_8f00b9.status).toBe(200);
+
+  const v_f8758e = crypto.randomUUID();
+  await v_a8d2cc(v_c9c489 as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string }).insert([
+    { id: v_f8758e, values: v_f9a45c, namespace: v_929ead(v_43e90c, v_6e0fd3), metadata: { personId: String(v_ca1ec5) } },
+  ]);
+  await v_a1651b()
+    .prepare(
+      `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
+       VALUES (?, ?, ?, 'w600k_mbf', 512, 'enroll', ?)`,
+    )
+    .bind(v_6e0fd3, v_ca1ec5, v_f8758e, Date.now())
+    .run();
 }
 
 function v_46ff7a(v_4a1c36 = 0.1): number[] {
@@ -55,11 +81,11 @@ function v_a4bfae(): number[] {
   return Array.from({ length: 512 }, (v_37eab7, v_ebec57) => (v_ebec57 < 256 ? 1 : -1));
 }
 
-async function v_a63110(v_ea333d, v_f9a45c) {
+async function v_a63110(v_ea333d, v_f9a45c, v_6e0fd3) {
   return v_1df298.fetch("http://localhost/oth-path", {
     method: "POST",
     headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ vector: v_f9a45c }),
+    body: JSON.stringify({ vector: v_f9a45c, cloneId: v_6e0fd3 }),
   });
 }
 
@@ -67,11 +93,12 @@ v_469bf2("POST /oth-path", () => {
   v_23805a("enroll된 person과 같은 벡터 → best 일치·score>0.99", async () => {
     const v_43e90c = await v_bfb240("match-same@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
-    const v_ca1ec5 = await v_4e7b87(v_ea333d);
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "match-same-clone");
+    const v_ca1ec5 = await v_4e7b87(v_ea333d, v_6e0fd3);
     await v_a56201(v_ea333d, v_ca1ec5);
-    await v_eb0ef3(v_ea333d, v_ca1ec5, v_46ff7a(0.1));
+    await v_eb0ef3(v_ea333d, v_43e90c, v_6e0fd3, v_ca1ec5, v_46ff7a(0.1));
 
-    const v_8f00b9 = await v_a63110(v_ea333d, v_46ff7a(0.1));
+    const v_8f00b9 = await v_a63110(v_ea333d, v_46ff7a(0.1), v_6e0fd3);
     v_4d37e3(v_8f00b9.status).toBe(200);
     const v_4d33b2 = (await v_8f00b9.json()) as {
       matches: { personId: number; displayName: string | null; score: number }[];
@@ -86,31 +113,30 @@ v_469bf2("POST /oth-path", () => {
   v_23805a("전혀 다른(직교) 벡터 → best null", async () => {
     const v_43e90c = await v_bfb240("match-orth@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
-    const v_ca1ec5 = await v_4e7b87(v_ea333d);
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "match-orth-clone");
+    const v_ca1ec5 = await v_4e7b87(v_ea333d, v_6e0fd3);
     await v_a56201(v_ea333d, v_ca1ec5);
-    await v_eb0ef3(v_ea333d, v_ca1ec5, v_46ff7a(0.1));
+    await v_eb0ef3(v_ea333d, v_43e90c, v_6e0fd3, v_ca1ec5, v_46ff7a(0.1));
 
-    const v_8f00b9 = await v_a63110(v_ea333d, v_a4bfae());
+    const v_8f00b9 = await v_a63110(v_ea333d, v_a4bfae(), v_6e0fd3);
     v_4d37e3(v_8f00b9.status).toBe(200);
     const v_4d33b2 = (await v_8f00b9.json()) as { best: unknown };
     v_4d37e3(v_4d33b2.best).toBeNull();
   });
 
-  v_23805a("사용자 B가 A의 벡터로 match → 빈 matches(namespace 격리)", async () => {
+  v_23805a("사용자 B가 A 소유 클론으로 match 시도 → 404(클론 접근 검증)", async () => {
     const v_1badb6 = await v_bfb240("match-owner@test.local");
     const v_7f0625 = await v_bfb240("match-attacker@test.local");
     const v_40444e = await v_86c39f(v_1badb6);
     const v_d82c92 = await v_86c39f(v_7f0625);
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "match-owner-clone");
 
-    const v_ca1ec5 = await v_4e7b87(v_40444e);
+    const v_ca1ec5 = await v_4e7b87(v_40444e, v_6e0fd3);
     await v_a56201(v_40444e, v_ca1ec5);
-    await v_eb0ef3(v_40444e, v_ca1ec5, v_46ff7a(0.1));
+    await v_eb0ef3(v_40444e, v_1badb6, v_6e0fd3, v_ca1ec5, v_46ff7a(0.1));
 
-    const v_8f00b9 = await v_a63110(v_d82c92, v_46ff7a(0.1));
-    v_4d37e3(v_8f00b9.status).toBe(200);
-    const v_4d33b2 = (await v_8f00b9.json()) as { matches: unknown[]; best: unknown };
-    v_4d37e3(v_4d33b2.matches).toEqual([]);
-    v_4d37e3(v_4d33b2.best).toBeNull();
+    const v_8f00b9 = await v_a63110(v_d82c92, v_46ff7a(0.1), v_6e0fd3);
+    v_4d37e3(v_8f00b9.status).toBe(404);
   });
 
   v_23805a("vector 형식 오류(길이 부족) → 422 VALIDATION_FAILED", async () => {
@@ -138,9 +164,10 @@ v_469bf2("POST /oth-path", () => {
   v_23805a("app_config face.match_threshold 반영 → 응답 threshold 필드 일치(임계값 충족 불가하면 best null)", async () => {
     const v_43e90c = await v_bfb240("match-threshold@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
-    const v_ca1ec5 = await v_4e7b87(v_ea333d);
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "match-threshold-clone");
+    const v_ca1ec5 = await v_4e7b87(v_ea333d, v_6e0fd3);
     await v_a56201(v_ea333d, v_ca1ec5);
-    await v_eb0ef3(v_ea333d, v_ca1ec5, v_46ff7a(0.1));
+    await v_eb0ef3(v_ea333d, v_43e90c, v_6e0fd3, v_ca1ec5, v_46ff7a(0.1));
 
     await v_a1651b()
       .prepare(
@@ -148,7 +175,7 @@ v_469bf2("POST /oth-path", () => {
       )
       .run();
 
-    const v_8f00b9 = await v_a63110(v_ea333d, v_46ff7a(0.1));
+    const v_8f00b9 = await v_a63110(v_ea333d, v_46ff7a(0.1), v_6e0fd3);
     v_4d37e3(v_8f00b9.status).toBe(200);
     const v_4d33b2 = (await v_8f00b9.json()) as { threshold: number; best: unknown };
     v_4d37e3(v_4d33b2.threshold).toBe(1.5);
