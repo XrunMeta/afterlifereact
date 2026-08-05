@@ -117,7 +117,9 @@ v_fded81.post("/match", v_6690d9, async (v_3f4e2e) => {
   if (typeof v_6e0fd3 !== "number" || !Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
     throw new v_3ebe58("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
 
-  const v_eb25ce = await v_3f4e2e.env.DB.prepare("SELECT id FROM clones WHERE id = ? AND owner_id = ?")
+  const v_eb25ce = await v_3f4e2e.env.DB.prepare(
+    `SELECT id FROM clones WHERE id = ? AND owner_id = ? AND ${v_74c502()}`
+  )
     .bind(v_6e0fd3, v_43e90c)
     .first<{ id: number }>();
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "클론을 찾을 수 없습니다.");

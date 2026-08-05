@@ -133,4 +133,21 @@ v_469bf2("POST /oth-path — 클론 스코프", () => {
     });
     v_4d37e3(v_8f00b9.status).toBe(404);
   });
+
+  v_23805a("소유자 본인이어도 소프트삭제된 클론이면 404(deletion_state≠active)", async () => {
+    const v_43e90c = await v_bfb240("t257d@x.com");
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "t257d-deleted");
+    await v_a1651b()
+      .prepare(`UPDATE clones SET deletion_state = 'soft_deleted', deleted_at = CURRENT_TIMESTAMP WHERE id = ?`)
+      .bind(v_6e0fd3)
+      .run();
+    const v_21cc31 = await v_86c39f(v_43e90c);
+
+    const v_8f00b9 = await v_1df298.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${v_21cc31}` },
+      body: JSON.stringify({ vector: v_46ff7a(1), cloneId: v_6e0fd3 }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(404);
+  });
 });
