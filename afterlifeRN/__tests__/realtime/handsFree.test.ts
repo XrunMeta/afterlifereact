@@ -493,19 +493,45 @@ describe('flush ① — 사용자 턴 뒤에 인터럽트 이어붙이기', () =
   });
 });
 
-describe('2턴 폐기 규칙', () => {
-  const v_bb280b = () => v_6920f0(v_3075fa(), { type: 'CALL_LIVE' }).state;
+describe('2턴 폐기 규칙 (confirmGate=true 경로에서만 유기적으로 발동)', () => {
+
   const v_7d769d = { type: 'FACE_INTERRUPT' as const, text: '누구시죠?', faceKey: 'f1' };
 
-  it('사용자가 한 턴 더 말하면 deferredTurns 가 오르고, 2 이상이면 폐기된다', () => {
-    const v_3f6eae = v_6920f0(v_bb280b(), { type: 'USER_SPEECH_START' }).state;
-    const v_3756c2 = v_6920f0(v_3f6eae, v_7d769d).state;
+  it('confirmGate=true: 사용자가 FINAL_RESULT 를 flush 없이 두 번(같은 confirming 턴에) 보내면 deferredTurns 가 1→2 로 올라 폐기된다', () => {
+    const v_ca01e0 = v_6920f0(v_3075fa(), { type: 'CALL_LIVE', confirmGate: true }).state;
+    const v_3f6eae = v_6920f0(v_ca01e0, { type: 'USER_SPEECH_START' }).state; 
+    const v_3756c2 = v_6920f0(v_3f6eae, v_7d769d).state; 
+    expect(v_3756c2.pendingInterrupt?.deferredTurns).toBe(0);
 
     const v_d0786c = v_6920f0(v_3756c2, { type: 'FINAL_RESULT', text: '첫마디' }).state;
+    expect(v_d0786c.phase).toBe('confirming');
     expect(v_d0786c.pendingInterrupt?.deferredTurns).toBe(1);
 
-    const v_121e28 = { ...v_d0786c, phase: 'listening' as const, activeSeq: null };
-    const v_5b244b = v_6920f0(v_121e28, { type: 'FINAL_RESULT', text: '둘째마디' }).state;
-    expect(v_5b244b.pendingInterrupt).toBeNull();
+    const v_121e28 = v_6920f0(v_d0786c, { type: 'FINAL_RESULT', text: '둘째마디' }).state;
+    expect(v_121e28.phase).toBe('confirming');
+    expect(v_121e28.pendingInterrupt).toBeNull();
+  });
+});
+
+describe('인터럽트 밀림 상한 — confirmGate=false(즉발, 프로덕션 기본값)', () => {
+  const v_bb280b = () => v_6920f0(v_3075fa(), { type: 'CALL_LIVE' }).state; 
+  const v_7d769d = { type: 'FACE_INTERRUPT' as const, text: '누구시죠?', faceKey: 'f1' };
+
+  it('즉발 모드에서는 인터럽트가 최대 1턴만 밀리고, 사용자 응답이 끝나면 곧바로 flush 된다(START_STT 없이)', () => {
+    const v_3f6eae = v_6920f0(v_bb280b(), { type: 'USER_SPEECH_START' }).state;
+    const v_3756c2 = v_6920f0(v_3f6eae, v_7d769d).state; 
+    const v_d0786c = v_6920f0(v_3756c2, { type: 'FINAL_RESULT', text: '안녕' }).state; 
+    expect(v_d0786c.phase).toBe('sending');
+    expect(v_d0786c.pendingInterrupt?.deferredTurns).toBe(1);
+
+    const v_d0d5d3 = v_6920f0(v_d0786c, { type: 'FINAL_RESULT', text: '또 말함' });
+    expect(v_d0d5d3.state).toBe(v_d0786c);
+    expect(v_d0d5d3.effects).toEqual([]);
+
+    const v_121e28 = v_6920f0(v_d0786c, { type: 'SPEECH_START', seq: v_d0786c.activeSeq! }).state; 
+    const v_cb35cb = v_6920f0(v_121e28, { type: 'RESPONSE_DONE', seq: v_d0786c.activeSeq! });
+    expect(v_cb35cb.state.phase).toBe('interrupting');
+    expect(v_cb35cb.effects).toEqual(['SAY_INTERRUPT', 'START_DETECTOR']);
+    expect(v_cb35cb.effects).not.toContain('START_STT');
   });
 });
