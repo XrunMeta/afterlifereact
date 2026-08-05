@@ -12,6 +12,17 @@
 --
 -- !! 반드시 `wrangler d1 migrations apply` 로만 적용할 것.
 -- !! 멱등 — 재실행해도 안전하다(대상이 없으면 no-op).
+--
+-- 🔴 최종 리뷰 Critical 2 — 이 선행 조건은 "누군가 수동으로 지키는 문서"가 아니라 배포 순간에
+--    자동으로 강제된다: `.github/workflows/api.yml`(preview 브랜치 push 트리거)이
+--    `wrangler d1 migrations apply afterlife-db --remote --env preview` 를 CI에서 자동 실행하고,
+--    `wrangler.toml` 의 `[env.preview]` 는 지금 PROD DB를 가리킨다. 즉 이 브랜치를 preview로
+--    머지하는 순간 — 누가 명령을 손으로 실행하기도 전에 — 이 파일의 DELETE FROM face_embeddings가
+--    PROD에서 자동 실행되어 `afl-face-512` 안의 실 벡터를 가리키던 유일한 매핑이 사라진다.
+--    그러면 그 벡터들은 다시는 특정할 수 없는 고아로 영구히 남는다.
+--    ⇒ scripts/t257_purge_vectorize.md 의 Vectorize 삭제(또는 인덱스가 아직 없다는 확인)는
+--       **"머지 전"**에 끝나 있어야 한다 — "이 마이그가 적용되기 전"이 아니다. 이 브랜치를
+--       preview로 머지하기 전 반드시 그 런북의 1~3단계를 완료(또는 대상 0건 확인)할 것.
 
 -- 1) 얼굴 벡터 장부
 DELETE FROM face_embeddings;

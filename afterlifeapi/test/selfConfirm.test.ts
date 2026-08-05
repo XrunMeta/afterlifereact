@@ -210,6 +210,61 @@ describe("confirmSelf() 경합 가드 — self_person_id UPDATE 영향행 0", ()
   });
 });
 
+describe("DELETE /oth-path 로 self 삭제 → self_person_id NULL화 → 재확정 성공", () => {
+  beforeEach(() => {
+    __resetMemoryFaceIndex();
+  });
+
+  it("self person 삭제 후 clones.self_person_id가 NULL이 되고, 동일 클론에 self-confirm 재시도가 200으로 성공한다", async () => {
+    const userId = await seedUser("t257selfdel@x.com");
+    const cloneId = await seedClone(userId, "t257selfdel-clone");
+    const token = await login("t257selfdel@x.com");
+    const db = env.DB as unknown as D1Database;
+    const headers = { "content-type": "application/json", authorization: `Bearer ${token}` };
+
+    const confirmRes = await SELF.fetch(`https://x/oth-path${cloneId}/self-confirm`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ vectors: [vec(40), vec(40), vec(40)], displayName: "지울제작자" }),
+    });
+    expect(confirmRes.status).toBe(200);
+    const { personId } = await confirmRes.json<{ personId: number }>();
+
+    const beforeDelete = await db
+      .prepare("SELECT self_person_id FROM clones WHERE id = ?")
+      .bind(cloneId)
+      .first<{ self_person_id: number | null }>();
+    expect(beforeDelete?.self_person_id).toBe(personId);
+
+    const deleteRes = await SELF.fetch(`https://x/oth-path${personId}`, {
+      method: "DELETE",
+      headers,
+    });
+    expect(deleteRes.status).toBe(200);
+
+    const afterDelete = await db
+      .prepare("SELECT self_person_id FROM clones WHERE id = ?")
+      .bind(cloneId)
+      .first<{ self_person_id: number | null }>();
+    expect(afterDelete?.self_person_id).toBeNull();
+
+    const retryRes = await SELF.fetch(`https://x/oth-path${cloneId}/self-confirm`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ vectors: [vec(41), vec(41), vec(41)], displayName: "재확정제작자" }),
+    });
+    expect(retryRes.status).toBe(200);
+    const retryBody = await retryRes.json<{ personId: number }>();
+    expect(retryBody.personId).not.toBe(personId);
+
+    const finalClone = await db
+      .prepare("SELECT self_person_id FROM clones WHERE id = ?")
+      .bind(cloneId)
+      .first<{ self_person_id: number | null }>();
+    expect(finalClone?.self_person_id).toBe(retryBody.personId);
+  });
+});
+
 describe("confirmSelf() enroll 실패 → 고아 person 없음 + 재시도 성공", () => {
   beforeEach(() => {
     __resetMemoryFaceIndex();

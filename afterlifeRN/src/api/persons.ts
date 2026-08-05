@@ -70,9 +70,11 @@ export async function saveFaceConsent(
 
 export async function listPersons(
   accessToken: string,
+  cloneId?: number,
 ): Promise<{ items: Person[] }> {
+  const path = cloneId !== undefined ? `/oth-path?cloneId=${cloneId}` : '/oth-path';
   const res = await authFetch<{ data?: Person[] }>(
-    '/oth-path',
+    path,
     accessToken,
     { method: 'GET' },
   );

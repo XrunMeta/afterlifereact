@@ -7,7 +7,7 @@ import { requireAuth } from "../middleware/auth";
 import { getFaceIndex } from "../lib/faceVectors";
 import { deletePersonCascade } from "../lib/personDelete";
 import { assertValidDisplayName } from "../lib/displayName";
-import { cloneActiveSql } from "../lib/cloneAccess";
+import { loadAccessibleClone } from "../lib/cloneAccess";
 import { faceNamespace, queryCloneScope, enrollCloneScopeFaces } from "../lib/cloneFaceScope";
 
 export const persons = new Hono<AppEnv>();
@@ -57,13 +57,9 @@ persons.post("/", requireAuth, async (c) => {
   const consentState: "none" | "granted" = enrolledVia === "auto_biometric" ? "granted" : "none";
   const consentAt: number | null = enrolledVia === "auto_biometric" ? Date.now() : null;
 
-  const owned = await c.env.DB.prepare(
-    `SELECT id FROM clones WHERE id = ? AND owner_id = ? AND ${cloneActiveSql()}`
-  )
-    .bind(cloneId, userId)
-    .first<{ id: number }>();
-  if (!owned) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  const clone = await loadAccessibleClone(c.env.DB, cloneId, userId);
+  if (!clone) {
+    throw new APIError("NOT_FOUND", "클론을 찾을 수 없습니다.");
   }
 
   const createdAt = Date.now();
@@ -117,11 +113,7 @@ persons.post("/match", requireAuth, async (c) => {
   if (typeof cloneId !== "number" || !Number.isInteger(cloneId) || cloneId <= 0)
     throw new APIError("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
 
-  const clone = await c.env.DB.prepare(
-    `SELECT id FROM clones WHERE id = ? AND owner_id = ? AND ${cloneActiveSql()}`
-  )
-    .bind(cloneId, userId)
-    .first<{ id: number }>();
+  const clone = await loadAccessibleClone(c.env.DB, cloneId, userId);
   if (!clone) throw new APIError("NOT_FOUND", "클론을 찾을 수 없습니다.");
 
   const cfg = await c.env.DB.prepare("SELECT value FROM app_config WHERE key = 'face.match_threshold'").first<{
@@ -313,6 +305,9 @@ persons.post("/:id/faces", requireAuth, async (c) => {
   const cloneId = body.cloneId;
   if (typeof cloneId !== "number" || !Number.isInteger(cloneId) || cloneId <= 0)
     throw new APIError("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+
+  const clone = await loadAccessibleClone(c.env.DB, cloneId, userId);
+  if (!clone) throw new APIError("NOT_FOUND", "person이 존재하지 않습니다.");
 
   const person = await c.env.DB.prepare(
     "SELECT id, consent_state FROM persons WHERE id = ? AND user_id = ? AND clone_id = ?",

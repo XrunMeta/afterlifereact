@@ -12,8 +12,13 @@ export async function deletePersonCascade(
   personId: number,
   userId: number,
 ): Promise<PersonDeleteResult> {
-  const embs = await env.DB.prepare("SELECT vectorize_id FROM face_embeddings WHERE person_id = ?")
-    .bind(personId)
+
+  const embs = await env.DB.prepare(
+    `SELECT vectorize_id FROM face_embeddings WHERE person_id = ?
+     UNION
+     SELECT vectorize_id FROM clone_person_faces WHERE person_id = ?`,
+  )
+    .bind(personId, personId)
     .all<{ vectorize_id: string | null }>();
   const vids = embs.results.map((r) => r.vectorize_id).filter((v): v is string => Boolean(v));
 
@@ -23,6 +28,7 @@ export async function deletePersonCascade(
 
   await env.DB.batch([
     env.DB.prepare("DELETE FROM face_embeddings WHERE person_id = ?").bind(personId),
+    env.DB.prepare("DELETE FROM clone_person_faces WHERE person_id = ?").bind(personId),
 
     env.DB.prepare(
       `INSERT INTO persons_consent_log (person_id, state, terms_version, channel, changed_at)
@@ -30,6 +36,8 @@ export async function deletePersonCascade(
     ).bind(personId, deletedAt),
     env.DB.prepare("UPDATE call_turns SET speaker_person_id = NULL WHERE speaker_person_id = ?").bind(personId),
     env.DB.prepare("DELETE FROM clone_ont_person WHERE person_id = ?").bind(personId),
+
+    env.DB.prepare("UPDATE clones SET self_person_id = NULL WHERE self_person_id = ?").bind(personId),
     env.DB.prepare("DELETE FROM persons WHERE id = ? AND user_id = ?").bind(personId, userId),
   ]);
 
@@ -47,8 +55,12 @@ export async function deleteCloneScopeMemory(
 ): Promise<CloneScopeDeleteResult> {
   const { userId, cloneId } = opts;
 
-  const persons = await env.DB.prepare("SELECT id FROM persons WHERE user_id = ? AND clone_id = ?")
-    .bind(userId, cloneId)
+  const persons = await env.DB.prepare(
+    `SELECT id FROM persons
+      WHERE user_id = ? AND clone_id = ?
+        AND id != COALESCE((SELECT self_person_id FROM clones WHERE id = ?), 0)`,
+  )
+    .bind(userId, cloneId, cloneId)
     .all<{ id: number }>();
 
   let deletedVectors = 0;

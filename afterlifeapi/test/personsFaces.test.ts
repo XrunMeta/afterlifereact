@@ -203,6 +203,45 @@ describe("POST /oth-path", () => {
     expect(body.error.code).toBe("NOT_FOUND");
   });
 
+  it("비소유자도 공개 클론이면 자신의 person에 얼굴 enroll 가능", async () => {
+    const owner = await seedUser("faces-nonowner-owner@test.local");
+    const nonOwner = await seedUser("faces-nonowner-guest@test.local");
+    const nonOwnerTok = await issueAccessToken(nonOwner);
+    const cloneId = await seedClone(owner, "faces-nonowner-clone");
+
+    const personId = await createPerson(nonOwnerTok, cloneId);
+    await grantConsent(nonOwnerTok, personId);
+
+    const res = await SELF.fetch(`http://localhost/oth-path${personId}/faces`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${nonOwnerTok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ cloneId, vectors: [vec()] }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { enrolled: number };
+    expect(body.enrolled).toBe(1);
+  });
+
+  it("enroll 이후 클론이 정지되면 비소유자는 자신의 person이어도 추가 enroll이 404", async () => {
+    const db = env.DB as unknown as D1Database;
+    const owner = await seedUser("faces-susp-owner@test.local");
+    const nonOwner = await seedUser("faces-susp-guest@test.local");
+    const nonOwnerTok = await issueAccessToken(nonOwner);
+    const cloneId = await seedClone(owner, "faces-susp-clone");
+
+    const personId = await createPerson(nonOwnerTok, cloneId);
+    await grantConsent(nonOwnerTok, personId);
+
+    await db.prepare(`UPDATE clones SET admin_suspended_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(cloneId).run();
+
+    const res = await SELF.fetch(`http://localhost/oth-path${personId}/faces`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${nonOwnerTok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ cloneId, vectors: [vec()] }),
+    });
+    expect(res.status).toBe(404);
+  });
+
   it("비정수 person id(/faces) → 422 VALIDATION_FAILED (parsePersonId 재사용, 500 아님)", async () => {
     const userId = await seedUser("faces-nanid@test.local");
     const tok = await issueAccessToken(userId);

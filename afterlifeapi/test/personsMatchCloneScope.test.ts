@@ -120,7 +120,7 @@ describe("POST /oth-path — 클론 스코프", () => {
     expect(miss.matches).toHaveLength(0);
   });
 
-  it("타 사용자 소유 클론이면 404", async () => {
+  it("타 사용자 소유 공개 클론이어도 접근 가능(비소유자 매칭)", async () => {
     const ownerId = await seedUser("t257c-owner@x.com");
     const cloneId = await seedClone(ownerId, "t257c-owner-clone");
     const otherId = await seedUser("t257c-other@x.com");
@@ -131,7 +131,115 @@ describe("POST /oth-path — 클론 스코프", () => {
       headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
       body: JSON.stringify({ vector: vec(1), cloneId }),
     });
+    expect(res.status).toBe(200);
+    const body = await res.json<{ best: unknown | null; matches: unknown[] }>();
+    expect(body.best).toBeNull();
+    expect(body.matches).toHaveLength(0);
+  });
+
+  it("private 클론·비-follower는 여전히 404(접근 불가는 계속 차단)", async () => {
+    const ownerId = await seedUser("t257priv-owner@x.com");
+    await db()
+      .prepare(
+        `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+         VALUES (?, 'Private', 't257priv-clone', 'memlow', 'private', CURRENT_TIMESTAMP)`,
+      )
+      .bind(ownerId)
+      .run();
+    const cloneId = (
+      await db().prepare("SELECT id FROM clones WHERE username = 't257priv-clone'").first<{ id: number }>()
+    )!.id;
+    const strangerId = await seedUser("t257priv-stranger@x.com");
+    const token = await issueAccessToken(strangerId);
+
+    const res = await SELF.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ vector: vec(1), cloneId }),
+    });
     expect(res.status).toBe(404);
+  });
+
+  it("정지된(admin_suspended_at) 공개 클론은 소유자가 아니면 여전히 404", async () => {
+    const ownerId = await seedUser("t257susp-owner@x.com");
+    const cloneId = await seedClone(ownerId, "t257susp-clone");
+    await db()
+      .prepare(`UPDATE clones SET admin_suspended_at = CURRENT_TIMESTAMP WHERE id = ?`)
+      .bind(cloneId)
+      .run();
+    const strangerId = await seedUser("t257susp-stranger@x.com");
+    const token = await issueAccessToken(strangerId);
+
+    const res = await SELF.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ vector: vec(1), cloneId }),
+    });
+    expect(res.status).toBe(404);
+  });
+
+  it("두 사용자가 같은 클론에 등록해도 서로 다른 person이고 서로 매칭되지 않는다", async () => {
+    const ownerId = await seedUser("t257iso-owner@x.com");
+    const cloneId = await seedClone(ownerId, "t257iso-clone");
+    const userA = await seedUser("t257iso-a@x.com");
+    const userB = await seedUser("t257iso-b@x.com");
+    const tokA = await issueAccessToken(userA);
+    const tokB = await issueAccessToken(userB);
+
+    const personA = await (
+      await SELF.fetch("https://x/oth-path", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${tokA}` },
+        body: JSON.stringify({ cloneId, displayName: "A화자", enrolledVia: "card" }),
+      })
+    ).json<{ id: number }>();
+    await SELF.fetch(`https://x/oth-path${personA.id}/consent`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${tokA}` },
+      body: JSON.stringify({ state: "granted" }),
+    });
+    await SELF.fetch(`https://x/oth-path${personA.id}/faces`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${tokA}` },
+      body: JSON.stringify({ cloneId, vectors: [vec(30)] }),
+    });
+
+    const personB = await (
+      await SELF.fetch("https://x/oth-path", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${tokB}` },
+        body: JSON.stringify({ cloneId, displayName: "B화자", enrolledVia: "card" }),
+      })
+    ).json<{ id: number }>();
+    await SELF.fetch(`https://x/oth-path${personB.id}/consent`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${tokB}` },
+      body: JSON.stringify({ state: "granted" }),
+    });
+
+    await SELF.fetch(`https://x/oth-path${personB.id}/faces`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${tokB}` },
+      body: JSON.stringify({ cloneId, vectors: [vec(30)] }),
+    });
+
+    expect(personA.id).not.toBe(personB.id);
+
+    const resA = await SELF.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${tokA}` },
+      body: JSON.stringify({ vector: vec(30), cloneId }),
+    });
+    const bodyA = await resA.json<{ best: { personId: number } | null }>();
+    expect(bodyA.best?.personId).toBe(personA.id);
+
+    const resB = await SELF.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${tokB}` },
+      body: JSON.stringify({ vector: vec(30), cloneId }),
+    });
+    const bodyB = await resB.json<{ best: { personId: number } | null }>();
+    expect(bodyB.best?.personId).toBe(personB.id);
   });
 
   it("소유자 본인이어도 소프트삭제된 클론이면 404(deletion_state≠active)", async () => {

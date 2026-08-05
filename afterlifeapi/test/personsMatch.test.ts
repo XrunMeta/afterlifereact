@@ -112,7 +112,7 @@ describe("POST /oth-path", () => {
     expect(body.best).toBeNull();
   });
 
-  it("사용자 B가 A 소유 클론으로 match 시도 → 404(클론 접근 검증)", async () => {
+  it("사용자 B가 A 소유 공개 클론으로 match 시도 → 200이지만 A의 등록은 보이지 않는다(namespace 격리)", async () => {
     const ownerId = await seedUser("match-owner@test.local");
     const attackerId = await seedUser("match-attacker@test.local");
     const ownerTok = await issueAccessToken(ownerId);
@@ -124,6 +124,28 @@ describe("POST /oth-path", () => {
     await enrollFace(ownerTok, ownerId, cloneId, personId, vec(0.1));
 
     const res = await match(attackerTok, vec(0.1), cloneId);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { best: unknown | null; matches: unknown[] };
+    expect(body.best).toBeNull();
+    expect(body.matches).toHaveLength(0);
+  });
+
+  it("비공개(private) 클론으로 타인이 match 시도 → 404(진짜 비접근은 계속 차단)", async () => {
+    const ownerId = await seedUser("match-priv-owner@test.local");
+    await db()
+      .prepare(
+        `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+         VALUES (?, 'Private', 'match-priv-clone', 'memlow', 'private', CURRENT_TIMESTAMP)`,
+      )
+      .bind(ownerId)
+      .run();
+    const cloneId = (
+      await db().prepare("SELECT id FROM clones WHERE username = 'match-priv-clone'").first<{ id: number }>()
+    )!.id;
+    const strangerId = await seedUser("match-priv-stranger@test.local");
+    const strangerTok = await issueAccessToken(strangerId);
+
+    const res = await match(strangerTok, vec(0.1), cloneId);
     expect(res.status).toBe(404);
   });
 

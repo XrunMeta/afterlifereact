@@ -323,7 +323,7 @@ describe("persons route", () => {
     expect(p).toHaveProperty("createdAt");
   });
 
-  it("POST /oth-path — cloneId 타인 소유 → VALIDATION_FAILED(422) IDOR 차단", async () => {
+  it("POST /oth-path — cloneId 타인 소유(공개 클론) → 201 성공(비소유자도 접근 가능)", async () => {
     const owner = await seedUser("clone-owner-idor@test.local");
     const attacker = await seedUser("clone-attacker-idor@test.local");
     const attackerTok = await issueAccessToken(attacker);
@@ -336,9 +336,37 @@ describe("persons route", () => {
       body: JSON.stringify({ cloneId }),
     });
 
-    expect(res.status).toBe(422);
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { cloneId: number };
+    expect(body.cloneId).toBe(cloneId);
+  });
+
+  it("POST /oth-path — cloneId 타인 소유(비공개 클론) → 404(진짜 비접근은 계속 차단)", async () => {
+    const db = env.DB as unknown as D1Database;
+    const owner = await seedUser("clone-owner-priv@test.local");
+    const attacker = await seedUser("clone-attacker-priv@test.local");
+    const attackerTok = await issueAccessToken(attacker);
+
+    await db
+      .prepare(
+        `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+         VALUES (?, 'Private', 'priv-clone-idor', 'memlow', 'private', CURRENT_TIMESTAMP)`,
+      )
+      .bind(owner)
+      .run();
+    const cloneId = (
+      await db.prepare("SELECT id FROM clones WHERE username = 'priv-clone-idor'").first<{ id: number }>()
+    )!.id;
+
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${attackerTok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ cloneId }),
+    });
+
+    expect(res.status).toBe(404);
     const body = (await res.json()) as { error: { code: string } };
-    expect(body.error.code).toBe("VALIDATION_FAILED");
+    expect(body.error.code).toBe("NOT_FOUND");
   });
 
   it("POST /oth-path — cloneId 본인 소유 → 201 성공", async () => {

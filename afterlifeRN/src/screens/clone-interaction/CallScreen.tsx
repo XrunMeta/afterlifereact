@@ -183,7 +183,8 @@ export default function CallScreen({ route, navigation }: Props) {
 
     if (!accessToken) return;
     let cancelled = false;
-    listPersons(accessToken)
+
+    listPersons(accessToken, cloneId)
       .then(({ items }) => {
         if (cancelled) return;
         const hasConsent = items.some((p) => p.consentState === "granted");
@@ -301,7 +302,8 @@ export default function CallScreen({ route, navigation }: Props) {
     getBuffer: getFaceEmbeddingBuffer,
     resetRecognition: resetSpeakerRecognition,
   } = useFaceIdentify({
-    enabled: consentGranted && liveState === "live",
+
+    enabled: consentGranted && liveState === "live" && faceIdentifyEnabled,
     accessToken: accessToken ?? "",
     cloneId,
     onEvent: handleSpeakerEventTrampoline,

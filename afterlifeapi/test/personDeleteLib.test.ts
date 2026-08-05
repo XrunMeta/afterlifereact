@@ -81,6 +81,59 @@ describe("deletePersonCascade (lib)", () => {
     expect(q.matches.length).toBe(0);
   });
 
+  it("self person을 삭제하면 clones.self_person_id가 NULL화된다", async () => {
+    const userId = await seedUser("lib-del-self-1@test.local");
+    const cloneId = await seedClone(userId, "lib-del-self-1-clone");
+    const now = Date.now();
+    const ins = await E.DB.prepare(
+      `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at)
+       VALUES (?, ?, 'self', 'granted', ?, 'auto_biometric', ?)`,
+    )
+      .bind(userId, cloneId, now, now)
+      .run();
+    const personId = ins.meta.last_row_id as number;
+    await E.DB.prepare("UPDATE clones SET self_person_id = ? WHERE id = ?").bind(personId, cloneId).run();
+
+    await deletePersonCascade(E, personId, userId);
+
+    const clone = await E.DB.prepare("SELECT self_person_id FROM clones WHERE id = ?")
+      .bind(cloneId)
+      .first<{ self_person_id: number | null }>();
+    expect(clone?.self_person_id).toBeNull();
+  });
+
+  it("clone_person_faces에만 있는 vectorize_id도 회수해 Vectorize에서 삭제한다", async () => {
+    const userId = await seedUser("lib-del-cpf-1@test.local");
+    const cloneId = await seedClone(userId, "lib-del-cpf-1-clone");
+    const now = Date.now();
+    const ins = await E.DB.prepare(
+      `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at)
+       VALUES (?, ?, 'cpf전용', 'granted', ?, 'card', ?)`,
+    )
+      .bind(userId, cloneId, now, now)
+      .run();
+    const personId = ins.meta.last_row_id as number;
+
+    const idx = getFaceIndex(E);
+    const vectorizeId = crypto.randomUUID();
+    await idx.insert([
+      { id: vectorizeId, values: vec(0.7), namespace: faceNamespace(userId, cloneId), metadata: { personId: String(personId) } },
+    ]);
+
+    await E.DB.prepare(
+      `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
+       VALUES (?, ?, ?, 'w600k_mbf', 512, 'enroll', ?)`,
+    )
+      .bind(cloneId, personId, vectorizeId, now)
+      .run();
+
+    const result = await deletePersonCascade(E, personId, userId);
+    expect(result.deletedEmbeddings).toBe(1);
+
+    const q = await idx.query(vec(0.7), { topK: 3, namespace: faceNamespace(userId, cloneId), returnMetadata: true });
+    expect(q.matches.length).toBe(0);
+  });
+
   it("임베딩 없는 person도 정상 삭제(deletedEmbeddings=0)", async () => {
     const userId = await seedUser("lib-del-2@test.local");
     const tok = await issueAccessToken(userId);

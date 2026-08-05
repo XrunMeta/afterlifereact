@@ -146,6 +146,64 @@ describe("나를 기억하는 클론", () => {
     expect(res.status).toBe(422);
   });
 
+  it("[지우기]는 self person과 그 clone_person_faces는 보존한다(비-self만 삭제)", async () => {
+    const userId = await seedUser("t257s@x.com");
+    const cloneId = await seedClone(userId, "t257s-clone");
+    const db = env.DB as unknown as D1Database;
+
+    const selfPersonId = await seedPersonWithL2p(userId, cloneId, "제작자self");
+    await db.prepare("UPDATE clones SET self_person_id = ? WHERE id = ?").bind(selfPersonId, cloneId).run();
+    await db
+      .prepare(
+        `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
+         VALUES (?, ?, ?, 'w600k_mbf', 512, 'self', ?)`,
+      )
+      .bind(cloneId, selfPersonId, "vec-self-1", Date.now())
+      .run();
+
+    const otherPersonId = await seedPersonWithL2p(userId, cloneId, "친구P2");
+    await db
+      .prepare(
+        `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
+         VALUES (?, ?, ?, 'w600k_mbf', 512, 'enroll', ?)`,
+      )
+      .bind(cloneId, otherPersonId, "vec-other-1", Date.now())
+      .run();
+
+    const token = await login("t257s@x.com");
+    const res = await SELF.fetch(`https://x/oth-path${cloneId}`, {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json<{ deletedPersons: number }>();
+    expect(body.deletedPersons).toBe(1); 
+
+    const selfPerson = await db
+      .prepare("SELECT COUNT(*) AS n FROM persons WHERE id = ?")
+      .bind(selfPersonId)
+      .first<{ n: number }>();
+    expect(selfPerson?.n).toBe(1);
+
+    const selfFaces = await db
+      .prepare("SELECT COUNT(*) AS n FROM clone_person_faces WHERE person_id = ?")
+      .bind(selfPersonId)
+      .first<{ n: number }>();
+    expect(selfFaces?.n).toBe(1);
+
+    const clone = await db
+      .prepare("SELECT self_person_id FROM clones WHERE id = ?")
+      .bind(cloneId)
+      .first<{ self_person_id: number | null }>();
+    expect(clone?.self_person_id).toBe(selfPersonId);
+
+    const other = await db
+      .prepare("SELECT COUNT(*) AS n FROM persons WHERE id = ?")
+      .bind(otherPersonId)
+      .first<{ n: number }>();
+    expect(other?.n).toBe(0);
+  });
+
   it("같은 클론을 두 번 지워도 에러 없이 멱등하다", async () => {
     const userId = await seedUser("t257r@x.com");
     const cloneId = await seedClone(userId, "t257r-clone");
