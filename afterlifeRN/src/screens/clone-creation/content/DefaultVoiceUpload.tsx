@@ -58,7 +58,9 @@ const RECORD_SCRIPTS = [
   },
 ] as const;
 
-type Mode = "preset" | "record" | "upload";
+type Mode = "upload" | "record" | "preset";
+
+const MODE_ORDER: Mode[] = ["upload", "record", "preset"];
 
 interface Props {
   draft: CloneCreationDraft;
@@ -110,7 +112,8 @@ async function pickAndClone(
 function Component({ draft, onChange }: Props) {
   const { t, i18n } = useTranslation();
   const accessToken = useAuthStore((s) => s.accessToken);
-  const [mode, setMode] = useState<Mode>("preset");
+
+  const [mode, setMode] = useState<Mode>("upload");
   const [voices, setVoices] = useState<CatalogVoice[]>([]);
   const [loadErr, setLoadErr] = useState(false);
   const [selectedScript, setSelectedScript] = useState<string | null>(null);
@@ -344,7 +347,7 @@ function Component({ draft, onChange }: Props) {
     <View style={styles.wrap}>
       {}
       <View style={styles.modeRow}>
-        {(["preset", "record", "upload"] as Mode[]).map((m) => {
+        {MODE_ORDER.map((m) => {
           const label =
             m === "preset"
               ? t("create.voice.modePreset", { defaultValue: "음색 선택" })
