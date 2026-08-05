@@ -59,9 +59,9 @@ const v_58b6a9 = [
   },
 ] as const;
 
-type Mode = "upload" | "record" | "preset";
+type Mode = "record" | "preset" | "upload";
 
-const v_128633 = ["upload", "record", "preset"];
+const v_128633 = ["record", "preset", "upload"];
 
 type VoicePick = Pick<
   v_c2a674,
@@ -75,10 +75,11 @@ const v_884e4d = {
   voiceSampleId: undefined,
 };
 
-function v_2ba26d(d: v_c2a674): Mode {
+export function v_2ba26d(d: v_c2a674): Mode {
   if (v_d5dda0.voiceMode) return v_d5dda0.voiceMode;
   if (v_d5dda0.voicePresetId !== undefined) return "preset";
-  return "upload";
+  if (v_d5dda0.voiceFile !== undefined || v_d5dda0.voiceCloneJobId !== undefined) return "upload";
+  return "record";
 }
 
 interface Props {
