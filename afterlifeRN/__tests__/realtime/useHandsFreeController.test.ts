@@ -1,5 +1,6 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useHandsFreeController } from '../../src/realtime/useHandsFreeController';
+import { IDLE_GREET_DELAYS_MS, IDLE_GREET_TEXT } from '../../src/realtime/handsFree';
 
 function makeMockEngine() {
   const listeners: Record<string, Array<(p?: any) => void>> = {};
@@ -974,4 +975,106 @@ it('confirming 중 cancelConfirm() → listening, say 미호출', async () => {
   } finally {
     jest.useRealTimers();
   }
+});
+
+describe('T-258: 무발화 워치독 · seq 배선', () => {
+
+  it('조용한 listening 이 IDLE_GREET_DELAYS_MS[0] 만큼 이어지면 SAY_IDLE_GREETING 이 일반 say 경로로 실행된다', async () => {
+    jest.useFakeTimers();
+    try {
+      const engine = makeMockEngine();
+      const say = jest.fn().mockResolvedValue(undefined);
+      const { result } = renderController({
+        enabled: true,
+        say,
+        getStatsReport: () => null,
+        notifySpeechEnd: jest.fn(),
+        speechEngine: engine,
+      });
+      await act(async () => { await jest.advanceTimersByTimeAsync(0); });
+      expect(result.current.phase).toBe('listening');
+
+      await act(async () => { await jest.advanceTimersByTimeAsync(IDLE_GREET_DELAYS_MS[0]); });
+      expect(say).toHaveBeenCalledWith(IDLE_GREET_TEXT);
+
+      expect(result.current.phase).toBe('interrupting');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('STT partial(interimTranscript) 수신 중엔 USER_SPEECH_START 로 워치독이 걸리지 않는다', async () => {
+    jest.useFakeTimers();
+    try {
+      const engine = makeMockEngine();
+      const say = jest.fn().mockResolvedValue(undefined);
+      const { result } = renderController({
+        enabled: true,
+        say,
+        getStatsReport: () => null,
+        notifySpeechEnd: jest.fn(),
+        speechEngine: engine,
+      });
+      await act(async () => { await jest.advanceTimersByTimeAsync(0); });
+      expect(result.current.phase).toBe('listening');
+
+      act(() => { engine.emit('result', { results: [{ transcript: '음' }], isFinal: false }); });
+      expect(result.current.interimTranscript).toBe('음');
+
+      await act(async () => { await jest.advanceTimersByTimeAsync(IDLE_GREET_DELAYS_MS[0]); });
+
+      expect(say).not.toHaveBeenCalledWith(IDLE_GREET_TEXT);
+      expect(result.current.phase).toBe('listening');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('워치독이 두 차례(30s→60s) 발동 후 idleGreetCount 소진되면 더 이상 발동하지 않는다 — dc 신호 seq 왕복 포함', async () => {
+    jest.useFakeTimers();
+    try {
+      const engine = makeMockEngine();
+      const say = jest.fn().mockResolvedValue(undefined);
+      let signal: any = null;
+      const { result, rerender } = renderHook(
+        (props: any) => useHandsFreeController({
+          enabled: true,
+          say,
+          getStatsReport: () => null,
+          notifySpeechEnd: jest.fn(),
+          speechEngine: engine,
+          lastSignal: props.signal,
+        }),
+        { initialProps: { signal } },
+      );
+      await act(async () => { await jest.advanceTimersByTimeAsync(0); });
+      expect(result.current.phase).toBe('listening');
+
+      await act(async () => { await jest.advanceTimersByTimeAsync(IDLE_GREET_DELAYS_MS[0]); });
+      expect(say).toHaveBeenCalledTimes(1);
+      expect(result.current.phase).toBe('interrupting');
+
+      signal = { type: 'speech_start', ts: Date.now() };
+      act(() => { rerender({ signal }); });
+      signal = { type: 'speech_end', ts: Date.now() + 10 };
+      act(() => { rerender({ signal }); });
+      expect(result.current.phase).toBe('listening');
+
+      await act(async () => { await jest.advanceTimersByTimeAsync(IDLE_GREET_DELAYS_MS[1]); });
+      expect(say).toHaveBeenCalledTimes(2);
+      expect(result.current.phase).toBe('interrupting');
+
+      signal = { type: 'speech_start', ts: Date.now() };
+      act(() => { rerender({ signal }); });
+      signal = { type: 'speech_end', ts: Date.now() + 10 };
+      act(() => { rerender({ signal }); });
+      expect(result.current.phase).toBe('listening');
+
+      await act(async () => { await jest.advanceTimersByTimeAsync(IDLE_GREET_DELAYS_MS[1]); });
+      expect(say).toHaveBeenCalledTimes(2);
+      expect(result.current.phase).toBe('listening');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });
