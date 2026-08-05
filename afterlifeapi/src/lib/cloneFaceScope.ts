@@ -3,6 +3,8 @@
 import type { v_273a0c } from "./env";
 import { v_a8d2cc } from "./faceVectors";
 import { v_862be2, v_0761b1 } from "./memoryStore";
+import { v_430d2b } from "./personDelete";
+import { v_3ebe58 } from "./errors";
 
 export function v_929ead(v_43e90c, v_6e0fd3): string {
   return `${v_43e90c}:${v_6e0fd3}`;
@@ -111,11 +113,21 @@ export async function v_4c5429(
     .run();
   const v_ca1ec5 = v_43af15.meta.last_row_id as number;
 
-  await v_003ee1(v_c9c489, { userId: v_43e90c, cloneId: v_6e0fd3, personId: v_ca1ec5, vectors: v_f94e64, source: "self" });
+  try {
+    await v_003ee1(v_c9c489, { userId: v_43e90c, cloneId: v_6e0fd3, personId: v_ca1ec5, vectors: v_f94e64, source: "self" });
+  } catch (v_9e86fd) {
+    await v_430d2b(v_c9c489, v_ca1ec5, v_43e90c);
+    throw v_9e86fd; 
+  }
 
-  await v_c9c489.DB.prepare("UPDATE clones SET self_person_id = ? WHERE id = ? AND self_person_id IS NULL")
+  const v_b1eff4 = await v_c9c489.DB.prepare("UPDATE clones SET self_person_id = ? WHERE id = ? AND self_person_id IS NULL")
     .bind(v_ca1ec5, v_6e0fd3)
     .run();
+  if (v_b1eff4.meta.changes === 0) {
+
+    await v_430d2b(v_c9c489, v_ca1ec5, v_43e90c);
+    throw new v_3ebe58("CONFLICT", "이미 self가 확정된 클론입니다.");
+  }
 
   return { personId: v_ca1ec5, selfPersonId: v_ca1ec5 };
 }
