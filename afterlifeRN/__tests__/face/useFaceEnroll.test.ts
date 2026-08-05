@@ -21,6 +21,7 @@ test("성공 경로: createPerson → saveFaceConsent → enrollFaces 순서·�
   const { result } = renderHook(() =>
     useFaceEnroll({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => buffer,
       deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
     }),
@@ -30,10 +31,10 @@ test("성공 경로: createPerson → saveFaceConsent → enrollFaces 순서·�
     await result.current.enroll("민지");
   });
 
-  expect(createPersonFn).toHaveBeenCalledWith("tok", { displayName: "민지" });
+  expect(createPersonFn).toHaveBeenCalledWith("tok", { cloneId: 999, displayName: "민지" });
 
   expect(saveFaceConsentFn).toHaveBeenCalledWith("tok", 42, "granted", { channel: "in_call_proxy" });
-  expect(enrollFacesFn).toHaveBeenCalledWith("tok", 42, [[1, 2], [3, 4]]);
+  expect(enrollFacesFn).toHaveBeenCalledWith("tok", 42, [[1, 2], [3, 4]], 999);
 
   const createOrder = createPersonFn.mock.invocationCallOrder[0];
   const consentOrder = saveFaceConsentFn.mock.invocationCallOrder[0];
@@ -54,6 +55,7 @@ test("createPerson 실패 → status=error, 이후 단계 미호출", async () =
   const { result } = renderHook(() =>
     useFaceEnroll({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => buffer,
       deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
     }),
@@ -82,6 +84,7 @@ test("enrollFaces 실패 후 재호출 시 createPerson/saveFaceConsent 재실�
   const { result } = renderHook(() =>
     useFaceEnroll({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => buffer,
       deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
     }),
@@ -112,6 +115,7 @@ test("reset() 후엔 처음부터 다시 createPerson 호출", async () => {
   const { result } = renderHook(() =>
     useFaceEnroll({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => buffer,
       deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
     }),
@@ -130,7 +134,7 @@ test("reset() 후엔 처음부터 다시 createPerson 호출", async () => {
   });
 
   expect(createPersonFn).toHaveBeenCalledTimes(2);
-  expect(createPersonFn).toHaveBeenNthCalledWith(2, "tok", { displayName: "철수" });
+  expect(createPersonFn).toHaveBeenNthCalledWith(2, "tok", { cloneId: 999, displayName: "철수" });
 });
 
 test("연타(동일 tick 내 두 번 호출) 시 createPerson 1회만 호출 — 두 번째는 조용히 무시", async () => {
@@ -143,6 +147,7 @@ test("연타(동일 tick 내 두 번 호출) 시 createPerson 1회만 호출 —
   const { result } = renderHook(() =>
     useFaceEnroll({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => buffer,
       deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
     }),
@@ -163,6 +168,7 @@ test("getPendingPersonId: idle 상태에선 null", () => {
   const { result } = renderHook(() =>
     useFaceEnroll({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => buffer,
       deps: {
         createPersonFn: jest.fn(),
@@ -184,6 +190,7 @@ test("getPendingPersonId: 부분 실패(person 생성됨·미완료) 상태에�
   const { result } = renderHook(() =>
     useFaceEnroll({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => buffer,
       deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
     }),
@@ -207,6 +214,7 @@ test("getPendingPersonId: success 상태에선 null(완료됨)", async () => {
   const { result } = renderHook(() =>
     useFaceEnroll({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => buffer,
       deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
     }),
@@ -239,6 +247,7 @@ test("A 부분실패 → B suggest 가드(true) → cleanup+reset → B 신규 �
   const { result } = renderHook(() =>
     useFaceEnroll({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => buffer,
       deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
     }),
@@ -272,7 +281,7 @@ test("A 부분실패 → B suggest 가드(true) → cleanup+reset → B 신규 �
     await result.current.enroll("B");
   });
   expect(createPersonFn).toHaveBeenCalledTimes(2);
-  expect(createPersonFn).toHaveBeenNthCalledWith(2, "tok", { displayName: "B" });
+  expect(createPersonFn).toHaveBeenNthCalledWith(2, "tok", { cloneId: 999, displayName: "B" });
   expect(result.current.status).toBe("success");
   expect(result.current.getPendingPersonId()).toBeNull();
 });
@@ -289,6 +298,7 @@ test("getSnapshot 제공 시: 캡처 이후 buffer.push 가 추가돼도 enrollF
   const { result } = renderHook(() =>
     useFaceEnroll({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => buffer,
       getSnapshot: () => snapshot,
       deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
@@ -302,7 +312,7 @@ test("getSnapshot 제공 시: 캡처 이후 buffer.push 가 추가돼도 enrollF
     await result.current.enroll("민지");
   });
 
-  expect(enrollFacesFn).toHaveBeenCalledWith("tok", 55, [[1, 1]]);
+  expect(enrollFacesFn).toHaveBeenCalledWith("tok", 55, [[1, 1]], 999);
 });
 
 test("getSnapshot 미제공 시: 기존 폴백대로 getBuffer().latest() 사용", async () => {
@@ -315,6 +325,7 @@ test("getSnapshot 미제공 시: 기존 폴백대로 getBuffer().latest() 사용
   const { result } = renderHook(() =>
     useFaceEnroll({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => buffer,
       deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
     }),
@@ -324,7 +335,7 @@ test("getSnapshot 미제공 시: 기존 폴백대로 getBuffer().latest() 사용
     await result.current.enroll("철수");
   });
 
-  expect(enrollFacesFn).toHaveBeenCalledWith("tok", 56, [[2, 2]]);
+  expect(enrollFacesFn).toHaveBeenCalledWith("tok", 56, [[2, 2]], 999);
 });
 
 test("enrollSilent 성공: createPerson(enrolledVia='auto_biometric')만 호출, saveFaceConsent는 skip, enrollFaces 호출, status=success", async () => {
@@ -337,6 +348,7 @@ test("enrollSilent 성공: createPerson(enrolledVia='auto_biometric')만 호출,
   const { result } = renderHook(() =>
     useFaceEnroll({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => buffer,
       deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
     }),
@@ -346,9 +358,9 @@ test("enrollSilent 성공: createPerson(enrolledVia='auto_biometric')만 호출,
     await result.current.enrollSilent();
   });
 
-  expect(createPersonFn).toHaveBeenCalledWith("tok", { enrolledVia: "auto_biometric" });
+  expect(createPersonFn).toHaveBeenCalledWith("tok", { cloneId: 999, enrolledVia: "auto_biometric" });
   expect(saveFaceConsentFn).not.toHaveBeenCalled();
-  expect(enrollFacesFn).toHaveBeenCalledWith("tok", 77, [[5, 5]]);
+  expect(enrollFacesFn).toHaveBeenCalledWith("tok", 77, [[5, 5]], 999);
   expect(result.current.status).toBe("success");
   expect(result.current.getEnrolledPersonId()).toBe(77);
 });
@@ -362,6 +374,7 @@ test("enrollSilent: createPerson 실패 → status=error, enrollFaces 미호출,
   const { result } = renderHook(() =>
     useFaceEnroll({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => buffer,
       deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
     }),
@@ -389,6 +402,7 @@ test("enrollSilent: enrollFaces 실패 후 재호출 시 createPerson 재실행 
   const { result } = renderHook(() =>
     useFaceEnroll({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => buffer,
       deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
     }),
@@ -418,6 +432,7 @@ test("getEnrolledPersonId: reset() 후 null(카드 enroll()과 동일 상태 공
   const { result } = renderHook(() =>
     useFaceEnroll({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => buffer,
       deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
     }),
@@ -444,6 +459,7 @@ test("reset() 없이 두 번째 silent 후보를 등록하면 이전 person id �
   const { result } = renderHook(() =>
     useFaceEnroll({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => bufferA,
       deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
     }),
@@ -472,6 +488,7 @@ test("reset() 이 두 번째 silent 후보 등록 전에 선행되면 각 후보
   const { result } = renderHook(() =>
     useFaceEnroll({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => buffer,
       deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
     }),
@@ -506,6 +523,7 @@ test("[wiring] 카드 경로 error 잔여(personRef=A) 상태에서 다른 후�
   const { result } = renderHook(() =>
     useFaceEnroll({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => buffer,
       deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
     }),
@@ -540,7 +558,7 @@ test("[wiring] 카드 경로 error 잔여(personRef=A) 상태에서 다른 후�
   });
   expect(createPersonFn).toHaveBeenCalledTimes(2);
   expect(result.current.getEnrolledPersonId()).toBe(402); 
-  expect(enrollFacesFn).toHaveBeenLastCalledWith("tok", 402, [[1, 1]]); 
+  expect(enrollFacesFn).toHaveBeenLastCalledWith("tok", 402, [[1, 1]], 999); 
 });
 
 test("[wiring] cleanup 을 생략하면(버그 재현) B의 얼굴벡터가 실제로 A(401)의 person id 에 오귀속됨 — 가드의 필요성 증명", async () => {
@@ -553,6 +571,7 @@ test("[wiring] cleanup 을 생략하면(버그 재현) B의 얼굴벡터가 실�
   const { result } = renderHook(() =>
     useFaceEnroll({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => buffer,
       deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
     }),
@@ -567,7 +586,7 @@ test("[wiring] cleanup 을 생략하면(버그 재현) B의 얼굴벡터가 실�
     await result.current.enrollSilent();
   });
   expect(createPersonFn).toHaveBeenCalledTimes(1); 
-  expect(enrollFacesFn).toHaveBeenLastCalledWith("tok", 401, [[9, 9]]); 
+  expect(enrollFacesFn).toHaveBeenLastCalledWith("tok", 401, [[9, 9]], 999); 
 });
 
 test("[wiring] success~reset() 사이 레이스(personRef=A, status=success, reset 미실행) 상태에서 다른 후보 B의 silent 제안 → detach(삭제 없이 ref만 분리) 후 B가 신규 person 으로 생성됨", async () => {
@@ -582,6 +601,7 @@ test("[wiring] success~reset() 사이 레이스(personRef=A, status=success, res
   const { result } = renderHook(() =>
     useFaceEnroll({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => buffer,
       deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
     }),

@@ -19,7 +19,7 @@ describe('createPerson', () => {
   it('POST /oth-path 를 호출하고 {id, consentState} 를 반환한다', async () => {
     mockAuthFetch.mockResolvedValueOnce({ id: 42, consentState: 'none' });
 
-    const result = await createPerson(ACCESS_TOKEN);
+    const result = await createPerson(ACCESS_TOKEN, { cloneId: 1 });
 
     expect(mockAuthFetch).toHaveBeenCalledTimes(1);
     const [path, token, init] = mockAuthFetch.mock.calls[0] as unknown as [string, string, RequestInit, ...unknown[]];
@@ -40,14 +40,14 @@ describe('createPerson', () => {
     expect(body.cloneId).toBe(99);
   });
 
-  it('cloneId 없이 호출해도 body 에 cloneId 가 포함되지 않는다', async () => {
+  it('cloneId 는 항상 body 에 포함된다(person 은 클론 전속)', async () => {
     mockAuthFetch.mockResolvedValueOnce({ id: 1, consentState: 'none' });
 
-    await createPerson(ACCESS_TOKEN);
+    await createPerson(ACCESS_TOKEN, { cloneId: 5 });
 
     const [, , init] = mockAuthFetch.mock.calls[0] as unknown as [string, string, RequestInit, ...unknown[]];
     const body = JSON.parse(init.body as string) as Record<string, unknown>;
-    expect(body).not.toHaveProperty('cloneId');
+    expect(body).toHaveProperty('cloneId', 5);
   });
 });
 
@@ -143,7 +143,7 @@ describe('createPerson enrolledVia', () => {
   it('enrolledVia 를 넘기면 body 에 포함된다', async () => {
     mockAuthFetch.mockResolvedValueOnce({ id: 9, consentState: 'granted' });
 
-    await createPerson(ACCESS_TOKEN, { enrolledVia: 'auto_biometric' });
+    await createPerson(ACCESS_TOKEN, { cloneId: 1, enrolledVia: 'auto_biometric' });
 
     const [, , init] = mockAuthFetch.mock.calls[0] as unknown as [string, string, RequestInit, ...unknown[]];
     const body = JSON.parse(init.body as string) as Record<string, unknown>;
@@ -153,7 +153,7 @@ describe('createPerson enrolledVia', () => {
   it('enrolledVia 없이 호출하면 body 에 포함되지 않는다(회귀)', async () => {
     mockAuthFetch.mockResolvedValueOnce({ id: 10, consentState: 'none' });
 
-    await createPerson(ACCESS_TOKEN);
+    await createPerson(ACCESS_TOKEN, { cloneId: 1 });
 
     const [, , init] = mockAuthFetch.mock.calls[0] as unknown as [string, string, RequestInit, ...unknown[]];
     const body = JSON.parse(init.body as string) as Record<string, unknown>;

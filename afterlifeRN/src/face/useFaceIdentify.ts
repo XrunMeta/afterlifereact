@@ -17,7 +17,7 @@ export const NETWORK_FAIL_BACKOFF_THRESHOLD = 3;
 
 export const NETWORK_FAIL_BACKOFF_MS = 10_000;
 
-export type MatchFaceFn = (accessToken: string, vector: number[]) => Promise<MatchResult>;
+export type MatchFaceFn = (accessToken: string, vector: number[], cloneId: number) => Promise<MatchResult>;
 
 export type CalibrateFaceFn = (
   accessToken: string,
@@ -59,6 +59,7 @@ export async function runIdentifyCycle(
   state: IdentifyCycleState,
   vector: number[],
   accessToken: string,
+  cloneId: number,
   nowMs: number,
   deps: IdentifyCycleDeps,
 ): Promise<{
@@ -75,7 +76,7 @@ export async function runIdentifyCycle(
 
   let result: MatchResult;
   try {
-    result = await deps.matchFaceFn(accessToken, vector);
+    result = await deps.matchFaceFn(accessToken, vector, cloneId);
   } catch {
     const consecutiveFailures = state.consecutiveFailures + 1;
     const backoffUntilMs =
@@ -103,6 +104,8 @@ export interface UseFaceIdentifyOptions {
 
   enabled: boolean;
   accessToken: string;
+
+  cloneId: number;
   onEvent: (evt: SpeakerEvent) => void;
 
   onDiag?: (d: FaceDiag) => void;
@@ -124,7 +127,7 @@ export interface UseFaceIdentifyResult {
 }
 
 export function useFaceIdentify(opts: UseFaceIdentifyOptions): UseFaceIdentifyResult {
-  const { enabled, accessToken, onEvent, onDiag, calibrate } = opts;
+  const { enabled, accessToken, cloneId, onEvent, onDiag, calibrate } = opts;
   const deps = useMemo<IdentifyCycleDeps>(() => opts.deps ?? { matchFaceFn: matchFace }, [opts.deps]);
   const nowFn = opts.now ?? Date.now;
 
@@ -144,7 +147,7 @@ export function useFaceIdentify(opts: UseFaceIdentifyOptions): UseFaceIdentifyRe
       const vec = l2normalize(Float32Array.from(raw));
       bufferRef.current.push(vec);
       inFlightRef.current = true;
-      void runIdentifyCycle(stateRef.current, vec, accessToken, nowFn(), deps)
+      void runIdentifyCycle(stateRef.current, vec, accessToken, cloneId, nowFn(), deps)
         .then(({ state, event, cycle, threshold }) => {
           stateRef.current = state;
           if (event) onEvent(event);
@@ -181,7 +184,7 @@ export function useFaceIdentify(opts: UseFaceIdentifyOptions): UseFaceIdentifyRe
           inFlightRef.current = false;
         });
     },
-    [enabled, accessToken, onEvent, onDiag, calibrate, deps, nowFn],
+    [enabled, accessToken, cloneId, onEvent, onDiag, calibrate, deps, nowFn],
   );
 
   return { onEmbedding, getBuffer: () => bufferRef.current, resetRecognition };

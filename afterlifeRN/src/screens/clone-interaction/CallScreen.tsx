@@ -35,6 +35,11 @@ import { normalizeFrameTimestampMs } from "../../face/frameTimestamp";
 import { detectNewFaces } from "../../face/newFaceDetector";
 import { useFaceIdentify } from "../../face/useFaceIdentify";
 import { useFaceEnroll, FACE_ENROLL_VECTOR_COUNT } from "../../face/useFaceEnroll";
+import {
+  decideSelfConfirm,
+  SELF_CONFIRM_INTERVAL_MS,
+  SELF_CONFIRM_SAMPLE_COUNT,
+} from "../../face/selfConfirm";
 import { shouldCleanupOrphanOnSuggest } from "../../face/faceEnrollGuard";
 import type { SpeakerEvent } from "../../face/speakerIdReducer";
 import {
@@ -50,6 +55,8 @@ import {
   listPersons,
   deletePerson,
   updatePersonName,
+  selfConfirm,
+  fetchFacePolicy,
   type Person,
 } from "../../api/persons";
 import { getFaceBiometricConsent } from "../../api/consent";
@@ -124,6 +131,11 @@ export default function CallScreen({ route, navigation }: Props) {
   const [faceProcOff, setFaceProcOff] = useState(false);
 
   const [dialingDone, setDialingDone] = useState(false);
+
+  const [faceIdentifyEnabled, setFaceIdentifyEnabled] = useState(true);
+  const [selfConfirmed, setSelfConfirmed] = useState(true); 
+  const selfSamplesRef = useRef<number[][]>([]);
+  const selfConfirmingRef = useRef(false);
 
   const vcDevice = useCameraDevice(cameraFacing === "front" ? "front" : "back");
 
@@ -289,6 +301,7 @@ export default function CallScreen({ route, navigation }: Props) {
   } = useFaceIdentify({
     enabled: consentGranted && liveState === "live",
     accessToken: accessToken ?? "",
+    cloneId,
     onEvent: handleSpeakerEventTrampoline,
     onDiag: setFaceDiag,
     calibrate: calibrateOpt,
@@ -324,9 +337,73 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const faceEnroll = useFaceEnroll({
     accessToken: accessToken ?? "",
+    cloneId,
     getBuffer: getFaceEmbeddingBuffer,
     getSnapshot: () => unknownFaceSnapshotRef.current,
   });
+
+  useEffect(() => {
+    if (!accessToken || !cloneId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const policy = await fetchFacePolicy(accessToken, cloneId);
+        if (cancelled) return;
+        setFaceIdentifyEnabled(policy.faceIdentifyEnabled);
+        setSelfConfirmed(clone?.selfPersonId != null);
+      } catch (err) {
+        console.warn("[Call][self] face-policy 조회 실패:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, cloneId, clone?.selfPersonId]);
+
+  useEffect(() => {
+    if (dialingDone || selfConfirmed || !faceIdentifyEnabled) return;
+    if (!accessToken || !cloneId) return;
+
+    const timer = setInterval(() => {
+      if (selfConfirmingRef.current) return;
+      const latest = getFaceEmbeddingBuffer().latest(1);
+      if (latest.length === 0) return;
+      selfSamplesRef.current = [...selfSamplesRef.current, latest[0]!].slice(
+        -SELF_CONFIRM_SAMPLE_COUNT,
+      );
+
+      const action = decideSelfConfirm({
+        alreadyConfirmed: selfConfirmed,
+        faceIdentifyEnabled,
+        samples: selfSamplesRef.current,
+        threshold: 0.45, 
+      });
+
+      if (action.kind === "reset") {
+        selfSamplesRef.current = [];
+        return;
+      }
+      if (action.kind !== "confirm") return;
+
+      selfConfirmingRef.current = true;
+      void selfConfirm(accessToken, cloneId, action.vectors)
+        .then((res) => {
+          console.log(`[Call][self] self 확정 personId=${res.selfPersonId}`);
+          setSelfConfirmed(true);
+        })
+        .catch((err) => {
+
+          console.warn("[Call][self] self 확정 실패:", err);
+          setSelfConfirmed(true);
+        })
+        .finally(() => {
+          selfConfirmingRef.current = false;
+          selfSamplesRef.current = [];
+        });
+    }, SELF_CONFIRM_INTERVAL_MS);
+
+    return () => clearInterval(timer);
+  }, [dialingDone, selfConfirmed, faceIdentifyEnabled, accessToken, cloneId, getFaceEmbeddingBuffer]);
 
   const NAMING_TIMEOUT_MS = 20000;
   const namingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

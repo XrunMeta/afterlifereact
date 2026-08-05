@@ -19,7 +19,8 @@ export interface Person {
 }
 
 export interface CreatePersonPayload {
-  cloneId?: number;
+
+  cloneId: number;
 
   displayName?: string;
 
@@ -38,23 +39,15 @@ export interface SaveFaceConsentOptions {
 
 export async function createPerson(
   accessToken: string,
-  payload?: CreatePersonPayload,
+  payload: CreatePersonPayload,
 ): Promise<CreatePersonResponse> {
-  const body: Record<string, unknown> = {};
-  if (payload?.cloneId !== undefined) {
-    body.cloneId = payload.cloneId;
-  }
-  if (payload?.displayName !== undefined) {
-    body.displayName = payload.displayName;
-  }
-  if (payload?.enrolledVia !== undefined) {
-    body.enrolledVia = payload.enrolledVia;
-  }
-  return authFetch<CreatePersonResponse>(
-    '/oth-path',
-    accessToken,
-    { method: 'POST', body: JSON.stringify(body) },
-  );
+  const body: Record<string, unknown> = { cloneId: payload.cloneId };
+  if (payload.displayName !== undefined) body.displayName = payload.displayName;
+  if (payload.enrolledVia !== undefined) body.enrolledVia = payload.enrolledVia;
+  return authFetch<CreatePersonResponse>('/oth-path', accessToken, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
 }
 
 export async function saveFaceConsent(
@@ -101,24 +94,24 @@ export interface MatchResult {
 export async function matchFace(
   accessToken: string,
   vector: number[],
+  cloneId: number,
 ): Promise<MatchResult> {
-  return authFetch<MatchResult>(
-    '/oth-path',
-    accessToken,
-    { method: 'POST', body: JSON.stringify({ vector }) },
-  );
+  return authFetch<MatchResult>('/oth-path', accessToken, {
+    method: 'POST',
+    body: JSON.stringify({ vector, cloneId }),
+  });
 }
 
 export async function enrollFaces(
   accessToken: string,
   personId: number,
   vectors: number[][],
+  cloneId: number,
 ): Promise<{ enrolled: number }> {
-  return authFetch<{ enrolled: number }>(
-    `/oth-path${personId}/faces`,
-    accessToken,
-    { method: 'POST', body: JSON.stringify({ vectors }) },
-  );
+  return authFetch<{ enrolled: number }>(`/oth-path${personId}/faces`, accessToken, {
+    method: 'POST',
+    body: JSON.stringify({ vectors, cloneId }),
+  });
 }
 
 export async function deletePerson(
@@ -180,5 +173,57 @@ export async function getCalibrationSamples(
     `/oth-path?since=${since}`,
     accessToken,
     { method: 'GET' },
+  );
+}
+
+export async function selfConfirm(
+  accessToken: string,
+  cloneId: number,
+  vectors: number[][],
+  displayName?: string,
+): Promise<{ personId: number; selfPersonId: number }> {
+  const body: Record<string, unknown> = { vectors };
+  if (displayName !== undefined) body.displayName = displayName;
+  return authFetch<{ personId: number; selfPersonId: number }>(
+    `/oth-path${cloneId}/self-confirm`,
+    accessToken,
+    { method: 'POST', body: JSON.stringify(body) },
+  );
+}
+
+export async function fetchFacePolicy(
+  accessToken: string,
+  cloneId: number,
+): Promise<{ faceIdentifyEnabled: boolean }> {
+  return authFetch<{ faceIdentifyEnabled: boolean }>(
+    `/oth-path${cloneId}/face-policy`,
+    accessToken,
+    { method: 'GET' },
+  );
+}
+
+export interface RememberingClone {
+  cloneId: number;
+  name: string;
+  username: string;
+  updatedAt: number;
+}
+
+export async function listRememberingClones(
+  accessToken: string,
+): Promise<{ clones: RememberingClone[] }> {
+  return authFetch<{ clones: RememberingClone[] }>('/oth-path', accessToken, {
+    method: 'GET',
+  });
+}
+
+export async function deleteRememberingClone(
+  accessToken: string,
+  cloneId: number,
+): Promise<{ deletedPersons: number; deletedVectors: number }> {
+  return authFetch<{ deletedPersons: number; deletedVectors: number }>(
+    `/oth-path${cloneId}`,
+    accessToken,
+    { method: 'DELETE' },
   );
 }
