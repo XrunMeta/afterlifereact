@@ -14,6 +14,7 @@ import {
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import v_8e7ad4 from "../ui/SwipeDownSheet";
 import { v_1bfbd0, v_8b0c90 } from "../constants";
 import { v_1ed7d9 } from "../../stores/authStore";
@@ -33,6 +34,9 @@ interface Props {
 export default function v_06b8c0({ visible: v_cf55be, cloneId: v_6e0fd3, cloneName: v_f2ff36, onClose: v_0890f8 }: Props) {
   const { t: v_8d41d7 } = v_772971();
   const v_033e14 = v_e0068c();
+
+  const v_f9771e = v_c18c22(0);
+  const v_53dd92 = Math.max(v_033e14.bottom, v_f9771e);
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
 
   const [v_9390e8, v_d57c80] = v_5ab095<v_6349d0 | null>(null);
@@ -75,7 +79,7 @@ export default function v_06b8c0({ visible: v_cf55be, cloneId: v_6e0fd3, cloneNa
         <Pressable style={v_fd5f43.bottomOverlay} onPress={v_0890f8}>
           <SwipeDownSheet
             onClose={v_0890f8}
-            style={[v_fd5f43.eventsSheet, { paddingBottom: 32 + Math.max(v_033e14.bottom, 0) }]}
+            style={[v_fd5f43.eventsSheet, { paddingBottom: 32 + v_53dd92 }]}
           >
             <View style={v_fd5f43.eventsSheetHandle} />
             <View style={v_fd5f43.eventsSheetTitleRow}>
