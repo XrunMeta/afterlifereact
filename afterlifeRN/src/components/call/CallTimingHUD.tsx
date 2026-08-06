@@ -2,15 +2,21 @@
 
 import v_a3453e, { v_c4deb2, v_5ab095 } from 'bapkr';
 import { v_3094a2, v_19b633, v_472849 } from 'rcmrninabrnb';
-import { v_2c6b15, v_ad545f, type v_c56f36 } from '../../realtime/timingEvents';
+import { v_2c6b15, v_ad545f, type v_c56f36, type v_981bd2 } from '../../realtime/timingEvents';
 import { v_7347b3 } from '../../realtime/timingConfig';
 
 const v_6ac598 = 12; 
 
+const AUDIO_TYPES: readonly v_981bd2[] = [
+  'speech_start', 'speech_end', 'stt_open', 'stt_close',
+  'suppress_on', 'suppress_off', 'vad_endpoint', 'dev_listen_now',
+];
+
 export const CallTimingHUD: v_a3453e.FC = () => {
   const [v_bf9904, v_2f3f05] = v_5ab095<v_c56f36[]>([]);
   v_c4deb2(() => v_2c6b15(v_2f3f05), []);
-  const v_d1b432 = v_bf9904.slice(Math.max(0, v_bf9904.length - v_6ac598));
+  const v_ff0300 = v_bf9904.filter((v_9e86fd) => v_353f9a.includes(v_9e86fd.type));
+  const v_d1b432 = v_ff0300.slice(Math.max(0, v_ff0300.length - v_6ac598));
   const v_280eae = v_7347b3((v_fd5f43) => v_fd5f43.sttEndpointMs);
   const v_4663a7 = v_7347b3((v_fd5f43) => v_fd5f43.echoGateMs);
   const v_bf6c3a = v_7347b3((v_fd5f43) => v_fd5f43.cloneResumeMs);

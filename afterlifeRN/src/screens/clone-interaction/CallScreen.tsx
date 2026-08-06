@@ -66,6 +66,7 @@ import { useVideoStatsDiag } from "../../realtime/useVideoStatsDiag";
 import { DialingScreen } from "../../components/call/DialingScreen";
 import { CallVoiceBall } from "../../components/call/CallVoiceBall";
 import { CallTimingHUD } from "../../components/call/CallTimingHUD";
+import { CallStateHUD } from "../../components/call/CallStateHUD";
 import { CallTimingPanel } from "../../components/call/CallTimingPanel";
 import { CloneSubtitleTicker } from "../../components/call/CloneSubtitleTicker";
 import { useDevOverlayStore } from "../../stores/devOverlayStore";
@@ -985,6 +986,8 @@ export default function CallScreen({ route, navigation }: Props) {
       />
 
       {showCallDev && liveState === "live" ? <CallTimingHUD /> : null}
+      {}
+      {showCallDev && liveState === "live" ? <CallStateHUD /> : null}
       {showCallDev && liveState === "live" ? (
 
         <View

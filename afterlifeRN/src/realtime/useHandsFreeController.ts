@@ -16,6 +16,7 @@ import {
 import { v_7be8d9, type v_5a4c65 } from './cloneSilence';
 import { v_7347b3 } from './timingConfig';
 import { v_d7f7b1 } from './timingEvents';
+import { v_6a1ed9, v_4069c9 } from './handsFreeTrace';
 import { v_3032b0 } from './voiceBall';
 import { v_fb305c } from './questionMark';
 
@@ -145,6 +146,10 @@ export function v_7df8a4(opts: {
           case 'SAY':
 
             if (v_b6611b != null) v_d27d23.current = v_b6611b;
+
+            v_d7f7b1('tx', {
+              mode: v_b03676 ? 'say' : 'skip', seq: v_b6611b ?? null, text: v_4069c9(v_b03676), eff: 'SAY',
+            });
             if (v_b03676) {
               v_bcde6b.current(v_b03676).catch(() => v_700737.current({ type: 'RESPONSE_DONE' }));
             } else {
@@ -157,6 +162,12 @@ export function v_7df8a4(opts: {
             if (v_b6611b != null) v_d27d23.current = v_b6611b;
 
             v_938712.current = Date.now() + v_99c713;
+            v_d7f7b1('timer', { name: 'cooldown', action: 'set', ms: v_99c713 });
+
+            v_d7f7b1('tx', {
+              mode: v_b03676 && v_5069ec.current ? 'speak' : 'skip',
+              seq: v_b6611b ?? null, text: v_4069c9(v_b03676), eff: v_9e86fd,
+            });
             if (v_b03676 && v_5069ec.current) {
               v_5069ec.current(v_b03676).catch(() => v_700737.current({ type: 'RESPONSE_DONE' }));
             } else {
@@ -173,6 +184,9 @@ export function v_7df8a4(opts: {
 
           case 'GREET':
 
+            v_d7f7b1('tx', {
+              mode: v_3a7b2e.current ? 'greet' : 'skip', seq: v_b6611b ?? null, text: '', eff: 'GREET',
+            });
             if (v_3a7b2e.current) {
               v_3a7b2e.current().catch(() => v_700737.current({ type: 'GREET_TIMEOUT' }));
             } else {
@@ -184,6 +198,10 @@ export function v_7df8a4(opts: {
             break;
           case 'SPEAK_FALLBACK':
 
+            v_d7f7b1('tx', {
+              mode: v_5069ec.current ? 'speak' : 'skip', seq: v_b6611b ?? null,
+              text: v_4069c9(v_c6145f), eff: 'SPEAK_FALLBACK',
+            });
             if (v_5069ec.current) {
               v_5069ec.current(v_c6145f).catch(() => v_700737.current({ type: 'RESPONSE_DONE' }));
             } else {
@@ -200,12 +218,18 @@ export function v_7df8a4(opts: {
     [v_60bef6, v_1f41d7, v_a3a40c, v_c6145f],
   );
 
-  const v_1ab00a = v_de06a3(() => {
+  const v_1ab00a = v_de06a3((v_0c42b9 = 'dispatch') => {
+    const v_efd8b7 = v_8a777f.current !== null || v_d65758.current !== null;
     v_8a777f.current = null;
     v_c2616d.current = 0;
     if (v_d65758.current) {
       clearTimeout(v_d65758.current);
       v_d65758.current = null;
+    }
+    if (v_efd8b7) {
+      v_d7f7b1('timer', {
+        name: 'pendingDone', action: v_0c42b9 === 'silence' ? 'fire' : 'clear', by: v_0c42b9,
+      });
     }
   }, []);
 
@@ -216,7 +240,10 @@ export function v_7df8a4(opts: {
         v_1ab00a();
       }
 
-      if (v_1d299c.type === 'CALL_ENDED') v_938712.current = 0;
+      if (v_1d299c.type === 'CALL_ENDED') {
+        v_938712.current = 0;
+        v_d7f7b1('timer', { name: 'cooldown', action: 'clear', by: 'call_ended' });
+      }
       const v_ba2215 = v_8d3dea.current;
       const { state: v_a448ad, effects: v_27ef63, sayText: v_b03676, saySeq: v_b6611b } = v_6920f0(v_ba2215, v_1d299c);
 
@@ -229,6 +256,8 @@ export function v_7df8a4(opts: {
       if (v_ba2215.phase === 'greeting' && v_a448ad.phase === 'speaking') {
         if (v_3f36e6.current) { clearTimeout(v_3f36e6.current); v_3f36e6.current = null; }
       }
+
+      v_6a1ed9(v_ba2215, v_a448ad, v_1d299c, v_27ef63);
       v_8d3dea.current = v_a448ad;
       v_1fa668(v_a448ad);
       v_2bfd1e(v_27ef63, v_b03676, v_b6611b);
@@ -253,8 +282,15 @@ export function v_7df8a4(opts: {
     if (!v_328259.signalGating) return;
     if (v_b6e533.phase !== 'sending' && v_b6e533.phase !== 'speaking' && v_b6e533.phase !== 'interrupting') return;
     const v_d799e2 = v_7347b3.getState().responseDoneTimeoutMs;
-    const v_389afb = setTimeout(() => v_700737.current({ type: 'RESPONSE_DONE' }), v_d799e2);
-    return () => clearTimeout(v_389afb);
+    v_d7f7b1('timer', { name: 'signalGatingFallback', action: 'set', ms: v_d799e2 });
+    const v_389afb = setTimeout(() => {
+      v_d7f7b1('timer', { name: 'signalGatingFallback', action: 'fire' });
+      v_700737.current({ type: 'RESPONSE_DONE' });
+    }, v_d799e2);
+    return () => {
+      clearTimeout(v_389afb);
+      v_d7f7b1('timer', { name: 'signalGatingFallback', action: 'clear' });
+    };
   }, [v_b6e533.phase, v_328259.lastSignal, v_328259.signalGating]);
 
   v_c4deb2(() => {
@@ -272,10 +308,18 @@ export function v_7df8a4(opts: {
     if (!v_f2c979) return;
     if (v_f2c979.type === 'speech_start') {
       v_d7f7b1('speech_start');
+
+      v_d7f7b1('rx', {
+        sig: 'speech_start', seq: v_d27d23.current, srvSeq: v_f2c979.seq ?? null,
+      });
       v_700737.current({ type: 'SPEECH_START', seq: v_d27d23.current ?? undefined });
     }
     else if (v_f2c979.type === 'speech_end') {
       v_d7f7b1('speech_end');
+      v_d7f7b1('rx', {
+        sig: 'speech_end', seq: v_d27d23.current, srvSeq: v_f2c979.seq ?? null,
+        remainingMs: v_f2c979.remainingMs ?? 0,
+      });
 
       const v_efacaa = v_d27d23.current ?? undefined;
 
@@ -287,13 +331,23 @@ export function v_7df8a4(opts: {
         v_c2616d.current = Date.now() + v_2d99a5;
         v_8a777f.current = Date.now();
         if (v_d65758.current) clearTimeout(v_d65758.current);
+        v_d7f7b1('timer', {
+          name: 'pendingDone', action: 'set', ms: v_2d99a5 + v_d641fa,
+        });
         v_d65758.current = setTimeout(() => {
           v_d65758.current = null;
           v_8a777f.current = null;
           v_c2616d.current = 0;
+          v_d7f7b1('timer', { name: 'pendingDone', action: 'fire', by: 'tailMax' });
           v_700737.current({ type: 'RESPONSE_DONE', seq: v_efacaa });
         }, v_2d99a5 + v_d641fa);
       }
+    }
+
+    else if (v_f2c979.type === 'speech_text') {
+      v_d7f7b1('rx', {
+        sig: 'speech_text', seq: v_d27d23.current, srvSeq: v_f2c979.seq ?? null,
+      });
     }
 
   }, [v_328259.lastSignal]);
@@ -305,8 +359,12 @@ export function v_7df8a4(opts: {
     if (v_d65758.current) return; 
     const v_aa4609 = Math.max(0, v_c2616d.current - Date.now()); 
     const v_4b24d2 = v_6fc7ac[v_b6e533.idleGreetCount] + v_aa4609;
-    const v_389afb = setTimeout(() => v_700737.current({ type: 'IDLE_TIMEOUT' }), v_4b24d2);
-    return () => clearTimeout(v_389afb);
+    v_d7f7b1('timer', { name: 'watchdog', action: 'set', ms: v_4b24d2 });
+    const v_389afb = setTimeout(() => {
+      v_d7f7b1('timer', { name: 'watchdog', action: 'fire' });
+      v_700737.current({ type: 'IDLE_TIMEOUT' });
+    }, v_4b24d2);
+    return () => { clearTimeout(v_389afb); v_d7f7b1('timer', { name: 'watchdog', action: 'clear' }); };
   }, [v_b6e533.phase, v_b6e533.userSpeaking, v_b6e533.idleGreetCount]);
 
   v_c4deb2(() => {
@@ -317,21 +375,39 @@ export function v_7df8a4(opts: {
     if (!v_b6e533.micOn) return;
     if (v_d65758.current) return; 
     const v_aa4609 = Math.max(0, v_c2616d.current - Date.now()); 
+    v_d7f7b1('timer', {
+      name: 'interruptFlush', action: 'set', ms: v_778702 + v_aa4609,
+    });
     const v_389afb = setTimeout(
-      () => v_700737.current({ type: 'INTERRUPT_FLUSH' }),
+      () => {
+        v_d7f7b1('timer', { name: 'interruptFlush', action: 'fire' });
+        v_700737.current({ type: 'INTERRUPT_FLUSH' });
+      },
       v_778702 + v_aa4609,
     );
-    return () => clearTimeout(v_389afb);
+    return () => {
+      clearTimeout(v_389afb);
+      v_d7f7b1('timer', { name: 'interruptFlush', action: 'clear' });
+    };
   }, [v_b6e533.pendingInterrupt, v_b6e533.phase, v_b6e533.userSpeaking, v_b6e533.activeSeq, v_b6e533.micOn]);
 
   v_c4deb2(() => {
     const v_66d3ef = v_b6e533.pendingInterrupt;
     if (!v_66d3ef) return;
+    v_d7f7b1('timer', {
+      name: 'interruptExpire', action: 'set', ms: v_3711bb,
+    });
     const v_389afb = setTimeout(
-      () => v_700737.current({ type: 'INTERRUPT_EXPIRED', faceKey: v_66d3ef.faceKey }),
+      () => {
+        v_d7f7b1('timer', { name: 'interruptExpire', action: 'fire' });
+        v_700737.current({ type: 'INTERRUPT_EXPIRED', faceKey: v_66d3ef.faceKey });
+      },
       v_3711bb,
     );
-    return () => clearTimeout(v_389afb);
+    return () => {
+      clearTimeout(v_389afb);
+      v_d7f7b1('timer', { name: 'interruptExpire', action: 'clear' });
+    };
   }, [v_b6e533.pendingInterrupt]);
 
   v_c4deb2(() => {
@@ -362,7 +438,7 @@ export function v_7df8a4(opts: {
           v_5c2f9f - v_84a65f.current > v_7347b3.getState().cloneResumeMs &&
           v_5c2f9f >= v_c2616d.current
         ) {
-          v_1ab00a();
+          v_1ab00a('silence');
           v_700737.current({ type: 'RESPONSE_DONE' });
         }
 
@@ -425,7 +501,10 @@ export function v_7df8a4(opts: {
 
   const v_ac6fcd = v_de06a3((v_9b6134, v_74fb11) => {
 
-    if (Date.now() < v_938712.current) return;
+    if (Date.now() < v_938712.current) {
+      v_d7f7b1('interrupt', { act: 'cooldown_block', faceKey: v_74fb11, deferredTurns: 0 });
+      return;
+    }
     v_700737.current({ type: 'FACE_INTERRUPT', text: v_9b6134, faceKey: v_74fb11 });
   }, []);
 

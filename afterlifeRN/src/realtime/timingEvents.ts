@@ -4,9 +4,19 @@ export type TimingEventType =
   | 'speech_start' | 'speech_end'
   | 'stt_open' | 'stt_close'
   | 'suppress_on' | 'suppress_off'
-  | 'vad_endpoint' | 'dev_listen_now';
+  | 'vad_endpoint' | 'dev_listen_now'
 
-export interface TimingEvent { type: TimingEventType; tMs: number }
+  | 'fsm'        
+  | 'tx'         
+  | 'rx'         
+  | 'seq_drop'   
+  | 'timer'      
+  | 'avatar'     
+  | 'interrupt'; 
+
+export type TimingDetail = Record<string, string | number | boolean | null>;
+
+export interface TimingEvent { type: TimingEventType; tMs: number; detail?: TimingDetail }
 
 const v_7db0a1 = 40;
 let v_062bb0 = [];
@@ -21,9 +31,9 @@ function v_c226a5(): void {
   v_ab371b.forEach((v_16dbdb) => v_16dbdb(v_5392c4));
 }
 
-export function v_d7f7b1(v_3b27d9): void {
+export function v_d7f7b1(v_3b27d9, v_3cfdfc): void {
   if (!__DEV__) return; 
-  v_062bb0.push({ type: v_3b27d9, tMs: v_b52a6e() });
+  v_062bb0.push(v_3cfdfc === undefined ? { type: v_3b27d9, tMs: v_b52a6e() } : { type: v_3b27d9, tMs: v_b52a6e(), detail: v_3cfdfc });
   if (v_062bb0.length > v_7db0a1) v_062bb0 = v_062bb0.slice(v_062bb0.length - v_7db0a1);
   v_c226a5();
 }
