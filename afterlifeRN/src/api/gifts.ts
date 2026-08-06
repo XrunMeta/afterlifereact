@@ -11,6 +11,8 @@ export interface GiftCatalogItem {
   imageUrl?: string;
 
   xrunPrice?: number;
+
+  svgaUrl?: string;
 }
 
 export async function v_599b97(): Promise<GiftCatalogItem[]> {
