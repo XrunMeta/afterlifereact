@@ -422,6 +422,13 @@ export default function LoginScreen({ navigation }: Props) {
 
 }
           {}
+          {(Platform.OS === "ios" || googleEnabled !== false) && (
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>—</Text>
+              <View style={styles.dividerLine} />
+            </View>
+          )}
 
           {
 }
