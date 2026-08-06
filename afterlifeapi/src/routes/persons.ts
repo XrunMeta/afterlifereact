@@ -380,14 +380,19 @@ v_fded81.get("/", v_6690d9, async (v_3f4e2e) => {
   const v_56b68f = v_3f4e2e.req.query("cloneId");
 
   const v_6c1676 = `SELECT
-       id,
-       user_id       AS userId,
-       clone_id      AS cloneId,
-       display_name  AS displayName,
-       consent_state AS consentState,
-       consent_at    AS consentAt,
-       created_at    AS createdAt
-     FROM persons`;
+       p.id,
+       p.user_id       AS userId,
+       p.clone_id      AS cloneId,
+       p.display_name  AS displayName,
+       p.consent_state AS consentState,
+       p.consent_at    AS consentAt,
+       p.created_at    AS createdAt,
+       (SELECT COUNT(*) FROM clone_person_faces f
+         WHERE f.person_id = p.id AND f.clone_id = p.clone_id) AS faceCount,
+       CASE WHEN c.self_person_id IS NOT NULL AND c.self_person_id = p.id
+            THEN 1 ELSE 0 END AS isSelf
+     FROM persons p
+     LEFT JOIN clones c ON c.id = p.clone_id`;
   type Row = {
     id: number;
     userId: number;
@@ -396,6 +401,8 @@ v_fded81.get("/", v_6690d9, async (v_3f4e2e) => {
     consentState: string;
     consentAt: number | null;
     createdAt: number;
+    faceCount: number;
+    isSelf: number; 
   };
 
   let v_18b8bf;
@@ -405,15 +412,17 @@ v_fded81.get("/", v_6690d9, async (v_3f4e2e) => {
       throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
     }
     v_18b8bf = await v_3f4e2e.env.DB.prepare(
-      `${v_6c1676} WHERE user_id = ? AND (clone_id = ? OR clone_id IS NULL) ORDER BY created_at DESC`
+      `${v_6c1676} WHERE p.user_id = ? AND (p.clone_id = ? OR p.clone_id IS NULL) ORDER BY p.created_at DESC`
     )
       .bind(v_43e90c, v_6e0fd3)
       .all<Row>();
   } else {
-    v_18b8bf = await v_3f4e2e.env.DB.prepare(`${v_6c1676} WHERE user_id = ? ORDER BY created_at DESC`)
+    v_18b8bf = await v_3f4e2e.env.DB.prepare(`${v_6c1676} WHERE p.user_id = ? ORDER BY p.created_at DESC`)
       .bind(v_43e90c)
       .all<Row>();
   }
 
-  return v_3f4e2e.json({ data: v_18b8bf.results });
+  return v_3f4e2e.json({
+    data: v_18b8bf.results.map((v_cb35cb) => ({ ...v_cb35cb, isSelf: v_cb35cb.isSelf === 1 })),
+  });
 });

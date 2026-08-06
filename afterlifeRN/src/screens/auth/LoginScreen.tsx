@@ -385,7 +385,8 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
                 onPress={v_ec4736}
                 variant="primary"
                 disabled={v_a5d73f}
-                style={{ marginTop: v_9b1a04.medium }}
+
+                style={{ marginTop: v_9b1a04.xxlarge }}
               />
             </>
           )}
@@ -602,34 +603,34 @@ const v_d81136 = v_472849.create({
   },
 
   forgotPasswordHint: {
-    marginTop: v_9b1a04.medium,
+    marginTop: v_9b1a04.small,
     color: v_1bfbd0.zinc500,
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 11,
+    lineHeight: 16,
     textAlign: "center",
   },
 
   snsLoginContainer: {
-    marginTop: v_9b1a04.xlarge,
+    marginTop: v_9b1a04.xxlarge,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: v_9b1a04.medium,
+    gap: v_9b1a04.small,
     width: "100%",
   },
   snsLoginLabel: {
-    fontSize: 13,
-    lineHeight: 20,
-    color: v_1bfbd0.zinc600,
+    fontSize: 12,
+    lineHeight: 18,
+    color: v_1bfbd0.zinc500,
   },
   snsButtonContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: v_9b1a04.medium,
+    gap: v_9b1a04.small,
   },
   snsButton: {
-    width: 48,
-    height: 48,
+    width: 40,
+    height: 40,
     borderRadius: 8,
     backgroundColor: v_1bfbd0.white,
     alignItems: "center",

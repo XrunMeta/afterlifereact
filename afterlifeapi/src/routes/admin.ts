@@ -267,22 +267,28 @@ v_b7f2b4.post("/files/gift-image", v_c0a297, async (v_3f4e2e) => {
     size: number;
     arrayBuffer: () => Promise<ArrayBuffer>;
   };
-  const v_58b649 = new Set(["image/jpeg", "image/png", "image/webp"]);
-  const v_f0f98a = 2 * 1024 * 1024; 
+
+  const v_58b649 = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+  const v_a63882 = 2 * 1024 * 1024; 
+  const v_4bcdcb = 5 * 1024 * 1024; 
   if (!v_58b649.has(v_4de33e.type)) {
     throw new v_3ebe58(
       "VALIDATION_FAILED",
-      `Unsupported type: ${v_4de33e.type}. jpeg/png/webp only.`,
+      `Unsupported type: ${v_4de33e.type}. jpeg/png/webp/gif only.`,
     );
   }
-  if (v_4de33e.size > v_f0f98a) {
+  const v_efc45d = v_4de33e.type === "image/gif" ? v_4bcdcb : v_a63882;
+  if (v_4de33e.size > v_efc45d) {
     throw new v_3ebe58(
       "VALIDATION_FAILED",
-      `File too large (${v_4de33e.size} bytes). Max ${v_f0f98a} bytes.`,
+      `File too large (${v_4de33e.size} bytes). Max ${v_efc45d} bytes.`,
     );
   }
   const v_40a923 =
-    v_4de33e.type === "image/jpeg" ? ".jpg" : v_4de33e.type === "image/png" ? ".png" : ".webp";
+    v_4de33e.type === "image/jpeg" ? ".jpg"
+    : v_4de33e.type === "image/png" ? ".png"
+    : v_4de33e.type === "image/gif" ? ".gif"
+    : ".webp";
   const v_fc3f08 = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
   const v_8d41d7 = Date.now().toString(36);
   const v_0037e3 = `uploadedfiles/admin/gift/${v_8d41d7}${v_fc3f08}${v_40a923}`;
