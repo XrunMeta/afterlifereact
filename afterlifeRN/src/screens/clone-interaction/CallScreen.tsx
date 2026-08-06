@@ -134,7 +134,34 @@ interface FloatingGift {
   x: number;
 }
 
-export default function CallScreen({ route, navigation }: Props) {
+export default function CallScreen(props: Props) {
+  const [heavyReady, setHeavyReady] = React.useState(false);
+  React.useEffect(() => {
+
+    const raf = requestAnimationFrame(() => setHeavyReady(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  const { name: paramName, image: paramImage } = props.route.params;
+  const placeholderImage = typeof paramImage === "string" ? paramImage : "";
+  return (
+    <View style={{ flex: 1, backgroundColor: COLORS.zinc950 }}>
+      {!heavyReady ? (
+        <DialingScreen
+          liveState="idle"
+          personaName={paramName ?? ""}
+          personaImage={placeholderImage}
+          onConnected={() => {}}
+          onCancel={() => props.navigation.goBack()}
+          onRetry={() => {}}
+        />
+      ) : (
+        <CallScreenInner {...props} />
+      )}
+    </View>
+  );
+}
+
+function CallScreenInner({ route, navigation }: Props) {
   const { t } = useTranslation();
   const { cloneId, name: paramName, image: paramImage } = route.params;
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
