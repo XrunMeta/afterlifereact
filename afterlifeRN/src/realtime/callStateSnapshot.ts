@@ -97,6 +97,9 @@ export function v_368fda(v_8d41d7, v_d2c6bf = 10): string {
   return v_8d41d7.length <= v_d2c6bf ? v_8d41d7 : `${v_8d41d7.slice(0, v_d2c6bf)}…`;
 }
 
+export const v_878e2e = (v_779914, v_148ff6): boolean =>
+  v_779914 != null && v_148ff6 != null && v_779914 === v_148ff6;
+
 function v_a64334(
   v_35f85c, v_9b6134, v_20ef8e, v_45fb16, v_17bb72,
 ): CallStateModel {
@@ -140,7 +143,7 @@ export function v_fe1d77(v_35f85c, ev: v_c56f36, v_67e77e): CallStateModel {
       if (v_b2b35d === 'RESPONSE_DONE' || v_b2b35d === 'RESPONSE_END') {
         const v_25c4f7 = v_b2b35d === 'RESPONSE_END' ? 'end' : 'done';
         v_a448ad = v_a64334(v_a448ad, `⇒DONE${v_9e7223(v_c4b8f0)}(${v_25c4f7})→${v_257132}`, 'done', true, v_1d299c.tMs);
-        if (v_a448ad.lastTx && v_a448ad.lastTx.seq === v_c4b8f0 && v_a448ad.lastTx.doneMs == null) {
+        if (v_a448ad.lastTx && v_878e2e(v_a448ad.lastTx.seq, v_c4b8f0) && v_a448ad.lastTx.doneMs == null) {
           v_a448ad = { ...v_a448ad, lastTx: { ...v_a448ad.lastTx, doneMs: v_1d299c.tMs - v_a448ad.lastTx.tMs } };
         }
       } else if (v_a13c2e !== v_257132) {
@@ -167,7 +170,7 @@ export function v_fe1d77(v_35f85c, ev: v_c56f36, v_67e77e): CallStateModel {
       const v_3300b9 = v_f4e98d(v_d5dda0, 'remainingMs');
       const v_0314d4 = v_f2c979 === 'speech_end' && v_3300b9 != null && v_3300b9 > 0 ? ` rem:${v_3300b9}` : '';
       let v_a448ad = v_a64334(v_35f85c, ` ←${v_c0d7a5}${v_9e7223(v_1923e2)}${v_004bac}${v_0314d4}`, 'rx', true, v_1d299c.tMs);
-      if (v_a448ad.lastTx && v_a448ad.lastTx.seq === v_1923e2) {
+      if (v_a448ad.lastTx && v_878e2e(v_a448ad.lastTx.seq, v_1923e2)) {
         const v_1fe6ad = v_1d299c.tMs - v_a448ad.lastTx.tMs;
         if (v_f2c979 === 'speech_start' && v_a448ad.lastTx.startMs == null) {
           v_a448ad = { ...v_a448ad, lastTx: { ...v_a448ad.lastTx, startMs: v_1fe6ad } };

@@ -98,6 +98,16 @@ describe('callStateSnapshot fold', () => {
     expect(v_a52412.join('\n')).toContain('avt  sending');
   });
 
+  it('seq 가 양쪽 다 null 이면 tx/rx/DONE 을 짝짓지 않는다', () => {
+    let v_35f85c = v_f983f2();
+    v_35f85c = v_fe1d77(v_35f85c, v_1d299c('tx', 0, { mode: 'greet', seq: null, text: '', eff: 'GREET' }), 0);
+    v_35f85c = v_fe1d77(v_35f85c, v_1d299c('rx', 900, { sig: 'speech_start', seq: null, srvSeq: 2 }), 900);
+    v_35f85c = v_fe1d77(v_35f85c, v_14e822(3000, 'speaking', 'listening', 'RESPONSE_DONE', { pseq: null }), 3000);
+    expect(v_35f85c.lastTx).toMatchObject({ seq: null, startMs: null, endMs: null, doneMs: null });
+    expect(v_cfefae(v_35f85c, 3000).join('\n')).toContain('tx#? greet s:— e:— d:—');
+    expect(v_35f85c.rows[1].text).toContain('←start#?'); 
+  });
+
   it('clipText 는 긴 발화를 잘라 준다', () => {
     expect(v_368fda('12345678901234', 10)).toBe('1234567890…');
     expect(v_368fda('짧다')).toBe('짧다');

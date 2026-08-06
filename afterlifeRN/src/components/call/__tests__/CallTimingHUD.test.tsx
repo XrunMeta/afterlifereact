@@ -18,6 +18,19 @@ describe('CallTimingHUD', () => {
     expect(v_480380(/speech_end/)).toBeTruthy();
   });
 
+  it('keeps audio-axis lines alive when diagnostic events flood the shared 40-slot buffer', () => {
+    const { queryByText: v_480380 } = v_624657(<CallTimingHUD />);
+    v_be73a0(() => { v_d7f7b1('stt_open'); v_d7f7b1('suppress_on'); });
+    v_be73a0(() => {
+      for (let v_ebec57 = 0; v_ebec57 < 60; v_ebec57++) {
+        v_d7f7b1('fsm', { from: 'listening', to: 'sending', ev: 'FINAL_RESULT', effects: 'SAY' });
+      }
+    });
+    expect(v_480380(/stt_open/)).toBeTruthy();   
+    expect(v_480380(/suppress_on/)).toBeTruthy();
+    expect(v_480380(/fsm/)).toBeNull();          
+  });
+
   it('renders the current 4 timing values as an always-visible summary line', () => {
     const { getByText: v_2b0f8a } = v_624657(<CallTimingHUD />);
     expect(v_2b0f8a('stt:1500 echo:3500 res:600 tail:1000')).toBeTruthy();

@@ -25,10 +25,28 @@ let v_b52a6e = () => Date.now();
 
 export function v_94a663(v_f80480): void { v_b52a6e = v_f80480; }
 
+const v_be38d7 = 5;
+let v_d42e86 = 0;
+
 function v_c226a5(): void {
   const v_5392c4 = v_062bb0.slice();
 
-  v_ab371b.forEach((v_16dbdb) => v_16dbdb(v_5392c4));
+  for (const v_16dbdb of v_ab371b.slice()) v_082c46(v_16dbdb, v_5392c4);
+}
+
+function v_082c46(v_16dbdb, v_5392c4): void {
+  try {
+    v_16dbdb(v_5392c4);
+  } catch (v_9e86fd) {
+    if (!__DEV__) return;
+    v_d42e86 += 1;
+    if (v_d42e86 > v_be38d7) return;
+
+    console.log(
+      '[Call][timing][subscriber-error]', String(v_9e86fd),
+      v_d42e86 === v_be38d7 ? '(이후 동일 로그 억제)' : '',
+    );
+  }
 }
 
 export function v_d7f7b1(v_3b27d9, v_3cfdfc): void {
@@ -40,12 +58,12 @@ export function v_d7f7b1(v_3b27d9, v_3cfdfc): void {
 
 export function v_2c6b15(v_16dbdb): () => void {
   v_ab371b.push(v_16dbdb);
-  v_16dbdb(v_062bb0.slice()); 
+  v_082c46(v_16dbdb, v_062bb0.slice()); 
   return () => { v_ab371b = v_ab371b.filter((v_fd5f43) => v_fd5f43 !== v_16dbdb); };
 }
 
 export function v_08004c(): TimingEvent[] { return v_062bb0.slice(); }
-export function v_8c24f4(): void { v_062bb0 = []; v_c226a5(); }
+export function v_8c24f4(): void { v_062bb0 = []; v_d42e86 = 0; v_c226a5(); }
 
 export function v_ad545f(v_1d299c, v_ba2215): string {
   const v_e9396c = v_ba2215 ? v_1d299c.tMs - v_ba2215.tMs : 0;
