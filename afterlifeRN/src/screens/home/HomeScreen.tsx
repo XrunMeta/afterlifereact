@@ -835,22 +835,6 @@ export default function v_c316d8() {
             ) : (
 
               <>
-                {v_12fa22?.ownerId != null && (
-                  <TouchableOpacity
-                    style={v_d81136.moreItem}
-                    onPress={() => {
-                      const v_5f5d6d = v_12fa22;
-                      v_949e66(null);
-                      if (!v_5f5d6d?.ownerId) return;
-                      v_f4c991.navigate("UserProfile", { userId: v_5f5d6d.ownerId });
-                    }}
-                  >
-                    <Feather name="user" size={20} color={v_1bfbd0.zinc900} />
-                    <Text style={v_d81136.moreItemText}>
-                      {v_8d41d7("home.more.viewUser", { defaultValue: "유저 정보보기" })}
-                    </Text>
-                  </TouchableOpacity>
-                )}
                 <TouchableOpacity
                   style={v_d81136.moreItem}
                   onPress={() => {
