@@ -35,6 +35,10 @@ import type { MyStackParamList } from "../../navigation/types";
 
 const DEFAULT_USER_ID = 1;
 
+const GIFT_INVENTORY_WHITELIST = new Set(["oth-test@example.invalid"]);
+const isGiftInventoryEnabled = (email: string | null | undefined) =>
+  !!email && GIFT_INVENTORY_WHITELIST.has(email.toLowerCase().trim());
+
 function formatMinutes(sec: number, t: TFunction): string {
   const s = Math.max(0, Math.floor(sec));
   const m = Math.floor(s / 60);
@@ -242,6 +246,15 @@ export default function MyScreen() {
       descKey: "my.coin.viewAll",
       route: "Transactions",
     },
+
+    ...(isGiftInventoryEnabled(apiUser?.email)
+      ? [{
+          icon: "gift" as const,
+          labelKey: "my.menu.giftInventory",
+          descKey: "my.menu.giftInventoryDesc",
+          route: "GiftInventory" as const,
+        }]
+      : []),
 
     {
       icon: "trash-2",
