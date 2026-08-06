@@ -1203,6 +1203,96 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
 });
 
 v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_ab6401 = (v_f71b56.searchParams.get("q") ?? "").trim();
+  const v_02be30 = Math.min(Math.max(Number(v_f71b56.searchParams.get("limit") ?? 20) || 20, 1), 100);
+  if (!v_ab6401) return v_3f4e2e.json({ users: [] });
+  const v_2a1d60 = `%${v_ab6401}%`;
+  const v_214b0d = Number(v_ab6401);
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT id, name, email, credits, credits_free, credits_sub, credits_topup,
+              created_at AS createdAt
+         FROM users
+        WHERE deleted_at IS NULL
+          AND (id = ? OR email LIKE ? OR name LIKE ?)
+        ORDER BY id DESC
+        LIMIT ?`,
+    )
+    .bind(Number.isFinite(v_214b0d) ? v_214b0d : -1, v_2a1d60, v_2a1d60, v_02be30)
+    .all<Record<string, unknown>>();
+  return v_3f4e2e.json({ users: v_18b8bf.results ?? [] });
+});
+
+v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid user id.");
+  }
+  const v_625c74 = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT id, name, email, credits, credits_free, credits_sub, credits_topup
+         FROM users WHERE id = ? AND deleted_at IS NULL`,
+    )
+    .bind(v_389afb)
+    .first<Record<string, unknown>>();
+  if (!v_625c74) throw new v_3ebe58("NOT_FOUND", "User not found.");
+
+  const v_f0104f = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT gift_id, count, total_received, updated_at
+         FROM user_gift_inventory
+        WHERE user_id = ? AND count > 0
+        ORDER BY updated_at DESC`,
+    )
+    .bind(v_389afb)
+    .all<{ gift_id: string; count: number; total_received: number; updated_at: number }>();
+
+  return v_3f4e2e.json({ user: v_625c74, inventory: v_f0104f.results ?? [] });
+});
+
+v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_43e90c = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_43e90c) || v_43e90c <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid user id.");
+  }
+  const v_4d33b2 = (await v_3f4e2e.req.json().catch(() => ({}))) as {
+    giftId?: unknown; count?: unknown; reason?: unknown;
+  };
+  const v_96f93d = typeof v_4d33b2.giftId === "string" ? v_4d33b2.giftId.trim() : "";
+  const v_e9396c = Number(v_4d33b2.count);
+  if (!v_96f93d || !Number.isInteger(v_e9396c) || v_e9396c === 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "giftId + integer count(≠0) required.");
+  }
+  const v_58ca36 = typeof v_4d33b2.reason === "string" ? v_4d33b2.reason.slice(0, 200) : "admin inject";
+
+  await v_3f4e2e.env.DB.batch([
+    v_3f4e2e.env.DB
+      .prepare(
+        `INSERT INTO user_gift_inventory (user_id, gift_id, count, total_received, updated_at)
+           VALUES (?, ?, MAX(?, 0), MAX(?, 0), strftime('%s','now'))
+         ON CONFLICT(user_id, gift_id) DO UPDATE SET
+           count = MAX(count + ?, 0),
+           total_received = total_received + MAX(?, 0),
+           updated_at = strftime('%s','now')`,
+      )
+      .bind(v_43e90c, v_96f93d, v_e9396c, v_e9396c, v_e9396c, v_e9396c),
+    v_3f4e2e.env.DB
+      .prepare(
+        `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id)
+           VALUES (?, NULL, ?, ?, 0, ?, ?)`,
+      )
+      .bind(v_43e90c, v_96f93d, Math.abs(v_e9396c), v_e9396c > 0 ? "received" : "swapped", `admin_inject:${v_58ca36}`),
+  ]);
+
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare(`SELECT count, total_received FROM user_gift_inventory WHERE user_id = ? AND gift_id = ?`)
+    .bind(v_43e90c, v_96f93d)
+    .first<{ count: number; total_received: number }>();
+  return v_3f4e2e.json({ ok: true, giftId: v_96f93d, delta: v_e9396c, current: v_3ac7e7 });
+});
+
+v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_389afb) || v_389afb <= 0) {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid user id.");
