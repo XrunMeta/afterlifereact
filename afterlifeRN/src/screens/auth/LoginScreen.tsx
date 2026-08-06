@@ -421,13 +421,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           {
 
 }
-          {(v_326be8.OS === "ios" || v_c39df9 !== false) && (
-            <View style={v_d81136.divider}>
-              <View style={v_d81136.dividerLine} />
-              <Text style={v_d81136.dividerText}>—</Text>
-              <View style={v_d81136.dividerLine} />
-            </View>
-          )}
+          {}
 
           {
 }
@@ -462,12 +456,6 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           )}
 
           {}
-          <View style={v_d81136.signupRow}>
-            <Text style={v_d81136.signupText}>{v_8d41d7("auth.login.signupHint")} </Text>
-            <TouchableOpacity onPress={() => v_c65f5d.navigate("Signup")}>
-              <Text style={v_d81136.signupLink}>{v_8d41d7("auth.login.signupBtn")}</Text>
-            </TouchableOpacity>
-          </View>
 
           {}
           <Text style={v_d81136.forgotPasswordHint}>
@@ -619,9 +607,10 @@ const v_d81136 = v_472849.create({
     width: "100%",
   },
   snsLoginLabel: {
-    fontSize: 12,
-    lineHeight: 18,
-    color: v_1bfbd0.zinc500,
+
+    fontSize: 14,
+    lineHeight: 20,
+    color: v_1bfbd0.zinc600,
   },
   snsButtonContainer: {
     flexDirection: "row",
