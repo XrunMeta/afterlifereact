@@ -86,7 +86,15 @@ async def verify_clones(req: web.Request) -> web.Response:
     return web.json_response({"clones": clones})
 
 async def verify_persons(req: web.Request) -> web.Response:
-    """드롭다운용 — api GET /oth-path?cloneId= 프록시, {id,name}만."""
+    """드롭다운용 — api GET /oth-path?cloneId= 프록시.
+
+    [T-257 후속] {id,name} 에 더해 얼굴 메타 2종을 그대로 통과시킨다:
+      faceCount — 그 클론 스코프에 등록된 얼굴 벡터 수(clone_person_faces)
+      isSelf    — 그 클론의 self(제작자) person 인지
+
+    필터링은 여기서 하지 않는다 — UI(verify_chat.html)가 "얼굴 기반 화자만" 을
+    판단한다. 서버가 미리 걸러버리면 랩에서 전체를 확인할 길이 사라지기 때문.
+    """
     if not _check_verify_pass(req):
         return web.json_response({"error": "verify password required"}, status=401)
     token = _bearer(req)
@@ -113,7 +121,15 @@ async def verify_persons(req: web.Request) -> web.Response:
         return web.json_response({"error": "upstream error"}, status=502)
     items = data.get("data") or []  # api GET /oth-path 는 {data:[...]} 계약(RN 공유)
     return web.json_response({"persons": [
-        {"id": it.get("id"), "name": it.get("displayName")} for it in items if it.get("id") is not None
+        {
+            "id": it.get("id"),
+            "name": it.get("displayName"),
+            # 구 api 응답(필드 부재)에도 안전하도록 기본값을 둔다 — 배포 순서가 어긋나도
+            # 드롭다운이 비어버리지 않고 "얼굴 0" 으로 보일 뿐이다.
+            "faceCount": it.get("faceCount") or 0,
+            "isSelf": bool(it.get("isSelf")),
+        }
+        for it in items if it.get("id") is not None
     ]})
 
 async def verify_knowledge_questions(req: web.Request) -> web.Response:
