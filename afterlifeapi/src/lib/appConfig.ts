@@ -101,6 +101,8 @@ export interface GiftCatalogItem {
   imageUrl?: string;
 
   xrunPrice?: number;
+
+  svgaUrl?: string;
 }
 
 export async function v_0edc13(env: v_273a0c): Promise<GiftCatalogItem[]> {
@@ -134,6 +136,10 @@ export async function v_0edc13(env: v_273a0c): Promise<GiftCatalogItem[]> {
 
         if (typeof v_479f05.xrunPrice === "number" && Number.isFinite(v_479f05.xrunPrice) && v_479f05.xrunPrice >= 0) {
           v_8c0b26.xrunPrice = v_479f05.xrunPrice;
+        }
+
+        if (typeof v_479f05.svgaUrl === "string" && v_479f05.svgaUrl.length > 0 && v_479f05.svgaUrl.length <= 500) {
+          v_8c0b26.svgaUrl = v_479f05.svgaUrl;
         }
         v_4622b9.push(v_8c0b26);
       }
