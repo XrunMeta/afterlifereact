@@ -529,6 +529,8 @@
       "openXrunDesc": "XRUN 앱 열기 (없으면 스토어)",
       "purchase": "크레딧 충전 · 구독",
       "purchaseDesc": "월 구독 · 충전으로 통화 시간 추가",
+      "giftInventory": "선물 지갑",
+      "giftInventoryDesc": "받은 선물을 XRUN 으로 교환",
       "logout": "로그아웃"
     }
   },

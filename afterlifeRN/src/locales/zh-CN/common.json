@@ -529,6 +529,8 @@
       "openXrunDesc": "打开 XRUN 应用（未安装则跳转商店）",
       "purchase": "积分充值 · 订阅",
       "purchaseDesc": "月度订阅 · 充值以延长通话时间",
+      "giftInventory": "礼物钱包",
+      "giftInventoryDesc": "将收到的礼物兑换为 XRUN 积分",
       "logout": "退出登录"
     }
   },

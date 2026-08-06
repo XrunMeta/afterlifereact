@@ -529,6 +529,8 @@
       "openXrunDesc": "Launch XRUN app (or store if not installed)",
       "purchase": "Buy Credits · Subscribe",
       "purchaseDesc": "Add call minutes with subscription or top-up",
+      "giftInventory": "Gift Wallet",
+      "giftInventoryDesc": "Swap received gifts to XRUN credits",
       "logout": "Logout"
     }
   },
