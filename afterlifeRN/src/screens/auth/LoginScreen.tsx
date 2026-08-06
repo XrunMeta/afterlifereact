@@ -502,7 +502,7 @@ const v_d81136 = v_472849.create({
   },
   tabRow: {
 
-    marginTop: v_9b1a04.large,
+    marginTop: 80,
     flexDirection: "row",
     backgroundColor: v_1bfbd0.zinc100,
     borderRadius: v_8b0c90.md,
