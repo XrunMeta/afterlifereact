@@ -385,7 +385,8 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
                 onPress={v_ec4736}
                 variant="primary"
                 disabled={v_a5d73f}
-                style={{ marginTop: v_9b1a04.medium }}
+
+                style={{ marginTop: v_9b1a04.xxlarge }}
               />
             </>
           )}
