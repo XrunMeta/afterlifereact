@@ -42,7 +42,8 @@ export async function startCallForegroundService(args: {
         asForegroundService: true,
         ongoing: true,
         color: AndroidColor.PURPLE,
-        smallIcon: "ic_notification",
+
+        smallIcon: "ic_launcher",
         pressAction: { id: "default" },
       },
     });
