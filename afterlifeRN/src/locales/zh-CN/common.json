@@ -239,7 +239,13 @@
     "remainingWarnToast": "剩余通话时间30秒，即将结束。",
     "exhaustedTitle": "通话时间结束",
     "exhaustedBody": "充值后可以继续通话。",
-    "exhaustedCharge": "充值"
+    "exhaustedCharge": "充值",
+    "batteryWhitelistTitle": "通话稳定性提示",
+    "batteryWhitelistBody": "手机的省电功能可能会中断通话。请在设置中将本应用加入电池优化例外，以保持通话稳定。",
+    "batteryWhitelistOpen": "打开设置",
+    "batteryWhitelistDismiss": "不再显示",
+    "bgWarnTitle": "📞 通话可能中断",
+    "bgWarnBody": "请保持应用打开以继续通话，快回到应用。"
   },
   "feed": {
     "homeTitle": "首页",
