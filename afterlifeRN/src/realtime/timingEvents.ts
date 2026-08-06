@@ -25,10 +25,28 @@ let clock: () => number = () => Date.now();
 
 export function __setTimingClock(fn: () => number): void { clock = fn; }
 
+const SUB_ERR_LOG_MAX = 5;
+let subErrCount = 0;
+
 function notify(): void {
   const snapshot = buffer.slice();
 
-  subs.forEach((cb) => cb(snapshot));
+  for (const cb of subs.slice()) safeCall(cb, snapshot);
+}
+
+function safeCall(cb: (events: TimingEvent[]) => void, snapshot: TimingEvent[]): void {
+  try {
+    cb(snapshot);
+  } catch (e) {
+    if (!__DEV__) return;
+    subErrCount += 1;
+    if (subErrCount > SUB_ERR_LOG_MAX) return;
+
+    console.log(
+      '[Call][timing][subscriber-error]', String(e),
+      subErrCount === SUB_ERR_LOG_MAX ? '(이후 동일 로그 억제)' : '',
+    );
+  }
 }
 
 export function emitTimingEvent(type: TimingEventType, detail?: TimingDetail): void {
@@ -40,12 +58,12 @@ export function emitTimingEvent(type: TimingEventType, detail?: TimingDetail): v
 
 export function subscribeTimingEvents(cb: (events: TimingEvent[]) => void): () => void {
   subs.push(cb);
-  cb(buffer.slice()); 
+  safeCall(cb, buffer.slice()); 
   return () => { subs = subs.filter((s) => s !== cb); };
 }
 
 export function getTimingEvents(): TimingEvent[] { return buffer.slice(); }
-export function clearTimingEvents(): void { buffer = []; notify(); }
+export function clearTimingEvents(): void { buffer = []; subErrCount = 0; notify(); }
 
 export function formatTimingLine(ev: TimingEvent, prev: TimingEvent | null): string {
   const delta = prev ? ev.tMs - prev.tMs : 0;

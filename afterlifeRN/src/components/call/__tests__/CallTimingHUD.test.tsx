@@ -18,6 +18,19 @@ describe('CallTimingHUD', () => {
     expect(queryByText(/speech_end/)).toBeTruthy();
   });
 
+  it('keeps audio-axis lines alive when diagnostic events flood the shared 40-slot buffer', () => {
+    const { queryByText } = render(<CallTimingHUD />);
+    act(() => { emitTimingEvent('stt_open'); emitTimingEvent('suppress_on'); });
+    act(() => {
+      for (let i = 0; i < 60; i++) {
+        emitTimingEvent('fsm', { from: 'listening', to: 'sending', ev: 'FINAL_RESULT', effects: 'SAY' });
+      }
+    });
+    expect(queryByText(/stt_open/)).toBeTruthy();   
+    expect(queryByText(/suppress_on/)).toBeTruthy();
+    expect(queryByText(/fsm/)).toBeNull();          
+  });
+
   it('renders the current 4 timing values as an always-visible summary line', () => {
     const { getByText } = render(<CallTimingHUD />);
     expect(getByText('stt:1500 echo:3500 res:600 tail:1000')).toBeTruthy();

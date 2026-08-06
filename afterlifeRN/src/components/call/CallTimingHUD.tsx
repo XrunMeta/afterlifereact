@@ -1,22 +1,42 @@
 
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { subscribeTimingEvents, formatTimingLine, type TimingEvent, type TimingEventType } from '../../realtime/timingEvents';
 import { useTimingConfigStore } from '../../realtime/timingConfig';
 
 const VISIBLE = 12; 
+const KEEP = 60;    
 
 const AUDIO_TYPES: readonly TimingEventType[] = [
   'speech_start', 'speech_end', 'stt_open', 'stt_close',
   'suppress_on', 'suppress_off', 'vad_endpoint', 'dev_listen_now',
 ];
+const isAudio = (e: TimingEvent): boolean => AUDIO_TYPES.includes(e.type);
 
 export const CallTimingHUD: React.FC = () => {
+
   const [events, setEvents] = useState<TimingEvent[]>([]);
-  useEffect(() => subscribeTimingEvents(setEvents), []);
-  const audio = events.filter((e) => AUDIO_TYPES.includes(e.type));
-  const shown = audio.slice(Math.max(0, audio.length - VISIBLE));
+  const accRef = useRef<TimingEvent[]>([]);
+  useEffect(() => {
+    let first = true;
+    return subscribeTimingEvents((evs: TimingEvent[]) => {
+      if (evs.length === 0) { 
+        first = false;
+        accRef.current = [];
+        setEvents([]);
+        return;
+      }
+
+      const incoming = first ? evs.filter(isAudio) : (isAudio(evs[evs.length - 1]) ? [evs[evs.length - 1]] : []);
+      first = false;
+      if (incoming.length === 0) return; 
+      const next = accRef.current.concat(incoming).slice(-KEEP);
+      accRef.current = next;
+      setEvents(next);
+    });
+  }, []);
+  const shown = events.slice(Math.max(0, events.length - VISIBLE));
   const sttEndpointMs = useTimingConfigStore((s) => s.sttEndpointMs);
   const echoGateMs = useTimingConfigStore((s) => s.echoGateMs);
   const cloneResumeMs = useTimingConfigStore((s) => s.cloneResumeMs);

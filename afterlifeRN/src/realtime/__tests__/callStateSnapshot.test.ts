@@ -98,6 +98,16 @@ describe('callStateSnapshot fold', () => {
     expect(lines.join('\n')).toContain('avt  sending');
   });
 
+  it('seq 가 양쪽 다 null 이면 tx/rx/DONE 을 짝짓지 않는다', () => {
+    let m = initCallStateModel();
+    m = foldTimingEvent(m, ev('tx', 0, { mode: 'greet', seq: null, text: '', eff: 'GREET' }), 0);
+    m = foldTimingEvent(m, ev('rx', 900, { sig: 'speech_start', seq: null, srvSeq: 2 }), 900);
+    m = foldTimingEvent(m, fsm(3000, 'speaking', 'listening', 'RESPONSE_DONE', { pseq: null }), 3000);
+    expect(m.lastTx).toMatchObject({ seq: null, startMs: null, endMs: null, doneMs: null });
+    expect(formatStateLines(m, 3000).join('\n')).toContain('tx#? greet s:— e:— d:—');
+    expect(m.rows[1].text).toContain('←start#?'); 
+  });
+
   it('clipText 는 긴 발화를 잘라 준다', () => {
     expect(clipText('12345678901234', 10)).toBe('1234567890…');
     expect(clipText('짧다')).toBe('짧다');

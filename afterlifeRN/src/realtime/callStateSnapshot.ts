@@ -97,6 +97,9 @@ export function clipText(t: string, max = 10): string {
   return t.length <= max ? t : `${t.slice(0, max)}…`;
 }
 
+export const sameSeq = (a: number | null, b: number | null): boolean =>
+  a != null && b != null && a === b;
+
 function pushRow(
   m: CallStateModel, text: string, tone: RowTone, indent: boolean, tMs: number,
 ): CallStateModel {
@@ -140,7 +143,7 @@ export function foldTimingEvent(m: CallStateModel, ev: TimingEvent, nowMs: numbe
       if (evName === 'RESPONSE_DONE' || evName === 'RESPONSE_END') {
         const tail = evName === 'RESPONSE_END' ? 'end' : 'done';
         next = pushRow(next, `⇒DONE${seqTag(pseq)}(${tail})→${to}`, 'done', true, ev.tMs);
-        if (next.lastTx && next.lastTx.seq === pseq && next.lastTx.doneMs == null) {
+        if (next.lastTx && sameSeq(next.lastTx.seq, pseq) && next.lastTx.doneMs == null) {
           next = { ...next, lastTx: { ...next.lastTx, doneMs: ev.tMs - next.lastTx.tMs } };
         }
       } else if (from !== to) {
@@ -167,7 +170,7 @@ export function foldTimingEvent(m: CallStateModel, ev: TimingEvent, nowMs: numbe
       const rem = n(d, 'remainingMs');
       const remTag = sig === 'speech_end' && rem != null && rem > 0 ? ` rem:${rem}` : '';
       let next = pushRow(m, ` ←${short}${seqTag(seq)}${srvTag}${remTag}`, 'rx', true, ev.tMs);
-      if (next.lastTx && next.lastTx.seq === seq) {
+      if (next.lastTx && sameSeq(next.lastTx.seq, seq)) {
         const took = ev.tMs - next.lastTx.tMs;
         if (sig === 'speech_start' && next.lastTx.startMs == null) {
           next = { ...next, lastTx: { ...next.lastTx, startMs: took } };
