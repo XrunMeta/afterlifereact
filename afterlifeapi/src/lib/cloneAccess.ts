@@ -156,6 +156,19 @@ export function isSuspendedForViewer(
   return viewerRole !== "owner" && viewerRole !== "coowner";
 }
 
+export async function loadAccessibleClone(
+  db: D1Database,
+  cloneId: number,
+  userId: number,
+): Promise<CloneRow | null> {
+  const clone = await loadCloneById(db, cloneId);
+  if (!clone) return null;
+  const viewerRole = await resolveResponseViewerRole(db, clone, userId);
+  if (!viewerRole && clone.visibility !== "public") return null;
+  if (isSuspendedForViewer(clone, viewerRole)) return null;
+  return clone;
+}
+
 export async function resolveViewerRole(
   c: Context<AppEnv>,
   clone: Pick<CloneRow, "id" | "owner_id" | "visibility">,

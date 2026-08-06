@@ -473,6 +473,54 @@ def _clear_current_speaker(sess, event: str) -> None:
         )
 
 
+def face_event_clone_matches(session_clone_id, event_clone_id) -> bool:
+    """[T-257] face_event 의 clone_id 가 세션 clone_id 와 일치하는지.
+
+    서버(/oth-path)가 이미 (user_id, clone_id) 스코프를 강제하므로
+    이 검사는 방어 1층이다. event_clone_id 가 없으면(구 클라이언트) 통과시킨다 —
+    서버 게이트가 정본이고, 여기서 막으면 하위호환이 깨진다.
+
+    event_clone_id 는 datachannel 로 들어오는 **완전히 신뢰할 수 없는 입력**이다
+    (T-135 IDOR 교훈). 이 함수는 전역(total) 함수여야 한다 — 어떤 입력이 와도
+    예외를 던지지 않고 반드시 bool 을 반환한다. 정수로 해석할 수 없는 값(문자열
+    "abc", list, dict 등)은 "해석 불가 = 불일치"로 취급해 False 를 반환한다
+    (호출부가 이를 이벤트 드랍으로 이어가므로 fail-closed).
+
+    bool 은 파이썬에서 int 의 서브클래스라 `int(True) == 1` 처럼 우연히 세션
+    clone_id 와 일치해버릴 수 있다 — clone_id 로 인정하지 않고 명시적으로
+    불일치(False) 처리한다.
+
+    [재리뷰 fix] `except (TypeError, ValueError)` 로 예외 타입을 나열했더니
+    `int(float('inf'))` 가 던지는 `OverflowError` 가 새지 못하고 그대로
+    통과해버렸다(`_on_msg` 의 `json.loads` 는 표준 json 모듈 기본 동작상
+    `Infinity`/`-Infinity`/`NaN` 토큰을 허용하므로 `{"clone_id":Infinity}` 가
+    실제로 도달 가능하다). 타입을 나열하는 방식은 "네 번째 타입이 또 들어온다"는
+    구조적 문제가 있으므로, 이 함수는 **뭐가 오든 예외를 밖으로 내보내지 않는다**는
+    계약을 지키기 위해 `except Exception` 으로 광범위하게 잡는다. 원인 진단을
+    위해 예외 타입명은 로그에 남긴다.
+    """
+    if event_clone_id is None:
+        return True
+    if isinstance(event_clone_id, bool):
+        log.warning(
+            "face_event_clone_matches: clone_id가 bool(%r) — clone_id로 인정하지 않고 불일치 처리",
+            event_clone_id,
+        )
+        return False
+    try:
+        return int(session_clone_id) == int(event_clone_id)
+    except Exception as e:
+        # 의도적으로 광범위하게 잡는다 — 이 함수의 계약은 "어떤 입력이 와도
+        # 예외를 던지지 않는다"이므로 특정 타입 나열은 다음 예외 타입(예:
+        # OverflowError)이 다시 새는 재발 패턴을 만든다. 원인은 타입명으로 로그.
+        log.warning(
+            "face_event_clone_matches: clone_id 형식 이상(파싱 불가, garbage payload, %s) "
+            "session=%r event=%r",
+            type(e).__name__, session_clone_id, event_clone_id,
+        )
+        return False
+
+
 def _handle_face_event(sess, data: dict) -> None:
     """[T-067/T-135] datachannel face_event 메시지 처리.
 
@@ -500,6 +548,15 @@ def _handle_face_event(sess, data: dict) -> None:
     persona 스왑)는 _maybe_swap_l2p — 화자가 바뀔 때(쿨다운과 무관) fire-and-forget으로
     스케줄되며 react(_run, 쿨다운 게이트 대상)와는 완전히 분리된 별도 태스크(§6.4).
     """
+    if not face_event_clone_matches(getattr(sess, "clone_id", None), data.get("clone_id")):
+        log.warning(
+            "session %s face_event clone_id 불일치(무시): session=%s event=%s",
+            sess.session_id,
+            getattr(sess, "clone_id", None),
+            data.get("clone_id"),
+        )
+        return
+
     if sess.pipeline is None:
         return
     identity_on = _speaker_identity_enabled()

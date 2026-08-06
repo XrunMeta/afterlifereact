@@ -25,6 +25,8 @@ const defaultDeps: FaceEnrollDeps = {
 export interface UseFaceEnrollOptions {
   accessToken: string;
 
+  cloneId: number;
+
   getBuffer: () => EmbeddingBuffer;
 
   getSnapshot?: () => number[][] | null;
@@ -48,7 +50,7 @@ export interface UseFaceEnrollResult {
 }
 
 export function useFaceEnroll(opts: UseFaceEnrollOptions): UseFaceEnrollResult {
-  const { accessToken, getBuffer, getSnapshot } = opts;
+  const { accessToken, cloneId, getBuffer, getSnapshot } = opts;
   const deps = opts.deps ?? defaultDeps;
   const [status, setStatus] = useState<FaceEnrollStatus>("idle");
   const [error, setError] = useState<Error | null>(null);
@@ -67,7 +69,7 @@ export function useFaceEnroll(opts: UseFaceEnrollOptions): UseFaceEnrollResult {
       try {
         let person = personRef.current;
         if (!person) {
-          person = await deps.createPersonFn(accessToken, { displayName: name });
+          person = await deps.createPersonFn(accessToken, { cloneId, displayName: name });
           personRef.current = person;
         }
         if (!consentDoneRef.current) {
@@ -83,7 +85,7 @@ export function useFaceEnroll(opts: UseFaceEnrollOptions): UseFaceEnrollResult {
           );
         }
         const vectors = snapshot ?? getBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
-        await deps.enrollFacesFn(accessToken, person.id, vectors);
+        await deps.enrollFacesFn(accessToken, person.id, vectors, cloneId);
         setStatus("success");
       } catch (e) {
         setStatus("error");
@@ -92,7 +94,7 @@ export function useFaceEnroll(opts: UseFaceEnrollOptions): UseFaceEnrollResult {
         enrollingRef.current = false;
       }
     },
-    [accessToken, getBuffer, getSnapshot, deps],
+    [accessToken, cloneId, getBuffer, getSnapshot, deps],
   );
 
   const enrollSilent = useCallback(async () => {
@@ -103,7 +105,7 @@ export function useFaceEnroll(opts: UseFaceEnrollOptions): UseFaceEnrollResult {
     try {
       let person = personRef.current;
       if (!person) {
-        person = await deps.createPersonFn(accessToken, { enrolledVia: "auto_biometric" });
+        person = await deps.createPersonFn(accessToken, { cloneId, enrolledVia: "auto_biometric" });
         personRef.current = person;
       }
 
@@ -115,7 +117,7 @@ export function useFaceEnroll(opts: UseFaceEnrollOptions): UseFaceEnrollResult {
         );
       }
       const vectors = snapshot ?? getBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
-      await deps.enrollFacesFn(accessToken, person.id, vectors);
+      await deps.enrollFacesFn(accessToken, person.id, vectors, cloneId);
       setStatus("success");
     } catch (e) {
       setStatus("error");
@@ -123,7 +125,7 @@ export function useFaceEnroll(opts: UseFaceEnrollOptions): UseFaceEnrollResult {
     } finally {
       enrollingRef.current = false;
     }
-  }, [accessToken, getBuffer, getSnapshot, deps]);
+  }, [accessToken, cloneId, getBuffer, getSnapshot, deps]);
 
   const reset = useCallback(() => {
     setStatus("idle");
