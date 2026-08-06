@@ -553,8 +553,9 @@ const v_d81136 = v_472849.create({
     fontSize: 14,
   },
   forgotPassword: {
+
     color: v_1bfbd0.zinc900,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "500",
   },
   lockHint: {
@@ -598,11 +599,12 @@ const v_d81136 = v_472849.create({
   },
 
   forgotPasswordHint: {
+
     marginTop: v_9b1a04.small,
     color: v_1bfbd0.zinc500,
-    fontSize: 11,
+    fontSize: 12,
     lineHeight: 16,
-    textAlign: "center",
+    textAlign: "left",
   },
 
   snsLoginContainer: {
