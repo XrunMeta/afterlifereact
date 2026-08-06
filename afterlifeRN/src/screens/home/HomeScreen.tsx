@@ -38,6 +38,8 @@ import type { Visibility } from "../../types/clone";
 
 import { useFeedStore, apiFeedCountsCache } from "../../stores/feedStore";
 import { useFollowStore } from "../../stores/followStore";
+
+import { useUserFollowStore } from "../../stores/userFollowStore";
 import { useAuthStore } from "../../stores/authStore";
 import { toFeedItem } from "../../mocks/feedAdapter";
 import {
@@ -87,6 +89,9 @@ export default function HomeScreen() {
   const follows = useFollowStore((s) => s.follows);
   const isFollowing = useFollowStore((s) => s.isFollowing);
   const toggleFollow = useFollowStore((s) => s.toggleFollow);
+
+  const isUserFollowing = useUserFollowStore((s) => s.isFollowing);
+  const toggleUserFollow = useUserFollowStore((s) => s.toggleFollow);
 
   const [firstLoadDone, setFirstLoadDone] = useState(false);
 
@@ -421,10 +426,38 @@ export default function HomeScreen() {
               console.warn("[Home] share failed:", err);
             }
           }}
+
+          onOwnerPress={() => {
+            if (item.cloneOwnerId != null) {
+              rootNav.navigate("UserProfile", { userId: item.cloneOwnerId });
+            }
+          }}
+          onOwnerFollowPress={() => {
+            if (item.cloneOwnerId != null) void toggleUserFollow(item.cloneOwnerId);
+          }}
+          isOwnerFollowed={item.cloneOwnerId != null ? isUserFollowing(item.cloneOwnerId) : false}
+
+          onGiftPress={() => {
+            showAlert(
+              t("home.giftTitle", { defaultValue: "선물 기능" }),
+              t("call.paymentPreparingToast", { defaultValue: "결제 준비 중이에요" }),
+            );
+          }}
         />
       );
     },
-    [currentIndex, likedIds, follows, feedHeight, toggleLike, toggleFollow, isFollowing, myUserId]
+    [
+      currentIndex,
+      likedIds,
+      follows,
+      feedHeight,
+      toggleLike,
+      toggleFollow,
+      isFollowing,
+      myUserId,
+      isUserFollowing,
+      toggleUserFollow,
+    ]
   );
 
   const showLoading = !firstLoadDone || (filteredFeeds.length === 0 && apiLoading);
