@@ -101,6 +101,8 @@ export interface GiftCatalogItem {
   imageUrl?: string;
 
   xrunPrice?: number;
+
+  svgaUrl?: string;
 }
 
 export async function getGiftCatalog(env: Bindings): Promise<GiftCatalogItem[]> {
@@ -134,6 +136,10 @@ export async function getGiftCatalog(env: Bindings): Promise<GiftCatalogItem[]> 
 
         if (typeof raw.xrunPrice === "number" && Number.isFinite(raw.xrunPrice) && raw.xrunPrice >= 0) {
           item.xrunPrice = raw.xrunPrice;
+        }
+
+        if (typeof raw.svgaUrl === "string" && raw.svgaUrl.length > 0 && raw.svgaUrl.length <= 500) {
+          item.svgaUrl = raw.svgaUrl;
         }
         items.push(item);
       }
