@@ -9,6 +9,8 @@ export interface GiftCatalogItem {
   price: number;
 
   imageUrl?: string;
+
+  xrunPrice?: number;
 }
 
 export async function fetchGiftCatalog(): Promise<GiftCatalogItem[]> {
