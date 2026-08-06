@@ -177,6 +177,19 @@ admin.patch("/config/gift-catalog", requireAdmin, async (c) => {
       }
       clean1.xrunPrice = it.xrunPrice;
     }
+
+    if (it.svgaUrl !== undefined && it.svgaUrl !== null) {
+      if (typeof it.svgaUrl !== "string") {
+        throw new APIError("VALIDATION_FAILED", "svgaUrl must be string.");
+      }
+      const trimmed = it.svgaUrl.trim();
+      if (trimmed.length > 0) {
+        if (trimmed.length > 500) {
+          throw new APIError("VALIDATION_FAILED", "svgaUrl too long.");
+        }
+        clean1.svgaUrl = trimmed;
+      }
+    }
     clean.push(clean1);
   }
   await setGiftCatalog(c.env, clean);
