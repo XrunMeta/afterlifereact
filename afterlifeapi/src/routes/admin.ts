@@ -170,6 +170,13 @@ v_b7f2b4.patch("/config/gift-catalog", v_c0a297, async (v_3f4e2e) => {
         v_bd030e.imageUrl = v_2f361a;
       }
     }
+
+    if (v_23805a.xrunPrice !== undefined && v_23805a.xrunPrice !== null) {
+      if (typeof v_23805a.xrunPrice !== "number" || !Number.isFinite(v_23805a.xrunPrice) || v_23805a.xrunPrice < 0) {
+        throw new v_3ebe58("VALIDATION_FAILED", "xrunPrice must be non-negative number.");
+      }
+      v_bd030e.xrunPrice = v_23805a.xrunPrice;
+    }
     v_76a373.push(v_bd030e);
   }
   await v_9459da(v_3f4e2e.env, v_76a373);
@@ -314,6 +321,65 @@ v_b7f2b4.post("/files/gift-image", v_c0a297, async (v_3f4e2e) => {
     id: v_81161e.id,
     url: `${v_f17108}/oth-path${v_81161e.id}`,
     contentType: v_4de33e.type,
+    sizeBytes: v_4de33e.size,
+  }, 201);
+});
+
+v_b7f2b4.post("/files/gift-svga", v_c0a297, async (v_3f4e2e) => {
+  let v_ebd523;
+  try {
+    v_ebd523 = await v_3f4e2e.req.formData();
+  } catch {
+    throw new v_3ebe58("VALIDATION_FAILED", "multipart/form-data required.");
+  }
+  const v_479f05 = v_ebd523.get("file");
+  if (
+    !v_479f05 ||
+    typeof v_479f05 !== "object" ||
+    typeof (v_479f05 as { arrayBuffer?: unknown }).arrayBuffer !== "function"
+  ) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Missing 'file' field.");
+  }
+  const v_4de33e = v_479f05 as {
+    name?: string;
+    type: string;
+    size: number;
+    arrayBuffer: () => Promise<ArrayBuffer>;
+  };
+  const v_f34f6d = 8 * 1024 * 1024; 
+  if (v_4de33e.size > v_f34f6d) {
+    throw new v_3ebe58("VALIDATION_FAILED", `File too large (${v_4de33e.size} bytes). Max ${v_f34f6d} bytes.`);
+  }
+  const v_c424ac = (v_4de33e.name ?? "").toLowerCase();
+  if (!v_c424ac.endsWith(".svga")) {
+    throw new v_3ebe58("VALIDATION_FAILED", `Unsupported filename: ${v_4de33e.name ?? "(none)"}. .svga only.`);
+  }
+  const v_fc3f08 = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+  const v_8d41d7 = Date.now().toString(36);
+  const v_0037e3 = `uploadedfiles/admin/gift-svga/${v_8d41d7}${v_fc3f08}.svga`;
+  const v_83ee53 = await v_4de33e.arrayBuffer();
+  const v_c0c2d5 = "application/octet-stream";
+  await v_3f4e2e.env.R2_ARCHIVE.put(v_0037e3, v_83ee53, {
+    httpMetadata: { contentType: v_c0c2d5 },
+    customMetadata: { purpose: "gift.svga", uploader: "admin" },
+  });
+  const v_81161e = await v_3f4e2e.env.DB
+    .prepare(
+      `INSERT INTO files (r2_key, content_type, size_bytes, owner_user_id, purpose)
+       VALUES (?, ?, ?, NULL, ?)
+       RETURNING id`,
+    )
+    .bind(v_0037e3, v_c0c2d5, v_4de33e.size, "gift.svga")
+    .first<{ id: number }>();
+  if (!v_81161e) {
+    await v_3f4e2e.env.R2_ARCHIVE.delete(v_0037e3);
+    throw new v_3ebe58("INTERNAL_ERROR", "Failed to register file.");
+  }
+  const v_f17108 = new URL(v_3f4e2e.req.url).origin;
+  return v_3f4e2e.json({
+    id: v_81161e.id,
+    url: `${v_f17108}/oth-path${v_81161e.id}`,
+    contentType: v_c0c2d5,
     sizeBytes: v_4de33e.size,
   }, 201);
 });

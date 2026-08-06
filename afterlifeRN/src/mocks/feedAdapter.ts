@@ -2,7 +2,7 @@ import type { v_bc3df4, v_d79d7f } from "../types/domain";
 import type { v_19b433 } from "../types/feed";
 import { v_694b7f } from "../api/source";
 import { v_a554a7 } from "./images";
-import { v_0b62e7, v_10e36e, v_674b99 } from "../stores/feedStore";
+import { v_0b62e7, v_10e36e, v_674b99, v_ec315e, v_078c0e } from "../stores/feedStore";
 
 const CLONE_TYPE_LABEL: Record<v_d79d7f, string> = {
   memlow: "멤로우",
@@ -71,5 +71,9 @@ export function v_f386b1(f: v_bc3df4): v_19b433 {
     comments: v_ecfc0f,
 
     myIntimacy: v_674b99.get(v_8b5cd8.cloneId),
+
+    ownerName: v_ec315e.get(v_8b5cd8.cloneId)?.name ?? null,
+    ownerAvatarUrl: v_ec315e.get(v_8b5cd8.cloneId)?.avatarUrl ?? null,
+    giftsReceived: v_078c0e.get(v_8b5cd8.cloneId) ?? 0,
   };
 }

@@ -209,6 +209,8 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
                 c.clone_type       AS cloneType,
                 c.created_at       AS cloneCreatedAt,
                 c.visibility       AS cloneVisibility,
+                u.name             AS ownerName,
+                u.avatar_url       AS ownerAvatarUrl,
                 f.id               AS feedId,
                 f.content          AS feedContent,
                 f.media_url        AS feedMediaUrl,
@@ -219,8 +221,11 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
                 (SELECT COUNT(*) FROM feed_comments fc
                    JOIN feeds f3 ON f3.id = fc.feed_id
                    WHERE f3.clone_id = c.id) AS commentsCount,
+                (SELECT COUNT(*) FROM gift_logs gl
+                   WHERE gl.clone_id = c.id) AS giftsReceived,
                 ${v_dd2234}
            FROM clones c
+           LEFT JOIN users u ON u.id = c.owner_id
            LEFT JOIN feeds f ON f.id = (
              SELECT id FROM feeds WHERE clone_id = c.id
              ORDER BY id DESC LIMIT 1
@@ -240,6 +245,8 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
         cloneType: string;
         cloneCreatedAt: string;
         cloneVisibility: string;
+        ownerName: string | null;
+        ownerAvatarUrl: string | null;
         feedId: number | null;
         feedContent: string | null;
         feedMediaUrl: string | null;
@@ -247,6 +254,7 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
         feedCreatedAt: string | null;
         likesCount: number;
         commentsCount: number;
+        giftsReceived: number;
         myIntimacy: number;
       }>()
   ).results;
@@ -319,7 +327,12 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
         avatarUrl: v_cb35cb.cloneAvatarUrl,
         cloneType: v_cb35cb.cloneType,
         visibility: v_cb35cb.cloneVisibility,
+
+        ownerName: v_cb35cb.ownerName,
+        ownerAvatarUrl: v_cb35cb.ownerAvatarUrl,
       },
+
+      giftsReceived: v_cb35cb.giftsReceived,
       interests: v_9afb14.get(v_cb35cb.cloneId) ?? [],
 
       myIntimacy: Math.min(100, Math.max(0, v_cb35cb.myIntimacy ?? 0)),

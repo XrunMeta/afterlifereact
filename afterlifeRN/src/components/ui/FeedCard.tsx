@@ -5,6 +5,7 @@ import {
   v_4623af,
   v_cf9c33,
   v_700696,
+  v_122070,
   v_472849,
 } from "rcmrninabrnb";
 import { v_5ade23 } from "xbfwaaanosqvazmrqoah";
@@ -32,6 +33,18 @@ interface FeedCardProps {
   onSharePress?: () => void;
 
   onIntimacyPress?: () => void;
+
+  onOwnerPress?: () => void;
+
+  onOwnerFollowPress?: () => void;
+
+  isOwnerFollowed?: boolean;
+
+  onGiftPress?: () => void;
+
+  onDescriptionScrollStart?: () => void;
+
+  onDescriptionScrollEnd?: () => void;
 }
 
 const FeedCard: v_a3453e.FC<FeedCardProps> = ({
@@ -48,8 +61,25 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
   onMorePress: v_27b331,
   onSharePress: v_d51485,
   onIntimacyPress: v_b85128,
+  onOwnerPress: v_b85e42,
+  onOwnerFollowPress: v_a32130,
+  isOwnerFollowed: v_1d1155 = false,
+  onGiftPress: v_8506d0,
+  onDescriptionScrollStart: v_c29799,
+  onDescriptionScrollEnd: v_bb9bff,
 }) => {
   const { t: v_8d41d7 } = v_772971();
+
+  const [v_4393ab, v_f95f43] = v_a3453e.useState(0);
+  const [v_49cb14, v_eb937b] = v_a3453e.useState(0);
+  const [v_7e038a, v_a995c2] = v_a3453e.useState(0);
+  const v_64673e = v_49cb14 > v_7e038a + 1;
+  const v_a619fa = v_64673e
+    ? Math.max(16, (v_7e038a / v_49cb14) * v_7e038a)
+    : 0;
+  const v_7b5c27 = v_64673e
+    ? (v_4393ab / (v_49cb14 - v_7e038a)) * (v_7e038a - v_a619fa)
+    : 0;
 
   const v_fd0962 = v_3d6201 < 640;
   return (
@@ -65,11 +95,66 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
         locations={[0, 0.5, 1]}
         style={v_d81136.gradient}
       />
+      {
+}
+      <LinearGradient
+        colors={["rgba(0,0,0,0.55)", "rgba(0,0,0,0.2)", "transparent"]}
+        locations={[0, 0.6, 1]}
+        style={v_d81136.gradientTop}
+      />
 
       {
-
 }
-      {typeof v_8c0b26.myIntimacy === "number" ? (
+      {v_26dce6 && (v_8c0b26.ownerName || v_8c0b26.ownerAvatarUrl || v_27b331) ? (
+        <View style={v_d81136.ownerHeader}>
+          <TouchableOpacity
+            style={v_d81136.ownerInfo}
+            onPress={v_b85e42}
+            disabled={!v_b85e42}
+            activeOpacity={0.7}
+          >
+            {v_8c0b26.ownerAvatarUrl ? (
+              <Image source={{ uri: v_8c0b26.ownerAvatarUrl }} style={v_d81136.ownerAvatar} />
+            ) : (
+              <View style={[v_d81136.ownerAvatar, v_d81136.ownerAvatarPlaceholder]}>
+                <Feather name="user" size={14} color={v_1bfbd0.zinc400} />
+              </View>
+            )}
+            <Text style={v_d81136.ownerName} numberOfLines={1}>
+              {v_8c0b26.ownerName ?? ""}
+            </Text>
+          </TouchableOpacity>
+          {!v_799eb5 && v_a32130 ? (
+            <TouchableOpacity
+              style={[v_d81136.ownerFollowBtn, v_1d1155 && v_d81136.ownerFollowBtnActive]}
+              onPress={v_a32130}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  v_d81136.ownerFollowText,
+                  v_1d1155 && v_d81136.ownerFollowTextActive,
+                ]}
+              >
+                {v_1d1155 ? v_8d41d7("feed.following") : v_8d41d7("feed.follow")}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+          {v_27b331 ? (
+            <TouchableOpacity
+              onPress={v_27b331}
+              style={v_d81136.ownerMoreBtn}
+              accessibilityLabel="more-options"
+            >
+              <Feather name="more-vertical" size={20} color={v_1bfbd0.white} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      ) : null}
+
+      {
+}
+      {false && typeof v_8c0b26.myIntimacy === "number" ? (
         <TouchableOpacity
           style={v_d81136.intimacyBadge}
           onPress={v_b85128}
@@ -99,19 +184,15 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
               <Feather name="message-circle" size={30} color={v_1bfbd0.white} />
               <Text style={v_d81136.actionLabel}>{v_8c0b26.comments}</Text>
             </TouchableOpacity>
+            {}
+            <TouchableOpacity onPress={v_8506d0} style={v_d81136.actionBtn} activeOpacity={0.7}>
+              <Feather name="gift" size={28} color={v_1bfbd0.white} />
+              <Text style={v_d81136.actionLabel}>{v_8c0b26.giftsReceived ?? 0}</Text>
+            </TouchableOpacity>
             <TouchableOpacity onPress={v_d51485} style={v_d81136.actionBtn} activeOpacity={0.7}>
               <Feather name="share-2" size={28} color={v_1bfbd0.white} />
             </TouchableOpacity>
-            {v_27b331 && (
-              <TouchableOpacity
-                onPress={v_27b331}
-                style={v_d81136.actionBtn}
-                activeOpacity={0.7}
-                accessibilityLabel="more-options"
-              >
-                <Feather name="more-vertical" size={28} color={v_1bfbd0.white} />
-              </TouchableOpacity>
-            )}
+            {}
           </View>
 
           <View style={v_d81136.bottomContent}>
@@ -120,6 +201,19 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
                 <View style={v_d81136.authorRow}>
                   <Text style={v_d81136.authorName}>{v_8c0b26.author}</Text>
                   {v_8c0b26.cloneType === "expert" && <ExpertBadge size={22} />}
+                  {}
+                  {typeof v_8c0b26.myIntimacy === "number" ? (
+                    <TouchableOpacity
+                      style={v_d81136.intimacyBadgeInline}
+                      onPress={v_b85128}
+                      activeOpacity={0.7}
+                      disabled={!v_b85128}
+                      accessibilityLabel="intimacy-events"
+                    >
+                      <Feather name="thermometer" size={12} color="#fb923c" />
+                      <Text style={v_d81136.intimacyText}>{v_8c0b26.myIntimacy}°C</Text>
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
                 <Text style={v_d81136.username}>{v_8c0b26.username}</Text>
               </View>
@@ -153,12 +247,43 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
 
 }
             {v_8c0b26.description ? (
-              <HashtagText
-                style={v_d81136.description}
-                tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
+
+              <View
+                style={v_d81136.descriptionWrap}
+                onTouchStart={v_c29799}
+                onTouchEnd={v_bb9bff}
+                onTouchCancel={v_bb9bff}
               >
-                {v_8c0b26.description}
-              </HashtagText>
+                <ScrollView
+                  style={v_d81136.descriptionScroll}
+
+                  showsVerticalScrollIndicator={false}
+                  nestedScrollEnabled={false}
+                  bounces={false}
+                  overScrollMode="never"
+                  scrollEventThrottle={16}
+                  onScroll={(v_9e86fd) => v_f95f43(v_9e86fd.nativeEvent.contentOffset.y)}
+                  onContentSizeChange={(v_37eab7, v_65a2cd) => v_eb937b(v_65a2cd)}
+                  onLayout={(v_9e86fd) => v_a995c2(v_9e86fd.nativeEvent.layout.height)}
+                >
+                  <HashtagText
+                    style={v_d81136.description}
+                    tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
+                  >
+                    {v_8c0b26.description}
+                  </HashtagText>
+                </ScrollView>
+                {v_64673e ? (
+                  <View pointerEvents="none" style={v_d81136.descScrollbarTrack}>
+                    <View
+                      style={[
+                        v_d81136.descScrollbarThumb,
+                        { top: v_7b5c27, height: v_a619fa },
+                      ]}
+                    />
+                  </View>
+                ) : null}
+              </View>
             ) : null}
 
             {}
@@ -194,6 +319,14 @@ const v_d81136 = v_472849.create({
     right: 0,
     bottom: 0,
     height: "60%",
+  },
+
+  gradientTop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "22%",
   },
   bottomContent: {
     position: "absolute",
@@ -262,9 +395,73 @@ const v_d81136 = v_472849.create({
     bottom: 220,
   },
 
-  intimacyBadge: {
+  ownerHeader: {
     position: "absolute",
     top: 56,
+    left: 16,
+    right: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    zIndex: 11,
+  },
+  ownerInfo: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    minWidth: 0,
+    paddingRight: 8,
+  },
+  ownerAvatar: {
+
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.4)",
+  },
+  ownerAvatarPlaceholder: {
+    backgroundColor: "rgba(0,0,0,0.4)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ownerName: {
+    flexShrink: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    color: v_1bfbd0.white,
+    textShadowColor: "rgba(0,0,0,0.6)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  ownerFollowBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: v_8b0c90.full,
+    backgroundColor: v_1bfbd0.white,
+  },
+  ownerFollowBtnActive: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  ownerFollowText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: v_1bfbd0.zinc900,
+  },
+  ownerFollowTextActive: {
+    color: v_1bfbd0.white,
+  },
+  ownerMoreBtn: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  intimacyBadge: {
+    position: "absolute",
+    top: 100,
     right: 16,
     flexDirection: "row",
     alignItems: "center",
@@ -274,6 +471,17 @@ const v_d81136 = v_472849.create({
     backgroundColor: "rgba(0,0,0,0.6)",
     borderRadius: v_8b0c90.full,
     zIndex: 10,
+  },
+
+  intimacyBadgeInline: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: v_8b0c90.full,
+    marginLeft: 4,
   },
   intimacyText: {
     fontSize: 11,
@@ -299,8 +507,33 @@ const v_d81136 = v_472849.create({
     fontSize: 14,
     color: v_1bfbd0.white,
     lineHeight: 20,
+
+  },
+
+  descriptionWrap: {
     marginBottom: 12,
 
+    position: "relative",
+  },
+
+  descScrollbarTrack: {
+    position: "absolute",
+    top: 2,
+    bottom: 2,
+    right: 2,
+    width: 3,
+  },
+  descScrollbarThumb: {
+    position: "absolute",
+    right: 0,
+    width: 3,
+    borderRadius: 2,
+    backgroundColor: "rgba(255,255,255,0.9)",
+  },
+
+  descriptionScroll: {
+    maxHeight: 40,
+    paddingRight: 56,
   },
   callButton: {
     width: "100%",

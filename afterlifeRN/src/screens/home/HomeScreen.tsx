@@ -29,6 +29,8 @@ import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import { v_68a7fe } from "../../face/useFaceBiometricRetroPrompt";
 import v_9706a6 from "../../components/ui/FeedCard";
 import v_06b8c0 from "../../components/clone/IntimacyEventsSheet";
+
+import v_03e207 from "../../components/clone/GiftReceiptsSheet";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import v_4d58d7 from "../../components/common/ReportReasonModal";
 
@@ -38,6 +40,8 @@ import type { v_b0b271 } from "../../types/clone";
 
 import { v_37977a, v_10e36e } from "../../stores/feedStore";
 import { v_b4902e } from "../../stores/followStore";
+
+import { v_98d20a } from "../../stores/userFollowStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_f386b1 } from "../../mocks/feedAdapter";
 import {
@@ -71,6 +75,10 @@ export default function v_c316d8() {
   const v_f9771e = v_c18c22(0);
   const v_ebdf9a = v_e662ae<v_9cabcb>(null);
 
+  const [v_01ea76, v_ae56e9] = v_5ab095(false);
+
+  const v_d50147 = v_e662ae<ReturnType<typeof setTimeout> | null>(null);
+
   const v_53dd92 = v_326be8.OS === "ios"
     ? v_033e14.bottom
     : Math.max(v_f9771e, v_033e14.bottom);
@@ -87,6 +95,9 @@ export default function v_c316d8() {
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
   const v_b30b81 = v_b4902e((v_fd5f43) => v_fd5f43.isFollowing);
   const v_3094d4 = v_b4902e((v_fd5f43) => v_fd5f43.toggleFollow);
+
+  const v_8916d3 = v_98d20a((v_fd5f43) => v_fd5f43.isFollowing);
+  const v_1d9833 = v_98d20a((v_fd5f43) => v_fd5f43.toggleFollow);
 
   const [v_708913, v_f0e470] = v_5ab095(false);
 
@@ -110,6 +121,8 @@ export default function v_c316d8() {
   const [v_48e7fe, v_856f84] = v_5ab095("");
 
   const [v_d3a183, v_598141] = v_5ab095<{ cloneId: number; cloneName: string } | null>(null);
+
+  const [v_5e9fb7, v_cc306d] = v_5ab095<{ cloneId: number; cloneName: string } | null>(null);
 
   const [v_12fa22, v_949e66] = v_5ab095<{
     cloneId: number;
@@ -381,16 +394,31 @@ export default function v_c316d8() {
           cardHeight={v_1be4da}
           onToggleLike={() => v_a96ced(v_8c0b26.id)}
           onToggleFollow={() => void v_3094d4(v_8c0b26.cloneId)}
-          onCallPress={async () => {
+          onCallPress={() => {
 
-            const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
+            const v_b66f2c = Date.now();
+            console.log(`[Call][flow] +${v_b66f2c} onCallPress cloneId=${v_8c0b26.cloneId} name=${v_8c0b26.author} (optimistic)`);
+            if (typeof v_8c0b26.image === "string" && v_8c0b26.image) {
+              const v_630907 = Date.now();
+              console.log(`[Call][flow] +${v_630907} Image.prefetch start url=${v_8c0b26.image}`);
+              v_cf9c33.prefetch(v_8c0b26.image)
+                .then(() => console.log(`[Call][flow] +${Date.now()} Image.prefetch done (Δ${Date.now() - v_630907}ms)`))
+                .catch((v_49263d) => console.warn(`[Call][flow] Image.prefetch failed:`, v_49263d));
+            }
+            console.log(`[Call][flow] +${Date.now()} navigation.navigate("Call") (Δ${Date.now() - v_b66f2c}ms since click)`);
+            v_f4c991.navigate("Call", { cloneId: v_8c0b26.cloneId, name: v_8c0b26.author, image: v_8c0b26.image });
+
+            void v_84d546(v_2ca7e0, () => {
               v_f4c991.dispatch(
                 v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
               );
+            }).then((v_3ed4c3) => {
+              console.log(`[Call][flow] +${Date.now()} assertCanCall(bg) → ok=${v_3ed4c3} (Δ${Date.now() - v_b66f2c}ms)`);
+              if (!v_3ed4c3) {
+
+                if (v_f4c991.canGoBack()) v_f4c991.goBack();
+              }
             });
-            if (v_3ed4c3) {
-              v_f4c991.navigate("Call", { cloneId: v_8c0b26.cloneId, name: v_8c0b26.author, image: v_8c0b26.image });
-            }
           }}
           onCommentPress={() => v_b07dd3(v_8c0b26.id)}
 
@@ -421,10 +449,49 @@ export default function v_c316d8() {
               console.warn("[Home] share failed:", v_49263d);
             }
           }}
+
+          onOwnerPress={() => {
+            if (v_8c0b26.cloneOwnerId != null) {
+              v_f4c991.navigate("UserProfile", { userId: v_8c0b26.cloneOwnerId });
+            }
+          }}
+          onOwnerFollowPress={() => {
+            if (v_8c0b26.cloneOwnerId != null) void v_1d9833(v_8c0b26.cloneOwnerId);
+          }}
+          isOwnerFollowed={v_8c0b26.cloneOwnerId != null ? v_8916d3(v_8c0b26.cloneOwnerId) : false}
+
+          onGiftPress={() => v_cc306d({ cloneId: v_8c0b26.cloneId, cloneName: v_8c0b26.author })}
+
+          onDescriptionScrollStart={() => {
+            if (v_d50147.current) {
+              clearTimeout(v_d50147.current);
+              v_d50147.current = null;
+            }
+            v_ae56e9(true);
+          }}
+          onDescriptionScrollEnd={() => {
+            if (v_d50147.current) clearTimeout(v_d50147.current);
+            v_d50147.current = setTimeout(() => {
+              v_ae56e9(false);
+              v_d50147.current = null;
+            }, 200);
+          }}
         />
       );
     },
-    [v_2bcb8f, v_632420, v_1e752a, v_1be4da, v_a96ced, v_3094d4, v_b30b81, v_f5f393]
+    [
+      v_2bcb8f,
+      v_632420,
+      v_1e752a,
+      v_1be4da,
+      v_a96ced,
+      v_3094d4,
+      v_b30b81,
+      v_f5f393,
+      v_8916d3,
+      v_1d9833,
+      v_ae56e9,
+    ]
   );
 
   const v_587901 = !v_708913 || (v_ff422a.length === 0 && v_dec728);
@@ -480,6 +547,8 @@ export default function v_c316d8() {
           renderItem={v_fcf6ec}
           keyExtractor={(v_8c0b26) => String(v_8c0b26.id)}
           pagingEnabled
+
+          scrollEnabled={!v_01ea76}
           showsVerticalScrollIndicator={false}
           snapToInterval={v_1be4da}
           decelerationRate="fast"
@@ -1052,6 +1121,13 @@ export default function v_c316d8() {
         cloneId={v_d3a183?.cloneId ?? null}
         cloneName={v_d3a183?.cloneName ?? ""}
         onClose={() => v_598141(null)}
+      />
+      {}
+      <GiftReceiptsSheet
+        visible={!!v_5e9fb7}
+        cloneId={v_5e9fb7?.cloneId ?? null}
+        cloneName={v_5e9fb7?.cloneName ?? ""}
+        onClose={() => v_cc306d(null)}
       />
     </View>
   );

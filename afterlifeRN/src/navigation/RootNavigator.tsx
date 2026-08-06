@@ -79,7 +79,8 @@ export default function v_3b950c() {
             component={v_bfc6c1}
             options={{
               presentation: "fullScreenModal",
-              animation: "slide_from_bottom",
+
+              animation: "none",
             }}
           />
           <RootStack.Screen name="InviteAccept" component={v_000f0a} />
