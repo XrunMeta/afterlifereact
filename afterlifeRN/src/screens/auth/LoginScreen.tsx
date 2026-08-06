@@ -385,7 +385,8 @@ export default function LoginScreen({ navigation }: Props) {
                 onPress={handleLogin}
                 variant="primary"
                 disabled={loggingIn}
-                style={{ marginTop: SIZES.medium }}
+
+                style={{ marginTop: SIZES.xxlarge }}
               />
             </>
           )}
@@ -602,34 +603,34 @@ const styles = StyleSheet.create({
   },
 
   forgotPasswordHint: {
-    marginTop: SIZES.medium,
+    marginTop: SIZES.small,
     color: COLORS.zinc500,
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 11,
+    lineHeight: 16,
     textAlign: "center",
   },
 
   snsLoginContainer: {
-    marginTop: SIZES.xlarge,
+    marginTop: SIZES.xxlarge,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: SIZES.medium,
+    gap: SIZES.small,
     width: "100%",
   },
   snsLoginLabel: {
-    fontSize: 13,
-    lineHeight: 20,
-    color: COLORS.zinc600,
+    fontSize: 12,
+    lineHeight: 18,
+    color: COLORS.zinc500,
   },
   snsButtonContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SIZES.medium,
+    gap: SIZES.small,
   },
   snsButton: {
-    width: 48,
-    height: 48,
+    width: 40,
+    height: 40,
     borderRadius: 8,
     backgroundColor: COLORS.white,
     alignItems: "center",
