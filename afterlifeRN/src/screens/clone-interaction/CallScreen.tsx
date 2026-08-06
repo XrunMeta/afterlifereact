@@ -992,7 +992,7 @@ export default function CallScreen({ route, navigation }: Props) {
   }, []);
 
   useEffect(() => {
-    console.log(`[Call] 진입 cloneId=${cloneId} name=${paramName ?? "?"} (likedByMe fetch 중...)`);
+    console.log(`[Call][flow] +${Date.now()} CallScreen mount cloneId=${cloneId} name=${paramName ?? "?"} hasImage=${!!paramImage}`);
     if (!accessToken) return;
     let cancelled = false;
     getCloneLikeStatus(accessToken, cloneId)
@@ -1183,9 +1183,20 @@ export default function CallScreen({ route, navigation }: Props) {
           personaImage={typeof personaImage === "string" ? personaImage : ""}
 
           greetingStarted={greetingOn ? phase !== "greeting" && phase !== "idle" : undefined}
-          onConnected={() => setDialingDone(true)}
-          onCancel={async () => { await stopLive(); navigation.goBack(); }}
-          onRetry={() => { setGreetingStarted(false); void startLive(); }}
+          onConnected={() => {
+            console.log(`[Call][flow] +${Date.now()} DialingScreen.onConnected → setDialingDone(true)`);
+            setDialingDone(true);
+          }}
+          onCancel={async () => {
+            console.log(`[Call][flow] +${Date.now()} DialingScreen.onCancel → stopLive + goBack`);
+            await stopLive();
+            navigation.goBack();
+          }}
+          onRetry={() => {
+            console.log(`[Call][flow] +${Date.now()} DialingScreen.onRetry → startLive`);
+            setGreetingStarted(false);
+            void startLive();
+          }}
         />
       )}
 

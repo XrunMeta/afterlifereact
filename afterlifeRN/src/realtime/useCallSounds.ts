@@ -24,23 +24,31 @@ export function useCallSounds() {
   );
 
   const startDialingTone = useCallback(() => {
+
+    console.log(`[Call][flow] +${Date.now()} sound.startDialingTone()`);
     try {
 
       void dialingPlayer.seekTo(0);
       dialingPlayer.play();
-    } catch {  }
+    } catch (err) {
+      console.warn("[Call][flow] startDialingTone failed:", err);
+    }
   }, [dialingPlayer]);
 
   const stopDialingTone = useCallback(() => {
+    console.log(`[Call][flow] +${Date.now()} sound.stopDialingTone()`);
     try { dialingPlayer.pause(); } catch {  }
   }, [dialingPlayer]);
 
   const playConnect = useCallback(() => {
+    console.log(`[Call][flow] +${Date.now()} sound.playConnect()`);
     try { dialingPlayer.pause(); } catch {  }
     try {
       void connectPlayer.seekTo(0);
       connectPlayer.play();
-    } catch {  }
+    } catch (err) {
+      console.warn("[Call][flow] playConnect failed:", err);
+    }
   }, [dialingPlayer, connectPlayer]);
 
   return useMemo(

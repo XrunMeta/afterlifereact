@@ -43,19 +43,28 @@ export function DialingScreen(props: {
   const outcome = inGrace && rawOutcome !== 'connected' ? 'dialing' : rawOutcome;
 
   useEffect(() => {
+
+    console.log(
+      `[Call][flow] +${Date.now()} DialingScreen mount personaName="${personaName}" hasImage=${!!personaImage} liveState=${liveState}`,
+    );
     sounds.startDialingTone();
-    return () => sounds.stopDialingTone();
+    return () => {
+      console.log(`[Call][flow] +${Date.now()} DialingScreen unmount`);
+      sounds.stopDialingTone();
+    };
 
   }, []);
 
   const connectedRef = useRef(false);
   useEffect(() => {
+
+    console.log(`[Call][flow] +${Date.now()} DialingScreen outcome=${outcome} liveState=${liveState} elapsed=${elapsed}ms`);
     if (outcome === 'connected' && !connectedRef.current) {
       connectedRef.current = true;
       sounds.playConnect();
       onConnected();
     }
-  }, [outcome, sounds, onConnected]);
+  }, [outcome, sounds, onConnected, liveState, elapsed]);
 
   useEffect(() => {
     if (outcome === 'timeout' || outcome === 'error') sounds.stopDialingTone();
