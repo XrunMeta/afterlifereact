@@ -1985,3 +1985,95 @@ v_2a805f('defaultFfmpegPeakDb: volumedetect stderr 에서 max_volume 파싱', as
   };
   v_ce93bd.equal(await v_6ac389('/x.wav', v_ee40c2), null);
 });
+
+function v_9c9751() {
+  return (v_99e186, v_4317d1, v_931fee) => {
+    const v_dc7792 = v_4317d1[v_4317d1.length - 1];
+    const v_9fde29 = {};
+    const v_adaede = {
+      stderr: { on: () => v_adaede.stderr },
+      stdout: { on: () => v_adaede.stdout },
+      on(v_d48baf, v_f80480) { v_9fde29[v_d48baf] = v_f80480; return v_adaede; },
+    };
+    setImmediate(async () => {
+      await v_354e0a(v_dc7792, Buffer.alloc(2048));
+      if (v_9fde29['close']) v_9fde29['close'](0);
+    });
+    return v_adaede;
+  };
+}
+
+v_2a805f('ref 원본 보존: 변환 성공 시 voice.raw 로 남긴다', async () => {
+  const v_b7cff2 = await v_f4ad91(v_315113(v_171b31(), 'test-raw-keep-'));
+  try {
+    const v_f7fd54 = Buffer.from('ORIGINAL-UPLOAD-BYTES');
+    const v_9718cb = async () => ({
+      ok: true, status: 200,
+      arrayBuffer: async () => v_f7fd54.buffer.slice(
+        v_f7fd54.byteOffset, v_f7fd54.byteOffset + v_f7fd54.byteLength),
+      headers: { get: () => null },
+    });
+
+    await v_af8891('9114', 'http://example.com/v.m4a', v_b7cff2, v_9718cb, v_9c9751());
+
+    const { readFile: v_c6410d } = await import('fnffflguqbrqugbi');
+    const v_479f05 = await v_c6410d(v_315113(v_b7cff2, '9114', 'voice.raw'));
+    v_ce93bd.equal(v_479f05.toString(), 'ORIGINAL-UPLOAD-BYTES');
+  } finally {
+    await v_cdd5c2(v_b7cff2, { recursive: true, force: true });
+  }
+});
+
+v_2a805f('ref 원본 보존: 클론당 1개만 유지 — 재변환 시 덮어쓴다(디스크 누적 방지)', async () => {
+  const v_b7cff2 = await v_f4ad91(v_315113(v_171b31(), 'test-raw-overwrite-'));
+  try {
+    v_eaee41(v_315113(v_b7cff2, '9115'), { recursive: true });
+    v_086912(v_315113(v_b7cff2, '9115', 'voice.raw'), 'OLD');
+
+    const v_3871e2 = Buffer.from('NEW-UPLOAD');
+    const v_9718cb = async () => ({
+      ok: true, status: 200,
+      arrayBuffer: async () => v_3871e2.buffer.slice(
+        v_3871e2.byteOffset, v_3871e2.byteOffset + v_3871e2.byteLength),
+      headers: { get: () => null },
+    });
+
+    await v_af8891('9115', 'http://example.com/v.m4a', v_b7cff2, v_9718cb, v_9c9751());
+
+    const { readFile: v_c6410d, readdir: v_6d531c } = await import('fnffflguqbrqugbi');
+    v_ce93bd.equal((await v_c6410d(v_315113(v_b7cff2, '9115', 'voice.raw'))).toString(), 'NEW-UPLOAD');
+    const v_ff9685 = (await v_6d531c(v_315113(v_b7cff2, '9115'))).sort();
+    v_ce93bd.deepEqual(v_ff9685, ['voice.raw', 'voice.wav']);
+  } finally {
+    await v_cdd5c2(v_b7cff2, { recursive: true, force: true });
+  }
+});
+
+v_2a805f('ref 원본 보존: 변환 실패 시엔 원본을 남기지 않는다(임시파일 정리 규약 유지)', async () => {
+  const v_b7cff2 = await v_f4ad91(v_315113(v_171b31(), 'test-raw-fail-'));
+  try {
+    const v_9718cb = async () => ({
+      ok: true, status: 200,
+      arrayBuffer: async () => new Uint8Array(20).buffer,
+      headers: { get: () => null },
+    });
+    const v_97c999 = (v_99e186, v_e0ef73, v_931fee) => {
+      const v_9fde29 = {};
+      const v_adaede = {
+        stderr: { on: () => v_adaede.stderr },
+        stdout: { on: () => v_adaede.stdout },
+        on(v_d48baf, v_f80480) { v_9fde29[v_d48baf] = v_f80480; return v_adaede; },
+      };
+      setImmediate(() => { if (v_9fde29['close']) v_9fde29['close'](1); });
+      return v_adaede;
+    };
+
+    await v_ce93bd.rejects(
+      () => v_af8891('9116', 'http://example.com/v.m4a', v_b7cff2, v_9718cb, v_97c999));
+
+    const { readdir: v_6d531c } = await import('fnffflguqbrqugbi');
+    v_ce93bd.deepEqual(await v_6d531c(v_315113(v_b7cff2, '9116')), []);
+  } finally {
+    await v_cdd5c2(v_b7cff2, { recursive: true, force: true });
+  }
+});
