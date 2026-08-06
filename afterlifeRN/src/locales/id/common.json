@@ -529,6 +529,8 @@
       "openXrunDesc": "Buka aplikasi XRUN (jika tidak ada, buka store)",
       "purchase": "Isi Ulang Kredit · Berlangganan",
       "purchaseDesc": "Tambah waktu panggilan dengan langganan bulanan · isi ulang",
+      "giftInventory": "Dompet Hadiah",
+      "giftInventoryDesc": "Tukar hadiah yang diterima menjadi kredit XRUN",
       "logout": "Keluar"
     }
   },
