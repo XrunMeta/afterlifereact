@@ -126,6 +126,31 @@ async def test_batch_stage_order_matches_pipeline_timeline(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_render_done_does_not_delay_first_audio_hook(monkeypatch):
+    """[리뷰 Important 2] render_done 은 _fire_hook() **뒤**에 나가야 한다.
+    앞에 두면 log/json/send 만큼 필러컷과 speech_start(=on_first_audio)가
+    뒤로 밀려, 우리가 재려는 '첫 오디오 도달 시점'을 계측이 왜곡한다."""
+    monkeypatch.setenv("PRETHIRD_RENDER_MODE", "batch")
+    vt, at = FakeVideoTrack(), FakeAudioTrack()
+    p = _mk_pipeline(vt, at, ["충분히 긴 한 문장입니다."])
+
+    timeline: list[str] = []
+    await p.say(
+        "안녕",
+        on_response_ready=lambda: timeline.append("filler_cut"),
+        on_first_audio=lambda: timeline.append("speech_start"),
+        on_stage=lambda s, d: timeline.append(s),
+    )
+
+    # 필러컷 → speech_start → render_done → stream_start 순
+    assert timeline.index("filler_cut") < timeline.index("speech_start")
+    assert timeline.index("speech_start") < timeline.index("render_done")
+    assert timeline.index("render_done") < timeline.index("stream_start")
+    # render_start(렌더 진입 계측)는 여전히 훅보다 앞
+    assert timeline.index("render_start") < timeline.index("filler_cut")
+
+
+@pytest.mark.asyncio
 async def test_partial_emits_only_stream_stages(monkeypatch):
     """partial 은 세그먼트가 여러 개여도 stream_start/stream_end 2건만."""
     monkeypatch.setenv("PRETHIRD_RENDER_MODE", "partial")

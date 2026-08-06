@@ -724,7 +724,7 @@ def _make_dc_handler(sess, channel):
                     sess, channel, os.environ.get("PRETHIRD_API_BASE"),
                 ))
 
-        def _emit_stage(stage, detail=None, seq=seq, t0=_t_dc):
+        def _emit_stage(stage, detail=None, *, seq=seq, t0=_t_dc):
             """[T-258] 발화 파이프라인 단계 신호 1건 발신.
 
             payload: {"type":"stage","seq":<int|None>,"stage":<name>,
@@ -734,18 +734,26 @@ def _make_dc_handler(sess, channel):
             - dc 가 닫혀 있으면 조용히 스킵, 전송 실패는 log.warning 후 진행.
               (pipeline._stage 가 한 겹 더 감싸므로 발화는 어떤 경우에도 안 죽는다)
             - 동기·논블로킹: channel.send 는 aiortc 동기 API — await 없음.
+
+            [리뷰 fix — 위치인자 봉인] seq/t0 는 **키워드 전용**(`*,`)이다.
+              pipeline 은 on_stage(name, detail) 2인자로만 부른다 — 3·4번째
+              위치인자로 엉뚱한 값이 seq/t0 를 덮어쓰는 오호출을 원천 차단.
+            [리뷰 fix — 핫패스 I/O] `[stage]` log.info 는 **readyState 검사 뒤**로
+              옮겼다. 이전에는 채널이 닫혀 있어도 턴당 7줄이 무조건 찍혔고,
+              그중 2줄(render_done/stream_start)은 _fire_hook~push 창 안이라
+              루트 핸들러가 파일일 때 블로킹 I/O 로 push 를 지연시켰다.
+              이제 실제로 보낼 때만 1줄 남긴다.
             """
+            if channel is None or getattr(channel, "readyState", None) != "open":
+                return  # dc 닫힘 — 조용히 스킵(로그도 남기지 않는다)
             _t_ms = int((time.perf_counter() - t0) * 1000)
-            # 서버측 타임라인 근거는 dc 상태와 무관하게 남긴다(무거운 계산 없음).
+            payload = {"type": "stage", "seq": seq, "stage": stage, "tMs": _t_ms}
+            if detail:
+                payload["detail"] = detail
             log.info(
                 "[stage] session=%s seq=%s stage=%s tMs=%d detail=%s",
                 sess.session_id, seq, stage, _t_ms, detail,
             )
-            if channel is None or getattr(channel, "readyState", None) != "open":
-                return
-            payload = {"type": "stage", "seq": seq, "stage": stage, "tMs": _t_ms}
-            if detail:
-                payload["detail"] = detail
             try:
                 channel.send(_json.dumps(payload))
             except Exception as exc:

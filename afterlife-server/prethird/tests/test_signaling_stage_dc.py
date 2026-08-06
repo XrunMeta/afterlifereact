@@ -117,11 +117,53 @@ def test_stage_signal_disabled_by_env(monkeypatch):
     assert ("speech_end", 1) in [(m["type"], m.get("seq")) for m in ch.sent]
 
 
-def test_closed_channel_is_silently_skipped():
+def test_closed_channel_is_silently_skipped(caplog):
+    """[리뷰 Important 3] dc 가 닫혀 있으면 send 뿐 아니라 `[stage]` log.info 도
+    남기지 않는다 — 이전엔 로그가 readyState 검사보다 앞에 있어 채널이 닫혀
+    있어도 턴당 7줄이 핫패스에서 무조건 찍혔다(그중 2줄은 _fire_hook~push 창
+    안 → 루트 핸들러가 파일이면 블로킹 I/O 로 push 지연)."""
+    import logging as _logging
+
     sess, ch = _Sess(), _Channel(ready="closed")
-    _run_handler(sess, ch, {"type": "say", "text": "안녕", "seq": 1})
+    with caplog.at_level(_logging.INFO, logger="prethird.signaling"):
+        _run_handler(sess, ch, {"type": "say", "text": "안녕", "seq": 1})
     assert ch.sent == []                                  # 아무것도 안 보냄
     assert sess.pipeline.say_calls == ["안녕"]            # 발화는 정상 수행
+    assert [r for r in caplog.records if "[stage]" in r.getMessage()] == []
+
+
+def test_stage_log_emitted_only_when_sent(caplog):
+    """열린 채널에서는 보낸 만큼만 `[stage]` 로그가 남는다(7단계 = 7줄)."""
+    import logging as _logging
+
+    sess, ch = _Sess(), _Channel()
+    with caplog.at_level(_logging.INFO, logger="prethird.signaling"):
+        _run_handler(sess, ch, {"type": "say", "text": "안녕", "seq": 5})
+    logs = [r.getMessage() for r in caplog.records if "[stage]" in r.getMessage()]
+    assert len(logs) == 7
+    assert len([m for m in ch.sent if m["type"] == "stage"]) == 7
+
+
+def test_seq_and_t0_are_keyword_only():
+    """[리뷰 minor] seq/t0 를 3·4번째 위치인자로 덮어쓰는 오호출은 TypeError.
+    pipeline 은 on_stage(name, detail) 2인자로만 부른다."""
+    captured = {}
+
+    class _P(_Pipeline):
+        async def say(self, text, turn=None, on_first_audio=None, on_response_ready=None,
+                      on_sentence=None, on_stage=None, **_kw):
+            self.say_calls.append(text)
+            try:
+                on_stage("llm_done", None, 999)      # seq 를 위치로 밀어넣기 시도
+            except TypeError as e:
+                captured["err"] = str(e)
+
+    sess, ch = _Sess(), _Channel()
+    sess.pipeline = _P()
+    _run_handler(sess, ch, {"type": "say", "text": "안녕", "seq": 3})
+
+    assert "err" in captured, "위치인자 오호출이 차단되지 않았다"
+    assert [m for m in ch.sent if m["type"] == "stage"] == []   # 잘못된 신호는 안 나감
 
 
 def test_send_failure_does_not_kill_utterance():
