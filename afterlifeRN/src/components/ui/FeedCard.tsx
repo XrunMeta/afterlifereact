@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
+  ScrollView,
   StyleSheet,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -153,12 +154,19 @@ const FeedCard: React.FC<FeedCardProps> = ({
 
 }
             {item.description ? (
-              <HashtagText
-                style={styles.description}
-                tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
+              <ScrollView
+                style={styles.descriptionScroll}
+                showsVerticalScrollIndicator={true}
+                nestedScrollEnabled={true}
+                persistentScrollbar={true}
               >
-                {item.description}
-              </HashtagText>
+                <HashtagText
+                  style={styles.description}
+                  tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
+                >
+                  {item.description}
+                </HashtagText>
+              </ScrollView>
             ) : null}
 
             {}
@@ -299,8 +307,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.white,
     lineHeight: 20,
-    marginBottom: 12,
 
+  },
+
+  descriptionScroll: {
+    maxHeight: 100,
+    marginBottom: 12,
+    paddingRight: 56,
   },
   callButton: {
     width: "100%",
