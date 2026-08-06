@@ -239,7 +239,13 @@
     "remainingWarnToast": "残り通話時間は30秒です。まもなく終了します。",
     "exhaustedTitle": "通話時間終了",
     "exhaustedBody": "チャージすれば通話を続けられます。",
-    "exhaustedCharge": "チャージ"
+    "exhaustedCharge": "チャージ",
+    "batteryWhitelistTitle": "通話の安定性について",
+    "batteryWhitelistBody": "端末のバッテリー節約機能により通話が切れることがあります。設定でこのアプリをバッテリー最適化の除外に登録すると安定します。",
+    "batteryWhitelistOpen": "設定を開く",
+    "batteryWhitelistDismiss": "今後表示しない",
+    "bgWarnTitle": "📞 通話が切れる可能性があります",
+    "bgWarnBody": "アプリを開いたままにしないと通話が続きません。アプリに戻ってください。"
   },
   "feed": {
     "homeTitle": "ホーム",
