@@ -95,9 +95,12 @@ export interface GiftCatalogItem {
   id: string;
   name: string;
   emoji: string;
+
   price: number;
 
   imageUrl?: string;
+
+  xrunPrice?: number;
 }
 
 export async function getGiftCatalog(env: Bindings): Promise<GiftCatalogItem[]> {
@@ -127,6 +130,10 @@ export async function getGiftCatalog(env: Bindings): Promise<GiftCatalogItem[]> 
         };
         if (typeof raw.imageUrl === "string" && raw.imageUrl.length > 0) {
           item.imageUrl = raw.imageUrl;
+        }
+
+        if (typeof raw.xrunPrice === "number" && Number.isFinite(raw.xrunPrice) && raw.xrunPrice >= 0) {
+          item.xrunPrice = raw.xrunPrice;
         }
         items.push(item);
       }
