@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
   },
   tabRow: {
 
-    marginTop: SIZES.large,
+    marginTop: 80,
     flexDirection: "row",
     backgroundColor: COLORS.zinc100,
     borderRadius: RADIUS.md,
