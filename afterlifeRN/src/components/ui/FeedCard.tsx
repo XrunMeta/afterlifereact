@@ -41,6 +41,10 @@ interface FeedCardProps {
   isOwnerFollowed?: boolean;
 
   onGiftPress?: () => void;
+
+  onDescriptionScrollStart?: () => void;
+
+  onDescriptionScrollEnd?: () => void;
 }
 
 const FeedCard: React.FC<FeedCardProps> = ({
@@ -61,6 +65,8 @@ const FeedCard: React.FC<FeedCardProps> = ({
   onOwnerFollowPress,
   isOwnerFollowed = false,
   onGiftPress,
+  onDescriptionScrollStart,
+  onDescriptionScrollEnd,
 }) => {
   const { t } = useTranslation();
 
@@ -235,6 +241,11 @@ const FeedCard: React.FC<FeedCardProps> = ({
                 showsVerticalScrollIndicator={true}
                 nestedScrollEnabled={true}
                 persistentScrollbar={true}
+                indicatorStyle="white"
+
+                onScrollBeginDrag={onDescriptionScrollStart}
+                onScrollEndDrag={onDescriptionScrollEnd}
+                onMomentumScrollEnd={onDescriptionScrollEnd}
               >
                 <HashtagText
                   style={styles.description}
