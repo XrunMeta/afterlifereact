@@ -380,14 +380,19 @@ persons.get("/", requireAuth, async (c) => {
   const cloneIdRaw = c.req.query("cloneId");
 
   const cols = `SELECT
-       id,
-       user_id       AS userId,
-       clone_id      AS cloneId,
-       display_name  AS displayName,
-       consent_state AS consentState,
-       consent_at    AS consentAt,
-       created_at    AS createdAt
-     FROM persons`;
+       p.id,
+       p.user_id       AS userId,
+       p.clone_id      AS cloneId,
+       p.display_name  AS displayName,
+       p.consent_state AS consentState,
+       p.consent_at    AS consentAt,
+       p.created_at    AS createdAt,
+       (SELECT COUNT(*) FROM clone_person_faces f
+         WHERE f.person_id = p.id AND f.clone_id = p.clone_id) AS faceCount,
+       CASE WHEN c.self_person_id IS NOT NULL AND c.self_person_id = p.id
+            THEN 1 ELSE 0 END AS isSelf
+     FROM persons p
+     LEFT JOIN clones c ON c.id = p.clone_id`;
   type Row = {
     id: number;
     userId: number;
@@ -396,6 +401,8 @@ persons.get("/", requireAuth, async (c) => {
     consentState: string;
     consentAt: number | null;
     createdAt: number;
+    faceCount: number;
+    isSelf: number; 
   };
 
   let rows;
@@ -405,15 +412,17 @@ persons.get("/", requireAuth, async (c) => {
       throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
     }
     rows = await c.env.DB.prepare(
-      `${cols} WHERE user_id = ? AND (clone_id = ? OR clone_id IS NULL) ORDER BY created_at DESC`
+      `${cols} WHERE p.user_id = ? AND (p.clone_id = ? OR p.clone_id IS NULL) ORDER BY p.created_at DESC`
     )
       .bind(userId, cloneId)
       .all<Row>();
   } else {
-    rows = await c.env.DB.prepare(`${cols} WHERE user_id = ? ORDER BY created_at DESC`)
+    rows = await c.env.DB.prepare(`${cols} WHERE p.user_id = ? ORDER BY p.created_at DESC`)
       .bind(userId)
       .all<Row>();
   }
 
-  return c.json({ data: rows.results });
+  return c.json({
+    data: rows.results.map((r) => ({ ...r, isSelf: r.isSelf === 1 })),
+  });
 });
