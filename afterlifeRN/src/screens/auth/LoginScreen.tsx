@@ -313,10 +313,6 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
       >
         <View style={v_d81136.container}>
           {}
-          <View style={v_d81136.logoContainer}>
-            {}
-            <Image source={require("../../../assets/images/logo.png")} style={v_d81136.logoImage} resizeMode="contain" />
-          </View>
 
           {}
           <View style={v_d81136.tabRow}>
@@ -428,6 +424,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
 
             <View style={v_d81136.googleButtonPlaceholder} />
           ) : v_c39df9 ? (
+
             <Button
               title={v_8d41d7("auth.login.googleBtn")}
               onPress={() => v_78c15c("google")}
@@ -456,6 +453,11 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
               <Text style={v_d81136.signupLink}>{v_8d41d7("auth.login.signupBtn")}</Text>
             </TouchableOpacity>
           </View>
+
+          {}
+          <Text style={v_d81136.forgotPasswordHint}>
+            {v_8d41d7("auth.login.forgotPasswordHint")}
+          </Text>
         </View>
       </SafeScrollView>
     </SafeView>
@@ -583,5 +585,13 @@ const v_d81136 = v_472849.create({
     color: v_1bfbd0.zinc900,
     fontSize: 14,
     fontWeight: "600",
+  },
+
+  forgotPasswordHint: {
+    marginTop: v_9b1a04.medium,
+    color: v_1bfbd0.zinc500,
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: "center",
   },
 });
