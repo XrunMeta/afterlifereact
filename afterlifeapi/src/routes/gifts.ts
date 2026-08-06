@@ -8,5 +8,7 @@ export const gifts = new Hono<AppEnv>();
 
 gifts.get("/catalog", async (c) => {
   const items = await getGiftCatalog(c.env);
+
+  c.header("Cache-Control", "no-store, must-revalidate");
   return c.json({ items });
 });
