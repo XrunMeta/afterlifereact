@@ -902,29 +902,26 @@ export default function MyClonesDashboardScreen() {
               }}
             >
               <View style={{ flex: 1 }}>
-                <Text style={s.balanceLabel}>{t("my.balance.remainingTime")}</Text>
+                <Text style={s.balanceLabel}>{t("my.balance.remainingTokens", { defaultValue: "남은 토큰 수량" })}</Text>
                 {balanceLoading && !balance ? (
                   <ActivityIndicator color={COLORS.violet600} style={{ marginTop: 6 }} />
                 ) : balance ? (
                   <>
                     <Text style={s.balanceTotal}>
                       {(() => {
-                        const totalSec = Math.max(0, Math.floor(balance.totalSec));
-                        const m = Math.floor(totalSec / 60);
-                        const rem = totalSec % 60;
-                        if (m === 0) return t("common.durationSec", { s: rem });
-                        return rem > 0
-                          ? t("common.durationMinSec", { m, s: rem })
-                          : t("common.durationMin", { m });
+
+                        const xrun = Math.max(0, balance.totalSec) / 60;
+                        const s = Number.isInteger(xrun) ? xrun.toLocaleString() : xrun.toFixed(1);
+                        return `${s} XRUN`;
                       })()}
                     </Text>
                     <Text style={s.balanceBreakdown}>
-                      {t("my.balance.free", { time: t("common.durationMin", { m: Math.floor(balance.freeSec / 60) }) })}
+                      {t("my.balance.free", { time: `${(balance.freeSec / 60).toLocaleString()} XRUN` })}
                       {balance.subSec > 0
-                        ? ` · ${t("my.balance.sub", { time: t("common.durationMin", { m: Math.floor(balance.subSec / 60) }) })}`
+                        ? ` · ${t("my.balance.sub", { time: `${(balance.subSec / 60).toLocaleString()} XRUN` })}`
                         : ""}
                       {balance.topupSec > 0
-                        ? ` · ${t("my.balance.topup", { time: t("common.durationMin", { m: Math.floor(balance.topupSec / 60) }) })}`
+                        ? ` · ${t("my.balance.topup", { time: `${(balance.topupSec / 60).toLocaleString()} XRUN` })}`
                         : ""}
                     </Text>
                   </>

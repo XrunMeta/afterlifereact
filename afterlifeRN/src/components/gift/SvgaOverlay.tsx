@@ -1,7 +1,14 @@
 
 
-import React, { useMemo } from "react";
-import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { WebView } from "react-native-webview";
 import { COLORS } from "../constants";
@@ -12,8 +19,23 @@ interface Props {
   onClose: () => void;
 }
 
-function buildHtml(url: string): string {
-  const safe = url.replace(/"/g, '\\"');
+function bytesToBase64(bytes: Uint8Array): string {
+  let bin = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode.apply(
+      null,
+      Array.from(bytes.subarray(i, i + chunk)),
+    );
+  }
+
+  const globalAny = globalThis as unknown as { btoa?: (s: string) => string };
+  if (typeof globalAny.btoa === "function") return globalAny.btoa(bin);
+
+  return bin;
+}
+
+function buildHtml(base64: string): string {
   return `<!doctype html>
 <html>
 <head>
@@ -29,7 +51,7 @@ function buildHtml(url: string): string {
 </head>
 <body>
   <div id="canvas"><div id="stage"></div></div>
-  <div id="diag">loading…</div>
+  <div id="diag">loading svga.js…</div>
   <script>
     (function () {
       var diag = document.getElementById('diag');
@@ -40,30 +62,19 @@ function buildHtml(url: string): string {
         }
       };
       var fallback = setTimeout(function () { setDiag('timeout'); post({ type: 'error', reason: 'timeout' }); }, 15000);
+      var BASE64 = ${JSON.stringify(base64)};
 
-      function playFromBinary(bytes) {
-        try {
-          if (typeof SVGA === 'undefined' || !SVGA.Parser || !SVGA.Player) {
-            throw new Error('svga.min.js not loaded');
-          }
-          var parser = new SVGA.Parser();
-          if (typeof parser.loadFromBinary === 'function') {
-            parser.loadFromBinary(bytes,
-              function (video) { start(video); },
-              function (e) { fail('loadFromBinary: ' + String(e)); }
-            );
-            return;
-          }
-          var b64 = '';
-          var CHUNK = 0x8000;
-          for (var i = 0; i < bytes.length; i += CHUNK) {
-            b64 += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
-          }
-          var dataUrl = 'data:application/octet-stream;base64,' + btoa(b64);
-          parser.load(dataUrl, function (video) { start(video); }, function (e) { fail('parser.load: ' + String(e)); });
-        } catch (e) {
-          fail(String(e));
-        }
+      function decodeBase64() {
+        var bin = atob(BASE64);
+        var bytes = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return bytes;
+      }
+
+      function fail(reason) {
+        clearTimeout(fallback);
+        setDiag('err: ' + reason);
+        post({ type: 'error', reason: reason });
       }
 
       function start(video) {
@@ -82,25 +93,29 @@ function buildHtml(url: string): string {
         }
       }
 
-      function fail(reason) {
-        clearTimeout(fallback);
-        setDiag('err: ' + reason);
-        post({ type: 'error', reason: reason });
+      function tryPlay() {
+        if (typeof SVGA === 'undefined' || !SVGA.Parser || !SVGA.Player) {
+          setDiag('svga.js not loaded');
+          return setTimeout(tryPlay, 300);
+        }
+        setDiag('decoding…');
+        try {
+          var bytes = decodeBase64();
+          var parser = new SVGA.Parser();
+          if (typeof parser.loadFromBinary === 'function') {
+            setDiag('parsing…');
+            parser.loadFromBinary(bytes, start, function (e) { fail('loadFromBinary: ' + String(e)); });
+            return;
+          }
+          setDiag('parsing (dataurl)…');
+          var dataUrl = 'data:application/octet-stream;base64,' + BASE64;
+          parser.load(dataUrl, start, function (e) { fail('parser.load: ' + String(e)); });
+        } catch (e) {
+          fail('decode: ' + String(e));
+        }
       }
 
-      setDiag('fetch…');
-      fetch("${safe}", { credentials: 'omit', mode: 'cors', cache: 'no-store' })
-        .then(function (r) {
-          if (!r.ok) throw new Error('http ' + r.status);
-          setDiag('fetched, parsing…');
-          return r.arrayBuffer();
-        })
-        .then(function (buf) {
-          playFromBinary(new Uint8Array(buf));
-        })
-        .catch(function (e) {
-          fail('fetch: ' + String(e && e.message ? e.message : e));
-        });
+      tryPlay();
     })();
   </script>
 </body>
@@ -108,11 +123,42 @@ function buildHtml(url: string): string {
 }
 
 export default function SvgaOverlay({ visible, svgaUrl, onClose }: Props) {
-  const html = useMemo(() => (svgaUrl ? buildHtml(svgaUrl) : ""), [svgaUrl]);
+  const [html, setHtml] = useState<string | null>(null);
+  const [loadErr, setLoadErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!visible || !svgaUrl) {
+      setHtml(null);
+      setLoadErr(null);
+      return;
+    }
+    let cancelled = false;
+    setHtml(null);
+    setLoadErr(null);
+    console.log(`[SvgaOverlay] native fetch begin url=${svgaUrl}`);
+    fetch(svgaUrl, { cache: "no-store" })
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`http ${r.status}`);
+        const buf = await r.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+        console.log(`[SvgaOverlay] native fetch ok bytes=${bytes.length}`);
+        const base64 = bytesToBase64(bytes);
+        if (cancelled) return;
+        setHtml(buildHtml(base64));
+      })
+      .catch((err) => {
+        console.warn(`[SvgaOverlay] native fetch failed`, err);
+        if (!cancelled) setLoadErr(String((err as Error).message ?? err));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, svgaUrl]);
+
   return (
     <Modal visible={visible && !!svgaUrl} transparent animationType="fade" onRequestClose={onClose}>
       <View style={s.root}>
-        {svgaUrl ? (
+        {html ? (
           <WebView
             originWhitelist={["*"]}
             source={{ html, baseUrl: "https://unpkg.com/" }}
@@ -123,17 +169,25 @@ export default function SvgaOverlay({ visible, svgaUrl, onClose }: Props) {
             mixedContentMode="always"
             onMessage={(e) => {
               try {
-                const msg = JSON.parse(e.nativeEvent.data) as { type?: string };
+                const msg = JSON.parse(e.nativeEvent.data) as { type?: string; reason?: string };
                 console.log(`[SvgaOverlay] webview msg`, msg);
                 if (msg?.type === "finished" || msg?.type === "error") {
-                  setTimeout(onClose, msg.type === "finished" ? 200 : 0);
+                  setTimeout(onClose, msg.type === "finished" ? 200 : 800);
                 }
               } catch {
 
               }
             }}
           />
-        ) : null}
+        ) : loadErr ? (
+          <View style={s.loader}>
+            <Text style={s.errText}>재생 실패: {loadErr}</Text>
+          </View>
+        ) : (
+          <View style={s.loader}>
+            <ActivityIndicator color={COLORS.white} />
+          </View>
+        )}
         <TouchableOpacity style={s.close} onPress={onClose} activeOpacity={0.7}>
           <Feather name="x" size={24} color={COLORS.white} />
         </TouchableOpacity>
@@ -145,6 +199,8 @@ export default function SvgaOverlay({ visible, svgaUrl, onClose }: Props) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: "rgba(0,0,0,0.85)" },
   web: { flex: 1, backgroundColor: "transparent" },
+  loader: { flex: 1, alignItems: "center", justifyContent: "center" },
+  errText: { color: "#ffb4b4", fontSize: 12, paddingHorizontal: 24, textAlign: "center" },
   close: {
     position: "absolute",
     top: 44,
