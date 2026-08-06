@@ -43,19 +43,28 @@ export function v_1980fb(props: {
   const v_f22838 = v_163855 && v_ee91bd !== 'connected' ? 'dialing' : v_ee91bd;
 
   v_c4deb2(() => {
+
+    console.log(
+      `[Call][flow] +${Date.now()} DialingScreen mount personaName="${v_dfb220}" hasImage=${!!v_0e38ad} liveState=${v_6cc918}`,
+    );
     v_05d0df.startDialingTone();
-    return () => v_05d0df.stopDialingTone();
+    return () => {
+      console.log(`[Call][flow] +${Date.now()} DialingScreen unmount`);
+      v_05d0df.stopDialingTone();
+    };
 
   }, []);
 
   const v_0e4e36 = v_e662ae(false);
   v_c4deb2(() => {
+
+    console.log(`[Call][flow] +${Date.now()} DialingScreen outcome=${v_f22838} liveState=${v_6cc918} elapsed=${v_e56026}ms`);
     if (v_f22838 === 'connected' && !v_0e4e36.current) {
       v_0e4e36.current = true;
       v_05d0df.playConnect();
       v_a4c77b();
     }
-  }, [v_f22838, v_05d0df, v_a4c77b]);
+  }, [v_f22838, v_05d0df, v_a4c77b, v_6cc918, v_e56026]);
 
   v_c4deb2(() => {
     if (v_f22838 === 'timeout' || v_f22838 === 'error') v_05d0df.stopDialingTone();

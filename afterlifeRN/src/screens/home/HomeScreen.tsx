@@ -396,16 +396,25 @@ export default function v_c316d8() {
           onToggleFollow={() => void v_3094d4(v_8c0b26.cloneId)}
           onCallPress={async () => {
 
+            const v_b66f2c = Date.now();
+            console.log(`[Call][flow] +${v_b66f2c} onCallPress cloneId=${v_8c0b26.cloneId} name=${v_8c0b26.author}`);
+
             const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
               v_f4c991.dispatch(
                 v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
               );
             });
+            console.log(`[Call][flow] +${Date.now()} assertCanCall → ok=${v_3ed4c3} (Δ${Date.now() - v_b66f2c}ms)`);
             if (v_3ed4c3) {
 
               if (typeof v_8c0b26.image === "string" && v_8c0b26.image) {
-                v_cf9c33.prefetch(v_8c0b26.image).catch(() => {});
+                const v_630907 = Date.now();
+                console.log(`[Call][flow] +${v_630907} Image.prefetch start url=${v_8c0b26.image}`);
+                v_cf9c33.prefetch(v_8c0b26.image)
+                  .then(() => console.log(`[Call][flow] +${Date.now()} Image.prefetch done (Δ${Date.now() - v_630907}ms)`))
+                  .catch((v_49263d) => console.warn(`[Call][flow] Image.prefetch failed:`, v_49263d));
               }
+              console.log(`[Call][flow] +${Date.now()} navigation.navigate("Call") (Δ${Date.now() - v_b66f2c}ms since click)`);
               v_f4c991.navigate("Call", { cloneId: v_8c0b26.cloneId, name: v_8c0b26.author, image: v_8c0b26.image });
             }
           }}
