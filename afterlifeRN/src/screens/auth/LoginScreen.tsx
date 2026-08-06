@@ -11,6 +11,14 @@ import {
   v_326be8,
 } from "rcmrninabrnb";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
+import { v_b6a872 } from "vpztcxjmsfanunln";
+
+const v_eb1004 = `<svg width="15" height="16" viewBox="0 0 15 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M15 7.8271C15 7.28444 14.9513 6.76264 14.8609 6.26172H7.65308V9.22204H11.7718C11.5944 10.1787 11.0552 10.9892 10.2447 11.5318V13.4521H12.718C14.1651 12.1197 15 10.1578 15 7.8271Z" fill="#4285F4"/>
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M7.65302 15.3059C9.71935 15.3059 11.4517 14.6206 12.718 13.4517L10.2446 11.5315C9.55933 11.9907 8.6827 12.2621 7.65302 12.2621C5.65974 12.2621 3.97259 10.9158 3.37078 9.10693H0.813965V11.0898C2.07324 13.5909 4.66137 15.3059 7.65302 15.3059Z" fill="#34A853"/>
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M3.37083 9.10727C3.21776 8.64809 3.1308 8.1576 3.1308 7.6532C3.1308 7.1488 3.21776 6.65831 3.37083 6.19913V4.21631H0.814007C0.295686 5.24946 0 6.41828 0 7.6532C0 8.88811 0.295686 10.0569 0.814007 11.0901L3.37083 9.10727Z" fill="#FBBC05"/>
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M7.65302 3.0438C8.77663 3.0438 9.78544 3.42993 10.5786 4.18828L12.7736 1.99326C11.4482 0.758342 9.71587 0 7.65302 0C4.66137 0 2.07324 1.71497 0.813965 4.2161L3.37078 6.19893C3.97259 4.39004 5.65974 3.0438 7.65302 3.0438Z" fill="#EA4335"/>
+</svg>`;
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_384e19 } from "../../navigation/types";
@@ -420,30 +428,35 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
             </View>
           )}
 
+          {
+}
           {v_c39df9 === null ? (
-
             <View style={v_d81136.googleButtonPlaceholder} />
-          ) : v_c39df9 ? (
-
-            <TouchableOpacity
-              style={v_d81136.socialButton}
-              onPress={() => v_78c15c("google")}
-              activeOpacity={0.8}
-            >
-              <Text style={v_d81136.socialButtonText}>{v_8d41d7("auth.login.googleBtn")}</Text>
-              <Ionicons name="logo-google" size={20} color="#4285F4" />
-            </TouchableOpacity>
-          ) : null}
-
-          {v_326be8.OS === "ios" && (
-            <View style={{ marginTop: 10 }}>
-              <Button
-                title={v_8d41d7("auth.login.appleBtn")}
-                onPress={() => v_78c15c("apple")}
-                variant="secondary"
-                size="md"
-                leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}></Text>}
-              />
+          ) : (
+            <View style={v_d81136.snsLoginContainer}>
+              <Text style={v_d81136.snsLoginLabel}>{v_8d41d7("auth.login.googleBtn")}</Text>
+              <View style={v_d81136.snsButtonContainer}>
+                {v_c39df9 && (
+                  <TouchableOpacity
+                    style={v_d81136.snsButton}
+                    onPress={() => v_78c15c("google")}
+                    activeOpacity={0.7}
+                    accessibilityLabel="google-signin"
+                  >
+                    <SvgXml xml={v_eb1004} width={22} height={22} />
+                  </TouchableOpacity>
+                )}
+                {v_326be8.OS === "ios" && (
+                  <TouchableOpacity
+                    style={v_d81136.snsButton}
+                    onPress={() => v_78c15c("apple")}
+                    activeOpacity={0.7}
+                    accessibilityLabel="apple-signin"
+                  >
+                    <Ionicons name="logo-apple" size={24} color={v_1bfbd0.zinc900} />
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           )}
 
@@ -596,20 +609,30 @@ const v_d81136 = v_472849.create({
     textAlign: "center",
   },
 
-  socialButton: {
-    height: 48,
-    backgroundColor: v_1bfbd0.white,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: v_1bfbd0.zinc200,
+  snsLoginContainer: {
+    marginTop: v_9b1a04.large,
+    alignItems: "flex-start",
+    width: "100%",
+  },
+  snsLoginLabel: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: v_1bfbd0.zinc600,
+    marginBottom: 8,
+  },
+  snsButtonContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
+    gap: v_9b1a04.medium,
   },
-  socialButtonText: {
-    fontSize: 15,
-    color: v_1bfbd0.zinc900,
-    fontWeight: "500",
+  snsButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: v_1bfbd0.white,
+    alignItems: "center",
+    justifyContent: "center",
+    borderColor: v_1bfbd0.zinc200,
+    borderWidth: 1,
   },
 });
