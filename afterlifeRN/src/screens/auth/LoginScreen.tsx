@@ -386,7 +386,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
                 variant="primary"
                 disabled={v_a5d73f}
 
-                style={{ marginTop: v_9b1a04.xxlarge }}
+                style={{ marginTop: 120 }}
               />
             </>
           )}
