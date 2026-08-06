@@ -38,6 +38,8 @@ import type { v_b0b271 } from "../../types/clone";
 
 import { v_37977a, v_10e36e } from "../../stores/feedStore";
 import { v_b4902e } from "../../stores/followStore";
+
+import { v_98d20a } from "../../stores/userFollowStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_f386b1 } from "../../mocks/feedAdapter";
 import {
@@ -87,6 +89,9 @@ export default function v_c316d8() {
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
   const v_b30b81 = v_b4902e((v_fd5f43) => v_fd5f43.isFollowing);
   const v_3094d4 = v_b4902e((v_fd5f43) => v_fd5f43.toggleFollow);
+
+  const v_8916d3 = v_98d20a((v_fd5f43) => v_fd5f43.isFollowing);
+  const v_1d9833 = v_98d20a((v_fd5f43) => v_fd5f43.toggleFollow);
 
   const [v_708913, v_f0e470] = v_5ab095(false);
 
@@ -421,10 +426,38 @@ export default function v_c316d8() {
               console.warn("[Home] share failed:", v_49263d);
             }
           }}
+
+          onOwnerPress={() => {
+            if (v_8c0b26.cloneOwnerId != null) {
+              v_f4c991.navigate("UserProfile", { userId: v_8c0b26.cloneOwnerId });
+            }
+          }}
+          onOwnerFollowPress={() => {
+            if (v_8c0b26.cloneOwnerId != null) void v_1d9833(v_8c0b26.cloneOwnerId);
+          }}
+          isOwnerFollowed={v_8c0b26.cloneOwnerId != null ? v_8916d3(v_8c0b26.cloneOwnerId) : false}
+
+          onGiftPress={() => {
+            v_889fad(
+              v_8d41d7("home.giftTitle", { defaultValue: "선물 기능" }),
+              v_8d41d7("call.paymentPreparingToast", { defaultValue: "결제 준비 중이에요" }),
+            );
+          }}
         />
       );
     },
-    [v_2bcb8f, v_632420, v_1e752a, v_1be4da, v_a96ced, v_3094d4, v_b30b81, v_f5f393]
+    [
+      v_2bcb8f,
+      v_632420,
+      v_1e752a,
+      v_1be4da,
+      v_a96ced,
+      v_3094d4,
+      v_b30b81,
+      v_f5f393,
+      v_8916d3,
+      v_1d9833,
+    ]
   );
 
   const v_587901 = !v_708913 || (v_ff422a.length === 0 && v_dec728);
