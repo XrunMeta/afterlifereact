@@ -245,7 +245,9 @@
     "batteryWhitelistOpen": "設定を開く",
     "batteryWhitelistDismiss": "今後表示しない",
     "bgWarnTitle": "📞 通話が切れる可能性があります",
-    "bgWarnBody": "アプリを開いたままにしないと通話が続きません。アプリに戻ってください。"
+    "bgWarnBody": "アプリを開いたままにしないと通話が続きません。アプリに戻ってください。",
+    "fgTitle": "📞 通話中",
+    "fgBody": "{{name}} と通話中です"
   },
   "feed": {
     "homeTitle": "ホーム",
