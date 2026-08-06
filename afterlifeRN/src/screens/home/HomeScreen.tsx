@@ -29,6 +29,8 @@ import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import { v_68a7fe } from "../../face/useFaceBiometricRetroPrompt";
 import v_9706a6 from "../../components/ui/FeedCard";
 import v_06b8c0 from "../../components/clone/IntimacyEventsSheet";
+
+import v_03e207 from "../../components/clone/GiftReceiptsSheet";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import v_4d58d7 from "../../components/common/ReportReasonModal";
 
@@ -119,6 +121,8 @@ export default function v_c316d8() {
   const [v_48e7fe, v_856f84] = v_5ab095("");
 
   const [v_d3a183, v_598141] = v_5ab095<{ cloneId: number; cloneName: string } | null>(null);
+
+  const [v_5e9fb7, v_cc306d] = v_5ab095<{ cloneId: number; cloneName: string } | null>(null);
 
   const [v_12fa22, v_949e66] = v_5ab095<{
     cloneId: number;
@@ -445,12 +449,7 @@ export default function v_c316d8() {
           }}
           isOwnerFollowed={v_8c0b26.cloneOwnerId != null ? v_8916d3(v_8c0b26.cloneOwnerId) : false}
 
-          onGiftPress={() => {
-            v_889fad(
-              v_8d41d7("home.giftTitle", { defaultValue: "선물 기능" }),
-              v_8d41d7("call.paymentPreparingToast", { defaultValue: "결제 준비 중이에요" }),
-            );
-          }}
+          onGiftPress={() => v_cc306d({ cloneId: v_8c0b26.cloneId, cloneName: v_8c0b26.author })}
 
           onDescriptionScrollStart={() => {
             if (v_d50147.current) {
@@ -1111,6 +1110,13 @@ export default function v_c316d8() {
         cloneId={v_d3a183?.cloneId ?? null}
         cloneName={v_d3a183?.cloneName ?? ""}
         onClose={() => v_598141(null)}
+      />
+      {}
+      <GiftReceiptsSheet
+        visible={!!v_5e9fb7}
+        cloneId={v_5e9fb7?.cloneId ?? null}
+        cloneName={v_5e9fb7?.cloneName ?? ""}
+        onClose={() => v_cc306d(null)}
       />
     </View>
   );
