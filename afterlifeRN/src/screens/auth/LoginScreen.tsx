@@ -553,8 +553,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   forgotPassword: {
+
     color: COLORS.zinc900,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "500",
   },
   lockHint: {
@@ -598,11 +599,12 @@ const styles = StyleSheet.create({
   },
 
   forgotPasswordHint: {
+
     marginTop: SIZES.small,
     color: COLORS.zinc500,
-    fontSize: 11,
+    fontSize: 12,
     lineHeight: 16,
-    textAlign: "center",
+    textAlign: "left",
   },
 
   snsLoginContainer: {
