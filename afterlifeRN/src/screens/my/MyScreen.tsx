@@ -35,10 +35,6 @@ import type { v_e57140 } from "../../navigation/types";
 
 const v_b9d568 = 1;
 
-const v_ea0a9d = new Set(["oth-test@example.invalid"]);
-const v_978825 = (v_e0c7e8) =>
-  !!v_e0c7e8 && v_ea0a9d.has(v_e0c7e8.toLowerCase().trim());
-
 function v_a31ca1(v_b6a7e0, t: v_75de9d): string {
   const v_fd5f43 = Math.max(0, Math.floor(v_b6a7e0));
   const v_35f85c = Math.floor(v_fd5f43 / 60);
@@ -246,15 +242,6 @@ export default function v_ed02a5() {
       descKey: "my.coin.viewAll",
       route: "Transactions",
     },
-
-    ...(v_978825(v_b113dd?.email)
-      ? [{
-          icon: "gift" as const,
-          labelKey: "my.menu.giftInventory",
-          descKey: "my.menu.giftInventoryDesc",
-          route: "GiftInventory" as const,
-        }]
-      : []),
 
     {
       icon: "trash-2",
