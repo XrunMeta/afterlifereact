@@ -1203,6 +1203,96 @@ admin.get("/oth-path", requireAdmin, async (c) => {
 });
 
 admin.get("/oth-path", requireAdmin, async (c) => {
+  const url = new URL(c.req.url);
+  const q = (url.searchParams.get("q") ?? "").trim();
+  const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? 20) || 20, 1), 100);
+  if (!q) return c.json({ users: [] });
+  const like = `%${q}%`;
+  const idNum = Number(q);
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT id, name, email, credits, credits_free, credits_sub, credits_topup,
+              created_at AS createdAt
+         FROM users
+        WHERE deleted_at IS NULL
+          AND (id = ? OR email LIKE ? OR name LIKE ?)
+        ORDER BY id DESC
+        LIMIT ?`,
+    )
+    .bind(Number.isFinite(idNum) ? idNum : -1, like, like, limit)
+    .all<Record<string, unknown>>();
+  return c.json({ users: rows.results ?? [] });
+});
+
+admin.get("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid user id.");
+  }
+  const user = await c.env.DB
+    .prepare(
+      `SELECT id, name, email, credits, credits_free, credits_sub, credits_topup
+         FROM users WHERE id = ? AND deleted_at IS NULL`,
+    )
+    .bind(id)
+    .first<Record<string, unknown>>();
+  if (!user) throw new APIError("NOT_FOUND", "User not found.");
+
+  const inv = await c.env.DB
+    .prepare(
+      `SELECT gift_id, count, total_received, updated_at
+         FROM user_gift_inventory
+        WHERE user_id = ? AND count > 0
+        ORDER BY updated_at DESC`,
+    )
+    .bind(id)
+    .all<{ gift_id: string; count: number; total_received: number; updated_at: number }>();
+
+  return c.json({ user, inventory: inv.results ?? [] });
+});
+
+admin.post("/oth-path", requireAdmin, async (c) => {
+  const userId = Number(c.req.param("id"));
+  if (!Number.isInteger(userId) || userId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid user id.");
+  }
+  const body = (await c.req.json().catch(() => ({}))) as {
+    giftId?: unknown; count?: unknown; reason?: unknown;
+  };
+  const giftId = typeof body.giftId === "string" ? body.giftId.trim() : "";
+  const delta = Number(body.count);
+  if (!giftId || !Number.isInteger(delta) || delta === 0) {
+    throw new APIError("VALIDATION_FAILED", "giftId + integer count(≠0) required.");
+  }
+  const reason = typeof body.reason === "string" ? body.reason.slice(0, 200) : "admin inject";
+
+  await c.env.DB.batch([
+    c.env.DB
+      .prepare(
+        `INSERT INTO user_gift_inventory (user_id, gift_id, count, total_received, updated_at)
+           VALUES (?, ?, MAX(?, 0), MAX(?, 0), strftime('%s','now'))
+         ON CONFLICT(user_id, gift_id) DO UPDATE SET
+           count = MAX(count + ?, 0),
+           total_received = total_received + MAX(?, 0),
+           updated_at = strftime('%s','now')`,
+      )
+      .bind(userId, giftId, delta, delta, delta, delta),
+    c.env.DB
+      .prepare(
+        `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id)
+           VALUES (?, NULL, ?, ?, 0, ?, ?)`,
+      )
+      .bind(userId, giftId, Math.abs(delta), delta > 0 ? "received" : "swapped", `admin_inject:${reason}`),
+  ]);
+
+  const row = await c.env.DB
+    .prepare(`SELECT count, total_received FROM user_gift_inventory WHERE user_id = ? AND gift_id = ?`)
+    .bind(userId, giftId)
+    .first<{ count: number; total_received: number }>();
+  return c.json({ ok: true, giftId, delta, current: row });
+});
+
+admin.get("/oth-path", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) {
     throw new APIError("VALIDATION_FAILED", "Invalid user id.");
