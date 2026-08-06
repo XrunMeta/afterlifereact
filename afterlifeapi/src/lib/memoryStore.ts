@@ -2,6 +2,7 @@
 
 import type { Bindings } from './env';
 import { stripPii } from './piiFilter';
+import { getFaceIndex } from './faceVectors';
 
 export async function readCtx(env: Bindings, cloneId: number): Promise<string | null> {
   const cached = await env.KV_CTX.get(`ctx:${cloneId}`);
@@ -316,7 +317,7 @@ export async function updateOntPersonFromExtraction(
 
 export async function purgeUserOntology(
   env: Bindings, userId: number,
-): Promise<{ ontRows: number; personRows: number; kvKeys: number }> {
+): Promise<{ ontRows: number; personRows: number; kvKeys: number; vectorRows: number }> {
 
   const cloneRows = (
     await env.DB.prepare("SELECT clone_id FROM clone_ont WHERE user_id = ?")
@@ -331,6 +332,29 @@ export async function purgeUserOntology(
   const ontRes = await env.DB.prepare("DELETE FROM clone_ont WHERE user_id = ?")
     .bind(userId).run();
 
+  const vecRows = await env.DB.prepare(
+    `SELECT vectorize_id FROM clone_person_faces
+      WHERE person_id IN (SELECT id FROM persons WHERE user_id = ?)
+      UNION
+     SELECT vectorize_id FROM face_embeddings
+      WHERE person_id IN (SELECT id FROM persons WHERE user_id = ?)`,
+  )
+    .bind(userId, userId)
+    .all<{ vectorize_id: string | null }>();
+  const vids = vecRows.results.map((r) => r.vectorize_id).filter((v): v is string => Boolean(v));
+  if (vids.length) await getFaceIndex(env).deleteByIds(vids);
+
+  await env.DB.prepare(
+    "DELETE FROM clone_person_faces WHERE person_id IN (SELECT id FROM persons WHERE user_id = ?)",
+  )
+    .bind(userId)
+    .run();
+  await env.DB.prepare(
+    "DELETE FROM face_embeddings WHERE person_id IN (SELECT id FROM persons WHERE user_id = ?)",
+  )
+    .bind(userId)
+    .run();
+
   const personRes = await env.DB.prepare(
     "DELETE FROM clone_ont_person WHERE person_id IN (SELECT id FROM persons WHERE user_id = ?)",
   ).bind(userId).run();
@@ -339,5 +363,6 @@ export async function purgeUserOntology(
     ontRows: ontRes.meta?.changes ?? 0,
     personRows: personRes.meta?.changes ?? 0,
     kvKeys,
+    vectorRows: vids.length,
   };
 }

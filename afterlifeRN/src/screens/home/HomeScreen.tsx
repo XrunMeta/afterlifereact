@@ -28,6 +28,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { useFaceBiometricRetroPrompt } from "../../face/useFaceBiometricRetroPrompt";
 import FeedCard from "../../components/ui/FeedCard";
+import IntimacyEventsSheet from "../../components/clone/IntimacyEventsSheet";
 import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
 import ReportReasonModal from "../../components/common/ReportReasonModal";
 
@@ -107,6 +108,8 @@ export default function HomeScreen() {
 
   const [commentFeedId, setCommentFeedId] = useState<number | null>(null);
   const [commentText, setCommentText] = useState("");
+
+  const [intimacyModal, setIntimacyModal] = useState<{ cloneId: number; cloneName: string } | null>(null);
 
   const [moreTarget, setMoreTarget] = useState<{
     cloneId: number;
@@ -390,6 +393,8 @@ export default function HomeScreen() {
             }
           }}
           onCommentPress={() => setCommentFeedId(item.id)}
+
+          onIntimacyPress={() => setIntimacyModal({ cloneId: item.cloneId, cloneName: item.author })}
           onMorePress={() =>
             setMoreTarget({
               cloneId: item.cloneId,
@@ -830,22 +835,6 @@ export default function HomeScreen() {
             ) : (
 
               <>
-                {moreTarget?.ownerId != null && (
-                  <TouchableOpacity
-                    style={styles.moreItem}
-                    onPress={() => {
-                      const target = moreTarget;
-                      setMoreTarget(null);
-                      if (!target?.ownerId) return;
-                      rootNav.navigate("UserProfile", { userId: target.ownerId });
-                    }}
-                  >
-                    <Feather name="user" size={20} color={COLORS.zinc900} />
-                    <Text style={styles.moreItemText}>
-                      {t("home.more.viewUser", { defaultValue: "유저 정보보기" })}
-                    </Text>
-                  </TouchableOpacity>
-                )}
                 <TouchableOpacity
                   style={styles.moreItem}
                   onPress={() => {
@@ -1055,6 +1044,14 @@ export default function HomeScreen() {
             console.warn("[Home] selected visibility PATCH failed:", err);
           }
         }}
+      />
+
+      {}
+      <IntimacyEventsSheet
+        visible={!!intimacyModal}
+        cloneId={intimacyModal?.cloneId ?? null}
+        cloneName={intimacyModal?.cloneName ?? ""}
+        onClose={() => setIntimacyModal(null)}
       />
     </View>
   );

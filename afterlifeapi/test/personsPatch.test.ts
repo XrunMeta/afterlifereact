@@ -15,11 +15,24 @@ async function seedUserWithToken(email: string): Promise<{ id: number; token: st
   return { id: u!.id, token };
 }
 
-async function createPerson(token: string, body: Record<string, unknown> = {}): Promise<number> {
+async function seedClone(ownerId: number, username: string): Promise<number> {
+  const db = (env as any).DB as D1Database;
+  await db
+    .prepare(
+      `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+       VALUES (?, 'TestClone', ?, 'memlow', 'public', CURRENT_TIMESTAMP)`
+    )
+    .bind(ownerId, username)
+    .run();
+  const c = await db.prepare("SELECT id FROM clones WHERE username = ?").bind(username).first<{ id: number }>();
+  return c!.id;
+}
+
+async function createPerson(token: string, cloneId: number, body: Record<string, unknown> = {}): Promise<number> {
   const res = await SELF.fetch("http://localhost/oth-path", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ cloneId, ...body }),
   });
   const { id } = (await res.json()) as { id: number };
   return id;
@@ -27,8 +40,9 @@ async function createPerson(token: string, body: Record<string, unknown> = {}): 
 
 describe("PATCH /oth-path", () => {
   it("displayName 갱신 성공 → 200 + D1 반영", async () => {
-    const { token } = await seedUserWithToken("patch-ok@test.test");
-    const personId = await createPerson(token);
+    const { id: userId, token } = await seedUserWithToken("patch-ok@test.test");
+    const cloneId = await seedClone(userId, "patch-ok-clone");
+    const personId = await createPerson(token, cloneId);
     const res = await SELF.fetch(`http://localhost/oth-path${personId}`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -43,8 +57,9 @@ describe("PATCH /oth-path", () => {
   });
 
   it("빈 문자열/31자 초과 → 422", async () => {
-    const { token } = await seedUserWithToken("patch-bad@test.test");
-    const personId = await createPerson(token);
+    const { id: userId, token } = await seedUserWithToken("patch-bad@test.test");
+    const cloneId = await seedClone(userId, "patch-bad-clone");
+    const personId = await createPerson(token, cloneId);
     const empty = await SELF.fetch(`http://localhost/oth-path${personId}`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -62,7 +77,8 @@ describe("PATCH /oth-path", () => {
   it("타인 소유 person → 404", async () => {
     const owner = await seedUserWithToken("patch-owner@test.test");
     const attacker = await seedUserWithToken("patch-attacker@test.test");
-    const personId = await createPerson(owner.token);
+    const cloneId = await seedClone(owner.id, "patch-owner-clone");
+    const personId = await createPerson(owner.token, cloneId);
     const res = await SELF.fetch(`http://localhost/oth-path${personId}`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${attacker.token}`, "Content-Type": "application/json" },

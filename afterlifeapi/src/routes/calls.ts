@@ -6,6 +6,7 @@ import { APIError } from "../lib/errors";
 import { requireAuth } from "../middleware/auth";
 import { isSuspendedForViewer, loadCloneById, resolveResponseViewerRole } from "../lib/cloneAccess";
 import { buildCallBundle } from "../lib/callBundle";
+import { ensureAccountPerson } from "../lib/cloneFaceScope";
 import { z } from "../lib/validate";
 
 export const calls = new Hono<AppEnv>();
@@ -14,6 +15,19 @@ function parseCloneId(c: { req: { param: (k: string) => string } }): number {
   const id = Number(c.req.param("cloneId"));
   if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
   return id;
+}
+
+async function ensureExpertAccountPerson(
+  env: Parameters<typeof ensureAccountPerson>[0],
+  opts: { userId: number; cloneId: number },
+): Promise<void> {
+  try {
+    await ensureAccountPerson(env, opts);
+  } catch (err) {
+    console.error(
+      `[calls] CRITICAL: ensureAccountPerson failed cloneId=${opts.cloneId} userId=${opts.userId} — L2′ 미확보, 재시도 필요: ${(err as Error).message}`,
+    );
+  }
 }
 
 calls.post("/:cloneId/call", requireAuth, async (c) => {
@@ -29,6 +43,10 @@ calls.post("/:cloneId/call", requireAuth, async (c) => {
 
   if (isSuspendedForViewer(clone, viewerRole)) {
     throw new APIError("FORBIDDEN", "This clone is currently suspended.");
+  }
+
+  if (clone.clone_type === "expert") {
+    await ensureExpertAccountPerson(c.env, { userId, cloneId });
   }
 
   const { personaBundle, assets } = await buildCallBundle(c.env.DB, clone, userId, new URL(c.req.url).origin);
@@ -105,6 +123,10 @@ calls.post("/:cloneId/call/prethird-start", requireAuth, async (c) => {
   }
   if (isSuspendedForViewer(clone, viewerRole)) {
     throw new APIError("FORBIDDEN", "This clone is currently suspended.");
+  }
+
+  if (clone.clone_type === "expert") {
+    await ensureExpertAccountPerson(c.env, { userId, cloneId });
   }
 
   await c.env.DB.prepare(

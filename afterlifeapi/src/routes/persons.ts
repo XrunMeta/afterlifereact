@@ -7,7 +7,8 @@ import { requireAuth } from "../middleware/auth";
 import { getFaceIndex } from "../lib/faceVectors";
 import { deletePersonCascade } from "../lib/personDelete";
 import { assertValidDisplayName } from "../lib/displayName";
-import { cloneActiveSql } from "../lib/cloneAccess";
+import { loadAccessibleClone } from "../lib/cloneAccess";
+import { faceNamespace, queryCloneScope, enrollCloneScopeFaces } from "../lib/cloneFaceScope";
 
 export const persons = new Hono<AppEnv>();
 
@@ -28,7 +29,9 @@ persons.post("/", requireAuth, async (c) => {
     .json<{ cloneId?: number; displayName?: string; enrolledVia?: string }>()
     .catch(() => ({}) as { cloneId?: number; displayName?: string; enrolledVia?: string });
 
-  const cloneId = body.cloneId ?? null;
+  const cloneId = body.cloneId;
+  if (typeof cloneId !== "number" || !Number.isInteger(cloneId) || cloneId <= 0)
+    throw new APIError("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
 
   let displayName: string | null = null;
   if (body.displayName !== undefined) {
@@ -54,15 +57,9 @@ persons.post("/", requireAuth, async (c) => {
   const consentState: "none" | "granted" = enrolledVia === "auto_biometric" ? "granted" : "none";
   const consentAt: number | null = enrolledVia === "auto_biometric" ? Date.now() : null;
 
-  if (cloneId !== null) {
-    const owned = await c.env.DB.prepare(
-      `SELECT id FROM clones WHERE id = ? AND owner_id = ? AND ${cloneActiveSql()}`
-    )
-      .bind(cloneId, userId)
-      .first<{ id: number }>();
-    if (!owned) {
-      throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
-    }
+  const clone = await loadAccessibleClone(c.env.DB, cloneId, userId);
+  if (!clone) {
+    throw new APIError("NOT_FOUND", "클론을 찾을 수 없습니다.");
   }
 
   const createdAt = Date.now();
@@ -105,40 +102,45 @@ const DEFAULT_FACE_THRESHOLD = 0.45;
 
 persons.post("/match", requireAuth, async (c) => {
   const userId = c.get("userId")!;
-  const body = await c.req.json<{ vector?: number[] }>().catch(() => ({}) as { vector?: number[] });
+  const body = await c.req
+    .json<{ vector?: number[]; cloneId?: number }>()
+    .catch(() => ({}) as { vector?: number[]; cloneId?: number });
   const v = body.vector;
   if (!Array.isArray(v) || v.length !== 512 || v.some((x) => typeof x !== "number" || !Number.isFinite(x)))
     throw new APIError("VALIDATION_FAILED", "vector: 512차원 수치 배열이어야 합니다");
+
+  const cloneId = body.cloneId;
+  if (typeof cloneId !== "number" || !Number.isInteger(cloneId) || cloneId <= 0)
+    throw new APIError("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+
+  const clone = await loadAccessibleClone(c.env.DB, cloneId, userId);
+  if (!clone) throw new APIError("NOT_FOUND", "클론을 찾을 수 없습니다.");
 
   const cfg = await c.env.DB.prepare("SELECT value FROM app_config WHERE key = 'face.match_threshold'").first<{
     value: string;
   }>();
   const threshold = cfg?.value !== undefined && Number.isFinite(Number(cfg.value)) ? Number(cfg.value) : DEFAULT_FACE_THRESHOLD;
 
-  const idx = getFaceIndex(c.env);
-  const r = await idx.query(v, { topK: 3, namespace: String(userId), returnMetadata: true });
+  const scoped = await queryCloneScope(c.env, { userId, cloneId, vector: v, topK: 3 });
+  const ids = scoped.map((m) => m.personId);
 
-  const byPerson = new Map<number, number>(); 
-  for (const m of r.matches) {
-    const pid = Number(m.metadata?.personId);
-    if (!pid) continue;
-    byPerson.set(pid, Math.max(byPerson.get(pid) ?? -1, m.score));
-  }
-
-  const ids = [...byPerson.keys()];
   const names = new Map<number, string | null>();
   if (ids.length) {
     const rs = await c.env.DB.prepare(
-      `SELECT id, display_name FROM persons WHERE user_id = ? AND id IN (${ids.map(() => "?").join(",")})`
+      `SELECT p.id, p.display_name
+         FROM persons p
+         JOIN clone_person_faces f ON f.person_id = p.id AND f.clone_id = ?
+        WHERE p.user_id = ? AND p.clone_id = ? AND p.id IN (${ids.map(() => "?").join(",")})
+        GROUP BY p.id`,
     )
-      .bind(userId, ...ids)
+      .bind(cloneId, userId, cloneId, ...ids)
       .all<{ id: number; display_name: string | null }>();
     for (const row of rs.results) names.set(row.id, row.display_name);
   }
 
-  const matches = ids
-    .map((pid) => ({ personId: pid, displayName: names.get(pid) ?? null, score: byPerson.get(pid)! }))
-    .sort((a, b) => b.score - a.score);
+  const matches = scoped
+    .filter((m) => names.has(m.personId))
+    .map((m) => ({ personId: m.personId, displayName: names.get(m.personId) ?? null, score: m.score }));
 
   const best = matches[0] && matches[0].score >= threshold ? matches[0] : null;
 
@@ -153,8 +155,8 @@ persons.post("/calibrate", requireAuth, async (c) => {
   if (!isFaceCalibrateEnabled(c.env)) return c.notFound();
   const userId = c.get("userId")!;
   const body = await c.req
-    .json<{ vector?: unknown; groundTruthPersonId?: string | null }>()
-    .catch(() => ({}) as { vector?: unknown; groundTruthPersonId?: string | null });
+    .json<{ vector?: unknown; groundTruthPersonId?: string | null; cloneId?: number }>()
+    .catch(() => ({}) as { vector?: unknown; groundTruthPersonId?: string | null; cloneId?: number });
   const v = body.vector;
   if (!Array.isArray(v) || v.length !== 512 || !v.every((n) => typeof n === "number" && Number.isFinite(n))) {
     return c.json({ error: "invalid vector" }, 400); 
@@ -163,9 +165,14 @@ persons.post("/calibrate", requireAuth, async (c) => {
     value: string;
   }>();
   const threshold = cfg && Number.isFinite(Number(cfg.value)) ? Number(cfg.value) : DEFAULT_FACE_THRESHOLD;
+
+  const calibCloneId = body.cloneId;
+  if (typeof calibCloneId !== "number" || !Number.isInteger(calibCloneId) || calibCloneId <= 0) {
+    return c.json({ error: "invalid cloneId" }, 400);
+  }
   const { matches } = await getFaceIndex(c.env).query(v as number[], {
     topK: 100,
-    namespace: String(userId),
+    namespace: faceNamespace(userId, calibCloneId),
     returnMetadata: true,
   });
 
@@ -281,7 +288,9 @@ persons.post("/:id/consent", requireAuth, async (c) => {
 persons.post("/:id/faces", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const personId = parsePersonId(c);
-  const body = await c.req.json<{ vectors?: number[][] }>().catch(() => ({}) as { vectors?: number[][] });
+  const body = await c.req
+    .json<{ vectors?: number[][]; cloneId?: number }>()
+    .catch(() => ({}) as { vectors?: number[][]; cloneId?: number });
   const vectors = body.vectors;
   if (
     !Array.isArray(vectors) ||
@@ -293,40 +302,34 @@ persons.post("/:id/faces", requireAuth, async (c) => {
   )
     throw new APIError("VALIDATION_FAILED", "vectors: 1~5개의 512차원 수치 배열이어야 합니다");
 
-  const person = await c.env.DB.prepare("SELECT id, consent_state FROM persons WHERE id = ? AND user_id = ?")
-    .bind(personId, userId)
+  const cloneId = body.cloneId;
+  if (typeof cloneId !== "number" || !Number.isInteger(cloneId) || cloneId <= 0)
+    throw new APIError("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+
+  const clone = await loadAccessibleClone(c.env.DB, cloneId, userId);
+  if (!clone) throw new APIError("NOT_FOUND", "person이 존재하지 않습니다.");
+
+  const person = await c.env.DB.prepare(
+    "SELECT id, consent_state FROM persons WHERE id = ? AND user_id = ? AND clone_id = ?",
+  )
+    .bind(personId, userId, cloneId)
     .first<{ id: number; consent_state: string }>();
   if (!person) throw new APIError("NOT_FOUND", "person이 존재하지 않습니다.");
   if (person.consent_state !== "granted")
     throw new APIError("FORBIDDEN", "얼굴정보 저장 동의(consent granted)가 필요합니다"); 
 
-  const rows = vectors.map((values) => ({
-    id: crypto.randomUUID(),
-    values,
-    namespace: String(userId),
-    metadata: { personId: String(personId) },
-  }));
-
-  const createdAt = Date.now();
-  const insertStmt = c.env.DB.prepare(
-    `INSERT INTO face_embeddings (person_id, vectorize_id, model, dim, source, created_at)
-     VALUES (?, ?, 'w600k_mbf', 512, 'call', ?)`
-  );
-  await c.env.DB.batch(rows.map((r) => insertStmt.bind(personId, r.id, createdAt)));
-
-  const idx = getFaceIndex(c.env);
   try {
-    await idx.insert(rows);
+    const { enrolled } = await enrollCloneScopeFaces(c.env, {
+      userId,
+      cloneId,
+      personId,
+      vectors,
+      source: "call",
+    });
+    return c.json({ enrolled });
   } catch (e) {
-
-    const placeholders = rows.map(() => "?").join(",");
-    await c.env.DB.prepare(`DELETE FROM face_embeddings WHERE vectorize_id IN (${placeholders})`)
-      .bind(...rows.map((r) => r.id))
-      .run();
     throw new APIError("UPSTREAM_FAILURE", `얼굴 벡터 인덱스 저장 실패: ${(e as Error).message}`);
   }
-
-  return c.json({ enrolled: rows.length });
 });
 
 persons.delete("/:id", requireAuth, async (c) => {

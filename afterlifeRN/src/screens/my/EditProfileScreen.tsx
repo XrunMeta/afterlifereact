@@ -107,6 +107,8 @@ export default function EditProfileScreen() {
   const [region, setRegion] = useState<CountryDialCode | null>(initialRegion);
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
 
+  const [regionPickerOpen, setRegionPickerOpen] = useState(false);
+
   const [saving, setSaving] = useState(false);
 
   const dirty = useMemo(() => {
@@ -315,7 +317,18 @@ export default function EditProfileScreen() {
             </Text>
             <TouchableOpacity
               style={s.pickerField}
-              onPress={() => setCountryPickerOpen(true)}
+              onPress={() => {
+                if (!country) {
+                  showAlert(
+                    t("common.notice", { defaultValue: "알림" }),
+                    t("settings.editProfile.regionAfterCountry", {
+                      defaultValue: "먼저 국가를 선택해주세요",
+                    }),
+                  );
+                  return;
+                }
+                setRegionPickerOpen(true);
+              }}
               activeOpacity={0.7}
             >
               <Feather name="map-pin" size={18} color={COLORS.zinc500} />
@@ -403,6 +416,18 @@ export default function EditProfileScreen() {
           setCountry(c);
           setRegion(r);
         }}
+      />
+      {}
+      <CountryRegionPicker
+        visible={regionPickerOpen}
+        selectedCountry={country}
+        selectedRegion={region}
+        onClose={() => setRegionPickerOpen(false)}
+        onSelect={(_c: CountryDialCode, r: CountryDialCode | null) => {
+
+          setRegion(r);
+        }}
+        initialMode="region"
       />
     </SafeScrollView>
   );

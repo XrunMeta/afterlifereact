@@ -30,6 +30,8 @@ interface FeedCardProps {
   onMorePress?: () => void;
 
   onSharePress?: () => void;
+
+  onIntimacyPress?: () => void;
 }
 
 const FeedCard: React.FC<FeedCardProps> = ({
@@ -45,8 +47,11 @@ const FeedCard: React.FC<FeedCardProps> = ({
   onCommentPress,
   onMorePress,
   onSharePress,
+  onIntimacyPress,
 }) => {
   const { t } = useTranslation();
+
+  const isSmallScreen = cardHeight < 640;
   return (
     <View style={[styles.container, { height: cardHeight }]}>
       {}
@@ -62,19 +67,26 @@ const FeedCard: React.FC<FeedCardProps> = ({
       />
 
       {
+
 }
       {typeof item.myIntimacy === "number" ? (
-        <View style={styles.intimacyBadge}>
+        <TouchableOpacity
+          style={styles.intimacyBadge}
+          onPress={onIntimacyPress}
+          activeOpacity={0.7}
+          disabled={!onIntimacyPress}
+          accessibilityLabel="intimacy-events"
+        >
           <Feather name="thermometer" size={12} color="#fb923c" />
           <Text style={styles.intimacyText}>{item.myIntimacy}°C</Text>
-        </View>
+        </TouchableOpacity>
       ) : null}
 
       {}
       {isActive && (
         <>
           {}
-          <View style={styles.rightActions}>
+          <View style={[styles.rightActions, isSmallScreen && styles.rightActionsShift]}>
             <TouchableOpacity onPress={onToggleLike} style={styles.actionBtn} activeOpacity={0.7}>
               <Ionicons
                 name={isLiked ? "heart" : "heart-outline"}
@@ -102,7 +114,6 @@ const FeedCard: React.FC<FeedCardProps> = ({
             )}
           </View>
 
-          {}
           <View style={styles.bottomContent}>
             <View style={styles.profileRow}>
               <View style={styles.profileInfo}>
@@ -138,12 +149,13 @@ const FeedCard: React.FC<FeedCardProps> = ({
               )}
             </View>
 
-            {}
+            {
+
+}
             {item.description ? (
               <HashtagText
                 style={styles.description}
                 tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
-                numberOfLines={3}
               >
                 {item.description}
               </HashtagText>
@@ -246,6 +258,10 @@ const styles = StyleSheet.create({
     gap: 24,
   },
 
+  rightActionsShift: {
+    bottom: 220,
+  },
+
   intimacyBadge: {
     position: "absolute",
     top: 56,
@@ -264,6 +280,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.white,
   },
+
   actionBtn: {
     alignItems: "center",
     justifyContent: "center",
@@ -283,6 +300,7 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     lineHeight: 20,
     marginBottom: 12,
+
   },
   callButton: {
     width: "100%",

@@ -528,3 +528,54 @@ it('전송 후 누적 리셋 → 다음 발화는 이전 텍스트 안 섞임', 
   expect(onFinalResult).toHaveBeenNthCalledWith(1, '첫번째');
   expect(onFinalResult).toHaveBeenNthCalledWith(2, '두번째');
 });
+
+describe('onSpeechActivity', () => {
+  it('non-final(interim) result 수신 시 호출된다', async () => {
+    const engine = makeMockEngine();
+    const onSpeechActivity = jest.fn();
+    const { result } = renderHook(() => useSpeechInput({ engine, onSpeechActivity, silenceMs: SILENCE }));
+    await act(async () => { await result.current.startListening(); });
+
+    act(() => { engine.emit('result', { results: [{ transcript: '음' }], isFinal: false }); });
+    expect(onSpeechActivity).toHaveBeenCalledTimes(1);
+  });
+
+  it('interim 없이 곧장 isFinal:true 만 오는 엔진에서도 호출된다(OEM 케이스)', async () => {
+
+    const engine = makeMockEngine();
+    const onSpeechActivity = jest.fn();
+    const onFinalResult = jest.fn();
+    const { result } = renderHook(() =>
+      useSpeechInput({ engine, onSpeechActivity, onFinalResult, silenceMs: SILENCE }));
+    await act(async () => { await result.current.startListening(); });
+
+    act(() => { engine.emit('result', { results: [{ transcript: '안녕' }], isFinal: true }); });
+    expect(onSpeechActivity).toHaveBeenCalledTimes(1);
+    expect(result.current.interimTranscript).toBe(''); 
+
+    act(() => { jest.advanceTimersByTime(SILENCE + 20); });
+    expect(onFinalResult).toHaveBeenCalledTimes(1);
+    expect(onFinalResult).toHaveBeenCalledWith('안녕');
+  });
+
+  it('stopListening 이후(want=false) 잔여 result 이벤트엔 호출되지 않는다', async () => {
+    const engine = makeMockEngine();
+    const onSpeechActivity = jest.fn();
+    const { result } = renderHook(() => useSpeechInput({ engine, onSpeechActivity, silenceMs: SILENCE }));
+    await act(async () => { await result.current.startListening(); });
+    act(() => { result.current.stopListening(); });
+
+    act(() => { engine.emit('result', { results: [{ transcript: '늦은 응답' }], isFinal: true }); });
+    expect(onSpeechActivity).not.toHaveBeenCalled();
+  });
+
+  it('미지정이어도(옵션 생략) 기존 동작에 영향 없음', async () => {
+    const engine = makeMockEngine();
+    const onFinalResult = jest.fn();
+    const { result } = renderHook(() => useSpeechInput({ engine, onFinalResult, silenceMs: SILENCE }));
+    await act(async () => { await result.current.startListening(); });
+    act(() => { engine.emit('result', { results: [{ transcript: '안녕' }], isFinal: true }); });
+    act(() => { jest.advanceTimersByTime(SILENCE + 20); });
+    expect(onFinalResult).toHaveBeenCalledWith('안녕');
+  });
+});

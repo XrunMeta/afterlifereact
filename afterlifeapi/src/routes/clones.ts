@@ -37,6 +37,8 @@ import { maskUsername } from "../lib/utils";
 import { triggerPrebuild } from "../lib/prebuildClient";
 import { buildCallBundle } from "../lib/callBundle";
 import { triggerGuideJob } from "../lib/guideJob";
+import { confirmSelf } from "../lib/cloneFaceScope";
+import { assertValidDisplayName } from "../lib/displayName";
 
 export const clones = new Hono<AppEnv>();
 
@@ -2086,4 +2088,51 @@ clones.get("/:id/gifts/summary", requireAuth, async (c) => {
   }));
 
   return c.json({ items });
+});
+
+clones.post("/:cloneId/self-confirm", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const cloneId = Number(c.req.param("cloneId"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0)
+    throw new APIError("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+
+  const body = await c.req
+    .json<{ vectors?: number[][]; displayName?: string }>()
+    .catch(() => ({}) as { vectors?: number[][]; displayName?: string });
+  const vectors = body.vectors;
+  if (
+    !Array.isArray(vectors) ||
+    vectors.length !== 3 ||
+    vectors.some(
+      (v) => !Array.isArray(v) || v.length !== 512 || v.some((x) => typeof x !== "number" || !Number.isFinite(x)),
+    )
+  )
+    throw new APIError("VALIDATION_FAILED", "vectors: 정확히 3개의 512차원 수치 배열이어야 합니다");
+
+  const clone = await c.env.DB.prepare(
+    `SELECT id, clone_type, self_person_id FROM clones WHERE id = ? AND owner_id = ? AND ${cloneActiveSql()}`,
+  )
+    .bind(cloneId, userId)
+    .first<{ id: number; clone_type: string; self_person_id: number | null }>();
+  if (!clone) throw new APIError("NOT_FOUND", "클론을 찾을 수 없습니다.");
+  if (clone.clone_type === "expert")
+    throw new APIError("VALIDATION_FAILED", "전문가 클론은 self 개념이 없습니다.");
+  if (clone.self_person_id !== null) throw new APIError("CONFLICT", "이미 self가 확정된 클론입니다.");
+
+  const displayName = body.displayName !== undefined ? assertValidDisplayName(body.displayName) : null;
+  const result = await confirmSelf(c.env, { userId, cloneId, vectors, displayName });
+  return c.json(result);
+});
+
+clones.get("/:cloneId/face-policy", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("cloneId"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0)
+    throw new APIError("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+
+  const clone = await c.env.DB.prepare(`SELECT clone_type FROM clones WHERE id = ? AND ${cloneActiveSql()}`)
+    .bind(cloneId)
+    .first<{ clone_type: string }>();
+  if (!clone) throw new APIError("NOT_FOUND", "클론을 찾을 수 없습니다.");
+
+  return c.json({ faceIdentifyEnabled: clone.clone_type !== "expert" });
 });

@@ -33,7 +33,7 @@ import NotificationSettingsScreen from "../screens/my/NotificationSettingsScreen
 import PrivacySettingsScreen from "../screens/my/PrivacySettingsScreen";
 import AgreementsScreen from "../screens/my/AgreementsScreen";
 import SavedItemsScreen from "../screens/my/SavedItemsScreen";
-import AcquaintanceManagementScreen from "../screens/my/AcquaintanceManagementScreen";
+import RememberingClonesScreen from "../screens/my/RememberingClonesScreen";
 import LanguageSettingsScreen from "../screens/my/LanguageSettingsScreen";
 import PaymentPinScreen from "../screens/my/PaymentPinScreen";
 import InviteStatusScreen from "../screens/my/InviteStatusScreen";
@@ -93,7 +93,7 @@ function MyStackNavigator() {
       <MyStack.Screen name="PrivacySettings" component={PrivacySettingsScreen} />
       <MyStack.Screen name="Agreements" component={AgreementsScreen} />
       <MyStack.Screen name="SavedItems" component={SavedItemsScreen} />
-      <MyStack.Screen name="AcquaintanceManagement" component={AcquaintanceManagementScreen} />
+      <MyStack.Screen name="RememberingClones" component={RememberingClonesScreen} />
       <MyStack.Screen name="LanguageSettings" component={LanguageSettingsScreen} />
       <MyStack.Screen name="PaymentPin" component={PaymentPinScreen} />
       <MyStack.Screen name="InviteStatus" component={InviteStatusScreen} />

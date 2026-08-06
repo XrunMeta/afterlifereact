@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { SELF, env } from "cloudflare:test";
 import { getFaceIndex } from "../src/lib/faceVectors";
+import { faceNamespace } from "../src/lib/cloneFaceScope";
 
 async function seedUser(email: string): Promise<number> {
   const db = env.DB as unknown as D1Database;
@@ -12,6 +13,19 @@ async function seedUser(email: string): Promise<number> {
   return u!.id;
 }
 
+async function seedClone(ownerId: number, username: string): Promise<number> {
+  const db = env.DB as unknown as D1Database;
+  await db
+    .prepare(
+      `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+       VALUES (?, 'TestClone', ?, 'memlow', 'public', CURRENT_TIMESTAMP)`
+    )
+    .bind(ownerId, username)
+    .run();
+  const c = await db.prepare("SELECT id FROM clones WHERE username = ?").bind(username).first<{ id: number }>();
+  return c!.id;
+}
+
 async function issueAccessToken(userId: number): Promise<string> {
   const { issueToken } = await import("../src/lib/jwt");
   const secret = (env as { JWT_ACCESS_SECRET?: string }).JWT_ACCESS_SECRET;
@@ -19,11 +33,11 @@ async function issueAccessToken(userId: number): Promise<string> {
   return await issueToken({ sub: userId, kind: "access" }, secret, 60 * 10);
 }
 
-async function createPerson(tok: string): Promise<number> {
+async function createPerson(tok: string, cloneId: number): Promise<number> {
   const res = await SELF.fetch("http://localhost/oth-path", {
     method: "POST",
     headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
-    body: JSON.stringify({}),
+    body: JSON.stringify({ cloneId }),
   });
   const { id } = (await res.json()) as { id: number };
   return id;
@@ -42,11 +56,11 @@ function vec(fill = 0.1): number[] {
   return Array(512).fill(fill);
 }
 
-async function enrollFace(tok: string, personId: number, fill = 0.1) {
+async function enrollFace(tok: string, cloneId: number, personId: number, fill = 0.1) {
   const res = await SELF.fetch(`http://localhost/oth-path${personId}/faces`, {
     method: "POST",
     headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ vectors: [vec(fill)] }),
+    body: JSON.stringify({ cloneId, vectors: [vec(fill)] }),
   });
   expect(res.status).toBe(200);
 }
@@ -76,15 +90,16 @@ describe("DELETE /oth-path", () => {
     const db = env.DB as unknown as D1Database;
     const userId = await seedUser("del-full@test.local");
     const tok = await issueAccessToken(userId);
-    const personId = await createPerson(tok);
+    const cloneId = await seedClone(userId, "del-full-clone");
+    const personId = await createPerson(tok, cloneId);
     await grantConsent(tok, personId); 
-    await enrollFace(tok, personId, 0.1);
+    await enrollFace(tok, cloneId, personId, 0.1);
 
     await db
       .prepare(
         `INSERT INTO clone_ont_person (clone_id, person_id, data, updated_at) VALUES (?, ?, '{}', ?)`
       )
-      .bind(1, personId, Date.now())
+      .bind(cloneId + 100000, personId, Date.now())
       .run();
 
     const turnId = await insertCallTurn(personId);
@@ -124,16 +139,21 @@ describe("DELETE /oth-path", () => {
     expect(turn?.speaker_person_id).toBe(null);
 
     const idx = getFaceIndex(env as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string });
-    const queryResult = await idx.query(vec(0.1), { topK: 3, namespace: String(userId), returnMetadata: true });
+    const queryResult = await idx.query(vec(0.1), {
+      topK: 3,
+      namespace: faceNamespace(userId, cloneId),
+      returnMetadata: true,
+    });
     expect(queryResult.matches.length).toBe(0);
   });
 
   it("완전 삭제 후 재호출 → 404", async () => {
     const userId = await seedUser("del-redelete@test.local");
     const tok = await issueAccessToken(userId);
-    const personId = await createPerson(tok);
+    const cloneId = await seedClone(userId, "del-redelete-clone");
+    const personId = await createPerson(tok, cloneId);
     await grantConsent(tok, personId);
-    await enrollFace(tok, personId, 0.2);
+    await enrollFace(tok, cloneId, personId, 0.2);
 
     const first = await deletePerson(tok, personId);
     expect(first.status).toBe(200);
@@ -148,14 +168,16 @@ describe("DELETE /oth-path", () => {
     const db = env.DB as unknown as D1Database;
     const userId = await seedUser("del-partial@test.local");
     const tok = await issueAccessToken(userId);
-    const personId = await createPerson(tok);
+    const cloneId = await seedClone(userId, "del-partial-clone");
+    const personId = await createPerson(tok, cloneId);
     await grantConsent(tok, personId);
-    await enrollFace(tok, personId, 0.3);
+    await enrollFace(tok, cloneId, personId, 0.3);
+
     await db
       .prepare(
         `INSERT INTO clone_ont_person (clone_id, person_id, data, updated_at) VALUES (?, ?, '{}', ?)`
       )
-      .bind(2, personId, Date.now())
+      .bind(cloneId + 100000, personId, Date.now())
       .run();
     const turnId = await insertCallTurn(personId);
 
@@ -194,8 +216,9 @@ describe("DELETE /oth-path", () => {
     const attacker = await seedUser("del-attacker@test.local");
     const ownerTok = await issueAccessToken(owner);
     const attackerTok = await issueAccessToken(attacker);
+    const cloneId = await seedClone(owner, "del-owner-clone");
 
-    const personId = await createPerson(ownerTok);
+    const personId = await createPerson(ownerTok, cloneId);
 
     const res = await deletePerson(attackerTok, personId);
     expect(res.status).toBe(404);

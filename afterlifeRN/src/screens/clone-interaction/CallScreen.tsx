@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
+  AppState,
+  type AppStateStatus,
   View,
   Text,
   StyleSheet,
@@ -12,8 +14,15 @@ import {
   Animated,
   Platform,
   Keyboard,
+  Linking,
   TextInput,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Notifications from "expo-notifications";
+import {
+  startCallForegroundService,
+  stopCallForegroundService,
+} from "../../lib/callForegroundService";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { RTCView } from "react-native-webrtc";
@@ -35,6 +44,12 @@ import { normalizeFrameTimestampMs } from "../../face/frameTimestamp";
 import { detectNewFaces } from "../../face/newFaceDetector";
 import { useFaceIdentify } from "../../face/useFaceIdentify";
 import { useFaceEnroll, FACE_ENROLL_VECTOR_COUNT } from "../../face/useFaceEnroll";
+import {
+  decideSelfConfirm,
+  classifySelfConfirmError,
+  SELF_CONFIRM_INTERVAL_MS,
+  SELF_CONFIRM_SAMPLE_COUNT,
+} from "../../face/selfConfirm";
 import { shouldCleanupOrphanOnSuggest } from "../../face/faceEnrollGuard";
 import type { SpeakerEvent } from "../../face/speakerIdReducer";
 import {
@@ -50,8 +65,11 @@ import {
   listPersons,
   deletePerson,
   updatePersonName,
+  selfConfirm,
+  fetchFacePolicy,
   type Person,
 } from "../../api/persons";
+import { AuthApiError } from "../../api/auth";
 import { getFaceBiometricConsent } from "../../api/consent";
 import { decideEnrollSuggestAction, decideOrphanCleanupBeforeSilent } from "../../face/autoEnrollGuard";
 import { FACE_DIAG_ENABLED, formatFaceHud, type FaceDiag } from "../../config/faceDiag";
@@ -61,10 +79,12 @@ import { submitDevText } from "../../realtime/devCallText";
 import { CALL_ROUTE } from "../../config/callRoute";
 import { GREETING_ENABLED, GREETING_FALLBACK_TEXT, GREET_TIMEOUT_MS } from "../../config/greeting";
 import { useHandsFreeController } from "../../realtime/useHandsFreeController";
+import { shouldSkipUnknownFaceEntry, computeFaceKey } from "../../realtime/faceInterruptRouting";
 import { useVideoStatsDiag } from "../../realtime/useVideoStatsDiag";
 import { DialingScreen } from "../../components/call/DialingScreen";
 import { CallVoiceBall } from "../../components/call/CallVoiceBall";
 import { CallTimingHUD } from "../../components/call/CallTimingHUD";
+import { CallStateHUD } from "../../components/call/CallStateHUD";
 import { CallTimingPanel } from "../../components/call/CallTimingPanel";
 import { CloneSubtitleTicker } from "../../components/call/CloneSubtitleTicker";
 import { useDevOverlayStore } from "../../stores/devOverlayStore";
@@ -135,6 +155,11 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const [dialingDone, setDialingDone] = useState(false);
 
+  const [faceIdentifyEnabled, setFaceIdentifyEnabled] = useState(true);
+  const [selfConfirmed, setSelfConfirmed] = useState(true); 
+  const selfSamplesRef = useRef<number[][]>([]);
+  const selfConfirmingRef = useRef(false);
+
   const vcDevice = useCameraDevice(cameraFacing === "front" ? "front" : "back");
 
   const { faceState, onFaces } = useFaceDetection();
@@ -179,7 +204,8 @@ export default function CallScreen({ route, navigation }: Props) {
 
     if (!accessToken) return;
     let cancelled = false;
-    listPersons(accessToken)
+
+    listPersons(accessToken, cloneId)
       .then(({ items }) => {
         if (cancelled) return;
         const hasConsent = items.some((p) => p.consentState === "granted");
@@ -285,6 +311,12 @@ export default function CallScreen({ route, navigation }: Props) {
     dispatchShRef.current(event);
   }, []);
 
+  const notifyFaceInterruptRef = useRef<(text: string, faceKey: string) => void>(() => {});
+
+  const micOnRef = useRef(false);
+
+  const namingSessionIdRef = useRef(0);
+
   const unknownFaceSnapshotRef = useRef<number[][] | null>(null);
 
   const calibrateOpt = useMemo(
@@ -297,8 +329,10 @@ export default function CallScreen({ route, navigation }: Props) {
     getBuffer: getFaceEmbeddingBuffer,
     resetRecognition: resetSpeakerRecognition,
   } = useFaceIdentify({
-    enabled: consentGranted && liveState === "live",
+
+    enabled: consentGranted && liveState === "live" && faceIdentifyEnabled,
     accessToken: accessToken ?? "",
+    cloneId,
     onEvent: handleSpeakerEventTrampoline,
     onDiag: setFaceDiag,
     calibrate: calibrateOpt,
@@ -334,17 +368,104 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const faceEnroll = useFaceEnroll({
     accessToken: accessToken ?? "",
+    cloneId,
     getBuffer: getFaceEmbeddingBuffer,
     getSnapshot: () => unknownFaceSnapshotRef.current,
   });
 
+  useEffect(() => {
+    if (!accessToken || !cloneId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const policy = await fetchFacePolicy(accessToken, cloneId);
+        if (cancelled) return;
+        setFaceIdentifyEnabled(policy.faceIdentifyEnabled);
+        setSelfConfirmed(clone?.selfPersonId != null);
+      } catch (err) {
+        if (cancelled) return;
+        console.warn(
+          "[Call][self] face-policy 조회 실패 — 정책 불명, self 미확정으로 폴백(루프는 계속 진행):",
+          err,
+        );
+        setSelfConfirmed(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, cloneId, clone?.selfPersonId]);
+
+  useEffect(() => {
+    if (selfConfirmed || !faceIdentifyEnabled) return;
+    if (!accessToken || !cloneId) return;
+
+    let cancelled = false;
+
+    const timer = setInterval(() => {
+      if (selfConfirmingRef.current) return;
+      const latest = getFaceEmbeddingBuffer().latest(1);
+      if (latest.length === 0) return;
+      selfSamplesRef.current = [...selfSamplesRef.current, latest[0]!].slice(
+        -SELF_CONFIRM_SAMPLE_COUNT,
+      );
+
+      const action = decideSelfConfirm({
+        alreadyConfirmed: selfConfirmed,
+        faceIdentifyEnabled,
+        samples: selfSamplesRef.current,
+        threshold: 0.45, 
+      });
+
+      if (action.kind === "reset") {
+        selfSamplesRef.current = [];
+        return;
+      }
+      if (action.kind !== "confirm") return;
+
+      selfConfirmingRef.current = true;
+      void selfConfirm(accessToken, cloneId, action.vectors)
+        .then((res) => {
+          if (cancelled) return;
+          console.log(`[Call][self] self 확정 personId=${res.selfPersonId}`);
+          setSelfConfirmed(true);
+        })
+        .catch((err) => {
+          if (cancelled) return;
+
+          const status = err instanceof AuthApiError ? err.status : undefined;
+          const cls = classifySelfConfirmError(status);
+          if (cls === "confirmed") {
+            console.log("[Call][self] self 확정 실패 → 409(이미 확정) — 확정으로 간주, 재시도 중단");
+            setSelfConfirmed(true);
+          } else {
+            console.warn(
+              `[Call][self] self 확정 실패(재시도 예정) status=${status ?? "network"}:`,
+              err,
+            );
+
+          }
+        })
+        .finally(() => {
+          selfConfirmingRef.current = false;
+          selfSamplesRef.current = [];
+        });
+    }, SELF_CONFIRM_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [selfConfirmed, faceIdentifyEnabled, accessToken, cloneId, getFaceEmbeddingBuffer]);
+
   const NAMING_TIMEOUT_MS = 20000;
   const namingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const runShActions = useCallback(
-    (actions: SpeakerHandoffAction[]) => {
+
+    (actions: SpeakerHandoffAction[], faceKey: string) => {
       for (const a of actions) {
         if (a.type === "SAY") {
-          void say(a.text);
+          notifyFaceInterruptRef.current(a.text, faceKey);
         } else if (a.type === "BEGIN_NAMING") {
           if (namingTimerRef.current) clearTimeout(namingTimerRef.current);
           namingTimerRef.current = setTimeout(() => {
@@ -362,13 +483,21 @@ export default function CallScreen({ route, navigation }: Props) {
         }
       }
     },
-    [say, faceEnroll, resetSpeakerRecognition],
+    [faceEnroll, resetSpeakerRecognition],
   );
   useEffect(() => {
     dispatchShRef.current = (event: SpeakerHandoffEvent) => {
+      const prevNaming = shStateRef.current.naming;
+
+      if (shouldSkipUnknownFaceEntry(event, prevNaming, micOnRef.current)) return;
       const { state, actions } = speakerHandoffReducer(shStateRef.current, event);
+
+      const { faceKey, nextSessionId } = computeFaceKey(
+        event, prevNaming, state.naming, namingSessionIdRef.current,
+      );
+      namingSessionIdRef.current = nextSessionId;
       shStateRef.current = state;
-      runShActions(actions);
+      runShActions(actions, faceKey);
     };
   }, [runShActions]);
 
@@ -540,6 +669,7 @@ export default function CallScreen({ route, navigation }: Props) {
     micLevel,
     cloneAudioLevel,
     sttActive,
+    notifyFaceInterrupt,
   } = useHandsFreeController({
     enabled: liveState === "live",
     say,
@@ -556,6 +686,14 @@ export default function CallScreen({ route, navigation }: Props) {
 
     signalGating: typeof greet === 'function',
   });
+
+  useEffect(() => {
+    notifyFaceInterruptRef.current = notifyFaceInterrupt;
+  }, [notifyFaceInterrupt]);
+
+  useEffect(() => {
+    micOnRef.current = micOn;
+  }, [micOn]);
 
   const [greetingStarted, setGreetingStarted] = useState(false);
   useEffect(() => {
@@ -725,6 +863,79 @@ export default function CallScreen({ route, navigation }: Props) {
     }, 1000);
     return () => clearInterval(id);
   }, [liveState, remainingSec !== null, navigation, t]);
+
+  useEffect(() => {
+    const displayName = paramName || t("call.fgTitle", { defaultValue: "통화 중" });
+    startCallForegroundService({
+      title: t("call.fgTitle", { defaultValue: "통화 중" }),
+      body: t("call.fgBody", {
+        name: displayName,
+        defaultValue: `${displayName} 와(과) 통화 중입니다`,
+      }),
+    }).catch(() => {});
+    return () => {
+      stopCallForegroundService().catch(() => {});
+    };
+
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const KEY = "@afterlifeRN/call/batteryWhitelistNoticeDismissed";
+    (async () => {
+      try {
+        const dismissed = await AsyncStorage.getItem(KEY);
+        if (dismissed === "1") return;
+        showAlert(
+          t("call.batteryWhitelistTitle", { defaultValue: "통화 안정성 안내" }),
+          t("call.batteryWhitelistBody", {
+            defaultValue:
+              "휴대폰 배터리 절전 기능이 통화를 끊을 수 있어요. 설정에서 이 앱을 배터리 최적화 예외에 등록하면 통화가 안정적으로 유지됩니다.",
+          }),
+          [
+            {
+              text: t("call.batteryWhitelistDismiss", { defaultValue: "다시 보지 않기" }),
+              style: "cancel",
+              onPress: () => AsyncStorage.setItem(KEY, "1").catch(() => {}),
+            },
+            {
+              text: t("call.batteryWhitelistOpen", { defaultValue: "설정 열기" }),
+              onPress: () => {
+                AsyncStorage.setItem(KEY, "1").catch(() => {});
+                Linking.openSettings().catch(() => {});
+              },
+            },
+          ],
+        );
+      } catch {
+
+      }
+    })();
+
+  }, []);
+
+  const lastBgWarnRef = useRef<number>(0);
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (next: AppStateStatus) => {
+      if (next !== "background" && next !== "inactive") return;
+      if (liveState !== "live") return;
+
+      const now = Date.now();
+      if (now - lastBgWarnRef.current < 30_000) return;
+      lastBgWarnRef.current = now;
+      Notifications.scheduleNotificationAsync({
+        content: {
+          title: t("call.bgWarnTitle", { defaultValue: "📞 통화가 유지되지 않을 수 있어요" }),
+          body: t("call.bgWarnBody", {
+            defaultValue: "앱을 계속 열어두어야 통화가 이어집니다. 앱으로 돌아와 주세요.",
+          }),
+          priority: Notifications.AndroidNotificationPriority.MAX,
+        },
+        trigger: null,
+      }).catch((err) => console.warn("[Call] bg warn schedule failed:", err?.message));
+    });
+    return () => sub.remove();
+  }, [liveState, t]);
 
   const confirmProgress = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -960,6 +1171,8 @@ export default function CallScreen({ route, navigation }: Props) {
       />
 
       {showCallDev && liveState === "live" ? <CallTimingHUD /> : null}
+      {}
+      {showCallDev && liveState === "live" ? <CallStateHUD /> : null}
       {showCallDev && liveState === "live" ? (
 
         <View

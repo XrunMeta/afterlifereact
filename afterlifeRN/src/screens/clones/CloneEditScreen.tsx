@@ -6,7 +6,6 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,7 +20,7 @@ import { useAuthStore } from "../../stores/authStore";
 import { patchClone } from "../../api/clones";
 import { AuthApiError } from "../../api/auth";
 import type { DomainClone as Clone } from "../../types/domain";
-import { COLORS, SIZES, RADIUS } from "../../components/constants";
+import { COLORS, SIZES } from "../../components/constants";
 
 type Visibility = "public" | "private" | "followers";
 
@@ -43,7 +42,8 @@ export default function CloneEditScreen({ route, navigation }: Props) {
   useEffect(() => {
     if (!clone) return;
     setName(clone.displayName);
-    setDescription(clone.description ?? "");
+
+    setDescription((clone.description ?? "").slice(0, 100));
     setVisibility((clone.visibility as Visibility) ?? "public");
   }, [clone]);
 
@@ -113,37 +113,16 @@ export default function CloneEditScreen({ route, navigation }: Props) {
         <TextField
           label={t("edit.descLabel")}
           value={description}
-          onChangeText={setDescription}
+          onChangeText={(v) => setDescription(v.slice(0, 100))}
           placeholder={t("edit.descPlaceholder")}
           multiline
+          maxLength={100}
           containerStyle={{ marginTop: 16 }}
         />
+        <Text style={s.descCounter}>{description.length}/100</Text>
 
-        {}
-        <TouchableOpacity
-          onPress={() => navigation.navigate("CloneLearn", { cloneId })}
-          activeOpacity={0.8}
-          style={{
-            marginTop: 24,
-            padding: 16,
-            borderRadius: RADIUS.md,
-            borderWidth: 1,
-            borderColor: COLORS.violet500,
-            backgroundColor: COLORS.violet100,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 15, fontWeight: "700", color: COLORS.violet500 }}>
-              {t("edit.learnCtaTitle", { defaultValue: "학습하기 →" })}
-            </Text>
-            <Text style={{ fontSize: 12, color: COLORS.zinc600, marginTop: 4 }}>
-              {t("edit.learnCtaDesc", { defaultValue: "관리자 질문에 답변해서 클론에게 지식을 쌓아주세요" })}
-            </Text>
-          </View>
-        </TouchableOpacity>
+        {
+}
       </View>
 
       {}
@@ -167,6 +146,13 @@ const s = StyleSheet.create({
     paddingHorizontal: SIZES.large,
     paddingTop: 24,
     paddingBottom: 32,
+  },
+
+  descCounter: {
+    marginTop: 6,
+    alignSelf: "flex-end",
+    fontSize: 12,
+    color: COLORS.zinc400,
   },
   bottomBar: {
     paddingHorizontal: SIZES.large,

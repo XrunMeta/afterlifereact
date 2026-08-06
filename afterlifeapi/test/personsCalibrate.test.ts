@@ -5,6 +5,7 @@ import { SELF, env } from "cloudflare:test";
 import { issueToken } from "../src/lib/jwt";
 import { isFaceCalibrateEnabled } from "../src/routes/persons";
 import { getFaceIndex } from "../src/lib/faceVectors";
+import { faceNamespace } from "../src/lib/cloneFaceScope";
 
 const db = () => env.DB as unknown as D1Database;
 
@@ -15,6 +16,18 @@ async function seedUser(email: string): Promise<number> {
     .run();
   const u = await db().prepare("SELECT id FROM users WHERE email = ?").bind(email).first<{ id: number }>();
   return u!.id;
+}
+
+async function seedClone(ownerId: number, username: string): Promise<number> {
+  await db()
+    .prepare(
+      `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+       VALUES (?, 'TestClone', ?, 'memlow', 'public', CURRENT_TIMESTAMP)`,
+    )
+    .bind(ownerId, username)
+    .run();
+  const c = await db().prepare("SELECT id FROM clones WHERE username = ?").bind(username).first<{ id: number }>();
+  return c!.id;
 }
 
 async function issueAccessToken(userId: number): Promise<string> {
@@ -53,9 +66,10 @@ describe("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
   it("저장하고 벡터는 응답/DB에 없다", async () => {
     const userId = await seedUser("calibrate-on-save@test.local");
     const tok = await issueAccessToken(userId);
+    const cloneId = await seedClone(userId, "calibrate-on-save-clone");
     const vector = new Array(512).fill(0).map((_, i) => (i === 0 ? 1 : 0));
 
-    const res = await post(tok, { vector, groundTruthPersonId: "p1" });
+    const res = await post(tok, { vector, groundTruthPersonId: "p1", cloneId });
     expect(res.status).toBe(200);
     const j = await res.json<{
       id: number;
@@ -89,9 +103,10 @@ describe("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
   it("groundTruthPersonId 없이도 저장된다(선택 필드)", async () => {
     const userId = await seedUser("calibrate-no-gt@test.local");
     const tok = await issueAccessToken(userId);
+    const cloneId = await seedClone(userId, "calibrate-no-gt-clone");
     const vector = new Array(512).fill(0.05);
 
-    const res = await post(tok, { vector });
+    const res = await post(tok, { vector, cloneId });
     expect(res.status).toBe(200);
     const j = await res.json<{ id: number }>();
     const row = await db()
@@ -106,11 +121,13 @@ describe("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
     const otherId = await seedUser("calibrate-other@test.local");
     const ownerTok = await issueAccessToken(ownerId);
     const otherTok = await issueAccessToken(otherId);
+    const ownerCloneId = await seedClone(ownerId, "calibrate-owner-clone");
+    const otherCloneId = await seedClone(otherId, "calibrate-other-clone");
     const vector = new Array(512).fill(0.02);
 
-    const r1 = await post(ownerTok, { vector });
+    const r1 = await post(ownerTok, { vector, cloneId: ownerCloneId });
     expect(r1.status).toBe(200);
-    const r2 = await post(otherTok, { vector });
+    const r2 = await post(otherTok, { vector, cloneId: otherCloneId });
     expect(r2.status).toBe(200);
 
     const rows = await db()
@@ -158,7 +175,9 @@ describe("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
   it("metadata 없는 매치는 scores에서 제외된다(personId 둔갑 방지)", async () => {
     const userId = await seedUser("calibrate-no-metadata@test.local");
     const tok = await issueAccessToken(userId);
-    const ns = String(userId);
+    const cloneId = await seedClone(userId, "calibrate-no-metadata-clone");
+
+    const ns = faceNamespace(userId, cloneId);
     const vector = new Array(512).fill(0).map((_, i) => (i === 0 ? 1 : 0));
 
     const idx = getFaceIndex(env as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string });
@@ -167,7 +186,7 @@ describe("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
       { id: "with-metadata", values: vector, namespace: ns, metadata: { personId: "777" } },
     ]);
 
-    const res = await post(tok, { vector });
+    const res = await post(tok, { vector, cloneId });
     expect(res.status).toBe(200);
     const j = await res.json<{ id: number; matchedId: string | null; scoreCount: number }>();
 

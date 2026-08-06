@@ -38,6 +38,38 @@ describe('timingEvents', () => {
     expect(evs[evs.length - 1].tMs).toBe(44);
   });
 
+  it('subscriber exception is isolated (does not break emitter or other subscribers)', () => {
+    const spy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const seen: number[] = [];
+    const unsubBad = subscribeTimingEvents(() => { throw new Error('boom'); });
+    const unsubGood = subscribeTimingEvents((evs) => { seen.push(evs.length); });
+
+    expect(() => emitTimingEvent('stt_open')).not.toThrow(); 
+    expect(seen[seen.length - 1]).toBe(1);                   
+    expect(getTimingEvents()).toHaveLength(1);               
+
+    const errLogs = spy.mock.calls.filter((c) => c[0] === '[Call][timing][subscriber-error]');
+    expect(errLogs.length).toBeGreaterThan(0);               
+    unsubBad(); unsubGood(); spy.mockRestore();
+  });
+
+  it('subscriber exception logging is capped (no infinite log spam)', () => {
+    const spy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const unsub = subscribeTimingEvents(() => { throw new Error('boom'); });
+    for (let i = 0; i < 30; i++) emitTimingEvent('stt_open');
+    const errLogs = spy.mock.calls.filter((c) => c[0] === '[Call][timing][subscriber-error]');
+    expect(errLogs.length).toBeLessThanOrEqual(5);
+    unsub(); spy.mockRestore();
+  });
+
+  it('emit accepts an optional detail payload (legacy calls unchanged)', () => {
+    t = 7; emitTimingEvent('stt_open');
+    t = 8; emitTimingEvent('fsm', { from: 'idle', to: 'listening' });
+    const evs = getTimingEvents();
+    expect(evs[0].detail).toBeUndefined();
+    expect(evs[1].detail).toEqual({ from: 'idle', to: 'listening' });
+  });
+
   it('formatTimingLine shows delta from prev', () => {
     const a = { type: 'speech_end' as const, tMs: 1000 };
     const b = { type: 'stt_open' as const, tMs: 2620 };

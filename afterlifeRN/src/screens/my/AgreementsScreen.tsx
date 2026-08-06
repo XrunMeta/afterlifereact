@@ -21,11 +21,6 @@ import { COLORS, RADIUS } from "../../components/constants";
 import type { MyStackParamList } from "../../navigation/types";
 import { useAuthStore } from "../../stores/authStore";
 import {
-  listPersons,
-  saveFaceConsent,
-  type Person,
-} from "../../api/persons";
-import {
   saveCallLearningConsent,
   getCallLearningConsent,
   saveFaceBiometricConsent,
@@ -39,10 +34,6 @@ export default function AgreementsScreen() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const { t } = useTranslation();
 
-  const [persons, setPersons] = useState<Person[]>([]);
-  const [personsLoading, setPersonsLoading] = useState(true);
-  const [revokingId, setRevokingId] = useState<number | null>(null);
-
   const [callLearning, setCallLearning] = useState<CallLearningState>("none");
   const [callLearningLoading, setCallLearningLoading] = useState(true);
   const [callLearningSaving, setCallLearningSaving] = useState(false);
@@ -51,23 +42,6 @@ export default function AgreementsScreen() {
   const [faceBiometric, setFaceBiometric] = useState<FaceBiometricState>("none");
   const [faceBiometricLoading, setFaceBiometricLoading] = useState(true);
   const [faceBiometricSaving, setFaceBiometricSaving] = useState(false);
-
-  const refreshPersons = useCallback(async () => {
-    if (!accessToken) {
-      setPersons([]);
-      setPersonsLoading(false);
-      return;
-    }
-    setPersonsLoading(true);
-    try {
-      const res = await listPersons(accessToken);
-      setPersons(res.items);
-    } catch (err) {
-      console.warn("[Agreements] listPersons failed:", err);
-    } finally {
-      setPersonsLoading(false);
-    }
-  }, [accessToken]);
 
   const refreshCallLearning = useCallback(async () => {
     if (!accessToken) {
@@ -104,17 +78,15 @@ export default function AgreementsScreen() {
   }, [accessToken]);
 
   useEffect(() => {
-    refreshPersons();
     refreshCallLearning();
     refreshFaceBiometric();
-  }, [refreshPersons, refreshCallLearning, refreshFaceBiometric]);
+  }, [refreshCallLearning, refreshFaceBiometric]);
 
   useFocusEffect(
     React.useCallback(() => {
-      refreshPersons();
       refreshCallLearning();
       refreshFaceBiometric();
-    }, [refreshPersons, refreshCallLearning, refreshFaceBiometric]),
+    }, [refreshCallLearning, refreshFaceBiometric]),
   );
 
   const handleToggleCallLearning = async (value: boolean) => {
@@ -182,37 +154,6 @@ export default function AgreementsScreen() {
     void saveFaceBiometricToggle(true);
   };
 
-  const handleRevoke = (person: Person) => {
-    showAlert(
-      t("settings.privacy.faceConsent.revokeConfirmTitle"),
-      t("settings.privacy.faceConsent.revokeConfirmMessage"),
-      [
-        { text: t("settings.privacy.faceConsent.revokeConfirmCancel"), style: "cancel" },
-        {
-          text: t("settings.privacy.faceConsent.revokeConfirmOk"),
-          style: "destructive",
-          onPress: async () => {
-            if (!accessToken) return;
-            setRevokingId(person.id);
-            try {
-              await saveFaceConsent(accessToken, person.id, "revoked");
-              setPersons((prev) =>
-                prev.map((p) =>
-                  p.id === person.id ? { ...p, consentState: "revoked" } : p,
-                ),
-              );
-            } catch (err) {
-              const msg = err instanceof Error ? err.message : t("settings.privacy.faceConsent.revokeError");
-              showAlert(t("settings.privacy.faceConsent.revokeConfirmTitle"), msg);
-            } finally {
-              setRevokingId(null);
-            }
-          },
-        },
-      ],
-    );
-  };
-
   return (
     <SafeScrollView backgroundColor={COLORS.white} showBottomBackground={false}>
       <PageHeader
@@ -222,13 +163,7 @@ export default function AgreementsScreen() {
       />
 
       {}
-      <FaceConsentSection
-        persons={persons}
-        loading={personsLoading}
-        revokingId={revokingId}
-        onRevoke={handleRevoke}
-        t={t}
-      />
+      <FaceConsentSection t={t} />
 
       {}
       <CallLearningConsentSection
@@ -260,17 +195,12 @@ export default function AgreementsScreen() {
 }
 
 interface FaceConsentSectionProps {
-  persons: Person[];
-  loading: boolean;
-  revokingId: number | null;
-  onRevoke: (person: Person) => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }
 
-function FaceConsentSection({ persons, loading, revokingId, onRevoke, t }: FaceConsentSectionProps) {
+function FaceConsentSection({ t }: FaceConsentSectionProps) {
 
   const navigation = useNavigation<NativeStackNavigationProp<MyStackParamList>>();
-  const grantedPersons = persons.filter((p) => p.consentState === "granted");
 
   return (
     <View
@@ -278,82 +208,19 @@ function FaceConsentSection({ persons, loading, revokingId, onRevoke, t }: FaceC
       style={[s.content, { paddingTop: 16, paddingBottom: 32 }]}
     >
       <Text style={s.sectionTitle}>{t("settings.privacy.faceConsent.sectionTitle")}</Text>
-      {loading ? (
-        <ActivityIndicator color={COLORS.zinc500} style={{ paddingTop: 20 }} />
-      ) : grantedPersons.length === 0 ? (
-        <View style={s.empty}>
-          <Feather name="eye-off" size={32} color={COLORS.zinc300} />
-          <Text style={s.emptyText}>{t("settings.privacy.faceConsent.noConsent")}</Text>
-          <Text style={s.emptySub}>{t("settings.privacy.faceConsent.noConsentSub")}</Text>
-        </View>
-      ) : (
-        <View style={s.card}>
-          {grantedPersons.slice(0, 3).map((person, i) => {
-            const busy = revokingId === person.id;
-            const consentLabel = person.createdAt
-              ? t("settings.privacy.faceConsent.consentedAt", {
-                  date: new Date(person.createdAt).toLocaleDateString(),
-                })
-              : t("settings.privacy.faceConsent.stateGranted");
-            const cloneLabel = person.cloneId
-              ? t("settings.privacy.faceConsent.cloneLabel", { cloneId: person.cloneId })
-              : `Person #${person.id}`;
-
-            const primaryName = person.displayName?.trim() || cloneLabel;
-
-            return (
-              <View key={person.id}>
-                <View style={s.row}>
-                  <View style={[s.avatar, s.avatarPh]}>
-                    <Feather name="eye" size={20} color={COLORS.zinc400} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.rowName} numberOfLines={1}>
-                      {primaryName}
-                    </Text>
-                    <Text style={s.rowSub} numberOfLines={1}>
-                      {consentLabel}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    testID={`revoke-btn-${person.id}`}
-                    style={[s.revokeBtn, busy && { opacity: 0.6 }]}
-                    onPress={() => onRevoke(person)}
-                    disabled={busy}
-                    accessibilityLabel={t("settings.privacy.faceConsent.revokeButton")}
-                    accessibilityRole="button"
-                  >
-                    {busy ? (
-                      <ActivityIndicator size="small" color={COLORS.white} />
-                    ) : (
-                      <Text style={s.revokeBtnText}>
-                        {t("settings.privacy.faceConsent.revokeButton")}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-                {i < Math.min(grantedPersons.length, 3) - 1 && <View style={s.divider} />}
-              </View>
-            );
-          })}
-          {}
-          {grantedPersons.length > 3 ? (
-            <TouchableOpacity
-              style={s.viewAllRow}
-              onPress={() => navigation.navigate("AcquaintanceManagement")}
-              accessibilityRole="button"
-            >
-              <Text style={s.viewAllText}>
-                {t("settings.privacy.faceConsent.viewAll", {
-                  count: grantedPersons.length,
-                  defaultValue: `전체 보기 (${grantedPersons.length}명)`,
-                })}
-              </Text>
-              <Feather name="chevron-right" size={18} color={COLORS.zinc400} />
-            </TouchableOpacity>
-          ) : null}
-        </View>
-      )}
+      <View style={s.card}>
+        <TouchableOpacity
+          testID="remembering-clones-entry"
+          style={[s.viewAllRow, { borderTopWidth: 0 }]}
+          onPress={() => navigation.navigate("RememberingClones")}
+          accessibilityRole="button"
+        >
+          <Text style={s.viewAllText}>
+            {t("settings.rememberingClones.entry", { defaultValue: "나를 기억하는 클론" })}
+          </Text>
+          <Feather name="chevron-right" size={18} color={COLORS.zinc400} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -477,18 +344,8 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  avatar: { width: 44, height: 44, borderRadius: 22 },
-  avatarPh: {
-    backgroundColor: COLORS.zinc100,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   rowName: { fontSize: 15, fontWeight: "600", color: COLORS.zinc900 },
   rowSub: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
-  divider: { height: 1, backgroundColor: COLORS.zinc100, marginLeft: 72 },
-  empty: { alignItems: "center", paddingTop: 20, gap: 10 },
-  emptyText: { color: COLORS.zinc600, fontSize: 14, fontWeight: "600" },
-  emptySub: { color: COLORS.zinc400, fontSize: 12 },
   sectionTitle: {
     fontSize: 13,
     fontWeight: "700",
@@ -497,15 +354,6 @@ const s = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
-  revokeBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: COLORS.zinc900,
-    minWidth: 78,
-    alignItems: "center",
-  },
-  revokeBtnText: { fontSize: 12, fontWeight: "700", color: COLORS.white },
   viewAllRow: {
     flexDirection: "row",
     alignItems: "center",

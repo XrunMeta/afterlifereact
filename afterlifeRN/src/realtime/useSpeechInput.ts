@@ -27,6 +27,8 @@ export function useSpeechInput(opts?: {
 
   onFinalResult?: (text: string) => void;
 
+  onSpeechActivity?: () => void;
+
   silenceMs?: number;
 }) {
 
@@ -37,6 +39,11 @@ export function useSpeechInput(opts?: {
   const onFinalResultRef = useRef(opts?.onFinalResult);
   useEffect(() => {
     onFinalResultRef.current = opts?.onFinalResult;
+  });
+
+  const onSpeechActivityRef = useRef(opts?.onSpeechActivity);
+  useEffect(() => {
+    onSpeechActivityRef.current = opts?.onSpeechActivity;
   });
   const silenceMsRef = useRef(silenceMs);
   useEffect(() => {
@@ -123,6 +130,8 @@ export function useSpeechInput(opts?: {
         if (!wantListeningRef.current) return;
         const t: string = p?.results?.[0]?.transcript ?? '';
         const isFinal: boolean = p?.isFinal === true;
+
+        onSpeechActivityRef.current?.();
 
         confirmListening();
         if (isFinal) {

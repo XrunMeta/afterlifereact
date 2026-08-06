@@ -34,6 +34,7 @@ import FriendPickerModal from "./components/FriendPickerModal";
 import VisibilityPickerModal from "./components/VisibilityPickerModal";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
+import { assertCanCall } from "../../lib/callGuard";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
 import { listMyClones, listSystemClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, listCloneIntimacyEvents, listCloneGiftReceipts, type MyClone, type SystemClone, type FeedLikeUser, type FeedComment, type CloneFollower, type IntimacyEventsResponse, type GiftReceiptItem } from "../../api/clones";
@@ -386,7 +387,10 @@ export default function MyClonesDashboardScreen() {
   };
 
   const handleVisibility = (cloneId: number) => {
-    const current = cloneStates[cloneId]?.visibility ?? "public";
+
+    const stateVis = cloneStates[cloneId]?.visibility;
+    const cloneVis = myClones.find((c) => c.id === cloneId)?.visibility;
+    const current = stateVis ?? cloneVis ?? "public";
     setVisibilityModal({ cloneId, currentVisibility: current });
     setMenuCloneId(null);
   };
@@ -603,8 +607,10 @@ export default function MyClonesDashboardScreen() {
           </View>
         </View>
 
-        {}
-        <HashtagText style={s.description} numberOfLines={2}>
+        {
+
+}
+        <HashtagText style={s.description}>
           {clone.description}
         </HashtagText>
 
@@ -681,7 +687,16 @@ export default function MyClonesDashboardScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={s.actionBtn}
-            onPress={() => rootNav.navigate("Call", { cloneId: clone.id })}
+            onPress={async () => {
+
+              const ok = await assertCanCall(accessToken, () => {
+                rootNav.dispatch(
+                  CommonActions.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                );
+              });
+              if (!ok) return;
+              rootNav.navigate("Call", { cloneId: clone.id });
+            }}
           >
             <Feather name="video" size={16} color={COLORS.zinc700} />
             <Text style={s.actionText}>{t("dashboard.actionCall")}</Text>
@@ -949,7 +964,16 @@ export default function MyClonesDashboardScreen() {
                   <View style={s.actionsRow}>
                     <TouchableOpacity
                       style={s.actionBtn}
-                      onPress={() => rootNav.navigate("Call", { cloneId: sc.id, name: sc.name })}
+                      onPress={async () => {
+
+                        const ok = await assertCanCall(accessToken, () => {
+                          rootNav.dispatch(
+                            CommonActions.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                          );
+                        });
+                        if (!ok) return;
+                        rootNav.navigate("Call", { cloneId: sc.id, name: sc.name });
+                      }}
                     >
                       <Feather name="video" size={16} color={COLORS.zinc700} />
                       <Text style={s.actionText}>{t("dashboard.actionCall")}</Text>

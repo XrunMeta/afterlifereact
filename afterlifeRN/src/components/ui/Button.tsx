@@ -18,6 +18,8 @@ interface ButtonProps {
   variant?: ButtonVariant;
   size?: ButtonSize;
   disabled?: boolean;
+
+  onDisabledPress?: () => void;
   loading?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
@@ -37,6 +39,7 @@ const Button: React.FC<ButtonProps> = ({
   variant = "primary",
   size = "lg",
   disabled = false,
+  onDisabledPress,
   loading = false,
   leftIcon,
   rightIcon,
@@ -67,10 +70,11 @@ const Button: React.FC<ButtonProps> = ({
   return (
     <TouchableOpacity
       testID={testID}
-      onPress={onPress}
+      onPress={disabled ? onDisabledPress : onPress}
       style={containerStyle}
-      activeOpacity={0.8}
-      disabled={disabled || loading}
+      activeOpacity={disabled ? 1 : 0.8}
+
+      disabled={loading || (disabled && !onDisabledPress)}
     >
       {loading ? (
         <ActivityIndicator
