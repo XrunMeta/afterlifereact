@@ -116,4 +116,5 @@ export type MyStackParamList = {
   Transactions: undefined;
   Purchase: undefined; 
   Reports: { tab?: "made" | "received" } | undefined;
+  GiftInventory: undefined; 
 };
