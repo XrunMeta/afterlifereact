@@ -29,6 +29,8 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useFaceBiometricRetroPrompt } from "../../face/useFaceBiometricRetroPrompt";
 import FeedCard from "../../components/ui/FeedCard";
 import IntimacyEventsSheet from "../../components/clone/IntimacyEventsSheet";
+
+import GiftReceiptsSheet from "../../components/clone/GiftReceiptsSheet";
 import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
 import ReportReasonModal from "../../components/common/ReportReasonModal";
 
@@ -119,6 +121,8 @@ export default function HomeScreen() {
   const [commentText, setCommentText] = useState("");
 
   const [intimacyModal, setIntimacyModal] = useState<{ cloneId: number; cloneName: string } | null>(null);
+
+  const [giftModal, setGiftModal] = useState<{ cloneId: number; cloneName: string } | null>(null);
 
   const [moreTarget, setMoreTarget] = useState<{
     cloneId: number;
@@ -445,12 +449,7 @@ export default function HomeScreen() {
           }}
           isOwnerFollowed={item.cloneOwnerId != null ? isUserFollowing(item.cloneOwnerId) : false}
 
-          onGiftPress={() => {
-            showAlert(
-              t("home.giftTitle", { defaultValue: "선물 기능" }),
-              t("call.paymentPreparingToast", { defaultValue: "결제 준비 중이에요" }),
-            );
-          }}
+          onGiftPress={() => setGiftModal({ cloneId: item.cloneId, cloneName: item.author })}
 
           onDescriptionScrollStart={() => {
             if (descScrollUnlockRef.current) {
@@ -1111,6 +1110,13 @@ export default function HomeScreen() {
         cloneId={intimacyModal?.cloneId ?? null}
         cloneName={intimacyModal?.cloneName ?? ""}
         onClose={() => setIntimacyModal(null)}
+      />
+      {}
+      <GiftReceiptsSheet
+        visible={!!giftModal}
+        cloneId={giftModal?.cloneId ?? null}
+        cloneName={giftModal?.cloneName ?? ""}
+        onClose={() => setGiftModal(null)}
       />
     </View>
   );

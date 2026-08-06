@@ -2051,13 +2051,10 @@ clones.get("/:id/gifts/summary", requireAuth, async (c) => {
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
     throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
-  const userId = c.get("userId")!;
   const db = c.env.DB;
 
   const clone = await loadCloneById(db, cloneId);
   if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
-  if (clone.owner_id !== userId)
-    throw new APIError("FORBIDDEN", "소유자만 열람할 수 있어요.");
 
   const rows = await db
     .prepare(
