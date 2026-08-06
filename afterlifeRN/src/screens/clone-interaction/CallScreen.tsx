@@ -28,6 +28,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
 
 import SvgaOverlay from "../../components/gift/SvgaOverlay";
+
+import SvgaThumb from "../../components/gift/SvgaThumb";
 import { RTCView } from "react-native-webrtc";
 import {
   Camera as VisionCamera,
@@ -1608,7 +1610,10 @@ function CallScreenInner({ route, navigation }: Props) {
                   activeOpacity={0.7}
                 >
                   <View style={s.giftEmojiWrap}>
-                    {item.imageUrl ? (
+                    {}
+                    {item.svgaUrl ? (
+                      <SvgaThumb url={item.svgaUrl} size={44} />
+                    ) : item.imageUrl ? (
                       <Image source={{ uri: item.imageUrl }} style={s.giftImage} />
                     ) : (
                       <Text style={s.giftEmoji}>{item.emoji}</Text>
