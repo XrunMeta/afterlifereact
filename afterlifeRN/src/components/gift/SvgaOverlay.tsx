@@ -1,17 +1,8 @@
 
 
 import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
-import {
-  v_39a996,
-  v_aa7413,
-  v_472849,
-  v_19b633,
-  v_4623af,
-  v_3094a2,
-} from "rcmrninabrnb";
-import { v_dec439 } from "zvyjokvuouwvifyzks";
+import { v_472849, v_3094a2 } from "rcmrninabrnb";
 import { v_2694e4 } from "ahewcyoxtiosvtfuluxp";
-import { v_1bfbd0 } from "../constants";
 
 interface Props {
   visible: boolean;
@@ -42,20 +33,17 @@ function v_6587de(v_aef4ae): string {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <style>
-    html, body { margin: 0; padding: 0; background: #000; height: 100%; }
+    html, body { margin: 0; padding: 0; background: transparent; height: 100%; overflow: hidden; }
     #canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
-    #canvas > div { width: 80vw; height: 80vh; }
-    #diag { position: fixed; left: 8px; bottom: 8px; color: #fff; font: 11px monospace; opacity: 0.6; z-index: 999; }
+    #canvas > div { width: 100%; height: 100%; }
   </style>
   <script src="https://unpkg.com/svgaplayerweb@2.3.2/build/svga.min.js"></script>
 </head>
 <body>
   <div id="canvas"><div id="stage"></div></div>
-  <div id="diag">loading svga.js…</div>
   <script>
     (function () {
-      var diag = document.getElementById('diag');
-      var setDiag = function (s) { if (diag) diag.textContent = s; };
+      var setDiag = function () {}; // T-338: 사용자 화면에 diag 안 노출.
       var post = function (m) {
         if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
           try { window.ReactNativeWebView.postMessage(JSON.stringify(m)); } catch (e) {}
@@ -124,17 +112,14 @@ function v_6587de(v_aef4ae): string {
 
 export default function v_194b37({ visible: v_cf55be, svgaUrl: v_1d09c0, onClose: v_0890f8 }: Props) {
   const [v_d91d98, v_5420ce] = v_5ab095<string | null>(null);
-  const [v_fd3c7b, v_4fbeaf] = v_5ab095<string | null>(null);
 
   v_c4deb2(() => {
     if (!v_cf55be || !v_1d09c0) {
       v_5420ce(null);
-      v_4fbeaf(null);
       return;
     }
     let v_2008a4 = false;
     v_5420ce(null);
-    v_4fbeaf(null);
     console.log(`[SvgaOverlay] native fetch begin url=${v_1d09c0}`);
     fetch(v_1d09c0, { cache: "no-store" })
       .then(async (v_cb35cb) => {
@@ -148,69 +133,67 @@ export default function v_194b37({ visible: v_cf55be, svgaUrl: v_1d09c0, onClose
       })
       .catch((v_49263d) => {
         console.warn(`[SvgaOverlay] native fetch failed`, v_49263d);
-        if (!v_2008a4) v_4fbeaf(String((v_49263d as Error).message ?? v_49263d));
+
+        if (!v_2008a4) setTimeout(v_0890f8, 100);
       });
     return () => {
       v_2008a4 = true;
     };
+
   }, [v_cf55be, v_1d09c0]);
 
-  return (
-    <Modal visible={v_cf55be && !!v_1d09c0} transparent animationType="fade" onRequestClose={v_0890f8}>
-      <View style={v_fd5f43.root}>
-        {v_d91d98 ? (
-          <WebView
-            originWhitelist={["*"]}
-            source={{ html: v_d91d98, baseUrl: "https://unpkg.com/" }}
-            style={v_fd5f43.web}
-            javaScriptEnabled
-            domStorageEnabled
-            allowFileAccess
-            mixedContentMode="always"
-            onMessage={(v_9e86fd) => {
-              try {
-                const v_badeaf = JSON.parse(v_9e86fd.nativeEvent.data) as { type?: string; reason?: string };
-                console.log(`[SvgaOverlay] webview msg`, v_badeaf);
-                if (v_badeaf?.type === "finished" || v_badeaf?.type === "error") {
-                  setTimeout(v_0890f8, v_badeaf.type === "finished" ? 200 : 800);
-                }
-              } catch {
+  if (!v_cf55be || !v_1d09c0 || !v_d91d98) return null;
 
+  return (
+    <View style={v_fd5f43.root} pointerEvents="none">
+      <View style={v_fd5f43.stageWrap}>
+        <WebView
+          originWhitelist={["*"]}
+          source={{ html: v_d91d98, baseUrl: "https://unpkg.com/" }}
+          style={v_fd5f43.web}
+          javaScriptEnabled
+          domStorageEnabled
+          allowFileAccess
+          mixedContentMode="always"
+          scrollEnabled={false}
+          androidLayerType="hardware"
+
+          backgroundColor="transparent"
+          onMessage={(v_9e86fd) => {
+            try {
+              const v_badeaf = JSON.parse(v_9e86fd.nativeEvent.data) as { type?: string; reason?: string };
+              console.log(`[SvgaOverlay] webview msg`, v_badeaf);
+              if (v_badeaf?.type === "finished" || v_badeaf?.type === "error") {
+                setTimeout(v_0890f8, v_badeaf.type === "finished" ? 300 : 100);
               }
-            }}
-          />
-        ) : v_fd3c7b ? (
-          <View style={v_fd5f43.loader}>
-            <Text style={v_fd5f43.errText}>재생 실패: {v_fd3c7b}</Text>
-          </View>
-        ) : (
-          <View style={v_fd5f43.loader}>
-            <ActivityIndicator color={v_1bfbd0.white} />
-          </View>
-        )}
-        <TouchableOpacity style={v_fd5f43.close} onPress={v_0890f8} activeOpacity={0.7}>
-          <Feather name="x" size={24} color={v_1bfbd0.white} />
-        </TouchableOpacity>
+            } catch {
+
+            }
+          }}
+        />
       </View>
-    </Modal>
+    </View>
   );
 }
 
 const v_fd5f43 = v_472849.create({
-  root: { flex: 1, backgroundColor: "rgba(0,0,0,0.85)" },
-  web: { flex: 1, backgroundColor: "transparent" },
-  loader: { flex: 1, alignItems: "center", justifyContent: "center" },
-  errText: { color: "#ffb4b4", fontSize: 12, paddingHorizontal: 24, textAlign: "center" },
-  close: {
+
+  root: {
     position: "absolute",
-    top: 44,
-    right: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
     alignItems: "center",
-    justifyContent: "center",
-    zIndex: 10,
+
+    justifyContent: "flex-end",
+    paddingBottom: "15%",
+    zIndex: 50,
   },
+  stageWrap: {
+    width: "70%",
+    aspectRatio: 1,
+    backgroundColor: "transparent",
+  },
+  web: { flex: 1, backgroundColor: "transparent" },
 });
