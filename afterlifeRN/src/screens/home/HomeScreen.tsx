@@ -396,16 +396,25 @@ export default function HomeScreen() {
           onToggleFollow={() => void toggleFollow(item.cloneId)}
           onCallPress={async () => {
 
+            const t0 = Date.now();
+            console.log(`[Call][flow] +${t0} onCallPress cloneId=${item.cloneId} name=${item.author}`);
+
             const ok = await assertCanCall(accessToken, () => {
               rootNav.dispatch(
                 CommonActions.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
               );
             });
+            console.log(`[Call][flow] +${Date.now()} assertCanCall → ok=${ok} (Δ${Date.now() - t0}ms)`);
             if (ok) {
 
               if (typeof item.image === "string" && item.image) {
-                Image.prefetch(item.image).catch(() => {});
+                const pfStart = Date.now();
+                console.log(`[Call][flow] +${pfStart} Image.prefetch start url=${item.image}`);
+                Image.prefetch(item.image)
+                  .then(() => console.log(`[Call][flow] +${Date.now()} Image.prefetch done (Δ${Date.now() - pfStart}ms)`))
+                  .catch((err) => console.warn(`[Call][flow] Image.prefetch failed:`, err));
               }
+              console.log(`[Call][flow] +${Date.now()} navigation.navigate("Call") (Δ${Date.now() - t0}ms since click)`);
               rootNav.navigate("Call", { cloneId: item.cloneId, name: item.author, image: item.image });
             }
           }}
