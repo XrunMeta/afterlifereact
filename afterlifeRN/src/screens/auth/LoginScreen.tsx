@@ -313,10 +313,6 @@ export default function LoginScreen({ navigation }: Props) {
       >
         <View style={styles.container}>
           {}
-          <View style={styles.logoContainer}>
-            {}
-            <Image source={require("../../../assets/images/logo.png")} style={styles.logoImage} resizeMode="contain" />
-          </View>
 
           {}
           <View style={styles.tabRow}>
@@ -428,6 +424,7 @@ export default function LoginScreen({ navigation }: Props) {
 
             <View style={styles.googleButtonPlaceholder} />
           ) : googleEnabled ? (
+
             <Button
               title={t("auth.login.googleBtn")}
               onPress={() => handleSocialLogin("google")}
@@ -456,6 +453,11 @@ export default function LoginScreen({ navigation }: Props) {
               <Text style={styles.signupLink}>{t("auth.login.signupBtn")}</Text>
             </TouchableOpacity>
           </View>
+
+          {}
+          <Text style={styles.forgotPasswordHint}>
+            {t("auth.login.forgotPasswordHint")}
+          </Text>
         </View>
       </SafeScrollView>
     </SafeView>
@@ -583,5 +585,13 @@ const styles = StyleSheet.create({
     color: COLORS.zinc900,
     fontSize: 14,
     fontWeight: "600",
+  },
+
+  forgotPasswordHint: {
+    marginTop: SIZES.medium,
+    color: COLORS.zinc500,
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: "center",
   },
 });
