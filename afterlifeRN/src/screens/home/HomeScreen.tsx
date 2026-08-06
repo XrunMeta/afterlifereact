@@ -75,6 +75,8 @@ export default function v_c316d8() {
 
   const [v_01ea76, v_ae56e9] = v_5ab095(false);
 
+  const v_d50147 = v_e662ae<ReturnType<typeof setTimeout> | null>(null);
+
   const v_53dd92 = v_326be8.OS === "ios"
     ? v_033e14.bottom
     : Math.max(v_f9771e, v_033e14.bottom);
@@ -450,8 +452,20 @@ export default function v_c316d8() {
             );
           }}
 
-          onDescriptionScrollStart={() => v_ae56e9(true)}
-          onDescriptionScrollEnd={() => v_ae56e9(false)}
+          onDescriptionScrollStart={() => {
+            if (v_d50147.current) {
+              clearTimeout(v_d50147.current);
+              v_d50147.current = null;
+            }
+            v_ae56e9(true);
+          }}
+          onDescriptionScrollEnd={() => {
+            if (v_d50147.current) clearTimeout(v_d50147.current);
+            v_d50147.current = setTimeout(() => {
+              v_ae56e9(false);
+              v_d50147.current = null;
+            }, 200);
+          }}
         />
       );
     },

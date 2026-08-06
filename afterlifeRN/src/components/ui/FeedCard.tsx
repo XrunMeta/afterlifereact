@@ -237,11 +237,7 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
 }
             {v_8c0b26.description ? (
 
-              <View
-                onStartShouldSetResponder={() => true}
-                onMoveShouldSetResponder={() => true}
-                style={v_d81136.descriptionWrap}
-              >
+              <View style={v_d81136.descriptionWrap}>
                 <ScrollView
                   style={v_d81136.descriptionScroll}
                   showsVerticalScrollIndicator={true}
@@ -250,7 +246,6 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
                   indicatorStyle="white"
                   bounces={false}
                   overScrollMode="never"
-
                   onScrollBeginDrag={v_c29799}
                   onScrollEndDrag={v_bb9bff}
                   onMomentumScrollEnd={v_bb9bff}
