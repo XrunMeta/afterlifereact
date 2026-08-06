@@ -727,7 +727,12 @@ export default function CallScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     if (!accessToken) return;
-    void startLive();
+
+    const raf = requestAnimationFrame(() => {
+      console.log(`[Call][flow] +${Date.now()} startLive() begin (deferred 1 frame)`);
+      void startLive();
+    });
+    return () => cancelAnimationFrame(raf);
 
   }, []);
 
