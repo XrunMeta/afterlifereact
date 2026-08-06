@@ -70,6 +70,17 @@ const FeedCard: React.FC<FeedCardProps> = ({
 }) => {
   const { t } = useTranslation();
 
+  const [descScrollY, setDescScrollY] = React.useState(0);
+  const [descContentH, setDescContentH] = React.useState(0);
+  const [descContainerH, setDescContainerH] = React.useState(0);
+  const descScrollable = descContentH > descContainerH + 1;
+  const descThumbHeight = descScrollable
+    ? Math.max(16, (descContainerH / descContentH) * descContainerH)
+    : 0;
+  const descThumbTop = descScrollable
+    ? (descScrollY / (descContentH - descContainerH)) * (descContainerH - descThumbHeight)
+    : 0;
+
   const isSmallScreen = cardHeight < 640;
   return (
     <View style={[styles.container, { height: cardHeight }]}>
@@ -245,12 +256,15 @@ const FeedCard: React.FC<FeedCardProps> = ({
               >
                 <ScrollView
                   style={styles.descriptionScroll}
-                  showsVerticalScrollIndicator={true}
+
+                  showsVerticalScrollIndicator={false}
                   nestedScrollEnabled={false}
-                  persistentScrollbar={true}
-                  indicatorStyle="white"
                   bounces={false}
                   overScrollMode="never"
+                  scrollEventThrottle={16}
+                  onScroll={(e) => setDescScrollY(e.nativeEvent.contentOffset.y)}
+                  onContentSizeChange={(_, h) => setDescContentH(h)}
+                  onLayout={(e) => setDescContainerH(e.nativeEvent.layout.height)}
                 >
                   <HashtagText
                     style={styles.description}
@@ -259,6 +273,16 @@ const FeedCard: React.FC<FeedCardProps> = ({
                     {item.description}
                   </HashtagText>
                 </ScrollView>
+                {descScrollable ? (
+                  <View pointerEvents="none" style={styles.descScrollbarTrack}>
+                    <View
+                      style={[
+                        styles.descScrollbarThumb,
+                        { top: descThumbTop, height: descThumbHeight },
+                      ]}
+                    />
+                  </View>
+                ) : null}
               </View>
             ) : null}
 
@@ -487,6 +511,23 @@ const styles = StyleSheet.create({
 
   descriptionWrap: {
     marginBottom: 12,
+
+    position: "relative",
+  },
+
+  descScrollbarTrack: {
+    position: "absolute",
+    top: 2,
+    bottom: 2,
+    right: 2,
+    width: 3,
+  },
+  descScrollbarThumb: {
+    position: "absolute",
+    right: 0,
+    width: 3,
+    borderRadius: 2,
+    backgroundColor: "rgba(255,255,255,0.9)",
   },
 
   descriptionScroll: {
