@@ -10,7 +10,7 @@ import {
   Alert,
   Platform,
 } from "react-native";
-import { Feather } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../../navigation/types";
@@ -425,13 +425,14 @@ export default function LoginScreen({ navigation }: Props) {
             <View style={styles.googleButtonPlaceholder} />
           ) : googleEnabled ? (
 
-            <Button
-              title={t("auth.login.googleBtn")}
+            <TouchableOpacity
+              style={styles.socialButton}
               onPress={() => handleSocialLogin("google")}
-              variant="secondary"
-              size="md"
-              leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}>G</Text>}
-            />
+              activeOpacity={0.8}
+            >
+              <Text style={styles.socialButtonText}>{t("auth.login.googleBtn")}</Text>
+              <Ionicons name="logo-google" size={20} color="#4285F4" />
+            </TouchableOpacity>
           ) : null}
 
           {Platform.OS === "ios" && (
@@ -593,5 +594,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     textAlign: "center",
+  },
+
+  socialButton: {
+    height: 48,
+    backgroundColor: COLORS.white,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+  },
+  socialButtonText: {
+    fontSize: 15,
+    color: COLORS.zinc900,
+    fontWeight: "500",
   },
 });
