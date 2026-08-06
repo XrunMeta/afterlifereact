@@ -1,17 +1,8 @@
 
 
 import React, { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { Feather } from "@expo/vector-icons";
+import { StyleSheet, View } from "react-native";
 import { WebView } from "react-native-webview";
-import { COLORS } from "../constants";
 
 interface Props {
   visible: boolean;
@@ -42,20 +33,17 @@ function buildHtml(base64: string): string {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <style>
-    html, body { margin: 0; padding: 0; background: #000; height: 100%; }
+    html, body { margin: 0; padding: 0; background: transparent; height: 100%; overflow: hidden; }
     #canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
-    #canvas > div { width: 80vw; height: 80vh; }
-    #diag { position: fixed; left: 8px; bottom: 8px; color: #fff; font: 11px monospace; opacity: 0.6; z-index: 999; }
+    #canvas > div { width: 100%; height: 100%; }
   </style>
   <script src="https://unpkg.com/svgaplayerweb@2.3.2/build/svga.min.js"></script>
 </head>
 <body>
   <div id="canvas"><div id="stage"></div></div>
-  <div id="diag">loading svga.js…</div>
   <script>
     (function () {
-      var diag = document.getElementById('diag');
-      var setDiag = function (s) { if (diag) diag.textContent = s; };
+      var setDiag = function () {}; // T-338: 사용자 화면에 diag 안 노출.
       var post = function (m) {
         if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
           try { window.ReactNativeWebView.postMessage(JSON.stringify(m)); } catch (e) {}
@@ -124,17 +112,14 @@ function buildHtml(base64: string): string {
 
 export default function SvgaOverlay({ visible, svgaUrl, onClose }: Props) {
   const [html, setHtml] = useState<string | null>(null);
-  const [loadErr, setLoadErr] = useState<string | null>(null);
 
   useEffect(() => {
     if (!visible || !svgaUrl) {
       setHtml(null);
-      setLoadErr(null);
       return;
     }
     let cancelled = false;
     setHtml(null);
-    setLoadErr(null);
     console.log(`[SvgaOverlay] native fetch begin url=${svgaUrl}`);
     fetch(svgaUrl, { cache: "no-store" })
       .then(async (r) => {
@@ -148,69 +133,67 @@ export default function SvgaOverlay({ visible, svgaUrl, onClose }: Props) {
       })
       .catch((err) => {
         console.warn(`[SvgaOverlay] native fetch failed`, err);
-        if (!cancelled) setLoadErr(String((err as Error).message ?? err));
+
+        if (!cancelled) setTimeout(onClose, 100);
       });
     return () => {
       cancelled = true;
     };
+
   }, [visible, svgaUrl]);
 
-  return (
-    <Modal visible={visible && !!svgaUrl} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={s.root}>
-        {html ? (
-          <WebView
-            originWhitelist={["*"]}
-            source={{ html, baseUrl: "https://unpkg.com/" }}
-            style={s.web}
-            javaScriptEnabled
-            domStorageEnabled
-            allowFileAccess
-            mixedContentMode="always"
-            onMessage={(e) => {
-              try {
-                const msg = JSON.parse(e.nativeEvent.data) as { type?: string; reason?: string };
-                console.log(`[SvgaOverlay] webview msg`, msg);
-                if (msg?.type === "finished" || msg?.type === "error") {
-                  setTimeout(onClose, msg.type === "finished" ? 200 : 800);
-                }
-              } catch {
+  if (!visible || !svgaUrl || !html) return null;
 
+  return (
+    <View style={s.root} pointerEvents="none">
+      <View style={s.stageWrap}>
+        <WebView
+          originWhitelist={["*"]}
+          source={{ html, baseUrl: "https://unpkg.com/" }}
+          style={s.web}
+          javaScriptEnabled
+          domStorageEnabled
+          allowFileAccess
+          mixedContentMode="always"
+          scrollEnabled={false}
+          androidLayerType="hardware"
+
+          backgroundColor="transparent"
+          onMessage={(e) => {
+            try {
+              const msg = JSON.parse(e.nativeEvent.data) as { type?: string; reason?: string };
+              console.log(`[SvgaOverlay] webview msg`, msg);
+              if (msg?.type === "finished" || msg?.type === "error") {
+                setTimeout(onClose, msg.type === "finished" ? 300 : 100);
               }
-            }}
-          />
-        ) : loadErr ? (
-          <View style={s.loader}>
-            <Text style={s.errText}>재생 실패: {loadErr}</Text>
-          </View>
-        ) : (
-          <View style={s.loader}>
-            <ActivityIndicator color={COLORS.white} />
-          </View>
-        )}
-        <TouchableOpacity style={s.close} onPress={onClose} activeOpacity={0.7}>
-          <Feather name="x" size={24} color={COLORS.white} />
-        </TouchableOpacity>
+            } catch {
+
+            }
+          }}
+        />
       </View>
-    </Modal>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "rgba(0,0,0,0.85)" },
-  web: { flex: 1, backgroundColor: "transparent" },
-  loader: { flex: 1, alignItems: "center", justifyContent: "center" },
-  errText: { color: "#ffb4b4", fontSize: 12, paddingHorizontal: 24, textAlign: "center" },
-  close: {
+
+  root: {
     position: "absolute",
-    top: 44,
-    right: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
     alignItems: "center",
-    justifyContent: "center",
-    zIndex: 10,
+
+    justifyContent: "flex-end",
+    paddingBottom: "15%",
+    zIndex: 50,
   },
+  stageWrap: {
+    width: "70%",
+    aspectRatio: 1,
+    backgroundColor: "transparent",
+  },
+  web: { flex: 1, backgroundColor: "transparent" },
 });
