@@ -373,14 +373,20 @@ class DialoguePipeline:
                 # 세션 종료까지 무한 순환(영구 좀비). 훅 발동 후 예외는 기존대로 전파.
                 _fire_hook()
                 raise
-            # [T-258] 렌더 반환 직후 = render_done. frames_buf 는 on_frame 이
-            # 렌더 도중 동기 append 하므로 이 시점에 이미 확정(추가 계산 0).
-            _stage(on_stage, "render_done", {"frames": len(frames_buf)})
             # 성공 경로: frames=0(추론 실패)이어도 호출 — 응답 '오디오' push 전에
             # 필러 오디오("음...")를 반드시 끊어야 응답 음성과 겹치지 않는다.
             # 이 지점~push 사이 await 없음 → stop→flush→응답push 원자성 유지.
             # (_stage 는 동기·논블로킹이라 이 원자성을 깨지 않는다 — _stage docstring)
             _fire_hook()
+            # [T-258 리뷰 fix] render_done 은 반드시 _fire_hook() **뒤**에 보낸다.
+            #   이전 구현은 _fire_hook 앞에 있었는데, 동기라 원자성은 지켜져도
+            #   log.info + json.dumps + channel.send 만큼 **필러컷과 speech_start
+            #   (=_fire_hook 안에서 발신)가 뒤로 밀린다**. 하필 우리가 재려는 값이
+            #   "첫 오디오 도달 시점"이라 계측이 그 값을 왜곡하는 자기모순이었다.
+            #   렌더 종료 사실은 훅 직후에 알려도 의미가 같고, 클라 입장에서
+            #   speech_start 가 render_done 보다 먼저 오는 편이 자연스럽다.
+            #   frames_buf 는 렌더 중 on_frame 이 동기 append 하므로 이미 확정값.
+            _stage(on_stage, "render_done", {"frames": len(frames_buf)})
             _stage(on_stage, "stream_start")
             for arr in frames_buf:
                 self.vt.push_ndarray(arr)
