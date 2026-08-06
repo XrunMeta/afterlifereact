@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
+  AppState,
+  type AppStateStatus,
   View,
   Text,
   StyleSheet,
@@ -12,8 +14,11 @@ import {
   Animated,
   Platform,
   Keyboard,
+  Linking,
   TextInput,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Notifications from "expo-notifications";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { RTCView } from "react-native-webrtc";
@@ -854,6 +859,64 @@ export default function CallScreen({ route, navigation }: Props) {
     }, 1000);
     return () => clearInterval(id);
   }, [liveState, remainingSec !== null, navigation, t]);
+
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const KEY = "@afterlifeRN/call/batteryWhitelistNoticeDismissed";
+    (async () => {
+      try {
+        const dismissed = await AsyncStorage.getItem(KEY);
+        if (dismissed === "1") return;
+        showAlert(
+          t("call.batteryWhitelistTitle", { defaultValue: "통화 안정성 안내" }),
+          t("call.batteryWhitelistBody", {
+            defaultValue:
+              "휴대폰 배터리 절전 기능이 통화를 끊을 수 있어요. 설정에서 이 앱을 배터리 최적화 예외에 등록하면 통화가 안정적으로 유지됩니다.",
+          }),
+          [
+            {
+              text: t("call.batteryWhitelistDismiss", { defaultValue: "다시 보지 않기" }),
+              style: "cancel",
+              onPress: () => AsyncStorage.setItem(KEY, "1").catch(() => {}),
+            },
+            {
+              text: t("call.batteryWhitelistOpen", { defaultValue: "설정 열기" }),
+              onPress: () => {
+                AsyncStorage.setItem(KEY, "1").catch(() => {});
+                Linking.openSettings().catch(() => {});
+              },
+            },
+          ],
+        );
+      } catch {
+
+      }
+    })();
+
+  }, []);
+
+  const lastBgWarnRef = useRef<number>(0);
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (next: AppStateStatus) => {
+      if (next !== "background" && next !== "inactive") return;
+      if (liveState !== "live") return;
+
+      const now = Date.now();
+      if (now - lastBgWarnRef.current < 30_000) return;
+      lastBgWarnRef.current = now;
+      Notifications.scheduleNotificationAsync({
+        content: {
+          title: t("call.bgWarnTitle", { defaultValue: "📞 통화가 유지되지 않을 수 있어요" }),
+          body: t("call.bgWarnBody", {
+            defaultValue: "앱을 계속 열어두어야 통화가 이어집니다. 앱으로 돌아와 주세요.",
+          }),
+          priority: Notifications.AndroidNotificationPriority.MAX,
+        },
+        trigger: null,
+      }).catch((err) => console.warn("[Call] bg warn schedule failed:", err?.message));
+    });
+    return () => sub.remove();
+  }, [liveState, t]);
 
   const confirmProgress = useRef(new Animated.Value(0)).current;
   useEffect(() => {
