@@ -78,6 +78,13 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
         locations={[0, 0.5, 1]}
         style={v_d81136.gradient}
       />
+      {
+}
+      <LinearGradient
+        colors={["rgba(0,0,0,0.55)", "rgba(0,0,0,0.2)", "transparent"]}
+        locations={[0, 0.6, 1]}
+        style={v_d81136.gradientTop}
+      />
 
       {
 }
@@ -129,9 +136,8 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
       ) : null}
 
       {
-
 }
-      {typeof v_8c0b26.myIntimacy === "number" ? (
+      {false && typeof v_8c0b26.myIntimacy === "number" ? (
         <TouchableOpacity
           style={v_d81136.intimacyBadge}
           onPress={v_b85128}
@@ -178,6 +184,19 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
                 <View style={v_d81136.authorRow}>
                   <Text style={v_d81136.authorName}>{v_8c0b26.author}</Text>
                   {v_8c0b26.cloneType === "expert" && <ExpertBadge size={22} />}
+                  {}
+                  {typeof v_8c0b26.myIntimacy === "number" ? (
+                    <TouchableOpacity
+                      style={v_d81136.intimacyBadgeInline}
+                      onPress={v_b85128}
+                      activeOpacity={0.7}
+                      disabled={!v_b85128}
+                      accessibilityLabel="intimacy-events"
+                    >
+                      <Feather name="thermometer" size={12} color="#fb923c" />
+                      <Text style={v_d81136.intimacyText}>{v_8c0b26.myIntimacy}°C</Text>
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
                 <Text style={v_d81136.username}>{v_8c0b26.username}</Text>
               </View>
@@ -259,6 +278,14 @@ const v_d81136 = v_472849.create({
     right: 0,
     bottom: 0,
     height: "60%",
+  },
+
+  gradientTop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "22%",
   },
   bottomContent: {
     position: "absolute",
@@ -402,6 +429,17 @@ const v_d81136 = v_472849.create({
     backgroundColor: "rgba(0,0,0,0.6)",
     borderRadius: v_8b0c90.full,
     zIndex: 10,
+  },
+
+  intimacyBadgeInline: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: v_8b0c90.full,
+    marginLeft: 4,
   },
   intimacyText: {
     fontSize: 11,
