@@ -245,7 +245,9 @@
     "batteryWhitelistOpen": "Open Settings",
     "batteryWhitelistDismiss": "Don't show again",
     "bgWarnTitle": "📞 Your call may drop",
-    "bgWarnBody": "Keep the app open to stay on the call. Return to the app."
+    "bgWarnBody": "Keep the app open to stay on the call. Return to the app.",
+    "fgTitle": "📞 On a call",
+    "fgBody": "On a call with {{name}}"
   },
   "feed": {
     "homeTitle": "Home",

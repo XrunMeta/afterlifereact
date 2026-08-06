@@ -245,7 +245,9 @@
     "batteryWhitelistOpen": "打开设置",
     "batteryWhitelistDismiss": "不再显示",
     "bgWarnTitle": "📞 通话可能中断",
-    "bgWarnBody": "请保持应用打开以继续通话，快回到应用。"
+    "bgWarnBody": "请保持应用打开以继续通话，快回到应用。",
+    "fgTitle": "📞 通话中",
+    "fgBody": "正在与 {{name}} 通话"
   },
   "feed": {
     "homeTitle": "首页",
