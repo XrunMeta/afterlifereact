@@ -1557,8 +1557,6 @@ export default function CallScreen({ route, navigation }: Props) {
             <FlatList
               data={gifts}
               keyExtractor={(item) => item.id}
-              numColumns={3}
-              columnWrapperStyle={s.giftRow}
               contentContainerStyle={s.giftGrid}
               scrollEnabled={true}
               showsVerticalScrollIndicator={false}
@@ -1575,7 +1573,12 @@ export default function CallScreen({ route, navigation }: Props) {
                       <Text style={s.giftEmoji}>{item.emoji}</Text>
                     )}
                   </View>
-                  <Text style={s.giftName}>{item.name}</Text>
+                  <Text style={s.giftName} numberOfLines={1}>{item.name}</Text>
+                  {typeof item.xrunPrice === "number" ? (
+                    <Text style={s.giftPrice}>{item.xrunPrice} XRUN</Text>
+                  ) : (
+                    <View style={{ minWidth: 60 }} />
+                  )}
                 </TouchableOpacity>
               )}
             />
@@ -1871,32 +1874,35 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  giftGrid: { paddingHorizontal: 24, paddingTop: 20 },
-  giftRow: { gap: 12, marginBottom: 12 },
+  giftGrid: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 4 },
+
   giftItem: {
-    flex: 1,
+    flexDirection: "row",
     alignItems: "center",
-    padding: 14,
+    padding: 12,
+    marginBottom: 8,
     backgroundColor: COLORS.zinc50,
     borderRadius: RADIUS.lg,
+    gap: 12,
   },
   giftEmojiWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: COLORS.white,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
     elevation: 2,
     shadowColor: COLORS.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
   },
-  giftEmoji: { fontSize: 24 },
-  giftImage: { width: 40, height: 40, borderRadius: 8 },
-  giftName: { fontSize: 13, fontWeight: "600", color: COLORS.zinc900, marginBottom: 2 },
+  giftEmoji: { fontSize: 22 },
+  giftImage: { width: 36, height: 36, borderRadius: 8 },
+  giftName: { flex: 1, fontSize: 15, fontWeight: "600", color: COLORS.zinc900 },
+
+  giftPrice: { fontSize: 13, fontWeight: "700", color: "#a78bfa", minWidth: 60, textAlign: "right" },
 
   toast: {
     position: "absolute",
