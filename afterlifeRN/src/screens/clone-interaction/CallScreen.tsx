@@ -70,10 +70,12 @@ import { submitDevText } from "../../realtime/devCallText";
 import { CALL_ROUTE } from "../../config/callRoute";
 import { GREETING_ENABLED, GREETING_FALLBACK_TEXT, GREET_TIMEOUT_MS } from "../../config/greeting";
 import { useHandsFreeController } from "../../realtime/useHandsFreeController";
+import { shouldSkipUnknownFaceEntry, computeFaceKey } from "../../realtime/faceInterruptRouting";
 import { useVideoStatsDiag } from "../../realtime/useVideoStatsDiag";
 import { DialingScreen } from "../../components/call/DialingScreen";
 import { CallVoiceBall } from "../../components/call/CallVoiceBall";
 import { CallTimingHUD } from "../../components/call/CallTimingHUD";
+import { CallStateHUD } from "../../components/call/CallStateHUD";
 import { CallTimingPanel } from "../../components/call/CallTimingPanel";
 import { CloneSubtitleTicker } from "../../components/call/CloneSubtitleTicker";
 import { useDevOverlayStore } from "../../stores/devOverlayStore";
@@ -300,6 +302,12 @@ export default function CallScreen({ route, navigation }: Props) {
     dispatchShRef.current(event);
   }, []);
 
+  const notifyFaceInterruptRef = useRef<(text: string, faceKey: string) => void>(() => {});
+
+  const micOnRef = useRef(false);
+
+  const namingSessionIdRef = useRef(0);
+
   const unknownFaceSnapshotRef = useRef<number[][] | null>(null);
 
   const calibrateOpt = useMemo(
@@ -444,10 +452,11 @@ export default function CallScreen({ route, navigation }: Props) {
   const NAMING_TIMEOUT_MS = 20000;
   const namingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const runShActions = useCallback(
-    (actions: SpeakerHandoffAction[]) => {
+
+    (actions: SpeakerHandoffAction[], faceKey: string) => {
       for (const a of actions) {
         if (a.type === "SAY") {
-          void say(a.text);
+          notifyFaceInterruptRef.current(a.text, faceKey);
         } else if (a.type === "BEGIN_NAMING") {
           if (namingTimerRef.current) clearTimeout(namingTimerRef.current);
           namingTimerRef.current = setTimeout(() => {
@@ -465,13 +474,21 @@ export default function CallScreen({ route, navigation }: Props) {
         }
       }
     },
-    [say, faceEnroll, resetSpeakerRecognition],
+    [faceEnroll, resetSpeakerRecognition],
   );
   useEffect(() => {
     dispatchShRef.current = (event: SpeakerHandoffEvent) => {
+      const prevNaming = shStateRef.current.naming;
+
+      if (shouldSkipUnknownFaceEntry(event, prevNaming, micOnRef.current)) return;
       const { state, actions } = speakerHandoffReducer(shStateRef.current, event);
+
+      const { faceKey, nextSessionId } = computeFaceKey(
+        event, prevNaming, state.naming, namingSessionIdRef.current,
+      );
+      namingSessionIdRef.current = nextSessionId;
       shStateRef.current = state;
-      runShActions(actions);
+      runShActions(actions, faceKey);
     };
   }, [runShActions]);
 
@@ -643,6 +660,7 @@ export default function CallScreen({ route, navigation }: Props) {
     micLevel,
     cloneAudioLevel,
     sttActive,
+    notifyFaceInterrupt,
   } = useHandsFreeController({
     enabled: liveState === "live",
     say,
@@ -659,6 +677,14 @@ export default function CallScreen({ route, navigation }: Props) {
 
     signalGating: typeof greet === 'function',
   });
+
+  useEffect(() => {
+    notifyFaceInterruptRef.current = notifyFaceInterrupt;
+  }, [notifyFaceInterrupt]);
+
+  useEffect(() => {
+    micOnRef.current = micOn;
+  }, [micOn]);
 
   const [greetingStarted, setGreetingStarted] = useState(false);
   useEffect(() => {
@@ -1063,6 +1089,8 @@ export default function CallScreen({ route, navigation }: Props) {
       />
 
       {showCallDev && liveState === "live" ? <CallTimingHUD /> : null}
+      {}
+      {showCallDev && liveState === "live" ? <CallStateHUD /> : null}
       {showCallDev && liveState === "live" ? (
 
         <View

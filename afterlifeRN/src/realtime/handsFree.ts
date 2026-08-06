@@ -1,7 +1,18 @@
 
 
 export type HandsFreePhase =
-  | 'idle' | 'greeting' | 'listening' | 'confirming' | 'sending' | 'speaking' | 'paused';
+  | 'idle' | 'greeting' | 'listening' | 'confirming' | 'sending' | 'speaking' | 'paused'
+  | 'interrupting';
+
+export const v_6fc7ac = [30000, 60000];
+
+export const v_de0ee8 = '안녕하세요, 듣고 있어요';
+
+export const v_778702 = 3000;
+
+export const v_3711bb = 15000;
+
+export const v_99c713 = 10000;
 
 export interface HandsFreeState {
   phase: HandsFreePhase;
@@ -12,35 +23,89 @@ export interface HandsFreeState {
   confirmGate: boolean;
 
   signalGating: boolean;
+
+  activeSeq: number | null;
+
+  nextSeq: number;
+
+  userSpeaking: boolean;
+
+  pendingInterrupt: { text: string; faceKey: string; deferredTurns: number } | null;
+
+  idleGreetCount: number;
 }
 
 export type HandsFreeEvent =
   | { type: 'CALL_LIVE'; greeting?: boolean; confirmGate?: boolean; signalGating?: boolean }
-  | { type: 'SPEECH_START' }
+  | { type: 'SPEECH_START'; seq?: number }
   | { type: 'GREET_TIMEOUT' }
   | { type: 'FINAL_RESULT'; text: string }
   | { type: 'CONFIRM_SEND' }
   | { type: 'CANCEL_SEND' }
   | { type: 'CLONE_SPEAKING' }
   | { type: 'RESPONSE_END' }
-  | { type: 'RESPONSE_DONE' }
+  | { type: 'RESPONSE_DONE'; seq?: number }
   | { type: 'MIC_OFF' }
   | { type: 'MIC_ON' }
-  | { type: 'CALL_ENDED' };
+  | { type: 'CALL_ENDED' }
+  | { type: 'USER_SPEECH_START' }
+  | { type: 'USER_SPEECH_IDLE' }
+  | { type: 'FACE_INTERRUPT'; text: string; faceKey: string }
+  | { type: 'IDLE_TIMEOUT' }
+
+  | { type: 'INTERRUPT_FLUSH' }
+
+  | { type: 'INTERRUPT_EXPIRED'; faceKey?: string };
 
 export type HandsFreeEffect =
   | 'START_STT' | 'STOP_STT' | 'SAY' | 'GREET' | 'SPEAK_FALLBACK'
-  | 'START_DETECTOR' | 'STOP_DETECTOR';
+  | 'START_DETECTOR' | 'STOP_DETECTOR' | 'SAY_INTERRUPT' | 'SAY_IDLE_GREETING';
 
 export interface HandsFreeResult {
   state: HandsFreeState;
   effects: HandsFreeEffect[];
   sayText?: string;
+
+  saySeq?: number;
 }
 
 export const v_3075fa = (): HandsFreeState => ({
   phase: 'idle', micOn: true, pendingText: '', confirmGate: false, signalGating: false,
+  activeSeq: null, nextSeq: 1, userSpeaking: false, pendingInterrupt: null, idleGreetCount: 0,
 });
+
+function v_778049(v_b6e533): HandsFreeResult {
+  if (!v_b6e533.micOn) {
+
+    return {
+      state: { ...v_b6e533, phase: 'paused', pendingText: '', activeSeq: null, userSpeaking: false, pendingInterrupt: null },
+      effects: ['STOP_DETECTOR'],
+    };
+  }
+  const v_66d3ef = v_b6e533.pendingInterrupt;
+  if (v_66d3ef) {
+    const v_1923e2 = v_b6e533.nextSeq;
+    return {
+      state: {
+        ...v_b6e533, phase: 'interrupting', pendingText: '', userSpeaking: false,
+        activeSeq: v_1923e2, nextSeq: v_1923e2 + 1, pendingInterrupt: null,
+      },
+
+      effects: ['STOP_DETECTOR', 'SAY_INTERRUPT', 'START_DETECTOR'],
+      sayText: v_66d3ef.text,
+      saySeq: v_1923e2,
+    };
+  }
+  return {
+    state: { ...v_b6e533, phase: 'listening', pendingText: '', activeSeq: null, userSpeaking: false },
+    effects: ['STOP_DETECTOR', 'START_STT'],
+  };
+}
+
+function v_307007(v_b6e533): HandsFreeResult {
+  if (v_b6e533.activeSeq === null) return { state: v_b6e533, effects: [] };
+  return { state: { ...v_b6e533, activeSeq: null }, effects: [] };
+}
 
 export function v_6920f0(v_b6e533, v_1d299c): HandsFreeResult {
   switch (v_1d299c.type) {
@@ -55,9 +120,27 @@ export function v_6920f0(v_b6e533, v_1d299c): HandsFreeResult {
       return { state: { ...v_b6e533, phase: 'listening', confirmGate: v_c6928f, signalGating: v_34f505 }, effects: ['START_STT'] };
     }
 
+    case 'USER_SPEECH_START':
+
+      if (v_b6e533.phase !== 'listening' && v_b6e533.phase !== 'confirming') return { state: v_b6e533, effects: [] };
+      if (v_b6e533.userSpeaking) return { state: v_b6e533, effects: [] };
+      return { state: { ...v_b6e533, userSpeaking: true }, effects: [] };
+
+    case 'USER_SPEECH_IDLE':
+      if (!v_b6e533.userSpeaking) return { state: v_b6e533, effects: [] };
+      return { state: { ...v_b6e533, userSpeaking: false }, effects: [] };
+
     case 'SPEECH_START':
 
-      if (v_b6e533.phase !== 'greeting' && v_b6e533.phase !== 'sending') return { state: v_b6e533, effects: [] };
+      if (v_b6e533.phase !== 'greeting' && v_b6e533.phase !== 'sending' && v_b6e533.phase !== 'interrupting') {
+        return { state: v_b6e533, effects: [] };
+      }
+
+      if (v_1d299c.seq != null && v_b6e533.activeSeq != null && v_1d299c.seq !== v_b6e533.activeSeq) {
+        return { state: v_b6e533, effects: [] };
+      }
+
+      if (v_b6e533.phase === 'interrupting') return { state: v_b6e533, effects: [] };
       return { state: { ...v_b6e533, phase: 'speaking' }, effects: [] };
 
     case 'GREET_TIMEOUT':
@@ -72,37 +155,51 @@ export function v_6920f0(v_b6e533, v_1d299c): HandsFreeResult {
       }
       const v_9b6134 = v_1d299c.text.trim();
       if (!v_9b6134) return { state: v_b6e533, effects: [] };
+
+      const v_66d3ef = v_b6e533.pendingInterrupt;
+      const v_0d45fe =
+        v_66d3ef == null ? null : v_66d3ef.deferredTurns + 1 >= 2 ? null : { ...v_66d3ef, deferredTurns: v_66d3ef.deferredTurns + 1 };
       if (!v_b6e533.confirmGate) {
 
+        const v_1923e2 = v_b6e533.nextSeq;
         return {
-          state: { ...v_b6e533, phase: 'sending', pendingText: v_9b6134 },
+          state: {
+            ...v_b6e533, phase: 'sending', pendingText: v_9b6134, activeSeq: v_1923e2, nextSeq: v_1923e2 + 1, userSpeaking: false,
+            pendingInterrupt: v_0d45fe, idleGreetCount: 0,
+          },
           effects: ['STOP_STT', 'SAY', 'START_DETECTOR'],
           sayText: v_9b6134,
+          saySeq: v_1923e2,
         };
       }
       const v_def12c =
         v_b6e533.phase === 'confirming' && v_b6e533.pendingText
           ? `${v_b6e533.pendingText} ${v_9b6134}`.trim()
           : v_9b6134;
-      return { state: { ...v_b6e533, phase: 'confirming', pendingText: v_def12c }, effects: [] };
+      return {
+        state: { ...v_b6e533, phase: 'confirming', pendingText: v_def12c, userSpeaking: false, pendingInterrupt: v_0d45fe, idleGreetCount: 0 },
+        effects: [],
+      };
     }
 
     case 'CONFIRM_SEND': {
       if (v_b6e533.phase !== 'confirming') return { state: v_b6e533, effects: [] };
       const v_9b6134 = v_b6e533.pendingText.trim();
 
-      if (!v_9b6134) return { state: { ...v_b6e533, phase: 'listening', pendingText: '' }, effects: [] };
+      if (!v_9b6134) return { state: { ...v_b6e533, phase: 'listening', pendingText: '', userSpeaking: false }, effects: [] };
+      const v_1923e2 = v_b6e533.nextSeq;
       return {
-        state: { ...v_b6e533, phase: 'sending', pendingText: '' },
+        state: { ...v_b6e533, phase: 'sending', pendingText: '', activeSeq: v_1923e2, nextSeq: v_1923e2 + 1, userSpeaking: false },
         effects: ['STOP_STT', 'SAY', 'START_DETECTOR'],
         sayText: v_9b6134,
+        saySeq: v_1923e2,
       };
     }
 
     case 'CANCEL_SEND':
       if (v_b6e533.phase !== 'confirming') return { state: v_b6e533, effects: [] };
 
-      return { state: { ...v_b6e533, phase: 'listening', pendingText: '' }, effects: [] };
+      return { state: { ...v_b6e533, phase: 'listening', pendingText: '', userSpeaking: false }, effects: [] };
 
     case 'CLONE_SPEAKING':
       if (v_b6e533.phase !== 'sending') return { state: v_b6e533, effects: [] };
@@ -112,31 +209,134 @@ export function v_6920f0(v_b6e533, v_1d299c): HandsFreeResult {
 
       if (v_b6e533.signalGating) return { state: v_b6e533, effects: [] };
 
-      if (v_b6e533.phase !== 'speaking' && v_b6e533.phase !== 'sending' && v_b6e533.phase !== 'greeting') {
+      if (v_b6e533.phase === 'paused') return v_307007(v_b6e533);
+
+      if (v_b6e533.phase !== 'speaking' && v_b6e533.phase !== 'sending' && v_b6e533.phase !== 'greeting'
+        && v_b6e533.phase !== 'interrupting') {
         return { state: v_b6e533, effects: [] };
       }
 
-      if (!v_b6e533.micOn) return { state: { ...v_b6e533, phase: 'paused', pendingText: '' }, effects: ['STOP_DETECTOR'] };
-      return { state: { ...v_b6e533, phase: 'listening', pendingText: '' }, effects: ['STOP_DETECTOR', 'START_STT'] };
+      return v_778049(v_b6e533);
 
     case 'RESPONSE_DONE':
 
-      if (v_b6e533.phase !== 'speaking' && v_b6e533.phase !== 'sending' && v_b6e533.phase !== 'greeting') {
+      if (v_b6e533.phase === 'paused') {
+        if (v_1d299c.seq != null && v_b6e533.activeSeq != null && v_1d299c.seq !== v_b6e533.activeSeq) {
+          return { state: v_b6e533, effects: [] };
+        }
+        return v_307007(v_b6e533);
+      }
+      if (v_b6e533.phase !== 'speaking' && v_b6e533.phase !== 'sending' && v_b6e533.phase !== 'greeting'
+        && v_b6e533.phase !== 'interrupting') {
         return { state: v_b6e533, effects: [] };
       }
-      if (!v_b6e533.micOn) return { state: { ...v_b6e533, phase: 'paused', pendingText: '' }, effects: ['STOP_DETECTOR'] };
-      return { state: { ...v_b6e533, phase: 'listening', pendingText: '' }, effects: ['STOP_DETECTOR', 'START_STT'] };
+
+      if (v_1d299c.seq != null && v_b6e533.activeSeq != null && v_1d299c.seq !== v_b6e533.activeSeq) {
+        return { state: v_b6e533, effects: [] };
+      }
+
+      return v_778049(v_b6e533);
 
     case 'MIC_OFF':
       if (!v_b6e533.micOn) return { state: v_b6e533, effects: [] };
-      return { state: { phase: 'paused', micOn: false, pendingText: '', confirmGate: v_b6e533.confirmGate, signalGating: v_b6e533.signalGating }, effects: ['STOP_STT', 'STOP_DETECTOR'] };
 
-    case 'MIC_ON':
+      return {
+        state: { phase: 'paused', micOn: false, pendingText: '', confirmGate: v_b6e533.confirmGate, signalGating: v_b6e533.signalGating, activeSeq: v_b6e533.activeSeq, nextSeq: v_b6e533.nextSeq, userSpeaking: false, pendingInterrupt: null, idleGreetCount: v_b6e533.idleGreetCount },
+        effects: ['STOP_STT', 'STOP_DETECTOR'],
+      };
+
+    case 'MIC_ON': {
       if (v_b6e533.micOn) return { state: v_b6e533, effects: [] };
-      return { state: { phase: 'listening', micOn: true, pendingText: '', confirmGate: v_b6e533.confirmGate, signalGating: v_b6e533.signalGating }, effects: ['START_STT'] };
+      const v_694b25 = {
+        micOn: true, pendingText: '', confirmGate: v_b6e533.confirmGate, signalGating: v_b6e533.signalGating,
+        nextSeq: v_b6e533.nextSeq, userSpeaking: false, pendingInterrupt: null, idleGreetCount: v_b6e533.idleGreetCount,
+      };
+      if (v_b6e533.activeSeq !== null) {
+
+        return {
+          state: { ...v_694b25, phase: 'speaking', activeSeq: v_b6e533.activeSeq },
+          effects: ['START_DETECTOR'],
+        };
+      }
+      return { state: { ...v_694b25, phase: 'listening', activeSeq: null }, effects: ['START_STT'] };
+    }
+
+    case 'FACE_INTERRUPT': {
+
+      if (v_b6e533.phase === 'idle' || v_b6e533.phase === 'paused') return { state: v_b6e533, effects: [] };
+      const v_61998a = v_b6e533.phase === 'listening' && !v_b6e533.userSpeaking;
+      if (!v_61998a) {
+
+        if (v_b6e533.pendingInterrupt?.faceKey === v_1d299c.faceKey) return { state: v_b6e533, effects: [] };
+        return {
+          state: { ...v_b6e533, pendingInterrupt: { text: v_1d299c.text, faceKey: v_1d299c.faceKey, deferredTurns: 0 } },
+          effects: [],
+        };
+      }
+      const v_1923e2 = v_b6e533.nextSeq;
+      return {
+        state: {
+          ...v_b6e533, phase: 'interrupting', pendingText: '', userSpeaking: false,
+          activeSeq: v_1923e2, nextSeq: v_1923e2 + 1, pendingInterrupt: null,
+        },
+        effects: ['STOP_STT', 'SAY_INTERRUPT', 'START_DETECTOR'],
+        sayText: v_1d299c.text,
+        saySeq: v_1923e2,
+      };
+    }
+
+    case 'INTERRUPT_FLUSH': {
+
+      const v_66d3ef = v_b6e533.pendingInterrupt;
+      if (!v_66d3ef) return { state: v_b6e533, effects: [] };
+      if (v_b6e533.phase !== 'listening') return { state: v_b6e533, effects: [] };
+      if (v_b6e533.activeSeq !== null) return { state: v_b6e533, effects: [] };
+      if (v_b6e533.userSpeaking) return { state: v_b6e533, effects: [] };
+      if (!v_b6e533.micOn) return { state: v_b6e533, effects: [] };
+      const v_1923e2 = v_b6e533.nextSeq;
+      return {
+        state: {
+          ...v_b6e533, phase: 'interrupting', pendingText: '', userSpeaking: false,
+          activeSeq: v_1923e2, nextSeq: v_1923e2 + 1, pendingInterrupt: null,
+        },
+        effects: ['STOP_STT', 'SAY_INTERRUPT', 'START_DETECTOR'],
+        sayText: v_66d3ef.text,
+        saySeq: v_1923e2,
+      };
+    }
+
+    case 'INTERRUPT_EXPIRED': {
+
+      const v_66d3ef = v_b6e533.pendingInterrupt;
+      if (!v_66d3ef) return { state: v_b6e533, effects: [] };
+      if (v_1d299c.faceKey != null && v_1d299c.faceKey !== v_66d3ef.faceKey) return { state: v_b6e533, effects: [] };
+      return { state: { ...v_b6e533, pendingInterrupt: null }, effects: [] };
+    }
+
+    case 'IDLE_TIMEOUT': {
+
+      if (v_b6e533.phase !== 'listening') return { state: v_b6e533, effects: [] };
+      if (v_b6e533.activeSeq !== null) return { state: v_b6e533, effects: [] };
+      if (v_b6e533.userSpeaking) return { state: v_b6e533, effects: [] };
+      if (!v_b6e533.micOn) return { state: v_b6e533, effects: [] };
+      if (v_b6e533.idleGreetCount >= v_6fc7ac.length) return { state: v_b6e533, effects: [] };
+      const v_1923e2 = v_b6e533.nextSeq;
+      return {
+        state: {
+          ...v_b6e533, phase: 'interrupting', pendingText: '',
+          activeSeq: v_1923e2, nextSeq: v_1923e2 + 1, idleGreetCount: v_b6e533.idleGreetCount + 1,
+        },
+        effects: ['STOP_STT', 'SAY_IDLE_GREETING', 'START_DETECTOR'],
+        sayText: v_de0ee8,
+        saySeq: v_1923e2,
+      };
+    }
 
     case 'CALL_ENDED':
-      return { state: { phase: 'idle', micOn: true, pendingText: '', confirmGate: false, signalGating: false }, effects: ['STOP_STT', 'STOP_DETECTOR'] };
+      return {
+        state: { ...v_3075fa(), nextSeq: v_b6e533.nextSeq },
+        effects: ['STOP_STT', 'STOP_DETECTOR'],
+      };
 
     default:
       return { state: v_b6e533, effects: [] };

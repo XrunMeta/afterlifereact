@@ -38,6 +38,38 @@ describe('timingEvents', () => {
     expect(v_7866ae[v_7866ae.length - 1].tMs).toBe(44);
   });
 
+  it('subscriber exception is isolated (does not break emitter or other subscribers)', () => {
+    const v_980ff2 = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const v_110a8b = [];
+    const v_302922 = v_2c6b15(() => { throw new Error('boom'); });
+    const v_65c284 = v_2c6b15((v_7866ae) => { v_110a8b.push(v_7866ae.length); });
+
+    expect(() => v_d7f7b1('stt_open')).not.toThrow(); 
+    expect(v_110a8b[v_110a8b.length - 1]).toBe(1);                   
+    expect(v_08004c()).toHaveLength(1);               
+
+    const v_f4cc46 = v_980ff2.mock.calls.filter((v_3f4e2e) => v_3f4e2e[0] === '[Call][timing][subscriber-error]');
+    expect(v_f4cc46.length).toBeGreaterThan(0);               
+    v_302922(); v_65c284(); v_980ff2.mockRestore();
+  });
+
+  it('subscriber exception logging is capped (no infinite log spam)', () => {
+    const v_980ff2 = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const v_69c966 = v_2c6b15(() => { throw new Error('boom'); });
+    for (let v_ebec57 = 0; v_ebec57 < 30; v_ebec57++) v_d7f7b1('stt_open');
+    const v_f4cc46 = v_980ff2.mock.calls.filter((v_3f4e2e) => v_3f4e2e[0] === '[Call][timing][subscriber-error]');
+    expect(v_f4cc46.length).toBeLessThanOrEqual(5);
+    v_69c966(); v_980ff2.mockRestore();
+  });
+
+  it('emit accepts an optional detail payload (legacy calls unchanged)', () => {
+    v_8d41d7 = 7; v_d7f7b1('stt_open');
+    v_8d41d7 = 8; v_d7f7b1('fsm', { from: 'idle', to: 'listening' });
+    const v_7866ae = v_08004c();
+    expect(v_7866ae[0].detail).toBeUndefined();
+    expect(v_7866ae[1].detail).toEqual({ from: 'idle', to: 'listening' });
+  });
+
   it('formatTimingLine shows delta from prev', () => {
     const v_779914 = { type: 'speech_end' as const, tMs: 1000 };
     const v_148ff6 = { type: 'stt_open' as const, tMs: 2620 };

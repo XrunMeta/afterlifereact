@@ -1,5 +1,12 @@
 import { v_0da18b, v_be73a0, v_81e49f } from 'dtbzepbezvovgqcnbkbssjenbxhgn';
 import { v_7df8a4 } from '../../src/realtime/useHandsFreeController';
+import {
+  v_6fc7ac,
+  v_de0ee8,
+  v_778702,
+  v_3711bb,
+  v_99c713,
+} from '../../src/realtime/handsFree';
 
 function v_c2295a() {
   const v_9fde29 = {};
@@ -974,4 +981,404 @@ it('confirming 중 cancelConfirm() → listening, say 미호출', async () => {
   } finally {
     jest.useRealTimers();
   }
+});
+
+describe('T-258: 무발화 워치독 · seq 배선', () => {
+
+  it('🔴[C1] 조용한 listening 이 IDLE_GREET_DELAYS_MS[0] 만큼 이어지면 워치독 문구가 speak(고정 문구) 경로로 나간다 — say(LLM 턴) 금지', async () => {
+    jest.useFakeTimers();
+    try {
+      const v_1e3df0 = v_c2295a();
+      const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
+      const v_a1d9db = jest.fn().mockResolvedValue(undefined);
+      const { result: v_43c42e } = v_d84520({
+        enabled: true,
+        say: v_3e2c87,
+        speak: v_a1d9db,
+        getStatsReport: () => null,
+        notifySpeechEnd: jest.fn(),
+        speechEngine: v_1e3df0,
+      });
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(0); });
+      expect(v_43c42e.current.phase).toBe('listening');
+
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(v_6fc7ac[0]); });
+
+      expect(v_a1d9db).toHaveBeenCalledWith(v_de0ee8);
+      expect(v_3e2c87).not.toHaveBeenCalled();
+
+      expect(v_43c42e.current.phase).toBe('interrupting');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('🔴[C1] speak 미제공 환경(second)에서는 워치독 문구를 say 로 흘리지 않고 RESPONSE_DONE 으로 안전 복구한다', async () => {
+    jest.useFakeTimers();
+    try {
+      const v_1e3df0 = v_c2295a();
+      const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
+      const { result: v_43c42e } = v_d84520({
+        enabled: true,
+        say: v_3e2c87,
+        getStatsReport: () => null,
+        notifySpeechEnd: jest.fn(),
+        speechEngine: v_1e3df0,
+      });
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(0); });
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(v_6fc7ac[0]); });
+      expect(v_3e2c87).not.toHaveBeenCalled();
+      expect(v_43c42e.current.phase).toBe('listening'); 
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('STT partial(interimTranscript) 수신 중엔 USER_SPEECH_START 로 워치독이 걸리지 않는다', async () => {
+    jest.useFakeTimers();
+    try {
+      const v_1e3df0 = v_c2295a();
+      const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
+      const v_a1d9db = jest.fn().mockResolvedValue(undefined);
+      const { result: v_43c42e } = v_d84520({
+        enabled: true,
+        say: v_3e2c87,
+        speak: v_a1d9db,
+        getStatsReport: () => null,
+        notifySpeechEnd: jest.fn(),
+        speechEngine: v_1e3df0,
+      });
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(0); });
+      expect(v_43c42e.current.phase).toBe('listening');
+
+      v_be73a0(() => { v_1e3df0.emit('result', { results: [{ transcript: '음' }], isFinal: false }); });
+      expect(v_43c42e.current.interimTranscript).toBe('음');
+
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(v_6fc7ac[0]); });
+
+      expect(v_a1d9db).not.toHaveBeenCalledWith(v_de0ee8);
+      expect(v_3e2c87).not.toHaveBeenCalledWith(v_de0ee8);
+      expect(v_43c42e.current.phase).toBe('listening');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('워치독이 두 차례(30s→60s) 발동 후 idleGreetCount 소진되면 더 이상 발동하지 않는다 — dc 신호 seq 왕복 포함', async () => {
+    jest.useFakeTimers();
+    try {
+      const v_1e3df0 = v_c2295a();
+      const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
+      const v_a1d9db = jest.fn().mockResolvedValue(undefined); 
+      let v_361415 = null;
+      const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
+        (v_b1927c) => v_7df8a4({
+          enabled: true,
+          say: v_3e2c87,
+          speak: v_a1d9db,
+          getStatsReport: () => null,
+          notifySpeechEnd: jest.fn(),
+          speechEngine: v_1e3df0,
+          lastSignal: v_b1927c.signal,
+        }),
+        { initialProps: { signal: v_361415 } },
+      );
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(0); });
+      expect(v_43c42e.current.phase).toBe('listening');
+
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(v_6fc7ac[0]); });
+      expect(v_a1d9db).toHaveBeenCalledTimes(1);
+      expect(v_43c42e.current.phase).toBe('interrupting');
+
+      v_361415 = { type: 'speech_start', ts: Date.now() };
+      v_be73a0(() => { v_2726cb({ signal: v_361415 }); });
+      v_361415 = { type: 'speech_end', ts: Date.now() + 10 };
+      v_be73a0(() => { v_2726cb({ signal: v_361415 }); });
+      expect(v_43c42e.current.phase).toBe('listening');
+
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(v_6fc7ac[1]); });
+      expect(v_a1d9db).toHaveBeenCalledTimes(2);
+      expect(v_43c42e.current.phase).toBe('interrupting');
+
+      v_361415 = { type: 'speech_start', ts: Date.now() };
+      v_be73a0(() => { v_2726cb({ signal: v_361415 }); });
+      v_361415 = { type: 'speech_end', ts: Date.now() + 10 };
+      v_be73a0(() => { v_2726cb({ signal: v_361415 }); });
+      expect(v_43c42e.current.phase).toBe('listening');
+
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(v_6fc7ac[1]); });
+      expect(v_a1d9db).toHaveBeenCalledTimes(2);
+      expect(v_3e2c87).not.toHaveBeenCalled(); 
+      expect(v_43c42e.current.phase).toBe('listening');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('[Important 1] signalGating 중 interrupting phase에서 dc 신호가 유실되면 responseDoneTimeoutMs 후 강제 listening 복귀한다', async () => {
+    jest.useFakeTimers();
+    try {
+      const v_1e3df0 = v_c2295a();
+      const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
+      const v_a1d9db = jest.fn().mockResolvedValue(undefined);
+      const { result: v_43c42e } = v_d84520({
+        enabled: true,
+        say: v_3e2c87,
+        speak: v_a1d9db,
+        getStatsReport: () => null,
+        notifySpeechEnd: jest.fn(),
+        speechEngine: v_1e3df0,
+        signalGating: true,
+      });
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(0); });
+      expect(v_43c42e.current.phase).toBe('listening');
+
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(v_6fc7ac[0]); });
+      expect(v_a1d9db).toHaveBeenCalledWith(v_de0ee8);
+      expect(v_43c42e.current.phase).toBe('interrupting');
+
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(45000); });
+      expect(v_43c42e.current.phase).toBe('listening');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('[Important 2] interim 없이 곧장 isFinal만 오는 STT(OEM 케이스)에서도 사용자 발화 중엔 워치독이 안 걸린다', async () => {
+    jest.useFakeTimers();
+    try {
+      const v_1e3df0 = v_c2295a();
+      const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
+      const v_a1d9db = jest.fn().mockResolvedValue(undefined);
+      const { result: v_43c42e } = v_d84520({
+        enabled: true,
+        say: v_3e2c87,
+        speak: v_a1d9db,
+        getStatsReport: () => null,
+        notifySpeechEnd: jest.fn(),
+        speechEngine: v_1e3df0,
+
+        silenceMs: 40000,
+      });
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(0); });
+      expect(v_43c42e.current.phase).toBe('listening');
+
+      v_be73a0(() => { v_1e3df0.emit('result', { results: [{ transcript: '안녕' }], isFinal: true }); });
+      expect(v_43c42e.current.interimTranscript).toBe('');
+
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(v_6fc7ac[0]); });
+
+      expect(v_a1d9db).not.toHaveBeenCalledWith(v_de0ee8);
+      expect(v_3e2c87).not.toHaveBeenCalledWith(v_de0ee8);
+      expect(v_43c42e.current.phase).toBe('listening');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});
+
+describe('T-258 최종 리뷰 fix: 계층 경계 회귀', () => {
+  const v_17bd78 = '누구시죠?';
+
+  const v_14bf2b = 60000;
+
+  it('🔴[C1] 얼굴 인터럽트는 speak(고정 문구) 경로로 나간다 — say(LLM 턴)로 보내면 안 된다', async () => {
+    jest.useFakeTimers();
+    try {
+      const v_1e3df0 = v_c2295a();
+      const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
+      const v_a1d9db = jest.fn().mockResolvedValue(undefined);
+      const { result: v_43c42e } = v_d84520({
+        enabled: true, say: v_3e2c87, speak: v_a1d9db,
+        getStatsReport: () => null, notifySpeechEnd: jest.fn(), speechEngine: v_1e3df0,
+      });
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(0); });
+      expect(v_43c42e.current.phase).toBe('listening');
+
+      v_be73a0(() => { v_43c42e.current.notifyFaceInterrupt(v_17bd78, 'f1'); });
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(0); });
+
+      expect(v_a1d9db).toHaveBeenCalledWith(v_17bd78);
+      expect(v_3e2c87).not.toHaveBeenCalled();
+      expect(v_43c42e.current.phase).toBe('interrupting');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('🔴[C2] 에코 억제로 STT 가 끊겨 final 이 유실돼도 userSpeaking 이 고착되지 않는다(워치독 부활)', async () => {
+    jest.useFakeTimers();
+    try {
+      const v_1e3df0 = v_c2295a();
+      const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
+      const v_a1d9db = jest.fn().mockResolvedValue(undefined);
+      let v_fbe91e = 0.01;
+      const { result: v_43c42e } = v_d84520({
+        enabled: true, say: v_3e2c87, speak: v_a1d9db,
+        getStatsReport: () => v_cde30b(v_fbe91e),
+        notifySpeechEnd: jest.fn(), speechEngine: v_1e3df0,
+        silenceMs: v_14bf2b, 
+      });
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(0); });
+      expect(v_43c42e.current.phase).toBe('listening');
+
+      v_be73a0(() => { v_1e3df0.emit('result', { results: [{ transcript: '어' }], isFinal: false }); });
+
+      v_fbe91e = 0.9;
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(600); });
+      expect(v_43c42e.current.cloneSuppressed).toBe(true);
+
+      v_fbe91e = 0.01;
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(1200); });
+      expect(v_43c42e.current.cloneSuppressed).toBe(false);
+
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(v_6fc7ac[0]); });
+      expect(v_a1d9db).toHaveBeenCalledWith(v_de0ee8);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  async function v_740b2a(v_d06454) {
+    const v_1e3df0 = v_c2295a();
+    const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
+    const v_a1d9db = jest.fn().mockResolvedValue(undefined);
+    let v_fbe91e = 0.01;
+    const { result: v_43c42e } = v_d84520({
+      enabled: true, say: v_3e2c87, speak: v_a1d9db,
+      getStatsReport: () => v_cde30b(v_fbe91e),
+      notifySpeechEnd: jest.fn(), speechEngine: v_1e3df0,
+      silenceMs: v_14bf2b,
+    });
+    await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(0); });
+
+    v_be73a0(() => { v_1e3df0.emit('result', { results: [{ transcript: '어' }], isFinal: false }); });
+    v_be73a0(() => { v_43c42e.current.notifyFaceInterrupt(v_17bd78, 'f1'); });
+    expect(v_a1d9db).not.toHaveBeenCalled();
+    expect(v_43c42e.current.phase).toBe('listening');
+
+    if (v_d06454 > 0) await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(v_d06454); });
+
+    v_fbe91e = 0.9;
+    await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(600); });
+    v_fbe91e = 0.01;
+    await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(1200); });
+
+    await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(v_778702); });
+    return { result: v_43c42e, say: v_3e2c87, speak: v_a1d9db };
+  }
+
+  it('🔴[C3] 턴 종료 이벤트가 없어도(final 유실) 조용해지면 적재 인터럽트가 발화된다', async () => {
+    jest.useFakeTimers();
+    try {
+      const { result: v_43c42e, speak: v_a1d9db, say: v_3e2c87 } = await v_740b2a(0);
+      expect(v_a1d9db).toHaveBeenCalledWith(v_17bd78);
+      expect(v_3e2c87).not.toHaveBeenCalled();
+      expect(v_43c42e.current.phase).toBe('interrupting');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('🔴[C3] 적재 후 PENDING_INTERRUPT_EXPIRE_MS 를 넘기면 폐기된다(뒤늦은 인사 방지)', async () => {
+    jest.useFakeTimers();
+    try {
+      const { result: v_43c42e, speak: v_a1d9db } = await v_740b2a(v_3711bb);
+      expect(v_a1d9db).not.toHaveBeenCalled();
+      expect(v_43c42e.current.phase).toBe('listening');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('🔴[I2] 클론 발화 재생 중 MIC_ON 은 STT 를 열지 않고, 그 발화가 끝난 뒤에만 마이크가 열린다', async () => {
+    jest.useFakeTimers();
+    try {
+      const v_1e3df0 = v_c2295a();
+      const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
+      let v_361415 = null;
+      const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
+        (v_b1927c) => v_7df8a4({
+          enabled: true,
+          say: v_3e2c87,
+          speak: jest.fn().mockResolvedValue(undefined),
+          getStatsReport: () => null,
+          notifySpeechEnd: jest.fn(),
+          speechEngine: v_1e3df0,
+          lastSignal: v_b1927c.signal,
+          silenceMs: 20, 
+        }),
+        { initialProps: { signal: v_361415 } },
+      );
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(0); });
+
+      v_be73a0(() => { v_1e3df0.emitFinal('안녕'); });
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(50); });
+      expect(v_3e2c87).toHaveBeenCalledWith('안녕');
+      v_361415 = { type: 'speech_start', ts: 1 };
+      v_be73a0(() => { v_2726cb({ signal: v_361415 }); });
+      expect(v_43c42e.current.phase).toBe('speaking');
+
+      v_be73a0(() => { v_43c42e.current.toggleMic(); });
+      expect(v_43c42e.current.phase).toBe('paused');
+      const v_6147e1 = v_1e3df0.start.mock.calls.length;
+      v_be73a0(() => { v_43c42e.current.toggleMic(); });
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(400); }); 
+      expect(v_43c42e.current.micOn).toBe(true);
+      expect(v_43c42e.current.phase).toBe('speaking');
+      expect(v_1e3df0.start.mock.calls.length).toBe(v_6147e1); 
+
+      v_361415 = { type: 'speech_end', ts: 2 };
+      v_be73a0(() => { v_2726cb({ signal: v_361415 }); });
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(0); });
+      expect(v_43c42e.current.phase).toBe('listening');
+      expect(v_1e3df0.start.mock.calls.length).toBeGreaterThan(v_6147e1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('🔴[I3] 인터럽트 발화 직후 쿨다운 동안 신규 얼굴 인터럽트를 무시한다(연쇄 상한)', async () => {
+    jest.useFakeTimers();
+    try {
+      const v_1e3df0 = v_c2295a();
+      const v_a1d9db = jest.fn().mockResolvedValue(undefined);
+      let v_361415 = null;
+      const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
+        (v_b1927c) => v_7df8a4({
+          enabled: true,
+          say: jest.fn().mockResolvedValue(undefined),
+          speak: v_a1d9db,
+          getStatsReport: () => null,
+          notifySpeechEnd: jest.fn(),
+          speechEngine: v_1e3df0,
+          lastSignal: v_b1927c.signal,
+        }),
+        { initialProps: { signal: v_361415 } },
+      );
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(0); });
+
+      v_be73a0(() => { v_43c42e.current.notifyFaceInterrupt('첫 얼굴', 'f1'); });
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(0); });
+      expect(v_a1d9db).toHaveBeenCalledTimes(1);
+      v_361415 = { type: 'speech_start', ts: 1 };
+      v_be73a0(() => { v_2726cb({ signal: v_361415 }); });
+      v_361415 = { type: 'speech_end', ts: 2 };
+      v_be73a0(() => { v_2726cb({ signal: v_361415 }); });
+      expect(v_43c42e.current.phase).toBe('listening');
+
+      v_be73a0(() => { v_43c42e.current.notifyFaceInterrupt('둘째 얼굴', 'f2'); });
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(v_778702 + 500); });
+      expect(v_a1d9db).toHaveBeenCalledTimes(1);
+      expect(v_43c42e.current.phase).toBe('listening');
+
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(v_99c713); });
+      v_be73a0(() => { v_43c42e.current.notifyFaceInterrupt('셋째 얼굴', 'f3'); });
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(0); });
+      expect(v_a1d9db).toHaveBeenCalledTimes(2);
+      expect(v_a1d9db).toHaveBeenLastCalledWith('셋째 얼굴');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });
