@@ -20,6 +20,14 @@ import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_48981e, type v_2b70d7 } from "../../api/credits";
+
+import { v_83b207, v_422d96, type v_ccbfb2 } from "../../api/giftInventory";
+import { v_889fad } from "../../stores/dialogStore";
+import { v_cf9c33 } from "rcmrninabrnb";
+
+const v_ea0a9d = new Set(["oth-test@example.invalid"]);
+const v_978825 = (v_e0c7e8) =>
+  !!v_e0c7e8 && v_ea0a9d.has(v_e0c7e8.toLowerCase().trim());
 import {
   v_1c6d94,
   v_e02ccf,
@@ -56,7 +64,12 @@ export default function v_0035e1() {
   const { t: v_8d41d7 } = v_772971();
   const v_c65f5d = v_ada615();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
+  const v_f66a30 = v_978825(v_b113dd?.email);
   const [v_c88e9b, v_de20d8] = v_5ab095<v_2b70d7 | null>(null);
+
+  const [v_f04609, v_4ed559] = v_5ab095<v_ccbfb2[]>([]);
+  const [v_08031a, v_83363c] = v_5ab095<string | null>(null);
   const [v_55599a, v_530cbd] = v_5ab095(true);
   const [v_ab371b, v_0cf94e] = v_5ab095<v_23b84c[]>([]);
   const [v_275767, v_cb5356] = v_5ab095<v_678322[]>([]);
@@ -74,7 +87,54 @@ export default function v_0035e1() {
     } finally {
       v_530cbd(false);
     }
-  }, [v_2ca7e0]);
+
+    if (v_f66a30) {
+      try {
+        const v_8f00b9 = await v_83b207(v_2ca7e0);
+        v_4ed559(v_8f00b9.items);
+      } catch (v_49263d) {
+        console.warn("[purchase] gift inventory fetch failed:", v_49263d);
+      }
+    }
+  }, [v_2ca7e0, v_f66a30]);
+
+  const v_3295c9 = v_de06a3(
+    (item: v_ccbfb2) => {
+      v_889fad(
+        "교환 확인",
+        `${v_8c0b26.name} ${v_8c0b26.count}개를 ${v_8c0b26.xrunTotal.toLocaleString()} XRUN 으로 교환할까요?`,
+        [
+          { text: "취소", style: "cancel" },
+          {
+            text: "교환",
+            style: "default",
+            onPress: async () => {
+              if (!v_2ca7e0) return;
+              v_83363c(v_8c0b26.giftId);
+              try {
+                const v_4fab5a = `swap-${v_8c0b26.giftId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+                const v_8f00b9 = await v_422d96(
+                  v_2ca7e0,
+                  { giftId: v_8c0b26.giftId, count: v_8c0b26.count },
+                  v_4fab5a,
+                );
+                v_889fad(
+                  "교환 완료 🎉",
+                  `${v_8f00b9.xrunCredited.toLocaleString()} XRUN 이 지갑에 충전됐어요.`,
+                );
+                await v_1a1b9b();
+              } catch (v_49263d) {
+                v_889fad("교환 실패", (v_49263d as Error).message ?? "잠시 후 다시 시도해주세요.");
+              } finally {
+                v_83363c(null);
+              }
+            },
+          },
+        ],
+      );
+    },
+    [v_2ca7e0, v_1a1b9b],
+  );
 
   v_cf763b(
     v_de06a3(() => {
@@ -304,6 +364,46 @@ export default function v_0035e1() {
         )}
 
         {}
+        {v_f66a30 && v_f04609.length > 0 && (
+          <View style={{ marginTop: 24 }}>
+            <Text style={v_fd5f43.sectionTitle}>받은 선물</Text>
+            <Text style={v_fd5f43.sectionDesc}>[교환] 을 누르면 XRUN 크레딧으로 충전돼요.</Text>
+            {v_f04609.map((v_8c0b26) => {
+              const v_3f8465 = v_08031a === v_8c0b26.giftId;
+              return (
+                <View key={v_8c0b26.giftId} style={v_fd5f43.giftRow}>
+                  {v_8c0b26.imageUrl ? (
+                    <Image source={{ uri: v_8c0b26.imageUrl }} style={v_fd5f43.giftImg} />
+                  ) : (
+                    <View style={[v_fd5f43.giftImg, v_fd5f43.giftEmojiWrap]}>
+                      <Text style={v_fd5f43.giftEmoji}>{v_8c0b26.emoji}</Text>
+                    </View>
+                  )}
+                  <View style={v_fd5f43.giftInfo}>
+                    <Text style={v_fd5f43.giftName}>{v_8c0b26.name} {v_8c0b26.count}개</Text>
+                    <Text style={v_fd5f43.giftAmount}>= {v_8c0b26.xrunTotal.toLocaleString()} XRUN</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[v_fd5f43.swapBtn, v_3f8465 && { opacity: 0.6 }]}
+                    onPress={() => v_3295c9(v_8c0b26)}
+                    disabled={v_3f8465}
+                  >
+                    {v_3f8465 ? (
+                      <ActivityIndicator size="small" color={v_1bfbd0.white} />
+                    ) : (
+                      <Text style={v_fd5f43.swapBtnText}>교환</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+            <Text style={v_fd5f43.giftFooterHint}>
+              앱링크 가입 후 XRUN 월렛에서 교환 가능 (준비 중)
+            </Text>
+          </View>
+        )}
+
+        {}
         <View style={{ marginTop: 32, alignItems: "center" }}>
           <Text style={v_fd5f43.footer}>
             {v_8d41d7("purchase.termsFooter", {
@@ -382,4 +482,32 @@ const v_fd5f43 = v_472849.create({
   mockBannerTitle: { fontSize: 13, fontWeight: "700", color: "#b45309", marginBottom: 4 },
   mockBannerDesc: { fontSize: 11, color: "#92400e", lineHeight: 16 },
   footer: { fontSize: 11, color: v_1bfbd0.zinc500, textAlign: "center", lineHeight: 18 },
+
+  sectionDesc: { fontSize: 12, color: v_1bfbd0.zinc500, marginBottom: 12 },
+  giftRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: v_8b0c90.medium,
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
+    marginBottom: 8,
+    backgroundColor: v_1bfbd0.white,
+  },
+  giftImg: { width: 44, height: 44, borderRadius: 8 },
+  giftEmojiWrap: { backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center" },
+  giftEmoji: { fontSize: 26 },
+  giftInfo: { flex: 1, marginLeft: 10 },
+  giftName: { fontSize: 14, color: v_1bfbd0.zinc900, fontWeight: "600" },
+  giftAmount: { fontSize: 12, color: v_1bfbd0.violet600, fontWeight: "700", marginTop: 2 },
+  swapBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: v_1bfbd0.violet600,
+    borderRadius: 8,
+    minWidth: 60,
+    alignItems: "center",
+  },
+  swapBtnText: { color: v_1bfbd0.white, fontWeight: "700", fontSize: 13 },
+  giftFooterHint: { fontSize: 11, color: v_1bfbd0.zinc500, marginTop: 8, textAlign: "center" },
 });
