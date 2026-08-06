@@ -56,6 +56,10 @@ export const apiFeedCountsCache = new Map<number, { commentsCount: number }>();
 
 export const apiIntimacyCache = new Map<number, number>();
 
+export const apiOwnerCache = new Map<number, { name: string | null; avatarUrl: string | null }>();
+
+export const apiGiftsCache = new Map<number, number>();
+
 function toDomainFeed(item: DiscoverFeedItem): DomainFeed {
   apiCloneCache.set(item.cloneId, {
     id: item.clone.id,
@@ -79,6 +83,14 @@ function toDomainFeed(item: DiscoverFeedItem): DomainFeed {
 
   if (typeof item.myIntimacy === "number") {
     apiIntimacyCache.set(item.cloneId, Math.min(100, Math.max(0, item.myIntimacy)));
+  }
+
+  apiOwnerCache.set(item.cloneId, {
+    name: item.clone.ownerName ?? null,
+    avatarUrl: item.clone.ownerAvatarUrl ?? null,
+  });
+  if (typeof item.giftsReceived === "number") {
+    apiGiftsCache.set(item.cloneId, Math.max(0, item.giftsReceived));
   }
   return {
     id: item.id,
@@ -204,6 +216,8 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     apiCloneCache.clear();
     apiFeedCountsCache.clear();
     apiIntimacyCache.clear();
+    apiOwnerCache.clear();
+    apiGiftsCache.clear();
     set({
       apiFeeds: null,
       apiLoading: false,
