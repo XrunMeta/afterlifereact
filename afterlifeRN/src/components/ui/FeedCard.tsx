@@ -237,11 +237,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
 }
             {item.description ? (
 
-              <View
-                onStartShouldSetResponder={() => true}
-                onMoveShouldSetResponder={() => true}
-                style={styles.descriptionWrap}
-              >
+              <View style={styles.descriptionWrap}>
                 <ScrollView
                   style={styles.descriptionScroll}
                   showsVerticalScrollIndicator={true}
@@ -250,7 +246,6 @@ const FeedCard: React.FC<FeedCardProps> = ({
                   indicatorStyle="white"
                   bounces={false}
                   overScrollMode="never"
-
                   onScrollBeginDrag={onDescriptionScrollStart}
                   onScrollEndDrag={onDescriptionScrollEnd}
                   onMomentumScrollEnd={onDescriptionScrollEnd}

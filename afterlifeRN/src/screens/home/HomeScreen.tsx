@@ -75,6 +75,8 @@ export default function HomeScreen() {
 
   const [descScrolling, setDescScrolling] = useState(false);
 
+  const descScrollUnlockRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const bottomInset = Platform.OS === "ios"
     ? insets.bottom
     : Math.max(navBarHeight, insets.bottom);
@@ -450,8 +452,20 @@ export default function HomeScreen() {
             );
           }}
 
-          onDescriptionScrollStart={() => setDescScrolling(true)}
-          onDescriptionScrollEnd={() => setDescScrolling(false)}
+          onDescriptionScrollStart={() => {
+            if (descScrollUnlockRef.current) {
+              clearTimeout(descScrollUnlockRef.current);
+              descScrollUnlockRef.current = null;
+            }
+            setDescScrolling(true);
+          }}
+          onDescriptionScrollEnd={() => {
+            if (descScrollUnlockRef.current) clearTimeout(descScrollUnlockRef.current);
+            descScrollUnlockRef.current = setTimeout(() => {
+              setDescScrolling(false);
+              descScrollUnlockRef.current = null;
+            }, 200);
+          }}
         />
       );
     },
