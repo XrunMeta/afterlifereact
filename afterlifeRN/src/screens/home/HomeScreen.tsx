@@ -835,22 +835,6 @@ export default function HomeScreen() {
             ) : (
 
               <>
-                {moreTarget?.ownerId != null && (
-                  <TouchableOpacity
-                    style={styles.moreItem}
-                    onPress={() => {
-                      const target = moreTarget;
-                      setMoreTarget(null);
-                      if (!target?.ownerId) return;
-                      rootNav.navigate("UserProfile", { userId: target.ownerId });
-                    }}
-                  >
-                    <Feather name="user" size={20} color={COLORS.zinc900} />
-                    <Text style={styles.moreItemText}>
-                      {t("home.more.viewUser", { defaultValue: "유저 정보보기" })}
-                    </Text>
-                  </TouchableOpacity>
-                )}
                 <TouchableOpacity
                   style={styles.moreItem}
                   onPress={() => {
