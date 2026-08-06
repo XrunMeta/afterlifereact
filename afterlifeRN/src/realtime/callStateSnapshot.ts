@@ -56,6 +56,14 @@ export interface CallStateModel {
   timers: Record<TimerName, number | null>;
   lastTx: TxTrack | null;
   seqDrops: number;
+
+  stageSeq: number | null;
+
+  stageAtMs: number | null;
+
+  stageStarts: Record<string, number>;
+
+  lastStage: string | null;
   rows: TimelineRow[];
   nextRowId: number;
 }
@@ -73,7 +81,9 @@ export function initCallStateModel(): CallStateModel {
       watchdog: null, interruptFlush: null, interruptExpire: null,
       pendingDone: null, signalGatingFallback: null, cooldown: null,
     },
-    lastTx: null, seqDrops: 0, rows: [], nextRowId: 1,
+    lastTx: null, seqDrops: 0,
+    stageSeq: null, stageAtMs: null, stageStarts: {}, lastStage: null,
+    rows: [], nextRowId: 1,
   };
 }
 
@@ -102,10 +112,11 @@ export const sameSeq = (a: number | null, b: number | null): boolean =>
 
 function pushRow(
   m: CallStateModel, text: string, tone: RowTone, indent: boolean, tMs: number,
+  withDelta = true,
 ): CallStateModel {
   const prev = m.rows.length > 0 ? m.rows[m.rows.length - 1] : null;
   const delta = prev ? Math.max(0, tMs - prev.tMs) : 0;
-  const line = prev ? `${text} +${delta}` : text;
+  const line = prev && withDelta ? `${text} +${delta}` : text;
   const rows = m.rows.concat([{ id: m.nextRowId, text: line, tone, indent, tMs }]);
   return {
     ...m,
@@ -158,7 +169,46 @@ export function foldTimingEvent(m: CallStateModel, ev: TimingEvent, nowMs: numbe
       const text = clipText(s(d, 'text'));
       const withText = text ? ` "${text}"` : '';
       const next = pushRow(m, `→${mode}${seqTag(seq)}${withText}`, mode === 'skip' ? 'warn' : 'tx', false, ev.tMs);
-      return { ...next, lastTx: { seq, mode, tMs: ev.tMs, startMs: null, endMs: null, doneMs: null } };
+      return {
+        ...next,
+        lastTx: { seq, mode, tMs: ev.tMs, startMs: null, endMs: null, doneMs: null },
+
+        stageSeq: null, stageAtMs: null, stageStarts: {}, lastStage: null,
+      };
+    }
+
+    case 'stage': {
+      const name = s(d, 'stage');
+      if (!name) return m;
+      const seq = n(d, 'seq');
+      const tMs = n(d, 'tMs');
+      const info = s(d, 'info');
+
+      const base: CallStateModel = seq === m.stageSeq
+        ? m
+        : { ...m, stageAtMs: null, stageStarts: {}, stageSeq: seq };
+      const startKey = name.endsWith('_start') ? name.slice(0, -'_start'.length) : null;
+      if (startKey) {
+
+        return {
+          ...base,
+          stageSeq: seq, lastStage: name,
+          stageAtMs: tMs ?? base.stageAtMs,
+          stageStarts: tMs == null ? base.stageStarts : { ...base.stageStarts, [startKey]: tMs },
+        };
+      }
+      const doneKey = /_(done|end)$/.test(name) ? name.replace(/_(done|end)$/, '') : null;
+      const pairedFrom = doneKey != null ? base.stageStarts[doneKey] : undefined;
+
+      const from = pairedFrom ?? base.stageAtMs ?? 0;
+      const label = pairedFrom != null && doneKey ? doneKey : name;
+      const delta = tMs == null ? null : Math.max(0, tMs - from);
+      const next = pushRow(
+        base,
+        ` ⚙${label} +${delta == null ? '?' : delta}ms${info ? ` ${info}` : ''}`,
+        'info', true, ev.tMs, false,
+      );
+      return { ...next, stageSeq: seq, lastStage: name, stageAtMs: tMs ?? base.stageAtMs };
     }
 
     case 'rx': {
@@ -253,6 +303,8 @@ export function formatStateLines(m: CallStateModel, nowMs: number): string[] {
     `tmr  wd:${formatRemain(t.watchdog, nowMs)} fl:${formatRemain(t.interruptFlush, nowMs)} ex:${formatRemain(t.interruptExpire, nowMs)}`,
     `tmr  pd:${formatRemain(t.pendingDone, nowMs)} sg:${formatRemain(t.signalGatingFallback, nowMs)} cd:${formatRemain(t.cooldown, nowMs)}`,
     `avt  ${m.avatarPhase}${m.avatarBusy ? ` busy:${m.avatarBusy}` : ''}`,
+
+    `stg  ${m.lastStage ?? '—'}${m.stageAtMs != null ? ` @${m.stageAtMs}ms` : ''}`,
     tx
       ? `io   tx${seqTag(tx.seq)} ${tx.mode} s:${ms(tx.startMs)} e:${ms(tx.endMs)} d:${ms(tx.doneMs)}`
       : 'io   tx:—',

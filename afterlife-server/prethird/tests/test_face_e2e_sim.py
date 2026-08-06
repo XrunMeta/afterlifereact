@@ -48,16 +48,17 @@ class _Pipeline:
         self.update_calls = []
         self.say_gate = asyncio.Event()
         self.say_gate.set()
-    async def say(self, text, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None):
+    async def say(self, text, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None, on_stage=None, **_kw):
         self.say_calls.append(text)
         if on_first_audio:
             on_first_audio()
         await self.say_gate.wait()
-    async def speak(self, text, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None):
+    async def speak(self, text, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None, on_stage=None, **_kw):
         pass
-    async def greet(self, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None):
+    async def greet(self, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None, on_stage=None, **_kw):
         pass
-    async def react(self, kind, display_name=None, turn=None, on_first_audio=None):
+    async def react(self, kind, display_name=None, turn=None, on_first_audio=None,
+                    on_stage=None, **_kw):
         self.react_calls.append((kind, display_name))
     def update_persona(self, messages):
         self.update_calls.append(list(messages))

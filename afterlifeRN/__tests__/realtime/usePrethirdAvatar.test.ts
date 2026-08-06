@@ -209,6 +209,8 @@ it('start: /offer body에 access_token 포함', async () => {
   expect(JSON.parse(init.body)).toMatchObject({ clone_id: 7, access_token: 'tok-123' });
 });
 
+const last = (q?: readonly any[]) => (q && q.length > 0 ? q[q.length - 1] : null);
+
 function makeConnectedPc() {
   const dc = makeMockDc();
   const pc = makeMockPc(dc);
@@ -219,7 +221,7 @@ function depsFor(pc: ReturnType<typeof makeMockPc>) {
   return { createPeerConnection: jest.fn().mockReturnValue(pc), audioSession: { activate: jest.fn(), deactivate: jest.fn() } };
 }
 
-describe('greet/speak/lastSignal', () => {
+describe('greet/speak/signals', () => {
   beforeEach(() => { mockOfferFetch(); });
 
   it('greet() 는 datachannel 로 {type:"greet", seq} 전송', async () => {
@@ -244,17 +246,17 @@ describe('greet/speak/lastSignal', () => {
     expect(typeof sent[0].seq).toBe('number');
   });
 
-  it('datachannel speech_start 수신 → lastSignal 갱신', async () => {
+  it('datachannel speech_start 수신 → signals 큐에 적재', async () => {
     const { dc, pc } = makeConnectedPc();
     const { result } = renderHook(() =>
       usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never }));
     await act(async () => { await result.current.start(); });
     act(() => { dc.emitMessage(JSON.stringify({ type: 'speech_start', seq: 5 })); });
-    expect(result.current.lastSignal?.type).toBe('speech_start');
-    expect(result.current.lastSignal?.seq).toBe(5);
+    expect(last(result.current.signals)?.type).toBe('speech_start');
+    expect(last(result.current.signals)?.seq).toBe(5);
   });
 
-  it('speech_text 수신 → lastSignal { type, text } 노출·notifySpeechEnd 미호출', async () => {
+  it('speech_text 수신 → signals { type, text } 노출·notifySpeechEnd 미호출', async () => {
     const { dc, pc } = makeConnectedPc();
     const { result } = renderHook(() =>
       usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never }));
@@ -263,34 +265,55 @@ describe('greet/speak/lastSignal', () => {
     await act(async () => { await result.current.say('안녕'); });
     expect(result.current.phase).toBe('speaking');
     act(() => { dc.emitMessage(JSON.stringify({ type: 'speech_text', text: '안녕하세요', seq: 1 })); });
-    expect(result.current.lastSignal?.type).toBe('speech_text');
-    expect(result.current.lastSignal?.text).toBe('안녕하세요');
-    expect(result.current.lastSignal?.seq).toBe(1);
+    expect(last(result.current.signals)?.type).toBe('speech_text');
+    expect(last(result.current.signals)?.text).toBe('안녕하세요');
+    expect(last(result.current.signals)?.seq).toBe(1);
 
     expect(result.current.phase).toBe('speaking');
   });
 
-  it('speech_text 수신 시 text 비문자열/빈문자열이면 lastSignal 무시', async () => {
+  it('speech_text 수신 시 text 비문자열/빈문자열이면 큐에 넣지 않음', async () => {
     const { dc, pc } = makeConnectedPc();
     const { result } = renderHook(() =>
       usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never }));
     await act(async () => { await result.current.start(); });
     act(() => { dc.emitMessage(JSON.stringify({ type: 'speech_text', seq: 1 })); }); 
-    expect(result.current.lastSignal).toBeNull();
+    expect(result.current.signals).toHaveLength(0);
     act(() => { dc.emitMessage(JSON.stringify({ type: 'speech_text', text: '', seq: 2 })); }); 
-    expect(result.current.lastSignal).toBeNull();
+    expect(result.current.signals).toHaveLength(0);
   });
 
-  it('연속 동일 타입 신호도 ts 로 구분(새 객체)', async () => {
+  it('연속 동일 타입 신호도 각각 별개 항목으로 쌓인다(id 단조증가)', async () => {
     const { dc, pc } = makeConnectedPc();
     const { result } = renderHook(() =>
       usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never }));
     await act(async () => { await result.current.start(); });
     act(() => { dc.emitMessage(JSON.stringify({ type: 'speech_end', seq: 1 })); });
-    const first = result.current.lastSignal;
+    const first = last(result.current.signals);
     act(() => { dc.emitMessage(JSON.stringify({ type: 'speech_end', seq: 2 })); });
-    expect(result.current.lastSignal).not.toBe(first);
-    expect(result.current.lastSignal?.seq).toBe(2);
+    expect(last(result.current.signals)).not.toBe(first);
+    expect(last(result.current.signals)?.seq).toBe(2);
+    expect(result.current.signals).toHaveLength(2);
+    expect(result.current.signals![1].id).toBeGreaterThan(result.current.signals![0].id);
+  });
+
+  it('같은 tick 에 speech_start + speech_text×N 이 와도 전부 순서대로 큐에 남는다(유실 0)', async () => {
+    const { dc, pc } = makeConnectedPc();
+    const { result } = renderHook(() =>
+      usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never }));
+    await act(async () => { await result.current.start(); });
+    act(() => {
+      dc.emitMessage(JSON.stringify({ type: 'speech_start', seq: 7 }));
+      dc.emitMessage(JSON.stringify({ type: 'speech_text', seq: 7, text: '첫 문장' }));
+      dc.emitMessage(JSON.stringify({ type: 'speech_text', seq: 7, text: '둘째 문장' }));
+      dc.emitMessage(JSON.stringify({ type: 'speech_text', seq: 7, text: '셋째 문장' }));
+    });
+    expect((result.current.signals ?? []).map((s) => s.type)).toEqual([
+      'speech_start', 'speech_text', 'speech_text', 'speech_text',
+    ]);
+    expect((result.current.signals ?? []).map((s) => s.text)).toEqual([
+      undefined, '첫 문장', '둘째 문장', '셋째 문장',
+    ]);
   });
 });
 
@@ -419,7 +442,43 @@ describe('enroll_suggest 수신 → onEnrollSuggest 콜백', () => {
       dc.emitMessage(JSON.stringify({ type: 'enroll_suggest', name: '민지' }));
     }).not.toThrow();
     act(() => { dc.emitMessage(JSON.stringify({ type: 'speech_start', seq: 1 })); });
-    expect(result.current.lastSignal?.type).toBe('speech_start');
+    expect(last(result.current.signals)?.type).toBe('speech_start');
+  });
+});
+
+describe('stage 신호(관측 전용)', () => {
+  beforeEach(() => { mockOfferFetch(); });
+
+  it('stage 는 신호 큐·phase 를 건드리지 않는다(순수 관측)', async () => {
+    const { dc, pc } = makeConnectedPc();
+    const { result } = renderHook(() =>
+      usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never }));
+    await act(async () => { await result.current.start(); });
+    await act(async () => { await result.current.say('안녕'); });
+    expect(result.current.phase).toBe('speaking');
+    act(() => {
+      dc.emitMessage(JSON.stringify({
+        type: 'stage', seq: 1, stage: 'llm_done', tMs: 8420, detail: { chars: 142 },
+      }));
+    });
+    expect(result.current.signals).toHaveLength(0); 
+    expect(result.current.phase).toBe('speaking');  
+  });
+
+  it('모르는 stage 이름·이상한 detail·필드 누락에도 크래시 없음', async () => {
+    const { dc, pc } = makeConnectedPc();
+    const { result } = renderHook(() =>
+      usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never }));
+    await act(async () => { await result.current.start(); });
+    expect(() => {
+      act(() => {
+        dc.emitMessage(JSON.stringify({ type: 'stage', stage: 'brand_new_step' })); 
+        dc.emitMessage(JSON.stringify({ type: 'stage', seq: 2, stage: 'x', tMs: 1, detail: [1, 2] }));
+        dc.emitMessage(JSON.stringify({ type: 'stage', seq: 2, stage: '', tMs: 1 })); 
+        dc.emitMessage(JSON.stringify({ type: 'stage' }));
+      });
+    }).not.toThrow();
+    expect(result.current.signals).toHaveLength(0);
   });
 });
 

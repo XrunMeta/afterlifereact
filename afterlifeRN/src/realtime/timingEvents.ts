@@ -9,6 +9,7 @@ export type TimingEventType =
   | 'fsm'        
   | 'tx'         
   | 'rx'         
+  | 'stage'      
   | 'seq_drop'   
   | 'timer'      
   | 'avatar'     

@@ -16,6 +16,7 @@ import {
 import { extractCloneAudioLevel, type CloneSilenceConfig } from './cloneSilence';
 import { useTimingConfigStore } from './timingConfig';
 import { emitTimingEvent } from './timingEvents';
+import { takeNewSignals, nextCursor } from './signalQueue';
 import { traceDispatch, head20 } from './handsFreeTrace';
 import { shouldUpdateLevel } from './voiceBall';
 import { ensureQuestionMark } from './questionMark';
@@ -47,7 +48,7 @@ export function useHandsFreeController(opts: {
 
   speak?: (text: string) => Promise<void>;
 
-  lastSignal?: import('./avatarCall').SpeechSignal | null;
+  signals?: readonly import('./avatarCall').SpeechSignal[];
 
   greetTimeoutMs?: number;
 
@@ -291,7 +292,7 @@ export function useHandsFreeController(opts: {
       clearTimeout(id);
       emitTimingEvent('timer', { name: 'signalGatingFallback', action: 'clear' });
     };
-  }, [state.phase, opts.lastSignal, opts.signalGating]);
+  }, [state.phase, opts.signals, opts.signalGating]);
 
   useEffect(() => {
     dispatchRef.current(
@@ -303,9 +304,9 @@ export function useHandsFreeController(opts: {
   const getStatsRef = useRef(opts.getStatsReport);
   useEffect(() => { getStatsRef.current = opts.getStatsReport; });
 
-  useEffect(() => {
-    const sig = opts.lastSignal;
-    if (!sig) return;
+  const signalCursorRef = useRef(0);
+  const processSignalRef = useRef<(sig: import('./avatarCall').SpeechSignal) => void>(() => {});
+  processSignalRef.current = (sig) => {
     if (sig.type === 'speech_start') {
       emitTimingEvent('speech_start');
 
@@ -350,7 +351,15 @@ export function useHandsFreeController(opts: {
       });
     }
 
-  }, [opts.lastSignal]);
+  };
+
+  useEffect(() => {
+    const fresh = takeNewSignals(opts.signals, signalCursorRef.current);
+    if (fresh.length === 0) return;
+
+    signalCursorRef.current = nextCursor(fresh, signalCursorRef.current);
+    for (const sig of fresh) processSignalRef.current(sig);
+  }, [opts.signals]);
 
   useEffect(() => {
     if (state.phase !== 'listening') return;

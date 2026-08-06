@@ -12,6 +12,13 @@ from config import (QUEUE_MAX_DEFAULT, AUDIO_QUEUE_MAX_DEFAULT, AUDIO_OUTPUT_SR,
                     VIDEO_PTS_INCREMENT, VIDEO_TIME_BASE, IDLE_MP4_PATH)
 log = logging.getLogger("prethird.tracks")
 
+# [T-258] 큐 상한 도달 드롭 로그의 집계 주기(초). 프레임/청크 단위로 호출되는
+# push 경로라 매 건 로그는 스팸 → 이 주기로 묶어 1줄씩 남긴다. 0 이하면 매 건 로그.
+#   ⚠️ 상한값(QUEUE_MAX_DEFAULT / AUDIO_QUEUE_MAX_DEFAULT)이나 드롭 정책(oldest
+#   drop)은 **이 커밋에서 바꾸지 않았다** — 로그만 추가. 정책 변경은 히즈키 판단.
+_DROP_LOG_SEC = float(os.environ.get("PRETHIRD_QUEUE_DROP_LOG_SEC", "1.0"))
+
+
 def prebuffer_should_release(qsize: int, target: int, stream_ended: bool) -> bool:
     """리드 버퍼(pre-roll) 해제 판정 (순수).
 
@@ -24,6 +31,7 @@ def prebuffer_should_release(qsize: int, target: int, stream_ended: bool) -> boo
     if target <= 0:
         return True
     return qsize >= target or stream_ended
+
 
 class AvatarVideoTrack(VideoStreamTrack):
     """모드 토글 가능한 video track.
@@ -64,6 +72,10 @@ class AvatarVideoTrack(VideoStreamTrack):
         # begin_response()가 턴 시작마다 _prebuffering 을 재무장한다.
         self._prebuffer_target = int(os.environ.get("PRETHIRD_PREROLL_FRAMES", "0"))
         self._prebuffering = False
+        # [T-258] 큐 상한 도달 드롭 계측(로그 전용, 드롭 정책 무변경).
+        self._drop_total = 0        # 이 트랙 수명 동안 버린 총 프레임 수
+        self._drop_pending = 0      # 아직 로그로 못 뱉은 누적분
+        self._drop_log_ts = 0.0     # 마지막 드롭 로그 시각(0=아직 없음 → 첫 건 즉시 로그)
 
     def set_mode(self, mode: str) -> None:
         if mode not in ("dummy", "queue"):
@@ -115,6 +127,30 @@ class AvatarVideoTrack(VideoStreamTrack):
             self._prebuffering = True
             self._stream_ended = False
 
+    def _note_drop(self, n: int = 1) -> None:
+        """[T-258] 비디오 큐 상한 도달로 프레임을 버린 사실을 집계 로그로 남긴다.
+
+        지금까지 push_ndarray 의 반환 `dropped` 는 **호출부에서 전부 무시**돼
+        (pipeline._infer_stage 의 `self.vt.push_ndarray(arr)`) 프레임 유실이
+        조용히 일어났다. 여기서 몇 프레임 = 몇 초가 잘렸는지 남긴다.
+        프레임 단위 호출이라 매 건 warning 은 스팸 → _DROP_LOG_SEC 주기 집계.
+        ⚠️ 로그만 추가 — 드롭 정책(oldest drop)·상한값은 건드리지 않는다.
+        """
+        self._drop_total += n
+        self._drop_pending += n
+        now = time.time()
+        if _DROP_LOG_SEC > 0 and (now - self._drop_log_ts) < _DROP_LOG_SEC:
+            return
+        self._drop_log_ts = now
+        pending, self._drop_pending = self._drop_pending, 0
+        log.warning(
+            "[queue-drop] video 큐 상한 도달 — oldest %d프레임(≈%.2fs @25fps) 폐기 "
+            "(누적 %d프레임/≈%.2fs, qmax=%d, qsize=%d). "
+            "렌더 push 속도 > 송출(25fps) 소비 속도 — 발화 앞부분 영상 유실 의심.",
+            pending, pending / 25.0, self._drop_total, self._drop_total / 25.0,
+            self.queue.maxsize, self.queue.qsize(),
+        )
+
     def push_ndarray(self, arr: np.ndarray) -> dict:
         """외부에서 frame 적재. 큐 가득 차면 oldest drop."""
         dropped = False
@@ -128,6 +164,9 @@ class AvatarVideoTrack(VideoStreamTrack):
             self.queue.put_nowait(arr)
         except asyncio.QueueFull:
             dropped = True
+        if dropped:
+            # [T-258] 계측만 — 반환값·드롭 동작은 기존과 동일.
+            self._note_drop(1)
         return {"queued": self.queue.qsize(), "dropped": dropped}
 
     def signal_end(self) -> int:
@@ -223,6 +262,7 @@ class AvatarVideoTrack(VideoStreamTrack):
         frame.time_base = time_base
         return frame
 
+
 class AvatarAudioTrack(AudioStreamTrack):
     """외부에서 PCM (s16le) 큐에 push 하면 20ms frame 단위로 yield.
 
@@ -244,7 +284,7 @@ class AvatarAudioTrack(AudioStreamTrack):
         super().__init__()
         self.sample_rate = sample_rate
         self.channels = channels
-        self.frame_samples = sample_rate * AUDIO_FRAME_MS 
+        self.frame_samples = sample_rate * AUDIO_FRAME_MS // 1000
         # 회차 029-D-3c-sync: video first real frame 전엔 silence (buffer 보존)
         self._video_sync_event = video_sync_event
         # PCM int16 buffer (1D mono). queue 는 chunk 단위로 frame buffer 에 합쳐짐.
@@ -265,6 +305,38 @@ class AvatarAudioTrack(AudioStreamTrack):
         self.frames_yielded_real = 0
         self.frames_yielded_silence = 0
         self.samples_yielded_out = 0
+        # [T-258] 버퍼 상한 도달 드롭 계측(로그 전용, 드롭 정책 무변경).
+        self._drop_total_samples = 0
+        self._drop_pending_samples = 0
+        self._drop_log_ts = 0.0
+
+    def _note_drop(self, n_samples: int) -> None:
+        """[T-258] 오디오 버퍼 상한(=AUDIO_QUEUE_MAX_DEFAULT×frame_samples) 초과로
+        **오래된 샘플(=답변의 앞부분)**을 버린 사실을 로그로 남긴다.
+
+        지금까지 push_pcm_int16 의 반환 `dropped` 는 호출부(pipeline._infer_stage)
+        에서 무시됐다 — 즉 12.0초(600×960샘플 @48kHz) 를 넘는 응답은 **앞부분이
+        조용히 잘려나갔다**. speech_end 의 remaining_ms 가 딱 12000 으로 관측된
+        것이 이 상한에 닿은 값이다. 이 로그가 그 유실을 처음으로 가시화한다.
+        ⚠️ 로그만 추가 — 상한값·드롭 정책(오래된 것부터 버림)은 그대로 둔다.
+        """
+        self._drop_total_samples += n_samples
+        self._drop_pending_samples += n_samples
+        now = time.time()
+        if _DROP_LOG_SEC > 0 and (now - self._drop_log_ts) < _DROP_LOG_SEC:
+            return
+        self._drop_log_ts = now
+        pending, self._drop_pending_samples = self._drop_pending_samples, 0
+        _per_ms = max(self.sample_rate // 1000, 1)  # 48kHz → 48샘플/ms
+        log.warning(
+            "[queue-drop] audio 버퍼 상한 도달 — 오래된 %d샘플(%dms) 폐기 "
+            "(누적 %d샘플/%dms, max=%d샘플/%dms, buffer=%d샘플/%dms). "
+            "응답 앞부분 음성 유실 의심 — 상한 초과분이 잘린다.",
+            pending, pending // _per_ms,
+            self._drop_total_samples, self._drop_total_samples // _per_ms,
+            self._queue_max_samples, self._queue_max_samples // _per_ms,
+            int(self._buffer.size), int(self._buffer.size) // _per_ms,
+        )
 
     def push_pcm_int16(self, pcm: np.ndarray) -> dict:
         """48kHz mono int16 PCM 1D ndarray 를 buffer 에 append.
@@ -287,6 +359,10 @@ class AvatarAudioTrack(AudioStreamTrack):
             dropped = True
         self._buffer = new_buf
         self._pushed_samples += int(pcm.size)
+        if dropped:
+            # [T-258] 계측만 — 반환값·드롭 동작은 기존과 동일(_buffer 확정 후 호출해
+            # 로그의 buffer 수치가 실제 잔량과 일치하게 한다).
+            self._note_drop(int(overflow))
         return {"queued": int(self._buffer.size), "dropped": dropped}
 
     def signal_end(self) -> int:
@@ -295,7 +371,7 @@ class AvatarAudioTrack(AudioStreamTrack):
 
     def queue_depth(self) -> int:
         # frame 단위로 환산
-        return int(self._buffer.size 
+        return int(self._buffer.size // max(self.frame_samples, 1))
 
     def queue_depth_samples(self) -> int:
         return int(self._buffer.size)

@@ -8,7 +8,7 @@ import {
   type CallStateModel, type RowTone,
 } from '../../realtime/callStateSnapshot';
 
-const VISIBLE_ROWS = 12;   
+const VISIBLE_ROWS = 16;   
 const TICK_MS = 250;       
 
 const TONE_COLOR: Record<RowTone, string> = {

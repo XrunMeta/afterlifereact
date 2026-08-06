@@ -7,6 +7,8 @@ import { useCallConfigStore } from '../stores/callConfigStore';
 import { ensureFreshAccessToken } from '../lib/authFetch';
 import { type AudioSessionControl, defaultAudioSessionControl } from './useAudioSession';
 import { type AvatarCall, type LiveAvatarState, type CallPhase, type SpeechSignal, type FaceEvent, classifyTrack } from './avatarCall';
+import { appendSignal } from './signalQueue';
+import { parseStageMessage } from './stageSignal';
 import { emitTimingEvent } from './timingEvents';
 
 const nowMs = () => Date.now();
@@ -89,7 +91,10 @@ export function usePrethirdAvatar(opts: {
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [phase, setPhase] = useState<CallPhase>('idle');
-  const [lastSignal, setLastSignal] = useState<SpeechSignal | null>(null);
+
+  const [signals, setSignals] = useState<SpeechSignal[]>([]);
+
+  const signalIdRef = useRef(0);
   const seqRef = useRef(0);
   const pcRef = useRef<PrethirdPeerConnection | null>(null);
   const dcRef = useRef<any>(null);
@@ -105,6 +110,11 @@ export function usePrethirdAvatar(opts: {
   useEffect(() => { onEnrollSuggestRef.current = onEnrollSuggest; }, [onEnrollSuggest]);
 
   useEffect(() => { emitTimingEvent('avatar', { phase }); }, [phase]);
+
+  const pushSignal = useCallback((sig: Omit<SpeechSignal, 'id'>) => {
+    const id = (signalIdRef.current += 1);
+    setSignals((prev) => appendSignal(prev, { ...sig, id }));
+  }, []);
 
   const safeClosePc = useCallback((pc: PrethirdPeerConnection) => {
     if (applyingRemoteRef.current) { pendingCloseRef.current = pc; return; }
@@ -210,7 +220,7 @@ export function usePrethirdAvatar(opts: {
     const alive = () => genRef.current === myGen;
     setError(null);
     setState('requesting');
-    setLastSignal(null);   
+    setSignals([]);        
     seqRef.current = 0;    
 
     const pc = deps.createPeerConnection({ iceServers: ICE_SERVERS });
@@ -253,12 +263,22 @@ export function usePrethirdAvatar(opts: {
             m.type === 'speech_end' && typeof m.remaining_ms === 'number' && m.remaining_ms >= 0
               ? Math.min(m.remaining_ms, REMAINING_MS_MAX)
               : undefined;
-          setLastSignal({ type: m.type, seq: m.seq, ts: nowMs(), remainingMs });
+          pushSignal({ type: m.type, seq: m.seq, ts: nowMs(), remainingMs });
           if (m.type === 'speech_end') notifySpeechEnd();
         } else if (m.type === 'speech_text') {
 
           if (typeof m.text === 'string' && m.text) {
-            setLastSignal({ type: 'speech_text', seq: m.seq, ts: nowMs(), text: m.text });
+            pushSignal({ type: 'speech_text', seq: m.seq, ts: nowMs(), text: m.text });
+          }
+        } else if (m.type === 'stage') {
+
+          if (__DEV__) {
+            const st = parseStageMessage(m);
+            if (st) {
+              emitTimingEvent('stage', {
+                stage: st.stage, seq: st.seq, tMs: st.tMs, info: st.info,
+              });
+            }
           }
         } else if (m.type === 'enroll_suggest') {
 
@@ -320,9 +340,9 @@ export function usePrethirdAvatar(opts: {
       setError(e as Error);
       setState('error');
     }
-  }, [cloneId, accessToken, deps]);
+  }, [cloneId, accessToken, deps, pushSignal]); 
 
   useEffect(() => () => { void stop();  }, []);
 
-  return { state, remoteStream, error, start, stop, phase, say, notifySpeechEnd, getStatsReport, greet, speak, lastSignal, sendFaceEvent };
+  return { state, remoteStream, error, start, stop, phase, say, notifySpeechEnd, getStatsReport, greet, speak, signals, sendFaceEvent };
 }

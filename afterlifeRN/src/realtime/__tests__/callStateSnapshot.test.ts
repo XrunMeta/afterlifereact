@@ -113,3 +113,78 @@ describe('callStateSnapshot fold', () => {
     expect(clipText('짧다')).toBe('짧다');
   });
 });
+
+describe('stage fold(단계별 소요시간)', () => {
+  const stage = (tMs: number, name: string, srvTMs: number, seq: number | null = 5, info = '') =>
+    ev('stage', tMs, { stage: name, seq, tMs: srvTMs, info });
+
+  it('단계별 소요시간(직전 단계로부터의 델타)을 행으로 남긴다', () => {
+    let m = initCallStateModel();
+    m = foldTimingEvent(m, ev('tx', 0, { mode: 'say', seq: 5, text: '그러니까 내가 궁금', eff: 'SAY' }), 0);
+    m = foldTimingEvent(m, stage(8420, 'llm_done', 8420, 5, 'chars:142'), 8420);
+    m = foldTimingEvent(m, stage(8430, 'tts_start', 8420, 5), 8430);
+    m = foldTimingEvent(m, stage(11540, 'tts_done', 11530, 5, 'audio:9200'), 11540);
+    m = foldTimingEvent(m, stage(11550, 'render_start', 11530, 5), 11550);
+    m = foldTimingEvent(m, stage(21420, 'render_done', 21410, 5, 'frames:248'), 21420);
+    m = foldTimingEvent(m, ev('rx', 21750, { sig: 'speech_start', seq: 5, srvSeq: 5 }), 21750);
+
+    const texts = m.rows.map((r) => r.text);
+
+    expect(texts[1]).toBe(' ⚙llm_done +8420ms chars:142'); 
+    expect(texts[2]).toBe(' ⚙tts +3110ms audio:9200');     
+    expect(texts[3]).toBe(' ⚙render +9880ms frames:248');  
+    expect(texts[4]).toContain('←start#5');
+    expect(m.rows[1].indent).toBe(true);
+  });
+
+  it('stream_start/stream_end 도 같은 규칙(_end 접미사)으로 묶인다', () => {
+    let m = initCallStateModel();
+    m = foldTimingEvent(m, stage(0, 'stream_start', 21410), 0);
+    m = foldTimingEvent(m, stage(240, 'stream_end', 21650, 5, 'queued:12000'), 240);
+    expect(m.rows[0].text).toBe(' ⚙stream +240ms queued:12000');
+  });
+
+  it('모르는 stage 이름도 직전 단계 기준 델타로 그냥 한 줄 남긴다', () => {
+    let m = initCallStateModel();
+    m = foldTimingEvent(m, stage(0, 'llm_done', 100), 0);
+    m = foldTimingEvent(m, stage(10, 'brand_new_step', 350, 5, 'x:1'), 10);
+    expect(m.rows[1].text).toBe(' ⚙brand_new_step +250ms x:1');
+  });
+
+  it('tMs 가 없으면 델타를 "?" 로 표기하고 깨지지 않는다', () => {
+    let m = initCallStateModel();
+    m = foldTimingEvent(m, ev('stage', 0, { stage: 'llm_done', seq: null, tMs: null, info: '' }), 0);
+    expect(m.rows[0].text).toBe(' ⚙llm_done +?ms');
+  });
+
+  it('stage 이름이 비면 무시(모델 불변)', () => {
+    const m0 = initCallStateModel();
+    expect(foldTimingEvent(m0, ev('stage', 0, { stage: '', seq: 1, tMs: 1, info: '' }), 0)).toBe(m0);
+  });
+
+  it('턴이 바뀌면(서버 seq 변화·새 tx) 누적 기준이 리셋된다', () => {
+    let m = initCallStateModel();
+    m = foldTimingEvent(m, stage(0, 'llm_done', 8000, 5), 0);
+
+    m = foldTimingEvent(m, stage(10, 'llm_done', 900, 6), 10);
+    expect(m.rows[1].text).toBe(' ⚙llm_done +900ms');
+
+    m = foldTimingEvent(m, ev('tx', 20, { mode: 'say', seq: 7, text: '', eff: 'SAY' }), 20);
+    expect(m.stageAtMs).toBeNull();
+    expect(m.lastStage).toBeNull();
+  });
+
+  it('stage 는 상태머신 스냅샷(phase/seq/타이머)을 건드리지 않는다 — 관측 전용', () => {
+    let m = foldTimingEvent(initCallStateModel(), fsm(0, 'sending', 'speaking', 'SPEECH_START', { aseq: 5 }), 0);
+    const before = { phase: m.phase, activeSeq: m.activeSeq, timers: m.timers, seqDrops: m.seqDrops };
+    m = foldTimingEvent(m, stage(10, 'render_done', 900, 5, 'frames:10'), 10);
+    expect({ phase: m.phase, activeSeq: m.activeSeq, timers: m.timers, seqDrops: m.seqDrops }).toEqual(before);
+  });
+
+  it('스냅샷 stg 줄에 마지막 단계와 턴 경과가 보인다(어디서 멈췄나)', () => {
+    let m = initCallStateModel();
+    m = foldTimingEvent(m, stage(0, 'render_start', 11530), 0);
+    expect(formatStateLines(m, 0).join('\n')).toContain('stg  render_start @11530ms');
+    expect(formatStateLines(initCallStateModel(), 0).join('\n')).toContain('stg  —');
+  });
+});

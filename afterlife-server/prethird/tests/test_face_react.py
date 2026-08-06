@@ -21,19 +21,20 @@ class _Pipeline:
         self.say_calls = []
         self.speak_calls = []
         self.react_calls = []
-    async def greet(self, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None):
+    async def greet(self, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None, on_stage=None, **_kw):
         self.greet_calls += 1
         if on_first_audio:
             on_first_audio()
-    async def say(self, text, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None):
+    async def say(self, text, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None, on_stage=None, **_kw):
         self.say_calls.append(text)
         if on_first_audio:
             on_first_audio()
-    async def speak(self, text, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None):
+    async def speak(self, text, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None, on_stage=None, **_kw):
         self.speak_calls.append(text)
         if on_first_audio:
             on_first_audio()
-    async def react(self, kind, display_name=None, turn=None, on_first_audio=None):
+    async def react(self, kind, display_name=None, turn=None, on_first_audio=None,
+                    on_stage=None, **_kw):
         self.react_calls.append((kind, display_name))
 
 
@@ -42,7 +43,7 @@ class _GatedPipeline(_Pipeline):
     def __init__(self):
         super().__init__()
         self.say_gate = asyncio.Event()
-    async def say(self, text, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None):
+    async def say(self, text, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None, on_stage=None, **_kw):
         self.say_calls.append(text)
         if on_first_audio:
             on_first_audio()
@@ -51,7 +52,8 @@ class _GatedPipeline(_Pipeline):
 
 class _BoomPipeline(_Pipeline):
     """react()가 항상 예외를 던짐 — react 예외 경로가 세션을 죽이지 않는지 검증용."""
-    async def react(self, kind, display_name=None, turn=None, on_first_audio=None):
+    async def react(self, kind, display_name=None, turn=None, on_first_audio=None,
+                    on_stage=None, **_kw):
         self.react_calls.append((kind, display_name))
         raise RuntimeError("musetalk render fail")
 

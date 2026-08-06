@@ -7,6 +7,7 @@ import {
   PENDING_INTERRUPT_EXPIRE_MS,
   INTERRUPT_COOLDOWN_MS,
 } from '../../src/realtime/handsFree';
+import { getTimingEvents, clearTimingEvents } from '../../src/realtime/timingEvents';
 
 function makeMockEngine() {
   const listeners: Record<string, Array<(p?: any) => void>> = {};
@@ -24,6 +25,20 @@ function makeMockEngine() {
     },
   };
   return engine;
+}
+
+const _queueCache = new Map<object, any[]>();
+let _queueId = 0;
+function toQueue(sig: any): any[] | undefined {
+  if (!sig) return undefined;
+  if (Array.isArray(sig)) return sig; 
+  let q = _queueCache.get(sig);
+  if (!q) {
+    _queueId += 1;
+    q = [{ ...sig, id: _queueId }];
+    _queueCache.set(sig, q);
+  }
+  return q;
 }
 
 async function flush() {
@@ -494,7 +509,7 @@ describe('greeting 배선', () => {
   it('lastSignal speech_start → speaking 전이', async () => {
     let signal: any = null;
     const { result, rerender } = renderHook(
-      (props: any) => useHandsFreeController(baseOpts({ greeting: true, greet: jest.fn().mockResolvedValue(undefined), lastSignal: props.signal })),
+      (props: any) => useHandsFreeController(baseOpts({ greeting: true, greet: jest.fn().mockResolvedValue(undefined), signals: toQueue(props.signal) })),
       { initialProps: { signal } });
     await act(async () => {});
     signal = { type: 'speech_start', seq: 1, ts: 1 };
@@ -504,7 +519,7 @@ describe('greeting 배선', () => {
 
   it('lastSignal speech_end → listening 복귀', async () => {
     const { result, rerender } = renderHook(
-      (props: any) => useHandsFreeController(baseOpts({ greeting: true, greet: jest.fn().mockResolvedValue(undefined), lastSignal: props.signal })),
+      (props: any) => useHandsFreeController(baseOpts({ greeting: true, greet: jest.fn().mockResolvedValue(undefined), signals: toQueue(props.signal) })),
       { initialProps: { signal: null as any } });
     await act(async () => {});
     rerender({ signal: { type: 'speech_start', seq: 1, ts: 1 } });
@@ -531,7 +546,7 @@ describe('greeting 배선', () => {
     const { rerender } = renderHook(
       (props: any) => useHandsFreeController(baseOpts({
         greeting: true, greet: jest.fn().mockResolvedValue(undefined),
-        speak, greetTimeoutMs: 3000, lastSignal: props.signal,
+        speak, greetTimeoutMs: 3000, signals: toQueue(props.signal),
       })),
       { initialProps: { signal: null as any } });
     await act(async () => {});
@@ -591,7 +606,7 @@ describe('greeting=false off-path speech_end 안전성', () => {
           speechEngine: engine,
           greeting: true,
           greet: jest.fn().mockResolvedValue(undefined),
-          lastSignal: props.signal,
+          signals: toQueue(props.signal),
         }),
       { initialProps: { signal } },
     );
@@ -622,7 +637,7 @@ describe('greeting=false off-path speech_end 안전성', () => {
           notifySpeechEnd: jest.fn(),
           speechEngine: engine,
           greeting: false,
-          lastSignal: props.signal,
+          signals: toQueue(props.signal),
         }),
       { initialProps: { signal } },
     );
@@ -656,7 +671,7 @@ describe('signalGating 배선', () => {
   it('speech_end 신호 → listening 복귀(RESPONSE_DONE 경로)', async () => {
     const engine = makeMockEngine();
     const { result, rerender } = renderHook(
-      (props: any) => useHandsFreeController(gatedOpts({ speechEngine: engine, silenceMs: 20, lastSignal: props.signal })),
+      (props: any) => useHandsFreeController(gatedOpts({ speechEngine: engine, silenceMs: 20, signals: toQueue(props.signal) })),
       { initialProps: { signal: null as any } },
     );
     await waitFor(() => expect(result.current.phase).toBe('listening'));
@@ -708,7 +723,7 @@ describe('signalGating 배선', () => {
   it('speech_text 수신은 폴백 타이머를 리셋한다', async () => {
     const engine = makeMockEngine();
     const { result, rerender } = renderHook(
-      (props: any) => useHandsFreeController(gatedOpts({ speechEngine: engine, silenceMs: 20, lastSignal: props.signal })),
+      (props: any) => useHandsFreeController(gatedOpts({ speechEngine: engine, silenceMs: 20, signals: toQueue(props.signal) })),
       { initialProps: { signal: null as any } },
     );
     await waitFor(() => expect(result.current.phase).toBe('listening'));
@@ -750,7 +765,7 @@ describe('Task 13: speech_end 오디오 꼬리 대기', () => {
     const getStatsReport = jest.fn(() => makeAudioStats(0)); 
     const { result, rerender } = renderHook(
       (props: any) =>
-        useHandsFreeController(baseOpts({ speechEngine: engine, getStatsReport, lastSignal: props.signal })),
+        useHandsFreeController(baseOpts({ speechEngine: engine, getStatsReport, signals: toQueue(props.signal) })),
       { initialProps: { signal: null as any } },
     );
     await act(async () => {});
@@ -774,7 +789,7 @@ describe('Task 13: speech_end 오디오 꼬리 대기', () => {
     const getStatsReport = jest.fn(() => makeAudioStats(level));
     const { result, rerender } = renderHook(
       (props: any) =>
-        useHandsFreeController(baseOpts({ speechEngine: engine, getStatsReport, lastSignal: props.signal })),
+        useHandsFreeController(baseOpts({ speechEngine: engine, getStatsReport, signals: toQueue(props.signal) })),
       { initialProps: { signal: null as any } },
     );
     await act(async () => {});
@@ -798,7 +813,7 @@ describe('Task 13: speech_end 오디오 꼬리 대기', () => {
     const getStatsReport = jest.fn(() => makeAudioStats(0.9));
     const { result, rerender } = renderHook(
       (props: any) =>
-        useHandsFreeController(baseOpts({ speechEngine: engine, getStatsReport, lastSignal: props.signal })),
+        useHandsFreeController(baseOpts({ speechEngine: engine, getStatsReport, signals: toQueue(props.signal) })),
       { initialProps: { signal: null as any } },
     );
     await act(async () => {});
@@ -822,7 +837,7 @@ describe('Task 13: speech_end 오디오 꼬리 대기', () => {
     const { result, rerender } = renderHook(
       (props: any) =>
         useHandsFreeController(baseOpts({
-          enabled: props.enabled, speechEngine: engine, getStatsReport, lastSignal: props.signal,
+          enabled: props.enabled, speechEngine: engine, getStatsReport, signals: toQueue(props.signal),
         })),
       { initialProps: { enabled: true, signal: null as any } },
     );
@@ -854,7 +869,7 @@ describe('Task 13: speech_end 오디오 꼬리 대기', () => {
     const getStatsReport = jest.fn(() => makeAudioStats(0.9)); 
     const { result, rerender, unmount } = renderHook(
       (props: any) =>
-        useHandsFreeController(baseOpts({ speechEngine: engine, getStatsReport, lastSignal: props.signal })),
+        useHandsFreeController(baseOpts({ speechEngine: engine, getStatsReport, signals: toQueue(props.signal) })),
       { initialProps: { signal: null as any } },
     );
     await act(async () => {});
@@ -894,7 +909,7 @@ describe('Task 19: remaining_ms 기반 녹음 재개 게이팅', () => {
     const getStatsReport = jest.fn(() => makeAudioStats(0)); 
     const { result, rerender } = renderHook(
       (props: any) =>
-        useHandsFreeController(baseOpts({ speechEngine: engine, getStatsReport, lastSignal: props.signal })),
+        useHandsFreeController(baseOpts({ speechEngine: engine, getStatsReport, signals: toQueue(props.signal) })),
       { initialProps: { signal: null as any } },
     );
     await act(async () => {});
@@ -917,7 +932,7 @@ describe('Task 19: remaining_ms 기반 녹음 재개 게이팅', () => {
     const getStatsReport = jest.fn(() => makeAudioStats(0)); 
     const { result, rerender } = renderHook(
       (props: any) =>
-        useHandsFreeController(baseOpts({ speechEngine: engine, getStatsReport, lastSignal: props.signal })),
+        useHandsFreeController(baseOpts({ speechEngine: engine, getStatsReport, signals: toQueue(props.signal) })),
       { initialProps: { signal: null as any } },
     );
     await act(async () => {});
@@ -938,7 +953,7 @@ describe('Task 19: remaining_ms 기반 녹음 재개 게이팅', () => {
     const getStatsReport = jest.fn(() => makeAudioStats(0.9));
     const { result, rerender } = renderHook(
       (props: any) =>
-        useHandsFreeController(baseOpts({ speechEngine: engine, getStatsReport, lastSignal: props.signal })),
+        useHandsFreeController(baseOpts({ speechEngine: engine, getStatsReport, signals: toQueue(props.signal) })),
       { initialProps: { signal: null as any } },
     );
     await act(async () => {});
@@ -1079,7 +1094,7 @@ describe('T-258: 무발화 워치독 · seq 배선', () => {
           getStatsReport: () => null,
           notifySpeechEnd: jest.fn(),
           speechEngine: engine,
-          lastSignal: props.signal,
+          signals: toQueue(props.signal),
         }),
         { initialProps: { signal } },
       );
@@ -1305,7 +1320,7 @@ describe('T-258 최종 리뷰 fix: 계층 경계 회귀', () => {
           getStatsReport: () => null,
           notifySpeechEnd: jest.fn(),
           speechEngine: engine,
-          lastSignal: props.signal,
+          signals: toQueue(props.signal),
           silenceMs: 20, 
         }),
         { initialProps: { signal } },
@@ -1352,7 +1367,7 @@ describe('T-258 최종 리뷰 fix: 계층 경계 회귀', () => {
           getStatsReport: () => null,
           notifySpeechEnd: jest.fn(),
           speechEngine: engine,
-          lastSignal: props.signal,
+          signals: toQueue(props.signal),
         }),
         { initialProps: { signal } },
       );
@@ -1380,5 +1395,88 @@ describe('T-258 최종 리뷰 fix: 계층 경계 회귀', () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+});
+
+describe('T-258 신호 유실 방지(같은 tick 배치)', () => {
+  const gated = (over: any = {}) => ({
+    enabled: true,
+    say: jest.fn().mockResolvedValue(undefined),
+    getStatsReport: () => null, 
+    notifySpeechEnd: jest.fn(),
+    signalGating: true,
+    ...over,
+  });
+
+  const rxSigs = () =>
+    getTimingEvents().filter((e) => e.type === 'rx').map((e) => e.detail?.sig);
+
+  it('speech_start + speech_text×2 가 한 배치로 와도 SPEECH_START 가 상태머신에 도달한다(speaking 전이)', async () => {
+    clearTimingEvents();
+    const engine = makeMockEngine();
+    const { result, rerender } = renderHook(
+      (props: any) => useHandsFreeController(gated({ speechEngine: engine, silenceMs: 20, signals: props.signals })),
+      { initialProps: { signals: undefined as any } },
+    );
+    await waitFor(() => expect(result.current.phase).toBe('listening'));
+    act(() => { engine.emitFinal('안녕'); });
+    await waitFor(() => expect(result.current.phase).toBe('sending'));
+
+    const batch = [
+      { id: 1, type: 'speech_start', seq: 1, ts: 1 },
+      { id: 2, type: 'speech_text', seq: 1, ts: 2, text: '첫 문장' },
+      { id: 3, type: 'speech_text', seq: 1, ts: 3, text: '둘째 문장' },
+    ];
+    act(() => { rerender({ signals: batch }); });
+
+    await waitFor(() => expect(result.current.phase).toBe('speaking'));
+
+    expect(rxSigs()).toEqual(['speech_start', 'speech_text', 'speech_text']);
+
+    act(() => { rerender({ signals: batch }); });
+    expect(rxSigs()).toEqual(['speech_start', 'speech_text', 'speech_text']);
+  });
+
+  it('배치에 speech_end 가 섞여 와도 순서대로 처리 — start→text→end 후 listening 복귀', async () => {
+    clearTimingEvents();
+    const engine = makeMockEngine();
+    const { result, rerender } = renderHook(
+      (props: any) => useHandsFreeController(gated({ speechEngine: engine, silenceMs: 20, signals: props.signals })),
+      { initialProps: { signals: undefined as any } },
+    );
+    await waitFor(() => expect(result.current.phase).toBe('listening'));
+    act(() => { engine.emitFinal('안녕'); });
+    await waitFor(() => expect(result.current.phase).toBe('sending'));
+
+    act(() => {
+      rerender({ signals: [
+        { id: 11, type: 'speech_start', seq: 1, ts: 1 },
+        { id: 12, type: 'speech_text', seq: 1, ts: 2, text: '한 문장' },
+        { id: 13, type: 'speech_end', seq: 1, ts: 3 },
+      ] });
+    });
+
+    await waitFor(() => expect(result.current.phase).toBe('listening'));
+    expect(rxSigs()).toEqual(['speech_start', 'speech_text', 'speech_end']);
+  });
+
+  it('배치 중간 신호부터 이어 붙어도(큐 누적) 새 것만 처리한다', async () => {
+    clearTimingEvents();
+    const engine = makeMockEngine();
+    const q1 = [{ id: 21, type: 'speech_start', seq: 1, ts: 1 }];
+    const q2 = q1.concat([{ id: 22, type: 'speech_text', seq: 1, ts: 2, text: 'x' } as any]);
+    const { result, rerender } = renderHook(
+      (props: any) => useHandsFreeController(gated({ speechEngine: engine, silenceMs: 20, signals: props.signals })),
+      { initialProps: { signals: undefined as any } },
+    );
+    await waitFor(() => expect(result.current.phase).toBe('listening'));
+    act(() => { engine.emitFinal('안녕'); });
+    await waitFor(() => expect(result.current.phase).toBe('sending'));
+
+    act(() => { rerender({ signals: q1 }); });
+    await waitFor(() => expect(result.current.phase).toBe('speaking'));
+    act(() => { rerender({ signals: q2 }); });
+
+    expect(rxSigs()).toEqual(['speech_start', 'speech_text']);
   });
 });

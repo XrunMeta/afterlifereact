@@ -18,6 +18,15 @@ function makeEngine() {
   };
 }
 
+const _queueCache = new Map<object, any[]>();
+let _queueId = 0;
+const toQueue = (sig: any): any[] | undefined => {
+  if (!sig) return undefined;
+  let q = _queueCache.get(sig);
+  if (!q) { _queueId += 1; q = [{ ...sig, id: _queueId }]; _queueCache.set(sig, q); }
+  return q;
+};
+
 const baseOpts = (engine: any) => ({
   enabled: true,
   say: jest.fn(async () => {}),
@@ -40,10 +49,10 @@ describe('useHandsFreeController timing wiring', () => {
     expect(engine.start).toHaveBeenCalled();
   });
 
-  it('emits speech_start/speech_end from lastSignal', () => {
+  it('emits speech_start/speech_end from signals', () => {
     const { engine } = makeEngine();
     const { rerender } = renderHook(
-      (props: any) => useHandsFreeController({ ...baseOpts(engine), lastSignal: props.sig }),
+      (props: any) => useHandsFreeController({ ...baseOpts(engine), signals: toQueue(props.sig) }),
       { initialProps: { sig: null as any } },
     );
     rerender({ sig: { type: 'speech_start', ts: 1 } });

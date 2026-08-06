@@ -8,6 +8,8 @@ export type LiveAvatarState =
 export type CallPhase = 'idle' | 'listening' | 'sending' | 'speaking';
 
 export interface SpeechSignal {
+
+  id: number;
   type: 'speech_start' | 'speech_end' | 'speech_text';
   seq?: number;
   ts: number;
@@ -37,7 +39,7 @@ export interface AvatarCall {
   greet?: () => Promise<void>;
   speak?: (text: string) => Promise<void>;
 
-  lastSignal?: SpeechSignal | null;
+  signals?: readonly SpeechSignal[];
 
   sendFaceEvent?: (evt: FaceEvent) => void;
 }
