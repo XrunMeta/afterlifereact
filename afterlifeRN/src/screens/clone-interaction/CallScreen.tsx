@@ -126,6 +126,8 @@ const SPEAK_OK_COLOR = "#2fbf6b";
 interface FloatingGift {
   id: number;
   emoji: string;
+
+  imageUrl?: string;
   animY: Animated.Value;
   animOpacity: Animated.Value;
   x: number;
@@ -1022,7 +1024,14 @@ export default function CallScreen({ route, navigation }: Props) {
     const animOpacity = new Animated.Value(0);
     const x = SCREEN_W / 2 + (Math.random() * 120 - 60);
 
-    const newGift: FloatingGift = { id, emoji: gift.emoji, animY, animOpacity, x };
+    const newGift: FloatingGift = {
+      id,
+      emoji: gift.emoji,
+      imageUrl: gift.imageUrl,
+      animY,
+      animOpacity,
+      x,
+    };
     setFloatingGifts((prev) => [...prev, newGift]);
 
     Animated.parallel([
@@ -1339,21 +1348,37 @@ export default function CallScreen({ route, navigation }: Props) {
       )}
 
       {}
-      {floatingGifts.map((g) => (
-        <Animated.Text
-          key={g.id}
-          style={[
-            s.floatingEmoji,
-            {
-              left: g.x,
-              transform: [{ translateY: g.animY }],
-              opacity: g.animOpacity,
-            },
-          ]}
-        >
-          {g.emoji}
-        </Animated.Text>
-      ))}
+      {floatingGifts.map((g) =>
+        g.imageUrl ? (
+          <Animated.View
+            key={g.id}
+            style={[
+              s.floatingImage,
+              {
+                left: g.x,
+                transform: [{ translateY: g.animY }],
+                opacity: g.animOpacity,
+              },
+            ]}
+          >
+            <Image source={{ uri: g.imageUrl }} style={s.floatingImageInner} />
+          </Animated.View>
+        ) : (
+          <Animated.Text
+            key={g.id}
+            style={[
+              s.floatingEmoji,
+              {
+                left: g.x,
+                transform: [{ translateY: g.animY }],
+                opacity: g.animOpacity,
+              },
+            ]}
+          >
+            {g.emoji}
+          </Animated.Text>
+        ),
+      )}
 
       {
 }
@@ -1691,6 +1716,19 @@ const s = StyleSheet.create({
     bottom: 200,
     fontSize: 48,
     zIndex: 30,
+  },
+
+  floatingImage: {
+    position: "absolute",
+    bottom: 200,
+    width: 64,
+    height: 64,
+    zIndex: 30,
+  },
+  floatingImageInner: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "contain",
   },
 
   subtitleContainer: {
