@@ -394,6 +394,10 @@ export default function v_c316d8() {
               );
             });
             if (v_3ed4c3) {
+
+              if (typeof v_8c0b26.image === "string" && v_8c0b26.image) {
+                v_cf9c33.prefetch(v_8c0b26.image).catch(() => {});
+              }
               v_f4c991.navigate("Call", { cloneId: v_8c0b26.cloneId, name: v_8c0b26.author, image: v_8c0b26.image });
             }
           }}

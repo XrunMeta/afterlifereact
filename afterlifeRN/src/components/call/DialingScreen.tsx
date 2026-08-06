@@ -103,11 +103,16 @@ export function v_1980fb(props: {
         <Animated.View
           style={[v_d81136.ring, { transform: [{ scale: v_d104ce }], opacity: v_ce1ac8 }]}
         />
+        {
+
+}
+        <View style={[v_d81136.avatar, v_d81136.avatarFallback]} />
         {v_0e38ad ? (
-          <Image source={{ uri: v_0e38ad }} style={v_d81136.avatar} />
-        ) : (
-          <View style={[v_d81136.avatar, { backgroundColor: v_1bfbd0.violet500 }]} />
-        )}
+          <Image
+            source={{ uri: v_0e38ad }}
+            style={[v_d81136.avatar, v_d81136.avatarOverlay]}
+          />
+        ) : null}
       </View>
 
       <View style={v_d81136.actions}>
@@ -164,6 +169,9 @@ const v_d81136 = v_472849.create({
   },
   avatarWrap: { alignItems: 'center', justifyContent: 'center' },
   avatar: { width: 96, height: 96, borderRadius: 48 },
+
+  avatarFallback: { position: 'absolute', backgroundColor: v_1bfbd0.zinc700 },
+  avatarOverlay: { position: 'absolute' },
   ring: {
     position: 'absolute',
     width: 96,
