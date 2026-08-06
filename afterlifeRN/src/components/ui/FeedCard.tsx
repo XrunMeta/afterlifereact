@@ -70,6 +70,17 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
 }) => {
   const { t: v_8d41d7 } = v_772971();
 
+  const [v_4393ab, v_f95f43] = v_a3453e.useState(0);
+  const [v_49cb14, v_eb937b] = v_a3453e.useState(0);
+  const [v_7e038a, v_a995c2] = v_a3453e.useState(0);
+  const v_64673e = v_49cb14 > v_7e038a + 1;
+  const v_a619fa = v_64673e
+    ? Math.max(16, (v_7e038a / v_49cb14) * v_7e038a)
+    : 0;
+  const v_7b5c27 = v_64673e
+    ? (v_4393ab / (v_49cb14 - v_7e038a)) * (v_7e038a - v_a619fa)
+    : 0;
+
   const v_fd0962 = v_3d6201 < 640;
   return (
     <View style={[v_d81136.container, { height: v_3d6201 }]}>
@@ -245,12 +256,15 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
               >
                 <ScrollView
                   style={v_d81136.descriptionScroll}
-                  showsVerticalScrollIndicator={true}
+
+                  showsVerticalScrollIndicator={false}
                   nestedScrollEnabled={false}
-                  persistentScrollbar={true}
-                  indicatorStyle="white"
                   bounces={false}
                   overScrollMode="never"
+                  scrollEventThrottle={16}
+                  onScroll={(v_9e86fd) => v_f95f43(v_9e86fd.nativeEvent.contentOffset.y)}
+                  onContentSizeChange={(v_37eab7, v_65a2cd) => v_eb937b(v_65a2cd)}
+                  onLayout={(v_9e86fd) => v_a995c2(v_9e86fd.nativeEvent.layout.height)}
                 >
                   <HashtagText
                     style={v_d81136.description}
@@ -259,6 +273,16 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
                     {v_8c0b26.description}
                   </HashtagText>
                 </ScrollView>
+                {v_64673e ? (
+                  <View pointerEvents="none" style={v_d81136.descScrollbarTrack}>
+                    <View
+                      style={[
+                        v_d81136.descScrollbarThumb,
+                        { top: v_7b5c27, height: v_a619fa },
+                      ]}
+                    />
+                  </View>
+                ) : null}
               </View>
             ) : null}
 
@@ -487,6 +511,23 @@ const v_d81136 = v_472849.create({
 
   descriptionWrap: {
     marginBottom: 12,
+
+    position: "relative",
+  },
+
+  descScrollbarTrack: {
+    position: "absolute",
+    top: 2,
+    bottom: 2,
+    right: 2,
+    width: 3,
+  },
+  descScrollbarThumb: {
+    position: "absolute",
+    right: 0,
+    width: 3,
+    borderRadius: 2,
+    backgroundColor: "rgba(255,255,255,0.9)",
   },
 
   descriptionScroll: {
