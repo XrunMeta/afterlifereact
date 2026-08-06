@@ -44,6 +44,14 @@ function fmtSecToMin(sec: number, t: TFunction): string {
     : t("common.durationMin", { m: min, defaultValue: `${min}분` });
 }
 
+const SEC_PER_XRUN = 60;
+function fmtSecToXrun(sec: number): string {
+  const xrun = sec / SEC_PER_XRUN;
+
+  const s = Number.isInteger(xrun) ? xrun.toLocaleString() : xrun.toFixed(1);
+  return `${s} XRUN`;
+}
+
 const MOCK_PREFIX = "__mock__";
 const MOCK_SUBS: ProductSubscription[] = [
   { id: "run.xrun.afterlife.sub.light", title: "xLight 30min", description: "월 30분 통화", displayPrice: "₩2,200", price: 2200, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
@@ -239,24 +247,24 @@ export default function PurchaseScreen() {
 
         {}
         <View style={s.balanceCard}>
-          <Text style={s.balanceTitle}>{t("my.balance.remainingTime", { defaultValue: "남은 통화 시간" })}</Text>
+          <Text style={s.balanceTitle}>{t("my.balance.remainingTokens", { defaultValue: "남은 토큰 수량" })}</Text>
           {balLoading ? (
             <ActivityIndicator color={COLORS.violet600} />
           ) : balance ? (
             <>
-              <Text style={s.balanceTotal}>{fmtSecToMin(balance.totalSec, t)}</Text>
+              <Text style={s.balanceTotal}>{fmtSecToXrun(balance.totalSec)}</Text>
               <View style={s.balanceRow}>
                 <View style={s.balanceCol}>
                   <Text style={s.balanceLabel}>{t("purchase.bucketFree", { defaultValue: "무료" })}</Text>
-                  <Text style={s.balanceVal}>{fmtSecToMin(balance.freeSec, t)}</Text>
+                  <Text style={s.balanceVal}>{fmtSecToXrun(balance.freeSec)}</Text>
                 </View>
                 <View style={s.balanceCol}>
                   <Text style={s.balanceLabel}>{t("purchase.bucketSub", { defaultValue: "구독" })}</Text>
-                  <Text style={s.balanceVal}>{fmtSecToMin(balance.subSec, t)}</Text>
+                  <Text style={s.balanceVal}>{fmtSecToXrun(balance.subSec)}</Text>
                 </View>
                 <View style={s.balanceCol}>
                   <Text style={s.balanceLabel}>{t("purchase.bucketTopup", { defaultValue: "충전" })}</Text>
-                  <Text style={s.balanceVal}>{fmtSecToMin(balance.topupSec, t)}</Text>
+                  <Text style={s.balanceVal}>{fmtSecToXrun(balance.topupSec)}</Text>
                 </View>
               </View>
               {balance.subscription && (
