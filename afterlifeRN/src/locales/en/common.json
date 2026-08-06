@@ -483,6 +483,7 @@
     },
     "balance": {
       "remainingTime": "Remaining call time",
+      "remainingTokens": "Remaining tokens",
       "free": "Free {{time}}",
       "sub": "Subscription {{time}}",
       "topup": "Top-up {{time}}",

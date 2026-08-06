@@ -1,7 +1,14 @@
 
 
-import v_a3453e, { v_df9f57 } from "bapkr";
-import { v_aa7413, v_472849, v_4623af, v_3094a2 } from "rcmrninabrnb";
+import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
+import {
+  v_39a996,
+  v_aa7413,
+  v_472849,
+  v_19b633,
+  v_4623af,
+  v_3094a2,
+} from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_2694e4 } from "ahewcyoxtiosvtfuluxp";
 import { v_1bfbd0 } from "../constants";
@@ -12,8 +19,23 @@ interface Props {
   onClose: () => void;
 }
 
-function v_6587de(v_f71b56): string {
-  const v_29dbaf = v_f71b56.replace(/"/g, '\\"');
+function v_4d2f90(v_fbb6da): string {
+  let v_d8cac9 = "";
+  const v_334f63 = 0x8000;
+  for (let v_ebec57 = 0; v_ebec57 < v_fbb6da.length; v_ebec57 += v_334f63) {
+    v_d8cac9 += String.fromCharCode.apply(
+      null,
+      Array.from(v_fbb6da.subarray(v_ebec57, v_ebec57 + v_334f63)),
+    );
+  }
+
+  const v_26bc51 = globalThis as unknown as { btoa?: (v_fd5f43) => string };
+  if (typeof v_26bc51.btoa === "function") return v_26bc51.btoa(v_d8cac9);
+
+  return v_d8cac9;
+}
+
+function v_6587de(v_aef4ae): string {
   return `<!doctype html>
 <html>
 <head>
@@ -29,7 +51,7 @@ function v_6587de(v_f71b56): string {
 </head>
 <body>
   <div id="canvas"><div id="stage"></div></div>
-  <div id="diag">loading…</div>
+  <div id="diag">loading svga.js…</div>
   <script>
     (function () {
       var diag = document.getElementById('diag');
@@ -40,30 +62,19 @@ function v_6587de(v_f71b56): string {
         }
       };
       var fallback = setTimeout(function () { setDiag('timeout'); post({ type: 'error', reason: 'timeout' }); }, 15000);
+      var BASE64 = ${JSON.stringify(v_aef4ae)};
 
-      function playFromBinary(bytes) {
-        try {
-          if (typeof SVGA === 'undefined' || !SVGA.Parser || !SVGA.Player) {
-            throw new Error('svga.min.js not loaded');
-          }
-          var parser = new SVGA.Parser();
-          if (typeof parser.loadFromBinary === 'function') {
-            parser.loadFromBinary(bytes,
-              function (video) { start(video); },
-              function (e) { fail('loadFromBinary: ' + String(e)); }
-            );
-            return;
-          }
-          var b64 = '';
-          var CHUNK = 0x8000;
-          for (var i = 0; i < bytes.length; i += CHUNK) {
-            b64 += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
-          }
-          var dataUrl = 'data:application/octet-stream;base64,' + btoa(b64);
-          parser.load(dataUrl, function (video) { start(video); }, function (e) { fail('parser.load: ' + String(e)); });
-        } catch (e) {
-          fail(String(e));
-        }
+      function decodeBase64() {
+        var bin = atob(BASE64);
+        var bytes = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return bytes;
+      }
+
+      function fail(reason) {
+        clearTimeout(fallback);
+        setDiag('err: ' + reason);
+        post({ type: 'error', reason: reason });
       }
 
       function start(video) {
@@ -82,25 +93,29 @@ function v_6587de(v_f71b56): string {
         }
       }
 
-      function fail(reason) {
-        clearTimeout(fallback);
-        setDiag('err: ' + reason);
-        post({ type: 'error', reason: reason });
+      function tryPlay() {
+        if (typeof SVGA === 'undefined' || !SVGA.Parser || !SVGA.Player) {
+          setDiag('svga.js not loaded');
+          return setTimeout(tryPlay, 300);
+        }
+        setDiag('decoding…');
+        try {
+          var bytes = decodeBase64();
+          var parser = new SVGA.Parser();
+          if (typeof parser.loadFromBinary === 'function') {
+            setDiag('parsing…');
+            parser.loadFromBinary(bytes, start, function (e) { fail('loadFromBinary: ' + String(e)); });
+            return;
+          }
+          setDiag('parsing (dataurl)…');
+          var dataUrl = 'data:application/octet-stream;base64,' + BASE64;
+          parser.load(dataUrl, start, function (e) { fail('parser.load: ' + String(e)); });
+        } catch (e) {
+          fail('decode: ' + String(e));
+        }
       }
 
-      setDiag('fetch…');
-      fetch("${v_29dbaf}", { credentials: 'omit', mode: 'cors', cache: 'no-store' })
-        .then(function (r) {
-          if (!r.ok) throw new Error('http ' + r.status);
-          setDiag('fetched, parsing…');
-          return r.arrayBuffer();
-        })
-        .then(function (buf) {
-          playFromBinary(new Uint8Array(buf));
-        })
-        .catch(function (e) {
-          fail('fetch: ' + String(e && e.message ? e.message : e));
-        });
+      tryPlay();
     })();
   </script>
 </body>
@@ -108,11 +123,42 @@ function v_6587de(v_f71b56): string {
 }
 
 export default function v_194b37({ visible: v_cf55be, svgaUrl: v_1d09c0, onClose: v_0890f8 }: Props) {
-  const v_d91d98 = v_df9f57(() => (v_1d09c0 ? v_6587de(v_1d09c0) : ""), [v_1d09c0]);
+  const [v_d91d98, v_5420ce] = v_5ab095<string | null>(null);
+  const [v_fd3c7b, v_4fbeaf] = v_5ab095<string | null>(null);
+
+  v_c4deb2(() => {
+    if (!v_cf55be || !v_1d09c0) {
+      v_5420ce(null);
+      v_4fbeaf(null);
+      return;
+    }
+    let v_2008a4 = false;
+    v_5420ce(null);
+    v_4fbeaf(null);
+    console.log(`[SvgaOverlay] native fetch begin url=${v_1d09c0}`);
+    fetch(v_1d09c0, { cache: "no-store" })
+      .then(async (v_cb35cb) => {
+        if (!v_cb35cb.ok) throw new Error(`http ${v_cb35cb.status}`);
+        const v_83ee53 = await v_cb35cb.arrayBuffer();
+        const v_fbb6da = new Uint8Array(v_83ee53);
+        console.log(`[SvgaOverlay] native fetch ok bytes=${v_fbb6da.length}`);
+        const v_aef4ae = v_4d2f90(v_fbb6da);
+        if (v_2008a4) return;
+        v_5420ce(v_6587de(v_aef4ae));
+      })
+      .catch((v_49263d) => {
+        console.warn(`[SvgaOverlay] native fetch failed`, v_49263d);
+        if (!v_2008a4) v_4fbeaf(String((v_49263d as Error).message ?? v_49263d));
+      });
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_cf55be, v_1d09c0]);
+
   return (
     <Modal visible={v_cf55be && !!v_1d09c0} transparent animationType="fade" onRequestClose={v_0890f8}>
       <View style={v_fd5f43.root}>
-        {v_1d09c0 ? (
+        {v_d91d98 ? (
           <WebView
             originWhitelist={["*"]}
             source={{ html: v_d91d98, baseUrl: "https://unpkg.com/" }}
@@ -123,17 +169,25 @@ export default function v_194b37({ visible: v_cf55be, svgaUrl: v_1d09c0, onClose
             mixedContentMode="always"
             onMessage={(v_9e86fd) => {
               try {
-                const v_badeaf = JSON.parse(v_9e86fd.nativeEvent.data) as { type?: string };
+                const v_badeaf = JSON.parse(v_9e86fd.nativeEvent.data) as { type?: string; reason?: string };
                 console.log(`[SvgaOverlay] webview msg`, v_badeaf);
                 if (v_badeaf?.type === "finished" || v_badeaf?.type === "error") {
-                  setTimeout(v_0890f8, v_badeaf.type === "finished" ? 200 : 0);
+                  setTimeout(v_0890f8, v_badeaf.type === "finished" ? 200 : 800);
                 }
               } catch {
 
               }
             }}
           />
-        ) : null}
+        ) : v_fd3c7b ? (
+          <View style={v_fd5f43.loader}>
+            <Text style={v_fd5f43.errText}>재생 실패: {v_fd3c7b}</Text>
+          </View>
+        ) : (
+          <View style={v_fd5f43.loader}>
+            <ActivityIndicator color={v_1bfbd0.white} />
+          </View>
+        )}
         <TouchableOpacity style={v_fd5f43.close} onPress={v_0890f8} activeOpacity={0.7}>
           <Feather name="x" size={24} color={v_1bfbd0.white} />
         </TouchableOpacity>
@@ -145,6 +199,8 @@ export default function v_194b37({ visible: v_cf55be, svgaUrl: v_1d09c0, onClose
 const v_fd5f43 = v_472849.create({
   root: { flex: 1, backgroundColor: "rgba(0,0,0,0.85)" },
   web: { flex: 1, backgroundColor: "transparent" },
+  loader: { flex: 1, alignItems: "center", justifyContent: "center" },
+  errText: { color: "#ffb4b4", fontSize: 12, paddingHorizontal: 24, textAlign: "center" },
   close: {
     position: "absolute",
     top: 44,

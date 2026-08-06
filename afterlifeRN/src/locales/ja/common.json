@@ -483,6 +483,7 @@
     },
     "balance": {
       "remainingTime": "残りの通話時間",
+      "remainingTokens": "残りトークン数",
       "free": "無料 {{time}}",
       "sub": "サブスク {{time}}",
       "topup": "チャージ {{time}}",
