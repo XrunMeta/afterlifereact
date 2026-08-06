@@ -10,7 +10,7 @@ import Button from '../../components/ui/Button';
 import { useCloneStore } from '../../stores/cloneStore';
 import { showAlert } from '../../stores/dialogStore';
 import MemlowVoiceUpload from './content/MemlowVoiceUpload';
-import DefaultVoiceUpload from './content/DefaultVoiceUpload';
+import DefaultVoiceUpload, { initialMode } from './content/DefaultVoiceUpload';
 import { COLORS, SIZES } from '../../components/constants';
 
 type Props = { navigation: NativeStackNavigationProp<CreateStackParamList, 'Step4'> };
@@ -31,7 +31,7 @@ export default function Step4VoiceUploadScreen({ navigation }: Props) {
       return;
     }
     let msg: string;
-    switch (draft.voiceMode ?? 'upload') {
+    switch (initialMode(draft)) {
       case 'record':
 
         msg = draft.voiceFile

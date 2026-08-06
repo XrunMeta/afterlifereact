@@ -59,9 +59,9 @@ const RECORD_SCRIPTS = [
   },
 ] as const;
 
-type Mode = "upload" | "record" | "preset";
+type Mode = "record" | "preset" | "upload";
 
-const MODE_ORDER: Mode[] = ["upload", "record", "preset"];
+const MODE_ORDER: Mode[] = ["record", "preset", "upload"];
 
 type VoicePick = Pick<
   CloneCreationDraft,
@@ -75,10 +75,11 @@ const EMPTY_PICK: VoicePick = {
   voiceSampleId: undefined,
 };
 
-function initialMode(d: CloneCreationDraft): Mode {
+export function initialMode(d: CloneCreationDraft): Mode {
   if (d.voiceMode) return d.voiceMode;
   if (d.voicePresetId !== undefined) return "preset";
-  return "upload";
+  if (d.voiceFile !== undefined || d.voiceCloneJobId !== undefined) return "upload";
+  return "record";
 }
 
 interface Props {
