@@ -483,6 +483,7 @@
     },
     "balance": {
       "remainingTime": "剩余通话时间",
+      "remainingTokens": "剩余代币数量",
       "free": "免费 {{time}}",
       "sub": "订阅 {{time}}",
       "topup": "充值 {{time}}",

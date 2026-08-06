@@ -483,6 +483,7 @@
     },
     "balance": {
       "remainingTime": "Sisa Waktu Panggilan",
+      "remainingTokens": "Sisa Token",
       "free": "Gratis {{time}}",
       "sub": "Langganan {{time}}",
       "topup": "Isi Ulang {{time}}",
