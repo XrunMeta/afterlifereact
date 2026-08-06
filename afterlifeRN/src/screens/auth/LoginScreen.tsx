@@ -610,15 +610,17 @@ const v_d81136 = v_472849.create({
   },
 
   snsLoginContainer: {
-    marginTop: v_9b1a04.large,
-    alignItems: "flex-start",
+    marginTop: v_9b1a04.xlarge,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: v_9b1a04.medium,
     width: "100%",
   },
   snsLoginLabel: {
     fontSize: 13,
     lineHeight: 20,
     color: v_1bfbd0.zinc600,
-    marginBottom: 8,
   },
   snsButtonContainer: {
     flexDirection: "row",
