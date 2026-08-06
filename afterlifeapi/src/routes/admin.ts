@@ -267,22 +267,28 @@ admin.post("/files/gift-image", requireAdmin, async (c) => {
     size: number;
     arrayBuffer: () => Promise<ArrayBuffer>;
   };
-  const GIFT_IMG_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-  const GIFT_IMG_MAX = 2 * 1024 * 1024; 
+
+  const GIFT_IMG_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+  const GIFT_IMG_MAX_STATIC = 2 * 1024 * 1024; 
+  const GIFT_IMG_MAX_GIF = 5 * 1024 * 1024; 
   if (!GIFT_IMG_TYPES.has(file.type)) {
     throw new APIError(
       "VALIDATION_FAILED",
-      `Unsupported type: ${file.type}. jpeg/png/webp only.`,
+      `Unsupported type: ${file.type}. jpeg/png/webp/gif only.`,
     );
   }
-  if (file.size > GIFT_IMG_MAX) {
+  const maxSize = file.type === "image/gif" ? GIFT_IMG_MAX_GIF : GIFT_IMG_MAX_STATIC;
+  if (file.size > maxSize) {
     throw new APIError(
       "VALIDATION_FAILED",
-      `File too large (${file.size} bytes). Max ${GIFT_IMG_MAX} bytes.`,
+      `File too large (${file.size} bytes). Max ${maxSize} bytes.`,
     );
   }
   const ext =
-    file.type === "image/jpeg" ? ".jpg" : file.type === "image/png" ? ".png" : ".webp";
+    file.type === "image/jpeg" ? ".jpg"
+    : file.type === "image/png" ? ".png"
+    : file.type === "image/gif" ? ".gif"
+    : ".webp";
   const rand = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
   const t = Date.now().toString(36);
   const r2Key = `uploadedfiles/admin/gift/${t}${rand}${ext}`;
