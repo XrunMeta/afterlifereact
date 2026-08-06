@@ -5,6 +5,7 @@ import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
 import { v_b2eae5 } from "../src/lib/jwt";
 import { v_70df81 } from "../src/routes/persons";
 import { v_a8d2cc } from "../src/lib/faceVectors";
+import { v_929ead } from "../src/lib/cloneFaceScope";
 
 const v_a1651b = () => v_c9c489.DB as unknown as D1Database;
 
@@ -15,6 +16,18 @@ async function v_bfb240(v_e0c7e8): Promise<number> {
     .run();
   const v_ceb55a = await v_a1651b().prepare("SELECT id FROM users WHERE email = ?").bind(v_e0c7e8).first<{ id: number }>();
   return v_ceb55a!.id;
+}
+
+async function v_4d24a9(v_1badb6, v_556427): Promise<number> {
+  await v_a1651b()
+    .prepare(
+      `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+       VALUES (?, 'TestClone', ?, 'memlow', 'public', CURRENT_TIMESTAMP)`,
+    )
+    .bind(v_1badb6, v_556427)
+    .run();
+  const v_3f4e2e = await v_a1651b().prepare("SELECT id FROM clones WHERE username = ?").bind(v_556427).first<{ id: number }>();
+  return v_3f4e2e!.id;
 }
 
 async function v_86c39f(v_43e90c): Promise<string> {
@@ -53,9 +66,10 @@ v_469bf2("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
   v_23805a("저장하고 벡터는 응답/DB에 없다", async () => {
     const v_43e90c = await v_bfb240("calibrate-on-save@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "calibrate-on-save-clone");
     const v_f9a45c = new Array(512).fill(0).map((v_37eab7, v_ebec57) => (v_ebec57 === 0 ? 1 : 0));
 
-    const v_8f00b9 = await v_4f438a(v_ea333d, { vector: v_f9a45c, groundTruthPersonId: "p1" });
+    const v_8f00b9 = await v_4f438a(v_ea333d, { vector: v_f9a45c, groundTruthPersonId: "p1", cloneId: v_6e0fd3 });
     v_4d37e3(v_8f00b9.status).toBe(200);
     const v_b75e36 = await v_8f00b9.json<{
       id: number;
@@ -89,9 +103,10 @@ v_469bf2("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
   v_23805a("groundTruthPersonId 없이도 저장된다(선택 필드)", async () => {
     const v_43e90c = await v_bfb240("calibrate-no-gt@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "calibrate-no-gt-clone");
     const v_f9a45c = new Array(512).fill(0.05);
 
-    const v_8f00b9 = await v_4f438a(v_ea333d, { vector: v_f9a45c });
+    const v_8f00b9 = await v_4f438a(v_ea333d, { vector: v_f9a45c, cloneId: v_6e0fd3 });
     v_4d37e3(v_8f00b9.status).toBe(200);
     const v_b75e36 = await v_8f00b9.json<{ id: number }>();
     const v_3ac7e7 = await v_a1651b()
@@ -106,11 +121,13 @@ v_469bf2("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
     const v_7a3219 = await v_bfb240("calibrate-other@test.local");
     const v_40444e = await v_86c39f(v_1badb6);
     const v_825625 = await v_86c39f(v_7a3219);
+    const v_3024f6 = await v_4d24a9(v_1badb6, "calibrate-owner-clone");
+    const v_79e62f = await v_4d24a9(v_7a3219, "calibrate-other-clone");
     const v_f9a45c = new Array(512).fill(0.02);
 
-    const v_2d1eeb = await v_4f438a(v_40444e, { vector: v_f9a45c });
+    const v_2d1eeb = await v_4f438a(v_40444e, { vector: v_f9a45c, cloneId: v_3024f6 });
     v_4d37e3(v_2d1eeb.status).toBe(200);
-    const v_b96973 = await v_4f438a(v_825625, { vector: v_f9a45c });
+    const v_b96973 = await v_4f438a(v_825625, { vector: v_f9a45c, cloneId: v_79e62f });
     v_4d37e3(v_b96973.status).toBe(200);
 
     const v_18b8bf = await v_a1651b()
@@ -158,7 +175,9 @@ v_469bf2("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
   v_23805a("metadata 없는 매치는 scores에서 제외된다(personId 둔갑 방지)", async () => {
     const v_43e90c = await v_bfb240("calibrate-no-metadata@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
-    const v_e39ea6 = String(v_43e90c);
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "calibrate-no-metadata-clone");
+
+    const v_e39ea6 = v_929ead(v_43e90c, v_6e0fd3);
     const v_f9a45c = new Array(512).fill(0).map((v_37eab7, v_ebec57) => (v_ebec57 === 0 ? 1 : 0));
 
     const v_e86ad8 = v_a8d2cc(v_c9c489 as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string });
@@ -167,7 +186,7 @@ v_469bf2("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
       { id: "with-metadata", values: v_f9a45c, namespace: v_e39ea6, metadata: { personId: "777" } },
     ]);
 
-    const v_8f00b9 = await v_4f438a(v_ea333d, { vector: v_f9a45c });
+    const v_8f00b9 = await v_4f438a(v_ea333d, { vector: v_f9a45c, cloneId: v_6e0fd3 });
     v_4d37e3(v_8f00b9.status).toBe(200);
     const v_b75e36 = await v_8f00b9.json<{ id: number; matchedId: string | null; scoreCount: number }>();
 

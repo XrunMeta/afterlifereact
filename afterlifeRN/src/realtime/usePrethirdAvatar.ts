@@ -7,6 +7,7 @@ import { v_5b540b } from '../stores/callConfigStore';
 import { v_335e37 } from '../lib/authFetch';
 import { type v_30869c, v_2f41d8 } from './useAudioSession';
 import { type v_b01667, type v_d20273, type v_b190e4, type v_9d43cd, type v_14f245, v_d8a22b } from './avatarCall';
+import { v_d7f7b1 } from './timingEvents';
 
 const v_67e77e = () => Date.now();
 
@@ -97,6 +98,8 @@ export function v_3d8d48(v_328259): v_b01667 {
   const v_de567c = v_e662ae(v_46947d);
   v_c4deb2(() => { v_de567c.current = v_46947d; }, [v_46947d]);
 
+  v_c4deb2(() => { v_d7f7b1('avatar', { phase: v_ab4803 }); }, [v_ab4803]);
+
   const v_3c664f = v_de06a3((v_12cd99) => {
     if (v_48ccb1.current) { v_9fc078.current = v_12cd99; return; }
     try { v_12cd99.close(); } catch {  }
@@ -105,7 +108,11 @@ export function v_3d8d48(v_328259): v_b01667 {
   const v_3e2c87 = v_de06a3(async (v_9b6134) => {
     const v_32dc97 = v_fa9144.current;
     if (!v_f98743.current || !v_32dc97) return;
-    if (v_ab4803 === 'sending' || v_ab4803 === 'speaking') return;
+    if (v_ab4803 === 'sending' || v_ab4803 === 'speaking') {
+
+      v_d7f7b1('avatar', { phase: v_ab4803, act: 'busy_throw' }); 
+      throw new Error('prethird: busy');
+    }
     const v_8d41d7 = v_9b6134.trim();
     if (!v_8d41d7) return;
     if (v_32dc97.readyState !== 'open') { v_3a7d09(new Error('datachannel_not_open')); return; }

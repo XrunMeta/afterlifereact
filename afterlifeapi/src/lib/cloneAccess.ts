@@ -156,6 +156,19 @@ export function v_a697ec(
   return v_00efe2 !== "owner" && v_00efe2 !== "coowner";
 }
 
+export async function v_0b07b9(
+  v_a1651b,
+  v_6e0fd3,
+  v_43e90c,
+): Promise<CloneRow | null> {
+  const v_eb25ce = await v_5d4a51(v_a1651b, v_6e0fd3);
+  if (!v_eb25ce) return null;
+  const v_00efe2 = await v_d875d1(v_a1651b, v_eb25ce, v_43e90c);
+  if (!v_00efe2 && v_eb25ce.visibility !== "public") return null;
+  if (v_a697ec(v_eb25ce, v_00efe2)) return null;
+  return v_eb25ce;
+}
+
 export async function v_09d461(
   c: v_437670<v_de0a25>,
   v_eb25ce,

@@ -7,7 +7,8 @@ import { v_6690d9 } from "../middleware/auth";
 import { v_a8d2cc } from "../lib/faceVectors";
 import { v_430d2b } from "../lib/personDelete";
 import { v_d0fd96 } from "../lib/displayName";
-import { v_74c502 } from "../lib/cloneAccess";
+import { v_0b07b9 } from "../lib/cloneAccess";
+import { v_929ead, v_97be02, v_003ee1 } from "../lib/cloneFaceScope";
 
 export const v_fded81 = new v_b7c41b<v_de0a25>();
 
@@ -28,7 +29,9 @@ v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
     .json<{ cloneId?: number; displayName?: string; enrolledVia?: string }>()
     .catch(() => ({}) as { cloneId?: number; displayName?: string; enrolledVia?: string });
 
-  const v_6e0fd3 = v_4d33b2.cloneId ?? null;
+  const v_6e0fd3 = v_4d33b2.cloneId;
+  if (typeof v_6e0fd3 !== "number" || !Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
+    throw new v_3ebe58("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
 
   let v_8a1355 = null;
   if (v_4d33b2.displayName !== undefined) {
@@ -54,15 +57,9 @@ v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
   const v_40c2c9 = v_926d89 === "auto_biometric" ? "granted" : "none";
   const v_322d60 = v_926d89 === "auto_biometric" ? Date.now() : null;
 
-  if (v_6e0fd3 !== null) {
-    const v_2461e1 = await v_3f4e2e.env.DB.prepare(
-      `SELECT id FROM clones WHERE id = ? AND owner_id = ? AND ${v_74c502()}`
-    )
-      .bind(v_6e0fd3, v_43e90c)
-      .first<{ id: number }>();
-    if (!v_2461e1) {
-      throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
-    }
+  const v_eb25ce = await v_0b07b9(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c);
+  if (!v_eb25ce) {
+    throw new v_3ebe58("NOT_FOUND", "클론을 찾을 수 없습니다.");
   }
 
   const v_9e67a6 = Date.now();
@@ -105,40 +102,45 @@ const v_0eeb45 = 0.45;
 
 v_fded81.post("/match", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
-  const v_4d33b2 = await v_3f4e2e.req.json<{ vector?: number[] }>().catch(() => ({}) as { vector?: number[] });
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ vector?: number[]; cloneId?: number }>()
+    .catch(() => ({}) as { vector?: number[]; cloneId?: number });
   const v_81e2ef = v_4d33b2.vector;
   if (!Array.isArray(v_81e2ef) || v_81e2ef.length !== 512 || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214)))
     throw new v_3ebe58("VALIDATION_FAILED", "vector: 512차원 수치 배열이어야 합니다");
+
+  const v_6e0fd3 = v_4d33b2.cloneId;
+  if (typeof v_6e0fd3 !== "number" || !Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
+    throw new v_3ebe58("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+
+  const v_eb25ce = await v_0b07b9(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "클론을 찾을 수 없습니다.");
 
   const v_01dcf5 = await v_3f4e2e.env.DB.prepare("SELECT value FROM app_config WHERE key = 'face.match_threshold'").first<{
     value: string;
   }>();
   const v_d361d7 = v_01dcf5?.value !== undefined && Number.isFinite(Number(v_01dcf5.value)) ? Number(v_01dcf5.value) : v_0eeb45;
 
-  const v_e86ad8 = v_a8d2cc(v_3f4e2e.env);
-  const v_cb35cb = await v_e86ad8.query(v_81e2ef, { topK: 3, namespace: String(v_43e90c), returnMetadata: true });
+  const v_495447 = await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef, topK: 3 });
+  const v_52e08b = v_495447.map((v_35f85c) => v_35f85c.personId);
 
-  const v_8a69ab = new Map<number, number>(); 
-  for (const v_35f85c of v_cb35cb.matches) {
-    const v_d4923e = Number(v_35f85c.metadata?.personId);
-    if (!v_d4923e) continue;
-    v_8a69ab.set(v_d4923e, Math.max(v_8a69ab.get(v_d4923e) ?? -1, v_35f85c.score));
-  }
-
-  const v_52e08b = [...v_8a69ab.keys()];
   const v_77b1ac = new Map<number, string | null>();
   if (v_52e08b.length) {
     const v_315151 = await v_3f4e2e.env.DB.prepare(
-      `SELECT id, display_name FROM persons WHERE user_id = ? AND id IN (${v_52e08b.map(() => "?").join(",")})`
+      `SELECT p.id, p.display_name
+         FROM persons p
+         JOIN clone_person_faces f ON f.person_id = p.id AND f.clone_id = ?
+        WHERE p.user_id = ? AND p.clone_id = ? AND p.id IN (${v_52e08b.map(() => "?").join(",")})
+        GROUP BY p.id`,
     )
-      .bind(v_43e90c, ...v_52e08b)
+      .bind(v_6e0fd3, v_43e90c, v_6e0fd3, ...v_52e08b)
       .all<{ id: number; display_name: string | null }>();
     for (const v_3ac7e7 of v_315151.results) v_77b1ac.set(v_3ac7e7.id, v_3ac7e7.display_name);
   }
 
-  const v_a49907 = v_52e08b
-    .map((v_d4923e) => ({ personId: v_d4923e, displayName: v_77b1ac.get(v_d4923e) ?? null, score: v_8a69ab.get(v_d4923e)! }))
-    .sort((v_779914, v_148ff6) => v_148ff6.score - v_779914.score);
+  const v_a49907 = v_495447
+    .filter((v_35f85c) => v_77b1ac.has(v_35f85c.personId))
+    .map((v_35f85c) => ({ personId: v_35f85c.personId, displayName: v_77b1ac.get(v_35f85c.personId) ?? null, score: v_35f85c.score }));
 
   const v_643757 = v_a49907[0] && v_a49907[0].score >= v_d361d7 ? v_a49907[0] : null;
 
@@ -153,8 +155,8 @@ v_fded81.post("/calibrate", v_6690d9, async (v_3f4e2e) => {
   if (!v_70df81(v_3f4e2e.env)) return v_3f4e2e.notFound();
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_4d33b2 = await v_3f4e2e.req
-    .json<{ vector?: unknown; groundTruthPersonId?: string | null }>()
-    .catch(() => ({}) as { vector?: unknown; groundTruthPersonId?: string | null });
+    .json<{ vector?: unknown; groundTruthPersonId?: string | null; cloneId?: number }>()
+    .catch(() => ({}) as { vector?: unknown; groundTruthPersonId?: string | null; cloneId?: number });
   const v_81e2ef = v_4d33b2.vector;
   if (!Array.isArray(v_81e2ef) || v_81e2ef.length !== 512 || !v_81e2ef.every((v_f4e98d) => typeof v_f4e98d === "number" && Number.isFinite(v_f4e98d))) {
     return v_3f4e2e.json({ error: "invalid vector" }, 400); 
@@ -163,9 +165,14 @@ v_fded81.post("/calibrate", v_6690d9, async (v_3f4e2e) => {
     value: string;
   }>();
   const v_d361d7 = v_01dcf5 && Number.isFinite(Number(v_01dcf5.value)) ? Number(v_01dcf5.value) : v_0eeb45;
+
+  const v_6b5963 = v_4d33b2.cloneId;
+  if (typeof v_6b5963 !== "number" || !Number.isInteger(v_6b5963) || v_6b5963 <= 0) {
+    return v_3f4e2e.json({ error: "invalid cloneId" }, 400);
+  }
   const { matches: v_a49907 } = await v_a8d2cc(v_3f4e2e.env).query(v_81e2ef as number[], {
     topK: 100,
-    namespace: String(v_43e90c),
+    namespace: v_929ead(v_43e90c, v_6b5963),
     returnMetadata: true,
   });
 
@@ -281,7 +288,9 @@ v_fded81.post("/:id/consent", v_6690d9, async (v_3f4e2e) => {
 v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_ca1ec5 = v_5c8583(v_3f4e2e);
-  const v_4d33b2 = await v_3f4e2e.req.json<{ vectors?: number[][] }>().catch(() => ({}) as { vectors?: number[][] });
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ vectors?: number[][]; cloneId?: number }>()
+    .catch(() => ({}) as { vectors?: number[][]; cloneId?: number });
   const v_f94e64 = v_4d33b2.vectors;
   if (
     !Array.isArray(v_f94e64) ||
@@ -293,40 +302,34 @@ v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
   )
     throw new v_3ebe58("VALIDATION_FAILED", "vectors: 1~5개의 512차원 수치 배열이어야 합니다");
 
-  const v_306a28 = await v_3f4e2e.env.DB.prepare("SELECT id, consent_state FROM persons WHERE id = ? AND user_id = ?")
-    .bind(v_ca1ec5, v_43e90c)
+  const v_6e0fd3 = v_4d33b2.cloneId;
+  if (typeof v_6e0fd3 !== "number" || !Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
+    throw new v_3ebe58("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+
+  const v_eb25ce = await v_0b07b9(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "person이 존재하지 않습니다.");
+
+  const v_306a28 = await v_3f4e2e.env.DB.prepare(
+    "SELECT id, consent_state FROM persons WHERE id = ? AND user_id = ? AND clone_id = ?",
+  )
+    .bind(v_ca1ec5, v_43e90c, v_6e0fd3)
     .first<{ id: number; consent_state: string }>();
   if (!v_306a28) throw new v_3ebe58("NOT_FOUND", "person이 존재하지 않습니다.");
   if (v_306a28.consent_state !== "granted")
     throw new v_3ebe58("FORBIDDEN", "얼굴정보 저장 동의(consent granted)가 필요합니다"); 
 
-  const v_18b8bf = v_f94e64.map((v_6fea0b) => ({
-    id: crypto.randomUUID(),
-    values: v_6fea0b,
-    namespace: String(v_43e90c),
-    metadata: { personId: String(v_ca1ec5) },
-  }));
-
-  const v_9e67a6 = Date.now();
-  const v_a9cac6 = v_3f4e2e.env.DB.prepare(
-    `INSERT INTO face_embeddings (person_id, vectorize_id, model, dim, source, created_at)
-     VALUES (?, ?, 'w600k_mbf', 512, 'call', ?)`
-  );
-  await v_3f4e2e.env.DB.batch(v_18b8bf.map((v_cb35cb) => v_a9cac6.bind(v_ca1ec5, v_cb35cb.id, v_9e67a6)));
-
-  const v_e86ad8 = v_a8d2cc(v_3f4e2e.env);
   try {
-    await v_e86ad8.insert(v_18b8bf);
+    const { enrolled: v_570847 } = await v_003ee1(v_3f4e2e.env, {
+      userId: v_43e90c,
+      cloneId: v_6e0fd3,
+      personId: v_ca1ec5,
+      vectors: v_f94e64,
+      source: "call",
+    });
+    return v_3f4e2e.json({ enrolled: v_570847 });
   } catch (v_9e86fd) {
-
-    const v_1cdc07 = v_18b8bf.map(() => "?").join(",");
-    await v_3f4e2e.env.DB.prepare(`DELETE FROM face_embeddings WHERE vectorize_id IN (${v_1cdc07})`)
-      .bind(...v_18b8bf.map((v_cb35cb) => v_cb35cb.id))
-      .run();
     throw new v_3ebe58("UPSTREAM_FAILURE", `얼굴 벡터 인덱스 저장 실패: ${(v_9e86fd as Error).message}`);
   }
-
-  return v_3f4e2e.json({ enrolled: v_18b8bf.length });
 });
 
 v_fded81.delete("/:id", v_6690d9, async (v_3f4e2e) => {

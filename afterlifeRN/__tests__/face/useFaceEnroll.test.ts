@@ -21,6 +21,7 @@ test("성공 경로: createPerson → saveFaceConsent → enrollFaces 순서·�
   const { result: v_43c42e } = v_0da18b(() =>
     v_3fc8fd({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => v_062bb0,
       deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
     }),
@@ -30,10 +31,10 @@ test("성공 경로: createPerson → saveFaceConsent → enrollFaces 순서·�
     await v_43c42e.current.enroll("민지");
   });
 
-  expect(v_f290ff).toHaveBeenCalledWith("tok", { displayName: "민지" });
+  expect(v_f290ff).toHaveBeenCalledWith("tok", { cloneId: 999, displayName: "민지" });
 
   expect(v_a18c0d).toHaveBeenCalledWith("tok", 42, "granted", { channel: "in_call_proxy" });
-  expect(v_c48ab5).toHaveBeenCalledWith("tok", 42, [[1, 2], [3, 4]]);
+  expect(v_c48ab5).toHaveBeenCalledWith("tok", 42, [[1, 2], [3, 4]], 999);
 
   const v_b892c9 = v_f290ff.mock.invocationCallOrder[0];
   const v_607010 = v_a18c0d.mock.invocationCallOrder[0];
@@ -54,6 +55,7 @@ test("createPerson 실패 → status=error, 이후 단계 미호출", async () =
   const { result: v_43c42e } = v_0da18b(() =>
     v_3fc8fd({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => v_062bb0,
       deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
     }),
@@ -82,6 +84,7 @@ test("enrollFaces 실패 후 재호출 시 createPerson/saveFaceConsent 재실�
   const { result: v_43c42e } = v_0da18b(() =>
     v_3fc8fd({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => v_062bb0,
       deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
     }),
@@ -112,6 +115,7 @@ test("reset() 후엔 처음부터 다시 createPerson 호출", async () => {
   const { result: v_43c42e } = v_0da18b(() =>
     v_3fc8fd({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => v_062bb0,
       deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
     }),
@@ -130,7 +134,7 @@ test("reset() 후엔 처음부터 다시 createPerson 호출", async () => {
   });
 
   expect(v_f290ff).toHaveBeenCalledTimes(2);
-  expect(v_f290ff).toHaveBeenNthCalledWith(2, "tok", { displayName: "철수" });
+  expect(v_f290ff).toHaveBeenNthCalledWith(2, "tok", { cloneId: 999, displayName: "철수" });
 });
 
 test("연타(동일 tick 내 두 번 호출) 시 createPerson 1회만 호출 — 두 번째는 조용히 무시", async () => {
@@ -143,6 +147,7 @@ test("연타(동일 tick 내 두 번 호출) 시 createPerson 1회만 호출 —
   const { result: v_43c42e } = v_0da18b(() =>
     v_3fc8fd({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => v_062bb0,
       deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
     }),
@@ -163,6 +168,7 @@ test("getPendingPersonId: idle 상태에선 null", () => {
   const { result: v_43c42e } = v_0da18b(() =>
     v_3fc8fd({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => v_062bb0,
       deps: {
         createPersonFn: jest.fn(),
@@ -184,6 +190,7 @@ test("getPendingPersonId: 부분 실패(person 생성됨·미완료) 상태에�
   const { result: v_43c42e } = v_0da18b(() =>
     v_3fc8fd({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => v_062bb0,
       deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
     }),
@@ -207,6 +214,7 @@ test("getPendingPersonId: success 상태에선 null(완료됨)", async () => {
   const { result: v_43c42e } = v_0da18b(() =>
     v_3fc8fd({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => v_062bb0,
       deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
     }),
@@ -239,6 +247,7 @@ test("A 부분실패 → B suggest 가드(true) → cleanup+reset → B 신규 �
   const { result: v_43c42e } = v_0da18b(() =>
     v_3fc8fd({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => v_062bb0,
       deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
     }),
@@ -272,7 +281,7 @@ test("A 부분실패 → B suggest 가드(true) → cleanup+reset → B 신규 �
     await v_43c42e.current.enroll("B");
   });
   expect(v_f290ff).toHaveBeenCalledTimes(2);
-  expect(v_f290ff).toHaveBeenNthCalledWith(2, "tok", { displayName: "B" });
+  expect(v_f290ff).toHaveBeenNthCalledWith(2, "tok", { cloneId: 999, displayName: "B" });
   expect(v_43c42e.current.status).toBe("success");
   expect(v_43c42e.current.getPendingPersonId()).toBeNull();
 });
@@ -289,6 +298,7 @@ test("getSnapshot 제공 시: 캡처 이후 buffer.push 가 추가돼도 enrollF
   const { result: v_43c42e } = v_0da18b(() =>
     v_3fc8fd({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => v_062bb0,
       getSnapshot: () => v_5392c4,
       deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
@@ -302,7 +312,7 @@ test("getSnapshot 제공 시: 캡처 이후 buffer.push 가 추가돼도 enrollF
     await v_43c42e.current.enroll("민지");
   });
 
-  expect(v_c48ab5).toHaveBeenCalledWith("tok", 55, [[1, 1]]);
+  expect(v_c48ab5).toHaveBeenCalledWith("tok", 55, [[1, 1]], 999);
 });
 
 test("getSnapshot 미제공 시: 기존 폴백대로 getBuffer().latest() 사용", async () => {
@@ -315,6 +325,7 @@ test("getSnapshot 미제공 시: 기존 폴백대로 getBuffer().latest() 사용
   const { result: v_43c42e } = v_0da18b(() =>
     v_3fc8fd({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => v_062bb0,
       deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
     }),
@@ -324,7 +335,7 @@ test("getSnapshot 미제공 시: 기존 폴백대로 getBuffer().latest() 사용
     await v_43c42e.current.enroll("철수");
   });
 
-  expect(v_c48ab5).toHaveBeenCalledWith("tok", 56, [[2, 2]]);
+  expect(v_c48ab5).toHaveBeenCalledWith("tok", 56, [[2, 2]], 999);
 });
 
 test("enrollSilent 성공: createPerson(enrolledVia='auto_biometric')만 호출, saveFaceConsent는 skip, enrollFaces 호출, status=success", async () => {
@@ -337,6 +348,7 @@ test("enrollSilent 성공: createPerson(enrolledVia='auto_biometric')만 호출,
   const { result: v_43c42e } = v_0da18b(() =>
     v_3fc8fd({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => v_062bb0,
       deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
     }),
@@ -346,9 +358,9 @@ test("enrollSilent 성공: createPerson(enrolledVia='auto_biometric')만 호출,
     await v_43c42e.current.enrollSilent();
   });
 
-  expect(v_f290ff).toHaveBeenCalledWith("tok", { enrolledVia: "auto_biometric" });
+  expect(v_f290ff).toHaveBeenCalledWith("tok", { cloneId: 999, enrolledVia: "auto_biometric" });
   expect(v_a18c0d).not.toHaveBeenCalled();
-  expect(v_c48ab5).toHaveBeenCalledWith("tok", 77, [[5, 5]]);
+  expect(v_c48ab5).toHaveBeenCalledWith("tok", 77, [[5, 5]], 999);
   expect(v_43c42e.current.status).toBe("success");
   expect(v_43c42e.current.getEnrolledPersonId()).toBe(77);
 });
@@ -362,6 +374,7 @@ test("enrollSilent: createPerson 실패 → status=error, enrollFaces 미호출,
   const { result: v_43c42e } = v_0da18b(() =>
     v_3fc8fd({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => v_062bb0,
       deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
     }),
@@ -389,6 +402,7 @@ test("enrollSilent: enrollFaces 실패 후 재호출 시 createPerson 재실행 
   const { result: v_43c42e } = v_0da18b(() =>
     v_3fc8fd({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => v_062bb0,
       deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
     }),
@@ -418,6 +432,7 @@ test("getEnrolledPersonId: reset() 후 null(카드 enroll()과 동일 상태 공
   const { result: v_43c42e } = v_0da18b(() =>
     v_3fc8fd({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => v_062bb0,
       deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
     }),
@@ -444,6 +459,7 @@ test("reset() 없이 두 번째 silent 후보를 등록하면 이전 person id �
   const { result: v_43c42e } = v_0da18b(() =>
     v_3fc8fd({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => v_99dce9,
       deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
     }),
@@ -472,6 +488,7 @@ test("reset() 이 두 번째 silent 후보 등록 전에 선행되면 각 후보
   const { result: v_43c42e } = v_0da18b(() =>
     v_3fc8fd({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => v_062bb0,
       deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
     }),
@@ -506,6 +523,7 @@ test("[wiring] 카드 경로 error 잔여(personRef=A) 상태에서 다른 후�
   const { result: v_43c42e } = v_0da18b(() =>
     v_3fc8fd({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => v_062bb0,
       deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
     }),
@@ -540,7 +558,7 @@ test("[wiring] 카드 경로 error 잔여(personRef=A) 상태에서 다른 후�
   });
   expect(v_f290ff).toHaveBeenCalledTimes(2);
   expect(v_43c42e.current.getEnrolledPersonId()).toBe(402); 
-  expect(v_c48ab5).toHaveBeenLastCalledWith("tok", 402, [[1, 1]]); 
+  expect(v_c48ab5).toHaveBeenLastCalledWith("tok", 402, [[1, 1]], 999); 
 });
 
 test("[wiring] cleanup 을 생략하면(버그 재현) B의 얼굴벡터가 실제로 A(401)의 person id 에 오귀속됨 — 가드의 필요성 증명", async () => {
@@ -553,6 +571,7 @@ test("[wiring] cleanup 을 생략하면(버그 재현) B의 얼굴벡터가 실�
   const { result: v_43c42e } = v_0da18b(() =>
     v_3fc8fd({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => v_062bb0,
       deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
     }),
@@ -567,7 +586,7 @@ test("[wiring] cleanup 을 생략하면(버그 재현) B의 얼굴벡터가 실�
     await v_43c42e.current.enrollSilent();
   });
   expect(v_f290ff).toHaveBeenCalledTimes(1); 
-  expect(v_c48ab5).toHaveBeenLastCalledWith("tok", 401, [[9, 9]]); 
+  expect(v_c48ab5).toHaveBeenLastCalledWith("tok", 401, [[9, 9]], 999); 
 });
 
 test("[wiring] success~reset() 사이 레이스(personRef=A, status=success, reset 미실행) 상태에서 다른 후보 B의 silent 제안 → detach(삭제 없이 ref만 분리) 후 B가 신규 person 으로 생성됨", async () => {
@@ -582,6 +601,7 @@ test("[wiring] success~reset() 사이 레이스(personRef=A, status=success, res
   const { result: v_43c42e } = v_0da18b(() =>
     v_3fc8fd({
       accessToken: "tok",
+      cloneId: 999,
       getBuffer: () => v_062bb0,
       deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
     }),

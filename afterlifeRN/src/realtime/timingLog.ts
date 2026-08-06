@@ -13,6 +13,8 @@ export function v_1b1534(): () => void {
     const v_9e86fd = v_bf9904[v_bf9904.length - 1];
     if (!v_9e86fd) return; 
 
-    console.log('[Call][timing]', v_9e86fd.type, 't=', v_9e86fd.tMs);
+    if (v_9e86fd.detail) console.log('[Call][timing]', v_9e86fd.type, 't=', v_9e86fd.tMs, v_9e86fd.detail);
+
+    else console.log('[Call][timing]', v_9e86fd.type, 't=', v_9e86fd.tMs);
   });
 }

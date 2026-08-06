@@ -6,7 +6,6 @@ import {
   v_3094a2,
   v_19b633,
   v_472849,
-  v_4623af,
 } from "rcmrninabrnb";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
@@ -21,7 +20,7 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_bb226e } from "../../api/clones";
 import { v_84a859 } from "../../api/auth";
 import type { v_4b85a1 as v_affcc0 } from "../../types/domain";
-import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
+import { v_1bfbd0, v_9b1a04 } from "../../components/constants";
 
 type Visibility = "public" | "private" | "followers";
 
@@ -43,7 +42,8 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   v_c4deb2(() => {
     if (!v_eb25ce) return;
     v_318f24(v_eb25ce.displayName);
-    v_b7e174(v_eb25ce.description ?? "");
+
+    v_b7e174((v_eb25ce.description ?? "").slice(0, 100));
     v_2cf16e((v_eb25ce.visibility as Visibility) ?? "public");
   }, [v_eb25ce]);
 
@@ -113,37 +113,16 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         <TextField
           label={v_8d41d7("edit.descLabel")}
           value={v_6856a9}
-          onChangeText={v_b7e174}
+          onChangeText={(v_81e2ef) => v_b7e174(v_81e2ef.slice(0, 100))}
           placeholder={v_8d41d7("edit.descPlaceholder")}
           multiline
+          maxLength={100}
           containerStyle={{ marginTop: 16 }}
         />
+        <Text style={v_fd5f43.descCounter}>{v_6856a9.length}/100</Text>
 
-        {}
-        <TouchableOpacity
-          onPress={() => v_c65f5d.navigate("CloneLearn", { cloneId: v_6e0fd3 })}
-          activeOpacity={0.8}
-          style={{
-            marginTop: 24,
-            padding: 16,
-            borderRadius: v_8b0c90.md,
-            borderWidth: 1,
-            borderColor: v_1bfbd0.violet500,
-            backgroundColor: v_1bfbd0.violet100,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 15, fontWeight: "700", color: v_1bfbd0.violet500 }}>
-              {v_8d41d7("edit.learnCtaTitle", { defaultValue: "학습하기 →" })}
-            </Text>
-            <Text style={{ fontSize: 12, color: v_1bfbd0.zinc600, marginTop: 4 }}>
-              {v_8d41d7("edit.learnCtaDesc", { defaultValue: "관리자 질문에 답변해서 클론에게 지식을 쌓아주세요" })}
-            </Text>
-          </View>
-        </TouchableOpacity>
+        {
+}
       </View>
 
       {}
@@ -167,6 +146,13 @@ const v_fd5f43 = v_472849.create({
     paddingHorizontal: v_9b1a04.large,
     paddingTop: 24,
     paddingBottom: 32,
+  },
+
+  descCounter: {
+    marginTop: 6,
+    alignSelf: "flex-end",
+    fontSize: 12,
+    color: v_1bfbd0.zinc400,
   },
   bottomBar: {
     paddingHorizontal: v_9b1a04.large,

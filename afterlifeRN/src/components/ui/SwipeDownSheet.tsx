@@ -1,7 +1,7 @@
 
 
 import v_a3453e, { v_e662ae } from "bapkr";
-import { v_a2349e, v_f6c856, v_472849, v_3094a2, type v_7e4944 } from "rcmrninabrnb";
+import { v_a2349e, v_f6c856, v_09d0e5, v_472849, v_3094a2, type v_7e4944 } from "rcmrninabrnb";
 
 interface Props {
   onClose: () => void;
@@ -80,14 +80,14 @@ export default function v_8e7ad4({
         { transform: [{ translateY: v_153714 }] },
       ]}
 
-      onStartShouldSetResponder={() => true}
     >
       {}
       <View
         {...v_e7cf0f.panHandlers}
         style={[v_d81136.handleZone, { height: v_0b30e9 }]}
       />
-      {v_21f619}
+      {}
+      <Pressable onPress={() => {}}>{v_21f619}</Pressable>
     </Animated.View>
   );
 }

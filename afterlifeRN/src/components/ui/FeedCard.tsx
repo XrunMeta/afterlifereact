@@ -30,6 +30,8 @@ interface FeedCardProps {
   onMorePress?: () => void;
 
   onSharePress?: () => void;
+
+  onIntimacyPress?: () => void;
 }
 
 const FeedCard: v_a3453e.FC<FeedCardProps> = ({
@@ -45,8 +47,11 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
   onCommentPress: v_48b0c1,
   onMorePress: v_27b331,
   onSharePress: v_d51485,
+  onIntimacyPress: v_b85128,
 }) => {
   const { t: v_8d41d7 } = v_772971();
+
+  const v_fd0962 = v_3d6201 < 640;
   return (
     <View style={[v_d81136.container, { height: v_3d6201 }]}>
       {}
@@ -62,19 +67,26 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
       />
 
       {
+
 }
       {typeof v_8c0b26.myIntimacy === "number" ? (
-        <View style={v_d81136.intimacyBadge}>
+        <TouchableOpacity
+          style={v_d81136.intimacyBadge}
+          onPress={v_b85128}
+          activeOpacity={0.7}
+          disabled={!v_b85128}
+          accessibilityLabel="intimacy-events"
+        >
           <Feather name="thermometer" size={12} color="#fb923c" />
           <Text style={v_d81136.intimacyText}>{v_8c0b26.myIntimacy}°C</Text>
-        </View>
+        </TouchableOpacity>
       ) : null}
 
       {}
       {v_26dce6 && (
         <>
           {}
-          <View style={v_d81136.rightActions}>
+          <View style={[v_d81136.rightActions, v_fd0962 && v_d81136.rightActionsShift]}>
             <TouchableOpacity onPress={v_5bca36} style={v_d81136.actionBtn} activeOpacity={0.7}>
               <Ionicons
                 name={v_85c07b ? "heart" : "heart-outline"}
@@ -102,7 +114,6 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
             )}
           </View>
 
-          {}
           <View style={v_d81136.bottomContent}>
             <View style={v_d81136.profileRow}>
               <View style={v_d81136.profileInfo}>
@@ -138,12 +149,13 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
               )}
             </View>
 
-            {}
+            {
+
+}
             {v_8c0b26.description ? (
               <HashtagText
                 style={v_d81136.description}
                 tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
-                numberOfLines={3}
               >
                 {v_8c0b26.description}
               </HashtagText>
@@ -246,6 +258,10 @@ const v_d81136 = v_472849.create({
     gap: 24,
   },
 
+  rightActionsShift: {
+    bottom: 220,
+  },
+
   intimacyBadge: {
     position: "absolute",
     top: 56,
@@ -264,6 +280,7 @@ const v_d81136 = v_472849.create({
     fontWeight: "600",
     color: v_1bfbd0.white,
   },
+
   actionBtn: {
     alignItems: "center",
     justifyContent: "center",
@@ -283,6 +300,7 @@ const v_d81136 = v_472849.create({
     color: v_1bfbd0.white,
     lineHeight: 20,
     marginBottom: 12,
+
   },
   callButton: {
     width: "100%",

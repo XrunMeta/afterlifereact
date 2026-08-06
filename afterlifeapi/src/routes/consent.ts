@@ -4,7 +4,7 @@ import { v_b7c41b } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_6690d9 } from "../middleware/auth";
-import { v_430d2b } from "../lib/personDelete";
+import { v_430d2b, v_714639 } from "../lib/personDelete";
 
 export const v_74e200 = new v_b7c41b<v_de0a25>();
 
@@ -92,4 +92,31 @@ v_74e200.get("/consent", v_6690d9, async (v_3f4e2e) => {
       version: v_3ac7e7?.fbVer ?? null,
     },
   });
+});
+
+v_74e200.get("/remembering-clones", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_315151 = await v_3f4e2e.env.DB.prepare(
+    `SELECT c.id AS cloneId, c.name, c.username, MAX(cop.updated_at) AS updatedAt
+       FROM clone_ont_person cop
+       JOIN clones  c ON c.id = cop.clone_id
+       JOIN persons p ON p.id = cop.person_id
+      WHERE p.user_id = ?
+        AND cop.person_id IS NOT c.self_person_id
+      GROUP BY c.id
+      ORDER BY updatedAt DESC`,
+  )
+    .bind(v_43e90c)
+    .all<{ cloneId: number; name: string; username: string; updatedAt: number }>();
+  return v_3f4e2e.json({ clones: v_315151.results });
+});
+
+v_74e200.delete("/remembering-clones/:cloneId", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("cloneId"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
+    throw new v_3ebe58("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+
+  const v_43c42e = await v_714639(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3 });
+  return v_3f4e2e.json(v_43c42e);
 });

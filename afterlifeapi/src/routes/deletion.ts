@@ -230,7 +230,7 @@ v_dda4b9.delete("/me", v_6690d9, async (v_3f4e2e) => {
   try {
     const v_c690be = await v_344b9e(v_3f4e2e.env, v_43e90c);
     console.log(
-      `[deletion.me] ontology purged: ont=${v_c690be.ontRows} person=${v_c690be.personRows} kv=${v_c690be.kvKeys}`,
+      `[deletion.me] ontology purged: ont=${v_c690be.ontRows} person=${v_c690be.personRows} kv=${v_c690be.kvKeys} vec=${v_c690be.vectorRows}`,
     );
   } catch (v_49263d) {
     console.error(

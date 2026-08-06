@@ -34,6 +34,7 @@ import v_4c2648 from "./components/FriendPickerModal";
 import v_92380d from "./components/VisibilityPickerModal";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
+import { v_84d546 } from "../../lib/callGuard";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
 import { v_d60cdf, v_81d12f, v_f373d8, v_20d793, v_776874, v_914311, v_8ce643, v_d24912, type v_fa0201, type v_a9d96d, type v_d83ffc, type v_52af9d, type v_ceccc3, type v_6349d0, type v_1d741a } from "../../api/clones";
@@ -386,7 +387,10 @@ export default function v_def15b() {
   };
 
   const v_11e385 = (v_6e0fd3) => {
-    const v_275ccd = v_699459[v_6e0fd3]?.visibility ?? "public";
+
+    const v_2d567b = v_699459[v_6e0fd3]?.visibility;
+    const v_b43a3d = v_4cd149.find((v_3f4e2e) => v_3f4e2e.id === v_6e0fd3)?.visibility;
+    const v_275ccd = v_2d567b ?? v_b43a3d ?? "public";
     v_2dbd8f({ cloneId: v_6e0fd3, currentVisibility: v_275ccd });
     v_8d2d61(null);
   };
@@ -603,8 +607,10 @@ export default function v_def15b() {
           </View>
         </View>
 
-        {}
-        <HashtagText style={v_fd5f43.description} numberOfLines={2}>
+        {
+
+}
+        <HashtagText style={v_fd5f43.description}>
           {v_eb25ce.description}
         </HashtagText>
 
@@ -681,7 +687,16 @@ export default function v_def15b() {
           </TouchableOpacity>
           <TouchableOpacity
             style={v_fd5f43.actionBtn}
-            onPress={() => v_f4c991.navigate("Call", { cloneId: v_eb25ce.id })}
+            onPress={async () => {
+
+              const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
+                v_f4c991.dispatch(
+                  v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                );
+              });
+              if (!v_3ed4c3) return;
+              v_f4c991.navigate("Call", { cloneId: v_eb25ce.id });
+            }}
           >
             <Feather name="video" size={16} color={v_1bfbd0.zinc700} />
             <Text style={v_fd5f43.actionText}>{v_8d41d7("dashboard.actionCall")}</Text>
@@ -949,7 +964,16 @@ export default function v_def15b() {
                   <View style={v_fd5f43.actionsRow}>
                     <TouchableOpacity
                       style={v_fd5f43.actionBtn}
-                      onPress={() => v_f4c991.navigate("Call", { cloneId: v_69bba6.id, name: v_69bba6.name })}
+                      onPress={async () => {
+
+                        const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
+                          v_f4c991.dispatch(
+                            v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                          );
+                        });
+                        if (!v_3ed4c3) return;
+                        v_f4c991.navigate("Call", { cloneId: v_69bba6.id, name: v_69bba6.name });
+                      }}
                     >
                       <Feather name="video" size={16} color={v_1bfbd0.zinc700} />
                       <Text style={v_fd5f43.actionText}>{v_8d41d7("dashboard.actionCall")}</Text>

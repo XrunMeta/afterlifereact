@@ -33,7 +33,7 @@ import v_4036d1 from "../screens/my/NotificationSettingsScreen";
 import v_9232cf from "../screens/my/PrivacySettingsScreen";
 import v_c78d4f from "../screens/my/AgreementsScreen";
 import v_e797c6 from "../screens/my/SavedItemsScreen";
-import v_99450d from "../screens/my/AcquaintanceManagementScreen";
+import v_e6afa3 from "../screens/my/RememberingClonesScreen";
 import v_d3b6fb from "../screens/my/LanguageSettingsScreen";
 import v_da4f91 from "../screens/my/PaymentPinScreen";
 import v_14fa9c from "../screens/my/InviteStatusScreen";
@@ -93,7 +93,7 @@ function v_d9c5dd() {
       <MyStack.Screen name="PrivacySettings" component={v_9232cf} />
       <MyStack.Screen name="Agreements" component={v_c78d4f} />
       <MyStack.Screen name="SavedItems" component={v_e797c6} />
-      <MyStack.Screen name="AcquaintanceManagement" component={v_99450d} />
+      <MyStack.Screen name="RememberingClones" component={v_e6afa3} />
       <MyStack.Screen name="LanguageSettings" component={v_d3b6fb} />
       <MyStack.Screen name="PaymentPin" component={v_da4f91} />
       <MyStack.Screen name="InviteStatus" component={v_14fa9c} />
