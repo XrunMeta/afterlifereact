@@ -11,6 +11,14 @@ import {
   Platform,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
+import { SvgXml } from "react-native-svg";
+
+const GOOGLE_G_SVG = `<svg width="15" height="16" viewBox="0 0 15 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M15 7.8271C15 7.28444 14.9513 6.76264 14.8609 6.26172H7.65308V9.22204H11.7718C11.5944 10.1787 11.0552 10.9892 10.2447 11.5318V13.4521H12.718C14.1651 12.1197 15 10.1578 15 7.8271Z" fill="#4285F4"/>
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M7.65302 15.3059C9.71935 15.3059 11.4517 14.6206 12.718 13.4517L10.2446 11.5315C9.55933 11.9907 8.6827 12.2621 7.65302 12.2621C5.65974 12.2621 3.97259 10.9158 3.37078 9.10693H0.813965V11.0898C2.07324 13.5909 4.66137 15.3059 7.65302 15.3059Z" fill="#34A853"/>
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M3.37083 9.10727C3.21776 8.64809 3.1308 8.1576 3.1308 7.6532C3.1308 7.1488 3.21776 6.65831 3.37083 6.19913V4.21631H0.814007C0.295686 5.24946 0 6.41828 0 7.6532C0 8.88811 0.295686 10.0569 0.814007 11.0901L3.37083 9.10727Z" fill="#FBBC05"/>
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M7.65302 3.0438C8.77663 3.0438 9.78544 3.42993 10.5786 4.18828L12.7736 1.99326C11.4482 0.758342 9.71587 0 7.65302 0C4.66137 0 2.07324 1.71497 0.813965 4.2161L3.37078 6.19893C3.97259 4.39004 5.65974 3.0438 7.65302 3.0438Z" fill="#EA4335"/>
+</svg>`;
 import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../../navigation/types";
@@ -420,30 +428,35 @@ export default function LoginScreen({ navigation }: Props) {
             </View>
           )}
 
+          {
+}
           {googleEnabled === null ? (
-
             <View style={styles.googleButtonPlaceholder} />
-          ) : googleEnabled ? (
-
-            <TouchableOpacity
-              style={styles.socialButton}
-              onPress={() => handleSocialLogin("google")}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.socialButtonText}>{t("auth.login.googleBtn")}</Text>
-              <Ionicons name="logo-google" size={20} color="#4285F4" />
-            </TouchableOpacity>
-          ) : null}
-
-          {Platform.OS === "ios" && (
-            <View style={{ marginTop: 10 }}>
-              <Button
-                title={t("auth.login.appleBtn")}
-                onPress={() => handleSocialLogin("apple")}
-                variant="secondary"
-                size="md"
-                leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}></Text>}
-              />
+          ) : (
+            <View style={styles.snsLoginContainer}>
+              <Text style={styles.snsLoginLabel}>{t("auth.login.googleBtn")}</Text>
+              <View style={styles.snsButtonContainer}>
+                {googleEnabled && (
+                  <TouchableOpacity
+                    style={styles.snsButton}
+                    onPress={() => handleSocialLogin("google")}
+                    activeOpacity={0.7}
+                    accessibilityLabel="google-signin"
+                  >
+                    <SvgXml xml={GOOGLE_G_SVG} width={22} height={22} />
+                  </TouchableOpacity>
+                )}
+                {Platform.OS === "ios" && (
+                  <TouchableOpacity
+                    style={styles.snsButton}
+                    onPress={() => handleSocialLogin("apple")}
+                    activeOpacity={0.7}
+                    accessibilityLabel="apple-signin"
+                  >
+                    <Ionicons name="logo-apple" size={24} color={COLORS.zinc900} />
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           )}
 
@@ -596,20 +609,30 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  socialButton: {
-    height: 48,
-    backgroundColor: COLORS.white,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: COLORS.zinc200,
+  snsLoginContainer: {
+    marginTop: SIZES.large,
+    alignItems: "flex-start",
+    width: "100%",
+  },
+  snsLoginLabel: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: COLORS.zinc600,
+    marginBottom: 8,
+  },
+  snsButtonContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
+    gap: SIZES.medium,
   },
-  socialButtonText: {
-    fontSize: 15,
-    color: COLORS.zinc900,
-    fontWeight: "500",
+  snsButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: COLORS.white,
+    alignItems: "center",
+    justifyContent: "center",
+    borderColor: COLORS.zinc200,
+    borderWidth: 1,
   },
 });
