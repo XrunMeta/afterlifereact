@@ -480,7 +480,7 @@ const v_d81136 = v_472849.create({
   },
 
   descriptionScroll: {
-    maxHeight: 60,
+    maxHeight: 40,
     marginBottom: 12,
     paddingRight: 56,
   },
