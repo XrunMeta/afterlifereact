@@ -239,7 +239,13 @@
     "remainingWarnToast": "Sisa waktu panggilan 30 detik. Akan segera berakhir.",
     "exhaustedTitle": "Waktu Panggilan Habis",
     "exhaustedBody": "Isi ulang untuk melanjutkan panggilan.",
-    "exhaustedCharge": "Isi Ulang"
+    "exhaustedCharge": "Isi Ulang",
+    "batteryWhitelistTitle": "Menjaga panggilan tetap stabil",
+    "batteryWhitelistBody": "Fitur hemat baterai HP dapat memutus panggilan. Di Pengaturan, tambahkan aplikasi ini ke pengecualian optimalisasi baterai agar tetap stabil.",
+    "batteryWhitelistOpen": "Buka Pengaturan",
+    "batteryWhitelistDismiss": "Jangan tampilkan lagi",
+    "bgWarnTitle": "📞 Panggilan bisa terputus",
+    "bgWarnBody": "Biarkan aplikasi tetap terbuka agar panggilan berlanjut. Kembali ke aplikasi."
   },
   "feed": {
     "homeTitle": "Beranda",

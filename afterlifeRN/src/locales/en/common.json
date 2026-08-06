@@ -239,7 +239,13 @@
     "remainingWarnToast": "30 seconds of call time left. Ending soon.",
     "exhaustedTitle": "Call Time Ended",
     "exhaustedBody": "Recharge to keep talking.",
-    "exhaustedCharge": "Recharge"
+    "exhaustedCharge": "Recharge",
+    "batteryWhitelistTitle": "Keep calls stable",
+    "batteryWhitelistBody": "Your phone's battery saver can end calls unexpectedly. In Settings, add this app to Battery optimization exceptions to keep calls stable.",
+    "batteryWhitelistOpen": "Open Settings",
+    "batteryWhitelistDismiss": "Don't show again",
+    "bgWarnTitle": "📞 Your call may drop",
+    "bgWarnBody": "Keep the app open to stay on the call. Return to the app."
   },
   "feed": {
     "homeTitle": "Home",
