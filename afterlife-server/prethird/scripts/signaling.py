@@ -75,6 +75,17 @@ def _credit_enforced() -> bool:
     return os.environ.get(_CREDIT_ENFORCED_KEY, "0") == "1"
 
 
+# [T-258] 발화 파이프라인 단계 신호(`{"type":"stage",...}`) 토글. 기본 on —
+# 계측 전용 additive 메시지라 구 클라이언트는 무시한다. 문제가 생기면
+# PRETHIRD_STAGE_SIGNAL=0 으로 코드 변경 없이 발신만 끊을 수 있다(회귀 0).
+# 프로세스 시작 후에도 env 재평가(기존 게이트 관례, 테스트 monkeypatch 호환).
+_STAGE_SIGNAL_ENABLED_KEY = "PRETHIRD_STAGE_SIGNAL"
+
+
+def _stage_signal_enabled() -> bool:
+    return os.environ.get(_STAGE_SIGNAL_ENABLED_KEY, "1") == "1"
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # ⚠️ [T-167 트랙 A 담당자에게] 이 파일은 과금의 신뢰 경계다.
 #
@@ -639,10 +650,20 @@ def _make_dc_handler(sess, channel):
     say/speak 메시지 수신 시 pipeline을 통해 발화하고,
     완료(성공·실패 모두) 후 datachannel로 speech_end(seq) 신호를 보낸다.
     seq는 RN이 부여한 값을 그대로 echo — 서버는 해석하지 않는다.
+
+    [T-258] 위 3종(speech_start/speech_text/speech_end)은 무변경. 추가로 발화
+    파이프라인 단계 신호 `{"type":"stage","seq":..,"stage":..,"tMs":..}` 를
+    같은 seq·같은 채널로 발신한다(_emit_stage) — 클라가 "텍스트 생성 완료 /
+    음성 생성 중·완료 / 영상 생성·스트리밍 중 / 스트리밍 끝"을 실시간으로
+    구분해 타이밍을 잡기 위한 계측 신호. PRETHIRD_STAGE_SIGNAL=0 으로 차단 가능.
     """
     import json as _json
 
     def _on_msg(msg):
+        # [T-258] 턴 시작 기준시각 = dc 메시지 수신 시점. stage 신호의 tMs 는 전부
+        # 이 기준의 경과 ms → 클라가 뺄셈만으로 단계별 소요를 알 수 있다.
+        # monotonic(perf_counter) 사용 — wall clock 보정에 흔들리지 않는다.
+        _t_dc = time.perf_counter()
         try:
             data = _json.loads(msg)
         except (ValueError, TypeError):
@@ -703,6 +724,36 @@ def _make_dc_handler(sess, channel):
                     sess, channel, os.environ.get("PRETHIRD_API_BASE"),
                 ))
 
+        def _emit_stage(stage, detail=None, seq=seq, t0=_t_dc):
+            """[T-258] 발화 파이프라인 단계 신호 1건 발신.
+
+            payload: {"type":"stage","seq":<int|None>,"stage":<name>,
+                      "tMs":<턴 시작(dc 수신) 기준 경과 ms>,"detail":{...}}
+            - seq 는 speech_start/speech_end 와 **같은 값**(RN 이 부여, echo 전용).
+            - additive — 기존 speech_start/speech_text/speech_end 는 그대로 나간다.
+            - dc 가 닫혀 있으면 조용히 스킵, 전송 실패는 log.warning 후 진행.
+              (pipeline._stage 가 한 겹 더 감싸므로 발화는 어떤 경우에도 안 죽는다)
+            - 동기·논블로킹: channel.send 는 aiortc 동기 API — await 없음.
+            """
+            _t_ms = int((time.perf_counter() - t0) * 1000)
+            # 서버측 타임라인 근거는 dc 상태와 무관하게 남긴다(무거운 계산 없음).
+            log.info(
+                "[stage] session=%s seq=%s stage=%s tMs=%d detail=%s",
+                sess.session_id, seq, stage, _t_ms, detail,
+            )
+            if channel is None or getattr(channel, "readyState", None) != "open":
+                return
+            payload = {"type": "stage", "seq": seq, "stage": stage, "tMs": _t_ms}
+            if detail:
+                payload["detail"] = detail
+            try:
+                channel.send(_json.dumps(payload))
+            except Exception as exc:
+                log.warning("session %s stage(%s) send failed: %s",
+                            sess.session_id, stage, exc)
+
+        _stage_cb = _emit_stage if _stage_signal_enabled() else None
+
         def _emit_speech_text(text, seq=seq):
             # 문장 세그먼트 push 시작 → 클론 발화 자막(additive — 구 클라이언트는 무시).
             if channel is not None and getattr(channel, "readyState", None) == "open":
@@ -750,12 +801,14 @@ def _make_dc_handler(sess, channel):
                             on_first_audio=_emit_speech_start,
                             on_response_ready=_response_hook,
                             on_sentence=_emit_speech_text,
+                            on_stage=_stage_cb,
                         )
                     elif mode == "greet":
                         # greet: 사용자 발화 없으므로 filler 미사용(on_response_ready=None)
                         await sess.pipeline.greet(
                             turn=turn, on_first_audio=_emit_speech_start,
                             on_sentence=_emit_speech_text,
+                            on_stage=_stage_cb,
                         )
                     else:
                         await sess.pipeline.say(
@@ -763,6 +816,7 @@ def _make_dc_handler(sess, channel):
                             on_first_audio=_emit_speech_start,
                             on_response_ready=_response_hook,
                             on_sentence=_emit_speech_text,
+                            on_stage=_stage_cb,
                         )
             except asyncio.CancelledError:
                 log.warning("session %s %s cancelled", sess.session_id, mode)

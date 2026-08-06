@@ -56,6 +56,14 @@ export interface CallStateModel {
   timers: Record<TimerName, number | null>;
   lastTx: TxTrack | null;
   seqDrops: number;
+
+  stageSeq: number | null;
+
+  stageAtMs: number | null;
+
+  stageStarts: Record<string, number>;
+
+  lastStage: string | null;
   rows: TimelineRow[];
   nextRowId: number;
 }
@@ -73,7 +81,9 @@ export function v_f983f2(): CallStateModel {
       watchdog: null, interruptFlush: null, interruptExpire: null,
       pendingDone: null, signalGatingFallback: null, cooldown: null,
     },
-    lastTx: null, seqDrops: 0, rows: [], nextRowId: 1,
+    lastTx: null, seqDrops: 0,
+    stageSeq: null, stageAtMs: null, stageStarts: {}, lastStage: null,
+    rows: [], nextRowId: 1,
   };
 }
 
@@ -102,10 +112,11 @@ export const v_878e2e = (v_779914, v_148ff6): boolean =>
 
 function v_a64334(
   v_35f85c, v_9b6134, v_20ef8e, v_45fb16, v_17bb72,
+  v_dda5a0 = true,
 ): CallStateModel {
   const v_ba2215 = v_35f85c.rows.length > 0 ? v_35f85c.rows[v_35f85c.rows.length - 1] : null;
   const v_e9396c = v_ba2215 ? Math.max(0, v_17bb72 - v_ba2215.tMs) : 0;
-  const v_e6293e = v_ba2215 ? `${v_9b6134} +${v_e9396c}` : v_9b6134;
+  const v_e6293e = v_ba2215 && v_dda5a0 ? `${v_9b6134} +${v_e9396c}` : v_9b6134;
   const v_18b8bf = v_35f85c.rows.concat([{ id: v_35f85c.nextRowId, text: v_e6293e, tone: v_20ef8e, indent: v_45fb16, tMs: v_17bb72 }]);
   return {
     ...v_35f85c,
@@ -158,7 +169,46 @@ export function v_fe1d77(v_35f85c, ev: v_c56f36, v_67e77e): CallStateModel {
       const v_9b6134 = v_368fda(v_fd5f43(v_d5dda0, 'text'));
       const v_ba717d = v_9b6134 ? ` "${v_9b6134}"` : '';
       const v_a448ad = v_a64334(v_35f85c, `→${v_34e5bb}${v_9e7223(v_1923e2)}${v_ba717d}`, v_34e5bb === 'skip' ? 'warn' : 'tx', false, v_1d299c.tMs);
-      return { ...v_a448ad, lastTx: { seq: v_1923e2, mode: v_34e5bb, tMs: v_1d299c.tMs, startMs: null, endMs: null, doneMs: null } };
+      return {
+        ...v_a448ad,
+        lastTx: { seq: v_1923e2, mode: v_34e5bb, tMs: v_1d299c.tMs, startMs: null, endMs: null, doneMs: null },
+
+        stageSeq: null, stageAtMs: null, stageStarts: {}, lastStage: null,
+      };
+    }
+
+    case 'stage': {
+      const v_1833e7 = v_fd5f43(v_d5dda0, 'stage');
+      if (!v_1833e7) return v_35f85c;
+      const v_1923e2 = v_f4e98d(v_d5dda0, 'seq');
+      const v_17bb72 = v_f4e98d(v_d5dda0, 'tMs');
+      const v_34d5e3 = v_fd5f43(v_d5dda0, 'info');
+
+      const v_694b25 = v_1923e2 === v_35f85c.stageSeq
+        ? v_35f85c
+        : { ...v_35f85c, stageAtMs: null, stageStarts: {}, stageSeq: v_1923e2 };
+      const v_524527 = v_1833e7.endsWith('_start') ? v_1833e7.slice(0, -'_start'.length) : null;
+      if (v_524527) {
+
+        return {
+          ...v_694b25,
+          stageSeq: v_1923e2, lastStage: v_1833e7,
+          stageAtMs: v_17bb72 ?? v_694b25.stageAtMs,
+          stageStarts: v_17bb72 == null ? v_694b25.stageStarts : { ...v_694b25.stageStarts, [v_524527]: v_17bb72 },
+        };
+      }
+      const v_14dd14 = /_(done|end)$/.test(v_1833e7) ? v_1833e7.replace(/_(done|end)$/, '') : null;
+      const v_04040f = v_14dd14 != null ? v_694b25.stageStarts[v_14dd14] : undefined;
+
+      const v_a13c2e = v_04040f ?? v_694b25.stageAtMs ?? 0;
+      const v_2869c1 = v_04040f != null && v_14dd14 ? v_14dd14 : v_1833e7;
+      const v_e9396c = v_17bb72 == null ? null : Math.max(0, v_17bb72 - v_a13c2e);
+      const v_a448ad = v_a64334(
+        v_694b25,
+        ` ⚙${v_2869c1} +${v_e9396c == null ? '?' : v_e9396c}ms${v_34d5e3 ? ` ${v_34d5e3}` : ''}`,
+        'info', true, v_1d299c.tMs, false,
+      );
+      return { ...v_a448ad, stageSeq: v_1923e2, lastStage: v_1833e7, stageAtMs: v_17bb72 ?? v_694b25.stageAtMs };
     }
 
     case 'rx': {
@@ -253,6 +303,8 @@ export function v_cfefae(v_35f85c, v_67e77e): string[] {
     `tmr  wd:${v_b952e6(v_8d41d7.watchdog, v_67e77e)} fl:${v_b952e6(v_8d41d7.interruptFlush, v_67e77e)} ex:${v_b952e6(v_8d41d7.interruptExpire, v_67e77e)}`,
     `tmr  pd:${v_b952e6(v_8d41d7.pendingDone, v_67e77e)} sg:${v_b952e6(v_8d41d7.signalGatingFallback, v_67e77e)} cd:${v_b952e6(v_8d41d7.cooldown, v_67e77e)}`,
     `avt  ${v_35f85c.avatarPhase}${v_35f85c.avatarBusy ? ` busy:${v_35f85c.avatarBusy}` : ''}`,
+
+    `stg  ${v_35f85c.lastStage ?? '—'}${v_35f85c.stageAtMs != null ? ` @${v_35f85c.stageAtMs}ms` : ''}`,
     v_2f6fcc
       ? `io   tx${v_9e7223(v_2f6fcc.seq)} ${v_2f6fcc.mode} s:${v_d799e2(v_2f6fcc.startMs)} e:${v_d799e2(v_2f6fcc.endMs)} d:${v_d799e2(v_2f6fcc.doneMs)}`
       : 'io   tx:—',

@@ -16,6 +16,7 @@ import {
 import { v_7be8d9, type v_5a4c65 } from './cloneSilence';
 import { v_7347b3 } from './timingConfig';
 import { v_d7f7b1 } from './timingEvents';
+import { v_526a29, v_64f859 } from './signalQueue';
 import { v_6a1ed9, v_4069c9 } from './handsFreeTrace';
 import { v_3032b0 } from './voiceBall';
 import { v_fb305c } from './questionMark';
@@ -47,7 +48,7 @@ export function v_7df8a4(opts: {
 
   speak?: (text: string) => Promise<void>;
 
-  lastSignal?: import('./avatarCall').SpeechSignal | null;
+  signals?: readonly import('./avatarCall').SpeechSignal[];
 
   greetTimeoutMs?: number;
 
@@ -291,7 +292,7 @@ export function v_7df8a4(opts: {
       clearTimeout(v_389afb);
       v_d7f7b1('timer', { name: 'signalGatingFallback', action: 'clear' });
     };
-  }, [v_b6e533.phase, v_328259.lastSignal, v_328259.signalGating]);
+  }, [v_b6e533.phase, v_328259.signals, v_328259.signalGating]);
 
   v_c4deb2(() => {
     v_700737.current(
@@ -303,9 +304,9 @@ export function v_7df8a4(opts: {
   const v_b8908d = v_e662ae(v_328259.getStatsReport);
   v_c4deb2(() => { v_b8908d.current = v_328259.getStatsReport; });
 
-  v_c4deb2(() => {
-    const v_f2c979 = v_328259.lastSignal;
-    if (!v_f2c979) return;
+  const v_3edc21 = v_e662ae(0);
+  const v_1bd1de = v_e662ae<(sig: import('./avatarCall').SpeechSignal) => void>(() => {});
+  v_1bd1de.current = (v_f2c979) => {
     if (v_f2c979.type === 'speech_start') {
       v_d7f7b1('speech_start');
 
@@ -350,7 +351,15 @@ export function v_7df8a4(opts: {
       });
     }
 
-  }, [v_328259.lastSignal]);
+  };
+
+  v_c4deb2(() => {
+    const v_3871e2 = v_526a29(v_328259.signals, v_3edc21.current);
+    if (v_3871e2.length === 0) return;
+
+    v_3edc21.current = v_64f859(v_3871e2, v_3edc21.current);
+    for (const v_f2c979 of v_3871e2) v_1bd1de.current(v_f2c979);
+  }, [v_328259.signals]);
 
   v_c4deb2(() => {
     if (v_b6e533.phase !== 'listening') return;

@@ -53,6 +53,27 @@ if os.environ.get("PRETHIRD_E2E_METRICS", "1") not in ("0", "false", ""):
 _RENDER_MODES = {"partial", "batch"}
 
 
+def _stage(on_stage, name: str, detail: dict | None = None) -> None:
+    """[T-258] 발화 파이프라인 단계 신호 1건 발신 (계측 전용, additive).
+
+    on_stage: callable(stage_name: str, detail: dict|None) — 호출부(signaling)가
+      dc 로 `{"type":"stage","seq":...,"stage":...,"tMs":...,"detail":...}` 를 보낸다.
+      None 이면 완전 no-op(회귀 0).
+
+    계약 3가지 — 어기면 발화가 죽는다:
+      1) **동기·논블로킹** — 여기서 await 하지 않는다. _infer_stage 의
+         "_fire_hook~push 사이 await 없음(원자성)" 계약을 깨면 안 되기 때문.
+      2) **예외 흡수** — 신호 전송 실패는 log.warning 만 남기고 파이프라인 진행.
+      3) **detail 은 이미 계산된 값만** — 여기서 오디오 재계산 같은 무거운 산출 금지.
+    """
+    if on_stage is None:
+        return
+    try:
+        on_stage(name, detail)
+    except Exception as exc:  # 계측 실패가 발화를 막지 않게 흡수
+        log.warning("[stage] %s emit failed: %s", name, exc)
+
+
 def _resolve_render_mode() -> str:
     """[T-113] host env PRETHIRD_RENDER_MODE → {"partial","batch"} 화이트리스트.
     미설정/기본은 "partial". 화이트리스트 외 값은 "partial" 폴백 + log.warning
@@ -146,7 +167,7 @@ class DialoguePipeline:
         self._normalize = _normalize_peak
         self._fade_ms = float(os.environ.get("PRETHIRD_AUDIO_FADE_MS", "8"))
         self._norm_on = os.environ.get("PRETHIRD_AUDIO_NORM", "1") not in ("0", "false", "")
-        self._last_emit_end: float | None = None  # [seg] 직전 _emit_sentence 종료 시각
+        # [T-258] _last_emit_end 제거 — 유일 사용처였던 _emit_sentence(死코드) 동반 삭제.
         self._render_mode = _resolve_render_mode()  # [T-113] partial(기본)|batch 분기용
 
     # ------------------------------------------------------------------
@@ -160,7 +181,7 @@ class DialoguePipeline:
 
     async def say(
         self, user_text: str, turn=None, on_first_audio=None, on_response_ready=None,
-        on_sentence=None,
+        on_sentence=None, on_stage=None,
     ) -> None:
         """user_text 1턴을 처리해 video/audio 트랙에 적재하고 signal_end 호출.
         turn: recorder Turn 핸들(없으면 NULL_TURN) — LLM 토큰·TTS wav 누적.
@@ -168,7 +189,11 @@ class DialoguePipeline:
         on_sentence: [T-151, 라운드2] 문장 1개의 첫 프레임 push 직전(재생 시작
           근사) 1회 호출(텍스트 인자) — 클론 발화 자막(speech_text dc 발신)용,
           additive. (기존: tts_worker dequeue 직후 호출이라 재생보다 수 초
-          선행 — 실기 피드백으로 push 단계로 이동)"""
+          선행 — 실기 피드백으로 push 단계로 이동)
+        on_stage: [T-258] 단계 신호 콜백 callable(stage, detail) — batch 경로에서
+          llm_done/tts_start/tts_done/render_start/render_done/stream_start/
+          stream_end 를, partial 경로에서는 stream_start/stream_end 만 발신한다.
+          계측 전용·additive(None 이면 no-op). _stage() 헬퍼 docstring 참조."""
         turn = turn if turn is not None else NULL_TURN
         if self.clone_locked and not self.se_path:
             log.warning("clone voice 미준비 — 발화 skip (폴백 없음)")
@@ -185,16 +210,20 @@ class DialoguePipeline:
                 await q.put(s)
             await q.put(None)
 
-        await self._run_pipeline(produce, turn, on_first_audio, on_response_ready, on_sentence=on_sentence)
+        await self._run_pipeline(
+            produce, turn, on_first_audio, on_response_ready,
+            on_sentence=on_sentence, on_stage=on_stage,
+        )
 
     async def speak(
         self, text: str, turn=None, on_first_audio=None, on_response_ready=None,
-        on_sentence=None,
+        on_sentence=None, on_stage=None,
     ) -> None:
         """LLM 우회: 입력 텍스트를 그대로 발화(TTS+musetalk). 쉼표로 끊지 않고
         문장 종결부호(.!?…\\n)로만 분할. 한 문장이면 통째 1회.
         on_response_ready: 첫 infer 완료 후·첫 push 직전 1회 호출 (F7 filler 즉시컷).
-        on_sentence: [T-151] 클론 발화 자막용 문장별 콜백(say() 참조)."""
+        on_sentence: [T-151] 클론 발화 자막용 문장별 콜백(say() 참조).
+        on_stage: [T-258] 단계 신호 콜백(say() 참조, additive)."""
         turn = turn if turn is not None else NULL_TURN
         if self.clone_locked and not self.se_path:
             log.warning("clone voice 미준비 — speak skip (폴백 없음)")
@@ -211,20 +240,31 @@ class DialoguePipeline:
                 await q.put(s)
             await q.put(None)
 
-        await self._run_pipeline(produce, turn, on_first_audio, on_response_ready, on_sentence=on_sentence)
+        await self._run_pipeline(
+            produce, turn, on_first_audio, on_response_ready,
+            on_sentence=on_sentence, on_stage=on_stage,
+        )
 
-    async def greet(self, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None) -> None:
+    async def greet(
+        self, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None,
+        on_stage=None,
+    ) -> None:
         """통화 연결 직후 클론이 먼저 건네는 인사. LLM이 페르소나 기반 1문장 생성.
         say()와 동일 파이프라인이되 user 입력 대신 GREETING_PROMPT 지시를 준다.
         on_response_ready: 첫 infer 완료 후·첫 push 직전 1회 호출 (F7 filler 즉시컷, greet는 보통 None).
-        on_sentence: [T-151] 클론 발화 자막용 문장별 콜백(say() 참조)."""
+        on_sentence: [T-151] 클론 발화 자막용 문장별 콜백(say() 참조).
+        on_stage: [T-258] 단계 신호 콜백 — greet 는 force_partial 경로라
+          stream_start/stream_end 2건만 나간다(say() 참조)."""
         await self._system_utterance(
             GREETING_PROMPT, "greet", turn=turn,
             on_first_audio=on_first_audio, on_response_ready=on_response_ready,
-            on_sentence=on_sentence,
+            on_sentence=on_sentence, on_stage=on_stage,
         )
 
-    async def react(self, kind: str, display_name: str | None = None, turn=None, on_first_audio=None) -> None:
+    async def react(
+        self, kind: str, display_name: str | None = None, turn=None, on_first_audio=None,
+        on_stage=None,
+    ) -> None:
         """[T-067] 얼굴 인식 이벤트에 대한 선제 발화(끼어들기). greet()와 동일 골격(_system_utterance 공유).
         kind: "known"(아는 얼굴 — display_name 필수) | "unknown"(모르는 얼굴/multi_face).
         쿨다운·토글 판단은 호출부(signaling._handle_face_event)의 책임 — 여기선 발화만 수행."""
@@ -232,7 +272,9 @@ class DialoguePipeline:
             REACT_PROMPT_KNOWN.format(name=display_name)
             if kind == "known" else REACT_PROMPT_UNKNOWN
         )
-        await self._system_utterance(prompt, "react", turn=turn, on_first_audio=on_first_audio)
+        await self._system_utterance(
+            prompt, "react", turn=turn, on_first_audio=on_first_audio, on_stage=on_stage,
+        )
 
     # ------------------------------------------------------------------
     # 내부: greet()/react() 공용 — 시스템 지시 프롬프트 1개 발화
@@ -240,7 +282,7 @@ class DialoguePipeline:
 
     async def _system_utterance(
         self, prompt: str, label: str, turn=None, on_first_audio=None, on_response_ready=None,
-        on_sentence=None,
+        on_sentence=None, on_stage=None,
     ) -> None:
         """persona_messages + 시스템 지시(prompt) 1개를 LLM→TTS→infer→push 파이프라인으로 발화.
         greet()·react() 공용 헬퍼 — user 텍스트 대신 지시문을 주는 것만 다르다.
@@ -269,7 +311,7 @@ class DialoguePipeline:
 
         await self._run_pipeline(
             produce, turn, on_first_audio, on_response_ready, force_partial=True,
-            on_sentence=on_sentence,
+            on_sentence=on_sentence, on_stage=on_stage,
         )
 
     # ------------------------------------------------------------------
@@ -285,7 +327,7 @@ class DialoguePipeline:
 
     async def _infer_stage(
         self, wav_bytes: bytes, pcm48: np.ndarray, turn=None, on_before_push=None,
-        render_mode: str | None = None,
+        render_mode: str | None = None, on_stage=None,
     ) -> None:
         """wav → musetalk infer(executor) → frames 일괄 push + balance audio. (GPU1)
         turn: recorder Turn — PRETHIRD_RECORD_MP4=1 시 frames 누적.
@@ -295,7 +337,11 @@ class DialoguePipeline:
           이 지점~push 사이 await 없음 → stop→flush→응답push 원자성 유지.
         render_mode: [T-113] batch 경로에서만 명시 전달("batch"). partial(기존 호출부)은
           항상 기본값 None 이라 infer_fn 호출이 기존과 100% 동일(positional-only,
-          kwarg 미부여)하게 유지된다 — partial 무변경 보장."""
+          kwarg 미부여)하게 유지된다 — partial 무변경 보장.
+        on_stage: [T-258] 단계 신호 콜백 — **batch 경로에서만 전달**한다.
+          render_done(프레임 수) / stream_start(push 직전) / stream_end(push 직후,
+          큐 잔량 ms). partial 은 세그먼트마다 이 함수를 타므로 신호가 N배로
+          쏟아지는 것을 막기 위해 전달하지 않는다(기본 None → 완전 no-op)."""
         turn = turn if turn is not None else NULL_TURN
         loop = asyncio.get_event_loop()
         frames_buf: list[np.ndarray] = []
@@ -327,10 +373,15 @@ class DialoguePipeline:
                 # 세션 종료까지 무한 순환(영구 좀비). 훅 발동 후 예외는 기존대로 전파.
                 _fire_hook()
                 raise
+            # [T-258] 렌더 반환 직후 = render_done. frames_buf 는 on_frame 이
+            # 렌더 도중 동기 append 하므로 이 시점에 이미 확정(추가 계산 0).
+            _stage(on_stage, "render_done", {"frames": len(frames_buf)})
             # 성공 경로: frames=0(추론 실패)이어도 호출 — 응답 '오디오' push 전에
             # 필러 오디오("음...")를 반드시 끊어야 응답 음성과 겹치지 않는다.
             # 이 지점~push 사이 await 없음 → stop→flush→응답push 원자성 유지.
+            # (_stage 는 동기·논블로킹이라 이 원자성을 깨지 않는다 — _stage docstring)
             _fire_hook()
+            _stage(on_stage, "stream_start")
             for arr in frames_buf:
                 self.vt.push_ndarray(arr)
             nframes = len(frames_buf)
@@ -349,7 +400,16 @@ class DialoguePipeline:
             if self._norm_on:
                 pcm_bal = self._normalize(pcm_bal)
             pcm_bal = self._edge_fade(pcm_bal, fade_ms=self._fade_ms)
-            self.at.push_pcm_int16(pcm_bal)
+            _push_res = self.at.push_pcm_int16(pcm_bal)
+            # [T-258] push 완료 직후 = stream_end. queued_ms 는 push_pcm_int16 이
+            # 이미 반환하는 큐 잔량(48kHz 샘플)을 나누기만 한다 — 재계산 없음.
+            # 반환값이 dict 가 아닌 트랙 구현(테스트 fake 등)이면 detail 생략.
+            if on_stage is not None:
+                _q = _push_res.get("queued") if isinstance(_push_res, dict) else None
+                _stage(
+                    on_stage, "stream_end",
+                    {"queued_ms": int(_q / 48)} if isinstance(_q, (int, float)) else None,
+                )
             turn.append_frames(frames_buf, pcm48, fps=25)
         finally:
             try:
@@ -357,38 +417,15 @@ class DialoguePipeline:
             except OSError:
                 pass
 
-    async def _emit_sentence(self, sentence: str) -> None:
-        """문장 1개 직렬 처리(기존 호환). 파이프라인은 _run_pipeline 사용."""
-        # [seg] 문장 간 공백 측정
-        _t_start = time.perf_counter()
-        since_prev_ms = int((_t_start - self._last_emit_end) * 1000) if self._last_emit_end is not None else 0
-
-        _t0 = time.perf_counter()
-        wav_bytes, pcm48 = await self._tts_stage(sentence)
-        tts_ms = int((time.perf_counter() - _t0) * 1000)
-
-        _t1 = time.perf_counter()
-        await self._infer_stage(wav_bytes, pcm48)
-        infer_ms = int((time.perf_counter() - _t1) * 1000)
-
-        # [seg] 큐 수위 측정 (메서드 없으면 생략)
-        vq = getattr(self.vt, "queue_depth", lambda: None)()
-        _abuf_samples = getattr(self.at, "queue_depth_samples", lambda: None)()
-        abuf_ms = int(_abuf_samples / 48) if _abuf_samples is not None else None
-
-        # [seg] 1줄 로그
-        if abuf_ms is not None:
-            log.info(
-                "[seg] tts_ms=%d infer_ms=%d since_prev_ms=%d vq=%s abuf_ms=%d",
-                tts_ms, infer_ms, since_prev_ms, vq, abuf_ms,
-            )
-        else:
-            log.info(
-                "[seg] tts_ms=%d infer_ms=%d since_prev_ms=%d vq=%s",
-                tts_ms, infer_ms, since_prev_ms, vq,
-            )
-
-        self._last_emit_end = time.perf_counter()
+    # [T-258] `_emit_sentence`(문장 1개 직렬 처리 + `[seg]` 로그) 제거.
+    #   근거: scripts/ 전체·tests/ 전체에서 호출부가 0건이었다(레거시 잔재 —
+    #   실행 경로는 _run_pipeline_partial 의 tts_worker/infer_worker 오버랩,
+    #   batch 는 _run_batch). 그래서 `[seg]` 라인은 프로덕션 로그·메트릭 파일에
+    #   단 한 줄도 찍히지 않았다. 배선하려면 오버랩 파이프라인을 직렬 처리로
+    #   되돌려야 해 "기존 동작 무변경" 원칙에 정면으로 위배되므로 삭제를 택했다.
+    #   대체 계측 = 새 `stage` 신호(llm_done/tts_*/render_*/stream_*)와 기존
+    #   `[turn]` 로그. 메트릭 FileHandler 의 `[seg]` 필터는 그대로 둔다
+    #   (tests/test_pipeline_timing.py 가 직접 log.info("[seg] ...") 로 검증).
 
     # ------------------------------------------------------------------
     # 내부: 오버랩 파이프라인
@@ -396,7 +433,7 @@ class DialoguePipeline:
 
     async def _run_pipeline(
         self, produce, turn=None, on_first_audio=None, on_response_ready=None,
-        force_partial: bool = False, on_sentence=None,
+        force_partial: bool = False, on_sentence=None, on_stage=None,
     ) -> None:
         """[T-113] render_mode 분기 진입점(스캐폴드). partial(기본)은 기존 오버랩
         파이프라인(_run_pipeline_partial, 완전 무변경)을 그대로 호출한다.
@@ -416,12 +453,19 @@ class DialoguePipeline:
         if not force_partial:
             self.vt.begin_response()
         if self._render_mode == "batch" and not force_partial:
-            await self._run_batch(produce, turn, on_first_audio, on_response_ready, on_sentence=on_sentence)
+            await self._run_batch(
+                produce, turn, on_first_audio, on_response_ready,
+                on_sentence=on_sentence, on_stage=on_stage,
+            )
         else:
-            await self._run_pipeline_partial(produce, turn, on_first_audio, on_response_ready, on_sentence=on_sentence)
+            await self._run_pipeline_partial(
+                produce, turn, on_first_audio, on_response_ready,
+                on_sentence=on_sentence, on_stage=on_stage,
+            )
 
     async def _run_batch(
         self, produce, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None,
+        on_stage=None,
     ) -> None:
         """[T-113] batch 렌더 모드(A1) — 답변(턴) 전체를 문장 분할 없이 하나로
         모아 TTS 정확히 1회 → infer 정확히 1회(render_mode="batch") → 완성
@@ -445,7 +489,14 @@ class DialoguePipeline:
           보장돼야 함). filler 정지 훅(on_response_ready)은 TTS 단계 실패처럼
           _infer_stage 진입 '전' 실패에서는 그 내부 _fire_hook 이 못 불리므로
           여기서 방어적으로 1회 더 호출한다(FillerPlayer.stop()/track.flush()
-          는 멱등이라 이미 불렸어도 중복 호출 안전 — T-088 좀비 패턴 방지)."""
+          는 멱등이라 이미 불렸어도 중복 호출 안전 — T-088 좀비 패턴 방지).
+
+        [T-258] on_stage 단계 신호(계측 전용, additive). batch 는 전 단계를 발신한다:
+          llm_done(collect 반환 직후) → tts_start → tts_done → render_start
+          → render_done → stream_start → stream_end.
+          단계 신호는 "실제로 도달한 단계"만 보고한다 — 빈 응답이면 llm_done 까지,
+          TTS/렌더 실패면 그 직전 단계까지만 나가고 이후 신호는 없다(턴 종료의
+          authoritative 신호는 기존 speech_end 로 유지)."""
         log.info("[T-113] batch 모드 진입 — 답변 전체 단일 렌더")
         turn = turn if turn is not None else NULL_TURN
         sentence_q: asyncio.Queue = asyncio.Queue()
@@ -503,6 +554,10 @@ class DialoguePipeline:
                 raise
 
             full_text = "".join(parts)
+            # [T-258] collect() 반환 직후 = llm_done. batch 지연의 대부분이 여기까지의
+            # 구간(LLM 토큰 전량 수집)이라 클라가 가장 먼저 알아야 하는 신호다.
+            # join 은 마이크로초 단위 — 신호 발신이 지연을 만들지 않는다.
+            _stage(on_stage, "llm_done", {"chars": len(full_text)})
             if not full_text.strip():
                 # [sion MAJOR 2] 빈 응답도 filler 정지 훅을 반드시 1회 발동해야
                 # FillerPlayer 가 세션 종료까지 순환하는 좀비 패턴을 막는다.
@@ -516,11 +571,23 @@ class DialoguePipeline:
 
             try:
                 log.info("[T-113] batch full_text %d chars → TTS 1회", len(full_text))
+                _stage(on_stage, "tts_start")
                 wav_bytes, pcm48 = await self._tts_stage(full_text)
+                # [T-258] tts_done — audio_ms 는 _tts_stage 가 이미 만든 48kHz mono
+                # int16 PCM 의 길이(size/48)로 O(1) 산출. 디코드/재계산 없음.
+                # 산출 불가(ndarray 아님 등)면 detail 자체를 생략한다.
+                if on_stage is not None:
+                    _sz = getattr(pcm48, "size", None)
+                    _stage(
+                        on_stage, "tts_done",
+                        {"audio_ms": int(_sz / 48)} if isinstance(_sz, int) else None,
+                    )
                 turn.append_wav(wav_bytes)
+                _stage(on_stage, "render_start")
                 await self._infer_stage(
                     wav_bytes, pcm48, turn,
                     on_before_push=_guarded_hook, render_mode="batch",
+                    on_stage=on_stage,
                 )
                 log.info("[T-113] batch render 완료(단일 모션 push)")
             except asyncio.CancelledError:
@@ -540,6 +607,7 @@ class DialoguePipeline:
 
     async def _run_pipeline_partial(
         self, produce, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None,
+        on_stage=None,
     ) -> None:
         """produce(sentence_q): 문장을 sentence_q 에 put 하고 끝에 None.
         TTS 워커(GPU0)와 infer 워커(GPU1)를 wav_q 로 연결해 오버랩 실행.
@@ -552,11 +620,20 @@ class DialoguePipeline:
           (_infer_stage on_before_push, 재생 시작 근사) 1회 호출(텍스트 인자)
           — 클론 발화 자막(speech_text dc 발신)용, additive. 첫 세그먼트는
           on_response_ready(F7 필러 즉시컷)와 순서 합성(response_ready 먼저).
+        on_stage: [T-258] 단계 신호 — partial 은 세그먼트 단위라 단계 경계가 batch 와
+          달라서(문장마다 llm/tts/render 가 반복) 신호를 남발하지 않는다.
+          **stream_start(첫 세그먼트 첫 push 직전) / stream_end(전 세그먼트 push
+          완료 후, finally) 2건만** 발신한다. _infer_stage 에는 on_stage 를 전달하지
+          않는다(전달하면 세그먼트마다 render_*/stream_* 가 N배로 쏟아진다).
         예외 시 모든 워커를 취소하고 signal_end 를 보장한다(좀비/오염 방지)."""
         turn = turn if turn is not None else NULL_TURN
         sentence_q: asyncio.Queue = asyncio.Queue()
         wav_q: asyncio.Queue = asyncio.Queue(maxsize=2)
         fired = {"v": False}
+        # [T-258] partial 의 stream_start 는 첫 세그먼트에서 1회만. stream_end 는
+        # start 가 나간 턴에서만 발신(push 가 한 번도 없었던 실패 턴에 종료만 나가는
+        # 모순 방지 — 턴 종료의 authoritative 신호는 기존 speech_end 다).
+        stage_streaming = {"v": False}
         # [T-120] 턴계측: _t_turn=턴 시작(say 진입) 기준시각.
         #   first_sent_ms: 첫 문장이 tts_worker 에 dequeue 된 시점.
         #   first_audio_ms: 첫 세그먼트 render+오디오 push 완료 시각.
@@ -595,6 +672,11 @@ class DialoguePipeline:
                     합성: response_ready 먼저, 그 다음 on_sentence. 각 콜백은
                     개별 try/except — 한쪽 실패가 다른 쪽 발신을 막지 않는다."""
                     def _hook() -> None:
+                        # [T-258] 첫 세그먼트의 첫 push 직전 = partial 의 stream_start.
+                        # (여기가 batch 의 stream_start 와 같은 "실제 송출 시작" 지점)
+                        if not stage_streaming["v"]:
+                            stage_streaming["v"] = True
+                            _stage(on_stage, "stream_start")
                         if fire_response_ready and on_response_ready is not None:
                             try:
                                 on_response_ready()
@@ -643,5 +725,17 @@ class DialoguePipeline:
                 "[turn] first_sent_ms=%s first_audio_ms=%s n_seg=%d",
                 _m["first_sent_ms"], _m["first_audio_ms"], _m["n_seg"],
             )
+            # [T-258] 전 세그먼트 push 완료 → stream_end. queued_ms 는 트랙이 이미
+            # 들고 있는 잔량(48kHz 샘플) 조회 1회(O(1)) — 재계산 없음.
+            if on_stage is not None and stage_streaming["v"]:
+                _qms = None
+                try:
+                    _qds = getattr(self.at, "queue_depth_samples", None)
+                    _rem = _qds() if _qds is not None else None
+                    if isinstance(_rem, (int, float)) and _rem >= 0:
+                        _qms = int(_rem / 48)
+                except Exception:  # 잔량 조회 실패는 무시(신호는 detail 없이 발신)
+                    _qms = None
+                _stage(on_stage, "stream_end", {"queued_ms": _qms} if _qms is not None else None)
             self.vt.signal_end()
             self.at.signal_end()

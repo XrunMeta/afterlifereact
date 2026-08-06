@@ -42,6 +42,29 @@ describe('CallStateHUD', () => {
     expect(v_480380(/drop:1/)).toBeTruthy(); 
   });
 
+  it('stage 이벤트를 단계별 소요시간(델타) 행으로 보여준다', () => {
+    const { queryByText: v_480380 } = v_624657(<CallStateHUD />);
+    v_be73a0(() => {
+      v_d7f7b1('tx', { mode: 'say', seq: 5, text: '그러니까 내가 궁금', eff: 'SAY' });
+      v_d7f7b1('stage', { stage: 'llm_done', seq: 5, tMs: 8420, info: 'chars:142' });
+      v_d7f7b1('stage', { stage: 'tts_start', seq: 5, tMs: 8420, info: '' });
+      v_d7f7b1('stage', { stage: 'tts_done', seq: 5, tMs: 11530, info: 'audio:9200' });
+      v_d7f7b1('rx', { sig: 'speech_start', seq: 5, srvSeq: 5 });
+    });
+    expect(v_480380(/⚙llm_done \+8420ms chars:142/)).toBeTruthy();
+    expect(v_480380(/⚙tts \+3110ms audio:9200/)).toBeTruthy();
+    expect(v_480380(/stg tts_done @11530ms/)).toBeTruthy(); 
+    expect(v_480380(/←start#5/)).toBeTruthy();              
+  });
+
+  it('모르는 stage 가 와도 렌더가 깨지지 않는다', () => {
+    const { queryByText: v_480380 } = v_624657(<CallStateHUD />);
+    v_be73a0(() => {
+      v_d7f7b1('stage', { stage: 'brand_new_step', seq: null, tMs: null, info: '' });
+    });
+    expect(v_480380(/⚙brand_new_step/)).toBeTruthy();
+  });
+
   it('오디오 축 이벤트만으로는 타임라인이 생기지 않는다', () => {
     const { queryByText: v_480380 } = v_624657(<CallStateHUD />);
     v_be73a0(() => { v_d7f7b1('stt_open'); });

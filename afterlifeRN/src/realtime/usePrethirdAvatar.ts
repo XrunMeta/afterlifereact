@@ -7,6 +7,8 @@ import { v_5b540b } from '../stores/callConfigStore';
 import { v_335e37 } from '../lib/authFetch';
 import { type v_30869c, v_2f41d8 } from './useAudioSession';
 import { type v_b01667, type v_d20273, type v_b190e4, type v_9d43cd, type v_14f245, v_d8a22b } from './avatarCall';
+import { v_020651 } from './signalQueue';
+import { v_82da3f } from './stageSignal';
 import { v_d7f7b1 } from './timingEvents';
 
 const v_67e77e = () => Date.now();
@@ -83,7 +85,10 @@ export function v_3d8d48(v_328259): v_b01667 {
   const [v_b4d824, v_b944e3] = v_5ab095<v_802da4 | null>(null);
   const [v_5e9bfe, v_3a7d09] = v_5ab095<Error | null>(null);
   const [v_ab4803, v_ae4844] = v_5ab095<v_b190e4>('idle');
-  const [v_88c591, v_8c8005] = v_5ab095<v_9d43cd | null>(null);
+
+  const [v_146485, v_27baf4] = v_5ab095<v_9d43cd[]>([]);
+
+  const v_7ba8ac = v_e662ae(0);
   const v_2d5539 = v_e662ae(0);
   const v_f98743 = v_e662ae<PrethirdPeerConnection | null>(null);
   const v_fa9144 = v_e662ae<any>(null);
@@ -99,6 +104,11 @@ export function v_3d8d48(v_328259): v_b01667 {
   v_c4deb2(() => { v_de567c.current = v_46947d; }, [v_46947d]);
 
   v_c4deb2(() => { v_d7f7b1('avatar', { phase: v_ab4803 }); }, [v_ab4803]);
+
+  const v_557838 = v_de06a3((sig: Omit<v_9d43cd, 'id'>) => {
+    const v_389afb = (v_7ba8ac.current += 1);
+    v_27baf4((v_ba2215) => v_020651(v_ba2215, { ...v_f2c979, id: v_389afb }));
+  }, []);
 
   const v_3c664f = v_de06a3((v_12cd99) => {
     if (v_48ccb1.current) { v_9fc078.current = v_12cd99; return; }
@@ -204,7 +214,7 @@ export function v_3d8d48(v_328259): v_b01667 {
     const v_759436 = () => v_bba900.current === v_775074;
     v_3a7d09(null);
     v_1fa668('requesting');
-    v_8c8005(null);   
+    v_27baf4([]);        
     v_2d5539.current = 0;    
 
     const v_12cd99 = v_84b93d.createPeerConnection({ iceServers: v_506dd1 });
@@ -247,12 +257,22 @@ export function v_3d8d48(v_328259): v_b01667 {
             v_35f85c.type === 'speech_end' && typeof v_35f85c.remaining_ms === 'number' && v_35f85c.remaining_ms >= 0
               ? Math.min(v_35f85c.remaining_ms, v_6e8ef7)
               : undefined;
-          v_8c8005({ type: v_35f85c.type, seq: v_35f85c.seq, ts: v_67e77e(), remainingMs: v_2d99a5 });
+          v_557838({ type: v_35f85c.type, seq: v_35f85c.seq, ts: v_67e77e(), remainingMs: v_2d99a5 });
           if (v_35f85c.type === 'speech_end') v_811f30();
         } else if (v_35f85c.type === 'speech_text') {
 
           if (typeof v_35f85c.text === 'string' && v_35f85c.text) {
-            v_8c8005({ type: 'speech_text', seq: v_35f85c.seq, ts: v_67e77e(), text: v_35f85c.text });
+            v_557838({ type: 'speech_text', seq: v_35f85c.seq, ts: v_67e77e(), text: v_35f85c.text });
+          }
+        } else if (v_35f85c.type === 'stage') {
+
+          if (__DEV__) {
+            const v_72c7a6 = v_82da3f(v_35f85c);
+            if (v_72c7a6) {
+              v_d7f7b1('stage', {
+                stage: v_72c7a6.stage, seq: v_72c7a6.seq, tMs: v_72c7a6.tMs, info: v_72c7a6.info,
+              });
+            }
           }
         } else if (v_35f85c.type === 'enroll_suggest') {
 
@@ -314,9 +334,9 @@ export function v_3d8d48(v_328259): v_b01667 {
       v_3a7d09(v_9e86fd as Error);
       v_1fa668('error');
     }
-  }, [v_6e0fd3, v_2ca7e0, v_84b93d]);
+  }, [v_6e0fd3, v_2ca7e0, v_84b93d, v_557838]); 
 
   v_c4deb2(() => () => { void v_3e54f8();  }, []);
 
-  return { state: v_b6e533, remoteStream: v_b4d824, error: v_5e9bfe, start: v_965edf, stop: v_3e54f8, phase: v_ab4803, say: v_3e2c87, notifySpeechEnd: v_811f30, getStatsReport: v_791152, greet: v_009e58, speak: v_a1d9db, lastSignal: v_88c591, sendFaceEvent: v_11f4a1 };
+  return { state: v_b6e533, remoteStream: v_b4d824, error: v_5e9bfe, start: v_965edf, stop: v_3e54f8, phase: v_ab4803, say: v_3e2c87, notifySpeechEnd: v_811f30, getStatsReport: v_791152, greet: v_009e58, speak: v_a1d9db, signals: v_146485, sendFaceEvent: v_11f4a1 };
 }

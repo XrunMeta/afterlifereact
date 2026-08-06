@@ -16,18 +16,18 @@ class _Pipeline:
         self.greet_calls = 0
         self.say_calls = []
         self.speak_calls = []
-    async def greet(self, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None):
+    async def greet(self, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None, on_stage=None, **_kw):
         self.greet_calls += 1
         if on_first_audio:
             on_first_audio()  # 발화 시작 모사
-    async def say(self, text, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None):
+    async def say(self, text, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None, on_stage=None, **_kw):
         self.say_calls.append(text)
         if on_sentence:
             on_sentence("첫 문장입니다.")
             on_sentence("둘째 문장입니다.")
         if on_first_audio:
             on_first_audio()
-    async def speak(self, text, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None):
+    async def speak(self, text, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None, on_stage=None, **_kw):
         self.speak_calls.append(text)
         if on_first_audio:
             on_first_audio()

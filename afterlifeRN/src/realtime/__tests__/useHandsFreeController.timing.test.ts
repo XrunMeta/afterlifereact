@@ -18,6 +18,15 @@ function v_7b2a3a() {
   };
 }
 
+const v_1b295e = new Map<object, any[]>();
+let v_676568 = 0;
+const v_fb593a = (v_f2c979): any[] | undefined => {
+  if (!v_f2c979) return undefined;
+  let v_ab6401 = v_1b295e.get(v_f2c979);
+  if (!v_ab6401) { v_676568 += 1; v_ab6401 = [{ ...v_f2c979, id: v_676568 }]; v_1b295e.set(v_f2c979, v_ab6401); }
+  return v_ab6401;
+};
+
 const v_b2d8b4 = (v_1e3df0) => ({
   enabled: true,
   say: jest.fn(async () => {}),
@@ -40,10 +49,10 @@ describe('useHandsFreeController timing wiring', () => {
     expect(v_1e3df0.start).toHaveBeenCalled();
   });
 
-  it('emits speech_start/speech_end from lastSignal', () => {
+  it('emits speech_start/speech_end from signals', () => {
     const { engine: v_1e3df0 } = v_7b2a3a();
     const { rerender: v_2726cb } = v_0da18b(
-      (v_b1927c) => v_7df8a4({ ...v_b2d8b4(v_1e3df0), lastSignal: v_b1927c.sig }),
+      (v_b1927c) => v_7df8a4({ ...v_b2d8b4(v_1e3df0), signals: v_fb593a(v_b1927c.sig) }),
       { initialProps: { sig: null as any } },
     );
     v_2726cb({ sig: { type: 'speech_start', ts: 1 } });

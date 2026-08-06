@@ -7,6 +7,7 @@ import {
   v_3711bb,
   v_99c713,
 } from '../../src/realtime/handsFree';
+import { v_08004c, v_8c24f4 } from '../../src/realtime/timingEvents';
 
 function v_c2295a() {
   const v_9fde29 = {};
@@ -24,6 +25,20 @@ function v_c2295a() {
     },
   };
   return v_1e3df0;
+}
+
+const v_1b295e = new Map<object, any[]>();
+let v_676568 = 0;
+function v_fb593a(v_f2c979): any[] | undefined {
+  if (!v_f2c979) return undefined;
+  if (Array.isArray(v_f2c979)) return v_f2c979; 
+  let v_ab6401 = v_1b295e.get(v_f2c979);
+  if (!v_ab6401) {
+    v_676568 += 1;
+    v_ab6401 = [{ ...v_f2c979, id: v_676568 }];
+    v_1b295e.set(v_f2c979, v_ab6401);
+  }
+  return v_ab6401;
 }
 
 async function v_b6e358() {
@@ -494,7 +509,7 @@ describe('greeting 배선', () => {
   it('lastSignal speech_start → speaking 전이', async () => {
     let v_361415 = null;
     const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
-      (v_b1927c) => v_7df8a4(v_b2d8b4({ greeting: true, greet: jest.fn().mockResolvedValue(undefined), lastSignal: v_b1927c.signal })),
+      (v_b1927c) => v_7df8a4(v_b2d8b4({ greeting: true, greet: jest.fn().mockResolvedValue(undefined), signals: v_fb593a(v_b1927c.signal) })),
       { initialProps: { signal: v_361415 } });
     await v_be73a0(async () => {});
     v_361415 = { type: 'speech_start', seq: 1, ts: 1 };
@@ -504,7 +519,7 @@ describe('greeting 배선', () => {
 
   it('lastSignal speech_end → listening 복귀', async () => {
     const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
-      (v_b1927c) => v_7df8a4(v_b2d8b4({ greeting: true, greet: jest.fn().mockResolvedValue(undefined), lastSignal: v_b1927c.signal })),
+      (v_b1927c) => v_7df8a4(v_b2d8b4({ greeting: true, greet: jest.fn().mockResolvedValue(undefined), signals: v_fb593a(v_b1927c.signal) })),
       { initialProps: { signal: null as any } });
     await v_be73a0(async () => {});
     v_2726cb({ signal: { type: 'speech_start', seq: 1, ts: 1 } });
@@ -531,7 +546,7 @@ describe('greeting 배선', () => {
     const { rerender: v_2726cb } = v_0da18b(
       (v_b1927c) => v_7df8a4(v_b2d8b4({
         greeting: true, greet: jest.fn().mockResolvedValue(undefined),
-        speak: v_a1d9db, greetTimeoutMs: 3000, lastSignal: v_b1927c.signal,
+        speak: v_a1d9db, greetTimeoutMs: 3000, signals: v_fb593a(v_b1927c.signal),
       })),
       { initialProps: { signal: null as any } });
     await v_be73a0(async () => {});
@@ -591,7 +606,7 @@ describe('greeting=false off-path speech_end 안전성', () => {
           speechEngine: v_1e3df0,
           greeting: true,
           greet: jest.fn().mockResolvedValue(undefined),
-          lastSignal: v_b1927c.signal,
+          signals: v_fb593a(v_b1927c.signal),
         }),
       { initialProps: { signal: v_361415 } },
     );
@@ -622,7 +637,7 @@ describe('greeting=false off-path speech_end 안전성', () => {
           notifySpeechEnd: jest.fn(),
           speechEngine: v_1e3df0,
           greeting: false,
-          lastSignal: v_b1927c.signal,
+          signals: v_fb593a(v_b1927c.signal),
         }),
       { initialProps: { signal: v_361415 } },
     );
@@ -656,7 +671,7 @@ describe('signalGating 배선', () => {
   it('speech_end 신호 → listening 복귀(RESPONSE_DONE 경로)', async () => {
     const v_1e3df0 = v_c2295a();
     const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
-      (v_b1927c) => v_7df8a4(v_5320d1({ speechEngine: v_1e3df0, silenceMs: 20, lastSignal: v_b1927c.signal })),
+      (v_b1927c) => v_7df8a4(v_5320d1({ speechEngine: v_1e3df0, silenceMs: 20, signals: v_fb593a(v_b1927c.signal) })),
       { initialProps: { signal: null as any } },
     );
     await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
@@ -708,7 +723,7 @@ describe('signalGating 배선', () => {
   it('speech_text 수신은 폴백 타이머를 리셋한다', async () => {
     const v_1e3df0 = v_c2295a();
     const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
-      (v_b1927c) => v_7df8a4(v_5320d1({ speechEngine: v_1e3df0, silenceMs: 20, lastSignal: v_b1927c.signal })),
+      (v_b1927c) => v_7df8a4(v_5320d1({ speechEngine: v_1e3df0, silenceMs: 20, signals: v_fb593a(v_b1927c.signal) })),
       { initialProps: { signal: null as any } },
     );
     await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
@@ -750,7 +765,7 @@ describe('Task 13: speech_end 오디오 꼬리 대기', () => {
     const v_791152 = jest.fn(() => v_cde30b(0)); 
     const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
       (v_b1927c) =>
-        v_7df8a4(v_b2d8b4({ speechEngine: v_1e3df0, getStatsReport: v_791152, lastSignal: v_b1927c.signal })),
+        v_7df8a4(v_b2d8b4({ speechEngine: v_1e3df0, getStatsReport: v_791152, signals: v_fb593a(v_b1927c.signal) })),
       { initialProps: { signal: null as any } },
     );
     await v_be73a0(async () => {});
@@ -774,7 +789,7 @@ describe('Task 13: speech_end 오디오 꼬리 대기', () => {
     const v_791152 = jest.fn(() => v_cde30b(v_fbe91e));
     const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
       (v_b1927c) =>
-        v_7df8a4(v_b2d8b4({ speechEngine: v_1e3df0, getStatsReport: v_791152, lastSignal: v_b1927c.signal })),
+        v_7df8a4(v_b2d8b4({ speechEngine: v_1e3df0, getStatsReport: v_791152, signals: v_fb593a(v_b1927c.signal) })),
       { initialProps: { signal: null as any } },
     );
     await v_be73a0(async () => {});
@@ -798,7 +813,7 @@ describe('Task 13: speech_end 오디오 꼬리 대기', () => {
     const v_791152 = jest.fn(() => v_cde30b(0.9));
     const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
       (v_b1927c) =>
-        v_7df8a4(v_b2d8b4({ speechEngine: v_1e3df0, getStatsReport: v_791152, lastSignal: v_b1927c.signal })),
+        v_7df8a4(v_b2d8b4({ speechEngine: v_1e3df0, getStatsReport: v_791152, signals: v_fb593a(v_b1927c.signal) })),
       { initialProps: { signal: null as any } },
     );
     await v_be73a0(async () => {});
@@ -822,7 +837,7 @@ describe('Task 13: speech_end 오디오 꼬리 대기', () => {
     const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
       (v_b1927c) =>
         v_7df8a4(v_b2d8b4({
-          enabled: v_b1927c.enabled, speechEngine: v_1e3df0, getStatsReport: v_791152, lastSignal: v_b1927c.signal,
+          enabled: v_b1927c.enabled, speechEngine: v_1e3df0, getStatsReport: v_791152, signals: v_fb593a(v_b1927c.signal),
         })),
       { initialProps: { enabled: true, signal: null as any } },
     );
@@ -854,7 +869,7 @@ describe('Task 13: speech_end 오디오 꼬리 대기', () => {
     const v_791152 = jest.fn(() => v_cde30b(0.9)); 
     const { result: v_43c42e, rerender: v_2726cb, unmount: v_67a0e6 } = v_0da18b(
       (v_b1927c) =>
-        v_7df8a4(v_b2d8b4({ speechEngine: v_1e3df0, getStatsReport: v_791152, lastSignal: v_b1927c.signal })),
+        v_7df8a4(v_b2d8b4({ speechEngine: v_1e3df0, getStatsReport: v_791152, signals: v_fb593a(v_b1927c.signal) })),
       { initialProps: { signal: null as any } },
     );
     await v_be73a0(async () => {});
@@ -894,7 +909,7 @@ describe('Task 19: remaining_ms 기반 녹음 재개 게이팅', () => {
     const v_791152 = jest.fn(() => v_cde30b(0)); 
     const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
       (v_b1927c) =>
-        v_7df8a4(v_b2d8b4({ speechEngine: v_1e3df0, getStatsReport: v_791152, lastSignal: v_b1927c.signal })),
+        v_7df8a4(v_b2d8b4({ speechEngine: v_1e3df0, getStatsReport: v_791152, signals: v_fb593a(v_b1927c.signal) })),
       { initialProps: { signal: null as any } },
     );
     await v_be73a0(async () => {});
@@ -917,7 +932,7 @@ describe('Task 19: remaining_ms 기반 녹음 재개 게이팅', () => {
     const v_791152 = jest.fn(() => v_cde30b(0)); 
     const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
       (v_b1927c) =>
-        v_7df8a4(v_b2d8b4({ speechEngine: v_1e3df0, getStatsReport: v_791152, lastSignal: v_b1927c.signal })),
+        v_7df8a4(v_b2d8b4({ speechEngine: v_1e3df0, getStatsReport: v_791152, signals: v_fb593a(v_b1927c.signal) })),
       { initialProps: { signal: null as any } },
     );
     await v_be73a0(async () => {});
@@ -938,7 +953,7 @@ describe('Task 19: remaining_ms 기반 녹음 재개 게이팅', () => {
     const v_791152 = jest.fn(() => v_cde30b(0.9));
     const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
       (v_b1927c) =>
-        v_7df8a4(v_b2d8b4({ speechEngine: v_1e3df0, getStatsReport: v_791152, lastSignal: v_b1927c.signal })),
+        v_7df8a4(v_b2d8b4({ speechEngine: v_1e3df0, getStatsReport: v_791152, signals: v_fb593a(v_b1927c.signal) })),
       { initialProps: { signal: null as any } },
     );
     await v_be73a0(async () => {});
@@ -1079,7 +1094,7 @@ describe('T-258: 무발화 워치독 · seq 배선', () => {
           getStatsReport: () => null,
           notifySpeechEnd: jest.fn(),
           speechEngine: v_1e3df0,
-          lastSignal: v_b1927c.signal,
+          signals: v_fb593a(v_b1927c.signal),
         }),
         { initialProps: { signal: v_361415 } },
       );
@@ -1305,7 +1320,7 @@ describe('T-258 최종 리뷰 fix: 계층 경계 회귀', () => {
           getStatsReport: () => null,
           notifySpeechEnd: jest.fn(),
           speechEngine: v_1e3df0,
-          lastSignal: v_b1927c.signal,
+          signals: v_fb593a(v_b1927c.signal),
           silenceMs: 20, 
         }),
         { initialProps: { signal: v_361415 } },
@@ -1352,7 +1367,7 @@ describe('T-258 최종 리뷰 fix: 계층 경계 회귀', () => {
           getStatsReport: () => null,
           notifySpeechEnd: jest.fn(),
           speechEngine: v_1e3df0,
-          lastSignal: v_b1927c.signal,
+          signals: v_fb593a(v_b1927c.signal),
         }),
         { initialProps: { signal: v_361415 } },
       );
@@ -1380,5 +1395,88 @@ describe('T-258 최종 리뷰 fix: 계층 경계 회귀', () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+});
+
+describe('T-258 신호 유실 방지(같은 tick 배치)', () => {
+  const v_d18ace = (v_b71f86 = {}) => ({
+    enabled: true,
+    say: jest.fn().mockResolvedValue(undefined),
+    getStatsReport: () => null, 
+    notifySpeechEnd: jest.fn(),
+    signalGating: true,
+    ...v_b71f86,
+  });
+
+  const v_f074d4 = () =>
+    v_08004c().filter((v_9e86fd) => v_9e86fd.type === 'rx').map((v_9e86fd) => v_9e86fd.detail?.sig);
+
+  it('speech_start + speech_text×2 가 한 배치로 와도 SPEECH_START 가 상태머신에 도달한다(speaking 전이)', async () => {
+    v_8c24f4();
+    const v_1e3df0 = v_c2295a();
+    const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
+      (v_b1927c) => v_7df8a4(v_d18ace({ speechEngine: v_1e3df0, silenceMs: 20, signals: v_b1927c.signals })),
+      { initialProps: { signals: undefined as any } },
+    );
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+    v_be73a0(() => { v_1e3df0.emitFinal('안녕'); });
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('sending'));
+
+    const v_36e01f = [
+      { id: 1, type: 'speech_start', seq: 1, ts: 1 },
+      { id: 2, type: 'speech_text', seq: 1, ts: 2, text: '첫 문장' },
+      { id: 3, type: 'speech_text', seq: 1, ts: 3, text: '둘째 문장' },
+    ];
+    v_be73a0(() => { v_2726cb({ signals: v_36e01f }); });
+
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('speaking'));
+
+    expect(v_f074d4()).toEqual(['speech_start', 'speech_text', 'speech_text']);
+
+    v_be73a0(() => { v_2726cb({ signals: v_36e01f }); });
+    expect(v_f074d4()).toEqual(['speech_start', 'speech_text', 'speech_text']);
+  });
+
+  it('배치에 speech_end 가 섞여 와도 순서대로 처리 — start→text→end 후 listening 복귀', async () => {
+    v_8c24f4();
+    const v_1e3df0 = v_c2295a();
+    const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
+      (v_b1927c) => v_7df8a4(v_d18ace({ speechEngine: v_1e3df0, silenceMs: 20, signals: v_b1927c.signals })),
+      { initialProps: { signals: undefined as any } },
+    );
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+    v_be73a0(() => { v_1e3df0.emitFinal('안녕'); });
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('sending'));
+
+    v_be73a0(() => {
+      v_2726cb({ signals: [
+        { id: 11, type: 'speech_start', seq: 1, ts: 1 },
+        { id: 12, type: 'speech_text', seq: 1, ts: 2, text: '한 문장' },
+        { id: 13, type: 'speech_end', seq: 1, ts: 3 },
+      ] });
+    });
+
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+    expect(v_f074d4()).toEqual(['speech_start', 'speech_text', 'speech_end']);
+  });
+
+  it('배치 중간 신호부터 이어 붙어도(큐 누적) 새 것만 처리한다', async () => {
+    v_8c24f4();
+    const v_1e3df0 = v_c2295a();
+    const v_353abd = [{ id: 21, type: 'speech_start', seq: 1, ts: 1 }];
+    const v_4eb42d = v_353abd.concat([{ id: 22, type: 'speech_text', seq: 1, ts: 2, text: 'x' } as any]);
+    const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
+      (v_b1927c) => v_7df8a4(v_d18ace({ speechEngine: v_1e3df0, silenceMs: 20, signals: v_b1927c.signals })),
+      { initialProps: { signals: undefined as any } },
+    );
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+    v_be73a0(() => { v_1e3df0.emitFinal('안녕'); });
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('sending'));
+
+    v_be73a0(() => { v_2726cb({ signals: v_353abd }); });
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('speaking'));
+    v_be73a0(() => { v_2726cb({ signals: v_4eb42d }); });
+
+    expect(v_f074d4()).toEqual(['speech_start', 'speech_text']);
   });
 });

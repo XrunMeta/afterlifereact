@@ -61,6 +61,7 @@ import { submitDevText } from "../../realtime/devCallText";
 import { CALL_ROUTE } from "../../config/callRoute";
 import { GREETING_ENABLED, GREETING_FALLBACK_TEXT, GREET_TIMEOUT_MS } from "../../config/greeting";
 import { useHandsFreeController } from "../../realtime/useHandsFreeController";
+import { takeNewSignals, nextCursor } from "../../realtime/signalQueue";
 import { shouldSkipUnknownFaceEntry, computeFaceKey } from "../../realtime/faceInterruptRouting";
 import { useVideoStatsDiag } from "../../realtime/useVideoStatsDiag";
 import { DialingScreen } from "../../components/call/DialingScreen";
@@ -240,7 +241,7 @@ export default function CallScreen({ route, navigation }: Props) {
     notifySpeechEnd,
     greet,
     speak,
-    lastSignal,
+    signals,
     sendFaceEvent,
   } = useAvatarCall({ cloneId, accessToken: accessToken ?? "", onEnrollSuggest: handleEnrollSuggest });
 
@@ -566,7 +567,7 @@ export default function CallScreen({ route, navigation }: Props) {
     greeting: greetingOn,
     greet,
     speak,
-    lastSignal,
+    signals,
     greetTimeoutMs: GREET_TIMEOUT_MS,
     fallbackText: GREETING_FALLBACK_TEXT,
     silenceMs: sttEndpointMs,
@@ -584,9 +585,14 @@ export default function CallScreen({ route, navigation }: Props) {
   }, [micOn]);
 
   const [greetingStarted, setGreetingStarted] = useState(false);
+
+  const greetSignalCursorRef = useRef(0);
   useEffect(() => {
-    if (lastSignal?.type === 'speech_start') setGreetingStarted(true);
-  }, [lastSignal]);
+    const fresh = takeNewSignals(signals, greetSignalCursorRef.current);
+    if (fresh.length === 0) return;
+    greetSignalCursorRef.current = nextCursor(fresh, greetSignalCursorRef.current);
+    if (fresh.some((s) => s.type === 'speech_start')) setGreetingStarted(true);
+  }, [signals]);
 
   const canSpeak = (phase === 'listening' || phase === 'confirming') && sttActive;
 
@@ -599,16 +605,21 @@ export default function CallScreen({ route, navigation }: Props) {
     });
   }, [remoteStream, dialingDone, isMuted]);
 
+  const subtitleSignalCursorRef = useRef(0);
   const [cloneSubtitle, setCloneSubtitle] = useState('');
   useEffect(() => {
-    if (!lastSignal) return;
-    if (lastSignal.type === 'speech_text' && lastSignal.text) {
-      const t = lastSignal.text;
-      setCloneSubtitle((prev) => (prev ? `${prev} ${t}` : t));
-    } else if (lastSignal.type === 'speech_end') {
-      setCloneSubtitle('');
-    }
-  }, [lastSignal]);
+    const fresh = takeNewSignals(signals, subtitleSignalCursorRef.current);
+    if (fresh.length === 0) return;
+    subtitleSignalCursorRef.current = nextCursor(fresh, subtitleSignalCursorRef.current);
+    setCloneSubtitle((prev) => {
+      let next = prev;
+      for (const s of fresh) {
+        if (s.type === 'speech_text' && s.text) next = next ? `${next} ${s.text}` : s.text;
+        else if (s.type === 'speech_end') next = '';
+      }
+      return next;
+    });
+  }, [signals]);
 
   useEffect(() => {
     if (!accessToken) return;

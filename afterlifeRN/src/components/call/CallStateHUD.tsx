@@ -8,7 +8,7 @@ import {
   type v_20155f, type v_ef40f3,
 } from '../../realtime/callStateSnapshot';
 
-const v_91e440 = 12;   
+const v_91e440 = 16;   
 const v_53a12a = 250;       
 
 const TONE_COLOR: Record<v_ef40f3, string> = {
