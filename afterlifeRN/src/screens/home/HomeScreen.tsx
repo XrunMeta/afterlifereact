@@ -73,6 +73,8 @@ export default function HomeScreen() {
   const navBarHeight = useAndroidNavigationBarHeight(0);
   const flatListRef = useRef<FlatList>(null);
 
+  const [descScrolling, setDescScrolling] = useState(false);
+
   const bottomInset = Platform.OS === "ios"
     ? insets.bottom
     : Math.max(navBarHeight, insets.bottom);
@@ -447,6 +449,9 @@ export default function HomeScreen() {
               t("call.paymentPreparingToast", { defaultValue: "결제 준비 중이에요" }),
             );
           }}
+
+          onDescriptionScrollStart={() => setDescScrolling(true)}
+          onDescriptionScrollEnd={() => setDescScrolling(false)}
         />
       );
     },
@@ -461,6 +466,7 @@ export default function HomeScreen() {
       myUserId,
       isUserFollowing,
       toggleUserFollow,
+      setDescScrolling,
     ]
   );
 
@@ -517,6 +523,8 @@ export default function HomeScreen() {
           renderItem={renderItem}
           keyExtractor={(item) => String(item.id)}
           pagingEnabled
+
+          scrollEnabled={!descScrolling}
           showsVerticalScrollIndicator={false}
           snapToInterval={feedHeight}
           decelerationRate="fast"
