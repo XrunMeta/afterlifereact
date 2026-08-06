@@ -39,7 +39,8 @@ export async function v_705e4e(v_4317d1): Promise<void> {
         asForegroundService: true,
         ongoing: true,
         color: v_75b709.PURPLE,
-        smallIcon: "ic_notification",
+
+        smallIcon: "ic_launcher",
         pressAction: { id: "default" },
       },
     });
