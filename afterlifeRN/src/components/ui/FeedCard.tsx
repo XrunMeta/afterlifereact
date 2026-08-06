@@ -236,24 +236,33 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
 
 }
             {v_8c0b26.description ? (
-              <ScrollView
-                style={v_d81136.descriptionScroll}
-                showsVerticalScrollIndicator={true}
-                nestedScrollEnabled={true}
-                persistentScrollbar={true}
-                indicatorStyle="white"
 
-                onScrollBeginDrag={v_c29799}
-                onScrollEndDrag={v_bb9bff}
-                onMomentumScrollEnd={v_bb9bff}
+              <View
+                onStartShouldSetResponder={() => true}
+                onMoveShouldSetResponder={() => true}
+                style={v_d81136.descriptionWrap}
               >
-                <HashtagText
-                  style={v_d81136.description}
-                  tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
+                <ScrollView
+                  style={v_d81136.descriptionScroll}
+                  showsVerticalScrollIndicator={true}
+                  nestedScrollEnabled={true}
+                  persistentScrollbar={true}
+                  indicatorStyle="white"
+                  bounces={false}
+                  overScrollMode="never"
+
+                  onScrollBeginDrag={v_c29799}
+                  onScrollEndDrag={v_bb9bff}
+                  onMomentumScrollEnd={v_bb9bff}
                 >
-                  {v_8c0b26.description}
-                </HashtagText>
-              </ScrollView>
+                  <HashtagText
+                    style={v_d81136.description}
+                    tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
+                  >
+                    {v_8c0b26.description}
+                  </HashtagText>
+                </ScrollView>
+              </View>
             ) : null}
 
             {}
@@ -479,9 +488,12 @@ const v_d81136 = v_472849.create({
 
   },
 
+  descriptionWrap: {
+    marginBottom: 12,
+  },
+
   descriptionScroll: {
     maxHeight: 40,
-    marginBottom: 12,
     paddingRight: 56,
   },
   callButton: {
