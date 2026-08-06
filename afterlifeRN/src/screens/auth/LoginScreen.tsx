@@ -345,6 +345,8 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           {}
           {v_34e5bb === "account" && (
             <>
+              {}
+              <Text style={v_d81136.fieldLabel}>{v_8d41d7("auth.login.emailLabel")}</Text>
               <TextField
                 value={v_e0c7e8}
                 onChangeText={v_fedf34}
@@ -353,6 +355,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
                 autoCapitalize="none"
                 leftIcon={<Feather name="mail" size={20} color={v_1bfbd0.zinc500} />}
               />
+              <Text style={v_d81136.fieldLabel}>{v_8d41d7("auth.login.passwordLabel")}</Text>
               <TextField
                 value={v_adc076}
                 onChangeText={v_52b279}
@@ -394,6 +397,8 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           {}
           {v_34e5bb === "otp" && (
             <>
+              {}
+              <Text style={v_d81136.fieldLabel}>{v_8d41d7("auth.login.emailLabel")}</Text>
               <TextField
                 value={v_e0c7e8}
                 onChangeText={v_fedf34}
@@ -496,11 +501,20 @@ const v_d81136 = v_472849.create({
     height: 105,
   },
   tabRow: {
+
+    marginTop: v_9b1a04.large,
     flexDirection: "row",
     backgroundColor: v_1bfbd0.zinc100,
     borderRadius: v_8b0c90.md,
     padding: 4,
     marginBottom: v_9b1a04.small,
+  },
+
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: v_1bfbd0.zinc700,
+    marginBottom: -v_9b1a04.small,
   },
   tab: {
     flex: 1,
