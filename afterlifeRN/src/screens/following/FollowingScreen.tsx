@@ -9,6 +9,7 @@ import {
   v_9cabcb,
   v_122070,
   v_aa7413,
+  v_326be8,
   v_09d0e5,
   v_79c4f2,
   v_700696,
@@ -19,9 +20,10 @@ import {
   type v_da479e,
 } from "rcmrninabrnb";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
-import { v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_ada615, v_2d8264, v_650cfa, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import v_556baf from "../../components/ui/SafeView";
 import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
@@ -30,6 +32,7 @@ import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_8ad91b, v_97a9a8 } from "../../navigation/types";
 import { v_1ed7d9 } from "../../stores/authStore";
+import { v_84d546 } from "../../lib/callGuard";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
 import {
@@ -106,6 +109,10 @@ const v_cae9dc = (v_f4e98d) => (v_f4e98d >= 1000 ? `${(v_f4e98d / 1000).toFixed(
 export default function v_14b43e() {
   const { t: v_8d41d7 } = v_772971();
   const v_033e14 = v_e0068c();
+
+  const v_f9771e = v_c18c22(0);
+  const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
+  const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
   const v_f4c991 = v_ada615<RootNav>();
   const v_f38ee5 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
   const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
@@ -198,10 +205,8 @@ export default function v_14b43e() {
       return v_d92a4c.map((v_3f4e2e) => {
 
         const v_8fc8f0 = v_3f4e2e.myInteractions;
-        const v_db41cd = v_8fc8f0 ? v_8fc8f0.total : v_c8b54a(v_3f4e2e.stats);
-        const v_f40d9f = v_8fc8f0 ? v_8fc8f0.intimacy : Math.min(100, Math.floor(v_db41cd / 50));
-        const v_db07f5 = v_3f4e2e.isOwn ? 0 : v_db41cd;
-        const v_b74b9c = v_3f4e2e.isOwn ? 0 : v_f40d9f;
+        const v_db07f5 = v_8fc8f0 ? v_8fc8f0.total : v_c8b54a(v_3f4e2e.stats);
+        const v_b74b9c = v_8fc8f0 ? v_8fc8f0.intimacy : Math.min(100, Math.floor(v_db07f5 / 50));
         return {
           id: v_3f4e2e.id,
           name: v_3f4e2e.name,
@@ -601,11 +606,12 @@ export default function v_14b43e() {
               <Feather name="thermometer" size={12} color="#fb923c" />
               <Text style={v_fd5f43.badgeText}>{v_8c0b26.persona.intimacy}</Text>
             </TouchableOpacity>
-            {}
+            {
+}
             <View style={v_fd5f43.badgeDivider} />
             <TouchableOpacity
               style={v_fd5f43.badgeBtn}
-              onPress={() => v_7cf37a(v_8c0b26.persona.id, v_8c0b26.feed.id > 0 ? v_8c0b26.feed.id : undefined)}
+              onPress={() => v_880166(v_8c0b26.feed.id)}
             >
               <Feather name="message-circle" size={12} color="#34d399" />
               <Text style={v_fd5f43.badgeText}>
@@ -622,8 +628,9 @@ export default function v_14b43e() {
               <Text style={v_fd5f43.creatorAccount}>{v_8c0b26.persona.creatorAccount}</Text>
             ) : null}
             {
+
 }
-            <HashtagText style={v_fd5f43.postContent} numberOfLines={3}>
+            <HashtagText style={v_fd5f43.postContent}>
               {v_8c0b26.feed.content}
             </HashtagText>
             <View style={v_fd5f43.overlayBtns}>
@@ -632,13 +639,20 @@ export default function v_14b43e() {
                 variant="secondary"
                 size="md"
                 leftIcon={<Feather name="video" size={14} color={v_1bfbd0.zinc900} />}
-                onPress={() =>
+                onPress={async () => {
+
+                  const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
+                    v_f4c991.dispatch(
+                      v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                    );
+                  });
+                  if (!v_3ed4c3) return;
                   v_f4c991.navigate("Call", {
                     cloneId: v_8c0b26.persona.id,
                     name: v_8c0b26.persona.name,
                     image: v_8c0b26.persona.avatar,
-                  })
-                }
+                  });
+                }}
                 style={v_fd5f43.overlayBtn}
                 textColor={v_1bfbd0.zinc900}
                 backgroundColor={v_1bfbd0.white}
@@ -717,7 +731,7 @@ export default function v_14b43e() {
         <Pressable style={v_fd5f43.bottomOverlay} onPress={() => v_5da0f8(null)}>
           <SwipeDownSheet
             onClose={() => v_5da0f8(null)}
-            style={[v_fd5f43.eventsSheet, { paddingBottom: 32 + Math.max(v_033e14.bottom, 0) }]}
+            style={[v_fd5f43.eventsSheet, { paddingBottom: 32 + v_2b650d }]}
           >
             <View style={v_fd5f43.eventsSheetHandle} />
             <View style={v_fd5f43.eventsSheetTitleRow}>
@@ -754,7 +768,12 @@ export default function v_14b43e() {
               </View>
             )}
 
-            <ScrollView style={v_fd5f43.eventsScrollArea} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={v_fd5f43.eventsScrollArea}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
               {v_34e317 ? (
                 <ActivityIndicator color={v_1bfbd0.zinc500} style={{ paddingVertical: 24 }} />
               ) : !v_077f23 || v_077f23.items.length === 0 ? (
@@ -845,7 +864,7 @@ export default function v_14b43e() {
       <Modal visible={!!v_5c83d5} transparent animationType="slide">
         <Pressable style={v_fd5f43.bottomOverlay} onPress={() => v_880166(null)}>
           <View
-            style={[v_fd5f43.commentSheet, { paddingBottom: 24 + Math.max(v_033e14.bottom, 0) }]}
+            style={[v_fd5f43.commentSheet, { paddingBottom: 24 + v_2b650d }]}
             onStartShouldSetResponder={() => true}
           >
             <View style={v_fd5f43.sheetHandle} />
@@ -937,7 +956,7 @@ export default function v_14b43e() {
       <Modal visible={v_af84de} transparent animationType="slide">
         <Pressable style={v_fd5f43.bottomOverlay} onPress={() => v_22a5cb(false)}>
           <View
-            style={[v_fd5f43.callSheet, { paddingBottom: 24 + Math.max(v_033e14.bottom, 0) }]}
+            style={[v_fd5f43.callSheet, { paddingBottom: 24 + v_2b650d }]}
             onStartShouldSetResponder={() => true}
           >
             <View style={v_fd5f43.sheetHandle} />
@@ -981,7 +1000,17 @@ export default function v_14b43e() {
                     </View>
                     <TouchableOpacity
                       style={v_fd5f43.callBtn}
-                      onPress={() => { v_22a5cb(false); v_f4c991.navigate("Call", { cloneId: v_e2a85c.id, name: v_e2a85c.name, image: v_e2a85c.avatar }); }}
+                      onPress={async () => {
+
+                        const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
+                          v_f4c991.dispatch(
+                            v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                          );
+                        });
+                        if (!v_3ed4c3) return;
+                        v_22a5cb(false);
+                        v_f4c991.navigate("Call", { cloneId: v_e2a85c.id, name: v_e2a85c.name, image: v_e2a85c.avatar });
+                      }}
                     >
                       <Feather name="video" size={14} color={v_1bfbd0.white} />
                       <Text style={v_fd5f43.callBtnText}>{v_8d41d7("feed.callRowAction")}</Text>
@@ -1139,7 +1168,8 @@ const v_fd5f43 = v_472849.create({
   eventsBreakdownRow: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   eventsBreakdownItem: { fontSize: 12, color: v_1bfbd0.zinc500 },
   eventsBreakdownVal: { color: v_1bfbd0.zinc900, fontWeight: "600" },
-  eventsScrollArea: { maxHeight: 400 },
+
+  eventsScrollArea: { flexShrink: 1 },
   eventRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc100 },
   eventIcon: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   eventLabel: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900 },

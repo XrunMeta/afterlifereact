@@ -125,7 +125,15 @@ export default function v_e6afa3() {
             })}
           </Text>
         ) : (
-          <View style={v_fd5f43.card}>
+          <>
+            {}
+            <Text style={v_fd5f43.countLabel}>
+              {v_8d41d7("settings.rememberingClones.count", {
+                count: v_4622b9.length,
+                defaultValue: `${v_4622b9.length}개`,
+              })}
+            </Text>
+            <View style={v_fd5f43.card}>
             {v_4622b9.map((v_eb25ce, v_ebec57) => (
               <View key={v_eb25ce.cloneId}>
                 <View style={v_fd5f43.row}>
@@ -159,7 +167,8 @@ export default function v_e6afa3() {
                 {v_ebec57 < v_4622b9.length - 1 && <View style={v_fd5f43.divider} />}
               </View>
             ))}
-          </View>
+            </View>
+          </>
         )}
       </ScrollView>
     </View>
@@ -168,19 +177,42 @@ export default function v_e6afa3() {
 
 const v_fd5f43 = v_472849.create({
   root: { flex: 1, backgroundColor: v_1bfbd0.white },
-  content: { padding: 16 },
+  content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 60 },
+  countLabel: {
+    fontSize: 13,
+    color: v_1bfbd0.zinc500,
+    marginBottom: 12,
+    fontWeight: "500",
+  },
   empty: { marginTop: 32, textAlign: "center", color: v_1bfbd0.zinc400 },
-  card: { backgroundColor: v_1bfbd0.white, borderRadius: v_8b0c90.lg, overflow: "hidden" },
-  row: { flexDirection: "row", alignItems: "center", paddingVertical: 12, gap: 12 },
-  avatar: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  avatarPh: { backgroundColor: v_1bfbd0.zinc100 },
-  rowName: { fontSize: 15, fontWeight: "600" },
-  rowSub: { fontSize: 13, color: v_1bfbd0.zinc400 },
-  divider: { height: 1, backgroundColor: v_1bfbd0.zinc100 },
+  card: {
+    borderRadius: v_8b0c90.lg,
+    backgroundColor: v_1bfbd0.white,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc100,
+    overflow: "hidden",
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    gap: 12,
+  },
+  avatar: { width: 44, height: 44, borderRadius: 22 },
+  avatarPh: {
+    backgroundColor: v_1bfbd0.zinc100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rowName: { fontSize: 15, fontWeight: "600", color: v_1bfbd0.zinc900 },
+  rowSub: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
+
+  divider: { height: 1, backgroundColor: v_1bfbd0.zinc100, marginLeft: 70 },
   deleteBtn: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: v_8b0c90.md,
+    borderRadius: 999,
     backgroundColor: v_1bfbd0.zinc900,
   },
   deleteBtnText: { color: v_1bfbd0.white, fontSize: 13, fontWeight: "600" },

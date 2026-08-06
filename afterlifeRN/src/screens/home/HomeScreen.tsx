@@ -28,8 +28,13 @@ import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 
 import { v_68a7fe } from "../../face/useFaceBiometricRetroPrompt";
 import v_9706a6 from "../../components/ui/FeedCard";
+import v_06b8c0 from "../../components/clone/IntimacyEventsSheet";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import v_4d58d7 from "../../components/common/ReportReasonModal";
+
+import v_92380d from "../clones/components/VisibilityPickerModal";
+import v_4c2648 from "../clones/components/FriendPickerModal";
+import type { v_b0b271 } from "../../types/clone";
 
 import { v_37977a, v_10e36e } from "../../stores/feedStore";
 import { v_b4902e } from "../../stores/followStore";
@@ -47,6 +52,7 @@ import {
   type v_52af9d,
 } from "../../api/clones";
 import { v_bfd883 } from "../../lib/relativeTime";
+import { v_84d546 } from "../../lib/callGuard";
 import { v_ab98d4 } from "../../hooks/useReportAcceptedGate";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import type { v_19b433 } from "../../types/feed";
@@ -103,6 +109,8 @@ export default function v_c316d8() {
   const [v_ed660d, v_b07dd3] = v_5ab095<number | null>(null);
   const [v_48e7fe, v_856f84] = v_5ab095("");
 
+  const [v_d3a183, v_598141] = v_5ab095<{ cloneId: number; cloneName: string } | null>(null);
+
   const [v_12fa22, v_949e66] = v_5ab095<{
     cloneId: number;
     ownerId?: number;
@@ -110,6 +118,13 @@ export default function v_c316d8() {
     isOwn: boolean;
     visibility?: string;
   } | null>(null);
+
+  const [v_2a0bbc, v_ddfad5] = v_5ab095<{
+    cloneId: number;
+    currentVisibility: v_b0b271;
+  } | null>(null);
+
+  const [v_480a32, v_4ccd21] = v_5ab095<number | null>(null);
 
   const [v_f18195, v_fdd7c1] = v_5ab095<{
     cloneId: number;
@@ -366,8 +381,20 @@ export default function v_c316d8() {
           cardHeight={v_1be4da}
           onToggleLike={() => v_a96ced(v_8c0b26.id)}
           onToggleFollow={() => void v_3094d4(v_8c0b26.cloneId)}
-          onCallPress={() => v_f4c991.navigate("Call", { cloneId: v_8c0b26.cloneId, name: v_8c0b26.author, image: v_8c0b26.image })}
+          onCallPress={async () => {
+
+            const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
+              v_f4c991.dispatch(
+                v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+              );
+            });
+            if (v_3ed4c3) {
+              v_f4c991.navigate("Call", { cloneId: v_8c0b26.cloneId, name: v_8c0b26.author, image: v_8c0b26.image });
+            }
+          }}
           onCommentPress={() => v_b07dd3(v_8c0b26.id)}
+
+          onIntimacyPress={() => v_598141({ cloneId: v_8c0b26.cloneId, cloneName: v_8c0b26.author })}
           onMorePress={() =>
             v_949e66({
               cloneId: v_8c0b26.cloneId,
@@ -742,23 +769,8 @@ export default function v_c316d8() {
                     v_949e66(null);
                     if (!v_5f5d6d) return;
 
-                    v_f4c991.dispatch(
-                      v_650cfa.navigate({
-                        name: "Main",
-                        params: {
-                          screen: "ClonesTab",
-                          params: {
-                            screen: "CloneEdit",
-                            params: { cloneId: v_5f5d6d.cloneId },
-                          },
-                        },
-                      }),
-                    );
-                    v_15c939(
-                      v_8d41d7("home.toasts.editVisibilityHint", {
-                        defaultValue: "클론 편집 → 공개 범위에서 변경하세요",
-                      }),
-                    );
+                    const v_275ccd = (v_5f5d6d.visibility as v_b0b271 | undefined) ?? "public";
+                    v_ddfad5({ cloneId: v_5f5d6d.cloneId, currentVisibility: v_275ccd });
                   }}
                 >
                   <Feather name="eye" size={20} color={v_1bfbd0.zinc900} />
@@ -972,6 +984,91 @@ export default function v_c316d8() {
           <Text style={v_d81136.toastText}>{v_8282fa}</Text>
         </View>
       )}
+
+      {}
+      <VisibilityPickerModal
+        visible={!!v_2a0bbc}
+        currentVisibility={v_2a0bbc?.currentVisibility ?? null}
+        onClose={() => v_ddfad5(null)}
+        onSelect={async (v_81e2ef) => {
+          const v_5f5d6d = v_2a0bbc;
+          v_ddfad5(null);
+          if (!v_5f5d6d) return;
+          if (v_81e2ef === "selected") {
+            v_4ccd21(v_5f5d6d.cloneId);
+            return;
+          }
+
+          const v_a73fa2 = v_37977a.getState();
+          if (v_a73fa2.apiFeeds) {
+            v_37977a.setState({
+              apiFeeds: v_a73fa2.apiFeeds.map((v_8b5cd8) =>
+                v_8b5cd8.clone.id === v_5f5d6d.cloneId
+                  ? { ...v_8b5cd8, clone: { ...v_8b5cd8.clone, visibility: v_81e2ef } }
+                  : v_8b5cd8,
+              ),
+            });
+          }
+          if (!v_2ca7e0) return;
+          try {
+            const { patchClone: v_bb226e } = await import("../../api/clones");
+            await v_bb226e(v_2ca7e0, v_5f5d6d.cloneId, {
+              visibility: v_81e2ef,
+              allowed_viewers: [],
+            });
+            v_15c939(
+              v_8d41d7("home.toasts.visibilityUpdated", { defaultValue: "공개 범위가 변경됐어요" }),
+            );
+          } catch (v_49263d) {
+            console.warn("[Home] update visibility failed:", v_49263d);
+            v_15c939(
+              v_8d41d7("home.toasts.visibilityFailed", { defaultValue: "공개 범위 변경에 실패했어요" }),
+            );
+          }
+        }}
+      />
+
+      {}
+      <FriendPickerModal
+        visible={v_480a32 != null}
+        onClose={() => v_4ccd21(null)}
+        onConfirm={async (v_9b3001) => {
+          const v_6e0fd3 = v_480a32;
+          v_4ccd21(null);
+          if (!v_6e0fd3) return;
+          const v_a73fa2 = v_37977a.getState();
+          if (v_a73fa2.apiFeeds) {
+            v_37977a.setState({
+              apiFeeds: v_a73fa2.apiFeeds.map((v_8b5cd8) =>
+                v_8b5cd8.clone.id === v_6e0fd3
+                  ? { ...v_8b5cd8, clone: { ...v_8b5cd8.clone, visibility: "selected" } }
+                  : v_8b5cd8,
+              ),
+            });
+          }
+          if (!v_2ca7e0) return;
+          try {
+            const { patchClone: v_bb226e } = await import("../../api/clones");
+            await v_bb226e(v_2ca7e0, v_6e0fd3, {
+              visibility: "selected",
+              allowed_viewers: v_9b3001,
+            });
+            v_15c939(
+              v_8d41d7("home.toasts.visibilityUpdated", { defaultValue: "공개 범위가 변경됐어요" }),
+            );
+          } catch (v_49263d) {
+            console.warn("[Home] selected visibility PATCH failed:", v_49263d);
+          }
+        }}
+      />
+
+      {}
+      <IntimacyEventsSheet
+        visible={!!v_d3a183}
+        cloneId={v_d3a183?.cloneId ?? null}
+        cloneName={v_d3a183?.cloneName ?? ""}
+        onClose={() => v_598141(null)}
+      />
     </View>
   );
 }

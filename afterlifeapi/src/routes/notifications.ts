@@ -79,6 +79,48 @@ v_b9c00c.post("/read-all", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true });
 });
 
+v_b9c00c.post("/test-push", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT push_token, platform FROM user_devices
+        WHERE user_id = ? AND push_token IS NOT NULL AND is_active = 1`,
+    )
+    .bind(v_43e90c)
+    .all<{ push_token: string; platform: string }>();
+  const v_1ba7e1 = (v_18b8bf.results ?? []).filter(
+    (v_cb35cb) => v_cb35cb.push_token.startsWith("ExponentPushToken[") || v_cb35cb.push_token.startsWith("ExpoPushToken["),
+  );
+  if (v_1ba7e1.length === 0) {
+    return v_3f4e2e.json({ attempted: 0, tickets: [], error: "활성 토큰이 없습니다. 알림 권한을 다시 켜주세요." });
+  }
+  const v_fa56e0 = v_1ba7e1.map((v_d5dda0) => ({
+    to: v_d5dda0.push_token,
+    title: "🧪 테스트 알림",
+    body: "알림이 정상적으로 도착했습니다.",
+    sound: "default" as const,
+  }));
+
+  const v_8f00b9 = await fetch("https://exp.host/--/api/v2/push/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(v_fa56e0),
+  });
+  const v_0b04f0 = (await v_8f00b9.json().catch(() => null)) as
+    | { data?: Array<{ status?: string; message?: string; details?: { error?: string } }> }
+    | null;
+  const v_30338f = v_1ba7e1.map((v_d5dda0, v_ebec57) => {
+    const v_8d41d7 = v_0b04f0?.data?.[v_ebec57];
+    return {
+      platform: v_d5dda0.platform,
+      status: v_8d41d7?.status ?? "no-response",
+      errorCode: v_8d41d7?.details?.error ?? null,
+      message: v_8d41d7?.message ?? null,
+    };
+  });
+  return v_3f4e2e.json({ attempted: v_1ba7e1.length, tickets: v_30338f });
+});
+
 function v_063096(v_fd5f43): unknown {
   try {
     return JSON.parse(v_fd5f43);

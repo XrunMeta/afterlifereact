@@ -21,7 +21,9 @@ import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
+import { v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_8ad91b } from "../../navigation/types";
+import { v_84d546 } from "../../lib/callGuard";
 import v_9706a6 from "../../components/ui/FeedCard";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import type { v_19b433 } from "../../types/feed";
@@ -221,7 +223,17 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
     }
   };
 
-  const v_f8043e = () => {
+  const v_f8043e = async () => {
+
+    const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
+      v_c65f5d.dispatch(
+        v_650cfa.navigate({
+          name: "Main",
+          params: { screen: "MyTab", params: { screen: "Purchase" } },
+        }),
+      );
+    });
+    if (!v_3ed4c3) return;
     v_c65f5d.navigate("Call", {
       cloneId: v_8c0b26.cloneId,
       name: v_8c0b26.author,

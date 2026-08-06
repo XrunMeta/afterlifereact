@@ -30,7 +30,8 @@
     "durationSec": "{{s}}s",
     "durationMin": "{{m}}m",
     "durationMinSec": "{{m}}m {{s}}s",
-    "expertBadge": "Expert"
+    "expertBadge": "Expert",
+    "pressBackToExit": "Press back again to exit"
   },
   "tabs": {
     "home": "Home",
@@ -234,7 +235,11 @@
     "enrollSuccessToast": "I'll remember you now, {{name}}",
     "enrollFailToast": "Registration failed. Please try again.",
     "paymentPreparingToast": "Preparing payment...",
-    "confirmHint": "Tap to cancel · sending shortly"
+    "confirmHint": "Tap to cancel · sending shortly",
+    "remainingWarnToast": "30 seconds of call time left. Ending soon.",
+    "exhaustedTitle": "Call Time Ended",
+    "exhaustedBody": "Recharge to keep talking.",
+    "exhaustedCharge": "Recharge"
   },
   "feed": {
     "homeTitle": "Home",
@@ -444,6 +449,7 @@
     "allDone": "You've answered every question! It will show up on calls.",
     "confirmYes": "Yes",
     "confirmNo": "No",
+    "undoLast": "Edit answer",
     "saving": "Saving...",
     "followupSkip": "Skip",
     "skip": "Different question",
@@ -498,6 +504,8 @@
     },
     "menu": {
       "editProfile": "Edit Profile",
+      "notificationsList": "Notifications",
+      "notificationsListDesc": "View all received notifications",
       "notifications": "Notification Settings",
       "privacy": "Privacy and Visibility",
       "agreements": "Consent",
@@ -797,6 +805,19 @@
       "modePreset": "Voice preset",
       "modeRecord": "Record",
       "modeUpload": "Upload file",
+      "nextBlockedTitle": "Voice required",
+      "nextBlockedUpload": "Please upload a voice file first.",
+      "nextBlockedRecord": "Please finish recording first.",
+      "nextBlockedRecordUploading": "You can continue once the recording finishes registering. If it failed, please record again.",
+      "nextBlockedPreset": "Please select a voice first.",
+      "nextBlockedGeneric": "Please register a voice first.",
+      "notAudioTitle": "Not an audio file",
+      "notAudioMsg": "Only audio files can be registered. Please choose an mp3, m4a, wav, or similar file.",
+      "notAudioEmpty": "This file is empty. Please choose another file.",
+      "registerFailed": "Failed to register the recording.",
+      "registerFailedFile": "Failed to register the voice file.",
+      "registerRetry": "Retry registration",
+      "nextBlockedUploadRegistering": "You can continue once the voice file finishes registering. If it failed, please retry.",
       "choosePresetHint": "Please choose a voice.",
       "presetLoadFailed": "Couldn't load the voice list.",
       "presetPreparing": "Preparing voice…",
@@ -917,7 +938,7 @@
       "usernameInvalid": "The ID format is invalid."
     },
     "step7": {
-      "reviewTitle": "Review clone info",
+      "reviewTitle": "Preview clone info",
       "displayNameFallback": "User name",
       "displayHandleFallback": "ID",
       "videoReady": "Video ready",

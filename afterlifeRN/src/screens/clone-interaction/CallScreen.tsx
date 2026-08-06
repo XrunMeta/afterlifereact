@@ -76,6 +76,7 @@ import { CallVoiceBall } from "../../components/call/CallVoiceBall";
 import { CallTimingHUD } from "../../components/call/CallTimingHUD";
 import { CallTimingPanel } from "../../components/call/CallTimingPanel";
 import { CloneSubtitleTicker } from "../../components/call/CloneSubtitleTicker";
+import { useDevOverlayStore } from "../../stores/devOverlayStore";
 import { useTimingConfigStore } from "../../realtime/timingConfig";
 import { startTimingLog } from "../../realtime/timingLog";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -94,6 +95,9 @@ import {
   unlikeClone,
   postCloneCallEvent,
 } from "../../api/clones";
+import { getCreditBalance } from "../../api/credits";
+import { showAlert } from "../../stores/dialogStore";
+import { CommonActions } from "@react-navigation/native";
 import ExpertBadge from "../../components/ui/ExpertBadge";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
@@ -102,7 +106,11 @@ const { width: SCREEN_W } = Dimensions.get("window");
 
 const VIDEO_EDGE_TRIM_PX = 1;
 
-const SHOW_USER_TRANSCRIPT = __DEV__;
+const SHOW_USER_TRANSCRIPT = __DEV__; 
+
+const SHOW_VOICE_BALL = false;
+
+const SPEAK_OK_COLOR = "#2fbf6b";
 
 interface FloatingGift {
   id: number;
@@ -125,6 +133,8 @@ export default function CallScreen({ route, navigation }: Props) {
   const navBarHeight = useAndroidNavigationBarHeight(0);
   const bottomInset =
     Platform.OS === "ios" ? insets.bottom : Math.max(navBarHeight, insets.bottom);
+  const callDevUi = useDevOverlayStore((s) => s.callDevUiVisible);
+  const showCallDev = __DEV__ && callDevUi;
 
   const [cameraFacing, setCameraFacing] = useState<"front" | "back">("front");
   const [isMuted, setIsMuted] = useState(false);
@@ -655,6 +665,8 @@ export default function CallScreen({ route, navigation }: Props) {
     if (lastSignal?.type === 'speech_start') setGreetingStarted(true);
   }, [lastSignal]);
 
+  const canSpeak = (phase === 'listening' || phase === 'confirming') && sttActive;
+
   useEffect(() => {
     const audio = (remoteStream as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })
       ?.getAudioTracks?.() ?? [];
@@ -747,6 +759,75 @@ export default function CallScreen({ route, navigation }: Props) {
     const id = setInterval(() => setCallSeconds((s) => s + 1), 1000);
     return () => clearInterval(id);
   }, [liveState]);
+
+  const [remainingSec, setRemainingSec] = useState<number | null>(null);
+  const warnedRef = useRef(false);
+  const exhaustedRef = useRef(false);
+  useEffect(() => {
+    if (!accessToken) return;
+    let cancelled = false;
+    getCreditBalance(accessToken)
+      .then((b) => {
+        if (cancelled) return;
+        setRemainingSec(Math.max(0, Math.floor(b.totalSec ?? 0)));
+      })
+      .catch((err) => {
+        console.warn("[Call] balance fetch failed:", (err as Error)?.message ?? err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken]);
+  useEffect(() => {
+    if (liveState !== "live" || remainingSec === null) return;
+    const id = setInterval(() => {
+      setRemainingSec((prev) => {
+        if (prev === null) return prev;
+        const next = Math.max(0, prev - 1);
+        if (next === 30 && !warnedRef.current) {
+          warnedRef.current = true;
+          setToastMessage(
+            t("call.remainingWarnToast", {
+              defaultValue: "남은 통화 시간 30초입니다. 곧 종료됩니다.",
+            }),
+          );
+        }
+        if (next === 0 && !exhaustedRef.current) {
+          exhaustedRef.current = true;
+          showAlert(
+            t("call.exhaustedTitle", { defaultValue: "통화 시간 종료" }),
+            t("call.exhaustedBody", {
+              defaultValue: "충전하면 계속 통화할 수 있어요.",
+            }),
+            [
+              {
+                text: t("common.confirm", { defaultValue: "확인" }),
+                style: "cancel",
+                onPress: () => navigation.goBack(),
+              },
+              {
+                text: t("call.exhaustedCharge", { defaultValue: "충전하기" }),
+                style: "default",
+                onPress: () => {
+                  navigation.dispatch(
+                    CommonActions.navigate({
+                      name: "Main",
+                      params: {
+                        screen: "MyTab",
+                        params: { screen: "Purchase" },
+                      },
+                    }),
+                  );
+                },
+              },
+            ],
+          );
+        }
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [liveState, remainingSec !== null, navigation, t]);
 
   const confirmProgress = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -883,7 +964,7 @@ export default function CallScreen({ route, navigation }: Props) {
         <View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.zinc900 }]} />
       )}
 
-      {__DEV__ ? (
+      {showCallDev ? (
         <View style={{ position: "absolute", top: 8, right: 8, zIndex: 10,
           backgroundColor: "rgba(0,0,0,0.5)", padding: 4 }}>
           <Text style={{ color: "#0f0", fontSize: 10 }}>route:{CALL_ROUTE}</Text>
@@ -915,7 +996,7 @@ export default function CallScreen({ route, navigation }: Props) {
         </View>
       ) : null}
 
-      {__DEV__ && liveState === "live" ? (
+      {showCallDev && liveState === "live" ? (
         <View
           style={{
             position: "absolute",
@@ -981,8 +1062,8 @@ export default function CallScreen({ route, navigation }: Props) {
         style={StyleSheet.absoluteFill}
       />
 
-      {__DEV__ && liveState === "live" ? <CallTimingHUD /> : null}
-      {__DEV__ && liveState === "live" ? (
+      {showCallDev && liveState === "live" ? <CallTimingHUD /> : null}
+      {showCallDev && liveState === "live" ? (
 
         <View
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: bottomInset }}
@@ -1004,7 +1085,7 @@ export default function CallScreen({ route, navigation }: Props) {
           <View style={s.pipOff}>
             <Feather name="video-off" size={20} color={COLORS.zinc600} />
           </View>
-        ) : vcDevice ? (
+        ) : vcDevice && dialingDone ? (
 
           <VisionCamera
             ref={pipCameraRef}
@@ -1163,7 +1244,7 @@ export default function CallScreen({ route, navigation }: Props) {
 }
 
       {}
-      {SHOW_USER_TRANSCRIPT && phase === 'listening' && (!!interimTranscript || !!transcript) ? (
+      {showCallDev && SHOW_USER_TRANSCRIPT && phase === 'listening' && (!!interimTranscript || !!transcript) ? (
         <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
           <Text style={s.subtitleText} numberOfLines={1} ellipsizeMode="head">
             {interimTranscript || transcript}
@@ -1179,7 +1260,7 @@ export default function CallScreen({ route, navigation }: Props) {
           <Pressable style={s.confirmTapArea} onPress={cancelConfirm} />
           {
 }
-          {SHOW_USER_TRANSCRIPT ? (
+          {showCallDev && SHOW_USER_TRANSCRIPT ? (
             <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
               <Text style={s.subtitleText} numberOfLines={1} ellipsizeMode="head">
                 {pendingText}
@@ -1198,7 +1279,7 @@ export default function CallScreen({ route, navigation }: Props) {
       {
 
 }
-      {SHOW_USER_TRANSCRIPT && (phase === 'sending' || phase === 'speaking') && !!pendingText && !cloneSubtitle ? (
+      {showCallDev && SHOW_USER_TRANSCRIPT && (phase === 'sending' || phase === 'speaking') && !!pendingText && !cloneSubtitle ? (
         <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
           <Text style={s.subtitleText} numberOfLines={1} ellipsizeMode="head">
             {pendingText}
@@ -1219,7 +1300,7 @@ export default function CallScreen({ route, navigation }: Props) {
 
 }
       <View
-        style={[s.watermarkLayer, { bottom: bottomInset + 150 }]}
+        style={[s.watermarkLayer, { bottom: bottomInset + 24 + 56 + 16 }]}
         pointerEvents="none"
       >
         <Image
@@ -1230,8 +1311,9 @@ export default function CallScreen({ route, navigation }: Props) {
       </View>
 
       {
+
 }
-      {dialingDone ? (
+      {SHOW_VOICE_BALL && dialingDone ? (
         <View
           style={[s.voiceBallLayer, { bottom: bottomInset + 24 + 56 + 16 }]}
           pointerEvents="none"
@@ -1258,8 +1340,16 @@ export default function CallScreen({ route, navigation }: Props) {
           <Feather name={isMuted ? "mic-off" : "mic"} size={24} color={COLORS.white} />
         </TouchableOpacity>
 
+        {
+}
         <TouchableOpacity
-          style={s.endCallBtn}
+          style={[
+            s.endCallBtn,
+            canSpeak && { backgroundColor: SPEAK_OK_COLOR, shadowColor: SPEAK_OK_COLOR },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={canSpeak ? "통화 종료 (지금 말할 수 있음)" : "통화 종료"}
+          accessibilityHint={canSpeak ? "지금 말해도 됩니다. 이 버튼을 누르면 통화가 종료됩니다." : undefined}
           onPress={async () => {
             await stopLive();
             navigation.goBack();
@@ -1362,7 +1452,7 @@ const s = StyleSheet.create({
     width: 200,
     height: 40,
     resizeMode: "contain",
-    tintColor: "rgba(255, 255, 255, 0.85)",
+    tintColor: "rgba(255, 255, 255, 0.3)",
   },
   container: {
     flex: 1,

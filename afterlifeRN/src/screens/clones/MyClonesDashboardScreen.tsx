@@ -31,8 +31,10 @@ import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
 import v_5778ce from "../../components/common/HashtagText";
 import v_4c2648 from "./components/FriendPickerModal";
+import v_92380d from "./components/VisibilityPickerModal";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
+import { v_84d546 } from "../../lib/callGuard";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
 import { v_d60cdf, v_81d12f, v_f373d8, v_20d793, v_776874, v_914311, v_8ce643, v_d24912, type v_fa0201, type v_a9d96d, type v_d83ffc, type v_52af9d, type v_ceccc3, type v_6349d0, type v_1d741a } from "../../api/clones";
@@ -350,6 +352,23 @@ export default function v_def15b() {
     v_598141({ cloneId: v_062ae9, cloneName: v_eb25ce.displayName });
   }, [v_c7daf6.params?.openIntimacyCloneId, v_4cd149]);
 
+  const v_9b5044 = v_e662ae<string | null>(null);
+  v_c4deb2(() => {
+    const v_062ae9 = v_c7daf6.params?.openStatsCloneId;
+    const v_11083e = v_c7daf6.params?.openStatsTab;
+    if (!v_062ae9 || !v_11083e) return;
+    const v_b24339 = `${v_062ae9}:${v_11083e}`;
+    if (v_9b5044.current === v_b24339) return;
+    const v_eb25ce = v_4cd149.find((v_3f4e2e) => v_3f4e2e.id === v_062ae9);
+    if (!v_eb25ce) return; 
+    v_9b5044.current = v_b24339;
+    if (v_11083e === "gifts") {
+      v_598141({ cloneId: v_062ae9, cloneName: v_eb25ce.displayName });
+    } else {
+      v_d5cd7b({ type: v_11083e, cloneId: v_062ae9, cloneName: v_eb25ce.displayName });
+    }
+  }, [v_c7daf6.params?.openStatsCloneId, v_c7daf6.params?.openStatsTab, v_4cd149]);
+
   const v_bf58a4 = (v_6e0fd3) => {
     const v_7d13fd = v_699459[v_6e0fd3]?.isActive ?? true;
     v_3e0da5({ cloneId: v_6e0fd3, currentState: v_7d13fd });
@@ -368,7 +387,10 @@ export default function v_def15b() {
   };
 
   const v_11e385 = (v_6e0fd3) => {
-    const v_275ccd = v_699459[v_6e0fd3]?.visibility ?? "public";
+
+    const v_2d567b = v_699459[v_6e0fd3]?.visibility;
+    const v_b43a3d = v_4cd149.find((v_3f4e2e) => v_3f4e2e.id === v_6e0fd3)?.visibility;
+    const v_275ccd = v_2d567b ?? v_b43a3d ?? "public";
     v_2dbd8f({ cloneId: v_6e0fd3, currentVisibility: v_275ccd });
     v_8d2d61(null);
   };
@@ -585,8 +607,10 @@ export default function v_def15b() {
           </View>
         </View>
 
-        {}
-        <HashtagText style={v_fd5f43.description} numberOfLines={2}>
+        {
+
+}
+        <HashtagText style={v_fd5f43.description}>
           {v_eb25ce.description}
         </HashtagText>
 
@@ -663,7 +687,16 @@ export default function v_def15b() {
           </TouchableOpacity>
           <TouchableOpacity
             style={v_fd5f43.actionBtn}
-            onPress={() => v_f4c991.navigate("Call", { cloneId: v_eb25ce.id })}
+            onPress={async () => {
+
+              const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
+                v_f4c991.dispatch(
+                  v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                );
+              });
+              if (!v_3ed4c3) return;
+              v_f4c991.navigate("Call", { cloneId: v_eb25ce.id });
+            }}
           >
             <Feather name="video" size={16} color={v_1bfbd0.zinc700} />
             <Text style={v_fd5f43.actionText}>{v_8d41d7("dashboard.actionCall")}</Text>
@@ -931,7 +964,16 @@ export default function v_def15b() {
                   <View style={v_fd5f43.actionsRow}>
                     <TouchableOpacity
                       style={v_fd5f43.actionBtn}
-                      onPress={() => v_f4c991.navigate("Call", { cloneId: v_69bba6.id, name: v_69bba6.name })}
+                      onPress={async () => {
+
+                        const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
+                          v_f4c991.dispatch(
+                            v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                          );
+                        });
+                        if (!v_3ed4c3) return;
+                        v_f4c991.navigate("Call", { cloneId: v_69bba6.id, name: v_69bba6.name });
+                      }}
                     >
                       <Feather name="video" size={16} color={v_1bfbd0.zinc700} />
                       <Text style={v_fd5f43.actionText}>{v_8d41d7("dashboard.actionCall")}</Text>
@@ -1015,46 +1057,12 @@ export default function v_def15b() {
       </Modal>
 
       {}
-      <Modal visible={!!v_7462ec} transparent animationType="fade">
-        <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_2dbd8f(null)}>
-          <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
-            <Text style={v_fd5f43.modalTitle}>{v_8d41d7("dashboard.visibilityChooseTitle", { defaultValue: "공개 범위" })}</Text>
-            <Text style={v_fd5f43.modalDesc}>{v_8d41d7("dashboard.visibilityChooseDesc", { defaultValue: "이 클론을 누구에게 보일까요?" })}</Text>
-            <View style={v_fd5f43.visibilityOptions}>
-              {(["public", "followers", "selected", "private"] as v_b0b271[]).map((v_81e2ef) => {
-                const v_587413 = v_7462ec?.currentVisibility === v_81e2ef;
-                return (
-                  <TouchableOpacity
-                    key={v_81e2ef}
-                    style={[v_fd5f43.visibilityOption, v_587413 && v_fd5f43.visibilityOptionSelected]}
-                    onPress={() => v_c9f992(v_81e2ef)}
-                  >
-                    <Feather
-                      name={v_a6deb1(v_81e2ef)}
-                      size={16}
-                      color={v_587413 ? v_1bfbd0.white : v_1bfbd0.zinc700}
-                    />
-                    <Text
-                      style={[
-                        v_fd5f43.visibilityOptionText,
-                        v_587413 && { color: v_1bfbd0.white },
-                      ]}
-                    >
-                      {v_82830c(v_81e2ef)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <Button
-              title={v_8d41d7("common.cancel")}
-              variant="ghost"
-              onPress={() => v_2dbd8f(null)}
-              style={{ marginTop: 12, width: "100%" }}
-            />
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <VisibilityPickerModal
+        visible={!!v_7462ec}
+        currentVisibility={v_7462ec?.currentVisibility ?? null}
+        onSelect={v_c9f992}
+        onClose={() => v_2dbd8f(null)}
+      />
 
       {}
       <FriendPickerModal
@@ -1151,7 +1159,12 @@ export default function v_def15b() {
               {v_8bb912?.cloneName}
             </Text>
 
-            <ScrollView style={v_fd5f43.statsScrollArea} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={v_fd5f43.statsScrollArea}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
               {}
               {v_8bb912?.type === "comments" && (
                 <>
@@ -1280,7 +1293,12 @@ export default function v_def15b() {
               <Text style={[v_fd5f43.giftTableHeaderCell, { flex: 2, textAlign: "right" }]}>{v_8d41d7("dashboard.giftHeaderSender", { defaultValue: "보낸사람" })}</Text>
             </View>
 
-            <ScrollView style={v_fd5f43.statsScrollArea} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={v_fd5f43.statsScrollArea}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
               {v_5101de ? (
                 <ActivityIndicator color={v_1bfbd0.zinc500} style={{ paddingVertical: 24 }} />
               ) : !v_51c9ac || v_51c9ac.length === 0 ? (

@@ -72,31 +72,38 @@ export async function v_704bef(): Promise<PushRegistration> {
 }
 
 export async function v_9bedf5(v_2ca7e0): Promise<void> {
-  if (!v_2ca7e0) return;
-  if (!v_a06ea0.isDevice) return;
+
+  console.log(`[push] register start — platform=${v_326be8.OS} isDevice=${v_a06ea0.isDevice} hasToken=${!!v_2ca7e0}`);
+  if (!v_2ca7e0) { console.log("[push] SKIP: no accessToken"); return; }
+  if (!v_a06ea0.isDevice) { console.log("[push] SKIP: Device.isDevice=false (simulator?)"); return; }
 
   try {
     const v_3c8572 = await v_2b7a17.getPermissionsAsync();
-    if (v_3c8572.status !== "granted") return;
+    console.log(`[push] permission status=${v_3c8572.status} granted=${v_3c8572.granted} canAskAgain=${v_3c8572.canAskAgain}`);
+    if (v_3c8572.status !== "granted") { console.log("[push] SKIP: permission not granted"); return; }
 
     if (v_326be8.OS === "android") {
       await v_2b7a17.setNotificationChannelAsync("default", {
         name: "default",
         importance: v_2b7a17.AndroidImportance.DEFAULT,
       });
+      console.log("[push] android channel set");
     }
 
     const v_06e736 = v_2e9678();
+    console.log(`[push] projectId=${v_06e736 ?? "(none)"}`);
     const v_5c81fd = await v_2b7a17.getExpoPushTokenAsync(
       v_06e736 ? { projectId: v_06e736 } : undefined,
     );
     const v_21cc31 = v_5c81fd.data;
-    if (!v_21cc31) return;
+    console.log(`[push] got expo token — prefix=${v_21cc31 ? v_21cc31.slice(0, 30) : "(null)"}`);
+    if (!v_21cc31) { console.log("[push] SKIP: no token from getExpoPushTokenAsync"); return; }
 
     const v_929b58 = await v_ea1c99();
     const v_81a27a =
       v_326be8.OS === "ios" ? "ios" : v_326be8.OS === "android" ? "android" : "web";
 
+    console.log(`[push] POST /oth-path deviceId=${v_929b58} platform=${v_81a27a}`);
     const v_8f00b9 = await fetch(`${v_cc9198}/oth-path`, {
       method: "POST",
       headers: {
@@ -106,12 +113,13 @@ export async function v_9bedf5(v_2ca7e0): Promise<void> {
       body: JSON.stringify({ deviceId: v_929b58, pushToken: v_21cc31, platform: v_81a27a }),
     });
     if (!v_8f00b9.ok) {
-      console.warn("[push] device upsert failed:", v_8f00b9.status);
+      const v_4d33b2 = await v_8f00b9.text().catch(() => "");
+      console.warn(`[push] device upsert failed status=${v_8f00b9.status} body=${v_4d33b2.slice(0, 200)}`);
       return;
     }
-    console.log("[push] device upserted, token=", v_21cc31.slice(0, 30) + "...");
+    console.log(`[push] ✅ device upserted OK — platform=${v_81a27a} token=${v_21cc31.slice(0, 30)}...`);
   } catch (v_49263d) {
-    console.warn("[push] registerPushTokenIfReady failed:", (v_49263d as Error)?.message ?? v_49263d);
+    console.warn("[push] registerPushTokenIfReady EXCEPTION:", (v_49263d as Error)?.message ?? v_49263d);
   }
 }
 

@@ -2,6 +2,7 @@ import './src/i18n';
 import { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import { v_ac28fd, type v_4c916c } from "ixigazcpvfldbecwtbvavtbi";
 import { v_94c936 } from "./src/navigation/navigationRef";
+import { v_c9d088 } from "./src/navigation/useAndroidBackHandler";
 import { v_70c669 } from "zwwvjiopxcaovigclhtwpklelhlr";
 import { v_b2c639 } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_b5df25 } from "ernurodqvmtspux";
@@ -16,11 +17,30 @@ import { v_0b10a6 } from "./src/stores/configStore";
 import { v_5b540b } from "./src/stores/callConfigStore";
 import { v_688424 } from "./src/stores/authConfigStore";
 import { v_9bedf5 } from "./src/lib/pushNotifications";
+import * as v_2b7a17 from "bpebbcghaffswkrsep";
+import {
+  v_798ed3,
+  v_125d64,
+} from "./src/lib/notificationRouting";
 import {
   v_8237ac,
   v_1d7e9a,
 } from "./src/lib/cloneShareDeferredLink";
 import type { v_8ad91b } from "./src/navigation/types";
+import { v_af2b7c } from "./src/lib/errorReporting/ErrorBoundary";
+import {
+  v_11e772,
+  v_b28903,
+  v_61a1ef,
+} from "./src/lib/errorReporting/report";
+import { v_04fed4 } from "./src/lib/errorReporting/serverSink";
+import { v_0f28c1 } from "./src/components/dev/DevFloatingBall";
+import { v_82d3c2 } from "./src/lib/t208MeasureStore";
+import { v_434962 } from "./src/stores/devOverlayStore";
+
+v_b28903();
+
+v_61a1ef(v_04fed4);
 
 const linking: v_4c916c<v_8ad91b> = {
   prefixes: [
@@ -45,6 +65,8 @@ const linking: v_4c916c<v_8ad91b> = {
 export default function v_6540c3() {
   const [v_b1717e, v_0189ac] = v_5ab095(false);
 
+  v_c9d088();
+
   v_c4deb2(() => {
     Promise.all([
       v_1ed7d9.getState().hydrate(),
@@ -52,6 +74,8 @@ export default function v_6540c3() {
       v_0b10a6.getState().hydrate(),
       v_5b540b.getState().hydrate(),
       v_688424.getState().hydrate(),
+      __DEV__ ? v_82d3c2() : Promise.resolve(),
+      __DEV__ ? v_434962.getState().hydrate() : Promise.resolve(),
     ]).then(() => {
       v_0189ac(true);
 
@@ -68,6 +92,25 @@ export default function v_6540c3() {
 
       v_8237ac();
     });
+  }, []);
+
+  v_c4deb2(() => {
+    v_2b7a17.getLastNotificationResponseAsync()
+      .then((v_cb35cb) => {
+        const v_9390e8 = v_cb35cb?.notification?.request?.content?.data as
+          | Record<string, unknown>
+          | undefined;
+        if (v_9390e8) v_798ed3(v_9390e8);
+      })
+      .catch((v_49263d) => console.warn("[push-tap] cold-start check failed:", (v_49263d as Error).message));
+
+    const v_1ae212 = v_2b7a17.addNotificationResponseReceivedListener((v_cb35cb) => {
+      const v_9390e8 = v_cb35cb?.notification?.request?.content?.data as
+        | Record<string, unknown>
+        | undefined;
+      if (v_9390e8) v_798ed3(v_9390e8);
+    });
+    return () => v_1ae212.remove();
   }, []);
 
   const v_dbce95 = v_e662ae<string | null>(v_1ed7d9.getState().accessToken);
@@ -95,10 +138,32 @@ export default function v_6540c3() {
         <View style={v_d81136.root}>
           <EmergencyBanner />
           <View style={v_d81136.root}>
-            <NavigationContainer ref={v_94c936} linking={v_141151}>
-              <RootNavigator />
-              <StatusBar style="dark" />
-            </NavigationContainer>
+            <AppErrorBoundary>
+              <NavigationContainer
+                ref={v_94c936}
+                linking={v_141151}
+                onReady={() => {
+
+                  v_125d64();
+                }}
+                onStateChange={() => {
+                  const v_1833e7 = v_94c936.getCurrentRoute()?.name;
+                  if (v_1833e7) {
+                    v_11e772({
+                      category: "navigation",
+                      message: v_1833e7,
+                    });
+                  }
+                }}
+              >
+                <RootNavigator />
+                <StatusBar style="dark" />
+              </NavigationContainer>
+            </AppErrorBoundary>
+          </View>
+          {}
+          <View style={v_d81136.devOverlay} pointerEvents="box-none">
+            <DevFloatingBall />
           </View>
         </View>
         {}
@@ -110,4 +175,9 @@ export default function v_6540c3() {
 
 const v_d81136 = v_472849.create({
   root: { flex: 1 },
+  devOverlay: {
+    ...v_472849.absoluteFillObject,
+    zIndex: 99999,
+    elevation: 99999,
+  },
 });

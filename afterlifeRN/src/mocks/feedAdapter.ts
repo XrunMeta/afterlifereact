@@ -2,7 +2,7 @@ import type { v_bc3df4, v_d79d7f } from "../types/domain";
 import type { v_19b433 } from "../types/feed";
 import { v_694b7f } from "../api/source";
 import { v_a554a7 } from "./images";
-import { v_0b62e7, v_10e36e } from "../stores/feedStore";
+import { v_0b62e7, v_10e36e, v_674b99 } from "../stores/feedStore";
 
 const CLONE_TYPE_LABEL: Record<v_d79d7f, string> = {
   memlow: "멤로우",
@@ -52,7 +52,12 @@ export function v_f386b1(f: v_bc3df4): v_19b433 {
     cloneOwnerId: v_3f4e2e?.ownerId,
     cloneVisibility: v_3f4e2e?.visibility,
     author: v_3f4e2e?.displayName ?? "알 수 없음",
-    username: v_3f4e2e ? `@${v_3f4e2e.cloneType}-${v_3f4e2e.id}` : "@unknown",
+
+    username: v_3f4e2e?.username
+      ? `@${v_3f4e2e.username}`
+      : v_3f4e2e
+      ? `@${v_3f4e2e.cloneType}-${v_3f4e2e.id}`
+      : "@unknown",
     authorAvatar: v_9ab3b1 ?? v_3f4e2e?.imageUrl ?? "",
     image: v_8b5cd8.mediaUrl ?? v_9ab3b1 ?? v_3f4e2e?.imageUrl ?? "",
     title: v_3f4e2e?.displayName ?? "",
@@ -64,5 +69,7 @@ export function v_f386b1(f: v_bc3df4): v_19b433 {
     interests: v_40d2e4,
     likes: v_4fea0a(v_30007d),
     comments: v_ecfc0f,
+
+    myIntimacy: v_674b99.get(v_8b5cd8.cloneId),
   };
 }

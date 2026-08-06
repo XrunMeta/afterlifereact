@@ -107,6 +107,8 @@ export default function v_e2b396() {
   const [v_a6c30b, v_c030e3] = v_5ab095<v_da1883 | null>(v_2a5c62);
   const [v_9d56c4, v_7168a2] = v_5ab095(false);
 
+  const [v_855cdc, v_6bf177] = v_5ab095(false);
+
   const [v_35bf26, v_04e389] = v_5ab095(false);
 
   const v_12b1d1 = v_df9f57(() => {
@@ -315,7 +317,18 @@ export default function v_e2b396() {
             </Text>
             <TouchableOpacity
               style={v_fd5f43.pickerField}
-              onPress={() => v_7168a2(true)}
+              onPress={() => {
+                if (!v_b9bbbd) {
+                  v_889fad(
+                    v_8d41d7("common.notice", { defaultValue: "알림" }),
+                    v_8d41d7("settings.editProfile.regionAfterCountry", {
+                      defaultValue: "먼저 국가를 선택해주세요",
+                    }),
+                  );
+                  return;
+                }
+                v_6bf177(true);
+              }}
               activeOpacity={0.7}
             >
               <Feather name="map-pin" size={18} color={v_1bfbd0.zinc500} />
@@ -403,6 +416,18 @@ export default function v_e2b396() {
           v_b7066f(v_3f4e2e);
           v_c030e3(v_cb35cb);
         }}
+      />
+      {}
+      <CountryRegionPicker
+        visible={v_855cdc}
+        selectedCountry={v_b9bbbd}
+        selectedRegion={v_a6c30b}
+        onClose={() => v_6bf177(false)}
+        onSelect={(_c: v_da1883, r: v_da1883 | null) => {
+
+          v_c030e3(v_cb35cb);
+        }}
+        initialMode="region"
       />
     </SafeScrollView>
   );

@@ -30,7 +30,8 @@
     "durationSec": "{{s}}秒",
     "durationMin": "{{m}}分",
     "durationMinSec": "{{m}}分{{s}}秒",
-    "expertBadge": "エキスパート"
+    "expertBadge": "エキスパート",
+    "pressBackToExit": "もう一度戻ると終了します"
   },
   "tabs": {
     "home": "ホーム",
@@ -234,7 +235,11 @@
     "enrollSuccessToast": "{{name}}さん、これから覚えておきます",
     "enrollFailToast": "登録に失敗しました。再度お試しください",
     "paymentPreparingToast": "決済準備中です",
-    "confirmHint": "タップでキャンセル · まもなく送信"
+    "confirmHint": "タップでキャンセル · まもなく送信",
+    "remainingWarnToast": "残り通話時間は30秒です。まもなく終了します。",
+    "exhaustedTitle": "通話時間終了",
+    "exhaustedBody": "チャージすれば通話を続けられます。",
+    "exhaustedCharge": "チャージ"
   },
   "feed": {
     "homeTitle": "ホーム",
@@ -444,6 +449,7 @@
     "allDone": "すべての質問に回答しました!通話に反映されます。",
     "confirmYes": "はい",
     "confirmNo": "いいえ",
+    "undoLast": "回答を修正する",
     "saving": "保存中...",
     "followupSkip": "スキップ",
     "skip": "別の質問",
@@ -498,6 +504,8 @@
     },
     "menu": {
       "editProfile": "プロフィール管理",
+      "notificationsList": "通知",
+      "notificationsListDesc": "受信した通知をすべて表示",
       "notifications": "通知設定",
       "privacy": "プライバシーと公開範囲",
       "agreements": "同意",
@@ -797,6 +805,19 @@
       "modePreset": "音色を選択",
       "modeRecord": "直接録音",
       "modeUpload": "ファイルアップロード",
+      "nextBlockedTitle": "音声の登録が必要です",
+      "nextBlockedUpload": "先に音声ファイルをアップロードしてください。",
+      "nextBlockedRecord": "先に録音を完了してください。",
+      "nextBlockedRecordUploading": "録音ファイルの登録が完了すると次に進めます。登録に失敗した場合は録音し直してください。",
+      "nextBlockedPreset": "先に声を選択してください。",
+      "nextBlockedGeneric": "先に音声を登録してください。",
+      "notAudioTitle": "音声ファイルではありません",
+      "notAudioMsg": "音声ファイルのみ登録できます。mp3・m4a・wav などを選択してください。",
+      "notAudioEmpty": "空のファイルです。別のファイルを選択してください。",
+      "registerFailed": "録音ファイルの登録に失敗しました。",
+      "registerFailedFile": "音声ファイルの登録に失敗しました。",
+      "registerRetry": "登録を再試行",
+      "nextBlockedUploadRegistering": "音声ファイルの登録が完了すると次に進めます。失敗した場合は再試行してください。",
       "choosePresetHint": "声を選択してください。",
       "presetLoadFailed": "声のリストを読み込めませんでした。",
       "presetPreparing": "音声準備中…",
@@ -917,7 +938,7 @@
       "usernameInvalid": "ID の形式が正しくありません。"
     },
     "step7": {
-      "reviewTitle": "クローン情報のレビュー",
+      "reviewTitle": "クローン情報のプレビュー",
       "displayNameFallback": "ユーザー名",
       "displayHandleFallback": "ID",
       "videoReady": "動画準備完了",

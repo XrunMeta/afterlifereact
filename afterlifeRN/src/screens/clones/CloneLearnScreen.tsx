@@ -54,11 +54,24 @@ interface KnowledgePayload {
   a: string;
 }
 
+const v_870e2c = false;
+
 interface PendingConfirm {
   questionKey: string;
   slots: v_1d8a7b[]; 
   reply: string;          
   userAnswer: string;     
+}
+
+interface LastSaved {
+  baseKey: string;        
+  slotKeys: string[];     
+  userAnswer: string;     
+  reply: string;          
+  followup?: {            
+    question: string;
+    slotKey: string;
+  };
 }
 
 interface FollowupState {
@@ -81,6 +94,8 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_343c90, v_2f6757] = v_5ab095<string>("");
   const [v_365b18, v_323ec3] = v_5ab095<PendingConfirm | null>(null);
   const [v_e3e25f, v_8f1d4b] = v_5ab095<FollowupState | null>(null);
+
+  const [v_ce0b03, v_9a42bc] = v_5ab095<LastSaved | null>(null);
   const v_5ca6b8 = v_e662ae<v_122070>(null);
 
   const v_31c649 = v_df9f57(() => new Set(v_4622b9.map((v_ebec57) => v_ebec57.key)), [v_4622b9]);
@@ -179,6 +194,14 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       }
       const v_3871e2 = v_8f00b9.items ?? [];
       v_fa923c(v_3871e2);
+
+      v_9a42bc({
+        baseKey: v_e3e25f.baseKey,
+        slotKeys: [v_e3e25f.slotKey],
+        userAnswer: v_779914,
+        reply: "",
+        followup: { question: v_e3e25f.question, slotKey: v_e3e25f.slotKey },
+      });
       const v_ca2c14 = new Set(v_3871e2.map((v_ebec57) => v_ebec57.key));
       v_ca2c14.add(v_e3e25f.baseKey);
       const v_75fbef = v_c3519b.filter((v_ab6401) => !v_ca2c14.has(v_ab6401.key));
@@ -243,13 +266,19 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       const v_677216 =
         v_8f00b9.reply?.trim() ||
         v_8d41d7("learn.defaultConfirm", { defaultValue: "이렇게 정리하면 맞을까?" });
-      v_323ec3({
+      const v_483de2 = {
         questionKey: v_2a8f35.key,
         slots: v_966a46,
         reply: v_677216,
         userAnswer: v_779914,
-      });
-      v_2f6757("");
+      };
+      if (v_870e2c) {
+        v_323ec3(v_483de2);
+        v_2f6757("");
+      } else {
+
+        await v_73f17b(v_483de2);
+      }
     } catch (v_49263d) {
       v_889fad(v_8d41d7("common.error"), (v_49263d as Error).message);
     } finally {
@@ -257,12 +286,18 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     }
   };
 
-  const v_6d687a = async () => {
-    if (!v_2ca7e0 || !v_365b18) return;
-    const v_934ae5 = v_365b18.slots.filter((v_fd5f43) => v_fd5f43.a && v_fd5f43.a.trim());
-    const v_6845e8 = v_365b18.questionKey;
+  const v_73f17b = async (v_483de2) => {
+    if (!v_2ca7e0) return;
+    const v_934ae5 = v_483de2.slots.filter((v_fd5f43) => v_fd5f43.a && v_fd5f43.a.trim());
+    const v_6845e8 = v_483de2.questionKey;
     const v_67f24f = v_c3519b.find((v_ab6401) => v_ab6401.key === v_6845e8);
-    const v_46ab36 = v_365b18.userAnswer;
+    const v_46ab36 = v_483de2.userAnswer;
+
+    const v_d6166c = {
+      key: v_6845e8,
+      q: v_67f24f?.label ?? null,
+      a: v_46ab36,
+    };
     const v_88b6a2 = (fresh: v_1d8a7b[]) => {
       const v_ca2c14 = new Set(v_3871e2.map((v_ebec57) => v_ebec57.key));
       v_ca2c14.add(v_6845e8);
@@ -270,23 +305,28 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       const v_75fbef = v_c3519b.filter((v_ab6401) => !v_ca2c14.has(v_ab6401.key));
       v_056f5c(v_35ad8d(v_75fbef));
     };
-    v_04e389(true);
     try {
-      let v_3871e2 = v_4622b9;
-      if (v_934ae5.length > 0) {
-        const v_931bf0 = [
-          ...v_4622b9.map((v_23805a) => ({ key: v_23805a.key, q: v_23805a.q, a: v_23805a.a })),
-          ...v_934ae5.map((v_fd5f43) => ({ key: v_fd5f43.key, q: v_fd5f43.q, a: v_fd5f43.a })),
-        ];
-        const v_8f00b9 = await v_085a16(v_2ca7e0, v_6e0fd3, v_931bf0);
-        if (v_8f00b9.error) {
-          v_889fad(v_8d41d7("common.error"), v_8f00b9.message || v_8f00b9.error);
-          return;
-        }
-        v_3871e2 = v_8f00b9.items ?? [];
-        v_fa923c(v_3871e2);
+
+      const v_931bf0 = [
+        ...v_4622b9.map((v_23805a) => ({ key: v_23805a.key, q: v_23805a.q, a: v_23805a.a })),
+        v_d6166c,
+        ...v_934ae5.map((v_fd5f43) => ({ key: v_fd5f43.key, q: v_fd5f43.q, a: v_fd5f43.a })),
+      ];
+      const v_8f00b9 = await v_085a16(v_2ca7e0, v_6e0fd3, v_931bf0);
+      if (v_8f00b9.error) {
+        v_889fad(v_8d41d7("common.error"), v_8f00b9.message || v_8f00b9.error);
+        return;
       }
+      const v_3871e2 = v_8f00b9.items ?? [];
+      v_fa923c(v_3871e2);
       v_323ec3(null);
+
+      v_9a42bc({
+        baseKey: v_6845e8,
+        slotKeys: [v_6845e8, ...v_934ae5.map((v_fd5f43) => v_fd5f43.key)],
+        userAnswer: v_46ab36,
+        reply: v_483de2.reply,
+      });
 
       const v_2869c1 = v_67f24f?.label ?? "";
       const v_5c8505 = v_2869c1
@@ -305,6 +345,51 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       v_88b6a2(v_3871e2);
     } catch (v_49263d) {
       v_889fad(v_8d41d7("common.error"), (v_49263d as Error).message);
+    }
+  };
+
+  const v_6d687a = async () => {
+    if (!v_2ca7e0 || !v_365b18) return;
+    v_04e389(true);
+    try {
+      await v_73f17b(v_365b18);
+    } finally {
+      v_04e389(false);
+    }
+  };
+
+  const v_a45dda = async () => {
+    if (!v_2ca7e0 || !v_ce0b03) return;
+    v_04e389(true);
+    try {
+      const v_d428e3 = new Set(v_ce0b03.slotKeys);
+      const v_916658 = v_4622b9.filter((v_23805a) => !v_d428e3.has(v_23805a.key));
+      const v_931bf0 = v_916658.map((v_23805a) => ({
+        key: v_23805a.key,
+        q: v_23805a.q,
+        a: v_23805a.a,
+      }));
+      const v_8f00b9 = await v_085a16(v_2ca7e0, v_6e0fd3, v_931bf0);
+      if (v_8f00b9.error) {
+        v_889fad(v_8d41d7("common.error"), v_8f00b9.message || v_8f00b9.error);
+        return;
+      }
+      v_fa923c(v_8f00b9.items ?? []);
+      v_056f5c(v_ce0b03.baseKey);
+      v_2f6757(v_ce0b03.userAnswer);
+
+      if (v_ce0b03.followup) {
+        v_8f1d4b({
+          baseKey: v_ce0b03.baseKey,
+          question: v_ce0b03.followup.question,
+          slotKey: v_ce0b03.followup.slotKey,
+        });
+      } else {
+        v_8f1d4b(null);
+      }
+      v_9a42bc(null);
+    } catch (v_49263d) {
+      v_889fad(v_8d41d7("common.error"), (v_49263d as Error).message);
     } finally {
       v_04e389(false);
     }
@@ -321,6 +406,8 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     v_056f5c(v_35ad8d(v_75fbef));
     v_2f6757("");
     v_323ec3(null);
+
+    v_9a42bc(null);
   };
 
   return (
@@ -403,7 +490,27 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                   </View>
                 ))}
 
-                {v_2a8f35 && (
+                {
+}
+                {v_ce0b03 && !v_365b18 && !v_e3e25f && (
+                  <View style={[v_d81136.bubbleRow, v_d81136.bubbleRowLeft]}>
+                    <TouchableOpacity
+                      onPress={v_a45dda}
+                      disabled={v_35bf26}
+                      style={[v_d81136.undoLink, v_35bf26 && v_d81136.btnDisabled]}
+                    >
+                      <Feather name="edit-2" size={13} color="#2563eb" />
+                      <Text style={v_d81136.undoLinkText}>
+                        {v_8d41d7("learn.undoLast", { defaultValue: "답변 수정하기" })}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {
+
+}
+                {v_2a8f35 && !v_e3e25f && (
                   <View style={[v_d81136.bubbleRow, v_d81136.bubbleRowLeft]}>
                     <View style={[v_d81136.bubble, v_d81136.bubbleBot]}>
                       <Text style={v_d81136.bubbleText}>
@@ -671,6 +778,23 @@ const v_d81136 = v_472849.create({
     fontWeight: "500",
   },
   btnDisabled: { opacity: 0.4 },
+
+  undoLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: v_8b0c90.full,
+    backgroundColor: v_1bfbd0.zinc50,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+  },
+  undoLinkText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#2563eb",
+  },
   confirmRow: {
     flexDirection: "row",
     gap: 10,
