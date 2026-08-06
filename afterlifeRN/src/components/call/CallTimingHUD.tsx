@@ -2,15 +2,21 @@
 
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { subscribeTimingEvents, formatTimingLine, type TimingEvent } from '../../realtime/timingEvents';
+import { subscribeTimingEvents, formatTimingLine, type TimingEvent, type TimingEventType } from '../../realtime/timingEvents';
 import { useTimingConfigStore } from '../../realtime/timingConfig';
 
 const VISIBLE = 12; 
 
+const AUDIO_TYPES: readonly TimingEventType[] = [
+  'speech_start', 'speech_end', 'stt_open', 'stt_close',
+  'suppress_on', 'suppress_off', 'vad_endpoint', 'dev_listen_now',
+];
+
 export const CallTimingHUD: React.FC = () => {
   const [events, setEvents] = useState<TimingEvent[]>([]);
   useEffect(() => subscribeTimingEvents(setEvents), []);
-  const shown = events.slice(Math.max(0, events.length - VISIBLE));
+  const audio = events.filter((e) => AUDIO_TYPES.includes(e.type));
+  const shown = audio.slice(Math.max(0, audio.length - VISIBLE));
   const sttEndpointMs = useTimingConfigStore((s) => s.sttEndpointMs);
   const echoGateMs = useTimingConfigStore((s) => s.echoGateMs);
   const cloneResumeMs = useTimingConfigStore((s) => s.cloneResumeMs);

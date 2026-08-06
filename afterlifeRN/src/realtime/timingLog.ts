@@ -13,6 +13,8 @@ export function startTimingLog(): () => void {
     const e = events[events.length - 1];
     if (!e) return; 
 
-    console.log('[Call][timing]', e.type, 't=', e.tMs);
+    if (e.detail) console.log('[Call][timing]', e.type, 't=', e.tMs, e.detail);
+
+    else console.log('[Call][timing]', e.type, 't=', e.tMs);
   });
 }

@@ -16,6 +16,7 @@ import {
 import { extractCloneAudioLevel, type CloneSilenceConfig } from './cloneSilence';
 import { useTimingConfigStore } from './timingConfig';
 import { emitTimingEvent } from './timingEvents';
+import { traceDispatch, head20 } from './handsFreeTrace';
 import { shouldUpdateLevel } from './voiceBall';
 import { ensureQuestionMark } from './questionMark';
 
@@ -145,6 +146,10 @@ export function useHandsFreeController(opts: {
           case 'SAY':
 
             if (saySeq != null) activeSeqRef.current = saySeq;
+
+            emitTimingEvent('tx', {
+              mode: sayText ? 'say' : 'skip', seq: saySeq ?? null, text: head20(sayText), eff: 'SAY',
+            });
             if (sayText) {
               sayRef.current(sayText).catch(() => dispatchRef.current({ type: 'RESPONSE_DONE' }));
             } else {
@@ -157,6 +162,12 @@ export function useHandsFreeController(opts: {
             if (saySeq != null) activeSeqRef.current = saySeq;
 
             interruptCooldownUntilRef.current = Date.now() + INTERRUPT_COOLDOWN_MS;
+            emitTimingEvent('timer', { name: 'cooldown', action: 'set', ms: INTERRUPT_COOLDOWN_MS });
+
+            emitTimingEvent('tx', {
+              mode: sayText && speakRef.current ? 'speak' : 'skip',
+              seq: saySeq ?? null, text: head20(sayText), eff: e,
+            });
             if (sayText && speakRef.current) {
               speakRef.current(sayText).catch(() => dispatchRef.current({ type: 'RESPONSE_DONE' }));
             } else {
@@ -173,6 +184,9 @@ export function useHandsFreeController(opts: {
 
           case 'GREET':
 
+            emitTimingEvent('tx', {
+              mode: greetRef.current ? 'greet' : 'skip', seq: saySeq ?? null, text: '', eff: 'GREET',
+            });
             if (greetRef.current) {
               greetRef.current().catch(() => dispatchRef.current({ type: 'GREET_TIMEOUT' }));
             } else {
@@ -184,6 +198,10 @@ export function useHandsFreeController(opts: {
             break;
           case 'SPEAK_FALLBACK':
 
+            emitTimingEvent('tx', {
+              mode: speakRef.current ? 'speak' : 'skip', seq: saySeq ?? null,
+              text: head20(fallbackText), eff: 'SPEAK_FALLBACK',
+            });
             if (speakRef.current) {
               speakRef.current(fallbackText).catch(() => dispatchRef.current({ type: 'RESPONSE_DONE' }));
             } else {
@@ -200,12 +218,18 @@ export function useHandsFreeController(opts: {
     [speech, detector, greetTimeoutMs, fallbackText],
   );
 
-  const clearPendingDone = useCallback(() => {
+  const clearPendingDone = useCallback((by: 'dispatch' | 'silence' = 'dispatch') => {
+    const had = pendingDoneAtRef.current !== null || pendingDoneTimerRef.current !== null;
     pendingDoneAtRef.current = null;
     releaseNotBeforeRef.current = 0;
     if (pendingDoneTimerRef.current) {
       clearTimeout(pendingDoneTimerRef.current);
       pendingDoneTimerRef.current = null;
+    }
+    if (had) {
+      emitTimingEvent('timer', {
+        name: 'pendingDone', action: by === 'silence' ? 'fire' : 'clear', by,
+      });
     }
   }, []);
 
@@ -216,7 +240,10 @@ export function useHandsFreeController(opts: {
         clearPendingDone();
       }
 
-      if (ev.type === 'CALL_ENDED') interruptCooldownUntilRef.current = 0;
+      if (ev.type === 'CALL_ENDED') {
+        interruptCooldownUntilRef.current = 0;
+        emitTimingEvent('timer', { name: 'cooldown', action: 'clear', by: 'call_ended' });
+      }
       const prev = stateRef.current;
       const { state: next, effects, sayText, saySeq } = handsFreeReducer(prev, ev);
 
@@ -229,6 +256,8 @@ export function useHandsFreeController(opts: {
       if (prev.phase === 'greeting' && next.phase === 'speaking') {
         if (greetTimerRef.current) { clearTimeout(greetTimerRef.current); greetTimerRef.current = null; }
       }
+
+      traceDispatch(prev, next, ev, effects);
       stateRef.current = next;
       setState(next);
       runEffects(effects, sayText, saySeq);
@@ -253,8 +282,15 @@ export function useHandsFreeController(opts: {
     if (!opts.signalGating) return;
     if (state.phase !== 'sending' && state.phase !== 'speaking' && state.phase !== 'interrupting') return;
     const ms = useTimingConfigStore.getState().responseDoneTimeoutMs;
-    const id = setTimeout(() => dispatchRef.current({ type: 'RESPONSE_DONE' }), ms);
-    return () => clearTimeout(id);
+    emitTimingEvent('timer', { name: 'signalGatingFallback', action: 'set', ms });
+    const id = setTimeout(() => {
+      emitTimingEvent('timer', { name: 'signalGatingFallback', action: 'fire' });
+      dispatchRef.current({ type: 'RESPONSE_DONE' });
+    }, ms);
+    return () => {
+      clearTimeout(id);
+      emitTimingEvent('timer', { name: 'signalGatingFallback', action: 'clear' });
+    };
   }, [state.phase, opts.lastSignal, opts.signalGating]);
 
   useEffect(() => {
@@ -272,10 +308,18 @@ export function useHandsFreeController(opts: {
     if (!sig) return;
     if (sig.type === 'speech_start') {
       emitTimingEvent('speech_start');
+
+      emitTimingEvent('rx', {
+        sig: 'speech_start', seq: activeSeqRef.current, srvSeq: sig.seq ?? null,
+      });
       dispatchRef.current({ type: 'SPEECH_START', seq: activeSeqRef.current ?? undefined });
     }
     else if (sig.type === 'speech_end') {
       emitTimingEvent('speech_end');
+      emitTimingEvent('rx', {
+        sig: 'speech_end', seq: activeSeqRef.current, srvSeq: sig.seq ?? null,
+        remainingMs: sig.remainingMs ?? 0,
+      });
 
       const endSeq = activeSeqRef.current ?? undefined;
 
@@ -287,13 +331,23 @@ export function useHandsFreeController(opts: {
         releaseNotBeforeRef.current = Date.now() + remainingMs;
         pendingDoneAtRef.current = Date.now();
         if (pendingDoneTimerRef.current) clearTimeout(pendingDoneTimerRef.current);
+        emitTimingEvent('timer', {
+          name: 'pendingDone', action: 'set', ms: remainingMs + RESPONSE_DONE_TAIL_MAX_MS,
+        });
         pendingDoneTimerRef.current = setTimeout(() => {
           pendingDoneTimerRef.current = null;
           pendingDoneAtRef.current = null;
           releaseNotBeforeRef.current = 0;
+          emitTimingEvent('timer', { name: 'pendingDone', action: 'fire', by: 'tailMax' });
           dispatchRef.current({ type: 'RESPONSE_DONE', seq: endSeq });
         }, remainingMs + RESPONSE_DONE_TAIL_MAX_MS);
       }
+    }
+
+    else if (sig.type === 'speech_text') {
+      emitTimingEvent('rx', {
+        sig: 'speech_text', seq: activeSeqRef.current, srvSeq: sig.seq ?? null,
+      });
     }
 
   }, [opts.lastSignal]);
@@ -305,8 +359,12 @@ export function useHandsFreeController(opts: {
     if (pendingDoneTimerRef.current) return; 
     const wait = Math.max(0, releaseNotBeforeRef.current - Date.now()); 
     const delay = IDLE_GREET_DELAYS_MS[state.idleGreetCount] + wait;
-    const id = setTimeout(() => dispatchRef.current({ type: 'IDLE_TIMEOUT' }), delay);
-    return () => clearTimeout(id);
+    emitTimingEvent('timer', { name: 'watchdog', action: 'set', ms: delay });
+    const id = setTimeout(() => {
+      emitTimingEvent('timer', { name: 'watchdog', action: 'fire' });
+      dispatchRef.current({ type: 'IDLE_TIMEOUT' });
+    }, delay);
+    return () => { clearTimeout(id); emitTimingEvent('timer', { name: 'watchdog', action: 'clear' }); };
   }, [state.phase, state.userSpeaking, state.idleGreetCount]);
 
   useEffect(() => {
@@ -317,21 +375,39 @@ export function useHandsFreeController(opts: {
     if (!state.micOn) return;
     if (pendingDoneTimerRef.current) return; 
     const wait = Math.max(0, releaseNotBeforeRef.current - Date.now()); 
+    emitTimingEvent('timer', {
+      name: 'interruptFlush', action: 'set', ms: PENDING_INTERRUPT_FLUSH_QUIET_MS + wait,
+    });
     const id = setTimeout(
-      () => dispatchRef.current({ type: 'INTERRUPT_FLUSH' }),
+      () => {
+        emitTimingEvent('timer', { name: 'interruptFlush', action: 'fire' });
+        dispatchRef.current({ type: 'INTERRUPT_FLUSH' });
+      },
       PENDING_INTERRUPT_FLUSH_QUIET_MS + wait,
     );
-    return () => clearTimeout(id);
+    return () => {
+      clearTimeout(id);
+      emitTimingEvent('timer', { name: 'interruptFlush', action: 'clear' });
+    };
   }, [state.pendingInterrupt, state.phase, state.userSpeaking, state.activeSeq, state.micOn]);
 
   useEffect(() => {
     const pi = state.pendingInterrupt;
     if (!pi) return;
+    emitTimingEvent('timer', {
+      name: 'interruptExpire', action: 'set', ms: PENDING_INTERRUPT_EXPIRE_MS,
+    });
     const id = setTimeout(
-      () => dispatchRef.current({ type: 'INTERRUPT_EXPIRED', faceKey: pi.faceKey }),
+      () => {
+        emitTimingEvent('timer', { name: 'interruptExpire', action: 'fire' });
+        dispatchRef.current({ type: 'INTERRUPT_EXPIRED', faceKey: pi.faceKey });
+      },
       PENDING_INTERRUPT_EXPIRE_MS,
     );
-    return () => clearTimeout(id);
+    return () => {
+      clearTimeout(id);
+      emitTimingEvent('timer', { name: 'interruptExpire', action: 'clear' });
+    };
   }, [state.pendingInterrupt]);
 
   useEffect(() => {
@@ -362,7 +438,7 @@ export function useHandsFreeController(opts: {
           now - cloneSpokeAtRef.current > useTimingConfigStore.getState().cloneResumeMs &&
           now >= releaseNotBeforeRef.current
         ) {
-          clearPendingDone();
+          clearPendingDone('silence');
           dispatchRef.current({ type: 'RESPONSE_DONE' });
         }
 
@@ -425,7 +501,10 @@ export function useHandsFreeController(opts: {
 
   const notifyFaceInterrupt = useCallback((text: string, faceKey: string) => {
 
-    if (Date.now() < interruptCooldownUntilRef.current) return;
+    if (Date.now() < interruptCooldownUntilRef.current) {
+      emitTimingEvent('interrupt', { act: 'cooldown_block', faceKey, deferredTurns: 0 });
+      return;
+    }
     dispatchRef.current({ type: 'FACE_INTERRUPT', text, faceKey });
   }, []);
 
