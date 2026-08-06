@@ -16,6 +16,7 @@ import {
   Keyboard,
   Linking,
   TextInput,
+  BackHandler,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
@@ -952,6 +953,16 @@ export default function CallScreen({ route, navigation }: Props) {
     anim.start();
     return () => anim.stop();
   }, [phase, pendingText, confirmProgress]);
+
+  useEffect(() => {
+    const backSub = BackHandler.addEventListener("hardwareBackPress", () => {
+      console.log("[Call][back] hardware back → stopLive + goBack");
+      void stopLive();
+      navigation.goBack();
+      return true;
+    });
+    return () => backSub.remove();
+  }, [stopLive, navigation]);
 
   const callStartRef = useRef<number>(Date.now());
   const tokenRef = useRef(accessToken);
