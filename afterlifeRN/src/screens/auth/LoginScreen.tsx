@@ -610,15 +610,17 @@ const styles = StyleSheet.create({
   },
 
   snsLoginContainer: {
-    marginTop: SIZES.large,
-    alignItems: "flex-start",
+    marginTop: SIZES.xlarge,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: SIZES.medium,
     width: "100%",
   },
   snsLoginLabel: {
     fontSize: 13,
     lineHeight: 20,
     color: COLORS.zinc600,
-    marginBottom: 8,
   },
   snsButtonContainer: {
     flexDirection: "row",
