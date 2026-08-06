@@ -170,6 +170,13 @@ v_b7f2b4.patch("/config/gift-catalog", v_c0a297, async (v_3f4e2e) => {
         v_bd030e.imageUrl = v_2f361a;
       }
     }
+
+    if (v_23805a.xrunPrice !== undefined && v_23805a.xrunPrice !== null) {
+      if (typeof v_23805a.xrunPrice !== "number" || !Number.isFinite(v_23805a.xrunPrice) || v_23805a.xrunPrice < 0) {
+        throw new v_3ebe58("VALIDATION_FAILED", "xrunPrice must be non-negative number.");
+      }
+      v_bd030e.xrunPrice = v_23805a.xrunPrice;
+    }
     v_76a373.push(v_bd030e);
   }
   await v_9459da(v_3f4e2e.env, v_76a373);
