@@ -26,6 +26,8 @@ import {
 } from "../../lib/callForegroundService";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
+
+import SvgaOverlay from "../../components/gift/SvgaOverlay";
 import { RTCView } from "react-native-webrtc";
 import {
   Camera as VisionCamera,
@@ -770,6 +772,8 @@ function CallScreenInner({ route, navigation }: Props) {
 
   const [showGifts, setShowGifts] = useState(false);
 
+  const [svgaOverlayUrl, setSvgaOverlayUrl] = useState<string | null>(null);
+
   const [gifts, setGifts] = useState<GiftCatalogItem[]>([]);
   useEffect(() => {
     let cancelled = false;
@@ -1054,10 +1058,15 @@ function CallScreenInner({ route, navigation }: Props) {
   }, [toastMessage]);
 
   const handleGiftSend = (gift: GiftCatalogItem) => {
-    console.log(`[Call][gift-tap] giftId=${gift.id} name=${gift.name} (결제 준비 중)`);
+    console.log(`[Call][gift-tap] giftId=${gift.id} name=${gift.name} svga=${!!gift.svgaUrl}`);
     setShowGifts(false);
     setToastMessage(t("call.paymentPreparingToast", { defaultValue: "결제 준비 중이에요" }));
-    playGiftAnimation(gift);
+
+    if (gift.svgaUrl) {
+      setSvgaOverlayUrl(gift.svgaUrl);
+    } else {
+      playGiftAnimation(gift);
+    }
   };
 
   const playGiftAnimation = (gift: GiftCatalogItem) => {
@@ -1627,6 +1636,12 @@ function CallScreenInner({ route, navigation }: Props) {
           <Text style={s.toastText}>{toastMessage}</Text>
         </View>
       )}
+      {}
+      <SvgaOverlay
+        visible={!!svgaOverlayUrl}
+        svgaUrl={svgaOverlayUrl}
+        onClose={() => setSvgaOverlayUrl(null)}
+      />
     </View>
   );
 }
