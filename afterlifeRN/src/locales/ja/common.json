@@ -529,6 +529,8 @@
       "openXrunDesc": "XRUNアプリを開く(ない場合はストア)",
       "purchase": "クレジットチャージ・サブスクリプション",
       "purchaseDesc": "月額サブスクリプション・チャージで通話時間を追加",
+      "giftInventory": "ギフトウォレット",
+      "giftInventoryDesc": "受け取ったギフトを XRUN クレジットに交換",
       "logout": "ログアウト"
     }
   },
