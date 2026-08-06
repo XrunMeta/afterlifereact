@@ -422,6 +422,13 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
 
 }
           {}
+          {(v_326be8.OS === "ios" || v_c39df9 !== false) && (
+            <View style={v_d81136.divider}>
+              <View style={v_d81136.dividerLine} />
+              <Text style={v_d81136.dividerText}>—</Text>
+              <View style={v_d81136.dividerLine} />
+            </View>
+          )}
 
           {
 }
