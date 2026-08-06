@@ -237,18 +237,20 @@ const FeedCard: React.FC<FeedCardProps> = ({
 }
             {item.description ? (
 
-              <View style={styles.descriptionWrap}>
+              <View
+                style={styles.descriptionWrap}
+                onTouchStart={onDescriptionScrollStart}
+                onTouchEnd={onDescriptionScrollEnd}
+                onTouchCancel={onDescriptionScrollEnd}
+              >
                 <ScrollView
                   style={styles.descriptionScroll}
                   showsVerticalScrollIndicator={true}
-                  nestedScrollEnabled={true}
+                  nestedScrollEnabled={false}
                   persistentScrollbar={true}
                   indicatorStyle="white"
                   bounces={false}
                   overScrollMode="never"
-                  onScrollBeginDrag={onDescriptionScrollStart}
-                  onScrollEndDrag={onDescriptionScrollEnd}
-                  onMomentumScrollEnd={onDescriptionScrollEnd}
                 >
                   <HashtagText
                     style={styles.description}
