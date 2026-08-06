@@ -4,6 +4,15 @@ import type { v_273a0c } from "../src/lib/env";
 
 const v_9542f7 = v_c9c489 as unknown as v_273a0c;
 
+async function v_4d24a9(v_1badb6, v_556427): Promise<number> {
+  await v_9542f7.DB.prepare(
+    `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+     VALUES (?, 'TestClone', ?, 'memlow', 'public', CURRENT_TIMESTAMP)`,
+  ).bind(v_1badb6, v_556427).run();
+  const v_3f4e2e = await v_9542f7.DB.prepare("SELECT id FROM clones WHERE username = ?").bind(v_556427).first<{ id: number }>();
+  return v_3f4e2e!.id;
+}
+
 async function v_d33950(v_e0c7e8): Promise<{ id: number; token: string }> {
   const { hashPassword: v_54846c } = await import("../src/lib/password");
   await v_9542f7.DB.prepare(
@@ -131,14 +140,15 @@ v_469bf2("POST /oth-path", () => {
       body: JSON.stringify({ state: "granted", termsVersion: "v1", channel: "signup" }),
     });
 
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "face-consent-revoke-clone");
     const v_00f373 = await v_1df298.fetch("http://localhost/oth-path", {
       method: "POST", headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ enrolledVia: "auto_biometric" }),
+      body: JSON.stringify({ cloneId: v_6e0fd3, enrolledVia: "auto_biometric" }),
     });
     const { id: v_dabf71 } = (await v_00f373.json()) as { id: number };
     const v_0ba2b1 = await v_1df298.fetch("http://localhost/oth-path", {
       method: "POST", headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ displayName: "카드등록" }),
+      body: JSON.stringify({ cloneId: v_6e0fd3, displayName: "카드등록" }),
     });
     const { id: v_0d6853 } = (await v_0ba2b1.json()) as { id: number };
     await v_1df298.fetch(`http://localhost/oth-path${v_0d6853}/consent`, {

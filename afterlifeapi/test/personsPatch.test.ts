@@ -15,11 +15,24 @@ async function v_d33950(v_e0c7e8): Promise<{ id: number; token: string }> {
   return { id: v_ceb55a!.id, token: v_21cc31 };
 }
 
-async function v_4e7b87(v_21cc31, v_4d33b2 = {}): Promise<number> {
+async function v_4d24a9(v_1badb6, v_556427): Promise<number> {
+  const v_a1651b = (v_c9c489 as any).DB as D1Database;
+  await v_a1651b
+    .prepare(
+      `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+       VALUES (?, 'TestClone', ?, 'memlow', 'public', CURRENT_TIMESTAMP)`
+    )
+    .bind(v_1badb6, v_556427)
+    .run();
+  const v_3f4e2e = await v_a1651b.prepare("SELECT id FROM clones WHERE username = ?").bind(v_556427).first<{ id: number }>();
+  return v_3f4e2e!.id;
+}
+
+async function v_4e7b87(v_21cc31, v_6e0fd3, v_4d33b2 = {}): Promise<number> {
   const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
     method: "POST",
     headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
-    body: JSON.stringify(v_4d33b2),
+    body: JSON.stringify({ cloneId: v_6e0fd3, ...v_4d33b2 }),
   });
   const { id: v_389afb } = (await v_8f00b9.json()) as { id: number };
   return v_389afb;
@@ -27,8 +40,9 @@ async function v_4e7b87(v_21cc31, v_4d33b2 = {}): Promise<number> {
 
 v_469bf2("PATCH /oth-path", () => {
   v_23805a("displayName 갱신 성공 → 200 + D1 반영", async () => {
-    const { token: v_21cc31 } = await v_d33950("patch-ok@test.test");
-    const v_ca1ec5 = await v_4e7b87(v_21cc31);
+    const { id: v_43e90c, token: v_21cc31 } = await v_d33950("patch-ok@test.test");
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "patch-ok-clone");
+    const v_ca1ec5 = await v_4e7b87(v_21cc31, v_6e0fd3);
     const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_ca1ec5}`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
@@ -43,8 +57,9 @@ v_469bf2("PATCH /oth-path", () => {
   });
 
   v_23805a("빈 문자열/31자 초과 → 422", async () => {
-    const { token: v_21cc31 } = await v_d33950("patch-bad@test.test");
-    const v_ca1ec5 = await v_4e7b87(v_21cc31);
+    const { id: v_43e90c, token: v_21cc31 } = await v_d33950("patch-bad@test.test");
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "patch-bad-clone");
+    const v_ca1ec5 = await v_4e7b87(v_21cc31, v_6e0fd3);
     const v_d6db99 = await v_1df298.fetch(`http://localhost/oth-path${v_ca1ec5}`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
@@ -62,7 +77,8 @@ v_469bf2("PATCH /oth-path", () => {
   v_23805a("타인 소유 person → 404", async () => {
     const v_257b90 = await v_d33950("patch-owner@test.test");
     const v_53bb36 = await v_d33950("patch-attacker@test.test");
-    const v_ca1ec5 = await v_4e7b87(v_257b90.token);
+    const v_6e0fd3 = await v_4d24a9(v_257b90.id, "patch-owner-clone");
+    const v_ca1ec5 = await v_4e7b87(v_257b90.token, v_6e0fd3);
     const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_ca1ec5}`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${v_53bb36.token}`, "Content-Type": "application/json" },

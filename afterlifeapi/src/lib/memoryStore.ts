@@ -2,6 +2,7 @@
 
 import type { v_273a0c } from './env';
 import { v_c9411d } from './piiFilter';
+import { v_a8d2cc } from './faceVectors';
 
 export async function v_e86502(env: v_273a0c, v_6e0fd3): Promise<string | null> {
   const v_e2a6a6 = await v_c9c489.KV_CTX.get(`ctx:${v_6e0fd3}`);
@@ -316,7 +317,7 @@ export async function v_600422(
 
 export async function v_344b9e(
   env: v_273a0c, v_43e90c,
-): Promise<{ ontRows: number; personRows: number; kvKeys: number }> {
+): Promise<{ ontRows: number; personRows: number; kvKeys: number; vectorRows: number }> {
 
   const v_c2273d = (
     await v_c9c489.DB.prepare("SELECT clone_id FROM clone_ont WHERE user_id = ?")
@@ -331,6 +332,29 @@ export async function v_344b9e(
   const v_860a7c = await v_c9c489.DB.prepare("DELETE FROM clone_ont WHERE user_id = ?")
     .bind(v_43e90c).run();
 
+  const v_c5fb18 = await v_c9c489.DB.prepare(
+    `SELECT vectorize_id FROM clone_person_faces
+      WHERE person_id IN (SELECT id FROM persons WHERE user_id = ?)
+      UNION
+     SELECT vectorize_id FROM face_embeddings
+      WHERE person_id IN (SELECT id FROM persons WHERE user_id = ?)`,
+  )
+    .bind(v_43e90c, v_43e90c)
+    .all<{ vectorize_id: string | null }>();
+  const v_23dafb = v_c5fb18.results.map((v_cb35cb) => v_cb35cb.vectorize_id).filter((v_81e2ef): v_81e2ef is string => Boolean(v_81e2ef));
+  if (v_23dafb.length) await v_a8d2cc(v_c9c489).deleteByIds(v_23dafb);
+
+  await v_c9c489.DB.prepare(
+    "DELETE FROM clone_person_faces WHERE person_id IN (SELECT id FROM persons WHERE user_id = ?)",
+  )
+    .bind(v_43e90c)
+    .run();
+  await v_c9c489.DB.prepare(
+    "DELETE FROM face_embeddings WHERE person_id IN (SELECT id FROM persons WHERE user_id = ?)",
+  )
+    .bind(v_43e90c)
+    .run();
+
   const v_f6ae72 = await v_c9c489.DB.prepare(
     "DELETE FROM clone_ont_person WHERE person_id IN (SELECT id FROM persons WHERE user_id = ?)",
   ).bind(v_43e90c).run();
@@ -339,5 +363,6 @@ export async function v_344b9e(
     ontRows: v_860a7c.meta?.changes ?? 0,
     personRows: v_f6ae72.meta?.changes ?? 0,
     kvKeys: v_20342d,
+    vectorRows: v_23dafb.length,
   };
 }

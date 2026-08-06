@@ -25,6 +25,8 @@ const v_17f880 = {
 export interface UseFaceEnrollOptions {
   accessToken: string;
 
+  cloneId: number;
+
   getBuffer: () => v_4f64ba;
 
   getSnapshot?: () => number[][] | null;
@@ -48,7 +50,7 @@ export interface UseFaceEnrollResult {
 }
 
 export function v_3fc8fd(v_328259): UseFaceEnrollResult {
-  const { accessToken: v_2ca7e0, getBuffer: v_b84ee1, getSnapshot: v_172c9f } = v_328259;
+  const { accessToken: v_2ca7e0, cloneId: v_6e0fd3, getBuffer: v_b84ee1, getSnapshot: v_172c9f } = v_328259;
   const v_84b93d = v_328259.deps ?? v_17f880;
   const [v_d308b5, v_5193f8] = v_5ab095<FaceEnrollStatus>("idle");
   const [v_5e9bfe, v_3a7d09] = v_5ab095<Error | null>(null);
@@ -67,7 +69,7 @@ export function v_3fc8fd(v_328259): UseFaceEnrollResult {
       try {
         let v_306a28 = v_9d3e9b.current;
         if (!v_306a28) {
-          v_306a28 = await v_84b93d.createPersonFn(v_2ca7e0, { displayName: v_1833e7 });
+          v_306a28 = await v_84b93d.createPersonFn(v_2ca7e0, { cloneId: v_6e0fd3, displayName: v_1833e7 });
           v_9d3e9b.current = v_306a28;
         }
         if (!v_9dac17.current) {
@@ -83,7 +85,7 @@ export function v_3fc8fd(v_328259): UseFaceEnrollResult {
           );
         }
         const v_f94e64 = v_5392c4 ?? v_b84ee1().latest(v_9e3bb7);
-        await v_84b93d.enrollFacesFn(v_2ca7e0, v_306a28.id, v_f94e64);
+        await v_84b93d.enrollFacesFn(v_2ca7e0, v_306a28.id, v_f94e64, v_6e0fd3);
         v_5193f8("success");
       } catch (v_9e86fd) {
         v_5193f8("error");
@@ -92,7 +94,7 @@ export function v_3fc8fd(v_328259): UseFaceEnrollResult {
         v_28ec48.current = false;
       }
     },
-    [v_2ca7e0, v_b84ee1, v_172c9f, v_84b93d],
+    [v_2ca7e0, v_6e0fd3, v_b84ee1, v_172c9f, v_84b93d],
   );
 
   const v_957fe3 = v_de06a3(async () => {
@@ -103,7 +105,7 @@ export function v_3fc8fd(v_328259): UseFaceEnrollResult {
     try {
       let v_306a28 = v_9d3e9b.current;
       if (!v_306a28) {
-        v_306a28 = await v_84b93d.createPersonFn(v_2ca7e0, { enrolledVia: "auto_biometric" });
+        v_306a28 = await v_84b93d.createPersonFn(v_2ca7e0, { cloneId: v_6e0fd3, enrolledVia: "auto_biometric" });
         v_9d3e9b.current = v_306a28;
       }
 
@@ -115,7 +117,7 @@ export function v_3fc8fd(v_328259): UseFaceEnrollResult {
         );
       }
       const v_f94e64 = v_5392c4 ?? v_b84ee1().latest(v_9e3bb7);
-      await v_84b93d.enrollFacesFn(v_2ca7e0, v_306a28.id, v_f94e64);
+      await v_84b93d.enrollFacesFn(v_2ca7e0, v_306a28.id, v_f94e64, v_6e0fd3);
       v_5193f8("success");
     } catch (v_9e86fd) {
       v_5193f8("error");
@@ -123,7 +125,7 @@ export function v_3fc8fd(v_328259): UseFaceEnrollResult {
     } finally {
       v_28ec48.current = false;
     }
-  }, [v_2ca7e0, v_b84ee1, v_172c9f, v_84b93d]);
+  }, [v_2ca7e0, v_6e0fd3, v_b84ee1, v_172c9f, v_84b93d]);
 
   const v_487a25 = v_de06a3(() => {
     v_5193f8("idle");

@@ -1,6 +1,7 @@
 import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
 import { v_a8d2cc } from "../src/lib/faceVectors";
+import { v_929ead } from "../src/lib/cloneFaceScope";
 
 async function v_bfb240(v_e0c7e8): Promise<number> {
   const v_a1651b = v_c9c489.DB as unknown as D1Database;
@@ -12,6 +13,19 @@ async function v_bfb240(v_e0c7e8): Promise<number> {
   return v_ceb55a!.id;
 }
 
+async function v_4d24a9(v_1badb6, v_556427): Promise<number> {
+  const v_a1651b = v_c9c489.DB as unknown as D1Database;
+  await v_a1651b
+    .prepare(
+      `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+       VALUES (?, 'TestClone', ?, 'memlow', 'public', CURRENT_TIMESTAMP)`
+    )
+    .bind(v_1badb6, v_556427)
+    .run();
+  const v_3f4e2e = await v_a1651b.prepare("SELECT id FROM clones WHERE username = ?").bind(v_556427).first<{ id: number }>();
+  return v_3f4e2e!.id;
+}
+
 async function v_86c39f(v_43e90c): Promise<string> {
   const { issueToken: v_b2eae5 } = await import("../src/lib/jwt");
   const v_43fd42 = (v_c9c489 as { JWT_ACCESS_SECRET?: string }).JWT_ACCESS_SECRET;
@@ -19,11 +33,11 @@ async function v_86c39f(v_43e90c): Promise<string> {
   return await v_b2eae5({ sub: v_43e90c, kind: "access" }, v_43fd42, 60 * 10);
 }
 
-async function v_4e7b87(v_ea333d): Promise<number> {
+async function v_4e7b87(v_ea333d, v_6e0fd3): Promise<number> {
   const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
     method: "POST",
     headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
-    body: JSON.stringify({}),
+    body: JSON.stringify({ cloneId: v_6e0fd3 }),
   });
   const { id: v_389afb } = (await v_8f00b9.json()) as { id: number };
   return v_389afb;
@@ -42,11 +56,11 @@ function v_46ff7a(v_4a1c36 = 0.1): number[] {
   return Array(512).fill(v_4a1c36);
 }
 
-async function v_eb0ef3(v_ea333d, v_ca1ec5, v_4a1c36 = 0.1) {
+async function v_eb0ef3(v_ea333d, v_6e0fd3, v_ca1ec5, v_4a1c36 = 0.1) {
   const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_ca1ec5}/faces`, {
     method: "POST",
     headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ vectors: [v_46ff7a(v_4a1c36)] }),
+    body: JSON.stringify({ cloneId: v_6e0fd3, vectors: [v_46ff7a(v_4a1c36)] }),
   });
   v_4d37e3(v_8f00b9.status).toBe(200);
 }
@@ -76,15 +90,16 @@ v_469bf2("DELETE /oth-path", () => {
     const v_a1651b = v_c9c489.DB as unknown as D1Database;
     const v_43e90c = await v_bfb240("del-full@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
-    const v_ca1ec5 = await v_4e7b87(v_ea333d);
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "del-full-clone");
+    const v_ca1ec5 = await v_4e7b87(v_ea333d, v_6e0fd3);
     await v_a56201(v_ea333d, v_ca1ec5); 
-    await v_eb0ef3(v_ea333d, v_ca1ec5, 0.1);
+    await v_eb0ef3(v_ea333d, v_6e0fd3, v_ca1ec5, 0.1);
 
     await v_a1651b
       .prepare(
         `INSERT INTO clone_ont_person (clone_id, person_id, data, updated_at) VALUES (?, ?, '{}', ?)`
       )
-      .bind(1, v_ca1ec5, Date.now())
+      .bind(v_6e0fd3 + 100000, v_ca1ec5, Date.now())
       .run();
 
     const v_544e9a = await v_2266b0(v_ca1ec5);
@@ -124,16 +139,21 @@ v_469bf2("DELETE /oth-path", () => {
     v_4d37e3(v_8dbe6c?.speaker_person_id).toBe(null);
 
     const v_e86ad8 = v_a8d2cc(v_c9c489 as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string });
-    const v_80a1ce = await v_e86ad8.query(v_46ff7a(0.1), { topK: 3, namespace: String(v_43e90c), returnMetadata: true });
+    const v_80a1ce = await v_e86ad8.query(v_46ff7a(0.1), {
+      topK: 3,
+      namespace: v_929ead(v_43e90c, v_6e0fd3),
+      returnMetadata: true,
+    });
     v_4d37e3(v_80a1ce.matches.length).toBe(0);
   });
 
   v_23805a("완전 삭제 후 재호출 → 404", async () => {
     const v_43e90c = await v_bfb240("del-redelete@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
-    const v_ca1ec5 = await v_4e7b87(v_ea333d);
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "del-redelete-clone");
+    const v_ca1ec5 = await v_4e7b87(v_ea333d, v_6e0fd3);
     await v_a56201(v_ea333d, v_ca1ec5);
-    await v_eb0ef3(v_ea333d, v_ca1ec5, 0.2);
+    await v_eb0ef3(v_ea333d, v_6e0fd3, v_ca1ec5, 0.2);
 
     const v_ea719c = await v_a94a1b(v_ea333d, v_ca1ec5);
     v_4d37e3(v_ea719c.status).toBe(200);
@@ -148,14 +168,16 @@ v_469bf2("DELETE /oth-path", () => {
     const v_a1651b = v_c9c489.DB as unknown as D1Database;
     const v_43e90c = await v_bfb240("del-partial@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
-    const v_ca1ec5 = await v_4e7b87(v_ea333d);
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "del-partial-clone");
+    const v_ca1ec5 = await v_4e7b87(v_ea333d, v_6e0fd3);
     await v_a56201(v_ea333d, v_ca1ec5);
-    await v_eb0ef3(v_ea333d, v_ca1ec5, 0.3);
+    await v_eb0ef3(v_ea333d, v_6e0fd3, v_ca1ec5, 0.3);
+
     await v_a1651b
       .prepare(
         `INSERT INTO clone_ont_person (clone_id, person_id, data, updated_at) VALUES (?, ?, '{}', ?)`
       )
-      .bind(2, v_ca1ec5, Date.now())
+      .bind(v_6e0fd3 + 100000, v_ca1ec5, Date.now())
       .run();
     const v_544e9a = await v_2266b0(v_ca1ec5);
 
@@ -194,8 +216,9 @@ v_469bf2("DELETE /oth-path", () => {
     const v_53bb36 = await v_bfb240("del-attacker@test.local");
     const v_40444e = await v_86c39f(v_257b90);
     const v_d82c92 = await v_86c39f(v_53bb36);
+    const v_6e0fd3 = await v_4d24a9(v_257b90, "del-owner-clone");
 
-    const v_ca1ec5 = await v_4e7b87(v_40444e);
+    const v_ca1ec5 = await v_4e7b87(v_40444e, v_6e0fd3);
 
     const v_8f00b9 = await v_a94a1b(v_d82c92, v_ca1ec5);
     v_4d37e3(v_8f00b9.status).toBe(404);

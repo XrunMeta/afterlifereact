@@ -45,6 +45,8 @@ export interface DomainClone {
   primaryEditorUserId?: number;
   l1Profile?: L1Profile;
 
+  selfPersonId?: number | null;
+
   myRole?: "owner" | "coowner";
   coownerCount?: number;
   likesCount?: number;
