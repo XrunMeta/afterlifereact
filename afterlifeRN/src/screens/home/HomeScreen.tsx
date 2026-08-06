@@ -394,29 +394,31 @@ export default function HomeScreen() {
           cardHeight={feedHeight}
           onToggleLike={() => toggleLike(item.id)}
           onToggleFollow={() => void toggleFollow(item.cloneId)}
-          onCallPress={async () => {
+          onCallPress={() => {
 
             const t0 = Date.now();
-            console.log(`[Call][flow] +${t0} onCallPress cloneId=${item.cloneId} name=${item.author}`);
+            console.log(`[Call][flow] +${t0} onCallPress cloneId=${item.cloneId} name=${item.author} (optimistic)`);
+            if (typeof item.image === "string" && item.image) {
+              const pfStart = Date.now();
+              console.log(`[Call][flow] +${pfStart} Image.prefetch start url=${item.image}`);
+              Image.prefetch(item.image)
+                .then(() => console.log(`[Call][flow] +${Date.now()} Image.prefetch done (Δ${Date.now() - pfStart}ms)`))
+                .catch((err) => console.warn(`[Call][flow] Image.prefetch failed:`, err));
+            }
+            console.log(`[Call][flow] +${Date.now()} navigation.navigate("Call") (Δ${Date.now() - t0}ms since click)`);
+            rootNav.navigate("Call", { cloneId: item.cloneId, name: item.author, image: item.image });
 
-            const ok = await assertCanCall(accessToken, () => {
+            void assertCanCall(accessToken, () => {
               rootNav.dispatch(
                 CommonActions.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
               );
-            });
-            console.log(`[Call][flow] +${Date.now()} assertCanCall → ok=${ok} (Δ${Date.now() - t0}ms)`);
-            if (ok) {
+            }).then((ok) => {
+              console.log(`[Call][flow] +${Date.now()} assertCanCall(bg) → ok=${ok} (Δ${Date.now() - t0}ms)`);
+              if (!ok) {
 
-              if (typeof item.image === "string" && item.image) {
-                const pfStart = Date.now();
-                console.log(`[Call][flow] +${pfStart} Image.prefetch start url=${item.image}`);
-                Image.prefetch(item.image)
-                  .then(() => console.log(`[Call][flow] +${Date.now()} Image.prefetch done (Δ${Date.now() - pfStart}ms)`))
-                  .catch((err) => console.warn(`[Call][flow] Image.prefetch failed:`, err));
+                if (rootNav.canGoBack()) rootNav.goBack();
               }
-              console.log(`[Call][flow] +${Date.now()} navigation.navigate("Call") (Δ${Date.now() - t0}ms since click)`);
-              rootNav.navigate("Call", { cloneId: item.cloneId, name: item.author, image: item.image });
-            }
+            });
           }}
           onCommentPress={() => setCommentFeedId(item.id)}
 
