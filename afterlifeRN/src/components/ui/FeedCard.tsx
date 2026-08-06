@@ -236,24 +236,33 @@ const FeedCard: React.FC<FeedCardProps> = ({
 
 }
             {item.description ? (
-              <ScrollView
-                style={styles.descriptionScroll}
-                showsVerticalScrollIndicator={true}
-                nestedScrollEnabled={true}
-                persistentScrollbar={true}
-                indicatorStyle="white"
 
-                onScrollBeginDrag={onDescriptionScrollStart}
-                onScrollEndDrag={onDescriptionScrollEnd}
-                onMomentumScrollEnd={onDescriptionScrollEnd}
+              <View
+                onStartShouldSetResponder={() => true}
+                onMoveShouldSetResponder={() => true}
+                style={styles.descriptionWrap}
               >
-                <HashtagText
-                  style={styles.description}
-                  tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
+                <ScrollView
+                  style={styles.descriptionScroll}
+                  showsVerticalScrollIndicator={true}
+                  nestedScrollEnabled={true}
+                  persistentScrollbar={true}
+                  indicatorStyle="white"
+                  bounces={false}
+                  overScrollMode="never"
+
+                  onScrollBeginDrag={onDescriptionScrollStart}
+                  onScrollEndDrag={onDescriptionScrollEnd}
+                  onMomentumScrollEnd={onDescriptionScrollEnd}
                 >
-                  {item.description}
-                </HashtagText>
-              </ScrollView>
+                  <HashtagText
+                    style={styles.description}
+                    tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
+                  >
+                    {item.description}
+                  </HashtagText>
+                </ScrollView>
+              </View>
             ) : null}
 
             {}
@@ -479,9 +488,12 @@ const styles = StyleSheet.create({
 
   },
 
+  descriptionWrap: {
+    marginBottom: 12,
+  },
+
   descriptionScroll: {
     maxHeight: 40,
-    marginBottom: 12,
     paddingRight: 56,
   },
   callButton: {
