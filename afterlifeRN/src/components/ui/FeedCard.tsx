@@ -414,9 +414,10 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   ownerAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.4)",
   },
