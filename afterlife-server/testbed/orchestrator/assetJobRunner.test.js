@@ -1985,3 +1985,95 @@ test('defaultFfmpegPeakDb: volumedetect stderr 에서 max_volume 파싱', async 
   };
   assert.equal(await defaultFfmpegPeakDb('/x.wav', spawnNo), null);
 });
+
+function _okFfmpegSpawn() {
+  return (_bin, args, _opts) => {
+    const outPath = args[args.length - 1];
+    const listeners = {};
+    const proc = {
+      stderr: { on: () => proc.stderr },
+      stdout: { on: () => proc.stdout },
+      on(event, fn) { listeners[event] = fn; return proc; },
+    };
+    setImmediate(async () => {
+      await writeFile(outPath, Buffer.alloc(2048));
+      if (listeners['close']) listeners['close'](0);
+    });
+    return proc;
+  };
+}
+
+test('ref 원본 보존: 변환 성공 시 voice.raw 로 남긴다', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'test-raw-keep-'));
+  try {
+    const original = Buffer.from('ORIGINAL-UPLOAD-BYTES');
+    const fetchFn = async () => ({
+      ok: true, status: 200,
+      arrayBuffer: async () => original.buffer.slice(
+        original.byteOffset, original.byteOffset + original.byteLength),
+      headers: { get: () => null },
+    });
+
+    await defaultEnsureVoiceWav('9114', 'http://example.com/v.m4a', dir, fetchFn, _okFfmpegSpawn());
+
+    const { readFile } = await import('node:fs/promises');
+    const raw = await readFile(join(dir, '9114', 'voice.raw'));
+    assert.equal(raw.toString(), 'ORIGINAL-UPLOAD-BYTES');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('ref 원본 보존: 클론당 1개만 유지 — 재변환 시 덮어쓴다(디스크 누적 방지)', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'test-raw-overwrite-'));
+  try {
+    mkdirSync(join(dir, '9115'), { recursive: true });
+    writeFileSync(join(dir, '9115', 'voice.raw'), 'OLD');
+
+    const fresh = Buffer.from('NEW-UPLOAD');
+    const fetchFn = async () => ({
+      ok: true, status: 200,
+      arrayBuffer: async () => fresh.buffer.slice(
+        fresh.byteOffset, fresh.byteOffset + fresh.byteLength),
+      headers: { get: () => null },
+    });
+
+    await defaultEnsureVoiceWav('9115', 'http://example.com/v.m4a', dir, fetchFn, _okFfmpegSpawn());
+
+    const { readFile, readdir } = await import('node:fs/promises');
+    assert.equal((await readFile(join(dir, '9115', 'voice.raw'))).toString(), 'NEW-UPLOAD');
+    const files = (await readdir(join(dir, '9115'))).sort();
+    assert.deepEqual(files, ['voice.raw', 'voice.wav']);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('ref 원본 보존: 변환 실패 시엔 원본을 남기지 않는다(임시파일 정리 규약 유지)', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'test-raw-fail-'));
+  try {
+    const fetchFn = async () => ({
+      ok: true, status: 200,
+      arrayBuffer: async () => new Uint8Array(20).buffer,
+      headers: { get: () => null },
+    });
+    const failSpawn = (_bin, _args, _opts) => {
+      const listeners = {};
+      const proc = {
+        stderr: { on: () => proc.stderr },
+        stdout: { on: () => proc.stdout },
+        on(event, fn) { listeners[event] = fn; return proc; },
+      };
+      setImmediate(() => { if (listeners['close']) listeners['close'](1); });
+      return proc;
+    };
+
+    await assert.rejects(
+      () => defaultEnsureVoiceWav('9116', 'http://example.com/v.m4a', dir, fetchFn, failSpawn));
+
+    const { readdir } = await import('node:fs/promises');
+    assert.deepEqual(await readdir(join(dir, '9116')), []);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
