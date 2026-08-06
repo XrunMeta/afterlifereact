@@ -421,13 +421,7 @@ export default function LoginScreen({ navigation }: Props) {
           {
 
 }
-          {(Platform.OS === "ios" || googleEnabled !== false) && (
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>—</Text>
-              <View style={styles.dividerLine} />
-            </View>
-          )}
+          {}
 
           {
 }
@@ -462,12 +456,6 @@ export default function LoginScreen({ navigation }: Props) {
           )}
 
           {}
-          <View style={styles.signupRow}>
-            <Text style={styles.signupText}>{t("auth.login.signupHint")} </Text>
-            <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
-              <Text style={styles.signupLink}>{t("auth.login.signupBtn")}</Text>
-            </TouchableOpacity>
-          </View>
 
           {}
           <Text style={styles.forgotPasswordHint}>
@@ -619,9 +607,10 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   snsLoginLabel: {
-    fontSize: 12,
-    lineHeight: 18,
-    color: COLORS.zinc500,
+
+    fontSize: 14,
+    lineHeight: 20,
+    color: COLORS.zinc600,
   },
   snsButtonContainer: {
     flexDirection: "row",
