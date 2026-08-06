@@ -345,6 +345,8 @@ export default function LoginScreen({ navigation }: Props) {
           {}
           {mode === "account" && (
             <>
+              {}
+              <Text style={styles.fieldLabel}>{t("auth.login.emailLabel")}</Text>
               <TextField
                 value={email}
                 onChangeText={setEmail}
@@ -353,6 +355,7 @@ export default function LoginScreen({ navigation }: Props) {
                 autoCapitalize="none"
                 leftIcon={<Feather name="mail" size={20} color={COLORS.zinc500} />}
               />
+              <Text style={styles.fieldLabel}>{t("auth.login.passwordLabel")}</Text>
               <TextField
                 value={password}
                 onChangeText={setPassword}
@@ -394,6 +397,8 @@ export default function LoginScreen({ navigation }: Props) {
           {}
           {mode === "otp" && (
             <>
+              {}
+              <Text style={styles.fieldLabel}>{t("auth.login.emailLabel")}</Text>
               <TextField
                 value={email}
                 onChangeText={setEmail}
@@ -496,11 +501,20 @@ const styles = StyleSheet.create({
     height: 105,
   },
   tabRow: {
+
+    marginTop: SIZES.large,
     flexDirection: "row",
     backgroundColor: COLORS.zinc100,
     borderRadius: RADIUS.md,
     padding: 4,
     marginBottom: SIZES.small,
+  },
+
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: COLORS.zinc700,
+    marginBottom: -SIZES.small,
   },
   tab: {
     flex: 1,
