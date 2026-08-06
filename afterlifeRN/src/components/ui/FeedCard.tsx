@@ -237,18 +237,20 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
 }
             {v_8c0b26.description ? (
 
-              <View style={v_d81136.descriptionWrap}>
+              <View
+                style={v_d81136.descriptionWrap}
+                onTouchStart={v_c29799}
+                onTouchEnd={v_bb9bff}
+                onTouchCancel={v_bb9bff}
+              >
                 <ScrollView
                   style={v_d81136.descriptionScroll}
                   showsVerticalScrollIndicator={true}
-                  nestedScrollEnabled={true}
+                  nestedScrollEnabled={false}
                   persistentScrollbar={true}
                   indicatorStyle="white"
                   bounces={false}
                   overScrollMode="never"
-                  onScrollBeginDrag={v_c29799}
-                  onScrollEndDrag={v_bb9bff}
-                  onMomentumScrollEnd={v_bb9bff}
                 >
                   <HashtagText
                     style={v_d81136.description}
