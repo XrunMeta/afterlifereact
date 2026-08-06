@@ -7,6 +7,7 @@ import { useCallConfigStore } from '../stores/callConfigStore';
 import { ensureFreshAccessToken } from '../lib/authFetch';
 import { type AudioSessionControl, defaultAudioSessionControl } from './useAudioSession';
 import { type AvatarCall, type LiveAvatarState, type CallPhase, type SpeechSignal, type FaceEvent, classifyTrack } from './avatarCall';
+import { emitTimingEvent } from './timingEvents';
 
 const nowMs = () => Date.now();
 
@@ -103,6 +104,8 @@ export function usePrethirdAvatar(opts: {
   const onEnrollSuggestRef = useRef(onEnrollSuggest);
   useEffect(() => { onEnrollSuggestRef.current = onEnrollSuggest; }, [onEnrollSuggest]);
 
+  useEffect(() => { emitTimingEvent('avatar', { phase }); }, [phase]);
+
   const safeClosePc = useCallback((pc: PrethirdPeerConnection) => {
     if (applyingRemoteRef.current) { pendingCloseRef.current = pc; return; }
     try { pc.close(); } catch {  }
@@ -111,7 +114,11 @@ export function usePrethirdAvatar(opts: {
   const say = useCallback(async (text: string) => {
     const dc = dcRef.current;
     if (!pcRef.current || !dc) return;
-    if (phase === 'sending' || phase === 'speaking') return;
+    if (phase === 'sending' || phase === 'speaking') {
+
+      emitTimingEvent('avatar', { phase, act: 'busy_throw' }); 
+      throw new Error('prethird: busy');
+    }
     const t = text.trim();
     if (!t) return;
     if (dc.readyState !== 'open') { setError(new Error('datachannel_not_open')); return; }
