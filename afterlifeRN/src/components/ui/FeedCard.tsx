@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
   },
 
   descriptionScroll: {
-    maxHeight: 100,
+    maxHeight: 60,
     marginBottom: 12,
     paddingRight: 56,
   },
