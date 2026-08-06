@@ -394,6 +394,10 @@ export default function HomeScreen() {
               );
             });
             if (ok) {
+
+              if (typeof item.image === "string" && item.image) {
+                Image.prefetch(item.image).catch(() => {});
+              }
               rootNav.navigate("Call", { cloneId: item.cloneId, name: item.author, image: item.image });
             }
           }}
