@@ -80,7 +80,7 @@ export default function v_3b950c() {
             options={{
               presentation: "fullScreenModal",
 
-              animation: "fade",
+              animation: "none",
             }}
           />
           <RootStack.Screen name="InviteAccept" component={v_000f0a} />
