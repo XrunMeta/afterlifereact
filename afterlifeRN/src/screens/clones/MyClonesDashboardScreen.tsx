@@ -902,29 +902,26 @@ export default function v_def15b() {
               }}
             >
               <View style={{ flex: 1 }}>
-                <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("my.balance.remainingTime")}</Text>
+                <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("my.balance.remainingTokens", { defaultValue: "남은 토큰 수량" })}</Text>
                 {v_747a87 && !v_c88e9b ? (
                   <ActivityIndicator color={v_1bfbd0.violet600} style={{ marginTop: 6 }} />
                 ) : v_c88e9b ? (
                   <>
                     <Text style={v_fd5f43.balanceTotal}>
                       {(() => {
-                        const v_b3dc28 = Math.max(0, Math.floor(v_c88e9b.totalSec));
-                        const v_35f85c = Math.floor(v_b3dc28 / 60);
-                        const v_3300b9 = v_b3dc28 % 60;
-                        if (v_35f85c === 0) return v_8d41d7("common.durationSec", { s: v_3300b9 });
-                        return v_3300b9 > 0
-                          ? v_8d41d7("common.durationMinSec", { m: v_35f85c, s: v_3300b9 })
-                          : v_8d41d7("common.durationMin", { m: v_35f85c });
+
+                        const v_76be17 = Math.max(0, v_c88e9b.totalSec) / 60;
+                        const v_fd5f43 = Number.isInteger(v_76be17) ? v_76be17.toLocaleString() : v_76be17.toFixed(1);
+                        return `${v_fd5f43} XRUN`;
                       })()}
                     </Text>
                     <Text style={v_fd5f43.balanceBreakdown}>
-                      {v_8d41d7("my.balance.free", { time: v_8d41d7("common.durationMin", { m: Math.floor(v_c88e9b.freeSec / 60) }) })}
+                      {v_8d41d7("my.balance.free", { time: `${(v_c88e9b.freeSec / 60).toLocaleString()} XRUN` })}
                       {v_c88e9b.subSec > 0
-                        ? ` · ${v_8d41d7("my.balance.sub", { time: v_8d41d7("common.durationMin", { m: Math.floor(v_c88e9b.subSec / 60) }) })}`
+                        ? ` · ${v_8d41d7("my.balance.sub", { time: `${(v_c88e9b.subSec / 60).toLocaleString()} XRUN` })}`
                         : ""}
                       {v_c88e9b.topupSec > 0
-                        ? ` · ${v_8d41d7("my.balance.topup", { time: v_8d41d7("common.durationMin", { m: Math.floor(v_c88e9b.topupSec / 60) }) })}`
+                        ? ` · ${v_8d41d7("my.balance.topup", { time: `${(v_c88e9b.topupSec / 60).toLocaleString()} XRUN` })}`
                         : ""}
                     </Text>
                   </>

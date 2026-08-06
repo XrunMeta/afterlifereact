@@ -483,6 +483,7 @@
     },
     "balance": {
       "remainingTime": "남은 통화 시간",
+      "remainingTokens": "남은 토큰 수량",
       "free": "무료 {{time}}",
       "sub": "구독 {{time}}",
       "topup": "충전 {{time}}",

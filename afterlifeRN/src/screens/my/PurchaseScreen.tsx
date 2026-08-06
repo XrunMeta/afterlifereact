@@ -44,6 +44,14 @@ function v_429a79(v_b6a7e0, t: v_75de9d): string {
     : v_8d41d7("common.durationMin", { m: v_43e24b, defaultValue: `${v_43e24b}분` });
 }
 
+const v_176062 = 60;
+function v_da6788(v_b6a7e0): string {
+  const v_76be17 = v_b6a7e0 / v_176062;
+
+  const v_fd5f43 = Number.isInteger(v_76be17) ? v_76be17.toLocaleString() : v_76be17.toFixed(1);
+  return `${v_fd5f43} XRUN`;
+}
+
 const v_5348ba = "__mock__";
 const MOCK_SUBS: v_23b84c[] = [
   { id: "run.xrun.afterlife.sub.light", title: "xLight 30min", description: "월 30분 통화", displayPrice: "₩2,200", price: 2200, currency: "KRW", platform: "ios", type: "subs" } as unknown as v_23b84c,
@@ -239,24 +247,24 @@ export default function v_0035e1() {
 
         {}
         <View style={v_fd5f43.balanceCard}>
-          <Text style={v_fd5f43.balanceTitle}>{v_8d41d7("my.balance.remainingTime", { defaultValue: "남은 통화 시간" })}</Text>
+          <Text style={v_fd5f43.balanceTitle}>{v_8d41d7("my.balance.remainingTokens", { defaultValue: "남은 토큰 수량" })}</Text>
           {v_55599a ? (
             <ActivityIndicator color={v_1bfbd0.violet600} />
           ) : v_c88e9b ? (
             <>
-              <Text style={v_fd5f43.balanceTotal}>{v_429a79(v_c88e9b.totalSec, v_8d41d7)}</Text>
+              <Text style={v_fd5f43.balanceTotal}>{v_da6788(v_c88e9b.totalSec)}</Text>
               <View style={v_fd5f43.balanceRow}>
                 <View style={v_fd5f43.balanceCol}>
                   <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("purchase.bucketFree", { defaultValue: "무료" })}</Text>
-                  <Text style={v_fd5f43.balanceVal}>{v_429a79(v_c88e9b.freeSec, v_8d41d7)}</Text>
+                  <Text style={v_fd5f43.balanceVal}>{v_da6788(v_c88e9b.freeSec)}</Text>
                 </View>
                 <View style={v_fd5f43.balanceCol}>
                   <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("purchase.bucketSub", { defaultValue: "구독" })}</Text>
-                  <Text style={v_fd5f43.balanceVal}>{v_429a79(v_c88e9b.subSec, v_8d41d7)}</Text>
+                  <Text style={v_fd5f43.balanceVal}>{v_da6788(v_c88e9b.subSec)}</Text>
                 </View>
                 <View style={v_fd5f43.balanceCol}>
                   <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("purchase.bucketTopup", { defaultValue: "충전" })}</Text>
-                  <Text style={v_fd5f43.balanceVal}>{v_429a79(v_c88e9b.topupSec, v_8d41d7)}</Text>
+                  <Text style={v_fd5f43.balanceVal}>{v_da6788(v_c88e9b.topupSec)}</Text>
                 </View>
               </View>
               {v_c88e9b.subscription && (
