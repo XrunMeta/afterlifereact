@@ -1552,14 +1552,16 @@ export default function CallScreen({ route, navigation }: Props) {
               </TouchableOpacity>
             </View>
 
-            {}
+            {
+}
             <FlatList
               data={gifts}
               keyExtractor={(item) => item.id}
               numColumns={3}
               columnWrapperStyle={s.giftRow}
               contentContainerStyle={s.giftGrid}
-              scrollEnabled={false}
+              scrollEnabled={true}
+              showsVerticalScrollIndicator={false}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={s.giftItem}
@@ -1848,7 +1850,7 @@ const s = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingBottom: 24,
 
-    height: "80%",
+    maxHeight: "80%",
   },
   giftHeader: {
     flexDirection: "row",
