@@ -10,7 +10,7 @@ import v_1a40c4 from '../../components/ui/Button';
 import { v_194498 } from '../../stores/cloneStore';
 import { v_889fad } from '../../stores/dialogStore';
 import v_95a2dd from './content/MemlowVoiceUpload';
-import v_872645 from './content/DefaultVoiceUpload';
+import v_872645, { v_2ba26d } from './content/DefaultVoiceUpload';
 import { v_1bfbd0, v_9b1a04 } from '../../components/constants';
 
 type Props = { navigation: v_390fcc<v_2b51a5, 'Step4'> };
@@ -31,7 +31,7 @@ export default function v_710783({ navigation: v_c65f5d }: Props) {
       return;
     }
     let v_badeaf;
-    switch (v_f04727.voiceMode ?? 'upload') {
+    switch (v_2ba26d(v_f04727)) {
       case 'record':
 
         v_badeaf = v_f04727.voiceFile
