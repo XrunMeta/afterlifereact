@@ -73,6 +73,8 @@ export default function v_c316d8() {
   const v_f9771e = v_c18c22(0);
   const v_ebdf9a = v_e662ae<v_9cabcb>(null);
 
+  const [v_01ea76, v_ae56e9] = v_5ab095(false);
+
   const v_53dd92 = v_326be8.OS === "ios"
     ? v_033e14.bottom
     : Math.max(v_f9771e, v_033e14.bottom);
@@ -447,6 +449,9 @@ export default function v_c316d8() {
               v_8d41d7("call.paymentPreparingToast", { defaultValue: "결제 준비 중이에요" }),
             );
           }}
+
+          onDescriptionScrollStart={() => v_ae56e9(true)}
+          onDescriptionScrollEnd={() => v_ae56e9(false)}
         />
       );
     },
@@ -461,6 +466,7 @@ export default function v_c316d8() {
       v_f5f393,
       v_8916d3,
       v_1d9833,
+      v_ae56e9,
     ]
   );
 
@@ -517,6 +523,8 @@ export default function v_c316d8() {
           renderItem={v_fcf6ec}
           keyExtractor={(v_8c0b26) => String(v_8c0b26.id)}
           pagingEnabled
+
+          scrollEnabled={!v_01ea76}
           showsVerticalScrollIndicator={false}
           snapToInterval={v_1be4da}
           decelerationRate="fast"
