@@ -10,7 +10,7 @@ import {
   v_03e392,
   v_326be8,
 } from "rcmrninabrnb";
-import { v_dec439 } from "zvyjokvuouwvifyzks";
+import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_384e19 } from "../../navigation/types";
@@ -425,13 +425,14 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
             <View style={v_d81136.googleButtonPlaceholder} />
           ) : v_c39df9 ? (
 
-            <Button
-              title={v_8d41d7("auth.login.googleBtn")}
+            <TouchableOpacity
+              style={v_d81136.socialButton}
               onPress={() => v_78c15c("google")}
-              variant="secondary"
-              size="md"
-              leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}>G</Text>}
-            />
+              activeOpacity={0.8}
+            >
+              <Text style={v_d81136.socialButtonText}>{v_8d41d7("auth.login.googleBtn")}</Text>
+              <Ionicons name="logo-google" size={20} color="#4285F4" />
+            </TouchableOpacity>
           ) : null}
 
           {v_326be8.OS === "ios" && (
@@ -593,5 +594,22 @@ const v_d81136 = v_472849.create({
     fontSize: 12,
     lineHeight: 18,
     textAlign: "center",
+  },
+
+  socialButton: {
+    height: 48,
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+  },
+  socialButtonText: {
+    fontSize: 15,
+    color: v_1bfbd0.zinc900,
+    fontWeight: "500",
   },
 });
