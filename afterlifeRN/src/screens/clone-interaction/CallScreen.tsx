@@ -28,6 +28,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
 
 import SvgaOverlay from "../../components/gift/SvgaOverlay";
+
+import SvgaThumb from "../../components/gift/SvgaThumb";
 import { RTCView } from "react-native-webrtc";
 import {
   Camera as VisionCamera,
@@ -110,6 +112,7 @@ import {
   postCloneCallEvent,
 } from "../../api/clones";
 import { getCreditBalance } from "../../api/credits";
+import { sendGiftOffchain } from "../../api/giftInventory";
 import { showAlert } from "../../stores/dialogStore";
 import { CommonActions } from "@react-navigation/native";
 import ExpertBadge from "../../components/ui/ExpertBadge";
@@ -1057,15 +1060,47 @@ function CallScreenInner({ route, navigation }: Props) {
     }
   }, [toastMessage]);
 
-  const handleGiftSend = (gift: GiftCatalogItem) => {
+  const handleGiftSend = async (gift: GiftCatalogItem) => {
     console.log(`[Call][gift-tap] giftId=${gift.id} name=${gift.name} svga=${!!gift.svgaUrl}`);
     setShowGifts(false);
-    setToastMessage(t("call.paymentPreparingToast", { defaultValue: "결제 준비 중이에요" }));
 
     if (gift.svgaUrl) {
       setSvgaOverlayUrl(gift.svgaUrl);
     } else {
       playGiftAnimation(gift);
+    }
+
+    if (!accessToken || !clone?.ownerId) {
+      console.warn("[gift] send skipped — missing token or ownerId");
+      return;
+    }
+    if (isOwnClone) {
+
+      return;
+    }
+    try {
+      const idem = `gift-${gift.id}-${cloneId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const res = await sendGiftOffchain(
+        accessToken,
+        { giftId: gift.id, toUserId: clone.ownerId },
+        idem,
+      );
+      console.log(`[gift] sent OK ${gift.id} ${res.xrunAmount} XRUN → ${res.receiverId}`);
+      setToastMessage(
+        t("call.giftSentToast", {
+          amount: res.xrunAmount,
+          defaultValue: `${res.xrunAmount} XRUN 선물 완료!`,
+        }),
+      );
+    } catch (err) {
+      const msg = (err as Error).message ?? "선물 전송 실패";
+      const isInsufficient = /INSUFFICIENT_CREDITS|잔액이 부족/.test(msg);
+      showAlert(
+        isInsufficient ? t("call.giftInsufficientTitle", { defaultValue: "XRUN 부족" }) : t("call.giftFailTitle", { defaultValue: "선물 실패" }),
+        isInsufficient
+          ? t("call.giftInsufficientDesc", { defaultValue: "XRUN 이 부족해요. 크레딧 충전 후 다시 시도해주세요." })
+          : msg,
+      );
     }
   };
 
@@ -1608,7 +1643,10 @@ function CallScreenInner({ route, navigation }: Props) {
                   activeOpacity={0.7}
                 >
                   <View style={s.giftEmojiWrap}>
-                    {item.imageUrl ? (
+                    {}
+                    {item.svgaUrl ? (
+                      <SvgaThumb url={item.svgaUrl} size={44} />
+                    ) : item.imageUrl ? (
                       <Image source={{ uri: item.imageUrl }} style={s.giftImage} />
                     ) : (
                       <Text style={s.giftEmoji}>{item.emoji}</Text>
