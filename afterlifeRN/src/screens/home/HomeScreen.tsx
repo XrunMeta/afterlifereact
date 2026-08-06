@@ -29,6 +29,8 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useFaceBiometricRetroPrompt } from "../../face/useFaceBiometricRetroPrompt";
 import FeedCard from "../../components/ui/FeedCard";
 import IntimacyEventsSheet from "../../components/clone/IntimacyEventsSheet";
+
+import GiftReceiptsSheet from "../../components/clone/GiftReceiptsSheet";
 import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
 import ReportReasonModal from "../../components/common/ReportReasonModal";
 
@@ -38,6 +40,8 @@ import type { Visibility } from "../../types/clone";
 
 import { useFeedStore, apiFeedCountsCache } from "../../stores/feedStore";
 import { useFollowStore } from "../../stores/followStore";
+
+import { useUserFollowStore } from "../../stores/userFollowStore";
 import { useAuthStore } from "../../stores/authStore";
 import { toFeedItem } from "../../mocks/feedAdapter";
 import {
@@ -71,6 +75,10 @@ export default function HomeScreen() {
   const navBarHeight = useAndroidNavigationBarHeight(0);
   const flatListRef = useRef<FlatList>(null);
 
+  const [descScrolling, setDescScrolling] = useState(false);
+
+  const descScrollUnlockRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const bottomInset = Platform.OS === "ios"
     ? insets.bottom
     : Math.max(navBarHeight, insets.bottom);
@@ -87,6 +95,9 @@ export default function HomeScreen() {
   const follows = useFollowStore((s) => s.follows);
   const isFollowing = useFollowStore((s) => s.isFollowing);
   const toggleFollow = useFollowStore((s) => s.toggleFollow);
+
+  const isUserFollowing = useUserFollowStore((s) => s.isFollowing);
+  const toggleUserFollow = useUserFollowStore((s) => s.toggleFollow);
 
   const [firstLoadDone, setFirstLoadDone] = useState(false);
 
@@ -110,6 +121,8 @@ export default function HomeScreen() {
   const [commentText, setCommentText] = useState("");
 
   const [intimacyModal, setIntimacyModal] = useState<{ cloneId: number; cloneName: string } | null>(null);
+
+  const [giftModal, setGiftModal] = useState<{ cloneId: number; cloneName: string } | null>(null);
 
   const [moreTarget, setMoreTarget] = useState<{
     cloneId: number;
@@ -381,16 +394,31 @@ export default function HomeScreen() {
           cardHeight={feedHeight}
           onToggleLike={() => toggleLike(item.id)}
           onToggleFollow={() => void toggleFollow(item.cloneId)}
-          onCallPress={async () => {
+          onCallPress={() => {
 
-            const ok = await assertCanCall(accessToken, () => {
+            const t0 = Date.now();
+            console.log(`[Call][flow] +${t0} onCallPress cloneId=${item.cloneId} name=${item.author} (optimistic)`);
+            if (typeof item.image === "string" && item.image) {
+              const pfStart = Date.now();
+              console.log(`[Call][flow] +${pfStart} Image.prefetch start url=${item.image}`);
+              Image.prefetch(item.image)
+                .then(() => console.log(`[Call][flow] +${Date.now()} Image.prefetch done (Δ${Date.now() - pfStart}ms)`))
+                .catch((err) => console.warn(`[Call][flow] Image.prefetch failed:`, err));
+            }
+            console.log(`[Call][flow] +${Date.now()} navigation.navigate("Call") (Δ${Date.now() - t0}ms since click)`);
+            rootNav.navigate("Call", { cloneId: item.cloneId, name: item.author, image: item.image });
+
+            void assertCanCall(accessToken, () => {
               rootNav.dispatch(
                 CommonActions.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
               );
+            }).then((ok) => {
+              console.log(`[Call][flow] +${Date.now()} assertCanCall(bg) → ok=${ok} (Δ${Date.now() - t0}ms)`);
+              if (!ok) {
+
+                if (rootNav.canGoBack()) rootNav.goBack();
+              }
             });
-            if (ok) {
-              rootNav.navigate("Call", { cloneId: item.cloneId, name: item.author, image: item.image });
-            }
           }}
           onCommentPress={() => setCommentFeedId(item.id)}
 
@@ -421,10 +449,49 @@ export default function HomeScreen() {
               console.warn("[Home] share failed:", err);
             }
           }}
+
+          onOwnerPress={() => {
+            if (item.cloneOwnerId != null) {
+              rootNav.navigate("UserProfile", { userId: item.cloneOwnerId });
+            }
+          }}
+          onOwnerFollowPress={() => {
+            if (item.cloneOwnerId != null) void toggleUserFollow(item.cloneOwnerId);
+          }}
+          isOwnerFollowed={item.cloneOwnerId != null ? isUserFollowing(item.cloneOwnerId) : false}
+
+          onGiftPress={() => setGiftModal({ cloneId: item.cloneId, cloneName: item.author })}
+
+          onDescriptionScrollStart={() => {
+            if (descScrollUnlockRef.current) {
+              clearTimeout(descScrollUnlockRef.current);
+              descScrollUnlockRef.current = null;
+            }
+            setDescScrolling(true);
+          }}
+          onDescriptionScrollEnd={() => {
+            if (descScrollUnlockRef.current) clearTimeout(descScrollUnlockRef.current);
+            descScrollUnlockRef.current = setTimeout(() => {
+              setDescScrolling(false);
+              descScrollUnlockRef.current = null;
+            }, 200);
+          }}
         />
       );
     },
-    [currentIndex, likedIds, follows, feedHeight, toggleLike, toggleFollow, isFollowing, myUserId]
+    [
+      currentIndex,
+      likedIds,
+      follows,
+      feedHeight,
+      toggleLike,
+      toggleFollow,
+      isFollowing,
+      myUserId,
+      isUserFollowing,
+      toggleUserFollow,
+      setDescScrolling,
+    ]
   );
 
   const showLoading = !firstLoadDone || (filteredFeeds.length === 0 && apiLoading);
@@ -480,6 +547,8 @@ export default function HomeScreen() {
           renderItem={renderItem}
           keyExtractor={(item) => String(item.id)}
           pagingEnabled
+
+          scrollEnabled={!descScrolling}
           showsVerticalScrollIndicator={false}
           snapToInterval={feedHeight}
           decelerationRate="fast"
@@ -1052,6 +1121,13 @@ export default function HomeScreen() {
         cloneId={intimacyModal?.cloneId ?? null}
         cloneName={intimacyModal?.cloneName ?? ""}
         onClose={() => setIntimacyModal(null)}
+      />
+      {}
+      <GiftReceiptsSheet
+        visible={!!giftModal}
+        cloneId={giftModal?.cloneId ?? null}
+        cloneName={giftModal?.cloneName ?? ""}
+        onClose={() => setGiftModal(null)}
       />
     </View>
   );

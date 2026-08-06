@@ -170,6 +170,13 @@ admin.patch("/config/gift-catalog", requireAdmin, async (c) => {
         clean1.imageUrl = trimmed;
       }
     }
+
+    if (it.xrunPrice !== undefined && it.xrunPrice !== null) {
+      if (typeof it.xrunPrice !== "number" || !Number.isFinite(it.xrunPrice) || it.xrunPrice < 0) {
+        throw new APIError("VALIDATION_FAILED", "xrunPrice must be non-negative number.");
+      }
+      clean1.xrunPrice = it.xrunPrice;
+    }
     clean.push(clean1);
   }
   await setGiftCatalog(c.env, clean);
@@ -314,6 +321,65 @@ admin.post("/files/gift-image", requireAdmin, async (c) => {
     id: inserted.id,
     url: `${origin}/oth-path${inserted.id}`,
     contentType: file.type,
+    sizeBytes: file.size,
+  }, 201);
+});
+
+admin.post("/files/gift-svga", requireAdmin, async (c) => {
+  let form: FormData;
+  try {
+    form = await c.req.formData();
+  } catch {
+    throw new APIError("VALIDATION_FAILED", "multipart/form-data required.");
+  }
+  const raw = form.get("file");
+  if (
+    !raw ||
+    typeof raw !== "object" ||
+    typeof (raw as { arrayBuffer?: unknown }).arrayBuffer !== "function"
+  ) {
+    throw new APIError("VALIDATION_FAILED", "Missing 'file' field.");
+  }
+  const file = raw as {
+    name?: string;
+    type: string;
+    size: number;
+    arrayBuffer: () => Promise<ArrayBuffer>;
+  };
+  const SVGA_MAX = 8 * 1024 * 1024; 
+  if (file.size > SVGA_MAX) {
+    throw new APIError("VALIDATION_FAILED", `File too large (${file.size} bytes). Max ${SVGA_MAX} bytes.`);
+  }
+  const filename = (file.name ?? "").toLowerCase();
+  if (!filename.endsWith(".svga")) {
+    throw new APIError("VALIDATION_FAILED", `Unsupported filename: ${file.name ?? "(none)"}. .svga only.`);
+  }
+  const rand = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+  const t = Date.now().toString(36);
+  const r2Key = `uploadedfiles/admin/gift-svga/${t}${rand}.svga`;
+  const buf = await file.arrayBuffer();
+  const contentType = "application/octet-stream";
+  await c.env.R2_ARCHIVE.put(r2Key, buf, {
+    httpMetadata: { contentType },
+    customMetadata: { purpose: "gift.svga", uploader: "admin" },
+  });
+  const inserted = await c.env.DB
+    .prepare(
+      `INSERT INTO files (r2_key, content_type, size_bytes, owner_user_id, purpose)
+       VALUES (?, ?, ?, NULL, ?)
+       RETURNING id`,
+    )
+    .bind(r2Key, contentType, file.size, "gift.svga")
+    .first<{ id: number }>();
+  if (!inserted) {
+    await c.env.R2_ARCHIVE.delete(r2Key);
+    throw new APIError("INTERNAL_ERROR", "Failed to register file.");
+  }
+  const origin = new URL(c.req.url).origin;
+  return c.json({
+    id: inserted.id,
+    url: `${origin}/oth-path${inserted.id}`,
+    contentType,
     sizeBytes: file.size,
   }, 201);
 });

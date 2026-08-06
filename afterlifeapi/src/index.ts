@@ -34,6 +34,7 @@ import { adminDeletion } from "./routes/adminDeletion";
 import { files } from "./routes/files";
 import { payments } from "./routes/payments";
 import { gifts } from "./routes/gifts";
+import { giftInventory } from "./routes/giftInventory";
 import { iapWebhooks } from "./routes/iapWebhooks";
 import { runFreeDecayCron } from "./lib/freeDecay";
 import { notifications } from "./routes/notifications";
@@ -120,6 +121,8 @@ app.route("/oth-path", inviteTokens);
 app.route("/oth-path", credits);
 app.route("/oth-path", payments);
 app.route("/oth-path", gifts);
+
+app.route("/oth-path", giftInventory);
 
 app.route("/webhooks", iapWebhooks);
 app.route("/oth-path", notifications);

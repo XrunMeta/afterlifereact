@@ -345,6 +345,8 @@ export default function LoginScreen({ navigation }: Props) {
           {}
           {mode === "account" && (
             <>
+              {}
+              <Text style={styles.fieldLabel}>{t("auth.login.emailLabel")}</Text>
               <TextField
                 value={email}
                 onChangeText={setEmail}
@@ -353,6 +355,7 @@ export default function LoginScreen({ navigation }: Props) {
                 autoCapitalize="none"
                 leftIcon={<Feather name="mail" size={20} color={COLORS.zinc500} />}
               />
+              <Text style={styles.fieldLabel}>{t("auth.login.passwordLabel")}</Text>
               <TextField
                 value={password}
                 onChangeText={setPassword}
@@ -386,7 +389,7 @@ export default function LoginScreen({ navigation }: Props) {
                 variant="primary"
                 disabled={loggingIn}
 
-                style={{ marginTop: SIZES.xxlarge }}
+                style={{ marginTop: 120 }}
               />
             </>
           )}
@@ -394,6 +397,8 @@ export default function LoginScreen({ navigation }: Props) {
           {}
           {mode === "otp" && (
             <>
+              {}
+              <Text style={styles.fieldLabel}>{t("auth.login.emailLabel")}</Text>
               <TextField
                 value={email}
                 onChangeText={setEmail}
@@ -421,6 +426,7 @@ export default function LoginScreen({ navigation }: Props) {
           {
 
 }
+          {}
           {(Platform.OS === "ios" || googleEnabled !== false) && (
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
@@ -462,12 +468,6 @@ export default function LoginScreen({ navigation }: Props) {
           )}
 
           {}
-          <View style={styles.signupRow}>
-            <Text style={styles.signupText}>{t("auth.login.signupHint")} </Text>
-            <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
-              <Text style={styles.signupLink}>{t("auth.login.signupBtn")}</Text>
-            </TouchableOpacity>
-          </View>
 
           {}
           <Text style={styles.forgotPasswordHint}>
@@ -501,11 +501,20 @@ const styles = StyleSheet.create({
     height: 105,
   },
   tabRow: {
+
+    marginTop: 80,
     flexDirection: "row",
     backgroundColor: COLORS.zinc100,
     borderRadius: RADIUS.md,
     padding: 4,
     marginBottom: SIZES.small,
+  },
+
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: COLORS.zinc700,
+    marginBottom: -SIZES.small,
   },
   tab: {
     flex: 1,
@@ -558,8 +567,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   forgotPassword: {
+
     color: COLORS.zinc900,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "500",
   },
   lockHint: {
@@ -603,11 +613,12 @@ const styles = StyleSheet.create({
   },
 
   forgotPasswordHint: {
+
     marginTop: SIZES.small,
     color: COLORS.zinc500,
-    fontSize: 11,
+    fontSize: 12,
     lineHeight: 16,
-    textAlign: "center",
+    textAlign: "left",
   },
 
   snsLoginContainer: {
@@ -619,9 +630,10 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   snsLoginLabel: {
-    fontSize: 12,
-    lineHeight: 18,
-    color: COLORS.zinc500,
+
+    fontSize: 14,
+    lineHeight: 20,
+    color: COLORS.zinc600,
   },
   snsButtonContainer: {
     flexDirection: "row",

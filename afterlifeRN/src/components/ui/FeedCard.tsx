@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
+  ScrollView,
   StyleSheet,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -32,6 +33,18 @@ interface FeedCardProps {
   onSharePress?: () => void;
 
   onIntimacyPress?: () => void;
+
+  onOwnerPress?: () => void;
+
+  onOwnerFollowPress?: () => void;
+
+  isOwnerFollowed?: boolean;
+
+  onGiftPress?: () => void;
+
+  onDescriptionScrollStart?: () => void;
+
+  onDescriptionScrollEnd?: () => void;
 }
 
 const FeedCard: React.FC<FeedCardProps> = ({
@@ -48,8 +61,25 @@ const FeedCard: React.FC<FeedCardProps> = ({
   onMorePress,
   onSharePress,
   onIntimacyPress,
+  onOwnerPress,
+  onOwnerFollowPress,
+  isOwnerFollowed = false,
+  onGiftPress,
+  onDescriptionScrollStart,
+  onDescriptionScrollEnd,
 }) => {
   const { t } = useTranslation();
+
+  const [descScrollY, setDescScrollY] = React.useState(0);
+  const [descContentH, setDescContentH] = React.useState(0);
+  const [descContainerH, setDescContainerH] = React.useState(0);
+  const descScrollable = descContentH > descContainerH + 1;
+  const descThumbHeight = descScrollable
+    ? Math.max(16, (descContainerH / descContentH) * descContainerH)
+    : 0;
+  const descThumbTop = descScrollable
+    ? (descScrollY / (descContentH - descContainerH)) * (descContainerH - descThumbHeight)
+    : 0;
 
   const isSmallScreen = cardHeight < 640;
   return (
@@ -65,11 +95,66 @@ const FeedCard: React.FC<FeedCardProps> = ({
         locations={[0, 0.5, 1]}
         style={styles.gradient}
       />
+      {
+}
+      <LinearGradient
+        colors={["rgba(0,0,0,0.55)", "rgba(0,0,0,0.2)", "transparent"]}
+        locations={[0, 0.6, 1]}
+        style={styles.gradientTop}
+      />
 
       {
-
 }
-      {typeof item.myIntimacy === "number" ? (
+      {isActive && (item.ownerName || item.ownerAvatarUrl || onMorePress) ? (
+        <View style={styles.ownerHeader}>
+          <TouchableOpacity
+            style={styles.ownerInfo}
+            onPress={onOwnerPress}
+            disabled={!onOwnerPress}
+            activeOpacity={0.7}
+          >
+            {item.ownerAvatarUrl ? (
+              <Image source={{ uri: item.ownerAvatarUrl }} style={styles.ownerAvatar} />
+            ) : (
+              <View style={[styles.ownerAvatar, styles.ownerAvatarPlaceholder]}>
+                <Feather name="user" size={14} color={COLORS.zinc400} />
+              </View>
+            )}
+            <Text style={styles.ownerName} numberOfLines={1}>
+              {item.ownerName ?? ""}
+            </Text>
+          </TouchableOpacity>
+          {!isOwn && onOwnerFollowPress ? (
+            <TouchableOpacity
+              style={[styles.ownerFollowBtn, isOwnerFollowed && styles.ownerFollowBtnActive]}
+              onPress={onOwnerFollowPress}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.ownerFollowText,
+                  isOwnerFollowed && styles.ownerFollowTextActive,
+                ]}
+              >
+                {isOwnerFollowed ? t("feed.following") : t("feed.follow")}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+          {onMorePress ? (
+            <TouchableOpacity
+              onPress={onMorePress}
+              style={styles.ownerMoreBtn}
+              accessibilityLabel="more-options"
+            >
+              <Feather name="more-vertical" size={20} color={COLORS.white} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      ) : null}
+
+      {
+}
+      {false && typeof item.myIntimacy === "number" ? (
         <TouchableOpacity
           style={styles.intimacyBadge}
           onPress={onIntimacyPress}
@@ -99,19 +184,15 @@ const FeedCard: React.FC<FeedCardProps> = ({
               <Feather name="message-circle" size={30} color={COLORS.white} />
               <Text style={styles.actionLabel}>{item.comments}</Text>
             </TouchableOpacity>
+            {}
+            <TouchableOpacity onPress={onGiftPress} style={styles.actionBtn} activeOpacity={0.7}>
+              <Feather name="gift" size={28} color={COLORS.white} />
+              <Text style={styles.actionLabel}>{item.giftsReceived ?? 0}</Text>
+            </TouchableOpacity>
             <TouchableOpacity onPress={onSharePress} style={styles.actionBtn} activeOpacity={0.7}>
               <Feather name="share-2" size={28} color={COLORS.white} />
             </TouchableOpacity>
-            {onMorePress && (
-              <TouchableOpacity
-                onPress={onMorePress}
-                style={styles.actionBtn}
-                activeOpacity={0.7}
-                accessibilityLabel="more-options"
-              >
-                <Feather name="more-vertical" size={28} color={COLORS.white} />
-              </TouchableOpacity>
-            )}
+            {}
           </View>
 
           <View style={styles.bottomContent}>
@@ -120,6 +201,19 @@ const FeedCard: React.FC<FeedCardProps> = ({
                 <View style={styles.authorRow}>
                   <Text style={styles.authorName}>{item.author}</Text>
                   {item.cloneType === "expert" && <ExpertBadge size={22} />}
+                  {}
+                  {typeof item.myIntimacy === "number" ? (
+                    <TouchableOpacity
+                      style={styles.intimacyBadgeInline}
+                      onPress={onIntimacyPress}
+                      activeOpacity={0.7}
+                      disabled={!onIntimacyPress}
+                      accessibilityLabel="intimacy-events"
+                    >
+                      <Feather name="thermometer" size={12} color="#fb923c" />
+                      <Text style={styles.intimacyText}>{item.myIntimacy}°C</Text>
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
                 <Text style={styles.username}>{item.username}</Text>
               </View>
@@ -153,12 +247,43 @@ const FeedCard: React.FC<FeedCardProps> = ({
 
 }
             {item.description ? (
-              <HashtagText
-                style={styles.description}
-                tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
+
+              <View
+                style={styles.descriptionWrap}
+                onTouchStart={onDescriptionScrollStart}
+                onTouchEnd={onDescriptionScrollEnd}
+                onTouchCancel={onDescriptionScrollEnd}
               >
-                {item.description}
-              </HashtagText>
+                <ScrollView
+                  style={styles.descriptionScroll}
+
+                  showsVerticalScrollIndicator={false}
+                  nestedScrollEnabled={false}
+                  bounces={false}
+                  overScrollMode="never"
+                  scrollEventThrottle={16}
+                  onScroll={(e) => setDescScrollY(e.nativeEvent.contentOffset.y)}
+                  onContentSizeChange={(_, h) => setDescContentH(h)}
+                  onLayout={(e) => setDescContainerH(e.nativeEvent.layout.height)}
+                >
+                  <HashtagText
+                    style={styles.description}
+                    tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
+                  >
+                    {item.description}
+                  </HashtagText>
+                </ScrollView>
+                {descScrollable ? (
+                  <View pointerEvents="none" style={styles.descScrollbarTrack}>
+                    <View
+                      style={[
+                        styles.descScrollbarThumb,
+                        { top: descThumbTop, height: descThumbHeight },
+                      ]}
+                    />
+                  </View>
+                ) : null}
+              </View>
             ) : null}
 
             {}
@@ -194,6 +319,14 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     height: "60%",
+  },
+
+  gradientTop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "22%",
   },
   bottomContent: {
     position: "absolute",
@@ -262,9 +395,73 @@ const styles = StyleSheet.create({
     bottom: 220,
   },
 
-  intimacyBadge: {
+  ownerHeader: {
     position: "absolute",
     top: 56,
+    left: 16,
+    right: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    zIndex: 11,
+  },
+  ownerInfo: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    minWidth: 0,
+    paddingRight: 8,
+  },
+  ownerAvatar: {
+
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.4)",
+  },
+  ownerAvatarPlaceholder: {
+    backgroundColor: "rgba(0,0,0,0.4)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ownerName: {
+    flexShrink: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.white,
+    textShadowColor: "rgba(0,0,0,0.6)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  ownerFollowBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.white,
+  },
+  ownerFollowBtnActive: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  ownerFollowText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: COLORS.zinc900,
+  },
+  ownerFollowTextActive: {
+    color: COLORS.white,
+  },
+  ownerMoreBtn: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  intimacyBadge: {
+    position: "absolute",
+    top: 100,
     right: 16,
     flexDirection: "row",
     alignItems: "center",
@@ -274,6 +471,17 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.6)",
     borderRadius: RADIUS.full,
     zIndex: 10,
+  },
+
+  intimacyBadgeInline: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: RADIUS.full,
+    marginLeft: 4,
   },
   intimacyText: {
     fontSize: 11,
@@ -299,8 +507,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.white,
     lineHeight: 20,
+
+  },
+
+  descriptionWrap: {
     marginBottom: 12,
 
+    position: "relative",
+  },
+
+  descScrollbarTrack: {
+    position: "absolute",
+    top: 2,
+    bottom: 2,
+    right: 2,
+    width: 3,
+  },
+  descScrollbarThumb: {
+    position: "absolute",
+    right: 0,
+    width: 3,
+    borderRadius: 2,
+    backgroundColor: "rgba(255,255,255,0.9)",
+  },
+
+  descriptionScroll: {
+    maxHeight: 40,
+    paddingRight: 56,
   },
   callButton: {
     width: "100%",

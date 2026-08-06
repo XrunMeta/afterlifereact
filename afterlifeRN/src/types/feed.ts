@@ -22,4 +22,9 @@ export interface FeedItem {
   comments: number;
 
   myIntimacy?: number;
+
+  ownerName?: string | null;
+  ownerAvatarUrl?: string | null;
+
+  giftsReceived?: number;
 }

@@ -43,19 +43,28 @@ export function DialingScreen(props: {
   const outcome = inGrace && rawOutcome !== 'connected' ? 'dialing' : rawOutcome;
 
   useEffect(() => {
+
+    console.log(
+      `[Call][flow] +${Date.now()} DialingScreen mount personaName="${personaName}" hasImage=${!!personaImage} liveState=${liveState}`,
+    );
     sounds.startDialingTone();
-    return () => sounds.stopDialingTone();
+    return () => {
+      console.log(`[Call][flow] +${Date.now()} DialingScreen unmount`);
+      sounds.stopDialingTone();
+    };
 
   }, []);
 
   const connectedRef = useRef(false);
   useEffect(() => {
+
+    console.log(`[Call][flow] +${Date.now()} DialingScreen outcome=${outcome} liveState=${liveState} elapsed=${elapsed}ms`);
     if (outcome === 'connected' && !connectedRef.current) {
       connectedRef.current = true;
       sounds.playConnect();
       onConnected();
     }
-  }, [outcome, sounds, onConnected]);
+  }, [outcome, sounds, onConnected, liveState, elapsed]);
 
   useEffect(() => {
     if (outcome === 'timeout' || outcome === 'error') sounds.stopDialingTone();
@@ -103,11 +112,16 @@ export function DialingScreen(props: {
         <Animated.View
           style={[styles.ring, { transform: [{ scale: ringScale }], opacity: ringOpacity }]}
         />
+        {
+
+}
+        <View style={[styles.avatar, styles.avatarFallback]} />
         {personaImage ? (
-          <Image source={{ uri: personaImage }} style={styles.avatar} />
-        ) : (
-          <View style={[styles.avatar, { backgroundColor: COLORS.violet500 }]} />
-        )}
+          <Image
+            source={{ uri: personaImage }}
+            style={[styles.avatar, styles.avatarOverlay]}
+          />
+        ) : null}
       </View>
 
       <View style={styles.actions}>
@@ -164,6 +178,9 @@ const styles = StyleSheet.create({
   },
   avatarWrap: { alignItems: 'center', justifyContent: 'center' },
   avatar: { width: 96, height: 96, borderRadius: 48 },
+
+  avatarFallback: { position: 'absolute', backgroundColor: COLORS.zinc700 },
+  avatarOverlay: { position: 'absolute' },
   ring: {
     position: 'absolute',
     width: 96,

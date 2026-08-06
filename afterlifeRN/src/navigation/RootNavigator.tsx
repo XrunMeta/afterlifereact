@@ -79,7 +79,8 @@ export default function RootNavigator() {
             component={CallScreen}
             options={{
               presentation: "fullScreenModal",
-              animation: "slide_from_bottom",
+
+              animation: "none",
             }}
           />
           <RootStack.Screen name="InviteAccept" component={InviteAcceptScreen} />

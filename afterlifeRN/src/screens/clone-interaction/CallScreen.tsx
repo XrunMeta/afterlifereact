@@ -16,6 +16,7 @@ import {
   Keyboard,
   Linking,
   TextInput,
+  BackHandler,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
@@ -126,12 +127,41 @@ const SPEAK_OK_COLOR = "#2fbf6b";
 interface FloatingGift {
   id: number;
   emoji: string;
+
+  imageUrl?: string;
   animY: Animated.Value;
   animOpacity: Animated.Value;
   x: number;
 }
 
-export default function CallScreen({ route, navigation }: Props) {
+export default function CallScreen(props: Props) {
+  const [heavyReady, setHeavyReady] = React.useState(false);
+  React.useEffect(() => {
+
+    const raf = requestAnimationFrame(() => setHeavyReady(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  const { name: paramName, image: paramImage } = props.route.params;
+  const placeholderImage = typeof paramImage === "string" ? paramImage : "";
+  return (
+    <View style={{ flex: 1, backgroundColor: COLORS.zinc950 }}>
+      {!heavyReady ? (
+        <DialingScreen
+          liveState="idle"
+          personaName={paramName ?? ""}
+          personaImage={placeholderImage}
+          onConnected={() => {}}
+          onCancel={() => props.navigation.goBack()}
+          onRetry={() => {}}
+        />
+      ) : (
+        <CallScreenInner {...props} />
+      )}
+    </View>
+  );
+}
+
+function CallScreenInner({ route, navigation }: Props) {
   const { t } = useTranslation();
   const { cloneId, name: paramName, image: paramImage } = route.params;
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
@@ -724,7 +754,12 @@ export default function CallScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     if (!accessToken) return;
-    void startLive();
+
+    const raf = requestAnimationFrame(() => {
+      console.log(`[Call][flow] +${Date.now()} startLive() begin (deferred 1 frame)`);
+      void startLive();
+    });
+    return () => cancelAnimationFrame(raf);
 
   }, []);
 
@@ -951,6 +986,16 @@ export default function CallScreen({ route, navigation }: Props) {
     return () => anim.stop();
   }, [phase, pendingText, confirmProgress]);
 
+  useEffect(() => {
+    const backSub = BackHandler.addEventListener("hardwareBackPress", () => {
+      console.log("[Call][back] hardware back → stopLive + goBack");
+      void stopLive();
+      navigation.goBack();
+      return true;
+    });
+    return () => backSub.remove();
+  }, [stopLive, navigation]);
+
   const callStartRef = useRef<number>(Date.now());
   const tokenRef = useRef(accessToken);
   const cloneIdRef = useRef(cloneId);
@@ -979,7 +1024,7 @@ export default function CallScreen({ route, navigation }: Props) {
   }, []);
 
   useEffect(() => {
-    console.log(`[Call] 진입 cloneId=${cloneId} name=${paramName ?? "?"} (likedByMe fetch 중...)`);
+    console.log(`[Call][flow] +${Date.now()} CallScreen mount cloneId=${cloneId} name=${paramName ?? "?"} hasImage=${!!paramImage}`);
     if (!accessToken) return;
     let cancelled = false;
     getCloneLikeStatus(accessToken, cloneId)
@@ -1022,7 +1067,14 @@ export default function CallScreen({ route, navigation }: Props) {
     const animOpacity = new Animated.Value(0);
     const x = SCREEN_W / 2 + (Math.random() * 120 - 60);
 
-    const newGift: FloatingGift = { id, emoji: gift.emoji, animY, animOpacity, x };
+    const newGift: FloatingGift = {
+      id,
+      emoji: gift.emoji,
+      imageUrl: gift.imageUrl,
+      animY,
+      animOpacity,
+      x,
+    };
     setFloatingGifts((prev) => [...prev, newGift]);
 
     Animated.parallel([
@@ -1163,9 +1215,20 @@ export default function CallScreen({ route, navigation }: Props) {
           personaImage={typeof personaImage === "string" ? personaImage : ""}
 
           greetingStarted={greetingOn ? phase !== "greeting" && phase !== "idle" : undefined}
-          onConnected={() => setDialingDone(true)}
-          onCancel={async () => { await stopLive(); navigation.goBack(); }}
-          onRetry={() => { setGreetingStarted(false); void startLive(); }}
+          onConnected={() => {
+            console.log(`[Call][flow] +${Date.now()} DialingScreen.onConnected → setDialingDone(true)`);
+            setDialingDone(true);
+          }}
+          onCancel={async () => {
+            console.log(`[Call][flow] +${Date.now()} DialingScreen.onCancel → stopLive + goBack`);
+            await stopLive();
+            navigation.goBack();
+          }}
+          onRetry={() => {
+            console.log(`[Call][flow] +${Date.now()} DialingScreen.onRetry → startLive`);
+            setGreetingStarted(false);
+            void startLive();
+          }}
         />
       )}
 
@@ -1339,21 +1402,37 @@ export default function CallScreen({ route, navigation }: Props) {
       )}
 
       {}
-      {floatingGifts.map((g) => (
-        <Animated.Text
-          key={g.id}
-          style={[
-            s.floatingEmoji,
-            {
-              left: g.x,
-              transform: [{ translateY: g.animY }],
-              opacity: g.animOpacity,
-            },
-          ]}
-        >
-          {g.emoji}
-        </Animated.Text>
-      ))}
+      {floatingGifts.map((g) =>
+        g.imageUrl ? (
+          <Animated.View
+            key={g.id}
+            style={[
+              s.floatingImage,
+              {
+                left: g.x,
+                transform: [{ translateY: g.animY }],
+                opacity: g.animOpacity,
+              },
+            ]}
+          >
+            <Image source={{ uri: g.imageUrl }} style={s.floatingImageInner} />
+          </Animated.View>
+        ) : (
+          <Animated.Text
+            key={g.id}
+            style={[
+              s.floatingEmoji,
+              {
+                left: g.x,
+                transform: [{ translateY: g.animY }],
+                opacity: g.animOpacity,
+              },
+            ]}
+          >
+            {g.emoji}
+          </Animated.Text>
+        ),
+      )}
 
       {
 }
@@ -1505,14 +1584,14 @@ export default function CallScreen({ route, navigation }: Props) {
               </TouchableOpacity>
             </View>
 
-            {}
+            {
+}
             <FlatList
               data={gifts}
               keyExtractor={(item) => item.id}
-              numColumns={3}
-              columnWrapperStyle={s.giftRow}
               contentContainerStyle={s.giftGrid}
-              scrollEnabled={false}
+              scrollEnabled={true}
+              showsVerticalScrollIndicator={false}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={s.giftItem}
@@ -1526,7 +1605,12 @@ export default function CallScreen({ route, navigation }: Props) {
                       <Text style={s.giftEmoji}>{item.emoji}</Text>
                     )}
                   </View>
-                  <Text style={s.giftName}>{item.name}</Text>
+                  <Text style={s.giftName} numberOfLines={1}>{item.name}</Text>
+                  {typeof item.xrunPrice === "number" ? (
+                    <Text style={s.giftPrice}>{item.xrunPrice} XRUN</Text>
+                  ) : (
+                    <View style={{ minWidth: 60 }} />
+                  )}
                 </TouchableOpacity>
               )}
             />
@@ -1693,6 +1777,19 @@ const s = StyleSheet.create({
     zIndex: 30,
   },
 
+  floatingImage: {
+    position: "absolute",
+    bottom: 200,
+    width: 64,
+    height: 64,
+    zIndex: 30,
+  },
+  floatingImageInner: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "contain",
+  },
+
   subtitleContainer: {
     position: 'absolute',
     left: 16,
@@ -1788,7 +1885,7 @@ const s = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingBottom: 24,
 
-    height: "80%",
+    maxHeight: "80%",
   },
   giftHeader: {
     flexDirection: "row",
@@ -1809,32 +1906,35 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  giftGrid: { paddingHorizontal: 24, paddingTop: 20 },
-  giftRow: { gap: 12, marginBottom: 12 },
+  giftGrid: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 4 },
+
   giftItem: {
-    flex: 1,
+    flexDirection: "row",
     alignItems: "center",
-    padding: 14,
+    padding: 12,
+    marginBottom: 8,
     backgroundColor: COLORS.zinc50,
     borderRadius: RADIUS.lg,
+    gap: 12,
   },
   giftEmojiWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: COLORS.white,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
     elevation: 2,
     shadowColor: COLORS.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
   },
-  giftEmoji: { fontSize: 24 },
-  giftImage: { width: 40, height: 40, borderRadius: 8 },
-  giftName: { fontSize: 13, fontWeight: "600", color: COLORS.zinc900, marginBottom: 2 },
+  giftEmoji: { fontSize: 22 },
+  giftImage: { width: 36, height: 36, borderRadius: 8 },
+  giftName: { flex: 1, fontSize: 15, fontWeight: "600", color: COLORS.zinc900 },
+
+  giftPrice: { fontSize: 13, fontWeight: "700", color: "#a78bfa", minWidth: 60, textAlign: "right" },
 
   toast: {
     position: "absolute",
