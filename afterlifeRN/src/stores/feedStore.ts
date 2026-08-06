@@ -56,6 +56,10 @@ export const v_10e36e = new Map<number, { commentsCount: number }>();
 
 export const v_674b99 = new Map<number, number>();
 
+export const v_ec315e = new Map<number, { name: string | null; avatarUrl: string | null }>();
+
+export const v_078c0e = new Map<number, number>();
+
 function v_0a5d7b(item: v_4c75cf): v_bc3df4 {
   v_0b62e7.set(v_8c0b26.cloneId, {
     id: v_8c0b26.clone.id,
@@ -79,6 +83,14 @@ function v_0a5d7b(item: v_4c75cf): v_bc3df4 {
 
   if (typeof v_8c0b26.myIntimacy === "number") {
     v_674b99.set(v_8c0b26.cloneId, Math.min(100, Math.max(0, v_8c0b26.myIntimacy)));
+  }
+
+  v_ec315e.set(v_8c0b26.cloneId, {
+    name: v_8c0b26.clone.ownerName ?? null,
+    avatarUrl: v_8c0b26.clone.ownerAvatarUrl ?? null,
+  });
+  if (typeof v_8c0b26.giftsReceived === "number") {
+    v_078c0e.set(v_8c0b26.cloneId, Math.max(0, v_8c0b26.giftsReceived));
   }
   return {
     id: v_8c0b26.id,
@@ -204,6 +216,8 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
     v_0b62e7.clear();
     v_10e36e.clear();
     v_674b99.clear();
+    v_ec315e.clear();
+    v_078c0e.clear();
     v_bb8024({
       apiFeeds: null,
       apiLoading: false,

@@ -854,10 +854,15 @@ export interface DiscoverFeedItem {
     avatarUrl: string | null;
     cloneType: CloneType;
     visibility?: string;
+
+    ownerName?: string | null;
+    ownerAvatarUrl?: string | null;
   };
   interests: string[];
 
   myIntimacy?: number;
+
+  giftsReceived?: number;
 }
 
 export async function v_f5cc38(v_328259): Promise<{ items: DiscoverFeedItem[]; nextCursor: number | null }> {

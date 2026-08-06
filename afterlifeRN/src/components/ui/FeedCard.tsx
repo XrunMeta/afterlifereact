@@ -33,6 +33,14 @@ interface FeedCardProps {
   onSharePress?: () => void;
 
   onIntimacyPress?: () => void;
+
+  onOwnerPress?: () => void;
+
+  onOwnerFollowPress?: () => void;
+
+  isOwnerFollowed?: boolean;
+
+  onGiftPress?: () => void;
 }
 
 const FeedCard: v_a3453e.FC<FeedCardProps> = ({
@@ -49,6 +57,10 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
   onMorePress: v_27b331,
   onSharePress: v_d51485,
   onIntimacyPress: v_b85128,
+  onOwnerPress: v_b85e42,
+  onOwnerFollowPress: v_a32130,
+  isOwnerFollowed: v_1d1155 = false,
+  onGiftPress: v_8506d0,
 }) => {
   const { t: v_8d41d7 } = v_772971();
 
@@ -66,6 +78,55 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
         locations={[0, 0.5, 1]}
         style={v_d81136.gradient}
       />
+
+      {
+}
+      {v_26dce6 && (v_8c0b26.ownerName || v_8c0b26.ownerAvatarUrl || v_27b331) ? (
+        <View style={v_d81136.ownerHeader}>
+          <TouchableOpacity
+            style={v_d81136.ownerInfo}
+            onPress={v_b85e42}
+            disabled={!v_b85e42}
+            activeOpacity={0.7}
+          >
+            {v_8c0b26.ownerAvatarUrl ? (
+              <Image source={{ uri: v_8c0b26.ownerAvatarUrl }} style={v_d81136.ownerAvatar} />
+            ) : (
+              <View style={[v_d81136.ownerAvatar, v_d81136.ownerAvatarPlaceholder]}>
+                <Feather name="user" size={14} color={v_1bfbd0.zinc400} />
+              </View>
+            )}
+            <Text style={v_d81136.ownerName} numberOfLines={1}>
+              {v_8c0b26.ownerName ?? ""}
+            </Text>
+          </TouchableOpacity>
+          {!v_799eb5 && v_a32130 ? (
+            <TouchableOpacity
+              style={[v_d81136.ownerFollowBtn, v_1d1155 && v_d81136.ownerFollowBtnActive]}
+              onPress={v_a32130}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  v_d81136.ownerFollowText,
+                  v_1d1155 && v_d81136.ownerFollowTextActive,
+                ]}
+              >
+                {v_1d1155 ? v_8d41d7("feed.following") : v_8d41d7("feed.follow")}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+          {v_27b331 ? (
+            <TouchableOpacity
+              onPress={v_27b331}
+              style={v_d81136.ownerMoreBtn}
+              accessibilityLabel="more-options"
+            >
+              <Feather name="more-vertical" size={20} color={v_1bfbd0.white} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      ) : null}
 
       {
 
@@ -100,19 +161,15 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
               <Feather name="message-circle" size={30} color={v_1bfbd0.white} />
               <Text style={v_d81136.actionLabel}>{v_8c0b26.comments}</Text>
             </TouchableOpacity>
+            {}
+            <TouchableOpacity onPress={v_8506d0} style={v_d81136.actionBtn} activeOpacity={0.7}>
+              <Feather name="gift" size={28} color={v_1bfbd0.white} />
+              <Text style={v_d81136.actionLabel}>{v_8c0b26.giftsReceived ?? 0}</Text>
+            </TouchableOpacity>
             <TouchableOpacity onPress={v_d51485} style={v_d81136.actionBtn} activeOpacity={0.7}>
               <Feather name="share-2" size={28} color={v_1bfbd0.white} />
             </TouchableOpacity>
-            {v_27b331 && (
-              <TouchableOpacity
-                onPress={v_27b331}
-                style={v_d81136.actionBtn}
-                activeOpacity={0.7}
-                accessibilityLabel="more-options"
-              >
-                <Feather name="more-vertical" size={28} color={v_1bfbd0.white} />
-              </TouchableOpacity>
-            )}
+            {}
           </View>
 
           <View style={v_d81136.bottomContent}>
@@ -270,9 +327,72 @@ const v_d81136 = v_472849.create({
     bottom: 220,
   },
 
-  intimacyBadge: {
+  ownerHeader: {
     position: "absolute",
     top: 56,
+    left: 16,
+    right: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    zIndex: 11,
+  },
+  ownerInfo: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    minWidth: 0,
+    paddingRight: 8,
+  },
+  ownerAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.4)",
+  },
+  ownerAvatarPlaceholder: {
+    backgroundColor: "rgba(0,0,0,0.4)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ownerName: {
+    flexShrink: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    color: v_1bfbd0.white,
+    textShadowColor: "rgba(0,0,0,0.6)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  ownerFollowBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: v_8b0c90.full,
+    backgroundColor: v_1bfbd0.white,
+  },
+  ownerFollowBtnActive: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  ownerFollowText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: v_1bfbd0.zinc900,
+  },
+  ownerFollowTextActive: {
+    color: v_1bfbd0.white,
+  },
+  ownerMoreBtn: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  intimacyBadge: {
+    position: "absolute",
+    top: 100,
     right: 16,
     flexDirection: "row",
     alignItems: "center",
