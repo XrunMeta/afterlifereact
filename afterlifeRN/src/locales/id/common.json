@@ -245,7 +245,9 @@
     "batteryWhitelistOpen": "Buka Pengaturan",
     "batteryWhitelistDismiss": "Jangan tampilkan lagi",
     "bgWarnTitle": "📞 Panggilan bisa terputus",
-    "bgWarnBody": "Biarkan aplikasi tetap terbuka agar panggilan berlanjut. Kembali ke aplikasi."
+    "bgWarnBody": "Biarkan aplikasi tetap terbuka agar panggilan berlanjut. Kembali ke aplikasi.",
+    "fgTitle": "📞 Dalam panggilan",
+    "fgBody": "Sedang menelepon dengan {{name}}"
   },
   "feed": {
     "homeTitle": "Beranda",
