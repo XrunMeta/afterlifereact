@@ -41,6 +41,10 @@ interface FeedCardProps {
   isOwnerFollowed?: boolean;
 
   onGiftPress?: () => void;
+
+  onDescriptionScrollStart?: () => void;
+
+  onDescriptionScrollEnd?: () => void;
 }
 
 const FeedCard: v_a3453e.FC<FeedCardProps> = ({
@@ -61,6 +65,8 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
   onOwnerFollowPress: v_a32130,
   isOwnerFollowed: v_1d1155 = false,
   onGiftPress: v_8506d0,
+  onDescriptionScrollStart: v_c29799,
+  onDescriptionScrollEnd: v_bb9bff,
 }) => {
   const { t: v_8d41d7 } = v_772971();
 
@@ -235,6 +241,11 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
                 showsVerticalScrollIndicator={true}
                 nestedScrollEnabled={true}
                 persistentScrollbar={true}
+                indicatorStyle="white"
+
+                onScrollBeginDrag={v_c29799}
+                onScrollEndDrag={v_bb9bff}
+                onMomentumScrollEnd={v_bb9bff}
               >
                 <HashtagText
                   style={v_d81136.description}
