@@ -900,9 +900,14 @@ export default function CallScreen({ route, navigation }: Props) {
             },
             {
               text: t("call.batteryWhitelistOpen", { defaultValue: "설정 열기" }),
-              onPress: () => {
+              onPress: async () => {
                 AsyncStorage.setItem(KEY, "1").catch(() => {});
-                Linking.openSettings().catch(() => {});
+
+                try {
+                  await Linking.sendIntent("android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS");
+                } catch {
+                  Linking.openSettings().catch(() => {});
+                }
               },
             },
           ],
