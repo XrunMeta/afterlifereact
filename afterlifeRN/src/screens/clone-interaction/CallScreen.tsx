@@ -19,6 +19,10 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
+import {
+  startCallForegroundService,
+  stopCallForegroundService,
+} from "../../lib/callForegroundService";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { RTCView } from "react-native-webrtc";
@@ -859,6 +863,21 @@ export default function CallScreen({ route, navigation }: Props) {
     }, 1000);
     return () => clearInterval(id);
   }, [liveState, remainingSec !== null, navigation, t]);
+
+  useEffect(() => {
+    const displayName = paramName || t("call.fgTitle", { defaultValue: "통화 중" });
+    startCallForegroundService({
+      title: t("call.fgTitle", { defaultValue: "통화 중" }),
+      body: t("call.fgBody", {
+        name: displayName,
+        defaultValue: `${displayName} 와(과) 통화 중입니다`,
+      }),
+    }).catch(() => {});
+    return () => {
+      stopCallForegroundService().catch(() => {});
+    };
+
+  }, []);
 
   useEffect(() => {
     if (Platform.OS !== "android") return;

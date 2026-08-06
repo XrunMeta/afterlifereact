@@ -7,5 +7,8 @@ if (typeof (globalThis as { Buffer?: typeof Buffer }).Buffer === "undefined") {
 }
 
 import App from './App';
+import { registerCallForegroundService } from './src/lib/callForegroundService';
+
+registerCallForegroundService();
 
 registerRootComponent(App);
