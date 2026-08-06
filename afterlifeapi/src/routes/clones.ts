@@ -2038,13 +2038,10 @@ v_f891e6.get("/:id/gifts/summary", v_6690d9, async (v_3f4e2e) => {
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
     throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
-  const v_43e90c = v_3f4e2e.get("userId")!;
   const v_a1651b = v_3f4e2e.env.DB;
 
   const v_eb25ce = await v_5d4a51(v_a1651b, v_6e0fd3);
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
-  if (v_eb25ce.owner_id !== v_43e90c)
-    throw new v_3ebe58("FORBIDDEN", "소유자만 열람할 수 있어요.");
 
   const v_18b8bf = await v_a1651b
     .prepare(
