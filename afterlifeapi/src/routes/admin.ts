@@ -170,6 +170,13 @@ admin.patch("/config/gift-catalog", requireAdmin, async (c) => {
         clean1.imageUrl = trimmed;
       }
     }
+
+    if (it.xrunPrice !== undefined && it.xrunPrice !== null) {
+      if (typeof it.xrunPrice !== "number" || !Number.isFinite(it.xrunPrice) || it.xrunPrice < 0) {
+        throw new APIError("VALIDATION_FAILED", "xrunPrice must be non-negative number.");
+      }
+      clean1.xrunPrice = it.xrunPrice;
+    }
     clean.push(clean1);
   }
   await setGiftCatalog(c.env, clean);
