@@ -5,6 +5,7 @@ import {
   v_4623af,
   v_cf9c33,
   v_700696,
+  v_122070,
   v_472849,
 } from "rcmrninabrnb";
 import { v_5ade23 } from "xbfwaaanosqvazmrqoah";
@@ -153,12 +154,19 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
 
 }
             {v_8c0b26.description ? (
-              <HashtagText
-                style={v_d81136.description}
-                tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
+              <ScrollView
+                style={v_d81136.descriptionScroll}
+                showsVerticalScrollIndicator={true}
+                nestedScrollEnabled={true}
+                persistentScrollbar={true}
               >
-                {v_8c0b26.description}
-              </HashtagText>
+                <HashtagText
+                  style={v_d81136.description}
+                  tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
+                >
+                  {v_8c0b26.description}
+                </HashtagText>
+              </ScrollView>
             ) : null}
 
             {}
@@ -299,8 +307,13 @@ const v_d81136 = v_472849.create({
     fontSize: 14,
     color: v_1bfbd0.white,
     lineHeight: 20,
-    marginBottom: 12,
 
+  },
+
+  descriptionScroll: {
+    maxHeight: 100,
+    marginBottom: 12,
+    paddingRight: 56,
   },
   callButton: {
     width: "100%",
