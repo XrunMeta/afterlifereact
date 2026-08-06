@@ -9,6 +9,7 @@ import {
   FlatList,
   ScrollView,
   Modal,
+  Platform,
   Pressable,
   TextInput,
   Dimensions,
@@ -19,9 +20,10 @@ import {
   type NativeScrollEvent,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
+import { useNavigation, useRoute, CommonActions, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
 import SafeView from "../../components/ui/SafeView";
 import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
@@ -30,6 +32,7 @@ import { useTranslation } from "react-i18next";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { RootStackParamList, MainTabParamList } from "../../navigation/types";
 import { useAuthStore } from "../../stores/authStore";
+import { assertCanCall } from "../../lib/callGuard";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
 import {
@@ -111,6 +114,10 @@ const formatCount = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : St
 export default function FollowingScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+
+  const navBarHeight = useAndroidNavigationBarHeight(0);
+  const androidMinNavBar = Platform.OS === "android" ? 56 : 0;
+  const sheetBottomInset = Math.max(insets.bottom, navBarHeight, androidMinNavBar);
   const rootNav = useNavigation<RootNav>();
   const authUser = useAuthStore((s) => s.user);
   const apiUser = useAuthStore((s) => s.apiUser);
@@ -203,10 +210,8 @@ export default function FollowingScreen() {
       return apiFollowed.map((c) => {
 
         const my = c.myInteractions;
-        const rawInteractions = my ? my.total : deriveInteractionsFromStats(c.stats);
-        const rawIntimacy = my ? my.intimacy : Math.min(100, Math.floor(rawInteractions / 50));
-        const interactions = c.isOwn ? 0 : rawInteractions;
-        const intimacy = c.isOwn ? 0 : rawIntimacy;
+        const interactions = my ? my.total : deriveInteractionsFromStats(c.stats);
+        const intimacy = my ? my.intimacy : Math.min(100, Math.floor(interactions / 50));
         return {
           id: c.id,
           name: c.name,
@@ -606,11 +611,12 @@ export default function FollowingScreen() {
               <Feather name="thermometer" size={12} color="#fb923c" />
               <Text style={s.badgeText}>{item.persona.intimacy}</Text>
             </TouchableOpacity>
-            {}
+            {
+}
             <View style={s.badgeDivider} />
             <TouchableOpacity
               style={s.badgeBtn}
-              onPress={() => openCloneFeed(item.persona.id, item.feed.id > 0 ? item.feed.id : undefined)}
+              onPress={() => setCommentPostId(item.feed.id)}
             >
               <Feather name="message-circle" size={12} color="#34d399" />
               <Text style={s.badgeText}>
@@ -627,8 +633,9 @@ export default function FollowingScreen() {
               <Text style={s.creatorAccount}>{item.persona.creatorAccount}</Text>
             ) : null}
             {
+
 }
-            <HashtagText style={s.postContent} numberOfLines={3}>
+            <HashtagText style={s.postContent}>
               {item.feed.content}
             </HashtagText>
             <View style={s.overlayBtns}>
@@ -637,13 +644,20 @@ export default function FollowingScreen() {
                 variant="secondary"
                 size="md"
                 leftIcon={<Feather name="video" size={14} color={COLORS.zinc900} />}
-                onPress={() =>
+                onPress={async () => {
+
+                  const ok = await assertCanCall(accessToken, () => {
+                    rootNav.dispatch(
+                      CommonActions.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                    );
+                  });
+                  if (!ok) return;
                   rootNav.navigate("Call", {
                     cloneId: item.persona.id,
                     name: item.persona.name,
                     image: item.persona.avatar,
-                  })
-                }
+                  });
+                }}
                 style={s.overlayBtn}
                 textColor={COLORS.zinc900}
                 backgroundColor={COLORS.white}
@@ -722,7 +736,7 @@ export default function FollowingScreen() {
         <Pressable style={s.bottomOverlay} onPress={() => setIntimacyEventsModal(null)}>
           <SwipeDownSheet
             onClose={() => setIntimacyEventsModal(null)}
-            style={[s.eventsSheet, { paddingBottom: 32 + Math.max(insets.bottom, 0) }]}
+            style={[s.eventsSheet, { paddingBottom: 32 + sheetBottomInset }]}
           >
             <View style={s.eventsSheetHandle} />
             <View style={s.eventsSheetTitleRow}>
@@ -759,7 +773,12 @@ export default function FollowingScreen() {
               </View>
             )}
 
-            <ScrollView style={s.eventsScrollArea} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={s.eventsScrollArea}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
               {intimacyEventsLoading ? (
                 <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
               ) : !intimacyEventsData || intimacyEventsData.items.length === 0 ? (
@@ -850,7 +869,7 @@ export default function FollowingScreen() {
       <Modal visible={!!commentPostId} transparent animationType="slide">
         <Pressable style={s.bottomOverlay} onPress={() => setCommentPostId(null)}>
           <View
-            style={[s.commentSheet, { paddingBottom: 24 + Math.max(insets.bottom, 0) }]}
+            style={[s.commentSheet, { paddingBottom: 24 + sheetBottomInset }]}
             onStartShouldSetResponder={() => true}
           >
             <View style={s.sheetHandle} />
@@ -942,7 +961,7 @@ export default function FollowingScreen() {
       <Modal visible={showCallModal} transparent animationType="slide">
         <Pressable style={s.bottomOverlay} onPress={() => setShowCallModal(false)}>
           <View
-            style={[s.callSheet, { paddingBottom: 24 + Math.max(insets.bottom, 0) }]}
+            style={[s.callSheet, { paddingBottom: 24 + sheetBottomInset }]}
             onStartShouldSetResponder={() => true}
           >
             <View style={s.sheetHandle} />
@@ -986,7 +1005,17 @@ export default function FollowingScreen() {
                     </View>
                     <TouchableOpacity
                       style={s.callBtn}
-                      onPress={() => { setShowCallModal(false); rootNav.navigate("Call", { cloneId: p.id, name: p.name, image: p.avatar }); }}
+                      onPress={async () => {
+
+                        const ok = await assertCanCall(accessToken, () => {
+                          rootNav.dispatch(
+                            CommonActions.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                          );
+                        });
+                        if (!ok) return;
+                        setShowCallModal(false);
+                        rootNav.navigate("Call", { cloneId: p.id, name: p.name, image: p.avatar });
+                      }}
                     >
                       <Feather name="video" size={14} color={COLORS.white} />
                       <Text style={s.callBtnText}>{t("feed.callRowAction")}</Text>
@@ -1144,7 +1173,8 @@ const s = StyleSheet.create({
   eventsBreakdownRow: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   eventsBreakdownItem: { fontSize: 12, color: COLORS.zinc500 },
   eventsBreakdownVal: { color: COLORS.zinc900, fontWeight: "600" },
-  eventsScrollArea: { maxHeight: 400 },
+
+  eventsScrollArea: { flexShrink: 1 },
   eventRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.zinc100 },
   eventIcon: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   eventLabel: { fontSize: 14, fontWeight: "600", color: COLORS.zinc900 },

@@ -22,6 +22,7 @@ import {
   bumpInteraction,
   bumpInteractionThrottled,
   addIntimacyScore,
+  addCallIntimacyDaily,
   INTIMACY_WEIGHTS,
   CALL_MIN_SECONDS_FOR_SCORE,
 } from "../lib/interactions";
@@ -2002,11 +2003,8 @@ clones.post("/:id/call-event", requireAuth, async (c) => {
   await bumpInteraction(c.env, userId, cloneId, "call");
 
   const duration = body.durationSeconds ?? 0;
-  let scoreApplied = 0;
-  if (duration >= CALL_MIN_SECONDS_FOR_SCORE) {
-    const r = await addIntimacyScore(c.env, userId, cloneId, INTIMACY_WEIGHTS.call, "call");
-    scoreApplied = r.applied;
-  }
+  const callRes = await addCallIntimacyDaily(c.env, userId, cloneId, duration);
+  const scoreApplied = callRes.scoreApplied;
   await logActivity(c, {
     userId,
     action: "clone.call_event",

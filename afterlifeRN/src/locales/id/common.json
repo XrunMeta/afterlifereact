@@ -30,7 +30,8 @@
     "durationSec": "{{s}} detik",
     "durationMin": "{{m}} menit",
     "durationMinSec": "{{m}} menit {{s}} detik",
-    "expertBadge": "Ahli"
+    "expertBadge": "Ahli",
+    "pressBackToExit": "Tekan kembali lagi untuk keluar"
   },
   "tabs": {
     "home": "Beranda",
@@ -234,7 +235,11 @@
     "enrollSuccessToast": "{{name}}, saya akan mengingat Anda mulai sekarang",
     "enrollFailToast": "Gagal mendaftar. Silakan coba lagi",
     "paymentPreparingToast": "Pembayaran sedang dipersiapkan",
-    "confirmHint": "Ketuk untuk membatalkan · Terkirim sebentar lagi"
+    "confirmHint": "Ketuk untuk membatalkan · Terkirim sebentar lagi",
+    "remainingWarnToast": "Sisa waktu panggilan 30 detik. Akan segera berakhir.",
+    "exhaustedTitle": "Waktu Panggilan Habis",
+    "exhaustedBody": "Isi ulang untuk melanjutkan panggilan.",
+    "exhaustedCharge": "Isi Ulang"
   },
   "feed": {
     "homeTitle": "Beranda",
@@ -444,6 +449,7 @@
     "allDone": "Anda telah menjawab semua pertanyaan! Akan diterapkan dalam panggilan.",
     "confirmYes": "Ya",
     "confirmNo": "Tidak",
+    "undoLast": "Ubah jawaban",
     "saving": "Menyimpan...",
     "followupSkip": "Lewati",
     "skip": "Pertanyaan lain",
@@ -498,6 +504,8 @@
     },
     "menu": {
       "editProfile": "Kelola Profil",
+      "notificationsList": "Notifikasi",
+      "notificationsListDesc": "Lihat semua notifikasi yang diterima",
       "notifications": "Pengaturan Notifikasi",
       "privacy": "Privasi dan Visibilitas",
       "agreements": "Persetujuan",
@@ -797,6 +805,19 @@
       "modePreset": "Pilih Warna Suara",
       "modeRecord": "Rekam Sendiri",
       "modeUpload": "Unggah File",
+      "nextBlockedTitle": "Suara diperlukan",
+      "nextBlockedUpload": "Unggah file suara terlebih dahulu.",
+      "nextBlockedRecord": "Selesaikan perekaman terlebih dahulu.",
+      "nextBlockedRecordUploading": "Anda dapat lanjut setelah rekaman selesai didaftarkan. Jika gagal, silakan rekam ulang.",
+      "nextBlockedPreset": "Pilih suara terlebih dahulu.",
+      "nextBlockedGeneric": "Daftarkan suara terlebih dahulu.",
+      "notAudioTitle": "Bukan file audio",
+      "notAudioMsg": "Hanya file audio yang dapat didaftarkan. Pilih file mp3, m4a, wav, atau sejenisnya.",
+      "notAudioEmpty": "File ini kosong. Silakan pilih file lain.",
+      "registerFailed": "Gagal mendaftarkan rekaman.",
+      "registerFailedFile": "Gagal mendaftarkan file suara.",
+      "registerRetry": "Coba daftarkan lagi",
+      "nextBlockedUploadRegistering": "Anda dapat lanjut setelah file suara selesai didaftarkan. Jika gagal, silakan coba lagi.",
       "choosePresetHint": "Silakan pilih suara.",
       "presetLoadFailed": "Gagal memuat daftar suara.",
       "presetPreparing": "Mempersiapkan suara…",
@@ -917,7 +938,7 @@
       "usernameInvalid": "Format ID tidak valid."
     },
     "step7": {
-      "reviewTitle": "Tinjauan Informasi Klon",
+      "reviewTitle": "Pratinjau Informasi Klon",
       "displayNameFallback": "Nama pengguna",
       "displayHandleFallback": "ID",
       "videoReady": "Video siap",

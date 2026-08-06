@@ -82,6 +82,8 @@ export interface CloneCreationDraft {
 
   personaAnswers?: Record<string, string>;
 
+  voiceMode?: "upload" | "record" | "preset";
+
   voicePresetId?: number;
 
   idleVideoJobId?: string;

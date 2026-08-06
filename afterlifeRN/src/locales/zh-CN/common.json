@@ -30,7 +30,8 @@
     "durationSec": "{{s}}秒",
     "durationMin": "{{m}}分钟",
     "durationMinSec": "{{m}}分{{s}}秒",
-    "expertBadge": "专家"
+    "expertBadge": "专家",
+    "pressBackToExit": "再按一次返回键退出"
   },
   "tabs": {
     "home": "首页",
@@ -234,7 +235,11 @@
     "enrollSuccessToast": "{{name}}，现在会记住您了",
     "enrollFailToast": "注册失败，请重试",
     "paymentPreparingToast": "正在准备支付",
-    "confirmHint": "点击取消 · 稍后发送"
+    "confirmHint": "点击取消 · 稍后发送",
+    "remainingWarnToast": "剩余通话时间30秒，即将结束。",
+    "exhaustedTitle": "通话时间结束",
+    "exhaustedBody": "充值后可以继续通话。",
+    "exhaustedCharge": "充值"
   },
   "feed": {
     "homeTitle": "首页",
@@ -444,6 +449,7 @@
     "allDone": "所有问题都已回答！将在通话中体现。",
     "confirmYes": "是",
     "confirmNo": "否",
+    "undoLast": "修改答案",
     "saving": "保存中...",
     "followupSkip": "跳过",
     "skip": "换一题",
@@ -498,6 +504,8 @@
     },
     "menu": {
       "editProfile": "编辑个人信息",
+      "notificationsList": "通知",
+      "notificationsListDesc": "查看所有收到的通知",
       "notifications": "通知设置",
       "privacy": "拉黑管理",
       "agreements": "同意事项",
@@ -797,6 +805,19 @@
       "modePreset": "选择音色",
       "modeRecord": "自行录音",
       "modeUpload": "上传文件",
+      "nextBlockedTitle": "需要注册语音",
+      "nextBlockedUpload": "请先上传语音文件。",
+      "nextBlockedRecord": "请先完成录音。",
+      "nextBlockedRecordUploading": "录音文件注册完成后才能继续。如果注册失败，请重新录音。",
+      "nextBlockedPreset": "请先选择声音。",
+      "nextBlockedGeneric": "请先注册语音。",
+      "notAudioTitle": "不是音频文件",
+      "notAudioMsg": "只能注册音频文件。请选择 mp3、m4a、wav 等语音文件。",
+      "notAudioEmpty": "文件为空。请选择其他文件。",
+      "registerFailed": "录音文件注册失败。",
+      "registerFailedFile": "语音文件注册失败。",
+      "registerRetry": "重新注册",
+      "nextBlockedUploadRegistering": "语音文件注册完成后才能继续。如果失败，请重试。",
       "choosePresetHint": "请选择一个声音。",
       "presetLoadFailed": "无法加载声音列表。",
       "presetPreparing": "声音准备中…",
@@ -917,7 +938,7 @@
       "usernameInvalid": "ID 格式不正确。"
     },
     "step7": {
-      "reviewTitle": "克隆信息回顾",
+      "reviewTitle": "克隆信息预览",
       "displayNameFallback": "用户名",
       "displayHandleFallback": "ID",
       "videoReady": "视频准备完成",

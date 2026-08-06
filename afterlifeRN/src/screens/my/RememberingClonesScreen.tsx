@@ -125,7 +125,15 @@ export default function RememberingClonesScreen() {
             })}
           </Text>
         ) : (
-          <View style={s.card}>
+          <>
+            {}
+            <Text style={s.countLabel}>
+              {t("settings.rememberingClones.count", {
+                count: items.length,
+                defaultValue: `${items.length}개`,
+              })}
+            </Text>
+            <View style={s.card}>
             {items.map((clone, i) => (
               <View key={clone.cloneId}>
                 <View style={s.row}>
@@ -159,7 +167,8 @@ export default function RememberingClonesScreen() {
                 {i < items.length - 1 && <View style={s.divider} />}
               </View>
             ))}
-          </View>
+            </View>
+          </>
         )}
       </ScrollView>
     </View>
@@ -168,19 +177,42 @@ export default function RememberingClonesScreen() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: COLORS.white },
-  content: { padding: 16 },
+  content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 60 },
+  countLabel: {
+    fontSize: 13,
+    color: COLORS.zinc500,
+    marginBottom: 12,
+    fontWeight: "500",
+  },
   empty: { marginTop: 32, textAlign: "center", color: COLORS.zinc400 },
-  card: { backgroundColor: COLORS.white, borderRadius: RADIUS.lg, overflow: "hidden" },
-  row: { flexDirection: "row", alignItems: "center", paddingVertical: 12, gap: 12 },
-  avatar: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  avatarPh: { backgroundColor: COLORS.zinc100 },
-  rowName: { fontSize: 15, fontWeight: "600" },
-  rowSub: { fontSize: 13, color: COLORS.zinc400 },
-  divider: { height: 1, backgroundColor: COLORS.zinc100 },
+  card: {
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.zinc100,
+    overflow: "hidden",
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    gap: 12,
+  },
+  avatar: { width: 44, height: 44, borderRadius: 22 },
+  avatarPh: {
+    backgroundColor: COLORS.zinc100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rowName: { fontSize: 15, fontWeight: "600", color: COLORS.zinc900 },
+  rowSub: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
+
+  divider: { height: 1, backgroundColor: COLORS.zinc100, marginLeft: 70 },
   deleteBtn: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: RADIUS.md,
+    borderRadius: 999,
     backgroundColor: COLORS.zinc900,
   },
   deleteBtnText: { color: COLORS.white, fontSize: 13, fontWeight: "600" },

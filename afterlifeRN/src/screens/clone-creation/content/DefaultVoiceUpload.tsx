@@ -21,6 +21,7 @@ import { getVoices, createAssetJob, type CatalogVoice } from "../../../api/clone
 import { uploadFile } from "../../../api/files";
 import { useAuthStore } from "../../../stores/authStore";
 import { resolveVoicePresetName } from "../../../lib/voicePresetName";
+import { verifyAudioFile } from "../../../lib/audioFileCheck";
 
 export const VOICE_SAMPLES = [
   { id: "v1", name: "Nova" },
@@ -58,59 +59,153 @@ const RECORD_SCRIPTS = [
   },
 ] as const;
 
-type Mode = "preset" | "record" | "upload";
+type Mode = "record" | "preset" | "upload";
+
+const MODE_ORDER: Mode[] = ["record", "preset", "upload"];
+
+type VoicePick = Pick<
+  CloneCreationDraft,
+  "voicePresetId" | "voiceCloneJobId" | "voiceFile" | "voiceSampleId"
+>;
+
+const EMPTY_PICK: VoicePick = {
+  voicePresetId: undefined,
+  voiceCloneJobId: undefined,
+  voiceFile: undefined,
+  voiceSampleId: undefined,
+};
+
+export function initialMode(d: CloneCreationDraft): Mode {
+  if (d.voiceMode) return d.voiceMode;
+  if (d.voicePresetId !== undefined) return "preset";
+  if (d.voiceFile !== undefined || d.voiceCloneJobId !== undefined) return "upload";
+  return "record";
+}
 
 interface Props {
   draft: CloneCreationDraft;
   onChange: (patch: Partial<CloneCreationDraft>) => void;
 }
 
-async function pickAndClone(
-  onChange: Props["onChange"],
-  accessToken: string | null,
+interface VoiceSource {
+  uri: string;
+  mimeType: string;
+  fileName: string;
+}
+
+async function pickAudioSource(
   t: (key: string, opts?: Record<string, unknown>) => string,
-): Promise<void> {
+): Promise<VoiceSource | null> {
   let result: Awaited<ReturnType<typeof DocumentPicker.getDocumentAsync>>;
   try {
     result = await DocumentPicker.getDocumentAsync({ type: "audio/*" });
   } catch {
     showAlert(
       t("create.voice.pickFileErrorTitle", { defaultValue: "파일 선택 오류" }),
-      t("create.voice.pickFileErrorMsg", { defaultValue: "파일을 선택하지 못했어요." }),
+      t("create.voice.pickFileErrorMsg", { defaultValue: "파일을 선택하지 못했습니다." }),
     );
-    return;
+    return null;
   }
-  if (result.canceled || !result.assets[0]) return;
+  if (result.canceled || !result.assets[0]) return null;
   const asset = result.assets[0];
 
-  onChange({ voiceFile: asset.uri, voiceSampleId: undefined, voicePresetId: undefined });
-
-  if (!accessToken) return;
-  try {
-    const uploaded = await uploadFile(accessToken, asset.uri, {
-      purpose: "clone_voice",
-      mimeType: asset.mimeType ?? "audio/mpeg",
-      fileName: asset.name ?? "voice.mp3",
-    });
-    const jobRes = await createAssetJob(accessToken, {
-      kind: "voice_clone",
-      src_file_id: uploaded.id,
-    });
-    console.log("[DefaultVoice] voice_clone job created:", jobRes.job_id);
-    onChange({
-      voiceFile: asset.uri,
-      voiceCloneJobId: jobRes.job_id,
-      voicePresetId: undefined,
-    });
-  } catch (err) {
-    console.warn("[DefaultVoice] upload/job failed (voiceFile kept):", err);
+  const verdict = await verifyAudioFile({
+    uri: asset.uri,
+    name: asset.name,
+    mimeType: asset.mimeType,
+    size: asset.size,
+  });
+  if (!verdict.ok) {
+    showAlert(
+      t("create.voice.notAudioTitle", { defaultValue: "음성 파일이 아닙니다" }),
+      verdict.reason === "empty"
+        ? t("create.voice.notAudioEmpty", { defaultValue: "빈 파일입니다. 다른 파일을 선택해 주십시오." })
+        : t("create.voice.notAudioMsg", {
+            defaultValue: "오디오 파일만 등록할 수 있습니다. mp3·m4a·wav 등 음성 파일을 선택해 주십시오.",
+          }),
+    );
+    return null;
   }
+
+  return {
+    uri: asset.uri,
+    mimeType: asset.mimeType ?? "audio/mpeg",
+    fileName: asset.name ?? "voice.mp3",
+  };
 }
 
 function Component({ draft, onChange }: Props) {
   const { t, i18n } = useTranslation();
   const accessToken = useAuthStore((s) => s.accessToken);
-  const [mode, setMode] = useState<Mode>("preset");
+
+  const [mode, setMode] = useState<Mode>(() => initialMode(draft));
+
+  const [byMode, setByMode] = useState<Record<Mode, VoicePick | null>>(() => {
+    const seeded: Record<Mode, VoicePick | null> = { upload: null, record: null, preset: null };
+    const m = initialMode(draft);
+    if (draft.voicePresetId !== undefined || draft.voiceCloneJobId || draft.voiceFile) {
+      seeded[m] = {
+        voicePresetId: draft.voicePresetId,
+        voiceCloneJobId: draft.voiceCloneJobId,
+        voiceFile: draft.voiceFile,
+        voiceSampleId: draft.voiceSampleId,
+      };
+    }
+    return seeded;
+  });
+
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+
+  const applyPick = (m: Mode, pick: VoicePick) => {
+    const next = { ...EMPTY_PICK, ...pick };
+    setByMode((prev) => ({ ...prev, [m]: next }));
+    if (modeRef.current === m) onChange({ ...next, voiceMode: m });
+  };
+
+  const [source, setSource] = useState<Partial<Record<Mode, VoiceSource>>>({});
+  const [regFailed, setRegFailed] = useState<Partial<Record<Mode, boolean>>>({});
+
+  const registerVoice = async (m: Mode, src: VoiceSource) => {
+    setSource((prev) => ({ ...prev, [m]: src }));
+    setRegFailed((prev) => ({ ...prev, [m]: false }));
+
+    applyPick(m, { voiceFile: src.uri });
+
+    if (!accessToken) {
+      setRegFailed((prev) => ({ ...prev, [m]: true }));
+      return;
+    }
+    setUploading(true);
+    try {
+      const uploaded = await uploadFile(accessToken, src.uri, {
+        purpose: "clone_voice",
+        mimeType: src.mimeType,
+        fileName: src.fileName,
+      });
+      const jobRes = await createAssetJob(accessToken, {
+        kind: "voice_clone",
+        src_file_id: uploaded.id,
+      });
+      console.log(`[DefaultVoice] voice_clone job (${m}) created:`, jobRes.job_id);
+      applyPick(m, { voiceFile: src.uri, voiceCloneJobId: jobRes.job_id });
+    } catch (err) {
+      console.warn(`[DefaultVoice] ${m} upload/job failed:`, err);
+      setRegFailed((prev) => ({ ...prev, [m]: true }));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const retryRegister = (m: Mode) => {
+    const src = source[m];
+    if (src) void registerVoice(m, src);
+  };
+
+  const switchMode = (m: Mode) => {
+    setMode(m);
+    onChange({ ...(byMode[m] ?? EMPTY_PICK), voiceMode: m });
+  };
   const [voices, setVoices] = useState<CatalogVoice[]>([]);
   const [loadErr, setLoadErr] = useState(false);
   const [selectedScript, setSelectedScript] = useState<string | null>(null);
@@ -143,9 +238,18 @@ function Component({ draft, onChange }: Props) {
   recorderRef.current = recorder;
   useEffect(() => {
     return () => {
-      recorderRef.current.stop().catch(() => {});
 
-      try { player.pause(); } catch {  }
+      try {
+        void recorderRef.current.stop?.().catch(() => {});
+      } catch {
+
+      }
+
+      try {
+        player.pause();
+      } catch {
+
+      }
     };
 
   }, []);
@@ -159,26 +263,26 @@ function Component({ draft, onChange }: Props) {
     if (v.srcFileId == null) {
 
       setSelectedVoiceId(v.id);
-      onChange({ voicePresetId: v.id, voiceCloneJobId: undefined, voiceFile: undefined });
+      applyPick("preset", { voicePresetId: v.id });
       return;
     }
 
     if (!accessToken) return;
 
     setSelectedVoiceId(v.id);
-    onChange({ voicePresetId: undefined, voiceFile: undefined });
+    applyPick("preset", EMPTY_PICK);
     const seq = ++jobSeqRef.current;
     try {
       setUploading(true);
       const jobRes = await createAssetJob(accessToken, { kind: "voice_clone", src_file_id: v.srcFileId });
       if (seq !== jobSeqRef.current) return;  
       console.log("[DefaultVoice] preset voice_clone job created:", jobRes.job_id);
-      onChange({ voiceCloneJobId: jobRes.job_id, voicePresetId: undefined, voiceFile: undefined });
+      applyPick("preset", { voiceCloneJobId: jobRes.job_id });
     } catch (err) {
       if (seq === jobSeqRef.current) {
 
         setSelectedVoiceId(null);
-        onChange({ voiceCloneJobId: undefined, voicePresetId: undefined, voiceFile: undefined });
+        applyPick("preset", EMPTY_PICK);
         console.warn("[DefaultVoice] preset job 생성 실패:", err);
         showAlert(
           t("create.voice.presetErrorTitle", { defaultValue: "음성 선택 오류" }),
@@ -215,15 +319,7 @@ function Component({ draft, onChange }: Props) {
         if (!alive) return;
         setVoices(list);
 
-        if (draft.voicePresetId !== undefined) {
-          setSelectedVoiceId(draft.voicePresetId);
-          return;
-        }
-        if (draft.voiceCloneJobId || draft.voiceFile) return;
-
-        if (list.length) {
-          selectPresetVoice(list[0]);
-        }
+        if (draft.voicePresetId !== undefined) setSelectedVoiceId(draft.voicePresetId);
       } catch {
         if (alive) setLoadErr(true);
       }
@@ -231,6 +327,14 @@ function Component({ draft, onChange }: Props) {
     return () => { alive = false; };
 
   }, [accessToken]);
+
+  useEffect(() => {
+    if (mode !== "preset") return;
+    if (byMode.preset) return;
+    if (!voices.length) return;
+    selectPresetVoice(voices[0]);
+
+  }, [mode, voices, byMode.preset]);
 
   const handleStartRecord = async () => {
     if (!selectedScript) {
@@ -272,40 +376,18 @@ function Component({ draft, onChange }: Props) {
     const uri = recorder.uri;
     if (!uri) return;
 
-    onChange({ voiceFile: uri, voicePresetId: undefined, voiceSampleId: undefined });
-
-    if (!accessToken) return;
-    setUploading(true);
-    try {
-      const uploaded = await uploadFile(accessToken, uri, {
-        purpose: "clone_voice",
-        mimeType: "audio/m4a",
-        fileName: "voice_record.m4a",
-      });
-      const jobRes = await createAssetJob(accessToken, {
-        kind: "voice_clone",
-        src_file_id: uploaded.id,
-      });
-      console.log("[DefaultVoice] voice_clone job (record) created:", jobRes.job_id);
-      onChange({
-        voiceFile: uri,
-        voiceCloneJobId: jobRes.job_id,
-        voicePresetId: undefined,
-      });
-    } catch (err) {
-      console.warn("[DefaultVoice] record upload/job failed (voiceFile kept):", err);
-    } finally {
-      setUploading(false);
-    }
+    await registerVoice("record", {
+      uri,
+      mimeType: "audio/m4a",
+      fileName: "voice_record.m4a",
+    });
   };
 
   const handlePickFile = async () => {
-    setUploading(true);
-    try {
-      await pickAndClone(onChange, accessToken, t);
-    } finally {
-      setUploading(false);
-    }
+
+    const src = await pickAudioSource(t);
+    if (!src) return;
+    await registerVoice("upload", src);
   };
 
   const isRecording = recState.isRecording;
@@ -335,7 +417,7 @@ function Component({ draft, onChange }: Props) {
     <View style={styles.wrap}>
       {}
       <View style={styles.modeRow}>
-        {(["preset", "record", "upload"] as Mode[]).map((m) => {
+        {MODE_ORDER.map((m) => {
           const label =
             m === "preset"
               ? t("create.voice.modePreset", { defaultValue: "음색 선택" })
@@ -346,7 +428,7 @@ function Component({ draft, onChange }: Props) {
             <TouchableOpacity
               key={m}
               style={[styles.modeBtn, mode === m && styles.modeBtnActive]}
-              onPress={() => setMode(m)}
+              onPress={() => switchMode(m)}
             >
               <Text style={[styles.modeText, mode === m && styles.modeTextActive]}>{label}</Text>
             </TouchableOpacity>
@@ -452,16 +534,31 @@ function Component({ draft, onChange }: Props) {
               </Text>
             </View>
           )}
-          {!uploading && recordedUri && (
+          {!uploading && recordedUri && draft.voiceCloneJobId && (
             <View style={styles.recordedRow}>
               <Feather name="check-circle" size={16} color={COLORS.violet600} />
               <Text style={styles.recordedText}>
-                {draft.voiceCloneJobId
-                  ? t("create.voice.cloneJobRegistered", { defaultValue: "클로닝 잡 등록됨" })
-                  : t("create.voice.recordDoneUploadFailed", {
-                      defaultValue: "녹음 완료 (업로드 실패 — 재시도됨)",
-                    })}
+                {t("create.voice.cloneJobRegistered", { defaultValue: "클로닝 잡 등록됨" })}
               </Text>
+            </View>
+          )}
+          {}
+          {!uploading && regFailed.record && (
+            <View style={{ gap: 8 }}>
+              <View style={styles.recordedRow}>
+                <Feather name="alert-circle" size={16} color={COLORS.error} />
+                <Text style={[styles.recordedText, { color: COLORS.error }]}>
+                  {t("create.voice.registerFailed", {
+                    defaultValue: "녹음 파일 등록에 실패했습니다.",
+                  })}
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.retryBtn} onPress={() => retryRegister("record")}>
+                <Feather name="refresh-cw" size={16} color={COLORS.zinc900} />
+                <Text style={styles.retryBtnText}>
+                  {t("create.voice.registerRetry", { defaultValue: "등록 다시 시도" })}
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -491,16 +588,31 @@ function Component({ draft, onChange }: Props) {
                 : t("create.voice.pickFile", { defaultValue: "음성 파일 선택" })}
             </Text>
           </TouchableOpacity>
-          {!uploading && draft.voiceFile && (
+          {!uploading && draft.voiceFile && draft.voiceCloneJobId && (
             <View style={styles.recordedRow}>
               <Feather name="check-circle" size={16} color={COLORS.violet600} />
               <Text style={styles.recordedText}>
-                {draft.voiceCloneJobId
-                  ? t("create.voice.cloneJobRegistered", { defaultValue: "클로닝 잡 등록됨" })
-                  : t("create.voice.filePickedUploadFailed", {
-                      defaultValue: "파일 선택됨 (잡 등록 실패 — 재시도됨)",
-                    })}
+                {t("create.voice.cloneJobRegistered", { defaultValue: "클로닝 잡 등록됨" })}
               </Text>
+            </View>
+          )}
+          {}
+          {!uploading && regFailed.upload && (
+            <View style={{ gap: 8 }}>
+              <View style={styles.recordedRow}>
+                <Feather name="alert-circle" size={16} color={COLORS.error} />
+                <Text style={[styles.recordedText, { color: COLORS.error }]}>
+                  {t("create.voice.registerFailedFile", {
+                    defaultValue: "음성 파일 등록에 실패했습니다.",
+                  })}
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.retryBtn} onPress={() => retryRegister("upload")}>
+                <Feather name="refresh-cw" size={16} color={COLORS.zinc900} />
+                <Text style={styles.retryBtnText}>
+                  {t("create.voice.registerRetry", { defaultValue: "등록 다시 시도" })}
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -509,8 +621,10 @@ function Component({ draft, onChange }: Props) {
   );
 }
 
-Component.validate = (d: CloneCreationDraft): boolean =>
-  Boolean(d.voicePresetId) || Boolean(d.voiceCloneJobId) || Boolean(d.voiceFile);
+Component.validate = (d: CloneCreationDraft): boolean => {
+  if (d.voiceMode === "record" || d.voiceMode === "upload") return Boolean(d.voiceCloneJobId);
+  return Boolean(d.voicePresetId) || Boolean(d.voiceCloneJobId) || Boolean(d.voiceFile);
+};
 
 const DefaultVoiceUpload = Component as typeof Component & {
   validate: (d: CloneCreationDraft) => boolean;
@@ -585,6 +699,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   recordedText: { fontSize: 13, color: COLORS.violet700, fontWeight: "500" },
+
+  retryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    height: 44,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    backgroundColor: COLORS.white,
+  },
+  retryBtnText: { fontSize: 14, color: COLORS.zinc900, fontWeight: "600" },
   disabledNote: {
     fontSize: 12,
     color: COLORS.zinc500,

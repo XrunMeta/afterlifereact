@@ -1,4 +1,3 @@
-import { showAlert } from "../../../stores/dialogStore";
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -7,6 +6,8 @@ import type { CloneCreationDraft } from '../../../types/clone';
 import { COLORS, RADIUS } from '../../../components/constants';
 import { runImageSourcePick } from './pickImageSource';
 import CropImageModal from './CropImageModal';
+import CaptureWithGuideModal from './CaptureWithGuideModal';
+import { openImageSourcePicker } from './t208ImagePick';
 
 interface Props {
   draft: CloneCreationDraft;
@@ -16,23 +17,30 @@ interface Props {
 function Component({ draft, onChange }: Props) {
   const { t } = useTranslation();
   const [source, setSource] = useState<{ uri: string; width: number; height: number } | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const guidelines = [
     t('create.image.guide1'),
     t('create.image.guide2'),
     t('create.image.guide3'),
   ];
 
-  const runPick = async (fromCamera: boolean) => {
-    const picked = await runImageSourcePick(fromCamera, t);
+  const runLibrary = async () => {
+    const picked = await runImageSourcePick(false, t);
     if (picked) setSource(picked);
   };
 
   const onPickPress = () => {
-    showAlert(t('create.image.sourceTitle'), undefined, [
-      { text: t('create.image.sourceCamera'), onPress: () => runPick(true) },
-      { text: t('create.image.sourceLibrary'), onPress: () => runPick(false) },
-      { text: t('common.cancel'), style: 'cancel' },
-    ]);
+    openImageSourcePicker({
+      title: t('create.image.sourceTitle'),
+      cameraLabel: t('create.image.sourceCamera'),
+      libraryLabel: t('create.image.sourceLibrary'),
+      cancelLabel: t('common.cancel'),
+      onCamera: () => setCameraOpen(true),
+      onLibrary: () => {
+        void runLibrary();
+      },
+      onApplyT208Crop: (uri) => onChange({ imageFile: uri }),
+    });
   };
 
   return (
@@ -53,6 +61,14 @@ function Component({ draft, onChange }: Props) {
           • {g}
         </Text>
       ))}
+      <CaptureWithGuideModal
+        visible={cameraOpen}
+        onCancel={() => setCameraOpen(false)}
+        onCapture={(picked) => {
+          setCameraOpen(false);
+          setSource(picked);
+        }}
+      />
       <CropImageModal
         visible={!!source}
         source={source}

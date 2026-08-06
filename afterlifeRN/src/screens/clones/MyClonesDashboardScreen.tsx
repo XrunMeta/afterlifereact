@@ -31,8 +31,10 @@ import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
 import HashtagText from "../../components/common/HashtagText";
 import FriendPickerModal from "./components/FriendPickerModal";
+import VisibilityPickerModal from "./components/VisibilityPickerModal";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
+import { assertCanCall } from "../../lib/callGuard";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
 import { listMyClones, listSystemClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, listCloneIntimacyEvents, listCloneGiftReceipts, type MyClone, type SystemClone, type FeedLikeUser, type FeedComment, type CloneFollower, type IntimacyEventsResponse, type GiftReceiptItem } from "../../api/clones";
@@ -350,6 +352,23 @@ export default function MyClonesDashboardScreen() {
     setIntimacyModal({ cloneId: cid, cloneName: clone.displayName });
   }, [route.params?.openIntimacyCloneId, myClones]);
 
+  const openedStatsRef = useRef<string | null>(null);
+  useEffect(() => {
+    const cid = route.params?.openStatsCloneId;
+    const tab = route.params?.openStatsTab;
+    if (!cid || !tab) return;
+    const key = `${cid}:${tab}`;
+    if (openedStatsRef.current === key) return;
+    const clone = myClones.find((c) => c.id === cid);
+    if (!clone) return; 
+    openedStatsRef.current = key;
+    if (tab === "gifts") {
+      setIntimacyModal({ cloneId: cid, cloneName: clone.displayName });
+    } else {
+      setStatsModal({ type: tab, cloneId: cid, cloneName: clone.displayName });
+    }
+  }, [route.params?.openStatsCloneId, route.params?.openStatsTab, myClones]);
+
   const handleToggle = (cloneId: number) => {
     const currentState = cloneStates[cloneId]?.isActive ?? true;
     setToggleModal({ cloneId, currentState });
@@ -368,7 +387,10 @@ export default function MyClonesDashboardScreen() {
   };
 
   const handleVisibility = (cloneId: number) => {
-    const current = cloneStates[cloneId]?.visibility ?? "public";
+
+    const stateVis = cloneStates[cloneId]?.visibility;
+    const cloneVis = myClones.find((c) => c.id === cloneId)?.visibility;
+    const current = stateVis ?? cloneVis ?? "public";
     setVisibilityModal({ cloneId, currentVisibility: current });
     setMenuCloneId(null);
   };
@@ -585,8 +607,10 @@ export default function MyClonesDashboardScreen() {
           </View>
         </View>
 
-        {}
-        <HashtagText style={s.description} numberOfLines={2}>
+        {
+
+}
+        <HashtagText style={s.description}>
           {clone.description}
         </HashtagText>
 
@@ -663,7 +687,16 @@ export default function MyClonesDashboardScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={s.actionBtn}
-            onPress={() => rootNav.navigate("Call", { cloneId: clone.id })}
+            onPress={async () => {
+
+              const ok = await assertCanCall(accessToken, () => {
+                rootNav.dispatch(
+                  CommonActions.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                );
+              });
+              if (!ok) return;
+              rootNav.navigate("Call", { cloneId: clone.id });
+            }}
           >
             <Feather name="video" size={16} color={COLORS.zinc700} />
             <Text style={s.actionText}>{t("dashboard.actionCall")}</Text>
@@ -931,7 +964,16 @@ export default function MyClonesDashboardScreen() {
                   <View style={s.actionsRow}>
                     <TouchableOpacity
                       style={s.actionBtn}
-                      onPress={() => rootNav.navigate("Call", { cloneId: sc.id, name: sc.name })}
+                      onPress={async () => {
+
+                        const ok = await assertCanCall(accessToken, () => {
+                          rootNav.dispatch(
+                            CommonActions.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                          );
+                        });
+                        if (!ok) return;
+                        rootNav.navigate("Call", { cloneId: sc.id, name: sc.name });
+                      }}
                     >
                       <Feather name="video" size={16} color={COLORS.zinc700} />
                       <Text style={s.actionText}>{t("dashboard.actionCall")}</Text>
@@ -1015,46 +1057,12 @@ export default function MyClonesDashboardScreen() {
       </Modal>
 
       {}
-      <Modal visible={!!visibilityModal} transparent animationType="fade">
-        <Pressable style={s.modalOverlay} onPress={() => setVisibilityModal(null)}>
-          <Pressable style={s.modalBox} onPress={(e) => e.stopPropagation()}>
-            <Text style={s.modalTitle}>{t("dashboard.visibilityChooseTitle", { defaultValue: "공개 범위" })}</Text>
-            <Text style={s.modalDesc}>{t("dashboard.visibilityChooseDesc", { defaultValue: "이 클론을 누구에게 보일까요?" })}</Text>
-            <View style={s.visibilityOptions}>
-              {(["public", "followers", "selected", "private"] as Visibility[]).map((v) => {
-                const selected = visibilityModal?.currentVisibility === v;
-                return (
-                  <TouchableOpacity
-                    key={v}
-                    style={[s.visibilityOption, selected && s.visibilityOptionSelected]}
-                    onPress={() => confirmVisibility(v)}
-                  >
-                    <Feather
-                      name={getVisibilityIcon(v)}
-                      size={16}
-                      color={selected ? COLORS.white : COLORS.zinc700}
-                    />
-                    <Text
-                      style={[
-                        s.visibilityOptionText,
-                        selected && { color: COLORS.white },
-                      ]}
-                    >
-                      {getVisibilityLabel(v)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <Button
-              title={t("common.cancel")}
-              variant="ghost"
-              onPress={() => setVisibilityModal(null)}
-              style={{ marginTop: 12, width: "100%" }}
-            />
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <VisibilityPickerModal
+        visible={!!visibilityModal}
+        currentVisibility={visibilityModal?.currentVisibility ?? null}
+        onSelect={confirmVisibility}
+        onClose={() => setVisibilityModal(null)}
+      />
 
       {}
       <FriendPickerModal
@@ -1151,7 +1159,12 @@ export default function MyClonesDashboardScreen() {
               {statsModal?.cloneName}
             </Text>
 
-            <ScrollView style={s.statsScrollArea} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={s.statsScrollArea}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
               {}
               {statsModal?.type === "comments" && (
                 <>
@@ -1280,7 +1293,12 @@ export default function MyClonesDashboardScreen() {
               <Text style={[s.giftTableHeaderCell, { flex: 2, textAlign: "right" }]}>{t("dashboard.giftHeaderSender", { defaultValue: "보낸사람" })}</Text>
             </View>
 
-            <ScrollView style={s.statsScrollArea} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={s.statsScrollArea}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
               {giftLoading ? (
                 <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
               ) : !giftReceipts || giftReceipts.length === 0 ? (

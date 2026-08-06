@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { seedSource } from "../api/source";
 import type { DomainUser } from "../types/domain";
 import { login as apiLogin, getMe, type AuthUser, type LoginPayload } from "../api/auth";
+import { clearBreadcrumbs } from "../lib/errorReporting/report";
 
 const STORAGE_KEY = "@afterlifeRN/auth/currentUserId";
 const TOKEN_KEY = "@afterlifeRN/auth/accessToken";
@@ -125,6 +126,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (err) {
       console.warn("[authStore] reset on logout failed:", err);
     }
+
+    clearBreadcrumbs();
   },
 
   loginWithApi: async (payload, opts) => {

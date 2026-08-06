@@ -66,6 +66,17 @@ export default function NotificationsScreen() {
     reload();
   }, [reload]);
 
+  useEffect(() => {
+    if (!accessToken || loading) return;
+    if (items.length === 0) return;
+    if (!items.some((it) => !it.isRead)) return;
+    setItems((prev) => prev.map((it) => ({ ...it, isRead: true })));
+    markAllRead(accessToken).catch((err) =>
+      console.warn("[Notifications] auto markAllRead failed:", err),
+    );
+
+  }, [accessToken, loading]);
+
   const openClone = async (cloneId: number, openComments = false, feedId?: number) => {
     try {
       const det = await getCloneDetail(cloneId, accessToken ?? undefined);
@@ -118,10 +129,51 @@ export default function NotificationsScreen() {
     const url = typeof d.url === "string" ? d.url : "";
     let m: RegExpMatchArray | null;
 
-    if (n.type === "clone_follow" && typeof d.actorId === "number") {
+    const cloneIdFromData = typeof d.cloneId === "number" ? d.cloneId : 0;
+    if (
+      n.type === "clone_like" ||
+      n.type === "clone_comment" ||
+      n.type === "clone_gift" ||
+      n.type === "clone_follow"
+    ) {
 
-      navigation.navigate("UserProfile", { userId: d.actorId });
-    } else if ((m = url.match(/^afterlife:\/\/invite\/(.+)$/))) {
+      if (cloneIdFromData > 0) {
+        const tab =
+          n.type === "clone_like"
+            ? ("likes" as const)
+            : n.type === "clone_comment"
+              ? ("comments" as const)
+              : n.type === "clone_gift"
+                ? ("gifts" as const)
+                : ("followers" as const);
+        navigation.navigate("Main", {
+          screen: "ClonesTab",
+          params: {
+            screen: "Dashboard",
+            params: { openStatsCloneId: cloneIdFromData, openStatsTab: tab },
+          },
+        });
+        return;
+      }
+    }
+    if (n.type === "user_follow") {
+
+      const myId = useAuthStore.getState().apiUser?.id;
+      if (myId) {
+        navigation.navigate("UserFollowList", { userId: myId, mode: "followers" });
+        return;
+      }
+    }
+    if (n.type === "followee_new_clone" && cloneIdFromData > 0) {
+
+      navigation.navigate("Main", {
+        screen: "ClonesTab",
+        params: { screen: "CloneDetail", params: { cloneId: cloneIdFromData } },
+      });
+      return;
+    }
+
+    if ((m = url.match(/^afterlife:\/\/invite\/(.+)$/))) {
       navigation.navigate("InviteAccept", { token: decodeURIComponent(m[1]) });
     } else if (n.type === "moderation" || url.startsWith("afterlife://reports")) {
 

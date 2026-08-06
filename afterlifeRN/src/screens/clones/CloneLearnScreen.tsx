@@ -54,11 +54,24 @@ interface KnowledgePayload {
   a: string;
 }
 
+const LEARN_CONFIRM_ENABLED = false;
+
 interface PendingConfirm {
   questionKey: string;
   slots: KnowledgeItem[]; 
   reply: string;          
   userAnswer: string;     
+}
+
+interface LastSaved {
+  baseKey: string;        
+  slotKeys: string[];     
+  userAnswer: string;     
+  reply: string;          
+  followup?: {            
+    question: string;
+    slotKey: string;
+  };
 }
 
 interface FollowupState {
@@ -81,6 +94,8 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
   const [answer, setAnswer] = useState<string>("");
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
   const [followup, setFollowup] = useState<FollowupState | null>(null);
+
+  const [lastSaved, setLastSaved] = useState<LastSaved | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
   const answeredKeys = useMemo(() => new Set(items.map((i) => i.key)), [items]);
@@ -179,6 +194,14 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
       }
       const fresh = res.items ?? [];
       setItems(fresh);
+
+      setLastSaved({
+        baseKey: followup.baseKey,
+        slotKeys: [followup.slotKey],
+        userAnswer: a,
+        reply: "",
+        followup: { question: followup.question, slotKey: followup.slotKey },
+      });
       const answered = new Set(fresh.map((i) => i.key));
       answered.add(followup.baseKey);
       const pool = questions.filter((q) => !answered.has(q.key));
@@ -243,13 +266,19 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
       const reply =
         res.reply?.trim() ||
         t("learn.defaultConfirm", { defaultValue: "이렇게 정리하면 맞을까?" });
-      setPendingConfirm({
+      const pending: PendingConfirm = {
         questionKey: currentQuestion.key,
         slots,
         reply,
         userAnswer: a,
-      });
-      setAnswer("");
+      };
+      if (LEARN_CONFIRM_ENABLED) {
+        setPendingConfirm(pending);
+        setAnswer("");
+      } else {
+
+        await performSaveAndAdvance(pending);
+      }
     } catch (err) {
       showAlert(t("common.error"), (err as Error).message);
     } finally {
@@ -257,12 +286,18 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
     }
   };
 
-  const handleConfirmYes = async () => {
-    if (!accessToken || !pendingConfirm) return;
-    const validSlots = pendingConfirm.slots.filter((s) => s.a && s.a.trim());
-    const baseKey = pendingConfirm.questionKey;
+  const performSaveAndAdvance = async (pending: PendingConfirm) => {
+    if (!accessToken) return;
+    const validSlots = pending.slots.filter((s) => s.a && s.a.trim());
+    const baseKey = pending.questionKey;
     const baseQuestion = questions.find((q) => q.key === baseKey);
-    const userAnswerSnapshot = pendingConfirm.userAnswer;
+    const userAnswerSnapshot = pending.userAnswer;
+
+    const baseItem: KnowledgePayload = {
+      key: baseKey,
+      q: baseQuestion?.label ?? null,
+      a: userAnswerSnapshot,
+    };
     const advanceToNext = (fresh: KnowledgeItem[]) => {
       const answered = new Set(fresh.map((i) => i.key));
       answered.add(baseKey);
@@ -270,23 +305,28 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
       const pool = questions.filter((q) => !answered.has(q.key));
       setCurrentKey(pickRandom(pool));
     };
-    setSaving(true);
     try {
-      let fresh = items;
-      if (validSlots.length > 0) {
-        const payload: KnowledgePayload[] = [
-          ...items.map((it) => ({ key: it.key, q: it.q, a: it.a })),
-          ...validSlots.map((s) => ({ key: s.key, q: s.q, a: s.a })),
-        ];
-        const res = await putCloneKnowledge(accessToken, cloneId, payload);
-        if (res.error) {
-          showAlert(t("common.error"), res.message || res.error);
-          return;
-        }
-        fresh = res.items ?? [];
-        setItems(fresh);
+
+      const payload: KnowledgePayload[] = [
+        ...items.map((it) => ({ key: it.key, q: it.q, a: it.a })),
+        baseItem,
+        ...validSlots.map((s) => ({ key: s.key, q: s.q, a: s.a })),
+      ];
+      const res = await putCloneKnowledge(accessToken, cloneId, payload);
+      if (res.error) {
+        showAlert(t("common.error"), res.message || res.error);
+        return;
       }
+      const fresh = res.items ?? [];
+      setItems(fresh);
       setPendingConfirm(null);
+
+      setLastSaved({
+        baseKey,
+        slotKeys: [baseKey, ...validSlots.map((s) => s.key)],
+        userAnswer: userAnswerSnapshot,
+        reply: pending.reply,
+      });
 
       const label = baseQuestion?.label ?? "";
       const fRes = label
@@ -305,6 +345,51 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
       advanceToNext(fresh);
     } catch (err) {
       showAlert(t("common.error"), (err as Error).message);
+    }
+  };
+
+  const handleConfirmYes = async () => {
+    if (!accessToken || !pendingConfirm) return;
+    setSaving(true);
+    try {
+      await performSaveAndAdvance(pendingConfirm);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUndoLast = async () => {
+    if (!accessToken || !lastSaved) return;
+    setSaving(true);
+    try {
+      const remove = new Set(lastSaved.slotKeys);
+      const remaining = items.filter((it) => !remove.has(it.key));
+      const payload: KnowledgePayload[] = remaining.map((it) => ({
+        key: it.key,
+        q: it.q,
+        a: it.a,
+      }));
+      const res = await putCloneKnowledge(accessToken, cloneId, payload);
+      if (res.error) {
+        showAlert(t("common.error"), res.message || res.error);
+        return;
+      }
+      setItems(res.items ?? []);
+      setCurrentKey(lastSaved.baseKey);
+      setAnswer(lastSaved.userAnswer);
+
+      if (lastSaved.followup) {
+        setFollowup({
+          baseKey: lastSaved.baseKey,
+          question: lastSaved.followup.question,
+          slotKey: lastSaved.followup.slotKey,
+        });
+      } else {
+        setFollowup(null);
+      }
+      setLastSaved(null);
+    } catch (err) {
+      showAlert(t("common.error"), (err as Error).message);
     } finally {
       setSaving(false);
     }
@@ -321,6 +406,8 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
     setCurrentKey(pickRandom(pool));
     setAnswer("");
     setPendingConfirm(null);
+
+    setLastSaved(null);
   };
 
   return (
@@ -403,7 +490,27 @@ export default function CloneLearnScreen({ navigation, route }: Props) {
                   </View>
                 ))}
 
-                {currentQuestion && (
+                {
+}
+                {lastSaved && !pendingConfirm && !followup && (
+                  <View style={[styles.bubbleRow, styles.bubbleRowLeft]}>
+                    <TouchableOpacity
+                      onPress={handleUndoLast}
+                      disabled={saving}
+                      style={[styles.undoLink, saving && styles.btnDisabled]}
+                    >
+                      <Feather name="edit-2" size={13} color="#2563eb" />
+                      <Text style={styles.undoLinkText}>
+                        {t("learn.undoLast", { defaultValue: "답변 수정하기" })}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {
+
+}
+                {currentQuestion && !followup && (
                   <View style={[styles.bubbleRow, styles.bubbleRowLeft]}>
                     <View style={[styles.bubble, styles.bubbleBot]}>
                       <Text style={styles.bubbleText}>
@@ -671,6 +778,23 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   btnDisabled: { opacity: 0.4 },
+
+  undoLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.zinc50,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+  },
+  undoLinkText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#2563eb",
+  },
   confirmRow: {
     flexDirection: "row",
     gap: 10,

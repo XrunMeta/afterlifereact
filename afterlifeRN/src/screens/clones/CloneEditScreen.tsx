@@ -6,8 +6,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Alert,
-  TouchableOpacity,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,64 +19,12 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { patchClone } from "../../api/clones";
 import { AuthApiError } from "../../api/auth";
-import type { L1Profile, DomainClone as Clone } from "../../types/domain";
-import { COLORS, SIZES, RADIUS } from "../../components/constants";
+import type { DomainClone as Clone } from "../../types/domain";
+import { COLORS, SIZES } from "../../components/constants";
 
 type Visibility = "public" | "private" | "followers";
 
 type Props = NativeStackScreenProps<ClonesStackParamList, "CloneEdit">;
-
-const SECTIONS = [
-  { key: "firstMeeting", label: "첫 만남" },
-  { key: "habit", label: "습관/말투" },
-  { key: "personality", label: "성격" },
-  { key: "memory", label: "가장 선명한 추억" },
-] as const;
-type SectionKey = (typeof SECTIONS)[number]["key"];
-
-function parsePersonaNotes(notes: string): Record<SectionKey, string> {
-  const out: Record<SectionKey, string> = {
-    firstMeeting: "",
-    habit: "",
-    personality: "",
-    memory: "",
-  };
-  if (!notes) return out;
-
-  const labelToKey = new Map<string, SectionKey>();
-  for (const s of SECTIONS) labelToKey.set(s.label, s.key);
-
-  const lines = notes.split("\n");
-  let currentKey: SectionKey | null = null;
-  const buffer: Record<SectionKey, string[]> = {
-    firstMeeting: [],
-    habit: [],
-    personality: [],
-    memory: [],
-  };
-  for (const line of lines) {
-    const m = line.match(/^\[(.+)\]\s*$/);
-    if (m) {
-      const key = labelToKey.get(m[1]!);
-      currentKey = key ?? null;
-      continue;
-    }
-    if (currentKey) buffer[currentKey].push(line);
-  }
-  for (const s of SECTIONS) {
-    out[s.key] = buffer[s.key].join("\n").trim();
-  }
-  return out;
-}
-
-function buildPersonaNotes(values: Record<SectionKey, string>): string {
-  const parts: string[] = [];
-  for (const s of SECTIONS) {
-    const v = values[s.key].trim();
-    if (v) parts.push(`[${s.label}]\n${v}`);
-  }
-  return parts.join("\n\n");
-}
 
 export default function CloneEditScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
@@ -90,27 +36,15 @@ export default function CloneEditScreen({ route, navigation }: Props) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
-  const [firstMeeting, setFirstMeeting] = useState("");
-  const [habit, setHabit] = useState("");
-  const [personality, setPersonality] = useState("");
-  const [memory, setMemory] = useState("");
-
-  const [l1Attrs, setL1Attrs] = useState<Record<string, string>>({});
-
   const [visibility, setVisibility] = useState<Visibility>("public");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!clone) return;
     setName(clone.displayName);
-    setDescription(clone.description ?? "");
+
+    setDescription((clone.description ?? "").slice(0, 100));
     setVisibility((clone.visibility as Visibility) ?? "public");
-    const parsed = parsePersonaNotes(clone.l1Profile?.notes ?? "");
-    setFirstMeeting(parsed.firstMeeting);
-    setHabit(parsed.habit);
-    setPersonality(parsed.personality);
-    setMemory(parsed.memory);
-    setL1Attrs(clone.l1Profile?.attrs ?? {});
   }, [clone]);
 
   if (!clone) {
@@ -124,24 +58,21 @@ export default function CloneEditScreen({ route, navigation }: Props) {
   const handleSave = async () => {
     if (saving) return;
     setSaving(true);
-    const notes = buildPersonaNotes({ firstMeeting, habit, personality, memory });
-    const l1Payload: L1Profile = { attrs: l1Attrs, notes };
     const accessToken = useAuthStore.getState().accessToken;
 
     try {
       if (accessToken) {
+
         await patchClone(accessToken, clone.id, {
           name,
           description,
           visibility,
-          l1_profile: l1Payload,
         });
       }
       updateLocalClone(clone.id, {
         displayName: name,
         description,
         visibility,
-        l1Profile: l1Payload,
       } as Partial<Clone>);
       navigation.goBack();
     } catch (err) {
@@ -182,72 +113,16 @@ export default function CloneEditScreen({ route, navigation }: Props) {
         <TextField
           label={t("edit.descLabel")}
           value={description}
-          onChangeText={setDescription}
+          onChangeText={(v) => setDescription(v.slice(0, 100))}
           placeholder={t("edit.descPlaceholder")}
           multiline
+          maxLength={100}
           containerStyle={{ marginTop: 16 }}
         />
+        <Text style={s.descCounter}>{description.length}/100</Text>
 
-        {}
-        <Text style={s.sectionHeader}>{t("edit.cloneDescSection", { defaultValue: "클론 설명" })}</Text>
-        <TextField
-          label={t("edit.firstMeetingLabel", { defaultValue: "첫 만남" })}
-          value={firstMeeting}
-          onChangeText={setFirstMeeting}
-          placeholder={t("edit.firstMeetingPlaceholder", { defaultValue: "처음 만났을 때의 장면, 인상, 분위기..." })}
-          multiline
-          containerStyle={{ marginTop: 8 }}
-        />
-        <TextField
-          label={t("edit.habitLabel", { defaultValue: "습관/말투" })}
-          value={habit}
-          onChangeText={setHabit}
-          placeholder={t("edit.habitPlaceholder", { defaultValue: "자주 하던 말, 작은 습관, 좋아하던 자리..." })}
-          multiline
-          containerStyle={{ marginTop: 12 }}
-        />
-        <TextField
-          label={t("edit.personalityLabel", { defaultValue: "성격" })}
-          value={personality}
-          onChangeText={setPersonality}
-          placeholder={t("edit.personalityPlaceholder", { defaultValue: "MBTI, 성격, 평소 분위기..." })}
-          multiline
-          containerStyle={{ marginTop: 12 }}
-        />
-        <TextField
-          label={t("edit.memoryLabel", { defaultValue: "가장 선명한 추억" })}
-          value={memory}
-          onChangeText={setMemory}
-          placeholder={t("edit.memoryPlaceholder", { defaultValue: "가장 행복하게 웃고 있던 그 순간..." })}
-          multiline
-          containerStyle={{ marginTop: 12 }}
-        />
-
-        {}
-        <TouchableOpacity
-          onPress={() => navigation.navigate("CloneLearn", { cloneId })}
-          activeOpacity={0.8}
-          style={{
-            marginTop: 24,
-            padding: 16,
-            borderRadius: RADIUS.md,
-            borderWidth: 1,
-            borderColor: COLORS.violet500,
-            backgroundColor: COLORS.violet100,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 15, fontWeight: "700", color: COLORS.violet500 }}>
-              {t("edit.learnCtaTitle", { defaultValue: "학습하기 →" })}
-            </Text>
-            <Text style={{ fontSize: 12, color: COLORS.zinc600, marginTop: 4 }}>
-              {t("edit.learnCtaDesc", { defaultValue: "관리자 질문에 답변해서 클론에게 지식을 쌓아주세요" })}
-            </Text>
-          </View>
-        </TouchableOpacity>
+        {
+}
       </View>
 
       {}
@@ -260,8 +135,6 @@ export default function CloneEditScreen({ route, navigation }: Props) {
           style={s.saveBtn}
         />
       </View>
-
-      {}
     </SafeScrollView>
   );
 }
@@ -274,12 +147,12 @@ const s = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 32,
   },
-  sectionHeader: {
-    marginTop: 28,
-    marginBottom: 4,
-    fontSize: 16,
-    fontWeight: "700",
-    color: COLORS.zinc900,
+
+  descCounter: {
+    marginTop: 6,
+    alignSelf: "flex-end",
+    fontSize: 12,
+    color: COLORS.zinc400,
   },
   bottomBar: {
     paddingHorizontal: SIZES.large,
@@ -289,59 +162,4 @@ const s = StyleSheet.create({
     backgroundColor: COLORS.white,
   },
   saveBtn: { width: "100%" },
-  dropdown: {
-    position: "absolute",
-    right: 12,
-    top: 56,
-    backgroundColor: COLORS.white,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.zinc200,
-    paddingVertical: 4,
-    zIndex: 50,
-    minWidth: 200,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  dropdownItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  dropdownText: { fontSize: 14, color: COLORS.zinc900 },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    padding: 24,
-  },
-  modalBox: {
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 20,
-  },
-  modalTitle: { fontSize: 17, fontWeight: "700", color: COLORS.zinc900, marginBottom: 4 },
-  modalDesc: { fontSize: 13, color: COLORS.zinc500, marginBottom: 16 },
-  visibilityOptions: { gap: 8 },
-  visibilityOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.zinc200,
-  },
-  visibilityOptionSelected: {
-    borderColor: COLORS.violet600,
-    backgroundColor: COLORS.violet600,
-  },
-  visibilityOptionText: { fontSize: 14, fontWeight: "600", color: COLORS.zinc900 },
 });

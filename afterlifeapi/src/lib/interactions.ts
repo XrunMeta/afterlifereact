@@ -157,6 +157,49 @@ export async function addIntimacyScore(
   }
 }
 
+const INTIMACY_CALL_TEST_USER_IDS = new Set<number>([9007]);
+
+export async function addCallIntimacyDaily(
+  env: Bindings,
+  userId: number,
+  cloneId: number,
+  durationSeconds: number,
+): Promise<{ crossedThreshold: boolean; scoreApplied: number; totalSeconds: number }> {
+  if (!userId || !cloneId || durationSeconds <= 0) {
+    return { crossedThreshold: false, scoreApplied: 0, totalSeconds: 0 };
+  }
+
+  if (INTIMACY_CALL_TEST_USER_IDS.has(userId)) {
+    console.log(`[T-250 test] direct +1 for user=${userId} clone=${cloneId} dur=${durationSeconds}`);
+    const r = await addIntimacyScore(env, userId, cloneId, 1, "call");
+    console.log(`[T-250 test] addIntimacyScore result applied=${r.applied} remaining=${r.dailyRemaining}`);
+    return {
+      crossedThreshold: r.applied > 0,
+      scoreApplied: r.applied,
+      totalSeconds: durationSeconds,
+    };
+  }
+  const key = `intimacy_call_total:${userId}:${cloneId}:${kstDateYYYYMMDD()}`;
+  let oldTotal = 0;
+  let newTotal = durationSeconds;
+  try {
+    const oldRaw = await env.KV_RATE.get(key);
+    oldTotal = oldRaw ? Number(oldRaw) : 0;
+    newTotal = oldTotal + durationSeconds;
+    await env.KV_RATE.put(key, String(newTotal), { expirationTtl: 26 * 60 * 60 });
+  } catch (err) {
+    console.warn(`[interactions] addCallIntimacyDaily KV failed:`, (err as Error).message);
+    return { crossedThreshold: false, scoreApplied: 0, totalSeconds: newTotal };
+  }
+  const crossed =
+    oldTotal < CALL_MIN_SECONDS_FOR_SCORE && newTotal >= CALL_MIN_SECONDS_FOR_SCORE;
+  if (!crossed) {
+    return { crossedThreshold: false, scoreApplied: 0, totalSeconds: newTotal };
+  }
+  const r = await addIntimacyScore(env, userId, cloneId, INTIMACY_WEIGHTS.call, "call");
+  return { crossedThreshold: true, scoreApplied: r.applied, totalSeconds: newTotal };
+}
+
 export async function addPerFeedIntimacyScore(
   env: Bindings,
   userId: number,

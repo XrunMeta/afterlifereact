@@ -79,6 +79,48 @@ notifications.post("/read-all", requireAuth, async (c) => {
   return c.json({ ok: true });
 });
 
+notifications.post("/test-push", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT push_token, platform FROM user_devices
+        WHERE user_id = ? AND push_token IS NOT NULL AND is_active = 1`,
+    )
+    .bind(userId)
+    .all<{ push_token: string; platform: string }>();
+  const devices = (rows.results ?? []).filter(
+    (r) => r.push_token.startsWith("ExponentPushToken[") || r.push_token.startsWith("ExpoPushToken["),
+  );
+  if (devices.length === 0) {
+    return c.json({ attempted: 0, tickets: [], error: "활성 토큰이 없습니다. 알림 권한을 다시 켜주세요." });
+  }
+  const messages = devices.map((d) => ({
+    to: d.push_token,
+    title: "🧪 테스트 알림",
+    body: "알림이 정상적으로 도착했습니다.",
+    sound: "default" as const,
+  }));
+
+  const res = await fetch("https://exp.host/--/api/v2/push/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(messages),
+  });
+  const respBody = (await res.json().catch(() => null)) as
+    | { data?: Array<{ status?: string; message?: string; details?: { error?: string } }> }
+    | null;
+  const tickets = devices.map((d, i) => {
+    const t = respBody?.data?.[i];
+    return {
+      platform: d.platform,
+      status: t?.status ?? "no-response",
+      errorCode: t?.details?.error ?? null,
+      message: t?.message ?? null,
+    };
+  });
+  return c.json({ attempted: devices.length, tickets });
+});
+
 function safeParse(s: string): unknown {
   try {
     return JSON.parse(s);

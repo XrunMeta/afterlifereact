@@ -1135,6 +1135,184 @@ admin.get("/oth-path", requireAdmin, async (c) => {
   return c.json(row);
 });
 
+admin.post("/oth-path", requireAdmin, async (c) => {
+  const userId = Number(c.req.param("id"));
+  if (!Number.isInteger(userId) || userId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid user id.");
+  }
+  const body = (await c.req.json().catch(() => ({}))) as { seconds?: unknown; reason?: unknown };
+  const seconds = Number(body.seconds);
+  if (!Number.isInteger(seconds) || seconds <= 0) {
+    throw new APIError("VALIDATION_FAILED", "seconds must be a positive integer.");
+  }
+  const nowMs = Date.now();
+  const fiveYearsMs = 5 * 365 * 24 * 60 * 60 * 1000;
+  const idemKey = `admin:${seconds}:${nowMs}`;
+  const reason = typeof body.reason === "string" ? body.reason.slice(0, 200) : "admin grant";
+
+  const ledgerRes = await c.env.DB
+    .prepare(
+      `INSERT INTO credit_ledgers (user_id, amount, type, ref_id, idempotency_key)
+         VALUES (?, ?, 'admin_grant', ?, ?)
+         RETURNING id`,
+    )
+    .bind(userId, seconds, reason, idemKey)
+    .first<{ id: number }>();
+  if (!ledgerRes) throw new APIError("INTERNAL_ERROR", "ledger insert failed.");
+
+  await c.env.DB
+    .prepare(
+      `UPDATE users
+          SET credits       = credits + ?,
+              credits_topup = credits_topup + ?,
+              updated_at    = CURRENT_TIMESTAMP
+        WHERE id = ? AND deleted_at IS NULL`,
+    )
+    .bind(seconds, seconds, userId)
+    .run();
+
+  await c.env.DB
+    .prepare(
+      `INSERT INTO credit_lots (user_id, amount, remaining, granted_at, expires_at, ledger_id)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(userId, seconds, seconds, nowMs, nowMs + fiveYearsMs, ledgerRes.id)
+    .run();
+
+  const row = await c.env.DB
+    .prepare(`SELECT credits, credits_topup FROM users WHERE id = ?`)
+    .bind(userId)
+    .first<{ credits: number; credits_topup: number }>();
+  return c.json({ ok: true, granted: seconds, balance: row });
+});
+
+admin.post("/oth-path", requireAdmin, async (c) => {
+  const userId = Number(c.req.param("id"));
+  if (!Number.isInteger(userId) || userId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid user id.");
+  }
+  const types: Array<{
+    type:
+      | "intimacy_score"
+      | "clone_like"
+      | "clone_comment"
+      | "clone_follow"
+      | "clone_gift"
+      | "user_follow"
+      | "followee_new_clone"
+      | "moderation"
+      | "invite_received";
+    title: string;
+    body: string;
+  }> = [
+    { type: "intimacy_score", title: "🌡️ +1°C 온도 상승", body: "테스트 페르소나와의 친밀도가 올랐습니다." },
+    { type: "clone_like", title: "👍 좋아요 도착", body: "테스트 사용자가 내 페르소나를 좋아합니다." },
+    { type: "clone_comment", title: "💬 댓글 도착", body: "테스트 사용자가 내 페르소나에 댓글을 남겼습니다." },
+    { type: "clone_follow", title: "➕ 새 구독자", body: "테스트 사용자가 내 페르소나를 구독했습니다." },
+    { type: "clone_gift", title: "🎁 선물 도착", body: "테스트 사용자가 내 페르소나에 선물을 보냈습니다." },
+    { type: "user_follow", title: "👤 새 팔로워", body: "테스트 사용자가 나를 팔로우했습니다." },
+    { type: "followee_new_clone", title: "✨ 새 페르소나", body: "팔로우한 사용자가 새 페르소나를 만들었습니다." },
+    { type: "moderation", title: "⚠️ 제재 알림", body: "테스트 제재 안내." },
+    { type: "invite_received", title: "📨 초대 도착", body: "테스트 공동관리자 초대." },
+  ];
+  const results = [];
+  for (const t of types) {
+    try {
+      const r = await notify(c.env, {
+        userId,
+        type: t.type,
+        title: t.title,
+        body: t.body,
+        skipEmail: true,
+      });
+      results.push({
+        type: t.type,
+        inserted: r.inserted,
+        pushAttempted: r.pushAttempted,
+        pushSent: r.pushSent,
+      });
+    } catch (err) {
+      results.push({
+        type: t.type,
+        error: (err as Error).message ?? String(err),
+      });
+    }
+  }
+  return c.json({ userId, count: types.length, results });
+});
+
+admin.post("/oth-path", requireAdmin, async (c) => {
+  const userId = Number(c.req.param("id"));
+  if (!Number.isInteger(userId) || userId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid user id.");
+  }
+  const body = (await c.req.json().catch(() => ({}))) as { title?: unknown; body?: unknown };
+  const title = typeof body.title === "string" && body.title ? body.title : "🧪 테스트 알림";
+  const bodyText = typeof body.body === "string" && body.body ? body.body : "관리자가 발송한 테스트 알림입니다.";
+
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT push_token, platform FROM user_devices
+        WHERE user_id = ? AND push_token IS NOT NULL AND is_active = 1`,
+    )
+    .bind(userId)
+    .all<{ push_token: string; platform: string }>();
+  const devices = (rows.results ?? []).filter(
+    (r) => r.push_token.startsWith("ExponentPushToken[") || r.push_token.startsWith("ExpoPushToken["),
+  );
+  if (devices.length === 0) {
+    return c.json({ attempted: 0, tickets: [], error: "활성 토큰 없음" });
+  }
+  const messages = devices.map((d) => ({
+    to: d.push_token,
+    title,
+    body: bodyText,
+    sound: "default" as const,
+  }));
+
+  const res = await fetch("https://exp.host/--/api/v2/push/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(messages),
+  });
+  const respBody = (await res.json().catch(() => null)) as
+    | { data?: Array<{ status?: string; message?: string; details?: { error?: string } }> }
+    | null;
+  const tickets = devices.map((d, i) => {
+    const t = respBody?.data?.[i];
+    return {
+      tokenPrefix: d.push_token.slice(0, 30),
+      platform: d.platform,
+      status: t?.status ?? "no-response",
+      errorCode: t?.details?.error ?? null,
+      message: t?.message ?? null,
+    };
+  });
+  return c.json({ attempted: devices.length, httpStatus: res.status, tickets });
+});
+
+admin.get("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid user id.");
+  }
+  const rows = await c.env.DB.prepare(
+    `SELECT device_id AS deviceId,
+            platform,
+            SUBSTR(push_token, 1, 24) AS pushTokenPrefix,
+            LENGTH(push_token) AS pushTokenLength,
+            is_active AS isActive,
+            last_active_at AS lastActiveAt,
+            created_at AS createdAt
+       FROM user_devices
+      WHERE user_id = ?
+      ORDER BY last_active_at DESC`,
+  )
+    .bind(id)
+    .all();
+  return c.json({ userId: id, devices: rows.results });
+});
+
 admin.get("/by-xrun/:xrunMemberId/summary", requireAdmin, async (c) => {
   const xrunId = Number(c.req.param("xrunMemberId"));
   if (!Number.isInteger(xrunId) || xrunId <= 0) {
@@ -1977,5 +2155,60 @@ admin.get("/oth-path", requireAdmin, async (c) => {
     .bind(cloneId)
     .all();
   return c.json({ items: rows.results });
+});
+
+admin.get("/intimacy-events", requireAdmin, async (c) => {
+  const url = new URL(c.req.url);
+  const userIdStr = url.searchParams.get("userId");
+  const cloneIdStr = url.searchParams.get("cloneId");
+  const action = (url.searchParams.get("action") ?? "").trim();
+  const limitRaw = Number(url.searchParams.get("limit") ?? 100);
+  const limit = Math.max(1, Math.min(500, Number.isFinite(limitRaw) ? limitRaw : 100));
+  const offset = Math.max(0, Number(url.searchParams.get("offset") ?? 0));
+
+  const where: string[] = [];
+  const binds: (string | number)[] = [];
+  if (userIdStr && /^\d+$/.test(userIdStr)) {
+    where.push("ie.user_id = ?");
+    binds.push(Number(userIdStr));
+  }
+  if (cloneIdStr && /^\d+$/.test(cloneIdStr)) {
+    where.push("ie.clone_id = ?");
+    binds.push(Number(cloneIdStr));
+  }
+  if (action && ["chat", "call", "learn", "feed"].includes(action)) {
+    where.push("ie.action = ?");
+    binds.push(action);
+  }
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+  const totalRow = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM intimacy_events ie ${whereSql}`)
+    .bind(...binds)
+    .first<{ n: number }>();
+  const total = totalRow?.n ?? 0;
+
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT ie.id           AS id,
+              ie.created_at   AS createdAt,
+              ie.user_id      AS userId,
+              u.email         AS userEmail,
+              ie.clone_id     AS cloneId,
+              c.name          AS cloneName,
+              ie.action       AS action,
+              ie.score        AS score,
+              ie.feed_id      AS feedId
+         FROM intimacy_events ie
+         LEFT JOIN users u ON u.id = ie.user_id
+         LEFT JOIN clones c ON c.id = ie.clone_id
+         ${whereSql}
+        ORDER BY ie.created_at DESC, ie.id DESC
+        LIMIT ? OFFSET ?`,
+    )
+    .bind(...binds, limit, offset)
+    .all();
+
+  return c.json({ items: rows.results, total, limit, offset });
 });
 

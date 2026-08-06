@@ -2,7 +2,7 @@ import type { DomainFeed, CloneType } from "../types/domain";
 import type { FeedItem } from "../types/feed";
 import { seedSource } from "../api/source";
 import { IMAGES } from "./images";
-import { apiCloneCache, apiFeedCountsCache } from "../stores/feedStore";
+import { apiCloneCache, apiFeedCountsCache, apiIntimacyCache } from "../stores/feedStore";
 
 const CLONE_TYPE_LABEL: Record<CloneType, string> = {
   memlow: "멤로우",
@@ -52,7 +52,12 @@ export function toFeedItem(f: DomainFeed): FeedItem {
     cloneOwnerId: c?.ownerId,
     cloneVisibility: c?.visibility,
     author: c?.displayName ?? "알 수 없음",
-    username: c ? `@${c.cloneType}-${c.id}` : "@unknown",
+
+    username: c?.username
+      ? `@${c.username}`
+      : c
+      ? `@${c.cloneType}-${c.id}`
+      : "@unknown",
     authorAvatar: localImage ?? c?.imageUrl ?? "",
     image: f.mediaUrl ?? localImage ?? c?.imageUrl ?? "",
     title: c?.displayName ?? "",
@@ -64,5 +69,7 @@ export function toFeedItem(f: DomainFeed): FeedItem {
     interests: interestsList,
     likes: formatLikes(likes),
     comments,
+
+    myIntimacy: apiIntimacyCache.get(f.cloneId),
   };
 }

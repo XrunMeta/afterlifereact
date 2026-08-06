@@ -18,6 +18,21 @@ _MIN_WAV_BYTES = 1024
 # denoise 기본 필터 체인(보수적 — 음색 보존 우선): 80Hz 저주파 컷 + 약한 FFT denoise.
 _DEFAULT_DENOISE_AF = "highpass=f=80,afftdn=nr=10:nf=-25:tn=1"
 
+# 진단용 원본 사본 파일명. 확장자는 원본 포맷(m4a/mp3/wav …)에 따라 달라서 고정하지 않는다.
+RAW_NAME = "voice.raw"
+
+
+def _keep_original(src_tmp: str, raw_dest: str) -> None:
+    """변환에 쓴 원본을 voice.raw 로 이동해 보존한다(클론당 1개, 덮어쓰기).
+
+    부가기능이므로 실패는 삼킨다 — 사본 보존이 통화(voice.wav 생성)를 깨면 안 된다.
+    os.replace 라 이전 사본은 자동으로 대체되고 누적되지 않는다.
+    """
+    try:
+        os.replace(src_tmp, raw_dest)
+    except OSError:
+        pass
+
 
 def _denoise_af_args(env=None) -> list:
     """env 토글에 따라 ffmpeg -af denoise 인자를 반환.
@@ -94,6 +109,10 @@ async def ensure_voice_wav(
 
     동시통화 안전: uuid 유니크 임시파일 + os.replace(원자적). asset_fetch.fetch_to의
     'dest 존재 시 skip'과 충돌하지 않도록 src_tmp는 매 호출 새 경로.
+
+    변환 성공 시 원본을 voice.raw 로 남긴다(클론당 1개, 덮어쓰기). 원본은 API 에도
+    있지만 조회에 사용자 access_token 이 필요해 서버 쪽 진단에서는 닿지 않는다 —
+    ref 오염(클론 9104)이 업로드 단계인지 변환 단계인지 가르려면 사본이 필요하다.
     """
     clone_dir = os.path.join(ref_root, str(clone_id))
     dest = os.path.join(clone_dir, "voice.wav")
@@ -113,6 +132,7 @@ async def ensure_voice_wav(
                 f"변환 결과 wav가 비었거나 너무 작음({sz}B) — skip 캐시 손상 방지 (clone={clone_id})"
             )
         os.replace(wav_tmp, dest)  # 원자적 — 동시통화도 안전
+        _keep_original(src_tmp, os.path.join(clone_dir, RAW_NAME))
     finally:
         for p in (src_tmp, wav_tmp):
             try:

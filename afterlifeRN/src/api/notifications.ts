@@ -46,3 +46,18 @@ export async function markRead(
 export async function markAllRead(accessToken: string): Promise<{ ok: true }> {
   return authJson(`/oth-path`, accessToken, { method: "POST" });
 }
+
+export interface TestPushTicket {
+  platform: string;
+  status: string; 
+  errorCode: string | null;
+  message: string | null;
+}
+export interface TestPushResult {
+  attempted: number;
+  tickets: TestPushTicket[];
+  error?: string;
+}
+export async function sendTestPush(accessToken: string): Promise<TestPushResult> {
+  return authJson(`/oth-path`, accessToken, { method: "POST" });
+}

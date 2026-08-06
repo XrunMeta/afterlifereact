@@ -20,7 +20,9 @@ import { COLORS, RADIUS } from "../../components/constants";
 import {
   getCurrentPushStatus,
   requestPushPermission,
+  registerPushTokenIfReady,
 } from "../../lib/pushNotifications";
+import { useAuthStore } from "../../stores/authStore";
 
 type PrefKey =
   | "newFollower"
@@ -60,6 +62,7 @@ const PREF_ITEMS: Array<{
 export default function NotificationSettingsScreen() {
   const navigation = useNavigation();
   const { t } = useTranslation();
+  const accessToken = useAuthStore((s) => s.accessToken);
   const [granted, setGranted] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -122,6 +125,10 @@ export default function NotificationSettingsScreen() {
         const reg = await requestPushPermission();
         if (reg.granted) {
           setGranted(true);
+
+          if (accessToken) {
+            void registerPushTokenIfReady(accessToken);
+          }
         } else {
           showAlert(
             t("settings.notifications.permTitle", { defaultValue: "권한 필요" }),
