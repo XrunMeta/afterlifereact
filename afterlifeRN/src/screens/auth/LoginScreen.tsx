@@ -385,7 +385,8 @@ export default function LoginScreen({ navigation }: Props) {
                 onPress={handleLogin}
                 variant="primary"
                 disabled={loggingIn}
-                style={{ marginTop: SIZES.medium }}
+
+                style={{ marginTop: SIZES.xxlarge }}
               />
             </>
           )}
