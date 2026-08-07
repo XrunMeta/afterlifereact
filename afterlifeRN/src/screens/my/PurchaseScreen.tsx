@@ -273,6 +273,43 @@ export default function v_0035e1() {
         </View>
 
         {}
+        {v_f66a30 && v_f04609.length > 0 && (
+          <View style={{ marginTop: 8, marginBottom: 24 }}>
+            <Text style={v_fd5f43.sectionTitle}>받은 선물</Text>
+            <Text style={v_fd5f43.sectionDesc}>[교환] 을 누르면 XRUN 크레딧으로 충전돼요.</Text>
+            {v_f04609.map((v_8c0b26) => {
+              const v_3f8465 = v_08031a === v_8c0b26.giftId;
+              return (
+                <View key={v_8c0b26.giftId} style={v_fd5f43.giftRow}>
+                  {v_8c0b26.imageUrl ? (
+                    <Image source={{ uri: v_8c0b26.imageUrl }} style={v_fd5f43.giftImg} />
+                  ) : (
+                    <View style={[v_fd5f43.giftImg, v_fd5f43.giftEmojiWrap]}>
+                      <Text style={v_fd5f43.giftEmoji}>{v_8c0b26.emoji}</Text>
+                    </View>
+                  )}
+                  <View style={v_fd5f43.giftInfo}>
+                    <Text style={v_fd5f43.giftName}>{v_8c0b26.name} {v_8c0b26.count}개</Text>
+                    <Text style={v_fd5f43.giftAmount}>= {v_8c0b26.xrunTotal.toLocaleString()} XRUN</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[v_fd5f43.swapBtn, v_3f8465 && { opacity: 0.6 }]}
+                    onPress={() => v_3295c9(v_8c0b26)}
+                    disabled={v_3f8465}
+                  >
+                    {v_3f8465 ? (
+                      <ActivityIndicator size="small" color={v_1bfbd0.white} />
+                    ) : (
+                      <Text style={v_fd5f43.swapBtnText}>교환</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        {}
         <Text style={v_fd5f43.sectionTitle}>{v_8d41d7("purchase.subSectionTitle", { defaultValue: "월 구독" })}</Text>
         <Text style={v_fd5f43.sectionDesc}>{v_8d41d7("purchase.subSectionDesc", { defaultValue: "매월 자동 갱신." })}</Text>
 
@@ -359,46 +396,6 @@ export default function v_0035e1() {
           <Text style={[v_fd5f43.emptyText, { marginTop: 20 }]}>
             {v_8d41d7("purchase.androidNotReady", { defaultValue: "Android 결제는 준비 중이에요. iOS 로 먼저 이용해주세요." })}
           </Text>
-        )}
-
-        {}
-        {v_f66a30 && v_f04609.length > 0 && (
-          <View style={{ marginTop: 24 }}>
-            <Text style={v_fd5f43.sectionTitle}>받은 선물</Text>
-            <Text style={v_fd5f43.sectionDesc}>[교환] 을 누르면 XRUN 크레딧으로 충전돼요.</Text>
-            {v_f04609.map((v_8c0b26) => {
-              const v_3f8465 = v_08031a === v_8c0b26.giftId;
-              return (
-                <View key={v_8c0b26.giftId} style={v_fd5f43.giftRow}>
-                  {v_8c0b26.imageUrl ? (
-                    <Image source={{ uri: v_8c0b26.imageUrl }} style={v_fd5f43.giftImg} />
-                  ) : (
-                    <View style={[v_fd5f43.giftImg, v_fd5f43.giftEmojiWrap]}>
-                      <Text style={v_fd5f43.giftEmoji}>{v_8c0b26.emoji}</Text>
-                    </View>
-                  )}
-                  <View style={v_fd5f43.giftInfo}>
-                    <Text style={v_fd5f43.giftName}>{v_8c0b26.name} {v_8c0b26.count}개</Text>
-                    <Text style={v_fd5f43.giftAmount}>= {v_8c0b26.xrunTotal.toLocaleString()} XRUN</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[v_fd5f43.swapBtn, v_3f8465 && { opacity: 0.6 }]}
-                    onPress={() => v_3295c9(v_8c0b26)}
-                    disabled={v_3f8465}
-                  >
-                    {v_3f8465 ? (
-                      <ActivityIndicator size="small" color={v_1bfbd0.white} />
-                    ) : (
-                      <Text style={v_fd5f43.swapBtnText}>교환</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              );
-            })}
-            <Text style={v_fd5f43.giftFooterHint}>
-              앱링크 가입 후 XRUN 월렛에서 교환 가능 (준비 중)
-            </Text>
-          </View>
         )}
 
         {}
