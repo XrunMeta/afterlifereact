@@ -214,24 +214,23 @@ const s = StyleSheet.create({
     top: 0,
     bottom: 0,
 
-    alignItems: "center",
+    alignItems: "stretch",
     justifyContent: "flex-end",
-    paddingBottom: "10%",
+    paddingBottom: "12%",
     zIndex: 50,
   },
 
   notice: {
-    position: "absolute",
-    top: "15%",
-    left: 16,
+    alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "center",
+    marginLeft: 16,
+    marginBottom: 20,
     paddingVertical: 8,
     paddingHorizontal: 12,
     backgroundColor: "rgba(0,0,0,0.7)",
     borderRadius: 12,
     maxWidth: "80%",
-    zIndex: 51,
   },
   noticeAvatar: {
     width: 36,
@@ -260,7 +259,7 @@ const s = StyleSheet.create({
     alignSelf: "center",
 
     width: "100%",
-    aspectRatio: 750 / 1335,
+    height: "72%",
     backgroundColor: "transparent",
   },
   web: { flex: 1, backgroundColor: "transparent" },
