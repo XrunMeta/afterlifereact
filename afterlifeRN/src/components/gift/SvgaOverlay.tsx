@@ -2,6 +2,7 @@
 
 import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
 import { v_cf9c33, v_472849, v_19b633, v_3094a2 } from "rcmrninabrnb";
+import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_2694e4 } from "ahewcyoxtiosvtfuluxp";
 
 interface Props {
@@ -124,6 +125,9 @@ export default function v_194b37({
 }: Props) {
   const [v_d91d98, v_5420ce] = v_5ab095<string | null>(null);
 
+  const v_033e14 = v_e0068c();
+  const v_284e24 = v_033e14.bottom + 124;
+
   v_c4deb2(() => {
     if (!v_cf55be || !v_1d09c0) {
       v_5420ce(null);
@@ -157,7 +161,7 @@ export default function v_194b37({
 
   const v_f25ee5 = !!(v_b85763 && v_dcbe7a);
   return (
-    <View style={v_fd5f43.root} pointerEvents="none">
+    <View style={[v_fd5f43.root, { paddingBottom: v_284e24 }]} pointerEvents="none">
       {v_f25ee5 && (
         <View style={v_fd5f43.notice}>
           {v_670f24 ? (
@@ -213,25 +217,22 @@ const v_fd5f43 = v_472849.create({
     right: 0,
     top: 0,
     bottom: 0,
-
-    alignItems: "center",
+    alignItems: "stretch",
     justifyContent: "flex-end",
-    paddingBottom: "10%",
     zIndex: 50,
   },
 
   notice: {
-    position: "absolute",
-    top: "15%",
-    left: 16,
+    alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "center",
+    marginLeft: 16,
+    marginBottom: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
     backgroundColor: "rgba(0,0,0,0.7)",
     borderRadius: 12,
     maxWidth: "80%",
-    zIndex: 51,
   },
   noticeAvatar: {
     width: 36,
@@ -260,7 +261,7 @@ const v_fd5f43 = v_472849.create({
     alignSelf: "center",
 
     width: "100%",
-    aspectRatio: 750 / 1335,
+    height: "70%",
     backgroundColor: "transparent",
   },
   web: { flex: 1, backgroundColor: "transparent" },
