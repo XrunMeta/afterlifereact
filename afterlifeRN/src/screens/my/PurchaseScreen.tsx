@@ -232,18 +232,8 @@ export default function v_0035e1() {
       />
 
       <ScrollView contentContainerStyle={{ padding: v_9b1a04.large, paddingBottom: 40 }}>
-        {}
-        {v_be7a92 && (
-          <View style={v_fd5f43.mockBanner}>
-            <Text style={v_fd5f43.mockBannerTitle}>{v_8d41d7("purchase.mockBannerTitle", { defaultValue: "⚠ MOCK 데이터 (임시)" })}</Text>
-            <Text style={v_fd5f43.mockBannerDesc}>
-              {v_8d41d7("purchase.mockBannerDesc", {
-                defaultValue:
-                  "유료 앱 계약 미체결로 실제 상품이 안 뜹니다. UI 확인용 임시 카드예요.\n탭해도 실제 결제 안 되고, 계약 활성화 후 자동 실상품 전환.",
-              })}
-            </Text>
-          </View>
-        )}
+        {
+}
 
         {}
         <View style={v_fd5f43.balanceCard}>
