@@ -191,7 +191,7 @@ const v_fd5f43 = v_472849.create({
   },
   stageWrap: {
 
-    width: "100%",
+    width: "50%",
     aspectRatio: 750 / 1335,
     backgroundColor: "transparent",
   },
