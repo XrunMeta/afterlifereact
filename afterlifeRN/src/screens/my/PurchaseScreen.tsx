@@ -116,7 +116,8 @@ export default function PurchaseScreen() {
     (item: GiftInventoryItem) => {
       showAlert(
         "교환 확인",
-        `${item.name} ${item.count}개를 ${item.xrunTotal.toLocaleString()} XRUN 으로 교환할까요?`,
+
+        `${item.name} ${item.count}개를 ${fmtSecToXrun(item.xrunTotal)} XRUN 으로 교환할까요?`,
         [
           { text: "취소", style: "cancel" },
           {
@@ -134,7 +135,8 @@ export default function PurchaseScreen() {
                 );
                 showAlert(
                   "교환 완료 🎉",
-                  `${res.xrunCredited.toLocaleString()} XRUN 이 지갑에 충전됐어요.`,
+
+                  `${fmtSecToXrun(res.xrunCredited)} XRUN 이 지갑에 충전됐어요.`,
                 );
                 await refresh();
               } catch (err) {
@@ -309,7 +311,8 @@ export default function PurchaseScreen() {
                   )}
                   <View style={s.giftInfo}>
                     <Text style={s.giftName}>{item.name} {item.count}개</Text>
-                    <Text style={s.giftAmount}>= {item.xrunTotal.toLocaleString()} XRUN</Text>
+                    {}
+                    <Text style={s.giftAmount}>= {fmtSecToXrun(item.xrunTotal)} XRUN</Text>
                   </View>
                   <TouchableOpacity
                     style={[s.swapBtn, busy && { opacity: 0.6 }]}
