@@ -46,6 +46,8 @@ import { authConfig } from "./routes/auth-config";
 import { consent } from "./routes/consent";
 import { crashes, crashesAdmin } from "./routes/crashes";
 
+import { recommendedKeywords, recommendedKeywordsAdmin } from "./routes/recommendedKeywords";
+
 const app = new Hono<AppEnv>();
 
 app.onError(onError);
@@ -140,6 +142,9 @@ app.route("/oth-path", emergencyNoticesPublic);
 
 app.route("/oth-path", crashes);
 app.route("/oth-path", crashesAdmin);
+
+app.route("/oth-path", recommendedKeywords);
+app.route("/oth-path", recommendedKeywordsAdmin);
 app.route("/oth-path", gdpr);
 app.route("/oth-path", adminGdpr);
 app.route("/oth-path", adminDeletion);
