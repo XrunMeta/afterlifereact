@@ -39,7 +39,7 @@ v_f31e9b.get("/recommended", async (v_3f4e2e) => {
 
 export const v_a63db8 = new v_b7c41b<v_de0a25>();
 
-v_a63db8.use("*", requireAuth, v_c0a297);
+v_a63db8.use("*", v_c0a297);
 
 v_a63db8.get("/", async (v_3f4e2e) => {
   const v_18b8bf = await v_3f4e2e.env.DB
@@ -74,7 +74,7 @@ v_a63db8.post("/", async (v_3f4e2e) => {
       .bind(v_4d33b2.keyword, v_5e4f30)
       .run();
     const v_389afb = v_8f00b9.meta?.last_row_id;
-    if (!v_389afb) throw new v_3ebe58("INTERNAL", "insert failed");
+    if (!v_389afb) throw new v_3ebe58("INTERNAL_ERROR", "insert failed");
     return v_3f4e2e.json({ ok: true, id: v_389afb });
   } catch (v_49263d) {
     const v_badeaf = (v_49263d as Error).message ?? "";
