@@ -186,12 +186,12 @@ const v_fd5f43 = v_472849.create({
     bottom: 0,
     alignItems: "center",
     justifyContent: "flex-end",
-    paddingBottom: "60%",
+    paddingBottom: "15%",
     zIndex: 50,
   },
   stageWrap: {
 
-    width: "50%",
+    width: "100%",
     aspectRatio: 750 / 1335,
     backgroundColor: "transparent",
   },
