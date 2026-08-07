@@ -186,7 +186,7 @@ const s = StyleSheet.create({
     bottom: 0,
     alignItems: "center",
     justifyContent: "flex-end",
-    paddingBottom: "15%",
+    paddingBottom: "12%",
     zIndex: 50,
   },
   stageWrap: {
