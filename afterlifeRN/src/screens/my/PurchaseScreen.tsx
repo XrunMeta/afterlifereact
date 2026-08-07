@@ -232,18 +232,8 @@ export default function PurchaseScreen() {
       />
 
       <ScrollView contentContainerStyle={{ padding: SIZES.large, paddingBottom: 40 }}>
-        {}
-        {mockMode && (
-          <View style={s.mockBanner}>
-            <Text style={s.mockBannerTitle}>{t("purchase.mockBannerTitle", { defaultValue: "⚠ MOCK 데이터 (임시)" })}</Text>
-            <Text style={s.mockBannerDesc}>
-              {t("purchase.mockBannerDesc", {
-                defaultValue:
-                  "유료 앱 계약 미체결로 실제 상품이 안 뜹니다. UI 확인용 임시 카드예요.\n탭해도 실제 결제 안 되고, 계약 활성화 후 자동 실상품 전환.",
-              })}
-            </Text>
-          </View>
-        )}
+        {
+}
 
         {}
         <View style={s.balanceCard}>
