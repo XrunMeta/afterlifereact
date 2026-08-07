@@ -39,7 +39,7 @@ recommendedKeywords.get("/recommended", async (c) => {
 
 export const recommendedKeywordsAdmin = new Hono<AppEnv>();
 
-recommendedKeywordsAdmin.use("*", requireAuth, requireAdmin);
+recommendedKeywordsAdmin.use("*", requireAdmin);
 
 recommendedKeywordsAdmin.get("/", async (c) => {
   const rows = await c.env.DB
@@ -74,7 +74,7 @@ recommendedKeywordsAdmin.post("/", async (c) => {
       .bind(body.keyword, order)
       .run();
     const id = res.meta?.last_row_id;
-    if (!id) throw new APIError("INTERNAL", "insert failed");
+    if (!id) throw new APIError("INTERNAL_ERROR", "insert failed");
     return c.json({ ok: true, id });
   } catch (err) {
     const msg = (err as Error).message ?? "";
