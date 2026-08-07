@@ -389,7 +389,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
                 variant="primary"
                 disabled={v_a5d73f}
 
-                style={{ marginTop: 120 }}
+                style={{ marginTop: 32 }}
               />
             </>
           )}
@@ -622,7 +622,7 @@ const v_d81136 = v_472849.create({
   },
 
   snsLoginContainer: {
-    marginTop: 8,
+    marginTop: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
