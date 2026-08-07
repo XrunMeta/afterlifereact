@@ -1073,14 +1073,6 @@ function CallScreenInner({ route, navigation }: Props) {
     console.log(`[Call][gift-tap] giftId=${gift.id} name=${gift.name} svga=${!!gift.svgaUrl}`);
     setShowGifts(false);
 
-    if (gift.svgaUrl) {
-
-      setSvgaSender({ name: myName, avatarUrl: myAvatarUrl, giftName: gift.name });
-      setSvgaOverlayUrl(gift.svgaUrl);
-    } else {
-      playGiftAnimation(gift);
-    }
-
     if (!accessToken) {
       console.warn("[gift] send skipped — no accessToken (guest)");
       return;
@@ -1102,7 +1094,6 @@ function CallScreenInner({ route, navigation }: Props) {
       );
       return;
     }
-
     if (currentUserId != null && ownerIdResolved === currentUserId) {
       console.warn("[gift] send skipped — own clone (self)");
       return;
@@ -1117,12 +1108,16 @@ function CallScreenInner({ route, navigation }: Props) {
       );
       console.log(`[gift] sent OK ${gift.id} ${res.xrunAmount} XRUN → ${res.receiverId}`);
 
+      if (gift.svgaUrl) {
+        setSvgaSender({ name: myName, avatarUrl: myAvatarUrl, giftName: gift.name });
+        setSvgaOverlayUrl(gift.svgaUrl);
+      } else {
+        playGiftAnimation(gift);
+      }
     } catch (err) {
       const msg = (err as Error).message ?? "선물 전송 실패";
       const isInsufficient = /INSUFFICIENT_CREDITS|잔액이 부족/.test(msg);
 
-      setSvgaOverlayUrl(null);
-      setSvgaSender(null);
       showAlert(
         isInsufficient ? t("call.giftInsufficientTitle", { defaultValue: "XRUN 부족" }) : t("call.giftFailTitle", { defaultValue: "선물 실패" }),
         isInsufficient
