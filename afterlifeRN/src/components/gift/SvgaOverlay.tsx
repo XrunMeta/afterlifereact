@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
+import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
@@ -167,7 +168,10 @@ export default function SvgaOverlay({
           {senderAvatarUrl ? (
             <Image source={{ uri: senderAvatarUrl }} style={s.noticeAvatar} />
           ) : (
-            <View style={[s.noticeAvatar, s.noticeAvatarPlaceholder]} />
+
+            <View style={[s.noticeAvatar, s.noticeAvatarPlaceholder]}>
+              <Feather name="user" size={20} color="#999" />
+            </View>
           )}
           <View style={s.noticeText}>
             <Text style={s.noticeName} numberOfLines={1}>
@@ -243,6 +247,9 @@ const s = StyleSheet.create({
   },
   noticeAvatarPlaceholder: {
 
+    backgroundColor: "#e5e5e5",
+    alignItems: "center",
+    justifyContent: "center",
   },
   noticeText: {
     flexShrink: 1,
