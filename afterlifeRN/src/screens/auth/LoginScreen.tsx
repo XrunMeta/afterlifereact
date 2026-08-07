@@ -389,7 +389,7 @@ export default function LoginScreen({ navigation }: Props) {
                 variant="primary"
                 disabled={loggingIn}
 
-                style={{ marginTop: 120 }}
+                style={{ marginTop: 32 }}
               />
             </>
           )}
@@ -622,7 +622,7 @@ const styles = StyleSheet.create({
   },
 
   snsLoginContainer: {
-    marginTop: 8,
+    marginTop: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
