@@ -622,7 +622,7 @@ const styles = StyleSheet.create({
   },
 
   snsLoginContainer: {
-    marginTop: SIZES.xxlarge,
+    marginTop: SIZES.medium,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
