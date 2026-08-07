@@ -34,7 +34,7 @@ function buildHtml(base64: string): string {
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <style>
     html, body { margin: 0; padding: 0; background: transparent; height: 100%; overflow: hidden; }
-    #canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+    #canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; }
     #canvas > div { width: 100%; height: 100%; }
   </style>
   <script src="https://unpkg.com/svgaplayerweb@2.3.2/build/svga.min.js"></script>
@@ -186,7 +186,7 @@ const s = StyleSheet.create({
     bottom: 0,
     alignItems: "center",
     justifyContent: "flex-end",
-    paddingBottom: "58%",
+    paddingBottom: "51%",
     zIndex: 50,
   },
   stageWrap: {
