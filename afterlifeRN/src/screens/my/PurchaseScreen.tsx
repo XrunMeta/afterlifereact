@@ -116,7 +116,8 @@ export default function v_0035e1() {
     (item: v_ccbfb2) => {
       v_889fad(
         "교환 확인",
-        `${v_8c0b26.name} ${v_8c0b26.count}개를 ${v_8c0b26.xrunTotal.toLocaleString()} XRUN 으로 교환할까요?`,
+
+        `${v_8c0b26.name} ${v_8c0b26.count}개를 ${v_da6788(v_8c0b26.xrunTotal)} XRUN 으로 교환할까요?`,
         [
           { text: "취소", style: "cancel" },
           {
@@ -134,7 +135,8 @@ export default function v_0035e1() {
                 );
                 v_889fad(
                   "교환 완료 🎉",
-                  `${v_8f00b9.xrunCredited.toLocaleString()} XRUN 이 지갑에 충전됐어요.`,
+
+                  `${v_da6788(v_8f00b9.xrunCredited)} XRUN 이 지갑에 충전됐어요.`,
                 );
                 await v_1a1b9b();
               } catch (v_49263d) {
@@ -309,7 +311,8 @@ export default function v_0035e1() {
                   )}
                   <View style={v_fd5f43.giftInfo}>
                     <Text style={v_fd5f43.giftName}>{v_8c0b26.name} {v_8c0b26.count}개</Text>
-                    <Text style={v_fd5f43.giftAmount}>= {v_8c0b26.xrunTotal.toLocaleString()} XRUN</Text>
+                    {}
+                    <Text style={v_fd5f43.giftAmount}>= {v_da6788(v_8c0b26.xrunTotal)} XRUN</Text>
                   </View>
                   <TouchableOpacity
                     style={[v_fd5f43.swapBtn, v_3f8465 && { opacity: 0.6 }]}
