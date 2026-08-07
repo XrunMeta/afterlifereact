@@ -1,13 +1,17 @@
 
 
 import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
-import { v_472849, v_3094a2 } from "rcmrninabrnb";
+import { v_cf9c33, v_472849, v_19b633, v_3094a2 } from "rcmrninabrnb";
 import { v_2694e4 } from "ahewcyoxtiosvtfuluxp";
 
 interface Props {
   visible: boolean;
   svgaUrl: string | null;
   onClose: () => void;
+
+  senderName?: string | null;
+  senderAvatarUrl?: string | null;
+  giftName?: string | null;
 }
 
 function v_4d2f90(v_fbb6da): string {
@@ -110,7 +114,14 @@ function v_6587de(v_aef4ae): string {
 </html>`;
 }
 
-export default function v_194b37({ visible: v_cf55be, svgaUrl: v_1d09c0, onClose: v_0890f8 }: Props) {
+export default function v_194b37({
+  visible: v_cf55be,
+  svgaUrl: v_1d09c0,
+  onClose: v_0890f8,
+  senderName: v_b85763,
+  senderAvatarUrl: v_670f24,
+  giftName: v_dcbe7a,
+}: Props) {
   const [v_d91d98, v_5420ce] = v_5ab095<string | null>(null);
 
   v_c4deb2(() => {
@@ -144,8 +155,26 @@ export default function v_194b37({ visible: v_cf55be, svgaUrl: v_1d09c0, onClose
 
   if (!v_cf55be || !v_1d09c0 || !v_d91d98) return null;
 
+  const v_f25ee5 = !!(v_b85763 && v_dcbe7a);
   return (
     <View style={v_fd5f43.root} pointerEvents="none">
+      {v_f25ee5 && (
+        <View style={v_fd5f43.notice}>
+          {v_670f24 ? (
+            <Image source={{ uri: v_670f24 }} style={v_fd5f43.noticeAvatar} />
+          ) : (
+            <View style={[v_fd5f43.noticeAvatar, v_fd5f43.noticeAvatarPlaceholder]} />
+          )}
+          <View style={v_fd5f43.noticeText}>
+            <Text style={v_fd5f43.noticeName} numberOfLines={1}>
+              {v_b85763}
+            </Text>
+            <Text style={v_fd5f43.noticeMsg} numberOfLines={1}>
+              님의 {v_dcbe7a} 선물을 보냈습니다
+            </Text>
+          </View>
+        </View>
+      )}
       <View style={v_fd5f43.stageWrap}>
         <WebView
           originWhitelist={["*"]}
@@ -184,12 +213,50 @@ const v_fd5f43 = v_472849.create({
     right: 0,
     top: 0,
     bottom: 0,
-    alignItems: "center",
+
+    alignItems: "stretch",
     justifyContent: "flex-end",
     paddingBottom: "12%",
     zIndex: 50,
   },
+
+  notice: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 16,
+    marginBottom: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    borderRadius: 12,
+    maxWidth: "80%",
+  },
+  noticeAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 10,
+    backgroundColor: "#333",
+  },
+  noticeAvatarPlaceholder: {
+
+  },
+  noticeText: {
+    flexShrink: 1,
+  },
+  noticeName: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  noticeMsg: {
+    color: "#fff",
+    fontSize: 12,
+    marginTop: 2,
+  },
   stageWrap: {
+    alignSelf: "center",
 
     width: "100%",
     aspectRatio: 750 / 1335,
