@@ -1116,12 +1116,7 @@ function CallScreenInner({ route, navigation }: Props) {
         idem,
       );
       console.log(`[gift] sent OK ${gift.id} ${res.xrunAmount} XRUN → ${res.receiverId}`);
-      setToastMessage(
-        t("call.giftSentToast", {
-          amount: res.xrunAmount,
-          defaultValue: `${res.xrunAmount} XRUN 선물 완료!`,
-        }),
-      );
+
     } catch (err) {
       const msg = (err as Error).message ?? "선물 전송 실패";
       const isInsufficient = /INSUFFICIENT_CREDITS|잔액이 부족/.test(msg);
