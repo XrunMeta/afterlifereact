@@ -110,6 +110,7 @@ import {
   likeClone,
   unlikeClone,
   postCloneCallEvent,
+  getCloneDetail,
 } from "../../api/clones";
 import { getCreditBalance } from "../../api/credits";
 import { sendGiftOffchain } from "../../api/giftInventory";
@@ -1080,12 +1081,30 @@ function CallScreenInner({ route, navigation }: Props) {
       playGiftAnimation(gift);
     }
 
-    if (!accessToken || !clone?.ownerId) {
-      console.warn("[gift] send skipped — missing token or ownerId");
+    if (!accessToken) {
+      console.warn("[gift] send skipped — no accessToken (guest)");
       return;
     }
-    if (isOwnClone) {
+    let ownerIdResolved = clone?.ownerId;
+    if (!ownerIdResolved) {
+      console.log(`[gift] clone.ownerId missing — fetching detail cloneId=${cloneId}`);
+      try {
+        const detail = await getCloneDetail(cloneId, accessToken);
+        ownerIdResolved = detail.clone?.ownerId;
+        console.log(`[gift] fetched ownerId=${ownerIdResolved}`);
+      } catch (err) {
+        console.warn(`[gift] getCloneDetail failed:`, (err as Error).message);
+      }
+    }
+    if (!ownerIdResolved) {
+      console.warn(
+        `[gift] send skipped — ownerId still null after fetch. cloneId=${cloneId} cloneName=${clone?.name ?? "?"}`,
+      );
+      return;
+    }
 
+    if (currentUserId != null && ownerIdResolved === currentUserId) {
+      console.warn("[gift] send skipped — own clone (self)");
       return;
     }
     try {
@@ -1093,7 +1112,7 @@ function CallScreenInner({ route, navigation }: Props) {
       const res = await sendGiftOffchain(
         accessToken,
 
-        { giftId: gift.id, toUserId: clone.ownerId, cloneId: cloneId },
+        { giftId: gift.id, toUserId: ownerIdResolved, cloneId: cloneId },
         idem,
       );
       console.log(`[gift] sent OK ${gift.id} ${res.xrunAmount} XRUN → ${res.receiverId}`);
