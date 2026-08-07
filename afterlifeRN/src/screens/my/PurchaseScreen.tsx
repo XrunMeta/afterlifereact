@@ -273,6 +273,43 @@ export default function PurchaseScreen() {
         </View>
 
         {}
+        {giftInventoryVisible && giftItems.length > 0 && (
+          <View style={{ marginTop: 8, marginBottom: 24 }}>
+            <Text style={s.sectionTitle}>받은 선물</Text>
+            <Text style={s.sectionDesc}>[교환] 을 누르면 XRUN 크레딧으로 충전돼요.</Text>
+            {giftItems.map((item) => {
+              const busy = swappingGift === item.giftId;
+              return (
+                <View key={item.giftId} style={s.giftRow}>
+                  {item.imageUrl ? (
+                    <Image source={{ uri: item.imageUrl }} style={s.giftImg} />
+                  ) : (
+                    <View style={[s.giftImg, s.giftEmojiWrap]}>
+                      <Text style={s.giftEmoji}>{item.emoji}</Text>
+                    </View>
+                  )}
+                  <View style={s.giftInfo}>
+                    <Text style={s.giftName}>{item.name} {item.count}개</Text>
+                    <Text style={s.giftAmount}>= {item.xrunTotal.toLocaleString()} XRUN</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[s.swapBtn, busy && { opacity: 0.6 }]}
+                    onPress={() => onSwapGift(item)}
+                    disabled={busy}
+                  >
+                    {busy ? (
+                      <ActivityIndicator size="small" color={COLORS.white} />
+                    ) : (
+                      <Text style={s.swapBtnText}>교환</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        {}
         <Text style={s.sectionTitle}>{t("purchase.subSectionTitle", { defaultValue: "월 구독" })}</Text>
         <Text style={s.sectionDesc}>{t("purchase.subSectionDesc", { defaultValue: "매월 자동 갱신." })}</Text>
 
@@ -359,46 +396,6 @@ export default function PurchaseScreen() {
           <Text style={[s.emptyText, { marginTop: 20 }]}>
             {t("purchase.androidNotReady", { defaultValue: "Android 결제는 준비 중이에요. iOS 로 먼저 이용해주세요." })}
           </Text>
-        )}
-
-        {}
-        {giftInventoryVisible && giftItems.length > 0 && (
-          <View style={{ marginTop: 24 }}>
-            <Text style={s.sectionTitle}>받은 선물</Text>
-            <Text style={s.sectionDesc}>[교환] 을 누르면 XRUN 크레딧으로 충전돼요.</Text>
-            {giftItems.map((item) => {
-              const busy = swappingGift === item.giftId;
-              return (
-                <View key={item.giftId} style={s.giftRow}>
-                  {item.imageUrl ? (
-                    <Image source={{ uri: item.imageUrl }} style={s.giftImg} />
-                  ) : (
-                    <View style={[s.giftImg, s.giftEmojiWrap]}>
-                      <Text style={s.giftEmoji}>{item.emoji}</Text>
-                    </View>
-                  )}
-                  <View style={s.giftInfo}>
-                    <Text style={s.giftName}>{item.name} {item.count}개</Text>
-                    <Text style={s.giftAmount}>= {item.xrunTotal.toLocaleString()} XRUN</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[s.swapBtn, busy && { opacity: 0.6 }]}
-                    onPress={() => onSwapGift(item)}
-                    disabled={busy}
-                  >
-                    {busy ? (
-                      <ActivityIndicator size="small" color={COLORS.white} />
-                    ) : (
-                      <Text style={s.swapBtnText}>교환</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              );
-            })}
-            <Text style={s.giftFooterHint}>
-              앱링크 가입 후 XRUN 월렛에서 교환 가능 (준비 중)
-            </Text>
-          </View>
         )}
 
         {}
