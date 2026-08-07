@@ -846,6 +846,25 @@ function CallScreenInner({ route, navigation }: Props) {
     return () => clearInterval(id);
   }, [liveState]);
 
+  const adShownMinutesRef = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    if (liveState !== "live" || callSeconds <= 0) return;
+    if (callSeconds % 600 !== 0) return; 
+    const minute = Math.floor(callSeconds / 60);
+    if (adShownMinutesRef.current.has(minute)) return;
+    adShownMinutesRef.current.add(minute);
+    console.log(`[Call][pangle] ${minute} min — rewarded ad trigger`);
+    (async () => {
+      try {
+        const { loadAndShowRewardedAd } = await import("../../lib/pangle");
+        await loadAndShowRewardedAd();
+        console.log(`[Call][pangle] ${minute} min — ad closed, call resumes`);
+      } catch (err) {
+        console.warn(`[Call][pangle] ${minute} min — ad failed:`, (err as Error)?.message ?? err);
+      }
+    })();
+  }, [callSeconds, liveState]);
+
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const warnedRef = useRef(false);
   const exhaustedRef = useRef(false);
