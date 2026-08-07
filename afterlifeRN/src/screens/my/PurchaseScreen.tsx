@@ -25,9 +25,6 @@ import { v_83b207, v_422d96, type v_ccbfb2 } from "../../api/giftInventory";
 import { v_889fad } from "../../stores/dialogStore";
 import { v_cf9c33 } from "rcmrninabrnb";
 
-const v_ea0a9d = new Set(["oth-test@example.invalid", "oth-user@example.invalid"]);
-const v_978825 = (v_e0c7e8) =>
-  !!v_e0c7e8 && v_ea0a9d.has(v_e0c7e8.toLowerCase().trim());
 import {
   v_1c6d94,
   v_e02ccf,
@@ -72,8 +69,8 @@ export default function v_0035e1() {
   const { t: v_8d41d7 } = v_772971();
   const v_c65f5d = v_ada615();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
-  const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
-  const v_f66a30 = v_978825(v_b113dd?.email);
+
+  const v_f66a30 = true;
 
   const v_5ca6b8 = v_e662ae<v_122070>(null);
   const v_e7f875 = v_e662ae<number>(0);
