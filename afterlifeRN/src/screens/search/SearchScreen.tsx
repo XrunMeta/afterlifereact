@@ -13,6 +13,7 @@ import {
   v_700696,
   v_09d0e5,
   v_0e1f26,
+  v_122070,
 } from "rcmrninabrnb";
 import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
@@ -29,6 +30,8 @@ import {
   type v_4c75cf,
 } from "../../api/clones";
 import { v_a41961, type v_3a673b } from "../../api/auth";
+
+import { v_a78ecc, type v_268e9e } from "../../api/recommendedKeywords";
 import { v_cbe7de } from "../../lib/similarity";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import type { v_97a9a8, v_8ad91b } from "../../navigation/types";
@@ -84,6 +87,8 @@ export default function v_5db6c6() {
   const [v_4cd692, v_895d47] = v_5ab095<string[]>([]);
   const v_32f473 = v_e662ae<v_79c4f2>(null);
 
+  const [v_f31e9b, v_1c6ba1] = v_5ab095<v_268e9e[]>([]);
+
   const v_bcfa24 = v_700696.get("window").width;
   const v_675c6a = v_df9f57(
     () => Math.floor((v_bcfa24 - v_296ef9 * (v_f229b8 - 1)) / v_f229b8),
@@ -94,6 +99,27 @@ export default function v_5db6c6() {
     () => Math.floor(v_675c6a * (16 / 9)),
     [v_675c6a],
   );
+
+  v_c4deb2(() => {
+    (async () => {
+      try {
+        const v_4622b9 = await v_a78ecc();
+        v_1c6ba1(v_4622b9);
+      } catch (v_49263d) {
+        console.warn("[Search] recommended keywords fetch failed:", v_49263d);
+      }
+    })();
+  }, []);
+
+  const v_d06633 = v_de06a3((v_0dcbd9) => {
+    const v_f23d49 = v_0dcbd9.replace(/^#+/, "").trim();
+    if (!v_f23d49) return;
+    v_c57190(v_f23d49);
+    v_02dd63("tag");
+    void v_2dbcf9(v_f23d49);
+    v_0e1f26.dismiss();
+
+  }, []); 
 
   v_c4deb2(() => {
     (async () => {
@@ -441,6 +467,27 @@ export default function v_5db6c6() {
             </TouchableOpacity>
           )}
         </View>
+        {}
+        {v_f31e9b.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={v_fd5f43.kwScroll}
+            contentContainerStyle={v_fd5f43.kwScrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            {v_f31e9b.map((v_0eb677) => (
+              <TouchableOpacity
+                key={v_0eb677.id}
+                style={v_fd5f43.kwPill}
+                activeOpacity={0.7}
+                onPress={() => v_d06633(v_0eb677.keyword)}
+              >
+                <Text style={v_fd5f43.kwPillText}>#{v_0eb677.keyword}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
       </View>
 
       {v_9c529a ? (
@@ -585,6 +632,18 @@ const v_fd5f43 = v_472849.create({
     borderRadius: v_8b0c90.lg,
   },
   searchInput: { flex: 1, fontSize: 14, color: v_1bfbd0.zinc900, padding: 0 },
+
+  kwScroll: { marginTop: 10 },
+  kwScrollContent: { paddingRight: 16, gap: 8 },
+  kwPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    backgroundColor: v_1bfbd0.white,
+  },
+  kwPillText: { fontSize: 13, color: v_1bfbd0.zinc700, fontWeight: "500" },
 
   tabRow: {
     flexDirection: "row",
