@@ -191,7 +191,7 @@ const s = StyleSheet.create({
   },
   stageWrap: {
 
-    width: "100%",
+    width: "50%",
     aspectRatio: 750 / 1335,
     backgroundColor: "transparent",
   },
