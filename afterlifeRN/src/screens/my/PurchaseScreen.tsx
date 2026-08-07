@@ -265,7 +265,9 @@ export default function PurchaseScreen() {
                   <Text style={s.balanceVal}>{fmtSecToXrun(balance.topupSec)}</Text>
                 </View>
                 {}
-                {giftInventoryVisible && giftItems.length > 0 && (
+                {
+}
+                {giftInventoryVisible && (
                   <TouchableOpacity style={s.balanceCol} onPress={scrollToGift} activeOpacity={0.6}>
                     <Text style={s.balanceLabel}>{t("purchase.bucketGift", { defaultValue: "선물" })}</Text>
                     <Text style={[s.balanceVal, { color: COLORS.violet700 }]}>
