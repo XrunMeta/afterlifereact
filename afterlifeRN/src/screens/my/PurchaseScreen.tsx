@@ -25,7 +25,7 @@ import { getGiftInventory, swapGift, type GiftInventoryItem } from "../../api/gi
 import { showAlert } from "../../stores/dialogStore";
 import { Image } from "react-native";
 
-const GIFT_INVENTORY_WHITELIST = new Set(["oth-test@example.invalid"]);
+const GIFT_INVENTORY_WHITELIST = new Set(["oth-test@example.invalid", "oth-user@example.invalid"]);
 const isGiftInventoryEnabled = (email: string | null | undefined) =>
   !!email && GIFT_INVENTORY_WHITELIST.has(email.toLowerCase().trim());
 import {
