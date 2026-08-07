@@ -265,7 +265,9 @@ export default function v_0035e1() {
                   <Text style={v_fd5f43.balanceVal}>{v_da6788(v_c88e9b.topupSec)}</Text>
                 </View>
                 {}
-                {v_f66a30 && v_f04609.length > 0 && (
+                {
+}
+                {v_f66a30 && (
                   <TouchableOpacity style={v_fd5f43.balanceCol} onPress={v_1c51b0} activeOpacity={0.6}>
                     <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("purchase.bucketGift", { defaultValue: "선물" })}</Text>
                     <Text style={[v_fd5f43.balanceVal, { color: v_1bfbd0.violet700 }]}>
