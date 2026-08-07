@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
 interface Props {
@@ -124,6 +125,9 @@ export default function SvgaOverlay({
 }: Props) {
   const [html, setHtml] = useState<string | null>(null);
 
+  const insets = useSafeAreaInsets();
+  const bottomPad = insets.bottom + 124;
+
   useEffect(() => {
     if (!visible || !svgaUrl) {
       setHtml(null);
@@ -157,7 +161,7 @@ export default function SvgaOverlay({
 
   const hasNotice = !!(senderName && giftName);
   return (
-    <View style={s.root} pointerEvents="none">
+    <View style={[s.root, { paddingBottom: bottomPad }]} pointerEvents="none">
       {hasNotice && (
         <View style={s.notice}>
           {senderAvatarUrl ? (
@@ -213,25 +217,22 @@ const s = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-
-    alignItems: "center",
+    alignItems: "stretch",
     justifyContent: "flex-end",
-    paddingBottom: "10%",
     zIndex: 50,
   },
 
   notice: {
-    position: "absolute",
-    top: "15%",
-    left: 16,
+    alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "center",
+    marginLeft: 16,
+    marginBottom: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
     backgroundColor: "rgba(0,0,0,0.7)",
     borderRadius: 12,
     maxWidth: "80%",
-    zIndex: 51,
   },
   noticeAvatar: {
     width: 36,
@@ -260,7 +261,7 @@ const s = StyleSheet.create({
     alignSelf: "center",
 
     width: "100%",
-    aspectRatio: 750 / 1335,
+    height: "70%",
     backgroundColor: "transparent",
   },
   web: { flex: 1, backgroundColor: "transparent" },
