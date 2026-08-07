@@ -25,7 +25,7 @@ import { v_83b207, v_422d96, type v_ccbfb2 } from "../../api/giftInventory";
 import { v_889fad } from "../../stores/dialogStore";
 import { v_cf9c33 } from "rcmrninabrnb";
 
-const v_ea0a9d = new Set(["oth-test@example.invalid"]);
+const v_ea0a9d = new Set(["oth-test@example.invalid", "oth-user@example.invalid"]);
 const v_978825 = (v_e0c7e8) =>
   !!v_e0c7e8 && v_ea0a9d.has(v_e0c7e8.toLowerCase().trim());
 import {
