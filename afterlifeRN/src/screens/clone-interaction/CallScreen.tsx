@@ -1092,7 +1092,8 @@ function CallScreenInner({ route, navigation }: Props) {
       const idem = `gift-${gift.id}-${cloneId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const res = await sendGiftOffchain(
         accessToken,
-        { giftId: gift.id, toUserId: clone.ownerId },
+
+        { giftId: gift.id, toUserId: clone.ownerId, cloneId: cloneId },
         idem,
       );
       console.log(`[gift] sent OK ${gift.id} ${res.xrunAmount} XRUN → ${res.receiverId}`);

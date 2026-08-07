@@ -15,6 +15,8 @@ export const giftInventory = new Hono<AppEnv>();
 const sendSchema = z.object({
   giftId: z.string().min(1).max(80),
   toUserId: z.number().int().positive(),
+
+  cloneId: z.number().int().positive().optional(),
 });
 
 giftInventory.post(
@@ -56,6 +58,38 @@ giftInventory.post(
         throw new APIError("INSUFFICIENT_CREDITS", "XRUN 잔액이 부족해요.");
       }
       throw err;
+    }
+
+    if (body.cloneId) {
+      try {
+        const cloneRow = await c.env.DB
+          .prepare(`SELECT owner_id FROM clones WHERE id = ?`)
+          .bind(body.cloneId)
+          .first<{ owner_id: number }>();
+
+        if (cloneRow && cloneRow.owner_id === body.toUserId) {
+          await c.env.DB
+            .prepare(
+              `INSERT INTO gift_logs (
+                 sender_user_id, clone_id, owner_user_id, gift_id, gift_name,
+                 total_amount, company_amount, owner_amount, company_address, status, completed_at
+               ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'offchain', 'sent', CURRENT_TIMESTAMP)`,
+            )
+            .bind(
+              senderId,
+              body.cloneId,
+              body.toUserId,
+              body.giftId,
+              item.name,
+              item.price,
+              item.price,
+            )
+            .run();
+        }
+      } catch (err) {
+
+        console.warn("[gift.send-offchain] gift_logs INSERT skipped:", err);
+      }
     }
 
     await c.env.DB.batch([
