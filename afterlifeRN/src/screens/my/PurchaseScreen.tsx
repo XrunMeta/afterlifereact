@@ -1,6 +1,6 @@
 
 
-import v_a3453e, { v_de06a3, v_c4deb2, v_5ab095 } from "bapkr";
+import v_a3453e, { v_de06a3, v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -74,6 +74,12 @@ export default function v_0035e1() {
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
   const v_f66a30 = v_978825(v_b113dd?.email);
+
+  const v_5ca6b8 = v_e662ae<v_122070>(null);
+  const v_e7f875 = v_e662ae<number>(0);
+  const v_1c51b0 = () => {
+    v_5ca6b8.current?.scrollTo({ y: Math.max(0, v_e7f875.current - 12), animated: true });
+  };
   const [v_c88e9b, v_de20d8] = v_5ab095<v_2b70d7 | null>(null);
 
   const [v_f04609, v_4ed559] = v_5ab095<v_ccbfb2[]>([]);
@@ -231,7 +237,7 @@ export default function v_0035e1() {
         onBackPress={() => v_c65f5d.goBack()}
       />
 
-      <ScrollView contentContainerStyle={{ padding: v_9b1a04.large, paddingBottom: 40 }}>
+      <ScrollView ref={v_5ca6b8} contentContainerStyle={{ padding: v_9b1a04.large, paddingBottom: 40 }}>
         {
 }
 
@@ -256,6 +262,15 @@ export default function v_0035e1() {
                   <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("purchase.bucketTopup", { defaultValue: "충전" })}</Text>
                   <Text style={v_fd5f43.balanceVal}>{v_da6788(v_c88e9b.topupSec)}</Text>
                 </View>
+                {}
+                {v_f66a30 && v_f04609.length > 0 && (
+                  <TouchableOpacity style={v_fd5f43.balanceCol} onPress={v_1c51b0} activeOpacity={0.6}>
+                    <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("purchase.bucketGift", { defaultValue: "선물" })}</Text>
+                    <Text style={[v_fd5f43.balanceVal, { color: v_1bfbd0.violet700 }]}>
+                      {v_da6788(v_f04609.reduce((v_dce0a8, v_206b88) => v_dce0a8 + v_206b88.xrunTotal, 0))}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
               {v_c88e9b.subscription && (
                 <Text style={v_fd5f43.subInfo}>
@@ -272,9 +287,13 @@ export default function v_0035e1() {
           )}
         </View>
 
-        {}
+        {
+}
         {v_f66a30 && v_f04609.length > 0 && (
-          <View style={{ marginTop: 8, marginBottom: 24 }}>
+          <View
+            style={{ marginTop: 8, marginBottom: 24 }}
+            onLayout={(v_9e86fd) => { v_e7f875.current = v_9e86fd.nativeEvent.layout.y; }}
+          >
             <Text style={v_fd5f43.sectionTitle}>받은 선물</Text>
             <Text style={v_fd5f43.sectionDesc}>[교환] 을 누르면 XRUN 크레딧으로 충전돼요.</Text>
             {v_f04609.map((v_8c0b26) => {
