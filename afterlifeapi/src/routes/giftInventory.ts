@@ -35,7 +35,12 @@ giftInventory.post(
     const catalog = await getGiftCatalog(c.env);
     const item = catalog.find((g) => g.id === body.giftId);
     if (!item) throw new APIError("NOT_FOUND", `선물 '${body.giftId}' 없음`);
-    if (item.price <= 0 || !Number.isInteger(item.price)) {
+
+    const priceCredits =
+      typeof item.xrunPrice === "number" && item.xrunPrice > 0
+        ? item.xrunPrice * 60
+        : item.price;
+    if (priceCredits <= 0 || !Number.isInteger(priceCredits)) {
       throw new APIError("VALIDATION_FAILED", "선물 가격 설정이 잘못됐어요.");
     }
 
@@ -48,7 +53,7 @@ giftInventory.post(
     try {
       await spend(c, {
         userId: senderId,
-        amount: item.price,
+        amount: priceCredits,
         type: "gift",
         refId: `send:${body.giftId}:to=${body.toUserId}`,
         idempotencyKey: idemKey,
@@ -81,8 +86,8 @@ giftInventory.post(
               body.toUserId,
               body.giftId,
               item.name,
-              item.price,
-              item.price,
+              priceCredits,
+              priceCredits,
             )
             .run();
         }
@@ -109,25 +114,25 @@ giftInventory.post(
           `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id)
              VALUES (?, ?, ?, 1, ?, 'sent', ?)`,
         )
-        .bind(senderId, body.toUserId, body.giftId, item.price, idemKey),
+        .bind(senderId, body.toUserId, body.giftId, priceCredits, idemKey),
       c.env.DB
         .prepare(
           `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id)
              VALUES (?, ?, ?, 1, ?, 'received', ?)`,
         )
-        .bind(body.toUserId, senderId, body.giftId, item.price, idemKey),
+        .bind(body.toUserId, senderId, body.giftId, priceCredits, idemKey),
     ]);
 
     await logActivity(c, {
       userId: senderId,
       action: "gift.sent_offchain",
-      details: { giftId: body.giftId, toUserId: body.toUserId, xrunAmount: item.price },
+      details: { giftId: body.giftId, toUserId: body.toUserId, xrunAmount: priceCredits },
     });
 
     return c.json({
       ok: true,
       giftId: body.giftId,
-      xrunAmount: item.price,
+      xrunAmount: priceCredits,
       receiverId: body.toUserId,
     });
   },
@@ -150,15 +155,20 @@ giftInventory.get("/inventory", requireAuth, async (c) => {
 
   const items = (rows.results ?? []).map((r) => {
     const meta = catalogMap.get(r.gift_id);
+
+    const priceCredits =
+      meta && typeof meta.xrunPrice === "number" && meta.xrunPrice > 0
+        ? meta.xrunPrice * 60
+        : meta?.price ?? 0;
     return {
       giftId: r.gift_id,
       name: meta?.name ?? r.gift_id,
       emoji: meta?.emoji ?? "🎁",
       imageUrl: meta?.imageUrl,
-      xrunPerItem: meta?.price ?? 0,       
+      xrunPerItem: priceCredits,       
       count: r.count,
       totalReceived: r.total_received,
-      xrunTotal: (meta?.price ?? 0) * r.count,  
+      xrunTotal: priceCredits * r.count,  
     };
   });
 
@@ -182,9 +192,14 @@ giftInventory.post(
     const catalog = await getGiftCatalog(c.env);
     const item = catalog.find((g) => g.id === body.giftId);
     if (!item) throw new APIError("NOT_FOUND", `선물 '${body.giftId}' 없음`);
-    if (item.price <= 0) throw new APIError("VALIDATION_FAILED", "선물 가격이 0 이라 교환 불가.");
 
-    const xrunTotal = item.price * body.count;
+    const priceCredits =
+      typeof item.xrunPrice === "number" && item.xrunPrice > 0
+        ? item.xrunPrice * 60
+        : item.price;
+    if (priceCredits <= 0) throw new APIError("VALIDATION_FAILED", "선물 가격이 0 이라 교환 불가.");
+
+    const xrunTotal = priceCredits * body.count;
 
     const decRes = await c.env.DB
       .prepare(
