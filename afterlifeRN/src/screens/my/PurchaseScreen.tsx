@@ -1,6 +1,6 @@
 
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -74,6 +74,12 @@ export default function PurchaseScreen() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const apiUser = useAuthStore((s) => s.apiUser);
   const giftInventoryVisible = isGiftInventoryEnabled(apiUser?.email);
+
+  const scrollRef = useRef<ScrollView>(null);
+  const giftSectionYRef = useRef<number>(0);
+  const scrollToGift = () => {
+    scrollRef.current?.scrollTo({ y: Math.max(0, giftSectionYRef.current - 12), animated: true });
+  };
   const [balance, setBalance] = useState<CreditBalance | null>(null);
 
   const [giftItems, setGiftItems] = useState<GiftInventoryItem[]>([]);
@@ -231,7 +237,7 @@ export default function PurchaseScreen() {
         onBackPress={() => navigation.goBack()}
       />
 
-      <ScrollView contentContainerStyle={{ padding: SIZES.large, paddingBottom: 40 }}>
+      <ScrollView ref={scrollRef} contentContainerStyle={{ padding: SIZES.large, paddingBottom: 40 }}>
         {
 }
 
@@ -256,6 +262,15 @@ export default function PurchaseScreen() {
                   <Text style={s.balanceLabel}>{t("purchase.bucketTopup", { defaultValue: "충전" })}</Text>
                   <Text style={s.balanceVal}>{fmtSecToXrun(balance.topupSec)}</Text>
                 </View>
+                {}
+                {giftInventoryVisible && giftItems.length > 0 && (
+                  <TouchableOpacity style={s.balanceCol} onPress={scrollToGift} activeOpacity={0.6}>
+                    <Text style={s.balanceLabel}>{t("purchase.bucketGift", { defaultValue: "선물" })}</Text>
+                    <Text style={[s.balanceVal, { color: COLORS.violet700 }]}>
+                      {fmtSecToXrun(giftItems.reduce((sum, g) => sum + g.xrunTotal, 0))}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
               {balance.subscription && (
                 <Text style={s.subInfo}>
@@ -272,9 +287,13 @@ export default function PurchaseScreen() {
           )}
         </View>
 
-        {}
+        {
+}
         {giftInventoryVisible && giftItems.length > 0 && (
-          <View style={{ marginTop: 8, marginBottom: 24 }}>
+          <View
+            style={{ marginTop: 8, marginBottom: 24 }}
+            onLayout={(e) => { giftSectionYRef.current = e.nativeEvent.layout.y; }}
+          >
             <Text style={s.sectionTitle}>받은 선물</Text>
             <Text style={s.sectionDesc}>[교환] 을 누르면 XRUN 크레딧으로 충전돼요.</Text>
             {giftItems.map((item) => {
