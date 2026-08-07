@@ -35,7 +35,12 @@ v_0bc486.post(
     const v_dbebe7 = await v_0edc13(v_3f4e2e.env);
     const v_8c0b26 = v_dbebe7.find((v_206b88) => v_206b88.id === v_4d33b2.giftId);
     if (!v_8c0b26) throw new v_3ebe58("NOT_FOUND", `선물 '${v_4d33b2.giftId}' 없음`);
-    if (v_8c0b26.price <= 0 || !Number.isInteger(v_8c0b26.price)) {
+
+    const v_4547b1 =
+      typeof v_8c0b26.xrunPrice === "number" && v_8c0b26.xrunPrice > 0
+        ? v_8c0b26.xrunPrice * 60
+        : v_8c0b26.price;
+    if (v_4547b1 <= 0 || !Number.isInteger(v_4547b1)) {
       throw new v_3ebe58("VALIDATION_FAILED", "선물 가격 설정이 잘못됐어요.");
     }
 
@@ -48,7 +53,7 @@ v_0bc486.post(
     try {
       await v_20a4f4(v_3f4e2e, {
         userId: v_f7e120,
-        amount: v_8c0b26.price,
+        amount: v_4547b1,
         type: "gift",
         refId: `send:${v_4d33b2.giftId}:to=${v_4d33b2.toUserId}`,
         idempotencyKey: v_62c866,
@@ -81,8 +86,8 @@ v_0bc486.post(
               v_4d33b2.toUserId,
               v_4d33b2.giftId,
               v_8c0b26.name,
-              v_8c0b26.price,
-              v_8c0b26.price,
+              v_4547b1,
+              v_4547b1,
             )
             .run();
         }
@@ -109,25 +114,25 @@ v_0bc486.post(
           `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id)
              VALUES (?, ?, ?, 1, ?, 'sent', ?)`,
         )
-        .bind(v_f7e120, v_4d33b2.toUserId, v_4d33b2.giftId, v_8c0b26.price, v_62c866),
+        .bind(v_f7e120, v_4d33b2.toUserId, v_4d33b2.giftId, v_4547b1, v_62c866),
       v_3f4e2e.env.DB
         .prepare(
           `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id)
              VALUES (?, ?, ?, 1, ?, 'received', ?)`,
         )
-        .bind(v_4d33b2.toUserId, v_f7e120, v_4d33b2.giftId, v_8c0b26.price, v_62c866),
+        .bind(v_4d33b2.toUserId, v_f7e120, v_4d33b2.giftId, v_4547b1, v_62c866),
     ]);
 
     await v_74defc(v_3f4e2e, {
       userId: v_f7e120,
       action: "gift.sent_offchain",
-      details: { giftId: v_4d33b2.giftId, toUserId: v_4d33b2.toUserId, xrunAmount: v_8c0b26.price },
+      details: { giftId: v_4d33b2.giftId, toUserId: v_4d33b2.toUserId, xrunAmount: v_4547b1 },
     });
 
     return v_3f4e2e.json({
       ok: true,
       giftId: v_4d33b2.giftId,
-      xrunAmount: v_8c0b26.price,
+      xrunAmount: v_4547b1,
       receiverId: v_4d33b2.toUserId,
     });
   },
@@ -150,15 +155,20 @@ v_0bc486.get("/inventory", v_6690d9, async (v_3f4e2e) => {
 
   const v_4622b9 = (v_18b8bf.results ?? []).map((v_cb35cb) => {
     const v_ab4c96 = v_6413c7.get(v_cb35cb.gift_id);
+
+    const v_4547b1 =
+      v_ab4c96 && typeof v_ab4c96.xrunPrice === "number" && v_ab4c96.xrunPrice > 0
+        ? v_ab4c96.xrunPrice * 60
+        : v_ab4c96?.price ?? 0;
     return {
       giftId: v_cb35cb.gift_id,
       name: v_ab4c96?.name ?? v_cb35cb.gift_id,
       emoji: v_ab4c96?.emoji ?? "🎁",
       imageUrl: v_ab4c96?.imageUrl,
-      xrunPerItem: v_ab4c96?.price ?? 0,       
+      xrunPerItem: v_4547b1,       
       count: v_cb35cb.count,
       totalReceived: v_cb35cb.total_received,
-      xrunTotal: (v_ab4c96?.price ?? 0) * v_cb35cb.count,  
+      xrunTotal: v_4547b1 * v_cb35cb.count,  
     };
   });
 
@@ -182,9 +192,14 @@ v_0bc486.post(
     const v_dbebe7 = await v_0edc13(v_3f4e2e.env);
     const v_8c0b26 = v_dbebe7.find((v_206b88) => v_206b88.id === v_4d33b2.giftId);
     if (!v_8c0b26) throw new v_3ebe58("NOT_FOUND", `선물 '${v_4d33b2.giftId}' 없음`);
-    if (v_8c0b26.price <= 0) throw new v_3ebe58("VALIDATION_FAILED", "선물 가격이 0 이라 교환 불가.");
 
-    const v_6b7cd0 = v_8c0b26.price * v_4d33b2.count;
+    const v_4547b1 =
+      typeof v_8c0b26.xrunPrice === "number" && v_8c0b26.xrunPrice > 0
+        ? v_8c0b26.xrunPrice * 60
+        : v_8c0b26.price;
+    if (v_4547b1 <= 0) throw new v_3ebe58("VALIDATION_FAILED", "선물 가격이 0 이라 교환 불가.");
+
+    const v_6b7cd0 = v_4547b1 * v_4d33b2.count;
 
     const v_615e11 = await v_3f4e2e.env.DB
       .prepare(
