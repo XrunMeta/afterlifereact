@@ -1643,13 +1643,13 @@ function CallScreenInner({ route, navigation }: Props) {
                   activeOpacity={0.7}
                 >
                   <View style={s.giftEmojiWrap}>
-                    {}
-                    {item.svgaUrl ? (
-                      <SvgaThumb url={item.svgaUrl} size={44} />
-                    ) : item.imageUrl ? (
+                    {
+
+}
+                    {item.imageUrl ? (
                       <Image source={{ uri: item.imageUrl }} style={s.giftImage} />
                     ) : (
-                      <Text style={s.giftEmoji}>{item.emoji}</Text>
+                      <Text style={s.giftEmoji}>{item.emoji || "🎁"}</Text>
                     )}
                   </View>
                   <Text style={s.giftName} numberOfLines={1}>{item.name}</Text>
