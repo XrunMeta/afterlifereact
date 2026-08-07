@@ -15,6 +15,8 @@ export const v_0bc486 = new v_b7c41b<v_de0a25>();
 const v_78d17d = v_1f4ea7.object({
   giftId: v_1f4ea7.string().min(1).max(80),
   toUserId: v_1f4ea7.number().int().positive(),
+
+  cloneId: v_1f4ea7.number().int().positive().optional(),
 });
 
 v_0bc486.post(
@@ -56,6 +58,38 @@ v_0bc486.post(
         throw new v_3ebe58("INSUFFICIENT_CREDITS", "XRUN 잔액이 부족해요.");
       }
       throw v_49263d;
+    }
+
+    if (v_4d33b2.cloneId) {
+      try {
+        const v_1de203 = await v_3f4e2e.env.DB
+          .prepare(`SELECT owner_id FROM clones WHERE id = ?`)
+          .bind(v_4d33b2.cloneId)
+          .first<{ owner_id: number }>();
+
+        if (v_1de203 && v_1de203.owner_id === v_4d33b2.toUserId) {
+          await v_3f4e2e.env.DB
+            .prepare(
+              `INSERT INTO gift_logs (
+                 sender_user_id, clone_id, owner_user_id, gift_id, gift_name,
+                 total_amount, company_amount, owner_amount, company_address, status, completed_at
+               ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'offchain', 'sent', CURRENT_TIMESTAMP)`,
+            )
+            .bind(
+              v_f7e120,
+              v_4d33b2.cloneId,
+              v_4d33b2.toUserId,
+              v_4d33b2.giftId,
+              v_8c0b26.name,
+              v_8c0b26.price,
+              v_8c0b26.price,
+            )
+            .run();
+        }
+      } catch (v_49263d) {
+
+        console.warn("[gift.send-offchain] gift_logs INSERT skipped:", v_49263d);
+      }
     }
 
     await v_3f4e2e.env.DB.batch([

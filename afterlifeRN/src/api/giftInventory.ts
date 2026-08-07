@@ -38,6 +38,7 @@ export async function v_422d96(
 
 export async function v_e2ae57(
   v_2ca7e0,
+
   v_931bf0,
   v_6f448e,
 ): Promise<{ ok: true; giftId: string; xrunAmount: number; receiverId: number }> {
