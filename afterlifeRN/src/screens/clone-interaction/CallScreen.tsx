@@ -1120,6 +1120,9 @@ function CallScreenInner({ route, navigation }: Props) {
     } catch (err) {
       const msg = (err as Error).message ?? "선물 전송 실패";
       const isInsufficient = /INSUFFICIENT_CREDITS|잔액이 부족/.test(msg);
+
+      setSvgaOverlayUrl(null);
+      setSvgaSender(null);
       showAlert(
         isInsufficient ? t("call.giftInsufficientTitle", { defaultValue: "XRUN 부족" }) : t("call.giftFailTitle", { defaultValue: "선물 실패" }),
         isInsufficient
