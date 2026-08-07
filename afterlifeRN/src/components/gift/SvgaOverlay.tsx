@@ -261,7 +261,7 @@ const s = StyleSheet.create({
     alignSelf: "center",
 
     width: "100%",
-    height: "70%",
+    height: "45%",
     backgroundColor: "transparent",
   },
   web: { flex: 1, backgroundColor: "transparent" },
