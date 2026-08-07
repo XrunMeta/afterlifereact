@@ -1,13 +1,17 @@
 
 
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 
 interface Props {
   visible: boolean;
   svgaUrl: string | null;
   onClose: () => void;
+
+  senderName?: string | null;
+  senderAvatarUrl?: string | null;
+  giftName?: string | null;
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
@@ -110,7 +114,14 @@ function buildHtml(base64: string): string {
 </html>`;
 }
 
-export default function SvgaOverlay({ visible, svgaUrl, onClose }: Props) {
+export default function SvgaOverlay({
+  visible,
+  svgaUrl,
+  onClose,
+  senderName,
+  senderAvatarUrl,
+  giftName,
+}: Props) {
   const [html, setHtml] = useState<string | null>(null);
 
   useEffect(() => {
@@ -144,8 +155,26 @@ export default function SvgaOverlay({ visible, svgaUrl, onClose }: Props) {
 
   if (!visible || !svgaUrl || !html) return null;
 
+  const hasNotice = !!(senderName && giftName);
   return (
     <View style={s.root} pointerEvents="none">
+      {hasNotice && (
+        <View style={s.notice}>
+          {senderAvatarUrl ? (
+            <Image source={{ uri: senderAvatarUrl }} style={s.noticeAvatar} />
+          ) : (
+            <View style={[s.noticeAvatar, s.noticeAvatarPlaceholder]} />
+          )}
+          <View style={s.noticeText}>
+            <Text style={s.noticeName} numberOfLines={1}>
+              {senderName}
+            </Text>
+            <Text style={s.noticeMsg} numberOfLines={1}>
+              님의 {giftName} 선물을 보냈습니다
+            </Text>
+          </View>
+        </View>
+      )}
       <View style={s.stageWrap}>
         <WebView
           originWhitelist={["*"]}
@@ -184,12 +213,50 @@ const s = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    alignItems: "center",
+
+    alignItems: "stretch",
     justifyContent: "flex-end",
     paddingBottom: "12%",
     zIndex: 50,
   },
+
+  notice: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 16,
+    marginBottom: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    borderRadius: 12,
+    maxWidth: "80%",
+  },
+  noticeAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 10,
+    backgroundColor: "#333",
+  },
+  noticeAvatarPlaceholder: {
+
+  },
+  noticeText: {
+    flexShrink: 1,
+  },
+  noticeName: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  noticeMsg: {
+    color: "#fff",
+    fontSize: 12,
+    marginTop: 2,
+  },
   stageWrap: {
+    alignSelf: "center",
 
     width: "100%",
     aspectRatio: 750 / 1335,

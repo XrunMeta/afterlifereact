@@ -777,6 +777,14 @@ function CallScreenInner({ route, navigation }: Props) {
 
   const [svgaOverlayUrl, setSvgaOverlayUrl] = useState<string | null>(null);
 
+  const [svgaSender, setSvgaSender] = useState<{
+    name: string | null;
+    avatarUrl: string | null;
+    giftName: string | null;
+  } | null>(null);
+  const myName = useAuthStore((s) => s.apiUser?.name ?? null);
+  const myAvatarUrl = useAuthStore((s) => s.apiUser?.avatarUrl ?? null);
+
   const [gifts, setGifts] = useState<GiftCatalogItem[]>([]);
   useEffect(() => {
     let cancelled = false;
@@ -1065,6 +1073,8 @@ function CallScreenInner({ route, navigation }: Props) {
     setShowGifts(false);
 
     if (gift.svgaUrl) {
+
+      setSvgaSender({ name: myName, avatarUrl: myAvatarUrl, giftName: gift.name });
       setSvgaOverlayUrl(gift.svgaUrl);
     } else {
       playGiftAnimation(gift);
@@ -1674,11 +1684,18 @@ function CallScreenInner({ route, navigation }: Props) {
           <Text style={s.toastText}>{toastMessage}</Text>
         </View>
       )}
-      {}
+      {
+}
       <SvgaOverlay
         visible={!!svgaOverlayUrl}
         svgaUrl={svgaOverlayUrl}
-        onClose={() => setSvgaOverlayUrl(null)}
+        onClose={() => {
+          setSvgaOverlayUrl(null);
+          setSvgaSender(null);
+        }}
+        senderName={svgaSender?.name}
+        senderAvatarUrl={svgaSender?.avatarUrl}
+        giftName={svgaSender?.giftName}
       />
     </View>
   );
