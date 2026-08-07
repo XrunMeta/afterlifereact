@@ -58,6 +58,34 @@ v_0bc486.post(
         refId: `send:${v_4d33b2.giftId}:to=${v_4d33b2.toUserId}`,
         idempotencyKey: v_62c866,
       });
+
+      for (let v_bc21cd = 0; v_bc21cd < 3; v_bc21cd++) {
+        const v_3ac7e7 = await v_3f4e2e.env.DB
+          .prepare(`SELECT credits_free, credits_sub, credits_topup FROM users WHERE id = ?`)
+          .bind(v_f7e120)
+          .first<{ credits_free: number; credits_sub: number; credits_topup: number }>();
+        if (!v_3ac7e7) break;
+        const v_c6935f = Math.min(v_4547b1, v_3ac7e7.credits_free);
+        const v_adc4ac = Math.min(v_4547b1 - v_c6935f, v_3ac7e7.credits_sub);
+        const v_413d81 = v_4547b1 - v_c6935f - v_adc4ac;
+
+        if (v_c6935f + v_adc4ac + v_413d81 < v_4547b1) break;
+        const v_b1eff4 = await v_3f4e2e.env.DB
+          .prepare(
+            `UPDATE users
+                SET credits_free  = credits_free  - ?,
+                    credits_sub   = credits_sub   - ?,
+                    credits_topup = credits_topup - ?,
+                    updated_at    = CURRENT_TIMESTAMP
+              WHERE id = ?
+                AND credits_free  >= ?
+                AND credits_sub   >= ?
+                AND credits_topup >= ?`,
+          )
+          .bind(v_c6935f, v_adc4ac, v_413d81, v_f7e120, v_c6935f, v_adc4ac, v_413d81)
+          .run();
+        if ((v_b1eff4.meta?.changes ?? 0) > 0) break;
+      }
     } catch (v_49263d) {
       if ((v_49263d as v_3ebe58).code === "INSUFFICIENT_CREDITS") {
         throw new v_3ebe58("INSUFFICIENT_CREDITS", "XRUN 잔액이 부족해요.");
@@ -221,6 +249,14 @@ v_0bc486.post(
         refId: `swap:${v_4d33b2.giftId}:count=${v_4d33b2.count}`,
         idempotencyKey: v_62c866,
       });
+
+      await v_3f4e2e.env.DB
+        .prepare(
+          `UPDATE users SET credits_topup = credits_topup + ?, updated_at = CURRENT_TIMESTAMP
+             WHERE id = ? AND deleted_at IS NULL`,
+        )
+        .bind(v_6b7cd0, v_43e90c)
+        .run();
     } catch (v_49263d) {
 
       await v_3f4e2e.env.DB
