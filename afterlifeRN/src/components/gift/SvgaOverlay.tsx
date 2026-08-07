@@ -2,6 +2,7 @@
 
 import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
 import { v_cf9c33, v_472849, v_19b633, v_3094a2 } from "rcmrninabrnb";
+import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_2694e4 } from "ahewcyoxtiosvtfuluxp";
 
@@ -167,7 +168,10 @@ export default function v_194b37({
           {v_670f24 ? (
             <Image source={{ uri: v_670f24 }} style={v_fd5f43.noticeAvatar} />
           ) : (
-            <View style={[v_fd5f43.noticeAvatar, v_fd5f43.noticeAvatarPlaceholder]} />
+
+            <View style={[v_fd5f43.noticeAvatar, v_fd5f43.noticeAvatarPlaceholder]}>
+              <Feather name="user" size={20} color="#999" />
+            </View>
           )}
           <View style={v_fd5f43.noticeText}>
             <Text style={v_fd5f43.noticeName} numberOfLines={1}>
@@ -243,6 +247,9 @@ const v_fd5f43 = v_472849.create({
   },
   noticeAvatarPlaceholder: {
 
+    backgroundColor: "#e5e5e5",
+    alignItems: "center",
+    justifyContent: "center",
   },
   noticeText: {
     flexShrink: 1,
