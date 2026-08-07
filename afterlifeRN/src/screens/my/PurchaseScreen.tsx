@@ -25,9 +25,6 @@ import { getGiftInventory, swapGift, type GiftInventoryItem } from "../../api/gi
 import { showAlert } from "../../stores/dialogStore";
 import { Image } from "react-native";
 
-const GIFT_INVENTORY_WHITELIST = new Set(["oth-test@example.invalid", "oth-user@example.invalid"]);
-const isGiftInventoryEnabled = (email: string | null | undefined) =>
-  !!email && GIFT_INVENTORY_WHITELIST.has(email.toLowerCase().trim());
 import {
   fetchAllProducts,
   buyConsumable,
@@ -72,8 +69,8 @@ export default function PurchaseScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation();
   const accessToken = useAuthStore((s) => s.accessToken);
-  const apiUser = useAuthStore((s) => s.apiUser);
-  const giftInventoryVisible = isGiftInventoryEnabled(apiUser?.email);
+
+  const giftInventoryVisible = true;
 
   const scrollRef = useRef<ScrollView>(null);
   const giftSectionYRef = useRef<number>(0);
