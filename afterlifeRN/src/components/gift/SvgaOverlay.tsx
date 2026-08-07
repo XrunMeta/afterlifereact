@@ -190,8 +190,9 @@ const s = StyleSheet.create({
     zIndex: 50,
   },
   stageWrap: {
-    width: "55%",
-    aspectRatio: 1,
+
+    width: "35%",
+    aspectRatio: 750 / 1335,
     backgroundColor: "transparent",
   },
   web: { flex: 1, backgroundColor: "transparent" },
