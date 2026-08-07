@@ -622,7 +622,7 @@ const v_d81136 = v_472849.create({
   },
 
   snsLoginContainer: {
-    marginTop: v_9b1a04.medium,
+    marginTop: 8,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
