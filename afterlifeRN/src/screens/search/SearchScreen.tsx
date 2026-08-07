@@ -13,6 +13,7 @@ import {
   Dimensions,
   Pressable,
   Keyboard,
+  ScrollView,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Feather } from "@expo/vector-icons";
@@ -29,6 +30,8 @@ import {
   type DiscoverFeedItem,
 } from "../../api/clones";
 import { searchUsers, type UserSearchItem } from "../../api/auth";
+
+import { listRecommendedKeywords, type RecommendedKeyword } from "../../api/recommendedKeywords";
 import { fuzzyMatch } from "../../lib/similarity";
 import { COLORS, RADIUS } from "../../components/constants";
 import type { MainTabParamList, RootStackParamList } from "../../navigation/types";
@@ -84,6 +87,8 @@ export default function SearchScreen() {
   const [recent, setRecent] = useState<string[]>([]);
   const inputRef = useRef<TextInput>(null);
 
+  const [recommendedKeywords, setRecommendedKeywords] = useState<RecommendedKeyword[]>([]);
+
   const screenWidth = Dimensions.get("window").width;
   const cellWidth = useMemo(
     () => Math.floor((screenWidth - GAP * (NUM_COLS - 1)) / NUM_COLS),
@@ -94,6 +99,27 @@ export default function SearchScreen() {
     () => Math.floor(cellWidth * (16 / 9)),
     [cellWidth],
   );
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const items = await listRecommendedKeywords();
+        setRecommendedKeywords(items);
+      } catch (err) {
+        console.warn("[Search] recommended keywords fetch failed:", err);
+      }
+    })();
+  }, []);
+
+  const onPressKeyword = useCallback((kw: string) => {
+    const stripped = kw.replace(/^#+/, "").trim();
+    if (!stripped) return;
+    setQuery(stripped);
+    setActiveTab("tag");
+    void saveRecent(stripped);
+    Keyboard.dismiss();
+
+  }, []); 
 
   useEffect(() => {
     (async () => {
@@ -441,6 +467,27 @@ export default function SearchScreen() {
             </TouchableOpacity>
           )}
         </View>
+        {}
+        {recommendedKeywords.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={s.kwScroll}
+            contentContainerStyle={s.kwScrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            {recommendedKeywords.map((k) => (
+              <TouchableOpacity
+                key={k.id}
+                style={s.kwPill}
+                activeOpacity={0.7}
+                onPress={() => onPressKeyword(k.keyword)}
+              >
+                <Text style={s.kwPillText}>#{k.keyword}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
       </View>
 
       {showRecent ? (
@@ -585,6 +632,18 @@ const s = StyleSheet.create({
     borderRadius: RADIUS.lg,
   },
   searchInput: { flex: 1, fontSize: 14, color: COLORS.zinc900, padding: 0 },
+
+  kwScroll: { marginTop: 10 },
+  kwScrollContent: { paddingRight: 16, gap: 8 },
+  kwPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    backgroundColor: COLORS.white,
+  },
+  kwPillText: { fontSize: 13, color: COLORS.zinc700, fontWeight: "500" },
 
   tabRow: {
     flexDirection: "row",
