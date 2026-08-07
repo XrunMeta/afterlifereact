@@ -58,6 +58,34 @@ giftInventory.post(
         refId: `send:${body.giftId}:to=${body.toUserId}`,
         idempotencyKey: idemKey,
       });
+
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const row = await c.env.DB
+          .prepare(`SELECT credits_free, credits_sub, credits_topup FROM users WHERE id = ?`)
+          .bind(senderId)
+          .first<{ credits_free: number; credits_sub: number; credits_topup: number }>();
+        if (!row) break;
+        const useFree = Math.min(priceCredits, row.credits_free);
+        const useSub = Math.min(priceCredits - useFree, row.credits_sub);
+        const useTopup = priceCredits - useFree - useSub;
+
+        if (useFree + useSub + useTopup < priceCredits) break;
+        const upd = await c.env.DB
+          .prepare(
+            `UPDATE users
+                SET credits_free  = credits_free  - ?,
+                    credits_sub   = credits_sub   - ?,
+                    credits_topup = credits_topup - ?,
+                    updated_at    = CURRENT_TIMESTAMP
+              WHERE id = ?
+                AND credits_free  >= ?
+                AND credits_sub   >= ?
+                AND credits_topup >= ?`,
+          )
+          .bind(useFree, useSub, useTopup, senderId, useFree, useSub, useTopup)
+          .run();
+        if ((upd.meta?.changes ?? 0) > 0) break;
+      }
     } catch (err) {
       if ((err as APIError).code === "INSUFFICIENT_CREDITS") {
         throw new APIError("INSUFFICIENT_CREDITS", "XRUN 잔액이 부족해요.");
@@ -221,6 +249,14 @@ giftInventory.post(
         refId: `swap:${body.giftId}:count=${body.count}`,
         idempotencyKey: idemKey,
       });
+
+      await c.env.DB
+        .prepare(
+          `UPDATE users SET credits_topup = credits_topup + ?, updated_at = CURRENT_TIMESTAMP
+             WHERE id = ? AND deleted_at IS NULL`,
+        )
+        .bind(xrunTotal, userId)
+        .run();
     } catch (err) {
 
       await c.env.DB
