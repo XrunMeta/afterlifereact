@@ -130,10 +130,17 @@ export default function NotificationsScreen() {
     let m: RegExpMatchArray | null;
 
     const cloneIdFromData = typeof d.cloneId === "number" ? d.cloneId : 0;
+
+    if (n.type === "clone_gift") {
+      navigation.navigate("Main", {
+        screen: "MyTab",
+        params: { screen: "Purchase" },
+      });
+      return;
+    }
     if (
       n.type === "clone_like" ||
       n.type === "clone_comment" ||
-      n.type === "clone_gift" ||
       n.type === "clone_follow"
     ) {
 
@@ -143,9 +150,7 @@ export default function NotificationsScreen() {
             ? ("likes" as const)
             : n.type === "clone_comment"
               ? ("comments" as const)
-              : n.type === "clone_gift"
-                ? ("gifts" as const)
-                : ("followers" as const);
+              : ("followers" as const);
         navigation.navigate("Main", {
           screen: "ClonesTab",
           params: {
