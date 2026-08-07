@@ -260,8 +260,8 @@ const s = StyleSheet.create({
   stageWrap: {
     alignSelf: "center",
 
-    width: "100%",
-    height: "45%",
+    width: "90%",
+    aspectRatio: 750 / 1335,
     backgroundColor: "transparent",
   },
   web: { flex: 1, backgroundColor: "transparent" },
