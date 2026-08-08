@@ -58,6 +58,20 @@ const linking: LinkingOptions<RootStackParamList> = {
         path: "clone/:cloneId",
         parse: { cloneId: (id: string) => Number(id) },
       },
+      Main: {
+        screens: {
+          ClonesTab: {
+
+            initialRouteName: "Dashboard",
+            screens: {
+              CloneEdit: {
+                path: "clone/:cloneId/edit",
+                parse: { cloneId: (id: string) => Number(id) },
+              },
+            },
+          },
+        },
+      },
     },
   },
 };

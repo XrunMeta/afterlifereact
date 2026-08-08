@@ -37,11 +37,12 @@ import { useAuthStore } from "../../stores/authStore";
 import { assertCanCall } from "../../lib/callGuard";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
-import { listMyClones, listSystemClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, listCloneIntimacyEvents, listCloneGiftReceipts, type MyClone, type SystemClone, type FeedLikeUser, type FeedComment, type CloneFollower, type IntimacyEventsResponse, type GiftReceiptItem } from "../../api/clones";
+import { listMyClones, listSystemClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, listCloneIntimacyEvents, listCloneGiftReceipts, type SystemClone, type FeedLikeUser, type FeedComment, type CloneFollower, type IntimacyEventsResponse, type GiftReceiptItem } from "../../api/clones";
 import giftsData from "../../mocks/gifts.json";
 import type { Gift } from "../../types/gift";
 
 const GIFT_CATALOG = giftsData as Gift[];
+import { adaptMyClone } from "../../lib/adaptMyClone";
 import { formatRelativeKo } from "../../lib/relativeTime";
 import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
 import { AuthApiError, patchMe } from "../../api/auth";
@@ -62,29 +63,6 @@ function formatStat(n: number | null | undefined): string {
   if (typeof n !== "number" || !Number.isFinite(n)) return "0";
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
   return String(n);
-}
-
-function adaptMyClone(c: MyClone): Clone {
-  return {
-    id: c.id,
-    cloneType: c.cloneType,
-    ownerId: c.ownerId,
-    displayName: c.name,
-    username: c.username,
-    description: c.description ?? "",
-    interests: c.interests ?? [],
-    imageUrl: c.avatarUrl ?? undefined,
-    visibility: c.visibility,
-    status: (c.trainingStatus as Clone["status"]) ?? "active",
-    createdAt: c.createdAt,
-    myRole: c.myRole,
-    coownerCount: c.coownerCount,
-    likesCount: c.likesCount,
-    commentsCount: c.commentsCount,
-    followersCount: c.followersCount,
-    messagesCount: c.messagesCount,
-    ...(c.l1Profile ? { l1Profile: c.l1Profile } : {}),
-  };
 }
 
 export default function MyClonesDashboardScreen() {

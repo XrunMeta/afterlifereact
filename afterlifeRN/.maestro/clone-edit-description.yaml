@@ -1,0 +1,111 @@
+appId: run.xrun.afterlifeRN
+name: "CloneEdit 한 줄 소개 — 줄바꿈 저장·서버 왕복 + 개행 카운트 (T-447)"
+#
+# 【검증함】
+#   - 한 줄 소개에 개행을 넣어 저장하면 서버(preview D1)까지 살아 돌아오나
+#   - 개행이 100자 카운터에 몇 자로 잡히나 (값 assertion)
+#   - 딥링크 콜드 스타트 진입이 실제로 동작하나 (hydrate 폴백 포함)
+#
+# 【확인 못 함】
+#   - 안드로이드. iOS 시뮬레이터만 돌렸다. testID 노출 방식이 플랫폼마다 다르다
+#   - 100자 초과 입력의 서버측 거부 여부. 여기서 막는 건 클라이언트 slice(0,100) 뿐이다
+#   - 소개글이 다른 화면(피드·상세)에서 여러 줄로 어떻게 렌더되나. 저장·왕복까지만 본다
+#
+# 【서버】 preview. EXPO_PUBLIC_API_BASE 미설정 시 자동 fallback.
+# 【정리】 소개글을 원복하지 않는다(히즈키 결정). LINE1 의 `e2e-` 표식으로 사후 수거한다.
+#
+# 실행:
+#   export PATH="$PATH:$HOME/.maestro/bin"
+#   maestro test .maestro/clone-edit-description.yaml -e CLONE_ID=<내 클론 id>
+#
+env:
+  # 필수. 기본값 없음 — 남의 클론 소개글을 덮어쓰지 않으려고 일부러 비웠다.
+  CLONE_ID: ""
+  # LINE1/LINE2 를 바꾸면 EXPECTED_COUNT 도 같이 고쳐야 한다.
+  #   e2e-aaa(7) + 개행(1) + bbb(3) = 11
+  LINE1: "e2e-aaa"
+  LINE2: "bbb"
+  EXPECTED_COUNT: "11"
+---
+# ── 0. 세션 유지. clearState 를 쓰지 않아 로그인이 남는다.
+#      stopApp 은 기본 true → 앱 프로세스가 죽으면서 cloneStore(인메모리)는 비고
+#      authStore(AsyncStorage)만 살아남는다. 이게 아래 hydrate 폴백을 강제한다.
+- launchApp:
+    clearState: false
+
+# ── 1. 딥링크 직행. 대시보드 탭을 재생하지 않는다 (스킬 원칙 3 — 도달 비용 죽이기).
+- openLink: "afterlife://clone/${CLONE_ID}/edit"
+
+# ── 2. hydrate 폴백이 서버에서 클론을 채울 때까지 기다린다.
+#      실패 원인을 구분하려고 순서를 지킨다 (스킬 §0):
+#      로딩 종료 → notFound 배제 → 입력 존재. 곧바로 desc-input 을 기다리면
+#      실패했을 때 "element not found" 만 남아 미로그인인지 남의 클론인지 모른다.
+- extendedWaitUntil:
+    notVisible:
+      id: "clone-edit-loading"
+    timeout: 20000
+    label: "hydrate 가 20초 안에 안 끝났다 — 네트워크 또는 listMyClones 응답 확인"
+- assertNotVisible:
+    id: "clone-edit-not-found"
+    label: "클론을 못 찾았다 — CLONE_ID 가 내 클론이 아니거나 로그인이 풀렸다"
+- assertVisible:
+    id: "clone-edit-desc-input"
+
+# ── 3. 기존 소개글 비우기. 100자 상한이므로 120 번이면 확실히 다 지워진다.
+- tapOn:
+    id: "clone-edit-desc-input"
+- eraseText: 120
+
+# ── 4. 두 줄 입력.
+#      inputText 는 개행 문자를 못 넣는다 → Enter 키로 만든다.
+#      multiline TextInput 이라 return 키가 "완료" 가 아니라 개행이어야 한다.
+#      만약 여기서 키보드가 닫히고 개행이 안 들어가면 그 자체가 이번 실측의 발견이다.
+- inputText: "${LINE1}"
+- pressKey: Enter
+- inputText: "${LINE2}"
+
+# ── 5. 개행이 카운터에 몇 자로 잡히나. "떴나" 가 아니라 값을 본다 (스킬 §4).
+#      11 이 아니면 실패 메시지가 실제 값을 알려주므로 그대로 발견이 된다.
+- assertVisible:
+    id: "clone-edit-desc-counter"
+    text: "${EXPECTED_COUNT}/100"
+    label: "개행을 1자로 세면 ${EXPECTED_COUNT}/100 이어야 한다"
+
+# ── 6. 저장. 성공하면 goBack 으로 화면이 닫힌다.
+#      실패하면 showAlert 가 뜨고 화면이 그대로 남으므로 여기서 잡힌다.
+- tapOn:
+    id: "clone-edit-save"
+- extendedWaitUntil:
+    notVisible:
+      id: "clone-edit-save"
+    timeout: 15000
+    label: "저장 후 화면이 안 닫혔다 — PATCH 실패 알림이 떴을 수 있다"
+
+# ── 7. 진짜 왕복 검증.
+#      재시작 없이 재진입하면 updateLocalClone 이 넣은 로컬 값을 읽어 아무것도
+#      증명하지 못한다. 앱을 다시 띄워 스토어를 비우고 서버에서 다시 읽게 한다.
+- launchApp:
+    clearState: false
+- openLink: "afterlife://clone/${CLONE_ID}/edit"
+- extendedWaitUntil:
+    notVisible:
+      id: "clone-edit-loading"
+    timeout: 20000
+- assertNotVisible:
+    id: "clone-edit-not-found"
+    label: "재진입에서 클론이 사라졌다 — 저장이 클론을 깨뜨렸는지 확인"
+
+# 서버에서 읽어온 값의 길이가 다시 11 이면 개행이 D1 까지 살아 돌아온 것이다.
+# 10 이면 어딘가(서버 trim / 클라이언트)가 개행을 지웠다는 뜻.
+- assertVisible:
+    id: "clone-edit-desc-counter"
+    text: "${EXPECTED_COUNT}/100"
+    label: "재시작 후에도 ${EXPECTED_COUNT}자여야 한다 — 10 이면 개행이 유실된 것"
+
+# 길이만 같고 개행이 공백으로 치환됐을 수도 있어 내용도 본다.
+# ⚠️ iOS 에서 TextInput 의 value 가 접근성 트리에 어떻게 노출되는지는 아직 실측 전이다.
+#    이 한 줄만 실패하면 셀렉터 문제일 가능성이 높다 → maestro studio 로 트리 덤프 후 교정.
+- assertVisible:
+    id: "clone-edit-desc-input"
+    text: ".*${LINE1}.*"
+    label: "소개글 본문에 ${LINE1} 이 남아있어야 한다"
