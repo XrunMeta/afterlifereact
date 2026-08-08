@@ -62,7 +62,6 @@ const linking: LinkingOptions<RootStackParamList> = {
         screens: {
           ClonesTab: {
 
-            initialRouteName: "Dashboard",
             screens: {
               CloneEdit: {
                 path: "clone/:cloneId/edit",

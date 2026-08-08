@@ -19,8 +19,10 @@ name: "CloneEdit 한 줄 소개 — 줄바꿈 저장·서버 왕복 + 개행 카
 #   maestro test .maestro/clone-edit-description.yaml -e CLONE_ID=<내 클론 id>
 #
 env:
-  # 필수. 기본값 없음 — 남의 클론 소개글을 덮어쓰지 않으려고 일부러 비웠다.
-  CLONE_ID: ""
+  # 🔴 CLONE_ID 는 여기에 두지 않는다. -e CLONE_ID=... 로만 받는다.
+  #    `CLONE_ID: ""` 를 기본값으로 두면 **빈 문자열이 -e 인자를 이긴다**(실측).
+  #    링크가 `afterlife://clone//edit` 이 되어 라우트 매칭에 실패하고, 화면이
+  #    통째로 비어 notFound 도 안 뜨는 진단 불가 상태가 된다.
   # LINE1/LINE2 를 바꾸면 EXPECTED_COUNT 도 같이 고쳐야 한다.
   #   e2e-aaa(7) + 개행(1) + bbb(3) = 11
   LINE1: "e2e-aaa"
@@ -36,25 +38,43 @@ env:
 # ── 1. 딥링크 직행. 대시보드 탭을 재생하지 않는다 (스킬 원칙 3 — 도달 비용 죽이기).
 - openLink: "afterlife://clone/${CLONE_ID}/edit"
 
-# ── 2. hydrate 폴백이 서버에서 클론을 채울 때까지 기다린다.
-#      실패 원인을 구분하려고 순서를 지킨다 (스킬 §0):
-#      로딩 종료 → notFound 배제 → 입력 존재. 곧바로 desc-input 을 기다리면
-#      실패했을 때 "element not found" 만 남아 미로그인인지 남의 클론인지 모른다.
+# ── 2. CloneEdit 이 편집 가능한 상태가 될 때까지 기다린다.
+#
+#      🔴 "notFound 를 먼저 배제하고 desc-input 을 확인" 하는 순서를 두 번 시도했다가
+#         버렸다. `assertNotVisible: notFound` 가 **화면이 그려지기 전에 평가되어
+#         조용히 통과**하기 때문이다(스토어 히트면 loading 이 한 번도 안 떠서
+#         앞의 대기가 즉시 끝난다). waitForAnimationToEnd 5초로도 못 막았다 —
+#         notFound 는 그보다 늦게 나타난다.
+#         타이밍에 의존하는 가드는 성공을 늦추고 실패를 놓친다. 실패 원인은
+#         **라벨 + 디버그 스크린샷/계층 덤프**가 말하게 하는 편이 정확하고 빠르다.
 - extendedWaitUntil:
-    notVisible:
-      id: "clone-edit-loading"
+    visible:
+      id: "clone-edit-desc-input"
     timeout: 20000
-    label: "hydrate 가 20초 안에 안 끝났다 — 네트워크 또는 listMyClones 응답 확인"
-- assertNotVisible:
-    id: "clone-edit-not-found"
-    label: "클론을 못 찾았다 — CLONE_ID 가 내 클론이 아니거나 로그인이 풀렸다"
-- assertVisible:
-    id: "clone-edit-desc-input"
+    label: "CloneEdit 편집 화면에 도달하지 못했다. 디버그 스크린샷을 먼저 볼 것 —
+      (a) '클론을 찾을 수 없습니다' 가 떠 있으면: CLONE_ID 가 내 클론이 아니거나,
+          로그인이 풀렸거나, CloneEditScreen 의 hydrate 폴백이 깨졌다.
+      (b) 화면이 통째로 비었으면: 딥링크가 라우트에 매칭되지 않았다(-e CLONE_ID 누락)."
 
-# ── 3. 기존 소개글 비우기. 100자 상한이므로 120 번이면 확실히 다 지워진다.
-- tapOn:
-    id: "clone-edit-desc-input"
-- eraseText: 120
+# ── 3. 기존 소개글 비우기.
+#      🔴 `tapOn` + `eraseText: 120` 한 번으로는 안 비워진다 (실측).
+#      eraseText 는 **커서 앞** 문자만 지우고, tapOn 은 요소 중앙을 누르므로
+#      multiline 필드에서는 커서가 텍스트 중간에 박힌다.
+#      → 100자 원문에서 앞 74자만 지워지고 뒤 26자가 남은 채 새 텍스트가 끼어들었다.
+#      텍스트가 짧아지면 중앙 탭이 줄 끝을 넘어가 커서가 끝으로 가므로 반복하면 수렴한다.
+- repeat:
+    times: 4
+    commands:
+      - tapOn:
+          id: "clone-edit-desc-input"
+      - eraseText: 120
+
+# 비었다는 것을 값으로 확인한다. 이 게이트가 없으면 잔여 텍스트가 아래 카운트를
+# 오염시키고, 실패 원인이 "개행 집계" 인지 "안 지워짐" 인지 구분되지 않는다.
+- assertVisible:
+    id: "clone-edit-desc-counter"
+    text: "0/100"
+    label: "소개글이 안 비워졌다 — eraseText 가 커서 앞만 지운다. 반복 횟수를 늘려야 한다"
 
 # ── 4. 두 줄 입력.
 #      inputText 는 개행 문자를 못 넣는다 → Enter 키로 만든다.
@@ -87,13 +107,13 @@ env:
 - launchApp:
     clearState: false
 - openLink: "afterlife://clone/${CLONE_ID}/edit"
+# §2 와 같은 이유로 성공 조건 하나만 길게 기다린다. 실패하면 스크린샷을 볼 것.
 - extendedWaitUntil:
-    notVisible:
-      id: "clone-edit-loading"
+    visible:
+      id: "clone-edit-desc-input"
     timeout: 20000
-- assertNotVisible:
-    id: "clone-edit-not-found"
-    label: "재진입에서 클론이 사라졌다 — 저장이 클론을 깨뜨렸는지 확인"
+    label: "재진입에서 편집 화면에 못 갔다 — '클론을 찾을 수 없습니다' 가 떠 있으면
+      저장이 클론을 깨뜨렸는지 확인"
 
 # 서버에서 읽어온 값의 길이가 다시 11 이면 개행이 D1 까지 살아 돌아온 것이다.
 # 10 이면 어딘가(서버 trim / 클라이언트)가 개행을 지웠다는 뜻.
