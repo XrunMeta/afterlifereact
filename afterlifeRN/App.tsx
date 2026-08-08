@@ -62,7 +62,6 @@ const linking: v_4c916c<v_8ad91b> = {
         screens: {
           ClonesTab: {
 
-            initialRouteName: "Dashboard",
             screens: {
               CloneEdit: {
                 path: "clone/:cloneId/edit",
