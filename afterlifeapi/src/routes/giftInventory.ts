@@ -15,6 +15,8 @@ export const v_0bc486 = new v_b7c41b<v_de0a25>();
 const v_78d17d = v_1f4ea7.object({
   giftId: v_1f4ea7.string().min(1).max(80),
   toUserId: v_1f4ea7.number().int().positive(),
+
+  cloneId: v_1f4ea7.number().int().positive().optional(),
 });
 
 v_0bc486.post(
@@ -33,7 +35,12 @@ v_0bc486.post(
     const v_dbebe7 = await v_0edc13(v_3f4e2e.env);
     const v_8c0b26 = v_dbebe7.find((v_206b88) => v_206b88.id === v_4d33b2.giftId);
     if (!v_8c0b26) throw new v_3ebe58("NOT_FOUND", `선물 '${v_4d33b2.giftId}' 없음`);
-    if (v_8c0b26.price <= 0 || !Number.isInteger(v_8c0b26.price)) {
+
+    const v_4547b1 =
+      typeof v_8c0b26.xrunPrice === "number" && v_8c0b26.xrunPrice > 0
+        ? v_8c0b26.xrunPrice * 60
+        : v_8c0b26.price;
+    if (v_4547b1 <= 0 || !Number.isInteger(v_4547b1)) {
       throw new v_3ebe58("VALIDATION_FAILED", "선물 가격 설정이 잘못됐어요.");
     }
 
@@ -46,16 +53,76 @@ v_0bc486.post(
     try {
       await v_20a4f4(v_3f4e2e, {
         userId: v_f7e120,
-        amount: v_8c0b26.price,
+        amount: v_4547b1,
         type: "gift",
         refId: `send:${v_4d33b2.giftId}:to=${v_4d33b2.toUserId}`,
         idempotencyKey: v_62c866,
       });
+
+      for (let v_bc21cd = 0; v_bc21cd < 3; v_bc21cd++) {
+        const v_3ac7e7 = await v_3f4e2e.env.DB
+          .prepare(`SELECT credits_free, credits_sub, credits_topup FROM users WHERE id = ?`)
+          .bind(v_f7e120)
+          .first<{ credits_free: number; credits_sub: number; credits_topup: number }>();
+        if (!v_3ac7e7) break;
+        const v_c6935f = Math.min(v_4547b1, v_3ac7e7.credits_free);
+        const v_adc4ac = Math.min(v_4547b1 - v_c6935f, v_3ac7e7.credits_sub);
+        const v_413d81 = v_4547b1 - v_c6935f - v_adc4ac;
+
+        if (v_c6935f + v_adc4ac + v_413d81 < v_4547b1) break;
+        const v_b1eff4 = await v_3f4e2e.env.DB
+          .prepare(
+            `UPDATE users
+                SET credits_free  = credits_free  - ?,
+                    credits_sub   = credits_sub   - ?,
+                    credits_topup = credits_topup - ?,
+                    updated_at    = CURRENT_TIMESTAMP
+              WHERE id = ?
+                AND credits_free  >= ?
+                AND credits_sub   >= ?
+                AND credits_topup >= ?`,
+          )
+          .bind(v_c6935f, v_adc4ac, v_413d81, v_f7e120, v_c6935f, v_adc4ac, v_413d81)
+          .run();
+        if ((v_b1eff4.meta?.changes ?? 0) > 0) break;
+      }
     } catch (v_49263d) {
       if ((v_49263d as v_3ebe58).code === "INSUFFICIENT_CREDITS") {
         throw new v_3ebe58("INSUFFICIENT_CREDITS", "XRUN 잔액이 부족해요.");
       }
       throw v_49263d;
+    }
+
+    if (v_4d33b2.cloneId) {
+      try {
+        const v_1de203 = await v_3f4e2e.env.DB
+          .prepare(`SELECT owner_id FROM clones WHERE id = ?`)
+          .bind(v_4d33b2.cloneId)
+          .first<{ owner_id: number }>();
+
+        if (v_1de203 && v_1de203.owner_id === v_4d33b2.toUserId) {
+          await v_3f4e2e.env.DB
+            .prepare(
+              `INSERT INTO gift_logs (
+                 sender_user_id, clone_id, owner_user_id, gift_id, gift_name,
+                 total_amount, company_amount, owner_amount, company_address, status, completed_at
+               ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'offchain', 'sent', CURRENT_TIMESTAMP)`,
+            )
+            .bind(
+              v_f7e120,
+              v_4d33b2.cloneId,
+              v_4d33b2.toUserId,
+              v_4d33b2.giftId,
+              v_8c0b26.name,
+              v_4547b1,
+              v_4547b1,
+            )
+            .run();
+        }
+      } catch (v_49263d) {
+
+        console.warn("[gift.send-offchain] gift_logs INSERT skipped:", v_49263d);
+      }
     }
 
     await v_3f4e2e.env.DB.batch([
@@ -75,25 +142,25 @@ v_0bc486.post(
           `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id)
              VALUES (?, ?, ?, 1, ?, 'sent', ?)`,
         )
-        .bind(v_f7e120, v_4d33b2.toUserId, v_4d33b2.giftId, v_8c0b26.price, v_62c866),
+        .bind(v_f7e120, v_4d33b2.toUserId, v_4d33b2.giftId, v_4547b1, v_62c866),
       v_3f4e2e.env.DB
         .prepare(
           `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id)
              VALUES (?, ?, ?, 1, ?, 'received', ?)`,
         )
-        .bind(v_4d33b2.toUserId, v_f7e120, v_4d33b2.giftId, v_8c0b26.price, v_62c866),
+        .bind(v_4d33b2.toUserId, v_f7e120, v_4d33b2.giftId, v_4547b1, v_62c866),
     ]);
 
     await v_74defc(v_3f4e2e, {
       userId: v_f7e120,
       action: "gift.sent_offchain",
-      details: { giftId: v_4d33b2.giftId, toUserId: v_4d33b2.toUserId, xrunAmount: v_8c0b26.price },
+      details: { giftId: v_4d33b2.giftId, toUserId: v_4d33b2.toUserId, xrunAmount: v_4547b1 },
     });
 
     return v_3f4e2e.json({
       ok: true,
       giftId: v_4d33b2.giftId,
-      xrunAmount: v_8c0b26.price,
+      xrunAmount: v_4547b1,
       receiverId: v_4d33b2.toUserId,
     });
   },
@@ -116,15 +183,20 @@ v_0bc486.get("/inventory", v_6690d9, async (v_3f4e2e) => {
 
   const v_4622b9 = (v_18b8bf.results ?? []).map((v_cb35cb) => {
     const v_ab4c96 = v_6413c7.get(v_cb35cb.gift_id);
+
+    const v_4547b1 =
+      v_ab4c96 && typeof v_ab4c96.xrunPrice === "number" && v_ab4c96.xrunPrice > 0
+        ? v_ab4c96.xrunPrice * 60
+        : v_ab4c96?.price ?? 0;
     return {
       giftId: v_cb35cb.gift_id,
       name: v_ab4c96?.name ?? v_cb35cb.gift_id,
       emoji: v_ab4c96?.emoji ?? "🎁",
       imageUrl: v_ab4c96?.imageUrl,
-      xrunPerItem: v_ab4c96?.price ?? 0,       
+      xrunPerItem: v_4547b1,       
       count: v_cb35cb.count,
       totalReceived: v_cb35cb.total_received,
-      xrunTotal: (v_ab4c96?.price ?? 0) * v_cb35cb.count,  
+      xrunTotal: v_4547b1 * v_cb35cb.count,  
     };
   });
 
@@ -148,9 +220,14 @@ v_0bc486.post(
     const v_dbebe7 = await v_0edc13(v_3f4e2e.env);
     const v_8c0b26 = v_dbebe7.find((v_206b88) => v_206b88.id === v_4d33b2.giftId);
     if (!v_8c0b26) throw new v_3ebe58("NOT_FOUND", `선물 '${v_4d33b2.giftId}' 없음`);
-    if (v_8c0b26.price <= 0) throw new v_3ebe58("VALIDATION_FAILED", "선물 가격이 0 이라 교환 불가.");
 
-    const v_6b7cd0 = v_8c0b26.price * v_4d33b2.count;
+    const v_4547b1 =
+      typeof v_8c0b26.xrunPrice === "number" && v_8c0b26.xrunPrice > 0
+        ? v_8c0b26.xrunPrice * 60
+        : v_8c0b26.price;
+    if (v_4547b1 <= 0) throw new v_3ebe58("VALIDATION_FAILED", "선물 가격이 0 이라 교환 불가.");
+
+    const v_6b7cd0 = v_4547b1 * v_4d33b2.count;
 
     const v_615e11 = await v_3f4e2e.env.DB
       .prepare(
@@ -172,6 +249,14 @@ v_0bc486.post(
         refId: `swap:${v_4d33b2.giftId}:count=${v_4d33b2.count}`,
         idempotencyKey: v_62c866,
       });
+
+      await v_3f4e2e.env.DB
+        .prepare(
+          `UPDATE users SET credits_topup = credits_topup + ?, updated_at = CURRENT_TIMESTAMP
+             WHERE id = ? AND deleted_at IS NULL`,
+        )
+        .bind(v_6b7cd0, v_43e90c)
+        .run();
     } catch (v_49263d) {
 
       await v_3f4e2e.env.DB

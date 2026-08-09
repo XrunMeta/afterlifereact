@@ -57,6 +57,7 @@
     "plugins": [
       "./withCustomPodfile.js",
       "./plugins/withAndroidAbiFilters.js",
+      "./plugins/withPangle.js",
       [
         "expo-splash-screen",
         {

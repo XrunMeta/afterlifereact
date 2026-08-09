@@ -58,6 +58,19 @@ const linking: v_4c916c<v_8ad91b> = {
         path: "clone/:cloneId",
         parse: { cloneId: (v_389afb) => Number(v_389afb) },
       },
+      Main: {
+        screens: {
+          ClonesTab: {
+
+            screens: {
+              CloneEdit: {
+                path: "clone/:cloneId/edit",
+                parse: { cloneId: (v_389afb) => Number(v_389afb) },
+              },
+            },
+          },
+        },
+      },
     },
   },
 };

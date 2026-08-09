@@ -49,10 +49,17 @@ function v_6be210(v_9390e8): void {
   const v_6e0fd3 = v_1e3ec7(v_9390e8.cloneId);
   const v_baf950 = v_1e3ec7(v_9390e8.followerId);
 
+  if (v_3b27d9 === "clone_gift") {
+    v_3c9f12.navigate("Main", {
+      screen: "MyTab",
+      params: { screen: "Purchase" },
+    });
+    return;
+  }
+
   if (
     v_3b27d9 === "clone_like" ||
     v_3b27d9 === "clone_comment" ||
-    v_3b27d9 === "clone_gift" ||
     v_3b27d9 === "clone_follow"
   ) {
     if (v_6e0fd3 > 0) {
@@ -61,9 +68,7 @@ function v_6be210(v_9390e8): void {
           ? "likes"
           : v_3b27d9 === "clone_comment"
             ? "comments"
-            : v_3b27d9 === "clone_gift"
-              ? "gifts"
-              : "followers";
+            : "followers";
       v_3c9f12.navigate("Main", {
         screen: "ClonesTab",
         params: {

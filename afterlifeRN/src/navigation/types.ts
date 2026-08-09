@@ -117,3 +117,9 @@ export type MyStackParamList = {
   Purchase: undefined; 
   Reports: { tab?: "made" | "received" } | undefined;
 };
+
+declare global {
+  namespace ReactNavigation {
+    interface RootParamList extends RootStackParamList {}
+  }
+}

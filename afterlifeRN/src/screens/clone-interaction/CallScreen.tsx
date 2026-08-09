@@ -110,6 +110,7 @@ import {
   likeClone,
   unlikeClone,
   postCloneCallEvent,
+  getCloneDetail,
 } from "../../api/clones";
 import { getCreditBalance } from "../../api/credits";
 import { sendGiftOffchain } from "../../api/giftInventory";
@@ -777,6 +778,14 @@ function CallScreenInner({ route, navigation }: Props) {
 
   const [svgaOverlayUrl, setSvgaOverlayUrl] = useState<string | null>(null);
 
+  const [svgaSender, setSvgaSender] = useState<{
+    name: string | null;
+    avatarUrl: string | null;
+    giftName: string | null;
+  } | null>(null);
+  const myName = useAuthStore((s) => s.apiUser?.name ?? null);
+  const myAvatarUrl = useAuthStore((s) => s.apiUser?.avatarUrl ?? null);
+
   const [gifts, setGifts] = useState<GiftCatalogItem[]>([]);
   useEffect(() => {
     let cancelled = false;
@@ -836,6 +845,25 @@ function CallScreenInner({ route, navigation }: Props) {
     const id = setInterval(() => setCallSeconds((s) => s + 1), 1000);
     return () => clearInterval(id);
   }, [liveState]);
+
+  const adShownMinutesRef = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    if (liveState !== "live" || callSeconds <= 0) return;
+    if (callSeconds % 600 !== 0) return; 
+    const minute = Math.floor(callSeconds / 60);
+    if (adShownMinutesRef.current.has(minute)) return;
+    adShownMinutesRef.current.add(minute);
+    console.log(`[Call][pangle] ${minute} min — rewarded ad trigger`);
+    (async () => {
+      try {
+        const { loadAndShowRewardedAd } = await import("../../lib/pangle");
+        await loadAndShowRewardedAd();
+        console.log(`[Call][pangle] ${minute} min — ad closed, call resumes`);
+      } catch (err) {
+        console.warn(`[Call][pangle] ${minute} min — ad failed:`, (err as Error)?.message ?? err);
+      }
+    })();
+  }, [callSeconds, liveState]);
 
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const warnedRef = useRef(false);
@@ -1064,37 +1092,51 @@ function CallScreenInner({ route, navigation }: Props) {
     console.log(`[Call][gift-tap] giftId=${gift.id} name=${gift.name} svga=${!!gift.svgaUrl}`);
     setShowGifts(false);
 
-    if (gift.svgaUrl) {
-      setSvgaOverlayUrl(gift.svgaUrl);
-    } else {
-      playGiftAnimation(gift);
-    }
-
-    if (!accessToken || !clone?.ownerId) {
-      console.warn("[gift] send skipped — missing token or ownerId");
+    if (!accessToken) {
+      console.warn("[gift] send skipped — no accessToken (guest)");
       return;
     }
-    if (isOwnClone) {
-
+    let ownerIdResolved = clone?.ownerId;
+    if (!ownerIdResolved) {
+      console.log(`[gift] clone.ownerId missing — fetching detail cloneId=${cloneId}`);
+      try {
+        const detail = await getCloneDetail(cloneId, accessToken);
+        ownerIdResolved = detail.clone?.ownerId;
+        console.log(`[gift] fetched ownerId=${ownerIdResolved}`);
+      } catch (err) {
+        console.warn(`[gift] getCloneDetail failed:`, (err as Error).message);
+      }
+    }
+    if (!ownerIdResolved) {
+      console.warn(
+        `[gift] send skipped — ownerId still null after fetch. cloneId=${cloneId} cloneName=${clone?.name ?? "?"}`,
+      );
+      return;
+    }
+    if (currentUserId != null && ownerIdResolved === currentUserId) {
+      console.warn("[gift] send skipped — own clone (self)");
       return;
     }
     try {
       const idem = `gift-${gift.id}-${cloneId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const res = await sendGiftOffchain(
         accessToken,
-        { giftId: gift.id, toUserId: clone.ownerId },
+
+        { giftId: gift.id, toUserId: ownerIdResolved, cloneId: cloneId },
         idem,
       );
       console.log(`[gift] sent OK ${gift.id} ${res.xrunAmount} XRUN → ${res.receiverId}`);
-      setToastMessage(
-        t("call.giftSentToast", {
-          amount: res.xrunAmount,
-          defaultValue: `${res.xrunAmount} XRUN 선물 완료!`,
-        }),
-      );
+
+      if (gift.svgaUrl) {
+        setSvgaSender({ name: myName, avatarUrl: myAvatarUrl, giftName: gift.name });
+        setSvgaOverlayUrl(gift.svgaUrl);
+      } else {
+        playGiftAnimation(gift);
+      }
     } catch (err) {
       const msg = (err as Error).message ?? "선물 전송 실패";
       const isInsufficient = /INSUFFICIENT_CREDITS|잔액이 부족/.test(msg);
+
       showAlert(
         isInsufficient ? t("call.giftInsufficientTitle", { defaultValue: "XRUN 부족" }) : t("call.giftFailTitle", { defaultValue: "선물 실패" }),
         isInsufficient
@@ -1643,13 +1685,13 @@ function CallScreenInner({ route, navigation }: Props) {
                   activeOpacity={0.7}
                 >
                   <View style={s.giftEmojiWrap}>
-                    {}
-                    {item.svgaUrl ? (
-                      <SvgaThumb url={item.svgaUrl} size={44} />
-                    ) : item.imageUrl ? (
+                    {
+
+}
+                    {item.imageUrl ? (
                       <Image source={{ uri: item.imageUrl }} style={s.giftImage} />
                     ) : (
-                      <Text style={s.giftEmoji}>{item.emoji}</Text>
+                      <Text style={s.giftEmoji}>{item.emoji || "🎁"}</Text>
                     )}
                   </View>
                   <Text style={s.giftName} numberOfLines={1}>{item.name}</Text>
@@ -1674,11 +1716,18 @@ function CallScreenInner({ route, navigation }: Props) {
           <Text style={s.toastText}>{toastMessage}</Text>
         </View>
       )}
-      {}
+      {
+}
       <SvgaOverlay
         visible={!!svgaOverlayUrl}
         svgaUrl={svgaOverlayUrl}
-        onClose={() => setSvgaOverlayUrl(null)}
+        onClose={() => {
+          setSvgaOverlayUrl(null);
+          setSvgaSender(null);
+        }}
+        senderName={svgaSender?.name}
+        senderAvatarUrl={svgaSender?.avatarUrl}
+        giftName={svgaSender?.giftName}
       />
     </View>
   );

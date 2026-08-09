@@ -46,6 +46,8 @@ import { v_037921 } from "./routes/auth-config";
 import { v_74e200 } from "./routes/consent";
 import { v_8d1314, v_bf54ef } from "./routes/crashes";
 
+import { v_f31e9b, v_a63db8 } from "./routes/recommendedKeywords";
+
 const v_466992 = new v_b7c41b<v_de0a25>();
 
 v_466992.onError(v_c6eab8);
@@ -140,6 +142,9 @@ v_466992.route("/oth-path", v_29738c);
 
 v_466992.route("/oth-path", v_8d1314);
 v_466992.route("/oth-path", v_bf54ef);
+
+v_466992.route("/oth-path", v_f31e9b);
+v_466992.route("/oth-path", v_a63db8);
 v_466992.route("/oth-path", v_a58945);
 v_466992.route("/oth-path", v_87e8b2);
 v_466992.route("/oth-path", v_19f1fa);

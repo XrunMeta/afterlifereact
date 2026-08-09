@@ -1,0 +1,163 @@
+appId: run.xrun.afterlifeRN
+name: "CloneEdit 한 줄 소개 — 줄바꿈 저장·서버 왕복 + 개행 카운트 (T-447)"
+#
+# 【검증함】
+#   - 한 줄 소개에 개행을 넣어 저장하면 서버(preview D1)까지 살아 돌아오나
+#   - 개행이 100자 카운터에 몇 자로 잡히나 (값 assertion)
+#   - 딥링크 콜드 스타트 진입이 실제로 동작하나 (hydrate 폴백 포함)
+#
+# 【확인 못 함】
+#   - 안드로이드. iOS 시뮬레이터만 돌렸다. testID 노출 방식이 플랫폼마다 다르다
+#   - 100자 초과 입력의 서버측 거부 여부. 여기서 막는 건 클라이언트 slice(0,100) 뿐이다
+#   - 소개글이 다른 화면(피드·상세)에서 여러 줄로 어떻게 렌더되나. 저장·왕복까지만 본다
+#
+# 【서버】 preview. EXPO_PUBLIC_API_BASE 미설정 시 자동 fallback.
+# 【정리】 소개글을 원복하지 않는다(히즈키 결정). LINE1 의 `e2e-` 표식으로 사후 수거한다.
+#
+# 실행:
+#   export PATH="$PATH:$HOME/.maestro/bin"
+#   maestro test .maestro/clone-edit-description.yaml -e CLONE_ID=<내 클론 id>
+#
+env:
+  # 🔴 CLONE_ID 는 여기에 두지 않는다. -e CLONE_ID=... 로만 받는다.
+  #    `CLONE_ID: ""` 를 기본값으로 두면 **빈 문자열이 -e 인자를 이긴다**(실측).
+  #    링크가 `afterlife://clone//edit` 이 되어 라우트 매칭에 실패하고, 화면이
+  #    통째로 비어 notFound 도 안 뜨는 진단 불가 상태가 된다.
+  # LINE1/LINE2 를 바꾸면 EXPECTED_COUNT 도 같이 고쳐야 한다.
+  #   e2e-aaa(7) + 개행(1) + bbb(3) = 11
+  LINE1: "e2e-aaa"
+  LINE2: "bbb"
+  EXPECTED_COUNT: "11"
+---
+# ── 0. 세션 유지. clearState 를 쓰지 않아 로그인이 남는다.
+#      stopApp 은 기본 true → 앱 프로세스가 죽으면서 cloneStore(인메모리)는 비고
+#      authStore(AsyncStorage)만 살아남는다. 이게 아래 hydrate 폴백을 강제한다.
+- launchApp:
+    clearState: false
+
+# ── 1. 딥링크 직행. 대시보드 탭을 재생하지 않는다 (스킬 원칙 3 — 도달 비용 죽이기).
+#
+#      🔴 **콜드 스타트 직후 한 번만 쏘면 Android 에서 링크가 유실된다** (실측).
+#         dev build 는 번들 로드에 수 초가 걸리고, 그 사이에 도착한 인텐트는
+#         RN linking 이 아직 마운트 전이라 아무 데도 가지 않는다. 앱은 홈 화면에
+#         멀쩡히 떠 있어서 "딥링크가 안 먹는다" 가 아니라 "화면을 못 찾겠다" 로 보인다.
+#         (adb 로 이미 뜬 앱에 같은 링크를 쏘면 정상 진입한다 — 타이밍 문제 확정.)
+#         iOS 에서는 한 번으로도 통했지만, 같은 레이스가 없다는 보장은 없다.
+#      → 도착할 때까지 재발사한다. 이미 도착했으면 같은 화면 재진입이라 무해하다.
+#
+#      🔴 `waitForAnimationToEnd` 를 대기로 쓰면 안 된다 — **애니메이션이 멈추면 즉시
+#         반환**한다. 정적인 홈 화면에서는 1초도 안 걸려서, 20초로 줘도 재발사 3번이
+#         콜드 스타트 직후 2초 안에 다 끝나버렸다(실측). "기다린 것처럼 보이는 대기".
+#      🔴 `while: notVisible` 조건도 버렸다 — 화면 전환 중 흔들려 1회 만에 빠져나갔다.
+#      → 각 회차가 `extendedWaitUntil` 로 **실제로** 최대 10초 기다리고,
+#         성공하면 즉시 빠진다. `optional: true` 라 타임아웃이 플로우를 죽이지 않는다.
+- repeat:
+    times: 4
+    commands:
+      - openLink: "afterlife://clone/${CLONE_ID}/edit"
+      - extendedWaitUntil:
+          visible:
+            id: "clone-edit-desc-input"
+          timeout: 10000
+          optional: true
+
+# ── 2. CloneEdit 이 편집 가능한 상태가 될 때까지 기다린다.
+#
+#      🔴 "notFound 를 먼저 배제하고 desc-input 을 확인" 하는 순서를 두 번 시도했다가
+#         버렸다. `assertNotVisible: notFound` 가 **화면이 그려지기 전에 평가되어
+#         조용히 통과**하기 때문이다(스토어 히트면 loading 이 한 번도 안 떠서
+#         앞의 대기가 즉시 끝난다). waitForAnimationToEnd 5초로도 못 막았다 —
+#         notFound 는 그보다 늦게 나타난다.
+#         타이밍에 의존하는 가드는 성공을 늦추고 실패를 놓친다. 실패 원인은
+#         **라벨 + 디버그 스크린샷/계층 덤프**가 말하게 하는 편이 정확하고 빠르다.
+- extendedWaitUntil:
+    visible:
+      id: "clone-edit-desc-input"
+    timeout: 20000
+    label: "CloneEdit 편집 화면에 도달하지 못했다. 디버그 스크린샷을 먼저 볼 것 —
+      (a) '클론을 찾을 수 없습니다' 가 떠 있으면: CLONE_ID 가 내 클론이 아니거나,
+          로그인이 풀렸거나, CloneEditScreen 의 hydrate 폴백이 깨졌다.
+      (b) 화면이 통째로 비었으면: 딥링크가 라우트에 매칭되지 않았다(-e CLONE_ID 누락)."
+
+# ── 3. 기존 소개글 비우기.
+#      🔴 `tapOn` + `eraseText: 120` 한 번으로는 안 비워진다 (실측).
+#      eraseText 는 **커서 앞** 문자만 지우고, tapOn 은 요소 중앙을 누르므로
+#      multiline 필드에서는 커서가 텍스트 중간에 박힌다.
+#      → 100자 원문에서 앞 74자만 지워지고 뒤 26자가 남은 채 새 텍스트가 끼어들었다.
+#      텍스트가 짧아지면 중앙 탭이 줄 끝을 넘어가 커서가 끝으로 가므로 반복하면 수렴한다.
+- repeat:
+    times: 4
+    commands:
+      - tapOn:
+          id: "clone-edit-desc-input"
+      - eraseText: 120
+
+# 비었다는 것을 값으로 확인한다. 이 게이트가 없으면 잔여 텍스트가 아래 카운트를
+# 오염시키고, 실패 원인이 "개행 집계" 인지 "안 지워짐" 인지 구분되지 않는다.
+- assertVisible:
+    id: "clone-edit-desc-counter"
+    text: "0/100"
+    label: "소개글이 안 비워졌다 — eraseText 가 커서 앞만 지운다. 반복 횟수를 늘려야 한다"
+
+# ── 4. 두 줄 입력.
+#      inputText 는 개행 문자를 못 넣는다 → Enter 키로 만든다.
+#      multiline TextInput 이라 return 키가 "완료" 가 아니라 개행이어야 한다.
+#      만약 여기서 키보드가 닫히고 개행이 안 들어가면 그 자체가 이번 실측의 발견이다.
+- inputText: "${LINE1}"
+- pressKey: Enter
+- inputText: "${LINE2}"
+
+# ── 5. 개행이 카운터에 몇 자로 잡히나. "떴나" 가 아니라 값을 본다 (스킬 §4).
+#      11 이 아니면 실패 메시지가 실제 값을 알려주므로 그대로 발견이 된다.
+- assertVisible:
+    id: "clone-edit-desc-counter"
+    text: "${EXPECTED_COUNT}/100"
+    label: "개행을 1자로 세면 ${EXPECTED_COUNT}/100 이어야 한다"
+
+# ── 6. 저장. 성공하면 goBack 으로 화면이 닫힌다.
+#      실패하면 showAlert 가 뜨고 화면이 그대로 남으므로 여기서 잡힌다.
+- tapOn:
+    id: "clone-edit-save"
+- extendedWaitUntil:
+    notVisible:
+      id: "clone-edit-save"
+    timeout: 15000
+    label: "저장 후 화면이 안 닫혔다 — PATCH 실패 알림이 떴을 수 있다"
+
+# ── 7. 진짜 왕복 검증.
+#      재시작 없이 재진입하면 updateLocalClone 이 넣은 로컬 값을 읽어 아무것도
+#      증명하지 못한다. 앱을 다시 띄워 스토어를 비우고 서버에서 다시 읽게 한다.
+- launchApp:
+    clearState: false
+# §1 과 같은 이유로 재발사한다 — 콜드 스타트 직후의 링크는 Android 에서 유실된다.
+- repeat:
+    times: 4
+    commands:
+      - openLink: "afterlife://clone/${CLONE_ID}/edit"
+      - extendedWaitUntil:
+          visible:
+            id: "clone-edit-desc-input"
+          timeout: 10000
+          optional: true
+# §2 와 같은 이유로 성공 조건 하나만 길게 기다린다. 실패하면 스크린샷을 볼 것.
+- extendedWaitUntil:
+    visible:
+      id: "clone-edit-desc-input"
+    timeout: 20000
+    label: "재진입에서 편집 화면에 못 갔다 — '클론을 찾을 수 없습니다' 가 떠 있으면
+      저장이 클론을 깨뜨렸는지 확인"
+
+# 서버에서 읽어온 값의 길이가 다시 11 이면 개행이 D1 까지 살아 돌아온 것이다.
+# 10 이면 어딘가(서버 trim / 클라이언트)가 개행을 지웠다는 뜻.
+- assertVisible:
+    id: "clone-edit-desc-counter"
+    text: "${EXPECTED_COUNT}/100"
+    label: "재시작 후에도 ${EXPECTED_COUNT}자여야 한다 — 10 이면 개행이 유실된 것"
+
+# 길이만 같고 개행이 공백으로 치환됐을 수도 있어 내용도 본다.
+# ⚠️ iOS 에서 TextInput 의 value 가 접근성 트리에 어떻게 노출되는지는 아직 실측 전이다.
+#    이 한 줄만 실패하면 셀렉터 문제일 가능성이 높다 → maestro studio 로 트리 덤프 후 교정.
+- assertVisible:
+    id: "clone-edit-desc-input"
+    text: ".*${LINE1}.*"
+    label: "소개글 본문에 ${LINE1} 이 남아있어야 한다"

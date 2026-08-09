@@ -18,6 +18,8 @@ import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_2a15d8, type v_42880a } from "../../api/payments";
 
+const v_176062 = 60;
+
 function v_9f7632(v_6fc191): string {
   const v_d5dda0 = new Date(v_6fc191.includes("T") ? v_6fc191 : v_6fc191.replace(" ", "T") + "Z");
   if (Number.isNaN(v_d5dda0.getTime())) return v_6fc191;
@@ -107,7 +109,7 @@ export default function v_9e01f7() {
                   </View>
                   <Text style={[v_fd5f43.amount, v_d39e5b ? v_fd5f43.green : v_fd5f43.red]}>
                     {v_d39e5b ? "+" : ""}
-                    {v_2f6fcc.amount.toLocaleString(undefined, { maximumFractionDigits: 6 })}{" "}
+                    {(v_2f6fcc.amount / v_176062).toLocaleString(undefined, { maximumFractionDigits: 6 })}{" "}
                     xrun
                   </Text>
                 </View>
