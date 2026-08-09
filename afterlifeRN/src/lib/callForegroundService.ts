@@ -1,6 +1,10 @@
 
 
-import notifee, { AndroidImportance, AndroidColor } from "@notifee/react-native";
+import notifee, {
+  AndroidImportance,
+  AndroidColor,
+  AndroidForegroundServiceType,
+} from "@notifee/react-native";
 import { Platform } from "react-native";
 
 const CHANNEL_ID = "call-foreground";
@@ -40,6 +44,10 @@ export async function startCallForegroundService(args: {
       android: {
         channelId: CHANNEL_ID,
         asForegroundService: true,
+
+        foregroundServiceTypes: [
+          AndroidForegroundServiceType.FOREGROUND_SERVICE_TYPE_MICROPHONE,
+        ],
         ongoing: true,
         color: AndroidColor.PURPLE,
 
