@@ -192,8 +192,9 @@ def test_소유자별_블록_분리():
         "memories_personal": ["어제 등산 감"],
     }))
     content = msgs[0]["content"]
-    self_block = content.split("## 상대 정보")[0]
-    other_block = content.split("## 상대 정보")[1]
+    # 머리말 문장 안에도 '"## 상대 정보" 는 ...' 식으로 헤딩 문자열이 인용되므로,
+    # 실제 블록 경계(줄바꿈으로 둘러싸인 헤딩)로 나눠야 머리말과 섞이지 않는다.
+    self_block, other_block = content.split("\n## 상대 정보\n")
 
     # 클론 속성은 "너의 정보"에만
     assert "무뚝뚝함" in self_block
@@ -232,3 +233,114 @@ def test_context_는_참고_블록():
     content = msgs[0]["content"]
     assert "## 참고" in content
     assert "저녁 시간" in content.split("## 참고")[1]
+
+
+def _bundle_v(persona, viewer_name=None):
+    """viewer 포함 번들 헬퍼."""
+    pb = {"cloneId": "1", "persona": persona}
+    if viewer_name is not None:
+        pb["viewer"] = {"displayName": viewer_name}
+    return {"personaBundle": pb}
+
+
+def test_상태1_기본상대_이름있음():
+    """얼굴 미확정 + viewer 이름 있음 → 이름을 밝히고 인칭 규칙을 선언한다."""
+    msgs = bundle_to_messages(_bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, "지호"))
+    content = msgs[0]["content"]
+    assert '너는 "코조" 이다' in content
+    assert "지호" in content
+    assert "나 / 내 / 제가" in content
+    assert "되물어라" in content
+
+
+def test_상태1_역할어_없음():
+    """상대의 관계를 규정하는 표현을 쓰지 않는다(타인 클론 통화 38% 오인 방지)."""
+    msgs = bundle_to_messages(_bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, "지호"))
+    content = msgs[0]["content"]
+    for banned in ("만든 사람", "제작자", "주인", "생성자"):
+        assert banned not in content
+
+
+def test_상태2_화자확정():
+    """speaker 주어지면 그 이름이 상대이고, 상대 정보는 L2' 값으로 채워진다."""
+    msgs = bundle_to_messages(
+        _bundle_v({"displayName": "코조", "memories_personal": ["기본상대 기억"]}, "지호"),
+        speaker={"name": "민수", "l2p_data": {"memories_personal": ["민수랑 낚시함"]}},
+    )
+    content = msgs[0]["content"]
+    assert "민수" in content
+    assert "지호" not in content            # 기본 상대는 밀려난다
+    assert "민수랑 낚시함" in content
+    assert "기본상대 기억" not in content    # base L2 는 L2' 로 대체된다
+
+
+def test_상태3_이름없음():
+    """viewer 이름이 없으면 이름을 부르지 말라고 지시한다."""
+    msgs = bundle_to_messages(_bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, None))
+    content = msgs[0]["content"]
+    assert "이름으로 부르지 마라" in content
+    assert "지어내지 마라" in content
+
+
+def test_상태4_미확정_얼굴():
+    """unknown_face → 기본 상대 정보는 유지하되 이름은 부르지 않는다."""
+    msgs = bundle_to_messages(
+        _bundle_v({"displayName": "코조", "memories_personal": ["어제 등산 감"]}, "지호"),
+        speaker={"unconfirmed": True},
+    )
+    content = msgs[0]["content"]
+    assert "확정하지 못했다" in content
+    assert "이름으로 부르지 마라" in content
+    assert "지호" not in content              # 이름 호칭 억제
+    assert "어제 등산 감" in content          # L2 맥락은 유지
+    assert "단정해서 꺼내지 마라" in content
+
+
+def test_상태4_전이시_L2p_미잔류():
+    """화자 A 확정 → unknown 전이. A 의 이름·L2' 기억이 남으면 안 된다."""
+    bundle = _bundle_v({"displayName": "코조", "memories_personal": ["기본 기억"]}, "지호")
+    confirmed = bundle_to_messages(
+        bundle, speaker={"name": "민수", "l2p_data": {"memories_personal": ["민수 비밀"]}}
+    )
+    assert "민수 비밀" in confirmed[0]["content"]
+
+    fallback = bundle_to_messages(bundle, speaker={"unconfirmed": True})
+    content = fallback[0]["content"]
+    assert "민수" not in content
+    assert "민수 비밀" not in content
+    assert "기본 기억" in content
+
+
+def test_화자_A에서_B로_전환시_A_미잔류():
+    bundle = _bundle_v({"displayName": "코조"}, "지호")
+    a = bundle_to_messages(bundle, speaker={"name": "민수", "l2p_data": {"memories_personal": ["민수 기억"]}})
+    b = bundle_to_messages(bundle, speaker={"name": "수진", "l2p_data": {"memories_personal": ["수진 기억"]}})
+    assert "민수" in a[0]["content"]
+    assert "민수" not in b[0]["content"]
+    assert "민수 기억" not in b[0]["content"]
+    assert "수진 기억" in b[0]["content"]
+
+
+def test_이름_sanitize_실패시_상태3로_강등():
+    """제어문자·과길이 이름은 신뢰하지 않는다(프롬프트 인젝션 완화, T-135 승계)."""
+    msgs = bundle_to_messages(
+        _bundle_v({"displayName": "코조"}, "지호"),
+        speaker={"name": "악의적​이름" + "가" * 40, "l2p_data": {"memories_personal": ["x"]}},
+    )
+    content = msgs[0]["content"]
+    assert "이름으로 부르지 마라" in content
+    assert "x" in content     # L2' 데이터 자체는 살린다
+
+
+def test_머리말_8줄_이내():
+    """통화 첫 턴 지연 방어 — 머리말은 8줄을 넘지 않는다."""
+    msgs = bundle_to_messages(_bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, "지호"))
+    header = msgs[0]["content"].split("## ")[0]
+    assert len([ln for ln in header.strip().split("\n") if ln.strip()]) <= 8
+
+
+def test_1인자_호출_회귀():
+    """speaker 없이 호출하던 기존 코드가 그대로 동작해야 한다."""
+    msgs = bundle_to_messages(_bundle({"displayName": "코조", "tone": "무뚝뚝함"}))
+    assert len(msgs) == 1
+    assert msgs[0]["role"] == "system"
