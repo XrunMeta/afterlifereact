@@ -122,7 +122,8 @@
           "android": {
             "minSdkVersion": 26,
             "extraMavenRepos": [
-              "../../node_modules/@notifee/react-native/android/libs"
+              "../../node_modules/@notifee/react-native/android/libs",
+              "https://artifact.bytedance.com/repository/pangle/"
             ]
           },
           "ios": {
