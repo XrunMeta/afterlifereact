@@ -12,30 +12,26 @@ config.resolver.extraNodeModules = {
 
 const path = require('path');
 
-const WEB_STUBS = [
-
-  'react-native-fast-tflite',
-
-  'react-native-nitro-modules',
-  'react-native-webrtc',
-
-  'react-native-worklets-core',
-  '@react-native-google-signin/google-signin',
-];
+const stub = (f) => path.resolve(__dirname, 'web-stubs', f);
 
 const WEB_STUB_MAP = {
-  'react-native-vision-camera': path.resolve(__dirname, 'web-stubs/vision-camera-stub.js'),
+
+  'react-native-fast-tflite': stub('stub-fast-tflite.js'),
+
+  'react-native-nitro-modules': stub('stub-nitro-modules.js'),
+  'react-native-webrtc': stub('stub-webrtc.js'),
+
+  'react-native-worklets-core': stub('stub-worklets-core.js'),
+  '@react-native-google-signin/google-signin': stub('stub-google-signin.js'),
+
+  'react-native-vision-camera': stub('vision-camera-stub.js'),
 };
 
-const STUB_PATH = path.resolve(__dirname, 'web-stubs/throwing-stub.js');
 const origResolveRequest = config.resolver.resolveRequest;
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (platform === 'web' && WEB_STUB_MAP[moduleName]) {
     return { filePath: WEB_STUB_MAP[moduleName], type: 'sourceFile' };
-  }
-  if (platform === 'web' && WEB_STUBS.includes(moduleName)) {
-    return { filePath: STUB_PATH, type: 'sourceFile' };
   }
   return (origResolveRequest || context.resolveRequest)(context, moduleName, platform);
 };
