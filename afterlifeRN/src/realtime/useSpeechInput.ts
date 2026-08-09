@@ -4,6 +4,8 @@ import { v_de06a3, v_c4deb2, v_df9f57, v_e662ae, v_5ab095 } from 'bapkr';
 import { v_d08429, v_3032b0 } from './voiceBall';
 
 export interface SpeechEngine {
+
+  getPermissionsAsync?(): Promise<{ granted: boolean }>;
   requestPermissionsAsync(): Promise<{ granted: boolean }>;
   start(opts?: {
     lang?: string;
@@ -266,8 +268,10 @@ export function v_fee12d(v_328259) {
     v_8028c0('');
     v_60039d('');
     v_f59c40(); 
-    const v_d60769 = await v_1e3df0.requestPermissionsAsync();
-    if (!v_d60769.granted) {
+
+    const v_275ccd = await v_1e3df0.getPermissionsAsync?.();
+    const v_b6d66b = v_275ccd?.granted === true ? true : (await v_1e3df0.requestPermissionsAsync()).granted;
+    if (!v_b6d66b) {
       v_3a7d09(new Error('permission_denied'));
       return;
     }
@@ -342,6 +346,8 @@ function v_0fc68d(): SpeechEngine {
 
   const { ExpoSpeechRecognitionModule: v_e243ee } = require('lvqvchptxazovhbxaycespq');
   return {
+
+    getPermissionsAsync: () => v_e243ee.getPermissionsAsync(),
     requestPermissionsAsync: () => v_e243ee.requestPermissionsAsync(),
 
     start: (v_b6c474) =>
