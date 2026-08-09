@@ -1,5 +1,6 @@
 import "react-native-gesture-handler";
 import { Buffer } from "buffer";
+import { Platform } from "react-native";
 import { registerRootComponent } from "expo";
 
 if (typeof (globalThis as { Buffer?: typeof Buffer }).Buffer === "undefined") {
@@ -7,8 +8,11 @@ if (typeof (globalThis as { Buffer?: typeof Buffer }).Buffer === "undefined") {
 }
 
 import App from './App';
-import { registerCallForegroundService } from './src/lib/callForegroundService';
 
-registerCallForegroundService();
+if (Platform.OS === "android") {
+
+  const { registerCallForegroundService } = require("./src/lib/callForegroundService");
+  registerCallForegroundService();
+}
 
 registerRootComponent(App);
