@@ -38,7 +38,8 @@ export async function swapGift(
 
 export async function sendGiftOffchain(
   accessToken: string,
-  payload: { giftId: string; toUserId: number },
+
+  payload: { giftId: string; toUserId: number; cloneId?: number },
   idempotencyKey: string,
 ): Promise<{ ok: true; giftId: string; xrunAmount: number; receiverId: number }> {
   return authFetch(

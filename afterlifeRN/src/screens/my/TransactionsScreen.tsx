@@ -18,6 +18,8 @@ import { COLORS, RADIUS } from "../../components/constants";
 import { useAuthStore } from "../../stores/authStore";
 import { getMyTransactions, type TransactionItem } from "../../api/payments";
 
+const SEC_PER_XRUN = 60;
+
 function fmtDate(iso: string): string {
   const d = new Date(iso.includes("T") ? iso : iso.replace(" ", "T") + "Z");
   if (Number.isNaN(d.getTime())) return iso;
@@ -107,7 +109,7 @@ export default function TransactionsScreen() {
                   </View>
                   <Text style={[s.amount, positive ? s.green : s.red]}>
                     {positive ? "+" : ""}
-                    {tx.amount.toLocaleString(undefined, { maximumFractionDigits: 6 })}{" "}
+                    {(tx.amount / SEC_PER_XRUN).toLocaleString(undefined, { maximumFractionDigits: 6 })}{" "}
                     xrun
                   </Text>
                 </View>

@@ -15,6 +15,8 @@ export const giftInventory = new Hono<AppEnv>();
 const sendSchema = z.object({
   giftId: z.string().min(1).max(80),
   toUserId: z.number().int().positive(),
+
+  cloneId: z.number().int().positive().optional(),
 });
 
 giftInventory.post(
@@ -33,7 +35,12 @@ giftInventory.post(
     const catalog = await getGiftCatalog(c.env);
     const item = catalog.find((g) => g.id === body.giftId);
     if (!item) throw new APIError("NOT_FOUND", `선물 '${body.giftId}' 없음`);
-    if (item.price <= 0 || !Number.isInteger(item.price)) {
+
+    const priceCredits =
+      typeof item.xrunPrice === "number" && item.xrunPrice > 0
+        ? item.xrunPrice * 60
+        : item.price;
+    if (priceCredits <= 0 || !Number.isInteger(priceCredits)) {
       throw new APIError("VALIDATION_FAILED", "선물 가격 설정이 잘못됐어요.");
     }
 
@@ -46,16 +53,76 @@ giftInventory.post(
     try {
       await spend(c, {
         userId: senderId,
-        amount: item.price,
+        amount: priceCredits,
         type: "gift",
         refId: `send:${body.giftId}:to=${body.toUserId}`,
         idempotencyKey: idemKey,
       });
+
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const row = await c.env.DB
+          .prepare(`SELECT credits_free, credits_sub, credits_topup FROM users WHERE id = ?`)
+          .bind(senderId)
+          .first<{ credits_free: number; credits_sub: number; credits_topup: number }>();
+        if (!row) break;
+        const useFree = Math.min(priceCredits, row.credits_free);
+        const useSub = Math.min(priceCredits - useFree, row.credits_sub);
+        const useTopup = priceCredits - useFree - useSub;
+
+        if (useFree + useSub + useTopup < priceCredits) break;
+        const upd = await c.env.DB
+          .prepare(
+            `UPDATE users
+                SET credits_free  = credits_free  - ?,
+                    credits_sub   = credits_sub   - ?,
+                    credits_topup = credits_topup - ?,
+                    updated_at    = CURRENT_TIMESTAMP
+              WHERE id = ?
+                AND credits_free  >= ?
+                AND credits_sub   >= ?
+                AND credits_topup >= ?`,
+          )
+          .bind(useFree, useSub, useTopup, senderId, useFree, useSub, useTopup)
+          .run();
+        if ((upd.meta?.changes ?? 0) > 0) break;
+      }
     } catch (err) {
       if ((err as APIError).code === "INSUFFICIENT_CREDITS") {
         throw new APIError("INSUFFICIENT_CREDITS", "XRUN 잔액이 부족해요.");
       }
       throw err;
+    }
+
+    if (body.cloneId) {
+      try {
+        const cloneRow = await c.env.DB
+          .prepare(`SELECT owner_id FROM clones WHERE id = ?`)
+          .bind(body.cloneId)
+          .first<{ owner_id: number }>();
+
+        if (cloneRow && cloneRow.owner_id === body.toUserId) {
+          await c.env.DB
+            .prepare(
+              `INSERT INTO gift_logs (
+                 sender_user_id, clone_id, owner_user_id, gift_id, gift_name,
+                 total_amount, company_amount, owner_amount, company_address, status, completed_at
+               ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'offchain', 'sent', CURRENT_TIMESTAMP)`,
+            )
+            .bind(
+              senderId,
+              body.cloneId,
+              body.toUserId,
+              body.giftId,
+              item.name,
+              priceCredits,
+              priceCredits,
+            )
+            .run();
+        }
+      } catch (err) {
+
+        console.warn("[gift.send-offchain] gift_logs INSERT skipped:", err);
+      }
     }
 
     await c.env.DB.batch([
@@ -75,25 +142,25 @@ giftInventory.post(
           `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id)
              VALUES (?, ?, ?, 1, ?, 'sent', ?)`,
         )
-        .bind(senderId, body.toUserId, body.giftId, item.price, idemKey),
+        .bind(senderId, body.toUserId, body.giftId, priceCredits, idemKey),
       c.env.DB
         .prepare(
           `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id)
              VALUES (?, ?, ?, 1, ?, 'received', ?)`,
         )
-        .bind(body.toUserId, senderId, body.giftId, item.price, idemKey),
+        .bind(body.toUserId, senderId, body.giftId, priceCredits, idemKey),
     ]);
 
     await logActivity(c, {
       userId: senderId,
       action: "gift.sent_offchain",
-      details: { giftId: body.giftId, toUserId: body.toUserId, xrunAmount: item.price },
+      details: { giftId: body.giftId, toUserId: body.toUserId, xrunAmount: priceCredits },
     });
 
     return c.json({
       ok: true,
       giftId: body.giftId,
-      xrunAmount: item.price,
+      xrunAmount: priceCredits,
       receiverId: body.toUserId,
     });
   },
@@ -116,15 +183,20 @@ giftInventory.get("/inventory", requireAuth, async (c) => {
 
   const items = (rows.results ?? []).map((r) => {
     const meta = catalogMap.get(r.gift_id);
+
+    const priceCredits =
+      meta && typeof meta.xrunPrice === "number" && meta.xrunPrice > 0
+        ? meta.xrunPrice * 60
+        : meta?.price ?? 0;
     return {
       giftId: r.gift_id,
       name: meta?.name ?? r.gift_id,
       emoji: meta?.emoji ?? "🎁",
       imageUrl: meta?.imageUrl,
-      xrunPerItem: meta?.price ?? 0,       
+      xrunPerItem: priceCredits,       
       count: r.count,
       totalReceived: r.total_received,
-      xrunTotal: (meta?.price ?? 0) * r.count,  
+      xrunTotal: priceCredits * r.count,  
     };
   });
 
@@ -148,9 +220,14 @@ giftInventory.post(
     const catalog = await getGiftCatalog(c.env);
     const item = catalog.find((g) => g.id === body.giftId);
     if (!item) throw new APIError("NOT_FOUND", `선물 '${body.giftId}' 없음`);
-    if (item.price <= 0) throw new APIError("VALIDATION_FAILED", "선물 가격이 0 이라 교환 불가.");
 
-    const xrunTotal = item.price * body.count;
+    const priceCredits =
+      typeof item.xrunPrice === "number" && item.xrunPrice > 0
+        ? item.xrunPrice * 60
+        : item.price;
+    if (priceCredits <= 0) throw new APIError("VALIDATION_FAILED", "선물 가격이 0 이라 교환 불가.");
+
+    const xrunTotal = priceCredits * body.count;
 
     const decRes = await c.env.DB
       .prepare(
@@ -172,6 +249,14 @@ giftInventory.post(
         refId: `swap:${body.giftId}:count=${body.count}`,
         idempotencyKey: idemKey,
       });
+
+      await c.env.DB
+        .prepare(
+          `UPDATE users SET credits_topup = credits_topup + ?, updated_at = CURRENT_TIMESTAMP
+             WHERE id = ? AND deleted_at IS NULL`,
+        )
+        .bind(xrunTotal, userId)
+        .run();
     } catch (err) {
 
       await c.env.DB

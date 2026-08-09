@@ -1,6 +1,6 @@
 
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -25,9 +25,6 @@ import { getGiftInventory, swapGift, type GiftInventoryItem } from "../../api/gi
 import { showAlert } from "../../stores/dialogStore";
 import { Image } from "react-native";
 
-const GIFT_INVENTORY_WHITELIST = new Set(["oth-test@example.invalid"]);
-const isGiftInventoryEnabled = (email: string | null | undefined) =>
-  !!email && GIFT_INVENTORY_WHITELIST.has(email.toLowerCase().trim());
 import {
   fetchAllProducts,
   buyConsumable,
@@ -72,8 +69,14 @@ export default function PurchaseScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation();
   const accessToken = useAuthStore((s) => s.accessToken);
-  const apiUser = useAuthStore((s) => s.apiUser);
-  const giftInventoryVisible = isGiftInventoryEnabled(apiUser?.email);
+
+  const giftInventoryVisible = true;
+
+  const scrollRef = useRef<ScrollView>(null);
+  const giftSectionYRef = useRef<number>(0);
+  const scrollToGift = () => {
+    scrollRef.current?.scrollTo({ y: Math.max(0, giftSectionYRef.current - 12), animated: true });
+  };
   const [balance, setBalance] = useState<CreditBalance | null>(null);
 
   const [giftItems, setGiftItems] = useState<GiftInventoryItem[]>([]);
@@ -110,7 +113,8 @@ export default function PurchaseScreen() {
     (item: GiftInventoryItem) => {
       showAlert(
         "교환 확인",
-        `${item.name} ${item.count}개를 ${item.xrunTotal.toLocaleString()} XRUN 으로 교환할까요?`,
+
+        `${item.name} ${item.count}개를 ${fmtSecToXrun(item.xrunTotal)} XRUN 으로 교환할까요?`,
         [
           { text: "취소", style: "cancel" },
           {
@@ -128,7 +132,8 @@ export default function PurchaseScreen() {
                 );
                 showAlert(
                   "교환 완료 🎉",
-                  `${res.xrunCredited.toLocaleString()} XRUN 이 지갑에 충전됐어요.`,
+
+                  `${fmtSecToXrun(res.xrunCredited)} XRUN 이 지갑에 충전됐어요.`,
                 );
                 await refresh();
               } catch (err) {
@@ -231,7 +236,7 @@ export default function PurchaseScreen() {
         onBackPress={() => navigation.goBack()}
       />
 
-      <ScrollView contentContainerStyle={{ padding: SIZES.large, paddingBottom: 40 }}>
+      <ScrollView ref={scrollRef} contentContainerStyle={{ padding: SIZES.large, paddingBottom: 40 }}>
         {
 }
 
@@ -256,6 +261,18 @@ export default function PurchaseScreen() {
                   <Text style={s.balanceLabel}>{t("purchase.bucketTopup", { defaultValue: "충전" })}</Text>
                   <Text style={s.balanceVal}>{fmtSecToXrun(balance.topupSec)}</Text>
                 </View>
+                {}
+                {
+}
+                {giftInventoryVisible && (
+                  <TouchableOpacity style={s.balanceCol} onPress={scrollToGift} activeOpacity={0.6}>
+                    <Text style={s.balanceLabel}>{t("purchase.bucketGift", { defaultValue: "선물" })}</Text>
+                    {}
+                    <Text style={s.balanceVal}>
+                      {fmtSecToXrun(giftItems.reduce((sum, g) => sum + g.xrunTotal, 0))}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
               {balance.subscription && (
                 <Text style={s.subInfo}>
@@ -272,9 +289,13 @@ export default function PurchaseScreen() {
           )}
         </View>
 
-        {}
+        {
+}
         {giftInventoryVisible && giftItems.length > 0 && (
-          <View style={{ marginTop: 8, marginBottom: 24 }}>
+          <View
+            style={{ marginTop: 8, marginBottom: 24 }}
+            onLayout={(e) => { giftSectionYRef.current = e.nativeEvent.layout.y; }}
+          >
             <Text style={s.sectionTitle}>받은 선물</Text>
             <Text style={s.sectionDesc}>[교환] 을 누르면 XRUN 크레딧으로 충전돼요.</Text>
             {giftItems.map((item) => {
@@ -290,7 +311,8 @@ export default function PurchaseScreen() {
                   )}
                   <View style={s.giftInfo}>
                     <Text style={s.giftName}>{item.name} {item.count}개</Text>
-                    <Text style={s.giftAmount}>= {item.xrunTotal.toLocaleString()} XRUN</Text>
+                    {}
+                    <Text style={s.giftAmount}>= {fmtSecToXrun(item.xrunTotal)} XRUN</Text>
                   </View>
                   <TouchableOpacity
                     style={[s.swapBtn, busy && { opacity: 0.6 }]}

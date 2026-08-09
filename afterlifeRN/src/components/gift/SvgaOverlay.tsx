@@ -1,13 +1,19 @@
 
 
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
 interface Props {
   visible: boolean;
   svgaUrl: string | null;
   onClose: () => void;
+
+  senderName?: string | null;
+  senderAvatarUrl?: string | null;
+  giftName?: string | null;
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
@@ -34,7 +40,7 @@ function buildHtml(base64: string): string {
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <style>
     html, body { margin: 0; padding: 0; background: transparent; height: 100%; overflow: hidden; }
-    #canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+    #canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; }
     #canvas > div { width: 100%; height: 100%; }
   </style>
   <script src="https://unpkg.com/svgaplayerweb@2.3.2/build/svga.min.js"></script>
@@ -110,8 +116,18 @@ function buildHtml(base64: string): string {
 </html>`;
 }
 
-export default function SvgaOverlay({ visible, svgaUrl, onClose }: Props) {
+export default function SvgaOverlay({
+  visible,
+  svgaUrl,
+  onClose,
+  senderName,
+  senderAvatarUrl,
+  giftName,
+}: Props) {
   const [html, setHtml] = useState<string | null>(null);
+
+  const insets = useSafeAreaInsets();
+  const bottomPad = insets.bottom + 124;
 
   useEffect(() => {
     if (!visible || !svgaUrl) {
@@ -144,8 +160,29 @@ export default function SvgaOverlay({ visible, svgaUrl, onClose }: Props) {
 
   if (!visible || !svgaUrl || !html) return null;
 
+  const hasNotice = !!(senderName && giftName);
   return (
-    <View style={s.root} pointerEvents="none">
+    <View style={[s.root, { paddingBottom: bottomPad }]} pointerEvents="none">
+      {hasNotice && (
+        <View style={s.notice}>
+          {senderAvatarUrl ? (
+            <Image source={{ uri: senderAvatarUrl }} style={s.noticeAvatar} />
+          ) : (
+
+            <View style={[s.noticeAvatar, s.noticeAvatarPlaceholder]}>
+              <Feather name="user" size={20} color="#999" />
+            </View>
+          )}
+          <View style={s.noticeText}>
+            <Text style={s.noticeName} numberOfLines={1}>
+              {senderName}
+            </Text>
+            <Text style={s.noticeMsg} numberOfLines={1}>
+              님의 {giftName} 선물을 보냈습니다
+            </Text>
+          </View>
+        </View>
+      )}
       <View style={s.stageWrap}>
         <WebView
           originWhitelist={["*"]}
@@ -184,15 +221,54 @@ const s = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    alignItems: "center",
-
+    alignItems: "stretch",
     justifyContent: "flex-end",
-    paddingBottom: "15%",
     zIndex: 50,
   },
+
+  notice: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 16,
+    marginBottom: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    borderRadius: 12,
+    maxWidth: "80%",
+  },
+  noticeAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 10,
+    backgroundColor: "#333",
+  },
+  noticeAvatarPlaceholder: {
+
+    backgroundColor: "#e5e5e5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  noticeText: {
+    flexShrink: 1,
+  },
+  noticeName: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  noticeMsg: {
+    color: "#fff",
+    fontSize: 12,
+    marginTop: 2,
+  },
   stageWrap: {
-    width: "70%",
-    aspectRatio: 1,
+    alignSelf: "center",
+
+    width: "100%",
+    height: "45%",
     backgroundColor: "transparent",
   },
   web: { flex: 1, backgroundColor: "transparent" },

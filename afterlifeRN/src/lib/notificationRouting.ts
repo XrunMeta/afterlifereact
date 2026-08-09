@@ -49,10 +49,17 @@ function dispatch(data: UnknownRecord): void {
   const cloneId = toNum(data.cloneId);
   const followerId = toNum(data.followerId);
 
+  if (type === "clone_gift") {
+    nav.navigate("Main", {
+      screen: "MyTab",
+      params: { screen: "Purchase" },
+    });
+    return;
+  }
+
   if (
     type === "clone_like" ||
     type === "clone_comment" ||
-    type === "clone_gift" ||
     type === "clone_follow"
   ) {
     if (cloneId > 0) {
@@ -61,9 +68,7 @@ function dispatch(data: UnknownRecord): void {
           ? "likes"
           : type === "clone_comment"
             ? "comments"
-            : type === "clone_gift"
-              ? "gifts"
-              : "followers";
+            : "followers";
       nav.navigate("Main", {
         screen: "ClonesTab",
         params: {
