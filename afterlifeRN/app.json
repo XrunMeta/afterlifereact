@@ -51,12 +51,14 @@
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_PHONE_CALL",
         "android.permission.POST_NOTIFICATIONS",
-        "android.permission.WAKE_LOCK"
+        "android.permission.WAKE_LOCK",
+        "android.permission.FOREGROUND_SERVICE_MICROPHONE"
       ]
     },
     "plugins": [
       "./withCustomPodfile.js",
       "./plugins/withAndroidAbiFilters.js",
+    "./plugins/withNotifeeCallFgsType.js",
       "./plugins/withPangle.js",
       [
         "expo-splash-screen",
