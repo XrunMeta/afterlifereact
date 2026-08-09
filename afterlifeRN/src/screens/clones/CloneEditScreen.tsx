@@ -1,11 +1,12 @@
 
 
 import { showAlert } from "../../stores/dialogStore";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,8 +18,10 @@ import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
-import { patchClone } from "../../api/clones";
+import { patchClone, listMyClones } from "../../api/clones";
 import { AuthApiError } from "../../api/auth";
+import { adaptMyClone } from "../../lib/adaptMyClone";
+import { TID } from "../../testIDs";
 import type { DomainClone as Clone } from "../../types/domain";
 import { COLORS, SIZES } from "../../components/constants";
 
@@ -32,12 +35,30 @@ export default function CloneEditScreen({ route, navigation }: Props) {
   const { cloneId } = route.params;
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
   const updateLocalClone = useCloneStore((s) => s.updateLocalClone);
+  const upsertClones = useCloneStore((s) => s.upsertClones);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
   const [visibility, setVisibility] = useState<Visibility>("public");
   const [saving, setSaving] = useState(false);
+
+  const [hydrating, setHydrating] = useState(false);
+
+  const hydrateAttempted = useRef(false);
+  useEffect(() => {
+    if (clone || hydrateAttempted.current) return;
+    hydrateAttempted.current = true;
+    const accessToken = useAuthStore.getState().accessToken;
+    if (!accessToken) return; 
+    setHydrating(true);
+    listMyClones(accessToken)
+      .then((res) => upsertClones(res.items.map(adaptMyClone)))
+      .catch((err) => {
+        console.warn("[CloneEdit] hydrate failed:", err);
+      })
+      .finally(() => setHydrating(false));
+  }, [clone, upsertClones]);
 
   useEffect(() => {
     if (!clone) return;
@@ -50,7 +71,13 @@ export default function CloneEditScreen({ route, navigation }: Props) {
   if (!clone) {
     return (
       <View style={s.notFound}>
-        <Text style={s.notFoundText}>{t("edit.notFound")}</Text>
+        {hydrating ? (
+          <ActivityIndicator testID={TID.cloneEdit.loading} color={COLORS.zinc400} />
+        ) : (
+          <Text testID={TID.cloneEdit.notFound} style={s.notFoundText}>
+            {t("edit.notFound")}
+          </Text>
+        )}
       </View>
     );
   }
@@ -103,6 +130,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
       <View style={s.content}>
         {}
         <TextField
+          testID={TID.cloneEdit.nameInput}
           label={t("edit.nameLabel")}
           value={name}
           onChangeText={setName}
@@ -111,6 +139,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
 
         {}
         <TextField
+          testID={TID.cloneEdit.descInput}
           label={t("edit.descLabel")}
           value={description}
           onChangeText={(v) => setDescription(v.slice(0, 100))}
@@ -119,7 +148,9 @@ export default function CloneEditScreen({ route, navigation }: Props) {
           maxLength={100}
           containerStyle={{ marginTop: 16 }}
         />
-        <Text style={s.descCounter}>{description.length}/100</Text>
+        <Text testID={TID.cloneEdit.descCounter} style={s.descCounter}>
+          {description.length}/100
+        </Text>
 
         {
 }
@@ -128,6 +159,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
       {}
       <View style={[s.bottomBar, { paddingBottom: 16 + Math.max(insets.bottom, 0) }]}>
         <Button
+          testID={TID.cloneEdit.save}
           title={saving ? t("common.loading") : t("edit.save")}
           variant="primary"
           onPress={handleSave}

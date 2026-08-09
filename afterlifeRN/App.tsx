@@ -58,6 +58,19 @@ const linking: LinkingOptions<RootStackParamList> = {
         path: "clone/:cloneId",
         parse: { cloneId: (id: string) => Number(id) },
       },
+      Main: {
+        screens: {
+          ClonesTab: {
+
+            screens: {
+              CloneEdit: {
+                path: "clone/:cloneId/edit",
+                parse: { cloneId: (id: string) => Number(id) },
+              },
+            },
+          },
+        },
+      },
     },
   },
 };
