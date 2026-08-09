@@ -16,13 +16,16 @@ export interface E2ECredentials {
 }
 
 function findUp(relative: string, maxDepth = 6): string | null {
-  let dir = process.cwd();
-  for (let i = 0; i < maxDepth; i++) {
-    const candidate = path.join(dir, relative);
-    if (existsSync(candidate)) return candidate;
-    const parent = path.dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
+  const start = typeof __dirname !== "undefined" ? __dirname : process.cwd();
+  for (const base of [start, process.cwd()]) {
+    let dir = base;
+    for (let i = 0; i < maxDepth; i++) {
+      const candidate = path.join(dir, relative);
+      if (existsSync(candidate)) return candidate;
+      const parent = path.dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
   }
   return null;
 }
@@ -64,13 +67,25 @@ export async function login(creds: E2ECredentials): Promise<Session> {
   });
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(`로그인 실패 (HTTP ${res.status}): ${text.slice(0, 200)}`);
+    throw new Error(
+      `로그인 실패 (HTTP ${res.status}): ${text.slice(0, 200)}\n` +
+        `⚠️ 시도 제한이 있습니다. 추측 재시도 금지 — 자격증명을 먼저 확인하세요.`,
+    );
   }
-  const body = JSON.parse(text) as { accessToken?: string; userId?: number };
+  const body = JSON.parse(text) as { accessToken?: string };
   if (!body.accessToken) {
     throw new Error(`로그인 응답에 accessToken 이 없습니다: ${text.slice(0, 200)}`);
   }
-  return { accessToken: body.accessToken, userId: body.userId ?? null };
+  return { accessToken: body.accessToken, userId: await fetchUserId(body.accessToken) };
+}
+
+async function fetchUserId(accessToken: string): Promise<number | null> {
+  const res = await fetch(`${API_BASE}/oth-path`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) return null;
+  const body = (await res.json()) as { user?: { id?: number } };
+  return body.user?.id ?? null;
 }
 
 export async function getCloneDescription(
