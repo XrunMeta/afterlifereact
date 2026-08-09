@@ -37,11 +37,12 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_84d546 } from "../../lib/callGuard";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
-import { v_d60cdf, v_81d12f, v_f373d8, v_20d793, v_776874, v_914311, v_8ce643, v_d24912, type v_fa0201, type v_a9d96d, type v_d83ffc, type v_52af9d, type v_ceccc3, type v_6349d0, type v_1d741a } from "../../api/clones";
+import { v_d60cdf, v_81d12f, v_f373d8, v_20d793, v_776874, v_914311, v_8ce643, v_d24912, type v_a9d96d, type v_d83ffc, type v_52af9d, type v_ceccc3, type v_6349d0, type v_1d741a } from "../../api/clones";
 import v_feb82c from "../../mocks/gifts.json";
 import type { v_84fd28 } from "../../types/gift";
 
 const v_bed6ed = v_feb82c as v_84fd28[];
+import { v_a8d790 } from "../../lib/adaptMyClone";
 import { v_bfd883 } from "../../lib/relativeTime";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import { v_84a859, v_976b89 } from "../../api/auth";
@@ -62,29 +63,6 @@ function v_5c66fc(v_f4e98d): string {
   if (typeof v_f4e98d !== "number" || !Number.isFinite(v_f4e98d)) return "0";
   if (v_f4e98d >= 1000) return `${(v_f4e98d / 1000).toFixed(1)}k`;
   return String(v_f4e98d);
-}
-
-function v_a8d790(c: v_fa0201): v_affcc0 {
-  return {
-    id: v_3f4e2e.id,
-    cloneType: v_3f4e2e.cloneType,
-    ownerId: v_3f4e2e.ownerId,
-    displayName: v_3f4e2e.name,
-    username: v_3f4e2e.username,
-    description: v_3f4e2e.description ?? "",
-    interests: v_3f4e2e.interests ?? [],
-    imageUrl: v_3f4e2e.avatarUrl ?? undefined,
-    visibility: v_3f4e2e.visibility,
-    status: (v_3f4e2e.trainingStatus as v_affcc0["status"]) ?? "active",
-    createdAt: v_3f4e2e.createdAt,
-    myRole: v_3f4e2e.myRole,
-    coownerCount: v_3f4e2e.coownerCount,
-    likesCount: v_3f4e2e.likesCount,
-    commentsCount: v_3f4e2e.commentsCount,
-    followersCount: v_3f4e2e.followersCount,
-    messagesCount: v_3f4e2e.messagesCount,
-    ...(v_3f4e2e.l1Profile ? { l1Profile: v_3f4e2e.l1Profile } : {}),
-  };
 }
 
 export default function v_def15b() {

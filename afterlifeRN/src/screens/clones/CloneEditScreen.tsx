@@ -1,11 +1,12 @@
 
 
 import { v_889fad } from "../../stores/dialogStore";
-import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
+import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
   v_472849,
+  v_39a996,
 } from "rcmrninabrnb";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
@@ -17,8 +18,10 @@ import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
-import { v_bb226e } from "../../api/clones";
+import { v_bb226e, v_d60cdf } from "../../api/clones";
 import { v_84a859 } from "../../api/auth";
+import { v_a8d790 } from "../../lib/adaptMyClone";
+import { v_5401ae } from "../../testIDs";
 import type { v_4b85a1 as v_affcc0 } from "../../types/domain";
 import { v_1bfbd0, v_9b1a04 } from "../../components/constants";
 
@@ -32,12 +35,30 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const { cloneId: v_6e0fd3 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
   const v_941cd7 = v_194498((v_fd5f43) => v_fd5f43.updateLocalClone);
+  const v_7a98d1 = v_194498((v_fd5f43) => v_fd5f43.upsertClones);
 
   const [v_1833e7, v_318f24] = v_5ab095("");
   const [v_6856a9, v_b7e174] = v_5ab095("");
 
   const [v_818579, v_2cf16e] = v_5ab095<Visibility>("public");
   const [v_35bf26, v_04e389] = v_5ab095(false);
+
+  const [v_43fc49, v_ff2ade] = v_5ab095(false);
+
+  const v_586061 = v_e662ae(false);
+  v_c4deb2(() => {
+    if (v_eb25ce || v_586061.current) return;
+    v_586061.current = true;
+    const v_2ca7e0 = v_1ed7d9.getState().accessToken;
+    if (!v_2ca7e0) return; 
+    v_ff2ade(true);
+    v_d60cdf(v_2ca7e0)
+      .then((v_8f00b9) => v_7a98d1(v_8f00b9.items.map(v_a8d790)))
+      .catch((v_49263d) => {
+        console.warn("[CloneEdit] hydrate failed:", v_49263d);
+      })
+      .finally(() => v_ff2ade(false));
+  }, [v_eb25ce, v_7a98d1]);
 
   v_c4deb2(() => {
     if (!v_eb25ce) return;
@@ -50,7 +71,13 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   if (!v_eb25ce) {
     return (
       <View style={v_fd5f43.notFound}>
-        <Text style={v_fd5f43.notFoundText}>{v_8d41d7("edit.notFound")}</Text>
+        {v_43fc49 ? (
+          <ActivityIndicator testID={v_5401ae.cloneEdit.loading} color={v_1bfbd0.zinc400} />
+        ) : (
+          <Text testID={v_5401ae.cloneEdit.notFound} style={v_fd5f43.notFoundText}>
+            {v_8d41d7("edit.notFound")}
+          </Text>
+        )}
       </View>
     );
   }
@@ -103,6 +130,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       <View style={v_fd5f43.content}>
         {}
         <TextField
+          testID={v_5401ae.cloneEdit.nameInput}
           label={v_8d41d7("edit.nameLabel")}
           value={v_1833e7}
           onChangeText={v_318f24}
@@ -111,6 +139,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
         {}
         <TextField
+          testID={v_5401ae.cloneEdit.descInput}
           label={v_8d41d7("edit.descLabel")}
           value={v_6856a9}
           onChangeText={(v_81e2ef) => v_b7e174(v_81e2ef.slice(0, 100))}
@@ -119,7 +148,9 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           maxLength={100}
           containerStyle={{ marginTop: 16 }}
         />
-        <Text style={v_fd5f43.descCounter}>{v_6856a9.length}/100</Text>
+        <Text testID={v_5401ae.cloneEdit.descCounter} style={v_fd5f43.descCounter}>
+          {v_6856a9.length}/100
+        </Text>
 
         {
 }
@@ -128,6 +159,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       {}
       <View style={[v_fd5f43.bottomBar, { paddingBottom: 16 + Math.max(v_033e14.bottom, 0) }]}>
         <Button
+          testID={v_5401ae.cloneEdit.save}
           title={v_35bf26 ? v_8d41d7("common.loading") : v_8d41d7("edit.save")}
           variant="primary"
           onPress={v_1b8283}
