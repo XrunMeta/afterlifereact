@@ -18,7 +18,8 @@ export default async function v_b92521(config: v_c6ec1b) {
   }
 
   const v_6c5cba =
-    v_d91d98.includes('<div id="root">') && v_d91d98.includes("<title>afterlife</title>");
+    v_d91d98.includes('<div id="root">') &&
+    (v_d91d98.includes('id="expo-reset"') || v_d91d98.includes("expo-generated"));
   if (!v_6c5cba) {
     const v_f31c63 = new URL(v_fed274).port || "80";
     throw new Error(

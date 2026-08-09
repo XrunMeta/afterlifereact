@@ -1,4 +1,6 @@
 import { v_2a805f, v_4d37e3, type v_dea07e } from "tblnxrbjvhejiddj";
+
+import { v_5401ae } from "../src/testIDs";
 import {
   v_e6e000,
   v_ff687d,
@@ -11,18 +13,14 @@ const v_e11ce9 = Number(process.env.E2E_CLONE_ID ?? 9116);
 
 const v_83500a = "e2e-web-";
 
-const v_5401ae = {
-  cloneEdit: {
-    nameInput: "clone-edit-name-input",
-    descInput: "clone-edit-desc-input",
-    descCounter: "clone-edit-desc-counter",
-    save: "clone-edit-save",
-  },
-} as const;
-
 v_2a805f.describe.configure({ mode: "serial" });
 
 let session: v_6edea3;
+
+let v_595ec2 = null;
+
+const v_0b13af = Symbol("poll-error") as unknown as string;
+let v_cb9570 = null;
 
 v_2a805f.beforeAll(async () => {
   v_a3ff5a = await v_182fdb(v_b08cc6());
@@ -62,18 +60,36 @@ v_2a805f("한 줄 소개를 고치면 서버에 반영된다 (개행 포함)", a
   await v_2365e9.getByTestId(v_5401ae.cloneEdit.save).click();
 
   await v_4d37e3
-    .poll(() => v_ff687d(v_a3ff5a.accessToken, v_e11ce9), {
-      timeout: 20_000,
-      intervals: [500, 1000, 2000],
-      message: "저장 후 서버 값이 새 값으로 바뀌지 않았습니다.",
-    })
+    .poll(
+      async () => {
+        try {
+          return await v_ff687d(v_a3ff5a.accessToken, v_e11ce9);
+        } catch (v_9e86fd) {
+          v_cb9570 = (v_9e86fd as Error).message;
+          return v_0b13af; 
+        }
+      },
+      {
+        timeout: 20_000,
+        intervals: [500, 1000, 2000],
+        message:
+          "저장 후 서버 값이 새 값으로 바뀌지 않았습니다. " +
+          "(조회 자체가 계속 실패했다면 아래 lastPollError 를 볼 것)",
+      },
+    )
     .toBe(v_f60c5d);
+
+  v_4d37e3(v_cb9570, `서버 조회가 실패했습니다: ${v_cb9570}`).toBeNull();
+
+  v_595ec2 = v_f60c5d; 
 });
 
 v_2a805f("개행이 D1 왕복에서 살아남는다", async ({ page: v_2365e9 }) => {
 
+  v_2a805f.skip(v_595ec2 === null, "선행 테스트가 실행되지 않아 대조할 값이 없습니다.");
+
   const v_5885b8 = await v_ff687d(v_a3ff5a.accessToken, v_e11ce9);
-  v_4d37e3(v_5885b8, "이전 테스트의 저장 값이 없습니다.").not.toBeNull();
+  v_4d37e3(v_5885b8, "서버에 저장된 값이 없습니다.").toBe(v_595ec2);
   v_4d37e3(v_5885b8!.split("\n")).toHaveLength(2);
 
   await v_776876(v_2365e9, `/clone/${v_e11ce9}/edit`);
