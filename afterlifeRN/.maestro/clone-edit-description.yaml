@@ -36,7 +36,30 @@ env:
     clearState: false
 
 # ── 1. 딥링크 직행. 대시보드 탭을 재생하지 않는다 (스킬 원칙 3 — 도달 비용 죽이기).
-- openLink: "afterlife://clone/${CLONE_ID}/edit"
+#
+#      🔴 **콜드 스타트 직후 한 번만 쏘면 Android 에서 링크가 유실된다** (실측).
+#         dev build 는 번들 로드에 수 초가 걸리고, 그 사이에 도착한 인텐트는
+#         RN linking 이 아직 마운트 전이라 아무 데도 가지 않는다. 앱은 홈 화면에
+#         멀쩡히 떠 있어서 "딥링크가 안 먹는다" 가 아니라 "화면을 못 찾겠다" 로 보인다.
+#         (adb 로 이미 뜬 앱에 같은 링크를 쏘면 정상 진입한다 — 타이밍 문제 확정.)
+#         iOS 에서는 한 번으로도 통했지만, 같은 레이스가 없다는 보장은 없다.
+#      → 도착할 때까지 재발사한다. 이미 도착했으면 같은 화면 재진입이라 무해하다.
+#
+#      🔴 `waitForAnimationToEnd` 를 대기로 쓰면 안 된다 — **애니메이션이 멈추면 즉시
+#         반환**한다. 정적인 홈 화면에서는 1초도 안 걸려서, 20초로 줘도 재발사 3번이
+#         콜드 스타트 직후 2초 안에 다 끝나버렸다(실측). "기다린 것처럼 보이는 대기".
+#      🔴 `while: notVisible` 조건도 버렸다 — 화면 전환 중 흔들려 1회 만에 빠져나갔다.
+#      → 각 회차가 `extendedWaitUntil` 로 **실제로** 최대 10초 기다리고,
+#         성공하면 즉시 빠진다. `optional: true` 라 타임아웃이 플로우를 죽이지 않는다.
+- repeat:
+    times: 4
+    commands:
+      - openLink: "afterlife://clone/${CLONE_ID}/edit"
+      - extendedWaitUntil:
+          visible:
+            id: "clone-edit-desc-input"
+          timeout: 10000
+          optional: true
 
 # ── 2. CloneEdit 이 편집 가능한 상태가 될 때까지 기다린다.
 #
@@ -106,7 +129,16 @@ env:
 #      증명하지 못한다. 앱을 다시 띄워 스토어를 비우고 서버에서 다시 읽게 한다.
 - launchApp:
     clearState: false
-- openLink: "afterlife://clone/${CLONE_ID}/edit"
+# §1 과 같은 이유로 재발사한다 — 콜드 스타트 직후의 링크는 Android 에서 유실된다.
+- repeat:
+    times: 4
+    commands:
+      - openLink: "afterlife://clone/${CLONE_ID}/edit"
+      - extendedWaitUntil:
+          visible:
+            id: "clone-edit-desc-input"
+          timeout: 10000
+          optional: true
 # §2 와 같은 이유로 성공 조건 하나만 길게 기다린다. 실패하면 스크린샷을 볼 것.
 - extendedWaitUntil:
     visible:
