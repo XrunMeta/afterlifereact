@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { normalizeMicLevel, shouldUpdateLevel } from './voiceBall';
 
 export interface SpeechEngine {
+
+  getPermissionsAsync?(): Promise<{ granted: boolean }>;
   requestPermissionsAsync(): Promise<{ granted: boolean }>;
   start(opts?: {
     lang?: string;
@@ -275,8 +277,10 @@ export function useSpeechInput(opts?: {
     setTranscript('');
     setInterimTranscript('');
     resetBuffer(); 
-    const perm = await engine.requestPermissionsAsync();
-    if (!perm.granted) {
+
+    const current = await engine.getPermissionsAsync?.();
+    const granted = current?.granted === true ? true : (await engine.requestPermissionsAsync()).granted;
+    if (!granted) {
       setError(new Error('permission_denied'));
       return;
     }
@@ -351,6 +355,8 @@ function getDefaultEngine(): SpeechEngine {
 
   const { ExpoSpeechRecognitionModule } = require('expo-speech-recognition');
   return {
+
+    getPermissionsAsync: () => ExpoSpeechRecognitionModule.getPermissionsAsync(),
     requestPermissionsAsync: () => ExpoSpeechRecognitionModule.requestPermissionsAsync(),
 
     start: (o) =>
