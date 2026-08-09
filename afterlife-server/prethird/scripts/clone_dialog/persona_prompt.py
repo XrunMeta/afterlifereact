@@ -29,22 +29,36 @@ bundle 구조 (fetch_bundle 반환 전체 형식):
 """
 from __future__ import annotations
 
-_KNOWN_PERSONA_LABELS: list[tuple[str, str]] = [
-    ("displayName", "이름"),
-    ("relation", "사용자와의 관계"),
+# 클론 자신의 속성 — "## 너의 정보" 블록.
+_SELF_LABELS: list[tuple[str, str]] = [
     ("tone", "말투"),
     ("personality_core", "핵심 성격"),
     ("voice_style", "발화 스타일"),
     ("speech_patterns", "말버릇"),
     ("mood_overrides", "감정 상태"),
-    ("memory_summary", "기억 요약"),
-    ("relationship", "관계 맥락"),
-    ("context", "현재 맥락"),
-    ("recent_topics", "최근 화제"),
-    ("preference_personal", "사용자 취향"),   # 학습 키(E)
-    ("memories_personal", "기억"),            # 학습 키(E)
-    ("preference_history", "취향 변화"),       # 선호 변경이력 (P1)
 ]
+
+# 대화 상대의 속성 — "## 상대 정보" 블록.
+# memory_summary 는 소유자가 혼재하지만, 클론이 상대의 기억을 자기 것으로
+# 착각하는 쪽이 그 반대보다 해로우므로 상대 쪽으로 보수 배치한다(T-252 설계 4.3).
+_OTHER_LABELS: list[tuple[str, str]] = [
+    ("relation", "너와의 관계"),
+    ("relationship", "관계 맥락"),
+    ("preference_personal", "취향"),
+    ("memories_personal", "기억"),
+    ("preference_history", "취향 변화"),
+    ("memory_summary", "기억 요약"),
+    ("recent_topics", "최근 화제"),
+]
+
+# 소유자가 없거나 불명 — "## 참고" 블록.
+_NEUTRAL_LABELS: list[tuple[str, str]] = [
+    ("context", "현재 맥락"),
+]
+
+# displayName 은 머리말로 승격되므로 속성 줄에서 제외한다.
+# knowledge 는 "## 전문 지식" 전용 섹션으로 분리된다.
+_EXCLUDED_KEYS = {"displayName", "knowledge"}
 
 
 def _format_val(val) -> str:
@@ -108,36 +122,56 @@ def bundle_to_messages(bundle: dict | None) -> list[dict]:
         lines.append("## 금지어")
         lines.append(", ".join(str(x) for x in blocklist))
 
-    # 2) 페르소나 속성
+    # 2) 소유자별 속성 블록
     persona: dict = pb.get("persona") or {}
-    persona_lines: list[str] = []
-    for key, label in _KNOWN_PERSONA_LABELS:
-        val = persona.get(key)
-        if key == "preference_history":
-            text = _format_pref_history(val) if val is not None else ""
-        else:
-            text = _format_val(val) if val is not None else ""
-        if text.strip():
-            persona_lines.append(f"- {label}: {text}")
 
-    # 위 목록에 없는 나머지 속성도 포함 (knowledge는 전용 섹션으로 분리하므로 제외)
-    known_keys = {k for k, _ in _KNOWN_PERSONA_LABELS} | {"knowledge"}
+    def _render(labels: list[tuple[str, str]]) -> list[str]:
+        out: list[str] = []
+        for key, label in labels:
+            val = persona.get(key)
+            if val is None:
+                continue
+            text = _format_pref_history(val) if key == "preference_history" else _format_val(val)
+            if text.strip():
+                out.append(f"- {label}: {text}")
+        return out
+
+    self_lines = _render(_SELF_LABELS)
+    other_lines = _render(_OTHER_LABELS)
+    neutral_lines = _render(_NEUTRAL_LABELS)
+
+    # 위 세 표에 없는 키는 소유자를 알 수 없다 → 중립 블록으로 격리한다.
+    # 상대 정보에 넣으면 클론 속성이 상대 것으로 오염될 수 있다.
+    known_keys = (
+        {k for k, _ in _SELF_LABELS}
+        | {k for k, _ in _OTHER_LABELS}
+        | {k for k, _ in _NEUTRAL_LABELS}
+        | _EXCLUDED_KEYS
+    )
     for key, val in persona.items():
         if key in known_keys or val is None:
             continue
         text = _format_val(val)
         if text.strip():
-            persona_lines.append(f"- {key}: {text}")
+            neutral_lines.append(f"- {key}: {text}")
 
     knowledge_text = _format_knowledge(persona.get("knowledge"))
 
-    if not persona_lines and not lines and not knowledge_text:
-        # l0도 없고 persona 속성도 없고 knowledge도 없으면 의미 없음
+    if not (self_lines or other_lines or neutral_lines or lines or knowledge_text):
+        # l0 도 없고 속성도 없고 knowledge 도 없으면 의미 없음
         return []
 
-    if persona_lines:
-        lines.append("## 페르소나")
-        lines.extend(persona_lines)
+    if self_lines:
+        lines.append("## 너의 정보")
+        lines.extend(self_lines)
+
+    if other_lines:
+        lines.append("## 상대 정보")
+        lines.extend(other_lines)
+
+    if neutral_lines:
+        lines.append("## 참고")
+        lines.extend(neutral_lines)
 
     if knowledge_text:
         lines.append("## 전문 지식")

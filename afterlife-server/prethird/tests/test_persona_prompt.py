@@ -23,7 +23,9 @@ def test_builds_single_system_message_with_display_name():
     msgs = bundle_to_messages(bundle)
     assert len(msgs) == 1
     assert msgs[0]["role"] == "system"
-    assert "할배" in msgs[0]["content"]
+    # displayName 은 T-252 설계상 속성 줄로 렌더하지 않는다(머리말 승격은 Task 2).
+    # 여기서는 displayName 이 섞여 있어도 나머지 속성으로 메시지가 정상 조립되는지만 확인한다.
+    assert "다정하고 따뜻함" in msgs[0]["content"]
 
 
 def test_includes_l0_rules():
@@ -85,7 +87,8 @@ def test_preference_personal_렌더_가독():
     """학습 키(preference_personal, dict) — 파이썬 repr 노출 금지."""
     msgs = bundle_to_messages(_bundle({"preference_personal": {"커피": "라떼", "취미": "여행"}}))
     content = msgs[0]["content"]
-    assert "사용자 취향" in content
+    assert "## 상대 정보" in content
+    assert "- 취향: " in content
     assert "커피: 라떼" in content
     assert "{" not in content and "'" not in content   # 파이썬 dict repr 금지
 
@@ -101,7 +104,9 @@ def test_memories_personal_렌더_가독():
 
 def test_relation_렌더():
     msgs = bundle_to_messages(_bundle({"relation": "손녀"}))
-    assert "사용자와의 관계: 손녀" in msgs[0]["content"]
+    content = msgs[0]["content"]
+    assert "## 상대 정보" in content
+    assert "- 너와의 관계: 손녀" in content
 
 
 def test_빈_bundle_회귀():
@@ -133,8 +138,10 @@ def test_bundle_includes_preference_history_line():
 
 
 def test_empty_preference_history_no_line():
+    # displayName 은 속성 줄에 렌더되지 않으므로(T-252), 메시지가 비지 않도록
+    # tone 을 함께 둔다. 검증 의도는 그대로: 빈 preference_history 는 줄을 만들지 않는다.
     msgs = bundle_to_messages(_bundle({
-        "displayName": "정진스님", "preference_history": [],
+        "displayName": "정진스님", "tone": "차분함", "preference_history": [],
     }))
     assert "취향 변화" not in msgs[0]["content"]
 
@@ -173,3 +180,55 @@ def test_knowledge_excluded_from_persona_fallback_loop():
     }))
     content = msgs[0]["content"]
     assert "- knowledge:" not in content
+
+
+def test_소유자별_블록_분리():
+    """클론 속성과 상대 속성이 서로 다른 블록에 들어가야 한다."""
+    msgs = bundle_to_messages(_bundle({
+        "displayName": "코조",
+        "tone": "무뚝뚝함",
+        "personality_core": "속정 깊음",
+        "preference_personal": {"음료": "커피"},
+        "memories_personal": ["어제 등산 감"],
+    }))
+    content = msgs[0]["content"]
+    self_block = content.split("## 상대 정보")[0]
+    other_block = content.split("## 상대 정보")[1]
+
+    # 클론 속성은 "너의 정보"에만
+    assert "무뚝뚝함" in self_block
+    assert "속정 깊음" in self_block
+    assert "무뚝뚝함" not in other_block
+
+    # 상대 속성은 "상대 정보"에만
+    assert "커피" in other_block
+    assert "어제 등산 감" in other_block
+    assert "커피" not in self_block
+
+
+def test_미분류_키는_참고_블록():
+    """알려지지 않은 키는 소유자를 알 수 없으므로 ## 참고 로 격리한다."""
+    msgs = bundle_to_messages(_bundle({
+        "displayName": "코조",
+        "tone": "무뚝뚝함",
+        "낯선키": "낯선값",
+    }))
+    content = msgs[0]["content"]
+    assert "## 참고" in content
+    ref_block = content.split("## 참고")[1]
+    assert "낯선값" in ref_block
+
+
+def test_display_name_은_블록에_없다():
+    """displayName 은 머리말로 승격되므로 속성 줄로 중복 출력하지 않는다."""
+    msgs = bundle_to_messages(_bundle({"displayName": "코조", "tone": "무뚝뚝함"}))
+    content = msgs[0]["content"]
+    assert "- 이름: 코조" not in content
+
+
+def test_context_는_참고_블록():
+    """context 는 통화 상황 맥락이라 소유자가 없다."""
+    msgs = bundle_to_messages(_bundle({"tone": "차분함", "context": "저녁 시간"}))
+    content = msgs[0]["content"]
+    assert "## 참고" in content
+    assert "저녁 시간" in content.split("## 참고")[1]
