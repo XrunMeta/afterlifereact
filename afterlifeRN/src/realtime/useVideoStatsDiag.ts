@@ -50,14 +50,15 @@ export function useVideoStatsDiag(opts: {
                   `dropΔ=${d.droppedDelta} freezeΔ=${d.freezeDelta} ` +
                   `recvFps=${d.receiveFps.toFixed(1)} decFps=${d.decodeFps.toFixed(1)} ` +
                   `fps(rep)=${cur.framesPerSecond} freezeTot=${cur.totalFreezesDuration.toFixed(2)}s ` +
-                  `pktLost=${cur.packetsLost} → ${d.verdict}`,
+                  `pktLost=${cur.packetsLost} dim=${cur.frameWidth}x${cur.frameHeight} → ${d.verdict}`,
               );
             }
           } else {
 
             console.log(
               `[Call][vstat] baseline recv=${cur.framesReceived} dec=${cur.framesDecoded} ` +
-                `dropped=${cur.framesDropped} freeze=${cur.freezeCount}`,
+                `dropped=${cur.framesDropped} freeze=${cur.freezeCount} ` +
+                `dim=${cur.frameWidth}x${cur.frameHeight}`,
             );
           }
           prev = cur;
