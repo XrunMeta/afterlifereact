@@ -5,7 +5,7 @@
         -> list[{"role": "system", "content": str}]
     - None 또는 빈 dict, personaBundle 키 없음 → []
     - 정상 bundle → 길이 1인 리스트, role="system"
-    - content 는 "역할 선언 머리말(8줄 이내) + 소유자별 블록" 으로 구성된다.
+    - content 는 "역할 선언 머리말(10줄 이내) + 소유자별 블록" 으로 구성된다.
 
 speaker 인자 — 얼굴로 확정된 화자(L2'). 통화 상대가 누구인지에 따라 4상태로 나뉜다.
     speaker=None                                  # 상태 1(이름 있음)·3(이름 없음) — bundle.viewer 사용
@@ -207,9 +207,13 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
     speaker = speaker or {}
     unconfirmed = bool(speaker.get("unconfirmed"))
     l2p_data = speaker.get("l2p_data") if not unconfirmed else None
+    # 화자 정보가 하나라도 주어졌으면(name 키 또는 l2p_data 키 존재) 화자 확정
+    # 경로로 본다. name 이 없다고 viewer(기본 상대) 이름으로 폴백하면, 얼굴로
+    # 확인된 "다른 사람"의 L2' 가 기본 상대의 이름표를 달고 나가는 오귀속이 된다.
+    speaker_given = not unconfirmed and ("name" in speaker or "l2p_data" in speaker)
     if unconfirmed:
         other_name = None
-    elif speaker.get("name") is not None:
+    elif speaker_given:
         other_name = sanitize_display_name(speaker.get("name"))
     else:
         viewer = pb.get("viewer") or {}
