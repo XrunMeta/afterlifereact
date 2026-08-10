@@ -221,10 +221,17 @@ def test_미분류_키는_참고_블록():
 
 
 def test_display_name_은_블록에_없다():
-    """displayName 은 머리말로 승격되므로 속성 줄로 중복 출력하지 않는다."""
+    """displayName 은 머리말로 승격되므로 속성 줄로 중복 출력하지 않는다.
+
+    [T-252 fix / el 지적] 예전 단언 `"- 이름: 코조" not in content` 는 공허 통과였다 —
+    "이름" 이라는 라벨은 어떤 라벨 표에도 없어 애초에 생성될 수 없는 문자열이다.
+    실제 위험은 displayName 이 _EXCLUDED_KEYS 에서 빠져 미분류 fallback 루프로
+    새는 것("- displayName: 코조")이므로 그쪽을 단언한다."""
     msgs = bundle_to_messages(_bundle({"displayName": "코조", "tone": "무뚝뚝함"}))
     content = msgs[0]["content"]
-    assert "- 이름: 코조" not in content
+    assert "- displayName:" not in content
+    body = content.split("\n\n", 1)[1]
+    assert "코조" not in body      # 이름은 머리말에만 존재
 
 
 def test_context_는_참고_블록():
