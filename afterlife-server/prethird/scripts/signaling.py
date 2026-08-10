@@ -90,10 +90,10 @@ def _credit_enforced() -> bool:
 # 통화는 되지만 강제 종료 타이머가 걸리지 않아 **무제한 통화**가 된다.
 #
 # 배포 순서(반드시 지킬 것):
-#   ① 트랙 A 를 preview 에 먼저 올린다
-#   ② prethird 를 올린다 (이 시점까지 PRETHIRD_CREDIT_ENFORCED 는 off)
-#   ③ 실통화로 greeted/정산을 확인한 뒤 PRETHIRD_CREDIT_ENFORCED=1 로 올린다
-# 순서를 뒤집어 ①보다 먼저 ③을 하면 allowedSec 부재로 전 통화가 402 거부된다.
+#   1. 트랙 A 를 preview 에 먼저 올린다
+#   2. prethird 를 올린다 (이 시점까지 PRETHIRD_CREDIT_ENFORCED 는 off)
+#   3. 실통화로 greeted/정산을 확인한 뒤 PRETHIRD_CREDIT_ENFORCED=1 로 올린다
+# 순서를 뒤집어 1번보다 먼저 3번을 하면 allowedSec 부재로 전 통화가 402 거부된다.
 #
 # 통화기록·과금 분리 정책:
 #   · call_sessions(통화기록)는 학습 여부와 무관하게 **항상** 남긴다.
@@ -295,6 +295,7 @@ async def _drain_pending_react(sess) -> None:
             log.warning("session %s pending react failed: %s", getattr(sess, "session_id", "?"), e)
 
 
+# T-252: Task 5 에서 제거 예정 — chat_endpoint 이관 후
 def _summarize_l2p_fields(data: dict) -> str:
     """l2p `data` 필드(extract_l2 산출 구조: preference_personal/relation/memories_personal)를
     프롬프트 힌트용 한 줄로 요약. 빈 값은 생략, 전부 비면 "(없음)"."""
@@ -351,6 +352,7 @@ def _sanitize_display_name(raw) -> Optional[str]:
     return trimmed
 
 
+# T-252: Task 5 에서 제거 예정 — chat_endpoint 이관 후
 def build_l2p_hint(name, l2p_data) -> str:
     """[T-116/T-135] 화자별 L2' 시스템 힌트 한 줄. 실통화(_maybe_swap_l2p)와 verify가 공유.
     l2p_data가 있으면 관계요약 포함, 없으면 이름만.
@@ -368,7 +370,7 @@ def build_l2p_hint(name, l2p_data) -> str:
 
 
 async def _maybe_swap_l2p(sess, pid: int, name) -> None:
-    """[T-067 Task 12] speaker_confirmed 화자(pid/name)에 맞춰 persona를 재조립.
+    """[T-067 Task 12 / T-252] speaker_confirmed 화자(pid/name)에 맞춰 persona를 재조립.
 
     fire-and-forget — 호출부(_handle_face_event)가 `asyncio.ensure_future`로 스케줄하고
     react 발화를 전혀 기다리지 않는다(api 5s 타임아웃이 react 지연으로 번지지 않도록
@@ -376,20 +378,24 @@ async def _maybe_swap_l2p(sess, pid: int, name) -> None:
     시점 closure-frozen 값(파일 내 react kind/react_name과 동일한 freeze 관례) — 함수
     내부에서 live `sess.current_speaker`를 다시 읽지 않는다.
 
-    ①sess.base_persona_messages(세션 최초 persona 사본)가 없으면 지금 pipeline이 쓰던
-    persona_messages를 최초 1회 백업 — 이후 스왑은 항상 이 base 위에만 덧붙인다(기존
-    L2 베이스 절대 미변경, 스펙 D1). ②fetch_l2p로 화자별 L2' 조회 — 있으면
-    관계요약 포함 시스템 힌트, 없으면(404/미설정/오류) 이름 힌트만. ③적용 직전
-    `sess.current_speaker[0] == pid` 재확인 — 연속 교대로 이 fetch가 늦게 끝나 최신
-    화자의 스왑을 덮어쓰지 않도록 stale이면 드랍. ④pipeline.update_persona로 교체
-    (다음 턴부터 반영). 어떤 단계에서 실패해도(속성 부재·네트워크 오류) 예외를 삼켜
-    통화 자체엔 영향 없다 — 스왑이 전부 스킵될 뿐."""
+    [T-252] base 뒤에 화자 힌트를 덧붙이던 방식을 버리고 매번 bundle 전체를 재조립한다
+    — base 프롬프트에 "기본 상대는 지호" 선언이 있는 상태에서 힌트만 덧붙이면 "지금
+    상대는 민수" 선언과 동시에 남아 모순이 된다. 1) sess.bundle이 없으면(재연결·offer
+    실패 등) 재조립할 원본이 없으므로 스킵 — bundle_to_messages(None)은 []을 반환하는데
+    그대로 update하면 페르소나(안전 규칙·성격·기억)가 통째로 사라진다. 2) fetch_l2p로
+    화자별 L2' 조회 — 있으면 관계요약 포함, 없으면(404/미설정/오류) 이름만. 3) 적용
+    직전 `sess.current_speaker[0] == pid` 재확인 — 연속 교대로 이 fetch가 늦게 끝나
+    최신 화자의 스왑을 덮어쓰지 않도록 stale이면 드랍. 4) bundle_to_messages(sess.bundle,
+    speaker=...)로 상대 선언을 포함한 프롬프트 전체를 재조립해 pipeline.update_persona로
+    교체(다음 턴부터 반영). 어떤 단계에서 실패해도(속성 부재·네트워크 오류) 예외를
+    삼켜 통화 자체엔 영향 없다 — 스왑이 전부 스킵될 뿐."""
     try:
         pipeline = getattr(sess, "pipeline", None)
         if pipeline is None:
             return
-        if getattr(sess, "base_persona_messages", None) is None:
-            sess.base_persona_messages = list(getattr(pipeline, "persona_messages", None) or [])
+        bundle = getattr(sess, "bundle", None)
+        if not bundle:
+            return
 
         clone_id = getattr(sess, "clone_id", None)
         l2p_data = None
@@ -408,14 +414,12 @@ async def _maybe_swap_l2p(sess, pid: int, name) -> None:
         if current is None or current[0] != pid:
             return
 
-        hint = build_l2p_hint(name, l2p_data)
-
-        # [T-135] name이 sanitize 결과 None(공백/malformed 강등)이고 l2p_data도 없으면
-        # hint == "" — 빈 system 메시지를 덧붙이지 않고 base만 재적용(이전 화자의 잔여
-        # 힌트가 있었다면 정리, 새 오염 힌트는 추가하지 않음).
-        new_messages = (
-            sess.base_persona_messages + [{"role": "system", "content": hint}]
-            if hint else list(sess.base_persona_messages)
+        # T-252: base 뒤에 힌트를 덧붙이는 대신 프롬프트를 통째로 재조립한다.
+        # append 방식은 "기본 상대는 지호" 선언과 "지금 상대는 민수" 선언이 프롬프트에
+        # 동시에 남아 모순이 된다.
+        new_messages = bundle_to_messages(
+            bundle,
+            speaker={"name": name, "l2p_data": l2p_data},
         )
         update = getattr(pipeline, "update_persona", None)
         if callable(update):
@@ -423,21 +427,19 @@ async def _maybe_swap_l2p(sess, pid: int, name) -> None:
             if _face_diag_on():
                 # [T-135] l2p_data 원문(memories_personal/preference_personal 값)은 절대
                 # 로깅하지 않는다 — 요약(_diag_summarize_l2p: 키/길이/개수만)만 남긴다
-                # (mizu MEDIUM1). hint 문자열의 실명(displayName)도 <name>으로 마스킹
-                # (기존 face_diag 규약 — T-067 Task6 "personId만 로그, 실명 미포함").
-                _hint_masked = hint.replace(str(name), "<name>") if name else hint
+                # (mizu MEDIUM1). 실명(displayName)도 로그에 남기지 않는다.
                 log.info(
-                    "face_diag l2p_swapped session=%s person=%s l2p_summary=%s hint=%s",
+                    "face_diag l2p_swapped session=%s person=%s l2p_summary=%s named=%s",
                     getattr(sess, "session_id", "?"), pid,
                     json.dumps(_diag_summarize_l2p(l2p_data), ensure_ascii=False),
-                    _hint_masked,
+                    bool(name),
                 )
     except Exception as e:
         log.warning("session %s _maybe_swap_l2p failed: %s", getattr(sess, "session_id", "?"), e)
 
 
 def _clear_current_speaker(sess, event: str) -> None:
-    """[T-135 v2] 화자 확실성 게이팅 — `unknown_face`/`multi_face` 수신 시
+    """[T-135 v2 / T-252] 화자 확실성 게이팅 — `unknown_face`/`multi_face` 수신 시
     `sess.current_speaker`를 익명(None)으로 해제한다.
 
     이미 None이면 아무것도 하지 않는다(no-op, 중복 리셋 방지). None이 아니었다면:
@@ -446,10 +448,13 @@ def _clear_current_speaker(sess, event: str) -> None:
        자동 드랍한다(이중 방어). `learn_writeback` person 귀속도 이 시점부터 즉시
        익명(person_id=None)으로 보류된다(호출부가 매 turn `sess.current_speaker`를
        그때그때 읽으므로 별도 배선 불필요).
-    2) base_persona_messages가 이미 백업돼 있으면(과거에 한 번이라도 스왑이 있었다는
-       뜻) persona를 base로 동기 리셋 — 직전 화자의 이름/L2' 힌트가 다음 턴 프롬프트에
-       잔류하는 것을 막는다(그렇지 않으면 "낯선 사람인데 이전 화자 이름으로 계속
-       불림" 오염이 발생). base가 없으면(스왑이 한 번도 없었음) 리셋할 것도 없다.
+    2) [T-252] 예전엔 persona를 base(상대 정보 통째 삭제)로 되돌렸지만, 얼굴이
+       감지됐으나 매칭에 실패한 것은 "낯선 사람"이 아니라 "누구인지 확정하지 못한
+       상태"다 — bundle_to_messages(bundle, speaker={"unconfirmed": True})로 기본
+       상대(L2)에 폴백하되 이름 호칭만 억제한다(관계·기억은 유지, mizu 오식별 방지).
+       sess.bundle이 없으면(스왑이 한 번도 없었거나 재연결) 재조립할 원본이 없으므로
+       스킵 — bundle_to_messages(None)은 []을 반환하므로 그대로 update하면 페르소나
+       전체가 소실된다.
     """
     if sess.current_speaker is None:
         return
@@ -461,11 +466,16 @@ def _clear_current_speaker(sess, event: str) -> None:
         )
     try:
         pipeline = getattr(sess, "pipeline", None)
-        base = getattr(sess, "base_persona_messages", None)
-        if pipeline is not None and base is not None:
+        bundle = getattr(sess, "bundle", None)
+        if pipeline is not None and bundle:
             update = getattr(pipeline, "update_persona", None)
             if callable(update):
-                update(list(base))
+                # T-252: 익명 리셋(상대 정보 통째 삭제)이 아니라 기본 상대(L2)로 폴백한다.
+                # 얼굴이 감지됐으나 매칭에 실패한 것은 "낯선 사람"이 아니라 "누구인지
+                # 확정하지 못한 상태"다. 단 이름 호칭은 억제한다 — 화면에 실제로 다른
+                # 사람이 있는데 기본 상대의 이름으로 부르면 오식별 발화가 된다.
+                # 복귀 대상은 통화를 건 사용자 본인의 L2 뿐이며 타인의 L2' 는 남기지 않는다.
+                update(bundle_to_messages(bundle, speaker={"unconfirmed": True}))
     except Exception as e:
         log.warning(
             "session %s _clear_current_speaker persona reset failed: %s",
@@ -980,6 +990,8 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                             "allowedSec(정수, 초)를 실어야 한다. clone=%s",
                             sess.clone_id,
                         )
+                    # T-252: 화자 교대 시 프롬프트를 통째로 재조립하기 위해 원본을 보관한다.
+                    sess.bundle = bundle
                     sess.persona_messages = bundle_to_messages(bundle)
                     assets = bundle.get("assets") or {}
                     se_key = assets.get("voiceSeKey")

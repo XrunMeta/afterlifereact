@@ -4,7 +4,58 @@ import asyncio
 import json
 import pytest
 from signaling import _make_dc_handler, _maybe_swap_l2p  # noqa: E402
+from clone_dialog import bundle_to_messages  # noqa: E402
 import learn_writeback as lw  # noqa: E402
+
+# T-252: 모든 _Sess 더블이 공유하는 기본 번들 — 재조립 결과를 검증할 때
+# 기대값을 bundle_to_messages(_BUNDLE, speaker=...)로 직접 계산해 비교한다
+# (문자열 하드코딩은 persona_prompt.py 포맷이 바뀌면 매번 깨진다).
+_BUNDLE = {
+    "personaBundle": {
+        "cloneId": "9201",
+        "persona": {"displayName": "코조", "tone": "친근함"},
+        "viewer": {"displayName": "지호"},
+    }
+}
+
+
+# ---------------------------------------------------------------------------
+# T-252: 스왑은 append 가 아니라 재조립 · unknown_face 는 기본상대 폴백
+# ---------------------------------------------------------------------------
+
+def test_스왑은_base_위에_덧붙이지_않고_재조립한다():
+    """상대 선언이 프롬프트에 항상 정확히 1개만 존재해야 한다."""
+    from clone_dialog import bundle_to_messages
+
+    bundle = {
+        "personaBundle": {
+            "cloneId": "1",
+            "persona": {"displayName": "코조"},
+            "viewer": {"displayName": "지호"},
+        }
+    }
+    msgs = bundle_to_messages(bundle, speaker={"name": "민수", "l2p_data": {"relation": "친구"}})
+    assert len(msgs) == 1                       # system 메시지는 언제나 1개
+    content = msgs[0]["content"]
+    assert content.count("통화 중인 상대는") == 1
+    assert "지호" not in content
+
+
+def test_unknown_face_는_기본상대로_폴백한다():
+    """익명 리셋이 아니라 L2 복귀 + 이름 억제."""
+    from clone_dialog import bundle_to_messages
+
+    bundle = {
+        "personaBundle": {
+            "cloneId": "1",
+            "persona": {"displayName": "코조", "memories_personal": ["어제 등산 감"]},
+            "viewer": {"displayName": "지호"},
+        }
+    }
+    msgs = bundle_to_messages(bundle, speaker={"unconfirmed": True})
+    content = msgs[0]["content"]
+    assert "어제 등산 감" in content        # 맥락 유지
+    assert "지호" not in content            # 이름 억제
 
 
 class _Channel:
@@ -45,7 +96,7 @@ class _Sess:
         self.pending_enroll = False
         self.current_speaker = None
         self.pending_react = None
-        self.base_persona_messages = None
+        self.bundle = dict(_BUNDLE)  # T-252: 재조립 원본. offer 시 signaling.py가 대입하는 값.
         self.user_id = None
     def set_state(self, s): self.state = s
 
@@ -66,7 +117,7 @@ def _run_handler(sess, channel, msg):
 
 
 # ---------------------------------------------------------------------------
-# ① speaker_confirmed → fetch_l2p 호출 · update_persona에 base+화자 시스템메시지
+# 1. speaker_confirmed → fetch_l2p 호출 · update_persona에 재조립된 프롬프트(T-252)
 # ---------------------------------------------------------------------------
 
 def test_speaker_confirmed_swaps_persona_with_l2p(monkeypatch):
@@ -74,35 +125,36 @@ def test_speaker_confirmed_swaps_persona_with_l2p(monkeypatch):
     monkeypatch.setenv("LEARN_SECRET", "s")
     monkeypatch.setenv("PRETHIRD_API_BASE", "http://x")
 
+    l2p_data = {"relation": "손녀", "preference_personal": {"음식": "매운맛"}, "memories_personal": ["생일 5월"]}
     called = {}
     async def _fake_fetch(clone_id, person_id):
         called["args"] = (clone_id, person_id)
-        return {"relation": "손녀", "preference_personal": {"음식": "매운맛"}, "memories_personal": ["생일 5월"]}
+        return l2p_data
 
     import l2p_client
     monkeypatch.setattr(l2p_client, "fetch_l2p", _fake_fetch)
 
     sess, ch = _Sess(), _Channel()
-    original_base = list(sess.pipeline.persona_messages)
     _run_handler(sess, ch, {
         "type": "face_event", "event": "speaker_confirmed",
         "personId": 3, "displayName": "민지", "seq": 12,
     })
 
     assert called["args"] == (9201, 3)
-    assert sess.base_persona_messages == original_base  # 원본 base 보존
     assert len(sess.pipeline.update_calls) == 1
     swapped = sess.pipeline.update_calls[0]
-    assert swapped[:len(original_base)] == original_base  # base 위에만 덧붙임
-    hint = swapped[-1]
-    assert hint["role"] == "system"
-    assert "민지" in hint["content"]
-    assert "손녀" in hint["content"]
+    # T-252: base 위에 덧붙이지 않고 bundle 전체를 화자 기준으로 재조립한다 —
+    # 재조립 결과와 정확히 일치해야 한다(중첩·잔존 없음).
+    assert swapped == bundle_to_messages(sess.bundle, speaker={"name": "민지", "l2p_data": l2p_data})
+    content = swapped[0]["content"]
+    assert "민지" in content
+    assert "손녀" in content
+    assert "지호" not in content  # 기본 상대 이름은 화자 확정 시 노출되지 않는다
     assert sess.pipeline.react_calls == [("known", "민지")]
 
 
 # ---------------------------------------------------------------------------
-# ② L2' 없음(None/404) → 이름 힌트만
+# 2. L2' 없음(None/404) → 이름 힌트만
 # ---------------------------------------------------------------------------
 
 def test_speaker_confirmed_no_l2p_hint_only(monkeypatch):
@@ -122,12 +174,16 @@ def test_speaker_confirmed_no_l2p_hint_only(monkeypatch):
     })
 
     assert len(sess.pipeline.update_calls) == 1
-    hint = sess.pipeline.update_calls[0][-1]
-    assert hint["content"] == "현재 화면의 화자: 민지"
+    swapped = sess.pipeline.update_calls[0]
+    assert swapped == bundle_to_messages(sess.bundle, speaker={"name": "민지", "l2p_data": None})
+    content = swapped[0]["content"]
+    assert '지금 너와 통화 중인 상대는 "민지" 이다.' in content
+    # l2p_data 없음 — "## 상대 정보" 섹션 자체가 없다(헤더 문구 안의 인용은 무시).
+    assert "\n## 상대 정보\n" not in content
 
 
 # ---------------------------------------------------------------------------
-# ③ fetch 예외 → 스왑 스킵(또는 힌트만) · react는 정상
+# 3. fetch 예외 → 스왑 스킵(또는 힌트만) · react는 정상
 # ---------------------------------------------------------------------------
 
 def test_fetch_l2p_exception_does_not_break_react(monkeypatch):
@@ -147,9 +203,9 @@ def test_fetch_l2p_exception_does_not_break_react(monkeypatch):
     })
 
     assert sess.pipeline.react_calls == [("known", "민지")]  # react 정상 수행
-    # 예외 후에도 힌트 주입은 수행됨(이름은 이미 아는 정보)
+    # 예외 후에도 재조립은 수행됨(이름은 이미 아는 정보, l2p_data만 None으로 취급)
     assert len(sess.pipeline.update_calls) == 1
-    assert sess.pipeline.update_calls[0][-1]["content"] == "현재 화면의 화자: 민지"
+    assert sess.pipeline.update_calls[0] == bundle_to_messages(sess.bundle, speaker={"name": "민지", "l2p_data": None})
 
 
 def test_maybe_swap_l2p_handles_missing_pipeline_attrs():
@@ -162,7 +218,7 @@ def test_maybe_swap_l2p_handles_missing_pipeline_attrs():
         session_id = "s1"
         clone_id = None
         current_speaker = (3, "민지")
-        base_persona_messages = None
+        bundle = _BUNDLE  # update_persona 분기까지 도달시키기 위해 필요(bundle 없으면 조기 리턴)
 
     async def _run():
         await _maybe_swap_l2p(_BareSess(), 3, "민지")
@@ -220,7 +276,7 @@ def test_react_not_blocked_by_slow_l2p_fetch(monkeypatch):
         if pending:
             loop.run_until_complete(asyncio.gather(*pending))
         assert sess.pipeline.update_calls == [
-            [{"role": "system", "content": "base persona"}, {"role": "system", "content": "현재 화면의 화자: 민지"}]
+            bundle_to_messages(sess.bundle, speaker={"name": "민지", "l2p_data": None})
         ]
     finally:
         asyncio.set_event_loop(None)
@@ -228,7 +284,7 @@ def test_react_not_blocked_by_slow_l2p_fetch(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# ④ learn 라우팅: current_speaker 있으면 post_learn_person, 없으면 기존 _post_learn
+# 4. learn 라우팅: current_speaker 있으면 post_learn_person, 없으면 기존 _post_learn
 # ---------------------------------------------------------------------------
 
 async def test_learn_writeback_routes_to_person(monkeypatch):
@@ -317,7 +373,7 @@ def test_say_turn_learn_no_speaker_person_id_none(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# ⑤ 화자 교대(A→B) → base + B만(중첩 없음, 기존 A 힌트 잔존 X)
+# 5. 화자 교대(A→B) → B로 재조립(중첩 없음, 기존 A 힌트 잔존 X)
 # ---------------------------------------------------------------------------
 
 def test_speaker_swap_no_nesting(monkeypatch):
@@ -331,7 +387,6 @@ def test_speaker_swap_no_nesting(monkeypatch):
     monkeypatch.setattr(l2p_client, "fetch_l2p", _fake_fetch)
 
     sess, ch = _Sess(), _Channel()
-    original_base = list(sess.pipeline.persona_messages)
 
     _run_handler(sess, ch, {
         "type": "face_event", "event": "speaker_confirmed",
@@ -345,9 +400,9 @@ def test_speaker_swap_no_nesting(monkeypatch):
 
     assert len(sess.pipeline.update_calls) == 2
     final = sess.pipeline.update_calls[-1]
-    # base + 화자 힌트 1개만 — 민지 힌트가 잔존(중첩)하지 않음
-    assert final == original_base + [{"role": "system", "content": "현재 화면의 화자: 철수"}]
-    assert sess.base_persona_messages == original_base
+    # T-252: 재조립이므로 매번 화자 1명 선언만 존재 — 민지 힌트가 잔존(중첩)하지 않음
+    assert final == bundle_to_messages(sess.bundle, speaker={"name": "철수", "l2p_data": None})
+    assert "민지" not in final[0]["content"]
 
 
 # ---------------------------------------------------------------------------
@@ -381,7 +436,7 @@ def test_returning_speaker_reswaps_but_react_cooldown_holds(monkeypatch):
 
     # react: A/B 각 1회씩(쿨다운으로 A 재확정 시 react는 억제)
     assert sess.pipeline.react_calls == [("known", "A"), ("known", "B")]
-    # persona 스왑: 3회 전부 트리거되고, 마지막이 A 힌트(고착 없음)
+    # persona 스왑: 3회 전부 트리거되고, 마지막이 A로 재조립(고착 없음)
     assert len(sess.pipeline.update_calls) == 3
-    assert sess.pipeline.update_calls[-1][-1]["content"] == "현재 화면의 화자: A"
+    assert sess.pipeline.update_calls[-1] == bundle_to_messages(sess.bundle, speaker={"name": "A", "l2p_data": None})
     assert sess.current_speaker == (3, "A")

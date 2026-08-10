@@ -19,6 +19,7 @@ class Session:
         self.pipeline = None     # DialoguePipeline 주입(T10/T11)
         self.clone_id = None         # /offer 수신 clone_id
         self.persona_messages = []   # bundle_to_messages 결과
+        self.bundle = None           # T-252: offer 수신 원본 번들. 화자 교대 시 프롬프트 재조립에 쓴다.
         self.se_path = None          # 클론별 voice se 경로(None이면 기본)
         self.video_path = None       # 클론별 idle/musetalk reference video(None이면 halbae 기본)
         self.idle_video_applied = False  # clone idle mp4가 idle_track에 적용됐는지. server.py factory가 읽어 prebake 스킵 판단(적용됐으면 좋은 mp4 유지). signaling set_idle_video 성공 시 True.
@@ -35,7 +36,6 @@ class Session:
         # current_speaker[1](displayName)이 채워지면 자연히 더 이상 필요 없어지지만, RN의 PATCH가
         # 이 세션에 반영되지 않으므로(별도 프로세스) 세션 로컬 가드로 중복 호출만 억제한다.
         self.name_extract_sent = set()
-        self.base_persona_messages = None  # L2 화자별 스왑 전 원본 persona_messages 백업(Task 12가 소비)
         # --- T-167 크레딧 과금 ---
         self.allowed_sec = 0        # bundle allowedSec (fail-closed 0 = 통화 불가)
         self.credit_guard = None    # CreditGuard | None — greet 시점에 부착, cleanup에서 cancel
