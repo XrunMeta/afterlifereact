@@ -266,6 +266,56 @@ def test_maybe_swap_l2p_skips_update_when_bundle_empty_dict(monkeypatch):
     assert sess.pipeline.update_calls == []
 
 
+# ---------------------------------------------------------------------------
+# [T-252 fix / el I-1] 페르소나 전소 가드는 입력이 아니라 **출력**에 있어야 한다
+# ---------------------------------------------------------------------------
+
+# truthy bundle 인데 재조립 결과가 [] 가 되는 실증 조합 — L0 rules_text 도 없고
+# 클론 자기 속성(_SELF_LABELS)도 knowledge 도 없이 상대 속성만 있는 번들.
+_HOLLOW_BUNDLE = {"personaBundle": {"cloneId": "1", "persona": {"memories_personal": ["비밀"]}}}
+
+
+def test_전소_가드_출력이_비면_update_persona를_부르지_않는다_swap(monkeypatch):
+    """`if not bundle` 입력 가드는 이 경로를 못 막는다 — bundle 은 truthy 인데
+    bundle_to_messages 반환이 [] 다. update_persona([]) 는 안전 규칙·성격·기억
+    전소이므로 기존 프롬프트를 유지해야 한다."""
+    import l2p_client
+    async def _fake_fetch(clone_id, person_id):
+        return {"relation": ""}   # truthy dict 지만 렌더되는 줄이 0개
+    monkeypatch.setattr(l2p_client, "fetch_l2p", _fake_fetch)
+
+    sess = _Sess()
+    sess.bundle = _HOLLOW_BUNDLE
+    sess.current_speaker = (3, "민수")
+
+    # 전제 확인: offer 시점(speaker 없음)에는 정상 프롬프트가 나온다.
+    assert bundle_to_messages(_HOLLOW_BUNDLE) != []
+    # 그런데 화자 확정 재조립은 [] 다 — 가드가 없으면 여기서 전소한다.
+    assert bundle_to_messages(_HOLLOW_BUNDLE, speaker={"name": "민수", "l2p_data": {"relation": ""}}) == []
+
+    asyncio.run(_maybe_swap_l2p(sess, 3, "민수"))
+
+    assert sess.pipeline.update_calls == []
+    assert sess.pipeline.persona_messages == [{"role": "system", "content": "base persona"}]
+
+
+def test_전소_가드_출력이_비면_update_persona를_부르지_않는다_clear():
+    """_clear_current_speaker(상태 4 강등)도 같은 가드가 필요하다."""
+    from signaling import _clear_current_speaker
+
+    sess = _Sess()
+    sess.bundle = {"personaBundle": {"cloneId": "1", "persona": {}}}
+    sess.current_speaker = (3, "민수")
+
+    assert bundle_to_messages(sess.bundle, speaker={"unconfirmed": True}) == []
+
+    _clear_current_speaker(sess, "unknown_face")
+
+    assert sess.current_speaker is None          # 해제는 그대로 일어난다
+    assert sess.pipeline.update_calls == []      # 프롬프트는 유지
+    assert getattr(sess, "prompt_unconfirmed", False) is False  # 강등 미완료로 표시
+
+
 def test_maybe_swap_l2p_drops_when_stale(monkeypatch):
     """적용 직전 sess.current_speaker[0] != pid(전달받은 값) → stale 드랍(최신 스왑 안 덮음)."""
     import l2p_client
