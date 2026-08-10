@@ -1231,14 +1231,14 @@ function CallScreenInner({ route, navigation }: Props) {
   return (
     <View style={s.container}>
       {}
-      {}
-      {}
+      {
+}
       {remoteStream ? (
 
         <View style={[StyleSheet.absoluteFill, s.videoEdgeMask]}>
           <RTCView
             streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
-            objectFit="contain"
+            objectFit="cover"
             style={[StyleSheet.absoluteFill, s.videoEdgeTrim]}
           />
         </View>
