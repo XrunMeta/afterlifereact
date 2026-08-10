@@ -90,6 +90,13 @@ import { DialingScreen } from "../../components/call/DialingScreen";
 import { CallVoiceBall } from "../../components/call/CallVoiceBall";
 import { CallTimingHUD } from "../../components/call/CallTimingHUD";
 import { CallStateHUD } from "../../components/call/CallStateHUD";
+
+import { FaceTrackHUD } from "../../components/call/FaceTrackHUD";
+import {
+  publishFaceTracks,
+  publishFaceDiag,
+  resetFaceRoster,
+} from "../../face/faceTrackRosterStore";
 import { CallTimingPanel } from "../../components/call/CallTimingPanel";
 import { CloneSubtitleTicker } from "../../components/call/CloneSubtitleTicker";
 import { useDevOverlayStore } from "../../stores/devOverlayStore";
@@ -374,6 +381,15 @@ function CallScreenInner({ route, navigation }: Props) {
     calibrate: calibrateOpt,
   });
 
+  useEffect(() => {
+    publishFaceDiag(faceDiag, Date.now());
+  }, [faceDiag]);
+
+  useEffect(() => {
+    resetFaceRoster();
+    return () => resetFaceRoster();
+  }, []);
+
   const handleSpeakerEvent = useCallback(
     (evt: SpeakerEvent) => {
       if (!evt) return;
@@ -637,6 +653,8 @@ function CallScreenInner({ route, navigation }: Props) {
             }
           }
           onFaceEmbedding(vector);
+
+          publishFaceTracks(trackingIds, Date.now());
         },
       ),
 
@@ -1327,6 +1345,9 @@ function CallScreenInner({ route, navigation }: Props) {
       {showCallDev && liveState === "live" ? <CallTimingHUD /> : null}
       {}
       {showCallDev && liveState === "live" ? <CallStateHUD /> : null}
+      {
+}
+      {showCallDev && FACE_DIAG_ENABLED ? <FaceTrackHUD /> : null}
       {showCallDev && liveState === "live" ? (
 
         <View
