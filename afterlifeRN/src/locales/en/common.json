@@ -791,7 +791,8 @@
       "cameraPermBlockedMsg": "Camera access is turned off. Please enable camera permission in Settings.",
       "faceGuideHint": "Please position your face inside the frame",
       "faceTooSmall": "Please move closer to the camera",
-      "faceTooLarge": "Please move a bit farther back"
+      "faceTooLarge": "Please move a bit farther back",
+      "faceOffCenter": "Please align your face inside the silhouette"
     },
     "voice": {
       "presets": "Default voice presets",

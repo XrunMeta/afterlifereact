@@ -791,7 +791,8 @@
       "cameraPermBlockedMsg": "カメラへのアクセスがオフになっています。設定でカメラの権限をオンにしてください。",
       "faceGuideHint": "顔がフレーム内に入るように位置を合わせてください",
       "faceTooSmall": "カメラにもう少し近づいてください",
-      "faceTooLarge": "少し後ろに下がってください"
+      "faceTooLarge": "少し後ろに下がってください",
+      "faceOffCenter": "顔をシルエットの中に合わせてください"
     },
     "voice": {
       "presets": "基本音声プリセット",

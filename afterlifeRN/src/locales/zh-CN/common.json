@@ -791,7 +791,8 @@
       "cameraPermBlockedMsg": "相机权限已关闭，请在设置中开启相机权限。",
       "faceGuideHint": "请将脸对准框内",
       "faceTooSmall": "请靠近相机一些",
-      "faceTooLarge": "请稍微往后退一点"
+      "faceTooLarge": "请稍微往后退一点",
+      "faceOffCenter": "请将脸对准轮廓内"
     },
     "voice": {
       "presets": "默认音色预设",
