@@ -55,7 +55,7 @@ v_2a805f("한 줄 소개를 고치면 서버에 반영된다 (개행 포함)", a
 
   await v_41b99d.fill(v_f60c5d);
 
-  await v_4d37e3(v_054741).toHaveText(`${v_f60c5d.length}/100`);
+  await v_4d37e3(v_054741).toHaveText(`${v_f60c5d.length}/500`);
 
   await v_2365e9.getByTestId(v_5401ae.cloneEdit.save).click();
 
