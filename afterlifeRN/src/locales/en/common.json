@@ -788,7 +788,8 @@
       "sourceLibrary": "Choose from library",
       "cameraPermTitle": "Camera permission",
       "cameraPermDeniedMsg": "Camera access is needed. Please allow permission to take a photo.",
-      "cameraPermBlockedMsg": "Camera access is turned off. Please enable camera permission in Settings."
+      "cameraPermBlockedMsg": "Camera access is turned off. Please enable camera permission in Settings.",
+      "faceGuideHint": "Please position your face inside the frame"
     },
     "voice": {
       "presets": "Default voice presets",
