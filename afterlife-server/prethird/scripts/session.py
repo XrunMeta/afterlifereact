@@ -32,6 +32,13 @@ class Session:
         self.reacted_keys = {}       # face_event 쿨다운: key(personId str|"unknown")→마지막 react 단조시각
         self.pending_enroll = False  # unknown_face/multi_face 이후 등록 대기 플래그(Task 11이 소비)
         self.current_speaker = None  # (personId:int, displayName:str|None) | None — 최근 확인된 화자
+        # [T-252 fix / mizu H-1 · el B-2] 프롬프트가 지금 상태 4(얼굴 미확정)로 조립돼
+        # 있는가. current_speaker 에 상태를 암묵 인코딩하면 "확정된 적이 없는데
+        # unknown_face 가 온" 경우(얼굴 벡터 0행인 현재 실운영의 유일한 경로)에
+        # 상태 4 로 강등할 수단이 없다. 강등은 current_speaker 와 무관하게 수행하고
+        # 중복 재조립만 이 플래그로 막는다. speaker_confirmed 로 화자가 확정되면
+        # False 로 리셋한다(다시 unknown 이 오면 또 강등해야 한다).
+        self.prompt_unconfirmed = False
         # T-126 Task8 — 이번 통화에서 이미 이름 추출을 시도한 personId 집합(1인당 1회만 LLM 호출).
         # current_speaker[1](displayName)이 채워지면 자연히 더 이상 필요 없어지지만, RN의 PATCH가
         # 이 세션에 반영되지 않으므로(별도 프로세스) 세션 로컬 가드로 중복 호출만 억제한다.
