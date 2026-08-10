@@ -21,16 +21,16 @@ const EMBEDDING_INTERVAL_MS = 10_000;
 
 describe("deriveVerdict", () => {
   it("confirmed 상태", () => {
-    expect(deriveVerdict({ confirmed: 5, candidate: null, streak: 0 } as any)).toBe("confirmed");
+    expect(deriveVerdict({ confirmed: 5, candidate: null, streak: 0 })).toBe("confirmed");
   });
   it("candidate 진행중", () => {
-    expect(deriveVerdict({ confirmed: "none", candidate: 5, streak: 2 } as any)).toBe("candidate");
+    expect(deriveVerdict({ confirmed: "none", candidate: 5, streak: 2 })).toBe("candidate");
   });
   it("Fix 1 — 미상 확정(confirmed==='unknown')은 candidate/confirmed 아닌 unknown", () => {
-    expect(deriveVerdict({ confirmed: "unknown", candidate: null, streak: 3 } as any)).toBe("unknown");
+    expect(deriveVerdict({ confirmed: "unknown", candidate: null, streak: 3 })).toBe("unknown");
   });
   it("none", () => {
-    expect(deriveVerdict({ confirmed: "none", candidate: null, streak: 0 } as any)).toBe("none");
+    expect(deriveVerdict({ confirmed: "none", candidate: null, streak: 0 })).toBe("none");
   });
 });
 
