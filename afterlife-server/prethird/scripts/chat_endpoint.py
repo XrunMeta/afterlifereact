@@ -17,6 +17,7 @@ import aiohttp
 from aiohttp import web
 
 from clone_dialog import fetch_bundle, bundle_to_messages, chat_stream, extract_l2
+from clone_dialog.persona_prompt import sanitize_display_name
 from clone_dialog.llm_client import chat_once
 
 log = logging.getLogger("prethird.verify")
@@ -418,21 +419,35 @@ async def verify_chat(req: web.Request) -> web.StreamResponse | web.Response:
         # [T-116] 화자 선택 시 L2' 오버레이(실통화 _maybe_swap_l2p 재현). override 모드 제외.
         raw_pid = body.get("person_id")
         person_id = raw_pid if isinstance(raw_pid, int) and raw_pid > 0 else None
-        dev_l2p = None
-        name = None
-        if person_id is not None and _DEV_SECRET:
+        # [T-252] speaker_state="unknown" → 상태 4(unknown_face/multi_face) 재현.
+        # 실서버 라우트로 상태 4를 검증할 수단이 이것뿐이다(el I-3 부수 지적).
+        unconfirmed = body.get("speaker_state") == "unknown"
+        dev_l2p: dict = {}
+        if person_id is not None and _DEV_SECRET and not unconfirmed:
             try:
-                dev_l2p = await _dev_l2p_data(clone_id, person_id)
+                dev_l2p = await _dev_l2p_data(clone_id, person_id) or {}
             except Exception as e:
                 log.warning("verify_chat dev_l2p failed clone=%s person=%s: %s", clone_id, person_id, type(e).__name__)
                 dev_l2p = {}
-            if dev_l2p:  # 실패/404({}) 면 힌트 없이 진행(통화 무영향)
-                name = dev_l2p.get("displayName") or str(person_id)
         # T-252: dev L2'도 append가 아니라 재조립으로 주입한다 — 실통화 경로
         # (_maybe_swap_l2p)와 동일한 프롬프트가 나와야 verify 결과가 실통화를 대표한다.
+        #
+        # [T-252 fix / el I-3] 상태 판정을 통화 경로와 일치시켰다.
+        # 1. 조회 실패/404({})여도 person_id 가 주어졌으면 화자 확정 경로(상태 2)다.
+        #    예전엔 `if dev_l2p:` 로 감싸서 _speaker=None(상태 1)이 됐는데, 통화 경로는
+        #    같은 조건에서 {"name":..., "l2p_data":None} 을 넘긴다. 하필 최빈 경로
+        #    (신규 person = clone_ont_person 행 없음)가 verify 에서만 다르게 분기해
+        #    "verify 가 실통화를 대표한다" 는 주석이 사실이 아니었다.
+        # 2. `or str(person_id)` 폴백을 제거했다 — 이름을 모르는데 숫자("7")를 이름으로
+        #    머리말에 박아 넣던 경로다. 통화 경로는 sanitize 실패 시 None → 상태 3 이다.
         _speaker = None
-        if dev_l2p:
-            _speaker = {"name": name, "l2p_data": dev_l2p.get("data")}
+        if unconfirmed:
+            _speaker = {"unconfirmed": True}
+        elif person_id is not None:
+            _speaker = {
+                "name": sanitize_display_name(dev_l2p.get("displayName")),
+                "l2p_data": dev_l2p.get("data"),
+            }
         system_messages = bundle_to_messages(bundle, speaker=_speaker)
     final_messages = system_messages + list(messages)
 
