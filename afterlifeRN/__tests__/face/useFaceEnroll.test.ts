@@ -1,4 +1,9 @@
 
+
+jest.mock("@react-native-async-storage/async-storage", () =>
+  require("../helpers/mockAsyncStorage").asyncStorageMock(),
+);
+
 import { renderHook, act } from "@testing-library/react-native";
 import { useFaceEnroll, FACE_ENROLL_VECTOR_COUNT } from "../../src/face/useFaceEnroll";
 import { EmbeddingBuffer } from "../../src/face/embeddingBuffer";

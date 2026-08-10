@@ -5,6 +5,7 @@ from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from session import SessionManager
 from clone_dialog import fetch_bundle, bundle_to_messages
+from clone_dialog.persona_prompt import sanitize_display_name as _persona_sanitize_display_name
 from asset_fetch import fetch_to
 from voice_fetch import ensure_voice_wav
 from prebuild import prebuild_handler
@@ -56,6 +57,26 @@ _FACE_REACT_ENABLED_KEY = "PRETHIRD_FACE_REACT_ENABLED"
 # — say는 personId/speakerName을 읽지 않는다(v1 폐기). react(재인사 등 발화)는 여전히
 # FACE_REACT 단독 게이트 — 두 게이트가 둘 다 off일 때만 기존(T-067 이전) 동작과 완전 동일.
 _SPEAKER_IDENTITY_ENABLED_KEY = "PRETHIRD_SPEAKER_IDENTITY_ENABLED"
+# [T-252 Task 8] 상태 4(얼굴 미확정) 유지 수명(초). 기본 10초.
+# 상수(REACT_COOLDOWN_S 관례) 대신 호출 시점 재평가(_speaker_identity_enabled 관례)를
+# 택했다 — 이 값은 실패 시 "이름을 영영 못 부르는" 고착을 푸는 안전장치라, 운영 중
+# 프로세스를 재시작하지 않고도 env 로 조정·비활성(0)할 수 있어야 하고, 테스트에서도
+# monkeypatch.setenv 만으로 짧게 줄일 수 있어야 한다(모듈 reload 불필요).
+_UNCONFIRMED_TTL_KEY = "PRETHIRD_UNCONFIRMED_TTL_S"
+# [T-252 Task 9] 상태 4 복귀가 예외로 실패했을 때 타이머를 다시 걸어볼 최대 횟수.
+# 1 = "한 번만 더". 0 이면 재시도 없음(구 동작 = 예외 시 고착 복귀).
+_UNCONFIRMED_MAX_RETRY = 1
+
+
+def _unconfirmed_ttl_s() -> float:
+    """상태 4 를 유지할 최대 초. 0 이하면 타이머 비활성(구 동작 = 무기한 상태 4).
+
+    파싱 실패는 기본값으로 되돌린다 — env 오타 하나로 고착 해소 장치가 조용히
+    죽는 것보다, 기본 수명이 걸리는 쪽이 안전하다(_warn_offsets_from_env 관례)."""
+    try:
+        return float(os.environ.get(_UNCONFIRMED_TTL_KEY, "10"))
+    except ValueError:
+        return 10.0
 # 아는 얼굴(personId)=통화당 1회(영구), unknown/multi_face=이 초 동안 쿨다운.
 REACT_COOLDOWN_S = float(os.environ.get("PRETHIRD_REACT_COOLDOWN_S", "60"))
 # react가 다른 발화(say/speak/greet/react) 진행 중 도착하면 단일 pending 슬롯에 대기(latest-wins,
@@ -90,10 +111,10 @@ def _credit_enforced() -> bool:
 # 통화는 되지만 강제 종료 타이머가 걸리지 않아 **무제한 통화**가 된다.
 #
 # 배포 순서(반드시 지킬 것):
-#   ① 트랙 A 를 preview 에 먼저 올린다
-#   ② prethird 를 올린다 (이 시점까지 PRETHIRD_CREDIT_ENFORCED 는 off)
-#   ③ 실통화로 greeted/정산을 확인한 뒤 PRETHIRD_CREDIT_ENFORCED=1 로 올린다
-# 순서를 뒤집어 ①보다 먼저 ③을 하면 allowedSec 부재로 전 통화가 402 거부된다.
+#   1. 트랙 A 를 preview 에 먼저 올린다
+#   2. prethird 를 올린다 (이 시점까지 PRETHIRD_CREDIT_ENFORCED 는 off)
+#   3. 실통화로 greeted/정산을 확인한 뒤 PRETHIRD_CREDIT_ENFORCED=1 로 올린다
+# 순서를 뒤집어 1번보다 먼저 3번을 하면 allowedSec 부재로 전 통화가 402 거부된다.
 #
 # 통화기록·과금 분리 정책:
 #   · call_sessions(통화기록)는 학습 여부와 무관하게 **항상** 남긴다.
@@ -295,22 +316,6 @@ async def _drain_pending_react(sess) -> None:
             log.warning("session %s pending react failed: %s", getattr(sess, "session_id", "?"), e)
 
 
-def _summarize_l2p_fields(data: dict) -> str:
-    """l2p `data` 필드(extract_l2 산출 구조: preference_personal/relation/memories_personal)를
-    프롬프트 힌트용 한 줄로 요약. 빈 값은 생략, 전부 비면 "(없음)"."""
-    parts = []
-    rel = data.get("relation")
-    if isinstance(rel, str) and rel.strip():
-        parts.append(f"관계={rel.strip()}")
-    pp = data.get("preference_personal")
-    if isinstance(pp, dict) and pp:
-        parts.append("선호=" + ", ".join(f"{k}:{v}" for k, v in pp.items()))
-    mems = data.get("memories_personal")
-    if isinstance(mems, list) and mems:
-        parts.append("기억=" + "; ".join(str(m) for m in mems))
-    return "; ".join(parts) if parts else "(없음)"
-
-
 def _diag_summarize_l2p(l2p_data) -> dict:
     """[T-135] dev diag 로그 전용 l2p_data 요약 — memories_personal/preference_personal
     등 원문 값은 절대 포함하지 않고 존재여부/길이/키 목록만 남긴다(mizu MEDIUM1 PII 로그
@@ -330,45 +335,28 @@ def _diag_summarize_l2p(l2p_data) -> dict:
     return out
 
 
-_DISPLAY_NAME_CONTROL_RE = re.compile(
-    "[\x00-\x1f\x7f​-‏‪-‮⁠-⁯﻿]"
-)
+# [T-135 / T-252 fix] face_event displayName 검증 — 정본은
+# `clone_dialog/persona_prompt.py` 의 `sanitize_display_name` 하나뿐이다.
+# 예전엔 같은 로직을 이 파일에 복제해 두고 "바이트 단위 동일" 을 사람이 지켰는데,
+# 한쪽만 강화하면(mizu H-3 허용목록) 조용히 어긋난다 → import 로 통일했다.
+# 실시간 datachannel 메시지라 검증 실패로 이벤트 전체를 버리지 않고 이름만
+# 신뢰하지 않는다(None 으로 강등 → 재조립 시 상태 3 문안, 이름 호칭 억제).
+_sanitize_display_name = _persona_sanitize_display_name
 
 
-def _sanitize_display_name(raw) -> Optional[str]:
-    """[T-135] face_event displayName 검증 — afterlifeapi `assertValidDisplayName`
-    (`afterlifeapi/src/lib/displayName.ts`)과 동등 기준(길이 1~30·제어문자·제로폭/bidi
-    포맷문자 차단). 실시간 datachannel 메시지라 검증 실패로 이벤트 전체를 버리지 않고
-    이름만 신뢰하지 않는다(None으로 강등 → build_l2p_hint가 이름 라인 생략). 프롬프트
-    인젝션 완화(mizu HIGH1)."""
-    if not isinstance(raw, str):
-        return None
-    trimmed = raw.strip()
-    if not trimmed or len(trimmed) > 30:
-        return None
-    if _DISPLAY_NAME_CONTROL_RE.search(trimmed):
-        return None
-    return trimmed
+def _bump_speaker_epoch(sess) -> int:
+    """[T-252 fix / el I-2] 화자 상태 세대를 1 올리고 새 값을 돌려준다.
+
+    화자가 바뀌거나(speaker_confirmed) 해제될 때(unknown_face/multi_face) 호출한다.
+    스왑을 스케줄한 쪽이 이 값을 closure 로 얼려 두고 적용 직전에 비교하면, 같은
+    pid 안에서 순서가 뒤집힌 in-flight 스왑을 드랍할 수 있다."""
+    epoch = getattr(sess, "speaker_epoch", 0) + 1
+    sess.speaker_epoch = epoch
+    return epoch
 
 
-def build_l2p_hint(name, l2p_data) -> str:
-    """[T-116/T-135] 화자별 L2' 시스템 힌트 한 줄. 실통화(_maybe_swap_l2p)와 verify가 공유.
-    l2p_data가 있으면 관계요약 포함, 없으면 이름만.
-    [T-135] name이 falsy(None/공백)면 "현재 화면의 화자: {name}" 라인을 생략한다 — 화자가
-    불확실(unknown_face/multi_face로 current_speaker 해제)한 상태에서 "화자: None" 같은
-    오염된 힌트가 프롬프트에 들어가는 것을 방지. l2p_data만 있으면 관계기억 라인만,
-    둘 다 없으면 빈 문자열(호출부가 힌트 자체를 스킵해야 함)."""
-    if not name:
-        if l2p_data:
-            return f"이 사람과의 관계 기억: {_summarize_l2p_fields(l2p_data)}"
-        return ""
-    if l2p_data:
-        return f"현재 화면의 화자: {name}. 이 사람과의 관계 기억: {_summarize_l2p_fields(l2p_data)}"
-    return f"현재 화면의 화자: {name}"
-
-
-async def _maybe_swap_l2p(sess, pid: int, name) -> None:
-    """[T-067 Task 12] speaker_confirmed 화자(pid/name)에 맞춰 persona를 재조립.
+async def _maybe_swap_l2p(sess, pid: int, name, epoch: int | None = None) -> None:
+    """[T-067 Task 12 / T-252] speaker_confirmed 화자(pid/name)에 맞춰 persona를 재조립.
 
     fire-and-forget — 호출부(_handle_face_event)가 `asyncio.ensure_future`로 스케줄하고
     react 발화를 전혀 기다리지 않는다(api 5s 타임아웃이 react 지연으로 번지지 않도록
@@ -376,20 +364,37 @@ async def _maybe_swap_l2p(sess, pid: int, name) -> None:
     시점 closure-frozen 값(파일 내 react kind/react_name과 동일한 freeze 관례) — 함수
     내부에서 live `sess.current_speaker`를 다시 읽지 않는다.
 
-    ①sess.base_persona_messages(세션 최초 persona 사본)가 없으면 지금 pipeline이 쓰던
-    persona_messages를 최초 1회 백업 — 이후 스왑은 항상 이 base 위에만 덧붙인다(기존
-    L2 베이스 절대 미변경, 스펙 D1). ②fetch_l2p로 화자별 L2' 조회 — 있으면
-    관계요약 포함 시스템 힌트, 없으면(404/미설정/오류) 이름 힌트만. ③적용 직전
-    `sess.current_speaker[0] == pid` 재확인 — 연속 교대로 이 fetch가 늦게 끝나 최신
-    화자의 스왑을 덮어쓰지 않도록 stale이면 드랍. ④pipeline.update_persona로 교체
-    (다음 턴부터 반영). 어떤 단계에서 실패해도(속성 부재·네트워크 오류) 예외를 삼켜
-    통화 자체엔 영향 없다 — 스왑이 전부 스킵될 뿐."""
+    [T-252] base 뒤에 화자 힌트를 덧붙이던 방식을 버리고 매번 bundle 전체를 재조립한다
+    — base 프롬프트에 "기본 상대는 지호" 선언이 있는 상태에서 힌트만 덧붙이면 "지금
+    상대는 민수" 선언과 동시에 남아 모순이 된다. 1) sess.bundle이 없으면(재연결·offer
+    실패 등) 재조립할 원본이 없으므로 스킵 — bundle_to_messages(None)은 []을 반환하는데
+    그대로 update하면 페르소나(안전 규칙·성격·기억)가 통째로 사라진다. 2) fetch_l2p로
+    화자별 L2' 조회 — 있으면 관계요약 포함, 없으면(404/미설정/오류) 이름만. 3) 적용
+    직전 `sess.current_speaker[0] == pid` 재확인 — 연속 교대로 이 fetch가 늦게 끝나
+    최신 화자의 스왑을 덮어쓰지 않도록 stale이면 드랍. 4) bundle_to_messages(sess.bundle,
+    speaker=...)로 상대 선언을 포함한 프롬프트 전체를 재조립해 pipeline.update_persona로
+    교체(다음 턴부터 반영). 어떤 단계에서 실패해도(속성 부재·네트워크 오류) 예외를
+    삼켜 통화 자체엔 영향 없다 — 스왑이 전부 스킵될 뿐."""
     try:
         pipeline = getattr(sess, "pipeline", None)
         if pipeline is None:
             return
-        if getattr(sess, "base_persona_messages", None) is None:
-            sess.base_persona_messages = list(getattr(pipeline, "persona_messages", None) or [])
+        bundle = getattr(sess, "bundle", None)
+        if not bundle:
+            # [T-252 fix / el I-4] 재조립할 원본이 없으면 프롬프트는 영원히 상대를
+            # 계정주로 선언한 상태로 남는데, learn_writeback 은 매 turn
+            # `sess.current_speaker` 를 읽으므로 학습만 person A 로 귀속된다 —
+            # "이 턴의 프롬프트 상대 = 그 턴의 학습 귀속 대상" 불변식이 깨진 창이다.
+            # 프롬프트를 A 로 못 맞추므로 반대쪽(귀속)을 보류해 창을 닫는다:
+            # current_speaker 를 되돌려 학습도 익명(계정주 L2)으로 떨어뜨린다.
+            # 세대가 이미 넘어갔으면 최신 화자를 지우게 되므로 건드리지 않는다.
+            if epoch is None or getattr(sess, "speaker_epoch", epoch) == epoch:
+                sess.current_speaker = None
+            log.warning(
+                "session %s bundle 부재로 L2' 스왑 스킵 — 학습 귀속도 익명으로 보류 person=%s",
+                getattr(sess, "session_id", "?"), pid,
+            )
+            return
 
         clone_id = getattr(sess, "clone_id", None)
         l2p_data = None
@@ -402,70 +407,281 @@ async def _maybe_swap_l2p(sess, pid: int, name) -> None:
                             getattr(sess, "session_id", "?"), pid, e)
                 l2p_data = None
 
-        # stale 가드: fetch 도중 화자가 또 바뀌었으면(연속 교대) 늦게 끝난 이 결과는
+        # stale 가드 1: fetch 도중 화자가 또 바뀌었으면(연속 교대) 늦게 끝난 이 결과는
         # 버린다 — 최신 화자의 스왑(이미 진행/완료)을 덮어쓰지 않는다.
         current = getattr(sess, "current_speaker", None)
         if current is None or current[0] != pid:
             return
 
-        hint = build_l2p_hint(name, l2p_data)
+        # stale 가드 2 [T-252 fix / el I-2]: 세대(epoch) 비교. pid 만 보면 "화자가
+        # 바뀌었나"는 알아도 "이 스왑이 최신 스케줄인가"는 모른다. `2(A) → 4 → 2(A)`
+        # 복귀에서 A 로 두 번 스케줄되면 pid 는 둘 다 통과하지만, 늦게 끝난 첫 번째가
+        # frozen name 과 낡은 L2' 로 두 번째 결과를 덮어쓴다. epoch 는 화자 상태가
+        # 바뀔 때마다 오르므로 그 역전을 잡는다. epoch=None 은 세대 관리 밖에서
+        # 직접 호출된 경우(테스트 등)로 이 가드를 건너뛴다.
+        if epoch is not None and getattr(sess, "speaker_epoch", epoch) != epoch:
+            return
 
-        # [T-135] name이 sanitize 결과 None(공백/malformed 강등)이고 l2p_data도 없으면
-        # hint == "" — 빈 system 메시지를 덧붙이지 않고 base만 재적용(이전 화자의 잔여
-        # 힌트가 있었다면 정리, 새 오염 힌트는 추가하지 않음).
-        new_messages = (
-            sess.base_persona_messages + [{"role": "system", "content": hint}]
-            if hint else list(sess.base_persona_messages)
+        # T-252: base 뒤에 힌트를 덧붙이는 대신 프롬프트를 통째로 재조립한다.
+        # append 방식은 "기본 상대는 지호" 선언과 "지금 상대는 민수" 선언이 프롬프트에
+        # 동시에 남아 모순이 된다.
+        new_messages = bundle_to_messages(
+            bundle,
+            speaker={"name": name, "l2p_data": l2p_data},
         )
+        if not new_messages:
+            # [T-252 fix / el I-1] 입력(bundle) 가드만으로는 부족하다 — truthy bundle
+            # 로도 재조립 결과가 [] 가 될 수 있다. 특히 화자 확정 경로는 상대 정보를
+            # L2' 로만 채우므로(mizu H-2 수정), 클론 자기 속성·L0 가 비어 있고 상대
+            # 속성만 있던 번들은 L2' 부재 시 통째로 빈다. update_persona([]) 는
+            # 안전 규칙·성격·기억 전소이므로 기존 프롬프트를 그대로 유지한다.
+            log.warning(
+                "session %s L2' 재조립 결과가 비어 프롬프트를 유지한다(전소 방지) person=%s",
+                getattr(sess, "session_id", "?"), pid,
+            )
+            return
         update = getattr(pipeline, "update_persona", None)
         if callable(update):
             update(new_messages)
             if _face_diag_on():
                 # [T-135] l2p_data 원문(memories_personal/preference_personal 값)은 절대
                 # 로깅하지 않는다 — 요약(_diag_summarize_l2p: 키/길이/개수만)만 남긴다
-                # (mizu MEDIUM1). hint 문자열의 실명(displayName)도 <name>으로 마스킹
-                # (기존 face_diag 규약 — T-067 Task6 "personId만 로그, 실명 미포함").
-                _hint_masked = hint.replace(str(name), "<name>") if name else hint
+                # (mizu MEDIUM1). 실명(displayName)도 로그에 남기지 않는다.
                 log.info(
-                    "face_diag l2p_swapped session=%s person=%s l2p_summary=%s hint=%s",
+                    "face_diag l2p_swapped session=%s person=%s l2p_summary=%s named=%s",
                     getattr(sess, "session_id", "?"), pid,
                     json.dumps(_diag_summarize_l2p(l2p_data), ensure_ascii=False),
-                    _hint_masked,
+                    bool(name),
                 )
     except Exception as e:
         log.warning("session %s _maybe_swap_l2p failed: %s", getattr(sess, "session_id", "?"), e)
 
 
-def _clear_current_speaker(sess, event: str) -> None:
-    """[T-135 v2] 화자 확실성 게이팅 — `unknown_face`/`multi_face` 수신 시
-    `sess.current_speaker`를 익명(None)으로 해제한다.
+def _cancel_unconfirmed_timer(sess) -> None:
+    """[T-252 Task 8] 상태 4 수명 타이머 해제. 타이머가 없는 세션에서도 안전해야 한다
+    (_cancel_credit_guard 관례). speaker_confirmed 수신·통화 종료 두 곳에서 부른다."""
+    handle = getattr(sess, "unconfirmed_timer", None)
+    if handle is None:
+        return
+    try:
+        handle.cancel()
+    except Exception as e:
+        log.warning(
+            "session %s unconfirmed timer cancel failed: %s",
+            getattr(sess, "session_id", "?"), e,
+        )
+    sess.unconfirmed_timer = None
 
-    이미 None이면 아무것도 하지 않는다(no-op, 중복 리셋 방지). None이 아니었다면:
-    1) current_speaker=None으로 즉시 해제 — 이후 `_maybe_swap_l2p`의 stale 가드
-       (`current is None or current[0] != pid`)가 늦게 도착하는 이전 화자의 스왑도
-       자동 드랍한다(이중 방어). `learn_writeback` person 귀속도 이 시점부터 즉시
+
+def _cleanup_session_resources(sess) -> None:
+    """[T-252 Task 9] 통화 종료 시 세션에 매달린 자원(플레이어·타이머) 정리.
+
+    `make_app` 의 `connectionstatechange` 종료 분기에 인라인이던 블록을 그대로 뽑았다.
+    인라인이면 실제 `RTCPeerConnection` 없이 부를 방법이 없어 테스트가
+    `inspect.getsource` 문자열 포함 여부밖에 못 봤고, 그 단언은 호출을 `connected`
+    분기로 옮겨도 그대로 통과한다(실측). 헬퍼로 빼면 테스트가 직접 불러 실제 취소
+    동작을 검증할 수 있다.
+
+    반드시 `pc.close()` **이전에** 부른다 — 남은 타이머가 종료된 세션의
+    `pipeline.update_persona` 를 뒤늦게 건드리는 것을 막는다.
+    세션에 해당 자원이 없어도 안전해야 한다(각 헬퍼가 no-op 을 보장)."""
+    # [F7] filler cleanup: stop + 캐시 해제 (좀비 asyncio task 방지).
+    filler = getattr(sess, "filler_player", None)
+    if filler is not None:
+        filler.close()
+        sess.filler_player = None
+        log.info("session %s FillerPlayer closed (cleanup)", getattr(sess, "session_id", "?"))
+    # [T-167] 크레딧 가드 정리 — 남은 타이머가 종료 후 발화하면 이미 끊긴 통화를 또 끊으려 든다.
+    _cancel_credit_guard(sess)
+    # [T-252 Task 8] 상태 4 수명 타이머 정리 — 남으면 죽은 세션의 pipeline 을 건드린다.
+    _cancel_unconfirmed_timer(sess)
+
+
+def _unconfirmed_timeout(sess) -> None:
+    """[T-252 Task 8] 상태 4 수명 만료 — 프롬프트를 상태 1(기본 상대)로 되돌린다.
+
+    call_later 콜백이라 **동기**다. 통화 경로(say/greet)를 블로킹하지 않고, 어떤
+    예외도 밖으로 새면 안 된다(루프 예외 핸들러로 흘러가 통화 로그를 오염시킨다)
+    — 그래서 본문 전체를 try/except 로 감싼다. 실패하면 상태 4 가 유지될 뿐이다.
+
+    되돌리는 것은 **프롬프트뿐**이다. `sess.current_speaker` 는 건드리지 않는다 —
+    화자는 여전히 미확정이므로 learn_writeback 의 person 귀속은 익명으로 남는 것이
+    맞다(프롬프트가 상태 1 = 계정주 L2 이고 귀속도 계정주이므로 "이 턴의 프롬프트
+    상대 = 그 턴의 학습 귀속 대상" 불변식도 그대로 성립한다).
+
+    가드 순서:
+    1. `prompt_unconfirmed` 재확인 — 이미 상태 4 를 벗어났으면(speaker_confirmed 가
+       루프가 이 콜백을 꺼낸 뒤에 cancel 을 불러 취소가 무효화된 경우 포함) 드랍한다.
+       이것이 이 콜백의 stale 가드다. 무장 시점의 epoch 를 얼려 비교하면 안 된다 —
+       연속 unknown_face 가 epoch 를 올리므로(강등을 스킵해도 bump 는 무조건 일어난다)
+       그 비교는 정상 시나리오에서 복귀를 영구히 막아 고착을 그대로 재현한다.
+    2. 전소 가드 — pipeline/bundle 부재(입력)와 재조립 결과 [] (출력) 양쪽.
+       update_persona([]) 는 안전 규칙·성격·기억 전소다.
+    3. epoch bump — 상태가 바뀌므로 in-flight `_maybe_swap_l2p` 가 이 복귀를
+       덮어쓰지 못하게 세대를 올린다. 이 콜백에는 await 가 없어 bump 와 update
+       사이에 다른 코루틴이 끼어들 수 없다.
+    """
+    try:
+        sess.unconfirmed_timer = None
+        if not getattr(sess, "prompt_unconfirmed", False):
+            return
+        pipeline = getattr(sess, "pipeline", None)
+        bundle = getattr(sess, "bundle", None)
+        if pipeline is None or not bundle:
+            return
+        update = getattr(pipeline, "update_persona", None)
+        if not callable(update):
+            return
+        # speaker 인자 없음 = 상태 1(기본 상대 · 이름 호칭 허용).
+        new_messages = bundle_to_messages(bundle)
+        if not new_messages:
+            log.warning(
+                "session %s 상태1 복귀 재조립 결과가 비어 프롬프트를 유지한다(전소 방지)",
+                getattr(sess, "session_id", "?"),
+            )
+            return
+        _bump_speaker_epoch(sess)
+        update(new_messages)
+        # 반드시 내려야 다음 unknown_face 가 또 강등할 수 있다(재강등 반복이 설계다).
+        sess.prompt_unconfirmed = False
+        if _face_diag_on():
+            # 실명·L2' 원문은 남기지 않는다 — 세션 id 와 사실만.
+            log.info(
+                "face_diag unconfirmed_expired session=%s restored=1",
+                getattr(sess, "session_id", "?"),
+            )
+    except Exception as e:
+        log.warning(
+            "session %s unconfirmed timeout restore failed: %s",
+            getattr(sess, "session_id", "?"), e,
+        )
+        # [T-252 Task 9] 복구 경로. 여기서 그냥 빠지면 `prompt_unconfirmed` 는 True 인 채
+        # `unconfirmed_timer` 만 None 이라, 이후 `unknown_face` 는 `_clear_current_speaker` 의
+        # 중복 강등 가드에 걸려 재무장조차 되지 않는다 — 상태 4 가 통화 끝까지 고착으로
+        # 복귀한다(이 타이머가 없애려던 바로 그 증상). 그래서 한 번 다시 무장한다.
+        #
+        # 무한 재시도는 하지 않는다: update_persona 가 계속 실패하는 세션이 TTL 마다 영원히
+        # 재시도하면 실패 로그만 쌓인다. `_UNCONFIRMED_MAX_RETRY` 회까지만 하고 포기한다
+        # (포기해도 안전 측 실패다 — 상태 4 유지 = 이름을 안 부르는 쪽).
+        # 재무장 자체가 또 실패해도 밖으로 새면 안 되므로 한 번 더 감싼다.
+        try:
+            if (
+                getattr(sess, "prompt_unconfirmed", False)
+                and getattr(sess, "unconfirmed_retry", 0) < _UNCONFIRMED_MAX_RETRY
+            ):
+                sess.unconfirmed_retry = getattr(sess, "unconfirmed_retry", 0) + 1
+                _arm_unconfirmed_timer(sess)
+        except Exception as e2:
+            log.warning(
+                "session %s unconfirmed timeout re-arm failed: %s",
+                getattr(sess, "session_id", "?"), e2,
+            )
+
+
+def _arm_unconfirmed_timer(sess) -> None:
+    """[T-252 Task 8] 상태 4 강등 직후 수명 타이머를 건다.
+
+    **이미 떠 있으면 재무장하지 않고 그대로 둔다.** 연속 `unknown_face` 가 타이머를
+    매번 갱신하면 얼굴이 계속 잡히는 동안 만료가 무한 연장되어 — 즉 고착이 발생하는
+    바로 그 상황에서 — 이 장치가 통째로 무력해진다. 실제 `_clear_current_speaker` 는
+    중복 강등을 `prompt_unconfirmed` 로 이미 막고 있어 여기까지 두 번 오지 않지만,
+    "무장은 강등 1회당 1개" 를 이 함수 자체가 보장하게 해 둔다.
+
+    이벤트 루프 밖에서 불리면(동기 단위 테스트 등) 조용히 스킵한다 — 통화 경로는
+    항상 aiohttp 루프 안이므로 실운영에는 해당하지 않는다."""
+    if getattr(sess, "unconfirmed_timer", None) is not None:
+        return
+    ttl = _unconfirmed_ttl_s()
+    if ttl <= 0:
+        return  # 비활성(롤백 스위치) — 상태 4 를 무기한 유지하던 구 동작
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return
+    try:
+        sess.unconfirmed_timer = loop.call_later(ttl, _unconfirmed_timeout, sess)
+    except Exception as e:
+        log.warning(
+            "session %s unconfirmed timer arm failed: %s",
+            getattr(sess, "session_id", "?"), e,
+        )
+
+
+def _clear_current_speaker(sess, event: str) -> None:
+    """[T-135 v2 / T-252] 화자 확실성 게이팅 — `unknown_face`/`multi_face` 수신 시
+    화자를 익명으로 되돌리고 프롬프트를 상태 4로 강등한다.
+
+    두 가지 일을 하는데, 조건이 서로 다르다는 것이 핵심이다(T-252 fix / mizu H-1 · el B-2).
+
+    1) `current_speaker=None` 해제 — 이미 None이면 no-op. 해제하면 이후
+       `_maybe_swap_l2p`의 stale 가드가 늦게 도착하는 이전 화자의 스왑도 자동
+       드랍한다(이중 방어). `learn_writeback` person 귀속도 이 시점부터 즉시
        익명(person_id=None)으로 보류된다(호출부가 매 turn `sess.current_speaker`를
        그때그때 읽으므로 별도 배선 불필요).
-    2) base_persona_messages가 이미 백업돼 있으면(과거에 한 번이라도 스왑이 있었다는
-       뜻) persona를 base로 동기 리셋 — 직전 화자의 이름/L2' 힌트가 다음 턴 프롬프트에
-       잔류하는 것을 막는다(그렇지 않으면 "낯선 사람인데 이전 화자 이름으로 계속
-       불림" 오염이 발생). base가 없으면(스왑이 한 번도 없었음) 리셋할 것도 없다.
+    2) 프롬프트 상태 4 강등 — **`current_speaker` 상태와 무관하게 무조건** 수행한다.
+       예전엔 `if sess.current_speaker is None: return` 이 함수 전체를 막아서
+       상태 4로 들어가는 간선이 `2→4` 하나뿐이었다. 그런데 `clone_person_faces`가
+       0행이라 `/oth-path`는 절대 매칭되지 않고 → `speaker_confirmed`가
+       한 번도 오지 않고 → `current_speaker`는 영원히 None이라 **상태 4가 100%
+       발생하지 않았다**. 카메라 앞에 제3자가 앉아도 프롬프트는 상태 1 그대로
+       ("상대는 지호")여서 클론이 제3자를 계정주 이름으로 부르고 계정주의 L2를
+       그 사람 것으로 읊는다 — 설계 3.2가 T-135 완화의 유일한 안전 조건으로 내건
+       "이름으로 부르지 않는다"가 정작 필요한 상황에서만 미작동했다.
+       중복 재조립은 `sess.prompt_unconfirmed` 플래그로 막는다(연속 unknown_face).
+
+    [T-252 Task 8] 강등이 실제로 일어나면 상태 4 수명 타이머를 건다. 상태 4 에서
+    나가는 간선이 `speaker_confirmed` 하나뿐인데 `clone_person_faces` 0행이면 그
+    이벤트가 구조적으로 발생할 수 없어, 강등이 곧 통화 끝까지 가는 고착이 된다.
+    타이머가 만료되면 `_unconfirmed_timeout` 이 상태 1 로 되돌리고, 그 뒤 다시
+    `unknown_face` 가 오면 또 강등한다(4 ↔ 1 반복).
+
+    상태 4 재조립은 익명 리셋(상대 정보 통째 삭제)이 아니라 기본 상대(L2) 폴백이다 —
+    얼굴이 감지됐으나 매칭에 실패한 것은 "낯선 사람"이 아니라 "누구인지 확정하지 못한
+    상태"다. 관계·기억은 유지하되 이름 호칭만 억제한다. 복귀 대상은 통화를 건 사용자
+    본인의 L2 뿐이며 타인의 L2' 는 남기지 않는다.
     """
-    if sess.current_speaker is None:
-        return
-    sess.current_speaker = None
-    if _face_diag_on():
-        log.info(
-            "face_diag speaker session=%s event=%s cleared=1",
-            getattr(sess, "session_id", "?"), event,
-        )
+    # [T-252 fix / el I-2] 세대는 항상 올린다 — 상태 4 로 넘어간 이상 in-flight
+    # 스왑은 전부 낡은 것이다(재조립을 실제로 했는지와 무관).
+    _bump_speaker_epoch(sess)
+    if sess.current_speaker is not None:
+        sess.current_speaker = None
+        if _face_diag_on():
+            log.info(
+                "face_diag speaker session=%s event=%s cleared=1",
+                getattr(sess, "session_id", "?"), event,
+            )
+    if getattr(sess, "prompt_unconfirmed", False):
+        return  # 이미 상태 4 — 재조립 결과가 같으므로 중복 update 를 건너뛴다
     try:
         pipeline = getattr(sess, "pipeline", None)
-        base = getattr(sess, "base_persona_messages", None)
-        if pipeline is not None and base is not None:
-            update = getattr(pipeline, "update_persona", None)
-            if callable(update):
-                update(list(base))
+        bundle = getattr(sess, "bundle", None)
+        if pipeline is None or not bundle:
+            # 재조립할 원본이 없다(스왑 전 재연결·offer 실패 등). update_persona([])는
+            # 페르소나(안전 규칙·성격·기억) 전소라 절대 부르지 않는다.
+            return
+        update = getattr(pipeline, "update_persona", None)
+        if not callable(update):
+            return
+        new_messages = bundle_to_messages(bundle, speaker={"unconfirmed": True})
+        if not new_messages:
+            # [T-252 fix / el I-1] 입력(bundle) 가드만으로는 부족하다 — truthy bundle
+            # 로도 재조립 결과가 [] 가 될 수 있다(L0 rules_text 부재 + 클론 자기 속성
+            # 부재 등). update_persona([]) 는 안전 규칙·성격·기억 전소다. 재조립이
+            # 비면 기존 프롬프트를 그대로 유지한다.
+            log.warning(
+                "session %s 상태4 재조립 결과가 비어 프롬프트를 유지한다(전소 방지)",
+                getattr(sess, "session_id", "?"),
+            )
+            return
+        update(new_messages)
+        sess.prompt_unconfirmed = True
+        # [T-252 Task 8] 상태 4 는 수명을 갖는다 — 만료되면 상태 1 로 돌아간다.
+        # 강등이 실제로 일어난 경로에서만 무장한다(가드로 스킵된 경우엔 상태가
+        # 바뀌지 않았으므로 되돌릴 것도 없다).
+        # [T-252 Task 9] 새 강등마다 복귀 재시도 예산을 새로 준다 — 앞선 강등에서
+        # 예외로 예산을 다 썼다고 이번 강등의 복구까지 막을 이유는 없다.
+        sess.unconfirmed_retry = 0
+        _arm_unconfirmed_timer(sess)
     except Exception as e:
         log.warning(
             "session %s _clear_current_speaker persona reset failed: %s",
@@ -599,12 +815,21 @@ def _handle_face_event(sess, data: dict) -> None:
         prev = sess.current_speaker
         if prev is None or prev[0] != pid_int:
             sess.current_speaker = (pid_int, name)
+            # [T-252 fix / mizu H-1] 상태 4 중복 방지 플래그를 반드시 여기서 푼다 —
+            # 안 풀면 이 통화에서 두 번째 unknown_face 가 와도 강등이 스킵된다.
+            sess.prompt_unconfirmed = False
+            # [T-252 Task 8] 상태 4 수명 타이머 취소 — 화자가 확정됐으므로 상태 2 로
+            # 가야 한다. 남겨 두면 10초 뒤 콜백이 상태 1 로 되돌려 방금 확정한 화자를
+            # 덮어쓴다. (플래그를 이미 False 로 내렸으니 콜백이 늦게 실행돼도 자체
+            # 가드에서 드랍되지만, 취소가 정공법이고 플래그 가드는 2층이다.)
+            _cancel_unconfirmed_timer(sess)
+            epoch = _bump_speaker_epoch(sess)
             if _face_diag_on():
                 log.info(
                     "face_diag speaker session=%s person=%s swap_scheduled=1",
                     getattr(sess, "session_id", "?"), pid_int,
                 )
-            asyncio.ensure_future(_maybe_swap_l2p(sess, pid_int, name))
+            asyncio.ensure_future(_maybe_swap_l2p(sess, pid_int, name, epoch))
     elif event in ("unknown_face", "multi_face") and identity_on:
         # [T-135 v2] 화자 확실성 게이팅 — 낯선 얼굴/다중 얼굴이면 즉시 익명으로 해제.
         # speaker_confirmed로 재확정될 때까지 이름/L2' 주입·learn_writeback person
@@ -980,6 +1205,8 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                             "allowedSec(정수, 초)를 실어야 한다. clone=%s",
                             sess.clone_id,
                         )
+                    # T-252: 화자 교대 시 프롬프트를 통째로 재조립하기 위해 원본을 보관한다.
+                    sess.bundle = bundle
                     sess.persona_messages = bundle_to_messages(bundle)
                     assets = bundle.get("assets") or {}
                     se_key = assets.get("voiceSeKey")
@@ -1114,16 +1341,10 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                         _avsync_task[0].cancel()
                         _avsync_task.clear()
                         log.info("session %s [avsync] monitor cancelled", sess.session_id)
-                    # [F7] filler cleanup: stop + 캐시 해제 (좀비 asyncio task 방지).
+                    # [T-252 Task 9] filler player · 크레딧 가드 · 상태 4 타이머 정리.
                     # pc.close() 이전에 수행 — 세션 자원 정리 순서 일관성 유지.
-                    _filler_cleanup = getattr(sess, "filler_player", None)
-                    if _filler_cleanup is not None:
-                        _filler_cleanup.close()
-                        sess.filler_player = None
-                        log.info("session %s FillerPlayer closed (cleanup)", sess.session_id)
-                    # [T-167] 크레딧 가드 정리 — 남은 타이머가 종료 후 발화하면
-                    # 이미 끊긴 통화를 또 끊으려 든다. pc.close() 이전에 수행.
-                    _cancel_credit_guard(sess)
+                    # (인라인이던 것을 헬퍼로 추출: 테스트가 직접 호출해 실동작 검증)
+                    _cleanup_session_resources(sess)
                     await pc.close()
                     # Phase B: 통화 종료 통보(best-effort). 여러 번 fire돼도 api가 멱등(ended_at IS NULL).
                     # sess 필드는 mgr.remove 전에 로컬 추출 — 세션 제거 후 참조(use-after-free) 방어.

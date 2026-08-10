@@ -7,6 +7,8 @@ export interface PersonaBundle {
   l0: SystemPersona;
   cloneId: string;
   persona: PersonaDict;
+
+  viewer: { displayName: string | null };
 }
 
 function parseJson(s: string | null): PersonaDict | null {
@@ -33,9 +35,10 @@ export async function loadCloneProfiles(
 export function buildPersonaBundle(
   l0: SystemPersona,
   persona: PersonaDict,
-  cloneId: number
+  cloneId: number,
+  viewer?: { displayName: string | null }
 ): PersonaBundle {
-  return { l0, cloneId: String(cloneId), persona };
+  return { l0, cloneId: String(cloneId), persona, viewer: viewer ?? { displayName: null } };
 }
 
 const L2_FIELDS = [

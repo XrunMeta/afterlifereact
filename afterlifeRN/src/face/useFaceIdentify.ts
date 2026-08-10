@@ -91,7 +91,8 @@ export async function runIdentifyCycle(
     displayName: result.best?.displayName ?? null,
     score: result.best?.score ?? 0,
   };
-  const { state: speaker, event } = speakerIdReducer(state.speaker, cycle);
+
+  const { state: speaker, event } = speakerIdReducer(state.speaker, cycle, nowMs);
   return {
     state: { speaker, consecutiveFailures: 0, backoffUntilMs: 0 },
     event,
@@ -136,9 +137,14 @@ export function useFaceIdentify(opts: UseFaceIdentifyOptions): UseFaceIdentifyRe
   const inFlightRef = useRef(false);
 
   const resetRecognition = useCallback(() => {
-    const { state: speaker } = speakerIdReducer(stateRef.current.speaker, { type: "RESET_RECOGNITION" });
+
+    const { state: speaker } = speakerIdReducer(
+      stateRef.current.speaker,
+      { type: "RESET_RECOGNITION" },
+      nowFn(),
+    );
     stateRef.current = { ...stateRef.current, speaker };
-  }, []);
+  }, [nowFn]);
 
   const onEmbedding = useCallback(
     (raw: number[]) => {
