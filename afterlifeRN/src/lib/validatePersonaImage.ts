@@ -13,12 +13,12 @@ export type ValidationResult =
   | { ok: true }
   | { ok: false; reason: ValidationReason };
 
-const v_6a5345 = 0.15;
-const v_822ad2 = 0.65;
-const v_cf2aaf = 0.10;
-const v_79db15 = 0.60;
-const v_0e7d10 = 0.20;
-const v_25c159 = 0.80;
+const v_6a5345 = 0.20;
+const v_822ad2 = 0.42;
+const v_cf2aaf = 0.13;
+const v_79db15 = 0.42;
+const v_0e7d10 = 0.35;
+const v_25c159 = 0.65;
 
 function v_333679(v_cd1446): Promise<{ width: number; height: number }> {
   return new Promise((v_6f7712, v_bad6f3) => {
