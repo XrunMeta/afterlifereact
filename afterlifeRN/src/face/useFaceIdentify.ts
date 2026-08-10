@@ -87,7 +87,8 @@ export async function v_f644ce(
     displayName: v_43c42e.best?.displayName ?? null,
     score: v_43c42e.best?.score ?? 0,
   };
-  const { state: v_60d563, event: v_d48baf } = v_be2f9f(v_b6e533.speaker, v_bdad26);
+
+  const { state: v_60d563, event: v_d48baf } = v_be2f9f(v_b6e533.speaker, v_bdad26, v_67e77e);
   return {
     state: { speaker: v_60d563, consecutiveFailures: 0, backoffUntilMs: 0 },
     event: v_d48baf,
@@ -132,9 +133,14 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
   const v_9468fd = v_e662ae(false);
 
   const v_4921f9 = v_de06a3(() => {
-    const { state: v_60d563 } = v_be2f9f(v_8d3dea.current.speaker, { type: "RESET_RECOGNITION" });
+
+    const { state: v_60d563 } = v_be2f9f(
+      v_8d3dea.current.speaker,
+      { type: "RESET_RECOGNITION" },
+      v_5de650(),
+    );
     v_8d3dea.current = { ...v_8d3dea.current, speaker: v_60d563 };
-  }, []);
+  }, [v_5de650]);
 
   const v_7167fd = v_de06a3(
     (v_479f05) => {

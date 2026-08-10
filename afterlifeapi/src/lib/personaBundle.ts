@@ -7,6 +7,8 @@ export interface PersonaBundle {
   l0: v_6679b6;
   cloneId: string;
   persona: v_1f7dcf;
+
+  viewer: { displayName: string | null };
 }
 
 function v_4c95c2(v_fd5f43): v_1f7dcf | null {
@@ -33,9 +35,10 @@ export async function v_db508f(
 export function v_445ba7(
   l0: v_6679b6,
   persona: v_1f7dcf,
-  v_6e0fd3
+  v_6e0fd3,
+  v_debed8
 ): PersonaBundle {
-  return { l0: v_b6c480, cloneId: String(v_6e0fd3), persona: v_5ed063 };
+  return { l0: v_b6c480, cloneId: String(v_6e0fd3), persona: v_5ed063, viewer: v_debed8 ?? { displayName: null } };
 }
 
 const v_f4c771 = [
