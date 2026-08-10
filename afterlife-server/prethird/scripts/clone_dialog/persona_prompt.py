@@ -93,57 +93,74 @@ def sanitize_display_name(raw) -> str | None:
     return trimmed
 
 
-_RULES_COMMON = (
-    '- "나 / 내 / 제가" 는 항상 너({clone})를 가리킨다.\n'
+_RULE_SELF = '- "나 / 내 / 제가" 는 항상 너({clone})를 가리킨다.'
+
+# 되묻기 지시(R-2). 실측 162 응답에서 채택된 변형 C 의 핵심 문안이라 문구를 바꾸지 않는다.
+_RULE_ASKBACK = (
     "- 대답한 뒤에는 상대에게 자연스럽게 되물어라. 질문은 한 번에 하나만.\n"
     "  상대가 대화를 끝내려 하면 되묻지 말고 자연스럽게 마무리한다."
 )
 
 
-def _build_header(clone_name: str | None, other_name: str | None, unconfirmed: bool) -> str:
-    """역할 선언 머리말. 4상태(설계 4.2).
+def _build_header(
+    clone_name: str | None,
+    other_name: str | None,
+    unconfirmed: bool,
+    has_other_block: bool,
+) -> str:
+    """역할 선언 머리말. 4상태(설계 4.2). 줄 순서는 설계 4.2 표기와 동일하다.
 
-    clone_name  : 클론 이름. None 이면 "아래 '너의 정보'의 인물" 로 대체.
-    other_name  : 상대 이름(sanitize 통과분). None 이면 이름 호칭을 억제한다.
-    unconfirmed : 얼굴이 잡혔으나 매칭 실패(unknown_face/multi_face). 상태 4.
+    clone_name      : 클론 이름. None 이면 "아래 '너의 정보'의 인물" 로 대체.
+    other_name      : 상대 이름(sanitize 통과분). None 이면 이름 호칭을 억제한다.
+    unconfirmed     : 얼굴이 잡혔으나 매칭 실패(unknown_face/multi_face). 상태 4.
+    has_other_block : "## 상대 정보" 블록이 실제로 조립되는가.
+        False 면 그 블록을 가리키는 줄을 전부 뺀다 — 없는 블록을 가리키면 모델이
+        엉뚱한 줄("너의 정보"·"참고")을 상대 것으로 읽는다. 이름을 아는 상태에서
+        블록이 비면 "아직 이 사람에 대해 기억하는 것이 없다" 로 명시한다
+        (T-252 mizu H-2 / el B-1 — 계정주 L2 를 확정 화자의 것으로 단언하던 결함).
     """
     who = f'"{clone_name}"' if clone_name else "아래 \"너의 정보\" 의 인물"
-    head = f'너는 {who} 이다. 아래 "너의 정보" 가 너 자신이다.'
-    common = _RULES_COMMON.format(clone=clone_name or "너 자신")
+    out = [f'너는 {who} 이다. 아래 "너의 정보" 가 너 자신이다.']
 
     if unconfirmed:
         # 상태 4 — 얼굴이 잡혔으나 누구인지 확정하지 못했다.
-        return (
-            f"{head}\n"
-            "지금 너와 통화 중인 상대가 있다. 누구인지는 확정하지 못했다.\n"
-            '아래 "## 상대 정보" 는 평소 너와 대화하던 상대의 것이다.\n'
-            f"{common}\n"
-            '- 상대가 "나 / 내" 라고 말하면 그것은 상대 자신을 가리킨다. 너가 아니다.\n'
-            "- 상대를 이름으로 부르지 마라. 확정되지 않았다.\n"
-            '- "## 상대 정보" 는 상대의 것이다. 네 경험처럼 말하지 마라.\n'
-            "  다만 그 사람이 맞는지 확신할 수 없으니 그 기억을 단정해서 꺼내지 마라."
-        )
-
-    if not other_name:
+        out.append("지금 너와 통화 중인 상대가 있다. 누구인지는 확정하지 못했다.")
+        if has_other_block:
+            out.append('아래 "## 상대 정보" 는 평소 너와 대화하던 상대의 것이다.')
+    elif not other_name:
         # 상태 3 — 상대의 이름을 모른다.
-        return (
-            f"{head}\n"
-            "지금 너와 통화 중인 상대가 있다. 상대의 이름은 아직 확인되지 않았다.\n"
-            f"{common}\n"
-            '- 상대가 "나 / 내" 라고 말하면 그것은 상대 자신을 가리킨다. 너가 아니다.\n'
-            "- 상대를 이름으로 부르지 마라. 이름을 지어내지 마라.\n"
-            '- "## 상대 정보" 는 상대의 것이다. 네 경험처럼 말하지 마라.'
-        )
+        out.append("지금 너와 통화 중인 상대가 있다. 상대의 이름은 아직 확인되지 않았다.")
+    else:
+        # 상태 1·2 — 상대 이름을 안다. 얼굴 확인 여부는 문장으로 밝히지 않는다
+        # (모델이 상대를 의심하게 만들 이유가 없다).
+        line = f'지금 너와 통화 중인 상대는 "{other_name}" 이다.'
+        if not has_other_block:
+            line += " 아직 이 사람에 대해 기억하는 것이 없다."
+        out.append(line)
 
-    # 상태 1·2 — 상대 이름을 안다. 얼굴 확인 여부는 문장으로 밝히지 않는다
-    # (모델이 상대를 의심하게 만들 이유가 없다).
-    return (
-        f"{head}\n"
-        f'지금 너와 통화 중인 상대는 "{other_name}" 이다.\n'
-        f"{common}\n"
-        f'- 상대가 "나 / 내" 라고 말하면 그것은 {other_name} 를 가리킨다. 너가 아니다.\n'
-        f'- "## 상대 정보" 는 {other_name} 의 것이다. 네 경험처럼 말하지 마라.'
-    )
+    out.append(_RULE_SELF.format(clone=clone_name or "너 자신"))
+
+    if unconfirmed or not other_name:
+        out.append('- 상대가 "나 / 내" 라고 말하면 그것은 상대 자신을 가리킨다. 너가 아니다.')
+    else:
+        out.append(f'- 상대가 "나 / 내" 라고 말하면 그것은 {other_name} 를 가리킨다. 너가 아니다.')
+
+    if unconfirmed:
+        out.append("- 상대를 이름으로 부르지 마라. 확정되지 않았다.")
+    elif not other_name:
+        out.append("- 상대를 이름으로 부르지 마라. 이름을 지어내지 마라.")
+
+    if has_other_block:
+        if unconfirmed or not other_name:
+            owner = '- "## 상대 정보" 는 상대의 것이다. 네 경험처럼 말하지 마라.'
+        else:
+            owner = f'- "## 상대 정보" 는 {other_name} 의 것이다. 네 경험처럼 말하지 마라.'
+        if unconfirmed:
+            owner += "\n  다만 그 사람이 맞는지 확신할 수 없으니 그 기억을 단정해서 꺼내지 마라."
+        out.append(owner)
+
+    out.append(_RULE_ASKBACK)
+    return "\n".join(out)
 
 
 def _format_val(val) -> str:
@@ -219,8 +236,6 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
         viewer = pb.get("viewer") or {}
         other_name = sanitize_display_name(viewer.get("displayName"))
 
-    header = _build_header(clone_name, other_name, unconfirmed)
-
     # 1) L0 안전 규칙
     l0 = pb.get("l0") or {}
     rules_text = l0.get("rules_text", "")
@@ -248,7 +263,16 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
                 out.append(f"- {label}: {text}")
         return out
 
-    other_source = l2p_data if l2p_data else persona
+    # [T-252 mizu H-2 / el B-1] 화자가 확정된 경로(speaker_given)에서는 L2' 가 없다고
+    # 계정주 L2(persona) 로 폴백하면 안 된다 — 머리말이 "## 상대 정보 는 {이름} 의 것"
+    # 이라고 단언하는데 내용은 통화를 건 계정주의 관계·취향·기억이라 오귀속이 된다.
+    # 신규 person 은 clone_ont_person 행이 없어 404 → l2p_data=None 이 최빈 경로다.
+    # speaker=None(상태 1·3)일 때 persona 의 L2 를 쓰는 것은 옳다 — 그때는 상대가
+    # 계정주 본인이기 때문이다. 상태 4 도 "평소 대화하던 상대"= 계정주라 persona 가 맞다.
+    if speaker_given:
+        other_source = l2p_data or {}
+    else:
+        other_source = persona
 
     self_lines = _render_from(persona, _SELF_LABELS)
     other_lines = _render_from(other_source, _OTHER_LABELS)
@@ -274,6 +298,10 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
     if not (self_lines or other_lines or neutral_lines or lines or knowledge_text):
         # l0 도 없고 속성도 없고 knowledge 도 없으면 의미 없음
         return []
+
+    # 머리말은 블록 조립 결과를 보고 만든다 — "## 상대 정보" 가 실제로 없으면
+    # 그 블록을 가리키는 줄을 넣지 않는다(el B-1 / mizu H-2).
+    header = _build_header(clone_name, other_name, unconfirmed, bool(other_lines))
 
     if self_lines:
         lines.append("## 너의 정보")
