@@ -335,7 +335,18 @@ def _sanitize_display_name(raw) -> Optional[str]:
     return trimmed
 
 
-async def _maybe_swap_l2p(sess, pid: int, name) -> None:
+def _bump_speaker_epoch(sess) -> int:
+    """[T-252 fix / el I-2] 화자 상태 세대를 1 올리고 새 값을 돌려준다.
+
+    화자가 바뀌거나(speaker_confirmed) 해제될 때(unknown_face/multi_face) 호출한다.
+    스왑을 스케줄한 쪽이 이 값을 closure 로 얼려 두고 적용 직전에 비교하면, 같은
+    pid 안에서 순서가 뒤집힌 in-flight 스왑을 드랍할 수 있다."""
+    epoch = getattr(sess, "speaker_epoch", 0) + 1
+    sess.speaker_epoch = epoch
+    return epoch
+
+
+async def _maybe_swap_l2p(sess, pid: int, name, epoch: int | None = None) -> None:
     """[T-067 Task 12 / T-252] speaker_confirmed 화자(pid/name)에 맞춰 persona를 재조립.
 
     fire-and-forget — 호출부(_handle_face_event)가 `asyncio.ensure_future`로 스케줄하고
@@ -374,10 +385,19 @@ async def _maybe_swap_l2p(sess, pid: int, name) -> None:
                             getattr(sess, "session_id", "?"), pid, e)
                 l2p_data = None
 
-        # stale 가드: fetch 도중 화자가 또 바뀌었으면(연속 교대) 늦게 끝난 이 결과는
+        # stale 가드 1: fetch 도중 화자가 또 바뀌었으면(연속 교대) 늦게 끝난 이 결과는
         # 버린다 — 최신 화자의 스왑(이미 진행/완료)을 덮어쓰지 않는다.
         current = getattr(sess, "current_speaker", None)
         if current is None or current[0] != pid:
+            return
+
+        # stale 가드 2 [T-252 fix / el I-2]: 세대(epoch) 비교. pid 만 보면 "화자가
+        # 바뀌었나"는 알아도 "이 스왑이 최신 스케줄인가"는 모른다. `2(A) → 4 → 2(A)`
+        # 복귀에서 A 로 두 번 스케줄되면 pid 는 둘 다 통과하지만, 늦게 끝난 첫 번째가
+        # frozen name 과 낡은 L2' 로 두 번째 결과를 덮어쓴다. epoch 는 화자 상태가
+        # 바뀔 때마다 오르므로 그 역전을 잡는다. epoch=None 은 세대 관리 밖에서
+        # 직접 호출된 경우(테스트 등)로 이 가드를 건너뛴다.
+        if epoch is not None and getattr(sess, "speaker_epoch", epoch) != epoch:
             return
 
         # T-252: base 뒤에 힌트를 덧붙이는 대신 프롬프트를 통째로 재조립한다.
@@ -442,6 +462,9 @@ def _clear_current_speaker(sess, event: str) -> None:
     상태"다. 관계·기억은 유지하되 이름 호칭만 억제한다. 복귀 대상은 통화를 건 사용자
     본인의 L2 뿐이며 타인의 L2' 는 남기지 않는다.
     """
+    # [T-252 fix / el I-2] 세대는 항상 올린다 — 상태 4 로 넘어간 이상 in-flight
+    # 스왑은 전부 낡은 것이다(재조립을 실제로 했는지와 무관).
+    _bump_speaker_epoch(sess)
     if sess.current_speaker is not None:
         sess.current_speaker = None
         if _face_diag_on():
@@ -610,12 +633,13 @@ def _handle_face_event(sess, data: dict) -> None:
             # [T-252 fix / mizu H-1] 상태 4 중복 방지 플래그를 반드시 여기서 푼다 —
             # 안 풀면 이 통화에서 두 번째 unknown_face 가 와도 강등이 스킵된다.
             sess.prompt_unconfirmed = False
+            epoch = _bump_speaker_epoch(sess)
             if _face_diag_on():
                 log.info(
                     "face_diag speaker session=%s person=%s swap_scheduled=1",
                     getattr(sess, "session_id", "?"), pid_int,
                 )
-            asyncio.ensure_future(_maybe_swap_l2p(sess, pid_int, name))
+            asyncio.ensure_future(_maybe_swap_l2p(sess, pid_int, name, epoch))
     elif event in ("unknown_face", "multi_face") and identity_on:
         # [T-135 v2] 화자 확실성 게이팅 — 낯선 얼굴/다중 얼굴이면 즉시 익명으로 해제.
         # speaker_confirmed로 재확정될 때까지 이름/L2' 주입·learn_writeback person

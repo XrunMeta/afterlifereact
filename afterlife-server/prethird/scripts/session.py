@@ -39,6 +39,12 @@ class Session:
         # 중복 재조립만 이 플래그로 막는다. speaker_confirmed 로 화자가 확정되면
         # False 로 리셋한다(다시 unknown 이 오면 또 강등해야 한다).
         self.prompt_unconfirmed = False
+        # [T-252 fix / el I-2] 화자 상태가 바뀔 때마다 1씩 오르는 단조 카운터.
+        # _maybe_swap_l2p 는 스케줄 시점의 값을 closure 로 얼려 두고 적용 직전에
+        # 비교한다 — pid 만 비교하면 `2(A) → 4 → 2(A)` 복귀에서 in-flight 중이던
+        # 구 스왑이 `current[0] == pid` 가 여전히 참이라 통과해, frozen name 과
+        # 낡은 L2' 로 최신 판정을 덮어쓴다.
+        self.speaker_epoch = 0
         # T-126 Task8 — 이번 통화에서 이미 이름 추출을 시도한 personId 집합(1인당 1회만 LLM 호출).
         # current_speaker[1](displayName)이 채워지면 자연히 더 이상 필요 없어지지만, RN의 PATCH가
         # 이 세션에 반영되지 않으므로(별도 프로세스) 세션 로컬 가드로 중복 호출만 억제한다.
