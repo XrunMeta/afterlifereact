@@ -261,7 +261,7 @@ export default function MyScreen() {
       },
     },
 
-    ...(apiUser?.email === "oth-staff@example.invalid"
+    ...(["oth-staff@example.invalid", "oth-test@example.invalid"].includes(apiUser?.email ?? "")
       ? [
           {
             icon: "cpu" as const,
