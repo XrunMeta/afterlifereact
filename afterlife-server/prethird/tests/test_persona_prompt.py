@@ -1,4 +1,5 @@
 import sys, pathlib
+import pytest
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
 from clone_dialog import bundle_to_messages  # noqa: E402
 from clone_dialog.persona_prompt import _format_pref_history, sanitize_display_name  # noqa: E402
@@ -435,20 +436,116 @@ def test_화자확정_L2p_빈dict도_동일하게_차단된다():
     assert "지호와 어제 등산을 갔다" not in content
 
 
-def test_상태2_L2p없음_머리말_문안():
-    """결정 1 의 문안 그대로 나와야 한다 — 없는 블록을 가리키는 줄이 없어야 한다."""
-    msgs = bundle_to_messages(
+# ---------------------------------------------------------------------------
+# [T-252 fix round 3] 머리말 전문 등호 단언 — 5상태 전량
+#
+# 머리말 문안은 실측(1차 162 응답 · 2차 82 응답)으로 채택한 산출물이라 조용히
+# 바뀌면 안 된다. 특히 **줄 순서**가 그렇다 — 소유자 선언 줄을 되묻기보다 앞에
+# 두면 모델이 그 줄을 "출력할 내용" 으로 오인해 `## 상대 정보` 헤딩을 발화에
+# 그대로 노출한다(2차 실측 s2_l2p 11/24 = 45.8%, 재배치 후 0/24).
+#
+# round 2 에서는 등호 단언이 상태 2b(소유자 줄이 **없는** 상태) 하나뿐이라
+# 순서를 구조적으로 검증할 수 없었다 — 순서를 되돌려도 스위트 전체가 그대로
+# 통과했다. 그래서 5상태 전부에 전문 등호를 건다.
+#
+# ⚠️ 문안을 고치면 이 표도 같이 고쳐야 한다. 그게 의도다. 유지보수 부담을
+# 이유로 부분 문자열·정규식으로 느슨하게 만들지 마라 — 그 순간 이 가드는
+# 다시 무력해진다.
+# ---------------------------------------------------------------------------
+
+_RULE_ASKBACK_TXT = (
+    "- 대답한 뒤에는 상대에게 자연스럽게 되물어라. 질문은 한 번에 하나만.\n"
+    "  상대가 대화를 끝내려 하면 되묻지 말고 자연스럽게 마무리한다."
+)
+_RULE_OWNER_TXT = '- "## 상대 정보" 는 상대의 것이다. 네 경험처럼 말하지 마라.'
+
+_HEADER_PERSONA = {
+    "displayName": "코조",
+    "tone": "무뚝뚝함",
+    "relation": "친구",
+    "memories_personal": ["어제 등산 감"],
+}
+
+# (라벨, bundle, speaker, 기대 머리말 전문)
+_HEADER_CASES = [
+    (
+        "상태1 · 얼굴 미확정 + viewer 이름 있음",
+        _bundle_v(dict(_HEADER_PERSONA), "지호"),
+        None,
+        '너는 "코조" 이다. 아래 "너의 정보" 가 너 자신이다.\n'
+        '지금 너와 통화 중인 상대는 "지호" 이다.\n'
+        '- "나 / 내 / 제가" 는 항상 너(코조)를 가리킨다.\n'
+        '- 상대가 "나 / 내" 라고 말하면 그것은 지호 를 가리킨다. 너가 아니다.\n'
+        + _RULE_ASKBACK_TXT + "\n" + _RULE_OWNER_TXT,
+    ),
+    (
+        "상태2a · 화자 확정 + L2' 있음",
+        _bundle_v(dict(_HEADER_PERSONA), "지호"),
+        {"name": "민수", "l2p_data": {"memories_personal": ["민수 기억"]}},
+        '너는 "코조" 이다. 아래 "너의 정보" 가 너 자신이다.\n'
+        '지금 너와 통화 중인 상대는 "민수" 이다.\n'
+        '- "나 / 내 / 제가" 는 항상 너(코조)를 가리킨다.\n'
+        '- 상대가 "나 / 내" 라고 말하면 그것은 민수 를 가리킨다. 너가 아니다.\n'
+        + _RULE_ASKBACK_TXT + "\n" + _RULE_OWNER_TXT,
+    ),
+    (
+        "상태2b · 화자 확정 + L2' 없음(사람 결정 1)",
         _bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, "지호"),
-        speaker={"name": "민수", "l2p_data": None},
-    )
-    header = _header_of(msgs[0]["content"])
-    assert header == (
+        {"name": "민수", "l2p_data": None},
         '너는 "코조" 이다. 아래 "너의 정보" 가 너 자신이다.\n'
         '지금 너와 통화 중인 상대는 "민수" 이다. 아직 이 사람에 대해 기억하는 것이 없다.\n'
         '- "나 / 내 / 제가" 는 항상 너(코조)를 가리킨다.\n'
         '- 상대가 "나 / 내" 라고 말하면 그것은 민수 를 가리킨다. 너가 아니다.\n'
-        "- 대답한 뒤에는 상대에게 자연스럽게 되물어라. 질문은 한 번에 하나만.\n"
-        "  상대가 대화를 끝내려 하면 되묻지 말고 자연스럽게 마무리한다."
+        + _RULE_ASKBACK_TXT,
+    ),
+    (
+        "상태3 · 이름 없음",
+        _bundle_v(dict(_HEADER_PERSONA), None),
+        None,
+        '너는 "코조" 이다. 아래 "너의 정보" 가 너 자신이다.\n'
+        "지금 너와 통화 중인 상대가 있다. 상대의 이름은 아직 확인되지 않았다.\n"
+        '- "나 / 내 / 제가" 는 항상 너(코조)를 가리킨다.\n'
+        '- 상대가 "나 / 내" 라고 말하면 그것은 상대 자신을 가리킨다. 너가 아니다.\n'
+        "- 상대를 이름으로 부르지 마라. 이름을 지어내지 마라.\n"
+        + _RULE_ASKBACK_TXT + "\n" + _RULE_OWNER_TXT,
+    ),
+    (
+        "상태4 · 얼굴 미확정 강등",
+        _bundle_v(dict(_HEADER_PERSONA), "지호"),
+        {"unconfirmed": True},
+        '너는 "코조" 이다. 아래 "너의 정보" 가 너 자신이다.\n'
+        "지금 너와 통화 중인 상대가 있다. 누구인지는 확정하지 못했다.\n"
+        '아래 "## 상대 정보" 는 평소 너와 대화하던 상대의 것이다.\n'
+        '- "나 / 내 / 제가" 는 항상 너(코조)를 가리킨다.\n'
+        '- 상대가 "나 / 내" 라고 말하면 그것은 상대 자신을 가리킨다. 너가 아니다.\n'
+        "- 상대를 이름으로 부르지 마라. 확정되지 않았다.\n"
+        + _RULE_ASKBACK_TXT + "\n" + _RULE_OWNER_TXT
+        + "\n  다만 그 사람이 맞는지 확신할 수 없으니 그 기억을 단정해서 꺼내지 마라.",
+    ),
+]
+
+
+@pytest.mark.parametrize("label,bundle,speaker,expected", _HEADER_CASES,
+                         ids=[c[0].split(" ")[0] for c in _HEADER_CASES])
+def test_머리말_전문_등호(label, bundle, speaker, expected):
+    """머리말이 문구·줄·순서까지 정확히 일치해야 한다."""
+    assert _header_of(bundle_to_messages(bundle, speaker=speaker)[0]["content"]) == expected
+
+
+@pytest.mark.parametrize("label,bundle,speaker,expected", _HEADER_CASES,
+                         ids=[c[0].split(" ")[0] for c in _HEADER_CASES])
+def test_소유자_선언은_되묻기보다_뒤에_온다(label, bundle, speaker, expected):
+    """줄 순서 가드를 명시적으로 한 번 더 건다 — 전문 등호가 이미 잡지만,
+    깨졌을 때 '왜' 가 바로 드러나야 회귀 원인을 오판하지 않는다.
+    소유자 선언 줄이 되묻기보다 앞에 오면 모델이 그 줄을 출력해 버린다."""
+    header = _header_of(bundle_to_messages(bundle, speaker=speaker)[0]["content"])
+    if _RULE_OWNER_TXT not in header:
+        return  # 상태 2b — 상대 정보 블록이 없어 소유자 선언 줄 자체가 없다
+    assert header.index(_RULE_OWNER_TXT) > header.index("- 대답한 뒤에는 상대에게")
+    assert header.rstrip().endswith(
+        "네 경험처럼 말하지 마라."
+        if not header.endswith("단정해서 꺼내지 마라.")
+        else "단정해서 꺼내지 마라."
     )
 
 
