@@ -290,6 +290,8 @@ function CallScreenInner({ route, navigation }: Props) {
     enrollSuggestImplRef.current(name, personId);
   }, []);
 
+  const [livePipeline, setLivePipeline] = useState<string | null>(null);
+
   const {
     state: liveState,
     remoteStream,
@@ -307,8 +309,27 @@ function CallScreenInner({ route, navigation }: Props) {
     accessToken: accessToken ?? "",
     onEnrollSuggest: handleEnrollSuggest,
 
-    pipeline: (clone as { pipeline?: string | null })?.pipeline ?? null,
+    pipeline: livePipeline ?? (clone as { pipeline?: string | null })?.pipeline ?? null,
   });
+
+  useEffect(() => {
+    if (!cloneId || !accessToken) return;
+    let alive = true;
+    (async () => {
+      try {
+        const { getCloneDetail } = await import("../../api/clones");
+        const detail = await getCloneDetail(cloneId, accessToken);
+        if (alive) {
+          const p = (detail as { clone?: { pipeline?: string | null } })?.clone?.pipeline ?? null;
+          setLivePipeline(p);
+          if (__DEV__) console.log(`[T-467] livePipeline for clone ${cloneId} = ${p}`);
+        }
+      } catch (err) {
+        if (__DEV__) console.warn("[T-467] getCloneDetail pipeline fetch failed:", err);
+      }
+    })();
+    return () => { alive = false; };
+  }, [cloneId, accessToken]);
 
   const [devText, setDevText] = useState("");
 
