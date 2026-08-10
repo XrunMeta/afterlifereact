@@ -16,13 +16,16 @@ export interface E2ECredentials {
 }
 
 function v_cb23a5(v_911fdd, v_3b95f5 = 6): string | null {
-  let v_b7cff2 = process.cwd();
-  for (let v_ebec57 = 0; v_ebec57 < v_3b95f5; v_ebec57++) {
-    const v_19dc48 = v_9fe22d.join(v_b7cff2, v_911fdd);
-    if (v_14d137(v_19dc48)) return v_19dc48;
-    const v_4eab4b = v_9fe22d.dirname(v_b7cff2);
-    if (v_4eab4b === v_b7cff2) break;
-    v_b7cff2 = v_4eab4b;
+  const v_965edf = typeof __dirname !== "undefined" ? __dirname : process.cwd();
+  for (const v_694b25 of [v_965edf, process.cwd()]) {
+    let v_b7cff2 = v_694b25;
+    for (let v_ebec57 = 0; v_ebec57 < v_3b95f5; v_ebec57++) {
+      const v_19dc48 = v_9fe22d.join(v_b7cff2, v_911fdd);
+      if (v_14d137(v_19dc48)) return v_19dc48;
+      const v_4eab4b = v_9fe22d.dirname(v_b7cff2);
+      if (v_4eab4b === v_b7cff2) break;
+      v_b7cff2 = v_4eab4b;
+    }
   }
   return null;
 }
@@ -64,13 +67,25 @@ export async function v_182fdb(v_233911): Promise<Session> {
   });
   const v_9b6134 = await v_8f00b9.text();
   if (!v_8f00b9.ok) {
-    throw new Error(`로그인 실패 (HTTP ${v_8f00b9.status}): ${v_9b6134.slice(0, 200)}`);
+    throw new Error(
+      `로그인 실패 (HTTP ${v_8f00b9.status}): ${v_9b6134.slice(0, 200)}\n` +
+        `⚠️ 시도 제한이 있습니다. 추측 재시도 금지 — 자격증명을 먼저 확인하세요.`,
+    );
   }
-  const v_4d33b2 = JSON.parse(v_9b6134) as { accessToken?: string; userId?: number };
+  const v_4d33b2 = JSON.parse(v_9b6134) as { accessToken?: string };
   if (!v_4d33b2.accessToken) {
     throw new Error(`로그인 응답에 accessToken 이 없습니다: ${v_9b6134.slice(0, 200)}`);
   }
-  return { accessToken: v_4d33b2.accessToken, userId: v_4d33b2.userId ?? null };
+  return { accessToken: v_4d33b2.accessToken, userId: await v_3b35e2(v_4d33b2.accessToken) };
+}
+
+async function v_3b35e2(v_2ca7e0): Promise<number | null> {
+  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path`, {
+    headers: { Authorization: `Bearer ${v_2ca7e0}` },
+  });
+  if (!v_8f00b9.ok) return null;
+  const v_4d33b2 = (await v_8f00b9.json()) as { user?: { id?: number } };
+  return v_4d33b2.user?.id ?? null;
 }
 
 export async function v_ff687d(
