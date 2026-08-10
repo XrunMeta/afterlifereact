@@ -788,7 +788,10 @@
       "sourceLibrary": "从相册选择",
       "cameraPermTitle": "相机权限",
       "cameraPermDeniedMsg": "需要相机权限才能拍照，请允许访问相机。",
-      "cameraPermBlockedMsg": "相机权限已关闭，请在设置中开启相机权限。"
+      "cameraPermBlockedMsg": "相机权限已关闭，请在设置中开启相机权限。",
+      "faceGuideHint": "请将脸对准框内",
+      "faceTooSmall": "请靠近相机一些",
+      "faceTooLarge": "请稍微往后退一点"
     },
     "voice": {
       "presets": "默认音色预设",

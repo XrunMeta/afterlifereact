@@ -64,7 +64,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     if (!v_eb25ce) return;
     v_318f24(v_eb25ce.displayName);
 
-    v_b7e174((v_eb25ce.description ?? "").slice(0, 100));
+    v_b7e174((v_eb25ce.description ?? "").slice(0, 500));
     v_2cf16e((v_eb25ce.visibility as Visibility) ?? "public");
   }, [v_eb25ce]);
 
@@ -142,14 +142,14 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           testID={v_5401ae.cloneEdit.descInput}
           label={v_8d41d7("edit.descLabel")}
           value={v_6856a9}
-          onChangeText={(v_81e2ef) => v_b7e174(v_81e2ef.slice(0, 100))}
+          onChangeText={(v_81e2ef) => v_b7e174(v_81e2ef.slice(0, 500))}
           placeholder={v_8d41d7("edit.descPlaceholder")}
           multiline
-          maxLength={100}
+          maxLength={500}
           containerStyle={{ marginTop: 16 }}
         />
         <Text testID={v_5401ae.cloneEdit.descCounter} style={v_fd5f43.descCounter}>
-          {v_6856a9.length}/100
+          {v_6856a9.length}/500
         </Text>
 
         {
@@ -190,8 +190,8 @@ const v_fd5f43 = v_472849.create({
     paddingHorizontal: v_9b1a04.large,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: v_1bfbd0.zinc100,
+    borderTopColor: v_1bfbd0.zinc500,
     backgroundColor: v_1bfbd0.white,
   },
-  saveBtn: { width: "100%" },
+  saveBtn: { width: "500%" },
 });
