@@ -15,6 +15,7 @@ import {
   setAudioModeAsync,
 } from "expo-audio";
 import { useTranslation } from "react-i18next";
+import { useFocusEffect } from "@react-navigation/native";
 import type { CloneCreationDraft } from "../../../types/clone";
 import { COLORS, RADIUS } from "../../../components/constants";
 import { getVoices, createAssetJob, type CatalogVoice } from "../../../api/clones";
@@ -253,6 +254,20 @@ function Component({ draft, onChange }: Props) {
     };
 
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      return () => {
+        try {
+          player.pause();
+        } catch {
+
+        }
+        setPlayingId(null);
+      };
+
+    }, []),
+  );
 
   const selectPresetVoice = async (v: CatalogVoice) => {
 
