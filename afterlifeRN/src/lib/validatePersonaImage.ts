@@ -33,6 +33,8 @@ function v_333679(v_cd1446): Promise<{ width: number; height: number }> {
 export async function v_9139dc(v_cd1446): Promise<ValidationResult> {
   try {
     const { width: v_8e4fb6, height: v_c86e33 } = await v_333679(v_cd1446);
+
+    console.log("[validatePersonaImage] START", { uri: v_cd1446.slice(-40), width: v_8e4fb6, height: v_c86e33 });
     const v_a51d09 = await v_283009.detect(v_cd1446, {
       performanceMode: "accurate",
       landmarkMode: "none",
@@ -40,6 +42,8 @@ export async function v_9139dc(v_cd1446): Promise<ValidationResult> {
       classificationMode: "none",
       minFaceSize: 0.15,
     });
+
+    console.log("[validatePersonaImage] detect done, faces =", v_a51d09?.length ?? "null");
     if (!v_a51d09 || v_a51d09.length === 0) return { ok: false, reason: "no_face" };
 
     const v_127e92 = v_a51d09.reduce((v_779914, v_148ff6) => {
@@ -52,17 +56,18 @@ export async function v_9139dc(v_cd1446): Promise<ValidationResult> {
     const v_cecddc = Math.max(v_754d3a, v_80ac06);
     const v_58b636 = Math.max(v_8e4fb6, v_c86e33);
     const v_80396f = v_58b636 > 0 ? v_cecddc / v_58b636 : 0;
-    if (v_80396f < v_6a5345) return { ok: false, reason: "too_small" };
-    if (v_80396f > v_822ad2) return { ok: false, reason: "too_large" };
-
     const v_4148d9 = (v_127e92.frame.left + v_754d3a / 2) / v_8e4fb6;
     const v_85ddfd = (v_127e92.frame.top + v_80ac06 / 2) / v_c86e33;
+
+    console.log("[validatePersonaImage] metrics", { ratio: v_80396f, cx: v_4148d9, cy: v_85ddfd, fw: v_754d3a, fh: v_80ac06 });
+    if (v_80396f < v_6a5345) return { ok: false, reason: "too_small" };
+    if (v_80396f > v_822ad2) return { ok: false, reason: "too_large" };
     if (v_85ddfd < v_cf2aaf || v_85ddfd > v_79db15) return { ok: false, reason: "off_center" };
     if (v_4148d9 < v_0e7d10 || v_4148d9 > v_25c159) return { ok: false, reason: "off_center" };
     return { ok: true };
   } catch (v_49263d) {
 
-    console.warn("[validatePersonaImage] skipping (fail-open):", v_49263d);
+    console.warn("[validatePersonaImage] FAIL-OPEN (native missing?):", v_49263d);
     return { ok: true };
   }
 }
