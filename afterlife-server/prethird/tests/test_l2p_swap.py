@@ -226,6 +226,46 @@ def test_maybe_swap_l2p_handles_missing_pipeline_attrs():
     asyncio.run(_run())  # 예외 없이 통과해야 함
 
 
+def test_maybe_swap_l2p_skips_update_when_bundle_none(monkeypatch):
+    """[sion A / T-252 회귀] sess.bundle이 None이면(재연결·offer 실패 등) 재조립할
+    원본이 없다 — bundle_to_messages(None)은 []을 반환하므로, 이 가드 없이 그대로
+    update_persona([])를 호출하면 클론이 페르소나(안전 규칙·성격·기억)를 통째로
+    잃는다. update_persona가 단 한 번도 불리지 않아야 한다."""
+    import l2p_client
+    async def _fake_fetch(clone_id, person_id):
+        return {"relation": "친구"}
+    monkeypatch.setattr(l2p_client, "fetch_l2p", _fake_fetch)
+    monkeypatch.setenv("LEARN_SECRET", "s")
+    monkeypatch.setenv("PRETHIRD_API_BASE", "http://x")
+
+    sess = _Sess()
+    sess.bundle = None
+    sess.current_speaker = (3, "민지")
+
+    asyncio.run(_maybe_swap_l2p(sess, 3, "민지"))
+
+    assert sess.pipeline.update_calls == []
+
+
+def test_maybe_swap_l2p_skips_update_when_bundle_empty_dict(monkeypatch):
+    """[sion A / T-252 회귀] sess.bundle == {} (빈 dict)도 None과 동일하게 차단돼야
+    한다 — `if not bundle` 가드는 falsy 전반(None·{}·[])을 잡는다."""
+    import l2p_client
+    async def _fake_fetch(clone_id, person_id):
+        return {"relation": "친구"}
+    monkeypatch.setattr(l2p_client, "fetch_l2p", _fake_fetch)
+    monkeypatch.setenv("LEARN_SECRET", "s")
+    monkeypatch.setenv("PRETHIRD_API_BASE", "http://x")
+
+    sess = _Sess()
+    sess.bundle = {}
+    sess.current_speaker = (3, "민지")
+
+    asyncio.run(_maybe_swap_l2p(sess, 3, "민지"))
+
+    assert sess.pipeline.update_calls == []
+
+
 def test_maybe_swap_l2p_drops_when_stale(monkeypatch):
     """적용 직전 sess.current_speaker[0] != pid(전달받은 값) → stale 드랍(최신 스왑 안 덮음)."""
     import l2p_client
@@ -278,6 +318,9 @@ def test_react_not_blocked_by_slow_l2p_fetch(monkeypatch):
         assert sess.pipeline.update_calls == [
             bundle_to_messages(sess.bundle, speaker={"name": "민지", "l2p_data": None})
         ]
+        # [sion/T-252] 미러 단언(재조립 결과와의 항등)만으로는 persona_prompt 포맷이
+        # 깨져도 못 잡는다 — 실제 content에 화자 이름이 들어갔는지 직접 확인한다.
+        assert '지금 너와 통화 중인 상대는 "민지" 이다.' in sess.pipeline.update_calls[0][0]["content"]
     finally:
         asyncio.set_event_loop(None)
         loop.close()
@@ -439,4 +482,9 @@ def test_returning_speaker_reswaps_but_react_cooldown_holds(monkeypatch):
     # persona 스왑: 3회 전부 트리거되고, 마지막이 A로 재조립(고착 없음)
     assert len(sess.pipeline.update_calls) == 3
     assert sess.pipeline.update_calls[-1] == bundle_to_messages(sess.bundle, speaker={"name": "A", "l2p_data": None})
+    # [sion/T-252] 미러 단언만으로는 포맷 회귀를 못 잡는다 — 마지막 재조립 content에
+    # 복귀한 화자(A)만 있고 직전 화자(B) 정보는 잔존하지 않는지 직접 확인한다.
+    final_content = sess.pipeline.update_calls[-1][0]["content"]
+    assert '지금 너와 통화 중인 상대는 "A" 이다.' in final_content
+    assert "B" not in final_content
     assert sess.current_speaker == (3, "A")
