@@ -29,6 +29,7 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0 } from "../../types/clone";
 import { v_39eaf5, v_b55477, v_96d757, v_6c3f29, v_5e388b, v_b4f9f6, v_b20cba, v_ab4719, type v_e5d62a } from "../../api/clones";
+import { v_8b11b8 } from "../../lib/experimentalPipelineFlag";
 import { v_84a859 } from "../../api/auth";
 import { v_7d2692 } from "../../api/files";
 import { v_cf9c33 } from "rcmrninabrnb";
@@ -309,6 +310,11 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         ...v_85010a,
 
         ...(v_f04727.idleVideoJobId ? { idle_video_job_id: v_f04727.idleVideoJobId } : {}),
+
+        ...(() => {
+          const v_e2a85c = v_8b11b8();
+          return v_e2a85c ? { pipeline: v_e2a85c } : {};
+        })(),
 
       });
       console.log("[CLONE-CREATE] success:", v_8f00b9);

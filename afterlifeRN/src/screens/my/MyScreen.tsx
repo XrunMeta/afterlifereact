@@ -265,13 +265,22 @@ export default function v_ed02a5() {
       ? [
           {
             icon: "cpu" as const,
-            labelKey: "실험 얼굴 파이프라인 (베타)",
-            descKey: "EchoMimicV3 자연스러운 얼굴 · 응답 5~10초 지연",
-            action: () => {
-              v_889fad(
-                "실험 얼굴 파이프라인",
-                "페르소나를 만든 뒤 어드민(console-preview2.example.invalid)에서 '얼굴 렌더러' 를 EchoMimicV3 로 변경하면 자연스러운 얼굴로 통화합니다.\n\n⚠️ 배치 렌더링 모델이라 응답까지 5~10초 지연됩니다. 실시간 대화감은 못 살리지만 얼굴은 훨씬 자연스러워요.",
-              );
+            labelKey: "실험 페르소나 만들기 (베타)",
+            descKey: "자연스러운 얼굴 · 응답 5~10초 지연",
+            action: async () => {
+              try {
+                const { setNextPipeline: v_e935e7 } = await import(
+                  "../../lib/experimentalPipelineFlag"
+                );
+                v_e935e7("echomimic_v3");
+
+                v_c65f5d.getParent()?.dispatch(
+                  v_650cfa.navigate({ name: "CreateTab" }),
+                );
+              } catch (v_49263d) {
+                console.warn("[experimental-persona] nav failed:", v_49263d);
+                v_889fad("오류", "페르소나 만들기 화면 이동 실패");
+              }
             },
           },
         ]
