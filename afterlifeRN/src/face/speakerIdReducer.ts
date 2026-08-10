@@ -15,14 +15,19 @@ export type SpeakerIdState = {
   confirmed: number | "unknown" | "none";
   candidate: number | "unknown" | null;
   streak: number;
+
+  lastUnknownEmitMs: number | null;
 };
 
 export const CONFIRM_STREAK = 3;
+
+export const UNKNOWN_FACE_REEMIT_MS = 60_000;
 
 export const INITIAL_SPEAKER_STATE: SpeakerIdState = {
   confirmed: "none",
   candidate: null,
   streak: 0,
+  lastUnknownEmitMs: null,
 };
 
 function candidateKeyOf(cycle: MatchCycle): number | "unknown" {
@@ -31,9 +36,11 @@ function candidateKeyOf(cycle: MatchCycle): number | "unknown" {
 
 export function speakerIdReducer(
   s: SpeakerIdState,
-  action: SpeakerIdAction
+  action: SpeakerIdAction,
+  nowMs: number
 ): { state: SpeakerIdState; event: SpeakerEvent } {
   if ("type" in action && action.type === "RESET_RECOGNITION") {
+
     return { state: INITIAL_SPEAKER_STATE, event: null };
   }
 
@@ -42,15 +49,30 @@ export function speakerIdReducer(
   const streak = key === s.candidate ? s.streak + 1 : 1;
 
   let confirmed = s.confirmed;
+  let lastUnknownEmitMs = s.lastUnknownEmitMs;
   let event: SpeakerEvent = null;
 
-  if (streak >= CONFIRM_STREAK && key !== confirmed) {
-    confirmed = key;
-    event =
-      key === "unknown"
-        ? { type: "unknown_face" }
-        : { type: "speaker_confirmed", personId: key, displayName: cycle.displayName };
+  if (streak >= CONFIRM_STREAK) {
+    if (key !== confirmed) {
+      confirmed = key;
+      if (key === "unknown") {
+        event = { type: "unknown_face" };
+        lastUnknownEmitMs = nowMs;
+      } else {
+        event = { type: "speaker_confirmed", personId: key, displayName: cycle.displayName };
+
+        lastUnknownEmitMs = null;
+      }
+    } else if (
+      key === "unknown" &&
+      lastUnknownEmitMs !== null &&
+      nowMs - lastUnknownEmitMs >= UNKNOWN_FACE_REEMIT_MS
+    ) {
+
+      event = { type: "unknown_face" };
+      lastUnknownEmitMs = nowMs;
+    }
   }
 
-  return { state: { confirmed, candidate: key, streak }, event };
+  return { state: { confirmed, candidate: key, streak, lastUnknownEmitMs }, event };
 }
