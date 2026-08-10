@@ -18,7 +18,8 @@ export default async function globalSetup(config: FullConfig) {
   }
 
   const looksLikeApp =
-    html.includes('<div id="root">') && html.includes("<title>afterlife</title>");
+    html.includes('<div id="root">') &&
+    (html.includes('id="expo-reset"') || html.includes("expo-generated"));
   if (!looksLikeApp) {
     const port = new URL(baseURL).port || "80";
     throw new Error(
