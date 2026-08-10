@@ -154,6 +154,8 @@ const createSchema = z.object({
 
   idle_video_job_id: z.string().uuid().optional(),
   voice_clone_job_id: z.string().uuid().optional(),
+
+  pipeline: z.enum(["musetalk", "echomimic_v3"]).optional(),
 });
 
 const TEST_PRICE_EMAILS = new Set(["oth-user@example.invalid", "oth-test@example.invalid"]);
@@ -356,8 +358,8 @@ clones.post(
           `INSERT INTO clones
              (owner_id, name, username, description, clone_type, category, visibility,
               avatar_url, cover_image_url, voice_type, voice_preset_id,
-              l1_profile, primary_editor_user_id, relation)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              l1_profile, primary_editor_user_id, relation, pipeline)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, 'musetalk'))
            RETURNING id, name, username, clone_type, visibility, created_at`,
         )
         .bind(
@@ -375,6 +377,7 @@ clones.post(
           l1Profile !== null ? JSON.stringify(l1Profile) : null,
           userId,
           body.relation ?? null,
+          body.pipeline ?? null,
         )
         .first();
     } catch (err) {

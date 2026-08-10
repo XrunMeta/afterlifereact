@@ -265,13 +265,22 @@ export default function MyScreen() {
       ? [
           {
             icon: "cpu" as const,
-            labelKey: "실험 얼굴 파이프라인 (베타)",
-            descKey: "EchoMimicV3 자연스러운 얼굴 · 응답 5~10초 지연",
-            action: () => {
-              showAlert(
-                "실험 얼굴 파이프라인",
-                "페르소나를 만든 뒤 어드민(preview.xrun-admin.pages.dev)에서 '얼굴 렌더러' 를 EchoMimicV3 로 변경하면 자연스러운 얼굴로 통화합니다.\n\n⚠️ 배치 렌더링 모델이라 응답까지 5~10초 지연됩니다. 실시간 대화감은 못 살리지만 얼굴은 훨씬 자연스러워요.",
-              );
+            labelKey: "실험 페르소나 만들기 (베타)",
+            descKey: "자연스러운 얼굴 · 응답 5~10초 지연",
+            action: async () => {
+              try {
+                const { setNextPipeline } = await import(
+                  "../../lib/experimentalPipelineFlag"
+                );
+                setNextPipeline("echomimic_v3");
+
+                navigation.getParent()?.dispatch(
+                  CommonActions.navigate({ name: "CreateTab" }),
+                );
+              } catch (err) {
+                console.warn("[experimental-persona] nav failed:", err);
+                showAlert("오류", "페르소나 만들기 화면 이동 실패");
+              }
             },
           },
         ]

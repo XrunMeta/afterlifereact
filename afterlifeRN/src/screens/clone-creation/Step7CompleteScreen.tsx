@@ -29,6 +29,7 @@ import { useAuthStore } from "../../stores/authStore";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone } from "../../types/clone";
 import { createClone, deriveUsernameFromName, validateCloneUsername, checkCloneUsername, createCloneFeed, updateClone, getAssetJob, createAssetJob, type AssetJob } from "../../api/clones";
+import { popNextPipeline } from "../../lib/experimentalPipelineFlag";
 import { AuthApiError } from "../../api/auth";
 import { uploadFile } from "../../api/files";
 import { Image } from "react-native";
@@ -309,6 +310,11 @@ export default function Step7CompleteScreen({ navigation }: Props) {
         ...voicePayload,
 
         ...(draft.idleVideoJobId ? { idle_video_job_id: draft.idleVideoJobId } : {}),
+
+        ...(() => {
+          const p = popNextPipeline();
+          return p ? { pipeline: p } : {};
+        })(),
 
       });
       console.log("[CLONE-CREATE] success:", res);
