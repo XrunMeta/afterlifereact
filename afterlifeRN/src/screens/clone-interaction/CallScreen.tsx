@@ -992,7 +992,7 @@ function CallScreenInner({ route, navigation }: Props) {
   const lastBgWarnRef = useRef<number>(0);
   useEffect(() => {
     const sub = AppState.addEventListener("change", (next: AppStateStatus) => {
-      if (next !== "background" && next !== "inactive") return;
+      if (next !== "background") return;
       if (liveState !== "live") return;
 
       const now = Date.now();
