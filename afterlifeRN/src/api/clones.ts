@@ -120,8 +120,9 @@ export function v_b55477(v_1833e7): string {
     .replace(/^_|_$/g, "");
   const v_694b25 = v_8f0374 && v_8f0374.length >= 3 ? v_8f0374 : "user";
 
-  const v_2f361a = v_694b25.slice(0, 20);
-  const v_ae8e76 = Math.random().toString(36).slice(2, 8);
+  const v_2f361a = v_694b25.slice(0, 19);
+  const v_fc3f08 = () => Math.random().toString(36).slice(2);
+  const v_ae8e76 = (v_fc3f08() + v_fc3f08()).slice(0, 10);
   return `${v_2f361a}_${v_ae8e76}`;
 }
 
