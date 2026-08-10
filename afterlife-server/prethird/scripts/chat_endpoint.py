@@ -18,7 +18,6 @@ from aiohttp import web
 
 from clone_dialog import fetch_bundle, bundle_to_messages, chat_stream, extract_l2
 from clone_dialog.llm_client import chat_once
-from signaling import build_l2p_hint
 
 log = logging.getLogger("prethird.verify")
 
@@ -416,10 +415,11 @@ async def verify_chat(req: web.Request) -> web.StreamResponse | web.Response:
     if system_override:
         system_messages = [{"role": "system", "content": system_override}]
     else:
-        system_messages = bundle_to_messages(bundle)
         # [T-116] 화자 선택 시 L2' 오버레이(실통화 _maybe_swap_l2p 재현). override 모드 제외.
         raw_pid = body.get("person_id")
         person_id = raw_pid if isinstance(raw_pid, int) and raw_pid > 0 else None
+        dev_l2p = None
+        name = None
         if person_id is not None and _DEV_SECRET:
             try:
                 dev_l2p = await _dev_l2p_data(clone_id, person_id)
@@ -428,9 +428,12 @@ async def verify_chat(req: web.Request) -> web.StreamResponse | web.Response:
                 dev_l2p = {}
             if dev_l2p:  # 실패/404({}) 면 힌트 없이 진행(통화 무영향)
                 name = dev_l2p.get("displayName") or str(person_id)
-                system_messages = system_messages + [
-                    {"role": "system", "content": build_l2p_hint(name, dev_l2p.get("data"))}
-                ]
+        # T-252: dev L2'도 append가 아니라 재조립으로 주입한다 — 실통화 경로
+        # (_maybe_swap_l2p)와 동일한 프롬프트가 나와야 verify 결과가 실통화를 대표한다.
+        _speaker = None
+        if dev_l2p:
+            _speaker = {"name": name, "l2p_data": dev_l2p.get("data")}
+        system_messages = bundle_to_messages(bundle, speaker=_speaker)
     final_messages = system_messages + list(messages)
 
     resp = web.StreamResponse(status=200, headers={
