@@ -789,7 +789,9 @@
       "cameraPermTitle": "카메라 권한",
       "cameraPermDeniedMsg": "카메라 권한이 필요합니다. 촬영하려면 권한을 허용해 주십시오.",
       "cameraPermBlockedMsg": "카메라 권한이 꺼져 있습니다. 설정에서 카메라 권한을 켜주십시오.",
-      "faceGuideHint": "얼굴이 프레임 안에 오도록 위치를 맞춰주세요"
+      "faceGuideHint": "얼굴이 프레임 안에 오도록 위치를 맞춰주세요",
+      "faceTooSmall": "카메라에 조금 더 가까이 다가와 주세요",
+      "faceTooLarge": "조금 뒤로 물러나 주세요"
     },
     "voice": {
       "presets": "기본 음성 프리셋",
