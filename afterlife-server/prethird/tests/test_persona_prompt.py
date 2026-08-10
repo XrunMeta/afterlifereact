@@ -380,6 +380,97 @@ def test_머리말_10줄_이내():
         assert line_count <= 10
 
 
+# ---------------------------------------------------------------------------
+# [T-252 fix / mizu H-2 · el B-1] 상태 2 에서 L2' 가 없을 때
+# ---------------------------------------------------------------------------
+
+_L2_PERSONA = {
+    "displayName": "코조",
+    "tone": "무뚝뚝함",
+    "relation": "친구",
+    "preference_personal": {"음료": "커피"},
+    "memories_personal": ["지호와 어제 등산을 갔다"],
+}
+
+
+def test_화자확정_L2p없으면_계정주_L2를_상대것으로_단언하지_않는다():
+    """확정된 화자(수진)의 L2' 가 없을 때 계정주(지호)의 L2 를 수진의 것으로
+    내보내면 안 된다. fetch_l2p 는 404/오류에 무조건 None 을 반환하므로
+    (l2p_client.py) 처음 확정되는 모든 화자가 이 경로다."""
+    msgs = bundle_to_messages(
+        _bundle_v(dict(_L2_PERSONA), "지호"),
+        speaker={"name": "수진", "l2p_data": None},
+    )
+    content = msgs[0]["content"]
+    assert "## 상대 정보" not in content        # 블록 자체가 없다
+    assert "지호와 어제 등산을 갔다" not in content  # 계정주 L2 미유출
+    assert "커피" not in content
+    assert "친구" not in content
+    assert "수진" in content                    # 이름은 계속 쓴다(결정 1)
+    assert "아직 이 사람에 대해 기억하는 것이 없다" in content
+    assert "무뚝뚝함" in content                 # 클론 자기 속성은 그대로
+
+
+def test_화자확정_L2p_빈dict도_동일하게_차단된다():
+    """`{}` 는 falsy 라 구 코드의 `l2p_data if l2p_data else persona` 가
+    계정주 L2 로 폴백하던 값이다."""
+    msgs = bundle_to_messages(
+        _bundle_v(dict(_L2_PERSONA), "지호"),
+        speaker={"name": "수진", "l2p_data": {}},
+    )
+    content = msgs[0]["content"]
+    assert "## 상대 정보" not in content
+    assert "지호와 어제 등산을 갔다" not in content
+
+
+def test_상태2_L2p없음_머리말_문안():
+    """결정 1 의 문안 그대로 나와야 한다 — 없는 블록을 가리키는 줄이 없어야 한다."""
+    msgs = bundle_to_messages(
+        _bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, "지호"),
+        speaker={"name": "민수", "l2p_data": None},
+    )
+    header = _header_of(msgs[0]["content"])
+    assert header == (
+        '너는 "코조" 이다. 아래 "너의 정보" 가 너 자신이다.\n'
+        '지금 너와 통화 중인 상대는 "민수" 이다. 아직 이 사람에 대해 기억하는 것이 없다.\n'
+        '- "나 / 내 / 제가" 는 항상 너(코조)를 가리킨다.\n'
+        '- 상대가 "나 / 내" 라고 말하면 그것은 민수 를 가리킨다. 너가 아니다.\n'
+        "- 대답한 뒤에는 상대에게 자연스럽게 되물어라. 질문은 한 번에 하나만.\n"
+        "  상대가 대화를 끝내려 하면 되묻지 말고 자연스럽게 마무리한다."
+    )
+
+
+def test_상태1은_계정주_L2를_계속_쓴다():
+    """speaker=None(얼굴 이벤트 없음)이면 상대는 계정주 본인이다 — 폴백이 옳다.
+    B-1 수정이 이 경로까지 지우면 안 된다."""
+    content = bundle_to_messages(_bundle_v(dict(_L2_PERSONA), "지호"))[0]["content"]
+    assert "## 상대 정보" in content
+    assert "지호와 어제 등산을 갔다" in content
+    assert '"## 상대 정보" 는 지호 의 것이다' in content
+
+
+def test_상태4는_계정주_L2를_계속_쓴다():
+    """unconfirmed 는 '평소 대화하던 상대'= 계정주 L2 복귀가 설계다(3.2)."""
+    content = bundle_to_messages(
+        _bundle_v(dict(_L2_PERSONA), "지호"), speaker={"unconfirmed": True}
+    )[0]["content"]
+    assert "## 상대 정보" in content
+    assert "지호와 어제 등산을 갔다" in content
+    assert "지호" not in _header_of(content)   # 이름 호칭만 억제
+
+
+def test_상대정보_블록이_없으면_그_블록을_가리키는_줄도_없다():
+    """없는 블록을 가리키면 모델이 '너의 정보'·'참고' 줄을 상대 것으로 읽는다."""
+    for speaker in (
+        {"name": "민수", "l2p_data": None},   # 상태 2
+        {"l2p_data": None},                    # 상태 3(이름 없는 확정 화자)
+    ):
+        content = bundle_to_messages(
+            _bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, "지호"), speaker=speaker
+        )[0]["content"]
+        assert "## 상대 정보" not in content
+
+
 def test_1인자_호출_회귀():
     """speaker 없이 호출하던 기존 코드가 그대로 동작해야 한다."""
     msgs = bundle_to_messages(_bundle({"displayName": "코조", "tone": "무뚝뚝함"}))
