@@ -801,8 +801,7 @@ function CallScreenInner({ route, navigation }: Props) {
       kick();
       return;
     }
-
-    const t = setTimeout(kick, 800);
+    const t = setTimeout(kick, 2500);
     return () => clearTimeout(t);
 
   }, [livePipeline]);
