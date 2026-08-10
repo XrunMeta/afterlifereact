@@ -1,3 +1,9 @@
+
+
+jest.mock("@react-native-async-storage/async-storage", () =>
+  require("../helpers/mockAsyncStorage").asyncStorageMock(),
+);
+
 import { renderHook, waitFor } from "@testing-library/react-native";
 import {
   runIdentifyCycle,
@@ -11,18 +17,20 @@ import {
 
 const VEC = new Array(512).fill(0).map((_, i) => (i === 0 ? 1 : 0));
 
+const EMBEDDING_INTERVAL_MS = 10_000;
+
 describe("deriveVerdict", () => {
   it("confirmed 상태", () => {
-    expect(deriveVerdict({ confirmed: 5, candidate: null, streak: 0 } as any)).toBe("confirmed");
+    expect(deriveVerdict({ confirmed: 5, candidate: null, streak: 0 })).toBe("confirmed");
   });
   it("candidate 진행중", () => {
-    expect(deriveVerdict({ confirmed: "none", candidate: 5, streak: 2 } as any)).toBe("candidate");
+    expect(deriveVerdict({ confirmed: "none", candidate: 5, streak: 2 })).toBe("candidate");
   });
   it("Fix 1 — 미상 확정(confirmed==='unknown')은 candidate/confirmed 아닌 unknown", () => {
-    expect(deriveVerdict({ confirmed: "unknown", candidate: null, streak: 3 } as any)).toBe("unknown");
+    expect(deriveVerdict({ confirmed: "unknown", candidate: null, streak: 3 })).toBe("unknown");
   });
   it("none", () => {
-    expect(deriveVerdict({ confirmed: "none", candidate: null, streak: 0 } as any)).toBe("none");
+    expect(deriveVerdict({ confirmed: "none", candidate: null, streak: 0 })).toBe("none");
   });
 });
 
@@ -108,6 +116,23 @@ describe("runIdentifyCycle (순수 로직)", () => {
     const r = await runIdentifyCycle(s, VEC, "tok", 999, now, { matchFaceFn });
     expect(r.state.consecutiveFailures).toBe(0);
     expect(r.state.backoffUntilMs).toBe(0);
+  });
+
+  it("T-252 — unknown 이 계속되면 재발행 주기마다 unknown_face 가 다시 나온다", async () => {
+    const matchFaceFn = jest.fn().mockResolvedValue({ matches: [], best: null, threshold: 0.5 });
+    let s: IdentifyCycleState = INITIAL_IDENTIFY_CYCLE_STATE;
+    const emitted: number[] = [];
+
+    for (let t = 0; t <= 180_000; t += EMBEDDING_INTERVAL_MS) {
+      const r = await runIdentifyCycle(s, VEC, "tok", 999, t, { matchFaceFn });
+      s = r.state;
+      if (r.event) {
+        expect(r.event).toEqual({ type: "unknown_face" });
+        emitted.push(t);
+      }
+    }
+
+    expect(emitted).toEqual([20_000, 80_000, 140_000]);
   });
 });
 

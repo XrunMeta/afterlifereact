@@ -35,7 +35,14 @@ export async function buildCallBundle(db: D1Database, clone: CloneRow, userId: n
     persona.relation = clone.relation;
   }
 
-  const personaBundle = buildPersonaBundle(l0, persona, cloneId);
+  const viewerRow = await db
+    .prepare("SELECT name FROM users WHERE id = ?")
+    .bind(userId)
+    .first<{ name: string | null }>();
+
+  const personaBundle = buildPersonaBundle(l0, persona, cloneId, {
+    displayName: viewerRow?.name ?? null,
+  });
 
   let voiceSeUrl: string | null = clone.voice_se_url ?? null;
   let voiceSeKey: string | null = null;

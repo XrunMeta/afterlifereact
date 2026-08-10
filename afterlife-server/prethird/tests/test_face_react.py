@@ -68,6 +68,15 @@ class _Sess:
         self.pending_enroll = False
         self.current_speaker = None
         self.pending_react = None
+        # [T-252 fix / el I-4] 정상 통화 더블 — offer 가 대입하는 재조립 원본.
+        # 이게 없으면 _maybe_swap_l2p 가 "bundle 부재" 로 보고 학습 귀속을 보류하며
+        # current_speaker 를 되돌린다(프롬프트를 화자에 맞출 수 없으므로).
+        # 이 파일의 관심사는 react/identity 게이트라 정상 번들을 준다.
+        self.bundle = {"personaBundle": {
+            "cloneId": "9201",
+            "persona": {"displayName": "코조", "tone": "친근함"},
+            "viewer": {"displayName": "지호"},
+        }}
     def set_state(self, s): self.state = s
 
 

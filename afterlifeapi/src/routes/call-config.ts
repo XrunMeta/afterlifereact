@@ -7,12 +7,15 @@ const KEYS = {
   prethirdBase: "call.prethird_base",
   callRoute: "call.route",
   secondBase: "call.second_base",
+
+  experimentalBase: "call.experimental_base",
 } as const;
 
 const DEFAULTS = {
   prethirdBase: "https://rtc.example.invalid/prethird",
   callRoute: "prethird",
   secondBase: null as string | null,
+  experimentalBase: null as string | null,
 };
 
 const VALID_ROUTES = new Set(["prethird", "second"]);
@@ -27,9 +30,9 @@ export const callConfig = new Hono<AppEnv>();
 
 callConfig.get("/", async (c) => {
   const res = await c.env.DB.prepare(
-    "SELECT key, value, updated_at FROM app_config WHERE key IN (?, ?, ?)",
+    "SELECT key, value, updated_at FROM app_config WHERE key IN (?, ?, ?, ?)",
   )
-    .bind(KEYS.prethirdBase, KEYS.callRoute, KEYS.secondBase)
+    .bind(KEYS.prethirdBase, KEYS.callRoute, KEYS.secondBase, KEYS.experimentalBase)
     .all<ConfigRow>();
 
   const rows = res.results ?? [];
@@ -45,6 +48,11 @@ callConfig.get("/", async (c) => {
   const secondBase =
     map.get(KEYS.secondBase) ?? c.env.CALL_SECOND_BASE ?? DEFAULTS.secondBase;
 
+  const experimentalBase =
+    map.get(KEYS.experimentalBase) ??
+    c.env.CALL_EXPERIMENTAL_BASE ??
+    DEFAULTS.experimentalBase;
+
   c.header("Cache-Control", "public, max-age=60");
-  return c.json({ prethirdBase, callRoute, secondBase, updatedAt });
+  return c.json({ prethirdBase, callRoute, secondBase, experimentalBase, updatedAt });
 });

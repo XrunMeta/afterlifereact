@@ -98,3 +98,22 @@ describe("resolvePersona — 학습 키 보존(E 핫픽스)", () => {
     expect(out.tone).toBe("다정함");          
   });
 });
+
+describe("T-252 viewer 슬롯", () => {
+  const l0 = { rules_text: "", blocklist: [] };
+
+  it("viewer 를 주면 번들에 실린다", () => {
+    const b = buildPersonaBundle(l0, { displayName: "코조" }, 1, { displayName: "지호" });
+    expect(b.viewer.displayName).toBe("지호");
+  });
+
+  it("viewer 미지정이면 displayName 이 null 이다", () => {
+    const b = buildPersonaBundle(l0, { displayName: "코조" }, 1);
+    expect(b.viewer).toEqual({ displayName: null });
+  });
+
+  it("users.name 이 null 이면 null 을 그대로 방출한다", () => {
+    const b = buildPersonaBundle(l0, { displayName: "코조" }, 1, { displayName: null });
+    expect(b.viewer.displayName).toBeNull();
+  });
+});

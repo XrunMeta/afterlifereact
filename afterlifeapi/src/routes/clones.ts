@@ -1355,6 +1355,7 @@ clones.get("/:id", async (c) => {
       likedByMe,
       createdAt: clone.created_at,
       viewerRole,
+      pipeline: clone.pipeline,
     },
   });
 });

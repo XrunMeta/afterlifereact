@@ -103,7 +103,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   const [idleJob, setIdleJob] = useState<AssetJob | null>(null);
   const idleJobIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const [caption, setCaption] = useState((draft.description ?? "").slice(0, 100));
+  const [caption, setCaption] = useState((draft.description ?? "").slice(0, 500));
 
   const captionTouchedRef = useRef(false);
 
@@ -642,15 +642,15 @@ export default function Step7CompleteScreen({ navigation }: Props) {
           <TextInput
             style={styles.captionInput}
             value={caption}
-            onChangeText={(v) => { setCaption(v.slice(0, 100)); captionTouchedRef.current = true; }}
+            onChangeText={(v) => { setCaption(v.slice(0, 500)); captionTouchedRef.current = true; }}
             placeholder={t("create.step7.captionPlaceholder", {
               defaultValue: "소개글 작성 (예: #일상 #infp 케이팝 노래 좋아해요)",
             })}
             placeholderTextColor={COLORS.zinc400}
             multiline
-            maxLength={100}
+            maxLength={500}
           />
-          <Text style={styles.captionCounter}>{caption.length}/100</Text>
+          <Text style={styles.captionCounter}>{caption.length}/500</Text>
 
           {}
           {error && (

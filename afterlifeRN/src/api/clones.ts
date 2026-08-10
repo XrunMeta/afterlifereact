@@ -120,8 +120,9 @@ export function deriveUsernameFromName(name: string): string {
     .replace(/^_|_$/g, "");
   const base = ascii && ascii.length >= 3 ? ascii : "user";
 
-  const trimmed = base.slice(0, 20);
-  const suffix = Math.random().toString(36).slice(2, 8);
+  const trimmed = base.slice(0, 19);
+  const rand = () => Math.random().toString(36).slice(2);
+  const suffix = (rand() + rand()).slice(0, 10);
   return `${trimmed}_${suffix}`;
 }
 

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Modal,
   View,
+  Text,
   TouchableOpacity,
   StyleSheet,
   Dimensions,
@@ -12,8 +13,12 @@ import {
   Camera,
   useCameraDevice,
   useCameraPermission,
+  useFrameProcessor,
   type Camera as CameraType,
 } from "react-native-vision-camera";
+import { Worklets } from "react-native-worklets-core";
+import { useFaceDetector } from "react-native-vision-camera-face-detector";
+import type { Face as DetectorFace } from "react-native-vision-camera-face-detector";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
@@ -28,6 +33,11 @@ import {
 } from "../../../lib/t208SilhouetteScale";
 import { showAlert } from "../../../stores/dialogStore";
 import { centerCoverCrop1to2 } from "../../../lib/centerCoverCrop1to2";
+import { useFaceDetection } from "../../../hooks/useFaceDetection";
+import {
+  validatePersonaImage,
+  validationReasonKey,
+} from "../../../lib/validatePersonaImage";
 
 interface Props {
   visible: boolean;
@@ -60,6 +70,97 @@ export default function CaptureWithGuideModal({ visible, onCapture, onCancel }: 
   const cameraRef = useRef<CameraType>(null);
   const [ready, setReady] = useState(false);
   const [shooting, setShooting] = useState(false);
+
+  const { faceState, onFaces } = useFaceDetection();
+  const { detectFaces, stopListeners } = useFaceDetector({
+    performanceMode: "fast",
+    trackingEnabled: true,
+  });
+  useEffect(() => () => stopListeners(), [stopListeners]);
+
+  const [faceRatio, setFaceRatio] = useState(0);
+
+  const [faceCenterV, setFaceCenterV] = useState(0.5); 
+  const [faceCenterH, setFaceCenterH] = useState(0.5); 
+
+  const handleFacesOnJS = useMemo(
+    () =>
+      Worklets.createRunOnJS(
+        (faces: DetectorFace[], ratio: number, cv: number, ch: number) => {
+          const bridged = faces.map((f) => ({
+            trackingID: f.trackingId,
+            bounds: f.bounds,
+          }));
+          onFaces(bridged);
+          setFaceRatio(ratio);
+          setFaceCenterV(cv);
+          setFaceCenterH(ch);
+        },
+      ),
+
+    [],
+  );
+
+  const frameProcessor = useFrameProcessor(
+    (frame) => {
+      "worklet";
+      const faces = detectFaces(frame);
+
+      let ratio = 0;
+      let cv = 0.5;
+      let ch = 0.5;
+      if (faces.length > 0) {
+        const b = faces[0].bounds;
+        const fw = frame.width;
+        const fh = frame.height;
+        const frameLong = Math.max(fw, fh);
+        const frameShort = Math.min(fw, fh);
+        const faceLong = Math.max(b.width, b.height);
+        if (frameLong > 0 && frameShort > 0) {
+          ratio = faceLong / frameLong;
+          const cx = b.x + b.width / 2;
+          const cy = b.y + b.height / 2;
+
+          if (fw > fh) {
+            cv = cx / fw;
+            ch = cy / fh;
+          } else {
+            cv = cy / fh;
+            ch = cx / fw;
+          }
+        }
+      }
+      handleFacesOnJS(faces, ratio, cv, ch);
+    },
+    [handleFacesOnJS, detectFaces],
+  );
+
+  const faceDetected = faceState.status === "detected";
+  const MIN_FACE_RATIO = 0.15; 
+  const MAX_FACE_RATIO = 0.55; 
+
+  const V_MIN = 0.15;
+  const V_MAX = 0.55;
+  const H_MIN = 0.25;
+  const H_MAX = 0.75;
+  const sizeOk =
+    faceDetected && faceRatio >= MIN_FACE_RATIO && faceRatio <= MAX_FACE_RATIO;
+  const positionOk =
+    faceCenterV >= V_MIN &&
+    faceCenterV <= V_MAX &&
+    faceCenterH >= H_MIN &&
+    faceCenterH <= H_MAX;
+  const faceInRange = sizeOk && positionOk;
+
+  const faceHint = !faceDetected
+    ? t("create.image.faceGuideHint")
+    : faceRatio < MIN_FACE_RATIO
+    ? t("create.image.faceTooSmall")
+    : faceRatio > MAX_FACE_RATIO
+    ? t("create.image.faceTooLarge")
+    : !positionOk
+    ? t("create.image.faceOffCenter")
+    : null;
 
   useEffect(() => {
     if (!visible) {
@@ -124,6 +225,15 @@ export default function CaptureWithGuideModal({ visible, onCapture, onCancel }: 
         showAlert(t("common.error"), t("create.image.loadFailed"));
         return;
       }
+
+      const v = await validatePersonaImage(cropped.uri);
+      if (!v.ok) {
+        showAlert(
+          t("create.image.validateRetakeTitle"),
+          t(validationReasonKey(v.reason)),
+        );
+        return;
+      }
       onCapture({ uri: cropped.uri, width: cropped.width, height: cropped.height });
     } catch (err) {
       console.warn("[CaptureWithGuideModal] takePhoto 실패:", err);
@@ -159,6 +269,7 @@ export default function CaptureWithGuideModal({ visible, onCapture, onCancel }: 
               isMirrored={facing === "front"}
               androidPreviewViewType="texture-view"
               onInitialized={() => setReady(true)}
+              frameProcessor={frameProcessor}
             />
           ) : (
             <View style={[StyleSheet.absoluteFill, s.center]}>
@@ -170,6 +281,13 @@ export default function CaptureWithGuideModal({ visible, onCapture, onCancel }: 
             <UpperBodyGuide width={frameW * silhouetteScale} />
           </View>
           <View style={s.frameBorder} pointerEvents="none" />
+          {ready && faceHint ? (
+            <View style={s.faceHintOverlay} pointerEvents="none">
+              <View style={s.faceHintBubble}>
+                <Text style={s.faceHintText}>{faceHint}</Text>
+              </View>
+            </View>
+          ) : null}
         </View>
 
         <View style={[s.topBar, { paddingTop: Math.max(insets.top, 12) }]}>
@@ -187,9 +305,9 @@ export default function CaptureWithGuideModal({ visible, onCapture, onCancel }: 
 
         <View style={[s.bottomBar, { paddingBottom: 20 + bottomInset }]}>
           <TouchableOpacity
-            style={[s.shutter, (!ready || shooting) && s.shutterDisabled]}
+            style={[s.shutter, (!ready || shooting || !faceInRange) && s.shutterDisabled]}
             onPress={take}
-            disabled={!ready || shooting || !device}
+            disabled={!ready || shooting || !device || !faceInRange}
             accessibilityRole="button"
             accessibilityLabel={t("create.image.sourceCamera")}
           >
@@ -222,6 +340,26 @@ const s = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     borderWidth: 2,
     borderColor: "rgba(255,255,255,0.9)",
+  },
+  faceHintOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 24,
+    alignItems: "center",
+  },
+  faceHintBubble: {
+    backgroundColor: "rgba(0,0,0,0.65)",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    maxWidth: "88%",
+  },
+  faceHintText: {
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
   },
   topBar: {
     position: "absolute",
