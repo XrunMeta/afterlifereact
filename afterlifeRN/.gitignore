@@ -69,3 +69,8 @@ pnpm-lock.yaml
 # T-153: 로컬 서명 자산(절대 커밋 금지 — 정본은 KB/secrets/afterlife-ios)
 credentials.json
 credentials/
+
+# E2E (T-454)
+e2e/.e2e-credentials.json
+test-results/
+playwright-report/

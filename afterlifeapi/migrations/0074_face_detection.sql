@@ -35,7 +35,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_persons_user_name_no_clone
   WHERE clone_id IS NULL;
 
 -- TODO(next session): consent_state='granted' 선행 가드를 API 레이어 또는 D1 트리거로 강제할 것(Vectorize write 세션 전).
--- TODO(next session): D1 FK는 기본 OFF — GDPR 삭제권 API에서 PRAGMA foreign_keys=ON 또는 수동 CASCADE 처리 필요.
+-- ⚠️ T-440 정정: 위 줄에 원래 "D1 FK는 기본 OFF" 라고 적혀 있었는데 **거짓**이다.
+--    D1 은 FK enforcement 가 항상 ON 이고 **끌 수 없다**(0083 실측). 이 오해가
+--    0044·0092 에서 `DROP TABLE clones` 로 자식을 전량 날린 사고의 출처다.
+-- TODO(next session): GDPR 삭제권 API의 삭제 순서는 FK 가 켜져 있다는 전제로 짤 것
+--    (자식 → 부모 순, 또는 CASCADE 에 맡기되 어떤 자식이 딸려 지워지는지 명시).
 
 -- amane BLOCKER + mizu H-1: 생체정보 동의 감사(GDPR Art.7 / PIPA) append-only 이력 테이블.
 -- persons.consent_state/consent_at은 최신 스냅샷. 이력은 이 로그가 담당.

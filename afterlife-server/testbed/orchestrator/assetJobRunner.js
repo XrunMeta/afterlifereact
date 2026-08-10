@@ -161,6 +161,8 @@ export async function defaultEnsureVoiceWav(cloneId, voiceRawUrl, refRoot, fetch
     }
 
     await rename(wavTmp, dest);
+
+    try { await rename(srcTmp, join(cloneDir, 'voice.raw')); } catch {}
   } finally {
 
     for (const p of [srcTmp, wavTmp]) {
