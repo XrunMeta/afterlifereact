@@ -387,6 +387,17 @@ async def _maybe_swap_l2p(sess, pid: int, name) -> None:
             bundle,
             speaker={"name": name, "l2p_data": l2p_data},
         )
+        if not new_messages:
+            # [T-252 fix / el I-1] 입력(bundle) 가드만으로는 부족하다 — truthy bundle
+            # 로도 재조립 결과가 [] 가 될 수 있다. 특히 화자 확정 경로는 상대 정보를
+            # L2' 로만 채우므로(mizu H-2 수정), 클론 자기 속성·L0 가 비어 있고 상대
+            # 속성만 있던 번들은 L2' 부재 시 통째로 빈다. update_persona([]) 는
+            # 안전 규칙·성격·기억 전소이므로 기존 프롬프트를 그대로 유지한다.
+            log.warning(
+                "session %s L2' 재조립 결과가 비어 프롬프트를 유지한다(전소 방지) person=%s",
+                getattr(sess, "session_id", "?"), pid,
+            )
+            return
         update = getattr(pipeline, "update_persona", None)
         if callable(update):
             update(new_messages)
@@ -450,7 +461,18 @@ def _clear_current_speaker(sess, event: str) -> None:
         update = getattr(pipeline, "update_persona", None)
         if not callable(update):
             return
-        update(bundle_to_messages(bundle, speaker={"unconfirmed": True}))
+        new_messages = bundle_to_messages(bundle, speaker={"unconfirmed": True})
+        if not new_messages:
+            # [T-252 fix / el I-1] 입력(bundle) 가드만으로는 부족하다 — truthy bundle
+            # 로도 재조립 결과가 [] 가 될 수 있다(L0 rules_text 부재 + 클론 자기 속성
+            # 부재 등). update_persona([]) 는 안전 규칙·성격·기억 전소다. 재조립이
+            # 비면 기존 프롬프트를 그대로 유지한다.
+            log.warning(
+                "session %s 상태4 재조립 결과가 비어 프롬프트를 유지한다(전소 방지)",
+                getattr(sess, "session_id", "?"),
+            )
+            return
+        update(new_messages)
         sess.prompt_unconfirmed = True
     except Exception as e:
         log.warning(
