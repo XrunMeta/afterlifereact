@@ -12,12 +12,15 @@ interface CallConfig {
   prethirdBase: string;
   callRoute: v_6c5d04;
   secondBase: string | null;
+
+  experimentalBase: string | null;
 }
 
 const v_aceddb = {
   prethirdBase: v_e0051d,
   callRoute: v_c6d1f4,
   secondBase: null,
+  experimentalBase: null,
 };
 
 const v_049559 = (v_81e2ef): v_81e2ef is v_6c5d04 =>
@@ -43,6 +46,7 @@ export const v_5b540b = v_a7c0d4<CallConfigState>((v_bb8024) => ({
           prethirdBase: v_e2a85c.prethirdBase,
           callRoute: v_e2a85c.callRoute,
           secondBase: typeof v_e2a85c.secondBase === 'string' ? v_e2a85c.secondBase : null,
+          experimentalBase: typeof v_e2a85c.experimentalBase === 'string' ? v_e2a85c.experimentalBase : null,
           loadedFrom: 'cache',
         });
       }
@@ -60,6 +64,7 @@ export const v_5b540b = v_a7c0d4<CallConfigState>((v_bb8024) => ({
         prethirdBase: typeof v_b75e36.prethirdBase === 'string' && v_b75e36.prethirdBase ? v_b75e36.prethirdBase : v_aceddb.prethirdBase,
         callRoute: v_049559(v_b75e36.callRoute) ? v_b75e36.callRoute : v_aceddb.callRoute,
         secondBase: typeof v_b75e36.secondBase === 'string' ? v_b75e36.secondBase : null,
+        experimentalBase: typeof v_b75e36.experimentalBase === 'string' ? v_b75e36.experimentalBase : null,
       };
       v_bb8024({ ...v_a448ad, loadedFrom: 'remote' });
       await v_e84827.setItem(v_f3f72b, JSON.stringify(v_a448ad));
