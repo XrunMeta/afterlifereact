@@ -21,10 +21,17 @@ from signaling import (  # noqa: E402
 from clone_dialog import bundle_to_messages  # noqa: E402
 
 # T-252: _clear_current_speaker/_maybe_swap_l2p 가 재조립할 원본 번들.
+# [T-252 fix / el 지적] persona 에 _OTHER_LABELS 키를 채워야 "상대 정보" 관련
+# 단언이 공허 통과하지 않는다.
 _BUNDLE = {
     "personaBundle": {
         "cloneId": "9201",
-        "persona": {"displayName": "코조", "tone": "친근함"},
+        "persona": {
+            "displayName": "코조",
+            "tone": "친근함",
+            "relation": "친구",
+            "memories_personal": ["어제 등산을 갔다"],
+        },
         "viewer": {"displayName": "지호"},
     }
 }
@@ -288,7 +295,10 @@ def test_maybe_swap_l2p_dropped_as_stale_after_clear_mid_flight(monkeypatch):
     """[T-135 v2 async race] speaker_confirmed로 _maybe_swap_l2p가 스케줄된 직후(아직
     fetch_l2p 응답 대기 중) unknown_face가 도착해 _clear_current_speaker로 화자를
     해제하면 — 늦게 응답이 도착해도(current_speaker[0] != pid, 심지어 None) stale
-    가드가 드랍해 persona가 오염된 데이터(관계기억 "친구")로 되돌아가지 않는다."""
+    가드가 드랍해 persona가 오염된 데이터(L2' 관계기억)로 되돌아가지 않는다.
+
+    [T-252 fix] 센티넬은 픽스처 persona(계정주 L2)에 없는 값이어야 한다 — 겹치면
+    상태 4 폴백이 정상 렌더한 계정주 값을 오염으로 오판한다."""
     monkeypatch.setenv("PRETHIRD_API_BASE", "http://x")
     monkeypatch.setenv("LEARN_SECRET", "s")
     import l2p_client
@@ -297,7 +307,7 @@ def test_maybe_swap_l2p_dropped_as_stale_after_clear_mid_flight(monkeypatch):
 
     async def _slow_fetch(clone_id, person_id):
         await gate.wait()  # face_event 유실/경합 시뮬 — 응답이 늦게 도착
-        return {"relation": "친구"}
+        return {"relation": "낚시 동료"}
     monkeypatch.setattr(l2p_client, "fetch_l2p", _slow_fetch)
 
     sess = _Sess()
@@ -321,6 +331,6 @@ def test_maybe_swap_l2p_dropped_as_stale_after_clear_mid_flight(monkeypatch):
 
     assert sess.current_speaker is None
     # stale swap이 드랍됐으므로 update_persona는 _clear_current_speaker가 만든
-    # 폴백 리셋 1건뿐 — "친구" 관계기억으로 오염되지 않는다.
+    # 폴백 리셋 1건뿐 — L2' 관계기억("낚시 동료")으로 오염되지 않는다.
     assert len(sess.pipeline.update_calls) == 1
-    assert not any("친구" in str(c) for c in sess.pipeline.update_calls)
+    assert not any("낚시 동료" in str(c) for c in sess.pipeline.update_calls)

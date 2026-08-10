@@ -10,10 +10,23 @@ import learn_writeback as lw  # noqa: E402
 # T-252: 모든 _Sess 더블이 공유하는 기본 번들 — 재조립 결과를 검증할 때
 # 기대값을 bundle_to_messages(_BUNDLE, speaker=...)로 직접 계산해 비교한다
 # (문자열 하드코딩은 persona_prompt.py 포맷이 바뀌면 매번 깨진다).
+#
+# [T-252 fix / el 지적] persona 에 _OTHER_LABELS 키(relation·preference_personal·
+# memories_personal 등)를 반드시 채워 둔다. 예전 픽스처는 displayName·tone 뿐이라
+# "## 상대 정보" 가 애초에 생성될 수 없었고, `"## 상대 정보" not in content` 류
+# 단언이 전부 공허 통과(vacuous)였다 — mizu H-2(계정주 L2 오귀속)를 못 잡은
+# 직접 원인이다. 값은 이름 단언("지호"·"민지"·"B" 부재)과 겹치지 않게 고른다.
 _BUNDLE = {
     "personaBundle": {
         "cloneId": "9201",
-        "persona": {"displayName": "코조", "tone": "친근함"},
+        "persona": {
+            "displayName": "코조",
+            "tone": "친근함",
+            "relation": "친구",
+            "preference_personal": {"음료": "커피"},
+            "memories_personal": ["어제 등산을 갔다"],
+            "memory_summary": "산을 좋아한다",
+        },
         "viewer": {"displayName": "지호"},
     }
 }
@@ -179,7 +192,11 @@ def test_speaker_confirmed_no_l2p_hint_only(monkeypatch):
     content = swapped[0]["content"]
     assert '지금 너와 통화 중인 상대는 "민지" 이다.' in content
     # l2p_data 없음 — "## 상대 정보" 섹션 자체가 없다(헤더 문구 안의 인용은 무시).
+    # [el 지적] 이 단언이 실효를 가지려면 픽스처 persona 에 상대 필드가 있어야 한다.
     assert "\n## 상대 정보\n" not in content
+    assert "어제 등산을 갔다" not in content   # 계정주 L2 가 민지 것으로 새지 않는다
+    assert "커피" not in content
+    assert "아직 이 사람에 대해 기억하는 것이 없다" in content
 
 
 # ---------------------------------------------------------------------------

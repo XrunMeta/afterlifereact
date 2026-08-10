@@ -6,10 +6,17 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
 from clone_dialog import bundle_to_messages  # noqa: E402
 
+# [T-252 fix / el 지적] persona 에 상대 필드를 채워야 "상대 정보 섹션 없음" 단언이
+# 실효를 갖는다 — 예전엔 displayName·tone 뿐이라 섹션이 애초에 생길 수 없었다.
 _BUNDLE = {
     "personaBundle": {
         "cloneId": "1",
-        "persona": {"displayName": "코조", "tone": "친근함"},
+        "persona": {
+            "displayName": "코조",
+            "tone": "친근함",
+            "relation": "이웃",
+            "memories_personal": ["작년에 이사 옴"],
+        },
     }
 }
 
@@ -19,11 +26,12 @@ def test_hint_name_only_when_no_l2p():
         messages = bundle_to_messages(_BUNDLE, speaker={"name": "형", "l2p_data": l2p})
         content = messages[0]["content"]
         assert '지금 너와 통화 중인 상대는 "형" 이다.' in content
-        # l2p_data가 없으면 base persona로 폴백하는데, base persona엔 상대 필드가
-        # 없으므로 "상대 정보" 섹션 자체가 생기지 않는다 — 이름만 있는 상태.
-        # (머리말 규칙 문장이 "## 상대 정보"를 인용부호로 언급하므로 그 줄과 헷갈리지
-        # 않도록, 줄 단위 헤딩 형태로만 검사한다.)
+        # [T-252 fix / mizu H-2] 화자가 확정됐는데 L2' 가 없으면 상대 정보 블록을
+        # 만들지 않는다 — base persona(계정주 L2)로 폴백하면 계정주의 관계·기억이
+        # 확정된 제3자의 것으로 단언된다.
         assert "\n## 상대 정보\n" not in content
+        assert "이웃" not in content
+        assert "작년에 이사 옴" not in content
 
 
 def test_hint_includes_relation_and_prefs():
