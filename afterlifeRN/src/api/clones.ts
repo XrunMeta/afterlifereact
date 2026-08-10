@@ -70,6 +70,8 @@ export interface CloneDetailResponse {
     };
     likedByMe: boolean;
     createdAt: string;
+
+    pipeline?: string | null;
   };
 }
 export async function getCloneDetail(
