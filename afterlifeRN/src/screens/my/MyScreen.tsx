@@ -260,6 +260,22 @@ export default function MyScreen() {
         }
       },
     },
+
+    ...(apiUser?.email === "oth-staff@example.invalid"
+      ? [
+          {
+            icon: "cpu" as const,
+            labelKey: "실험 얼굴 파이프라인 (베타)",
+            descKey: "EchoMimicV3 자연스러운 얼굴 · 응답 5~10초 지연",
+            action: () => {
+              showAlert(
+                "실험 얼굴 파이프라인",
+                "페르소나를 만든 뒤 어드민(preview.xrun-admin.pages.dev)에서 '얼굴 렌더러' 를 EchoMimicV3 로 변경하면 자연스러운 얼굴로 통화합니다.\n\n⚠️ 배치 렌더링 모델이라 응답까지 5~10초 지연됩니다. 실시간 대화감은 못 살리지만 얼굴은 훨씬 자연스러워요.",
+              );
+            },
+          },
+        ]
+      : []),
     {
       icon: "trash-2",
       labelKey: "settings.privacy.deleteAccount",
