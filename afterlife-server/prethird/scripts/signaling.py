@@ -63,6 +63,9 @@ _SPEAKER_IDENTITY_ENABLED_KEY = "PRETHIRD_SPEAKER_IDENTITY_ENABLED"
 # 프로세스를 재시작하지 않고도 env 로 조정·비활성(0)할 수 있어야 하고, 테스트에서도
 # monkeypatch.setenv 만으로 짧게 줄일 수 있어야 한다(모듈 reload 불필요).
 _UNCONFIRMED_TTL_KEY = "PRETHIRD_UNCONFIRMED_TTL_S"
+# [T-252 Task 9] 상태 4 복귀가 예외로 실패했을 때 타이머를 다시 걸어볼 최대 횟수.
+# 1 = "한 번만 더". 0 이면 재시도 없음(구 동작 = 예외 시 고착 복귀).
+_UNCONFIRMED_MAX_RETRY = 1
 
 
 def _unconfirmed_ttl_s() -> float:
@@ -470,6 +473,30 @@ def _cancel_unconfirmed_timer(sess) -> None:
     sess.unconfirmed_timer = None
 
 
+def _cleanup_session_resources(sess) -> None:
+    """[T-252 Task 9] 통화 종료 시 세션에 매달린 자원(플레이어·타이머) 정리.
+
+    `make_app` 의 `connectionstatechange` 종료 분기에 인라인이던 블록을 그대로 뽑았다.
+    인라인이면 실제 `RTCPeerConnection` 없이 부를 방법이 없어 테스트가
+    `inspect.getsource` 문자열 포함 여부밖에 못 봤고, 그 단언은 호출을 `connected`
+    분기로 옮겨도 그대로 통과한다(실측). 헬퍼로 빼면 테스트가 직접 불러 실제 취소
+    동작을 검증할 수 있다.
+
+    반드시 `pc.close()` **이전에** 부른다 — 남은 타이머가 종료된 세션의
+    `pipeline.update_persona` 를 뒤늦게 건드리는 것을 막는다.
+    세션에 해당 자원이 없어도 안전해야 한다(각 헬퍼가 no-op 을 보장)."""
+    # [F7] filler cleanup: stop + 캐시 해제 (좀비 asyncio task 방지).
+    filler = getattr(sess, "filler_player", None)
+    if filler is not None:
+        filler.close()
+        sess.filler_player = None
+        log.info("session %s FillerPlayer closed (cleanup)", getattr(sess, "session_id", "?"))
+    # [T-167] 크레딧 가드 정리 — 남은 타이머가 종료 후 발화하면 이미 끊긴 통화를 또 끊으려 든다.
+    _cancel_credit_guard(sess)
+    # [T-252 Task 8] 상태 4 수명 타이머 정리 — 남으면 죽은 세션의 pipeline 을 건드린다.
+    _cancel_unconfirmed_timer(sess)
+
+
 def _unconfirmed_timeout(sess) -> None:
     """[T-252 Task 8] 상태 4 수명 만료 — 프롬프트를 상태 1(기본 상대)로 되돌린다.
 
@@ -528,6 +555,27 @@ def _unconfirmed_timeout(sess) -> None:
             "session %s unconfirmed timeout restore failed: %s",
             getattr(sess, "session_id", "?"), e,
         )
+        # [T-252 Task 9] 복구 경로. 여기서 그냥 빠지면 `prompt_unconfirmed` 는 True 인 채
+        # `unconfirmed_timer` 만 None 이라, 이후 `unknown_face` 는 `_clear_current_speaker` 의
+        # 중복 강등 가드에 걸려 재무장조차 되지 않는다 — 상태 4 가 통화 끝까지 고착으로
+        # 복귀한다(이 타이머가 없애려던 바로 그 증상). 그래서 한 번 다시 무장한다.
+        #
+        # 무한 재시도는 하지 않는다: update_persona 가 계속 실패하는 세션이 TTL 마다 영원히
+        # 재시도하면 실패 로그만 쌓인다. `_UNCONFIRMED_MAX_RETRY` 회까지만 하고 포기한다
+        # (포기해도 안전 측 실패다 — 상태 4 유지 = 이름을 안 부르는 쪽).
+        # 재무장 자체가 또 실패해도 밖으로 새면 안 되므로 한 번 더 감싼다.
+        try:
+            if (
+                getattr(sess, "prompt_unconfirmed", False)
+                and getattr(sess, "unconfirmed_retry", 0) < _UNCONFIRMED_MAX_RETRY
+            ):
+                sess.unconfirmed_retry = getattr(sess, "unconfirmed_retry", 0) + 1
+                _arm_unconfirmed_timer(sess)
+        except Exception as e2:
+            log.warning(
+                "session %s unconfirmed timeout re-arm failed: %s",
+                getattr(sess, "session_id", "?"), e2,
+            )
 
 
 def _arm_unconfirmed_timer(sess) -> None:
@@ -630,6 +678,9 @@ def _clear_current_speaker(sess, event: str) -> None:
         # [T-252 Task 8] 상태 4 는 수명을 갖는다 — 만료되면 상태 1 로 돌아간다.
         # 강등이 실제로 일어난 경로에서만 무장한다(가드로 스킵된 경우엔 상태가
         # 바뀌지 않았으므로 되돌릴 것도 없다).
+        # [T-252 Task 9] 새 강등마다 복귀 재시도 예산을 새로 준다 — 앞선 강등에서
+        # 예외로 예산을 다 썼다고 이번 강등의 복구까지 막을 이유는 없다.
+        sess.unconfirmed_retry = 0
         _arm_unconfirmed_timer(sess)
     except Exception as e:
         log.warning(
@@ -1290,19 +1341,10 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                         _avsync_task[0].cancel()
                         _avsync_task.clear()
                         log.info("session %s [avsync] monitor cancelled", sess.session_id)
-                    # [F7] filler cleanup: stop + 캐시 해제 (좀비 asyncio task 방지).
+                    # [T-252 Task 9] filler player · 크레딧 가드 · 상태 4 타이머 정리.
                     # pc.close() 이전에 수행 — 세션 자원 정리 순서 일관성 유지.
-                    _filler_cleanup = getattr(sess, "filler_player", None)
-                    if _filler_cleanup is not None:
-                        _filler_cleanup.close()
-                        sess.filler_player = None
-                        log.info("session %s FillerPlayer closed (cleanup)", sess.session_id)
-                    # [T-167] 크레딧 가드 정리 — 남은 타이머가 종료 후 발화하면
-                    # 이미 끊긴 통화를 또 끊으려 든다. pc.close() 이전에 수행.
-                    _cancel_credit_guard(sess)
-                    # [T-252 Task 8] 상태 4 수명 타이머 정리 — 남으면 종료된 세션의
-                    # pipeline.update_persona 를 건드린다. pc.close() 이전에 수행.
-                    _cancel_unconfirmed_timer(sess)
+                    # (인라인이던 것을 헬퍼로 추출: 테스트가 직접 호출해 실동작 검증)
+                    _cleanup_session_resources(sess)
                     await pc.close()
                     # Phase B: 통화 종료 통보(best-effort). 여러 번 fire돼도 api가 멱등(ended_at IS NULL).
                     # sess 필드는 mgr.remove 전에 로컬 추출 — 세션 제거 후 참조(use-after-free) 방어.

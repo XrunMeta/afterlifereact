@@ -57,6 +57,12 @@ class Session:
         # speaker_confirmed 경로가 살아나 이 타이머는 자연히 무의미해진다.
         # 통화 종료(cleanup)에서 반드시 cancel — 죽은 세션의 pipeline 을 건드리면 안 된다.
         self.unconfirmed_timer = None
+        # [T-252 Task 9] 상태 4 복귀 재시도 횟수. 타이머 콜백에서 update_persona 가 예외를
+        # 던지면 prompt_unconfirmed 는 True 인 채 타이머만 None 이 되어, 이후 unknown_face 는
+        # 중복 강등 가드에 걸려 재무장되지 않고 상태 4 가 통화 끝까지 고착된다 — 이 타이머가
+        # 없애려던 바로 그 증상이다. 그래서 예외 경로에서 한 번 재무장하는데, update 가 계속
+        # 실패하는 세션이 TTL 마다 무한 재시도하지 않도록 횟수를 센다. 새 강등마다 0 으로 리셋.
+        self.unconfirmed_retry = 0
         # T-126 Task8 — 이번 통화에서 이미 이름 추출을 시도한 personId 집합(1인당 1회만 LLM 호출).
         # current_speaker[1](displayName)이 채워지면 자연히 더 이상 필요 없어지지만, RN의 PATCH가
         # 이 세션에 반영되지 않으므로(별도 프로세스) 세션 로컬 가드로 중복 호출만 억제한다.
