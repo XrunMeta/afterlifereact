@@ -154,6 +154,8 @@ const v_722b6d = v_1f4ea7.object({
 
   idle_video_job_id: v_1f4ea7.string().uuid().optional(),
   voice_clone_job_id: v_1f4ea7.string().uuid().optional(),
+
+  pipeline: v_1f4ea7.enum(["musetalk", "echomimic_v3"]).optional(),
 });
 
 const v_34d2d5 = new Set(["oth-user@example.invalid", "oth-test@example.invalid"]);
@@ -347,8 +349,8 @@ v_f891e6.post(
           `INSERT INTO clones
              (owner_id, name, username, description, clone_type, category, visibility,
               avatar_url, cover_image_url, voice_type, voice_preset_id,
-              l1_profile, primary_editor_user_id, relation)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              l1_profile, primary_editor_user_id, relation, pipeline)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, 'musetalk'))
            RETURNING id, name, username, clone_type, visibility, created_at`,
         )
         .bind(
@@ -366,6 +368,7 @@ v_f891e6.post(
           v_564b6a !== null ? JSON.stringify(v_564b6a) : null,
           v_43e90c,
           v_4d33b2.relation ?? null,
+          v_4d33b2.pipeline ?? null,
         )
         .first();
     } catch (v_49263d) {
