@@ -6,6 +6,7 @@ const v_9d3c52 = require("ls");
 const {
   withAndroidManifest: v_446738,
   withAppBuildGradle: v_d619cb,
+  withProjectBuildGradle: v_4a0f9e,
   withMainApplication: v_07e2d6,
   withDangerousMod: v_698b88,
   AndroidConfig: v_d44207,
@@ -26,6 +27,19 @@ function v_50bf2c(v_74a79c) {
       v_466992,
       "com.bytedance.sdk.openadsdk.DEBUG",
       "false",
+    );
+    return v_01dcf5;
+  });
+}
+
+function v_d598fa(v_74a79c) {
+  return v_4a0f9e(v_74a79c, (v_01dcf5) => {
+    const v_5e3dbb = "artifact.bytedance.com/repository/pangle";
+    if (v_01dcf5.modResults.contents.includes(v_5e3dbb)) return v_01dcf5;
+
+    v_01dcf5.modResults.contents = v_01dcf5.modResults.contents.replace(
+      /(allprojects\s*\{\s*repositories\s*\{)([\s\S]*?)(\n\s*\})/m,
+      `$1$2\n    // T-421 Pangle SDK 저장소\n    maven { url 'https://artifact.bytedance.com/repository/pangle' }$3`,
     );
     return v_01dcf5;
   });
@@ -103,6 +117,7 @@ function v_59b7e7(v_74a79c) {
 
 module.exports = function v_80f251(v_74a79c) {
   v_74a79c = v_50bf2c(v_74a79c);
+  v_74a79c = v_d598fa(v_74a79c);
   v_74a79c = v_b19813(v_74a79c);
   v_74a79c = v_1e6df1(v_74a79c);
   v_74a79c = v_59b7e7(v_74a79c);
