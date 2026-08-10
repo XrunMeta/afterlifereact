@@ -791,7 +791,8 @@
       "cameraPermBlockedMsg": "Akses kamera dimatikan. Mohon aktifkan izin kamera di Pengaturan.",
       "faceGuideHint": "Silakan posisikan wajah Anda di dalam bingkai",
       "faceTooSmall": "Mohon mendekat ke kamera",
-      "faceTooLarge": "Mohon mundur sedikit"
+      "faceTooLarge": "Mohon mundur sedikit",
+      "faceOffCenter": "Mohon posisikan wajah di dalam siluet"
     },
     "voice": {
       "presets": "Preset Suara Dasar",

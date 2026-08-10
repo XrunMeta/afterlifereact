@@ -76,16 +76,23 @@ export default function CaptureWithGuideModal({ visible, onCapture, onCancel }: 
 
   const [faceRatio, setFaceRatio] = useState(0);
 
+  const [faceCenterV, setFaceCenterV] = useState(0.5); 
+  const [faceCenterH, setFaceCenterH] = useState(0.5); 
+
   const handleFacesOnJS = useMemo(
     () =>
-      Worklets.createRunOnJS((faces: DetectorFace[], ratio: number) => {
-        const bridged = faces.map((f) => ({
-          trackingID: f.trackingId,
-          bounds: f.bounds,
-        }));
-        onFaces(bridged);
-        setFaceRatio(ratio);
-      }),
+      Worklets.createRunOnJS(
+        (faces: DetectorFace[], ratio: number, cv: number, ch: number) => {
+          const bridged = faces.map((f) => ({
+            trackingID: f.trackingId,
+            bounds: f.bounds,
+          }));
+          onFaces(bridged);
+          setFaceRatio(ratio);
+          setFaceCenterV(cv);
+          setFaceCenterH(ch);
+        },
+      ),
 
     [],
   );
@@ -96,15 +103,30 @@ export default function CaptureWithGuideModal({ visible, onCapture, onCancel }: 
       const faces = detectFaces(frame);
 
       let ratio = 0;
+      let cv = 0.5;
+      let ch = 0.5;
       if (faces.length > 0) {
         const b = faces[0].bounds;
-        const frameLong = Math.max(frame.width, frame.height);
+        const fw = frame.width;
+        const fh = frame.height;
+        const frameLong = Math.max(fw, fh);
+        const frameShort = Math.min(fw, fh);
         const faceLong = Math.max(b.width, b.height);
-        if (frameLong > 0) {
+        if (frameLong > 0 && frameShort > 0) {
           ratio = faceLong / frameLong;
+          const cx = b.x + b.width / 2;
+          const cy = b.y + b.height / 2;
+
+          if (fw > fh) {
+            cv = cx / fw;
+            ch = cy / fh;
+          } else {
+            cv = cy / fh;
+            ch = cx / fw;
+          }
         }
       }
-      handleFacesOnJS(faces, ratio);
+      handleFacesOnJS(faces, ratio, cv, ch);
     },
     [handleFacesOnJS, detectFaces],
   );
@@ -112,8 +134,19 @@ export default function CaptureWithGuideModal({ visible, onCapture, onCancel }: 
   const faceDetected = faceState.status === "detected";
   const MIN_FACE_RATIO = 0.15; 
   const MAX_FACE_RATIO = 0.55; 
-  const faceInRange =
+
+  const V_MIN = 0.15;
+  const V_MAX = 0.55;
+  const H_MIN = 0.25;
+  const H_MAX = 0.75;
+  const sizeOk =
     faceDetected && faceRatio >= MIN_FACE_RATIO && faceRatio <= MAX_FACE_RATIO;
+  const positionOk =
+    faceCenterV >= V_MIN &&
+    faceCenterV <= V_MAX &&
+    faceCenterH >= H_MIN &&
+    faceCenterH <= H_MAX;
+  const faceInRange = sizeOk && positionOk;
 
   const faceHint = !faceDetected
     ? t("create.image.faceGuideHint")
@@ -121,6 +154,8 @@ export default function CaptureWithGuideModal({ visible, onCapture, onCancel }: 
     ? t("create.image.faceTooSmall")
     : faceRatio > MAX_FACE_RATIO
     ? t("create.image.faceTooLarge")
+    : !positionOk
+    ? t("create.image.faceOffCenter")
     : null;
 
   useEffect(() => {
