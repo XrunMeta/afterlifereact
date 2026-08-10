@@ -332,11 +332,52 @@ def test_이름_sanitize_실패시_상태3로_강등():
     assert "x" in content     # L2' 데이터 자체는 살린다
 
 
-def test_머리말_8줄_이내():
-    """통화 첫 턴 지연 방어 — 머리말은 8줄을 넘지 않는다."""
-    msgs = bundle_to_messages(_bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, "지호"))
-    header = msgs[0]["content"].split("## ")[0]
-    assert len([ln for ln in header.strip().split("\n") if ln.strip()]) <= 8
+def test_이름없는_화자의_L2p는_viewer_이름으로_귀속되지_않는다():
+    """얼굴 확정 + 이름 미상 화자 — L2' 는 살리되 viewer 이름을 붙이면 안 된다."""
+    msgs = bundle_to_messages(
+        _bundle_v({"displayName": "코조"}, "지호"),
+        speaker={"l2p_data": {"memories_personal": ["A의 비밀 기억"]}},
+    )
+    content = msgs[0]["content"]
+    assert "지호" not in content              # 엉뚱한 이름 귀속 금지
+    assert "이름으로 부르지 마라" in content   # 상태 3 문안
+    assert "A의 비밀 기억" in content          # L2' 데이터는 유지
+
+
+def test_name_None_명시도_동일하게_처리():
+    msgs = bundle_to_messages(
+        _bundle_v({"displayName": "코조"}, "지호"),
+        speaker={"name": None, "l2p_data": {"memories_personal": ["A의 비밀 기억"]}},
+    )
+    content = msgs[0]["content"]
+    assert "지호" not in content
+    assert "A의 비밀 기억" in content
+
+
+def _header_of(content: str) -> str:
+    """머리말(본문 첫 블록 헤딩 앞) 추출. 머리말 문안 안에도 '"## 상대 정보" 는 ...'
+    처럼 헤딩 문자열이 인용되므로 "## " 로 자르면 안 되고, 머리말과 본문을 가르는
+    빈 줄("\\n\\n")로 잘라야 한다."""
+    return content.split("\n\n", 1)[0]
+
+
+def test_머리말_10줄_이내():
+    """통화 첫 턴 지연 방어 — 머리말은 10줄을 넘지 않는다(상태 4는 안전 지시가
+    두 줄 더 필요해 8→10으로 완화됨. 실측: 상태1=7·상태2=7·상태3=8·상태4=10)."""
+    상태1 = bundle_to_messages(_bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, "지호"))
+    상태2 = bundle_to_messages(
+        _bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, "지호"),
+        speaker={"name": "민수", "l2p_data": {"memories_personal": ["민수 기억"]}},
+    )
+    상태3 = bundle_to_messages(_bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, None))
+    상태4 = bundle_to_messages(
+        _bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, "지호"),
+        speaker={"unconfirmed": True},
+    )
+    for msgs in (상태1, 상태2, 상태3, 상태4):
+        header = _header_of(msgs[0]["content"])
+        line_count = len([ln for ln in header.strip().split("\n") if ln.strip()])
+        assert line_count <= 10
 
 
 def test_1인자_호출_회귀():
