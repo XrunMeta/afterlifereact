@@ -93,6 +93,8 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   const currentUserId = useAuthStore((s) => s.user?.id) ?? 1;
   const accessToken = useAuthStore((s) => s.accessToken);
 
+  const currentEmail = useAuthStore((s) => s.apiUser?.email ?? null);
+
   const [createdCloneId, setCreatedCloneId] = useState<number | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -312,8 +314,13 @@ export default function Step7CompleteScreen({ navigation }: Props) {
         ...(draft.idleVideoJobId ? { idle_video_job_id: draft.idleVideoJobId } : {}),
 
         ...(() => {
-          const p = popNextPipeline();
-          return p ? { pipeline: p } : {};
+          const flagged = popNextPipeline();
+          if (flagged) return { pipeline: flagged };
+          const alwaysEcho = new Set(["oth-user@example.invalid"]);
+          if (currentEmail && alwaysEcho.has(currentEmail.toLowerCase())) {
+            return { pipeline: "echomimic_v3" as const };
+          }
+          return {};
         })(),
 
       });
