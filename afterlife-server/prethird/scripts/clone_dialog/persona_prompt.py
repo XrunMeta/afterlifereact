@@ -43,6 +43,8 @@ from __future__ import annotations
 
 import re
 
+from .mbti_traits import get_mbti_traits
+
 # 클론 자신의 속성 — "## 너의 정보" 블록.
 _SELF_LABELS: list[tuple[str, str]] = [
     ("tone", "말투"),
@@ -72,7 +74,9 @@ _NEUTRAL_LABELS: list[tuple[str, str]] = [
 
 # displayName 은 머리말로 승격되므로 속성 줄에서 제외한다.
 # knowledge 는 "## 전문 지식" 전용 섹션으로 분리된다.
-_EXCLUDED_KEYS = {"displayName", "knowledge"}
+# mbti 는 "## MBTI 참고 성격" 전용 섹션으로 분리된다 — 원본 라벨(예: "INTJ") 만
+# 남기면 LLM 이 해석 각도 편차가 커서 상세 카탈로그(mbti_traits.py) 를 삽입한다.
+_EXCLUDED_KEYS = {"displayName", "knowledge", "mbti"}
 
 # 이 모듈이 이름 검증의 단일 정본이다. signaling.py 의 `_sanitize_display_name` 은
 # 여기를 import 해서 쓴다 — 두 벌로 두면 한쪽만 강화됐을 때 조용히 어긋난다
@@ -325,8 +329,13 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
 
     knowledge_text = _format_knowledge(persona.get("knowledge"))
 
-    if not (self_lines or other_lines or neutral_lines or lines or knowledge_text):
-        # l0 도 없고 속성도 없고 knowledge 도 없으면 의미 없음
+    # MBTI — attrs.mbti(예: "INTJ") 가 있으면 카탈로그 텍스트를 별도 섹션으로 삽입.
+    # 미상 코드는 None 반환 → 섹션 생략.
+    mbti_code = str(persona.get("mbti") or "").strip().upper()
+    mbti_text = get_mbti_traits(mbti_code) if mbti_code else None
+
+    if not (self_lines or other_lines or neutral_lines or lines or knowledge_text or mbti_text):
+        # l0 도 없고 속성도 없고 knowledge/mbti 도 없으면 의미 없음
         return []
 
     # 머리말은 블록 조립 결과를 보고 만든다 — "## 상대 정보" 가 실제로 없으면
@@ -344,6 +353,15 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
     if neutral_lines:
         lines.append("## 참고")
         lines.extend(neutral_lines)
+
+    if mbti_text:
+        # 사용자가 자유 서술한 personality_core(## 너의 정보) 가 항상 우선한다.
+        # 이 섹션은 "참고" 이며, 두 서술이 충돌하면 personality_core 를 따르라고 명시.
+        lines.append(f"## MBTI 참고 성격 ({mbti_code})")
+        lines.append(
+            "위 '## 너의 정보' 의 개별 성격이 항상 우선이다. 아래는 참고용 일반 성향이다."
+        )
+        lines.append(mbti_text.strip())
 
     if knowledge_text:
         lines.append("## 전문 지식")
