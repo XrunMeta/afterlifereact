@@ -151,7 +151,7 @@ def test_full_flow_unknown_to_enrolled(monkeypatch):
         assert learn_calls[0][1].get("person_id") is None
 
         # 3. (RN이 등록·확정했다 치고) face_event speaker_confirmed(personId=3, 민지)
-        #    → react("known","민지") + fetch_l2p 호출 + update_persona(base+화자 컨텍스트)
+        #    → react("known","민지") + fetch_l2p 호출 + update_persona(화자 반영 프롬프트 전체 재조립)
         handler(json.dumps({
             "type": "face_event", "event": "speaker_confirmed",
             "personId": 3, "displayName": "민지", "seq": 3,

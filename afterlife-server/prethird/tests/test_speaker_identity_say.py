@@ -199,7 +199,10 @@ def test_clear_current_speaker_falls_back_to_l2_when_bundle_present():
     expected = bundle_to_messages(sess.bundle, speaker={"unconfirmed": True})
     assert sess.pipeline.update_calls == [expected]
     assert sess.pipeline.persona_messages == expected
-    assert "민지" not in expected[0]["content"]  # 이름 호칭 억제
+    # [T-252] 실제로 pipeline에 전달된 인자를 검사한다 — expected와의 항등 단언은
+    # 위에서 이미 확인했으므로, 여기서는 update_persona 호출부의 실제 content에
+    # 직전 화자 이름이 새지 않는지를 직접 본다(미러 단언만으로는 포맷 회귀를 못 잡음).
+    assert "민지" not in sess.pipeline.update_calls[0][0]["content"]  # 이름 호칭 억제
 
 
 def test_clear_current_speaker_noop_reset_when_bundle_absent():
