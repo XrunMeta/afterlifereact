@@ -18,6 +18,7 @@ from signaling import (  # noqa: E402
     _make_dc_handler, _sanitize_display_name,
     _clear_current_speaker, _maybe_swap_l2p,
     _arm_unconfirmed_timer, _cancel_unconfirmed_timer, _unconfirmed_timeout,
+    _cleanup_session_resources, _UNCONFIRMED_MAX_RETRY,
     _handle_face_event,
 )
 from clone_dialog import bundle_to_messages  # noqa: E402
@@ -79,6 +80,9 @@ class _Sess:
         self.prompt_unconfirmed = False
         self.speaker_epoch = 0
         self.unconfirmed_timer = None  # T-252 Task 8: 상태 4 수명 타이머 핸들
+        self.unconfirmed_retry = 0     # T-252 Task 9: 복귀 실패 재시도 횟수
+        self.filler_player = None      # F7: 종료 cleanup 대상
+        self.credit_guard = None       # T-167: 종료 cleanup 대상
     def set_state(self, s): self.state = s
 
 
@@ -525,15 +529,153 @@ async def test_취소된_타이머는_발화하지_않는다(short_ttl):
     assert len(sess.pipeline.update_calls) == 1    # 강등 1건뿐, 복귀 없음
 
 
-def test_통화_종료_cleanup이_상태4_타이머를_취소한다():
-    """`connectionstatechange` 정리 블록의 배선 확인. 그 핸들러는 실제
-    RTCPeerConnection 없이는 호출할 수 없어 소스로 검증한다 — 배선이 빠지면
-    죽은 세션의 pipeline.update_persona 를 타이머가 뒤늦게 건드린다."""
+class _FakeFiller:
+    def __init__(self):
+        self.closed = False
+    def close(self):
+        self.closed = True
+
+
+class _FakeGuard:
+    def __init__(self):
+        self.cancelled = False
+    def cancel(self):
+        self.cancelled = True
+
+
+async def test_통화_종료_cleanup이_상태4_타이머를_실제로_취소한다(short_ttl):
+    """[T-252 Task 9] 종전 이 테스트는 `inspect.getsource` 문자열 포함 여부만 봐서
+    호출을 `connected` 분기로 옮겨도 그대로 통과했다(리뷰어 실측). 정리 블록을
+    `_cleanup_session_resources` 헬퍼로 뽑았으므로 직접 불러 실동작을 검증한다 —
+    취소가 안 되면 죽은 세션의 pipeline.update_persona 를 타이머가 뒤늦게 건드린다."""
+    sess = _Sess()
+    _clear_current_speaker(sess, "unknown_face")
+    assert sess.unconfirmed_timer is not None
+
+    _cleanup_session_resources(sess)
+
+    assert sess.unconfirmed_timer is None
+    await asyncio.sleep(_TTL * 4)
+    assert len(sess.pipeline.update_calls) == 1, "종료된 세션에서 복귀가 발화했다"
+    assert sess.prompt_unconfirmed is True
+
+
+def test_정리_헬퍼는_filler와_크레딧가드도_함께_해제한다():
+    """헬퍼로 추출하면서 기존 정리 항목이 빠지지 않았는지 — 각각 실제 호출을 단언."""
+    sess = _Sess()
+    filler, guard = _FakeFiller(), _FakeGuard()
+    sess.filler_player, sess.credit_guard = filler, guard
+
+    _cleanup_session_resources(sess)
+
+    assert filler.closed is True and sess.filler_player is None
+    assert guard.cancelled is True and sess.credit_guard is None
+
+
+def test_정리_헬퍼는_아무것도_없는_세션에서도_안전하다():
+    """greet 이전 종료·재연결 실패 등 자원이 하나도 안 붙은 세션."""
+    sess = _Sess()
+    _cleanup_session_resources(sess)   # 예외 없이 통과해야 한다
+    assert sess.unconfirmed_timer is None
+
+
+def test_정리_헬퍼는_종료분기에서_pc_close_이전에_불린다():
+    """배선 위치 검증. 문자열 포함만 보면 호출을 `connected` 분기로 옮겨도 통과하므로
+    **순서**를 단언한다 — 종료 분기 시작 < 정리 호출 < 그 분기의 `await pc.close()`.
+    (그 핸들러는 실제 RTCPeerConnection 없이 호출할 seam 이 없어 소스로 본다)"""
     import inspect
     import signaling
     src = inspect.getsource(signaling.make_app)
-    assert "_cancel_credit_guard(sess)" in src      # 인접 기준점(기존 정리 호출)
-    assert "_cancel_unconfirmed_timer(sess)" in src
+    i_branch = src.index('pc.connectionState in ("failed", "closed", "disconnected")')
+    i_cleanup = src.index("_cleanup_session_resources(sess)")
+    i_close = src.index("await pc.close()", i_branch)
+    assert i_branch < i_cleanup < i_close, (
+        "정리 호출이 종료 분기 안, pc.close() 앞에 있어야 한다"
+    )
+
+
+# ---------------------------------------------------------------------------
+# [T-252 Task 9] 복귀 실패(예외) 시 고착으로 돌아가지 않는다
+#
+# 타이머 콜백에서 update_persona 가 예외를 던지면 `prompt_unconfirmed` 는 True 인 채
+# `unconfirmed_timer` 만 None 이 된다. 그러면 이후 unknown_face 는 _clear_current_speaker
+# 의 중복 강등 가드에 걸려 재무장조차 되지 않아, 상태 4 가 통화 끝까지 고착으로 복귀한다
+# — 이 타이머가 없애려던 바로 그 증상이다.
+# ---------------------------------------------------------------------------
+
+class _FlakyPipeline(_Pipeline):
+    """지정한 순번의 update_persona 호출만 예외를 던진다.
+
+    1번째 호출 = `_clear_current_speaker` 의 상태 4 강등(성공해야 타이머가 걸린다),
+    2번째부터 = 타이머 콜백의 상태 1 복귀."""
+    def __init__(self, fail_on=(2,), fail_all_after=None):
+        super().__init__()
+        self.attempts = 0
+        self._fail_on = set(fail_on)
+        self._fail_all_after = fail_all_after
+
+    def update_persona(self, messages):
+        self.attempts += 1
+        if self.attempts in self._fail_on or (
+            self._fail_all_after is not None and self.attempts >= self._fail_all_after
+        ):
+            raise RuntimeError("update_persona boom")
+        super().update_persona(messages)
+
+
+async def test_복귀가_예외로_실패하면_타이머를_재무장해_결국_복귀한다(short_ttl):
+    """1차 복귀만 실패시킨다. 재무장이 없으면 update_calls 는 강등 1건에서 멈추고
+    prompt_unconfirmed 가 True 로 남아 고착이 된다."""
+    sess = _Sess()
+    sess.pipeline = _FlakyPipeline(fail_on=(2,))
+
+    _clear_current_speaker(sess, "unknown_face")
+    assert sess.prompt_unconfirmed is True
+    assert sess.unconfirmed_timer is not None
+
+    await asyncio.sleep(_TTL * 8)
+
+    assert sess.pipeline.attempts == 3, "복귀 재시도가 일어나지 않았다(1차 실패로 끝)"
+    assert len(sess.pipeline.update_calls) == 2, "재시도 복귀가 실제로 적용되지 않았다"
+    s1 = sess.pipeline.update_calls[1][0]["content"]
+    assert _state1_head(sess) in s1              # 상태 1 로 실제 복귀
+    assert "확정하지 못했다" not in s1
+    assert sess.prompt_unconfirmed is False      # 다음 unknown_face 가 다시 강등할 수 있다
+    assert sess.unconfirmed_timer is None
+    assert sess.unconfirmed_retry == 1
+
+
+async def test_복귀가_계속_실패해도_재시도는_상한에서_멈춘다(short_ttl):
+    """update_persona 가 영구 고장인 세션이 TTL 마다 무한 재시도하지 않는다.
+    포기해도 안전 측 실패다 — 상태 4 유지 = 이름을 부르지 않는 쪽."""
+    sess = _Sess()
+    sess.pipeline = _FlakyPipeline(fail_on=(), fail_all_after=2)
+
+    _clear_current_speaker(sess, "unknown_face")
+
+    await asyncio.sleep(_TTL * 12)
+
+    # 강등 1회 + 복귀 시도 (1 + _UNCONFIRMED_MAX_RETRY) 회에서 멈춘다.
+    assert sess.pipeline.attempts == 1 + 1 + _UNCONFIRMED_MAX_RETRY
+    assert sess.unconfirmed_retry == _UNCONFIRMED_MAX_RETRY
+    assert sess.unconfirmed_timer is None
+    assert sess.prompt_unconfirmed is True        # 안전 측 실패(이름 억제 유지)
+    assert len(sess.pipeline.update_calls) == 1   # 강등만 적용됨
+
+
+async def test_새_강등은_복귀_재시도_예산을_새로_받는다(short_ttl):
+    """앞선 강등에서 예산을 다 썼다고 이번 강등의 복구까지 막으면 안 된다."""
+    sess = _Sess()
+    sess.pipeline = _FlakyPipeline(fail_on=(2,))
+
+    _clear_current_speaker(sess, "unknown_face")
+    await asyncio.sleep(_TTL * 8)
+    assert sess.unconfirmed_retry == 1 and sess.prompt_unconfirmed is False
+
+    _clear_current_speaker(sess, "unknown_face")   # 2회차 강등
+
+    assert sess.unconfirmed_retry == 0, "새 강등이 재시도 예산을 초기화하지 않았다"
+    assert sess.unconfirmed_timer is not None
 
 
 async def test_TTL이_0이면_타이머를_걸지_않는다(monkeypatch):
