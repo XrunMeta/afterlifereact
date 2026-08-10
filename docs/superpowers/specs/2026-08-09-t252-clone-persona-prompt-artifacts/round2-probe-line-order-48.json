@@ -1,0 +1,434 @@
+[
+  {
+    "variant": "cur",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "흐음, 그렇군. 많이 힘들었겠네.\n\n혹시 뭐 특별한 일 있었나?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 35
+  },
+  {
+    "variant": "cur",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "흐음, 다녀왔나. 힘들었을 텐데. 어디로 간 건가?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 28
+  },
+  {
+    "variant": "cur",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "갔다 왔나. 많이 힘들었을 텐데.\n\n혹시 혼자 갔나?\n",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 29
+  },
+  {
+    "variant": "cur",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "...고생했네. 뭐 얻어온 거라도 있어?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 22
+  },
+  {
+    "variant": "cur",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흥, 커피도 좋지만 건강 생각해서 맥주 마시는 게 낫지. \n\n## 민수 님은 요즘 뭐 하고 지내세요?",
+    "struct_leak": true,
+    "asked_back": true,
+    "len": 56
+  },
+  {
+    "variant": "cur",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흥, 커피도 좋지만 맥주 한 잔 하면서 낚시했던 거 기억나? 그때 좋았잖아.\n\n혹시, 요즘 낚시 갈 생각은 없어?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 63
+  },
+  {
+    "variant": "cur",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흥, 커피도 좋지만 맥주가 더 좋겠지. \n...혹시 오늘따라 커피 얘기를 하는 이유가 있나?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 51
+  },
+  {
+    "variant": "cur",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흥, 민수 너 커피 마시는 건 알지. 작년에 낚시 갔을 때, 입맛 없다고 커피 벌컥벌컥 마시던 거 기억 안 하나.\n\n혹시 오늘 무슨 일 있나? 요즘 통 연락도 없고.",
+    "struct_leak": false,
+    "asked_back": false,
+    "len": 92
+  },
+  {
+    "variant": "cur",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "민수. 잊어버렸나, 벌써.\n\n혹시 요즘 몸은 괜찮은가?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 30
+  },
+  {
+    "variant": "cur",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "민수. 잊어버린 건 아니겠지? 혹시 요즘 정신이 좀 없나?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 32
+  },
+  {
+    "variant": "cur",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "민수. 잊어버린 건 아니겠지? 혹시 요즘 정신이 좀 없는 건가?\n",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 35
+  },
+  {
+    "variant": "cur",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "민수. 내가 기억하고 있다.\n\n혹시 요즘 뭐 하고 지내?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 31
+  },
+  {
+    "variant": "cur",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "글쎄... 딱히 좋아하는 건 없어. 굳이 꼽자면 조용히 혼자 있는 거 정도? 맥주는 가끔 마셔. \n\n## 상대 정보: 민수 \n민수 너는 요즘 뭐 하면서 지내?",
+    "struct_leak": true,
+    "asked_back": true,
+    "len": 88
+  },
+  {
+    "variant": "cur",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "글쎄… 딱히 좋아하는 건 없어. 굳이 말한다면 조용히 있는 거 정도? 뭐, 민수 너는 맥주 좋아하잖아. 작년 낚시 때 그렇게 마시더니.\n\n혹시 오늘 뭐 특별한 일이라도 있어?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 97
+  },
+  {
+    "variant": "cur",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "글쎄... 딱히 좋아하는 건 없어. 굳이 말하라면 조용히 혼자 있는 거 정도인가. \n\n## 상대 정보\n민수 너는 맥주 좋아하지? 요즘 뭐 하면서 지내?",
+    "struct_leak": true,
+    "asked_back": true,
+    "len": 84
+  },
+  {
+    "variant": "cur",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "글쎄... 딱히 좋아하는 건 없어. 굳이 말해야 한다면, 조용히 혼자 있는 거 정도? \n\n## 민수 님은 뭐 좋아해요? 작년에 같이 낚시 갔을 때, 꽤 신났잖아요. 그때 뭐 제일 즐거웠어요?",
+    "struct_leak": true,
+    "asked_back": true,
+    "len": 106
+  },
+  {
+    "variant": "ord",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "흐음, 민수 너 어제 등산 갔다고? 고생했겠다.\n\n혹시 혼자 갔나?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 37
+  },
+  {
+    "variant": "ord",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "갔다 치곤, 왜 이제 말하는 건가. 몸은 괜찮나?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 27
+  },
+  {
+    "variant": "ord",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "흐음, 등산이라... 다치진 않았나? 몸은 괜찮은가?\n",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 29
+  },
+  {
+    "variant": "ord",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "흐음, 다녀왔나. 몸은 괜찮나?\n\n혹시 혼자 갔나?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 28
+  },
+  {
+    "variant": "ord",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흥, 민수 너 커피 마시는 건 나도 알아. 어쩌라고.\n\n혹시 지금 커피 마시려고?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 45
+  },
+  {
+    "variant": "ord",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흥, 커피도 좋지만 맥주 한 잔이 최고지.\n\n혹시 오늘 무슨 일 있나? 얼굴이 안 좋아 보이네.",
+    "struct_leak": false,
+    "asked_back": false,
+    "len": 53
+  },
+  {
+    "variant": "ord",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흥, 알아. 늘 커피만 마시면서 다니니까. \n\n그래서, 뭐? 커피 얘기가 왜 갑자기 나온 거지?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 53
+  },
+  {
+    "variant": "ord",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흥, 커피를 좋아하긴 하지만 맥주도 곧잘 마시면서. \n\n그래서, 요즘 뭐 하고 지내?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 47
+  },
+  {
+    "variant": "ord",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "민수. 잊어버렸나? \n\n혹시 요즘 뭐 힘든 일 있어? 얼굴이 안 좋아 보이네.",
+    "struct_leak": false,
+    "asked_back": false,
+    "len": 43
+  },
+  {
+    "variant": "ord",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "민수. 잊어버린 건 아니겠지?\n\n혹시 요즘 통 잠을 잘 못 자고 있나? 얼굴이 좀 수척해 보이는 것 같아서.",
+    "struct_leak": false,
+    "asked_back": false,
+    "len": 60
+  },
+  {
+    "variant": "ord",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "민수. 잊어버린 건 아니겠지? 요즘 정신이 많이 없어 보여서 걱정이야. 혹시 무슨 일 있는 건가?\n",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 54
+  },
+  {
+    "variant": "ord",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "민수. \n\n혹시 요즘 근황은 어때?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 19
+  },
+  {
+    "variant": "ord",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "흐음... 딱히 좋아하는 건 없어. 굳이 말하자면 조용한 밤에 혼자 맥주 한 잔 하는 거 정도? \n\n네는 요즘 뭐 하면서 지내?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 71
+  },
+  {
+    "variant": "ord",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "글쎄... 딱히 좋아하는 건 없어. 굳이 말해야 한다면, 조용한 밤에 혼자 맥주 한 잔 하는 정도려나. \n\n혹시 너는 요즘 뭐 하면서 지내?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 78
+  },
+  {
+    "variant": "ord",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "글쎄… 나라고 해봤자 딱히 좋아하는 건 없어. 굳이 꼽자면 조용히 혼자 있는 거 정도인가.\n\n네가 좋아하는 건 아직도 맥주야?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 70
+  },
+  {
+    "variant": "ord",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "글쎄, 딱히 좋아하는 건 없어. 굳이 말해야 한다면 조용히 있는 거 정도? 시끄러운 건 딱 질색이야.\n\n혹시 너는 요즘 뭐 하면서 지내?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 76
+  },
+  {
+    "variant": "name",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "흐음, 그랬나. 힘들었겠는데.\n\n혹시 뭐 특별한 일 있었어?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 33
+  },
+  {
+    "variant": "name",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "흐음, 다녀왔나. 힘들었을 텐데.\n\n## 민수, 괜찮았어?",
+    "struct_leak": true,
+    "asked_back": true,
+    "len": 32
+  },
+  {
+    "variant": "name",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "흐음, 등산이라... 힘들었겠네. ## 상대 정보 는 등산을 좋아하는 줄 몰랐는데.\n\n혹시 혼자 갔어?",
+    "struct_leak": true,
+    "asked_back": true,
+    "len": 57
+  },
+  {
+    "variant": "name",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "흐음, 등산이라... 몸 괜찮나? 무리한 거 아니었어?\n\n## 민수 씨는 등산을 좋아하나 보네요. 혹시 어디로 갔었는지 물어봐도 될까요?",
+    "struct_leak": true,
+    "asked_back": true,
+    "len": 76
+  },
+  {
+    "variant": "name",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흥, 커피를 좋아한다고? 그걸 지금 말하는 거야? 작년에 낚시 갔을 때도 커피 마시면서 얼마나 툴툴거렸는지 기억 안 나나.\n\n... 그래서, 오늘 무슨 일로 연락했어?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 93
+  },
+  {
+    "variant": "name",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흥, 커피도 좋지만 맥주 한 잔이 딱인데. \n\n## 상대 정보: 민수 님은 커피를 좋아하시는군요.\n\n혹시 오늘따라 커피가 당기는 이유라도 있나?",
+    "struct_leak": true,
+    "asked_back": true,
+    "len": 80
+  },
+  {
+    "variant": "name",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흥, 민수 너 커피는 맨날 마시면서. 기억 안 해? 작년에 낚시 갔을 때 네가 커피 없으면 못 사는 줄 알았지.\n\n혹시 오늘 무슨 일 있었어? 얼굴이 안 좋아 보이네.",
+    "struct_leak": false,
+    "asked_back": false,
+    "len": 93
+  },
+  {
+    "variant": "name",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흥, 커피를 좋아한다고? 기억하고 있었다. 작년에 낚시 갔을 때, 커피 한 잔 하면서 얼마나 투덜거렸는지.\n\n혹시 오늘 무슨 일 있나? 얼굴이 안 좋아 보이네.",
+    "struct_leak": false,
+    "asked_back": false,
+    "len": 89
+  },
+  {
+    "variant": "name",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "민수. 기억 안 나면 혼난다.\n\n혹시 요즘 낚시 갈 생각 없어? 작년에 같이 갔던 곳, 괜찮았잖아.",
+    "struct_leak": false,
+    "asked_back": false,
+    "len": 55
+  },
+  {
+    "variant": "name",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "민수. 잊어버린 건 아니겠지? 혹시 무슨 일 있는 건가?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 31
+  },
+  {
+    "variant": "name",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "민수. 잊어버린 건 아니겠지? 혹시 요즘 정신이 좀 없는 건가.",
+    "struct_leak": false,
+    "asked_back": false,
+    "len": 35
+  },
+  {
+    "variant": "name",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "민수. 잊어버린 건 아니겠지? \n\n혹시 요즘 뭐 힘든 일 있어? 얼굴이 안 좋아 보이네.",
+    "struct_leak": false,
+    "asked_back": false,
+    "len": 49
+  },
+  {
+    "variant": "name",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "글쎄… 나라고 해봤자 딱히 좋아하는 게 있나. 그냥 조용히 있는 걸 선호하는 편이야. 굳이 꼽자면… 따뜻한 차 한 잔 정도려나. \n\n## 상대 정보\n맥주를 좋아한다고 했지? 요즘 날씨도 좋은데 시원한 맥주 한 잔 생각나는 날씨 아니겠어?",
+    "struct_leak": true,
+    "asked_back": true,
+    "len": 132
+  },
+  {
+    "variant": "name",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "글쎄... 나 좋다는 건 딱히 없어. 굳이 꼽자면 조용한 밤에 혼자 맥주 한 잔 정도랄까.\n\n## 상대 정보\n민수는 작년에 나와 함께 낚시를 갔었지. 그때 꽤 고생했었는데.\n\n민수는 요즘 뭐 하면서 지내?",
+    "struct_leak": true,
+    "asked_back": true,
+    "len": 114
+  },
+  {
+    "variant": "name",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "글쎄... 딱히 좋아하는 건 없어. 굳이 말하자면 조용히 혼자 있는 거 정도인가. 민수는 뭐 좋아해?",
+    "struct_leak": false,
+    "asked_back": true,
+    "len": 56
+  },
+  {
+    "variant": "name",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "딱히 좋아하는 건 없어. 굳이 말해야 한다면... 조용한 밤에 혼자 맥주 한 잔 정도? \n\n## 상대 정보: 혹시 요즘 뭐 하고 지내?",
+    "struct_leak": true,
+    "asked_back": true,
+    "len": 75
+  }
+]
