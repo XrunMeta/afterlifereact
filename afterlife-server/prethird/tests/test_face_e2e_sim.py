@@ -31,10 +31,17 @@ import l2p_client  # noqa: E402
 import learn_writeback as lw  # noqa: E402
 
 # T-252: _maybe_swap_l2p/_clear_current_speaker 가 재조립할 원본 번들.
+# [T-252 fix round 2 / el 지적] persona 에 _OTHER_LABELS 키를 채운다 — 없으면
+# "## 상대 정보" 관련 부재 단언이 공허 통과한다.
 _BUNDLE = {
     "personaBundle": {
         "cloneId": "9201",
-        "persona": {"displayName": "코조", "tone": "친근함"},
+        "persona": {
+            "displayName": "코조",
+            "tone": "친근함",
+            "relation": "이웃",
+            "memories_personal": ["계정주와 작년에 이사 옴"],
+        },
         "viewer": {"displayName": "지호"},
     }
 }
@@ -167,6 +174,8 @@ def test_full_flow_unknown_to_enrolled(monkeypatch):
         # 1번(상태 4 강등) + 3번(화자 확정 재조립) = 2회
         assert len(sess.pipeline.update_calls) == 2
         swapped = sess.pipeline.update_calls[-1]
+        # [fix round 2] 확정 화자(민지)에게 계정주 L2 가 새지 않는지 직접 본다.
+        assert "계정주와 작년에 이사 옴" not in swapped[0]["content"]
         # T-252: base 위에 덧붙이지 않고 bundle 전체를 화자 기준으로 재조립한다.
         assert swapped == bundle_to_messages(sess.bundle, speaker={"name": "민지", "l2p_data": {"relation": "손녀"}})
         content = swapped[0]["content"]
