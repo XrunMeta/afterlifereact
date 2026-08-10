@@ -785,16 +785,27 @@ function CallScreenInner({ route, navigation }: Props) {
     }
   }, [lastSignal]);
 
+  const startedRef = useRef(false);
   useEffect(() => {
     if (!accessToken) return;
+    if (startedRef.current) return;
+    const kick = () => {
+      if (startedRef.current) return;
+      startedRef.current = true;
+      requestAnimationFrame(() => {
+        console.log(`[Call][flow] +${Date.now()} startLive() begin (pipeline=${livePipeline ?? 'timeout'})`);
+        void startLive();
+      });
+    };
+    if (livePipeline !== null) {
+      kick();
+      return;
+    }
 
-    const raf = requestAnimationFrame(() => {
-      console.log(`[Call][flow] +${Date.now()} startLive() begin (deferred 1 frame)`);
-      void startLive();
-    });
-    return () => cancelAnimationFrame(raf);
+    const t = setTimeout(kick, 800);
+    return () => clearTimeout(t);
 
-  }, []);
+  }, [livePipeline]);
 
   useEffect(() => {
     if (!__DEV__) return;
