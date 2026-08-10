@@ -186,17 +186,40 @@ v_fded81.post("/calibrate", v_6690d9, async (v_3f4e2e) => {
   const v_333258 = v_643757?.score ?? 0;
   const v_38da05 = v_643757 && v_643757.score >= v_d361d7 ? v_643757.personId : null;
   const v_f5477a = typeof v_4d33b2.groundTruthPersonId === "string" ? v_4d33b2.groundTruthPersonId : null;
+
+  let v_22ceee = null;
+  if (v_38da05 != null) {
+    const v_d4923e = Number(v_38da05);
+    if (Number.isInteger(v_d4923e) && v_d4923e > 0) {
+      const v_d94e57 = await v_3f4e2e.env.DB.prepare(
+        "SELECT 1 AS hit FROM clone_ont_person WHERE clone_id = ? AND person_id = ? LIMIT 1"
+      )
+        .bind(v_6b5963, v_d4923e)
+        .first<{ hit: number }>();
+      v_22ceee = v_d94e57 != null;
+    }
+  }
+
   const v_5c2f9f = Date.now();
   const v_43af15 = await v_3f4e2e.env.DB.prepare(
     `INSERT INTO faceoth-secretes
-     (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
+     (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at, matched_has_l2p)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   )
 
-    .bind(String(v_43e90c), v_f5477a, v_38da05, v_333258, v_d361d7, JSON.stringify(v_392321), v_5c2f9f)
+    .bind(
+      String(v_43e90c),
+      v_f5477a,
+      v_38da05,
+      v_333258,
+      v_d361d7,
+      JSON.stringify(v_392321),
+      v_5c2f9f,
+      v_22ceee == null ? null : v_22ceee ? 1 : 0
+    )
     .run();
   const v_389afb = Number(v_43af15.meta.last_row_id);
-  return v_3f4e2e.json({ id: v_389afb, matchedId: v_38da05, bestScore: v_333258, threshold: v_d361d7, scoreCount: v_392321.length });
+  return v_3f4e2e.json({ id: v_389afb, matchedId: v_38da05, bestScore: v_333258, threshold: v_d361d7, scoreCount: v_392321.length, matchedHasL2p: v_22ceee });
 });
 
 v_fded81.get("/calibrate/samples", v_6690d9, async (v_3f4e2e) => {
@@ -206,7 +229,8 @@ v_fded81.get("/calibrate/samples", v_6690d9, async (v_3f4e2e) => {
   const v_8738be = Math.max(Number(v_3f4e2e.req.query("since") ?? "0") || 0, 0);
   const v_02be30 = Math.min(Math.max(Number(v_3f4e2e.req.query("limit") ?? "100") || 100, 1), 200);
   const { results: v_a7f568 } = await v_3f4e2e.env.DB.prepare(
-    `SELECT id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at
+    `SELECT id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at,
+            matched_has_l2p
      FROM faceoth-secretes WHERE user_id = ? AND id > ? ORDER BY id ASC LIMIT ?`
   )
 
@@ -219,6 +243,7 @@ v_fded81.get("/calibrate/samples", v_6690d9, async (v_3f4e2e) => {
       threshold: number;
       scores_json: string;
       created_at: number;
+      matched_has_l2p: number | null;
     }>();
 
   const v_5b2623 = v_a7f568.map((v_cb35cb) => {
@@ -236,6 +261,8 @@ v_fded81.get("/calibrate/samples", v_6690d9, async (v_3f4e2e) => {
       bestScore: v_cb35cb.best_score,
       threshold: v_cb35cb.threshold,
       scores: v_392321,
+
+      matchedHasL2p: v_cb35cb.matched_has_l2p == null ? null : v_cb35cb.matched_has_l2p === 1,
     };
   });
   const v_d074ef = v_5b2623[v_5b2623.length - 1];
