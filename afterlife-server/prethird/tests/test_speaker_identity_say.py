@@ -219,16 +219,64 @@ def test_clear_current_speaker_noop_reset_when_bundle_absent():
     assert sess.pipeline.update_calls == []
 
 
-def test_clear_current_speaker_noop_when_already_anonymous():
-    """이미 current_speaker가 None이면(중복 unknown_face 등) 완전히 no-op —
-    bundle이 있어도 불필요한 재리셋을 하지 않는다."""
+def test_clear_current_speaker_강등은_confirmed_이력이_없어도_일어난다():
+    """[T-252 fix / mizu H-1 · el B-2] 확정된 화자가 한 번도 없었어도(current_speaker
+    가 이미 None) 프롬프트는 상태 4로 강등돼야 한다.
+
+    clone_person_faces 0행이라 /oth-path 는 절대 매칭되지 않는다 →
+    speaker_confirmed 가 오지 않는다 → 구 코드의 `if current_speaker is None: return`
+    가 함수 전체를 막아 상태 4가 100% 발생하지 않았다. 그 결과 카메라 앞 제3자를
+    계정주 이름으로 부르고 계정주 L2를 그 사람 것으로 읊었다."""
     sess = _Sess()
     sess.current_speaker = None
 
     _clear_current_speaker(sess, "unknown_face")
 
     assert sess.current_speaker is None
-    assert sess.pipeline.update_calls == []
+    expected = bundle_to_messages(sess.bundle, speaker={"unconfirmed": True})
+    assert sess.pipeline.update_calls == [expected]
+    content = sess.pipeline.update_calls[0][0]["content"]
+    assert "지호" not in content          # viewer(계정주) 이름 호칭 억제
+    assert "확정하지 못했다" in content
+    assert sess.prompt_unconfirmed is True
+
+
+def test_clear_current_speaker_연속_unknown은_한_번만_재조립한다():
+    """중복 강등 방지 플래그 — 같은 통화에서 이미 상태 4면 스킵(사람 결정 2)."""
+    sess = _Sess()
+    sess.current_speaker = (3, "민지")
+
+    _clear_current_speaker(sess, "unknown_face")
+    _clear_current_speaker(sess, "unknown_face")
+    _clear_current_speaker(sess, "multi_face")
+
+    assert len(sess.pipeline.update_calls) == 1
+
+
+def test_speaker_confirmed_후_다시_unknown이면_또_강등된다(monkeypatch):
+    """플래그를 speaker_confirmed 에서 리셋하지 않으면 두 번째 unknown_face 가
+    조용히 스킵되어 상태 4로 못 돌아간다."""
+    monkeypatch.setenv("PRETHIRD_API_BASE", "http://x")
+    monkeypatch.setenv("LEARN_SECRET", "s")
+    import l2p_client
+
+    async def _fake_fetch(clone_id, person_id):
+        return None
+    monkeypatch.setattr(l2p_client, "fetch_l2p", _fake_fetch)
+
+    sess, ch = _Sess(), _Channel()
+    _clear_current_speaker(sess, "unknown_face")          # 1회차 강등
+    assert sess.prompt_unconfirmed is True
+
+    _run_handler(sess, ch, {                              # 화자 확정 → 플래그 리셋
+        "type": "face_event", "event": "speaker_confirmed",
+        "personId": 3, "displayName": "민지", "seq": 1,
+    })
+    assert sess.prompt_unconfirmed is False
+
+    _clear_current_speaker(sess, "unknown_face")          # 2회차 강등도 일어나야 한다
+    assert sess.prompt_unconfirmed is True
+    assert "민지" not in sess.pipeline.update_calls[-1][0]["content"]
 
 
 # ---------------------------------------------------------------------------

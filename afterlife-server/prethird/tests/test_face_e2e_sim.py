@@ -138,6 +138,10 @@ def test_full_flow_unknown_to_enrolled(monkeypatch):
         _drain(loop)
         assert sess.pipeline.react_calls == [("unknown", None)]
         assert sess.pending_enroll is True
+        # [T-252 fix / mizu H-1] 확정 화자 이력이 없어도 프롬프트는 상태 4로 강등된다
+        # (구 코드는 current_speaker 가 None 이라 통째로 스킵 → 계정주 이름 호칭 유지).
+        assert len(sess.pipeline.update_calls) == 1
+        assert "지호" not in sess.pipeline.update_calls[0][0]["content"]
 
         # 2. say "저 민지예요" → enroll_suggest{"name":"민지"} + say 정상 응답
         handler(json.dumps({"type": "say", "text": "저 민지예요", "seq": 2}))
@@ -160,8 +164,9 @@ def test_full_flow_unknown_to_enrolled(monkeypatch):
         assert sess.pipeline.react_calls == [("unknown", None), ("known", "민지")]
         assert sess.current_speaker == (3, "민지")
         assert l2p_calls == [(9201, 3)]
-        assert len(sess.pipeline.update_calls) == 1
-        swapped = sess.pipeline.update_calls[0]
+        # 1번(상태 4 강등) + 3번(화자 확정 재조립) = 2회
+        assert len(sess.pipeline.update_calls) == 2
+        swapped = sess.pipeline.update_calls[-1]
         # T-252: base 위에 덧붙이지 않고 bundle 전체를 화자 기준으로 재조립한다.
         assert swapped == bundle_to_messages(sess.bundle, speaker={"name": "민지", "l2p_data": {"relation": "손녀"}})
         content = swapped[0]["content"]
@@ -181,7 +186,7 @@ def test_full_flow_unknown_to_enrolled(monkeypatch):
         }))
         _drain(loop)
         assert sess.pipeline.react_calls == [("unknown", None), ("known", "민지")]  # 추가 없음
-        assert len(sess.pipeline.update_calls) == 1  # 스왑도 재발화 안 됨
+        assert len(sess.pipeline.update_calls) == 2  # 스왑도 재발화 안 됨(1·3번 누계 그대로)
 
         # 6. say 발화 진행 중(busy-lock) face_event(personId=5,"철수") 도착
         #    → 즉시 겹쳐 재생하지 않고 pending_react 단일 슬롯에 대기, say 종료 후 재생.

@@ -406,42 +406,52 @@ async def _maybe_swap_l2p(sess, pid: int, name) -> None:
 
 def _clear_current_speaker(sess, event: str) -> None:
     """[T-135 v2 / T-252] 화자 확실성 게이팅 — `unknown_face`/`multi_face` 수신 시
-    `sess.current_speaker`를 익명(None)으로 해제한다.
+    화자를 익명으로 되돌리고 프롬프트를 상태 4로 강등한다.
 
-    이미 None이면 아무것도 하지 않는다(no-op, 중복 리셋 방지). None이 아니었다면:
-    1) current_speaker=None으로 즉시 해제 — 이후 `_maybe_swap_l2p`의 stale 가드
-       (`current is None or current[0] != pid`)가 늦게 도착하는 이전 화자의 스왑도
-       자동 드랍한다(이중 방어). `learn_writeback` person 귀속도 이 시점부터 즉시
+    두 가지 일을 하는데, 조건이 서로 다르다는 것이 핵심이다(T-252 fix / mizu H-1 · el B-2).
+
+    1) `current_speaker=None` 해제 — 이미 None이면 no-op. 해제하면 이후
+       `_maybe_swap_l2p`의 stale 가드가 늦게 도착하는 이전 화자의 스왑도 자동
+       드랍한다(이중 방어). `learn_writeback` person 귀속도 이 시점부터 즉시
        익명(person_id=None)으로 보류된다(호출부가 매 turn `sess.current_speaker`를
        그때그때 읽으므로 별도 배선 불필요).
-    2) [T-252] 예전엔 persona를 base(상대 정보 통째 삭제)로 되돌렸지만, 얼굴이
-       감지됐으나 매칭에 실패한 것은 "낯선 사람"이 아니라 "누구인지 확정하지 못한
-       상태"다 — bundle_to_messages(bundle, speaker={"unconfirmed": True})로 기본
-       상대(L2)에 폴백하되 이름 호칭만 억제한다(관계·기억은 유지, mizu 오식별 방지).
-       sess.bundle이 없으면(스왑이 한 번도 없었거나 재연결) 재조립할 원본이 없으므로
-       스킵 — bundle_to_messages(None)은 []을 반환하므로 그대로 update하면 페르소나
-       전체가 소실된다.
+    2) 프롬프트 상태 4 강등 — **`current_speaker` 상태와 무관하게 무조건** 수행한다.
+       예전엔 `if sess.current_speaker is None: return` 이 함수 전체를 막아서
+       상태 4로 들어가는 간선이 `2→4` 하나뿐이었다. 그런데 `clone_person_faces`가
+       0행이라 `/oth-path`는 절대 매칭되지 않고 → `speaker_confirmed`가
+       한 번도 오지 않고 → `current_speaker`는 영원히 None이라 **상태 4가 100%
+       발생하지 않았다**. 카메라 앞에 제3자가 앉아도 프롬프트는 상태 1 그대로
+       ("상대는 지호")여서 클론이 제3자를 계정주 이름으로 부르고 계정주의 L2를
+       그 사람 것으로 읊는다 — 설계 3.2가 T-135 완화의 유일한 안전 조건으로 내건
+       "이름으로 부르지 않는다"가 정작 필요한 상황에서만 미작동했다.
+       중복 재조립은 `sess.prompt_unconfirmed` 플래그로 막는다(연속 unknown_face).
+
+    상태 4 재조립은 익명 리셋(상대 정보 통째 삭제)이 아니라 기본 상대(L2) 폴백이다 —
+    얼굴이 감지됐으나 매칭에 실패한 것은 "낯선 사람"이 아니라 "누구인지 확정하지 못한
+    상태"다. 관계·기억은 유지하되 이름 호칭만 억제한다. 복귀 대상은 통화를 건 사용자
+    본인의 L2 뿐이며 타인의 L2' 는 남기지 않는다.
     """
-    if sess.current_speaker is None:
-        return
-    sess.current_speaker = None
-    if _face_diag_on():
-        log.info(
-            "face_diag speaker session=%s event=%s cleared=1",
-            getattr(sess, "session_id", "?"), event,
-        )
+    if sess.current_speaker is not None:
+        sess.current_speaker = None
+        if _face_diag_on():
+            log.info(
+                "face_diag speaker session=%s event=%s cleared=1",
+                getattr(sess, "session_id", "?"), event,
+            )
+    if getattr(sess, "prompt_unconfirmed", False):
+        return  # 이미 상태 4 — 재조립 결과가 같으므로 중복 update 를 건너뛴다
     try:
         pipeline = getattr(sess, "pipeline", None)
         bundle = getattr(sess, "bundle", None)
-        if pipeline is not None and bundle:
-            update = getattr(pipeline, "update_persona", None)
-            if callable(update):
-                # T-252: 익명 리셋(상대 정보 통째 삭제)이 아니라 기본 상대(L2)로 폴백한다.
-                # 얼굴이 감지됐으나 매칭에 실패한 것은 "낯선 사람"이 아니라 "누구인지
-                # 확정하지 못한 상태"다. 단 이름 호칭은 억제한다 — 화면에 실제로 다른
-                # 사람이 있는데 기본 상대의 이름으로 부르면 오식별 발화가 된다.
-                # 복귀 대상은 통화를 건 사용자 본인의 L2 뿐이며 타인의 L2' 는 남기지 않는다.
-                update(bundle_to_messages(bundle, speaker={"unconfirmed": True}))
+        if pipeline is None or not bundle:
+            # 재조립할 원본이 없다(스왑 전 재연결·offer 실패 등). update_persona([])는
+            # 페르소나(안전 규칙·성격·기억) 전소라 절대 부르지 않는다.
+            return
+        update = getattr(pipeline, "update_persona", None)
+        if not callable(update):
+            return
+        update(bundle_to_messages(bundle, speaker={"unconfirmed": True}))
+        sess.prompt_unconfirmed = True
     except Exception as e:
         log.warning(
             "session %s _clear_current_speaker persona reset failed: %s",
@@ -575,6 +585,9 @@ def _handle_face_event(sess, data: dict) -> None:
         prev = sess.current_speaker
         if prev is None or prev[0] != pid_int:
             sess.current_speaker = (pid_int, name)
+            # [T-252 fix / mizu H-1] 상태 4 중복 방지 플래그를 반드시 여기서 푼다 —
+            # 안 풀면 이 통화에서 두 번째 unknown_face 가 와도 강등이 스킵된다.
+            sess.prompt_unconfirmed = False
             if _face_diag_on():
                 log.info(
                     "face_diag speaker session=%s person=%s swap_scheduled=1",
