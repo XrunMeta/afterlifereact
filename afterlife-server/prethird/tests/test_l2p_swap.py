@@ -245,6 +245,9 @@ def test_maybe_swap_l2p_skips_update_when_bundle_none(monkeypatch):
     asyncio.run(_maybe_swap_l2p(sess, 3, "민지"))
 
     assert sess.pipeline.update_calls == []
+    # [T-252 fix / el I-4] 프롬프트를 A 로 맞출 수 없으면 학습 귀속도 보류한다 —
+    # 안 그러면 프롬프트는 계정주 기준인데 학습만 person A 로 가는 창이 열린다.
+    assert sess.current_speaker is None
 
 
 def test_maybe_swap_l2p_skips_update_when_bundle_empty_dict(monkeypatch):
@@ -264,6 +267,23 @@ def test_maybe_swap_l2p_skips_update_when_bundle_empty_dict(monkeypatch):
     asyncio.run(_maybe_swap_l2p(sess, 3, "민지"))
 
     assert sess.pipeline.update_calls == []
+    assert sess.current_speaker is None   # el I-4 — 귀속 보류
+
+
+def test_bundle_부재_귀속보류는_최신_화자를_지우지_않는다(monkeypatch):
+    """[T-252 fix / el I-4] 세대가 이미 넘어갔으면(다른 화자로 교대) 늦게 끝난
+    이 스킵이 최신 화자의 귀속을 지워선 안 된다."""
+    from signaling import _bump_speaker_epoch
+
+    sess = _Sess()
+    sess.bundle = None
+    my_epoch = _bump_speaker_epoch(sess)
+    _bump_speaker_epoch(sess)                 # 그 사이 화자 교대
+    sess.current_speaker = (5, "철수")
+
+    asyncio.run(_maybe_swap_l2p(sess, 3, "민지", my_epoch))
+
+    assert sess.current_speaker == (5, "철수")
 
 
 # ---------------------------------------------------------------------------

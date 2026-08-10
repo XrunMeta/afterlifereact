@@ -361,6 +361,19 @@ async def _maybe_swap_l2p(sess, pid: int, name, epoch: int | None = None) -> Non
             return
         bundle = getattr(sess, "bundle", None)
         if not bundle:
+            # [T-252 fix / el I-4] 재조립할 원본이 없으면 프롬프트는 영원히 상대를
+            # 계정주로 선언한 상태로 남는데, learn_writeback 은 매 turn
+            # `sess.current_speaker` 를 읽으므로 학습만 person A 로 귀속된다 —
+            # "이 턴의 프롬프트 상대 = 그 턴의 학습 귀속 대상" 불변식이 깨진 창이다.
+            # 프롬프트를 A 로 못 맞추므로 반대쪽(귀속)을 보류해 창을 닫는다:
+            # current_speaker 를 되돌려 학습도 익명(계정주 L2)으로 떨어뜨린다.
+            # 세대가 이미 넘어갔으면 최신 화자를 지우게 되므로 건드리지 않는다.
+            if epoch is None or getattr(sess, "speaker_epoch", epoch) == epoch:
+                sess.current_speaker = None
+            log.warning(
+                "session %s bundle 부재로 L2' 스왑 스킵 — 학습 귀속도 익명으로 보류 person=%s",
+                getattr(sess, "session_id", "?"), pid,
+            )
             return
 
         clone_id = getattr(sess, "clone_id", None)
