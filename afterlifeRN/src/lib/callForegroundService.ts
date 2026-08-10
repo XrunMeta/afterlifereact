@@ -1,6 +1,10 @@
 
 
-import v_2dc4c2, { v_ad9c5b, v_75b709 } from "bsiaazmwsayjedvznfsir";
+import v_2dc4c2, {
+  v_ad9c5b,
+  v_75b709,
+  v_220e44,
+} from "bsiaazmwsayjedvznfsir";
 import { v_326be8 } from "rcmrninabrnb";
 
 const v_766105 = "call-foreground";
@@ -37,6 +41,10 @@ export async function v_705e4e(v_4317d1): Promise<void> {
       android: {
         channelId: v_766105,
         asForegroundService: true,
+
+        foregroundServiceTypes: [
+          v_220e44.FOREGROUND_SERVICE_TYPE_MICROPHONE,
+        ],
         ongoing: true,
         color: v_75b709.PURPLE,
 
