@@ -6,6 +6,7 @@ const fs = require("fs");
 const {
   withAndroidManifest,
   withAppBuildGradle,
+  withProjectBuildGradle,
   withMainApplication,
   withDangerousMod,
   AndroidConfig,
@@ -26,6 +27,19 @@ function withPangleManifest(config) {
       app,
       "com.bytedance.sdk.openadsdk.DEBUG",
       "false",
+    );
+    return cfg;
+  });
+}
+
+function withPangleRepo(config) {
+  return withProjectBuildGradle(config, (cfg) => {
+    const marker = "artifact.bytedance.com/repository/pangle";
+    if (cfg.modResults.contents.includes(marker)) return cfg;
+
+    cfg.modResults.contents = cfg.modResults.contents.replace(
+      /(allprojects\s*\{\s*repositories\s*\{)([\s\S]*?)(\n\s*\})/m,
+      `$1$2\n    // T-421 Pangle SDK 저장소\n    maven { url 'https://artifact.bytedance.com/repository/pangle' }$3`,
     );
     return cfg;
   });
@@ -103,6 +117,7 @@ function withPangleKotlinFiles(config) {
 
 module.exports = function withPangle(config) {
   config = withPangleManifest(config);
+  config = withPangleRepo(config);
   config = withPangleGradle(config);
   config = withPangleMainApplication(config);
   config = withPangleKotlinFiles(config);
