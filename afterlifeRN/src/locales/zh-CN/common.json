@@ -792,7 +792,13 @@
       "faceGuideHint": "请将脸对准框内",
       "faceTooSmall": "请靠近相机一些",
       "faceTooLarge": "请稍微往后退一点",
-      "faceOffCenter": "请将脸对准轮廓内"
+      "faceOffCenter": "请将脸对准轮廓内",
+      "validateRetakeTitle": "请重新拍摄",
+      "validateReselectTitle": "请选择其他照片",
+      "validateNoFace": "未检测到人脸，请正面朝向相机后重试。",
+      "validateTooSmall": "人脸过小，请靠近相机后重试。",
+      "validateTooLarge": "人脸过大，请稍微后退后重试。",
+      "validateOffCenter": "人脸超出轮廓，请对准中央后重试。"
     },
     "voice": {
       "presets": "默认音色预设",
