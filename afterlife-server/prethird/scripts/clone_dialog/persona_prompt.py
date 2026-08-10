@@ -74,11 +74,25 @@ _NEUTRAL_LABELS: list[tuple[str, str]] = [
 # knowledge 는 "## 전문 지식" 전용 섹션으로 분리된다.
 _EXCLUDED_KEYS = {"displayName", "knowledge"}
 
-# signaling.py 의 _sanitize_display_name 과 동등 기준(afterlifeapi assertValidDisplayName 규약).
-# 길이 1~30 · 제어문자 · 제로폭/bidi 포맷문자 차단. 프롬프트 인젝션 완화(T-135 mizu HIGH1).
+# 이 모듈이 이름 검증의 단일 정본이다. signaling.py 의 `_sanitize_display_name` 은
+# 여기를 import 해서 쓴다 — 두 벌로 두면 한쪽만 강화됐을 때 조용히 어긋난다
+# (mizu 가 "바이트 단위 동일" 을 통과 조건으로 검사하던 항목).
+#
+# 1차 차단(길이·제어문자) — afterlifeapi assertValidDisplayName 규약 승계.
+# 길이 1~30 · 제어문자(\n\r\t 포함) · 제로폭/bidi 포맷문자 · 유니코드 줄바꿈
+# (U+2028 LS · U+2029 PS — 구 정규식에 빠져 있던 실제 구멍이다).
 _DISPLAY_NAME_CONTROL_RE = re.compile(
-    "[\x00-\x1f\x7f​-‏‪-‮⁠-⁯﻿]"
+    "[\x00-\x1f\x7f​-‏‪-‮  ⁠-⁯﻿]"
 )
+
+# 2차 차단 [T-252 fix / mizu H-3] — 이름은 "낱말 문자 + 몇 개의 구분자" 라는 닫힌
+# 정의를 쓴다(허용목록). 금지목록으로 따옴표·`#`·백틱만 막으면 프롬프트 구조를
+# 흉내내는 문자는 계속 늘어나므로 경계가 새는데, 허용목록은 새지 않는다.
+# 통과: 한글·한자·가나·라틴·키릴·숫자(모두 str.isalnum() True) + 아래 구분자.
+# 차단: 따옴표(" ' ` 「」 “” 등) · 마크다운/구조 문자(# * _ 아닌 것들, | [] <> {} \)
+#      · 콜론 · 괄호 · 이모지. 차단되면 None → 상태 3(이름 호칭 억제)으로 강등되므로
+#      실패 모드가 안전하다(이름을 못 부를 뿐 통화·L2' 는 그대로 산다).
+_DISPLAY_NAME_EXTRA_CHARS = " -_.·"
 
 
 def sanitize_display_name(raw) -> str | None:
@@ -90,6 +104,9 @@ def sanitize_display_name(raw) -> str | None:
         return None
     if _DISPLAY_NAME_CONTROL_RE.search(trimmed):
         return None
+    for ch in trimmed:
+        if not (ch.isalnum() or ch in _DISPLAY_NAME_EXTRA_CHARS):
+            return None
     return trimmed
 
 
@@ -151,10 +168,14 @@ def _build_header(
         out.append("- 상대를 이름으로 부르지 마라. 이름을 지어내지 마라.")
 
     if has_other_block:
-        if unconfirmed or not other_name:
-            owner = '- "## 상대 정보" 는 상대의 것이다. 네 경험처럼 말하지 마라.'
-        else:
-            owner = f'- "## 상대 정보" 는 {other_name} 의 것이다. 네 경험처럼 말하지 마라.'
+        # [T-252 fix / mizu H-3] 예전엔 여기에도 {other_name} 을 보간해서 이름이
+        # 명령형 문장 3곳에 반복 삽입됐다(users.name 은 자유 입력이라 인젝션 면이다).
+        # 소유자 선언은 대명사 "상대" 로도 정확히 성립한다 — 바로 위 두 줄이 "상대"
+        # 를 그 이름에 묶어 두고, 상태 3·4 는 이미 이 문안으로 실측을 통과했다.
+        # 인칭 분리(R-1)의 핵심인 `상대가 "나 / 내" 라고 말하면 그것은 {이름} 를
+        # 가리킨다` 줄은 이름을 그대로 유지한다 — 대명사로 바꾸면 "나=상대 자신"
+        # 이라는 동어반복이 되어 분리 효과가 사라진다.
+        owner = '- "## 상대 정보" 는 상대의 것이다. 네 경험처럼 말하지 마라.'
         if unconfirmed:
             owner += "\n  다만 그 사람이 맞는지 확신할 수 없으니 그 기억을 단정해서 꺼내지 마라."
         out.append(owner)
