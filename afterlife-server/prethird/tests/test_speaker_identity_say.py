@@ -16,6 +16,16 @@ from signaling import (  # noqa: E402
     _make_dc_handler, build_l2p_hint, _sanitize_display_name,
     _clear_current_speaker, _maybe_swap_l2p,
 )
+from clone_dialog import bundle_to_messages  # noqa: E402
+
+# T-252: _clear_current_speaker/_maybe_swap_l2p 가 재조립할 원본 번들.
+_BUNDLE = {
+    "personaBundle": {
+        "cloneId": "9201",
+        "persona": {"displayName": "코조", "tone": "친근함"},
+        "viewer": {"displayName": "지호"},
+    }
+}
 
 
 class _Channel:
@@ -52,7 +62,7 @@ class _Sess:
         self.pending_enroll = False
         self.current_speaker = None
         self.pending_react = None
-        self.base_persona_messages = None
+        self.bundle = dict(_BUNDLE)  # T-252: 재조립 원본. offer 시 signaling.py가 대입하는 값.
         self.user_id = None
         self.name_extract_sent = set()
     def set_state(self, s): self.state = s
@@ -202,26 +212,30 @@ def test_face_event_malformed_display_name_degrades_to_none(monkeypatch):
 # 전이만 간접 확인 — 여기서는 update_persona 호출/내용을 직접 단언한다.)
 # ---------------------------------------------------------------------------
 
-def test_clear_current_speaker_resets_persona_to_base_when_base_present():
-    """base_persona_messages가 있으면(과거 스왑 이력) update_persona(base)로 동기
-    리셋 — 직전 화자의 이름/L2' 힌트가 다음 턴 프롬프트에 잔류하지 않는다."""
+def test_clear_current_speaker_falls_back_to_l2_when_bundle_present():
+    """[T-252] sess.bundle이 있으면 update_persona(기본 상대 폴백)로 동기 리셋 —
+    직전 화자의 이름/L2' 힌트가 다음 턴 프롬프트에 잔류하지 않는다. 예전엔 상대
+    정보를 통째로 지웠지만(익명 리셋), 지금은 기본 상대(L2)로 폴백하되 이름
+    호칭만 억제한다(unknown_face는 "낯선 사람"이 아니라 "미확정 상태")."""
     sess = _Sess()
     sess.current_speaker = (3, "민지")
-    sess.base_persona_messages = [{"role": "system", "content": "base persona"}]
 
     _clear_current_speaker(sess, "unknown_face")
 
     assert sess.current_speaker is None
-    assert sess.pipeline.update_calls == [[{"role": "system", "content": "base persona"}]]
-    assert sess.pipeline.persona_messages == [{"role": "system", "content": "base persona"}]
+    expected = bundle_to_messages(sess.bundle, speaker={"unconfirmed": True})
+    assert sess.pipeline.update_calls == [expected]
+    assert sess.pipeline.persona_messages == expected
+    assert "민지" not in expected[0]["content"]  # 이름 호칭 억제
 
 
-def test_clear_current_speaker_noop_reset_when_base_persona_none():
-    """base_persona_messages가 아직 없으면(스왑이 한 번도 없었음) 리셋할 것도 없어
-    update_persona를 호출하지 않는다 — current_speaker 해제만 일어난다."""
+def test_clear_current_speaker_noop_reset_when_bundle_absent():
+    """[T-252] sess.bundle이 없으면(재연결 등, 재조립할 원본이 없음) update_persona를
+    호출하지 않는다 — bundle_to_messages(None)은 []을 반환하므로 그대로 update하면
+    페르소나 전체가 소실된다. current_speaker 해제만 일어난다."""
     sess = _Sess()
     sess.current_speaker = (3, "민지")
-    sess.base_persona_messages = None
+    sess.bundle = None
 
     _clear_current_speaker(sess, "multi_face")
 
@@ -231,10 +245,9 @@ def test_clear_current_speaker_noop_reset_when_base_persona_none():
 
 def test_clear_current_speaker_noop_when_already_anonymous():
     """이미 current_speaker가 None이면(중복 unknown_face 등) 완전히 no-op —
-    base_persona_messages가 있어도 불필요한 재리셋을 하지 않는다."""
+    bundle이 있어도 불필요한 재리셋을 하지 않는다."""
     sess = _Sess()
     sess.current_speaker = None
-    sess.base_persona_messages = [{"role": "system", "content": "base persona"}]
 
     _clear_current_speaker(sess, "unknown_face")
 
@@ -265,7 +278,6 @@ def test_maybe_swap_l2p_dropped_as_stale_after_clear_mid_flight(monkeypatch):
 
     sess = _Sess()
     sess.current_speaker = (3, "민지")
-    sess.base_persona_messages = [{"role": "system", "content": "base persona"}]
 
     async def _scenario():
         task = asyncio.ensure_future(_maybe_swap_l2p(sess, 3, "민지"))
@@ -274,8 +286,9 @@ def test_maybe_swap_l2p_dropped_as_stale_after_clear_mid_flight(monkeypatch):
         # unknown_face 도착 — in-flight fetch가 아직 끝나지 않은 상태에서 화자 해제.
         _clear_current_speaker(sess, "unknown_face")
         assert sess.current_speaker is None
-        # 해제 시점에 이미 base로 동기 리셋됐다(1번째 update_calls).
-        assert sess.pipeline.update_calls[-1] == list(sess.base_persona_messages)
+        # 해제 시점에 이미 기본 상대 폴백으로 동기 리셋됐다(1번째 update_calls).
+        expected_fallback = bundle_to_messages(sess.bundle, speaker={"unconfirmed": True})
+        assert sess.pipeline.update_calls[-1] == expected_fallback
 
         gate.set()  # 늦은 fetch 응답 방출 — _maybe_swap_l2p의 stale 가드가 이를 드랍해야 함
         await task
@@ -284,6 +297,6 @@ def test_maybe_swap_l2p_dropped_as_stale_after_clear_mid_flight(monkeypatch):
 
     assert sess.current_speaker is None
     # stale swap이 드랍됐으므로 update_persona는 _clear_current_speaker가 만든
-    # base 리셋 1건뿐 — "친구" 관계기억으로 오염되지 않는다.
-    assert sess.pipeline.update_calls == [[{"role": "system", "content": "base persona"}]]
+    # 폴백 리셋 1건뿐 — "친구" 관계기억으로 오염되지 않는다.
+    assert len(sess.pipeline.update_calls) == 1
     assert not any("친구" in str(c) for c in sess.pipeline.update_calls)
