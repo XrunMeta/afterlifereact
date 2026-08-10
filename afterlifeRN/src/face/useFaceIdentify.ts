@@ -23,6 +23,7 @@ export type CalibrateFaceFn = (
   accessToken: string,
   vector: number[],
   groundTruthPersonId: number | null,
+  cloneId: number,
 ) => ReturnType<typeof calibrateFace>;
 
 export interface IdentifyCycleDeps {
@@ -158,6 +159,15 @@ export function useFaceIdentify(opts: UseFaceIdentifyOptions): UseFaceIdentifyRe
           stateRef.current = state;
           if (event) onEvent(event);
 
+          if (FACE_DIAG_ENABLED && calibrate && cycle) {
+            (deps.calibrateFn ?? calibrateFace)(
+              calibrate.accessToken,
+              vec,
+              calibrate.groundTruthPersonId,
+              cloneId,
+            ).catch(() => {});
+          }
+
           if (FACE_DIAG_ENABLED && cycle && threshold != null) {
             const diag: FaceDiag = {
               score: cycle.score,
@@ -179,11 +189,6 @@ export function useFaceIdentify(opts: UseFaceIdentifyOptions): UseFaceIdentifyRe
                 threshold: diag.threshold,
               })}`,
             );
-            if (calibrate) {
-              (deps.calibrateFn ?? calibrateFace)(calibrate.accessToken, vec, calibrate.groundTruthPersonId).catch(
-                () => {}, 
-              );
-            }
           }
         })
         .finally(() => {

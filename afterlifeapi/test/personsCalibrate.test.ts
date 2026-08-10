@@ -201,6 +201,134 @@ describe("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
     expect(scores[0].personId).toBe("777");
     expect(scores.some((s) => s.personId === "orphan-embedding-no-metadata")).toBe(false);
   });
+
+  async function seedPerson(userId: number, cloneId: number, name: string): Promise<number> {
+    await db()
+      .prepare(
+        `INSERT INTO persons (user_id, clone_id, display_name, consent_state, created_at)
+         VALUES (?, ?, ?, 'granted', 1)`,
+      )
+      .bind(userId, cloneId, name)
+      .run();
+    const p = await db()
+      .prepare("SELECT id FROM persons WHERE user_id = ? AND clone_id = ? AND display_name = ?")
+      .bind(userId, cloneId, name)
+      .first<{ id: number }>();
+    return p!.id;
+  }
+
+  it("매칭된 person 에 L2'(clone_ont_person)가 있으면 matchedHasL2p=true 로 응답·저장된다", async () => {
+    const userId = await seedUser("calibrate-l2p-yes@test.local");
+    const tok = await issueAccessToken(userId);
+    const cloneId = await seedClone(userId, "calibrate-l2p-yes-clone");
+    const personId = await seedPerson(userId, cloneId, "L2P있음");
+    await db()
+      .prepare(`INSERT INTO clone_ont_person (clone_id, person_id, data, updated_at) VALUES (?, ?, '{"rel":"친구"}', 1)`)
+      .bind(cloneId, personId)
+      .run();
+
+    const vector = new Array(512).fill(0).map((_, i) => (i === 1 ? 1 : 0));
+    const idx = getFaceIndex(env as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string });
+    await idx.insert([
+      {
+        id: `l2p-yes-${personId}`,
+        values: vector,
+        namespace: faceNamespace(userId, cloneId),
+        metadata: { personId: String(personId) },
+      },
+    ]);
+
+    const res = await post(tok, { vector, cloneId });
+    expect(res.status).toBe(200);
+    const j = await res.json<{ id: number; matchedId: string | null; matchedHasL2p: boolean | null }>();
+    expect(j.matchedId).toBe(String(personId));
+    expect(j.matchedHasL2p).toBe(true);
+
+    const row = await db()
+      .prepare("SELECT matched_has_l2p FROM face_calibrate_samples WHERE id = ?")
+      .bind(j.id)
+      .first<{ matched_has_l2p: number | null }>();
+    expect(row!.matched_has_l2p).toBe(1);
+  });
+
+  it("매칭은 됐지만 L2' 가 없으면 matchedHasL2p=false (인식 성공 · 기억 비어 있음)", async () => {
+    const userId = await seedUser("calibrate-l2p-no@test.local");
+    const tok = await issueAccessToken(userId);
+    const cloneId = await seedClone(userId, "calibrate-l2p-no-clone");
+    const personId = await seedPerson(userId, cloneId, "L2P없음");
+
+    const vector = new Array(512).fill(0).map((_, i) => (i === 2 ? 1 : 0));
+    const idx = getFaceIndex(env as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string });
+    await idx.insert([
+      {
+        id: `l2p-no-${personId}`,
+        values: vector,
+        namespace: faceNamespace(userId, cloneId),
+        metadata: { personId: String(personId) },
+      },
+    ]);
+
+    const res = await post(tok, { vector, cloneId });
+    expect(res.status).toBe(200);
+    const j = await res.json<{ id: number; matchedId: string | null; matchedHasL2p: boolean | null }>();
+    expect(j.matchedId).toBe(String(personId));
+    expect(j.matchedHasL2p).toBe(false); 
+
+    const row = await db()
+      .prepare("SELECT matched_has_l2p FROM face_calibrate_samples WHERE id = ?")
+      .bind(j.id)
+      .first<{ matched_has_l2p: number | null }>();
+    expect(row!.matched_has_l2p).toBe(0);
+  });
+
+  it("미매칭(matchedId=null)이면 matchedHasL2p=null — 판정 불가를 false 로 접지 않는다", async () => {
+    const userId = await seedUser("calibrate-l2p-nomatch@test.local");
+    const tok = await issueAccessToken(userId);
+    const cloneId = await seedClone(userId, "calibrate-l2p-nomatch-clone");
+    const vector = new Array(512).fill(0.02);
+
+    const res = await post(tok, { vector, cloneId });
+    expect(res.status).toBe(200);
+    const j = await res.json<{ id: number; matchedId: string | null; matchedHasL2p: boolean | null }>();
+    expect(j.matchedId).toBeNull();
+    expect(j.matchedHasL2p).toBeNull();
+
+    const row = await db()
+      .prepare("SELECT matched_has_l2p FROM face_calibrate_samples WHERE id = ?")
+      .bind(j.id)
+      .first<{ matched_has_l2p: number | null }>();
+    expect(row!.matched_has_l2p).toBeNull();
+  });
+
+  it("다른 클론의 L2' 는 세지 않는다(clone_id 스코프)", async () => {
+    const userId = await seedUser("calibrate-l2p-scope@test.local");
+    const tok = await issueAccessToken(userId);
+    const cloneA = await seedClone(userId, "calibrate-l2p-scope-a");
+    const cloneB = await seedClone(userId, "calibrate-l2p-scope-b");
+    const personId = await seedPerson(userId, cloneA, "스코프");
+
+    await db()
+      .prepare(`INSERT INTO clone_ont_person (clone_id, person_id, data, updated_at) VALUES (?, ?, '{}', 1)`)
+      .bind(cloneB, personId)
+      .run();
+
+    const vector = new Array(512).fill(0).map((_, i) => (i === 3 ? 1 : 0));
+    const idx = getFaceIndex(env as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string });
+    await idx.insert([
+      {
+        id: `l2p-scope-${personId}`,
+        values: vector,
+        namespace: faceNamespace(userId, cloneA),
+        metadata: { personId: String(personId) },
+      },
+    ]);
+
+    const res = await post(tok, { vector, cloneId: cloneA });
+    expect(res.status).toBe(200);
+    const j = await res.json<{ matchedId: string | null; matchedHasL2p: boolean | null }>();
+    expect(j.matchedId).toBe(String(personId));
+    expect(j.matchedHasL2p).toBe(false);
+  });
 });
 
 describe("GET /oth-path (폴링 조회 — Task 2)", () => {
@@ -278,6 +406,27 @@ describe("GET /oth-path (폴링 조회 — Task 2)", () => {
       { personId: "p1", score: 0.92 },
       { personId: "p2", score: 0.3 },
     ]);
+  });
+
+  it("matched_has_l2p 를 3상태(null/false/true)로 매핑해 반환한다", async () => {
+    const u = await seedUser("calibrate-samples-l2p@test.local");
+    const tok = await issueAccessToken(u);
+    await db()
+      .prepare(
+        `INSERT INTO face_calibrate_samples
+           (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at, matched_has_l2p)
+         VALUES (?, NULL, 'p1', 0.9, 0.83, '[]', 200, 1),
+                (?, NULL, 'p2', 0.9, 0.83, '[]', 201, 0),
+                (?, NULL, NULL, 0.1, 0.83, '[]', 202, NULL)`
+      )
+      .bind(String(u), String(u), String(u))
+      .run();
+
+    const res = await get(tok);
+    expect(res.status).toBe(200);
+    const j = await res.json<{ samples: { matchedId: string | null; matchedHasL2p: boolean | null }[] }>();
+    expect(j.samples.length).toBe(3);
+    expect(j.samples.map((s) => s.matchedHasL2p)).toEqual([true, false, null]);
   });
 
   it("limit 파라미터가 페이지 크기를 제한하고 nextSince를 갱신한다", async () => {

@@ -186,17 +186,40 @@ persons.post("/calibrate", requireAuth, async (c) => {
   const bestScore = best?.score ?? 0;
   const matchedId = best && best.score >= threshold ? best.personId : null;
   const gt = typeof body.groundTruthPersonId === "string" ? body.groundTruthPersonId : null;
+
+  let matchedHasL2p: boolean | null = null;
+  if (matchedId != null) {
+    const pid = Number(matchedId);
+    if (Number.isInteger(pid) && pid > 0) {
+      const l2p = await c.env.DB.prepare(
+        "SELECT 1 AS hit FROM clone_ont_person WHERE clone_id = ? AND person_id = ? LIMIT 1"
+      )
+        .bind(calibCloneId, pid)
+        .first<{ hit: number }>();
+      matchedHasL2p = l2p != null;
+    }
+  }
+
   const now = Date.now();
   const ins = await c.env.DB.prepare(
     `INSERT INTO face_calibrate_samples
-     (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
+     (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at, matched_has_l2p)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   )
 
-    .bind(String(userId), gt, matchedId, bestScore, threshold, JSON.stringify(scores), now)
+    .bind(
+      String(userId),
+      gt,
+      matchedId,
+      bestScore,
+      threshold,
+      JSON.stringify(scores),
+      now,
+      matchedHasL2p == null ? null : matchedHasL2p ? 1 : 0
+    )
     .run();
   const id = Number(ins.meta.last_row_id);
-  return c.json({ id, matchedId, bestScore, threshold, scoreCount: scores.length });
+  return c.json({ id, matchedId, bestScore, threshold, scoreCount: scores.length, matchedHasL2p });
 });
 
 persons.get("/calibrate/samples", requireAuth, async (c) => {
@@ -206,7 +229,8 @@ persons.get("/calibrate/samples", requireAuth, async (c) => {
   const since = Math.max(Number(c.req.query("since") ?? "0") || 0, 0);
   const limit = Math.min(Math.max(Number(c.req.query("limit") ?? "100") || 100, 1), 200);
   const { results } = await c.env.DB.prepare(
-    `SELECT id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at
+    `SELECT id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at,
+            matched_has_l2p
      FROM face_calibrate_samples WHERE user_id = ? AND id > ? ORDER BY id ASC LIMIT ?`
   )
 
@@ -219,6 +243,7 @@ persons.get("/calibrate/samples", requireAuth, async (c) => {
       threshold: number;
       scores_json: string;
       created_at: number;
+      matched_has_l2p: number | null;
     }>();
 
   const samples = results.map((r) => {
@@ -236,6 +261,8 @@ persons.get("/calibrate/samples", requireAuth, async (c) => {
       bestScore: r.best_score,
       threshold: r.threshold,
       scores,
+
+      matchedHasL2p: r.matched_has_l2p == null ? null : r.matched_has_l2p === 1,
     };
   });
   const lastSample = samples[samples.length - 1];
