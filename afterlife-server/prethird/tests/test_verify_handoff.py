@@ -15,11 +15,27 @@ def _app():
     return app
 
 
+# [T-252] tone 등 실제 렌더 필드가 하나도 없으면 bundle_to_messages가 통째로
+# []을 반환한다(빈 프롬프트는 의미 없다는 설계) — 재조립 결과를 검증하는
+# 테스트가 실제로 system 메시지를 받도록 최소 self 필드를 하나 채운다.
+#
+# [T-252 fix round 2 / el 지적] persona 에 _OTHER_LABELS 키(relation·
+# preference_personal·memories_personal)를 반드시 채운다. 이게 없으면
+# "## 상대 정보" 블록이 애초에 생성될 수 없어서 아래 부재 단언들이 전부
+# 공허 통과(vacuous)한다 — 실제로 BLOCKER 1(계정주 L2 오귀속) 수정을 되돌려도
+# 이 파일은 한 건도 FAIL 하지 않았다. 값은 계정주(viewer) 소유임을 이름으로
+# 알아볼 수 있게 지었다.
+_ACCOUNT_L2 = {
+    "relation": "이웃",
+    "preference_personal": {"음료": "보리차"},
+    "memories_personal": ["계정주와 작년에 이사 옴"],
+}
+
+
 async def _fake_bundle(api_base, clone_id, token):
-    # [T-252] tone 등 실제 렌더 필드가 하나도 없으면 bundle_to_messages가 통째로
-    # []을 반환한다(빈 프롬프트는 의미 없다는 설계) — 재조립 결과를 검증하는
-    # 테스트가 실제로 system 메시지를 받도록 최소 self 필드를 하나 채운다.
-    return {"personaBundle": {"persona": {"displayName": "청이", "tone": "차분함"}}}
+    return {"personaBundle": {"persona": {
+        "displayName": "청이", "tone": "차분함", **_ACCOUNT_L2,
+    }}}
 
 
 def _final_system_content(sse_text: str) -> str:
@@ -92,16 +108,30 @@ async def test_chat_injects_speaker_hint(monkeypatch):
 @pytest.mark.asyncio
 async def test_chat_no_hint_without_person(monkeypatch):
     """[T-252] person_id가 없으면 speaker=None으로 재조립 — 기본 상대(viewer) 경로.
-    bundle에 viewer가 없으므로 이름 미확인 상태(state 3) 머리말로 떨어진다."""
+    bundle에 viewer가 없으므로 이름 미확인 상태(state 3) 머리말로 떨어진다.
+
+    [fix round 2] `"형" not in text` 만으로는 약하다 — dev 조회를 목킹하지 않으면
+    "형" 이라는 문자열의 출처가 애초에 없어 항상 통과한다. dev 조회를 **성공하도록**
+    목킹해 두고, person_id 가 없으면 그 결과가 프롬프트에 실리지 않는다는 것을
+    단언해야 실효가 있다."""
+    monkeypatch.setattr(ce, "_DEV_SECRET", "devsecret")
     monkeypatch.setattr(ce, "fetch_bundle", _fake_bundle)
     monkeypatch.setattr(ce, "chat_stream", _fake_stream)
+
+    async def fake_dev_l2p(clone_id, person_id):
+        return {"data": {"relation": "형"}, "displayName": "형"}
+    monkeypatch.setattr(ce, "_dev_l2p_data", fake_dev_l2p)
+
     async with TestClient(TestServer(_app())) as client:
         resp = await client.post("/oth-path", headers={"Authorization": "Bearer T"},
             json={"clone_id": 9055, "messages": [{"role": "user", "content": "안녕"}]})
         assert resp.status == 200
         text = await resp.text()
-    assert "상대의 이름은 아직 확인되지 않았다" in text
-    assert "형" not in text
+        content = _final_system_content(text)
+    assert "상대의 이름은 아직 확인되지 않았다" in content
+    assert "형" not in text                        # person_id 없음 → L2' 미조회
+    # speaker=None 이면 상대 정보는 계정주 L2 다(상태 1·3 폴백은 옳다).
+    assert "계정주와 작년에 이사 옴" in content
 
 
 @pytest.mark.asyncio
@@ -121,9 +151,14 @@ async def test_chat_no_hint_when_l2p_lookup_fails(monkeypatch):
         resp = await client.post("/oth-path", headers={"Authorization": "Bearer T"},
             json={"clone_id": 9055, "messages": [{"role": "user", "content": "안녕"}], "person_id": 3})
         assert resp.status == 200
-        text = await resp.text()
-    assert "상대의 이름은 아직 확인되지 않았다" in text
-    assert "형" not in text
+        content = _final_system_content(await resp.text())
+    assert "상대의 이름은 아직 확인되지 않았다" in content
+    # [fix round 2] 핵심 단언은 "계정주 L2 가 확정 화자 것으로 새지 않는다" 다 —
+    # `"형" not in`(조회가 {} 라 애초에 출처가 없다)은 공허하므로 이걸로 대체한다.
+    assert "\n## 상대 정보\n" not in content
+    assert "계정주와 작년에 이사 옴" not in content
+    assert "보리차" not in content
+    assert "이웃" not in content
 
 
 @pytest.mark.asyncio
@@ -144,8 +179,12 @@ async def test_chat_name_only_hint_before_learning(monkeypatch):
         content = _final_system_content(await resp.text())
     assert '지금 너와 통화 중인 상대는 "형" 이다.' in content
     # 머리말 규칙 문장이 "## 상대 정보"를 인용부호로 언급하므로, 실제 섹션 헤딩
-    # (줄 단위)이 없는지로 검사한다 — 관계기억 데이터가 없으면 섹션 자체가 생기지 않는다.
+    # (줄 단위)이 없는지로 검사한다 — L2' 가 없으면 섹션 자체가 생기지 않는다.
+    # [fix round 2] 이 단언이 실효를 가지려면 _fake_bundle 의 persona 에 상대 필드가
+    # 있어야 한다(없으면 어떤 구현이든 섹션이 안 생겨 항상 통과).
     assert "\n## 상대 정보\n" not in content
+    assert "계정주와 작년에 이사 옴" not in content   # 계정주 L2 가 "형" 것으로 새지 않는다
+    assert "아직 이 사람에 대해 기억하는 것이 없다" in content
 
 
 @pytest.mark.asyncio
