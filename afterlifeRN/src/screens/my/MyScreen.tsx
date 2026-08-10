@@ -244,6 +244,23 @@ export default function MyScreen() {
     },
 
     {
+      icon: "film",
+      labelKey: "Pangle 광고 테스트",
+      descKey: "즉시 rewarded 광고 표시 (개발용)",
+      action: async () => {
+        try {
+          const { loadAndShowRewardedAd } = await import("../../lib/pangle");
+          console.log("[pangle-test] load+show 시작");
+          await loadAndShowRewardedAd();
+          console.log("[pangle-test] 광고 닫힘");
+          showAlert("Pangle 테스트", "광고 정상 종료됨.");
+        } catch (err) {
+          console.warn("[pangle-test] 실패:", err);
+          showAlert("Pangle 테스트 실패", (err as Error).message ?? String(err));
+        }
+      },
+    },
+    {
       icon: "trash-2",
       labelKey: "settings.privacy.deleteAccount",
       descKey: "settings.privacy.deleteAccount",
