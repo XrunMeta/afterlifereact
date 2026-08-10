@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Modal,
   View,
+  Text,
   TouchableOpacity,
   StyleSheet,
   Dimensions,
@@ -12,8 +13,12 @@ import {
   Camera,
   useCameraDevice,
   useCameraPermission,
+  useFrameProcessor,
   type Camera as CameraType,
 } from "react-native-vision-camera";
+import { Worklets } from "react-native-worklets-core";
+import { useFaceDetector } from "react-native-vision-camera-face-detector";
+import type { Face as DetectorFace } from "react-native-vision-camera-face-detector";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
@@ -28,6 +33,7 @@ import {
 } from "../../../lib/t208SilhouetteScale";
 import { showAlert } from "../../../stores/dialogStore";
 import { centerCoverCrop1to2 } from "../../../lib/centerCoverCrop1to2";
+import { useFaceDetection } from "../../../hooks/useFaceDetection";
 
 interface Props {
   visible: boolean;
@@ -60,6 +66,37 @@ export default function CaptureWithGuideModal({ visible, onCapture, onCancel }: 
   const cameraRef = useRef<CameraType>(null);
   const [ready, setReady] = useState(false);
   const [shooting, setShooting] = useState(false);
+
+  const { faceState, onFaces } = useFaceDetection();
+  const { detectFaces, stopListeners } = useFaceDetector({
+    performanceMode: "fast",
+    trackingEnabled: true,
+  });
+  useEffect(() => () => stopListeners(), [stopListeners]);
+
+  const handleFacesOnJS = useMemo(
+    () =>
+      Worklets.createRunOnJS((faces: DetectorFace[]) => {
+        const bridged = faces.map((f) => ({
+          trackingID: f.trackingId,
+          bounds: f.bounds,
+        }));
+        onFaces(bridged);
+      }),
+
+    [],
+  );
+
+  const frameProcessor = useFrameProcessor(
+    (frame) => {
+      "worklet";
+      const faces = detectFaces(frame);
+      handleFacesOnJS(faces);
+    },
+    [handleFacesOnJS, detectFaces],
+  );
+
+  const faceDetected = faceState.status === "detected";
 
   useEffect(() => {
     if (!visible) {
@@ -159,6 +196,7 @@ export default function CaptureWithGuideModal({ visible, onCapture, onCancel }: 
               isMirrored={facing === "front"}
               androidPreviewViewType="texture-view"
               onInitialized={() => setReady(true)}
+              frameProcessor={frameProcessor}
             />
           ) : (
             <View style={[StyleSheet.absoluteFill, s.center]}>
@@ -170,6 +208,13 @@ export default function CaptureWithGuideModal({ visible, onCapture, onCancel }: 
             <UpperBodyGuide width={frameW * silhouetteScale} />
           </View>
           <View style={s.frameBorder} pointerEvents="none" />
+          {ready && !faceDetected ? (
+            <View style={s.faceHintOverlay} pointerEvents="none">
+              <View style={s.faceHintBubble}>
+                <Text style={s.faceHintText}>{t("create.image.faceGuideHint")}</Text>
+              </View>
+            </View>
+          ) : null}
         </View>
 
         <View style={[s.topBar, { paddingTop: Math.max(insets.top, 12) }]}>
@@ -187,9 +232,9 @@ export default function CaptureWithGuideModal({ visible, onCapture, onCancel }: 
 
         <View style={[s.bottomBar, { paddingBottom: 20 + bottomInset }]}>
           <TouchableOpacity
-            style={[s.shutter, (!ready || shooting) && s.shutterDisabled]}
+            style={[s.shutter, (!ready || shooting || !faceDetected) && s.shutterDisabled]}
             onPress={take}
-            disabled={!ready || shooting || !device}
+            disabled={!ready || shooting || !device || !faceDetected}
             accessibilityRole="button"
             accessibilityLabel={t("create.image.sourceCamera")}
           >
@@ -222,6 +267,26 @@ const s = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     borderWidth: 2,
     borderColor: "rgba(255,255,255,0.9)",
+  },
+  faceHintOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 24,
+    alignItems: "center",
+  },
+  faceHintBubble: {
+    backgroundColor: "rgba(0,0,0,0.65)",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    maxWidth: "88%",
+  },
+  faceHintText: {
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
   },
   topBar: {
     position: "absolute",
