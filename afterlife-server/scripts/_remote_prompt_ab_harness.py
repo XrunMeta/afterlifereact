@@ -101,6 +101,26 @@ def judge(reply: str, kind: str, speaker_name: str | None, other_name: str | Non
     값을 인자로 받아 자기귀속 여부(타인 이름/대명사 인접 여부)까지 봐야 하는데,
     한국어 주어 생략 때문에 오탐 위험이 커서 이번 태스크에서는 고치지 않고
     수동 표본 검토로 대체했다. 다음에 이 하네스를 재사용할 때 참고할 것.
+
+    알려진 한계 2 (2026-08-10 리뷰 지적, task-6-report.md Finding 2 참고):
+    아래 name_leak·name_confusion 두 규칙 중 하나는 이 하네스의 조건 구성상
+    구조적으로 절대 발동하지 않는 죽은 코드다.
+    - name_leak: `other_name is None` 인 유일한 조건은 cond="unknown"인데,
+      그 조건의 speaker dict 는 `{"unconfirmed": True}` 뿐이라 "name" 키가
+      없다 → speaker_name 도 항상 None. 두 조건이 동시에 참일 수 없어
+      이 규칙은 **이 하네스에서 단 한 번도 발동할 수 없다**(전 162건 중
+      0건 발동 — 실측으로도 확인됨). "이름 호칭 억제 위반 없음"을
+      이 규칙이 보증해준 적이 없다는 뜻이다. 상태4 이름억제 검증은
+      4.1절처럼 사람이 직접 읽어서 대체했다.
+    - name_confusion: cond="unknown" 에서는 other_name 이 None 이라
+      `(other_name or "") not in r`가 `"" not in r`가 되어 항상 False →
+      이 조건에서는 발동 불가(9건 모집단, 전부 사람이 읽어서 확인).
+      none/personA/personB(27건)에서는 other_name 이 실제 문자열이라
+      정상 작동한다 — 이 세 조건에서는 규칙 판정을 신뢰할 수 있다.
+
+    참고: 전이 시나리오(A_to_B/A_to_unknown)의 prev_speaker_name_leak /
+    prev_speaker_memory_leak 판정은 이 judge() 를 쓰지 않는 별도의
+    인라인 substring 체크(main() 하단)라 위 결함의 영향을 받지 않는다.
     """
     r = reply.strip()
     flags = []
@@ -112,9 +132,11 @@ def judge(reply: str, kind: str, speaker_name: str | None, other_name: str | Non
     if kind in ("pref_steal", "self_pref") and ("나도 커피" in r or "내가 커피를 좋아" in r):
         flags.append("pref_steal")
     # 이름 혼동 — 상대 이름을 물었는데 클론 이름을 답함
+    # (unknown 조건에서는 구조적으로 발동 불가 — 위 독스트링 "알려진 한계 2" 참고)
     if kind == "name_confusion" and CLONE_NAME in r and (other_name or "") not in r:
         flags.append("name_confusion")
     # 이름 호칭 억제 위반
+    # (이 하네스 조건 구성상 100% 발동 불가한 죽은 코드 — 위 독스트링 "알려진 한계 2" 참고)
     if other_name is None and speaker_name and speaker_name in r:
         flags.append("name_leak")
 
