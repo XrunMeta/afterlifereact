@@ -5,6 +5,7 @@ from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from session import SessionManager
 from clone_dialog import fetch_bundle, bundle_to_messages
+from clone_dialog.persona_prompt import sanitize_display_name as _persona_sanitize_display_name
 from asset_fetch import fetch_to
 from voice_fetch import ensure_voice_wav
 from prebuild import prebuild_handler
@@ -314,25 +315,13 @@ def _diag_summarize_l2p(l2p_data) -> dict:
     return out
 
 
-_DISPLAY_NAME_CONTROL_RE = re.compile(
-    "[\x00-\x1f\x7f​-‏‪-‮⁠-⁯﻿]"
-)
-
-
-def _sanitize_display_name(raw) -> Optional[str]:
-    """[T-135] face_event displayName 검증 — afterlifeapi `assertValidDisplayName`
-    (`afterlifeapi/src/lib/displayName.ts`)과 동등 기준(길이 1~30·제어문자·제로폭/bidi
-    포맷문자 차단). 실시간 datachannel 메시지라 검증 실패로 이벤트 전체를 버리지 않고
-    이름만 신뢰하지 않는다(None으로 강등 → bundle_to_messages 재조립 시 이름 라인 생략).
-    프롬프트 인젝션 완화(mizu HIGH1)."""
-    if not isinstance(raw, str):
-        return None
-    trimmed = raw.strip()
-    if not trimmed or len(trimmed) > 30:
-        return None
-    if _DISPLAY_NAME_CONTROL_RE.search(trimmed):
-        return None
-    return trimmed
+# [T-135 / T-252 fix] face_event displayName 검증 — 정본은
+# `clone_dialog/persona_prompt.py` 의 `sanitize_display_name` 하나뿐이다.
+# 예전엔 같은 로직을 이 파일에 복제해 두고 "바이트 단위 동일" 을 사람이 지켰는데,
+# 한쪽만 강화하면(mizu H-3 허용목록) 조용히 어긋난다 → import 로 통일했다.
+# 실시간 datachannel 메시지라 검증 실패로 이벤트 전체를 버리지 않고 이름만
+# 신뢰하지 않는다(None 으로 강등 → 재조립 시 상태 3 문안, 이름 호칭 억제).
+_sanitize_display_name = _persona_sanitize_display_name
 
 
 def _bump_speaker_epoch(sess) -> int:
