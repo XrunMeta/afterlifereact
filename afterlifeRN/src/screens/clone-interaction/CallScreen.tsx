@@ -302,7 +302,13 @@ function CallScreenInner({ route, navigation }: Props) {
     speak,
     lastSignal,
     sendFaceEvent,
-  } = useAvatarCall({ cloneId, accessToken: accessToken ?? "", onEnrollSuggest: handleEnrollSuggest });
+  } = useAvatarCall({
+    cloneId,
+    accessToken: accessToken ?? "",
+    onEnrollSuggest: handleEnrollSuggest,
+
+    pipeline: (clone as { pipeline?: string | null })?.pipeline ?? null,
+  });
 
   const [devText, setDevText] = useState("");
 
