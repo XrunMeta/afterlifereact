@@ -106,8 +106,9 @@ async def test_chat_no_hint_without_person(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_chat_no_hint_when_l2p_lookup_fails(monkeypatch):
-    """_dev_l2p_data 실패/404({}) → 힌트 없이 진행(통화 무영향 원칙) — speaker=None과
-    동일한 재조립(이름 미확인 상태)으로 떨어져야 한다."""
+    """[T-252 fix / el I-3] _dev_l2p_data 실패/404({}) 여도 person_id 가 주어졌으면
+    화자 확정 경로(speaker_given)로 간다 — 통화 경로와 동일하게. 이름을 모르므로
+    상태 3 문안으로 떨어지고, 계정주 L2 를 상대 것으로 쓰지 않는다."""
     monkeypatch.setattr(ce, "_DEV_SECRET", "devsecret")
     monkeypatch.setattr(ce, "fetch_bundle", _fake_bundle)
     monkeypatch.setattr(ce, "chat_stream", _fake_stream)
@@ -145,6 +146,65 @@ async def test_chat_name_only_hint_before_learning(monkeypatch):
     # 머리말 규칙 문장이 "## 상대 정보"를 인용부호로 언급하므로, 실제 섹션 헤딩
     # (줄 단위)이 없는지로 검사한다 — 관계기억 데이터가 없으면 섹션 자체가 생기지 않는다.
     assert "\n## 상대 정보\n" not in content
+
+
+@pytest.mark.asyncio
+async def test_chat_숫자_person_id는_이름으로_주입되지_않는다(monkeypatch):
+    """[T-252 fix / el I-3] `name = displayName or str(person_id)` 폴백이 있으면
+    `지금 너와 통화 중인 상대는 "7" 이다` 처럼 숫자가 이름으로 박힌다."""
+    monkeypatch.setattr(ce, "_DEV_SECRET", "devsecret")
+    monkeypatch.setattr(ce, "fetch_bundle", _fake_bundle)
+    monkeypatch.setattr(ce, "chat_stream", _fake_stream)
+
+    async def fake_dev_l2p(clone_id, person_id):
+        return {"data": {"relation": "친구"}, "displayName": None}
+    monkeypatch.setattr(ce, "_dev_l2p_data", fake_dev_l2p)
+
+    async with TestClient(TestServer(_app())) as client:
+        resp = await client.post("/oth-path", headers={"Authorization": "Bearer T"},
+            json={"clone_id": 9055, "messages": [{"role": "user", "content": "안녕"}], "person_id": 7})
+        assert resp.status == 200
+        content = _final_system_content(await resp.text())
+    assert '"7"' not in content
+    assert "상대의 이름은 아직 확인되지 않았다" in content   # 상태 3 강등
+    assert "너와의 관계: 친구" in content                    # L2' 데이터는 살린다
+
+
+@pytest.mark.asyncio
+async def test_chat_dev조회_실패시_통화경로와_같은_상태를_낸다(monkeypatch):
+    """verify 가 실통화를 대표하려면 같은 입력에 같은 프롬프트가 나와야 한다.
+    통화 경로는 fetch_l2p 실패 시 {"name":None,"l2p_data":None} 을 넘긴다."""
+    from clone_dialog import bundle_to_messages
+    monkeypatch.setattr(ce, "_DEV_SECRET", "devsecret")
+    monkeypatch.setattr(ce, "fetch_bundle", _fake_bundle)
+    monkeypatch.setattr(ce, "chat_stream", _fake_stream)
+
+    async def fake_dev_l2p(clone_id, person_id):
+        return {}
+    monkeypatch.setattr(ce, "_dev_l2p_data", fake_dev_l2p)
+
+    async with TestClient(TestServer(_app())) as client:
+        resp = await client.post("/oth-path", headers={"Authorization": "Bearer T"},
+            json={"clone_id": 9055, "messages": [{"role": "user", "content": "안녕"}], "person_id": 3})
+        content = _final_system_content(await resp.text())
+
+    bundle = await _fake_bundle(None, 9055, None)
+    call_path = bundle_to_messages(bundle, speaker={"name": None, "l2p_data": None})
+    assert content == call_path[0]["content"]
+
+
+@pytest.mark.asyncio
+async def test_chat_speaker_state_unknown이면_상태4(monkeypatch):
+    """[T-252 fix] 상태 4를 실서버 라우트로 검증할 수단이 없었다(el I-3 부수)."""
+    monkeypatch.setattr(ce, "fetch_bundle", _fake_bundle)
+    monkeypatch.setattr(ce, "chat_stream", _fake_stream)
+    async with TestClient(TestServer(_app())) as client:
+        resp = await client.post("/oth-path", headers={"Authorization": "Bearer T"},
+            json={"clone_id": 9055, "messages": [{"role": "user", "content": "안녕"}],
+                  "speaker_state": "unknown"})
+        content = _final_system_content(await resp.text())
+    assert "누구인지는 확정하지 못했다" in content
+    assert "이름으로 부르지 마라" in content
 
 
 @pytest.mark.asyncio
