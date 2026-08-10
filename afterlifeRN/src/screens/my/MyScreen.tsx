@@ -261,7 +261,7 @@ export default function v_ed02a5() {
       },
     },
 
-    ...(["oth-staff@example.invalid", "oth-test@example.invalid"].includes(v_b113dd?.email ?? "")
+    ...(["oth-staff@example.invalid", "oth-user@example.invalid"].includes(v_b113dd?.email ?? "")
       ? [
           {
             icon: "cpu" as const,
