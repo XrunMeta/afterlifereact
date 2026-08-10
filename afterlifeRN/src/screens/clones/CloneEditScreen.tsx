@@ -64,7 +64,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
     if (!clone) return;
     setName(clone.displayName);
 
-    setDescription((clone.description ?? "").slice(0, 100));
+    setDescription((clone.description ?? "").slice(0, 500));
     setVisibility((clone.visibility as Visibility) ?? "public");
   }, [clone]);
 
@@ -142,14 +142,14 @@ export default function CloneEditScreen({ route, navigation }: Props) {
           testID={TID.cloneEdit.descInput}
           label={t("edit.descLabel")}
           value={description}
-          onChangeText={(v) => setDescription(v.slice(0, 100))}
+          onChangeText={(v) => setDescription(v.slice(0, 500))}
           placeholder={t("edit.descPlaceholder")}
           multiline
-          maxLength={100}
+          maxLength={500}
           containerStyle={{ marginTop: 16 }}
         />
         <Text testID={TID.cloneEdit.descCounter} style={s.descCounter}>
-          {description.length}/100
+          {description.length}/500
         </Text>
 
         {
@@ -190,8 +190,8 @@ const s = StyleSheet.create({
     paddingHorizontal: SIZES.large,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: COLORS.zinc100,
+    borderTopColor: COLORS.zinc500,
     backgroundColor: COLORS.white,
   },
-  saveBtn: { width: "100%" },
+  saveBtn: { width: "500%" },
 });
