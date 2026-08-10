@@ -45,6 +45,8 @@ export interface CloneRow {
   relation: string | null;
 
   admin_suspended_at: string | null;
+
+  pipeline: string;
 }
 
 export async function loadCloneById(
@@ -58,7 +60,7 @@ export async function loadCloneById(
               c.voice_type, c.voice_preset_id, c.training_status, c.created_at,
               c.is_system,
               c.idle_video_url, c.voice_se_url, c.filler_video_urls, c.guide_video_urls,
-              c.relation, c.admin_suspended_at,
+              c.relation, c.admin_suspended_at, c.pipeline,
               COALESCE(s.followers_count, 0) AS followers_count,
               COALESCE(s.messages_count, 0)  AS messages_count,
               COALESCE(s.gifts_count, 0)     AS gifts_count
