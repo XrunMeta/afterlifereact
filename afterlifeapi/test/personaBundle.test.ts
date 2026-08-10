@@ -98,3 +98,22 @@ v_469bf2("resolvePersona — 학습 키 보존(E 핫픽스)", () => {
     v_4d37e3(v_8d4337.tone).toBe("다정함");          
   });
 });
+
+v_469bf2("T-252 viewer 슬롯", () => {
+  const v_b6c480 = { rules_text: "", blocklist: [] };
+
+  v_23805a("viewer 를 주면 번들에 실린다", () => {
+    const v_148ff6 = v_445ba7(v_b6c480, { displayName: "코조" }, 1, { displayName: "지호" });
+    v_4d37e3(v_148ff6.viewer.displayName).toBe("지호");
+  });
+
+  v_23805a("viewer 미지정이면 displayName 이 null 이다", () => {
+    const v_148ff6 = v_445ba7(v_b6c480, { displayName: "코조" }, 1);
+    v_4d37e3(v_148ff6.viewer).toEqual({ displayName: null });
+  });
+
+  v_23805a("users.name 이 null 이면 null 을 그대로 방출한다", () => {
+    const v_148ff6 = v_445ba7(v_b6c480, { displayName: "코조" }, 1, { displayName: null });
+    v_4d37e3(v_148ff6.viewer.displayName).toBeNull();
+  });
+});
