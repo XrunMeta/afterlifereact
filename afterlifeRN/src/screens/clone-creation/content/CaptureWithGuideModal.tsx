@@ -34,6 +34,10 @@ import {
 import { v_889fad } from "../../../stores/dialogStore";
 import { v_9dd2d6 } from "../../../lib/centerCoverCrop1to2";
 import { v_b83839 } from "../../../hooks/useFaceDetection";
+import {
+  v_9139dc,
+  v_27794c,
+} from "../../../lib/validatePersonaImage";
 
 interface Props {
   visible: boolean;
@@ -219,6 +223,15 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
       );
       if (!v_cb762c.width || !v_cb762c.height) {
         v_889fad(v_8d41d7("common.error"), v_8d41d7("create.image.loadFailed"));
+        return;
+      }
+
+      const v_81e2ef = await v_9139dc(v_cb762c.uri);
+      if (!v_81e2ef.ok) {
+        v_889fad(
+          v_8d41d7("create.image.validateRetakeTitle"),
+          v_8d41d7(v_27794c(v_81e2ef.reason)),
+        );
         return;
       }
       v_94e3dc({ uri: v_cb762c.uri, width: v_cb762c.width, height: v_cb762c.height });
