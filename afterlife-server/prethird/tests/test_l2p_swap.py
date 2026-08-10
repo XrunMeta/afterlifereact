@@ -332,6 +332,54 @@ def test_maybe_swap_l2p_drops_when_stale(monkeypatch):
     assert sess.pipeline.update_calls == []  # 드랍됨 — 최신(철수) persona 안 건드림
 
 
+def test_세대가_다른_in_flight_스왑은_pid가_같아도_드랍된다(monkeypatch):
+    """[T-252 fix / el I-2] `2(A) → 4 → 2(A)` 복귀 시나리오.
+
+    같은 pid 로 두 번 스케줄되면 pid 비교는 둘 다 통과한다. 늦게 끝난 첫 번째
+    스왑이 closure-frozen name("민수")과 낡은 L2' 로 두 번째 결과(이름 없는
+    상태 3)를 덮어쓰면, 확정되지 않은 이름이 되살아난다."""
+    from signaling import _clear_current_speaker, _bump_speaker_epoch
+    import l2p_client
+
+    sess = _Sess()
+    gate = asyncio.Event()
+
+    async def _slow(clone_id, person_id):
+        await gate.wait()
+        return {"memories_personal": ["낡은 L2'"]}
+
+    async def _fast(clone_id, person_id):
+        return None
+
+    async def _scenario():
+        monkeypatch.setattr(l2p_client, "fetch_l2p", _slow)
+        sess.current_speaker = (3, "민수")
+        e1 = _bump_speaker_epoch(sess)
+        t1 = asyncio.ensure_future(_maybe_swap_l2p(sess, 3, "민수", e1))  # swap#1
+        await asyncio.sleep(0)                                            # fetch 대기 진입
+
+        _clear_current_speaker(sess, "unknown_face")                      # 상태 4 (세대 +1)
+
+        # 같은 pid(3)로 재확정 — 이번엔 이름 sanitize 실패로 None(상태 3).
+        sess.current_speaker = (3, None)
+        sess.prompt_unconfirmed = False
+        e2 = _bump_speaker_epoch(sess)
+        monkeypatch.setattr(l2p_client, "fetch_l2p", _fast)
+        await _maybe_swap_l2p(sess, 3, None, e2)                          # swap#2 먼저 완료
+        assert "민수" not in sess.pipeline.update_calls[-1][0]["content"]
+
+        gate.set()
+        await t1                                                          # swap#1 뒤늦게 완료
+        return len(sess.pipeline.update_calls)
+
+    before = asyncio.run(_scenario())
+    # swap#1 은 pid 가 같아도 세대가 낡아 드랍된다 — 최신(이름 없음) 판정 유지.
+    final = sess.pipeline.update_calls[-1][0]["content"]
+    assert "민수" not in final
+    assert "낡은 L2'" not in final
+    assert before == len(sess.pipeline.update_calls)
+
+
 def test_react_not_blocked_by_slow_l2p_fetch(monkeypatch):
     """react는 fetch_l2p 완료를 기다리지 않는다(fire-and-forget) — fetch가 아직 안 끝나도
     react_calls는 이벤트 처리 직후 이미 채워져 있어야 한다."""
