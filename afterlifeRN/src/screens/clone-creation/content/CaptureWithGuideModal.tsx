@@ -2,6 +2,7 @@ import v_a3453e, { v_de06a3, v_c4deb2, v_df9f57, v_e662ae, v_5ab095 } from "bapk
 import {
   v_aa7413,
   v_3094a2,
+  v_19b633,
   v_4623af,
   v_472849,
   v_700696,
@@ -12,8 +13,12 @@ import {
   v_862296,
   v_db5a6b,
   v_dce807,
+  v_b08ef3,
   type v_862296 as v_6c59f3,
 } from "mkqptszwrsxiemcjrtdlshyxlm";
+import { v_d73d29 } from "fkysyevuehkssftyrtweoolhfw";
+import { v_ac8611 } from "gegbzaufjmeglxlxrodgpkwzmpoxabawfpabkiqb";
+import type { v_ab3a39 as v_1faf6a } from "gegbzaufjmeglxlxrodgpkwzmpoxabawfpabkiqb";
 import { v_516d20, v_91a3cf } from "bxoplsnixpmvnirxbbkstg";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
@@ -28,6 +33,7 @@ import {
 } from "../../../lib/t208SilhouetteScale";
 import { v_889fad } from "../../../stores/dialogStore";
 import { v_9dd2d6 } from "../../../lib/centerCoverCrop1to2";
+import { v_b83839 } from "../../../hooks/useFaceDetection";
 
 interface Props {
   visible: boolean;
@@ -60,6 +66,62 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
   const v_1a165b = v_e662ae<v_6c59f3>(null);
   const [v_b1717e, v_0189ac] = v_5ab095(false);
   const [v_67358b, v_e335db] = v_5ab095(false);
+
+  const { faceState: v_bbb3d3, onFaces: v_dfbd9a } = v_b83839();
+  const { detectFaces: v_de4d76, stopListeners: v_62fe07 } = v_ac8611({
+    performanceMode: "fast",
+    trackingEnabled: true,
+  });
+  v_c4deb2(() => () => v_62fe07(), [v_62fe07]);
+
+  const [v_1f6878, v_0c4941] = v_5ab095(0);
+
+  const v_8090fb = v_df9f57(
+    () =>
+      v_d73d29.createRunOnJS((faces: v_1faf6a[], v_80396f) => {
+        const v_29a122 = v_a51d09.map((v_8b5cd8) => ({
+          trackingID: v_8b5cd8.trackingId,
+          bounds: v_8b5cd8.bounds,
+        }));
+        v_dfbd9a(v_29a122);
+        v_0c4941(v_80396f);
+      }),
+
+    [],
+  );
+
+  const v_f001a7 = v_b08ef3(
+    (v_143cb5) => {
+      "worklet";
+      const v_a51d09 = v_de4d76(v_143cb5);
+
+      let v_80396f = 0;
+      if (v_a51d09.length > 0) {
+        const v_148ff6 = v_a51d09[0].bounds;
+        const v_3c588a = Math.max(v_143cb5.width, v_143cb5.height);
+        const v_cecddc = Math.max(v_148ff6.width, v_148ff6.height);
+        if (v_3c588a > 0) {
+          v_80396f = v_cecddc / v_3c588a;
+        }
+      }
+      v_8090fb(v_a51d09, v_80396f);
+    },
+    [v_8090fb, v_de4d76],
+  );
+
+  const v_7c2f5d = v_bbb3d3.status === "detected";
+  const v_6a5345 = 0.15; 
+  const v_822ad2 = 0.55; 
+  const v_b85511 =
+    v_7c2f5d && v_1f6878 >= v_6a5345 && v_1f6878 <= v_822ad2;
+
+  const v_405d38 = !v_7c2f5d
+    ? v_8d41d7("create.image.faceGuideHint")
+    : v_1f6878 < v_6a5345
+    ? v_8d41d7("create.image.faceTooSmall")
+    : v_1f6878 > v_822ad2
+    ? v_8d41d7("create.image.faceTooLarge")
+    : null;
 
   v_c4deb2(() => {
     if (!v_cf55be) {
@@ -159,6 +221,7 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
               isMirrored={v_663b67 === "front"}
               androidPreviewViewType="texture-view"
               onInitialized={() => v_0189ac(true)}
+              frameProcessor={v_f001a7}
             />
           ) : (
             <View style={[v_472849.absoluteFill, v_fd5f43.center]}>
@@ -170,6 +233,13 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
             <UpperBodyGuide width={v_e0560a * v_7b377a} />
           </View>
           <View style={v_fd5f43.frameBorder} pointerEvents="none" />
+          {v_b1717e && v_405d38 ? (
+            <View style={v_fd5f43.faceHintOverlay} pointerEvents="none">
+              <View style={v_fd5f43.faceHintBubble}>
+                <Text style={v_fd5f43.faceHintText}>{v_405d38}</Text>
+              </View>
+            </View>
+          ) : null}
         </View>
 
         <View style={[v_fd5f43.topBar, { paddingTop: Math.max(v_033e14.top, 12) }]}>
@@ -187,9 +257,9 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
 
         <View style={[v_fd5f43.bottomBar, { paddingBottom: 20 + v_53dd92 }]}>
           <TouchableOpacity
-            style={[v_fd5f43.shutter, (!v_b1717e || v_67358b) && v_fd5f43.shutterDisabled]}
+            style={[v_fd5f43.shutter, (!v_b1717e || v_67358b || !v_b85511) && v_fd5f43.shutterDisabled]}
             onPress={v_04326c}
-            disabled={!v_b1717e || v_67358b || !v_ac8c13}
+            disabled={!v_b1717e || v_67358b || !v_ac8c13 || !v_b85511}
             accessibilityRole="button"
             accessibilityLabel={v_8d41d7("create.image.sourceCamera")}
           >
@@ -222,6 +292,26 @@ const v_fd5f43 = v_472849.create({
     ...v_472849.absoluteFillObject,
     borderWidth: 2,
     borderColor: "rgba(255,255,255,0.9)",
+  },
+  faceHintOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 24,
+    alignItems: "center",
+  },
+  faceHintBubble: {
+    backgroundColor: "rgba(0,0,0,0.65)",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    maxWidth: "88%",
+  },
+  faceHintText: {
+    color: v_1bfbd0.white,
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
   },
   topBar: {
     position: "absolute",

@@ -788,7 +788,10 @@
       "sourceLibrary": "アルバムから選択",
       "cameraPermTitle": "カメラの権限",
       "cameraPermDeniedMsg": "カメラへのアクセスが必要です。撮影するには権限を許可してください。",
-      "cameraPermBlockedMsg": "カメラへのアクセスがオフになっています。設定でカメラの権限をオンにしてください。"
+      "cameraPermBlockedMsg": "カメラへのアクセスがオフになっています。設定でカメラの権限をオンにしてください。",
+      "faceGuideHint": "顔がフレーム内に入るように位置を合わせてください",
+      "faceTooSmall": "カメラにもう少し近づいてください",
+      "faceTooLarge": "少し後ろに下がってください"
     },
     "voice": {
       "presets": "基本音声プリセット",
