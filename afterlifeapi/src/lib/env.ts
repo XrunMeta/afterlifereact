@@ -36,6 +36,8 @@ export interface Bindings {
   AUTH_GOOGLE_ENABLED_ANDROID?: string;
   CALL_SECOND_BASE?: string;
 
+  CALL_EXPERIMENTAL_BASE?: string;
+
   ADMIN_BOOTSTRAP_TOKEN?: string;
 
   GOOGLE_CLIENT_ID: string;

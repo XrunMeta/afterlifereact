@@ -103,7 +103,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const [v_7f3fda, v_3773cd] = v_5ab095<v_e5d62a | null>(null);
   const v_835261 = v_e662ae<ReturnType<typeof setInterval> | null>(null);
 
-  const [v_6044a8, v_1d6b6a] = v_5ab095((v_f04727.description ?? "").slice(0, 100));
+  const [v_6044a8, v_1d6b6a] = v_5ab095((v_f04727.description ?? "").slice(0, 500));
 
   const v_d9bc63 = v_e662ae(false);
 
@@ -642,15 +642,15 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
           <TextInput
             style={v_d81136.captionInput}
             value={v_6044a8}
-            onChangeText={(v_81e2ef) => { v_1d6b6a(v_81e2ef.slice(0, 100)); v_d9bc63.current = true; }}
+            onChangeText={(v_81e2ef) => { v_1d6b6a(v_81e2ef.slice(0, 500)); v_d9bc63.current = true; }}
             placeholder={v_8d41d7("create.step7.captionPlaceholder", {
               defaultValue: "소개글 작성 (예: #일상 #infp 케이팝 노래 좋아해요)",
             })}
             placeholderTextColor={v_1bfbd0.zinc400}
             multiline
-            maxLength={100}
+            maxLength={500}
           />
-          <Text style={v_d81136.captionCounter}>{v_6044a8.length}/100</Text>
+          <Text style={v_d81136.captionCounter}>{v_6044a8.length}/500</Text>
 
           {}
           {v_5e9bfe && (

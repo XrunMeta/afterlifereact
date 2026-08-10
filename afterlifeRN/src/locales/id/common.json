@@ -788,7 +788,17 @@
       "sourceLibrary": "Pilih dari galeri",
       "cameraPermTitle": "Izin kamera",
       "cameraPermDeniedMsg": "Diperlukan izin kamera untuk mengambil foto. Mohon izinkan akses kamera.",
-      "cameraPermBlockedMsg": "Akses kamera dimatikan. Mohon aktifkan izin kamera di Pengaturan."
+      "cameraPermBlockedMsg": "Akses kamera dimatikan. Mohon aktifkan izin kamera di Pengaturan.",
+      "faceGuideHint": "Silakan posisikan wajah Anda di dalam bingkai",
+      "faceTooSmall": "Mohon mendekat ke kamera",
+      "faceTooLarge": "Mohon mundur sedikit",
+      "faceOffCenter": "Mohon posisikan wajah di dalam siluet",
+      "validateRetakeTitle": "Mohon ambil foto ulang",
+      "validateReselectTitle": "Mohon pilih foto lain",
+      "validateNoFace": "Wajah tidak terdeteksi. Silakan menghadap kamera dan coba lagi.",
+      "validateTooSmall": "Wajah terlalu kecil. Mohon mendekat ke kamera dan coba lagi.",
+      "validateTooLarge": "Wajah terlalu besar. Mohon mundur sedikit dan coba lagi.",
+      "validateOffCenter": "Wajah di luar siluet. Silakan posisikan di tengah dan coba lagi."
     },
     "voice": {
       "presets": "Preset Suara Dasar",

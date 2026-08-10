@@ -1,4 +1,9 @@
 
+
+jest.mock("bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv", () =>
+  require("../helpers/mockAsyncStorage").asyncStorageMock(),
+);
+
 import { v_0da18b, v_be73a0 } from "dtbzepbezvovgqcnbkbssjenbxhgn";
 import { v_3fc8fd, v_9e3bb7 } from "../../src/face/useFaceEnroll";
 import { v_4f64ba } from "../../src/face/embeddingBuffer";

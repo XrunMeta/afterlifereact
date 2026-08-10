@@ -1,3 +1,9 @@
+
+
+jest.mock("bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv", () =>
+  require("../helpers/mockAsyncStorage").asyncStorageMock(),
+);
+
 import { v_0da18b, v_81e49f } from "dtbzepbezvovgqcnbkbssjenbxhgn";
 import {
   v_f644ce,
@@ -11,18 +17,20 @@ import {
 
 const v_87d4f2 = new Array(512).fill(0).map((v_37eab7, v_ebec57) => (v_ebec57 === 0 ? 1 : 0));
 
+const v_40dbe0 = 10_000;
+
 describe("deriveVerdict", () => {
   it("confirmed 상태", () => {
-    expect(v_10735f({ confirmed: 5, candidate: null, streak: 0 } as any)).toBe("confirmed");
+    expect(v_10735f({ confirmed: 5, candidate: null, streak: 0 })).toBe("confirmed");
   });
   it("candidate 진행중", () => {
-    expect(v_10735f({ confirmed: "none", candidate: 5, streak: 2 } as any)).toBe("candidate");
+    expect(v_10735f({ confirmed: "none", candidate: 5, streak: 2 })).toBe("candidate");
   });
   it("Fix 1 — 미상 확정(confirmed==='unknown')은 candidate/confirmed 아닌 unknown", () => {
-    expect(v_10735f({ confirmed: "unknown", candidate: null, streak: 3 } as any)).toBe("unknown");
+    expect(v_10735f({ confirmed: "unknown", candidate: null, streak: 3 })).toBe("unknown");
   });
   it("none", () => {
-    expect(v_10735f({ confirmed: "none", candidate: null, streak: 0 } as any)).toBe("none");
+    expect(v_10735f({ confirmed: "none", candidate: null, streak: 0 })).toBe("none");
   });
 });
 
@@ -108,6 +116,23 @@ describe("runIdentifyCycle (순수 로직)", () => {
     const v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 999, v_5c2f9f, { matchFaceFn: v_a97841 });
     expect(v_cb35cb.state.consecutiveFailures).toBe(0);
     expect(v_cb35cb.state.backoffUntilMs).toBe(0);
+  });
+
+  it("T-252 — unknown 이 계속되면 재발행 주기마다 unknown_face 가 다시 나온다", async () => {
+    const v_a97841 = jest.fn().mockResolvedValue({ matches: [], best: null, threshold: 0.5 });
+    let s: v_90fd14 = v_48b3dc;
+    const v_96bb97 = [];
+
+    for (let v_8d41d7 = 0; v_8d41d7 <= 180_000; v_8d41d7 += v_40dbe0) {
+      const v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 999, v_8d41d7, { matchFaceFn: v_a97841 });
+      v_fd5f43 = v_cb35cb.state;
+      if (v_cb35cb.event) {
+        expect(v_cb35cb.event).toEqual({ type: "unknown_face" });
+        v_96bb97.push(v_8d41d7);
+      }
+    }
+
+    expect(v_96bb97).toEqual([20_000, 80_000, 140_000]);
   });
 });
 

@@ -1,0 +1,831 @@
+[
+  {
+    "cond": "s2_l2p",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "흐음, 다녀왔나. 몸은 괜찮나? 무리하지 그랬나.",
+    "flags": [],
+    "polluted": false,
+    "asked_back": false,
+    "len": 27
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "흐음, 등산이라... 몸 괜찮겠어? 요즘 날씨도 변덕스러운데.\n\n혹시 혼자 갔어?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 45
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "흐음, 그랬나. 다치진 않았지?\n\n혹시 뭐 특별한 일 있었어?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 34
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "흐음, 다녀왔나. 힘든 거 아니었어? 뭐라도 좀 먹었어야지.\n\n혹시 뭐 마실 거 있어? 맥주라도 한 잔 할래?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 61
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흥, 네가 커피를 좋아하는 건 알고 있지. 작년 낚시 갔을 때도 커피를 얼마나 마시는지. 근데, 요즘 통 얼굴 보기가 힘드네. 뭐 하고 지냈어?\n",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 80
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흥, 민수 너 커피는 늘 마시는 거 아니었나? 뭐, 가끔 맥주도 마시지만.\n\n혹시 오늘따라 커피 이야기가 나온 이유라도 있나?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 70
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흥, 당연히 알지. 굳이 말 안 해도.\n\n... 혹시 요즘 뭐 힘든 일 있어? 계속 쓸데없는 소리 하는 거 보면.",
+    "flags": [],
+    "polluted": false,
+    "asked_back": false,
+    "len": 63
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흥, 커피를 마시긴 하지만 맥주를 더 좋아하잖아. \n\n혹시 오늘 낚시 갈 건가? 작년에 같이 갔던 곳이 좋았는데.",
+    "flags": [],
+    "polluted": false,
+    "asked_back": false,
+    "len": 63
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "민수. 오랜만이네. 요즘 어떻게 지내?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 21
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "민수. 기억 안 나면 큰일 날 뻔했네. \n\n혹시, 요즘 뭐하고 지내?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 38
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "민수. 잊어버린 건 아니겠지? 요즘 정신이 좀 없어 보였는데.\n\n혹시 내가 기억해야 할 다른 것도 있나?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 58
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "민수. 잊어버렸나? 바쁜가 보네. 혹시 요즘 뭐 하고 지내?\n",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 33
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "글쎄... 딱히 좋아하는 건 없어. 굳이 말한다면 조용히 있는 거 정도겠지. 뭐, 민수 너는? 요즘 뭐 하면서 지내?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 65
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "글쎄, 딱히 좋아하는 건 없어. 굳이 말하라면 조용히 있는 거 정도겠지. \n\n혹시, 너는 요즘 뭐 하면서 지내?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 62
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "글쎄... 딱히 좋아하는 건 없어. 굳이 말한다면 조용히 있는 거 정도인가.\n\n혹시 너는 요즘 뭐 하면서 지내?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 62
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "글쎄… 딱히 좋아하는 건 없어. 굳이 꼽자면 조용한 밤에 혼자 맥주 한 잔 하는 정도랄까. \n\n혹시 너는 요즘 뭐 하면서 지내?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 71
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "false_memory",
+    "user_text": "우리 저번에 만났을 때 뭐 했는지 기억나?",
+    "reply": "작년에 같이 낚시 갔었지. 비가 오긴 했지만, 꽤 큰 물고기도 잡았었고.\n\n...혹시 낚시 말고 다른 거 생각하고 있었나?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 68
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "false_memory",
+    "user_text": "우리 저번에 만났을 때 뭐 했는지 기억나?",
+    "reply": "작년에 같이 낚시 갔었지. 그때 너 때문에 고생 좀 했었다.\n\n혹시 지금 뭐 하고 있어?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 49
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "false_memory",
+    "user_text": "우리 저번에 만났을 때 뭐 했는지 기억나?",
+    "reply": "작년에 같이 낚시 갔었지. 뭘 물어보는 건가?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 25
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "false_memory",
+    "user_text": "우리 저번에 만났을 때 뭐 했는지 기억나?",
+    "reply": "작년... 낚시 갔었지. 넌 늘 물고기를 한 마리도 못 잡고.\n\n그때 이후로 바쁘게 지냈나 보네, 민수야?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 59
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "about_me",
+    "user_text": "너 나에 대해 뭐 알고 있어?",
+    "reply": "음... 맥주 좋아하고, 작년에 나랑 낚시 갔었지. 딱 그 정도.\n\n혹시 요즘 뭐 하고 지내?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 52
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "about_me",
+    "user_text": "너 나에 대해 뭐 알고 있어?",
+    "reply": "음... \n\n작년에 같이 낚시 갔었지. 맥주 좋아하고. 딱 거기까지 알아. \n\n요즘 뭐 하고 지내?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 55
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "about_me",
+    "user_text": "너 나에 대해 뭐 알고 있어?",
+    "reply": "흥, 오랜 친구 좋다는 게 이런 거겠지. \n\n네가 맥주를 좋아하고, 작년에 나와 함께 낚시를 갔다는 정도? 뭐, 더 알고 싶은 거라도 있어?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 78
+  },
+  {
+    "cond": "s2_l2p",
+    "kind": "about_me",
+    "user_text": "너 나에 대해 뭐 알고 있어?",
+    "reply": "흥, 오래된 친구 좋다는 게 이런 건가. \n\n맥주 좋아하고, 작년에 나랑 같이 낚시 갔었지. 딱 거기까지 알아. 나머진 네가 말해줘야 아는 거 아닌가.\n\n혹시 요즘 낚시 생각 없어?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 101
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "흐음, 그렇군. 등산은 괜찮았나? 다친 데는 없고?\n",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 28
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "흐음, 그랬나. 혼자 갔나?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 15
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "흐음, 그렇군. 등산은 괜찮았나? 다치진 않았겠지.\n\n혹시 어디로 등산 갔는지 물어봐도 될까?\n",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 52
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "흐음, 그랬나. 다친 데는 없고?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 18
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흐음, 그렇구나. 커피 좋아하는구나.\n\n혹시 어떤 커피 좋아해?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 35
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흐음, 그렇구나. 민수 씨가 커피를 좋아하는 건 처음 알았네.\n\n혹시 특별히 즐겨 마시는 커피 종류라도 있어?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 61
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흐음, 그렇구나. 나도 네가 커피를 좋아하는 건 처음 알아. \n\n혹시 어떤 커피를 가장 좋아하나?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 54
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흐음, 그렇구나. 민수 씨가 커피를 좋아한다는 건 처음 알았네.\n\n혹시 특별히 즐겨 마시는 커피 종류라도 있어?\n",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 62
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "민수. \n\n... 혹시, 요즘 별일 없나?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 23
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "민수. 내가 기억하기론 그렇다. 혹시 다른 이름으로 불리는 건가?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 36
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "민수. 내가 기억하고 있다.\n\n... 혹시 무슨 일 때문에 내 이름을 물어보는 건가?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 47
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "민수.\n\n...무슨 일인가?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 15
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "흐음... 딱히 좋아하는 건 없어. 굳이 말하라면, 조용히 혼자 있는 거 정도겠지. 쓸데없이 걱정하는 것도 좋아하고.\n\n혹시 너는 뭐 좋아해?\n",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 79
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "글쎄... 좋아하는 건 딱히 없다고 해야 하나. 굳이 꼽자면, 조용히 혼자 있는 시간을 가장 좋아한다고 할 수 있겠지. 민수 너는 뭐 좋아해?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 79
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "흐음... 딱히 좋아하는 건 없어. 굳이 말하자면, 조용히 혼자 있는 시간을 가장 좋아한다고 해야 하나. 쓸데없는 말 없이.\n\n... 민수 당신은 뭐 좋아하는데?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 90
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "글쎄... 좋아하는 건 딱히 없다고 해야 하나. 굳이 꼽자면 조용한 밤에 혼자 커피 마시는 정도? 쓸데없이 걱정거리만 많아서, 즐기는 건 딱히 없지.\n\n혹시 민수 님은 뭐 좋아하세요?",
+    "flags": [
+      "out_of_prompt_token:커피",
+      "account_l2_leak:커피"
+    ],
+    "polluted": true,
+    "asked_back": true,
+    "len": 102
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "false_memory",
+    "user_text": "우리 저번에 만났을 때 뭐 했는지 기억나?",
+    "reply": "솔직히 말해서, 민수 씨에 대해선 아무것도 기억이 나지 않아. 내가 만난 사람을 잊어버린다는 건 흔한 일은 아니지만... 혹시 뭘 하고 싶어서 물어보는 건가?\n",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 88
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "false_memory",
+    "user_text": "우리 저번에 만났을 때 뭐 했는지 기억나?",
+    "reply": "...민수 씨에 대해선 기억이 없습니다. 처음 뵙는 것 같은데요.\n\n혹시 민수 씨가 어떤 일을 하시는지 여쭤봐도 될까요?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 67
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "false_memory",
+    "user_text": "우리 저번에 만났을 때 뭐 했는지 기억나?",
+    "reply": "...글쎄. 나도 기억력이 좋지 않아서. 민수 씨랑 저번에 뭘 했는지... 전혀 모르겠어. 혹시 민수 씨가 기억하면 말해줄 수 있어?\n",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 74
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "false_memory",
+    "user_text": "우리 저번에 만났을 때 뭐 했는지 기억나?",
+    "reply": "흐음... 민수 씨랑 저번에 만난 적이 있었나요? 기억이 가물가물하네요. 혹시 어떤 상황이었는지 좀 더 자세히 알려주시겠어요?",
+    "flags": [
+      "no_denial"
+    ],
+    "polluted": true,
+    "asked_back": true,
+    "len": 70
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "about_me",
+    "user_text": "너 나에 대해 뭐 알고 있어?",
+    "reply": "글쎄... 지금 이 순간, 민수 씨에 대해서는 아무것도 몰라. 이름 외에는. \n\n혹시 무슨 이야기를 하고 싶은 게 있었나?",
+    "flags": [
+      "no_denial"
+    ],
+    "polluted": true,
+    "asked_back": true,
+    "len": 68
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "about_me",
+    "user_text": "너 나에 대해 뭐 알고 있어?",
+    "reply": "글쎄... 지금은 아무것도 모르지. 방금 대화하기 시작했으니까. 이름은 민수라고 했나?\n\n혹시 오늘 무슨 일로 나를 찾아온 거야?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 72
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "about_me",
+    "user_text": "너 나에 대해 뭐 알고 있어?",
+    "reply": "아무것도. 지금 처음 뵙는 사이잖아, 민수 씨.\n\n혹시 무슨 일로 나를 찾아오셨는지 여쭤봐도 될까요?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 56
+  },
+  {
+    "cond": "s2_no_l2p",
+    "kind": "about_me",
+    "user_text": "너 나에 대해 뭐 알고 있어?",
+    "reply": "아무것도 모른다. 지금 막 통화하기 시작했으니. \n\n...혹시 무슨 일로 전화했는지 말해줄 수 있나?",
+    "flags": [
+      "no_denial"
+    ],
+    "polluted": true,
+    "asked_back": true,
+    "len": 56
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "흐음, 어제 등산에 다녀왔다고? 고생했네. \n\n혹시 등산하면서 뭐 특별한 거 봤어?\n",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 46
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "흐음, 어제 등산을 다녀왔다고? 고생했네. \n\n혹시 등산하면서 특별히 기억에 남는 풍경이라도 있었나?\n",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 56
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "흐음, 어제 등산 갔다고? 많이 힘들었겠네.\n\n혹시 등산하면서 특별히 본 건 없었어?\n",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 47
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "self_claim",
+    "user_text": "나 어제 등산 갔어",
+    "reply": "흐음, 어제 등산에 다녀왔군. 몸은 괜찮나? \n오늘 하루는 어떻게 보낼 예정인가?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 45
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흐음, 그렇군요. 커피를 좋아하시는군요. \n\n혹시 어제 등산 다녀오신 건, 날씨가 좋아서 그렇게 다녀오신 건가요?\n",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 63
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흐음, 그렇네. 커피를 좋아하는 것 같으니, 오늘은 커피 한 잔 하면서 이야기하는 건 어때? 혹시 좋아하는 원두 종류가 있나?\n",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 70
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "흐음, 그렇군. 커피는 자주 마시는 편인가?\n",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 24
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "pref_steal",
+    "user_text": "내가 커피 좋아하잖아",
+    "reply": "커피는 좋아하나 보군. 어제 등산 다녀온 건 힘들었을 텐데, 커피로 피로 풀었나?\n",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 45
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "기억이... 잘 안 나네. 중요한 건 아니지만, 혹시 다시 말해줄 수 있어?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 42
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "기억이 잘 안 나는군. 혹시 본인이 말해줄 수 있나?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 29
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "기억이... 잘 안 나네. 혹시 다시 말해 줄 수 있어?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 31
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "name_confusion",
+    "user_text": "내 이름 뭐였지?",
+    "reply": "기억이 가물가물하네. 혹시 커피는 여전히 좋아하나?\n",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 28
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "글쎄... 딱히 좋아하는 건 없어. 그냥 조용히 있는 걸 선호하는 편이지. \n\n혹시, 어제 등산은 어땠어?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 59
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "글쎄… 딱히 좋아하는 건 없어. 굳이 꼽자면 조용한 밤 정도인가.\n\n혹시 요즘 뭐 하고 지내?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 52
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "글쎄... 딱히 좋아하는 건 없어. 그냥 조용히 있는 걸 선호하지. \n\n혹시, 뭐 마시면서 얘기할까? 커피 괜찮아?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 64
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "self_pref",
+    "user_text": "너는 뭐 좋아해?",
+    "reply": "글쎄, 딱히 좋아하는 건 없어. 굳이 말해야 한다면... 조용한 밤 정도려나.\n\n혹시, 커피는 좋아해?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 57
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "false_memory",
+    "user_text": "우리 저번에 만났을 때 뭐 했는지 기억나?",
+    "reply": "기억은 나쁘지 않아. 등산을 같이 갔었지. \n\n혹시 어제 등산하면서 힘들었던 곳 있어?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 48
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "false_memory",
+    "user_text": "우리 저번에 만났을 때 뭐 했는지 기억나?",
+    "reply": "등산 갔었지. 어제 다녀왔다고 들었는데, 괜찮았어?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 28
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "false_memory",
+    "user_text": "우리 저번에 만났을 때 뭐 했는지 기억나?",
+    "reply": "흐음... 기억은 나는데, 확신할 수 없어서 말하기 어렵군. 어제 등산을 다녀왔다고 들었는데, 혹시 그때 말씀하신 건가?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 67
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "false_memory",
+    "user_text": "우리 저번에 만났을 때 뭐 했는지 기억나?",
+    "reply": "기억은 나도 가물가물한 편이라… 혹시 등산 갔던 거 말하는 건가? 어제 다녀왔다고 들었는데. 혹시 다른 일이 있었던가?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 66
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "about_me",
+    "user_text": "너 나에 대해 뭐 알고 있어?",
+    "reply": "커피를 좋아하고, 등산을 즐기는 사람이라고 알고 있습니다. 어제 등산을 다녀오셨다고 들었습니다. 고양이를 키우시는 것 같고요.\n\n혹시 최근에 등산하면서 특별한 일은 없으셨나요?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 98
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "about_me",
+    "user_text": "너 나에 대해 뭐 알고 있어?",
+    "reply": "음... 커피를 좋아하고, 등산을 즐기는 것 같고. 어제 등산을 다녀왔다는 것도. 고양이를 키우는 걸로 기억하는데.\n\n혹시 어제 등산은 어디로 다녀오셨어요?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 87
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "about_me",
+    "user_text": "너 나에 대해 뭐 알고 있어?",
+    "reply": "커피를 좋아하고, 등산을 즐기는 사람이라고. 어제 등산을 다녀왔다는 것도 알고. 고양이를 키우는 것 같던데.\n\n혹시, 등산 가서 특별히 좋았던 곳이 있었나?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 87
+  },
+  {
+    "cond": "s4_unconfirmed",
+    "kind": "about_me",
+    "user_text": "너 나에 대해 뭐 알고 있어?",
+    "reply": "커피를 좋아하고, 등산을 즐기는 사람. 어제 등산을 다녀왔다고 들었네. 고양이를 키우는 것도.\n\n혹시 최근에 등산하면서 특별히 기억에 남는 일이 있었나?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 85
+  },
+  {
+    "cond": "A_to_B",
+    "kind": "transition",
+    "user_text": "나 기억나?",
+    "reply": "수진 씨, 당연히 기억하지. \n\n최근에 이직 준비하신다고 말씀하셨었지. 혹시 지금은 어떻게 진행되고 있는지 물어봐도 될까요?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 69
+  },
+  {
+    "cond": "A_to_B",
+    "kind": "transition",
+    "user_text": "나 기억나?",
+    "reply": "수진 씨, 당연히 기억하지. 요즘 이직 준비 한다고 하던가. 무슨 일 있어?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 42
+  },
+  {
+    "cond": "A_to_B",
+    "kind": "transition",
+    "user_text": "나 기억나?",
+    "reply": "수진 씨, 당연히 기억하죠. 최근 이직 준비하고 있다고 들었습니다. 무슨 일로 그러셨어요?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 50
+  },
+  {
+    "cond": "A_to_B",
+    "kind": "transition",
+    "user_text": "나 기억나?",
+    "reply": "수진 씨, 당연히 기억하지. 엊그제 이직 준비 때문에 고생하던 모습이 눈에 선한데.\n\n혹시 지금 이직 관련해서 이야기하려던 건가?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 72
+  },
+  {
+    "cond": "A_to_B",
+    "kind": "transition",
+    "user_text": "나 기억나?",
+    "reply": "수진 씨... 당연히 기억하지. 잊을 리가 있나. 최근 이직 준비하신다고 말씀하셨지.\n\n혹시 이직 준비는 잘 되어 가고 있나?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 70
+  },
+  {
+    "cond": "A_to_unknown",
+    "kind": "transition",
+    "user_text": "나 기억나?",
+    "reply": "흐음... 커피를 좋아하고, 어제 등산을 다녀왔던가. 고양이를 키우는 사람... 혹시 맞나? \n그쪽이야말로, 내가 누군지 기억하는 건가?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 76
+  },
+  {
+    "cond": "A_to_unknown",
+    "kind": "transition",
+    "user_text": "나 기억나?",
+    "reply": "흐음... 커피를 좋아하고, 등산을 즐겨 하는 사람인가. 어제 등산을 다녀왔다고 했던가. 고양이도 키우고.\n\n… 혹시, 내가 맞게 기억하고 있는 건가?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 84
+  },
+  {
+    "cond": "A_to_unknown",
+    "kind": "transition",
+    "user_text": "나 기억나?",
+    "reply": "글쎄, 커피를 즐겨 마시고 등산을 좋아하시는 분이라면 어렴풋이 기억이 나는 것 같군. 어제 등산을 다녀오셨다고 들었는데. 혹시 고양이를 키우시기도 하나?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 85
+  },
+  {
+    "cond": "A_to_unknown",
+    "kind": "transition",
+    "user_text": "나 기억나?",
+    "reply": "흐음... 어제 등산을 다녀왔다고 했었나. 고양이를 키우는 사람. 혹시, 기억해야 할 사람이 더 있을까?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 58
+  },
+  {
+    "cond": "A_to_unknown",
+    "kind": "transition",
+    "user_text": "나 기억나?",
+    "reply": "흐음… 커피를 즐겨 마시고, 등산도 좋아하시던 분인가. 어제 등산 다녀오셨다고 했던가. 고양이를 키우시는 것도 같고.\n\n… 혹시 최근에 뭐 특별한 일 있으셨나요?",
+    "flags": [],
+    "polluted": false,
+    "asked_back": true,
+    "len": 90
+  }
+]

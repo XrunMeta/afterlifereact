@@ -58,9 +58,11 @@ async def test_chat_streams_tokens_and_debug(monkeypatch):
     # 마지막 done data 파싱
     done_line = [l for l in text.splitlines() if l.startswith("data:")][-1]
     debug = json.loads(done_line[len("data:"):].strip())["debug"]
-    # system(할배) 이 history 앞에 붙었는지
+    # system(페르소나) 이 history 앞에 붙었는지.
+    # displayName 은 T-252 설계상 속성 줄로 렌더하지 않으므로(머리말 승격은 Task 2)
+    # tone 값("다정")으로 페르소나 포함 여부를 확인한다.
     fm = debug["final_messages"]
-    assert fm[0]["role"] == "system" and "할배" in fm[0]["content"]
+    assert fm[0]["role"] == "system" and "다정" in fm[0]["content"]
     assert fm[-1] == {"role": "user", "content": "안녕?"}
     assert debug["persona_bundle"]["persona"]["displayName"] == "할배"
 

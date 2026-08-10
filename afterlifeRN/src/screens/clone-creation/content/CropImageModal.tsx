@@ -38,6 +38,10 @@ import {
   v_d43608,
 } from "../../../lib/t208SilhouetteScale";
 import { v_87a25c, v_951fee, v_890a60, v_d993b0 } from "../../../lib/t208MeasureStore";
+import {
+  v_9139dc,
+  v_27794c,
+} from "../../../lib/validatePersonaImage";
 
 interface Source { uri: string; width: number; height: number }
 interface Props {
@@ -175,6 +179,15 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
             ? `3종 크롭 완료!\n${v_890a60()}\n\n다음: 생성→사진에서「T-208 … 불러오기」로 배율별 크롭을 넣어 클론 3개 생성(음성·페르소나 동일) → 가비아 동일 대사 렌더.`
             : `기록됨.\n현황 ${v_890a60()}\n\n다음 배율로 전환: ${v_8b5209(v_a448ad ?? v_069313())}\n같은 사진으로 다시 크롭하세요.`,
         );
+      }
+
+      const v_81e2ef = await v_9139dc(v_cd1446);
+      if (!v_81e2ef.ok) {
+        v_889fad(
+          v_8d41d7("create.image.validateReselectTitle"),
+          v_8d41d7(v_27794c(v_81e2ef.reason)),
+        );
+        return;
       }
       v_e2be2d(v_cd1446);
     } catch (v_49263d) {
