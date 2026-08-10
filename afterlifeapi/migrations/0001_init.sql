@@ -1,7 +1,10 @@
 -- AfterLife D1 초기 스키마 (3차 개정, 2026-04-14)
 -- Source of Truth: docs/PRD.md §7
 -- 27 tables + triggers + indexes
--- FK enforcement: PRAGMA foreign_keys = ON (Worker 런타임에서 설정)
+-- FK enforcement: D1 은 항상 ON 이며 **끌 수 없다** (T-440 · 0083 실측).
+--   런타임에서 설정하는 값이 아니다 — `PRAGMA foreign_keys=OFF` 를 써도 no-op 이고,
+--   그래서 `DROP TABLE <부모>` 는 CASCADE 자식을 그대로 지운다. 재생성 마이그를 쓸 땐
+--   보상 로직 필수: KB `T-440-D1테이블재생성-CASCADE파괴/README.md`.
 
 -- ============================================================
 -- USERS

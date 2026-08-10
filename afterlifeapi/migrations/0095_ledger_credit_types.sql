@@ -5,7 +5,12 @@
 -- ⚠️ 0009 에서 credit_ledgers 를 참조하는 VIEW 2개 존재 → DROP 전에 VIEW 먼저 삭제,
 --    RENAME 후 재생성. 안 그러면 다음 배포에서 "no such table: credit_ledgers" 로 깨짐.
 
-PRAGMA foreign_keys = OFF;
+-- ⚠️ T-440: 여기 있던 `PRAGMA foreign_keys = OFF/ON` 두 줄을 제거했다.
+--    D1 은 FK enforcement 를 끌 수 없고(0083 실측), 마이그는 트랜잭션 안에서 돌아
+--    SQLite 명세상으로도 no-op 이다. 즉 그 줄은 **아무 것도 보호하지 않으면서**
+--    "자식은 안전하다" 는 거짓 신호만 줬다. 실제로 이 파일이 지운 자식이 있다.
+--    재생성 시 자식 보존은 보상 로직(_bak_ 백업→복원)으로만 가능하다.
+--    규약: KB `T-440-D1테이블재생성-CASCADE파괴/README.md` · 가드: test/migrationCascadeGuard.test.ts
 
 DROP VIEW IF EXISTS v_credit_balance;
 DROP VIEW IF EXISTS v_credit_ledger_running;
@@ -53,4 +58,3 @@ CREATE VIEW v_credit_ledger_running AS
     SUM(amount) OVER (PARTITION BY user_id ORDER BY id) AS running_balance
   FROM credit_ledgers;
 
-PRAGMA foreign_keys = ON;

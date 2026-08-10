@@ -9,7 +9,12 @@
 -- 적용:
 --   wrangler d1 execute afterlife-db-preview --remote --file=migrations/0092_clone_type_expert.sql
 
-PRAGMA foreign_keys=OFF;
+-- ⚠️ T-440: 여기 있던 `PRAGMA foreign_keys = OFF/ON` 두 줄을 제거했다.
+--    D1 은 FK enforcement 를 끌 수 없고(0083 실측), 마이그는 트랜잭션 안에서 돌아
+--    SQLite 명세상으로도 no-op 이다. 즉 그 줄은 **아무 것도 보호하지 않으면서**
+--    "자식은 안전하다" 는 거짓 신호만 줬다. 실제로 이 파일이 지운 자식이 있다.
+--    재생성 시 자식 보존은 보상 로직(_bak_ 백업→복원)으로만 가능하다.
+--    규약: KB `T-440-D1테이블재생성-CASCADE파괴/README.md` · 가드: test/migrationCascadeGuard.test.ts
 
 -- 1) 새 테이블 (CHECK 에 'expert' 포함, 그 외 원본 그대로).
 CREATE TABLE clones_new (
@@ -103,4 +108,3 @@ CREATE INDEX idx_clones_owner_cascade
   ON clones(owner_id, owner_cascade_deleted_at)
   WHERE owner_cascade_deleted_at IS NOT NULL;
 
-PRAGMA foreign_keys=ON;
