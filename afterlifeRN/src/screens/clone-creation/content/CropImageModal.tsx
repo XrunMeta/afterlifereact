@@ -27,6 +27,7 @@ import {
   clampPanOffset,
   coversCropArea,
   cropToAvatar,
+  COVER_SCALE,
   type GestureState,
 } from "../../../lib/cropImage";
 import { COLORS } from "../../../components/constants";
@@ -146,6 +147,8 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
   const displayScale = Animated.multiply(scale, baseScale);
 
   const confirm = async () => {
+
+    console.log("[CropImageModal] confirm ENTER", { hasSource: !!source, processing: processing.current });
     if (!source) return;
 
     if (processing.current) return;
@@ -157,6 +160,18 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
         { x: baseTranslate.x, y: baseTranslate.y },
       )
     ) {
+
+      console.log("[CropImageModal] confirm BLOCKED by coversCropArea gate");
+      return;
+    }
+
+    if (!isT208MeasureMode() && baseScaleNum.current < COVER_SCALE) {
+
+      console.log("[CropImageModal] confirm BLOCKED by letterbox gate", baseScaleNum.current);
+      showAlert(
+        t("create.image.validateReselectTitle"),
+        t("create.image.validateLetterbox"),
+      );
       return;
     }
     processing.current = true;
@@ -181,7 +196,10 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
         );
       }
 
+      console.log("[CropImageModal] cropToAvatar OK, calling validatePersonaImage:", uri.slice(-40));
       const v = await validatePersonaImage(uri);
+
+      console.log("[CropImageModal] validate result:", v);
       if (!v.ok) {
         showAlert(
           t("create.image.validateReselectTitle"),
