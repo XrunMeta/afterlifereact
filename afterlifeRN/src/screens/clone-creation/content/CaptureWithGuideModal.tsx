@@ -74,14 +74,17 @@ export default function CaptureWithGuideModal({ visible, onCapture, onCancel }: 
   });
   useEffect(() => () => stopListeners(), [stopListeners]);
 
+  const [faceRatio, setFaceRatio] = useState(0);
+
   const handleFacesOnJS = useMemo(
     () =>
-      Worklets.createRunOnJS((faces: DetectorFace[]) => {
+      Worklets.createRunOnJS((faces: DetectorFace[], ratio: number) => {
         const bridged = faces.map((f) => ({
           trackingID: f.trackingId,
           bounds: f.bounds,
         }));
         onFaces(bridged);
+        setFaceRatio(ratio);
       }),
 
     [],
@@ -91,12 +94,34 @@ export default function CaptureWithGuideModal({ visible, onCapture, onCancel }: 
     (frame) => {
       "worklet";
       const faces = detectFaces(frame);
-      handleFacesOnJS(faces);
+
+      let ratio = 0;
+      if (faces.length > 0) {
+        const b = faces[0].bounds;
+        const frameLong = Math.max(frame.width, frame.height);
+        const faceLong = Math.max(b.width, b.height);
+        if (frameLong > 0) {
+          ratio = faceLong / frameLong;
+        }
+      }
+      handleFacesOnJS(faces, ratio);
     },
     [handleFacesOnJS, detectFaces],
   );
 
   const faceDetected = faceState.status === "detected";
+  const MIN_FACE_RATIO = 0.15; 
+  const MAX_FACE_RATIO = 0.55; 
+  const faceInRange =
+    faceDetected && faceRatio >= MIN_FACE_RATIO && faceRatio <= MAX_FACE_RATIO;
+
+  const faceHint = !faceDetected
+    ? t("create.image.faceGuideHint")
+    : faceRatio < MIN_FACE_RATIO
+    ? t("create.image.faceTooSmall")
+    : faceRatio > MAX_FACE_RATIO
+    ? t("create.image.faceTooLarge")
+    : null;
 
   useEffect(() => {
     if (!visible) {
@@ -208,10 +233,10 @@ export default function CaptureWithGuideModal({ visible, onCapture, onCancel }: 
             <UpperBodyGuide width={frameW * silhouetteScale} />
           </View>
           <View style={s.frameBorder} pointerEvents="none" />
-          {ready && !faceDetected ? (
+          {ready && faceHint ? (
             <View style={s.faceHintOverlay} pointerEvents="none">
               <View style={s.faceHintBubble}>
-                <Text style={s.faceHintText}>{t("create.image.faceGuideHint")}</Text>
+                <Text style={s.faceHintText}>{faceHint}</Text>
               </View>
             </View>
           ) : null}
@@ -232,9 +257,9 @@ export default function CaptureWithGuideModal({ visible, onCapture, onCancel }: 
 
         <View style={[s.bottomBar, { paddingBottom: 20 + bottomInset }]}>
           <TouchableOpacity
-            style={[s.shutter, (!ready || shooting || !faceDetected) && s.shutterDisabled]}
+            style={[s.shutter, (!ready || shooting || !faceInRange) && s.shutterDisabled]}
             onPress={take}
-            disabled={!ready || shooting || !device || !faceDetected}
+            disabled={!ready || shooting || !device || !faceInRange}
             accessibilityRole="button"
             accessibilityLabel={t("create.image.sourceCamera")}
           >
