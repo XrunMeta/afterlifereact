@@ -47,6 +47,8 @@ export type UseAvatarCall = (opts: {
   accessToken: string;
 
   onEnrollSuggest?: (name: string, personId?: number) => void;
+
+  pipeline?: string | null;
 }) => AvatarCall;
 
 export function classifyTrack(
