@@ -4,8 +4,10 @@
 
 signaling.py 대상:
 - say(_on_msg)가 personId/speakerName을 더 이상 읽지 않는다(회귀 확인).
-- build_l2p_hint — name falsy(None/공백) 방어("현재 화면의 화자: None" 금지).
 - _sanitize_display_name — displayName 길이/제어문자/제로폭 검증(mizu HIGH1).
+
+[T-252] 옛 L2' 힌트 조립 함수(name falsy 방어)는 삭제됐고, 그 전용 검증은
+tests/test_l2p_hint.py로 이관됐다(재조립 bundle_to_messages 기준으로 갱신).
 """
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
@@ -13,7 +15,7 @@ import asyncio
 import json
 import pytest
 from signaling import (  # noqa: E402
-    _make_dc_handler, build_l2p_hint, _sanitize_display_name,
+    _make_dc_handler, _sanitize_display_name,
     _clear_current_speaker, _maybe_swap_l2p,
 )
 from clone_dialog import bundle_to_messages  # noqa: E402
@@ -121,35 +123,6 @@ def test_say_ignores_person_id_when_identity_gate_off(monkeypatch):
     })
     assert sess.current_speaker is None
     assert sess.pipeline.update_calls == []
-
-
-# ---------------------------------------------------------------------------
-# build_l2p_hint — name falsy 방어
-# ---------------------------------------------------------------------------
-
-def test_build_l2p_hint_name_and_data():
-    hint = build_l2p_hint("민지", {"relation": "친구"})
-    assert hint == "현재 화면의 화자: 민지. 이 사람과의 관계 기억: 관계=친구"
-
-
-def test_build_l2p_hint_name_only():
-    assert build_l2p_hint("민지", None) == "현재 화면의 화자: 민지"
-
-
-def test_build_l2p_hint_name_none_with_data_omits_speaker_line():
-    hint = build_l2p_hint(None, {"relation": "친구"})
-    assert "None" not in hint
-    assert "화자" not in hint
-    assert hint == "이 사람과의 관계 기억: 관계=친구"
-
-
-def test_build_l2p_hint_name_none_and_no_data_returns_empty():
-    assert build_l2p_hint(None, None) == ""
-
-
-def test_build_l2p_hint_name_empty_string_treated_as_falsy():
-    assert build_l2p_hint("", None) == ""
-    assert "None" not in build_l2p_hint("", {"relation": "친구"})
 
 
 # ---------------------------------------------------------------------------

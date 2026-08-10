@@ -1,5 +1,6 @@
 """test_verify_handoff — /oth-path person 오버레이 + /oth-path 프록시."""
 import sys, pathlib
+import json
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
@@ -15,7 +16,22 @@ def _app():
 
 
 async def _fake_bundle(api_base, clone_id, token):
-    return {"personaBundle": {"persona": {"displayName": "청이"}}}
+    # [T-252] tone 등 실제 렌더 필드가 하나도 없으면 bundle_to_messages가 통째로
+    # []을 반환한다(빈 프롬프트는 의미 없다는 설계) — 재조립 결과를 검증하는
+    # 테스트가 실제로 system 메시지를 받도록 최소 self 필드를 하나 채운다.
+    return {"personaBundle": {"persona": {"displayName": "청이", "tone": "차분함"}}}
+
+
+def _final_system_content(sse_text: str) -> str:
+    """SSE 응답 본문에서 done 이벤트의 final_messages[0].content를 꺼낸다.
+    raw SSE 텍스트는 JSON 이스케이프(\\") 상태라 조립된 프롬프트 원문(따옴표 포함)을
+    문자열로 직접 assert하면 이스케이프 형태 불일치로 깨진다 — JSON 파싱을 거쳐
+    실제 조립 결과를 비교한다."""
+    done_line = sse_text.split("event: done\ndata: ", 1)[1]
+    done = json.loads(done_line.strip())
+    messages = done["debug"]["final_messages"]
+    system_msgs = [m["content"] for m in messages if m["role"] == "system"]
+    return system_msgs[0] if system_msgs else ""
 
 
 async def _fake_stream(messages, model=None, temperature=None):
@@ -54,10 +70,12 @@ async def test_l2p_route_400_bad_params(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_chat_injects_speaker_hint(monkeypatch):
+    """[T-252] dev L2'도 append 힌트가 아니라 bundle_to_messages(bundle, speaker=...)
+    재조립으로 나온다 — bundle_to_messages는 목킹하지 않고(실제 재조립 검증을 위해),
+    fetch_bundle/dev_l2p만 목킹해 실제 조립 결과 문구를 확인한다."""
     monkeypatch.setattr(ce, "_DEV_SECRET", "devsecret")  # 오버레이는 DEV_SECRET 설정 시에만 시도(브리프 c 가드)
     monkeypatch.setattr(ce, "fetch_bundle", _fake_bundle)
     monkeypatch.setattr(ce, "chat_stream", _fake_stream)
-    monkeypatch.setattr(ce, "bundle_to_messages", lambda b: [{"role": "system", "content": "BASE"}])
 
     async def fake_dev_l2p(clone_id, person_id):
         return {"data": {"relation": "형", "preference_personal": {"음료": "아메리카노"}}, "displayName": "형"}
@@ -67,29 +85,32 @@ async def test_chat_injects_speaker_hint(monkeypatch):
         resp = await client.post("/oth-path", headers={"Authorization": "Bearer T"},
             json={"clone_id": 9055, "messages": [{"role": "user", "content": "안녕"}], "person_id": 3})
         assert resp.status == 200
-        text = await resp.text()
-    assert "현재 화면의 화자: 형" in text and "관계=형" in text
+        content = _final_system_content(await resp.text())
+    assert '지금 너와 통화 중인 상대는 "형" 이다.' in content and "너와의 관계: 형" in content
 
 
 @pytest.mark.asyncio
 async def test_chat_no_hint_without_person(monkeypatch):
+    """[T-252] person_id가 없으면 speaker=None으로 재조립 — 기본 상대(viewer) 경로.
+    bundle에 viewer가 없으므로 이름 미확인 상태(state 3) 머리말로 떨어진다."""
     monkeypatch.setattr(ce, "fetch_bundle", _fake_bundle)
     monkeypatch.setattr(ce, "chat_stream", _fake_stream)
-    monkeypatch.setattr(ce, "bundle_to_messages", lambda b: [{"role": "system", "content": "BASE"}])
     async with TestClient(TestServer(_app())) as client:
         resp = await client.post("/oth-path", headers={"Authorization": "Bearer T"},
             json={"clone_id": 9055, "messages": [{"role": "user", "content": "안녕"}]})
         assert resp.status == 200
-        assert "현재 화면의 화자" not in await resp.text()
+        text = await resp.text()
+    assert "상대의 이름은 아직 확인되지 않았다" in text
+    assert "형" not in text
 
 
 @pytest.mark.asyncio
 async def test_chat_no_hint_when_l2p_lookup_fails(monkeypatch):
-    """_dev_l2p_data 실패/404({}) → 힌트 없이 진행(통화 무영향 원칙·문구 일치)."""
+    """_dev_l2p_data 실패/404({}) → 힌트 없이 진행(통화 무영향 원칙) — speaker=None과
+    동일한 재조립(이름 미확인 상태)으로 떨어져야 한다."""
     monkeypatch.setattr(ce, "_DEV_SECRET", "devsecret")
     monkeypatch.setattr(ce, "fetch_bundle", _fake_bundle)
     monkeypatch.setattr(ce, "chat_stream", _fake_stream)
-    monkeypatch.setattr(ce, "bundle_to_messages", lambda b: [{"role": "system", "content": "BASE"}])
 
     async def fake_dev_l2p(clone_id, person_id):
         return {}  # 404/실패 폴백 모사
@@ -99,16 +120,17 @@ async def test_chat_no_hint_when_l2p_lookup_fails(monkeypatch):
         resp = await client.post("/oth-path", headers={"Authorization": "Bearer T"},
             json={"clone_id": 9055, "messages": [{"role": "user", "content": "안녕"}], "person_id": 3})
         assert resp.status == 200
-        assert "현재 화면의 화자" not in await resp.text()
+        text = await resp.text()
+    assert "상대의 이름은 아직 확인되지 않았다" in text
+    assert "형" not in text
 
 
 @pytest.mark.asyncio
 async def test_chat_name_only_hint_before_learning(monkeypatch):
-    """person 유효하나 학습전(data=None) → 이름만 힌트, 관계기억 미포함."""
+    """person 유효하나 학습전(data=None) → 이름만 힌트, 관계기억(상대 정보 섹션) 미포함."""
     monkeypatch.setattr(ce, "_DEV_SECRET", "devsecret")
     monkeypatch.setattr(ce, "fetch_bundle", _fake_bundle)
     monkeypatch.setattr(ce, "chat_stream", _fake_stream)
-    monkeypatch.setattr(ce, "bundle_to_messages", lambda b: [{"role": "system", "content": "BASE"}])
 
     async def fake_dev_l2p(clone_id, person_id):
         return {"data": None, "displayName": "형"}
@@ -118,8 +140,11 @@ async def test_chat_name_only_hint_before_learning(monkeypatch):
         resp = await client.post("/oth-path", headers={"Authorization": "Bearer T"},
             json={"clone_id": 9055, "messages": [{"role": "user", "content": "안녕"}], "person_id": 3})
         assert resp.status == 200
-        text = await resp.text()
-    assert "현재 화면의 화자: 형" in text and "관계 기억" not in text
+        content = _final_system_content(await resp.text())
+    assert '지금 너와 통화 중인 상대는 "형" 이다.' in content
+    # 머리말 규칙 문장이 "## 상대 정보"를 인용부호로 언급하므로, 실제 섹션 헤딩
+    # (줄 단위)이 없는지로 검사한다 — 관계기억 데이터가 없으면 섹션 자체가 생기지 않는다.
+    assert "\n## 상대 정보\n" not in content
 
 
 @pytest.mark.asyncio

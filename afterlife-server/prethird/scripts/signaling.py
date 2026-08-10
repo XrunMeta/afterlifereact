@@ -295,23 +295,6 @@ async def _drain_pending_react(sess) -> None:
             log.warning("session %s pending react failed: %s", getattr(sess, "session_id", "?"), e)
 
 
-# T-252: Task 5 에서 제거 예정 — chat_endpoint 이관 후
-def _summarize_l2p_fields(data: dict) -> str:
-    """l2p `data` 필드(extract_l2 산출 구조: preference_personal/relation/memories_personal)를
-    프롬프트 힌트용 한 줄로 요약. 빈 값은 생략, 전부 비면 "(없음)"."""
-    parts = []
-    rel = data.get("relation")
-    if isinstance(rel, str) and rel.strip():
-        parts.append(f"관계={rel.strip()}")
-    pp = data.get("preference_personal")
-    if isinstance(pp, dict) and pp:
-        parts.append("선호=" + ", ".join(f"{k}:{v}" for k, v in pp.items()))
-    mems = data.get("memories_personal")
-    if isinstance(mems, list) and mems:
-        parts.append("기억=" + "; ".join(str(m) for m in mems))
-    return "; ".join(parts) if parts else "(없음)"
-
-
 def _diag_summarize_l2p(l2p_data) -> dict:
     """[T-135] dev diag 로그 전용 l2p_data 요약 — memories_personal/preference_personal
     등 원문 값은 절대 포함하지 않고 존재여부/길이/키 목록만 남긴다(mizu MEDIUM1 PII 로그
@@ -340,8 +323,8 @@ def _sanitize_display_name(raw) -> Optional[str]:
     """[T-135] face_event displayName 검증 — afterlifeapi `assertValidDisplayName`
     (`afterlifeapi/src/lib/displayName.ts`)과 동등 기준(길이 1~30·제어문자·제로폭/bidi
     포맷문자 차단). 실시간 datachannel 메시지라 검증 실패로 이벤트 전체를 버리지 않고
-    이름만 신뢰하지 않는다(None으로 강등 → build_l2p_hint가 이름 라인 생략). 프롬프트
-    인젝션 완화(mizu HIGH1)."""
+    이름만 신뢰하지 않는다(None으로 강등 → bundle_to_messages 재조립 시 이름 라인 생략).
+    프롬프트 인젝션 완화(mizu HIGH1)."""
     if not isinstance(raw, str):
         return None
     trimmed = raw.strip()
@@ -350,23 +333,6 @@ def _sanitize_display_name(raw) -> Optional[str]:
     if _DISPLAY_NAME_CONTROL_RE.search(trimmed):
         return None
     return trimmed
-
-
-# T-252: Task 5 에서 제거 예정 — chat_endpoint 이관 후
-def build_l2p_hint(name, l2p_data) -> str:
-    """[T-116/T-135] 화자별 L2' 시스템 힌트 한 줄. 실통화(_maybe_swap_l2p)와 verify가 공유.
-    l2p_data가 있으면 관계요약 포함, 없으면 이름만.
-    [T-135] name이 falsy(None/공백)면 "현재 화면의 화자: {name}" 라인을 생략한다 — 화자가
-    불확실(unknown_face/multi_face로 current_speaker 해제)한 상태에서 "화자: None" 같은
-    오염된 힌트가 프롬프트에 들어가는 것을 방지. l2p_data만 있으면 관계기억 라인만,
-    둘 다 없으면 빈 문자열(호출부가 힌트 자체를 스킵해야 함)."""
-    if not name:
-        if l2p_data:
-            return f"이 사람과의 관계 기억: {_summarize_l2p_fields(l2p_data)}"
-        return ""
-    if l2p_data:
-        return f"현재 화면의 화자: {name}. 이 사람과의 관계 기억: {_summarize_l2p_fields(l2p_data)}"
-    return f"현재 화면의 화자: {name}"
 
 
 async def _maybe_swap_l2p(sess, pid: int, name) -> None:
