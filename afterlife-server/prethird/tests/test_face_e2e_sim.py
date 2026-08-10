@@ -1,19 +1,19 @@
 """[T-067 Task 16] prethird 통합 E2E 시뮬레이션 — 한 세션에서 연속 시나리오.
 
-brief(§Step1)의 ①~⑥ 흐름을 실 LLM/TTS/HTTP 없이 Fake 더블만으로 재현한다.
+brief(§Step1)의 1~6 흐름을 실 LLM/TTS/HTTP 없이 Fake 더블만으로 재현한다.
 패턴은 tests/test_face_react.py·test_name_extract.py·test_l2p_swap.py 를 그대로 재사용 —
 개별 단위 테스트에서 이미 검증된 계약(react 쿨다운·pending_enroll·_maybe_swap_l2p·
 learn_writeback 라우팅·busy-lock pending_react)을 "한 통화 세션" 안에서 순서대로 이어붙여
 상호작용(예: 스왑 직후 학습 라우팅, 발화 중 도착한 face_event 큐잉)까지 검증하는 것이 목적.
 
 시나리오:
-  ① face_event unknown_face                → react("unknown", None) + pending_enroll=True
-  ② say "저 민지예요"                        → enroll_suggest{"name":"민지"} 송신 + say 정상 응답
-  ③ face_event speaker_confirmed(3,"민지")   → react("known","민지") + fetch_l2p 호출
-                                                + update_persona(base + 화자 힌트)
-  ④ 이후 say                                → learn_writeback 이 person_id=3 으로 라우팅
-  ⑤ 같은 personId(3) 재이벤트                → react 미발화(쿨다운) + persona 재스왑도 없음(pid 동일)
-  ⑥ say 발화 진행 중 face_event(personId=5) 도착
+  1. face_event unknown_face                → react("unknown", None) + pending_enroll=True
+  2. say "저 민지예요"                        → enroll_suggest{"name":"민지"} 송신 + say 정상 응답
+  3. face_event speaker_confirmed(3,"민지")   → react("known","민지") + fetch_l2p 호출
+                                                + update_persona(bundle을 화자 기준으로 재조립, T-252)
+  4. 이후 say                                → learn_writeback 이 person_id=3 으로 라우팅
+  5. 같은 personId(3) 재이벤트                → react 미발화(쿨다운) + persona 재스왑도 없음(pid 동일)
+  6. say 발화 진행 중 face_event(personId=5) 도착
                                              → busy-lock 중엔 겹쳐 재생되지 않고 pending_react 대기,
                                                say 종료 후 재생(current_speaker/스왑은 즉시 갱신되므로
                                                이 say 의 learn_writeback 은 person_id=5 로 감)
@@ -25,9 +25,26 @@ import json
 import logging
 import pytest
 from signaling import _make_dc_handler  # noqa: E402
+from clone_dialog import bundle_to_messages  # noqa: E402
 import name_extract  # noqa: E402
 import l2p_client  # noqa: E402
 import learn_writeback as lw  # noqa: E402
+
+# T-252: _maybe_swap_l2p/_clear_current_speaker 가 재조립할 원본 번들.
+# [T-252 fix round 2 / el 지적] persona 에 _OTHER_LABELS 키를 채운다 — 없으면
+# "## 상대 정보" 관련 부재 단언이 공허 통과한다.
+_BUNDLE = {
+    "personaBundle": {
+        "cloneId": "9201",
+        "persona": {
+            "displayName": "코조",
+            "tone": "친근함",
+            "relation": "이웃",
+            "memories_personal": ["계정주와 작년에 이사 옴"],
+        },
+        "viewer": {"displayName": "지호"},
+    }
+}
 
 class _Channel:
     def __init__(self):
@@ -38,7 +55,7 @@ class _Channel:
 class _Pipeline:
     """say/react/update_persona 를 모두 갖춘 통합 더블.
 
-    say_gate(기본 set=열림)로 발화 지속 상황(⑥ busy-lock 시나리오)을 재현한다 —
+    say_gate(기본 set=열림)로 발화 지속 상황(6. busy-lock 시나리오)을 재현한다 —
     필요할 때만 clear() 해서 say() 를 일시 정지시키고, set() 하면 재개된다.
     """
     def __init__(self, persona_messages=None):
@@ -77,7 +94,7 @@ class _Sess:
         self.pending_enroll = False
         self.current_speaker = None
         self.pending_react = None
-        self.base_persona_messages = None
+        self.bundle = dict(_BUNDLE)  # T-252: 재조립 원본. offer 시 signaling.py가 대입하는 값.
     def set_state(self, s): self.state = s
 
 def _drain(loop):
@@ -117,20 +134,23 @@ def test_full_flow_unknown_to_enrolled(monkeypatch):
     monkeypatch.setattr(lw, "learn_writeback", _fake_learn_writeback)
 
     sess, ch = _Sess(), _Channel()
-    original_base = list(sess.pipeline.persona_messages)
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
         handler = _make_dc_handler(sess, ch)
 
-        # ① unknown_face → react("unknown", None) + pending_enroll
+        # 1. unknown_face → react("unknown", None) + pending_enroll
         handler(json.dumps({"type": "face_event", "event": "unknown_face", "seq": 1}))
         _drain(loop)
         assert sess.pipeline.react_calls == [("unknown", None)]
         assert sess.pending_enroll is True
+        # [T-252 fix / mizu H-1] 확정 화자 이력이 없어도 프롬프트는 상태 4로 강등된다
+        # (구 코드는 current_speaker 가 None 이라 통째로 스킵 → 계정주 이름 호칭 유지).
+        assert len(sess.pipeline.update_calls) == 1
+        assert "지호" not in sess.pipeline.update_calls[0][0]["content"]
 
-        # ② say "저 민지예요" → enroll_suggest{"name":"민지"} + say 정상 응답
+        # 2. say "저 민지예요" → enroll_suggest{"name":"민지"} + say 정상 응답
         handler(json.dumps({"type": "say", "text": "저 민지예요", "seq": 2}))
         _drain(loop)
         suggests = [m for m in ch.sent if m["type"] == "enroll_suggest"]
@@ -141,8 +161,8 @@ def test_full_flow_unknown_to_enrolled(monkeypatch):
         assert len(learn_calls) == 1
         assert learn_calls[0][1].get("person_id") is None
 
-        # ③ (RN이 등록·확정했다 치고) face_event speaker_confirmed(personId=3, 민지)
-        #    → react("known","민지") + fetch_l2p 호출 + update_persona(base+화자 컨텍스트)
+        # 3. (RN이 등록·확정했다 치고) face_event speaker_confirmed(personId=3, 민지)
+        #    → react("known","민지") + fetch_l2p 호출 + update_persona(화자 반영 프롬프트 전체 재조립)
         handler(json.dumps({
             "type": "face_event", "event": "speaker_confirmed",
             "personId": 3, "displayName": "민지", "seq": 3,
@@ -151,30 +171,33 @@ def test_full_flow_unknown_to_enrolled(monkeypatch):
         assert sess.pipeline.react_calls == [("unknown", None), ("known", "민지")]
         assert sess.current_speaker == (3, "민지")
         assert l2p_calls == [(9201, 3)]
-        assert len(sess.pipeline.update_calls) == 1
-        swapped = sess.pipeline.update_calls[0]
-        assert swapped[:len(original_base)] == original_base  # base 위에만 덧붙임
-        hint = swapped[-1]
-        assert hint["role"] == "system"
-        assert "민지" in hint["content"] and "손녀" in hint["content"]
+        # 1번(상태 4 강등) + 3번(화자 확정 재조립) = 2회
+        assert len(sess.pipeline.update_calls) == 2
+        swapped = sess.pipeline.update_calls[-1]
+        # [fix round 2] 확정 화자(민지)에게 계정주 L2 가 새지 않는지 직접 본다.
+        assert "계정주와 작년에 이사 옴" not in swapped[0]["content"]
+        # T-252: base 위에 덧붙이지 않고 bundle 전체를 화자 기준으로 재조립한다.
+        assert swapped == bundle_to_messages(sess.bundle, speaker={"name": "민지", "l2p_data": {"relation": "손녀"}})
+        content = swapped[0]["content"]
+        assert "민지" in content and "손녀" in content
 
-        # ④ 이후 say → learn_writeback 이 person_id=3 으로 라우팅(post_learn_person 경로)
+        # 4. 이후 say → learn_writeback 이 person_id=3 으로 라우팅(post_learn_person 경로)
         handler(json.dumps({"type": "say", "text": "오늘 뭐 했어?", "seq": 4}))
         _drain(loop)
         assert sess.pipeline.say_calls == ["저 민지예요", "오늘 뭐 했어?"]
         assert len(learn_calls) == 2
         assert learn_calls[1][1].get("person_id") == 3
 
-        # ⑤ 같은 personId(3) 재이벤트 → react 미발화(쿨다운) + persona 재스왑도 없음(pid 동일)
+        # 5. 같은 personId(3) 재이벤트 → react 미발화(쿨다운) + persona 재스왑도 없음(pid 동일)
         handler(json.dumps({
             "type": "face_event", "event": "speaker_confirmed",
             "personId": 3, "displayName": "민지", "seq": 5,
         }))
         _drain(loop)
         assert sess.pipeline.react_calls == [("unknown", None), ("known", "민지")]  # 추가 없음
-        assert len(sess.pipeline.update_calls) == 1  # 스왑도 재발화 안 됨
+        assert len(sess.pipeline.update_calls) == 2  # 스왑도 재발화 안 됨(1·3번 누계 그대로)
 
-        # ⑥ say 발화 진행 중(busy-lock) face_event(personId=5,"철수") 도착
+        # 6. say 발화 진행 중(busy-lock) face_event(personId=5,"철수") 도착
         #    → 즉시 겹쳐 재생하지 않고 pending_react 단일 슬롯에 대기, say 종료 후 재생.
         sess.pipeline.say_gate.clear()
         handler(json.dumps({"type": "say", "text": "잠깐만요", "seq": 6}))
@@ -226,11 +249,11 @@ def test_face_diag_log_emitted(monkeypatch, caplog):
         handler = _make_dc_handler(sess, ch)
 
         with caplog.at_level(logging.INFO, logger="prethird.signaling"):
-            # ① unknown_face → recv/react face_diag 로그
+            # 1. unknown_face → recv/react face_diag 로그
             handler(json.dumps({"type": "face_event", "event": "unknown_face", "seq": 1}))
             _drain(loop)
 
-            # ② speaker_confirmed(personId=3, displayName="민지")
+            # 2. speaker_confirmed(personId=3, displayName="민지")
             #    → recv/speaker(swap_scheduled)/react/l2p_swapped face_diag 로그
             handler(json.dumps({
                 "type": "face_event", "event": "speaker_confirmed",
@@ -238,7 +261,7 @@ def test_face_diag_log_emitted(monkeypatch, caplog):
             }))
             _drain(loop)
 
-            # ③ 같은 personId 재이벤트 → 쿨다운 억제 face_diag 로그
+            # 3. 같은 personId 재이벤트 → 쿨다운 억제 face_diag 로그
             handler(json.dumps({
                 "type": "face_event", "event": "speaker_confirmed",
                 "personId": 3, "displayName": "민지", "seq": 3,

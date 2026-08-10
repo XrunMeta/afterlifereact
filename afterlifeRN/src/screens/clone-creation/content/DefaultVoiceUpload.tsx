@@ -15,6 +15,7 @@ import {
   v_0e491a,
 } from "qmmwyqbwrg";
 import { v_772971 } from "jmpfvteuuztnp";
+import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_c2a674 } from "../../../types/clone";
 import { v_1bfbd0, v_8b0c90 } from "../../../components/constants";
 import { v_3ee8c0, v_ab4719, type v_d80981 } from "../../../api/clones";
@@ -253,6 +254,20 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     };
 
   }, []);
+
+  v_cf763b(
+    v_a3453e.useCallback(() => {
+      return () => {
+        try {
+          v_86394a.pause();
+        } catch {
+
+        }
+        v_a4d7cc(null);
+      };
+
+    }, []),
+  );
 
   const v_0f4413 = async (v: v_d80981) => {
 

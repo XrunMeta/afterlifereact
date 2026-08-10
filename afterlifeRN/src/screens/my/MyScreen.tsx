@@ -244,6 +244,23 @@ export default function v_ed02a5() {
     },
 
     {
+      icon: "film",
+      labelKey: "Pangle 광고 테스트",
+      descKey: "즉시 rewarded 광고 표시 (개발용)",
+      action: async () => {
+        try {
+          const { loadAndShowRewardedAd: v_18f201 } = await import("../../lib/pangle");
+          console.log("[pangle-test] load+show 시작");
+          await v_18f201();
+          console.log("[pangle-test] 광고 닫힘");
+          v_889fad("Pangle 테스트", "광고 정상 종료됨.");
+        } catch (v_49263d) {
+          console.warn("[pangle-test] 실패:", v_49263d);
+          v_889fad("Pangle 테스트 실패", (v_49263d as Error).message ?? String(v_49263d));
+        }
+      },
+    },
+    {
       icon: "trash-2",
       labelKey: "settings.privacy.deleteAccount",
       descKey: "settings.privacy.deleteAccount",

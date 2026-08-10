@@ -1342,6 +1342,7 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
       likedByMe: v_db2b0a,
       createdAt: v_eb25ce.created_at,
       viewerRole: v_00efe2,
+      pipeline: v_eb25ce.pipeline,
     },
   });
 });

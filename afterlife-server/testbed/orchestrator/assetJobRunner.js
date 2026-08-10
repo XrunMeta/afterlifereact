@@ -161,6 +161,8 @@ export async function v_af8891(v_6e0fd3, v_35d74b, v_6c4613, v_9718cb, v_80b7f4)
     }
 
     await v_d6e9e8(v_8b8f2a, v_8f5693);
+
+    try { await v_d6e9e8(v_caf4d6, v_315113(v_fd2ea8, 'voice.raw')); } catch {}
   } finally {
 
     for (const v_e2a85c of [v_caf4d6, v_8b8f2a]) {

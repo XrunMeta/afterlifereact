@@ -788,7 +788,17 @@
       "sourceLibrary": "アルバムから選択",
       "cameraPermTitle": "カメラの権限",
       "cameraPermDeniedMsg": "カメラへのアクセスが必要です。撮影するには権限を許可してください。",
-      "cameraPermBlockedMsg": "カメラへのアクセスがオフになっています。設定でカメラの権限をオンにしてください。"
+      "cameraPermBlockedMsg": "カメラへのアクセスがオフになっています。設定でカメラの権限をオンにしてください。",
+      "faceGuideHint": "顔がフレーム内に入るように位置を合わせてください",
+      "faceTooSmall": "カメラにもう少し近づいてください",
+      "faceTooLarge": "少し後ろに下がってください",
+      "faceOffCenter": "顔をシルエットの中に合わせてください",
+      "validateRetakeTitle": "もう一度撮影してください",
+      "validateReselectTitle": "別の写真を選択してください",
+      "validateNoFace": "顔が確認できません。正面を向いてもう一度お試しください。",
+      "validateTooSmall": "顔が小さすぎます。カメラに近づいてもう一度お試しください。",
+      "validateTooLarge": "顔が大きすぎます。少し後ろに下がってもう一度お試しください。",
+      "validateOffCenter": "顔がシルエットからはみ出ています。中央に合わせてもう一度お試しください。"
     },
     "voice": {
       "presets": "基本音声プリセット",

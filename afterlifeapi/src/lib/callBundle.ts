@@ -35,7 +35,14 @@ export async function v_87cfd2(v_a1651b, clone: v_b107dc, v_43e90c, v_f17108): P
     v_5ed063.relation = v_eb25ce.relation;
   }
 
-  const v_ba0fde = v_445ba7(v_b6c480, v_5ed063, v_6e0fd3);
+  const v_48c548 = await v_a1651b
+    .prepare("SELECT name FROM users WHERE id = ?")
+    .bind(v_43e90c)
+    .first<{ name: string | null }>();
+
+  const v_ba0fde = v_445ba7(v_b6c480, v_5ed063, v_6e0fd3, {
+    displayName: v_48c548?.name ?? null,
+  });
 
   let v_c910d9 = v_eb25ce.voice_se_url ?? null;
   let v_4f80ac = null;
