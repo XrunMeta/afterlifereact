@@ -55,7 +55,7 @@ test("한 줄 소개를 고치면 서버에 반영된다 (개행 포함)", async
 
   await desc.fill(NEXT);
 
-  await expect(counter).toHaveText(`${NEXT.length}/100`);
+  await expect(counter).toHaveText(`${NEXT.length}/500`);
 
   await page.getByTestId(TID.cloneEdit.save).click();
 
