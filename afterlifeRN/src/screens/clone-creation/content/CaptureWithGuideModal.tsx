@@ -74,14 +74,17 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
   });
   v_c4deb2(() => () => v_62fe07(), [v_62fe07]);
 
+  const [v_1f6878, v_0c4941] = v_5ab095(0);
+
   const v_8090fb = v_df9f57(
     () =>
-      v_d73d29.createRunOnJS((faces: v_1faf6a[]) => {
+      v_d73d29.createRunOnJS((faces: v_1faf6a[], v_80396f) => {
         const v_29a122 = v_a51d09.map((v_8b5cd8) => ({
           trackingID: v_8b5cd8.trackingId,
           bounds: v_8b5cd8.bounds,
         }));
         v_dfbd9a(v_29a122);
+        v_0c4941(v_80396f);
       }),
 
     [],
@@ -91,12 +94,34 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
     (v_143cb5) => {
       "worklet";
       const v_a51d09 = v_de4d76(v_143cb5);
-      v_8090fb(v_a51d09);
+
+      let v_80396f = 0;
+      if (v_a51d09.length > 0) {
+        const v_148ff6 = v_a51d09[0].bounds;
+        const v_3c588a = Math.max(v_143cb5.width, v_143cb5.height);
+        const v_cecddc = Math.max(v_148ff6.width, v_148ff6.height);
+        if (v_3c588a > 0) {
+          v_80396f = v_cecddc / v_3c588a;
+        }
+      }
+      v_8090fb(v_a51d09, v_80396f);
     },
     [v_8090fb, v_de4d76],
   );
 
   const v_7c2f5d = v_bbb3d3.status === "detected";
+  const v_6a5345 = 0.15; 
+  const v_822ad2 = 0.55; 
+  const v_b85511 =
+    v_7c2f5d && v_1f6878 >= v_6a5345 && v_1f6878 <= v_822ad2;
+
+  const v_405d38 = !v_7c2f5d
+    ? v_8d41d7("create.image.faceGuideHint")
+    : v_1f6878 < v_6a5345
+    ? v_8d41d7("create.image.faceTooSmall")
+    : v_1f6878 > v_822ad2
+    ? v_8d41d7("create.image.faceTooLarge")
+    : null;
 
   v_c4deb2(() => {
     if (!v_cf55be) {
@@ -208,10 +233,10 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
             <UpperBodyGuide width={v_e0560a * v_7b377a} />
           </View>
           <View style={v_fd5f43.frameBorder} pointerEvents="none" />
-          {v_b1717e && !v_7c2f5d ? (
+          {v_b1717e && v_405d38 ? (
             <View style={v_fd5f43.faceHintOverlay} pointerEvents="none">
               <View style={v_fd5f43.faceHintBubble}>
-                <Text style={v_fd5f43.faceHintText}>{v_8d41d7("create.image.faceGuideHint")}</Text>
+                <Text style={v_fd5f43.faceHintText}>{v_405d38}</Text>
               </View>
             </View>
           ) : null}
@@ -232,9 +257,9 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
 
         <View style={[v_fd5f43.bottomBar, { paddingBottom: 20 + v_53dd92 }]}>
           <TouchableOpacity
-            style={[v_fd5f43.shutter, (!v_b1717e || v_67358b || !v_7c2f5d) && v_fd5f43.shutterDisabled]}
+            style={[v_fd5f43.shutter, (!v_b1717e || v_67358b || !v_b85511) && v_fd5f43.shutterDisabled]}
             onPress={v_04326c}
-            disabled={!v_b1717e || v_67358b || !v_ac8c13 || !v_7c2f5d}
+            disabled={!v_b1717e || v_67358b || !v_ac8c13 || !v_b85511}
             accessibilityRole="button"
             accessibilityLabel={v_8d41d7("create.image.sourceCamera")}
           >

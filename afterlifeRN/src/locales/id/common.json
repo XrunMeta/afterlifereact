@@ -789,7 +789,9 @@
       "cameraPermTitle": "Izin kamera",
       "cameraPermDeniedMsg": "Diperlukan izin kamera untuk mengambil foto. Mohon izinkan akses kamera.",
       "cameraPermBlockedMsg": "Akses kamera dimatikan. Mohon aktifkan izin kamera di Pengaturan.",
-      "faceGuideHint": "Silakan posisikan wajah Anda di dalam bingkai"
+      "faceGuideHint": "Silakan posisikan wajah Anda di dalam bingkai",
+      "faceTooSmall": "Mohon mendekat ke kamera",
+      "faceTooLarge": "Mohon mundur sedikit"
     },
     "voice": {
       "presets": "Preset Suara Dasar",
