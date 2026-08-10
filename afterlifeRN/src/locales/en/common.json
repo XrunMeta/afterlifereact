@@ -792,7 +792,13 @@
       "faceGuideHint": "Please position your face inside the frame",
       "faceTooSmall": "Please move closer to the camera",
       "faceTooLarge": "Please move a bit farther back",
-      "faceOffCenter": "Please align your face inside the silhouette"
+      "faceOffCenter": "Please align your face inside the silhouette",
+      "validateRetakeTitle": "Please retake the photo",
+      "validateReselectTitle": "Please choose a different photo",
+      "validateNoFace": "No face detected. Please face the camera and try again.",
+      "validateTooSmall": "Your face is too small. Please move closer to the camera and try again.",
+      "validateTooLarge": "Your face is too large. Please move back a bit and try again.",
+      "validateOffCenter": "Your face is outside the silhouette. Please center your face and try again."
     },
     "voice": {
       "presets": "Default voice presets",

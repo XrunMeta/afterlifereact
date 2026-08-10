@@ -34,6 +34,10 @@ import {
 import { showAlert } from "../../../stores/dialogStore";
 import { centerCoverCrop1to2 } from "../../../lib/centerCoverCrop1to2";
 import { useFaceDetection } from "../../../hooks/useFaceDetection";
+import {
+  validatePersonaImage,
+  validationReasonKey,
+} from "../../../lib/validatePersonaImage";
 
 interface Props {
   visible: boolean;
@@ -219,6 +223,15 @@ export default function CaptureWithGuideModal({ visible, onCapture, onCancel }: 
       );
       if (!cropped.width || !cropped.height) {
         showAlert(t("common.error"), t("create.image.loadFailed"));
+        return;
+      }
+
+      const v = await validatePersonaImage(cropped.uri);
+      if (!v.ok) {
+        showAlert(
+          t("create.image.validateRetakeTitle"),
+          t(validationReasonKey(v.reason)),
+        );
         return;
       }
       onCapture({ uri: cropped.uri, width: cropped.width, height: cropped.height });

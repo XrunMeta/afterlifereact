@@ -792,7 +792,13 @@
       "faceGuideHint": "얼굴이 프레임 안에 오도록 위치를 맞춰주세요",
       "faceTooSmall": "카메라에 조금 더 가까이 다가와 주세요",
       "faceTooLarge": "조금 뒤로 물러나 주세요",
-      "faceOffCenter": "얼굴을 실루엣 안에 맞춰주세요"
+      "faceOffCenter": "얼굴을 실루엣 안에 맞춰주세요",
+      "validateRetakeTitle": "다시 촬영해 주세요",
+      "validateReselectTitle": "다른 사진을 선택해 주세요",
+      "validateNoFace": "얼굴이 확인되지 않아요. 정면을 향해 다시 시도해 주세요.",
+      "validateTooSmall": "얼굴이 너무 작아요. 카메라에 조금 더 가까이 다가와 다시 시도해 주세요.",
+      "validateTooLarge": "얼굴이 너무 크게 잡혔어요. 조금 뒤로 물러나 다시 시도해 주세요.",
+      "validateOffCenter": "얼굴이 실루엣 밖으로 벗어났어요. 프레임 중앙에 오도록 다시 시도해 주세요."
     },
     "voice": {
       "presets": "기본 음성 프리셋",

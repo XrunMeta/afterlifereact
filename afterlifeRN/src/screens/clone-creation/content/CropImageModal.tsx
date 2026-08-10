@@ -38,6 +38,10 @@ import {
   subscribeSilhouetteScale,
 } from "../../../lib/t208SilhouetteScale";
 import { recordT208Crop, t208AllCropsReady, t208CropsSummary, advanceT208ToNextIncompleteScale } from "../../../lib/t208MeasureStore";
+import {
+  validatePersonaImage,
+  validationReasonKey,
+} from "../../../lib/validatePersonaImage";
 
 interface Source { uri: string; width: number; height: number }
 interface Props {
@@ -175,6 +179,15 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
             ? `3종 크롭 완료!\n${t208CropsSummary()}\n\n다음: 생성→사진에서「T-208 … 불러오기」로 배율별 크롭을 넣어 클론 3개 생성(음성·페르소나 동일) → 가비아 동일 대사 렌더.`
             : `기록됨.\n현황 ${t208CropsSummary()}\n\n다음 배율로 전환: ${silhouetteScaleLabel(next ?? getSilhouetteScale())}\n같은 사진으로 다시 크롭하세요.`,
         );
+      }
+
+      const v = await validatePersonaImage(uri);
+      if (!v.ok) {
+        showAlert(
+          t("create.image.validateReselectTitle"),
+          t(validationReasonKey(v.reason)),
+        );
+        return;
       }
       onConfirm(uri);
     } catch (err) {
