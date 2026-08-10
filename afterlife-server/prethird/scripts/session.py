@@ -45,6 +45,18 @@ class Session:
         # 구 스왑이 `current[0] == pid` 가 여전히 참이라 통과해, frozen name 과
         # 낡은 L2' 로 최신 판정을 덮어쓴다.
         self.speaker_epoch = 0
+        # [T-252 Task 8] 상태 4(얼굴 미확정) 유지 타임아웃 핸들(asyncio.TimerHandle|None).
+        # 상태 4 에서 나가는 간선은 `speaker_confirmed` 뿐인데, `clone_person_faces` 가
+        # 0행이면 `/oth-path` 가 구조적으로 매칭될 수 없어 그 이벤트가 영영
+        # 오지 않는다 — 얼굴이 카메라에 잡히는 순간부터 통화가 끝날 때까지 이름을 한 번도
+        # 못 부르는 고착이 된다. 그렇다고 "벡터 0 이면 화자식별 off" 로 막으면 등록 요청
+        # (enroll_suggest)까지 함께 죽어 벡터가 영영 0 인 데드락이 되므로, 상태 4 자체에
+        # 수명(PRETHIRD_UNCONFIRMED_TTL_S, 기본 10초)을 준다. 만료되면 상태 1 로 돌아가
+        # 다시 이름을 부르고, 그 뒤 unknown_face 가 또 오면 다시 강등한다(반복).
+        # 얼굴 검출과 enroll_suggest 는 그동안 계속 돌므로 결국 벡터가 생기고, 생기면
+        # speaker_confirmed 경로가 살아나 이 타이머는 자연히 무의미해진다.
+        # 통화 종료(cleanup)에서 반드시 cancel — 죽은 세션의 pipeline 을 건드리면 안 된다.
+        self.unconfirmed_timer = None
         # T-126 Task8 — 이번 통화에서 이미 이름 추출을 시도한 personId 집합(1인당 1회만 LLM 호출).
         # current_speaker[1](displayName)이 채워지면 자연히 더 이상 필요 없어지지만, RN의 PATCH가
         # 이 세션에 반영되지 않으므로(별도 프로세스) 세션 로컬 가드로 중복 호출만 억제한다.
