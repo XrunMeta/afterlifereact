@@ -29,6 +29,8 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 
 import SvgaOverlay from "../../components/gift/SvgaOverlay";
 
+import CallEntryQuestionsScreen from "../call-entry/CallEntryQuestionsScreen";
+
 import SvgaThumb from "../../components/gift/SvgaThumb";
 import { RTCView } from "react-native-webrtc";
 import {
@@ -90,9 +92,16 @@ import { DialingScreen } from "../../components/call/DialingScreen";
 import { CallVoiceBall } from "../../components/call/CallVoiceBall";
 import { CallTimingHUD } from "../../components/call/CallTimingHUD";
 import { CallStateHUD } from "../../components/call/CallStateHUD";
+
+import { FaceTrackHUD } from "../../components/call/FaceTrackHUD";
+import {
+  publishFaceTracks,
+  publishFaceDiag,
+  resetFaceRoster,
+} from "../../face/faceTrackRosterStore";
 import { CallTimingPanel } from "../../components/call/CallTimingPanel";
 import { CloneSubtitleTicker } from "../../components/call/CloneSubtitleTicker";
-import { useDevOverlayStore } from "../../stores/devOverlayStore";
+import { useDevOverlayStore, useCallHudVisible } from "../../stores/devOverlayStore";
 import { useTimingConfigStore } from "../../realtime/timingConfig";
 import { startTimingLog } from "../../realtime/timingLog";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -102,6 +111,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../navigation/types";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
+import { getCloneL2 } from "../../api/clones";
 import { COLORS, RADIUS } from "../../components/constants";
 
 import { fetchGiftCatalog, type GiftCatalogItem } from "../../api/gifts";
@@ -120,7 +130,13 @@ import ExpertBadge from "../../components/ui/ExpertBadge";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
 
-const { width: SCREEN_W } = Dimensions.get("window");
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
+
+const VIDEO_FRAME_ASPECT = 512 / 1024; 
+const VIDEO_W = SCREEN_W;
+const VIDEO_H = Math.round(SCREEN_W / VIDEO_FRAME_ASPECT);
+const VIDEO_TOP = Math.round((SCREEN_H - VIDEO_H) / 2);
+const VIDEO_LEFT = Math.round((SCREEN_W - VIDEO_W) / 2);
 
 const VIDEO_EDGE_TRIM_PX = 1;
 
@@ -147,11 +163,42 @@ export default function CallScreen(props: Props) {
     const raf = requestAnimationFrame(() => setHeavyReady(true));
     return () => cancelAnimationFrame(raf);
   }, []);
-  const { name: paramName, image: paramImage } = props.route.params;
+  const { cloneId, name: paramName, image: paramImage } = props.route.params;
   const placeholderImage = typeof paramImage === "string" ? paramImage : "";
+
+  const clone = useCloneStore((s) => s.getCloneById(cloneId));
+  const wrapperAccessToken = useAuthStore((s) => s.accessToken);
+  const [callEntryOpen, setCallEntryOpen] = React.useState(true);
+  React.useEffect(() => {
+    if (!wrapperAccessToken || !cloneId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { l2_profile: l2 } = await getCloneL2(wrapperAccessToken, cloneId);
+        if (cancelled) return;
+        const complete =
+          (l2.relation_category ?? "").trim().length > 0 &&
+          (l2.relation_subtype ?? "").trim().length > 0 &&
+          (l2.relation_episode ?? "").trim().length > 0 &&
+          (l2.address_form ?? "").trim().length > 0 &&
+          (l2.speech_form ?? "").trim().length > 0 &&
+          (l2.job_category ?? "").trim().length > 0 &&
+          (l2.job_detail ?? "").trim().length > 0;
+        setCallEntryOpen(!complete);
+      } catch (err) {
+
+        console.warn("[CallEntry] L2 gate fetch 실패:", err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [wrapperAccessToken, cloneId]);
+
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.zinc950 }}>
-      {!heavyReady ? (
+      {
+
+}
+      {callEntryOpen || !heavyReady ? (
         <DialingScreen
           liveState="idle"
           personaName={paramName ?? ""}
@@ -163,6 +210,34 @@ export default function CallScreen(props: Props) {
       ) : (
         <CallScreenInner {...props} />
       )}
+
+      {
+}
+      <CallEntryQuestionsScreen
+        visible={callEntryOpen}
+        cloneId={cloneId}
+        name={clone?.displayName ?? paramName ?? ""}
+        onCancel={() => {
+          setCallEntryOpen(false);
+          props.navigation.goBack();
+        }}
+        onCall={() => setCallEntryOpen(false)}
+        onLearn={() => {
+          setCallEntryOpen(false);
+
+          const nav = props.navigation as unknown as {
+            goBack: () => void;
+            navigate: (n: string, p: unknown) => void;
+          };
+          nav.goBack();
+          setTimeout(() => {
+            nav.navigate("Main", {
+              screen: "ClonesTab",
+              params: { screen: "CloneLearn", params: { cloneId } },
+            });
+          }, 60);
+        }}
+      />
     </View>
   );
 }
@@ -182,6 +257,11 @@ function CallScreenInner({ route, navigation }: Props) {
     Platform.OS === "ios" ? insets.bottom : Math.max(navBarHeight, insets.bottom);
   const callDevUi = useDevOverlayStore((s) => s.callDevUiVisible);
   const showCallDev = __DEV__ && callDevUi;
+
+  const hudDevBox = useCallHudVisible("devBox");
+  const hudTiming = useCallHudVisible("timing");
+  const hudState = useCallHudVisible("state");
+  const hudFaceTrack = useCallHudVisible("faceTrack");
 
   const [cameraFacing, setCameraFacing] = useState<"front" | "back">("front");
   const [isMuted, setIsMuted] = useState(false);
@@ -241,13 +321,15 @@ function CallScreenInner({ route, navigation }: Props) {
     if (!accessToken) return;
     let cancelled = false;
 
+    setConsentGranted(true);
     listPersons(accessToken, cloneId)
       .then(({ items }) => {
         if (cancelled) return;
-        const hasConsent = items.some((p) => p.consentState === "granted");
-        setConsentGranted(hasConsent);
+        const hasPersonConsent = items.some((p) => p.consentState === "granted");
         setPersons(items); 
-        console.log(`[Call][face] listPersons ← granted=${hasConsent} (total=${items.length})`);
+        console.log(
+          `[Call][face] listPersons ← personConsent=${hasPersonConsent} (total=${items.length}) · gate=약관동의`,
+        );
       })
       .catch((err) => {
         console.warn("[Call][face] listPersons failed:", err);
@@ -290,6 +372,8 @@ function CallScreenInner({ route, navigation }: Props) {
     enrollSuggestImplRef.current(name, personId);
   }, []);
 
+  const [livePipeline, setLivePipeline] = useState<string | null>(null);
+
   const {
     state: liveState,
     remoteStream,
@@ -302,7 +386,32 @@ function CallScreenInner({ route, navigation }: Props) {
     speak,
     lastSignal,
     sendFaceEvent,
-  } = useAvatarCall({ cloneId, accessToken: accessToken ?? "", onEnrollSuggest: handleEnrollSuggest });
+  } = useAvatarCall({
+    cloneId,
+    accessToken: accessToken ?? "",
+    onEnrollSuggest: handleEnrollSuggest,
+
+    pipeline: livePipeline ?? (clone as { pipeline?: string | null })?.pipeline ?? null,
+  });
+
+  useEffect(() => {
+    if (!cloneId || !accessToken) return;
+    let alive = true;
+    (async () => {
+      try {
+        const { getCloneDetail } = await import("../../api/clones");
+        const detail = await getCloneDetail(cloneId, accessToken);
+        if (alive) {
+          const p = (detail as { clone?: { pipeline?: string | null } })?.clone?.pipeline ?? null;
+          setLivePipeline(p);
+          if (__DEV__) console.log(`[T-467] livePipeline for clone ${cloneId} = ${p}`);
+        }
+      } catch (err) {
+        if (__DEV__) console.warn("[T-467] getCloneDetail pipeline fetch failed:", err);
+      }
+    })();
+    return () => { alive = false; };
+  }, [cloneId, accessToken]);
 
   const [devText, setDevText] = useState("");
 
@@ -373,6 +482,15 @@ function CallScreenInner({ route, navigation }: Props) {
     onDiag: setFaceDiag,
     calibrate: calibrateOpt,
   });
+
+  useEffect(() => {
+    publishFaceDiag(faceDiag, Date.now());
+  }, [faceDiag]);
+
+  useEffect(() => {
+    resetFaceRoster();
+    return () => resetFaceRoster();
+  }, []);
 
   const handleSpeakerEvent = useCallback(
     (evt: SpeakerEvent) => {
@@ -637,6 +755,8 @@ function CallScreenInner({ route, navigation }: Props) {
             }
           }
           onFaceEmbedding(vector);
+
+          publishFaceTracks(trackingIds, Date.now());
         },
       ),
 
@@ -736,6 +856,32 @@ function CallScreenInner({ route, navigation }: Props) {
     if (lastSignal?.type === 'speech_start') setGreetingStarted(true);
   }, [lastSignal]);
 
+  const chatPrevTranscript = useRef('');
+  const chatUserSentAt = useRef<number | null>(null);
+  useEffect(() => {
+    if (transcript && transcript !== chatPrevTranscript.current) {
+      console.log(`[Call][chat] user: "${transcript}"`);
+      chatPrevTranscript.current = transcript;
+      chatUserSentAt.current = Date.now();
+    }
+  }, [transcript]);
+  const chatReplyStartAt = useRef<number | null>(null);
+  useEffect(() => {
+    if (!lastSignal) return;
+    if (lastSignal.type === 'speech_start') {
+      const wait = chatUserSentAt.current ? Date.now() - chatUserSentAt.current : null;
+      console.log(`[Call][chat] clone reply start${wait !== null ? ` (waited ${wait}ms after user)` : ''}`);
+      chatReplyStartAt.current = Date.now();
+      chatUserSentAt.current = null;
+    } else if (lastSignal.type === 'speech_text' && lastSignal.text) {
+      console.log(`[Call][chat] clone: "${lastSignal.text}"`);
+    } else if (lastSignal.type === 'speech_end') {
+      const dur = chatReplyStartAt.current ? Date.now() - chatReplyStartAt.current : null;
+      console.log(`[Call][chat] clone reply end${dur !== null ? ` (took ${dur}ms)` : ''}`);
+      chatReplyStartAt.current = null;
+    }
+  }, [lastSignal]);
+
   const canSpeak = (phase === 'listening' || phase === 'confirming') && sttActive;
 
   useEffect(() => {
@@ -758,16 +904,26 @@ function CallScreenInner({ route, navigation }: Props) {
     }
   }, [lastSignal]);
 
+  const startedRef = useRef(false);
   useEffect(() => {
     if (!accessToken) return;
+    if (startedRef.current) return;
+    const kick = () => {
+      if (startedRef.current) return;
+      startedRef.current = true;
+      requestAnimationFrame(() => {
+        console.log(`[Call][flow] +${Date.now()} startLive() begin (pipeline=${livePipeline ?? 'timeout'})`);
+        void startLive();
+      });
+    };
+    if (livePipeline !== null) {
+      kick();
+      return;
+    }
+    const t = setTimeout(kick, 2500);
+    return () => clearTimeout(t);
 
-    const raf = requestAnimationFrame(() => {
-      console.log(`[Call][flow] +${Date.now()} startLive() begin (deferred 1 frame)`);
-      void startLive();
-    });
-    return () => cancelAnimationFrame(raf);
-
-  }, []);
+  }, [livePipeline]);
 
   useEffect(() => {
     if (!__DEV__) return;
@@ -1194,15 +1350,15 @@ function CallScreenInner({ route, navigation }: Props) {
   return (
     <View style={s.container}>
       {}
-      {}
-      {}
-      {remoteStream ? (
+      {
 
-        <View style={[StyleSheet.absoluteFill, s.videoEdgeMask]}>
+}
+      {remoteStream ? (
+        <View style={s.videoFixedContainer}>
           <RTCView
             streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
-            objectFit="contain"
-            style={[StyleSheet.absoluteFill, s.videoEdgeTrim]}
+            objectFit="cover"
+            style={s.videoFixedRtc}
           />
         </View>
       ) : personaImage ? (
@@ -1215,7 +1371,7 @@ function CallScreenInner({ route, navigation }: Props) {
         <View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.zinc900 }]} />
       )}
 
-      {showCallDev ? (
+      {hudDevBox ? (
         <View style={{ position: "absolute", top: 8, right: 8, zIndex: 10,
           backgroundColor: "rgba(0,0,0,0.5)", padding: 4 }}>
           <Text style={{ color: "#0f0", fontSize: 10 }}>route:{CALL_ROUTE}</Text>
@@ -1324,9 +1480,12 @@ function CallScreenInner({ route, navigation }: Props) {
         style={StyleSheet.absoluteFill}
       />
 
-      {showCallDev && liveState === "live" ? <CallTimingHUD /> : null}
+      {hudTiming && liveState === "live" ? <CallTimingHUD /> : null}
       {}
-      {showCallDev && liveState === "live" ? <CallStateHUD /> : null}
+      {hudState && liveState === "live" ? <CallStateHUD /> : null}
+      {
+}
+      {hudFaceTrack && FACE_DIAG_ENABLED ? <FaceTrackHUD /> : null}
       {showCallDev && liveState === "live" ? (
 
         <View
@@ -1729,6 +1888,8 @@ function CallScreenInner({ route, navigation }: Props) {
         senderAvatarUrl={svgaSender?.avatarUrl}
         giftName={svgaSender?.giftName}
       />
+
+      {}
     </View>
   );
 }
@@ -1767,6 +1928,20 @@ const s = StyleSheet.create({
     width: "100%",
     height: "100%",
     marginHorizontal: -VIDEO_EDGE_TRIM_PX,
+  },
+
+  videoFixedContainer: {
+    position: "absolute",
+    top: VIDEO_TOP,
+    left: VIDEO_LEFT,
+    width: VIDEO_W,
+    height: VIDEO_H,
+    overflow: "hidden",
+    backgroundColor: COLORS.zinc950,
+  },
+  videoFixedRtc: {
+    width: VIDEO_W,
+    height: VIDEO_H,
   },
 
   pip: {

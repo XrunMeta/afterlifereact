@@ -147,14 +147,27 @@ export interface CalibrationSample {
   bestScore: number;
   scores: { personId: string; score: number }[];
   threshold: number;
+
+  matchedHasL2p: boolean | null;
 }
+
+export type CalibrateFaceResponse = {
+  id: number;
+  matchedId: string | null;
+  bestScore: number;
+  threshold: number;
+  scoreCount: number;
+
+  matchedHasL2p: boolean | null;
+};
 
 export async function v_383262(
   v_2ca7e0,
   v_f9a45c,
   v_b0015d,
-): Promise<{ id: number; matchedId: string | null; bestScore: number; threshold: number; scoreCount: number }> {
-  return v_04b58a<{ id: number; matchedId: string | null; bestScore: number; threshold: number; scoreCount: number }>(
+  v_6e0fd3,
+): Promise<CalibrateFaceResponse> {
+  return v_04b58a<CalibrateFaceResponse>(
     '/oth-path',
     v_2ca7e0,
     {
@@ -162,6 +175,7 @@ export async function v_383262(
       body: JSON.stringify({
         vector: v_f9a45c,
         groundTruthPersonId: v_b0015d != null ? String(v_b0015d) : null,
+        cloneId: v_6e0fd3,
       }),
     },
   );

@@ -27,6 +27,7 @@ import {
   v_f965d7,
   v_622116,
   v_34b1b1,
+  v_723b6d,
   type v_49127c,
 } from "../../../lib/cropImage";
 import { v_1bfbd0 } from "../../../components/constants";
@@ -146,6 +147,8 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
   const v_ee2cf4 = v_a2349e.multiply(v_a37637, v_475100);
 
   const v_ce9295 = async () => {
+
+    console.log("[CropImageModal] confirm ENTER", { hasSource: !!v_04e790, processing: v_231e09.current });
     if (!v_04e790) return;
 
     if (v_231e09.current) return;
@@ -157,6 +160,18 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
         { x: v_72e87f.x, y: v_72e87f.y },
       )
     ) {
+
+      console.log("[CropImageModal] confirm BLOCKED by coversCropArea gate");
+      return;
+    }
+
+    if (!v_6036cc() && v_e0371c.current < v_723b6d) {
+
+      console.log("[CropImageModal] confirm BLOCKED by letterbox gate", v_e0371c.current);
+      v_889fad(
+        v_8d41d7("create.image.validateReselectTitle"),
+        v_8d41d7("create.image.validateLetterbox"),
+      );
       return;
     }
     v_231e09.current = true;
@@ -181,7 +196,10 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
         );
       }
 
+      console.log("[CropImageModal] cropToAvatar OK, calling validatePersonaImage:", v_cd1446.slice(-40));
       const v_81e2ef = await v_9139dc(v_cd1446);
+
+      console.log("[CropImageModal] validate result:", v_81e2ef);
       if (!v_81e2ef.ok) {
         v_889fad(
           v_8d41d7("create.image.validateReselectTitle"),

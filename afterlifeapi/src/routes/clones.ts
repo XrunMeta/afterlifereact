@@ -154,6 +154,8 @@ const v_722b6d = v_1f4ea7.object({
 
   idle_video_job_id: v_1f4ea7.string().uuid().optional(),
   voice_clone_job_id: v_1f4ea7.string().uuid().optional(),
+
+  pipeline: v_1f4ea7.enum(["musetalk", "echomimic_v3"]).optional(),
 });
 
 const v_34d2d5 = new Set(["oth-user@example.invalid", "oth-test@example.invalid"]);
@@ -347,8 +349,8 @@ v_f891e6.post(
           `INSERT INTO clones
              (owner_id, name, username, description, clone_type, category, visibility,
               avatar_url, cover_image_url, voice_type, voice_preset_id,
-              l1_profile, primary_editor_user_id, relation)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              l1_profile, primary_editor_user_id, relation, pipeline)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, 'musetalk'))
            RETURNING id, name, username, clone_type, visibility, created_at`,
         )
         .bind(
@@ -366,6 +368,7 @@ v_f891e6.post(
           v_564b6a !== null ? JSON.stringify(v_564b6a) : null,
           v_43e90c,
           v_4d33b2.relation ?? null,
+          v_4d33b2.pipeline ?? null,
         )
         .first();
     } catch (v_49263d) {
@@ -1539,11 +1542,33 @@ const v_02c038 = v_1f4ea7
     relationship: v_1f4ea7.string().max(2000).optional(),
     context: v_1f4ea7.string().max(2000).optional(),
     recent_topics: v_1f4ea7.string().max(2000).optional(),
+
+    relation_category: v_1f4ea7.string().max(40).optional(),
+    relation_subtype: v_1f4ea7.string().max(100).optional(),
+    relation_episode: v_1f4ea7.string().max(2000).optional(),
+    address_form: v_1f4ea7.string().max(100).optional(),
+    speech_form: v_1f4ea7.string().max(40).optional(),
+    job_category: v_1f4ea7.string().max(100).optional(),
+    job_detail: v_1f4ea7.string().max(500).optional(),
   })
   .strict()
   .refine((v_b6c474) => Object.keys(v_b6c474).length > 0, {
     message: "At least one field required.",
   });
+
+const v_03f1e5 = [
+  "memory_summary",
+  "relationship",
+  "context",
+  "recent_topics",
+  "relation_category",
+  "relation_subtype",
+  "relation_episode",
+  "address_form",
+  "speech_form",
+  "job_category",
+  "job_detail",
+] as const;
 
 v_f891e6.patch("/:id/l2", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
@@ -1568,7 +1593,7 @@ v_f891e6.patch("/:id/l2", v_6690d9, async (v_3f4e2e) => {
   const v_479f05 = await v_3821c0(v_3f4e2e.env, v_6e0fd3, v_43e90c);
   let v_9390e8 = {};
   if (v_479f05) { try { v_9390e8 = JSON.parse(v_479f05); } catch { v_9390e8 = {}; } }
-  for (const v_0eb677 of ["memory_summary", "relationship", "context", "recent_topics"] as const) {
+  for (const v_0eb677 of v_03f1e5) {
     if (v_4d33b2[v_0eb677] !== undefined) v_9390e8[v_0eb677] = v_4d33b2[v_0eb677];
   }
   try {
@@ -1578,7 +1603,31 @@ v_f891e6.patch("/:id/l2", v_6690d9, async (v_3f4e2e) => {
   }
 
   const v_76a373 = {};
-  for (const v_0eb677 of ["memory_summary", "relationship", "context", "recent_topics"] as const) {
+  for (const v_0eb677 of v_03f1e5) {
+    if (v_9390e8[v_0eb677] !== undefined) v_76a373[v_0eb677] = v_9390e8[v_0eb677];
+  }
+  return v_3f4e2e.json({ l2_profile: v_76a373 });
+});
+
+v_f891e6.get("/:id/l2", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+
+  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  const v_00efe2 = await v_d875d1(v_3f4e2e.env.DB, v_eb25ce, v_43e90c);
+  if (!v_00efe2 && v_eb25ce.visibility !== "public") {
+    throw new v_3ebe58("FORBIDDEN", "이 클론에 접근할 수 없어요.");
+  }
+
+  const v_479f05 = await v_3821c0(v_3f4e2e.env, v_6e0fd3, v_43e90c);
+  let v_9390e8 = {};
+  if (v_479f05) { try { v_9390e8 = JSON.parse(v_479f05); } catch { v_9390e8 = {}; } }
+  const v_76a373 = {};
+  for (const v_0eb677 of v_03f1e5) {
     if (v_9390e8[v_0eb677] !== undefined) v_76a373[v_0eb677] = v_9390e8[v_0eb677];
   }
   return v_3f4e2e.json({ l2_profile: v_76a373 });
