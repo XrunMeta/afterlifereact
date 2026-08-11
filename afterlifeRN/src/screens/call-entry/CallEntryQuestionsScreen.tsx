@@ -11,6 +11,7 @@ import {
   v_472849,
   v_39a996,
   v_e767d1,
+  v_0e1f26,
   v_326be8,
   v_efd272,
   v_bfa1d6,
@@ -82,6 +83,13 @@ export default function v_601c02({
     return () => { v_2008a4 = true; };
   }, [v_cf55be, v_2ca7e0, v_6e0fd3]);
   const v_5ca6b8 = v_e662ae<v_122070>(null);
+
+  const [v_18641c, v_dfa7b7] = v_5ab095(false);
+  v_a3453e.useEffect(() => {
+    const v_fdffe1 = v_0e1f26.addListener("keyboardDidShow", () => v_dfa7b7(true));
+    const v_2f19d2 = v_0e1f26.addListener("keyboardDidHide", () => v_dfa7b7(false));
+    return () => { v_fdffe1.remove(); v_2f19d2.remove(); };
+  }, []);
 
   const v_de7f2d = (v_5b66e2) => {
     if (v_5b66e2 == null || !v_5ca6b8.current) return;
@@ -289,7 +297,7 @@ export default function v_601c02({
         </ScrollView>
 
         {}
-        <View style={[v_fd5f43.footer, { paddingBottom: Math.max(v_033e14.bottom, 4) }]}>
+        <View style={[v_fd5f43.footer, { paddingBottom: v_18641c ? 0 : Math.max(v_033e14.bottom, 4) }]}>
           <TouchableOpacity
             style={[v_fd5f43.saveBtn, (!v_fc0cf5 || v_35bf26) && v_fd5f43.saveBtnDisabled]}
             onPress={v_1e693b}
