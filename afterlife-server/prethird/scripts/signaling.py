@@ -1063,12 +1063,36 @@ def _make_dc_handler(sess, channel):
                         )
                     except Exception as exc:
                         log.warning("session %s finalize failed: %s", sess.session_id, exc)
-                # Phase B 자동학습: say 턴만, fire-and-forget(통화 무영향)
-                # [T-067 Task 12] current_speaker(화자 확정 상태) 있으면 화자별 L2'로 라우팅,
-                # 없으면 기존 사용자별 L2 그대로(learn_writeback 내부 person_id 분기).
+                # 대화 원문 기록 + Phase B 자동학습. 둘 다 say 턴에서만, 둘 다
+                # fire-and-forget(통화 무영향)이지만 서로 독립이다 — 아래 순서·조건이
+                # 얽히면 안 된다.
                 if mode == "say":
-                    from learn_writeback import learn_writeback
                     _clone_reply = "".join(getattr(turn, "_tokens", [])) if turn is not None else ""
+
+                    # [T-252 Task14] call_turns 기록. 학습(아래)과 달리 어떤 게이트도 없다 —
+                    # PRETHIRD_LEARN_ENABLED 가 꺼져 있든 사용자가 학습에 동의하지 않았든
+                    # 통화 원문은 남긴다(통화 내역 화면·감사의 유일한 출처). 학습보다 먼저
+                    # 스케줄하되, ensure_future 라 학습을 지연시키지 않는다.
+                    # call_id 는 별도 값이 아니라 prethird session_id 그대로다 —
+                    # call_lifecycle.call_start 가 sessionId 를 그대로 call_sessions.call_id 로
+                    # INSERT 한다(afterlifeapi calls.ts prethird-start).
+                    try:
+                        from turn_writeback import turn_writeback
+                        _sid = getattr(sess, "session_id", None)
+                        asyncio.ensure_future(turn_writeback(
+                            _sid, text, _clone_reply,
+                            # seq 는 RN 이 통화 안에서 턴마다 부여한 값이라 재진입 방어 키로 충분.
+                            # 없으면(None) 중복검사 없이 그대로 기록한다.
+                            dedupe_key=f"{_sid}:{seq}" if seq is not None else None,
+                        ))
+                    except Exception as exc:
+                        # import 실패 등도 통화·학습에 절대 영향 주지 않는다.
+                        log.warning("session %s turn writeback schedule failed: %s",
+                                    getattr(sess, "session_id", "?"), exc)
+
+                    # [T-067 Task 12] current_speaker(화자 확정 상태) 있으면 화자별 L2'로 라우팅,
+                    # 없으면 기존 사용자별 L2 그대로(learn_writeback 내부 person_id 분기).
+                    from learn_writeback import learn_writeback
                     _speaker = getattr(sess, "current_speaker", None)
                     _person_id = _speaker[0] if _speaker else None
                     asyncio.ensure_future(learn_writeback(

@@ -90,9 +90,16 @@ import { DialingScreen } from "../../components/call/DialingScreen";
 import { CallVoiceBall } from "../../components/call/CallVoiceBall";
 import { CallTimingHUD } from "../../components/call/CallTimingHUD";
 import { CallStateHUD } from "../../components/call/CallStateHUD";
+
+import { FaceTrackHUD } from "../../components/call/FaceTrackHUD";
+import {
+  publishFaceTracks,
+  publishFaceDiag,
+  resetFaceRoster,
+} from "../../face/faceTrackRosterStore";
 import { CallTimingPanel } from "../../components/call/CallTimingPanel";
 import { CloneSubtitleTicker } from "../../components/call/CloneSubtitleTicker";
-import { useDevOverlayStore } from "../../stores/devOverlayStore";
+import { useDevOverlayStore, useCallHudVisible } from "../../stores/devOverlayStore";
 import { useTimingConfigStore } from "../../realtime/timingConfig";
 import { startTimingLog } from "../../realtime/timingLog";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -189,6 +196,11 @@ function CallScreenInner({ route, navigation }: Props) {
   const callDevUi = useDevOverlayStore((s) => s.callDevUiVisible);
   const showCallDev = __DEV__ && callDevUi;
 
+  const hudDevBox = useCallHudVisible("devBox");
+  const hudTiming = useCallHudVisible("timing");
+  const hudState = useCallHudVisible("state");
+  const hudFaceTrack = useCallHudVisible("faceTrack");
+
   const [cameraFacing, setCameraFacing] = useState<"front" | "back">("front");
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
@@ -247,13 +259,15 @@ function CallScreenInner({ route, navigation }: Props) {
     if (!accessToken) return;
     let cancelled = false;
 
+    setConsentGranted(true);
     listPersons(accessToken, cloneId)
       .then(({ items }) => {
         if (cancelled) return;
-        const hasConsent = items.some((p) => p.consentState === "granted");
-        setConsentGranted(hasConsent);
+        const hasPersonConsent = items.some((p) => p.consentState === "granted");
         setPersons(items); 
-        console.log(`[Call][face] listPersons ← granted=${hasConsent} (total=${items.length})`);
+        console.log(
+          `[Call][face] listPersons ← personConsent=${hasPersonConsent} (total=${items.length}) · gate=약관동의`,
+        );
       })
       .catch((err) => {
         console.warn("[Call][face] listPersons failed:", err);
@@ -406,6 +420,15 @@ function CallScreenInner({ route, navigation }: Props) {
     onDiag: setFaceDiag,
     calibrate: calibrateOpt,
   });
+
+  useEffect(() => {
+    publishFaceDiag(faceDiag, Date.now());
+  }, [faceDiag]);
+
+  useEffect(() => {
+    resetFaceRoster();
+    return () => resetFaceRoster();
+  }, []);
 
   const handleSpeakerEvent = useCallback(
     (evt: SpeakerEvent) => {
@@ -670,6 +693,8 @@ function CallScreenInner({ route, navigation }: Props) {
             }
           }
           onFaceEmbedding(vector);
+
+          publishFaceTracks(trackingIds, Date.now());
         },
       ),
 
@@ -1284,7 +1309,7 @@ function CallScreenInner({ route, navigation }: Props) {
         <View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.zinc900 }]} />
       )}
 
-      {showCallDev ? (
+      {hudDevBox ? (
         <View style={{ position: "absolute", top: 8, right: 8, zIndex: 10,
           backgroundColor: "rgba(0,0,0,0.5)", padding: 4 }}>
           <Text style={{ color: "#0f0", fontSize: 10 }}>route:{CALL_ROUTE}</Text>
@@ -1393,9 +1418,12 @@ function CallScreenInner({ route, navigation }: Props) {
         style={StyleSheet.absoluteFill}
       />
 
-      {showCallDev && liveState === "live" ? <CallTimingHUD /> : null}
+      {hudTiming && liveState === "live" ? <CallTimingHUD /> : null}
       {}
-      {showCallDev && liveState === "live" ? <CallStateHUD /> : null}
+      {hudState && liveState === "live" ? <CallStateHUD /> : null}
+      {
+}
+      {hudFaceTrack && FACE_DIAG_ENABLED ? <FaceTrackHUD /> : null}
       {showCallDev && liveState === "live" ? (
 
         <View
