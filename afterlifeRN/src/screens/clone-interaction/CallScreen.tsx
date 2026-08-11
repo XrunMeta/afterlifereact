@@ -29,6 +29,8 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 
 import SvgaOverlay from "../../components/gift/SvgaOverlay";
 
+import CallEntryQuestionsScreen from "../call-entry/CallEntryQuestionsScreen";
+
 import SvgaThumb from "../../components/gift/SvgaThumb";
 import { RTCView } from "react-native-webrtc";
 import {
@@ -204,6 +206,19 @@ function CallScreenInner({ route, navigation }: Props) {
   const [cameraFacing, setCameraFacing] = useState<"front" | "back">("front");
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+
+  const [callEntryOpen, setCallEntryOpen] = useState(false);
+  useEffect(() => {
+    if (!clone) return;
+    const attrs = clone.l1Profile?.attrs ?? {};
+    const complete =
+      (attrs.relation_category ?? "").trim().length > 0 &&
+      (attrs.relation_subtype ?? "").trim().length > 0 &&
+      (attrs.speech_form ?? "").trim().length > 0 &&
+      (attrs.job_category ?? "").trim().length > 0 &&
+      (attrs.job_detail ?? "").trim().length > 0;
+    if (!complete) setCallEntryOpen(true);
+  }, [clone]);
 
   const [faceProcOff, setFaceProcOff] = useState(false);
 
@@ -1825,6 +1840,28 @@ function CallScreenInner({ route, navigation }: Props) {
         senderName={svgaSender?.name}
         senderAvatarUrl={svgaSender?.avatarUrl}
         giftName={svgaSender?.giftName}
+      />
+
+      {}
+      <CallEntryQuestionsScreen
+        visible={callEntryOpen}
+        cloneId={cloneId}
+        name={clone?.displayName ?? paramName ?? ""}
+        existingL1={
+          clone?.l1Profile
+            ? { attrs: clone.l1Profile.attrs, notes: clone.l1Profile.notes }
+            : null
+        }
+        onCancel={() => {
+          setCallEntryOpen(false);
+          navigation.goBack();
+        }}
+        onCall={() => setCallEntryOpen(false)}
+        onLearn={() => {
+          setCallEntryOpen(false);
+
+          navigation.goBack();
+        }}
       />
     </View>
   );
