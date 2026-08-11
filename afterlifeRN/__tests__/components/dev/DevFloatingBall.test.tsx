@@ -3,6 +3,10 @@ import { render, screen, fireEvent } from '@testing-library/react-native';
 import { DevFloatingBall } from '../../../src/components/dev/DevFloatingBall';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { useConfigStore } from '../../../src/stores/configStore';
+import {
+  CALL_HUD_DEFAULTS,
+  useDevOverlayStore,
+} from '../../../src/stores/devOverlayStore';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -58,4 +62,47 @@ test('toggle switches configStore testMode', () => {
   fireEvent.press(screen.getByLabelText('dev-ball-button'));
   fireEvent.press(screen.getByLabelText('dev-test-mode-toggle'));
   expect(useConfigStore.getState().testMode).toBe(true);
+});
+
+describe('통화 HUD 섹션', () => {
+  beforeEach(() => {
+    useDevOverlayStore.setState({
+      callDevUiVisible: true,
+      hudVisible: { ...CALL_HUD_DEFAULTS },
+    });
+  });
+
+  test('HUD 4종 토글 행이 메뉴에 뜬다', () => {
+    render(<DevFloatingBall />);
+    fireEvent.press(screen.getByLabelText('dev-ball-button'));
+    for (const key of ['devBox', 'state', 'timing', 'faceTrack']) {
+      expect(screen.getByLabelText(`dev-hud-toggle-${key}`)).toBeTruthy();
+    }
+  });
+
+  test('행을 누르면 해당 HUD 만 뒤집힌다', () => {
+    render(<DevFloatingBall />);
+    fireEvent.press(screen.getByLabelText('dev-ball-button'));
+    fireEvent.press(screen.getByLabelText('dev-hud-toggle-faceTrack'));
+    expect(useDevOverlayStore.getState().hudVisible.faceTrack).toBe(false);
+    expect(useDevOverlayStore.getState().hudVisible.timing).toBe(
+      CALL_HUD_DEFAULTS.timing,
+    );
+  });
+
+  test('토글 후에도 메뉴가 닫히지 않는다(연속 조작)', () => {
+    render(<DevFloatingBall />);
+    fireEvent.press(screen.getByLabelText('dev-ball-button'));
+    fireEvent.press(screen.getByLabelText('dev-hud-toggle-timing'));
+    fireEvent.press(screen.getByLabelText('dev-hud-toggle-state'));
+    expect(useDevOverlayStore.getState().hudVisible.timing).toBe(true);
+    expect(useDevOverlayStore.getState().hudVisible.state).toBe(true);
+  });
+
+  test('마스터 OFF 면 섹션 제목에 표시된다', () => {
+    useDevOverlayStore.setState({ callDevUiVisible: false });
+    render(<DevFloatingBall />);
+    fireEvent.press(screen.getByLabelText('dev-ball-button'));
+    expect(screen.getByText(/통화 HUD \(마스터 OFF\)/)).toBeTruthy();
+  });
 });

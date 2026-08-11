@@ -798,7 +798,8 @@
       "validateNoFace": "No face detected. Please face the camera and try again.",
       "validateTooSmall": "Your face is too small. Please move closer to the camera and try again.",
       "validateTooLarge": "Your face is too large. Please move back a bit and try again.",
-      "validateOffCenter": "Your face is outside the silhouette. Please center your face and try again."
+      "validateOffCenter": "Your face is outside the silhouette. Please center your face and try again.",
+      "validateLetterbox": "Square or landscape photos can't be used. Please choose a portrait photo."
     },
     "voice": {
       "presets": "Default voice presets",

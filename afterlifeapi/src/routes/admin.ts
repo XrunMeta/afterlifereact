@@ -1191,7 +1191,8 @@ admin.get("/oth-path", requireAdmin, async (c) => {
             c.created_at AS createdAt,
             c.deletion_state AS deletionState,
             c.soft_deleted_at AS softDeletedAt,
-            c.deleted_at AS deletedAt
+            c.deleted_at AS deletedAt,
+            c.pipeline
        FROM clones c
        LEFT JOIN users u ON u.id = c.owner_id
       WHERE c.id = ?`,
@@ -1200,6 +1201,46 @@ admin.get("/oth-path", requireAdmin, async (c) => {
     .first();
   if (!row) throw new APIError("NOT_FOUND", "Clone not found.");
   return c.json(row);
+});
+
+const adminClonePatchSchema = z.object({
+  pipeline: z.enum(["musetalk", "echomimic_v3"]).optional(),
+});
+
+admin.patch("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const parsed = adminClonePatchSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) {
+    throw new APIError("VALIDATION_FAILED", parsed.error.message);
+  }
+  const body = parsed.data;
+
+  const row = await c.env.DB
+    .prepare(`SELECT id FROM clones WHERE id = ?`)
+    .bind(id)
+    .first<{ id: number }>();
+  if (!row) throw new APIError("NOT_FOUND", "Clone not found.");
+
+  const sets: string[] = [];
+  const binds: unknown[] = [];
+  if (body.pipeline !== undefined) {
+    sets.push(`pipeline = ?`);
+    binds.push(body.pipeline);
+  }
+  if (sets.length === 0) {
+    return c.json({ ok: true, updated: 0 });
+  }
+  sets.push(`updated_at = CURRENT_TIMESTAMP`);
+  binds.push(id);
+
+  await c.env.DB
+    .prepare(`UPDATE clones SET ${sets.join(", ")} WHERE id = ?`)
+    .bind(...binds)
+    .run();
+  return c.json({ ok: true, updated: sets.length - 1 });
 });
 
 admin.get("/oth-path", requireAdmin, async (c) => {

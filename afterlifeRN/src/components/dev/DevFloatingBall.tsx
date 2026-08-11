@@ -19,6 +19,10 @@ import { TEST_MODE_HANDLES } from '../../config/testModeWhitelist';
 import { seedSource } from '../../api/source';
 import { getCurrentRouteName } from '../../navigation/navigationRef';
 import { getApisForRoute, type ScreenApiRef } from '../../api/screenApiMap';
+import {
+  CALL_HUD_ITEMS,
+  useDevOverlayStore,
+} from '../../stores/devOverlayStore';
 
 const BALL = 52;
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
@@ -38,6 +42,10 @@ export function DevFloatingBall() {
   const setTestMode = useConfigStore((s) => s.setTestMode);
   const canToggleTestMode =
     !!currentUser?.handle && TEST_MODE_HANDLES.has(currentUser.handle);
+
+  const callDevUi = useDevOverlayStore((s) => s.callDevUiVisible);
+  const hudVisible = useDevOverlayStore((s) => s.hudVisible);
+  const toggleHudVisible = useDevOverlayStore((s) => s.toggleHudVisible);
 
   const responder = useRef(
     PanResponder.create({
@@ -138,6 +146,40 @@ export function DevFloatingBall() {
               <Text style={styles.rowText}>테스트 모드 {testMode ? 'ON' : 'OFF'}</Text>
             </TouchableOpacity>
           )}
+
+          {
+}
+          <View style={styles.sectionSep} />
+          <Text style={styles.sectionTitle}>
+            통화 HUD {callDevUi ? '' : '(마스터 OFF)'}
+          </Text>
+          {CALL_HUD_ITEMS.map((item) => {
+            const on = hudVisible[item.key] === true;
+            return (
+              <TouchableOpacity
+                key={item.key}
+                accessibilityLabel={`dev-hud-toggle-${item.key}`}
+                style={styles.row}
+                onPress={() => toggleHudVisible(item.key)}
+              >
+                <Feather
+                  name={on ? 'check-square' : 'square'}
+                  size={16}
+                  color={on ? '#7CFC00' : '#6b7280'}
+                />
+                <Text
+                  style={[
+                    styles.rowText,
+
+                    !callDevUi && styles.rowTextMuted,
+                    on && callDevUi && styles.rowTextOn,
+                  ]}
+                >
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       )}
 
@@ -272,6 +314,19 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   rowText: { color: '#fff' },
+  rowTextOn: { color: '#7CFC00' },
+  rowTextMuted: { color: '#6b7280' },
+  sectionSep: {
+    height: 1,
+    backgroundColor: '#374151',
+    marginVertical: 6,
+  },
+  sectionTitle: {
+    color: '#9ca3af',
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
   modalWrap: {
     flex: 1,
     alignItems: 'center',

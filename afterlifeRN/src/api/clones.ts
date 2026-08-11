@@ -34,6 +34,8 @@ export interface CreateClonePayload {
   voice_clone_job_id?: string;
 
   pin?: string;
+
+  pipeline?: "musetalk" | "echomimic_v3";
 }
 
 export interface CreatedClone {
@@ -68,6 +70,8 @@ export interface CloneDetailResponse {
     };
     likedByMe: boolean;
     createdAt: string;
+
+    pipeline?: string | null;
   };
 }
 export async function getCloneDetail(
@@ -1197,6 +1201,39 @@ export async function patchClone(
     `/oth-path${cloneId}`,
     accessToken,
     { method: "PATCH", body: JSON.stringify(payload) },
+  );
+}
+
+export interface CloneL2Fields {
+  memory_summary?: string;
+  relationship?: string;
+  context?: string;
+  recent_topics?: string;
+  relation_category?: string;
+  relation_subtype?: string;
+  relation_episode?: string;
+  address_form?: string;
+  speech_form?: string;
+  job_category?: string;
+  job_detail?: string;
+}
+
+export async function getCloneL2(
+  accessToken: string,
+  cloneId: number,
+): Promise<{ l2_profile: CloneL2Fields }> {
+  return authFetch(`/oth-path${cloneId}/l2`, accessToken, { method: "GET" });
+}
+
+export async function patchCloneL2(
+  accessToken: string,
+  cloneId: number,
+  fields: CloneL2Fields,
+): Promise<{ l2_profile: CloneL2Fields }> {
+  return authFetch(
+    `/oth-path${cloneId}/l2`,
+    accessToken,
+    { method: "PATCH", body: JSON.stringify(fields) },
   );
 }
 

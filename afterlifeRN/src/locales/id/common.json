@@ -798,7 +798,8 @@
       "validateNoFace": "Wajah tidak terdeteksi. Silakan menghadap kamera dan coba lagi.",
       "validateTooSmall": "Wajah terlalu kecil. Mohon mendekat ke kamera dan coba lagi.",
       "validateTooLarge": "Wajah terlalu besar. Mohon mundur sedikit dan coba lagi.",
-      "validateOffCenter": "Wajah di luar siluet. Silakan posisikan di tengah dan coba lagi."
+      "validateOffCenter": "Wajah di luar siluet. Silakan posisikan di tengah dan coba lagi.",
+      "validateLetterbox": "Foto persegi atau lanskap tidak dapat digunakan. Silakan pilih foto potret."
     },
     "voice": {
       "presets": "Preset Suara Dasar",

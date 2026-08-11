@@ -256,6 +256,142 @@ describe("useFaceIdentify (훅 오케스트레이션)", () => {
     });
 
     await waitFor(() => expect(calibrateFn).toHaveBeenCalledTimes(1));
-    expect(calibrateFn).toHaveBeenCalledWith("tok", VEC, 5);
+
+    expect(calibrateFn).toHaveBeenCalledWith("tok", VEC, 5, 999);
+  });
+
+  it("계측 상시 전송 — groundTruthPersonId 가 null 이어도 매 사이클 calibrateFn 이 불린다", async () => {
+    const matchFaceFn = jest.fn().mockResolvedValue({
+      matches: [],
+      best: { personId: 9, displayName: "지수", score: 0.81 },
+      threshold: 0.83,
+    });
+    const calibrateFn = jest.fn().mockResolvedValue({
+      id: 1,
+      matchedId: "9",
+      bestScore: 0.81,
+      threshold: 0.83,
+      scoreCount: 1,
+      matchedHasL2p: false,
+    });
+    const { result } = renderHook(() =>
+      useFaceIdentify({
+        enabled: true,
+        accessToken: "tok",
+        cloneId: 999,
+        onEvent: jest.fn(),
+
+        calibrate: { accessToken: "tok", groundTruthPersonId: null },
+        deps: { matchFaceFn, calibrateFn },
+      }),
+    );
+
+    result.current.onEmbedding(VEC);
+    await waitFor(() => expect(calibrateFn).toHaveBeenCalledTimes(1));
+    expect(calibrateFn).toHaveBeenCalledWith("tok", VEC, null, 999);
+
+    result.current.onEmbedding(VEC);
+    await waitFor(() => expect(calibrateFn).toHaveBeenCalledTimes(2));
+    result.current.onEmbedding(VEC);
+    await waitFor(() => expect(calibrateFn).toHaveBeenCalledTimes(3));
+  });
+
+  it("계측은 onDiag 소비자가 없어도(HUD 미표시) 전송된다 — 진단 블록과 분리", async () => {
+    const matchFaceFn = jest.fn().mockResolvedValue({
+      matches: [],
+      best: null,
+      threshold: 0.83,
+    });
+    const calibrateFn = jest.fn().mockResolvedValue({
+      id: 2,
+      matchedId: null,
+      bestScore: 0.1,
+      threshold: 0.83,
+      scoreCount: 0,
+      matchedHasL2p: null,
+    });
+    const { result } = renderHook(() =>
+      useFaceIdentify({
+        enabled: true,
+        accessToken: "tok",
+        cloneId: 12,
+        onEvent: jest.fn(),
+
+        calibrate: { accessToken: "tok", groundTruthPersonId: null },
+        deps: { matchFaceFn, calibrateFn },
+      }),
+    );
+    result.current.onEmbedding(VEC);
+    await waitFor(() => expect(calibrateFn).toHaveBeenCalledTimes(1));
+    expect(calibrateFn).toHaveBeenCalledWith("tok", VEC, null, 12);
+  });
+
+  it("게이트 off(calibrate 미지정) → calibrateFn 미호출", async () => {
+    const matchFaceFn = jest.fn().mockResolvedValue({
+      matches: [],
+      best: { personId: 9, displayName: "지수", score: 0.81 },
+      threshold: 0.83,
+    });
+    const calibrateFn = jest.fn();
+    const { result } = renderHook(() =>
+      useFaceIdentify({
+        enabled: true,
+        accessToken: "tok",
+        cloneId: 999,
+        onEvent: jest.fn(),
+        deps: { matchFaceFn, calibrateFn },
+      }),
+    );
+    result.current.onEmbedding(VEC);
+    await waitFor(() => expect(matchFaceFn).toHaveBeenCalledTimes(1));
+    expect(calibrateFn).not.toHaveBeenCalled();
+  });
+
+  it("계측 전송이 실패해도(rejected) 인식 루프는 계속 돈다 — fire-and-forget", async () => {
+    const matchFaceFn = jest.fn().mockResolvedValue({
+      matches: [],
+      best: { personId: 4, displayName: "민수", score: 0.9 },
+      threshold: 0.5,
+    });
+
+    const calibrateFn = jest.fn().mockRejectedValue(new Error("400 invalid cloneId"));
+    const onEvent = jest.fn();
+    const { result } = renderHook(() =>
+      useFaceIdentify({
+        enabled: true,
+        accessToken: "tok",
+        cloneId: 999,
+        onEvent,
+        calibrate: { accessToken: "tok", groundTruthPersonId: null },
+        deps: { matchFaceFn, calibrateFn },
+      }),
+    );
+
+    result.current.onEmbedding(VEC);
+    await waitFor(() => expect(calibrateFn).toHaveBeenCalledTimes(1));
+    result.current.onEmbedding(VEC);
+    await waitFor(() => expect(calibrateFn).toHaveBeenCalledTimes(2));
+    result.current.onEmbedding(VEC);
+
+    await waitFor(() => expect(onEvent).toHaveBeenCalledTimes(1));
+    expect(onEvent).toHaveBeenCalledWith({ type: "speaker_confirmed", personId: 4, displayName: "민수" });
+  });
+
+  it("네트워크 실패 사이클(cycle 없음)에는 계측을 보내지 않는다 — 백오프 무력화 방지", async () => {
+    const matchFaceFn = jest.fn().mockRejectedValue(new Error("network"));
+    const calibrateFn = jest.fn();
+    const { result } = renderHook(() =>
+      useFaceIdentify({
+        enabled: true,
+        accessToken: "tok",
+        cloneId: 999,
+        onEvent: jest.fn(),
+        calibrate: { accessToken: "tok", groundTruthPersonId: null },
+        deps: { matchFaceFn, calibrateFn },
+      }),
+    );
+    result.current.onEmbedding(VEC);
+    await waitFor(() => expect(matchFaceFn).toHaveBeenCalledTimes(1));
+    expect(calibrateFn).not.toHaveBeenCalled();
   });
 });

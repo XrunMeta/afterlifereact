@@ -147,14 +147,27 @@ export interface CalibrationSample {
   bestScore: number;
   scores: { personId: string; score: number }[];
   threshold: number;
+
+  matchedHasL2p: boolean | null;
 }
+
+export type CalibrateFaceResponse = {
+  id: number;
+  matchedId: string | null;
+  bestScore: number;
+  threshold: number;
+  scoreCount: number;
+
+  matchedHasL2p: boolean | null;
+};
 
 export async function calibrateFace(
   accessToken: string,
   vector: number[],
   groundTruthPersonId: number | null,
-): Promise<{ id: number; matchedId: string | null; bestScore: number; threshold: number; scoreCount: number }> {
-  return authFetch<{ id: number; matchedId: string | null; bestScore: number; threshold: number; scoreCount: number }>(
+  cloneId: number,
+): Promise<CalibrateFaceResponse> {
+  return authFetch<CalibrateFaceResponse>(
     '/oth-path',
     accessToken,
     {
@@ -162,6 +175,7 @@ export async function calibrateFace(
       body: JSON.stringify({
         vector,
         groundTruthPersonId: groundTruthPersonId != null ? String(groundTruthPersonId) : null,
+        cloneId,
       }),
     },
   );

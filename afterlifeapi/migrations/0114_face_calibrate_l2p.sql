@@ -1,0 +1,28 @@
+-- 0114_face_calibrate_l2p.sql
+-- T-252 후속(2026-08-10 KST): 얼굴 인식 계측 샘플에 "매칭된 person 의 L2'(clone_ont_person)
+-- 보유 여부"를 함께 남긴다. 목적은 로그에서 아래 두 경우를 구분하는 것:
+--   1. 인식 실패(matched_person_id IS NULL)
+--   2. 인식은 됐는데 그 사람의 기억(L2')이 비어 있음(matched_has_l2p = 0)
+-- 지금까지는 둘 다 "대화가 이상하다"로만 보여 원인 분리가 불가능했다.
+--
+-- additive · idempotent · `wrangler d1 migrations apply` 로만 적용.
+-- !! `wrangler d1 execute --file 0114_face_calibrate_l2p.sql` 직접 적용 절대 금지
+--    (0074/0082 헤더 규약 동일 — 직접 실행 시 재실행 실패로 부분 상태 위험).
+--
+-- ⚠️ 테이블 재생성(DROP+CREATE) 금지 — D1 은 FK enforcement 를 끌 수 없어(0083 실측·0092 사고)
+--    DROP 의 implicit DELETE 가 자식 테이블을 CASCADE 로 전멸시킨다. face_calibrate_samples 는
+--    FK 가 없어 자기 자식은 없지만, 규약상 이 저장소에서는 ALTER TABLE ADD COLUMN 만 쓴다.
+--
+-- 컬럼 의미(NULL 허용 3상태):
+--   NULL : 미매칭이거나 이 마이그레이션 이전에 적재된 샘플(판정 불가)
+--   0    : 매칭된 person 에 clone_ont_person 행 없음(L2' 비어 있음)
+--   1    : 매칭된 person 에 clone_ont_person 행 있음
+-- 기본값을 두지 않는 이유: DEFAULT 0 이면 "L2' 없음"과 "판정 불가"가 섞여 계측 목적이 깨진다.
+--
+-- face_calibrate_samples 자체가 T-111 개통 전 제거(DROP) 대상 계측 버퍼이므로 이 컬럼도
+-- 그때 테이블과 함께 사라진다. 감사증적 아님 — 인덱스·백필 없이 앞으로 쌓이는 것만 본다.
+--
+-- SQLite/D1 에는 ADD COLUMN IF NOT EXISTS 가 없다. 재적용 시 "duplicate column name" 으로
+-- 실패하지만 wrangler d1 migrations apply 는 적용 이력(d1_migrations)을 보고 한 번만 실행하므로
+-- 정상 경로에서는 재실행되지 않는다(0097 등 기존 ADD COLUMN 마이그레이션과 동일한 취급).
+ALTER TABLE face_calibrate_samples ADD COLUMN matched_has_l2p INTEGER;

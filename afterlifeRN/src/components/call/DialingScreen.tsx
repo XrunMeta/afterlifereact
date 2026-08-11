@@ -58,7 +58,6 @@ export function DialingScreen(props: {
   const connectedRef = useRef(false);
   useEffect(() => {
 
-    console.log(`[Call][flow] +${Date.now()} DialingScreen outcome=${outcome} liveState=${liveState} elapsed=${elapsed}ms`);
     if (outcome === 'connected' && !connectedRef.current) {
       connectedRef.current = true;
       sounds.playConnect();

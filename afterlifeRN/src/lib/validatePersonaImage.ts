@@ -13,12 +13,12 @@ export type ValidationResult =
   | { ok: true }
   | { ok: false; reason: ValidationReason };
 
-const MIN_FACE_RATIO = 0.15;
-const MAX_FACE_RATIO = 0.65;
-const CY_MIN = 0.10;
-const CY_MAX = 0.60;
-const CX_MIN = 0.20;
-const CX_MAX = 0.80;
+const MIN_FACE_RATIO = 0.20;
+const MAX_FACE_RATIO = 0.42;
+const CY_MIN = 0.13;
+const CY_MAX = 0.42;
+const CX_MIN = 0.35;
+const CX_MAX = 0.65;
 
 function getImageSize(uri: string): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
@@ -33,6 +33,8 @@ function getImageSize(uri: string): Promise<{ width: number; height: number }> {
 export async function validatePersonaImage(uri: string): Promise<ValidationResult> {
   try {
     const { width, height } = await getImageSize(uri);
+
+    console.log("[validatePersonaImage] START", { uri: uri.slice(-40), width, height });
     const faces = await FaceDetection.detect(uri, {
       performanceMode: "accurate",
       landmarkMode: "none",
@@ -40,6 +42,8 @@ export async function validatePersonaImage(uri: string): Promise<ValidationResul
       classificationMode: "none",
       minFaceSize: 0.15,
     });
+
+    console.log("[validatePersonaImage] detect done, faces =", faces?.length ?? "null");
     if (!faces || faces.length === 0) return { ok: false, reason: "no_face" };
 
     const primary = faces.reduce((a, b) => {
@@ -52,17 +56,18 @@ export async function validatePersonaImage(uri: string): Promise<ValidationResul
     const faceLong = Math.max(fw, fh);
     const imgLong = Math.max(width, height);
     const ratio = imgLong > 0 ? faceLong / imgLong : 0;
-    if (ratio < MIN_FACE_RATIO) return { ok: false, reason: "too_small" };
-    if (ratio > MAX_FACE_RATIO) return { ok: false, reason: "too_large" };
-
     const cx = (primary.frame.left + fw / 2) / width;
     const cy = (primary.frame.top + fh / 2) / height;
+
+    console.log("[validatePersonaImage] metrics", { ratio, cx, cy, fw, fh });
+    if (ratio < MIN_FACE_RATIO) return { ok: false, reason: "too_small" };
+    if (ratio > MAX_FACE_RATIO) return { ok: false, reason: "too_large" };
     if (cy < CY_MIN || cy > CY_MAX) return { ok: false, reason: "off_center" };
     if (cx < CX_MIN || cx > CX_MAX) return { ok: false, reason: "off_center" };
     return { ok: true };
   } catch (err) {
 
-    console.warn("[validatePersonaImage] skipping (fail-open):", err);
+    console.warn("[validatePersonaImage] FAIL-OPEN (native missing?):", err);
     return { ok: true };
   }
 }

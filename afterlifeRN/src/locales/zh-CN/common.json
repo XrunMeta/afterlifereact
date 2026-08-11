@@ -798,7 +798,8 @@
       "validateNoFace": "未检测到人脸，请正面朝向相机后重试。",
       "validateTooSmall": "人脸过小，请靠近相机后重试。",
       "validateTooLarge": "人脸过大，请稍微后退后重试。",
-      "validateOffCenter": "人脸超出轮廓，请对准中央后重试。"
+      "validateOffCenter": "人脸超出轮廓，请对准中央后重试。",
+      "validateLetterbox": "不能使用方形或横向照片，请选择竖向照片。"
     },
     "voice": {
       "presets": "默认音色预设",

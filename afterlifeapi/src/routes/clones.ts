@@ -154,6 +154,8 @@ const createSchema = z.object({
 
   idle_video_job_id: z.string().uuid().optional(),
   voice_clone_job_id: z.string().uuid().optional(),
+
+  pipeline: z.enum(["musetalk", "echomimic_v3"]).optional(),
 });
 
 const TEST_PRICE_EMAILS = new Set(["oth-user@example.invalid", "oth-test@example.invalid"]);
@@ -356,8 +358,8 @@ clones.post(
           `INSERT INTO clones
              (owner_id, name, username, description, clone_type, category, visibility,
               avatar_url, cover_image_url, voice_type, voice_preset_id,
-              l1_profile, primary_editor_user_id, relation)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              l1_profile, primary_editor_user_id, relation, pipeline)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, 'musetalk'))
            RETURNING id, name, username, clone_type, visibility, created_at`,
         )
         .bind(
@@ -375,6 +377,7 @@ clones.post(
           l1Profile !== null ? JSON.stringify(l1Profile) : null,
           userId,
           body.relation ?? null,
+          body.pipeline ?? null,
         )
         .first();
     } catch (err) {
@@ -1552,11 +1555,33 @@ const l2PatchSchema = z
     relationship: z.string().max(2000).optional(),
     context: z.string().max(2000).optional(),
     recent_topics: z.string().max(2000).optional(),
+
+    relation_category: z.string().max(40).optional(),
+    relation_subtype: z.string().max(100).optional(),
+    relation_episode: z.string().max(2000).optional(),
+    address_form: z.string().max(100).optional(),
+    speech_form: z.string().max(40).optional(),
+    job_category: z.string().max(100).optional(),
+    job_detail: z.string().max(500).optional(),
   })
   .strict()
   .refine((o) => Object.keys(o).length > 0, {
     message: "At least one field required.",
   });
+
+const L2_WRITE_KEYS = [
+  "memory_summary",
+  "relationship",
+  "context",
+  "recent_topics",
+  "relation_category",
+  "relation_subtype",
+  "relation_episode",
+  "address_form",
+  "speech_form",
+  "job_category",
+  "job_detail",
+] as const;
 
 clones.patch("/:id/l2", requireAuth, async (c) => {
   const cloneId = Number(c.req.param("id"));
@@ -1581,7 +1606,7 @@ clones.patch("/:id/l2", requireAuth, async (c) => {
   const raw = await readOnt(c.env, cloneId, userId);
   let data: Record<string, unknown> = {};
   if (raw) { try { data = JSON.parse(raw); } catch { data = {}; } }
-  for (const k of ["memory_summary", "relationship", "context", "recent_topics"] as const) {
+  for (const k of L2_WRITE_KEYS) {
     if (body[k] !== undefined) data[k] = body[k];
   }
   try {
@@ -1591,7 +1616,31 @@ clones.patch("/:id/l2", requireAuth, async (c) => {
   }
 
   const clean: Record<string, unknown> = {};
-  for (const k of ["memory_summary", "relationship", "context", "recent_topics"] as const) {
+  for (const k of L2_WRITE_KEYS) {
+    if (data[k] !== undefined) clean[k] = data[k];
+  }
+  return c.json({ l2_profile: clean });
+});
+
+clones.get("/:id/l2", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+
+  const clone = await loadCloneById(c.env.DB, cloneId);
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  const viewerRole = await resolveResponseViewerRole(c.env.DB, clone, userId);
+  if (!viewerRole && clone.visibility !== "public") {
+    throw new APIError("FORBIDDEN", "이 클론에 접근할 수 없어요.");
+  }
+
+  const raw = await readOnt(c.env, cloneId, userId);
+  let data: Record<string, unknown> = {};
+  if (raw) { try { data = JSON.parse(raw); } catch { data = {}; } }
+  const clean: Record<string, unknown> = {};
+  for (const k of L2_WRITE_KEYS) {
     if (data[k] !== undefined) clean[k] = data[k];
   }
   return c.json({ l2_profile: clean });
