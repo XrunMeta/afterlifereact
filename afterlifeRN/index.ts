@@ -5,18 +5,9 @@ import { registerRootComponent } from "expo";
 
 try {
 
-  const _dbg = require("debug");
-  if (_dbg && typeof _dbg.disable === "function") _dbg.disable();
+  const _Logger = require("react-native-webrtc/lib/commonjs/Logger").default;
+  if (_Logger && typeof _Logger.enable === "function") _Logger.enable("");
 } catch {  }
-{
-  const _origLog = console.log;
-  console.log = ((...args: unknown[]) => {
-    for (const a of args) {
-      if (typeof a === "string" && a.indexOf("rn-webrtc:") !== -1) return;
-    }
-    _origLog(...args);
-  }) as typeof console.log;
-}
 
 if (typeof (globalThis as { Buffer?: typeof Buffer }).Buffer === "undefined") {
   (globalThis as { Buffer: typeof Buffer }).Buffer = Buffer;
