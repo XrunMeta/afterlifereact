@@ -68,6 +68,8 @@ _OTHER_LABELS: list[tuple[str, str]] = [
     ("relation", "너와의 관계"),
     ("relation_category", "관계 대분류"),  # T-479 (예: "가족")
     ("relation_subtype", "관계 상세"),      # T-479 (예: "아빠")
+    ("relation_episode", "관계 일화"),      # T-484 (사용자와의 구체 에피소드)
+    ("address_form", "너가 상대를 부르는 호칭"),  # T-484 (예: "은지야", "아들")
     ("relationship", "관계 맥락"),
     ("preference_personal", "취향"),
     ("memories_personal", "기억"),
