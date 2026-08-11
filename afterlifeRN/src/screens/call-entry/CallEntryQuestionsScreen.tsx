@@ -138,6 +138,7 @@ export default function v_601c02({
 
   const v_1e693b = async () => {
     if (!v_fc0cf5 || !v_2ca7e0) return;
+    v_0e1f26.dismiss(); 
     v_04e389(true);
     try {
 
@@ -180,7 +181,7 @@ export default function v_601c02({
 
         <ScrollView
           ref={v_5ca6b8}
-          contentContainerStyle={v_fd5f43.content}
+          contentContainerStyle={[v_fd5f43.content, { paddingBottom: v_18641c ? 360 : 24 }]}
           keyboardShouldPersistTaps="handled"
         >
           {}
@@ -297,7 +298,7 @@ export default function v_601c02({
         </ScrollView>
 
         {}
-        <View style={[v_fd5f43.footer, { paddingBottom: v_18641c ? 0 : Math.max(v_033e14.bottom, 4) }]}>
+        <View style={[v_fd5f43.footer, { paddingBottom: (v_18641c || v_d5f375) ? 0 : Math.max(v_033e14.bottom, 4) }]}>
           <TouchableOpacity
             style={[v_fd5f43.saveBtn, (!v_fc0cf5 || v_35bf26) && v_fd5f43.saveBtnDisabled]}
             onPress={v_1e693b}
@@ -381,7 +382,7 @@ const v_fd5f43 = v_472849.create({
   headerBtn: { minWidth: 48, alignItems: "flex-start" },
   headerBtnText: { color: v_1bfbd0.zinc600, fontSize: 14 },
 
-  content: { padding: 20, paddingBottom: 360, gap: 32 },
+  content: { padding: 20, paddingBottom: 24, gap: 32 },
   section: { gap: 14 },
   sectionTitle: { fontSize: 16, fontWeight: "600", color: v_1bfbd0.zinc900, marginBottom: 4 },
   subLabel: { fontSize: 13, color: v_1bfbd0.zinc600, marginTop: 12, marginBottom: 4 },
@@ -438,7 +439,7 @@ const v_fd5f43 = v_472849.create({
   saveBtnText: { color: v_1bfbd0.white, fontSize: 15, fontWeight: "600" },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.55)",
+    backgroundColor: "rgba(0,0,0,0.88)",
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
