@@ -201,6 +201,134 @@ v_469bf2("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
     v_4d37e3(v_392321[0].personId).toBe("777");
     v_4d37e3(v_392321.some((v_fd5f43) => v_fd5f43.personId === "orphan-embedding-no-metadata")).toBe(false);
   });
+
+  async function v_2f0be6(v_43e90c, v_6e0fd3, v_1833e7): Promise<number> {
+    await v_a1651b()
+      .prepare(
+        `INSERT INTO persons (user_id, clone_id, display_name, consent_state, created_at)
+         VALUES (?, ?, ?, 'granted', 1)`,
+      )
+      .bind(v_43e90c, v_6e0fd3, v_1833e7)
+      .run();
+    const v_e2a85c = await v_a1651b()
+      .prepare("SELECT id FROM persons WHERE user_id = ? AND clone_id = ? AND display_name = ?")
+      .bind(v_43e90c, v_6e0fd3, v_1833e7)
+      .first<{ id: number }>();
+    return v_e2a85c!.id;
+  }
+
+  v_23805a("매칭된 person 에 L2'(clone_ont_person)가 있으면 matchedHasL2p=true 로 응답·저장된다", async () => {
+    const v_43e90c = await v_bfb240("calibrate-l2p-yes@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "calibrate-l2p-yes-clone");
+    const v_ca1ec5 = await v_2f0be6(v_43e90c, v_6e0fd3, "L2P있음");
+    await v_a1651b()
+      .prepare(`INSERT INTO clone_ont_person (clone_id, person_id, data, updated_at) VALUES (?, ?, '{"rel":"친구"}', 1)`)
+      .bind(v_6e0fd3, v_ca1ec5)
+      .run();
+
+    const v_f9a45c = new Array(512).fill(0).map((v_37eab7, v_ebec57) => (v_ebec57 === 1 ? 1 : 0));
+    const v_e86ad8 = v_a8d2cc(v_c9c489 as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string });
+    await v_e86ad8.insert([
+      {
+        id: `l2p-yes-${v_ca1ec5}`,
+        values: v_f9a45c,
+        namespace: v_929ead(v_43e90c, v_6e0fd3),
+        metadata: { personId: String(v_ca1ec5) },
+      },
+    ]);
+
+    const v_8f00b9 = await v_4f438a(v_ea333d, { vector: v_f9a45c, cloneId: v_6e0fd3 });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_b75e36 = await v_8f00b9.json<{ id: number; matchedId: string | null; matchedHasL2p: boolean | null }>();
+    v_4d37e3(v_b75e36.matchedId).toBe(String(v_ca1ec5));
+    v_4d37e3(v_b75e36.matchedHasL2p).toBe(true);
+
+    const v_3ac7e7 = await v_a1651b()
+      .prepare("SELECT matched_has_l2p FROM faceoth-secretes WHERE id = ?")
+      .bind(v_b75e36.id)
+      .first<{ matched_has_l2p: number | null }>();
+    v_4d37e3(v_3ac7e7!.matched_has_l2p).toBe(1);
+  });
+
+  v_23805a("매칭은 됐지만 L2' 가 없으면 matchedHasL2p=false (인식 성공 · 기억 비어 있음)", async () => {
+    const v_43e90c = await v_bfb240("calibrate-l2p-no@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "calibrate-l2p-no-clone");
+    const v_ca1ec5 = await v_2f0be6(v_43e90c, v_6e0fd3, "L2P없음");
+
+    const v_f9a45c = new Array(512).fill(0).map((v_37eab7, v_ebec57) => (v_ebec57 === 2 ? 1 : 0));
+    const v_e86ad8 = v_a8d2cc(v_c9c489 as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string });
+    await v_e86ad8.insert([
+      {
+        id: `l2p-no-${v_ca1ec5}`,
+        values: v_f9a45c,
+        namespace: v_929ead(v_43e90c, v_6e0fd3),
+        metadata: { personId: String(v_ca1ec5) },
+      },
+    ]);
+
+    const v_8f00b9 = await v_4f438a(v_ea333d, { vector: v_f9a45c, cloneId: v_6e0fd3 });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_b75e36 = await v_8f00b9.json<{ id: number; matchedId: string | null; matchedHasL2p: boolean | null }>();
+    v_4d37e3(v_b75e36.matchedId).toBe(String(v_ca1ec5));
+    v_4d37e3(v_b75e36.matchedHasL2p).toBe(false); 
+
+    const v_3ac7e7 = await v_a1651b()
+      .prepare("SELECT matched_has_l2p FROM faceoth-secretes WHERE id = ?")
+      .bind(v_b75e36.id)
+      .first<{ matched_has_l2p: number | null }>();
+    v_4d37e3(v_3ac7e7!.matched_has_l2p).toBe(0);
+  });
+
+  v_23805a("미매칭(matchedId=null)이면 matchedHasL2p=null — 판정 불가를 false 로 접지 않는다", async () => {
+    const v_43e90c = await v_bfb240("calibrate-l2p-nomatch@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "calibrate-l2p-nomatch-clone");
+    const v_f9a45c = new Array(512).fill(0.02);
+
+    const v_8f00b9 = await v_4f438a(v_ea333d, { vector: v_f9a45c, cloneId: v_6e0fd3 });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_b75e36 = await v_8f00b9.json<{ id: number; matchedId: string | null; matchedHasL2p: boolean | null }>();
+    v_4d37e3(v_b75e36.matchedId).toBeNull();
+    v_4d37e3(v_b75e36.matchedHasL2p).toBeNull();
+
+    const v_3ac7e7 = await v_a1651b()
+      .prepare("SELECT matched_has_l2p FROM faceoth-secretes WHERE id = ?")
+      .bind(v_b75e36.id)
+      .first<{ matched_has_l2p: number | null }>();
+    v_4d37e3(v_3ac7e7!.matched_has_l2p).toBeNull();
+  });
+
+  v_23805a("다른 클론의 L2' 는 세지 않는다(clone_id 스코프)", async () => {
+    const v_43e90c = await v_bfb240("calibrate-l2p-scope@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+    const v_c521ce = await v_4d24a9(v_43e90c, "calibrate-l2p-scope-a");
+    const v_65cfbc = await v_4d24a9(v_43e90c, "calibrate-l2p-scope-b");
+    const v_ca1ec5 = await v_2f0be6(v_43e90c, v_c521ce, "스코프");
+
+    await v_a1651b()
+      .prepare(`INSERT INTO clone_ont_person (clone_id, person_id, data, updated_at) VALUES (?, ?, '{}', 1)`)
+      .bind(v_65cfbc, v_ca1ec5)
+      .run();
+
+    const v_f9a45c = new Array(512).fill(0).map((v_37eab7, v_ebec57) => (v_ebec57 === 3 ? 1 : 0));
+    const v_e86ad8 = v_a8d2cc(v_c9c489 as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string });
+    await v_e86ad8.insert([
+      {
+        id: `l2p-scope-${v_ca1ec5}`,
+        values: v_f9a45c,
+        namespace: v_929ead(v_43e90c, v_c521ce),
+        metadata: { personId: String(v_ca1ec5) },
+      },
+    ]);
+
+    const v_8f00b9 = await v_4f438a(v_ea333d, { vector: v_f9a45c, cloneId: v_c521ce });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_b75e36 = await v_8f00b9.json<{ matchedId: string | null; matchedHasL2p: boolean | null }>();
+    v_4d37e3(v_b75e36.matchedId).toBe(String(v_ca1ec5));
+    v_4d37e3(v_b75e36.matchedHasL2p).toBe(false);
+  });
 });
 
 v_469bf2("GET /oth-path (폴링 조회 — Task 2)", () => {
@@ -278,6 +406,27 @@ v_469bf2("GET /oth-path (폴링 조회 — Task 2)", () => {
       { personId: "p1", score: 0.92 },
       { personId: "p2", score: 0.3 },
     ]);
+  });
+
+  v_23805a("matched_has_l2p 를 3상태(null/false/true)로 매핑해 반환한다", async () => {
+    const v_ceb55a = await v_bfb240("calibrate-samples-l2p@test.local");
+    const v_ea333d = await v_86c39f(v_ceb55a);
+    await v_a1651b()
+      .prepare(
+        `INSERT INTO faceoth-secretes
+           (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at, matched_has_l2p)
+         VALUES (?, NULL, 'p1', 0.9, 0.83, '[]', 200, 1),
+                (?, NULL, 'p2', 0.9, 0.83, '[]', 201, 0),
+                (?, NULL, NULL, 0.1, 0.83, '[]', 202, NULL)`
+      )
+      .bind(String(v_ceb55a), String(v_ceb55a), String(v_ceb55a))
+      .run();
+
+    const v_8f00b9 = await v_38715b(v_ea333d);
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_b75e36 = await v_8f00b9.json<{ samples: { matchedId: string | null; matchedHasL2p: boolean | null }[] }>();
+    v_4d37e3(v_b75e36.samples.length).toBe(3);
+    v_4d37e3(v_b75e36.samples.map((v_fd5f43) => v_fd5f43.matchedHasL2p)).toEqual([true, false, null]);
   });
 
   v_23805a("limit 파라미터가 페이지 크기를 제한하고 nextSince를 갱신한다", async () => {
@@ -404,16 +553,28 @@ v_469bf2("GET /oth-path (폴링 조회 — Task 2)", () => {
 
 });
 
-v_469bf2("wrangler.toml FACE_CALIBRATE_ENABLED 정적 안전망(off→404 회귀 방지)", () => {
-  v_23805a("[vars]·[env.preview.vars]·[env.production.vars] 전부 \"0\"이어야 한다", async () => {
+v_469bf2("wrangler.toml FACE_CALIBRATE_ENABLED 정적 안전망(prod 오ON 방지)", () => {
+  v_23805a("base 와 production 은 \"0\", preview 만 \"1\" 이다", async () => {
 
     const { default: v_6e2bcc } = await import("../wrangler.toml?raw");
 
-    const v_a49907 = [...(v_6e2bcc as string).matchAll(/FACE_CALIBRATE_ENABLED\s*=\s*"([^"]*)"/g)].map((v_35f85c) => v_35f85c[1]);
+    const v_8d41d7 = v_6e2bcc as string;
+    const v_abc8f4 = (v_b4fa6c): string | null => {
 
-    v_4d37e3(v_a49907.length).toBe(3);
-    for (const v_81e2ef of v_a49907) {
-      v_4d37e3(v_81e2ef).toBe("0");
-    }
+      const v_965edf = v_b4fa6c === "" ? 0 : v_8d41d7.indexOf(`[${v_b4fa6c}]`);
+      v_4d37e3(v_965edf).toBeGreaterThanOrEqual(0);
+      const v_83bbcd = v_8d41d7.slice(v_965edf + v_b4fa6c.length + 2);
+      const v_2f4015 = v_83bbcd.search(/\n\[/);
+      const v_4d33b2 = v_2f4015 === -1 ? v_83bbcd : v_83bbcd.slice(0, v_2f4015);
+      const v_35f85c = v_4d33b2.match(/FACE_CALIBRATE_ENABLED\s*=\s*"([^"]*)"/);
+      return v_35f85c ? v_35f85c[1] : null;
+    };
+
+    const v_48c915 = [...v_8d41d7.matchAll(/FACE_CALIBRATE_ENABLED\s*=\s*"([^"]*)"/g)];
+    v_4d37e3(v_48c915.length).toBe(3);
+
+    v_4d37e3(v_abc8f4("env.production.vars")).toBe("0");
+
+    v_4d37e3(v_abc8f4("env.preview.vars")).toBe("1");
   });
 });
