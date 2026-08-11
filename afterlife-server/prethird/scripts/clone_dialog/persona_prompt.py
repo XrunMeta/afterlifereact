@@ -51,11 +51,14 @@ from .dialect_traits import get_dialect_traits
 _SELF_LABELS: list[tuple[str, str]] = [
     ("tone", "말투"),
     ("speech_speed", "말의 속도"),
+    ("speech_form", "말투 형식"),          # T-479: 반말/존댓말
     ("dialect_region", "사투리 지역"),
     ("personality_core", "핵심 성격"),
     ("voice_style", "발화 스타일"),
     ("speech_patterns", "말버릇"),
     ("mood_overrides", "감정 상태"),
+    ("job_category", "직업"),              # T-479
+    ("job_detail", "구체 업무"),           # T-479
 ]
 
 # 대화 상대의 속성 — "## 상대 정보" 블록.
@@ -63,6 +66,8 @@ _SELF_LABELS: list[tuple[str, str]] = [
 # 착각하는 쪽이 그 반대보다 해로우므로 상대 쪽으로 보수 배치한다(T-252 설계 4.3).
 _OTHER_LABELS: list[tuple[str, str]] = [
     ("relation", "너와의 관계"),
+    ("relation_category", "관계 대분류"),  # T-479 (예: "가족")
+    ("relation_subtype", "관계 상세"),      # T-479 (예: "아빠")
     ("relationship", "관계 맥락"),
     ("preference_personal", "취향"),
     ("memories_personal", "기억"),
