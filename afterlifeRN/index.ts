@@ -3,6 +3,14 @@ import { v_c8d567 } from "gbpmiu";
 import { v_326be8 } from "rcmrninabrnb";
 import { v_e4dfc3 } from "tgjb";
 
+{
+  const v_0eedac = console.log;
+  console.log = ((...v_4317d1: unknown[]) => {
+    if (v_4317d1.length > 0 && typeof v_4317d1[0] === "string" && v_4317d1[0].startsWith("rn-webrtc:")) return;
+    v_0eedac(...v_4317d1);
+  }) as typeof console.log;
+}
+
 if (typeof (globalThis as { Buffer?: typeof v_c8d567 }).Buffer === "undefined") {
   (globalThis as { Buffer: typeof v_c8d567 }).Buffer = v_c8d567;
 }
