@@ -42,6 +42,45 @@ v_469bf2("internal turn 콜백", () => {
     v_4d37e3(v_3ac7e7).toBeNull();
   });
 
+  v_23805a("2000자 초과 텍스트는 400 text_too_long 이고 아무것도 저장하지 않는다", async () => {
+    await v_c9c489.DB.prepare(
+      "INSERT INTO call_sessions (call_id, user_id, clone_id, started_at) VALUES (?,?,?,?)"
+    ).bind("turn-long", 1, 1, Date.now()).run();
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${(v_c9c489 as { ORCH_SECRET: string }).ORCH_SECRET}`,
+      },
+      body: JSON.stringify({ role: "user", text: "가".repeat(2001) }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(400);
+    v_4d37e3(await v_8f00b9.json()).toEqual({ error: "text_too_long" });
+    const v_3ac7e7 = await v_c9c489.DB.prepare(
+      "SELECT * FROM call_turns WHERE call_id=?"
+    ).bind("turn-long").first();
+    v_4d37e3(v_3ac7e7).toBeNull();
+  });
+
+  v_23805a("정확히 2000자는 통과한다(경계)", async () => {
+    await v_c9c489.DB.prepare(
+      "INSERT INTO call_sessions (call_id, user_id, clone_id, started_at) VALUES (?,?,?,?)"
+    ).bind("turn-edge", 1, 1, Date.now()).run();
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${(v_c9c489 as { ORCH_SECRET: string }).ORCH_SECRET}`,
+      },
+      body: JSON.stringify({ role: "user", text: "나".repeat(2000) }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_3ac7e7 = await v_c9c489.DB.prepare(
+      "SELECT length(text) AS n FROM call_turns WHERE call_id=?"
+    ).bind("turn-edge").first<{ n: number }>();
+    v_4d37e3(v_3ac7e7?.n).toBe(2000);
+  });
+
   v_23805a("role=user 수용 → call_turns(user) INSERT + seq 원자 채번", async () => {
     await v_c9c489.DB.prepare(
       "INSERT INTO call_sessions (call_id, user_id, clone_id, started_at) VALUES (?,?,?,?)"

@@ -31,6 +31,10 @@ _TIMEOUT_S = 5.0
 # call_lifecycle 과 동일한 심층방어 — URL path 보간 전 형식 강제.
 _CALL_ID_RE = re.compile(r"[0-9a-f]{12}")
 
+# [mizu H-1] 발화 길이 상한. afterlifeapi 의 두 라우트(internal.ts 의 이 경로,
+# calls.ts 의 say)가 모두 2000자에서 400 을 준다 — 그 값과 일치시킨다.
+_MAX_TURN_TEXT = 2000
+
 # 중복 전송 차단용 최근 전송 키. 프로세스 로컬·상한 있는 단순 집합이다
 # (재기동하면 비지만, 재기동 뒤에 같은 턴을 다시 보낼 경로 자체가 없다).
 _SENT_KEYS: set[str] = set()
@@ -97,6 +101,15 @@ async def turn_writeback(
             text = (raw or "").strip()
             if not text:
                 continue
+            # [mizu H-1] 서버가 2000자 상한으로 400 을 주므로 상류에서 먼저 자른다.
+            # 그냥 보내면 긴 발화 1건이 통째로 유실되는데, 기록 목적상 앞부분이라도
+            # 남는 편이 낫다(형제 라우트 calls.ts 의 상한과 같은 값).
+            if len(text) > _MAX_TURN_TEXT:
+                log.info(
+                    "call turn text truncated call=%s role=%s len=%d -> %d",
+                    call_id, role, len(text), _MAX_TURN_TEXT,
+                )
+                text = text[:_MAX_TURN_TEXT]
             # 한쪽 실패가 다른 쪽 기록을 막지 않도록 개별 try.
             try:
                 await _post_turn(api_base, secret, call_id, role, text)
