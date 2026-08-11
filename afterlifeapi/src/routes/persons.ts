@@ -171,7 +171,8 @@ persons.post("/calibrate", requireAuth, async (c) => {
     return c.json({ error: "invalid cloneId" }, 400);
   }
   const { matches } = await getFaceIndex(c.env).query(v as number[], {
-    topK: 100,
+
+    topK: 20,
     namespace: faceNamespace(userId, calibCloneId),
     returnMetadata: true,
   });

@@ -553,16 +553,28 @@ describe("GET /oth-path (폴링 조회 — Task 2)", () => {
 
 });
 
-describe("wrangler.toml FACE_CALIBRATE_ENABLED 정적 안전망(off→404 회귀 방지)", () => {
-  it("[vars]·[env.preview.vars]·[env.production.vars] 전부 \"0\"이어야 한다", async () => {
+describe("wrangler.toml FACE_CALIBRATE_ENABLED 정적 안전망(prod 오ON 방지)", () => {
+  it("base 와 production 은 \"0\", preview 만 \"1\" 이다", async () => {
 
     const { default: toml } = await import("../wrangler.toml?raw");
 
-    const matches = [...(toml as string).matchAll(/FACE_CALIBRATE_ENABLED\s*=\s*"([^"]*)"/g)].map((m) => m[1]);
+    const t = toml as string;
+    const valueIn = (section: string): string | null => {
 
-    expect(matches.length).toBe(3);
-    for (const v of matches) {
-      expect(v).toBe("0");
-    }
+      const start = section === "" ? 0 : t.indexOf(`[${section}]`);
+      expect(start).toBeGreaterThanOrEqual(0);
+      const rest = t.slice(start + section.length + 2);
+      const nextHeader = rest.search(/\n\[/);
+      const body = nextHeader === -1 ? rest : rest.slice(0, nextHeader);
+      const m = body.match(/FACE_CALIBRATE_ENABLED\s*=\s*"([^"]*)"/);
+      return m ? m[1] : null;
+    };
+
+    const all = [...t.matchAll(/FACE_CALIBRATE_ENABLED\s*=\s*"([^"]*)"/g)];
+    expect(all.length).toBe(3);
+
+    expect(valueIn("env.production.vars")).toBe("0");
+
+    expect(valueIn("env.preview.vars")).toBe("1");
   });
 });
