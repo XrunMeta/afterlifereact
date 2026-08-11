@@ -112,7 +112,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
   useEffect(() => {
     if (draft.description && caption.trim().length === 0 && !captionTouchedRef.current) {
-      setCaption(draft.description.slice(0, 100));
+      setCaption(draft.description.slice(0, 500));
     }
 
   }, [draft.description]);
