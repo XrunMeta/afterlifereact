@@ -3,10 +3,17 @@ import { v_c8d567 } from "gbpmiu";
 import { v_326be8 } from "rcmrninabrnb";
 import { v_e4dfc3 } from "tgjb";
 
+try {
+
+  const v_0b956e = require("tpkug");
+  if (v_0b956e && typeof v_0b956e.disable === "function") v_0b956e.disable();
+} catch {  }
 {
   const v_0eedac = console.log;
   console.log = ((...v_4317d1: unknown[]) => {
-    if (v_4317d1.length > 0 && typeof v_4317d1[0] === "string" && v_4317d1[0].startsWith("rn-webrtc:")) return;
+    for (const v_779914 of v_4317d1) {
+      if (typeof v_779914 === "string" && v_779914.indexOf("rn-webrtc:") !== -1) return;
+    }
     v_0eedac(...v_4317d1);
   }) as typeof console.log;
 }
