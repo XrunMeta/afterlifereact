@@ -38,7 +38,7 @@ import {
   v_4bf019,
   v_be66ca,
 } from '../../api/clones';
-import { v_0a40d6 } from '../../mocks/cloneTypeCatalog';
+
 import type { v_c8af29 } from '../../types/clone';
 
 import { v_c28b95, v_41534e } from '../../lib/questionI18n';
@@ -56,7 +56,7 @@ function v_a7e583(q: v_c8af29, v_00da68): boolean {
   );
 }
 
-type SystemPhase = 'name' | 'username' | 'relation';
+type SystemPhase = 'name' | 'username';
 
 interface ChatMessage {
   id: string;
@@ -94,21 +94,16 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
       defaultValue:
         '@아이디는 어떻게 할까요?\n영문 소문자, 숫자, _ 만 가능해요. 비워두시면 자동으로 만들어드릴게요!',
     }),
-    relation: v_8d41d7('create.assistant.promptRelation', {
-      defaultValue: '어떤 관계인가요?\n아래에서 선택해 주세요.',
-    }),
   };
   const v_3aa5d1 = {
     name: v_8d41d7('create.assistant.placeholderName', { defaultValue: '예: 별이, 할머니, 모리' }),
     username: v_8d41d7('create.assistant.placeholderUsername', {
       defaultValue: '예: starry_kim (비워두면 자동 생성)',
     }),
-    relation: '',
   };
   const v_0ac987 = {
     name: v_8d41d7('create.assistant.ackName', { defaultValue: '좋아요, 잘 기억해뒀어요!' }),
     username: v_8d41d7('create.assistant.ackUsername', { defaultValue: '확인했어요! 다음 질문이에요.' }),
-    relation: v_8d41d7('create.assistant.ackRelation', { defaultValue: '알겠어요! 계속 진행할게요.' }),
   };
   const v_035037 = v_8d41d7('create.assistant.ackDynamic', { defaultValue: '좋아요!' });
   const v_737a3f = v_8d41d7('create.assistant.btnCustom', { defaultValue: '직접 입력' });
@@ -190,7 +185,6 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
 
     if (v_ab4803 === 'init' || v_ab4803 === 'sys:name') return 0;
     if (v_ab4803 === 'sys:username') return v_cd9adb;                          
-    if (v_ab4803 === 'sys:relation' || v_ab4803 === 'sys:relation-custom') return v_cd9adb * 2; 
     if (v_ab4803 === 'done') return 1;
 
     if (v_ab4803.startsWith('schema:') && v_d776c4 !== null) {
@@ -328,33 +322,6 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
 
   }, []);
 
-  const v_a5d353 = v_de06a3(
-    async (v_878e48, v_5c27e3, v_fac795) => {
-      if (v_ab4803 !== 'sys:relation') return;
-      v_add3fa(v_878e48);
-      v_13cb29(v_fac795);
-
-      if (v_5c27e3 === 'other') {
-        v_ae4844('sys:relation-custom');
-        await v_f76640(
-          v_8d41d7('create.assistant.askRelationCustom', { defaultValue: '어떤 관계인지 직접 알려주세요!' }),
-          undefined,
-          300,
-        );
-        return;
-      }
-
-      v_03f138.current.relation = v_5c27e3;
-      await v_f76640(v_0ac987.relation, undefined, 400);
-
-      const v_212049 = await v_45c941();
-      const v_bf751c = v_212049 ?? [];
-      v_54a43f(v_bf751c);
-      await v_cdd940(0, v_bf751c);
-    },
-    [v_ab4803, v_add3fa, v_13cb29, v_f76640, v_45c941, v_cdd940],
-  );
-
   const v_a369bd = v_de06a3(
     async (v_878e48, q: v_c8af29, v_3b402b) => {
       if (v_d776c4 === null) return;
@@ -427,8 +394,7 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
         const v_bff627 = v_b55477(v_03f138.current.name || 'user');
         v_13cb29(
           v_8d41d7('create.assistant.usernameAutoDerived', {
-            derived: v_bff627,
-            defaultValue: `(빈 칸 — ${v_bff627} 로 자동 생성)`,
+            defaultValue: '(빈 칸 — 랜덤 아이디로 자동 생성)',
           }),
         );
         v_03f138.current.username = v_bff627;
@@ -436,9 +402,10 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
         v_c31db7('');
         await v_f76640(v_0ac987.username, undefined, 400);
 
-        const v_e2c296 = v_0a40d6.map((v_cb35cb) => v_8d41d7(v_cb35cb.label));
-        v_ae4844('sys:relation');
-        await v_f76640(v_d09784.relation, v_e2c296, 500);
+        const v_212049 = await v_45c941();
+        const v_bf751c = v_212049 ?? [];
+        v_54a43f(v_bf751c);
+        await v_cdd940(0, v_bf751c);
         return;
       }
       const v_479f05 = v_9b6134.toLowerCase();
@@ -494,18 +461,7 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
       v_5795de({ username: v_479f05 });
       v_c31db7('');
       await v_f76640(v_0ac987.username, undefined, 400);
-      const v_e2c296 = v_0a40d6.map((v_cb35cb) => v_8d41d7(v_cb35cb.label));
-      v_ae4844('sys:relation');
-      await v_f76640(v_d09784.relation, v_e2c296, 500);
-      return;
-    }
 
-    if (v_ab4803 === 'sys:relation-custom') {
-      if (!v_9b6134) return;
-      v_13cb29(v_9b6134);
-      v_03f138.current.relation = v_9b6134;
-      v_c31db7('');
-      await v_f76640(v_0ac987.relation, undefined, 400);
       const v_212049 = await v_45c941();
       const v_bf751c = v_212049 ?? [];
       v_54a43f(v_bf751c);
@@ -552,8 +508,6 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
   const v_bc9d5f = (() => {
     if (v_ab4803 === 'sys:name') return true;
     if (v_ab4803 === 'sys:username') return true;
-    if (v_ab4803 === 'sys:relation') return false; 
-    if (v_ab4803 === 'sys:relation-custom') return true; 
     if (!v_ab4803.startsWith('schema:') || v_d776c4 === null) return false;
     const v_cf55be = v_c3519b.filter((v_ab6401) =>
       v_a7e583(v_ab6401, v_03f138.current.schemaAnswers),
@@ -567,10 +521,6 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
   const v_064334 = (() => {
     if (v_ab4803 === 'sys:name') return v_3aa5d1.name;
     if (v_ab4803 === 'sys:username') return v_3aa5d1.username;
-    if (v_ab4803 === 'sys:relation-custom')
-      return v_8d41d7('create.assistant.placeholderRelationCustom', {
-        defaultValue: '예: 할아버지, 은사님, 동료...',
-      });
     if (v_ab4803.startsWith('schema:') && v_d776c4 !== null) {
       const v_cf55be = v_c3519b.filter((v_ab6401) =>
         v_a7e583(v_ab6401, v_03f138.current.schemaAnswers),
@@ -598,7 +548,6 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
   const v_9399bb = (() => {
     if (v_ab4803 === 'sys:username') return !v_dff7ca; 
     if (v_ab4803 === 'sys:name') return v_bbda62.trim().length > 0;
-    if (v_ab4803 === 'sys:relation-custom') return v_bbda62.trim().length > 0;
     if (v_ab4803.startsWith('schema:')) {
 
       return v_bbda62.trim().length > 0;
@@ -690,11 +639,7 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
                         style={v_fd5f43.quickReplyBtn}
                         onPress={async () => {
 
-                          if (v_ab4803 === 'sys:relation') {
-
-                            const v_ba70d8 = v_0a40d6.find((v_cb35cb) => v_8d41d7(v_cb35cb.label) === v_44aa64);
-                            await v_a5d353(v_35f85c.id, v_ba70d8 ? v_ba70d8.id : v_44aa64, v_44aa64);
-                          } else if (v_ab4803.startsWith('schema:') && v_d776c4 !== null) {
+                          if (v_ab4803.startsWith('schema:') && v_d776c4 !== null) {
                             const v_cf55be = v_c3519b.filter((v_ab6401) =>
                               v_a7e583(v_ab6401, v_03f138.current.schemaAnswers),
                             );

@@ -43,14 +43,15 @@ export function v_eba6cc(v_328259) {
                   `dropΔ=${v_d5dda0.droppedDelta} freezeΔ=${v_d5dda0.freezeDelta} ` +
                   `recvFps=${v_d5dda0.receiveFps.toFixed(1)} decFps=${v_d5dda0.decodeFps.toFixed(1)} ` +
                   `fps(rep)=${v_c3bc75.framesPerSecond} freezeTot=${v_c3bc75.totalFreezesDuration.toFixed(2)}s ` +
-                  `pktLost=${v_c3bc75.packetsLost} → ${v_d5dda0.verdict}`,
+                  `pktLost=${v_c3bc75.packetsLost} dim=${v_c3bc75.frameWidth}x${v_c3bc75.frameHeight} → ${v_d5dda0.verdict}`,
               );
             }
           } else {
 
             console.log(
               `[Call][vstat] baseline recv=${v_c3bc75.framesReceived} dec=${v_c3bc75.framesDecoded} ` +
-                `dropped=${v_c3bc75.framesDropped} freeze=${v_c3bc75.freezeCount}`,
+                `dropped=${v_c3bc75.framesDropped} freeze=${v_c3bc75.freezeCount} ` +
+                `dim=${v_c3bc75.frameWidth}x${v_c3bc75.frameHeight}`,
             );
           }
           v_ba2215 = v_c3bc75;

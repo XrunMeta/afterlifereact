@@ -260,6 +260,31 @@ export default function v_ed02a5() {
         }
       },
     },
+
+    ...(["oth-staff@example.invalid", "oth-user@example.invalid"].includes(v_b113dd?.email ?? "")
+      ? [
+          {
+            icon: "cpu" as const,
+            labelKey: "실험 페르소나 만들기 (베타)",
+            descKey: "자연스러운 얼굴 · 응답 5~10초 지연",
+            action: async () => {
+              try {
+                const { setNextPipeline: v_e935e7 } = await import(
+                  "../../lib/experimentalPipelineFlag"
+                );
+                v_e935e7("echomimic_v3");
+
+                v_c65f5d.getParent()?.dispatch(
+                  v_650cfa.navigate({ name: "CreateTab" }),
+                );
+              } catch (v_49263d) {
+                console.warn("[experimental-persona] nav failed:", v_49263d);
+                v_889fad("오류", "페르소나 만들기 화면 이동 실패");
+              }
+            },
+          },
+        ]
+      : []),
     {
       icon: "trash-2",
       labelKey: "settings.privacy.deleteAccount",

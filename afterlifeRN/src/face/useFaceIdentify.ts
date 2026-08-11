@@ -23,6 +23,7 @@ export type CalibrateFaceFn = (
   accessToken: string,
   vector: number[],
   groundTruthPersonId: number | null,
+  cloneId: number,
 ) => ReturnType<typeof v_383262>;
 
 export interface IdentifyCycleDeps {
@@ -154,6 +155,15 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
           v_8d3dea.current = v_b6e533;
           if (v_d48baf) v_68885c(v_d48baf);
 
+          if (v_55dbc4 && v_faccce && v_bdad26) {
+            (v_84b93d.calibrateFn ?? v_383262)(
+              v_faccce.accessToken,
+              v_46ff7a,
+              v_faccce.groundTruthPersonId,
+              v_6e0fd3,
+            ).catch(() => {});
+          }
+
           if (v_55dbc4 && v_bdad26 && v_d361d7 != null) {
             const diag: v_8a6b56 = {
               score: v_bdad26.score,
@@ -175,11 +185,6 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
                 threshold: v_ef2205.threshold,
               })}`,
             );
-            if (v_faccce) {
-              (v_84b93d.calibrateFn ?? v_383262)(v_faccce.accessToken, v_46ff7a, v_faccce.groundTruthPersonId).catch(
-                () => {}, 
-              );
-            }
           }
         })
         .finally(() => {

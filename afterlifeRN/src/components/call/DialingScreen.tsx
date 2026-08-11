@@ -58,7 +58,6 @@ export function v_1980fb(props: {
   const v_0e4e36 = v_e662ae(false);
   v_c4deb2(() => {
 
-    console.log(`[Call][flow] +${Date.now()} DialingScreen outcome=${v_f22838} liveState=${v_6cc918} elapsed=${v_e56026}ms`);
     if (v_f22838 === 'connected' && !v_0e4e36.current) {
       v_0e4e36.current = true;
       v_05d0df.playConnect();

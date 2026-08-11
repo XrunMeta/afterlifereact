@@ -1191,7 +1191,8 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
             c.created_at AS createdAt,
             c.deletion_state AS deletionState,
             c.soft_deleted_at AS softDeletedAt,
-            c.deleted_at AS deletedAt
+            c.deleted_at AS deletedAt,
+            c.pipeline
        FROM clones c
        LEFT JOIN users u ON u.id = c.owner_id
       WHERE c.id = ?`,
@@ -1200,6 +1201,46 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
     .first();
   if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
   return v_3f4e2e.json(v_3ac7e7);
+});
+
+const v_dcf9cd = v_1f4ea7.object({
+  pipeline: v_1f4ea7.enum(["musetalk", "echomimic_v3"]).optional(),
+});
+
+v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const v_8decf8 = v_dcf9cd.safeParse(await v_3f4e2e.req.json().catch(() => ({})));
+  if (!v_8decf8.success) {
+    throw new v_3ebe58("VALIDATION_FAILED", v_8decf8.error.message);
+  }
+  const v_4d33b2 = v_8decf8.data;
+
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id FROM clones WHERE id = ?`)
+    .bind(v_389afb)
+    .first<{ id: number }>();
+  if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+
+  const v_75ae3e = [];
+  const v_925171 = [];
+  if (v_4d33b2.pipeline !== undefined) {
+    v_75ae3e.push(`pipeline = ?`);
+    v_925171.push(v_4d33b2.pipeline);
+  }
+  if (v_75ae3e.length === 0) {
+    return v_3f4e2e.json({ ok: true, updated: 0 });
+  }
+  v_75ae3e.push(`updated_at = CURRENT_TIMESTAMP`);
+  v_925171.push(v_389afb);
+
+  await v_3f4e2e.env.DB
+    .prepare(`UPDATE clones SET ${v_75ae3e.join(", ")} WHERE id = ?`)
+    .bind(...v_925171)
+    .run();
+  return v_3f4e2e.json({ ok: true, updated: v_75ae3e.length - 1 });
 });
 
 v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {

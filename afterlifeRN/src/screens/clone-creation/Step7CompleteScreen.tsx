@@ -29,6 +29,7 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0 } from "../../types/clone";
 import { v_39eaf5, v_b55477, v_96d757, v_6c3f29, v_5e388b, v_b4f9f6, v_b20cba, v_ab4719, type v_e5d62a } from "../../api/clones";
+import { v_8b11b8 } from "../../lib/experimentalPipelineFlag";
 import { v_84a859 } from "../../api/auth";
 import { v_7d2692 } from "../../api/files";
 import { v_cf9c33 } from "rcmrninabrnb";
@@ -92,6 +93,8 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const v_493eec = v_1ed7d9((v_fd5f43) => v_fd5f43.user?.id) ?? 1;
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
 
+  const v_780a85 = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? null);
+
   const [v_af4871, v_67122d] = v_5ab095<number | null>(null);
   const [v_805753, v_c7169b] = v_5ab095(false);
   const [v_5e9bfe, v_3a7d09] = v_5ab095<string | null>(null);
@@ -109,7 +112,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   v_c4deb2(() => {
     if (v_f04727.description && v_6044a8.trim().length === 0 && !v_d9bc63.current) {
-      v_1d6b6a(v_f04727.description.slice(0, 100));
+      v_1d6b6a(v_f04727.description.slice(0, 500));
     }
 
   }, [v_f04727.description]);
@@ -309,6 +312,16 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         ...v_85010a,
 
         ...(v_f04727.idleVideoJobId ? { idle_video_job_id: v_f04727.idleVideoJobId } : {}),
+
+        ...(() => {
+          const v_fad2e1 = v_8b11b8();
+          if (v_fad2e1) return { pipeline: v_fad2e1 };
+          const v_383ef0 = new Set(["oth-user@example.invalid"]);
+          if (v_780a85 && v_383ef0.has(v_780a85.toLowerCase())) {
+            return { pipeline: "echomimic_v3" as const };
+          }
+          return {};
+        })(),
 
       });
       console.log("[CLONE-CREATE] success:", v_8f00b9);

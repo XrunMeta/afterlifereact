@@ -34,6 +34,8 @@ export interface CreateClonePayload {
   voice_clone_job_id?: string;
 
   pin?: string;
+
+  pipeline?: "musetalk" | "echomimic_v3";
 }
 
 export interface CreatedClone {
@@ -68,6 +70,8 @@ export interface CloneDetailResponse {
     };
     likedByMe: boolean;
     createdAt: string;
+
+    pipeline?: string | null;
   };
 }
 export async function v_003cf2(
@@ -1193,6 +1197,39 @@ export async function v_bb226e(
     `/oth-path${v_6e0fd3}`,
     v_2ca7e0,
     { method: "PATCH", body: JSON.stringify(v_931bf0) },
+  );
+}
+
+export interface CloneL2Fields {
+  memory_summary?: string;
+  relationship?: string;
+  context?: string;
+  recent_topics?: string;
+  relation_category?: string;
+  relation_subtype?: string;
+  relation_episode?: string;
+  address_form?: string;
+  speech_form?: string;
+  job_category?: string;
+  job_detail?: string;
+}
+
+export async function v_ac4be1(
+  v_2ca7e0,
+  v_6e0fd3,
+): Promise<{ l2_profile: CloneL2Fields }> {
+  return v_04b58a(`/oth-path${v_6e0fd3}/l2`, v_2ca7e0, { method: "GET" });
+}
+
+export async function v_862d3d(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_712957,
+): Promise<{ l2_profile: CloneL2Fields }> {
+  return v_04b58a(
+    `/oth-path${v_6e0fd3}/l2`,
+    v_2ca7e0,
+    { method: "PATCH", body: JSON.stringify(v_712957) },
   );
 }
 

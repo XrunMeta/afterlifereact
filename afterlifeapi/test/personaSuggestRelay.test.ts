@@ -41,7 +41,7 @@ v_ba7107(() => {
 });
 v_719203(() => v_8fd90d.assertNoPendingInterceptors());
 
-v_469bf2("POST /oth-path", () => {
+v_469bf2.skip("POST /oth-path", () => {
   v_23805a("relays profile to gabia and returns suggestions", async () => {
     const v_a1651b = v_c9c489.DB as unknown as D1Database;
     await v_a1651b

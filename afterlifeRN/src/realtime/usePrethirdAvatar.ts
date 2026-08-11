@@ -77,7 +77,8 @@ function v_9d05cd(v_32dc97, v_11bcf9): Promise<boolean> {
 }
 
 export function v_3d8d48(v_328259): v_b01667 {
-  const { cloneId: v_6e0fd3, accessToken: v_2ca7e0, onEnrollSuggest: v_46947d } = v_328259;
+  const { cloneId: v_6e0fd3, accessToken: v_2ca7e0, onEnrollSuggest: v_46947d, pipeline: v_883ce9 } = v_328259;
+
   const v_84b93d = v_328259.deps ?? v_17f880;
   const [v_b6e533, v_1fa668] = v_5ab095<v_d20273>('idle');
   const [v_b4d824, v_b944e3] = v_5ab095<v_802da4 | null>(null);
@@ -97,6 +98,9 @@ export function v_3d8d48(v_328259): v_b01667 {
 
   const v_de567c = v_e662ae(v_46947d);
   v_c4deb2(() => { v_de567c.current = v_46947d; }, [v_46947d]);
+
+  const v_1402c0 = v_e662ae(v_883ce9);
+  v_c4deb2(() => { v_1402c0.current = v_883ce9; }, [v_883ce9]);
 
   v_c4deb2(() => { v_d7f7b1('avatar', { phase: v_ab4803 }); }, [v_ab4803]);
 
@@ -274,9 +278,12 @@ export function v_3d8d48(v_328259): v_b01667 {
       const v_f915d0 = await v_335e37(v_2ca7e0);
       if (!v_759436()) { v_12cd99.close(); return; } 
 
-      const v_694b25 = v_5b540b.getState().prethirdBase;
+      const v_da7dc4 = v_1402c0.current;
+      const v_01dcf5 = v_5b540b.getState();
+      const v_dbf208 = v_da7dc4 === 'echomimic_v3' && !!v_01dcf5.experimentalBase;
+      const v_694b25 = v_dbf208 ? v_01dcf5.experimentalBase! : v_01dcf5.prethirdBase;
       const v_f71b56 = `${v_694b25}/offer`;
-      if (__DEV__) console.log(`[CALL-ROUTE] route=prethird base=${v_694b25} clone_id=${v_6e0fd3}`);
+      if (__DEV__) console.log(`[CALL-ROUTE] route=prethird base=${v_694b25} pipeline=${v_da7dc4 ?? 'default'} experimental=${v_dbf208} clone_id=${v_6e0fd3}`);
       const v_cb35cb = await fetch(v_f71b56, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
