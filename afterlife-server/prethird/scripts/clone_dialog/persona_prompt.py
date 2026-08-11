@@ -44,6 +44,7 @@ from __future__ import annotations
 import re
 
 from .mbti_traits import get_mbti_traits
+from .mbti_tone_map import get_mbti_tone
 
 # 클론 자신의 속성 — "## 너의 정보" 블록.
 _SELF_LABELS: list[tuple[str, str]] = [
@@ -307,6 +308,16 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
         other_source = l2p_data or {}
     else:
         other_source = persona
+
+    # T-471: tone fallback — 사용자가 tone 을 지정하지 않았고 mbti 만 있으면
+    # MBTI 기본 말투(mbti_tone_map) 를 tone 필드로 자동 채운다. 사용자 명시값 (예:
+    # "사투리", "따뜻하고 자상한") 이 있으면 그대로 두어 사용자 선택을 존중한다.
+    if not str(persona.get("tone") or "").strip():
+        mbti_code = str(persona.get("mbti") or "").strip().upper()
+        tone_default = get_mbti_tone(mbti_code)
+        if tone_default:
+            # 원본 dict 훼손 방지 — 얕은 복사로 tone 만 오버레이.
+            persona = {**persona, "tone": tone_default}
 
     self_lines = _render_from(persona, _SELF_LABELS)
     other_lines = _render_from(other_source, _OTHER_LABELS)
