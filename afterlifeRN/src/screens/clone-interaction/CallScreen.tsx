@@ -465,6 +465,8 @@ function CallScreenInner({ route, navigation }: Props) {
   const seenFaceIdsRef = useRef<Set<number>>(new Set());
 
   const handleSpeakerEventRef = useRef<(evt: SpeakerEvent) => void>(() => {});
+
+  const myNameRef = useRef<string | null>(null);
   const handleSpeakerEventTrampoline = useCallback((evt: SpeakerEvent) => {
     handleSpeakerEventRef.current(evt);
   }, []);
@@ -526,7 +528,12 @@ function CallScreenInner({ route, navigation }: Props) {
           displayName: evt.displayName,
         });
       } else if (evt.type === "unknown_face") {
-        dispatchSh({ type: "UNKNOWN_FACE" });
+
+        dispatchSh({
+          type: "UNKNOWN_FACE",
+          ownerName: myNameRef.current ?? undefined,
+          isFirstTime: (persons?.length ?? 0) === 0,
+        });
 
         unknownFaceSnapshotRef.current = getFaceEmbeddingBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
         sendFaceEvent?.({ event: "unknown_face" });
@@ -959,6 +966,8 @@ function CallScreenInner({ route, navigation }: Props) {
     giftName: string | null;
   } | null>(null);
   const myName = useAuthStore((s) => s.apiUser?.name ?? null);
+
+  useEffect(() => { myNameRef.current = myName; }, [myName]);
   const myAvatarUrl = useAuthStore((s) => s.apiUser?.avatarUrl ?? null);
 
   const [gifts, setGifts] = useState<GiftCatalogItem[]>([]);
