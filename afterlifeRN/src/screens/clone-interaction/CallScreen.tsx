@@ -253,13 +253,15 @@ function CallScreenInner({ route, navigation }: Props) {
     if (!accessToken) return;
     let cancelled = false;
 
+    setConsentGranted(true);
     listPersons(accessToken, cloneId)
       .then(({ items }) => {
         if (cancelled) return;
-        const hasConsent = items.some((p) => p.consentState === "granted");
-        setConsentGranted(hasConsent);
+        const hasPersonConsent = items.some((p) => p.consentState === "granted");
         setPersons(items); 
-        console.log(`[Call][face] listPersons ← granted=${hasConsent} (total=${items.length})`);
+        console.log(
+          `[Call][face] listPersons ← personConsent=${hasPersonConsent} (total=${items.length}) · gate=약관동의`,
+        );
       })
       .catch((err) => {
         console.warn("[Call][face] listPersons failed:", err);
