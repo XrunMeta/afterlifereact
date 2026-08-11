@@ -71,9 +71,9 @@ export default function v_601c02({
         v_5b66e2,
         v_efd272(v_5ca6b8.current) as number,
         () => {},
-        (v_428b8c, v_64877a) => v_5ca6b8.current?.scrollTo({ y: Math.max(0, v_64877a - 60), animated: true }),
+        (v_428b8c, v_64877a) => v_5ca6b8.current?.scrollTo({ y: Math.max(0, v_64877a - 160), animated: true }),
       );
-    }, 100);
+    }, 250);
   };
   const [v_35bf26, v_04e389] = v_5ab095(false);
   const [v_d5f375, v_9b4aaf] = v_5ab095(false);
@@ -147,7 +147,8 @@ export default function v_601c02({
     <Modal visible={v_cf55be} animationType="fade" onRequestClose={v_c7001c}>
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: v_1bfbd0.white }}
-        behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+        behavior={v_326be8.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={v_326be8.OS === "ios" ? 0 : 20}
       >
         <View style={[v_fd5f43.header, { paddingTop: Math.max(v_033e14.top, 12) + 8 }]}>
           <TouchableOpacity onPress={v_c7001c} style={v_fd5f43.headerBtn}>
@@ -359,7 +360,8 @@ const v_fd5f43 = v_472849.create({
   headerTitle: { fontSize: 16, fontWeight: "600", color: v_1bfbd0.zinc900 },
   headerBtn: { minWidth: 48, alignItems: "flex-start" },
   headerBtnText: { color: v_1bfbd0.zinc600, fontSize: 14 },
-  content: { padding: 20, paddingBottom: 40, gap: 32 },
+
+  content: { padding: 20, paddingBottom: 360, gap: 32 },
   section: { gap: 14 },
   sectionTitle: { fontSize: 16, fontWeight: "600", color: v_1bfbd0.zinc900, marginBottom: 4 },
   subLabel: { fontSize: 13, color: v_1bfbd0.zinc600, marginTop: 12, marginBottom: 4 },
