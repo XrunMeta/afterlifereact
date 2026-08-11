@@ -111,6 +111,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../navigation/types";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
+import { getCloneL2 } from "../../api/clones";
 import { COLORS, RADIUS } from "../../components/constants";
 
 import { fetchGiftCatalog, type GiftCatalogItem } from "../../api/gifts";
@@ -166,18 +167,31 @@ export default function CallScreen(props: Props) {
   const placeholderImage = typeof paramImage === "string" ? paramImage : "";
 
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
+  const wrapperAccessToken = useAuthStore((s) => s.accessToken);
   const [callEntryOpen, setCallEntryOpen] = React.useState(true);
   React.useEffect(() => {
-    if (!clone) return;
-    const attrs = clone.l1Profile?.attrs ?? {};
-    const complete =
-      (attrs.relation_category ?? "").trim().length > 0 &&
-      (attrs.relation_subtype ?? "").trim().length > 0 &&
-      (attrs.speech_form ?? "").trim().length > 0 &&
-      (attrs.job_category ?? "").trim().length > 0 &&
-      (attrs.job_detail ?? "").trim().length > 0;
-    setCallEntryOpen(!complete);
-  }, [clone]);
+    if (!wrapperAccessToken || !cloneId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { l2_profile: l2 } = await getCloneL2(wrapperAccessToken, cloneId);
+        if (cancelled) return;
+        const complete =
+          (l2.relation_category ?? "").trim().length > 0 &&
+          (l2.relation_subtype ?? "").trim().length > 0 &&
+          (l2.relation_episode ?? "").trim().length > 0 &&
+          (l2.address_form ?? "").trim().length > 0 &&
+          (l2.speech_form ?? "").trim().length > 0 &&
+          (l2.job_category ?? "").trim().length > 0 &&
+          (l2.job_detail ?? "").trim().length > 0;
+        setCallEntryOpen(!complete);
+      } catch (err) {
+
+        console.warn("[CallEntry] L2 gate fetch 실패:", err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [wrapperAccessToken, cloneId]);
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.zinc950 }}>
@@ -203,11 +217,6 @@ export default function CallScreen(props: Props) {
         visible={callEntryOpen}
         cloneId={cloneId}
         name={clone?.displayName ?? paramName ?? ""}
-        existingL1={
-          clone?.l1Profile
-            ? { attrs: clone.l1Profile.attrs, notes: clone.l1Profile.notes }
-            : null
-        }
         onCancel={() => {
           setCallEntryOpen(false);
           props.navigation.goBack();
@@ -216,7 +225,10 @@ export default function CallScreen(props: Props) {
         onLearn={() => {
           setCallEntryOpen(false);
 
-          props.navigation.goBack();
+          (props.navigation as unknown as { navigate: (n: string, p: unknown) => void }).navigate(
+            "Main",
+            { screen: "ClonesTab", params: { screen: "CloneLearn", params: { cloneId } } },
+          );
         }}
       />
     </View>

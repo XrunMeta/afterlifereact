@@ -23,7 +23,7 @@ import {
   v_422a59,
   v_d19f19,
 } from "../../constants/callEntryCatalog";
-import { v_bb226e } from "../../api/clones";
+import { v_ac4be1, v_862d3d } from "../../api/clones";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_889fad } from "../../stores/dialogStore";
 
@@ -32,7 +32,6 @@ interface Props {
   cloneId: number;
   name: string; 
 
-  existingL1?: { attrs?: Record<string, string>; notes?: string } | null;
   onCancel: () => void;
   onCall: () => void;     
   onLearn: () => void;    
@@ -42,26 +41,46 @@ export default function v_601c02({
   visible: v_cf55be,
   cloneId: v_6e0fd3,
   name: v_1833e7,
-  existingL1: v_ebdcfc,
   onCancel: v_c7001c,
   onCall: v_1bb83e,
   onLearn: v_6d2805,
 }: Props) {
   const v_033e14 = v_e0068c();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
-  const v_676b49 = v_ebdcfc?.attrs ?? {};
 
-  const [v_35b883, v_8781ff] = v_5ab095<string>(v_676b49.relation_category ?? "");
-  const [v_1c3009, v_bb1c6a] = v_5ab095<string>(v_676b49.relation_subtype ?? "");
+  const [v_35b883, v_8781ff] = v_5ab095<string>("");
+  const [v_1c3009, v_bb1c6a] = v_5ab095<string>("");
 
   const [v_6125e7, v_46c351] = v_5ab095<string>("");
 
-  const [v_90eea7, v_10c766] = v_5ab095<string>(v_676b49.relation_episode ?? "");
-  const [v_e58d6f, v_b697a1] = v_5ab095<string>(v_676b49.address_form ?? "");
-  const [v_60bef6, v_b157ed] = v_5ab095<string>(v_676b49.speech_form ?? "");
-  const [v_d5ec97, v_977c36] = v_5ab095<string>(v_676b49.job_category ?? "");
+  const [v_90eea7, v_10c766] = v_5ab095<string>("");
+  const [v_e58d6f, v_b697a1] = v_5ab095<string>("");
+  const [v_60bef6, v_b157ed] = v_5ab095<string>("");
+  const [v_d5ec97, v_977c36] = v_5ab095<string>("");
   const [v_96e1fc, v_ffde7a] = v_5ab095<string>("");
-  const [v_cdce7c, v_eb1148] = v_5ab095<string>(v_676b49.job_detail ?? "");
+  const [v_cdce7c, v_eb1148] = v_5ab095<string>("");
+
+  v_a3453e.useEffect(() => {
+    if (!v_cf55be || !v_2ca7e0 || !v_6e0fd3) return;
+    let v_2008a4 = false;
+    (async () => {
+      try {
+        const { l2_profile: v_5ef708 } = await v_ac4be1(v_2ca7e0, v_6e0fd3);
+        if (v_2008a4) return;
+        if (v_5ef708.relation_category) v_8781ff(v_5ef708.relation_category);
+        if (v_5ef708.relation_subtype) v_bb1c6a(v_5ef708.relation_subtype);
+        if (v_5ef708.relation_episode) v_10c766(v_5ef708.relation_episode);
+        if (v_5ef708.address_form) v_b697a1(v_5ef708.address_form);
+        if (v_5ef708.speech_form) v_b157ed(v_5ef708.speech_form);
+        if (v_5ef708.job_category) v_977c36(v_5ef708.job_category);
+        if (v_5ef708.job_detail) v_eb1148(v_5ef708.job_detail);
+      } catch (v_49263d) {
+
+        console.warn("[CallEntry] L2 pre-fill 실패:", v_49263d);
+      }
+    })();
+    return () => { v_2008a4 = true; };
+  }, [v_cf55be, v_2ca7e0, v_6e0fd3]);
   const v_5ca6b8 = v_e662ae<v_122070>(null);
 
   const v_de7f2d = (v_5b66e2) => {
@@ -116,8 +135,7 @@ export default function v_601c02({
 
       const v_65ac64 = v_1c3009 === "기타" ? v_6125e7.trim() : v_1c3009;
       const v_fc7401 = v_d5ec97 === "기타" ? v_96e1fc.trim() : v_d5ec97;
-      const v_1b4a05 = {
-        ...v_676b49,
+      await v_862d3d(v_2ca7e0, v_6e0fd3, {
         relation_category: v_35b883,
         relation_subtype: v_65ac64,
         relation_episode: v_90eea7.trim(),
@@ -125,12 +143,6 @@ export default function v_601c02({
         speech_form: v_60bef6,
         job_category: v_fc7401,
         job_detail: v_cdce7c.trim(),
-      };
-      await v_bb226e(v_2ca7e0, v_6e0fd3, {
-        l1_profile: {
-          attrs: v_1b4a05,
-          notes: v_ebdcfc?.notes ?? "",
-        },
       });
       v_9b4aaf(true);
     } catch (v_49263d) {

@@ -1200,6 +1200,39 @@ export async function v_bb226e(
   );
 }
 
+export interface CloneL2Fields {
+  memory_summary?: string;
+  relationship?: string;
+  context?: string;
+  recent_topics?: string;
+  relation_category?: string;
+  relation_subtype?: string;
+  relation_episode?: string;
+  address_form?: string;
+  speech_form?: string;
+  job_category?: string;
+  job_detail?: string;
+}
+
+export async function v_ac4be1(
+  v_2ca7e0,
+  v_6e0fd3,
+): Promise<{ l2_profile: CloneL2Fields }> {
+  return v_04b58a(`/oth-path${v_6e0fd3}/l2`, v_2ca7e0, { method: "GET" });
+}
+
+export async function v_862d3d(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_712957,
+): Promise<{ l2_profile: CloneL2Fields }> {
+  return v_04b58a(
+    `/oth-path${v_6e0fd3}/l2`,
+    v_2ca7e0,
+    { method: "PATCH", body: JSON.stringify(v_712957) },
+  );
+}
+
 export interface InvitePreview {
   clone: {
     id: number;
