@@ -407,12 +407,15 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
         lines.append(mbti_text.strip())
 
     if dialect_text:
-        # tone="사투리" + dialect_region 선택 시 지역별 어미·어휘 힌트 삽입.
-        # LLM 이 어색한 사투리를 억지로 흉내내지 않고 자연스레 반영하도록 예시 위주.
+        # T-494: 사투리 필수 재현 강화. 이전엔 "억지 X" 부드러운 표현이라 LLM 이
+        #   표준말로 회귀. 사용자 요구: 실제 사투리 어미가 매 응답에 드러나야 함.
         lines.append(f"## 사투리 참고 ({dialect_region})")
         lines.append(
-            "위 '## 너의 정보' 의 말투가 '사투리' 로 설정됐다. 아래 어미·어휘·예시를"
-            " 자연스럽게 섞어 말한다. 억지스럽게 매 문장 다 넣지 말고 대화 맥락에 맞게 배분."
+            f"⚠️ 필수 규칙: 너는 {dialect_region} 출신이라 **모든 응답을 반드시 아래 사투리 어미로**"
+            " 말한다. 표준말 어미 사용 금지. 상대가 표준말로 물어도 너는 사투리로 답한다.\n"
+            "  - 존댓말이 필요하면 아래 존댓말 어미, 반말이면 아래 반말 어미를 쓴다.\n"
+            "  - 어휘도 아래 카탈로그에서 대화 맥락에 맞게 적극 섞는다.\n"
+            "  - 예시 문장을 그대로 베끼지 말고, 자신의 말로 사투리 어미·어휘만 이식한다."
         )
         lines.append(dialect_text.strip())
 
