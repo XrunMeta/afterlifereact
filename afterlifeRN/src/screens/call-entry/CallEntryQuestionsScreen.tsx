@@ -71,9 +71,9 @@ export default function CallEntryQuestionsScreen({
         nodeHandle,
         findNodeHandle(scrollRef.current) as number,
         () => {},
-        (_x, y) => scrollRef.current?.scrollTo({ y: Math.max(0, y - 60), animated: true }),
+        (_x, y) => scrollRef.current?.scrollTo({ y: Math.max(0, y - 160), animated: true }),
       );
-    }, 100);
+    }, 250);
   };
   const [saving, setSaving] = useState(false);
   const [doneModal, setDoneModal] = useState(false);
@@ -147,7 +147,8 @@ export default function CallEntryQuestionsScreen({
     <Modal visible={visible} animationType="fade" onRequestClose={onCancel}>
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: COLORS.white }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
         <View style={[s.header, { paddingTop: Math.max(insets.top, 12) + 8 }]}>
           <TouchableOpacity onPress={onCancel} style={s.headerBtn}>
@@ -359,7 +360,8 @@ const s = StyleSheet.create({
   headerTitle: { fontSize: 16, fontWeight: "600", color: COLORS.zinc900 },
   headerBtn: { minWidth: 48, alignItems: "flex-start" },
   headerBtnText: { color: COLORS.zinc600, fontSize: 14 },
-  content: { padding: 20, paddingBottom: 40, gap: 32 },
+
+  content: { padding: 20, paddingBottom: 360, gap: 32 },
   section: { gap: 14 },
   sectionTitle: { fontSize: 16, fontWeight: "600", color: COLORS.zinc900, marginBottom: 4 },
   subLabel: { fontSize: 13, color: COLORS.zinc600, marginTop: 12, marginBottom: 4 },
