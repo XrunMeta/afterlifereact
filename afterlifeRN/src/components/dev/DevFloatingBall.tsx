@@ -19,6 +19,10 @@ import { v_aaabb4 } from '../../config/testModeWhitelist';
 import { v_694b7f } from '../../api/source';
 import { v_f387db } from '../../navigation/navigationRef';
 import { v_0e82e9, type v_86d4b9 } from '../../api/screenApiMap';
+import {
+  v_a1183f,
+  v_434962,
+} from '../../stores/devOverlayStore';
 
 const v_88dc4d = 52;
 const { width: v_437248, height: v_5a448f } = v_700696.get('window');
@@ -38,6 +42,10 @@ export function v_0f28c1() {
   const v_44015f = v_0b10a6((v_fd5f43) => v_fd5f43.setTestMode);
   const v_42f82e =
     !!v_f73be6?.handle && v_aaabb4.has(v_f73be6.handle);
+
+  const v_5c2f05 = v_434962((v_fd5f43) => v_fd5f43.callDevUiVisible);
+  const v_181306 = v_434962((v_fd5f43) => v_fd5f43.hudVisible);
+  const v_84e8fb = v_434962((v_fd5f43) => v_fd5f43.toggleHudVisible);
 
   const v_ae4231 = v_e662ae(
     v_f6c856.create({
@@ -138,6 +146,40 @@ export function v_0f28c1() {
               <Text style={v_d81136.rowText}>테스트 모드 {v_53fadb ? 'ON' : 'OFF'}</Text>
             </TouchableOpacity>
           )}
+
+          {
+}
+          <View style={v_d81136.sectionSep} />
+          <Text style={v_d81136.sectionTitle}>
+            통화 HUD {v_5c2f05 ? '' : '(마스터 OFF)'}
+          </Text>
+          {v_a1183f.map((v_8c0b26) => {
+            const v_abacaa = v_181306[v_8c0b26.key] === true;
+            return (
+              <TouchableOpacity
+                key={v_8c0b26.key}
+                accessibilityLabel={`dev-hud-toggle-${v_8c0b26.key}`}
+                style={v_d81136.row}
+                onPress={() => v_84e8fb(v_8c0b26.key)}
+              >
+                <Feather
+                  name={v_abacaa ? 'check-square' : 'square'}
+                  size={16}
+                  color={v_abacaa ? '#7CFC00' : '#6b7280'}
+                />
+                <Text
+                  style={[
+                    v_d81136.rowText,
+
+                    !v_5c2f05 && v_d81136.rowTextMuted,
+                    v_abacaa && v_5c2f05 && v_d81136.rowTextOn,
+                  ]}
+                >
+                  {v_8c0b26.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       )}
 
@@ -272,6 +314,19 @@ const v_d81136 = v_472849.create({
     gap: 8,
   },
   rowText: { color: '#fff' },
+  rowTextOn: { color: '#7CFC00' },
+  rowTextMuted: { color: '#6b7280' },
+  sectionSep: {
+    height: 1,
+    backgroundColor: '#374151',
+    marginVertical: 6,
+  },
+  sectionTitle: {
+    color: '#9ca3af',
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
   modalWrap: {
     flex: 1,
     alignItems: 'center',

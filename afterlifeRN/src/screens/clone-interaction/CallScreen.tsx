@@ -99,7 +99,7 @@ import {
 } from "../../face/faceTrackRosterStore";
 import { CallTimingPanel } from "../../components/call/CallTimingPanel";
 import { CloneSubtitleTicker } from "../../components/call/CloneSubtitleTicker";
-import { useDevOverlayStore } from "../../stores/devOverlayStore";
+import { useDevOverlayStore, useCallHudVisible } from "../../stores/devOverlayStore";
 import { useTimingConfigStore } from "../../realtime/timingConfig";
 import { startTimingLog } from "../../realtime/timingLog";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -189,6 +189,11 @@ function CallScreenInner({ route, navigation }: Props) {
     Platform.OS === "ios" ? insets.bottom : Math.max(navBarHeight, insets.bottom);
   const callDevUi = useDevOverlayStore((s) => s.callDevUiVisible);
   const showCallDev = __DEV__ && callDevUi;
+
+  const hudDevBox = useCallHudVisible("devBox");
+  const hudTiming = useCallHudVisible("timing");
+  const hudState = useCallHudVisible("state");
+  const hudFaceTrack = useCallHudVisible("faceTrack");
 
   const [cameraFacing, setCameraFacing] = useState<"front" | "back">("front");
   const [isMuted, setIsMuted] = useState(false);
@@ -1233,7 +1238,7 @@ function CallScreenInner({ route, navigation }: Props) {
         <View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.zinc900 }]} />
       )}
 
-      {showCallDev ? (
+      {hudDevBox ? (
         <View style={{ position: "absolute", top: 8, right: 8, zIndex: 10,
           backgroundColor: "rgba(0,0,0,0.5)", padding: 4 }}>
           <Text style={{ color: "#0f0", fontSize: 10 }}>route:{CALL_ROUTE}</Text>
@@ -1342,12 +1347,12 @@ function CallScreenInner({ route, navigation }: Props) {
         style={StyleSheet.absoluteFill}
       />
 
-      {showCallDev && liveState === "live" ? <CallTimingHUD /> : null}
+      {hudTiming && liveState === "live" ? <CallTimingHUD /> : null}
       {}
-      {showCallDev && liveState === "live" ? <CallStateHUD /> : null}
+      {hudState && liveState === "live" ? <CallStateHUD /> : null}
       {
 }
-      {showCallDev && FACE_DIAG_ENABLED ? <FaceTrackHUD /> : null}
+      {hudFaceTrack && FACE_DIAG_ENABLED ? <FaceTrackHUD /> : null}
       {showCallDev && liveState === "live" ? (
 
         <View
