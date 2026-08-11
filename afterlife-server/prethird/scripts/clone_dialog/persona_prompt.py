@@ -45,10 +45,13 @@ import re
 
 from .mbti_traits import get_mbti_traits
 from .mbti_tone_map import get_mbti_tone
+from .dialect_traits import get_dialect_traits
 
 # 클론 자신의 속성 — "## 너의 정보" 블록.
 _SELF_LABELS: list[tuple[str, str]] = [
     ("tone", "말투"),
+    ("speech_speed", "말의 속도"),
+    ("dialect_region", "사투리 지역"),
     ("personality_core", "핵심 성격"),
     ("voice_style", "발화 스타일"),
     ("speech_patterns", "말버릇"),
@@ -77,7 +80,10 @@ _NEUTRAL_LABELS: list[tuple[str, str]] = [
 # knowledge 는 "## 전문 지식" 전용 섹션으로 분리된다.
 # mbti 는 "## MBTI 참고 성격" 전용 섹션으로 분리된다 — 원본 라벨(예: "INTJ") 만
 # 남기면 LLM 이 해석 각도 편차가 커서 상세 카탈로그(mbti_traits.py) 를 삽입한다.
-_EXCLUDED_KEYS = {"displayName", "knowledge", "mbti"}
+# dialect_region 은 _SELF_LABELS 의 "사투리 지역" 로 이미 렌더되므로 참고 블록
+# 중복 노출 방지 목적. dialect_intensity 는 v5 스키마에서 삭제됐지만 기존 페르소나
+# 저장값이 남아있을 수 있어 참고 블록에서 침묵 처리하려면 여기에도 추가.
+_EXCLUDED_KEYS = {"displayName", "knowledge", "mbti", "dialect_region", "dialect_intensity"}
 
 # 이 모듈이 이름 검증의 단일 정본이다. signaling.py 의 `_sanitize_display_name` 은
 # 여기를 import 해서 쓴다 — 두 벌로 두면 한쪽만 강화됐을 때 조용히 어긋난다
@@ -309,10 +315,12 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
     else:
         other_source = persona
 
-    # T-471: tone fallback — 사용자가 tone 을 지정하지 않았고 mbti 만 있으면
-    # MBTI 기본 말투(mbti_tone_map) 를 tone 필드로 자동 채운다. 사용자 명시값 (예:
-    # "사투리", "따뜻하고 자상한") 이 있으면 그대로 두어 사용자 선택을 존중한다.
-    if not str(persona.get("tone") or "").strip():
+    # T-473/T-474: tone fallback — 사용자가 tone 을 "표준말" 로 골랐거나 지정하지
+    # 않았고 mbti 만 있으면 MBTI 기본 말투(mbti_tone_map) 를 tone 필드로 자동 채운다.
+    # "사투리" 는 아래 dialect_traits 로 처리하므로 fallback 발동 안 함. 사용자가
+    # 자유 입력한 커스텀 tone(예: "따뜻하고 자상한") 도 그대로 존중.
+    tone_val = str(persona.get("tone") or "").strip()
+    if tone_val in ("", "표준말"):
         mbti_code = str(persona.get("mbti") or "").strip().upper()
         tone_default = get_mbti_tone(mbti_code)
         if tone_default:
@@ -345,8 +353,13 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
     mbti_code = str(persona.get("mbti") or "").strip().upper()
     mbti_text = get_mbti_traits(mbti_code) if mbti_code else None
 
-    if not (self_lines or other_lines or neutral_lines or lines or knowledge_text or mbti_text):
-        # l0 도 없고 속성도 없고 knowledge/mbti 도 없으면 의미 없음
+    # T-474: 사투리 카탈로그 — attrs.dialect_region 이 5대 지역 중 하나이면
+    # 방언 어미·어휘·예시를 별도 섹션으로 삽입해 LLM 이 자연스레 재현하게 유도.
+    dialect_region = str(persona.get("dialect_region") or "").strip()
+    dialect_text = get_dialect_traits(dialect_region) if dialect_region else None
+
+    if not (self_lines or other_lines or neutral_lines or lines or knowledge_text or mbti_text or dialect_text):
+        # l0 도 없고 속성도 없고 knowledge/mbti/dialect 도 없으면 의미 없음
         return []
 
     # 머리말은 블록 조립 결과를 보고 만든다 — "## 상대 정보" 가 실제로 없으면
@@ -373,6 +386,16 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
             "위 '## 너의 정보' 의 개별 성격이 항상 우선이다. 아래는 참고용 일반 성향이다."
         )
         lines.append(mbti_text.strip())
+
+    if dialect_text:
+        # tone="사투리" + dialect_region 선택 시 지역별 어미·어휘 힌트 삽입.
+        # LLM 이 어색한 사투리를 억지로 흉내내지 않고 자연스레 반영하도록 예시 위주.
+        lines.append(f"## 사투리 참고 ({dialect_region})")
+        lines.append(
+            "위 '## 너의 정보' 의 말투가 '사투리' 로 설정됐다. 아래 어미·어휘·예시를"
+            " 자연스럽게 섞어 말한다. 억지스럽게 매 문장 다 넣지 말고 대화 맥락에 맞게 배분."
+        )
+        lines.append(dialect_text.strip())
 
     if knowledge_text:
         lines.append("## 전문 지식")
