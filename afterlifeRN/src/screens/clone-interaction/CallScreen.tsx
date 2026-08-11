@@ -1232,14 +1232,14 @@ function CallScreenInner({ route, navigation }: Props) {
     <View style={s.container}>
       {}
       {
+
 }
       {remoteStream ? (
-
-        <View style={[StyleSheet.absoluteFill, s.videoEdgeMask]}>
+        <View style={[StyleSheet.absoluteFill, s.videoAspectMask]}>
           <RTCView
             streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
-            objectFit="cover"
-            style={[StyleSheet.absoluteFill, s.videoEdgeTrim]}
+            objectFit="contain"
+            style={s.videoAspectContent}
           />
         </View>
       ) : personaImage ? (
@@ -1804,6 +1804,16 @@ const s = StyleSheet.create({
     width: "100%",
     height: "100%",
     marginHorizontal: -VIDEO_EDGE_TRIM_PX,
+  },
+
+  videoAspectMask: {
+    overflow: "hidden",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  videoAspectContent: {
+    width: "100%",
+    aspectRatio: 512 / 1024,
   },
 
   pip: {
