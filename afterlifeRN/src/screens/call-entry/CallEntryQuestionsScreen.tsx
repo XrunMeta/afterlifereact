@@ -289,7 +289,7 @@ export default function CallEntryQuestionsScreen({
         </ScrollView>
 
         {}
-        <View style={[s.footer, { paddingBottom: 12 + insets.bottom }]}>
+        <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 4) }]}>
           <TouchableOpacity
             style={[s.saveBtn, (!canProceed || saving) && s.saveBtnDisabled]}
             onPress={save}
@@ -416,7 +416,9 @@ const s = StyleSheet.create({
   footer: {
     borderTopWidth: 1,
     borderTopColor: COLORS.zinc200,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+
   },
   saveBtn: {
     backgroundColor: COLORS.violet700,
