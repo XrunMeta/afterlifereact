@@ -24,6 +24,14 @@ const L2_OVERRIDE_FIELDS = new Set<string>([
   "preference_personal",
   "memories_personal",   
   "preference_history",   
+
+  "relation_category",
+  "relation_subtype",
+  "relation_episode",
+  "address_form",
+  "speech_form",
+  "job_category",
+  "job_detail",
 ]);
 
 export function parseLayer(raw: string | null): PersonaDict | null {

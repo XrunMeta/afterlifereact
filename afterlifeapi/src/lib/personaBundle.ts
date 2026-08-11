@@ -45,6 +45,9 @@ const L2_FIELDS = [
   "memory_summary", "relationship", "context", "recent_topics",   
   "relation", "preference_personal", "memories_personal",          
   "preference_history",                                            
+
+  "relation_category", "relation_subtype", "relation_episode", "address_form",
+  "speech_form", "job_category", "job_detail",
 ] as const;
 
 export async function loadUserL2(
