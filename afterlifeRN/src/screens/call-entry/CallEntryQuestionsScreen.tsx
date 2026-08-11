@@ -11,6 +11,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   findNodeHandle,
   UIManager,
@@ -82,6 +83,13 @@ export default function CallEntryQuestionsScreen({
     return () => { cancelled = true; };
   }, [visible, accessToken, cloneId]);
   const scrollRef = useRef<ScrollView>(null);
+
+  const [kbVisible, setKbVisible] = useState(false);
+  React.useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () => setKbVisible(true));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKbVisible(false));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
 
   const scrollInputIntoView = (nodeHandle: number | null) => {
     if (nodeHandle == null || !scrollRef.current) return;
@@ -289,7 +297,7 @@ export default function CallEntryQuestionsScreen({
         </ScrollView>
 
         {}
-        <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 4) }]}>
+        <View style={[s.footer, { paddingBottom: kbVisible ? 0 : Math.max(insets.bottom, 4) }]}>
           <TouchableOpacity
             style={[s.saveBtn, (!canProceed || saving) && s.saveBtnDisabled]}
             onPress={save}
