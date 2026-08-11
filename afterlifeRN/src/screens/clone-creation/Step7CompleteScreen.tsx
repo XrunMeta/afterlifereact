@@ -112,7 +112,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   v_c4deb2(() => {
     if (v_f04727.description && v_6044a8.trim().length === 0 && !v_d9bc63.current) {
-      v_1d6b6a(v_f04727.description.slice(0, 100));
+      v_1d6b6a(v_f04727.description.slice(0, 500));
     }
 
   }, [v_f04727.description]);

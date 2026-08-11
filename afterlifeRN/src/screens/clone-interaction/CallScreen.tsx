@@ -207,7 +207,7 @@ function CallScreenInner({ route, navigation }: Props) {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
 
-  const [callEntryOpen, setCallEntryOpen] = useState(false);
+  const [callEntryOpen, setCallEntryOpen] = useState(true);
   useEffect(() => {
     if (!clone) return;
     const attrs = clone.l1Profile?.attrs ?? {};
@@ -217,8 +217,10 @@ function CallScreenInner({ route, navigation }: Props) {
       (attrs.speech_form ?? "").trim().length > 0 &&
       (attrs.job_category ?? "").trim().length > 0 &&
       (attrs.job_detail ?? "").trim().length > 0;
-    if (!complete) setCallEntryOpen(true);
-  }, [clone]);
+    setCallEntryOpen(!complete);
+
+    console.log("[CallEntry] gate check", { cloneId, complete, attrs });
+  }, [clone, cloneId]);
 
   const [faceProcOff, setFaceProcOff] = useState(false);
 
