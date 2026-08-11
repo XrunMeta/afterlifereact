@@ -138,6 +138,7 @@ export default function CallEntryQuestionsScreen({
 
   const save = async () => {
     if (!canProceed || !accessToken) return;
+    Keyboard.dismiss(); 
     setSaving(true);
     try {
 
@@ -180,7 +181,7 @@ export default function CallEntryQuestionsScreen({
 
         <ScrollView
           ref={scrollRef}
-          contentContainerStyle={s.content}
+          contentContainerStyle={[s.content, { paddingBottom: kbVisible ? 360 : 24 }]}
           keyboardShouldPersistTaps="handled"
         >
           {}
@@ -297,7 +298,7 @@ export default function CallEntryQuestionsScreen({
         </ScrollView>
 
         {}
-        <View style={[s.footer, { paddingBottom: kbVisible ? 0 : Math.max(insets.bottom, 4) }]}>
+        <View style={[s.footer, { paddingBottom: (kbVisible || doneModal) ? 0 : Math.max(insets.bottom, 4) }]}>
           <TouchableOpacity
             style={[s.saveBtn, (!canProceed || saving) && s.saveBtnDisabled]}
             onPress={save}
@@ -381,7 +382,7 @@ const s = StyleSheet.create({
   headerBtn: { minWidth: 48, alignItems: "flex-start" },
   headerBtnText: { color: COLORS.zinc600, fontSize: 14 },
 
-  content: { padding: 20, paddingBottom: 360, gap: 32 },
+  content: { padding: 20, paddingBottom: 24, gap: 32 },
   section: { gap: 14 },
   sectionTitle: { fontSize: 16, fontWeight: "600", color: COLORS.zinc900, marginBottom: 4 },
   subLabel: { fontSize: 13, color: COLORS.zinc600, marginTop: 12, marginBottom: 4 },
@@ -438,7 +439,7 @@ const s = StyleSheet.create({
   saveBtnText: { color: COLORS.white, fontSize: 15, fontWeight: "600" },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.55)",
+    backgroundColor: "rgba(0,0,0,0.88)",
     alignItems: "center",
     justifyContent: "center",
     padding: 20,

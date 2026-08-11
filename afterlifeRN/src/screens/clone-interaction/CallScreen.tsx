@@ -225,10 +225,17 @@ export default function CallScreen(props: Props) {
         onLearn={() => {
           setCallEntryOpen(false);
 
-          (props.navigation as unknown as { navigate: (n: string, p: unknown) => void }).navigate(
-            "Main",
-            { screen: "ClonesTab", params: { screen: "CloneLearn", params: { cloneId } } },
-          );
+          const nav = props.navigation as unknown as {
+            goBack: () => void;
+            navigate: (n: string, p: unknown) => void;
+          };
+          nav.goBack();
+          setTimeout(() => {
+            nav.navigate("Main", {
+              screen: "ClonesTab",
+              params: { screen: "CloneLearn", params: { cloneId } },
+            });
+          }, 60);
         }}
       />
     </View>
