@@ -3,10 +3,17 @@ import { Buffer } from "buffer";
 import { Platform } from "react-native";
 import { registerRootComponent } from "expo";
 
+try {
+
+  const _dbg = require("debug");
+  if (_dbg && typeof _dbg.disable === "function") _dbg.disable();
+} catch {  }
 {
   const _origLog = console.log;
   console.log = ((...args: unknown[]) => {
-    if (args.length > 0 && typeof args[0] === "string" && args[0].startsWith("rn-webrtc:")) return;
+    for (const a of args) {
+      if (typeof a === "string" && a.indexOf("rn-webrtc:") !== -1) return;
+    }
     _origLog(...args);
   }) as typeof console.log;
 }
