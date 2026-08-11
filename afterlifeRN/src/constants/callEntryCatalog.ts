@@ -22,6 +22,7 @@ export const v_88e76b = [
       { id: "maternal_uncle_husband", label: "이모부" },
       { id: "paternal_aunt_husband", label: "고모부" },
       { id: "cousin", label: "사촌" },
+      { id: "other", label: "기타" },
     ],
   },
   {
@@ -33,6 +34,7 @@ export const v_88e76b = [
       { id: "school_friend", label: "학창 시절 동창" },
       { id: "college_friend", label: "대학 동기" },
       { id: "neighbor_friend", label: "동네 친구" },
+      { id: "other", label: "기타" },
     ],
   },
   {
@@ -45,6 +47,7 @@ export const v_88e76b = [
       { id: "girlfriend", label: "여자친구" },
       { id: "crush_mutual", label: "썸남/썸녀" },
       { id: "unrequited_love", label: "짝사랑 상대" },
+      { id: "other", label: "기타" },
     ],
   },
   {
@@ -57,6 +60,7 @@ export const v_88e76b = [
       { id: "peer", label: "입사 동기" },
       { id: "junior", label: "후배/부사수" },
       { id: "business_partner", label: "사업 파트너" },
+      { id: "other", label: "기타" },
     ],
   },
   {
@@ -69,6 +73,7 @@ export const v_88e76b = [
       { id: "streamer", label: "스트리머" },
       { id: "athlete", label: "운동선수" },
       { id: "webtoon_artist", label: "웹툰 작가" },
+      { id: "other", label: "기타" },
     ],
   },
 ];

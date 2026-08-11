@@ -51,8 +51,11 @@ export default function v_601c02({
 
   const [v_35b883, v_8781ff] = v_5ab095<string>(v_676b49.relation_category ?? "");
   const [v_1c3009, v_bb1c6a] = v_5ab095<string>(v_676b49.relation_subtype ?? "");
+
+  const [v_6125e7, v_46c351] = v_5ab095<string>("");
   const [v_60bef6, v_b157ed] = v_5ab095<string>(v_676b49.speech_form ?? "");
   const [v_d5ec97, v_977c36] = v_5ab095<string>(v_676b49.job_category ?? "");
+  const [v_96e1fc, v_ffde7a] = v_5ab095<string>("");
   const [v_cdce7c, v_eb1148] = v_5ab095<string>(v_676b49.job_detail ?? "");
   const [v_35bf26, v_04e389] = v_5ab095(false);
   const [v_d5f375, v_9b4aaf] = v_5ab095(false);
@@ -62,11 +65,13 @@ export default function v_601c02({
     [v_35b883],
   );
 
+  const v_730b43 = v_1c3009 === "기타" ? v_6125e7.trim().length > 0 : v_1c3009.trim().length > 0;
+  const v_eacc07 = v_d5ec97 === "기타" ? v_96e1fc.trim().length > 0 : v_d5ec97.trim().length > 0;
   const v_fc0cf5 =
     v_35b883.trim().length > 0 &&
-    v_1c3009.trim().length > 0 &&
+    v_730b43 &&
     v_60bef6.trim().length > 0 &&
-    v_d5ec97.trim().length > 0 &&
+    v_eacc07 &&
     v_cdce7c.trim().length > 0;
 
   const v_1e693b = async () => {
@@ -74,12 +79,14 @@ export default function v_601c02({
     v_04e389(true);
     try {
 
+      const v_65ac64 = v_1c3009 === "기타" ? v_6125e7.trim() : v_1c3009;
+      const v_fc7401 = v_d5ec97 === "기타" ? v_96e1fc.trim() : v_d5ec97;
       const v_1b4a05 = {
         ...v_676b49,
         relation_category: v_35b883,
-        relation_subtype: v_1c3009,
+        relation_subtype: v_65ac64,
         speech_form: v_60bef6,
-        job_category: v_d5ec97,
+        job_category: v_fc7401,
         job_detail: v_cdce7c.trim(),
       };
       await v_bb226e(v_2ca7e0, v_6e0fd3, {
@@ -142,6 +149,15 @@ export default function v_601c02({
                     />
                   ))}
                 </View>
+                {v_1c3009 === "기타" ? (
+                  <TextInput
+                    value={v_6125e7}
+                    onChangeText={v_46c351}
+                    placeholder="예: 스승님, 이웃, 은인"
+                    placeholderTextColor={v_1bfbd0.zinc400}
+                    style={v_fd5f43.textInputShort}
+                  />
+                ) : null}
               </>
             ) : null}
           </Section>
@@ -172,6 +188,15 @@ export default function v_601c02({
                 />
               ))}
             </View>
+            {v_d5ec97 === "기타" ? (
+              <TextInput
+                value={v_96e1fc}
+                onChangeText={v_ffde7a}
+                placeholder="예: 우주비행사, 통번역가, 프리랜서 작가"
+                placeholderTextColor={v_1bfbd0.zinc400}
+                style={v_fd5f43.textInputShort}
+              />
+            ) : null}
             <Text style={v_fd5f43.subLabel}>{`${v_1833e7}님이 정확하게 어떤 일을 했는지 적어주세요.`}</Text>
             <TextInput
               value={v_cdce7c}
@@ -297,6 +322,16 @@ const v_fd5f43 = v_472849.create({
     minHeight: 96,
     textAlignVertical: "top",
     marginTop: 4,
+  },
+  textInputShort: {
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc300,
+    borderRadius: v_8b0c90.md,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: v_1bfbd0.zinc900,
+    marginTop: 10,
   },
   footer: {
     borderTopWidth: 1,

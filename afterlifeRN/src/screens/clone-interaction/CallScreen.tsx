@@ -181,7 +181,10 @@ export default function CallScreen(props: Props) {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.zinc950 }}>
-      {!heavyReady ? (
+      {
+
+}
+      {callEntryOpen || !heavyReady ? (
         <DialingScreen
           liveState="idle"
           personaName={paramName ?? ""}
