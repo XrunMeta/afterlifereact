@@ -162,7 +162,12 @@ PAYMENT_CURRENCY      = "11"
 # 통화 엔드포인트 원격 config — D1(app_config) 미조회 시 폴백. 값 = 현재 라이브 rtc.example.invalid.
 CALL_PRETHIRD_BASE = "https://rtc.example.invalid/prethird"
 CALL_ROUTE = "prethird"
-FACE_CALIBRATE_ENABLED = "0"   # T-111: 개통 전 제거
+# [T-252 후속 · 2026-08-10 KST 히즈키 지시] preview 만 계측 ON.
+# 얼굴 인식 사이클마다 face_calibrate_samples 에 (best_score·threshold·전 person 유사도·
+# matched_has_l2p) 를 남긴다 — 인식이 실제로 되는지, 유사도 분포가 어떤지를 데이터로 본다.
+# prod([env.production])는 "0" 유지 — 매 사이클 D1 write 라 실사용자에게 켜면 안 된다.
+# T-111 개통 전 제거 대상(테이블 DROP)이라는 원래 방침은 그대로다.
+FACE_CALIBRATE_ENABLED = "1"
 FACE_CONSENT_ENFORCED = "false"  # T-126 Task6: preview 기본 OFF — auto_biometric 조용한 자동등록 실기검증
 # preview/dev 전용 결제 우회 PIN — 이 PIN 으로 페르소나 결제 시 xrun 송금 스킵(테스트).
 # production([env.production])에는 절대 추가 금지. preview 한정.
