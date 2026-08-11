@@ -553,16 +553,28 @@ v_469bf2("GET /oth-path (폴링 조회 — Task 2)", () => {
 
 });
 
-v_469bf2("wrangler.toml FACE_CALIBRATE_ENABLED 정적 안전망(off→404 회귀 방지)", () => {
-  v_23805a("[vars]·[env.preview.vars]·[env.production.vars] 전부 \"0\"이어야 한다", async () => {
+v_469bf2("wrangler.toml FACE_CALIBRATE_ENABLED 정적 안전망(prod 오ON 방지)", () => {
+  v_23805a("base 와 production 은 \"0\", preview 만 \"1\" 이다", async () => {
 
     const { default: v_6e2bcc } = await import("../wrangler.toml?raw");
 
-    const v_a49907 = [...(v_6e2bcc as string).matchAll(/FACE_CALIBRATE_ENABLED\s*=\s*"([^"]*)"/g)].map((v_35f85c) => v_35f85c[1]);
+    const v_8d41d7 = v_6e2bcc as string;
+    const v_abc8f4 = (v_b4fa6c): string | null => {
 
-    v_4d37e3(v_a49907.length).toBe(3);
-    for (const v_81e2ef of v_a49907) {
-      v_4d37e3(v_81e2ef).toBe("0");
-    }
+      const v_965edf = v_b4fa6c === "" ? 0 : v_8d41d7.indexOf(`[${v_b4fa6c}]`);
+      v_4d37e3(v_965edf).toBeGreaterThanOrEqual(0);
+      const v_83bbcd = v_8d41d7.slice(v_965edf + v_b4fa6c.length + 2);
+      const v_2f4015 = v_83bbcd.search(/\n\[/);
+      const v_4d33b2 = v_2f4015 === -1 ? v_83bbcd : v_83bbcd.slice(0, v_2f4015);
+      const v_35f85c = v_4d33b2.match(/FACE_CALIBRATE_ENABLED\s*=\s*"([^"]*)"/);
+      return v_35f85c ? v_35f85c[1] : null;
+    };
+
+    const v_48c915 = [...v_8d41d7.matchAll(/FACE_CALIBRATE_ENABLED\s*=\s*"([^"]*)"/g)];
+    v_4d37e3(v_48c915.length).toBe(3);
+
+    v_4d37e3(v_abc8f4("env.production.vars")).toBe("0");
+
+    v_4d37e3(v_abc8f4("env.preview.vars")).toBe("1");
   });
 });

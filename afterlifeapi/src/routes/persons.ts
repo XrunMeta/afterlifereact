@@ -171,7 +171,8 @@ v_fded81.post("/calibrate", v_6690d9, async (v_3f4e2e) => {
     return v_3f4e2e.json({ error: "invalid cloneId" }, 400);
   }
   const { matches: v_a49907 } = await v_a8d2cc(v_3f4e2e.env).query(v_81e2ef as number[], {
-    topK: 100,
+
+    topK: 20,
     namespace: v_929ead(v_43e90c, v_6b5963),
     returnMetadata: true,
   });
