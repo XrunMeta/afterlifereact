@@ -26,7 +26,7 @@ def _resolve_persona_se(sess: Any, default_se: str | None) -> tuple[list, str | 
     return persona, se
 
 
-_VALID_RENDERERS = ("musetalk", "fifth")
+_VALID_RENDERERS = ("musetalk", "fifth", "echomimic_v3")
 
 
 def _select_renderer_name() -> str:
@@ -51,8 +51,21 @@ def _make_fifth(video_path: str):
     return f5
 
 
+def _make_echomimic(video_path: str):
+    # T-467 실험 렌더러(EchoMimicV3). :8750 render_server 필요.
+    from echomimic_inproc import EchoMimicInproc
+    em = EchoMimicInproc(video_path)
+    em.load()
+    log.info("echomimic in-process loaded (ref=%s)", video_path)
+    return em
+
+
 def _build_renderer(name: str, video_path: str):
-    return _make_fifth(video_path) if name == "fifth" else _make_musetalk(video_path)
+    if name == "echomimic_v3":
+        return _make_echomimic(video_path)
+    if name == "fifth":
+        return _make_fifth(video_path)
+    return _make_musetalk(video_path)
 
 
 _IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".bmp")
@@ -79,7 +92,7 @@ def _source_for_renderer(renderer_name, face_path, video_path, isfile=os.path.is
 
     musetalk에 사진(.jpg)을 video_path로 넘기면 cv2.VideoCapture가 0프레임으로 실패하기 때문.
     """
-    face = face_path if renderer_name == "fifth" else None
+    face = face_path if renderer_name in ("fifth", "echomimic_v3") else None
     return _pick_source(face, video_path, isfile)
 
 
@@ -113,10 +126,23 @@ def _build_pipeline_factory():
         log.warning("PRETHIRD_REFERENCE_VIDEO 미설정 — 파이프라인 비활성(시그널링/idle만)")
         return None
 
-    from clone_dialog import chat_stream
+    from clone_dialog import chat_stream as _chat_stream_raw
     from tts_client import say as tts_say
     from audio_utils import _decode_wav
     from pipeline import DialoguePipeline
+
+    # T-467 (2026-08-12) 응답 길이 제한 — env 미설정/0 이면 원본 그대로(회귀 0).
+    #   사용자 요구 "응답이 너무 길어 총 84초 폭주". num_predict 로 상한 걸어 총 발화 시간 단축.
+    _max_toks = 0
+    try:
+        _max_toks = int(os.environ.get("PRETHIRD_MAX_RESPONSE_TOKENS", "0") or "0")
+    except Exception:
+        _max_toks = 0
+    if _max_toks > 0:
+        def chat_stream(msgs, model=None, temperature=None):
+            return _chat_stream_raw(msgs, model=model, temperature=temperature, num_predict=_max_toks)
+    else:
+        chat_stream = _chat_stream_raw
 
     renderer_name = _select_renderer_name()
     renderer = _build_renderer(renderer_name, video_path)
@@ -140,7 +166,8 @@ def _build_pipeline_factory():
         if renderer_name == "fifth" and getattr(sess, "face_path", None) and _src != getattr(sess, "face_path", None):
             log.warning("face_path 파일 없음, 영상/halbae fallback: %s", sess.face_path)
 
-        def _infer_fn(wav, cb, _src=_src, render_mode: str | None = None):
+        def _infer_fn(wav, cb, _src=_src, render_mode: str | None = None,
+                      emotion: str | None = None):
             """[T-113 Task6] pipeline._infer_stage 가 넘기는 render_mode 를
             fifth 렌더러에만 포워딩한다(batch 는 fifth 전용).
 
@@ -152,9 +179,16 @@ def _build_pipeline_factory():
             - renderer=musetalk 등: MuseTalkInproc.infer 는 render_mode 인자를
               받지 않으므로(TypeError 방지) 절대 전달하지 않고 무시한다.
               batch 로 설정돼 있었다면 안전하게 무시됨을 로그로 남긴다.
+
+            [T-483] emotion 태그 — echomimic_v3 에만 pass. fifth/musetalk 는
+            `**_ignored` 로 무해히 흡수한다(EchoMimicInproc/FifthInproc/MuseTalkInproc
+            모두 **_ignored kwargs 계약 유지 필요). None(=태그 미검출)이면 렌더
+            서버가 기본 prompt 사용.
             """
             if renderer_name == "fifth":
                 return renderer.infer(wav, cb, video_path=_src, render_mode=render_mode)
+            if renderer_name == "echomimic_v3":
+                return renderer.infer(wav, cb, video_path=_src, emotion=emotion)
             if render_mode is not None:
                 log.warning(
                     "PRETHIRD_RENDER_MODE=%s 이나 renderer=%s(fifth 아님) — "
