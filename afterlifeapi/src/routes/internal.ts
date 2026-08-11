@@ -31,8 +31,8 @@ internal.post("/oth-path", async (c) => {
 
   const callId = c.req.param("callId");
   const body = await c.req
-    .json<{ role?: string; text?: string }>()
-    .catch(() => ({}) as { role?: string; text?: string });
+    .json<{ role?: string; text?: string; speakerPersonId?: unknown }>()
+    .catch(() => ({}) as { role?: string; text?: string; speakerPersonId?: unknown });
   const text = (body.text ?? "").trim();
 
   const role = body.role === "clone" || body.role === "user" ? body.role : null;
@@ -45,11 +45,20 @@ internal.post("/oth-path", async (c) => {
   ).bind(callId).first();
   if (!sess) return c.json({ error: "call_not_found" }, 404);
 
+  const rawSpeaker = body.speakerPersonId;
+  const speakerPersonId =
+    role === "user" && typeof rawSpeaker === "number" && Number.isInteger(rawSpeaker)
+      ? rawSpeaker
+      : null;
+
   await c.env.DB.prepare(
-    `INSERT INTO call_turns (call_id, seq, role, text, created_at)
-     SELECT ?, COALESCE(MAX(seq),0)+1, ?, ?, ?
+    `INSERT INTO call_turns (call_id, seq, role, text, created_at, speaker_person_id)
+     SELECT ?, COALESCE(MAX(seq),0)+1, ?, ?, ?,
+            (SELECT p.id FROM persons p
+              WHERE p.id = ?
+                AND p.clone_id = (SELECT clone_id FROM call_sessions WHERE call_id = ?))
      FROM call_turns WHERE call_id = ?`
-  ).bind(callId, role, text, Date.now(), callId).run();
+  ).bind(callId, role, text, Date.now(), speakerPersonId, callId, callId).run();
   return c.json({ ok: true });
 });
 
