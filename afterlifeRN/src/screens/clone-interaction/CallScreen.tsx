@@ -168,9 +168,10 @@ export default function CallScreen(props: Props) {
 
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
   const wrapperAccessToken = useAuthStore((s) => s.accessToken);
-  const [callEntryOpen, setCallEntryOpen] = React.useState(true);
+
+  const [callEntryOpen, setCallEntryOpen] = React.useState<boolean | null>(null);
   React.useEffect(() => {
-    if (!wrapperAccessToken || !cloneId) return;
+    if (!wrapperAccessToken || !cloneId) { setCallEntryOpen(true); return; }
     let cancelled = false;
     (async () => {
       try {
@@ -187,6 +188,8 @@ export default function CallScreen(props: Props) {
         setCallEntryOpen(!complete);
       } catch (err) {
 
+        if (!cancelled) setCallEntryOpen(true);
+
         console.warn("[CallEntry] L2 gate fetch 실패:", err);
       }
     })();
@@ -198,11 +201,13 @@ export default function CallScreen(props: Props) {
       {
 
 }
-      {callEntryOpen || !heavyReady ? (
+      {callEntryOpen !== false || !heavyReady ? (
         <DialingScreen
           liveState="idle"
           personaName={paramName ?? ""}
           personaImage={placeholderImage}
+
+          silent={callEntryOpen !== false}
           onConnected={() => {}}
           onCancel={() => props.navigation.goBack()}
           onRetry={() => {}}
@@ -214,7 +219,7 @@ export default function CallScreen(props: Props) {
       {
 }
       <CallEntryQuestionsScreen
-        visible={callEntryOpen}
+        visible={callEntryOpen === true}
         cloneId={cloneId}
         name={clone?.displayName ?? paramName ?? ""}
         onCancel={() => {
