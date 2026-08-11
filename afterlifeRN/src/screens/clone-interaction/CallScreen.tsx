@@ -225,17 +225,31 @@ export default function CallScreen(props: Props) {
         onLearn={() => {
           setCallEntryOpen(false);
 
-          const nav = props.navigation as unknown as {
-            goBack: () => void;
-            navigate: (n: string, p: unknown) => void;
-          };
-          nav.goBack();
-          setTimeout(() => {
-            nav.navigate("Main", {
-              screen: "ClonesTab",
-              params: { screen: "CloneLearn", params: { cloneId } },
-            });
-          }, 60);
+          props.navigation.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [
+                {
+                  name: "Main",
+                  state: {
+                    index: 0,
+                    routes: [
+                      {
+                        name: "ClonesTab",
+                        state: {
+                          index: 1,
+                          routes: [
+                            { name: "Dashboard" },
+                            { name: "CloneLearn", params: { cloneId } },
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                } as never,
+              ],
+            }),
+          );
         }}
       />
     </View>

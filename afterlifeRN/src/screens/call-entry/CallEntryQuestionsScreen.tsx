@@ -298,7 +298,7 @@ export default function v_601c02({
         </ScrollView>
 
         {}
-        <View style={[v_fd5f43.footer, { paddingBottom: (v_18641c || v_d5f375) ? 0 : Math.max(v_033e14.bottom, 4) }]}>
+        <View style={[v_fd5f43.footer, { paddingBottom: 0 }]}>
           <TouchableOpacity
             style={[v_fd5f43.saveBtn, (!v_fc0cf5 || v_35bf26) && v_fd5f43.saveBtnDisabled]}
             onPress={v_1e693b}
