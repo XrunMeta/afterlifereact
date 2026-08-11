@@ -1,6 +1,6 @@
 
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   Modal,
   View,
@@ -12,6 +12,8 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  findNodeHandle,
+  UIManager,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS, RADIUS, SIZES } from "../../components/constants";
@@ -53,10 +55,26 @@ export default function CallEntryQuestionsScreen({
   const [relSub, setRelSub] = useState<string>(existingAttrs.relation_subtype ?? "");
 
   const [relSubOther, setRelSubOther] = useState<string>("");
+
+  const [relEpisode, setRelEpisode] = useState<string>(existingAttrs.relation_episode ?? "");
+  const [addressForm, setAddressForm] = useState<string>(existingAttrs.address_form ?? "");
   const [speech, setSpeech] = useState<string>(existingAttrs.speech_form ?? "");
   const [job, setJob] = useState<string>(existingAttrs.job_category ?? "");
   const [jobOther, setJobOther] = useState<string>("");
   const [jobDetail, setJobDetail] = useState<string>(existingAttrs.job_detail ?? "");
+  const scrollRef = useRef<ScrollView>(null);
+
+  const scrollInputIntoView = (nodeHandle: number | null) => {
+    if (nodeHandle == null || !scrollRef.current) return;
+    setTimeout(() => {
+      UIManager.measureLayout(
+        nodeHandle,
+        findNodeHandle(scrollRef.current) as number,
+        () => {},
+        (_x, y) => scrollRef.current?.scrollTo({ y: Math.max(0, y - 60), animated: true }),
+      );
+    }, 100);
+  };
   const [saving, setSaving] = useState(false);
   const [doneModal, setDoneModal] = useState(false);
 
@@ -70,9 +88,26 @@ export default function CallEntryQuestionsScreen({
   const canProceed =
     relCat.trim().length > 0 &&
     relSubOk &&
+    relEpisode.trim().length > 0 &&
+    addressForm.trim().length > 0 &&
     speech.trim().length > 0 &&
     jobOk &&
     jobDetail.trim().length > 0;
+
+  console.log("[CallEntry] canProceed", {
+    canProceed,
+    relCat: relCat.length,
+    relSub,
+    relSubOther: relSubOther.length,
+    relSubOk,
+    relEpisode: relEpisode.length,
+    addressForm: addressForm.length,
+    speech: speech.length,
+    job,
+    jobOther: jobOther.length,
+    jobOk,
+    jobDetail: jobDetail.length,
+  });
 
   const save = async () => {
     if (!canProceed || !accessToken) return;
@@ -85,6 +120,8 @@ export default function CallEntryQuestionsScreen({
         ...existingAttrs,
         relation_category: relCat,
         relation_subtype: finalRelSub,
+        relation_episode: relEpisode.trim(),
+        address_form: addressForm.trim(),
         speech_form: speech,
         job_category: finalJob,
         job_detail: jobDetail.trim(),
@@ -107,7 +144,7 @@ export default function CallEntryQuestionsScreen({
   if (!visible) return null;
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onCancel}>
+    <Modal visible={visible} animationType="fade" onRequestClose={onCancel}>
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: COLORS.white }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -120,7 +157,11 @@ export default function CallEntryQuestionsScreen({
           <View style={s.headerBtn} />
         </View>
 
-        <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={s.content}
+          keyboardShouldPersistTaps="handled"
+        >
           {}
           <Section title={`${name}님과 어떤 관계였나요?`}>
             <View style={s.chipsWrap}>
@@ -156,8 +197,31 @@ export default function CallEntryQuestionsScreen({
                     placeholder="예: 스승님, 이웃, 은인"
                     placeholderTextColor={COLORS.zinc400}
                     style={s.textInputShort}
+                    onFocus={(e) => scrollInputIntoView(findNodeHandle(e.target as unknown as number))}
                   />
                 ) : null}
+
+                {}
+                <Text style={s.subLabel}>{`${name}님과 어떤 사이였는지 간단한 일화를 적어주세요.`}</Text>
+                <TextInput
+                  value={relEpisode}
+                  onChangeText={setRelEpisode}
+                  placeholder="예: 매주 주말마다 등산 다니던 친구, 힘든 시기에 같이 야근한 사수"
+                  placeholderTextColor={COLORS.zinc400}
+                  multiline
+                  style={s.textInput}
+                  onFocus={(e) => scrollInputIntoView(findNodeHandle(e.target as unknown as number))}
+                />
+
+                <Text style={s.subLabel}>{`${name}님이 당신을 어떻게 불렀나요?`}</Text>
+                <TextInput
+                  value={addressForm}
+                  onChangeText={setAddressForm}
+                  placeholder="예: 은지야, 아들, 야, 지호 씨"
+                  placeholderTextColor={COLORS.zinc400}
+                  style={s.textInputShort}
+                  onFocus={(e) => scrollInputIntoView(findNodeHandle(e.target as unknown as number))}
+                />
               </>
             ) : null}
           </Section>
@@ -195,6 +259,7 @@ export default function CallEntryQuestionsScreen({
                 placeholder="예: 우주비행사, 통번역가, 프리랜서 작가"
                 placeholderTextColor={COLORS.zinc400}
                 style={s.textInputShort}
+                onFocus={(e) => scrollInputIntoView(findNodeHandle(e.target as unknown as number))}
               />
             ) : null}
             <Text style={s.subLabel}>{`${name}님이 정확하게 어떤 일을 했는지 적어주세요.`}</Text>
@@ -205,6 +270,7 @@ export default function CallEntryQuestionsScreen({
               placeholderTextColor={COLORS.zinc400}
               multiline
               style={s.textInput}
+              onFocus={(e) => scrollInputIntoView(findNodeHandle(e.target as unknown as number))}
             />
           </Section>
         </ScrollView>
