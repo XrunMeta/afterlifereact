@@ -289,7 +289,7 @@ export default function v_601c02({
         </ScrollView>
 
         {}
-        <View style={[v_fd5f43.footer, { paddingBottom: 12 + v_033e14.bottom }]}>
+        <View style={[v_fd5f43.footer, { paddingBottom: Math.max(v_033e14.bottom, 4) }]}>
           <TouchableOpacity
             style={[v_fd5f43.saveBtn, (!v_fc0cf5 || v_35bf26) && v_fd5f43.saveBtnDisabled]}
             onPress={v_1e693b}
@@ -416,7 +416,9 @@ const v_fd5f43 = v_472849.create({
   footer: {
     borderTopWidth: 1,
     borderTopColor: v_1bfbd0.zinc200,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+
   },
   saveBtn: {
     backgroundColor: v_1bfbd0.violet700,
