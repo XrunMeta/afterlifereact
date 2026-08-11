@@ -120,7 +120,13 @@ import ExpertBadge from "../../components/ui/ExpertBadge";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
 
-const { width: SCREEN_W } = Dimensions.get("window");
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
+
+const VIDEO_FRAME_ASPECT = 512 / 1024; 
+const VIDEO_W = SCREEN_W;
+const VIDEO_H = Math.round(SCREEN_W / VIDEO_FRAME_ASPECT);
+const VIDEO_TOP = Math.round((SCREEN_H - VIDEO_H) / 2);
+const VIDEO_LEFT = Math.round((SCREEN_W - VIDEO_W) / 2);
 
 const VIDEO_EDGE_TRIM_PX = 1;
 
@@ -1261,11 +1267,11 @@ function CallScreenInner({ route, navigation }: Props) {
 
 }
       {remoteStream ? (
-        <View style={[StyleSheet.absoluteFill, s.videoAspectMask]}>
+        <View style={s.videoFixedContainer}>
           <RTCView
             streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
-            objectFit="contain"
-            style={s.videoAspectContent}
+            objectFit="cover"
+            style={s.videoFixedRtc}
           />
         </View>
       ) : personaImage ? (
@@ -1832,14 +1838,18 @@ const s = StyleSheet.create({
     marginHorizontal: -VIDEO_EDGE_TRIM_PX,
   },
 
-  videoAspectMask: {
+  videoFixedContainer: {
+    position: "absolute",
+    top: VIDEO_TOP,
+    left: VIDEO_LEFT,
+    width: VIDEO_W,
+    height: VIDEO_H,
     overflow: "hidden",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: COLORS.zinc950,
   },
-  videoAspectContent: {
-    width: "100%",
-    aspectRatio: 512 / 1024,
+  videoFixedRtc: {
+    width: VIDEO_W,
+    height: VIDEO_H,
   },
 
   pip: {
