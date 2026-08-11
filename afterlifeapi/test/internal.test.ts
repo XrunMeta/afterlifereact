@@ -42,6 +42,45 @@ describe("internal turn 콜백", () => {
     expect(row).toBeNull();
   });
 
+  it("2000자 초과 텍스트는 400 text_too_long 이고 아무것도 저장하지 않는다", async () => {
+    await env.DB.prepare(
+      "INSERT INTO call_sessions (call_id, user_id, clone_id, started_at) VALUES (?,?,?,?)"
+    ).bind("turn-long", 1, 1, Date.now()).run();
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${(env as { ORCH_SECRET: string }).ORCH_SECRET}`,
+      },
+      body: JSON.stringify({ role: "user", text: "가".repeat(2001) }),
+    });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "text_too_long" });
+    const row = await env.DB.prepare(
+      "SELECT * FROM call_turns WHERE call_id=?"
+    ).bind("turn-long").first();
+    expect(row).toBeNull();
+  });
+
+  it("정확히 2000자는 통과한다(경계)", async () => {
+    await env.DB.prepare(
+      "INSERT INTO call_sessions (call_id, user_id, clone_id, started_at) VALUES (?,?,?,?)"
+    ).bind("turn-edge", 1, 1, Date.now()).run();
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${(env as { ORCH_SECRET: string }).ORCH_SECRET}`,
+      },
+      body: JSON.stringify({ role: "user", text: "나".repeat(2000) }),
+    });
+    expect(res.status).toBe(200);
+    const row = await env.DB.prepare(
+      "SELECT length(text) AS n FROM call_turns WHERE call_id=?"
+    ).bind("turn-edge").first<{ n: number }>();
+    expect(row?.n).toBe(2000);
+  });
+
   it("role=user 수용 → call_turns(user) INSERT + seq 원자 채번", async () => {
     await env.DB.prepare(
       "INSERT INTO call_sessions (call_id, user_id, clone_id, started_at) VALUES (?,?,?,?)"
