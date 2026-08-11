@@ -1069,6 +1069,15 @@ def _make_dc_handler(sess, channel):
                 if mode == "say":
                     _clone_reply = "".join(getattr(turn, "_tokens", [])) if turn is not None else ""
 
+                    # [T-067 Task 12] 화자 확정 상태. 기록(turn_writeback)과 학습
+                    # (learn_writeback)이 **같은 시점의 화자**를 봐야 하므로 여기서 한 번만
+                    # 읽는다. 예전엔 학습 직전에만 읽어서, 기록에는 화자가 아예 실리지 않았다
+                    # (call_turns.speaker_person_id 462턴 전량 NULL). 둘이 서로 다른 값을 보면
+                    # "L2'는 A 에게 학습됐는데 원문은 B 가 말한 것"이라는 대조 불가능한 기록이
+                    # 남는다. 아래 두 ensure_future 는 인자로 값을 캡처하므로 시점이 고정된다.
+                    _speaker = getattr(sess, "current_speaker", None)
+                    _person_id = _speaker[0] if _speaker else None
+
                     # [T-252 Task14] call_turns 기록. 학습(아래)과 달리 어떤 게이트도 없다 —
                     # PRETHIRD_LEARN_ENABLED 가 꺼져 있든 사용자가 학습에 동의하지 않았든
                     # 통화 원문은 남긴다(통화 내역 화면·감사의 유일한 출처). 학습보다 먼저
@@ -1084,6 +1093,8 @@ def _make_dc_handler(sess, channel):
                             # seq 는 RN 이 통화 안에서 턴마다 부여한 값이라 재진입 방어 키로 충분.
                             # 없으면(None) 중복검사 없이 그대로 기록한다.
                             dedupe_key=f"{_sid}:{seq}" if seq is not None else None,
+                            # 화자 미확정이면 None — 기록은 익명으로 남는다(기록 자체는 항상 나간다).
+                            speaker_person_id=_person_id,
                         ))
                     except Exception as exc:
                         # import 실패 등도 통화·학습에 절대 영향 주지 않는다.
@@ -1092,9 +1103,8 @@ def _make_dc_handler(sess, channel):
 
                     # [T-067 Task 12] current_speaker(화자 확정 상태) 있으면 화자별 L2'로 라우팅,
                     # 없으면 기존 사용자별 L2 그대로(learn_writeback 내부 person_id 분기).
+                    # _person_id 는 위에서 기록과 공유하는 값 — 여기서 다시 읽지 않는다.
                     from learn_writeback import learn_writeback
-                    _speaker = getattr(sess, "current_speaker", None)
-                    _person_id = _speaker[0] if _speaker else None
                     asyncio.ensure_future(learn_writeback(
                         getattr(sess, "clone_id", None),
                         getattr(sess, "user_id", None),

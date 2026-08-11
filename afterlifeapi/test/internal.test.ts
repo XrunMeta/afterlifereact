@@ -109,6 +109,81 @@ describe("internal turn 콜백", () => {
     ]);
   });
 
+  describe("speaker_person_id", () => {
+
+    async function seed(callId: string, cloneId: number) {
+      await env.DB.prepare(
+        "INSERT INTO call_sessions (call_id, user_id, clone_id, started_at) VALUES (?,?,?,?)"
+      ).bind(callId, 1, cloneId, Date.now()).run();
+      const mine = await env.DB.prepare(
+        "INSERT INTO persons (user_id, clone_id, display_name, created_at) VALUES (?,?,?,?) RETURNING id"
+      ).bind(1, cloneId, `p-${callId}`, Date.now()).first<{ id: number }>();
+      const other = await env.DB.prepare(
+        "INSERT INTO persons (user_id, clone_id, display_name, created_at) VALUES (?,?,?,?) RETURNING id"
+      ).bind(1, cloneId + 1000, `x-${callId}`, Date.now()).first<{ id: number }>();
+      return { mine: mine!.id, other: other!.id };
+    }
+
+    const post = (callId: string, body: Record<string, unknown>) =>
+      SELF.fetch(`http://localhost/oth-path${callId}/turn`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${(env as { ORCH_SECRET: string }).ORCH_SECRET}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+    const speakerOf = (callId: string, seq: number) =>
+      env.DB.prepare(
+        "SELECT speaker_person_id AS s FROM call_turns WHERE call_id=? AND seq=?"
+      ).bind(callId, seq).first<{ s: number | null }>();
+
+    it("같은 클론 소속 person → user 턴에 화자가 붙는다", async () => {
+      const { mine } = await seed("spk-ok", 7001);
+      const res = await post("spk-ok", { role: "user", text: "나 왔어", speakerPersonId: mine });
+      expect(res.status).toBe(200);
+      expect((await speakerOf("spk-ok", 1))?.s).toBe(mine);
+    });
+
+    it("clone 턴에는 붙지 않는다 — 말한 주체가 클론이므로 NULL", async () => {
+      const { mine } = await seed("spk-clone", 7002);
+      const res = await post("spk-clone", { role: "clone", text: "그래", speakerPersonId: mine });
+      expect(res.status).toBe(200);
+      expect((await speakerOf("spk-clone", 1))?.s).toBeNull();
+    });
+
+    it("없는 person id → 발화는 남고 화자만 NULL (FK 위반으로 기록을 잃지 않는다)", async () => {
+      await seed("spk-ghost", 7003);
+      const res = await post("spk-ghost", { role: "user", text: "유령", speakerPersonId: 999999 });
+      expect(res.status).toBe(200);
+      const row = await env.DB.prepare(
+        "SELECT text, speaker_person_id AS s FROM call_turns WHERE call_id=?"
+      ).bind("spk-ghost").first<{ text: string; s: number | null }>();
+      expect(row?.text).toBe("유령");
+      expect(row?.s).toBeNull();
+    });
+
+    it("다른 클론 소속 person → NULL (타인 person 주입 차단)", async () => {
+      const { other } = await seed("spk-idor", 7004);
+      const res = await post("spk-idor", { role: "user", text: "남의 사람", speakerPersonId: other });
+      expect(res.status).toBe(200);
+      const row = await env.DB.prepare(
+        "SELECT text, speaker_person_id AS s FROM call_turns WHERE call_id=?"
+      ).bind("spk-idor").first<{ text: string; s: number | null }>();
+      expect(row?.text).toBe("남의 사람");
+      expect(row?.s).toBeNull();
+    });
+
+    it("미전달/비정수 → NULL (기존 호출자 회귀 0)", async () => {
+      await seed("spk-none", 7005);
+      expect((await post("spk-none", { role: "user", text: "없음" })).status).toBe(200);
+      expect((await post("spk-none", { role: "user", text: "문자열", speakerPersonId: "42" })).status).toBe(200);
+      expect((await speakerOf("spk-none", 1))?.s).toBeNull();
+      expect((await speakerOf("spk-none", 2))?.s).toBeNull();
+    });
+  });
+
   it("허용되지 않은 role → 400, INSERT 안 함", async () => {
     await env.DB.prepare(
       "INSERT INTO call_sessions (call_id, user_id, clone_id, started_at) VALUES (?,?,?,?)"
