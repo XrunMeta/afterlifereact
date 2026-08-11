@@ -127,7 +127,13 @@ import ExpertBadge from "../../components/ui/ExpertBadge";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
 
-const { width: SCREEN_W } = Dimensions.get("window");
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
+
+const VIDEO_FRAME_ASPECT = 512 / 1024; 
+const VIDEO_W = SCREEN_W;
+const VIDEO_H = Math.round(SCREEN_W / VIDEO_FRAME_ASPECT);
+const VIDEO_TOP = Math.round((SCREEN_H - VIDEO_H) / 2);
+const VIDEO_LEFT = Math.round((SCREEN_W - VIDEO_W) / 2);
 
 const VIDEO_EDGE_TRIM_PX = 1;
 
@@ -304,6 +310,8 @@ function CallScreenInner({ route, navigation }: Props) {
     enrollSuggestImplRef.current(name, personId);
   }, []);
 
+  const [livePipeline, setLivePipeline] = useState<string | null>(null);
+
   const {
     state: liveState,
     remoteStream,
@@ -316,7 +324,32 @@ function CallScreenInner({ route, navigation }: Props) {
     speak,
     lastSignal,
     sendFaceEvent,
-  } = useAvatarCall({ cloneId, accessToken: accessToken ?? "", onEnrollSuggest: handleEnrollSuggest });
+  } = useAvatarCall({
+    cloneId,
+    accessToken: accessToken ?? "",
+    onEnrollSuggest: handleEnrollSuggest,
+
+    pipeline: livePipeline ?? (clone as { pipeline?: string | null })?.pipeline ?? null,
+  });
+
+  useEffect(() => {
+    if (!cloneId || !accessToken) return;
+    let alive = true;
+    (async () => {
+      try {
+        const { getCloneDetail } = await import("../../api/clones");
+        const detail = await getCloneDetail(cloneId, accessToken);
+        if (alive) {
+          const p = (detail as { clone?: { pipeline?: string | null } })?.clone?.pipeline ?? null;
+          setLivePipeline(p);
+          if (__DEV__) console.log(`[T-467] livePipeline for clone ${cloneId} = ${p}`);
+        }
+      } catch (err) {
+        if (__DEV__) console.warn("[T-467] getCloneDetail pipeline fetch failed:", err);
+      }
+    })();
+    return () => { alive = false; };
+  }, [cloneId, accessToken]);
 
   const [devText, setDevText] = useState("");
 
@@ -761,6 +794,32 @@ function CallScreenInner({ route, navigation }: Props) {
     if (lastSignal?.type === 'speech_start') setGreetingStarted(true);
   }, [lastSignal]);
 
+  const chatPrevTranscript = useRef('');
+  const chatUserSentAt = useRef<number | null>(null);
+  useEffect(() => {
+    if (transcript && transcript !== chatPrevTranscript.current) {
+      console.log(`[Call][chat] user: "${transcript}"`);
+      chatPrevTranscript.current = transcript;
+      chatUserSentAt.current = Date.now();
+    }
+  }, [transcript]);
+  const chatReplyStartAt = useRef<number | null>(null);
+  useEffect(() => {
+    if (!lastSignal) return;
+    if (lastSignal.type === 'speech_start') {
+      const wait = chatUserSentAt.current ? Date.now() - chatUserSentAt.current : null;
+      console.log(`[Call][chat] clone reply start${wait !== null ? ` (waited ${wait}ms after user)` : ''}`);
+      chatReplyStartAt.current = Date.now();
+      chatUserSentAt.current = null;
+    } else if (lastSignal.type === 'speech_text' && lastSignal.text) {
+      console.log(`[Call][chat] clone: "${lastSignal.text}"`);
+    } else if (lastSignal.type === 'speech_end') {
+      const dur = chatReplyStartAt.current ? Date.now() - chatReplyStartAt.current : null;
+      console.log(`[Call][chat] clone reply end${dur !== null ? ` (took ${dur}ms)` : ''}`);
+      chatReplyStartAt.current = null;
+    }
+  }, [lastSignal]);
+
   const canSpeak = (phase === 'listening' || phase === 'confirming') && sttActive;
 
   useEffect(() => {
@@ -783,16 +842,26 @@ function CallScreenInner({ route, navigation }: Props) {
     }
   }, [lastSignal]);
 
+  const startedRef = useRef(false);
   useEffect(() => {
     if (!accessToken) return;
+    if (startedRef.current) return;
+    const kick = () => {
+      if (startedRef.current) return;
+      startedRef.current = true;
+      requestAnimationFrame(() => {
+        console.log(`[Call][flow] +${Date.now()} startLive() begin (pipeline=${livePipeline ?? 'timeout'})`);
+        void startLive();
+      });
+    };
+    if (livePipeline !== null) {
+      kick();
+      return;
+    }
+    const t = setTimeout(kick, 2500);
+    return () => clearTimeout(t);
 
-    const raf = requestAnimationFrame(() => {
-      console.log(`[Call][flow] +${Date.now()} startLive() begin (deferred 1 frame)`);
-      void startLive();
-    });
-    return () => cancelAnimationFrame(raf);
-
-  }, []);
+  }, [livePipeline]);
 
   useEffect(() => {
     if (!__DEV__) return;
@@ -1219,15 +1288,15 @@ function CallScreenInner({ route, navigation }: Props) {
   return (
     <View style={s.container}>
       {}
-      {}
-      {}
-      {remoteStream ? (
+      {
 
-        <View style={[StyleSheet.absoluteFill, s.videoEdgeMask]}>
+}
+      {remoteStream ? (
+        <View style={s.videoFixedContainer}>
           <RTCView
             streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
-            objectFit="contain"
-            style={[StyleSheet.absoluteFill, s.videoEdgeTrim]}
+            objectFit="cover"
+            style={s.videoFixedRtc}
           />
         </View>
       ) : personaImage ? (
@@ -1795,6 +1864,20 @@ const s = StyleSheet.create({
     width: "100%",
     height: "100%",
     marginHorizontal: -VIDEO_EDGE_TRIM_PX,
+  },
+
+  videoFixedContainer: {
+    position: "absolute",
+    top: VIDEO_TOP,
+    left: VIDEO_LEFT,
+    width: VIDEO_W,
+    height: VIDEO_H,
+    overflow: "hidden",
+    backgroundColor: COLORS.zinc950,
+  },
+  videoFixedRtc: {
+    width: VIDEO_W,
+    height: VIDEO_H,
   },
 
   pip: {
