@@ -34,7 +34,8 @@ internal.post("/oth-path", async (c) => {
     .json<{ role?: string; text?: string }>()
     .catch(() => ({}) as { role?: string; text?: string });
   const text = (body.text ?? "").trim();
-  const role = body.role === "clone" ? "clone" : null;
+
+  const role = body.role === "clone" || body.role === "user" ? body.role : null;
   if (!role || !text) return c.json({ error: "bad_turn" }, 400);
 
   const sess = await c.env.DB.prepare(
