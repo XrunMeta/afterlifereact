@@ -11,6 +11,9 @@ export interface InboundVideoStats {
   packetsLost: number;
   jitterBufferDelay: number;
   ts: number; 
+
+  frameWidth: number;
+  frameHeight: number;
 }
 
 export type VideoStallVerdict = 'ok' | 'client-decode-stall' | 'transport-stall';
@@ -51,6 +54,8 @@ export function extractInboundVideoStats(
         packetsLost: num(stat['packetsLost']),
         jitterBufferDelay: num(stat['jitterBufferDelay']),
         ts: num(stat['timestamp']),
+        frameWidth: num(stat['frameWidth']),
+        frameHeight: num(stat['frameHeight']),
       };
     }
   }

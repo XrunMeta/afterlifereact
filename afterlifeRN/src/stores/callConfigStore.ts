@@ -12,12 +12,15 @@ interface CallConfig {
   prethirdBase: string;
   callRoute: CallRoute;
   secondBase: string | null;
+
+  experimentalBase: string | null;
 }
 
 const DEFAULTS: CallConfig = {
   prethirdBase: PRETHIRD_BASE,
   callRoute: CALL_ROUTE,
   secondBase: null,
+  experimentalBase: null,
 };
 
 const isValidRoute = (v: unknown): v is CallRoute =>
@@ -43,6 +46,7 @@ export const useCallConfigStore = create<CallConfigState>((set) => ({
           prethirdBase: p.prethirdBase,
           callRoute: p.callRoute,
           secondBase: typeof p.secondBase === 'string' ? p.secondBase : null,
+          experimentalBase: typeof p.experimentalBase === 'string' ? p.experimentalBase : null,
           loadedFrom: 'cache',
         });
       }
@@ -60,6 +64,7 @@ export const useCallConfigStore = create<CallConfigState>((set) => ({
         prethirdBase: typeof j.prethirdBase === 'string' && j.prethirdBase ? j.prethirdBase : DEFAULTS.prethirdBase,
         callRoute: isValidRoute(j.callRoute) ? j.callRoute : DEFAULTS.callRoute,
         secondBase: typeof j.secondBase === 'string' ? j.secondBase : null,
+        experimentalBase: typeof j.experimentalBase === 'string' ? j.experimentalBase : null,
       };
       set({ ...next, loadedFrom: 'remote' });
       await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(next));

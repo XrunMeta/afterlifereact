@@ -82,8 +82,11 @@ export function usePrethirdAvatar(opts: {
   deps?: PrethirdAvatarDeps;
 
   onEnrollSuggest?: (name: string, personId?: number) => void;
+
+  pipeline?: string | null;
 }): AvatarCall {
-  const { cloneId, accessToken, onEnrollSuggest } = opts;
+  const { cloneId, accessToken, onEnrollSuggest, pipeline } = opts;
+
   const deps = opts.deps ?? defaultDeps;
   const [state, setState] = useState<LiveAvatarState>('idle');
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -103,6 +106,9 @@ export function usePrethirdAvatar(opts: {
 
   const onEnrollSuggestRef = useRef(onEnrollSuggest);
   useEffect(() => { onEnrollSuggestRef.current = onEnrollSuggest; }, [onEnrollSuggest]);
+
+  const pipelineRef = useRef(pipeline);
+  useEffect(() => { pipelineRef.current = pipeline; }, [pipeline]);
 
   useEffect(() => { emitTimingEvent('avatar', { phase }); }, [phase]);
 
@@ -280,9 +286,12 @@ export function usePrethirdAvatar(opts: {
       const freshToken = await ensureFreshAccessToken(accessToken);
       if (!alive()) { pc.close(); return; } 
 
-      const base = useCallConfigStore.getState().prethirdBase;
+      const currentPipeline = pipelineRef.current;
+      const cfg = useCallConfigStore.getState();
+      const useExperimental = currentPipeline === 'echomimic_v3' && !!cfg.experimentalBase;
+      const base = useExperimental ? cfg.experimentalBase! : cfg.prethirdBase;
       const url = `${base}/offer`;
-      if (__DEV__) console.log(`[CALL-ROUTE] route=prethird base=${base} clone_id=${cloneId}`);
+      if (__DEV__) console.log(`[CALL-ROUTE] route=prethird base=${base} pipeline=${currentPipeline ?? 'default'} experimental=${useExperimental} clone_id=${cloneId}`);
       const r = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

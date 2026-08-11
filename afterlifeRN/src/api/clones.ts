@@ -34,6 +34,8 @@ export interface CreateClonePayload {
   voice_clone_job_id?: string;
 
   pin?: string;
+
+  pipeline?: "musetalk" | "echomimic_v3";
 }
 
 export interface CreatedClone {
@@ -68,6 +70,8 @@ export interface CloneDetailResponse {
     };
     likedByMe: boolean;
     createdAt: string;
+
+    pipeline?: string | null;
   };
 }
 export async function getCloneDetail(

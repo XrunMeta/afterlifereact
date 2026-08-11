@@ -260,6 +260,31 @@ export default function MyScreen() {
         }
       },
     },
+
+    ...(["oth-staff@example.invalid", "oth-user@example.invalid"].includes(apiUser?.email ?? "")
+      ? [
+          {
+            icon: "cpu" as const,
+            labelKey: "실험 페르소나 만들기 (베타)",
+            descKey: "자연스러운 얼굴 · 응답 5~10초 지연",
+            action: async () => {
+              try {
+                const { setNextPipeline } = await import(
+                  "../../lib/experimentalPipelineFlag"
+                );
+                setNextPipeline("echomimic_v3");
+
+                navigation.getParent()?.dispatch(
+                  CommonActions.navigate({ name: "CreateTab" }),
+                );
+              } catch (err) {
+                console.warn("[experimental-persona] nav failed:", err);
+                showAlert("오류", "페르소나 만들기 화면 이동 실패");
+              }
+            },
+          },
+        ]
+      : []),
     {
       icon: "trash-2",
       labelKey: "settings.privacy.deleteAccount",

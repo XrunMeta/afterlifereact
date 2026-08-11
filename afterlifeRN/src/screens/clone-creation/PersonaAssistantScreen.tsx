@@ -38,7 +38,7 @@ import {
   personaSuggest,
   introSuggest,
 } from '../../api/clones';
-import { MEMLOW_RELATIONS } from '../../mocks/cloneTypeCatalog';
+
 import type { PersonaQuestion } from '../../types/clone';
 
 import { translateQuestion, translateOption } from '../../lib/questionI18n';
@@ -56,7 +56,7 @@ function isVisible(q: PersonaQuestion, answers: Record<string, string>): boolean
   );
 }
 
-type SystemPhase = 'name' | 'username' | 'relation';
+type SystemPhase = 'name' | 'username';
 
 interface ChatMessage {
   id: string;
@@ -94,21 +94,16 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
       defaultValue:
         '@아이디는 어떻게 할까요?\n영문 소문자, 숫자, _ 만 가능해요. 비워두시면 자동으로 만들어드릴게요!',
     }),
-    relation: t('create.assistant.promptRelation', {
-      defaultValue: '어떤 관계인가요?\n아래에서 선택해 주세요.',
-    }),
   };
   const SYS_PLACEHOLDERS: Record<SystemPhase, string> = {
     name: t('create.assistant.placeholderName', { defaultValue: '예: 별이, 할머니, 모리' }),
     username: t('create.assistant.placeholderUsername', {
       defaultValue: '예: starry_kim (비워두면 자동 생성)',
     }),
-    relation: '',
   };
   const SYS_ACK: Record<SystemPhase, string> = {
     name: t('create.assistant.ackName', { defaultValue: '좋아요, 잘 기억해뒀어요!' }),
     username: t('create.assistant.ackUsername', { defaultValue: '확인했어요! 다음 질문이에요.' }),
-    relation: t('create.assistant.ackRelation', { defaultValue: '알겠어요! 계속 진행할게요.' }),
   };
   const DYNAMIC_ACK = t('create.assistant.ackDynamic', { defaultValue: '좋아요!' });
   const BTN_CUSTOM = t('create.assistant.btnCustom', { defaultValue: '직접 입력' });
@@ -190,7 +185,6 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
 
     if (phase === 'init' || phase === 'sys:name') return 0;
     if (phase === 'sys:username') return SYS_STEP;                          
-    if (phase === 'sys:relation' || phase === 'sys:relation-custom') return SYS_STEP * 2; 
     if (phase === 'done') return 1;
 
     if (phase.startsWith('schema:') && currentVisibleIdx !== null) {
@@ -328,33 +322,6 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
 
   }, []);
 
-  const handleRelationSelect = useCallback(
-    async (msgId: string, relId: string, displayLabel: string) => {
-      if (phase !== 'sys:relation') return;
-      markReplied(msgId);
-      pushUser(displayLabel);
-
-      if (relId === 'other') {
-        setPhase('sys:relation-custom');
-        await pushAi(
-          t('create.assistant.askRelationCustom', { defaultValue: '어떤 관계인지 직접 알려주세요!' }),
-          undefined,
-          300,
-        );
-        return;
-      }
-
-      answersRef.current.relation = relId;
-      await pushAi(SYS_ACK.relation, undefined, 400);
-
-      const qs = await loadSchema();
-      const loaded = qs ?? [];
-      setQuestions(loaded);
-      await askSchemaQuestion(0, loaded);
-    },
-    [phase, markReplied, pushUser, pushAi, loadSchema, askSchemaQuestion],
-  );
-
   const handleSchemaQuickReply = useCallback(
     async (msgId: string, q: PersonaQuestion, value: string) => {
       if (currentVisibleIdx === null) return;
@@ -427,8 +394,7 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
         const derived = deriveUsernameFromName(answersRef.current.name || 'user');
         pushUser(
           t('create.assistant.usernameAutoDerived', {
-            derived,
-            defaultValue: `(빈 칸 — ${derived} 로 자동 생성)`,
+            defaultValue: '(빈 칸 — 랜덤 아이디로 자동 생성)',
           }),
         );
         answersRef.current.username = derived;
@@ -436,9 +402,10 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
         setInput('');
         await pushAi(SYS_ACK.username, undefined, 400);
 
-        const relButtons = MEMLOW_RELATIONS.map((r) => t(r.label));
-        setPhase('sys:relation');
-        await pushAi(SYS_PROMPTS.relation, relButtons, 500);
+        const qs = await loadSchema();
+        const loaded = qs ?? [];
+        setQuestions(loaded);
+        await askSchemaQuestion(0, loaded);
         return;
       }
       const raw = text.toLowerCase();
@@ -494,18 +461,7 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
       setCreationDraft({ username: raw });
       setInput('');
       await pushAi(SYS_ACK.username, undefined, 400);
-      const relButtons = MEMLOW_RELATIONS.map((r) => t(r.label));
-      setPhase('sys:relation');
-      await pushAi(SYS_PROMPTS.relation, relButtons, 500);
-      return;
-    }
 
-    if (phase === 'sys:relation-custom') {
-      if (!text) return;
-      pushUser(text);
-      answersRef.current.relation = text;
-      setInput('');
-      await pushAi(SYS_ACK.relation, undefined, 400);
       const qs = await loadSchema();
       const loaded = qs ?? [];
       setQuestions(loaded);
@@ -552,8 +508,6 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
   const showInput = (() => {
     if (phase === 'sys:name') return true;
     if (phase === 'sys:username') return true;
-    if (phase === 'sys:relation') return false; 
-    if (phase === 'sys:relation-custom') return true; 
     if (!phase.startsWith('schema:') || currentVisibleIdx === null) return false;
     const visible = questions.filter((q) =>
       isVisible(q, answersRef.current.schemaAnswers),
@@ -567,10 +521,6 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
   const inputPlaceholder = (() => {
     if (phase === 'sys:name') return SYS_PLACEHOLDERS.name;
     if (phase === 'sys:username') return SYS_PLACEHOLDERS.username;
-    if (phase === 'sys:relation-custom')
-      return t('create.assistant.placeholderRelationCustom', {
-        defaultValue: '예: 할아버지, 은사님, 동료...',
-      });
     if (phase.startsWith('schema:') && currentVisibleIdx !== null) {
       const visible = questions.filter((q) =>
         isVisible(q, answersRef.current.schemaAnswers),
@@ -598,7 +548,6 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
   const canSend = (() => {
     if (phase === 'sys:username') return !checkingUsername; 
     if (phase === 'sys:name') return input.trim().length > 0;
-    if (phase === 'sys:relation-custom') return input.trim().length > 0;
     if (phase.startsWith('schema:')) {
 
       return input.trim().length > 0;
@@ -690,11 +639,7 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
                         style={s.quickReplyBtn}
                         onPress={async () => {
 
-                          if (phase === 'sys:relation') {
-
-                            const rel = MEMLOW_RELATIONS.find((r) => t(r.label) === qr);
-                            await handleRelationSelect(m.id, rel ? rel.id : qr, qr);
-                          } else if (phase.startsWith('schema:') && currentVisibleIdx !== null) {
+                          if (phase.startsWith('schema:') && currentVisibleIdx !== null) {
                             const visible = questions.filter((q) =>
                               isVisible(q, answersRef.current.schemaAnswers),
                             );

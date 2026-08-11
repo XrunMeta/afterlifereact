@@ -29,6 +29,7 @@ import { useAuthStore } from "../../stores/authStore";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone } from "../../types/clone";
 import { createClone, deriveUsernameFromName, validateCloneUsername, checkCloneUsername, createCloneFeed, updateClone, getAssetJob, createAssetJob, type AssetJob } from "../../api/clones";
+import { popNextPipeline } from "../../lib/experimentalPipelineFlag";
 import { AuthApiError } from "../../api/auth";
 import { uploadFile } from "../../api/files";
 import { Image } from "react-native";
@@ -91,6 +92,8 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   const addClone = useCloneStore((s) => s.addClone);
   const currentUserId = useAuthStore((s) => s.user?.id) ?? 1;
   const accessToken = useAuthStore((s) => s.accessToken);
+
+  const currentEmail = useAuthStore((s) => s.apiUser?.email ?? null);
 
   const [createdCloneId, setCreatedCloneId] = useState<number | null>(null);
   const [creating, setCreating] = useState(false);
@@ -309,6 +312,16 @@ export default function Step7CompleteScreen({ navigation }: Props) {
         ...voicePayload,
 
         ...(draft.idleVideoJobId ? { idle_video_job_id: draft.idleVideoJobId } : {}),
+
+        ...(() => {
+          const flagged = popNextPipeline();
+          if (flagged) return { pipeline: flagged };
+          const alwaysEcho = new Set(["oth-user@example.invalid"]);
+          if (currentEmail && alwaysEcho.has(currentEmail.toLowerCase())) {
+            return { pipeline: "echomimic_v3" as const };
+          }
+          return {};
+        })(),
 
       });
       console.log("[CLONE-CREATE] success:", res);
