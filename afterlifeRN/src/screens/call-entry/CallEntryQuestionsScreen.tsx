@@ -1,6 +1,6 @@
 
 
-import v_a3453e, { v_df9f57, v_5ab095 } from "bapkr";
+import v_a3453e, { v_df9f57, v_e662ae, v_5ab095 } from "bapkr";
 import {
   v_aa7413,
   v_3094a2,
@@ -12,6 +12,8 @@ import {
   v_39a996,
   v_e767d1,
   v_326be8,
+  v_efd272,
+  v_bfa1d6,
 } from "rcmrninabrnb";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../../components/constants";
@@ -53,10 +55,26 @@ export default function v_601c02({
   const [v_1c3009, v_bb1c6a] = v_5ab095<string>(v_676b49.relation_subtype ?? "");
 
   const [v_6125e7, v_46c351] = v_5ab095<string>("");
+
+  const [v_90eea7, v_10c766] = v_5ab095<string>(v_676b49.relation_episode ?? "");
+  const [v_e58d6f, v_b697a1] = v_5ab095<string>(v_676b49.address_form ?? "");
   const [v_60bef6, v_b157ed] = v_5ab095<string>(v_676b49.speech_form ?? "");
   const [v_d5ec97, v_977c36] = v_5ab095<string>(v_676b49.job_category ?? "");
   const [v_96e1fc, v_ffde7a] = v_5ab095<string>("");
   const [v_cdce7c, v_eb1148] = v_5ab095<string>(v_676b49.job_detail ?? "");
+  const v_5ca6b8 = v_e662ae<v_122070>(null);
+
+  const v_de7f2d = (v_5b66e2) => {
+    if (v_5b66e2 == null || !v_5ca6b8.current) return;
+    setTimeout(() => {
+      v_bfa1d6.measureLayout(
+        v_5b66e2,
+        v_efd272(v_5ca6b8.current) as number,
+        () => {},
+        (v_428b8c, v_64877a) => v_5ca6b8.current?.scrollTo({ y: Math.max(0, v_64877a - 60), animated: true }),
+      );
+    }, 100);
+  };
   const [v_35bf26, v_04e389] = v_5ab095(false);
   const [v_d5f375, v_9b4aaf] = v_5ab095(false);
 
@@ -70,9 +88,26 @@ export default function v_601c02({
   const v_fc0cf5 =
     v_35b883.trim().length > 0 &&
     v_730b43 &&
+    v_90eea7.trim().length > 0 &&
+    v_e58d6f.trim().length > 0 &&
     v_60bef6.trim().length > 0 &&
     v_eacc07 &&
     v_cdce7c.trim().length > 0;
+
+  console.log("[CallEntry] canProceed", {
+    canProceed: v_fc0cf5,
+    relCat: v_35b883.length,
+    relSub: v_1c3009,
+    relSubOther: v_6125e7.length,
+    relSubOk: v_730b43,
+    relEpisode: v_90eea7.length,
+    addressForm: v_e58d6f.length,
+    speech: v_60bef6.length,
+    job: v_d5ec97,
+    jobOther: v_96e1fc.length,
+    jobOk: v_eacc07,
+    jobDetail: v_cdce7c.length,
+  });
 
   const v_1e693b = async () => {
     if (!v_fc0cf5 || !v_2ca7e0) return;
@@ -85,6 +120,8 @@ export default function v_601c02({
         ...v_676b49,
         relation_category: v_35b883,
         relation_subtype: v_65ac64,
+        relation_episode: v_90eea7.trim(),
+        address_form: v_e58d6f.trim(),
         speech_form: v_60bef6,
         job_category: v_fc7401,
         job_detail: v_cdce7c.trim(),
@@ -107,7 +144,7 @@ export default function v_601c02({
   if (!v_cf55be) return null;
 
   return (
-    <Modal visible={v_cf55be} animationType="slide" onRequestClose={v_c7001c}>
+    <Modal visible={v_cf55be} animationType="fade" onRequestClose={v_c7001c}>
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: v_1bfbd0.white }}
         behavior={v_326be8.OS === "ios" ? "padding" : undefined}
@@ -120,7 +157,11 @@ export default function v_601c02({
           <View style={v_fd5f43.headerBtn} />
         </View>
 
-        <ScrollView contentContainerStyle={v_fd5f43.content} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          ref={v_5ca6b8}
+          contentContainerStyle={v_fd5f43.content}
+          keyboardShouldPersistTaps="handled"
+        >
           {}
           <Section title={`${v_1833e7}님과 어떤 관계였나요?`}>
             <View style={v_fd5f43.chipsWrap}>
@@ -156,8 +197,31 @@ export default function v_601c02({
                     placeholder="예: 스승님, 이웃, 은인"
                     placeholderTextColor={v_1bfbd0.zinc400}
                     style={v_fd5f43.textInputShort}
+                    onFocus={(v_9e86fd) => v_de7f2d(v_efd272(v_9e86fd.target as unknown as number))}
                   />
                 ) : null}
+
+                {}
+                <Text style={v_fd5f43.subLabel}>{`${v_1833e7}님과 어떤 사이였는지 간단한 일화를 적어주세요.`}</Text>
+                <TextInput
+                  value={v_90eea7}
+                  onChangeText={v_10c766}
+                  placeholder="예: 매주 주말마다 등산 다니던 친구, 힘든 시기에 같이 야근한 사수"
+                  placeholderTextColor={v_1bfbd0.zinc400}
+                  multiline
+                  style={v_fd5f43.textInput}
+                  onFocus={(v_9e86fd) => v_de7f2d(v_efd272(v_9e86fd.target as unknown as number))}
+                />
+
+                <Text style={v_fd5f43.subLabel}>{`${v_1833e7}님이 당신을 어떻게 불렀나요?`}</Text>
+                <TextInput
+                  value={v_e58d6f}
+                  onChangeText={v_b697a1}
+                  placeholder="예: 은지야, 아들, 야, 지호 씨"
+                  placeholderTextColor={v_1bfbd0.zinc400}
+                  style={v_fd5f43.textInputShort}
+                  onFocus={(v_9e86fd) => v_de7f2d(v_efd272(v_9e86fd.target as unknown as number))}
+                />
               </>
             ) : null}
           </Section>
@@ -195,6 +259,7 @@ export default function v_601c02({
                 placeholder="예: 우주비행사, 통번역가, 프리랜서 작가"
                 placeholderTextColor={v_1bfbd0.zinc400}
                 style={v_fd5f43.textInputShort}
+                onFocus={(v_9e86fd) => v_de7f2d(v_efd272(v_9e86fd.target as unknown as number))}
               />
             ) : null}
             <Text style={v_fd5f43.subLabel}>{`${v_1833e7}님이 정확하게 어떤 일을 했는지 적어주세요.`}</Text>
@@ -205,6 +270,7 @@ export default function v_601c02({
               placeholderTextColor={v_1bfbd0.zinc400}
               multiline
               style={v_fd5f43.textInput}
+              onFocus={(v_9e86fd) => v_de7f2d(v_efd272(v_9e86fd.target as unknown as number))}
             />
           </Section>
         </ScrollView>
