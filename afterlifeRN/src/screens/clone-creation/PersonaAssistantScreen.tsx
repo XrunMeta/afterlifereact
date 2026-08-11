@@ -394,8 +394,7 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
         const v_bff627 = v_b55477(v_03f138.current.name || 'user');
         v_13cb29(
           v_8d41d7('create.assistant.usernameAutoDerived', {
-            derived: v_bff627,
-            defaultValue: `(빈 칸 — ${v_bff627} 로 자동 생성)`,
+            defaultValue: '(빈 칸 — 랜덤 아이디로 자동 생성)',
           }),
         );
         v_03f138.current.username = v_bff627;
