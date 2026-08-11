@@ -31,8 +31,8 @@ v_dcd415.post("/oth-path", async (v_3f4e2e) => {
 
   const v_be62d3 = v_3f4e2e.req.param("callId");
   const v_4d33b2 = await v_3f4e2e.req
-    .json<{ role?: string; text?: string }>()
-    .catch(() => ({}) as { role?: string; text?: string });
+    .json<{ role?: string; text?: string; speakerPersonId?: unknown }>()
+    .catch(() => ({}) as { role?: string; text?: string; speakerPersonId?: unknown });
   const v_9b6134 = (v_4d33b2.text ?? "").trim();
 
   const v_22da99 = v_4d33b2.role === "clone" || v_4d33b2.role === "user" ? v_4d33b2.role : null;
@@ -45,11 +45,20 @@ v_dcd415.post("/oth-path", async (v_3f4e2e) => {
   ).bind(v_be62d3).first();
   if (!v_d7296e) return v_3f4e2e.json({ error: "call_not_found" }, 404);
 
+  const v_01ad49 = v_4d33b2.speakerPersonId;
+  const v_b73ff1 =
+    v_22da99 === "user" && typeof v_01ad49 === "number" && Number.isInteger(v_01ad49)
+      ? v_01ad49
+      : null;
+
   await v_3f4e2e.env.DB.prepare(
-    `INSERT INTO call_turns (call_id, seq, role, text, created_at)
-     SELECT ?, COALESCE(MAX(seq),0)+1, ?, ?, ?
+    `INSERT INTO call_turns (call_id, seq, role, text, created_at, speaker_person_id)
+     SELECT ?, COALESCE(MAX(seq),0)+1, ?, ?, ?,
+            (SELECT p.id FROM persons p
+              WHERE p.id = ?
+                AND p.clone_id = (SELECT clone_id FROM call_sessions WHERE call_id = ?))
      FROM call_turns WHERE call_id = ?`
-  ).bind(v_be62d3, v_22da99, v_9b6134, Date.now(), v_be62d3).run();
+  ).bind(v_be62d3, v_22da99, v_9b6134, Date.now(), v_b73ff1, v_be62d3, v_be62d3).run();
   return v_3f4e2e.json({ ok: true });
 });
 
