@@ -51,8 +51,11 @@ export default function CallEntryQuestionsScreen({
 
   const [relCat, setRelCat] = useState<string>(existingAttrs.relation_category ?? "");
   const [relSub, setRelSub] = useState<string>(existingAttrs.relation_subtype ?? "");
+
+  const [relSubOther, setRelSubOther] = useState<string>("");
   const [speech, setSpeech] = useState<string>(existingAttrs.speech_form ?? "");
   const [job, setJob] = useState<string>(existingAttrs.job_category ?? "");
+  const [jobOther, setJobOther] = useState<string>("");
   const [jobDetail, setJobDetail] = useState<string>(existingAttrs.job_detail ?? "");
   const [saving, setSaving] = useState(false);
   const [doneModal, setDoneModal] = useState(false);
@@ -62,11 +65,13 @@ export default function CallEntryQuestionsScreen({
     [relCat],
   );
 
+  const relSubOk = relSub === "기타" ? relSubOther.trim().length > 0 : relSub.trim().length > 0;
+  const jobOk = job === "기타" ? jobOther.trim().length > 0 : job.trim().length > 0;
   const canProceed =
     relCat.trim().length > 0 &&
-    relSub.trim().length > 0 &&
+    relSubOk &&
     speech.trim().length > 0 &&
-    job.trim().length > 0 &&
+    jobOk &&
     jobDetail.trim().length > 0;
 
   const save = async () => {
@@ -74,12 +79,14 @@ export default function CallEntryQuestionsScreen({
     setSaving(true);
     try {
 
+      const finalRelSub = relSub === "기타" ? relSubOther.trim() : relSub;
+      const finalJob = job === "기타" ? jobOther.trim() : job;
       const mergedAttrs: Record<string, string> = {
         ...existingAttrs,
         relation_category: relCat,
-        relation_subtype: relSub,
+        relation_subtype: finalRelSub,
         speech_form: speech,
-        job_category: job,
+        job_category: finalJob,
         job_detail: jobDetail.trim(),
       };
       await patchClone(accessToken, cloneId, {
@@ -142,6 +149,15 @@ export default function CallEntryQuestionsScreen({
                     />
                   ))}
                 </View>
+                {relSub === "기타" ? (
+                  <TextInput
+                    value={relSubOther}
+                    onChangeText={setRelSubOther}
+                    placeholder="예: 스승님, 이웃, 은인"
+                    placeholderTextColor={COLORS.zinc400}
+                    style={s.textInputShort}
+                  />
+                ) : null}
               </>
             ) : null}
           </Section>
@@ -172,6 +188,15 @@ export default function CallEntryQuestionsScreen({
                 />
               ))}
             </View>
+            {job === "기타" ? (
+              <TextInput
+                value={jobOther}
+                onChangeText={setJobOther}
+                placeholder="예: 우주비행사, 통번역가, 프리랜서 작가"
+                placeholderTextColor={COLORS.zinc400}
+                style={s.textInputShort}
+              />
+            ) : null}
             <Text style={s.subLabel}>{`${name}님이 정확하게 어떤 일을 했는지 적어주세요.`}</Text>
             <TextInput
               value={jobDetail}
@@ -297,6 +322,16 @@ const s = StyleSheet.create({
     minHeight: 96,
     textAlignVertical: "top",
     marginTop: 4,
+  },
+  textInputShort: {
+    borderWidth: 1,
+    borderColor: COLORS.zinc300,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: COLORS.zinc900,
+    marginTop: 10,
   },
   footer: {
     borderTopWidth: 1,
