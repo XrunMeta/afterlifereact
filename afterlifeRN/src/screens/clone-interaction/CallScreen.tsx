@@ -763,6 +763,32 @@ function CallScreenInner({ route, navigation }: Props) {
     if (lastSignal?.type === 'speech_start') setGreetingStarted(true);
   }, [lastSignal]);
 
+  const chatPrevTranscript = useRef('');
+  const chatUserSentAt = useRef<number | null>(null);
+  useEffect(() => {
+    if (transcript && transcript !== chatPrevTranscript.current) {
+      console.log(`[Call][chat] user: "${transcript}"`);
+      chatPrevTranscript.current = transcript;
+      chatUserSentAt.current = Date.now();
+    }
+  }, [transcript]);
+  const chatReplyStartAt = useRef<number | null>(null);
+  useEffect(() => {
+    if (!lastSignal) return;
+    if (lastSignal.type === 'speech_start') {
+      const wait = chatUserSentAt.current ? Date.now() - chatUserSentAt.current : null;
+      console.log(`[Call][chat] clone reply start${wait !== null ? ` (waited ${wait}ms after user)` : ''}`);
+      chatReplyStartAt.current = Date.now();
+      chatUserSentAt.current = null;
+    } else if (lastSignal.type === 'speech_text' && lastSignal.text) {
+      console.log(`[Call][chat] clone: "${lastSignal.text}"`);
+    } else if (lastSignal.type === 'speech_end') {
+      const dur = chatReplyStartAt.current ? Date.now() - chatReplyStartAt.current : null;
+      console.log(`[Call][chat] clone reply end${dur !== null ? ` (took ${dur}ms)` : ''}`);
+      chatReplyStartAt.current = null;
+    }
+  }, [lastSignal]);
+
   const canSpeak = (phase === 'listening' || phase === 'confirming') && sttActive;
 
   useEffect(() => {
