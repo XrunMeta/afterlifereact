@@ -21,8 +21,10 @@ export function v_1980fb(props: {
   onRetry: () => void;
 
   greetingStarted?: boolean;
+
+  silent?: boolean;
 }) {
-  const { liveState: v_6cc918, personaName: v_dfb220, personaImage: v_0e38ad, greetingStarted: v_7a419e, onConnected: v_a4c77b, onCancel: v_c7001c, onRetry: v_09e13b } = v_b1927c;
+  const { liveState: v_6cc918, personaName: v_dfb220, personaImage: v_0e38ad, greetingStarted: v_7a419e, silent: v_669bef, onConnected: v_a4c77b, onCancel: v_c7001c, onRetry: v_09e13b } = v_b1927c;
   const { t: v_8d41d7 } = v_772971();
   const v_f22657 = v_e662ae(Date.now());
   const v_5d6849 = v_e662ae(0);
@@ -45,9 +47,10 @@ export function v_1980fb(props: {
   v_c4deb2(() => {
 
     console.log(
-      `[Call][flow] +${Date.now()} DialingScreen mount personaName="${v_dfb220}" hasImage=${!!v_0e38ad} liveState=${v_6cc918}`,
+      `[Call][flow] +${Date.now()} DialingScreen mount personaName="${v_dfb220}" hasImage=${!!v_0e38ad} liveState=${v_6cc918} silent=${!!v_669bef}`,
     );
-    v_05d0df.startDialingTone();
+
+    if (!v_669bef) v_05d0df.startDialingTone();
     return () => {
       console.log(`[Call][flow] +${Date.now()} DialingScreen unmount`);
       v_05d0df.stopDialingTone();
@@ -60,10 +63,10 @@ export function v_1980fb(props: {
 
     if (v_f22838 === 'connected' && !v_0e4e36.current) {
       v_0e4e36.current = true;
-      v_05d0df.playConnect();
+      if (!v_669bef) v_05d0df.playConnect();
       v_a4c77b();
     }
-  }, [v_f22838, v_05d0df, v_a4c77b, v_6cc918, v_e56026]);
+  }, [v_f22838, v_05d0df, v_a4c77b, v_6cc918, v_e56026, v_669bef]);
 
   v_c4deb2(() => {
     if (v_f22838 === 'timeout' || v_f22838 === 'error') v_05d0df.stopDialingTone();
@@ -88,7 +91,7 @@ export function v_1980fb(props: {
     v_5d6849.current = Date.now() + v_7eb43c;
     v_0e4e36.current = false;
     v_f775f7((v_3f4e2e) => v_3f4e2e + 1);
-    v_05d0df.startDialingTone();
+    if (!v_669bef) v_05d0df.startDialingTone();
     v_09e13b();
   };
 
