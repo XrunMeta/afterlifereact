@@ -162,8 +162,23 @@ export default function CallScreen(props: Props) {
     const raf = requestAnimationFrame(() => setHeavyReady(true));
     return () => cancelAnimationFrame(raf);
   }, []);
-  const { name: paramName, image: paramImage } = props.route.params;
+  const { cloneId, name: paramName, image: paramImage } = props.route.params;
   const placeholderImage = typeof paramImage === "string" ? paramImage : "";
+
+  const clone = useCloneStore((s) => s.getCloneById(cloneId));
+  const [callEntryOpen, setCallEntryOpen] = React.useState(true);
+  React.useEffect(() => {
+    if (!clone) return;
+    const attrs = clone.l1Profile?.attrs ?? {};
+    const complete =
+      (attrs.relation_category ?? "").trim().length > 0 &&
+      (attrs.relation_subtype ?? "").trim().length > 0 &&
+      (attrs.speech_form ?? "").trim().length > 0 &&
+      (attrs.job_category ?? "").trim().length > 0 &&
+      (attrs.job_detail ?? "").trim().length > 0;
+    setCallEntryOpen(!complete);
+  }, [clone]);
+
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.zinc950 }}>
       {!heavyReady ? (
@@ -178,6 +193,29 @@ export default function CallScreen(props: Props) {
       ) : (
         <CallScreenInner {...props} />
       )}
+
+      {
+}
+      <CallEntryQuestionsScreen
+        visible={callEntryOpen}
+        cloneId={cloneId}
+        name={clone?.displayName ?? paramName ?? ""}
+        existingL1={
+          clone?.l1Profile
+            ? { attrs: clone.l1Profile.attrs, notes: clone.l1Profile.notes }
+            : null
+        }
+        onCancel={() => {
+          setCallEntryOpen(false);
+          props.navigation.goBack();
+        }}
+        onCall={() => setCallEntryOpen(false)}
+        onLearn={() => {
+          setCallEntryOpen(false);
+
+          props.navigation.goBack();
+        }}
+      />
     </View>
   );
 }
@@ -206,21 +244,6 @@ function CallScreenInner({ route, navigation }: Props) {
   const [cameraFacing, setCameraFacing] = useState<"front" | "back">("front");
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
-
-  const [callEntryOpen, setCallEntryOpen] = useState(true);
-  useEffect(() => {
-    if (!clone) return;
-    const attrs = clone.l1Profile?.attrs ?? {};
-    const complete =
-      (attrs.relation_category ?? "").trim().length > 0 &&
-      (attrs.relation_subtype ?? "").trim().length > 0 &&
-      (attrs.speech_form ?? "").trim().length > 0 &&
-      (attrs.job_category ?? "").trim().length > 0 &&
-      (attrs.job_detail ?? "").trim().length > 0;
-    setCallEntryOpen(!complete);
-
-    console.log("[CallEntry] gate check", { cloneId, complete, attrs });
-  }, [clone, cloneId]);
 
   const [faceProcOff, setFaceProcOff] = useState(false);
 
@@ -1845,26 +1868,6 @@ function CallScreenInner({ route, navigation }: Props) {
       />
 
       {}
-      <CallEntryQuestionsScreen
-        visible={callEntryOpen}
-        cloneId={cloneId}
-        name={clone?.displayName ?? paramName ?? ""}
-        existingL1={
-          clone?.l1Profile
-            ? { attrs: clone.l1Profile.attrs, notes: clone.l1Profile.notes }
-            : null
-        }
-        onCancel={() => {
-          setCallEntryOpen(false);
-          navigation.goBack();
-        }}
-        onCall={() => setCallEntryOpen(false)}
-        onLearn={() => {
-          setCallEntryOpen(false);
-
-          navigation.goBack();
-        }}
-      />
     </View>
   );
 }
