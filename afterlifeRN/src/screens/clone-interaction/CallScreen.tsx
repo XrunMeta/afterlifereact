@@ -467,6 +467,8 @@ function CallScreenInner({ route, navigation }: Props) {
   const handleSpeakerEventRef = useRef<(evt: SpeakerEvent) => void>(() => {});
 
   const myNameRef = useRef<string | null>(null);
+
+  const ownerConfirmPendingRef = useRef<{ name: string; at: number } | null>(null);
   const handleSpeakerEventTrampoline = useCallback((evt: SpeakerEvent) => {
     handleSpeakerEventRef.current(evt);
   }, []);
@@ -529,10 +531,16 @@ function CallScreenInner({ route, navigation }: Props) {
         });
       } else if (evt.type === "unknown_face") {
 
+        const _firstTime = (persons?.length ?? 0) === 0;
+        const _ownerName = myNameRef.current ?? null;
+        if (_firstTime && _ownerName) {
+
+          ownerConfirmPendingRef.current = { name: _ownerName, at: Date.now() };
+        }
         dispatchSh({
           type: "UNKNOWN_FACE",
-          ownerName: myNameRef.current ?? undefined,
-          isFirstTime: (persons?.length ?? 0) === 0,
+          ownerName: _ownerName ?? undefined,
+          isFirstTime: _firstTime,
         });
 
         unknownFaceSnapshotRef.current = getFaceEmbeddingBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
@@ -889,8 +897,26 @@ function CallScreenInner({ route, navigation }: Props) {
       console.log(`[Call][chat] user: "${transcript}"`);
       chatPrevTranscript.current = transcript;
       chatUserSentAt.current = Date.now();
+
+      const pending = ownerConfirmPendingRef.current;
+      if (pending && Date.now() - pending.at < 30_000) {
+        const t = transcript.trim().replace(/[.!?~\s]+$/, '');
+        if (/^(응+|어+|그래|맞아|맞어|네|예|ㅇㅇ)$/.test(t)) {
+          console.log(`[Call][face] owner confirm YES → enroll("${pending.name}")`);
+          ownerConfirmPendingRef.current = null;
+          void faceEnroll.enroll(pending.name).catch((err) => {
+            console.warn('[Call][face] owner auto-enroll failed:', err);
+          });
+        } else if (/^(아니|아니야|아니오|노|no)$/.test(t)) {
+          console.log(`[Call][face] owner confirm NO → clear pending`);
+          ownerConfirmPendingRef.current = null;
+        }
+      } else if (pending) {
+
+        ownerConfirmPendingRef.current = null;
+      }
     }
-  }, [transcript]);
+  }, [transcript, faceEnroll]);
   const chatReplyStartAt = useRef<number | null>(null);
   useEffect(() => {
     if (!lastSignal) return;
