@@ -1204,6 +1204,39 @@ export async function patchClone(
   );
 }
 
+export interface CloneL2Fields {
+  memory_summary?: string;
+  relationship?: string;
+  context?: string;
+  recent_topics?: string;
+  relation_category?: string;
+  relation_subtype?: string;
+  relation_episode?: string;
+  address_form?: string;
+  speech_form?: string;
+  job_category?: string;
+  job_detail?: string;
+}
+
+export async function getCloneL2(
+  accessToken: string,
+  cloneId: number,
+): Promise<{ l2_profile: CloneL2Fields }> {
+  return authFetch(`/oth-path${cloneId}/l2`, accessToken, { method: "GET" });
+}
+
+export async function patchCloneL2(
+  accessToken: string,
+  cloneId: number,
+  fields: CloneL2Fields,
+): Promise<{ l2_profile: CloneL2Fields }> {
+  return authFetch(
+    `/oth-path${cloneId}/l2`,
+    accessToken,
+    { method: "PATCH", body: JSON.stringify(fields) },
+  );
+}
+
 export interface InvitePreview {
   clone: {
     id: number;

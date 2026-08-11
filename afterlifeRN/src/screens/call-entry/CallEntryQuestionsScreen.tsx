@@ -23,7 +23,7 @@ import {
   JOB_CATEGORY_OPTIONS,
   findRelationSubtypeLabel,
 } from "../../constants/callEntryCatalog";
-import { patchClone } from "../../api/clones";
+import { getCloneL2, patchCloneL2 } from "../../api/clones";
 import { useAuthStore } from "../../stores/authStore";
 import { showAlert } from "../../stores/dialogStore";
 
@@ -32,7 +32,6 @@ interface Props {
   cloneId: number;
   name: string; 
 
-  existingL1?: { attrs?: Record<string, string>; notes?: string } | null;
   onCancel: () => void;
   onCall: () => void;     
   onLearn: () => void;    
@@ -42,26 +41,46 @@ export default function CallEntryQuestionsScreen({
   visible,
   cloneId,
   name,
-  existingL1,
   onCancel,
   onCall,
   onLearn,
 }: Props) {
   const insets = useSafeAreaInsets();
   const accessToken = useAuthStore((s) => s.accessToken);
-  const existingAttrs = existingL1?.attrs ?? {};
 
-  const [relCat, setRelCat] = useState<string>(existingAttrs.relation_category ?? "");
-  const [relSub, setRelSub] = useState<string>(existingAttrs.relation_subtype ?? "");
+  const [relCat, setRelCat] = useState<string>("");
+  const [relSub, setRelSub] = useState<string>("");
 
   const [relSubOther, setRelSubOther] = useState<string>("");
 
-  const [relEpisode, setRelEpisode] = useState<string>(existingAttrs.relation_episode ?? "");
-  const [addressForm, setAddressForm] = useState<string>(existingAttrs.address_form ?? "");
-  const [speech, setSpeech] = useState<string>(existingAttrs.speech_form ?? "");
-  const [job, setJob] = useState<string>(existingAttrs.job_category ?? "");
+  const [relEpisode, setRelEpisode] = useState<string>("");
+  const [addressForm, setAddressForm] = useState<string>("");
+  const [speech, setSpeech] = useState<string>("");
+  const [job, setJob] = useState<string>("");
   const [jobOther, setJobOther] = useState<string>("");
-  const [jobDetail, setJobDetail] = useState<string>(existingAttrs.job_detail ?? "");
+  const [jobDetail, setJobDetail] = useState<string>("");
+
+  React.useEffect(() => {
+    if (!visible || !accessToken || !cloneId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { l2_profile } = await getCloneL2(accessToken, cloneId);
+        if (cancelled) return;
+        if (l2_profile.relation_category) setRelCat(l2_profile.relation_category);
+        if (l2_profile.relation_subtype) setRelSub(l2_profile.relation_subtype);
+        if (l2_profile.relation_episode) setRelEpisode(l2_profile.relation_episode);
+        if (l2_profile.address_form) setAddressForm(l2_profile.address_form);
+        if (l2_profile.speech_form) setSpeech(l2_profile.speech_form);
+        if (l2_profile.job_category) setJob(l2_profile.job_category);
+        if (l2_profile.job_detail) setJobDetail(l2_profile.job_detail);
+      } catch (err) {
+
+        console.warn("[CallEntry] L2 pre-fill 실패:", err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [visible, accessToken, cloneId]);
   const scrollRef = useRef<ScrollView>(null);
 
   const scrollInputIntoView = (nodeHandle: number | null) => {
@@ -116,8 +135,7 @@ export default function CallEntryQuestionsScreen({
 
       const finalRelSub = relSub === "기타" ? relSubOther.trim() : relSub;
       const finalJob = job === "기타" ? jobOther.trim() : job;
-      const mergedAttrs: Record<string, string> = {
-        ...existingAttrs,
+      await patchCloneL2(accessToken, cloneId, {
         relation_category: relCat,
         relation_subtype: finalRelSub,
         relation_episode: relEpisode.trim(),
@@ -125,12 +143,6 @@ export default function CallEntryQuestionsScreen({
         speech_form: speech,
         job_category: finalJob,
         job_detail: jobDetail.trim(),
-      };
-      await patchClone(accessToken, cloneId, {
-        l1_profile: {
-          attrs: mergedAttrs,
-          notes: existingL1?.notes ?? "",
-        },
       });
       setDoneModal(true);
     } catch (err) {
