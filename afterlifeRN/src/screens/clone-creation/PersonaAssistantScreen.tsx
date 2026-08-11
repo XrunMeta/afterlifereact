@@ -394,8 +394,7 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
         const derived = deriveUsernameFromName(answersRef.current.name || 'user');
         pushUser(
           t('create.assistant.usernameAutoDerived', {
-            derived,
-            defaultValue: `(빈 칸 — ${derived} 로 자동 생성)`,
+            defaultValue: '(빈 칸 — 랜덤 아이디로 자동 생성)',
           }),
         );
         answersRef.current.username = derived;
