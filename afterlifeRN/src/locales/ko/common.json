@@ -798,7 +798,8 @@
       "validateNoFace": "얼굴이 확인되지 않아요. 정면을 향해 다시 시도해 주세요.",
       "validateTooSmall": "얼굴이 너무 작아요. 카메라에 조금 더 가까이 다가와 다시 시도해 주세요.",
       "validateTooLarge": "얼굴이 너무 크게 잡혔어요. 조금 뒤로 물러나 다시 시도해 주세요.",
-      "validateOffCenter": "얼굴이 실루엣 밖으로 벗어났어요. 프레임 중앙에 오도록 다시 시도해 주세요."
+      "validateOffCenter": "얼굴이 실루엣 밖으로 벗어났어요. 프레임 중앙에 오도록 다시 시도해 주세요.",
+      "validateLetterbox": "정방형 · 가로형 사진은 사용할 수 없어요. 세로가 긴 사진을 선택해 주세요."
     },
     "voice": {
       "presets": "기본 음성 프리셋",
@@ -948,7 +949,7 @@
       "btnCustom": "직접 입력",
       "btnSkip": "건너뛰기",
       "userSkip": "(건너뛰기)",
-      "usernameAutoDerived": "(빈 칸 — {{derived}} 로 자동 생성)",
+      "usernameAutoDerived": "(빈 칸 — 랜덤 아이디로 자동 생성)",
       "usernameFormatTitle": "아이디 형식 오류",
       "usernameFormatMsg": "영문 소문자, 숫자, _ 만 사용 가능합니다.",
       "usernameLengthTitle": "아이디 길이",

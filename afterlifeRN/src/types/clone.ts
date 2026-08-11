@@ -32,7 +32,7 @@ export type MemlowRelation =
   | "other";
 
 export const v_b95daf = ['10대', '20대', '30대', '40대', '50대', '60대 이상'] as const;
-export const v_f17565 = ['남성', '여성', '기타'] as const;
+export const v_f17565 = ['남성', '여성'] as const;
 export const v_2934e9 = [
   { id: 'extrovert', label: '외향적인' },
   { id: 'introvert', label: '내향적인' },
@@ -48,7 +48,6 @@ export const v_336485 = [
   'INFJ', 'INFP', 'ENFJ', 'ENFP',
   'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',
   'ISTP', 'ISFP', 'ESTP', 'ESFP',
-  '모름',
 ] as const;
 export type PersonaAge = typeof v_b95daf[number];
 export type PersonaGender = typeof v_f17565[number];

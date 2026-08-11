@@ -53,6 +53,8 @@ export interface DomainClone {
   commentsCount?: number;
   followersCount?: number;
   messagesCount?: number;
+
+  pipeline?: string | null;
 }
 
 export interface DomainFollow {
