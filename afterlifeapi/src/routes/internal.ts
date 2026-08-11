@@ -38,6 +38,8 @@ v_dcd415.post("/oth-path", async (v_3f4e2e) => {
   const v_22da99 = v_4d33b2.role === "clone" || v_4d33b2.role === "user" ? v_4d33b2.role : null;
   if (!v_22da99 || !v_9b6134) return v_3f4e2e.json({ error: "bad_turn" }, 400);
 
+  if (v_9b6134.length > 2000) return v_3f4e2e.json({ error: "text_too_long" }, 400);
+
   const v_d7296e = await v_3f4e2e.env.DB.prepare(
     "SELECT 1 FROM call_sessions WHERE call_id = ?"
   ).bind(v_be62d3).first();
