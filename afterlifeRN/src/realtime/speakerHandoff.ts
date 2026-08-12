@@ -7,8 +7,7 @@ export interface SpeakerHandoffState {
 }
 export type SpeakerHandoffEvent =
   | { type: 'SPEAKER_CONFIRMED'; personId: number; name: string }
-
-  | { type: 'UNKNOWN_FACE'; ownerName?: string; isFirstTime?: boolean }
+  | { type: 'UNKNOWN_FACE' }
   | { type: 'NAME_ENROLLED'; personId?: number; name?: string }
   | { type: 'NAMING_TIMEOUT' };
 export type SpeakerHandoffAction =
@@ -21,18 +20,6 @@ export function v_047711(): SpeakerHandoffState {
   return { lastKnownSpeaker: null, naming: false };
 }
 
-export function v_8405b2(
-  v_ba2215,
-  v_328259,
-): string {
-  if (v_328259?.isFirstTime && v_328259.ownerName && v_328259.ownerName.trim()) {
-    return `너 이름이 ${v_328259.ownerName.trim()} 맞지?`;
-  }
-  return v_ba2215
-    ? `누구시죠? ${v_ba2215.name}님이 아니네요, 성함을 알려주세요`
-    : `누구시죠? 성함을 알려주세요`;
-}
-
 export function v_5ecb22(
   v_b6e533,
   v_d48baf,
@@ -40,18 +27,10 @@ export function v_5ecb22(
   switch (v_d48baf.type) {
     case 'UNKNOWN_FACE': {
       if (v_b6e533.naming) return { state: v_b6e533, actions: [] }; 
+
       return {
         state: { ...v_b6e533, naming: true },
-        actions: [
-          {
-            type: 'SAY',
-            text: v_8405b2(v_b6e533.lastKnownSpeaker, {
-              ownerName: v_d48baf.ownerName,
-              isFirstTime: v_d48baf.isFirstTime,
-            }),
-          },
-          { type: 'BEGIN_NAMING' },
-        ],
+        actions: [{ type: 'BEGIN_NAMING' }],
       };
     }
     case 'SPEAKER_CONFIRMED': {

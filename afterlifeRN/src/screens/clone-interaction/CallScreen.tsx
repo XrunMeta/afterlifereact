@@ -126,6 +126,14 @@ import { getCreditBalance } from "../../api/credits";
 import { sendGiftOffchain } from "../../api/giftInventory";
 import { showAlert } from "../../stores/dialogStore";
 import { CommonActions } from "@react-navigation/native";
+import RememberMeButton from "../../components/call/RememberMeButton";
+import { updatePersonRelation } from "../../api/persons";
+import RememberMeSheet from "../../components/call/RememberMeSheet";
+import {
+  initRememberMeState,
+  rememberMeReducer,
+  type RememberMeEvent,
+} from "../../realtime/rememberMeReducer";
 import ExpertBadge from "../../components/ui/ExpertBadge";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
@@ -387,6 +395,11 @@ function CallScreenInner({ route, navigation }: Props) {
   const submittedEnrollNameRef = useRef("");
 
   const enrollSuggestImplRef = useRef<(name: string, personId?: number) => void>(() => {});
+
+  const rememberMeAskedImplRef = useRef<() => void>(() => {});
+  const handleRememberMeAsked = useCallback(() => {
+    rememberMeAskedImplRef.current();
+  }, []);
   const handleEnrollSuggest = useCallback((name: string, personId?: number) => {
     enrollSuggestImplRef.current(name, personId);
   }, []);
@@ -409,6 +422,8 @@ function CallScreenInner({ route, navigation }: Props) {
     cloneId,
     accessToken: accessToken ?? "",
     onEnrollSuggest: handleEnrollSuggest,
+
+    onRememberMe: handleRememberMeAsked,
 
     pipeline: livePipeline ?? (clone as { pipeline?: string | null })?.pipeline ?? null,
   });
@@ -479,6 +494,23 @@ function CallScreenInner({ route, navigation }: Props) {
     dispatchShRef.current(event);
   }, []);
 
+  const [rmState, setRmState] = useState(initRememberMeState());
+  const rmStateRef = useRef(rmState);
+  const dispatchRm = useCallback((event: RememberMeEvent) => {
+    const { state, actions } = rememberMeReducer(rmStateRef.current, event);
+    rmStateRef.current = state;
+    setRmState(state);
+
+    for (const a of actions) console.log(`[Call][rm] ${a.type}`);
+  }, []);
+
+  useEffect(() => {
+    rememberMeAskedImplRef.current = () => {
+      console.log("[Call][rm] server asked → open sheet");
+      dispatchRm({ type: "OPEN_SHEET" });
+    };
+  }, [dispatchRm]);
+
   const notifyFaceInterruptRef = useRef<(text: string, faceKey: string) => void>(() => {});
 
   const micOnRef = useRef(false);
@@ -524,6 +556,8 @@ function CallScreenInner({ route, navigation }: Props) {
         if (name) {
           dispatchSh({ type: "SPEAKER_CONFIRMED", personId: evt.personId, name });
         }
+
+        dispatchRm({ type: "KNOWN_FACE" });
         sendFaceEvent?.({
           event: "speaker_confirmed",
           personId: evt.personId,
@@ -531,17 +565,8 @@ function CallScreenInner({ route, navigation }: Props) {
         });
       } else if (evt.type === "unknown_face") {
 
-        const _firstTime = (persons?.length ?? 0) === 0;
-        const _ownerName = myNameRef.current ?? null;
-        if (_firstTime && _ownerName) {
-
-          ownerConfirmPendingRef.current = { name: _ownerName, at: Date.now() };
-        }
-        dispatchSh({
-          type: "UNKNOWN_FACE",
-          ownerName: _ownerName ?? undefined,
-          isFirstTime: _firstTime,
-        });
+        dispatchRm({ type: "UNKNOWN_FACE" });
+        dispatchSh({ type: "UNKNOWN_FACE" });
 
         unknownFaceSnapshotRef.current = getFaceEmbeddingBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
         sendFaceEvent?.({ event: "unknown_face" });
@@ -777,6 +802,39 @@ function CallScreenInner({ route, navigation }: Props) {
     enrollSuggestImplRef.current = handleEnrollSuggestImpl;
   }, [handleEnrollSuggestImpl]);
 
+  const [rmSaving, setRmSaving] = useState(false);
+  const [rmError, setRmError] = useState<string | null>(null);
+  const handleRememberMeSubmit = useCallback(
+    async (name: string, relation: string) => {
+      if (!name.trim()) return;
+      setRmSaving(true);
+      setRmError(null);
+      try {
+
+        await faceEnroll.enroll(name.trim());
+        const rel = relation.trim();
+        if (rel) {
+
+          try {
+            const pid = faceEnroll.getEnrolledPersonId();
+            if (pid != null) {
+              await updatePersonRelation(accessToken ?? "", pid, rel);
+            }
+          } catch (err) {
+            console.warn("[Call][rm] relation 저장 실패(등록은 유지):", err);
+          }
+        }
+        dispatchRm({ type: "ENROLLED" });
+      } catch (err) {
+        console.warn("[Call][rm] enroll 실패:", err);
+        setRmError("등록에 실패했어요. 다시 시도해 주세요.");
+      } finally {
+        setRmSaving(false);
+      }
+    },
+    [faceEnroll, dispatchRm, accessToken, cloneId],
+  );
+
   const handleEmbeddingOnJS = React.useMemo(
     () =>
       Worklets.createRunOnJS(
@@ -861,7 +919,8 @@ function CallScreenInner({ route, navigation }: Props) {
     sttActive,
     notifyFaceInterrupt,
   } = useHandsFreeController({
-    enabled: liveState === "live",
+
+    enabled: liveState === "live" && !rmState.sheetOpen,
     say,
     getStatsReport,
     notifySpeechEnd,
@@ -898,25 +957,8 @@ function CallScreenInner({ route, navigation }: Props) {
       chatPrevTranscript.current = transcript;
       chatUserSentAt.current = Date.now();
 
-      const pending = ownerConfirmPendingRef.current;
-      if (pending && Date.now() - pending.at < 30_000) {
-        const t = transcript.trim().replace(/[.!?~\s]+$/, '');
-        if (/^(응+|어+|그래|맞아|맞어|네|예|ㅇㅇ)$/.test(t)) {
-          console.log(`[Call][face] owner confirm YES → enroll("${pending.name}")`);
-          ownerConfirmPendingRef.current = null;
-          void faceEnroll.enroll(pending.name).catch((err) => {
-            console.warn('[Call][face] owner auto-enroll failed:', err);
-          });
-        } else if (/^(아니|아니야|아니오|노|no)$/.test(t)) {
-          console.log(`[Call][face] owner confirm NO → clear pending`);
-          ownerConfirmPendingRef.current = null;
-        }
-      } else if (pending) {
-
-        ownerConfirmPendingRef.current = null;
-      }
     }
-  }, [transcript, faceEnroll]);
+  }, [transcript]);
   const chatReplyStartAt = useRef<number | null>(null);
   useEffect(() => {
     if (!lastSignal) return;
@@ -1403,6 +1445,20 @@ function CallScreenInner({ route, navigation }: Props) {
 
   return (
     <View style={s.container}>
+      {
+
+}
+      <RememberMeButton
+        visible={!rmState.identified}
+        onPress={() => dispatchRm({ type: "OPEN_SHEET" })}
+      />
+      <RememberMeSheet
+        visible={rmState.sheetOpen}
+        saving={rmSaving}
+        error={rmError}
+        onSubmit={handleRememberMeSubmit}
+        onDismiss={() => dispatchRm({ type: "DISMISS" })}
+      />
       {}
       {
 
