@@ -1231,14 +1231,20 @@ function CallScreenInner({ route, navigation }: Props) {
     return () => anim.stop();
   }, [phase, pendingText, confirmProgress]);
 
+  const [isTerminating, setIsTerminating] = useState(false);
   const exitToMain = useCallback(() => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    } else {
-      navigation.dispatch(
-        CommonActions.reset({ index: 0, routes: [{ name: "Main" }] }),
-      );
-    }
+    console.log("[Call][exit] setIsTerminating=true (200ms 후 navigation)");
+    setIsTerminating(true);
+    setTimeout(() => {
+      console.log("[Call][exit] navigation 실행");
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        navigation.dispatch(
+          CommonActions.reset({ index: 0, routes: [{ name: "Main" }] }),
+        );
+      }
+    }, 200);
   }, [navigation]);
 
   useEffect(() => {
@@ -1582,7 +1588,7 @@ function CallScreenInner({ route, navigation }: Props) {
 
             androidPreviewViewType="texture-view"
 
-            frameProcessor={consentGranted && !faceProcOff ? faceFrameProcessor : undefined}
+            frameProcessor={consentGranted && !faceProcOff && !isTerminating ? faceFrameProcessor : undefined}
             onError={(e) =>
               console.log("[Call][face] camera error:", e.code, e.message)
             }
