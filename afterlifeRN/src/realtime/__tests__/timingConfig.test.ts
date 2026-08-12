@@ -16,7 +16,7 @@ describe('timingConfig store', () => {
     const s = useTimingConfigStore.getState();
     expect(s.sttEndpointMs).toBe(1500);
     expect(s.echoGateMs).toBe(3500);
-    expect(s.cloneResumeMs).toBe(600);
+    expect(s.cloneResumeMs).toBe(300);
     expect(s.cloneTailGraceMs).toBe(1000);
     expect(s.responseDoneTimeoutMs).toBe(45000);
   });
@@ -36,7 +36,7 @@ describe('timingConfig store', () => {
 
   it('setField ignores non-finite values', () => {
     useTimingConfigStore.getState().setField('cloneResumeMs', Number.NaN);
-    expect(useTimingConfigStore.getState().cloneResumeMs).toBe(600);
+    expect(useTimingConfigStore.getState().cloneResumeMs).toBe(300);
   });
 
   it('reset restores defaults', () => {
