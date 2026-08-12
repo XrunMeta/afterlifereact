@@ -41,11 +41,33 @@ bundle 구조 (fetch_bundle 반환 전체 형식):
 """
 from __future__ import annotations
 
+import os
 import re
 
 from .mbti_traits import get_mbti_traits
 from .mbti_tone_map import get_mbti_tone
 from .dialect_traits import get_dialect_traits
+
+# [T-467 2026-08-12] system prompt anchor — user 메시지 직전에 놓는 강제 규칙.
+#   Gemma/Llama 는 대화가 길어질수록 system 중반의 지시를 잊는다 → 맨 뒤에 두면
+#   attention 이 강하게 걸린다. PRETHIRD_STRICT_TONE_RULES=1 일 때만 활성이라
+#   미설정 환경에서는 회귀가 없다.
+#
+# ⚠️ 이 상수는 가비아 라이브에만 있고 git 에는 없던 것을 역흡수한 것이다(T-127 재발).
+#    라이브에 직접 배포된 변경은 다음 배포 때 조용히 지워지므로, 앞으로도 이 경로는
+#    _check_live_drift.sh 로 먼저 확인하고 흡수한 뒤 배포한다.
+STRICT_TONE_ANCHOR = """[절대 규칙]
+1. 반드시 2~3문장 이내의 짧은 구어체로 답한다.
+2. 존댓말(~요, ~습니다)을 쓰지 말고 반말만 사용한다.
+3. 사용자의 질문에 직접 답하고, 무관한 화제를 먼저 꺼내지 않는다.
+4. 당신은 위 페르소나(이름/관계/성격) 그 자체이다. 사용자는 당신과는 별개 인물이다.
+   사용자가 당신을 "언니/오빠/누나/형/엄마/아빠" 등 상급자 호칭으로 부르더라도,
+   당신이 사용자를 그런 호칭으로 부르지 마라 — 그건 사용자가 당신을 지칭하는 말이다.
+   당신이 사용자를 부를 때는 "야", "얘", 또는 저장된 사용자 이름을 사용한다.
+5. 위 "## MBTI 참고 성격" 섹션이 있다면 그 강점/약점/성격 특징을 응답 스타일에 반드시 반영한다.
+   - T 성향 (INTJ, INTP, ENTJ, ENTP, ISTJ, ISTP, ESTJ, ESTP): 원인 파악·논리·해결책을 앞에 놓는다.
+   - F 성향 (INFJ, INFP, ENFJ, ENFP, ISFJ, ISFP, ESFJ, ESFP): 공감·감정 인정을 앞에 놓는다.
+   - MBTI 정보 없을 때만 자연스러운 반응."""
 
 # 클론 자신의 속성 — "## 너의 정보" 블록.
 _SELF_LABELS: list[tuple[str, str]] = [
@@ -453,5 +475,9 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
     if not body:
         return []
     content = f"{header}\n\n{body}"
+
+    # [T-467] 강제 규칙 앵커 — 맨 뒤라 attention 이 가장 강하다. env 미설정이면 회귀 0.
+    if os.environ.get("PRETHIRD_STRICT_TONE_RULES", "").strip() == "1":
+        content = f"{content}\n\n{STRICT_TONE_ANCHOR}"
 
     return [{"role": "system", "content": content}]
