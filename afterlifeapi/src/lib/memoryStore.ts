@@ -90,6 +90,23 @@ export async function v_5729a9(
 const v_a680d4 = 16 * 1024;   
 const v_90cfe0 = 50;          
 
+const v_f41048 = [
+  "relation_category",
+  "relation_subtype",
+  "relation_episode",
+  "address_form",
+  "speech_form",
+  "job_category",
+  "job_detail",
+] as const;
+function v_8c1142(v_275ccd): Record<string, unknown> {
+  const v_8d4337 = {};
+  for (const v_0eb677 of v_f41048) {
+    if (v_275ccd[v_0eb677] !== undefined) v_8d4337[v_0eb677] = v_275ccd[v_0eb677];
+  }
+  return v_8d4337;
+}
+
 export interface L2Extraction {
   preference_personal?: Record<string, unknown>; 
   relation?: string | null;                       
@@ -182,6 +199,8 @@ export async function v_0ac5b7(
     ...(v_275ccd.relationship !== undefined ? { relationship: v_275ccd.relationship } : {}),
     ...(v_275ccd.context !== undefined ? { context: v_275ccd.context } : {}),
     ...(v_275ccd.recent_topics !== undefined ? { recent_topics: v_275ccd.recent_topics } : {}),
+
+    ...v_8c1142(v_275ccd),
     _meta: { layer: "L2", rev: v_7d3ae6 + 1, auto_learned_at: v_5c2f9f, source: v_04e790, updated_at: v_5c2f9f },
   };
 
@@ -297,6 +316,8 @@ export async function v_600422(
     ...(v_275ccd.relationship !== undefined ? { relationship: v_275ccd.relationship } : {}),
     ...(v_275ccd.context !== undefined ? { context: v_275ccd.context } : {}),
     ...(v_275ccd.recent_topics !== undefined ? { recent_topics: v_275ccd.recent_topics } : {}),
+
+    ...v_8c1142(v_275ccd),
     _meta: { layer: "L2p", rev: v_7d3ae6 + 1, auto_learned_at: v_5c2f9f, source: v_04e790, updated_at: v_5c2f9f },
   };
 
