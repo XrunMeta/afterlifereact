@@ -21,8 +21,10 @@ export function DialingScreen(props: {
   onRetry: () => void;
 
   greetingStarted?: boolean;
+
+  silent?: boolean;
 }) {
-  const { liveState, personaName, personaImage, greetingStarted, onConnected, onCancel, onRetry } = props;
+  const { liveState, personaName, personaImage, greetingStarted, silent, onConnected, onCancel, onRetry } = props;
   const { t } = useTranslation();
   const startRef = useRef(Date.now());
   const graceUntilRef = useRef(0);
@@ -45,9 +47,10 @@ export function DialingScreen(props: {
   useEffect(() => {
 
     console.log(
-      `[Call][flow] +${Date.now()} DialingScreen mount personaName="${personaName}" hasImage=${!!personaImage} liveState=${liveState}`,
+      `[Call][flow] +${Date.now()} DialingScreen mount personaName="${personaName}" hasImage=${!!personaImage} liveState=${liveState} silent=${!!silent}`,
     );
-    sounds.startDialingTone();
+
+    if (!silent) sounds.startDialingTone();
     return () => {
       console.log(`[Call][flow] +${Date.now()} DialingScreen unmount`);
       sounds.stopDialingTone();
@@ -60,10 +63,10 @@ export function DialingScreen(props: {
 
     if (outcome === 'connected' && !connectedRef.current) {
       connectedRef.current = true;
-      sounds.playConnect();
+      if (!silent) sounds.playConnect();
       onConnected();
     }
-  }, [outcome, sounds, onConnected, liveState, elapsed]);
+  }, [outcome, sounds, onConnected, liveState, elapsed, silent]);
 
   useEffect(() => {
     if (outcome === 'timeout' || outcome === 'error') sounds.stopDialingTone();
@@ -88,7 +91,7 @@ export function DialingScreen(props: {
     graceUntilRef.current = Date.now() + RETRY_GRACE_MS;
     connectedRef.current = false;
     setRetryCount((c) => c + 1);
-    sounds.startDialingTone();
+    if (!silent) sounds.startDialingTone();
     onRetry();
   };
 

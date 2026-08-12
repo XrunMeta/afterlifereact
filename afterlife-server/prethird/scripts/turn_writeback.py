@@ -55,11 +55,35 @@ def _mark_sent(key: str) -> bool:
     return True
 
 
-async def _post_turn(api_base: str, secret: str, call_id: str, role: str, text: str) -> None:
+def _build_body(role: str, text: str, speaker_person_id: object = None) -> dict:
+    """POST 본문 조립. 순수 함수라 직접 단위테스트한다.
+
+    speakerPersonId 는 **user 턴에만** 싣는다 — clone 턴의 화자는 클론 자신이라
+    붙일 person 이 없다(수신처도 clone 턴이면 무시하지만, 페이로드가 의미를 그대로
+    반영하도록 상류에서 먼저 뺀다).
+
+    정수가 아니면 키 자체를 생략한다. bool 을 따로 걸러내는 이유는 파이썬에서
+    bool 이 int 의 서브클래스라 isinstance(True, int) 가 참이기 때문 — 그냥 두면
+    True 가 person_id 1 로 새어 들어간다.
+    """
+    body: dict = {"role": role, "text": text}
+    if (
+        role == "user"
+        and isinstance(speaker_person_id, int)
+        and not isinstance(speaker_person_id, bool)
+    ):
+        body["speakerPersonId"] = speaker_person_id
+    return body
+
+
+async def _post_turn(
+    api_base: str, secret: str, call_id: str, role: str, text: str,
+    speaker_person_id: object = None,
+) -> None:
     """단일 turn POST. HTTP 관례는 learn_writeback._post_learn 과 동일(aiohttp·타임아웃·
     비200 은 log.warning 만). 본문 text 는 로그에 남기지 않는다(PII)."""
     url = f"{api_base}/oth-path"
-    body = json.dumps({"role": role, "text": text}).encode("utf-8")
+    body = json.dumps(_build_body(role, text, speaker_person_id)).encode("utf-8")
     timeout = aiohttp.ClientTimeout(total=_TIMEOUT_S)
     async with aiohttp.ClientSession(timeout=timeout) as s:
         async with s.post(url, data=body, headers={
@@ -75,6 +99,7 @@ async def turn_writeback(
     user_text: str | None,
     clone_reply: str | None,
     dedupe_key: str | None = None,
+    speaker_person_id: int | None = None,
 ) -> None:
     """턴 종료 후 사용자 발화 + 클론 응답을 call_turns 에 기록. fire-and-forget.
 
@@ -111,8 +136,14 @@ async def turn_writeback(
                 )
                 text = text[:_MAX_TURN_TEXT]
             # 한쪽 실패가 다른 쪽 기록을 막지 않도록 개별 try.
+            # 화자는 user 턴에만 넘긴다 — _post_turn 의 이 인자는 "이 턴을 말한 사람"
+            # 이라, clone 턴에 사용자 person 을 넘기는 것은 의미상 틀렸다.
+            # (_build_body 도 같은 조건을 다시 보지만 그건 방어이고, 의미는 여기서 정한다.)
             try:
-                await _post_turn(api_base, secret, call_id, role, text)
+                await _post_turn(
+                    api_base, secret, call_id, role, text,
+                    speaker_person_id if role == "user" else None,
+                )
             except Exception as e:
                 log.warning("call turn writeback call=%s role=%s failed: %s", call_id, role, e)
     except Exception as e:

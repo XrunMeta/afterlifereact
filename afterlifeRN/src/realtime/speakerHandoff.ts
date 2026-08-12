@@ -7,7 +7,8 @@ export interface SpeakerHandoffState {
 }
 export type SpeakerHandoffEvent =
   | { type: 'SPEAKER_CONFIRMED'; personId: number; name: string }
-  | { type: 'UNKNOWN_FACE' }
+
+  | { type: 'UNKNOWN_FACE'; ownerName?: string; isFirstTime?: boolean }
   | { type: 'NAME_ENROLLED'; personId?: number; name?: string }
   | { type: 'NAMING_TIMEOUT' };
 export type SpeakerHandoffAction =
@@ -20,7 +21,13 @@ export function initSpeakerHandoffState(): SpeakerHandoffState {
   return { lastKnownSpeaker: null, naming: false };
 }
 
-export function promptFor(prev: KnownSpeaker | null): string {
+export function promptFor(
+  prev: KnownSpeaker | null,
+  opts?: { ownerName?: string; isFirstTime?: boolean },
+): string {
+  if (opts?.isFirstTime && opts.ownerName && opts.ownerName.trim()) {
+    return `너 이름이 ${opts.ownerName.trim()} 맞지?`;
+  }
   return prev
     ? `누구시죠? ${prev.name}님이 아니네요, 성함을 알려주세요`
     : `누구시죠? 성함을 알려주세요`;
@@ -35,7 +42,16 @@ export function speakerHandoffReducer(
       if (state.naming) return { state, actions: [] }; 
       return {
         state: { ...state, naming: true },
-        actions: [{ type: 'SAY', text: promptFor(state.lastKnownSpeaker) }, { type: 'BEGIN_NAMING' }],
+        actions: [
+          {
+            type: 'SAY',
+            text: promptFor(state.lastKnownSpeaker, {
+              ownerName: event.ownerName,
+              isFirstTime: event.isFirstTime,
+            }),
+          },
+          { type: 'BEGIN_NAMING' },
+        ],
       };
     }
     case 'SPEAKER_CONFIRMED': {

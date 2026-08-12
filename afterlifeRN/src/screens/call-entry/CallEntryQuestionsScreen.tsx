@@ -298,7 +298,7 @@ export default function CallEntryQuestionsScreen({
         </ScrollView>
 
         {}
-        <View style={[s.footer, { paddingBottom: (kbVisible || doneModal) ? 0 : Math.max(insets.bottom, 4) }]}>
+        <View style={[s.footer, { paddingBottom: 0 }]}>
           <TouchableOpacity
             style={[s.saveBtn, (!canProceed || saving) && s.saveBtnDisabled]}
             onPress={save}
