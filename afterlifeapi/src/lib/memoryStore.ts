@@ -90,6 +90,23 @@ export async function writeOnt(
 const MAX_L2_BYTES = 16 * 1024;   
 const MAX_MEMORIES = 50;          
 
+const L2_T487_PRESERVE_KEYS = [
+  "relation_category",
+  "relation_subtype",
+  "relation_episode",
+  "address_form",
+  "speech_form",
+  "job_category",
+  "job_detail",
+] as const;
+function preserveT487(current: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const k of L2_T487_PRESERVE_KEYS) {
+    if (current[k] !== undefined) out[k] = current[k];
+  }
+  return out;
+}
+
 export interface L2Extraction {
   preference_personal?: Record<string, unknown>; 
   relation?: string | null;                       
@@ -182,6 +199,8 @@ export async function updateOntFromExtraction(
     ...(current.relationship !== undefined ? { relationship: current.relationship } : {}),
     ...(current.context !== undefined ? { context: current.context } : {}),
     ...(current.recent_topics !== undefined ? { recent_topics: current.recent_topics } : {}),
+
+    ...preserveT487(current),
     _meta: { layer: "L2", rev: prevRev + 1, auto_learned_at: now, source, updated_at: now },
   };
 
@@ -297,6 +316,8 @@ export async function updateOntPersonFromExtraction(
     ...(current.relationship !== undefined ? { relationship: current.relationship } : {}),
     ...(current.context !== undefined ? { context: current.context } : {}),
     ...(current.recent_topics !== undefined ? { recent_topics: current.recent_topics } : {}),
+
+    ...preserveT487(current),
     _meta: { layer: "L2p", rev: prevRev + 1, auto_learned_at: now, source, updated_at: now },
   };
 
