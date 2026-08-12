@@ -83,9 +83,11 @@ export function usePrethirdAvatar(opts: {
 
   onEnrollSuggest?: (name: string, personId?: number) => void;
 
+  onRememberMe?: () => void;
+
   pipeline?: string | null;
 }): AvatarCall {
-  const { cloneId, accessToken, onEnrollSuggest, pipeline } = opts;
+  const { cloneId, accessToken, onEnrollSuggest, onRememberMe, pipeline } = opts;
 
   const deps = opts.deps ?? defaultDeps;
   const [state, setState] = useState<LiveAvatarState>('idle');
@@ -106,6 +108,8 @@ export function usePrethirdAvatar(opts: {
 
   const onEnrollSuggestRef = useRef(onEnrollSuggest);
   useEffect(() => { onEnrollSuggestRef.current = onEnrollSuggest; }, [onEnrollSuggest]);
+  const onRememberMeRef = useRef(onRememberMe);
+  useEffect(() => { onRememberMeRef.current = onRememberMe; }, [onRememberMe]);
 
   const pipelineRef = useRef(pipeline);
   useEffect(() => { pipelineRef.current = pipeline; }, [pipeline]);
@@ -270,6 +274,9 @@ export function usePrethirdAvatar(opts: {
 
           const personId = typeof m.personId === 'number' ? m.personId : undefined;
           onEnrollSuggestRef.current?.(typeof m.name === 'string' ? m.name : '', personId);
+        } else if (m.type === 'remember_me') {
+
+          onRememberMeRef.current?.();
         }
       } catch {  }
     };

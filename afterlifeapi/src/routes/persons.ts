@@ -403,6 +403,59 @@ persons.patch("/:id", requireAuth, async (c) => {
   return c.json({ id: personId, displayName: trimmed });
 });
 
+persons.patch("/:id/relation", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const personId = parsePersonId(c);
+  const body = await c.req
+    .json<{ relation?: string }>()
+    .catch(() => ({}) as { relation?: string });
+
+  const relation = (body.relation ?? "").trim();
+  if (!relation) throw new APIError("VALIDATION_FAILED", "relation 이 비어 있습니다.");
+  if (relation.length > 100) {
+    throw new APIError("VALIDATION_FAILED", "relation 이 너무 깁니다(100자 이내).");
+  }
+
+  const owned = await c.env.DB.prepare(
+    `SELECT id, clone_id AS cloneId FROM persons WHERE id = ? AND user_id = ?`,
+  )
+    .bind(personId, userId)
+    .first<{ id: number; cloneId: number | null }>();
+  if (!owned) throw new APIError("NOT_FOUND", "person이 존재하지 않습니다.");
+  if (owned.cloneId == null) {
+    throw new APIError("VALIDATION_FAILED", "클론에 속하지 않은 화자입니다.");
+  }
+
+  const row = await c.env.DB.prepare(
+    `SELECT data FROM clone_ont_person WHERE clone_id = ? AND person_id = ?`,
+  )
+    .bind(owned.cloneId, personId)
+    .first<{ data: string }>();
+
+  let data: Record<string, unknown> = {};
+  if (row?.data) {
+    try {
+      const parsed = JSON.parse(row.data);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        data = parsed as Record<string, unknown>;
+      }
+    } catch {
+
+    }
+  }
+  data.relation = relation;
+
+  await c.env.DB.prepare(
+    `INSERT INTO clone_ont_person (clone_id, person_id, data, updated_at)
+     VALUES (?, ?, ?, unixepoch())
+     ON CONFLICT(clone_id, person_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`,
+  )
+    .bind(owned.cloneId, personId, JSON.stringify(data))
+    .run();
+
+  return c.json({ id: personId, relation });
+});
+
 persons.get("/", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const cloneIdRaw = c.req.query("cloneId");
