@@ -243,3 +243,15 @@ export async function deleteRememberingClone(
     { method: 'DELETE' },
   );
 }
+
+export async function updatePersonRelation(
+  accessToken: string,
+  personId: number,
+  relation: string,
+): Promise<{ id: number; relation: string }> {
+  return authFetch<{ id: number; relation: string }>(
+    `/oth-path${personId}/relation`,
+    accessToken,
+    { method: 'PATCH', body: JSON.stringify({ relation }) },
+  );
+}
