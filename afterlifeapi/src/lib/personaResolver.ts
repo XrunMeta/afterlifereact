@@ -24,6 +24,14 @@ const v_c549b1 = new Set<string>([
   "preference_personal",
   "memories_personal",   
   "preference_history",   
+
+  "relation_category",
+  "relation_subtype",
+  "relation_episode",
+  "address_form",
+  "speech_form",
+  "job_category",
+  "job_detail",
 ]);
 
 export function v_e97fae(v_479f05): PersonaDict | null {

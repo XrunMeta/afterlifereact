@@ -168,9 +168,10 @@ export default function CallScreen(props: Props) {
 
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
   const wrapperAccessToken = useAuthStore((s) => s.accessToken);
-  const [callEntryOpen, setCallEntryOpen] = React.useState(true);
+
+  const [callEntryOpen, setCallEntryOpen] = React.useState<boolean | null>(null);
   React.useEffect(() => {
-    if (!wrapperAccessToken || !cloneId) return;
+    if (!wrapperAccessToken || !cloneId) { setCallEntryOpen(true); return; }
     let cancelled = false;
     (async () => {
       try {
@@ -187,6 +188,8 @@ export default function CallScreen(props: Props) {
         setCallEntryOpen(!complete);
       } catch (err) {
 
+        if (!cancelled) setCallEntryOpen(true);
+
         console.warn("[CallEntry] L2 gate fetch 실패:", err);
       }
     })();
@@ -198,11 +201,13 @@ export default function CallScreen(props: Props) {
       {
 
 }
-      {callEntryOpen || !heavyReady ? (
+      {callEntryOpen !== false || !heavyReady ? (
         <DialingScreen
           liveState="idle"
           personaName={paramName ?? ""}
           personaImage={placeholderImage}
+
+          silent={callEntryOpen !== false}
           onConnected={() => {}}
           onCancel={() => props.navigation.goBack()}
           onRetry={() => {}}
@@ -214,7 +219,7 @@ export default function CallScreen(props: Props) {
       {
 }
       <CallEntryQuestionsScreen
-        visible={callEntryOpen}
+        visible={callEntryOpen === true}
         cloneId={cloneId}
         name={clone?.displayName ?? paramName ?? ""}
         onCancel={() => {
@@ -225,17 +230,31 @@ export default function CallScreen(props: Props) {
         onLearn={() => {
           setCallEntryOpen(false);
 
-          const nav = props.navigation as unknown as {
-            goBack: () => void;
-            navigate: (n: string, p: unknown) => void;
-          };
-          nav.goBack();
-          setTimeout(() => {
-            nav.navigate("Main", {
-              screen: "ClonesTab",
-              params: { screen: "CloneLearn", params: { cloneId } },
-            });
-          }, 60);
+          props.navigation.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [
+                {
+                  name: "Main",
+                  state: {
+                    index: 0,
+                    routes: [
+                      {
+                        name: "ClonesTab",
+                        state: {
+                          index: 1,
+                          routes: [
+                            { name: "Dashboard" },
+                            { name: "CloneLearn", params: { cloneId } },
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                } as never,
+              ],
+            }),
+          );
         }}
       />
     </View>
@@ -446,6 +465,10 @@ function CallScreenInner({ route, navigation }: Props) {
   const seenFaceIdsRef = useRef<Set<number>>(new Set());
 
   const handleSpeakerEventRef = useRef<(evt: SpeakerEvent) => void>(() => {});
+
+  const myNameRef = useRef<string | null>(null);
+
+  const ownerConfirmPendingRef = useRef<{ name: string; at: number } | null>(null);
   const handleSpeakerEventTrampoline = useCallback((evt: SpeakerEvent) => {
     handleSpeakerEventRef.current(evt);
   }, []);
@@ -507,7 +530,18 @@ function CallScreenInner({ route, navigation }: Props) {
           displayName: evt.displayName,
         });
       } else if (evt.type === "unknown_face") {
-        dispatchSh({ type: "UNKNOWN_FACE" });
+
+        const _firstTime = (persons?.length ?? 0) === 0;
+        const _ownerName = myNameRef.current ?? null;
+        if (_firstTime && _ownerName) {
+
+          ownerConfirmPendingRef.current = { name: _ownerName, at: Date.now() };
+        }
+        dispatchSh({
+          type: "UNKNOWN_FACE",
+          ownerName: _ownerName ?? undefined,
+          isFirstTime: _firstTime,
+        });
 
         unknownFaceSnapshotRef.current = getFaceEmbeddingBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
         sendFaceEvent?.({ event: "unknown_face" });
@@ -863,8 +897,26 @@ function CallScreenInner({ route, navigation }: Props) {
       console.log(`[Call][chat] user: "${transcript}"`);
       chatPrevTranscript.current = transcript;
       chatUserSentAt.current = Date.now();
+
+      const pending = ownerConfirmPendingRef.current;
+      if (pending && Date.now() - pending.at < 30_000) {
+        const t = transcript.trim().replace(/[.!?~\s]+$/, '');
+        if (/^(응+|어+|그래|맞아|맞어|네|예|ㅇㅇ)$/.test(t)) {
+          console.log(`[Call][face] owner confirm YES → enroll("${pending.name}")`);
+          ownerConfirmPendingRef.current = null;
+          void faceEnroll.enroll(pending.name).catch((err) => {
+            console.warn('[Call][face] owner auto-enroll failed:', err);
+          });
+        } else if (/^(아니|아니야|아니오|노|no)$/.test(t)) {
+          console.log(`[Call][face] owner confirm NO → clear pending`);
+          ownerConfirmPendingRef.current = null;
+        }
+      } else if (pending) {
+
+        ownerConfirmPendingRef.current = null;
+      }
     }
-  }, [transcript]);
+  }, [transcript, faceEnroll]);
   const chatReplyStartAt = useRef<number | null>(null);
   useEffect(() => {
     if (!lastSignal) return;
@@ -940,6 +992,8 @@ function CallScreenInner({ route, navigation }: Props) {
     giftName: string | null;
   } | null>(null);
   const myName = useAuthStore((s) => s.apiUser?.name ?? null);
+
+  useEffect(() => { myNameRef.current = myName; }, [myName]);
   const myAvatarUrl = useAuthStore((s) => s.apiUser?.avatarUrl ?? null);
 
   const [gifts, setGifts] = useState<GiftCatalogItem[]>([]);
