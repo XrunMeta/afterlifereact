@@ -17,40 +17,12 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-import re
 import tempfile
 import time
 from typing import Callable
 
 import numpy as np
 from recorder import NULL_TURN
-
-
-# T-483: LLM 응답 첫 줄의 [EMOTION:xxx] 태그를 파싱.
-#   허용 값 5개(happy/sad/angry/surprise/neutral). 대소문자 무시.
-#   태그 발견: (emotion_lower, tag 제거된 text) 반환.
-#   태그 없음: (None, 원본 text) 반환 — 서버측에서 neutral fallback.
-_EMOTION_TAG_RE = re.compile(
-    r"^\s*\[EMOTION:(happy|sad|angry|surprise|neutral)\]\s*\n?",
-    re.IGNORECASE,
-)
-
-
-def extract_emotion_tag(text: str) -> tuple[str | None, str]:
-    """응답 첫 줄에서 [EMOTION:xxx] 태그 추출.
-
-    Returns:
-        (emotion, cleaned_text). emotion 은 소문자 문자열 또는 None.
-        cleaned_text 는 태그 제거된 발화 텍스트(TTS 로 넘길 것).
-    """
-    if not text:
-        return None, text
-    m = _EMOTION_TAG_RE.match(text)
-    if not m:
-        return None, text
-    emotion = m.group(1).lower()
-    cleaned = text[m.end():]
-    return emotion, cleaned
 
 log = logging.getLogger("prethird.pipeline")
 
@@ -313,7 +285,7 @@ class DialoguePipeline:
 
     async def _infer_stage(
         self, wav_bytes: bytes, pcm48: np.ndarray, turn=None, on_before_push=None,
-        render_mode: str | None = None, emotion: str | None = None,
+        render_mode: str | None = None,
     ) -> None:
         """wav → musetalk infer(executor) → frames 일괄 push + balance audio. (GPU1)
         turn: recorder Turn — PRETHIRD_RECORD_MP4=1 시 frames 누적.
@@ -342,12 +314,9 @@ class DialoguePipeline:
                     log.warning("on_before_push callback failed: %s", exc)
 
         def _invoke_infer(wp, cb):
-            # T-483: emotion 은 항상 kwarg 로 전달(None 이면 렌더러가 기본 prompt).
-            #   render_mode 는 T-113 계약대로 batch 경로에서만 전달(partial 은 무변경).
-            kwargs = {"emotion": emotion}
             if render_mode is not None:
-                kwargs["render_mode"] = render_mode
-            return self.infer_fn(wp, cb, **kwargs)
+                return self.infer_fn(wp, cb, render_mode=render_mode)
+            return self.infer_fn(wp, cb)
 
         try:
             try:
@@ -534,12 +503,6 @@ class DialoguePipeline:
                 raise
 
             full_text = "".join(parts)
-            # T-483: 감정 태그 파싱 — 첫 줄 [EMOTION:xxx] 추출·제거.
-            # TTS 는 태그 제거된 텍스트를, 렌더는 emotion 라벨을 받는다.
-            # 태그 없거나 미매핑이면 emotion=None → 렌더가 neutral 기본 prompt 사용.
-            emotion, full_text = extract_emotion_tag(full_text)
-            if emotion is not None:
-                log.info("[T-483] emotion tag parsed: %s", emotion)
             if not full_text.strip():
                 # [sion MAJOR 2] 빈 응답도 filler 정지 훅을 반드시 1회 발동해야
                 # FillerPlayer 가 세션 종료까지 순환하는 좀비 패턴을 막는다.
@@ -558,7 +521,6 @@ class DialoguePipeline:
                 await self._infer_stage(
                     wav_bytes, pcm48, turn,
                     on_before_push=_guarded_hook, render_mode="batch",
-                    emotion=emotion,
                 )
                 log.info("[T-113] batch render 완료(단일 모션 push)")
             except asyncio.CancelledError:

@@ -136,23 +136,6 @@ _RULE_ASKBACK = (
     "  상대가 대화를 끝내려 하면 되묻지 말고 자연스럽게 마무리한다."
 )
 
-# T-483: 매 응답 첫 줄에 감정 태그 필수. 서버가 태그를 파싱해 EchoMimicV3 렌더
-# prompt 를 감정별로 조건화한다(표정 변화). 태그는 발화되지 않고 시스템이 제거.
-# JSON 대신 리터럴 태그를 쓰는 이유 = LLM 이 JSON 응답을 자주 깨뜨림(escape 이슈,
-# 코드블록으로 감싸기 등). `[EMOTION:xxx]` 는 단일 라인 정규식으로 안전 파싱.
-# 미매핑·누락 시 서버가 neutral fallback.
-_RULE_EMOTION_TAG = (
-    "- **매 응답의 맨 첫 줄**에 반드시 이 감정 태그 중 하나를 붙여라:\n"
-    "  `[EMOTION:happy]` (기쁨·웃음·즐거움·반가움)\n"
-    "  `[EMOTION:sad]` (슬픔·아쉬움·미안함·그리움)\n"
-    "  `[EMOTION:angry]` (화남·짜증·답답함)\n"
-    "  `[EMOTION:surprise]` (놀람·당황·감탄)\n"
-    "  `[EMOTION:neutral]` (평범·차분·정보 전달)\n"
-    "  태그 뒤에 줄바꿈, 그 다음 실제 대사. 태그는 화면·음성으로 나가지 않는다.\n"
-    "  응답 내용의 지배적 정서를 기준으로 하나만 고른다. 애매하면 neutral."
-)
-
-
 # T-488: 모르는 정보 처리 (실시간 slot filling).
 # 시스템은 매 turn 사용자 발화에서 자동으로 취향·기억을 추출해 L2 에 저장 (extract_l2).
 # 페르소나가 명시적으로 "잘 모른다" 되묻고 사용자가 알려주면 자연스러운 흐름 + 저장 성공.
@@ -215,7 +198,6 @@ def _build_header(
 
     out.append(_RULE_ASKBACK)
     out.append(_RULE_UNKNOWN_ASK)
-    out.append(_RULE_EMOTION_TAG)
 
     # 소유자 선언은 **되묻기 지시보다 뒤**, 즉 머리말 맨 끝에 둔다.
     # [T-252 2차 실측 2026-08-10 KST] 되묻기를 맨 끝에 두면 모델이 그 바로 앞 줄을
