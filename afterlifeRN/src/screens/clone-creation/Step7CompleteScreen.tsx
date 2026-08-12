@@ -93,8 +93,6 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const v_493eec = v_1ed7d9((v_fd5f43) => v_fd5f43.user?.id) ?? 1;
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
 
-  const v_780a85 = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? null);
-
   const [v_af4871, v_67122d] = v_5ab095<number | null>(null);
   const [v_805753, v_c7169b] = v_5ab095(false);
   const [v_5e9bfe, v_3a7d09] = v_5ab095<string | null>(null);
@@ -316,10 +314,6 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         ...(() => {
           const v_fad2e1 = v_8b11b8();
           if (v_fad2e1) return { pipeline: v_fad2e1 };
-          const v_383ef0 = new Set(["oth-user@example.invalid"]);
-          if (v_780a85 && v_383ef0.has(v_780a85.toLowerCase())) {
-            return { pipeline: "echomimic_v3" as const };
-          }
           return {};
         })(),
 
