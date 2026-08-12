@@ -48,6 +48,8 @@ export type UseAvatarCall = (opts: {
 
   onEnrollSuggest?: (name: string, personId?: number) => void;
 
+  onRememberMe?: () => void;
+
   pipeline?: string | null;
 }) => AvatarCall;
 

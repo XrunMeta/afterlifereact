@@ -403,6 +403,59 @@ v_fded81.patch("/:id", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ id: v_ca1ec5, displayName: v_2f361a });
 });
 
+v_fded81.patch("/:id/relation", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_ca1ec5 = v_5c8583(v_3f4e2e);
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ relation?: string }>()
+    .catch(() => ({}) as { relation?: string });
+
+  const v_dd8af0 = (v_4d33b2.relation ?? "").trim();
+  if (!v_dd8af0) throw new v_3ebe58("VALIDATION_FAILED", "relation 이 비어 있습니다.");
+  if (v_dd8af0.length > 100) {
+    throw new v_3ebe58("VALIDATION_FAILED", "relation 이 너무 깁니다(100자 이내).");
+  }
+
+  const v_2461e1 = await v_3f4e2e.env.DB.prepare(
+    `SELECT id, clone_id AS cloneId FROM persons WHERE id = ? AND user_id = ?`,
+  )
+    .bind(v_ca1ec5, v_43e90c)
+    .first<{ id: number; cloneId: number | null }>();
+  if (!v_2461e1) throw new v_3ebe58("NOT_FOUND", "person이 존재하지 않습니다.");
+  if (v_2461e1.cloneId == null) {
+    throw new v_3ebe58("VALIDATION_FAILED", "클론에 속하지 않은 화자입니다.");
+  }
+
+  const v_3ac7e7 = await v_3f4e2e.env.DB.prepare(
+    `SELECT data FROM clone_ont_person WHERE clone_id = ? AND person_id = ?`,
+  )
+    .bind(v_2461e1.cloneId, v_ca1ec5)
+    .first<{ data: string }>();
+
+  let v_9390e8 = {};
+  if (v_3ac7e7?.data) {
+    try {
+      const v_8decf8 = JSON.parse(v_3ac7e7.data);
+      if (v_8decf8 && typeof v_8decf8 === "object" && !Array.isArray(v_8decf8)) {
+        v_9390e8 = v_8decf8 as Record<string, unknown>;
+      }
+    } catch {
+
+    }
+  }
+  v_9390e8.relation = v_dd8af0;
+
+  await v_3f4e2e.env.DB.prepare(
+    `INSERT INTO clone_ont_person (clone_id, person_id, data, updated_at)
+     VALUES (?, ?, ?, unixepoch())
+     ON CONFLICT(clone_id, person_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`,
+  )
+    .bind(v_2461e1.cloneId, v_ca1ec5, JSON.stringify(v_9390e8))
+    .run();
+
+  return v_3f4e2e.json({ id: v_ca1ec5, relation: v_dd8af0 });
+});
+
 v_fded81.get("/", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_56b68f = v_3f4e2e.req.query("cloneId");
