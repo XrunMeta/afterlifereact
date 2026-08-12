@@ -65,6 +65,39 @@ v_469bf2("updateOntFromExtraction", () => {
     v_4d37e3(v_1af19b.relation).toBe("손녀");
   });
 
+  v_23805a("CallEntry 7필드 + 미래의 사용자 입력 필드도 auto-learn 후 보존", async () => {
+    await v_1ef59f(9005, 8005, {
+      preference_personal: {},
+      relation_category: "가족",
+      relation_subtype: "언니",
+      relation_episode: "매일 카톡",
+      address_form: "야",
+      speech_form: "반말",
+      job_category: "개발자",
+      job_detail: "게임 백엔드",
+
+      future_field_XYZ: { any: "shape" },
+      _meta: { layer: "L2", rev: 5 },
+    });
+    await v_0ac5b7(
+      v_9542f7,
+      9005,
+      8005,
+      { memories_personal: ["오늘 지각함"] },
+      "chat",
+    );
+    const v_1af19b = await v_f97f57(9005, 8005);
+    v_4d37e3(v_1af19b.relation_category).toBe("가족");
+    v_4d37e3(v_1af19b.relation_subtype).toBe("언니");
+    v_4d37e3(v_1af19b.relation_episode).toBe("매일 카톡");
+    v_4d37e3(v_1af19b.address_form).toBe("야");
+    v_4d37e3(v_1af19b.speech_form).toBe("반말");
+    v_4d37e3(v_1af19b.job_category).toBe("개발자");
+    v_4d37e3(v_1af19b.job_detail).toBe("게임 백엔드");
+    v_4d37e3(v_1af19b.future_field_XYZ).toEqual({ any: "shape" });
+    v_4d37e3(v_1af19b.memories_personal).toEqual(["오늘 지각함"]);
+  });
+
   v_23805a("손상 JSON은 덮어쓰기", async () => {
     await v_9542f7.DB.prepare(
       "INSERT OR REPLACE INTO clone_ont (clone_id, user_id, data, updated_at) VALUES (?, ?, ?, unixepoch())",
