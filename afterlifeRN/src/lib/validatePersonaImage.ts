@@ -16,7 +16,7 @@ export type ValidationResult =
 const MIN_FACE_RATIO = 0.20;
 const MAX_FACE_RATIO = 0.42;
 const CY_MIN = 0.13;
-const CY_MAX = 0.42;
+const CY_MAX = 0.65;
 const CX_MIN = 0.35;
 const CX_MAX = 0.65;
 
