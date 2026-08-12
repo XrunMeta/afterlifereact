@@ -128,6 +128,7 @@ import { showAlert } from "../../stores/dialogStore";
 import { CommonActions } from "@react-navigation/native";
 import RememberMeButton from "../../components/call/RememberMeButton";
 import { updatePersonRelation } from "../../api/persons";
+import { shouldAutoEnrollOwner, ownerEnrollName } from "../../face/ownerAutoEnroll";
 import RememberMeSheet from "../../components/call/RememberMeSheet";
 import {
   initRememberMeState,
@@ -483,6 +484,8 @@ function CallScreenInner({ route, navigation }: Props) {
 
   const myNameRef = useRef<string | null>(null);
 
+  const ownerAutoEnrollTriedRef = useRef(false);
+
   const ownerConfirmPendingRef = useRef<{ name: string; at: number } | null>(null);
   const handleSpeakerEventTrampoline = useCallback((evt: SpeakerEvent) => {
     handleSpeakerEventRef.current(evt);
@@ -564,6 +567,31 @@ function CallScreenInner({ route, navigation }: Props) {
           displayName: evt.displayName,
         });
       } else if (evt.type === "unknown_face") {
+
+        if (
+          shouldAutoEnrollOwner({
+            personCount: persons?.length ?? 0,
+            ownerName: myNameRef.current,
+            alreadyTried: ownerAutoEnrollTriedRef.current,
+          })
+        ) {
+          ownerAutoEnrollTriedRef.current = true;
+          const _n = ownerEnrollName(myNameRef.current);
+          console.log(`[Call][face] owner auto-enroll → "${_n}"`);
+          void faceEnroll
+            .enroll(_n)
+            .then(() => dispatchRm({ type: "ENROLLED" }))
+            .catch((err) => {
+
+              console.warn("[Call][face] owner auto-enroll 실패 → Remember Me:", err);
+              dispatchRm({ type: "UNKNOWN_FACE" });
+            });
+
+          dispatchSh({ type: "UNKNOWN_FACE" });
+          unknownFaceSnapshotRef.current = getFaceEmbeddingBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
+          sendFaceEvent?.({ event: "unknown_face" });
+          return;
+        }
 
         dispatchRm({ type: "UNKNOWN_FACE" });
         dispatchSh({ type: "UNKNOWN_FACE" });
