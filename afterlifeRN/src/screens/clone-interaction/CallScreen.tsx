@@ -1231,15 +1231,25 @@ function CallScreenInner({ route, navigation }: Props) {
     return () => anim.stop();
   }, [phase, pendingText, confirmProgress]);
 
+  const exitToMain = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.dispatch(
+        CommonActions.reset({ index: 0, routes: [{ name: "Main" }] }),
+      );
+    }
+  }, [navigation]);
+
   useEffect(() => {
     const backSub = BackHandler.addEventListener("hardwareBackPress", () => {
-      console.log("[Call][back] hardware back → stopLive + goBack");
+      console.log("[Call][back] hardware back → stopLive + exitToMain");
       void stopLive();
-      navigation.goBack();
+      exitToMain();
       return true;
     });
     return () => backSub.remove();
-  }, [stopLive, navigation]);
+  }, [stopLive, exitToMain]);
 
   const callStartRef = useRef<number>(Date.now());
   const tokenRef = useRef(accessToken);
@@ -1516,9 +1526,9 @@ function CallScreenInner({ route, navigation }: Props) {
             setDialingDone(true);
           }}
           onCancel={async () => {
-            console.log(`[Call][flow] +${Date.now()} DialingScreen.onCancel → stopLive + goBack`);
+            console.log(`[Call][flow] +${Date.now()} DialingScreen.onCancel → stopLive + exitToMain`);
             await stopLive();
-            navigation.goBack();
+            exitToMain();
           }}
           onRetry={() => {
             console.log(`[Call][flow] +${Date.now()} DialingScreen.onRetry → startLive`);
@@ -1845,7 +1855,7 @@ function CallScreenInner({ route, navigation }: Props) {
           accessibilityHint={canSpeak ? "지금 말해도 됩니다. 이 버튼을 누르면 통화가 종료됩니다." : undefined}
           onPress={async () => {
             await stopLive();
-            navigation.goBack();
+            exitToMain();
           }}
         >
           <Feather name="phone" size={28} color={COLORS.white} style={{ transform: [{ rotate: "135deg" }] }} />
