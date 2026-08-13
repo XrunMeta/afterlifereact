@@ -2,6 +2,8 @@ import {
   speakerIdReducer,
   INITIAL_SPEAKER_STATE,
   UNKNOWN_FACE_REEMIT_MS,
+  CONFIRM_STREAK,
+  UNCONFIRM_STREAK,
   SpeakerIdState,
 } from "../../src/face/speakerIdReducer";
 
@@ -272,16 +274,17 @@ it("speaker_confirmed 로 전이하면 재발행 상태(lastUnknownEmitMs)가 �
   s = r.state;
   expect(s.lastUnknownEmitMs).toBeNull();
 
-  r = speakerIdReducer(s, U, 40_000);
-  s = r.state;
-  r = speakerIdReducer(s, U, 50_000);
-  s = r.state;
-  r = speakerIdReducer(s, U, 60_000);
+  let emitAt = 0;
+  for (let i = 1; i <= UNCONFIRM_STREAK; i++) {
+    emitAt = 30_000 + i * 10_000;
+    r = speakerIdReducer(s, U, emitAt);
+    s = r.state;
+    if (i < UNCONFIRM_STREAK) expect(r.event).toBeNull();
+  }
   expect(r.event).toEqual({ type: "unknown_face" });
-  s = r.state;
-  expect(s.lastUnknownEmitMs).toBe(60_000);
+  expect(s.lastUnknownEmitMs).toBe(emitAt);
 
-  r = speakerIdReducer(s, U, 60_000 + UNKNOWN_FACE_REEMIT_MS - 1);
+  r = speakerIdReducer(s, U, emitAt + UNKNOWN_FACE_REEMIT_MS - 1);
   expect(r.event).toBeNull();
 });
 
@@ -305,4 +308,79 @@ it("RESET_RECOGNITION 은 재발행 상태도 초기화해 주기와 무관하�
 
 it("재발행 주기는 서버 REACT_COOLDOWN_S(60초)와 같다", () => {
   expect(UNKNOWN_FACE_REEMIT_MS).toBe(60_000);
+});
+
+const _known = { personId: 58, displayName: "도기", score: 0.8 };
+const _none = { personId: null, displayName: null, score: 0 };
+
+function _confirmed(): SpeakerIdState {
+  let s = INITIAL_SPEAKER_STATE;
+  for (let i = 0; i < CONFIRM_STREAK; i++) s = speakerIdReducer(s, _known, T0).state;
+  return s;
+}
+
+it("확정된 사람은 unknown 3연속으로는 풀리지 않는다 — 잠깐 안 잡히는 것뿐", () => {
+  let s = _confirmed();
+  for (let i = 0; i < CONFIRM_STREAK; i++) {
+    const r = speakerIdReducer(s, _none, T0);
+    expect(r.event).toBeNull();
+    s = r.state;
+  }
+  expect(s.confirmed).toBe(58);
+});
+
+it("그래도 계속 안 잡히면 UNCONFIRM_STREAK 에서 놓는다 — 진짜 자리를 뜬 경우", () => {
+  let s = _confirmed();
+  let fired: unknown = null;
+  for (let i = 0; i < UNCONFIRM_STREAK; i++) {
+    const r = speakerIdReducer(s, _none, T0);
+    if (r.event) fired = r.event;
+    s = r.state;
+  }
+  expect(fired).toEqual({ type: "unknown_face" });
+  expect(s.confirmed).toBe("unknown");
+});
+
+it("중간에 한 번이라도 다시 잡히면 연속이 끊겨 확정이 유지된다", () => {
+  let s = _confirmed();
+  for (let i = 0; i < UNCONFIRM_STREAK - 1; i++) s = speakerIdReducer(s, _none, T0).state;
+  s = speakerIdReducer(s, _known, T0).state;          
+  for (let i = 0; i < UNCONFIRM_STREAK - 1; i++) {
+    const r = speakerIdReducer(s, _none, T0);
+    expect(r.event).toBeNull();
+    s = r.state;
+  }
+  expect(s.confirmed).toBe(58);
+});
+
+it("확정 방향은 완화되지 않는다 — 아는 얼굴은 3연속에 그대로 확정", () => {
+  let s = INITIAL_SPEAKER_STATE;
+  let r = speakerIdReducer(s, _known, T0); s = r.state;
+  r = speakerIdReducer(s, _known, T0); s = r.state;
+  r = speakerIdReducer(s, _known, T0);
+  expect(r.event).toEqual({ type: "speaker_confirmed", personId: 58, displayName: "도기" });
+});
+
+it("아무도 확정되지 않은 통화 초반의 unknown 은 3연속이면 발행된다", () => {
+
+  let s: SpeakerIdState = INITIAL_SPEAKER_STATE;
+  let fired: unknown = null;
+  for (let i = 0; i < CONFIRM_STREAK; i++) {
+    const r = speakerIdReducer(s, _none, T0);
+    if (r.event) fired = r.event;
+    s = r.state;
+  }
+  expect(fired).toEqual({ type: "unknown_face" });
+});
+
+it("다른 사람으로 바뀌는 것은 완화 대상이 아니다 — 3연속이면 즉시 전환", () => {
+  let s = _confirmed();
+  const other = { personId: 99, displayName: "민수", score: 0.8 };
+  let fired: unknown = null;
+  for (let i = 0; i < CONFIRM_STREAK; i++) {
+    const r = speakerIdReducer(s, other, T0);
+    if (r.event) fired = r.event;
+    s = r.state;
+  }
+  expect(fired).toEqual({ type: "speaker_confirmed", personId: 99, displayName: "민수" });
 });

@@ -803,31 +803,7 @@ function CallScreenInner({ route, navigation }: Props) {
       const hasSpokenName = name.trim().length > 0;
 
       if (action.kind === "silent" && !hasSpokenName) {
-
-        const pendingId = faceEnroll.getPendingPersonId();
-        const enrolledId = faceEnroll.getEnrolledPersonId();
-        const cleanup = decideOrphanCleanupBeforeSilent({
-          enrolling: false,
-          pendingPersonId: pendingId,
-          enrolledPersonId: enrolledId,
-          incomingName: name,
-          lastName: submittedEnrollNameRef.current,
-        });
-        if (cleanup === "delete") {
-          if (accessToken && pendingId != null) {
-            void deletePerson(accessToken, pendingId).catch((err) => {
-              console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", err);
-            });
-          }
-          faceEnroll.reset();
-        } else if (cleanup === "detach") {
-
-          faceEnroll.reset();
-        }
-        submittedEnrollNameRef.current = name;
-
-        silentEnrollRef.current = true;
-        void faceEnroll.enrollSilent();
+        console.log("[Call][face] enroll_suggest(무명) 무시 — 이름은 Remember Me 로만 받는다");
         return;
       }
 
