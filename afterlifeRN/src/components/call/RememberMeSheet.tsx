@@ -45,10 +45,21 @@ export default function RememberMeSheet({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
+      {
+}
+      <Pressable
+        testID="remember-me-backdrop"
+        style={styles.backdropTouch}
+        onPress={onDismiss}
+        accessibilityLabel="닫기"
+      />
       <KeyboardAvoidingView
         style={styles.backdrop}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        pointerEvents="box-none"
+
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
+        {}
         <View style={styles.card} testID="remember-me-sheet">
           <Text style={styles.title}>이 분은 누구신가요?</Text>
           <Text style={styles.desc}>
@@ -115,10 +126,15 @@ export default function RememberMeSheet({
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
+
+  backdropTouch: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.6)",
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: "center",
+
     justifyContent: "center",
     padding: 24,
   },
