@@ -10,6 +10,8 @@ import {
   v_472849,
   v_e767d1,
   v_326be8,
+  v_0e1f26,
+  v_a944fa,
 } from "rcmrninabrnb";
 import { v_1bfbd0, v_8b0c90 } from "../constants";
 
@@ -45,12 +47,17 @@ export default function v_39b6c7({
 
   return (
     <Modal visible={v_cf55be} transparent animationType="fade" onRequestClose={v_1b97a8}>
-      <KeyboardAvoidingView
-        style={v_d81136.backdrop}
-        behavior={v_326be8.OS === "ios" ? "padding" : undefined}
-      >
-        <View style={v_d81136.card} testID="remember-me-sheet">
-          <Text style={v_d81136.title}>이 분은 누구신가요?</Text>
+      {
+
+}
+      <TouchableWithoutFeedback onPress={v_0e1f26.dismiss} accessible={false}>
+        <KeyboardAvoidingView
+          style={v_d81136.backdrop}
+          behavior={v_326be8.OS === "ios" ? "padding" : "height"}
+        >
+          <TouchableWithoutFeedback onPress={() => {  }}>
+            <View style={v_d81136.card} testID="remember-me-sheet">
+              <Text style={v_d81136.title}>이 분은 누구신가요?</Text>
           <Text style={v_d81136.desc}>
             알려주시면 다음 통화부터 기억할게요.
           </Text>
@@ -108,8 +115,10 @@ export default function v_39b6c7({
               <Text style={v_d81136.btnPrimaryText}>{v_35bf26 ? "저장 중…" : "저장"}</Text>
             </Pressable>
           </View>
-        </View>
-      </KeyboardAvoidingView>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 }
