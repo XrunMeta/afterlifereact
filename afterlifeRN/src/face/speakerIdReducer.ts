@@ -19,9 +19,7 @@ export type SpeakerIdState = {
   lastUnknownEmitMs: number | null;
 };
 
-export const CONFIRM_STREAK = 3;
-
-export const UNCONFIRM_STREAK = 6;
+export const CONFIRM_STREAK = 1;
 
 export const UNKNOWN_FACE_REEMIT_MS = 60_000;
 
@@ -54,10 +52,7 @@ export function speakerIdReducer(
   let lastUnknownEmitMs = s.lastUnknownEmitMs;
   let event: SpeakerEvent = null;
 
-  const isLosingKnownSpeaker = key === "unknown" && typeof s.confirmed === "number";
-  const needed = isLosingKnownSpeaker ? UNCONFIRM_STREAK : CONFIRM_STREAK;
-
-  if (streak >= needed) {
+  if (streak >= CONFIRM_STREAK) {
     if (key !== confirmed) {
       confirmed = key;
       if (key === "unknown") {

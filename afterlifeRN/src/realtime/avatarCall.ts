@@ -23,6 +23,8 @@ export interface FaceEvent {
   displayName?: string | null;
 
   silent?: boolean;
+
+  rejoin?: boolean;
 }
 
 export interface AvatarCall {

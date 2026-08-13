@@ -35,7 +35,7 @@ describe("deriveVerdict", () => {
 });
 
 describe("runIdentifyCycle (순수 로직)", () => {
-  it("matchFace 가 동일 personId 3회 반환 → 3번째에 speaker_confirmed 1회", async () => {
+  it("matchFace 가 personId 를 반환하면 **1회에** speaker_confirmed", async () => {
     const matchFaceFn = jest.fn().mockResolvedValue({
       matches: [],
       best: { personId: 3, displayName: "철수", score: 0.9 },
@@ -44,27 +44,23 @@ describe("runIdentifyCycle (순수 로직)", () => {
     let s: IdentifyCycleState = INITIAL_IDENTIFY_CYCLE_STATE;
 
     let r = await runIdentifyCycle(s, VEC, "tok", 999, 1000, { matchFaceFn });
-    expect(r.event).toBeNull();
-    s = r.state;
-
-    r = await runIdentifyCycle(s, VEC, "tok", 999, 2000, { matchFaceFn });
-    expect(r.event).toBeNull();
-    s = r.state;
-
-    r = await runIdentifyCycle(s, VEC, "tok", 999, 3000, { matchFaceFn });
     expect(r.event).toEqual({ type: "speaker_confirmed", personId: 3, displayName: "철수" });
+    s = r.state;
+
+    r = await runIdentifyCycle(s, VEC, "tok", 999, 4000, { matchFaceFn });
+    expect(r.event).toBeNull();
+    s = r.state;
+
+    r = await runIdentifyCycle(s, VEC, "tok", 999, 7000, { matchFaceFn });
+    expect(r.event).toBeNull();
 
     expect(matchFaceFn).toHaveBeenCalledTimes(3);
   });
 
-  it("best 가 null(미매치) 3회 → unknown_face 1회", async () => {
+  it("best 가 null(미매치)이면 **1회에** unknown_face", async () => {
     const matchFaceFn = jest.fn().mockResolvedValue({ matches: [], best: null, threshold: 0.5 });
-    let s: IdentifyCycleState = INITIAL_IDENTIFY_CYCLE_STATE;
-    let r = await runIdentifyCycle(s, VEC, "tok", 999, 1000, { matchFaceFn });
-    s = r.state;
-    r = await runIdentifyCycle(s, VEC, "tok", 999, 2000, { matchFaceFn });
-    s = r.state;
-    r = await runIdentifyCycle(s, VEC, "tok", 999, 3000, { matchFaceFn });
+    const s: IdentifyCycleState = INITIAL_IDENTIFY_CYCLE_STATE;
+    const r = await runIdentifyCycle(s, VEC, "tok", 999, 1000, { matchFaceFn });
     expect(r.event).toEqual({ type: "unknown_face" });
   });
 
@@ -132,7 +128,7 @@ describe("runIdentifyCycle (순수 로직)", () => {
       }
     }
 
-    expect(emitted).toEqual([20_000, 80_000, 140_000]);
+    expect(emitted).toEqual([0, 60_000, 120_000, 180_000]);
   });
 });
 
@@ -251,7 +247,8 @@ describe("useFaceIdentify (훅 오케스트레이션)", () => {
       personId: 9,
       displayName: "지수",
       streak: 1,
-      verdict: "candidate",
+
+      verdict: "confirmed",
       threshold: 0.83,
     });
 
