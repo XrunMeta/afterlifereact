@@ -326,7 +326,14 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
 
     # 상대 결정 — 상태 4 > 화자 확정 > 기본 상대(viewer) 순.
     speaker = speaker or {}
-    unconfirmed = bool(speaker.get("unconfirmed"))
+    # T-494: Remember Me 로직 kill-switch — env=1 일 때 미확정 상태를 무시하고
+    #   옛 동작(unconfirmed=False 처리 = 계정주 취급, L2 그대로 삽입)로 fallback.
+    #   증상: Remember Me 3/n 정지 규칙으로 통화가 empty response 로 죽음. 사용자가
+    #   신원 확인 sheet 를 못 보거나 무시할 때 대화 자체가 정지된다.
+    #   default 0 = Remember Me 시리즈 신 동작 유지(다른 세션 의도 존중), Gabia
+    #   env 에서 =1 로 세팅하면 이전 계약 복귀.
+    _bypass_remember_me = os.environ.get("PRETHIRD_REMEMBER_ME_BYPASS", "0") != "0"
+    unconfirmed = bool(speaker.get("unconfirmed")) and not _bypass_remember_me
     l2p_data = speaker.get("l2p_data") if not unconfirmed else None
     # 화자 정보가 하나라도 주어졌으면(name 키 또는 l2p_data 키 존재) 화자 확정
     # 경로로 본다. name 이 없다고 viewer(기본 상대) 이름으로 폴백하면, 얼굴로
