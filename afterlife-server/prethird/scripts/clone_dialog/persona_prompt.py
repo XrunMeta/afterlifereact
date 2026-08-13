@@ -41,11 +41,33 @@ bundle 구조 (fetch_bundle 반환 전체 형식):
 """
 from __future__ import annotations
 
+import os
 import re
 
 from .mbti_traits import get_mbti_traits
 from .mbti_tone_map import get_mbti_tone
 from .dialect_traits import get_dialect_traits
+
+# [T-467 2026-08-12] system prompt anchor — user 메시지 직전에 놓는 강제 규칙.
+#   Gemma/Llama 는 대화가 길어질수록 system 중반의 지시를 잊는다 → 맨 뒤에 두면
+#   attention 이 강하게 걸린다. PRETHIRD_STRICT_TONE_RULES=1 일 때만 활성이라
+#   미설정 환경에서는 회귀가 없다.
+#
+# ⚠️ 이 상수는 가비아 라이브에만 있고 git 에는 없던 것을 역흡수한 것이다(T-127 재발).
+#    라이브에 직접 배포된 변경은 다음 배포 때 조용히 지워지므로, 앞으로도 이 경로는
+#    _check_live_drift.sh 로 먼저 확인하고 흡수한 뒤 배포한다.
+STRICT_TONE_ANCHOR = """[절대 규칙]
+1. 반드시 2~3문장 이내의 짧은 구어체로 답한다.
+2. 존댓말(~요, ~습니다)을 쓰지 말고 반말만 사용한다.
+3. 사용자의 질문에 직접 답하고, 무관한 화제를 먼저 꺼내지 않는다.
+4. 당신은 위 페르소나(이름/관계/성격) 그 자체이다. 사용자는 당신과는 별개 인물이다.
+   사용자가 당신을 "언니/오빠/누나/형/엄마/아빠" 등 상급자 호칭으로 부르더라도,
+   당신이 사용자를 그런 호칭으로 부르지 마라 — 그건 사용자가 당신을 지칭하는 말이다.
+   당신이 사용자를 부를 때는 "야", "얘", 또는 저장된 사용자 이름을 사용한다.
+5. 위 "## MBTI 참고 성격" 섹션이 있다면 그 강점/약점/성격 특징을 응답 스타일에 반드시 반영한다.
+   - T 성향 (INTJ, INTP, ENTJ, ENTP, ISTJ, ISTP, ESTJ, ESTP): 원인 파악·논리·해결책을 앞에 놓는다.
+   - F 성향 (INFJ, INFP, ENFJ, ENFP, ISFJ, ISFP, ESFJ, ESFP): 공감·감정 인정을 앞에 놓는다.
+   - MBTI 정보 없을 때만 자연스러운 반응."""
 
 # 클론 자신의 속성 — "## 너의 정보" 블록.
 _SELF_LABELS: list[tuple[str, str]] = [
@@ -154,6 +176,20 @@ _RULE_UNKNOWN_ASK = (
     "  (알려준 정보는 시스템이 자동으로 다음 통화에 반영한다.)"
 )
 
+# [2026-08-12] 미확정 모드(상태 4) 전용 — 신원이 확인될 때까지 대화를 진행시키지 않는다.
+#
+# 이름을 **말로 받지 않는다**는 것이 핵심이다. 말로 받으면 STT 오인식이 그대로 이름이
+# 되는데, 실제로 "내일은 기억하니?" 가 이름 "카메라" 로 확정돼 L2' 에 8건 쌓인 사고가
+# 있었다("나는 ○○야" → display_name="나는" 도 같은 경로). 그래서 클론은 **화면의
+# 버튼을 누르라고 유도만** 하고, 상대가 이름을 말해도 그것을 신원으로 받아들이지 않는다.
+_RULE_REQUIRE_IDENTITY = (
+    "- 상대가 누구인지 아직 모른다. 지금은 평소처럼 대화를 이어가지 말고,\n"
+    "  화면 왼쪽의 \"Remember Me\" 버튼을 눌러 이름과 관계를 입력해 달라고 요청한다.\n"
+    "  매 응답마다 짧게 다시 요청한다.\n"
+    "  상대가 말로 이름을 알려주더라도 그것을 신원으로 받아들이지 마라 —\n"
+    "  \"Remember Me\" 버튼으로 직접 입력해야 기억할 수 있다고 안내한다."
+)
+
 
 def _build_header(
     clone_name: str | None,
@@ -200,6 +236,7 @@ def _build_header(
 
     if unconfirmed:
         out.append("- 상대를 이름으로 부르지 마라. 확정되지 않았다.")
+        out.append(_RULE_REQUIRE_IDENTITY)
     elif not other_name:
         out.append("- 상대를 이름으로 부르지 마라. 이름을 지어내지 마라.")
 
@@ -335,8 +372,17 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
     # 이라고 단언하는데 내용은 통화를 건 계정주의 관계·취향·기억이라 오귀속이 된다.
     # 신규 person 은 clone_ont_person 행이 없어 404 → l2p_data=None 이 최빈 경로다.
     # speaker=None(상태 1·3)일 때 persona 의 L2 를 쓰는 것은 옳다 — 그때는 상대가
-    # 계정주 본인이기 때문이다. 상태 4 도 "평소 대화하던 상대"= 계정주라 persona 가 맞다.
-    if speaker_given:
+    # 계정주 본인이기 때문이다.
+    #
+    # [2026-08-12 계약 변경] 상태 4(미확정)는 예전엔 "평소 대화하던 상대 = 계정주" 로 보고
+    # persona(L2)를 넣었다. 이제 아무것도 넣지 않는다. 누구인지 모르는 상대에게 사용자별
+    # 기억을 꺼내 보이지 않는다는 것이 미확정 모드의 핵심이다 — 미확정인 채로 대화가
+    # 정상 진행되면 그 발화가 다시 잘못된 곳에 쌓인다(person 43 의 "카메라" 오염이 그
+    # 경로였다). other_source 가 비면 other_lines 도 비어 has_other_block 이 False 가
+    # 되므로, "## 상대 정보" 블록과 그 소유자 선언 줄이 함께 사라진다.
+    if unconfirmed:
+        other_source: dict = {}
+    elif speaker_given:
         other_source = l2p_data or {}
     else:
         other_source = persona
@@ -385,8 +431,14 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
     dialect_text = get_dialect_traits(dialect_region) if dialect_region else None
 
     if not (self_lines or other_lines or neutral_lines or lines or knowledge_text or mbti_text or dialect_text):
-        # l0 도 없고 속성도 없고 knowledge/mbti/dialect 도 없으면 의미 없음
-        return []
+        # l0 도 없고 속성도 없고 knowledge/mbti/dialect 도 없으면 의미 없음.
+        #
+        # [2026-08-12] 단, 미확정 모드는 예외다. 상태 4 는 "## 상대 정보" 를 통째로 빼므로
+        # 상대 속성만 있던 클론에서는 여기 걸려 프롬프트가 통째로 사라진다 — 신원 입력을
+        # 요구하라는 지시도, 이름을 부르지 말라는 금지도 함께 없어져, 정확히 막으려던
+        # 상황에서 방어가 벗겨진다. 미확정일 때는 머리말만이라도 반드시 내보낸다.
+        if not unconfirmed:
+            return []
 
     # 머리말은 블록 조립 결과를 보고 만든다 — "## 상대 정보" 가 실제로 없으면
     # 그 블록을 가리키는 줄을 넣지 않는다(el B-1 / mizu H-2).
@@ -440,7 +492,19 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
 
     body = "\n".join(lines).strip()
     if not body:
-        return []
+        # [2026-08-12] 미확정 모드는 body 가 비어도 머리말만으로 내보낸다.
+        # 상태 4 는 "## 상대 정보" 를 통째로 빼기 때문에, 클론 자신의 속성(_SELF_LABELS)
+        # 이 부실한 클론에서는 body 가 실제로 빌 수 있다. 그때 예전처럼 [] 를 반환하면
+        # system 메시지가 통째로 사라져 — 신원 입력을 요구하라는 지시도, 이름을 부르지
+        # 말라는 금지도 함께 사라진 채 — LLM 이 아무 제약 없이 답한다. 정확히 막으려던
+        # 상황에서 방어가 벗겨지는 셈이라, 미확정일 때만은 머리말을 남긴다.
+        if not unconfirmed:
+            return []
+        return [{"role": "system", "content": header}]
     content = f"{header}\n\n{body}"
+
+    # [T-467] 강제 규칙 앵커 — 맨 뒤라 attention 이 가장 강하다. env 미설정이면 회귀 0.
+    if os.environ.get("PRETHIRD_STRICT_TONE_RULES", "").strip() == "1":
+        content = f"{content}\n\n{STRICT_TONE_ANCHOR}"
 
     return [{"role": "system", "content": content}]

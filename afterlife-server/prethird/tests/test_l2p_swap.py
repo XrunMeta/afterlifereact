@@ -54,8 +54,10 @@ def test_스왑은_base_위에_덧붙이지_않고_재조립한다():
     assert "지호" not in content
 
 
-def test_unknown_face_는_기본상대로_폴백한다():
-    """익명 리셋이 아니라 L2 복귀 + 이름 억제."""
+def test_unknown_face_는_기억도_이름도_주지_않는다():
+    """[2026-08-12 계약 변경] 예전에는 unknown_face 를 계정주 L2 복귀 + 이름 억제로
+    처리했다. 이제 L2 도 주지 않는다 — 얼굴이 미확정이면 상대가 계정주라는 근거가 없고,
+    그 상태에서 기억을 꺼내면 처음 보는 사람에게 남의 기억을 읽어주는 셈이다."""
     from clone_dialog import bundle_to_messages
 
     bundle = {
@@ -67,8 +69,9 @@ def test_unknown_face_는_기본상대로_폴백한다():
     }
     msgs = bundle_to_messages(bundle, speaker={"unconfirmed": True})
     content = msgs[0]["content"]
-    assert "어제 등산 감" in content        # 맥락 유지
+    assert "어제 등산 감" not in content    # L2 미주입
     assert "지호" not in content            # 이름 억제
+    assert "Remember Me" in content         # 대신 신원 입력을 요구한다
 
 
 class _Channel:
@@ -336,21 +339,29 @@ def test_전소_가드_출력이_비면_update_persona를_부르지_않는다_sw
     assert sess.pipeline.persona_messages == [{"role": "system", "content": "base persona"}]
 
 
-def test_전소_가드_출력이_비면_update_persona를_부르지_않는다_clear():
-    """_clear_current_speaker(상태 4 강등)도 같은 가드가 필요하다."""
+def test_상태4_강등은_빈_persona에서도_수행된다_clear():
+    """[2026-08-12 계약 변경] 예전에는 persona 가 비면 상태 4 재조립도 [] 라, 전소 가드가
+    걸려 강등이 **수행되지 못했다**(prompt_unconfirmed=False 로 미완료 표시).
+
+    이제 상태 4 는 body 가 비어도 머리말만으로 메시지를 낸다. 그래서 강등이 실제로
+    반영된다 — 이름을 부르지 말라는 금지와 신원 입력 요구가 프롬프트에 들어간다.
+    전소 가드 자체는 여전히 필요하다(화자 확정 스왑 경로는 아직 [] 가 가능하다 —
+    바로 위 _swap 테스트 참고)."""
     from signaling import _clear_current_speaker
 
     sess = _Sess()
     sess.bundle = {"personaBundle": {"cloneId": "1", "persona": {}}}
     sess.current_speaker = (3, "민수")
 
-    assert bundle_to_messages(sess.bundle, speaker={"unconfirmed": True}) == []
+    msgs = bundle_to_messages(sess.bundle, speaker={"unconfirmed": True})
+    assert msgs != []
+    assert "Remember Me" in msgs[0]["content"]
 
     _clear_current_speaker(sess, "unknown_face")
 
-    assert sess.current_speaker is None          # 해제는 그대로 일어난다
-    assert sess.pipeline.update_calls == []      # 프롬프트는 유지
-    assert getattr(sess, "prompt_unconfirmed", False) is False  # 강등 미완료로 표시
+    assert sess.current_speaker is None                          # 해제
+    assert sess.pipeline.update_calls == [msgs]                  # 강등이 프롬프트에 반영
+    assert getattr(sess, "prompt_unconfirmed", False) is True    # 강등 완료
 
 
 def test_maybe_swap_l2p_drops_when_stale(monkeypatch):

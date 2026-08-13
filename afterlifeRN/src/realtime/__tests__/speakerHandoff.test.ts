@@ -1,25 +1,17 @@
 import {
-  speakerHandoffReducer, initSpeakerHandoffState, promptFor,
+  speakerHandoffReducer, initSpeakerHandoffState,
 } from '../speakerHandoff';
 
 const known = { personId: 9, name: '주인' };
 
-describe('promptFor', () => {
-  it('이전화자 있으면 이름 포함, 없으면 폴백', () => {
-    expect(promptFor(known)).toBe('누구시죠? 주인님이 아니네요, 성함을 알려주세요');
-    expect(promptFor(null)).toBe('누구시죠? 성함을 알려주세요');
-  });
-});
-
 describe('speakerHandoffReducer', () => {
-  it('UNKNOWN_FACE(첫) → 프롬프트 SAY + BEGIN_NAMING, naming=true', () => {
+  it('UNKNOWN_FACE(첫) → BEGIN_NAMING 만, 음성으로 이름을 묻지 않는다', () => {
+
     const s0 = { ...initSpeakerHandoffState(), lastKnownSpeaker: known };
     const { state, actions } = speakerHandoffReducer(s0, { type: 'UNKNOWN_FACE' });
     expect(state.naming).toBe(true);
-    expect(actions).toEqual([
-      { type: 'SAY', text: '누구시죠? 주인님이 아니네요, 성함을 알려주세요' },
-      { type: 'BEGIN_NAMING' },
-    ]);
+    expect(actions).toEqual([{ type: 'BEGIN_NAMING' }]);
+    expect(actions.some((a) => a.type === 'SAY')).toBe(false);
   });
 
   it('UNKNOWN_FACE(naming 중) → 무시', () => {
