@@ -133,6 +133,10 @@ import RememberMeSheet from "../../components/call/RememberMeSheet";
 import {
   initRememberMeState,
   rememberMeReducer,
+  shouldHoldMic,
+  shouldShowRememberMeButton,
+  GRACE_IDLE_TIMEOUT_MS,
+  type RememberMeAction,
   type RememberMeEvent,
 } from "../../realtime/rememberMeReducer";
 import ExpertBadge from "../../components/ui/ExpertBadge";
@@ -481,6 +485,8 @@ function CallScreenInner({ route, navigation }: Props) {
 
   const lastEmbedTs = useSharedValue(0);
 
+  const embedAllowed = useSharedValue(true);
+
   const seenFaceIdsRef = useRef<Set<number>>(new Set());
 
   const handleSpeakerEventRef = useRef<(evt: SpeakerEvent) => void>(() => {});
@@ -504,12 +510,18 @@ function CallScreenInner({ route, navigation }: Props) {
 
   const [rmState, setRmState] = useState(initRememberMeState());
   const rmStateRef = useRef(rmState);
+
+  const rmActionRef = useRef<(a: RememberMeAction) => void>(() => {});
+
+  const phaseRef = useRef<string>("idle");
   const dispatchRm = useCallback((event: RememberMeEvent) => {
     const { state, actions } = rememberMeReducer(rmStateRef.current, event, Date.now());
     rmStateRef.current = state;
     setRmState(state);
-
-    for (const a of actions) console.log(`[Call][rm] ${a.type}`);
+    for (const a of actions) {
+      console.log(`[Call][rm] ${a.type}`);
+      rmActionRef.current(a);
+    }
   }, []);
 
   useEffect(() => {
@@ -566,18 +578,15 @@ function CallScreenInner({ route, navigation }: Props) {
         }
 
         namelessPersonIdRef.current = name ? null : evt.personId;
-        dispatchRm({ type: "KNOWN_FACE", named: !!name });
 
-        if (name) {
-          sendFaceEvent?.({
-            event: "speaker_confirmed",
-            personId: evt.personId,
-            displayName: evt.displayName,
-          });
-        } else {
-          console.log(`[Call][face] person ${evt.personId} 이름 없음 → 서버에 unknown_face`);
-          sendFaceEvent?.({ event: "unknown_face" });
-        }
+        dispatchRm({
+          type: "MATCH_KNOWN",
+          personId: evt.personId,
+          displayName: name,
+          named: !!name,
+
+          cloneSpeaking: phaseRef.current === "speaking",
+        });
       } else if (evt.type === "unknown_face") {
 
         if (
@@ -611,19 +620,17 @@ function CallScreenInner({ route, navigation }: Props) {
             .catch((err) => {
 
               console.warn("[Call][face] owner auto-enroll 실패 → Remember Me:", err);
-              dispatchRm({ type: "UNKNOWN_FACE" });
-              sendFaceEvent?.({ event: "unknown_face" });
+              dispatchRm({ type: "MATCH_UNKNOWN" });
             });
 
           dispatchSh({ type: "UNKNOWN_FACE" });
           return;
         }
 
-        dispatchRm({ type: "UNKNOWN_FACE" });
+        dispatchRm({ type: "MATCH_UNKNOWN" });
         dispatchSh({ type: "UNKNOWN_FACE" });
 
         unknownFaceSnapshotRef.current = getFaceEmbeddingBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
-        sendFaceEvent?.({ event: "unknown_face" });
       }
     },
 
@@ -899,7 +906,7 @@ function CallScreenInner({ route, navigation }: Props) {
 
       const nowMs = normalizeFrameTimestampMs(frame.timestamp, isAndroidFrame);
 
-      if (faceEmbedModel != null && shouldRunEmbedding(lastEmbedTs.value, nowMs)) {
+      if (faceEmbedModel != null && embedAllowed.value && shouldRunEmbedding(lastEmbedTs.value, nowMs)) {
         lastEmbedTs.value = nowMs;
         const primary = largestFace(faces);
         if (primary != null) {
@@ -933,6 +940,7 @@ function CallScreenInner({ route, navigation }: Props) {
       faceEmbedModel,
       resize,
       lastEmbedTs,
+      embedAllowed,
       isAndroidFrame,
       handleEmbeddingOnJS,
     ],
@@ -976,10 +984,11 @@ function CallScreenInner({ route, navigation }: Props) {
     notifyFaceInterruptRef.current = notifyFaceInterrupt;
   }, [notifyFaceInterrupt]);
 
+  const micHeld = shouldHoldMic(rmState);
   const micWasOnRef = useRef(false);
   useEffect(() => {
     if (liveState !== "live") return;
-    if (rmState.sheetOpen) {
+    if (micHeld) {
       micWasOnRef.current = micOn;
       if (micOn) toggleMic();
       return;
@@ -987,7 +996,26 @@ function CallScreenInner({ route, navigation }: Props) {
     if (micWasOnRef.current && !micOn) toggleMic();
     micWasOnRef.current = false;
 
-  }, [rmState.sheetOpen, liveState]);
+  }, [micHeld, liveState]);
+
+  const prevPhaseRef = useRef<string>("idle");
+  useEffect(() => {
+    phaseRef.current = phase;
+
+    embedAllowed.value = phase !== "sending";
+    const was = prevPhaseRef.current;
+    prevPhaseRef.current = phase;
+    if (was === "speaking" && phase !== "speaking") {
+      dispatchRm({ type: "CLONE_SPEECH_END" });
+      dispatchRm({ type: "TURN_END" });
+    }
+  }, [phase, dispatchRm]);
+
+  useEffect(() => {
+    if (liveState !== "live" || rmState.mode !== "grace") return;
+    const id = setInterval(() => dispatchRm({ type: "TICK" }), 5_000);
+    return () => clearInterval(id);
+  }, [liveState, rmState.mode, dispatchRm]);
 
   useEffect(() => {
     micOnRef.current = micOn;
@@ -1351,6 +1379,34 @@ function CallScreenInner({ route, navigation }: Props) {
       }
     }, 200);
   }, [navigation]);
+
+  useEffect(() => {
+    rmActionRef.current = (a: RememberMeAction) => {
+      switch (a.type) {
+        case "NOTIFY_CONFIRMED":
+          sendFaceEvent?.({
+            event: "speaker_confirmed",
+            personId: a.personId,
+            displayName: a.displayName,
+
+            rejoin: a.rejoin,
+          });
+          break;
+        case "NOTIFY_UNKNOWN":
+          sendFaceEvent?.({ event: "unknown_face" });
+          break;
+        case "END_CALL":
+          console.log(
+            `[Call][rm] grace ${GRACE_IDLE_TIMEOUT_MS / 1000}초 무턴 → 통화 종료`,
+          );
+          void stopLive();
+          exitToMain();
+          break;
+        default:
+          break; 
+      }
+    };
+  }, [sendFaceEvent, stopLive, exitToMain]);
 
   useEffect(() => {
     const backSub = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -2068,7 +2124,7 @@ function CallScreenInner({ route, navigation }: Props) {
 
 }
       <RememberMeButton
-        visible={!rmState.identified}
+        visible={shouldShowRememberMeButton(rmState)}
         onPress={() => dispatchRm({ type: "OPEN_SHEET" })}
       />
       <RememberMeSheet

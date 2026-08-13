@@ -19,9 +19,7 @@ export type SpeakerIdState = {
   lastUnknownEmitMs: number | null;
 };
 
-export const v_3451db = 3;
-
-export const v_4a199d = 6;
+export const v_3451db = 1;
 
 export const v_fcf2b4 = 60_000;
 
@@ -54,10 +52,7 @@ export function v_be2f9f(
   let v_f2ea56 = v_fd5f43.lastUnknownEmitMs;
   let v_d48baf = null;
 
-  const v_17ca68 = v_b24339 === "unknown" && typeof v_fd5f43.confirmed === "number";
-  const v_d2d720 = v_17ca68 ? v_4a199d : v_3451db;
-
-  if (v_e2b7d1 >= v_d2d720) {
+  if (v_e2b7d1 >= v_3451db) {
     if (v_b24339 !== v_aa96a3) {
       v_aa96a3 = v_b24339;
       if (v_b24339 === "unknown") {
