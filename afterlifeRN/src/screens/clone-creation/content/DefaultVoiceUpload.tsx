@@ -337,8 +337,17 @@ function Component({ draft, onChange }: Props) {
 
   const selectPresetVoice = async (v: CatalogVoice) => {
 
-    if (playingId != null) {
-      try { player.pause(); } catch {  }
+    try { player.pause(); } catch {  }
+    if (v.sampleUrl) {
+      try {
+        player.replace({ uri: v.sampleUrl });
+        player.play();
+        setPlayingId(v.id);
+      } catch (err) {
+        console.warn("[DefaultVoice] preset auto-preview 실패:", err);
+        setPlayingId(null);
+      }
+    } else {
       setPlayingId(null);
     }
     if (v.srcFileId == null) {
