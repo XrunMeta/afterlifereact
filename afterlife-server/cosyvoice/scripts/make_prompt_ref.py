@@ -46,6 +46,11 @@ SILENCE_MIN = float(os.environ.get("COSYVOICE_PROMPT_SILENCE_MIN", "0.35"))
 # 문장 끝 무음을 이만큼 물고 간다. 마지막 음절 바로 뒤에서 끊으면 모델이 그 음절을
 # 이어받아 생성 앞에 흘린다("박영미입니다." → "다~"). 무음이 곧 종결 신호다.
 TAIL_SILENCE_SEC = float(os.environ.get("COSYVOICE_PROMPT_TAIL_SILENCE", "0.35"))
+# 앞쪽 공백을 걷어낼 때 쓰는 임계. 무음 판정(-40dB)보다 민감하게 잡아 첫 소리 직전까지
+# 바짝 붙인다. 여백이 남으면 모델이 앞 음절을 되풀이했다(히즈키 실청: "다" 반복).
+LEAD_TRIM_DB = os.environ.get("COSYVOICE_PROMPT_LEAD_TRIM_DB", "-45dB")
+# 프롬프트 최소 길이(초). 마지막 유성 구간을 버리는 만큼 짧아지므로 하한이 필요하다.
+MIN_PROMPT_SEC = float(os.environ.get("COSYVOICE_PROMPT_MIN_SEC", "1.2"))
 STT_URL = os.environ.get("PRETHIRD_STT_URL", "http://127.0.0.1:8202")
 
 _SIL_START = re.compile(r"silence_start:\s*([0-9.]+)")
@@ -90,34 +95,52 @@ def pick_end(path: str, start: float, target: float) -> float:
     생성하므로 그 뒷말을 이어붙인다 — 실사용에서 클론이 말 앞에 "다오~" 같은 추임새를
     붙였다(히즈키 보고 2026-08-13).
 
-    문장 끝에는 대개 무음이 온다. start 이후 target 이내의 **마지막 무음 시작점**을
-    끝으로 삼으면 문장 경계에 맞춰 끊긴다. 쓸 만한 무음이 없으면 target 을 그대로 쓴다
-    (그 경우 텍스트 정제가 말줄임표를 떼는 것으로 방어).
+    문장 끝에는 대개 무음이 온다. 그 무음 지점을 끝으로 삼으면 문장 경계에 맞춰 끊긴다.
+
+    🔴 **마지막 유성 구간은 버린다**(히즈키 지시 2026-08-13).
+    무음 지점에서 끊어도 그 직전 음절이 생성 앞에 새어 나왔다("…박영미입니다." →
+    앞에 "다"). 꼬리 무음을 물려도 12분의 1 확률로 남았다. 마지막 소리를 아예
+    포함하지 않으면 샐 음절 자체가 없다 —
+
+        [안녕하세요] [공백] [박영미입니다] [무음]    ← 끝 음절이 샌다
+        [안녕하세요] [공백]                          ← 마지막 소리 앞 공백에서 끊는다
+
+    그래서 마지막 무음이 아니라 **뒤에서 두 번째 무음**을 고른다. 후보가 하나뿐이면
+    (문장이 하나뿐이면) 그것을 쓴다 — 더 줄이면 음색을 학습할 재료가 없어진다.
     """
     limit = start + target
     starts, _ = silences(path)
-    candidates = [s for s in starts if start + 1.0 < s <= limit]
+    # MIN_PROMPT_SEC 보다 이른 무음은 후보에서 뺀다 — 프롬프트가 너무 짧으면 음색이 무너진다.
+    candidates = sorted(s for s in starts if start + MIN_PROMPT_SEC < s <= limit)
     if not candidates:
         return limit
-    # 무음이 **시작되는** 지점에서 딱 끊으면 마지막 음절 바로 뒤에서 잘린다.
+    chosen = candidates[-2] if len(candidates) >= 2 else candidates[-1]
+    # 무음이 **시작되는** 지점에서 딱 끊으면 직전 음절에 바짝 붙는다.
     # 종결 신호가 되도록 무음을 조금 물고 간다(TAIL_SILENCE_SEC).
-    return min(max(candidates) + TAIL_SILENCE_SEC, limit + TAIL_SILENCE_SEC)
+    return min(chosen + TAIL_SILENCE_SEC, limit + TAIL_SILENCE_SEC)
 
 
 def cut(src: str, dst: str, start: float, dur: float) -> bool:
     """start 부터 dur 초를 잘라 dst 에 쓴다.
 
-    🔴 끝의 무음을 **제거하지 않는다.** 문장 끝 무음이 곧 "여기서 끝났다"는 종결
+    앞쪽: **공백을 샘플 단위로 완전히 걷어낸다**(히즈키 지시 2026-08-13).
+    speech_start 는 silencedetect 기반이라 최소 무음 길이(SILENCE_MIN 0.35초) 해상도
+    만큼 여백이 남는다. 그 여백이 남아 있으면 프롬프트가 무음으로 시작하고, 모델이
+    앞 음절을 되풀이해 "다다…" 처럼 흘렸다. silenceremove 로 첫 소리 직전까지 자른다.
+
+    🔴 뒤쪽: 무음을 **제거하지 않는다.** 문장 끝 무음이 곧 "여기서 끝났다"는 종결
     신호이기 때문이다. 처음에는 areverse+silenceremove 로 꼬리 무음을 걷어냈는데,
     그랬더니 프롬프트가 마지막 음절에 딱 붙어 끝나 모델이 그 음절을 이어받았다 —
     "박영미입니다." 로 끝나는 프롬프트에서 생성 앞에 "다" 가 새어 나왔다
-    (히즈키 실청 2026-08-13, 샘플2).
-
-    앞쪽 무음은 speech_start 가 이미 건너뛰었으므로 여기서는 손대지 않는다.
+    (히즈키 실청 2026-08-13, 샘플2). silenceremove 는 앞에서만 지우므로 꼬리는 안전하다.
     """
+    af = (
+        f"silenceremove=start_periods=1:start_threshold={LEAD_TRIM_DB}"
+        f":start_silence=0:detection=rms"
+    )
     _run([
         "ffmpeg", "-hide_banner", "-v", "error", "-ss", f"{start:.3f}",
-        "-t", f"{dur:.3f}", "-i", src, "-c:a", "pcm_s16le", dst, "-y",
+        "-t", f"{dur:.3f}", "-i", src, "-af", af, "-c:a", "pcm_s16le", dst, "-y",
     ])
     return os.path.isfile(dst) and os.path.getsize(dst) > 1000
 
