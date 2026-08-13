@@ -2463,3 +2463,63 @@ v_b7f2b4.get("/conversations", v_c0a297, async (v_3f4e2e) => {
   return v_3f4e2e.json({ user_id: v_43e90c, user_email: v_f4fb5e, clones: v_a7f568 });
 });
 
+v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_062ae9 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isFinite(v_062ae9)) {
+    return v_3f4e2e.json({ error: "invalid clone id" }, 400);
+  }
+  const v_4d33b2 = await v_3f4e2e.req.json<{ text?: string }>().catch(() => ({}));
+  const v_9b6134 = (v_4d33b2.text ?? "").trim();
+  if (!v_9b6134) return v_3f4e2e.json({ error: "text required" }, 400);
+  if (v_9b6134.length > 500) return v_3f4e2e.json({ error: "text too long (max 500)" }, 400);
+
+  const v_eb25ce = await v_3f4e2e.env.DB
+    .prepare("SELECT voice_se_url, voice_preset_id FROM clones WHERE id = ?")
+    .bind(v_062ae9)
+    .first<{ voice_se_url: string | null; voice_preset_id: number | null }>();
+  if (!v_eb25ce) return v_3f4e2e.json({ error: "clone not found" }, 404);
+
+  let v_2f693a = null;
+  if (v_eb25ce.voice_se_url) {
+
+    v_2f693a = String(v_062ae9);
+  } else if (v_eb25ce.voice_preset_id) {
+    const v_324e3c = await v_3f4e2e.env.DB
+      .prepare("SELECT se_key FROM voice_presets WHERE id = ? AND is_active = 1")
+      .bind(v_eb25ce.voice_preset_id)
+      .first<{ se_key: string | null }>();
+    v_2f693a = v_324e3c?.se_key ?? null;
+  }
+  if (!v_2f693a) return v_3f4e2e.json({ error: "clone has no voice_se available" }, 404);
+
+  const v_43fd42 = v_3f4e2e.env.LEARN_SECRET ?? "";
+  if (!v_43fd42) return v_3f4e2e.json({ error: "LEARN_SECRET not configured" }, 500);
+  try {
+    const v_eb792a = await fetch("https://rtc.example.invalid/prethird/admin/tts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Admin-Secret": v_43fd42,
+      },
+      body: JSON.stringify({ text: v_9b6134, se_key: v_2f693a }),
+    });
+    if (!v_eb792a.ok) {
+      const v_9be017 = await v_eb792a.text().catch(() => "");
+      return v_3f4e2e.json(
+        { error: `prethird ${v_eb792a.status}: ${v_9be017.slice(0, 200)}` },
+        v_eb792a.status as 400 | 500,
+      );
+    }
+    const v_7ab8bd = await v_eb792a.arrayBuffer();
+    return new Response(v_7ab8bd, {
+      status: 200,
+      headers: {
+        "Content-Type": "audio/wav",
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (v_9e86fd) {
+    return v_3f4e2e.json({ error: `upstream: ${String(v_9e86fd)}` }, 502);
+  }
+});
+
