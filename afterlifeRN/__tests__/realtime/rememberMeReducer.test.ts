@@ -120,6 +120,23 @@ describe("rememberMeReducer — grace(6턴)", () => {
     expect(v_729796(v_fd5f43, { type: "TICK" }, 50_000).actions).toEqual([{ type: "END_CALL" }]);
   });
 
+  it("ACTIVITY 는 턴을 소모하지 않고 무턴 타이머만 미룬다", () => {
+
+    let v_fd5f43 = v_729796(v_30b0d4(), { type: "MATCH_UNKNOWN" }, 1000).state;
+    const v_cb35cb = v_729796(v_fd5f43, { type: "ACTIVITY" }, 20_000);
+    expect(v_cb35cb.state.graceTurns).toBe(v_df0f57); 
+    expect(v_cb35cb.actions).toEqual([]);
+    v_fd5f43 = v_cb35cb.state;
+
+    expect(v_729796(v_fd5f43, { type: "TICK" }, 45_000).actions).toEqual([]);
+    expect(v_729796(v_fd5f43, { type: "TICK" }, 50_000).actions).toEqual([{ type: "END_CALL" }]);
+  });
+
+  it("grace 가 아니면 ACTIVITY 는 아무것도 하지 않는다", () => {
+    const v_e98932 = v_30b0d4();
+    expect(v_729796(v_e98932, { type: "ACTIVITY" }, 5000).state).toEqual(v_e98932);
+  });
+
   it("grace 가 아니면 TICK 은 아무것도 하지 않는다", () => {
     expect(v_729796(v_30b0d4(), { type: "TICK" }, 10_000_000).actions).toEqual([]);
     const v_e2a85c = v_729796(v_178dfb(), { type: "MATCH_UNKNOWN" }).state;

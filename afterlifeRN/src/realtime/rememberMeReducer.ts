@@ -43,6 +43,8 @@ export type RememberMeEvent =
 
   | { type: "TURN_END" }
 
+  | { type: "ACTIVITY" }
+
   | { type: "CLONE_SPEECH_END" }
 
   | { type: "TICK" }
@@ -215,6 +217,11 @@ function v_a448ad(
         },
         actions: [],
       };
+    }
+
+    case "ACTIVITY": {
+      if (v_b6e533.mode !== "grace") return { state: v_b6e533, actions: [] };
+      return { state: { ...v_b6e533, graceSinceMs: v_67e77e }, actions: [] };
     }
 
     case "TURN_END": {

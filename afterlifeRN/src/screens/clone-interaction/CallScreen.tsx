@@ -514,6 +514,8 @@ function CallScreenInner({ route, navigation }: Props) {
   const rmActionRef = useRef<(a: RememberMeAction) => void>(() => {});
 
   const phaseRef = useRef<string>("idle");
+
+  const chatReplyStartAt = useRef<number | null>(null);
   const dispatchRm = useCallback((event: RememberMeEvent) => {
     const { state, actions } = rememberMeReducer(rmStateRef.current, event, Date.now());
     rmStateRef.current = state;
@@ -585,7 +587,7 @@ function CallScreenInner({ route, navigation }: Props) {
           displayName: name,
           named: !!name,
 
-          cloneSpeaking: phaseRef.current === "speaking",
+          cloneSpeaking: chatReplyStartAt.current !== null,
         });
       } else if (evt.type === "unknown_face") {
 
@@ -998,22 +1000,20 @@ function CallScreenInner({ route, navigation }: Props) {
 
   }, [micHeld, liveState]);
 
-  const prevPhaseRef = useRef<string>("idle");
   useEffect(() => {
     phaseRef.current = phase;
 
     embedAllowed.value = phase !== "sending";
-    const was = prevPhaseRef.current;
-    prevPhaseRef.current = phase;
-    if (was === "speaking" && phase !== "speaking") {
-      dispatchRm({ type: "CLONE_SPEECH_END" });
-      dispatchRm({ type: "TURN_END" });
-    }
-  }, [phase, dispatchRm]);
+  }, [phase]);
 
   useEffect(() => {
     if (liveState !== "live" || rmState.mode !== "grace") return;
-    const id = setInterval(() => dispatchRm({ type: "TICK" }), 5_000);
+    const id = setInterval(() => {
+
+      dispatchRm(
+        chatReplyStartAt.current !== null ? { type: "ACTIVITY" } : { type: "TICK" },
+      );
+    }, 5_000);
     return () => clearInterval(id);
   }, [liveState, rmState.mode, dispatchRm]);
 
@@ -1034,9 +1034,10 @@ function CallScreenInner({ route, navigation }: Props) {
       chatPrevTranscript.current = transcript;
       chatUserSentAt.current = Date.now();
 
+      dispatchRm({ type: "ACTIVITY" });
+
     }
   }, [transcript]);
-  const chatReplyStartAt = useRef<number | null>(null);
   useEffect(() => {
     if (!lastSignal) return;
     if (lastSignal.type === 'speech_start') {
@@ -1050,8 +1051,11 @@ function CallScreenInner({ route, navigation }: Props) {
       const dur = chatReplyStartAt.current ? Date.now() - chatReplyStartAt.current : null;
       console.log(`[Call][chat] clone reply end${dur !== null ? ` (took ${dur}ms)` : ''}`);
       chatReplyStartAt.current = null;
+
+      dispatchRm({ type: "CLONE_SPEECH_END" });
+      dispatchRm({ type: "TURN_END" });
     }
-  }, [lastSignal]);
+  }, [lastSignal, dispatchRm]);
 
   const canSpeak = (phase === 'listening' || phase === 'confirming') && sttActive;
 
@@ -1610,6 +1614,26 @@ function CallScreenInner({ route, navigation }: Props) {
             <>
               <Text style={{ color: "#0f0", fontSize: 10 }}>
                 {faceDiag ? formatFaceHud(faceDiag) : "face -"}
+              </Text>
+              {
+
+}
+              <Text
+                style={{
+                  color:
+                    rmState.mode === "identified"
+                      ? "#0f0"
+                      : rmState.mode === "grace"
+                        ? "#ff0"
+                        : "#f80",
+                  fontSize: 10,
+                }}
+              >
+                {rmState.mode === "grace"
+                  ? `rm grace ${rmState.graceTurns}턴 · ${rmState.personId ?? "-"} 유지중`
+                  : rmState.mode === "pending"
+                    ? `rm 대기(입력 필요)${rmState.sheetOpen ? " · 시트" : ""}`
+                    : `rm ok ${rmState.personId ?? "-"}`}
               </Text>
               {}
               <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
