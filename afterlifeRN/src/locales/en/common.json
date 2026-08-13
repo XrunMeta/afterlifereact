@@ -1138,7 +1138,7 @@
     "statusDenied": "Denied",
     "statusUndetermined": "Needs permission",
     "statusBlocked": "Blocked",
-    "requestButton": "Allow permissions",
+    "requestButton": "Continue",
     "settingsButton": "Open settings",
     "settingsHint": "If the permission dialog doesn't appear, turn it on in Settings",
     "loading": "Checking permissions...",

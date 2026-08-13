@@ -90,6 +90,15 @@ export async function v_5729a9(
 const v_a680d4 = 16 * 1024;   
 const v_90cfe0 = 50;          
 
+const v_75cf24 = [
+  "memories_personal",
+  "relation",
+  "preference_personal",
+  "preference_history",
+  "_meta",
+] as const;
+void v_75cf24; 
+
 export interface L2Extraction {
   preference_personal?: Record<string, unknown>; 
   relation?: string | null;                       
@@ -170,6 +179,7 @@ export async function v_0ac5b7(
   }
 
   const v_a448ad = {
+    ...v_275ccd,
     address: v_275ccd.address ?? null,
     memories_personal: v_3bfd8d,
     relation: v_093c06 ? v_631e71.relation!.trim() : v_275ccd.relation ?? null,
@@ -177,11 +187,6 @@ export async function v_0ac5b7(
       ? { ...v_13a920, ...v_631e71.preference_personal }
       : v_13a920,
     ...(v_1c6478.length ? { preference_history: v_1c6478 } : {}),
-
-    ...(v_275ccd.memory_summary !== undefined ? { memory_summary: v_275ccd.memory_summary } : {}),
-    ...(v_275ccd.relationship !== undefined ? { relationship: v_275ccd.relationship } : {}),
-    ...(v_275ccd.context !== undefined ? { context: v_275ccd.context } : {}),
-    ...(v_275ccd.recent_topics !== undefined ? { recent_topics: v_275ccd.recent_topics } : {}),
     _meta: { layer: "L2", rev: v_7d3ae6 + 1, auto_learned_at: v_5c2f9f, source: v_04e790, updated_at: v_5c2f9f },
   };
 
@@ -283,7 +288,9 @@ export async function v_600422(
     : v_d5158a;
 
   const v_5c2f9f = new Date().toISOString();
+
   const v_a448ad = {
+    ...v_275ccd,
     address: v_275ccd.address ?? null,
     memories_personal: v_3bfd8d,
     relation: v_093c06 ? v_631e71.relation!.trim() : v_275ccd.relation ?? null,
@@ -293,10 +300,6 @@ export async function v_600422(
           ...v_631e71.preference_personal,
         }
       : v_275ccd.preference_personal ?? {},
-    ...(v_275ccd.memory_summary !== undefined ? { memory_summary: v_275ccd.memory_summary } : {}),
-    ...(v_275ccd.relationship !== undefined ? { relationship: v_275ccd.relationship } : {}),
-    ...(v_275ccd.context !== undefined ? { context: v_275ccd.context } : {}),
-    ...(v_275ccd.recent_topics !== undefined ? { recent_topics: v_275ccd.recent_topics } : {}),
     _meta: { layer: "L2p", rev: v_7d3ae6 + 1, auto_learned_at: v_5c2f9f, source: v_04e790, updated_at: v_5c2f9f },
   };
 
