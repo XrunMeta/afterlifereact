@@ -155,6 +155,11 @@ const SHOW_VOICE_BALL = false;
 
 const SPEAK_OK_COLOR = "#2fbf6b";
 
+const FACE_DETECTOR_OPTIONS = {
+  performanceMode: "fast",
+  trackingEnabled: true,
+} as const;
+
 interface FloatingGift {
   id: number;
   emoji: string;
@@ -307,10 +312,8 @@ function CallScreenInner({ route, navigation }: Props) {
   const vcDevice = useCameraDevice(cameraFacing === "front" ? "front" : "back");
 
   const { faceState, onFaces } = useFaceDetection();
-  const { detectFaces, stopListeners } = useFaceDetector({
-    performanceMode: "fast",
-    trackingEnabled: true,
-  });
+
+  const { detectFaces, stopListeners } = useFaceDetector(FACE_DETECTOR_OPTIONS);
 
   const pipCameraRef = useRef<VisionCamera>(null);
 
