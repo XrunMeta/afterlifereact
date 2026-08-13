@@ -33,7 +33,7 @@
         "NSLocationWhenInUseUsageDescription": "이 앱은 위치 정보를 직접 사용하지 않습니다. 카메라 관련 라이브러리가 접근을 요청할 수 있어 안내드립니다."
       },
       "appleTeamId": "677WG96CUJ",
-      "buildNumber": "13",
+      "buildNumber": "17",
       "googleServicesFile": "./GoogleService-Info.plist",
       "usesAppleSignIn": true
     },
