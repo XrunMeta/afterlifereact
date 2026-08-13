@@ -847,6 +847,24 @@ def _handle_face_event(sess, data: dict) -> None:
     if not react_on:
         return  # react(쿨다운·발화·pending_enroll)는 FACE_REACT 게이트 단독 — off면 여기서 종료
 
+    # [Remember Me 2026-08-13] silent — 신원만 반영하고 반응 발화는 하지 않는 신호 경로.
+    #
+    # 앱이 계정주를 자동 등록한 직후 그 사실을 서버에 **즉시** 알리기 위해 쓴다. 예전에는
+    # 다음 얼굴 인식 주기를 기다렸는데, 그 사이(실측 36초) 서버는 미확정이라 "Remember Me
+    # 를 눌러달라" 고 말하는데 앱은 등록 중이라 시트를 안 띄운다 — 사용자에게는 등록을
+    # 요구하면서 누를 UI 는 없는 상태로 보인다.
+    #
+    # 그렇다고 그냥 speaker_confirmed 를 보내면 react 가 걸려 클론이 갑자기 "다시
+    # 오셨네요" 로 말을 끊는다(FACE_REACT_ENABLED=1). 그래서 신원 반영(위 프롬프트 갱신·
+    # L2' 스왑)까지만 하고 여기서 끝낸다. 히즈키 제안 — "대답은 안 하는 신호 전용 경로".
+    if data.get("silent") is True:
+        if _face_diag_on():
+            log.info(
+                "face_diag silent session=%s event=%s person=%s — 신원만 반영, 발화 없음",
+                getattr(sess, "session_id", "?"), event, pid_int,
+            )
+        return
+
     key = str(pid_int) if event == "speaker_confirmed" else "unknown"
     now = time.monotonic()
     last = sess.reacted_keys.get(key)

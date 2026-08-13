@@ -591,7 +591,20 @@ function CallScreenInner({ route, navigation }: Props) {
           unknownFaceSnapshotRef.current = getFaceEmbeddingBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
           void faceEnroll
             .enroll(_n)
-            .then(() => dispatchRm({ type: "ENROLLED" }))
+            .then(() => {
+              dispatchRm({ type: "ENROLLED" });
+
+              const pid = faceEnroll.getEnrolledPersonId();
+              if (pid != null) {
+                console.log(`[Call][face] auto-enroll 완료 → silent speaker_confirmed(${pid})`);
+                sendFaceEvent?.({
+                  event: "speaker_confirmed",
+                  personId: pid,
+                  displayName: _n,
+                  silent: true,
+                });
+              }
+            })
             .catch((err) => {
 
               console.warn("[Call][face] owner auto-enroll 실패 → Remember Me:", err);
