@@ -135,7 +135,7 @@ import {
   rememberMeReducer,
   shouldHoldMic,
   shouldShowRememberMeButton,
-  GRACE_IDLE_TIMEOUT_MS,
+  GRACE_HOLD_MS,
   type RememberMeAction,
   type RememberMeEvent,
 } from "../../realtime/rememberMeReducer";
@@ -1010,9 +1010,8 @@ function CallScreenInner({ route, navigation }: Props) {
     if (liveState !== "live" || rmState.mode !== "grace") return;
     const id = setInterval(() => {
 
-      dispatchRm(
-        chatReplyStartAt.current !== null ? { type: "ACTIVITY" } : { type: "TICK" },
-      );
+      if (chatReplyStartAt.current !== null) dispatchRm({ type: "ACTIVITY" });
+      dispatchRm({ type: "TICK" });
     }, 5_000);
     return () => clearInterval(id);
   }, [liveState, rmState.mode, dispatchRm]);
@@ -1053,7 +1052,7 @@ function CallScreenInner({ route, navigation }: Props) {
       chatReplyStartAt.current = null;
 
       dispatchRm({ type: "CLONE_SPEECH_END" });
-      dispatchRm({ type: "TURN_END" });
+      dispatchRm({ type: "ACTIVITY" });
     }
   }, [lastSignal, dispatchRm]);
 
@@ -1394,6 +1393,8 @@ function CallScreenInner({ route, navigation }: Props) {
             displayName: a.displayName,
 
             rejoin: a.rejoin,
+
+            mentionName: a.mentionName,
           });
           break;
         case "NOTIFY_UNKNOWN":
@@ -1401,7 +1402,7 @@ function CallScreenInner({ route, navigation }: Props) {
           break;
         case "END_CALL":
           console.log(
-            `[Call][rm] grace ${GRACE_IDLE_TIMEOUT_MS / 1000}초 무턴 → 통화 종료`,
+            `[Call][rm] grace ${GRACE_HOLD_MS / 1000}초 동안 얼굴·대화 모두 없음 → 통화 종료`,
           );
           void stopLive();
           exitToMain();
@@ -1630,7 +1631,7 @@ function CallScreenInner({ route, navigation }: Props) {
                 }}
               >
                 {rmState.mode === "grace"
-                  ? `rm grace ${rmState.graceTurns}턴 · ${rmState.personId ?? "-"} 유지중`
+                  ? `rm grace ${rmState.personId ?? "-"} 유지중${rmState.graceHadActivity ? "" : " · 무대화"}`
                   : rmState.mode === "pending"
                     ? `rm 대기(입력 필요)${rmState.sheetOpen ? " · 시트" : ""}`
                     : `rm ok ${rmState.personId ?? "-"}`}

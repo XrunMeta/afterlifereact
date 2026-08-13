@@ -215,6 +215,23 @@ class DialoguePipeline:
             return
         messages = self.persona_messages + [{"role": "user", "content": user_text}]
 
+        # [Remember Me 2026-08-13] 이름 부르기 힌트 — 딱 1회 소비하고 지운다.
+        #
+        # 얼굴이 잠깐 안 잡혔다가 같은 사람이 돌아온 경우다. 인사(react)를 걸면 "다시
+        # 왔네" 가 매번 나가 대화가 끊긴다(히즈키 실측). 대신 이번 응답에서 이름을 한 번
+        # 부르게 해 어색해진 구간을 자연스럽게 잇는다.
+        _hint = getattr(self, "name_mention_hint", None)
+        if _hint:
+            self.name_mention_hint = None
+            messages = messages + [{
+                "role": "system",
+                "content": (
+                    f"지금 대화 상대는 '{_hint}' 님이야. 이번 답변에서 그 이름을 한 번만 "
+                    "자연스럽게 불러 줘. 다시 만났다는 인사나 확인하는 말은 하지 마 — "
+                    "하던 대화를 그대로 이어가면서 이름만 섞으면 된다."
+                ),
+            }]
+
         async def produce(q: asyncio.Queue):
             sb = self._sb_factory()
             async for tok in self.chat_fn(messages):

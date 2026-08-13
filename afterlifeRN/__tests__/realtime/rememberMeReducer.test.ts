@@ -1,7 +1,6 @@
 import {
   v_a5c955,
-  v_a793e1,
-  v_df0f57,
+  v_575cf8,
   v_178dfb,
   v_706a74,
   v_b94941,
@@ -54,46 +53,64 @@ describe("rememberMeReducer — 확정", () => {
   });
 });
 
-describe("rememberMeReducer — grace(6턴)", () => {
+describe("rememberMeReducer — grace(30초 유지)", () => {
   it("확정자를 놓쳐도 즉시 대기로 가지 않는다 — 대화는 계속된다", () => {
-    const { state: v_b6e533, actions: v_dd943a } = v_729796(v_30b0d4(), { type: "MATCH_UNKNOWN" });
+    const { state: v_b6e533, actions: v_dd943a } = v_729796(v_30b0d4(), { type: "MATCH_UNKNOWN" }, 1000);
     expect(v_b6e533.mode).toBe("grace");
-    expect(v_b6e533.graceTurns).toBe(v_df0f57);
+    expect(v_b6e533.graceSinceMs).toBe(1000);
     expect(v_b6e533.personId).toBe(58); 
 
     expect(v_dd943a).toEqual([]);
     expect(v_f8761c(v_b6e533)).toBe(false);
   });
 
-  it("unknown 이 반복돼도 카운터가 리셋되지 않는다", () => {
+  it("unknown 이 반복돼도 유지 기준점이 리셋되지 않는다", () => {
 
-    let v_fd5f43 = v_729796(v_30b0d4(), { type: "MATCH_UNKNOWN" }).state;
-    v_fd5f43 = v_729796(v_fd5f43, { type: "TURN_END" }, 1000).state;
-    expect(v_fd5f43.graceTurns).toBe(v_df0f57 - 1);
-    v_fd5f43 = v_729796(v_fd5f43, { type: "MATCH_UNKNOWN" }, 2000).state;
-    expect(v_fd5f43.graceTurns).toBe(v_df0f57 - 1); 
+    let v_fd5f43 = v_729796(v_30b0d4(), { type: "MATCH_UNKNOWN" }, 1000).state;
+    v_fd5f43 = v_729796(v_fd5f43, { type: "MATCH_UNKNOWN" }, 4000).state;
+    v_fd5f43 = v_729796(v_fd5f43, { type: "MATCH_UNKNOWN" }, 7000).state;
+    expect(v_fd5f43.graceSinceMs).toBe(1000);
   });
 
-  it("6턴을 소진하면 대기로 전환하고 마이크를 닫는다", () => {
-    let v_fd5f43 = v_729796(v_30b0d4(), { type: "MATCH_UNKNOWN" }).state;
-    let actions: ReturnType<typeof v_729796>["actions"] = [];
-    for (let v_ebec57 = 0; v_ebec57 < v_df0f57; v_ebec57++) {
-      const v_cb35cb = v_729796(v_fd5f43, { type: "TURN_END" }, 1000 * (v_ebec57 + 1));
-      v_fd5f43 = v_cb35cb.state;
-      v_dd943a = v_cb35cb.actions;
-    }
-    expect(v_fd5f43.mode).toBe("pending");
-    expect(v_fd5f43.sheetOpen).toBe(true);
-    expect(v_dd943a).toEqual([{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }]);
+  it("30초까지는 그 사람으로 유지한다", () => {
+    const v_fd5f43 = v_729796(v_30b0d4(), { type: "MATCH_UNKNOWN" }, 1000).state;
+    const v_cb35cb = v_729796(v_fd5f43, { type: "TICK" }, 1000 + v_575cf8 - 1);
+    expect(v_cb35cb.state.mode).toBe("grace");
+    expect(v_cb35cb.actions).toEqual([]);
   });
 
-  it("붙들고 있던 사람이 돌아오면 카운터가 사라진다 — 인사는 하지 않는다", () => {
+  it("30초가 지나고 그 사이 대화가 있었으면 대기로 간다", () => {
 
-    const v_fd5f43 = v_729796(v_30b0d4(), { type: "MATCH_UNKNOWN" }).state;
-    const { state: v_b6e533, actions: v_dd943a } = v_729796(v_fd5f43, v_d81543(58));
+    let v_fd5f43 = v_729796(v_30b0d4(), { type: "MATCH_UNKNOWN" }, 1000).state;
+    v_fd5f43 = v_729796(v_fd5f43, { type: "ACTIVITY" }, 5000).state;
+    const v_cb35cb = v_729796(v_fd5f43, { type: "TICK" }, 1000 + v_575cf8);
+    expect(v_cb35cb.state.mode).toBe("pending");
+    expect(v_cb35cb.state.sheetOpen).toBe(true);
+    expect(v_cb35cb.actions).toEqual([{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }]);
+  });
+
+  it("30초가 지나도록 아무 말도 없었으면 통화를 끊는다", () => {
+
+    const v_fd5f43 = v_729796(v_30b0d4(), { type: "MATCH_UNKNOWN" }, 1000).state;
+    const v_cb35cb = v_729796(v_fd5f43, { type: "TICK" }, 1000 + v_575cf8);
+    expect(v_cb35cb.actions).toEqual([{ type: "END_CALL" }]);
+  });
+
+  it("🔴 붙들고 있던 사람이 돌아오면 인사하지 않고 이름만 부르게 한다", () => {
+
+    const v_fd5f43 = v_729796(v_30b0d4(), { type: "MATCH_UNKNOWN" }, 1000).state;
+    const { state: v_b6e533, actions: v_dd943a } = v_729796(v_fd5f43, v_d81543(58), 5000);
     expect(v_b6e533.mode).toBe("identified");
-    expect(v_b6e533.graceTurns).toBe(0);
-    expect(v_dd943a).toEqual([]);
+    expect(v_b6e533.graceSinceMs).toBeNull();
+    expect(v_dd943a).toEqual([
+      {
+        type: "NOTIFY_CONFIRMED",
+        personId: 58,
+        displayName: "도기",
+        rejoin: false, 
+        mentionName: true,
+      },
+    ]);
   });
 
   it("확정된 적이 없는 통화의 unknown 은 grace 를 거치지 않고 바로 대기로 간다", () => {
@@ -103,33 +120,12 @@ describe("rememberMeReducer — grace(6턴)", () => {
     expect(v_dd943a).toEqual([{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }]);
   });
 
-  it("30초간 턴이 흐르지 않으면 통화를 끊는다", () => {
-
-    const v_fd5f43 = v_729796(v_30b0d4(), { type: "MATCH_UNKNOWN" }, 1000).state;
-    expect(v_729796(v_fd5f43, { type: "TICK" }, 1000 + v_a793e1 - 1).actions).toEqual([]);
-    expect(v_729796(v_fd5f43, { type: "TICK" }, 1000 + v_a793e1).actions).toEqual([
-      { type: "END_CALL" },
-    ]);
-  });
-
-  it("턴이 흐르면 무턴 타이머가 갱신된다", () => {
-    let v_fd5f43 = v_729796(v_30b0d4(), { type: "MATCH_UNKNOWN" }, 1000).state;
-    v_fd5f43 = v_729796(v_fd5f43, { type: "TURN_END" }, 20_000).state;
-
-    expect(v_729796(v_fd5f43, { type: "TICK" }, 40_000).actions).toEqual([]);
-    expect(v_729796(v_fd5f43, { type: "TICK" }, 50_000).actions).toEqual([{ type: "END_CALL" }]);
-  });
-
-  it("ACTIVITY 는 턴을 소모하지 않고 무턴 타이머만 미룬다", () => {
+  it("ACTIVITY 는 유지 시간을 연장하지 않는다 — 갈 곳만 바꾼다", () => {
 
     let v_fd5f43 = v_729796(v_30b0d4(), { type: "MATCH_UNKNOWN" }, 1000).state;
-    const v_cb35cb = v_729796(v_fd5f43, { type: "ACTIVITY" }, 20_000);
-    expect(v_cb35cb.state.graceTurns).toBe(v_df0f57); 
-    expect(v_cb35cb.actions).toEqual([]);
-    v_fd5f43 = v_cb35cb.state;
-
-    expect(v_729796(v_fd5f43, { type: "TICK" }, 45_000).actions).toEqual([]);
-    expect(v_729796(v_fd5f43, { type: "TICK" }, 50_000).actions).toEqual([{ type: "END_CALL" }]);
+    v_fd5f43 = v_729796(v_fd5f43, { type: "ACTIVITY" }, 25_000).state;
+    expect(v_fd5f43.graceSinceMs).toBe(1000); 
+    expect(v_729796(v_fd5f43, { type: "TICK" }, 1000 + v_575cf8).state.mode).toBe("pending");
   });
 
   it("grace 가 아니면 ACTIVITY 는 아무것도 하지 않는다", () => {
@@ -311,7 +307,7 @@ describe("rememberMeReducer — 순수성", () => {
     const v_ca01e0 = v_30b0d4();
     const v_5392c4 = JSON.stringify(v_ca01e0);
     v_729796(v_ca01e0, { type: "MATCH_UNKNOWN" });
-    v_729796(v_ca01e0, { type: "TURN_END" });
+    v_729796(v_ca01e0, { type: "ACTIVITY" });
     v_729796(v_ca01e0, v_d81543(70));
     expect(JSON.stringify(v_ca01e0)).toBe(v_5392c4);
   });

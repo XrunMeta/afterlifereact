@@ -9,9 +9,11 @@ export interface RememberMeState {
 
   sheetOpen: boolean;
 
-  graceTurns: number;
-
   graceSinceMs: number | null;
+
+  graceHadActivity: boolean;
+
+  mentionName: boolean;
 
   enrollGraceUntilMs: number | null;
 
@@ -20,9 +22,7 @@ export interface RememberMeState {
   pendingSwitch: { personId: number; displayName: string | null } | null;
 }
 
-export const v_df0f57 = 6;
-
-export const v_a793e1 = 30_000;
+export const v_575cf8 = 30_000;
 
 export const v_a5c955 = 60_000;
 
@@ -40,8 +40,6 @@ export type RememberMeEvent =
     }
 
   | { type: "MATCH_UNKNOWN" }
-
-  | { type: "TURN_END" }
 
   | { type: "ACTIVITY" }
 
@@ -68,6 +66,8 @@ export type RememberMeAction =
       personId: number;
       displayName: string | null;
       rejoin: boolean;
+
+      mentionName?: boolean;
     }
 
   | { type: "NOTIFY_UNKNOWN" };
@@ -77,8 +77,9 @@ export function v_178dfb(): RememberMeState {
     mode: "identified",
     personId: null,
     sheetOpen: false,
-    graceTurns: 0,
     graceSinceMs: null,
+    graceHadActivity: false,
+    mentionName: false,
     enrollGraceUntilMs: null,
     lastNotifyUnknownMs: null,
     pendingSwitch: null,
@@ -99,8 +100,9 @@ function v_60164c(v_fd5f43, v_67e77e): RememberMeState {
     mode: "pending",
     personId: null,
     sheetOpen: true,
-    graceTurns: 0,
     graceSinceMs: null,
+    graceHadActivity: false,
+    mentionName: false,
     lastNotifyUnknownMs: v_67e77e,
     pendingSwitch: null,
   };
@@ -112,8 +114,9 @@ function v_9638ca(v_fd5f43, v_ca1ec5): RememberMeState {
     mode: "identified",
     personId: v_ca1ec5,
     sheetOpen: false,
-    graceTurns: 0,
     graceSinceMs: null,
+    graceHadActivity: false,
+    mentionName: false,
 
     enrollGraceUntilMs: null,
 
@@ -154,7 +157,19 @@ function v_a448ad(
 
       if (v_9bb925) {
         if (v_b6e533.mode === "grace") {
-          return { state: v_9638ca(v_b6e533, v_d48baf.personId), actions: [] };
+
+          return {
+            state: v_9638ca(v_b6e533, v_d48baf.personId),
+            actions: [
+              {
+                type: "NOTIFY_CONFIRMED",
+                personId: v_d48baf.personId,
+                displayName: v_d48baf.displayName,
+                rejoin: false,
+                mentionName: true,
+              },
+            ],
+          };
         }
         return { state: v_b6e533, actions: [] };
       }
@@ -211,8 +226,8 @@ function v_a448ad(
         state: {
           ...v_b6e533,
           mode: "grace",
-          graceTurns: v_df0f57,
           graceSinceMs: v_67e77e,
+          graceHadActivity: false,
           pendingSwitch: null,
         },
         actions: [],
@@ -220,34 +235,24 @@ function v_a448ad(
     }
 
     case "ACTIVITY": {
-      if (v_b6e533.mode !== "grace") return { state: v_b6e533, actions: [] };
-      return { state: { ...v_b6e533, graceSinceMs: v_67e77e }, actions: [] };
-    }
-
-    case "TURN_END": {
-      if (v_b6e533.mode !== "grace") return { state: v_b6e533, actions: [] };
-      const v_dbaa7f = v_b6e533.graceTurns - 1;
-      if (v_dbaa7f > 0) {
-        return {
-          state: { ...v_b6e533, graceTurns: v_dbaa7f, graceSinceMs: v_67e77e },
-          actions: [],
-        };
-      }
-      return {
-        state: v_60164c(v_b6e533, v_67e77e),
-        actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
-      };
+      if (v_b6e533.mode !== "grace" || v_b6e533.graceHadActivity) return { state: v_b6e533, actions: [] };
+      return { state: { ...v_b6e533, graceHadActivity: true }, actions: [] };
     }
 
     case "TICK": {
       if (v_b6e533.mode !== "grace" || v_b6e533.graceSinceMs === null) {
         return { state: v_b6e533, actions: [] };
       }
-      if (v_67e77e - v_b6e533.graceSinceMs < v_a793e1) {
-        return { state: v_b6e533, actions: [] };
-      }
+      if (v_67e77e - v_b6e533.graceSinceMs < v_575cf8) return { state: v_b6e533, actions: [] };
 
-      return { state: v_b6e533, actions: [{ type: "END_CALL" }] };
+      if (!v_b6e533.graceHadActivity) {
+
+        return { state: v_b6e533, actions: [{ type: "END_CALL" }] };
+      }
+      return {
+        state: v_60164c(v_b6e533, v_67e77e),
+        actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
+      };
     }
 
     case "CLONE_SPEECH_END": {
