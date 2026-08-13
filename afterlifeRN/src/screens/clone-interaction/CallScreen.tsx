@@ -127,7 +127,7 @@ import { sendGiftOffchain } from "../../api/giftInventory";
 import { showAlert } from "../../stores/dialogStore";
 import { CommonActions } from "@react-navigation/native";
 import RememberMeButton from "../../components/call/RememberMeButton";
-import { updatePersonRelation } from "../../api/persons";
+import { updatePersonRelation, updatePersonName } from "../../api/persons";
 import { shouldAutoEnrollOwner, ownerEnrollName } from "../../face/ownerAutoEnroll";
 import RememberMeSheet from "../../components/call/RememberMeSheet";
 import {
@@ -485,6 +485,8 @@ function CallScreenInner({ route, navigation }: Props) {
   const myNameRef = useRef<string | null>(null);
 
   const ownerAutoEnrollTriedRef = useRef(false);
+
+  const namelessPersonIdRef = useRef<number | null>(null);
   const handleSpeakerEventTrampoline = useCallback((evt: SpeakerEvent) => {
     handleSpeakerEventRef.current(evt);
   }, []);
@@ -558,7 +560,8 @@ function CallScreenInner({ route, navigation }: Props) {
           dispatchSh({ type: "SPEAKER_CONFIRMED", personId: evt.personId, name });
         }
 
-        dispatchRm({ type: "KNOWN_FACE" });
+        namelessPersonIdRef.current = name ? null : evt.personId;
+        dispatchRm({ type: "KNOWN_FACE", named: !!name });
         sendFaceEvent?.({
           event: "speaker_confirmed",
           personId: evt.personId,
@@ -837,12 +840,18 @@ function CallScreenInner({ route, navigation }: Props) {
       setRmError(null);
       try {
 
-        await faceEnroll.enroll(name.trim());
+        const nameless = namelessPersonIdRef.current;
+        if (nameless != null) {
+          await updatePersonName(accessToken ?? "", nameless, name.trim());
+          namelessPersonIdRef.current = null;
+        } else {
+          await faceEnroll.enroll(name.trim());
+        }
         const rel = relation.trim();
         if (rel) {
 
           try {
-            const pid = faceEnroll.getEnrolledPersonId();
+            const pid = nameless ?? faceEnroll.getEnrolledPersonId();
             if (pid != null) {
               await updatePersonRelation(accessToken ?? "", pid, rel);
             }
