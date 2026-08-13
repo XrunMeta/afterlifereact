@@ -2434,7 +2434,7 @@ v_b7f2b4.get("/conversations", v_c0a297, async (v_3f4e2e) => {
     .prepare(
       `SELECT id, name, created_at
          FROM clones
-        WHERE created_by_user_id = ? AND deleted_at IS NULL
+        WHERE owner_id = ? AND deleted_at IS NULL
         ORDER BY id DESC`,
     )
     .bind(v_43e90c)
