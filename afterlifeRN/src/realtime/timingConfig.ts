@@ -16,9 +16,11 @@ export interface TimingConfig {
 }
 
 export const v_5c20ea = {
-  sttEndpointMs: 1500,
+
+  sttEndpointMs: 2500,
   echoGateMs: 3500,
-  cloneResumeMs: 600,
+
+  cloneResumeMs: 300,
   cloneTailGraceMs: 1000,
   responseDoneTimeoutMs: 45000,
 };

@@ -330,8 +330,9 @@ export default function v_601c02({
                 <TouchableOpacity
                   style={[v_fd5f43.modalBtn, v_fd5f43.modalBtnPrimary]}
                   onPress={() => {
+
                     v_9b4aaf(false);
-                    v_1bb83e();
+                    setTimeout(v_1bb83e, 250);
                   }}
                 >
                   <Text style={v_fd5f43.modalBtnPrimaryText}>{`${v_1833e7}님과 통화하기`}</Text>

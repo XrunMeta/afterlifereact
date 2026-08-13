@@ -229,15 +229,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       );
       return;
     }
-    if (!v_d74a81.trim()) {
-      v_889fad(
-        v_8d41d7("common.notice"),
-        v_8d41d7("auth.signup.phoneRequired", { defaultValue: "전화번호를 입력해주세요." }),
-        [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: v_8fb688(v_11ccfc) }],
-      );
-      return;
-    }
-    if (v_d74a81.length < 4) {
+
+    if (v_d74a81.trim() && v_d74a81.length < 4) {
       v_889fad(
         v_8d41d7("common.notice"),
         v_8d41d7("auth.signup.phoneTooShort"),
@@ -245,43 +238,21 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       );
       return;
     }
-    if (!v_c3eac4) {
-      v_889fad(
-        v_8d41d7("common.notice"),
-        v_8d41d7("auth.signup.genderRequired", { defaultValue: "성별을 선택해주세요." }),
-      );
-      return;
-    }
-    if (!v_f83808) {
-      v_889fad(
-        v_8d41d7("common.notice"),
-        v_8d41d7("auth.signup.ageRangeRequired", { defaultValue: "연령대를 선택해주세요." }),
-      );
-      return;
-    }
-    if (!v_b9bbbd) {
-      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.countryRequired"));
-      return;
-    }
     if (!v_5c764d) {
       v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.termsAccept"));
       return;
     }
 
-    const v_f4fe8e = v_56f818(v_f83808);
-    if (v_f4fe8e <= 0) {
-      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.ageInvalid"));
-      return;
-    }
+    const v_f4fe8e = v_f83808 ? v_56f818(v_f83808) : undefined;
 
     v_ee9ec1(true);
     try {
 
-      const v_a4d981 = v_b9bbbd.iso2.toUpperCase();
-
-      const v_6c3a47 =
-        v_b9bbbd.countryCode ??
-        (Number(v_b9bbbd.dialCode.replace(/[^\d]/g, "")) || 0);
+      const v_a4d981 = v_b9bbbd ? v_b9bbbd.iso2.toUpperCase() : undefined;
+      const v_6c3a47 = v_b9bbbd
+        ? (v_b9bbbd.countryCode ??
+            (Number(v_b9bbbd.dialCode.replace(/[^\d]/g, "")) || 0))
+        : undefined;
       const v_222917 =
         v_a6c30b && v_a6c30b.iso2 !== "global" ? v_a6c30b.dialCode : undefined;
 
@@ -291,7 +262,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           email: v_e0c7e8,
           password: v_adc076,
           name: v_1833e7,
-          phone: v_d74a81,
+          phone: v_d74a81.trim() || undefined,
           gender: v_c3eac4 || undefined,
           age: v_f4fe8e,
           country: v_a4d981,
@@ -335,7 +306,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         email: v_e0c7e8,
         password: v_adc076,
         name: v_1833e7,
-        phone: v_d74a81,
+        phone: v_d74a81.trim() || undefined,
         gender: v_c3eac4 || undefined,
         age: v_f4fe8e,
         country: v_a4d981,

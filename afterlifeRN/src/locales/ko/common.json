@@ -1135,7 +1135,7 @@
     "statusDenied": "거부됨",
     "statusUndetermined": "권한 필요",
     "statusBlocked": "차단됨",
-    "requestButton": "권한 허용",
+    "requestButton": "계속",
     "settingsButton": "설정에서 권한 켜기",
     "settingsHint": "권한 창이 안 뜨면 설정에서 켜기",
     "loading": "권한 확인 중...",
