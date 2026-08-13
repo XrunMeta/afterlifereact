@@ -24,7 +24,8 @@ log = logging.getLogger("prethird.admin_records")
 
 RECORDS_ROOT = os.environ.get("PRETHIRD_RECORDS_ROOT", "/data/records")
 ADMIN_SECRET = (
-    os.environ.get("PRETHIRD_LEARN_SECRET", "")
+    os.environ.get("LEARN_SECRET", "")
+    or os.environ.get("PRETHIRD_LEARN_SECRET", "")
     or os.environ.get("PRETHIRD_DEV_SECRET", "")
 )
 MAX_TURNS_PER_CLONE = 100
