@@ -22,6 +22,7 @@ import { v_394bcd } from "./pages/PersonaQuestionsEditPage";
 import { v_9febbb } from "./pages/VoicePresetsPage";
 import { v_f731ac } from "./pages/CrashReportsPage";
 import { v_d3670a } from "./pages/VerifyLabPage";
+import v_5bca36 from "./pages/ConversationsPage";
 
 function v_4c0c15({ children: v_21f619 }: { children: v_4a8ba2 }) {
   return (
@@ -56,6 +57,7 @@ function v_6540c3() {
         <Route path="/report-rules" element={<ProtectedLayout><ReportPenaltyRulesPage /></ProtectedLayout>} />
         <Route path="/testbed" element={<ProtectedLayout><ApiTestbedPage /></ProtectedLayout>} />
         <Route path="/oth-path-lab" element={<ProtectedLayout><VerifyLabPage /></ProtectedLayout>} />
+        <Route path="/conversations" element={<ProtectedLayout><ConversationsPage /></ProtectedLayout>} />
         <Route path="/crashes" element={<ProtectedLayout><CrashReportsPage /></ProtectedLayout>} />
         <Route
           path="/oth-path"
