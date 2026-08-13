@@ -122,11 +122,17 @@ def test_빈_문자열은_None():
 # 클론이 말 앞에 "다오~" 같은 추임새를 붙였다(히즈키 보고 2026-08-13).
 # ─────────────────────────────────────────────────────────────────────────────
 
-def test_목표_이내의_마지막_무음에서_끊는다(monkeypatch):
-    # 발화 0.0~ 시작, 무음이 1.5 / 3.0 / 4.5 초에 시작
+def test_마지막_유성구간을_버리고_그_앞_무음에서_끊는다(monkeypatch):
+    """끝 음절이 생성 앞에 새어 나오므로, 마지막 소리를 아예 포함하지 않는다."""
     monkeypatch.setattr(make_prompt_ref, "silences", lambda p: ([1.5, 3.0, 4.5], [1.9, 3.4, 4.9]))
-    # target 4.0 → 4.5 는 넘고 3.0 이 마지막 후보
-    assert make_prompt_ref.pick_end("x", 0.0, 4.0) == 3.0 + make_prompt_ref.TAIL_SILENCE_SEC
+    # target 4.0 → 후보 [1.5, 3.0]. 마지막(3.0)이 아니라 그 앞(1.5)을 고른다.
+    assert make_prompt_ref.pick_end("x", 0.0, 4.0) == 1.5 + make_prompt_ref.TAIL_SILENCE_SEC
+
+
+def test_무음이_하나뿐이면_그것을_쓴다(monkeypatch):
+    """문장이 하나뿐인 ref — 더 줄이면 음색을 학습할 재료가 없다."""
+    monkeypatch.setattr(make_prompt_ref, "silences", lambda p: ([2.0], [2.6]))
+    assert make_prompt_ref.pick_end("x", 0.0, 4.0) == 2.0 + make_prompt_ref.TAIL_SILENCE_SEC
 
 
 def test_쓸만한_무음이_없으면_목표_길이를_그대로_쓴다(monkeypatch):
@@ -135,7 +141,7 @@ def test_쓸만한_무음이_없으면_목표_길이를_그대로_쓴다(monkeyp
 
 
 def test_너무_이른_무음은_후보가_아니다(monkeypatch):
-    """시작 직후 0.5초짜리 프롬프트가 나오면 음색 학습이 안 된다."""
+    """MIN_PROMPT_SEC 미만이면 음색 학습이 안 된다."""
     monkeypatch.setattr(make_prompt_ref, "silences", lambda p: ([0.4], [0.8]))
     assert make_prompt_ref.pick_end("x", 0.0, 4.0) == 4.0
 
@@ -143,7 +149,6 @@ def test_너무_이른_무음은_후보가_아니다(monkeypatch):
 def test_발화_시작점_이후만_후보로_본다(monkeypatch):
     """앞부분 무음(발화 전)을 끝점으로 고르면 빈 오디오가 된다."""
     monkeypatch.setattr(make_prompt_ref, "silences", lambda p: ([0.1, 6.0], [2.0, 6.5]))
-    # start=2.0 이므로 0.1 은 무시, 6.0 은 start+1.0 < 6.0 <= 6.0 이라 채택
     assert make_prompt_ref.pick_end("x", 2.0, 4.0) == 6.0 + make_prompt_ref.TAIL_SILENCE_SEC
 
 
