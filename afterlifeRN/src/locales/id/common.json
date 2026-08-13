@@ -1135,7 +1135,7 @@
     "statusDenied": "Ditolak",
     "statusUndetermined": "Perlu izin",
     "statusBlocked": "Diblokir",
-    "requestButton": "Izinkan",
+    "requestButton": "Lanjutkan",
     "settingsButton": "Buka pengaturan",
     "settingsHint": "Jika dialog izin tidak muncul, aktifkan lewat pengaturan",
     "loading": "Memeriksa izin...",
