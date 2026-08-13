@@ -8,7 +8,7 @@ export interface PersonaBundle {
   cloneId: string;
   persona: v_1f7dcf;
 
-  viewer: { displayName: string | null };
+  viewer: { displayName: string | null; ownerPersonId?: number | null };
 }
 
 function v_4c95c2(v_fd5f43): v_1f7dcf | null {
@@ -38,7 +38,47 @@ export function v_445ba7(
   v_6e0fd3,
   v_debed8
 ): PersonaBundle {
-  return { l0: v_b6c480, cloneId: String(v_6e0fd3), persona: v_5ed063, viewer: v_debed8 ?? { displayName: null } };
+  return {
+    l0: v_b6c480,
+    cloneId: String(v_6e0fd3),
+    persona: v_5ed063,
+    viewer: v_debed8 ?? { displayName: null, ownerPersonId: null },
+  };
+}
+
+export async function v_83a5b9(
+  v_a1651b,
+  v_6e0fd3,
+  v_43e90c
+): Promise<number | null> {
+  const v_3ac7e7 = await v_a1651b
+    .prepare(
+      "SELECT json_extract(data, '$.owner_person_id') AS owner FROM clone_ont WHERE clone_id = ? AND user_id = ?"
+    )
+    .bind(v_6e0fd3, v_43e90c)
+    .first<{ owner: number | string | null }>();
+  const v_479f05 = v_3ac7e7?.owner;
+  if (v_479f05 == null) return null;
+  const v_f4e98d = typeof v_479f05 === "number" ? v_479f05 : Number(v_479f05);
+  return Number.isInteger(v_f4e98d) && v_f4e98d > 0 ? v_f4e98d : null;
+}
+
+export async function v_a752e9(
+  v_a1651b,
+  v_6e0fd3,
+  v_43e90c,
+  v_ca1ec5
+): Promise<boolean> {
+  const v_8f00b9 = await v_a1651b
+    .prepare(
+      `UPDATE clone_ont
+          SET data = json_set(COALESCE(data, '{}'), '$.owner_person_id', ?)
+        WHERE clone_id = ? AND user_id = ?
+          AND json_extract(COALESCE(data, '{}'), '$.owner_person_id') IS NULL`
+    )
+    .bind(v_ca1ec5, v_6e0fd3, v_43e90c)
+    .run();
+  return (v_8f00b9.meta?.changes ?? 0) > 0;
 }
 
 const v_f4c771 = [

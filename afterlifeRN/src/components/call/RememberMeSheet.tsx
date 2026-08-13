@@ -11,7 +11,6 @@ import {
   v_e767d1,
   v_326be8,
   v_0e1f26,
-  v_a944fa,
 } from "rcmrninabrnb";
 import { v_1bfbd0, v_8b0c90 } from "../constants";
 
@@ -35,6 +34,16 @@ export default function v_39b6c7({
   const [v_1833e7, v_318f24] = v_5ab095("");
   const [v_dd8af0, v_23e8d3] = v_5ab095("");
 
+  const [v_136fe5, v_fc15da] = v_5ab095(false);
+  v_c4deb2(() => {
+    const v_fdffe1 = v_0e1f26.addListener("keyboardDidShow", () => v_fc15da(true));
+    const v_2f19d2 = v_0e1f26.addListener("keyboardDidHide", () => v_fc15da(false));
+    return () => {
+      v_fdffe1.remove();
+      v_2f19d2.remove();
+    };
+  }, []);
+
   v_c4deb2(() => {
     if (v_cf55be) {
       v_318f24("");
@@ -50,14 +59,28 @@ export default function v_39b6c7({
       {
 
 }
-      <TouchableWithoutFeedback onPress={v_0e1f26.dismiss} accessible={false}>
-        <KeyboardAvoidingView
-          style={v_d81136.backdrop}
-          behavior={v_326be8.OS === "ios" ? "padding" : "height"}
-        >
-          <TouchableWithoutFeedback onPress={() => {  }}>
-            <View style={v_d81136.card} testID="remember-me-sheet">
-              <Text style={v_d81136.title}>이 분은 누구신가요?</Text>
+      <Pressable
+        testID="remember-me-backdrop"
+        style={v_d81136.backdropTouch}
+        onPress={() => {
+          if (v_136fe5) {
+            v_0e1f26.dismiss();
+            return;
+          }
+          v_1b97a8();
+        }}
+        accessibilityLabel="닫기"
+      />
+      <KeyboardAvoidingView
+        style={v_d81136.backdrop}
+        pointerEvents="box-none"
+
+        behavior={v_326be8.OS === "ios" ? "padding" : "height"}
+      >
+        {
+}
+        <View style={v_d81136.card} testID="remember-me-sheet">
+          <Text style={v_d81136.title}>이 분은 누구신가요?</Text>
           <Text style={v_d81136.desc}>
             알려주시면 다음 통화부터 기억할게요.
           </Text>
@@ -115,19 +138,22 @@ export default function v_39b6c7({
               <Text style={v_d81136.btnPrimaryText}>{v_35bf26 ? "저장 중…" : "저장"}</Text>
             </Pressable>
           </View>
-            </View>
-          </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const v_d81136 = v_472849.create({
-  backdrop: {
-    flex: 1,
+
+  backdropTouch: {
+    ...v_472849.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.6)",
+  },
+  backdrop: {
+    ...v_472849.absoluteFillObject,
     alignItems: "center",
+
     justifyContent: "center",
     padding: 24,
   },

@@ -59,7 +59,8 @@ export const v_434962 = v_a7c0d4<State>((v_bb8024, v_38715b) => ({
       const v_479f05 = await v_e84827.getItem(v_d9b84e);
       if (v_479f05 === "1") v_bb8024({ callDevUiVisible: true, hydrated: true });
       else if (v_479f05 === "0") v_bb8024({ callDevUiVisible: false, hydrated: true });
-      else v_bb8024({ hydrated: true }); 
+
+      else v_bb8024({ hydrated: true, callDevUiVisible: true });
     } catch {
       v_bb8024({ hydrated: true });
     }

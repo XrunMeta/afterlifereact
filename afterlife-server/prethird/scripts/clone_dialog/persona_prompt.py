@@ -329,12 +329,17 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
 
     # 상대 결정 — 상태 4 > 화자 확정 > 기본 상대(viewer) 순.
     speaker = speaker or {}
-    # T-494: Remember Me 로직 kill-switch — env=1 일 때 미확정 상태를 무시하고
-    #   옛 동작(unconfirmed=False 처리 = 계정주 취급, L2 그대로 삽입)로 fallback.
-    #   증상: Remember Me 3/n 정지 규칙으로 통화가 empty response 로 죽음. 사용자가
-    #   신원 확인 sheet 를 못 보거나 무시할 때 대화 자체가 정지된다.
-    #   default 0 = Remember Me 시리즈 신 동작 유지(다른 세션 의도 존중), Gabia
-    #   env 에서 =1 로 세팅하면 이전 계약 복귀.
+    # T-494: Remember Me 로직 kill-switch — env=1 이면 미확정 상태를 무시하고 옛 계약
+    #   (계정주 취급, L2 그대로 삽입)으로 돌아간다. default 0 = 신 동작 유지.
+    #
+    #   왜 필요했나(2026-08-13 원인 규명): 이 파일의 Remember Me 변경이 **앱보다 먼저**
+    #   라이브에 배포되면서, 서버는 신원 확인 전까지 대화를 막는데 앱에는 입력할 시트도
+    #   버튼도 없는 상태가 됐다. 사용자가 신원을 넣을 방법이 없어 통화가 그대로 멈췄다
+    #   (empty response). 가비아에 실제로 =1 이 세팅돼 있었다.
+    #
+    #   즉 이 기능의 결함이라기보다 **반쪽 배포의 증상**이다. 서버·API·앱을 함께 올린 뒤
+    #   =0 으로 내려 검증한다. 스위치는 남긴다 — 실통화에서 문제가 나면 env 한 줄로
+    #   즉시 되돌릴 수 있는 편이 안전하다.
     _bypass_remember_me = os.environ.get("PRETHIRD_REMEMBER_ME_BYPASS", "0") != "0"
     unconfirmed = bool(speaker.get("unconfirmed")) and not _bypass_remember_me
     l2p_data = speaker.get("l2p_data") if not unconfirmed else None
@@ -342,6 +347,19 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
     # 경로로 본다. name 이 없다고 viewer(기본 상대) 이름으로 폴백하면, 얼굴로
     # 확인된 "다른 사람"의 L2' 가 기본 상대의 이름표를 달고 나가는 오귀속이 된다.
     speaker_given = not unconfirmed and ("name" in speaker or "l2p_data" in speaker)
+
+    # [Remember Me] 확정된 화자가 L2 의 주인(= 계정주 본인)인가.
+    # owner_person_id 는 API 가 얼굴 등록 시점에 clone_ont 에 박아 bundle.viewer 로 실어
+    # 보낸다. 앱이 보낸 값이 아니므로 화자 위조로 남의 L2 를 열 수 없다.
+    _viewer_meta = pb.get("viewer") or {}
+    _owner_pid = _viewer_meta.get("ownerPersonId")
+    _speaker_pid = speaker.get("person_id")
+    is_owner = False
+    if speaker_given and _owner_pid is not None and _speaker_pid is not None:
+        try:
+            is_owner = int(_speaker_pid) == int(_owner_pid)
+        except (TypeError, ValueError):
+            is_owner = False
     if unconfirmed:
         other_name = None
     elif speaker_given:
@@ -390,10 +408,31 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
     # 정상 진행되면 그 발화가 다시 잘못된 곳에 쌓인다(person 43 의 "카메라" 오염이 그
     # 경로였다). other_source 가 비면 other_lines 도 비어 has_other_block 이 False 가
     # 되므로, "## 상대 정보" 블록과 그 소유자 선언 줄이 함께 사라진다.
+    # [Remember Me 2026-08-13] 계정주 본인의 얼굴이 확정된 경우는 위 금지의 예외다.
+    #
+    # 위 규칙은 "확정된 화자 ≠ 계정주" 를 전제로 쓰였다. 그런데 히즈키 설계 5단계 2번에
+    # 따라 첫 얼굴을 L2 의 주인으로 지정하면서, 계정주 본인이 화자로 확정되는 경로가
+    # 생겼다. 그때도 L2' 로 대체해 버리면 **자기 설문이 자기한테 안 보인다** —
+    # 실측(2026-08-13): 설문에 "연인/아내/호칭 도기/반말" 을 넣고 얼굴까지 등록했는데
+    # 클론이 "너는 누구야" 를 반복했다. L2' 에는 자동학습이 넣은 relation 한 줄과
+    # memories 뿐이었기 때문이다.
+    #
+    # 오귀속 우려는 여기서 발생하지 않는다. owner_person_id 는 서버가 얼굴 등록 시점에
+    # 직접 박은 값이고(앱 주장 아님, persons.ts claimL2OwnerFace), 그 사람은 정의상
+    # L2 의 주인이다. 주인이 아닌 화자는 아래 else 로 떨어져 기존 동작 그대로다.
     if unconfirmed:
         other_source: dict = {}
     elif speaker_given:
-        other_source = l2p_data or {}
+        if is_owner:
+            other_source = {**persona, **(l2p_data or {})}
+            # 설문에 관계를 직접 적었으면 자동학습 relation 이 그것을 덮지 못하게 한다.
+            # 둘 다 남기면 "너와의 관계: 오랜 친구" 와 "관계 상세: 아내" 가 나란히 나가
+            # 모순된 상대 정보가 된다. 실측된 학습값이 근거 없이 "오랜 친구" 였고
+            # (person 57·58 모두 동일), 사용자가 명시한 값을 이기면 안 된다.
+            if other_source.get("relation_subtype") or other_source.get("relation_category"):
+                other_source.pop("relation", None)
+        else:
+            other_source = l2p_data or {}
     else:
         other_source = persona
 

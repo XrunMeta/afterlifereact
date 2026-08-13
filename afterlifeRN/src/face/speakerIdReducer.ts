@@ -19,7 +19,7 @@ export type SpeakerIdState = {
   lastUnknownEmitMs: number | null;
 };
 
-export const v_3451db = 3;
+export const v_3451db = 1;
 
 export const v_fcf2b4 = 60_000;
 
