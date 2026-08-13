@@ -127,7 +127,7 @@ import { sendGiftOffchain } from "../../api/giftInventory";
 import { showAlert } from "../../stores/dialogStore";
 import { CommonActions } from "@react-navigation/native";
 import RememberMeButton from "../../components/call/RememberMeButton";
-import { updatePersonRelation, updatePersonName } from "../../api/persons";
+import { updatePersonRelation } from "../../api/persons";
 import { shouldAutoEnrollOwner, ownerEnrollName } from "../../face/ownerAutoEnroll";
 import RememberMeSheet from "../../components/call/RememberMeSheet";
 import {
