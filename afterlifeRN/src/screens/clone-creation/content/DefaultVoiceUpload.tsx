@@ -337,8 +337,17 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
 
   const v_0f4413 = async (v: v_d80981) => {
 
-    if (v_cf954d != null) {
-      try { v_86394a.pause(); } catch {  }
+    try { v_86394a.pause(); } catch {  }
+    if (v_81e2ef.sampleUrl) {
+      try {
+        v_86394a.replace({ uri: v_81e2ef.sampleUrl });
+        v_86394a.play();
+        v_a4d7cc(v_81e2ef.id);
+      } catch (v_49263d) {
+        console.warn("[DefaultVoice] preset auto-preview 실패:", v_49263d);
+        v_a4d7cc(null);
+      }
+    } else {
       v_a4d7cc(null);
     }
     if (v_81e2ef.srcFileId == null) {
