@@ -25,15 +25,18 @@ describe("resolveThrottleMs — dev/릴리즈 분기", () => {
     expect(resolveThrottleMs(true)).toBe(EMBEDDING_THROTTLE_DEV_MS);
   });
 
-  it("릴리즈 빌드는 10000ms (히즈키 확정값 · T-120 freeze 회귀 방지)", () => {
-    expect(resolveThrottleMs(false)).toBe(10000);
+  it("릴리즈 빌드도 3000ms — dev 와 같다(2026-08-13 히즈키 지시 \"3초 1회\")", () => {
+
+    expect(resolveThrottleMs(false)).toBe(3000);
     expect(resolveThrottleMs(false)).toBe(EMBEDDING_THROTTLE_RELEASE_MS);
   });
 
   it("릴리즈 값은 T-120 사고값(2000)보다 반드시 크다", () => {
+
     expect(EMBEDDING_THROTTLE_RELEASE_MS).toBeGreaterThan(2000);
     expect(EMBEDDING_THROTTLE_DEV_MS).toBeGreaterThan(2000);
-    expect(EMBEDDING_THROTTLE_DEV_MS).toBeLessThan(EMBEDDING_THROTTLE_RELEASE_MS);
+
+    expect(EMBEDDING_THROTTLE_DEV_MS).toBeLessThanOrEqual(EMBEDDING_THROTTLE_RELEASE_MS);
   });
 
   it("env 오버라이드가 dev/릴리즈 기본값보다 우선한다", () => {

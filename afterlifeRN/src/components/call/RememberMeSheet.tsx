@@ -11,7 +11,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
-  TouchableWithoutFeedback,
 } from "react-native";
 import { COLORS, RADIUS } from "../constants";
 
@@ -35,6 +34,16 @@ export default function RememberMeSheet({
   const [name, setName] = useState("");
   const [relation, setRelation] = useState("");
 
+  const [keyboardUp, setKeyboardUp] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () => setKeyboardUp(true));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardUp(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
   useEffect(() => {
     if (visible) {
       setName("");
@@ -50,14 +59,28 @@ export default function RememberMeSheet({
       {
 
 }
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <KeyboardAvoidingView
-          style={styles.backdrop}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
-          <TouchableWithoutFeedback onPress={() => {  }}>
-            <View style={styles.card} testID="remember-me-sheet">
-              <Text style={styles.title}>이 분은 누구신가요?</Text>
+      <Pressable
+        testID="remember-me-backdrop"
+        style={styles.backdropTouch}
+        onPress={() => {
+          if (keyboardUp) {
+            Keyboard.dismiss();
+            return;
+          }
+          onDismiss();
+        }}
+        accessibilityLabel="닫기"
+      />
+      <KeyboardAvoidingView
+        style={styles.backdrop}
+        pointerEvents="box-none"
+
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        {
+}
+        <View style={styles.card} testID="remember-me-sheet">
+          <Text style={styles.title}>이 분은 누구신가요?</Text>
           <Text style={styles.desc}>
             알려주시면 다음 통화부터 기억할게요.
           </Text>
@@ -115,19 +138,22 @@ export default function RememberMeSheet({
               <Text style={styles.btnPrimaryText}>{saving ? "저장 중…" : "저장"}</Text>
             </Pressable>
           </View>
-            </View>
-          </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
+
+  backdropTouch: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.6)",
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: "center",
+
     justifyContent: "center",
     padding: 24,
   },

@@ -8,7 +8,7 @@ export interface PersonaBundle {
   cloneId: string;
   persona: PersonaDict;
 
-  viewer: { displayName: string | null };
+  viewer: { displayName: string | null; ownerPersonId?: number | null };
 }
 
 function parseJson(s: string | null): PersonaDict | null {
@@ -36,9 +36,49 @@ export function buildPersonaBundle(
   l0: SystemPersona,
   persona: PersonaDict,
   cloneId: number,
-  viewer?: { displayName: string | null }
+  viewer?: { displayName: string | null; ownerPersonId?: number | null }
 ): PersonaBundle {
-  return { l0, cloneId: String(cloneId), persona, viewer: viewer ?? { displayName: null } };
+  return {
+    l0,
+    cloneId: String(cloneId),
+    persona,
+    viewer: viewer ?? { displayName: null, ownerPersonId: null },
+  };
+}
+
+export async function loadL2OwnerPersonId(
+  db: D1Database,
+  cloneId: number,
+  userId: number
+): Promise<number | null> {
+  const row = await db
+    .prepare(
+      "SELECT json_extract(data, '$.owner_person_id') AS owner FROM clone_ont WHERE clone_id = ? AND user_id = ?"
+    )
+    .bind(cloneId, userId)
+    .first<{ owner: number | string | null }>();
+  const raw = row?.owner;
+  if (raw == null) return null;
+  const n = typeof raw === "number" ? raw : Number(raw);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+export async function claimL2OwnerFace(
+  db: D1Database,
+  cloneId: number,
+  userId: number,
+  personId: number
+): Promise<boolean> {
+  const res = await db
+    .prepare(
+      `UPDATE clone_ont
+          SET data = json_set(COALESCE(data, '{}'), '$.owner_person_id', ?)
+        WHERE clone_id = ? AND user_id = ?
+          AND json_extract(COALESCE(data, '{}'), '$.owner_person_id') IS NULL`
+    )
+    .bind(personId, cloneId, userId)
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
 }
 
 const L2_FIELDS = [

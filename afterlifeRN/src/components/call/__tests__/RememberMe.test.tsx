@@ -60,6 +60,19 @@ describe("RememberMeSheet", () => {
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
+  it("팝업 바깥을 눌러도 닫힌다 — 나중에 와 같은 동작", () => {
+    const { getByTestId, onDismiss } = setup();
+    fireEvent.press(getByTestId("remember-me-backdrop"));
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it("카드 안을 눌러도 닫히지 않는다", () => {
+
+    const { getByTestId, onDismiss } = setup();
+    fireEvent.press(getByTestId("remember-me-sheet"));
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+
   it("저장 중에는 다시 저장되지 않는다(중복 등록 방지)", () => {
     const { getByTestId, onSubmit } = setup({ saving: true });
     fireEvent.changeText(getByTestId("remember-me-name"), "지호");

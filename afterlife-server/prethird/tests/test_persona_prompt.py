@@ -681,3 +681,105 @@ def test_1인자_호출_회귀():
     msgs = bundle_to_messages(_bundle({"displayName": "코조", "tone": "무뚝뚝함"}))
     assert len(msgs) == 1
     assert msgs[0]["role"] == "system"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# [Remember Me 2026-08-13] L2 의 주인 얼굴 — 계정주 본인이 화자로 확정된 경우.
+#
+# 배경: 화자가 확정되면 L2 를 버리고 L2' 만 쓰는 것이 T-252 의 오귀속 방지책이다.
+# 그런데 첫 얼굴을 L2 의 주인으로 지정하면서 "확정된 화자 = 계정주" 인 경로가 생겼고,
+# 그때도 대체해 버리면 자기 설문이 자기한테 안 보인다.
+# 실측: 설문에 연인/아내/도기/반말을 넣고 얼굴까지 등록했는데 클론이 "너는 누구야" 반복.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _bundle_owner(persona, owner_person_id=None, viewer_name=None):
+    """viewer.ownerPersonId 를 포함한 번들 헬퍼."""
+    pb = {"cloneId": "1", "persona": persona}
+    pb["viewer"] = {"displayName": viewer_name, "ownerPersonId": owner_person_id}
+    return {"personaBundle": pb}
+
+
+_SURVEY = {
+    "displayName": "로사",
+    "relation_category": "연인",
+    "relation_subtype": "아내",
+    "address_form": "도기",
+}
+
+
+def test_주인_얼굴이면_L2_설문이_상대정보에_남는다():
+    msgs = bundle_to_messages(
+        _bundle_owner(_SURVEY, owner_person_id=58),
+        speaker={"name": "도기", "l2p_data": {"memories_personal": ["이름: 도기"]}, "person_id": 58},
+    )
+    content = msgs[0]["content"]
+    assert "아내" in content
+    assert "도기" in content
+    # L2' 도 함께 살아 있어야 한다 — 대체가 아니라 병합이다.
+    assert "이름: 도기" in content
+
+
+def test_주인이_아닌_화자에게는_계정주_L2가_새지_않는다():
+    """T-252 mizu H-2 의 원래 방어 — 이 경계가 무너지면 안 된다."""
+    msgs = bundle_to_messages(
+        _bundle_owner(_SURVEY, owner_person_id=58),
+        speaker={"name": "민수", "l2p_data": {"relation": "직장 동료"}, "person_id": 99},
+    )
+    content = msgs[0]["content"]
+    assert "아내" not in content
+    assert "직장 동료" in content
+
+
+def test_주인_미지정이면_기존_동작_그대로():
+    """owner_person_id 가 없는 클론(설문 전·구 데이터)은 L2' 만 쓴다."""
+    msgs = bundle_to_messages(
+        _bundle_owner(_SURVEY, owner_person_id=None),
+        speaker={"name": "도기", "l2p_data": {"relation": "오랜 친구"}, "person_id": 58},
+    )
+    content = msgs[0]["content"]
+    assert "아내" not in content
+
+
+def test_설문_관계가_있으면_자동학습_relation이_덮지_못한다():
+    """실측된 학습값 "오랜 친구" 가 사용자가 명시한 "아내" 를 이기면 안 된다."""
+    msgs = bundle_to_messages(
+        _bundle_owner(_SURVEY, owner_person_id=58),
+        speaker={
+            "name": "도기",
+            "l2p_data": {"relation": "오랜 친구", "memories_personal": ["이름: 도기"]},
+            "person_id": 58,
+        },
+    )
+    content = msgs[0]["content"]
+    assert "아내" in content
+    assert "오랜 친구" not in content
+    assert "이름: 도기" in content   # 관계 외 학습분은 그대로 살린다
+
+
+def test_설문_관계가_없으면_학습_relation을_그대로_쓴다():
+    """설문을 안 적은 주인 — 학습으로 알아낸 관계라도 있는 편이 낫다."""
+    msgs = bundle_to_messages(
+        _bundle_owner({"displayName": "로사"}, owner_person_id=58),
+        speaker={"name": "도기", "l2p_data": {"relation": "오랜 친구"}, "person_id": 58},
+    )
+    assert "오랜 친구" in msgs[0]["content"]
+
+
+def test_미확정이면_주인이어도_아무것도_주지_않는다():
+    """상태 4 의 계약이 owner 예외보다 우선한다 — 얼굴을 못 알아본 상태다."""
+    msgs = bundle_to_messages(
+        _bundle_owner(_SURVEY, owner_person_id=58),
+        speaker={"unconfirmed": True},
+    )
+    content = msgs[0]["content"]
+    assert "아내" not in content
+    assert "도기" not in content
+
+
+def test_person_id_문자열도_주인으로_인식한다():
+    """JSON 왕복에서 숫자가 문자열로 오는 경로가 있다."""
+    msgs = bundle_to_messages(
+        _bundle_owner(_SURVEY, owner_person_id="58"),
+        speaker={"name": "도기", "l2p_data": {}, "person_id": 58},
+    )
+    assert "아내" in msgs[0]["content"]
