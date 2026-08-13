@@ -2,6 +2,8 @@ import {
   v_be2f9f,
   v_22f27b,
   v_fcf2b4,
+  v_3451db,
+  v_4a199d,
   v_4fd509,
 } from "../../src/face/speakerIdReducer";
 
@@ -272,16 +274,17 @@ it("speaker_confirmed 로 전이하면 재발행 상태(lastUnknownEmitMs)가 �
   v_fd5f43 = v_cb35cb.state;
   expect(v_fd5f43.lastUnknownEmitMs).toBeNull();
 
-  v_cb35cb = v_be2f9f(v_fd5f43, v_fa8caa, 40_000);
-  v_fd5f43 = v_cb35cb.state;
-  v_cb35cb = v_be2f9f(v_fd5f43, v_fa8caa, 50_000);
-  v_fd5f43 = v_cb35cb.state;
-  v_cb35cb = v_be2f9f(v_fd5f43, v_fa8caa, 60_000);
+  let v_933d8c = 0;
+  for (let v_ebec57 = 1; v_ebec57 <= v_4a199d; v_ebec57++) {
+    v_933d8c = 30_000 + v_ebec57 * 10_000;
+    v_cb35cb = v_be2f9f(v_fd5f43, v_fa8caa, v_933d8c);
+    v_fd5f43 = v_cb35cb.state;
+    if (v_ebec57 < v_4a199d) expect(v_cb35cb.event).toBeNull();
+  }
   expect(v_cb35cb.event).toEqual({ type: "unknown_face" });
-  v_fd5f43 = v_cb35cb.state;
-  expect(v_fd5f43.lastUnknownEmitMs).toBe(60_000);
+  expect(v_fd5f43.lastUnknownEmitMs).toBe(v_933d8c);
 
-  v_cb35cb = v_be2f9f(v_fd5f43, v_fa8caa, 60_000 + v_fcf2b4 - 1);
+  v_cb35cb = v_be2f9f(v_fd5f43, v_fa8caa, v_933d8c + v_fcf2b4 - 1);
   expect(v_cb35cb.event).toBeNull();
 });
 
@@ -305,4 +308,79 @@ it("RESET_RECOGNITION 은 재발행 상태도 초기화해 주기와 무관하�
 
 it("재발행 주기는 서버 REACT_COOLDOWN_S(60초)와 같다", () => {
   expect(v_fcf2b4).toBe(60_000);
+});
+
+const v_d66abf = { personId: 58, displayName: "도기", score: 0.8 };
+const v_72a933 = { personId: null, displayName: null, score: 0 };
+
+function v_ac55d4(): v_4fd509 {
+  let v_fd5f43 = v_22f27b;
+  for (let v_ebec57 = 0; v_ebec57 < v_3451db; v_ebec57++) v_fd5f43 = v_be2f9f(v_fd5f43, v_d66abf, v_ca573c).state;
+  return v_fd5f43;
+}
+
+it("확정된 사람은 unknown 3연속으로는 풀리지 않는다 — 잠깐 안 잡히는 것뿐", () => {
+  let v_fd5f43 = v_ac55d4();
+  for (let v_ebec57 = 0; v_ebec57 < v_3451db; v_ebec57++) {
+    const v_cb35cb = v_be2f9f(v_fd5f43, v_72a933, v_ca573c);
+    expect(v_cb35cb.event).toBeNull();
+    v_fd5f43 = v_cb35cb.state;
+  }
+  expect(v_fd5f43.confirmed).toBe(58);
+});
+
+it("그래도 계속 안 잡히면 UNCONFIRM_STREAK 에서 놓는다 — 진짜 자리를 뜬 경우", () => {
+  let v_fd5f43 = v_ac55d4();
+  let v_f5e8ef = null;
+  for (let v_ebec57 = 0; v_ebec57 < v_4a199d; v_ebec57++) {
+    const v_cb35cb = v_be2f9f(v_fd5f43, v_72a933, v_ca573c);
+    if (v_cb35cb.event) v_f5e8ef = v_cb35cb.event;
+    v_fd5f43 = v_cb35cb.state;
+  }
+  expect(v_f5e8ef).toEqual({ type: "unknown_face" });
+  expect(v_fd5f43.confirmed).toBe("unknown");
+});
+
+it("중간에 한 번이라도 다시 잡히면 연속이 끊겨 확정이 유지된다", () => {
+  let v_fd5f43 = v_ac55d4();
+  for (let v_ebec57 = 0; v_ebec57 < v_4a199d - 1; v_ebec57++) v_fd5f43 = v_be2f9f(v_fd5f43, v_72a933, v_ca573c).state;
+  v_fd5f43 = v_be2f9f(v_fd5f43, v_d66abf, v_ca573c).state;          
+  for (let v_ebec57 = 0; v_ebec57 < v_4a199d - 1; v_ebec57++) {
+    const v_cb35cb = v_be2f9f(v_fd5f43, v_72a933, v_ca573c);
+    expect(v_cb35cb.event).toBeNull();
+    v_fd5f43 = v_cb35cb.state;
+  }
+  expect(v_fd5f43.confirmed).toBe(58);
+});
+
+it("확정 방향은 완화되지 않는다 — 아는 얼굴은 3연속에 그대로 확정", () => {
+  let v_fd5f43 = v_22f27b;
+  let v_cb35cb = v_be2f9f(v_fd5f43, v_d66abf, v_ca573c); v_fd5f43 = v_cb35cb.state;
+  v_cb35cb = v_be2f9f(v_fd5f43, v_d66abf, v_ca573c); v_fd5f43 = v_cb35cb.state;
+  v_cb35cb = v_be2f9f(v_fd5f43, v_d66abf, v_ca573c);
+  expect(v_cb35cb.event).toEqual({ type: "speaker_confirmed", personId: 58, displayName: "도기" });
+});
+
+it("아무도 확정되지 않은 통화 초반의 unknown 은 3연속이면 발행된다", () => {
+
+  let s: v_4fd509 = v_22f27b;
+  let v_f5e8ef = null;
+  for (let v_ebec57 = 0; v_ebec57 < v_3451db; v_ebec57++) {
+    const v_cb35cb = v_be2f9f(v_fd5f43, v_72a933, v_ca573c);
+    if (v_cb35cb.event) v_f5e8ef = v_cb35cb.event;
+    v_fd5f43 = v_cb35cb.state;
+  }
+  expect(v_f5e8ef).toEqual({ type: "unknown_face" });
+});
+
+it("다른 사람으로 바뀌는 것은 완화 대상이 아니다 — 3연속이면 즉시 전환", () => {
+  let v_fd5f43 = v_ac55d4();
+  const v_a9cbf1 = { personId: 99, displayName: "민수", score: 0.8 };
+  let v_f5e8ef = null;
+  for (let v_ebec57 = 0; v_ebec57 < v_3451db; v_ebec57++) {
+    const v_cb35cb = v_be2f9f(v_fd5f43, v_a9cbf1, v_ca573c);
+    if (v_cb35cb.event) v_f5e8ef = v_cb35cb.event;
+    v_fd5f43 = v_cb35cb.state;
+  }
+  expect(v_f5e8ef).toEqual({ type: "speaker_confirmed", personId: 99, displayName: "민수" });
 });
