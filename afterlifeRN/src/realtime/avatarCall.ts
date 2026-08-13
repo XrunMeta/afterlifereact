@@ -21,6 +21,8 @@ export interface FaceEvent {
   event: 'speaker_confirmed' | 'unknown_face' | 'multi_face';
   personId?: number;
   displayName?: string | null;
+
+  silent?: boolean;
 }
 
 export interface AvatarCall {
