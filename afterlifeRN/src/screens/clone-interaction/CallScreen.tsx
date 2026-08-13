@@ -486,6 +486,8 @@ function CallScreenInner({ route, navigation }: Props) {
 
   const ownerAutoEnrollTriedRef = useRef(false);
 
+  const surveyAddressRef = useRef<string | null>(null);
+
   const namelessPersonIdRef = useRef<number | null>(null);
   const handleSpeakerEventTrampoline = useCallback((evt: SpeakerEvent) => {
     handleSpeakerEventRef.current(evt);
@@ -578,13 +580,15 @@ function CallScreenInner({ route, navigation }: Props) {
         if (
           shouldAutoEnrollOwner({
             personCount: persons?.length ?? 0,
-            ownerName: myNameRef.current,
+            ownerName: surveyAddressRef.current ?? myNameRef.current,
             alreadyTried: ownerAutoEnrollTriedRef.current,
           })
         ) {
           ownerAutoEnrollTriedRef.current = true;
-          const _n = ownerEnrollName(myNameRef.current);
+          const _n = ownerEnrollName(surveyAddressRef.current ?? myNameRef.current);
           console.log(`[Call][face] owner auto-enroll → "${_n}"`);
+
+          unknownFaceSnapshotRef.current = getFaceEmbeddingBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
           void faceEnroll
             .enroll(_n)
             .then(() => dispatchRm({ type: "ENROLLED" }))
@@ -592,11 +596,10 @@ function CallScreenInner({ route, navigation }: Props) {
 
               console.warn("[Call][face] owner auto-enroll 실패 → Remember Me:", err);
               dispatchRm({ type: "UNKNOWN_FACE" });
+              sendFaceEvent?.({ event: "unknown_face" });
             });
 
           dispatchSh({ type: "UNKNOWN_FACE" });
-          unknownFaceSnapshotRef.current = getFaceEmbeddingBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
-          sendFaceEvent?.({ event: "unknown_face" });
           return;
         }
 
@@ -1077,6 +1080,20 @@ function CallScreenInner({ route, navigation }: Props) {
   const myName = useAuthStore((s) => s.apiUser?.name ?? null);
 
   useEffect(() => { myNameRef.current = myName; }, [myName]);
+
+  useEffect(() => {
+    if (!accessToken || !cloneId) return;
+    let cancelled = false;
+    getCloneL2(accessToken, cloneId)
+      .then(({ l2_profile }) => {
+        if (cancelled) return;
+        const addr = ((l2_profile as { address_form?: string } | null)?.address_form ?? "").trim();
+        surveyAddressRef.current = addr || null;
+        console.log(`[Call][face] 설문 호칭=${addr || "(없음)"}`);
+      })
+      .catch(() => {  });
+    return () => { cancelled = true; };
+  }, [accessToken, cloneId]);
   const myAvatarUrl = useAuthStore((s) => s.apiUser?.avatarUrl ?? null);
 
   const [gifts, setGifts] = useState<GiftCatalogItem[]>([]);
