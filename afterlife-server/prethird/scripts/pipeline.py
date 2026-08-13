@@ -17,12 +17,45 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 import tempfile
 import time
 from typing import Callable
 
 import numpy as np
 from recorder import NULL_TURN
+
+
+# T-497: 이모지·기타 유니코드 심볼 strip — TTS(MeloTTS/OpenVoice) 가 이모지를 이상한
+#   음소로 발음("이모치 하피" 왜곡 사고). LLM 이 프롬프트 규칙(_STRICT_TONE_ANCHOR §6)
+#   을 어겨도 서버가 방어적으로 제거한다 (defense in depth).
+_EMOJI_RE = re.compile(
+    "[\U0001F600-\U0001F64F"   # emoticons
+    "\U0001F300-\U0001F5FF"    # symbols & pictographs
+    "\U0001F680-\U0001F6FF"    # transport & map
+    "\U0001F700-\U0001F77F"
+    "\U0001F780-\U0001F7FF"
+    "\U0001F800-\U0001F8FF"
+    "\U0001F900-\U0001F9FF"
+    "\U0001FA00-\U0001FAFF"
+    "☀-➿"             # misc symbols & dingbats (☺❤★ 등)
+    "⌀-⏿"             # misc technical
+    "\U0001F1E6-\U0001F1FF"    # regional indicator (국기)
+    "︀-️"             # variation selectors
+    "‍"                    # zero-width joiner (조합 이모지)
+    "]+",
+    flags=re.UNICODE,
+)
+
+
+def strip_emojis_for_tts(text: str) -> str:
+    """이모지·심볼 제거 + 연속 공백 정규화. 순수 함수(테스트용)."""
+    if not text:
+        return text
+    cleaned = _EMOJI_RE.sub("", text)
+    # 이모지 제거 후 남은 여백 정리
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned
 
 log = logging.getLogger("prethird.pipeline")
 
@@ -277,8 +310,14 @@ class DialoguePipeline:
     # ------------------------------------------------------------------
 
     async def _tts_stage(self, sentence: str):
-        """문장 → TTS wav bytes + 48kHz int16 PCM. (GPU0: qwen3 TTS)"""
-        wav_bytes = await self.say_fn(sentence, self.se_path)
+        """문장 → TTS wav bytes + 48kHz int16 PCM. (GPU0: qwen3 TTS)
+
+        T-497: 이모지 strip. LLM 이 프롬프트 규칙 어기고 이모지 뱉어도 여기서
+        방어적으로 제거해 TTS 왜곡("이모치 하피") 방지. 원본 sentence 는 자막
+        발신에서 이미 소비된 뒤라 여기서 sanitize 해도 UX 영향 없음.
+        """
+        clean = strip_emojis_for_tts(sentence)
+        wav_bytes = await self.say_fn(clean or sentence, self.se_path)
         pcm, sr, _ = self.decode_wav_fn(wav_bytes)
         pcm48 = self._resample(pcm, sr, 48000)
         return wav_bytes, pcm48
