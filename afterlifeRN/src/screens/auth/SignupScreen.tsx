@@ -229,15 +229,8 @@ export default function SignupScreen({ navigation, route }: Props) {
       );
       return;
     }
-    if (!phone.trim()) {
-      showAlert(
-        t("common.notice"),
-        t("auth.signup.phoneRequired", { defaultValue: "전화번호를 입력해주세요." }),
-        [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: focusAfterAlert(phoneRef) }],
-      );
-      return;
-    }
-    if (phone.length < 4) {
+
+    if (phone.trim() && phone.length < 4) {
       showAlert(
         t("common.notice"),
         t("auth.signup.phoneTooShort"),
@@ -245,43 +238,21 @@ export default function SignupScreen({ navigation, route }: Props) {
       );
       return;
     }
-    if (!gender) {
-      showAlert(
-        t("common.notice"),
-        t("auth.signup.genderRequired", { defaultValue: "성별을 선택해주세요." }),
-      );
-      return;
-    }
-    if (!ageRange) {
-      showAlert(
-        t("common.notice"),
-        t("auth.signup.ageRangeRequired", { defaultValue: "연령대를 선택해주세요." }),
-      );
-      return;
-    }
-    if (!country) {
-      showAlert(t("common.notice"), t("auth.signup.countryRequired"));
-      return;
-    }
     if (!agreeRequired) {
       showAlert(t("common.notice"), t("auth.signup.termsAccept"));
       return;
     }
 
-    const ageNum = ageRangeToAge(ageRange);
-    if (ageNum <= 0) {
-      showAlert(t("common.notice"), t("auth.signup.ageInvalid"));
-      return;
-    }
+    const ageNum = ageRange ? ageRangeToAge(ageRange) : undefined;
 
     setSubmitting(true);
     try {
 
-      const countryCode = country.iso2.toUpperCase();
-
-      const mobileCode =
-        country.countryCode ??
-        (Number(country.dialCode.replace(/[^\d]/g, "")) || 0);
+      const countryCode = country ? country.iso2.toUpperCase() : undefined;
+      const mobileCode = country
+        ? (country.countryCode ??
+            (Number(country.dialCode.replace(/[^\d]/g, "")) || 0))
+        : undefined;
       const regionCode =
         region && region.iso2 !== "global" ? region.dialCode : undefined;
 
@@ -291,7 +262,7 @@ export default function SignupScreen({ navigation, route }: Props) {
           email,
           password,
           name,
-          phone,
+          phone: phone.trim() || undefined,
           gender: gender || undefined,
           age: ageNum,
           country: countryCode,
@@ -335,7 +306,7 @@ export default function SignupScreen({ navigation, route }: Props) {
         email,
         password,
         name,
-        phone,
+        phone: phone.trim() || undefined,
         gender: gender || undefined,
         age: ageNum,
         country: countryCode,
