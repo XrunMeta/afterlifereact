@@ -1135,7 +1135,7 @@
     "statusDenied": "已拒绝",
     "statusUndetermined": "需要授权",
     "statusBlocked": "已阻止",
-    "requestButton": "允许权限",
+    "requestButton": "继续",
     "settingsButton": "前往设置开启权限",
     "settingsHint": "如果没有弹出权限对话框,请前往设置开启",
     "loading": "正在检查权限...",
