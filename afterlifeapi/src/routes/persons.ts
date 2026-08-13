@@ -9,6 +9,8 @@ import { v_430d2b } from "../lib/personDelete";
 import { v_d0fd96 } from "../lib/displayName";
 import { v_0b07b9 } from "../lib/cloneAccess";
 import { v_929ead, v_97be02, v_003ee1 } from "../lib/cloneFaceScope";
+import { v_a752e9 } from "../lib/personaBundle";
+import { v_74defc } from "../lib/logger";
 
 export const v_fded81 = new v_b7c41b<v_de0a25>();
 
@@ -354,6 +356,16 @@ v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
       vectors: v_f94e64,
       source: "call",
     });
+
+    const v_0a2cd1 = await v_a752e9(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c, v_ca1ec5).catch(() => false);
+    if (v_0a2cd1) {
+      await v_74defc(v_3f4e2e, {
+        userId: v_43e90c,
+        action: "l2.owner_face.claim",
+        details: { cloneId: v_6e0fd3, personId: v_ca1ec5 },
+      });
+    }
+
     return v_3f4e2e.json({ enrolled: v_570847 });
   } catch (v_9e86fd) {
     throw new v_3ebe58("UPSTREAM_FAILURE", `얼굴 벡터 인덱스 저장 실패: ${(v_9e86fd as Error).message}`);

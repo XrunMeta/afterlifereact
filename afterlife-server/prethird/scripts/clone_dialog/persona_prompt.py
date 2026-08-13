@@ -347,6 +347,19 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
     # 경로로 본다. name 이 없다고 viewer(기본 상대) 이름으로 폴백하면, 얼굴로
     # 확인된 "다른 사람"의 L2' 가 기본 상대의 이름표를 달고 나가는 오귀속이 된다.
     speaker_given = not unconfirmed and ("name" in speaker or "l2p_data" in speaker)
+
+    # [Remember Me] 확정된 화자가 L2 의 주인(= 계정주 본인)인가.
+    # owner_person_id 는 API 가 얼굴 등록 시점에 clone_ont 에 박아 bundle.viewer 로 실어
+    # 보낸다. 앱이 보낸 값이 아니므로 화자 위조로 남의 L2 를 열 수 없다.
+    _viewer_meta = pb.get("viewer") or {}
+    _owner_pid = _viewer_meta.get("ownerPersonId")
+    _speaker_pid = speaker.get("person_id")
+    is_owner = False
+    if speaker_given and _owner_pid is not None and _speaker_pid is not None:
+        try:
+            is_owner = int(_speaker_pid) == int(_owner_pid)
+        except (TypeError, ValueError):
+            is_owner = False
     if unconfirmed:
         other_name = None
     elif speaker_given:
@@ -395,10 +408,31 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
     # 정상 진행되면 그 발화가 다시 잘못된 곳에 쌓인다(person 43 의 "카메라" 오염이 그
     # 경로였다). other_source 가 비면 other_lines 도 비어 has_other_block 이 False 가
     # 되므로, "## 상대 정보" 블록과 그 소유자 선언 줄이 함께 사라진다.
+    # [Remember Me 2026-08-13] 계정주 본인의 얼굴이 확정된 경우는 위 금지의 예외다.
+    #
+    # 위 규칙은 "확정된 화자 ≠ 계정주" 를 전제로 쓰였다. 그런데 히즈키 설계 5단계 2번에
+    # 따라 첫 얼굴을 L2 의 주인으로 지정하면서, 계정주 본인이 화자로 확정되는 경로가
+    # 생겼다. 그때도 L2' 로 대체해 버리면 **자기 설문이 자기한테 안 보인다** —
+    # 실측(2026-08-13): 설문에 "연인/아내/호칭 도기/반말" 을 넣고 얼굴까지 등록했는데
+    # 클론이 "너는 누구야" 를 반복했다. L2' 에는 자동학습이 넣은 relation 한 줄과
+    # memories 뿐이었기 때문이다.
+    #
+    # 오귀속 우려는 여기서 발생하지 않는다. owner_person_id 는 서버가 얼굴 등록 시점에
+    # 직접 박은 값이고(앱 주장 아님, persons.ts claimL2OwnerFace), 그 사람은 정의상
+    # L2 의 주인이다. 주인이 아닌 화자는 아래 else 로 떨어져 기존 동작 그대로다.
     if unconfirmed:
         other_source: dict = {}
     elif speaker_given:
-        other_source = l2p_data or {}
+        if is_owner:
+            other_source = {**persona, **(l2p_data or {})}
+            # 설문에 관계를 직접 적었으면 자동학습 relation 이 그것을 덮지 못하게 한다.
+            # 둘 다 남기면 "너와의 관계: 오랜 친구" 와 "관계 상세: 아내" 가 나란히 나가
+            # 모순된 상대 정보가 된다. 실측된 학습값이 근거 없이 "오랜 친구" 였고
+            # (person 57·58 모두 동일), 사용자가 명시한 값을 이기면 안 된다.
+            if other_source.get("relation_subtype") or other_source.get("relation_category"):
+                other_source.pop("relation", None)
+        else:
+            other_source = l2p_data or {}
     else:
         other_source = persona
 
