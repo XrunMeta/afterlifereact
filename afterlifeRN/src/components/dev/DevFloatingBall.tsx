@@ -9,6 +9,7 @@ import {
   v_472849,
   v_9cabcb,
   v_700696,
+  v_122070,
 } from 'rcmrninabrnb';
 import { v_dec439 } from 'zvyjokvuouwvifyzks';
 import { v_7ed42d } from './useFloatingBallPosition';
@@ -91,7 +92,12 @@ export function v_0f28c1() {
       </TouchableOpacity>
 
       {v_83c574 && (
-        <View style={v_d81136.menu}>
+
+        <ScrollView
+          style={v_d81136.menu}
+          contentContainerStyle={v_d81136.menuContent}
+          showsVerticalScrollIndicator
+        >
           <TouchableOpacity
             style={v_d81136.row}
             onPress={() => {
@@ -180,7 +186,7 @@ export function v_0f28c1() {
               </TouchableOpacity>
             );
           })}
-        </View>
+        </ScrollView>
       )}
 
       <Modal
@@ -301,11 +307,15 @@ const v_d81136 = v_472849.create({
     left: v_88dc4d + 8,
     top: 0,
     backgroundColor: '#111',
-    padding: 10,
     borderRadius: 8,
     minWidth: 180,
     zIndex: 100000,
     elevation: 25,
+
+    maxHeight: v_5a448f * 0.6,
+  },
+  menuContent: {
+    padding: 10,
   },
   row: {
     flexDirection: 'row',
