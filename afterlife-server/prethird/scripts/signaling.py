@@ -867,16 +867,30 @@ def _handle_face_event(sess, data: dict) -> None:
             )
         return
 
+    # [Remember Me 2026-08-13] rejoin — "끊겼다가 돌아왔다".
+    #
+    # 아는 얼굴 반응은 통화당 1회다(같은 사람에게 "오셨군요"를 반복하지 않기 위해).
+    # 그런데 Remember Me 대기에 빠졌다가 아는 얼굴이 다시 잡힌 경우에는, 그 사람에게
+    # 실제로 대화가 끊겼던 것이므로 다시 맞이해야 한다(히즈키 지시: "내 얼굴이 다시
+    # 나오면 다시 왔다고 인사를 하고 대화 진행").
+    #
+    # 다만 1회 제한을 통째로 없애지는 않는다 — 앱이 신호를 반복해 보내면 클론이 매번
+    # 말을 끊게 되므로, unknown 과 같은 60초 쿨다운은 그대로 적용한다.
+    rejoin = data.get("rejoin") is True
     key = str(pid_int) if event == "speaker_confirmed" else "unknown"
     now = time.monotonic()
     last = sess.reacted_keys.get(key)
-    if last is not None and (key != "unknown" or now - last < REACT_COOLDOWN_S):
-        if _face_diag_on():
-            log.info(
-                "face_diag cooldown session=%s person=%s suppressed=1",
-                getattr(sess, "session_id", "?"), pid_int,
-            )
-        return  # 아는 얼굴=통화당 1회, unknown/multi_face=60s 쿨다운 (react만 억제)
+    if last is not None:
+        # unknown 과 rejoin 은 "시간이 지나면 다시" — 그 외 아는 얼굴은 통화당 1회.
+        cooldown_only = key == "unknown" or rejoin
+        suppressed = (now - last < REACT_COOLDOWN_S) if cooldown_only else True
+        if suppressed:
+            if _face_diag_on():
+                log.info(
+                    "face_diag cooldown session=%s person=%s rejoin=%s suppressed=1",
+                    getattr(sess, "session_id", "?"), pid_int, int(rejoin),
+                )
+            return  # 아는 얼굴=통화당 1회(rejoin 이면 60s 쿨다운), unknown=60s 쿨다운
     sess.reacted_keys[key] = now
 
     if event == "speaker_confirmed":
