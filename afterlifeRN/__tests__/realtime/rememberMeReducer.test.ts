@@ -58,16 +58,35 @@ describe("rememberMeReducer", () => {
     expect(actions).toEqual([{ type: "RESUME_CONVERSATION" }]);
   });
 
-  it("등록된 얼굴이 인식되면 해제된다 — 유일한 자동 해제 경로", () => {
+  it("이름 있는 얼굴이 인식되면 해제된다 — 유일한 자동 해제 경로", () => {
     let s = step(initRememberMeState(), { type: "UNKNOWN_FACE" }).state;
     s = step(s, { type: "DISMISS" }).state;
     expect(s.identified).toBe(false);
 
-    const { state, actions } = step(s, { type: "KNOWN_FACE" });
+    const { state, actions } = step(s, { type: "KNOWN_FACE", named: true });
     expect(state.identified).toBe(true);
     expect(state.sheetOpen).toBe(false);
 
     expect(actions).toEqual([]);
+  });
+
+  it("이름 없는 person 이 매칭되면 해제하지 않는다 — 교착 방지", () => {
+
+    const { state, actions } = step(initRememberMeState(), {
+      type: "KNOWN_FACE",
+      named: false,
+    });
+    expect(state.identified).toBe(false);
+    expect(state.sheetOpen).toBe(true);
+    expect(actions).toEqual([{ type: "HALT_CONVERSATION" }]);
+  });
+
+  it("이름 없는 매칭도 닫은 뒤에는 시트를 다시 강제로 열지 않는다", () => {
+    let s = step(initRememberMeState(), { type: "KNOWN_FACE", named: false }).state;
+    s = step(s, { type: "DISMISS" }).state;
+    const r = step(s, { type: "KNOWN_FACE", named: false });
+    expect(r.state.sheetOpen).toBe(false);
+    expect(r.actions).toEqual([]);
   });
 
   it("대화 정지/재개는 시트 열림이 실제로 바뀔 때만 낸다", () => {

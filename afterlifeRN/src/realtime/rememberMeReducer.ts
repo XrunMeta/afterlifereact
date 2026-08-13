@@ -11,7 +11,7 @@ export type RememberMeEvent =
 
   | { type: "UNKNOWN_FACE" }
 
-  | { type: "KNOWN_FACE" }
+  | { type: "KNOWN_FACE"; named: boolean }
 
   | { type: "DISMISS" }
 
@@ -42,6 +42,10 @@ function next(state: RememberMeState, event: RememberMeEvent): RememberMeState {
       return { ...state, sheetOpen: false };
 
     case "KNOWN_FACE":
+
+      if (!event.named) return next(state, { type: "UNKNOWN_FACE" });
+      return { identified: true, sheetOpen: false };
+
     case "ENROLLED":
       return { identified: true, sheetOpen: false };
 
