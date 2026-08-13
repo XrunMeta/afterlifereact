@@ -1,7 +1,7 @@
 
 
-import { v_c4deb2, v_5ab095 } from "bapkr";
-import { v_05a921 } from "../api/client";
+import { v_c4deb2, v_5ab095, v_e662ae } from "bapkr";
+import { v_05a921, v_22b25d } from "../api/client";
 
 const v_93c199 = "oth-user@example.invalid";
 
@@ -28,6 +28,52 @@ export default function v_5bca36() {
   const [v_43e90c, v_688dd2] = v_5ab095<number | null>(null);
   const [v_f891e6, v_3302bc] = v_5ab095<CloneWithRecords[]>([]);
   const [v_8307be, v_3fbfa4] = v_5ab095<number | null>(null);
+  const [v_52ff81, v_589039] = v_5ab095<number | null>(null);
+  const v_f01ee0 = v_e662ae<HTMLAudioElement | null>(null);
+
+  const v_830d22 = async (v_062ae9, v_3a5fef, v_9b6134) => {
+    if (!v_9b6134.trim()) return;
+
+    try { v_f01ee0.current?.pause(); } catch {  }
+    v_f01ee0.current = null;
+    v_589039(v_3a5fef);
+    try {
+      const v_21cc31 = v_22b25d();
+      const v_f17108 = (window.localStorage.getItem("afterlife.admin.apiOverride")
+        || import.meta.env.VITE_API_URL
+        || "").replace(/\/$/, "");
+      const v_8f00b9 = await fetch(`${v_f17108}/oth-path${v_062ae9}/tts-preview`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(v_21cc31 ? { Authorization: `Bearer ${v_21cc31}` } : {}),
+        },
+        body: JSON.stringify({ text: v_9b6134 }),
+      });
+      if (!v_8f00b9.ok) {
+        const v_4d33b2 = await v_8f00b9.text().catch(() => "");
+        window.alert(`재생 실패 (${v_8f00b9.status}): ${v_4d33b2.slice(0, 200)}`);
+        v_589039(null);
+        return;
+      }
+      const v_3263c7 = await v_8f00b9.blob();
+      const v_f71b56 = URL.createObjectURL(v_3263c7);
+      const v_ff0300 = new Audio(v_f71b56);
+      v_f01ee0.current = v_ff0300;
+      v_ff0300.onended = () => {
+        v_589039(null);
+        URL.revokeObjectURL(v_f71b56);
+      };
+      v_ff0300.onerror = () => {
+        v_589039(null);
+        URL.revokeObjectURL(v_f71b56);
+      };
+      await v_ff0300.play();
+    } catch (v_9e86fd) {
+      window.alert(`재생 오류: ${String(v_9e86fd)}`);
+      v_589039(null);
+    }
+  };
 
   const v_f6f5de = () => {
     v_34a50a(true);
@@ -125,16 +171,6 @@ export default function v_5bca36() {
             ) : (
               v_587413.items.map((v_8d41d7) => {
                 const v_f985e6 = new Date(v_8d41d7.ts).toLocaleString("ko-KR");
-
-                const v_67b223 = () => {
-                  const v_062ae9 = v_587413.id;
-                  const v_9b6134 = v_8d41d7.answer || "";
-                  navigator.clipboard?.writeText(v_9b6134).catch(() => {});
-                  window.open("https://rtc.example.invalid/oth-path", "_blank");
-                  window.alert(
-                    `clone #${v_062ae9} 텍스트가 복사됐어. 새로 열린 탭에서 로그인 → 클론 선택(${v_062ae9}) → 텍스트 붙여넣고 ▶ 재생.`,
-                  );
-                };
                 return (
                   <div key={v_8d41d7.ts} style={{ padding: "12px 0", borderBottom: "1px solid #27272a" }}>
                     <div style={{ fontSize: 11, color: "#71717a", marginBottom: 6 }}>{v_f985e6}</div>
@@ -147,20 +183,21 @@ export default function v_5bca36() {
                       <span style={{ fontSize: 14, flex: 1 }}>{v_8d41d7.answer || <i style={{ color: "#71717a" }}>(비어있음)</i>}</span>
                       {v_8d41d7.answer && (
                         <button
-                          onClick={v_67b223}
-                          title="verify-lab TTS 미리듣기 열기 (텍스트 복사됨)"
+                          onClick={() => v_830d22(v_587413.id, v_8d41d7.ts, v_8d41d7.answer)}
+                          disabled={v_52ff81 === v_8d41d7.ts}
+                          title="이 답변을 클론 목소리로 재생"
                           style={{
                             padding: "2px 8px",
-                            background: "#3f3f46",
+                            background: v_52ff81 === v_8d41d7.ts ? "#7c3aed" : "#3f3f46",
                             border: "1px solid #52525b",
                             borderRadius: 4,
                             color: "#e5e7eb",
                             fontSize: 11,
-                            cursor: "pointer",
+                            cursor: v_52ff81 === v_8d41d7.ts ? "wait" : "pointer",
                             whiteSpace: "nowrap",
                           }}
                         >
-                          ▶ 듣기
+                          {v_52ff81 === v_8d41d7.ts ? "▶ 재생중…" : "▶ 듣기"}
                         </button>
                       )}
                     </div>
