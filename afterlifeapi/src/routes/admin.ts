@@ -2476,3 +2476,63 @@ admin.get("/conversations", requireAdmin, async (c) => {
   return c.json({ user_id: userId, user_email: userEmail, clones: results });
 });
 
+admin.post("/oth-path", requireAdmin, async (c) => {
+  const cid = Number(c.req.param("id"));
+  if (!Number.isFinite(cid)) {
+    return c.json({ error: "invalid clone id" }, 400);
+  }
+  const body = await c.req.json<{ text?: string }>().catch(() => ({}));
+  const text = (body.text ?? "").trim();
+  if (!text) return c.json({ error: "text required" }, 400);
+  if (text.length > 500) return c.json({ error: "text too long (max 500)" }, 400);
+
+  const clone = await c.env.DB
+    .prepare("SELECT voice_se_url, voice_preset_id FROM clones WHERE id = ?")
+    .bind(cid)
+    .first<{ voice_se_url: string | null; voice_preset_id: number | null }>();
+  if (!clone) return c.json({ error: "clone not found" }, 404);
+
+  let seKey: string | null = null;
+  if (clone.voice_se_url) {
+
+    seKey = String(cid);
+  } else if (clone.voice_preset_id) {
+    const preset = await c.env.DB
+      .prepare("SELECT se_key FROM voice_presets WHERE id = ? AND is_active = 1")
+      .bind(clone.voice_preset_id)
+      .first<{ se_key: string | null }>();
+    seKey = preset?.se_key ?? null;
+  }
+  if (!seKey) return c.json({ error: "clone has no voice_se available" }, 404);
+
+  const secret = c.env.LEARN_SECRET ?? "";
+  if (!secret) return c.json({ error: "LEARN_SECRET not configured" }, 500);
+  try {
+    const resp = await fetch("https://rtc.example.invalid/prethird/admin/tts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Admin-Secret": secret,
+      },
+      body: JSON.stringify({ text, se_key: seKey }),
+    });
+    if (!resp.ok) {
+      const errBody = await resp.text().catch(() => "");
+      return c.json(
+        { error: `prethird ${resp.status}: ${errBody.slice(0, 200)}` },
+        resp.status as 400 | 500,
+      );
+    }
+    const wav = await resp.arrayBuffer();
+    return new Response(wav, {
+      status: 200,
+      headers: {
+        "Content-Type": "audio/wav",
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (e) {
+    return c.json({ error: `upstream: ${String(e)}` }, 502);
+  }
+});
+

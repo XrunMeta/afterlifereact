@@ -1,7 +1,7 @@
 
 
-import { useEffect, useState } from "react";
-import { api } from "../api/client";
+import { useEffect, useState, useRef } from "react";
+import { api, getAdminToken } from "../api/client";
 
 const DEFAULT_EMAIL = "oth-user@example.invalid";
 
@@ -28,6 +28,52 @@ export default function ConversationsPage() {
   const [userId, setUserId] = useState<number | null>(null);
   const [clones, setClones] = useState<CloneWithRecords[]>([]);
   const [selectedCloneId, setSelectedCloneId] = useState<number | null>(null);
+  const [playingTs, setPlayingTs] = useState<number | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const playTts = async (cid: number, ts: number, text: string) => {
+    if (!text.trim()) return;
+
+    try { audioRef.current?.pause(); } catch {  }
+    audioRef.current = null;
+    setPlayingTs(ts);
+    try {
+      const token = getAdminToken();
+      const origin = (window.localStorage.getItem("afterlife.admin.apiOverride")
+        || import.meta.env.VITE_API_URL
+        || "").replace(/\/$/, "");
+      const res = await fetch(`${origin}/oth-path${cid}/tts-preview`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        window.alert(`재생 실패 (${res.status}): ${body.slice(0, 200)}`);
+        setPlayingTs(null);
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => {
+        setPlayingTs(null);
+        URL.revokeObjectURL(url);
+      };
+      audio.onerror = () => {
+        setPlayingTs(null);
+        URL.revokeObjectURL(url);
+      };
+      await audio.play();
+    } catch (e) {
+      window.alert(`재생 오류: ${String(e)}`);
+      setPlayingTs(null);
+    }
+  };
 
   const load = () => {
     setLoading(true);
@@ -125,16 +171,6 @@ export default function ConversationsPage() {
             ) : (
               selected.items.map((t) => {
                 const time = new Date(t.ts).toLocaleString("ko-KR");
-
-                const onPlay = () => {
-                  const cid = selected.id;
-                  const text = t.answer || "";
-                  navigator.clipboard?.writeText(text).catch(() => {});
-                  window.open("https://rtc.example.invalid/oth-path", "_blank");
-                  window.alert(
-                    `clone #${cid} 텍스트가 복사됐어. 새로 열린 탭에서 로그인 → 클론 선택(${cid}) → 텍스트 붙여넣고 ▶ 재생.`,
-                  );
-                };
                 return (
                   <div key={t.ts} style={{ padding: "12px 0", borderBottom: "1px solid #27272a" }}>
                     <div style={{ fontSize: 11, color: "#71717a", marginBottom: 6 }}>{time}</div>
@@ -147,20 +183,21 @@ export default function ConversationsPage() {
                       <span style={{ fontSize: 14, flex: 1 }}>{t.answer || <i style={{ color: "#71717a" }}>(비어있음)</i>}</span>
                       {t.answer && (
                         <button
-                          onClick={onPlay}
-                          title="verify-lab TTS 미리듣기 열기 (텍스트 복사됨)"
+                          onClick={() => playTts(selected.id, t.ts, t.answer)}
+                          disabled={playingTs === t.ts}
+                          title="이 답변을 클론 목소리로 재생"
                           style={{
                             padding: "2px 8px",
-                            background: "#3f3f46",
+                            background: playingTs === t.ts ? "#7c3aed" : "#3f3f46",
                             border: "1px solid #52525b",
                             borderRadius: 4,
                             color: "#e5e7eb",
                             fontSize: 11,
-                            cursor: "pointer",
+                            cursor: playingTs === t.ts ? "wait" : "pointer",
                             whiteSpace: "nowrap",
                           }}
                         >
-                          ▶ 듣기
+                          {playingTs === t.ts ? "▶ 재생중…" : "▶ 듣기"}
                         </button>
                       )}
                     </div>
