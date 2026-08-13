@@ -2,7 +2,13 @@
 
 import { v_b60bdd } from "./systemPersona";
 import { v_24564b } from "./personaResolver";
-import { v_db508f, v_445ba7, v_56dc8c, v_20b0e8 } from "./personaBundle";
+import {
+  v_db508f,
+  v_445ba7,
+  v_56dc8c,
+  v_20b0e8,
+  v_83a5b9,
+} from "./personaBundle";
 import type { v_b107dc } from "./cloneAccess";
 
 export interface CallBundle {
@@ -40,8 +46,11 @@ export async function v_87cfd2(v_a1651b, clone: v_b107dc, v_43e90c, v_f17108): P
     .bind(v_43e90c)
     .first<{ name: string | null }>();
 
+  const v_54e25d = await v_83a5b9(v_a1651b, v_6e0fd3, v_43e90c);
+
   const v_ba0fde = v_445ba7(v_b6c480, v_5ed063, v_6e0fd3, {
     displayName: v_48c548?.name ?? null,
+    ownerPersonId: v_54e25d,
   });
 
   let v_c910d9 = v_eb25ce.voice_se_url ?? null;

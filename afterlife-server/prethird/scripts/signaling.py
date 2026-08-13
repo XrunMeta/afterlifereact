@@ -432,9 +432,11 @@ async def _maybe_swap_l2p(sess, pid: int, name, epoch: int | None = None) -> Non
         # T-252: base 뒤에 힌트를 덧붙이는 대신 프롬프트를 통째로 재조립한다.
         # append 방식은 "기본 상대는 지호" 선언과 "지금 상대는 민수" 선언이 프롬프트에
         # 동시에 남아 모순이 된다.
+        # person_id 를 함께 넘긴다 — 프롬프트 쪽이 bundle.viewer.ownerPersonId 와 대조해
+        # "이 화자가 L2 의 주인(계정주 본인)인가" 를 판정한다(Remember Me 2026-08-13).
         new_messages = bundle_to_messages(
             bundle,
-            speaker={"name": name, "l2p_data": l2p_data},
+            speaker={"name": name, "l2p_data": l2p_data, "person_id": pid},
         )
         if not new_messages:
             # [T-252 fix / el I-1] 입력(bundle) 가드만으로는 부족하다 — truthy bundle
