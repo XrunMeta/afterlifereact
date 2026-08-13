@@ -65,6 +65,39 @@ describe("updateOntFromExtraction", () => {
     expect(l2.relation).toBe("손녀");
   });
 
+  it("CallEntry 7필드 + 미래의 사용자 입력 필드도 auto-learn 후 보존", async () => {
+    await seedL2(9005, 8005, {
+      preference_personal: {},
+      relation_category: "가족",
+      relation_subtype: "언니",
+      relation_episode: "매일 카톡",
+      address_form: "야",
+      speech_form: "반말",
+      job_category: "개발자",
+      job_detail: "게임 백엔드",
+
+      future_field_XYZ: { any: "shape" },
+      _meta: { layer: "L2", rev: 5 },
+    });
+    await updateOntFromExtraction(
+      E,
+      9005,
+      8005,
+      { memories_personal: ["오늘 지각함"] },
+      "chat",
+    );
+    const l2 = await getL2(9005, 8005);
+    expect(l2.relation_category).toBe("가족");
+    expect(l2.relation_subtype).toBe("언니");
+    expect(l2.relation_episode).toBe("매일 카톡");
+    expect(l2.address_form).toBe("야");
+    expect(l2.speech_form).toBe("반말");
+    expect(l2.job_category).toBe("개발자");
+    expect(l2.job_detail).toBe("게임 백엔드");
+    expect(l2.future_field_XYZ).toEqual({ any: "shape" });
+    expect(l2.memories_personal).toEqual(["오늘 지각함"]);
+  });
+
   it("손상 JSON은 덮어쓰기", async () => {
     await E.DB.prepare(
       "INSERT OR REPLACE INTO clone_ont (clone_id, user_id, data, updated_at) VALUES (?, ?, ?, unixepoch())",

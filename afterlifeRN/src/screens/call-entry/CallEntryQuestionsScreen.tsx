@@ -330,8 +330,9 @@ export default function CallEntryQuestionsScreen({
                 <TouchableOpacity
                   style={[s.modalBtn, s.modalBtnPrimary]}
                   onPress={() => {
+
                     setDoneModal(false);
-                    onCall();
+                    setTimeout(onCall, 250);
                   }}
                 >
                   <Text style={s.modalBtnPrimaryText}>{`${name}님과 통화하기`}</Text>

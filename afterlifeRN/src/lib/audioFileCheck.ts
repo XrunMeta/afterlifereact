@@ -20,9 +20,15 @@ export const AUDIO_EXTENSIONS = [
 
 export type AudioCheckReason = "empty" | "extension" | "magic";
 
+export type AudioWarnReason = "too_short" | "too_large";
+
+export const MIN_SIZE_HEURISTIC_BYTES = 20_000;
+export const MAX_SIZE_HEURISTIC_BYTES = 5_000_000;
+
 export interface AudioCheckResult {
   ok: boolean;
   reason?: AudioCheckReason;
+  warn?: AudioWarnReason;
 }
 
 export function extensionOf(name: string | null | undefined): string {
@@ -134,5 +140,10 @@ export async function verifyAudioFile(input: {
 
   const sniffed = await sniffAudioMagic(input.uri);
   if (sniffed === false) return { ok: false, reason: "magic" };
+
+  if (input.size != null) {
+    if (input.size < MIN_SIZE_HEURISTIC_BYTES) return { ok: true, warn: "too_short" };
+    if (input.size > MAX_SIZE_HEURISTIC_BYTES) return { ok: true, warn: "too_large" };
+  }
   return { ok: true };
 }

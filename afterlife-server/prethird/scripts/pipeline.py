@@ -26,31 +26,36 @@ import numpy as np
 from recorder import NULL_TURN
 
 
-# T-483: LLM 응답 첫 줄의 [EMOTION:xxx] 태그를 파싱.
-#   허용 값 5개(happy/sad/angry/surprise/neutral). 대소문자 무시.
-#   태그 발견: (emotion_lower, tag 제거된 text) 반환.
-#   태그 없음: (None, 원본 text) 반환 — 서버측에서 neutral fallback.
-_EMOTION_TAG_RE = re.compile(
-    r"^\s*\[EMOTION:(happy|sad|angry|surprise|neutral)\]\s*\n?",
-    re.IGNORECASE,
+# T-497: 이모지·기타 유니코드 심볼 strip — TTS(MeloTTS/OpenVoice) 가 이모지를 이상한
+#   음소로 발음("이모치 하피" 왜곡 사고). LLM 이 프롬프트 규칙(_STRICT_TONE_ANCHOR §6)
+#   을 어겨도 서버가 방어적으로 제거한다 (defense in depth).
+_EMOJI_RE = re.compile(
+    "[\U0001F600-\U0001F64F"   # emoticons
+    "\U0001F300-\U0001F5FF"    # symbols & pictographs
+    "\U0001F680-\U0001F6FF"    # transport & map
+    "\U0001F700-\U0001F77F"
+    "\U0001F780-\U0001F7FF"
+    "\U0001F800-\U0001F8FF"
+    "\U0001F900-\U0001F9FF"
+    "\U0001FA00-\U0001FAFF"
+    "☀-➿"             # misc symbols & dingbats (☺❤★ 등)
+    "⌀-⏿"             # misc technical
+    "\U0001F1E6-\U0001F1FF"    # regional indicator (국기)
+    "︀-️"             # variation selectors
+    "‍"                    # zero-width joiner (조합 이모지)
+    "]+",
+    flags=re.UNICODE,
 )
 
 
-def extract_emotion_tag(text: str) -> tuple[str | None, str]:
-    """응답 첫 줄에서 [EMOTION:xxx] 태그 추출.
-
-    Returns:
-        (emotion, cleaned_text). emotion 은 소문자 문자열 또는 None.
-        cleaned_text 는 태그 제거된 발화 텍스트(TTS 로 넘길 것).
-    """
+def strip_emojis_for_tts(text: str) -> str:
+    """이모지·심볼 제거 + 연속 공백 정규화. 순수 함수(테스트용)."""
     if not text:
-        return None, text
-    m = _EMOTION_TAG_RE.match(text)
-    if not m:
-        return None, text
-    emotion = m.group(1).lower()
-    cleaned = text[m.end():]
-    return emotion, cleaned
+        return text
+    cleaned = _EMOJI_RE.sub("", text)
+    # 이모지 제거 후 남은 여백 정리
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned
 
 log = logging.getLogger("prethird.pipeline")
 
@@ -305,15 +310,21 @@ class DialoguePipeline:
     # ------------------------------------------------------------------
 
     async def _tts_stage(self, sentence: str):
-        """문장 → TTS wav bytes + 48kHz int16 PCM. (GPU0: qwen3 TTS)"""
-        wav_bytes = await self.say_fn(sentence, self.se_path)
+        """문장 → TTS wav bytes + 48kHz int16 PCM. (GPU0: qwen3 TTS)
+
+        T-497: 이모지 strip. LLM 이 프롬프트 규칙 어기고 이모지 뱉어도 여기서
+        방어적으로 제거해 TTS 왜곡("이모치 하피") 방지. 원본 sentence 는 자막
+        발신에서 이미 소비된 뒤라 여기서 sanitize 해도 UX 영향 없음.
+        """
+        clean = strip_emojis_for_tts(sentence)
+        wav_bytes = await self.say_fn(clean or sentence, self.se_path)
         pcm, sr, _ = self.decode_wav_fn(wav_bytes)
         pcm48 = self._resample(pcm, sr, 48000)
         return wav_bytes, pcm48
 
     async def _infer_stage(
         self, wav_bytes: bytes, pcm48: np.ndarray, turn=None, on_before_push=None,
-        render_mode: str | None = None, emotion: str | None = None,
+        render_mode: str | None = None,
     ) -> None:
         """wav → musetalk infer(executor) → frames 일괄 push + balance audio. (GPU1)
         turn: recorder Turn — PRETHIRD_RECORD_MP4=1 시 frames 누적.
@@ -342,12 +353,9 @@ class DialoguePipeline:
                     log.warning("on_before_push callback failed: %s", exc)
 
         def _invoke_infer(wp, cb):
-            # T-483: emotion 은 항상 kwarg 로 전달(None 이면 렌더러가 기본 prompt).
-            #   render_mode 는 T-113 계약대로 batch 경로에서만 전달(partial 은 무변경).
-            kwargs = {"emotion": emotion}
             if render_mode is not None:
-                kwargs["render_mode"] = render_mode
-            return self.infer_fn(wp, cb, **kwargs)
+                return self.infer_fn(wp, cb, render_mode=render_mode)
+            return self.infer_fn(wp, cb)
 
         try:
             try:
@@ -534,12 +542,6 @@ class DialoguePipeline:
                 raise
 
             full_text = "".join(parts)
-            # T-483: 감정 태그 파싱 — 첫 줄 [EMOTION:xxx] 추출·제거.
-            # TTS 는 태그 제거된 텍스트를, 렌더는 emotion 라벨을 받는다.
-            # 태그 없거나 미매핑이면 emotion=None → 렌더가 neutral 기본 prompt 사용.
-            emotion, full_text = extract_emotion_tag(full_text)
-            if emotion is not None:
-                log.info("[T-483] emotion tag parsed: %s", emotion)
             if not full_text.strip():
                 # [sion MAJOR 2] 빈 응답도 filler 정지 훅을 반드시 1회 발동해야
                 # FillerPlayer 가 세션 종료까지 순환하는 좀비 패턴을 막는다.
@@ -558,7 +560,6 @@ class DialoguePipeline:
                 await self._infer_stage(
                     wav_bytes, pcm48, turn,
                     on_before_push=_guarded_hook, render_mode="batch",
-                    emotion=emotion,
                 )
                 log.info("[T-113] batch render 완료(단일 모션 push)")
             except asyncio.CancelledError:

@@ -1138,7 +1138,7 @@
     "statusDenied": "拒否",
     "statusUndetermined": "権限が必要",
     "statusBlocked": "ブロック済み",
-    "requestButton": "権限を許可",
+    "requestButton": "続行",
     "settingsButton": "設定で権限をオンにする",
     "settingsHint": "権限ダイアログが表示されない場合は設定でオンにしてください",
     "loading": "権限を確認中...",

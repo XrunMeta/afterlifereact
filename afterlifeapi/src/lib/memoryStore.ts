@@ -90,6 +90,15 @@ export async function writeOnt(
 const MAX_L2_BYTES = 16 * 1024;   
 const MAX_MEMORIES = 50;          
 
+const L2_AUTO_LEARN_OVERRIDE_KEYS = [
+  "memories_personal",
+  "relation",
+  "preference_personal",
+  "preference_history",
+  "_meta",
+] as const;
+void L2_AUTO_LEARN_OVERRIDE_KEYS; 
+
 export interface L2Extraction {
   preference_personal?: Record<string, unknown>; 
   relation?: string | null;                       
@@ -170,6 +179,7 @@ export async function updateOntFromExtraction(
   }
 
   const next: Record<string, unknown> = {
+    ...current,
     address: current.address ?? null,
     memories_personal: mergedMems,
     relation: hasRel ? extracted.relation!.trim() : current.relation ?? null,
@@ -177,11 +187,6 @@ export async function updateOntFromExtraction(
       ? { ...curPref, ...extracted.preference_personal }
       : curPref,
     ...(nextHistory.length ? { preference_history: nextHistory } : {}),
-
-    ...(current.memory_summary !== undefined ? { memory_summary: current.memory_summary } : {}),
-    ...(current.relationship !== undefined ? { relationship: current.relationship } : {}),
-    ...(current.context !== undefined ? { context: current.context } : {}),
-    ...(current.recent_topics !== undefined ? { recent_topics: current.recent_topics } : {}),
     _meta: { layer: "L2", rev: prevRev + 1, auto_learned_at: now, source, updated_at: now },
   };
 
@@ -283,7 +288,9 @@ export async function updateOntPersonFromExtraction(
     : curMems;
 
   const now = new Date().toISOString();
+
   const next: Record<string, unknown> = {
+    ...current,
     address: current.address ?? null,
     memories_personal: mergedMems,
     relation: hasRel ? extracted.relation!.trim() : current.relation ?? null,
@@ -293,10 +300,6 @@ export async function updateOntPersonFromExtraction(
           ...extracted.preference_personal,
         }
       : current.preference_personal ?? {},
-    ...(current.memory_summary !== undefined ? { memory_summary: current.memory_summary } : {}),
-    ...(current.relationship !== undefined ? { relationship: current.relationship } : {}),
-    ...(current.context !== undefined ? { context: current.context } : {}),
-    ...(current.recent_topics !== undefined ? { recent_topics: current.recent_topics } : {}),
     _meta: { layer: "L2p", rev: prevRev + 1, auto_learned_at: now, source, updated_at: now },
   };
 
