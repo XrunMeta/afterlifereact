@@ -2415,3 +2415,51 @@ v_b7f2b4.get("/intimacy-events", v_c0a297, async (v_3f4e2e) => {
   return v_3f4e2e.json({ items: v_18b8bf.results, total: v_c83285, limit: v_02be30, offset: v_3bbadf });
 });
 
+v_b7f2b4.get("/conversations", v_c0a297, async (v_3f4e2e) => {
+  const v_f4fb5e = v_3f4e2e.req.query("user_email");
+  if (!v_f4fb5e) {
+    return v_3f4e2e.json({ error: "user_email query required" }, 400);
+  }
+
+  const v_d1b635 = await v_3f4e2e.env.DB
+    .prepare("SELECT id FROM users WHERE email = ? LIMIT 1")
+    .bind(v_f4fb5e)
+    .first<{ id: number }>();
+  if (!v_d1b635) {
+    return v_3f4e2e.json({ user_id: null, clones: [] });
+  }
+  const v_43e90c = v_d1b635.id;
+
+  const v_c2273d = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT id, name, created_at
+         FROM clones
+        WHERE created_by_user_id = ? AND deleted_at IS NULL
+        ORDER BY id DESC`,
+    )
+    .bind(v_43e90c)
+    .all<{ id: number; name: string; created_at: string }>();
+  const v_f891e6 = v_c2273d.results ?? [];
+
+  const v_d2cdb4 = "https://rtc.example.invalid/prethird";
+  const v_43fd42 = v_3f4e2e.env.LEARN_SECRET ?? "";
+  const v_a7f568 = await Promise.all(
+    v_f891e6.map(async (v_eb25ce) => {
+      try {
+        const v_eb792a = await fetch(`${v_d2cdb4}/oth-path${v_eb25ce.id}`, {
+          headers: { Authorization: `Bearer ${v_43fd42}` },
+        });
+        if (!v_eb792a.ok) {
+          return { ...v_eb25ce, items: [], error: `HTTP ${v_eb792a.status}` };
+        }
+        const v_4d33b2 = (await v_eb792a.json()) as { items?: unknown[]; count?: number };
+        return { ...v_eb25ce, items: v_4d33b2.items ?? [], count: v_4d33b2.count ?? 0 };
+      } catch (v_49263d) {
+        return { ...v_eb25ce, items: [], error: String(v_49263d) };
+      }
+    }),
+  );
+
+  return v_3f4e2e.json({ user_id: v_43e90c, user_email: v_f4fb5e, clones: v_a7f568 });
+});
+
