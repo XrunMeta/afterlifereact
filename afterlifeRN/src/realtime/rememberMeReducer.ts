@@ -43,6 +43,8 @@ export type RememberMeEvent =
 
   | { type: "TURN_END" }
 
+  | { type: "ACTIVITY" }
+
   | { type: "CLONE_SPEECH_END" }
 
   | { type: "TICK" }
@@ -215,6 +217,11 @@ function next(
         },
         actions: [],
       };
+    }
+
+    case "ACTIVITY": {
+      if (state.mode !== "grace") return { state, actions: [] };
+      return { state: { ...state, graceSinceMs: nowMs }, actions: [] };
     }
 
     case "TURN_END": {

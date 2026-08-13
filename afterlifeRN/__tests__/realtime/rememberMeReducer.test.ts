@@ -120,6 +120,23 @@ describe("rememberMeReducer — grace(6턴)", () => {
     expect(step(s, { type: "TICK" }, 50_000).actions).toEqual([{ type: "END_CALL" }]);
   });
 
+  it("ACTIVITY 는 턴을 소모하지 않고 무턴 타이머만 미룬다", () => {
+
+    let s = step(identified58(), { type: "MATCH_UNKNOWN" }, 1000).state;
+    const r = step(s, { type: "ACTIVITY" }, 20_000);
+    expect(r.state.graceTurns).toBe(GRACE_TURNS); 
+    expect(r.actions).toEqual([]);
+    s = r.state;
+
+    expect(step(s, { type: "TICK" }, 45_000).actions).toEqual([]);
+    expect(step(s, { type: "TICK" }, 50_000).actions).toEqual([{ type: "END_CALL" }]);
+  });
+
+  it("grace 가 아니면 ACTIVITY 는 아무것도 하지 않는다", () => {
+    const before = identified58();
+    expect(step(before, { type: "ACTIVITY" }, 5000).state).toEqual(before);
+  });
+
   it("grace 가 아니면 TICK 은 아무것도 하지 않는다", () => {
     expect(step(identified58(), { type: "TICK" }, 10_000_000).actions).toEqual([]);
     const p = step(initRememberMeState(), { type: "MATCH_UNKNOWN" }).state;

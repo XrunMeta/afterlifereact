@@ -1,4 +1,6 @@
 
+import { CONFIRM_STREAK } from "../face/speakerIdReducer";
+
 export type FaceVerdict = "confirmed" | "unknown" | "candidate" | "none";
 
 export interface FaceDiag {
@@ -15,5 +17,6 @@ export const FACE_DIAG_ENABLED: boolean = envFlag != null ? envFlag === "1" : __
 
 export function formatFaceHud(d: FaceDiag): string {
   const who = d.displayName ?? (d.personId != null ? `#${d.personId}` : "-");
-  return `face ${d.score.toFixed(3)} ${who} ${d.streak}/3 ${d.verdict} thr:${d.threshold}`;
+
+  return `face ${d.score.toFixed(3)} ${who} ${d.streak}/${CONFIRM_STREAK} ${d.verdict} thr:${d.threshold}`;
 }
