@@ -977,7 +977,7 @@ function CallScreenInner({ route, navigation }: Props) {
     notifyFaceInterrupt,
   } = useHandsFreeController({
 
-    enabled: liveState === "live" && !rmState.sheetOpen,
+    enabled: liveState === "live",
     say,
     getStatsReport,
     notifySpeechEnd,
@@ -996,6 +996,19 @@ function CallScreenInner({ route, navigation }: Props) {
   useEffect(() => {
     notifyFaceInterruptRef.current = notifyFaceInterrupt;
   }, [notifyFaceInterrupt]);
+
+  const micWasOnRef = useRef(false);
+  useEffect(() => {
+    if (liveState !== "live") return;
+    if (rmState.sheetOpen) {
+      micWasOnRef.current = micOn;
+      if (micOn) toggleMic();
+      return;
+    }
+    if (micWasOnRef.current && !micOn) toggleMic();
+    micWasOnRef.current = false;
+
+  }, [rmState.sheetOpen, liveState]);
 
   useEffect(() => {
     micOnRef.current = micOn;
