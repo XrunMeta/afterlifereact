@@ -562,11 +562,17 @@ function CallScreenInner({ route, navigation }: Props) {
 
         namelessPersonIdRef.current = name ? null : evt.personId;
         dispatchRm({ type: "KNOWN_FACE", named: !!name });
-        sendFaceEvent?.({
-          event: "speaker_confirmed",
-          personId: evt.personId,
-          displayName: evt.displayName,
-        });
+
+        if (name) {
+          sendFaceEvent?.({
+            event: "speaker_confirmed",
+            personId: evt.personId,
+            displayName: evt.displayName,
+          });
+        } else {
+          console.log(`[Call][face] person ${evt.personId} 이름 없음 → 서버에 unknown_face`);
+          sendFaceEvent?.({ event: "unknown_face" });
+        }
       } else if (evt.type === "unknown_face") {
 
         if (
