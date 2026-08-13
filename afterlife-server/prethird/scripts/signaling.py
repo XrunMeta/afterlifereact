@@ -1434,6 +1434,9 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     if os.environ.get("PRETHIRD_VERIFY_ENABLED") == "1":
         from chat_endpoint import register_verify_routes
         register_verify_routes(app)
+        # 라이브에만 있던 것을 역흡수(2026-08-13). verify 랩의 TTS 미리듣기 라우트.
+        from tts_preview_endpoint import register_tts_preview_routes
+        register_tts_preview_routes(app)
 
     # T-117 학습하기 답변 해석 endpoint — Cloudflare Workers 만 호출 (X-Internal-Secret 방어).
     # 등록 flag 없이 항상 켬. auth 는 endpoint 내부에서 처리.
