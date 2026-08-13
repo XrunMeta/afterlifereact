@@ -2468,7 +2468,7 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   if (!Number.isFinite(v_062ae9)) {
     return v_3f4e2e.json({ error: "invalid clone id" }, 400);
   }
-  const v_4d33b2 = await v_3f4e2e.req.json<{ text?: string }>().catch(() => ({}));
+  const v_4d33b2 = await v_3f4e2e.req.json<{ text?: string }>().catch(() => ({} as { text?: string }));
   const v_9b6134 = (v_4d33b2.text ?? "").trim();
   if (!v_9b6134) return v_3f4e2e.json({ error: "text required" }, 400);
   if (v_9b6134.length > 500) return v_3f4e2e.json({ error: "text too long (max 500)" }, 400);
