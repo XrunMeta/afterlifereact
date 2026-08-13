@@ -1,3 +1,4 @@
+import { v_3451db } from "../../src/face/speakerIdReducer";
 import { v_8682a9, v_55dbc4 } from "../../src/config/faceDiag";
 
 describe("formatFaceHud", () => {
@@ -8,7 +9,7 @@ describe("formatFaceHud", () => {
     });
     expect(v_fd5f43).toContain("0.712");
     expect(v_fd5f43).toContain("민지");
-    expect(v_fd5f43).toContain("2/3");
+    expect(v_fd5f43).toContain(`2/${v_3451db}`);
     expect(v_fd5f43).toContain("candidate");
     expect(v_fd5f43).toContain("0.83");
   });

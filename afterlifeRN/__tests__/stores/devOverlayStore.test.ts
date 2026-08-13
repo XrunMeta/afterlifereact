@@ -118,6 +118,27 @@ describe("영속(AsyncStorage)", () => {
     expect(v_fd5f43.hydrated).toBe(true);
   });
 
+  it("저장값이 없으면 dev 에서 마스터가 켜진 채 시작한다", async () => {
+
+    await v_e84827.clear();
+    v_acab11();
+
+    await v_434962.getState().hydrate();
+
+    const v_fd5f43 = v_434962.getState();
+    expect(v_fd5f43.callDevUiVisible).toBe(true);
+    expect(v_fd5f43.hudVisible.faceTrack).toBe(true);
+  });
+
+  it("명시적으로 끈 선택은 그대로 유지된다 — 기본값이 덮지 않는다", async () => {
+    await v_e84827.setItem(v_34a048, "0");
+    v_acab11();
+
+    await v_434962.getState().hydrate();
+
+    expect(v_434962.getState().callDevUiVisible).toBe(false);
+  });
+
   it("토글 → hydrate 왕복이 값을 유지한다", async () => {
     v_434962.getState().toggleHudVisible("state"); 
     v_434962.getState().toggleHudVisible("devBox"); 
