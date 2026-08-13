@@ -1,11 +1,15 @@
 import {
+  v_a5c955,
   v_178dfb,
   v_706a74,
   type v_8118fb,
 } from "../../src/realtime/rememberMeReducer";
 
-const v_729796 = (s: v_8118fb, e: Parameters<typeof v_706a74>[1]) =>
-  v_706a74(v_fd5f43, v_9e86fd);
+const v_729796 = (
+  s: v_8118fb,
+  e: Parameters<typeof v_706a74>[1],
+  v_67e77e = 0,
+) => v_706a74(v_fd5f43, v_9e86fd, v_67e77e);
 
 describe("rememberMeReducer", () => {
   it("초기 상태는 확인됨 + 시트 닫힘", () => {
@@ -113,5 +117,45 @@ describe("rememberMeReducer", () => {
     const v_5392c4 = JSON.stringify(v_ca01e0);
     v_729796(v_ca01e0, { type: "UNKNOWN_FACE" });
     expect(JSON.stringify(v_ca01e0)).toBe(v_5392c4);
+  });
+
+  describe("등록 직후 유예", () => {
+    it("등록 직후의 unknown 은 시트를 다시 열지 않는다", () => {
+      const v_fd5f43 = v_729796(v_178dfb(), { type: "ENROLLED" }, 1000).state;
+      const { state: v_b6e533, actions: v_dd943a } = v_729796(v_fd5f43, { type: "UNKNOWN_FACE" }, 1000 + 30_000);
+      expect(v_b6e533.identified).toBe(true);
+      expect(v_b6e533.sheetOpen).toBe(false);
+
+      expect(v_dd943a).toEqual([]);
+    });
+
+    it("유예가 지나면 다시 미확정으로 떨어진다 — 등록이 끝내 반영 안 될 때의 탈출구", () => {
+      const v_fd5f43 = v_729796(v_178dfb(), { type: "ENROLLED" }, 1000).state;
+      const { state: v_b6e533 } = v_729796(v_fd5f43, { type: "UNKNOWN_FACE" }, 1000 + v_a5c955 + 1);
+      expect(v_b6e533.identified).toBe(false);
+      expect(v_b6e533.sheetOpen).toBe(true);
+    });
+
+    it("매칭이 돌아오면 유예는 즉시 끝난다 — 이후 진짜 새 얼굴은 정상 처리", () => {
+      let v_fd5f43 = v_729796(v_178dfb(), { type: "ENROLLED" }, 1000).state;
+      v_fd5f43 = v_729796(v_fd5f43, { type: "KNOWN_FACE", named: true }, 1000 + 5_000).state;
+      expect(v_fd5f43.graceUntilMs).toBeNull();
+
+      const { state: v_b6e533 } = v_729796(v_fd5f43, { type: "UNKNOWN_FACE" }, 1000 + 6_000);
+      expect(v_b6e533.identified).toBe(false);
+      expect(v_b6e533.sheetOpen).toBe(true);
+    });
+
+    it("유예 중 이름 없는 매칭도 시트를 열지 않는다 — UNKNOWN_FACE 위임 경로", () => {
+      const v_fd5f43 = v_729796(v_178dfb(), { type: "ENROLLED" }, 1000).state;
+      const { state: v_b6e533 } = v_729796(v_fd5f43, { type: "KNOWN_FACE", named: false }, 1000 + 10_000);
+      expect(v_b6e533.sheetOpen).toBe(false);
+    });
+
+    it("유예는 등록으로만 생긴다 — 통화 시작 직후의 unknown 은 그대로 시트를 연다", () => {
+      const { state: v_b6e533 } = v_729796(v_178dfb(), { type: "UNKNOWN_FACE" }, 500);
+      expect(v_b6e533.identified).toBe(false);
+      expect(v_b6e533.sheetOpen).toBe(true);
+    });
   });
 });

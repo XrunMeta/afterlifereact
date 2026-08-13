@@ -38,7 +38,9 @@ const v_d81136 = v_472849.create({
     backgroundColor: "rgba(37, 99, 235, 0.92)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.35)",
-    zIndex: 40,
+
+    zIndex: 60,
+    elevation: 24,
   },
   pressed: { opacity: 0.75 },
   label: { color: v_1bfbd0.white, fontSize: 15, fontWeight: "800" },
