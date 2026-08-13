@@ -20,9 +20,15 @@ export const v_7def33 = [
 
 export type AudioCheckReason = "empty" | "extension" | "magic";
 
+export type AudioWarnReason = "too_short" | "too_large";
+
+export const v_ca1750 = 20_000;
+export const v_18120c = 5_000_000;
+
 export interface AudioCheckResult {
   ok: boolean;
   reason?: AudioCheckReason;
+  warn?: AudioWarnReason;
 }
 
 export function v_214ff9(v_1833e7): string {
@@ -129,5 +135,10 @@ export async function v_6c761f(v_bbda62): Promise<AudioCheckResult> {
 
   const v_b7264f = await v_da71d6(v_bbda62.uri);
   if (v_b7264f === false) return { ok: false, reason: "magic" };
+
+  if (v_bbda62.size != null) {
+    if (v_bbda62.size < v_ca1750) return { ok: true, warn: "too_short" };
+    if (v_bbda62.size > v_18120c) return { ok: true, warn: "too_large" };
+  }
   return { ok: true };
 }

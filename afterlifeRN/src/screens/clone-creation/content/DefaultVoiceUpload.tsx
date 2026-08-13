@@ -2,7 +2,7 @@
 
 import { v_889fad } from "../../../stores/dialogStore";
 import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
-import { v_3094a2, v_19b633, v_4623af, v_472849, v_39a996 } from "rcmrninabrnb";
+import { v_3094a2, v_19b633, v_4623af, v_472849, v_39a996, v_326be8, v_405151 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import * as v_c95b2c from "gketqwckyalygtuqsawm";
 import {
@@ -23,6 +23,7 @@ import { v_7d2692 } from "../../../api/files";
 import { v_1ed7d9 } from "../../../stores/authStore";
 import { v_d7b329 } from "../../../lib/voicePresetName";
 import { v_6c761f } from "../../../lib/audioFileCheck";
+import { v_184958, v_dac67e, type v_b161c8 } from "../../../lib/audioQualityGate";
 
 export const v_e79da6 = [
   { id: "v1", name: "Nova" },
@@ -126,6 +127,22 @@ async function v_48cafb(
           }),
     );
     return null;
+  }
+
+  if (v_1b0e1d.warn === "too_short") {
+    v_889fad(
+      v_8d41d7("create.voice.warnTooShortTitle", { defaultValue: "파일이 너무 짧아요" }),
+      v_8d41d7("create.voice.warnTooShortMsg", {
+        defaultValue: "선택한 파일이 아주 짧아요. 클론 목소리 학습에는 30초~1분 분량의 조용한 녹음이 필요해요. 다른 파일을 골라 다시 올려 주세요.",
+      }),
+    );
+  } else if (v_1b0e1d.warn === "too_large") {
+    v_889fad(
+      v_8d41d7("create.voice.warnTooLargeTitle", { defaultValue: "파일이 너무 커요" }),
+      v_8d41d7("create.voice.warnTooLargeMsg", {
+        defaultValue: "선택한 파일이 너무 길어요. 30초~1분 분량으로 잘라서 다시 올려 주세요.",
+      }),
+    );
   }
 
   return {
@@ -232,8 +249,57 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     }
   }, [v_af221f.playing, v_af221f.isLoaded, v_af221f.isBuffering, v_af221f.currentTime, v_cf954d]);
 
-  const v_5ebce3 = v_8a9d74(v_542f2a.HIGH_QUALITY);
+  const v_5ebce3 = v_8a9d74({ ...v_542f2a.HIGH_QUALITY, isMeteringEnabled: true });
   const v_b599c8 = v_b3e89c(v_5ebce3, 200);
+
+  const v_89619a = v_e662ae<number[]>([]);
+  const v_cc5fba = v_e662ae<Record<v_b161c8, number>>({ ok: 0, silence: 0, noise: 0 });
+  const v_ceb0fd = v_e662ae<{ silence: number; noise: number; total: number }>({
+    silence: 0, noise: 0, total: 0,
+  });
+
+  const v_5cdd15 = v_a3453e.useCallback((v_badeaf) => {
+    if (v_326be8.OS === "android") {
+      v_405151.show(v_badeaf, v_405151.LONG);
+    } else {
+
+      console.log("[QualityGate][iOS]", v_badeaf);
+    }
+  }, []);
+
+  v_c4deb2(() => {
+    if (!v_b599c8.isRecording) {
+      v_89619a.current = [];
+      return;
+    }
+    const v_35f85c = (v_b599c8 as unknown as { metering?: number }).metering;
+    if (typeof v_35f85c !== "number" || !Number.isFinite(v_35f85c)) return;
+
+    v_89619a.current = v_184958(v_89619a.current, v_35f85c);
+    v_ceb0fd.current.total += 1;
+    if (v_89619a.current.length < 15) return; 
+
+    const v_8f00b9 = v_dac67e(v_89619a.current);
+    if (v_8f00b9.verdict === "ok") return;
+
+    if (v_8f00b9.verdict === "silence") v_ceb0fd.current.silence += 1;
+    if (v_8f00b9.verdict === "noise") v_ceb0fd.current.noise += 1;
+
+    const v_5c2f9f = Date.now();
+    if (v_5c2f9f - v_cc5fba.current[v_8f00b9.verdict] < 5000) return;
+    v_cc5fba.current[v_8f00b9.verdict] = v_5c2f9f;
+
+    if (v_8f00b9.verdict === "silence") {
+      v_5cdd15(v_8d41d7("create.voice.toastSilence", {
+        defaultValue: "너무 조용해요. 좀 더 크게 말씀해 주세요.",
+      }));
+    } else if (v_8f00b9.verdict === "noise") {
+      v_5cdd15(v_8d41d7("create.voice.toastNoise", {
+        defaultValue: "주변이 시끄러워요. 조용한 곳에서 녹음해 주세요.",
+      }));
+    }
+
+  }, [v_b599c8.isRecording, (v_b599c8 as unknown as { metering?: number }).metering]);
 
   const v_504bbe = v_e662ae(v_5ebce3);
   v_504bbe.current = v_5ebce3;
@@ -390,6 +456,27 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     await v_0e491a({ allowsRecording: false });
     const v_cd1446 = v_5ebce3.uri;
     if (!v_cd1446) return;
+
+    const v_fd5f43 = v_ceb0fd.current;
+    v_ceb0fd.current = { silence: 0, noise: 0, total: 0 };
+    if (v_fd5f43.total >= 15) { 
+      const v_a7bb65 = v_fd5f43.silence / v_fd5f43.total;
+      const v_576a95 = v_fd5f43.noise / v_fd5f43.total;
+      if (v_a7bb65 > 0.3 || v_576a95 > 0.3) {
+        const primary: v_b161c8 = v_a7bb65 >= v_576a95 ? "silence" : "noise";
+        v_889fad(
+          v_8d41d7("create.voice.recordQualityTitle", { defaultValue: "녹음 품질 확인" }),
+          v_127e92 === "silence"
+            ? v_8d41d7("create.voice.recordQualitySilenceMsg", {
+                defaultValue: "녹음에 무음 구간이 많아요. 조용한 곳에서 문장 전체를 또렷하게 다시 녹음해 주세요.",
+              })
+            : v_8d41d7("create.voice.recordQualityNoiseMsg", {
+                defaultValue: "녹음에 주변 소음이 섞였어요. 조용한 곳에서 다시 녹음해 주시면 클론 목소리가 훨씬 자연스러워집니다.",
+              }),
+        );
+
+      }
+    }
 
     await v_a9e8f0("record", {
       uri: v_cd1446,
