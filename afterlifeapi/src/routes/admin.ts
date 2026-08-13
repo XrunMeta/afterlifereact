@@ -2493,28 +2493,30 @@ admin.post("/oth-path", requireAdmin, async (c) => {
   if (!clone) return c.json({ error: "clone not found" }, 404);
 
   let seKey: string | null = null;
-  if (clone.voice_se_url) {
-
-    seKey = String(cid);
-  } else if (clone.voice_preset_id) {
+  if (clone.voice_preset_id) {
     const preset = await c.env.DB
       .prepare("SELECT se_key FROM voice_presets WHERE id = ? AND is_active = 1")
       .bind(clone.voice_preset_id)
       .first<{ se_key: string | null }>();
     seKey = preset?.se_key ?? null;
   }
-  if (!seKey) return c.json({ error: "clone has no voice_se available" }, 404);
+  if (!seKey && !clone.voice_se_url) {
+    return c.json({ error: "clone has no voice_se available" }, 404);
+  }
 
   const secret = c.env.LEARN_SECRET ?? "";
   if (!secret) return c.json({ error: "LEARN_SECRET not configured" }, 500);
   try {
+    const payload: Record<string, unknown> = { text, clone_id: cid };
+    if (seKey) payload.se_key = seKey;
+    if (clone.voice_se_url) payload.voice_se_url = clone.voice_se_url;
     const resp = await fetch("https://rtc.example.invalid/prethird/admin/tts", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-Admin-Secret": secret,
       },
-      body: JSON.stringify({ text, se_key: seKey }),
+      body: JSON.stringify(payload),
     });
     if (!resp.ok) {
       const errBody = await resp.text().catch(() => "");
