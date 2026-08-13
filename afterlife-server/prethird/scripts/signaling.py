@@ -867,6 +867,22 @@ def _handle_face_event(sess, data: dict) -> None:
             )
         return
 
+    # [Remember Me 2026-08-13] mentionName — 인사 없이 다음 응답에서 이름만 부르게 한다.
+    #
+    # 얼굴이 잠깐 안 잡혔다가(앱의 grace 구간) 같은 사람이 돌아온 경우다. 서버는 그동안
+    # 그 사람으로 계속 알고 있었으니 신원을 새로 반영할 것도 없고, react 를 걸면 "다시
+    # 왔네" 가 매번 나가 대화가 끊긴다(히즈키 실측: "도기 돌아오면 매번 인사").
+    # 힌트만 세우고 발화 경로는 통째로 건너뛴다 — pipeline.say 가 다음 1턴에 소비한다.
+    if data.get("mentionName") is True:
+        if name and sess.pipeline is not None:
+            sess.pipeline.name_mention_hint = name
+        if _face_diag_on():
+            log.info(
+                "face_diag mention_name session=%s person=%s name=%s — 다음 턴에 이름만",
+                getattr(sess, "session_id", "?"), pid_int, name,
+            )
+        return
+
     # [Remember Me 2026-08-13] rejoin — "끊겼다가 돌아왔다".
     #
     # 아는 얼굴 반응은 통화당 1회다(같은 사람에게 "오셨군요"를 반복하지 않기 위해).
