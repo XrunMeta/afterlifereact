@@ -2481,7 +2481,7 @@ admin.post("/oth-path", requireAdmin, async (c) => {
   if (!Number.isFinite(cid)) {
     return c.json({ error: "invalid clone id" }, 400);
   }
-  const body = await c.req.json<{ text?: string }>().catch(() => ({}));
+  const body = await c.req.json<{ text?: string }>().catch(() => ({} as { text?: string }));
   const text = (body.text ?? "").trim();
   if (!text) return c.json({ error: "text required" }, 400);
   if (text.length > 500) return c.json({ error: "text too long (max 500)" }, 400);
