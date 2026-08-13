@@ -11,7 +11,7 @@ export type RememberMeEvent =
 
   | { type: "UNKNOWN_FACE" }
 
-  | { type: "KNOWN_FACE" }
+  | { type: "KNOWN_FACE"; named: boolean }
 
   | { type: "DISMISS" }
 
@@ -42,6 +42,10 @@ function v_a448ad(v_b6e533, v_d48baf): RememberMeState {
       return { ...v_b6e533, sheetOpen: false };
 
     case "KNOWN_FACE":
+
+      if (!v_d48baf.named) return v_a448ad(v_b6e533, { type: "UNKNOWN_FACE" });
+      return { identified: true, sheetOpen: false };
+
     case "ENROLLED":
       return { identified: true, sheetOpen: false };
 

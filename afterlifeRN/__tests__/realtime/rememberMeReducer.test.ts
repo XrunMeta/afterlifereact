@@ -58,16 +58,35 @@ describe("rememberMeReducer", () => {
     expect(v_dd943a).toEqual([{ type: "RESUME_CONVERSATION" }]);
   });
 
-  it("등록된 얼굴이 인식되면 해제된다 — 유일한 자동 해제 경로", () => {
+  it("이름 있는 얼굴이 인식되면 해제된다 — 유일한 자동 해제 경로", () => {
     let v_fd5f43 = v_729796(v_178dfb(), { type: "UNKNOWN_FACE" }).state;
     v_fd5f43 = v_729796(v_fd5f43, { type: "DISMISS" }).state;
     expect(v_fd5f43.identified).toBe(false);
 
-    const { state: v_b6e533, actions: v_dd943a } = v_729796(v_fd5f43, { type: "KNOWN_FACE" });
+    const { state: v_b6e533, actions: v_dd943a } = v_729796(v_fd5f43, { type: "KNOWN_FACE", named: true });
     expect(v_b6e533.identified).toBe(true);
     expect(v_b6e533.sheetOpen).toBe(false);
 
     expect(v_dd943a).toEqual([]);
+  });
+
+  it("이름 없는 person 이 매칭되면 해제하지 않는다 — 교착 방지", () => {
+
+    const { state: v_b6e533, actions: v_dd943a } = v_729796(v_178dfb(), {
+      type: "KNOWN_FACE",
+      named: false,
+    });
+    expect(v_b6e533.identified).toBe(false);
+    expect(v_b6e533.sheetOpen).toBe(true);
+    expect(v_dd943a).toEqual([{ type: "HALT_CONVERSATION" }]);
+  });
+
+  it("이름 없는 매칭도 닫은 뒤에는 시트를 다시 강제로 열지 않는다", () => {
+    let v_fd5f43 = v_729796(v_178dfb(), { type: "KNOWN_FACE", named: false }).state;
+    v_fd5f43 = v_729796(v_fd5f43, { type: "DISMISS" }).state;
+    const v_cb35cb = v_729796(v_fd5f43, { type: "KNOWN_FACE", named: false });
+    expect(v_cb35cb.state.sheetOpen).toBe(false);
+    expect(v_cb35cb.actions).toEqual([]);
   });
 
   it("대화 정지/재개는 시트 열림이 실제로 바뀔 때만 낸다", () => {
