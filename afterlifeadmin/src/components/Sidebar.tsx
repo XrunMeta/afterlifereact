@@ -14,6 +14,7 @@ const menu: MenuGroup[] = [
       { path: "/", label: "Dashboard", end: true },
       { path: "/testbed", label: "API Testbed" },
       { path: "/oth-path-lab", label: "대화 트레이닝 랩" },
+      { path: "/conversations", label: "통화 대화 조회" },
     ],
   },
   {

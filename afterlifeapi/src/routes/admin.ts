@@ -2428,3 +2428,51 @@ admin.get("/intimacy-events", requireAdmin, async (c) => {
   return c.json({ items: rows.results, total, limit, offset });
 });
 
+admin.get("/conversations", requireAdmin, async (c) => {
+  const userEmail = c.req.query("user_email");
+  if (!userEmail) {
+    return c.json({ error: "user_email query required" }, 400);
+  }
+
+  const userRow = await c.env.DB
+    .prepare("SELECT id FROM users WHERE email = ? LIMIT 1")
+    .bind(userEmail)
+    .first<{ id: number }>();
+  if (!userRow) {
+    return c.json({ user_id: null, clones: [] });
+  }
+  const userId = userRow.id;
+
+  const cloneRows = await c.env.DB
+    .prepare(
+      `SELECT id, name, created_at
+         FROM clones
+        WHERE created_by_user_id = ? AND deleted_at IS NULL
+        ORDER BY id DESC`,
+    )
+    .bind(userId)
+    .all<{ id: number; name: string; created_at: string }>();
+  const clones = cloneRows.results ?? [];
+
+  const prethirdBase = "https://rtc.example.invalid/prethird";
+  const secret = c.env.LEARN_SECRET ?? "";
+  const results = await Promise.all(
+    clones.map(async (clone) => {
+      try {
+        const resp = await fetch(`${prethirdBase}/oth-path${clone.id}`, {
+          headers: { Authorization: `Bearer ${secret}` },
+        });
+        if (!resp.ok) {
+          return { ...clone, items: [], error: `HTTP ${resp.status}` };
+        }
+        const body = (await resp.json()) as { items?: unknown[]; count?: number };
+        return { ...clone, items: body.items ?? [], count: body.count ?? 0 };
+      } catch (err) {
+        return { ...clone, items: [], error: String(err) };
+      }
+    }),
+  );
+
+  return c.json({ user_id: userId, user_email: userEmail, clones: results });
+});
+
