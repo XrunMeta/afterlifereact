@@ -502,7 +502,7 @@ function CallScreenInner({ route, navigation }: Props) {
   const [rmState, setRmState] = useState(initRememberMeState());
   const rmStateRef = useRef(rmState);
   const dispatchRm = useCallback((event: RememberMeEvent) => {
-    const { state, actions } = rememberMeReducer(rmStateRef.current, event);
+    const { state, actions } = rememberMeReducer(rmStateRef.current, event, Date.now());
     rmStateRef.current = state;
     setRmState(state);
 
@@ -1545,20 +1545,6 @@ function CallScreenInner({ route, navigation }: Props) {
 
   return (
     <View style={s.container}>
-      {
-
-}
-      <RememberMeButton
-        visible={!rmState.identified}
-        onPress={() => dispatchRm({ type: "OPEN_SHEET" })}
-      />
-      <RememberMeSheet
-        visible={rmState.sheetOpen}
-        saving={rmSaving}
-        error={rmError}
-        onSubmit={handleRememberMeSubmit}
-        onDismiss={() => dispatchRm({ type: "DISMISS" })}
-      />
       {}
       {
 
@@ -2097,6 +2083,21 @@ function CallScreenInner({ route, navigation }: Props) {
         senderName={svgaSender?.name}
         senderAvatarUrl={svgaSender?.avatarUrl}
         giftName={svgaSender?.giftName}
+      />
+
+      {
+
+}
+      <RememberMeButton
+        visible={!rmState.identified}
+        onPress={() => dispatchRm({ type: "OPEN_SHEET" })}
+      />
+      <RememberMeSheet
+        visible={rmState.sheetOpen}
+        saving={rmSaving}
+        error={rmError}
+        onSubmit={handleRememberMeSubmit}
+        onDismiss={() => dispatchRm({ type: "DISMISS" })}
       />
 
       {}
