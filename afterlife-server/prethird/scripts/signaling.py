@@ -1457,6 +1457,12 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
         # 라이브에만 있던 것을 역흡수(2026-08-13). verify 랩의 TTS 미리듣기 라우트.
         from tts_preview_endpoint import register_tts_preview_routes
         register_tts_preview_routes(app)
+        # 2차 역흡수(2026-08-13) — 1차 때 preview 만 가져오고 아래 둘을 놓쳤다.
+        # 배포로 덮으면 라이브의 TTS 어드민·녹취 조회 라우트가 조용히 사라진다.
+        from tts_admin_endpoint import register_tts_admin_routes
+        register_tts_admin_routes(app)
+        from admin_records_endpoint import register_admin_records_routes
+        register_admin_records_routes(app)
 
     # T-117 학습하기 답변 해석 endpoint — Cloudflare Workers 만 호출 (X-Internal-Secret 방어).
     # 등록 flag 없이 항상 켬. auth 는 endpoint 내부에서 처리.
