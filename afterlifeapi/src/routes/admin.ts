@@ -2447,7 +2447,7 @@ admin.get("/conversations", requireAdmin, async (c) => {
     .prepare(
       `SELECT id, name, created_at
          FROM clones
-        WHERE created_by_user_id = ? AND deleted_at IS NULL
+        WHERE owner_id = ? AND deleted_at IS NULL
         ORDER BY id DESC`,
     )
     .bind(userId)
