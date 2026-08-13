@@ -1459,10 +1459,21 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
         register_tts_preview_routes(app)
         # 2차 역흡수(2026-08-13) — 1차 때 preview 만 가져오고 아래 둘을 놓쳤다.
         # 배포로 덮으면 라이브의 TTS 어드민·녹취 조회 라우트가 조용히 사라진다.
-        from tts_admin_endpoint import register_tts_admin_routes
-        register_tts_admin_routes(app)
-        from admin_records_endpoint import register_admin_records_routes
-        register_admin_records_routes(app)
+        #
+        # 🔴 두 모듈은 **라이브에만 있고 repo 에는 없다**(서버에서 직접 만들어진 파일).
+        # 무조건 import 하면 repo·CI 에서 ImportError 로 죽는다 — 실제로 그렇게 만들었다가
+        # prethird 테스트 실패가 31→46 으로 늘었다. 모듈을 repo 로 가져오는 것이 정석이지만
+        # 그것은 별개 작업이므로, 여기서는 있으면 등록하고 없으면 조용히 건너뛴다.
+        try:
+            from tts_admin_endpoint import register_tts_admin_routes
+            register_tts_admin_routes(app)
+        except ImportError:
+            log.info("tts_admin_endpoint 없음 — 등록 건너뜀(라이브 전용 모듈)")
+        try:
+            from admin_records_endpoint import register_admin_records_routes
+            register_admin_records_routes(app)
+        except ImportError:
+            log.info("admin_records_endpoint 없음 — 등록 건너뜀(라이브 전용 모듈)")
 
     # T-117 학습하기 답변 해석 endpoint — Cloudflare Workers 만 호출 (X-Internal-Secret 방어).
     # 등록 flag 없이 항상 켬. auth 는 endpoint 내부에서 처리.
