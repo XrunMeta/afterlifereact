@@ -555,6 +555,12 @@ class DialoguePipeline:
 
             try:
                 log.info("[T-113] batch full_text %d chars → TTS 1회", len(full_text))
+                # [2026-08-13 히즈키 의심 검증] "클론 대화 앞에 정체 모를 값이 읽힌다" —
+                # LLM 원문(JSON·시그널 등)이 TTS 로 새는지 보려면 **글자 수가 아니라 원문**이
+                # 필요하다. 길이만으로는 5자·11자가 정상 발화인지 잘린 조각인지 구분되지 않는다.
+                # 기본은 꺼 둔다 — 통화 내용은 PII 다. 검증 중에만 env 로 켠다.
+                if os.environ.get("PRETHIRD_TTS_TEXT_LOG", "0") == "1":
+                    log.info("[T-113] TTS 입력 원문 ⟪%s⟫", full_text[:200])
                 wav_bytes, pcm48 = await self._tts_stage(full_text)
                 turn.append_wav(wav_bytes)
                 await self._infer_stage(
