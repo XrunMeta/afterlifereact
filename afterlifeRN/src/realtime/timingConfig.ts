@@ -16,7 +16,8 @@ export interface TimingConfig {
 }
 
 export const FALLBACK_TIMING_DEFAULTS: TimingConfig = {
-  sttEndpointMs: 1500,
+
+  sttEndpointMs: 2500,
   echoGateMs: 3500,
 
   cloneResumeMs: 300,

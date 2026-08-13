@@ -14,7 +14,7 @@ describe('timingConfig store', () => {
 
   it('defaults match current hardcoded values', () => {
     const s = useTimingConfigStore.getState();
-    expect(s.sttEndpointMs).toBe(1500);
+    expect(s.sttEndpointMs).toBe(2500);
     expect(s.echoGateMs).toBe(3500);
     expect(s.cloneResumeMs).toBe(300);
     expect(s.cloneTailGraceMs).toBe(1000);
@@ -42,7 +42,7 @@ describe('timingConfig store', () => {
   it('reset restores defaults', () => {
     useTimingConfigStore.getState().setField('sttEndpointMs', 800);
     useTimingConfigStore.getState().reset();
-    expect(useTimingConfigStore.getState().sttEndpointMs).toBe(1500);
+    expect(useTimingConfigStore.getState().sttEndpointMs).toBe(2500);
   });
 });
 
