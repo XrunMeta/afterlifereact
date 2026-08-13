@@ -485,8 +485,6 @@ function CallScreenInner({ route, navigation }: Props) {
   const myNameRef = useRef<string | null>(null);
 
   const ownerAutoEnrollTriedRef = useRef(false);
-
-  const ownerConfirmPendingRef = useRef<{ name: string; at: number } | null>(null);
   const handleSpeakerEventTrampoline = useCallback((evt: SpeakerEvent) => {
     handleSpeakerEventRef.current(evt);
   }, []);
