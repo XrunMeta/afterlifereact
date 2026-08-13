@@ -502,4 +502,18 @@ export const api = {
     }>(`/oth-path${id}`),
   deleteCrashReport: (id: number) =>
     request<{ ok: true }>(`/oth-path${id}`, { method: "DELETE" }),
+
+  getConversations: (userEmail: string) =>
+    request<{
+      user_id: number | null;
+      user_email: string;
+      clones: Array<{
+        id: number;
+        name: string;
+        created_at: string;
+        items: Array<{ ts: number; input: string; answer: string; meta: Record<string, unknown> }>;
+        count?: number;
+        error?: string;
+      }>;
+    }>(`/oth-path?user_email=${encodeURIComponent(userEmail)}`),
 };
