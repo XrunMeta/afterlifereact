@@ -2480,28 +2480,30 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   if (!v_eb25ce) return v_3f4e2e.json({ error: "clone not found" }, 404);
 
   let v_2f693a = null;
-  if (v_eb25ce.voice_se_url) {
-
-    v_2f693a = String(v_062ae9);
-  } else if (v_eb25ce.voice_preset_id) {
+  if (v_eb25ce.voice_preset_id) {
     const v_324e3c = await v_3f4e2e.env.DB
       .prepare("SELECT se_key FROM voice_presets WHERE id = ? AND is_active = 1")
       .bind(v_eb25ce.voice_preset_id)
       .first<{ se_key: string | null }>();
     v_2f693a = v_324e3c?.se_key ?? null;
   }
-  if (!v_2f693a) return v_3f4e2e.json({ error: "clone has no voice_se available" }, 404);
+  if (!v_2f693a && !v_eb25ce.voice_se_url) {
+    return v_3f4e2e.json({ error: "clone has no voice_se available" }, 404);
+  }
 
   const v_43fd42 = v_3f4e2e.env.LEARN_SECRET ?? "";
   if (!v_43fd42) return v_3f4e2e.json({ error: "LEARN_SECRET not configured" }, 500);
   try {
+    const v_931bf0 = { text: v_9b6134, clone_id: v_062ae9 };
+    if (v_2f693a) v_931bf0.se_key = v_2f693a;
+    if (v_eb25ce.voice_se_url) v_931bf0.voice_se_url = v_eb25ce.voice_se_url;
     const v_eb792a = await fetch("https://rtc.example.invalid/prethird/admin/tts", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-Admin-Secret": v_43fd42,
       },
-      body: JSON.stringify({ text: v_9b6134, se_key: v_2f693a }),
+      body: JSON.stringify(v_931bf0),
     });
     if (!v_eb792a.ok) {
       const v_9be017 = await v_eb792a.text().catch(() => "");
