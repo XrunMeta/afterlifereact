@@ -25,6 +25,8 @@ export interface FaceEvent {
   silent?: boolean;
 
   rejoin?: boolean;
+
+  mentionName?: boolean;
 }
 
 export interface AvatarCall {

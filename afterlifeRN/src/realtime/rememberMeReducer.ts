@@ -9,9 +9,11 @@ export interface RememberMeState {
 
   sheetOpen: boolean;
 
-  graceTurns: number;
-
   graceSinceMs: number | null;
+
+  graceHadActivity: boolean;
+
+  mentionName: boolean;
 
   enrollGraceUntilMs: number | null;
 
@@ -20,9 +22,7 @@ export interface RememberMeState {
   pendingSwitch: { personId: number; displayName: string | null } | null;
 }
 
-export const GRACE_TURNS = 6;
-
-export const GRACE_IDLE_TIMEOUT_MS = 30_000;
+export const GRACE_HOLD_MS = 30_000;
 
 export const ENROLL_GRACE_MS = 60_000;
 
@@ -40,8 +40,6 @@ export type RememberMeEvent =
     }
 
   | { type: "MATCH_UNKNOWN" }
-
-  | { type: "TURN_END" }
 
   | { type: "ACTIVITY" }
 
@@ -68,6 +66,8 @@ export type RememberMeAction =
       personId: number;
       displayName: string | null;
       rejoin: boolean;
+
+      mentionName?: boolean;
     }
 
   | { type: "NOTIFY_UNKNOWN" };
@@ -77,8 +77,9 @@ export function initRememberMeState(): RememberMeState {
     mode: "identified",
     personId: null,
     sheetOpen: false,
-    graceTurns: 0,
     graceSinceMs: null,
+    graceHadActivity: false,
+    mentionName: false,
     enrollGraceUntilMs: null,
     lastNotifyUnknownMs: null,
     pendingSwitch: null,
@@ -99,8 +100,9 @@ function enterPending(s: RememberMeState, nowMs: number): RememberMeState {
     mode: "pending",
     personId: null,
     sheetOpen: true,
-    graceTurns: 0,
     graceSinceMs: null,
+    graceHadActivity: false,
+    mentionName: false,
     lastNotifyUnknownMs: nowMs,
     pendingSwitch: null,
   };
@@ -112,8 +114,9 @@ function enterIdentified(s: RememberMeState, personId: number): RememberMeState 
     mode: "identified",
     personId,
     sheetOpen: false,
-    graceTurns: 0,
     graceSinceMs: null,
+    graceHadActivity: false,
+    mentionName: false,
 
     enrollGraceUntilMs: null,
 
@@ -154,7 +157,19 @@ function next(
 
       if (same) {
         if (state.mode === "grace") {
-          return { state: enterIdentified(state, event.personId), actions: [] };
+
+          return {
+            state: enterIdentified(state, event.personId),
+            actions: [
+              {
+                type: "NOTIFY_CONFIRMED",
+                personId: event.personId,
+                displayName: event.displayName,
+                rejoin: false,
+                mentionName: true,
+              },
+            ],
+          };
         }
         return { state, actions: [] };
       }
@@ -211,8 +226,8 @@ function next(
         state: {
           ...state,
           mode: "grace",
-          graceTurns: GRACE_TURNS,
           graceSinceMs: nowMs,
+          graceHadActivity: false,
           pendingSwitch: null,
         },
         actions: [],
@@ -220,34 +235,24 @@ function next(
     }
 
     case "ACTIVITY": {
-      if (state.mode !== "grace") return { state, actions: [] };
-      return { state: { ...state, graceSinceMs: nowMs }, actions: [] };
-    }
-
-    case "TURN_END": {
-      if (state.mode !== "grace") return { state, actions: [] };
-      const left = state.graceTurns - 1;
-      if (left > 0) {
-        return {
-          state: { ...state, graceTurns: left, graceSinceMs: nowMs },
-          actions: [],
-        };
-      }
-      return {
-        state: enterPending(state, nowMs),
-        actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
-      };
+      if (state.mode !== "grace" || state.graceHadActivity) return { state, actions: [] };
+      return { state: { ...state, graceHadActivity: true }, actions: [] };
     }
 
     case "TICK": {
       if (state.mode !== "grace" || state.graceSinceMs === null) {
         return { state, actions: [] };
       }
-      if (nowMs - state.graceSinceMs < GRACE_IDLE_TIMEOUT_MS) {
-        return { state, actions: [] };
-      }
+      if (nowMs - state.graceSinceMs < GRACE_HOLD_MS) return { state, actions: [] };
 
-      return { state, actions: [{ type: "END_CALL" }] };
+      if (!state.graceHadActivity) {
+
+        return { state, actions: [{ type: "END_CALL" }] };
+      }
+      return {
+        state: enterPending(state, nowMs),
+        actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
+      };
     }
 
     case "CLONE_SPEECH_END": {

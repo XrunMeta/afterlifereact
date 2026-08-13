@@ -108,3 +108,55 @@ async def test_rejoin_은_첫_확정을_방해하지_않는다(monkeypatch):
     _confirm(sess, rejoin=True)
     assert "58" in sess.reacted_keys
     assert sess.current_speaker[0] == 58
+
+
+# ---------------------------------------------------------------------------
+# mentionName — 인사 없이 다음 응답에서 이름만 부르게 한다.
+#
+# 얼굴이 잠깐 안 잡혔다가(앱의 grace 구간) 같은 사람이 돌아온 경우. react 를 걸면
+# "다시 왔네" 가 매번 나가 대화가 끊긴다(히즈키 실측 2026-08-13).
+# ---------------------------------------------------------------------------
+
+
+async def test_mention_name_은_react를_걸지_않고_힌트만_세운다(monkeypatch):
+    _env(monkeypatch)
+    sess = _Sess()
+
+    signaling._handle_face_event(
+        sess,
+        {"event": "speaker_confirmed", "personId": 58, "displayName": "도기",
+         "mentionName": True},
+    )
+
+    assert sess.pipeline.name_mention_hint == "도기"
+    # 발화 경로 전체를 건너뛴다 — 쿨다운 키도 남기지 않는다.
+    assert sess.reacted_keys == {}
+    assert sess.pending_react is None
+
+
+async def test_mention_name_도_신원은_반영한다(monkeypatch):
+    """서버가 이미 그 사람으로 알고 있더라도, 어긋나 있었다면 맞춰야 한다."""
+    _env(monkeypatch)
+    sess = _Sess()
+
+    signaling._handle_face_event(
+        sess,
+        {"event": "speaker_confirmed", "personId": 58, "displayName": "도기",
+         "mentionName": True},
+    )
+
+    assert sess.current_speaker[0] == 58
+
+
+async def test_mention_name_은_True_만_신호다(monkeypatch):
+    _env(monkeypatch)
+    for bad in ("true", 1, "1", None):
+        sess = _Sess()
+        signaling._handle_face_event(
+            sess,
+            {"event": "speaker_confirmed", "personId": 58, "displayName": "도기",
+             "mentionName": bad},
+        )
+        # 신호가 아니면 평소 경로 — react 가 걸리고 힌트는 안 선다.
+        assert "58" in sess.reacted_keys, bad
+        assert getattr(sess.pipeline, "name_mention_hint", None) is None, bad

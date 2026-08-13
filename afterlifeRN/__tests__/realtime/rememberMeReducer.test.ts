@@ -1,7 +1,6 @@
 import {
   ENROLL_GRACE_MS,
-  GRACE_IDLE_TIMEOUT_MS,
-  GRACE_TURNS,
+  GRACE_HOLD_MS,
   initRememberMeState,
   rememberMeReducer,
   shouldHoldMic,
@@ -54,46 +53,64 @@ describe("rememberMeReducer — 확정", () => {
   });
 });
 
-describe("rememberMeReducer — grace(6턴)", () => {
+describe("rememberMeReducer — grace(30초 유지)", () => {
   it("확정자를 놓쳐도 즉시 대기로 가지 않는다 — 대화는 계속된다", () => {
-    const { state, actions } = step(identified58(), { type: "MATCH_UNKNOWN" });
+    const { state, actions } = step(identified58(), { type: "MATCH_UNKNOWN" }, 1000);
     expect(state.mode).toBe("grace");
-    expect(state.graceTurns).toBe(GRACE_TURNS);
+    expect(state.graceSinceMs).toBe(1000);
     expect(state.personId).toBe(58); 
 
     expect(actions).toEqual([]);
     expect(shouldShowRememberMeButton(state)).toBe(false);
   });
 
-  it("unknown 이 반복돼도 카운터가 리셋되지 않는다", () => {
+  it("unknown 이 반복돼도 유지 기준점이 리셋되지 않는다", () => {
 
-    let s = step(identified58(), { type: "MATCH_UNKNOWN" }).state;
-    s = step(s, { type: "TURN_END" }, 1000).state;
-    expect(s.graceTurns).toBe(GRACE_TURNS - 1);
-    s = step(s, { type: "MATCH_UNKNOWN" }, 2000).state;
-    expect(s.graceTurns).toBe(GRACE_TURNS - 1); 
+    let s = step(identified58(), { type: "MATCH_UNKNOWN" }, 1000).state;
+    s = step(s, { type: "MATCH_UNKNOWN" }, 4000).state;
+    s = step(s, { type: "MATCH_UNKNOWN" }, 7000).state;
+    expect(s.graceSinceMs).toBe(1000);
   });
 
-  it("6턴을 소진하면 대기로 전환하고 마이크를 닫는다", () => {
-    let s = step(identified58(), { type: "MATCH_UNKNOWN" }).state;
-    let actions: ReturnType<typeof step>["actions"] = [];
-    for (let i = 0; i < GRACE_TURNS; i++) {
-      const r = step(s, { type: "TURN_END" }, 1000 * (i + 1));
-      s = r.state;
-      actions = r.actions;
-    }
-    expect(s.mode).toBe("pending");
-    expect(s.sheetOpen).toBe(true);
-    expect(actions).toEqual([{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }]);
+  it("30초까지는 그 사람으로 유지한다", () => {
+    const s = step(identified58(), { type: "MATCH_UNKNOWN" }, 1000).state;
+    const r = step(s, { type: "TICK" }, 1000 + GRACE_HOLD_MS - 1);
+    expect(r.state.mode).toBe("grace");
+    expect(r.actions).toEqual([]);
   });
 
-  it("붙들고 있던 사람이 돌아오면 카운터가 사라진다 — 인사는 하지 않는다", () => {
+  it("30초가 지나고 그 사이 대화가 있었으면 대기로 간다", () => {
 
-    const s = step(identified58(), { type: "MATCH_UNKNOWN" }).state;
-    const { state, actions } = step(s, known(58));
+    let s = step(identified58(), { type: "MATCH_UNKNOWN" }, 1000).state;
+    s = step(s, { type: "ACTIVITY" }, 5000).state;
+    const r = step(s, { type: "TICK" }, 1000 + GRACE_HOLD_MS);
+    expect(r.state.mode).toBe("pending");
+    expect(r.state.sheetOpen).toBe(true);
+    expect(r.actions).toEqual([{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }]);
+  });
+
+  it("30초가 지나도록 아무 말도 없었으면 통화를 끊는다", () => {
+
+    const s = step(identified58(), { type: "MATCH_UNKNOWN" }, 1000).state;
+    const r = step(s, { type: "TICK" }, 1000 + GRACE_HOLD_MS);
+    expect(r.actions).toEqual([{ type: "END_CALL" }]);
+  });
+
+  it("🔴 붙들고 있던 사람이 돌아오면 인사하지 않고 이름만 부르게 한다", () => {
+
+    const s = step(identified58(), { type: "MATCH_UNKNOWN" }, 1000).state;
+    const { state, actions } = step(s, known(58), 5000);
     expect(state.mode).toBe("identified");
-    expect(state.graceTurns).toBe(0);
-    expect(actions).toEqual([]);
+    expect(state.graceSinceMs).toBeNull();
+    expect(actions).toEqual([
+      {
+        type: "NOTIFY_CONFIRMED",
+        personId: 58,
+        displayName: "도기",
+        rejoin: false, 
+        mentionName: true,
+      },
+    ]);
   });
 
   it("확정된 적이 없는 통화의 unknown 은 grace 를 거치지 않고 바로 대기로 간다", () => {
@@ -103,33 +120,12 @@ describe("rememberMeReducer — grace(6턴)", () => {
     expect(actions).toEqual([{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }]);
   });
 
-  it("30초간 턴이 흐르지 않으면 통화를 끊는다", () => {
-
-    const s = step(identified58(), { type: "MATCH_UNKNOWN" }, 1000).state;
-    expect(step(s, { type: "TICK" }, 1000 + GRACE_IDLE_TIMEOUT_MS - 1).actions).toEqual([]);
-    expect(step(s, { type: "TICK" }, 1000 + GRACE_IDLE_TIMEOUT_MS).actions).toEqual([
-      { type: "END_CALL" },
-    ]);
-  });
-
-  it("턴이 흐르면 무턴 타이머가 갱신된다", () => {
-    let s = step(identified58(), { type: "MATCH_UNKNOWN" }, 1000).state;
-    s = step(s, { type: "TURN_END" }, 20_000).state;
-
-    expect(step(s, { type: "TICK" }, 40_000).actions).toEqual([]);
-    expect(step(s, { type: "TICK" }, 50_000).actions).toEqual([{ type: "END_CALL" }]);
-  });
-
-  it("ACTIVITY 는 턴을 소모하지 않고 무턴 타이머만 미룬다", () => {
+  it("ACTIVITY 는 유지 시간을 연장하지 않는다 — 갈 곳만 바꾼다", () => {
 
     let s = step(identified58(), { type: "MATCH_UNKNOWN" }, 1000).state;
-    const r = step(s, { type: "ACTIVITY" }, 20_000);
-    expect(r.state.graceTurns).toBe(GRACE_TURNS); 
-    expect(r.actions).toEqual([]);
-    s = r.state;
-
-    expect(step(s, { type: "TICK" }, 45_000).actions).toEqual([]);
-    expect(step(s, { type: "TICK" }, 50_000).actions).toEqual([{ type: "END_CALL" }]);
+    s = step(s, { type: "ACTIVITY" }, 25_000).state;
+    expect(s.graceSinceMs).toBe(1000); 
+    expect(step(s, { type: "TICK" }, 1000 + GRACE_HOLD_MS).state.mode).toBe("pending");
   });
 
   it("grace 가 아니면 ACTIVITY 는 아무것도 하지 않는다", () => {
@@ -311,7 +307,7 @@ describe("rememberMeReducer — 순수성", () => {
     const s0 = identified58();
     const snapshot = JSON.stringify(s0);
     step(s0, { type: "MATCH_UNKNOWN" });
-    step(s0, { type: "TURN_END" });
+    step(s0, { type: "ACTIVITY" });
     step(s0, known(70));
     expect(JSON.stringify(s0)).toBe(snapshot);
   });
