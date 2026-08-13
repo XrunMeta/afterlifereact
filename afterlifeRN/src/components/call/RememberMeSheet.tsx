@@ -10,6 +10,8 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { COLORS, RADIUS } from "../constants";
 
@@ -45,12 +47,17 @@ export default function RememberMeSheet({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
-      <KeyboardAvoidingView
-        style={styles.backdrop}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <View style={styles.card} testID="remember-me-sheet">
-          <Text style={styles.title}>이 분은 누구신가요?</Text>
+      {
+
+}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <KeyboardAvoidingView
+          style={styles.backdrop}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <TouchableWithoutFeedback onPress={() => {  }}>
+            <View style={styles.card} testID="remember-me-sheet">
+              <Text style={styles.title}>이 분은 누구신가요?</Text>
           <Text style={styles.desc}>
             알려주시면 다음 통화부터 기억할게요.
           </Text>
@@ -108,8 +115,10 @@ export default function RememberMeSheet({
               <Text style={styles.btnPrimaryText}>{saving ? "저장 중…" : "저장"}</Text>
             </Pressable>
           </View>
-        </View>
-      </KeyboardAvoidingView>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 }
