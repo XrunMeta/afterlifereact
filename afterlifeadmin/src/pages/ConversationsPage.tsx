@@ -125,6 +125,16 @@ export default function ConversationsPage() {
             ) : (
               selected.items.map((t) => {
                 const time = new Date(t.ts).toLocaleString("ko-KR");
+
+                const onPlay = () => {
+                  const cid = selected.id;
+                  const text = t.answer || "";
+                  navigator.clipboard?.writeText(text).catch(() => {});
+                  window.open("https://rtc.example.invalid/oth-path", "_blank");
+                  window.alert(
+                    `clone #${cid} 텍스트가 복사됐어. 새로 열린 탭에서 로그인 → 클론 선택(${cid}) → 텍스트 붙여넣고 ▶ 재생.`,
+                  );
+                };
                 return (
                   <div key={t.ts} style={{ padding: "12px 0", borderBottom: "1px solid #27272a" }}>
                     <div style={{ fontSize: 11, color: "#71717a", marginBottom: 6 }}>{time}</div>
@@ -132,9 +142,27 @@ export default function ConversationsPage() {
                       <span style={{ color: "#60a5fa", fontSize: 12, marginRight: 6 }}>사용자</span>
                       <span style={{ fontSize: 14 }}>{t.input || <i style={{ color: "#71717a" }}>(비어있음)</i>}</span>
                     </div>
-                    <div>
-                      <span style={{ color: "#a78bfa", fontSize: 12, marginRight: 6 }}>클론</span>
-                      <span style={{ fontSize: 14 }}>{t.answer || <i style={{ color: "#71717a" }}>(비어있음)</i>}</span>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+                      <span style={{ color: "#a78bfa", fontSize: 12, marginRight: 6, whiteSpace: "nowrap" }}>클론</span>
+                      <span style={{ fontSize: 14, flex: 1 }}>{t.answer || <i style={{ color: "#71717a" }}>(비어있음)</i>}</span>
+                      {t.answer && (
+                        <button
+                          onClick={onPlay}
+                          title="verify-lab TTS 미리듣기 열기 (텍스트 복사됨)"
+                          style={{
+                            padding: "2px 8px",
+                            background: "#3f3f46",
+                            border: "1px solid #52525b",
+                            borderRadius: 4,
+                            color: "#e5e7eb",
+                            fontSize: 11,
+                            cursor: "pointer",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          ▶ 듣기
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
