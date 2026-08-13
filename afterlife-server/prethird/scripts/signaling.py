@@ -1442,4 +1442,9 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     from knowledge_followup_endpoint import register_knowledge_followup_routes
     register_knowledge_followup_routes(app)
 
+    # T-500 관리자 대화 조회 — /data/records/<clone_id>/*.txt 를 admin UI 로 반환.
+    #   auth = Authorization: Bearer <PRETHIRD_LEARN_SECRET>. api 프록시가 서명.
+    from admin_records_endpoint import register_admin_records_routes
+    register_admin_records_routes(app)
+
     return app

@@ -469,4 +469,18 @@ export const v_05a921 = {
     }>(`/oth-path${v_389afb}`),
   deleteCrashReport: (v_389afb) =>
     v_576f5a<{ ok: true }>(`/oth-path${v_389afb}`, { method: "DELETE" }),
+
+  getConversations: (v_f4fb5e) =>
+    v_576f5a<{
+      user_id: number | null;
+      user_email: string;
+      clones: Array<{
+        id: number;
+        name: string;
+        created_at: string;
+        items: Array<{ ts: number; input: string; answer: string; meta: Record<string, unknown> }>;
+        count?: number;
+        error?: string;
+      }>;
+    }>(`/oth-path?user_email=${encodeURIComponent(v_f4fb5e)}`),
 };
