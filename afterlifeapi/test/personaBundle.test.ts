@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { env } from "cloudflare:test";
-import { loadCloneProfiles, buildPersonaBundle, flattenAttrs, loadUserL2 } from "../src/lib/personaBundle";
+import { loadCloneProfiles, buildPersonaBundle, flattenAttrs, loadUserL2, claimL2OwnerFace, loadL2OwnerPersonId } from "../src/lib/personaBundle";
 import { resolvePersona } from "../src/lib/personaResolver";
 import type { Bindings } from "../src/lib/env";
 const Edb = env as unknown as Bindings;
@@ -109,11 +109,49 @@ describe("T-252 viewer 슬롯", () => {
 
   it("viewer 미지정이면 displayName 이 null 이다", () => {
     const b = buildPersonaBundle(l0, { displayName: "코조" }, 1);
-    expect(b.viewer).toEqual({ displayName: null });
+
+    expect(b.viewer).toEqual({ displayName: null, ownerPersonId: null });
   });
 
   it("users.name 이 null 이면 null 을 그대로 방출한다", () => {
     const b = buildPersonaBundle(l0, { displayName: "코조" }, 1, { displayName: null });
     expect(b.viewer.displayName).toBeNull();
+  });
+});
+
+describe("L2 owner face — claim/load", () => {
+  it("주인이 없으면 지정되고, 이후 다른 person 이 가로채지 못한다", async () => {
+    await seedOnt(7301, 6301, { relation_subtype: "아내" });
+
+    expect(await claimL2OwnerFace(Edb.DB, 7301, 6301, 58)).toBe(true);
+    expect(await loadL2OwnerPersonId(Edb.DB, 7301, 6301)).toBe(58);
+
+    expect(await claimL2OwnerFace(Edb.DB, 7301, 6301, 99)).toBe(false);
+    expect(await loadL2OwnerPersonId(Edb.DB, 7301, 6301)).toBe(58);
+  });
+
+  it("기존 L2 내용을 훼손하지 않는다", async () => {
+    await seedOnt(7302, 6302, { relation_subtype: "아내", memories_personal: ["여행"] });
+    await claimL2OwnerFace(Edb.DB, 7302, 6302, 60);
+    const l2 = (await loadUserL2(Edb.DB, 7302, 6302)) as Record<string, unknown>;
+    expect(l2.relation_subtype).toBe("아내");
+    expect(l2.memories_personal).toEqual(["여행"]);
+  });
+
+  it("owner_person_id 는 프롬프트로 새지 않는다 — 라우팅용 메타값", async () => {
+    await seedOnt(7303, 6303, { relation_subtype: "아내" });
+    await claimL2OwnerFace(Edb.DB, 7303, 6303, 61);
+    const l2 = (await loadUserL2(Edb.DB, 7303, 6303)) as Record<string, unknown>;
+    expect(l2.owner_person_id).toBeUndefined();
+  });
+
+  it("clone_ont 행이 없으면 지정하지 않는다(설문 전)", async () => {
+    expect(await claimL2OwnerFace(Edb.DB, 7304, 6304, 62)).toBe(false);
+    expect(await loadL2OwnerPersonId(Edb.DB, 7304, 6304)).toBeNull();
+  });
+
+  it("미지정이면 null 을 돌려준다 — prethird 가 기존 경로로 떨어진다", async () => {
+    await seedOnt(7305, 6305, { relation: "친구" });
+    expect(await loadL2OwnerPersonId(Edb.DB, 7305, 6305)).toBeNull();
   });
 });
