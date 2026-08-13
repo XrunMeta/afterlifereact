@@ -45,10 +45,21 @@ export default function v_39b6c7({
 
   return (
     <Modal visible={v_cf55be} transparent animationType="fade" onRequestClose={v_1b97a8}>
+      {
+}
+      <Pressable
+        testID="remember-me-backdrop"
+        style={v_d81136.backdropTouch}
+        onPress={v_1b97a8}
+        accessibilityLabel="닫기"
+      />
       <KeyboardAvoidingView
         style={v_d81136.backdrop}
-        behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+        pointerEvents="box-none"
+
+        behavior={v_326be8.OS === "ios" ? "padding" : "height"}
       >
+        {}
         <View style={v_d81136.card} testID="remember-me-sheet">
           <Text style={v_d81136.title}>이 분은 누구신가요?</Text>
           <Text style={v_d81136.desc}>
@@ -115,10 +126,15 @@ export default function v_39b6c7({
 }
 
 const v_d81136 = v_472849.create({
-  backdrop: {
-    flex: 1,
+
+  backdropTouch: {
+    ...v_472849.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.6)",
+  },
+  backdrop: {
+    ...v_472849.absoluteFillObject,
     alignItems: "center",
+
     justifyContent: "center",
     padding: 24,
   },
