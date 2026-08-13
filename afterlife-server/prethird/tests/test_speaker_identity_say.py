@@ -689,3 +689,21 @@ async def test_TTL이_0이면_타이머를_걸지_않는다(monkeypatch):
     await asyncio.sleep(0.05)
     assert len(sess.pipeline.update_calls) == 1     # 복귀 없음
     assert sess.prompt_unconfirmed is True
+
+
+async def test_TTL_기본값은_무기한이다(monkeypatch):
+    """[2026-08-12 계약 변경] 기본값을 10초 → 0(무기한)으로 뒤집는다.
+
+    Remember Me 설계에서 미확정 모드의 해제 조건은 **등록된 얼굴 인식 하나뿐**이다.
+    시간이 지났다고 상태 1(계정주 L2)로 되돌아가면, 누구인지 모르는 상대에게 10초 뒤
+    자동으로 계정주의 기억이 열린다 — 미확정 모드가 막으려던 바로 그 상황이다.
+
+    env 로 되살릴 수 있게 코드는 남긴다(위 롤백 스위치와 같은 장치, 방향만 반대).
+    """
+    monkeypatch.delenv("PRETHIRD_UNCONFIRMED_TTL_S", raising=False)
+    sess = _Sess()
+
+    _clear_current_speaker(sess, "unknown_face")
+
+    assert sess.unconfirmed_timer is None          # 무장하지 않는다
+    assert sess.prompt_unconfirmed is True

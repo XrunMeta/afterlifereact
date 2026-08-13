@@ -243,3 +243,15 @@ export async function v_c63c1d(
     { method: 'DELETE' },
   );
 }
+
+export async function v_6ffcc5(
+  v_2ca7e0,
+  v_ca1ec5,
+  v_dd8af0,
+): Promise<{ id: number; relation: string }> {
+  return v_04b58a<{ id: number; relation: string }>(
+    `/oth-path${v_ca1ec5}/relation`,
+    v_2ca7e0,
+    { method: 'PATCH', body: JSON.stringify({ relation: v_dd8af0 }) },
+  );
+}
