@@ -10,6 +10,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
 } from "react-native";
 import { COLORS, RADIUS } from "../constants";
 
@@ -33,6 +34,16 @@ export default function RememberMeSheet({
   const [name, setName] = useState("");
   const [relation, setRelation] = useState("");
 
+  const [keyboardUp, setKeyboardUp] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () => setKeyboardUp(true));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardUp(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
   useEffect(() => {
     if (visible) {
       setName("");
@@ -46,11 +57,18 @@ export default function RememberMeSheet({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       {
+
 }
       <Pressable
         testID="remember-me-backdrop"
         style={styles.backdropTouch}
-        onPress={onDismiss}
+        onPress={() => {
+          if (keyboardUp) {
+            Keyboard.dismiss();
+            return;
+          }
+          onDismiss();
+        }}
         accessibilityLabel="닫기"
       />
       <KeyboardAvoidingView
@@ -59,7 +77,8 @@ export default function RememberMeSheet({
 
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        {}
+        {
+}
         <View style={styles.card} testID="remember-me-sheet">
           <Text style={styles.title}>이 분은 누구신가요?</Text>
           <Text style={styles.desc}>
