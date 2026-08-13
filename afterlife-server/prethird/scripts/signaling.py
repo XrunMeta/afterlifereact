@@ -69,14 +69,21 @@ _UNCONFIRMED_MAX_RETRY = 1
 
 
 def _unconfirmed_ttl_s() -> float:
-    """상태 4 를 유지할 최대 초. 0 이하면 타이머 비활성(구 동작 = 무기한 상태 4).
+    """상태 4 를 유지할 최대 초. 0 이하면 타이머 비활성(= 무기한 상태 4).
 
-    파싱 실패는 기본값으로 되돌린다 — env 오타 하나로 고착 해소 장치가 조용히
-    죽는 것보다, 기본 수명이 걸리는 쪽이 안전하다(_warn_offsets_from_env 관례)."""
+    [2026-08-12 Remember Me] 기본값을 10 → 0(무기한)으로 뒤집었다. 미확정 모드의
+    해제 조건은 **등록된 얼굴 인식 하나뿐**이다. 시간이 지났다고 상태 1(계정주 L2)로
+    되돌아가면, 누구인지 모르는 상대에게 10초 뒤 자동으로 계정주의 기억이 열린다 —
+    미확정 모드가 막으려던 바로 그 상황이다.
+
+    타이머 코드는 그대로 남긴다. PRETHIRD_UNCONFIRMED_TTL_S 에 양수를 넣으면 예전
+    자동 복귀 동작으로 되돌릴 수 있다(방향만 반대인 같은 롤백 스위치).
+
+    파싱 실패는 기본값으로 되돌린다 — env 오타 하나로 동작이 조용히 바뀌지 않게."""
     try:
-        return float(os.environ.get(_UNCONFIRMED_TTL_KEY, "10"))
+        return float(os.environ.get(_UNCONFIRMED_TTL_KEY, "0"))
     except ValueError:
-        return 10.0
+        return 0.0
 # 아는 얼굴(personId)=통화당 1회(영구), unknown/multi_face=이 초 동안 쿨다운.
 REACT_COOLDOWN_S = float(os.environ.get("PRETHIRD_REACT_COOLDOWN_S", "60"))
 # react가 다른 발화(say/speak/greet/react) 진행 중 도착하면 단일 pending 슬롯에 대기(latest-wins,
@@ -945,6 +952,21 @@ def _make_dc_handler(sess, channel):
         # 클라이언트가 자기주장하는 identity를 서버가 그대로 신뢰하는 경로는 IDOR 표면.
         # identity 소스는 face_event(생체검증) 단일 경로로 확정 — _handle_face_event만이
         # sess.current_speaker를 설정/해제한다). say는 원문 text만 소비(기존 그대로).
+        # [Remember Me 2026-08-12] "내 이름 기억해줘" 류 발화 → RN 에 시트를 열라고 통보.
+        #
+        # 아래 enroll_suggest 분기들과 독립이다(elif 체인에 넣지 않는다) — 저쪽은 이름을
+        # LLM 으로 추출해 카드에 채우는 경로이고, 이쪽은 **이름을 만들지 않는다**.
+        # payload 에 이름 자리가 아예 없는 것이 계약이다. 사용자가 시트에 직접 입력한다.
+        # 잘못 발동해도 시트가 한 번 열릴 뿐이라 fail-open 으로 둔다.
+        if mtype == "say" and channel is not None:
+            try:
+                from remember_me_intent import wants_remember_me
+                if wants_remember_me(text) and getattr(channel, "readyState", None) == "open":
+                    channel.send(_json.dumps({"type": "remember_me", "reason": "asked"}))
+            except Exception as exc:
+                log.warning("session %s remember_me signal failed: %s",
+                            getattr(sess, "session_id", "?"), exc)
+
         # [T-067 Task 11] 즉석등록: pending_enroll 상태의 첫 say에서만 1회 발화(플래그를
         # 즉시 내려 재진입 차단) — fire-and-forget이라 say 본 흐름은 지연되지 않는다.
         if mtype == "say" and getattr(sess, "pending_enroll", False):

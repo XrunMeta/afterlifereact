@@ -296,7 +296,13 @@ def test_상태3_이름없음():
 
 
 def test_상태4_미확정_얼굴():
-    """unknown_face → 기본 상대 정보는 유지하되 이름은 부르지 않는다."""
+    """unknown_face → 이름도 기억도 주지 않는다.
+
+    [2026-08-12 계약 변경] 예전에는 상태 4 에서도 "평소 대화하던 상대 = 계정주" 로 보고
+    L2(persona)를 그대로 넣었다. 이제는 넣지 않는다 — 누구인지 모르는 상대에게 사용자별
+    기억을 꺼내 보이는 것이기 때문이다. 미확정 상태에서 대화가 정상 진행되면 그 발화가
+    다시 잘못된 곳에 쌓인다(person 43 의 "카메라" 오염이 정확히 그 경로였다).
+    """
     msgs = bundle_to_messages(
         _bundle_v({"displayName": "코조", "memories_personal": ["어제 등산 감"]}, "지호"),
         speaker={"unconfirmed": True},
@@ -305,8 +311,28 @@ def test_상태4_미확정_얼굴():
     assert "확정하지 못했다" in content
     assert "이름으로 부르지 마라" in content
     assert "지호" not in content              # 이름 호칭 억제
-    assert "어제 등산 감" in content          # L2 맥락은 유지
-    assert "단정해서 꺼내지 마라" in content
+    assert "어제 등산 감" not in content      # L2 도 주지 않는다(계약 변경)
+    assert "## 상대 정보" not in content      # 블록 자체가 없다
+
+
+def test_상태4_는_신원_입력을_요구한다():
+    """미확정 모드에서는 정상 대화 대신 이름 입력을 계속 요구한다.
+
+    닫기(Remember Me 무시)는 면제가 아니라 유예다 — 해제 조건은 등록된 얼굴 인식뿐이고,
+    그때까지 클론은 대화를 진행시키는 대신 신원 입력을 반복 요청한다.
+    """
+    # persona 에 속성을 실제로 넣는다 — displayName 뿐이면 렌더할 줄이 없어 상태 1 이
+    # 정상적으로 [] 를 반환해버려, 비교군이 성립하지 않는다.
+    bundle = _bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, "지호")
+
+    content = bundle_to_messages(bundle, speaker={"unconfirmed": True})[0]["content"]
+    assert "Remember Me" in content
+
+    # 상태 1·2 에는 이 요구가 붙지 않는다 — 정상 대화를 막으면 안 된다.
+    assert "Remember Me" not in bundle_to_messages(bundle)[0]["content"]
+    assert "Remember Me" not in bundle_to_messages(
+        bundle, speaker={"name": "민수", "l2p_data": {"memories_personal": ["민수 기억"]}}
+    )[0]["content"]
 
 
 def test_상태4_전이시_L2p_미잔류():
@@ -321,7 +347,8 @@ def test_상태4_전이시_L2p_미잔류():
     content = fallback[0]["content"]
     assert "민수" not in content
     assert "민수 비밀" not in content
-    assert "기본 기억" in content
+    # [2026-08-12 계약 변경] 계정주 L2 도 남기지 않는다 — 위 test_상태4_미확정_얼굴 참고.
+    assert "기본 기억" not in content
 
 
 def test_화자_A에서_B로_전환시_A_미잔류():
@@ -560,14 +587,20 @@ def test_상태1은_계정주_L2를_계속_쓴다():
     assert _header_of(content).count("지호") == 2   # 3곳 → 2곳으로 축소
 
 
-def test_상태4는_계정주_L2를_계속_쓴다():
-    """unconfirmed 는 '평소 대화하던 상대'= 계정주 L2 복귀가 설계다(3.2)."""
+def test_상태4는_계정주_L2도_주지_않는다():
+    """[2026-08-12 계약 변경] 예전 설계(3.2)는 unconfirmed 를 '평소 대화하던 상대'=
+    계정주로 보고 L2 를 복귀시켰다. 이제 주지 않는다.
+
+    바뀐 이유: 얼굴이 미확정이라는 것은 상대가 계정주라는 근거가 없다는 뜻이다. 그
+    상태에서 계정주의 관계·취향·기억을 꺼내면, 처음 보는 사람에게 남의 기억을 읽어주는
+    셈이 된다. 미확정 모드는 등록될 때까지 기억에 접근하지도, 기억을 남기지도 않는다.
+    """
     content = bundle_to_messages(
         _bundle_v(dict(_L2_PERSONA), "지호"), speaker={"unconfirmed": True}
     )[0]["content"]
-    assert "## 상대 정보" in content
-    assert "지호와 어제 등산을 갔다" in content
-    assert "지호" not in _header_of(content)   # 이름 호칭만 억제
+    assert "## 상대 정보" not in content
+    assert "지호와 어제 등산을 갔다" not in content
+    assert "지호" not in _header_of(content)   # 이름 호칭도 여전히 억제
 
 
 def test_상대정보_블록이_없으면_그_블록을_가리키는_줄도_없다():

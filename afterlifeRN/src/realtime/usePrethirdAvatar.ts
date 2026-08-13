@@ -77,7 +77,7 @@ function v_9d05cd(v_32dc97, v_11bcf9): Promise<boolean> {
 }
 
 export function v_3d8d48(v_328259): v_b01667 {
-  const { cloneId: v_6e0fd3, accessToken: v_2ca7e0, onEnrollSuggest: v_46947d, pipeline: v_883ce9 } = v_328259;
+  const { cloneId: v_6e0fd3, accessToken: v_2ca7e0, onEnrollSuggest: v_46947d, onRememberMe: v_b94db0, pipeline: v_883ce9 } = v_328259;
 
   const v_84b93d = v_328259.deps ?? v_17f880;
   const [v_b6e533, v_1fa668] = v_5ab095<v_d20273>('idle');
@@ -98,6 +98,8 @@ export function v_3d8d48(v_328259): v_b01667 {
 
   const v_de567c = v_e662ae(v_46947d);
   v_c4deb2(() => { v_de567c.current = v_46947d; }, [v_46947d]);
+  const v_d5b6bb = v_e662ae(v_b94db0);
+  v_c4deb2(() => { v_d5b6bb.current = v_b94db0; }, [v_b94db0]);
 
   const v_1402c0 = v_e662ae(v_883ce9);
   v_c4deb2(() => { v_1402c0.current = v_883ce9; }, [v_883ce9]);
@@ -262,6 +264,9 @@ export function v_3d8d48(v_328259): v_b01667 {
 
           const v_ca1ec5 = typeof v_35f85c.personId === 'number' ? v_35f85c.personId : undefined;
           v_de567c.current?.(typeof v_35f85c.name === 'string' ? v_35f85c.name : '', v_ca1ec5);
+        } else if (v_35f85c.type === 'remember_me') {
+
+          v_d5b6bb.current?.();
         }
       } catch {  }
     };
