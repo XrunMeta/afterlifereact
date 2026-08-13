@@ -5,7 +5,11 @@ export interface RememberMeState {
   identified: boolean;
 
   sheetOpen: boolean;
+
+  graceUntilMs: number | null;
 }
+
+export const ENROLL_GRACE_MS = 60_000;
 
 export type RememberMeEvent =
 
@@ -24,15 +28,21 @@ export type RememberMeAction =
   | { type: "RESUME_CONVERSATION" };
 
 export function initRememberMeState(): RememberMeState {
-  return { identified: true, sheetOpen: false };
+  return { identified: true, sheetOpen: false, graceUntilMs: null };
 }
 
-function next(state: RememberMeState, event: RememberMeEvent): RememberMeState {
+function next(
+  state: RememberMeState,
+  event: RememberMeEvent,
+  nowMs: number,
+): RememberMeState {
   switch (event.type) {
     case "UNKNOWN_FACE":
 
+      if (state.graceUntilMs !== null && nowMs < state.graceUntilMs) return state;
+
       if (!state.identified) return state;
-      return { identified: false, sheetOpen: true };
+      return { ...state, identified: false, sheetOpen: true };
 
     case "OPEN_SHEET":
 
@@ -43,11 +53,12 @@ function next(state: RememberMeState, event: RememberMeEvent): RememberMeState {
 
     case "KNOWN_FACE":
 
-      if (!event.named) return next(state, { type: "UNKNOWN_FACE" });
-      return { identified: true, sheetOpen: false };
+      if (!event.named) return next(state, { type: "UNKNOWN_FACE" }, nowMs);
+
+      return { identified: true, sheetOpen: false, graceUntilMs: null };
 
     case "ENROLLED":
-      return { identified: true, sheetOpen: false };
+      return { identified: true, sheetOpen: false, graceUntilMs: nowMs + ENROLL_GRACE_MS };
 
     default:
       return state;
@@ -57,8 +68,9 @@ function next(state: RememberMeState, event: RememberMeEvent): RememberMeState {
 export function rememberMeReducer(
   state: RememberMeState,
   event: RememberMeEvent,
+  nowMs: number,
 ): { state: RememberMeState; actions: RememberMeAction[] } {
-  const s = next(state, event);
+  const s = next(state, event, nowMs);
 
   const actions: RememberMeAction[] =
     s.sheetOpen === state.sheetOpen

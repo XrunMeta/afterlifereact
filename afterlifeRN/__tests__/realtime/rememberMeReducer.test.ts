@@ -1,11 +1,15 @@
 import {
+  ENROLL_GRACE_MS,
   initRememberMeState,
   rememberMeReducer,
   type RememberMeState,
 } from "../../src/realtime/rememberMeReducer";
 
-const step = (s: RememberMeState, e: Parameters<typeof rememberMeReducer>[1]) =>
-  rememberMeReducer(s, e);
+const step = (
+  s: RememberMeState,
+  e: Parameters<typeof rememberMeReducer>[1],
+  nowMs = 0,
+) => rememberMeReducer(s, e, nowMs);
 
 describe("rememberMeReducer", () => {
   it("초기 상태는 확인됨 + 시트 닫힘", () => {
@@ -113,5 +117,45 @@ describe("rememberMeReducer", () => {
     const snapshot = JSON.stringify(s0);
     step(s0, { type: "UNKNOWN_FACE" });
     expect(JSON.stringify(s0)).toBe(snapshot);
+  });
+
+  describe("등록 직후 유예", () => {
+    it("등록 직후의 unknown 은 시트를 다시 열지 않는다", () => {
+      const s = step(initRememberMeState(), { type: "ENROLLED" }, 1000).state;
+      const { state, actions } = step(s, { type: "UNKNOWN_FACE" }, 1000 + 30_000);
+      expect(state.identified).toBe(true);
+      expect(state.sheetOpen).toBe(false);
+
+      expect(actions).toEqual([]);
+    });
+
+    it("유예가 지나면 다시 미확정으로 떨어진다 — 등록이 끝내 반영 안 될 때의 탈출구", () => {
+      const s = step(initRememberMeState(), { type: "ENROLLED" }, 1000).state;
+      const { state } = step(s, { type: "UNKNOWN_FACE" }, 1000 + ENROLL_GRACE_MS + 1);
+      expect(state.identified).toBe(false);
+      expect(state.sheetOpen).toBe(true);
+    });
+
+    it("매칭이 돌아오면 유예는 즉시 끝난다 — 이후 진짜 새 얼굴은 정상 처리", () => {
+      let s = step(initRememberMeState(), { type: "ENROLLED" }, 1000).state;
+      s = step(s, { type: "KNOWN_FACE", named: true }, 1000 + 5_000).state;
+      expect(s.graceUntilMs).toBeNull();
+
+      const { state } = step(s, { type: "UNKNOWN_FACE" }, 1000 + 6_000);
+      expect(state.identified).toBe(false);
+      expect(state.sheetOpen).toBe(true);
+    });
+
+    it("유예 중 이름 없는 매칭도 시트를 열지 않는다 — UNKNOWN_FACE 위임 경로", () => {
+      const s = step(initRememberMeState(), { type: "ENROLLED" }, 1000).state;
+      const { state } = step(s, { type: "KNOWN_FACE", named: false }, 1000 + 10_000);
+      expect(state.sheetOpen).toBe(false);
+    });
+
+    it("유예는 등록으로만 생긴다 — 통화 시작 직후의 unknown 은 그대로 시트를 연다", () => {
+      const { state } = step(initRememberMeState(), { type: "UNKNOWN_FACE" }, 500);
+      expect(state.identified).toBe(false);
+      expect(state.sheetOpen).toBe(true);
+    });
   });
 });
