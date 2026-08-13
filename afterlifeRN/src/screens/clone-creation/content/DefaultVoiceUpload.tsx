@@ -2,7 +2,7 @@
 
 import { showAlert } from "../../../stores/dialogStore";
 import React, { useEffect, useRef, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, ToastAndroid } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import {
@@ -23,6 +23,7 @@ import { uploadFile } from "../../../api/files";
 import { useAuthStore } from "../../../stores/authStore";
 import { resolveVoicePresetName } from "../../../lib/voicePresetName";
 import { verifyAudioFile } from "../../../lib/audioFileCheck";
+import { appendSample, evaluateWindow, type AudioVerdict } from "../../../lib/audioQualityGate";
 
 export const VOICE_SAMPLES = [
   { id: "v1", name: "Nova" },
@@ -126,6 +127,22 @@ async function pickAudioSource(
           }),
     );
     return null;
+  }
+
+  if (verdict.warn === "too_short") {
+    showAlert(
+      t("create.voice.warnTooShortTitle", { defaultValue: "파일이 너무 짧아요" }),
+      t("create.voice.warnTooShortMsg", {
+        defaultValue: "선택한 파일이 아주 짧아요. 클론 목소리 학습에는 30초~1분 분량의 조용한 녹음이 필요해요. 다른 파일을 골라 다시 올려 주세요.",
+      }),
+    );
+  } else if (verdict.warn === "too_large") {
+    showAlert(
+      t("create.voice.warnTooLargeTitle", { defaultValue: "파일이 너무 커요" }),
+      t("create.voice.warnTooLargeMsg", {
+        defaultValue: "선택한 파일이 너무 길어요. 30초~1분 분량으로 잘라서 다시 올려 주세요.",
+      }),
+    );
   }
 
   return {
@@ -232,8 +249,57 @@ function Component({ draft, onChange }: Props) {
     }
   }, [playerStatus.playing, playerStatus.isLoaded, playerStatus.isBuffering, playerStatus.currentTime, playingId]);
 
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
   const recState = useAudioRecorderState(recorder, 200);
+
+  const meteringBufRef = useRef<number[]>([]);
+  const lastToastAtRef = useRef<Record<AudioVerdict, number>>({ ok: 0, silence: 0, noise: 0 });
+  const summaryRef = useRef<{ silence: number; noise: number; total: number }>({
+    silence: 0, noise: 0, total: 0,
+  });
+
+  const showQualityToast = React.useCallback((msg: string) => {
+    if (Platform.OS === "android") {
+      ToastAndroid.show(msg, ToastAndroid.LONG);
+    } else {
+
+      console.log("[QualityGate][iOS]", msg);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!recState.isRecording) {
+      meteringBufRef.current = [];
+      return;
+    }
+    const m = (recState as unknown as { metering?: number }).metering;
+    if (typeof m !== "number" || !Number.isFinite(m)) return;
+
+    meteringBufRef.current = appendSample(meteringBufRef.current, m);
+    summaryRef.current.total += 1;
+    if (meteringBufRef.current.length < 15) return; 
+
+    const res = evaluateWindow(meteringBufRef.current);
+    if (res.verdict === "ok") return;
+
+    if (res.verdict === "silence") summaryRef.current.silence += 1;
+    if (res.verdict === "noise") summaryRef.current.noise += 1;
+
+    const now = Date.now();
+    if (now - lastToastAtRef.current[res.verdict] < 5000) return;
+    lastToastAtRef.current[res.verdict] = now;
+
+    if (res.verdict === "silence") {
+      showQualityToast(t("create.voice.toastSilence", {
+        defaultValue: "너무 조용해요. 좀 더 크게 말씀해 주세요.",
+      }));
+    } else if (res.verdict === "noise") {
+      showQualityToast(t("create.voice.toastNoise", {
+        defaultValue: "주변이 시끄러워요. 조용한 곳에서 녹음해 주세요.",
+      }));
+    }
+
+  }, [recState.isRecording, (recState as unknown as { metering?: number }).metering]);
 
   const recorderRef = useRef(recorder);
   recorderRef.current = recorder;
@@ -390,6 +456,27 @@ function Component({ draft, onChange }: Props) {
     await setAudioModeAsync({ allowsRecording: false });
     const uri = recorder.uri;
     if (!uri) return;
+
+    const s = summaryRef.current;
+    summaryRef.current = { silence: 0, noise: 0, total: 0 };
+    if (s.total >= 15) { 
+      const silenceRatio = s.silence / s.total;
+      const noiseRatio = s.noise / s.total;
+      if (silenceRatio > 0.3 || noiseRatio > 0.3) {
+        const primary: AudioVerdict = silenceRatio >= noiseRatio ? "silence" : "noise";
+        showAlert(
+          t("create.voice.recordQualityTitle", { defaultValue: "녹음 품질 확인" }),
+          primary === "silence"
+            ? t("create.voice.recordQualitySilenceMsg", {
+                defaultValue: "녹음에 무음 구간이 많아요. 조용한 곳에서 문장 전체를 또렷하게 다시 녹음해 주세요.",
+              })
+            : t("create.voice.recordQualityNoiseMsg", {
+                defaultValue: "녹음에 주변 소음이 섞였어요. 조용한 곳에서 다시 녹음해 주시면 클론 목소리가 훨씬 자연스러워집니다.",
+              }),
+        );
+
+      }
+    }
 
     await registerVoice("record", {
       uri,
