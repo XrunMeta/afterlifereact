@@ -21,6 +21,7 @@ import os
 import struct
 import threading
 import time
+from dataclasses import replace
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Callable, Iterator, Optional
@@ -288,6 +289,7 @@ class RenderService:
         jpeg_quality: int = 90,
         idle_opts: dict | None = None,
         render_mode: str | None = None,
+        cfg_overrides: dict | None = None,
     ) -> int:
         """wav → 프레임 청크 write. 반환: 프레임 수.
 
@@ -334,6 +336,11 @@ class RenderService:
         # idle_opts=None(기본) → {} → stream_wav_frames 인자 미전달(env 기본, 회귀 0).
         _idle = _idle_kwargs(idle_opts)
 
+        # per-request 입싱크 오버라이드(lab-tuner). 비어 있으면 self.cfg 를 **동일 객체**로
+        # 넘겨 기존 경로와 100% 같게 유지한다(회귀 0). 값이 있으면 파생 cfg 만 만들고
+        # self.cfg 는 그대로 둬서 다음 요청이 이번 값을 물려받지 않게 한다.
+        cfg = replace(self.cfg, **cfg_overrides) if cfg_overrides else self.cfg
+
         _batch = is_batch(render_mode)
         _buffer: list[bytes] = []
 
@@ -376,7 +383,7 @@ class RenderService:
 
                 if self._stream_wav_fn is not None:
                     count, end_tok = self._stream_wav_fn(
-                        self.engine, self.jp, self.cfg, sources, wav_path,
+                        self.engine, self.jp, cfg, sources, wav_path,
                         _on_frame_render_timed,
                         blink_enabled,
                         phase_token,
@@ -385,7 +392,7 @@ class RenderService:
                 else:
                     from fifth_render import stream_wav_frames
                     count, end_tok = stream_wav_frames(
-                        self.engine, self.jp, self.cfg, sources, wav_path,
+                        self.engine, self.jp, cfg, sources, wav_path,
                         on_frame=_on_frame_render_timed,
                         blink_enabled=blink_enabled,
                         phase_token=phase_token,
@@ -405,7 +412,7 @@ class RenderService:
                 # 계측 OFF: 기존 동작 완전 동일 (perf_counter 호출 0)
                 if self._stream_wav_fn is not None:
                     count, end_tok = self._stream_wav_fn(
-                        self.engine, self.jp, self.cfg, sources, wav_path,
+                        self.engine, self.jp, cfg, sources, wav_path,
                         lambda f: _write(encode_frame_chunk(f, quality=jpeg_quality)),
                         blink_enabled,
                         phase_token,
@@ -414,7 +421,7 @@ class RenderService:
                 else:
                     from fifth_render import stream_wav_frames
                     count, end_tok = stream_wav_frames(
-                        self.engine, self.jp, self.cfg, sources, wav_path,
+                        self.engine, self.jp, cfg, sources, wav_path,
                         on_frame=lambda f: _write(encode_frame_chunk(f, quality=jpeg_quality)),
                         blink_enabled=blink_enabled,
                         phase_token=phase_token,
@@ -484,8 +491,46 @@ def _validate_phase_tok_fields(tok) -> None:
         )
 
 
-def _parse_render_body(raw: bytes) -> tuple[str, str, Optional[object], dict]:
-    """POST /oth-path body(JSON) → (wav_path, video_path, phase_token|None, render_opts).
+# FifthConfig 필드 → 캐스터. per-request 로 덮을 수 있는 입싱크 파라미터 전량.
+# 여기 없는 FIFTH_* env(head_smooth·eye_source_lock 등)는 기동 시 1회만 읽히므로
+# 컨테이너 재기동이 필요하다 — lab-tuner 는 그것들을 "container" reflow 로 표시한다.
+_CFG_KEYS = {
+    "fps": int,
+    "lip_open": float,
+    "lip_closed": float,
+    "open_scale": float,
+    "offset": int,
+    "sigma": float,
+    "gamma": float,
+    "silence": float,
+    "closed_thresh": float,
+    "open_thresh": float,
+}
+
+
+def _parse_cfg_overrides(req: dict) -> dict:
+    """요청 body 에서 FifthConfig 필드만 추출·캐스팅.
+
+    키 없음 또는 명시 None 은 제외한다 → RenderService 가 self.cfg 를 그대로 쓰고
+    fifth_render.py 가 env 기본값 경로를 탄다(회귀 0).
+
+    캐스팅 실패는 ValueError 로 올려 do_POST 가 400 으로 변환한다(500 방지 —
+    기존 phase_token 검증과 같은 규약).
+    """
+    out: dict = {}
+    for key, cast in _CFG_KEYS.items():
+        v = req.get(key)
+        if v is None:
+            continue
+        try:
+            out[key] = cast(v)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{key} 캐스팅 실패: {v!r}") from exc
+    return out
+
+
+def _parse_render_body(raw: bytes) -> tuple[str, str, Optional[object], dict, dict]:
+    """POST /oth-path body(JSON) → (wav_path, video_path, phase_token|None, render_opts, cfg_overrides).
 
     설계 v3(공유 볼륨): wav_path/video_path 모두 필수.
     호스트-컨테이너가 /home/afterlife/afterlife-server 를 공유 마운트하므로
@@ -560,7 +605,10 @@ def _parse_render_body(raw: bytes) -> tuple[str, str, Optional[object], dict]:
         "render_mode": req.get("render_mode") or None,
     }
 
-    return str(wav_path_raw), str(video_path), phase_token, render_opts
+    # per-request FifthConfig 오버라이드(입싱크 파라미터). 키 없으면 {} → self.cfg 그대로.
+    cfg_overrides = _parse_cfg_overrides(req)
+
+    return str(wav_path_raw), str(video_path), phase_token, render_opts, cfg_overrides
 
 
 class _RenderHandler(BaseHTTPRequestHandler):
@@ -592,7 +640,8 @@ class _RenderHandler(BaseHTTPRequestHandler):
         body = self.rfile.read(length) if length else b""
 
         try:
-            wav_path, video_path, phase_token, render_opts = _parse_render_body(body)
+            (wav_path, video_path, phase_token,
+             render_opts, cfg_overrides) = _parse_render_body(body)
         except (ValueError, KeyError, json.JSONDecodeError) as exc:
             self._send_json(400, {"error": str(exc)})
             return
@@ -625,6 +674,7 @@ class _RenderHandler(BaseHTTPRequestHandler):
                 phase_token=phase_token,
                 idle_opts=render_opts,   # idle_* 4종 전달(None이면 env)
                 render_mode=render_opts["render_mode"],  # T-113: None이면 env fallback
+                cfg_overrides=cfg_overrides,   # 입싱크 per-request(빈 dict면 self.cfg 그대로)
             )
         except Exception as exc:
             logger.exception("render 오류: %s", exc)
