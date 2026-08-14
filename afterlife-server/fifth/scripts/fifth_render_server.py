@@ -406,6 +406,19 @@ class RenderService:
             cfg.gamma, cfg.silence, cfg.closed_thresh, cfg.open_thresh, cfg.fps,
             sorted(cfg_overrides) if cfg_overrides else "없음",
         )
+        # 동작 플래그(lip_lock·source_face_lock·eyes_open_lock·head_sway 등)는 cfg 가 아니라
+        # stream_wav_frames 의 kwargs 로 간다. cfg-final 만 보면 이쪽이 확인 사각지대가 되므로
+        # 함께 남긴다. 값이 하나도 없으면 "기본" 이라고 명시해 "안 보낸 것" 과 구분한다.
+        logger.info("[opts-final] %s", _idle if _idle else "전부 기본(미지정)")
+        # 입 모양 결정 경로를 한 줄로 못박는다 — lip_lock/source_face_lock 이 켜지면
+        # lip_open 이 계산에 아예 안 쓰인다(fifth_render.py 우선순위).
+        if _idle.get("source_face_lock"):
+            _lip_path = "source_face_lock → 원본 사진 입 모양 고정 (lip_open 무시됨)"
+        elif _idle.get("lip_lock"):
+            _lip_path = f"lip_lock → lip_closed({cfg.lip_closed})로 고정 (lip_open 무시됨)"
+        else:
+            _lip_path = f"오디오 기반 계산 (lip_open={cfg.lip_open} 사용)"
+        logger.info("[lip-path] %s", _lip_path)
 
         _batch = is_batch(render_mode)
         _buffer: list[bytes] = []

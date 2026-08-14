@@ -353,3 +353,14 @@ def test_최상단_고정_적용버튼():
 def test_로그는_textContent로만_넣는다():
     js = _read("tuner.js")
     assert "row.textContent = `${t} ${ln.msg}`" in js
+
+
+def test_잠금_무력화_경고가_있다():
+    """lip_lock 을 켜면 lip_open 이 무시되는데, 값을 넣어도 안 먹는 이유를 알려야 한다."""
+    js, html = _read("tuner.js"), _read("tuner.html")
+    assert "LOCK_RULES" in js
+    assert "refreshLockWarnings" in js
+    assert "kill-badge" in js and ".kill-badge" in html
+    # 우선순위 3종이 모두 규칙에 들어 있어야 한다(fifth_render.py 근거).
+    for sw in ("source_face_lock", "lip_lock", "eyes_open_lock"):
+        assert f"switch: '{sw}'" in js, sw
