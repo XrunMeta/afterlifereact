@@ -42,7 +42,8 @@ async def test_knobs_meta_endpoint(tmp_path):
         body = await resp.json()
         assert "meta" in body
         assert body["meta"]["filler.enabled"]["type"] == "bool"
-        assert body["meta"]["tts.engine"]["choices"] == ["openvoice", "qwen"]
+        # cosyvoice(:8203) 가 라이브 기본 엔진 — 목록에 반드시 있어야 한다.
+        assert body["meta"]["tts.engine"]["choices"] == ["openvoice", "qwen", "cosyvoice"]
     finally:
         await client.close()
 

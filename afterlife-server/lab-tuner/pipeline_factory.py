@@ -3,6 +3,7 @@ import logging
 
 from pipeline import DialoguePipeline          # prethird
 from audio_utils import _decode_wav            # prethird
+from sentence_buffer import SentenceBuffer     # prethird
 from harness import build_chat_fn, build_say_fn, apply_persona_knobs
 from store_recorder import StoreRecorder
 
@@ -34,7 +35,7 @@ def build_knobs_pipeline_factory(registry, renderer, guard=None, store=None):
                 guard.assert_free()   # 라이브 통화 중이면 LiveBusyError → say 실패 처리
             return renderer.infer(wav, cb, video_path=_src)
 
-        return DialoguePipeline(
+        pipe = DialoguePipeline(
             video_track=sess.video_track,
             audio_track=sess.audio_track,
             chat_fn=chat_fn,
@@ -44,8 +45,27 @@ def build_knobs_pipeline_factory(registry, renderer, guard=None, store=None):
             persona_messages=persona,
             se_path=getattr(sess, "se_path", None),
             clone_locked=getattr(sess, "clone_id", None) is not None,
-            min_len=dk.min_len,
-            force_flush=dk.force_flush,
         )
+
+        # min_len/force_flush 는 T-120 B 에서 DialoguePipeline 생성자 인자가 아니라
+        # SentenceBuffer.from_env() 로 옮겨갔다(env PRETHIRD_SENTENCE_*). 그래서 랩은
+        # 생성자 대신 _sb_factory 를 갈아끼워 노브를 주입한다 — prethird 무수정 원칙
+        # (sess.recorder 교체와 같은 패턴).
+        def _sb_factory(_dk=dk):
+            sb = SentenceBuffer.from_env()       # env 기본값을 먼저 존중
+            ml = getattr(_dk, "min_len", None)
+            ff = getattr(_dk, "force_flush", None)
+            if ml is not None:
+                # env 로 first_min_len 을 명시하지 않았으면 min_len 을 따라가던 규약 유지
+                follows_min = sb.first_min_len == sb.min_len
+                sb.min_len = int(ml)
+                if follows_min:
+                    sb.first_min_len = int(ml)
+            if ff is not None:
+                sb.force_flush = int(ff)
+            return sb
+
+        pipe._sb_factory = _sb_factory
+        return pipe
 
     return factory
