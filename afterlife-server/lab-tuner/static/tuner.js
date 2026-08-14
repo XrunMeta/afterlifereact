@@ -270,7 +270,46 @@ async function loadKnobs() {
   }
   refreshTtsDim();
   document.getElementById('k_tts_engine')?.addEventListener('change', refreshTtsDim);
+  refreshLockWarnings();
+
+  for (const k of ['lip_lock', 'source_face_lock', 'source_face_lock_full', 'eyes_open_lock']) {
+    document.getElementById(`k_fifth_${k}`)?.addEventListener('change', refreshLockWarnings);
+  }
   applyKnobDriftBadges();   
+}
+
+const LOCK_RULES = [
+  {switch: 'source_face_lock', kills: ['lip_open', 'lip_closed', 'open_scale', 'offset',
+                                       'sigma', 'gamma', 'silence', 'closed_thresh', 'open_thresh'],
+   why: '입 원본 고정이 켜져 있어 무시됨'},
+  {switch: 'source_face_lock_full', kills: ['lip_open', 'lip_closed', 'open_scale', 'offset',
+                                            'sigma', 'gamma', 'silence'],
+   why: '표정 전체 고정이 켜져 있어 무시됨'},
+  {switch: 'lip_lock', kills: ['lip_open', 'open_scale', 'offset', 'sigma', 'gamma', 'silence'],
+   why: '입 강제 다뭄이 켜져 있어 무시됨(입이 lip_closed 로 고정)'},
+  {switch: 'eyes_open_lock', kills: ['blink', 'blink_interval_sec'],
+   why: '눈 뜬 채 고정이 켜져 있어 무시됨'},
+];
+
+function refreshLockWarnings() {
+
+  document.querySelectorAll('.kill-badge').forEach(el => el.remove());
+  const on = (k) => document.getElementById(`k_fifth_${k}`)?.value === 'true';
+  const killed = {};
+  for (const rule of LOCK_RULES) {
+    if (!on(rule.switch)) continue;
+    for (const k of rule.kills) if (!killed[k]) killed[k] = rule.why;
+  }
+  for (const [k, why] of Object.entries(killed)) {
+    const ctrl = document.getElementById(`k_fifth_${k}`);
+    if (!ctrl) continue;
+    const row = ctrl.closest('.knob-row');
+    if (!row) continue;
+    const b = document.createElement('div');
+    b.className = 'kill-badge';
+    b.textContent = `⚠ 지금 안 먹음 — ${why}`;
+    row.appendChild(b);
+  }
 }
 
 function renderLatency(m) {
