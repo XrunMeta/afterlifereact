@@ -53,6 +53,16 @@
  .knob-row.ro .ro-val{font-size:12px;color:var(--text);font-variant-numeric:tabular-nums}
  .ro-group{font-family:"Cinzel",serif;font-size:10px;letter-spacing:.08em;
    text-transform:uppercase;color:var(--gold);margin:10px 0 4px}
+ /* 마지막 렌더에 실제로 실려 간 값 */
+ .last-sent{font-size:11px;line-height:1.6;margin:8px 0 10px;padding:7px 9px;
+   background:var(--surface);border-radius:4px;border-left:2px solid var(--green)}
+ .last-sent.empty{color:var(--text-dim);opacity:.7;border-left-color:var(--border)}
+ .ls-head{font-family:"Cinzel",serif;font-size:10px;letter-spacing:.05em;
+   color:var(--text-dim);margin-bottom:3px}
+ .ls-row{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;
+   word-break:break-all;color:var(--text-dim)}
+ .ls-row.tuned{color:var(--green);font-weight:600}
+ .ls-row.empty{color:var(--text-dim);opacity:.7;font-family:inherit}
  /* 적용 결과 — 값이 실제로 들어갔는지 즉시 알려준다 */
  .apply-status{font-size:11px;line-height:1.5;margin:-4px 0 10px;min-height:14px;
    color:var(--text-dim)}
@@ -114,6 +124,7 @@
        <div id="latency-panel" class="channel">
          <div class="panel-title">⚡ 응답속도 <span id="ttff-badge" class="reflow-chip">측정 전</span></div>
          <div id="latency-meter"></div>
+         <div id="last-sent" class="last-sent empty"></div>
          <div id="latency-fields"></div>
        </div>
        <div id="knob-fields"></div>
