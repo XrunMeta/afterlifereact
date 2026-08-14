@@ -366,6 +366,22 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
             "mainpid_info": status.stdout.strip(),
         })
 
+    async def flp_config(_req):
+        """3층(FLP) 읽기전용 스냅샷 — 컨테이너 렌더서버 GET /oth-path 프록시.
+
+        랩은 컨테이너 밖(호스트)에서 돌아 yaml 을 직접 못 읽는다.
+        렌더서버가 죽어 있어도 랩 자체는 계속 떠 있어야 하므로 예외를 삼키고
+        200 + error 로 응답한다(UI 는 패널에만 '조회 실패' 를 띄운다).
+        """
+        url = render_url or os.environ.get("FIFTH_RENDER_URL", "http://127.0.0.1:8810")
+        try:
+            timeout = aiohttp.ClientTimeout(total=3)
+            async with aiohttp.ClientSession(timeout=timeout) as s:
+                async with s.get(f"{url}/config") as r:
+                    return web.json_response(await r.json())
+        except Exception as exc:
+            return web.json_response({"error": f"렌더서버 조회 실패: {exc}"})
+
     async def production_status(_req):
         import subprocess
         keys = [loc["env"] for path, loc in promote.KNOB_TO_LIVE.items()
@@ -411,4 +427,5 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
     app.router.add_post("/promote/rollback", promote_rollback)
     app.router.add_post("/promote/restart", promote_restart)
     app.router.add_get("/production-status", production_status)
+    app.router.add_get("/flp-config", flp_config)   # 3층 읽기전용 스냅샷
     return app
