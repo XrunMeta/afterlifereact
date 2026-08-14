@@ -28,7 +28,11 @@ def build_chat_fn(registry, metrics=None):
         dk = registry.get().dialogue
         _t0 = time.perf_counter()
         _first = True
-        async for tok in chat_stream(messages, model=dk.model, temperature=dk.temperature):
+        # max_response_tokens → ollama num_predict. chat_stream 이 이미 지원한다.
+        # None 이면 서버 기본(운영 경로와 동일) — 회귀 0.
+        _np = getattr(dk, "max_response_tokens", None)
+        async for tok in chat_stream(messages, model=dk.model, temperature=dk.temperature,
+                                     num_predict=_np):
             if _first:
                 _first = False
                 if metrics is not None:

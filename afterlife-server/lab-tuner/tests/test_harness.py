@@ -5,9 +5,10 @@ from knobs import DialogueKnobs
 
 def test_build_chat_fn_passes_knobs(monkeypatch):
     captured = {}
-    async def fake_stream(messages, model=None, temperature=None):
+    async def fake_stream(messages, model=None, temperature=None, num_predict=None):
         captured["model"] = model
         captured["temperature"] = temperature
+        captured["num_predict"] = num_predict
         yield "hi"
     monkeypatch.setattr(harness, "chat_stream", fake_stream)
     r = KnobsRegistry()
@@ -18,7 +19,8 @@ def test_build_chat_fn_passes_knobs(monkeypatch):
         return [t async for t in fn([{"role": "user", "content": "x"}])]
     out = asyncio.run(run())
     assert out == ["hi"]
-    assert captured == {"model": "gemma3:4b", "temperature": 0.9}
+    # num_predict 는 미지정(None) → ollama 서버 기본을 그대로 쓴다(회귀 0).
+    assert captured == {"model": "gemma3:4b", "temperature": 0.9, "num_predict": None}
 
 def test_apply_persona_knobs_prepends_override():
     base = [{"role": "system", "content": "persona"}]
@@ -276,3 +278,21 @@ def test_knobs_fifth_build_body_forwards_extra_kwargs(monkeypatch):
     body = f._build_body("/w.wav", "/v.jpg", phase_token="TOK")
     assert recorded == {"phase_token": "TOK"}
     assert body["blink"] is True and body["idle_motion_scale"] == 0.15
+
+def test_max_response_tokens가_num_predict로_전달된다(monkeypatch):
+    """노브만 있고 배선이 없으면 UI 에서 바꿔도 아무 일이 안 일어난다."""
+    captured = {}
+
+    async def fake_stream(messages, model=None, temperature=None, num_predict=None):
+        captured["num_predict"] = num_predict
+        yield "hi"
+
+    monkeypatch.setattr(harness, "chat_stream", fake_stream)
+    r = KnobsRegistry()
+    r.update({"dialogue": {"max_response_tokens": 120}})
+    fn = harness.build_chat_fn(r)
+
+    async def run():
+        return [t async for t in fn([{"role": "user", "content": "x"}])]
+    asyncio.run(run())
+    assert captured["num_predict"] == 120
