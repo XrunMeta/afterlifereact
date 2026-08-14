@@ -611,6 +611,30 @@ def _parse_render_body(raw: bytes) -> tuple[str, str, Optional[object], dict, di
     return str(wav_path_raw), str(video_path), phase_token, render_opts, cfg_overrides
 
 
+def _config_snapshot() -> dict:
+    """3층(FLP) 현재값 스냅샷 — lab-tuner 읽기전용 패널용.
+
+    yaml 원본이 아니라 **엔진이 최종적으로 들고 있는 값**을 보여준다.
+    flp_engine.__init__ 이 flag_normalize_lip / flag_lip_retargeting /
+    flag_relative_motion 등을 코드로 덮으므로, yaml 을 그대로 보여주면
+    실제 동작과 다른 값을 표시하게 된다.
+    """
+    if _service is None or getattr(_service, "engine", None) is None:
+        return {"error": "엔진 미초기화"}
+    cfg = getattr(_service.engine, "_cfg", None)
+    if cfg is None:
+        return {"error": "엔진 cfg 없음"}
+    try:
+        from omegaconf import OmegaConf
+        return {
+            "infer_params": OmegaConf.to_container(cfg.infer_params, resolve=True),
+            "crop_params": OmegaConf.to_container(cfg.crop_params, resolve=True),
+            "note": "infer_params 는 코드 강제·env 오버라이드까지 반영된 최종값",
+        }
+    except Exception as exc:      # OmegaConf 미탑재 등 — 패널만 비고 서버는 산다
+        return {"error": f"스냅샷 실패: {exc}"}
+
+
 class _RenderHandler(BaseHTTPRequestHandler):
     """fifth 렌더 HTTP 핸들러."""
 
@@ -628,6 +652,10 @@ class _RenderHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/health":
             self._send_json(200, {"status": "ok"})
+        elif self.path == "/config":
+            # 3층(FLP yaml) 현재값 스냅샷. lab-tuner 는 컨테이너 밖에 있어 yaml 을
+            # 직접 못 읽으므로 이 라우트가 읽기전용 패널의 유일한 데이터원이다.
+            self._send_json(200, _config_snapshot())
         else:
             self._send_json(404, {"error": "not found"})
 
