@@ -312,3 +312,24 @@ def test_desc는_textContent로만_넣는다():
     js = _read("tuner.js")
     assert "d.textContent = m.desc" in js
     assert "innerHTML = m.desc" not in js
+
+
+def test_적용은_지연구역도_수집한다():
+    """지연 노브를 #latency-fields 로 옮겼으므로 수집 셀렉터도 넓혀야 한다.
+
+    이게 빠지면 TTS 엔진·문장 길이 같은 값이 '적용' 을 눌러도 조용히 무시된다.
+    """
+    js = _read("tuner.js")
+    assert "#latency-fields input" in js, "적용 수집에 지연 구역이 빠졌다"
+    assert "#latency-fields select" in js
+
+
+def test_적용_결과를_확인하고_표시한다():
+    """서버 응답을 받아 실제 반영값으로 화면을 갱신하고 결과를 알려야 한다."""
+    js = _read("tuner.js")
+    assert "apply-status" in js, "적용 결과 표시 영역이 없다"
+    assert "resp.ok" in js or "res.ok" in js, "응답 성공 여부를 안 본다"
+
+
+def test_적용_상태_영역이_html에_있다():
+    assert 'id="apply-status"' in _read("tuner.html")

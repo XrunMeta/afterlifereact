@@ -241,12 +241,15 @@ function v_5a2031(v_35f85c) {
   return '';
 }
 
+let v_ddcadb = {};
+
 async function v_858a0a() {
   const [v_0eb677, v_d8a3c2] = await Promise.all([
     (await fetch('/knobs')).json(),
     (await fetch('/knobs/meta')).json(),
   ]);
   const v_ab4c96 = v_d8a3c2.meta || {};
+  v_ddcadb = v_ab4c96;
   const v_a38d42 = document.getElementById('knob-fields'); v_a38d42.innerHTML = '';
   const v_d66ecf = document.getElementById('latency-fields');
   if (v_d66ecf) v_d66ecf.innerHTML = '';
@@ -385,9 +388,19 @@ function v_796451() {
   }
 }
 
+const v_170a1f =
+  '#knob-fields input, #knob-fields select, #latency-fields input, #latency-fields select';
+
+function v_ccf98d(v_9b6134, v_94302c) {
+  const v_57c92e = document.getElementById('apply-status');
+  if (!v_57c92e) return;
+  v_57c92e.textContent = v_9b6134;                       
+  v_57c92e.className = 'apply-status' + (v_94302c ? ' ' + v_94302c : '');
+}
+
 async function v_9a2a8d() {
   const v_4628fe = {};
-  document.querySelectorAll('#knob-fields input, #knob-fields select').forEach(v_fb6823 => {
+  document.querySelectorAll(v_170a1f).forEach(v_fb6823 => {
     const v_fd5f43 = v_fb6823.dataset.s, v_0eb677 = v_fb6823.dataset.k; let v_81e2ef = v_fb6823.value;
     if (v_81e2ef === '') return;
     if (v_81e2ef === 'true') v_81e2ef = true; else if (v_81e2ef === 'false') v_81e2ef = false;
@@ -398,10 +411,47 @@ async function v_9a2a8d() {
     }
     (v_4628fe[v_fd5f43] ||= {})[v_0eb677] = v_81e2ef;
   });
-  await fetch('/knobs', {method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify(v_4628fe)});
-  v_85930b = Object.values(v_4628fe).reduce((v_f4e98d, v_b6c474) => v_f4e98d + Object.keys(v_b6c474).length, 0);
+
+  const v_f966e3 = Object.values(v_4628fe).reduce((v_f4e98d, v_b6c474) => v_f4e98d + Object.keys(v_b6c474).length, 0);
+  v_ccf98d(`적용 중… (${v_f966e3}개)`, '');
+
+  let v_2b7a6d;
+  try {
+    const v_eb792a = await fetch('/knobs', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(v_4628fe)});
+    if (!v_eb792a.ok) { v_ccf98d(`적용 실패 — 서버 ${v_eb792a.status}`, 'bad'); return; }
+    v_2b7a6d = await v_eb792a.json();
+  } catch (v_9e86fd) {
+    v_ccf98d(`적용 실패 — ${v_9e86fd}`, 'bad');
+    return;
+  }
+
+  const v_a28d1a = [];
+  const v_15d097 = [];
+  for (const [v_b6a7e0, v_3332db] of Object.entries(v_4628fe)) {
+    for (const [v_0eb677, v_81e2ef] of Object.entries(v_3332db)) {
+      const v_df0713 = (v_2b7a6d[v_b6a7e0] || {})[v_0eb677];
+      if (String(v_df0713) !== String(v_81e2ef)) v_a28d1a.push(`${v_b6a7e0}.${v_0eb677}(보냄 ${v_81e2ef} / 서버 ${v_df0713})`);
+      const v_d2f9e5 = (v_ddcadb[`${v_b6a7e0}.${v_0eb677}`] || {}).reflow;
+      if (v_d2f9e5 === 'container' || v_d2f9e5 === 'lab_restart' || v_d2f9e5 === 'session') {
+        v_15d097.push(`${v_b6a7e0}.${v_0eb677}`);
+      }
+    }
+  }
+
+  v_85930b = v_f966e3;
+  await v_858a0a();          
   v_5af772();
+
+  if (v_a28d1a.length) {
+    v_ccf98d(`반영 안 된 값 ${v_a28d1a.length}개: ${v_a28d1a.join(', ')}`, 'bad');
+  } else if (v_15d097.length) {
+    v_ccf98d(
+      `${v_f966e3}개 적용됨 — 단 ${v_15d097.length}개는 재기동해야 먹습니다: ${v_15d097.join(', ')}`,
+      'warn');
+  } else {
+    v_ccf98d(`${v_f966e3}개 적용됨 · 다음 발화부터 반영`, 'ok');
+  }
 }
 
 function v_409b14() {
