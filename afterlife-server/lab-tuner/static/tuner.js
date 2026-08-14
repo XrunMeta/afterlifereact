@@ -144,7 +144,11 @@ function hangup() {
 }
 
 const REFLOW_NOTE = {
-  next_call: '다음 통화부터', container: '컨테이너 재기동', session: '다음 접속부터',
+  immediate: '적용 즉시(다음 발화부터)',
+  next_call: '적용 즉시(다음 발화부터)',   
+  session: '재연결 후',
+  container: '컨테이너 재기동 필요',
+  lab_restart: '적용만으론 안 먹음 · 재기동 필요',
 };
 
 function buildKnobRow(section, key, m, val) {
@@ -184,6 +188,12 @@ function buildKnobRow(section, key, m, val) {
     ctrl.value = (val == null ? '' : val);
 
     if (val == null) ctrl.placeholder = '기본값';
+
+    if (m.type === 'number') {
+      if (m.min != null) ctrl.min = m.min;
+      if (m.max != null) ctrl.max = m.max;
+      ctrl.title = _rangeHint(m);
+    }
   }
   ctrl.id = `k_${section}_${key}`;
   ctrl.dataset.s = section; ctrl.dataset.k = key;
@@ -209,7 +219,26 @@ function buildKnobRow(section, key, m, val) {
     d.className = 'knob-desc'; d.textContent = m.desc;
     row.appendChild(d);
   }
+
+  const specBits = [];
+  if (m.param) specBits.push(m.param);
+  if (m.default != null) specBits.push(`기본 ${m.default}`);
+  const rangeHint = _rangeHint(m);
+  if (rangeHint) specBits.push(rangeHint);
+  if (specBits.length) {
+    const s = document.createElement('div');
+    s.className = 'knob-spec';
+    s.textContent = specBits.join('  ·  ');   
+    row.appendChild(s);
+  }
   return row;
+}
+
+function _rangeHint(m) {
+  if (m.min != null && m.max != null) return `범위 ${m.min}~${m.max}`;
+  if (m.min != null) return `최소 ${m.min}`;
+  if (m.max != null) return `최대 ${m.max}`;
+  return '';
 }
 
 async function loadKnobs() {
