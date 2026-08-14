@@ -270,7 +270,46 @@ async function v_858a0a() {
   }
   v_796451();
   document.getElementById('k_tts_engine')?.addEventListener('change', v_796451);
+  v_3c6a23();
+
+  for (const v_0eb677 of ['lip_lock', 'source_face_lock', 'source_face_lock_full', 'eyes_open_lock']) {
+    document.getElementById(`k_fifth_${v_0eb677}`)?.addEventListener('change', v_3c6a23);
+  }
   v_d4af21();   
+}
+
+const v_9f8d13 = [
+  {switch: 'source_face_lock', kills: ['lip_open', 'lip_closed', 'open_scale', 'offset',
+                                       'sigma', 'gamma', 'silence', 'closed_thresh', 'open_thresh'],
+   why: '입 원본 고정이 켜져 있어 무시됨'},
+  {switch: 'source_face_lock_full', kills: ['lip_open', 'lip_closed', 'open_scale', 'offset',
+                                            'sigma', 'gamma', 'silence'],
+   why: '표정 전체 고정이 켜져 있어 무시됨'},
+  {switch: 'lip_lock', kills: ['lip_open', 'open_scale', 'offset', 'sigma', 'gamma', 'silence'],
+   why: '입 강제 다뭄이 켜져 있어 무시됨(입이 lip_closed 로 고정)'},
+  {switch: 'eyes_open_lock', kills: ['blink', 'blink_interval_sec'],
+   why: '눈 뜬 채 고정이 켜져 있어 무시됨'},
+];
+
+function v_3c6a23() {
+
+  document.querySelectorAll('.kill-badge').forEach(v_57c92e => v_57c92e.remove());
+  const v_abacaa = (v_0eb677) => document.getElementById(`k_fifth_${v_0eb677}`)?.value === 'true';
+  const v_a147fb = {};
+  for (const v_32000f of v_9f8d13) {
+    if (!v_abacaa(v_32000f.switch)) continue;
+    for (const v_0eb677 of v_32000f.kills) if (!v_a147fb[v_0eb677]) v_a147fb[v_0eb677] = v_32000f.why;
+  }
+  for (const [v_0eb677, v_3325c8] of Object.entries(v_a147fb)) {
+    const v_22d288 = document.getElementById(`k_fifth_${v_0eb677}`);
+    if (!v_22d288) continue;
+    const v_3ac7e7 = v_22d288.closest('.knob-row');
+    if (!v_3ac7e7) continue;
+    const v_148ff6 = document.createElement('div');
+    v_148ff6.className = 'kill-badge';
+    v_148ff6.textContent = `⚠ 지금 안 먹음 — ${v_3325c8}`;
+    v_3ac7e7.appendChild(v_148ff6);
+  }
 }
 
 function v_04a0ee(v_35f85c) {
