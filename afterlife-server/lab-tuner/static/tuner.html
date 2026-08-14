@@ -53,6 +53,20 @@
  .knob-row.ro .ro-val{font-size:12px;color:var(--text);font-variant-numeric:tabular-nums}
  .ro-group{font-family:"Cinzel",serif;font-size:10px;letter-spacing:.08em;
    text-transform:uppercase;color:var(--gold);margin:10px 0 4px}
+ /* 최상단 고정 적용 바 — 노브가 길어 스크롤해도 항상 누를 수 있게 */
+ #apply-bar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:10px;
+   padding:8px 12px;margin-bottom:10px;background:var(--surface-2);
+   border:1px solid var(--border);border-top:2px solid var(--gold);border-radius:4px;
+   box-shadow:0 2px 10px #CA8A0430}
+ #apply-bar .apply-status{margin:0;flex:1}
+ /* 렌더서버 로그 */
+ #render-log{height:220px;overflow-y:auto;background:var(--surface);
+   border-radius:4px;padding:6px 8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+   font-size:10px;line-height:1.55}
+ .log-row{white-space:pre-wrap;word-break:break-all;color:var(--text-dim)}
+ .log-row.final{color:var(--green);font-weight:600}
+ .log-row.override{color:var(--gold)}
+ .log-row.bad{color:#B91C1C}
  /* 마지막 렌더에 실제로 실려 간 값 */
  .last-sent{font-size:11px;line-height:1.6;margin:8px 0 10px;padding:7px 9px;
    background:var(--surface);border-radius:4px;border-left:2px solid var(--green)}
@@ -107,6 +121,11 @@
    <span id="login-status" style="font-size:12px;color:var(--text-dim)"></span>
    <span id="conn-status" style="font-size:12px;color:var(--green);margin-left:8px"></span>
  </div>
+ <!-- 노브가 60종이라 스크롤이 길다 — 어디서든 적용할 수 있게 최상단 고정. -->
+ <div id="apply-bar">
+   <button id="apply-knobs-top" class="primary">적용</button>
+   <span id="apply-status-top" class="apply-status"></span>
+ </div>
  <div id="main-row">
    <div class="col-left">
      <video id="clone-video" autoplay playsinline></video>
@@ -145,6 +164,15 @@
        <fieldset><legend>FLP 플러그인(read-only)</legend>
          <button id="refresh-flp" type="button">새로고침</button>
          <div id="flp-readonly"></div>
+       </fieldset>
+       <fieldset><legend>렌더서버 로그 — 실제 적용값 확인</legend>
+         <div style="display:flex;gap:6px;margin-bottom:6px">
+           <button id="log-pause" type="button">일시정지</button>
+           <button id="log-clear" type="button">지우기</button>
+           <span style="font-size:10px;color:var(--text-dim);align-self:center">
+             cfg-final = 렌더에 실제로 쓰인 값</span>
+         </div>
+         <div id="render-log"></div>
        </fieldset>
      </div>
    </div>

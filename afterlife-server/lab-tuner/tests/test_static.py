@@ -333,3 +333,23 @@ def test_적용_결과를_확인하고_표시한다():
 
 def test_적용_상태_영역이_html에_있다():
     assert 'id="apply-status"' in _read("tuner.html")
+
+
+def test_렌더서버_로그_패널이_있다():
+    """파라미터가 실제 렌더까지 갔는지 화면에서 확인할 수 있어야 한다."""
+    html, js = _read("tuner.html"), _read("tuner.js")
+    assert 'id="render-log"' in html
+    assert "/render-logs" in js
+    assert "cfg-final" in js, "실제 적용값 줄을 강조하지 않는다"
+
+
+def test_최상단_고정_적용버튼():
+    html = _read("tuner.html")
+    assert 'id="apply-knobs-top"' in html
+    assert "position:sticky" in html or "position: sticky" in html
+    assert 'id="apply-status-top"' in html
+
+
+def test_로그는_textContent로만_넣는다():
+    js = _read("tuner.js")
+    assert "row.textContent = `${t} ${ln.msg}`" in js
