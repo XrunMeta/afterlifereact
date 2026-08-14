@@ -1,6 +1,6 @@
 
 
-export const v_413278 = 10000;
+export const v_413278 = 3000;
 
 export const v_00f5bb = 3000;
 

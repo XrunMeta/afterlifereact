@@ -60,6 +60,19 @@ describe("RememberMeSheet", () => {
     expect(v_1b97a8).toHaveBeenCalledTimes(1);
   });
 
+  it("팝업 바깥을 눌러도 닫힌다 — 나중에 와 같은 동작", () => {
+    const { getByTestId: v_f177b5, onDismiss: v_1b97a8 } = v_9a4ebd();
+    v_77aa68.press(v_f177b5("remember-me-backdrop"));
+    expect(v_1b97a8).toHaveBeenCalledTimes(1);
+  });
+
+  it("카드 안을 눌러도 닫히지 않는다", () => {
+
+    const { getByTestId: v_f177b5, onDismiss: v_1b97a8 } = v_9a4ebd();
+    v_77aa68.press(v_f177b5("remember-me-sheet"));
+    expect(v_1b97a8).not.toHaveBeenCalled();
+  });
+
   it("저장 중에는 다시 저장되지 않는다(중복 등록 방지)", () => {
     const { getByTestId: v_f177b5, onSubmit: v_3bfe4c } = v_9a4ebd({ saving: true });
     v_77aa68.changeText(v_f177b5("remember-me-name"), "지호");

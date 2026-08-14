@@ -432,9 +432,11 @@ async def _maybe_swap_l2p(sess, pid: int, name, epoch: int | None = None) -> Non
         # T-252: base 뒤에 힌트를 덧붙이는 대신 프롬프트를 통째로 재조립한다.
         # append 방식은 "기본 상대는 지호" 선언과 "지금 상대는 민수" 선언이 프롬프트에
         # 동시에 남아 모순이 된다.
+        # person_id 를 함께 넘긴다 — 프롬프트 쪽이 bundle.viewer.ownerPersonId 와 대조해
+        # "이 화자가 L2 의 주인(계정주 본인)인가" 를 판정한다(Remember Me 2026-08-13).
         new_messages = bundle_to_messages(
             bundle,
-            speaker={"name": name, "l2p_data": l2p_data},
+            speaker={"name": name, "l2p_data": l2p_data, "person_id": pid},
         )
         if not new_messages:
             # [T-252 fix / el I-1] 입력(bundle) 가드만으로는 부족하다 — truthy bundle
@@ -847,16 +849,64 @@ def _handle_face_event(sess, data: dict) -> None:
     if not react_on:
         return  # react(쿨다운·발화·pending_enroll)는 FACE_REACT 게이트 단독 — off면 여기서 종료
 
+    # [Remember Me 2026-08-13] silent — 신원만 반영하고 반응 발화는 하지 않는 신호 경로.
+    #
+    # 앱이 계정주를 자동 등록한 직후 그 사실을 서버에 **즉시** 알리기 위해 쓴다. 예전에는
+    # 다음 얼굴 인식 주기를 기다렸는데, 그 사이(실측 36초) 서버는 미확정이라 "Remember Me
+    # 를 눌러달라" 고 말하는데 앱은 등록 중이라 시트를 안 띄운다 — 사용자에게는 등록을
+    # 요구하면서 누를 UI 는 없는 상태로 보인다.
+    #
+    # 그렇다고 그냥 speaker_confirmed 를 보내면 react 가 걸려 클론이 갑자기 "다시
+    # 오셨네요" 로 말을 끊는다(FACE_REACT_ENABLED=1). 그래서 신원 반영(위 프롬프트 갱신·
+    # L2' 스왑)까지만 하고 여기서 끝낸다. 히즈키 제안 — "대답은 안 하는 신호 전용 경로".
+    if data.get("silent") is True:
+        if _face_diag_on():
+            log.info(
+                "face_diag silent session=%s event=%s person=%s — 신원만 반영, 발화 없음",
+                getattr(sess, "session_id", "?"), event, pid_int,
+            )
+        return
+
+    # [Remember Me 2026-08-13] mentionName — 인사 없이 다음 응답에서 이름만 부르게 한다.
+    #
+    # 얼굴이 잠깐 안 잡혔다가(앱의 grace 구간) 같은 사람이 돌아온 경우다. 서버는 그동안
+    # 그 사람으로 계속 알고 있었으니 신원을 새로 반영할 것도 없고, react 를 걸면 "다시
+    # 왔네" 가 매번 나가 대화가 끊긴다(히즈키 실측: "도기 돌아오면 매번 인사").
+    # 힌트만 세우고 발화 경로는 통째로 건너뛴다 — pipeline.say 가 다음 1턴에 소비한다.
+    if data.get("mentionName") is True:
+        if name and sess.pipeline is not None:
+            sess.pipeline.name_mention_hint = name
+        if _face_diag_on():
+            log.info(
+                "face_diag mention_name session=%s person=%s name=%s — 다음 턴에 이름만",
+                getattr(sess, "session_id", "?"), pid_int, name,
+            )
+        return
+
+    # [Remember Me 2026-08-13] rejoin — "끊겼다가 돌아왔다".
+    #
+    # 아는 얼굴 반응은 통화당 1회다(같은 사람에게 "오셨군요"를 반복하지 않기 위해).
+    # 그런데 Remember Me 대기에 빠졌다가 아는 얼굴이 다시 잡힌 경우에는, 그 사람에게
+    # 실제로 대화가 끊겼던 것이므로 다시 맞이해야 한다(히즈키 지시: "내 얼굴이 다시
+    # 나오면 다시 왔다고 인사를 하고 대화 진행").
+    #
+    # 다만 1회 제한을 통째로 없애지는 않는다 — 앱이 신호를 반복해 보내면 클론이 매번
+    # 말을 끊게 되므로, unknown 과 같은 60초 쿨다운은 그대로 적용한다.
+    rejoin = data.get("rejoin") is True
     key = str(pid_int) if event == "speaker_confirmed" else "unknown"
     now = time.monotonic()
     last = sess.reacted_keys.get(key)
-    if last is not None and (key != "unknown" or now - last < REACT_COOLDOWN_S):
-        if _face_diag_on():
-            log.info(
-                "face_diag cooldown session=%s person=%s suppressed=1",
-                getattr(sess, "session_id", "?"), pid_int,
-            )
-        return  # 아는 얼굴=통화당 1회, unknown/multi_face=60s 쿨다운 (react만 억제)
+    if last is not None:
+        # unknown 과 rejoin 은 "시간이 지나면 다시" — 그 외 아는 얼굴은 통화당 1회.
+        cooldown_only = key == "unknown" or rejoin
+        suppressed = (now - last < REACT_COOLDOWN_S) if cooldown_only else True
+        if suppressed:
+            if _face_diag_on():
+                log.info(
+                    "face_diag cooldown session=%s person=%s rejoin=%s suppressed=1",
+                    getattr(sess, "session_id", "?"), pid_int, int(rejoin),
+                )
+            return  # 아는 얼굴=통화당 1회(rejoin 이면 60s 쿨다운), unknown=60s 쿨다운
     sess.reacted_keys[key] = now
 
     if event == "speaker_confirmed":
@@ -1434,6 +1484,26 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     if os.environ.get("PRETHIRD_VERIFY_ENABLED") == "1":
         from chat_endpoint import register_verify_routes
         register_verify_routes(app)
+        # 라이브에만 있던 것을 역흡수(2026-08-13). verify 랩의 TTS 미리듣기 라우트.
+        from tts_preview_endpoint import register_tts_preview_routes
+        register_tts_preview_routes(app)
+        # 2차 역흡수(2026-08-13) — 1차 때 preview 만 가져오고 아래 둘을 놓쳤다.
+        # 배포로 덮으면 라이브의 TTS 어드민·녹취 조회 라우트가 조용히 사라진다.
+        #
+        # 🔴 두 모듈은 **라이브에만 있고 repo 에는 없다**(서버에서 직접 만들어진 파일).
+        # 무조건 import 하면 repo·CI 에서 ImportError 로 죽는다 — 실제로 그렇게 만들었다가
+        # prethird 테스트 실패가 31→46 으로 늘었다. 모듈을 repo 로 가져오는 것이 정석이지만
+        # 그것은 별개 작업이므로, 여기서는 있으면 등록하고 없으면 조용히 건너뛴다.
+        try:
+            from tts_admin_endpoint import register_tts_admin_routes
+            register_tts_admin_routes(app)
+        except ImportError:
+            log.info("tts_admin_endpoint 없음 — 등록 건너뜀(라이브 전용 모듈)")
+        try:
+            from admin_records_endpoint import register_admin_records_routes
+            register_admin_records_routes(app)
+        except ImportError:
+            log.info("admin_records_endpoint 없음 — 등록 건너뜀(라이브 전용 모듈)")
 
     # T-117 학습하기 답변 해석 endpoint — Cloudflare Workers 만 호출 (X-Internal-Secret 방어).
     # 등록 flag 없이 항상 켬. auth 는 endpoint 내부에서 처리.
