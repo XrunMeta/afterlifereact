@@ -91,6 +91,61 @@ def test_knobs_fifth_build_body_injects_per_request():
     assert body["idle_rms_low"] == 0.05        # 기본 유지
     assert body["head_slew_frames"] == 5       # 기본 유지
 
+def test_미지정_노브는_body에_안_실린다():
+    """None(미지정) 노브를 실어 보내면 컨테이너 env 기본을 덮어버린다 — 회귀 0 위반.
+
+    입모양·눈머리 노브는 기본이 None 이므로 아무것도 안 건드린 상태에서는
+    /render body 에 키 자체가 없어야 한다.
+    """
+    from harness import KnobsFifthInproc
+    r = KnobsRegistry()
+    f = KnobsFifthInproc("/vid.jpg", registry=r, render_url="http://127.0.0.1:8810")
+    body = f._build_body("/w.wav", "/v.jpg")
+    for key in ("lip_open", "lip_closed", "sigma", "gamma", "offset", "silence",
+                "lip_lock", "source_face_lock", "source_face_lock_full",
+                "eyes_open_lock", "head_sway_amp", "head_yaw_offset", "fps"):
+        assert key not in body, f"미지정인데 실렸다: {key}"
+    # 명시 기본값을 가진 6종은 그대로 실린다(기존 동작).
+    assert body["blink"] is True
+    assert body["jpeg_quality"] == 90
+
+def test_지정한_입모양_노브는_실린다():
+    from harness import KnobsFifthInproc
+    r = KnobsRegistry()
+    r.update({"fifth": {"lip_open": 0.3, "sigma": 1.5, "offset": 3,
+                        "source_face_lock": True}})
+    f = KnobsFifthInproc("/vid.jpg", registry=r, render_url="http://127.0.0.1:8810")
+    body = f._build_body("/w.wav", "/v.jpg")
+    assert body["lip_open"] == 0.3
+    assert body["sigma"] == 1.5
+    assert body["offset"] == 3
+    assert body["source_face_lock"] is True
+    assert "gamma" not in body        # 안 건드린 건 여전히 미전송
+
+def test_false_는_미지정이_아니다():
+    """bool 노브를 False 로 명시하면 반드시 실려야 한다(None 과 구분)."""
+    from harness import KnobsFifthInproc
+    r = KnobsRegistry()
+    r.update({"fifth": {"lip_lock": False, "source_face_lock": False}})
+    f = KnobsFifthInproc("/vid.jpg", registry=r, render_url="http://127.0.0.1:8810")
+    body = f._build_body("/w.wav", "/v.jpg")
+    assert body["lip_lock"] is False
+    assert body["source_face_lock"] is False
+
+def test_0_은_미지정이_아니다():
+    """숫자 0 이 falsy 라고 걸러지면 안 된다 — is None 으로만 판정해야 한다."""
+    from harness import KnobsFifthInproc
+    r = KnobsRegistry()
+    r.update({"fifth": {"head_yaw_offset": 0, "lip_closed": 0.0}})
+    f = KnobsFifthInproc("/vid.jpg", registry=r, render_url="http://127.0.0.1:8810")
+    body = f._build_body("/w.wav", "/v.jpg")
+    assert body["head_yaw_offset"] == 0
+    assert body["lip_closed"] == 0.0
+
+def test_cosyvoice_엔진_url():
+    """라이브 TTS(:8203) 로 보낼 수 있어야 한다."""
+    assert harness._ENGINE_URLS["cosyvoice"] == "http://127.0.0.1:8203"
+
 class _FakeResp:
     status = 200
     def raise_for_status(self): pass
