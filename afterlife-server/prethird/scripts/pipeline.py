@@ -116,10 +116,17 @@ REACT_PROMPT_KNOWN = (
 # 히즈키 결정(2026-07-05): 리액션 문구는 고정하지 않고 클론 페르소나에 맡겨 그때그때
 # 자연스럽게 변주한다. 단 "상대의 이름을 묻는다"는 목적은 프롬프트로 명확히 고정
 # (이름 답변이 즉석등록(enroll_suggest) 프리필의 입력이 되므로 생략 불가).
+# [Remember Me 2026-08-13] 이름을 **음성으로 묻지 않는다.**
+#
+# 예전 문구는 "반드시 상대의 이름(성함)을 물어봐" 였다. 그 답을 STT 가 받아 그대로
+# 신원으로 굳히는 바람에 person 43 의 L2' 에 "이름이 카메라이다" 가 8건, persons 44 의
+# display_name 에 "나는" 이 들어갔다. 이름은 이제 화면 왼쪽 [Remember Me!] 버튼으로만
+# 받는다 — 이 프롬프트의 역할은 그 버튼을 눌러 달라고 안내하는 것뿐이다.
+# (persona_prompt.py 의 미확정 화자 규칙과 같은 방향이다.)
 REACT_PROMPT_UNKNOWN = (
     "방금 화면에 처음 보는 분이 나타났어. 너의 페르소나(말투·성격·관계 정서)에 맞게 "
-    "다정하게 맞이하되, **반드시 상대의 이름(성함)이 무엇인지 명확하게 물어봐**. "
-    "심문하듯 캐묻지 말고 한두 문장으로. 질문만 말해."
+    "다정하게 맞이하되, **이름을 말로 묻지는 마**. 대신 화면 왼쪽의 \"Remember Me\" "
+    "버튼을 눌러 이름과 관계를 입력해 달라고 한두 문장으로 부탁해. 부탁하는 말만 말해."
 )
 
 
@@ -207,6 +214,23 @@ class DialoguePipeline:
             log.warning("clone voice 미준비 — 발화 skip (폴백 없음)")
             return
         messages = self.persona_messages + [{"role": "user", "content": user_text}]
+
+        # [Remember Me 2026-08-13] 이름 부르기 힌트 — 딱 1회 소비하고 지운다.
+        #
+        # 얼굴이 잠깐 안 잡혔다가 같은 사람이 돌아온 경우다. 인사(react)를 걸면 "다시
+        # 왔네" 가 매번 나가 대화가 끊긴다(히즈키 실측). 대신 이번 응답에서 이름을 한 번
+        # 부르게 해 어색해진 구간을 자연스럽게 잇는다.
+        _hint = getattr(self, "name_mention_hint", None)
+        if _hint:
+            self.name_mention_hint = None
+            messages = messages + [{
+                "role": "system",
+                "content": (
+                    f"지금 대화 상대는 '{_hint}' 님이야. 이번 답변에서 그 이름을 한 번만 "
+                    "자연스럽게 불러 줘. 다시 만났다는 인사나 확인하는 말은 하지 마 — "
+                    "하던 대화를 그대로 이어가면서 이름만 섞으면 된다."
+                ),
+            }]
 
         async def produce(q: asyncio.Queue):
             sb = self._sb_factory()
@@ -555,6 +579,12 @@ class DialoguePipeline:
 
             try:
                 log.info("[T-113] batch full_text %d chars → TTS 1회", len(full_text))
+                # [2026-08-13 히즈키 의심 검증] "클론 대화 앞에 정체 모를 값이 읽힌다" —
+                # LLM 원문(JSON·시그널 등)이 TTS 로 새는지 보려면 **글자 수가 아니라 원문**이
+                # 필요하다. 길이만으로는 5자·11자가 정상 발화인지 잘린 조각인지 구분되지 않는다.
+                # 기본은 꺼 둔다 — 통화 내용은 PII 다. 검증 중에만 env 로 켠다.
+                if os.environ.get("PRETHIRD_TTS_TEXT_LOG", "0") == "1":
+                    log.info("[T-113] TTS 입력 원문 ⟪%s⟫", full_text[:200])
                 wav_bytes, pcm48 = await self._tts_stage(full_text)
                 turn.append_wav(wav_bytes)
                 await self._infer_stage(

@@ -1,6 +1,6 @@
 import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
 import { v_c9c489 } from "lwkoweqmjbnvjqw";
-import { v_db508f, v_445ba7, v_56dc8c, v_20b0e8 } from "../src/lib/personaBundle";
+import { v_db508f, v_445ba7, v_56dc8c, v_20b0e8, v_a752e9, v_83a5b9 } from "../src/lib/personaBundle";
 import { v_24564b } from "../src/lib/personaResolver";
 import type { v_273a0c } from "../src/lib/env";
 const v_7ac368 = v_c9c489 as unknown as v_273a0c;
@@ -109,11 +109,49 @@ v_469bf2("T-252 viewer 슬롯", () => {
 
   v_23805a("viewer 미지정이면 displayName 이 null 이다", () => {
     const v_148ff6 = v_445ba7(v_b6c480, { displayName: "코조" }, 1);
-    v_4d37e3(v_148ff6.viewer).toEqual({ displayName: null });
+
+    v_4d37e3(v_148ff6.viewer).toEqual({ displayName: null, ownerPersonId: null });
   });
 
   v_23805a("users.name 이 null 이면 null 을 그대로 방출한다", () => {
     const v_148ff6 = v_445ba7(v_b6c480, { displayName: "코조" }, 1, { displayName: null });
     v_4d37e3(v_148ff6.viewer.displayName).toBeNull();
+  });
+});
+
+v_469bf2("L2 owner face — claim/load", () => {
+  v_23805a("주인이 없으면 지정되고, 이후 다른 person 이 가로채지 못한다", async () => {
+    await v_81e28f(7301, 6301, { relation_subtype: "아내" });
+
+    v_4d37e3(await v_a752e9(v_7ac368.DB, 7301, 6301, 58)).toBe(true);
+    v_4d37e3(await v_83a5b9(v_7ac368.DB, 7301, 6301)).toBe(58);
+
+    v_4d37e3(await v_a752e9(v_7ac368.DB, 7301, 6301, 99)).toBe(false);
+    v_4d37e3(await v_83a5b9(v_7ac368.DB, 7301, 6301)).toBe(58);
+  });
+
+  v_23805a("기존 L2 내용을 훼손하지 않는다", async () => {
+    await v_81e28f(7302, 6302, { relation_subtype: "아내", memories_personal: ["여행"] });
+    await v_a752e9(v_7ac368.DB, 7302, 6302, 60);
+    const v_1af19b = (await v_20b0e8(v_7ac368.DB, 7302, 6302)) as Record<string, unknown>;
+    v_4d37e3(v_1af19b.relation_subtype).toBe("아내");
+    v_4d37e3(v_1af19b.memories_personal).toEqual(["여행"]);
+  });
+
+  v_23805a("owner_person_id 는 프롬프트로 새지 않는다 — 라우팅용 메타값", async () => {
+    await v_81e28f(7303, 6303, { relation_subtype: "아내" });
+    await v_a752e9(v_7ac368.DB, 7303, 6303, 61);
+    const v_1af19b = (await v_20b0e8(v_7ac368.DB, 7303, 6303)) as Record<string, unknown>;
+    v_4d37e3(v_1af19b.owner_person_id).toBeUndefined();
+  });
+
+  v_23805a("clone_ont 행이 없으면 지정하지 않는다(설문 전)", async () => {
+    v_4d37e3(await v_a752e9(v_7ac368.DB, 7304, 6304, 62)).toBe(false);
+    v_4d37e3(await v_83a5b9(v_7ac368.DB, 7304, 6304)).toBeNull();
+  });
+
+  v_23805a("미지정이면 null 을 돌려준다 — prethird 가 기존 경로로 떨어진다", async () => {
+    await v_81e28f(7305, 6305, { relation: "친구" });
+    v_4d37e3(await v_83a5b9(v_7ac368.DB, 7305, 6305)).toBeNull();
   });
 });

@@ -8,7 +8,7 @@ import os, time, logging
 from fastapi import FastAPI, Response, HTTPException
 from pydantic import BaseModel
 import config
-from clone_ref import parse_clone_id, ref_audio_path, load_ref_text
+from clone_ref import parse_clone_id, ref_audio_path, load_ref_text, ref_pair
 
 logging.basicConfig(level=os.environ.get("COSYVOICE_LOG_LEVEL", "INFO"))
 log = logging.getLogger("cosyvoice")
@@ -65,13 +65,13 @@ def synth(req: SynthReq):
     else:
         raise HTTPException(400, "no clone specified (clone_id and se_path both absent)")
 
-    voice_wav = ref_audio_path(clone_id)
+    # 오디오·텍스트를 **짝으로** 받는다(ref_pair). 짧은 프롬프트 쌍이 있으면 그것을,
+    # 없으면 기존 voice.wav + ref_text.txt. 한쪽만 바꾸면 ICL 전제가 깨진다.
+    voice_wav, ref_text = ref_pair(clone_id)
     if not os.path.isfile(voice_wav):
         raise HTTPException(503, f"voice.wav missing for clone '{clone_id}'")
     if os.path.getsize(voice_wav) < 100:
         raise HTTPException(503, f"voice.wav too small for clone '{clone_id}'")
-
-    ref_text = load_ref_text(clone_id)   # 있으면 ICL, 없으면 cross-lingual 유사(빈 프롬프트)
 
     t0 = time.time()
     try:
