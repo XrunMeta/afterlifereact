@@ -286,3 +286,29 @@ def test_js_send_say_returns_boolean_and_gates_clear():
     assert "return false" in js
     # Enter 클리어는 sendSay() 성공 시에만 수행(dc 미개통 시 입력 유실 방지).
     assert "if (sendSay())" in js
+
+
+def _read(name):
+    import pathlib
+    return (pathlib.Path(__file__).parents[1] / "static" / name).read_text(encoding="utf-8")
+
+
+def test_지연구역_컨테이너가_html에_있다():
+    """tuner.js 가 getElementById 로 찾는 id 가 실제 HTML 에 있어야 한다."""
+    html = _read("tuner.html")
+    for el_id in ("latency-panel", "latency-meter", "latency-fields",
+                  "ttff-badge", "flp-readonly", "refresh-flp"):
+        assert f'id="{el_id}"' in html, f"HTML 에 #{el_id} 없음"
+
+
+def test_설명과_단계태그_스타일이_정의돼_있다():
+    html = _read("tuner.html")
+    for cls in (".knob-desc", ".stage-tag", ".lat-bar", ".ro-val"):
+        assert cls in html, f"스타일 미정의: {cls}"
+
+
+def test_desc는_textContent로만_넣는다():
+    """innerHTML 경로로 desc 를 넣으면 XSS 표면이 된다(mizu 규약)."""
+    js = _read("tuner.js")
+    assert "d.textContent = m.desc" in js
+    assert "innerHTML = m.desc" not in js

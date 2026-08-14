@@ -147,6 +147,71 @@ const v_a7deb0 = {
   next_call: '다음 통화부터', container: '컨테이너 재기동', session: '다음 접속부터',
 };
 
+function v_8dc054(v_b4fa6c, v_b24339, v_35f85c, v_a057b5) {
+  const v_9fe22d = `${v_b4fa6c}.${v_b24339}`;
+  const v_3ac7e7 = document.createElement('div'); v_3ac7e7.className = 'knob-row';
+  const v_2869c1 = document.createElement('label'); v_2869c1.textContent = v_35f85c.label || v_b24339;
+  const v_638ecc = v_a7deb0[v_35f85c.reflow];
+  if (v_638ecc) { const v_fd5f43 = document.createElement('span'); v_fd5f43.className = 'reflow-chip'; v_fd5f43.textContent = v_638ecc; v_2869c1.appendChild(v_fd5f43); }
+
+  if (v_35f85c.group === 'latency' && v_35f85c.stage) {
+    const v_8d41d7 = document.createElement('span'); v_8d41d7.className = 'stage-tag';
+    v_8d41d7.textContent = v_35f85c.stage; v_2869c1.appendChild(v_8d41d7);
+  }
+
+  if (v_78c26d[v_9fe22d]) {
+    const v_51452d = document.createElement('span');
+    v_51452d.id = `running-${v_9fe22d}`; v_51452d.className = 'reflow-chip';
+    v_51452d.textContent = '실행값 조회중...';
+    v_2869c1.appendChild(v_51452d);
+  }
+  v_3ac7e7.appendChild(v_2869c1);
+  let v_22d288;
+  if (v_35f85c.type === 'bool') {                     
+    v_22d288 = document.createElement('select'); v_22d288.className = 'knob-toggle';
+    for (const v_68b2be of ['true', 'false']) {
+      const v_b6c474 = document.createElement('option'); v_b6c474.value = v_68b2be; v_b6c474.textContent = v_68b2be;
+      if (String(v_a057b5) === v_68b2be) v_b6c474.selected = true; v_22d288.appendChild(v_b6c474);
+    }
+  } else if (v_35f85c.type === 'enum') {              
+    v_22d288 = document.createElement('select'); v_22d288.className = 'knob-seg';
+    for (const v_68b2be of (v_35f85c.choices || [])) {
+      const v_b6c474 = document.createElement('option'); v_b6c474.value = v_68b2be; v_b6c474.textContent = v_68b2be;
+      if (String(v_a057b5) === v_68b2be) v_b6c474.selected = true; v_22d288.appendChild(v_b6c474);
+    }
+  } else {                                     
+    v_22d288 = document.createElement('input');
+    v_22d288.value = (v_a057b5 == null ? '' : v_a057b5);
+
+    if (v_a057b5 == null) v_22d288.placeholder = '기본값';
+  }
+  v_22d288.id = `k_${v_b4fa6c}_${v_b24339}`;
+  v_22d288.dataset.s = v_b4fa6c; v_22d288.dataset.k = v_b24339;
+  if (v_35f85c.type === 'number') {                   
+    const v_83ff11 = document.createElement('div'); v_83ff11.className = 'stepper';
+    const v_729796 = (String(v_a057b5).includes('.') ? 0.05 : 1);
+    v_22d288.dataset.step = String(v_729796);
+    const v_a86deb = document.createElement('button'); v_a86deb.type='button';
+    v_a86deb.className = 'step-down'; v_a86deb.textContent = '▼';
+    const v_d8f778 = document.createElement('button'); v_d8f778.type='button';
+    v_d8f778.className = 'step-up'; v_d8f778.textContent = '▲';
+    const v_219075 = (v_d5dda0) => { const v_c3bc75 = Number(String(v_22d288.value).replace(',', '.')) || 0;
+      v_22d288.value = (Math.round((v_c3bc75 + v_d5dda0*v_729796)*1000)/1000); };
+    v_a86deb.onclick = () => v_219075(-1); v_d8f778.onclick = () => v_219075(1);
+    v_83ff11.appendChild(v_a86deb); v_83ff11.appendChild(v_22d288); v_83ff11.appendChild(v_d8f778);
+    v_3ac7e7.appendChild(v_83ff11);
+  } else {
+    v_3ac7e7.appendChild(v_22d288);
+  }
+
+  if (v_35f85c.desc) {
+    const v_d5dda0 = document.createElement('div');
+    v_d5dda0.className = 'knob-desc'; v_d5dda0.textContent = v_35f85c.desc;
+    v_3ac7e7.appendChild(v_d5dda0);
+  }
+  return v_3ac7e7;
+}
+
 async function v_858a0a() {
   const [v_0eb677, v_d8a3c2] = await Promise.all([
     (await fetch('/knobs')).json(),
@@ -154,6 +219,8 @@ async function v_858a0a() {
   ]);
   const v_ab4c96 = v_d8a3c2.meta || {};
   const v_a38d42 = document.getElementById('knob-fields'); v_a38d42.innerHTML = '';
+  const v_d66ecf = document.getElementById('latency-fields');
+  if (v_d66ecf) v_d66ecf.innerHTML = '';
   for (const [v_b4fa6c, v_3332db] of Object.entries(v_0eb677)) {
     const v_10a17d = document.createElement('div'); v_10a17d.className = 'channel';
     const v_9f1622 = document.createElement('div'); v_9f1622.className = 'panel-title';
@@ -161,60 +228,90 @@ async function v_858a0a() {
     for (const [v_b24339, v_a057b5] of Object.entries(v_3332db)) {
       const v_9fe22d = `${v_b4fa6c}.${v_b24339}`;
       const v_35f85c = v_ab4c96[v_9fe22d] || {type: 'string', reflow: 'next_call'};
-      const v_3ac7e7 = document.createElement('div'); v_3ac7e7.className = 'knob-row';
-      const v_2869c1 = document.createElement('label'); v_2869c1.textContent = v_35f85c.label || v_b24339;
-      const v_638ecc = v_a7deb0[v_35f85c.reflow];
-      if (v_638ecc) { const v_fd5f43 = document.createElement('span'); v_fd5f43.className = 'reflow-chip'; v_fd5f43.textContent = v_638ecc; v_2869c1.appendChild(v_fd5f43); }
+      const v_3ac7e7 = v_8dc054(v_b4fa6c, v_b24339, v_35f85c, v_a057b5);
 
-      if (v_78c26d[v_9fe22d]) {
-        const v_51452d = document.createElement('span');
-        v_51452d.id = `running-${v_9fe22d}`; v_51452d.className = 'reflow-chip';
-        v_51452d.textContent = '실행값 조회중...';
-        v_2869c1.appendChild(v_51452d);
-      }
-      v_3ac7e7.appendChild(v_2869c1);
-      let v_22d288;
-      if (v_35f85c.type === 'bool') {                     
-        v_22d288 = document.createElement('select'); v_22d288.className = 'knob-toggle';
-        for (const v_68b2be of ['true', 'false']) {
-          const v_b6c474 = document.createElement('option'); v_b6c474.value = v_68b2be; v_b6c474.textContent = v_68b2be;
-          if (String(v_a057b5) === v_68b2be) v_b6c474.selected = true; v_22d288.appendChild(v_b6c474);
-        }
-      } else if (v_35f85c.type === 'enum') {              
-        v_22d288 = document.createElement('select'); v_22d288.className = 'knob-seg';
-        for (const v_68b2be of (v_35f85c.choices || [])) {
-          const v_b6c474 = document.createElement('option'); v_b6c474.value = v_68b2be; v_b6c474.textContent = v_68b2be;
-          if (String(v_a057b5) === v_68b2be) v_b6c474.selected = true; v_22d288.appendChild(v_b6c474);
-        }
-      } else {                                     
-        v_22d288 = document.createElement('input');
-        v_22d288.value = (v_a057b5 == null ? '' : v_a057b5);
-      }
-      v_22d288.id = `k_${v_b4fa6c}_${v_b24339}`;
-      v_22d288.dataset.s = v_b4fa6c; v_22d288.dataset.k = v_b24339;
-      if (v_35f85c.type === 'number') {                   
-        const v_83ff11 = document.createElement('div'); v_83ff11.className = 'stepper';
-        const v_729796 = (String(v_a057b5).includes('.') ? 0.05 : 1);
-        v_22d288.dataset.step = String(v_729796);
-        const v_a86deb = document.createElement('button'); v_a86deb.type='button';
-        v_a86deb.className = 'step-down'; v_a86deb.textContent = '▼';
-        const v_d8f778 = document.createElement('button'); v_d8f778.type='button';
-        v_d8f778.className = 'step-up'; v_d8f778.textContent = '▲';
-        const v_219075 = (v_d5dda0) => { const v_c3bc75 = Number(String(v_22d288.value).replace(',', '.')) || 0;
-          v_22d288.value = (Math.round((v_c3bc75 + v_d5dda0*v_729796)*1000)/1000); };
-        v_a86deb.onclick = () => v_219075(-1); v_d8f778.onclick = () => v_219075(1);
-        v_83ff11.appendChild(v_a86deb); v_83ff11.appendChild(v_22d288); v_83ff11.appendChild(v_d8f778);
-        v_3ac7e7.appendChild(v_83ff11);
-      } else {
-        v_3ac7e7.appendChild(v_22d288);
-      }
-      v_10a17d.appendChild(v_3ac7e7);
+      if (v_35f85c.group === 'latency' && v_d66ecf) v_d66ecf.appendChild(v_3ac7e7);
+      else v_10a17d.appendChild(v_3ac7e7);
     }
-    v_a38d42.appendChild(v_10a17d);
+
+    if (v_10a17d.querySelectorAll('.knob-row').length) v_a38d42.appendChild(v_10a17d);
   }
   v_796451();
   document.getElementById('k_tts_engine')?.addEventListener('change', v_796451);
   v_d4af21();   
+}
+
+function v_04a0ee(v_35f85c) {
+  const v_a38d42 = document.getElementById('latency-meter');
+  if (!v_a38d42) return;
+  v_a38d42.innerHTML = '';
+  const v_18b8bf = [
+    ['LLM 첫토큰', v_35f85c.llm_first_token_ms],
+    ['TTS 합성', v_35f85c.tts_ms],
+    ['fifth 렌더', v_35f85c.render_ms],
+  ];
+  const v_d2c6bf = Math.max(1, ...v_18b8bf.map(v_cb35cb => v_cb35cb[1] || 0));
+  for (const [v_1833e7, v_81e2ef] of v_18b8bf) {
+    const v_3ac7e7 = document.createElement('div'); v_3ac7e7.className = 'lat-row';
+    const v_b17055 = document.createElement('span'); v_b17055.className = 'lat-name';
+    v_b17055.textContent = v_1833e7;
+    const v_a057b5 = document.createElement('span'); v_a057b5.className = 'lat-val';
+    v_a057b5.textContent = (v_81e2ef == null ? '–' : `${v_81e2ef}ms`);
+    const v_2c681a = document.createElement('div'); v_2c681a.className = 'lat-track';
+    const v_d54210 = document.createElement('div'); v_d54210.className = 'lat-bar';
+    v_d54210.style.width = `${Math.round((v_81e2ef || 0) / v_d2c6bf * 100)}%`;
+    v_2c681a.appendChild(v_d54210);
+    v_3ac7e7.appendChild(v_b17055); v_3ac7e7.appendChild(v_a057b5); v_3ac7e7.appendChild(v_2c681a);
+    v_a38d42.appendChild(v_3ac7e7);
+  }
+  const v_51452d = document.getElementById('ttff-badge');
+  if (v_51452d) {
+    v_51452d.textContent = (v_35f85c.ttff_ms == null)
+      ? '측정 전' : `첫 소리까지 ${(v_35f85c.ttff_ms / 1000).toFixed(2)}s`;
+  }
+}
+
+const v_10fde5 = {
+  src_scale: '얼굴 대비 crop 배율. 바꾸면 클론별 소스 캐시를 전부 버려야 한다',
+  src_vy_ratio: 'crop 중심의 상하 오프셋. 위와 같은 이유로 잠겨 있다',
+  src_dsize: 'crop 결과 한 변 픽셀. 모델 입력 규격이라 고정',
+  source_max_dim: '소스 이미지 최대 변. 올리면 화질이 좋아지고 느려진다',
+  source_division: '소스 해상도가 나누어떨어져야 하는 값',
+  driving_smooth_observation_variance: '영상 소스일 때의 스무딩 강도',
+};
+
+async function v_2a2e10() {
+  const v_a38d42 = document.getElementById('flp-readonly');
+  if (!v_a38d42) return;
+  v_a38d42.innerHTML = '';
+  let v_9390e8;
+  try {
+    v_9390e8 = await (await fetch('/flp-config')).json();
+  } catch (v_9e86fd) {
+    v_a38d42.textContent = '조회 실패';
+    return;
+  }
+  if (v_9390e8.error) { v_a38d42.textContent = v_9390e8.error; return; }
+  for (const v_d7f648 of ['crop_params', 'infer_params']) {
+    const v_3332db = v_9390e8[v_d7f648];
+    if (!v_3332db) continue;
+    const v_43fb07 = document.createElement('div');
+    v_43fb07.className = 'ro-group'; v_43fb07.textContent = v_d7f648;
+    v_a38d42.appendChild(v_43fb07);
+    for (const [v_0eb677, v_81e2ef] of Object.entries(v_3332db)) {
+      const v_3ac7e7 = document.createElement('div'); v_3ac7e7.className = 'knob-row ro';
+      const v_b17055 = document.createElement('label'); v_b17055.textContent = v_0eb677;
+      const v_a057b5 = document.createElement('span'); v_a057b5.className = 'ro-val';
+      v_a057b5.textContent = String(v_81e2ef);
+      v_3ac7e7.appendChild(v_b17055); v_3ac7e7.appendChild(v_a057b5);
+      if (v_10fde5[v_0eb677]) {
+        const v_d5dda0 = document.createElement('div');
+        v_d5dda0.className = 'knob-desc'; v_d5dda0.textContent = v_10fde5[v_0eb677];
+        v_3ac7e7.appendChild(v_d5dda0);
+      }
+      v_a38d42.appendChild(v_3ac7e7);
+    }
+  }
 }
 
 const v_78c26d = { 'fifth.render_mode': 'PRETHIRD_RENDER_MODE' };
@@ -294,7 +391,11 @@ function v_409b14() {
 
 function v_e1242b() {
   const v_9ba48b = new EventSource('/metrics');
-  v_9ba48b.onmessage = () => { v_5af772(); };
+  v_9ba48b.onmessage = (v_1d299c) => {
+    v_5af772();
+
+    try { v_04a0ee(JSON.parse(v_1d299c.data) || {}); } catch (v_9e86fd) {  }
+  };
 }
 
 async function v_4deb94() {
@@ -505,7 +606,8 @@ document.getElementById('login-btn').onclick = v_182fdb;
 document.getElementById('connect-btn').onclick = v_1857f4;
 document.getElementById('hangup-btn').onclick = v_cad05d;
 
-v_858a0a(); v_e1242b(); v_315473(); v_187e1c(); v_d73d4a();
+v_858a0a(); v_e1242b(); v_315473(); v_187e1c(); v_d73d4a(); v_2a2e10();
+document.getElementById('refresh-flp')?.addEventListener('click', v_2a2e10);
 v_5af772();
 v_4deb94();
 setInterval(v_4deb94, 3000);
