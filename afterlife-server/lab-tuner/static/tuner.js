@@ -340,6 +340,38 @@ function v_46a72e(v_132868) {
   }
 }
 
+let v_4e7cfd = 0;
+let v_3e00d1 = false;
+
+async function v_ded6bb() {
+  if (v_3e00d1) return;
+  const v_a38d42 = document.getElementById('render-log');
+  if (!v_a38d42) return;
+  let v_9390e8;
+  try {
+    v_9390e8 = await (await fetch(`/render-logs?since=${v_4e7cfd}`)).json();
+  } catch (v_9e86fd) { return; }
+  if (v_9390e8.error && !(v_9390e8.lines || []).length) {
+    if (!v_4e7cfd) v_a38d42.textContent = v_9390e8.error;
+    return;
+  }
+  const v_a52412 = v_9390e8.lines || [];
+  if (!v_a52412.length) return;
+  for (const v_765c3e of v_a52412) {
+    v_4e7cfd = Math.max(v_4e7cfd, v_765c3e.seq);
+    const v_3ac7e7 = document.createElement('div');
+    v_3ac7e7.className = 'log-row';
+    if (v_765c3e.level === 'ERROR' || v_765c3e.level === 'WARNING') v_3ac7e7.className += ' bad';
+    if (v_765c3e.msg.includes('[cfg-final]')) v_3ac7e7.className += ' final';
+    else if (v_765c3e.msg.includes('[cfg-override]')) v_3ac7e7.className += ' override';
+    const v_8d41d7 = new Date(v_765c3e.ts * 1000).toTimeString().slice(0, 8);
+    v_3ac7e7.textContent = `${v_8d41d7} ${v_765c3e.msg}`;   
+    v_a38d42.appendChild(v_3ac7e7);
+  }
+  while (v_a38d42.childElementCount > 300) v_a38d42.removeChild(v_a38d42.firstChild);
+  if (!v_3e00d1) v_a38d42.scrollTop = v_a38d42.scrollHeight;
+}
+
 const v_10fde5 = {
   src_scale: '얼굴 대비 crop 배율. 바꾸면 클론별 소스 캐시를 전부 버려야 한다',
   src_vy_ratio: 'crop 중심의 상하 오프셋. 위와 같은 이유로 잠겨 있다',
@@ -429,10 +461,12 @@ const v_170a1f =
   '#knob-fields input, #knob-fields select, #latency-fields input, #latency-fields select';
 
 function v_ccf98d(v_9b6134, v_94302c) {
-  const v_57c92e = document.getElementById('apply-status');
-  if (!v_57c92e) return;
-  v_57c92e.textContent = v_9b6134;                       
-  v_57c92e.className = 'apply-status' + (v_94302c ? ' ' + v_94302c : '');
+  for (const v_389afb of ['apply-status', 'apply-status-top']) {
+    const v_57c92e = document.getElementById(v_389afb);
+    if (!v_57c92e) continue;
+    v_57c92e.textContent = v_9b6134;                     
+    v_57c92e.className = 'apply-status' + (v_94302c ? ' ' + v_94302c : '');
+  }
 }
 
 async function v_9a2a8d() {
@@ -724,6 +758,19 @@ document.getElementById('hangup-btn').onclick = v_cad05d;
 
 v_858a0a(); v_e1242b(); v_315473(); v_187e1c(); v_d73d4a(); v_2a2e10();
 document.getElementById('refresh-flp')?.addEventListener('click', v_2a2e10);
+
+v_ded6bb();
+setInterval(v_ded6bb, 2000);
+document.getElementById('log-pause')?.addEventListener('click', (v_9e86fd) => {
+  v_3e00d1 = !v_3e00d1;
+  v_9e86fd.target.textContent = v_3e00d1 ? '재개' : '일시정지';
+});
+document.getElementById('log-clear')?.addEventListener('click', () => {
+  const v_a38d42 = document.getElementById('render-log');
+  if (v_a38d42) v_a38d42.innerHTML = '';
+});
+
+document.getElementById('apply-knobs-top')?.addEventListener('click', v_9a2a8d);
 v_5af772();
 v_4deb94();
 setInterval(v_4deb94, 3000);
