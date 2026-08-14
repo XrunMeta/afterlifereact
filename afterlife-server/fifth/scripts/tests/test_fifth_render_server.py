@@ -415,7 +415,7 @@ def test_parse_render_body_valid():
     from fifth_render_server import _parse_render_body
 
     body = json.dumps({"wav_path": "/tmp/a.wav", "video_path": "/ref/idle.mp4"}).encode()
-    wav, vid, tok, opts = _parse_render_body(body)
+    wav, vid, tok, opts, _cfg = _parse_render_body(body)
     assert wav == "/tmp/a.wav"
     assert vid == "/ref/idle.mp4"
     assert tok is None
@@ -458,7 +458,7 @@ def test_parse_render_body_wav_path_direct(tmp_path):
 
     body = json.dumps({"wav_path": "/home/afterlife/afterlife-server/tmp/x.wav",
                        "video_path": "/ref/idle.mp4"}).encode()
-    wav, vid, tok, opts = _parse_render_body(body)
+    wav, vid, tok, opts, _cfg = _parse_render_body(body)
 
     assert wav == "/home/afterlife/afterlife-server/tmp/x.wav"
     assert vid == "/ref/idle.mp4"
@@ -1013,7 +1013,7 @@ def test_parse_render_body_with_phase_token():
         "video_path": "/ref/idle.mp4",
         "phase_token": tok_in.to_dict(),
     }).encode()
-    wav, vid, tok_out, opts = _parse_render_body(body)
+    wav, vid, tok_out, opts, _cfg = _parse_render_body(body)
 
     assert wav == "/tmp/a.wav"
     assert vid == "/ref/idle.mp4"
@@ -1029,7 +1029,7 @@ def test_parse_render_body_phase_token_null_is_none():
         "video_path": "/ref/idle.mp4",
         "phase_token": None,
     }).encode()
-    _, _, tok, _ = _parse_render_body(body)
+    _, _, tok, _, _ = _parse_render_body(body)
     assert tok is None
 
 
@@ -1038,7 +1038,7 @@ def test_parse_render_body_phase_token_absent_is_none():
     from fifth_render_server import _parse_render_body
 
     body = json.dumps({"wav_path": "/tmp/a.wav", "video_path": "/ref/idle.mp4"}).encode()
-    _, _, tok, _ = _parse_render_body(body)
+    _, _, tok, _, _ = _parse_render_body(body)
     assert tok is None
 
 
@@ -1121,7 +1121,7 @@ def test_parse_render_body_phase_token_head_last_none_passes():
             "first_frame": True, "head_last": None,
         },
     }).encode()
-    wav, vid, tok, opts = _parse_render_body(body)
+    wav, vid, tok, opts, _cfg = _parse_render_body(body)
     assert tok is not None
     assert tok.head_last is None
 
@@ -1138,7 +1138,7 @@ def test_parse_render_body_phase_token_head_last_list_passes():
             "first_frame": True, "head_last": [1.0, 2.0],
         },
     }).encode()
-    wav, vid, tok, opts = _parse_render_body(body)
+    wav, vid, tok, opts, _cfg = _parse_render_body(body)
     assert tok is not None
     assert tok.head_last == [1.0, 2.0]
 
@@ -1641,7 +1641,7 @@ def test_parse_render_body_extracts_render_mode():
         "video_path": "/ref/idle.mp4",
         "render_mode": "batch",
     }).encode()
-    _, _, _, opts = _parse_render_body(body)
+    _, _, _, opts, _cfg = _parse_render_body(body)
     assert opts["render_mode"] == "batch"
 
 
@@ -1651,7 +1651,7 @@ def test_parse_render_body_render_mode_absent_is_none():
     from fifth_render_server import _parse_render_body
 
     body = json.dumps({"wav_path": "/tmp/a.wav", "video_path": "/ref/idle.mp4"}).encode()
-    _, _, _, opts = _parse_render_body(body)
+    _, _, _, opts, _cfg = _parse_render_body(body)
     assert opts["render_mode"] is None
 
 
@@ -1669,7 +1669,7 @@ def test_parse_render_body_render_mode_empty_string_normalized_to_none():
         "video_path": "/ref/idle.mp4",
         "render_mode": "",
     }).encode()
-    _, _, _, opts = _parse_render_body(body)
+    _, _, _, opts, _cfg = _parse_render_body(body)
     assert opts["render_mode"] is None
 
 
@@ -1766,7 +1766,7 @@ def test_parse_render_body_extracts_new_opts():
         "head_sway_slow": 2.0,
         "source_face_lock_full": True,
     }).encode()
-    _, _, _, o = _parse_render_body(body)
+    _, _, _, o, _cfg = _parse_render_body(body)
     assert o["lip_lock"] is True and o["head_sway_amp"] == 0.6 and o["eyes_open_lock"] is True
     assert o["source_face_lock"] is True
     assert o["blink_interval_sec"] == 3.5
@@ -1781,7 +1781,7 @@ def test_parse_render_body_defaults_none():
     from fifth_render_server import _parse_render_body
 
     body = json.dumps({"wav_path": "/x/a.wav", "video_path": "/x/f.jpg"}).encode()
-    _, _, _, o = _parse_render_body(body)
+    _, _, _, o, _cfg = _parse_render_body(body)
     assert o["lip_lock"] is None and o["head_sway_amp"] is None and o["eyes_open_lock"] is None
     assert o["source_face_lock"] is None
     assert o["blink_interval_sec"] is None
