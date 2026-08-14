@@ -37,8 +37,11 @@ export LAB_ARTIFACTS=/home/afterlife/afterlife-server/.lab-artifacts
 export PRETHIRD_LEARN_ENABLED=0
 # fifth 렌더(컨테이너)가 infer wav를 읽으려면 공유마운트 하위 TMPDIR 필수(T-088 교훈).
 export TMPDIR=/home/afterlife/afterlife-server/.fifth-tmp
-# 라이브와 동일 TTS 엔진(qwen 8201) — 클론 음성 정합.
-export PRETHIRD_TTS_URL=http://127.0.0.1:8201
+# 라이브와 동일 TTS 엔진 — 클론 음성 정합.
+# 2026-08-14: 라이브가 CosyVoice2(:8203)로 바뀐 뒤에도 여기가 qwen(:8201)에 묶여 있어
+# 랩이 라이브와 다른 엔진으로 튜닝하고 있었다. 라이브 값을 실측해 맞춘다.
+# 라이브 확인: systemctl show afterlife-prethird -p Environment | grep TTS_URL
+export PRETHIRD_TTS_URL=http://127.0.0.1:8203
 export PRETHIRD_TTS_PATH=/tts/kr
 export LAB_TUNER_TOKEN="$TOKEN"
 # dev-token 자동주입 활성 — 이 호스트는 단일테넌트 SSH-터널 개발 전용이라
