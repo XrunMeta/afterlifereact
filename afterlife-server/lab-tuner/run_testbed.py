@@ -17,6 +17,7 @@ from registry import KnobsRegistry
 from artifact_store import ArtifactStore
 from live_guard import LiveGuard
 from harness import KnobsFifthInproc, build_say_fn
+from metrics import TurnMetrics
 from pipeline_factory import build_knobs_pipeline_factory
 from app import build_app
 
@@ -36,10 +37,16 @@ def main():
     renderer = KnobsFifthInproc(ref, registry=registry, render_url=LIVE_RENDER_URL)
     renderer.load()   # 라이브 렌더 health 확인
 
+    # 턴 단위 지연 계측 — /metrics SSE 로 흘러가 UI 응답속도 구역에 표시된다.
+    # /replay/tts 재합성은 턴이 아니므로 계측에서 제외(say_fn 에 metrics 미주입).
+    metrics = TurnMetrics()
+
     say_fn = build_say_fn(registry)   # /replay/tts 재합성용
-    factory = build_knobs_pipeline_factory(registry, renderer, guard=guard, store=store)
+    factory = build_knobs_pipeline_factory(registry, renderer, guard=guard, store=store,
+                                           metrics=metrics)
     application = build_app(registry, factory, store,
-                            say_fn=say_fn, render_url=LIVE_RENDER_URL, guard=guard)
+                            say_fn=say_fn, render_url=LIVE_RENDER_URL, guard=guard,
+                            metrics=metrics)
     web.run_app(application, host="127.0.0.1", port=PORT)
 
 

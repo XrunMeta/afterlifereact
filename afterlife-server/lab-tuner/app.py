@@ -79,13 +79,17 @@ def _dev_token_response(remote: str | None, token: str | None) -> web.Response:
     return web.json_response({"token": token})
 
 
-def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None) -> web.Application:
+def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None,
+              metrics=None) -> web.Application:
     # say_fn/render_url/guard는 Task 9·12에서 사용(초기 Task 11 단계는 None 허용).
     app = make_app(pipeline_factory=factory)   # /offer /healthz /static/ /prebuild
     app["lab_registry"] = registry
     app["lab_store"] = store
     app["lab_guard"] = guard
+    # metrics: TurnMetrics | None. None 이면 /metrics 는 빈 dict 를 흘려보낸다
+    # (기존 동작 — 이 키는 하위호환을 위해 남긴다).
     app["lab_metrics"] = {"last": {}}
+    app["lab_turn_metrics"] = metrics
 
     # mizu HIGH 3: promote mutating 엔드포인트(apply/rollback/restart) 인증.
     # LAB_TUNER_TOKEN 미설정(로컬 개발) 시 통과시키되 기동 시 경고 로그 1회.
@@ -140,7 +144,9 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
         await resp.prepare(req)
         try:
             while True:
-                payload = json.dumps(app["lab_metrics"]["last"])
+                _tm = app.get("lab_turn_metrics")
+                payload = json.dumps(
+                    _tm.snapshot() if _tm is not None else app["lab_metrics"]["last"])
                 await resp.write(f"data: {payload}\n\n".encode())
                 await asyncio.sleep(0.5)
         except (asyncio.CancelledError, ConnectionResetError):

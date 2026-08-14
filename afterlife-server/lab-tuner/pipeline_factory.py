@@ -1,5 +1,6 @@
 from __future__ import annotations
 import logging
+import time
 
 from pipeline import DialoguePipeline          # prethird
 from audio_utils import _decode_wav            # prethird
@@ -9,7 +10,8 @@ from store_recorder import StoreRecorder
 
 log = logging.getLogger("lab-tuner.factory")
 
-def build_knobs_pipeline_factory(registry, renderer, guard=None, store=None):
+def build_knobs_pipeline_factory(registry, renderer, guard=None, store=None,
+                                 metrics=None):
     """공유 라이브 렌더(renderer=KnobsFifthInproc, render_url=:8810)와 registry로
     세션별 DialoguePipeline factory 생성.
 
@@ -17,9 +19,12 @@ def build_knobs_pipeline_factory(registry, renderer, guard=None, store=None):
     store: ArtifactStore | None — 지정 시 sess.recorder를 StoreRecorder(store)로 교체해
            /replay/* 가 실 데이터로 동작하게 한다(prethird 무수정, sess 속성만 교체).
            None(기본)이면 기존 recorder(prethird offer가 세팅한 것) 그대로 — 회귀 0.
+    metrics: TurnMetrics | None — 지정 시 LLM/TTS/렌더 단계 소요를 수집해
+           /metrics SSE 로 흘려보낸다. prethird 는 계측 콜백을 노출하지 않으므로
+           랩이 이미 감싸고 있는 chat/say/infer 래퍼에서 직접 잰다.
     """
-    chat_fn = build_chat_fn(registry)
-    say_fn = build_say_fn(registry)
+    chat_fn = build_chat_fn(registry, metrics=metrics)
+    say_fn = build_say_fn(registry, metrics=metrics)
 
     def factory(sess):
         if store is not None:
@@ -33,7 +38,12 @@ def build_knobs_pipeline_factory(registry, renderer, guard=None, store=None):
         def _infer_fn(wav, cb, _src=src):
             if guard is not None:
                 guard.assert_free()   # 라이브 통화 중이면 LiveBusyError → say 실패 처리
-            return renderer.infer(wav, cb, video_path=_src)
+            if metrics is None:
+                return renderer.infer(wav, cb, video_path=_src)
+            _t0 = time.perf_counter()
+            out = renderer.infer(wav, cb, video_path=_src)
+            metrics.record("render", (time.perf_counter() - _t0) * 1000)
+            return out
 
         pipe = DialoguePipeline(
             video_track=sess.video_track,
@@ -52,6 +62,11 @@ def build_knobs_pipeline_factory(registry, renderer, guard=None, store=None):
         # 생성자 대신 _sb_factory 를 갈아끼워 노브를 주입한다 — prethird 무수정 원칙
         # (sess.recorder 교체와 같은 패턴).
         def _sb_factory(_dk=dk):
+            # prethird 는 턴 진입마다(say/greet) _sb_factory 를 부른다
+            # (pipeline.py:236,318) — 랩이 턴 경계를 알 수 있는 유일한 지점이라
+            # 여기서 계측을 리셋한다.
+            if metrics is not None:
+                metrics.start_turn()
             sb = SentenceBuffer.from_env()       # env 기본값을 먼저 존중
             ml = getattr(_dk, "min_len", None)
             ff = getattr(_dk, "force_flush", None)
@@ -63,6 +78,11 @@ def build_knobs_pipeline_factory(registry, renderer, guard=None, store=None):
                     sb.first_min_len = int(ml)
             if ff is not None:
                 sb.force_flush = int(ff)
+            # first_min_len 은 첫 소리까지 걸리는 시간에 직결돼 별도 노브로 뺐다.
+            # min_len 을 따라가던 위 규약보다 나중에 적용해 명시값이 이긴다.
+            fml = getattr(_dk, "first_min_len", None)
+            if fml is not None:
+                sb.first_min_len = int(fml)
             return sb
 
         pipe._sb_factory = _sb_factory
