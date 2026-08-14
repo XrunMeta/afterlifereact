@@ -9,6 +9,8 @@ import { deletePersonCascade } from "../lib/personDelete";
 import { assertValidDisplayName } from "../lib/displayName";
 import { loadAccessibleClone } from "../lib/cloneAccess";
 import { faceNamespace, queryCloneScope, enrollCloneScopeFaces } from "../lib/cloneFaceScope";
+import { claimL2OwnerFace } from "../lib/personaBundle";
+import { logActivity } from "../lib/logger";
 
 export const persons = new Hono<AppEnv>();
 
@@ -354,6 +356,16 @@ persons.post("/:id/faces", requireAuth, async (c) => {
       vectors,
       source: "call",
     });
+
+    const claimed = await claimL2OwnerFace(c.env.DB, cloneId, userId, personId).catch(() => false);
+    if (claimed) {
+      await logActivity(c, {
+        userId,
+        action: "l2.owner_face.claim",
+        details: { cloneId, personId },
+      });
+    }
+
     return c.json({ enrolled });
   } catch (e) {
     throw new APIError("UPSTREAM_FAILURE", `얼굴 벡터 인덱스 저장 실패: ${(e as Error).message}`);

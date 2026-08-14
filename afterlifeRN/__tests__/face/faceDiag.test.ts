@@ -1,3 +1,4 @@
+import { CONFIRM_STREAK } from "../../src/face/speakerIdReducer";
 import { formatFaceHud, FACE_DIAG_ENABLED } from "../../src/config/faceDiag";
 
 describe("formatFaceHud", () => {
@@ -8,7 +9,7 @@ describe("formatFaceHud", () => {
     });
     expect(s).toContain("0.712");
     expect(s).toContain("민지");
-    expect(s).toContain("2/3");
+    expect(s).toContain(`2/${CONFIRM_STREAK}`);
     expect(s).toContain("candidate");
     expect(s).toContain("0.83");
   });

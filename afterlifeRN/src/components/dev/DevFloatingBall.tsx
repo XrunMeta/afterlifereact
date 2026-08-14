@@ -9,6 +9,7 @@ import {
   StyleSheet,
   FlatList,
   Dimensions,
+  ScrollView,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useFloatingBallPosition } from './useFloatingBallPosition';
@@ -91,7 +92,12 @@ export function DevFloatingBall() {
       </TouchableOpacity>
 
       {menuOpen && (
-        <View style={styles.menu}>
+
+        <ScrollView
+          style={styles.menu}
+          contentContainerStyle={styles.menuContent}
+          showsVerticalScrollIndicator
+        >
           <TouchableOpacity
             style={styles.row}
             onPress={() => {
@@ -180,7 +186,7 @@ export function DevFloatingBall() {
               </TouchableOpacity>
             );
           })}
-        </View>
+        </ScrollView>
       )}
 
       <Modal
@@ -301,11 +307,15 @@ const styles = StyleSheet.create({
     left: BALL + 8,
     top: 0,
     backgroundColor: '#111',
-    padding: 10,
     borderRadius: 8,
     minWidth: 180,
     zIndex: 100000,
     elevation: 25,
+
+    maxHeight: SCREEN_H * 0.6,
+  },
+  menuContent: {
+    padding: 10,
   },
   row: {
     flexDirection: 'row',

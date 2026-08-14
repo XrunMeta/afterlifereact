@@ -128,10 +128,15 @@ import { showAlert } from "../../stores/dialogStore";
 import { CommonActions } from "@react-navigation/native";
 import RememberMeButton from "../../components/call/RememberMeButton";
 import { updatePersonRelation } from "../../api/persons";
+import { shouldAutoEnrollOwner, ownerEnrollName } from "../../face/ownerAutoEnroll";
 import RememberMeSheet from "../../components/call/RememberMeSheet";
 import {
   initRememberMeState,
   rememberMeReducer,
+  shouldHoldMic,
+  shouldShowRememberMeButton,
+  GRACE_HOLD_MS,
+  type RememberMeAction,
   type RememberMeEvent,
 } from "../../realtime/rememberMeReducer";
 import ExpertBadge from "../../components/ui/ExpertBadge";
@@ -153,6 +158,11 @@ const SHOW_USER_TRANSCRIPT = __DEV__;
 const SHOW_VOICE_BALL = false;
 
 const SPEAK_OK_COLOR = "#2fbf6b";
+
+const FACE_DETECTOR_OPTIONS = {
+  performanceMode: "fast",
+  trackingEnabled: true,
+} as const;
 
 interface FloatingGift {
   id: number;
@@ -306,10 +316,8 @@ function CallScreenInner({ route, navigation }: Props) {
   const vcDevice = useCameraDevice(cameraFacing === "front" ? "front" : "back");
 
   const { faceState, onFaces } = useFaceDetection();
-  const { detectFaces, stopListeners } = useFaceDetector({
-    performanceMode: "fast",
-    trackingEnabled: true,
-  });
+
+  const { detectFaces, stopListeners } = useFaceDetector(FACE_DETECTOR_OPTIONS);
 
   const pipCameraRef = useRef<VisionCamera>(null);
 
@@ -477,13 +485,19 @@ function CallScreenInner({ route, navigation }: Props) {
 
   const lastEmbedTs = useSharedValue(0);
 
+  const embedAllowed = useSharedValue(true);
+
   const seenFaceIdsRef = useRef<Set<number>>(new Set());
 
   const handleSpeakerEventRef = useRef<(evt: SpeakerEvent) => void>(() => {});
 
   const myNameRef = useRef<string | null>(null);
 
-  const ownerConfirmPendingRef = useRef<{ name: string; at: number } | null>(null);
+  const ownerAutoEnrollTriedRef = useRef(false);
+
+  const surveyAddressRef = useRef<string | null>(null);
+
+  const namelessPersonIdRef = useRef<number | null>(null);
   const handleSpeakerEventTrampoline = useCallback((evt: SpeakerEvent) => {
     handleSpeakerEventRef.current(evt);
   }, []);
@@ -496,12 +510,20 @@ function CallScreenInner({ route, navigation }: Props) {
 
   const [rmState, setRmState] = useState(initRememberMeState());
   const rmStateRef = useRef(rmState);
+
+  const rmActionRef = useRef<(a: RememberMeAction) => void>(() => {});
+
+  const phaseRef = useRef<string>("idle");
+
+  const chatReplyStartAt = useRef<number | null>(null);
   const dispatchRm = useCallback((event: RememberMeEvent) => {
-    const { state, actions } = rememberMeReducer(rmStateRef.current, event);
+    const { state, actions } = rememberMeReducer(rmStateRef.current, event, Date.now());
     rmStateRef.current = state;
     setRmState(state);
-
-    for (const a of actions) console.log(`[Call][rm] ${a.type}`);
+    for (const a of actions) {
+      console.log(`[Call][rm] ${a.type}`);
+      rmActionRef.current(a);
+    }
   }, []);
 
   useEffect(() => {
@@ -557,19 +579,60 @@ function CallScreenInner({ route, navigation }: Props) {
           dispatchSh({ type: "SPEAKER_CONFIRMED", personId: evt.personId, name });
         }
 
-        dispatchRm({ type: "KNOWN_FACE" });
-        sendFaceEvent?.({
-          event: "speaker_confirmed",
+        namelessPersonIdRef.current = name ? null : evt.personId;
+
+        dispatchRm({
+          type: "MATCH_KNOWN",
           personId: evt.personId,
-          displayName: evt.displayName,
+          displayName: name,
+          named: !!name,
+
+          cloneSpeaking: chatReplyStartAt.current !== null,
         });
       } else if (evt.type === "unknown_face") {
 
-        dispatchRm({ type: "UNKNOWN_FACE" });
+        if (
+          shouldAutoEnrollOwner({
+            personCount: persons?.length ?? 0,
+            ownerName: surveyAddressRef.current ?? myNameRef.current,
+            alreadyTried: ownerAutoEnrollTriedRef.current,
+          })
+        ) {
+          ownerAutoEnrollTriedRef.current = true;
+          const _n = ownerEnrollName(surveyAddressRef.current ?? myNameRef.current);
+          console.log(`[Call][face] owner auto-enroll → "${_n}"`);
+
+          unknownFaceSnapshotRef.current = getFaceEmbeddingBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
+          void faceEnroll
+            .enroll(_n)
+            .then(() => {
+              dispatchRm({ type: "ENROLLED" });
+
+              const pid = faceEnroll.getEnrolledPersonId();
+              if (pid != null) {
+                console.log(`[Call][face] auto-enroll 완료 → silent speaker_confirmed(${pid})`);
+                sendFaceEvent?.({
+                  event: "speaker_confirmed",
+                  personId: pid,
+                  displayName: _n,
+                  silent: true,
+                });
+              }
+            })
+            .catch((err) => {
+
+              console.warn("[Call][face] owner auto-enroll 실패 → Remember Me:", err);
+              dispatchRm({ type: "MATCH_UNKNOWN" });
+            });
+
+          dispatchSh({ type: "UNKNOWN_FACE" });
+          return;
+        }
+
+        dispatchRm({ type: "MATCH_UNKNOWN" });
         dispatchSh({ type: "UNKNOWN_FACE" });
 
         unknownFaceSnapshotRef.current = getFaceEmbeddingBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
-        sendFaceEvent?.({ event: "unknown_face" });
       }
     },
 
@@ -749,31 +812,7 @@ function CallScreenInner({ route, navigation }: Props) {
       const hasSpokenName = name.trim().length > 0;
 
       if (action.kind === "silent" && !hasSpokenName) {
-
-        const pendingId = faceEnroll.getPendingPersonId();
-        const enrolledId = faceEnroll.getEnrolledPersonId();
-        const cleanup = decideOrphanCleanupBeforeSilent({
-          enrolling: false,
-          pendingPersonId: pendingId,
-          enrolledPersonId: enrolledId,
-          incomingName: name,
-          lastName: submittedEnrollNameRef.current,
-        });
-        if (cleanup === "delete") {
-          if (accessToken && pendingId != null) {
-            void deletePerson(accessToken, pendingId).catch((err) => {
-              console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", err);
-            });
-          }
-          faceEnroll.reset();
-        } else if (cleanup === "detach") {
-
-          faceEnroll.reset();
-        }
-        submittedEnrollNameRef.current = name;
-
-        silentEnrollRef.current = true;
-        void faceEnroll.enrollSilent();
+        console.log("[Call][face] enroll_suggest(무명) 무시 — 이름은 Remember Me 로만 받는다");
         return;
       }
 
@@ -811,12 +850,18 @@ function CallScreenInner({ route, navigation }: Props) {
       setRmError(null);
       try {
 
-        await faceEnroll.enroll(name.trim());
+        const nameless = namelessPersonIdRef.current;
+        if (nameless != null) {
+          await updatePersonName(accessToken ?? "", nameless, name.trim());
+          namelessPersonIdRef.current = null;
+        } else {
+          await faceEnroll.enroll(name.trim());
+        }
         const rel = relation.trim();
         if (rel) {
 
           try {
-            const pid = faceEnroll.getEnrolledPersonId();
+            const pid = nameless ?? faceEnroll.getEnrolledPersonId();
             if (pid != null) {
               await updatePersonRelation(accessToken ?? "", pid, rel);
             }
@@ -863,7 +908,7 @@ function CallScreenInner({ route, navigation }: Props) {
 
       const nowMs = normalizeFrameTimestampMs(frame.timestamp, isAndroidFrame);
 
-      if (faceEmbedModel != null && shouldRunEmbedding(lastEmbedTs.value, nowMs)) {
+      if (faceEmbedModel != null && embedAllowed.value && shouldRunEmbedding(lastEmbedTs.value, nowMs)) {
         lastEmbedTs.value = nowMs;
         const primary = largestFace(faces);
         if (primary != null) {
@@ -897,6 +942,7 @@ function CallScreenInner({ route, navigation }: Props) {
       faceEmbedModel,
       resize,
       lastEmbedTs,
+      embedAllowed,
       isAndroidFrame,
       handleEmbeddingOnJS,
     ],
@@ -920,7 +966,7 @@ function CallScreenInner({ route, navigation }: Props) {
     notifyFaceInterrupt,
   } = useHandsFreeController({
 
-    enabled: liveState === "live" && !rmState.sheetOpen,
+    enabled: liveState === "live",
     say,
     getStatsReport,
     notifySpeechEnd,
@@ -940,6 +986,36 @@ function CallScreenInner({ route, navigation }: Props) {
     notifyFaceInterruptRef.current = notifyFaceInterrupt;
   }, [notifyFaceInterrupt]);
 
+  const micHeld = shouldHoldMic(rmState);
+  const micWasOnRef = useRef(false);
+  useEffect(() => {
+    if (liveState !== "live") return;
+    if (micHeld) {
+      micWasOnRef.current = micOn;
+      if (micOn) toggleMic();
+      return;
+    }
+    if (micWasOnRef.current && !micOn) toggleMic();
+    micWasOnRef.current = false;
+
+  }, [micHeld, liveState]);
+
+  useEffect(() => {
+    phaseRef.current = phase;
+
+    embedAllowed.value = phase !== "sending";
+  }, [phase]);
+
+  useEffect(() => {
+    if (liveState !== "live" || rmState.mode !== "grace") return;
+    const id = setInterval(() => {
+
+      if (chatReplyStartAt.current !== null) dispatchRm({ type: "ACTIVITY" });
+      dispatchRm({ type: "TICK" });
+    }, 5_000);
+    return () => clearInterval(id);
+  }, [liveState, rmState.mode, dispatchRm]);
+
   useEffect(() => {
     micOnRef.current = micOn;
   }, [micOn]);
@@ -957,9 +1033,10 @@ function CallScreenInner({ route, navigation }: Props) {
       chatPrevTranscript.current = transcript;
       chatUserSentAt.current = Date.now();
 
+      dispatchRm({ type: "ACTIVITY" });
+
     }
   }, [transcript]);
-  const chatReplyStartAt = useRef<number | null>(null);
   useEffect(() => {
     if (!lastSignal) return;
     if (lastSignal.type === 'speech_start') {
@@ -973,8 +1050,11 @@ function CallScreenInner({ route, navigation }: Props) {
       const dur = chatReplyStartAt.current ? Date.now() - chatReplyStartAt.current : null;
       console.log(`[Call][chat] clone reply end${dur !== null ? ` (took ${dur}ms)` : ''}`);
       chatReplyStartAt.current = null;
+
+      dispatchRm({ type: "CLONE_SPEECH_END" });
+      dispatchRm({ type: "ACTIVITY" });
     }
-  }, [lastSignal]);
+  }, [lastSignal, dispatchRm]);
 
   const canSpeak = (phase === 'listening' || phase === 'confirming') && sttActive;
 
@@ -1036,6 +1116,20 @@ function CallScreenInner({ route, navigation }: Props) {
   const myName = useAuthStore((s) => s.apiUser?.name ?? null);
 
   useEffect(() => { myNameRef.current = myName; }, [myName]);
+
+  useEffect(() => {
+    if (!accessToken || !cloneId) return;
+    let cancelled = false;
+    getCloneL2(accessToken, cloneId)
+      .then(({ l2_profile }) => {
+        if (cancelled) return;
+        const addr = ((l2_profile as { address_form?: string } | null)?.address_form ?? "").trim();
+        surveyAddressRef.current = addr || null;
+        console.log(`[Call][face] 설문 호칭=${addr || "(없음)"}`);
+      })
+      .catch(() => {  });
+    return () => { cancelled = true; };
+  }, [accessToken, cloneId]);
   const myAvatarUrl = useAuthStore((s) => s.apiUser?.avatarUrl ?? null);
 
   const [gifts, setGifts] = useState<GiftCatalogItem[]>([]);
@@ -1290,6 +1384,36 @@ function CallScreenInner({ route, navigation }: Props) {
   }, [navigation]);
 
   useEffect(() => {
+    rmActionRef.current = (a: RememberMeAction) => {
+      switch (a.type) {
+        case "NOTIFY_CONFIRMED":
+          sendFaceEvent?.({
+            event: "speaker_confirmed",
+            personId: a.personId,
+            displayName: a.displayName,
+
+            rejoin: a.rejoin,
+
+            mentionName: a.mentionName,
+          });
+          break;
+        case "NOTIFY_UNKNOWN":
+          sendFaceEvent?.({ event: "unknown_face" });
+          break;
+        case "END_CALL":
+          console.log(
+            `[Call][rm] grace ${GRACE_HOLD_MS / 1000}초 동안 얼굴·대화 모두 없음 → 통화 종료`,
+          );
+          void stopLive();
+          exitToMain();
+          break;
+        default:
+          break; 
+      }
+    };
+  }, [sendFaceEvent, stopLive, exitToMain]);
+
+  useEffect(() => {
     const backSub = BackHandler.addEventListener("hardwareBackPress", () => {
       console.log("[Call][back] hardware back → stopLive + exitToMain");
       void stopLive();
@@ -1461,20 +1585,6 @@ function CallScreenInner({ route, navigation }: Props) {
 
   return (
     <View style={s.container}>
-      {
-
-}
-      <RememberMeButton
-        visible={!rmState.identified}
-        onPress={() => dispatchRm({ type: "OPEN_SHEET" })}
-      />
-      <RememberMeSheet
-        visible={rmState.sheetOpen}
-        saving={rmSaving}
-        error={rmError}
-        onSubmit={handleRememberMeSubmit}
-        onDismiss={() => dispatchRm({ type: "DISMISS" })}
-      />
       {}
       {
 
@@ -1505,6 +1615,26 @@ function CallScreenInner({ route, navigation }: Props) {
             <>
               <Text style={{ color: "#0f0", fontSize: 10 }}>
                 {faceDiag ? formatFaceHud(faceDiag) : "face -"}
+              </Text>
+              {
+
+}
+              <Text
+                style={{
+                  color:
+                    rmState.mode === "identified"
+                      ? "#0f0"
+                      : rmState.mode === "grace"
+                        ? "#ff0"
+                        : "#f80",
+                  fontSize: 10,
+                }}
+              >
+                {rmState.mode === "grace"
+                  ? `rm grace ${rmState.personId ?? "-"} 유지중${rmState.graceHadActivity ? "" : " · 무대화"}`
+                  : rmState.mode === "pending"
+                    ? `rm 대기(입력 필요)${rmState.sheetOpen ? " · 시트" : ""}`
+                    : `rm ok ${rmState.personId ?? "-"}`}
               </Text>
               {}
               <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
@@ -2013,6 +2143,21 @@ function CallScreenInner({ route, navigation }: Props) {
         senderName={svgaSender?.name}
         senderAvatarUrl={svgaSender?.avatarUrl}
         giftName={svgaSender?.giftName}
+      />
+
+      {
+
+}
+      <RememberMeButton
+        visible={shouldShowRememberMeButton(rmState)}
+        onPress={() => dispatchRm({ type: "OPEN_SHEET" })}
+      />
+      <RememberMeSheet
+        visible={rmState.sheetOpen}
+        saving={rmSaving}
+        error={rmError}
+        onSubmit={handleRememberMeSubmit}
+        onDismiss={() => dispatchRm({ type: "DISMISS" })}
       />
 
       {}

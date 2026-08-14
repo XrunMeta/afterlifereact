@@ -2,7 +2,13 @@
 
 import { loadSystemPersona } from "./systemPersona";
 import { resolvePersona } from "./personaResolver";
-import { loadCloneProfiles, buildPersonaBundle, flattenAttrs, loadUserL2 } from "./personaBundle";
+import {
+  loadCloneProfiles,
+  buildPersonaBundle,
+  flattenAttrs,
+  loadUserL2,
+  loadL2OwnerPersonId,
+} from "./personaBundle";
 import type { CloneRow } from "./cloneAccess";
 
 export interface CallBundle {
@@ -40,8 +46,11 @@ export async function buildCallBundle(db: D1Database, clone: CloneRow, userId: n
     .bind(userId)
     .first<{ name: string | null }>();
 
+  const ownerPersonId = await loadL2OwnerPersonId(db, cloneId, userId);
+
   const personaBundle = buildPersonaBundle(l0, persona, cloneId, {
     displayName: viewerRow?.name ?? null,
+    ownerPersonId,
   });
 
   let voiceSeUrl: string | null = clone.voice_se_url ?? null;

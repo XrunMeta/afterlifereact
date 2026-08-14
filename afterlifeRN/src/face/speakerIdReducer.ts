@@ -19,7 +19,7 @@ export type SpeakerIdState = {
   lastUnknownEmitMs: number | null;
 };
 
-export const CONFIRM_STREAK = 3;
+export const CONFIRM_STREAK = 1;
 
 export const UNKNOWN_FACE_REEMIT_MS = 60_000;
 

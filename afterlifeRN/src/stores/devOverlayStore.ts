@@ -59,7 +59,8 @@ export const useDevOverlayStore = create<State>((set, get) => ({
       const raw = await AsyncStorage.getItem(KEY);
       if (raw === "1") set({ callDevUiVisible: true, hydrated: true });
       else if (raw === "0") set({ callDevUiVisible: false, hydrated: true });
-      else set({ hydrated: true }); 
+
+      else set({ hydrated: true, callDevUiVisible: true });
     } catch {
       set({ hydrated: true });
     }
