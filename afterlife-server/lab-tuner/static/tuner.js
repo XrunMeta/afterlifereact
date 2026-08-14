@@ -147,6 +147,71 @@ const REFLOW_NOTE = {
   next_call: '다음 통화부터', container: '컨테이너 재기동', session: '다음 접속부터',
 };
 
+function buildKnobRow(section, key, m, val) {
+  const path = `${section}.${key}`;
+  const row = document.createElement('div'); row.className = 'knob-row';
+  const label = document.createElement('label'); label.textContent = m.label || key;
+  const note = REFLOW_NOTE[m.reflow];
+  if (note) { const s = document.createElement('span'); s.className = 'reflow-chip'; s.textContent = note; label.appendChild(s); }
+
+  if (m.group === 'latency' && m.stage) {
+    const t = document.createElement('span'); t.className = 'stage-tag';
+    t.textContent = m.stage; label.appendChild(t);
+  }
+
+  if (KNOB_ENV_MAP[path]) {
+    const badge = document.createElement('span');
+    badge.id = `running-${path}`; badge.className = 'reflow-chip';
+    badge.textContent = '실행값 조회중...';
+    label.appendChild(badge);
+  }
+  row.appendChild(label);
+  let ctrl;
+  if (m.type === 'bool') {                     
+    ctrl = document.createElement('select'); ctrl.className = 'knob-toggle';
+    for (const opt of ['true', 'false']) {
+      const o = document.createElement('option'); o.value = opt; o.textContent = opt;
+      if (String(val) === opt) o.selected = true; ctrl.appendChild(o);
+    }
+  } else if (m.type === 'enum') {              
+    ctrl = document.createElement('select'); ctrl.className = 'knob-seg';
+    for (const opt of (m.choices || [])) {
+      const o = document.createElement('option'); o.value = opt; o.textContent = opt;
+      if (String(val) === opt) o.selected = true; ctrl.appendChild(o);
+    }
+  } else {                                     
+    ctrl = document.createElement('input');
+    ctrl.value = (val == null ? '' : val);
+
+    if (val == null) ctrl.placeholder = '기본값';
+  }
+  ctrl.id = `k_${section}_${key}`;
+  ctrl.dataset.s = section; ctrl.dataset.k = key;
+  if (m.type === 'number') {                   
+    const wrap = document.createElement('div'); wrap.className = 'stepper';
+    const step = (String(val).includes('.') ? 0.05 : 1);
+    ctrl.dataset.step = String(step);
+    const down = document.createElement('button'); down.type='button';
+    down.className = 'step-down'; down.textContent = '▼';
+    const up = document.createElement('button'); up.type='button';
+    up.className = 'step-up'; up.textContent = '▲';
+    const bump = (d) => { const cur = Number(String(ctrl.value).replace(',', '.')) || 0;
+      ctrl.value = (Math.round((cur + d*step)*1000)/1000); };
+    down.onclick = () => bump(-1); up.onclick = () => bump(1);
+    wrap.appendChild(down); wrap.appendChild(ctrl); wrap.appendChild(up);
+    row.appendChild(wrap);
+  } else {
+    row.appendChild(ctrl);
+  }
+
+  if (m.desc) {
+    const d = document.createElement('div');
+    d.className = 'knob-desc'; d.textContent = m.desc;
+    row.appendChild(d);
+  }
+  return row;
+}
+
 async function loadKnobs() {
   const [k, metaResp] = await Promise.all([
     (await fetch('/knobs')).json(),
@@ -154,6 +219,8 @@ async function loadKnobs() {
   ]);
   const meta = metaResp.meta || {};
   const box = document.getElementById('knob-fields'); box.innerHTML = '';
+  const latBox = document.getElementById('latency-fields');
+  if (latBox) latBox.innerHTML = '';
   for (const [section, vals] of Object.entries(k)) {
     const ch = document.createElement('div'); ch.className = 'channel';
     const title = document.createElement('div'); title.className = 'panel-title';
@@ -161,60 +228,90 @@ async function loadKnobs() {
     for (const [key, val] of Object.entries(vals)) {
       const path = `${section}.${key}`;
       const m = meta[path] || {type: 'string', reflow: 'next_call'};
-      const row = document.createElement('div'); row.className = 'knob-row';
-      const label = document.createElement('label'); label.textContent = m.label || key;
-      const note = REFLOW_NOTE[m.reflow];
-      if (note) { const s = document.createElement('span'); s.className = 'reflow-chip'; s.textContent = note; label.appendChild(s); }
+      const row = buildKnobRow(section, key, m, val);
 
-      if (KNOB_ENV_MAP[path]) {
-        const badge = document.createElement('span');
-        badge.id = `running-${path}`; badge.className = 'reflow-chip';
-        badge.textContent = '실행값 조회중...';
-        label.appendChild(badge);
-      }
-      row.appendChild(label);
-      let ctrl;
-      if (m.type === 'bool') {                     
-        ctrl = document.createElement('select'); ctrl.className = 'knob-toggle';
-        for (const opt of ['true', 'false']) {
-          const o = document.createElement('option'); o.value = opt; o.textContent = opt;
-          if (String(val) === opt) o.selected = true; ctrl.appendChild(o);
-        }
-      } else if (m.type === 'enum') {              
-        ctrl = document.createElement('select'); ctrl.className = 'knob-seg';
-        for (const opt of (m.choices || [])) {
-          const o = document.createElement('option'); o.value = opt; o.textContent = opt;
-          if (String(val) === opt) o.selected = true; ctrl.appendChild(o);
-        }
-      } else {                                     
-        ctrl = document.createElement('input');
-        ctrl.value = (val == null ? '' : val);
-      }
-      ctrl.id = `k_${section}_${key}`;
-      ctrl.dataset.s = section; ctrl.dataset.k = key;
-      if (m.type === 'number') {                   
-        const wrap = document.createElement('div'); wrap.className = 'stepper';
-        const step = (String(val).includes('.') ? 0.05 : 1);
-        ctrl.dataset.step = String(step);
-        const down = document.createElement('button'); down.type='button';
-        down.className = 'step-down'; down.textContent = '▼';
-        const up = document.createElement('button'); up.type='button';
-        up.className = 'step-up'; up.textContent = '▲';
-        const bump = (d) => { const cur = Number(String(ctrl.value).replace(',', '.')) || 0;
-          ctrl.value = (Math.round((cur + d*step)*1000)/1000); };
-        down.onclick = () => bump(-1); up.onclick = () => bump(1);
-        wrap.appendChild(down); wrap.appendChild(ctrl); wrap.appendChild(up);
-        row.appendChild(wrap);
-      } else {
-        row.appendChild(ctrl);
-      }
-      ch.appendChild(row);
+      if (m.group === 'latency' && latBox) latBox.appendChild(row);
+      else ch.appendChild(row);
     }
-    box.appendChild(ch);
+
+    if (ch.querySelectorAll('.knob-row').length) box.appendChild(ch);
   }
   refreshTtsDim();
   document.getElementById('k_tts_engine')?.addEventListener('change', refreshTtsDim);
   applyKnobDriftBadges();   
+}
+
+function renderLatency(m) {
+  const box = document.getElementById('latency-meter');
+  if (!box) return;
+  box.innerHTML = '';
+  const rows = [
+    ['LLM 첫토큰', m.llm_first_token_ms],
+    ['TTS 합성', m.tts_ms],
+    ['fifth 렌더', m.render_ms],
+  ];
+  const max = Math.max(1, ...rows.map(r => r[1] || 0));
+  for (const [name, v] of rows) {
+    const row = document.createElement('div'); row.className = 'lat-row';
+    const lab = document.createElement('span'); lab.className = 'lat-name';
+    lab.textContent = name;
+    const val = document.createElement('span'); val.className = 'lat-val';
+    val.textContent = (v == null ? '–' : `${v}ms`);
+    const track = document.createElement('div'); track.className = 'lat-track';
+    const bar = document.createElement('div'); bar.className = 'lat-bar';
+    bar.style.width = `${Math.round((v || 0) / max * 100)}%`;
+    track.appendChild(bar);
+    row.appendChild(lab); row.appendChild(val); row.appendChild(track);
+    box.appendChild(row);
+  }
+  const badge = document.getElementById('ttff-badge');
+  if (badge) {
+    badge.textContent = (m.ttff_ms == null)
+      ? '측정 전' : `첫 소리까지 ${(m.ttff_ms / 1000).toFixed(2)}s`;
+  }
+}
+
+const FLP_RO_NOTE = {
+  src_scale: '얼굴 대비 crop 배율. 바꾸면 클론별 소스 캐시를 전부 버려야 한다',
+  src_vy_ratio: 'crop 중심의 상하 오프셋. 위와 같은 이유로 잠겨 있다',
+  src_dsize: 'crop 결과 한 변 픽셀. 모델 입력 규격이라 고정',
+  source_max_dim: '소스 이미지 최대 변. 올리면 화질이 좋아지고 느려진다',
+  source_division: '소스 해상도가 나누어떨어져야 하는 값',
+  driving_smooth_observation_variance: '영상 소스일 때의 스무딩 강도',
+};
+
+async function loadFlpConfig() {
+  const box = document.getElementById('flp-readonly');
+  if (!box) return;
+  box.innerHTML = '';
+  let data;
+  try {
+    data = await (await fetch('/flp-config')).json();
+  } catch (e) {
+    box.textContent = '조회 실패';
+    return;
+  }
+  if (data.error) { box.textContent = data.error; return; }
+  for (const group of ['crop_params', 'infer_params']) {
+    const vals = data[group];
+    if (!vals) continue;
+    const head = document.createElement('div');
+    head.className = 'ro-group'; head.textContent = group;
+    box.appendChild(head);
+    for (const [k, v] of Object.entries(vals)) {
+      const row = document.createElement('div'); row.className = 'knob-row ro';
+      const lab = document.createElement('label'); lab.textContent = k;
+      const val = document.createElement('span'); val.className = 'ro-val';
+      val.textContent = String(v);
+      row.appendChild(lab); row.appendChild(val);
+      if (FLP_RO_NOTE[k]) {
+        const d = document.createElement('div');
+        d.className = 'knob-desc'; d.textContent = FLP_RO_NOTE[k];
+        row.appendChild(d);
+      }
+      box.appendChild(row);
+    }
+  }
 }
 
 const KNOB_ENV_MAP = { 'fifth.render_mode': 'PRETHIRD_RENDER_MODE' };
@@ -294,7 +391,11 @@ function sendSay() {
 
 function startMetrics() {
   const es = new EventSource('/metrics');
-  es.onmessage = () => { renderMeter(); };
+  es.onmessage = (ev) => {
+    renderMeter();
+
+    try { renderLatency(JSON.parse(ev.data) || {}); } catch (e) {  }
+  };
 }
 
 async function pollLiveStatus() {
@@ -505,7 +606,8 @@ document.getElementById('login-btn').onclick = login;
 document.getElementById('connect-btn').onclick = connect;
 document.getElementById('hangup-btn').onclick = hangup;
 
-loadKnobs(); startMetrics(); loadRuns(); loadProdStatus(); loadDevToken();
+loadKnobs(); startMetrics(); loadRuns(); loadProdStatus(); loadDevToken(); loadFlpConfig();
+document.getElementById('refresh-flp')?.addEventListener('click', loadFlpConfig);
 renderMeter();
 pollLiveStatus();
 setInterval(pollLiveStatus, 3000);
