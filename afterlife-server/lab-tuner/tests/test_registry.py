@@ -78,7 +78,8 @@ def test_update_same_value_as_current_not_dirty():
 def test_update_only_actually_changed_key_marked_dirty():
     r = KnobsRegistry()
     # cfg_scale은 기본값(2.0)과 동일(미변경), render_mode만 실제로 바뀜.
-    r.update({"fifth": {"render_mode": "batch", "cfg_scale": 2.0}})
+    # 기본값이 batch(라이브와 동일)라 변경을 보려면 partial 로 돌려야 한다.
+    r.update({"fifth": {"render_mode": "partial", "cfg_scale": 2.0}})
     assert r.dirty() == {"fifth.render_mode"}
 
 def test_update_reapply_same_value_does_not_add_duplicate_dirty():
