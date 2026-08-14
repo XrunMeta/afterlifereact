@@ -7,6 +7,10 @@ def _env_f(name, default):
     return float(os.environ.get(name, default))
 def _env_i(name, default):
     return int(os.environ.get(name, default))
+def _env_i_opt(name):
+    """env 미설정이면 None — '미지정' 을 기본값과 구분해야 하는 노브용."""
+    v = os.environ.get(name)
+    return int(v) if v not in (None, "") else None
 
 
 @dataclass(frozen=True)
@@ -17,7 +21,8 @@ class DialogueKnobs:
     min_len: int = 4
     force_flush: int = 30
     # 첫 문장은 별도 임계 — TTFF 에 직결된다(라이브 PRETHIRD_SENTENCE_FIRST_MIN_LEN=2).
-    first_min_len: int = 2
+    # None = 미지정 → 기존 규약(min_len 을 따라감) 유지. 명시하면 그 값이 이긴다.
+    first_min_len: int | None = None
     max_response_tokens: int = 200
 
 
@@ -176,7 +181,9 @@ class RunKnobs:
         return cls(
             dialogue=DialogueKnobs(
                 model=os.environ.get("PRETHIRD_OLLAMA_MODEL") or None,
-                first_min_len=_env_i("PRETHIRD_SENTENCE_FIRST_MIN_LEN", 2),
+                # env 가 실제로 설정된 경우에만 값을 잡는다. 없으면 None(미지정) →
+                # SentenceBuffer 의 "first_min_len 은 min_len 을 따라간다" 규약 유지.
+                first_min_len=_env_i_opt("PRETHIRD_SENTENCE_FIRST_MIN_LEN"),
                 max_response_tokens=_env_i("PRETHIRD_MAX_RESPONSE_TOKENS", 200),
             ),
             # 엔진 기본은 라이브 PRETHIRD_TTS_URL에서 유도(:8203→cosyvoice,
