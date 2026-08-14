@@ -46,7 +46,7 @@ def main():
                                            metrics=metrics)
     application = build_app(registry, factory, store,
                             say_fn=say_fn, render_url=LIVE_RENDER_URL, guard=guard,
-                            metrics=metrics)
+                            metrics=metrics, renderer=renderer)
     web.run_app(application, host="127.0.0.1", port=PORT)
 
 

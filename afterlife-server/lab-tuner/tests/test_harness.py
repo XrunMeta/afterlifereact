@@ -296,3 +296,41 @@ def test_max_response_tokens가_num_predict로_전달된다(monkeypatch):
         return [t async for t in fn([{"role": "user", "content": "x"}])]
     asyncio.run(run())
     assert captured["num_predict"] == 120
+
+def test_last_sent_에_전송값이_기록된다():
+    """UI 가 "실제로 뭐가 갔는지" 를 보여주려면 마지막 전송값이 기록돼야 한다."""
+    from harness import KnobsFifthInproc
+    KnobsFifthInproc.last_sent = None      # 클래스 변수라 테스트 간 오염 방지
+    r = KnobsRegistry()
+    r.update({"fifth": {"lip_open": 0.44, "sigma": 1.7}})
+    f = KnobsFifthInproc("/vid.jpg", registry=r, render_url="http://x")
+    assert KnobsFifthInproc.last_sent is None      # 렌더 전에는 없음
+    f._build_body("/w.wav", "/v.jpg")
+    assert KnobsFifthInproc.last_sent["params"]["lip_open"] == 0.44
+    assert KnobsFifthInproc.last_sent["params"]["sigma"] == 1.7
+    assert KnobsFifthInproc.last_sent["at"] > 0
+
+def test_last_sent_는_매_렌더마다_갱신된다():
+    from harness import KnobsFifthInproc
+    KnobsFifthInproc.last_sent = None
+    r = KnobsRegistry()
+    f = KnobsFifthInproc("/vid.jpg", registry=r, render_url="http://x")
+    r.update({"fifth": {"lip_open": 0.1}})
+    f._build_body("/w.wav", "/v.jpg")
+    first = dict(KnobsFifthInproc.last_sent["params"])
+    r.update({"fifth": {"lip_open": 0.8}})
+    f._build_body("/w.wav", "/v.jpg")
+    assert first["lip_open"] == 0.1
+    assert KnobsFifthInproc.last_sent["params"]["lip_open"] == 0.8
+
+def test_last_sent_는_다른_인스턴스_전송도_잡는다():
+    """replay 는 통화 경로와 다른 렌더러 인스턴스를 새로 만든다 — 그래도 UI 에 보여야 한다."""
+    from harness import KnobsFifthInproc
+    KnobsFifthInproc.last_sent = None
+    r = KnobsRegistry()
+    r.update({"fifth": {"lip_open": 0.33}})
+    other = KnobsFifthInproc("/other.jpg", registry=r, render_url="http://x")
+    other._build_body("/w.wav", "/v.jpg")
+    # 전혀 다른 인스턴스에서 조회해도 보인다
+    watcher = KnobsFifthInproc("/watch.jpg", registry=r, render_url="http://x")
+    assert watcher.last_sent["params"]["lip_open"] == 0.33

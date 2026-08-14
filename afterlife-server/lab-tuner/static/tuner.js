@@ -301,6 +301,43 @@ function renderLatency(m) {
     badge.textContent = (m.ttff_ms == null)
       ? '측정 전' : `첫 소리까지 ${(m.ttff_ms / 1000).toFixed(2)}s`;
   }
+  renderLastSent(m.last_render);
+}
+
+function renderLastSent(ls) {
+  const box = document.getElementById('last-sent');
+  if (!box) return;
+  box.innerHTML = '';
+  if (!ls || !ls.params) {
+    box.textContent = '아직 렌더 없음 — 통화 연결 후 말을 걸면 여기에 실제 전송값이 뜹니다';
+    box.className = 'last-sent empty';
+    return;
+  }
+  box.className = 'last-sent';
+  const ago = Math.max(0, Math.round(Date.now() / 1000 - ls.at));
+  const head = document.createElement('div');
+  head.className = 'ls-head';
+  const keys = Object.keys(ls.params);
+  head.textContent = `실제 렌더 전송값 · ${keys.length}개 · ${ago}초 전`;
+  box.appendChild(head);
+
+  const ALWAYS = ['blink', 'jpeg_quality', 'idle_motion_scale', 'idle_rms_low',
+                  'idle_rms_high', 'head_slew_frames'];
+  const tuned = keys.filter(k => !ALWAYS.includes(k));
+  const base = keys.filter(k => ALWAYS.includes(k));
+  for (const [label, list] of [['내가 지정한 값', tuned], ['기본 전송', base]]) {
+    if (!list.length) continue;
+    const row = document.createElement('div');
+    row.className = 'ls-row' + (label === '내가 지정한 값' ? ' tuned' : '');
+    row.textContent = `${label}: ` + list.map(k => `${k}=${ls.params[k]}`).join(', ');
+    box.appendChild(row);
+  }
+  if (!tuned.length) {
+    const hint = document.createElement('div');
+    hint.className = 'ls-row empty';
+    hint.textContent = '지정한 값 없음 — 입력칸이 비어 있으면 컨테이너 기본값을 씁니다';
+    box.appendChild(hint);
+  }
 }
 
 const FLP_RO_NOTE = {
