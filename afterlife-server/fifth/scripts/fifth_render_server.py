@@ -25,6 +25,7 @@ from dataclasses import replace
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Callable, Iterator, Optional
+from urllib.parse import parse_qs, urlparse
 
 import numpy as np
 
@@ -36,6 +37,58 @@ except ModuleNotFoundError:
     cv2 = None  # type: ignore[assignment]  # 테스트 환경 — mock으로 주입
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# 로그 링버퍼 — GET /oth-path 로 최근 로그를 조회한다.
+#
+# systemd(afterlife-fifth-render.service)가 docker exec 로 띄우면 stdout 이
+# 파이프로 빠져 journal 에도 파일에도 안 남는 경우가 있다(2026-08-14 실측).
+# 그러면 "파라미터가 실제 LivePortrait 까지 갔는가" 를 확인할 방법이 사라진다.
+# 그래서 서버가 자기 로그를 메모리에 들고 있다가 HTTP 로 내준다.
+# ---------------------------------------------------------------------------
+
+class RingLogHandler(logging.Handler):
+    """최근 N줄만 유지하는 로그 핸들러. 스레드 안전."""
+
+    def __init__(self, capacity: int = 500):
+        super().__init__()
+        self._cap = capacity
+        self._buf: list[dict] = []
+        self._seq = 0
+        self._lock = threading.Lock()
+
+    def emit(self, record: logging.LogRecord) -> None:
+        # 로깅이 렌더를 죽이면 안 된다 — 어떤 예외도 삼킨다.
+        try:
+            msg = record.getMessage()
+        except Exception:
+            try:
+                msg = str(record.msg)
+            except Exception:
+                msg = "<메시지 포맷 실패>"
+        try:
+            with self._lock:
+                self._seq += 1
+                self._buf.append({
+                    "seq": self._seq,
+                    "ts": record.created,
+                    "level": record.levelname,
+                    "msg": msg,
+                })
+                if len(self._buf) > self._cap:
+                    del self._buf[:len(self._buf) - self._cap]
+        except Exception:
+            pass
+
+    def snapshot(self, since: int = 0, limit: int = 200) -> list[dict]:
+        """since 이후(미포함) 줄만 최대 limit 개. since=0 이면 최근 limit 개."""
+        with self._lock:
+            rows = [r for r in self._buf if r["seq"] > since] if since else list(self._buf)
+        return rows[-limit:]
+
+
+_ring = RingLogHandler()
 
 # ---------------------------------------------------------------------------
 # S4: 토큰 트레일러 프로토콜
@@ -344,6 +397,15 @@ class RenderService:
             # 랩 쪽 "[fifth-knobs] /render body ..." 로그와 대조하기 위한 수신 확인.
             # 둘 중 한쪽만 찍히면 어디서 값이 사라졌는지 바로 좁혀진다.
             logger.info("[cfg-override] 수신 %d개: %s", len(cfg_overrides), cfg_overrides)
+        # 실제로 LivePortrait 렌더에 넘어가는 최종 cfg. 오버라이드가 없어도 매번 남긴다 —
+        # "내가 넣은 값이 진짜 렌더에 쓰였나" 를 이 한 줄로 확정할 수 있어야 한다.
+        logger.info(
+            "[cfg-final] lip_open=%s lip_closed=%s open_scale=%s offset=%s sigma=%s "
+            "gamma=%s silence=%s closed_thresh=%s open_thresh=%s fps=%s (override=%s)",
+            cfg.lip_open, cfg.lip_closed, cfg.open_scale, cfg.offset, cfg.sigma,
+            cfg.gamma, cfg.silence, cfg.closed_thresh, cfg.open_thresh, cfg.fps,
+            sorted(cfg_overrides) if cfg_overrides else "없음",
+        )
 
         _batch = is_batch(render_mode)
         _buffer: list[bytes] = []
@@ -660,6 +722,19 @@ class _RenderHandler(BaseHTTPRequestHandler):
             # 3층(FLP yaml) 현재값 스냅샷. lab-tuner 는 컨테이너 밖에 있어 yaml 을
             # 직접 못 읽으므로 이 라우트가 읽기전용 패널의 유일한 데이터원이다.
             self._send_json(200, _config_snapshot())
+        elif self.path.startswith("/logs"):
+            # 최근 로그 조회. systemd/docker 조합에서 stdout 이 어디에도 안 남을 때
+            # 파라미터가 실제 렌더까지 갔는지 확인할 유일한 경로다.
+            qs = parse_qs(urlparse(self.path).query)
+            try:
+                since = int(qs.get("since", ["0"])[0])
+            except ValueError:
+                since = 0
+            try:
+                limit = min(int(qs.get("limit", ["200"])[0]), 500)
+            except ValueError:
+                limit = 200
+            self._send_json(200, {"lines": _ring.snapshot(since=since, limit=limit)})
         else:
             self._send_json(404, {"error": "not found"})
 
@@ -724,6 +799,9 @@ def main():
         level=logging.INFO,
         format="%(asctime)s [fifth_render_server] %(levelname)s %(message)s",
     )
+    # 링버퍼를 루트에 물려 이 서버의 모든 로그를 GET /oth-path 로 조회 가능하게 한다.
+    # stdout 이 systemd/docker 파이프로 사라져도 최근 로그는 남는다.
+    logging.getLogger().addHandler(_ring)
 
     port = int(os.environ.get("FIFTH_RENDER_PORT", "8810"))
     cache_root = os.environ.get("FIFTH_CACHE_ROOT", "/tmp/fifth_cache")

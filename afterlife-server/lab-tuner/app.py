@@ -388,6 +388,24 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
         except Exception as exc:
             return web.json_response({"error": f"렌더서버 조회 실패: {exc}"})
 
+    async def render_logs(req):
+        """fifth 렌더서버 로그 프록시 — 파라미터가 실제 렌더까지 갔는지 화면에서 확인.
+
+        렌더서버는 systemd + docker exec 조합이라 stdout 이 journal 에도 파일에도
+        안 남는 경우가 있다. 서버가 메모리 링버퍼에 들고 있는 것을 그대로 내준다.
+        since 커서로 증분 조회한다(폴링마다 전량 전송 방지).
+        """
+        url = render_url or os.environ.get("FIFTH_RENDER_URL", "http://127.0.0.1:8810")
+        since = req.query.get("since", "0")
+        try:
+            timeout = aiohttp.ClientTimeout(total=4)
+            async with aiohttp.ClientSession(timeout=timeout) as s:
+                async with s.get(f"{url}/logs", params={"since": since}) as r:
+                    return web.json_response(await r.json())
+        except Exception as exc:
+            # 렌더서버가 죽어 있어도 랩은 계속 떠 있어야 한다.
+            return web.json_response({"error": f"렌더서버 로그 조회 실패: {exc}", "lines": []})
+
     async def production_status(_req):
         import subprocess
         keys = [loc["env"] for path, loc in promote.KNOB_TO_LIVE.items()
@@ -434,4 +452,5 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
     app.router.add_post("/promote/restart", promote_restart)
     app.router.add_get("/production-status", production_status)
     app.router.add_get("/flp-config", flp_config)   # 3층 읽기전용 스냅샷
+    app.router.add_get("/render-logs", render_logs)  # 렌더서버 로그 프록시
     return app

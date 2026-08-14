@@ -340,6 +340,38 @@ function renderLastSent(ls) {
   }
 }
 
+let RENDER_LOG_CURSOR = 0;
+let renderLogPaused = false;
+
+async function pollRenderLogs() {
+  if (renderLogPaused) return;
+  const box = document.getElementById('render-log');
+  if (!box) return;
+  let data;
+  try {
+    data = await (await fetch(`/render-logs?since=${RENDER_LOG_CURSOR}`)).json();
+  } catch (e) { return; }
+  if (data.error && !(data.lines || []).length) {
+    if (!RENDER_LOG_CURSOR) box.textContent = data.error;
+    return;
+  }
+  const lines = data.lines || [];
+  if (!lines.length) return;
+  for (const ln of lines) {
+    RENDER_LOG_CURSOR = Math.max(RENDER_LOG_CURSOR, ln.seq);
+    const row = document.createElement('div');
+    row.className = 'log-row';
+    if (ln.level === 'ERROR' || ln.level === 'WARNING') row.className += ' bad';
+    if (ln.msg.includes('[cfg-final]')) row.className += ' final';
+    else if (ln.msg.includes('[cfg-override]')) row.className += ' override';
+    const t = new Date(ln.ts * 1000).toTimeString().slice(0, 8);
+    row.textContent = `${t} ${ln.msg}`;   
+    box.appendChild(row);
+  }
+  while (box.childElementCount > 300) box.removeChild(box.firstChild);
+  if (!renderLogPaused) box.scrollTop = box.scrollHeight;
+}
+
 const FLP_RO_NOTE = {
   src_scale: '얼굴 대비 crop 배율. 바꾸면 클론별 소스 캐시를 전부 버려야 한다',
   src_vy_ratio: 'crop 중심의 상하 오프셋. 위와 같은 이유로 잠겨 있다',
@@ -429,10 +461,12 @@ const KNOB_INPUT_SELECTOR =
   '#knob-fields input, #knob-fields select, #latency-fields input, #latency-fields select';
 
 function _setApplyStatus(text, kind) {
-  const el = document.getElementById('apply-status');
-  if (!el) return;
-  el.textContent = text;                       
-  el.className = 'apply-status' + (kind ? ' ' + kind : '');
+  for (const id of ['apply-status', 'apply-status-top']) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.textContent = text;                     
+    el.className = 'apply-status' + (kind ? ' ' + kind : '');
+  }
 }
 
 async function applyKnobs() {
@@ -724,6 +758,19 @@ document.getElementById('hangup-btn').onclick = hangup;
 
 loadKnobs(); startMetrics(); loadRuns(); loadProdStatus(); loadDevToken(); loadFlpConfig();
 document.getElementById('refresh-flp')?.addEventListener('click', loadFlpConfig);
+
+pollRenderLogs();
+setInterval(pollRenderLogs, 2000);
+document.getElementById('log-pause')?.addEventListener('click', (e) => {
+  renderLogPaused = !renderLogPaused;
+  e.target.textContent = renderLogPaused ? '재개' : '일시정지';
+});
+document.getElementById('log-clear')?.addEventListener('click', () => {
+  const box = document.getElementById('render-log');
+  if (box) box.innerHTML = '';
+});
+
+document.getElementById('apply-knobs-top')?.addEventListener('click', applyKnobs);
 renderMeter();
 pollLiveStatus();
 setInterval(pollLiveStatus, 3000);
