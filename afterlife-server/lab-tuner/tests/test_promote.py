@@ -306,3 +306,37 @@ def test_render_mode_env_included_in_non_container_keys():
     non_container_envs = [loc["env"] for loc in promote.KNOB_TO_LIVE.values()
                            if not loc.get("container")]
     assert "PRETHIRD_RENDER_MODE" in non_container_envs
+
+
+def test_재기동_노브는_전부_매핑되어_있다():
+    """RESTART_BAKED 인데 promote 매핑이 없으면 라이브에 반영할 방법이 없다."""
+    from knobs import FifthKnobs
+    for name in FifthKnobs.RESTART_BAKED:
+        assert f"fifth.{name}" in promote.KNOB_TO_LIVE, f"매핑 없음: fifth.{name}"
+
+
+def test_flp_노브는_전부_매핑되어_있다():
+    from dataclasses import fields
+    from knobs import FlpKnobs
+    for f in fields(FlpKnobs):
+        assert f"flp.{f.name}" in promote.KNOB_TO_LIVE, f"매핑 없음: flp.{f.name}"
+
+
+def test_fifth_flp_env는_전부_container_플래그():
+    """컨테이너 env 인데 플래그가 없으면 UI 가 '즉시 반영' 으로 오안내한다."""
+    for path, loc in promote.KNOB_TO_LIVE.items():
+        if loc["env"].startswith("FIFTH_") and loc["env"] != "FIFTH_IDLE_PREBAKE":
+            assert loc.get("container") is True, f"{path} 에 container 플래그 없음"
+
+
+def test_animation_region_값이_안전문자셋을_통과():
+    for v in ("all", "exp", "pose", "lip", "eyes"):
+        promote._validate_env_value(v)
+
+
+def test_매핑된_경로가_실제_노브다():
+    """오타 방지 — 존재하지 않는 노브를 promote 하려 하면 조용히 실패한다."""
+    from knobs import RunKnobs
+    flat = {f"{s}.{k}" for s, vals in RunKnobs().to_dict().items() for k in vals}
+    orphans = set(promote.KNOB_TO_LIVE) - flat
+    assert orphans == set(), f"고아 매핑: {sorted(orphans)}"
