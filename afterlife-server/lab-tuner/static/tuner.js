@@ -144,7 +144,11 @@ function v_cad05d() {
 }
 
 const v_a7deb0 = {
-  next_call: '다음 통화부터', container: '컨테이너 재기동', session: '다음 접속부터',
+  immediate: '적용 즉시(다음 발화부터)',
+  next_call: '적용 즉시(다음 발화부터)',   
+  session: '재연결 후',
+  container: '컨테이너 재기동 필요',
+  lab_restart: '적용만으론 안 먹음 · 재기동 필요',
 };
 
 function v_8dc054(v_b4fa6c, v_b24339, v_35f85c, v_a057b5) {
@@ -184,6 +188,12 @@ function v_8dc054(v_b4fa6c, v_b24339, v_35f85c, v_a057b5) {
     v_22d288.value = (v_a057b5 == null ? '' : v_a057b5);
 
     if (v_a057b5 == null) v_22d288.placeholder = '기본값';
+
+    if (v_35f85c.type === 'number') {
+      if (v_35f85c.min != null) v_22d288.min = v_35f85c.min;
+      if (v_35f85c.max != null) v_22d288.max = v_35f85c.max;
+      v_22d288.title = v_5a2031(v_35f85c);
+    }
   }
   v_22d288.id = `k_${v_b4fa6c}_${v_b24339}`;
   v_22d288.dataset.s = v_b4fa6c; v_22d288.dataset.k = v_b24339;
@@ -209,7 +219,26 @@ function v_8dc054(v_b4fa6c, v_b24339, v_35f85c, v_a057b5) {
     v_d5dda0.className = 'knob-desc'; v_d5dda0.textContent = v_35f85c.desc;
     v_3ac7e7.appendChild(v_d5dda0);
   }
+
+  const v_46b9bf = [];
+  if (v_35f85c.param) v_46b9bf.push(v_35f85c.param);
+  if (v_35f85c.default != null) v_46b9bf.push(`기본 ${v_35f85c.default}`);
+  const v_7c1bad = v_5a2031(v_35f85c);
+  if (v_7c1bad) v_46b9bf.push(v_7c1bad);
+  if (v_46b9bf.length) {
+    const v_fd5f43 = document.createElement('div');
+    v_fd5f43.className = 'knob-spec';
+    v_fd5f43.textContent = v_46b9bf.join('  ·  ');   
+    v_3ac7e7.appendChild(v_fd5f43);
+  }
   return v_3ac7e7;
+}
+
+function v_5a2031(v_35f85c) {
+  if (v_35f85c.min != null && v_35f85c.max != null) return `범위 ${v_35f85c.min}~${v_35f85c.max}`;
+  if (v_35f85c.min != null) return `최소 ${v_35f85c.min}`;
+  if (v_35f85c.max != null) return `최대 ${v_35f85c.max}`;
+  return '';
 }
 
 async function v_858a0a() {

@@ -22,7 +22,63 @@ def test_enum_meta_has_choices():
 def test_meta_type_valid():
     for path, m in KNOB_META.items():
         assert m["type"] in ("bool", "enum", "number", "string"), path
-        assert m["reflow"] in ("next_call", "container", "session"), path
+        assert m["reflow"] in ("immediate", "session", "container", "lab_restart"), path
+
+
+def test_every_meta_has_param_and_default():
+    """실제 파라미터 이름과 기본값은 로그·문서 대조에 쓰이므로 전 항목 필수."""
+    no_param = [p for p, m in KNOB_META.items() if not m.get("param")]
+    no_default = [p for p, m in KNOB_META.items() if m.get("default") in (None, "")]
+    assert no_param == [], f"param 누락: {no_param}"
+    assert no_default == [], f"default 누락: {no_default}"
+
+
+def test_number_knobs_have_range():
+    """숫자 노브는 권장 범위가 있어야 UI 가 스텝퍼/검증을 걸 수 있다."""
+    missing = [p for p, m in KNOB_META.items()
+               if m["type"] == "number" and (m.get("min") is None or m.get("max") is None)]
+    assert missing == [], f"범위 누락: {missing}"
+
+
+def test_range_is_sane():
+    for path, m in KNOB_META.items():
+        if m["type"] != "number":
+            continue
+        assert m["min"] < m["max"], f"{path}: min >= max"
+
+
+def test_per_request_knobs_are_immediate():
+    """PER_REQUEST 는 매 렌더마다 body 로 실려 가므로 반드시 즉시 반영이어야 한다.
+
+    여기가 어긋나면 UI 가 "재기동 필요" 라고 거짓 안내하게 된다.
+    """
+    from knobs import FifthKnobs
+    for name in FifthKnobs.PER_REQUEST:
+        assert KNOB_META[f"fifth.{name}"]["reflow"] == "immediate", name
+
+
+def test_restart_baked_knobs_are_container():
+    """RESTART_BAKED 는 렌더서버 기동 시 1회 로드 → 컨테이너 재기동."""
+    from knobs import FifthKnobs
+    for name in FifthKnobs.RESTART_BAKED:
+        assert KNOB_META[f"fifth.{name}"]["reflow"] == "container", name
+
+
+def test_flp_knobs_are_container():
+    from dataclasses import fields
+    from knobs import FlpKnobs
+    for f in fields(FlpKnobs):
+        assert KNOB_META[f"flp.{f.name}"]["reflow"] == "container", f.name
+
+
+def test_transport_filler_are_lab_restart():
+    """prethird 가 config.py 모듈 상수로 굳혀 읽어 랩 registry 를 안 본다.
+
+    "적용" 만으로는 통화에 영향이 없으므로 그렇게 안내해야 한다.
+    """
+    for path, m in KNOB_META.items():
+        if path.startswith(("transport.", "filler.")):
+            assert m["reflow"] == "lab_restart", path
 
 
 def test_every_meta_has_desc():
