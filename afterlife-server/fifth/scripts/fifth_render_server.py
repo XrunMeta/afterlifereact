@@ -340,6 +340,10 @@ class RenderService:
         # 넘겨 기존 경로와 100% 같게 유지한다(회귀 0). 값이 있으면 파생 cfg 만 만들고
         # self.cfg 는 그대로 둬서 다음 요청이 이번 값을 물려받지 않게 한다.
         cfg = replace(self.cfg, **cfg_overrides) if cfg_overrides else self.cfg
+        if cfg_overrides:
+            # 랩 쪽 "[fifth-knobs] /render body ..." 로그와 대조하기 위한 수신 확인.
+            # 둘 중 한쪽만 찍히면 어디서 값이 사라졌는지 바로 좁혀진다.
+            logger.info("[cfg-override] 수신 %d개: %s", len(cfg_overrides), cfg_overrides)
 
         _batch = is_batch(render_mode)
         _buffer: list[bytes] = []

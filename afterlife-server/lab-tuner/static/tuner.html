@@ -53,6 +53,12 @@
  .knob-row.ro .ro-val{font-size:12px;color:var(--text);font-variant-numeric:tabular-nums}
  .ro-group{font-family:"Cinzel",serif;font-size:10px;letter-spacing:.08em;
    text-transform:uppercase;color:var(--gold);margin:10px 0 4px}
+ /* 적용 결과 — 값이 실제로 들어갔는지 즉시 알려준다 */
+ .apply-status{font-size:11px;line-height:1.5;margin:-4px 0 10px;min-height:14px;
+   color:var(--text-dim)}
+ .apply-status.ok{color:var(--green)}
+ .apply-status.warn{color:var(--gold)}
+ .apply-status.bad{color:#B91C1C;font-weight:600}
  .reflow-chip{font-family:"Cinzel",serif;font-size:9px;letter-spacing:.05em;text-transform:uppercase;
    color:var(--gold);background:#CA8A0420;border-radius:2px;padding:1px 6px;margin-top:2px;width:max-content}
  .knob-row input,.knob-row select{width:120px}
@@ -116,6 +122,7 @@
          <button id="promote">라이브 적용</button>
          <button id="restart-prethird">재기동(restart)</button>
        </div>
+       <div id="apply-status" class="apply-status"></div>
        <div id="promote-confirm" style="display:none"></div>
        <div id="restart-confirm" style="display:none"></div>
        <input id="promote-token" type="password" placeholder="LAB_TUNER_TOKEN"
