@@ -80,7 +80,7 @@ def _dev_token_response(remote: str | None, token: str | None) -> web.Response:
 
 
 def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None,
-              metrics=None) -> web.Application:
+              metrics=None, renderer=None) -> web.Application:
     # say_fn/render_url/guard는 Task 9·12에서 사용(초기 Task 11 단계는 None 허용).
     app = make_app(pipeline_factory=factory)   # /offer /healthz /static/ /prebuild
     app["lab_registry"] = registry
@@ -90,6 +90,7 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
     # (기존 동작 — 이 키는 하위호환을 위해 남긴다).
     app["lab_metrics"] = {"last": {}}
     app["lab_turn_metrics"] = metrics
+    app["lab_renderer"] = renderer     # last_sent(마지막 /render 전송값) 조회용
 
     # mizu HIGH 3: promote mutating 엔드포인트(apply/rollback/restart) 인증.
     # LAB_TUNER_TOKEN 미설정(로컬 개발) 시 통과시키되 기동 시 경고 로그 1회.
@@ -145,8 +146,13 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
         try:
             while True:
                 _tm = app.get("lab_turn_metrics")
-                payload = json.dumps(
-                    _tm.snapshot() if _tm is not None else app["lab_metrics"]["last"])
+                snap = _tm.snapshot() if _tm is not None else dict(app["lab_metrics"]["last"])
+                # 마지막 렌더에 실제로 실려 간 파라미터를 함께 흘려보낸다.
+                # UI 가 "적용됐나?" 를 추측하지 않고 실제 전송값을 보여줄 수 있다.
+                # 클래스 변수라 통화·replay 어느 경로로 보냈든 잡힌다.
+                from harness import KnobsFifthInproc
+                snap["last_render"] = KnobsFifthInproc.last_sent
+                payload = json.dumps(snap)
                 await resp.write(f"data: {payload}\n\n".encode())
                 await asyncio.sleep(0.5)
         except (asyncio.CancelledError, ConnectionResetError):

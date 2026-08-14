@@ -91,6 +91,12 @@ class KnobsFifthInproc(FifthInproc):
     fifth_render.py가 매 호출 env를 읽으므로, body에 값이 있으면 그 값(Task 8에서 스레딩),
     없으면 env 기본 → 회귀 0. render_url 기본 = 라이브 :8810(FIFTH_RENDER_URL)."""
 
+    # 마지막으로 /render 에 실제로 실어 보낸 파라미터. UI 가 "적용됐는지" 를 추측하지 않고
+    # 눈으로 확인할 수 있게 노출한다(로그를 뒤지지 않아도 되도록).
+    # **클래스 변수**인 이유: /replay/fifth 는 통화 경로와 다른 렌더러 인스턴스를 새로 만든다.
+    # 인스턴스 속성으로 두면 어느 쪽 전송인지에 따라 UI 에 안 잡힌다.
+    last_sent = None
+
     def __init__(self, video_path, registry, clone_id=None, render_url=None):
         super().__init__(video_path, clone_id=clone_id, render_url=render_url)
         self._registry = registry

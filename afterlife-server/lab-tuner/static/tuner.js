@@ -301,6 +301,43 @@ function v_04a0ee(v_35f85c) {
     v_51452d.textContent = (v_35f85c.ttff_ms == null)
       ? '측정 전' : `첫 소리까지 ${(v_35f85c.ttff_ms / 1000).toFixed(2)}s`;
   }
+  v_46a72e(v_35f85c.last_render);
+}
+
+function v_46a72e(v_132868) {
+  const v_a38d42 = document.getElementById('last-sent');
+  if (!v_a38d42) return;
+  v_a38d42.innerHTML = '';
+  if (!v_132868 || !v_132868.params) {
+    v_a38d42.textContent = '아직 렌더 없음 — 통화 연결 후 말을 걸면 여기에 실제 전송값이 뜹니다';
+    v_a38d42.className = 'last-sent empty';
+    return;
+  }
+  v_a38d42.className = 'last-sent';
+  const v_f330c1 = Math.max(0, Math.round(Date.now() / 1000 - v_132868.at));
+  const v_43fb07 = document.createElement('div');
+  v_43fb07.className = 'ls-head';
+  const v_fa53ec = Object.keys(v_132868.params);
+  v_43fb07.textContent = `실제 렌더 전송값 · ${v_fa53ec.length}개 · ${v_f330c1}초 전`;
+  v_a38d42.appendChild(v_43fb07);
+
+  const v_b1ca67 = ['blink', 'jpeg_quality', 'idle_motion_scale', 'idle_rms_low',
+                  'idle_rms_high', 'head_slew_frames'];
+  const v_6cfba6 = v_fa53ec.filter(v_0eb677 => !v_b1ca67.includes(v_0eb677));
+  const v_694b25 = v_fa53ec.filter(v_0eb677 => v_b1ca67.includes(v_0eb677));
+  for (const [v_2869c1, v_ef8ab1] of [['내가 지정한 값', v_6cfba6], ['기본 전송', v_694b25]]) {
+    if (!v_ef8ab1.length) continue;
+    const v_3ac7e7 = document.createElement('div');
+    v_3ac7e7.className = 'ls-row' + (v_2869c1 === '내가 지정한 값' ? ' tuned' : '');
+    v_3ac7e7.textContent = `${v_2869c1}: ` + v_ef8ab1.map(v_0eb677 => `${v_0eb677}=${v_132868.params[v_0eb677]}`).join(', ');
+    v_a38d42.appendChild(v_3ac7e7);
+  }
+  if (!v_6cfba6.length) {
+    const v_9ecdb9 = document.createElement('div');
+    v_9ecdb9.className = 'ls-row empty';
+    v_9ecdb9.textContent = '지정한 값 없음 — 입력칸이 비어 있으면 컨테이너 기본값을 씁니다';
+    v_a38d42.appendChild(v_9ecdb9);
+  }
 }
 
 const v_10fde5 = {
