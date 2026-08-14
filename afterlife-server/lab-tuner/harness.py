@@ -1,6 +1,7 @@
 from __future__ import annotations
 import logging
 import os
+import time
 import aiohttp
 
 from clone_dialog import chat_stream          # prethird
@@ -17,11 +18,21 @@ def _num(v, default):
         log.warning("say: 잘못된 숫자 knob %r → 기본값 %s 사용", v, default)
         return default
 
-def build_chat_fn(registry):
-    """registry에서 model/temperature를 매 호출 읽어 chat_stream에 위임."""
+def build_chat_fn(registry, metrics=None):
+    """registry에서 model/temperature를 매 호출 읽어 chat_stream에 위임.
+
+    metrics: TurnMetrics | None — 주면 첫 토큰까지 걸린 시간을 기록한다.
+    None(기본)이면 계측 코드가 사실상 no-op(기존 호출부 무영향).
+    """
     async def chat_fn(messages):
         dk = registry.get().dialogue
+        _t0 = time.perf_counter()
+        _first = True
         async for tok in chat_stream(messages, model=dk.model, temperature=dk.temperature):
+            if _first:
+                _first = False
+                if metrics is not None:
+                    metrics.record("llm_first_token", (time.perf_counter() - _t0) * 1000)
             yield tok
     return chat_fn
 
@@ -39,10 +50,15 @@ _ENGINE_URLS = {
 _TTS_PATH = os.environ.get("PRETHIRD_TTS_PATH", "/tts/kr")
 _GEN_KEYS = ("temperature", "top_p", "top_k", "repetition_penalty", "max_new_tokens")
 
-def build_say_fn(registry):
-    """registry.tts에서 engine URL·speed·denoise를 읽어 TTS POST."""
+def build_say_fn(registry, metrics=None):
+    """registry.tts에서 engine URL·speed·denoise를 읽어 TTS POST.
+
+    metrics: TurnMetrics | None — 주면 TTS 왕복 시간을 기록하고, 턴의 첫 문장에서
+    start_turn() 을 호출한다(턴 시작 = say 진입).
+    """
     async def say_fn(text: str, se_path=None) -> bytes:
         tk: TtsKnobs = registry.get().tts
+        _t0 = time.perf_counter()
         base = tk.url or _ENGINE_URLS.get(tk.engine, _ENGINE_URLS["openvoice"])
         body = {
             "text": text, "speed": _num(tk.speed, 1.0),
@@ -60,7 +76,10 @@ def build_say_fn(registry):
         async with aiohttp.ClientSession() as sess:
             async with sess.post(f"{base}{_TTS_PATH}", json=body) as resp:
                 resp.raise_for_status()
-                return await resp.read()
+                out = await resp.read()
+        if metrics is not None:
+            metrics.record("tts", (time.perf_counter() - _t0) * 1000)
+        return out
     return say_fn
 
 class KnobsFifthInproc(FifthInproc):

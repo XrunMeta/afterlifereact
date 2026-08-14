@@ -63,17 +63,27 @@ def test_랩이_보내는_모든_키를_서버가_읽는다():
     )
 
 
-def test_입싱크_키가_cfg_경로로_처리된다():
-    """입싱크 파라미터는 render_opts 가 아니라 _CFG_KEYS(FifthConfig)로 가야 한다."""
-    from dataclasses import fields
-    import sys
-    sys.path.insert(0, str(_SERVER.parent))
-    try:
-        from config import FifthConfig
-    finally:
-        sys.path.pop(0)
+def _fifth_config_fields() -> set[str]:
+    """fifth/scripts/config.py 의 FifthConfig 필드명을 AST 로 읽는다.
 
-    cfg_fields = {f.name for f in fields(FifthConfig)}
-    per_request = set(FifthKnobs.PER_REQUEST)
-    # FifthConfig 필드 중 랩이 노출하는 것은 전부 per-request 여야 한다
-    assert cfg_fields <= per_request, f"랩에 없는 cfg 필드: {cfg_fields - per_request}"
+    import 하지 않는 이유: prethird 에도 동명 config.py 가 있고 sys.path 에서
+    그쪽이 먼저 잡힌다(랩은 prethird 를 in-process 로 쓴다). 경로를 명시해
+    파일을 직접 파싱해야 올바른 모듈을 본다.
+    """
+    src = (_SERVER.parent / "config.py").read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef) and node.name == "FifthConfig":
+            return {
+                n.target.id for n in node.body
+                if isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name)
+            }
+    return set()
+
+
+def test_입싱크_키가_전부_랩에_노출된다():
+    """FifthConfig 필드는 전부 per-request 노브로 조절 가능해야 한다."""
+    cfg_fields = _fifth_config_fields()
+    assert cfg_fields, "FifthConfig 필드 파싱 실패"
+    missing = cfg_fields - set(FifthKnobs.PER_REQUEST)
+    assert missing == set(), f"랩에 없는 cfg 필드: {sorted(missing)}"
