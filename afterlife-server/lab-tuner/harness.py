@@ -31,7 +31,11 @@ def apply_persona_knobs(base_persona: list, dk: DialogueKnobs) -> list:
         return [{"role": "system", "content": dk.system_override}] + list(base_persona)
     return base_persona
 
-_ENGINE_URLS = {"openvoice": "http://127.0.0.1:8200", "qwen": "http://127.0.0.1:8201"}
+_ENGINE_URLS = {
+    "openvoice": "http://127.0.0.1:8200",
+    "qwen": "http://127.0.0.1:8201",
+    "cosyvoice": "http://127.0.0.1:8203",   # 라이브 기본(2026-08-14 실측)
+}
 _TTS_PATH = os.environ.get("PRETHIRD_TTS_PATH", "/tts/kr")
 _GEN_KEYS = ("temperature", "top_p", "top_k", "repetition_penalty", "max_new_tokens")
 
