@@ -40,6 +40,33 @@ KNOB_TO_LIVE = {
     # PRETHIRD_RENDER_MODE(partial|batch)를 직접 읽도록 배포됨 → 더 이상
     # fifth 컨테이너 재기동이 필요 없는 host-baked 노브로 재분류.
     "fifth.render_mode": {"env": "PRETHIRD_RENDER_MODE", "file": _PRETHIRD_DROPIN},
+
+    # --- 1층 나머지: 컨테이너 env, 기동 시 1회 로드 → 재기동 필요 ---
+    "fifth.head_smooth": {"env": "FIFTH_HEAD_SMOOTH", "file": _FIFTH_ENV_NOTE, "container": True},
+    "fifth.blink_dur": {"env": "FIFTH_BLINK_DUR", "file": _FIFTH_ENV_NOTE, "container": True},
+    "fifth.eye_source_lock": {"env": "FIFTH_EYE_SOURCE_LOCK", "file": _FIFTH_ENV_NOTE, "container": True},
+    "fifth.eye_target_scale": {"env": "FIFTH_EYE_TARGET_SCALE", "file": _FIFTH_ENV_NOTE, "container": True},
+    "fifth.input_normalize": {"env": "FIFTH_INPUT_NORMALIZE", "file": _FIFTH_ENV_NOTE, "container": True},
+    "fifth.pasteback_output": {"env": "FIFTH_PASTEBACK_OUTPUT", "file": _FIFTH_ENV_NOTE, "container": True},
+    "fifth.cdlip_smooth": {"env": "FIFTH_CDLIP_SMOOTH", "file": _FIFTH_ENV_NOTE, "container": True},
+    "fifth.cdlip_sigma": {"env": "FIFTH_CDLIP_SIGMA", "file": _FIFTH_ENV_NOTE, "container": True},
+
+    # --- 3층: FLP 플러그인 infer_params 오버라이드 (컨테이너 재기동) ---
+    "flp.animation_region": {"env": "FIFTH_FLP_ANIMATION_REGION", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.flag_stitching": {"env": "FIFTH_FLP_STITCHING", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.flag_lip_retargeting": {"env": "FIFTH_FLP_LIP_RETARGETING", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.flag_eye_retargeting": {"env": "FIFTH_FLP_EYE_RETARGETING", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.flag_pasteback": {"env": "FIFTH_FLP_PASTEBACK", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.flag_normalize_lip": {"env": "FIFTH_FLP_NORMALIZE_LIP", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.lip_normalize_threshold": {"env": "FIFTH_FLP_LIP_NORM_THRESHOLD", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.cfg_scale": {"env": "FIFTH_FLP_CFG_SCALE", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.driving_multiplier": {"env": "FIFTH_FLP_DRIVING_MULTIPLIER", "file": _FIFTH_ENV_NOTE, "container": True},
+
+    # --- 호스트 drop-in: 문장 분할·응답 길이(지연 직결) ---
+    "dialogue.first_min_len": {"env": "PRETHIRD_SENTENCE_FIRST_MIN_LEN", "file": _PRETHIRD_DROPIN},
+    "dialogue.max_response_tokens": {"env": "PRETHIRD_MAX_RESPONSE_TOKENS", "file": _PRETHIRD_DROPIN},
+    "dialogue.min_len": {"env": "PRETHIRD_SENTENCE_MIN_LEN", "file": _PRETHIRD_DROPIN},
+    "dialogue.force_flush": {"env": "PRETHIRD_SENTENCE_FORCE_FLUSH", "file": _PRETHIRD_DROPIN},
 }
 
 
