@@ -241,12 +241,15 @@ function _rangeHint(m) {
   return '';
 }
 
+let KNOB_META_CACHE = {};
+
 async function loadKnobs() {
   const [k, metaResp] = await Promise.all([
     (await fetch('/knobs')).json(),
     (await fetch('/knobs/meta')).json(),
   ]);
   const meta = metaResp.meta || {};
+  KNOB_META_CACHE = meta;
   const box = document.getElementById('knob-fields'); box.innerHTML = '';
   const latBox = document.getElementById('latency-fields');
   if (latBox) latBox.innerHTML = '';
@@ -385,9 +388,19 @@ function refreshTtsDim() {
   }
 }
 
+const KNOB_INPUT_SELECTOR =
+  '#knob-fields input, #knob-fields select, #latency-fields input, #latency-fields select';
+
+function _setApplyStatus(text, kind) {
+  const el = document.getElementById('apply-status');
+  if (!el) return;
+  el.textContent = text;                       
+  el.className = 'apply-status' + (kind ? ' ' + kind : '');
+}
+
 async function applyKnobs() {
   const partial = {};
-  document.querySelectorAll('#knob-fields input, #knob-fields select').forEach(inp => {
+  document.querySelectorAll(KNOB_INPUT_SELECTOR).forEach(inp => {
     const s = inp.dataset.s, k = inp.dataset.k; let v = inp.value;
     if (v === '') return;
     if (v === 'true') v = true; else if (v === 'false') v = false;
@@ -398,10 +411,47 @@ async function applyKnobs() {
     }
     (partial[s] ||= {})[k] = v;
   });
-  await fetch('/knobs', {method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify(partial)});
-  appliedKnobCount = Object.values(partial).reduce((n, o) => n + Object.keys(o).length, 0);
+
+  const sent = Object.values(partial).reduce((n, o) => n + Object.keys(o).length, 0);
+  _setApplyStatus(`적용 중… (${sent}개)`, '');
+
+  let merged;
+  try {
+    const resp = await fetch('/knobs', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(partial)});
+    if (!resp.ok) { _setApplyStatus(`적용 실패 — 서버 ${resp.status}`, 'bad'); return; }
+    merged = await resp.json();
+  } catch (e) {
+    _setApplyStatus(`적용 실패 — ${e}`, 'bad');
+    return;
+  }
+
+  const mismatched = [];
+  const needRestart = [];
+  for (const [sec, vals] of Object.entries(partial)) {
+    for (const [k, v] of Object.entries(vals)) {
+      const got = (merged[sec] || {})[k];
+      if (String(got) !== String(v)) mismatched.push(`${sec}.${k}(보냄 ${v} / 서버 ${got})`);
+      const rf = (KNOB_META_CACHE[`${sec}.${k}`] || {}).reflow;
+      if (rf === 'container' || rf === 'lab_restart' || rf === 'session') {
+        needRestart.push(`${sec}.${k}`);
+      }
+    }
+  }
+
+  appliedKnobCount = sent;
+  await loadKnobs();          
   renderMeter();
+
+  if (mismatched.length) {
+    _setApplyStatus(`반영 안 된 값 ${mismatched.length}개: ${mismatched.join(', ')}`, 'bad');
+  } else if (needRestart.length) {
+    _setApplyStatus(
+      `${sent}개 적용됨 — 단 ${needRestart.length}개는 재기동해야 먹습니다: ${needRestart.join(', ')}`,
+      'warn');
+  } else {
+    _setApplyStatus(`${sent}개 적용됨 · 다음 발화부터 반영`, 'ok');
+  }
 }
 
 function sendSay() {
