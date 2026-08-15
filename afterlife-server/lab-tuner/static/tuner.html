@@ -46,10 +46,19 @@
  body.compact .knob-row input,body.compact .knob-row select{width:86px;padding:3px 5px;font-size:11px}
  body.compact .stepper input{width:52px}
  body.compact .stepper button{padding:3px 6px;font-size:11px;line-height:1}
- body.compact .kill-badge{grid-column:1/-1;margin:0 0 2px}
- /* 노브가 적은 섹션도 두 열로 채워 세로 길이를 줄인다 */
- body.compact .channel .knob-list{display:grid;
-   grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:2px 12px}
+ body.compact .kill-badge{grid-column:1/-1;margin:0;font-size:9px;padding:1px 4px}
+ /* 채널을 1열로 펴서 폭을 확보하고, 그 안에서 노브를 여러 열로 깐다.
+    (채널을 2열로 두면 채널 폭이 좁아 노브가 결국 1열로 떨어진다) */
+ body.compact #knob-fields{grid-template-columns:1fr;gap:8px}
+ body.compact .channel .knob-list,
+ body.compact #latency-fields{display:grid;
+   grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:1px 14px}
+ /* 압축 모드에선 반영시점·단계 배지를 숨긴다 — 행 tooltip 에 전부 들어 있다.
+    단 "재기동 필요" 계열만 남겨 즉시 반영되지 않는 값을 구분한다. */
+ body.compact .knob-row .stage-tag{display:none}
+ body.compact .knob-row .reflow-chip{display:none}
+ body.compact .knob-row.needs-restart > label::after{content:"⟳";color:var(--gold);
+   font-size:10px;margin-left:3px}
  /* 파라미터 설명 — 컨트롤 아래 전체 폭 한 줄 */
  .knob-desc{flex-basis:100%;font-size:11px;line-height:1.5;color:var(--text-dim);
    opacity:.85;margin:2px 0 2px;padding-left:1px}
