@@ -28,6 +28,10 @@ function v_5af772() {
 const v_81f9b1 = new Set(
   ["temperature", "top_p", "top_k", "repetition_penalty", "max_new_tokens"]);
 
+const v_225e6d = new Set(
+  ["cv_sampling_top_k", "cv_sampling_top_p", "cv_ramble_base_sec",
+   "cv_ramble_per_char_sec", "cv_ramble_retries", "cv_ramble_fallback_top_k"]);
+
 async function v_182fdb() {
   const v_e0c7e8 = document.getElementById('login-email').value;
   const v_adc076 = document.getElementById('login-pw').value;
@@ -562,13 +566,20 @@ function v_d4af21() {
 
 function v_796451() {
   const v_3be5d5 = document.getElementById('k_tts_engine');
-  const v_03b8c8 = v_3be5d5 && v_3be5d5.value === 'openvoice';
-  for (const v_70c705 of v_81f9b1) {
+  const v_1e3df0 = v_3be5d5 ? v_3be5d5.value : '';
+  const v_f037dc = (v_70c705, v_fa04a0, v_3325c8) => {
     const v_57c92e = document.getElementById(`k_tts_${v_70c705}`);
-    if (!v_57c92e) continue;
+    if (!v_57c92e) return;
     const v_3ac7e7 = v_57c92e.closest('.knob-row');
-    if (v_3ac7e7) { v_3ac7e7.classList.toggle('knob-dim', !!v_03b8c8);
-      v_3ac7e7.title = v_03b8c8 ? 'openvoice 엔진에선 무시됨(qwen 전용)' : ''; }
+    if (!v_3ac7e7) return;
+    v_3ac7e7.classList.toggle('knob-dim', !!v_fa04a0);
+    if (v_fa04a0) v_3ac7e7.title = v_3325c8;
+  };
+  for (const v_70c705 of v_81f9b1) {
+    v_f037dc(v_70c705, v_1e3df0 !== 'qwen', `${v_1e3df0} 엔진에선 무시됨 — qwen 전용`);
+  }
+  for (const v_70c705 of v_225e6d) {
+    v_f037dc(v_70c705, v_1e3df0 !== 'cosyvoice', `${v_1e3df0} 엔진에선 무시됨 — cosyvoice 전용`);
   }
 }
 

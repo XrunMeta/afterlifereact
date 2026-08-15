@@ -34,12 +34,31 @@ class TtsKnobs:
     url: str | None = None            # 지정 시 engine 기본 URL override
     speed: float = 1.0
     denoise: bool = False
-    # qwen generation 파라미터 — 미지정(None) 시 qwen 기본. openvoice 엔진에선 무시됨.
+    # qwen generation 파라미터 — 미지정(None) 시 qwen 기본. openvoice/cosyvoice 에선 무시됨.
     temperature: float | None = None
     top_p: float | None = None
     top_k: int | None = None
     repetition_penalty: float | None = None
     max_new_tokens: int | None = None
+    # --- CosyVoice 전용(:8203). 미지정(None) 이면 서버 config 기본값. ---
+    # 엔진별로 해석하는 파라미터가 완전히 달라 이름을 겹치지 않게 분리한다
+    # (qwen 의 top_k 와 cosyvoice 의 sampling_top_k 는 다른 값이다).
+    cv_sampling_top_k: int | None = None
+    cv_sampling_top_p: float | None = None
+    cv_ramble_base_sec: float | None = None
+    cv_ramble_per_char_sec: float | None = None
+    cv_ramble_retries: int | None = None
+    cv_ramble_fallback_top_k: int | None = None
+
+    # 랩 → CosyVoice 서버로 보낼 때의 키 매핑(cv_ 접두어를 뗀다).
+    COSYVOICE_KEYS = {
+        "cv_sampling_top_k": "sampling_top_k",
+        "cv_sampling_top_p": "sampling_top_p",
+        "cv_ramble_base_sec": "ramble_base_sec",
+        "cv_ramble_per_char_sec": "ramble_per_char_sec",
+        "cv_ramble_retries": "ramble_retries",
+        "cv_ramble_fallback_top_k": "ramble_fallback_top_k",
+    }
 
 
 @dataclass(frozen=True)
