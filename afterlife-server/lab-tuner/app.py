@@ -470,6 +470,22 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
             return web.json_response({"error": f"저장 실패: {exc}"}, status=500)
         return web.json_response(meta)
 
+    async def source_thumb(req):
+        """목록 섬네일 이미지. 없으면 그 자리에서 만든다(구 업로드 호환).
+
+        <img src> 로 직접 못 건다 — 인증이 커스텀 헤더라 img 태그가 못 싣는다.
+        프런트가 fetch 로 받아 blob URL 로 붙인다(tuner.js loadSources).
+        """
+        err = _auth_or_401(req)
+        if err is not None:
+            return err
+        import source_lab
+        path = source_lab.ensure_thumb(req.query.get("id", ""))
+        if not path:
+            raise web.HTTPNotFound()
+        # id 마다 내용이 고정이라 캐시해도 안전하다(같은 id 로 다른 그림이 오지 않는다).
+        return web.FileResponse(path, headers={"Cache-Control": "public, max-age=3600"})
+
     async def source_delete(req):
         err = _auth_or_401(req)
         if err is not None:
@@ -535,5 +551,6 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
     app.router.add_get("/render-logs", render_logs)  # 렌더서버 로그 프록시
     app.router.add_get("/sources", sources_list)          # 업로드 소스 목록
     app.router.add_post("/source/upload", source_upload)  # 업로드(multipart)
+    app.router.add_get("/source/thumb", source_thumb)     # 목록 섬네일
     app.router.add_post("/source/delete", source_delete)
     return app

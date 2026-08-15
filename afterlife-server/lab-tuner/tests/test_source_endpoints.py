@@ -74,6 +74,30 @@ async def test_upload_then_list_then_delete(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_thumb_endpoint(tmp_path):
+    c, _ = await _client(tmp_path)
+    try:
+        meta = await (await c.post("/source/upload", data=_form("f.jpg", b"x"))).json()
+        r = await c.get("/source/thumb", params={"id": meta["id"]})
+        assert r.status == 200
+        assert await r.read() == b"idle"          # ffmpeg 대역이 쓴 내용
+        assert (await c.get("/source/thumb", params={"id": "없는id"})).status == 404
+    finally:
+        await c.close()
+
+
+@pytest.mark.asyncio
+async def test_thumb_requires_token_when_set(tmp_path, monkeypatch):
+    """얼굴 사진이다 — 토큰이 설정돼 있으면 인증 없이 못 가져간다."""
+    monkeypatch.setenv("LAB_TUNER_TOKEN", "secret")
+    c, _ = await _client(tmp_path)
+    try:
+        assert (await c.get("/source/thumb", params={"id": "x"})).status == 401
+    finally:
+        await c.close()
+
+
+@pytest.mark.asyncio
 async def test_upload_rejects_bad_extension(tmp_path, _root):
     c, _ = await _client(tmp_path)
     try:

@@ -108,6 +108,54 @@ def test_build_idle_returns_none_when_ffmpeg_missing(tmp_path):
     assert source_lab.build_idle("/in.mp4", str(tmp_path / "o.mp4"), run=_boom) is None
 
 
+# --- 섬네일 ----------------------------------------------------------------
+
+def test_build_thumb_cmd_scales_by_height():
+    cmd = source_lab.build_thumb_cmd("/in.jpg", "/out.jpg")
+    vf = cmd[cmd.index("-vf") + 1]
+    # 폭은 -2(짝수 자동) — 홀수 폭이 나오면 인코더가 거부한다
+    assert vf == f"scale=-2:{source_lab.THUMB_H}"
+    assert cmd[cmd.index("-frames:v") + 1] == "1"
+    assert cmd[-1] == "/out.jpg"
+
+
+def test_upload_makes_thumb(_root):
+    m = source_lab.save_bytes(b"a", "a.jpg", now=1755234622.0, run=_ok)
+    assert m["thumb"] == str(_root / m["id"] / "thumb.jpg")
+    assert (_root / m["id"] / "thumb.jpg").is_file()
+
+
+def test_upload_survives_thumb_failure(_root):
+    """섬네일은 보조 기능 — 실패해도 업로드는 살아야 한다."""
+    def _thumb_fails(cmd, **kw):
+        return _fail(cmd, **kw) if str(cmd[-1]).endswith("thumb.jpg") else _ok(cmd, **kw)
+    m = source_lab.save_bytes(b"a", "a.jpg", now=1755234622.0, run=_thumb_fails)
+    assert m["thumb"] is None and (_root / m["id"] / "source.jpg").is_file()
+
+
+def test_ensure_thumb_backfills_old_upload(_root):
+    """섬네일 기능 이전에 올라온 업로드도 목록에 보여야 한다(지연 생성)."""
+    m = source_lab.save_bytes(b"a", "a.jpg", now=1755234622.0, run=_ok)
+    d = _root / m["id"]
+    (d / "thumb.jpg").unlink()
+    meta = json.loads((d / "meta.json").read_text())
+    del meta["thumb"]                              # 구 meta 재현
+    (d / "meta.json").write_text(json.dumps(meta))
+
+    got = source_lab.ensure_thumb(m["id"], run=_ok)
+    assert got == str(d / "thumb.jpg") and (d / "thumb.jpg").is_file()
+    # 두 번째 호출은 다시 만들지 않는다(meta 에 기록됐다)
+    assert json.loads((d / "meta.json").read_text())["thumb"] == got
+
+    def _never(*a, **kw):
+        raise AssertionError("이미 있는 섬네일을 다시 만들면 안 된다")
+    assert source_lab.ensure_thumb(m["id"], run=_never) == got
+
+
+def test_ensure_thumb_none_for_unknown_id():
+    assert source_lab.ensure_thumb("없는id") is None
+
+
 # --- 저장 -----------------------------------------------------------------
 
 def test_save_video_creates_face_and_idle(_root):
