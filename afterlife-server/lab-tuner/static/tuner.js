@@ -154,6 +154,10 @@ const REFLOW_NOTE = {
 function buildKnobRow(section, key, m, val) {
   const path = `${section}.${key}`;
   const row = document.createElement('div'); row.className = 'knob-row';
+
+  if (m.reflow === 'container' || m.reflow === 'lab_restart' || m.reflow === 'session') {
+    row.classList.add('needs-restart');
+  }
   const label = document.createElement('label'); label.textContent = m.label || key;
   const note = REFLOW_NOTE[m.reflow];
   if (note) { const s = document.createElement('span'); s.className = 'reflow-chip'; s.textContent = note; label.appendChild(s); }
@@ -265,7 +269,10 @@ function stepFor(m, val) {
     else step = 1;
   }
 
-  const dec = (String(val ?? '').split('.')[1] || '').length;
+  const probe = (val != null && val !== '')
+    ? val
+    : ((String(m.default ?? '').match(/-?\d+(\.\d+)?/) || [''])[0]);
+  const dec = (String(probe).split('.')[1] || '').length;
   if (dec >= 3) step = Math.min(step, 0.001);
   else if (dec === 2) step = Math.min(step, 0.01);
   else if (dec === 1) step = Math.min(step, 0.1);
@@ -348,7 +355,10 @@ function refreshLockWarnings() {
     if (!row) continue;
     const b = document.createElement('div');
     b.className = 'kill-badge';
-    b.textContent = `⚠ 지금 안 먹음 — ${why}`;
+
+    const compact = document.body.classList.contains('compact');
+    b.textContent = compact ? '⚠ 지금 안 먹음' : `⚠ 지금 안 먹음 — ${why}`;
+    b.title = why;
     row.appendChild(b);
   }
 }
@@ -855,6 +865,7 @@ document.getElementById('apply-knobs-top')?.addEventListener('click', applyKnobs
 document.getElementById('toggle-compact')?.addEventListener('click', (e) => {
   const on = document.body.classList.toggle('compact');
   e.target.textContent = on ? '설명 펼치기' : '압축 보기';
+  refreshLockWarnings();   
 });
 renderMeter();
 pollLiveStatus();
