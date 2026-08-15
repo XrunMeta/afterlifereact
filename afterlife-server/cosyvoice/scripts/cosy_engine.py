@@ -34,13 +34,17 @@ class CosyEngine:
                      config.SAMPLING_TOP_P, config.SAMPLING_TOP_K, config.RAMBLE_FALLBACK_TOP_K)
         log.info("cosyvoice2 loaded: dir=%s sr=%s fp16=%s", config.MODEL_DIR, self.sr, config.FP16)
 
-    def _set_sampling(self, top_k: int):
-        """LLM 샘플링 top_k 교체(폭주 저감). _synth_lock 내에서만 호출(레이스 방지)."""
+    def _set_sampling(self, top_k: int, top_p: float | None = None):
+        """LLM 샘플링 top_k/top_p 교체(폭주 저감). _synth_lock 내에서만 호출(레이스 방지).
+
+        top_p=None 이면 config 기본값 — 기존 호출부는 그대로 동작한다(회귀 0).
+        """
         import functools
         from cosyvoice.utils.common import ras_sampling
         # CosyVoice2 래퍼는 실제 LLM을 self.model(CosyVoice2Model) 안에 둔다 → .model.model.llm
+        _p = config.SAMPLING_TOP_P if top_p is None else top_p
         self.model.model.llm.sampling = functools.partial(
-            ras_sampling, top_p=config.SAMPLING_TOP_P, top_k=top_k, win_size=10, tau_r=0.1)
+            ras_sampling, top_p=_p, top_k=top_k, win_size=10, tau_r=0.1)
 
     def warmup(self):
         wc = config.WARMUP_CLONE
@@ -82,39 +86,57 @@ class CosyEngine:
             self._registered.add(clone_id)
             log.info("prompt cached: clone=%s (%.1fs, icl=%s)", clone_id, len(data) / sr, ref_text is not None)
 
-    def _synth_once(self, text: str, clone_id: str, speed: float, top_k: int | None = None):
+    def _synth_once(self, text: str, clone_id: str, speed: float, top_k: int | None = None,
+                    top_p: float | None = None):
         """1회 합성 → float32 [T] numpy (빈 텍스트면 None). GPU 직렬화.
-        top_k 지정 시 이 합성만 해당 샘플링 사용(폭주 재합성 폴백용)·이후 기본값 복원."""
+        top_k/top_p 지정 시 이 합성만 해당 샘플링 사용(폭주 재합성 폴백·랩 튜닝)·이후 기본값 복원."""
         import torch
         chunks = []
+        # top_p 만 바꾸는 경우에도 샘플링을 갈아끼워야 하므로 top_k 기본값을 채워 준다.
+        _need_override = (top_k is not None or top_p is not None) and config.SAMPLING_TOP_K > 0
+        _tk = config.SAMPLING_TOP_K if top_k is None else top_k
         with self._synth_lock:
-            if top_k is not None and config.SAMPLING_TOP_K > 0:
-                self._set_sampling(top_k)
+            if _need_override:
+                self._set_sampling(_tk, top_p)
             try:
                 for out in self.model.inference_zero_shot(
                     text, "", "", zero_shot_spk_id=clone_id, stream=False, speed=speed
                 ):
                     chunks.append(out["tts_speech"])
             finally:
-                if top_k is not None and config.SAMPLING_TOP_K > 0:
+                if _need_override:
                     self._set_sampling(config.SAMPLING_TOP_K)  # 기본(자연성) 복원
         if not chunks:
             return None
         return torch.concat(chunks, dim=1).squeeze(0).cpu().numpy().astype(np.float32)
 
     def synth(self, text: str, clone_id: str, voice_wav: str,
-              ref_text: str | None, speed: float = 1.0) -> bytes:
+              ref_text: str | None, speed: float = 1.0, opts: dict | None = None) -> bytes:
+        """opts: per-request 파라미터(lab-tuner). None/빈 dict 면 config 기본값 = 회귀 0."""
         self._ensure_prompt(clone_id, voice_wav, ref_text)
+
+        from synth_opts import resolve_opts
+        o = resolve_opts(opts, config)
+        if opts:
+            log.info("[synth-opts] 수신 %s", {k: v for k, v in opts.items() if v is not None})
+        # 이번 합성에 실제로 쓰는 최종값. 랩에서 "적용됐나" 를 이 한 줄로 확인한다.
+        log.info("[synth-final] top_k=%s top_p=%s ramble(base=%s per_char=%s retries=%s fb_top_k=%s) speed=%s",
+                 o["sampling_top_k"], o["sampling_top_p"], o["ramble_base_sec"],
+                 o["ramble_per_char_sec"], o["ramble_retries"], o["ramble_fallback_top_k"], speed)
 
         # 폭주(hallucination) 가드: CV2가 드물게 텍스트 대비 과생성해 의미없는 노이즈를 뱉음
         # (LLM max_token_text_ratio=20·top-k 샘플링 변동). 예상길이(문자수 기반) 크게 초과 시 재합성,
         # 모두 초과면 가장 짧은 결과 반환(최선). 정상은 1회로 통과(회귀·지연 무영향).
-        expected_max = config.RAMBLE_BASE_SEC + len(text) * config.RAMBLE_PER_CHAR_SEC
+        expected_max = o["ramble_base_sec"] + len(text) * o["ramble_per_char_sec"]
+        # 1차 샘플링을 요청이 지정했으면 그 값으로, 아니면 기동 시 설정된 기본을 그대로 쓴다.
+        _req_tk = (o["sampling_top_k"] if opts and opts.get("sampling_top_k") is not None else None)
+        _req_tp = (o["sampling_top_p"] if opts and opts.get("sampling_top_p") is not None else None)
         best = None
-        for attempt in range(config.RAMBLE_RETRIES + 1):
-            # 1차=기본 샘플링(자연성 top_k=5), 재합성=폴백 top_k(greedy 1, 폭주율↓).
-            tk = None if attempt == 0 else config.RAMBLE_FALLBACK_TOP_K
-            audio = self._synth_once(text, clone_id, speed, top_k=tk)
+        for attempt in range(o["ramble_retries"] + 1):
+            # 1차=기본(또는 요청) 샘플링, 재합성=폴백 top_k(greedy 1, 폭주율↓).
+            tk = _req_tk if attempt == 0 else o["ramble_fallback_top_k"]
+            tp = _req_tp if attempt == 0 else None
+            audio = self._synth_once(text, clone_id, speed, top_k=tk, top_p=tp)
             if audio is None:
                 # 정규화 후 빈 텍스트(문장부호·이모지) → 짧은 무음(스트리밍 무중단·503 방지).
                 log.info("empty audio clone=%s text=%r → 무음 반환", clone_id, text[:40])
@@ -126,7 +148,7 @@ class CosyEngine:
                 best = audio
                 break
             log.warning("ramble 의심 clone=%s text=%r dur=%.1fs > max=%.1fs → 재합성(%d/%d)",
-                        clone_id, text[:30], dur, expected_max, attempt + 1, config.RAMBLE_RETRIES)
+                        clone_id, text[:30], dur, expected_max, attempt + 1, o["ramble_retries"])
             if best is None or len(audio) < len(best):
                 best = audio  # 모두 초과 시 가장 짧은 것
         buf = io.BytesIO()

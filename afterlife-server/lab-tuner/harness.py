@@ -72,11 +72,22 @@ def build_say_fn(registry, metrics=None):
             body["se_path"] = se_path
         if tk.denoise:
             body["denoise"] = True
-        if tk.engine == "qwen":                   # gen params 는 qwen 전용 — openvoice(8200) 유출 방지
+        # 엔진마다 해석하는 파라미터가 다르다 — 엉뚱한 엔진으로 새지 않게 분기한다.
+        if tk.engine == "qwen":                   # gen params 는 qwen 전용
             for k in _GEN_KEYS:                    # None 이 아닌 gen param 만 실어보냄
                 v = getattr(tk, k, None)
                 if v is not None:
                     body[k] = v
+        elif tk.engine == "cosyvoice":            # CosyVoice 는 sampling/ramble 계열
+            sent_cv = {}
+            for knob, key in TtsKnobs.COSYVOICE_KEYS.items():
+                v = getattr(tk, knob, None)
+                if v is None:                      # 미지정 → 키 생략 → 서버 config 기본(회귀 0)
+                    continue
+                body[key] = v
+                sent_cv[key] = v
+            if sent_cv:
+                log.info("[cosyvoice-knobs] /tts/kr 파라미터 %d개: %s", len(sent_cv), sent_cv)
         async with aiohttp.ClientSession() as sess:
             async with sess.post(f"{base}{_TTS_PATH}", json=body) as resp:
                 resp.raise_for_status()

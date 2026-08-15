@@ -28,6 +28,10 @@ function renderMeter() {
 const TTS_QWEN_ONLY_FIELDS = new Set(
   ["temperature", "top_p", "top_k", "repetition_penalty", "max_new_tokens"]);
 
+const TTS_COSYVOICE_ONLY_FIELDS = new Set(
+  ["cv_sampling_top_k", "cv_sampling_top_p", "cv_ramble_base_sec",
+   "cv_ramble_per_char_sec", "cv_ramble_retries", "cv_ramble_fallback_top_k"]);
+
 async function login() {
   const email = document.getElementById('login-email').value;
   const password = document.getElementById('login-pw').value;
@@ -562,13 +566,20 @@ function applyKnobDriftBadges() {
 
 function refreshTtsDim() {
   const eng = document.getElementById('k_tts_engine');
-  const isOv = eng && eng.value === 'openvoice';
-  for (const field of TTS_QWEN_ONLY_FIELDS) {
+  const engine = eng ? eng.value : '';
+  const dim = (field, off, why) => {
     const el = document.getElementById(`k_tts_${field}`);
-    if (!el) continue;
+    if (!el) return;
     const row = el.closest('.knob-row');
-    if (row) { row.classList.toggle('knob-dim', !!isOv);
-      row.title = isOv ? 'openvoice 엔진에선 무시됨(qwen 전용)' : ''; }
+    if (!row) return;
+    row.classList.toggle('knob-dim', !!off);
+    if (off) row.title = why;
+  };
+  for (const field of TTS_QWEN_ONLY_FIELDS) {
+    dim(field, engine !== 'qwen', `${engine} 엔진에선 무시됨 — qwen 전용`);
+  }
+  for (const field of TTS_COSYVOICE_ONLY_FIELDS) {
+    dim(field, engine !== 'cosyvoice', `${engine} 엔진에선 무시됨 — cosyvoice 전용`);
   }
 }
 

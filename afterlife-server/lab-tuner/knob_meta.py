@@ -127,6 +127,51 @@ KNOB_META: dict[str, dict] = {
                 "생성 상한(토큰×20÷25Hz 초)이 폭주 게이트와 얽혀 있어 함부로 줄이면 말끝이 잘린다",
     },
 
+    # ---------------- TTS: CosyVoice 전용 (라이브 엔진 :8203) ----------------
+    # 서버가 요청마다 해석한다(2026-08-14 배선). 미지정이면 서버 config 기본값.
+    "tts.cv_sampling_top_k": {
+        "type": "number", "choices": None, "reflow": "immediate",
+        "label": "샘플링 top_k (cosyvoice)",
+        "param": "sampling_top_k / COSYVOICE_SAMPLING_TOP_K", "default": "5", "min": 1, "max": 50,
+        "desc": "음성 생성의 후보 폭. 실측 폭주율 — 1:20%, 5:50%, 10:40%, 25:60%. "
+                "낮추면 안정적이고 밋밋해지며, 5가 자연성 기준으로 확정된 값이다",
+    },
+    "tts.cv_sampling_top_p": {
+        "type": "number", "choices": None, "reflow": "immediate",
+        "label": "샘플링 top_p (cosyvoice)",
+        "param": "sampling_top_p / COSYVOICE_SAMPLING_TOP_P", "default": "0.8", "min": 0.1, "max": 1.0,
+        "desc": "누적 확률로 후보를 자른다. 낮추면 발음이 안정되고 억양이 단조로워진다",
+    },
+    "tts.cv_ramble_base_sec": {
+        "type": "number", "choices": None, "reflow": "immediate",
+        "label": "폭주 판정 기본(초) (cosyvoice)",
+        "param": "ramble_base_sec / COSYVOICE_RAMBLE_BASE_SEC", "default": "1.8", "min": 0.5, "max": 10,
+        "desc": "합성 길이가 '기본 + 글자수×글자당' 을 넘으면 폭주로 보고 재합성한다. "
+                "이 값은 문장 길이와 무관한 고정 오버헤드",
+    },
+    "tts.cv_ramble_per_char_sec": {
+        "type": "number", "choices": None, "reflow": "immediate",
+        "label": "폭주 판정 글자당(초) (cosyvoice)",
+        "param": "ramble_per_char_sec / COSYVOICE_RAMBLE_PER_CHAR_SEC", "default": "0.28",
+        "min": 0.05, "max": 1.0,
+        "desc": "글자 수에 비례하는 허용 길이. 올리면 관대해져 재합성이 줄고 폭주가 새어나온다",
+    },
+    "tts.cv_ramble_retries": {
+        "type": "number", "choices": None, "reflow": "immediate",
+        "label": "폭주 재합성 횟수 (cosyvoice)",
+        "param": "ramble_retries / COSYVOICE_RAMBLE_RETRIES", "default": "3", "min": 0, "max": 6,
+        "desc": "폭주로 판정되면 몇 번까지 다시 합성할지. 늘리면 안전해지고 그만큼 응답이 늦어진다. "
+                "0이면 재합성하지 않는다",
+    },
+    "tts.cv_ramble_fallback_top_k": {
+        "type": "number", "choices": None, "reflow": "immediate",
+        "label": "재합성 top_k (cosyvoice)",
+        "param": "ramble_fallback_top_k / COSYVOICE_RAMBLE_FALLBACK_TOP_K", "default": "1",
+        "min": 1, "max": 50,
+        "desc": "재합성할 때 쓰는 후보 폭. 1(greedy)이 폭주 20%로 가장 안정적이라 기본값이다. "
+                "밋밋하지만 노이즈보다는 낫다",
+    },
+
     # ---------------- fifth: 입모양 (per-request · 즉시) ----------------
     "fifth.lip_open": {
         "type": "number", "choices": None, "reflow": "immediate", "label": "입 벌림",

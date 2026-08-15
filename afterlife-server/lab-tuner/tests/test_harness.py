@@ -334,3 +334,44 @@ def test_last_sent_는_다른_인스턴스_전송도_잡는다():
     # 전혀 다른 인스턴스에서 조회해도 보인다
     watcher = KnobsFifthInproc("/watch.jpg", registry=r, render_url="http://x")
     assert watcher.last_sent["params"]["lip_open"] == 0.33
+
+def test_cosyvoice_파라미터가_전송된다():
+    """CosyVoice 는 sampling/ramble 계열을 받는다(qwen 의 gen params 와 다른 값)."""
+    posts = {}
+    import harness as h
+    r = KnobsRegistry()
+    r.update({"tts": {"engine": "cosyvoice", "cv_sampling_top_k": 1,
+                      "cv_ramble_retries": 5}})
+    fn = h.build_say_fn(r)
+    import unittest.mock as mock
+    with mock.patch.object(h.aiohttp, "ClientSession", lambda: _FakeSession(posts)):
+        asyncio.run(fn("안녕"))
+    assert posts["url"] == "http://127.0.0.1:8203/tts/kr"
+    assert posts["json"]["sampling_top_k"] == 1        # cv_ 접두어를 떼고 보낸다
+    assert posts["json"]["ramble_retries"] == 5
+    assert "cv_sampling_top_k" not in posts["json"]    # 랩 내부 이름은 새지 않는다
+    assert "sampling_top_p" not in posts["json"]       # 미지정은 미전송(서버 기본)
+
+def test_qwen_파라미터는_cosyvoice로_안_샌다():
+    """엔진마다 해석이 달라 잘못 보내면 조용히 다른 결과가 나온다."""
+    posts = {}
+    import harness as h
+    r = KnobsRegistry()
+    r.update({"tts": {"engine": "cosyvoice", "temperature": 0.9, "top_k": 30}})
+    fn = h.build_say_fn(r)
+    import unittest.mock as mock
+    with mock.patch.object(h.aiohttp, "ClientSession", lambda: _FakeSession(posts)):
+        asyncio.run(fn("안녕"))
+    assert "temperature" not in posts["json"]
+    assert "top_k" not in posts["json"]
+
+def test_cosyvoice_파라미터는_qwen으로_안_샌다():
+    posts = {}
+    import harness as h
+    r = KnobsRegistry()
+    r.update({"tts": {"engine": "qwen", "cv_sampling_top_k": 1}})
+    fn = h.build_say_fn(r)
+    import unittest.mock as mock
+    with mock.patch.object(h.aiohttp, "ClientSession", lambda: _FakeSession(posts)):
+        asyncio.run(fn("안녕"))
+    assert "sampling_top_k" not in posts["json"]
