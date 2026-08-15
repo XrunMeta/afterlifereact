@@ -85,6 +85,25 @@ def test_make_id_avoids_collision():
 
 # --- idle 정규화 -----------------------------------------------------------
 
+def test_idle_size_matches_fifth_render_output():
+    """idle 해상도 ≠ fifth 렌더 출력이면 통화 중 영상 크기가 왔다갔다 한다.
+
+    fifth 는 모든 소스 이미지를 image_normalize.TARGET_W/H(9:16)로 강제 정규화하므로
+    렌더 출력은 항상 그 크기다. 실제 소스에서 읽어 대조한다(모킹 없이).
+    """
+    norm = (pathlib.Path(__file__).resolve().parents[2]
+            / "fifth" / "scripts" / "image_normalize.py")
+    tree = ast.parse(norm.read_text(encoding="utf-8"))
+    got = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            for t in node.targets:
+                if getattr(t, "id", None) in ("TARGET_W", "TARGET_H"):
+                    got[t.id] = node.value.value
+    assert got.get("TARGET_W") and got.get("TARGET_H"), "TARGET_W/H 를 못 찾음"
+    assert (source_lab.IDLE_W, source_lab.IDLE_H) == (got["TARGET_W"], got["TARGET_H"])
+
+
 def test_build_idle_cmd_pins_fps_duration_and_size():
     """세 가지가 빠지면 각각 배속 붕괴·RAM 폭발·해상도 불일치가 난다."""
     cmd = source_lab.build_idle_cmd("/in.mp4", "/out.mp4")
