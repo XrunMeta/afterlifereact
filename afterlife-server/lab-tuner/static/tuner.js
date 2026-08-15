@@ -154,6 +154,10 @@ const v_a7deb0 = {
 function v_8dc054(v_b4fa6c, v_b24339, v_35f85c, v_a057b5) {
   const v_9fe22d = `${v_b4fa6c}.${v_b24339}`;
   const v_3ac7e7 = document.createElement('div'); v_3ac7e7.className = 'knob-row';
+
+  if (v_35f85c.reflow === 'container' || v_35f85c.reflow === 'lab_restart' || v_35f85c.reflow === 'session') {
+    v_3ac7e7.classList.add('needs-restart');
+  }
   const v_2869c1 = document.createElement('label'); v_2869c1.textContent = v_35f85c.label || v_b24339;
   const v_638ecc = v_a7deb0[v_35f85c.reflow];
   if (v_638ecc) { const v_fd5f43 = document.createElement('span'); v_fd5f43.className = 'reflow-chip'; v_fd5f43.textContent = v_638ecc; v_2869c1.appendChild(v_fd5f43); }
@@ -265,7 +269,10 @@ function v_a45ad7(v_35f85c, v_a057b5) {
     else v_729796 = 1;
   }
 
-  const v_eef514 = (String(v_a057b5 ?? '').split('.')[1] || '').length;
+  const v_f52139 = (v_a057b5 != null && v_a057b5 !== '')
+    ? v_a057b5
+    : ((String(v_35f85c.default ?? '').match(/-?\d+(\.\d+)?/) || [''])[0]);
+  const v_eef514 = (String(v_f52139).split('.')[1] || '').length;
   if (v_eef514 >= 3) v_729796 = Math.min(v_729796, 0.001);
   else if (v_eef514 === 2) v_729796 = Math.min(v_729796, 0.01);
   else if (v_eef514 === 1) v_729796 = Math.min(v_729796, 0.1);
@@ -348,7 +355,10 @@ function v_3c6a23() {
     if (!v_3ac7e7) continue;
     const v_148ff6 = document.createElement('div');
     v_148ff6.className = 'kill-badge';
-    v_148ff6.textContent = `⚠ 지금 안 먹음 — ${v_3325c8}`;
+
+    const v_c22a7a = document.body.classList.contains('compact');
+    v_148ff6.textContent = v_c22a7a ? '⚠ 지금 안 먹음' : `⚠ 지금 안 먹음 — ${v_3325c8}`;
+    v_148ff6.title = v_3325c8;
     v_3ac7e7.appendChild(v_148ff6);
   }
 }
@@ -855,6 +865,7 @@ document.getElementById('apply-knobs-top')?.addEventListener('click', v_9a2a8d);
 document.getElementById('toggle-compact')?.addEventListener('click', (v_9e86fd) => {
   const v_abacaa = document.body.classList.toggle('compact');
   v_9e86fd.target.textContent = v_abacaa ? '설명 펼치기' : '압축 보기';
+  v_3c6a23();   
 });
 v_5af772();
 v_4deb94();
