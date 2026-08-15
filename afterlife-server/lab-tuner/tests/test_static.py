@@ -364,3 +364,24 @@ def test_잠금_무력화_경고가_있다():
     # 우선순위 3종이 모두 규칙에 들어 있어야 한다(fifth_render.py 근거).
     for sw in ("source_face_lock", "lip_lock", "eyes_open_lock"):
         assert f"switch: '{sw}'" in js, sw
+
+
+def test_스텝은_범위와_정밀도를_반영한다():
+    """0.05 단위 고정이면 lip_closed(0.0023) 같은 미세값을 조절할 수 없다."""
+    js = _read("tuner.js")
+    assert "function stepFor" in js
+    assert "0.001" in js and "0.1" in js
+    # 범위를 벗어나지 않게 클램프해야 한다.
+    assert "Math.max(m.min" in js and "Math.min(m.max" in js
+    # 부동소수 누적 오차 방지
+    assert "toFixed(dec)" in js
+
+
+def test_압축_레이아웃_토글():
+    """노브 60종이라 기본은 압축, 필요할 때 설명을 펼친다."""
+    html, js = _read("tuner.html"), _read("tuner.js")
+    assert 'body class="compact"' in html
+    assert "body.compact" in html
+    assert 'id="toggle-compact"' in html
+    assert "classList.toggle('compact')" in js
+    assert "knob-list" in js and ".knob-list" in html

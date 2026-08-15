@@ -31,6 +31,25 @@
  .knob-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0;
    flex-wrap:wrap}
  .knob-row label{font-size:12px;color:var(--text-dim);display:flex;flex-direction:column}
+ /* --- 압축 모드(기본): 노브 60종을 한눈에 --- */
+ /* 채널 안에서 노브를 여러 열로 깔고, 설명·스펙은 접는다(행 tooltip 으로 확인). */
+ body.compact .channel .knob-row{
+   display:grid;grid-template-columns:1fr auto;align-items:center;
+   gap:4px 6px;margin:0;padding:3px 4px;border-radius:3px}
+ body.compact .channel .knob-row:hover{background:var(--surface)}
+ body.compact .knob-desc,
+ body.compact .knob-spec{display:none}
+ body.compact .channel .knob-row label{font-size:11px;flex-direction:row;
+   align-items:center;gap:4px;flex-wrap:wrap;line-height:1.3}
+ body.compact .channel .knob-row .reflow-chip,
+ body.compact .channel .knob-row .stage-tag{margin-top:0;font-size:8px;padding:0 4px}
+ body.compact .knob-row input,body.compact .knob-row select{width:86px;padding:3px 5px;font-size:11px}
+ body.compact .stepper input{width:52px}
+ body.compact .stepper button{padding:3px 6px;font-size:11px;line-height:1}
+ body.compact .kill-badge{grid-column:1/-1;margin:0 0 2px}
+ /* 노브가 적은 섹션도 두 열로 채워 세로 길이를 줄인다 */
+ body.compact .channel .knob-list{display:grid;
+   grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:2px 12px}
  /* 파라미터 설명 — 컨트롤 아래 전체 폭 한 줄 */
  .knob-desc{flex-basis:100%;font-size:11px;line-height:1.5;color:var(--text-dim);
    opacity:.85;margin:2px 0 2px;padding-left:1px}
@@ -113,7 +132,7 @@
    .col-right{width:100%;min-width:0}
    #knob-fields{grid-template-columns:1fr}
  }
-</style></head><body>
+</style></head><body class="compact">
  <div id="live-banner">라이브 통화 중 — 튜닝 대기</div>
  <div id="login-bar">
    <input id="login-email" placeholder="email" autocomplete="username" value="oth-test@example.invalid">
@@ -128,6 +147,7 @@
  <!-- 노브가 60종이라 스크롤이 길다 — 어디서든 적용할 수 있게 최상단 고정. -->
  <div id="apply-bar">
    <button id="apply-knobs-top" class="primary">적용</button>
+   <button id="toggle-compact" type="button">설명 펼치기</button>
    <span id="apply-status-top" class="apply-status"></span>
  </div>
  <div id="main-row">
