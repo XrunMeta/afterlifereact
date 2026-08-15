@@ -585,9 +585,16 @@ function v_796451() {
 
 function v_5a49fd(v_f91f33) {
   const v_65a2cd = Object.assign({}, v_f91f33 || {});
-  const v_8d41d7 = document.getElementById('promote-token')?.value || '';
+
+  const v_8d41d7 = document.getElementById('promote-token')?.value
+         || document.getElementById('source-token')?.value || '';
   if (v_8d41d7) v_65a2cd['X-Lab-Tuner-Token'] = v_8d41d7;   
   return v_65a2cd;
+}
+
+function v_21be23(v_abacaa) {
+  const v_57c92e = document.getElementById('source-auth');
+  if (v_57c92e) v_57c92e.style.display = v_abacaa ? 'block' : 'none';
 }
 
 function v_d35951(v_9b6134, v_94302c) {
@@ -677,11 +684,19 @@ async function v_377082() {
   if (!v_a38d42) return;
   let v_d5dda0;
   try {
-    v_d5dda0 = await (await fetch('/sources', {headers: v_5a49fd()})).json();
+    const v_cb35cb = await fetch('/sources', {headers: v_5a49fd()});
+    if (v_cb35cb.status === 401) {          
+      v_a38d42.textContent = '';
+      v_21be23(true);
+      v_d35951('토큰을 넣어야 업로드 목록이 보입니다', 'bad');
+      return;
+    }
+    v_d5dda0 = await v_cb35cb.json();
   } catch (v_9e86fd) {
     v_a38d42.textContent = '소스 목록 조회 실패: ' + v_9e86fd; return;
   }
   if (v_d5dda0.error) { v_a38d42.textContent = v_d5dda0.error; return; }
+  v_21be23(false);
   const v_2750f3 = v_d5dda0.idle_spec || {};
   const v_b6acae = document.getElementById('source-root');
   if (v_b6acae) {
@@ -726,6 +741,14 @@ async function v_6725b2() {
     const v_cb35cb = await fetch('/source/upload', {
       method: 'POST', headers: v_5a49fd(), body: v_23563e,
     });
+    if (v_cb35cb.status === 401) {
+      v_21be23(true);
+      v_d35951('토큰이 필요합니다 — 아래에 넣고 다시 업로드하세요', 'bad');
+      return;
+    }
+    if (v_cb35cb.status === 413) {          
+      v_d35951('용량 초과 — 프록시/서버 상한을 넘었습니다', 'bad'); return;
+    }
     const v_d5dda0 = await v_cb35cb.json();
     if (!v_cb35cb.ok || v_d5dda0.error) { v_d35951(v_d5dda0.error || `실패(${v_cb35cb.status})`, 'bad'); return; }
     v_658717.value = '';
@@ -1064,6 +1087,13 @@ document.getElementById('hangup-btn').onclick = v_cad05d;
 
 v_858a0a().then(v_377082);
 document.getElementById('source-upload-btn')?.addEventListener('click', v_6725b2);
+document.getElementById('source-token-btn')?.addEventListener('click', () => {
+  v_d35951('토큰 확인 중…', '');
+  v_377082();
+});
+document.getElementById('source-token')?.addEventListener('keydown', (v_9e86fd) => {
+  if (v_9e86fd.key === 'Enter') { v_d35951('토큰 확인 중…', ''); v_377082(); }
+});
 v_e1242b(); v_315473(); v_187e1c(); v_d73d4a(); v_2a2e10();
 document.getElementById('refresh-flp')?.addEventListener('click', v_2a2e10);
 

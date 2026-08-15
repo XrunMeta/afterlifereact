@@ -181,7 +181,11 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
                              headers={"Cache-Control": "no-store"})
 
     async def tuner_js(_req):
-        return web.FileResponse(_STATIC / "tuner.js")
+        # no-cache 강제 — 배포가 잦은데 파일명에 버전이 없어서, 브라우저가
+        # Last-Modified 휴리스틱으로 옛 번들을 계속 실행하는 일이 실제로 있었다
+        # (외부 URL 에서 새 함수가 undefined 로 나옴). 재검증만 하게 만든다.
+        return web.FileResponse(_STATIC / "tuner.js",
+                                headers={"Cache-Control": "no-cache"})
 
     async def login_proxy(req):
         """api POST /oth-path 프록시 — accessToken만 반환.
