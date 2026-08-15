@@ -406,6 +406,86 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
             # 렌더서버가 죽어 있어도 랩은 계속 떠 있어야 한다.
             return web.json_response({"error": f"렌더서버 로그 조회 실패: {exc}", "lines": []})
 
+    async def sources_list(req):
+        """업로드 소스 목록(최신 우선). 저장 루트도 함께 내려 UI 가 경로를 보여준다."""
+        err = _auth_or_401(req)
+        if err is not None:
+            return err
+        import source_lab
+        return web.json_response({
+            "root": str(source_lab.root()),
+            "sources": source_lab.list_sources(),
+            "max_mb": source_lab.MAX_BYTES // 1048576,
+            "idle_spec": {"sec": source_lab.IDLE_SEC, "fps": source_lab.IDLE_FPS,
+                          "w": source_lab.IDLE_W, "h": source_lab.IDLE_H},
+        })
+
+    async def source_upload(req):
+        """multipart 업로드 → lab-sources/{날짜시간}/source.ext (+ 영상이면 idle.mp4).
+
+        용량은 **읽는 도중** 누적으로 막는다 — 전부 받고 나서 검사하면 상한을
+        넘는 파일이 이미 메모리에 올라온 뒤다.
+        """
+        err = _auth_or_401(req)
+        if err is not None:
+            return err
+        import source_lab
+        try:
+            reader = await req.multipart()
+        except Exception as exc:
+            return web.json_response({"error": f"multipart 파싱 실패: {exc}"}, status=400)
+
+        filename, buf, total = None, [], 0
+        while True:
+            field = await reader.next()
+            if field is None:
+                break
+            if field.name != "file":
+                continue
+            filename = field.filename or ""
+            try:
+                source_lab.kind_of(filename)   # 확장자는 바이트를 받기 전에 거른다
+            except source_lab.SourceError as exc:
+                return web.json_response({"error": str(exc)}, status=400)
+            while True:
+                chunk = await field.read_chunk()
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > source_lab.MAX_BYTES:
+                    return web.json_response(
+                        {"error": f"용량 초과: {source_lab.MAX_BYTES // 1048576}MB 상한"},
+                        status=413)
+                buf.append(chunk)
+            break
+
+        if filename is None:
+            return web.json_response({"error": "file 파트가 없습니다"}, status=400)
+        try:
+            meta = source_lab.save_bytes(b"".join(buf), filename)
+        except source_lab.SourceError as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        except Exception as exc:
+            log.warning("source upload 실패: %s", exc)
+            return web.json_response({"error": f"저장 실패: {exc}"}, status=500)
+        return web.json_response(meta)
+
+    async def source_delete(req):
+        err = _auth_or_401(req)
+        if err is not None:
+            return err
+        import source_lab
+        data = await req.json()
+        try:
+            ok = source_lab.delete(data.get("id", ""))
+        except source_lab.SourceError as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        # 지운 소스를 노브가 아직 가리키고 있으면 클론 기본으로 되돌린다
+        # (resolve 가 fail-open 이라 통화는 살지만, UI 가 유령 id 를 보여주지 않게).
+        if ok and registry.get().source.render_source == data.get("id"):
+            registry.update({"source": {"render_source": ""}})
+        return web.json_response({"deleted": ok})
+
     async def production_status(_req):
         import subprocess
         keys = [loc["env"] for path, loc in promote.KNOB_TO_LIVE.items()
@@ -453,4 +533,7 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
     app.router.add_get("/production-status", production_status)
     app.router.add_get("/flp-config", flp_config)   # 3층 읽기전용 스냅샷
     app.router.add_get("/render-logs", render_logs)  # 렌더서버 로그 프록시
+    app.router.add_get("/sources", sources_list)          # 업로드 소스 목록
+    app.router.add_post("/source/upload", source_upload)  # 업로드(multipart)
+    app.router.add_post("/source/delete", source_delete)
     return app
