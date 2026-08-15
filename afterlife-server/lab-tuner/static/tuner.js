@@ -724,9 +724,10 @@ async function v_0b27a0(v_389afb) {
   } catch (v_9e86fd) {
     v_d35951('저장 실패: ' + v_9e86fd, 'bad'); return;
   }
+  v_5ad660();   
   v_d35951(v_389afb ? `선택: ${v_389afb} — 다음 통화부터 반영(끊고 다시 걸기)`
                       : '클론 기본 자산으로 되돌림 — 다음 통화부터', 'ok');
-  v_377082();
+  await v_377082();
 }
 
 async function v_6725b2() {
@@ -786,6 +787,44 @@ async function v_a0796e(v_389afb) {
 const v_170a1f =
   '#knob-fields input, #knob-fields select, #latency-fields input, #latency-fields select';
 
+const v_5e9951 = 'lab-tuner.knobs.v1';
+
+function v_5ad660() {
+  const v_3332db = {};
+  document.querySelectorAll(v_170a1f).forEach(v_fb6823 => {
+    v_3332db[`${v_fb6823.dataset.s}.${v_fb6823.dataset.k}`] = v_fb6823.value;   
+  });
+  try {
+    localStorage.setItem(v_5e9951, JSON.stringify(v_3332db));
+  } catch (v_9e86fd) {
+
+    console.warn('[lab-tuner] 노브 저장 실패:', v_9e86fd);
+  }
+}
+
+function v_7bd1cc() {
+  let v_3332db;
+  try {
+    const v_479f05 = localStorage.getItem(v_5e9951);
+    if (!v_479f05) return {count: 0, vals: null};
+    v_3332db = JSON.parse(v_479f05);
+  } catch (v_9e86fd) { return {count: 0, vals: null}; }
+  if (!v_3332db || typeof v_3332db !== 'object') return {count: 0, vals: null};
+  const v_40eb63 = new Set();
+  document.querySelectorAll(v_170a1f).forEach(v_fb6823 => {
+    const v_b24339 = `${v_fb6823.dataset.s}.${v_fb6823.dataset.k}`;
+    if (!(v_b24339 in v_3332db)) return;                    
+    if (v_fb6823.value === v_3332db[v_b24339]) return;
+    v_fb6823.value = v_3332db[v_b24339];
+    v_40eb63.add(v_b24339);
+  });
+  return {count: v_40eb63.size, changed: v_40eb63, vals: v_3332db};
+}
+
+function v_969727() {
+  try { localStorage.removeItem(v_5e9951); } catch (v_9e86fd) {  }
+}
+
 function v_ccf98d(v_9b6134, v_94302c) {
   for (const v_389afb of ['apply-status', 'apply-status-top']) {
     const v_57c92e = document.getElementById(v_389afb);
@@ -795,10 +834,11 @@ function v_ccf98d(v_9b6134, v_94302c) {
   }
 }
 
-async function v_9a2a8d() {
+async function v_9a2a8d(v_78c274) {
   const v_4628fe = {};
   document.querySelectorAll(v_170a1f).forEach(v_fb6823 => {
     const v_fd5f43 = v_fb6823.dataset.s, v_0eb677 = v_fb6823.dataset.k; let v_81e2ef = v_fb6823.value;
+    if (v_78c274 && !v_78c274.has(`${v_fd5f43}.${v_0eb677}`)) return;
     if (v_81e2ef === '') return;
     if (v_81e2ef === 'true') v_81e2ef = true; else if (v_81e2ef === 'false') v_81e2ef = false;
     else {
@@ -838,6 +878,7 @@ async function v_9a2a8d() {
 
   v_85930b = v_f966e3;
   await v_858a0a();          
+  v_5ad660();           
   v_5af772();
 
   if (v_a28d1a.length) {
@@ -1085,7 +1126,24 @@ document.getElementById('login-btn').onclick = v_182fdb;
 document.getElementById('connect-btn').onclick = v_1857f4;
 document.getElementById('hangup-btn').onclick = v_cad05d;
 
-v_858a0a().then(v_377082);
+v_858a0a().then(async () => {
+  const {count: v_9e8c70, changed: v_40eb63, vals: v_3332db} = v_7bd1cc();
+  if (v_9e8c70) {
+    v_ccf98d(`이 브라우저에 저장된 노브 ${v_9e8c70}개 복원 중…`, '');
+    await v_9a2a8d(v_40eb63);   
+  }
+
+  if (v_3332db && 'source.render_source' in v_3332db) {
+    await v_0b27a0(v_3332db['source.render_source']);
+  } else {
+    await v_377082();
+  }
+  if (v_9e8c70) v_ccf98d(`이 브라우저에 저장된 노브 ${v_9e8c70}개를 복원했습니다`, 'ok');
+});
+document.getElementById('clear-saved')?.addEventListener('click', () => {
+  v_969727();
+  v_ccf98d('이 브라우저 저장값을 지웠습니다 — 다음 새로고침부터 서버 값 그대로', 'warn');
+});
 document.getElementById('source-upload-btn')?.addEventListener('click', v_6725b2);
 document.getElementById('source-token-btn')?.addEventListener('click', () => {
   v_d35951('토큰 확인 중…', '');

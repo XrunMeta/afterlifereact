@@ -52,13 +52,22 @@ THUMB_H = int(os.environ.get("LAB_SOURCE_THUMB_H", "160"))
 # 0 으로 두면 첫 프레임이 검거나 페이드인이라 얼굴 검출이 실패할 수 있다.
 FACE_AT_SEC = float(os.environ.get("LAB_SOURCE_FACE_AT", "1"))
 
-# idle 정규화 규격 — 기존 클론 idle 실측값(512x1024 / 25fps / 9.92s)에 맞춘다.
+# idle 정규화 규격.
+#
+# 🔴 해상도는 **fifth 렌더 출력과 같아야 한다**(576x1024).
+#   fifth 는 모든 소스 이미지를 9:16 576x1024 로 강제 정규화한다
+#   (fifth/scripts/image_normalize.py TARGET_W/TARGET_H — 원본 비율과 무관).
+#   idle 이 다른 크기면 말할 때(576x1024) ↔ 쉴 때(idle 크기) 마다 WebRTC 트랙
+#   해상도가 바뀌어 브라우저 영상이 커졌다 작아졌다 한다.
+#   2026-08-15 실측: 렌더 출력 576x1024 · 기존 클론 idle mp4 512x1024 → 라이브에도
+#   같은 증상이 있다(클론 idle 은 별도 파이프라인이라 여기서 못 고친다).
+#   test_source_lab.py 가 image_normalize.py 를 AST 로 읽어 드리프트를 막는다.
 # fps: VideoTrack 은 무조건 25fps 로 재생하므로 원본 fps 를 맞추지 않으면 배속이 틀어진다.
-# 길이·해상도: idle 은 전 프레임을 rgb24 로 RAM 에 올린다(idle.py:_load_idle_frames).
-#   512x1024 10초 = 248프레임 ≈ 390MB. 상한 없이 두면 GB 단위로 터진다.
+# 길이: idle 은 전 프레임을 rgb24 로 RAM 에 올린다(idle.py:_load_idle_frames).
+#   576x1024 10초 = 250프레임 ≈ 440MB. 상한 없이 두면 GB 단위로 터진다.
 IDLE_SEC = float(os.environ.get("LAB_SOURCE_IDLE_SEC", "10"))
 IDLE_FPS = int(os.environ.get("LAB_SOURCE_IDLE_FPS", "25"))
-IDLE_W = int(os.environ.get("LAB_SOURCE_IDLE_W", "512"))
+IDLE_W = int(os.environ.get("LAB_SOURCE_IDLE_W", "576"))
 IDLE_H = int(os.environ.get("LAB_SOURCE_IDLE_H", "1024"))
 
 _FFMPEG = os.environ.get("LAB_FFMPEG", "ffmpeg")
@@ -269,6 +278,9 @@ def save_bytes(data: bytes, filename: str, *, now: float | None = None,
         "source": render_src,   # fifth 렌더 소스(항상 이미지)
         "video": video,         # 업로드 원본 영상(사진 업로드면 None)
         "idle": idle,
+        # 어떤 규격으로 구웠는지 — 나중에 IDLE_W/H 가 바뀌면 옛 idle 을 골라낼 수 있다
+        # (크기가 렌더 출력과 어긋나면 통화 중 영상 크기가 튄다).
+        "idle_wh": [IDLE_W, IDLE_H] if idle else None,
         "thumb": thumb,
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(now)),
     }
@@ -327,6 +339,12 @@ def resolve(source_id: str | None) -> dict | None:
         return None
     if meta.get("idle") and not os.path.isfile(meta["idle"]):
         meta["idle"] = None
+    if meta.get("idle") and meta.get("idle_wh") != [IDLE_W, IDLE_H]:
+        # 규격이 바뀌기 전에 구운 idle. 쓰긴 하되(없는 것보단 낫다) 통화 중 영상
+        # 크기가 튈 수 있으므로 남긴다. 다시 올리면 새 규격으로 구워진다.
+        log.warning("[source] idle 규격 불일치 id=%s idle_wh=%s (현재 %dx%d) — "
+                    "통화 중 영상 크기가 바뀔 수 있다",
+                    meta["id"], meta.get("idle_wh"), IDLE_W, IDLE_H)
     return meta
 
 
