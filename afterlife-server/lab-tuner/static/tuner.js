@@ -199,14 +199,23 @@ function v_8dc054(v_b4fa6c, v_b24339, v_35f85c, v_a057b5) {
   v_22d288.dataset.s = v_b4fa6c; v_22d288.dataset.k = v_b24339;
   if (v_35f85c.type === 'number') {                   
     const v_83ff11 = document.createElement('div'); v_83ff11.className = 'stepper';
-    const v_729796 = (String(v_a057b5).includes('.') ? 0.05 : 1);
+    const v_729796 = v_a45ad7(v_35f85c, v_a057b5);
     v_22d288.dataset.step = String(v_729796);
+    v_22d288.step = String(v_729796);
     const v_a86deb = document.createElement('button'); v_a86deb.type='button';
-    v_a86deb.className = 'step-down'; v_a86deb.textContent = '▼';
+    v_a86deb.className = 'step-down'; v_a86deb.textContent = '−';
     const v_d8f778 = document.createElement('button'); v_d8f778.type='button';
-    v_d8f778.className = 'step-up'; v_d8f778.textContent = '▲';
-    const v_219075 = (v_d5dda0) => { const v_c3bc75 = Number(String(v_22d288.value).replace(',', '.')) || 0;
-      v_22d288.value = (Math.round((v_c3bc75 + v_d5dda0*v_729796)*1000)/1000); };
+    v_d8f778.className = 'step-up'; v_d8f778.textContent = '+';
+
+    const v_219075 = (v_d5dda0) => {
+      const v_c3bc75 = Number(String(v_22d288.value).replace(',', '.')) || 0;
+      let v_a448ad = v_c3bc75 + v_d5dda0 * v_729796;
+      const v_eef514 = (String(v_729796).split('.')[1] || '').length;
+      v_a448ad = Number(v_a448ad.toFixed(v_eef514));
+      if (v_35f85c.min != null) v_a448ad = Math.max(v_35f85c.min, v_a448ad);
+      if (v_35f85c.max != null) v_a448ad = Math.min(v_35f85c.max, v_a448ad);
+      v_22d288.value = v_a448ad;
+    };
     v_a86deb.onclick = () => v_219075(-1); v_d8f778.onclick = () => v_219075(1);
     v_83ff11.appendChild(v_a86deb); v_83ff11.appendChild(v_22d288); v_83ff11.appendChild(v_d8f778);
     v_3ac7e7.appendChild(v_83ff11);
@@ -214,17 +223,20 @@ function v_8dc054(v_b4fa6c, v_b24339, v_35f85c, v_a057b5) {
     v_3ac7e7.appendChild(v_22d288);
   }
 
-  if (v_35f85c.desc) {
-    const v_d5dda0 = document.createElement('div');
-    v_d5dda0.className = 'knob-desc'; v_d5dda0.textContent = v_35f85c.desc;
-    v_3ac7e7.appendChild(v_d5dda0);
-  }
-
   const v_46b9bf = [];
   if (v_35f85c.param) v_46b9bf.push(v_35f85c.param);
   if (v_35f85c.default != null) v_46b9bf.push(`기본 ${v_35f85c.default}`);
   const v_7c1bad = v_5a2031(v_35f85c);
   if (v_7c1bad) v_46b9bf.push(v_7c1bad);
+
+  const v_962e0b = [v_35f85c.label || v_b24339, v_35f85c.desc, v_46b9bf.join(' · ')].filter(Boolean).join('\n');
+  v_3ac7e7.title = v_962e0b;
+
+  if (v_35f85c.desc) {
+    const v_d5dda0 = document.createElement('div');
+    v_d5dda0.className = 'knob-desc'; v_d5dda0.textContent = v_35f85c.desc;
+    v_3ac7e7.appendChild(v_d5dda0);
+  }
   if (v_46b9bf.length) {
     const v_fd5f43 = document.createElement('div');
     v_fd5f43.className = 'knob-spec';
@@ -232,6 +244,32 @@ function v_8dc054(v_b4fa6c, v_b24339, v_35f85c, v_a057b5) {
     v_3ac7e7.appendChild(v_fd5f43);
   }
   return v_3ac7e7;
+}
+
+function v_a45ad7(v_35f85c, v_a057b5) {
+  if (v_35f85c.step != null) return v_35f85c.step;
+  const v_43e24b = v_35f85c.min, v_d2c6bf = v_35f85c.max;
+  let v_729796;
+  if (v_43e24b == null || v_d2c6bf == null) {
+    v_729796 = String(v_a057b5).includes('.') ? 0.01 : 1;
+  } else {
+    const v_4f2c9c = Math.abs(v_d2c6bf - v_43e24b);
+
+    const v_41e588 = String(v_35f85c.default ?? '').match(/-?\d+(\.\d+)?/);
+    const v_78d83c = v_41e588 ? v_41e588[0].includes('.') : false;
+    const v_28d8ef = Number.isInteger(v_43e24b) && Number.isInteger(v_d2c6bf) && !v_78d83c;
+    if (v_28d8ef && v_4f2c9c >= 5) v_729796 = 1;          
+    else if (v_4f2c9c <= 0.05) v_729796 = 0.001;
+    else if (v_4f2c9c <= 2) v_729796 = 0.01;
+    else if (v_4f2c9c <= 20) v_729796 = 0.1;
+    else v_729796 = 1;
+  }
+
+  const v_eef514 = (String(v_a057b5 ?? '').split('.')[1] || '').length;
+  if (v_eef514 >= 3) v_729796 = Math.min(v_729796, 0.001);
+  else if (v_eef514 === 2) v_729796 = Math.min(v_729796, 0.01);
+  else if (v_eef514 === 1) v_729796 = Math.min(v_729796, 0.1);
+  return v_729796;
 }
 
 function v_5a2031(v_35f85c) {
@@ -257,16 +295,19 @@ async function v_858a0a() {
     const v_10a17d = document.createElement('div'); v_10a17d.className = 'channel';
     const v_9f1622 = document.createElement('div'); v_9f1622.className = 'panel-title';
     v_9f1622.textContent = v_b4fa6c; v_10a17d.appendChild(v_9f1622);
+
+    const v_ef8ab1 = document.createElement('div'); v_ef8ab1.className = 'knob-list';
+    v_10a17d.appendChild(v_ef8ab1);
     for (const [v_b24339, v_a057b5] of Object.entries(v_3332db)) {
       const v_9fe22d = `${v_b4fa6c}.${v_b24339}`;
       const v_35f85c = v_ab4c96[v_9fe22d] || {type: 'string', reflow: 'next_call'};
       const v_3ac7e7 = v_8dc054(v_b4fa6c, v_b24339, v_35f85c, v_a057b5);
 
       if (v_35f85c.group === 'latency' && v_d66ecf) v_d66ecf.appendChild(v_3ac7e7);
-      else v_10a17d.appendChild(v_3ac7e7);
+      else v_ef8ab1.appendChild(v_3ac7e7);
     }
 
-    if (v_10a17d.querySelectorAll('.knob-row').length) v_a38d42.appendChild(v_10a17d);
+    if (v_ef8ab1.querySelectorAll('.knob-row').length) v_a38d42.appendChild(v_10a17d);
   }
   v_796451();
   document.getElementById('k_tts_engine')?.addEventListener('change', v_796451);
@@ -810,6 +851,11 @@ document.getElementById('log-clear')?.addEventListener('click', () => {
 });
 
 document.getElementById('apply-knobs-top')?.addEventListener('click', v_9a2a8d);
+
+document.getElementById('toggle-compact')?.addEventListener('click', (v_9e86fd) => {
+  const v_abacaa = document.body.classList.toggle('compact');
+  v_9e86fd.target.textContent = v_abacaa ? '설명 펼치기' : '압축 보기';
+});
 v_5af772();
 v_4deb94();
 setInterval(v_4deb94, 3000);
