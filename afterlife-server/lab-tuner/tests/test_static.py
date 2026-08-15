@@ -385,3 +385,29 @@ def test_압축_레이아웃_토글():
     assert 'id="toggle-compact"' in html
     assert "classList.toggle('compact')" in js
     assert "knob-list" in js and ".knob-list" in html
+
+
+def test_runs는_스크롤_역순():
+    """run 이 쌓이면 목록이 화면을 다 먹는다 — 300px 스크롤 + 최근 것이 위."""
+    html, js = _read("tuner.html"), _read("tuner.js")
+    assert "#runs-list{max-height:300px" in html.replace(" ", "")
+    assert "overflow-y:auto" in html
+    assert "runs.reverse()" in js
+
+
+def test_고정바에_재기동과_잠금토글():
+    html, js = _read("tuner.html"), _read("tuner.js")
+    assert 'id="restart-top"' in html
+    assert 'id="toggle-locks"' in html
+    assert "LOCK_SWITCHES" in js
+
+
+def test_재기동_필요값_변경시_버튼_강조():
+    """적용만 눌러선 안 먹는 값을 바꿨을 때 재기동 버튼이 눈에 띄어야 한다."""
+    html, js = _read("tuner.html"), _read("tuner.js")
+    assert "markRestartDirty" in js and "clearRestartDirty" in js
+    assert "needs-attention" in js
+    assert "button.needs-attention" in html
+    # 스텝퍼는 change 이벤트가 안 나므로 bump 에서도 알려야 한다
+    bump = js[js.index("const bump ="):js.index("const bump =") + 700]
+    assert "markRestartDirty" in bump
