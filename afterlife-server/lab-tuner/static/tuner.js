@@ -201,6 +201,11 @@ function v_8dc054(v_b4fa6c, v_b24339, v_35f85c, v_a057b5) {
   }
   v_22d288.id = `k_${v_b4fa6c}_${v_b24339}`;
   v_22d288.dataset.s = v_b4fa6c; v_22d288.dataset.k = v_b24339;
+
+  if (v_35f85c.reflow === 'container' || v_35f85c.reflow === 'lab_restart' || v_35f85c.reflow === 'session') {
+    v_22d288.addEventListener('change', v_e29df3);
+    v_22d288.addEventListener('input', v_e29df3);
+  }
   if (v_35f85c.type === 'number') {                   
     const v_83ff11 = document.createElement('div'); v_83ff11.className = 'stepper';
     const v_729796 = v_a45ad7(v_35f85c, v_a057b5);
@@ -219,6 +224,8 @@ function v_8dc054(v_b4fa6c, v_b24339, v_35f85c, v_a057b5) {
       if (v_35f85c.min != null) v_a448ad = Math.max(v_35f85c.min, v_a448ad);
       if (v_35f85c.max != null) v_a448ad = Math.min(v_35f85c.max, v_a448ad);
       v_22d288.value = v_a448ad;
+
+      if (v_3ac7e7.classList.contains('needs-restart')) v_e29df3();
     };
     v_a86deb.onclick = () => v_219075(-1); v_d8f778.onclick = () => v_219075(1);
     v_83ff11.appendChild(v_a86deb); v_83ff11.appendChild(v_22d288); v_83ff11.appendChild(v_d8f778);
@@ -324,6 +331,24 @@ async function v_858a0a() {
     document.getElementById(`k_fifth_${v_0eb677}`)?.addEventListener('change', v_3c6a23);
   }
   v_d4af21();   
+}
+
+const v_2e593f = ['lip_lock', 'source_face_lock', 'source_face_lock_full', 'eyes_open_lock'];
+
+let v_5ba88c = false;
+
+function v_e29df3() {
+  v_5ba88c = true;
+  for (const v_389afb of ['restart-top', 'restart-prethird']) {
+    document.getElementById(v_389afb)?.classList.add('needs-attention');
+  }
+}
+
+function v_3ea284() {
+  v_5ba88c = false;
+  for (const v_389afb of ['restart-top', 'restart-prethird']) {
+    document.getElementById(v_389afb)?.classList.remove('needs-attention');
+  }
 }
 
 const v_9f8d13 = [
@@ -667,6 +692,8 @@ async function v_315473() {
   try {
     const v_89da6a = await (await fetch('/runs')).json();
     if (!v_89da6a.length) { v_a38d42.innerHTML = '<i>run 없음</i>'; return; }
+
+    v_89da6a.reverse();
     let v_d91d98 = '<table><tr><th>run_id</th><th>pinned</th><th></th></tr>';
     for (const v_cb35cb of v_89da6a) {
       v_d91d98 += `<tr><td>${v_cb35cb.run_id}</td><td>${v_cb35cb.pinned ? '📌' : ''}</td>`+
@@ -811,6 +838,7 @@ async function v_f45ddd() {
       `새 프로세스 기동 대기중…</div>`;
     const v_4c6dd7 = await v_b41b0c(v_be69ff, v_e926e3);
     if (v_4c6dd7) {
+      v_3ea284();   
       v_e926e3.innerHTML = `<div>재기동 완료(MainPID:${v_8fd199(v_60aaaa)}) — 실행값 갱신됨</div>`;
       await v_187e1c();
     } else {
@@ -861,6 +889,25 @@ document.getElementById('log-clear')?.addEventListener('click', () => {
 });
 
 document.getElementById('apply-knobs-top')?.addEventListener('click', v_9a2a8d);
+
+document.getElementById('restart-top')?.addEventListener('click', () => {
+  document.getElementById('restart-prethird')?.scrollIntoView({block: 'center'});
+  v_3fd5d1();
+});
+
+document.getElementById('toggle-locks')?.addEventListener('click', (v_9e86fd) => {
+  const v_bc9d87 = v_2e593f.some(v_0eb677 =>
+    document.getElementById(`k_fifth_${v_0eb677}`)?.value === 'true');
+  const v_a448ad = v_bc9d87 ? 'false' : 'true';
+  for (const v_0eb677 of v_2e593f) {
+    const v_57c92e = document.getElementById(`k_fifth_${v_0eb677}`);
+    if (v_57c92e) v_57c92e.value = v_a448ad;
+  }
+  v_9e86fd.target.textContent = v_a448ad === 'true' ? '잠금 전체 끄기' : '잠금 전체 켜기';
+  v_3c6a23();
+
+  v_ccf98d(`잠금 4종을 전부 ${v_a448ad === 'true' ? '켰습니다' : '껐습니다'} — 적용을 누르면 다음 발화부터 반영`, 'warn');
+});
 
 document.getElementById('toggle-compact')?.addEventListener('click', (v_9e86fd) => {
   const v_abacaa = document.body.classList.toggle('compact');
