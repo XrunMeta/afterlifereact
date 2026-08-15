@@ -199,14 +199,23 @@ function buildKnobRow(section, key, m, val) {
   ctrl.dataset.s = section; ctrl.dataset.k = key;
   if (m.type === 'number') {                   
     const wrap = document.createElement('div'); wrap.className = 'stepper';
-    const step = (String(val).includes('.') ? 0.05 : 1);
+    const step = stepFor(m, val);
     ctrl.dataset.step = String(step);
+    ctrl.step = String(step);
     const down = document.createElement('button'); down.type='button';
-    down.className = 'step-down'; down.textContent = '▼';
+    down.className = 'step-down'; down.textContent = '−';
     const up = document.createElement('button'); up.type='button';
-    up.className = 'step-up'; up.textContent = '▲';
-    const bump = (d) => { const cur = Number(String(ctrl.value).replace(',', '.')) || 0;
-      ctrl.value = (Math.round((cur + d*step)*1000)/1000); };
+    up.className = 'step-up'; up.textContent = '+';
+
+    const bump = (d) => {
+      const cur = Number(String(ctrl.value).replace(',', '.')) || 0;
+      let next = cur + d * step;
+      const dec = (String(step).split('.')[1] || '').length;
+      next = Number(next.toFixed(dec));
+      if (m.min != null) next = Math.max(m.min, next);
+      if (m.max != null) next = Math.min(m.max, next);
+      ctrl.value = next;
+    };
     down.onclick = () => bump(-1); up.onclick = () => bump(1);
     wrap.appendChild(down); wrap.appendChild(ctrl); wrap.appendChild(up);
     row.appendChild(wrap);
@@ -214,17 +223,20 @@ function buildKnobRow(section, key, m, val) {
     row.appendChild(ctrl);
   }
 
-  if (m.desc) {
-    const d = document.createElement('div');
-    d.className = 'knob-desc'; d.textContent = m.desc;
-    row.appendChild(d);
-  }
-
   const specBits = [];
   if (m.param) specBits.push(m.param);
   if (m.default != null) specBits.push(`기본 ${m.default}`);
   const rangeHint = _rangeHint(m);
   if (rangeHint) specBits.push(rangeHint);
+
+  const tip = [m.label || key, m.desc, specBits.join(' · ')].filter(Boolean).join('\n');
+  row.title = tip;
+
+  if (m.desc) {
+    const d = document.createElement('div');
+    d.className = 'knob-desc'; d.textContent = m.desc;
+    row.appendChild(d);
+  }
   if (specBits.length) {
     const s = document.createElement('div');
     s.className = 'knob-spec';
@@ -232,6 +244,32 @@ function buildKnobRow(section, key, m, val) {
     row.appendChild(s);
   }
   return row;
+}
+
+function stepFor(m, val) {
+  if (m.step != null) return m.step;
+  const min = m.min, max = m.max;
+  let step;
+  if (min == null || max == null) {
+    step = String(val).includes('.') ? 0.01 : 1;
+  } else {
+    const range = Math.abs(max - min);
+
+    const defNum = String(m.default ?? '').match(/-?\d+(\.\d+)?/);
+    const defIsFloat = defNum ? defNum[0].includes('.') : false;
+    const bothInt = Number.isInteger(min) && Number.isInteger(max) && !defIsFloat;
+    if (bothInt && range >= 5) step = 1;          
+    else if (range <= 0.05) step = 0.001;
+    else if (range <= 2) step = 0.01;
+    else if (range <= 20) step = 0.1;
+    else step = 1;
+  }
+
+  const dec = (String(val ?? '').split('.')[1] || '').length;
+  if (dec >= 3) step = Math.min(step, 0.001);
+  else if (dec === 2) step = Math.min(step, 0.01);
+  else if (dec === 1) step = Math.min(step, 0.1);
+  return step;
 }
 
 function _rangeHint(m) {
@@ -257,16 +295,19 @@ async function loadKnobs() {
     const ch = document.createElement('div'); ch.className = 'channel';
     const title = document.createElement('div'); title.className = 'panel-title';
     title.textContent = section; ch.appendChild(title);
+
+    const list = document.createElement('div'); list.className = 'knob-list';
+    ch.appendChild(list);
     for (const [key, val] of Object.entries(vals)) {
       const path = `${section}.${key}`;
       const m = meta[path] || {type: 'string', reflow: 'next_call'};
       const row = buildKnobRow(section, key, m, val);
 
       if (m.group === 'latency' && latBox) latBox.appendChild(row);
-      else ch.appendChild(row);
+      else list.appendChild(row);
     }
 
-    if (ch.querySelectorAll('.knob-row').length) box.appendChild(ch);
+    if (list.querySelectorAll('.knob-row').length) box.appendChild(ch);
   }
   refreshTtsDim();
   document.getElementById('k_tts_engine')?.addEventListener('change', refreshTtsDim);
@@ -810,6 +851,11 @@ document.getElementById('log-clear')?.addEventListener('click', () => {
 });
 
 document.getElementById('apply-knobs-top')?.addEventListener('click', applyKnobs);
+
+document.getElementById('toggle-compact')?.addEventListener('click', (e) => {
+  const on = document.body.classList.toggle('compact');
+  e.target.textContent = on ? '설명 펼치기' : '압축 보기';
+});
 renderMeter();
 pollLiveStatus();
 setInterval(pollLiveStatus, 3000);
