@@ -724,9 +724,10 @@ async function selectSource(id) {
   } catch (e) {
     _setSourceStatus('저장 실패: ' + e, 'bad'); return;
   }
+  saveKnobsLocal();   
   _setSourceStatus(id ? `선택: ${id} — 다음 통화부터 반영(끊고 다시 걸기)`
                       : '클론 기본 자산으로 되돌림 — 다음 통화부터', 'ok');
-  loadSources();
+  await loadSources();
 }
 
 async function uploadSource() {
@@ -786,6 +787,44 @@ async function deleteSource(id) {
 const KNOB_INPUT_SELECTOR =
   '#knob-fields input, #knob-fields select, #latency-fields input, #latency-fields select';
 
+const KNOB_STORE_KEY = 'lab-tuner.knobs.v1';
+
+function saveKnobsLocal() {
+  const vals = {};
+  document.querySelectorAll(KNOB_INPUT_SELECTOR).forEach(inp => {
+    vals[`${inp.dataset.s}.${inp.dataset.k}`] = inp.value;   
+  });
+  try {
+    localStorage.setItem(KNOB_STORE_KEY, JSON.stringify(vals));
+  } catch (e) {
+
+    console.warn('[lab-tuner] 노브 저장 실패:', e);
+  }
+}
+
+function restoreKnobsLocal() {
+  let vals;
+  try {
+    const raw = localStorage.getItem(KNOB_STORE_KEY);
+    if (!raw) return {count: 0, vals: null};
+    vals = JSON.parse(raw);
+  } catch (e) { return {count: 0, vals: null}; }
+  if (!vals || typeof vals !== 'object') return {count: 0, vals: null};
+  const changed = new Set();
+  document.querySelectorAll(KNOB_INPUT_SELECTOR).forEach(inp => {
+    const key = `${inp.dataset.s}.${inp.dataset.k}`;
+    if (!(key in vals)) return;                    
+    if (inp.value === vals[key]) return;
+    inp.value = vals[key];
+    changed.add(key);
+  });
+  return {count: changed.size, changed, vals};
+}
+
+function clearKnobsLocal() {
+  try { localStorage.removeItem(KNOB_STORE_KEY); } catch (e) {  }
+}
+
 function _setApplyStatus(text, kind) {
   for (const id of ['apply-status', 'apply-status-top']) {
     const el = document.getElementById(id);
@@ -795,10 +834,11 @@ function _setApplyStatus(text, kind) {
   }
 }
 
-async function applyKnobs() {
+async function applyKnobs(only) {
   const partial = {};
   document.querySelectorAll(KNOB_INPUT_SELECTOR).forEach(inp => {
     const s = inp.dataset.s, k = inp.dataset.k; let v = inp.value;
+    if (only && !only.has(`${s}.${k}`)) return;
     if (v === '') return;
     if (v === 'true') v = true; else if (v === 'false') v = false;
     else {
@@ -838,6 +878,7 @@ async function applyKnobs() {
 
   appliedKnobCount = sent;
   await loadKnobs();          
+  saveKnobsLocal();           
   renderMeter();
 
   if (mismatched.length) {
@@ -1085,7 +1126,24 @@ document.getElementById('login-btn').onclick = login;
 document.getElementById('connect-btn').onclick = connect;
 document.getElementById('hangup-btn').onclick = hangup;
 
-loadKnobs().then(loadSources);
+loadKnobs().then(async () => {
+  const {count, changed, vals} = restoreKnobsLocal();
+  if (count) {
+    _setApplyStatus(`이 브라우저에 저장된 노브 ${count}개 복원 중…`, '');
+    await applyKnobs(changed);   
+  }
+
+  if (vals && 'source.render_source' in vals) {
+    await selectSource(vals['source.render_source']);
+  } else {
+    await loadSources();
+  }
+  if (count) _setApplyStatus(`이 브라우저에 저장된 노브 ${count}개를 복원했습니다`, 'ok');
+});
+document.getElementById('clear-saved')?.addEventListener('click', () => {
+  clearKnobsLocal();
+  _setApplyStatus('이 브라우저 저장값을 지웠습니다 — 다음 새로고침부터 서버 값 그대로', 'warn');
+});
 document.getElementById('source-upload-btn')?.addEventListener('click', uploadSource);
 document.getElementById('source-token-btn')?.addEventListener('click', () => {
   _setSourceStatus('토큰 확인 중…', '');

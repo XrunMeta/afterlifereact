@@ -1,4 +1,5 @@
 import os
+import re
 _HERE = os.path.dirname(__file__)
 _STATIC = os.path.join(_HERE, "..", "static")
 
@@ -115,12 +116,32 @@ def test_js_offer_body_includes_clone_id_and_access_token():
 
 
 def test_js_does_not_use_localstorage_for_token():
+    """토큰은 메모리에만 — localStorage 에 닿으면 안 된다.
+
+    2026-08-15 이전에는 localStorage.setItem/getItem 자체를 금지했지만, 노브 값을
+    브라우저에 저장하는 기능이 들어오면서 그 금지가 성립하지 않는다. 지키려던 것은
+    "토큰이 디스크에 남지 않는다" 이므로 그 계약만 직접 검사한다.
+    """
     with open(os.path.join(_STATIC, "tuner.js")) as f:
         js = f.read()
-    # 토큰은 메모리 전역변수에만 — localStorage.setItem/getItem 실사용 금지 권장 준수
-    # (설명 주석에서 개념을 언급하는 것은 허용, 실제 API 호출만 금지).
-    assert "localStorage.setItem" not in js
-    assert "localStorage.getItem" not in js
+
+    # 1. 저장 키는 노브 전용 하나뿐이어야 한다.
+    keys = set(re.findall(r"localStorage\.\w+\(([A-Za-z_$][\w$]*)", js))
+    assert keys == {"KNOB_STORE_KEY"}, f"예상 못한 localStorage 키: {keys}"
+
+    # 2. 저장 대상 순회는 KNOB_INPUT_SELECTOR 뿐이고, 그 셀렉터에 토큰 입력칸이
+    #    섞여 있으면 안 된다(섞이는 순간 토큰이 저장된다).
+    sel = re.search(r"const KNOB_INPUT_SELECTOR\s*=\s*(.+?);", js, re.S)
+    assert sel, "KNOB_INPUT_SELECTOR 를 못 찾음"
+    for tok_id in ("promote-token", "source-token"):
+        assert tok_id not in sel.group(1)
+
+    # 3. 실행되는 줄에서 토큰과 localStorage 가 만나면 안 된다(주석은 설명이라 제외).
+    for line in js.splitlines():
+        code = line.split("//")[0]
+        if "localStorage" not in code:
+            continue
+        assert "token" not in code.lower(), line
 
 
 # ---------------------------------------------------------------------------
