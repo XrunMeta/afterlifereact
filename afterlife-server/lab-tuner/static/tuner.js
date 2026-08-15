@@ -599,25 +599,64 @@ function _setSourceStatus(text, kind) {
 
 function _fmtMB(n) { return (Number(n || 0) / 1048576).toFixed(1) + 'MB'; }
 
-function _sourceRow(s, current) {
-  const row = document.createElement('div');
-  row.className = 'src-row' + (String(current) === String(s.id) ? ' on' : '')
-    + (s.id && s.ok === false ? ' gone' : '');
-  const name = document.createElement('div'); name.className = 'src-name';
-  name.textContent = s.id ? s.orig_name : '클론 기본 자산(업로드 사용 안 함)';
-  const meta = document.createElement('div'); meta.className = 'src-meta';
+const THUMB_URLS = new Map();
+
+function _revokeThumb(id) {
+  const u = THUMB_URLS.get(id);
+  if (u) { URL.revokeObjectURL(u); THUMB_URLS.delete(id); }
+}
+
+async function _attachThumb(img, id) {
+  if (THUMB_URLS.has(id)) { img.src = THUMB_URLS.get(id); return; }
+  try {
+    const r = await fetch(`/source/thumb?id=${encodeURIComponent(id)}`,
+                          {headers: _labHeaders()});
+    if (!r.ok) return;                       
+    const url = URL.createObjectURL(await r.blob());
+    THUMB_URLS.set(id, url);
+    img.src = url;
+  } catch (e) {  }
+}
+
+function _sourceCard(s, current) {
+  const on = String(current) === String(s.id);
+  const card = document.createElement('div');
+  card.className = 'src-card' + (on ? ' on' : '') + (s.id && s.ok === false ? ' gone' : '');
+  card.title = s.id ? `${s.orig_name}\n${s.id}` : '클론 원래 자산을 그대로 씁니다';
+
   if (s.id) {
-    meta.textContent = [
-      s.id,
-      s.kind === 'video' ? '영상' : '사진',
-      _fmtMB(s.bytes),
-      s.kind === 'video' ? (s.idle ? '정지영상 있음' : '정지영상 없음(클론 것 사용)')
-                         : '정지영상 미리굽기',
-      s.ok === false ? '· 파일 없음' : '',
-    ].filter(Boolean).join(' · ');
+    const img = document.createElement('img');
+    img.className = 'src-thumb'; img.alt = s.orig_name; img.loading = 'lazy';
+    card.appendChild(img);
+    _attachThumb(img, s.id);
+  } else {
+    const ph = document.createElement('div');
+    ph.className = 'src-thumb ph'; ph.textContent = '👤';
+    card.appendChild(ph);
   }
-  row.appendChild(name); row.appendChild(meta);
-  row.addEventListener('click', () => selectSource(s.id || ''));
+
+  const body = document.createElement('div'); body.className = 'src-body';
+  const name = document.createElement('div'); name.className = 'src-name';
+  name.textContent = s.id ? s.orig_name : '클론 기본';
+  body.appendChild(name);
+  const meta = document.createElement('div'); meta.className = 'src-meta';
+  meta.textContent = s.id ? [
+    s.kind === 'video' ? '영상' : '사진',
+    _fmtMB(s.bytes),
+
+    s.kind === 'video' ? (s.idle ? '정지영상 ✓' : '정지영상 ✗') : '미리굽기',
+    s.ok === false ? '파일 없음' : '',
+  ].filter(Boolean).join(' · ') : '업로드 사용 안 함';
+  body.appendChild(meta);
+  card.appendChild(body);
+
+  if (on) {
+    const chk = document.createElement('div');
+    chk.className = 'src-check'; chk.textContent = '✓';
+    card.appendChild(chk);
+  }
+  card.addEventListener('click', () => selectSource(s.id || ''));
+
   if (s.id) {
     const del = document.createElement('button');
     del.type = 'button'; del.className = 'src-del'; del.textContent = '삭제';
@@ -628,9 +667,9 @@ function _sourceRow(s, current) {
       del.dataset.armed = '1'; del.textContent = '정말?';
       setTimeout(() => { del.dataset.armed = ''; del.textContent = '삭제'; }, 4000);
     });
-    row.appendChild(del);
+    card.appendChild(del);
   }
-  return row;
+  return card;
 }
 
 async function loadSources() {
@@ -650,9 +689,13 @@ async function loadSources() {
       + `정지 영상은 ${spec.w}x${spec.h} ${spec.fps}fps ${spec.sec}초로 정규화`;
   }
   const cur = document.getElementById('k_source_render_source')?.value || '';
+  const alive = new Set((d.sources || []).map(s => s.id));
+  for (const id of [...THUMB_URLS.keys()]) {   
+    if (!alive.has(id)) _revokeThumb(id);
+  }
   box.innerHTML = '';
-  box.appendChild(_sourceRow({id: ''}, cur));
-  for (const s of (d.sources || [])) box.appendChild(_sourceRow(s, cur));
+  box.appendChild(_sourceCard({id: ''}, cur));
+  for (const s of (d.sources || [])) box.appendChild(_sourceCard(s, cur));
 }
 
 async function selectSource(id) {
@@ -711,6 +754,7 @@ async function deleteSource(id) {
   } catch (e) {
     _setSourceStatus('삭제 실패: ' + e, 'bad'); return;
   }
+  _revokeThumb(id);
   const inp = document.getElementById('k_source_render_source');
   if (inp && inp.value === id) inp.value = '';   
   loadSources();

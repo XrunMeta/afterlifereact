@@ -45,6 +45,9 @@ VIDEO_EXTS = (".mp4", ".mov", ".webm", ".mkv", ".m4v")
 
 MAX_BYTES = int(os.environ.get("LAB_SOURCE_MAX_MB", "300")) * 1024 * 1024
 
+# 목록 섬네일 높이(px). 렌더 소스(항상 이미지)를 줄여서 만든다.
+THUMB_H = int(os.environ.get("LAB_SOURCE_THUMB_H", "160"))
+
 # 영상 업로드에서 렌더 소스로 쓸 대표 프레임을 뽑는 시점(초).
 # 0 으로 두면 첫 프레임이 검거나 페이드인이라 얼굴 검출이 실패할 수 있다.
 FACE_AT_SEC = float(os.environ.get("LAB_SOURCE_FACE_AT", "1"))
@@ -152,6 +155,56 @@ def build_face(src: str, dest: str, *, run=None) -> str | None:
     return dest
 
 
+def build_thumb_cmd(src: str, dest: str) -> list:
+    """렌더 소스 이미지 → 목록용 섬네일. 높이 기준 축소(가로는 비율 유지)."""
+    return [
+        _FFMPEG, "-y", "-loglevel", "error",
+        "-i", src,
+        # -2 = 짝수로 맞춘 자동 폭(홀수 폭이면 인코더가 거부한다)
+        "-vf", f"scale=-2:{THUMB_H}",
+        "-frames:v", "1",
+        dest,
+    ]
+
+
+def build_thumb(src: str, dest: str, *, run=None) -> str | None:
+    """섬네일 생성. 실패해도 업로드는 살린다(목록에 이미지만 안 보인다)."""
+    run = run or subprocess.run
+    try:
+        res = run(build_thumb_cmd(src, dest), capture_output=True, text=True, timeout=60)
+    except Exception as exc:
+        log.warning("섬네일 생성 실패(%s): %s", type(exc).__name__, exc)
+        return None
+    if getattr(res, "returncode", 1) != 0 or not os.path.isfile(dest):
+        log.warning("섬네일 생성 실패(rc=%s)", getattr(res, "returncode", "?"))
+        return None
+    return dest
+
+
+def ensure_thumb(source_id: str, *, run=None) -> str | None:
+    """섬네일 경로를 돌려준다. 없으면 그 자리에서 만든다.
+
+    이 기능 이전에 올라온 업로드(meta 에 thumb 키가 없는 것)도 목록에 뜨게 하려는
+    지연 생성 경로다. 매번 만들지 않도록 결과를 meta.json 에 반영한다.
+    """
+    meta = resolve(source_id)
+    if meta is None:
+        return None
+    thumb = meta.get("thumb")
+    if thumb and os.path.isfile(thumb):
+        return thumb
+    d = root() / meta["id"]
+    made = build_thumb(meta["source"], str(d / "thumb.jpg"), run=run)
+    if made:
+        meta["thumb"] = made
+        meta.pop("ok", None)          # resolve 가 붙인 표시 필드는 저장하지 않는다
+        try:
+            (d / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2))
+        except OSError as exc:
+            log.warning("meta 갱신 실패(섬네일은 생성됨): %s", exc)
+    return made
+
+
 def build_idle(src: str, dest: str, *, run=None) -> str | None:
     """영상 업로드 → idle.mp4 생성. 실패 시 None(fail-open: 클론 idle 유지).
 
@@ -206,6 +259,8 @@ def save_bytes(data: bytes, filename: str, *, now: float | None = None,
     else:
         render_src = str(raw)
 
+    thumb = build_thumb(render_src, str(d / "thumb.jpg"), run=run)
+
     meta = {
         "id": sid,
         "kind": kind,
@@ -214,11 +269,12 @@ def save_bytes(data: bytes, filename: str, *, now: float | None = None,
         "source": render_src,   # fifth 렌더 소스(항상 이미지)
         "video": video,         # 업로드 원본 영상(사진 업로드면 None)
         "idle": idle,
+        "thumb": thumb,
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(now)),
     }
     (d / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2))
-    log.info("[source-upload] id=%s kind=%s bytes=%d src=%s idle=%s",
-             sid, kind, len(data), render_src, bool(idle))
+    log.info("[source-upload] id=%s kind=%s bytes=%d src=%s idle=%s thumb=%s",
+             sid, kind, len(data), render_src, bool(idle), bool(thumb))
     return meta
 
 
