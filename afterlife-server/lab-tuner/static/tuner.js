@@ -585,9 +585,16 @@ function refreshTtsDim() {
 
 function _labHeaders(extra) {
   const h = Object.assign({}, extra || {});
-  const t = document.getElementById('promote-token')?.value || '';
+
+  const t = document.getElementById('promote-token')?.value
+         || document.getElementById('source-token')?.value || '';
   if (t) h['X-Lab-Tuner-Token'] = t;   
   return h;
+}
+
+function _showSourceAuth(on) {
+  const el = document.getElementById('source-auth');
+  if (el) el.style.display = on ? 'block' : 'none';
 }
 
 function _setSourceStatus(text, kind) {
@@ -677,11 +684,19 @@ async function loadSources() {
   if (!box) return;
   let d;
   try {
-    d = await (await fetch('/sources', {headers: _labHeaders()})).json();
+    const r = await fetch('/sources', {headers: _labHeaders()});
+    if (r.status === 401) {          
+      box.textContent = '';
+      _showSourceAuth(true);
+      _setSourceStatus('토큰을 넣어야 업로드 목록이 보입니다', 'bad');
+      return;
+    }
+    d = await r.json();
   } catch (e) {
     box.textContent = '소스 목록 조회 실패: ' + e; return;
   }
   if (d.error) { box.textContent = d.error; return; }
+  _showSourceAuth(false);
   const spec = d.idle_spec || {};
   const rootEl = document.getElementById('source-root');
   if (rootEl) {
@@ -726,6 +741,14 @@ async function uploadSource() {
     const r = await fetch('/source/upload', {
       method: 'POST', headers: _labHeaders(), body: fd,
     });
+    if (r.status === 401) {
+      _showSourceAuth(true);
+      _setSourceStatus('토큰이 필요합니다 — 아래에 넣고 다시 업로드하세요', 'bad');
+      return;
+    }
+    if (r.status === 413) {          
+      _setSourceStatus('용량 초과 — 프록시/서버 상한을 넘었습니다', 'bad'); return;
+    }
     const d = await r.json();
     if (!r.ok || d.error) { _setSourceStatus(d.error || `실패(${r.status})`, 'bad'); return; }
     fileEl.value = '';
@@ -1064,6 +1087,13 @@ document.getElementById('hangup-btn').onclick = hangup;
 
 loadKnobs().then(loadSources);
 document.getElementById('source-upload-btn')?.addEventListener('click', uploadSource);
+document.getElementById('source-token-btn')?.addEventListener('click', () => {
+  _setSourceStatus('토큰 확인 중…', '');
+  loadSources();
+});
+document.getElementById('source-token')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { _setSourceStatus('토큰 확인 중…', ''); loadSources(); }
+});
 startMetrics(); loadRuns(); loadProdStatus(); loadDevToken(); loadFlpConfig();
 document.getElementById('refresh-flp')?.addEventListener('click', loadFlpConfig);
 

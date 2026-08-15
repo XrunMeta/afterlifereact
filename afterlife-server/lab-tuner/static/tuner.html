@@ -236,6 +236,19 @@
            <button id="source-upload-btn" type="button">업로드</button>
            <span id="source-upload-status"></span>
          </div>
+         <div id="source-auth" style="display:none">
+           <div class="source-hint">
+             외부 주소로 접속하면 토큰이 자동으로 안 들어옵니다(<code>/dev-token</code> 은
+             admin 토큰 유출 방지로 nginx 가 막아둔 경로). 서버의
+             <code>/home/afterlife/.lab_tuner_token</code> 값을 한 번 붙여넣으세요 —
+             메모리에만 두고 저장하지 않습니다.
+           </div>
+           <div class="source-upload">
+             <input id="source-token" type="password" placeholder="LAB_TUNER_TOKEN"
+               style="flex:1;min-width:150px">
+             <button id="source-token-btn" type="button">적용</button>
+           </div>
+         </div>
          <div id="source-list"></div>
          <div id="source-root" class="source-root"></div>
        </div>
