@@ -206,7 +206,7 @@ function v_8dc054(v_b4fa6c, v_b24339, v_35f85c, v_a057b5) {
   v_22d288.id = `k_${v_b4fa6c}_${v_b24339}`;
   v_22d288.dataset.s = v_b4fa6c; v_22d288.dataset.k = v_b24339;
 
-  if (v_35f85c.reflow === 'container' || v_35f85c.reflow === 'lab_restart' || v_35f85c.reflow === 'session') {
+  if (v_35f85c.reflow === 'container' || v_35f85c.reflow === 'lab_restart') {
     v_22d288.addEventListener('change', v_e29df3);
     v_22d288.addEventListener('input', v_e29df3);
   }
@@ -583,6 +583,139 @@ function v_796451() {
   }
 }
 
+function v_5a49fd(v_f91f33) {
+  const v_65a2cd = Object.assign({}, v_f91f33 || {});
+  const v_8d41d7 = document.getElementById('promote-token')?.value || '';
+  if (v_8d41d7) v_65a2cd['X-Lab-Tuner-Token'] = v_8d41d7;   
+  return v_65a2cd;
+}
+
+function v_d35951(v_9b6134, v_94302c) {
+  const v_57c92e = document.getElementById('source-upload-status');
+  if (!v_57c92e) return;
+  v_57c92e.textContent = v_9b6134;
+  v_57c92e.className = v_94302c || '';
+}
+
+function v_f20c4d(v_f4e98d) { return (Number(v_f4e98d || 0) / 1048576).toFixed(1) + 'MB'; }
+
+function v_4db6f1(v_fd5f43, v_275ccd) {
+  const v_3ac7e7 = document.createElement('div');
+  v_3ac7e7.className = 'src-row' + (String(v_275ccd) === String(v_fd5f43.id) ? ' on' : '')
+    + (v_fd5f43.id && v_fd5f43.ok === false ? ' gone' : '');
+  const v_1833e7 = document.createElement('div'); v_1833e7.className = 'src-name';
+  v_1833e7.textContent = v_fd5f43.id ? v_fd5f43.orig_name : '클론 기본 자산(업로드 사용 안 함)';
+  const v_ab4c96 = document.createElement('div'); v_ab4c96.className = 'src-meta';
+  if (v_fd5f43.id) {
+    v_ab4c96.textContent = [
+      v_fd5f43.id,
+      v_fd5f43.kind === 'video' ? '영상' : '사진',
+      v_f20c4d(v_fd5f43.bytes),
+      v_fd5f43.kind === 'video' ? (v_fd5f43.idle ? '정지영상 있음' : '정지영상 없음(클론 것 사용)')
+                         : '정지영상 미리굽기',
+      v_fd5f43.ok === false ? '· 파일 없음' : '',
+    ].filter(Boolean).join(' · ');
+  }
+  v_3ac7e7.appendChild(v_1833e7); v_3ac7e7.appendChild(v_ab4c96);
+  v_3ac7e7.addEventListener('click', () => v_0b27a0(v_fd5f43.id || ''));
+  if (v_fd5f43.id) {
+    const v_d0ca5b = document.createElement('button');
+    v_d0ca5b.type = 'button'; v_d0ca5b.className = 'src-del'; v_d0ca5b.textContent = '삭제';
+
+    v_d0ca5b.addEventListener('click', (v_9e86fd) => {
+      v_9e86fd.stopPropagation();
+      if (v_d0ca5b.dataset.armed === '1') { v_a0796e(v_fd5f43.id); return; }
+      v_d0ca5b.dataset.armed = '1'; v_d0ca5b.textContent = '정말?';
+      setTimeout(() => { v_d0ca5b.dataset.armed = ''; v_d0ca5b.textContent = '삭제'; }, 4000);
+    });
+    v_3ac7e7.appendChild(v_d0ca5b);
+  }
+  return v_3ac7e7;
+}
+
+async function v_377082() {
+  const v_a38d42 = document.getElementById('source-list');
+  if (!v_a38d42) return;
+  let v_d5dda0;
+  try {
+    v_d5dda0 = await (await fetch('/sources', {headers: v_5a49fd()})).json();
+  } catch (v_9e86fd) {
+    v_a38d42.textContent = '소스 목록 조회 실패: ' + v_9e86fd; return;
+  }
+  if (v_d5dda0.error) { v_a38d42.textContent = v_d5dda0.error; return; }
+  const v_2750f3 = v_d5dda0.idle_spec || {};
+  const v_b6acae = document.getElementById('source-root');
+  if (v_b6acae) {
+    v_b6acae.textContent = `저장 위치 ${v_d5dda0.root} · 최대 ${v_d5dda0.max_mb}MB · `
+      + `정지 영상은 ${v_2750f3.w}x${v_2750f3.h} ${v_2750f3.fps}fps ${v_2750f3.sec}초로 정규화`;
+  }
+  const v_c3bc75 = document.getElementById('k_source_render_source')?.value || '';
+  v_a38d42.innerHTML = '';
+  v_a38d42.appendChild(v_4db6f1({id: ''}, v_c3bc75));
+  for (const v_fd5f43 of (v_d5dda0.sources || [])) v_a38d42.appendChild(v_4db6f1(v_fd5f43, v_c3bc75));
+}
+
+async function v_0b27a0(v_389afb) {
+  const v_fb6823 = document.getElementById('k_source_render_source');
+  if (v_fb6823) v_fb6823.value = v_389afb;
+  try {
+    await fetch('/knobs', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({source: {render_source: v_389afb}}),
+    });
+  } catch (v_9e86fd) {
+    v_d35951('저장 실패: ' + v_9e86fd, 'bad'); return;
+  }
+  v_d35951(v_389afb ? `선택: ${v_389afb} — 다음 통화부터 반영(끊고 다시 걸기)`
+                      : '클론 기본 자산으로 되돌림 — 다음 통화부터', 'ok');
+  v_377082();
+}
+
+async function v_6725b2() {
+  const v_658717 = document.getElementById('source-file');
+  const v_8955f9 = document.getElementById('source-upload-btn');
+  const v_8b5cd8 = v_658717?.files?.[0];
+  if (!v_8b5cd8) { v_d35951('파일을 먼저 고르세요', 'bad'); return; }
+  const v_23563e = new FormData(); v_23563e.append('file', v_8b5cd8, v_8b5cd8.name);
+  v_8955f9.disabled = true;
+  v_d35951(`업로드 중… ${v_f20c4d(v_8b5cd8.size)}`, '');
+  try {
+    const v_cb35cb = await fetch('/source/upload', {
+      method: 'POST', headers: v_5a49fd(), body: v_23563e,
+    });
+    const v_d5dda0 = await v_cb35cb.json();
+    if (!v_cb35cb.ok || v_d5dda0.error) { v_d35951(v_d5dda0.error || `실패(${v_cb35cb.status})`, 'bad'); return; }
+    v_658717.value = '';
+
+    await v_0b27a0(v_d5dda0.id);
+    v_d35951(
+      v_d5dda0.kind === 'video' && !v_d5dda0.idle
+        ? `업로드 완료 ${v_d5dda0.id} — 정지 영상 생성 실패(클론 정지 영상 유지)`
+        : `업로드 완료 ${v_d5dda0.id} — 다음 통화부터 반영`,
+      v_d5dda0.kind === 'video' && !v_d5dda0.idle ? 'bad' : 'ok');
+  } catch (v_9e86fd) {
+    v_d35951('업로드 실패: ' + v_9e86fd, 'bad');
+  } finally {
+    v_8955f9.disabled = false;
+  }
+}
+
+async function v_a0796e(v_389afb) {
+  try {
+    const v_d5dda0 = await (await fetch('/source/delete', {
+      method: 'POST', headers: v_5a49fd({'Content-Type': 'application/json'}),
+      body: JSON.stringify({id: v_389afb}),
+    })).json();
+    if (v_d5dda0.error) { v_d35951(v_d5dda0.error, 'bad'); return; }
+    v_d35951(v_d5dda0.deleted ? `삭제: ${v_389afb}` : `없는 항목: ${v_389afb}`, v_d5dda0.deleted ? 'ok' : 'bad');
+  } catch (v_9e86fd) {
+    v_d35951('삭제 실패: ' + v_9e86fd, 'bad'); return;
+  }
+  const v_fb6823 = document.getElementById('k_source_render_source');
+  if (v_fb6823 && v_fb6823.value === v_389afb) v_fb6823.value = '';   
+  v_377082();
+}
+
 const v_170a1f =
   '#knob-fields input, #knob-fields select, #latency-fields input, #latency-fields select';
 
@@ -885,7 +1018,9 @@ document.getElementById('login-btn').onclick = v_182fdb;
 document.getElementById('connect-btn').onclick = v_1857f4;
 document.getElementById('hangup-btn').onclick = v_cad05d;
 
-v_858a0a(); v_e1242b(); v_315473(); v_187e1c(); v_d73d4a(); v_2a2e10();
+v_858a0a().then(v_377082);
+document.getElementById('source-upload-btn')?.addEventListener('click', v_6725b2);
+v_e1242b(); v_315473(); v_187e1c(); v_d73d4a(); v_2a2e10();
 document.getElementById('refresh-flp')?.addEventListener('click', v_2a2e10);
 
 v_ded6bb();

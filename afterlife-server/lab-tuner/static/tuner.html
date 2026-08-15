@@ -119,6 +119,24 @@
    word-break:break-all;color:var(--text-dim)}
  .ls-row.tuned{color:var(--green);font-weight:600}
  .ls-row.empty{color:var(--text-dim);opacity:.7;font-family:inherit}
+ /* 렌더 소스 업로드 */
+ #source-panel{border-top:2px solid var(--gold);margin-bottom:12px}
+ .source-hint{font-size:11px;line-height:1.6;color:var(--text-dim);margin-bottom:8px}
+ .source-upload{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+ .source-upload input[type=file]{font-size:11px;flex:1;min-width:150px}
+ #source-upload-status{font-size:11px;color:var(--text-dim)}
+ #source-upload-status.ok{color:var(--green)}
+ #source-upload-status.bad{color:#B91C1C;font-weight:600}
+ .src-row{display:flex;align-items:center;gap:8px;font-size:11px;padding:5px 7px;
+   border-radius:4px;border:1px solid var(--border);margin-bottom:4px;background:var(--surface)}
+ .src-row.on{border-color:var(--green);background:#15803D12}
+ .src-row.gone{opacity:.5}
+ .src-name{flex:1;word-break:break-all}
+ .src-meta{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;
+   color:var(--text-dim)}
+ .src-del{padding:2px 7px;font-size:10px}
+ .source-root{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9px;
+   color:var(--text-dim);opacity:.6;margin-top:6px;word-break:break-all}
  /* 적용 결과 — 값이 실제로 들어갔는지 즉시 알려준다 */
  .apply-status{font-size:11px;line-height:1.5;margin:-4px 0 10px;min-height:14px;
    color:var(--text-dim)}
@@ -190,6 +208,21 @@
          <div id="latency-meter"></div>
          <div id="last-sent" class="last-sent empty"></div>
          <div id="latency-fields"></div>
+       </div>
+       <div id="source-panel" class="channel">
+         <div class="panel-title">🎬 렌더 소스 — 업로드한 얼굴로 테스트</div>
+         <div class="source-hint">
+           얼굴만 업로드본으로 바꾸고 <b>목소리·성격은 선택한 클론 것</b>을 그대로 씁니다.
+           고르면 <b>바로 저장</b>되고, 끊고 다시 걸면 반영됩니다(적용 버튼 불필요).
+         </div>
+         <div class="source-upload">
+           <input id="source-file" type="file"
+             accept=".mp4,.mov,.webm,.mkv,.m4v,.jpg,.jpeg,.png,.webp,.bmp">
+           <button id="source-upload-btn" type="button">업로드</button>
+           <span id="source-upload-status"></span>
+         </div>
+         <div id="source-list"></div>
+         <div id="source-root" class="source-root"></div>
        </div>
        <div id="knob-fields"></div>
        <div style="display:flex;gap:8px;margin:12px 0">

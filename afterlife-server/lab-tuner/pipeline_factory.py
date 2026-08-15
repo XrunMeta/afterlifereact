@@ -10,6 +10,49 @@ from store_recorder import StoreRecorder
 
 log = logging.getLogger("lab-tuner.factory")
 
+def _apply_source_override(sess, sk, src, renderer):
+    """업로드 소스가 지정돼 있으면 렌더 소스·idle·필러를 교체하고 새 src 를 반환.
+
+    지정이 없거나 해석 실패면 src 를 그대로 돌려준다(회귀 0).
+
+    순서 근거: signaling 이 클론 idle mp4 를 먼저 물린 뒤(signaling.py:1359)
+    pipeline_factory 를 부르므로(:1426) 여기서 덮으면 그게 최종값이 된다.
+    """
+    import source_lab
+
+    meta = source_lab.resolve(getattr(sk, "render_source", "") or None)
+    if meta is None:
+        return src
+
+    new_src = meta["source"]
+    log.info("[source-override] id=%s kind=%s src=%s (클론 기본 %s 대체)",
+             meta["id"], meta["kind"], new_src, src)
+
+    if getattr(sk, "use_idle", True):
+        idle = meta.get("idle")
+        if idle:
+            # 영상 업로드 → ffmpeg 정규화본(25fps·상한 적용)을 idle 루프로.
+            sess.video_track.set_idle_video(idle)
+            sess.idle_video_applied = True
+            log.info("[source-override] idle 교체: %s", idle)
+        elif renderer is not None:
+            # 사진 업로드(또는 idle 생성 실패) → 정지 프레임 대신 prebake(무음 렌더) 재사용.
+            # 렌더 소스는 항상 이미지라(source_lab.build_face) 그대로 넘길 수 있다.
+            # 실패해도 통화는 계속돼야 하므로 예외를 삼킨다.
+            try:
+                from idle_prebake import start_prebake   # prethird
+                start_prebake(renderer, new_src, sess.video_track)
+                log.info("[source-override] 사진 업로드 → idle prebake 시작")
+            except Exception as exc:
+                log.warning("[source-override] idle prebake 실패(클론 idle 유지): %s", exc)
+
+    if getattr(sk, "mute_filler", True) and getattr(sess, "filler_player", None) is not None:
+        # 클론 필러 영상은 클론 얼굴이라 업로드 얼굴과 섞이면 화면이 튄다.
+        sess.filler_player = None
+        log.info("[source-override] 클론 필러 비활성(다른 얼굴 노출 차단)")
+
+    return new_src
+
 def build_knobs_pipeline_factory(registry, renderer, guard=None, store=None,
                                  metrics=None):
     """공유 라이브 렌더(renderer=KnobsFifthInproc, render_url=:8810)와 registry로
@@ -34,6 +77,9 @@ def build_knobs_pipeline_factory(registry, renderer, guard=None, store=None,
         persona = apply_persona_knobs(base_persona, dk)
         # source: 정면사진(face_path) 우선, 없으면 video_path (fifth 전용)
         src = getattr(sess, "face_path", None) or getattr(sess, "video_path", None)
+        # 업로드 소스 override — 목소리(se_path)·페르소나는 클론 것을 그대로 두고
+        # 렌더 소스만 교체한다. resolve() 는 fail-open(없으면 None → 클론 기본).
+        src = _apply_source_override(sess, registry.get().source, src, renderer)
 
         def _infer_fn(wav, cb, _src=src):
             if guard is not None:
