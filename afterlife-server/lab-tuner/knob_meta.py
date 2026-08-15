@@ -489,4 +489,29 @@ KNOB_META: dict[str, dict] = {
         "param": "PRETHIRD_FILLER_ORDER", "default": "pre_speak",
         "desc": "pre_speak 는 본 응답 직전에 필러를 낸다. off 는 필러를 내지 않는다",
     },
+
+    # --- 업로드 소스(랩 전용) ---------------------------------------------
+    # reflow=session 근거: pipeline_factory.factory(sess) 가 offer 마다 불린다
+    # (signaling.py:1426) → 다음 통화부터 반영.
+    "source.render_source": {
+        "type": "string", "choices": None, "reflow": "session",
+        "label": "렌더 소스(업로드)",
+        "param": "lab-sources/{id}/source.*", "default": "(클론 기본)",
+        "desc": "업로드한 영상·사진으로 얼굴을 대체한다. 목소리·성격은 선택한 클론 것을 "
+                "그대로 쓴다. 빈 값이면 클론 원래 자산",
+    },
+    "source.use_idle": {
+        "type": "bool", "choices": None, "reflow": "session",
+        "label": "업로드본으로 정지 영상도 교체",
+        "param": "lab-sources/{id}/idle.mp4", "default": "켜짐",
+        "desc": "말하지 않는 동안 보여줄 영상도 업로드본으로 만든다. 끄면 말할 때만 "
+                "업로드 얼굴이고 쉴 때는 클론 얼굴이라 화면이 튄다",
+    },
+    "source.mute_filler": {
+        "type": "bool", "choices": None, "reflow": "session",
+        "label": "업로드 중 클론 필러 끄기",
+        "param": "sess.filler_player", "default": "켜짐",
+        "desc": "필러 영상은 클론 얼굴로 미리 구워둔 것이라 업로드 얼굴과 섞이면 "
+                "다른 사람이 튀어나온다. 켜두는 것을 권장",
+    },
 }

@@ -206,7 +206,7 @@ function buildKnobRow(section, key, m, val) {
   ctrl.id = `k_${section}_${key}`;
   ctrl.dataset.s = section; ctrl.dataset.k = key;
 
-  if (m.reflow === 'container' || m.reflow === 'lab_restart' || m.reflow === 'session') {
+  if (m.reflow === 'container' || m.reflow === 'lab_restart') {
     ctrl.addEventListener('change', markRestartDirty);
     ctrl.addEventListener('input', markRestartDirty);
   }
@@ -583,6 +583,139 @@ function refreshTtsDim() {
   }
 }
 
+function _labHeaders(extra) {
+  const h = Object.assign({}, extra || {});
+  const t = document.getElementById('promote-token')?.value || '';
+  if (t) h['X-Lab-Tuner-Token'] = t;   
+  return h;
+}
+
+function _setSourceStatus(text, kind) {
+  const el = document.getElementById('source-upload-status');
+  if (!el) return;
+  el.textContent = text;
+  el.className = kind || '';
+}
+
+function _fmtMB(n) { return (Number(n || 0) / 1048576).toFixed(1) + 'MB'; }
+
+function _sourceRow(s, current) {
+  const row = document.createElement('div');
+  row.className = 'src-row' + (String(current) === String(s.id) ? ' on' : '')
+    + (s.id && s.ok === false ? ' gone' : '');
+  const name = document.createElement('div'); name.className = 'src-name';
+  name.textContent = s.id ? s.orig_name : '클론 기본 자산(업로드 사용 안 함)';
+  const meta = document.createElement('div'); meta.className = 'src-meta';
+  if (s.id) {
+    meta.textContent = [
+      s.id,
+      s.kind === 'video' ? '영상' : '사진',
+      _fmtMB(s.bytes),
+      s.kind === 'video' ? (s.idle ? '정지영상 있음' : '정지영상 없음(클론 것 사용)')
+                         : '정지영상 미리굽기',
+      s.ok === false ? '· 파일 없음' : '',
+    ].filter(Boolean).join(' · ');
+  }
+  row.appendChild(name); row.appendChild(meta);
+  row.addEventListener('click', () => selectSource(s.id || ''));
+  if (s.id) {
+    const del = document.createElement('button');
+    del.type = 'button'; del.className = 'src-del'; del.textContent = '삭제';
+
+    del.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (del.dataset.armed === '1') { deleteSource(s.id); return; }
+      del.dataset.armed = '1'; del.textContent = '정말?';
+      setTimeout(() => { del.dataset.armed = ''; del.textContent = '삭제'; }, 4000);
+    });
+    row.appendChild(del);
+  }
+  return row;
+}
+
+async function loadSources() {
+  const box = document.getElementById('source-list');
+  if (!box) return;
+  let d;
+  try {
+    d = await (await fetch('/sources', {headers: _labHeaders()})).json();
+  } catch (e) {
+    box.textContent = '소스 목록 조회 실패: ' + e; return;
+  }
+  if (d.error) { box.textContent = d.error; return; }
+  const spec = d.idle_spec || {};
+  const rootEl = document.getElementById('source-root');
+  if (rootEl) {
+    rootEl.textContent = `저장 위치 ${d.root} · 최대 ${d.max_mb}MB · `
+      + `정지 영상은 ${spec.w}x${spec.h} ${spec.fps}fps ${spec.sec}초로 정규화`;
+  }
+  const cur = document.getElementById('k_source_render_source')?.value || '';
+  box.innerHTML = '';
+  box.appendChild(_sourceRow({id: ''}, cur));
+  for (const s of (d.sources || [])) box.appendChild(_sourceRow(s, cur));
+}
+
+async function selectSource(id) {
+  const inp = document.getElementById('k_source_render_source');
+  if (inp) inp.value = id;
+  try {
+    await fetch('/knobs', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({source: {render_source: id}}),
+    });
+  } catch (e) {
+    _setSourceStatus('저장 실패: ' + e, 'bad'); return;
+  }
+  _setSourceStatus(id ? `선택: ${id} — 다음 통화부터 반영(끊고 다시 걸기)`
+                      : '클론 기본 자산으로 되돌림 — 다음 통화부터', 'ok');
+  loadSources();
+}
+
+async function uploadSource() {
+  const fileEl = document.getElementById('source-file');
+  const btn = document.getElementById('source-upload-btn');
+  const f = fileEl?.files?.[0];
+  if (!f) { _setSourceStatus('파일을 먼저 고르세요', 'bad'); return; }
+  const fd = new FormData(); fd.append('file', f, f.name);
+  btn.disabled = true;
+  _setSourceStatus(`업로드 중… ${_fmtMB(f.size)}`, '');
+  try {
+    const r = await fetch('/source/upload', {
+      method: 'POST', headers: _labHeaders(), body: fd,
+    });
+    const d = await r.json();
+    if (!r.ok || d.error) { _setSourceStatus(d.error || `실패(${r.status})`, 'bad'); return; }
+    fileEl.value = '';
+
+    await selectSource(d.id);
+    _setSourceStatus(
+      d.kind === 'video' && !d.idle
+        ? `업로드 완료 ${d.id} — 정지 영상 생성 실패(클론 정지 영상 유지)`
+        : `업로드 완료 ${d.id} — 다음 통화부터 반영`,
+      d.kind === 'video' && !d.idle ? 'bad' : 'ok');
+  } catch (e) {
+    _setSourceStatus('업로드 실패: ' + e, 'bad');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteSource(id) {
+  try {
+    const d = await (await fetch('/source/delete', {
+      method: 'POST', headers: _labHeaders({'Content-Type': 'application/json'}),
+      body: JSON.stringify({id}),
+    })).json();
+    if (d.error) { _setSourceStatus(d.error, 'bad'); return; }
+    _setSourceStatus(d.deleted ? `삭제: ${id}` : `없는 항목: ${id}`, d.deleted ? 'ok' : 'bad');
+  } catch (e) {
+    _setSourceStatus('삭제 실패: ' + e, 'bad'); return;
+  }
+  const inp = document.getElementById('k_source_render_source');
+  if (inp && inp.value === id) inp.value = '';   
+  loadSources();
+}
+
 const KNOB_INPUT_SELECTOR =
   '#knob-fields input, #knob-fields select, #latency-fields input, #latency-fields select';
 
@@ -885,7 +1018,9 @@ document.getElementById('login-btn').onclick = login;
 document.getElementById('connect-btn').onclick = connect;
 document.getElementById('hangup-btn').onclick = hangup;
 
-loadKnobs(); startMetrics(); loadRuns(); loadProdStatus(); loadDevToken(); loadFlpConfig();
+loadKnobs().then(loadSources);
+document.getElementById('source-upload-btn')?.addEventListener('click', uploadSource);
+startMetrics(); loadRuns(); loadProdStatus(); loadDevToken(); loadFlpConfig();
 document.getElementById('refresh-flp')?.addEventListener('click', loadFlpConfig);
 
 pollRenderLogs();

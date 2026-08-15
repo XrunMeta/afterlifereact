@@ -148,6 +148,18 @@ class FlpKnobs:
 
 
 @dataclass(frozen=True)
+class SourceKnobs:
+    """업로드 소스로 렌더를 테스트하기 위한 랩 전용 노브.
+
+    목소리(se_path)·페르소나는 건드리지 않는다 — 선택한 클론 것을 그대로 쓰고
+    **렌더 소스만** 갈아끼운다. promote 대상 아님(라이브에 나갈 값이 아니다).
+    """
+    render_source: str = ""      # 업로드 id. 빈 값 = 클론 기본 자산(회귀 0)
+    use_idle: bool = True        # 업로드본으로 idle 도 교체
+    mute_filler: bool = True     # override 중 클론 필러 영상 끄기(다른 얼굴 노출 차단)
+
+
+@dataclass(frozen=True)
 class TransportKnobs:
     playback_buffer_ms: int = 0
     idle_grace_sec: float = 0.5
@@ -195,6 +207,7 @@ class RunKnobs:
     flp: FlpKnobs = field(default_factory=FlpKnobs)
     transport: TransportKnobs = field(default_factory=TransportKnobs)
     filler: FillerKnobs = field(default_factory=FillerKnobs)
+    source: SourceKnobs = field(default_factory=SourceKnobs)
 
     @classmethod
     def from_env(cls) -> "RunKnobs":
@@ -273,6 +286,7 @@ class RunKnobs:
             "flp": asdict(self.flp),
             "transport": asdict(self.transport),
             "filler": asdict(self.filler),
+            "source": asdict(self.source),
         }
 
     @classmethod
@@ -287,6 +301,7 @@ class RunKnobs:
             flp=_mk(FlpKnobs, d.get("flp")),
             transport=_mk(TransportKnobs, d.get("transport")),
             filler=_mk(FillerKnobs, d.get("filler")),
+            source=_mk(SourceKnobs, d.get("source")),
         )
 
 
