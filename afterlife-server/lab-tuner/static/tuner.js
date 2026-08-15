@@ -201,6 +201,11 @@ function buildKnobRow(section, key, m, val) {
   }
   ctrl.id = `k_${section}_${key}`;
   ctrl.dataset.s = section; ctrl.dataset.k = key;
+
+  if (m.reflow === 'container' || m.reflow === 'lab_restart' || m.reflow === 'session') {
+    ctrl.addEventListener('change', markRestartDirty);
+    ctrl.addEventListener('input', markRestartDirty);
+  }
   if (m.type === 'number') {                   
     const wrap = document.createElement('div'); wrap.className = 'stepper';
     const step = stepFor(m, val);
@@ -219,6 +224,8 @@ function buildKnobRow(section, key, m, val) {
       if (m.min != null) next = Math.max(m.min, next);
       if (m.max != null) next = Math.min(m.max, next);
       ctrl.value = next;
+
+      if (row.classList.contains('needs-restart')) markRestartDirty();
     };
     down.onclick = () => bump(-1); up.onclick = () => bump(1);
     wrap.appendChild(down); wrap.appendChild(ctrl); wrap.appendChild(up);
@@ -324,6 +331,24 @@ async function loadKnobs() {
     document.getElementById(`k_fifth_${k}`)?.addEventListener('change', refreshLockWarnings);
   }
   applyKnobDriftBadges();   
+}
+
+const LOCK_SWITCHES = ['lip_lock', 'source_face_lock', 'source_face_lock_full', 'eyes_open_lock'];
+
+let restartDirty = false;
+
+function markRestartDirty() {
+  restartDirty = true;
+  for (const id of ['restart-top', 'restart-prethird']) {
+    document.getElementById(id)?.classList.add('needs-attention');
+  }
+}
+
+function clearRestartDirty() {
+  restartDirty = false;
+  for (const id of ['restart-top', 'restart-prethird']) {
+    document.getElementById(id)?.classList.remove('needs-attention');
+  }
 }
 
 const LOCK_RULES = [
@@ -667,6 +692,8 @@ async function loadRuns() {
   try {
     const runs = await (await fetch('/runs')).json();
     if (!runs.length) { box.innerHTML = '<i>run 없음</i>'; return; }
+
+    runs.reverse();
     let html = '<table><tr><th>run_id</th><th>pinned</th><th></th></tr>';
     for (const r of runs) {
       html += `<tr><td>${r.run_id}</td><td>${r.pinned ? '📌' : ''}</td>`+
@@ -811,6 +838,7 @@ async function restartApply() {
       `새 프로세스 기동 대기중…</div>`;
     const started = await pollForNewMainPid(oldMainPid, cbox);
     if (started) {
+      clearRestartDirty();   
       cbox.innerHTML = `<div>재기동 완료(MainPID:${escapeHtml(lastProdMainPid)}) — 실행값 갱신됨</div>`;
       await loadProdStatus();
     } else {
@@ -861,6 +889,25 @@ document.getElementById('log-clear')?.addEventListener('click', () => {
 });
 
 document.getElementById('apply-knobs-top')?.addEventListener('click', applyKnobs);
+
+document.getElementById('restart-top')?.addEventListener('click', () => {
+  document.getElementById('restart-prethird')?.scrollIntoView({block: 'center'});
+  restartShowConfirm();
+});
+
+document.getElementById('toggle-locks')?.addEventListener('click', (e) => {
+  const anyOn = LOCK_SWITCHES.some(k =>
+    document.getElementById(`k_fifth_${k}`)?.value === 'true');
+  const next = anyOn ? 'false' : 'true';
+  for (const k of LOCK_SWITCHES) {
+    const el = document.getElementById(`k_fifth_${k}`);
+    if (el) el.value = next;
+  }
+  e.target.textContent = next === 'true' ? '잠금 전체 끄기' : '잠금 전체 켜기';
+  refreshLockWarnings();
+
+  _setApplyStatus(`잠금 4종을 전부 ${next === 'true' ? '켰습니다' : '껐습니다'} — 적용을 누르면 다음 발화부터 반영`, 'warn');
+});
 
 document.getElementById('toggle-compact')?.addEventListener('click', (e) => {
   const on = document.body.classList.toggle('compact');
