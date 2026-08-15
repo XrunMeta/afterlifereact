@@ -599,25 +599,64 @@ function v_d35951(v_9b6134, v_94302c) {
 
 function v_f20c4d(v_f4e98d) { return (Number(v_f4e98d || 0) / 1048576).toFixed(1) + 'MB'; }
 
-function v_4db6f1(v_fd5f43, v_275ccd) {
-  const v_3ac7e7 = document.createElement('div');
-  v_3ac7e7.className = 'src-row' + (String(v_275ccd) === String(v_fd5f43.id) ? ' on' : '')
-    + (v_fd5f43.id && v_fd5f43.ok === false ? ' gone' : '');
-  const v_1833e7 = document.createElement('div'); v_1833e7.className = 'src-name';
-  v_1833e7.textContent = v_fd5f43.id ? v_fd5f43.orig_name : '클론 기본 자산(업로드 사용 안 함)';
-  const v_ab4c96 = document.createElement('div'); v_ab4c96.className = 'src-meta';
+const v_50459c = new Map();
+
+function v_40c6e0(v_389afb) {
+  const v_ceb55a = v_50459c.get(v_389afb);
+  if (v_ceb55a) { URL.revokeObjectURL(v_ceb55a); v_50459c.delete(v_389afb); }
+}
+
+async function v_251be5(v_48a672, v_389afb) {
+  if (v_50459c.has(v_389afb)) { v_48a672.src = v_50459c.get(v_389afb); return; }
+  try {
+    const v_cb35cb = await fetch(`/source/thumb?id=${encodeURIComponent(v_389afb)}`,
+                          {headers: v_5a49fd()});
+    if (!v_cb35cb.ok) return;                       
+    const v_f71b56 = URL.createObjectURL(await v_cb35cb.blob());
+    v_50459c.set(v_389afb, v_f71b56);
+    v_48a672.src = v_f71b56;
+  } catch (v_9e86fd) {  }
+}
+
+function v_3bc54e(v_fd5f43, v_275ccd) {
+  const v_abacaa = String(v_275ccd) === String(v_fd5f43.id);
+  const v_5eae50 = document.createElement('div');
+  v_5eae50.className = 'src-card' + (v_abacaa ? ' on' : '') + (v_fd5f43.id && v_fd5f43.ok === false ? ' gone' : '');
+  v_5eae50.title = v_fd5f43.id ? `${v_fd5f43.orig_name}\n${v_fd5f43.id}` : '클론 원래 자산을 그대로 씁니다';
+
   if (v_fd5f43.id) {
-    v_ab4c96.textContent = [
-      v_fd5f43.id,
-      v_fd5f43.kind === 'video' ? '영상' : '사진',
-      v_f20c4d(v_fd5f43.bytes),
-      v_fd5f43.kind === 'video' ? (v_fd5f43.idle ? '정지영상 있음' : '정지영상 없음(클론 것 사용)')
-                         : '정지영상 미리굽기',
-      v_fd5f43.ok === false ? '· 파일 없음' : '',
-    ].filter(Boolean).join(' · ');
+    const v_48a672 = document.createElement('img');
+    v_48a672.className = 'src-thumb'; v_48a672.alt = v_fd5f43.orig_name; v_48a672.loading = 'lazy';
+    v_5eae50.appendChild(v_48a672);
+    v_251be5(v_48a672, v_fd5f43.id);
+  } else {
+    const v_e3bf0b = document.createElement('div');
+    v_e3bf0b.className = 'src-thumb ph'; v_e3bf0b.textContent = '👤';
+    v_5eae50.appendChild(v_e3bf0b);
   }
-  v_3ac7e7.appendChild(v_1833e7); v_3ac7e7.appendChild(v_ab4c96);
-  v_3ac7e7.addEventListener('click', () => v_0b27a0(v_fd5f43.id || ''));
+
+  const v_4d33b2 = document.createElement('div'); v_4d33b2.className = 'src-body';
+  const v_1833e7 = document.createElement('div'); v_1833e7.className = 'src-name';
+  v_1833e7.textContent = v_fd5f43.id ? v_fd5f43.orig_name : '클론 기본';
+  v_4d33b2.appendChild(v_1833e7);
+  const v_ab4c96 = document.createElement('div'); v_ab4c96.className = 'src-meta';
+  v_ab4c96.textContent = v_fd5f43.id ? [
+    v_fd5f43.kind === 'video' ? '영상' : '사진',
+    v_f20c4d(v_fd5f43.bytes),
+
+    v_fd5f43.kind === 'video' ? (v_fd5f43.idle ? '정지영상 ✓' : '정지영상 ✗') : '미리굽기',
+    v_fd5f43.ok === false ? '파일 없음' : '',
+  ].filter(Boolean).join(' · ') : '업로드 사용 안 함';
+  v_4d33b2.appendChild(v_ab4c96);
+  v_5eae50.appendChild(v_4d33b2);
+
+  if (v_abacaa) {
+    const v_9dc0dd = document.createElement('div');
+    v_9dc0dd.className = 'src-check'; v_9dc0dd.textContent = '✓';
+    v_5eae50.appendChild(v_9dc0dd);
+  }
+  v_5eae50.addEventListener('click', () => v_0b27a0(v_fd5f43.id || ''));
+
   if (v_fd5f43.id) {
     const v_d0ca5b = document.createElement('button');
     v_d0ca5b.type = 'button'; v_d0ca5b.className = 'src-del'; v_d0ca5b.textContent = '삭제';
@@ -628,9 +667,9 @@ function v_4db6f1(v_fd5f43, v_275ccd) {
       v_d0ca5b.dataset.armed = '1'; v_d0ca5b.textContent = '정말?';
       setTimeout(() => { v_d0ca5b.dataset.armed = ''; v_d0ca5b.textContent = '삭제'; }, 4000);
     });
-    v_3ac7e7.appendChild(v_d0ca5b);
+    v_5eae50.appendChild(v_d0ca5b);
   }
-  return v_3ac7e7;
+  return v_5eae50;
 }
 
 async function v_377082() {
@@ -650,9 +689,13 @@ async function v_377082() {
       + `정지 영상은 ${v_2750f3.w}x${v_2750f3.h} ${v_2750f3.fps}fps ${v_2750f3.sec}초로 정규화`;
   }
   const v_c3bc75 = document.getElementById('k_source_render_source')?.value || '';
+  const v_759436 = new Set((v_d5dda0.sources || []).map(v_fd5f43 => v_fd5f43.id));
+  for (const v_389afb of [...v_50459c.keys()]) {   
+    if (!v_759436.has(v_389afb)) v_40c6e0(v_389afb);
+  }
   v_a38d42.innerHTML = '';
-  v_a38d42.appendChild(v_4db6f1({id: ''}, v_c3bc75));
-  for (const v_fd5f43 of (v_d5dda0.sources || [])) v_a38d42.appendChild(v_4db6f1(v_fd5f43, v_c3bc75));
+  v_a38d42.appendChild(v_3bc54e({id: ''}, v_c3bc75));
+  for (const v_fd5f43 of (v_d5dda0.sources || [])) v_a38d42.appendChild(v_3bc54e(v_fd5f43, v_c3bc75));
 }
 
 async function v_0b27a0(v_389afb) {
@@ -711,6 +754,7 @@ async function v_a0796e(v_389afb) {
   } catch (v_9e86fd) {
     v_d35951('삭제 실패: ' + v_9e86fd, 'bad'); return;
   }
+  v_40c6e0(v_389afb);
   const v_fb6823 = document.getElementById('k_source_render_source');
   if (v_fb6823 && v_fb6823.value === v_389afb) v_fb6823.value = '';   
   v_377082();
