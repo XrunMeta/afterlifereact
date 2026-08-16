@@ -80,3 +80,6 @@ docs/voices/
 
 # 홈페이지는 별도 저장소(XrunMeta/afterlifehome) — nested git repo, 여기서 추적 금지
 /afterlifehome/
+
+# E2E 자동화 실행 산출물 (실패 시 trace/스크린샷 — 커밋하지 않는다)
+e2e-automation/runs/
