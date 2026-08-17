@@ -75,7 +75,8 @@ const v_0d2333 = process.argv[1] && import.meta.url === v_685e17(v_7cfe5a(proces
 
 if (v_0d2333) {
   const { TID: v_5401ae } = await import("xpcpcyatayyxwjmftxi");
-  const v_82ed24 = ["afterlifeadmin/src", "afterlifeRN/src"];
+
+  const v_82ed24 = process.argv.slice(2).length ? process.argv.slice(2) : ["afterlifeadmin/src", "afterlifeRN/src"];
   const v_133edd = v_0ebe5d(v_5401ae, v_82ed24);
   if (v_133edd.length) {
     console.error(`검사기 위반 ${v_133edd.length}건:\n`);

@@ -56,8 +56,22 @@ const v_4b6b7f = v_315113(v_a8d35d, "..", "..", "..");
 const v_d2d139 = v_315113(v_4b6b7f, "node_modules", ".bin", "tsx");
 const v_258dcf = v_315113(v_a8d35d, "..", "check-index.mjs");
 
-v_2a805f("CLI 로 실행하면 미등록 리터럴이 있을 때 비정상 종료하고 위반 식별자를 이름으로 지목한다", () => {
-  const v_8f00b9 = v_ae844e(v_d2d139, [v_258dcf], { cwd: v_4b6b7f, encoding: "utf8" });
+function v_2879a0(v_5c7349) {
+  return v_ae844e(v_d2d139, [v_258dcf, v_5c7349], { cwd: v_4b6b7f, encoding: "utf8" });
+}
+
+v_2a805f("CLI 로 실행하면 미등록 리터럴이 있을 때 비정상 종료하고 위반 식별자·파일을 이름으로 지목한다", () => {
+  const v_b7cff2 = v_a46f12({ "Web.tsx": `<button data-testid="cli-not-registered" />` });
+  const v_8f00b9 = v_2879a0(v_b7cff2);
   v_ce93bd.notEqual(v_8f00b9.status, 0, `stdout: ${v_8f00b9.stdout}\nstderr: ${v_8f00b9.stderr}`);
-  v_ce93bd.match(v_8f00b9.stderr, /\[규칙1\] 패키지에 없는 식별자 "[a-z0-9-]+" — .+\.tsx?:\d+/);
+  v_ce93bd.match(v_8f00b9.stderr, /cli-not-registered/);
+  v_ce93bd.match(v_8f00b9.stderr, /Web\.tsx/);
+});
+
+v_2a805f("CLI 로 실행하면 전부 등록된 리터럴일 때 정상 종료한다", () => {
+
+  const v_b7cff2 = v_a46f12({ "App.tsx": `<Pressable testID="clone-edit-save" />` });
+  const v_8f00b9 = v_2879a0(v_b7cff2);
+  v_ce93bd.equal(v_8f00b9.status, 0, `stdout: ${v_8f00b9.stdout}\nstderr: ${v_8f00b9.stderr}`);
+  v_ce93bd.equal(v_8f00b9.stderr, "");
 });
