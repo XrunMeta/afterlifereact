@@ -10,12 +10,10 @@ export const COLUMNS: v_df31fc[] = [
     surfaces: [
       {
         surface: "rn-web", screen: "clone-edit",
-        route: (v_3f4e2e) => `/#/oth-path${v_3f4e2e.cloneId}/edit`,
         testid: v_5401ae.cloneEdit.nameInput, mode: "write",
       },
       {
         surface: "admin", screen: "clone-detail",
-        route: (v_3f4e2e) => `/oth-path${v_3f4e2e.cloneId}`,
         testid: v_5401ae.admin.cloneDetail.name, mode: "read",
       },
     ],
@@ -27,12 +25,10 @@ export const COLUMNS: v_df31fc[] = [
     surfaces: [
       {
         surface: "rn-web", screen: "clone-edit",
-        route: (v_3f4e2e) => `/#/oth-path${v_3f4e2e.cloneId}/edit`,
         testid: v_5401ae.cloneEdit.descInput, mode: "write",
       },
       {
         surface: "admin", screen: "clone-detail",
-        route: (v_3f4e2e) => `/oth-path${v_3f4e2e.cloneId}`,
         testid: v_5401ae.admin.cloneDetail.description, mode: "read",
       },
     ],
@@ -44,8 +40,8 @@ export const COLUMNS: v_df31fc[] = [
     surfaces: [
       {
         surface: "admin", screen: "users",
-        route: () => `/oth-path`,
-        testid: v_5401ae.admin.users.nameCell, mode: "read", row: "byId",
+        testid: v_5401ae.admin.users.nameCell, mode: "read",
+        row: { containerTestid: v_5401ae.admin.users.row, idFrom: "userId" },
       },
     ],
   },
@@ -57,8 +53,8 @@ export const COLUMNS: v_df31fc[] = [
     surfaces: [
       {
         surface: "admin", screen: "users",
-        route: () => `/oth-path`,
-        testid: v_5401ae.admin.users.creditsCell, mode: "read", row: "byId",
+        testid: v_5401ae.admin.users.creditsCell, mode: "read",
+        row: { containerTestid: v_5401ae.admin.users.row, idFrom: "userId" },
       },
     ],
   },

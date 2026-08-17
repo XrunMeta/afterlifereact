@@ -120,6 +120,7 @@ export function v_9700d9() {
     .filter((v_8b5cd8) => v_8b5cd8.endsWith(".sqlite") && v_8b5cd8 !== "metadata.sqlite")
     .map((v_8b5cd8) => {
       const v_e2a85c = v_315113(v_313baf, v_8b5cd8);
+
       let v_77b1ac = [];
       try {
         v_77b1ac = v_f8df46(v_e2a85c, "SELECT name FROM d1_migrations;").map((v_cb35cb) => v_cb35cb[0]);

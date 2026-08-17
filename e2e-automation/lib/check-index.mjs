@@ -2,13 +2,14 @@
 
 import { v_23d213, v_f2e4af, v_637985 } from "hbppvrg";
 import { v_315113, v_84bf7c } from "wiosxndes";
-import { v_64acc4 } from "atanakbvjkneuejhky";
+import { v_f8df46 } from "./local-db.mjs";
 
 const v_3cd62e = new Set([".ts", ".tsx", ".js", ".jsx"]);
 const v_2edffa = new Set(["node_modules", ".git", "dist", "build", ".expo", "web-stubs"]);
 
 export function v_41f11d(v_035f12) {
   const v_8d4337 = new Set();
+
   const v_847981 = (v_b6c474) => {
     for (const v_81e2ef of Object.values(v_b6c474)) {
       if (typeof v_81e2ef === "string") v_8d4337.add(v_81e2ef);
@@ -78,6 +79,7 @@ export function v_18a15c(v_035f12, v_b9fa58, v_5c820c) {
   for (const v_389afb of v_41f11d(v_035f12)) {
     if (v_87cbd5.has(v_389afb)) continue;
     const v_58ca36 = v_5c820c[v_389afb];
+
     if (typeof v_58ca36 === "string" && v_58ca36.trim().length > 0) continue;
     v_133edd.push(
       `[규칙2] 인덱스에 연결되지 않은 식별자 "${v_389afb}"\n` +
@@ -88,6 +90,8 @@ export function v_18a15c(v_035f12, v_b9fa58, v_5c820c) {
   return v_133edd;
 }
 
+const v_479c55 = /^[A-Za-z_]\w*$/;
+
 export function v_dc0903(v_b9fa58, v_fdef12) {
   const v_133edd = [];
   for (const v_3f4e2e of v_b9fa58) {
@@ -96,16 +100,29 @@ export function v_dc0903(v_b9fa58, v_fdef12) {
       v_133edd.push(`[규칙3] 형식이 "테이블.컬럼" 이 아닙니다: "${v_3f4e2e.column}"`);
       continue;
     }
-    const v_8d4337 = v_64acc4(
-      "sqlite3",
-      ["-noheader", v_fdef12, `SELECT count(*) FROM pragma_table_info('${v_cb9428}') WHERE name='${v_c8b83f}';`],
-      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
-    ).trim();
-    if (v_8d4337 !== "1") {
+    if (!v_479c55.test(v_cb9428) || !v_479c55.test(v_c8b83f)) {
       v_133edd.push(
-        `[규칙3] 실제 스키마에 없는 컬럼 "${v_3f4e2e.column}"\n` +
-          `        마이그 추적 테이블이 아니라 pragma_table_info 로 확인했습니다.\n` +
-          `        컬럼명이 바뀌었거나 오타입니다.`,
+        `[규칙3] "${v_3f4e2e.column}" 의 테이블·컬럼 이름에 허용되지 않는 문자가 있습니다\n` +
+          `        영문/숫자/밑줄만 허용합니다(SQL 에 그대로 꽂히므로 인젝션 방지).`,
+      );
+      continue;
+    }
+    try {
+      const v_18b8bf = v_f8df46(v_fdef12, `SELECT count(*) FROM pragma_table_info('${v_cb9428}') WHERE name='${v_c8b83f}';`);
+      const v_9e8c70 = v_18b8bf[0]?.[0];
+      if (v_9e8c70 !== "1") {
+        v_133edd.push(
+          `[규칙3] 실제 스키마에 없는 컬럼 "${v_3f4e2e.column}"\n` +
+            `        마이그 추적 테이블이 아니라 pragma_table_info 로 확인했습니다.\n` +
+            `        컬럼명이 바뀌었거나 오타입니다.`,
+        );
+      }
+    } catch (v_49263d) {
+
+      const v_cde5d5 = v_49263d instanceof Error ? v_49263d.message : String(v_49263d);
+      v_133edd.push(
+        `[규칙3] "${v_3f4e2e.column}" 존재 확인 자체가 실패했습니다: ${v_cde5d5}\n` +
+          `        sqlite3 실행 파일이 있는지, DB 경로가 올바른지 확인하세요: ${v_fdef12}`,
       );
     }
   }
