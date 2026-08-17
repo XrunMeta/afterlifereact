@@ -35,7 +35,7 @@ export const EXEMPTIONS: Record<string, string> = {
     "섹션 컨테이너 — 공동소유자 값은 안의 자식 요소가 가지고, 컨테이너 자체는 값이 아니다",
 
   [TID.myClonesDashboard.followerCount]:
-    "[PROVISIONAL] 실제로는 컬럼 값이다 — 클론별 구독자 수(clones 구독자 카운트)를 표시한다(RN MyClonesDashboardScreen.tsx). Task 6 은 어드민 4개 화면만 다루므로 정식 컬럼 인덱싱은 후속 태스크로 남기고 사유를 그대로 적어 면제한다",
+    "파생 집계값 — clone_follows 를 센 COUNT 이지 단일 컬럼 값이 아니다. 컬럼 인덱스는 table.column 단위만 표현하므로(규칙 3 이 pragma_table_info 로 대조) 이 값은 애초에 인덱스가 표현할 수 있는 대상이 아니다(RN MyClonesDashboardScreen.tsx:678-679)",
 
   [TID.agreements.faceConsentSection]:
     "섹션 컨테이너 — 고정 제목/안내문을 감쌀 뿐, 값은 자식(진입행)이 가진다",
@@ -44,11 +44,11 @@ export const EXEMPTIONS: Record<string, string> = {
   [TID.agreements.callLearningConsentSection]:
     "섹션 컨테이너 — 고정 제목/안내문을 감쌀 뿐, 값은 자식 스위치가 가진다",
   [TID.agreements.callLearningConsentToggle]:
-    "[PROVISIONAL] 실제로는 컬럼 값이다 — getCallLearningConsent 로 조회한 저장된 동의 상태를 그대로 반영하는 스위치다(AgreementsScreen.tsx). Task 6 은 어드민 4개 화면만 다루므로 정식 컬럼 인덱싱은 후속 태스크로 남기고 사유를 그대로 적어 면제한다",
+    "[PROVISIONAL] 실제로는 컬럼 값이다 — getCallLearningConsent 로 조회한 저장된 동의 상태(users.call_learning_consent)를 그대로 반영하는 스위치다(AgreementsScreen.tsx). 인덱싱을 막는 건 화면 범위가 아니라 assertion 종류다 — Switch 는 텍스트/입력값이 아니라 on/off(checked) 상태를 검증해야 하는데, 러너는 아직 boolean/checked assertion 을 모른다(현재는 표시 요소=텍스트, 텍스트 입력=값 두 종류만 안다). 그 assertion 종류가 생기기 전까지 의도적으로 보류",
   [TID.agreements.faceBiometricConsentSection]:
     "섹션 컨테이너 — 고정 제목/안내문을 감쌀 뿐, 값은 자식 스위치가 가진다",
   [TID.agreements.faceBiometricConsentToggle]:
-    "[PROVISIONAL] 실제로는 컬럼 값이다 — getFaceBiometricConsent 로 조회한 저장된 동의 상태를 그대로 반영하는 스위치다(AgreementsScreen.tsx). Task 6 은 어드민 4개 화면만 다루므로 정식 컬럼 인덱싱은 후속 태스크로 남기고 사유를 그대로 적어 면제한다",
+    "[PROVISIONAL] 실제로는 컬럼 값이다 — getFaceBiometricConsent 로 조회한 저장된 동의 상태(users.face_biometric_consent)를 그대로 반영하는 스위치다(AgreementsScreen.tsx). 인덱싱을 막는 건 화면 범위가 아니라 assertion 종류다 — Switch 는 텍스트/입력값이 아니라 on/off(checked) 상태를 검증해야 하는데, 러너는 아직 boolean/checked assertion 을 모른다(현재는 표시 요소=텍스트, 텍스트 입력=값 두 종류만 안다). 그 assertion 종류가 생기기 전까지 의도적으로 보류",
 
   [TID.rememberingClones.delete]: "동작 버튼(리스트 행의 삭제) — 표시값 없음",
 
