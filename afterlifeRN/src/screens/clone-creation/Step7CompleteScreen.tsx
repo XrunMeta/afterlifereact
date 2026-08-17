@@ -35,6 +35,7 @@ import { v_7d2692 } from "../../api/files";
 import { v_cf9c33 } from "rcmrninabrnb";
 import { v_110960, v_52ec3e } from "euzpkmxzoe";
 import { v_04686a } from "../../lib/imagePicker";
+import { v_5401ae } from "../../testIDs";
 
 type Props = {
   navigation: v_390fcc<v_2b51a5, "Step7">;
@@ -596,7 +597,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
           ) : (v_7f3fda?.status === 'failed' || (!v_f04727.idleVideoJobId && !!v_f04727.imageFile)) ? (
 
             <TouchableOpacity
-              testID="reupload-photo-button"
+              testID={v_5401ae.cloneCreateStep7.reuploadPhoto}
               style={v_d81136.previewBox}
               onPress={v_a3d9bc}
               activeOpacity={0.8}
@@ -673,7 +674,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 }
         <View style={v_d81136.bottomBar}>
           <Button
-            testID="share-post-button"
+            testID={v_5401ae.cloneCreateStep7.sharePost}
             title={
               v_5e9bfe
                 ? v_8d41d7("common.retry", { defaultValue: "다시 시도" })

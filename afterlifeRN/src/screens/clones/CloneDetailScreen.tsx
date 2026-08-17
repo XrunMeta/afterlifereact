@@ -25,6 +25,7 @@ import { v_599b97, type v_83f27d } from "../../api/gifts";
 
 import { v_003cf2 } from "../../api/clones";
 import type { v_affcc0 } from "../../types/clone";
+import { v_5401ae } from "../../testIDs";
 
 type Props = v_432191<v_2d88fc, "CloneDetail">;
 
@@ -183,7 +184,7 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         {v_c279e3.length > 0 && (
           <TouchableOpacity
             style={v_fd5f43.coownerBlock}
-            testID="coowner-section"
+            testID={v_5401ae.cloneDetail.coownerSection}
             onPress={() => v_c65f5d.navigate("CloneInvite", { cloneId: v_eb25ce.id })}
             activeOpacity={0.85}
           >

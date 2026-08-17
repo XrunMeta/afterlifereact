@@ -54,6 +54,7 @@ import type { v_affcc0, v_b0b271 } from "../../types/clone";
 import type { v_2d88fc } from "../../navigation/types";
 import type { v_8ad91b } from "../../navigation/types";
 import { v_1a7803 } from "../../hooks/useHardwareBack";
+import { v_5401ae, v_a8269d } from "../../testIDs";
 
 type ClonesNav = v_390fcc<v_2d88fc>;
 
@@ -617,7 +618,7 @@ export default function v_def15b() {
               onPress={() => v_d5cd7b({ type: "followers", cloneId: v_eb25ce.id, cloneName: v_eb25ce.displayName })}
             >
               <Feather name="user" size={14} color={v_1bfbd0.zinc500} />
-              <Text style={v_fd5f43.statText} testID={`follower-count-${v_eb25ce.id}`}>
+              <Text style={v_fd5f43.statText} testID={v_a8269d(v_5401ae.myClonesDashboard.followerCount, v_eb25ce.id)}>
                 {v_8d41d7("dashboard.followerCount", { n: v_e17daa, defaultValue: "{{n}} 구독자" })}
               </Text>
             </TouchableOpacity>
