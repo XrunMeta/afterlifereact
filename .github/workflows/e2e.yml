@@ -1,0 +1,118 @@
+name: E2E (컬럼 인덱스)
+
+# 어드민 웹 + RN 웹을 한 번에 검증한다.
+#
+# 무엇을 검증하나: 인덱스에 오른 컬럼의 값이 각 화면에 맞게 표시되는가.
+#   그리고 폼·목록·설정·네비게이션의 글 수정·버튼 누름·값 확인.
+# 무엇을 검증하지 않나: 통화·카메라·얼굴인식·권한 UI.
+#   웹 번들에서 스텁이며 그 영역은 시뮬레이터 + Maestro + 사람이 정본이다.
+#   → 이 워크플로가 초록색이라고 통화 기능이 정상이라는 뜻이 아니다.
+#
+# DB 는 전부 로컬이다. 원격은 읽지도 않는다.
+# .dev.vars 는 매 실행 임의값으로 만든다 — 실 시크릿이 필요 없어 fork PR 에서도 돈다.
+
+on:
+  pull_request:
+    branches: [preview]
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 루트 설치
+        run: npm ci
+
+      # 브라우저를 띄우기 전에 잡는다. 검사기가 훨씬 싸고 메시지가 정확하다.
+      - name: 앱 설치 (검사기가 소스를 읽는다)
+        run: |
+          npm --prefix afterlifeadmin install
+          npm --prefix afterlifeRN ci
+          npm --prefix afterlifeapi ci
+
+      - name: 로컬 DB 준비
+        working-directory: afterlifeapi
+        run: |
+          cat > .dev.vars <<'EOF'
+          JWT_ACCESS_SECRET=e2e-local-access-secret
+          JWT_REFRESH_SECRET=e2e-local-refresh-secret
+          AUDIT_SECRET=e2e-local-audit-secret
+          ALE_KEK=e2e-local-kek-0123456789abcdef
+          ADMIN_BOOTSTRAP_TOKEN=e2e-local-bootstrap
+          EOF
+          npm run db:migrate:local
+
+      - name: 픽스처 시드
+        run: npm run db:seed
+
+      - name: 검사기
+        run: npm run check:index
+
+      - name: 유닛 테스트
+        run: npm run test:ids && npm run test:lib
+
+      - name: API 기동 (:8787)
+        working-directory: afterlifeapi
+        run: |
+          npx wrangler dev --port 8787 --ip 127.0.0.1 > /tmp/wrangler.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf -o /dev/null http://localhost:8787/ && break
+            sleep 2
+          done
+          curl -sf -o /dev/null http://localhost:8787/ || { cat /tmp/wrangler.log; exit 1; }
+
+      - name: 어드민 기동 (:5173)
+        working-directory: afterlifeadmin
+        run: |
+          npm run dev -- --port 5173 --host localhost > /tmp/admin.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf -o /dev/null http://localhost:5173/ && break
+            sleep 2
+          done
+          curl -sf -o /dev/null http://localhost:5173/ || { cat /tmp/admin.log; exit 1; }
+
+      # dev 서버(Metro)는 콜드 스타트가 수 분이라 CI 에 부적합하다.
+      # export 산출물은 사용자가 받는 것과 같은 프로덕션 번들이라 검증 가치도 높다.
+      - name: RN 웹 번들 빌드 + 기동 (:5174)
+        run: |
+          # 🔴 반드시 e2e:build-rn 을 쓴다. 인라인 `expo export` 를 직접 부르면
+          #    EXPO_PUBLIC_API_BASE 를 빠뜨리기 쉽고, 그러면 apiBase.ts 기본값인
+          #    원격 preview 워커가 번들에 컴파일돼 로컬로 돌린다고 믿으며 원격을 때린다.
+          #    이 스크립트는 포트를 ports.ts 에서 읽어 환경변수를 강제한다(빠뜨릴 수가 없다).
+          npm run e2e:build-rn
+          npm run e2e:serve-rn > /tmp/rnweb.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf -o /dev/null http://localhost:5174/ && break
+            sleep 2
+          done
+          curl -sf -o /dev/null http://localhost:5174/ || { cat /tmp/rnweb.log; exit 1; }
+
+      - name: Playwright 브라우저
+        run: npx playwright install --with-deps chromium
+
+      # 🔴 `npx playwright` 를 쓰지 않는다. 다른 곳의 playwright 를 집으면
+      #    엉뚱한 에러가 나고 코드 문제로 오인하게 된다.
+      - name: E2E
+        env:
+          CI: "true"
+        run: ./node_modules/.bin/playwright test
+
+      # 성공한 실행의 산출물은 검토량만 늘린다 — 실패했을 때만 올린다.
+      - name: 실패 산출물
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-failure-${{ github.run_id }}
+          path: |
+            e2e-automation/runs/last-failures/
+            /tmp/*.log
+          retention-days: 7
+          if-no-files-found: ignore
