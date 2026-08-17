@@ -7,8 +7,7 @@ import { v_a8269d } from "xpcpcyatayyxwjmftxi";
 import { v_597fc8 } from "../lib/local-db.mjs";
 import { v_445bad, v_d308b5 } from "../lib/seed.mjs";
 import { v_9f52e1, type v_88e46f } from "../lib/auth";
-
-const v_bb573f = 8787;
+import { v_9681bc } from "../ports";
 
 const v_1441fe = v_597fc8();
 const v_feceba = process.env.E2E_COLUMN;
@@ -21,7 +20,7 @@ if (!v_a46f12 || !v_a46f12.clone) {
 }
 const v_16e2dd = { userId: v_a46f12.userId, cloneId: v_a46f12.clone.id };
 
-const v_cc9198 = `http://localhost:${v_bb573f}`;
+const v_cc9198 = `http://localhost:${v_9681bc.api}`;
 
 const v_cc8027 = "afterlife.admin.token";
 const v_1dfcfa = "afterlife.admin.refresh";

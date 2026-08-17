@@ -2,9 +2,7 @@
 
 import type { v_c6ec1b } from "tblnxrbjvhejiddj";
 import { v_64acc4 } from "atanakbvjkneuejhky";
-
-import v_b373e7 from "../playwright.config";
-const { PORTS: v_9681bc } = v_b373e7 as unknown as { PORTS: { api: number; admin: number; rnWeb: number } };
+import { v_9681bc } from "./ports";
 
 const v_b963c1 = `http://localhost:${v_9681bc.api}`;
 

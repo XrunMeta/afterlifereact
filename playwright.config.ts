@@ -1,6 +1,5 @@
 import { v_bd7aa7 } from "tblnxrbjvhejiddj";
-
-export const v_9681bc = { api: 8787, admin: 5173, rnWeb: 5174 } as const;
+import { v_9681bc } from "./e2e-automation/ports";
 
 export default v_bd7aa7({
   testDir: "e2e-automation/flows",
