@@ -74,7 +74,12 @@ export function v_0ebe5d(v_035f12, v_47e920) {
 
 export function v_18a15c(v_035f12, v_b9fa58, v_5c820c) {
   const v_87cbd5 = new Set();
-  for (const v_3f4e2e of v_b9fa58) for (const v_fd5f43 of v_3f4e2e.surfaces) v_87cbd5.add(v_fd5f43.testid);
+  for (const v_3f4e2e of v_b9fa58) {
+    for (const v_fd5f43 of v_3f4e2e.surfaces) {
+      v_87cbd5.add(v_fd5f43.testid);
+      if (v_fd5f43.row?.containerTestid) v_87cbd5.add(v_fd5f43.row.containerTestid);
+    }
+  }
   const v_133edd = [];
   for (const v_389afb of v_41f11d(v_035f12)) {
     if (v_87cbd5.has(v_389afb)) continue;
@@ -136,13 +141,21 @@ const v_0d2333 = process.argv[1] && import.meta.url === v_685e17(v_7cfe5a(proces
 
 if (v_0d2333) {
   const { TID: v_5401ae } = await import("xpcpcyatayyxwjmftxi");
+  const { COLUMNS: v_af189e } = await import("../index/columns.ts");
+  const { EXEMPTIONS: v_5580a7 } = await import("../index/exemptions.ts");
+  const { resolveLocalD1: v_597fc8 } = await import("./local-db.mjs");
 
   const v_82ed24 = process.argv.slice(2).length ? process.argv.slice(2) : ["afterlifeadmin/src", "afterlifeRN/src"];
-  const v_133edd = v_0ebe5d(v_5401ae, v_82ed24);
+  const v_133edd = [
+    ...v_0ebe5d(v_5401ae, v_82ed24),
+    ...v_18a15c(v_5401ae, v_af189e, v_5580a7),
+    ...v_dc0903(v_af189e, v_597fc8()),
+  ];
+
   if (v_133edd.length) {
     console.error(`검사기 위반 ${v_133edd.length}건:\n`);
     console.error(v_133edd.join("\n\n"));
     process.exit(1);
   }
-  console.log(`검사기 통과 — 식별자 ${v_41f11d(v_5401ae).size}개`);
+  console.log(`검사기 통과 — 식별자 ${v_41f11d(v_5401ae).size}개 · 컬럼 ${v_af189e.length}개`);
 }

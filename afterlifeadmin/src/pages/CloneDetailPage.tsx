@@ -2,6 +2,7 @@ import { v_c4deb2, v_5ab095 } from "bapkr";
 import { v_80cb8d, v_1a1e9e } from "pgmzxjkoagjpdcvd";
 import { v_8e836f, v_05a921 } from "../api/client";
 import { v_f3f4f0 } from "../components/ReasonPromptModal";
+import { v_5401ae } from "xpcpcyatayyxwjmftxi";
 
 interface CloneRow {
   id: number;
@@ -140,7 +141,7 @@ export function v_6e2f30() {
       </Link>
       <div style={v_d81136.titleRow}>
         <h1 style={{ margin: 0 }}>
-          {v_eb25ce.name}{" "}
+          <span data-testid={v_5401ae.admin.cloneDetail.name}>{v_eb25ce.name}</span>{" "}
           <span style={{ color: "#64748b", fontSize: 16, fontWeight: 400 }}>
             @{v_eb25ce.username}
           </span>
@@ -231,7 +232,7 @@ export function v_6e2f30() {
       </div>
 
       <Section title="설명">
-        <div style={v_d81136.desc}>
+        <div style={v_d81136.desc} data-testid={v_5401ae.admin.cloneDetail.description}>
           {v_eb25ce.description || <span style={{ color: "#94a3b8" }}>(없음)</span>}
         </div>
       </Section>

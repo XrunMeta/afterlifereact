@@ -130,6 +130,19 @@ v_2a805f("인덱스에 연결되지 않은 식별자는 위반이다", () => {
   v_ce93bd.match(v_81e2ef[0], /oth-path-users-save/);
 });
 
+v_2a805f("row.containerTestid 도 사용된 식별자로 센다 — 인덱스가 실제로 참조하는 값을 면제 목록에 거짓으로 올리지 않는다", () => {
+  const v_035f12 = { admin: { users: { row: "admin-users-row", name: "admin-users-name" } } };
+  const v_b9fa58 = [
+    {
+      column: "users.name",
+      surfaces: [{ testid: "admin-users-name", row: { containerTestid: "admin-users-row" } }],
+    },
+  ];
+
+  const v_81e2ef = v_18a15c(v_035f12, v_b9fa58, {});
+  v_ce93bd.deepEqual(v_81e2ef, []);
+});
+
 v_2a805f("noColumn 으로 면제하면 통과한다", () => {
   const v_035f12 = { admin: { users: { save: "admin-users-save" } } };
   const v_81e2ef = v_18a15c(v_035f12, [], { "admin-users-save": "저장 버튼 — 컬럼 값이 아니라 동작" });

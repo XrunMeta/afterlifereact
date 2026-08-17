@@ -1,6 +1,7 @@
 import { v_c4deb2, v_5ab095, type v_bb76a8 } from "bapkr";
 import { v_05a921 } from "../api/client";
 import { v_c1eeb6 } from "../components/DataTable";
+import { v_5401ae, v_a8269d } from "xpcpcyatayyxwjmftxi";
 
 const v_bf3a72 = {
   active: { label: "활성", color: "#15803d", bg: "#dcfce7" },
@@ -102,7 +103,7 @@ export function v_1d1159() {
       label: "상태",
       render: v_9f536f,
     },
-    { key: "name", label: "Name" },
+    { key: "name", label: "Name", testid: v_5401ae.admin.users.nameCell },
     {
       key: "email",
       label: "Email",
@@ -122,7 +123,7 @@ export function v_1d1159() {
     },
     { key: "gender", label: "Gender" },
     { key: "age", label: "Age" },
-    { key: "credits", label: "Credits" },
+    { key: "credits", label: "Credits", testid: v_5401ae.admin.users.creditsCell },
     { key: "funnelStage", label: "Funnel" },
     {
       key: "marketingConsent",
@@ -159,7 +160,13 @@ export function v_1d1159() {
       <div style={{ marginBottom: 12, color: "#64748b", fontSize: 13 }}>
         Email 셀을 클릭하면 OTP 발송 내역(최근 50건)을 볼 수 있어요.
       </div>
-      <DataTable columns={v_b9fa58} data={v_de7ba7} onDelete={v_57fac2} loading={v_683210} />
+      <DataTable
+        columns={v_b9fa58}
+        data={v_de7ba7}
+        onDelete={v_57fac2}
+        loading={v_683210}
+        rowTestId={(v_3ac7e7) => v_a8269d(v_5401ae.admin.users.row, v_3ac7e7.id)}
+      />
 
       {v_808660 !== null && (
         <div style={v_d25d5c} onClick={v_5f500c}>

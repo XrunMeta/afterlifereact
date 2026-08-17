@@ -1,6 +1,7 @@
 import { v_5ab095, type v_f0e313 } from "bapkr";
 import { v_a04f9c } from "pgmzxjkoagjpdcvd";
 import { v_182fdb } from "../api/adminAuth";
+import { v_5401ae } from "xpcpcyatayyxwjmftxi";
 
 export function v_f913c9() {
   const v_9b57fc = v_a04f9c();
@@ -37,6 +38,7 @@ export function v_f913c9() {
               value={v_e0c7e8}
               onChange={(v_9e86fd) => v_fedf34(v_9e86fd.target.value)}
               style={v_d81136.input}
+              data-testid={v_5401ae.admin.login.email}
             />
           </label>
           <label style={v_d81136.label}>
@@ -48,10 +50,16 @@ export function v_f913c9() {
               value={v_adc076}
               onChange={(v_9e86fd) => v_52b279(v_9e86fd.target.value)}
               style={v_d81136.input}
+              data-testid={v_5401ae.admin.login.password}
             />
           </label>
           {v_49263d && <div style={v_d81136.error}>{v_49263d}</div>}
-          <button type="submit" disabled={v_3f8465} style={v_d81136.button}>
+          <button
+            type="submit"
+            disabled={v_3f8465}
+            style={v_d81136.button}
+            data-testid={v_5401ae.admin.login.submit}
+          >
             {v_3f8465 ? "로그인 중..." : "로그인"}
           </button>
         </form>

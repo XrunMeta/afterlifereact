@@ -1,6 +1,7 @@
 import { v_5ab095 } from "bapkr";
 import { v_a04f9c } from "pgmzxjkoagjpdcvd";
 import { v_ac75b4 } from "../api/adminAuth";
+import { v_5401ae } from "xpcpcyatayyxwjmftxi";
 
 export function v_4686cd() {
   const v_9b57fc = v_a04f9c();
@@ -34,12 +35,14 @@ export function v_4686cd() {
           style={v_d81136.input}
           placeholder="123456"
           autoFocus
+          data-testid={v_5401ae.admin.login.totpCode}
         />
         {v_49263d && <div style={v_d81136.error}>{v_49263d}</div>}
         <button
           onClick={v_72a8c5}
           disabled={v_3f8465 || v_c99bd2.length !== 6}
           style={v_d81136.button}
+          data-testid={v_5401ae.admin.login.totpSubmit}
         >
           {v_3f8465 ? "확인 중..." : "확인"}
         </button>
