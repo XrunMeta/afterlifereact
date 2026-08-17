@@ -25,6 +25,11 @@ export const v_445bad = {
   },
 
   credits: 3000,
+
+  admin: {
+    email: process.env.E2E_ADMIN_EMAIL ?? "e2e-admin@afterlife.test",
+    password: process.env.E2E_ADMIN_PASSWORD ?? "E2eAdmin1",
+  },
 };
 
 const v_83500a = "e2e-";
@@ -161,7 +166,26 @@ export function v_bdb39e(v_a1651b) {
     v_6e0fd3 = v_84aec9(v_a1651b, `SELECT id FROM clones WHERE username = ${v_ab6401(v_3f4e2e.username)};`);
   }
 
-  return { userId: v_0c8987, cloneId: Number(v_6e0fd3), ledgerId: v_b9e521 };
+  const v_529243 = v_ab6401(v_445bad.admin.email);
+  const v_3029f2 = v_54846c(v_445bad.admin.password);
+  let v_a44080 = v_84aec9(v_a1651b, `SELECT id FROM admin_users WHERE email = ${v_529243};`);
+  if (v_a44080) {
+    v_a215ca(v_a1651b, [
+      `UPDATE admin_users SET password_hash = ${v_ab6401(v_3029f2)},
+              role = 'moderator', is_active = 1, requires_webauthn = 0,
+              failed_login_count = 0, locked_until = NULL
+        WHERE id = ${v_a44080};`,
+    ]);
+  } else {
+    v_a215ca(v_a1651b, [
+      `INSERT INTO admin_users (email, password_hash, role, is_active, requires_webauthn)
+         VALUES (${v_529243}, ${v_ab6401(v_3029f2)}, 'moderator', 1, 0);`,
+    ]);
+    v_a44080 = v_84aec9(v_a1651b, `SELECT id FROM admin_users WHERE email = ${v_529243};`);
+  }
+  v_a215ca(v_a1651b, [`DELETE FROM admin_totp WHERE admin_user_id = ${Number(v_a44080)};`]);
+
+  return { userId: v_0c8987, cloneId: Number(v_6e0fd3), ledgerId: v_b9e521, adminId: Number(v_a44080) };
 }
 
 export function v_d308b5(v_a1651b) {
