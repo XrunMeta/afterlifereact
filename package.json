@@ -1,0 +1,12 @@
+{
+  "name": "afterlife-root",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "test:ids": "node --import tsx --test packages/test-ids/test/"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "tsx": "^4.19.2"
+  }
+}
