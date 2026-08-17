@@ -13,7 +13,13 @@ async function postJson(url: string, body: unknown, bearer?: string) {
   return JSON.parse(text);
 }
 
-export async function adminAccessToken(apiBase: string, email: string, password: string): Promise<string> {
+export interface AdminSession {
+  accessToken: string;
+  refreshToken: string;
+  admin: { id: number; email: string; role: string };
+}
+
+export async function adminAccessToken(apiBase: string, email: string, password: string): Promise<AdminSession> {
   const base = `${apiBase}/oth-path`;
   const login = await postJson(`${base}/login`, { email, password });
   const pending: string | undefined = login.pendingToken;
@@ -31,8 +37,12 @@ export async function adminAccessToken(apiBase: string, email: string, password:
 
   const verified = await postJson(`${base}/totp/verify`, { code: totpCode(secret) }, pending);
   const access: string | undefined = verified.accessToken;
-  if (!access) throw new Error(`verify 응답에 accessToken 이 없습니다: ${JSON.stringify(verified).slice(0, 200)}`);
-  return access;
+  const refresh: string | undefined = verified.refreshToken;
+  const admin: AdminSession["admin"] | undefined = verified.admin;
+  if (!access || !refresh || !admin) {
+    throw new Error(`verify 응답 형태가 바뀌었습니다: ${JSON.stringify(verified).slice(0, 200)}`);
+  }
+  return { accessToken: access, refreshToken: refresh, admin };
 }
 
 export async function rnAccessToken(apiBase: string, email: string, password: string): Promise<string> {

@@ -49,7 +49,8 @@ export const COLUMNS: ColumnEntry[] = [
     column: "users.credits",
     label: "잔여 통화시간",
     where: (c) => `id = ${c.userId}`,
-    format: fmt.secondsToMinutes,
+
+    format: fmt.raw,
     surfaces: [
       {
         surface: "admin", screen: "users",
