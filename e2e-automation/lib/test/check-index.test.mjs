@@ -4,9 +4,9 @@ import { v_ef4494, v_086912, v_eaee41 } from "hbppvrg";
 import { v_171b31 } from "xxkrszo";
 import { v_315113, v_f7648d } from "wiosxndes";
 import { v_6b8a99 } from "bujvoezm";
-import { v_ae844e } from "atanakbvjkneuejhky";
+import { v_ae844e, v_64acc4 } from "atanakbvjkneuejhky";
 import { v_5401ae } from "xpcpcyatayyxwjmftxi";
-import { v_41f11d, v_14f6b7, v_0ebe5d } from "../check-index.mjs";
+import { v_41f11d, v_14f6b7, v_0ebe5d, v_18a15c, v_dc0903 } from "../check-index.mjs";
 
 function v_a46f12(v_ff9685) {
   const v_b7cff2 = v_ef4494(v_315113(v_171b31(), "chk-"));
@@ -58,7 +58,8 @@ v_2a805f("scanSourceIds 는 속성값이 줄바꿈으로 감싸진 보간 템플
   });
   const v_ea6dff = v_14f6b7([v_b7cff2]);
   v_ce93bd.deepEqual(v_ea6dff.map((v_8b5cd8) => v_8b5cd8.value), ["admin-users-row"]);
-  v_ce93bd.equal(v_ea6dff[0].line > 0, true);
+
+  v_ce93bd.equal(v_ea6dff[0].line, 2);
 });
 
 v_2a805f("scanSourceIds 는 보간이 없는 템플릿 리터럴도 찾는다", () => {
@@ -119,4 +120,37 @@ v_2a805f("CLI 로 실행하면 전부 등록된 리터럴일 때 정상 종료�
   const v_8f00b9 = v_2879a0(v_b7cff2);
   v_ce93bd.equal(v_8f00b9.status, 0, `stdout: ${v_8f00b9.stdout}\nstderr: ${v_8f00b9.stderr}`);
   v_ce93bd.equal(v_8f00b9.stderr, "");
+});
+
+v_2a805f("인덱스에 연결되지 않은 식별자는 위반이다", () => {
+  const v_035f12 = { admin: { users: { name: "admin-users-name", save: "admin-users-save" } } };
+  const v_b9fa58 = [{ column: "users.name", surfaces: [{ testid: "admin-users-name" }] }];
+  const v_81e2ef = v_18a15c(v_035f12, v_b9fa58, {});
+  v_ce93bd.equal(v_81e2ef.length, 1);
+  v_ce93bd.match(v_81e2ef[0], /oth-path-users-save/);
+});
+
+v_2a805f("noColumn 으로 면제하면 통과한다", () => {
+  const v_035f12 = { admin: { users: { save: "admin-users-save" } } };
+  const v_81e2ef = v_18a15c(v_035f12, [], { "admin-users-save": "저장 버튼 — 컬럼 값이 아니라 동작" });
+  v_ce93bd.deepEqual(v_81e2ef, []);
+});
+
+v_2a805f("면제 사유가 빈 문자열이면 면제로 인정하지 않는다", () => {
+  const v_035f12 = { admin: { users: { save: "admin-users-save" } } };
+  const v_81e2ef = v_18a15c(v_035f12, [], { "admin-users-save": "" });
+  v_ce93bd.equal(v_81e2ef.length, 1);
+  v_ce93bd.match(v_81e2ef[0], /사유/);
+});
+
+v_2a805f("실제 스키마에 없는 컬럼은 위반이고 메시지에 컬럼명이 들어간다", () => {
+  const v_a1651b = v_64acc4("node", ["e2e-automation/lib/local-db.mjs"], { encoding: "utf8" }).trim();
+  const v_81e2ef = v_dc0903([{ column: "users.no_such_column", surfaces: [] }], v_a1651b);
+  v_ce93bd.equal(v_81e2ef.length, 1);
+  v_ce93bd.match(v_81e2ef[0], /oth-path\.no_such_column/);
+});
+
+v_2a805f("실제 스키마에 있는 컬럼은 통과한다", () => {
+  const v_a1651b = v_64acc4("node", ["e2e-automation/lib/local-db.mjs"], { encoding: "utf8" }).trim();
+  v_ce93bd.deepEqual(v_dc0903([{ column: "users.credits", surfaces: [] }], v_a1651b), []);
 });

@@ -55,6 +55,25 @@ export const v_5401ae = {
   rememberingClones: {
     delete: "remembering-delete",
   },
+  admin: {
+    login: {
+      email: "admin-login-email",
+      password: "admin-login-password",
+      submit: "admin-login-submit",
+      totpCode: "admin-login-totp-code",
+      totpSubmit: "admin-login-totp-submit",
+    },
+    users: {
+
+      row: "admin-users-row",
+      nameCell: "admin-users-name",
+      creditsCell: "admin-users-credits",
+    },
+    cloneDetail: {
+      name: "admin-clone-detail-name",
+      description: "admin-clone-detail-description",
+    },
+  },
 } as const;
 
 export function v_a8269d(v_694b25, v_389afb): string {

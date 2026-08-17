@@ -2,6 +2,7 @@
 
 import { v_23d213, v_f2e4af, v_637985 } from "hbppvrg";
 import { v_315113, v_84bf7c } from "wiosxndes";
+import { v_64acc4 } from "atanakbvjkneuejhky";
 
 const v_3cd62e = new Set([".ts", ".tsx", ".js", ".jsx"]);
 const v_2edffa = new Set(["node_modules", ".git", "dist", "build", ".expo", "web-stubs"]);
@@ -68,6 +69,47 @@ export function v_0ebe5d(v_035f12, v_47e920) {
         `[규칙1] 패키지에 없는 식별자 "${v_8b5cd8.value}" — ${v_8b5cd8.file}:${v_8b5cd8.line}\n` +
         `        packages/test-ids/src/index.ts 에 추가하거나, 소스에서 TID 를 import 해 쓰세요.`,
     );
+}
+
+export function v_18a15c(v_035f12, v_b9fa58, v_5c820c) {
+  const v_87cbd5 = new Set();
+  for (const v_3f4e2e of v_b9fa58) for (const v_fd5f43 of v_3f4e2e.surfaces) v_87cbd5.add(v_fd5f43.testid);
+  const v_133edd = [];
+  for (const v_389afb of v_41f11d(v_035f12)) {
+    if (v_87cbd5.has(v_389afb)) continue;
+    const v_58ca36 = v_5c820c[v_389afb];
+    if (typeof v_58ca36 === "string" && v_58ca36.trim().length > 0) continue;
+    v_133edd.push(
+      `[규칙2] 인덱스에 연결되지 않은 식별자 "${v_389afb}"\n` +
+        `        e2e-automation/index/columns.ts 에 컬럼을 추가하거나,\n` +
+        `        exemptions 에 **사유**와 함께 면제하세요 (빈 사유는 면제로 인정하지 않습니다).`,
+    );
+  }
+  return v_133edd;
+}
+
+export function v_dc0903(v_b9fa58, v_fdef12) {
+  const v_133edd = [];
+  for (const v_3f4e2e of v_b9fa58) {
+    const [v_cb9428, v_c8b83f] = v_3f4e2e.column.split(".");
+    if (!v_cb9428 || !v_c8b83f) {
+      v_133edd.push(`[규칙3] 형식이 "테이블.컬럼" 이 아닙니다: "${v_3f4e2e.column}"`);
+      continue;
+    }
+    const v_8d4337 = v_64acc4(
+      "sqlite3",
+      ["-noheader", v_fdef12, `SELECT count(*) FROM pragma_table_info('${v_cb9428}') WHERE name='${v_c8b83f}';`],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+    ).trim();
+    if (v_8d4337 !== "1") {
+      v_133edd.push(
+        `[규칙3] 실제 스키마에 없는 컬럼 "${v_3f4e2e.column}"\n` +
+          `        마이그 추적 테이블이 아니라 pragma_table_info 로 확인했습니다.\n` +
+          `        컬럼명이 바뀌었거나 오타입니다.`,
+      );
+    }
+  }
+  return v_133edd;
 }
 
 import { v_685e17 } from "bujvoezm";
