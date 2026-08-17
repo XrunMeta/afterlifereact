@@ -13,7 +13,13 @@ async function v_c34e2f(v_f71b56, v_4d33b2, v_183879) {
   return JSON.parse(v_9b6134);
 }
 
-export async function v_9f52e1(v_6cdec8, v_e0c7e8, v_adc076): Promise<string> {
+export interface AdminSession {
+  accessToken: string;
+  refreshToken: string;
+  admin: { id: number; email: string; role: string };
+}
+
+export async function v_9f52e1(v_6cdec8, v_e0c7e8, v_adc076): Promise<AdminSession> {
   const v_694b25 = `${v_6cdec8}/oth-path`;
   const v_182fdb = await v_c34e2f(`${v_694b25}/login`, { email: v_e0c7e8, password: v_adc076 });
   const v_483de2 = v_182fdb.pendingToken;
@@ -31,8 +37,12 @@ export async function v_9f52e1(v_6cdec8, v_e0c7e8, v_adc076): Promise<string> {
 
   const v_6dadb1 = await v_c34e2f(`${v_694b25}/totp/verify`, { code: v_c6dfdc(v_43fd42) }, v_483de2);
   const v_a0737a = v_6dadb1.accessToken;
-  if (!v_a0737a) throw new Error(`verify 응답에 accessToken 이 없습니다: ${JSON.stringify(v_6dadb1).slice(0, 200)}`);
-  return v_a0737a;
+  const v_1a1b9b = v_6dadb1.refreshToken;
+  const v_b7f2b4 = v_6dadb1.admin;
+  if (!v_a0737a || !v_1a1b9b || !v_b7f2b4) {
+    throw new Error(`verify 응답 형태가 바뀌었습니다: ${JSON.stringify(v_6dadb1).slice(0, 200)}`);
+  }
+  return { accessToken: v_a0737a, refreshToken: v_1a1b9b, admin: v_b7f2b4 };
 }
 
 export async function v_48e571(v_6cdec8, v_e0c7e8, v_adc076): Promise<string> {

@@ -49,7 +49,8 @@ export const COLUMNS: v_df31fc[] = [
     column: "users.credits",
     label: "잔여 통화시간",
     where: (v_3f4e2e) => `id = ${v_3f4e2e.userId}`,
-    format: v_85cf93.secondsToMinutes,
+
+    format: v_85cf93.raw,
     surfaces: [
       {
         surface: "admin", screen: "users",
