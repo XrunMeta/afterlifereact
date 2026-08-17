@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { rawRequest, api } from "../api/client";
 import { ReasonPromptModal } from "../components/ReasonPromptModal";
+import { TID } from "@afterlife/test-ids";
 
 interface CloneRow {
   id: number;
@@ -140,7 +141,7 @@ export function CloneDetailPage() {
       </Link>
       <div style={styles.titleRow}>
         <h1 style={{ margin: 0 }}>
-          {clone.name}{" "}
+          <span data-testid={TID.admin.cloneDetail.name}>{clone.name}</span>{" "}
           <span style={{ color: "#64748b", fontSize: 16, fontWeight: 400 }}>
             @{clone.username}
           </span>
@@ -231,7 +232,7 @@ export function CloneDetailPage() {
       </div>
 
       <Section title="설명">
-        <div style={styles.desc}>
+        <div style={styles.desc} data-testid={TID.admin.cloneDetail.description}>
           {clone.description || <span style={{ color: "#94a3b8" }}>(없음)</span>}
         </div>
       </Section>

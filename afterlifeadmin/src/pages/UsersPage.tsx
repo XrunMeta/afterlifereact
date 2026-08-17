@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { api } from "../api/client";
 import { DataTable } from "../components/DataTable";
+import { TID, rowId } from "@afterlife/test-ids";
 
 const DELETION_STATE_LABEL: Record<string, { label: string; color: string; bg: string }> = {
   active: { label: "활성", color: "#15803d", bg: "#dcfce7" },
@@ -102,7 +103,7 @@ export function UsersPage() {
       label: "상태",
       render: renderDeletionState,
     },
-    { key: "name", label: "Name" },
+    { key: "name", label: "Name", testid: TID.admin.users.nameCell },
     {
       key: "email",
       label: "Email",
@@ -122,7 +123,7 @@ export function UsersPage() {
     },
     { key: "gender", label: "Gender" },
     { key: "age", label: "Age" },
-    { key: "credits", label: "Credits" },
+    { key: "credits", label: "Credits", testid: TID.admin.users.creditsCell },
     { key: "funnelStage", label: "Funnel" },
     {
       key: "marketingConsent",
@@ -159,7 +160,13 @@ export function UsersPage() {
       <div style={{ marginBottom: 12, color: "#64748b", fontSize: 13 }}>
         Email 셀을 클릭하면 OTP 발송 내역(최근 50건)을 볼 수 있어요.
       </div>
-      <DataTable columns={columns} data={users} onDelete={handleDelete} loading={loading} />
+      <DataTable
+        columns={columns}
+        data={users}
+        onDelete={handleDelete}
+        loading={loading}
+        rowTestId={(row) => rowId(TID.admin.users.row, row.id)}
+      />
 
       {otpEmail !== null && (
         <div style={modalOverlay} onClick={closeOtpLogs}>

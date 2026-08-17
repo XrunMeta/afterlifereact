@@ -4,6 +4,8 @@ interface Column {
   key: string;
   label: string;
   render?: (value: any, row: any) => ReactNode;
+
+  testid?: string;
 }
 
 interface DataTableProps {
@@ -11,9 +13,11 @@ interface DataTableProps {
   data: any[];
   onDelete?: (id: string) => void;
   loading?: boolean;
+
+  rowTestId?: (row: any) => string;
 }
 
-export function DataTable({ columns, data, onDelete, loading }: DataTableProps) {
+export function DataTable({ columns, data, onDelete, loading, rowTestId }: DataTableProps) {
   if (loading) {
     return <div style={styles.loading}>Loading...</div>;
   }
@@ -43,9 +47,9 @@ export function DataTable({ columns, data, onDelete, loading }: DataTableProps) 
             </tr>
           ) : (
             data.map((row) => (
-              <tr key={row.id} style={styles.tr}>
+              <tr key={row.id} style={styles.tr} data-testid={rowTestId?.(row)}>
                 {columns.map((col) => (
-                  <td key={col.key} style={styles.td}>
+                  <td key={col.key} style={styles.td} data-testid={col.testid}>
                     {col.render ? col.render(row[col.key], row) : row[col.key]}
                   </td>
                 ))}

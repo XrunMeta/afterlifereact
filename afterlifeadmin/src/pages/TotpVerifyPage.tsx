@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { verifyTotp } from "../api/adminAuth";
+import { TID } from "@afterlife/test-ids";
 
 export function TotpVerifyPage() {
   const navigate = useNavigate();
@@ -34,12 +35,14 @@ export function TotpVerifyPage() {
           style={styles.input}
           placeholder="123456"
           autoFocus
+          data-testid={TID.admin.login.totpCode}
         />
         {err && <div style={styles.error}>{err}</div>}
         <button
           onClick={onVerify}
           disabled={busy || code.length !== 6}
           style={styles.button}
+          data-testid={TID.admin.login.totpSubmit}
         >
           {busy ? "확인 중..." : "확인"}
         </button>

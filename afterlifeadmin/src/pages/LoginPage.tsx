@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { login } from "../api/adminAuth";
+import { TID } from "@afterlife/test-ids";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -37,6 +38,7 @@ export function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               style={styles.input}
+              data-testid={TID.admin.login.email}
             />
           </label>
           <label style={styles.label}>
@@ -48,10 +50,16 @@ export function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               style={styles.input}
+              data-testid={TID.admin.login.password}
             />
           </label>
           {err && <div style={styles.error}>{err}</div>}
-          <button type="submit" disabled={busy} style={styles.button}>
+          <button
+            type="submit"
+            disabled={busy}
+            style={styles.button}
+            data-testid={TID.admin.login.submit}
+          >
             {busy ? "로그인 중..." : "로그인"}
           </button>
         </form>

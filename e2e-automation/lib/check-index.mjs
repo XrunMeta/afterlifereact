@@ -74,7 +74,12 @@ export function ruleLiteralsRegistered(tid, dirs) {
 
 export function ruleIdsIndexed(tid, columns, exemptions) {
   const used = new Set();
-  for (const c of columns) for (const s of c.surfaces) used.add(s.testid);
+  for (const c of columns) {
+    for (const s of c.surfaces) {
+      used.add(s.testid);
+      if (s.row?.containerTestid) used.add(s.row.containerTestid);
+    }
+  }
   const violations = [];
   for (const id of collectIds(tid)) {
     if (used.has(id)) continue;
@@ -136,13 +141,21 @@ const isMain = process.argv[1] && import.meta.url === pathToFileURL(resolvePath(
 
 if (isMain) {
   const { TID } = await import("@afterlife/test-ids");
+  const { COLUMNS } = await import("../index/columns.ts");
+  const { EXEMPTIONS } = await import("../index/exemptions.ts");
+  const { resolveLocalD1 } = await import("./local-db.mjs");
 
   const SOURCE_DIRS = process.argv.slice(2).length ? process.argv.slice(2) : ["afterlifeadmin/src", "afterlifeRN/src"];
-  const violations = ruleLiteralsRegistered(TID, SOURCE_DIRS);
+  const violations = [
+    ...ruleLiteralsRegistered(TID, SOURCE_DIRS),
+    ...ruleIdsIndexed(TID, COLUMNS, EXEMPTIONS),
+    ...ruleColumnsExist(COLUMNS, resolveLocalD1()),
+  ];
+
   if (violations.length) {
     console.error(`검사기 위반 ${violations.length}건:\n`);
     console.error(violations.join("\n\n"));
     process.exit(1);
   }
-  console.log(`검사기 통과 — 식별자 ${collectIds(TID).size}개`);
+  console.log(`검사기 통과 — 식별자 ${collectIds(TID).size}개 · 컬럼 ${COLUMNS.length}개`);
 }

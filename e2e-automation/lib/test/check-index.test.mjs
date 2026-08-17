@@ -130,6 +130,19 @@ test("인덱스에 연결되지 않은 식별자는 위반이다", () => {
   assert.match(v[0], /oth-path-users-save/);
 });
 
+test("row.containerTestid 도 사용된 식별자로 센다 — 인덱스가 실제로 참조하는 값을 면제 목록에 거짓으로 올리지 않는다", () => {
+  const tid = { admin: { users: { row: "admin-users-row", name: "admin-users-name" } } };
+  const columns = [
+    {
+      column: "users.name",
+      surfaces: [{ testid: "admin-users-name", row: { containerTestid: "admin-users-row" } }],
+    },
+  ];
+
+  const v = ruleIdsIndexed(tid, columns, {});
+  assert.deepEqual(v, []);
+});
+
 test("noColumn 으로 면제하면 통과한다", () => {
   const tid = { admin: { users: { save: "admin-users-save" } } };
   const v = ruleIdsIndexed(tid, [], { "admin-users-save": "저장 버튼 — 컬럼 값이 아니라 동작" });
