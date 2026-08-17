@@ -4,6 +4,8 @@ interface Column {
   key: string;
   label: string;
   render?: (value: any, row: any) => v_4a8ba2;
+
+  testid?: string;
 }
 
 interface DataTableProps {
@@ -11,9 +13,11 @@ interface DataTableProps {
   data: any[];
   onDelete?: (id: string) => void;
   loading?: boolean;
+
+  rowTestId?: (row: any) => string;
 }
 
-export function v_c1eeb6({ columns: v_b9fa58, data: v_9390e8, onDelete: v_9bb421, loading: v_683210 }: DataTableProps) {
+export function v_c1eeb6({ columns: v_b9fa58, data: v_9390e8, onDelete: v_9bb421, loading: v_683210, rowTestId: v_3b9e09 }: DataTableProps) {
   if (v_683210) {
     return <div style={v_d81136.loading}>Loading...</div>;
   }
@@ -43,9 +47,9 @@ export function v_c1eeb6({ columns: v_b9fa58, data: v_9390e8, onDelete: v_9bb421
             </tr>
           ) : (
             v_9390e8.map((v_3ac7e7) => (
-              <tr key={v_3ac7e7.id} style={v_d81136.tr}>
+              <tr key={v_3ac7e7.id} style={v_d81136.tr} data-testid={v_3b9e09?.(v_3ac7e7)}>
                 {v_b9fa58.map((v_c8b83f) => (
-                  <td key={v_c8b83f.key} style={v_d81136.td}>
+                  <td key={v_c8b83f.key} style={v_d81136.td} data-testid={v_c8b83f.testid}>
                     {v_c8b83f.render ? v_c8b83f.render(v_3ac7e7[v_c8b83f.key], v_3ac7e7) : v_3ac7e7[v_c8b83f.key]}
                   </td>
                 ))}
