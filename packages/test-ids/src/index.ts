@@ -55,6 +55,25 @@ export const TID = {
   rememberingClones: {
     delete: "remembering-delete",
   },
+  admin: {
+    login: {
+      email: "admin-login-email",
+      password: "admin-login-password",
+      submit: "admin-login-submit",
+      totpCode: "admin-login-totp-code",
+      totpSubmit: "admin-login-totp-submit",
+    },
+    users: {
+
+      row: "admin-users-row",
+      nameCell: "admin-users-name",
+      creditsCell: "admin-users-credits",
+    },
+    cloneDetail: {
+      name: "admin-clone-detail-name",
+      description: "admin-clone-detail-description",
+    },
+  },
 } as const;
 
 export function rowId(base: string, id: string | number): string {

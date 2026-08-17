@@ -4,9 +4,9 @@ import { mkdtempSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawnSync } from "node:child_process";
+import { spawnSync, execFileSync } from "node:child_process";
 import { TID } from "@afterlife/test-ids";
-import { collectIds, scanSourceIds, ruleLiteralsRegistered } from "../check-index.mjs";
+import { collectIds, scanSourceIds, ruleLiteralsRegistered, ruleIdsIndexed, ruleColumnsExist } from "../check-index.mjs";
 
 function fixture(files) {
   const dir = mkdtempSync(join(tmpdir(), "chk-"));
@@ -58,7 +58,8 @@ test("scanSourceIds 는 속성값이 줄바꿈으로 감싸진 보간 템플릿�
   });
   const found = scanSourceIds([dir]);
   assert.deepEqual(found.map((f) => f.value), ["admin-users-row"]);
-  assert.equal(found[0].line > 0, true);
+
+  assert.equal(found[0].line, 2);
 });
 
 test("scanSourceIds 는 보간이 없는 템플릿 리터럴도 찾는다", () => {
@@ -119,4 +120,37 @@ test("CLI 로 실행하면 전부 등록된 리터럴일 때 정상 종료한다
   const res = runCli(dir);
   assert.equal(res.status, 0, `stdout: ${res.stdout}\nstderr: ${res.stderr}`);
   assert.equal(res.stderr, "");
+});
+
+test("인덱스에 연결되지 않은 식별자는 위반이다", () => {
+  const tid = { admin: { users: { name: "admin-users-name", save: "admin-users-save" } } };
+  const columns = [{ column: "users.name", surfaces: [{ testid: "admin-users-name" }] }];
+  const v = ruleIdsIndexed(tid, columns, {});
+  assert.equal(v.length, 1);
+  assert.match(v[0], /oth-path-users-save/);
+});
+
+test("noColumn 으로 면제하면 통과한다", () => {
+  const tid = { admin: { users: { save: "admin-users-save" } } };
+  const v = ruleIdsIndexed(tid, [], { "admin-users-save": "저장 버튼 — 컬럼 값이 아니라 동작" });
+  assert.deepEqual(v, []);
+});
+
+test("면제 사유가 빈 문자열이면 면제로 인정하지 않는다", () => {
+  const tid = { admin: { users: { save: "admin-users-save" } } };
+  const v = ruleIdsIndexed(tid, [], { "admin-users-save": "" });
+  assert.equal(v.length, 1);
+  assert.match(v[0], /사유/);
+});
+
+test("실제 스키마에 없는 컬럼은 위반이고 메시지에 컬럼명이 들어간다", () => {
+  const db = execFileSync("node", ["e2e-automation/lib/local-db.mjs"], { encoding: "utf8" }).trim();
+  const v = ruleColumnsExist([{ column: "users.no_such_column", surfaces: [] }], db);
+  assert.equal(v.length, 1);
+  assert.match(v[0], /oth-path\.no_such_column/);
+});
+
+test("실제 스키마에 있는 컬럼은 통과한다", () => {
+  const db = execFileSync("node", ["e2e-automation/lib/local-db.mjs"], { encoding: "utf8" }).trim();
+  assert.deepEqual(ruleColumnsExist([{ column: "users.credits", surfaces: [] }], db), []);
 });

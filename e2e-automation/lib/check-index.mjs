@@ -2,6 +2,7 @@
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
+import { execFileSync } from "node:child_process";
 
 const SOURCE_EXT = new Set([".ts", ".tsx", ".js", ".jsx"]);
 const SKIP_DIR = new Set(["node_modules", ".git", "dist", "build", ".expo", "web-stubs"]);
@@ -68,6 +69,47 @@ export function ruleLiteralsRegistered(tid, dirs) {
         `[규칙1] 패키지에 없는 식별자 "${f.value}" — ${f.file}:${f.line}\n` +
         `        packages/test-ids/src/index.ts 에 추가하거나, 소스에서 TID 를 import 해 쓰세요.`,
     );
+}
+
+export function ruleIdsIndexed(tid, columns, exemptions) {
+  const used = new Set();
+  for (const c of columns) for (const s of c.surfaces) used.add(s.testid);
+  const violations = [];
+  for (const id of collectIds(tid)) {
+    if (used.has(id)) continue;
+    const reason = exemptions[id];
+    if (typeof reason === "string" && reason.trim().length > 0) continue;
+    violations.push(
+      `[규칙2] 인덱스에 연결되지 않은 식별자 "${id}"\n` +
+        `        e2e-automation/index/columns.ts 에 컬럼을 추가하거나,\n` +
+        `        exemptions 에 **사유**와 함께 면제하세요 (빈 사유는 면제로 인정하지 않습니다).`,
+    );
+  }
+  return violations;
+}
+
+export function ruleColumnsExist(columns, dbPath) {
+  const violations = [];
+  for (const c of columns) {
+    const [table, col] = c.column.split(".");
+    if (!table || !col) {
+      violations.push(`[규칙3] 형식이 "테이블.컬럼" 이 아닙니다: "${c.column}"`);
+      continue;
+    }
+    const out = execFileSync(
+      "sqlite3",
+      ["-noheader", dbPath, `SELECT count(*) FROM pragma_table_info('${table}') WHERE name='${col}';`],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+    ).trim();
+    if (out !== "1") {
+      violations.push(
+        `[규칙3] 실제 스키마에 없는 컬럼 "${c.column}"\n` +
+          `        마이그 추적 테이블이 아니라 pragma_table_info 로 확인했습니다.\n` +
+          `        컬럼명이 바뀌었거나 오타입니다.`,
+      );
+    }
+  }
+  return violations;
 }
 
 import { pathToFileURL } from "node:url";
