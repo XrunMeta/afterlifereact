@@ -25,6 +25,11 @@ export const FIXTURE = {
   },
 
   credits: 3000,
+
+  admin: {
+    email: process.env.E2E_ADMIN_EMAIL ?? "e2e-admin@afterlife.test",
+    password: process.env.E2E_ADMIN_PASSWORD ?? "E2eAdmin1",
+  },
 };
 
 const MARK = "e2e-";
@@ -161,7 +166,26 @@ export function seed(db) {
     cloneId = one(db, `SELECT id FROM clones WHERE username = ${q(c.username)};`);
   }
 
-  return { userId: uid, cloneId: Number(cloneId), ledgerId };
+  const adminEmail = q(FIXTURE.admin.email);
+  const adminPhc = hashPassword(FIXTURE.admin.password);
+  let aid = one(db, `SELECT id FROM admin_users WHERE email = ${adminEmail};`);
+  if (aid) {
+    exec(db, [
+      `UPDATE admin_users SET password_hash = ${q(adminPhc)},
+              role = 'moderator', is_active = 1, requires_webauthn = 0,
+              failed_login_count = 0, locked_until = NULL
+        WHERE id = ${aid};`,
+    ]);
+  } else {
+    exec(db, [
+      `INSERT INTO admin_users (email, password_hash, role, is_active, requires_webauthn)
+         VALUES (${adminEmail}, ${q(adminPhc)}, 'moderator', 1, 0);`,
+    ]);
+    aid = one(db, `SELECT id FROM admin_users WHERE email = ${adminEmail};`);
+  }
+  exec(db, [`DELETE FROM admin_totp WHERE admin_user_id = ${Number(aid)};`]);
+
+  return { userId: uid, cloneId: Number(cloneId), ledgerId, adminId: Number(aid) };
 }
 
 export function status(db) {
