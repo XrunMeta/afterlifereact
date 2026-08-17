@@ -5,6 +5,7 @@ import { v_171b31 } from "xxkrszo";
 import { v_315113, v_f7648d } from "wiosxndes";
 import { v_6b8a99 } from "bujvoezm";
 import { v_ae844e } from "atanakbvjkneuejhky";
+import { v_5401ae } from "xpcpcyatayyxwjmftxi";
 import { v_41f11d, v_14f6b7, v_0ebe5d } from "../check-index.mjs";
 
 function v_a46f12(v_ff9685) {
@@ -51,6 +52,49 @@ v_2a805f("템플릿 리터럴로 만든 행 식별자는 접두어가 등록돼 
   v_ce93bd.deepEqual(v_0ebe5d({ admin: { users: { row: "admin-users-row" } } }, [v_b7cff2]), []);
 });
 
+v_2a805f("scanSourceIds 는 속성값이 줄바꿈으로 감싸진 보간 템플릿도 찾는다(Prettier 줄바꿈 대응)", () => {
+  const v_b7cff2 = v_a46f12({
+    "Wrapped.tsx": "<tr\n  data-testid={\n    `admin-users-row-${u.id}`\n  }\n/>",
+  });
+  const v_ea6dff = v_14f6b7([v_b7cff2]);
+  v_ce93bd.deepEqual(v_ea6dff.map((v_8b5cd8) => v_8b5cd8.value), ["admin-users-row"]);
+  v_ce93bd.equal(v_ea6dff[0].line > 0, true);
+});
+
+v_2a805f("scanSourceIds 는 보간이 없는 템플릿 리터럴도 찾는다", () => {
+  const v_b7cff2 = v_a46f12({ "Plain.tsx": "<Pressable testID={`plain-literal-id`} />" });
+  const v_ea6dff = v_14f6b7([v_b7cff2]);
+  v_ce93bd.deepEqual(v_ea6dff.map((v_8b5cd8) => v_8b5cd8.value), ["plain-literal-id"]);
+});
+
+v_2a805f("규칙 1은 줄바꿈으로 감싸진 미등록 리터럴을 위반으로 잡는다", () => {
+  const v_b7cff2 = v_a46f12({
+    "Wrapped.tsx": "<tr\n  data-testid={\n    `admin-users-row-${u.id}`\n  }\n/>",
+  });
+  const v_81e2ef = v_0ebe5d({ cloneEdit: { save: "clone-edit-save" } }, [v_b7cff2]);
+  v_ce93bd.equal(v_81e2ef.length, 1);
+  v_ce93bd.match(v_81e2ef[0], /oth-path-users-row/);
+  v_ce93bd.match(v_81e2ef[0], /Wrapped\.tsx/);
+});
+
+v_2a805f("규칙 1은 보간 없는 템플릿 리터럴 미등록도 위반으로 잡는다", () => {
+  const v_b7cff2 = v_a46f12({ "Plain.tsx": "<Pressable testID={`plain-literal-id`} />" });
+  const v_81e2ef = v_0ebe5d({ cloneEdit: { save: "clone-edit-save" } }, [v_b7cff2]);
+  v_ce93bd.equal(v_81e2ef.length, 1);
+  v_ce93bd.match(v_81e2ef[0], /plain-literal-id/);
+});
+
+v_2a805f("단일 줄·따옴표·보간 템플릿 케이스는 회귀 없이 그대로 통과한다", () => {
+  const v_b7cff2 = v_a46f12({
+    "Single.tsx": [
+      `<button data-testid="admin-users-save">저장</button>`,
+      "<tr data-testid={`admin-users-row-${u.id}`} />",
+    ].join("\n"),
+  });
+  const v_ea6dff = v_14f6b7([v_b7cff2]).map((v_8b5cd8) => v_8b5cd8.value).sort();
+  v_ce93bd.deepEqual(v_ea6dff, ["admin-users-row", "admin-users-save"]);
+});
+
 const v_a8d35d = v_f7648d(v_6b8a99(import.meta.url));
 const v_4b6b7f = v_315113(v_a8d35d, "..", "..", "..");
 const v_d2d139 = v_315113(v_4b6b7f, "node_modules", ".bin", "tsx");
@@ -60,17 +104,18 @@ function v_2879a0(v_5c7349) {
   return v_ae844e(v_d2d139, [v_258dcf, v_5c7349], { cwd: v_4b6b7f, encoding: "utf8" });
 }
 
+const v_a693f0 = "cli-not-registered";
+
 v_2a805f("CLI 로 실행하면 미등록 리터럴이 있을 때 비정상 종료하고 위반 식별자·파일을 이름으로 지목한다", () => {
-  const v_b7cff2 = v_a46f12({ "Web.tsx": `<button data-testid="cli-not-registered" />` });
+  const v_b7cff2 = v_a46f12({ "Web.tsx": `<button data-testid="${v_a693f0}" />` });
   const v_8f00b9 = v_2879a0(v_b7cff2);
   v_ce93bd.notEqual(v_8f00b9.status, 0, `stdout: ${v_8f00b9.stdout}\nstderr: ${v_8f00b9.stderr}`);
-  v_ce93bd.match(v_8f00b9.stderr, /cli-not-registered/);
+  v_ce93bd.match(v_8f00b9.stderr, new RegExp(v_a693f0));
   v_ce93bd.match(v_8f00b9.stderr, /Web\.tsx/);
 });
 
 v_2a805f("CLI 로 실행하면 전부 등록된 리터럴일 때 정상 종료한다", () => {
-
-  const v_b7cff2 = v_a46f12({ "App.tsx": `<Pressable testID="clone-edit-save" />` });
+  const v_b7cff2 = v_a46f12({ "App.tsx": `<Pressable testID="${v_5401ae.cloneEdit.save}" />` });
   const v_8f00b9 = v_2879a0(v_b7cff2);
   v_ce93bd.equal(v_8f00b9.status, 0, `stdout: ${v_8f00b9.stdout}\nstderr: ${v_8f00b9.stderr}`);
   v_ce93bd.equal(v_8f00b9.stderr, "");

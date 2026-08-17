@@ -30,8 +30,10 @@ function* v_1fa513(v_b7cff2) {
 }
 
 const v_f6bcc4 = [
-  /(?:data-testid|testID)\s*=\s*["']([^"']+)["']/g,
-  /(?:data-testid|testID)\s*=\s*\{\s*`([^`$]+)\$\{/g,
+  { re: /(?:data-testid|testID)\s*=\s*["']([^"']+)["']/g, prefix: false },
+  { re: /(?:data-testid|testID)\s*=\s*\{\s*`([^`$]+)\$\{/g, prefix: true },
+
+  { re: /(?:data-testid|testID)\s*=\s*\{\s*`([^`$]+)`\s*\}/g, prefix: false },
 ];
 
 export function v_14f6b7(v_47e920) {
@@ -41,17 +43,17 @@ export function v_14f6b7(v_47e920) {
     try { v_3ed4c3 = v_637985(v_b7cff2).isDirectory(); } catch { v_3ed4c3 = false; }
     if (!v_3ed4c3) continue;
     for (const v_4de33e of v_1fa513(v_b7cff2)) {
-      const v_a52412 = v_f2e4af(v_4de33e, "utf8").split("\n");
-      v_a52412.forEach((v_e6293e, v_ebec57) => {
-        for (const v_d95200 of v_f6bcc4) {
-          v_d95200.lastIndex = 0;
-          let v_35f85c;
-          while ((v_35f85c = v_d95200.exec(v_e6293e))) {
+      const v_9b6134 = v_f2e4af(v_4de33e, "utf8");
+      for (const { re: v_d95200, prefix: v_cd931c } of v_f6bcc4) {
+        v_d95200.lastIndex = 0;
+        let v_35f85c;
+        while ((v_35f85c = v_d95200.exec(v_9b6134))) {
+          const v_e6293e = v_9b6134.slice(0, v_35f85c.index).split("\n").length;
 
-            v_8d4337.push({ value: v_35f85c[1].replace(/-$/, ""), file: v_4de33e, line: v_ebec57 + 1 });
-          }
+          const v_3b402b = v_cd931c ? v_35f85c[1].replace(/-$/, "") : v_35f85c[1];
+          v_8d4337.push({ value: v_3b402b, file: v_4de33e, line: v_e6293e });
         }
-      });
+      }
     }
   }
   return v_8d4337;
