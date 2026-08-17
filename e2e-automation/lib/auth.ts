@@ -44,9 +44,3 @@ export async function adminAccessToken(apiBase: string, email: string, password:
   }
   return { accessToken: access, refreshToken: refresh, admin };
 }
-
-export async function rnAccessToken(apiBase: string, email: string, password: string): Promise<string> {
-  const r = await postJson(`${apiBase}/oth-path`, { email, password });
-  if (!r.accessToken) throw new Error("login 응답에 accessToken 이 없습니다.");
-  return r.accessToken;
-}

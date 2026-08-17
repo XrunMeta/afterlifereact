@@ -15,8 +15,6 @@ export const MIGRATIONS_DIR = join(API_DIR, "migrations");
 export const SNAPSHOT_DIR = join(REPO_ROOT, "d1-snapshots");
 const D1_DIR = join(API_DIR, ".wrangler", "state", "v3", "d1", "miniflare-D1DatabaseObject");
 
-const SEP = String.fromCharCode(31);
-
 const MARKER = "_local_db_marker";
 
 export function migrationFiles() {
@@ -26,14 +24,16 @@ export function migrationFiles() {
 }
 
 export function sql(dbPath, statement) {
-  const out = execFileSync("sqlite3", ["-noheader", "-separator", SEP, dbPath, statement], {
+  const out = execFileSync("sqlite3", ["-json", dbPath, statement], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   });
-  return out
-    .split("\n")
-    .filter((l) => l.length > 0)
-    .map((l) => l.split(SEP));
+  const trimmed = out.trim();
+  if (!trimmed) return [];
+
+  const rows = JSON.parse(trimmed);
+
+  return rows.map((row) => Object.values(row).map((v) => (v === null ? "" : String(v))));
 }
 
 export function stampMarker() {

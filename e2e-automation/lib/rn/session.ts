@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Page } from "@playwright/test";
 import { PORTS } from "../../ports";
+import { FIXTURE } from "../seed.mjs";
 
 const MODULE_DIR = (() => {
   try {
@@ -56,25 +57,26 @@ function findUp(relative: string, maxDepth = 6): string | null {
 export function readCredentials(): E2ECredentials {
   const envEmail = process.env.E2E_EMAIL;
   const envPassword = process.env.E2E_PASSWORD;
-  if (envEmail && envPassword) return { email: envEmail, password: envPassword };
+  if (envEmail && envPassword) {
+    console.log("[e2e] RN 자격증명 출처: 환경변수 E2E_EMAIL/E2E_PASSWORD");
+    return { email: envEmail, password: envPassword };
+  }
 
   const p = findUp(".e2e-credentials.json");
-  if (!p) {
-    throw new Error(
-      [
-        "테스트 계정 자격증명을 찾지 못했습니다.",
-        "다음 중 하나를 준비하세요:",
-        "  1) 환경변수 E2E_EMAIL / E2E_PASSWORD",
-        '  2) e2e-automation/.e2e-credentials.json → { "email": "...", "password": "..." }',
-        "     (이 파일은 .gitignore 대상입니다. 커밋하지 마세요.)",
-      ].join("\n"),
-    );
+  if (p) {
+    const parsed = JSON.parse(readFileSync(p, "utf8")) as Partial<E2ECredentials>;
+    if (!parsed.email || !parsed.password) {
+      throw new Error(`${p} 에 email 또는 password 가 비어 있습니다.`);
+    }
+    console.log(`[e2e] RN 자격증명 출처: ${p}`);
+    return { email: parsed.email, password: parsed.password };
   }
-  const parsed = JSON.parse(readFileSync(p, "utf8")) as Partial<E2ECredentials>;
-  if (!parsed.email || !parsed.password) {
-    throw new Error(`${p} 에 email 또는 password 가 비어 있습니다.`);
-  }
-  return { email: parsed.email, password: parsed.password };
+
+  console.log(
+    "[e2e] RN 자격증명 출처: 시드 픽스처 폴백 (FIXTURE.user, lib/seed.mjs) — " +
+      "환경변수도 .e2e-credentials.json 도 없어 사용합니다.",
+  );
+  return { email: FIXTURE.user.email, password: FIXTURE.user.password };
 }
 
 export interface Session {

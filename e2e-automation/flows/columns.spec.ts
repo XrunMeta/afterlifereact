@@ -4,11 +4,17 @@ import { test, expect } from "@playwright/test";
 import { COLUMNS } from "../index/columns";
 import { byScreen, expectedValue } from "../lib/runner";
 import { rowId } from "@afterlife/test-ids";
-import { resolveLocalD1 } from "../lib/local-db.mjs";
+import { resolveLocalD1, sql } from "../lib/local-db.mjs";
 import { FIXTURE, status } from "../lib/seed.mjs";
 import { adminAccessToken, type AdminSession } from "../lib/auth";
-import { AUTH_KEYS, blockNonLocal, login, readCredentials, type Session } from "../lib/rn/session";
-import { PORTS } from "../ports";
+import {
+  API_BASE,
+  AUTH_KEYS,
+  blockNonLocal,
+  login,
+  readCredentials,
+  type Session,
+} from "../lib/rn/session";
 
 const DB = resolveLocalD1();
 const ONLY = process.env.E2E_COLUMN;
@@ -20,8 +26,6 @@ if (!fixture || !fixture.clone) {
   );
 }
 const ctx = { userId: fixture.userId, cloneId: fixture.clone.id };
-
-const API_BASE = `http://localhost:${PORTS.api}`;
 
 const ADMIN_TOKEN_KEY = "afterlife.admin.token";
 const ADMIN_REFRESH_KEY = "afterlife.admin.refresh";
@@ -35,6 +39,12 @@ test.describe("어드민 — 컬럼 값", () => {
 
   let adminSession: AdminSession;
   test.beforeAll(async () => {
+
+    sql(
+      DB,
+      `DELETE FROM admin_totp WHERE admin_user_id = ` +
+        `(SELECT id FROM admin_users WHERE email = '${FIXTURE.admin.email}');`,
+    );
     adminSession = await adminAccessToken(API_BASE, FIXTURE.admin.email, FIXTURE.admin.password);
   });
 
