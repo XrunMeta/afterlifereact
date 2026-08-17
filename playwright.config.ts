@@ -1,6 +1,5 @@
 import { defineConfig } from "@playwright/test";
-
-export const PORTS = { api: 8787, admin: 5173, rnWeb: 5174 } as const;
+import { PORTS } from "./e2e-automation/ports";
 
 export default defineConfig({
   testDir: "e2e-automation/flows",

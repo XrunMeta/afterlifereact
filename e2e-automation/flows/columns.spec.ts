@@ -7,8 +7,7 @@ import { rowId } from "@afterlife/test-ids";
 import { resolveLocalD1 } from "../lib/local-db.mjs";
 import { FIXTURE, status } from "../lib/seed.mjs";
 import { adminAccessToken, type AdminSession } from "../lib/auth";
-
-const API_PORT = 8787;
+import { PORTS } from "../ports";
 
 const DB = resolveLocalD1();
 const ONLY = process.env.E2E_COLUMN;
@@ -21,7 +20,7 @@ if (!fixture || !fixture.clone) {
 }
 const ctx = { userId: fixture.userId, cloneId: fixture.clone.id };
 
-const API_BASE = `http://localhost:${API_PORT}`;
+const API_BASE = `http://localhost:${PORTS.api}`;
 
 const ADMIN_TOKEN_KEY = "afterlife.admin.token";
 const ADMIN_REFRESH_KEY = "afterlife.admin.refresh";

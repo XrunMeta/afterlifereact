@@ -2,9 +2,7 @@
 
 import type { FullConfig } from "@playwright/test";
 import { execFileSync } from "node:child_process";
-
-import pwConfigDefault from "../playwright.config";
-const { PORTS } = pwConfigDefault as unknown as { PORTS: { api: number; admin: number; rnWeb: number } };
+import { PORTS } from "./ports";
 
 const API = `http://localhost:${PORTS.api}`;
 
