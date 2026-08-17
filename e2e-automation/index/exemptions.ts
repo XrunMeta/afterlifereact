@@ -32,10 +32,10 @@ export const EXEMPTIONS: Record<string, string> = {
   [TID.cloneCreateStep7.sharePost]: "동작 버튼 — 표시값 없음",
 
   [TID.cloneDetail.coownerSection]:
-    "섹션 컨테이너 — 공동소유자 값은 안의 자식 요소가 가지고, 컨테이너 자체는 값이 아니다",
+    "[PROVISIONAL] 이 섹션은 공동소유자 표시 이름(displayName)을 감싼다(CloneDetailScreen.tsx:190-201). 하지만 그 값을 렌더하는 <Text> 에 지금 testid 가 없다 — '자식이 값을 가진다'고 미룰 손잡이가 없는 상태다. 자식에 testid 를 붙이기 전까지는 아무것도 인덱싱할 수 없다(자식 라벨링은 이 태스크 범위 밖)",
 
   [TID.myClonesDashboard.followerCount]:
-    "파생 집계값 — clone_follows 를 센 COUNT 이지 단일 컬럼 값이 아니다. 컬럼 인덱스는 table.column 단위만 표현하므로(규칙 3 이 pragma_table_info 로 대조) 이 값은 애초에 인덱스가 표현할 수 있는 대상이 아니다(RN MyClonesDashboardScreen.tsx:678-679)",
+    "[PROVISIONAL] 실제로는 컬럼 값이다 — clone.followersCount 는 clone_stats.followers_count(트리거로 유지되는 진짜 컬럼, migrations/0003_clone_follows.sql)를 그대로 반영한다(MyClonesDashboardScreen.tsx:585-588). users.credits 처럼 format 만 걸면 인덱싱 가능한 형태다. 막는 건 값의 성격이 아니라 이 RN 화면이 아직 SCREENS 에 등록돼 있지 않다는 범위 문제다 — 그 등록이 생기기 전까지 보류",
 
   [TID.agreements.faceConsentSection]:
     "섹션 컨테이너 — 고정 제목/안내문을 감쌀 뿐, 값은 자식(진입행)이 가진다",
@@ -50,7 +50,8 @@ export const EXEMPTIONS: Record<string, string> = {
   [TID.agreements.faceBiometricConsentToggle]:
     "[PROVISIONAL] 실제로는 컬럼 값이다 — getFaceBiometricConsent 로 조회한 저장된 동의 상태(users.face_biometric_consent)를 그대로 반영하는 스위치다(AgreementsScreen.tsx). 인덱싱을 막는 건 화면 범위가 아니라 assertion 종류다 — Switch 는 텍스트/입력값이 아니라 on/off(checked) 상태를 검증해야 하는데, 러너는 아직 boolean/checked assertion 을 모른다(현재는 표시 요소=텍스트, 텍스트 입력=값 두 종류만 안다). 그 assertion 종류가 생기기 전까지 의도적으로 보류",
 
-  [TID.rememberingClones.delete]: "동작 버튼(리스트 행의 삭제) — 표시값 없음",
+  [TID.rememberingClones.delete]:
+    "동작 버튼(리스트 행의 삭제) — 표시값 없음. rowId(TID.rememberingClones.delete, clone.cloneId) 로 쓰는 행 접두어이지 단일 고정 문자열이 아니다",
 
   [TID.admin.login.email]: "로그인 입력 — DB 컬럼 값의 표시가 아니라 인증 경로",
   [TID.admin.login.password]: "로그인 입력 — 인증 경로, 화면에 값이 표시되지도 않는다",
