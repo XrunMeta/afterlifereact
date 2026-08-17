@@ -15,6 +15,6 @@
     "forceConsistentCasingInFileNames": true,
     "types": ["node"]
   },
-  "include": ["index/**/*.ts", "lib/**/*", "flows/**/*.ts", "global-setup.ts"],
+  "include": ["index/**/*.ts", "lib/**/*", "flows/**/*.ts", "global-setup.ts", "../playwright.config.ts"],
   "exclude": ["lib/seed.mjs", "lib/d1-snapshot.mjs"]
 }
