@@ -5,7 +5,11 @@
   "scripts": {
     "test:ids": "node --import tsx --test packages/test-ids/test/",
     "check:index": "tsx e2e-automation/lib/check-index.mjs",
-    "test:lib": "node --import tsx --test e2e-automation/lib/test/"
+    "test:lib": "node --import tsx --test e2e-automation/lib/test/",
+    "db:path": "node e2e-automation/lib/local-db.mjs",
+    "db:sql": "node e2e-automation/lib/local-db.mjs",
+    "db:snapshot": "node e2e-automation/lib/d1-snapshot.mjs",
+    "db:seed": "node e2e-automation/lib/seed.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
