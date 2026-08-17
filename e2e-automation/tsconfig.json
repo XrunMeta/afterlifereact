@@ -15,5 +15,6 @@
     "forceConsistentCasingInFileNames": true,
     "types": ["node"]
   },
-  "include": ["index/**/*.ts", "lib/check-index.mjs", "lib/local-db.mjs", "lib/test/**/*.mjs"]
+  "include": ["index/**/*.ts", "lib/**/*", "flows/**/*.ts", "global-setup.ts"],
+  "exclude": ["lib/seed.mjs", "lib/d1-snapshot.mjs"]
 }
