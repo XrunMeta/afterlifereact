@@ -14,6 +14,19 @@ const MODULE_DIR = (() => {
 
 export const API_BASE = process.env.E2E_API_BASE ?? `http://localhost:${PORTS.api}`;
 
+function assertLocalApiBase(base: string): void {
+  const hostname = new URL(base).hostname;
+  if (hostname !== "localhost" && hostname !== "127.0.0.1") {
+    throw new Error(
+      `E2E_API_BASE 가 로컬이 아닙니다: ${base}\n` +
+        `blockNonLocal 은 브라우저 요청만 막고 이 파일의 Node 쪽 fetch() 는 막지 않는다 — ` +
+        `그대로 두면 login()/getCloneDescription() 이 조용히 원격에 도달한다.\n` +
+        `로컬 주소로 고치세요 (예: http://localhost:${PORTS.api}).`,
+    );
+  }
+}
+assertLocalApiBase(API_BASE);
+
 export const AUTH_KEYS = {
   accessToken: "@afterlifeRN/auth/accessToken",
   currentUserId: "@afterlifeRN/auth/currentUserId",

@@ -30,8 +30,7 @@ const MIME = {
 
 if (!fs.existsSync(path.join(ROOT, "index.html"))) {
   console.error(
-    `[static-server] ${ROOT}/index.html 이 없습니다.\n` +
-      `먼저 빌드하세요:  cd afterlifeRN && npx expo export --platform web`,
+    `[static-server] ${ROOT}/index.html 이 없습니다.\n` + `먼저 빌드하세요:  npm run e2e:build-rn`,
   );
   process.exit(1);
 }

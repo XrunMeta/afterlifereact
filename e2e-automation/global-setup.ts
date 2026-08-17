@@ -8,7 +8,7 @@ const API = `http://localhost:${PORTS.api}`;
 
 const START_CMD: Record<string, string> = {
   [String(PORTS.admin)]: "cd afterlifeadmin && npm run dev",
-  [String(PORTS.rnWeb)]: "cd afterlifeRN && npm run web",
+  [String(PORTS.rnWeb)]: "(레포 루트에서) npm run e2e:build-rn && npm run e2e:serve-rn",
 };
 
 async function gateAppIsOurs(url: string, marker: RegExp, name: string) {
@@ -27,6 +27,24 @@ async function gateAppIsOurs(url: string, marker: RegExp, name: string) {
     throw new Error(
       `${url} 가 ${name} 이 아닙니다 — 다른 서버가 이 포트를 쓰고 있습니다.\n` +
         `해당 포트를 쓰는 프로세스를 확인하세요: lsof -nP -iTCP:${new URL(url).port} -sTCP:LISTEN`,
+    );
+  }
+}
+
+async function gateRnWebBundleIsLocal(baseUrl: string) {
+  const html = await (await fetch(baseUrl)).text();
+  const match = html.match(/src="(\/_expo\/static\/js\/web\/index-[^"]+\.js)"/);
+  if (!match) return; 
+
+  const bundleUrl = new URL(match[1], baseUrl).toString();
+  const bundle = await (await fetch(bundleUrl)).text();
+  const localMarker = `localhost:${PORTS.api}`;
+  if (!bundle.includes(localMarker)) {
+    throw new Error(
+      `RN 웹 번들이 로컬 API(${localMarker})로 빌드되지 않았습니다.\n` +
+        `앱 자신의 API 호출(getMe 등)이 원격 preview 로 나갑니다 ` +
+        `(afterlifeRN/src/config/apiBase.ts 의 EXPO_PUBLIC_API_BASE 기본값).\n` +
+        `다시 빌드하세요: npm run e2e:build-rn`,
     );
   }
 }
@@ -50,6 +68,7 @@ async function gateCors(origin: string) {
 export default async function globalSetup(_config: FullConfig) {
   await gateAppIsOurs(`http://localhost:${PORTS.admin}`, /afterlife|admin|<div id="root"/i, "어드민 웹");
   await gateAppIsOurs(`http://localhost:${PORTS.rnWeb}`, /expo|<div id="root"/i, "RN 웹 번들");
+  await gateRnWebBundleIsLocal(`http://localhost:${PORTS.rnWeb}`);
   await gateCors(`http://localhost:${PORTS.rnWeb}`);
 
   const status = execFileSync("node", ["e2e-automation/lib/local-db.mjs", "--status"], { encoding: "utf8" });

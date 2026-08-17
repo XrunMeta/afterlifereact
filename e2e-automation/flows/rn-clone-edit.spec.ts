@@ -12,6 +12,8 @@ import {
 import { resolveLocalD1 } from "../lib/local-db.mjs";
 import { status } from "../lib/seed.mjs";
 
+import { routeFor } from "../index/screens";
+
 const DB = resolveLocalD1();
 const fixture = status(DB);
 if (!fixture || !fixture.clone) {
@@ -21,6 +23,8 @@ if (!fixture || !fixture.clone) {
 }
 
 const CLONE_ID = Number(process.env.E2E_CLONE_ID ?? fixture.clone.id);
+
+const EDIT_ROUTE = routeFor("rn-web", "clone-edit")({ userId: fixture.userId, cloneId: CLONE_ID });
 
 const MARK = "e2e-web-";
 
@@ -62,7 +66,7 @@ test.describe("RN 웹 — 클론 편집(소개글 왕복)", () => {
     const stamp = `${Date.now()}`.slice(-6);
     const NEXT = `${MARK}${stamp}\n두 번째 줄`;
 
-    await enterAuthenticated(page, `/clone/${CLONE_ID}/edit`);
+    await enterAuthenticated(page, EDIT_ROUTE);
 
     const desc = page.getByTestId(TID.cloneEdit.descInput);
     const counter = page.getByTestId(TID.cloneEdit.descCounter);
@@ -110,7 +114,7 @@ test.describe("RN 웹 — 클론 편집(소개글 왕복)", () => {
     expect(stored, "서버에 저장된 값이 없습니다.").toBe(savedValue);
     expect(stored!.split("\n")).toHaveLength(2);
 
-    await enterAuthenticated(page, `/clone/${CLONE_ID}/edit`);
+    await enterAuthenticated(page, EDIT_ROUTE);
     await expect(page.getByTestId(TID.cloneEdit.descInput)).toHaveValue(stored!, {
       timeout: 60_000,
     });
