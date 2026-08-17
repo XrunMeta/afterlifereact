@@ -12,7 +12,9 @@
     "db:path": "node e2e-automation/lib/local-db.mjs",
     "db:sql": "node e2e-automation/lib/local-db.mjs",
     "db:snapshot": "node e2e-automation/lib/d1-snapshot.mjs",
-    "db:seed": "node e2e-automation/lib/seed.mjs"
+    "db:seed": "node e2e-automation/lib/seed.mjs",
+    "e2e:build-rn": "node --import tsx e2e-automation/lib/rn/build.mjs",
+    "e2e:serve-rn": "node --import tsx e2e-automation/lib/rn/static-server.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
