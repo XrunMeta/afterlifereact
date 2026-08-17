@@ -14,6 +14,19 @@ const v_340395 = (() => {
 
 export const v_cc9198 = process.env.E2E_API_BASE ?? `http://localhost:${v_9681bc.api}`;
 
+function v_02328e(v_694b25): void {
+  const v_6f02bf = new URL(v_694b25).hostname;
+  if (v_6f02bf !== "localhost" && v_6f02bf !== "127.0.0.1") {
+    throw new Error(
+      `E2E_API_BASE 가 로컬이 아닙니다: ${v_694b25}\n` +
+        `blockNonLocal 은 브라우저 요청만 막고 이 파일의 Node 쪽 fetch() 는 막지 않는다 — ` +
+        `그대로 두면 login()/getCloneDescription() 이 조용히 원격에 도달한다.\n` +
+        `로컬 주소로 고치세요 (예: http://localhost:${v_9681bc.api}).`,
+    );
+  }
+}
+v_02328e(v_cc9198);
+
 export const v_e6e000 = {
   accessToken: "@afterlifeRN/auth/accessToken",
   currentUserId: "@afterlifeRN/auth/currentUserId",

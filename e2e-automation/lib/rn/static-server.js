@@ -30,8 +30,7 @@ const v_e2eb8c = {
 
 if (!v_9d3c52.existsSync(v_9fe22d.join(v_4b6b7f, "index.html"))) {
   console.error(
-    `[static-server] ${v_4b6b7f}/index.html 이 없습니다.\n` +
-      `먼저 빌드하세요:  cd afterlifeRN && npx expo export --platform web`,
+    `[static-server] ${v_4b6b7f}/index.html 이 없습니다.\n` + `먼저 빌드하세요:  npm run e2e:build-rn`,
   );
   process.exit(1);
 }

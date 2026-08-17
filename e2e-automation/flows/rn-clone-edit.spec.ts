@@ -12,6 +12,8 @@ import {
 import { v_597fc8 } from "../lib/local-db.mjs";
 import { v_d308b5 } from "../lib/seed.mjs";
 
+import { v_6eff18 } from "../index/screens";
+
 const v_1441fe = v_597fc8();
 const v_a46f12 = v_d308b5(v_1441fe);
 if (!v_a46f12 || !v_a46f12.clone) {
@@ -21,6 +23,8 @@ if (!v_a46f12 || !v_a46f12.clone) {
 }
 
 const v_e11ce9 = Number(process.env.E2E_CLONE_ID ?? v_a46f12.clone.id);
+
+const v_08d446 = v_6eff18("rn-web", "clone-edit")({ userId: v_a46f12.userId, cloneId: v_e11ce9 });
 
 const v_83500a = "e2e-web-";
 
@@ -62,7 +66,7 @@ v_2a805f.describe("RN 웹 — 클론 편집(소개글 왕복)", () => {
     const v_67cd67 = `${Date.now()}`.slice(-6);
     const v_f60c5d = `${v_83500a}${v_67cd67}\n두 번째 줄`;
 
-    await v_776876(v_2365e9, `/clone/${v_e11ce9}/edit`);
+    await v_776876(v_2365e9, v_08d446);
 
     const v_41b99d = v_2365e9.getByTestId(v_5401ae.cloneEdit.descInput);
     const v_054741 = v_2365e9.getByTestId(v_5401ae.cloneEdit.descCounter);
@@ -110,7 +114,7 @@ v_2a805f.describe("RN 웹 — 클론 편집(소개글 왕복)", () => {
     v_4d37e3(v_5885b8, "서버에 저장된 값이 없습니다.").toBe(v_595ec2);
     v_4d37e3(v_5885b8!.split("\n")).toHaveLength(2);
 
-    await v_776876(v_2365e9, `/clone/${v_e11ce9}/edit`);
+    await v_776876(v_2365e9, v_08d446);
     await v_4d37e3(v_2365e9.getByTestId(v_5401ae.cloneEdit.descInput)).toHaveValue(v_5885b8!, {
       timeout: 60_000,
     });

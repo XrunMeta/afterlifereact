@@ -85,7 +85,10 @@ docs/voices/
 e2e-automation/runs/
 
 # E2E 테스트 계정 자격증명 (T-454, Task 9 로 afterlifeRN/e2e/ 에서 이관)
-e2e-automation/.e2e-credentials.json
+# 🔴 경로를 못 박지 않는다 — session.ts 의 findUp() 은 6단계까지 위로 훑으므로
+#    레포 루트 등 다른 깊이에 사본이 생기면 경로 한정 패턴으로는 못 잡는다
+#    (리뷰 실측: Task 9). 깊이 무관하게 파일명만으로 잡는다.
+.e2e-credentials.json
 
 # 로컬 D1 스냅샷·백업 (PII 평문이 들어올 수 있다 — 절대 커밋 금지)
 # 폴더째 막으면 git 이 하위를 훑지 않아 아래 재포함이 동작하지 않는다.
