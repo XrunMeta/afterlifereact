@@ -84,6 +84,9 @@ docs/voices/
 # E2E 자동화 실행 산출물 (실패 시 trace/스크린샷 — 커밋하지 않는다)
 e2e-automation/runs/
 
+# E2E 테스트 계정 자격증명 (T-454, Task 9 로 afterlifeRN/e2e/ 에서 이관)
+e2e-automation/.e2e-credentials.json
+
 # 로컬 D1 스냅샷·백업 (PII 평문이 들어올 수 있다 — 절대 커밋 금지)
 # 폴더째 막으면 git 이 하위를 훑지 않아 아래 재포함이 동작하지 않는다.
 d1-snapshots/*
