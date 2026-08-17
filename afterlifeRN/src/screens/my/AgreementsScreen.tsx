@@ -20,6 +20,7 @@ import v_c0caa9 from "../../components/common/TermsModal";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import type { v_e57140 } from "../../navigation/types";
 import { v_1ed7d9 } from "../../stores/authStore";
+import { v_5401ae } from "../../testIDs";
 import {
   v_7f847d,
   v_b14b3b,
@@ -204,13 +205,13 @@ function v_afe1c9({ t: v_8d41d7 }: FaceConsentSectionProps) {
 
   return (
     <View
-      testID="face-consent-section"
+      testID={v_5401ae.agreements.faceConsentSection}
       style={[v_fd5f43.content, { paddingTop: 16, paddingBottom: 32 }]}
     >
       <Text style={v_fd5f43.sectionTitle}>{v_8d41d7("settings.privacy.faceConsent.sectionTitle")}</Text>
       <View style={v_fd5f43.card}>
         <TouchableOpacity
-          testID="remembering-clones-entry"
+          testID={v_5401ae.agreements.rememberingClonesEntry}
           style={[v_fd5f43.viewAllRow, { borderTopWidth: 0 }]}
           onPress={() => v_c65f5d.navigate("RememberingClones")}
           accessibilityRole="button"
@@ -244,7 +245,7 @@ function v_efb928({
 }: CallLearningConsentSectionProps) {
   return (
     <View
-      testID="call-learning-consent-section"
+      testID={v_5401ae.agreements.callLearningConsentSection}
       style={[v_fd5f43.content, { paddingTop: 0, paddingBottom: 32 }]}
     >
       <Text style={v_fd5f43.sectionTitle}>{v_8d41d7("settings.privacy.callLearning.sectionTitle")}</Text>
@@ -263,7 +264,7 @@ function v_efb928({
             <ActivityIndicator color={v_1bfbd0.zinc500} />
           ) : (
             <Switch
-              testID="call-learning-consent-toggle"
+              testID={v_5401ae.agreements.callLearningConsentToggle}
               value={v_b6e533 === "granted"}
               onValueChange={v_0a2cea}
               disabled={v_35bf26}
@@ -294,7 +295,7 @@ function v_b8358a({
 }: FaceBiometricConsentSectionProps) {
   return (
     <View
-      testID="face-biometric-consent-section"
+      testID={v_5401ae.agreements.faceBiometricConsentSection}
       style={[v_fd5f43.content, { paddingTop: 0, paddingBottom: 32 }]}
     >
       <Text style={v_fd5f43.sectionTitle}>{v_8d41d7("settings.privacy.faceBiometric.sectionTitle")}</Text>
@@ -308,7 +309,7 @@ function v_b8358a({
             <ActivityIndicator color={v_1bfbd0.zinc500} />
           ) : (
             <Switch
-              testID="face-biometric-consent-toggle"
+              testID={v_5401ae.agreements.faceBiometricConsentToggle}
               value={v_b6e533 === "granted"}
               onValueChange={v_0a2cea}
               disabled={v_35bf26}

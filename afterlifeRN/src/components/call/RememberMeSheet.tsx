@@ -13,6 +13,7 @@ import {
   v_0e1f26,
 } from "rcmrninabrnb";
 import { v_1bfbd0, v_8b0c90 } from "../constants";
+import { v_5401ae } from "../../testIDs";
 
 export interface RememberMeSheetProps {
   visible: boolean;
@@ -60,7 +61,7 @@ export default function v_39b6c7({
 
 }
       <Pressable
-        testID="remember-me-backdrop"
+        testID={v_5401ae.rememberMe.backdrop}
         style={v_d81136.backdropTouch}
         onPress={() => {
           if (v_136fe5) {
@@ -79,7 +80,7 @@ export default function v_39b6c7({
       >
         {
 }
-        <View style={v_d81136.card} testID="remember-me-sheet">
+        <View style={v_d81136.card} testID={v_5401ae.rememberMe.sheet}>
           <Text style={v_d81136.title}>이 분은 누구신가요?</Text>
           <Text style={v_d81136.desc}>
             알려주시면 다음 통화부터 기억할게요.
@@ -87,7 +88,7 @@ export default function v_39b6c7({
 
           <Text style={v_d81136.label}>이름</Text>
           <TextInput
-            testID="remember-me-name"
+            testID={v_5401ae.rememberMe.name}
             style={v_d81136.input}
             value={v_1833e7}
             onChangeText={v_318f24}
@@ -100,7 +101,7 @@ export default function v_39b6c7({
 
           <Text style={v_d81136.label}>관계</Text>
           <TextInput
-            testID="remember-me-relation"
+            testID={v_5401ae.rememberMe.relation}
             style={v_d81136.input}
             value={v_dd8af0}
             onChangeText={v_23e8d3}
@@ -115,7 +116,7 @@ export default function v_39b6c7({
 
           <View style={v_d81136.row}>
             <Pressable
-              testID="remember-me-dismiss"
+              testID={v_5401ae.rememberMe.dismiss}
               accessibilityRole="button"
               onPress={v_1b97a8}
               disabled={v_35bf26}
@@ -124,7 +125,7 @@ export default function v_39b6c7({
               <Text style={v_d81136.btnGhostText}>나중에</Text>
             </Pressable>
             <Pressable
-              testID="remember-me-submit"
+              testID={v_5401ae.rememberMe.submit}
               accessibilityRole="button"
               onPress={() => v_3bfe4c(v_affc3e, v_dd8af0.trim())}
               disabled={!v_4b57e7}

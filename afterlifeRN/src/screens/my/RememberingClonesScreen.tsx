@@ -17,6 +17,7 @@ import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_889fad } from "../../stores/dialogStore";
+import { v_5401ae, v_a8269d } from "../../testIDs";
 import {
   v_a1ba62,
   v_c63c1d,
@@ -149,7 +150,7 @@ export default function v_e6afa3() {
                     </Text>
                   </View>
                   <TouchableOpacity
-                    testID={`remembering-delete-${v_eb25ce.cloneId}`}
+                    testID={v_a8269d(v_5401ae.rememberingClones.delete, v_eb25ce.cloneId)}
                     style={[v_fd5f43.deleteBtn, v_3fc8d6 === v_eb25ce.cloneId && { opacity: 0.6 }]}
                     onPress={() => v_9bb421(v_eb25ce)}
                     disabled={v_3fc8d6 === v_eb25ce.cloneId}

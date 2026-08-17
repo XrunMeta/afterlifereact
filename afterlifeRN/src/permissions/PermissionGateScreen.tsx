@@ -10,6 +10,7 @@ import { v_1bfbd0, v_9b1a04, v_8b0c90 } from '../components/constants';
 import { v_1ed7d9 } from '../stores/authStore';
 import { v_b5d684 } from './usePermissionGate';
 import type { v_2455ca } from './permissionGate';
+import { v_5401ae } from '../testIDs';
 
 function v_c4180e(v_8d41d7, status: v_2455ca): string {
   switch (v_d308b5) {
@@ -91,7 +92,7 @@ export default function v_6d377c() {
                 title={v_8d41d7('common.retry')}
                 onPress={() => void v_f3f9e8()}
                 variant="primary"
-                testID="permission-gate-retry"
+                testID={v_5401ae.permissionGate.retry}
               />
             ) : (
               v_403b73.canRequest && (
@@ -99,7 +100,7 @@ export default function v_6d377c() {
                   title={v_8d41d7('permissionGate.requestButton')}
                   onPress={() => void v_576f5a()}
                   variant="primary"
-                  testID="permission-gate-request"
+                  testID={v_5401ae.permissionGate.request}
                 />
               )
             )}
@@ -108,7 +109,7 @@ export default function v_6d377c() {
               <TouchableOpacity
                 onPress={v_063c7a}
                 style={v_d81136.settingsLink}
-                testID="permission-gate-open-settings"
+                testID={v_5401ae.permissionGate.openSettings}
               >
                 <Text style={v_d81136.settingsLinkText}>{v_8d41d7('permissionGate.settingsHint')}</Text>
               </TouchableOpacity>
@@ -120,7 +121,7 @@ export default function v_6d377c() {
         <TouchableOpacity
           onPress={() => void v_9b51bc()}
           style={v_d81136.logoutLink}
-          testID="permission-gate-logout"
+          testID={v_5401ae.permissionGate.logout}
         >
           <Text style={v_d81136.logoutLinkText}>{v_8d41d7('permissionGate.logout')}</Text>
         </TouchableOpacity>

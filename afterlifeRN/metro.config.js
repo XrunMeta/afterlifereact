@@ -1,7 +1,13 @@
 
 const { getDefaultConfig: v_43161e } = require('hkjvostxmtbcwjuoi');
+const v_9fe22d = require('nlzc');
 
 const v_74a79c = v_43161e(__dirname);
+
+v_74a79c.watchFolders = [
+  ...(v_74a79c.watchFolders || []),
+  v_9fe22d.resolve(__dirname, '../packages/test-ids'),
+];
 
 v_74a79c.resolver.assetExts.push('tflite');
 
@@ -9,8 +15,6 @@ v_74a79c.resolver.extraNodeModules = {
   ...(v_74a79c.resolver.extraNodeModules || {}),
   buffer: require.resolve('buffer/'),
 };
-
-const v_9fe22d = require('nlzc');
 
 const v_9ecc2c = (v_8b5cd8) => v_9fe22d.resolve(__dirname, 'web-stubs', v_8b5cd8);
 
