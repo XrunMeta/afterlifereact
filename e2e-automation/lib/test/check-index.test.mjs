@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { TID } from "@afterlife/test-ids";
 import { collectIds, scanSourceIds, ruleLiteralsRegistered } from "../check-index.mjs";
 
 function fixture(files) {
@@ -51,6 +52,49 @@ test("템플릿 리터럴로 만든 행 식별자는 접두어가 등록돼 있�
   assert.deepEqual(ruleLiteralsRegistered({ admin: { users: { row: "admin-users-row" } } }, [dir]), []);
 });
 
+test("scanSourceIds 는 속성값이 줄바꿈으로 감싸진 보간 템플릿도 찾는다(Prettier 줄바꿈 대응)", () => {
+  const dir = fixture({
+    "Wrapped.tsx": "<tr\n  data-testid={\n    `admin-users-row-${u.id}`\n  }\n/>",
+  });
+  const found = scanSourceIds([dir]);
+  assert.deepEqual(found.map((f) => f.value), ["admin-users-row"]);
+  assert.equal(found[0].line > 0, true);
+});
+
+test("scanSourceIds 는 보간이 없는 템플릿 리터럴도 찾는다", () => {
+  const dir = fixture({ "Plain.tsx": "<Pressable testID={`plain-literal-id`} />" });
+  const found = scanSourceIds([dir]);
+  assert.deepEqual(found.map((f) => f.value), ["plain-literal-id"]);
+});
+
+test("규칙 1은 줄바꿈으로 감싸진 미등록 리터럴을 위반으로 잡는다", () => {
+  const dir = fixture({
+    "Wrapped.tsx": "<tr\n  data-testid={\n    `admin-users-row-${u.id}`\n  }\n/>",
+  });
+  const v = ruleLiteralsRegistered({ cloneEdit: { save: "clone-edit-save" } }, [dir]);
+  assert.equal(v.length, 1);
+  assert.match(v[0], /oth-path-users-row/);
+  assert.match(v[0], /Wrapped\.tsx/);
+});
+
+test("규칙 1은 보간 없는 템플릿 리터럴 미등록도 위반으로 잡는다", () => {
+  const dir = fixture({ "Plain.tsx": "<Pressable testID={`plain-literal-id`} />" });
+  const v = ruleLiteralsRegistered({ cloneEdit: { save: "clone-edit-save" } }, [dir]);
+  assert.equal(v.length, 1);
+  assert.match(v[0], /plain-literal-id/);
+});
+
+test("단일 줄·따옴표·보간 템플릿 케이스는 회귀 없이 그대로 통과한다", () => {
+  const dir = fixture({
+    "Single.tsx": [
+      `<button data-testid="admin-users-save">저장</button>`,
+      "<tr data-testid={`admin-users-row-${u.id}`} />",
+    ].join("\n"),
+  });
+  const found = scanSourceIds([dir]).map((f) => f.value).sort();
+  assert.deepEqual(found, ["admin-users-row", "admin-users-save"]);
+});
+
 const here = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(here, "..", "..", "..");
 const TSX_BIN = join(ROOT, "node_modules", ".bin", "tsx");
@@ -60,17 +104,18 @@ function runCli(fixtureDir) {
   return spawnSync(TSX_BIN, [CLI_SCRIPT, fixtureDir], { cwd: ROOT, encoding: "utf8" });
 }
 
+const CLI_UNREGISTERED_ID = "cli-not-registered";
+
 test("CLI 로 실행하면 미등록 리터럴이 있을 때 비정상 종료하고 위반 식별자·파일을 이름으로 지목한다", () => {
-  const dir = fixture({ "Web.tsx": `<button data-testid="cli-not-registered" />` });
+  const dir = fixture({ "Web.tsx": `<button data-testid="${CLI_UNREGISTERED_ID}" />` });
   const res = runCli(dir);
   assert.notEqual(res.status, 0, `stdout: ${res.stdout}\nstderr: ${res.stderr}`);
-  assert.match(res.stderr, /cli-not-registered/);
+  assert.match(res.stderr, new RegExp(CLI_UNREGISTERED_ID));
   assert.match(res.stderr, /Web\.tsx/);
 });
 
 test("CLI 로 실행하면 전부 등록된 리터럴일 때 정상 종료한다", () => {
-
-  const dir = fixture({ "App.tsx": `<Pressable testID="clone-edit-save" />` });
+  const dir = fixture({ "App.tsx": `<Pressable testID="${TID.cloneEdit.save}" />` });
   const res = runCli(dir);
   assert.equal(res.status, 0, `stdout: ${res.stdout}\nstderr: ${res.stderr}`);
   assert.equal(res.stderr, "");

@@ -30,8 +30,10 @@ function* walkFiles(dir) {
 }
 
 const PATTERNS = [
-  /(?:data-testid|testID)\s*=\s*["']([^"']+)["']/g,
-  /(?:data-testid|testID)\s*=\s*\{\s*`([^`$]+)\$\{/g,
+  { re: /(?:data-testid|testID)\s*=\s*["']([^"']+)["']/g, prefix: false },
+  { re: /(?:data-testid|testID)\s*=\s*\{\s*`([^`$]+)\$\{/g, prefix: true },
+
+  { re: /(?:data-testid|testID)\s*=\s*\{\s*`([^`$]+)`\s*\}/g, prefix: false },
 ];
 
 export function scanSourceIds(dirs) {
@@ -41,17 +43,17 @@ export function scanSourceIds(dirs) {
     try { ok = statSync(dir).isDirectory(); } catch { ok = false; }
     if (!ok) continue;
     for (const file of walkFiles(dir)) {
-      const lines = readFileSync(file, "utf8").split("\n");
-      lines.forEach((line, i) => {
-        for (const re of PATTERNS) {
-          re.lastIndex = 0;
-          let m;
-          while ((m = re.exec(line))) {
+      const text = readFileSync(file, "utf8");
+      for (const { re, prefix } of PATTERNS) {
+        re.lastIndex = 0;
+        let m;
+        while ((m = re.exec(text))) {
+          const line = text.slice(0, m.index).split("\n").length;
 
-            out.push({ value: m[1].replace(/-$/, ""), file, line: i + 1 });
-          }
+          const value = prefix ? m[1].replace(/-$/, "") : m[1];
+          out.push({ value, file, line });
         }
-      });
+      }
     }
   }
   return out;

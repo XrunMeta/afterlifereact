@@ -5,7 +5,7 @@
   "scripts": {
     "test:ids": "node --import tsx --test packages/test-ids/test/",
     "check:index": "tsx e2e-automation/lib/check-index.mjs",
-    "test:lib": "node --test e2e-automation/lib/test/"
+    "test:lib": "node --import tsx --test e2e-automation/lib/test/"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
