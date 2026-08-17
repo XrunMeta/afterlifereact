@@ -54,6 +54,7 @@ import type { Clone, Visibility } from "../../types/clone";
 import type { ClonesStackParamList } from "../../navigation/types";
 import type { RootStackParamList } from "../../navigation/types";
 import { useDoubleBackExit } from "../../hooks/useHardwareBack";
+import { TID, rowId } from "../../testIDs";
 
 type ClonesNav = NativeStackNavigationProp<ClonesStackParamList>;
 
@@ -617,7 +618,7 @@ export default function MyClonesDashboardScreen() {
               onPress={() => setStatsModal({ type: "followers", cloneId: clone.id, cloneName: clone.displayName })}
             >
               <Feather name="user" size={14} color={COLORS.zinc500} />
-              <Text style={s.statText} testID={`follower-count-${clone.id}`}>
+              <Text style={s.statText} testID={rowId(TID.myClonesDashboard.followerCount, clone.id)}>
                 {t("dashboard.followerCount", { n: followerCount, defaultValue: "{{n}} 구독자" })}
               </Text>
             </TouchableOpacity>

@@ -20,6 +20,7 @@ import TermsModal from "../../components/common/TermsModal";
 import { COLORS, RADIUS } from "../../components/constants";
 import type { MyStackParamList } from "../../navigation/types";
 import { useAuthStore } from "../../stores/authStore";
+import { TID } from "../../testIDs";
 import {
   saveCallLearningConsent,
   getCallLearningConsent,
@@ -204,13 +205,13 @@ function FaceConsentSection({ t }: FaceConsentSectionProps) {
 
   return (
     <View
-      testID="face-consent-section"
+      testID={TID.agreements.faceConsentSection}
       style={[s.content, { paddingTop: 16, paddingBottom: 32 }]}
     >
       <Text style={s.sectionTitle}>{t("settings.privacy.faceConsent.sectionTitle")}</Text>
       <View style={s.card}>
         <TouchableOpacity
-          testID="remembering-clones-entry"
+          testID={TID.agreements.rememberingClonesEntry}
           style={[s.viewAllRow, { borderTopWidth: 0 }]}
           onPress={() => navigation.navigate("RememberingClones")}
           accessibilityRole="button"
@@ -244,7 +245,7 @@ function CallLearningConsentSection({
 }: CallLearningConsentSectionProps) {
   return (
     <View
-      testID="call-learning-consent-section"
+      testID={TID.agreements.callLearningConsentSection}
       style={[s.content, { paddingTop: 0, paddingBottom: 32 }]}
     >
       <Text style={s.sectionTitle}>{t("settings.privacy.callLearning.sectionTitle")}</Text>
@@ -263,7 +264,7 @@ function CallLearningConsentSection({
             <ActivityIndicator color={COLORS.zinc500} />
           ) : (
             <Switch
-              testID="call-learning-consent-toggle"
+              testID={TID.agreements.callLearningConsentToggle}
               value={state === "granted"}
               onValueChange={onToggle}
               disabled={saving}
@@ -294,7 +295,7 @@ function FaceBiometricConsentSection({
 }: FaceBiometricConsentSectionProps) {
   return (
     <View
-      testID="face-biometric-consent-section"
+      testID={TID.agreements.faceBiometricConsentSection}
       style={[s.content, { paddingTop: 0, paddingBottom: 32 }]}
     >
       <Text style={s.sectionTitle}>{t("settings.privacy.faceBiometric.sectionTitle")}</Text>
@@ -308,7 +309,7 @@ function FaceBiometricConsentSection({
             <ActivityIndicator color={COLORS.zinc500} />
           ) : (
             <Switch
-              testID="face-biometric-consent-toggle"
+              testID={TID.agreements.faceBiometricConsentToggle}
               value={state === "granted"}
               onValueChange={onToggle}
               disabled={saving}

@@ -35,6 +35,7 @@ import { uploadFile } from "../../api/files";
 import { Image } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { pickAndCropImage } from "../../lib/imagePicker";
+import { TID } from "../../testIDs";
 
 type Props = {
   navigation: NativeStackNavigationProp<CreateStackParamList, "Step7">;
@@ -596,7 +597,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
           ) : (idleJob?.status === 'failed' || (!draft.idleVideoJobId && !!draft.imageFile)) ? (
 
             <TouchableOpacity
-              testID="reupload-photo-button"
+              testID={TID.cloneCreateStep7.reuploadPhoto}
               style={styles.previewBox}
               onPress={handleReuploadPhoto}
               activeOpacity={0.8}
@@ -673,7 +674,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 }
         <View style={styles.bottomBar}>
           <Button
-            testID="share-post-button"
+            testID={TID.cloneCreateStep7.sharePost}
             title={
               error
                 ? t("common.retry", { defaultValue: "다시 시도" })

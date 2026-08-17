@@ -17,6 +17,7 @@ import PageHeader from "../../components/common/PageHeader";
 import { COLORS, RADIUS } from "../../components/constants";
 import { useAuthStore } from "../../stores/authStore";
 import { showAlert } from "../../stores/dialogStore";
+import { TID, rowId } from "../../testIDs";
 import {
   listRememberingClones,
   deleteRememberingClone,
@@ -149,7 +150,7 @@ export default function RememberingClonesScreen() {
                     </Text>
                   </View>
                   <TouchableOpacity
-                    testID={`remembering-delete-${clone.cloneId}`}
+                    testID={rowId(TID.rememberingClones.delete, clone.cloneId)}
                     style={[s.deleteBtn, deletingId === clone.cloneId && { opacity: 0.6 }]}
                     onPress={() => onDelete(clone)}
                     disabled={deletingId === clone.cloneId}

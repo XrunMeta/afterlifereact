@@ -10,6 +10,7 @@ import { COLORS, SIZES, RADIUS } from '../components/constants';
 import { useAuthStore } from '../stores/authStore';
 import { usePermissionGate } from './usePermissionGate';
 import type { PermStatus } from './permissionGate';
+import { TID } from '../testIDs';
 
 function statusLabel(t: (k: string) => string, status: PermStatus): string {
   switch (status) {
@@ -91,7 +92,7 @@ export default function PermissionGateScreen() {
                 title={t('common.retry')}
                 onPress={() => void recheck()}
                 variant="primary"
-                testID="permission-gate-retry"
+                testID={TID.permissionGate.retry}
               />
             ) : (
               decision.canRequest && (
@@ -99,7 +100,7 @@ export default function PermissionGateScreen() {
                   title={t('permissionGate.requestButton')}
                   onPress={() => void request()}
                   variant="primary"
-                  testID="permission-gate-request"
+                  testID={TID.permissionGate.request}
                 />
               )
             )}
@@ -108,7 +109,7 @@ export default function PermissionGateScreen() {
               <TouchableOpacity
                 onPress={openSettings}
                 style={styles.settingsLink}
-                testID="permission-gate-open-settings"
+                testID={TID.permissionGate.openSettings}
               >
                 <Text style={styles.settingsLinkText}>{t('permissionGate.settingsHint')}</Text>
               </TouchableOpacity>
@@ -120,7 +121,7 @@ export default function PermissionGateScreen() {
         <TouchableOpacity
           onPress={() => void apiLogout()}
           style={styles.logoutLink}
-          testID="permission-gate-logout"
+          testID={TID.permissionGate.logout}
         >
           <Text style={styles.logoutLinkText}>{t('permissionGate.logout')}</Text>
         </TouchableOpacity>

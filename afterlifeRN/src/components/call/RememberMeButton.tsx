@@ -3,6 +3,7 @@
 import React from "react";
 import { Pressable, Text, StyleSheet } from "react-native";
 import { COLORS, RADIUS } from "../constants";
+import { TID } from "../../testIDs";
 
 export interface RememberMeButtonProps {
   visible: boolean;
@@ -15,7 +16,7 @@ export default function RememberMeButton({ visible, onPress }: RememberMeButtonP
     <Pressable
       accessibilityRole="button"
       accessibilityLabel="Remember Me"
-      testID="remember-me-button"
+      testID={TID.rememberMe.button}
       onPress={onPress}
       style={({ pressed }) => [styles.btn, pressed && styles.pressed]}
 

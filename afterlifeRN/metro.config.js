@@ -1,7 +1,13 @@
 
 const { getDefaultConfig } = require('expo/metro-config');
+const path = require('path');
 
 const config = getDefaultConfig(__dirname);
+
+config.watchFolders = [
+  ...(config.watchFolders || []),
+  path.resolve(__dirname, '../packages/test-ids'),
+];
 
 config.resolver.assetExts.push('tflite');
 
@@ -9,8 +15,6 @@ config.resolver.extraNodeModules = {
   ...(config.resolver.extraNodeModules || {}),
   buffer: require.resolve('buffer/'),
 };
-
-const path = require('path');
 
 const stub = (f) => path.resolve(__dirname, 'web-stubs', f);
 

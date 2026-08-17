@@ -25,6 +25,7 @@ import { fetchGiftCatalog, type GiftCatalogItem } from "../../api/gifts";
 
 import { getCloneDetail } from "../../api/clones";
 import type { Clone } from "../../types/clone";
+import { TID } from "../../testIDs";
 
 type Props = NativeStackScreenProps<ClonesStackParamList, "CloneDetail">;
 
@@ -183,7 +184,7 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
         {approvedCoowners.length > 0 && (
           <TouchableOpacity
             style={s.coownerBlock}
-            testID="coowner-section"
+            testID={TID.cloneDetail.coownerSection}
             onPress={() => navigation.navigate("CloneInvite", { cloneId: clone.id })}
             activeOpacity={0.85}
           >

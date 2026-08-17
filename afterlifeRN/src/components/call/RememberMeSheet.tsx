@@ -13,6 +13,7 @@ import {
   Keyboard,
 } from "react-native";
 import { COLORS, RADIUS } from "../constants";
+import { TID } from "../../testIDs";
 
 export interface RememberMeSheetProps {
   visible: boolean;
@@ -60,7 +61,7 @@ export default function RememberMeSheet({
 
 }
       <Pressable
-        testID="remember-me-backdrop"
+        testID={TID.rememberMe.backdrop}
         style={styles.backdropTouch}
         onPress={() => {
           if (keyboardUp) {
@@ -79,7 +80,7 @@ export default function RememberMeSheet({
       >
         {
 }
-        <View style={styles.card} testID="remember-me-sheet">
+        <View style={styles.card} testID={TID.rememberMe.sheet}>
           <Text style={styles.title}>이 분은 누구신가요?</Text>
           <Text style={styles.desc}>
             알려주시면 다음 통화부터 기억할게요.
@@ -87,7 +88,7 @@ export default function RememberMeSheet({
 
           <Text style={styles.label}>이름</Text>
           <TextInput
-            testID="remember-me-name"
+            testID={TID.rememberMe.name}
             style={styles.input}
             value={name}
             onChangeText={setName}
@@ -100,7 +101,7 @@ export default function RememberMeSheet({
 
           <Text style={styles.label}>관계</Text>
           <TextInput
-            testID="remember-me-relation"
+            testID={TID.rememberMe.relation}
             style={styles.input}
             value={relation}
             onChangeText={setRelation}
@@ -115,7 +116,7 @@ export default function RememberMeSheet({
 
           <View style={styles.row}>
             <Pressable
-              testID="remember-me-dismiss"
+              testID={TID.rememberMe.dismiss}
               accessibilityRole="button"
               onPress={onDismiss}
               disabled={saving}
@@ -124,7 +125,7 @@ export default function RememberMeSheet({
               <Text style={styles.btnGhostText}>나중에</Text>
             </Pressable>
             <Pressable
-              testID="remember-me-submit"
+              testID={TID.rememberMe.submit}
               accessibilityRole="button"
               onPress={() => onSubmit(trimmedName, relation.trim())}
               disabled={!canSubmit}

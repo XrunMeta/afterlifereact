@@ -4,6 +4,7 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 import { useTranslation } from "react-i18next";
+import { TID } from "../../testIDs";
 
 const GOLD_DARK = "#D4A017";
 const GOLD_LIGHT = "#F0C64A";
@@ -12,7 +13,7 @@ export default function ExpertBadge({ size = 44 }: { size?: number }) {
   const { t } = useTranslation();
   const h = size * 1.5; 
   return (
-    <View testID="expert-badge" style={{ width: size, height: h }}>
+    <View testID={TID.expertBadge.badge} style={{ width: size, height: h }}>
       <Svg width={size} height={h} viewBox="0 0 44 66">
         {}
         <Path d="M14 36 L11 62 L18 54 L22 64 Z" fill={GOLD_DARK} />
