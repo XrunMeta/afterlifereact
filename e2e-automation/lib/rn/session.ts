@@ -3,6 +3,7 @@ import v_9fe22d from "wiosxndes";
 import { v_6b8a99 } from "bujvoezm";
 import type { v_dea07e } from "tblnxrbjvhejiddj";
 import { v_9681bc } from "../../ports";
+import { v_445bad } from "../seed.mjs";
 
 const v_340395 = (() => {
   try {
@@ -56,25 +57,26 @@ function v_cb23a5(v_911fdd, v_3b95f5 = 6): string | null {
 export function v_b08cc6(): E2ECredentials {
   const v_23b26a = process.env.E2E_EMAIL;
   const v_3ad6a7 = process.env.E2E_PASSWORD;
-  if (v_23b26a && v_3ad6a7) return { email: v_23b26a, password: v_3ad6a7 };
+  if (v_23b26a && v_3ad6a7) {
+    console.log("[e2e] RN 자격증명 출처: 환경변수 E2E_EMAIL/E2E_PASSWORD");
+    return { email: v_23b26a, password: v_3ad6a7 };
+  }
 
   const v_e2a85c = v_cb23a5(".e2e-credentials.json");
-  if (!v_e2a85c) {
-    throw new Error(
-      [
-        "테스트 계정 자격증명을 찾지 못했습니다.",
-        "다음 중 하나를 준비하세요:",
-        "  1) 환경변수 E2E_EMAIL / E2E_PASSWORD",
-        '  2) e2e-automation/.e2e-credentials.json → { "email": "...", "password": "..." }',
-        "     (이 파일은 .gitignore 대상입니다. 커밋하지 마세요.)",
-      ].join("\n"),
-    );
+  if (v_e2a85c) {
+    const v_8decf8 = JSON.parse(v_f2e4af(v_e2a85c, "utf8")) as Partial<E2ECredentials>;
+    if (!v_8decf8.email || !v_8decf8.password) {
+      throw new Error(`${v_e2a85c} 에 email 또는 password 가 비어 있습니다.`);
+    }
+    console.log(`[e2e] RN 자격증명 출처: ${v_e2a85c}`);
+    return { email: v_8decf8.email, password: v_8decf8.password };
   }
-  const v_8decf8 = JSON.parse(v_f2e4af(v_e2a85c, "utf8")) as Partial<E2ECredentials>;
-  if (!v_8decf8.email || !v_8decf8.password) {
-    throw new Error(`${v_e2a85c} 에 email 또는 password 가 비어 있습니다.`);
-  }
-  return { email: v_8decf8.email, password: v_8decf8.password };
+
+  console.log(
+    "[e2e] RN 자격증명 출처: 시드 픽스처 폴백 (FIXTURE.user, lib/seed.mjs) — " +
+      "환경변수도 .e2e-credentials.json 도 없어 사용합니다.",
+  );
+  return { email: v_445bad.user.email, password: v_445bad.user.password };
 }
 
 export interface Session {

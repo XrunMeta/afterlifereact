@@ -44,9 +44,3 @@ export async function v_9f52e1(v_6cdec8, v_e0c7e8, v_adc076): Promise<AdminSessi
   }
   return { accessToken: v_a0737a, refreshToken: v_1a1b9b, admin: v_b7f2b4 };
 }
-
-export async function v_48e571(v_6cdec8, v_e0c7e8, v_adc076): Promise<string> {
-  const v_cb35cb = await v_c34e2f(`${v_6cdec8}/oth-path`, { email: v_e0c7e8, password: v_adc076 });
-  if (!v_cb35cb.accessToken) throw new Error("login 응답에 accessToken 이 없습니다.");
-  return v_cb35cb.accessToken;
-}

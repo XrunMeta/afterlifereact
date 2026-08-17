@@ -15,8 +15,6 @@ export const v_611fa5 = v_315113(v_3c06d2, "migrations");
 export const v_d554c8 = v_315113(v_11113e, "d1-snapshots");
 const v_313baf = v_315113(v_3c06d2, ".wrangler", "state", "v3", "d1", "miniflare-D1DatabaseObject");
 
-const v_2c19fc = String.fromCharCode(31);
-
 const v_70973b = "_local_db_marker";
 
 export function v_e59c00() {
@@ -26,14 +24,16 @@ export function v_e59c00() {
 }
 
 export function v_f8df46(v_fdef12, v_810063) {
-  const v_8d4337 = v_64acc4("sqlite3", ["-noheader", "-separator", v_2c19fc, v_fdef12, v_810063], {
+  const v_8d4337 = v_64acc4("sqlite3", ["-json", v_fdef12, v_810063], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   });
-  return v_8d4337
-    .split("\n")
-    .filter((v_1614db) => v_1614db.length > 0)
-    .map((v_1614db) => v_1614db.split(v_2c19fc));
+  const v_2f361a = v_8d4337.trim();
+  if (!v_2f361a) return [];
+
+  const v_18b8bf = JSON.parse(v_2f361a);
+
+  return v_18b8bf.map((v_3ac7e7) => Object.values(v_3ac7e7).map((v_81e2ef) => (v_81e2ef === null ? "" : String(v_81e2ef))));
 }
 
 export function v_44093e() {

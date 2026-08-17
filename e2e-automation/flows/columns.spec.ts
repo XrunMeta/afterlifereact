@@ -4,11 +4,17 @@ import { v_2a805f, v_4d37e3 } from "tblnxrbjvhejiddj";
 import { v_af189e } from "../index/columns";
 import { v_fe677f, v_b0ea06 } from "../lib/runner";
 import { v_a8269d } from "xpcpcyatayyxwjmftxi";
-import { v_597fc8 } from "../lib/local-db.mjs";
+import { v_597fc8, v_f8df46 } from "../lib/local-db.mjs";
 import { v_445bad, v_d308b5 } from "../lib/seed.mjs";
 import { v_9f52e1, type v_88e46f } from "../lib/auth";
-import { v_e6e000, v_4aea06, v_182fdb, v_b08cc6, type v_6edea3 } from "../lib/rn/session";
-import { v_9681bc } from "../ports";
+import {
+  v_cc9198,
+  v_e6e000,
+  v_4aea06,
+  v_182fdb,
+  v_b08cc6,
+  type v_6edea3,
+} from "../lib/rn/session";
 
 const v_1441fe = v_597fc8();
 const v_feceba = process.env.E2E_COLUMN;
@@ -20,8 +26,6 @@ if (!v_a46f12 || !v_a46f12.clone) {
   );
 }
 const v_16e2dd = { userId: v_a46f12.userId, cloneId: v_a46f12.clone.id };
-
-const v_cc9198 = `http://localhost:${v_9681bc.api}`;
 
 const v_cc8027 = "afterlife.admin.token";
 const v_1dfcfa = "afterlife.admin.refresh";
@@ -35,6 +39,12 @@ v_2a805f.describe("어드민 — 컬럼 값", () => {
 
   let adminSession: v_88e46f;
   v_2a805f.beforeAll(async () => {
+
+    v_f8df46(
+      v_1441fe,
+      `DELETE FROM admin_totp WHERE admin_user_id = ` +
+        `(SELECT id FROM admin_users WHERE email = '${v_445bad.admin.email}');`,
+    );
     v_30146a = await v_9f52e1(v_cc9198, v_445bad.admin.email, v_445bad.admin.password);
   });
 
