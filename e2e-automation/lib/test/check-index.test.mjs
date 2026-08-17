@@ -56,8 +56,22 @@ const ROOT = join(here, "..", "..", "..");
 const TSX_BIN = join(ROOT, "node_modules", ".bin", "tsx");
 const CLI_SCRIPT = join(here, "..", "check-index.mjs");
 
-test("CLI 로 실행하면 미등록 리터럴이 있을 때 비정상 종료하고 위반 식별자를 이름으로 지목한다", () => {
-  const res = spawnSync(TSX_BIN, [CLI_SCRIPT], { cwd: ROOT, encoding: "utf8" });
+function runCli(fixtureDir) {
+  return spawnSync(TSX_BIN, [CLI_SCRIPT, fixtureDir], { cwd: ROOT, encoding: "utf8" });
+}
+
+test("CLI 로 실행하면 미등록 리터럴이 있을 때 비정상 종료하고 위반 식별자·파일을 이름으로 지목한다", () => {
+  const dir = fixture({ "Web.tsx": `<button data-testid="cli-not-registered" />` });
+  const res = runCli(dir);
   assert.notEqual(res.status, 0, `stdout: ${res.stdout}\nstderr: ${res.stderr}`);
-  assert.match(res.stderr, /\[규칙1\] 패키지에 없는 식별자 "[a-z0-9-]+" — .+\.tsx?:\d+/);
+  assert.match(res.stderr, /cli-not-registered/);
+  assert.match(res.stderr, /Web\.tsx/);
+});
+
+test("CLI 로 실행하면 전부 등록된 리터럴일 때 정상 종료한다", () => {
+
+  const dir = fixture({ "App.tsx": `<Pressable testID="clone-edit-save" />` });
+  const res = runCli(dir);
+  assert.equal(res.status, 0, `stdout: ${res.stdout}\nstderr: ${res.stderr}`);
+  assert.equal(res.stderr, "");
 });

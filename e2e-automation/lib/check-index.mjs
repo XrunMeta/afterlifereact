@@ -75,7 +75,8 @@ const isMain = process.argv[1] && import.meta.url === pathToFileURL(resolvePath(
 
 if (isMain) {
   const { TID } = await import("@afterlife/test-ids");
-  const SOURCE_DIRS = ["afterlifeadmin/src", "afterlifeRN/src"];
+
+  const SOURCE_DIRS = process.argv.slice(2).length ? process.argv.slice(2) : ["afterlifeadmin/src", "afterlifeRN/src"];
   const violations = ruleLiteralsRegistered(TID, SOURCE_DIRS);
   if (violations.length) {
     console.error(`검사기 위반 ${violations.length}건:\n`);
