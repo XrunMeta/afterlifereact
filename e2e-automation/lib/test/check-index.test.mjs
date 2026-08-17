@@ -143,6 +143,13 @@ test("면제 사유가 빈 문자열이면 면제로 인정하지 않는다", ()
   assert.match(v[0], /사유/);
 });
 
+test("면제 사유가 공백뿐이어도 면제로 인정하지 않는다", () => {
+  const tid = { admin: { users: { save: "admin-users-save" } } };
+  const v = ruleIdsIndexed(tid, [], { "admin-users-save": "   " });
+  assert.equal(v.length, 1);
+  assert.match(v[0], /사유/);
+});
+
 test("실제 스키마에 없는 컬럼은 위반이고 메시지에 컬럼명이 들어간다", () => {
   const db = execFileSync("node", ["e2e-automation/lib/local-db.mjs"], { encoding: "utf8" }).trim();
   const v = ruleColumnsExist([{ column: "users.no_such_column", surfaces: [] }], db);
@@ -153,4 +160,16 @@ test("실제 스키마에 없는 컬럼은 위반이고 메시지에 컬럼명�
 test("실제 스키마에 있는 컬럼은 통과한다", () => {
   const db = execFileSync("node", ["e2e-automation/lib/local-db.mjs"], { encoding: "utf8" }).trim();
   assert.deepEqual(ruleColumnsExist([{ column: "users.credits", surfaces: [] }], db), []);
+});
+
+test("컬럼명에 SQL 로 꽂히면 위험한 문자가 있으면 쿼리를 실행하지 않고 위반으로 잡는다", () => {
+  const v = ruleColumnsExist([{ column: "users.name; DROP TABLE users;--", surfaces: [] }], "/dev/null");
+  assert.equal(v.length, 1);
+  assert.match(v[0], /허용되지 않는 문자/);
+});
+
+test("DB 조회 자체가 실패해도(예: 존재하지 않는 경로) 던지지 않고 이름을 대며 위반으로 잡는다", () => {
+  const v = ruleColumnsExist([{ column: "users.credits", surfaces: [] }], "/no/such/dir/db.sqlite");
+  assert.equal(v.length, 1);
+  assert.match(v[0], /oth-path\.credits/);
 });

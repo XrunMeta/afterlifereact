@@ -2,13 +2,14 @@
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
-import { execFileSync } from "node:child_process";
+import { sql } from "./local-db.mjs";
 
 const SOURCE_EXT = new Set([".ts", ".tsx", ".js", ".jsx"]);
 const SKIP_DIR = new Set(["node_modules", ".git", "dist", "build", ".expo", "web-stubs"]);
 
 export function collectIds(tid) {
   const out = new Set();
+
   const walk = (o) => {
     for (const v of Object.values(o)) {
       if (typeof v === "string") out.add(v);
@@ -78,6 +79,7 @@ export function ruleIdsIndexed(tid, columns, exemptions) {
   for (const id of collectIds(tid)) {
     if (used.has(id)) continue;
     const reason = exemptions[id];
+
     if (typeof reason === "string" && reason.trim().length > 0) continue;
     violations.push(
       `[규칙2] 인덱스에 연결되지 않은 식별자 "${id}"\n` +
@@ -88,6 +90,8 @@ export function ruleIdsIndexed(tid, columns, exemptions) {
   return violations;
 }
 
+const SQL_IDENTIFIER = /^[A-Za-z_]\w*$/;
+
 export function ruleColumnsExist(columns, dbPath) {
   const violations = [];
   for (const c of columns) {
@@ -96,16 +100,29 @@ export function ruleColumnsExist(columns, dbPath) {
       violations.push(`[규칙3] 형식이 "테이블.컬럼" 이 아닙니다: "${c.column}"`);
       continue;
     }
-    const out = execFileSync(
-      "sqlite3",
-      ["-noheader", dbPath, `SELECT count(*) FROM pragma_table_info('${table}') WHERE name='${col}';`],
-      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
-    ).trim();
-    if (out !== "1") {
+    if (!SQL_IDENTIFIER.test(table) || !SQL_IDENTIFIER.test(col)) {
       violations.push(
-        `[규칙3] 실제 스키마에 없는 컬럼 "${c.column}"\n` +
-          `        마이그 추적 테이블이 아니라 pragma_table_info 로 확인했습니다.\n` +
-          `        컬럼명이 바뀌었거나 오타입니다.`,
+        `[규칙3] "${c.column}" 의 테이블·컬럼 이름에 허용되지 않는 문자가 있습니다\n` +
+          `        영문/숫자/밑줄만 허용합니다(SQL 에 그대로 꽂히므로 인젝션 방지).`,
+      );
+      continue;
+    }
+    try {
+      const rows = sql(dbPath, `SELECT count(*) FROM pragma_table_info('${table}') WHERE name='${col}';`);
+      const count = rows[0]?.[0];
+      if (count !== "1") {
+        violations.push(
+          `[규칙3] 실제 스키마에 없는 컬럼 "${c.column}"\n` +
+            `        마이그 추적 테이블이 아니라 pragma_table_info 로 확인했습니다.\n` +
+            `        컬럼명이 바뀌었거나 오타입니다.`,
+        );
+      }
+    } catch (err) {
+
+      const cause = err instanceof Error ? err.message : String(err);
+      violations.push(
+        `[규칙3] "${c.column}" 존재 확인 자체가 실패했습니다: ${cause}\n` +
+          `        sqlite3 실행 파일이 있는지, DB 경로가 올바른지 확인하세요: ${dbPath}`,
       );
     }
   }

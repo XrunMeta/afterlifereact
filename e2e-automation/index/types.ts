@@ -14,17 +14,21 @@ export interface FixtureCtx {
   cloneId: number;
 }
 
+export interface RowSelector {
+
+  containerTestid: string;
+
+  idFrom: "userId" | "cloneId";
+}
+
 export interface ColumnSurface {
   surface: SurfaceId;
 
   screen: string;
 
-  route: (ctx: FixtureCtx) => string;
-
   testid: string;
   mode: "read" | "write";
-
-  row?: "byId";
+  row?: RowSelector;
 }
 
 export interface ColumnEntry {

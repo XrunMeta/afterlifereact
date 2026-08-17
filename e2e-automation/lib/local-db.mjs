@@ -120,6 +120,7 @@ export function listCandidates() {
     .filter((f) => f.endsWith(".sqlite") && f !== "metadata.sqlite")
     .map((f) => {
       const p = join(D1_DIR, f);
+
       let names = [];
       try {
         names = sql(p, "SELECT name FROM d1_migrations;").map((r) => r[0]);
