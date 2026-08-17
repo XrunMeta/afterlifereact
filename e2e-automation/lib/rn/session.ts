@@ -1,8 +1,18 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import type { Page } from "@playwright/test";
+import { PORTS } from "../../ports";
 
-export const API_BASE =
-  process.env.E2E_API_BASE ?? "https://edge-alt-preview.example.invalid";
+const MODULE_DIR = (() => {
+  try {
+    return path.dirname(fileURLToPath(import.meta.url));
+  } catch {
+    return null;
+  }
+})();
+
+export const API_BASE = process.env.E2E_API_BASE ?? `http://localhost:${PORTS.api}`;
 
 export const AUTH_KEYS = {
   accessToken: "@afterlifeRN/auth/accessToken",
@@ -16,7 +26,7 @@ export interface E2ECredentials {
 }
 
 function findUp(relative: string, maxDepth = 6): string | null {
-  const start = typeof __dirname !== "undefined" ? __dirname : process.cwd();
+  const start = MODULE_DIR ?? (typeof __dirname !== "undefined" ? __dirname : process.cwd());
   for (const base of [start, process.cwd()]) {
     let dir = base;
     for (let i = 0; i < maxDepth; i++) {
@@ -35,14 +45,14 @@ export function readCredentials(): E2ECredentials {
   const envPassword = process.env.E2E_PASSWORD;
   if (envEmail && envPassword) return { email: envEmail, password: envPassword };
 
-  const p = findUp(path.join("e2e", ".e2e-credentials.json"));
+  const p = findUp(".e2e-credentials.json");
   if (!p) {
     throw new Error(
       [
         "테스트 계정 자격증명을 찾지 못했습니다.",
         "다음 중 하나를 준비하세요:",
         "  1) 환경변수 E2E_EMAIL / E2E_PASSWORD",
-        '  2) e2e/.e2e-credentials.json → { "email": "...", "password": "..." }',
+        '  2) e2e-automation/.e2e-credentials.json → { "email": "...", "password": "..." }',
         "     (이 파일은 .gitignore 대상입니다. 커밋하지 마세요.)",
       ].join("\n"),
     );
@@ -100,4 +110,12 @@ export async function getCloneDescription(
   }
   const body = (await res.json()) as { clone?: { description?: string } };
   return body.clone?.description ?? null;
+}
+
+export async function blockNonLocal(page: Page) {
+  await page.route("**/*", (route) => {
+    const h = new URL(route.request().url()).hostname;
+    if (h !== "localhost" && h !== "127.0.0.1") return route.abort("blockedbyclient");
+    return route.continue();
+  });
 }

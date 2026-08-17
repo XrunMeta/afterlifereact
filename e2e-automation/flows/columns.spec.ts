@@ -7,6 +7,7 @@ import { rowId } from "@afterlife/test-ids";
 import { resolveLocalD1 } from "../lib/local-db.mjs";
 import { FIXTURE, status } from "../lib/seed.mjs";
 import { adminAccessToken, type AdminSession } from "../lib/auth";
+import { AUTH_KEYS, blockNonLocal, login, readCredentials, type Session } from "../lib/rn/session";
 import { PORTS } from "../ports";
 
 const DB = resolveLocalD1();
@@ -68,6 +69,43 @@ test.describe("어드민 — 컬럼 값", () => {
           scope.getByTestId(check.testid),
           `${check.column} (${check.label}) — ${screen} 화면`,
         ).toHaveText(expected);
+      }
+    });
+  }
+});
+
+test.describe("RN 웹 — 컬럼 값", () => {
+
+  test.skip(() => test.info().project.name !== "rn-web", "rn-web 프로젝트 전용");
+
+  let session: Session;
+  test.beforeAll(async () => {
+    session = await login(readCredentials());
+  });
+
+  for (const [screen, plan] of byScreen(COLUMNS, "rn-web", ctx, ONLY)) {
+    test(`${screen} — ${plan.checks.map((c) => c.column).join(", ")}`, async ({ page }) => {
+      await blockNonLocal(page);
+
+      await page.addInitScript(
+        ([keys, accessToken, userId]) => {
+          const k = keys as typeof AUTH_KEYS;
+          const g = globalThis as any;
+          g.localStorage.setItem(k.accessToken, accessToken as string);
+          if (userId) g.localStorage.setItem(k.currentUserId, String(userId));
+          g.localStorage.setItem(k.sessionExpiresAt, String(Date.now() + 24 * 60 * 60 * 1000));
+        },
+        [AUTH_KEYS, session.accessToken, session.userId] as const,
+      );
+
+      await page.goto(plan.route);
+      for (const check of plan.checks) {
+        const expected = expectedValue(check, DB);
+
+        await expect(
+          page.getByTestId(check.testid),
+          `${check.column} (${check.label}) — ${screen} 화면`,
+        ).toHaveValue(expected);
       }
     });
   }

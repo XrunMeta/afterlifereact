@@ -1,11 +1,15 @@
 
 
-const http = require("node:http");
-const fs = require("node:fs");
-const path = require("node:path");
+import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { PORTS } from "../../ports.ts";
 
-const ROOT = path.resolve(__dirname, "..", "dist");
-const PORT = Number(process.env.PLAYWRIGHT_PORT ?? 5174);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const ROOT = path.resolve(__dirname, "..", "..", "..", "afterlifeRN", "dist");
+const PORT = Number(process.env.PLAYWRIGHT_PORT ?? PORTS.rnWeb);
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -27,7 +31,7 @@ const MIME = {
 if (!fs.existsSync(path.join(ROOT, "index.html"))) {
   console.error(
     `[static-server] ${ROOT}/index.html 이 없습니다.\n` +
-      `먼저 빌드하세요:  npx expo export --platform web`,
+      `먼저 빌드하세요:  cd afterlifeRN && npx expo export --platform web`,
   );
   process.exit(1);
 }

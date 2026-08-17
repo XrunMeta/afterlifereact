@@ -9,7 +9,8 @@ export interface ScreenEntry {
 }
 
 const RAW_SCREENS: ScreenEntry[] = [
-  { surface: "rn-web", screen: "clone-edit", route: (c) => `/#/oth-path${c.cloneId}/edit` },
+
+  { surface: "rn-web", screen: "clone-edit", route: (c) => `/clone/${c.cloneId}/edit` },
   { surface: "admin", screen: "clone-detail", route: (c) => `/oth-path${c.cloneId}` },
   { surface: "admin", screen: "users", route: () => `/oth-path` },
 ];
