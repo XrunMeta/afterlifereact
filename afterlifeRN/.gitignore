@@ -70,7 +70,6 @@ pnpm-lock.yaml
 credentials.json
 credentials/
 
-# E2E (T-454)
-e2e/.e2e-credentials.json
+# E2E (T-454) — playwright 와 자격증명 파일은 e2e-automation/ 로 이관됨 (Task 9)
 test-results/
 playwright-report/

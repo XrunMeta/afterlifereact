@@ -7,6 +7,7 @@ import { v_a8269d } from "xpcpcyatayyxwjmftxi";
 import { v_597fc8 } from "../lib/local-db.mjs";
 import { v_445bad, v_d308b5 } from "../lib/seed.mjs";
 import { v_9f52e1, type v_88e46f } from "../lib/auth";
+import { v_e6e000, v_4aea06, v_182fdb, v_b08cc6, type v_6edea3 } from "../lib/rn/session";
 import { v_9681bc } from "../ports";
 
 const v_1441fe = v_597fc8();
@@ -68,6 +69,43 @@ v_2a805f.describe("어드민 — 컬럼 값", () => {
           v_27ecba.getByTestId(v_de130a.testid),
           `${v_de130a.column} (${v_de130a.label}) — ${v_53746a} 화면`,
         ).toHaveText(v_505a6d);
+      }
+    });
+  }
+});
+
+v_2a805f.describe("RN 웹 — 컬럼 값", () => {
+
+  v_2a805f.skip(() => v_2a805f.info().project.name !== "rn-web", "rn-web 프로젝트 전용");
+
+  let session: v_6edea3;
+  v_2a805f.beforeAll(async () => {
+    v_a3ff5a = await v_182fdb(v_b08cc6());
+  });
+
+  for (const [v_53746a, v_770f2e] of v_fe677f(v_af189e, "rn-web", v_16e2dd, v_feceba)) {
+    v_2a805f(`${v_53746a} — ${v_770f2e.checks.map((v_3f4e2e) => v_3f4e2e.column).join(", ")}`, async ({ page: v_2365e9 }) => {
+      await v_4aea06(v_2365e9);
+
+      await v_2365e9.addInitScript(
+        ([v_fa53ec, v_2ca7e0, v_43e90c]) => {
+          const v_0eb677 = v_fa53ec as typeof v_e6e000;
+          const v_206b88 = globalThis as any;
+          v_206b88.localStorage.setItem(v_0eb677.accessToken, v_2ca7e0 as string);
+          if (v_43e90c) v_206b88.localStorage.setItem(v_0eb677.currentUserId, String(v_43e90c));
+          v_206b88.localStorage.setItem(v_0eb677.sessionExpiresAt, String(Date.now() + 24 * 60 * 60 * 1000));
+        },
+        [v_e6e000, v_a3ff5a.accessToken, v_a3ff5a.userId] as const,
+      );
+
+      await v_2365e9.goto(v_770f2e.route);
+      for (const v_de130a of v_770f2e.checks) {
+        const v_505a6d = v_b0ea06(v_de130a, v_1441fe);
+
+        await v_4d37e3(
+          v_2365e9.getByTestId(v_de130a.testid),
+          `${v_de130a.column} (${v_de130a.label}) — ${v_53746a} 화면`,
+        ).toHaveValue(v_505a6d);
       }
     });
   }

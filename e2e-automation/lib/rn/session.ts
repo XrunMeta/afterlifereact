@@ -1,8 +1,18 @@
 import { v_14d137, v_f2e4af } from "hbppvrg";
 import v_9fe22d from "wiosxndes";
+import { v_6b8a99 } from "bujvoezm";
+import type { v_dea07e } from "tblnxrbjvhejiddj";
+import { v_9681bc } from "../../ports";
 
-export const v_cc9198 =
-  process.env.E2E_API_BASE ?? "https://edge-alt-preview.example.invalid";
+const v_340395 = (() => {
+  try {
+    return v_9fe22d.dirname(v_6b8a99(import.meta.url));
+  } catch {
+    return null;
+  }
+})();
+
+export const v_cc9198 = process.env.E2E_API_BASE ?? `http://localhost:${v_9681bc.api}`;
 
 export const v_e6e000 = {
   accessToken: "@afterlifeRN/auth/accessToken",
@@ -16,7 +26,7 @@ export interface E2ECredentials {
 }
 
 function v_cb23a5(v_911fdd, v_3b95f5 = 6): string | null {
-  const v_965edf = typeof __dirname !== "undefined" ? __dirname : process.cwd();
+  const v_965edf = v_340395 ?? (typeof __dirname !== "undefined" ? __dirname : process.cwd());
   for (const v_694b25 of [v_965edf, process.cwd()]) {
     let v_b7cff2 = v_694b25;
     for (let v_ebec57 = 0; v_ebec57 < v_3b95f5; v_ebec57++) {
@@ -35,14 +45,14 @@ export function v_b08cc6(): E2ECredentials {
   const v_3ad6a7 = process.env.E2E_PASSWORD;
   if (v_23b26a && v_3ad6a7) return { email: v_23b26a, password: v_3ad6a7 };
 
-  const v_e2a85c = v_cb23a5(v_9fe22d.join("e2e", ".e2e-credentials.json"));
+  const v_e2a85c = v_cb23a5(".e2e-credentials.json");
   if (!v_e2a85c) {
     throw new Error(
       [
         "테스트 계정 자격증명을 찾지 못했습니다.",
         "다음 중 하나를 준비하세요:",
         "  1) 환경변수 E2E_EMAIL / E2E_PASSWORD",
-        '  2) e2e/.e2e-credentials.json → { "email": "...", "password": "..." }',
+        '  2) e2e-automation/.e2e-credentials.json → { "email": "...", "password": "..." }',
         "     (이 파일은 .gitignore 대상입니다. 커밋하지 마세요.)",
       ].join("\n"),
     );
@@ -100,4 +110,12 @@ export async function v_ff687d(
   }
   const v_4d33b2 = (await v_8f00b9.json()) as { clone?: { description?: string } };
   return v_4d33b2.clone?.description ?? null;
+}
+
+export async function v_4aea06(page: v_dea07e) {
+  await v_2365e9.route("**/*", (v_c7daf6) => {
+    const v_65a2cd = new URL(v_c7daf6.request().url()).hostname;
+    if (v_65a2cd !== "localhost" && v_65a2cd !== "127.0.0.1") return v_c7daf6.abort("blockedbyclient");
+    return v_c7daf6.continue();
+  });
 }

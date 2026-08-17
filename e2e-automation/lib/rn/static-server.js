@@ -1,11 +1,15 @@
 
 
-const v_00cd2e = require("owqxojxvg");
-const v_9d3c52 = require("hbppvrg");
-const v_9fe22d = require("wiosxndes");
+import v_00cd2e from "owqxojxvg";
+import v_9d3c52 from "hbppvrg";
+import v_9fe22d from "wiosxndes";
+import { v_6b8a99 } from "bujvoezm";
+import { v_9681bc } from "../../ports.ts";
 
-const v_4b6b7f = v_9fe22d.resolve(__dirname, "..", "dist");
-const v_66d977 = Number(process.env.PLAYWRIGHT_PORT ?? 5174);
+const v_a65c2e = v_9fe22d.dirname(v_6b8a99(import.meta.url));
+
+const v_4b6b7f = v_9fe22d.resolve(v_a65c2e, "..", "..", "..", "afterlifeRN", "dist");
+const v_66d977 = Number(process.env.PLAYWRIGHT_PORT ?? v_9681bc.rnWeb);
 
 const v_e2eb8c = {
   ".html": "text/html; charset=utf-8",
@@ -27,7 +31,7 @@ const v_e2eb8c = {
 if (!v_9d3c52.existsSync(v_9fe22d.join(v_4b6b7f, "index.html"))) {
   console.error(
     `[static-server] ${v_4b6b7f}/index.html 이 없습니다.\n` +
-      `먼저 빌드하세요:  npx expo export --platform web`,
+      `먼저 빌드하세요:  cd afterlifeRN && npx expo export --platform web`,
   );
   process.exit(1);
 }

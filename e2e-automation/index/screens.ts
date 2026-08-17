@@ -9,7 +9,8 @@ export interface ScreenEntry {
 }
 
 const v_3f029d = [
-  { surface: "rn-web", screen: "clone-edit", route: (v_3f4e2e) => `/#/oth-path${v_3f4e2e.cloneId}/edit` },
+
+  { surface: "rn-web", screen: "clone-edit", route: (v_3f4e2e) => `/clone/${v_3f4e2e.cloneId}/edit` },
   { surface: "admin", screen: "clone-detail", route: (v_3f4e2e) => `/oth-path${v_3f4e2e.cloneId}` },
   { surface: "admin", screen: "users", route: () => `/oth-path` },
 ];
