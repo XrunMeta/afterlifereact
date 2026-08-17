@@ -1,11 +1,14 @@
 {
   "name": "afterlife-root",
   "private": true,
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "test:ids": "node --import tsx --test packages/test-ids/test/",
     "check:index": "tsx e2e-automation/lib/check-index.mjs",
     "test:lib": "node --import tsx --test e2e-automation/lib/test/",
+    "typecheck": "tsc -p e2e-automation/tsconfig.json",
     "db:path": "node e2e-automation/lib/local-db.mjs",
     "db:sql": "node e2e-automation/lib/local-db.mjs",
     "db:snapshot": "node e2e-automation/lib/d1-snapshot.mjs",
@@ -13,6 +16,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
-    "tsx": "^4.19.2"
+    "@types/node": "^20.19.43",
+    "tsx": "^4.19.2",
+    "typescript": "^5.9.3"
   }
 }
