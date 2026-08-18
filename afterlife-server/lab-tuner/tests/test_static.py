@@ -613,3 +613,37 @@ def test_기동시각을_보여준다():
     """언제 뜬 값인지 모르면 재기동 반영 여부를 판단할 수 없다."""
     js = _read("tuner.js")
     assert "booted_at" in js
+
+
+# ---------------------------------------------------------------------------
+# 2026-08-18: "적용" 버튼이 통째로 죽어 있던 버그
+#
+# applyKnobs(only) 를 핸들러로 **직접** 넘기면 첫 인자에 MouseEvent 가 들어간다.
+# 그러면 `only.has(...)` 가 TypeError 를 던지고, 그 예외가 _setApplyStatus 보다
+# 먼저 나서 화면에는 아무 메시지도 안 뜨고 POST 도 나가지 않는다.
+# 브라우저 실측: 클릭 → POST /oth-path 0회 · 상태 텍스트 빈 문자열 ·
+#                applyKnobs(new MouseEvent('click')) → "TypeError: only.has is not a function"
+#                applyKnobs()                        → POST 1회 · "50개 적용됨"
+# 사용자에게는 "값을 바꿔도 전부 무시된다"로 보였다(히즈키 보고).
+# ---------------------------------------------------------------------------
+
+def test_applyKnobs를_핸들러로_직접_바인딩하지_않는다():
+    """이벤트 객체가 only 인자로 새어 들어가는 것을 원천 차단한다."""
+    js = _read("tuner.js")
+    bad = re.findall(r"\.onclick\s*=\s*applyKnobs\s*;", js)
+    bad += re.findall(r"addEventListener\(\s*['\"]click['\"]\s*,\s*applyKnobs\s*\)", js)
+    assert bad == [], f"applyKnobs 직접 바인딩: {bad}"
+
+
+def test_applyKnobs가_Set이_아닌_인자를_무시한다():
+    """배선을 고쳐도 다음 사람이 다시 직접 넘길 수 있다 — 함수 안에서도 막는다."""
+    js = _read("tuner.js")
+    body = js[js.index("async function applyKnobs"):js.index("async function applyKnobs") + 700]
+    assert "instanceof Set" in body, "Set 가드가 없다 — 이벤트 객체가 필터로 오해된다"
+
+
+def test_적용_버튼이_여전히_배선돼_있다():
+    """가드를 넣다가 배선 자체를 잃으면 버튼이 다시 죽는다."""
+    js = _read("tuner.js")
+    assert "apply-knobs" in js and "apply-knobs-top" in js
+    assert "applyKnobs()" in js
