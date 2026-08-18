@@ -1,5 +1,6 @@
 from __future__ import annotations
 import logging
+import os
 import time
 
 from pipeline import DialoguePipeline          # prethird
@@ -40,9 +41,26 @@ def _apply_source_override(sess, sk, src, renderer):
             # 렌더 소스는 항상 이미지라(source_lab.build_face) 그대로 넘길 수 있다.
             # 실패해도 통화는 계속돼야 하므로 예외를 삼킨다.
             try:
+                import tempfile
                 from idle_prebake import start_prebake   # prethird
-                start_prebake(renderer, new_src, sess.video_track)
-                log.info("[source-override] 사진 업로드 → idle prebake 시작")
+                # 🔴 wav_dir 을 반드시 넘긴다. start_prebake 기본값은 "/tmp" 인데 fifth 는
+                # 컨테이너라 호스트 /tmp 를 못 본다 — 2026-08-18 실측에서 배선은 살아 있는데
+                # 렌더가 400("wav_path 미존재: /tmp/fifth_idle_silent_….wav")으로 죽어
+                # 사진 업로드 idle 이 조용히 클론 얼굴로 남았다(T-088 과 같은 함정).
+                # 랩 기동 env 의 TMPDIR 이 공유마운트 하위를 가리킨다(_remote_lab_deploy.sh).
+                #
+                # gettempdir() 이 아니라 env 를 먼저 읽는 이유: gettempdir() 은 첫 호출값을
+                # 모듈에 캐시해 이후 TMPDIR 변경을 반영하지 않는다.
+                wav_dir = os.environ.get("TMPDIR") or tempfile.gettempdir()
+                if wav_dir.rstrip("/") in ("/tmp", "/var/tmp"):
+                    # 여기로 떨어지면 렌더가 400 으로 죽고 idle 은 클론 얼굴로 남는다.
+                    # 조용히 실패하지 않도록 원인을 미리 말해 둔다.
+                    log.warning("[source-override] TMPDIR 이 공유마운트가 아니다(%s) — "
+                                "fifth 가 못 읽어 idle prebake 가 실패한다. 랩 기동 env 확인",
+                                wav_dir)
+                start_prebake(renderer, new_src, sess.video_track, wav_dir=wav_dir)
+                log.info("[source-override] 사진 업로드 → idle prebake 시작 (wav_dir=%s)",
+                         wav_dir)
             except Exception as exc:
                 log.warning("[source-override] idle prebake 실패(클론 idle 유지): %s", exc)
 
