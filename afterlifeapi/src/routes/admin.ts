@@ -877,7 +877,7 @@ const cloneRestoreReasonSchema = z.object({
   reason: z.string().min(10).max(500).optional(),
 });
 
-admin.delete("/oth-path", requireSuperAdmin, async (c) => {
+admin.delete("/oth-path", requireAdmin, async (c) => {
   const adminUserId = c.get("adminUserId")!;
   const idRaw = c.req.param("id");
   const cloneId = Number(idRaw);
