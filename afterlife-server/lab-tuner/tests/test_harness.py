@@ -1,7 +1,7 @@
 import asyncio
 import harness
 from registry import KnobsRegistry
-from knobs import DialogueKnobs
+from knobs import DialogueKnobs, FifthKnobs
 
 def test_build_chat_fn_passes_knobs(monkeypatch):
     captured = {}
@@ -96,18 +96,21 @@ def test_knobs_fifth_build_body_injects_per_request():
 def test_미지정_노브는_body에_안_실린다():
     """None(미지정) 노브를 실어 보내면 컨테이너 env 기본을 덮어버린다 — 회귀 0 위반.
 
-    입모양·눈머리 노브는 기본이 None 이므로 아무것도 안 건드린 상태에서는
-    /render body 에 키 자체가 없어야 한다.
+    2026-08-18 에 튜닝값 다수가 기본값으로 승격돼(knobs.FifthKnobs 독스트링) 기본
+    상태에서 None 인 노브가 줄었다. 검증하려는 계약은 "기본값이 무엇이냐"가 아니라
+    **"None 이면 키를 싣지 않는다"** 이므로, None 을 명시해 그 계약만 본다.
     """
     from harness import KnobsFifthInproc
+    unset = ("lip_open", "lip_closed", "sigma", "gamma", "offset", "silence",
+             "lip_lock", "source_face_lock", "source_face_lock_full",
+             "eyes_open_lock", "head_sway_amp", "head_yaw_offset", "fps")
     r = KnobsRegistry()
+    r.update({"fifth": {k: None for k in unset}})
     f = KnobsFifthInproc("/vid.jpg", registry=r, render_url="http://127.0.0.1:8810")
     body = f._build_body("/w.wav", "/v.jpg")
-    for key in ("lip_open", "lip_closed", "sigma", "gamma", "offset", "silence",
-                "lip_lock", "source_face_lock", "source_face_lock_full",
-                "eyes_open_lock", "head_sway_amp", "head_yaw_offset", "fps"):
+    for key in unset:
         assert key not in body, f"미지정인데 실렸다: {key}"
-    # 명시 기본값을 가진 6종은 그대로 실린다(기존 동작).
+    # 명시 기본값을 가진 것들은 그대로 실린다(기존 동작).
     assert body["blink"] is True
     assert body["jpeg_quality"] == 90
 
@@ -277,7 +280,7 @@ def test_knobs_fifth_build_body_forwards_extra_kwargs(monkeypatch):
     f = KnobsFifthInproc("/v.jpg", registry=r, render_url="http://127.0.0.1:8810")
     body = f._build_body("/w.wav", "/v.jpg", phase_token="TOK")
     assert recorded == {"phase_token": "TOK"}
-    assert body["blink"] is True and body["idle_motion_scale"] == 0.15
+    assert body["blink"] is True and body["idle_motion_scale"] == FifthKnobs().idle_motion_scale
 
 def test_max_response_tokens가_num_predict로_전달된다(monkeypatch):
     """노브만 있고 배선이 없으면 UI 에서 바꿔도 아무 일이 안 일어난다."""

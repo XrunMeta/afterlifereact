@@ -66,47 +66,56 @@ class FifthKnobs:
     """fifth 렌더 파라미터.
 
     per-request(= /render body 로 매 호출 전달) 와 restart-baked(= 컨테이너 env,
-    기동 시 1회 로드) 를 구분한다. per-request 중 기본값이 None 인 것들은
-    "미지정" 을 뜻하고, 그 경우 body 에 키를 싣지 않아 컨테이너 env 기본이
-    그대로 살아난다(회귀 0).
+    기동 시 1회 로드) 를 구분한다. 기본값이 None 인 것은 "미지정" 을 뜻하고,
+    그 경우 body 에 키를 싣지 않아 컨테이너 env 기본이 그대로 살아난다.
+
+    🔑 2026-08-18: 실통화 튜닝으로 확정한 값을 기본값으로 승격했다(히즈키 지시).
+    랩 registry 는 메모리라 재기동마다 초기화되는데, 매번 손으로 다시 넣는 것은
+    실수의 원인이었다 — 되돌아간 값을 모른 채 "적용했는데 안 먹는다"를 반복했다.
+    확정 세팅:
+      입   오디오 기반(잠금 3종 해제) · lip_open 0.5 · open_scale 0.7
+      눈   고정 + 2초 간격 깜빡임(eyes_open_lock + blink_interval_sec)
+      표정 animation_region=exp · cfg_scale 0.1 · driving_multiplier 0.25
+      머리 흔들림 폭 0.2 · idle_motion_scale 0
+    되돌릴 기준은 초기값.txt 를 본다.
     """
     # --- per-request: 기존 6종 (명시 기본값 유지) ---
     blink: bool = True
     jpeg_quality: int = 90
-    idle_motion_scale: float = 0.15
+    idle_motion_scale: float = 0.0
     idle_rms_low: float = 0.05
     idle_rms_high: float = 0.3
     head_slew_frames: int = 5
     # --- per-request: 입모양 (None = 컨테이너 env 기본 사용) ---
-    lip_open: float | None = None
-    lip_closed: float | None = None
-    open_scale: float | None = None
+    lip_open: float | None = 0.5
+    lip_closed: float | None = 0.023
+    open_scale: float | None = 0.7
     offset: int | None = None
     sigma: float | None = None
     gamma: float | None = None
     silence: float | None = None
     closed_thresh: float | None = None
-    open_thresh: float | None = None
+    open_thresh: float | None = 0.13
     fps: int | None = None
-    lip_lock: bool | None = None
-    source_face_lock: bool | None = None
-    source_face_lock_full: bool | None = None
+    lip_lock: bool | None = False
+    source_face_lock: bool | None = False
+    source_face_lock_full: bool | None = False
     # --- per-request: 눈·머리 ---
-    eyes_open_lock: bool | None = None
-    blink_interval_sec: float | None = None
-    head_sway_amp: float | None = None
-    head_sway_slow: float | None = None
-    head_yaw_offset: float | None = None
-    head_pitch_offset: float | None = None
+    eyes_open_lock: bool | None = True
+    blink_interval_sec: float | None = 2.0
+    head_sway_amp: float | None = 0.2
+    head_sway_slow: float | None = 0.7
+    head_yaw_offset: float | None = 0.0
+    head_pitch_offset: float | None = 0.0
     # --- restart-baked: 컨테이너 env, 기동 시 1회 → 재기동 필요 ---
-    cfg_scale: float = 2.0
-    driving_multiplier: float = 1.0
+    cfg_scale: float = 0.1
+    driving_multiplier: float = 0.25
     head_smooth: float = 3.5
     blink_dur: int = 6
-    eye_source_lock: bool = True
-    eye_target_scale: float = 0.8
-    input_normalize: bool = True
-    pasteback_output: bool = True
+    eye_source_lock: bool = False
+    eye_target_scale: float = 1.07
+    input_normalize: bool = False
+    pasteback_output: bool = False
     cdlip_smooth: bool = False
     cdlip_sigma: float = 1.5
     # --- 호스트측(prethird 가 직접 읽음) ---
@@ -136,7 +145,7 @@ class FlpKnobs:
     yaml 은 flag_normalize_lip=True / flag_lip_retargeting=False 지만 코드가
     각각 False / True 로 덮는다 — 랩이 yaml 값을 보여주면 실제와 어긋난다.
     """
-    animation_region: str = "all"
+    animation_region: str = "exp"
     flag_stitching: bool = True
     flag_lip_retargeting: bool = True     # 코드 강제(yaml 은 False)
     flag_eye_retargeting: bool = True     # FIFTH_BLINK=1 연동(yaml 은 False)
@@ -179,6 +188,18 @@ class FillerKnobs:
     blend_frames: int = 5
     idle_prebake: bool = True
     order: str = "pre_speak"  # pre_speak|off
+
+
+def _dflt(cls, name):
+    """dataclass 필드 기본값 — from_env 가 기본값을 따로 들고 있다가 어긋나는 것을 막는다.
+
+    2026-08-18: 튜닝값을 dataclass 기본값으로 승격했는데 from_env 의 하드코딩 기본이
+    옛값 그대로여서, 랩이 기동할 때 절반만 반영됐다("고쳤는데 안 바뀐다").
+    """
+    for f in fields(cls):
+        if f.name == name:
+            return f.default
+    raise KeyError(f"{cls.__name__}.{name}")
 
 
 def _env_b(name, default: bool) -> bool:
@@ -229,40 +250,43 @@ class RunKnobs:
                 speed=_env_f("PRETHIRD_TTS_SPEED", 1.0),
             ),
             fifth=FifthKnobs(
-                cfg_scale=_env_f("FIFTH_CFG_SCALE", 2.0),
-                driving_multiplier=_env_f("FIFTH_DRIVING_MULTIPLIER", 1.0),
-                idle_motion_scale=_env_f("FIFTH_IDLE_MOTION_SCALE", 0.15),
-                idle_rms_low=_env_f("FIFTH_IDLE_RMS_LOW", 0.05),
-                idle_rms_high=_env_f("FIFTH_IDLE_RMS_HIGH", 0.3),
-                head_slew_frames=_env_i("FIFTH_HEAD_SLEW_FRAMES", 5),
-                head_smooth=_env_f("FIFTH_HEAD_SMOOTH", 3.5),
-                blink_dur=_env_i("FIFTH_BLINK_DUR", 6),
-                blink=_env_b("FIFTH_BLINK", True),
-                eye_source_lock=_env_b("FIFTH_EYE_SOURCE_LOCK", True),
-                eye_target_scale=_env_f("FIFTH_EYE_TARGET_SCALE", 0.8),
-                input_normalize=_env_b("FIFTH_INPUT_NORMALIZE", True),
-                pasteback_output=_env_b("FIFTH_PASTEBACK_OUTPUT", True),
-                cdlip_smooth=_env_b("FIFTH_CDLIP_SMOOTH", False),
-                cdlip_sigma=_env_f("FIFTH_CDLIP_SIGMA", 1.5),
+                cfg_scale=_env_f("FIFTH_CFG_SCALE", _dflt(FifthKnobs, "cfg_scale")),
+                driving_multiplier=_env_f("FIFTH_DRIVING_MULTIPLIER", _dflt(FifthKnobs, "driving_multiplier")),
+                idle_motion_scale=_env_f("FIFTH_IDLE_MOTION_SCALE", _dflt(FifthKnobs, "idle_motion_scale")),
+                idle_rms_low=_env_f("FIFTH_IDLE_RMS_LOW", _dflt(FifthKnobs, "idle_rms_low")),
+                idle_rms_high=_env_f("FIFTH_IDLE_RMS_HIGH", _dflt(FifthKnobs, "idle_rms_high")),
+                head_slew_frames=_env_i("FIFTH_HEAD_SLEW_FRAMES", _dflt(FifthKnobs, "head_slew_frames")),
+                head_smooth=_env_f("FIFTH_HEAD_SMOOTH", _dflt(FifthKnobs, "head_smooth")),
+                blink_dur=_env_i("FIFTH_BLINK_DUR", _dflt(FifthKnobs, "blink_dur")),
+                blink=_env_b("FIFTH_BLINK", _dflt(FifthKnobs, "blink")),
+                eye_source_lock=_env_b("FIFTH_EYE_SOURCE_LOCK", _dflt(FifthKnobs, "eye_source_lock")),
+                eye_target_scale=_env_f("FIFTH_EYE_TARGET_SCALE", _dflt(FifthKnobs, "eye_target_scale")),
+                input_normalize=_env_b("FIFTH_INPUT_NORMALIZE", _dflt(FifthKnobs, "input_normalize")),
+                pasteback_output=_env_b("FIFTH_PASTEBACK_OUTPUT", _dflt(FifthKnobs, "pasteback_output")),
+                cdlip_smooth=_env_b("FIFTH_CDLIP_SMOOTH", _dflt(FifthKnobs, "cdlip_smooth")),
+                cdlip_sigma=_env_f("FIFTH_CDLIP_SIGMA", _dflt(FifthKnobs, "cdlip_sigma")),
                 # T-113 Task3: PRETHIRD_RENDER_MODE(host, prethird pipeline이 직접 읽음)가
                 # 우선, 미설정 시 기존 FIFTH_RENDER_MODE(컨테이너, T-111 호환) 폴백.
                 # 기본은 batch — 라이브가 batch 로 돈다(2026-08-14 실측).
                 render_mode=os.environ.get(
-                    "PRETHIRD_RENDER_MODE", os.environ.get("FIFTH_RENDER_MODE", "batch")
+                    "PRETHIRD_RENDER_MODE",
+                    os.environ.get("FIFTH_RENDER_MODE", _dflt(FifthKnobs, "render_mode"))
                 ),
             ),
             flp=FlpKnobs(
-                animation_region=os.environ.get("FIFTH_FLP_ANIMATION_REGION", "all"),
-                flag_stitching=_env_b("FIFTH_FLP_STITCHING", True),
-                flag_lip_retargeting=_env_b("FIFTH_FLP_LIP_RETARGETING", True),
+                animation_region=os.environ.get("FIFTH_FLP_ANIMATION_REGION",
+                                                _dflt(FlpKnobs, "animation_region")),
+                flag_stitching=_env_b("FIFTH_FLP_STITCHING", _dflt(FlpKnobs, "flag_stitching")),
+                flag_lip_retargeting=_env_b("FIFTH_FLP_LIP_RETARGETING", _dflt(FlpKnobs, "flag_lip_retargeting")),
                 # flag_eye_retargeting 은 FIFTH_BLINK 에 연동돼 기동한다.
                 flag_eye_retargeting=_env_b(
-                    "FIFTH_FLP_EYE_RETARGETING", _env_b("FIFTH_BLINK", True)),
-                flag_pasteback=_env_b("FIFTH_FLP_PASTEBACK", True),
-                flag_normalize_lip=_env_b("FIFTH_FLP_NORMALIZE_LIP", False),
-                lip_normalize_threshold=_env_f("FIFTH_FLP_LIP_NORM_THRESHOLD", 0.1),
-                cfg_scale=_env_f("FIFTH_FLP_CFG_SCALE", 1.2),
-                driving_multiplier=_env_f("FIFTH_FLP_DRIVING_MULTIPLIER", 1.0),
+                    "FIFTH_FLP_EYE_RETARGETING",
+                    _env_b("FIFTH_BLINK", _dflt(FlpKnobs, "flag_eye_retargeting"))),
+                flag_pasteback=_env_b("FIFTH_FLP_PASTEBACK", _dflt(FlpKnobs, "flag_pasteback")),
+                flag_normalize_lip=_env_b("FIFTH_FLP_NORMALIZE_LIP", _dflt(FlpKnobs, "flag_normalize_lip")),
+                lip_normalize_threshold=_env_f("FIFTH_FLP_LIP_NORM_THRESHOLD", _dflt(FlpKnobs, "lip_normalize_threshold")),
+                cfg_scale=_env_f("FIFTH_FLP_CFG_SCALE", _dflt(FlpKnobs, "cfg_scale")),
+                driving_multiplier=_env_f("FIFTH_FLP_DRIVING_MULTIPLIER", _dflt(FlpKnobs, "driving_multiplier")),
             ),
             transport=TransportKnobs(
                 playback_buffer_ms=_env_i("PRETHIRD_PLAYBACK_BUFFER_MS", 0),
