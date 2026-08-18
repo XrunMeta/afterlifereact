@@ -28,6 +28,12 @@ import re
 _BOOT = re.compile(r"^(\w{3}\s+\d+\s+[\d:]+).*FifthConfig:\s*FifthConfig\((.*?)\)\s*$")
 _FLP = re.compile(r"^(\w{3}\s+\d+\s+[\d:]+).*\[flp_engine\]\s+(\S+=\S+(?:\s+\S+=\S+)*)\s*$")
 _JOYVASA = re.compile(r"^(\w{3}\s+\d+\s+[\d:]+).*JoyVASA 로드 완료 \((.*?)\)\s*$")
+# 🔴 요약 줄(_FLP)은 cfg 가 아니라 **오버라이드 이전 지역변수**를 찍는다(컨테이너 코드 실측
+# 2026-08-18: `flag_eye_retargeting={_blink_enabled}`). 실제 적용은 apply_flp_env_overrides
+# 의 setattr 이고 이 줄이 그 증거다 — 요약 줄만 읽으면 "env 를 넣었는데 안 먹었다"고
+# 정반대로 판단하게 된다. animation_region 은 요약 줄에 아예 안 찍혀 이쪽이 유일한 근거다.
+_FLP_OVERRIDE = re.compile(
+    r"^(\w{3}\s+\d+\s+[\d:]+).*\[flp_engine\] FLP env 오버라이드:\s*(.*?)\s*$")
 _CFG_FINAL = re.compile(
     r"^(\w{3}\s+\d+\s+[\d:]+).*\[cfg-final\]\s+(.*?)\s*\(override=(.*?)\)\s*$")
 _LIP_PATH = re.compile(r"^(\w{3}\s+\d+\s+[\d:]+).*\[lip-path\]\s+(.*?)\s*$")
@@ -74,8 +80,12 @@ def parse(log_text: str) -> dict:
 
     after_boot = lines[boot_idx + 1:] if boot_idx >= 0 else []
 
-    flp_engine, joyvasa = {}, {}
+    flp_engine, joyvasa, flp_override = {}, {}, {}
     for line in after_boot:
+        m = _FLP_OVERRIDE.match(line)
+        if m:
+            flp_override = _kv(m.group(2), sep=",")
+            continue
         m = _FLP.match(line)
         if m:
             flp_engine = _kv(m.group(2))
@@ -83,6 +93,8 @@ def parse(log_text: str) -> dict:
         m = _JOYVASA.match(line)
         if m:
             joyvasa = _kv(m.group(2), sep=",")
+    # env 오버라이드가 최종 승자다 — 요약 줄 위에 덮는다.
+    flp_engine.update(flp_override)
 
     # cfg-final·lip-path 는 렌더마다 찍힌다 — 기동 여부와 무관하게 **가장 마지막** 것.
     # 기동 로그가 잘려 나가고 렌더 로그만 남는 상황이 흔하다.
@@ -101,6 +113,7 @@ def parse(log_text: str) -> dict:
         "booted_at": booted_at,
         "fifth_config": fifth_config,
         "flp_engine": flp_engine,
+        "flp_override": flp_override,   # env 로 덮은 항목(UI 가 출처를 표시한다)
         "joyvasa": joyvasa,
         "cfg_final": cfg_final,
         "lip_path": lip_path,

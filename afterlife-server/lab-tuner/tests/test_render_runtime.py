@@ -216,3 +216,49 @@ async def test_dropin_이_있으면_그것을_실제_env_로_본다(tmp_path, mo
         assert d["mismatches"] == []      # drop-in 2.0 == 로그 2.0
     finally:
         await c.close()
+
+
+# ---------------------------------------------------------------------------
+# 2026-08-18: flp_engine 요약 로그가 오버라이드 이전 지역변수를 찍는다
+#
+#   [flp_engine] FLP env 오버라이드: animation_region=lip, flag_eye_retargeting=False
+#   [flp_engine] flag_relative_motion=False  cfg_scale=0.5  ...  flag_eye_retargeting=True
+#
+# 두 번째 줄은 cfg 가 아니라 _blink_enabled 지역변수를 출력한다(컨테이너 코드 실측).
+# 실제 적용은 apply_flp_env_overrides 의 setattr 이고, 첫 줄이 그 증거다.
+# 요약 줄만 읽으면 "env 를 넣었는데 안 먹었다"고 정반대로 판단하게 된다.
+# ---------------------------------------------------------------------------
+LOG_OVERRIDE = """\
+Aug 18 17:37:30 h docker[1]: 2026-08-18 16:37:30,000 [fifth_render_server] INFO FifthConfig: FifthConfig(fps=25, lip_open=0.24)
+Aug 18 17:37:31 h docker[1]: [flp_engine] FLP env 오버라이드: animation_region=lip, flag_eye_retargeting=False
+Aug 18 17:37:33 h docker[1]: [flp_engine] flag_relative_motion=False  cfg_scale=0.5  driving_multiplier=0.4  flag_eye_retargeting=True
+Aug 18 17:37:37 h docker[1]: 2026-08-18 16:37:37,077 [fifth_render_server] INFO JoyVASA 로드 완료 (cfg_scale=0.5)
+"""
+
+
+def test_오버라이드가_요약값을_이긴다():
+    e = rr.parse(LOG_OVERRIDE)["flp_engine"]
+    assert e["flag_eye_retargeting"] == "False", "요약 줄의 옛 지역변수를 그대로 보여주면 안 된다"
+    assert e["cfg_scale"] == "0.5"              # 오버라이드 안 된 값은 요약 그대로
+
+
+def test_요약에_없는_항목도_오버라이드로_드러난다():
+    """animation_region 은 요약 줄에 아예 안 찍힌다 — 오버라이드 줄이 유일한 근거다."""
+    assert rr.parse(LOG_OVERRIDE)["flp_engine"]["animation_region"] == "lip"
+
+
+def test_무엇이_env로_덮였는지_따로_알려준다():
+    """UI 가 "이 값은 env 로 덮은 것"이라 표시할 수 있어야 한다."""
+    d = rr.parse(LOG_OVERRIDE)
+    assert d["flp_override"] == {"animation_region": "lip", "flag_eye_retargeting": "False"}
+
+
+def test_오버라이드가_없으면_빈_dict():
+    assert rr.parse(LOG)["flp_override"] == {}
+
+
+def test_최근_기동의_오버라이드만_본다():
+    """재기동 이력이 쌓여도 옛 기동의 오버라이드를 섞으면 안 된다."""
+    old = LOG_OVERRIDE.replace("animation_region=lip", "animation_region=eyes")
+    d = rr.parse(old + LOG_OVERRIDE)
+    assert d["flp_override"]["animation_region"] == "lip"

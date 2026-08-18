@@ -559,7 +559,11 @@ async function v_771a6f() {
 
   v_70a533(v_a38d42, v_d5dda0.booted_at ? `엔진 실제값 (기동 ${v_d5dda0.booted_at})` : '엔진 실제값');
   if (Object.keys(v_d5dda0.flp_engine || {}).length) {
-    for (const [v_0eb677, v_81e2ef] of Object.entries(v_d5dda0.flp_engine)) v_925367(v_a38d42, v_0eb677, v_81e2ef);
+    const v_93f17f = v_d5dda0.flp_override || {};
+    for (const [v_0eb677, v_81e2ef] of Object.entries(v_d5dda0.flp_engine)) {
+
+      v_925367(v_a38d42, v_0eb677, v_81e2ef, (v_0eb677 in v_93f17f) ? 'env 로 덮은 값(랩 설정이 이김)' : null);
+    }
   } else {
     v_925367(v_a38d42, '(없음)', '기동 로그가 조회 범위 밖입니다', '재기동하면 다시 보입니다');
   }
