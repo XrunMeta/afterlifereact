@@ -559,7 +559,11 @@ async function loadRenderRuntime() {
 
   _roHead(box, d.booted_at ? `엔진 실제값 (기동 ${d.booted_at})` : '엔진 실제값');
   if (Object.keys(d.flp_engine || {}).length) {
-    for (const [k, v] of Object.entries(d.flp_engine)) _roRow(box, k, v);
+    const ov = d.flp_override || {};
+    for (const [k, v] of Object.entries(d.flp_engine)) {
+
+      _roRow(box, k, v, (k in ov) ? 'env 로 덮은 값(랩 설정이 이김)' : null);
+    }
   } else {
     _roRow(box, '(없음)', '기동 로그가 조회 범위 밖입니다', '재기동하면 다시 보입니다');
   }
