@@ -53,6 +53,29 @@ def _apply_source_override(sess, sk, src, renderer):
 
     return new_src
 
+def _apply_voice_override(sk, se_path):
+    """업로드 음성이 지정돼 있으면 se_path 를 교체하고 새 값을 반환.
+
+    지정이 없거나 해석 실패면 se_path 를 그대로 돌려준다(회귀 0).
+
+    얼굴 override 와 달리 sess 를 건드리지 않는다 — TTS 는 요청 body 의 se_path 만
+    보고 참조 음성을 고르므로(harness.build_say_fn), 값 하나를 바꾸면 끝이다.
+    """
+    import voice_lab
+
+    meta = voice_lab.resolve(getattr(sk, "voice_source", "") or None)
+    if meta is None:
+        return se_path
+
+    new_se = meta.get("se_path") or voice_lab.se_path_for(meta["id"])
+    log.info("[voice-override] id=%s se_path=%s (클론 기본 %s 대체) pair=%s",
+             meta["id"], new_se, se_path, meta.get("prompt_pair"))
+    if not meta.get("prompt_pair"):
+        # 짧은 프롬프트 쌍이 없으면 긴 voice.wav 로 폴백한다 — 짧은 발화에서
+        # CosyVoice 가 폭주할 수 있다(2026-08-13 실측). 통화는 되므로 막지는 않는다.
+        log.warning("[voice-override] 짧은 프롬프트 쌍 없음 — 짧은 발화 폭주 가능")
+    return new_se
+
 def build_knobs_pipeline_factory(registry, renderer, guard=None, store=None,
                                  metrics=None):
     """공유 라이브 렌더(renderer=KnobsFifthInproc, render_url=:8810)와 registry로
@@ -79,7 +102,10 @@ def build_knobs_pipeline_factory(registry, renderer, guard=None, store=None,
         src = getattr(sess, "face_path", None) or getattr(sess, "video_path", None)
         # 업로드 소스 override — 목소리(se_path)·페르소나는 클론 것을 그대로 두고
         # 렌더 소스만 교체한다. resolve() 는 fail-open(없으면 None → 클론 기본).
-        src = _apply_source_override(sess, registry.get().source, src, renderer)
+        sk = registry.get().source
+        src = _apply_source_override(sess, sk, src, renderer)
+        # 목소리 override — 얼굴·페르소나와 독립이다(둘 중 하나만 올려도 된다).
+        se_path = _apply_voice_override(sk, getattr(sess, "se_path", None))
 
         def _infer_fn(wav, cb, _src=src):
             if guard is not None:
@@ -99,7 +125,7 @@ def build_knobs_pipeline_factory(registry, renderer, guard=None, store=None,
             decode_wav_fn=_decode_wav,
             infer_fn=_infer_fn,
             persona_messages=persona,
-            se_path=getattr(sess, "se_path", None),
+            se_path=se_path,
             clone_locked=getattr(sess, "clone_id", None) is not None,
         )
 

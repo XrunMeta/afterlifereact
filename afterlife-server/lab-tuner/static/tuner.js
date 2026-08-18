@@ -784,6 +784,173 @@ async function v_a0796e(v_389afb) {
   v_377082();
 }
 
+function v_0747e1(v_9b6134, v_94302c) {
+  const v_57c92e = document.getElementById('voice-upload-status');
+  if (!v_57c92e) return;
+  v_57c92e.textContent = v_9b6134;
+  v_57c92e.className = v_94302c || '';
+}
+
+function v_01d0dc(v_81e2ef, v_275ccd) {
+  const v_abacaa = String(v_275ccd) === String(v_81e2ef.id);
+  const v_5eae50 = document.createElement('div');
+  v_5eae50.className = 'src-card' + (v_abacaa ? ' on' : '') + (v_81e2ef.id && v_81e2ef.ok === false ? ' gone' : '');
+  v_5eae50.title = v_81e2ef.id ? `${v_81e2ef.orig_name}\n${v_81e2ef.id}` : '클론 원래 목소리를 그대로 씁니다';
+
+  const v_4d33b2 = document.createElement('div'); v_4d33b2.className = 'src-body';
+  const v_1833e7 = document.createElement('div'); v_1833e7.className = 'src-name';
+  v_1833e7.textContent = v_81e2ef.id ? `🎙️ ${v_81e2ef.orig_name}` : '👤 클론 기본';
+  v_4d33b2.appendChild(v_1833e7);
+
+  const v_ab4c96 = document.createElement('div'); v_ab4c96.className = 'src-meta';
+  v_ab4c96.textContent = v_81e2ef.id ? [
+    v_f20c4d(v_81e2ef.bytes),
+
+    v_81e2ef.prompt_pair ? '짧은 참조 ✓' : '짧은 참조 ✗ (짧은 말이 늘어질 수 있음)',
+    v_81e2ef.ok === false ? '파일 없음' : '',
+  ].filter(Boolean).join(' · ') : '업로드 사용 안 함';
+  v_4d33b2.appendChild(v_ab4c96);
+
+  if (v_81e2ef.id) {
+    const v_c70495 = document.createElement('div'); v_c70495.className = 'src-meta';
+    v_c70495.textContent = v_81e2ef.ref_text ? `“${v_81e2ef.ref_text}”` : '참조 문장 없음 — 발음이 흔들릴 수 있음';
+    v_4d33b2.appendChild(v_c70495);
+  }
+  v_5eae50.appendChild(v_4d33b2);
+
+  if (v_abacaa) {
+    const v_9dc0dd = document.createElement('div');
+    v_9dc0dd.className = 'src-check'; v_9dc0dd.textContent = '✓';
+    v_5eae50.appendChild(v_9dc0dd);
+  }
+  v_5eae50.addEventListener('click', () => v_afcaef(v_81e2ef.id || ''));
+
+  if (v_81e2ef.id) {
+    const v_d0ca5b = document.createElement('button');
+    v_d0ca5b.type = 'button'; v_d0ca5b.className = 'src-del'; v_d0ca5b.textContent = '삭제';
+
+    v_d0ca5b.addEventListener('click', (v_9e86fd) => {
+      v_9e86fd.stopPropagation();
+      if (v_d0ca5b.dataset.armed === '1') { v_d59667(v_81e2ef.id); return; }
+      v_d0ca5b.dataset.armed = '1'; v_d0ca5b.textContent = '정말?';
+      setTimeout(() => { v_d0ca5b.dataset.armed = ''; v_d0ca5b.textContent = '삭제'; }, 4000);
+    });
+    v_5eae50.appendChild(v_d0ca5b);
+  }
+  return v_5eae50;
+}
+
+async function v_b421ad() {
+  const v_a38d42 = document.getElementById('voice-list');
+  if (!v_a38d42) return;
+  let v_d5dda0;
+  try {
+    const v_cb35cb = await fetch('/voices', {headers: v_5a49fd()});
+    if (v_cb35cb.status === 401) {          
+      v_a38d42.textContent = '';
+      v_21be23(true);
+      v_0747e1('토큰을 넣어야 업로드 목록이 보입니다', 'bad');
+      return;
+    }
+    v_d5dda0 = await v_cb35cb.json();
+  } catch (v_9e86fd) {
+    v_a38d42.textContent = '음성 목록 조회 실패: ' + v_9e86fd; return;
+  }
+  if (v_d5dda0.error) { v_a38d42.textContent = v_d5dda0.error; return; }
+  const v_b6acae = document.getElementById('voice-root');
+  if (v_b6acae) {
+    v_b6acae.textContent = `저장 위치 ${v_d5dda0.root} · 최대 ${v_d5dda0.max_mb}MB · `
+      + `허용 ${(v_d5dda0.exts || []).join(' ')}`;
+  }
+  const v_c3bc75 = document.getElementById('k_source_voice_source')?.value || '';
+  v_a38d42.innerHTML = '';
+  v_a38d42.appendChild(v_01d0dc({id: ''}, v_c3bc75));
+  for (const v_81e2ef of (v_d5dda0.voices || [])) v_a38d42.appendChild(v_01d0dc(v_81e2ef, v_c3bc75));
+}
+
+async function v_afcaef(v_389afb) {
+  const v_fb6823 = document.getElementById('k_source_voice_source');
+  if (v_fb6823) v_fb6823.value = v_389afb;
+  try {
+    await fetch('/knobs', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({source: {voice_source: v_389afb}}),
+    });
+  } catch (v_9e86fd) {
+    v_0747e1('저장 실패: ' + v_9e86fd, 'bad'); return;
+  }
+  v_5ad660();   
+  v_0747e1(v_389afb ? `선택: ${v_389afb} — 다음 통화부터 반영(끊고 다시 걸기)`
+                     : '클론 기본 목소리로 되돌림 — 다음 통화부터', 'ok');
+  await v_b421ad();
+}
+
+async function v_ad5738() {
+  const v_658717 = document.getElementById('voice-file');
+  const v_8955f9 = document.getElementById('voice-upload-btn');
+  const v_e62a18 = document.getElementById('voice-ref-text');
+  const v_8b5cd8 = v_658717?.files?.[0];
+  if (!v_8b5cd8) { v_0747e1('파일을 먼저 고르세요', 'bad'); return; }
+  const v_23563e = new FormData();
+  v_23563e.append('file', v_8b5cd8, v_8b5cd8.name);
+  const v_6d4ed3 = (v_e62a18?.value || '').trim();
+  if (v_6d4ed3) v_23563e.append('ref_text', v_6d4ed3);
+  v_8955f9.disabled = true;
+
+  v_0747e1(v_6d4ed3 ? `업로드 중… ${v_f20c4d(v_8b5cd8.size)}`
+                      : `업로드 중… ${v_f20c4d(v_8b5cd8.size)} (받아쓰기까지 하느라 조금 걸립니다)`, '');
+  try {
+    const v_cb35cb = await fetch('/voice/upload', {
+      method: 'POST', headers: v_5a49fd(), body: v_23563e,
+    });
+    if (v_cb35cb.status === 401) {
+      v_21be23(true);
+      v_0747e1('토큰이 필요합니다 — 렌더 소스 아래에 넣고 다시 업로드하세요', 'bad');
+      return;
+    }
+    if (v_cb35cb.status === 413) {          
+      v_0747e1('용량 초과 — 프록시/서버 상한을 넘었습니다', 'bad'); return;
+    }
+    const v_d5dda0 = await v_cb35cb.json();
+    if (!v_cb35cb.ok || v_d5dda0.error) { v_0747e1(v_d5dda0.error || `실패(${v_cb35cb.status})`, 'bad'); return; }
+    v_658717.value = '';
+    if (v_e62a18) v_e62a18.value = '';
+
+    await v_afcaef(v_d5dda0.id);
+    if (!v_d5dda0.ref_text) {
+      v_0747e1(`업로드 완료 ${v_d5dda0.id} — 받아쓰기 실패(참조 문장 없이 합성). `
+        + '참조 문장을 직접 넣어 다시 올리면 발음이 안정됩니다', 'bad');
+    } else if (!v_d5dda0.prompt_pair) {
+      v_0747e1(`업로드 완료 ${v_d5dda0.id} — 짧은 참조를 못 만들었습니다. `
+        + '짧은 말에서 늘어질 수 있습니다', 'bad');
+    } else {
+      v_0747e1(`업로드 완료 ${v_d5dda0.id} — 다음 통화부터 반영`, 'ok');
+    }
+  } catch (v_9e86fd) {
+    v_0747e1('업로드 실패: ' + v_9e86fd, 'bad');
+  } finally {
+    v_8955f9.disabled = false;
+  }
+}
+
+async function v_d59667(v_389afb) {
+  try {
+    const v_cb35cb = await fetch('/voice/delete', {
+      method: 'POST', headers: v_5a49fd({'Content-Type': 'application/json'}),
+      body: JSON.stringify({id: v_389afb}),
+    });
+    const v_d5dda0 = await v_cb35cb.json();
+
+    if (!v_cb35cb.ok || v_d5dda0.error) { v_0747e1(v_d5dda0.error || `실패(${v_cb35cb.status})`, 'bad'); return; }
+    v_0747e1(v_d5dda0.deleted ? `삭제: ${v_389afb}` : `없는 항목: ${v_389afb}`, v_d5dda0.deleted ? 'ok' : 'bad');
+  } catch (v_9e86fd) {
+    v_0747e1('삭제 실패: ' + v_9e86fd, 'bad'); return;
+  }
+  const v_fb6823 = document.getElementById('k_source_voice_source');
+  if (v_fb6823 && v_fb6823.value === v_389afb) v_fb6823.value = '';   
+  v_b421ad();
+}
+
 const v_170a1f =
   '#knob-fields input, #knob-fields select, #latency-fields input, #latency-fields select';
 
@@ -1138,6 +1305,12 @@ v_858a0a().then(async () => {
   } else {
     await v_377082();
   }
+
+  if (v_3332db && 'source.voice_source' in v_3332db) {
+    await v_afcaef(v_3332db['source.voice_source']);
+  } else {
+    await v_b421ad();
+  }
   if (v_9e8c70) v_ccf98d(`이 브라우저에 저장된 노브 ${v_9e8c70}개를 복원했습니다`, 'ok');
 });
 document.getElementById('clear-saved')?.addEventListener('click', () => {
@@ -1145,12 +1318,16 @@ document.getElementById('clear-saved')?.addEventListener('click', () => {
   v_ccf98d('이 브라우저 저장값을 지웠습니다 — 다음 새로고침부터 서버 값 그대로', 'warn');
 });
 document.getElementById('source-upload-btn')?.addEventListener('click', v_6725b2);
-document.getElementById('source-token-btn')?.addEventListener('click', () => {
+document.getElementById('voice-upload-btn')?.addEventListener('click', v_ad5738);
+
+function v_6c3ec3() {
   v_d35951('토큰 확인 중…', '');
   v_377082();
-});
+  v_b421ad();
+}
+document.getElementById('source-token-btn')?.addEventListener('click', v_6c3ec3);
 document.getElementById('source-token')?.addEventListener('keydown', (v_9e86fd) => {
-  if (v_9e86fd.key === 'Enter') { v_d35951('토큰 확인 중…', ''); v_377082(); }
+  if (v_9e86fd.key === 'Enter') v_6c3ec3();
 });
 v_e1242b(); v_315473(); v_187e1c(); v_d73d4a(); v_2a2e10();
 document.getElementById('refresh-flp')?.addEventListener('click', v_2a2e10);

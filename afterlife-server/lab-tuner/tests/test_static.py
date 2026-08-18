@@ -432,3 +432,74 @@ def test_재기동_필요값_변경시_버튼_강조():
     # 스텝퍼는 change 이벤트가 안 나므로 bump 에서도 알려야 한다
     bump = js[js.index("const bump ="):js.index("const bump =") + 700]
     assert "markRestartDirty" in bump
+
+
+# ---------------------------------------------------------------------------
+# 업로드 소스 UI — 얼굴(영상·사진) / 목소리(음성)
+# ---------------------------------------------------------------------------
+
+def test_렌더소스_패널이_사진도_된다고_알린다():
+    """확장자 목록만 보고는 사진이 되는지 알 수 없다 — 문장으로 말해 준다.
+
+    accept 속성에는 처음부터 이미지가 들어 있었는데 안내 문구가 '얼굴 업로드' 뿐이라
+    영상만 되는 줄 알고 쓰는 사람이 있었다(히즈키 2026-08-18).
+    """
+    html = _read("tuner.html")
+    panel = html[html.index('id="source-panel"'):html.index('id="source-list"')]
+    assert "사진" in panel and "영상" in panel
+    # 둘의 동작 차이(정지 영상 생성 여부)도 알려야 고르는 기준이 생긴다.
+    assert "정지 영상" in panel
+
+
+def test_음성_패널_요소가_html에_있다():
+    html = _read("tuner.html")
+    for el_id in ("voice-panel", "voice-file", "voice-upload-btn",
+                  "voice-upload-status", "voice-ref-text", "voice-list", "voice-root"):
+        assert f'id="{el_id}"' in html, f"HTML 에 #{el_id} 없음"
+
+
+def test_음성_패널이_얼굴과_독립임을_알린다():
+    html = _read("tuner.html")
+    panel = html[html.index('id="voice-panel"'):html.index('id="voice-list"')]
+    assert "얼굴" in panel and "목소리" in panel
+
+
+def test_음성_file_input이_오디오만_받는다():
+    html = _read("tuner.html")
+    panel = html[html.index('id="voice-file"'):]
+    accept = panel[panel.index("accept="):panel.index(">")]
+    assert ".wav" in accept and ".mp3" in accept
+    assert ".mp4" not in accept and ".jpg" not in accept
+
+
+def test_js_음성_엔드포인트를_부른다():
+    js = _read("tuner.js")
+    for needle in ("/voices", "/voice/upload", "/voice/delete"):
+        assert needle in js, needle
+
+
+def test_js_음성_선택은_voice_source_노브로_저장한다():
+    js = _read("tuner.js")
+    assert "voice_source" in js
+    assert "k_source_voice_source" in js
+
+
+def test_js_음성_선택도_브라우저_저장에서_복원한다():
+    """render_source 와 같은 이유 — 빈 값(클론 기본)은 applyKnobs 가 건너뛴다."""
+    js = _read("tuner.js")
+    assert "'source.voice_source' in vals" in js
+
+
+def test_js_프롬프트쌍_없는_업로드를_경고한다():
+    """짧은 프롬프트 쌍이 없으면 짧은 발화에서 폭주한다(2026-08-13 실측).
+
+    올린 사람이 그 위험을 모르면 '가끔 이상해요' 로만 보고된다.
+    """
+    js = _read("tuner.js")
+    assert "prompt_pair" in js
+
+
+def test_js_음성_삭제도_2단계_확인():
+    js = _read("tuner.js")
+    block = js[js.index("function _voiceCard"):js.index("async function loadVoices")]
+    assert "정말?" in block

@@ -506,6 +506,89 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
             registry.update({"source": {"render_source": ""}})
         return web.json_response({"deleted": ok})
 
+    async def voices_list(req):
+        """업로드 음성 목록(최신 우선). 저장 루트도 함께 내려 UI 가 경로를 보여준다."""
+        err = _auth_or_401(req)
+        if err is not None:
+            return err
+        import voice_lab
+        return web.json_response({
+            "root": str(voice_lab.root()),
+            "voices": voice_lab.list_voices(),
+            "max_mb": voice_lab.MAX_BYTES // 1048576,
+            "exts": list(voice_lab.AUDIO_EXTS),
+        })
+
+    async def voice_upload(req):
+        """multipart 업로드 → reference_voices/lab-{날짜시간}/voice.wav (+ 참조 문장).
+
+        선택 필드 ref_text 를 같이 보내면 그것을 참조 문장으로 쓰고 STT 를 건너뛴다
+        (전사가 422 로 거부되는 음성도 쓸 수 있게 하는 탈출구).
+
+        용량은 **읽는 도중** 누적으로 막는다 — source_upload 와 같은 이유다.
+        """
+        err = _auth_or_401(req)
+        if err is not None:
+            return err
+        import voice_lab
+        try:
+            reader = await req.multipart()
+        except Exception as exc:
+            return web.json_response({"error": f"multipart 파싱 실패: {exc}"}, status=400)
+
+        filename, buf, total, ref_text = None, [], 0, None
+        while True:
+            field = await reader.next()
+            if field is None:
+                break
+            if field.name == "ref_text":
+                ref_text = (await field.text()).strip()
+                continue
+            if field.name != "file":
+                continue
+            filename = field.filename or ""
+            try:
+                voice_lab.check_ext(filename)  # 확장자는 바이트를 받기 전에 거른다
+            except voice_lab.VoiceError as exc:
+                return web.json_response({"error": str(exc)}, status=400)
+            while True:
+                chunk = await field.read_chunk()
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > voice_lab.MAX_BYTES:
+                    return web.json_response(
+                        {"error": f"용량 초과: {voice_lab.MAX_BYTES // 1048576}MB 상한"},
+                        status=413)
+                buf.append(chunk)
+            # file 파트 뒤에 ref_text 가 올 수 있으므로 여기서 끊지 않는다.
+
+        if filename is None:
+            return web.json_response({"error": "file 파트가 없습니다"}, status=400)
+        try:
+            meta = voice_lab.save_bytes(b"".join(buf), filename, ref_text=ref_text)
+        except voice_lab.VoiceError as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        except Exception as exc:
+            log.warning("voice upload 실패: %s", exc)
+            return web.json_response({"error": f"저장 실패: {exc}"}, status=500)
+        return web.json_response(meta)
+
+    async def voice_delete(req):
+        err = _auth_or_401(req)
+        if err is not None:
+            return err
+        import voice_lab
+        data = await req.json()
+        try:
+            ok = voice_lab.delete(data.get("id", ""))
+        except voice_lab.VoiceError as exc:
+            # 랩이 만들지 않은 디렉터리(= 실 클론 음성 자산) 요청도 여기로 온다.
+            return web.json_response({"error": str(exc)}, status=400)
+        if ok and registry.get().source.voice_source == data.get("id"):
+            registry.update({"source": {"voice_source": ""}})
+        return web.json_response({"deleted": ok})
+
     async def production_status(_req):
         import subprocess
         keys = [loc["env"] for path, loc in promote.KNOB_TO_LIVE.items()
@@ -555,6 +638,9 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
     app.router.add_get("/render-logs", render_logs)  # 렌더서버 로그 프록시
     app.router.add_get("/sources", sources_list)          # 업로드 소스 목록
     app.router.add_post("/source/upload", source_upload)  # 업로드(multipart)
+    app.router.add_get("/voices", voices_list)             # 업로드 음성 목록
+    app.router.add_post("/voice/upload", voice_upload)     # 음성 업로드(multipart)
+    app.router.add_post("/voice/delete", voice_delete)
     app.router.add_get("/source/thumb", source_thumb)     # 목록 섬네일
     app.router.add_post("/source/delete", source_delete)
     return app
