@@ -621,9 +621,10 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
         unit = open(promote.FIFTH_UNIT, encoding="utf-8").read()
         exec_start = promote.extract_exec_start(unit)
         _, cur_env, _ = promote._parse_exec_env(exec_start)
-        # 🔴 이번 세션에 실제로 바꾼 값만 굽는다. 랩 노브 기본값이 렌더서버 실제값과
-        # 같다는 보장이 없어(2026-08-18: 랩 cfg_scale=2.0 vs 렌더서버 /config 1.2 —
-        # FLP yaml 이 덮는다) 전부 구우면 건드리지도 않은 라이브 동작이 바뀐다.
+        # 🔴 이번 세션에 실제로 바꾼 값만 굽는다.
+        # 랩 노브의 기본값은 "랩이 정한 값"일 뿐 렌더서버가 실제로 쓰는 기본값이 아니다.
+        # ExecStart 에 없던 키를 굽는 순간 렌더서버 코드/yaml 기본값이 랩 값으로 덮여,
+        # 사용자가 건드리지도 않은 라이브 동작이 조용히 바뀐다.
         want = promote.fifth_env_updates(registry.get(), dirty=registry.dirty())
         changes = [{"env": k, "current": cur_env.get(k), "new": v}
                    for k, v in want.items() if cur_env.get(k) != v]
