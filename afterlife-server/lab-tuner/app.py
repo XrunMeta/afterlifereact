@@ -618,15 +618,30 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
         return web.json_response({"deleted": ok})
 
     def _fifth_changes():
-        """현재 유닛의 env 대비 바뀔 항목. (변경목록, ExecStart 원문)."""
-        unit = open(promote.FIFTH_UNIT, encoding="utf-8").read()
-        exec_start = promote.extract_exec_start(unit)
+        """현재 유닛의 env 대비 바뀔 항목. (변경목록, ExecStart 원문).
+
+        🔴 drop-in 이 있으면 **그쪽이 현재값**이다. base unit 만 읽으면 이미 구운 값이
+        "아직 안 구워졌다"로 보이고, 그 상태로 재기동하면 base 기준으로 drop-in 을 새로
+        만들어 **앞서 구운 값이 통째로 날아간다**(2026-08-18 실측).
+        """
+        exec_start = None
+        for path in (promote.FIFTH_DROPIN, promote.FIFTH_UNIT):
+            try:
+                exec_start = promote.extract_exec_start(open(path, encoding="utf-8").read())
+                break
+            except (OSError, ValueError):
+                continue
+        if exec_start is None:
+            raise ValueError("ExecStart 를 찾지 못했다(drop-in·base unit 모두)")
         _, cur_env, _ = promote._parse_exec_env(exec_start)
         # 🔴 이번 세션에 실제로 바꾼 값만 굽는다.
         # 랩 노브의 기본값은 "랩이 정한 값"일 뿐 렌더서버가 실제로 쓰는 기본값이 아니다.
         # ExecStart 에 없던 키를 굽는 순간 렌더서버 코드/yaml 기본값이 랩 값으로 덮여,
         # 사용자가 건드리지도 않은 라이브 동작이 조용히 바뀐다.
-        want = promote.fifth_env_updates(registry.get(), dirty=registry.dirty())
+        # baked=cur_env: 이미 구운 키는 dirty 가 아니어도 추적한다 — 노브를 기본값으로
+        # 되돌렸을 때(dirty 에 안 잡힘) 구운 값이 영영 남는 것을 막는다.
+        want = promote.fifth_env_updates(registry.get(), dirty=registry.dirty(),
+                                         baked=cur_env)
         changes = [{"env": k, "current": cur_env.get(k), "new": v}
                    for k, v in want.items() if cur_env.get(k) != v]
         return changes, exec_start
