@@ -1087,10 +1087,12 @@ function v_ccf98d(v_9b6134, v_94302c) {
 }
 
 async function v_9a2a8d(v_78c274) {
+
+  const v_f21110 = (v_78c274 instanceof Set) ? v_78c274 : null;
   const v_4628fe = {};
   document.querySelectorAll(v_170a1f).forEach(v_fb6823 => {
     const v_fd5f43 = v_fb6823.dataset.s, v_0eb677 = v_fb6823.dataset.k; let v_81e2ef = v_fb6823.value;
-    if (v_78c274 && !v_78c274.has(`${v_fd5f43}.${v_0eb677}`)) return;
+    if (v_f21110 && !v_f21110.has(`${v_fd5f43}.${v_0eb677}`)) return;
     if (v_81e2ef === '') return;
     if (v_81e2ef === 'true') v_81e2ef = true; else if (v_81e2ef === 'false') v_81e2ef = false;
     else {
@@ -1433,7 +1435,7 @@ async function v_d73d4a() {
   } catch (v_9e86fd) {  }
 }
 
-document.getElementById('apply-knobs').onclick = v_9a2a8d;
+document.getElementById('apply-knobs').onclick = () => v_9a2a8d();
 document.getElementById('promote').onclick = v_3e5dbc;
 document.getElementById('restart-prethird').onclick = v_3fd5d1;
 document.getElementById('say-btn').onclick = v_409b14;
@@ -1505,7 +1507,7 @@ document.getElementById('log-clear')?.addEventListener('click', () => {
   if (v_a38d42) v_a38d42.innerHTML = '';
 });
 
-document.getElementById('apply-knobs-top')?.addEventListener('click', v_9a2a8d);
+document.getElementById('apply-knobs-top')?.addEventListener('click', () => v_9a2a8d());
 
 document.getElementById('restart-top')?.addEventListener('click', () => {
   document.getElementById('restart-prethird')?.scrollIntoView({block: 'center'});
