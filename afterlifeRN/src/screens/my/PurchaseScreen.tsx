@@ -27,9 +27,12 @@ import {
 } from "../../lib/iap";
 
 const v_b474da = "credits_1000";
+const v_9f9d8d = new Set(["oth-user@example.invalid"]);
 
 export default function v_0035e1() {
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
+  const v_2adf43 = v_9f9d8d.has(v_b113dd?.email ?? "");
   const [v_01bee9, v_2ea5dd] = v_5ab095<v_678322 | null>(null);
   const [v_c88e9b, v_de20d8] = v_5ab095<v_2b70d7 | null>(null);
   const [v_683210, v_34a50a] = v_5ab095(true);
@@ -62,6 +65,10 @@ export default function v_0035e1() {
   }, []);
 
   v_c4deb2(() => {
+    if (!v_2adf43) {
+      v_34a50a(false);
+      return;
+    }
     const v_a983d4 = v_54ca39({
       onSuccess: (v_9af408) => {
         v_b4f1d2(false);
@@ -99,6 +106,20 @@ export default function v_0035e1() {
       v_e9cfc6(`구매 요청 실패: ${String(v_49263d)}`);
     }
   }, [v_2ca7e0]);
+
+  if (!v_2adf43) {
+    return (
+      <SafeView backgroundColor={v_1bfbd0.zinc50}>
+        <PageHeader title="크레딧 충전" />
+        <View style={v_d81136.placeholderWrap}>
+          <Text style={v_d81136.placeholderTitle}>준비 중</Text>
+          <Text style={v_d81136.placeholderDesc}>
+            크레딧 충전 기능은 곧 오픈됩니다.
+          </Text>
+        </View>
+      </SafeView>
+    );
+  }
 
   return (
     <SafeView backgroundColor={v_1bfbd0.zinc50}>
@@ -195,4 +216,13 @@ const v_d81136 = v_472849.create({
   retryText: { color: v_1bfbd0.zinc900, fontWeight: "600" },
   msg: { fontSize: 12, color: v_1bfbd0.zinc600, textAlign: "center", paddingHorizontal: 16 },
   hint: { fontSize: 11, color: v_1bfbd0.zinc500, textAlign: "center", marginTop: 20 },
+  placeholderWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+    gap: 12,
+  },
+  placeholderTitle: { fontSize: 22, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  placeholderDesc: { fontSize: 14, color: v_1bfbd0.zinc600, textAlign: "center" },
 });
