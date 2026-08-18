@@ -1,0 +1,190 @@
+# lab-tuner 초기값 — 2026-08-18 KST 저장
+
+히즈키 확인 시점의 랩 노브 전체 스냅샷입니다. 되돌릴 때 이 파일 기준으로 맞추세요.
+
+## 이 세팅이 만드는 동작
+
+- 입   : 오디오 기반으로 움직임 (잠금 3종 모두 해제)
+- 눈   : JoyVASA 네이티브 움직임 (눈 뜬 채 고정=false)
+- 눈썹·미간 : 정지 (flp.animation_region=lip → 입 영역만 애니메이션)
+- 머리 : 정지 (가만히 있을 때 움직임=0, 머리 흔들림 폭=0)
+
+## 렌더서버 실제 적용값 (기동 로그 = 정본)
+
+기동: Aug 18 17:49:49
+  flag_relative_motion  = False
+  cfg_scale             = 0.5
+  driving_multiplier    = 0.4
+  flag_eye_retargeting  = True (env 로 덮은 값)
+  animation_region      = lip (env 로 덮은 값)
+  입모양 경로            = 오디오 기반 계산 (lip_open=0.8 사용)
+
+## 노브 값
+
+### fifth
+  눈 깜빡임                    blink                    = true
+  프레임 화질                   jpeg_quality             = 90
+  가만히 있을 때 움직임             idle_motion_scale        = 0
+  정지 판정 기준                 idle_rms_low             = 0.05
+  발화 판정 기준                 idle_rms_high            = 0.3
+  머리 이어붙임 프레임              head_slew_frames         = 5
+  입 벌림                     lip_open                 = 0.5
+  입 닫힘                     lip_closed               = 0.023
+  벌림 배율                    open_scale               = 0.7
+  입싱크 선행 프레임               offset                   = 기본값
+  소리 스무딩                   sigma                    = 기본값
+  반응 곡선                    gamma                    = 기본값
+  무음 기준                    silence                  = 기본값
+  닫힘 전환점                   closed_thresh            = 기본값
+  벌림 전환점                   open_thresh              = 0.13
+  프레임레이트                   fps                      = 기본값
+  입 강제 다뭄                  lip_lock                 = false
+  입 원본 고정                  source_face_lock         = false
+  표정 전체 고정                 source_face_lock_full    = false
+  눈 뜬 채 고정                 eyes_open_lock           = false
+  깜빡임 간격(초)                blink_interval_sec       = 3.5
+  머리 흔들림 폭                 head_sway_amp            = 0
+  흔들림 감속                   head_sway_slow           = 0.7
+  시선 좌우 보정(도)              head_yaw_offset          = 0
+  시선 상하 보정(도)              head_pitch_offset        = 0
+  표정 세기                    cfg_scale                = 0.5
+  움직임 배율                   driving_multiplier       = 0.4
+  머리 속도 완화                 head_smooth              = 3.5
+  깜빡임 길이(프레임)              blink_dur                = 6
+  눈 원본 고정                  eye_source_lock          = false
+  눈 뜸 정도                   eye_target_scale         = 1.07
+  사진 자동 맞춤                 input_normalize          = false
+  원본 비율 송출                 pasteback_output         = false
+  입 추가 다듬기                 cdlip_smooth             = false
+  입 다듬기 강도                 cdlip_sigma              = 1.5
+  렌더 방식                    render_mode              = batch
+
+### flp
+  움직일 영역                   animation_region         = lip
+  이음새 보정                   flag_stitching           = true
+  입 재조정                    flag_lip_retargeting     = true
+  눈 재조정                    flag_eye_retargeting     = false
+  원본에 되붙이기                 flag_pasteback           = true
+  입 정규화                    flag_normalize_lip       = false
+  입 정규화 임계                 lip_normalize_threshold  = 0.1
+  FLP 생성 강도                cfg_scale                = 1.2
+  FLP 구동 배율                driving_multiplier       = 1
+
+### dialogue
+  LLM 모델                   model                    = 기본값
+  temperature              temperature              = 기본값
+  system override          system_override          = 기본값
+  문장 최소 길이                 min_len                  = 4
+  강제 전송 길이                 force_flush              = 30
+  첫 문장 최소 길이               first_min_len            = 기본값
+  응답 최대 토큰                 max_response_tokens      = 기본값
+
+### tts
+  TTS 엔진                   engine                   = cosyvoice
+  TTS URL 직접 지정            url                      = 기본값
+  말하기 속도                   speed                    = 1
+  잡음 제거                    denoise                  = false
+  temperature (qwen 전용)    temperature              = 기본값
+  top_p (qwen 전용)          top_p                    = 기본값
+  top_k (qwen 전용)          top_k                    = 기본값
+  반복 억제 (qwen 전용)          repetition_penalty       = 기본값
+  최대 오디오 토큰 (qwen 전용)      max_new_tokens           = 기본값
+  샘플링 top_k (cosyvoice)    cv_sampling_top_k        = 기본값
+  샘플링 top_p (cosyvoice)    cv_sampling_top_p        = 기본값
+  폭주 판정 기본(초) (cosyvoice)  cv_ramble_base_sec       = 기본값
+  폭주 판정 글자당(초) (cosyvoice) cv_ramble_per_char_sec   = 기본값
+  폭주 재합성 횟수 (cosyvoice)    cv_ramble_retries        = 기본값
+  재합성 top_k (cosyvoice)    cv_ramble_fallback_top_k = 기본값
+
+### transport
+  재생 버퍼(ms)                playback_buffer_ms       = 0
+  정지 전환 유예(초)              idle_grace_sec           = 0.5
+  가로 해상도                   width                    = 576
+  세로 해상도                   height                   = 1024
+  정지 영상 소스                 idle_source_mode         = auto
+
+### filler
+  필러 사용                    enabled                  = false
+  필러 볼륨                    volume                   = 0.3
+  필러 뒤 여백(초)               padding_sec              = 0
+  필러 대기(초)                 lookahead_sec            = 1
+  장면 전환 프레임                blend_frames             = 5
+  정지 영상 미리 굽기              idle_prebake             = true
+  필러 재생 순서                 order                    = pre_speak
+
+### source
+  렌더 소스(업로드)               render_source            = 20260818-142046
+  업로드본으로 정지 영상도 교체         use_idle                 = true
+  업로드 중 클론 필러 끄기           mute_filler              = true
+  목소리(업로드)                 voice_source             = lab-20260818-162549
+
+## 되돌리는 법
+
+아래 JSON 을 랩에 그대로 POST 하면 노브가 복원됩니다.
+(container 계열은 그 뒤 '렌더서버 재기동' 버튼을 눌러야 실제로 먹습니다.)
+
+```
+{
+  "fifth": {
+    "blink": true,
+    "jpeg_quality": 90,
+    "idle_motion_scale": 0,
+    "idle_rms_low": 0.05,
+    "idle_rms_high": 0.3,
+    "head_slew_frames": 5,
+    "lip_open": 0.5,
+    "lip_closed": 0.023,
+    "open_scale": 0.7,
+    "offset": null,
+    "sigma": null,
+    "gamma": null,
+    "silence": null,
+    "closed_thresh": null,
+    "open_thresh": 0.13,
+    "fps": null,
+    "lip_lock": false,
+    "source_face_lock": false,
+    "source_face_lock_full": false,
+    "eyes_open_lock": false,
+    "blink_interval_sec": 3.5,
+    "head_sway_amp": 0,
+    "head_sway_slow": 0.7,
+    "head_yaw_offset": 0,
+    "head_pitch_offset": 0,
+    "cfg_scale": 0.5,
+    "driving_multiplier": 0.4,
+    "head_smooth": 3.5,
+    "blink_dur": 6,
+    "eye_source_lock": false,
+    "eye_target_scale": 1.07,
+    "input_normalize": false,
+    "pasteback_output": false,
+    "cdlip_smooth": false,
+    "cdlip_sigma": 1.5,
+    "render_mode": "batch"
+  },
+  "flp": {
+    "animation_region": "lip",
+    "flag_stitching": true,
+    "flag_lip_retargeting": true,
+    "flag_eye_retargeting": false,
+    "flag_pasteback": true,
+    "flag_normalize_lip": false,
+    "lip_normalize_threshold": 0.1,
+    "cfg_scale": 1.2,
+    "driving_multiplier": 1
+  }
+}
+```
+
+```bash
+ssh afterlife-gabia "curl -s -X POST http://127.0.0.1:8700/knobs \
+  -H 'Content-Type: application/json' -d '<위 JSON>'"
+```
+
+## 주의
+
+- flp.flag_eye_retargeting 이 registry 에서 false 인데 렌더서버에는 true 로 떠 있습니다.
+  이 상태로 재기동하면 false 가 구워져 **눈 깜빡임 신호(c_eyes)가 무시**됩니다.
+- 눈 뜬 채 고정=false 라서 깜빡임 간격(3.5초)은 현재 쓰이지 않습니다.
+  그 값은 눈 뜬 채 고정=true 일 때만 적용됩니다.
