@@ -11,3 +11,13 @@ infra-backup.local.md
 
 # 음색 카탈로그 변환 산출물 (바이너리, 커밋 제외)
 afterlifeapi/seeds/voice_catalog/out/
+
+# 로컬 D1 스냅샷·백업 (PII 평문이 들어올 수 있다 — 절대 커밋 금지)
+# 폴더째(`d1-snapshots/`)로 막으면 git 이 하위를 훑지 않아 아래 재포함이 동작하지 않는다.
+d1-snapshots/*
+!d1-snapshots/README.md
+# 위치가 어긋나도 잡히도록 개별 패턴으로 이중 방어.
+# migrations/*.sql 은 커밋 대상이므로 *.sql 을 통째로 막지 않는다.
+*-dump.sql
+*.sql.dump
+d1-dump*.sql
