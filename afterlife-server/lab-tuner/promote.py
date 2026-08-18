@@ -355,6 +355,23 @@ def build_fifth_dropin(exec_start: str, env_updates: dict) -> str:
     return f"[Service]\nExecStart=\nExecStart={rebuilt}\n"
 
 
+def _same_env_value(a, b) -> bool:
+    """env 값 두 개가 실질적으로 같은가.
+
+    🔴 숫자는 표기가 달라도 같다 — '0' 과 '0.0', '2' 와 '2.0'. 문자열로만 비교하면
+    바뀐 게 없는데 "재기동 대기"가 계속 떠서 불필요한 라이브 재기동을 유도한다
+    (2026-08-18: idle_motion_scale 이 int 0 → float 0.0 이 되며 실제로 발생).
+    숫자로 못 읽는 값(enum·경로)은 문자열 그대로 비교한다.
+    """
+    sa, sb = str(a), str(b)
+    if sa == sb:
+        return True
+    try:
+        return float(sa) == float(sb)
+    except (TypeError, ValueError):
+        return False
+
+
 def fifth_env_updates(knobs, dirty: set | None = None, baked: dict | None = None) -> dict:
     """KNOB_TO_LIVE 의 container 항목만 {ENV: 값} 으로 모은다.
 
@@ -380,8 +397,8 @@ def fifth_env_updates(knobs, dirty: set | None = None, baked: dict | None = None
             continue
         new_val = _fmt(val)
         if env_name in baked:
-            # 이미 구운 키 — 값이 달라졌을 때만 다시 굽는다.
-            if baked[env_name] != new_val:
+            # 이미 구운 키 — 값이 달라졌을 때만 다시 굽는다(숫자 표기 차이는 무시).
+            if not _same_env_value(baked[env_name], new_val):
                 out[env_name] = new_val
             continue
         if dirty is not None and path not in dirty:

@@ -643,7 +643,8 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
         want = promote.fifth_env_updates(registry.get(), dirty=registry.dirty(),
                                          baked=cur_env)
         changes = [{"env": k, "current": cur_env.get(k), "new": v}
-                   for k, v in want.items() if cur_env.get(k) != v]
+                   for k, v in want.items()
+                   if not promote._same_env_value(cur_env.get(k), v)]
         return changes, exec_start
 
     async def render_preview(req):

@@ -37,6 +37,15 @@ REAL_EXEC = (
 )
 
 
+# UNIT_TEXT / REAL_EXEC 에 박힌 env 와 노브를 일치시킨다.
+# baked 규칙(이미 구운 키는 항상 추적) 때문에, 이걸 맞춰두지 않으면 "안 건드린 키"도
+# 기본값과 달라 changes 에 잡힌다 — 검증하려는 건 그게 아니다.
+_UNIT_ALIGNED = {
+    "fifth": {"cfg_scale": 2.0, "lip_open": 0.24, "blink": True,
+              "head_smooth": 3.5, "eye_source_lock": True, "eye_target_scale": 0.8},
+}
+
+
 def _exec_line(dropin: str) -> str:
     """drop-in 에서 재정의된 ExecStart 한 줄(비우기 줄 제외)을 꺼낸다."""
     lines = [l for l in dropin.splitlines() if l.startswith("ExecStart=") and l.strip() != "ExecStart="]
@@ -262,7 +271,8 @@ async def test_preview_는_바뀔_값만_보여준다(tmp_path, monkeypatch):
     unit.write_text(UNIT_TEXT)
     monkeypatch.setattr(promote, "FIFTH_UNIT", str(unit))
     r = KnobsRegistry()
-    r.update({"fifth": {"cfg_scale": 3.5}})
+    r.update(_UNIT_ALIGNED)                    # 구운 값과 노브를 먼저 일치시키고
+    r.update({"fifth": {"cfg_scale": 3.5}})    # 하나만 바꾼다
     c, _ = await _client(tmp_path, registry=r)
     try:
         d = await (await c.get("/promote/render-preview")).json()
@@ -363,6 +373,7 @@ async def test_사용자가_만진_값만_굽는다(tmp_path, monkeypatch):
     unit = tmp_path / "unit.service"; unit.write_text(UNIT_TEXT)
     monkeypatch.setattr(promote, "FIFTH_UNIT", str(unit))
     r = KnobsRegistry()
+    r.update(_UNIT_ALIGNED)
     c, _ = await _client(tmp_path, registry=r)
     try:
         # 아무것도 안 건드린 상태 → 구울 게 없어야 한다.
@@ -394,6 +405,7 @@ async def test_preview_는_dropin_을_현재값으로_본다(tmp_path, monkeypat
 
     r = KnobsRegistry()
     # 구운 값과 노브가 일치하는 상태 → 바뀔 게 없어야 한다.
+    r.update(_UNIT_ALIGNED)
     r.update({"fifth": {"cfg_scale": 0.5}, "flp": {"animation_region": "lip"}})
     c, _ = await _client(tmp_path, registry=r)
     try:
@@ -463,3 +475,40 @@ def test_구운_값과_같으면_대상이_아니다():
 def test_baked_없으면_기존_동작_그대로():
     from knobs import RunKnobs
     assert promote.fifth_env_updates(RunKnobs(), dirty=set()) == {}
+
+
+@_pytest.mark.parametrize("baked_val,knob_val", [
+    ("0", 0.0), ("0.0", 0), ("1", 1.0), ("2.0", 2), ("0.50", 0.5),
+])
+def test_숫자_표기만_다른_건_변경이_아니다(baked_val, knob_val):
+    """🔴 '0' 과 '0.0' 은 같은 값이다 — 표기 차이로 재기동을 유도하면 안 된다.
+
+    2026-08-18: idle_motion_scale 이 int 0 → float 0.0 이 되면서 구운 값 '0' 과
+    '0.0' 이 다르다고 잡혀, 바뀐 게 없는데 "재기동 대기 1건"이 계속 떴다.
+    """
+    from knobs import RunKnobs
+    k = RunKnobs()
+    object.__setattr__(k.fifth, "idle_motion_scale", knob_val)
+    upd = promote.fifth_env_updates(k, dirty=set(),
+                                    baked={"FIFTH_IDLE_MOTION_SCALE": baked_val})
+    assert "FIFTH_IDLE_MOTION_SCALE" not in upd
+
+
+def test_실제로_다른_숫자는_잡는다():
+    from knobs import RunKnobs
+    k = RunKnobs()
+    object.__setattr__(k.fifth, "idle_motion_scale", 0.15)
+    upd = promote.fifth_env_updates(k, dirty=set(),
+                                    baked={"FIFTH_IDLE_MOTION_SCALE": "0"})
+    assert upd["FIFTH_IDLE_MOTION_SCALE"] == "0.15"
+
+
+def test_숫자가_아닌_값은_문자열로_비교한다():
+    from knobs import RunKnobs
+    k = RunKnobs()
+    object.__setattr__(k.flp, "animation_region", "exp")
+    assert "FIFTH_FLP_ANIMATION_REGION" not in promote.fifth_env_updates(
+        k, dirty=set(), baked={"FIFTH_FLP_ANIMATION_REGION": "exp"})
+    assert promote.fifth_env_updates(
+        k, dirty=set(), baked={"FIFTH_FLP_ANIMATION_REGION": "all"}
+    )["FIFTH_FLP_ANIMATION_REGION"] == "exp"
