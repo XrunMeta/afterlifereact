@@ -1,24 +1,28 @@
-# lab-tuner 초기값 — 2026-08-18 KST
+# lab-tuner 기본값(default) — 2026-08-18 KST
 
 실통화 튜닝으로 확정해 **코드 기본값으로 승격**한 세팅입니다(knobs.py).
-랩을 재기동해도 이 값으로 시작합니다. 튜닝하다 길을 잃으면 여기로 되돌리세요.
+랩을 재기동해도 이 값으로 시작하므로, 되돌리려면 랩만 재기동하면 됩니다.
 
 ## 이 세팅이 만드는 동작
 
-- 입   : 오디오 기반 (잠금 3종 해제 · lip_open 0.5 · 벌림 배율 0.7)
-- 눈   : 고정 + 2초 간격 깜빡임 (눈 뜬 채 고정 + 깜빡임 간격)
-- 표정 : animation_region=exp · 표정 세기 0.1 · 움직임 배율 0.25
-- 머리 : 흔들림 폭 0.2 · 가만히 있을 때 움직임 0
+- 입   : 오디오 기반 · 벌림 0.7 · 배율 1.3 (잠금 3종 해제)
+- 눈   : 고정 + 2초 간격 깜빡임
+- 표정 : animation_region=all · 세기 0.1 · 배율 0.25 (억제)
+- 머리 : 흔들림 폭 1.2 · 감속 1.5 (느긋) · 말 안 할 때 정지
+
+🔑 animation_region 은 **all** 이어야 머리가 움직입니다. FLP 가 머리 회전을
+   `if animation_region in ["all", "pose"]` 로 감싸서, exp 로 두면 머리 흔들림
+   값을 아무리 올려도 무시됩니다(2026-08-18 실측).
 
 ## 렌더서버 실제 적용값 (기동 로그 = 정본)
 
-기동: Aug 18 18:19:58
+기동: Aug 18 18:33:00
   flag_relative_motion  = False
   cfg_scale             = 0.1
   driving_multiplier    = 0.25
   flag_eye_retargeting  = True (env 로 덮은 값)
-  animation_region      = exp (env 로 덮은 값)
-  입모양 경로            = 오디오 기반 계산 (lip_open=0.24 사용)
+  animation_region      = all (env 로 덮은 값)
+  입모양 경로            = 오디오 기반 계산 (lip_open=0.7 사용)
 
 ## 노브 값
 
@@ -29,9 +33,9 @@
   정지 판정 기준                 idle_rms_low             = 0.05
   발화 판정 기준                 idle_rms_high            = 0.3
   머리 이어붙임 프레임              head_slew_frames         = 5
-  입 벌림                     lip_open                 = 0.5
+  입 벌림                     lip_open                 = 0.7
   입 닫힘                     lip_closed               = 0.023
-  벌림 배율                    open_scale               = 0.7
+  벌림 배율                    open_scale               = 1.3
   입싱크 선행 프레임               offset                   = 기본값
   소리 스무딩                   sigma                    = 기본값
   반응 곡선                    gamma                    = 기본값
@@ -44,8 +48,8 @@
   표정 전체 고정                 source_face_lock_full    = false
   눈 뜬 채 고정                 eyes_open_lock           = true
   깜빡임 간격(초)                blink_interval_sec       = 2.0
-  머리 흔들림 폭                 head_sway_amp            = 0.2
-  흔들림 감속                   head_sway_slow           = 0.7
+  머리 흔들림 폭                 head_sway_amp            = 1.2
+  흔들림 감속                   head_sway_slow           = 1.5
   시선 좌우 보정(도)              head_yaw_offset          = 0.0
   시선 상하 보정(도)              head_pitch_offset        = 0.0
   표정 세기                    cfg_scale                = 0.1
@@ -61,7 +65,7 @@
   렌더 방식                    render_mode              = batch
 
 ### flp
-  움직일 영역                   animation_region         = exp
+  움직일 영역                   animation_region         = all
   이음새 보정                   flag_stitching           = true
   입 재조정                    flag_lip_retargeting     = true
   눈 재조정                    flag_eye_retargeting     = true
@@ -122,7 +126,7 @@
 ## 되돌리는 법
 
 코드 기본값이므로 **랩을 재기동하면 자동으로 이 값**이 됩니다.
-통화 중 값을 바꿨다가 되돌리려면 아래 JSON 을 POST 하세요.
+통화 중 바꿨다가 되돌리려면 아래 JSON 을 POST 하세요.
 (container 계열은 그 뒤 '렌더서버 재기동' 버튼을 눌러야 실제로 먹습니다.)
 
 ```
@@ -134,9 +138,9 @@
     "idle_rms_low": 0.05,
     "idle_rms_high": 0.3,
     "head_slew_frames": 5,
-    "lip_open": 0.5,
+    "lip_open": 0.7,
     "lip_closed": 0.023,
-    "open_scale": 0.7,
+    "open_scale": 1.3,
     "offset": null,
     "sigma": null,
     "gamma": null,
@@ -149,8 +153,8 @@
     "source_face_lock_full": false,
     "eyes_open_lock": true,
     "blink_interval_sec": 2.0,
-    "head_sway_amp": 0.2,
-    "head_sway_slow": 0.7,
+    "head_sway_amp": 1.2,
+    "head_sway_slow": 1.5,
     "head_yaw_offset": 0.0,
     "head_pitch_offset": 0.0,
     "cfg_scale": 0.1,
@@ -166,7 +170,7 @@
     "render_mode": "batch"
   },
   "flp": {
-    "animation_region": "exp",
+    "animation_region": "all",
     "flag_stitching": true,
     "flag_lip_retargeting": true,
     "flag_eye_retargeting": true,
@@ -179,11 +183,20 @@
 }
 ```
 
+## 조절 손잡이 (자주 쓰는 것)
+
+| 하고 싶은 것 | 노브 | 반영 |
+|---|---|---|
+| 입을 더 벌리기 | 벌림 배율 ↑ (벌림은 1.0 이 상한) | 즉시 |
+| 머리를 더/덜 흔들기 | 흔들림 폭 | 즉시 |
+| 흔들림 속도 | 감속 (클수록 느긋) | 즉시 |
+| 깜빡임 빈도 | 깜빡임 간격 | 즉시 |
+| 표정 크기 | 표정 세기 · 움직임 배율 | 렌더서버 재기동 |
+
 ## 주의
 
-- 표정 세기 0.1 은 권장 하한(0.5)보다 낮습니다 — 의도적으로 표정을 억제한 값입니다.
-  얼굴이 너무 굳으면 0.3 부터 올려보세요.
-- 깜빡임 간격은 '눈 뜬 채 고정=true' 일 때만 쓰입니다. 끄면 JoyVASA 네이티브 눈
-  움직임으로 바뀌고 간격은 3.2초로 고정됩니다(코드 하드코딩).
-- 브라우저에 저장된 옛 노브 값이 서버를 덮어쓸 수 있습니다. 값이 자꾸 되돌아가면
+- 표정 세기 0.1 은 권장 하한(0.5)보다 낮습니다 — 의도적으로 억제한 값입니다.
+- 깜빡임 간격은 '눈 뜬 채 고정=true' 일 때만 쓰입니다. 끄면 JoyVASA 네이티브
+  눈 움직임이 되고 간격은 3.2초로 고정됩니다(코드 하드코딩).
+- 브라우저에 저장된 옛 값이 서버를 덮어쓸 수 있습니다. 값이 자꾸 되돌아가면
   화면의 '저장값 지우기' 를 누르세요.
