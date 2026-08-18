@@ -884,7 +884,14 @@ admin.delete("/oth-path", requireAdmin, async (c) => {
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
     throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
   }
-  const { reason } = await parseJson(c, cloneModerationReasonSchema);
+
+  let reason: string | null = null;
+  try {
+    const raw = await c.req.json<{ reason?: unknown }>();
+    if (raw && typeof raw.reason === 'string' && raw.reason.trim().length > 0) {
+      reason = raw.reason.trim().slice(0, 500);
+    }
+  } catch {  }
   const existing = await c.env.DB
     .prepare(`SELECT id, deletion_state FROM clones WHERE id = ?`)
     .bind(cloneId)
