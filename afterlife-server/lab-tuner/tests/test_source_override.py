@@ -184,3 +184,38 @@ def test_prebake_failure_does_not_break_call(monkeypatch):
     factory(sess)                       # 예외가 새면 여기서 죽는다
     captured["infer_fn"](b"wav", lambda *a: None)
     assert seen["src"] == m["source"]   # 소스 교체는 그대로 성립
+
+
+# ---------------------------------------------------------------------------
+# 2026-08-18: 사진 업로드 idle 이 실기에서 조용히 실패하던 버그
+# ---------------------------------------------------------------------------
+
+def test_prebake_wav_goes_to_shared_mount_not_host_tmp(monkeypatch, tmp_path):
+    """🔴 무음 wav 를 호스트 /tmp 에 만들면 fifth 가 못 읽어 idle 교체가 죽는다.
+
+    2026-08-18 실측 로그:
+        [source-override] 사진 업로드 → idle prebake 시작
+        WARNING:idle_prebake: 렌더 실패(기존 idle 유지):
+          HTTP 400 — {"error": "wav_path 미존재: /tmp/fifth_idle_silent_….wav"}
+
+    fifth 는 컨테이너라 마운트된 공유 경로만 본다(T-088 과 같은 함정). 랩은 기동 시
+    TMPDIR 을 공유마운트 하위로 잡으므로(_remote_lab_deploy.sh), 그 값을 넘겨야 한다.
+    start_prebake 의 기본값 "/tmp" 를 그대로 쓰면 배선이 살아 있어도 결과가 0 이다.
+    """
+    monkeypatch.setenv("TMPDIR", str(tmp_path / "fifth-tmp"))
+    called = {}
+    fake = types.ModuleType("idle_prebake")
+    fake.start_prebake = lambda renderer, face, track, **kw: called.update(kw)
+    monkeypatch.setitem(__import__("sys").modules, "idle_prebake", fake)
+
+    monkeypatch.setattr(source_lab.subprocess, "run", _ffmpeg_ok)
+    m = source_lab.save_bytes(b"IMG", "face.jpg")
+
+    r = KnobsRegistry()
+    r.update({"source": {"render_source": m["id"]}})
+    factory, _ = _factory(monkeypatch, r)
+    factory(_sess())
+
+    assert "wav_dir" in called, "wav_dir 을 안 넘기면 기본값 /tmp 로 떨어진다"
+    assert called["wav_dir"] != "/tmp"
+    assert str(tmp_path) in called["wav_dir"], called["wav_dir"]
