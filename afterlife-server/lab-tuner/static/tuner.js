@@ -515,6 +515,71 @@ const v_10fde5 = {
   driving_smooth_observation_variance: '영상 소스일 때의 스무딩 강도',
 };
 
+function v_925367(v_a38d42, v_b24339, v_a057b5, v_638ecc) {
+  const v_3ac7e7 = document.createElement('div'); v_3ac7e7.className = 'knob-row ro';
+  const v_b17055 = document.createElement('label'); v_b17055.textContent = v_b24339;
+  const v_81e2ef = document.createElement('span'); v_81e2ef.className = 'ro-val';
+  v_81e2ef.textContent = String(v_a057b5);
+  v_3ac7e7.appendChild(v_b17055); v_3ac7e7.appendChild(v_81e2ef);
+  if (v_638ecc) {
+    const v_d5dda0 = document.createElement('div'); v_d5dda0.className = 'knob-desc';
+    v_d5dda0.textContent = v_638ecc; v_3ac7e7.appendChild(v_d5dda0);
+  }
+  v_a38d42.appendChild(v_3ac7e7);
+  return v_3ac7e7;
+}
+
+function v_70a533(v_a38d42, v_9b6134) {
+  const v_65a2cd = document.createElement('div');
+  v_65a2cd.className = 'ro-group'; v_65a2cd.textContent = v_9b6134;
+  v_a38d42.appendChild(v_65a2cd);
+}
+
+async function v_771a6f() {
+  const v_a38d42 = document.getElementById('render-runtime');
+  if (!v_a38d42) return;
+  v_a38d42.innerHTML = '';
+  let v_d5dda0;
+  try {
+    const v_cb35cb = await fetch('/render-runtime', {headers: v_5a49fd()});
+    if (v_cb35cb.status === 401) { v_a38d42.textContent = '토큰이 필요합니다'; return; }
+    v_d5dda0 = await v_cb35cb.json();
+  } catch (v_9e86fd) { v_a38d42.textContent = '조회 실패: ' + v_9e86fd; return; }
+  if (v_d5dda0.error) { v_a38d42.textContent = v_d5dda0.error; return; }
+
+  if ((v_d5dda0.mismatches || []).length) {
+    const v_b785c9 = document.createElement('div');
+    v_b785c9.className = 'knob-desc';
+    v_b785c9.style.color = 'var(--red)';
+    v_b785c9.style.fontWeight = '600';
+    v_b785c9.textContent = '⚠️ 설정한 env 와 실제 적용값이 다릅니다 — '
+      + v_d5dda0.mismatches.map(v_35f85c => `${v_35f85c.env}: 설정 ${v_35f85c.expected} → 실제 ${v_35f85c.actual}`).join(' · ');
+    v_a38d42.appendChild(v_b785c9);
+  }
+
+  v_70a533(v_a38d42, v_d5dda0.booted_at ? `엔진 실제값 (기동 ${v_d5dda0.booted_at})` : '엔진 실제값');
+  if (Object.keys(v_d5dda0.flp_engine || {}).length) {
+    for (const [v_0eb677, v_81e2ef] of Object.entries(v_d5dda0.flp_engine)) v_925367(v_a38d42, v_0eb677, v_81e2ef);
+  } else {
+    v_925367(v_a38d42, '(없음)', '기동 로그가 조회 범위 밖입니다', '재기동하면 다시 보입니다');
+  }
+  if (v_d5dda0.joyvasa && v_d5dda0.joyvasa.cfg_scale != null) {
+    v_925367(v_a38d42, 'JoyVASA cfg_scale', v_d5dda0.joyvasa.cfg_scale);
+  }
+
+  if (v_d5dda0.cfg_final) {
+    v_70a533(v_a38d42, `마지막 렌더 최종값 (${v_d5dda0.cfg_final.at})`);
+    v_925367(v_a38d42, 'override', v_d5dda0.cfg_final.override,
+           '이번 요청에서 랩이 덮어쓴 항목. "없음"이면 서버 기본값으로 렌더된 것');
+    for (const [v_0eb677, v_81e2ef] of Object.entries(v_d5dda0.cfg_final.values || {})) v_925367(v_a38d42, v_0eb677, v_81e2ef);
+  }
+  if (v_d5dda0.lip_path) {
+    v_70a533(v_a38d42, '입모양 경로');
+    v_925367(v_a38d42, 'lip-path', v_d5dda0.lip_path,
+           'source_face_lock > lip_lock > 오디오 순으로 이긴 경로. 앞의 둘이 켜지면 lip_open 은 무시된다');
+  }
+}
+
 async function v_2a2e10() {
   const v_a38d42 = document.getElementById('flp-readonly');
   if (!v_a38d42) return;
@@ -527,6 +592,11 @@ async function v_2a2e10() {
     return;
   }
   if (v_9390e8.error) { v_a38d42.textContent = v_9390e8.error; return; }
+
+  const v_638ecc = document.createElement('div');
+  v_638ecc.className = 'knob-desc';
+  v_638ecc.textContent = '참고용 yaml 원본 — 실제 적용값과 다를 수 있습니다(위 패널이 정본)';
+  v_a38d42.appendChild(v_638ecc);
   for (const v_d7f648 of ['crop_params', 'infer_params']) {
     const v_3332db = v_9390e8[v_d7f648];
     if (!v_3332db) continue;
@@ -1278,7 +1348,7 @@ async function v_1c17ac() {
   v_668e02();
   v_e926e3.innerHTML = '<div style="color:var(--green)"><b>렌더서버 재기동 완료 — 값이 반영됐습니다.</b><br>'
     + `${(v_d5dda0.changes || []).length}개 적용. 다음 통화부터 새 값으로 렌더됩니다.</div>`;
-  v_2a2e10();
+  v_771a6f(); v_2a2e10();
 }
 
 async function v_3fd5d1() {
@@ -1418,8 +1488,11 @@ document.getElementById('source-token-btn')?.addEventListener('click', v_6c3ec3)
 document.getElementById('source-token')?.addEventListener('keydown', (v_9e86fd) => {
   if (v_9e86fd.key === 'Enter') v_6c3ec3();
 });
-v_e1242b(); v_315473(); v_187e1c(); v_d73d4a(); v_2a2e10();
-document.getElementById('refresh-flp')?.addEventListener('click', v_2a2e10);
+v_e1242b(); v_315473(); v_187e1c(); v_d73d4a();
+v_771a6f(); v_2a2e10();
+document.getElementById('refresh-flp')?.addEventListener('click', () => {
+  v_771a6f(); v_2a2e10();
+});
 
 v_ded6bb();
 setInterval(v_ded6bb, 2000);

@@ -567,3 +567,49 @@ def test_렌더재기동_409_를_정직하게_표기():
     js = _read("tuner.js")
     block = js[js.index("async function renderRestartApply"):]
     assert "409" in block
+
+
+# ---------------------------------------------------------------------------
+# 2026-08-18: FLP 패널이 /config(거짓말하는 소스)를 쓰던 문제
+#
+# /config 는 "env 오버라이드까지 반영된 최종값"이라 주장하면서 cfg_scale 을 env 가
+# 2.0 이든 2.5 든 항상 1.2 로 보여줬다. 확인 수단이 거짓이라 "적용됐는지 확인이
+# 안 된다"(히즈키)로 이어졌다. 정본은 렌더서버가 스스로 찍는 로그다.
+# ---------------------------------------------------------------------------
+
+def test_실제적용값_패널이_로그_엔드포인트를_읽는다():
+    js = _read("tuner.js")
+    assert "/render-runtime" in js
+
+
+def test_실제적용값_컨테이너가_html에_있다():
+    html = _read("tuner.html")
+    for el_id in ("render-runtime", "flp-readonly"):
+        assert f'id="{el_id}"' in html, el_id
+
+
+def test_yaml_원본은_참고용으로_낮춰_표기한다():
+    """같은 화면에 두 값이 나오면 어느 쪽이 진짜인지 말해줘야 한다."""
+    js = _read("tuner.js")
+    block = js[js.index("async function loadFlpConfig"):]
+    assert "참고" in block or "원본" in block
+
+
+def test_env와_실제값_불일치를_경고한다():
+    """env 를 넣고 재기동했는데 엔진이 다른 값으로 떴다면 그게 진짜 문제다."""
+    js = _read("tuner.js")
+    assert "mismatches" in js
+
+
+def test_잠금경로와_최종값을_보여준다():
+    """lip-path 는 '잠금을 켰는데 왜 움직이나'를 가리는 유일한 증거다."""
+    js = _read("tuner.js")
+    block = js[js.index("async function loadRenderRuntime"):]
+    assert "lip_path" in block
+    assert "cfg_final" in block
+
+
+def test_기동시각을_보여준다():
+    """언제 뜬 값인지 모르면 재기동 반영 여부를 판단할 수 없다."""
+    js = _read("tuner.js")
+    assert "booted_at" in js

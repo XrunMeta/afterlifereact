@@ -14,6 +14,7 @@ from live_guard import LiveBusyError
 from knobs import KNOB_META
 import promote
 import prod_status
+import render_runtime
 
 log = logging.getLogger("lab-tuner.app")
 
@@ -734,6 +735,41 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
             "restart_returncode": restart_proc.returncode,
         })
 
+    async def render_runtime_view(req):
+        """렌더서버가 **실제로 쓰고 있는 값**. 기동·렌더 로그에서 읽는다.
+
+        /config(=/flp-config) 를 쓰지 않는 이유: 스스로 "env 오버라이드까지 반영된
+        최종값"이라 주장하면서 cfg_scale 을 env 가 2.0 이든 2.5 든 항상 1.2 로
+        보여준다(2026-08-18 실측). driving_multiplier 는 맞게 보여줘 더 헷갈린다.
+        일부만 맞는 계기판은 아예 없는 것보다 나쁘다.
+
+        로그 조회가 실패해도 200 + error 로 답한다 — 패널 하나 때문에 랩이 막히면 안 된다.
+        """
+        err = _auth_or_401(req)
+        if err is not None:
+            return err
+        proc = _sh(["sudo", "journalctl", "-u", promote.FIFTH_SERVICE,
+                    "-n", "5000", "--no-pager"], timeout=30)
+        if getattr(proc, "returncode", 1) != 0:
+            empty = render_runtime.parse("")
+            empty["error"] = f"렌더서버 로그 조회 실패: {(proc.stderr or '').strip()[:200]}"
+            empty["mismatches"] = []
+            return web.json_response(empty)
+
+        snap = render_runtime.parse(proc.stdout or "")
+        # 실제 ExecStart 는 drop-in 이 있으면 그쪽이다(재기동으로 값을 바꾼 뒤 상태).
+        env = {}
+        for path in (promote.FIFTH_DROPIN, promote.FIFTH_UNIT):
+            try:
+                exec_start = promote.extract_exec_start(open(path, encoding="utf-8").read())
+                _, env, _ = promote._parse_exec_env(exec_start)
+                break
+            except (OSError, ValueError):
+                continue
+        snap["env"] = env
+        snap["mismatches"] = render_runtime.mismatches(snap, env)
+        return web.json_response(snap)
+
     async def production_status(_req):
         import subprocess
         keys = [loc["env"] for path, loc in promote.KNOB_TO_LIVE.items()
@@ -780,6 +816,7 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
     app.router.add_post("/promote/restart", promote_restart)
     app.router.add_get("/promote/render-preview", render_preview)   # fifth env 미리보기
     app.router.add_post("/promote/render-restart", render_restart)  # fifth 렌더서버 재기동
+    app.router.add_get("/render-runtime", render_runtime_view)      # 실제 적용값(로그)
     app.router.add_get("/production-status", production_status)
     app.router.add_get("/flp-config", flp_config)   # 3층 읽기전용 스냅샷
     app.router.add_get("/render-logs", render_logs)  # 렌더서버 로그 프록시
