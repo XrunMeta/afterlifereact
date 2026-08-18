@@ -9,6 +9,11 @@
 - 눈   : 고정 + 2초 간격 깜빡임
 - 표정 : animation_region=all · 세기 0.1 · 배율 0.25 (억제)
 - 머리 : 흔들림 폭 1.2 · 감속 1.5 (느긋) · 말 안 할 때 정지
+- 송출 : 원본 비율(pasteback_output=true)
+
+🔑 pasteback_output 은 **true** 여야 원본 비율로 송출됩니다. false 면 얼굴만 잘린
+   512x512 정사각 crop 이 나가서 "영상이 확대돼 얼굴만 보이는" 증상이 됩니다
+   (2026-08-18 실측: 소스 512x1024 → 출력 576x1024 정상).
 
 🔑 animation_region 은 **all** 이어야 머리가 움직입니다. FLP 가 머리 회전을
    `if animation_region in ["all", "pose"]` 로 감싸서, exp 로 두면 머리 흔들림
@@ -164,7 +169,7 @@
     "eye_source_lock": false,
     "eye_target_scale": 1.07,
     "input_normalize": false,
-    "pasteback_output": false,
+    "pasteback_output": true,
     "cdlip_smooth": false,
     "cdlip_sigma": 1.5,
     "render_mode": "batch"
