@@ -884,7 +884,14 @@ v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
   }
-  const { reason: v_58ca36 } = await v_4c95c2(v_3f4e2e, v_0a4de4);
+
+  let v_58ca36 = null;
+  try {
+    const v_479f05 = await v_3f4e2e.req.json<{ reason?: unknown }>();
+    if (v_479f05 && typeof v_479f05.reason === 'string' && v_479f05.reason.trim().length > 0) {
+      v_58ca36 = v_479f05.reason.trim().slice(0, 500);
+    }
+  } catch {  }
   const v_3c8572 = await v_3f4e2e.env.DB
     .prepare(`SELECT id, deletion_state FROM clones WHERE id = ?`)
     .bind(v_6e0fd3)
