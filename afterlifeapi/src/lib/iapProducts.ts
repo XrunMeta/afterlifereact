@@ -24,6 +24,8 @@ const PRODUCTS: readonly IapProduct[] = [
   { productId: `${PREFIX}.credit.60`,  kind: "consumable", creditsSec: 3600 },
   { productId: `${PREFIX}.credit.150`, kind: "consumable", creditsSec: 9000 },
   { productId: `${PREFIX}.credit.300`, kind: "consumable", creditsSec: 18000 },
+
+  { productId: "credits_1000", kind: "consumable", creditsSec: 1000 },
 ];
 
 const BY_ID = new Map(PRODUCTS.map((p) => [p.productId, p]));
