@@ -515,6 +515,71 @@ const FLP_RO_NOTE = {
   driving_smooth_observation_variance: '영상 소스일 때의 스무딩 강도',
 };
 
+function _roRow(box, key, val, note) {
+  const row = document.createElement('div'); row.className = 'knob-row ro';
+  const lab = document.createElement('label'); lab.textContent = key;
+  const v = document.createElement('span'); v.className = 'ro-val';
+  v.textContent = String(val);
+  row.appendChild(lab); row.appendChild(v);
+  if (note) {
+    const d = document.createElement('div'); d.className = 'knob-desc';
+    d.textContent = note; row.appendChild(d);
+  }
+  box.appendChild(row);
+  return row;
+}
+
+function _roHead(box, text) {
+  const h = document.createElement('div');
+  h.className = 'ro-group'; h.textContent = text;
+  box.appendChild(h);
+}
+
+async function loadRenderRuntime() {
+  const box = document.getElementById('render-runtime');
+  if (!box) return;
+  box.innerHTML = '';
+  let d;
+  try {
+    const r = await fetch('/render-runtime', {headers: _labHeaders()});
+    if (r.status === 401) { box.textContent = '토큰이 필요합니다'; return; }
+    d = await r.json();
+  } catch (e) { box.textContent = '조회 실패: ' + e; return; }
+  if (d.error) { box.textContent = d.error; return; }
+
+  if ((d.mismatches || []).length) {
+    const warn = document.createElement('div');
+    warn.className = 'knob-desc';
+    warn.style.color = 'var(--red)';
+    warn.style.fontWeight = '600';
+    warn.textContent = '⚠️ 설정한 env 와 실제 적용값이 다릅니다 — '
+      + d.mismatches.map(m => `${m.env}: 설정 ${m.expected} → 실제 ${m.actual}`).join(' · ');
+    box.appendChild(warn);
+  }
+
+  _roHead(box, d.booted_at ? `엔진 실제값 (기동 ${d.booted_at})` : '엔진 실제값');
+  if (Object.keys(d.flp_engine || {}).length) {
+    for (const [k, v] of Object.entries(d.flp_engine)) _roRow(box, k, v);
+  } else {
+    _roRow(box, '(없음)', '기동 로그가 조회 범위 밖입니다', '재기동하면 다시 보입니다');
+  }
+  if (d.joyvasa && d.joyvasa.cfg_scale != null) {
+    _roRow(box, 'JoyVASA cfg_scale', d.joyvasa.cfg_scale);
+  }
+
+  if (d.cfg_final) {
+    _roHead(box, `마지막 렌더 최종값 (${d.cfg_final.at})`);
+    _roRow(box, 'override', d.cfg_final.override,
+           '이번 요청에서 랩이 덮어쓴 항목. "없음"이면 서버 기본값으로 렌더된 것');
+    for (const [k, v] of Object.entries(d.cfg_final.values || {})) _roRow(box, k, v);
+  }
+  if (d.lip_path) {
+    _roHead(box, '입모양 경로');
+    _roRow(box, 'lip-path', d.lip_path,
+           'source_face_lock > lip_lock > 오디오 순으로 이긴 경로. 앞의 둘이 켜지면 lip_open 은 무시된다');
+  }
+}
+
 async function loadFlpConfig() {
   const box = document.getElementById('flp-readonly');
   if (!box) return;
@@ -527,6 +592,11 @@ async function loadFlpConfig() {
     return;
   }
   if (data.error) { box.textContent = data.error; return; }
+
+  const note = document.createElement('div');
+  note.className = 'knob-desc';
+  note.textContent = '참고용 yaml 원본 — 실제 적용값과 다를 수 있습니다(위 패널이 정본)';
+  box.appendChild(note);
   for (const group of ['crop_params', 'infer_params']) {
     const vals = data[group];
     if (!vals) continue;
@@ -1278,7 +1348,7 @@ async function renderRestartApply() {
   clearRenderDirty();
   cbox.innerHTML = '<div style="color:var(--green)"><b>렌더서버 재기동 완료 — 값이 반영됐습니다.</b><br>'
     + `${(d.changes || []).length}개 적용. 다음 통화부터 새 값으로 렌더됩니다.</div>`;
-  loadFlpConfig();
+  loadRenderRuntime(); loadFlpConfig();
 }
 
 async function restartShowConfirm() {
@@ -1418,8 +1488,11 @@ document.getElementById('source-token-btn')?.addEventListener('click', _retryWit
 document.getElementById('source-token')?.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') _retryWithToken();
 });
-startMetrics(); loadRuns(); loadProdStatus(); loadDevToken(); loadFlpConfig();
-document.getElementById('refresh-flp')?.addEventListener('click', loadFlpConfig);
+startMetrics(); loadRuns(); loadProdStatus(); loadDevToken();
+loadRenderRuntime(); loadFlpConfig();
+document.getElementById('refresh-flp')?.addEventListener('click', () => {
+  loadRenderRuntime(); loadFlpConfig();
+});
 
 pollRenderLogs();
 setInterval(pollRenderLogs, 2000);
