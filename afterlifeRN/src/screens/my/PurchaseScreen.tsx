@@ -27,9 +27,12 @@ import {
 } from "../../lib/iap";
 
 const TEST_SKU = "credits_1000";
+const IAP_ALLOWED_EMAILS = new Set(["oth-user@example.invalid"]);
 
 export default function PurchaseScreen() {
   const accessToken = useAuthStore((s) => s.accessToken);
+  const apiUser = useAuthStore((s) => s.apiUser);
+  const iapAllowed = IAP_ALLOWED_EMAILS.has(apiUser?.email ?? "");
   const [product, setProduct] = useState<Product | null>(null);
   const [balance, setBalance] = useState<CreditBalance | null>(null);
   const [loading, setLoading] = useState(true);
@@ -62,6 +65,10 @@ export default function PurchaseScreen() {
   }, []);
 
   useEffect(() => {
+    if (!iapAllowed) {
+      setLoading(false);
+      return;
+    }
     const cleanup = registerPurchaseListeners({
       onSuccess: (productId) => {
         setBusy(false);
@@ -99,6 +106,20 @@ export default function PurchaseScreen() {
       setMsg(`구매 요청 실패: ${String(err)}`);
     }
   }, [accessToken]);
+
+  if (!iapAllowed) {
+    return (
+      <SafeView backgroundColor={COLORS.zinc50}>
+        <PageHeader title="크레딧 충전" />
+        <View style={styles.placeholderWrap}>
+          <Text style={styles.placeholderTitle}>준비 중</Text>
+          <Text style={styles.placeholderDesc}>
+            크레딧 충전 기능은 곧 오픈됩니다.
+          </Text>
+        </View>
+      </SafeView>
+    );
+  }
 
   return (
     <SafeView backgroundColor={COLORS.zinc50}>
@@ -195,4 +216,13 @@ const styles = StyleSheet.create({
   retryText: { color: COLORS.zinc900, fontWeight: "600" },
   msg: { fontSize: 12, color: COLORS.zinc600, textAlign: "center", paddingHorizontal: 16 },
   hint: { fontSize: 11, color: COLORS.zinc500, textAlign: "center", marginTop: 20 },
+  placeholderWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+    gap: 12,
+  },
+  placeholderTitle: { fontSize: 22, fontWeight: "700", color: COLORS.zinc900 },
+  placeholderDesc: { fontSize: 14, color: COLORS.zinc600, textAlign: "center" },
 });
