@@ -375,3 +375,91 @@ async def test_사용자가_만진_값만_굽는다(tmp_path, monkeypatch):
         assert [e["env"] for e in d["changes"]] == ["FIFTH_CFG_SCALE"], d
     finally:
         await c.close()
+
+
+@_pytest.mark.asyncio
+async def test_preview_는_dropin_을_현재값으로_본다(tmp_path, monkeypatch):
+    """🔴 base unit 만 읽으면 이미 구운 값이 "아직 안 구워졌다"로 보인다.
+
+    그 상태로 재기동하면 base 기준으로 drop-in 을 새로 만들어 **앞서 구운 값이
+    통째로 날아간다**(2026-08-18 실측: cfg_scale 0.5 를 구운 뒤에도 preview 가
+    current=2.0 으로 표시).
+    """
+    unit = tmp_path / "u.service"; unit.write_text(UNIT_TEXT)          # base: CFG_SCALE=2.0
+    dropin = tmp_path / "lab.conf"
+    dropin.write_text(promote.build_fifth_dropin(
+        REAL_EXEC, {"FIFTH_CFG_SCALE": "0.5", "FIFTH_FLP_ANIMATION_REGION": "lip"}))
+    monkeypatch.setattr(promote, "FIFTH_UNIT", str(unit))
+    monkeypatch.setattr(promote, "FIFTH_DROPIN", str(dropin))
+
+    r = KnobsRegistry()
+    # 구운 값과 노브가 일치하는 상태 → 바뀔 게 없어야 한다.
+    r.update({"fifth": {"cfg_scale": 0.5}, "flp": {"animation_region": "lip"}})
+    c, _ = await _client(tmp_path, registry=r)
+    try:
+        d = await (await c.get("/promote/render-preview")).json()
+        assert d["changes"] == [], d
+    finally:
+        await c.close()
+
+
+@_pytest.mark.asyncio
+async def test_재기동은_건드리지_않은_구운_값을_보존한다(tmp_path, monkeypatch):
+    """새로 굽는 값만 더해지고, 노브가 그대로인 구운 값은 남아야 한다.
+
+    base unit 기준으로 조립하면 지난번 구운 값이 통째로 날아간다 — drop-in 을
+    기준으로 삼아야 명시적으로 바꾸지 않은 키가 살아남는다.
+    """
+    unit = tmp_path / "u.service"; unit.write_text(UNIT_TEXT)
+    dropin = tmp_path / "lab.conf"
+    dropin.write_text(promote.build_fifth_dropin(
+        REAL_EXEC, {"FIFTH_FLP_ANIMATION_REGION": "lip"}))
+    monkeypatch.setattr(promote, "FIFTH_UNIT", str(unit))
+    monkeypatch.setattr(promote, "FIFTH_DROPIN", str(dropin))
+    monkeypatch.setattr(labapp, "_sh", lambda cmd, timeout=30:
+                        types.SimpleNamespace(returncode=0, stdout="", stderr=""))
+    monkeypatch.setattr(labapp, "_render_healthy", lambda url, tries=1, delay=0: True)
+
+    r = KnobsRegistry()
+    # animation_region 은 구운 값과 같게 두고(=건드리지 않음), cfg_scale 만 새로 굽는다.
+    r.update({"fifth": {"cfg_scale": 0.5}, "flp": {"animation_region": "lip"}})
+    c, _ = await _client(tmp_path, registry=r)
+    try:
+        d = await (await c.post("/promote/render-restart",
+                                json={"confirm": "RESTART_RENDER", "confirm2": True})).json()
+        assert d["ok"] is True, d
+        text = dropin.read_text()
+        assert "FIFTH_CFG_SCALE=0.5" in text                 # 새로 구운 값
+        assert "FIFTH_FLP_ANIMATION_REGION=lip" in text      # 🔴 지난번 값이 살아 있어야 한다
+    finally:
+        await c.close()
+
+
+def test_이미_구운_키는_dirty가_아니어도_추적한다():
+    """🔴 한 번 구운 키는 계속 관리해야 되돌릴 수 있다.
+
+    2026-08-18 실측: drop-in 에 FIFTH_FLP_EYE_RETARGETING=0 이 구워진 뒤 노브를
+    기본값(True)으로 되돌리면, 값이 기본값과 같아 dirty 에 안 잡히고 → 재기동
+    대상에서 빠져 → **영영 0 인 채로 남는다**(깜빡임이 죽은 채 되돌릴 수가 없다).
+
+    새 키는 dirty 일 때만 굽는 규칙(안 건드린 값을 굽지 않는다)은 그대로 둔다.
+    """
+    from knobs import RunKnobs
+    knobs = RunKnobs()      # 전부 기본값 = dirty 없음
+    baked = {"FIFTH_FLP_EYE_RETARGETING": "0"}      # 지난번에 구운 값
+    upd = promote.fifth_env_updates(knobs, dirty=set(), baked=baked)
+    assert upd.get("FIFTH_FLP_EYE_RETARGETING") == "1", "구운 값과 다른데 빠졌다"
+    # 구운 적 없는 키는 dirty 가 아니면 여전히 제외한다.
+    assert "FIFTH_CFG_SCALE" not in upd
+
+
+def test_구운_값과_같으면_대상이_아니다():
+    from knobs import RunKnobs
+    upd = promote.fifth_env_updates(RunKnobs(), dirty=set(),
+                                    baked={"FIFTH_FLP_EYE_RETARGETING": "1"})
+    assert upd == {}
+
+
+def test_baked_없으면_기존_동작_그대로():
+    from knobs import RunKnobs
+    assert promote.fifth_env_updates(RunKnobs(), dirty=set()) == {}
