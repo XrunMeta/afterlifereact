@@ -356,8 +356,8 @@ async def test_dropin_디렉터리가_없으면_sudo_로_만든다(tmp_path, mon
 async def test_사용자가_만진_값만_굽는다(tmp_path, monkeypatch):
     """🔴 안 건드린 노브까지 구우면 라이브 렌더 동작이 통째로 바뀐다.
 
-    랩 노브 기본값이 렌더서버 실제값과 같다는 보장이 없다 — 2026-08-18 실측에서
-    랩 cfg_scale=2.0 인데 렌더서버 /config 는 1.2 였다(FLP yaml 이 덮는다).
+    랩 노브의 기본값은 "랩이 정한 값"일 뿐 렌더서버가 실제로 쓰는 기본값이 아니다.
+    ExecStart 에 없던 키를 굽는 순간 렌더서버 기본값이 랩 값으로 덮인다.
     그래서 "이번에 실제로 바꾼 값"(registry.dirty)만 대상으로 한다.
     """
     unit = tmp_path / "unit.service"; unit.write_text(UNIT_TEXT)
