@@ -355,22 +355,38 @@ def build_fifth_dropin(exec_start: str, env_updates: dict) -> str:
     return f"[Service]\nExecStart=\nExecStart={rebuilt}\n"
 
 
-def fifth_env_updates(knobs, dirty: set | None = None) -> dict:
+def fifth_env_updates(knobs, dirty: set | None = None, baked: dict | None = None) -> dict:
     """KNOB_TO_LIVE 의 container 항목만 {ENV: 값} 으로 모은다.
 
     prethird drop-in 으로 가야 할 값이 섞이면 렌더서버 ExecStart 에 엉뚱한 env 가
     박히므로 container 플래그로만 고른다.
+
+    dirty: 이번 세션에 실제로 바꾼 노브 경로. 새 키는 여기 있을 때만 굽는다 —
+        랩 기본값은 "랩이 정한 값"일 뿐이라, 안 건드린 값을 구우면 렌더서버 기본값이
+        조용히 덮인다.
+    baked: 지금 ExecStart 에 이미 구워져 있는 {ENV: 값}. 🔴 **한 번 구운 키는 dirty
+        여부와 무관하게 계속 추적한다.** 안 그러면 노브를 기본값으로 되돌렸을 때
+        (= dirty 에 안 잡힘) 구운 값이 영영 남아 되돌릴 방법이 없다
+        (2026-08-18: FIFTH_FLP_EYE_RETARGETING=0 이 남아 깜빡임이 죽은 채 고정).
     """
+    baked = baked or {}
     out = {}
     for path, loc in KNOB_TO_LIVE.items():
         if not loc.get("container"):
             continue
-        if dirty is not None and path not in dirty:
-            continue
+        env_name = loc["env"]
         val = _knob_value(knobs, path)
         if val is None:
             continue
-        out[loc["env"]] = _fmt(val)
+        new_val = _fmt(val)
+        if env_name in baked:
+            # 이미 구운 키 — 값이 달라졌을 때만 다시 굽는다.
+            if baked[env_name] != new_val:
+                out[env_name] = new_val
+            continue
+        if dirty is not None and path not in dirty:
+            continue
+        out[env_name] = new_val
     return out
 
 def extract_exec_start(unit_text: str) -> str:
