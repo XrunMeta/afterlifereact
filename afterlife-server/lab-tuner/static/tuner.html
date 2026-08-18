@@ -59,6 +59,9 @@
  body.compact .knob-row .reflow-chip{display:none}
  body.compact .knob-row.needs-restart > label::after{content:"⟳";color:var(--gold);
    font-size:10px;margin-left:3px}
+ /* container(fifth 렌더서버 env)는 해야 할 행동이 다르다 — 기호도 달라야 오해가 없다. */
+ body.compact .knob-row.needs-container > label::after{content:"▣";color:var(--red);
+   font-size:10px;margin-left:3px}
  /* 파라미터 설명 — 컨트롤 아래 전체 폭 한 줄 */
  .knob-desc{flex-basis:100%;font-size:11px;line-height:1.5;color:var(--text-dim);
    opacity:.85;margin:2px 0 2px;padding-left:1px}
@@ -293,10 +296,12 @@
          <button id="apply-knobs" class="primary">적용</button>
          <button id="promote">라이브 적용</button>
          <button id="restart-prethird">재기동(restart)</button>
+         <button id="restart-render" title="표정 세기·움직임 배율·눈 원본 고정 등은 이 버튼으로만 반영됩니다(라이브 통화와 공유)">렌더서버 재기동</button>
        </div>
        <div id="apply-status" class="apply-status"></div>
        <div id="promote-confirm" style="display:none"></div>
        <div id="restart-confirm" style="display:none"></div>
+       <div id="render-restart-confirm" style="display:none"></div>
        <input id="promote-token" type="password" placeholder="LAB_TUNER_TOKEN"
          style="display:none;width:100%;box-sizing:border-box;margin-bottom:8px">
        <fieldset><legend>프로덕션 상태(read-only)</legend>

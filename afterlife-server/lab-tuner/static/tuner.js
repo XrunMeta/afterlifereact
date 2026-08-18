@@ -151,7 +151,7 @@ const REFLOW_NOTE = {
   immediate: '적용 즉시(다음 발화부터)',
   next_call: '적용 즉시(다음 발화부터)',   
   session: '재연결 후',
-  container: '컨테이너 재기동 필요',
+  container: '렌더서버 재기동 필요(라이브 공유)',
   lab_restart: '적용만으론 안 먹음 · 재기동 필요',
 };
 
@@ -159,7 +159,9 @@ function buildKnobRow(section, key, m, val) {
   const path = `${section}.${key}`;
   const row = document.createElement('div'); row.className = 'knob-row';
 
-  if (m.reflow === 'container' || m.reflow === 'lab_restart' || m.reflow === 'session') {
+  if (m.reflow === 'container') {
+    row.classList.add('needs-container');
+  } else if (m.reflow === 'lab_restart' || m.reflow === 'session') {
     row.classList.add('needs-restart');
   }
   const label = document.createElement('label'); label.textContent = m.label || key;
@@ -206,7 +208,11 @@ function buildKnobRow(section, key, m, val) {
   ctrl.id = `k_${section}_${key}`;
   ctrl.dataset.s = section; ctrl.dataset.k = key;
 
-  if (m.reflow === 'container' || m.reflow === 'lab_restart') {
+  if (m.reflow === 'container') {
+
+    ctrl.addEventListener('change', markRenderDirty);
+    ctrl.addEventListener('input', markRenderDirty);
+  } else if (m.reflow === 'lab_restart') {
     ctrl.addEventListener('change', markRestartDirty);
     ctrl.addEventListener('input', markRestartDirty);
   }
@@ -230,6 +236,7 @@ function buildKnobRow(section, key, m, val) {
       ctrl.value = next;
 
       if (row.classList.contains('needs-restart')) markRestartDirty();
+      if (row.classList.contains('needs-container')) markRenderDirty();
     };
     down.onclick = () => bump(-1); up.onclick = () => bump(1);
     wrap.appendChild(down); wrap.appendChild(ctrl); wrap.appendChild(up);
@@ -346,6 +353,14 @@ function markRestartDirty() {
   for (const id of ['restart-top', 'restart-prethird']) {
     document.getElementById(id)?.classList.add('needs-attention');
   }
+}
+
+function markRenderDirty() {
+  document.getElementById('restart-render')?.classList.add('needs-attention');
+}
+
+function clearRenderDirty() {
+  document.getElementById('restart-render')?.classList.remove('needs-attention');
 }
 
 function clearRestartDirty() {
@@ -1193,6 +1208,79 @@ async function promoteApply() {
   } catch (e) { cbox.innerHTML = '<i>promote apply 실패</i>'; }
 }
 
+async function renderRestartShowConfirm() {
+  const cbox = document.getElementById('render-restart-confirm');
+  cbox.style.display = 'block';
+  cbox.innerHTML = '<div><i>바뀔 값 확인 중…</i></div>';
+  let rows = '', d = null;
+  try {
+    const r = await fetch('/promote/render-preview', {headers: _labHeaders()});
+    if (r.status === 401) {
+      _showSourceAuth(true);
+      cbox.innerHTML = '<div style="color:var(--red)">토큰이 필요합니다</div>';
+      return;
+    }
+    d = await r.json();
+  } catch (e) {
+    cbox.innerHTML = '<div style="color:var(--red)">미리보기 실패: ' + e + '</div>';
+    return;
+  }
+  if (d.error) {
+    cbox.innerHTML = '<div style="color:var(--red)">' + d.error + '</div>';
+    return;
+  }
+  if (!(d.changes || []).length) {
+    cbox.innerHTML = '<div>바뀔 값이 없습니다 — 재기동할 필요가 없습니다.</div>';
+    return;
+  }
+  for (const c of d.changes) {
+    rows += `<li><code>${escapeHtml(c.env)}</code> ${escapeHtml(String(c.current))}`
+          + ` → <b>${escapeHtml(String(c.new))}</b></li>`;
+  }
+  cbox.innerHTML =
+    '<div style="border:1px solid var(--red);border-radius:4px;padding:8px;margin-top:8px">' +
+    '<b>fifth 렌더서버 재기동 — 이 값들이 반영됩니다.</b>' +
+    `<ul style="margin:6px 0 8px 18px;font-size:11px">${rows}</ul>` +
+    '<b style="color:var(--red)">⚠️ 렌더서버는 라이브 통화와 공유합니다.</b> ' +
+    '진행 중인 라이브 통화가 있으면 요청이 거부되고, 없더라도 재기동 동안(약 10~30초) ' +
+    '통화를 걸 수 없습니다. 기동에 실패하면 자동으로 이전 설정으로 되돌립니다.<br>' +
+    '<button id="render-restart-go" class="primary">확인·재기동</button> ' +
+    '<button id="render-restart-cancel">취소</button></div>';
+  document.getElementById('render-restart-go').onclick = renderRestartApply;
+  document.getElementById('render-restart-cancel').onclick = () => { cbox.style.display = 'none'; };
+}
+
+async function renderRestartApply() {
+  const cbox = document.getElementById('render-restart-confirm');
+  cbox.innerHTML = '<div><i>재기동 중… 렌더서버가 다시 뜰 때까지 기다립니다(최대 30초)</i></div>';
+  let r, d;
+  try {
+    r = await fetch('/promote/render-restart', {
+      method: 'POST', headers: _labHeaders({'Content-Type': 'application/json'}),
+      body: JSON.stringify({confirm: 'RESTART_RENDER', confirm2: true}),
+    });
+    d = await r.json();
+  } catch (e) {
+    cbox.innerHTML = '<div style="color:var(--red)">재기동 실패: ' + e + '</div>';
+    return;
+  }
+  if (r.status === 409) {
+
+    cbox.innerHTML = '<div style="color:var(--red)"><b>라이브 통화 진행 중이라 거부됐습니다.</b><br>'
+      + escapeHtml(d.error || '') + ' 통화가 끝난 뒤 다시 눌러주세요.</div>';
+    return;
+  }
+  if (!r.ok || d.error || d.rolled_back) {
+    cbox.innerHTML = '<div style="color:var(--red)"><b>반영되지 않았습니다.</b><br>'
+      + escapeHtml(d.error || `실패(${r.status})`) + '</div>';
+    return;
+  }
+  clearRenderDirty();
+  cbox.innerHTML = '<div style="color:var(--green)"><b>렌더서버 재기동 완료 — 값이 반영됐습니다.</b><br>'
+    + `${(d.changes || []).length}개 적용. 다음 통화부터 새 값으로 렌더됩니다.</div>`;
+  loadFlpConfig();
+}
+
 async function restartShowConfirm() {
   const cbox = document.getElementById('restart-confirm');
   cbox.style.display = 'block';
@@ -1317,6 +1405,7 @@ document.getElementById('clear-saved')?.addEventListener('click', () => {
   clearKnobsLocal();
   _setApplyStatus('이 브라우저 저장값을 지웠습니다 — 다음 새로고침부터 서버 값 그대로', 'warn');
 });
+document.getElementById('restart-render')?.addEventListener('click', renderRestartShowConfirm);
 document.getElementById('source-upload-btn')?.addEventListener('click', uploadSource);
 document.getElementById('voice-upload-btn')?.addEventListener('click', uploadVoice);
 
