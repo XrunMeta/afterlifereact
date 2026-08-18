@@ -1087,10 +1087,12 @@ function _setApplyStatus(text, kind) {
 }
 
 async function applyKnobs(only) {
+
+  const filter = (only instanceof Set) ? only : null;
   const partial = {};
   document.querySelectorAll(KNOB_INPUT_SELECTOR).forEach(inp => {
     const s = inp.dataset.s, k = inp.dataset.k; let v = inp.value;
-    if (only && !only.has(`${s}.${k}`)) return;
+    if (filter && !filter.has(`${s}.${k}`)) return;
     if (v === '') return;
     if (v === 'true') v = true; else if (v === 'false') v = false;
     else {
@@ -1433,7 +1435,7 @@ async function loadDevToken() {
   } catch (e) {  }
 }
 
-document.getElementById('apply-knobs').onclick = applyKnobs;
+document.getElementById('apply-knobs').onclick = () => applyKnobs();
 document.getElementById('promote').onclick = promotePreview;
 document.getElementById('restart-prethird').onclick = restartShowConfirm;
 document.getElementById('say-btn').onclick = sendSay;
@@ -1505,7 +1507,7 @@ document.getElementById('log-clear')?.addEventListener('click', () => {
   if (box) box.innerHTML = '';
 });
 
-document.getElementById('apply-knobs-top')?.addEventListener('click', applyKnobs);
+document.getElementById('apply-knobs-top')?.addEventListener('click', () => applyKnobs());
 
 document.getElementById('restart-top')?.addEventListener('click', () => {
   document.getElementById('restart-prethird')?.scrollIntoView({block: 'center'});
