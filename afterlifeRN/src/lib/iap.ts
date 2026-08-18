@@ -30,6 +30,8 @@ export const CONSUMABLE_SKUS = [
   "run.xrun.afterlife.credit.60",
   "run.xrun.afterlife.credit.150",
   "run.xrun.afterlife.credit.300",
+
+  "credits_1000",
 ] as const;
 
 export type SubscriptionSku = (typeof SUBSCRIPTION_SKUS)[number];
