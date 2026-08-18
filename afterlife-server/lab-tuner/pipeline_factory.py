@@ -125,13 +125,26 @@ def build_knobs_pipeline_factory(registry, renderer, guard=None, store=None,
         # 목소리 override — 얼굴·페르소나와 독립이다(둘 중 하나만 올려도 된다).
         se_path = _apply_voice_override(sk, getattr(sess, "se_path", None))
 
-        def _infer_fn(wav, cb, _src=src):
+        def _infer_fn(wav, cb, *args, _src=src, **kwargs):
+            """prethird → 렌더러. 추가 인자는 **그대로 포워딩**한다.
+
+            🔴 batch 경로는 infer_fn(wp, cb, render_mode="batch") 로 부른다
+            (prethird pipeline.py:381,592). 이 래퍼가 키워드를 삼키면 매 턴
+            TypeError 로 죽어 "fifth 렌더 무기한 대기"로 보인다(2026-08-18 실측).
+            partial 경로는 그 인자를 안 넘겨서 드러나지 않았다 — 랩이 상위
+            시그니처를 따라가지 못한 드리프트이므로, 개별 인자를 나열하지 않고
+            통째로 넘겨 다음 변화에도 견디게 한다(_build_body 와 같은 원칙).
+
+            video_path 만은 랩이 최종 결정한다 — 업로드 소스 override 가 호출자
+            값에 덮이면 안 된다.
+            """
             if guard is not None:
                 guard.assert_free()   # 라이브 통화 중이면 LiveBusyError → say 실패 처리
+            kwargs["video_path"] = _src
             if metrics is None:
-                return renderer.infer(wav, cb, video_path=_src)
+                return renderer.infer(wav, cb, *args, **kwargs)
             _t0 = time.perf_counter()
-            out = renderer.infer(wav, cb, video_path=_src)
+            out = renderer.infer(wav, cb, *args, **kwargs)
             metrics.record("render", (time.perf_counter() - _t0) * 1000)
             return out
 
