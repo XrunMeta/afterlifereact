@@ -198,3 +198,64 @@ def test_no_store_leaves_sess_recorder_untouched(monkeypatch):
     )
     factory(sess)
     assert sess.recorder is original_recorder   # 회귀 0 — store 미지정 시 무영향
+
+
+# ---------------------------------------------------------------------------
+# 2026-08-18: batch 모드에서 매 턴 예외로 죽던 버그
+#
+#   ERROR batch render/TTS failed: _infer_fn() got an unexpected keyword
+#         argument 'render_mode'
+#
+# prethird 는 batch 경로에서 infer_fn(wp, cb, render_mode="batch") 로 부른다
+# (pipeline.py:381,592). partial 경로는 그 인자를 안 넘겨서 드러나지 않았다.
+# 랩이 감싼 래퍼가 상위 시그니처를 따라가지 못한 전형적 드리프트다
+# (_build_body 가 *args/**kwargs 로 포워딩하는 것과 같은 이유).
+# ---------------------------------------------------------------------------
+import types as _types
+
+from registry import KnobsRegistry as _Reg
+
+
+def _factory_with_capture(monkeypatch):
+    captured, seen = {}, {}
+
+    class FakePipeline:
+        def __init__(self, **kw):
+            captured.update(kw)
+
+    def _infer(wav, cb, **kw):
+        seen.update(kw)
+        return 7
+
+    monkeypatch.setattr(pipeline_factory, "DialoguePipeline", FakePipeline)
+    monkeypatch.setattr(pipeline_factory, "_decode_wav", lambda b: (b"", 16000, 1))
+    renderer = _types.SimpleNamespace(infer=_infer)
+    f = pipeline_factory.build_knobs_pipeline_factory(_Reg(), renderer)
+    sess = _types.SimpleNamespace(
+        video_track=None, audio_track=None, persona_messages=[],
+        se_path=None, clone_id=None, face_path="/clone/face.jpg", video_path=None,
+        filler_player=None,
+    )
+    f(sess)
+    return captured["infer_fn"], seen
+
+
+def test_infer_fn이_render_mode를_그대로_넘긴다(monkeypatch):
+    """batch 경로가 넘기는 키워드를 삼키면 매 턴 TypeError 로 죽는다."""
+    infer_fn, seen = _factory_with_capture(monkeypatch)
+    assert infer_fn(b"w", None, render_mode="batch") == 7
+    assert seen["render_mode"] == "batch"
+
+
+def test_infer_fn이_모르는_키워드도_포워딩한다(monkeypatch):
+    """상위 시그니처가 또 늘어나도 랩이 병목이 되지 않게 한다."""
+    infer_fn, seen = _factory_with_capture(monkeypatch)
+    infer_fn(b"w", None, phase_token="tok", 미래인자=1)
+    assert seen["phase_token"] == "tok" and seen["미래인자"] == 1
+
+
+def test_업로드_소스는_랩이_최종_결정한다(monkeypatch):
+    """호출자가 video_path 를 줘도 랩의 override 가 이겨야 한다."""
+    infer_fn, seen = _factory_with_capture(monkeypatch)
+    infer_fn(b"w", None, video_path="/caller/other.jpg", render_mode="batch")
+    assert seen["video_path"] == "/clone/face.jpg"
