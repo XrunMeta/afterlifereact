@@ -79,6 +79,33 @@ def _dev_token_response(remote: str | None, token: str | None) -> web.Response:
     return web.json_response({"token": token})
 
 
+def _sh(cmd, timeout=30):
+    """systemctl 등 외부 명령 1회 실행. 테스트가 통째로 갈아끼운다."""
+    import subprocess
+    return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+
+
+def _render_healthy(url, tries=45, delay=2.0) -> bool:
+    """렌더서버가 다시 응답할 때까지 폴링. 임의 sleep 대신 조건으로 기다린다.
+
+    상한을 넉넉히(90초) 잡는 이유: fifth 는 TensorRT 엔진과 JoyVASA 모델을 다시
+    올린다. 너무 일찍 포기하면 **정상 기동 중인 서버를 실패로 보고 롤백**하고,
+    그 롤백이 또 한 번의 재기동을 부른다 — 거짓 실패가 진짜 중단보다 나쁘다.
+    """
+    import time
+    import urllib.request
+    for i in range(tries):
+        try:
+            with urllib.request.urlopen(f"{url}/health", timeout=3) as r:
+                if r.status == 200:
+                    return True
+        except Exception:
+            pass
+        if i < tries - 1:
+            time.sleep(delay)
+    return False
+
+
 def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None,
               metrics=None, renderer=None) -> web.Application:
     # say_fn/render_url/guard는 Task 9·12에서 사용(초기 Task 11 단계는 None 허용).
@@ -589,6 +616,123 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
             registry.update({"source": {"voice_source": ""}})
         return web.json_response({"deleted": ok})
 
+    def _fifth_changes():
+        """현재 유닛의 env 대비 바뀔 항목. (변경목록, ExecStart 원문)."""
+        unit = open(promote.FIFTH_UNIT, encoding="utf-8").read()
+        exec_start = promote.extract_exec_start(unit)
+        _, cur_env, _ = promote._parse_exec_env(exec_start)
+        # 🔴 이번 세션에 실제로 바꾼 값만 굽는다. 랩 노브 기본값이 렌더서버 실제값과
+        # 같다는 보장이 없어(2026-08-18: 랩 cfg_scale=2.0 vs 렌더서버 /config 1.2 —
+        # FLP yaml 이 덮는다) 전부 구우면 건드리지도 않은 라이브 동작이 바뀐다.
+        want = promote.fifth_env_updates(registry.get(), dirty=registry.dirty())
+        changes = [{"env": k, "current": cur_env.get(k), "new": v}
+                   for k, v in want.items() if cur_env.get(k) != v]
+        return changes, exec_start
+
+    async def render_preview(req):
+        """렌더서버 재기동으로 바뀔 값 미리보기. 아무것도 실행하지 않는다."""
+        err = _auth_or_401(req)
+        if err is not None:
+            return err
+        try:
+            changes, _ = _fifth_changes()
+        except (OSError, ValueError) as exc:
+            return web.json_response({"error": f"유닛 조회 실패: {exc}", "changes": []},
+                                     status=500)
+        return web.json_response({
+            "changes": changes,
+            "service": promote.FIFTH_SERVICE,
+            "shared_with_live": True,   # UI 가 경고 문구를 띄우는 근거
+        })
+
+    async def render_restart(req):
+        """fifth 렌더서버 env 반영 + 재기동.
+
+        🔴 이 컨테이너는 라이브 통화와 공유한다 — 재기동하면 진행 중인 통화가 끊긴다.
+        그래서 (1) 토큰 (2) 2단계 확인 (3) 라이브 통화 0건, 셋을 모두 요구한다.
+        🔴 기동에 실패하면 사람 손을 기다리지 않고 즉시 되돌린다. 렌더서버가 안 뜨면
+        라이브가 통째로 죽기 때문이다.
+        """
+        err = _auth_or_401(req)
+        if err is not None:
+            return err
+        try:
+            data = await req.json()
+        except Exception:
+            data = {}
+        if data.get("confirm") != "RESTART_RENDER" or data.get("confirm2") is not True:
+            return web.json_response(
+                {"error": "2단계 확인 필요: body={'confirm':'RESTART_RENDER','confirm2':true}"},
+                status=400)
+        if guard is not None and guard.active_sessions() > 0:
+            return web.json_response(
+                {"error": "라이브 통화가 진행 중입니다 — 렌더서버를 재기동하면 그 통화가 끊깁니다"},
+                status=409)
+
+        try:
+            changes, exec_start = _fifth_changes()
+        except (OSError, ValueError) as exc:
+            return web.json_response({"error": f"유닛 조회 실패: {exc}"}, status=500)
+        if not changes:
+            return web.json_response(
+                {"error": "바뀔 값이 없습니다 — 재기동하지 않았습니다", "changes": []},
+                status=400)
+        try:
+            content = promote.build_fifth_dropin(
+                exec_start, {c["env"]: c["new"] for c in changes})
+        except (ValueError, promote.UnsafeEnvValueError) as exc:
+            return web.json_response({"error": f"drop-in 조립 거부: {exc}"}, status=400)
+
+        prev = None
+        if os.path.isfile(promote.FIFTH_DROPIN):
+            prev = open(promote.FIFTH_DROPIN, encoding="utf-8").read()
+        # /etc/systemd/system 은 root 소유다 — os.makedirs 로는 PermissionError.
+        # prethird 쪽 drop-in 디렉터리가 afterlife 소유인 것과 같은 상태로 만들어
+        # 이후 쓰기는 sudo 없이 되게 한다(2026-08-18 서버 실측).
+        _dir = os.path.dirname(promote.FIFTH_DROPIN)
+        if not os.path.isdir(_dir):
+            mk = _sh(["sudo", "mkdir", "-p", _dir])
+            ch = _sh(["sudo", "chown", f"{os.getuid()}:{os.getgid()}", _dir])
+            if mk.returncode != 0 or not os.path.isdir(_dir):
+                return web.json_response(
+                    {"error": f"drop-in 디렉터리 생성 실패: {mk.stderr or ch.stderr}"}, status=500)
+
+        def _write(text):
+            with open(promote.FIFTH_DROPIN, "w", encoding="utf-8") as f:
+                f.write(text)
+
+        def _restore():
+            # 이전 상태로 되돌린다 — 없었으면 파일 자체를 지운다.
+            if prev is None:
+                try:
+                    os.unlink(promote.FIFTH_DROPIN)
+                except OSError:
+                    pass
+            else:
+                _write(prev)
+            _sh(["sudo", "systemctl", "daemon-reload"])
+            _sh(["sudo", "systemctl", "restart", promote.FIFTH_SERVICE], timeout=120)
+
+        _write(content)
+        reload_proc = _sh(["sudo", "systemctl", "daemon-reload"])
+        restart_proc = _sh(["sudo", "systemctl", "restart", promote.FIFTH_SERVICE], timeout=120)
+        url = render_url or os.environ.get("FIFTH_RENDER_URL", "http://127.0.0.1:8810")
+        healthy = _render_healthy(url)
+        if not healthy:
+            _restore()
+            log.warning("[render-restart] 기동 실패 → 자동 롤백 (changes=%s)", changes)
+            return web.json_response({
+                "ok": False, "rolled_back": True, "changes": changes,
+                "error": "렌더서버가 다시 뜨지 않아 이전 설정으로 되돌렸습니다",
+                "restart_stderr": restart_proc.stderr,
+            })
+        log.info("[render-restart] 반영 완료: %s", changes)
+        return web.json_response({
+            "ok": True, "rolled_back": False, "changes": changes,
+            "daemon_reload_returncode": reload_proc.returncode,
+            "restart_returncode": restart_proc.returncode,
+        })
+
     async def production_status(_req):
         import subprocess
         keys = [loc["env"] for path, loc in promote.KNOB_TO_LIVE.items()
@@ -633,6 +777,8 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
     app.router.add_post("/promote/apply", promote_apply)
     app.router.add_post("/promote/rollback", promote_rollback)
     app.router.add_post("/promote/restart", promote_restart)
+    app.router.add_get("/promote/render-preview", render_preview)   # fifth env 미리보기
+    app.router.add_post("/promote/render-restart", render_restart)  # fifth 렌더서버 재기동
     app.router.add_get("/production-status", production_status)
     app.router.add_get("/flp-config", flp_config)   # 3층 읽기전용 스냅샷
     app.router.add_get("/render-logs", render_logs)  # 렌더서버 로그 프록시

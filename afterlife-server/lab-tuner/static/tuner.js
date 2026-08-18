@@ -151,7 +151,7 @@ const v_a7deb0 = {
   immediate: '적용 즉시(다음 발화부터)',
   next_call: '적용 즉시(다음 발화부터)',   
   session: '재연결 후',
-  container: '컨테이너 재기동 필요',
+  container: '렌더서버 재기동 필요(라이브 공유)',
   lab_restart: '적용만으론 안 먹음 · 재기동 필요',
 };
 
@@ -159,7 +159,9 @@ function v_8dc054(v_b4fa6c, v_b24339, v_35f85c, v_a057b5) {
   const v_9fe22d = `${v_b4fa6c}.${v_b24339}`;
   const v_3ac7e7 = document.createElement('div'); v_3ac7e7.className = 'knob-row';
 
-  if (v_35f85c.reflow === 'container' || v_35f85c.reflow === 'lab_restart' || v_35f85c.reflow === 'session') {
+  if (v_35f85c.reflow === 'container') {
+    v_3ac7e7.classList.add('needs-container');
+  } else if (v_35f85c.reflow === 'lab_restart' || v_35f85c.reflow === 'session') {
     v_3ac7e7.classList.add('needs-restart');
   }
   const v_2869c1 = document.createElement('label'); v_2869c1.textContent = v_35f85c.label || v_b24339;
@@ -206,7 +208,11 @@ function v_8dc054(v_b4fa6c, v_b24339, v_35f85c, v_a057b5) {
   v_22d288.id = `k_${v_b4fa6c}_${v_b24339}`;
   v_22d288.dataset.s = v_b4fa6c; v_22d288.dataset.k = v_b24339;
 
-  if (v_35f85c.reflow === 'container' || v_35f85c.reflow === 'lab_restart') {
+  if (v_35f85c.reflow === 'container') {
+
+    v_22d288.addEventListener('change', v_fb6677);
+    v_22d288.addEventListener('input', v_fb6677);
+  } else if (v_35f85c.reflow === 'lab_restart') {
     v_22d288.addEventListener('change', v_e29df3);
     v_22d288.addEventListener('input', v_e29df3);
   }
@@ -230,6 +236,7 @@ function v_8dc054(v_b4fa6c, v_b24339, v_35f85c, v_a057b5) {
       v_22d288.value = v_a448ad;
 
       if (v_3ac7e7.classList.contains('needs-restart')) v_e29df3();
+      if (v_3ac7e7.classList.contains('needs-container')) v_fb6677();
     };
     v_a86deb.onclick = () => v_219075(-1); v_d8f778.onclick = () => v_219075(1);
     v_83ff11.appendChild(v_a86deb); v_83ff11.appendChild(v_22d288); v_83ff11.appendChild(v_d8f778);
@@ -346,6 +353,14 @@ function v_e29df3() {
   for (const v_389afb of ['restart-top', 'restart-prethird']) {
     document.getElementById(v_389afb)?.classList.add('needs-attention');
   }
+}
+
+function v_fb6677() {
+  document.getElementById('restart-render')?.classList.add('needs-attention');
+}
+
+function v_668e02() {
+  document.getElementById('restart-render')?.classList.remove('needs-attention');
 }
 
 function v_3ea284() {
@@ -1193,6 +1208,79 @@ async function v_150d46() {
   } catch (v_9e86fd) { v_e926e3.innerHTML = '<i>promote apply 실패</i>'; }
 }
 
+async function v_b08dc0() {
+  const v_e926e3 = document.getElementById('render-restart-confirm');
+  v_e926e3.style.display = 'block';
+  v_e926e3.innerHTML = '<div><i>바뀔 값 확인 중…</i></div>';
+  let v_18b8bf = '', v_d5dda0 = null;
+  try {
+    const v_cb35cb = await fetch('/promote/render-preview', {headers: v_5a49fd()});
+    if (v_cb35cb.status === 401) {
+      v_21be23(true);
+      v_e926e3.innerHTML = '<div style="color:var(--red)">토큰이 필요합니다</div>';
+      return;
+    }
+    v_d5dda0 = await v_cb35cb.json();
+  } catch (v_9e86fd) {
+    v_e926e3.innerHTML = '<div style="color:var(--red)">미리보기 실패: ' + v_9e86fd + '</div>';
+    return;
+  }
+  if (v_d5dda0.error) {
+    v_e926e3.innerHTML = '<div style="color:var(--red)">' + v_d5dda0.error + '</div>';
+    return;
+  }
+  if (!(v_d5dda0.changes || []).length) {
+    v_e926e3.innerHTML = '<div>바뀔 값이 없습니다 — 재기동할 필요가 없습니다.</div>';
+    return;
+  }
+  for (const v_3f4e2e of v_d5dda0.changes) {
+    v_18b8bf += `<li><code>${v_8fd199(v_3f4e2e.env)}</code> ${v_8fd199(String(v_3f4e2e.current))}`
+          + ` → <b>${v_8fd199(String(v_3f4e2e.new))}</b></li>`;
+  }
+  v_e926e3.innerHTML =
+    '<div style="border:1px solid var(--red);border-radius:4px;padding:8px;margin-top:8px">' +
+    '<b>fifth 렌더서버 재기동 — 이 값들이 반영됩니다.</b>' +
+    `<ul style="margin:6px 0 8px 18px;font-size:11px">${v_18b8bf}</ul>` +
+    '<b style="color:var(--red)">⚠️ 렌더서버는 라이브 통화와 공유합니다.</b> ' +
+    '진행 중인 라이브 통화가 있으면 요청이 거부되고, 없더라도 재기동 동안(약 10~30초) ' +
+    '통화를 걸 수 없습니다. 기동에 실패하면 자동으로 이전 설정으로 되돌립니다.<br>' +
+    '<button id="render-restart-go" class="primary">확인·재기동</button> ' +
+    '<button id="render-restart-cancel">취소</button></div>';
+  document.getElementById('render-restart-go').onclick = v_1c17ac;
+  document.getElementById('render-restart-cancel').onclick = () => { v_e926e3.style.display = 'none'; };
+}
+
+async function v_1c17ac() {
+  const v_e926e3 = document.getElementById('render-restart-confirm');
+  v_e926e3.innerHTML = '<div><i>재기동 중… 렌더서버가 다시 뜰 때까지 기다립니다(최대 30초)</i></div>';
+  let v_cb35cb, v_d5dda0;
+  try {
+    v_cb35cb = await fetch('/promote/render-restart', {
+      method: 'POST', headers: v_5a49fd({'Content-Type': 'application/json'}),
+      body: JSON.stringify({confirm: 'RESTART_RENDER', confirm2: true}),
+    });
+    v_d5dda0 = await v_cb35cb.json();
+  } catch (v_9e86fd) {
+    v_e926e3.innerHTML = '<div style="color:var(--red)">재기동 실패: ' + v_9e86fd + '</div>';
+    return;
+  }
+  if (v_cb35cb.status === 409) {
+
+    v_e926e3.innerHTML = '<div style="color:var(--red)"><b>라이브 통화 진행 중이라 거부됐습니다.</b><br>'
+      + v_8fd199(v_d5dda0.error || '') + ' 통화가 끝난 뒤 다시 눌러주세요.</div>';
+    return;
+  }
+  if (!v_cb35cb.ok || v_d5dda0.error || v_d5dda0.rolled_back) {
+    v_e926e3.innerHTML = '<div style="color:var(--red)"><b>반영되지 않았습니다.</b><br>'
+      + v_8fd199(v_d5dda0.error || `실패(${v_cb35cb.status})`) + '</div>';
+    return;
+  }
+  v_668e02();
+  v_e926e3.innerHTML = '<div style="color:var(--green)"><b>렌더서버 재기동 완료 — 값이 반영됐습니다.</b><br>'
+    + `${(v_d5dda0.changes || []).length}개 적용. 다음 통화부터 새 값으로 렌더됩니다.</div>`;
+  v_2a2e10();
+}
+
 async function v_3fd5d1() {
   const v_e926e3 = document.getElementById('restart-confirm');
   v_e926e3.style.display = 'block';
@@ -1317,6 +1405,7 @@ document.getElementById('clear-saved')?.addEventListener('click', () => {
   v_969727();
   v_ccf98d('이 브라우저 저장값을 지웠습니다 — 다음 새로고침부터 서버 값 그대로', 'warn');
 });
+document.getElementById('restart-render')?.addEventListener('click', v_b08dc0);
 document.getElementById('source-upload-btn')?.addEventListener('click', v_6725b2);
 document.getElementById('voice-upload-btn')?.addEventListener('click', v_ad5738);
 
