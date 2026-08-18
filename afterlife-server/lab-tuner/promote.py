@@ -281,3 +281,111 @@ def restore_file(backup_id, allowed_root: str | None = None) -> str:
     target = real.rsplit(".bak-", 1)[0]
     shutil.copy2(real, target)
     return target
+
+# ---------------------------------------------------------------------------
+# fifth 렌더서버 env 반영 (2026-08-18)
+#
+# fifth/flp 노브는 렌더서버가 기동 시 1회 읽는다. cfg_scale 은 아예 JoyVASA 모델
+# 생성자 인자라 요청별로 못 바꾼다. 그래서 랩에서 값을 바꿔도 반영 경로가 없었다 —
+# /render body 로도(서버가 그 키를 안 받는다), promote apply 로도(container=True 라
+# 제외된다). UI 는 "재기동 필요"라 안내했지만 그 버튼은 prethird 를 재기동해서
+# fifth 와는 무관했다(2026-08-18 히즈키 보고, 실측으로 규명).
+#
+# 반영 경로는 있다 — env 가 서비스 파일 ExecStart 안에 **인라인 export** 로 박혀 있다.
+# 컨테이너 재생성 없이 서비스만 재시작하면 새 값으로 뜬다.
+#
+# 🔴 systemd drop-in 의 Environment= 로는 안 된다. docker exec 는 호스트 env 를
+#    컨테이너로 전달하지 않으므로, ExecStart 자체를 재정의해야 한다.
+# 🔴 그래서 노브 값이 bash -c 문자열 안으로 들어간다 = 셸 인젝션 표면. 검증 필수.
+# ---------------------------------------------------------------------------
+FIFTH_SERVICE = "afterlife-fifth-render.service"
+FIFTH_UNIT = "/etc/systemd/system/afterlife-fifth-render.service"
+FIFTH_DROPIN = "/etc/systemd/system/afterlife-fifth-render.service.d/lab-tuner.conf"
+
+# 값은 bash 의 export 인자로 들어간다 — 공백은 인자 분리라 치명적이라 _SAFE_ENV_VAL
+# (공백 허용)보다 엄격하게 간다. 빈 값도 거부한다(export K= 는 의미가 달라진다).
+_SAFE_SH_VAL = re.compile(r'\A[A-Za-z0-9_./:\-]+\Z')
+_SAFE_SH_KEY = re.compile(r'\A[A-Z][A-Z0-9_]*\Z')
+
+_EXPORT_MARK = "export "
+_EXEC_MARK = " && exec "
+
+
+def _parse_exec_env(exec_start: str) -> tuple:
+    """ExecStart → (앞부분, {env}, 뒷부분). 구조가 예상과 다르면 ValueError.
+
+    못 알아보면 **아무것도 하지 않는 쪽**이 옳다 — 반쯤 맞는 조립으로 덮어쓰면
+    라이브 렌더서버가 아예 안 뜬다.
+    """
+    if not exec_start or _EXPORT_MARK not in exec_start or _EXEC_MARK not in exec_start:
+        raise ValueError(
+            "예상과 다른 ExecStart — export/exec 구간을 못 찾았다. 서비스 정의가 바뀌었다면 "
+            "손대지 않는다(수동 확인 필요)")
+    head, rest = exec_start.split(_EXPORT_MARK, 1)
+    env_part, tail = rest.split(_EXEC_MARK, 1)
+    env = {}
+    for token in env_part.split():
+        if "=" not in token:
+            raise ValueError(f"export 구간에 K=V 아닌 토큰: {token!r}")
+        k, v = token.split("=", 1)
+        env[k] = v
+    if not env:
+        raise ValueError("export 구간이 비어 있다")
+    return head, env, tail
+
+
+def build_fifth_dropin(exec_start: str, env_updates: dict) -> str:
+    """fifth 렌더서버 ExecStart 를 재정의하는 systemd drop-in 내용을 만든다.
+
+    원본의 인라인 export 목록에서 env_updates 만 갈아끼우고 나머지(cd·
+    LD_LIBRARY_PATH·exec 실행부)는 그대로 보존한다.
+    """
+    if not env_updates:
+        raise ValueError("바꿀 env 가 없다 — 공연히 라이브 렌더를 재기동하지 않는다")
+    for k, v in env_updates.items():
+        if not _SAFE_SH_KEY.match(str(k)):
+            raise UnsafeEnvValueError(f"unsafe env key rejected: {k!r}")
+        if not _SAFE_SH_VAL.match(str(v)):
+            raise UnsafeEnvValueError(f"unsafe env value rejected: {v!r}")
+
+    head, env, tail = _parse_exec_env(exec_start)
+    env.update({str(k): str(v) for k, v in env_updates.items()})
+    rebuilt = head + _EXPORT_MARK + " ".join(f"{k}={v}" for k, v in env.items()) + _EXEC_MARK + tail
+    # ExecStart 는 systemd 에서 누적된다 — 비우기 줄이 재정의보다 먼저 와야 한다.
+    return f"[Service]\nExecStart=\nExecStart={rebuilt}\n"
+
+
+def fifth_env_updates(knobs, dirty: set | None = None) -> dict:
+    """KNOB_TO_LIVE 의 container 항목만 {ENV: 값} 으로 모은다.
+
+    prethird drop-in 으로 가야 할 값이 섞이면 렌더서버 ExecStart 에 엉뚱한 env 가
+    박히므로 container 플래그로만 고른다.
+    """
+    out = {}
+    for path, loc in KNOB_TO_LIVE.items():
+        if not loc.get("container"):
+            continue
+        if dirty is not None and path not in dirty:
+            continue
+        val = _knob_value(knobs, path)
+        if val is None:
+            continue
+        out[loc["env"]] = _fmt(val)
+    return out
+
+def extract_exec_start(unit_text: str) -> str:
+    """유닛 파일 본문에서 ExecStart 한 줄을 꺼낸다.
+
+    ExecStartPre 를 집으면 pkill 명령을 서버 기동 명령으로 덮어쓰게 되므로
+    정확히 "ExecStart=" 로 시작하는 줄만 본다. 여러 개면 이미 재정의된 상태이거나
+    유닛이 우리 가정과 다르다는 뜻이라 거부한다(중첩 적용 방지).
+    """
+    lines = [l.strip() for l in unit_text.splitlines()]
+    found = [l[len("ExecStart="):] for l in lines
+             if l.startswith("ExecStart=") and l.strip() != "ExecStart="]
+    if not found:
+        raise ValueError("유닛에서 ExecStart 를 찾지 못했다")
+    if len(found) > 1:
+        raise ValueError(f"ExecStart 가 {len(found)}개다 — 이미 재정의된 상태일 수 있어 "
+                         "자동 조립을 중단한다(수동 확인 필요)")
+    return found[0]

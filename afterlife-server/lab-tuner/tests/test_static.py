@@ -503,3 +503,67 @@ def test_js_음성_삭제도_2단계_확인():
     js = _read("tuner.js")
     block = js[js.index("function _voiceCard"):js.index("async function loadVoices")]
     assert "정말?" in block
+
+
+# ---------------------------------------------------------------------------
+# 2026-08-18: container 노브가 "먹는 것처럼" 보이던 문제
+#
+# fifth/flp env 노브는 prethird 재기동으로는 절대 반영되지 않는데, UI 가 그 버튼을
+# 강조해 잘못된 행동을 유도했다("적용도 하고 재기동도 했는데 무시된다" — 히즈키).
+# ---------------------------------------------------------------------------
+
+def test_container_노브는_prethird_재기동을_강조하지_않는다():
+    """조건문이 윗줄에 있어 줄 단위 검사로는 못 잡는다 — 조건 블록을 통째로 본다."""
+    js = _read("tuner.js")
+    block = js[js.index("function buildKnobRow"):js.index("function stepFor")]
+    for m in re.finditer(r"if \(([^)]*'container'[^)]*)\)([^;]{0,200})", block):
+        assert "markRestartDirty" not in m.group(2), m.group(0)
+
+
+def test_container_노브는_렌더서버_재기동을_강조한다():
+    js = _read("tuner.js")
+    assert "markRenderDirty" in js
+    block = js[js.index("function buildKnobRow"):js.index("function stepFor")]
+    assert "markRenderDirty" in block
+
+
+def test_container_는_재연결_계열과_구분표시된다():
+    """압축 모드에선 배지가 숨겨진다 — 기호까지 같으면 구분이 사라진다.
+
+    session(끊고 다시 걸면 됨)과 container(렌더서버 재기동 필요)는 사용자가 해야 할
+    행동이 전혀 다르다.
+    """
+    js, html = _read("tuner.js"), _read("tuner.html")
+    assert "needs-container" in js
+    assert "body.compact .knob-row.needs-container" in html.replace("\n", " ")
+
+
+def test_container_배지_문구가_렌더서버를_지목한다():
+    js = _read("tuner.js")
+    note = js[js.index("const REFLOW_NOTE"):js.index("};", js.index("const REFLOW_NOTE"))]
+    assert "렌더서버" in note
+
+
+def test_렌더서버_재기동_버튼과_배선():
+    html, js = _read("tuner.html"), _read("tuner.js")
+    assert 'id="restart-render"' in html
+    assert "/promote/render-restart" in js
+    assert "/promote/render-preview" in js
+    # app.py render_restart 계약: confirm:"RESTART_RENDER" + confirm2:true 둘 다.
+    assert "'RESTART_RENDER'" in js or '"RESTART_RENDER"' in js
+    assert "confirm2" in js
+    # 브라우저 모달 금지 원칙(인라인 확인 UI).
+    assert "render-restart-confirm" in js
+
+
+def test_렌더서버_재기동은_라이브_끊김을_경고한다():
+    """fifth 컨테이너는 라이브와 공유한다 — 누르기 전에 알아야 한다."""
+    js = _read("tuner.js")
+    block = js[js.index("async function renderRestartShowConfirm"):]
+    assert "라이브" in block
+
+
+def test_렌더재기동_409_를_정직하게_표기():
+    js = _read("tuner.js")
+    block = js[js.index("async function renderRestartApply"):]
+    assert "409" in block
