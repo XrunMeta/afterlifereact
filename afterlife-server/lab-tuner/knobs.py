@@ -77,6 +77,11 @@ class FifthKnobs:
       눈   고정 + 2초 간격 깜빡임(eyes_open_lock + blink_interval_sec)
       표정 animation_region=all · cfg_scale 0.1 · driving_multiplier 0.25
       머리 흔들림 폭 1.2 · 감속 1.5 · idle_motion_scale 0
+      송출 pasteback_output=True (원본 비율)
+
+    🔑 pasteback_output 은 **True** 여야 원본 비율로 송출된다. False 면 flp_engine 이
+      crop 프레임(result[0], 512x512 정사각)을 골라 내보내 **얼굴만 확대돼 보인다**
+      (2026-08-18 실측: 소스 512x1024 → 출력 576x1024 정상 / False 일 때 512x512).
 
     🔑 animation_region 은 **all** 이어야 머리가 움직인다. FLP 파이프라인이 머리 회전을
       `if animation_region in ["all", "pose"]` 로 감싸서, exp 로 두면 head_sway_amp 를
@@ -119,7 +124,7 @@ class FifthKnobs:
     eye_source_lock: bool = False
     eye_target_scale: float = 1.07
     input_normalize: bool = False
-    pasteback_output: bool = False
+    pasteback_output: bool = True   # 🔴 False 면 얼굴만 잘린 512x512 crop 이 송출된다
     cdlip_smooth: bool = False
     cdlip_sigma: float = 1.5
     # --- 호스트측(prethird 가 직접 읽음) ---
