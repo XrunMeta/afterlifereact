@@ -73,10 +73,14 @@ class FifthKnobs:
     랩 registry 는 메모리라 재기동마다 초기화되는데, 매번 손으로 다시 넣는 것은
     실수의 원인이었다 — 되돌아간 값을 모른 채 "적용했는데 안 먹는다"를 반복했다.
     확정 세팅:
-      입   오디오 기반(잠금 3종 해제) · lip_open 0.5 · open_scale 0.7
+      입   오디오 기반(잠금 3종 해제) · lip_open 0.7 · open_scale 1.3
       눈   고정 + 2초 간격 깜빡임(eyes_open_lock + blink_interval_sec)
-      표정 animation_region=exp · cfg_scale 0.1 · driving_multiplier 0.25
-      머리 흔들림 폭 0.2 · idle_motion_scale 0
+      표정 animation_region=all · cfg_scale 0.1 · driving_multiplier 0.25
+      머리 흔들림 폭 1.2 · 감속 1.5 · idle_motion_scale 0
+
+    🔑 animation_region 은 **all** 이어야 머리가 움직인다. FLP 파이프라인이 머리 회전을
+      `if animation_region in ["all", "pose"]` 로 감싸서, exp 로 두면 head_sway_amp 를
+      아무리 올려도 무시된다(2026-08-18 실측).
     되돌릴 기준은 초기값.txt 를 본다.
     """
     # --- per-request: 기존 6종 (명시 기본값 유지) ---
@@ -87,9 +91,9 @@ class FifthKnobs:
     idle_rms_high: float = 0.3
     head_slew_frames: int = 5
     # --- per-request: 입모양 (None = 컨테이너 env 기본 사용) ---
-    lip_open: float | None = 0.5
+    lip_open: float | None = 0.7
     lip_closed: float | None = 0.023
-    open_scale: float | None = 0.7
+    open_scale: float | None = 1.3
     offset: int | None = None
     sigma: float | None = None
     gamma: float | None = None
@@ -103,8 +107,8 @@ class FifthKnobs:
     # --- per-request: 눈·머리 ---
     eyes_open_lock: bool | None = True
     blink_interval_sec: float | None = 2.0
-    head_sway_amp: float | None = 0.2
-    head_sway_slow: float | None = 0.7
+    head_sway_amp: float | None = 1.2
+    head_sway_slow: float | None = 1.5
     head_yaw_offset: float | None = 0.0
     head_pitch_offset: float | None = 0.0
     # --- restart-baked: 컨테이너 env, 기동 시 1회 → 재기동 필요 ---
@@ -145,7 +149,7 @@ class FlpKnobs:
     yaml 은 flag_normalize_lip=True / flag_lip_retargeting=False 지만 코드가
     각각 False / True 로 덮는다 — 랩이 yaml 값을 보여주면 실제와 어긋난다.
     """
-    animation_region: str = "exp"
+    animation_region: str = "all"
     flag_stitching: bool = True
     flag_lip_retargeting: bool = True     # 코드 강제(yaml 은 False)
     flag_eye_retargeting: bool = True     # FIFTH_BLINK=1 연동(yaml 은 False)
