@@ -54,11 +54,15 @@ AUDIO_EXTS = (".wav", ".mp3", ".m4a", ".aac", ".flac", ".ogg", ".opus", ".webm")
 
 MAX_BYTES = int(os.environ.get("LAB_VOICE_MAX_MB", "50")) * 1024 * 1024
 
-# 참조 음성 정규화 규격.
+# 참조 음성 정규화 규격 — mono 로만 맞추고 **샘플레이트는 건드리지 않는다**.
+#
 # mono: 참조는 화자 한 명이다. 스테레오면 어댑터마다 채널 처리가 달라 음색이 흔들린다.
-# 24kHz: CosyVoice2 의 출력 sr 과 같다. 어댑터가 내부에서 16k(토크나이저)·24k(flow)로
-#   다시 샘플링하므로 그보다 낮은 sr 로 저장하면 되돌릴 수 없는 손실만 남는다.
-WAV_AR = int(os.environ.get("LAB_VOICE_AR", "24000"))
+#
+# 🔴 sr 강제 금지(2026-08-18 실측으로 되돌린 결정): 라이브 클론 참조 자산은 44.1kHz 다
+#   (9115/voice_prompt.wav). 어댑터가 내부에서 16k(토크나이저)·24k(flow)로 알아서 다시
+#   샘플링하므로, 저장 시점에 24k 로 깎으면 그 손실만 남고 얻는 것이 없다. 처음엔
+#   "CosyVoice2 출력 sr 과 맞춘다"는 이유로 24k 를 강제했는데, 라이브가 이미 44.1k 로
+#   정상 동작하고 있어 근거가 서지 않았다.
 
 _FFMPEG = os.environ.get("LAB_FFMPEG", "ffmpeg")
 
@@ -128,7 +132,7 @@ def build_wav_cmd(src: str, dest: str) -> list:
         _FFMPEG, "-y", "-loglevel", "error",
         "-i", src,
         "-vn",                                  # 영상 트랙이 섞여 와도 버린다
-        "-ac", "1", "-ar", str(WAV_AR),
+        "-ac", "1",                             # -ar 없음: 원본 sr 보존(위 주석 참조)
         "-c:a", "pcm_s16le",
         dest,
     ]

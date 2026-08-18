@@ -120,6 +120,16 @@ def test_build_wav_cmd_is_mono_pcm(_root):
     assert cmd[-1] == "/out.wav"
 
 
+def test_build_wav_cmd_keeps_source_sample_rate():
+    """🔴 샘플레이트를 강제하지 않는다 — 리샘플은 되돌릴 수 없는 손실이다.
+
+    2026-08-18 실측: 라이브 클론 참조 자산은 44.1kHz 다(9115 voice_prompt.wav).
+    어댑터가 내부에서 16k(토크나이저)·24k(flow)로 알아서 다시 샘플링하므로,
+    저장 시점에 24k 로 깎아 두면 그 손실만 남고 얻는 것이 없다.
+    """
+    assert "-ar" not in voice_lab.build_wav_cmd("/in.mp3", "/out.wav")
+
+
 # --- 참조 텍스트 -----------------------------------------------------------
 
 def test_save_bytes_uses_given_ref_text_without_stt(_root, monkeypatch):
