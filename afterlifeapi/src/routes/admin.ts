@@ -877,7 +877,7 @@ const v_6a2a1e = v_1f4ea7.object({
   reason: v_1f4ea7.string().min(10).max(500).optional(),
 });
 
-v_b7f2b4.delete("/oth-path", v_b09138, async (v_3f4e2e) => {
+v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_105fc4 = v_3f4e2e.get("adminUserId")!;
   const v_2c44c0 = v_3f4e2e.req.param("id");
   const v_6e0fd3 = Number(v_2c44c0);
