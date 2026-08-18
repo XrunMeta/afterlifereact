@@ -149,14 +149,16 @@ class FlpKnobs:
 
 @dataclass(frozen=True)
 class SourceKnobs:
-    """업로드 소스로 렌더를 테스트하기 위한 랩 전용 노브.
+    """업로드 자산으로 통화를 테스트하기 위한 랩 전용 노브.
 
-    목소리(se_path)·페르소나는 건드리지 않는다 — 선택한 클론 것을 그대로 쓰고
-    **렌더 소스만** 갈아끼운다. promote 대상 아님(라이브에 나갈 값이 아니다).
+    얼굴(render_source)과 목소리(voice_source)는 **서로 독립**이다. 하나만 바꾸면
+    나머지는 선택한 클론 것을 그대로 쓴다. 페르소나는 어느 쪽도 건드리지 않는다.
+    promote 대상 아님(라이브에 나갈 값이 아니다).
     """
-    render_source: str = ""      # 업로드 id. 빈 값 = 클론 기본 자산(회귀 0)
+    render_source: str = ""      # 얼굴 업로드 id. 빈 값 = 클론 기본 자산(회귀 0)
     use_idle: bool = True        # 업로드본으로 idle 도 교체
     mute_filler: bool = True     # override 중 클론 필러 영상 끄기(다른 얼굴 노출 차단)
+    voice_source: str = ""       # 음성 업로드 id. 빈 값 = 클론 목소리(회귀 0)
 
 
 @dataclass(frozen=True)

@@ -784,6 +784,173 @@ async function deleteSource(id) {
   loadSources();
 }
 
+function _setVoiceStatus(text, kind) {
+  const el = document.getElementById('voice-upload-status');
+  if (!el) return;
+  el.textContent = text;
+  el.className = kind || '';
+}
+
+function _voiceCard(v, current) {
+  const on = String(current) === String(v.id);
+  const card = document.createElement('div');
+  card.className = 'src-card' + (on ? ' on' : '') + (v.id && v.ok === false ? ' gone' : '');
+  card.title = v.id ? `${v.orig_name}\n${v.id}` : '클론 원래 목소리를 그대로 씁니다';
+
+  const body = document.createElement('div'); body.className = 'src-body';
+  const name = document.createElement('div'); name.className = 'src-name';
+  name.textContent = v.id ? `🎙️ ${v.orig_name}` : '👤 클론 기본';
+  body.appendChild(name);
+
+  const meta = document.createElement('div'); meta.className = 'src-meta';
+  meta.textContent = v.id ? [
+    _fmtMB(v.bytes),
+
+    v.prompt_pair ? '짧은 참조 ✓' : '짧은 참조 ✗ (짧은 말이 늘어질 수 있음)',
+    v.ok === false ? '파일 없음' : '',
+  ].filter(Boolean).join(' · ') : '업로드 사용 안 함';
+  body.appendChild(meta);
+
+  if (v.id) {
+    const txt = document.createElement('div'); txt.className = 'src-meta';
+    txt.textContent = v.ref_text ? `“${v.ref_text}”` : '참조 문장 없음 — 발음이 흔들릴 수 있음';
+    body.appendChild(txt);
+  }
+  card.appendChild(body);
+
+  if (on) {
+    const chk = document.createElement('div');
+    chk.className = 'src-check'; chk.textContent = '✓';
+    card.appendChild(chk);
+  }
+  card.addEventListener('click', () => selectVoice(v.id || ''));
+
+  if (v.id) {
+    const del = document.createElement('button');
+    del.type = 'button'; del.className = 'src-del'; del.textContent = '삭제';
+
+    del.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (del.dataset.armed === '1') { deleteVoice(v.id); return; }
+      del.dataset.armed = '1'; del.textContent = '정말?';
+      setTimeout(() => { del.dataset.armed = ''; del.textContent = '삭제'; }, 4000);
+    });
+    card.appendChild(del);
+  }
+  return card;
+}
+
+async function loadVoices() {
+  const box = document.getElementById('voice-list');
+  if (!box) return;
+  let d;
+  try {
+    const r = await fetch('/voices', {headers: _labHeaders()});
+    if (r.status === 401) {          
+      box.textContent = '';
+      _showSourceAuth(true);
+      _setVoiceStatus('토큰을 넣어야 업로드 목록이 보입니다', 'bad');
+      return;
+    }
+    d = await r.json();
+  } catch (e) {
+    box.textContent = '음성 목록 조회 실패: ' + e; return;
+  }
+  if (d.error) { box.textContent = d.error; return; }
+  const rootEl = document.getElementById('voice-root');
+  if (rootEl) {
+    rootEl.textContent = `저장 위치 ${d.root} · 최대 ${d.max_mb}MB · `
+      + `허용 ${(d.exts || []).join(' ')}`;
+  }
+  const cur = document.getElementById('k_source_voice_source')?.value || '';
+  box.innerHTML = '';
+  box.appendChild(_voiceCard({id: ''}, cur));
+  for (const v of (d.voices || [])) box.appendChild(_voiceCard(v, cur));
+}
+
+async function selectVoice(id) {
+  const inp = document.getElementById('k_source_voice_source');
+  if (inp) inp.value = id;
+  try {
+    await fetch('/knobs', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({source: {voice_source: id}}),
+    });
+  } catch (e) {
+    _setVoiceStatus('저장 실패: ' + e, 'bad'); return;
+  }
+  saveKnobsLocal();   
+  _setVoiceStatus(id ? `선택: ${id} — 다음 통화부터 반영(끊고 다시 걸기)`
+                     : '클론 기본 목소리로 되돌림 — 다음 통화부터', 'ok');
+  await loadVoices();
+}
+
+async function uploadVoice() {
+  const fileEl = document.getElementById('voice-file');
+  const btn = document.getElementById('voice-upload-btn');
+  const refEl = document.getElementById('voice-ref-text');
+  const f = fileEl?.files?.[0];
+  if (!f) { _setVoiceStatus('파일을 먼저 고르세요', 'bad'); return; }
+  const fd = new FormData();
+  fd.append('file', f, f.name);
+  const ref = (refEl?.value || '').trim();
+  if (ref) fd.append('ref_text', ref);
+  btn.disabled = true;
+
+  _setVoiceStatus(ref ? `업로드 중… ${_fmtMB(f.size)}`
+                      : `업로드 중… ${_fmtMB(f.size)} (받아쓰기까지 하느라 조금 걸립니다)`, '');
+  try {
+    const r = await fetch('/voice/upload', {
+      method: 'POST', headers: _labHeaders(), body: fd,
+    });
+    if (r.status === 401) {
+      _showSourceAuth(true);
+      _setVoiceStatus('토큰이 필요합니다 — 렌더 소스 아래에 넣고 다시 업로드하세요', 'bad');
+      return;
+    }
+    if (r.status === 413) {          
+      _setVoiceStatus('용량 초과 — 프록시/서버 상한을 넘었습니다', 'bad'); return;
+    }
+    const d = await r.json();
+    if (!r.ok || d.error) { _setVoiceStatus(d.error || `실패(${r.status})`, 'bad'); return; }
+    fileEl.value = '';
+    if (refEl) refEl.value = '';
+
+    await selectVoice(d.id);
+    if (!d.ref_text) {
+      _setVoiceStatus(`업로드 완료 ${d.id} — 받아쓰기 실패(참조 문장 없이 합성). `
+        + '참조 문장을 직접 넣어 다시 올리면 발음이 안정됩니다', 'bad');
+    } else if (!d.prompt_pair) {
+      _setVoiceStatus(`업로드 완료 ${d.id} — 짧은 참조를 못 만들었습니다. `
+        + '짧은 말에서 늘어질 수 있습니다', 'bad');
+    } else {
+      _setVoiceStatus(`업로드 완료 ${d.id} — 다음 통화부터 반영`, 'ok');
+    }
+  } catch (e) {
+    _setVoiceStatus('업로드 실패: ' + e, 'bad');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteVoice(id) {
+  try {
+    const r = await fetch('/voice/delete', {
+      method: 'POST', headers: _labHeaders({'Content-Type': 'application/json'}),
+      body: JSON.stringify({id}),
+    });
+    const d = await r.json();
+
+    if (!r.ok || d.error) { _setVoiceStatus(d.error || `실패(${r.status})`, 'bad'); return; }
+    _setVoiceStatus(d.deleted ? `삭제: ${id}` : `없는 항목: ${id}`, d.deleted ? 'ok' : 'bad');
+  } catch (e) {
+    _setVoiceStatus('삭제 실패: ' + e, 'bad'); return;
+  }
+  const inp = document.getElementById('k_source_voice_source');
+  if (inp && inp.value === id) inp.value = '';   
+  loadVoices();
+}
+
 const KNOB_INPUT_SELECTOR =
   '#knob-fields input, #knob-fields select, #latency-fields input, #latency-fields select';
 
@@ -1138,6 +1305,12 @@ loadKnobs().then(async () => {
   } else {
     await loadSources();
   }
+
+  if (vals && 'source.voice_source' in vals) {
+    await selectVoice(vals['source.voice_source']);
+  } else {
+    await loadVoices();
+  }
   if (count) _setApplyStatus(`이 브라우저에 저장된 노브 ${count}개를 복원했습니다`, 'ok');
 });
 document.getElementById('clear-saved')?.addEventListener('click', () => {
@@ -1145,12 +1318,16 @@ document.getElementById('clear-saved')?.addEventListener('click', () => {
   _setApplyStatus('이 브라우저 저장값을 지웠습니다 — 다음 새로고침부터 서버 값 그대로', 'warn');
 });
 document.getElementById('source-upload-btn')?.addEventListener('click', uploadSource);
-document.getElementById('source-token-btn')?.addEventListener('click', () => {
+document.getElementById('voice-upload-btn')?.addEventListener('click', uploadVoice);
+
+function _retryWithToken() {
   _setSourceStatus('토큰 확인 중…', '');
   loadSources();
-});
+  loadVoices();
+}
+document.getElementById('source-token-btn')?.addEventListener('click', _retryWithToken);
 document.getElementById('source-token')?.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') { _setSourceStatus('토큰 확인 중…', ''); loadSources(); }
+  if (e.key === 'Enter') _retryWithToken();
 });
 startMetrics(); loadRuns(); loadProdStatus(); loadDevToken(); loadFlpConfig();
 document.getElementById('refresh-flp')?.addEventListener('click', loadFlpConfig);
