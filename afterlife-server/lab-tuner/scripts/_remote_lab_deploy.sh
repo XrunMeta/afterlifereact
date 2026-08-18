@@ -63,6 +63,26 @@ export PRETHIRD_HEIGHT=1024
 # 라이브 확인: systemctl show afterlife-prethird -p Environment | grep TTS_URL
 export PRETHIRD_TTS_URL=http://127.0.0.1:8203
 export PRETHIRD_TTS_PATH=/tts/kr
+# idle 전환 완화(2026-08-18 시험) — 문장 사이 짧은 갭에서 idle 로 빠졌다 돌아오길
+# 반복하면 "뚝뚝 끊긴다"로 보인다. grace 를 늘려 짧은 갭은 마지막 프레임으로 버티고,
+# 전환이 필요할 때는 dissolve 를 길게 줘 튀지 않게 한다.
+#   IDLE_GRACE_SEC          큐가 빈 뒤 idle 로 넘어가기까지 대기(코드 기본 0.5)
+#   PRETHIRD_IDLE_BLEND_FRAMES  speak→idle 크로스디졸브 프레임 수(코드 기본 5 = 0.2초)
+export IDLE_GRACE_SEC=1.8
+export PRETHIRD_IDLE_BLEND_FRAMES=15
+# 말이 **끝난** 지점에서만 쓰는 짧은 grace(media_tracks._stream_ended 분기).
+# 문장 중간 갭은 위 IDLE_GRACE_SEC 로 길게 버티고, 말이 끝나면 곧바로 idle 로
+# 디졸브해 입 모양을 물고 있지 않게 한다. 미설정이면 IDLE_GRACE_SEC 와 동일(회귀 0).
+export PRETHIRD_IDLE_GRACE_END_SEC=0.3
+# 리드 버퍼(프리롤) — 응답 시작 시 큐에 이만큼 쌓일 때까지 재생을 늦춘다. 중간에
+# 렌더가 잠깐 늦어도 버퍼가 버텨 큐 고갈(= idle 로 빠짐)을 줄인다.
+# 대가: 첫 소리까지 그만큼 늦어진다(12프레임 = 0.48초 @25fps). 코드 기본 0 = 비활성.
+export PRETHIRD_PREROLL_FRAMES=12
+# 🔴 렌더 생성 방식. prethird pipeline._resolve_render_mode() 가 **노브가 아니라 이 env**
+# 를 읽고, 미설정이면 "partial" 로 떨어진다 — 랩 노브에는 batch 로 보이는데 실제로는
+# partial 로 돌고 있었다(2026-08-18 실측). partial 은 조각마다 큐가 마르기 쉬워
+# "버퍼링처럼 끊긴다"(히즈키). 라이브도 batch 다.
+export PRETHIRD_RENDER_MODE=batch
 export LAB_TUNER_TOKEN="$TOKEN"
 # dev-token 자동주입 활성 — 이 호스트는 단일테넌트 SSH-터널 개발 전용이라
 # loopback /dev-token 으로 UI 가 admin 토큰을 받아 promote(apply/restart) 인증을 통과한다.
