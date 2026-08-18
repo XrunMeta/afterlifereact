@@ -119,17 +119,19 @@
    word-break:break-all;color:var(--text-dim)}
  .ls-row.tuned{color:var(--green);font-weight:600}
  .ls-row.empty{color:var(--text-dim);opacity:.7;font-family:inherit}
- /* 렌더 소스 업로드 */
- #source-panel{border-top:2px solid var(--gold);margin-bottom:12px}
+ /* 렌더 소스·목소리 업로드 (두 패널이 같은 스타일을 공유한다) */
+ #source-panel,#voice-panel{border-top:2px solid var(--gold);margin-bottom:12px}
  .source-hint{font-size:11px;line-height:1.6;color:var(--text-dim);margin-bottom:8px}
  .source-upload{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
  .source-upload input[type=file]{font-size:11px;flex:1;min-width:150px}
- #source-upload-status{font-size:11px;color:var(--text-dim)}
- #source-upload-status.ok{color:var(--green)}
- #source-upload-status.bad{color:#B91C1C;font-weight:600}
+ #source-upload-status,#voice-upload-status{font-size:11px;color:var(--text-dim)}
+ #source-upload-status.ok,#voice-upload-status.ok{color:var(--green)}
+ #source-upload-status.bad,#voice-upload-status.bad{color:#B91C1C;font-weight:600}
  /* 섬네일 그리드 — 얼굴을 보고 고른다 */
  #source-list{display:grid;gap:8px;
    grid-template-columns:repeat(auto-fill,minmax(104px,1fr))}
+ /* 음성은 얼굴과 달리 볼 게 글자뿐이라 한 줄에 하나씩 넓게 쌓는다 */
+ #voice-list{display:grid;gap:6px;grid-template-columns:1fr}
  .src-card{position:relative;display:flex;flex-direction:column;cursor:pointer;
    border:1px solid var(--border);border-radius:5px;overflow:hidden;
    background:var(--surface);transition:border-color .15s}
@@ -229,8 +231,12 @@
        <div id="source-panel" class="channel">
          <div class="panel-title">🎬 렌더 소스 — 업로드한 얼굴로 테스트</div>
          <div class="source-hint">
-           얼굴만 업로드본으로 바꾸고 <b>목소리·성격은 선택한 클론 것</b>을 그대로 씁니다.
-           고르면 <b>바로 저장</b>되고, 끊고 다시 걸면 반영됩니다(적용 버튼 불필요).
+           <b>영상과 사진 둘 다</b> 올릴 수 있습니다. 얼굴만 업로드본으로 바꾸고
+           <b>목소리·성격은 선택한 클론 것</b>을 그대로 씁니다.
+           <br>영상은 말하지 않는 동안 재생할 <b>정지 영상</b>까지 함께 만들고,
+           사진은 그 한 장으로 정지 영상을 미리 굽습니다 — 어느 쪽이든 얼굴이 잘 보이는
+           정면이 가장 좋습니다.
+           <br>고르면 <b>바로 저장</b>되고, 끊고 다시 걸면 반영됩니다(적용 버튼 불필요).
          </div>
          <div class="source-upload">
            <input id="source-file" type="file"
@@ -253,6 +259,34 @@
          </div>
          <div id="source-list"></div>
          <div id="source-root" class="source-root"></div>
+       </div>
+       <div id="voice-panel" class="channel">
+         <div class="panel-title">🎙️ 목소리 — 업로드한 음성으로 테스트</div>
+         <div class="source-hint">
+           올린 음성의 <b>목소리로 말합니다</b>. <b>얼굴·성격은 선택한 클론 것</b>을
+           그대로 쓰고 목소리만 바뀝니다 — 위 렌더 소스와 서로 <b>독립</b>이라
+           하나만 올려도 됩니다.
+           <br>말이 또렷한 <b>10초 안팎</b>이 가장 좋습니다. 잡음이 섞이면 클론이
+           말을 길게 늘이거나 엉뚱한 소리를 냅니다(참조 음성 품질이 곧 목소리 품질).
+           <br>고르면 <b>바로 저장</b>되고, 끊고 다시 걸면 반영됩니다(적용 버튼 불필요).
+         </div>
+         <div class="source-upload">
+           <input id="voice-file" type="file"
+             accept=".wav,.mp3,.m4a,.aac,.flac,.ogg,.opus,.webm">
+           <button id="voice-upload-btn" type="button">업로드</button>
+           <span id="voice-upload-status"></span>
+         </div>
+         <div class="source-upload">
+           <input id="voice-ref-text" type="text" style="flex:1;min-width:180px"
+             placeholder="참조 문장 — 비우면 받아쓰기로 자동 생성">
+         </div>
+         <div class="source-hint">
+           참조 문장은 <b>올린 음성에서 실제로 말한 내용</b>이어야 합니다. 비워두면
+           서버가 받아쓰기로 채웁니다. 받아쓰기가 거부될 때(잡음·비한국어)만 직접 넣으세요 —
+           내용이 어긋나면 오히려 발음이 무너집니다.
+         </div>
+         <div id="voice-list"></div>
+         <div id="voice-root" class="source-root"></div>
        </div>
        <div id="knob-fields"></div>
        <div style="display:flex;gap:8px;margin:12px 0">

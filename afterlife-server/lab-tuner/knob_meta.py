@@ -514,4 +514,11 @@ KNOB_META: dict[str, dict] = {
         "desc": "필러 영상은 클론 얼굴로 미리 구워둔 것이라 업로드 얼굴과 섞이면 "
                 "다른 사람이 튀어나온다. 켜두는 것을 권장",
     },
+    "source.voice_source": {
+        "type": "string", "choices": None, "reflow": "session",
+        "label": "목소리(업로드)",
+        "param": "reference_voices/{id}/voice.wav", "default": "(클론 기본)",
+        "desc": "업로드한 음성으로 목소리를 대체한다. 얼굴·성격은 선택한 클론 것을 "
+                "그대로 쓴다. 빈 값이면 클론 원래 목소리",
+    },
 }
