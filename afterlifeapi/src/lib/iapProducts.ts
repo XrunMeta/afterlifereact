@@ -24,6 +24,8 @@ const v_97eac4 = [
   { productId: `${v_939dae}.credit.60`,  kind: "consumable", creditsSec: 3600 },
   { productId: `${v_939dae}.credit.150`, kind: "consumable", creditsSec: 9000 },
   { productId: `${v_939dae}.credit.300`, kind: "consumable", creditsSec: 18000 },
+
+  { productId: "credits_1000", kind: "consumable", creditsSec: 1000 },
 ];
 
 const v_bd2866 = new Map(v_97eac4.map((v_e2a85c) => [v_e2a85c.productId, v_e2a85c]));
