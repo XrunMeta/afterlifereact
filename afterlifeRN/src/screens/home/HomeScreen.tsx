@@ -391,9 +391,9 @@ export default function HomeScreen() {
     const isOthers = !isMine;
     const authorName = c.user.name ?? c.user.email ?? "";
     const list: ActionSheetAction[] = [];
-    if (canDelete) list.push({ label: "삭제", icon: "trash-2", style: "destructive", onPress: () => deleteComment(c.id) });
+    if (canDelete) list.push({ label: "삭제", style: "destructive", onPress: () => deleteComment(c.id) });
     if (isOthers) list.push({
-      label: "차단하기", icon: "user-x", onPress: () => {
+      label: "차단하기", onPress: () => {
         showAlert(
           `${authorName} 님을 차단하시겠습니까?`,
           `차단하시면 다음 사항이 적용됩니다.\n\n• 해당 사용자의 모든 댓글이 회원님에게 표시되지 않습니다.\n• 차단된 사용자는 회원님의 게시물에 댓글을 작성할 수 없습니다.\n• 서로 설정되어 있던 팔로우 상태가 자동으로 해제됩니다.\n• 차단 해제는 [마이페이지 > 차단 사용자 관리] 에서 언제든지 가능합니다.`,
@@ -424,7 +424,7 @@ export default function HomeScreen() {
         ], { messageAlign: "left" });
       },
     });
-    if (isOthers) list.push({ label: "신고하기", icon: "flag", onPress: () => setReportCommentTarget({ commentId: c.id, author: authorName }) });
+    if (isOthers) list.push({ label: "신고하기", onPress: () => setReportCommentTarget({ commentId: c.id, author: authorName }) });
     return list;
   }, [commentActionsFor, commentFeedId, myUserId, accessToken, detailCloneStats]);
 
