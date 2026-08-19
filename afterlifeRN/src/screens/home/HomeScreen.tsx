@@ -1,5 +1,6 @@
 import { showAlert } from "../../stores/dialogStore";
 import ActionSheet, { type ActionSheetAction } from "../../components/ui/ActionSheet";
+import BlockConfirmSheet from "../../components/ui/BlockConfirmSheet";
 import HashtagText from "../../components/common/HashtagText";
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
@@ -371,6 +372,8 @@ export default function HomeScreen() {
     setCommentActionsAnchorY(anchorY);
     setCommentActionsFor(c);
   };
+
+  const [blockConfirmFor, setBlockConfirmFor] = useState<FeedComment | null>(null);
   const commentActions = React.useMemo<ActionSheetAction[]>(() => {
     if (!commentActionsFor) return [];
     const c = commentActionsFor;
@@ -397,36 +400,7 @@ export default function HomeScreen() {
     const list: ActionSheetAction[] = [];
     if (canDelete) list.push({ label: "삭제", icon: "trash-2", style: "destructive", onPress: () => deleteComment(c.id) });
     if (isOthers) list.push({
-      label: "차단", icon: "slash", onPress: () => {
-        showAlert(
-          `${authorName} 님을 차단하시겠습니까?`,
-          `차단하시면 다음 사항이 적용됩니다.\n\n• 해당 사용자의 모든 댓글이 회원님에게 표시되지 않습니다.\n• 차단된 사용자는 회원님의 게시물에 댓글을 작성할 수 없습니다.\n• 서로 설정되어 있던 팔로우 상태가 자동으로 해제됩니다.\n• 차단 해제는 [마이페이지 > 차단 사용자 관리] 에서 언제든지 가능합니다.`,
-          [
-          { text: "취소", style: "cancel" },
-          { text: "차단", style: "destructive", onPress: async () => {
-            if (!c.userId || !accessToken) return;
-            try {
-
-              const { blockUser } = await import("../../api/users");
-              await blockUser(accessToken, c.userId);
-
-              setComments((prev) => {
-                const next = prev.filter((cc) => cc.userId !== c.userId);
-                if (commentFeedId != null) bumpCommentsCount(commentFeedId, next.length);
-                return next;
-              });
-              setExpandedReplies((prev) => {
-                const nextExpanded = { ...prev };
-                for (const pid of Object.keys(nextExpanded)) {
-                  nextExpanded[Number(pid)] = nextExpanded[Number(pid)].filter((r) => r.userId !== c.userId);
-                }
-                return nextExpanded;
-              });
-              setToastMessage("차단됐어요");
-            } catch (err) { console.warn("[blockUser] failed:", err); setToastMessage("차단 실패"); }
-          }},
-        ], { messageAlign: "left" });
-      },
+      label: "차단", icon: "slash", onPress: () => setBlockConfirmFor(c),
     });
     if (isOthers) list.push({ label: "신고", icon: "alert-circle", style: "destructive", onPress: () => setReportCommentTarget({ commentId: c.id, author: authorName }) });
     return list;
@@ -1177,6 +1151,36 @@ export default function HomeScreen() {
         actions={commentActions}
         anchorY={commentActionsAnchorY}
         onClose={() => { setCommentActionsFor(null); setCommentActionsAnchorY(undefined); }}
+      />
+
+      {}
+      <BlockConfirmSheet
+        visible={!!blockConfirmFor}
+        userName={blockConfirmFor?.user.name ?? blockConfirmFor?.user.email ?? ""}
+        userAvatarUrl={blockConfirmFor?.user.avatarUrl}
+        onCancel={() => setBlockConfirmFor(null)}
+        onConfirm={async () => {
+          const target = blockConfirmFor;
+          setBlockConfirmFor(null);
+          if (!target?.userId || !accessToken) return;
+          try {
+            const { blockUser } = await import("../../api/users");
+            await blockUser(accessToken, target.userId);
+            setComments((prev) => {
+              const next = prev.filter((cc) => cc.userId !== target.userId);
+              if (commentFeedId != null) bumpCommentsCount(commentFeedId, next.length);
+              return next;
+            });
+            setExpandedReplies((prev) => {
+              const nextExpanded = { ...prev };
+              for (const pid of Object.keys(nextExpanded)) {
+                nextExpanded[Number(pid)] = nextExpanded[Number(pid)].filter((r) => r.userId !== target.userId);
+              }
+              return nextExpanded;
+            });
+            setToastMessage("차단됐어요");
+          } catch (err) { console.warn("[blockUser] failed:", err); setToastMessage("차단 실패"); }
+        }}
       />
 
       {}
