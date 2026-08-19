@@ -124,21 +124,25 @@ export default function HomeScreen() {
 
   const [commentSheetShowDetail, setCommentSheetShowDetail] = useState(false);
 
-  const [detailCloneStats, setDetailCloneStats] = useState<{ followers: number; createdAt: string } | null>(null);
+  const [detailCloneStats, setDetailCloneStats] = useState<{ followers: number; createdAt: string; ownerId: number } | null>(null);
   useEffect(() => {
-    if (!commentSheetShowDetail || commentFeedId == null) { setDetailCloneStats(null); return; }
+    if (commentFeedId == null) { setDetailCloneStats(null); return; }
     const item = useFeedStore.getState().apiFeeds?.find((f) => f.id === commentFeedId);
-    const cloneId = item?.cloneId;
+    const cloneId = item?.cloneId ?? (commentFeedId < 0 ? -commentFeedId : undefined);
     if (!cloneId) return;
     let cancelled = false;
     getCloneDetail(cloneId, useAuthStore.getState().accessToken ?? undefined)
       .then((res) => {
         if (cancelled) return;
-        setDetailCloneStats({ followers: res.clone.stats?.followers ?? 0, createdAt: res.clone.createdAt });
+        setDetailCloneStats({
+          followers: res.clone.stats?.followers ?? 0,
+          createdAt: res.clone.createdAt,
+          ownerId: res.clone.ownerId,
+        });
       })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [commentSheetShowDetail, commentFeedId]);
+  }, [commentFeedId]);
   const [commentText, setCommentText] = useState("");
 
   const [intimacyModal, setIntimacyModal] = useState<{ cloneId: number; cloneName: string } | null>(null);
@@ -369,17 +373,20 @@ export default function HomeScreen() {
 
     let cloneId: number | undefined;
     let cloneOwnerId: number | undefined;
+    if (detailCloneStats?.ownerId != null) {
+      cloneOwnerId = detailCloneStats.ownerId;
+    }
     const apiFeeds = useFeedStore.getState().apiFeeds;
     const raw = apiFeeds?.find((f) => f.id === commentFeedId);
     if (raw) {
       cloneId = raw.cloneId;
-      cloneOwnerId = raw.clone?.ownerId ?? undefined;
+      if (cloneOwnerId == null) cloneOwnerId = raw.clone?.ownerId ?? undefined;
     } else if (commentFeedId != null && commentFeedId < 0) {
       cloneId = -commentFeedId;
     }
     if (cloneOwnerId == null && cloneId != null) {
       const cached = apiCloneCache.get(cloneId);
-      cloneOwnerId = cached?.ownerId ?? undefined;
+      if (cached?.ownerId != null && cached.ownerId > 0) cloneOwnerId = cached.ownerId;
     }
     const isOwner = myUserId != null && cloneOwnerId != null && cloneOwnerId === myUserId;
     const isMine = myUserId != null && c.userId === myUserId;
@@ -425,7 +432,7 @@ export default function HomeScreen() {
       });
     }
     return list;
-  }, [commentActionsFor, commentFeedId, myUserId, accessToken]);
+  }, [commentActionsFor, commentFeedId, myUserId, accessToken, detailCloneStats]);
 
   const toggleCommentLike = (comment: FeedComment, parentCommentId?: number) => {
     if (!accessToken) return;

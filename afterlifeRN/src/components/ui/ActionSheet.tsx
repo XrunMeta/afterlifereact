@@ -85,7 +85,8 @@ export default function ActionSheet({ visible, title, subtitle, actions, onClose
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+
+    backgroundColor: "rgba(0,0,0,0.65)",
     justifyContent: "flex-end",
   },
   sheet: {
