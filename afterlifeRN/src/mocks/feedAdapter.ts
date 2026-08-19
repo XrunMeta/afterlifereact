@@ -75,5 +75,8 @@ export function v_f386b1(f: v_bc3df4): v_19b433 {
     ownerName: v_ec315e.get(v_8b5cd8.cloneId)?.name ?? null,
     ownerAvatarUrl: v_ec315e.get(v_8b5cd8.cloneId)?.avatarUrl ?? null,
     giftsReceived: v_078c0e.get(v_8b5cd8.cloneId) ?? 0,
+
+    createdAt: v_3f4e2e?.createdAt ?? null,
+    followerCount: 0,
   };
 }
