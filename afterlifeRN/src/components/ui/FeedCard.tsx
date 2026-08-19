@@ -101,6 +101,8 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
   };
 
   const v_fd0962 = v_3d6201 < 640;
+
+  const [v_372b31, v_e9a758] = v_a3453e.useState(0);
   return (
     <View style={[v_d81136.container, { height: v_3d6201 }]}>
       {}
@@ -201,7 +203,7 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
           {}
           {
 }
-          <View style={[v_d81136.rightActions, v_fd0962 && v_d81136.rightActionsShift, !v_799eb5 && v_d81136.rightActionsWithFollow]}>
+          <View style={[v_d81136.rightActions, v_372b31 > 0 && { bottom: v_372b31 + 16 }]}>
             {}
             <TouchableOpacity onPress={v_5bca36} style={v_d81136.actionBtn} activeOpacity={0.7}>
               <Ionicons
@@ -229,7 +231,10 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
             {}
           </View>
 
-          <View style={v_d81136.bottomContent}>
+          <View
+            style={v_d81136.bottomContent}
+            onLayout={(v_9e86fd) => v_e9a758(v_9e86fd.nativeEvent.layout.height)}
+          >
             <View style={v_d81136.profileRow}>
               <View style={v_d81136.profileInfo}>
                 <View style={v_d81136.authorRow}>
