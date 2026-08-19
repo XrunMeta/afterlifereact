@@ -522,8 +522,10 @@ const styles = StyleSheet.create({
 
   actionBtn: {
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     gap: 4,
+
+    minHeight: 40,
   },
   actionLabel: {
     fontSize: 12,
