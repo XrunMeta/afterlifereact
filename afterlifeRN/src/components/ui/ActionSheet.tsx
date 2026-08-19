@@ -32,13 +32,11 @@ interface Props {
 }
 
 export default function v_5fd66c({ visible: v_cf55be, title: v_9f1622, subtitle: v_dda473, actions: v_dd943a, onClose: v_0890f8 }: Props) {
-  const { height: v_c86e33 } = v_e45a99();
+  const { height: v_c86e33, width: v_8e4fb6 } = v_e45a99();
   return (
-    <Modal visible={v_cf55be} transparent animationType="slide" onRequestClose={v_0890f8}>
+    <Modal visible={v_cf55be} transparent animationType="fade" onRequestClose={v_0890f8}>
       <Pressable style={v_d81136.backdrop} onPress={v_0890f8}>
-        <Pressable style={[v_d81136.sheet, { maxHeight: v_c86e33 * 0.6 }]} onPress={(v_9e86fd) => v_9e86fd.stopPropagation?.()}>
-          {}
-          <View style={v_d81136.handle} />
+        <Pressable style={[v_d81136.sheet, { maxHeight: v_c86e33 * 0.7, maxWidth: Math.min(v_8e4fb6 - 40, 400) }]} onPress={(v_9e86fd) => v_9e86fd.stopPropagation?.()}>
           {v_9f1622 || v_dda473 ? (
             <View style={v_d81136.header}>
               {v_9f1622 ? <Text style={v_d81136.title}>{v_9f1622}</Text> : null}
@@ -86,23 +84,23 @@ const v_d81136 = v_472849.create({
   backdrop: {
     flex: 1,
 
-    backgroundColor: "rgba(0,0,0,0.65)",
-    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
   },
   sheet: {
+    width: "100%",
     backgroundColor: v_1bfbd0.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderRadius: 16,
     paddingBottom: 12,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: v_1bfbd0.zinc200,
-    alignSelf: "center",
-    marginTop: 10,
-    marginBottom: 8,
+    overflow: "hidden",
+
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   header: {
     paddingHorizontal: 20,
