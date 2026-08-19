@@ -534,6 +534,8 @@ const v_d81136 = v_472849.create({
     color: v_1bfbd0.white,
     lineHeight: 20,
 
+    marginBottom: 12,
+    paddingRight: 56,
   },
 
   descriptionWrap: {
