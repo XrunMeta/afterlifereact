@@ -382,7 +382,7 @@ export default function v_c316d8() {
     if (v_de3672) v_3d694a.push({ text: "신고하기", onPress: () => v_c03d7d({ commentId: v_3f4e2e.id, author: v_7aa0a5 }) });
     if (v_3d694a.length === 0) return;
     v_3d694a.push({ text: "취소", style: "cancel" });
-    v_03e392.alert("댓글", v_7aa0a5, v_3d694a);
+    v_889fad("댓글", v_7aa0a5, v_3d694a);
   };
 
   const v_71affe = (comment: v_52af9d, v_fdf350) => {
