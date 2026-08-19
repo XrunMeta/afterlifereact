@@ -739,6 +739,8 @@ export default function HomeScreen() {
                               userName: c.user.name ?? c.user.email ?? "",
                             })
                           }
+                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                          activeOpacity={0.6}
                         >
                           <Text style={styles.replyActionText}>
                             {t("home.replyAction", { defaultValue: "답글 달기" })}
@@ -1296,12 +1298,13 @@ const styles = StyleSheet.create({
 
   commentHeaderRowBottom: { flexDirection: "row", justifyContent: "center", alignItems: "center", paddingTop: 8, paddingBottom: 4 },
 
-  detailHeader: { paddingBottom: 12, marginBottom: 8 },
-  detailProfileRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
+  detailHeader: { paddingBottom: 16, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: COLORS.zinc100 },
+
+  detailProfileRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingBottom: 12, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: COLORS.zinc100 },
   detailAvatar: { width: 40, height: 40, borderRadius: 20 },
   detailAuthor: { fontSize: 15, fontWeight: "700", color: COLORS.zinc900 },
   detailUsername: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
-  detailDescription: { fontSize: 13, color: COLORS.zinc700, lineHeight: 18, marginBottom: 10 },
+  detailDescription: { fontSize: 14, color: COLORS.zinc700, lineHeight: 20, marginBottom: 14 },
   detailStatsRow: { flexDirection: "row", gap: 8 },
   detailStatCard: { flex: 1, backgroundColor: COLORS.zinc50, borderRadius: 12, paddingVertical: 10, alignItems: "center" },
   detailStatValue: { fontSize: 16, fontWeight: "700", color: COLORS.zinc900 },
