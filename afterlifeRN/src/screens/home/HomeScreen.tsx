@@ -642,13 +642,7 @@ export default function HomeScreen() {
                 </View>
               );
             })()}
-            {
-}
-            {!commentSheetShowDetail ? (
-              <View style={styles.commentHeaderRow}>
-                <Text style={styles.commentTitle}>{t("feed.commentCount", { n: comments.length })}</Text>
-              </View>
-            ) : null}
+            {}
             {}
             <ScrollView
               style={[styles.commentScroll, commentSheetShowDetail && !keyboardVisible ? { maxHeight: 240 } : null]}
@@ -819,6 +813,13 @@ export default function HomeScreen() {
                 </View>
               )}
             </ScrollView>
+            {
+}
+            {!commentSheetShowDetail ? (
+              <View style={styles.commentHeaderRowBottom}>
+                <Text style={styles.commentTitle}>{t("feed.commentCount", { n: comments.length })}</Text>
+              </View>
+            ) : null}
             {}
             {replyingTo && (
               <View style={styles.replyingBanner}>
@@ -1253,6 +1254,8 @@ const styles = StyleSheet.create({
   commentSheet: { backgroundColor: COLORS.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "70%" },
   sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: COLORS.zinc300, alignSelf: "center", marginTop: 12, marginBottom: 12 },
   commentHeaderRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 12 },
+
+  commentHeaderRowBottom: { flexDirection: "row", justifyContent: "center", alignItems: "center", paddingTop: 8, paddingBottom: 4 },
 
   detailHeader: { paddingBottom: 12, marginBottom: 8 },
   detailProfileRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
