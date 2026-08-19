@@ -21,6 +21,8 @@ import { v_1bfbd0, v_8b0c90 } from "../constants";
 interface Props {
   visible: boolean;
   targetName?: string;
+
+  targetKind?: "clone" | "comment" | "post";
   onConfirm: (reason: string) => void;
   onCancel: () => void;
 }
@@ -30,6 +32,7 @@ const v_87edf7 = 500;
 export default function v_4d58d7({
   visible: v_cf55be,
   targetName: v_8a1135,
+  targetKind: v_6a1be1 = "clone",
   onConfirm: v_e2be2d,
   onCancel: v_c7001c,
 }: Props) {
@@ -91,16 +94,31 @@ export default function v_4d58d7({
             <View style={v_d81136.iconWrap}>
               <Feather name="flag" size={24} color="#ef4444" />
             </View>
-            <Text style={v_d81136.title}>{v_8d41d7("report.title", { defaultValue: "신고하기" })}</Text>
+            {}
+            <Text style={v_d81136.title}>{
+              v_6a1be1 === "comment" ? "댓글 신고하기"
+              : v_6a1be1 === "post" ? "게시물 신고하기"
+              : v_8d41d7("report.title", { defaultValue: "신고하기" })
+            }</Text>
             <Text style={v_d81136.desc}>
-              {v_8a1135
-                ? v_8d41d7("report.descWithName", {
-                    name: v_8a1135,
-                    defaultValue: "'{{name}}' 클론을 신고하는 사유를\n간단히 입력해주세요. (선택)",
-                  })
-                : v_8d41d7("report.descNoName", {
-                    defaultValue: "클론을 신고하는 사유를\n간단히 입력해주세요. (선택)",
-                  })}
+              {v_6a1be1 === "comment" ? (
+                v_8a1135
+                  ? `'${v_8a1135}' 님의 댓글을 신고하는 사유를 입력해 주세요.`
+                  : "댓글을 신고하는 사유를 입력해 주세요."
+              ) : v_6a1be1 === "post" ? (
+                v_8a1135
+                  ? `'${v_8a1135}' 님의 게시물을 신고하는 사유를 입력해 주세요.`
+                  : "게시물을 신고하는 사유를 입력해 주세요."
+              ) : (
+                v_8a1135
+                  ? v_8d41d7("report.descWithName", {
+                      name: v_8a1135,
+                      defaultValue: "'{{name}}' 클론을 신고하는 사유를\n간단히 입력해주세요. (선택)",
+                    })
+                  : v_8d41d7("report.descNoName", {
+                      defaultValue: "클론을 신고하는 사유를\n간단히 입력해주세요. (선택)",
+                    })
+              )}
             </Text>
             <TextInput
               style={v_d81136.input}
