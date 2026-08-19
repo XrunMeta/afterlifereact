@@ -268,7 +268,8 @@ function CallScreenInner({ route, navigation }: Props) {
   const bottomInset =
     Platform.OS === "ios" ? insets.bottom : Math.max(navBarHeight, insets.bottom);
   const callDevUi = useDevOverlayStore((s) => s.callDevUiVisible);
-  const showCallDev = __DEV__ && callDevUi;
+
+  const showCallDev = false && __DEV__ && callDevUi;
 
   const hudDevBox = useCallHudVisible("devBox");
   const hudTiming = useCallHudVisible("timing");
