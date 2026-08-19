@@ -617,10 +617,13 @@ export default function HomeScreen() {
                 </View>
               );
             })()}
-            {}
-            <View style={styles.commentHeaderRow}>
-              <Text style={styles.commentTitle}>{t("feed.commentCount", { n: comments.length })}</Text>
-            </View>
+            {
+}
+            {!commentSheetShowDetail ? (
+              <View style={styles.commentHeaderRow}>
+                <Text style={styles.commentTitle}>{t("feed.commentCount", { n: comments.length })}</Text>
+              </View>
+            ) : null}
             <ScrollView style={styles.commentScroll} showsVerticalScrollIndicator={false}>
               {commentsLoading ? (
                 <View style={styles.emptyComment}>
@@ -774,9 +777,9 @@ export default function HomeScreen() {
                 );
                 })
               ) : (
+
                 <View style={styles.emptyComment}>
-                  <Feather name="message-circle" size={40} color={COLORS.zinc300} />
-                  <Text style={styles.emptyText}>{t("feed.commentsEmpty")}</Text>
+                  <Text style={styles.emptyCommentGray}>{t("feed.commentsEmpty", { defaultValue: "댓글이 없습니다" })}</Text>
                 </View>
               )}
             </ScrollView>
@@ -1242,6 +1245,7 @@ const styles = StyleSheet.create({
   commentTime: { fontSize: 12, color: COLORS.zinc500 },
   commentContent: { fontSize: 14, color: COLORS.zinc800, lineHeight: 20 },
   emptyComment: { alignItems: "center", paddingVertical: 40 },
+  emptyCommentGray: { fontSize: 14, color: COLORS.zinc400 },
   emptyText: { fontSize: 14, color: COLORS.zinc400, marginTop: 8 },
   commentInputRow: { flexDirection: "row", alignItems: "center", gap: 12, borderTopWidth: 1, borderTopColor: COLORS.zinc100, paddingTop: 12 },
   commentInput: { flex: 1, height: 40, backgroundColor: COLORS.zinc50 ?? COLORS.zinc100, borderRadius: 20, paddingHorizontal: 16, fontSize: 14, color: COLORS.zinc900 },
