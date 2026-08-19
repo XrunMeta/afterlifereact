@@ -11,10 +11,15 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { useNavigation } from "@react-navigation/native";
+import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import type { MainTabParamList } from "../../navigation/types";
 import { COLORS, SIZES, RADIUS } from "../constants";
 import type { FeedItem } from "../../types/feed";
 import HashtagText from "../common/HashtagText";
 import ExpertBadge from "./ExpertBadge";
+
+const HASHTAG_RE = /#[a-zA-Z0-9_가-힣ᄀ-ᇿㄱ-ㆎ]+/g;
 
 interface FeedCardProps {
   item: FeedItem;
@@ -69,6 +74,28 @@ const FeedCard: React.FC<FeedCardProps> = ({
   onDescriptionScrollEnd,
 }) => {
   const { t } = useTranslation();
+  const nav = useNavigation<BottomTabNavigationProp<MainTabParamList>>();
+
+  const hashtags = React.useMemo<string[]>(() => {
+    const src = item.description ?? "";
+    if (!src) return [];
+    HASHTAG_RE.lastIndex = 0;
+    const seen = new Set<string>();
+    const out: string[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = HASHTAG_RE.exec(src)) !== null) {
+      const tag = m[0];
+      if (!seen.has(tag)) {
+        seen.add(tag);
+        out.push(tag);
+      }
+    }
+    return out;
+  }, [item.description]);
+  const onHashtagPress = (tag: string) => {
+    const stripped = tag.replace(/^#+/, "");
+    nav.navigate("SearchTab", { initialQuery: stripped });
+  };
 
   const [descScrollY, setDescScrollY] = React.useState(0);
   const [descContentH, setDescContentH] = React.useState(0);
@@ -134,6 +161,30 @@ const FeedCard: React.FC<FeedCardProps> = ({
               <Feather name="more-vertical" size={20} color={COLORS.white} />
             </TouchableOpacity>
           ) : null}
+        </View>
+      ) : null}
+
+      {
+}
+      {isActive && hashtags.length > 0 ? (
+        <View style={styles.hashtagRowWrap} pointerEvents="box-none">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.hashtagRowContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            {hashtags.map((tag) => (
+              <TouchableOpacity
+                key={tag}
+                style={styles.hashtagChip}
+                activeOpacity={0.7}
+                onPress={() => onHashtagPress(tag)}
+              >
+                <Text style={styles.hashtagChipText}>{tag}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
       ) : null}
 
@@ -364,6 +415,30 @@ const styles = StyleSheet.create({
   },
   followTextActive: {
     color: COLORS.white,
+  },
+
+  hashtagRowWrap: {
+    position: "absolute",
+    top: 112,
+    left: 0,
+    right: 0,
+  },
+  hashtagRowContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  hashtagChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  hashtagChipText: {
+    fontSize: 13,
+    color: COLORS.zinc900,
+    fontWeight: "600",
   },
 
   rightActions: {
