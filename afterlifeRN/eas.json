@@ -11,7 +11,8 @@
         "EXPO_PUBLIC_TIMING_STT_ENDPOINT_MS": "2000",
         "EXPO_PUBLIC_TIMING_ECHO_GATE_MS": "3750",
         "EXPO_PUBLIC_TIMING_CLONE_RESUME_MS": "600",
-        "EXPO_PUBLIC_TIMING_CLONE_TAIL_GRACE_MS": "1000"
+        "EXPO_PUBLIC_TIMING_CLONE_TAIL_GRACE_MS": "1000",
+        "NODE_OPTIONS": "--max-old-space-size=8192"
       },
       "android": {
         "image": "latest",
@@ -34,7 +35,8 @@
         "EXPO_PUBLIC_TIMING_STT_ENDPOINT_MS": "2000",
         "EXPO_PUBLIC_TIMING_ECHO_GATE_MS": "3750",
         "EXPO_PUBLIC_TIMING_CLONE_RESUME_MS": "600",
-        "EXPO_PUBLIC_TIMING_CLONE_TAIL_GRACE_MS": "1000"
+        "EXPO_PUBLIC_TIMING_CLONE_TAIL_GRACE_MS": "1000",
+        "NODE_OPTIONS": "--max-old-space-size=8192"
       },
       "android": {
         "buildType": "apk"
