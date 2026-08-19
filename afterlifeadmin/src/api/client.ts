@@ -255,6 +255,7 @@ export const v_05a921 = {
     const v_212049 = new URLSearchParams();
     if (v_24baff?.status) v_212049.set("status", v_24baff.status);
     if (v_24baff?.limit) v_212049.set("limit", String(v_24baff.limit));
+    if (v_24baff?.reason) v_212049.set("reason", v_24baff.reason);
     const v_25c4f7 = v_212049.toString();
     return v_576f5a<{
       items: Array<{
@@ -290,6 +291,7 @@ export const v_05a921 = {
     const v_212049 = new URLSearchParams();
     if (v_24baff?.status) v_212049.set("status", v_24baff.status);
     if (v_24baff?.limit) v_212049.set("limit", String(v_24baff.limit));
+    if (v_24baff?.reason) v_212049.set("reason", v_24baff.reason);
     const v_25c4f7 = v_212049.toString();
     return v_576f5a<{
       items: Array<{
