@@ -86,8 +86,10 @@ export default function SwipeDownSheet({
         {...panResponder.panHandlers}
         style={[styles.handleZone, { height: handleZoneHeight }]}
       />
-      {}
-      <Pressable onPress={() => {}}>{children}</Pressable>
+      {
+
+}
+      <Pressable onPress={() => {}} style={{ flex: 1 }}>{children}</Pressable>
     </Animated.View>
   );
 }
