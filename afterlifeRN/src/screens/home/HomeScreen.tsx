@@ -568,8 +568,10 @@ export default function v_c316d8() {
           >
             <View style={v_d81136.sheetHandle} />
             {
+
 }
             {(() => {
+              if (v_507993) return null;
               const v_61f930 = v_ff422a.find((v_8b5cd8) => v_8b5cd8.id === v_ed660d);
               if (!v_61f930) return null;
               return (
