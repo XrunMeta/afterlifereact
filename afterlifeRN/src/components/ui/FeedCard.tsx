@@ -199,7 +199,9 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
       {v_26dce6 && (
         <>
           {}
-          <View style={[v_d81136.rightActions, v_fd0962 && v_d81136.rightActionsShift]}>
+          {
+}
+          <View style={[v_d81136.rightActions, v_fd0962 && v_d81136.rightActionsShift, !v_799eb5 && v_d81136.rightActionsWithFollow]}>
             {}
             <TouchableOpacity onPress={v_5bca36} style={v_d81136.actionBtn} activeOpacity={0.7}>
               <Ionicons
@@ -424,6 +426,10 @@ const v_d81136 = v_472849.create({
 
   rightActionsShift: {
     bottom: 190,
+  },
+
+  rightActionsWithFollow: {
+    bottom: 165,
   },
 
   ownerHeader: {
