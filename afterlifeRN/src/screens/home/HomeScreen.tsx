@@ -757,11 +757,18 @@ export default function HomeScreen() {
                     onLongPress={_isCloneOwnerForComments ? () => openCommentActionSheet(c) : undefined}
                     delayLongPress={400}
                   >
-                    {c.user.avatarUrl ? (
-                      <Image source={{ uri: c.user.avatarUrl }} style={styles.commentAvatar} />
-                    ) : (
-                      <View style={[styles.commentAvatar, { backgroundColor: COLORS.zinc100 }]} />
-                    )}
+                    {}
+                    <TouchableOpacity
+                      onPress={() => c.userId && rootNav.navigate("UserProfile", { userId: c.userId })}
+                      activeOpacity={0.7}
+                      hitSlop={4}
+                    >
+                      {c.user.avatarUrl ? (
+                        <Image source={{ uri: c.user.avatarUrl }} style={styles.commentAvatar} />
+                      ) : (
+                        <View style={[styles.commentAvatar, { backgroundColor: COLORS.zinc100 }]} />
+                      )}
+                    </TouchableOpacity>
                     <View style={styles.commentInfo}>
                       <View style={styles.commentMeta}>
                         <Text style={styles.commentAuthor}>{c.user.name ?? c.user.email}</Text>
