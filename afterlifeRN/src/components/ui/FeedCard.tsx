@@ -208,17 +208,18 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
               />
               <Text style={v_d81136.actionLabel}>{v_8c0b26.likes}</Text>
             </TouchableOpacity>
+            {}
             <TouchableOpacity onPress={v_48b0c1} style={v_d81136.actionBtn} activeOpacity={0.7}>
-              <Feather name="message-circle" size={30} color={v_1bfbd0.white} />
+              <Feather name="message-circle" size={32} color={v_1bfbd0.white} />
               <Text style={v_d81136.actionLabel}>{v_8c0b26.comments}</Text>
             </TouchableOpacity>
             {}
             <TouchableOpacity onPress={v_8506d0} style={v_d81136.actionBtn} activeOpacity={0.7}>
-              <Feather name="gift" size={28} color={v_1bfbd0.white} />
+              <Feather name="gift" size={32} color={v_1bfbd0.white} />
               <Text style={v_d81136.actionLabel}>{v_8c0b26.giftsReceived ?? 0}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={v_d51485} style={v_d81136.actionBtn} activeOpacity={0.7}>
-              <Feather name="share-2" size={28} color={v_1bfbd0.white} />
+              <Feather name="share-2" size={32} color={v_1bfbd0.white} />
             </TouchableOpacity>
             {}
           </View>
