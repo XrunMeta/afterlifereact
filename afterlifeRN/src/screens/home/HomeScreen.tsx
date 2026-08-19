@@ -360,6 +360,31 @@ export default function HomeScreen() {
     );
   };
 
+  const openCommentActionSheet = (c: FeedComment) => {
+    const cur = filteredFeeds.find((f) => f.id === commentFeedId);
+    const isOwner = myUserId != null && cur?.cloneOwnerId === myUserId;
+    const isMine = myUserId != null && c.userId === myUserId;
+    const canDelete = isMine || isOwner;
+    const isOthers = !isMine;
+    const authorName = c.user.name ?? c.user.email ?? "";
+    const buttons: Array<{ text: string; onPress?: () => void; style?: "default" | "cancel" | "destructive" }> = [];
+    if (canDelete) buttons.push({ text: "삭제", style: "destructive", onPress: () => deleteComment(c.id) });
+    if (isOthers) buttons.push({ text: "차단하기", onPress: () => {
+      showAlert("차단", `${authorName} 님을 차단하시겠습니까? (해당 클론과의 상호작용 차단)`, [
+        { text: "취소", style: "cancel" },
+        { text: "차단", style: "destructive", onPress: async () => {
+          if (!cur?.cloneId || !accessToken) return;
+          try { await blockClone(accessToken, cur.cloneId); setToastMessage("차단됐어요"); }
+          catch (err) { console.warn("[block] failed:", err); setToastMessage("차단 실패"); }
+        }},
+      ]);
+    }});
+    if (isOthers) buttons.push({ text: "신고하기", onPress: () => setReportCommentTarget({ commentId: c.id, author: authorName }) });
+    if (buttons.length === 0) return;
+    buttons.push({ text: "취소", style: "cancel" });
+    Alert.alert("댓글", authorName, buttons);
+  };
+
   const toggleCommentLike = (comment: FeedComment, parentCommentId?: number) => {
     if (!accessToken) return;
     const fid = comment.feedId ?? (commentFeedId != null && commentFeedId > 0 ? commentFeedId : 0);
@@ -701,7 +726,14 @@ export default function HomeScreen() {
                   return (
 
                   <View key={c.id} style={styles.commentBlock}>
-                  <View style={styles.commentRow}>
+                  {
+}
+                  <TouchableOpacity
+                    activeOpacity={1}
+                    style={styles.commentRow}
+                    onLongPress={() => openCommentActionSheet(c)}
+                    delayLongPress={400}
+                  >
                     {c.user.avatarUrl ? (
                       <Image source={{ uri: c.user.avatarUrl }} style={styles.commentAvatar} />
                     ) : (
@@ -711,23 +743,6 @@ export default function HomeScreen() {
                       <View style={styles.commentMeta}>
                         <Text style={styles.commentAuthor}>{c.user.name ?? c.user.email}</Text>
                         <Text style={styles.commentTime}>{formatRelativeKo(c.createdAt)}</Text>
-                        {c.userId === myUserId ? (
-                          <TouchableOpacity onPress={() => deleteComment(c.id)} style={{ marginLeft: 8 }}>
-                            <Feather name="trash-2" size={14} color={COLORS.zinc400} />
-                          </TouchableOpacity>
-                        ) : (
-                          <TouchableOpacity
-                            onPress={() =>
-                              setReportCommentTarget({
-                                commentId: c.id,
-                                author: c.user.name ?? c.user.email ?? "",
-                              })
-                            }
-                            style={{ marginLeft: 8 }}
-                          >
-                            <Feather name="flag" size={14} color={COLORS.zinc400} />
-                          </TouchableOpacity>
-                        )}
                       </View>
                       <Text style={styles.commentContent}>{c.content}</Text>
                       {}
@@ -802,7 +817,7 @@ export default function HomeScreen() {
                         {c.likesCount ?? 0}
                       </Text>
                     </TouchableOpacity>
-                  </View>
+                  </TouchableOpacity>
                   {
 
 }

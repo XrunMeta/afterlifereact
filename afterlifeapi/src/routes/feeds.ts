@@ -680,12 +680,24 @@ feedsDiscover.delete("/:id/comments/:cid", requireAuth, async (c) => {
     throw new APIError("VALIDATION_FAILED", "잘못된 ID 에요.");
   }
   const userId = c.get("userId")!;
+
   const res = await c.env.DB
-    .prepare(`DELETE FROM feed_comments WHERE id = ? AND feed_id = ? AND user_id = ?`)
-    .bind(cid, feedId, userId)
+    .prepare(
+      `DELETE FROM feed_comments
+         WHERE id = ? AND feed_id = ?
+           AND (
+             user_id = ?
+             OR EXISTS (
+               SELECT 1 FROM feeds f
+               INNER JOIN clones cl ON f.clone_id = cl.id
+               WHERE f.id = ? AND cl.owner_id = ?
+             )
+           )`,
+    )
+    .bind(cid, feedId, userId, feedId, userId)
     .run();
   if ((res.meta?.changes ?? 0) === 0) {
-    throw new APIError("NOT_FOUND", "댓글을 찾을 수 없거나 본인의 댓글이 아니에요.");
+    throw new APIError("NOT_FOUND", "댓글을 찾을 수 없거나 삭제 권한이 없어요.");
   }
   return c.json({ ok: true });
 });
