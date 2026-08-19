@@ -187,32 +187,7 @@ export default function CallScreen(props: Props) {
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
   const wrapperAccessToken = useAuthStore((s) => s.accessToken);
 
-  const [callEntryOpen, setCallEntryOpen] = React.useState<boolean | null>(null);
-  React.useEffect(() => {
-    if (!wrapperAccessToken || !cloneId) { setCallEntryOpen(true); return; }
-    let cancelled = false;
-    (async () => {
-      try {
-        const { l2_profile: l2 } = await getCloneL2(wrapperAccessToken, cloneId);
-        if (cancelled) return;
-        const complete =
-          (l2.relation_category ?? "").trim().length > 0 &&
-          (l2.relation_subtype ?? "").trim().length > 0 &&
-          (l2.relation_episode ?? "").trim().length > 0 &&
-          (l2.address_form ?? "").trim().length > 0 &&
-          (l2.speech_form ?? "").trim().length > 0 &&
-          (l2.job_category ?? "").trim().length > 0 &&
-          (l2.job_detail ?? "").trim().length > 0;
-        setCallEntryOpen(!complete);
-      } catch (err) {
-
-        if (!cancelled) setCallEntryOpen(true);
-
-        console.warn("[CallEntry] L2 gate fetch 실패:", err);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [wrapperAccessToken, cloneId]);
+  const [callEntryOpen, setCallEntryOpen] = React.useState<boolean | null>(false);
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.zinc950 }}>

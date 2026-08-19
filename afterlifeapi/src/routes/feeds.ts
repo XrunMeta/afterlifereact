@@ -624,6 +624,14 @@ v_f1d06f.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
     }
   }
 
+  if (v_2db2a5.ownerId !== v_43e90c) {
+    const v_3bebca = await v_3f4e2e.env.DB
+      .prepare(`SELECT 1 AS x FROM user_blocks WHERE blocker_id = ? AND blocked_id = ? LIMIT 1`)
+      .bind(v_2db2a5.ownerId, v_43e90c)
+      .first();
+    if (v_3bebca) throw new v_3ebe58("FORBIDDEN", "댓글을 작성할 수 없어요.");
+  }
+
   let v_ab1564 = null;
   if (v_4d33b2.parentCommentId) {
     const v_4eab4b = await v_3f4e2e.env.DB
@@ -680,12 +688,24 @@ v_f1d06f.delete("/:id/comments/:cid", v_6690d9, async (v_3f4e2e) => {
     throw new v_3ebe58("VALIDATION_FAILED", "잘못된 ID 에요.");
   }
   const v_43e90c = v_3f4e2e.get("userId")!;
+
   const v_8f00b9 = await v_3f4e2e.env.DB
-    .prepare(`DELETE FROM feed_comments WHERE id = ? AND feed_id = ? AND user_id = ?`)
-    .bind(v_062ae9, v_c09aa8, v_43e90c)
+    .prepare(
+      `DELETE FROM feed_comments
+         WHERE id = ? AND feed_id = ?
+           AND (
+             user_id = ?
+             OR EXISTS (
+               SELECT 1 FROM feeds f
+               INNER JOIN clones cl ON f.clone_id = cl.id
+               WHERE f.id = ? AND cl.owner_id = ?
+             )
+           )`,
+    )
+    .bind(v_062ae9, v_c09aa8, v_43e90c, v_c09aa8, v_43e90c)
     .run();
   if ((v_8f00b9.meta?.changes ?? 0) === 0) {
-    throw new v_3ebe58("NOT_FOUND", "댓글을 찾을 수 없거나 본인의 댓글이 아니에요.");
+    throw new v_3ebe58("NOT_FOUND", "댓글을 찾을 수 없거나 삭제 권한이 없어요.");
   }
   return v_3f4e2e.json({ ok: true });
 });
@@ -738,9 +758,13 @@ v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
   const v_abcc8d = [
     "fc.feed_id = ?",
     "fc.parent_comment_id IS NULL",
-    "fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))",
+    "fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))",
   ];
   const v_925171 = [v_c09aa8];
+  if (v_013af2) {
+    v_abcc8d.push("fc.user_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)");
+    v_925171.push(v_013af2);
+  }
   if (v_75cbf4 && Number.isInteger(v_75cbf4) && v_75cbf4 > 0) {
     v_abcc8d.push("fc.id < ?");
     v_925171.push(v_75cbf4);
@@ -764,7 +788,7 @@ v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
                 u.avatar_url   AS userAvatarUrl,
                 (SELECT COUNT(*) FROM feed_comments fcc
                    WHERE fcc.parent_comment_id = fc.id
-                     AND fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))) AS repliesCount
+                     AND fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))) AS repliesCount
            FROM feed_comments fc
            JOIN users u ON u.id = fc.user_id
           WHERE ${v_abcc8d.join(" AND ")} AND u.deleted_at IS NULL
@@ -842,8 +866,8 @@ v_f1d06f.get("/:id/comments/:cid/replies", async (v_3f4e2e) => {
           WHERE fc.feed_id = ?
             AND fc.parent_comment_id = ?
             AND u.deleted_at IS NULL
-            AND fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))
-            AND fc.parent_comment_id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))
+            AND fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))
+            AND fc.parent_comment_id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))
           ORDER BY fc.id ASC
           LIMIT ?`,
       )
@@ -1013,14 +1037,14 @@ v_96e8d7.get("/:id/comments", async (v_3f4e2e) => {
                 u.avatar_url   AS userAvatarUrl,
                 (SELECT COUNT(*) FROM feed_comments fcc
                    WHERE fcc.parent_comment_id = fc.id
-                     AND fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))) AS repliesCount
+                     AND fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))) AS repliesCount
            FROM feed_comments fc
            JOIN feeds f ON f.id = fc.feed_id
            JOIN users u ON u.id = fc.user_id
           WHERE f.clone_id = ?
             AND fc.parent_comment_id IS NULL
             AND u.deleted_at IS NULL
-            AND fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))
+            AND fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))
           ORDER BY fc.id DESC
           LIMIT ?`,
       )

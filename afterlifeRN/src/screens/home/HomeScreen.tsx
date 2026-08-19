@@ -1,4 +1,5 @@
 import { v_889fad } from "../../stores/dialogStore";
+import v_5fd66c, { type v_e2b085 } from "../../components/ui/ActionSheet";
 import v_5778ce from "../../components/common/HashtagText";
 import v_a3453e, { v_5ab095, v_e662ae, v_de06a3, v_c4deb2 } from "bapkr";
 import {
@@ -39,7 +40,7 @@ import v_92380d from "../clones/components/VisibilityPickerModal";
 import v_4c2648 from "../clones/components/FriendPickerModal";
 import type { v_b0b271 } from "../../types/clone";
 
-import { v_37977a, v_10e36e } from "../../stores/feedStore";
+import { v_37977a, v_10e36e, v_0b62e7 } from "../../stores/feedStore";
 import { v_b4902e } from "../../stores/followStore";
 
 import { v_98d20a } from "../../stores/userFollowStore";
@@ -123,21 +124,25 @@ export default function v_c316d8() {
 
   const [v_16a078, v_905ec3] = v_5ab095(false);
 
-  const [v_415d29, v_d2b23a] = v_5ab095<{ followers: number; createdAt: string } | null>(null);
+  const [v_415d29, v_d2b23a] = v_5ab095<{ followers: number; createdAt: string; ownerId: number } | null>(null);
   v_c4deb2(() => {
-    if (!v_16a078 || v_ed660d == null) { v_d2b23a(null); return; }
+    if (v_ed660d == null) { v_d2b23a(null); return; }
     const v_8c0b26 = v_37977a.getState().apiFeeds?.find((v_8b5cd8) => v_8b5cd8.id === v_ed660d);
-    const v_6e0fd3 = v_8c0b26?.cloneId;
+    const v_6e0fd3 = v_8c0b26?.cloneId ?? (v_ed660d < 0 ? -v_ed660d : undefined);
     if (!v_6e0fd3) return;
     let v_2008a4 = false;
     v_003cf2(v_6e0fd3, v_1ed7d9.getState().accessToken ?? undefined)
       .then((v_8f00b9) => {
         if (v_2008a4) return;
-        v_d2b23a({ followers: v_8f00b9.clone.stats?.followers ?? 0, createdAt: v_8f00b9.clone.createdAt });
+        v_d2b23a({
+          followers: v_8f00b9.clone.stats?.followers ?? 0,
+          createdAt: v_8f00b9.clone.createdAt,
+          ownerId: v_8f00b9.clone.ownerId,
+        });
       })
       .catch(() => {});
     return () => { v_2008a4 = true; };
-  }, [v_16a078, v_ed660d]);
+  }, [v_ed660d]);
   const [v_48e7fe, v_856f84] = v_5ab095("");
 
   const [v_d3a183, v_598141] = v_5ab095<{ cloneId: number; cloneName: string } | null>(null);
@@ -360,6 +365,69 @@ export default function v_c316d8() {
     );
   };
 
+  const [v_0e5a5a, v_76a7d9] = v_5ab095<v_52af9d | null>(null);
+  const v_16a276 = (c: v_52af9d) => v_76a7d9(v_3f4e2e);
+  const v_06a182 = v_a3453e.useMemo<v_e2b085[]>(() => {
+    if (!v_0e5a5a) return [];
+    const v_3f4e2e = v_0e5a5a;
+    let v_6e0fd3;
+    let v_343ac8;
+    if (v_415d29?.ownerId != null) v_343ac8 = v_415d29.ownerId;
+    const v_71b114 = v_37977a.getState().apiFeeds;
+    const v_479f05 = v_71b114?.find((v_8b5cd8) => v_8b5cd8.id === v_ed660d);
+    if (v_479f05) {
+      v_6e0fd3 = v_479f05.cloneId;
+      if (v_343ac8 == null) v_343ac8 = v_479f05.clone?.ownerId ?? undefined;
+    } else if (v_ed660d != null && v_ed660d < 0) {
+      v_6e0fd3 = -v_ed660d;
+    }
+    if (v_343ac8 == null && v_6e0fd3 != null) {
+      const v_e2a6a6 = v_0b62e7.get(v_6e0fd3);
+      if (v_e2a6a6?.ownerId != null && v_e2a6a6.ownerId > 0) v_343ac8 = v_e2a6a6.ownerId;
+    }
+    const v_2aec08 = v_f5f393 != null && v_343ac8 != null && v_343ac8 === v_f5f393;
+    const v_5acb4e = v_f5f393 != null && v_3f4e2e.userId === v_f5f393;
+    const v_3cb41c = v_5acb4e || v_2aec08;
+    const v_de3672 = !v_5acb4e;
+    const v_7aa0a5 = v_3f4e2e.user.name ?? v_3f4e2e.user.email ?? "";
+    const list: v_e2b085[] = [];
+    if (v_3cb41c) v_ef8ab1.push({ label: "삭제", icon: "trash-2", style: "destructive", onPress: () => v_b72645(v_3f4e2e.id) });
+    if (v_de3672) v_ef8ab1.push({
+      label: "차단하기", icon: "user-x", onPress: () => {
+        v_889fad(
+          `${v_7aa0a5} 님을 차단하시겠습니까?`,
+          `차단하시면 다음 사항이 적용됩니다.\n\n• 해당 사용자의 모든 댓글이 회원님에게 표시되지 않습니다.\n• 차단된 사용자는 회원님의 게시물에 댓글을 작성할 수 없습니다.\n• 서로 설정되어 있던 팔로우 상태가 자동으로 해제됩니다.\n• 차단 해제는 [마이페이지 > 차단 사용자 관리] 에서 언제든지 가능합니다.`,
+          [
+          { text: "취소", style: "cancel" },
+          { text: "차단", style: "destructive", onPress: async () => {
+            if (!v_3f4e2e.userId || !v_2ca7e0) return;
+            try {
+
+              const { blockUser: v_b9d616 } = await import("../../api/users");
+              await v_b9d616(v_2ca7e0, v_3f4e2e.userId);
+
+              v_04f2fc((v_ba2215) => {
+                const v_a448ad = v_ba2215.filter((v_a252ed) => v_a252ed.userId !== v_3f4e2e.userId);
+                if (v_ed660d != null) v_829e3a(v_ed660d, v_a448ad.length);
+                return v_a448ad;
+              });
+              v_74a05a((v_ba2215) => {
+                const v_d41edb = { ...v_ba2215 };
+                for (const v_d4923e of Object.keys(v_d41edb)) {
+                  v_d41edb[Number(v_d4923e)] = v_d41edb[Number(v_d4923e)].filter((v_cb35cb) => v_cb35cb.userId !== v_3f4e2e.userId);
+                }
+                return v_d41edb;
+              });
+              v_15c939("차단됐어요");
+            } catch (v_49263d) { console.warn("[blockUser] failed:", v_49263d); v_15c939("차단 실패"); }
+          }},
+        ], { messageAlign: "left" });
+      },
+    });
+    if (v_de3672) v_ef8ab1.push({ label: "신고하기", icon: "flag", onPress: () => v_c03d7d({ commentId: v_3f4e2e.id, author: v_7aa0a5 }) });
+    return v_ef8ab1;
+  }, [v_0e5a5a, v_ed660d, v_f5f393, v_2ca7e0, v_415d29]);
+
   const v_71affe = (comment: v_52af9d, v_fdf350) => {
     if (!v_2ca7e0) return;
     const v_8e2335 = v_61b01a.feedId ?? (v_ed660d != null && v_ed660d > 0 ? v_ed660d : 0);
@@ -575,7 +643,8 @@ export default function v_c316d8() {
       <Modal visible={!!v_ed660d} transparent animationType="slide">
         {
 }
-        <Pressable style={v_d81136.commentOverlay} onPress={() => {
+        <Pressable style={v_d81136.commentOverlay} onPress={(v_9e86fd) => {
+          if (v_9e86fd.target !== v_9e86fd.currentTarget) return;
           if (v_16a078 && v_507993) {
             v_0e1f26.dismiss();
           } else {
@@ -679,13 +748,15 @@ export default function v_c316d8() {
             ) : null}
             {
 }
-            <View style={{ flex: 1 }}>
             <ScrollView
-              style={[v_d81136.commentScroll, v_16a078 && !v_507993 ? { maxHeight: 300 } : null]}
-              contentContainerStyle={v_ecfc0f.length === 0 ? { flexGrow: 1, justifyContent: "center", minHeight: 180 } : undefined}
-              showsVerticalScrollIndicator={false}
+              style={[v_d81136.commentScroll, { minHeight: 0 }]}
+              contentContainerStyle={v_ecfc0f.length === 0 ? { flexGrow: 1, justifyContent: "center", minHeight: 180 } : { flexGrow: 1 }}
+              showsVerticalScrollIndicator={true}
               nestedScrollEnabled={true}
-              keyboardShouldPersistTaps="handled"
+              keyboardShouldPersistTaps="always"
+              scrollEventThrottle={16}
+              alwaysBounceVertical={true}
+              overScrollMode="always"
             >
               {v_465030 ? (
                 <View style={v_d81136.emptyComment}>
@@ -695,21 +766,36 @@ export default function v_c316d8() {
                 v_ecfc0f.map((v_3f4e2e) => {
                   const v_271e2a = v_2ced3d[v_3f4e2e.id];
                   const v_f72477 = v_271e2a !== undefined;
+
+                  const v_a02a09 = v_f5f393 != null && v_415d29?.ownerId != null && v_415d29.ownerId === v_f5f393;
                   return (
 
                   <View key={v_3f4e2e.id} style={v_d81136.commentBlock}>
-                  <View style={v_d81136.commentRow}>
-                    {v_3f4e2e.user.avatarUrl ? (
-                      <Image source={{ uri: v_3f4e2e.user.avatarUrl }} style={v_d81136.commentAvatar} />
-                    ) : (
-                      <View style={[v_d81136.commentAvatar, { backgroundColor: v_1bfbd0.zinc100 }]} />
-                    )}
+                  <TouchableOpacity
+                    activeOpacity={1}
+                    style={v_d81136.commentRow}
+                    onLongPress={v_a02a09 ? () => v_16a276(v_3f4e2e) : undefined}
+                    delayLongPress={400}
+                  >
+                    {}
+                    <TouchableOpacity
+                      onPress={() => v_3f4e2e.userId && v_f4c991.navigate("UserProfile", { userId: v_3f4e2e.userId })}
+                      activeOpacity={0.7}
+                      hitSlop={4}
+                    >
+                      {v_3f4e2e.user.avatarUrl ? (
+                        <Image source={{ uri: v_3f4e2e.user.avatarUrl }} style={v_d81136.commentAvatar} />
+                      ) : (
+                        <View style={[v_d81136.commentAvatar, { backgroundColor: v_1bfbd0.zinc100 }]} />
+                      )}
+                    </TouchableOpacity>
                     <View style={v_d81136.commentInfo}>
                       <View style={v_d81136.commentMeta}>
                         <Text style={v_d81136.commentAuthor}>{v_3f4e2e.user.name ?? v_3f4e2e.user.email}</Text>
                         <Text style={v_d81136.commentTime}>{v_bfd883(v_3f4e2e.createdAt)}</Text>
-                        {v_3f4e2e.userId === v_f5f393 ? (
-                          <TouchableOpacity onPress={() => v_b72645(v_3f4e2e.id)} style={{ marginLeft: 8 }}>
+                        {}
+                        {!v_a02a09 && (v_3f4e2e.userId === v_f5f393 ? (
+                          <TouchableOpacity onPress={() => v_b72645(v_3f4e2e.id)} style={{ marginLeft: 8 }} hitSlop={8}>
                             <Feather name="trash-2" size={14} color={v_1bfbd0.zinc400} />
                           </TouchableOpacity>
                         ) : (
@@ -721,10 +807,11 @@ export default function v_c316d8() {
                               })
                             }
                             style={{ marginLeft: 8 }}
+                            hitSlop={8}
                           >
                             <Feather name="flag" size={14} color={v_1bfbd0.zinc400} />
                           </TouchableOpacity>
-                        )}
+                        ))}
                       </View>
                       <Text style={v_d81136.commentContent}>{v_3f4e2e.content}</Text>
                       {}
@@ -776,11 +863,14 @@ export default function v_c316d8() {
                         )}
                       </View>
                     </View>
-                    {}
+                    {
+
+}
                     <TouchableOpacity
                       style={v_d81136.commentHeart}
                       onPress={() => v_71affe(v_3f4e2e)}
                       hitSlop={8}
+                      delayPressIn={150}
                     >
                       <Ionicons
                         name="heart"
@@ -796,7 +886,7 @@ export default function v_c316d8() {
                         {v_3f4e2e.likesCount ?? 0}
                       </Text>
                     </TouchableOpacity>
-                  </View>
+                  </TouchableOpacity>
                   {
 
 }
@@ -815,11 +905,13 @@ export default function v_c316d8() {
                         </View>
                         <Text style={v_d81136.commentContent}>{v_5cfb2c.content}</Text>
                       </View>
-                      {}
+                      {
+}
                       <TouchableOpacity
                         style={v_d81136.commentHeart}
                         onPress={() => v_71affe(v_5cfb2c, v_3f4e2e.id)}
                         hitSlop={8}
+                        delayPressIn={150}
                       >
                         <Ionicons
                           name="heart"
@@ -848,7 +940,6 @@ export default function v_c316d8() {
                 </View>
               )}
             </ScrollView>
-            </View>
             {}
             {}
             {v_90b93a && (
@@ -1077,9 +1168,19 @@ export default function v_c316d8() {
       </Modal>
 
       {}
+      <ActionSheet
+        visible={!!v_0e5a5a}
+        title="댓글"
+        subtitle={v_0e5a5a ? (v_0e5a5a.user.name ?? v_0e5a5a.user.email ?? "") : undefined}
+        actions={v_06a182}
+        onClose={() => v_76a7d9(null)}
+      />
+
+      {}
       <ReportReasonModal
         visible={!!v_b38909}
         targetName={v_b38909?.author}
+        targetKind="comment"
         onCancel={() => v_c03d7d(null)}
         onConfirm={async (v_58ca36) => {
           const v_5f5d6d = v_b38909;
@@ -1093,6 +1194,20 @@ export default function v_c316d8() {
               v_5f5d6d.commentId,
               v_58ca36 || undefined,
             );
+
+            v_04f2fc((v_ba2215) => {
+              const v_a448ad = v_ba2215.filter((v_a252ed) => v_a252ed.id !== v_5f5d6d.commentId);
+              v_829e3a(v_ed660d, v_a448ad.length);
+              return v_a448ad;
+            });
+
+            v_74a05a((v_ba2215) => {
+              const v_d41edb = { ...v_ba2215 };
+              for (const v_c7bc83 of Object.keys(v_d41edb)) {
+                v_d41edb[Number(v_c7bc83)] = v_d41edb[Number(v_c7bc83)].filter((v_cb35cb) => v_cb35cb.id !== v_5f5d6d.commentId);
+              }
+              return v_d41edb;
+            });
             v_15c939(
               v_8d41d7("home.toasts.commentReported", {
                 defaultValue: "댓글이 신고됐어요",

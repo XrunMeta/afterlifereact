@@ -200,25 +200,29 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
         <>
           {}
           <View style={[v_d81136.rightActions, v_fd0962 && v_d81136.rightActionsShift]}>
+            {}
             <TouchableOpacity onPress={v_5bca36} style={v_d81136.actionBtn} activeOpacity={0.7}>
               <Ionicons
                 name={v_85c07b ? "heart" : "heart-outline"}
-                size={32}
+                size={20}
                 color={v_85c07b ? "#ef4444" : v_1bfbd0.white}
               />
               <Text style={v_d81136.actionLabel}>{v_8c0b26.likes}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={v_48b0c1} style={v_d81136.actionBtn} activeOpacity={0.7}>
-              <Feather name="message-circle" size={30} color={v_1bfbd0.white} />
+              <Feather name="message-circle" size={20} color={v_1bfbd0.white} />
               <Text style={v_d81136.actionLabel}>{v_8c0b26.comments}</Text>
             </TouchableOpacity>
             {}
             <TouchableOpacity onPress={v_8506d0} style={v_d81136.actionBtn} activeOpacity={0.7}>
-              <Feather name="gift" size={28} color={v_1bfbd0.white} />
+              <Feather name="gift" size={20} color={v_1bfbd0.white} />
               <Text style={v_d81136.actionLabel}>{v_8c0b26.giftsReceived ?? 0}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={v_d51485} style={v_d81136.actionBtn} activeOpacity={0.7}>
-              <Feather name="share-2" size={28} color={v_1bfbd0.white} />
+              <Feather name="share-2" size={20} color={v_1bfbd0.white} />
+              {
+}
+              <Text style={[v_d81136.actionLabel, { opacity: 0 }]}>0</Text>
             </TouchableOpacity>
             {}
           </View>
@@ -518,8 +522,10 @@ const v_d81136 = v_472849.create({
 
   actionBtn: {
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     gap: 4,
+
+    minHeight: 40,
   },
   actionLabel: {
     fontSize: 12,
