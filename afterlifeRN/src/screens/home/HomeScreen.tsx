@@ -118,6 +118,8 @@ export default function v_c316d8() {
   const [v_2bcb8f, v_ddecc4] = v_5ab095(0);
 
   const [v_ed660d, v_b07dd3] = v_5ab095<number | null>(null);
+
+  const [v_16a078, v_905ec3] = v_5ab095(false);
   const [v_48e7fe, v_856f84] = v_5ab095("");
 
   const [v_d3a183, v_598141] = v_5ab095<{ cloneId: number; cloneName: string } | null>(null);
@@ -420,7 +422,7 @@ export default function v_c316d8() {
               }
             });
           }}
-          onCommentPress={() => v_b07dd3(v_8c0b26.id)}
+          onCommentPress={() => { v_905ec3(false); v_b07dd3(v_8c0b26.id); }}
 
           onIntimacyPress={() => v_598141({ cloneId: v_8c0b26.cloneId, cloneName: v_8c0b26.author })}
           onMorePress={() =>
@@ -462,7 +464,7 @@ export default function v_c316d8() {
 
           onGiftPress={() => v_cc306d({ cloneId: v_8c0b26.cloneId, cloneName: v_8c0b26.author })}
 
-          onDescriptionPress={() => v_b07dd3(v_8c0b26.id)}
+          onDescriptionPress={() => { v_905ec3(true); v_b07dd3(v_8c0b26.id); }}
         />
       );
     },
@@ -553,9 +555,9 @@ export default function v_c316d8() {
       {
 }
       <Modal visible={!!v_ed660d} transparent animationType="slide">
-        <Pressable style={v_d81136.commentOverlay} onPress={() => { v_0e1f26.dismiss(); v_b07dd3(null); }}>
+        <Pressable style={v_d81136.commentOverlay} onPress={() => { v_0e1f26.dismiss(); v_b07dd3(null); v_905ec3(false); }}>
           <SwipeDownSheet
-            onClose={() => { v_0e1f26.dismiss(); v_b07dd3(null); }}
+            onClose={() => { v_0e1f26.dismiss(); v_b07dd3(null); v_905ec3(false); }}
             keyboardOffset={v_7e4acc}
             style={[
               v_d81136.commentSheet,
@@ -571,6 +573,7 @@ export default function v_c316d8() {
 
 }
             {(() => {
+              if (!v_16a078) return null;
               if (v_507993) return null;
               const v_61f930 = v_ff422a.find((v_8b5cd8) => v_8b5cd8.id === v_ed660d);
               if (!v_61f930) return null;
