@@ -1,4 +1,5 @@
 import { v_889fad } from "../../stores/dialogStore";
+import v_5778ce from "../../components/common/HashtagText";
 import v_a3453e, { v_5ab095, v_e662ae, v_de06a3, v_c4deb2 } from "bapkr";
 import {
   v_3094a2,
@@ -555,7 +556,15 @@ export default function v_c316d8() {
       {
 }
       <Modal visible={!!v_ed660d} transparent animationType="slide">
-        <Pressable style={v_d81136.commentOverlay} onPress={() => { v_0e1f26.dismiss(); v_b07dd3(null); v_905ec3(false); }}>
+        {
+}
+        <Pressable style={v_d81136.commentOverlay} onPress={() => {
+          if (v_507993) {
+            v_0e1f26.dismiss();
+          } else {
+            v_b07dd3(null); v_905ec3(false);
+          }
+        }}>
           <SwipeDownSheet
             onClose={() => { v_0e1f26.dismiss(); v_b07dd3(null); v_905ec3(false); }}
             keyboardOffset={v_7e4acc}
@@ -594,24 +603,40 @@ export default function v_c316d8() {
                     )}
                     <View style={{ flex: 1 }}>
                       <Text style={v_d81136.detailAuthor} numberOfLines={1}>{v_61f930.author}</Text>
-                      <Text style={v_d81136.detailUsername} numberOfLines={1}>@{v_61f930.username}</Text>
+                      {}
+                      <Text style={v_d81136.detailUsername} numberOfLines={1}>@{(v_61f930.username ?? "").replace(/^@+/, "")}</Text>
                     </View>
+                    {}
+                    <TouchableOpacity
+                      onPress={() => { v_0e1f26.dismiss(); v_b07dd3(null); v_905ec3(false); }}
+                      hitSlop={8}
+                    >
+                      <Feather name="x" size={22} color={v_1bfbd0.zinc600} />
+                    </TouchableOpacity>
                   </View>
                   {v_61f930.description ? (
-                    <Text style={v_d81136.detailDescription}>{v_61f930.description}</Text>
+
+                    <HashtagText
+                      style={v_d81136.detailDescription}
+                      tagStyle={{ color: v_1bfbd0.violet600, fontWeight: "600" }}
+                    >
+                      {v_61f930.description}
+                    </HashtagText>
                   ) : null}
+                  {
+}
                   <View style={v_d81136.detailStatsRow}>
+                    <View style={v_d81136.detailStatCard}>
+                      <Text style={v_d81136.detailStatValue}>-</Text>
+                      <Text style={v_d81136.detailStatLabel}>{v_8d41d7("feed.followers", { defaultValue: "구독자" })}</Text>
+                    </View>
                     <View style={v_d81136.detailStatCard}>
                       <Text style={v_d81136.detailStatValue}>{v_61f930.likes || "0"}</Text>
                       <Text style={v_d81136.detailStatLabel}>{v_8d41d7("feed.likes", { defaultValue: "좋아요" })}</Text>
                     </View>
                     <View style={v_d81136.detailStatCard}>
-                      <Text style={v_d81136.detailStatValue}>{v_61f930.comments ?? 0}</Text>
-                      <Text style={v_d81136.detailStatLabel}>{v_8d41d7("feed.comments", { defaultValue: "댓글" })}</Text>
-                    </View>
-                    <View style={v_d81136.detailStatCard}>
-                      <Text style={v_d81136.detailStatValue}>{v_61f930.giftsReceived ?? 0}</Text>
-                      <Text style={v_d81136.detailStatLabel}>{v_8d41d7("feed.gifts", { defaultValue: "선물" })}</Text>
+                      <Text style={v_d81136.detailStatValue}>-</Text>
+                      <Text style={v_d81136.detailStatLabel}>{v_8d41d7("feed.createdAt", { defaultValue: "생성일" })}</Text>
                     </View>
                   </View>
                 </View>
@@ -624,7 +649,11 @@ export default function v_c316d8() {
                 <Text style={v_d81136.commentTitle}>{v_8d41d7("feed.commentCount", { n: v_ecfc0f.length })}</Text>
               </View>
             ) : null}
-            <ScrollView style={v_d81136.commentScroll} showsVerticalScrollIndicator={false}>
+            {}
+            <ScrollView
+              style={[v_d81136.commentScroll, v_16a078 && !v_507993 ? { maxHeight: 240 } : null]}
+              showsVerticalScrollIndicator={false}
+            >
               {v_465030 ? (
                 <View style={v_d81136.emptyComment}>
                   <Feather name="loader" size={28} color={v_1bfbd0.zinc400} />
@@ -1218,7 +1247,7 @@ const v_d81136 = v_472849.create({
   sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: v_1bfbd0.zinc300, alignSelf: "center", marginTop: 12, marginBottom: 12 },
   commentHeaderRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 12 },
 
-  detailHeader: { paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc100, marginBottom: 8 },
+  detailHeader: { paddingBottom: 12, marginBottom: 8 },
   detailProfileRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
   detailAvatar: { width: 40, height: 40, borderRadius: 20 },
   detailAuthor: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900 },
