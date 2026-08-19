@@ -36,4 +36,6 @@ v_74a79c.resolver.resolveRequest = (v_e3aeb3, v_1388b6, v_81a27a) => {
   return (v_abcfe4 || v_e3aeb3.resolveRequest)(v_e3aeb3, v_1388b6, v_81a27a);
 };
 
+v_74a79c.maxWorkers = 2;
+
 module.exports = v_74a79c;
