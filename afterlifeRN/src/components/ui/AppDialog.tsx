@@ -112,7 +112,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.zinc900,
     textAlign: "center",
-    marginBottom: 8,
+
+    marginBottom: 20,
   },
   message: {
     fontSize: 14,
