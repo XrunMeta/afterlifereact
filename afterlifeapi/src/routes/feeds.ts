@@ -680,12 +680,24 @@ v_f1d06f.delete("/:id/comments/:cid", v_6690d9, async (v_3f4e2e) => {
     throw new v_3ebe58("VALIDATION_FAILED", "잘못된 ID 에요.");
   }
   const v_43e90c = v_3f4e2e.get("userId")!;
+
   const v_8f00b9 = await v_3f4e2e.env.DB
-    .prepare(`DELETE FROM feed_comments WHERE id = ? AND feed_id = ? AND user_id = ?`)
-    .bind(v_062ae9, v_c09aa8, v_43e90c)
+    .prepare(
+      `DELETE FROM feed_comments
+         WHERE id = ? AND feed_id = ?
+           AND (
+             user_id = ?
+             OR EXISTS (
+               SELECT 1 FROM feeds f
+               INNER JOIN clones cl ON f.clone_id = cl.id
+               WHERE f.id = ? AND cl.owner_id = ?
+             )
+           )`,
+    )
+    .bind(v_062ae9, v_c09aa8, v_43e90c, v_c09aa8, v_43e90c)
     .run();
   if ((v_8f00b9.meta?.changes ?? 0) === 0) {
-    throw new v_3ebe58("NOT_FOUND", "댓글을 찾을 수 없거나 본인의 댓글이 아니에요.");
+    throw new v_3ebe58("NOT_FOUND", "댓글을 찾을 수 없거나 삭제 권한이 없어요.");
   }
   return v_3f4e2e.json({ ok: true });
 });
