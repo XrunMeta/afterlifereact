@@ -680,13 +680,15 @@ export default function v_c316d8() {
             ) : null}
             {
 }
-            <View style={{ flex: 1 }}>
             <ScrollView
-              style={v_d81136.commentScroll}
-              contentContainerStyle={v_ecfc0f.length === 0 ? { flexGrow: 1, justifyContent: "center", minHeight: 180 } : undefined}
+              style={[v_d81136.commentScroll, { minHeight: 0 }]}
+              contentContainerStyle={v_ecfc0f.length === 0 ? { flexGrow: 1, justifyContent: "center", minHeight: 180 } : { flexGrow: 1 }}
               showsVerticalScrollIndicator={true}
               nestedScrollEnabled={true}
-              keyboardShouldPersistTaps="handled"
+              keyboardShouldPersistTaps="always"
+              scrollEventThrottle={16}
+              alwaysBounceVertical={true}
+              overScrollMode="always"
             >
               {v_465030 ? (
                 <View style={v_d81136.emptyComment}>
@@ -854,7 +856,6 @@ export default function v_c316d8() {
                 </View>
               )}
             </ScrollView>
-            </View>
             {}
             {}
             {v_90b93a && (
