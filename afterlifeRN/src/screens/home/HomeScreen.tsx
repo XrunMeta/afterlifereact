@@ -1173,6 +1173,20 @@ export default function v_c316d8() {
               v_5f5d6d.commentId,
               v_58ca36 || undefined,
             );
+
+            v_04f2fc((v_ba2215) => {
+              const v_a448ad = v_ba2215.filter((v_a252ed) => v_a252ed.id !== v_5f5d6d.commentId);
+              v_829e3a(v_ed660d, v_a448ad.length);
+              return v_a448ad;
+            });
+
+            v_74a05a((v_ba2215) => {
+              const v_d41edb = { ...v_ba2215 };
+              for (const v_c7bc83 of Object.keys(v_d41edb)) {
+                v_d41edb[Number(v_c7bc83)] = v_d41edb[Number(v_c7bc83)].filter((v_cb35cb) => v_cb35cb.id !== v_5f5d6d.commentId);
+              }
+              return v_d41edb;
+            });
             v_15c939(
               v_8d41d7("home.toasts.commentReported", {
                 defaultValue: "댓글이 신고됐어요",
