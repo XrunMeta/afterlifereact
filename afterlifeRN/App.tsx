@@ -175,9 +175,9 @@ export default function v_6540c3() {
             </AppErrorBoundary>
           </View>
           {}
-          <View style={v_d81136.devOverlay} pointerEvents="box-none">
-            <DevFloatingBall />
-          </View>
+          {
+
+}
         </View>
         {}
         <AppDialog />
