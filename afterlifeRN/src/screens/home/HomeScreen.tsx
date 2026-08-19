@@ -617,10 +617,13 @@ export default function v_c316d8() {
                 </View>
               );
             })()}
-            {}
-            <View style={v_d81136.commentHeaderRow}>
-              <Text style={v_d81136.commentTitle}>{v_8d41d7("feed.commentCount", { n: v_ecfc0f.length })}</Text>
-            </View>
+            {
+}
+            {!v_16a078 ? (
+              <View style={v_d81136.commentHeaderRow}>
+                <Text style={v_d81136.commentTitle}>{v_8d41d7("feed.commentCount", { n: v_ecfc0f.length })}</Text>
+              </View>
+            ) : null}
             <ScrollView style={v_d81136.commentScroll} showsVerticalScrollIndicator={false}>
               {v_465030 ? (
                 <View style={v_d81136.emptyComment}>
@@ -774,9 +777,9 @@ export default function v_c316d8() {
                 );
                 })
               ) : (
+
                 <View style={v_d81136.emptyComment}>
-                  <Feather name="message-circle" size={40} color={v_1bfbd0.zinc300} />
-                  <Text style={v_d81136.emptyText}>{v_8d41d7("feed.commentsEmpty")}</Text>
+                  <Text style={v_d81136.emptyCommentGray}>{v_8d41d7("feed.commentsEmpty", { defaultValue: "댓글이 없습니다" })}</Text>
                 </View>
               )}
             </ScrollView>
@@ -1242,6 +1245,7 @@ const v_d81136 = v_472849.create({
   commentTime: { fontSize: 12, color: v_1bfbd0.zinc500 },
   commentContent: { fontSize: 14, color: v_1bfbd0.zinc800, lineHeight: 20 },
   emptyComment: { alignItems: "center", paddingVertical: 40 },
+  emptyCommentGray: { fontSize: 14, color: v_1bfbd0.zinc400 },
   emptyText: { fontSize: 14, color: v_1bfbd0.zinc400, marginTop: 8 },
   commentInputRow: { flexDirection: "row", alignItems: "center", gap: 12, borderTopWidth: 1, borderTopColor: v_1bfbd0.zinc100, paddingTop: 12 },
   commentInput: { flex: 1, height: 40, backgroundColor: v_1bfbd0.zinc50 ?? v_1bfbd0.zinc100, borderRadius: 20, paddingHorizontal: 16, fontSize: 14, color: v_1bfbd0.zinc900 },
