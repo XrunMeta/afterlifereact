@@ -649,7 +649,9 @@ export default function HomeScreen() {
               );
             })()}
             {}
-            {}
+            {
+}
+            <View style={{ flex: 1 }}>
             <ScrollView
               style={[styles.commentScroll, commentSheetShowDetail && !keyboardVisible ? { maxHeight: 240 } : null]}
               showsVerticalScrollIndicator={false}
@@ -819,6 +821,7 @@ export default function HomeScreen() {
                 </View>
               )}
             </ScrollView>
+            </View>
             {
 }
             {!commentSheetShowDetail ? (
