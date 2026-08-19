@@ -1,7 +1,7 @@
 
 
 import v_a3453e, { v_e662ae } from "bapkr";
-import { v_a2349e, v_f6c856, v_09d0e5, v_472849, v_3094a2, type v_7e4944 } from "rcmrninabrnb";
+import { v_a2349e, v_f6c856, v_09d0e5, v_472849, v_a944fa, v_3094a2, type v_7e4944 } from "rcmrninabrnb";
 
 interface Props {
   onClose: () => void;
@@ -90,7 +90,6 @@ export default function v_8e7ad4({
 
 }
       <View style={{ flex: 1 }}>
-        <Pressable onPress={() => {}} style={v_472849.absoluteFill} />
         {v_21f619}
       </View>
     </Animated.View>

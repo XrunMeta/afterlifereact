@@ -1972,6 +1972,14 @@ v_f891e6.post("/:id/block", v_6690d9, async (v_3f4e2e) => {
   }
   const v_43e90c = v_3f4e2e.get("userId")!;
 
+  const v_2e83b0 = await v_3f4e2e.env.DB
+    .prepare(`SELECT owner_id AS ownerId FROM clones WHERE id = ?`)
+    .bind(v_6e0fd3)
+    .first<{ ownerId: number }>();
+  if (v_2e83b0?.ownerId === v_43e90c) {
+    throw new v_3ebe58("VALIDATION_FAILED", "본인의 페르소나는 차단할 수 없어요.");
+  }
+
   await v_3f4e2e.env.DB.batch([
     v_3f4e2e.env.DB.prepare(
       `INSERT OR IGNORE INTO clone_blocks (user_id, clone_id) VALUES (?, ?)`,
