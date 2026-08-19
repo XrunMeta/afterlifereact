@@ -86,8 +86,10 @@ export default function v_8e7ad4({
         {...v_e7cf0f.panHandlers}
         style={[v_d81136.handleZone, { height: v_0b30e9 }]}
       />
-      {}
-      <Pressable onPress={() => {}}>{v_21f619}</Pressable>
+      {
+
+}
+      <Pressable onPress={() => {}} style={{ flex: 1 }}>{v_21f619}</Pressable>
     </Animated.View>
   );
 }
