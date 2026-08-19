@@ -36,6 +36,7 @@ import IntimacyEventsSheet from "../../components/clone/IntimacyEventsSheet";
 import GiftReceiptsSheet from "../../components/clone/GiftReceiptsSheet";
 import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
 import ReportReasonModal from "../../components/common/ReportReasonModal";
+import ReportReasonSheet from "../../components/ui/ReportReasonSheet";
 
 import VisibilityPickerModal from "../clones/components/VisibilityPickerModal";
 import FriendPickerModal from "../clones/components/FriendPickerModal";
@@ -1184,9 +1185,8 @@ export default function HomeScreen() {
       />
 
       {}
-      <ReportReasonModal
+      <ReportReasonSheet
         visible={!!reportCommentTarget}
-        targetName={reportCommentTarget?.author}
         targetKind="comment"
         onCancel={() => setReportCommentTarget(null)}
         onConfirm={async (reason) => {
