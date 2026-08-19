@@ -50,6 +50,8 @@ interface FeedCardProps {
   onDescriptionScrollStart?: () => void;
 
   onDescriptionScrollEnd?: () => void;
+
+  onDescriptionPress?: () => void;
 }
 
 const FeedCard: v_a3453e.FC<FeedCardProps> = ({
@@ -72,6 +74,7 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
   onGiftPress: v_8506d0,
   onDescriptionScrollStart: v_c29799,
   onDescriptionScrollEnd: v_bb9bff,
+  onDescriptionPress: v_9c79dc,
 }) => {
   const { t: v_8d41d7 } = v_772971();
   const v_3c9f12 = v_ada615<v_5b8240<v_97a9a8>>();
@@ -96,17 +99,6 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
     const v_f23d49 = v_bd1444.replace(/^#+/, "");
     v_3c9f12.navigate("SearchTab", { initialQuery: v_f23d49 });
   };
-
-  const [v_4393ab, v_f95f43] = v_a3453e.useState(0);
-  const [v_49cb14, v_eb937b] = v_a3453e.useState(0);
-  const [v_7e038a, v_a995c2] = v_a3453e.useState(0);
-  const v_64673e = v_49cb14 > v_7e038a + 1;
-  const v_a619fa = v_64673e
-    ? Math.max(16, (v_7e038a / v_49cb14) * v_7e038a)
-    : 0;
-  const v_7b5c27 = v_64673e
-    ? (v_4393ab / (v_49cb14 - v_7e038a)) * (v_7e038a - v_a619fa)
-    : 0;
 
   const v_fd0962 = v_3d6201 < 640;
   return (
@@ -283,43 +275,19 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
 
 }
             {v_8c0b26.description ? (
-
-              <View
-                style={v_d81136.descriptionWrap}
-                onTouchStart={v_c29799}
-                onTouchEnd={v_bb9bff}
-                onTouchCancel={v_bb9bff}
+              <TouchableOpacity
+                onPress={v_9c79dc}
+                activeOpacity={0.7}
+                disabled={!v_9c79dc}
               >
-                <ScrollView
-                  style={v_d81136.descriptionScroll}
-
-                  showsVerticalScrollIndicator={false}
-                  nestedScrollEnabled={false}
-                  bounces={false}
-                  overScrollMode="never"
-                  scrollEventThrottle={16}
-                  onScroll={(v_9e86fd) => v_f95f43(v_9e86fd.nativeEvent.contentOffset.y)}
-                  onContentSizeChange={(v_37eab7, v_65a2cd) => v_eb937b(v_65a2cd)}
-                  onLayout={(v_9e86fd) => v_a995c2(v_9e86fd.nativeEvent.layout.height)}
+                <HashtagText
+                  style={v_d81136.description}
+                  tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
+                  numberOfLines={2}
                 >
-                  <HashtagText
-                    style={v_d81136.description}
-                    tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
-                  >
-                    {v_8c0b26.description}
-                  </HashtagText>
-                </ScrollView>
-                {v_64673e ? (
-                  <View pointerEvents="none" style={v_d81136.descScrollbarTrack}>
-                    <View
-                      style={[
-                        v_d81136.descScrollbarThumb,
-                        { top: v_7b5c27, height: v_a619fa },
-                      ]}
-                    />
-                  </View>
-                ) : null}
-              </View>
+                  {v_8c0b26.description}
+                </HashtagText>
+              </TouchableOpacity>
             ) : null}
 
             {}
