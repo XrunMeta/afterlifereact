@@ -575,7 +575,8 @@ export default function HomeScreen() {
       <Modal visible={!!commentFeedId} transparent animationType="slide">
         {
 }
-        <Pressable style={styles.commentOverlay} onPress={() => {
+        <Pressable style={styles.commentOverlay} onPress={(e) => {
+          if (e.target !== e.currentTarget) return;
           if (commentSheetShowDetail && keyboardVisible) {
             Keyboard.dismiss();
           } else {

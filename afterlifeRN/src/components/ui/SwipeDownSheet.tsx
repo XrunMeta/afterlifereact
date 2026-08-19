@@ -87,12 +87,11 @@ export default function SwipeDownSheet({
         style={[styles.handleZone, { height: handleZoneHeight }]}
       />
       {
+
 }
-      <TouchableWithoutFeedback onPress={() => {}}>
-        <View style={{ flex: 1 }}>
-          {children}
-        </View>
-      </TouchableWithoutFeedback>
+      <View style={{ flex: 1 }}>
+        {children}
+      </View>
     </Animated.View>
   );
 }
