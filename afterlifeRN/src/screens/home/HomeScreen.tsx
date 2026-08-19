@@ -366,7 +366,11 @@ export default function v_c316d8() {
   };
 
   const [v_0e5a5a, v_76a7d9] = v_5ab095<v_52af9d | null>(null);
-  const v_16a276 = (c: v_52af9d) => v_76a7d9(v_3f4e2e);
+  const [v_6693cc, v_e8fafb] = v_5ab095<number | undefined>(undefined);
+  const v_16a276 = (c: v_52af9d, v_aab37b) => {
+    v_e8fafb(v_aab37b);
+    v_76a7d9(v_3f4e2e);
+  };
   const v_06a182 = v_a3453e.useMemo<v_e2b085[]>(() => {
     if (!v_0e5a5a) return [];
     const v_3f4e2e = v_0e5a5a;
@@ -774,7 +778,7 @@ export default function v_c316d8() {
                   <TouchableOpacity
                     activeOpacity={1}
                     style={v_d81136.commentRow}
-                    onLongPress={v_a02a09 ? () => v_16a276(v_3f4e2e) : undefined}
+                    onLongPress={v_a02a09 ? (v_9e86fd) => v_16a276(v_3f4e2e, v_9e86fd.nativeEvent.pageY) : undefined}
                     delayLongPress={400}
                   >
                     {}
@@ -1171,7 +1175,8 @@ export default function v_c316d8() {
       <ActionSheet
         visible={!!v_0e5a5a}
         actions={v_06a182}
-        onClose={() => v_76a7d9(null)}
+        anchorY={v_6693cc}
+        onClose={() => { v_76a7d9(null); v_e8fafb(undefined); }}
       />
 
       {}

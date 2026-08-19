@@ -29,13 +29,23 @@ interface Props {
   subtitle?: string;
   actions: ActionSheetAction[];
   onClose: () => void;
+
+  anchorY?: number;
 }
 
-export default function v_5fd66c({ visible: v_cf55be, actions: v_dd943a, onClose: v_0890f8 }: Props) {
+export default function v_5fd66c({ visible: v_cf55be, actions: v_dd943a, onClose: v_0890f8, anchorY: v_aab37b }: Props) {
 
+  const { height: v_ed180a } = v_e45a99();
+  const v_b32007 = Math.min(v_dd943a.length * 48 + 20, 260); 
+  let v_bfb490;
+  if (v_aab37b != null) {
+    const v_df5bdb = v_ed180a - v_aab37b;
+    if (v_df5bdb >= v_b32007 + 40) v_bfb490 = v_aab37b + 8; 
+    else v_bfb490 = Math.max(60, v_aab37b - v_b32007 - 8); 
+  }
   return (
     <Modal visible={v_cf55be} transparent animationType="fade" onRequestClose={v_0890f8}>
-      <Pressable style={v_d81136.backdrop} onPress={v_0890f8}>
+      <Pressable style={[v_d81136.backdrop, v_bfb490 != null && { justifyContent: "flex-start", alignItems: "flex-start", paddingTop: v_bfb490, paddingLeft: 20 }]} onPress={v_0890f8}>
         <Pressable style={v_d81136.sheet} onPress={(v_9e86fd) => v_9e86fd.stopPropagation?.()}>
           {v_dd943a.map((v_779914, v_ebec57) => (
             <React.Fragment key={`${v_779914.label}-${v_ebec57}`}>
