@@ -45,33 +45,47 @@ export default function ActionSheet({ visible, actions, onClose, anchorY }: Prop
   }
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={[styles.backdrop, anchorTop != null && { justifyContent: "flex-start", alignItems: "flex-start", paddingTop: anchorTop, paddingLeft: 20 }]} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation?.()}>
-          {actions.map((a, i) => (
-            <React.Fragment key={`${a.label}-${i}`}>
-              {i > 0 ? <View style={styles.divider} /> : null}
-              <Pressable
-                style={({ pressed }) => [styles.actionRow, pressed && styles.actionRowPressed]}
-                onPress={() => { onClose(); setTimeout(a.onPress, 100); }}
-                android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-              >
-                {a.icon ? (
-                  <Feather
-                    name={a.icon}
-                    size={22}
-                    color={a.style === "destructive" ? "#ef4444" : COLORS.zinc800}
-                  />
-                ) : (
-                  <View style={{ width: 22 }} />
-                )}
-                <Text style={[styles.actionLabel, a.style === "destructive" && styles.actionLabelDestructive]}>
-                  {a.label}
-                </Text>
-              </Pressable>
-            </React.Fragment>
-          ))}
-        </Pressable>
-      </Pressable>
+      {}
+      <View style={StyleSheet.absoluteFillObject}>
+        {}
+        <Pressable style={styles.backdrop} onPress={onClose} />
+        {}
+        <View
+          style={[
+            styles.anchorLayer,
+            anchorTop != null
+              ? { justifyContent: "flex-start", alignItems: "flex-start", paddingTop: anchorTop, paddingLeft: 20 }
+              : { justifyContent: "center", alignItems: "center" },
+          ]}
+          pointerEvents="box-none"
+        >
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation?.()}>
+            {actions.map((a, i) => (
+              <React.Fragment key={`${a.label}-${i}`}>
+                {i > 0 ? <View style={styles.divider} /> : null}
+                <Pressable
+                  style={({ pressed }) => [styles.actionRow, pressed && styles.actionRowPressed]}
+                  onPress={() => { onClose(); setTimeout(a.onPress, 100); }}
+                  android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+                >
+                  {a.icon ? (
+                    <Feather
+                      name={a.icon}
+                      size={22}
+                      color={a.style === "destructive" ? "#ef4444" : COLORS.zinc800}
+                    />
+                  ) : (
+                    <View style={{ width: 22 }} />
+                  )}
+                  <Text style={[styles.actionLabel, a.style === "destructive" && styles.actionLabelDestructive]}>
+                    {a.label}
+                  </Text>
+                </Pressable>
+              </React.Fragment>
+            ))}
+          </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }
@@ -79,11 +93,13 @@ export default function ActionSheet({ visible, actions, onClose, anchorY }: Prop
 const styles = StyleSheet.create({
 
   backdrop: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
 
     backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "center",
-    alignItems: "center",
+  },
+
+  anchorLayer: {
+    ...StyleSheet.absoluteFillObject,
   },
   sheet: {
     width: 240,
