@@ -421,7 +421,7 @@ export default function v_c316d8() {
               v_15c939("차단됐어요");
             } catch (v_49263d) { console.warn("[blockUser] failed:", v_49263d); v_15c939("차단 실패"); }
           }},
-        ]);
+        ], { messageAlign: "left" });
       },
     });
     if (v_de3672) v_ef8ab1.push({ label: "신고하기", icon: "flag", onPress: () => v_c03d7d({ commentId: v_3f4e2e.id, author: v_7aa0a5 }) });
