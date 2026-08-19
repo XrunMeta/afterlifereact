@@ -10,6 +10,7 @@ import {
   StyleSheet,
   useWindowDimensions,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { COLORS } from "../constants";
 
@@ -35,10 +36,18 @@ const InfoRow: React.FC<RowProps> = ({ icon, text }) => (
 
 export default function BlockConfirmSheet({ visible, userName, userAvatarUrl, onCancel, onConfirm }: Props) {
   const { height } = useWindowDimensions();
+
+  const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
       <Pressable style={styles.backdrop} onPress={onCancel}>
-        <Pressable style={[styles.sheet, { maxHeight: height * 0.85 }]} onPress={(e) => e.stopPropagation?.()}>
+        <Pressable
+          style={[
+            styles.sheet,
+            { maxHeight: height * 0.85, paddingBottom: 32 + Math.max(insets.bottom, 0) },
+          ]}
+          onPress={(e) => e.stopPropagation?.()}
+        >
           <View style={styles.handle} />
 
           {}
@@ -100,7 +109,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 20,
-    paddingBottom: 32,
+
   },
   handle: {
     width: 40,

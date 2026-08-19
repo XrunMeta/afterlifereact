@@ -10,6 +10,7 @@ import {
   ScrollView,
   useWindowDimensions,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { COLORS } from "../constants";
 
@@ -34,6 +35,8 @@ const REASONS = [
 
 export default function ReportReasonSheet({ visible, targetKind = "comment", onCancel, onConfirm }: Props) {
   const { height } = useWindowDimensions();
+
+  const insets = useSafeAreaInsets();
   const targetWord = targetKind === "comment" ? "댓글" : targetKind === "post" ? "게시물" : "클론";
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
@@ -77,7 +80,7 @@ export default function ReportReasonSheet({ visible, targetKind = "comment", onC
               ))}
             </View>
 
-            <View style={{ height: 32 }} />
+            <View style={{ height: 32 + Math.max(insets.bottom, 0) }} />
           </ScrollView>
         </Pressable>
       </Pressable>
