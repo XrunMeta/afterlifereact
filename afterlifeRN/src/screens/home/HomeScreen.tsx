@@ -559,10 +559,10 @@ export default function v_c316d8() {
         {
 }
         <Pressable style={v_d81136.commentOverlay} onPress={() => {
-          if (v_507993) {
+          if (v_16a078 && v_507993) {
             v_0e1f26.dismiss();
           } else {
-            v_b07dd3(null); v_905ec3(false);
+            v_0e1f26.dismiss(); v_b07dd3(null); v_905ec3(false);
           }
         }}>
           <SwipeDownSheet
@@ -808,7 +808,14 @@ export default function v_c316d8() {
               ) : (
 
                 <View style={v_d81136.emptyComment}>
-                  <Text style={v_d81136.emptyCommentGray}>{v_8d41d7("feed.commentsEmpty", { defaultValue: "댓글이 없습니다" })}</Text>
+                  {v_16a078 ? (
+                    <Text style={v_d81136.emptyCommentGray}>{v_8d41d7("feed.commentsEmpty", { defaultValue: "댓글이 없습니다" })}</Text>
+                  ) : (
+                    <>
+                      <Feather name="message-circle" size={40} color={v_1bfbd0.zinc300} />
+                      <Text style={v_d81136.emptyText}>{v_8d41d7("feed.commentsEmpty")}</Text>
+                    </>
+                  )}
                 </View>
               )}
             </ScrollView>
