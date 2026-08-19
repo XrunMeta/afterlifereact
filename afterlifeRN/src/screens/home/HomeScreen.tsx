@@ -382,7 +382,7 @@ export default function HomeScreen() {
     if (isOthers) buttons.push({ text: "신고하기", onPress: () => setReportCommentTarget({ commentId: c.id, author: authorName }) });
     if (buttons.length === 0) return;
     buttons.push({ text: "취소", style: "cancel" });
-    Alert.alert("댓글", authorName, buttons);
+    showAlert("댓글", authorName, buttons);
   };
 
   const toggleCommentLike = (comment: FeedComment, parentCommentId?: number) => {
