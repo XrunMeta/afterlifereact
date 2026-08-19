@@ -778,15 +778,15 @@ export default function v_c316d8() {
                 v_ecfc0f.map((v_3f4e2e) => {
                   const v_271e2a = v_2ced3d[v_3f4e2e.id];
                   const v_f72477 = v_271e2a !== undefined;
+
+                  const v_a02a09 = v_f5f393 != null && v_415d29?.ownerId != null && v_415d29.ownerId === v_f5f393;
                   return (
 
                   <View key={v_3f4e2e.id} style={v_d81136.commentBlock}>
-                  {
-}
                   <TouchableOpacity
                     activeOpacity={1}
                     style={v_d81136.commentRow}
-                    onLongPress={() => v_16a276(v_3f4e2e)}
+                    onLongPress={v_a02a09 ? () => v_16a276(v_3f4e2e) : undefined}
                     delayLongPress={400}
                   >
                     {v_3f4e2e.user.avatarUrl ? (
@@ -798,6 +798,25 @@ export default function v_c316d8() {
                       <View style={v_d81136.commentMeta}>
                         <Text style={v_d81136.commentAuthor}>{v_3f4e2e.user.name ?? v_3f4e2e.user.email}</Text>
                         <Text style={v_d81136.commentTime}>{v_bfd883(v_3f4e2e.createdAt)}</Text>
+                        {}
+                        {!v_a02a09 && (v_3f4e2e.userId === v_f5f393 ? (
+                          <TouchableOpacity onPress={() => v_b72645(v_3f4e2e.id)} style={{ marginLeft: 8 }} hitSlop={8}>
+                            <Feather name="trash-2" size={14} color={v_1bfbd0.zinc400} />
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity
+                            onPress={() =>
+                              v_c03d7d({
+                                commentId: v_3f4e2e.id,
+                                author: v_3f4e2e.user.name ?? v_3f4e2e.user.email ?? "",
+                              })
+                            }
+                            style={{ marginLeft: 8 }}
+                            hitSlop={8}
+                          >
+                            <Feather name="flag" size={14} color={v_1bfbd0.zinc400} />
+                          </TouchableOpacity>
+                        ))}
                       </View>
                       <Text style={v_d81136.commentContent}>{v_3f4e2e.content}</Text>
                       {}
