@@ -681,9 +681,9 @@ export default function HomeScreen() {
 }
             <View style={{ flex: 1 }}>
             <ScrollView
-              style={[styles.commentScroll, commentSheetShowDetail && !keyboardVisible ? { maxHeight: 300 } : null]}
+              style={styles.commentScroll}
               contentContainerStyle={comments.length === 0 ? { flexGrow: 1, justifyContent: "center", minHeight: 180 } : undefined}
-              showsVerticalScrollIndicator={false}
+              showsVerticalScrollIndicator={true}
               nestedScrollEnabled={true}
               keyboardShouldPersistTaps="handled"
             >
