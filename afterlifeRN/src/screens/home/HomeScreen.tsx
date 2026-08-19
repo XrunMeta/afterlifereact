@@ -36,6 +36,7 @@ import v_06b8c0 from "../../components/clone/IntimacyEventsSheet";
 import v_03e207 from "../../components/clone/GiftReceiptsSheet";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import v_4d58d7 from "../../components/common/ReportReasonModal";
+import v_409416 from "../../components/ui/ReportReasonSheet";
 
 import v_92380d from "../clones/components/VisibilityPickerModal";
 import v_4c2648 from "../clones/components/FriendPickerModal";
@@ -1184,9 +1185,8 @@ export default function v_c316d8() {
       />
 
       {}
-      <ReportReasonModal
+      <ReportReasonSheet
         visible={!!v_b38909}
-        targetName={v_b38909?.author}
         targetKind="comment"
         onCancel={() => v_c03d7d(null)}
         onConfirm={async (v_58ca36) => {
