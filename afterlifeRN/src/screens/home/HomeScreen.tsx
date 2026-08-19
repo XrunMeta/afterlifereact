@@ -391,6 +391,12 @@ export default function HomeScreen() {
     const isOwner = myUserId != null && cloneOwnerId != null && cloneOwnerId === myUserId;
     const isMine = myUserId != null && c.userId === myUserId;
     const canDelete = isMine || isOwner;
+    if (__DEV__) console.log("[COMMENT-ACTIONS]", {
+      commentFeedId, cloneId, cloneOwnerId, myUserId, cUserId: c.userId,
+      isOwner, isMine, canDelete,
+      detailStats: detailCloneStats,
+      raw: raw ? { id: raw.id, cloneId: raw.cloneId, cloneOwnerId: raw.clone?.ownerId } : null,
+    });
     const isOthers = !isMine;
     const authorName = c.user.name ?? c.user.email ?? "";
     const list: ActionSheetAction[] = [];
