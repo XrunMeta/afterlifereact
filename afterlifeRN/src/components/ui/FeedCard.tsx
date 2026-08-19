@@ -199,7 +199,9 @@ const FeedCard: React.FC<FeedCardProps> = ({
       {isActive && (
         <>
           {}
-          <View style={[styles.rightActions, isSmallScreen && styles.rightActionsShift]}>
+          {
+}
+          <View style={[styles.rightActions, isSmallScreen && styles.rightActionsShift, !isOwn && styles.rightActionsWithFollow]}>
             {}
             <TouchableOpacity onPress={onToggleLike} style={styles.actionBtn} activeOpacity={0.7}>
               <Ionicons
@@ -424,6 +426,10 @@ const styles = StyleSheet.create({
 
   rightActionsShift: {
     bottom: 190,
+  },
+
+  rightActionsWithFollow: {
+    bottom: 165,
   },
 
   ownerHeader: {
