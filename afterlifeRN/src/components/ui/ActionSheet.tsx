@@ -102,8 +102,9 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   sheet: {
+
     width: 240,
-    backgroundColor: "#fafafa",
+    backgroundColor: "rgba(255,255,255,0.7)",
     borderRadius: 22,
     overflow: "hidden",
     shadowColor: "#000",

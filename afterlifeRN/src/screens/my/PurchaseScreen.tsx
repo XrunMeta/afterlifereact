@@ -1,228 +1,529 @@
 
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
+  ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  ScrollView,
+  Alert,
   Platform,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
-import type { Product } from "react-native-iap";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
+import type { Product, ProductSubscription } from "react-native-iap";
 import SafeView from "../../components/ui/SafeView";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, RADIUS, SIZES } from "../../components/constants";
 import { useAuthStore } from "../../stores/authStore";
 import { getCreditBalance, type CreditBalance } from "../../api/credits";
+
+import { getGiftInventory, swapGift, type GiftInventoryItem } from "../../api/giftInventory";
 import { showAlert } from "../../stores/dialogStore";
+import { Image } from "react-native";
+
 import {
-  initIap,
-  shutdownIap,
   fetchAllProducts,
   buyConsumable,
-  registerPurchaseListeners,
+  buySubscription,
+  type SubscriptionSku,
+  type ConsumableSku,
 } from "../../lib/iap";
 
-const TEST_SKU = "credits_1000";
-const IAP_ALLOWED_EMAILS = new Set(["oth-user@example.invalid"]);
+function fmtSecToMin(sec: number, t: TFunction): string {
+  const min = Math.floor(sec / 60);
+  const s = sec % 60;
+  return s > 0
+    ? t("common.durationMinSec", { m: min, s, defaultValue: `${min}분 ${s}초` })
+    : t("common.durationMin", { m: min, defaultValue: `${min}분` });
+}
+
+const SEC_PER_XRUN = 60;
+function fmtSecToXrun(sec: number): string {
+  const xrun = sec / SEC_PER_XRUN;
+
+  const s = Number.isInteger(xrun) ? xrun.toLocaleString() : xrun.toFixed(1);
+  return `${s} XRUN`;
+}
+
+const MOCK_PREFIX = "__mock__";
+const MOCK_SUBS: ProductSubscription[] = [
+  { id: "run.xrun.afterlife.sub.light", title: "xLight 30min", description: "월 30분 통화", displayPrice: "₩2,200", price: 2200, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
+  { id: "run.xrun.afterlife.sub.basic.v3", title: "xBasic 100min", description: "월 100분 통화", displayPrice: "₩6,600", price: 6600, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
+  { id: "run.xrun.afterlife.sub.standard", title: "xStandard 300min", description: "월 300분 통화", displayPrice: "₩19,900", price: 19900, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
+  { id: "run.xrun.afterlife.sub.plus", title: "xPlus 600min", description: "월 600분 통화", displayPrice: "₩39,900", price: 39900, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
+  { id: "run.xrun.afterlife.sub.premium", title: "xPremium 1000min", description: "월 1000분 통화", displayPrice: "₩69,900", price: 69900, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
+].map((p) => ({ ...p, id: `${MOCK_PREFIX}${p.id}` }) as ProductSubscription);
+const MOCK_CONSUMABLES: Product[] = [
+  { id: "run.xrun.afterlife.credit.30", title: "Recharge 30min", description: "30분 충전 · 5년 유효", displayPrice: "₩2,200", price: 2200, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
+  { id: "run.xrun.afterlife.credit.60", title: "Recharge 60min", description: "60분 충전 · 5년 유효", displayPrice: "₩4,400", price: 4400, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
+  { id: "run.xrun.afterlife.credit.150", title: "Recharge 150min", description: "150분 충전 · 5년 유효", displayPrice: "₩9,900", price: 9900, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
+  { id: "run.xrun.afterlife.credit.300", title: "Recharge 300min", description: "300분 충전 · 5년 유효", displayPrice: "₩19,900", price: 19900, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
+].map((p) => ({ ...p, id: `${MOCK_PREFIX}${p.id}` }) as Product);
+const isMockSku = (id: string): boolean => id.startsWith(MOCK_PREFIX);
 
 export default function PurchaseScreen() {
+  const { t } = useTranslation();
+  const navigation = useNavigation();
   const accessToken = useAuthStore((s) => s.accessToken);
-  const apiUser = useAuthStore((s) => s.apiUser);
-  const iapAllowed = IAP_ALLOWED_EMAILS.has(apiUser?.email ?? "");
-  const [product, setProduct] = useState<Product | null>(null);
-  const [balance, setBalance] = useState<CreditBalance | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
 
-  const refreshBalance = useCallback(async () => {
+  const giftInventoryVisible = true;
+
+  const scrollRef = useRef<ScrollView>(null);
+  const giftSectionYRef = useRef<number>(0);
+  const scrollToGift = () => {
+    scrollRef.current?.scrollTo({ y: Math.max(0, giftSectionYRef.current - 12), animated: true });
+  };
+  const [balance, setBalance] = useState<CreditBalance | null>(null);
+
+  const [giftItems, setGiftItems] = useState<GiftInventoryItem[]>([]);
+  const [swappingGift, setSwappingGift] = useState<string | null>(null);
+  const [balLoading, setBalLoading] = useState(true);
+  const [subs, setSubs] = useState<ProductSubscription[]>([]);
+  const [consumables, setConsumables] = useState<Product[]>([]);
+  const [prodLoading, setProdLoading] = useState(true);
+  const [buying, setBuying] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
     if (!accessToken) return;
+    setBalLoading(true);
     try {
       const b = await getCreditBalance(accessToken);
       setBalance(b);
     } catch (err) {
-      console.warn("[Purchase] balance fetch failed:", err);
-    }
-  }, [accessToken]);
-
-  const loadProducts = useCallback(async () => {
-    setLoading(true);
-    try {
-      await initIap();
-      const { consumables } = await fetchAllProducts();
-      const found = consumables.find((p) => p.id === TEST_SKU) ?? null;
-      setProduct(found);
-      if (!found) setMsg(`상품 ${TEST_SKU} 을 Play Console 에서 불러오지 못했습니다.`);
-    } catch (err) {
-      setMsg(`상품 로드 실패: ${String(err)}`);
+      console.warn("[purchase] balance fetch failed:", err);
     } finally {
-      setLoading(false);
+      setBalLoading(false);
     }
-  }, []);
 
-  useEffect(() => {
-    if (!iapAllowed) {
-      setLoading(false);
-      return;
+    if (giftInventoryVisible) {
+      try {
+        const res = await getGiftInventory(accessToken);
+        setGiftItems(res.items);
+      } catch (err) {
+        console.warn("[purchase] gift inventory fetch failed:", err);
+      }
     }
-    const cleanup = registerPurchaseListeners({
-      onSuccess: (productId) => {
-        setBusy(false);
-        setMsg(`구매 성공! 상품: ${productId} — 서버 반영 대기 후 잔고 새로고침`);
-        setTimeout(() => void refreshBalance(), 1500);
-      },
-      onError: (err) => {
-        setBusy(false);
-        setMsg(`구매 실패: ${String(err)}`);
-      },
-    });
-    void loadProducts();
-    void refreshBalance();
-    return () => {
-      cleanup?.();
-      void shutdownIap();
-    };
+  }, [accessToken, giftInventoryVisible]);
 
-  }, []);
+  const onSwapGift = useCallback(
+    (item: GiftInventoryItem) => {
+      showAlert(
+        "교환 확인",
 
-  useFocusEffect(useCallback(() => { void refreshBalance(); }, [refreshBalance]));
+        `${item.name} ${item.count}개를 ${fmtSecToXrun(item.xrunTotal)} XRUN 으로 교환할까요?`,
+        [
+          { text: "취소", style: "cancel" },
+          {
+            text: "교환",
+            style: "default",
+            onPress: async () => {
+              if (!accessToken) return;
+              setSwappingGift(item.giftId);
+              try {
+                const idem = `swap-${item.giftId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+                const res = await swapGift(
+                  accessToken,
+                  { giftId: item.giftId, count: item.count },
+                  idem,
+                );
+                showAlert(
+                  "교환 완료 🎉",
 
-  const handleBuy = useCallback(async () => {
-    if (!accessToken) {
-      showAlert("로그인 필요", "결제하려면 먼저 로그인해 주세요.");
-      return;
-    }
-    setBusy(true);
-    setMsg("결제 창을 여는 중...");
+                  `${fmtSecToXrun(res.xrunCredited)} XRUN 이 지갑에 충전됐어요.`,
+                );
+                await refresh();
+              } catch (err) {
+                showAlert("교환 실패", (err as Error).message ?? "잠시 후 다시 시도해주세요.");
+              } finally {
+                setSwappingGift(null);
+              }
+            },
+          },
+        ],
+      );
+    },
+    [accessToken, refresh],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh]),
+  );
+
+  const [mockMode, setMockMode] = useState(false);
+  const refreshProducts = useCallback(async () => {
+    setProdLoading(true);
     try {
-      await buyConsumable(TEST_SKU);
+      const { subscriptions, consumables: cons } = await fetchAllProducts();
 
+      const useMocks = subscriptions.length === 0 && cons.length === 0;
+      setMockMode(useMocks);
+      setSubs(useMocks ? MOCK_SUBS : subscriptions);
+      setConsumables(useMocks ? MOCK_CONSUMABLES : cons);
+      console.log(
+        `[purchase] loaded ${subscriptions.length} subs, ${cons.length} consumables${useMocks ? " (mock 삽입)" : ""}`,
+      );
     } catch (err) {
-      setBusy(false);
-      setMsg(`구매 요청 실패: ${String(err)}`);
+      console.warn("[purchase] product fetch failed, falling back to mocks:", err);
+      setMockMode(true);
+      setSubs(MOCK_SUBS);
+      setConsumables(MOCK_CONSUMABLES);
+    } finally {
+      setProdLoading(false);
     }
-  }, [accessToken]);
+  }, []);
+  useEffect(() => {
+    void refreshProducts();
+  }, [refreshProducts]);
 
-  if (!iapAllowed) {
-    return (
-      <SafeView backgroundColor={COLORS.zinc50}>
-        <PageHeader title="크레딧 충전" />
-        <View style={styles.placeholderWrap}>
-          <Text style={styles.placeholderTitle}>준비 중</Text>
-          <Text style={styles.placeholderDesc}>
-            크레딧 충전 기능은 곧 오픈됩니다.
-          </Text>
-        </View>
-      </SafeView>
-    );
-  }
+  const handleBuySubscription = async (sku: string) => {
+    if (buying) return;
+    if (isMockSku(sku)) {
+      Alert.alert(
+        t("purchase.mockAlertTitle", { defaultValue: "MOCK 상품" }),
+        t("purchase.mockAlertMessage", { defaultValue: "유료 앱 계약 활성화 후 실제 결제 가능합니다." }),
+      );
+      return;
+    }
+    setBuying(sku);
+    try {
+      await buySubscription(sku as SubscriptionSku);
+
+      setTimeout(() => refresh(), 2000);
+    } catch (err) {
+      const msg = (err as Error).message ?? "";
+      if (!msg.includes("cancel")) {
+        Alert.alert(t("purchase.paymentErrorTitle", { defaultValue: "결제 오류" }), msg);
+      }
+    } finally {
+      setTimeout(() => setBuying(null), 3000);
+    }
+  };
+
+  const handleBuyConsumable = async (sku: string) => {
+    if (buying) return;
+    if (isMockSku(sku)) {
+      Alert.alert(
+        t("purchase.mockAlertTitle", { defaultValue: "MOCK 상품" }),
+        t("purchase.mockAlertMessage", { defaultValue: "유료 앱 계약 활성화 후 실제 결제 가능합니다." }),
+      );
+      return;
+    }
+    setBuying(sku);
+    try {
+      await buyConsumable(sku as ConsumableSku);
+      setTimeout(() => refresh(), 2000);
+    } catch (err) {
+      const msg = (err as Error).message ?? "";
+      if (!msg.includes("cancel")) {
+        Alert.alert(t("purchase.paymentErrorTitle", { defaultValue: "결제 오류" }), msg);
+      }
+    } finally {
+      setTimeout(() => setBuying(null), 3000);
+    }
+  };
 
   return (
-    <SafeView backgroundColor={COLORS.zinc50}>
-      <PageHeader title="크레딧 충전 (테스트)" />
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>현재 잔액</Text>
-          <Text style={styles.balanceValue}>
-            {balance ? `${(balance.totalSec ?? 0).toLocaleString()} 크레딧` : "-"}
-          </Text>
-          {balance ? (
-            <Text style={styles.balanceSub}>
-              무료 {balance.freeSec ?? 0} · 구독 {balance.subSec ?? 0} · 충전 {balance.topupSec ?? 0}
-            </Text>
-          ) : null}
+    <SafeView backgroundColor={COLORS.white}>
+      <PageHeader
+        title={t("my.menu.purchase", { defaultValue: "크레딧 충전 · 구독" })}
+        showBackButton
+        onBackPress={() => navigation.goBack()}
+      />
+
+      <ScrollView ref={scrollRef} contentContainerStyle={{ padding: SIZES.large, paddingBottom: 40 }}>
+        {
+}
+
+        {}
+        <View style={s.balanceCard}>
+          <Text style={s.balanceTitle}>{t("my.balance.remainingTokens", { defaultValue: "남은 토큰 수량" })}</Text>
+          {balLoading ? (
+            <ActivityIndicator color={COLORS.violet600} />
+          ) : balance ? (
+            <>
+              <Text style={s.balanceTotal}>{fmtSecToXrun(balance.totalSec)}</Text>
+              <View style={s.balanceRow}>
+                <View style={s.balanceCol}>
+                  <Text style={s.balanceLabel}>{t("purchase.bucketFree", { defaultValue: "무료" })}</Text>
+                  <Text style={s.balanceVal}>{fmtSecToXrun(balance.freeSec)}</Text>
+                </View>
+                <View style={s.balanceCol}>
+                  <Text style={s.balanceLabel}>{t("purchase.bucketSub", { defaultValue: "구독" })}</Text>
+                  <Text style={s.balanceVal}>{fmtSecToXrun(balance.subSec)}</Text>
+                </View>
+                <View style={s.balanceCol}>
+                  <Text style={s.balanceLabel}>{t("purchase.bucketTopup", { defaultValue: "충전" })}</Text>
+                  <Text style={s.balanceVal}>{fmtSecToXrun(balance.topupSec)}</Text>
+                </View>
+                {}
+                {
+}
+                {giftInventoryVisible && (
+                  <TouchableOpacity style={s.balanceCol} onPress={scrollToGift} activeOpacity={0.6}>
+                    <Text style={s.balanceLabel}>{t("purchase.bucketGift", { defaultValue: "선물" })}</Text>
+                    {}
+                    <Text style={s.balanceVal}>
+                      {fmtSecToXrun(giftItems.reduce((sum, g) => sum + g.xrunTotal, 0))}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              {balance.subscription && (
+                <Text style={s.subInfo}>
+                  {t("purchase.subActive", {
+                    plan: balance.subscription.planCode.toUpperCase(),
+                    date: new Date(balance.subscription.periodEnd).toLocaleDateString("ko-KR"),
+                    defaultValue: `${balance.subscription.planCode.toUpperCase()} 구독 활성 · 다음 갱신 ${new Date(balance.subscription.periodEnd).toLocaleDateString("ko-KR")}`,
+                  })}
+                </Text>
+              )}
+            </>
+          ) : (
+            <Text style={s.balanceLabel}>{t("my.balance.failed", { defaultValue: "잔액 조회 실패" })}</Text>
+          )}
         </View>
 
-        {loading ? (
-          <ActivityIndicator size="large" color={COLORS.zinc700} style={{ marginTop: 40 }} />
-        ) : product ? (
-          <View style={styles.productCard}>
-            <Text style={styles.productName}>{product.title || "크레딧 1,000"}</Text>
-            <Text style={styles.productDesc}>{product.description || "약 16분 40초 통화 분량"}</Text>
-            <Text style={styles.productPrice}>{product.displayPrice || product.price || "가격 확인 중"}</Text>
-            <TouchableOpacity
-              style={[styles.buyBtn, busy && styles.buyBtnDisabled]}
-              onPress={handleBuy}
-              disabled={busy}
-            >
-              <Text style={styles.buyBtnText}>{busy ? "처리 중..." : "구매하기"}</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.errorCard}>
-            <Text style={styles.errorText}>{msg || "상품을 불러올 수 없습니다."}</Text>
-            <TouchableOpacity style={styles.retryBtn} onPress={loadProducts}>
-              <Text style={styles.retryText}>다시 시도</Text>
-            </TouchableOpacity>
+        {
+}
+        {giftInventoryVisible && giftItems.length > 0 && (
+          <View
+            style={{ marginTop: 8, marginBottom: 24 }}
+            onLayout={(e) => { giftSectionYRef.current = e.nativeEvent.layout.y; }}
+          >
+            <Text style={s.sectionTitle}>받은 선물</Text>
+            <Text style={s.sectionDesc}>[교환] 을 누르면 XRUN 크레딧으로 충전돼요.</Text>
+            {giftItems.map((item) => {
+              const busy = swappingGift === item.giftId;
+              return (
+                <View key={item.giftId} style={s.giftRow}>
+                  {item.imageUrl ? (
+                    <Image source={{ uri: item.imageUrl }} style={s.giftImg} />
+                  ) : (
+                    <View style={[s.giftImg, s.giftEmojiWrap]}>
+                      <Text style={s.giftEmoji}>{item.emoji}</Text>
+                    </View>
+                  )}
+                  <View style={s.giftInfo}>
+                    <Text style={s.giftName}>{item.name} {item.count}개</Text>
+                    {}
+                    <Text style={s.giftAmount}>= {fmtSecToXrun(item.xrunTotal)} XRUN</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[s.swapBtn, busy && { opacity: 0.6 }]}
+                    onPress={() => onSwapGift(item)}
+                    disabled={busy}
+                  >
+                    {busy ? (
+                      <ActivityIndicator size="small" color={COLORS.white} />
+                    ) : (
+                      <Text style={s.swapBtnText}>교환</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
           </View>
         )}
 
-        {msg && product ? <Text style={styles.msg}>{msg}</Text> : null}
+        {}
+        <Text style={s.sectionTitle}>{t("purchase.subSectionTitle", { defaultValue: "월 구독" })}</Text>
+        <Text style={s.sectionDesc}>{t("purchase.subSectionDesc", { defaultValue: "매월 자동 갱신." })}</Text>
 
-        <Text style={styles.hint}>
-          플랫폼: {Platform.OS} · 테스트 상품 ID: {TEST_SKU}
-        </Text>
+        {prodLoading ? (
+          <ActivityIndicator color={COLORS.violet600} style={{ marginVertical: 20 }} />
+        ) : subs.length === 0 ? (
+          <View style={s.emptyBlock}>
+            <Text style={s.emptyText}>{t("purchase.subLoadFailed", { defaultValue: "구독 상품을 불러올 수 없어요." })}</Text>
+            <Text style={s.emptyHint}>
+              {Platform.OS === "ios"
+                ? t("purchase.subLoadHintIos", { defaultValue: "설정 → App Store → Sandbox 계정 로그인 확인 후 다시 시도해주세요." })
+                : t("purchase.subLoadHintOther", { defaultValue: "잠시 후 다시 시도해주세요." })}
+            </Text>
+            <TouchableOpacity
+              style={s.retryBtn}
+              onPress={refreshProducts}
+              activeOpacity={0.85}
+            >
+              <Text style={s.retryBtnText}>{t("common.retry", { defaultValue: "다시 시도" })}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          subs.map((p) => (
+            <TouchableOpacity
+              key={p.id}
+              style={[s.card, buying === p.id && s.cardDisabled]}
+              onPress={() => handleBuySubscription(p.id)}
+              disabled={buying !== null}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={s.cardName}>{p.title || p.id}</Text>
+                <Text style={s.cardDesc}>{p.description || ""}</Text>
+              </View>
+              <View style={s.cardPriceCol}>
+                <Text style={s.cardPrice}>{p.displayPrice}</Text>
+                {buying === p.id && (
+                  <ActivityIndicator color={COLORS.violet600} size="small" />
+                )}
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
+
+        {}
+        <Text style={[s.sectionTitle, { marginTop: 32 }]}>{t("purchase.topupSectionTitle", { defaultValue: "충전 (일회성)" })}</Text>
+        <Text style={s.sectionDesc}>{t("purchase.topupSectionDesc", { defaultValue: "구독과 별개로 통화 시간을 추가할 수 있어요. 5년 유효." })}</Text>
+
+        {prodLoading ? (
+          <ActivityIndicator color={COLORS.violet600} style={{ marginVertical: 20 }} />
+        ) : consumables.length === 0 ? (
+          <View style={s.emptyBlock}>
+            <Text style={s.emptyText}>{t("purchase.topupLoadFailed", { defaultValue: "충전 상품을 불러올 수 없어요." })}</Text>
+            <TouchableOpacity
+              style={s.retryBtn}
+              onPress={refreshProducts}
+              activeOpacity={0.85}
+            >
+              <Text style={s.retryBtnText}>{t("common.retry", { defaultValue: "다시 시도" })}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          consumables.map((p) => (
+            <TouchableOpacity
+              key={p.id}
+              style={[s.card, buying === p.id && s.cardDisabled]}
+              onPress={() => handleBuyConsumable(p.id)}
+              disabled={buying !== null}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={s.cardName}>{p.title || p.id}</Text>
+                <Text style={s.cardDesc}>{p.description || ""}</Text>
+              </View>
+              <View style={s.cardPriceCol}>
+                <Text style={s.cardPrice}>{p.displayPrice}</Text>
+                {buying === p.id && (
+                  <ActivityIndicator color={COLORS.violet600} size="small" />
+                )}
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
+
+        {Platform.OS === "android" && (
+          <Text style={[s.emptyText, { marginTop: 20 }]}>
+            {t("purchase.androidNotReady", { defaultValue: "Android 결제는 준비 중이에요. iOS 로 먼저 이용해주세요." })}
+          </Text>
+        )}
+
+        {}
+        <View style={{ marginTop: 32, alignItems: "center" }}>
+          <Text style={s.footer}>
+            {t("purchase.termsFooter", {
+              defaultValue:
+                "자동 갱신 구독은 해지 전까지 매 주기 결제됩니다.\n해지: 설정 → Apple ID → 구독 → afterlife",
+            })}
+          </Text>
+        </View>
       </ScrollView>
     </SafeView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { padding: SIZES.medium, gap: SIZES.medium },
+const s = StyleSheet.create({
   balanceCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: RADIUS.md,
-    padding: SIZES.medium,
+    backgroundColor: COLORS.violet100,
+    borderRadius: RADIUS.lg,
+    padding: 20,
+    marginBottom: 24,
+  },
+  balanceTitle: { fontSize: 13, color: COLORS.zinc600, marginBottom: 6 },
+  balanceTotal: { fontSize: 28, fontWeight: "700", color: COLORS.violet700, marginBottom: 12 },
+  balanceRow: { flexDirection: "row", gap: 12 },
+  balanceCol: { flex: 1 },
+  balanceLabel: { fontSize: 11, color: COLORS.zinc500 },
+  balanceVal: { fontSize: 14, fontWeight: "600", color: COLORS.zinc900 },
+  subInfo: { fontSize: 12, color: COLORS.zinc700, marginTop: 12 },
+
+  sectionTitle: { fontSize: 16, fontWeight: "700", color: COLORS.zinc900, marginBottom: 4 },
+  sectionDesc: { fontSize: 12, color: COLORS.zinc500, marginBottom: 12 },
+
+  card: {
+    flexDirection: "row",
     alignItems: "center",
+    padding: 16,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.zinc200,
-  },
-  balanceLabel: { fontSize: 13, color: COLORS.zinc600 },
-  balanceValue: { fontSize: 28, fontWeight: "800", color: COLORS.zinc900, marginTop: 4 },
-  balanceSub: { fontSize: 12, color: COLORS.zinc500, marginTop: 4 },
-  productCard: {
+    marginBottom: 8,
     backgroundColor: COLORS.white,
-    borderRadius: RADIUS.md,
-    padding: SIZES.medium,
+  },
+  cardDisabled: { opacity: 0.5 },
+  cardName: { fontSize: 15, fontWeight: "600", color: COLORS.zinc900 },
+  cardDesc: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
+  cardPriceCol: { alignItems: "flex-end", gap: 4 },
+  cardPrice: { fontSize: 15, fontWeight: "700", color: COLORS.violet600 },
+
+  emptyText: { fontSize: 13, color: COLORS.zinc500, textAlign: "center", marginVertical: 8 },
+  emptyBlock: {
+    alignItems: "center",
+    paddingVertical: 20,
+    paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: COLORS.zinc200,
-  },
-  productName: { fontSize: 18, fontWeight: "700", color: COLORS.zinc900 },
-  productDesc: { fontSize: 13, color: COLORS.zinc600, marginTop: 6 },
-  productPrice: { fontSize: 24, fontWeight: "800", color: COLORS.zinc900, marginTop: 12 },
-  buyBtn: {
-    backgroundColor: "#2563eb",
+    borderStyle: "dashed",
     borderRadius: RADIUS.md,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 16,
   },
-  buyBtnDisabled: { opacity: 0.5 },
-  buyBtnText: { color: COLORS.white, fontSize: 16, fontWeight: "700" },
-  errorCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: RADIUS.md,
-    padding: SIZES.medium,
+  emptyHint: { fontSize: 12, color: COLORS.zinc400, textAlign: "center", marginBottom: 12, lineHeight: 18 },
+  retryBtn: {
+    backgroundColor: COLORS.violet600,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 999,
+    marginTop: 4,
+  },
+  retryBtnText: { fontSize: 13, fontWeight: "700", color: "#fff" },
+
+  mockBanner: {
+    backgroundColor: "#fef3c7",
     borderWidth: 1,
-    borderColor: COLORS.zinc200,
+    borderColor: "#f59e0b",
+    borderRadius: RADIUS.md,
+    padding: 12,
+    marginBottom: 16,
+  },
+  mockBannerTitle: { fontSize: 13, fontWeight: "700", color: "#b45309", marginBottom: 4 },
+  mockBannerDesc: { fontSize: 11, color: "#92400e", lineHeight: 16 },
+  footer: { fontSize: 11, color: COLORS.zinc500, textAlign: "center", lineHeight: 18 },
+
+  giftRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
+    marginBottom: 8,
+    backgroundColor: COLORS.white,
+  },
+  giftImg: { width: 44, height: 44, borderRadius: 8 },
+  giftEmojiWrap: { backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center" },
+  giftEmoji: { fontSize: 26 },
+  giftInfo: { flex: 1, marginLeft: 10 },
+  giftName: { fontSize: 14, color: COLORS.zinc900, fontWeight: "600" },
+  giftAmount: { fontSize: 12, color: COLORS.violet600, fontWeight: "700", marginTop: 2 },
+  swapBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.violet600,
+    borderRadius: 8,
+    minWidth: 60,
     alignItems: "center",
   },
-  errorText: { fontSize: 14, color: COLORS.zinc700, textAlign: "center" },
-  retryBtn: { marginTop: 12, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: COLORS.zinc200, borderRadius: RADIUS.md },
-  retryText: { color: COLORS.zinc900, fontWeight: "600" },
-  msg: { fontSize: 12, color: COLORS.zinc600, textAlign: "center", paddingHorizontal: 16 },
-  hint: { fontSize: 11, color: COLORS.zinc500, textAlign: "center", marginTop: 20 },
-  placeholderWrap: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 32,
-    gap: 12,
-  },
-  placeholderTitle: { fontSize: 22, fontWeight: "700", color: COLORS.zinc900 },
-  placeholderDesc: { fontSize: 14, color: COLORS.zinc600, textAlign: "center" },
+  swapBtnText: { color: COLORS.white, fontWeight: "700", fontSize: 13 },
+  giftFooterHint: { fontSize: 11, color: COLORS.zinc500, marginTop: 8, textAlign: "center" },
 });
