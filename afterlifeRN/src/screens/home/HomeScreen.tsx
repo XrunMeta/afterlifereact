@@ -559,10 +559,10 @@ export default function HomeScreen() {
         {
 }
         <Pressable style={styles.commentOverlay} onPress={() => {
-          if (keyboardVisible) {
+          if (commentSheetShowDetail && keyboardVisible) {
             Keyboard.dismiss();
           } else {
-            setCommentFeedId(null); setCommentSheetShowDetail(false);
+            Keyboard.dismiss(); setCommentFeedId(null); setCommentSheetShowDetail(false);
           }
         }}>
           <SwipeDownSheet
@@ -808,7 +808,14 @@ export default function HomeScreen() {
               ) : (
 
                 <View style={styles.emptyComment}>
-                  <Text style={styles.emptyCommentGray}>{t("feed.commentsEmpty", { defaultValue: "댓글이 없습니다" })}</Text>
+                  {commentSheetShowDetail ? (
+                    <Text style={styles.emptyCommentGray}>{t("feed.commentsEmpty", { defaultValue: "댓글이 없습니다" })}</Text>
+                  ) : (
+                    <>
+                      <Feather name="message-circle" size={40} color={COLORS.zinc300} />
+                      <Text style={styles.emptyText}>{t("feed.commentsEmpty")}</Text>
+                    </>
+                  )}
                 </View>
               )}
             </ScrollView>
