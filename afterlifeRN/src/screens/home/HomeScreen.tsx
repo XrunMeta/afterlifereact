@@ -567,6 +567,51 @@ export default function HomeScreen() {
             ]}
           >
             <View style={styles.sheetHandle} />
+            {
+}
+            {(() => {
+              const detailItem = filteredFeeds.find((f) => f.id === commentFeedId);
+              if (!detailItem) return null;
+              return (
+                <View style={styles.detailHeader}>
+                  <View style={styles.detailProfileRow}>
+                    {detailItem.authorAvatar ? (
+                      <Image
+                        source={
+                          typeof detailItem.authorAvatar === "number"
+                            ? detailItem.authorAvatar
+                            : { uri: detailItem.authorAvatar as string }
+                        }
+                        style={styles.detailAvatar}
+                      />
+                    ) : (
+                      <View style={[styles.detailAvatar, { backgroundColor: COLORS.zinc100 }]} />
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.detailAuthor} numberOfLines={1}>{detailItem.author}</Text>
+                      <Text style={styles.detailUsername} numberOfLines={1}>@{detailItem.username}</Text>
+                    </View>
+                  </View>
+                  {detailItem.description ? (
+                    <Text style={styles.detailDescription}>{detailItem.description}</Text>
+                  ) : null}
+                  <View style={styles.detailStatsRow}>
+                    <View style={styles.detailStatCard}>
+                      <Text style={styles.detailStatValue}>{detailItem.likes || "0"}</Text>
+                      <Text style={styles.detailStatLabel}>{t("feed.likes", { defaultValue: "좋아요" })}</Text>
+                    </View>
+                    <View style={styles.detailStatCard}>
+                      <Text style={styles.detailStatValue}>{detailItem.comments ?? 0}</Text>
+                      <Text style={styles.detailStatLabel}>{t("feed.comments", { defaultValue: "댓글" })}</Text>
+                    </View>
+                    <View style={styles.detailStatCard}>
+                      <Text style={styles.detailStatValue}>{detailItem.giftsReceived ?? 0}</Text>
+                      <Text style={styles.detailStatLabel}>{t("feed.gifts", { defaultValue: "선물" })}</Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            })()}
             {}
             <View style={styles.commentHeaderRow}>
               <Text style={styles.commentTitle}>{t("feed.commentCount", { n: comments.length })}</Text>
@@ -1164,6 +1209,17 @@ const styles = StyleSheet.create({
   commentSheet: { backgroundColor: COLORS.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "70%" },
   sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: COLORS.zinc300, alignSelf: "center", marginTop: 12, marginBottom: 12 },
   commentHeaderRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 12 },
+
+  detailHeader: { paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: COLORS.zinc100, marginBottom: 8 },
+  detailProfileRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
+  detailAvatar: { width: 40, height: 40, borderRadius: 20 },
+  detailAuthor: { fontSize: 15, fontWeight: "700", color: COLORS.zinc900 },
+  detailUsername: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
+  detailDescription: { fontSize: 13, color: COLORS.zinc700, lineHeight: 18, marginBottom: 10 },
+  detailStatsRow: { flexDirection: "row", gap: 8 },
+  detailStatCard: { flex: 1, backgroundColor: COLORS.zinc50, borderRadius: 12, paddingVertical: 10, alignItems: "center" },
+  detailStatValue: { fontSize: 16, fontWeight: "700", color: COLORS.zinc900 },
+  detailStatLabel: { fontSize: 11, color: COLORS.zinc500, marginTop: 2 },
   commentTitle: { fontSize: 16, fontWeight: "700", color: COLORS.zinc900 },
   commentScroll: { flex: 1 },
 
