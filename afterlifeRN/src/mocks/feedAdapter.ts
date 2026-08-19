@@ -75,5 +75,8 @@ export function toFeedItem(f: DomainFeed): FeedItem {
     ownerName: apiOwnerCache.get(f.cloneId)?.name ?? null,
     ownerAvatarUrl: apiOwnerCache.get(f.cloneId)?.avatarUrl ?? null,
     giftsReceived: apiGiftsCache.get(f.cloneId) ?? 0,
+
+    createdAt: c?.createdAt ?? null,
+    followerCount: 0,
   };
 }

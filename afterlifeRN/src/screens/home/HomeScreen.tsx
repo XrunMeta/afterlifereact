@@ -627,7 +627,8 @@ export default function HomeScreen() {
 }
                   <View style={styles.detailStatsRow}>
                     <View style={styles.detailStatCard}>
-                      <Text style={styles.detailStatValue}>-</Text>
+                      {}
+                      <Text style={styles.detailStatValue}>{detailItem.followerCount ?? 0}</Text>
                       <Text style={styles.detailStatLabel}>{t("feed.followers", { defaultValue: "구독자" })}</Text>
                     </View>
                     <View style={styles.detailStatCard}>
@@ -635,7 +636,12 @@ export default function HomeScreen() {
                       <Text style={styles.detailStatLabel}>{t("feed.likes", { defaultValue: "좋아요" })}</Text>
                     </View>
                     <View style={styles.detailStatCard}>
-                      <Text style={styles.detailStatValue}>-</Text>
+                      {}
+                      <Text style={styles.detailStatValue}>{
+                        detailItem.createdAt
+                          ? new Date(detailItem.createdAt).toLocaleDateString("ko-KR", { year: "2-digit", month: "2-digit", day: "2-digit" }).replace(/\s/g, "").replace(/\.$/, "")
+                          : "-"
+                      }</Text>
                       <Text style={styles.detailStatLabel}>{t("feed.createdAt", { defaultValue: "생성일" })}</Text>
                     </View>
                   </View>
