@@ -1,5 +1,4 @@
 import { v_889fad } from "../../stores/dialogStore";
-import v_5fd66c, { type v_e2b085 } from "../../components/ui/ActionSheet";
 import v_5778ce from "../../components/common/HashtagText";
 import v_a3453e, { v_5ab095, v_e662ae, v_de06a3, v_c4deb2 } from "bapkr";
 import {
@@ -365,17 +364,10 @@ export default function v_c316d8() {
     );
   };
 
-  const [v_0e5a5a, v_76a7d9] = v_5ab095<v_52af9d | null>(null);
-  const v_16a276 = (c: v_52af9d) => v_76a7d9(v_3f4e2e);
-  const v_06a182 = v_a3453e.useMemo<v_e2b085[]>(() => {
-    if (!v_0e5a5a) return [];
-    const v_3f4e2e = v_0e5a5a;
-
+  const v_16a276 = (c: v_52af9d) => {
     let v_6e0fd3;
     let v_343ac8;
-    if (v_415d29?.ownerId != null) {
-      v_343ac8 = v_415d29.ownerId;
-    }
+    if (v_415d29?.ownerId != null) v_343ac8 = v_415d29.ownerId;
     const v_71b114 = v_37977a.getState().apiFeeds;
     const v_479f05 = v_71b114?.find((v_8b5cd8) => v_8b5cd8.id === v_ed660d);
     if (v_479f05) {
@@ -391,54 +383,25 @@ export default function v_c316d8() {
     const v_2aec08 = v_f5f393 != null && v_343ac8 != null && v_343ac8 === v_f5f393;
     const v_5acb4e = v_f5f393 != null && v_3f4e2e.userId === v_f5f393;
     const v_3cb41c = v_5acb4e || v_2aec08;
-    if (__DEV__) console.log("[COMMENT-ACTIONS]", {
-      commentFeedId: v_ed660d, cloneId: v_6e0fd3, cloneOwnerId: v_343ac8, myUserId: v_f5f393, cUserId: v_3f4e2e.userId,
-      isOwner: v_2aec08, isMine: v_5acb4e, canDelete: v_3cb41c,
-      detailStats: v_415d29,
-      raw: v_479f05 ? { id: v_479f05.id, cloneId: v_479f05.cloneId, cloneOwnerId: v_479f05.clone?.ownerId } : null,
-    });
     const v_de3672 = !v_5acb4e;
     const v_7aa0a5 = v_3f4e2e.user.name ?? v_3f4e2e.user.email ?? "";
-    const list: v_e2b085[] = [];
-    if (v_3cb41c) {
-      v_ef8ab1.push({
-        label: "삭제",
-        icon: "trash-2",
-        style: "destructive",
-        onPress: () => v_b72645(v_3f4e2e.id),
-      });
-    }
-    if (v_de3672) {
-      v_ef8ab1.push({
-        label: "차단하기",
-        icon: "user-x",
-        onPress: () => {
-          v_889fad(
-            "차단",
-            `${v_7aa0a5} 님을 차단하시겠습니까?\n(해당 클론과의 상호작용 차단)`,
-            [
-              { text: "취소", style: "cancel" },
-              {
-                text: "차단",
-                style: "destructive",
-                onPress: async () => {
-                  if (!v_6e0fd3 || !v_2ca7e0) return;
-                  try { await v_97c75d(v_2ca7e0, v_6e0fd3); v_15c939("차단됐어요"); }
-                  catch (v_49263d) { console.warn("[block] failed:", v_49263d); v_15c939("차단 실패"); }
-                },
-              },
-            ],
-          );
-        },
-      });
-      v_ef8ab1.push({
-        label: "신고하기",
-        icon: "flag",
-        onPress: () => v_c03d7d({ commentId: v_3f4e2e.id, author: v_7aa0a5 }),
-      });
-    }
-    return v_ef8ab1;
-  }, [v_0e5a5a, v_ed660d, v_f5f393, v_2ca7e0, v_415d29]);
+    const v_3d694a = [];
+    if (v_3cb41c) v_3d694a.push({ text: "삭제", style: "destructive", onPress: () => v_b72645(v_3f4e2e.id) });
+    if (v_de3672) v_3d694a.push({ text: "차단하기", onPress: () => {
+      v_889fad("차단", `${v_7aa0a5} 님을 차단하시겠습니까?\n(해당 클론과의 상호작용 차단)`, [
+        { text: "취소", style: "cancel" },
+        { text: "차단", style: "destructive", onPress: async () => {
+          if (!v_6e0fd3 || !v_2ca7e0) return;
+          try { await v_97c75d(v_2ca7e0, v_6e0fd3); v_15c939("차단됐어요"); }
+          catch (v_49263d) { console.warn("[block] failed:", v_49263d); v_15c939("차단 실패"); }
+        }},
+      ]);
+    }});
+    if (v_de3672) v_3d694a.push({ text: "신고하기", onPress: () => v_c03d7d({ commentId: v_3f4e2e.id, author: v_7aa0a5 }) });
+    if (v_3d694a.length === 0) return;
+    v_3d694a.push({ text: "취소", style: "cancel" });
+    v_889fad(`댓글 (${v_7aa0a5})`, undefined, v_3d694a);
+  };
 
   const v_71affe = (comment: v_52af9d, v_fdf350) => {
     if (!v_2ca7e0) return;
@@ -1173,13 +1136,6 @@ export default function v_c316d8() {
       </Modal>
 
       {}
-      <ActionSheet
-        visible={!!v_0e5a5a}
-        title="댓글"
-        subtitle={v_0e5a5a ? (v_0e5a5a.user.name ?? v_0e5a5a.user.email ?? "") : undefined}
-        actions={v_06a182}
-        onClose={() => v_76a7d9(null)}
-      />
 
       {}
       <ReportReasonModal
