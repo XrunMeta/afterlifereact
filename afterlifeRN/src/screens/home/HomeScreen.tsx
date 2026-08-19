@@ -1180,6 +1180,7 @@ export default function v_c316d8() {
       <ReportReasonModal
         visible={!!v_b38909}
         targetName={v_b38909?.author}
+        targetKind="comment"
         onCancel={() => v_c03d7d(null)}
         onConfirm={async (v_58ca36) => {
           const v_5f5d6d = v_b38909;
