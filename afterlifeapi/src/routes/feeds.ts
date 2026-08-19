@@ -751,8 +751,15 @@ feedsDiscover.get("/:id/comments", async (c) => {
     "fc.feed_id = ?",
     "fc.parent_comment_id IS NULL",
     "fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))",
+    "(SELECT COUNT(*) FROM comment_reports cr WHERE cr.comment_id = fc.id) < 5",
   ];
   const binds: unknown[] = [feedId];
+  if (viewerId) {
+    where.push("fc.user_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)");
+    binds.push(viewerId);
+    where.push("fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE user_id = ?)");
+    binds.push(viewerId);
+  }
   if (cursor && Number.isInteger(cursor) && cursor > 0) {
     where.push("fc.id < ?");
     binds.push(cursor);

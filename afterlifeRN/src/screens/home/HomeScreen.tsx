@@ -394,12 +394,29 @@ export default function HomeScreen() {
     if (canDelete) list.push({ label: "삭제", icon: "trash-2", style: "destructive", onPress: () => deleteComment(c.id) });
     if (isOthers) list.push({
       label: "차단하기", icon: "user-x", onPress: () => {
-        showAlert("차단", `${authorName} 님을 차단하시겠습니까?\n(해당 클론과의 상호작용 차단)`, [
+        showAlert("차단", `${authorName} 님을 차단하시겠습니까?\n(이 유저의 모든 콘텐츠가 안 보임)`, [
           { text: "취소", style: "cancel" },
           { text: "차단", style: "destructive", onPress: async () => {
-            if (!cloneId || !accessToken) return;
-            try { await blockClone(accessToken, cloneId); setToastMessage("차단됐어요"); }
-            catch (err) { console.warn("[block] failed:", err); setToastMessage("차단 실패"); }
+            if (!c.userId || !accessToken) return;
+            try {
+
+              const { blockUser } = await import("../../api/users");
+              await blockUser(accessToken, c.userId);
+
+              setComments((prev) => {
+                const next = prev.filter((cc) => cc.userId !== c.userId);
+                if (commentFeedId != null) bumpCommentsCount(commentFeedId, next.length);
+                return next;
+              });
+              setExpandedReplies((prev) => {
+                const nextExpanded = { ...prev };
+                for (const pid of Object.keys(nextExpanded)) {
+                  nextExpanded[Number(pid)] = nextExpanded[Number(pid)].filter((r) => r.userId !== c.userId);
+                }
+                return nextExpanded;
+              });
+              setToastMessage("차단됐어요");
+            } catch (err) { console.warn("[blockUser] failed:", err); setToastMessage("차단 실패"); }
           }},
         ]);
       },
