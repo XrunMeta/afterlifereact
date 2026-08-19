@@ -568,8 +568,10 @@ export default function HomeScreen() {
           >
             <View style={styles.sheetHandle} />
             {
+
 }
             {(() => {
+              if (keyboardVisible) return null;
               const detailItem = filteredFeeds.find((f) => f.id === commentFeedId);
               if (!detailItem) return null;
               return (
