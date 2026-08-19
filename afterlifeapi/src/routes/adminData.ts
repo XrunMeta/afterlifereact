@@ -414,11 +414,19 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
   const v_02be30 = Math.max(1, Math.min(500, Number.isFinite(v_cf2260) ? v_cf2260 : 100));
   const v_d308b5 = v_f71b56.searchParams.get("status");
 
+  const v_58ca36 = v_f71b56.searchParams.get("reason");
+
   const v_abcc8d = ["1=1"];
   const v_925171 = [];
   if (v_d308b5 && ["open", "reviewed", "dismissed"].includes(v_d308b5)) {
     v_abcc8d.push("r.status = ?");
     v_925171.push(v_d308b5);
+  }
+  if (v_58ca36 === "__empty__") {
+    v_abcc8d.push("(r.reason IS NULL OR r.reason = '')");
+  } else if (v_58ca36) {
+    v_abcc8d.push("r.reason = ?");
+    v_925171.push(v_58ca36);
   }
 
   const v_18b8bf = (
@@ -472,12 +480,19 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 100);
   const v_02be30 = Math.max(1, Math.min(500, Number.isFinite(v_cf2260) ? v_cf2260 : 100));
   const v_d308b5 = v_f71b56.searchParams.get("status");
+  const v_58ca36 = v_f71b56.searchParams.get("reason");
 
   const v_abcc8d = ["1=1"];
   const v_925171 = [];
   if (v_d308b5 && ["open", "reviewed", "dismissed", "actioned"].includes(v_d308b5)) {
     v_abcc8d.push("r.status = ?");
     v_925171.push(v_d308b5);
+  }
+  if (v_58ca36 === "__empty__") {
+    v_abcc8d.push("(r.reason IS NULL OR r.reason = '')");
+  } else if (v_58ca36) {
+    v_abcc8d.push("r.reason = ?");
+    v_925171.push(v_58ca36);
   }
 
   const v_18b8bf = (

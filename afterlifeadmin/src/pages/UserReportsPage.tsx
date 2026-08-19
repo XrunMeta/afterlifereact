@@ -2,6 +2,12 @@
 
 import { v_c4deb2, v_5ab095, v_de06a3, type v_bb76a8 } from "bapkr";
 import { v_05a921 } from "../api/client";
+import {
+  v_52e332,
+  v_a3b01e,
+  v_f314ca,
+  v_e62c92,
+} from "../utils/reportReasons";
 
 const v_cbb531 = {
   open: { label: "신고 접수", color: "#b91c1c", bg: "#fee2e2" },
@@ -38,6 +44,8 @@ export function v_f65f90() {
   const [v_7baad1, v_885299] = v_5ab095<Report[]>([]);
   const [v_683210, v_34a50a] = v_5ab095(true);
   const [v_c68a3b, v_3c7ee2] = v_5ab095<string>("");
+
+  const [v_d66538, v_57a061] = v_5ab095<string>("");
   const [v_02be30, v_02c883] = v_5ab095(100);
 
   const [v_207c31, v_3cc8fd] = v_5ab095<{ targetId: number; reportId: number } | null>(null);
@@ -50,6 +58,7 @@ export function v_f65f90() {
     v_05a921
       .getUserReports({
         status: v_c68a3b || undefined,
+        reason: v_d66538 || undefined,
         limit: v_02be30,
       })
       .then((v_cb35cb) => v_885299(v_cb35cb.items))
@@ -58,7 +67,7 @@ export function v_f65f90() {
         v_885299([]);
       })
       .finally(() => v_34a50a(false));
-  }, [v_c68a3b, v_02be30]);
+  }, [v_c68a3b, v_d66538, v_02be30]);
 
   v_c4deb2(() => {
     v_f6f5de();
@@ -155,6 +164,17 @@ export function v_f65f90() {
             <option value="actioned">조치 완료</option>
           </select>
           <select
+            value={v_d66538}
+            onChange={(v_9e86fd) => v_57a061(v_9e86fd.target.value)}
+            style={v_d81136.select}
+          >
+            <option value="">전체 사유</option>
+            {v_52e332.map((v_cb35cb) => (
+              <option key={v_cb35cb} value={v_cb35cb}>{v_cb35cb}</option>
+            ))}
+            <option value="__empty__">사유 없음</option>
+          </select>
+          <select
             value={v_02be30}
             onChange={(v_9e86fd) => v_02c883(Number(v_9e86fd.target.value))}
             style={v_d81136.select}
@@ -222,9 +242,23 @@ export function v_f65f90() {
                       <div style={v_d81136.cellSub}>id: {v_cb35cb.targetId}</div>
                     </td>
                     <td style={{ ...v_d81136.td, maxWidth: 320 }}>
-                      {v_cb35cb.reason ? (
-                        <span style={v_d81136.reason}>{v_cb35cb.reason}</span>
-                      ) : (
+                      {v_cb35cb.reason ? (() => {
+                        const v_239399 = v_a3b01e[v_f314ca(v_cb35cb.reason)];
+                        const v_324e3c = v_e62c92(v_cb35cb.reason);
+                        return (
+                          <span
+                            style={{
+                              ...v_d81136.reasonBadge,
+                              color: v_239399.color,
+                              backgroundColor: v_239399.bg,
+                              borderColor: v_239399.border,
+                            }}
+                            title={v_324e3c ? "프리셋 사유" : "커스텀 사유 (자유텍스트)"}
+                          >
+                            {v_cb35cb.reason}
+                          </span>
+                        );
+                      })() : (
                         <span style={v_d81136.cellSub}>—</span>
                       )}
                     </td>
@@ -318,17 +352,33 @@ export function v_f65f90() {
                   {v_3cfdfc.reports.length === 0 ? (
                     <div style={v_d81136.sectionEmpty}>없음</div>
                   ) : (
-                    v_3cfdfc.reports.map((v_cb35cb) => (
-                      <div key={v_cb35cb.id} style={v_d81136.listItem}>
-                        <div style={v_d81136.listMain}>
-                          {v_cb35cb.reason || "(사유 없음)"}{" "}
-                          <span style={v_d81136.listStatus}>[{v_cb35cb.status}]</span>
+                    v_3cfdfc.reports.map((v_cb35cb) => {
+                      const v_239399 = v_a3b01e[v_f314ca(v_cb35cb.reason)];
+                      return (
+                        <div key={v_cb35cb.id} style={v_d81136.listItem}>
+                          <div style={v_d81136.listMain}>
+                            {v_cb35cb.reason ? (
+                              <span
+                                style={{
+                                  ...v_d81136.reasonBadge,
+                                  color: v_239399.color,
+                                  backgroundColor: v_239399.bg,
+                                  borderColor: v_239399.border,
+                                }}
+                              >
+                                {v_cb35cb.reason}
+                              </span>
+                            ) : (
+                              <span style={v_d81136.listSub}>(사유 없음)</span>
+                            )}{" "}
+                            <span style={v_d81136.listStatus}>[{v_cb35cb.status}]</span>
+                          </div>
+                          <div style={v_d81136.listSub}>
+                            {v_cb35cb.reporterEmail} · {v_cb35cb.createdAt?.slice(0, 16)}
+                          </div>
                         </div>
-                        <div style={v_d81136.listSub}>
-                          {v_cb35cb.reporterEmail} · {v_cb35cb.createdAt?.slice(0, 16)}
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
 
@@ -418,6 +468,15 @@ const styles: Record<string, v_bb76a8> = {
   cellMain: { fontSize: 13, fontWeight: 600, color: "#0f172a" },
   cellSub: { fontSize: 11, color: "#64748b", marginTop: 2 },
   reason: { fontSize: 13, color: "#334155", whiteSpace: "pre-wrap" },
+  reasonBadge: {
+    display: "inline-block",
+    padding: "4px 10px",
+    borderRadius: 12,
+    fontSize: 12,
+    fontWeight: 600,
+    border: "1px solid",
+    lineHeight: 1.4,
+  },
   badge: {
     display: "inline-block",
     padding: "3px 10px",
