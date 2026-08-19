@@ -101,6 +101,8 @@ const FeedCard: React.FC<FeedCardProps> = ({
   };
 
   const isSmallScreen = cardHeight < 640;
+
+  const [bottomContentH, setBottomContentH] = React.useState(0);
   return (
     <View style={[styles.container, { height: cardHeight }]}>
       {}
@@ -201,7 +203,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
           {}
           {
 }
-          <View style={[styles.rightActions, isSmallScreen && styles.rightActionsShift, !isOwn && styles.rightActionsWithFollow]}>
+          <View style={[styles.rightActions, bottomContentH > 0 && { bottom: bottomContentH + 16 }]}>
             {}
             <TouchableOpacity onPress={onToggleLike} style={styles.actionBtn} activeOpacity={0.7}>
               <Ionicons
@@ -229,7 +231,10 @@ const FeedCard: React.FC<FeedCardProps> = ({
             {}
           </View>
 
-          <View style={styles.bottomContent}>
+          <View
+            style={styles.bottomContent}
+            onLayout={(e) => setBottomContentH(e.nativeEvent.layout.height)}
+          >
             <View style={styles.profileRow}>
               <View style={styles.profileInfo}>
                 <View style={styles.authorRow}>
