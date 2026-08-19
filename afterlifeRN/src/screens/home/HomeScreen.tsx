@@ -680,13 +680,15 @@ export default function HomeScreen() {
             ) : null}
             {
 }
-            <View style={{ flex: 1 }}>
             <ScrollView
-              style={styles.commentScroll}
-              contentContainerStyle={comments.length === 0 ? { flexGrow: 1, justifyContent: "center", minHeight: 180 } : undefined}
+              style={[styles.commentScroll, { minHeight: 0 }]}
+              contentContainerStyle={comments.length === 0 ? { flexGrow: 1, justifyContent: "center", minHeight: 180 } : { flexGrow: 1 }}
               showsVerticalScrollIndicator={true}
               nestedScrollEnabled={true}
-              keyboardShouldPersistTaps="handled"
+              keyboardShouldPersistTaps="always"
+              scrollEventThrottle={16}
+              alwaysBounceVertical={true}
+              overScrollMode="always"
             >
               {commentsLoading ? (
                 <View style={styles.emptyComment}>
@@ -854,7 +856,6 @@ export default function HomeScreen() {
                 </View>
               )}
             </ScrollView>
-            </View>
             {}
             {}
             {replyingTo && (
