@@ -128,11 +128,11 @@ export default function PurchaseScreen() {
         <View style={styles.balanceCard}>
           <Text style={styles.balanceLabel}>현재 잔액</Text>
           <Text style={styles.balanceValue}>
-            {balance ? `${balance.credits.toLocaleString()} 크레딧` : "-"}
+            {balance ? `${(balance.totalSec ?? 0).toLocaleString()} 크레딧` : "-"}
           </Text>
           {balance ? (
             <Text style={styles.balanceSub}>
-              무료 {balance.credits_free ?? 0} · 구독 {balance.credits_sub ?? 0} · 충전 {balance.credits_topup ?? 0}
+              무료 {balance.freeSec ?? 0} · 구독 {balance.subSec ?? 0} · 충전 {balance.topupSec ?? 0}
             </Text>
           ) : null}
         </View>
