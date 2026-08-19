@@ -150,7 +150,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
               style={styles.ownerMoreBtn}
               accessibilityLabel="more-options"
             >
-              <Feather name="more-vertical" size={25} color={COLORS.white} />
+              <Feather name="more-vertical" size={20} color={COLORS.white} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -204,22 +204,25 @@ const FeedCard: React.FC<FeedCardProps> = ({
             <TouchableOpacity onPress={onToggleLike} style={styles.actionBtn} activeOpacity={0.7}>
               <Ionicons
                 name={isLiked ? "heart" : "heart-outline"}
-                size={25}
+                size={20}
                 color={isLiked ? "#ef4444" : COLORS.white}
               />
               <Text style={styles.actionLabel}>{item.likes}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={onCommentPress} style={styles.actionBtn} activeOpacity={0.7}>
-              <Feather name="message-circle" size={25} color={COLORS.white} />
+              <Feather name="message-circle" size={20} color={COLORS.white} />
               <Text style={styles.actionLabel}>{item.comments}</Text>
             </TouchableOpacity>
             {}
             <TouchableOpacity onPress={onGiftPress} style={styles.actionBtn} activeOpacity={0.7}>
-              <Feather name="gift" size={25} color={COLORS.white} />
+              <Feather name="gift" size={20} color={COLORS.white} />
               <Text style={styles.actionLabel}>{item.giftsReceived ?? 0}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={onSharePress} style={styles.actionBtn} activeOpacity={0.7}>
-              <Feather name="share-2" size={25} color={COLORS.white} />
+              <Feather name="share-2" size={20} color={COLORS.white} />
+              {
+}
+              <Text style={[styles.actionLabel, { opacity: 0 }]}>0</Text>
             </TouchableOpacity>
             {}
           </View>
