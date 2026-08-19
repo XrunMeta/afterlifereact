@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
 
   hashtagRowWrap: {
     position: "absolute",
-    top: 112,
+    top: 56,
     left: 0,
     right: 0,
   },
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
 
   ownerHeader: {
     position: "absolute",
-    top: 56,
+    top: 100,
     left: 16,
     right: 16,
     flexDirection: "row",
