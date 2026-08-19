@@ -778,15 +778,15 @@ export default function HomeScreen() {
                 comments.map((c) => {
                   const replies = expandedReplies[c.id];
                   const showReplies = replies !== undefined;
+
+                  const _isCloneOwnerForComments = myUserId != null && detailCloneStats?.ownerId != null && detailCloneStats.ownerId === myUserId;
                   return (
 
                   <View key={c.id} style={styles.commentBlock}>
-                  {
-}
                   <TouchableOpacity
                     activeOpacity={1}
                     style={styles.commentRow}
-                    onLongPress={() => openCommentActionSheet(c)}
+                    onLongPress={_isCloneOwnerForComments ? () => openCommentActionSheet(c) : undefined}
                     delayLongPress={400}
                   >
                     {c.user.avatarUrl ? (
@@ -798,6 +798,25 @@ export default function HomeScreen() {
                       <View style={styles.commentMeta}>
                         <Text style={styles.commentAuthor}>{c.user.name ?? c.user.email}</Text>
                         <Text style={styles.commentTime}>{formatRelativeKo(c.createdAt)}</Text>
+                        {}
+                        {!_isCloneOwnerForComments && (c.userId === myUserId ? (
+                          <TouchableOpacity onPress={() => deleteComment(c.id)} style={{ marginLeft: 8 }} hitSlop={8}>
+                            <Feather name="trash-2" size={14} color={COLORS.zinc400} />
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity
+                            onPress={() =>
+                              setReportCommentTarget({
+                                commentId: c.id,
+                                author: c.user.name ?? c.user.email ?? "",
+                              })
+                            }
+                            style={{ marginLeft: 8 }}
+                            hitSlop={8}
+                          >
+                            <Feather name="flag" size={14} color={COLORS.zinc400} />
+                          </TouchableOpacity>
+                        ))}
                       </View>
                       <Text style={styles.commentContent}>{c.content}</Text>
                       {}
