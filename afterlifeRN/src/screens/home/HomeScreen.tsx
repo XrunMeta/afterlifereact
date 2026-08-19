@@ -1173,6 +1173,20 @@ export default function HomeScreen() {
               target.commentId,
               reason || undefined,
             );
+
+            setComments((prev) => {
+              const next = prev.filter((cc) => cc.id !== target.commentId);
+              bumpCommentsCount(commentFeedId, next.length);
+              return next;
+            });
+
+            setExpandedReplies((prev) => {
+              const nextExpanded = { ...prev };
+              for (const parentId of Object.keys(nextExpanded)) {
+                nextExpanded[Number(parentId)] = nextExpanded[Number(parentId)].filter((r) => r.id !== target.commentId);
+              }
+              return nextExpanded;
+            });
             setToastMessage(
               t("home.toasts.commentReported", {
                 defaultValue: "댓글이 신고됐어요",
