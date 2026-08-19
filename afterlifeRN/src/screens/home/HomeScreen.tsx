@@ -1,4 +1,5 @@
 import { showAlert } from "../../stores/dialogStore";
+import HashtagText from "../../components/common/HashtagText";
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
@@ -555,7 +556,15 @@ export default function HomeScreen() {
       {
 }
       <Modal visible={!!commentFeedId} transparent animationType="slide">
-        <Pressable style={styles.commentOverlay} onPress={() => { Keyboard.dismiss(); setCommentFeedId(null); setCommentSheetShowDetail(false); }}>
+        {
+}
+        <Pressable style={styles.commentOverlay} onPress={() => {
+          if (keyboardVisible) {
+            Keyboard.dismiss();
+          } else {
+            setCommentFeedId(null); setCommentSheetShowDetail(false);
+          }
+        }}>
           <SwipeDownSheet
             onClose={() => { Keyboard.dismiss(); setCommentFeedId(null); setCommentSheetShowDetail(false); }}
             keyboardOffset={keyboardHeight}
@@ -594,24 +603,40 @@ export default function HomeScreen() {
                     )}
                     <View style={{ flex: 1 }}>
                       <Text style={styles.detailAuthor} numberOfLines={1}>{detailItem.author}</Text>
-                      <Text style={styles.detailUsername} numberOfLines={1}>@{detailItem.username}</Text>
+                      {}
+                      <Text style={styles.detailUsername} numberOfLines={1}>@{(detailItem.username ?? "").replace(/^@+/, "")}</Text>
                     </View>
+                    {}
+                    <TouchableOpacity
+                      onPress={() => { Keyboard.dismiss(); setCommentFeedId(null); setCommentSheetShowDetail(false); }}
+                      hitSlop={8}
+                    >
+                      <Feather name="x" size={22} color={COLORS.zinc600} />
+                    </TouchableOpacity>
                   </View>
                   {detailItem.description ? (
-                    <Text style={styles.detailDescription}>{detailItem.description}</Text>
+
+                    <HashtagText
+                      style={styles.detailDescription}
+                      tagStyle={{ color: COLORS.violet600, fontWeight: "600" }}
+                    >
+                      {detailItem.description}
+                    </HashtagText>
                   ) : null}
+                  {
+}
                   <View style={styles.detailStatsRow}>
+                    <View style={styles.detailStatCard}>
+                      <Text style={styles.detailStatValue}>-</Text>
+                      <Text style={styles.detailStatLabel}>{t("feed.followers", { defaultValue: "구독자" })}</Text>
+                    </View>
                     <View style={styles.detailStatCard}>
                       <Text style={styles.detailStatValue}>{detailItem.likes || "0"}</Text>
                       <Text style={styles.detailStatLabel}>{t("feed.likes", { defaultValue: "좋아요" })}</Text>
                     </View>
                     <View style={styles.detailStatCard}>
-                      <Text style={styles.detailStatValue}>{detailItem.comments ?? 0}</Text>
-                      <Text style={styles.detailStatLabel}>{t("feed.comments", { defaultValue: "댓글" })}</Text>
-                    </View>
-                    <View style={styles.detailStatCard}>
-                      <Text style={styles.detailStatValue}>{detailItem.giftsReceived ?? 0}</Text>
-                      <Text style={styles.detailStatLabel}>{t("feed.gifts", { defaultValue: "선물" })}</Text>
+                      <Text style={styles.detailStatValue}>-</Text>
+                      <Text style={styles.detailStatLabel}>{t("feed.createdAt", { defaultValue: "생성일" })}</Text>
                     </View>
                   </View>
                 </View>
@@ -624,7 +649,11 @@ export default function HomeScreen() {
                 <Text style={styles.commentTitle}>{t("feed.commentCount", { n: comments.length })}</Text>
               </View>
             ) : null}
-            <ScrollView style={styles.commentScroll} showsVerticalScrollIndicator={false}>
+            {}
+            <ScrollView
+              style={[styles.commentScroll, commentSheetShowDetail && !keyboardVisible ? { maxHeight: 240 } : null]}
+              showsVerticalScrollIndicator={false}
+            >
               {commentsLoading ? (
                 <View style={styles.emptyComment}>
                   <Feather name="loader" size={28} color={COLORS.zinc400} />
@@ -1218,7 +1247,7 @@ const styles = StyleSheet.create({
   sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: COLORS.zinc300, alignSelf: "center", marginTop: 12, marginBottom: 12 },
   commentHeaderRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 12 },
 
-  detailHeader: { paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: COLORS.zinc100, marginBottom: 8 },
+  detailHeader: { paddingBottom: 12, marginBottom: 8 },
   detailProfileRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
   detailAvatar: { width: 40, height: 40, borderRadius: 20 },
   detailAuthor: { fontSize: 15, fontWeight: "700", color: COLORS.zinc900 },
