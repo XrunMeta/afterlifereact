@@ -418,7 +418,8 @@ const v_d81136 = v_472849.create({
 
   rightActions: {
     position: "absolute",
-    right: 12,
+
+    right: 20,
     bottom: 130,
     alignItems: "center",
     gap: 20,
