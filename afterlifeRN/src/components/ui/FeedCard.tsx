@@ -384,15 +384,13 @@ const styles = StyleSheet.create({
   rightActions: {
     position: "absolute",
     right: 12,
-    top: 0,
-    bottom: 0,
-    justifyContent: "center",
+    bottom: 200,
     alignItems: "center",
-    gap: 24,
+    gap: 20,
   },
 
   rightActionsShift: {
-    bottom: 220,
+    bottom: 260,
   },
 
   ownerHeader: {
