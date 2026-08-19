@@ -31,18 +31,12 @@ interface Props {
   onClose: () => void;
 }
 
-export default function ActionSheet({ visible, title, subtitle, actions, onClose }: Props) {
-  const { height, width } = useWindowDimensions();
+export default function ActionSheet({ visible, actions, onClose }: Props) {
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={[styles.sheet, { maxHeight: height * 0.7, maxWidth: Math.min(width - 40, 400) }]} onPress={(e) => e.stopPropagation?.()}>
-          {title || subtitle ? (
-            <View style={styles.header}>
-              {title ? <Text style={styles.title}>{title}</Text> : null}
-              {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-            </View>
-          ) : null}
+        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation?.()}>
           {actions.map((a, i) => (
             <React.Fragment key={`${a.label}-${i}`}>
               {i > 0 ? <View style={styles.divider} /> : null}
@@ -51,29 +45,21 @@ export default function ActionSheet({ visible, title, subtitle, actions, onClose
                 onPress={() => { onClose(); setTimeout(a.onPress, 100); }}
                 android_ripple={{ color: "rgba(0,0,0,0.05)" }}
               >
-                <Text style={[styles.actionLabel, a.style === "destructive" && styles.actionLabelDestructive]}>
-                  {a.label}
-                </Text>
                 {a.icon ? (
                   <Feather
                     name={a.icon}
-                    size={20}
-                    color={a.style === "destructive" ? "#ef4444" : COLORS.zinc600}
+                    size={22}
+                    color={a.style === "destructive" ? "#ef4444" : COLORS.zinc800}
                   />
-                ) : null}
+                ) : (
+                  <View style={{ width: 22 }} />
+                )}
+                <Text style={[styles.actionLabel, a.style === "destructive" && styles.actionLabelDestructive]}>
+                  {a.label}
+                </Text>
               </Pressable>
             </React.Fragment>
           ))}
-          {}
-          <View style={styles.cancelGroup}>
-            <Pressable
-              style={({ pressed }) => [styles.cancelRow, pressed && styles.actionRowPressed]}
-              onPress={onClose}
-              android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-            >
-              <Text style={styles.cancelLabel}>취소</Text>
-            </Pressable>
-          </View>
         </Pressable>
       </Pressable>
     </Modal>
@@ -81,41 +67,30 @@ export default function ActionSheet({ visible, title, subtitle, actions, onClose
 }
 
 const styles = StyleSheet.create({
+
   backdrop: {
     flex: 1,
-
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.35)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
   },
   sheet: {
-    width: "100%",
+    width: 260,
     backgroundColor: COLORS.white,
     borderRadius: 16,
-    paddingBottom: 12,
     overflow: "hidden",
-
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 10,
   },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.zinc100,
-  },
-  title: { fontSize: 15, fontWeight: "600", color: COLORS.zinc900 },
-  subtitle: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
   actionRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    gap: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
   },
   actionRowPressed: {
     backgroundColor: COLORS.zinc100,
@@ -123,30 +98,15 @@ const styles = StyleSheet.create({
   divider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: COLORS.zinc100,
-    marginHorizontal: 20,
+    marginHorizontal: 18,
   },
   actionLabel: {
-    fontSize: 16,
+    fontSize: 15,
     color: COLORS.zinc900,
     fontWeight: "500",
   },
   actionLabelDestructive: {
     color: "#ef4444",
-    fontWeight: "600",
-  },
-  cancelGroup: {
-    marginTop: 8,
-    borderTopWidth: 6,
-    borderTopColor: COLORS.zinc50 ?? "#f4f4f5",
-  },
-  cancelRow: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  cancelLabel: {
-    fontSize: 16,
-    color: COLORS.zinc900,
     fontWeight: "600",
   },
 });
