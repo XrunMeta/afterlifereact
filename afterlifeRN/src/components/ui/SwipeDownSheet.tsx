@@ -87,12 +87,11 @@ export default function v_8e7ad4({
         style={[v_d81136.handleZone, { height: v_0b30e9 }]}
       />
       {
+
 }
-      <TouchableWithoutFeedback onPress={() => {}}>
-        <View style={{ flex: 1 }}>
-          {v_21f619}
-        </View>
-      </TouchableWithoutFeedback>
+      <View style={{ flex: 1 }}>
+        {v_21f619}
+      </View>
     </Animated.View>
   );
 }
