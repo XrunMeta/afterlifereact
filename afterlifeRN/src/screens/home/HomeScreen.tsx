@@ -1180,8 +1180,8 @@ export default function v_c316d8() {
               }
               return v_d41edb;
             });
-            v_15c939("차단됐어요");
-          } catch (v_49263d) { console.warn("[blockUser] failed:", v_49263d); v_15c939("차단 실패"); }
+            v_15c939("차단되었습니다");
+          } catch (v_49263d) { console.warn("[blockUser] failed:", v_49263d); v_15c939("차단에 실패했습니다"); }
         }}
       />
 
@@ -1218,7 +1218,7 @@ export default function v_c316d8() {
             });
             v_15c939(
               v_8d41d7("home.toasts.commentReported", {
-                defaultValue: "댓글이 신고됐어요",
+                defaultValue: "신고되었습니다",
               }),
             );
           } catch (v_49263d) {
@@ -1269,11 +1269,14 @@ export default function v_c316d8() {
         }}
       />
 
-      {v_8282fa && (
-        <View style={v_d81136.toast}>
-          <Text style={v_d81136.toastText}>{v_8282fa}</Text>
+      {}
+      <Modal visible={!!v_8282fa} transparent animationType="fade" statusBarTranslucent>
+        <View style={v_d81136.toastModalWrap} pointerEvents="none">
+          <View style={v_d81136.toast}>
+            <Text style={v_d81136.toastText}>{v_8282fa}</Text>
+          </View>
         </View>
-      )}
+      </Modal>
 
       {}
       <VisibilityPickerModal
@@ -1465,7 +1468,9 @@ const v_d81136 = v_472849.create({
   moreTitle: { fontSize: 13, color: v_1bfbd0.zinc500, textAlign: "center", paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc100 },
   moreItem: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc100 },
   moreItemText: { fontSize: 15, fontWeight: "500", color: v_1bfbd0.zinc900 },
-  toast: { position: "absolute", bottom: 80, alignSelf: "center", paddingHorizontal: 20, paddingVertical: 10, backgroundColor: "rgba(0,0,0,0.85)", borderRadius: v_8b0c90.full },
+
+  toastModalWrap: { flex: 1, justifyContent: "flex-end", alignItems: "center", paddingBottom: 80 },
+  toast: { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: "rgba(0,0,0,0.85)", borderRadius: v_8b0c90.full },
   toastText: { color: v_1bfbd0.white, fontSize: 14 },
 
   emptyWrap: {
