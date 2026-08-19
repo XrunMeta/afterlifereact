@@ -1180,6 +1180,7 @@ export default function HomeScreen() {
       <ReportReasonModal
         visible={!!reportCommentTarget}
         targetName={reportCommentTarget?.author}
+        targetKind="comment"
         onCancel={() => setReportCommentTarget(null)}
         onConfirm={async (reason) => {
           const target = reportCommentTarget;
