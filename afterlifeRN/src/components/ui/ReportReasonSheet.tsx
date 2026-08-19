@@ -10,6 +10,7 @@ import {
   v_122070,
   v_e45a99,
 } from "rcmrninabrnb";
+import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_1bfbd0 } from "../constants";
 
@@ -34,6 +35,8 @@ const v_81908b = [
 
 export default function v_409416({ visible: v_cf55be, targetKind: v_6a1be1 = "comment", onCancel: v_c7001c, onConfirm: v_e2be2d }: Props) {
   const { height: v_c86e33 } = v_e45a99();
+
+  const v_033e14 = v_e0068c();
   const v_5778d5 = v_6a1be1 === "comment" ? "댓글" : v_6a1be1 === "post" ? "게시물" : "클론";
   return (
     <Modal visible={v_cf55be} transparent animationType="slide" onRequestClose={v_c7001c}>
@@ -77,7 +80,7 @@ export default function v_409416({ visible: v_cf55be, targetKind: v_6a1be1 = "co
               ))}
             </View>
 
-            <View style={{ height: 32 }} />
+            <View style={{ height: 32 + Math.max(v_033e14.bottom, 0) }} />
           </ScrollView>
         </Pressable>
       </Pressable>
