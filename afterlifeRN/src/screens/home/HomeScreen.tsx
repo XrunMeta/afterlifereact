@@ -776,11 +776,14 @@ export default function v_c316d8() {
                         )}
                       </View>
                     </View>
-                    {}
+                    {
+
+}
                     <TouchableOpacity
                       style={v_d81136.commentHeart}
                       onPress={() => v_71affe(v_3f4e2e)}
                       hitSlop={8}
+                      delayPressIn={150}
                     >
                       <Ionicons
                         name="heart"
@@ -815,11 +818,13 @@ export default function v_c316d8() {
                         </View>
                         <Text style={v_d81136.commentContent}>{v_5cfb2c.content}</Text>
                       </View>
-                      {}
+                      {
+}
                       <TouchableOpacity
                         style={v_d81136.commentHeart}
                         onPress={() => v_71affe(v_5cfb2c, v_3f4e2e.id)}
                         hitSlop={8}
+                        delayPressIn={150}
                       >
                         <Ionicons
                           name="heart"
