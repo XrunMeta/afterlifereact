@@ -394,7 +394,10 @@ export default function HomeScreen() {
     if (canDelete) list.push({ label: "삭제", icon: "trash-2", style: "destructive", onPress: () => deleteComment(c.id) });
     if (isOthers) list.push({
       label: "차단하기", icon: "user-x", onPress: () => {
-        showAlert("차단", `${authorName} 님을 차단하시겠습니까?\n(이 유저의 모든 콘텐츠가 안 보임)`, [
+        showAlert(
+          `${authorName} 님을 차단하시겠습니까?`,
+          `차단하시면 다음 사항이 적용됩니다.\n\n• 해당 사용자의 모든 댓글이 회원님에게 표시되지 않습니다.\n• 차단된 사용자는 회원님의 게시물에 댓글을 작성할 수 없습니다.\n• 서로 설정되어 있던 팔로우 상태가 자동으로 해제됩니다.\n• 차단 해제는 [마이페이지 > 차단 사용자 관리] 에서 언제든지 가능합니다.`,
+          [
           { text: "취소", style: "cancel" },
           { text: "차단", style: "destructive", onPress: async () => {
             if (!c.userId || !accessToken) return;
