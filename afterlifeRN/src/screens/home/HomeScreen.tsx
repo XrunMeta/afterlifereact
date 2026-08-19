@@ -360,6 +360,31 @@ export default function v_c316d8() {
     );
   };
 
+  const v_16a276 = (c: v_52af9d) => {
+    const v_c3bc75 = v_ff422a.find((v_8b5cd8) => v_8b5cd8.id === v_ed660d);
+    const v_2aec08 = v_f5f393 != null && v_c3bc75?.cloneOwnerId === v_f5f393;
+    const v_5acb4e = v_f5f393 != null && v_3f4e2e.userId === v_f5f393;
+    const v_3cb41c = v_5acb4e || v_2aec08;
+    const v_de3672 = !v_5acb4e;
+    const v_7aa0a5 = v_3f4e2e.user.name ?? v_3f4e2e.user.email ?? "";
+    const v_3d694a = [];
+    if (v_3cb41c) v_3d694a.push({ text: "삭제", style: "destructive", onPress: () => v_b72645(v_3f4e2e.id) });
+    if (v_de3672) v_3d694a.push({ text: "차단하기", onPress: () => {
+      v_889fad("차단", `${v_7aa0a5} 님을 차단하시겠습니까? (해당 클론과의 상호작용 차단)`, [
+        { text: "취소", style: "cancel" },
+        { text: "차단", style: "destructive", onPress: async () => {
+          if (!v_c3bc75?.cloneId || !v_2ca7e0) return;
+          try { await v_97c75d(v_2ca7e0, v_c3bc75.cloneId); v_15c939("차단됐어요"); }
+          catch (v_49263d) { console.warn("[block] failed:", v_49263d); v_15c939("차단 실패"); }
+        }},
+      ]);
+    }});
+    if (v_de3672) v_3d694a.push({ text: "신고하기", onPress: () => v_c03d7d({ commentId: v_3f4e2e.id, author: v_7aa0a5 }) });
+    if (v_3d694a.length === 0) return;
+    v_3d694a.push({ text: "취소", style: "cancel" });
+    v_03e392.alert("댓글", v_7aa0a5, v_3d694a);
+  };
+
   const v_71affe = (comment: v_52af9d, v_fdf350) => {
     if (!v_2ca7e0) return;
     const v_8e2335 = v_61b01a.feedId ?? (v_ed660d != null && v_ed660d > 0 ? v_ed660d : 0);
@@ -701,7 +726,14 @@ export default function v_c316d8() {
                   return (
 
                   <View key={v_3f4e2e.id} style={v_d81136.commentBlock}>
-                  <View style={v_d81136.commentRow}>
+                  {
+}
+                  <TouchableOpacity
+                    activeOpacity={1}
+                    style={v_d81136.commentRow}
+                    onLongPress={() => v_16a276(v_3f4e2e)}
+                    delayLongPress={400}
+                  >
                     {v_3f4e2e.user.avatarUrl ? (
                       <Image source={{ uri: v_3f4e2e.user.avatarUrl }} style={v_d81136.commentAvatar} />
                     ) : (
@@ -711,23 +743,6 @@ export default function v_c316d8() {
                       <View style={v_d81136.commentMeta}>
                         <Text style={v_d81136.commentAuthor}>{v_3f4e2e.user.name ?? v_3f4e2e.user.email}</Text>
                         <Text style={v_d81136.commentTime}>{v_bfd883(v_3f4e2e.createdAt)}</Text>
-                        {v_3f4e2e.userId === v_f5f393 ? (
-                          <TouchableOpacity onPress={() => v_b72645(v_3f4e2e.id)} style={{ marginLeft: 8 }}>
-                            <Feather name="trash-2" size={14} color={v_1bfbd0.zinc400} />
-                          </TouchableOpacity>
-                        ) : (
-                          <TouchableOpacity
-                            onPress={() =>
-                              v_c03d7d({
-                                commentId: v_3f4e2e.id,
-                                author: v_3f4e2e.user.name ?? v_3f4e2e.user.email ?? "",
-                              })
-                            }
-                            style={{ marginLeft: 8 }}
-                          >
-                            <Feather name="flag" size={14} color={v_1bfbd0.zinc400} />
-                          </TouchableOpacity>
-                        )}
                       </View>
                       <Text style={v_d81136.commentContent}>{v_3f4e2e.content}</Text>
                       {}
@@ -802,7 +817,7 @@ export default function v_c316d8() {
                         {v_3f4e2e.likesCount ?? 0}
                       </Text>
                     </TouchableOpacity>
-                  </View>
+                  </TouchableOpacity>
                   {
 
 }
