@@ -567,6 +567,51 @@ export default function v_c316d8() {
             ]}
           >
             <View style={v_d81136.sheetHandle} />
+            {
+}
+            {(() => {
+              const v_61f930 = v_ff422a.find((v_8b5cd8) => v_8b5cd8.id === v_ed660d);
+              if (!v_61f930) return null;
+              return (
+                <View style={v_d81136.detailHeader}>
+                  <View style={v_d81136.detailProfileRow}>
+                    {v_61f930.authorAvatar ? (
+                      <Image
+                        source={
+                          typeof v_61f930.authorAvatar === "number"
+                            ? v_61f930.authorAvatar
+                            : { uri: v_61f930.authorAvatar as string }
+                        }
+                        style={v_d81136.detailAvatar}
+                      />
+                    ) : (
+                      <View style={[v_d81136.detailAvatar, { backgroundColor: v_1bfbd0.zinc100 }]} />
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <Text style={v_d81136.detailAuthor} numberOfLines={1}>{v_61f930.author}</Text>
+                      <Text style={v_d81136.detailUsername} numberOfLines={1}>@{v_61f930.username}</Text>
+                    </View>
+                  </View>
+                  {v_61f930.description ? (
+                    <Text style={v_d81136.detailDescription}>{v_61f930.description}</Text>
+                  ) : null}
+                  <View style={v_d81136.detailStatsRow}>
+                    <View style={v_d81136.detailStatCard}>
+                      <Text style={v_d81136.detailStatValue}>{v_61f930.likes || "0"}</Text>
+                      <Text style={v_d81136.detailStatLabel}>{v_8d41d7("feed.likes", { defaultValue: "좋아요" })}</Text>
+                    </View>
+                    <View style={v_d81136.detailStatCard}>
+                      <Text style={v_d81136.detailStatValue}>{v_61f930.comments ?? 0}</Text>
+                      <Text style={v_d81136.detailStatLabel}>{v_8d41d7("feed.comments", { defaultValue: "댓글" })}</Text>
+                    </View>
+                    <View style={v_d81136.detailStatCard}>
+                      <Text style={v_d81136.detailStatValue}>{v_61f930.giftsReceived ?? 0}</Text>
+                      <Text style={v_d81136.detailStatLabel}>{v_8d41d7("feed.gifts", { defaultValue: "선물" })}</Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            })()}
             {}
             <View style={v_d81136.commentHeaderRow}>
               <Text style={v_d81136.commentTitle}>{v_8d41d7("feed.commentCount", { n: v_ecfc0f.length })}</Text>
@@ -1164,6 +1209,17 @@ const v_d81136 = v_472849.create({
   commentSheet: { backgroundColor: v_1bfbd0.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "70%" },
   sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: v_1bfbd0.zinc300, alignSelf: "center", marginTop: 12, marginBottom: 12 },
   commentHeaderRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 12 },
+
+  detailHeader: { paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc100, marginBottom: 8 },
+  detailProfileRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
+  detailAvatar: { width: 40, height: 40, borderRadius: 20 },
+  detailAuthor: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  detailUsername: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
+  detailDescription: { fontSize: 13, color: v_1bfbd0.zinc700, lineHeight: 18, marginBottom: 10 },
+  detailStatsRow: { flexDirection: "row", gap: 8 },
+  detailStatCard: { flex: 1, backgroundColor: v_1bfbd0.zinc50, borderRadius: 12, paddingVertical: 10, alignItems: "center" },
+  detailStatValue: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  detailStatLabel: { fontSize: 11, color: v_1bfbd0.zinc500, marginTop: 2 },
   commentTitle: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
   commentScroll: { flex: 1 },
 
