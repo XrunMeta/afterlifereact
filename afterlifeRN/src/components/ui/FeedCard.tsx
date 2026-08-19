@@ -399,13 +399,14 @@ const v_d81136 = v_472849.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.9)",
+
+    backgroundColor: "rgba(255,255,255,0.25)",
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+    borderColor: "rgba(255,255,255,0.35)",
   },
   hashtagChipText: {
     fontSize: 13,
-    color: v_1bfbd0.zinc900,
+    color: v_1bfbd0.white,
     fontWeight: "600",
   },
 
