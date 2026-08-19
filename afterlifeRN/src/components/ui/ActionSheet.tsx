@@ -8,7 +8,9 @@ import {
   v_09d0e5,
   v_472849,
   v_e45a99,
+  v_326be8,
 } from "rcmrninabrnb";
+import { v_e0d220 } from "opalhgips";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_1bfbd0 } from "../constants";
 
@@ -59,30 +61,39 @@ export default function v_5fd66c({ visible: v_cf55be, actions: v_dd943a, onClose
           ]}
           pointerEvents="box-none"
         >
-          <Pressable style={v_d81136.sheet} onPress={(v_9e86fd) => v_9e86fd.stopPropagation?.()}>
-            {v_dd943a.map((v_779914, v_ebec57) => (
-              <React.Fragment key={`${v_779914.label}-${v_ebec57}`}>
-                {v_ebec57 > 0 ? <View style={v_d81136.divider} /> : null}
-                <Pressable
-                  style={({ pressed: v_aba1d2 }) => [v_d81136.actionRow, v_aba1d2 && v_d81136.actionRowPressed]}
-                  onPress={() => { v_0890f8(); setTimeout(v_779914.onPress, 100); }}
-                  android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-                >
-                  {v_779914.icon ? (
-                    <Feather
-                      name={v_779914.icon}
-                      size={22}
-                      color={v_779914.style === "destructive" ? "#ef4444" : v_1bfbd0.zinc800}
-                    />
-                  ) : (
-                    <View style={{ width: 22 }} />
-                  )}
-                  <Text style={[v_d81136.actionLabel, v_779914.style === "destructive" && v_d81136.actionLabelDestructive]}>
-                    {v_779914.label}
-                  </Text>
-                </Pressable>
-              </React.Fragment>
-            ))}
+          <Pressable style={v_d81136.sheetWrap} onPress={(v_9e86fd) => v_9e86fd.stopPropagation?.()}>
+            {
+}
+            <BlurView
+              intensity={60}
+              tint="light"
+              experimentalBlurMethod="dimezisBlurView"
+              style={v_d81136.blur}
+            >
+              {v_dd943a.map((v_779914, v_ebec57) => (
+                <React.Fragment key={`${v_779914.label}-${v_ebec57}`}>
+                  {v_ebec57 > 0 ? <View style={v_d81136.divider} /> : null}
+                  <Pressable
+                    style={({ pressed: v_aba1d2 }) => [v_d81136.actionRow, v_aba1d2 && v_d81136.actionRowPressed]}
+                    onPress={() => { v_0890f8(); setTimeout(v_779914.onPress, 100); }}
+                    android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+                  >
+                    {v_779914.icon ? (
+                      <Feather
+                        name={v_779914.icon}
+                        size={22}
+                        color={v_779914.style === "destructive" ? "#ef4444" : v_1bfbd0.zinc800}
+                      />
+                    ) : (
+                      <View style={{ width: 22 }} />
+                    )}
+                    <Text style={[v_d81136.actionLabel, v_779914.style === "destructive" && v_d81136.actionLabelDestructive]}>
+                      {v_779914.label}
+                    </Text>
+                  </Pressable>
+                </React.Fragment>
+              ))}
+            </BlurView>
           </Pressable>
         </View>
       </View>
@@ -95,16 +106,15 @@ const v_d81136 = v_472849.create({
   backdrop: {
     ...v_472849.absoluteFillObject,
 
-    backgroundColor: "transparent",
+    backgroundColor: "rgba(0,0,0,0.1)",
   },
 
   anchorLayer: {
     ...v_472849.absoluteFillObject,
   },
-  sheet: {
 
+  sheetWrap: {
     width: 240,
-    backgroundColor: "rgba(255,255,255,0.8)",
     borderRadius: 22,
     overflow: "hidden",
     shadowColor: "#000",
@@ -112,6 +122,11 @@ const v_d81136 = v_472849.create({
     shadowOpacity: 0.2,
     shadowRadius: 20,
     elevation: 12,
+
+    backgroundColor: v_326be8.OS === "android" ? "rgba(255,255,255,0.85)" : "transparent",
+  },
+  blur: {
+    width: "100%",
   },
   actionRow: {
     flexDirection: "row",
