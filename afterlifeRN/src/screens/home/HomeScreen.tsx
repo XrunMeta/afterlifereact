@@ -863,11 +863,14 @@ export default function v_c316d8() {
             )}
             <View style={v_d81136.commentInputRow}>
               <TextInput
-                style={v_d81136.commentInput}
+                style={[v_d81136.commentInput, v_b0af20 && { opacity: 0.6 }]}
                 value={v_48e7fe}
                 onChangeText={v_856f84}
+                editable={!v_b0af20}
                 placeholder={
-                  v_90b93a
+                  v_b0af20
+                    ? v_8d41d7("home.commentSending", { defaultValue: "전송 중..." })
+                    : v_90b93a
                     ? v_8d41d7("home.replyPlaceholder", { defaultValue: "답글 입력..." })
                     : v_8d41d7("feed.commentPlaceholder")
                 }
@@ -877,15 +880,20 @@ export default function v_c316d8() {
                 disabled={!v_48e7fe.trim() || !v_2ca7e0 || v_b0af20}
                 onPress={v_8e4668}
               >
-                <Feather
-                  name="send"
-                  size={18}
-                  color={
-                    v_48e7fe.trim() && v_2ca7e0 && !v_b0af20
-                      ? v_1bfbd0.violet600
-                      : v_1bfbd0.zinc400
-                  }
-                />
+                {}
+                {v_b0af20 ? (
+                  <ActivityIndicator size="small" color={v_1bfbd0.violet600} />
+                ) : (
+                  <Feather
+                    name="send"
+                    size={18}
+                    color={
+                      v_48e7fe.trim() && v_2ca7e0
+                        ? v_1bfbd0.violet600
+                        : v_1bfbd0.zinc400
+                    }
+                  />
+                )}
               </TouchableOpacity>
             </View>
           </SwipeDownSheet>
