@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
 
-    backgroundColor: "transparent",
+    backgroundColor: "rgba(0,0,0,0.15)",
     justifyContent: "center",
     alignItems: "center",
   },
