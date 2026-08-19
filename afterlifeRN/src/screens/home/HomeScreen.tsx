@@ -1,4 +1,5 @@
 import { showAlert } from "../../stores/dialogStore";
+import ActionSheet, { type ActionSheetAction } from "../../components/ui/ActionSheet";
 import HashtagText from "../../components/common/HashtagText";
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
@@ -39,7 +40,7 @@ import VisibilityPickerModal from "../clones/components/VisibilityPickerModal";
 import FriendPickerModal from "../clones/components/FriendPickerModal";
 import type { Visibility } from "../../types/clone";
 
-import { useFeedStore, apiFeedCountsCache } from "../../stores/feedStore";
+import { useFeedStore, apiFeedCountsCache, apiCloneCache } from "../../stores/feedStore";
 import { useFollowStore } from "../../stores/followStore";
 
 import { useUserFollowStore } from "../../stores/userFollowStore";
@@ -360,30 +361,71 @@ export default function HomeScreen() {
     );
   };
 
-  const openCommentActionSheet = (c: FeedComment) => {
-    const cur = filteredFeeds.find((f) => f.id === commentFeedId);
-    const isOwner = myUserId != null && cur?.cloneOwnerId === myUserId;
+  const [commentActionsFor, setCommentActionsFor] = useState<FeedComment | null>(null);
+  const openCommentActionSheet = (c: FeedComment) => setCommentActionsFor(c);
+  const commentActions = React.useMemo<ActionSheetAction[]>(() => {
+    if (!commentActionsFor) return [];
+    const c = commentActionsFor;
+
+    let cloneId: number | undefined;
+    let cloneOwnerId: number | undefined;
+    const apiFeeds = useFeedStore.getState().apiFeeds;
+    const raw = apiFeeds?.find((f) => f.id === commentFeedId);
+    if (raw) {
+      cloneId = raw.cloneId;
+      cloneOwnerId = raw.clone?.ownerId ?? undefined;
+    } else if (commentFeedId != null && commentFeedId < 0) {
+      cloneId = -commentFeedId;
+    }
+    if (cloneOwnerId == null && cloneId != null) {
+      const cached = apiCloneCache.get(cloneId);
+      cloneOwnerId = cached?.ownerId ?? undefined;
+    }
+    const isOwner = myUserId != null && cloneOwnerId != null && cloneOwnerId === myUserId;
     const isMine = myUserId != null && c.userId === myUserId;
     const canDelete = isMine || isOwner;
     const isOthers = !isMine;
     const authorName = c.user.name ?? c.user.email ?? "";
-    const buttons: Array<{ text: string; onPress?: () => void; style?: "default" | "cancel" | "destructive" }> = [];
-    if (canDelete) buttons.push({ text: "삭제", style: "destructive", onPress: () => deleteComment(c.id) });
-    if (isOthers) buttons.push({ text: "차단하기", onPress: () => {
-      showAlert("차단", `${authorName} 님을 차단하시겠습니까? (해당 클론과의 상호작용 차단)`, [
-        { text: "취소", style: "cancel" },
-        { text: "차단", style: "destructive", onPress: async () => {
-          if (!cur?.cloneId || !accessToken) return;
-          try { await blockClone(accessToken, cur.cloneId); setToastMessage("차단됐어요"); }
-          catch (err) { console.warn("[block] failed:", err); setToastMessage("차단 실패"); }
-        }},
-      ]);
-    }});
-    if (isOthers) buttons.push({ text: "신고하기", onPress: () => setReportCommentTarget({ commentId: c.id, author: authorName }) });
-    if (buttons.length === 0) return;
-    buttons.push({ text: "취소", style: "cancel" });
-    showAlert("댓글", authorName, buttons);
-  };
+    const list: ActionSheetAction[] = [];
+    if (canDelete) {
+      list.push({
+        label: "삭제",
+        icon: "trash-2",
+        style: "destructive",
+        onPress: () => deleteComment(c.id),
+      });
+    }
+    if (isOthers) {
+      list.push({
+        label: "차단하기",
+        icon: "user-x",
+        onPress: () => {
+          showAlert(
+            "차단",
+            `${authorName} 님을 차단하시겠습니까?\n(해당 클론과의 상호작용 차단)`,
+            [
+              { text: "취소", style: "cancel" },
+              {
+                text: "차단",
+                style: "destructive",
+                onPress: async () => {
+                  if (!cloneId || !accessToken) return;
+                  try { await blockClone(accessToken, cloneId); setToastMessage("차단됐어요"); }
+                  catch (err) { console.warn("[block] failed:", err); setToastMessage("차단 실패"); }
+                },
+              },
+            ],
+          );
+        },
+      });
+      list.push({
+        label: "신고하기",
+        icon: "flag",
+        onPress: () => setReportCommentTarget({ commentId: c.id, author: authorName }),
+      });
+    }
+    return list;
+  }, [commentActionsFor, commentFeedId, myUserId, accessToken]);
 
   const toggleCommentLike = (comment: FeedComment, parentCommentId?: number) => {
     if (!accessToken) return;
@@ -1097,6 +1139,15 @@ export default function HomeScreen() {
           </SwipeDownSheet>
         </Pressable>
       </Modal>
+
+      {}
+      <ActionSheet
+        visible={!!commentActionsFor}
+        title="댓글"
+        subtitle={commentActionsFor ? (commentActionsFor.user.name ?? commentActionsFor.user.email ?? "") : undefined}
+        actions={commentActions}
+        onClose={() => setCommentActionsFor(null)}
+      />
 
       {}
       <ReportReasonModal
