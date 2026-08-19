@@ -394,12 +394,29 @@ export default function v_c316d8() {
     if (v_3cb41c) v_ef8ab1.push({ label: "삭제", icon: "trash-2", style: "destructive", onPress: () => v_b72645(v_3f4e2e.id) });
     if (v_de3672) v_ef8ab1.push({
       label: "차단하기", icon: "user-x", onPress: () => {
-        v_889fad("차단", `${v_7aa0a5} 님을 차단하시겠습니까?\n(해당 클론과의 상호작용 차단)`, [
+        v_889fad("차단", `${v_7aa0a5} 님을 차단하시겠습니까?\n(이 유저의 모든 콘텐츠가 안 보임)`, [
           { text: "취소", style: "cancel" },
           { text: "차단", style: "destructive", onPress: async () => {
-            if (!v_6e0fd3 || !v_2ca7e0) return;
-            try { await v_97c75d(v_2ca7e0, v_6e0fd3); v_15c939("차단됐어요"); }
-            catch (v_49263d) { console.warn("[block] failed:", v_49263d); v_15c939("차단 실패"); }
+            if (!v_3f4e2e.userId || !v_2ca7e0) return;
+            try {
+
+              const { blockUser: v_b9d616 } = await import("../../api/users");
+              await v_b9d616(v_2ca7e0, v_3f4e2e.userId);
+
+              v_04f2fc((v_ba2215) => {
+                const v_a448ad = v_ba2215.filter((v_a252ed) => v_a252ed.userId !== v_3f4e2e.userId);
+                if (v_ed660d != null) v_829e3a(v_ed660d, v_a448ad.length);
+                return v_a448ad;
+              });
+              v_74a05a((v_ba2215) => {
+                const v_d41edb = { ...v_ba2215 };
+                for (const v_d4923e of Object.keys(v_d41edb)) {
+                  v_d41edb[Number(v_d4923e)] = v_d41edb[Number(v_d4923e)].filter((v_cb35cb) => v_cb35cb.userId !== v_3f4e2e.userId);
+                }
+                return v_d41edb;
+              });
+              v_15c939("차단됐어요");
+            } catch (v_49263d) { console.warn("[blockUser] failed:", v_49263d); v_15c939("차단 실패"); }
           }},
         ]);
       },

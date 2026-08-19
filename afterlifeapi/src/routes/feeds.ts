@@ -751,8 +751,15 @@ v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
     "fc.feed_id = ?",
     "fc.parent_comment_id IS NULL",
     "fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))",
+    "(SELECT COUNT(*) FROM comment_reports cr WHERE cr.comment_id = fc.id) < 5",
   ];
   const v_925171 = [v_c09aa8];
+  if (v_013af2) {
+    v_abcc8d.push("fc.user_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)");
+    v_925171.push(v_013af2);
+    v_abcc8d.push("fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE user_id = ?)");
+    v_925171.push(v_013af2);
+  }
   if (v_75cbf4 && Number.isInteger(v_75cbf4) && v_75cbf4 > 0) {
     v_abcc8d.push("fc.id < ?");
     v_925171.push(v_75cbf4);
