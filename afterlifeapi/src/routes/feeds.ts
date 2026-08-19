@@ -624,6 +624,14 @@ v_f1d06f.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
     }
   }
 
+  if (v_2db2a5.ownerId !== v_43e90c) {
+    const v_3bebca = await v_3f4e2e.env.DB
+      .prepare(`SELECT 1 AS x FROM user_blocks WHERE blocker_id = ? AND blocked_id = ? LIMIT 1`)
+      .bind(v_2db2a5.ownerId, v_43e90c)
+      .first();
+    if (v_3bebca) throw new v_3ebe58("FORBIDDEN", "댓글을 작성할 수 없어요.");
+  }
+
   let v_ab1564 = null;
   if (v_4d33b2.parentCommentId) {
     const v_4eab4b = await v_3f4e2e.env.DB
