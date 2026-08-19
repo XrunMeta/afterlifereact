@@ -637,11 +637,15 @@ export default function HomeScreen() {
                     </View>
                     <View style={styles.detailStatCard}>
                       {}
-                      <Text style={styles.detailStatValue}>{
-                        detailItem.createdAt
-                          ? new Date(detailItem.createdAt).toLocaleDateString("ko-KR", { year: "2-digit", month: "2-digit", day: "2-digit" }).replace(/\s/g, "").replace(/\.$/, "")
-                          : "-"
-                      }</Text>
+                      <Text style={styles.detailStatValue}>{(() => {
+                        if (!detailItem.createdAt) return "-";
+                        const d = new Date(detailItem.createdAt);
+                        if (isNaN(d.getTime())) return "-";
+                        const y = d.getFullYear();
+                        const m = String(d.getMonth() + 1).padStart(2, "0");
+                        const day = String(d.getDate()).padStart(2, "0");
+                        return `${y}.${m}.${day}`;
+                      })()}</Text>
                       <Text style={styles.detailStatLabel}>{t("feed.createdAt", { defaultValue: "생성일" })}</Text>
                     </View>
                   </View>
