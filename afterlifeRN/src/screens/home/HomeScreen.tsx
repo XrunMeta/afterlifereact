@@ -739,6 +739,8 @@ export default function v_c316d8() {
                               userName: v_3f4e2e.user.name ?? v_3f4e2e.user.email ?? "",
                             })
                           }
+                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                          activeOpacity={0.6}
                         >
                           <Text style={v_d81136.replyActionText}>
                             {v_8d41d7("home.replyAction", { defaultValue: "답글 달기" })}
@@ -1296,12 +1298,13 @@ const v_d81136 = v_472849.create({
 
   commentHeaderRowBottom: { flexDirection: "row", justifyContent: "center", alignItems: "center", paddingTop: 8, paddingBottom: 4 },
 
-  detailHeader: { paddingBottom: 12, marginBottom: 8 },
-  detailProfileRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
+  detailHeader: { paddingBottom: 16, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc100 },
+
+  detailProfileRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingBottom: 12, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc100 },
   detailAvatar: { width: 40, height: 40, borderRadius: 20 },
   detailAuthor: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900 },
   detailUsername: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
-  detailDescription: { fontSize: 13, color: v_1bfbd0.zinc700, lineHeight: 18, marginBottom: 10 },
+  detailDescription: { fontSize: 14, color: v_1bfbd0.zinc700, lineHeight: 20, marginBottom: 14 },
   detailStatsRow: { flexDirection: "row", gap: 8 },
   detailStatCard: { flex: 1, backgroundColor: v_1bfbd0.zinc50, borderRadius: 12, paddingVertical: 10, alignItems: "center" },
   detailStatValue: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
