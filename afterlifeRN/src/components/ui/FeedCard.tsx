@@ -417,13 +417,13 @@ const v_d81136 = v_472849.create({
   rightActions: {
     position: "absolute",
     right: 12,
-    bottom: 200,
+    bottom: 130,
     alignItems: "center",
     gap: 20,
   },
 
   rightActionsShift: {
-    bottom: 260,
+    bottom: 190,
   },
 
   ownerHeader: {
