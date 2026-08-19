@@ -627,7 +627,8 @@ export default function v_c316d8() {
 }
                   <View style={v_d81136.detailStatsRow}>
                     <View style={v_d81136.detailStatCard}>
-                      <Text style={v_d81136.detailStatValue}>-</Text>
+                      {}
+                      <Text style={v_d81136.detailStatValue}>{v_61f930.followerCount ?? 0}</Text>
                       <Text style={v_d81136.detailStatLabel}>{v_8d41d7("feed.followers", { defaultValue: "구독자" })}</Text>
                     </View>
                     <View style={v_d81136.detailStatCard}>
@@ -635,7 +636,12 @@ export default function v_c316d8() {
                       <Text style={v_d81136.detailStatLabel}>{v_8d41d7("feed.likes", { defaultValue: "좋아요" })}</Text>
                     </View>
                     <View style={v_d81136.detailStatCard}>
-                      <Text style={v_d81136.detailStatValue}>-</Text>
+                      {}
+                      <Text style={v_d81136.detailStatValue}>{
+                        v_61f930.createdAt
+                          ? new Date(v_61f930.createdAt).toLocaleDateString("ko-KR", { year: "2-digit", month: "2-digit", day: "2-digit" }).replace(/\s/g, "").replace(/\.$/, "")
+                          : "-"
+                      }</Text>
                       <Text style={v_d81136.detailStatLabel}>{v_8d41d7("feed.createdAt", { defaultValue: "생성일" })}</Text>
                     </View>
                   </View>
