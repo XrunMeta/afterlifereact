@@ -757,11 +757,18 @@ export default function v_c316d8() {
                     onLongPress={v_a02a09 ? () => v_16a276(v_3f4e2e) : undefined}
                     delayLongPress={400}
                   >
-                    {v_3f4e2e.user.avatarUrl ? (
-                      <Image source={{ uri: v_3f4e2e.user.avatarUrl }} style={v_d81136.commentAvatar} />
-                    ) : (
-                      <View style={[v_d81136.commentAvatar, { backgroundColor: v_1bfbd0.zinc100 }]} />
-                    )}
+                    {}
+                    <TouchableOpacity
+                      onPress={() => v_3f4e2e.userId && v_f4c991.navigate("UserProfile", { userId: v_3f4e2e.userId })}
+                      activeOpacity={0.7}
+                      hitSlop={4}
+                    >
+                      {v_3f4e2e.user.avatarUrl ? (
+                        <Image source={{ uri: v_3f4e2e.user.avatarUrl }} style={v_d81136.commentAvatar} />
+                      ) : (
+                        <View style={[v_d81136.commentAvatar, { backgroundColor: v_1bfbd0.zinc100 }]} />
+                      )}
+                    </TouchableOpacity>
                     <View style={v_d81136.commentInfo}>
                       <View style={v_d81136.commentMeta}>
                         <Text style={v_d81136.commentAuthor}>{v_3f4e2e.user.name ?? v_3f4e2e.user.email}</Text>
