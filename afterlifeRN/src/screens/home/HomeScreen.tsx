@@ -681,10 +681,14 @@ export default function v_c316d8() {
 
 }
             <View style={{ flex: 1 }}>
+            {
+}
             <ScrollView
               style={[v_d81136.commentScroll, v_16a078 && !v_507993 ? { maxHeight: 240 } : null]}
               contentContainerStyle={v_ecfc0f.length === 0 ? { flexGrow: 1, justifyContent: "center" } : undefined}
               showsVerticalScrollIndicator={false}
+              nestedScrollEnabled={true}
+              keyboardShouldPersistTaps="handled"
             >
               {v_465030 ? (
                 <View style={v_d81136.emptyComment}>
