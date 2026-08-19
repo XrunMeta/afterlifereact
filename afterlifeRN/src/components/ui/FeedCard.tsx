@@ -11,10 +11,15 @@ import {
 import { v_5ade23 } from "xbfwaaanosqvazmrqoah";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
+import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import type { v_5b8240 } from "ykfzqfftuciufdadykzsyvzknqnwb";
+import type { v_97a9a8 } from "../../navigation/types";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../constants";
 import type { v_19b433 } from "../../types/feed";
 import v_5778ce from "../common/HashtagText";
 import v_8fba67 from "./ExpertBadge";
+
+const v_2c17d6 = /#[a-zA-Z0-9_가-힣ᄀ-ᇿㄱ-ㆎ]+/g;
 
 interface FeedCardProps {
   item: v_19b433;
@@ -69,6 +74,28 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
   onDescriptionScrollEnd: v_bb9bff,
 }) => {
   const { t: v_8d41d7 } = v_772971();
+  const v_3c9f12 = v_ada615<v_5b8240<v_97a9a8>>();
+
+  const v_43c476 = v_a3453e.useMemo<string[]>(() => {
+    const v_38d084 = v_8c0b26.description ?? "";
+    if (!v_38d084) return [];
+    v_2c17d6.lastIndex = 0;
+    const v_110a8b = new Set<string>();
+    const v_8d4337 = [];
+    let v_35f85c;
+    while ((v_35f85c = v_2c17d6.exec(v_38d084)) !== null) {
+      const v_bd1444 = v_35f85c[0];
+      if (!v_110a8b.has(v_bd1444)) {
+        v_110a8b.add(v_bd1444);
+        v_8d4337.push(v_bd1444);
+      }
+    }
+    return v_8d4337;
+  }, [v_8c0b26.description]);
+  const v_6ee356 = (v_bd1444) => {
+    const v_f23d49 = v_bd1444.replace(/^#+/, "");
+    v_3c9f12.navigate("SearchTab", { initialQuery: v_f23d49 });
+  };
 
   const [v_4393ab, v_f95f43] = v_a3453e.useState(0);
   const [v_49cb14, v_eb937b] = v_a3453e.useState(0);
@@ -134,6 +161,30 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
               <Feather name="more-vertical" size={20} color={v_1bfbd0.white} />
             </TouchableOpacity>
           ) : null}
+        </View>
+      ) : null}
+
+      {
+}
+      {v_26dce6 && v_43c476.length > 0 ? (
+        <View style={v_d81136.hashtagRowWrap} pointerEvents="box-none">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={v_d81136.hashtagRowContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            {v_43c476.map((v_bd1444) => (
+              <TouchableOpacity
+                key={v_bd1444}
+                style={v_d81136.hashtagChip}
+                activeOpacity={0.7}
+                onPress={() => v_6ee356(v_bd1444)}
+              >
+                <Text style={v_d81136.hashtagChipText}>{v_bd1444}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
       ) : null}
 
@@ -364,6 +415,30 @@ const v_d81136 = v_472849.create({
   },
   followTextActive: {
     color: v_1bfbd0.white,
+  },
+
+  hashtagRowWrap: {
+    position: "absolute",
+    top: 112,
+    left: 0,
+    right: 0,
+  },
+  hashtagRowContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  hashtagChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  hashtagChipText: {
+    fontSize: 13,
+    color: v_1bfbd0.zinc900,
+    fontWeight: "600",
   },
 
   rightActions: {
