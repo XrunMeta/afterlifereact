@@ -54,6 +54,7 @@ import {
   v_f5a9ea,
   v_f1ff2a,
   v_99e260,
+  v_003cf2,
   type v_52af9d,
 } from "../../api/clones";
 import { v_bfd883 } from "../../lib/relativeTime";
@@ -121,6 +122,22 @@ export default function v_c316d8() {
   const [v_ed660d, v_b07dd3] = v_5ab095<number | null>(null);
 
   const [v_16a078, v_905ec3] = v_5ab095(false);
+
+  const [v_415d29, v_d2b23a] = v_5ab095<{ followers: number; createdAt: string } | null>(null);
+  v_c4deb2(() => {
+    if (!v_16a078 || v_ed660d == null) { v_d2b23a(null); return; }
+    const v_8c0b26 = v_37977a.getState().apiFeeds?.find((v_8b5cd8) => v_8b5cd8.id === v_ed660d);
+    const v_6e0fd3 = v_8c0b26?.cloneId;
+    if (!v_6e0fd3) return;
+    let v_2008a4 = false;
+    v_003cf2(v_6e0fd3, v_1ed7d9.getState().accessToken ?? undefined)
+      .then((v_8f00b9) => {
+        if (v_2008a4) return;
+        v_d2b23a({ followers: v_8f00b9.clone.stats?.followers ?? 0, createdAt: v_8f00b9.clone.createdAt });
+      })
+      .catch(() => {});
+    return () => { v_2008a4 = true; };
+  }, [v_16a078, v_ed660d]);
   const [v_48e7fe, v_856f84] = v_5ab095("");
 
   const [v_d3a183, v_598141] = v_5ab095<{ cloneId: number; cloneName: string } | null>(null);
@@ -628,7 +645,7 @@ export default function v_c316d8() {
                   <View style={v_d81136.detailStatsRow}>
                     <View style={v_d81136.detailStatCard}>
                       {}
-                      <Text style={v_d81136.detailStatValue}>{v_61f930.followerCount ?? 0}</Text>
+                      <Text style={v_d81136.detailStatValue}>{v_415d29?.followers ?? 0}</Text>
                       <Text style={v_d81136.detailStatLabel}>{v_8d41d7("feed.followers", { defaultValue: "구독자" })}</Text>
                     </View>
                     <View style={v_d81136.detailStatCard}>
@@ -638,8 +655,9 @@ export default function v_c316d8() {
                     <View style={v_d81136.detailStatCard}>
                       {}
                       <Text style={v_d81136.detailStatValue}>{(() => {
-                        if (!v_61f930.createdAt) return "-";
-                        const v_d5dda0 = new Date(v_61f930.createdAt);
+                        const v_38d084 = v_415d29?.createdAt ?? v_61f930.createdAt;
+                        if (!v_38d084) return "-";
+                        const v_d5dda0 = new Date(v_38d084);
                         if (isNaN(v_d5dda0.getTime())) return "-";
                         const v_64877a = v_d5dda0.getFullYear();
                         const v_35f85c = String(v_d5dda0.getMonth() + 1).padStart(2, "0");
@@ -652,7 +670,13 @@ export default function v_c316d8() {
                 </View>
               );
             })()}
-            {}
+            {
+}
+            {!v_16a078 ? (
+              <View style={v_d81136.commentHeaderRow}>
+                <Text style={v_d81136.commentTitle}>{v_8d41d7("feed.commentCount", { n: v_ecfc0f.length })}</Text>
+              </View>
+            ) : null}
             {
 }
             <View style={{ flex: 1 }}>
@@ -814,25 +838,13 @@ export default function v_c316d8() {
               ) : (
 
                 <View style={v_d81136.emptyComment}>
-                  {v_16a078 ? (
-                    <Text style={v_d81136.emptyCommentGray}>{v_8d41d7("feed.commentsEmpty", { defaultValue: "댓글이 없습니다" })}</Text>
-                  ) : (
-                    <>
-                      <Feather name="message-circle" size={40} color={v_1bfbd0.zinc300} />
-                      <Text style={v_d81136.emptyText}>{v_8d41d7("feed.commentsEmpty")}</Text>
-                    </>
-                  )}
+                  <Feather name="message-circle" size={40} color={v_1bfbd0.zinc300} />
+                  <Text style={v_d81136.emptyText}>{v_8d41d7("feed.commentsEmpty")}</Text>
                 </View>
               )}
             </ScrollView>
             </View>
-            {
-}
-            {!v_16a078 ? (
-              <View style={v_d81136.commentHeaderRowBottom}>
-                <Text style={v_d81136.commentTitle}>{v_8d41d7("feed.commentCount", { n: v_ecfc0f.length })}</Text>
-              </View>
-            ) : null}
+            {}
             {}
             {v_90b93a && (
               <View style={v_d81136.replyingBanner}>
