@@ -124,22 +124,7 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
               {v_8c0b26.ownerName ?? ""}
             </Text>
           </TouchableOpacity>
-          {!v_799eb5 && v_a32130 ? (
-            <TouchableOpacity
-              style={[v_d81136.ownerFollowBtn, v_1d1155 && v_d81136.ownerFollowBtnActive]}
-              onPress={v_a32130}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  v_d81136.ownerFollowText,
-                  v_1d1155 && v_d81136.ownerFollowTextActive,
-                ]}
-              >
-                {v_1d1155 ? v_8d41d7("feed.following") : v_8d41d7("feed.follow")}
-              </Text>
-            </TouchableOpacity>
-          ) : null}
+          {}
           {v_27b331 ? (
             <TouchableOpacity
               onPress={v_27b331}
