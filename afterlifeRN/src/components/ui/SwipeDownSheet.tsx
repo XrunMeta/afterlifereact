@@ -89,7 +89,10 @@ export default function SwipeDownSheet({
       {
 
 }
-      <Pressable onPress={() => {}}>{children}</Pressable>
+      <View style={{ flex: 1 }}>
+        <Pressable onPress={() => {}} style={StyleSheet.absoluteFill} />
+        {children}
+      </View>
     </Animated.View>
   );
 }

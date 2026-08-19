@@ -678,8 +678,8 @@ export default function HomeScreen() {
               </View>
             ) : null}
             {
-
 }
+            <View style={{ flex: 1 }}>
             <ScrollView
               style={[styles.commentScroll, commentSheetShowDetail && !keyboardVisible ? { maxHeight: 300 } : null]}
               contentContainerStyle={comments.length === 0 ? { flexGrow: 1, justifyContent: "center", minHeight: 180 } : undefined}
@@ -848,6 +848,7 @@ export default function HomeScreen() {
                 </View>
               )}
             </ScrollView>
+            </View>
             {}
             {}
             {replyingTo && (
