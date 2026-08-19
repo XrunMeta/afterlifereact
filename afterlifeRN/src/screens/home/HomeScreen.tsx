@@ -1,4 +1,5 @@
 import { showAlert } from "../../stores/dialogStore";
+import ActionSheet, { type ActionSheetAction } from "../../components/ui/ActionSheet";
 import HashtagText from "../../components/common/HashtagText";
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
@@ -39,7 +40,7 @@ import VisibilityPickerModal from "../clones/components/VisibilityPickerModal";
 import FriendPickerModal from "../clones/components/FriendPickerModal";
 import type { Visibility } from "../../types/clone";
 
-import { useFeedStore, apiFeedCountsCache } from "../../stores/feedStore";
+import { useFeedStore, apiFeedCountsCache, apiCloneCache } from "../../stores/feedStore";
 import { useFollowStore } from "../../stores/followStore";
 
 import { useUserFollowStore } from "../../stores/userFollowStore";
@@ -123,21 +124,25 @@ export default function HomeScreen() {
 
   const [commentSheetShowDetail, setCommentSheetShowDetail] = useState(false);
 
-  const [detailCloneStats, setDetailCloneStats] = useState<{ followers: number; createdAt: string } | null>(null);
+  const [detailCloneStats, setDetailCloneStats] = useState<{ followers: number; createdAt: string; ownerId: number } | null>(null);
   useEffect(() => {
-    if (!commentSheetShowDetail || commentFeedId == null) { setDetailCloneStats(null); return; }
+    if (commentFeedId == null) { setDetailCloneStats(null); return; }
     const item = useFeedStore.getState().apiFeeds?.find((f) => f.id === commentFeedId);
-    const cloneId = item?.cloneId;
+    const cloneId = item?.cloneId ?? (commentFeedId < 0 ? -commentFeedId : undefined);
     if (!cloneId) return;
     let cancelled = false;
     getCloneDetail(cloneId, useAuthStore.getState().accessToken ?? undefined)
       .then((res) => {
         if (cancelled) return;
-        setDetailCloneStats({ followers: res.clone.stats?.followers ?? 0, createdAt: res.clone.createdAt });
+        setDetailCloneStats({
+          followers: res.clone.stats?.followers ?? 0,
+          createdAt: res.clone.createdAt,
+          ownerId: res.clone.ownerId,
+        });
       })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [commentSheetShowDetail, commentFeedId]);
+  }, [commentFeedId]);
   const [commentText, setCommentText] = useState("");
 
   const [intimacyModal, setIntimacyModal] = useState<{ cloneId: number; cloneName: string } | null>(null);
@@ -360,6 +365,69 @@ export default function HomeScreen() {
     );
   };
 
+  const [commentActionsFor, setCommentActionsFor] = useState<FeedComment | null>(null);
+  const openCommentActionSheet = (c: FeedComment) => setCommentActionsFor(c);
+  const commentActions = React.useMemo<ActionSheetAction[]>(() => {
+    if (!commentActionsFor) return [];
+    const c = commentActionsFor;
+    let cloneId: number | undefined;
+    let cloneOwnerId: number | undefined;
+    if (detailCloneStats?.ownerId != null) cloneOwnerId = detailCloneStats.ownerId;
+    const apiFeeds = useFeedStore.getState().apiFeeds;
+    const raw = apiFeeds?.find((f) => f.id === commentFeedId);
+    if (raw) {
+      cloneId = raw.cloneId;
+      if (cloneOwnerId == null) cloneOwnerId = raw.clone?.ownerId ?? undefined;
+    } else if (commentFeedId != null && commentFeedId < 0) {
+      cloneId = -commentFeedId;
+    }
+    if (cloneOwnerId == null && cloneId != null) {
+      const cached = apiCloneCache.get(cloneId);
+      if (cached?.ownerId != null && cached.ownerId > 0) cloneOwnerId = cached.ownerId;
+    }
+    const isOwner = myUserId != null && cloneOwnerId != null && cloneOwnerId === myUserId;
+    const isMine = myUserId != null && c.userId === myUserId;
+    const canDelete = isMine || isOwner;
+    const isOthers = !isMine;
+    const authorName = c.user.name ?? c.user.email ?? "";
+    const list: ActionSheetAction[] = [];
+    if (canDelete) list.push({ label: "삭제", icon: "trash-2", style: "destructive", onPress: () => deleteComment(c.id) });
+    if (isOthers) list.push({
+      label: "차단하기", icon: "user-x", onPress: () => {
+        showAlert(
+          `${authorName} 님을 차단하시겠습니까?`,
+          `차단하시면 다음 사항이 적용됩니다.\n\n• 해당 사용자의 모든 댓글이 회원님에게 표시되지 않습니다.\n• 차단된 사용자는 회원님의 게시물에 댓글을 작성할 수 없습니다.\n• 서로 설정되어 있던 팔로우 상태가 자동으로 해제됩니다.\n• 차단 해제는 [마이페이지 > 차단 사용자 관리] 에서 언제든지 가능합니다.`,
+          [
+          { text: "취소", style: "cancel" },
+          { text: "차단", style: "destructive", onPress: async () => {
+            if (!c.userId || !accessToken) return;
+            try {
+
+              const { blockUser } = await import("../../api/users");
+              await blockUser(accessToken, c.userId);
+
+              setComments((prev) => {
+                const next = prev.filter((cc) => cc.userId !== c.userId);
+                if (commentFeedId != null) bumpCommentsCount(commentFeedId, next.length);
+                return next;
+              });
+              setExpandedReplies((prev) => {
+                const nextExpanded = { ...prev };
+                for (const pid of Object.keys(nextExpanded)) {
+                  nextExpanded[Number(pid)] = nextExpanded[Number(pid)].filter((r) => r.userId !== c.userId);
+                }
+                return nextExpanded;
+              });
+              setToastMessage("차단됐어요");
+            } catch (err) { console.warn("[blockUser] failed:", err); setToastMessage("차단 실패"); }
+          }},
+        ], { messageAlign: "left" });
+      },
+    });
+    if (isOthers) list.push({ label: "신고하기", icon: "flag", onPress: () => setReportCommentTarget({ commentId: c.id, author: authorName }) });
+    return list;
+  }, [commentActionsFor, commentFeedId, myUserId, accessToken, detailCloneStats]);
+
   const toggleCommentLike = (comment: FeedComment, parentCommentId?: number) => {
     if (!accessToken) return;
     const fid = comment.feedId ?? (commentFeedId != null && commentFeedId > 0 ? commentFeedId : 0);
@@ -575,7 +643,8 @@ export default function HomeScreen() {
       <Modal visible={!!commentFeedId} transparent animationType="slide">
         {
 }
-        <Pressable style={styles.commentOverlay} onPress={() => {
+        <Pressable style={styles.commentOverlay} onPress={(e) => {
+          if (e.target !== e.currentTarget) return;
           if (commentSheetShowDetail && keyboardVisible) {
             Keyboard.dismiss();
           } else {
@@ -679,13 +748,15 @@ export default function HomeScreen() {
             ) : null}
             {
 }
-            <View style={{ flex: 1 }}>
             <ScrollView
-              style={[styles.commentScroll, commentSheetShowDetail && !keyboardVisible ? { maxHeight: 300 } : null]}
-              contentContainerStyle={comments.length === 0 ? { flexGrow: 1, justifyContent: "center", minHeight: 180 } : undefined}
-              showsVerticalScrollIndicator={false}
+              style={[styles.commentScroll, { minHeight: 0 }]}
+              contentContainerStyle={comments.length === 0 ? { flexGrow: 1, justifyContent: "center", minHeight: 180 } : { flexGrow: 1 }}
+              showsVerticalScrollIndicator={true}
               nestedScrollEnabled={true}
-              keyboardShouldPersistTaps="handled"
+              keyboardShouldPersistTaps="always"
+              scrollEventThrottle={16}
+              alwaysBounceVertical={true}
+              overScrollMode="always"
             >
               {commentsLoading ? (
                 <View style={styles.emptyComment}>
@@ -695,21 +766,36 @@ export default function HomeScreen() {
                 comments.map((c) => {
                   const replies = expandedReplies[c.id];
                   const showReplies = replies !== undefined;
+
+                  const _isCloneOwnerForComments = myUserId != null && detailCloneStats?.ownerId != null && detailCloneStats.ownerId === myUserId;
                   return (
 
                   <View key={c.id} style={styles.commentBlock}>
-                  <View style={styles.commentRow}>
-                    {c.user.avatarUrl ? (
-                      <Image source={{ uri: c.user.avatarUrl }} style={styles.commentAvatar} />
-                    ) : (
-                      <View style={[styles.commentAvatar, { backgroundColor: COLORS.zinc100 }]} />
-                    )}
+                  <TouchableOpacity
+                    activeOpacity={1}
+                    style={styles.commentRow}
+                    onLongPress={_isCloneOwnerForComments ? () => openCommentActionSheet(c) : undefined}
+                    delayLongPress={400}
+                  >
+                    {}
+                    <TouchableOpacity
+                      onPress={() => c.userId && rootNav.navigate("UserProfile", { userId: c.userId })}
+                      activeOpacity={0.7}
+                      hitSlop={4}
+                    >
+                      {c.user.avatarUrl ? (
+                        <Image source={{ uri: c.user.avatarUrl }} style={styles.commentAvatar} />
+                      ) : (
+                        <View style={[styles.commentAvatar, { backgroundColor: COLORS.zinc100 }]} />
+                      )}
+                    </TouchableOpacity>
                     <View style={styles.commentInfo}>
                       <View style={styles.commentMeta}>
                         <Text style={styles.commentAuthor}>{c.user.name ?? c.user.email}</Text>
                         <Text style={styles.commentTime}>{formatRelativeKo(c.createdAt)}</Text>
-                        {c.userId === myUserId ? (
-                          <TouchableOpacity onPress={() => deleteComment(c.id)} style={{ marginLeft: 8 }}>
+                        {}
+                        {!_isCloneOwnerForComments && (c.userId === myUserId ? (
+                          <TouchableOpacity onPress={() => deleteComment(c.id)} style={{ marginLeft: 8 }} hitSlop={8}>
                             <Feather name="trash-2" size={14} color={COLORS.zinc400} />
                           </TouchableOpacity>
                         ) : (
@@ -721,10 +807,11 @@ export default function HomeScreen() {
                               })
                             }
                             style={{ marginLeft: 8 }}
+                            hitSlop={8}
                           >
                             <Feather name="flag" size={14} color={COLORS.zinc400} />
                           </TouchableOpacity>
-                        )}
+                        ))}
                       </View>
                       <Text style={styles.commentContent}>{c.content}</Text>
                       {}
@@ -776,11 +863,14 @@ export default function HomeScreen() {
                         )}
                       </View>
                     </View>
-                    {}
+                    {
+
+}
                     <TouchableOpacity
                       style={styles.commentHeart}
                       onPress={() => toggleCommentLike(c)}
                       hitSlop={8}
+                      delayPressIn={150}
                     >
                       <Ionicons
                         name="heart"
@@ -796,7 +886,7 @@ export default function HomeScreen() {
                         {c.likesCount ?? 0}
                       </Text>
                     </TouchableOpacity>
-                  </View>
+                  </TouchableOpacity>
                   {
 
 }
@@ -815,11 +905,13 @@ export default function HomeScreen() {
                         </View>
                         <Text style={styles.commentContent}>{rc.content}</Text>
                       </View>
-                      {}
+                      {
+}
                       <TouchableOpacity
                         style={styles.commentHeart}
                         onPress={() => toggleCommentLike(rc, c.id)}
                         hitSlop={8}
+                        delayPressIn={150}
                       >
                         <Ionicons
                           name="heart"
@@ -848,7 +940,6 @@ export default function HomeScreen() {
                 </View>
               )}
             </ScrollView>
-            </View>
             {}
             {}
             {replyingTo && (
@@ -1077,9 +1168,19 @@ export default function HomeScreen() {
       </Modal>
 
       {}
+      <ActionSheet
+        visible={!!commentActionsFor}
+        title="댓글"
+        subtitle={commentActionsFor ? (commentActionsFor.user.name ?? commentActionsFor.user.email ?? "") : undefined}
+        actions={commentActions}
+        onClose={() => setCommentActionsFor(null)}
+      />
+
+      {}
       <ReportReasonModal
         visible={!!reportCommentTarget}
         targetName={reportCommentTarget?.author}
+        targetKind="comment"
         onCancel={() => setReportCommentTarget(null)}
         onConfirm={async (reason) => {
           const target = reportCommentTarget;
@@ -1093,6 +1194,20 @@ export default function HomeScreen() {
               target.commentId,
               reason || undefined,
             );
+
+            setComments((prev) => {
+              const next = prev.filter((cc) => cc.id !== target.commentId);
+              bumpCommentsCount(commentFeedId, next.length);
+              return next;
+            });
+
+            setExpandedReplies((prev) => {
+              const nextExpanded = { ...prev };
+              for (const parentId of Object.keys(nextExpanded)) {
+                nextExpanded[Number(parentId)] = nextExpanded[Number(parentId)].filter((r) => r.id !== target.commentId);
+              }
+              return nextExpanded;
+            });
             setToastMessage(
               t("home.toasts.commentReported", {
                 defaultValue: "댓글이 신고됐어요",

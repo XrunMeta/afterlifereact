@@ -1,7 +1,7 @@
 
 
 import React, { useRef } from "react";
-import { Animated, PanResponder, Pressable, StyleSheet, View, type ViewStyle } from "react-native";
+import { Animated, PanResponder, Pressable, StyleSheet, TouchableWithoutFeedback, View, type ViewStyle } from "react-native";
 
 interface Props {
   onClose: () => void;
@@ -90,7 +90,6 @@ export default function SwipeDownSheet({
 
 }
       <View style={{ flex: 1 }}>
-        <Pressable onPress={() => {}} style={StyleSheet.absoluteFill} />
         {children}
       </View>
     </Animated.View>

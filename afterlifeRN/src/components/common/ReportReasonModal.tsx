@@ -21,6 +21,8 @@ import { COLORS, RADIUS } from "../constants";
 interface Props {
   visible: boolean;
   targetName?: string;
+
+  targetKind?: "clone" | "comment" | "post";
   onConfirm: (reason: string) => void;
   onCancel: () => void;
 }
@@ -30,6 +32,7 @@ const MAX_LEN = 500;
 export default function ReportReasonModal({
   visible,
   targetName,
+  targetKind = "clone",
   onConfirm,
   onCancel,
 }: Props) {
@@ -91,16 +94,31 @@ export default function ReportReasonModal({
             <View style={styles.iconWrap}>
               <Feather name="flag" size={24} color="#ef4444" />
             </View>
-            <Text style={styles.title}>{t("report.title", { defaultValue: "신고하기" })}</Text>
+            {}
+            <Text style={styles.title}>{
+              targetKind === "comment" ? "댓글 신고하기"
+              : targetKind === "post" ? "게시물 신고하기"
+              : t("report.title", { defaultValue: "신고하기" })
+            }</Text>
             <Text style={styles.desc}>
-              {targetName
-                ? t("report.descWithName", {
-                    name: targetName,
-                    defaultValue: "'{{name}}' 클론을 신고하는 사유를\n간단히 입력해주세요. (선택)",
-                  })
-                : t("report.descNoName", {
-                    defaultValue: "클론을 신고하는 사유를\n간단히 입력해주세요. (선택)",
-                  })}
+              {targetKind === "comment" ? (
+                targetName
+                  ? `'${targetName}' 님의 댓글을 신고하는 사유를 입력해 주세요.`
+                  : "댓글을 신고하는 사유를 입력해 주세요."
+              ) : targetKind === "post" ? (
+                targetName
+                  ? `'${targetName}' 님의 게시물을 신고하는 사유를 입력해 주세요.`
+                  : "게시물을 신고하는 사유를 입력해 주세요."
+              ) : (
+                targetName
+                  ? t("report.descWithName", {
+                      name: targetName,
+                      defaultValue: "'{{name}}' 클론을 신고하는 사유를\n간단히 입력해주세요. (선택)",
+                    })
+                  : t("report.descNoName", {
+                      defaultValue: "클론을 신고하는 사유를\n간단히 입력해주세요. (선택)",
+                    })
+              )}
             </Text>
             <TextInput
               style={styles.input}

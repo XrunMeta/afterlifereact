@@ -624,6 +624,14 @@ feedsDiscover.post("/:id/comments", requireAuth, async (c) => {
     }
   }
 
+  if (feed.ownerId !== userId) {
+    const blocked = await c.env.DB
+      .prepare(`SELECT 1 AS x FROM user_blocks WHERE blocker_id = ? AND blocked_id = ? LIMIT 1`)
+      .bind(feed.ownerId, userId)
+      .first();
+    if (blocked) throw new APIError("FORBIDDEN", "댓글을 작성할 수 없어요.");
+  }
+
   let resolvedParentId: number | null = null;
   if (body.parentCommentId) {
     const parent = await c.env.DB
@@ -680,12 +688,24 @@ feedsDiscover.delete("/:id/comments/:cid", requireAuth, async (c) => {
     throw new APIError("VALIDATION_FAILED", "잘못된 ID 에요.");
   }
   const userId = c.get("userId")!;
+
   const res = await c.env.DB
-    .prepare(`DELETE FROM feed_comments WHERE id = ? AND feed_id = ? AND user_id = ?`)
-    .bind(cid, feedId, userId)
+    .prepare(
+      `DELETE FROM feed_comments
+         WHERE id = ? AND feed_id = ?
+           AND (
+             user_id = ?
+             OR EXISTS (
+               SELECT 1 FROM feeds f
+               INNER JOIN clones cl ON f.clone_id = cl.id
+               WHERE f.id = ? AND cl.owner_id = ?
+             )
+           )`,
+    )
+    .bind(cid, feedId, userId, feedId, userId)
     .run();
   if ((res.meta?.changes ?? 0) === 0) {
-    throw new APIError("NOT_FOUND", "댓글을 찾을 수 없거나 본인의 댓글이 아니에요.");
+    throw new APIError("NOT_FOUND", "댓글을 찾을 수 없거나 삭제 권한이 없어요.");
   }
   return c.json({ ok: true });
 });
@@ -738,9 +758,13 @@ feedsDiscover.get("/:id/comments", async (c) => {
   const where = [
     "fc.feed_id = ?",
     "fc.parent_comment_id IS NULL",
-    "fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))",
+    "fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))",
   ];
   const binds: unknown[] = [feedId];
+  if (viewerId) {
+    where.push("fc.user_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)");
+    binds.push(viewerId);
+  }
   if (cursor && Number.isInteger(cursor) && cursor > 0) {
     where.push("fc.id < ?");
     binds.push(cursor);
@@ -764,7 +788,7 @@ feedsDiscover.get("/:id/comments", async (c) => {
                 u.avatar_url   AS userAvatarUrl,
                 (SELECT COUNT(*) FROM feed_comments fcc
                    WHERE fcc.parent_comment_id = fc.id
-                     AND fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))) AS repliesCount
+                     AND fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))) AS repliesCount
            FROM feed_comments fc
            JOIN users u ON u.id = fc.user_id
           WHERE ${where.join(" AND ")} AND u.deleted_at IS NULL
@@ -842,8 +866,8 @@ feedsDiscover.get("/:id/comments/:cid/replies", async (c) => {
           WHERE fc.feed_id = ?
             AND fc.parent_comment_id = ?
             AND u.deleted_at IS NULL
-            AND fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))
-            AND fc.parent_comment_id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))
+            AND fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))
+            AND fc.parent_comment_id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))
           ORDER BY fc.id ASC
           LIMIT ?`,
       )
@@ -1013,14 +1037,14 @@ cloneFeeds.get("/:id/comments", async (c) => {
                 u.avatar_url   AS userAvatarUrl,
                 (SELECT COUNT(*) FROM feed_comments fcc
                    WHERE fcc.parent_comment_id = fc.id
-                     AND fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))) AS repliesCount
+                     AND fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))) AS repliesCount
            FROM feed_comments fc
            JOIN feeds f ON f.id = fc.feed_id
            JOIN users u ON u.id = fc.user_id
           WHERE f.clone_id = ?
             AND fc.parent_comment_id IS NULL
             AND u.deleted_at IS NULL
-            AND fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))
+            AND fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))
           ORDER BY fc.id DESC
           LIMIT ?`,
       )

@@ -1985,6 +1985,14 @@ clones.post("/:id/block", requireAuth, async (c) => {
   }
   const userId = c.get("userId")!;
 
+  const ownerRow = await c.env.DB
+    .prepare(`SELECT owner_id AS ownerId FROM clones WHERE id = ?`)
+    .bind(cloneId)
+    .first<{ ownerId: number }>();
+  if (ownerRow?.ownerId === userId) {
+    throw new APIError("VALIDATION_FAILED", "본인의 페르소나는 차단할 수 없어요.");
+  }
+
   await c.env.DB.batch([
     c.env.DB.prepare(
       `INSERT OR IGNORE INTO clone_blocks (user_id, clone_id) VALUES (?, ?)`,
