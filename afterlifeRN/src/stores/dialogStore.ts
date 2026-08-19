@@ -19,10 +19,13 @@ export interface DialogState {
   buttons: DialogButton[];
 
   key: number;
+
+  messageAlign?: "left" | "center";
 }
 
 interface DialogOptions {
   subMessage?: string;
+  messageAlign?: "left" | "center";
 }
 
 interface DialogStore extends DialogState {
@@ -48,6 +51,7 @@ export const useDialogStore = create<DialogStore>((set, get) => ({
       title,
       message,
       subMessage: options?.subMessage,
+      messageAlign: options?.messageAlign ?? "center",
 
       buttons: buttons && buttons.length > 0 ? buttons : [{ text: "확인" }],
       key: get().key + 1,

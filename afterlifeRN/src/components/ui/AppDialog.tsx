@@ -13,7 +13,7 @@ import { useDialogStore, type DialogButton } from "../../stores/dialogStore";
 import { COLORS, RADIUS } from "../constants";
 
 export default function AppDialog() {
-  const { visible, title, message, subMessage, buttons, key, close } = useDialogStore();
+  const { visible, title, message, subMessage, buttons, key, close, messageAlign } = useDialogStore();
 
   const handlePress = (btn: DialogButton) => {
     close();
@@ -45,7 +45,9 @@ export default function AppDialog() {
       >
         <View style={styles.box} onStartShouldSetResponder={() => true}>
           <Text style={styles.title}>{title}</Text>
-          {message ? <Text style={styles.message}>{message}</Text> : null}
+          {message ? (
+            <Text style={[styles.message, messageAlign === "left" && { textAlign: "left" }]}>{message}</Text>
+          ) : null}
           {subMessage ? <Text style={styles.subMessage}>{subMessage}</Text> : null}
           <View
             style={[

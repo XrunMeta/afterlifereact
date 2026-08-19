@@ -421,7 +421,7 @@ export default function HomeScreen() {
               setToastMessage("차단됐어요");
             } catch (err) { console.warn("[blockUser] failed:", err); setToastMessage("차단 실패"); }
           }},
-        ]);
+        ], { messageAlign: "left" });
       },
     });
     if (isOthers) list.push({ label: "신고하기", icon: "flag", onPress: () => setReportCommentTarget({ commentId: c.id, author: authorName }) });
