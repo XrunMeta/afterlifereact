@@ -642,13 +642,7 @@ export default function v_c316d8() {
                 </View>
               );
             })()}
-            {
-}
-            {!v_16a078 ? (
-              <View style={v_d81136.commentHeaderRow}>
-                <Text style={v_d81136.commentTitle}>{v_8d41d7("feed.commentCount", { n: v_ecfc0f.length })}</Text>
-              </View>
-            ) : null}
+            {}
             {}
             <ScrollView
               style={[v_d81136.commentScroll, v_16a078 && !v_507993 ? { maxHeight: 240 } : null]}
@@ -819,6 +813,13 @@ export default function v_c316d8() {
                 </View>
               )}
             </ScrollView>
+            {
+}
+            {!v_16a078 ? (
+              <View style={v_d81136.commentHeaderRowBottom}>
+                <Text style={v_d81136.commentTitle}>{v_8d41d7("feed.commentCount", { n: v_ecfc0f.length })}</Text>
+              </View>
+            ) : null}
             {}
             {v_90b93a && (
               <View style={v_d81136.replyingBanner}>
@@ -1253,6 +1254,8 @@ const v_d81136 = v_472849.create({
   commentSheet: { backgroundColor: v_1bfbd0.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "70%" },
   sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: v_1bfbd0.zinc300, alignSelf: "center", marginTop: 12, marginBottom: 12 },
   commentHeaderRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 12 },
+
+  commentHeaderRowBottom: { flexDirection: "row", justifyContent: "center", alignItems: "center", paddingTop: 8, paddingBottom: 4 },
 
   detailHeader: { paddingBottom: 12, marginBottom: 8 },
   detailProfileRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
