@@ -8,7 +8,9 @@ import {
   Pressable,
   StyleSheet,
   useWindowDimensions,
+  Platform,
 } from "react-native";
+import { BlurView } from "expo-blur";
 import { Feather } from "@expo/vector-icons";
 import { COLORS } from "../constants";
 
@@ -59,30 +61,39 @@ export default function ActionSheet({ visible, actions, onClose, anchorY }: Prop
           ]}
           pointerEvents="box-none"
         >
-          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation?.()}>
-            {actions.map((a, i) => (
-              <React.Fragment key={`${a.label}-${i}`}>
-                {i > 0 ? <View style={styles.divider} /> : null}
-                <Pressable
-                  style={({ pressed }) => [styles.actionRow, pressed && styles.actionRowPressed]}
-                  onPress={() => { onClose(); setTimeout(a.onPress, 100); }}
-                  android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-                >
-                  {a.icon ? (
-                    <Feather
-                      name={a.icon}
-                      size={22}
-                      color={a.style === "destructive" ? "#ef4444" : COLORS.zinc800}
-                    />
-                  ) : (
-                    <View style={{ width: 22 }} />
-                  )}
-                  <Text style={[styles.actionLabel, a.style === "destructive" && styles.actionLabelDestructive]}>
-                    {a.label}
-                  </Text>
-                </Pressable>
-              </React.Fragment>
-            ))}
+          <Pressable style={styles.sheetWrap} onPress={(e) => e.stopPropagation?.()}>
+            {
+}
+            <BlurView
+              intensity={60}
+              tint="light"
+              experimentalBlurMethod="dimezisBlurView"
+              style={styles.blur}
+            >
+              {actions.map((a, i) => (
+                <React.Fragment key={`${a.label}-${i}`}>
+                  {i > 0 ? <View style={styles.divider} /> : null}
+                  <Pressable
+                    style={({ pressed }) => [styles.actionRow, pressed && styles.actionRowPressed]}
+                    onPress={() => { onClose(); setTimeout(a.onPress, 100); }}
+                    android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+                  >
+                    {a.icon ? (
+                      <Feather
+                        name={a.icon}
+                        size={22}
+                        color={a.style === "destructive" ? "#ef4444" : COLORS.zinc800}
+                      />
+                    ) : (
+                      <View style={{ width: 22 }} />
+                    )}
+                    <Text style={[styles.actionLabel, a.style === "destructive" && styles.actionLabelDestructive]}>
+                      {a.label}
+                    </Text>
+                  </Pressable>
+                </React.Fragment>
+              ))}
+            </BlurView>
           </Pressable>
         </View>
       </View>
@@ -95,16 +106,15 @@ const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
 
-    backgroundColor: "transparent",
+    backgroundColor: "rgba(0,0,0,0.1)",
   },
 
   anchorLayer: {
     ...StyleSheet.absoluteFillObject,
   },
-  sheet: {
 
+  sheetWrap: {
     width: 240,
-    backgroundColor: "rgba(255,255,255,0.8)",
     borderRadius: 22,
     overflow: "hidden",
     shadowColor: "#000",
@@ -112,6 +122,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 20,
     elevation: 12,
+
+    backgroundColor: Platform.OS === "android" ? "rgba(255,255,255,0.85)" : "transparent",
+  },
+  blur: {
+    width: "100%",
   },
   actionRow: {
     flexDirection: "row",
