@@ -649,7 +649,9 @@ export default function v_c316d8() {
               );
             })()}
             {}
-            {}
+            {
+}
+            <View style={{ flex: 1 }}>
             <ScrollView
               style={[v_d81136.commentScroll, v_16a078 && !v_507993 ? { maxHeight: 240 } : null]}
               showsVerticalScrollIndicator={false}
@@ -819,6 +821,7 @@ export default function v_c316d8() {
                 </View>
               )}
             </ScrollView>
+            </View>
             {
 }
             {!v_16a078 ? (
