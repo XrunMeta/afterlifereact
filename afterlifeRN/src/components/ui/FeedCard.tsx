@@ -418,7 +418,8 @@ const styles = StyleSheet.create({
 
   rightActions: {
     position: "absolute",
-    right: 12,
+
+    right: 20,
     bottom: 130,
     alignItems: "center",
     gap: 20,
