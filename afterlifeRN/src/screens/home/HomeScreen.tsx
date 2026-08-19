@@ -637,11 +637,15 @@ export default function v_c316d8() {
                     </View>
                     <View style={v_d81136.detailStatCard}>
                       {}
-                      <Text style={v_d81136.detailStatValue}>{
-                        v_61f930.createdAt
-                          ? new Date(v_61f930.createdAt).toLocaleDateString("ko-KR", { year: "2-digit", month: "2-digit", day: "2-digit" }).replace(/\s/g, "").replace(/\.$/, "")
-                          : "-"
-                      }</Text>
+                      <Text style={v_d81136.detailStatValue}>{(() => {
+                        if (!v_61f930.createdAt) return "-";
+                        const v_d5dda0 = new Date(v_61f930.createdAt);
+                        if (isNaN(v_d5dda0.getTime())) return "-";
+                        const v_64877a = v_d5dda0.getFullYear();
+                        const v_35f85c = String(v_d5dda0.getMonth() + 1).padStart(2, "0");
+                        const v_087ffc = String(v_d5dda0.getDate()).padStart(2, "0");
+                        return `${v_64877a}.${v_35f85c}.${v_087ffc}`;
+                      })()}</Text>
                       <Text style={v_d81136.detailStatLabel}>{v_8d41d7("feed.createdAt", { defaultValue: "생성일" })}</Text>
                     </View>
                   </View>
@@ -649,7 +653,9 @@ export default function v_c316d8() {
               );
             })()}
             {}
-            {}
+            {
+}
+            <View style={{ flex: 1 }}>
             <ScrollView
               style={[v_d81136.commentScroll, v_16a078 && !v_507993 ? { maxHeight: 240 } : null]}
               showsVerticalScrollIndicator={false}
@@ -819,6 +825,7 @@ export default function v_c316d8() {
                 </View>
               )}
             </ScrollView>
+            </View>
             {
 }
             {!v_16a078 ? (
