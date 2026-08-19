@@ -81,7 +81,7 @@ const v_d81136 = v_472849.create({
   backdrop: {
     flex: 1,
 
-    backgroundColor: "rgba(0,0,0,0.15)",
+    backgroundColor: "rgba(0,0,0,0.45)",
     justifyContent: "center",
     alignItems: "center",
   },
