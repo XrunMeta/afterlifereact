@@ -1180,8 +1180,8 @@ export default function HomeScreen() {
               }
               return nextExpanded;
             });
-            setToastMessage("차단됐어요");
-          } catch (err) { console.warn("[blockUser] failed:", err); setToastMessage("차단 실패"); }
+            setToastMessage("차단되었습니다");
+          } catch (err) { console.warn("[blockUser] failed:", err); setToastMessage("차단에 실패했습니다"); }
         }}
       />
 
@@ -1218,7 +1218,7 @@ export default function HomeScreen() {
             });
             setToastMessage(
               t("home.toasts.commentReported", {
-                defaultValue: "댓글이 신고됐어요",
+                defaultValue: "신고되었습니다",
               }),
             );
           } catch (err) {
@@ -1269,11 +1269,14 @@ export default function HomeScreen() {
         }}
       />
 
-      {toastMessage && (
-        <View style={styles.toast}>
-          <Text style={styles.toastText}>{toastMessage}</Text>
+      {}
+      <Modal visible={!!toastMessage} transparent animationType="fade" statusBarTranslucent>
+        <View style={styles.toastModalWrap} pointerEvents="none">
+          <View style={styles.toast}>
+            <Text style={styles.toastText}>{toastMessage}</Text>
+          </View>
         </View>
-      )}
+      </Modal>
 
       {}
       <VisibilityPickerModal
@@ -1465,7 +1468,9 @@ const styles = StyleSheet.create({
   moreTitle: { fontSize: 13, color: COLORS.zinc500, textAlign: "center", paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: COLORS.zinc100 },
   moreItem: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: COLORS.zinc100 },
   moreItemText: { fontSize: 15, fontWeight: "500", color: COLORS.zinc900 },
-  toast: { position: "absolute", bottom: 80, alignSelf: "center", paddingHorizontal: 20, paddingVertical: 10, backgroundColor: "rgba(0,0,0,0.85)", borderRadius: RADIUS.full },
+
+  toastModalWrap: { flex: 1, justifyContent: "flex-end", alignItems: "center", paddingBottom: 80 },
+  toast: { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: "rgba(0,0,0,0.85)", borderRadius: RADIUS.full },
   toastText: { color: COLORS.white, fontSize: 14 },
 
   emptyWrap: {
