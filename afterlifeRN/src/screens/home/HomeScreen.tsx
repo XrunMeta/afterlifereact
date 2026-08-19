@@ -399,7 +399,8 @@ export default function v_c316d8() {
     const v_de3672 = !v_5acb4e;
     const v_7aa0a5 = v_3f4e2e.user.name ?? v_3f4e2e.user.email ?? "";
     const list: v_e2b085[] = [];
-    if (v_3cb41c) v_ef8ab1.push({ label: "삭제", icon: "trash-2", style: "destructive", onPress: () => v_b72645(v_3f4e2e.id) });
+
+    if (v_3cb41c) v_ef8ab1.push({ label: "삭제", icon: "trash-2", onPress: () => v_b72645(v_3f4e2e.id) });
     if (v_de3672) v_ef8ab1.push({
       label: "차단", icon: "slash", onPress: () => v_ba41ed(v_3f4e2e),
     });
