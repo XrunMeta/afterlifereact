@@ -399,7 +399,8 @@ export default function HomeScreen() {
     const isOthers = !isMine;
     const authorName = c.user.name ?? c.user.email ?? "";
     const list: ActionSheetAction[] = [];
-    if (canDelete) list.push({ label: "삭제", icon: "trash-2", style: "destructive", onPress: () => deleteComment(c.id) });
+
+    if (canDelete) list.push({ label: "삭제", icon: "trash-2", onPress: () => deleteComment(c.id) });
     if (isOthers) list.push({
       label: "차단", icon: "slash", onPress: () => setBlockConfirmFor(c),
     });
