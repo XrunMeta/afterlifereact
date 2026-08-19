@@ -575,7 +575,8 @@ export default function v_c316d8() {
       <Modal visible={!!v_ed660d} transparent animationType="slide">
         {
 }
-        <Pressable style={v_d81136.commentOverlay} onPress={() => {
+        <Pressable style={v_d81136.commentOverlay} onPress={(v_9e86fd) => {
+          if (v_9e86fd.target !== v_9e86fd.currentTarget) return;
           if (v_16a078 && v_507993) {
             v_0e1f26.dismiss();
           } else {
