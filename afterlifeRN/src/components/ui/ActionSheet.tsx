@@ -29,13 +29,23 @@ interface Props {
   subtitle?: string;
   actions: ActionSheetAction[];
   onClose: () => void;
+
+  anchorY?: number;
 }
 
-export default function ActionSheet({ visible, actions, onClose }: Props) {
+export default function ActionSheet({ visible, actions, onClose, anchorY }: Props) {
 
+  const { height: screenH } = useWindowDimensions();
+  const sheetEstimatedH = Math.min(actions.length * 48 + 20, 260); 
+  let anchorTop: number | undefined;
+  if (anchorY != null) {
+    const spaceBelow = screenH - anchorY;
+    if (spaceBelow >= sheetEstimatedH + 40) anchorTop = anchorY + 8; 
+    else anchorTop = Math.max(60, anchorY - sheetEstimatedH - 8); 
+  }
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
+      <Pressable style={[styles.backdrop, anchorTop != null && { justifyContent: "flex-start", alignItems: "flex-start", paddingTop: anchorTop, paddingLeft: 20 }]} onPress={onClose}>
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation?.()}>
           {actions.map((a, i) => (
             <React.Fragment key={`${a.label}-${i}`}>

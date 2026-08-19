@@ -366,7 +366,11 @@ export default function HomeScreen() {
   };
 
   const [commentActionsFor, setCommentActionsFor] = useState<FeedComment | null>(null);
-  const openCommentActionSheet = (c: FeedComment) => setCommentActionsFor(c);
+  const [commentActionsAnchorY, setCommentActionsAnchorY] = useState<number | undefined>(undefined);
+  const openCommentActionSheet = (c: FeedComment, anchorY?: number) => {
+    setCommentActionsAnchorY(anchorY);
+    setCommentActionsFor(c);
+  };
   const commentActions = React.useMemo<ActionSheetAction[]>(() => {
     if (!commentActionsFor) return [];
     const c = commentActionsFor;
@@ -774,7 +778,7 @@ export default function HomeScreen() {
                   <TouchableOpacity
                     activeOpacity={1}
                     style={styles.commentRow}
-                    onLongPress={_isCloneOwnerForComments ? () => openCommentActionSheet(c) : undefined}
+                    onLongPress={_isCloneOwnerForComments ? (e) => openCommentActionSheet(c, e.nativeEvent.pageY) : undefined}
                     delayLongPress={400}
                   >
                     {}
@@ -1171,7 +1175,8 @@ export default function HomeScreen() {
       <ActionSheet
         visible={!!commentActionsFor}
         actions={commentActions}
-        onClose={() => setCommentActionsFor(null)}
+        anchorY={commentActionsAnchorY}
+        onClose={() => { setCommentActionsFor(null); setCommentActionsAnchorY(undefined); }}
       />
 
       {}
