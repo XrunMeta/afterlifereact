@@ -251,10 +251,11 @@ export const api = {
     }>(`/oth-path${tail ? `?${tail}` : ""}`);
   },
 
-  getCloneReports: (params?: { status?: string; limit?: number }) => {
+  getCloneReports: (params?: { status?: string; limit?: number; reason?: string }) => {
     const qs = new URLSearchParams();
     if (params?.status) qs.set("status", params.status);
     if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.reason) qs.set("reason", params.reason);
     const tail = qs.toString();
     return request<{
       items: Array<{
@@ -286,10 +287,11 @@ export const api = {
   updatePersonaQuestions: (data: { questions: unknown[] }) =>
     request<{ ok: true }>("/oth-path", { method: "PUT", body: JSON.stringify(data) }),
 
-  getUserReports: (params?: { status?: string; limit?: number }) => {
+  getUserReports: (params?: { status?: string; limit?: number; reason?: string }) => {
     const qs = new URLSearchParams();
     if (params?.status) qs.set("status", params.status);
     if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.reason) qs.set("reason", params.reason);
     const tail = qs.toString();
     return request<{
       items: Array<{

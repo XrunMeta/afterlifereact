@@ -414,11 +414,19 @@ adminData.get("/oth-path", async (c) => {
   const limit = Math.max(1, Math.min(500, Number.isFinite(limitRaw) ? limitRaw : 100));
   const status = url.searchParams.get("status");
 
+  const reason = url.searchParams.get("reason");
+
   const where: string[] = ["1=1"];
   const binds: unknown[] = [];
   if (status && ["open", "reviewed", "dismissed"].includes(status)) {
     where.push("r.status = ?");
     binds.push(status);
+  }
+  if (reason === "__empty__") {
+    where.push("(r.reason IS NULL OR r.reason = '')");
+  } else if (reason) {
+    where.push("r.reason = ?");
+    binds.push(reason);
   }
 
   const rows = (
@@ -472,12 +480,19 @@ adminData.get("/oth-path", async (c) => {
   const limitRaw = Number(url.searchParams.get("limit") ?? 100);
   const limit = Math.max(1, Math.min(500, Number.isFinite(limitRaw) ? limitRaw : 100));
   const status = url.searchParams.get("status");
+  const reason = url.searchParams.get("reason");
 
   const where: string[] = ["1=1"];
   const binds: unknown[] = [];
   if (status && ["open", "reviewed", "dismissed", "actioned"].includes(status)) {
     where.push("r.status = ?");
     binds.push(status);
+  }
+  if (reason === "__empty__") {
+    where.push("(r.reason IS NULL OR r.reason = '')");
+  } else if (reason) {
+    where.push("r.reason = ?");
+    binds.push(reason);
   }
 
   const rows = (

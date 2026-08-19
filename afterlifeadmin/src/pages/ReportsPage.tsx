@@ -2,6 +2,12 @@
 
 import { useEffect, useState, useCallback, type CSSProperties } from "react";
 import { api } from "../api/client";
+import {
+  REPORT_REASONS,
+  SEVERITY_COLORS,
+  severityForReason,
+  isPresetReason,
+} from "../utils/reportReasons";
 
 const STATUS_LABEL: Record<string, { label: string; color: string; bg: string }> = {
   open: { label: "신고 접수", color: "#b91c1c", bg: "#fee2e2" },
@@ -38,6 +44,8 @@ export function ReportsPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("");
+
+  const [reasonFilter, setReasonFilter] = useState<string>("");
   const [limit, setLimit] = useState(100);
 
   const load = useCallback(() => {
@@ -45,6 +53,7 @@ export function ReportsPage() {
     api
       .getCloneReports({
         status: statusFilter || undefined,
+        reason: reasonFilter || undefined,
         limit,
       })
       .then((r) => setReports(r.items))
@@ -53,7 +62,7 @@ export function ReportsPage() {
         setReports([]);
       })
       .finally(() => setLoading(false));
-  }, [statusFilter, limit]);
+  }, [statusFilter, reasonFilter, limit]);
 
   useEffect(() => {
     load();
@@ -76,6 +85,17 @@ export function ReportsPage() {
             <option value="open">신고 접수</option>
             <option value="reviewed">검토 완료</option>
             <option value="dismissed">기각</option>
+          </select>
+          <select
+            value={reasonFilter}
+            onChange={(e) => setReasonFilter(e.target.value)}
+            style={styles.select}
+          >
+            <option value="">전체 사유</option>
+            {REPORT_REASONS.map((r) => (
+              <option key={r} value={r}>{r}</option>
+            ))}
+            <option value="__empty__">사유 없음</option>
           </select>
           <select
             value={limit}
@@ -135,9 +155,23 @@ export function ReportsPage() {
                       <div style={styles.cellSub}>id: {r.cloneOwnerId}</div>
                     </td>
                     <td style={{ ...styles.td, maxWidth: 240 }}>
-                      {r.reason ? (
-                        <span style={styles.reason}>{r.reason}</span>
-                      ) : (
+                      {r.reason ? (() => {
+                        const sev = SEVERITY_COLORS[severityForReason(r.reason)];
+                        const preset = isPresetReason(r.reason);
+                        return (
+                          <span
+                            style={{
+                              ...styles.reasonBadge,
+                              color: sev.color,
+                              backgroundColor: sev.bg,
+                              borderColor: sev.border,
+                            }}
+                            title={preset ? "프리셋 사유" : "커스텀 사유 (자유텍스트)"}
+                          >
+                            {r.reason}
+                          </span>
+                        );
+                      })() : (
                         <span style={styles.cellSub}>—</span>
                       )}
                     </td>
@@ -230,6 +264,15 @@ const styles: Record<string, CSSProperties> = {
   cellMain: { fontSize: 13, fontWeight: 600, color: "#0f172a" },
   cellSub: { fontSize: 11, color: "#64748b", marginTop: 2 },
   reason: { fontSize: 13, color: "#334155", whiteSpace: "pre-wrap" },
+  reasonBadge: {
+    display: "inline-block",
+    padding: "4px 10px",
+    borderRadius: 12,
+    fontSize: 12,
+    fontWeight: 600,
+    border: "1px solid",
+    lineHeight: 1.4,
+  },
   badge: {
     display: "inline-block",
     padding: "3px 10px",
