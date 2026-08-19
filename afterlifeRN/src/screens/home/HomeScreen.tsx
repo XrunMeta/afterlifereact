@@ -118,6 +118,8 @@ export default function HomeScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const [commentFeedId, setCommentFeedId] = useState<number | null>(null);
+
+  const [commentSheetShowDetail, setCommentSheetShowDetail] = useState(false);
   const [commentText, setCommentText] = useState("");
 
   const [intimacyModal, setIntimacyModal] = useState<{ cloneId: number; cloneName: string } | null>(null);
@@ -420,7 +422,7 @@ export default function HomeScreen() {
               }
             });
           }}
-          onCommentPress={() => setCommentFeedId(item.id)}
+          onCommentPress={() => { setCommentSheetShowDetail(false); setCommentFeedId(item.id); }}
 
           onIntimacyPress={() => setIntimacyModal({ cloneId: item.cloneId, cloneName: item.author })}
           onMorePress={() =>
@@ -462,7 +464,7 @@ export default function HomeScreen() {
 
           onGiftPress={() => setGiftModal({ cloneId: item.cloneId, cloneName: item.author })}
 
-          onDescriptionPress={() => setCommentFeedId(item.id)}
+          onDescriptionPress={() => { setCommentSheetShowDetail(true); setCommentFeedId(item.id); }}
         />
       );
     },
@@ -553,9 +555,9 @@ export default function HomeScreen() {
       {
 }
       <Modal visible={!!commentFeedId} transparent animationType="slide">
-        <Pressable style={styles.commentOverlay} onPress={() => { Keyboard.dismiss(); setCommentFeedId(null); }}>
+        <Pressable style={styles.commentOverlay} onPress={() => { Keyboard.dismiss(); setCommentFeedId(null); setCommentSheetShowDetail(false); }}>
           <SwipeDownSheet
-            onClose={() => { Keyboard.dismiss(); setCommentFeedId(null); }}
+            onClose={() => { Keyboard.dismiss(); setCommentFeedId(null); setCommentSheetShowDetail(false); }}
             keyboardOffset={keyboardHeight}
             style={[
               styles.commentSheet,
@@ -568,8 +570,11 @@ export default function HomeScreen() {
           >
             <View style={styles.sheetHandle} />
             {
+
 }
             {(() => {
+              if (!commentSheetShowDetail) return null;
+              if (keyboardVisible) return null;
               const detailItem = filteredFeeds.find((f) => f.id === commentFeedId);
               if (!detailItem) return null;
               return (

@@ -536,7 +536,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
 
     marginBottom: 12,
-    paddingRight: 56,
+
   },
 
   descriptionWrap: {
