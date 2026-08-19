@@ -27,4 +27,7 @@ export interface FeedItem {
   ownerAvatarUrl?: string | null;
 
   giftsReceived?: number;
+
+  createdAt?: string | null;
+  followerCount?: number;
 }
