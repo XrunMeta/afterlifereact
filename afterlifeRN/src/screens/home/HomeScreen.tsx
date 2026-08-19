@@ -54,6 +54,7 @@ import {
   listFeedCommentReplies,
   likeFeedComment,
   unlikeFeedComment,
+  getCloneDetail,
   type FeedComment,
 } from "../../api/clones";
 import { formatRelativeKo } from "../../lib/relativeTime";
@@ -121,6 +122,22 @@ export default function HomeScreen() {
   const [commentFeedId, setCommentFeedId] = useState<number | null>(null);
 
   const [commentSheetShowDetail, setCommentSheetShowDetail] = useState(false);
+
+  const [detailCloneStats, setDetailCloneStats] = useState<{ followers: number; createdAt: string } | null>(null);
+  useEffect(() => {
+    if (!commentSheetShowDetail || commentFeedId == null) { setDetailCloneStats(null); return; }
+    const item = useFeedStore.getState().apiFeeds?.find((f) => f.id === commentFeedId);
+    const cloneId = item?.cloneId;
+    if (!cloneId) return;
+    let cancelled = false;
+    getCloneDetail(cloneId, useAuthStore.getState().accessToken ?? undefined)
+      .then((res) => {
+        if (cancelled) return;
+        setDetailCloneStats({ followers: res.clone.stats?.followers ?? 0, createdAt: res.clone.createdAt });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [commentSheetShowDetail, commentFeedId]);
   const [commentText, setCommentText] = useState("");
 
   const [intimacyModal, setIntimacyModal] = useState<{ cloneId: number; cloneName: string } | null>(null);
@@ -628,7 +645,7 @@ export default function HomeScreen() {
                   <View style={styles.detailStatsRow}>
                     <View style={styles.detailStatCard}>
                       {}
-                      <Text style={styles.detailStatValue}>{detailItem.followerCount ?? 0}</Text>
+                      <Text style={styles.detailStatValue}>{detailCloneStats?.followers ?? 0}</Text>
                       <Text style={styles.detailStatLabel}>{t("feed.followers", { defaultValue: "구독자" })}</Text>
                     </View>
                     <View style={styles.detailStatCard}>
@@ -638,8 +655,9 @@ export default function HomeScreen() {
                     <View style={styles.detailStatCard}>
                       {}
                       <Text style={styles.detailStatValue}>{(() => {
-                        if (!detailItem.createdAt) return "-";
-                        const d = new Date(detailItem.createdAt);
+                        const src = detailCloneStats?.createdAt ?? detailItem.createdAt;
+                        if (!src) return "-";
+                        const d = new Date(src);
                         if (isNaN(d.getTime())) return "-";
                         const y = d.getFullYear();
                         const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -652,7 +670,13 @@ export default function HomeScreen() {
                 </View>
               );
             })()}
-            {}
+            {
+}
+            {!commentSheetShowDetail ? (
+              <View style={styles.commentHeaderRow}>
+                <Text style={styles.commentTitle}>{t("feed.commentCount", { n: comments.length })}</Text>
+              </View>
+            ) : null}
             {
 }
             <View style={{ flex: 1 }}>
@@ -814,25 +838,13 @@ export default function HomeScreen() {
               ) : (
 
                 <View style={styles.emptyComment}>
-                  {commentSheetShowDetail ? (
-                    <Text style={styles.emptyCommentGray}>{t("feed.commentsEmpty", { defaultValue: "댓글이 없습니다" })}</Text>
-                  ) : (
-                    <>
-                      <Feather name="message-circle" size={40} color={COLORS.zinc300} />
-                      <Text style={styles.emptyText}>{t("feed.commentsEmpty")}</Text>
-                    </>
-                  )}
+                  <Feather name="message-circle" size={40} color={COLORS.zinc300} />
+                  <Text style={styles.emptyText}>{t("feed.commentsEmpty")}</Text>
                 </View>
               )}
             </ScrollView>
             </View>
-            {
-}
-            {!commentSheetShowDetail ? (
-              <View style={styles.commentHeaderRowBottom}>
-                <Text style={styles.commentTitle}>{t("feed.commentCount", { n: comments.length })}</Text>
-              </View>
-            ) : null}
+            {}
             {}
             {replyingTo && (
               <View style={styles.replyingBanner}>
