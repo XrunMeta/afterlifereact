@@ -95,7 +95,7 @@ const v_d81136 = v_472849.create({
   backdrop: {
     ...v_472849.absoluteFillObject,
 
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: "transparent",
   },
 
   anchorLayer: {
@@ -104,7 +104,7 @@ const v_d81136 = v_472849.create({
   sheet: {
 
     width: 240,
-    backgroundColor: "rgba(255,255,255,0.7)",
+    backgroundColor: "#fafafa",
     borderRadius: 22,
     overflow: "hidden",
     shadowColor: "#000",
