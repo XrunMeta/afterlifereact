@@ -10,6 +10,7 @@ import {
   v_472849,
   v_e45a99,
 } from "rcmrninabrnb";
+import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_1bfbd0 } from "../constants";
 
@@ -35,10 +36,18 @@ const InfoRow: v_a3453e.FC<RowProps> = ({ icon: v_9ddfab, text: v_9b6134 }) => (
 
 export default function v_4d9c69({ visible: v_cf55be, userName: v_f08a5e, userAvatarUrl: v_9839ce, onCancel: v_c7001c, onConfirm: v_e2be2d }: Props) {
   const { height: v_c86e33 } = v_e45a99();
+
+  const v_033e14 = v_e0068c();
   return (
     <Modal visible={v_cf55be} transparent animationType="slide" onRequestClose={v_c7001c}>
       <Pressable style={v_d81136.backdrop} onPress={v_c7001c}>
-        <Pressable style={[v_d81136.sheet, { maxHeight: v_c86e33 * 0.85 }]} onPress={(v_9e86fd) => v_9e86fd.stopPropagation?.()}>
+        <Pressable
+          style={[
+            v_d81136.sheet,
+            { maxHeight: v_c86e33 * 0.85, paddingBottom: 32 + Math.max(v_033e14.bottom, 0) },
+          ]}
+          onPress={(v_9e86fd) => v_9e86fd.stopPropagation?.()}
+        >
           <View style={v_d81136.handle} />
 
           {}
@@ -100,7 +109,7 @@ const v_d81136 = v_472849.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 20,
-    paddingBottom: 32,
+
   },
   handle: {
     width: 40,
