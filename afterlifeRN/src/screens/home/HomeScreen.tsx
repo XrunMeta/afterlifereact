@@ -124,21 +124,25 @@ export default function v_c316d8() {
 
   const [v_16a078, v_905ec3] = v_5ab095(false);
 
-  const [v_415d29, v_d2b23a] = v_5ab095<{ followers: number; createdAt: string } | null>(null);
+  const [v_415d29, v_d2b23a] = v_5ab095<{ followers: number; createdAt: string; ownerId: number } | null>(null);
   v_c4deb2(() => {
-    if (!v_16a078 || v_ed660d == null) { v_d2b23a(null); return; }
+    if (v_ed660d == null) { v_d2b23a(null); return; }
     const v_8c0b26 = v_37977a.getState().apiFeeds?.find((v_8b5cd8) => v_8b5cd8.id === v_ed660d);
-    const v_6e0fd3 = v_8c0b26?.cloneId;
+    const v_6e0fd3 = v_8c0b26?.cloneId ?? (v_ed660d < 0 ? -v_ed660d : undefined);
     if (!v_6e0fd3) return;
     let v_2008a4 = false;
     v_003cf2(v_6e0fd3, v_1ed7d9.getState().accessToken ?? undefined)
       .then((v_8f00b9) => {
         if (v_2008a4) return;
-        v_d2b23a({ followers: v_8f00b9.clone.stats?.followers ?? 0, createdAt: v_8f00b9.clone.createdAt });
+        v_d2b23a({
+          followers: v_8f00b9.clone.stats?.followers ?? 0,
+          createdAt: v_8f00b9.clone.createdAt,
+          ownerId: v_8f00b9.clone.ownerId,
+        });
       })
       .catch(() => {});
     return () => { v_2008a4 = true; };
-  }, [v_16a078, v_ed660d]);
+  }, [v_ed660d]);
   const [v_48e7fe, v_856f84] = v_5ab095("");
 
   const [v_d3a183, v_598141] = v_5ab095<{ cloneId: number; cloneName: string } | null>(null);
@@ -369,17 +373,20 @@ export default function v_c316d8() {
 
     let v_6e0fd3;
     let v_343ac8;
+    if (v_415d29?.ownerId != null) {
+      v_343ac8 = v_415d29.ownerId;
+    }
     const v_71b114 = v_37977a.getState().apiFeeds;
     const v_479f05 = v_71b114?.find((v_8b5cd8) => v_8b5cd8.id === v_ed660d);
     if (v_479f05) {
       v_6e0fd3 = v_479f05.cloneId;
-      v_343ac8 = v_479f05.clone?.ownerId ?? undefined;
+      if (v_343ac8 == null) v_343ac8 = v_479f05.clone?.ownerId ?? undefined;
     } else if (v_ed660d != null && v_ed660d < 0) {
       v_6e0fd3 = -v_ed660d;
     }
     if (v_343ac8 == null && v_6e0fd3 != null) {
       const v_e2a6a6 = v_0b62e7.get(v_6e0fd3);
-      v_343ac8 = v_e2a6a6?.ownerId ?? undefined;
+      if (v_e2a6a6?.ownerId != null && v_e2a6a6.ownerId > 0) v_343ac8 = v_e2a6a6.ownerId;
     }
     const v_2aec08 = v_f5f393 != null && v_343ac8 != null && v_343ac8 === v_f5f393;
     const v_5acb4e = v_f5f393 != null && v_3f4e2e.userId === v_f5f393;
@@ -425,7 +432,7 @@ export default function v_c316d8() {
       });
     }
     return v_ef8ab1;
-  }, [v_0e5a5a, v_ed660d, v_f5f393, v_2ca7e0]);
+  }, [v_0e5a5a, v_ed660d, v_f5f393, v_2ca7e0, v_415d29]);
 
   const v_71affe = (comment: v_52af9d, v_fdf350) => {
     if (!v_2ca7e0) return;
