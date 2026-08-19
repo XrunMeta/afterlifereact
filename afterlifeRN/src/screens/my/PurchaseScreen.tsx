@@ -128,11 +128,11 @@ export default function v_0035e1() {
         <View style={v_d81136.balanceCard}>
           <Text style={v_d81136.balanceLabel}>현재 잔액</Text>
           <Text style={v_d81136.balanceValue}>
-            {v_c88e9b ? `${v_c88e9b.credits.toLocaleString()} 크레딧` : "-"}
+            {v_c88e9b ? `${(v_c88e9b.totalSec ?? 0).toLocaleString()} 크레딧` : "-"}
           </Text>
           {v_c88e9b ? (
             <Text style={v_d81136.balanceSub}>
-              무료 {v_c88e9b.credits_free ?? 0} · 구독 {v_c88e9b.credits_sub ?? 0} · 충전 {v_c88e9b.credits_topup ?? 0}
+              무료 {v_c88e9b.freeSec ?? 0} · 구독 {v_c88e9b.subSec ?? 0} · 충전 {v_c88e9b.topupSec ?? 0}
             </Text>
           ) : null}
         </View>
