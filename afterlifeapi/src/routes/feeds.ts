@@ -624,6 +624,14 @@ feedsDiscover.post("/:id/comments", requireAuth, async (c) => {
     }
   }
 
+  if (feed.ownerId !== userId) {
+    const blocked = await c.env.DB
+      .prepare(`SELECT 1 AS x FROM user_blocks WHERE blocker_id = ? AND blocked_id = ? LIMIT 1`)
+      .bind(feed.ownerId, userId)
+      .first();
+    if (blocked) throw new APIError("FORBIDDEN", "댓글을 작성할 수 없어요.");
+  }
+
   let resolvedParentId: number | null = null;
   if (body.parentCommentId) {
     const parent = await c.env.DB
