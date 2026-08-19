@@ -32,13 +32,11 @@ interface Props {
 }
 
 export default function ActionSheet({ visible, title, subtitle, actions, onClose }: Props) {
-  const { height } = useWindowDimensions();
+  const { height, width } = useWindowDimensions();
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={[styles.sheet, { maxHeight: height * 0.6 }]} onPress={(e) => e.stopPropagation?.()}>
-          {}
-          <View style={styles.handle} />
+        <Pressable style={[styles.sheet, { maxHeight: height * 0.7, maxWidth: Math.min(width - 40, 400) }]} onPress={(e) => e.stopPropagation?.()}>
           {title || subtitle ? (
             <View style={styles.header}>
               {title ? <Text style={styles.title}>{title}</Text> : null}
@@ -86,23 +84,23 @@ const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
 
-    backgroundColor: "rgba(0,0,0,0.65)",
-    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
   },
   sheet: {
+    width: "100%",
     backgroundColor: COLORS.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderRadius: 16,
     paddingBottom: 12,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.zinc200,
-    alignSelf: "center",
-    marginTop: 10,
-    marginBottom: 8,
+    overflow: "hidden",
+
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   header: {
     paddingHorizontal: 20,
