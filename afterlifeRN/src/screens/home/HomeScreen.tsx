@@ -776,11 +776,14 @@ export default function HomeScreen() {
                         )}
                       </View>
                     </View>
-                    {}
+                    {
+
+}
                     <TouchableOpacity
                       style={styles.commentHeart}
                       onPress={() => toggleCommentLike(c)}
                       hitSlop={8}
+                      delayPressIn={150}
                     >
                       <Ionicons
                         name="heart"
@@ -815,11 +818,13 @@ export default function HomeScreen() {
                         </View>
                         <Text style={styles.commentContent}>{rc.content}</Text>
                       </View>
-                      {}
+                      {
+}
                       <TouchableOpacity
                         style={styles.commentHeart}
                         onPress={() => toggleCommentLike(rc, c.id)}
                         hitSlop={8}
+                        delayPressIn={150}
                       >
                         <Ionicons
                           name="heart"
