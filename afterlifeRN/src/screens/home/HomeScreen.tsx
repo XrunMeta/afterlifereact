@@ -680,12 +680,9 @@ export default function HomeScreen() {
             {
 
 }
-            <View style={{ flex: 1 }}>
-            {
-}
             <ScrollView
-              style={[styles.commentScroll, commentSheetShowDetail && !keyboardVisible ? { maxHeight: 240 } : null]}
-              contentContainerStyle={comments.length === 0 ? { flexGrow: 1, justifyContent: "center" } : undefined}
+              style={[styles.commentScroll, commentSheetShowDetail && !keyboardVisible ? { maxHeight: 300 } : null]}
+              contentContainerStyle={comments.length === 0 ? { flexGrow: 1, justifyContent: "center", minHeight: 180 } : undefined}
               showsVerticalScrollIndicator={false}
               nestedScrollEnabled={true}
               keyboardShouldPersistTaps="handled"
@@ -851,7 +848,6 @@ export default function HomeScreen() {
                 </View>
               )}
             </ScrollView>
-            </View>
             {}
             {}
             {replyingTo && (
