@@ -462,20 +462,7 @@ export default function HomeScreen() {
 
           onGiftPress={() => setGiftModal({ cloneId: item.cloneId, cloneName: item.author })}
 
-          onDescriptionScrollStart={() => {
-            if (descScrollUnlockRef.current) {
-              clearTimeout(descScrollUnlockRef.current);
-              descScrollUnlockRef.current = null;
-            }
-            setDescScrolling(true);
-          }}
-          onDescriptionScrollEnd={() => {
-            if (descScrollUnlockRef.current) clearTimeout(descScrollUnlockRef.current);
-            descScrollUnlockRef.current = setTimeout(() => {
-              setDescScrolling(false);
-              descScrollUnlockRef.current = null;
-            }, 200);
-          }}
+          onDescriptionPress={() => setCommentFeedId(item.id)}
         />
       );
     },
@@ -490,7 +477,6 @@ export default function HomeScreen() {
       myUserId,
       isUserFollowing,
       toggleUserFollow,
-      setDescScrolling,
     ]
   );
 

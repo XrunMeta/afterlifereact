@@ -50,6 +50,8 @@ interface FeedCardProps {
   onDescriptionScrollStart?: () => void;
 
   onDescriptionScrollEnd?: () => void;
+
+  onDescriptionPress?: () => void;
 }
 
 const FeedCard: React.FC<FeedCardProps> = ({
@@ -72,6 +74,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
   onGiftPress,
   onDescriptionScrollStart,
   onDescriptionScrollEnd,
+  onDescriptionPress,
 }) => {
   const { t } = useTranslation();
   const nav = useNavigation<BottomTabNavigationProp<MainTabParamList>>();
@@ -96,17 +99,6 @@ const FeedCard: React.FC<FeedCardProps> = ({
     const stripped = tag.replace(/^#+/, "");
     nav.navigate("SearchTab", { initialQuery: stripped });
   };
-
-  const [descScrollY, setDescScrollY] = React.useState(0);
-  const [descContentH, setDescContentH] = React.useState(0);
-  const [descContainerH, setDescContainerH] = React.useState(0);
-  const descScrollable = descContentH > descContainerH + 1;
-  const descThumbHeight = descScrollable
-    ? Math.max(16, (descContainerH / descContentH) * descContainerH)
-    : 0;
-  const descThumbTop = descScrollable
-    ? (descScrollY / (descContentH - descContainerH)) * (descContainerH - descThumbHeight)
-    : 0;
 
   const isSmallScreen = cardHeight < 640;
   return (
@@ -283,43 +275,19 @@ const FeedCard: React.FC<FeedCardProps> = ({
 
 }
             {item.description ? (
-
-              <View
-                style={styles.descriptionWrap}
-                onTouchStart={onDescriptionScrollStart}
-                onTouchEnd={onDescriptionScrollEnd}
-                onTouchCancel={onDescriptionScrollEnd}
+              <TouchableOpacity
+                onPress={onDescriptionPress}
+                activeOpacity={0.7}
+                disabled={!onDescriptionPress}
               >
-                <ScrollView
-                  style={styles.descriptionScroll}
-
-                  showsVerticalScrollIndicator={false}
-                  nestedScrollEnabled={false}
-                  bounces={false}
-                  overScrollMode="never"
-                  scrollEventThrottle={16}
-                  onScroll={(e) => setDescScrollY(e.nativeEvent.contentOffset.y)}
-                  onContentSizeChange={(_, h) => setDescContentH(h)}
-                  onLayout={(e) => setDescContainerH(e.nativeEvent.layout.height)}
+                <HashtagText
+                  style={styles.description}
+                  tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
+                  numberOfLines={2}
                 >
-                  <HashtagText
-                    style={styles.description}
-                    tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
-                  >
-                    {item.description}
-                  </HashtagText>
-                </ScrollView>
-                {descScrollable ? (
-                  <View pointerEvents="none" style={styles.descScrollbarTrack}>
-                    <View
-                      style={[
-                        styles.descScrollbarThumb,
-                        { top: descThumbTop, height: descThumbHeight },
-                      ]}
-                    />
-                  </View>
-                ) : null}
-              </View>
+                  {item.description}
+                </HashtagText>
+              </TouchableOpacity>
             ) : null}
 
             {}
