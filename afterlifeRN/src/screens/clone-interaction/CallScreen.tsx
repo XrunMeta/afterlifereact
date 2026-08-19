@@ -271,10 +271,10 @@ function CallScreenInner({ route, navigation }: Props) {
 
   const showCallDev = false && __DEV__ && callDevUi;
 
-  const hudDevBox = useCallHudVisible("devBox");
-  const hudTiming = useCallHudVisible("timing");
-  const hudState = useCallHudVisible("state");
-  const hudFaceTrack = useCallHudVisible("faceTrack");
+  const hudDevBox = false;
+  const hudTiming = false;
+  const hudState = false;
+  const hudFaceTrack = false;
 
   const [cameraFacing, setCameraFacing] = useState<"front" | "back">("front");
   const [isMuted, setIsMuted] = useState(false);
@@ -284,7 +284,7 @@ function CallScreenInner({ route, navigation }: Props) {
 
   const [dialingDone, setDialingDone] = useState(false);
 
-  const [faceIdentifyEnabled, setFaceIdentifyEnabled] = useState(true);
+  const [faceIdentifyEnabled, setFaceIdentifyEnabled] = useState(false);
   const [selfConfirmed, setSelfConfirmed] = useState(true); 
   const selfSamplesRef = useRef<number[][]>([]);
   const selfConfirmingRef = useRef(false);
@@ -632,7 +632,10 @@ function CallScreenInner({ route, navigation }: Props) {
       try {
         const policy = await fetchFacePolicy(accessToken, cloneId);
         if (cancelled) return;
-        setFaceIdentifyEnabled(policy.faceIdentifyEnabled);
+
+        setFaceIdentifyEnabled(false);
+
+        void policy;
         setSelfConfirmed(clone?.selfPersonId != null);
       } catch (err) {
         if (cancelled) return;
