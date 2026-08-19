@@ -104,7 +104,7 @@ const v_d81136 = v_472849.create({
   sheet: {
 
     width: 240,
-    backgroundColor: "#fafafa",
+    backgroundColor: "rgba(255,255,255,0.8)",
     borderRadius: 22,
     overflow: "hidden",
     shadowColor: "#000",
