@@ -681,10 +681,14 @@ export default function HomeScreen() {
 
 }
             <View style={{ flex: 1 }}>
+            {
+}
             <ScrollView
               style={[styles.commentScroll, commentSheetShowDetail && !keyboardVisible ? { maxHeight: 240 } : null]}
               contentContainerStyle={comments.length === 0 ? { flexGrow: 1, justifyContent: "center" } : undefined}
               showsVerticalScrollIndicator={false}
+              nestedScrollEnabled={true}
+              keyboardShouldPersistTaps="handled"
             >
               {commentsLoading ? (
                 <View style={styles.emptyComment}>
