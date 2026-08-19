@@ -19,10 +19,13 @@ export interface DialogState {
   buttons: DialogButton[];
 
   key: number;
+
+  messageAlign?: "left" | "center";
 }
 
 interface DialogOptions {
   subMessage?: string;
+  messageAlign?: "left" | "center";
 }
 
 interface DialogStore extends DialogState {
@@ -48,6 +51,7 @@ export const v_b54176 = v_a7c0d4<DialogStore>((v_bb8024, v_38715b) => ({
       title: v_9f1622,
       message: v_a8cd21,
       subMessage: v_b36f96?.subMessage,
+      messageAlign: v_b36f96?.messageAlign ?? "center",
 
       buttons: v_3d694a && v_3d694a.length > 0 ? v_3d694a : [{ text: "확인" }],
       key: v_38715b().key + 1,
