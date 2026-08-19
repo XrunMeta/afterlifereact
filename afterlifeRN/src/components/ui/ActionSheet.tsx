@@ -102,8 +102,9 @@ const v_d81136 = v_472849.create({
     ...v_472849.absoluteFillObject,
   },
   sheet: {
+
     width: 240,
-    backgroundColor: "#fafafa",
+    backgroundColor: "rgba(255,255,255,0.7)",
     borderRadius: 22,
     overflow: "hidden",
     shadowColor: "#000",
