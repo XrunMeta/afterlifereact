@@ -391,6 +391,12 @@ export default function v_c316d8() {
     const v_2aec08 = v_f5f393 != null && v_343ac8 != null && v_343ac8 === v_f5f393;
     const v_5acb4e = v_f5f393 != null && v_3f4e2e.userId === v_f5f393;
     const v_3cb41c = v_5acb4e || v_2aec08;
+    if (__DEV__) console.log("[COMMENT-ACTIONS]", {
+      commentFeedId: v_ed660d, cloneId: v_6e0fd3, cloneOwnerId: v_343ac8, myUserId: v_f5f393, cUserId: v_3f4e2e.userId,
+      isOwner: v_2aec08, isMine: v_5acb4e, canDelete: v_3cb41c,
+      detailStats: v_415d29,
+      raw: v_479f05 ? { id: v_479f05.id, cloneId: v_479f05.cloneId, cloneOwnerId: v_479f05.clone?.ownerId } : null,
+    });
     const v_de3672 = !v_5acb4e;
     const v_7aa0a5 = v_3f4e2e.user.name ?? v_3f4e2e.user.email ?? "";
     const list: v_e2b085[] = [];
