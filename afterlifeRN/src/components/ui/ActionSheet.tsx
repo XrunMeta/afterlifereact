@@ -31,18 +31,12 @@ interface Props {
   onClose: () => void;
 }
 
-export default function v_5fd66c({ visible: v_cf55be, title: v_9f1622, subtitle: v_dda473, actions: v_dd943a, onClose: v_0890f8 }: Props) {
-  const { height: v_c86e33, width: v_8e4fb6 } = v_e45a99();
+export default function v_5fd66c({ visible: v_cf55be, actions: v_dd943a, onClose: v_0890f8 }: Props) {
+
   return (
     <Modal visible={v_cf55be} transparent animationType="fade" onRequestClose={v_0890f8}>
       <Pressable style={v_d81136.backdrop} onPress={v_0890f8}>
-        <Pressable style={[v_d81136.sheet, { maxHeight: v_c86e33 * 0.7, maxWidth: Math.min(v_8e4fb6 - 40, 400) }]} onPress={(v_9e86fd) => v_9e86fd.stopPropagation?.()}>
-          {v_9f1622 || v_dda473 ? (
-            <View style={v_d81136.header}>
-              {v_9f1622 ? <Text style={v_d81136.title}>{v_9f1622}</Text> : null}
-              {v_dda473 ? <Text style={v_d81136.subtitle}>{v_dda473}</Text> : null}
-            </View>
-          ) : null}
+        <Pressable style={v_d81136.sheet} onPress={(v_9e86fd) => v_9e86fd.stopPropagation?.()}>
           {v_dd943a.map((v_779914, v_ebec57) => (
             <React.Fragment key={`${v_779914.label}-${v_ebec57}`}>
               {v_ebec57 > 0 ? <View style={v_d81136.divider} /> : null}
@@ -51,29 +45,21 @@ export default function v_5fd66c({ visible: v_cf55be, title: v_9f1622, subtitle:
                 onPress={() => { v_0890f8(); setTimeout(v_779914.onPress, 100); }}
                 android_ripple={{ color: "rgba(0,0,0,0.05)" }}
               >
-                <Text style={[v_d81136.actionLabel, v_779914.style === "destructive" && v_d81136.actionLabelDestructive]}>
-                  {v_779914.label}
-                </Text>
                 {v_779914.icon ? (
                   <Feather
                     name={v_779914.icon}
-                    size={20}
-                    color={v_779914.style === "destructive" ? "#ef4444" : v_1bfbd0.zinc600}
+                    size={22}
+                    color={v_779914.style === "destructive" ? "#ef4444" : v_1bfbd0.zinc800}
                   />
-                ) : null}
+                ) : (
+                  <View style={{ width: 22 }} />
+                )}
+                <Text style={[v_d81136.actionLabel, v_779914.style === "destructive" && v_d81136.actionLabelDestructive]}>
+                  {v_779914.label}
+                </Text>
               </Pressable>
             </React.Fragment>
           ))}
-          {}
-          <View style={v_d81136.cancelGroup}>
-            <Pressable
-              style={({ pressed: v_aba1d2 }) => [v_d81136.cancelRow, v_aba1d2 && v_d81136.actionRowPressed]}
-              onPress={v_0890f8}
-              android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-            >
-              <Text style={v_d81136.cancelLabel}>취소</Text>
-            </Pressable>
-          </View>
         </Pressable>
       </Pressable>
     </Modal>
@@ -81,41 +67,30 @@ export default function v_5fd66c({ visible: v_cf55be, title: v_9f1622, subtitle:
 }
 
 const v_d81136 = v_472849.create({
+
   backdrop: {
     flex: 1,
-
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.35)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
   },
   sheet: {
-    width: "100%",
+    width: 260,
     backgroundColor: v_1bfbd0.white,
     borderRadius: 16,
-    paddingBottom: 12,
     overflow: "hidden",
-
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 10,
   },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: v_1bfbd0.zinc100,
-  },
-  title: { fontSize: 15, fontWeight: "600", color: v_1bfbd0.zinc900 },
-  subtitle: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
   actionRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    gap: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
   },
   actionRowPressed: {
     backgroundColor: v_1bfbd0.zinc100,
@@ -123,30 +98,15 @@ const v_d81136 = v_472849.create({
   divider: {
     height: v_472849.hairlineWidth,
     backgroundColor: v_1bfbd0.zinc100,
-    marginHorizontal: 20,
+    marginHorizontal: 18,
   },
   actionLabel: {
-    fontSize: 16,
+    fontSize: 15,
     color: v_1bfbd0.zinc900,
     fontWeight: "500",
   },
   actionLabelDestructive: {
     color: "#ef4444",
-    fontWeight: "600",
-  },
-  cancelGroup: {
-    marginTop: 8,
-    borderTopWidth: 6,
-    borderTopColor: v_1bfbd0.zinc50 ?? "#f4f4f5",
-  },
-  cancelRow: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  cancelLabel: {
-    fontSize: 16,
-    color: v_1bfbd0.zinc900,
     fontWeight: "600",
   },
 });
