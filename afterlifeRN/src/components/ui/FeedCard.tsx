@@ -522,8 +522,10 @@ const v_d81136 = v_472849.create({
 
   actionBtn: {
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     gap: 4,
+
+    minHeight: 40,
   },
   actionLabel: {
     fontSize: 12,
