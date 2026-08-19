@@ -89,7 +89,7 @@ export default function v_8e7ad4({
       {
 
 }
-      <Pressable onPress={() => {}} style={{ flex: 1 }}>{v_21f619}</Pressable>
+      <Pressable onPress={() => {}}>{v_21f619}</Pressable>
     </Animated.View>
   );
 }
