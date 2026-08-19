@@ -124,22 +124,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
               {item.ownerName ?? ""}
             </Text>
           </TouchableOpacity>
-          {!isOwn && onOwnerFollowPress ? (
-            <TouchableOpacity
-              style={[styles.ownerFollowBtn, isOwnerFollowed && styles.ownerFollowBtnActive]}
-              onPress={onOwnerFollowPress}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.ownerFollowText,
-                  isOwnerFollowed && styles.ownerFollowTextActive,
-                ]}
-              >
-                {isOwnerFollowed ? t("feed.following") : t("feed.follow")}
-              </Text>
-            </TouchableOpacity>
-          ) : null}
+          {}
           {onMorePress ? (
             <TouchableOpacity
               onPress={onMorePress}
