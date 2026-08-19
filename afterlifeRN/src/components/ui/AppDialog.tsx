@@ -112,7 +112,8 @@ const v_d81136 = v_472849.create({
     fontWeight: "700",
     color: v_1bfbd0.zinc900,
     textAlign: "center",
-    marginBottom: 8,
+
+    marginBottom: 20,
   },
   message: {
     fontSize: 14,
