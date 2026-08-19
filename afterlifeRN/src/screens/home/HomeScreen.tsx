@@ -462,20 +462,7 @@ export default function v_c316d8() {
 
           onGiftPress={() => v_cc306d({ cloneId: v_8c0b26.cloneId, cloneName: v_8c0b26.author })}
 
-          onDescriptionScrollStart={() => {
-            if (v_d50147.current) {
-              clearTimeout(v_d50147.current);
-              v_d50147.current = null;
-            }
-            v_ae56e9(true);
-          }}
-          onDescriptionScrollEnd={() => {
-            if (v_d50147.current) clearTimeout(v_d50147.current);
-            v_d50147.current = setTimeout(() => {
-              v_ae56e9(false);
-              v_d50147.current = null;
-            }, 200);
-          }}
+          onDescriptionPress={() => v_b07dd3(v_8c0b26.id)}
         />
       );
     },
@@ -490,7 +477,6 @@ export default function v_c316d8() {
       v_f5f393,
       v_8916d3,
       v_1d9833,
-      v_ae56e9,
     ]
   );
 
