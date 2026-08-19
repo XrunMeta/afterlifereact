@@ -863,11 +863,14 @@ export default function HomeScreen() {
             )}
             <View style={styles.commentInputRow}>
               <TextInput
-                style={styles.commentInput}
+                style={[styles.commentInput, submittingComment && { opacity: 0.6 }]}
                 value={commentText}
                 onChangeText={setCommentText}
+                editable={!submittingComment}
                 placeholder={
-                  replyingTo
+                  submittingComment
+                    ? t("home.commentSending", { defaultValue: "전송 중..." })
+                    : replyingTo
                     ? t("home.replyPlaceholder", { defaultValue: "답글 입력..." })
                     : t("feed.commentPlaceholder")
                 }
@@ -877,15 +880,20 @@ export default function HomeScreen() {
                 disabled={!commentText.trim() || !accessToken || submittingComment}
                 onPress={submitComment}
               >
-                <Feather
-                  name="send"
-                  size={18}
-                  color={
-                    commentText.trim() && accessToken && !submittingComment
-                      ? COLORS.violet600
-                      : COLORS.zinc400
-                  }
-                />
+                {}
+                {submittingComment ? (
+                  <ActivityIndicator size="small" color={COLORS.violet600} />
+                ) : (
+                  <Feather
+                    name="send"
+                    size={18}
+                    color={
+                      commentText.trim() && accessToken
+                        ? COLORS.violet600
+                        : COLORS.zinc400
+                    }
+                  />
+                )}
               </TouchableOpacity>
             </View>
           </SwipeDownSheet>
