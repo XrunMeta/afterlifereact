@@ -85,7 +85,8 @@ export default function v_5fd66c({ visible: v_cf55be, title: v_9f1622, subtitle:
 const v_d81136 = v_472849.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+
+    backgroundColor: "rgba(0,0,0,0.65)",
     justifyContent: "flex-end",
   },
   sheet: {
