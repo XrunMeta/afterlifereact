@@ -162,9 +162,19 @@ export function useFaceIdentify(opts: UseFaceIdentifyOptions): UseFaceIdentifyRe
           if (event) onEvent(event);
 
           if (cycle) {
-            console.log(`[useFaceIdentify] cycle personId=${cycle.personId ?? "null"} score=${cycle.score?.toFixed(3) ?? "?"} onCollected=${!!onCollected}`);
+            console.log(`[useFaceIdentify] cycle personId=${cycle.personId ?? "null"} score=${cycle.score?.toFixed(3) ?? "?"} streak=${state.speaker.streak} onCollected=${!!onCollected}`);
           }
-          if (onCollected && cycle && cycle.personId != null) {
+
+          const HIGH_CONFIDENCE_SCORE = 0.65;
+          const MIN_STREAK_FOR_ENROLL = 5;
+          if (
+            onCollected &&
+            cycle &&
+            cycle.personId != null &&
+            typeof cycle.score === "number" &&
+            cycle.score >= HIGH_CONFIDENCE_SCORE &&
+            state.speaker.streak >= MIN_STREAK_FOR_ENROLL
+          ) {
             try {
               onCollected(cycle.personId, vec);
             } catch (err) {
