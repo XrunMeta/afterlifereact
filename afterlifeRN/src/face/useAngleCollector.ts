@@ -11,6 +11,8 @@ const v_a78ac8 = 3;
 
 const v_9fe285 = 20;
 
+const v_739e9a = 5;
+
 interface PersonBuffer {
 
   enrolled: number[][];
@@ -123,15 +125,22 @@ export function v_512a0b(v_328259): UseAngleCollectorResult {
         console.log(`[AngleCollector] observe CAP person=${v_ca1ec5} enrolled=${v_83ee53.enrolled.length}`);
         return;
       }
+      const v_c83285 = v_83ee53.enrolled.length + v_83ee53.pending.length;
 
-      const v_75fbef = [...v_83ee53.enrolled, ...v_83ee53.pending];
-      const v_bb188d = v_87c181(v_f9a45c, v_75fbef);
-      if (v_bb188d < v_cb6d5f) {
-        console.log(`[AngleCollector] observe SKIP person=${v_ca1ec5} minL2=${v_bb188d.toFixed(3)} < ${v_cb6d5f}`);
-        return; 
+      if (v_c83285 < v_739e9a) {
+        v_83ee53.pending.push(v_f9a45c);
+        console.log(`[AngleCollector] observe FORCE-QUEUE person=${v_ca1ec5} total=${v_c83285 + 1}/${v_739e9a}`);
+      } else {
+
+        const v_75fbef = [...v_83ee53.enrolled, ...v_83ee53.pending];
+        const v_bb188d = v_87c181(v_f9a45c, v_75fbef);
+        if (v_bb188d < v_cb6d5f) {
+          console.log(`[AngleCollector] observe SKIP person=${v_ca1ec5} minL2=${v_bb188d.toFixed(3)} < ${v_cb6d5f}`);
+          return; 
+        }
+        v_83ee53.pending.push(v_f9a45c);
+        console.log(`[AngleCollector] observe QUEUE person=${v_ca1ec5} minL2=${v_bb188d.toFixed(3)} pending=${v_83ee53.pending.length}`);
       }
-      v_83ee53.pending.push(v_f9a45c);
-      console.log(`[AngleCollector] observe QUEUE person=${v_ca1ec5} minL2=${v_bb188d.toFixed(3)} pending=${v_83ee53.pending.length}`);
       if (v_83ee53.pending.length >= v_a78ac8) {
         console.log(`[AngleCollector] observe → flush trigger person=${v_ca1ec5}`);
         void v_57a630(v_ca1ec5, v_83ee53);

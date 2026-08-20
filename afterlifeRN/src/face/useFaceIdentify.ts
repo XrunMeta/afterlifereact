@@ -162,7 +162,7 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
           }
 
           const v_9d9155 = 0.65;
-          const v_c29169 = 5;
+          const v_c29169 = 3;
           if (
             v_d23335 &&
             v_bdad26 &&
