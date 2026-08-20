@@ -457,6 +457,47 @@ export const api = {
       { method: "DELETE" },
     ),
 
+  getFaceRecognitionPersons: (params?: { userId?: number; cloneId?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.userId) qs.set("userId", String(params.userId));
+    if (params?.cloneId) qs.set("cloneId", String(params.cloneId));
+    if (params?.limit) qs.set("limit", String(params.limit));
+    const tail = qs.toString();
+    return request<{
+      items: Array<{
+        personId: number;
+        userId: number;
+        cloneId: number | null;
+        displayName: string | null;
+        consentState: string;
+        createdAt: number;
+        userName: string | null;
+        userEmail: string;
+        cloneName: string | null;
+        cloneUsername: string | null;
+        cloneFaceCount: number;
+        legacyFaceCount: number;
+        lastEnrollAt: number | null;
+        srcEnroll: number;
+        srcCall: number;
+        srcSelf: number;
+      }>;
+    }>(`/oth-path${tail ? `?${tail}` : ""}`);
+  },
+  getFaceRecognitionPersonFaces: (personId: number) =>
+    request<{
+      items: Array<{
+        id: number;
+        tbl: "clone_person_faces" | "face_embeddings";
+        cloneId: number | null;
+        vectorizeId: string | null;
+        model: string | null;
+        dim: number | null;
+        source: string;
+        createdAt: number;
+      }>;
+    }>(`/oth-path${personId}/faces`),
+
   getCrashReports: (params?: {
     fatal?: "0" | "1";
     userId?: number;
