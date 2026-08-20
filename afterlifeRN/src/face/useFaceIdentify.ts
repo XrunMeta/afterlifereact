@@ -206,7 +206,8 @@ export function useFaceIdentify(opts: UseFaceIdentifyOptions): UseFaceIdentifyRe
           inFlightRef.current = false;
         });
     },
-    [enabled, accessToken, cloneId, onEvent, onDiag, calibrate, deps, nowFn],
+
+    [enabled, accessToken, cloneId, onEvent, onDiag, calibrate, deps, nowFn, onCollected],
   );
 
   return { onEmbedding, getBuffer: () => bufferRef.current, resetRecognition };
