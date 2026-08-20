@@ -27,3 +27,17 @@ export async function ensureNotInteractionBanned(db: D1Database, userId: number)
     throw new APIError("FORBIDDEN", "관리자 제재로 좋아요·팔로우가 제한되었습니다.");
   }
 }
+
+export async function ensureDeviceNotBanned(db: D1Database, deviceId: string | null | undefined): Promise<void> {
+  if (!deviceId) return; 
+  const row = await db
+    .prepare(`SELECT 1 AS x FROM device_bans WHERE device_id = ? LIMIT 1`)
+    .bind(deviceId)
+    .first<{ x: number }>();
+  if (row) {
+    throw new APIError(
+      "UNAUTHENTICATED",
+      "관리자에 의해 이 디바이스의 사용이 차단되었습니다.",
+    );
+  }
+}

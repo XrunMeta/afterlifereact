@@ -718,6 +718,8 @@ adminData.put("/report-penalty-rules/:threshold", async (c) => {
     "interaction_ban",
     "force_logout",
     "notify_only",
+
+    "device_ban",
   ];
 
   const rawAction = body.action === "suspend" ? "clone_create_ban" : (body.action ?? "");

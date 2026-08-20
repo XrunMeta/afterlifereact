@@ -14,6 +14,7 @@ import {
   readRefreshCookie,
 } from "../lib/session";
 import { requireAuth } from "../middleware/auth";
+import { ensureDeviceNotBanned } from "../lib/penaltyGate";
 import { logActivity } from "../lib/logger";
 import { requestSignupOtp, verifySignupOtp } from "../lib/otp";
 
@@ -93,6 +94,8 @@ const googleSignInSchema = z.object({
 auth.post("/google", async (c) => {
   const body = await parseJson(c, googleSignInSchema);
   const db = c.env.DB;
+
+  await ensureDeviceNotBanned(db, body.deviceId);
 
   const payload = await verifyGoogleIdToken(c.env, body.idToken);
 
@@ -203,6 +206,8 @@ const appleSignInSchema = z.object({
 auth.post("/apple", async (c) => {
   const body = await parseJson(c, appleSignInSchema);
   const db = c.env.DB;
+
+  await ensureDeviceNotBanned(db, body.deviceId);
   const payload = await verifyAppleIdToken(c.env, body.identityToken);
 
   let userRow = await db
@@ -301,6 +306,8 @@ auth.post("/apple", async (c) => {
 auth.post("/signup", async (c) => {
   const body = await parseJson(c, signupSchema);
   const db = c.env.DB;
+
+  await ensureDeviceNotBanned(db, body.deviceId);
 
   const hibp = await checkPwnedPassword(body.password, c.env, { minHitsToReject: 100_000 });
   if (hibp.breached) {
@@ -490,6 +497,8 @@ const LOCK_MINUTES = 10;
 auth.post("/login", async (c) => {
   const body = await parseJson(c, loginSchema);
   const db = c.env.DB;
+
+  await ensureDeviceNotBanned(db, body.deviceId);
 
   const user = await db
     .prepare(
@@ -734,6 +743,8 @@ const emailLoginSchema = z.object({
 auth.post("/email/login", async (c) => {
   const body = await parseJson(c, emailLoginSchema);
   const emailLower = body.email.trim().toLowerCase();
+
+  await ensureDeviceNotBanned(c.env.DB, body.deviceId);
 
   await verifySignupOtp(c.env, body.email, body.verificationCode);
 

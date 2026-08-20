@@ -1727,6 +1727,8 @@ admin.post("/oth-path", requireAdmin, async (c) => {
     "interaction_ban",
     "force_logout",
     "notify_only",
+
+    "device_ban",
   ];
   const action = body.action === "suspend" ? "clone_create_ban" : body.action ?? "";
   if (!VALID.includes(action)) throw new APIError("VALIDATION_FAILED", "Invalid action.");
@@ -1790,6 +1792,30 @@ admin.post("/oth-path", requireAdmin, async (c) => {
 
       penaltyMsg = body.reason?.trim() || "관리자로부터 안내가 도착했습니다.";
       break;
+    case "device_ban": {
+
+      const devs = await c.env.DB
+        .prepare(`SELECT DISTINCT device_id AS deviceId FROM user_devices WHERE user_id = ?`)
+        .bind(id)
+        .all<{ deviceId: string }>();
+      const rows = devs.results ?? [];
+      const reason = body.reason?.trim() || "관리자에 의한 디바이스 차단";
+      for (const r of rows) {
+        await c.env.DB
+          .prepare(
+            `INSERT INTO device_bans (device_id, banned_user_id, admin_id, reason)
+             VALUES (?, ?, ?, ?)
+             ON CONFLICT(device_id) DO UPDATE SET
+               reason = excluded.reason, admin_id = excluded.admin_id, created_at = CURRENT_TIMESTAMP`,
+          )
+          .bind(r.deviceId, id, adminId, reason)
+          .run();
+      }
+      penaltyMsg = rows.length
+        ? `등록된 디바이스 ${rows.length}대 재가입 차단이 적용되었습니다.`
+        : "등록된 디바이스가 없어 device_ban 이 적용되지 않았습니다. (계정 강제 탈퇴만 진행 권장)";
+      break;
+    }
   }
 
   const row = await c.env.DB
