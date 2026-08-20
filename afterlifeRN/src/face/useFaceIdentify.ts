@@ -110,6 +110,8 @@ export interface UseFaceIdentifyOptions {
 
   calibrate?: { accessToken: string; groundTruthPersonId: number | null } | null;
 
+  onCollected?: (personId: number, vector: number[]) => void;
+
   deps?: IdentifyCycleDeps;
 
   now?: () => number;
@@ -125,7 +127,7 @@ export interface UseFaceIdentifyResult {
 }
 
 export function v_e9685b(v_328259): UseFaceIdentifyResult {
-  const { enabled: v_d20c84, accessToken: v_2ca7e0, cloneId: v_6e0fd3, onEvent: v_68885c, onDiag: v_32837c, calibrate: v_faccce } = v_328259;
+  const { enabled: v_d20c84, accessToken: v_2ca7e0, cloneId: v_6e0fd3, onEvent: v_68885c, onDiag: v_32837c, calibrate: v_faccce, onCollected: v_d23335 } = v_328259;
   const v_84b93d = v_df9f57<IdentifyCycleDeps>(() => v_328259.deps ?? { matchFaceFn: v_afc2e6 }, [v_328259.deps]);
   const v_5de650 = v_328259.now ?? Date.now;
 
@@ -154,6 +156,15 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
         .then(({ state: v_b6e533, event: v_d48baf, cycle: v_bdad26, threshold: v_d361d7 }) => {
           v_8d3dea.current = v_b6e533;
           if (v_d48baf) v_68885c(v_d48baf);
+
+          if (v_d23335 && v_bdad26 && v_bdad26.personId != null) {
+            try {
+              v_d23335(v_bdad26.personId, v_46ff7a);
+            } catch (v_49263d) {
+
+              console.warn("[useFaceIdentify] onCollected threw:", v_49263d);
+            }
+          }
 
           if (v_55dbc4 && v_faccce && v_bdad26) {
             (v_84b93d.calibrateFn ?? v_383262)(

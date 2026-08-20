@@ -50,6 +50,7 @@ import { shouldRunEmbedding } from "../../face/embeddingThrottle";
 import { normalizeFrameTimestampMs } from "../../face/frameTimestamp";
 import { detectNewFaces } from "../../face/newFaceDetector";
 import { useFaceIdentify } from "../../face/useFaceIdentify";
+import { useAngleCollector } from "../../face/useAngleCollector";
 import { useFaceEnroll, FACE_ENROLL_VECTOR_COUNT } from "../../face/useFaceEnroll";
 import {
   decideSelfConfirm,
@@ -521,6 +522,12 @@ function CallScreenInner({ route, navigation }: Props) {
     [accessToken, gtPersonId],
   );
 
+  const angleCollector = useAngleCollector({
+    accessToken,
+    cloneId,
+    enabled: consentGranted && liveState === "live" && faceIdentifyEnabled,
+  });
+
   const {
     onEmbedding: onFaceEmbedding,
     getBuffer: getFaceEmbeddingBuffer,
@@ -533,6 +540,7 @@ function CallScreenInner({ route, navigation }: Props) {
     onEvent: handleSpeakerEventTrampoline,
     onDiag: setFaceDiag,
     calibrate: calibrateOpt,
+    onCollected: angleCollector.observe,
   });
 
   useEffect(() => {
@@ -1381,6 +1389,11 @@ function CallScreenInner({ route, navigation }: Props) {
           );
           void stopLive();
           exitToMain();
+          break;
+        case "INTERRUPT_TTS":
+
+          console.log("[Call][rm] INTERRUPT_TTS — 다른 사람 인식, 진행 중 발화 컷인");
+          notifyFaceInterruptRef.current("", "face-switch");
           break;
         default:
           break; 
