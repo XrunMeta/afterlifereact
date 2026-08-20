@@ -125,6 +125,8 @@ interface BucketRow {
   credits_free: number;
   credits_sub: number;
   credits_topup: number;
+
+  credits_gift: number;
 }
 
 export async function spendCallTime(
@@ -142,7 +144,7 @@ export async function spendCallTime(
   for (let attempt = 0; attempt < 2; attempt++) {
     const row = await db
       .prepare(
-        `SELECT credits_free, credits_sub, credits_topup
+        `SELECT credits_free, credits_sub, credits_topup, credits_gift
            FROM users WHERE id = ? AND deleted_at IS NULL`,
       )
       .bind(userId)
@@ -151,8 +153,9 @@ export async function spendCallTime(
 
     const useFree = Math.min(amountSec, row.credits_free);
     const useSub = Math.min(amountSec - useFree, row.credits_sub);
-    const useTopup = Math.min(amountSec - useFree - useSub, row.credits_topup);
-    const billedSec = useFree + useSub + useTopup;
+    const useGift = Math.min(amountSec - useFree - useSub, row.credits_gift);
+    const useTopup = Math.min(amountSec - useFree - useSub - useGift, row.credits_topup);
+    const billedSec = useFree + useSub + useGift + useTopup;
     const unbilledSec = amountSec - billedSec;
 
     if (billedSec === 0) return { billedSec: 0, unbilledSec: amountSec };
@@ -169,15 +172,17 @@ export async function spendCallTime(
           `UPDATE users
               SET credits_free  = credits_free  - ?,
                   credits_sub   = credits_sub   - ?,
+                  credits_gift  = credits_gift  - ?,
                   credits_topup = credits_topup - ?,
                   credits       = credits       - ?,
                   updated_at    = CURRENT_TIMESTAMP
             WHERE id = ?
               AND credits_free  >= ?
               AND credits_sub   >= ?
+              AND credits_gift  >= ?
               AND credits_topup >= ?`,
         )
-        .bind(useFree, useSub, useTopup, billedSec, userId, useFree, useSub, useTopup),
+        .bind(useFree, useSub, useGift, useTopup, billedSec, userId, useFree, useSub, useGift, useTopup),
     ];
 
     if (useTopup > 0) {
