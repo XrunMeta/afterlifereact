@@ -528,10 +528,7 @@ export default function v_c316d8() {
           }}
           isOwnerFollowed={v_8c0b26.cloneOwnerId != null ? v_8916d3(v_8c0b26.cloneOwnerId) : false}
 
-          onGiftPress={() => {
-            console.log(`[Home] gift icon tap cloneId=${v_8c0b26.cloneId} author=${v_8c0b26.author}`);
-            v_cc306d({ cloneId: v_8c0b26.cloneId, cloneName: v_8c0b26.author });
-          }}
+          onGiftPress={() => v_cc306d({ cloneId: v_8c0b26.cloneId, cloneName: v_8c0b26.author })}
 
           onDescriptionPress={() => { v_905ec3(true); v_b07dd3(v_8c0b26.id); }}
         />

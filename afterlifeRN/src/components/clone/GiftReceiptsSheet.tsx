@@ -42,7 +42,6 @@ export default function v_03e207({ visible: v_cf55be, cloneId: v_6e0fd3, cloneNa
   const [v_683210, v_34a50a] = v_5ab095(false);
 
   v_c4deb2(() => {
-    console.log(`[GiftReceiptsSheet] effect visible=${v_cf55be} cloneId=${v_6e0fd3} hasToken=${!!v_2ca7e0}`);
     if (!v_cf55be || !v_6e0fd3 || !v_2ca7e0) {
       v_fa923c(null);
       return;
@@ -53,7 +52,6 @@ export default function v_03e207({ visible: v_cf55be, cloneId: v_6e0fd3, cloneNa
     v_d24912(v_2ca7e0, v_6e0fd3)
       .then((v_8f00b9) => {
         if (v_2008a4) return;
-        console.log(`[GiftReceiptsSheet] loaded ${v_8f00b9.items?.length ?? 0} items`);
         v_fa923c(v_8f00b9.items ?? []);
       })
       .catch((v_49263d) => {
@@ -143,6 +141,8 @@ const v_fd5f43 = v_472849.create({
     borderTopRightRadius: 24,
     paddingTop: 12,
     paddingHorizontal: 20,
+
+    height: "50%",
     maxHeight: "80%",
   },
   handle: {
