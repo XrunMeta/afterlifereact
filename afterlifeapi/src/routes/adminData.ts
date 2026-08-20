@@ -718,6 +718,8 @@ v_133c2c.put("/report-penalty-rules/:threshold", async (v_3f4e2e) => {
     "interaction_ban",
     "force_logout",
     "notify_only",
+
+    "device_ban",
   ];
 
   const v_4b0806 = v_4d33b2.action === "suspend" ? "clone_create_ban" : (v_4d33b2.action ?? "");
