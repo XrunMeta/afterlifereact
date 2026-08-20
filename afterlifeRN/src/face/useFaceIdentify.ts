@@ -202,7 +202,8 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
           v_9468fd.current = false;
         });
     },
-    [v_d20c84, v_2ca7e0, v_6e0fd3, v_68885c, v_32837c, v_faccce, v_84b93d, v_5de650],
+
+    [v_d20c84, v_2ca7e0, v_6e0fd3, v_68885c, v_32837c, v_faccce, v_84b93d, v_5de650, v_d23335],
   );
 
   return { onEmbedding: v_7167fd, getBuffer: () => v_5228f1.current, resetRecognition: v_4921f9 };
