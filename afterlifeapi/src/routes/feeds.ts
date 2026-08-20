@@ -7,6 +7,7 @@ import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_6690d9 } from "../middleware/auth";
 import { v_80a022 } from "../lib/notify";
 import { v_dd9d7c, v_6f97bc, v_cf0463 } from "../lib/interactions";
+import { v_f45eef, v_5bb199 } from "../lib/penaltyGate";
 import {
   v_74c502,
   v_a9ae28,
@@ -402,6 +403,8 @@ v_f1d06f.post("/:id/like", v_6690d9, async (v_3f4e2e) => {
     throw new v_3ebe58("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
   const v_43e90c = v_3f4e2e.get("userId")!;
+
+  await v_5bb199(v_3f4e2e.env.DB, v_43e90c);
   const v_2db2a5 = await v_c39991(v_3f4e2e.env.DB, v_c09aa8);
   if (!v_2db2a5) throw new v_3ebe58("NOT_FOUND", "피드를 찾을 수 없어요.");
 
@@ -464,8 +467,13 @@ v_f1d06f.get("/:id/likes", async (v_3f4e2e) => {
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 30);
   const v_02be30 = Math.max(1, Math.min(100, Number.isFinite(v_cf2260) ? v_cf2260 : 30));
 
+  const v_013af2 = await v_efcb2d(v_3f4e2e);
   const v_abcc8d = ["fl.feed_id = ?"];
   const v_925171 = [v_c09aa8];
+  if (v_013af2) {
+    v_abcc8d.push("fl.user_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)");
+    v_925171.push(v_013af2);
+  }
   if (v_75cbf4 && Number.isInteger(v_75cbf4) && v_75cbf4 > 0) {
     v_abcc8d.push("fl.id < ?");
     v_925171.push(v_75cbf4);
@@ -517,6 +525,8 @@ v_f1d06f.get("/:id/likes", async (v_3f4e2e) => {
 v_96e8d7.post("/:id/like", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = v_31113b(v_3f4e2e);
   const v_43e90c = v_3f4e2e.get("userId")!;
+
+  await v_5bb199(v_3f4e2e.env.DB, v_43e90c);
   const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
   if (v_eb25ce.visibility === "private") {
@@ -631,6 +641,8 @@ v_f1d06f.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
       .first();
     if (v_3bebca) throw new v_3ebe58("FORBIDDEN", "댓글을 작성할 수 없어요.");
   }
+
+  await v_f45eef(v_3f4e2e.env.DB, v_43e90c);
 
   let v_ab1564 = null;
   if (v_4d33b2.parentCommentId) {
@@ -848,7 +860,13 @@ v_f1d06f.get("/:id/comments/:cid/replies", async (v_3f4e2e) => {
   const v_f36334 = v_013af2
     ? `EXISTS (SELECT 1 FROM feed_comment_likes fcl WHERE fcl.comment_id = fc.id AND fcl.user_id = ?)`
     : `0`;
-  const v_925171 = v_013af2 ? [v_013af2, v_c09aa8, v_062ae9, v_02be30] : [v_c09aa8, v_062ae9, v_02be30];
+
+  const v_fb635a = v_013af2
+    ? " AND fc.user_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)"
+    : "";
+  const v_925171 = v_013af2
+    ? [v_013af2, v_c09aa8, v_062ae9, v_013af2, v_02be30]
+    : [v_c09aa8, v_062ae9, v_02be30];
   const v_18b8bf = (
     await v_3f4e2e.env.DB
       .prepare(
@@ -867,7 +885,7 @@ v_f1d06f.get("/:id/comments/:cid/replies", async (v_3f4e2e) => {
             AND fc.parent_comment_id = ?
             AND u.deleted_at IS NULL
             AND fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))
-            AND fc.parent_comment_id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))
+            AND fc.parent_comment_id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))${v_fb635a}
           ORDER BY fc.id ASC
           LIMIT ?`,
       )
@@ -912,6 +930,8 @@ v_f1d06f.post("/:id/comments/:cid/like", v_6690d9, async (v_3f4e2e) => {
   }
   const v_43e90c = v_3f4e2e.get("userId")!;
 
+  await v_5bb199(v_3f4e2e.env.DB, v_43e90c);
+
   const v_3ac7e7 = await v_3f4e2e.env.DB
     .prepare(`SELECT id FROM feed_comments WHERE id = ? AND feed_id = ?`)
     .bind(v_062ae9, v_c09aa8)
@@ -949,6 +969,8 @@ v_f1d06f.delete("/:id/comments/:cid/like", v_6690d9, async (v_3f4e2e) => {
 v_96e8d7.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = v_31113b(v_3f4e2e);
   const v_43e90c = v_3f4e2e.get("userId")!;
+
+  await v_f45eef(v_3f4e2e.env.DB, v_43e90c);
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_9c5bc5);
   const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
@@ -1021,7 +1043,13 @@ v_96e8d7.get("/:id/comments", async (v_3f4e2e) => {
   const v_f36334 = v_013af2
     ? `EXISTS (SELECT 1 FROM feed_comment_likes fcl WHERE fcl.comment_id = fc.id AND fcl.user_id = ?)`
     : `0`;
-  const v_925171 = v_013af2 ? [v_013af2, v_6e0fd3, v_02be30] : [v_6e0fd3, v_02be30];
+
+  const v_fb635a = v_013af2
+    ? " AND fc.user_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)"
+    : "";
+  const v_925171 = v_013af2
+    ? [v_013af2, v_6e0fd3, v_013af2, v_02be30]
+    : [v_6e0fd3, v_02be30];
   const v_18b8bf = (
     await v_3f4e2e.env.DB
       .prepare(
@@ -1044,7 +1072,7 @@ v_96e8d7.get("/:id/comments", async (v_3f4e2e) => {
           WHERE f.clone_id = ?
             AND fc.parent_comment_id IS NULL
             AND u.deleted_at IS NULL
-            AND fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))
+            AND fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))${v_fb635a}
           ORDER BY fc.id DESC
           LIMIT ?`,
       )
