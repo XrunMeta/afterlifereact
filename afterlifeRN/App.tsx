@@ -175,9 +175,9 @@ export default function App() {
             </AppErrorBoundary>
           </View>
           {}
-          {
-
-}
+          <View style={styles.devOverlay} pointerEvents="box-none">
+            <DevFloatingBall />
+          </View>
         </View>
         {}
         <AppDialog />
