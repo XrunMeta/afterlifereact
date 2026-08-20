@@ -1714,6 +1714,8 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
     "interaction_ban",
     "force_logout",
     "notify_only",
+
+    "device_ban",
   ];
   const v_9b064f = v_4d33b2.action === "suspend" ? "clone_create_ban" : v_4d33b2.action ?? "";
   if (!v_da0605.includes(v_9b064f)) throw new v_3ebe58("VALIDATION_FAILED", "Invalid action.");
@@ -1777,6 +1779,30 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
 
       v_c8eee3 = v_4d33b2.reason?.trim() || "관리자로부터 안내가 도착했습니다.";
       break;
+    case "device_ban": {
+
+      const v_085844 = await v_3f4e2e.env.DB
+        .prepare(`SELECT DISTINCT device_id AS deviceId FROM user_devices WHERE user_id = ?`)
+        .bind(v_389afb)
+        .all<{ deviceId: string }>();
+      const v_18b8bf = v_085844.results ?? [];
+      const v_58ca36 = v_4d33b2.reason?.trim() || "관리자에 의한 디바이스 차단";
+      for (const v_cb35cb of v_18b8bf) {
+        await v_3f4e2e.env.DB
+          .prepare(
+            `INSERT INTO device_bans (device_id, banned_user_id, admin_id, reason)
+             VALUES (?, ?, ?, ?)
+             ON CONFLICT(device_id) DO UPDATE SET
+               reason = excluded.reason, admin_id = excluded.admin_id, created_at = CURRENT_TIMESTAMP`,
+          )
+          .bind(v_cb35cb.deviceId, v_389afb, v_db9be1, v_58ca36)
+          .run();
+      }
+      v_c8eee3 = v_18b8bf.length
+        ? `등록된 디바이스 ${v_18b8bf.length}대 재가입 차단이 적용되었습니다.`
+        : "등록된 디바이스가 없어 device_ban 이 적용되지 않았습니다. (계정 강제 탈퇴만 진행 권장)";
+      break;
+    }
   }
 
   const v_3ac7e7 = await v_3f4e2e.env.DB
