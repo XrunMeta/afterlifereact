@@ -1351,7 +1351,14 @@ function CallScreenInner({ route, navigation }: Props) {
   }, [phase, pendingText, confirmProgress]);
 
   const [isTerminating, setIsTerminating] = useState(false);
+
+  const exitInFlightRef = useRef(false);
   const exitToMain = useCallback(() => {
+    if (exitInFlightRef.current) {
+      console.log("[Call][exit] 이미 진행 중 — 재요청 무시");
+      return;
+    }
+    exitInFlightRef.current = true;
     console.log("[Call][exit] setIsTerminating=true (200ms 후 navigation)");
     setIsTerminating(true);
     setTimeout(() => {
