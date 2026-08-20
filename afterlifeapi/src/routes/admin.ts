@@ -1663,8 +1663,8 @@ admin.post("/oth-path", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
   const body = await c.req
-    .json<{ action?: string; suspendDays?: number | null; reason?: string }>()
-    .catch(() => ({}) as { action?: string; suspendDays?: number | null; reason?: string });
+    .json<{ action?: string; suspendDays?: number | null; reason?: string; reportId?: number | null; reporterMessage?: string }>()
+    .catch(() => ({}) as { action?: string; suspendDays?: number | null; reason?: string; reportId?: number | null; reporterMessage?: string });
   const VALID = ["warn", "clone_deactivate", "clone_delete", "clone_create_ban", "account_ban", "account_withdraw"];
   const action = body.action === "suspend" ? "clone_create_ban" : body.action ?? "";
   if (!VALID.includes(action)) throw new APIError("VALIDATION_FAILED", "Invalid action.");
@@ -1748,7 +1748,47 @@ admin.post("/oth-path", requireAdmin, async (c) => {
     skipEmail: true,
   }).catch(() => {});
 
-  return c.json({ ok: true, action, suspendedUntil: row?.suspendedUntil ?? null, bannedUntil: row?.bannedUntil ?? null });
+  const ACTION_LABEL: Record<string, string> = {
+    warn: "경고 발급",
+    clone_deactivate: "페르소나 비활성화",
+    clone_delete: "페르소나 삭제",
+    clone_create_ban: "페르소나 생성 제한",
+    account_ban: "계정 사용 정지",
+    account_withdraw: "계정 강제 탈퇴",
+  };
+  const actionLabel = ACTION_LABEL[action] ?? "제재 적용";
+  const reporterMsg =
+    body.reporterMessage?.trim() ||
+    `회원님의 신고가 수락되었습니다. 적용된 조치: ${actionLabel}.`;
+  if (body.reportId && Number.isInteger(body.reportId) && (body.reportId as number) > 0) {
+
+    const rep = await c.env.DB
+      .prepare(
+        `UPDATE user_reports
+            SET status = 'actioned',
+                reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP),
+                reviewer_admin_id = COALESCE(reviewer_admin_id, ?),
+                admin_message = ?
+          WHERE id = ? AND status IN ('open','reviewed')
+          RETURNING reporter_id AS reporterId`,
+      )
+      .bind(adminId, reporterMsg, body.reportId)
+      .first<{ reporterId: number }>();
+    if (rep?.reporterId) {
+
+      await notify(c.env, {
+        userId: rep.reporterId,
+        type: "moderation",
+        title: "신고 처리 완료",
+        body: reporterMsg,
+        url: "afterlife://reports/made",
+        data: { action, reportId: body.reportId, kind: "user_report_actioned" },
+        skipEmail: true,
+      }).catch(() => {});
+    }
+  }
+
+  return c.json({ ok: true, action, suspendedUntil: row?.suspendedUntil ?? null, bannedUntil: row?.bannedUntil ?? null, message: penaltyMsg });
 });
 
 admin.get("/reports", requireAdmin, async (c) => {

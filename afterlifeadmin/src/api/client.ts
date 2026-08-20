@@ -367,6 +367,8 @@ export const api = {
         | "account_withdraw";
       suspendDays?: number | null;
       reason?: string;
+      reportId?: number | null;
+      reporterMessage?: string;
     },
   ) =>
     request<{ ok: true; message: string }>(

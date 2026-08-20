@@ -155,7 +155,7 @@ export function UserReportsPage() {
     warnMsg: string,
   ) => {
     if (!open) return;
-    if (!window.confirm(`${label}\n\n${warnMsg}\n\n실행할까요?`)) return;
+    if (!window.confirm(`${label}\n\n${warnMsg}\n\n실행할까요?\n\n※ 이 신고는 자동으로 '수락' 처리되며, 신고자에게 처리 안내가 전송됩니다.`)) return;
     let suspendDays: number | undefined;
     if (action === "clone_create_ban" || action === "account_ban") {
       const raw = window.prompt(`${label} — 기간(일) 입력 (빈칸=30일)`, "30");
@@ -164,21 +164,29 @@ export function UserReportsPage() {
       suspendDays = Number.isInteger(n) && n > 0 ? n : 30;
     }
     const reason = window.prompt(
-      `${label} — 대상 유저에게 표시할 사유 (선택)`,
+      `${label} — 대상 유저에게 표시할 사유 (선택 · 앱 '신고당한 내역' 노출)`,
       "",
     );
     if (reason === null) return;
+    const reporterMessage = window.prompt(
+      `${label} — 신고자에게 표시할 처리 안내 (선택 · 앱 '신고관리' 노출)\n빈칸이면 기본 문구 자동 사용: "회원님의 신고가 수락되었습니다. 적용된 조치: ${label}."`,
+      "",
+    );
+    if (reporterMessage === null) return;
     setActing(true);
     try {
       const res = await api.applyUserPenalty(open.targetId, {
         action,
         suspendDays: suspendDays ?? null,
         reason: reason || undefined,
+        reportId: open.reportId,
+        reporterMessage: reporterMessage || undefined,
       });
       alert(res.message || "적용 완료");
       const fresh = await api.getUserDetail(open.targetId);
       setDetail(fresh);
       load();
+      closeDetail();
     } catch (err) {
       console.error(`applyUserPenalty[${action}] failed:`, err);
       alert(`${label} 실행에 실패했어요.`);
