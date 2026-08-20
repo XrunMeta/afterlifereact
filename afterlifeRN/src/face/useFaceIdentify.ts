@@ -161,6 +161,9 @@ export function useFaceIdentify(opts: UseFaceIdentifyOptions): UseFaceIdentifyRe
           stateRef.current = state;
           if (event) onEvent(event);
 
+          if (cycle) {
+            console.log(`[useFaceIdentify] cycle personId=${cycle.personId ?? "null"} score=${cycle.score?.toFixed(3) ?? "?"} onCollected=${!!onCollected}`);
+          }
           if (onCollected && cycle && cycle.personId != null) {
             try {
               onCollected(cycle.personId, vec);
