@@ -528,7 +528,10 @@ export default function HomeScreen() {
           }}
           isOwnerFollowed={item.cloneOwnerId != null ? isUserFollowing(item.cloneOwnerId) : false}
 
-          onGiftPress={() => setGiftModal({ cloneId: item.cloneId, cloneName: item.author })}
+          onGiftPress={() => {
+            console.log(`[Home] gift icon tap cloneId=${item.cloneId} author=${item.author}`);
+            setGiftModal({ cloneId: item.cloneId, cloneName: item.author });
+          }}
 
           onDescriptionPress={() => { setCommentSheetShowDetail(true); setCommentFeedId(item.id); }}
         />
