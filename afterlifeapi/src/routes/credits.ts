@@ -19,7 +19,7 @@ v_e2c945.get("/balance", v_6690d9, async (v_3f4e2e) => {
 
   const v_ceb55a = await v_a1651b
     .prepare(
-      `SELECT credits, credits_free, credits_sub, credits_topup,
+      `SELECT credits, credits_free, credits_sub, credits_topup, credits_gift,
               free_granted_at, free_decayed_months
          FROM users WHERE id = ? AND deleted_at IS NULL`,
     )
@@ -29,6 +29,8 @@ v_e2c945.get("/balance", v_6690d9, async (v_3f4e2e) => {
       credits_free: number;
       credits_sub: number;
       credits_topup: number;
+
+      credits_gift: number;
       free_granted_at: number | null;
       free_decayed_months: number;
     }>();
@@ -70,6 +72,8 @@ v_e2c945.get("/balance", v_6690d9, async (v_3f4e2e) => {
     freeSec: v_ceb55a.credits_free,
     subSec: v_ceb55a.credits_sub,
     topupSec: v_ceb55a.credits_topup,
+
+    giftSec: v_ceb55a.credits_gift,
 
     freeGrantedAt: v_ceb55a.free_granted_at,   
     freeDecayedMonths: v_ceb55a.free_decayed_months,
