@@ -268,8 +268,14 @@ export default function v_0035e1() {
                   <TouchableOpacity style={v_fd5f43.balanceCol} onPress={v_1c51b0} activeOpacity={0.6}>
                     <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("purchase.bucketGift", { defaultValue: "선물" })}</Text>
                     {}
+                    {
+
+}
                     <Text style={v_fd5f43.balanceVal}>
-                      {v_da6788(v_f04609.reduce((v_dce0a8, v_206b88) => v_dce0a8 + v_206b88.xrunTotal, 0))}
+                      {v_da6788(
+                        v_f04609.reduce((v_dce0a8, v_206b88) => v_dce0a8 + v_206b88.xrunTotal, 0) +
+                          (v_c88e9b?.giftSec ?? 0),
+                      )}
                     </Text>
                   </TouchableOpacity>
                 )}
