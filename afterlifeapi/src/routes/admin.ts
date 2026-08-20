@@ -1650,8 +1650,8 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
   const v_4d33b2 = await v_3f4e2e.req
-    .json<{ action?: string; suspendDays?: number | null; reason?: string }>()
-    .catch(() => ({}) as { action?: string; suspendDays?: number | null; reason?: string });
+    .json<{ action?: string; suspendDays?: number | null; reason?: string; reportId?: number | null; reporterMessage?: string }>()
+    .catch(() => ({}) as { action?: string; suspendDays?: number | null; reason?: string; reportId?: number | null; reporterMessage?: string });
   const v_da0605 = ["warn", "clone_deactivate", "clone_delete", "clone_create_ban", "account_ban", "account_withdraw"];
   const v_9b064f = v_4d33b2.action === "suspend" ? "clone_create_ban" : v_4d33b2.action ?? "";
   if (!v_da0605.includes(v_9b064f)) throw new v_3ebe58("VALIDATION_FAILED", "Invalid action.");
@@ -1735,7 +1735,47 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
     skipEmail: true,
   }).catch(() => {});
 
-  return v_3f4e2e.json({ ok: true, action: v_9b064f, suspendedUntil: v_3ac7e7?.suspendedUntil ?? null, bannedUntil: v_3ac7e7?.bannedUntil ?? null });
+  const v_b0b8c8 = {
+    warn: "경고 발급",
+    clone_deactivate: "페르소나 비활성화",
+    clone_delete: "페르소나 삭제",
+    clone_create_ban: "페르소나 생성 제한",
+    account_ban: "계정 사용 정지",
+    account_withdraw: "계정 강제 탈퇴",
+  };
+  const v_5ea0fe = v_b0b8c8[v_9b064f] ?? "제재 적용";
+  const v_3a9783 =
+    v_4d33b2.reporterMessage?.trim() ||
+    `회원님의 신고가 수락되었습니다. 적용된 조치: ${v_5ea0fe}.`;
+  if (v_4d33b2.reportId && Number.isInteger(v_4d33b2.reportId) && (v_4d33b2.reportId as number) > 0) {
+
+    const v_f10744 = await v_3f4e2e.env.DB
+      .prepare(
+        `UPDATE user_reports
+            SET status = 'actioned',
+                reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP),
+                reviewer_admin_id = COALESCE(reviewer_admin_id, ?),
+                admin_message = ?
+          WHERE id = ? AND status IN ('open','reviewed')
+          RETURNING reporter_id AS reporterId`,
+      )
+      .bind(v_db9be1, v_3a9783, v_4d33b2.reportId)
+      .first<{ reporterId: number }>();
+    if (v_f10744?.reporterId) {
+
+      await v_c226a5(v_3f4e2e.env, {
+        userId: v_f10744.reporterId,
+        type: "moderation",
+        title: "신고 처리 완료",
+        body: v_3a9783,
+        url: "afterlife://reports/made",
+        data: { action: v_9b064f, reportId: v_4d33b2.reportId, kind: "user_report_actioned" },
+        skipEmail: true,
+      }).catch(() => {});
+    }
+  }
+
+  return v_3f4e2e.json({ ok: true, action: v_9b064f, suspendedUntil: v_3ac7e7?.suspendedUntil ?? null, bannedUntil: v_3ac7e7?.bannedUntil ?? null, message: v_c8eee3 });
 });
 
 v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {
