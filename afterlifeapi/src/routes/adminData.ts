@@ -707,12 +707,27 @@ v_133c2c.put("/report-penalty-rules/:threshold", async (v_3f4e2e) => {
   const v_9f1622 = typeof v_4d33b2.title === "string" ? v_4d33b2.title.trim().slice(0, 100) || null : null;
   const v_a8cd21 = typeof v_4d33b2.message === "string" ? v_4d33b2.message.trim().slice(0, 500) || null : null;
 
-  const v_3b4825 = ["warn", "clone_deactivate", "clone_delete", "clone_create_ban", "account_ban"];
+  const v_3b4825 = [
+    "warn",
+    "clone_deactivate",
+    "clone_delete",
+    "clone_create_ban",
+    "account_ban",
+    "account_withdraw",
+    "comment_ban",
+    "interaction_ban",
+    "force_logout",
+    "notify_only",
+  ];
 
   const v_4b0806 = v_4d33b2.action === "suspend" ? "clone_create_ban" : (v_4d33b2.action ?? "");
   const v_9b064f = v_3b4825.includes(v_4b0806) ? v_4b0806 : "warn";
 
-  const v_d03754 = v_9b064f === "clone_create_ban" || v_9b064f === "account_ban";
+  const v_d03754 =
+    v_9b064f === "clone_create_ban" ||
+    v_9b064f === "account_ban" ||
+    v_9b064f === "comment_ban" ||
+    v_9b064f === "interaction_ban";
   const v_141abe =
     v_d03754 && Number.isInteger(v_4d33b2.suspendDays) && (v_4d33b2.suspendDays as number) > 0
       ? (v_4d33b2.suspendDays as number)

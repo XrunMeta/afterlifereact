@@ -18,6 +18,8 @@ type Payload = Record<string, unknown> & {
   admin?: boolean;
   exp?: number;
   iat?: number;
+
+  epoch?: number;
 };
 
 const v_5f2751 = "revoked:";
@@ -38,6 +40,14 @@ export async function v_8ab5ff(
 ): Promise<{ accessToken: string; refreshToken: string; accessExpiresIn: number }> {
   const v_694b25 = { sub: v_43e90c, admin: v_b7f2b4 };
   if (v_929b58) v_694b25["deviceId"] = v_929b58;
+
+  if (!v_b7f2b4) {
+    const v_ceb55a = await v_3f4e2e.env.DB
+      .prepare(`SELECT session_epoch AS ep FROM users WHERE id = ?`)
+      .bind(v_43e90c)
+      .first<{ ep: number | null }>();
+    v_694b25["epoch"] = v_ceb55a?.ep ?? 0;
+  }
   const v_2ca7e0 = await v_b64d29({ ...v_694b25, kind: "access" } as never, v_3f4e2e.env.JWT_ACCESS_SECRET);
   const v_dfaee3 = await v_72ca53({ ...v_694b25, kind: "refresh" } as never, v_3f4e2e.env.JWT_REFRESH_SECRET);
   return { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_806b99.access };
@@ -65,13 +75,17 @@ export async function v_27b603(
 
   if (!v_931bf0.admin) {
     const v_ceb55a = await v_3f4e2e.env.DB
-      .prepare(`SELECT banned_until FROM users WHERE id = ? AND deleted_at IS NULL`)
+      .prepare(`SELECT banned_until, session_epoch AS ep FROM users WHERE id = ? AND deleted_at IS NULL`)
       .bind(v_931bf0.sub)
-      .first<{ banned_until: string | null }>();
+      .first<{ banned_until: string | null; ep: number | null }>();
     if (v_ceb55a?.banned_until && v_e8cd3d(v_ceb55a.banned_until) > Date.now()) {
       throw new v_3ebe58("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
         bannedUntil: v_ceb55a.banned_until,
       });
+    }
+
+    if ((v_ceb55a?.ep ?? 0) > ((v_931bf0.epoch as number) ?? 0)) {
+      throw new v_3ebe58("UNAUTHENTICATED", "관리자에 의해 로그아웃 처리되었습니다. 다시 로그인해 주세요.");
     }
   }
 

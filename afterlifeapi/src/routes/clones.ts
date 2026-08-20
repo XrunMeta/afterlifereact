@@ -3,6 +3,7 @@ import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_6690d9 } from "../middleware/auth";
+import { v_5bb199 } from "../lib/penaltyGate";
 import { v_a04a51 } from "../middleware/idempotency";
 import { v_74defc } from "../lib/logger";
 import { v_e0041f, v_cfdcb0 } from "../lib/similarity";
@@ -1641,6 +1642,8 @@ v_f891e6.post("/:id/follow", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_a1651b = v_3f4e2e.env.DB;
 
+  await v_5bb199(v_a1651b, v_43e90c);
+
   const v_eb25ce = await v_5d4a51(v_a1651b, v_6e0fd3);
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
 
@@ -1693,6 +1696,12 @@ v_f891e6.get("/:id/followers", async (v_3f4e2e) => {
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
   const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
+
+  const v_013af2 = await v_efcb2d(v_3f4e2e);
+  const v_fb635a = v_013af2
+    ? " AND cf.user_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)"
+    : "";
+  const v_925171 = v_013af2 ? [v_6e0fd3, v_013af2, v_02be30] : [v_6e0fd3, v_02be30];
   const v_18b8bf = (
     await v_3f4e2e.env.DB
       .prepare(
@@ -1704,11 +1713,11 @@ v_f891e6.get("/:id/followers", async (v_3f4e2e) => {
                 u.avatar_url AS userAvatarUrl
            FROM clone_follows cf
            JOIN users u ON u.id = cf.user_id
-          WHERE cf.clone_id = ? AND u.deleted_at IS NULL
+          WHERE cf.clone_id = ? AND u.deleted_at IS NULL${v_fb635a}
           ORDER BY cf.id DESC
           LIMIT ?`,
       )
-      .bind(v_6e0fd3, v_02be30)
+      .bind(...v_925171)
       .all<{
         followId: number;
         userId: number;

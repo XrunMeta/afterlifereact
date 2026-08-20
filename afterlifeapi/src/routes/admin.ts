@@ -1638,6 +1638,56 @@ v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
 v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ action?: string; reason?: string }>()
+    .catch(() => ({}) as { action?: string; reason?: string });
+  const v_da0605 = ["clone_create_ban_lift", "account_ban_lift", "clone_restore", "account_restore", "warnings_clear"];
+  const v_9b064f = v_4d33b2.action ?? "";
+  if (!v_da0605.includes(v_9b064f)) throw new v_3ebe58("VALIDATION_FAILED", "Invalid action.");
+
+  let v_badeaf = "";
+  switch (v_9b064f) {
+    case "clone_create_ban_lift":
+      await v_3f4e2e.env.DB.prepare(`UPDATE users SET suspended_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(v_389afb).run();
+      v_badeaf = "페르소나 생성 제한이 해제되었습니다.";
+      break;
+    case "account_ban_lift":
+      await v_3f4e2e.env.DB.prepare(`UPDATE users SET banned_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(v_389afb).run();
+      v_badeaf = "계정 사용 제한이 해제되었습니다.";
+      break;
+    case "clone_restore":
+
+      await v_3f4e2e.env.DB.prepare(`UPDATE clones SET deletion_state = 'active', soft_deleted_at = NULL, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'soft_deleted'`).bind(v_389afb).run();
+      v_badeaf = "페르소나가 복구되었습니다.";
+      break;
+    case "account_restore":
+
+      await v_3f4e2e.env.DB.prepare(`UPDATE users SET deletion_state = 'active', soft_deleted_at = NULL, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(v_389afb).run();
+      await v_3f4e2e.env.DB.prepare(`UPDATE clones SET deletion_state = 'active', soft_deleted_at = NULL, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'soft_deleted'`).bind(v_389afb).run();
+      v_badeaf = "계정과 페르소나가 복구되었습니다.";
+      break;
+    case "warnings_clear":
+      await v_3f4e2e.env.DB.prepare(`DELETE FROM user_warnings WHERE user_id = ?`).bind(v_389afb).run();
+      v_badeaf = "경고 이력이 초기화되었습니다.";
+      break;
+  }
+
+  await v_c226a5(v_3f4e2e.env, {
+    userId: v_389afb,
+    type: "moderation",
+    title: "제재 해제 안내",
+    body: v_4d33b2.reason?.trim() || v_badeaf,
+    url: "afterlife://reports/received",
+    data: { action: v_9b064f, manual: true, kind: "lift" },
+    skipEmail: true,
+  }).catch(() => {});
+
+  return v_3f4e2e.json({ ok: true, action: v_9b064f, message: v_badeaf });
+});
+
+v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
   const v_cb35cb = await v_3f4e2e.env.DB
     .prepare(`UPDATE users SET suspended_until = NULL, banned_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
     .bind(v_389afb)
@@ -1652,7 +1702,19 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_4d33b2 = await v_3f4e2e.req
     .json<{ action?: string; suspendDays?: number | null; reason?: string; reportId?: number | null; reporterMessage?: string }>()
     .catch(() => ({}) as { action?: string; suspendDays?: number | null; reason?: string; reportId?: number | null; reporterMessage?: string });
-  const v_da0605 = ["warn", "clone_deactivate", "clone_delete", "clone_create_ban", "account_ban", "account_withdraw"];
+  const v_da0605 = [
+    "warn",
+    "clone_deactivate",
+    "clone_delete",
+    "clone_create_ban",
+    "account_ban",
+    "account_withdraw",
+
+    "comment_ban",
+    "interaction_ban",
+    "force_logout",
+    "notify_only",
+  ];
   const v_9b064f = v_4d33b2.action === "suspend" ? "clone_create_ban" : v_4d33b2.action ?? "";
   if (!v_da0605.includes(v_9b064f)) throw new v_3ebe58("VALIDATION_FAILED", "Invalid action.");
 
@@ -1697,12 +1759,30 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
       await v_3f4e2e.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, deleted_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'active'`).bind(v_389afb).run();
       v_c8eee3 = "관리자에 의해 계정이 강제 탈퇴 처리되었습니다.";
       break;
+
+    case "comment_ban":
+      await v_3f4e2e.env.DB.prepare(`UPDATE users SET comment_ban_until = datetime('now', ?) WHERE id = ?`).bind(`+${v_6a53fd || 30} days`, v_389afb).run();
+      v_c8eee3 = `${v_6a53fd || 30}일간 댓글 작성이 제한됩니다.`;
+      break;
+    case "interaction_ban":
+      await v_3f4e2e.env.DB.prepare(`UPDATE users SET interaction_ban_until = datetime('now', ?) WHERE id = ?`).bind(`+${v_6a53fd || 30} days`, v_389afb).run();
+      v_c8eee3 = `${v_6a53fd || 30}일간 좋아요·팔로우가 제한됩니다.`;
+      break;
+    case "force_logout":
+
+      await v_3f4e2e.env.DB.prepare(`UPDATE users SET session_epoch = session_epoch + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(v_389afb).run();
+      v_c8eee3 = "모든 기기에서 로그아웃되었습니다. 다시 로그인해 주세요.";
+      break;
+    case "notify_only":
+
+      v_c8eee3 = v_4d33b2.reason?.trim() || "관리자로부터 안내가 도착했습니다.";
+      break;
   }
 
   const v_3ac7e7 = await v_3f4e2e.env.DB
-    .prepare(`SELECT suspended_until AS suspendedUntil, banned_until AS bannedUntil FROM users WHERE id = ?`)
+    .prepare(`SELECT suspended_until AS suspendedUntil, banned_until AS bannedUntil, comment_ban_until AS commentBanUntil, interaction_ban_until AS interactionBanUntil FROM users WHERE id = ?`)
     .bind(v_389afb)
-    .first<{ suspendedUntil: string | null; bannedUntil: string | null }>();
+    .first<{ suspendedUntil: string | null; bannedUntil: string | null; commentBanUntil: string | null; interactionBanUntil: string | null }>();
 
   const v_fc6e45 = (v_3a5fef): string | null => {
     if (!v_3a5fef) return null;
@@ -1718,9 +1798,16 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   } else if (v_9b064f === "clone_create_ban") {
     const v_604a0d = v_fc6e45(v_3ac7e7?.suspendedUntil ?? null);
     if (v_604a0d) v_c8eee3 = `${v_604a0d}까지 페르소나 생성이 제한됩니다. (신고 누적)`;
+  } else if (v_9b064f === "comment_ban") {
+    const v_604a0d = v_fc6e45(v_3ac7e7?.commentBanUntil ?? null);
+    if (v_604a0d) v_c8eee3 = `${v_604a0d}까지 댓글 작성이 제한됩니다. (신고 누적)`;
+  } else if (v_9b064f === "interaction_ban") {
+    const v_604a0d = v_fc6e45(v_3ac7e7?.interactionBanUntil ?? null);
+    if (v_604a0d) v_c8eee3 = `${v_604a0d}까지 좋아요·팔로우가 제한됩니다. (신고 누적)`;
   }
 
-  const v_b6b0b7 = v_9b064f === "account_ban" || v_9b064f === "clone_create_ban";
+  const v_b6b0b7 =
+    v_9b064f === "account_ban" || v_9b064f === "clone_create_ban" || v_9b064f === "comment_ban" || v_9b064f === "interaction_ban";
   const v_cc755a = v_b6b0b7
     ? v_c8eee3 || v_4d33b2.reason || "회원님에 대한 제재가 적용되었습니다."
     : v_4d33b2.reason || v_c8eee3 || "회원님에 대한 제재가 적용되었습니다.";

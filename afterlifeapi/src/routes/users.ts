@@ -2,6 +2,7 @@ import { v_b7c41b } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_6690d9 } from "../middleware/auth";
 import { v_3ebe58 } from "../lib/errors";
+import { v_5bb199 } from "../lib/penaltyGate";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_137694, v_85de88, v_a8614b, v_8ea38c, v_b31343 } from "../lib/ale";
 import { v_e44d97 } from "../lib/kekProvider";
@@ -1205,6 +1206,8 @@ v_de7ba7.post("/:id/follow", v_6690d9, async (v_3f4e2e) => {
     throw new v_3ebe58("VALIDATION_FAILED", "Cannot follow yourself.");
   }
 
+  await v_5bb199(v_3f4e2e.env.DB, v_43e90c);
+
   const v_c3c3b0 = await v_3f4e2e.env.DB
     .prepare(`SELECT id FROM users WHERE id = ? AND deleted_at IS NULL`)
     .bind(v_b1de41)
@@ -1256,6 +1259,7 @@ v_de7ba7.delete("/:id/follow", v_6690d9, async (v_3f4e2e) => {
 
 v_de7ba7.get("/:id/followers", v_6690d9, async (v_3f4e2e) => {
   const v_b1de41 = v_586d97(v_3f4e2e);
+  const v_013af2 = v_3f4e2e.get("userId")!;
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
   const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
@@ -1273,10 +1277,11 @@ v_de7ba7.get("/:id/followers", v_6690d9, async (v_3f4e2e) => {
           WHERE uf.followee_id = ?
             AND u.deletion_state = 'active'
             AND u.deleted_at IS NULL
+            AND uf.follower_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
           ORDER BY uf.id DESC
           LIMIT ?`,
       )
-      .bind(v_b1de41, v_02be30)
+      .bind(v_b1de41, v_013af2, v_02be30)
       .all<{
         followId: number;
         userId: number;
@@ -1300,6 +1305,7 @@ v_de7ba7.get("/:id/followers", v_6690d9, async (v_3f4e2e) => {
 
 v_de7ba7.get("/:id/following", v_6690d9, async (v_3f4e2e) => {
   const v_b1de41 = v_586d97(v_3f4e2e);
+  const v_013af2 = v_3f4e2e.get("userId")!;
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
   const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
@@ -1317,10 +1323,11 @@ v_de7ba7.get("/:id/following", v_6690d9, async (v_3f4e2e) => {
           WHERE uf.follower_id = ?
             AND u.deletion_state = 'active'
             AND u.deleted_at IS NULL
+            AND uf.followee_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
           ORDER BY uf.id DESC
           LIMIT ?`,
       )
-      .bind(v_b1de41, v_02be30)
+      .bind(v_b1de41, v_013af2, v_02be30)
       .all<{
         followId: number;
         userId: number;
