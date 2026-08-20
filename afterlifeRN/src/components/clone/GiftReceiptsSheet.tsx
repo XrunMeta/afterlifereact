@@ -42,7 +42,6 @@ export default function GiftReceiptsSheet({ visible, cloneId, cloneName, onClose
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    console.log(`[GiftReceiptsSheet] effect visible=${visible} cloneId=${cloneId} hasToken=${!!accessToken}`);
     if (!visible || !cloneId || !accessToken) {
       setItems(null);
       return;
@@ -53,7 +52,6 @@ export default function GiftReceiptsSheet({ visible, cloneId, cloneName, onClose
     listCloneGiftReceipts(accessToken, cloneId)
       .then((res) => {
         if (cancelled) return;
-        console.log(`[GiftReceiptsSheet] loaded ${res.items?.length ?? 0} items`);
         setItems(res.items ?? []);
       })
       .catch((err) => {
@@ -143,6 +141,8 @@ const s = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingTop: 12,
     paddingHorizontal: 20,
+
+    height: "50%",
     maxHeight: "80%",
   },
   handle: {
