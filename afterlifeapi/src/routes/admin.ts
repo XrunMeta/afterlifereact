@@ -1665,7 +1665,7 @@ admin.post("/oth-path", requireAdmin, async (c) => {
   const body = await c.req
     .json<{ action?: string; suspendDays?: number | null; reason?: string }>()
     .catch(() => ({}) as { action?: string; suspendDays?: number | null; reason?: string });
-  const VALID = ["warn", "clone_deactivate", "clone_delete", "clone_create_ban", "account_ban"];
+  const VALID = ["warn", "clone_deactivate", "clone_delete", "clone_create_ban", "account_ban", "account_withdraw"];
   const action = body.action === "suspend" ? "clone_create_ban" : body.action ?? "";
   if (!VALID.includes(action)) throw new APIError("VALIDATION_FAILED", "Invalid action.");
 
@@ -1703,6 +1703,12 @@ admin.post("/oth-path", requireAdmin, async (c) => {
     case "clone_delete":
       await c.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, deleted_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'active'`).bind(id).run();
       penaltyMsg = "보유 페르소나가 삭제되었습니다.";
+      break;
+    case "account_withdraw":
+
+      await c.env.DB.prepare(`UPDATE users SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, deleted_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(id).run();
+      await c.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, deleted_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'active'`).bind(id).run();
+      penaltyMsg = "관리자에 의해 계정이 강제 탈퇴 처리되었습니다.";
       break;
   }
 

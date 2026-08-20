@@ -355,6 +355,25 @@ export const api = {
       { method: "POST", body: JSON.stringify({ message: message ?? null }) },
     ),
 
+  applyUserPenalty: (
+    id: string | number,
+    body: {
+      action:
+        | "warn"
+        | "clone_deactivate"
+        | "clone_delete"
+        | "clone_create_ban"
+        | "account_ban"
+        | "account_withdraw";
+      suspendDays?: number | null;
+      reason?: string;
+    },
+  ) =>
+    request<{ ok: true; message: string }>(
+      `/oth-path${id}/apply-penalty`,
+      { method: "POST", body: JSON.stringify(body) },
+    ),
+
   getVoicePresets: () =>
     request<{
       voices: Array<{
