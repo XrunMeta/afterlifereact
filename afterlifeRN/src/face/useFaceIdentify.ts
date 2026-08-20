@@ -114,6 +114,8 @@ export interface UseFaceIdentifyOptions {
 
   calibrate?: { accessToken: string; groundTruthPersonId: number | null } | null;
 
+  onCollected?: (personId: number, vector: number[]) => void;
+
   deps?: IdentifyCycleDeps;
 
   now?: () => number;
@@ -129,7 +131,7 @@ export interface UseFaceIdentifyResult {
 }
 
 export function useFaceIdentify(opts: UseFaceIdentifyOptions): UseFaceIdentifyResult {
-  const { enabled, accessToken, cloneId, onEvent, onDiag, calibrate } = opts;
+  const { enabled, accessToken, cloneId, onEvent, onDiag, calibrate, onCollected } = opts;
   const deps = useMemo<IdentifyCycleDeps>(() => opts.deps ?? { matchFaceFn: matchFace }, [opts.deps]);
   const nowFn = opts.now ?? Date.now;
 
@@ -158,6 +160,15 @@ export function useFaceIdentify(opts: UseFaceIdentifyOptions): UseFaceIdentifyRe
         .then(({ state, event, cycle, threshold }) => {
           stateRef.current = state;
           if (event) onEvent(event);
+
+          if (onCollected && cycle && cycle.personId != null) {
+            try {
+              onCollected(cycle.personId, vec);
+            } catch (err) {
+
+              console.warn("[useFaceIdentify] onCollected threw:", err);
+            }
+          }
 
           if (FACE_DIAG_ENABLED && calibrate && cycle) {
             (deps.calibrateFn ?? calibrateFace)(
