@@ -150,7 +150,7 @@ export function v_f65f90() {
     v_cd2071,
   ) => {
     if (!v_207c31) return;
-    if (!window.confirm(`${v_2869c1}\n\n${v_cd2071}\n\n실행할까요?`)) return;
+    if (!window.confirm(`${v_2869c1}\n\n${v_cd2071}\n\n실행할까요?\n\n※ 이 신고는 자동으로 '수락' 처리되며, 신고자에게 처리 안내가 전송됩니다.`)) return;
     let v_141abe;
     if (v_9b064f === "clone_create_ban" || v_9b064f === "account_ban") {
       const v_479f05 = window.prompt(`${v_2869c1} — 기간(일) 입력 (빈칸=30일)`, "30");
@@ -159,21 +159,29 @@ export function v_f65f90() {
       v_141abe = Number.isInteger(v_f4e98d) && v_f4e98d > 0 ? v_f4e98d : 30;
     }
     const v_58ca36 = window.prompt(
-      `${v_2869c1} — 대상 유저에게 표시할 사유 (선택)`,
+      `${v_2869c1} — 대상 유저에게 표시할 사유 (선택 · 앱 '신고당한 내역' 노출)`,
       "",
     );
     if (v_58ca36 === null) return;
+    const v_2bd5e3 = window.prompt(
+      `${v_2869c1} — 신고자에게 표시할 처리 안내 (선택 · 앱 '신고관리' 노출)\n빈칸이면 기본 문구 자동 사용: "회원님의 신고가 수락되었습니다. 적용된 조치: ${v_2869c1}."`,
+      "",
+    );
+    if (v_2bd5e3 === null) return;
     v_4c9ae6(true);
     try {
       const v_8f00b9 = await v_05a921.applyUserPenalty(v_207c31.targetId, {
         action: v_9b064f,
         suspendDays: v_141abe ?? null,
         reason: v_58ca36 || undefined,
+        reportId: v_207c31.reportId,
+        reporterMessage: v_2bd5e3 || undefined,
       });
       alert(v_8f00b9.message || "적용 완료");
       const v_3871e2 = await v_05a921.getUserDetail(v_207c31.targetId);
       v_c17f56(v_3871e2);
       v_f6f5de();
+      v_fdcc94();
     } catch (v_49263d) {
       console.error(`applyUserPenalty[${v_9b064f}] failed:`, v_49263d);
       alert(`${v_2869c1} 실행에 실패했어요.`);
