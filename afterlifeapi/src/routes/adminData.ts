@@ -707,12 +707,27 @@ adminData.put("/report-penalty-rules/:threshold", async (c) => {
   const title = typeof body.title === "string" ? body.title.trim().slice(0, 100) || null : null;
   const message = typeof body.message === "string" ? body.message.trim().slice(0, 500) || null : null;
 
-  const VALID_ACTIONS = ["warn", "clone_deactivate", "clone_delete", "clone_create_ban", "account_ban"];
+  const VALID_ACTIONS = [
+    "warn",
+    "clone_deactivate",
+    "clone_delete",
+    "clone_create_ban",
+    "account_ban",
+    "account_withdraw",
+    "comment_ban",
+    "interaction_ban",
+    "force_logout",
+    "notify_only",
+  ];
 
   const rawAction = body.action === "suspend" ? "clone_create_ban" : (body.action ?? "");
   const action = VALID_ACTIONS.includes(rawAction) ? rawAction : "warn";
 
-  const needsDays = action === "clone_create_ban" || action === "account_ban";
+  const needsDays =
+    action === "clone_create_ban" ||
+    action === "account_ban" ||
+    action === "comment_ban" ||
+    action === "interaction_ban";
   const suspendDays =
     needsDays && Number.isInteger(body.suspendDays) && (body.suspendDays as number) > 0
       ? (body.suspendDays as number)

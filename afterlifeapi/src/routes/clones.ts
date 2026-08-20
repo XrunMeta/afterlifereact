@@ -3,6 +3,7 @@ import type { AppEnv } from "../lib/env";
 import { APIError } from "../lib/errors";
 import { parseJson, z } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
+import { ensureNotInteractionBanned } from "../lib/penaltyGate";
 import { requireIdempotencyKey } from "../middleware/idempotency";
 import { logActivity } from "../lib/logger";
 import { similarityScore, SEARCH_SIMILARITY_THRESHOLD } from "../lib/similarity";
@@ -1654,6 +1655,8 @@ clones.post("/:id/follow", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const db = c.env.DB;
 
+  await ensureNotInteractionBanned(db, userId);
+
   const clone = await loadCloneById(db, cloneId);
   if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
 
@@ -1706,6 +1709,12 @@ clones.get("/:id/followers", async (c) => {
   const url = new URL(c.req.url);
   const limitRaw = Number(url.searchParams.get("limit") ?? 50);
   const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 50));
+
+  const viewerId = await resolveOptionalUser(c);
+  const blockClause = viewerId
+    ? " AND cf.user_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)"
+    : "";
+  const binds: unknown[] = viewerId ? [cloneId, viewerId, limit] : [cloneId, limit];
   const rows = (
     await c.env.DB
       .prepare(
@@ -1717,11 +1726,11 @@ clones.get("/:id/followers", async (c) => {
                 u.avatar_url AS userAvatarUrl
            FROM clone_follows cf
            JOIN users u ON u.id = cf.user_id
-          WHERE cf.clone_id = ? AND u.deleted_at IS NULL
+          WHERE cf.clone_id = ? AND u.deleted_at IS NULL${blockClause}
           ORDER BY cf.id DESC
           LIMIT ?`,
       )
-      .bind(cloneId, limit)
+      .bind(...binds)
       .all<{
         followId: number;
         userId: number;

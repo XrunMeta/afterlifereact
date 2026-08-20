@@ -1651,6 +1651,56 @@ admin.get("/by-xrun/:xrunMemberId/summary", requireAdmin, async (c) => {
 admin.post("/oth-path", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const body = await c.req
+    .json<{ action?: string; reason?: string }>()
+    .catch(() => ({}) as { action?: string; reason?: string });
+  const VALID = ["clone_create_ban_lift", "account_ban_lift", "clone_restore", "account_restore", "warnings_clear"];
+  const action = body.action ?? "";
+  if (!VALID.includes(action)) throw new APIError("VALIDATION_FAILED", "Invalid action.");
+
+  let msg = "";
+  switch (action) {
+    case "clone_create_ban_lift":
+      await c.env.DB.prepare(`UPDATE users SET suspended_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(id).run();
+      msg = "페르소나 생성 제한이 해제되었습니다.";
+      break;
+    case "account_ban_lift":
+      await c.env.DB.prepare(`UPDATE users SET banned_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(id).run();
+      msg = "계정 사용 제한이 해제되었습니다.";
+      break;
+    case "clone_restore":
+
+      await c.env.DB.prepare(`UPDATE clones SET deletion_state = 'active', soft_deleted_at = NULL, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'soft_deleted'`).bind(id).run();
+      msg = "페르소나가 복구되었습니다.";
+      break;
+    case "account_restore":
+
+      await c.env.DB.prepare(`UPDATE users SET deletion_state = 'active', soft_deleted_at = NULL, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(id).run();
+      await c.env.DB.prepare(`UPDATE clones SET deletion_state = 'active', soft_deleted_at = NULL, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'soft_deleted'`).bind(id).run();
+      msg = "계정과 페르소나가 복구되었습니다.";
+      break;
+    case "warnings_clear":
+      await c.env.DB.prepare(`DELETE FROM user_warnings WHERE user_id = ?`).bind(id).run();
+      msg = "경고 이력이 초기화되었습니다.";
+      break;
+  }
+
+  await notify(c.env, {
+    userId: id,
+    type: "moderation",
+    title: "제재 해제 안내",
+    body: body.reason?.trim() || msg,
+    url: "afterlife://reports/received",
+    data: { action, manual: true, kind: "lift" },
+    skipEmail: true,
+  }).catch(() => {});
+
+  return c.json({ ok: true, action, message: msg });
+});
+
+admin.post("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
   const r = await c.env.DB
     .prepare(`UPDATE users SET suspended_until = NULL, banned_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
     .bind(id)
@@ -1665,7 +1715,19 @@ admin.post("/oth-path", requireAdmin, async (c) => {
   const body = await c.req
     .json<{ action?: string; suspendDays?: number | null; reason?: string; reportId?: number | null; reporterMessage?: string }>()
     .catch(() => ({}) as { action?: string; suspendDays?: number | null; reason?: string; reportId?: number | null; reporterMessage?: string });
-  const VALID = ["warn", "clone_deactivate", "clone_delete", "clone_create_ban", "account_ban", "account_withdraw"];
+  const VALID = [
+    "warn",
+    "clone_deactivate",
+    "clone_delete",
+    "clone_create_ban",
+    "account_ban",
+    "account_withdraw",
+
+    "comment_ban",
+    "interaction_ban",
+    "force_logout",
+    "notify_only",
+  ];
   const action = body.action === "suspend" ? "clone_create_ban" : body.action ?? "";
   if (!VALID.includes(action)) throw new APIError("VALIDATION_FAILED", "Invalid action.");
 
@@ -1710,12 +1772,30 @@ admin.post("/oth-path", requireAdmin, async (c) => {
       await c.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, deleted_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'active'`).bind(id).run();
       penaltyMsg = "관리자에 의해 계정이 강제 탈퇴 처리되었습니다.";
       break;
+
+    case "comment_ban":
+      await c.env.DB.prepare(`UPDATE users SET comment_ban_until = datetime('now', ?) WHERE id = ?`).bind(`+${days || 30} days`, id).run();
+      penaltyMsg = `${days || 30}일간 댓글 작성이 제한됩니다.`;
+      break;
+    case "interaction_ban":
+      await c.env.DB.prepare(`UPDATE users SET interaction_ban_until = datetime('now', ?) WHERE id = ?`).bind(`+${days || 30} days`, id).run();
+      penaltyMsg = `${days || 30}일간 좋아요·팔로우가 제한됩니다.`;
+      break;
+    case "force_logout":
+
+      await c.env.DB.prepare(`UPDATE users SET session_epoch = session_epoch + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(id).run();
+      penaltyMsg = "모든 기기에서 로그아웃되었습니다. 다시 로그인해 주세요.";
+      break;
+    case "notify_only":
+
+      penaltyMsg = body.reason?.trim() || "관리자로부터 안내가 도착했습니다.";
+      break;
   }
 
   const row = await c.env.DB
-    .prepare(`SELECT suspended_until AS suspendedUntil, banned_until AS bannedUntil FROM users WHERE id = ?`)
+    .prepare(`SELECT suspended_until AS suspendedUntil, banned_until AS bannedUntil, comment_ban_until AS commentBanUntil, interaction_ban_until AS interactionBanUntil FROM users WHERE id = ?`)
     .bind(id)
-    .first<{ suspendedUntil: string | null; bannedUntil: string | null }>();
+    .first<{ suspendedUntil: string | null; bannedUntil: string | null; commentBanUntil: string | null; interactionBanUntil: string | null }>();
 
   const fmtKstDate = (ts: string | null): string | null => {
     if (!ts) return null;
@@ -1731,9 +1811,16 @@ admin.post("/oth-path", requireAdmin, async (c) => {
   } else if (action === "clone_create_ban") {
     const until = fmtKstDate(row?.suspendedUntil ?? null);
     if (until) penaltyMsg = `${until}까지 페르소나 생성이 제한됩니다. (신고 누적)`;
+  } else if (action === "comment_ban") {
+    const until = fmtKstDate(row?.commentBanUntil ?? null);
+    if (until) penaltyMsg = `${until}까지 댓글 작성이 제한됩니다. (신고 누적)`;
+  } else if (action === "interaction_ban") {
+    const until = fmtKstDate(row?.interactionBanUntil ?? null);
+    if (until) penaltyMsg = `${until}까지 좋아요·팔로우가 제한됩니다. (신고 누적)`;
   }
 
-  const isDateBased = action === "account_ban" || action === "clone_create_ban";
+  const isDateBased =
+    action === "account_ban" || action === "clone_create_ban" || action === "comment_ban" || action === "interaction_ban";
   const notifyBody = isDateBased
     ? penaltyMsg || body.reason || "회원님에 대한 제재가 적용되었습니다."
     : body.reason || penaltyMsg || "회원님에 대한 제재가 적용되었습니다.";

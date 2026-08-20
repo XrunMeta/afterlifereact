@@ -7,6 +7,7 @@ import { parseJson, z } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
 import { notifyCloneEvent } from "../lib/notify";
 import { bumpInteraction, addPerFeedIntimacyScore, INTIMACY_WEIGHTS } from "../lib/interactions";
+import { ensureNotCommentBanned, ensureNotInteractionBanned } from "../lib/penaltyGate";
 import {
   cloneActiveSql,
   cloneNotSuspendedSql,
@@ -402,6 +403,8 @@ feedsDiscover.post("/:id/like", requireAuth, async (c) => {
     throw new APIError("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
   const userId = c.get("userId")!;
+
+  await ensureNotInteractionBanned(c.env.DB, userId);
   const feed = await loadFeedAccessible(c.env.DB, feedId);
   if (!feed) throw new APIError("NOT_FOUND", "피드를 찾을 수 없어요.");
 
@@ -464,8 +467,13 @@ feedsDiscover.get("/:id/likes", async (c) => {
   const limitRaw = Number(url.searchParams.get("limit") ?? 30);
   const limit = Math.max(1, Math.min(100, Number.isFinite(limitRaw) ? limitRaw : 30));
 
+  const viewerId = await resolveOptionalUser(c);
   const where = ["fl.feed_id = ?"];
   const binds: unknown[] = [feedId];
+  if (viewerId) {
+    where.push("fl.user_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)");
+    binds.push(viewerId);
+  }
   if (cursor && Number.isInteger(cursor) && cursor > 0) {
     where.push("fl.id < ?");
     binds.push(cursor);
@@ -517,6 +525,8 @@ feedsDiscover.get("/:id/likes", async (c) => {
 cloneFeeds.post("/:id/like", requireAuth, async (c) => {
   const cloneId = parseCloneId(c);
   const userId = c.get("userId")!;
+
+  await ensureNotInteractionBanned(c.env.DB, userId);
   const clone = await loadCloneById(c.env.DB, cloneId);
   if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
   if (clone.visibility === "private") {
@@ -631,6 +641,8 @@ feedsDiscover.post("/:id/comments", requireAuth, async (c) => {
       .first();
     if (blocked) throw new APIError("FORBIDDEN", "댓글을 작성할 수 없어요.");
   }
+
+  await ensureNotCommentBanned(c.env.DB, userId);
 
   let resolvedParentId: number | null = null;
   if (body.parentCommentId) {
@@ -848,7 +860,13 @@ feedsDiscover.get("/:id/comments/:cid/replies", async (c) => {
   const likedByMeExpr = viewerId
     ? `EXISTS (SELECT 1 FROM feed_comment_likes fcl WHERE fcl.comment_id = fc.id AND fcl.user_id = ?)`
     : `0`;
-  const binds: unknown[] = viewerId ? [viewerId, feedId, cid, limit] : [feedId, cid, limit];
+
+  const blockClause = viewerId
+    ? " AND fc.user_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)"
+    : "";
+  const binds: unknown[] = viewerId
+    ? [viewerId, feedId, cid, viewerId, limit]
+    : [feedId, cid, limit];
   const rows = (
     await c.env.DB
       .prepare(
@@ -867,7 +885,7 @@ feedsDiscover.get("/:id/comments/:cid/replies", async (c) => {
             AND fc.parent_comment_id = ?
             AND u.deleted_at IS NULL
             AND fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))
-            AND fc.parent_comment_id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))
+            AND fc.parent_comment_id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))${blockClause}
           ORDER BY fc.id ASC
           LIMIT ?`,
       )
@@ -912,6 +930,8 @@ feedsDiscover.post("/:id/comments/:cid/like", requireAuth, async (c) => {
   }
   const userId = c.get("userId")!;
 
+  await ensureNotInteractionBanned(c.env.DB, userId);
+
   const row = await c.env.DB
     .prepare(`SELECT id FROM feed_comments WHERE id = ? AND feed_id = ?`)
     .bind(cid, feedId)
@@ -949,6 +969,8 @@ feedsDiscover.delete("/:id/comments/:cid/like", requireAuth, async (c) => {
 cloneFeeds.post("/:id/comments", requireAuth, async (c) => {
   const cloneId = parseCloneId(c);
   const userId = c.get("userId")!;
+
+  await ensureNotCommentBanned(c.env.DB, userId);
   const body = await parseJson(c, commentCreateSchema);
   const clone = await loadCloneById(c.env.DB, cloneId);
   if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
@@ -1021,7 +1043,13 @@ cloneFeeds.get("/:id/comments", async (c) => {
   const likedByMeExpr = viewerId
     ? `EXISTS (SELECT 1 FROM feed_comment_likes fcl WHERE fcl.comment_id = fc.id AND fcl.user_id = ?)`
     : `0`;
-  const binds: unknown[] = viewerId ? [viewerId, cloneId, limit] : [cloneId, limit];
+
+  const blockClause = viewerId
+    ? " AND fc.user_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)"
+    : "";
+  const binds: unknown[] = viewerId
+    ? [viewerId, cloneId, viewerId, limit]
+    : [cloneId, limit];
   const rows = (
     await c.env.DB
       .prepare(
@@ -1044,7 +1072,7 @@ cloneFeeds.get("/:id/comments", async (c) => {
           WHERE f.clone_id = ?
             AND fc.parent_comment_id IS NULL
             AND u.deleted_at IS NULL
-            AND fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))
+            AND fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))${blockClause}
           ORDER BY fc.id DESC
           LIMIT ?`,
       )

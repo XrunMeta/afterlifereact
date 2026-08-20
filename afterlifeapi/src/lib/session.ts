@@ -18,6 +18,8 @@ type Payload = Record<string, unknown> & {
   admin?: boolean;
   exp?: number;
   iat?: number;
+
+  epoch?: number;
 };
 
 const REVOKE_PREFIX = "revoked:";
@@ -38,6 +40,14 @@ export async function issueSession(
 ): Promise<{ accessToken: string; refreshToken: string; accessExpiresIn: number }> {
   const base: Record<string, unknown> = { sub: userId, admin };
   if (deviceId) base["deviceId"] = deviceId;
+
+  if (!admin) {
+    const u = await c.env.DB
+      .prepare(`SELECT session_epoch AS ep FROM users WHERE id = ?`)
+      .bind(userId)
+      .first<{ ep: number | null }>();
+    base["epoch"] = u?.ep ?? 0;
+  }
   const accessToken = await issueAccess({ ...base, kind: "access" } as never, c.env.JWT_ACCESS_SECRET);
   const refreshToken = await issueRefresh({ ...base, kind: "refresh" } as never, c.env.JWT_REFRESH_SECRET);
   return { accessToken, refreshToken, accessExpiresIn: JWT_TTL.access };
@@ -65,13 +75,17 @@ export async function rotateSession(
 
   if (!payload.admin) {
     const u = await c.env.DB
-      .prepare(`SELECT banned_until FROM users WHERE id = ? AND deleted_at IS NULL`)
+      .prepare(`SELECT banned_until, session_epoch AS ep FROM users WHERE id = ? AND deleted_at IS NULL`)
       .bind(payload.sub)
-      .first<{ banned_until: string | null }>();
+      .first<{ banned_until: string | null; ep: number | null }>();
     if (u?.banned_until && parseSqliteTimestamp(u.banned_until) > Date.now()) {
       throw new APIError("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
         bannedUntil: u.banned_until,
       });
+    }
+
+    if ((u?.ep ?? 0) > ((payload.epoch as number) ?? 0)) {
+      throw new APIError("UNAUTHENTICATED", "관리자에 의해 로그아웃 처리되었습니다. 다시 로그인해 주세요.");
     }
   }
 
