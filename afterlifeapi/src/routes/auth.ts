@@ -14,6 +14,7 @@ import {
   v_bde6da,
 } from "../lib/session";
 import { v_6690d9 } from "../middleware/auth";
+import { v_f8ffae } from "../lib/penaltyGate";
 import { v_74defc } from "../lib/logger";
 import { v_b78f7e, v_656e8b } from "../lib/otp";
 
@@ -93,6 +94,8 @@ const v_79d3b6 = v_1f4ea7.object({
 v_68f0aa.post("/google", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_79d3b6);
   const v_a1651b = v_3f4e2e.env.DB;
+
+  await v_f8ffae(v_a1651b, v_4d33b2.deviceId);
 
   const v_931bf0 = await v_a32f1d(v_3f4e2e.env, v_4d33b2.idToken);
 
@@ -203,6 +206,8 @@ const v_ceba43 = v_1f4ea7.object({
 v_68f0aa.post("/apple", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_ceba43);
   const v_a1651b = v_3f4e2e.env.DB;
+
+  await v_f8ffae(v_a1651b, v_4d33b2.deviceId);
   const v_931bf0 = await v_bb3c56(v_3f4e2e.env, v_4d33b2.identityToken);
 
   let v_d1b635 = await v_a1651b
@@ -301,6 +306,8 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
 v_68f0aa.post("/signup", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_7b8b17);
   const v_a1651b = v_3f4e2e.env.DB;
+
+  await v_f8ffae(v_a1651b, v_4d33b2.deviceId);
 
   const v_222361 = await v_2ffe8e(v_4d33b2.password, v_3f4e2e.env, { minHitsToReject: 100_000 });
   if (v_222361.breached) {
@@ -488,6 +495,8 @@ const v_584268 = 10;
 v_68f0aa.post("/login", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_5460cc);
   const v_a1651b = v_3f4e2e.env.DB;
+
+  await v_f8ffae(v_a1651b, v_4d33b2.deviceId);
 
   const v_625c74 = await v_a1651b
     .prepare(
@@ -732,6 +741,8 @@ const v_a3bb20 = v_1f4ea7.object({
 v_68f0aa.post("/email/login", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_a3bb20);
   const v_bb4bfd = v_4d33b2.email.trim().toLowerCase();
+
+  await v_f8ffae(v_3f4e2e.env.DB, v_4d33b2.deviceId);
 
   await v_656e8b(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.verificationCode);
 

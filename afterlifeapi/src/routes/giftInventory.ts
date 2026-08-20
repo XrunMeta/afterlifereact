@@ -252,7 +252,7 @@ v_0bc486.post(
 
       await v_3f4e2e.env.DB
         .prepare(
-          `UPDATE users SET credits_topup = credits_topup + ?, updated_at = CURRENT_TIMESTAMP
+          `UPDATE users SET credits_gift = credits_gift + ?, updated_at = CURRENT_TIMESTAMP
              WHERE id = ? AND deleted_at IS NULL`,
         )
         .bind(v_6b7cd0, v_43e90c)

@@ -91,9 +91,7 @@ export default function v_4d58d7({
             ]}
             onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
           >
-            <View style={v_d81136.iconWrap}>
-              <Feather name="flag" size={24} color="#ef4444" />
-            </View>
+            {}
             {}
             <Text style={v_d81136.title}>{
               v_6a1be1 === "comment" ? "댓글 신고하기"

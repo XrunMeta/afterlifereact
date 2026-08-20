@@ -2,6 +2,12 @@
 
 import { v_c4deb2, v_5ab095, v_de06a3, type v_bb76a8 } from "bapkr";
 import { v_05a921 } from "../api/client";
+import {
+  v_52e332,
+  v_a3b01e,
+  v_f314ca,
+  v_e62c92,
+} from "../utils/reportReasons";
 
 const v_cbb531 = {
   open: { label: "신고 접수", color: "#b91c1c", bg: "#fee2e2" },
@@ -38,6 +44,8 @@ export function v_f65f90() {
   const [v_7baad1, v_885299] = v_5ab095<Report[]>([]);
   const [v_683210, v_34a50a] = v_5ab095(true);
   const [v_c68a3b, v_3c7ee2] = v_5ab095<string>("");
+
+  const [v_d66538, v_57a061] = v_5ab095<string>("");
   const [v_02be30, v_02c883] = v_5ab095(100);
 
   const [v_207c31, v_3cc8fd] = v_5ab095<{ targetId: number; reportId: number } | null>(null);
@@ -50,6 +58,7 @@ export function v_f65f90() {
     v_05a921
       .getUserReports({
         status: v_c68a3b || undefined,
+        reason: v_d66538 || undefined,
         limit: v_02be30,
       })
       .then((v_cb35cb) => v_885299(v_cb35cb.items))
@@ -58,7 +67,7 @@ export function v_f65f90() {
         v_885299([]);
       })
       .finally(() => v_34a50a(false));
-  }, [v_c68a3b, v_02be30]);
+  }, [v_c68a3b, v_d66538, v_02be30]);
 
   v_c4deb2(() => {
     v_f6f5de();
@@ -135,6 +144,70 @@ export function v_f65f90() {
     }
   };
 
+  const v_4f6fa9 = async (
+    v_9b064f,
+    v_2869c1,
+    v_cd2071,
+  ) => {
+    if (!v_207c31) return;
+    if (!window.confirm(`${v_2869c1}\n\n${v_cd2071}\n\n실행할까요?\n\n※ 이 신고는 자동으로 '수락' 처리되며, 신고자에게 처리 안내가 전송됩니다.`)) return;
+    let v_141abe;
+    if (v_9b064f === "clone_create_ban" || v_9b064f === "account_ban") {
+      const v_479f05 = window.prompt(`${v_2869c1} — 기간(일) 입력 (빈칸=30일)`, "30");
+      if (v_479f05 === null) return;
+      const v_f4e98d = Number(v_479f05);
+      v_141abe = Number.isInteger(v_f4e98d) && v_f4e98d > 0 ? v_f4e98d : 30;
+    }
+    const v_58ca36 = window.prompt(
+      `${v_2869c1} — 대상 유저에게 표시할 사유 (선택 · 앱 '신고당한 내역' 노출)`,
+      "",
+    );
+    if (v_58ca36 === null) return;
+    const v_2bd5e3 = window.prompt(
+      `${v_2869c1} — 신고자에게 표시할 처리 안내 (선택 · 앱 '신고관리' 노출)\n빈칸이면 기본 문구 자동 사용: "회원님의 신고가 수락되었습니다. 적용된 조치: ${v_2869c1}."`,
+      "",
+    );
+    if (v_2bd5e3 === null) return;
+    v_4c9ae6(true);
+    try {
+      const v_8f00b9 = await v_05a921.applyUserPenalty(v_207c31.targetId, {
+        action: v_9b064f,
+        suspendDays: v_141abe ?? null,
+        reason: v_58ca36 || undefined,
+        reportId: v_207c31.reportId,
+        reporterMessage: v_2bd5e3 || undefined,
+      });
+      alert(v_8f00b9.message || "적용 완료");
+      const v_3871e2 = await v_05a921.getUserDetail(v_207c31.targetId);
+      v_c17f56(v_3871e2);
+      v_f6f5de();
+      v_fdcc94();
+    } catch (v_49263d) {
+      console.error(`applyUserPenalty[${v_9b064f}] failed:`, v_49263d);
+      alert(`${v_2869c1} 실행에 실패했어요.`);
+    } finally {
+      v_4c9ae6(false);
+    }
+  };
+
+  const v_5ea5c6 = async (v_6e0fd3, v_f2ff36) => {
+    if (!v_207c31) return;
+    if (!window.confirm(`페르소나 "${v_f2ff36}" (id:${v_6e0fd3}) 를 삭제할까요?\n해당 유저의 다른 페르소나엔 영향 없습니다.`)) return;
+    v_4c9ae6(true);
+    try {
+      await v_05a921.deleteClone(v_6e0fd3, "관리자 삭제 (신고 처리)");
+      alert("페르소나 삭제 완료");
+      const v_3871e2 = await v_05a921.getUserDetail(v_207c31.targetId);
+      v_c17f56(v_3871e2);
+      v_f6f5de();
+    } catch (v_49263d) {
+      console.error("deleteClone failed:", v_49263d);
+      alert("페르소나 삭제에 실패했어요.");
+    } finally {
+      v_4c9ae6(false);
+    }
+  };
+
   return (
     <div>
       <header style={v_d81136.header}>
@@ -153,6 +226,17 @@ export function v_f65f90() {
             <option value="reviewed">검토 완료</option>
             <option value="dismissed">기각</option>
             <option value="actioned">조치 완료</option>
+          </select>
+          <select
+            value={v_d66538}
+            onChange={(v_9e86fd) => v_57a061(v_9e86fd.target.value)}
+            style={v_d81136.select}
+          >
+            <option value="">전체 사유</option>
+            {v_52e332.map((v_cb35cb) => (
+              <option key={v_cb35cb} value={v_cb35cb}>{v_cb35cb}</option>
+            ))}
+            <option value="__empty__">사유 없음</option>
           </select>
           <select
             value={v_02be30}
@@ -222,9 +306,23 @@ export function v_f65f90() {
                       <div style={v_d81136.cellSub}>id: {v_cb35cb.targetId}</div>
                     </td>
                     <td style={{ ...v_d81136.td, maxWidth: 320 }}>
-                      {v_cb35cb.reason ? (
-                        <span style={v_d81136.reason}>{v_cb35cb.reason}</span>
-                      ) : (
+                      {v_cb35cb.reason ? (() => {
+                        const v_239399 = v_a3b01e[v_f314ca(v_cb35cb.reason)];
+                        const v_324e3c = v_e62c92(v_cb35cb.reason);
+                        return (
+                          <span
+                            style={{
+                              ...v_d81136.reasonBadge,
+                              color: v_239399.color,
+                              backgroundColor: v_239399.bg,
+                              borderColor: v_239399.border,
+                            }}
+                            title={v_324e3c ? "프리셋 사유" : "커스텀 사유 (자유텍스트)"}
+                          >
+                            {v_cb35cb.reason}
+                          </span>
+                        );
+                      })() : (
                         <span style={v_d81136.cellSub}>—</span>
                       )}
                     </td>
@@ -301,7 +399,7 @@ export function v_f65f90() {
                     disabled={v_a41171}
                     style={{ ...v_d81136.actionBtn, ...v_d81136.warnBtn }}
                   >
-                    경고 주기 (비활성화 진행)
+                    경고 주기 (3회째 자동 정지)
                   </button>
                   <button
                     onClick={v_e1f1e1}
@@ -313,22 +411,112 @@ export function v_f65f90() {
                 </div>
 
                 {}
+                <div style={v_d81136.penaltyGroupTitle}>페르소나 제재</div>
+                <div style={v_d81136.penaltyRow}>
+                  <button
+                    onClick={() =>
+                      v_4f6fa9(
+                        "clone_deactivate",
+                        "페르소나 전체 비활성화",
+                        "이 유저의 모든 페르소나를 비활성화(hide)합니다. 관리자가 재활성화 전까지 유지.",
+                      )
+                    }
+                    disabled={v_a41171}
+                    style={{ ...v_d81136.penaltyBtn, ...v_d81136.penaltyBtnAmber }}
+                  >
+                    페르소나 전체 비활성화
+                  </button>
+                  <button
+                    onClick={() =>
+                      v_4f6fa9(
+                        "clone_delete",
+                        "페르소나 전체 삭제",
+                        "이 유저의 모든 페르소나를 삭제합니다. (복구 불가에 가까움)",
+                      )
+                    }
+                    disabled={v_a41171}
+                    style={{ ...v_d81136.penaltyBtn, ...v_d81136.penaltyBtnRed }}
+                  >
+                    페르소나 전체 삭제
+                  </button>
+                  <button
+                    onClick={() =>
+                      v_4f6fa9(
+                        "clone_create_ban",
+                        "페르소나 생성 N일 금지",
+                        "기존 페르소나는 유지, 신규 생성만 N일 차단합니다.",
+                      )
+                    }
+                    disabled={v_a41171}
+                    style={{ ...v_d81136.penaltyBtn, ...v_d81136.penaltyBtnAmber }}
+                  >
+                    페르소나 생성 금지 (N일)
+                  </button>
+                </div>
+
+                <div style={v_d81136.penaltyGroupTitle}>계정 제재</div>
+                <div style={v_d81136.penaltyRow}>
+                  <button
+                    onClick={() =>
+                      v_4f6fa9(
+                        "account_ban",
+                        "계정 비활성화 (N일)",
+                        "계정 접근 자체를 N일 차단합니다. (로그인 불가)",
+                      )
+                    }
+                    disabled={v_a41171}
+                    style={{ ...v_d81136.penaltyBtn, ...v_d81136.penaltyBtnRed }}
+                  >
+                    계정 비활성화 (N일)
+                  </button>
+                  <button
+                    onClick={() =>
+                      v_4f6fa9(
+                        "account_withdraw",
+                        "계정 강제 탈퇴",
+                        "해당 계정을 즉시 탈퇴 처리합니다. (soft-delete · 페르소나도 함께 삭제 · 관리자 복구 안 하면 사실상 영구)",
+                      )
+                    }
+                    disabled={v_a41171}
+                    style={{ ...v_d81136.penaltyBtn, ...v_d81136.penaltyBtnDark }}
+                  >
+                    계정 강제 탈퇴
+                  </button>
+                </div>
+
+                {}
                 <div style={v_d81136.section}>
                   <div style={v_d81136.sectionTitle}>받은 신고 ({v_3cfdfc.reports.length})</div>
                   {v_3cfdfc.reports.length === 0 ? (
                     <div style={v_d81136.sectionEmpty}>없음</div>
                   ) : (
-                    v_3cfdfc.reports.map((v_cb35cb) => (
-                      <div key={v_cb35cb.id} style={v_d81136.listItem}>
-                        <div style={v_d81136.listMain}>
-                          {v_cb35cb.reason || "(사유 없음)"}{" "}
-                          <span style={v_d81136.listStatus}>[{v_cb35cb.status}]</span>
+                    v_3cfdfc.reports.map((v_cb35cb) => {
+                      const v_239399 = v_a3b01e[v_f314ca(v_cb35cb.reason)];
+                      return (
+                        <div key={v_cb35cb.id} style={v_d81136.listItem}>
+                          <div style={v_d81136.listMain}>
+                            {v_cb35cb.reason ? (
+                              <span
+                                style={{
+                                  ...v_d81136.reasonBadge,
+                                  color: v_239399.color,
+                                  backgroundColor: v_239399.bg,
+                                  borderColor: v_239399.border,
+                                }}
+                              >
+                                {v_cb35cb.reason}
+                              </span>
+                            ) : (
+                              <span style={v_d81136.listSub}>(사유 없음)</span>
+                            )}{" "}
+                            <span style={v_d81136.listStatus}>[{v_cb35cb.status}]</span>
+                          </div>
+                          <div style={v_d81136.listSub}>
+                            {v_cb35cb.reporterEmail} · {v_cb35cb.createdAt?.slice(0, 16)}
+                          </div>
                         </div>
-                        <div style={v_d81136.listSub}>
-                          {v_cb35cb.reporterEmail} · {v_cb35cb.createdAt?.slice(0, 16)}
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
 
@@ -339,13 +527,25 @@ export function v_f65f90() {
                     <div style={v_d81136.sectionEmpty}>없음</div>
                   ) : (
                     v_3cfdfc.clones.map((v_966588) => (
-                      <div key={v_966588.id} style={v_d81136.listItem}>
-                        <div style={v_d81136.listMain}>
-                          {v_966588.name} <span style={v_d81136.listSub}>@{v_966588.username}</span>
-                          {v_966588.deletionState !== "active" && (
-                            <span style={v_d81136.deletedBadge}>삭제됨</span>
-                          )}
+                      <div key={v_966588.id} style={v_d81136.cloneRow}>
+                        <div style={{ flex: 1 }}>
+                          <div style={v_d81136.listMain}>
+                            {v_966588.name} <span style={v_d81136.listSub}>@{v_966588.username}</span>
+                            {v_966588.deletionState !== "active" && (
+                              <span style={v_d81136.deletedBadge}>삭제됨</span>
+                            )}
+                          </div>
+                          <div style={v_d81136.listSub}>id: {v_966588.id}</div>
                         </div>
+                        {v_966588.deletionState === "active" && (
+                          <button
+                            onClick={() => v_5ea5c6(v_966588.id, v_966588.name)}
+                            disabled={v_a41171}
+                            style={v_d81136.miniDeleteBtn}
+                          >
+                            삭제
+                          </button>
+                        )}
                       </div>
                     ))
                   )}
@@ -418,6 +618,15 @@ const styles: Record<string, v_bb76a8> = {
   cellMain: { fontSize: 13, fontWeight: 600, color: "#0f172a" },
   cellSub: { fontSize: 11, color: "#64748b", marginTop: 2 },
   reason: { fontSize: 13, color: "#334155", whiteSpace: "pre-wrap" },
+  reasonBadge: {
+    display: "inline-block",
+    padding: "4px 10px",
+    borderRadius: 12,
+    fontSize: 12,
+    fontWeight: 600,
+    border: "1px solid",
+    lineHeight: 1.4,
+  },
   badge: {
     display: "inline-block",
     padding: "3px 10px",
@@ -521,6 +730,46 @@ const styles: Record<string, v_bb76a8> = {
   },
   warnHint: { fontSize: 11, color: "#94a3b8", marginTop: 10, lineHeight: 1.5 },
   actionRow: { display: "flex", gap: 8, marginBottom: 16 },
+
+  penaltyGroupTitle: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: "#64748b",
+    marginTop: 4,
+    marginBottom: 6,
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+  },
+  penaltyRow: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 },
+  penaltyBtn: {
+    padding: "8px 12px",
+    border: "1px solid",
+    borderRadius: 6,
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: "pointer",
+    background: "#fff",
+  },
+  penaltyBtnAmber: { color: "#b45309", borderColor: "#fcd34d", backgroundColor: "#fffbeb" },
+  penaltyBtnRed: { color: "#b91c1c", borderColor: "#fca5a5", backgroundColor: "#fef2f2" },
+  penaltyBtnDark: { color: "#fff", borderColor: "#0f172a", backgroundColor: "#0f172a" },
+  cloneRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    padding: "8px 0",
+    borderBottom: "1px solid #f1f5f9",
+  },
+  miniDeleteBtn: {
+    padding: "6px 12px",
+    border: "1px solid #fca5a5",
+    borderRadius: 6,
+    fontSize: 11,
+    fontWeight: 700,
+    color: "#b91c1c",
+    backgroundColor: "#fef2f2",
+    cursor: "pointer",
+  },
   actionBtn: {
     flex: 1,
     padding: "10px 12px",

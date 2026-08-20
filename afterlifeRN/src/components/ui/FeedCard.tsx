@@ -101,6 +101,10 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
   };
 
   const v_fd0962 = v_3d6201 < 640;
+
+  const [v_372b31, v_e9a758] = v_a3453e.useState(0);
+
+  const [v_f22492, v_81e59a] = v_a3453e.useState(0);
   return (
     <View style={[v_d81136.container, { height: v_3d6201 }]}>
       {}
@@ -199,7 +203,16 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
       {v_26dce6 && (
         <>
           {}
-          <View style={[v_d81136.rightActions, v_fd0962 && v_d81136.rightActionsShift]}>
+          {
+}
+          <View
+            style={[
+              v_d81136.rightActions,
+              v_372b31 > 0 && {
+                bottom: (v_799eb5 ? v_372b31 - v_f22492 : v_372b31) + 16,
+              },
+            ]}
+          >
             {}
             <TouchableOpacity onPress={v_5bca36} style={v_d81136.actionBtn} activeOpacity={0.7}>
               <Ionicons
@@ -227,8 +240,14 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
             {}
           </View>
 
-          <View style={v_d81136.bottomContent}>
-            <View style={v_d81136.profileRow}>
+          <View
+            style={v_d81136.bottomContent}
+            onLayout={(v_9e86fd) => v_e9a758(v_9e86fd.nativeEvent.layout.height)}
+          >
+            <View
+              style={v_d81136.profileRow}
+              onLayout={(v_9e86fd) => v_81e59a(v_9e86fd.nativeEvent.layout.height)}
+            >
               <View style={v_d81136.profileInfo}>
                 <View style={v_d81136.authorRow}>
                   <Text style={v_d81136.authorName}>{v_8c0b26.author}</Text>
@@ -416,14 +435,19 @@ const v_d81136 = v_472849.create({
 
   rightActions: {
     position: "absolute",
-    right: 12,
-    bottom: 200,
+
+    right: 20,
+    bottom: 130,
     alignItems: "center",
     gap: 20,
   },
 
   rightActionsShift: {
-    bottom: 260,
+    bottom: 190,
+  },
+
+  rightActionsWithFollow: {
+    bottom: 165,
   },
 
   ownerHeader: {
