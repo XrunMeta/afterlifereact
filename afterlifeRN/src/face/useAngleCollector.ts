@@ -11,6 +11,8 @@ const FLUSH_BATCH_SIZE = 3;
 
 const MAX_PER_SESSION = 20;
 
+const INITIAL_MUST_SAVE = 5;
+
 interface PersonBuffer {
 
   enrolled: number[][];
@@ -123,15 +125,22 @@ export function useAngleCollector(opts: UseAngleCollectorOptions): UseAngleColle
         console.log(`[AngleCollector] observe CAP person=${personId} enrolled=${buf.enrolled.length}`);
         return;
       }
+      const total = buf.enrolled.length + buf.pending.length;
 
-      const pool = [...buf.enrolled, ...buf.pending];
-      const minDist = minL2(vector, pool);
-      if (minDist < ANGLE_DIVERSITY_MIN_L2) {
-        console.log(`[AngleCollector] observe SKIP person=${personId} minL2=${minDist.toFixed(3)} < ${ANGLE_DIVERSITY_MIN_L2}`);
-        return; 
+      if (total < INITIAL_MUST_SAVE) {
+        buf.pending.push(vector);
+        console.log(`[AngleCollector] observe FORCE-QUEUE person=${personId} total=${total + 1}/${INITIAL_MUST_SAVE}`);
+      } else {
+
+        const pool = [...buf.enrolled, ...buf.pending];
+        const minDist = minL2(vector, pool);
+        if (minDist < ANGLE_DIVERSITY_MIN_L2) {
+          console.log(`[AngleCollector] observe SKIP person=${personId} minL2=${minDist.toFixed(3)} < ${ANGLE_DIVERSITY_MIN_L2}`);
+          return; 
+        }
+        buf.pending.push(vector);
+        console.log(`[AngleCollector] observe QUEUE person=${personId} minL2=${minDist.toFixed(3)} pending=${buf.pending.length}`);
       }
-      buf.pending.push(vector);
-      console.log(`[AngleCollector] observe QUEUE person=${personId} minL2=${minDist.toFixed(3)} pending=${buf.pending.length}`);
       if (buf.pending.length >= FLUSH_BATCH_SIZE) {
         console.log(`[AngleCollector] observe → flush trigger person=${personId}`);
         void flushOne(personId, buf);

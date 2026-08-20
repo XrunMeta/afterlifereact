@@ -166,7 +166,7 @@ export function useFaceIdentify(opts: UseFaceIdentifyOptions): UseFaceIdentifyRe
           }
 
           const HIGH_CONFIDENCE_SCORE = 0.65;
-          const MIN_STREAK_FOR_ENROLL = 5;
+          const MIN_STREAK_FOR_ENROLL = 3;
           if (
             onCollected &&
             cycle &&
