@@ -125,6 +125,8 @@ interface BucketRow {
   credits_free: number;
   credits_sub: number;
   credits_topup: number;
+
+  credits_gift: number;
 }
 
 export async function v_a025af(
@@ -142,7 +144,7 @@ export async function v_a025af(
   for (let v_bc21cd = 0; v_bc21cd < 2; v_bc21cd++) {
     const v_3ac7e7 = await v_a1651b
       .prepare(
-        `SELECT credits_free, credits_sub, credits_topup
+        `SELECT credits_free, credits_sub, credits_topup, credits_gift
            FROM users WHERE id = ? AND deleted_at IS NULL`,
       )
       .bind(v_43e90c)
@@ -151,8 +153,9 @@ export async function v_a025af(
 
     const v_c6935f = Math.min(v_b1cc8a, v_3ac7e7.credits_free);
     const v_adc4ac = Math.min(v_b1cc8a - v_c6935f, v_3ac7e7.credits_sub);
-    const v_413d81 = Math.min(v_b1cc8a - v_c6935f - v_adc4ac, v_3ac7e7.credits_topup);
-    const v_49e7a6 = v_c6935f + v_adc4ac + v_413d81;
+    const v_4e973d = Math.min(v_b1cc8a - v_c6935f - v_adc4ac, v_3ac7e7.credits_gift);
+    const v_413d81 = Math.min(v_b1cc8a - v_c6935f - v_adc4ac - v_4e973d, v_3ac7e7.credits_topup);
+    const v_49e7a6 = v_c6935f + v_adc4ac + v_4e973d + v_413d81;
     const v_79d5f0 = v_b1cc8a - v_49e7a6;
 
     if (v_49e7a6 === 0) return { billedSec: 0, unbilledSec: v_b1cc8a };
@@ -169,15 +172,17 @@ export async function v_a025af(
           `UPDATE users
               SET credits_free  = credits_free  - ?,
                   credits_sub   = credits_sub   - ?,
+                  credits_gift  = credits_gift  - ?,
                   credits_topup = credits_topup - ?,
                   credits       = credits       - ?,
                   updated_at    = CURRENT_TIMESTAMP
             WHERE id = ?
               AND credits_free  >= ?
               AND credits_sub   >= ?
+              AND credits_gift  >= ?
               AND credits_topup >= ?`,
         )
-        .bind(v_c6935f, v_adc4ac, v_413d81, v_49e7a6, v_43e90c, v_c6935f, v_adc4ac, v_413d81),
+        .bind(v_c6935f, v_adc4ac, v_4e973d, v_413d81, v_49e7a6, v_43e90c, v_c6935f, v_adc4ac, v_4e973d, v_413d81),
     ];
 
     if (v_413d81 > 0) {

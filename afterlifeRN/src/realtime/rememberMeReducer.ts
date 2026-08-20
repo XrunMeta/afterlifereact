@@ -20,9 +20,13 @@ export interface RememberMeState {
   lastNotifyUnknownMs: number | null;
 
   pendingSwitch: { personId: number; displayName: string | null } | null;
+
+  recentlySeen: Record<number, number>;
 }
 
-export const v_575cf8 = 30_000;
+export const v_575cf8 = 60_000;
+
+export const v_e6be56 = 90_000;
 
 export const v_a5c955 = 60_000;
 
@@ -61,6 +65,8 @@ export type RememberMeAction =
 
   | { type: "END_CALL" }
 
+  | { type: "INTERRUPT_TTS" }
+
   | {
       type: "NOTIFY_CONFIRMED";
       personId: number;
@@ -83,6 +89,7 @@ export function v_178dfb(): RememberMeState {
     enrollGraceUntilMs: null,
     lastNotifyUnknownMs: null,
     pendingSwitch: null,
+    recentlySeen: {},
   };
 }
 
@@ -140,16 +147,22 @@ function v_a448ad(
 
       const v_9bb925 = v_b6e533.personId === v_d48baf.personId;
 
+      const v_3d04cc = { ...v_b6e533.recentlySeen, [v_d48baf.personId]: v_67e77e };
+
       if (v_b6e533.mode === "pending") {
+
+        const v_ebdcca = v_b6e533.recentlySeen[v_d48baf.personId];
+        const v_c29192 = v_ebdcca != null && v_67e77e - v_ebdcca < v_e6be56;
         return {
-          state: v_9638ca(v_b6e533, v_d48baf.personId),
+          state: { ...v_9638ca(v_b6e533, v_d48baf.personId), recentlySeen: v_3d04cc },
           actions: [
             { type: "MIC_ON" },
             {
               type: "NOTIFY_CONFIRMED",
               personId: v_d48baf.personId,
               displayName: v_d48baf.displayName,
-              rejoin: true,
+              rejoin: !v_c29192, 
+              mentionName: v_c29192, 
             },
           ],
         };
@@ -159,7 +172,7 @@ function v_a448ad(
         if (v_b6e533.mode === "grace") {
 
           return {
-            state: v_9638ca(v_b6e533, v_d48baf.personId),
+            state: { ...v_9638ca(v_b6e533, v_d48baf.personId), recentlySeen: v_3d04cc },
             actions: [
               {
                 type: "NOTIFY_CONFIRMED",
@@ -171,21 +184,15 @@ function v_a448ad(
             ],
           };
         }
-        return { state: v_b6e533, actions: [] };
+
+        return { state: { ...v_b6e533, recentlySeen: v_3d04cc }, actions: [] };
       }
 
-      if (v_d48baf.cloneSpeaking) {
-        return {
-          state: {
-            ...v_b6e533,
-            pendingSwitch: { personId: v_d48baf.personId, displayName: v_d48baf.displayName },
-          },
-          actions: [],
-        };
-      }
       return {
-        state: v_9638ca(v_b6e533, v_d48baf.personId),
+        state: { ...v_9638ca(v_b6e533, v_d48baf.personId), recentlySeen: v_3d04cc },
         actions: [
+
+          ...(v_d48baf.cloneSpeaking ? [{ type: "INTERRUPT_TTS" } as RememberMeAction] : []),
           {
             type: "NOTIFY_CONFIRMED",
             personId: v_d48baf.personId,

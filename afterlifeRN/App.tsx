@@ -38,6 +38,9 @@ import { v_0f28c1 } from "./src/components/dev/DevFloatingBall";
 import { v_82d3c2 } from "./src/lib/t208MeasureStore";
 import { v_434962 } from "./src/stores/devOverlayStore";
 
+import { v_875d65 } from "./src/lib/callForegroundService";
+v_875d65();
+
 v_b28903();
 
 v_61a1ef(v_04fed4);

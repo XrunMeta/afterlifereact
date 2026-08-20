@@ -414,11 +414,19 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
   const v_02be30 = Math.max(1, Math.min(500, Number.isFinite(v_cf2260) ? v_cf2260 : 100));
   const v_d308b5 = v_f71b56.searchParams.get("status");
 
+  const v_58ca36 = v_f71b56.searchParams.get("reason");
+
   const v_abcc8d = ["1=1"];
   const v_925171 = [];
   if (v_d308b5 && ["open", "reviewed", "dismissed"].includes(v_d308b5)) {
     v_abcc8d.push("r.status = ?");
     v_925171.push(v_d308b5);
+  }
+  if (v_58ca36 === "__empty__") {
+    v_abcc8d.push("(r.reason IS NULL OR r.reason = '')");
+  } else if (v_58ca36) {
+    v_abcc8d.push("r.reason = ?");
+    v_925171.push(v_58ca36);
   }
 
   const v_18b8bf = (
@@ -472,12 +480,19 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 100);
   const v_02be30 = Math.max(1, Math.min(500, Number.isFinite(v_cf2260) ? v_cf2260 : 100));
   const v_d308b5 = v_f71b56.searchParams.get("status");
+  const v_58ca36 = v_f71b56.searchParams.get("reason");
 
   const v_abcc8d = ["1=1"];
   const v_925171 = [];
   if (v_d308b5 && ["open", "reviewed", "dismissed", "actioned"].includes(v_d308b5)) {
     v_abcc8d.push("r.status = ?");
     v_925171.push(v_d308b5);
+  }
+  if (v_58ca36 === "__empty__") {
+    v_abcc8d.push("(r.reason IS NULL OR r.reason = '')");
+  } else if (v_58ca36) {
+    v_abcc8d.push("r.reason = ?");
+    v_925171.push(v_58ca36);
   }
 
   const v_18b8bf = (
@@ -692,12 +707,29 @@ v_133c2c.put("/report-penalty-rules/:threshold", async (v_3f4e2e) => {
   const v_9f1622 = typeof v_4d33b2.title === "string" ? v_4d33b2.title.trim().slice(0, 100) || null : null;
   const v_a8cd21 = typeof v_4d33b2.message === "string" ? v_4d33b2.message.trim().slice(0, 500) || null : null;
 
-  const v_3b4825 = ["warn", "clone_deactivate", "clone_delete", "clone_create_ban", "account_ban"];
+  const v_3b4825 = [
+    "warn",
+    "clone_deactivate",
+    "clone_delete",
+    "clone_create_ban",
+    "account_ban",
+    "account_withdraw",
+    "comment_ban",
+    "interaction_ban",
+    "force_logout",
+    "notify_only",
+
+    "device_ban",
+  ];
 
   const v_4b0806 = v_4d33b2.action === "suspend" ? "clone_create_ban" : (v_4d33b2.action ?? "");
   const v_9b064f = v_3b4825.includes(v_4b0806) ? v_4b0806 : "warn";
 
-  const v_d03754 = v_9b064f === "clone_create_ban" || v_9b064f === "account_ban";
+  const v_d03754 =
+    v_9b064f === "clone_create_ban" ||
+    v_9b064f === "account_ban" ||
+    v_9b064f === "comment_ban" ||
+    v_9b064f === "interaction_ban";
   const v_141abe =
     v_d03754 && Number.isInteger(v_4d33b2.suspendDays) && (v_4d33b2.suspendDays as number) > 0
       ? (v_4d33b2.suspendDays as number)
@@ -751,4 +783,104 @@ v_133c2c.post("/oth-path", async (v_3f4e2e) => {
     .bind(v_4d33b2.message ?? null, v_99000e)
     .run();
   return v_3f4e2e.json({ ok: true, updated: v_8f00b9.meta?.changes ?? 0 });
+});
+
+v_133c2c.get("/face-recognition/persons", async (v_3f4e2e) => {
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 200);
+  const v_02be30 = Math.max(1, Math.min(500, Number.isFinite(v_cf2260) ? v_cf2260 : 200));
+  const v_860b21 = v_f71b56.searchParams.get("userId");
+  const v_c3457c = v_f71b56.searchParams.get("cloneId");
+
+  const v_abcc8d = ["1=1"];
+  const v_925171 = [];
+  if (v_860b21 && /^\d+$/.test(v_860b21)) {
+    v_abcc8d.push("p.user_id = ?");
+    v_925171.push(Number(v_860b21));
+  }
+  if (v_c3457c && /^\d+$/.test(v_c3457c)) {
+    v_abcc8d.push("p.clone_id = ?");
+    v_925171.push(Number(v_c3457c));
+  }
+
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT p.id AS personId,
+                p.user_id AS userId,
+                p.clone_id AS cloneId,
+                p.display_name AS displayName,
+                p.consent_state AS consentState,
+                p.created_at AS createdAt,
+                u.name AS userName,
+                u.email AS userEmail,
+                c.name AS cloneName,
+                c.username AS cloneUsername,
+                (SELECT COUNT(*) FROM clone_person_faces cpf WHERE cpf.person_id = p.id) AS cloneFaceCount,
+                (SELECT COUNT(*) FROM face_embeddings fe WHERE fe.person_id = p.id) AS legacyFaceCount,
+                (SELECT MAX(cpf.created_at) FROM clone_person_faces cpf WHERE cpf.person_id = p.id) AS lastEnrollAt,
+                (SELECT COUNT(*) FROM clone_person_faces cpf WHERE cpf.person_id = p.id AND cpf.source = 'enroll') AS srcEnroll,
+                (SELECT COUNT(*) FROM clone_person_faces cpf WHERE cpf.person_id = p.id AND cpf.source = 'call') AS srcCall,
+                (SELECT COUNT(*) FROM clone_person_faces cpf WHERE cpf.person_id = p.id AND cpf.source = 'self') AS srcSelf
+           FROM persons p
+           JOIN users u ON u.id = p.user_id
+           LEFT JOIN clones c ON c.id = p.clone_id
+          WHERE ${v_abcc8d.join(" AND ")}
+          ORDER BY lastEnrollAt DESC NULLS LAST, p.id DESC
+          LIMIT ?`,
+      )
+      .bind(...v_925171, v_02be30)
+      .all<{
+        personId: number;
+        userId: number;
+        cloneId: number | null;
+        displayName: string | null;
+        consentState: string;
+        createdAt: number;
+        userName: string | null;
+        userEmail: string;
+        cloneName: string | null;
+        cloneUsername: string | null;
+        cloneFaceCount: number;
+        legacyFaceCount: number;
+        lastEnrollAt: number | null;
+        srcEnroll: number;
+        srcCall: number;
+        srcSelf: number;
+      }>()
+  ).results;
+
+  return v_3f4e2e.json({ items: v_18b8bf ?? [] });
+});
+
+v_133c2c.get("/face-recognition/persons/:id/faces", async (v_3f4e2e) => {
+  const v_ca1ec5 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_ca1ec5) || v_ca1ec5 <= 0) return v_3f4e2e.json({ error: "invalid_id" }, 400);
+
+  const v_c2273d = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT id, 'clone_person_faces' AS tbl, clone_id AS cloneId, vectorize_id AS vectorizeId,
+                model, dim, source, created_at AS createdAt
+           FROM clone_person_faces WHERE person_id = ?
+          ORDER BY created_at DESC LIMIT 200`,
+      )
+      .bind(v_ca1ec5)
+      .all()
+  ).results ?? [];
+  const v_559989 = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT id, 'face_embeddings' AS tbl, NULL AS cloneId, vectorize_id AS vectorizeId,
+                model, dim, source, created_at AS createdAt
+           FROM face_embeddings WHERE person_id = ?
+          ORDER BY created_at DESC LIMIT 200`,
+      )
+      .bind(v_ca1ec5)
+      .all()
+  ).results ?? [];
+
+  const v_2b7a6d = [...v_c2273d, ...v_559989] as Array<Record<string, unknown> & { createdAt: number }>;
+  v_2b7a6d.sort((v_779914, v_148ff6) => Number(v_148ff6.createdAt) - Number(v_779914.createdAt));
+  return v_3f4e2e.json({ items: v_2b7a6d });
 });

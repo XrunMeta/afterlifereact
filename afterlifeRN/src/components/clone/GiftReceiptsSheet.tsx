@@ -141,6 +141,8 @@ const v_fd5f43 = v_472849.create({
     borderTopRightRadius: 24,
     paddingTop: 12,
     paddingHorizontal: 20,
+
+    height: "50%",
     maxHeight: "80%",
   },
   handle: {

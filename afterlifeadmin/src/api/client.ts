@@ -255,6 +255,7 @@ export const v_05a921 = {
     const v_212049 = new URLSearchParams();
     if (v_24baff?.status) v_212049.set("status", v_24baff.status);
     if (v_24baff?.limit) v_212049.set("limit", String(v_24baff.limit));
+    if (v_24baff?.reason) v_212049.set("reason", v_24baff.reason);
     const v_25c4f7 = v_212049.toString();
     return v_576f5a<{
       items: Array<{
@@ -290,6 +291,7 @@ export const v_05a921 = {
     const v_212049 = new URLSearchParams();
     if (v_24baff?.status) v_212049.set("status", v_24baff.status);
     if (v_24baff?.limit) v_212049.set("limit", String(v_24baff.limit));
+    if (v_24baff?.reason) v_212049.set("reason", v_24baff.reason);
     const v_25c4f7 = v_212049.toString();
     return v_576f5a<{
       items: Array<{
@@ -353,6 +355,15 @@ export const v_05a921 = {
       { method: "POST", body: JSON.stringify({ message: v_a8cd21 ?? null }) },
     ),
 
+  applyUserPenalty: (
+    v_389afb,
+    v_4d33b2,
+  ) =>
+    v_576f5a<{ ok: true; message: string }>(
+      `/oth-path${v_389afb}/apply-penalty`,
+      { method: "POST", body: JSON.stringify(v_4d33b2) },
+    ),
+
   getVoicePresets: () =>
     v_576f5a<{
       voices: Array<{
@@ -407,6 +418,47 @@ export const v_05a921 = {
       `/oth-path${v_d361d7}`,
       { method: "DELETE" },
     ),
+
+  getFaceRecognitionPersons: (v_24baff) => {
+    const v_212049 = new URLSearchParams();
+    if (v_24baff?.userId) v_212049.set("userId", String(v_24baff.userId));
+    if (v_24baff?.cloneId) v_212049.set("cloneId", String(v_24baff.cloneId));
+    if (v_24baff?.limit) v_212049.set("limit", String(v_24baff.limit));
+    const v_25c4f7 = v_212049.toString();
+    return v_576f5a<{
+      items: Array<{
+        personId: number;
+        userId: number;
+        cloneId: number | null;
+        displayName: string | null;
+        consentState: string;
+        createdAt: number;
+        userName: string | null;
+        userEmail: string;
+        cloneName: string | null;
+        cloneUsername: string | null;
+        cloneFaceCount: number;
+        legacyFaceCount: number;
+        lastEnrollAt: number | null;
+        srcEnroll: number;
+        srcCall: number;
+        srcSelf: number;
+      }>;
+    }>(`/oth-path${v_25c4f7 ? `?${v_25c4f7}` : ""}`);
+  },
+  getFaceRecognitionPersonFaces: (v_ca1ec5) =>
+    v_576f5a<{
+      items: Array<{
+        id: number;
+        tbl: "clone_person_faces" | "face_embeddings";
+        cloneId: number | null;
+        vectorizeId: string | null;
+        model: string | null;
+        dim: number | null;
+        source: string;
+        createdAt: number;
+      }>;
+    }>(`/oth-path${v_ca1ec5}/faces`),
 
   getCrashReports: (v_24baff) => {
     const v_212049 = new URLSearchParams();
