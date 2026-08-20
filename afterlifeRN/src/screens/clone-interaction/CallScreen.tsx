@@ -268,13 +268,12 @@ function CallScreenInner({ route, navigation }: Props) {
   const bottomInset =
     Platform.OS === "ios" ? insets.bottom : Math.max(navBarHeight, insets.bottom);
   const callDevUi = useDevOverlayStore((s) => s.callDevUiVisible);
+  const showCallDev = __DEV__ && callDevUi;
 
-  const showCallDev = false && __DEV__ && callDevUi;
-
-  const hudDevBox = false;
-  const hudTiming = false;
-  const hudState = false;
-  const hudFaceTrack = false;
+  const hudDevBox = useCallHudVisible("devBox");
+  const hudTiming = useCallHudVisible("timing");
+  const hudState = useCallHudVisible("state");
+  const hudFaceTrack = useCallHudVisible("faceTrack");
 
   const [cameraFacing, setCameraFacing] = useState<"front" | "back">("front");
   const [isMuted, setIsMuted] = useState(false);
@@ -284,7 +283,7 @@ function CallScreenInner({ route, navigation }: Props) {
 
   const [dialingDone, setDialingDone] = useState(false);
 
-  const [faceIdentifyEnabled, setFaceIdentifyEnabled] = useState(false);
+  const [faceIdentifyEnabled, setFaceIdentifyEnabled] = useState(true);
   const [selfConfirmed, setSelfConfirmed] = useState(true); 
   const selfSamplesRef = useRef<number[][]>([]);
   const selfConfirmingRef = useRef(false);
@@ -632,10 +631,7 @@ function CallScreenInner({ route, navigation }: Props) {
       try {
         const policy = await fetchFacePolicy(accessToken, cloneId);
         if (cancelled) return;
-
-        setFaceIdentifyEnabled(false);
-
-        void policy;
+        setFaceIdentifyEnabled(policy.faceIdentifyEnabled);
         setSelfConfirmed(clone?.selfPersonId != null);
       } catch (err) {
         if (cancelled) return;
