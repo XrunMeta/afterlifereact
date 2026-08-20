@@ -71,16 +71,17 @@ export function v_512a0b(v_328259): UseAngleCollectorResult {
       v_83ee53.pending = v_83ee53.pending.slice(v_36e01f.length);
       v_83ee53.flushInFlight = true;
       try {
+        console.log(`[AngleCollector] flushOne START person=${v_ca1ec5} batch=${v_36e01f.length} enrolled=${v_83ee53.enrolled.length}`);
 
         await v_4585d1(v_2ca7e0, v_ca1ec5, v_36e01f, v_6e0fd3);
 
         v_83ee53.enrolled.push(...v_36e01f);
         console.log(
-          `[AngleCollector] enrollFaces person=${v_ca1ec5} added=${v_36e01f.length} total=${v_83ee53.enrolled.length}`,
+          `[AngleCollector] flushOne SUCCESS person=${v_ca1ec5} added=${v_36e01f.length} total=${v_83ee53.enrolled.length}`,
         );
       } catch (v_49263d) {
 
-        console.warn(`[AngleCollector] enrollFaces failed person=${v_ca1ec5}:`, v_49263d);
+        console.warn(`[AngleCollector] flushOne FAILED person=${v_ca1ec5}:`, v_49263d);
       } finally {
         v_83ee53.flushInFlight = false;
       }
@@ -105,22 +106,34 @@ export function v_512a0b(v_328259): UseAngleCollectorResult {
 
   const v_0f0ff3 = v_de06a3(
     (v_ca1ec5, v_f9a45c) => {
-      if (!v_d20c84 || !v_2ca7e0) return;
+      if (!v_d20c84 || !v_2ca7e0) {
+        console.log(`[AngleCollector] observe SKIP enabled=${v_d20c84} hasToken=${!!v_2ca7e0}`);
+        return;
+      }
       let v_83ee53 = v_b004c2.current.get(v_ca1ec5);
       if (!v_83ee53) {
         v_83ee53 = { enrolled: [], pending: [], flushInFlight: false };
         v_b004c2.current.set(v_ca1ec5, v_83ee53);
 
         v_83ee53.pending.push(v_f9a45c);
+        console.log(`[AngleCollector] FIRST observe person=${v_ca1ec5}, queued 1`);
         return;
       }
-      if (v_83ee53.enrolled.length >= v_9fe285) return; 
+      if (v_83ee53.enrolled.length >= v_9fe285) {
+        console.log(`[AngleCollector] observe CAP person=${v_ca1ec5} enrolled=${v_83ee53.enrolled.length}`);
+        return;
+      }
 
       const v_75fbef = [...v_83ee53.enrolled, ...v_83ee53.pending];
       const v_bb188d = v_87c181(v_f9a45c, v_75fbef);
-      if (v_bb188d < v_cb6d5f) return; 
+      if (v_bb188d < v_cb6d5f) {
+        console.log(`[AngleCollector] observe SKIP person=${v_ca1ec5} minL2=${v_bb188d.toFixed(3)} < ${v_cb6d5f}`);
+        return; 
+      }
       v_83ee53.pending.push(v_f9a45c);
+      console.log(`[AngleCollector] observe QUEUE person=${v_ca1ec5} minL2=${v_bb188d.toFixed(3)} pending=${v_83ee53.pending.length}`);
       if (v_83ee53.pending.length >= v_a78ac8) {
+        console.log(`[AngleCollector] observe → flush trigger person=${v_ca1ec5}`);
         void v_57a630(v_ca1ec5, v_83ee53);
       }
     },

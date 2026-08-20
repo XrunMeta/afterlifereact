@@ -157,6 +157,9 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
           v_8d3dea.current = v_b6e533;
           if (v_d48baf) v_68885c(v_d48baf);
 
+          if (v_bdad26) {
+            console.log(`[useFaceIdentify] cycle personId=${v_bdad26.personId ?? "null"} score=${v_bdad26.score?.toFixed(3) ?? "?"} onCollected=${!!v_d23335}`);
+          }
           if (v_d23335 && v_bdad26 && v_bdad26.personId != null) {
             try {
               v_d23335(v_bdad26.personId, v_46ff7a);
