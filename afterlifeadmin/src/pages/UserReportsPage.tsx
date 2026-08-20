@@ -144,6 +144,62 @@ export function v_f65f90() {
     }
   };
 
+  const v_4f6fa9 = async (
+    v_9b064f,
+    v_2869c1,
+    v_cd2071,
+  ) => {
+    if (!v_207c31) return;
+    if (!window.confirm(`${v_2869c1}\n\n${v_cd2071}\n\n실행할까요?`)) return;
+    let v_141abe;
+    if (v_9b064f === "clone_create_ban" || v_9b064f === "account_ban") {
+      const v_479f05 = window.prompt(`${v_2869c1} — 기간(일) 입력 (빈칸=30일)`, "30");
+      if (v_479f05 === null) return;
+      const v_f4e98d = Number(v_479f05);
+      v_141abe = Number.isInteger(v_f4e98d) && v_f4e98d > 0 ? v_f4e98d : 30;
+    }
+    const v_58ca36 = window.prompt(
+      `${v_2869c1} — 대상 유저에게 표시할 사유 (선택)`,
+      "",
+    );
+    if (v_58ca36 === null) return;
+    v_4c9ae6(true);
+    try {
+      const v_8f00b9 = await v_05a921.applyUserPenalty(v_207c31.targetId, {
+        action: v_9b064f,
+        suspendDays: v_141abe ?? null,
+        reason: v_58ca36 || undefined,
+      });
+      alert(v_8f00b9.message || "적용 완료");
+      const v_3871e2 = await v_05a921.getUserDetail(v_207c31.targetId);
+      v_c17f56(v_3871e2);
+      v_f6f5de();
+    } catch (v_49263d) {
+      console.error(`applyUserPenalty[${v_9b064f}] failed:`, v_49263d);
+      alert(`${v_2869c1} 실행에 실패했어요.`);
+    } finally {
+      v_4c9ae6(false);
+    }
+  };
+
+  const v_5ea5c6 = async (v_6e0fd3, v_f2ff36) => {
+    if (!v_207c31) return;
+    if (!window.confirm(`페르소나 "${v_f2ff36}" (id:${v_6e0fd3}) 를 삭제할까요?\n해당 유저의 다른 페르소나엔 영향 없습니다.`)) return;
+    v_4c9ae6(true);
+    try {
+      await v_05a921.deleteClone(v_6e0fd3, "관리자 삭제 (신고 처리)");
+      alert("페르소나 삭제 완료");
+      const v_3871e2 = await v_05a921.getUserDetail(v_207c31.targetId);
+      v_c17f56(v_3871e2);
+      v_f6f5de();
+    } catch (v_49263d) {
+      console.error("deleteClone failed:", v_49263d);
+      alert("페르소나 삭제에 실패했어요.");
+    } finally {
+      v_4c9ae6(false);
+    }
+  };
+
   return (
     <div>
       <header style={v_d81136.header}>
@@ -335,7 +391,7 @@ export function v_f65f90() {
                     disabled={v_a41171}
                     style={{ ...v_d81136.actionBtn, ...v_d81136.warnBtn }}
                   >
-                    경고 주기 (비활성화 진행)
+                    경고 주기 (3회째 자동 정지)
                   </button>
                   <button
                     onClick={v_e1f1e1}
@@ -343,6 +399,80 @@ export function v_f65f90() {
                     style={{ ...v_d81136.actionBtn, ...v_d81136.dismissBtn }}
                   >
                     그냥 처리 (신고 기각)
+                  </button>
+                </div>
+
+                {}
+                <div style={v_d81136.penaltyGroupTitle}>페르소나 제재</div>
+                <div style={v_d81136.penaltyRow}>
+                  <button
+                    onClick={() =>
+                      v_4f6fa9(
+                        "clone_deactivate",
+                        "페르소나 전체 비활성화",
+                        "이 유저의 모든 페르소나를 비활성화(hide)합니다. 관리자가 재활성화 전까지 유지.",
+                      )
+                    }
+                    disabled={v_a41171}
+                    style={{ ...v_d81136.penaltyBtn, ...v_d81136.penaltyBtnAmber }}
+                  >
+                    페르소나 전체 비활성화
+                  </button>
+                  <button
+                    onClick={() =>
+                      v_4f6fa9(
+                        "clone_delete",
+                        "페르소나 전체 삭제",
+                        "이 유저의 모든 페르소나를 삭제합니다. (복구 불가에 가까움)",
+                      )
+                    }
+                    disabled={v_a41171}
+                    style={{ ...v_d81136.penaltyBtn, ...v_d81136.penaltyBtnRed }}
+                  >
+                    페르소나 전체 삭제
+                  </button>
+                  <button
+                    onClick={() =>
+                      v_4f6fa9(
+                        "clone_create_ban",
+                        "페르소나 생성 N일 금지",
+                        "기존 페르소나는 유지, 신규 생성만 N일 차단합니다.",
+                      )
+                    }
+                    disabled={v_a41171}
+                    style={{ ...v_d81136.penaltyBtn, ...v_d81136.penaltyBtnAmber }}
+                  >
+                    페르소나 생성 금지 (N일)
+                  </button>
+                </div>
+
+                <div style={v_d81136.penaltyGroupTitle}>계정 제재</div>
+                <div style={v_d81136.penaltyRow}>
+                  <button
+                    onClick={() =>
+                      v_4f6fa9(
+                        "account_ban",
+                        "계정 비활성화 (N일)",
+                        "계정 접근 자체를 N일 차단합니다. (로그인 불가)",
+                      )
+                    }
+                    disabled={v_a41171}
+                    style={{ ...v_d81136.penaltyBtn, ...v_d81136.penaltyBtnRed }}
+                  >
+                    계정 비활성화 (N일)
+                  </button>
+                  <button
+                    onClick={() =>
+                      v_4f6fa9(
+                        "account_withdraw",
+                        "계정 강제 탈퇴",
+                        "해당 계정을 즉시 탈퇴 처리합니다. (soft-delete · 페르소나도 함께 삭제 · 관리자 복구 안 하면 사실상 영구)",
+                      )
+                    }
+                    disabled={v_a41171}
+                    style={{ ...v_d81136.penaltyBtn, ...v_d81136.penaltyBtnDark }}
+                  >
+                    계정 강제 탈퇴
                   </button>
                 </div>
 
@@ -389,13 +519,25 @@ export function v_f65f90() {
                     <div style={v_d81136.sectionEmpty}>없음</div>
                   ) : (
                     v_3cfdfc.clones.map((v_966588) => (
-                      <div key={v_966588.id} style={v_d81136.listItem}>
-                        <div style={v_d81136.listMain}>
-                          {v_966588.name} <span style={v_d81136.listSub}>@{v_966588.username}</span>
-                          {v_966588.deletionState !== "active" && (
-                            <span style={v_d81136.deletedBadge}>삭제됨</span>
-                          )}
+                      <div key={v_966588.id} style={v_d81136.cloneRow}>
+                        <div style={{ flex: 1 }}>
+                          <div style={v_d81136.listMain}>
+                            {v_966588.name} <span style={v_d81136.listSub}>@{v_966588.username}</span>
+                            {v_966588.deletionState !== "active" && (
+                              <span style={v_d81136.deletedBadge}>삭제됨</span>
+                            )}
+                          </div>
+                          <div style={v_d81136.listSub}>id: {v_966588.id}</div>
                         </div>
+                        {v_966588.deletionState === "active" && (
+                          <button
+                            onClick={() => v_5ea5c6(v_966588.id, v_966588.name)}
+                            disabled={v_a41171}
+                            style={v_d81136.miniDeleteBtn}
+                          >
+                            삭제
+                          </button>
+                        )}
                       </div>
                     ))
                   )}
@@ -580,6 +722,46 @@ const styles: Record<string, v_bb76a8> = {
   },
   warnHint: { fontSize: 11, color: "#94a3b8", marginTop: 10, lineHeight: 1.5 },
   actionRow: { display: "flex", gap: 8, marginBottom: 16 },
+
+  penaltyGroupTitle: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: "#64748b",
+    marginTop: 4,
+    marginBottom: 6,
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+  },
+  penaltyRow: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 },
+  penaltyBtn: {
+    padding: "8px 12px",
+    border: "1px solid",
+    borderRadius: 6,
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: "pointer",
+    background: "#fff",
+  },
+  penaltyBtnAmber: { color: "#b45309", borderColor: "#fcd34d", backgroundColor: "#fffbeb" },
+  penaltyBtnRed: { color: "#b91c1c", borderColor: "#fca5a5", backgroundColor: "#fef2f2" },
+  penaltyBtnDark: { color: "#fff", borderColor: "#0f172a", backgroundColor: "#0f172a" },
+  cloneRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    padding: "8px 0",
+    borderBottom: "1px solid #f1f5f9",
+  },
+  miniDeleteBtn: {
+    padding: "6px 12px",
+    border: "1px solid #fca5a5",
+    borderRadius: 6,
+    fontSize: 11,
+    fontWeight: 700,
+    color: "#b91c1c",
+    backgroundColor: "#fef2f2",
+    cursor: "pointer",
+  },
   actionBtn: {
     flex: 1,
     padding: "10px 12px",

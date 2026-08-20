@@ -355,6 +355,15 @@ export const v_05a921 = {
       { method: "POST", body: JSON.stringify({ message: v_a8cd21 ?? null }) },
     ),
 
+  applyUserPenalty: (
+    v_389afb,
+    v_4d33b2,
+  ) =>
+    v_576f5a<{ ok: true; message: string }>(
+      `/oth-path${v_389afb}/apply-penalty`,
+      { method: "POST", body: JSON.stringify(v_4d33b2) },
+    ),
+
   getVoicePresets: () =>
     v_576f5a<{
       voices: Array<{

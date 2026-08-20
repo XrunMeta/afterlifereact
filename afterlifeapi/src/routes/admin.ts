@@ -1652,7 +1652,7 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_4d33b2 = await v_3f4e2e.req
     .json<{ action?: string; suspendDays?: number | null; reason?: string }>()
     .catch(() => ({}) as { action?: string; suspendDays?: number | null; reason?: string });
-  const v_da0605 = ["warn", "clone_deactivate", "clone_delete", "clone_create_ban", "account_ban"];
+  const v_da0605 = ["warn", "clone_deactivate", "clone_delete", "clone_create_ban", "account_ban", "account_withdraw"];
   const v_9b064f = v_4d33b2.action === "suspend" ? "clone_create_ban" : v_4d33b2.action ?? "";
   if (!v_da0605.includes(v_9b064f)) throw new v_3ebe58("VALIDATION_FAILED", "Invalid action.");
 
@@ -1690,6 +1690,12 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
     case "clone_delete":
       await v_3f4e2e.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, deleted_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'active'`).bind(v_389afb).run();
       v_c8eee3 = "보유 페르소나가 삭제되었습니다.";
+      break;
+    case "account_withdraw":
+
+      await v_3f4e2e.env.DB.prepare(`UPDATE users SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, deleted_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(v_389afb).run();
+      await v_3f4e2e.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, deleted_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'active'`).bind(v_389afb).run();
+      v_c8eee3 = "관리자에 의해 계정이 강제 탈퇴 처리되었습니다.";
       break;
   }
 
