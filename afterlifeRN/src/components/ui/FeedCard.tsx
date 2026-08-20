@@ -101,6 +101,10 @@ const FeedCard: React.FC<FeedCardProps> = ({
   };
 
   const isSmallScreen = cardHeight < 640;
+
+  const [bottomContentH, setBottomContentH] = React.useState(0);
+
+  const [profileRowH, setProfileRowH] = React.useState(0);
   return (
     <View style={[styles.container, { height: cardHeight }]}>
       {}
@@ -199,7 +203,16 @@ const FeedCard: React.FC<FeedCardProps> = ({
       {isActive && (
         <>
           {}
-          <View style={[styles.rightActions, isSmallScreen && styles.rightActionsShift]}>
+          {
+}
+          <View
+            style={[
+              styles.rightActions,
+              bottomContentH > 0 && {
+                bottom: (isOwn ? bottomContentH - profileRowH : bottomContentH) + 16,
+              },
+            ]}
+          >
             {}
             <TouchableOpacity onPress={onToggleLike} style={styles.actionBtn} activeOpacity={0.7}>
               <Ionicons
@@ -227,8 +240,14 @@ const FeedCard: React.FC<FeedCardProps> = ({
             {}
           </View>
 
-          <View style={styles.bottomContent}>
-            <View style={styles.profileRow}>
+          <View
+            style={styles.bottomContent}
+            onLayout={(e) => setBottomContentH(e.nativeEvent.layout.height)}
+          >
+            <View
+              style={styles.profileRow}
+              onLayout={(e) => setProfileRowH(e.nativeEvent.layout.height)}
+            >
               <View style={styles.profileInfo}>
                 <View style={styles.authorRow}>
                   <Text style={styles.authorName}>{item.author}</Text>
@@ -416,14 +435,19 @@ const styles = StyleSheet.create({
 
   rightActions: {
     position: "absolute",
-    right: 12,
-    bottom: 200,
+
+    right: 20,
+    bottom: 130,
     alignItems: "center",
     gap: 20,
   },
 
   rightActionsShift: {
-    bottom: 260,
+    bottom: 190,
+  },
+
+  rightActionsWithFollow: {
+    bottom: 165,
   },
 
   ownerHeader: {

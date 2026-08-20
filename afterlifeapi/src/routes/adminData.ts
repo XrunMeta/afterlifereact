@@ -414,11 +414,19 @@ adminData.get("/oth-path", async (c) => {
   const limit = Math.max(1, Math.min(500, Number.isFinite(limitRaw) ? limitRaw : 100));
   const status = url.searchParams.get("status");
 
+  const reason = url.searchParams.get("reason");
+
   const where: string[] = ["1=1"];
   const binds: unknown[] = [];
   if (status && ["open", "reviewed", "dismissed"].includes(status)) {
     where.push("r.status = ?");
     binds.push(status);
+  }
+  if (reason === "__empty__") {
+    where.push("(r.reason IS NULL OR r.reason = '')");
+  } else if (reason) {
+    where.push("r.reason = ?");
+    binds.push(reason);
   }
 
   const rows = (
@@ -472,12 +480,19 @@ adminData.get("/oth-path", async (c) => {
   const limitRaw = Number(url.searchParams.get("limit") ?? 100);
   const limit = Math.max(1, Math.min(500, Number.isFinite(limitRaw) ? limitRaw : 100));
   const status = url.searchParams.get("status");
+  const reason = url.searchParams.get("reason");
 
   const where: string[] = ["1=1"];
   const binds: unknown[] = [];
   if (status && ["open", "reviewed", "dismissed", "actioned"].includes(status)) {
     where.push("r.status = ?");
     binds.push(status);
+  }
+  if (reason === "__empty__") {
+    where.push("(r.reason IS NULL OR r.reason = '')");
+  } else if (reason) {
+    where.push("r.reason = ?");
+    binds.push(reason);
   }
 
   const rows = (
@@ -692,12 +707,29 @@ adminData.put("/report-penalty-rules/:threshold", async (c) => {
   const title = typeof body.title === "string" ? body.title.trim().slice(0, 100) || null : null;
   const message = typeof body.message === "string" ? body.message.trim().slice(0, 500) || null : null;
 
-  const VALID_ACTIONS = ["warn", "clone_deactivate", "clone_delete", "clone_create_ban", "account_ban"];
+  const VALID_ACTIONS = [
+    "warn",
+    "clone_deactivate",
+    "clone_delete",
+    "clone_create_ban",
+    "account_ban",
+    "account_withdraw",
+    "comment_ban",
+    "interaction_ban",
+    "force_logout",
+    "notify_only",
+
+    "device_ban",
+  ];
 
   const rawAction = body.action === "suspend" ? "clone_create_ban" : (body.action ?? "");
   const action = VALID_ACTIONS.includes(rawAction) ? rawAction : "warn";
 
-  const needsDays = action === "clone_create_ban" || action === "account_ban";
+  const needsDays =
+    action === "clone_create_ban" ||
+    action === "account_ban" ||
+    action === "comment_ban" ||
+    action === "interaction_ban";
   const suspendDays =
     needsDays && Number.isInteger(body.suspendDays) && (body.suspendDays as number) > 0
       ? (body.suspendDays as number)
@@ -751,4 +783,104 @@ adminData.post("/oth-path", async (c) => {
     .bind(body.message ?? null, reportId)
     .run();
   return c.json({ ok: true, updated: res.meta?.changes ?? 0 });
+});
+
+adminData.get("/face-recognition/persons", async (c) => {
+  const url = new URL(c.req.url);
+  const limitRaw = Number(url.searchParams.get("limit") ?? 200);
+  const limit = Math.max(1, Math.min(500, Number.isFinite(limitRaw) ? limitRaw : 200));
+  const userIdFilter = url.searchParams.get("userId");
+  const cloneIdFilter = url.searchParams.get("cloneId");
+
+  const where: string[] = ["1=1"];
+  const binds: unknown[] = [];
+  if (userIdFilter && /^\d+$/.test(userIdFilter)) {
+    where.push("p.user_id = ?");
+    binds.push(Number(userIdFilter));
+  }
+  if (cloneIdFilter && /^\d+$/.test(cloneIdFilter)) {
+    where.push("p.clone_id = ?");
+    binds.push(Number(cloneIdFilter));
+  }
+
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT p.id AS personId,
+                p.user_id AS userId,
+                p.clone_id AS cloneId,
+                p.display_name AS displayName,
+                p.consent_state AS consentState,
+                p.created_at AS createdAt,
+                u.name AS userName,
+                u.email AS userEmail,
+                c.name AS cloneName,
+                c.username AS cloneUsername,
+                (SELECT COUNT(*) FROM clone_person_faces cpf WHERE cpf.person_id = p.id) AS cloneFaceCount,
+                (SELECT COUNT(*) FROM face_embeddings fe WHERE fe.person_id = p.id) AS legacyFaceCount,
+                (SELECT MAX(cpf.created_at) FROM clone_person_faces cpf WHERE cpf.person_id = p.id) AS lastEnrollAt,
+                (SELECT COUNT(*) FROM clone_person_faces cpf WHERE cpf.person_id = p.id AND cpf.source = 'enroll') AS srcEnroll,
+                (SELECT COUNT(*) FROM clone_person_faces cpf WHERE cpf.person_id = p.id AND cpf.source = 'call') AS srcCall,
+                (SELECT COUNT(*) FROM clone_person_faces cpf WHERE cpf.person_id = p.id AND cpf.source = 'self') AS srcSelf
+           FROM persons p
+           JOIN users u ON u.id = p.user_id
+           LEFT JOIN clones c ON c.id = p.clone_id
+          WHERE ${where.join(" AND ")}
+          ORDER BY lastEnrollAt DESC NULLS LAST, p.id DESC
+          LIMIT ?`,
+      )
+      .bind(...binds, limit)
+      .all<{
+        personId: number;
+        userId: number;
+        cloneId: number | null;
+        displayName: string | null;
+        consentState: string;
+        createdAt: number;
+        userName: string | null;
+        userEmail: string;
+        cloneName: string | null;
+        cloneUsername: string | null;
+        cloneFaceCount: number;
+        legacyFaceCount: number;
+        lastEnrollAt: number | null;
+        srcEnroll: number;
+        srcCall: number;
+        srcSelf: number;
+      }>()
+  ).results;
+
+  return c.json({ items: rows ?? [] });
+});
+
+adminData.get("/face-recognition/persons/:id/faces", async (c) => {
+  const personId = Number(c.req.param("id"));
+  if (!Number.isInteger(personId) || personId <= 0) return c.json({ error: "invalid_id" }, 400);
+
+  const cloneRows = (
+    await c.env.DB
+      .prepare(
+        `SELECT id, 'clone_person_faces' AS tbl, clone_id AS cloneId, vectorize_id AS vectorizeId,
+                model, dim, source, created_at AS createdAt
+           FROM clone_person_faces WHERE person_id = ?
+          ORDER BY created_at DESC LIMIT 200`,
+      )
+      .bind(personId)
+      .all()
+  ).results ?? [];
+  const legacyRows = (
+    await c.env.DB
+      .prepare(
+        `SELECT id, 'face_embeddings' AS tbl, NULL AS cloneId, vectorize_id AS vectorizeId,
+                model, dim, source, created_at AS createdAt
+           FROM face_embeddings WHERE person_id = ?
+          ORDER BY created_at DESC LIMIT 200`,
+      )
+      .bind(personId)
+      .all()
+  ).results ?? [];
+
+  const merged = [...cloneRows, ...legacyRows] as Array<Record<string, unknown> & { createdAt: number }>;
+  merged.sort((a, b) => Number(b.createdAt) - Number(a.createdAt));
+  return c.json({ items: merged });
 });

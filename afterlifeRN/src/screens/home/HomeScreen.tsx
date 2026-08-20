@@ -1,5 +1,6 @@
 import { showAlert } from "../../stores/dialogStore";
 import ActionSheet, { type ActionSheetAction } from "../../components/ui/ActionSheet";
+import BlockConfirmSheet from "../../components/ui/BlockConfirmSheet";
 import HashtagText from "../../components/common/HashtagText";
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
@@ -35,6 +36,7 @@ import IntimacyEventsSheet from "../../components/clone/IntimacyEventsSheet";
 import GiftReceiptsSheet from "../../components/clone/GiftReceiptsSheet";
 import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
 import ReportReasonModal from "../../components/common/ReportReasonModal";
+import ReportReasonSheet from "../../components/ui/ReportReasonSheet";
 
 import VisibilityPickerModal from "../clones/components/VisibilityPickerModal";
 import FriendPickerModal from "../clones/components/FriendPickerModal";
@@ -366,7 +368,13 @@ export default function HomeScreen() {
   };
 
   const [commentActionsFor, setCommentActionsFor] = useState<FeedComment | null>(null);
-  const openCommentActionSheet = (c: FeedComment) => setCommentActionsFor(c);
+  const [commentActionsAnchorY, setCommentActionsAnchorY] = useState<number | undefined>(undefined);
+  const openCommentActionSheet = (c: FeedComment, anchorY?: number) => {
+    setCommentActionsAnchorY(anchorY);
+    setCommentActionsFor(c);
+  };
+
+  const [blockConfirmFor, setBlockConfirmFor] = useState<FeedComment | null>(null);
   const commentActions = React.useMemo<ActionSheetAction[]>(() => {
     if (!commentActionsFor) return [];
     const c = commentActionsFor;
@@ -391,40 +399,12 @@ export default function HomeScreen() {
     const isOthers = !isMine;
     const authorName = c.user.name ?? c.user.email ?? "";
     const list: ActionSheetAction[] = [];
-    if (canDelete) list.push({ label: "삭제", icon: "trash-2", style: "destructive", onPress: () => deleteComment(c.id) });
+
+    if (canDelete) list.push({ label: "삭제", icon: "trash-2", onPress: () => deleteComment(c.id) });
     if (isOthers) list.push({
-      label: "차단하기", icon: "user-x", onPress: () => {
-        showAlert(
-          `${authorName} 님을 차단하시겠습니까?`,
-          `차단하시면 다음 사항이 적용됩니다.\n\n• 해당 사용자의 모든 댓글이 회원님에게 표시되지 않습니다.\n• 차단된 사용자는 회원님의 게시물에 댓글을 작성할 수 없습니다.\n• 서로 설정되어 있던 팔로우 상태가 자동으로 해제됩니다.\n• 차단 해제는 [마이페이지 > 차단 사용자 관리] 에서 언제든지 가능합니다.`,
-          [
-          { text: "취소", style: "cancel" },
-          { text: "차단", style: "destructive", onPress: async () => {
-            if (!c.userId || !accessToken) return;
-            try {
-
-              const { blockUser } = await import("../../api/users");
-              await blockUser(accessToken, c.userId);
-
-              setComments((prev) => {
-                const next = prev.filter((cc) => cc.userId !== c.userId);
-                if (commentFeedId != null) bumpCommentsCount(commentFeedId, next.length);
-                return next;
-              });
-              setExpandedReplies((prev) => {
-                const nextExpanded = { ...prev };
-                for (const pid of Object.keys(nextExpanded)) {
-                  nextExpanded[Number(pid)] = nextExpanded[Number(pid)].filter((r) => r.userId !== c.userId);
-                }
-                return nextExpanded;
-              });
-              setToastMessage("차단됐어요");
-            } catch (err) { console.warn("[blockUser] failed:", err); setToastMessage("차단 실패"); }
-          }},
-        ], { messageAlign: "left" });
-      },
+      label: "차단", icon: "slash", onPress: () => setBlockConfirmFor(c),
     });
-    if (isOthers) list.push({ label: "신고하기", icon: "flag", onPress: () => setReportCommentTarget({ commentId: c.id, author: authorName }) });
+    if (isOthers) list.push({ label: "신고", icon: "alert-circle", style: "destructive", onPress: () => setReportCommentTarget({ commentId: c.id, author: authorName }) });
     return list;
   }, [commentActionsFor, commentFeedId, myUserId, accessToken, detailCloneStats]);
 
@@ -774,7 +754,7 @@ export default function HomeScreen() {
                   <TouchableOpacity
                     activeOpacity={1}
                     style={styles.commentRow}
-                    onLongPress={_isCloneOwnerForComments ? () => openCommentActionSheet(c) : undefined}
+                    onLongPress={_isCloneOwnerForComments ? (e) => openCommentActionSheet(c, e.nativeEvent.pageY) : undefined}
                     delayLongPress={400}
                   >
                     {}
@@ -1170,16 +1150,44 @@ export default function HomeScreen() {
       {}
       <ActionSheet
         visible={!!commentActionsFor}
-        title="댓글"
-        subtitle={commentActionsFor ? (commentActionsFor.user.name ?? commentActionsFor.user.email ?? "") : undefined}
         actions={commentActions}
-        onClose={() => setCommentActionsFor(null)}
+        anchorY={commentActionsAnchorY}
+        onClose={() => { setCommentActionsFor(null); setCommentActionsAnchorY(undefined); }}
       />
 
       {}
-      <ReportReasonModal
+      <BlockConfirmSheet
+        visible={!!blockConfirmFor}
+        userName={blockConfirmFor?.user.name ?? blockConfirmFor?.user.email ?? ""}
+        userAvatarUrl={blockConfirmFor?.user.avatarUrl}
+        onCancel={() => setBlockConfirmFor(null)}
+        onConfirm={async () => {
+          const target = blockConfirmFor;
+          setBlockConfirmFor(null);
+          if (!target?.userId || !accessToken) return;
+          try {
+            const { blockUser } = await import("../../api/users");
+            await blockUser(accessToken, target.userId);
+            setComments((prev) => {
+              const next = prev.filter((cc) => cc.userId !== target.userId);
+              if (commentFeedId != null) bumpCommentsCount(commentFeedId, next.length);
+              return next;
+            });
+            setExpandedReplies((prev) => {
+              const nextExpanded = { ...prev };
+              for (const pid of Object.keys(nextExpanded)) {
+                nextExpanded[Number(pid)] = nextExpanded[Number(pid)].filter((r) => r.userId !== target.userId);
+              }
+              return nextExpanded;
+            });
+            setToastMessage("차단되었습니다");
+          } catch (err) { console.warn("[blockUser] failed:", err); setToastMessage("차단에 실패했습니다"); }
+        }}
+      />
+
+      {}
+      <ReportReasonSheet
         visible={!!reportCommentTarget}
-        targetName={reportCommentTarget?.author}
         targetKind="comment"
         onCancel={() => setReportCommentTarget(null)}
         onConfirm={async (reason) => {
@@ -1210,7 +1218,7 @@ export default function HomeScreen() {
             });
             setToastMessage(
               t("home.toasts.commentReported", {
-                defaultValue: "댓글이 신고됐어요",
+                defaultValue: "신고되었습니다",
               }),
             );
           } catch (err) {
@@ -1261,11 +1269,14 @@ export default function HomeScreen() {
         }}
       />
 
-      {toastMessage && (
-        <View style={styles.toast}>
-          <Text style={styles.toastText}>{toastMessage}</Text>
+      {}
+      <Modal visible={!!toastMessage} transparent animationType="fade" statusBarTranslucent>
+        <View style={styles.toastModalWrap} pointerEvents="none">
+          <View style={styles.toast}>
+            <Text style={styles.toastText}>{toastMessage}</Text>
+          </View>
         </View>
-      )}
+      </Modal>
 
       {}
       <VisibilityPickerModal
@@ -1457,7 +1468,9 @@ const styles = StyleSheet.create({
   moreTitle: { fontSize: 13, color: COLORS.zinc500, textAlign: "center", paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: COLORS.zinc100 },
   moreItem: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: COLORS.zinc100 },
   moreItemText: { fontSize: 15, fontWeight: "500", color: COLORS.zinc900 },
-  toast: { position: "absolute", bottom: 80, alignSelf: "center", paddingHorizontal: 20, paddingVertical: 10, backgroundColor: "rgba(0,0,0,0.85)", borderRadius: RADIUS.full },
+
+  toastModalWrap: { flex: 1, justifyContent: "flex-end", alignItems: "center", paddingBottom: 80 },
+  toast: { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: "rgba(0,0,0,0.85)", borderRadius: RADIUS.full },
   toastText: { color: COLORS.white, fontSize: 14 },
 
   emptyWrap: {

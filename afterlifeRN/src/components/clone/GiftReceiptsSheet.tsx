@@ -141,6 +141,8 @@ const s = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingTop: 12,
     paddingHorizontal: 20,
+
+    height: "50%",
     maxHeight: "80%",
   },
   handle: {

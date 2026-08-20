@@ -8,7 +8,9 @@ import {
   Pressable,
   StyleSheet,
   useWindowDimensions,
+  Platform,
 } from "react-native";
+import { BlurView } from "expo-blur";
 import { Feather } from "@expo/vector-icons";
 import { COLORS } from "../constants";
 
@@ -29,124 +31,147 @@ interface Props {
   subtitle?: string;
   actions: ActionSheetAction[];
   onClose: () => void;
+
+  anchorY?: number;
 }
 
-export default function ActionSheet({ visible, title, subtitle, actions, onClose }: Props) {
-  const { height, width } = useWindowDimensions();
+export default function ActionSheet({ visible, actions, onClose, anchorY }: Props) {
+
+  const { height: screenH } = useWindowDimensions();
+  const sheetEstimatedH = Math.min(actions.length * 48 + 20, 260); 
+  let anchorTop: number | undefined;
+  if (anchorY != null) {
+    const spaceBelow = screenH - anchorY;
+    if (spaceBelow >= sheetEstimatedH + 40) anchorTop = anchorY + 8; 
+    else anchorTop = Math.max(60, anchorY - sheetEstimatedH - 8); 
+  }
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={[styles.sheet, { maxHeight: height * 0.7, maxWidth: Math.min(width - 40, 400) }]} onPress={(e) => e.stopPropagation?.()}>
-          {title || subtitle ? (
-            <View style={styles.header}>
-              {title ? <Text style={styles.title}>{title}</Text> : null}
-              {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-            </View>
-          ) : null}
-          {actions.map((a, i) => (
-            <React.Fragment key={`${a.label}-${i}`}>
-              {i > 0 ? <View style={styles.divider} /> : null}
-              <Pressable
-                style={({ pressed }) => [styles.actionRow, pressed && styles.actionRowPressed]}
-                onPress={() => { onClose(); setTimeout(a.onPress, 100); }}
-                android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-              >
-                <Text style={[styles.actionLabel, a.style === "destructive" && styles.actionLabelDestructive]}>
-                  {a.label}
-                </Text>
-                {a.icon ? (
-                  <Feather
-                    name={a.icon}
-                    size={20}
-                    color={a.style === "destructive" ? "#ef4444" : COLORS.zinc600}
-                  />
-                ) : null}
-              </Pressable>
-            </React.Fragment>
-          ))}
-          {}
-          <View style={styles.cancelGroup}>
-            <Pressable
-              style={({ pressed }) => [styles.cancelRow, pressed && styles.actionRowPressed]}
-              onPress={onClose}
-              android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-            >
-              <Text style={styles.cancelLabel}>취소</Text>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Pressable>
+      {}
+      <View style={StyleSheet.absoluteFillObject}>
+        {}
+        <Pressable style={styles.backdrop} onPress={onClose} />
+        {}
+        <View
+          style={[
+            styles.anchorLayer,
+            anchorTop != null
+              ? { justifyContent: "flex-start", alignItems: "flex-start", paddingTop: anchorTop, paddingLeft: 20 }
+              : { justifyContent: "center", alignItems: "center" },
+          ]}
+          pointerEvents="box-none"
+        >
+          <Pressable style={styles.sheetWrap} onPress={(e) => e.stopPropagation?.()}>
+            {
+
+}
+            {Platform.OS === "ios" ? (
+              <BlurView intensity={60} tint="light" style={styles.blur}>
+                {actions.map((a, i) => (
+                  <React.Fragment key={`${a.label}-${i}`}>
+                    {i > 0 ? <View style={styles.divider} /> : null}
+                    <Pressable
+                      style={({ pressed }) => [styles.actionRow, pressed && styles.actionRowPressed]}
+                      onPress={() => { onClose(); setTimeout(a.onPress, 100); }}
+                      android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+                    >
+                      {a.icon ? (
+                        <Feather name={a.icon} size={22} color={a.style === "destructive" ? "#ef4444" : COLORS.zinc800} />
+                      ) : (
+                        <View style={{ width: 22 }} />
+                      )}
+                      <Text style={[styles.actionLabel, a.style === "destructive" && styles.actionLabelDestructive]}>{a.label}</Text>
+                    </Pressable>
+                  </React.Fragment>
+                ))}
+              </BlurView>
+            ) : (
+              <View style={styles.androidSolid}>
+                {actions.map((a, i) => (
+                <React.Fragment key={`${a.label}-${i}`}>
+                  {i > 0 ? <View style={styles.divider} /> : null}
+                  <Pressable
+                    style={({ pressed }) => [styles.actionRow, pressed && styles.actionRowPressed]}
+                    onPress={() => { onClose(); setTimeout(a.onPress, 100); }}
+                    android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+                  >
+                    {a.icon ? (
+                      <Feather
+                        name={a.icon}
+                        size={22}
+                        color={a.style === "destructive" ? "#ef4444" : COLORS.zinc800}
+                      />
+                    ) : (
+                      <View style={{ width: 22 }} />
+                    )}
+                    <Text style={[styles.actionLabel, a.style === "destructive" && styles.actionLabelDestructive]}>
+                      {a.label}
+                    </Text>
+                  </Pressable>
+                  </React.Fragment>
+                ))}
+              </View>
+            )}
+          </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+
   backdrop: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
 
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
+    backgroundColor: "rgba(0,0,0,0.1)",
   },
-  sheet: {
-    width: "100%",
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    paddingBottom: 12,
+
+  anchorLayer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  sheetWrap: {
+    width: 240,
+    borderRadius: 22,
     overflow: "hidden",
-
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 12,
+    backgroundColor: "transparent",
   },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.zinc100,
+  blur: {
+    width: "100%",
   },
-  title: { fontSize: 15, fontWeight: "600", color: COLORS.zinc900 },
-  subtitle: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
+
+  androidSolid: {
+    width: "100%",
+    backgroundColor: "#fafafa",
+  },
   actionRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    gap: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   actionRowPressed: {
-    backgroundColor: COLORS.zinc100,
+    backgroundColor: "rgba(0,0,0,0.05)",
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: COLORS.zinc100,
-    marginHorizontal: 20,
+    backgroundColor: "rgba(0,0,0,0.08)",
+    marginHorizontal: 14,
   },
   actionLabel: {
-    fontSize: 16,
-    color: COLORS.zinc900,
+    fontSize: 15,
+    color: "#000000",
     fontWeight: "500",
   },
   actionLabelDestructive: {
-    color: "#ef4444",
-    fontWeight: "600",
-  },
-  cancelGroup: {
-    marginTop: 8,
-    borderTopWidth: 6,
-    borderTopColor: COLORS.zinc50 ?? "#f4f4f5",
-  },
-  cancelRow: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  cancelLabel: {
-    fontSize: 16,
-    color: COLORS.zinc900,
+    color: "#ed4956",
     fontWeight: "600",
   },
 });

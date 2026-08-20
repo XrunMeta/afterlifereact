@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { AppEnv } from "../lib/env";
 import { requireAuth } from "../middleware/auth";
 import { APIError } from "../lib/errors";
+import { ensureNotInteractionBanned } from "../lib/penaltyGate";
 import { parseJson, z } from "../lib/validate";
 import { openAny, seal, getKekProvider, extractDekId, shredV3 } from "../lib/ale";
 import { requestKekProvider } from "../lib/kekProvider";
@@ -1205,6 +1206,8 @@ users.post("/:id/follow", requireAuth, async (c) => {
     throw new APIError("VALIDATION_FAILED", "Cannot follow yourself.");
   }
 
+  await ensureNotInteractionBanned(c.env.DB, userId);
+
   const exists = await c.env.DB
     .prepare(`SELECT id FROM users WHERE id = ? AND deleted_at IS NULL`)
     .bind(targetId)
@@ -1256,6 +1259,7 @@ users.delete("/:id/follow", requireAuth, async (c) => {
 
 users.get("/:id/followers", requireAuth, async (c) => {
   const targetId = parseUserIdParam(c);
+  const viewerId = c.get("userId")!;
   const url = new URL(c.req.url);
   const limitRaw = Number(url.searchParams.get("limit") ?? 50);
   const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 50));
@@ -1273,10 +1277,11 @@ users.get("/:id/followers", requireAuth, async (c) => {
           WHERE uf.followee_id = ?
             AND u.deletion_state = 'active'
             AND u.deleted_at IS NULL
+            AND uf.follower_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
           ORDER BY uf.id DESC
           LIMIT ?`,
       )
-      .bind(targetId, limit)
+      .bind(targetId, viewerId, limit)
       .all<{
         followId: number;
         userId: number;
@@ -1300,6 +1305,7 @@ users.get("/:id/followers", requireAuth, async (c) => {
 
 users.get("/:id/following", requireAuth, async (c) => {
   const targetId = parseUserIdParam(c);
+  const viewerId = c.get("userId")!;
   const url = new URL(c.req.url);
   const limitRaw = Number(url.searchParams.get("limit") ?? 50);
   const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 50));
@@ -1317,10 +1323,11 @@ users.get("/:id/following", requireAuth, async (c) => {
           WHERE uf.follower_id = ?
             AND u.deletion_state = 'active'
             AND u.deleted_at IS NULL
+            AND uf.followee_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
           ORDER BY uf.id DESC
           LIMIT ?`,
       )
-      .bind(targetId, limit)
+      .bind(targetId, viewerId, limit)
       .all<{
         followId: number;
         userId: number;

@@ -38,6 +38,9 @@ import { DevFloatingBall } from "./src/components/dev/DevFloatingBall";
 import { hydrateT208Crops } from "./src/lib/t208MeasureStore";
 import { useDevOverlayStore } from "./src/stores/devOverlayStore";
 
+import { registerCallForegroundService } from "./src/lib/callForegroundService";
+registerCallForegroundService();
+
 installGlobalErrorHandlers();
 
 setErrorReportingSink(serverSink);

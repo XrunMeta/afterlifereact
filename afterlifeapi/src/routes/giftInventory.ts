@@ -252,7 +252,7 @@ giftInventory.post(
 
       await c.env.DB
         .prepare(
-          `UPDATE users SET credits_topup = credits_topup + ?, updated_at = CURRENT_TIMESTAMP
+          `UPDATE users SET credits_gift = credits_gift + ?, updated_at = CURRENT_TIMESTAMP
              WHERE id = ? AND deleted_at IS NULL`,
         )
         .bind(xrunTotal, userId)

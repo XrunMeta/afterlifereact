@@ -20,9 +20,13 @@ export interface RememberMeState {
   lastNotifyUnknownMs: number | null;
 
   pendingSwitch: { personId: number; displayName: string | null } | null;
+
+  recentlySeen: Record<number, number>;
 }
 
-export const GRACE_HOLD_MS = 30_000;
+export const GRACE_HOLD_MS = 60_000;
+
+export const RECENT_SEEN_MS = 90_000;
 
 export const ENROLL_GRACE_MS = 60_000;
 
@@ -61,6 +65,8 @@ export type RememberMeAction =
 
   | { type: "END_CALL" }
 
+  | { type: "INTERRUPT_TTS" }
+
   | {
       type: "NOTIFY_CONFIRMED";
       personId: number;
@@ -83,6 +89,7 @@ export function initRememberMeState(): RememberMeState {
     enrollGraceUntilMs: null,
     lastNotifyUnknownMs: null,
     pendingSwitch: null,
+    recentlySeen: {},
   };
 }
 
@@ -140,16 +147,22 @@ function next(
 
       const same = state.personId === event.personId;
 
+      const updatedRecent = { ...state.recentlySeen, [event.personId]: nowMs };
+
       if (state.mode === "pending") {
+
+        const lastSeenMs = state.recentlySeen[event.personId];
+        const recentlyKnown = lastSeenMs != null && nowMs - lastSeenMs < RECENT_SEEN_MS;
         return {
-          state: enterIdentified(state, event.personId),
+          state: { ...enterIdentified(state, event.personId), recentlySeen: updatedRecent },
           actions: [
             { type: "MIC_ON" },
             {
               type: "NOTIFY_CONFIRMED",
               personId: event.personId,
               displayName: event.displayName,
-              rejoin: true,
+              rejoin: !recentlyKnown, 
+              mentionName: recentlyKnown, 
             },
           ],
         };
@@ -159,7 +172,7 @@ function next(
         if (state.mode === "grace") {
 
           return {
-            state: enterIdentified(state, event.personId),
+            state: { ...enterIdentified(state, event.personId), recentlySeen: updatedRecent },
             actions: [
               {
                 type: "NOTIFY_CONFIRMED",
@@ -171,21 +184,15 @@ function next(
             ],
           };
         }
-        return { state, actions: [] };
+
+        return { state: { ...state, recentlySeen: updatedRecent }, actions: [] };
       }
 
-      if (event.cloneSpeaking) {
-        return {
-          state: {
-            ...state,
-            pendingSwitch: { personId: event.personId, displayName: event.displayName },
-          },
-          actions: [],
-        };
-      }
       return {
-        state: enterIdentified(state, event.personId),
+        state: { ...enterIdentified(state, event.personId), recentlySeen: updatedRecent },
         actions: [
+
+          ...(event.cloneSpeaking ? [{ type: "INTERRUPT_TTS" } as RememberMeAction] : []),
           {
             type: "NOTIFY_CONFIRMED",
             personId: event.personId,

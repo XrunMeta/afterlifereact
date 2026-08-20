@@ -19,7 +19,7 @@ credits.get("/balance", requireAuth, async (c) => {
 
   const u = await db
     .prepare(
-      `SELECT credits, credits_free, credits_sub, credits_topup,
+      `SELECT credits, credits_free, credits_sub, credits_topup, credits_gift,
               free_granted_at, free_decayed_months
          FROM users WHERE id = ? AND deleted_at IS NULL`,
     )
@@ -29,6 +29,8 @@ credits.get("/balance", requireAuth, async (c) => {
       credits_free: number;
       credits_sub: number;
       credits_topup: number;
+
+      credits_gift: number;
       free_granted_at: number | null;
       free_decayed_months: number;
     }>();
@@ -70,6 +72,8 @@ credits.get("/balance", requireAuth, async (c) => {
     freeSec: u.credits_free,
     subSec: u.credits_sub,
     topupSec: u.credits_topup,
+
+    giftSec: u.credits_gift,
 
     freeGrantedAt: u.free_granted_at,   
     freeDecayedMonths: u.free_decayed_months,

@@ -29,6 +29,7 @@ const menu: MenuGroup[] = [
       { path: "/oth-path-reports", label: "Reports (Users)" },
       { path: "/report-rules", label: "신고 누적 조건" },
       { path: "/crashes", label: "크래시 리포트" },
+      { path: "/face-recognition", label: "얼굴 인식 데이터" },
     ],
   },
   {

@@ -21,6 +21,7 @@ import { L0PersonaEditPage } from "./pages/L0PersonaEditPage";
 import { PersonaQuestionsEditPage } from "./pages/PersonaQuestionsEditPage";
 import { VoicePresetsPage } from "./pages/VoicePresetsPage";
 import { CrashReportsPage } from "./pages/CrashReportsPage";
+import { FaceRecognitionPage } from "./pages/FaceRecognitionPage";
 import { VerifyLabPage } from "./pages/VerifyLabPage";
 import ConversationsPage from "./pages/ConversationsPage";
 
@@ -59,6 +60,7 @@ function App() {
         <Route path="/oth-path-lab" element={<ProtectedLayout><VerifyLabPage /></ProtectedLayout>} />
         <Route path="/conversations" element={<ProtectedLayout><ConversationsPage /></ProtectedLayout>} />
         <Route path="/crashes" element={<ProtectedLayout><CrashReportsPage /></ProtectedLayout>} />
+        <Route path="/face-recognition" element={<ProtectedLayout><FaceRecognitionPage /></ProtectedLayout>} />
         <Route
           path="/oth-path"
           element={

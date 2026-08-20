@@ -9,6 +9,8 @@ export interface CreditBalance {
   freeSec: number;
   subSec: number;
   topupSec: number;
+
+  giftSec: number;
   freeGrantedAt: number | null;
   freeDecayedMonths: number;
   subscription: {

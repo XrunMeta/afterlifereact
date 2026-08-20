@@ -91,9 +91,7 @@ export default function ReportReasonModal({
             ]}
             onPress={(e) => e.stopPropagation()}
           >
-            <View style={styles.iconWrap}>
-              <Feather name="flag" size={24} color="#ef4444" />
-            </View>
+            {}
             {}
             <Text style={styles.title}>{
               targetKind === "comment" ? "댓글 신고하기"

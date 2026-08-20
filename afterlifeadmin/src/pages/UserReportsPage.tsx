@@ -2,6 +2,12 @@
 
 import { useEffect, useState, useCallback, type CSSProperties } from "react";
 import { api } from "../api/client";
+import {
+  REPORT_REASONS,
+  SEVERITY_COLORS,
+  severityForReason,
+  isPresetReason,
+} from "../utils/reportReasons";
 
 const STATUS_LABEL: Record<string, { label: string; color: string; bg: string }> = {
   open: { label: "신고 접수", color: "#b91c1c", bg: "#fee2e2" },
@@ -38,6 +44,8 @@ export function UserReportsPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("");
+
+  const [reasonFilter, setReasonFilter] = useState<string>("");
   const [limit, setLimit] = useState(100);
 
   const [open, setOpen] = useState<{ targetId: number; reportId: number } | null>(null);
@@ -50,6 +58,7 @@ export function UserReportsPage() {
     api
       .getUserReports({
         status: statusFilter || undefined,
+        reason: reasonFilter || undefined,
         limit,
       })
       .then((r) => setReports(r.items))
@@ -58,7 +67,7 @@ export function UserReportsPage() {
         setReports([]);
       })
       .finally(() => setLoading(false));
-  }, [statusFilter, limit]);
+  }, [statusFilter, reasonFilter, limit]);
 
   useEffect(() => {
     load();
@@ -135,6 +144,75 @@ export function UserReportsPage() {
     }
   };
 
+  const applyPenalty = async (
+    action:
+      | "clone_deactivate"
+      | "clone_delete"
+      | "clone_create_ban"
+      | "account_ban"
+      | "account_withdraw",
+    label: string,
+    warnMsg: string,
+  ) => {
+    if (!open) return;
+    if (!window.confirm(`${label}\n\n${warnMsg}\n\n실행할까요?\n\n※ 이 신고는 자동으로 '수락' 처리되며, 신고자에게 처리 안내가 전송됩니다.`)) return;
+    let suspendDays: number | undefined;
+    if (action === "clone_create_ban" || action === "account_ban") {
+      const raw = window.prompt(`${label} — 기간(일) 입력 (빈칸=30일)`, "30");
+      if (raw === null) return;
+      const n = Number(raw);
+      suspendDays = Number.isInteger(n) && n > 0 ? n : 30;
+    }
+    const reason = window.prompt(
+      `${label} — 대상 유저에게 표시할 사유 (선택 · 앱 '신고당한 내역' 노출)`,
+      "",
+    );
+    if (reason === null) return;
+    const reporterMessage = window.prompt(
+      `${label} — 신고자에게 표시할 처리 안내 (선택 · 앱 '신고관리' 노출)\n빈칸이면 기본 문구 자동 사용: "회원님의 신고가 수락되었습니다. 적용된 조치: ${label}."`,
+      "",
+    );
+    if (reporterMessage === null) return;
+    setActing(true);
+    try {
+      const res = await api.applyUserPenalty(open.targetId, {
+        action,
+        suspendDays: suspendDays ?? null,
+        reason: reason || undefined,
+        reportId: open.reportId,
+        reporterMessage: reporterMessage || undefined,
+      });
+      alert(res.message || "적용 완료");
+      const fresh = await api.getUserDetail(open.targetId);
+      setDetail(fresh);
+      load();
+      closeDetail();
+    } catch (err) {
+      console.error(`applyUserPenalty[${action}] failed:`, err);
+      alert(`${label} 실행에 실패했어요.`);
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const deleteSingleClone = async (cloneId: number, cloneName: string) => {
+    if (!open) return;
+    if (!window.confirm(`페르소나 "${cloneName}" (id:${cloneId}) 를 삭제할까요?\n해당 유저의 다른 페르소나엔 영향 없습니다.`)) return;
+    setActing(true);
+    try {
+      await api.deleteClone(cloneId, "관리자 삭제 (신고 처리)");
+      alert("페르소나 삭제 완료");
+      const fresh = await api.getUserDetail(open.targetId);
+      setDetail(fresh);
+      load();
+    } catch (err) {
+      console.error("deleteClone failed:", err);
+      alert("페르소나 삭제에 실패했어요.");
+    } finally {
+      setActing(false);
+    }
+  };
+
   return (
     <div>
       <header style={styles.header}>
@@ -153,6 +231,17 @@ export function UserReportsPage() {
             <option value="reviewed">검토 완료</option>
             <option value="dismissed">기각</option>
             <option value="actioned">조치 완료</option>
+          </select>
+          <select
+            value={reasonFilter}
+            onChange={(e) => setReasonFilter(e.target.value)}
+            style={styles.select}
+          >
+            <option value="">전체 사유</option>
+            {REPORT_REASONS.map((r) => (
+              <option key={r} value={r}>{r}</option>
+            ))}
+            <option value="__empty__">사유 없음</option>
           </select>
           <select
             value={limit}
@@ -222,9 +311,23 @@ export function UserReportsPage() {
                       <div style={styles.cellSub}>id: {r.targetId}</div>
                     </td>
                     <td style={{ ...styles.td, maxWidth: 320 }}>
-                      {r.reason ? (
-                        <span style={styles.reason}>{r.reason}</span>
-                      ) : (
+                      {r.reason ? (() => {
+                        const sev = SEVERITY_COLORS[severityForReason(r.reason)];
+                        const preset = isPresetReason(r.reason);
+                        return (
+                          <span
+                            style={{
+                              ...styles.reasonBadge,
+                              color: sev.color,
+                              backgroundColor: sev.bg,
+                              borderColor: sev.border,
+                            }}
+                            title={preset ? "프리셋 사유" : "커스텀 사유 (자유텍스트)"}
+                          >
+                            {r.reason}
+                          </span>
+                        );
+                      })() : (
                         <span style={styles.cellSub}>—</span>
                       )}
                     </td>
@@ -301,7 +404,7 @@ export function UserReportsPage() {
                     disabled={acting}
                     style={{ ...styles.actionBtn, ...styles.warnBtn }}
                   >
-                    경고 주기 (비활성화 진행)
+                    경고 주기 (3회째 자동 정지)
                   </button>
                   <button
                     onClick={handleDismiss}
@@ -313,22 +416,112 @@ export function UserReportsPage() {
                 </div>
 
                 {}
+                <div style={styles.penaltyGroupTitle}>페르소나 제재</div>
+                <div style={styles.penaltyRow}>
+                  <button
+                    onClick={() =>
+                      applyPenalty(
+                        "clone_deactivate",
+                        "페르소나 전체 비활성화",
+                        "이 유저의 모든 페르소나를 비활성화(hide)합니다. 관리자가 재활성화 전까지 유지.",
+                      )
+                    }
+                    disabled={acting}
+                    style={{ ...styles.penaltyBtn, ...styles.penaltyBtnAmber }}
+                  >
+                    페르소나 전체 비활성화
+                  </button>
+                  <button
+                    onClick={() =>
+                      applyPenalty(
+                        "clone_delete",
+                        "페르소나 전체 삭제",
+                        "이 유저의 모든 페르소나를 삭제합니다. (복구 불가에 가까움)",
+                      )
+                    }
+                    disabled={acting}
+                    style={{ ...styles.penaltyBtn, ...styles.penaltyBtnRed }}
+                  >
+                    페르소나 전체 삭제
+                  </button>
+                  <button
+                    onClick={() =>
+                      applyPenalty(
+                        "clone_create_ban",
+                        "페르소나 생성 N일 금지",
+                        "기존 페르소나는 유지, 신규 생성만 N일 차단합니다.",
+                      )
+                    }
+                    disabled={acting}
+                    style={{ ...styles.penaltyBtn, ...styles.penaltyBtnAmber }}
+                  >
+                    페르소나 생성 금지 (N일)
+                  </button>
+                </div>
+
+                <div style={styles.penaltyGroupTitle}>계정 제재</div>
+                <div style={styles.penaltyRow}>
+                  <button
+                    onClick={() =>
+                      applyPenalty(
+                        "account_ban",
+                        "계정 비활성화 (N일)",
+                        "계정 접근 자체를 N일 차단합니다. (로그인 불가)",
+                      )
+                    }
+                    disabled={acting}
+                    style={{ ...styles.penaltyBtn, ...styles.penaltyBtnRed }}
+                  >
+                    계정 비활성화 (N일)
+                  </button>
+                  <button
+                    onClick={() =>
+                      applyPenalty(
+                        "account_withdraw",
+                        "계정 강제 탈퇴",
+                        "해당 계정을 즉시 탈퇴 처리합니다. (soft-delete · 페르소나도 함께 삭제 · 관리자 복구 안 하면 사실상 영구)",
+                      )
+                    }
+                    disabled={acting}
+                    style={{ ...styles.penaltyBtn, ...styles.penaltyBtnDark }}
+                  >
+                    계정 강제 탈퇴
+                  </button>
+                </div>
+
+                {}
                 <div style={styles.section}>
                   <div style={styles.sectionTitle}>받은 신고 ({detail.reports.length})</div>
                   {detail.reports.length === 0 ? (
                     <div style={styles.sectionEmpty}>없음</div>
                   ) : (
-                    detail.reports.map((r) => (
-                      <div key={r.id} style={styles.listItem}>
-                        <div style={styles.listMain}>
-                          {r.reason || "(사유 없음)"}{" "}
-                          <span style={styles.listStatus}>[{r.status}]</span>
+                    detail.reports.map((r) => {
+                      const sev = SEVERITY_COLORS[severityForReason(r.reason)];
+                      return (
+                        <div key={r.id} style={styles.listItem}>
+                          <div style={styles.listMain}>
+                            {r.reason ? (
+                              <span
+                                style={{
+                                  ...styles.reasonBadge,
+                                  color: sev.color,
+                                  backgroundColor: sev.bg,
+                                  borderColor: sev.border,
+                                }}
+                              >
+                                {r.reason}
+                              </span>
+                            ) : (
+                              <span style={styles.listSub}>(사유 없음)</span>
+                            )}{" "}
+                            <span style={styles.listStatus}>[{r.status}]</span>
+                          </div>
+                          <div style={styles.listSub}>
+                            {r.reporterEmail} · {r.createdAt?.slice(0, 16)}
+                          </div>
                         </div>
-                        <div style={styles.listSub}>
-                          {r.reporterEmail} · {r.createdAt?.slice(0, 16)}
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
 
@@ -339,13 +532,25 @@ export function UserReportsPage() {
                     <div style={styles.sectionEmpty}>없음</div>
                   ) : (
                     detail.clones.map((cl) => (
-                      <div key={cl.id} style={styles.listItem}>
-                        <div style={styles.listMain}>
-                          {cl.name} <span style={styles.listSub}>@{cl.username}</span>
-                          {cl.deletionState !== "active" && (
-                            <span style={styles.deletedBadge}>삭제됨</span>
-                          )}
+                      <div key={cl.id} style={styles.cloneRow}>
+                        <div style={{ flex: 1 }}>
+                          <div style={styles.listMain}>
+                            {cl.name} <span style={styles.listSub}>@{cl.username}</span>
+                            {cl.deletionState !== "active" && (
+                              <span style={styles.deletedBadge}>삭제됨</span>
+                            )}
+                          </div>
+                          <div style={styles.listSub}>id: {cl.id}</div>
                         </div>
+                        {cl.deletionState === "active" && (
+                          <button
+                            onClick={() => deleteSingleClone(cl.id, cl.name)}
+                            disabled={acting}
+                            style={styles.miniDeleteBtn}
+                          >
+                            삭제
+                          </button>
+                        )}
                       </div>
                     ))
                   )}
@@ -418,6 +623,15 @@ const styles: Record<string, CSSProperties> = {
   cellMain: { fontSize: 13, fontWeight: 600, color: "#0f172a" },
   cellSub: { fontSize: 11, color: "#64748b", marginTop: 2 },
   reason: { fontSize: 13, color: "#334155", whiteSpace: "pre-wrap" },
+  reasonBadge: {
+    display: "inline-block",
+    padding: "4px 10px",
+    borderRadius: 12,
+    fontSize: 12,
+    fontWeight: 600,
+    border: "1px solid",
+    lineHeight: 1.4,
+  },
   badge: {
     display: "inline-block",
     padding: "3px 10px",
@@ -521,6 +735,46 @@ const styles: Record<string, CSSProperties> = {
   },
   warnHint: { fontSize: 11, color: "#94a3b8", marginTop: 10, lineHeight: 1.5 },
   actionRow: { display: "flex", gap: 8, marginBottom: 16 },
+
+  penaltyGroupTitle: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: "#64748b",
+    marginTop: 4,
+    marginBottom: 6,
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+  },
+  penaltyRow: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 },
+  penaltyBtn: {
+    padding: "8px 12px",
+    border: "1px solid",
+    borderRadius: 6,
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: "pointer",
+    background: "#fff",
+  },
+  penaltyBtnAmber: { color: "#b45309", borderColor: "#fcd34d", backgroundColor: "#fffbeb" },
+  penaltyBtnRed: { color: "#b91c1c", borderColor: "#fca5a5", backgroundColor: "#fef2f2" },
+  penaltyBtnDark: { color: "#fff", borderColor: "#0f172a", backgroundColor: "#0f172a" },
+  cloneRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    padding: "8px 0",
+    borderBottom: "1px solid #f1f5f9",
+  },
+  miniDeleteBtn: {
+    padding: "6px 12px",
+    border: "1px solid #fca5a5",
+    borderRadius: 6,
+    fontSize: 11,
+    fontWeight: 700,
+    color: "#b91c1c",
+    backgroundColor: "#fef2f2",
+    cursor: "pointer",
+  },
   actionBtn: {
     flex: 1,
     padding: "10px 12px",

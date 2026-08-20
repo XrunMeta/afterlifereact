@@ -36,4 +36,6 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   return (origResolveRequest || context.resolveRequest)(context, moduleName, platform);
 };
 
+config.maxWorkers = 2;
+
 module.exports = config;

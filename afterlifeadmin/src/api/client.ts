@@ -251,10 +251,11 @@ export const api = {
     }>(`/oth-path${tail ? `?${tail}` : ""}`);
   },
 
-  getCloneReports: (params?: { status?: string; limit?: number }) => {
+  getCloneReports: (params?: { status?: string; limit?: number; reason?: string }) => {
     const qs = new URLSearchParams();
     if (params?.status) qs.set("status", params.status);
     if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.reason) qs.set("reason", params.reason);
     const tail = qs.toString();
     return request<{
       items: Array<{
@@ -286,10 +287,11 @@ export const api = {
   updatePersonaQuestions: (data: { questions: unknown[] }) =>
     request<{ ok: true }>("/oth-path", { method: "PUT", body: JSON.stringify(data) }),
 
-  getUserReports: (params?: { status?: string; limit?: number }) => {
+  getUserReports: (params?: { status?: string; limit?: number; reason?: string }) => {
     const qs = new URLSearchParams();
     if (params?.status) qs.set("status", params.status);
     if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.reason) qs.set("reason", params.reason);
     const tail = qs.toString();
     return request<{
       items: Array<{
@@ -351,6 +353,27 @@ export const api = {
     request<{ ok: true; updated: number }>(
       `/oth-path${reportId}/dismiss`,
       { method: "POST", body: JSON.stringify({ message: message ?? null }) },
+    ),
+
+  applyUserPenalty: (
+    id: string | number,
+    body: {
+      action:
+        | "warn"
+        | "clone_deactivate"
+        | "clone_delete"
+        | "clone_create_ban"
+        | "account_ban"
+        | "account_withdraw";
+      suspendDays?: number | null;
+      reason?: string;
+      reportId?: number | null;
+      reporterMessage?: string;
+    },
+  ) =>
+    request<{ ok: true; message: string }>(
+      `/oth-path${id}/apply-penalty`,
+      { method: "POST", body: JSON.stringify(body) },
     ),
 
   getVoicePresets: () =>
@@ -433,6 +456,47 @@ export const api = {
       `/oth-path${threshold}`,
       { method: "DELETE" },
     ),
+
+  getFaceRecognitionPersons: (params?: { userId?: number; cloneId?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.userId) qs.set("userId", String(params.userId));
+    if (params?.cloneId) qs.set("cloneId", String(params.cloneId));
+    if (params?.limit) qs.set("limit", String(params.limit));
+    const tail = qs.toString();
+    return request<{
+      items: Array<{
+        personId: number;
+        userId: number;
+        cloneId: number | null;
+        displayName: string | null;
+        consentState: string;
+        createdAt: number;
+        userName: string | null;
+        userEmail: string;
+        cloneName: string | null;
+        cloneUsername: string | null;
+        cloneFaceCount: number;
+        legacyFaceCount: number;
+        lastEnrollAt: number | null;
+        srcEnroll: number;
+        srcCall: number;
+        srcSelf: number;
+      }>;
+    }>(`/oth-path${tail ? `?${tail}` : ""}`);
+  },
+  getFaceRecognitionPersonFaces: (personId: number) =>
+    request<{
+      items: Array<{
+        id: number;
+        tbl: "clone_person_faces" | "face_embeddings";
+        cloneId: number | null;
+        vectorizeId: string | null;
+        model: string | null;
+        dim: number | null;
+        source: string;
+        createdAt: number;
+      }>;
+    }>(`/oth-path${personId}/faces`),
 
   getCrashReports: (params?: {
     fatal?: "0" | "1";
