@@ -63,14 +63,31 @@ export default function ActionSheet({ visible, actions, onClose, anchorY }: Prop
         >
           <Pressable style={styles.sheetWrap} onPress={(e) => e.stopPropagation?.()}>
             {
+
 }
-            <BlurView
-              intensity={60}
-              tint="light"
-              experimentalBlurMethod="dimezisBlurView"
-              style={styles.blur}
-            >
-              {actions.map((a, i) => (
+            {Platform.OS === "ios" ? (
+              <BlurView intensity={60} tint="light" style={styles.blur}>
+                {actions.map((a, i) => (
+                  <React.Fragment key={`${a.label}-${i}`}>
+                    {i > 0 ? <View style={styles.divider} /> : null}
+                    <Pressable
+                      style={({ pressed }) => [styles.actionRow, pressed && styles.actionRowPressed]}
+                      onPress={() => { onClose(); setTimeout(a.onPress, 100); }}
+                      android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+                    >
+                      {a.icon ? (
+                        <Feather name={a.icon} size={22} color={a.style === "destructive" ? "#ef4444" : COLORS.zinc800} />
+                      ) : (
+                        <View style={{ width: 22 }} />
+                      )}
+                      <Text style={[styles.actionLabel, a.style === "destructive" && styles.actionLabelDestructive]}>{a.label}</Text>
+                    </Pressable>
+                  </React.Fragment>
+                ))}
+              </BlurView>
+            ) : (
+              <View style={styles.androidSolid}>
+                {actions.map((a, i) => (
                 <React.Fragment key={`${a.label}-${i}`}>
                   {i > 0 ? <View style={styles.divider} /> : null}
                   <Pressable
@@ -91,9 +108,10 @@ export default function ActionSheet({ visible, actions, onClose, anchorY }: Prop
                       {a.label}
                     </Text>
                   </Pressable>
-                </React.Fragment>
-              ))}
-            </BlurView>
+                  </React.Fragment>
+                ))}
+              </View>
+            )}
           </Pressable>
         </View>
       </View>
@@ -122,11 +140,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 20,
     elevation: 12,
-
-    backgroundColor: Platform.OS === "android" ? "rgba(255,255,255,0.85)" : "transparent",
+    backgroundColor: "transparent",
   },
   blur: {
     width: "100%",
+  },
+
+  androidSolid: {
+    width: "100%",
+    backgroundColor: "#fafafa",
   },
   actionRow: {
     flexDirection: "row",
