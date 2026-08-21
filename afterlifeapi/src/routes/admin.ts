@@ -2710,3 +2710,40 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   }
 });
 
+v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_062ae9 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isFinite(v_062ae9)) return v_3f4e2e.json({ error: "invalid clone id" }, 400);
+
+  const v_eb25ce = await v_3f4e2e.env.DB
+    .prepare("SELECT image_url FROM clones WHERE id = ? AND deleted_at IS NULL")
+    .bind(v_062ae9)
+    .first<{ image_url: string | null }>();
+  if (!v_eb25ce) return v_3f4e2e.json({ error: "clone not found" }, 404);
+  if (!v_eb25ce.image_url) return v_3f4e2e.json({ error: "clone has no image_url" }, 400);
+
+  const v_43fd42 = v_3f4e2e.env.LEARN_SECRET ?? "";
+  if (!v_43fd42) return v_3f4e2e.json({ error: "LEARN_SECRET not configured" }, 500);
+
+  const v_694b25 = v_3f4e2e.env.PRETHIRD_PUBLIC_BASE || "https://rtc.example.invalid/prethird";
+  const v_0a6a65 = `${v_694b25.replace(/\/$/, "")}/oth-path`;
+  try {
+    const v_eb792a = await fetch(v_0a6a65, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Admin-Secret": v_43fd42,
+      },
+      body: JSON.stringify({ face_image_url: v_eb25ce.image_url, clone_id: v_062ae9 }),
+    });
+    if (!v_eb792a.ok) {
+      const v_9b6134 = await v_eb792a.text().catch(() => "");
+      return v_3f4e2e.json({ error: `upstream ${v_eb792a.status}: ${v_9b6134.slice(0, 200)}` }, 502);
+    }
+    const v_9390e8 = await v_eb792a.json().catch(() => null);
+    if (!v_9390e8) return v_3f4e2e.json({ error: "upstream non-JSON" }, 502);
+    return v_3f4e2e.json(v_9390e8);
+  } catch (v_9e86fd) {
+    return v_3f4e2e.json({ error: `upstream: ${String(v_9e86fd)}` }, 502);
+  }
+});
+
