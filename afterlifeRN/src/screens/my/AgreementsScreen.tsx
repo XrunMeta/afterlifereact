@@ -25,8 +25,11 @@ import {
   getCallLearningConsent,
   saveFaceBiometricConsent,
   getFaceBiometricConsent,
+  saveLocationConsent,
+  getLocationConsent,
   type CallLearningState,
   type FaceBiometricState,
+  type LocationConsentState,
 } from "../../api/consent";
 
 export default function AgreementsScreen() {
@@ -42,6 +45,10 @@ export default function AgreementsScreen() {
   const [faceBiometric, setFaceBiometric] = useState<FaceBiometricState>("none");
   const [faceBiometricLoading, setFaceBiometricLoading] = useState(true);
   const [faceBiometricSaving, setFaceBiometricSaving] = useState(false);
+
+  const [location, setLocation] = useState<LocationConsentState>("none");
+  const [locationLoading, setLocationLoading] = useState(true);
+  const [locationSaving, setLocationSaving] = useState(false);
 
   const refreshCallLearning = useCallback(async () => {
     if (!accessToken) {
@@ -77,16 +84,35 @@ export default function AgreementsScreen() {
     }
   }, [accessToken]);
 
+  const refreshLocation = useCallback(async () => {
+    if (!accessToken) {
+      setLocation("none");
+      setLocationLoading(false);
+      return;
+    }
+    setLocationLoading(true);
+    try {
+      const state = await getLocationConsent(accessToken);
+      setLocation(state);
+    } catch (err) {
+      console.warn("[Agreements] getLocationConsent failed:", err);
+    } finally {
+      setLocationLoading(false);
+    }
+  }, [accessToken]);
+
   useEffect(() => {
     refreshCallLearning();
     refreshFaceBiometric();
-  }, [refreshCallLearning, refreshFaceBiometric]);
+    refreshLocation();
+  }, [refreshCallLearning, refreshFaceBiometric, refreshLocation]);
 
   useFocusEffect(
     React.useCallback(() => {
       refreshCallLearning();
       refreshFaceBiometric();
-    }, [refreshCallLearning, refreshFaceBiometric]),
+      refreshLocation();
+    }, [refreshCallLearning, refreshFaceBiometric, refreshLocation]),
   );
 
   const handleToggleCallLearning = async (value: boolean) => {
@@ -129,6 +155,53 @@ export default function AgreementsScreen() {
       showAlert(t("common.error"), msg);
     } finally {
       setFaceBiometricSaving(false);
+    }
+  };
+
+  const handleToggleLocation = async (value: boolean) => {
+    if (!accessToken || locationSaving) return;
+    if (value) {
+      setLocationSaving(true);
+      try {
+        const LocationMod = await import("expo-location");
+        const initial = await LocationMod.getForegroundPermissionsAsync();
+        const perm = initial.granted
+          ? initial
+          : await LocationMod.requestForegroundPermissionsAsync();
+        if (!perm.granted) {
+          showAlert(
+            t("auth.signup.locationPermTitle", { defaultValue: "위치 권한 필요" }),
+            t("auth.signup.locationPermDesc", {
+              defaultValue:
+                "통화 시 지역 기반 대화를 하려면 위치 권한이 필요합니다.\n기기 설정 → 위치 → AfterLife 에서 허용해 주십시오.",
+            }),
+          );
+          setLocationSaving(false);
+          return;
+        }
+        const r = await saveLocationConsent(accessToken, "granted", { channel: "settings" });
+        setLocation(r.state === "granted" ? "granted" : "none");
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        showAlert(t("common.error"), msg);
+      } finally {
+        setLocationSaving(false);
+      }
+      return;
+    }
+
+    const prev = location;
+    setLocationSaving(true);
+    setLocation("none");
+    try {
+      const r = await saveLocationConsent(accessToken, "revoked", { channel: "settings" });
+      setLocation(r.state === "granted" ? "granted" : "none");
+    } catch (err) {
+      setLocation(prev);
+      const msg = err instanceof Error ? err.message : String(err);
+      showAlert(t("common.error"), msg);
+    } finally {
+      setLocationSaving(false);
     }
   };
 
@@ -181,6 +254,15 @@ export default function AgreementsScreen() {
         loading={faceBiometricLoading}
         saving={faceBiometricSaving}
         onToggle={handleToggleFaceBiometric}
+        t={t}
+      />
+
+      {}
+      <LocationConsentSection
+        state={location}
+        loading={locationLoading}
+        saving={locationSaving}
+        onToggle={handleToggleLocation}
         t={t}
       />
 
@@ -309,6 +391,59 @@ function FaceBiometricConsentSection({
           ) : (
             <Switch
               testID="face-biometric-consent-toggle"
+              value={state === "granted"}
+              onValueChange={onToggle}
+              disabled={saving}
+              trackColor={{ false: COLORS.zinc200, true: COLORS.violet600 }}
+              thumbColor={COLORS.white}
+            />
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+interface LocationConsentSectionProps {
+  state: LocationConsentState;
+  loading: boolean;
+  saving: boolean;
+  onToggle: (value: boolean) => void;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}
+
+function LocationConsentSection({
+  state,
+  loading,
+  saving,
+  onToggle,
+  t,
+}: LocationConsentSectionProps) {
+  return (
+    <View
+      testID="location-consent-section"
+      style={[s.content, { paddingTop: 0, paddingBottom: 32 }]}
+    >
+      <Text style={s.sectionTitle}>
+        {t("settings.privacy.location.sectionTitle", { defaultValue: "위치기반 서비스" })}
+      </Text>
+      <View style={s.card}>
+        <View style={s.row}>
+          <View style={{ flex: 1 }}>
+            <Text style={s.rowName}>
+              {t("settings.privacy.location.toggleLabel", { defaultValue: "위치 정보 사용" })}
+            </Text>
+            <Text style={s.rowSub}>
+              {t("settings.privacy.location.description", {
+                defaultValue: "통화 시 현재 지역을 페르소나에게 힌트로 전달합니다. (선택)",
+              })}
+            </Text>
+          </View>
+          {loading ? (
+            <ActivityIndicator color={COLORS.zinc500} />
+          ) : (
+            <Switch
+              testID="location-consent-toggle"
               value={state === "granted"}
               onValueChange={onToggle}
               disabled={saving}
