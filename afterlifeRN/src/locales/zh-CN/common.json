@@ -672,6 +672,9 @@
       "pushPermTitle": "需要推送通知权限",
       "pushPermDesc": "接收营销信息通知需要推送权限。\n请在设备设置 → 通知 → AfterLife 中允许。",
       "pushPermError": "申请权限时发生问题。",
+      "locationPermTitle": "需要位置权限",
+      "locationPermDesc": "通话时进行地区相关对话需要位置权限。\n请在设备设置 → 位置 → AfterLife 中允许。",
+      "locationPermError": "请求位置权限时出现问题。",
       "rateLimit": "请稍后重试。（1 分钟冷却）",
       "sendCodeFailed": "验证码发送失败，请检查网络。"
     },

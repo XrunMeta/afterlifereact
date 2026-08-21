@@ -672,6 +672,9 @@
       "pushPermTitle": "Izin Notifikasi Push Diperlukan",
       "pushPermDesc": "Diperlukan izin notifikasi push untuk menerima informasi pemasaran.\nSilakan izinkan di Pengaturan Perangkat → Notifikasi → AfterLife.",
       "pushPermError": "Terjadi masalah saat meminta izin.",
+      "locationPermTitle": "Izin Lokasi Diperlukan",
+      "locationPermDesc": "Izin lokasi diperlukan untuk percakapan berbasis wilayah selama panggilan.\nSilakan izinkan di Pengaturan Perangkat → Lokasi → AfterLife.",
+      "locationPermError": "Terjadi kesalahan saat meminta izin lokasi.",
       "rateLimit": "Silakan coba lagi nanti. (Cooldown 1 menit)",
       "sendCodeFailed": "Gagal mengirim kode. Silakan periksa jaringan Anda."
     },
