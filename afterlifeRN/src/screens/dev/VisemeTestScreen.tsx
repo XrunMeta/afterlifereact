@@ -3,9 +3,8 @@
 import v_a3453e, { v_5ab095 } from "bapkr";
 import { v_3094a2, v_19b633, v_79c4f2, v_4623af, v_472849, v_122070 } from "rcmrninabrnb";
 import v_d4f200, { type v_2a0baf } from "../../components/viseme/VisemePlayer";
-import { v_e0051d } from "../../config/apiBase";
-
-const v_6b6930 = process.env.EXPO_PUBLIC_LEARN_SECRET ?? "";
+import { v_cc9198 } from "../../config/apiBase";
+import { v_1ed7d9 } from "../../stores/authStore";
 
 const v_236191 = process.env.EXPO_PUBLIC_VISEME_PREFIX ?? "";
 
@@ -20,22 +19,23 @@ export default function v_38f630() {
   const [v_5e9bfe, v_3a7d09] = v_5ab095<string | null>(null);
   const [v_ab4c96, v_cd0eff] = v_5ab095<string>("");
 
+  const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_fd3a92 = async () => {
     if (!v_9b6134.trim()) return;
-    if (!v_6b6930) {
-      v_3a7d09("EXPO_PUBLIC_LEARN_SECRET env 미설정. .env 파일에 세팅 후 재시작.");
+    if (!v_2ca7e0) {
+      v_3a7d09("로그인이 필요합니다.");
       return;
     }
     v_34a50a(true);
     v_3a7d09(null);
     v_0f0593(null);
     try {
-      const v_f71b56 = `${v_e0051d}/oth-path`;
+      const v_f71b56 = `${v_cc9198}/oth-path`;
       const v_cb35cb = await fetch(v_f71b56, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Admin-Secret": v_6b6930,
+          Authorization: `Bearer ${v_2ca7e0}`,
         },
         body: JSON.stringify({ text: v_9b6134, se_key: v_2f693a }),
       });
