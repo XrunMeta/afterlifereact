@@ -1199,7 +1199,10 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
             c.deletion_state AS deletionState,
             c.soft_deleted_at AS softDeletedAt,
             c.deleted_at AS deletedAt,
-            c.pipeline
+            c.pipeline,
+            c.viseme_prefix AS visemePrefix,
+            c.viseme_generated_at AS visemeGeneratedAt,
+            c.viseme_version AS visemeVersion
        FROM clones c
        LEFT JOIN users u ON u.id = c.owner_id
       WHERE c.id = ?`,
@@ -1211,7 +1214,10 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
 });
 
 const v_dcf9cd = v_1f4ea7.object({
-  pipeline: v_1f4ea7.enum(["musetalk", "echomimic_v3"]).optional(),
+  pipeline: v_1f4ea7.enum(["musetalk", "echomimic_v3", "viseme_playback"]).optional(),
+
+  visemePrefix: v_1f4ea7.string().max(500).nullable().optional(),
+  visemeVersion: v_1f4ea7.string().max(50).nullable().optional(),
 });
 
 v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
@@ -1236,6 +1242,19 @@ v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
   if (v_4d33b2.pipeline !== undefined) {
     v_75ae3e.push(`pipeline = ?`);
     v_925171.push(v_4d33b2.pipeline);
+  }
+
+  if (v_4d33b2.visemePrefix !== undefined) {
+    v_75ae3e.push(`viseme_prefix = ?`);
+    v_925171.push(v_4d33b2.visemePrefix);
+    if (v_4d33b2.visemePrefix) {
+      v_75ae3e.push(`viseme_generated_at = ?`);
+      v_925171.push(Date.now());
+    }
+  }
+  if (v_4d33b2.visemeVersion !== undefined) {
+    v_75ae3e.push(`viseme_version = ?`);
+    v_925171.push(v_4d33b2.visemeVersion);
   }
   if (v_75ae3e.length === 0) {
     return v_3f4e2e.json({ ok: true, updated: 0 });

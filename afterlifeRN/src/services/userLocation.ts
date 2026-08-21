@@ -27,10 +27,7 @@ export async function v_1fcb40(): Promise<string | null> {
 
 async function v_90329d(): Promise<string | null> {
 
-  let v_d60769 = await v_8a44cb.getForegroundPermissionsAsync();
-  if (!v_d60769.granted && v_d60769.canAskAgain) {
-    v_d60769 = await v_8a44cb.requestForegroundPermissionsAsync();
-  }
+  const v_d60769 = await v_8a44cb.getForegroundPermissionsAsync();
   if (!v_d60769.granted) {
     v_a23604 = { at: Date.now(), text: null };
     return null;
