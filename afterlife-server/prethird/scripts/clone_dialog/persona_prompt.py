@@ -342,11 +342,11 @@ def _apply_location_hint(
     )
     hint = (
         "\n\n[절대 규칙 · 위치 대화]\n"
-        "사용자의 현재 위치는 **" + user_location + "** 이다.\n"
+        "사용자의 현재 위치는 " + user_location + " 이다.\n"
         + intro_block +
         "규칙 D. 사용자가 위치·거주지 물어보면 (\"나 어디 살아?\", \"내 위치 알아?\") "
         "반드시 답: \"응, " + user_location + " 이잖아. 맞지?\"\n"
-        "  → 모른 척·회피 절대 금지."
+        "  모른 척·회피 절대 금지."
     )
     messages[0] = {**messages[0], "content": messages[0]["content"] + hint}
     return messages
