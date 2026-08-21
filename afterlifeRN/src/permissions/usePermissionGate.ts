@@ -110,10 +110,17 @@ export function usePermissionGate(): UsePermissionGateResult {
     requestInFlightRef.current = true;
     try {
 
+      let popupImpossibleFallback = false;
+
       try {
         const camStatus = normalizeCameraStatus(VisionCamera.getCameraPermissionStatus());
         if (camStatus !== 'granted') {
           await VisionCamera.requestCameraPermission();
+          const after = normalizeCameraStatus(VisionCamera.getCameraPermissionStatus());
+          if (after !== 'granted' && (camStatus === 'denied' || camStatus === 'blocked')) {
+
+            popupImpossibleFallback = true;
+          }
         }
       } catch (err) {
         console.warn('[usePermissionGate] camera permission request failed:', err);
@@ -122,7 +129,11 @@ export function usePermissionGate(): UsePermissionGateResult {
       try {
         const micRaw = await ExpoSpeechRecognitionModule.getPermissionsAsync();
         if (micRaw.status !== 'granted') {
+          const wasBlocked = micRaw.canAskAgain === false;
           await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+          if (wasBlocked) {
+            popupImpossibleFallback = true;
+          }
         }
       } catch (err) {
         console.warn('[usePermissionGate] mic permission request failed:', err);
@@ -130,7 +141,7 @@ export function usePermissionGate(): UsePermissionGateResult {
 
       try {
         const locRaw = await Location.getForegroundPermissionsAsync();
-        if (!locRaw.granted && locRaw.canAskAgain) {
+        if (!locRaw.granted) {
           await Location.requestForegroundPermissionsAsync();
         }
       } catch (err) {
@@ -138,6 +149,15 @@ export function usePermissionGate(): UsePermissionGateResult {
       }
 
       await recheck();
+
+      if (popupImpossibleFallback) {
+        console.log('[usePermissionGate] popup impossible — opening settings');
+        try {
+          Linking.openSettings();
+        } catch (err) {
+          console.warn('[usePermissionGate] openSettings failed:', err);
+        }
+      }
     } finally {
       requestInFlightRef.current = false;
     }
