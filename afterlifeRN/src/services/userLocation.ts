@@ -37,8 +37,8 @@ async function _resolveLocation(): Promise<string | null> {
   }
 
   const pos =
-    (await Location.getLastKnownPositionAsync({ maxAge: 60_000, requiredAccuracy: 1000 })) ??
-    (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
+    (await Location.getLastKnownPositionAsync({ maxAge: 60_000, requiredAccuracy: 100 })) ??
+    (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }));
   if (!pos?.coords) {
     cache = { at: Date.now(), text: null };
     return null;
@@ -54,13 +54,35 @@ async function _resolveLocation(): Promise<string | null> {
     return null;
   }
 
+  console.log('[userLocation] geo fields:', JSON.stringify({
+    city: first.city,
+    country: first.country,
+    district: first.district,
+    name: first.name,
+    postalCode: first.postalCode,
+    region: first.region,
+    street: first.street,
+    streetNumber: first.streetNumber,
+    subregion: first.subregion,
+  }));
+
+  const level1 = first.region;  
+
+  const level2Candidates = [first.subregion, first.city]
+    .filter((v): v is string => !!v && v !== level1);
+  const level2 = level2Candidates[0] ?? null;
+
+  const rawDistrict = first.district;
+  const isValidDong = rawDistrict
+    && !/^\d+동?$/.test(rawDistrict.trim())  
+    && rawDistrict !== level1
+    && rawDistrict !== level2;
+  const level3 = isValidDong ? rawDistrict : null;
+
   const parts: string[] = [];
-  const level1 = first.region ?? first.administrativeArea;  
-  const level2 = first.subregion ?? first.subAdministrativeArea ?? first.city;  
-  const level3 = first.district;  
   if (level1) parts.push(level1);
-  if (level2 && level2 !== level1) parts.push(level2);
-  if (level3 && level3 !== level2 && level3 !== level1) parts.push(level3);
+  if (level2) parts.push(level2);
+  if (level3) parts.push(level3);
   const text = parts.length ? parts.join(' ') : null;
 
   cache = { at: Date.now(), text };
