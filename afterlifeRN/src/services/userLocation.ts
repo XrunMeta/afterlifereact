@@ -122,10 +122,16 @@ async function v_90329d(): Promise<string | null> {
     (v_21e964(v_ea719c.street) ? v_ea719c.street : null) ??
     null;
 
+  const v_21b3ec = (v_8d41d7): string =>
+    v_8d41d7
+      .replace(/특별시$|광역시$/, '')
+      .replace(/특별자치시$|특별자치도$/, '');
+  const v_190bb1 = (v_8d41d7): string => v_8d41d7.replace(/([가-힣]+)\d+(동|가)$/, '$1$2');
+
   const v_468545 = [];
-  if (v_5946d2) v_468545.push(v_5946d2);
+  if (v_5946d2) v_468545.push(v_21b3ec(v_5946d2));
   if (v_5d7ee6) v_468545.push(v_5d7ee6);
-  if (v_dee558) v_468545.push(v_dee558);
+  if (v_dee558) v_468545.push(v_190bb1(v_dee558));
   let v_9b6134 = v_468545.length ? v_468545.join(' ') : null;
 
   if (!v_5d7ee6 && v_5946d2 && (v_dee558 || v_9e7a9d.coords)) {
@@ -135,9 +141,9 @@ async function v_90329d(): Promise<string | null> {
         console.log('[userLocation] nominatim boost:', v_ecac79);
 
         const v_efd638 = [];
-        if (v_ecac79.city) v_efd638.push(v_ecac79.city);
+        if (v_ecac79.city) v_efd638.push(v_21b3ec(v_ecac79.city));
         if (v_ecac79.gu && v_ecac79.gu !== v_ecac79.city) v_efd638.push(v_ecac79.gu);
-        if (v_ecac79.dong && v_ecac79.dong !== v_ecac79.gu && v_ecac79.dong !== v_ecac79.city) v_efd638.push(v_ecac79.dong);
+        if (v_ecac79.dong && v_ecac79.dong !== v_ecac79.gu && v_ecac79.dong !== v_ecac79.city) v_efd638.push(v_190bb1(v_ecac79.dong));
         if (v_efd638.length > v_468545.length) {
           v_9b6134 = v_efd638.join(' ');
         }
