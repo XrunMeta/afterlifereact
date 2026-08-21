@@ -451,6 +451,8 @@ users.get("/me/clones", requireAuth, async (c) => {
           c.owner_id       AS ownerId,
           c.created_at     AS createdAt,
           c.l1_profile     AS l1ProfileJson,
+          c.pipeline       AS pipeline,
+          c.viseme_prefix  AS visemePrefix,
           (CASE WHEN c.owner_id = ? THEN 'owner' ELSE 'coowner' END) AS myRole,
           (SELECT COUNT(*) FROM clone_shares s
             WHERE s.clone_id = c.id AND s.status = 'accepted') AS coownerCount,

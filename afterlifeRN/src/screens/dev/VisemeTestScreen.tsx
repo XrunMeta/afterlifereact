@@ -1,10 +1,11 @@
 
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import VisemePlayer, { type VisemeSynthResponse } from "../../components/viseme/VisemePlayer";
 import { API_BASE } from "../../config/apiBase";
 import { useAuthStore } from "../../stores/authStore";
+import { listMyClones, type MyClone } from "../../api/clones";
 
 const DEFAULT_PREFIX = process.env.EXPO_PUBLIC_VISEME_PREFIX ?? "";
 
@@ -19,7 +20,30 @@ export default function VisemeTestScreen() {
   const [error, setError] = useState<string | null>(null);
   const [meta, setMeta] = useState<string>("");
 
+  const [myClones, setMyClones] = useState<MyClone[]>([]);
+  const [pickedCloneId, setPickedCloneId] = useState<number | null>(null);
+
   const accessToken = useAuthStore((s) => s.accessToken);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    let cancelled = false;
+    listMyClones(accessToken)
+      .then((r) => {
+        if (cancelled) return;
+        const withPrefix = r.items.filter((c) => c.visemePrefix);
+        setMyClones(withPrefix);
+      })
+      .catch((e) => console.warn("[VisemeTest] listMyClones fail:", e));
+    return () => { cancelled = true; };
+  }, [accessToken]);
+
+  const pickClone = (id: number) => {
+    const c = myClones.find((x) => x.id === id);
+    if (!c) return;
+    setPickedCloneId(id);
+    setPrefix(c.visemePrefix ?? "");
+  };
   const synth = async () => {
     if (!text.trim()) return;
     if (!accessToken) {
@@ -79,6 +103,29 @@ export default function VisemeTestScreen() {
           </TouchableOpacity>
         ))}
       </View>
+
+      <Text style={styles.label}>
+        내 페르소나 (viseme_prefix 있는 것만 · admin 에서 E-2 저장 후 표시)
+      </Text>
+      {myClones.length === 0 ? (
+        <Text style={{ color: "#a1a1aa", fontSize: 12 }}>
+          없음. 어드민 CloneDetail 에서 '10 viseme 미리 렌더 → R2 저장' 후 여기 나타남.
+        </Text>
+      ) : (
+        <View style={styles.row}>
+          {myClones.map((c) => (
+            <TouchableOpacity
+              key={c.id}
+              onPress={() => pickClone(c.id)}
+              style={[styles.presetBtn, pickedCloneId === c.id && styles.presetBtnActive]}
+            >
+              <Text style={[styles.presetText, pickedCloneId === c.id && styles.presetTextActive]}>
+                {c.name} · #{c.id}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       <Text style={styles.label}>viseme_prefix (R2 URL prefix)</Text>
       <TextInput
