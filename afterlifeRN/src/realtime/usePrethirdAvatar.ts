@@ -8,6 +8,7 @@ import { v_335e37 } from '../lib/authFetch';
 import { type v_30869c, v_2f41d8 } from './useAudioSession';
 import { type v_b01667, type v_d20273, type v_b190e4, type v_9d43cd, type v_14f245, v_d8a22b } from './avatarCall';
 import { v_d7f7b1 } from './timingEvents';
+import { v_1fcb40 } from '../services/userLocation';
 
 const v_67e77e = () => Date.now();
 
@@ -289,10 +290,14 @@ export function v_3d8d48(v_328259): v_b01667 {
       const v_694b25 = v_dbf208 ? v_01dcf5.experimentalBase! : v_01dcf5.prethirdBase;
       const v_f71b56 = `${v_694b25}/offer`;
       if (__DEV__) console.log(`[CALL-ROUTE] route=prethird base=${v_694b25} pipeline=${v_da7dc4 ?? 'default'} experimental=${v_dbf208} clone_id=${v_6e0fd3}`);
+
+      const v_146d3d = await v_1fcb40();
+      const v_7524b9 = { type: 'offer', sdp: v_582c5e, clone_id: v_6e0fd3, access_token: v_f915d0 };
+      if (v_146d3d) v_7524b9.user_location = v_146d3d;
       const v_cb35cb = await fetch(v_f71b56, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'offer', sdp: v_582c5e, clone_id: v_6e0fd3, access_token: v_f915d0 }),
+        body: JSON.stringify(v_7524b9),
       });
       const v_9b6134 = await v_cb35cb.text();
       if (v_cb35cb.status === 424) {

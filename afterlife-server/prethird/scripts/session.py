@@ -18,7 +18,8 @@ class Session:
         self.datachannel = None  # DataChannel "say" 수신(T11)
         self.pipeline = None     # DialoguePipeline 주입(T10/T11)
         self.clone_id = None         # /offer 수신 clone_id
-        self.persona_messages = []   # bundle_to_messages 결과
+        self.persona_messages = []
+        self.user_location = None   # T-502 통화 시 앱이 보낸 지역 문자열 (예: 서울 노원구 상계동)   # bundle_to_messages 결과
         self.bundle = None           # T-252: offer 수신 원본 번들. 화자 교대 시 프롬프트 재조립에 쓴다.
         self.se_path = None          # 클론별 voice se 경로(None이면 기본)
         self.video_path = None       # 클론별 idle/musetalk reference video(None이면 halbae 기본)

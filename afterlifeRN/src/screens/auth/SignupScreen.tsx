@@ -23,7 +23,7 @@ import v_57037e from "../../components/common/CountryRegionPicker";
 import v_c0caa9, { type v_3ac6ea } from "../../components/common/TermsModal";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_97ea8d, v_35200c, v_84a859 } from "../../api/auth";
-import { v_7f847d, v_421733 } from "../../api/consent";
+import { v_7f847d, v_421733, v_2d09bf } from "../../api/consent";
 import { v_d2929b } from "./faceBiometricSignupFlag";
 import { v_704bef } from "../../lib/pushNotifications";
 import { v_ea1c99 } from "../../lib/deviceId";
@@ -105,9 +105,11 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
   const [v_a03498, v_d34fc9] = v_5ab095(false);
 
+  const [v_540cd3, v_a67880] = v_5ab095(false);
+
   const v_5c764d = v_51b53b && v_09b7fa;
   const v_33f2ba =
-    v_5c764d && v_8c98c4 && v_7f128f && v_a03498;
+    v_5c764d && v_8c98c4 && v_7f128f && v_a03498 && v_540cd3;
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
 
   const [v_1a29d0, v_704175] = v_5ab095<string | null>(null);
@@ -123,6 +125,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       v_e378a4(false);
       v_06ec09(false);
       v_d34fc9(false);
+      v_a67880(false);
       v_704175(null);
       v_73f064(null);
       v_94f796(null);
@@ -133,6 +136,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     v_1d4807(true);
     v_06ec09(true);
     v_d34fc9(true);
+    v_a67880(true);
     if (!v_8c98c4) {
       await v_349606();
     }
@@ -294,6 +298,14 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           console.warn("[AUTH/signup] saveFaceBiometricConsent (google) failed:", v_49263d);
         }
 
+        if (v_540cd3) {
+          try {
+            await v_2d09bf(v_8f00b9.accessToken, "granted", { channel: "signup" });
+          } catch (v_49263d) {
+            console.warn("[AUTH/signup] saveLocationConsent (google) failed:", v_49263d);
+          }
+        }
+
         void activateAuthSession({
           accessToken: v_8f00b9.accessToken,
           refreshToken: v_8f00b9.refreshToken ?? null,
@@ -315,6 +327,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         marketingConsent: v_8c98c4,
         agreeCallLearning: v_7f128f,
         agreeFaceBiometric: v_a03498,
+        agreeLocation: v_540cd3,
         pushToken: v_1a29d0 ?? undefined,
         platform: v_ea920b ?? undefined,
         deviceId: v_929b58 ?? undefined,
@@ -602,6 +615,27 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
               >
                 <Text style={[v_d81136.termText, v_d81136.termLink]}>
                   {v_8d41d7("auth.signup.faceBiometricConsent")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {}
+            <View style={v_d81136.checkRow}>
+              <TouchableOpacity
+                onPress={() => v_a67880(!v_540cd3)}
+                hitSlop={8}
+              >
+                <View style={[v_d81136.checkbox, v_540cd3 && v_d81136.checkboxChecked]}>
+                  {v_540cd3 && <Feather name="check" size={14} color={v_1bfbd0.white} />}
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={v_d81136.termTextWrap}
+                onPress={() => v_fe0d62(2)}
+                activeOpacity={0.7}
+              >
+                <Text style={[v_d81136.termText, v_d81136.termLink]}>
+                  {v_8d41d7("auth.signup.locationConsent", { defaultValue: "[선택] 위치기반 서비스 이용동의" })}
                 </Text>
               </TouchableOpacity>
             </View>
