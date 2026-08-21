@@ -319,6 +319,8 @@ export default function LoginScreen({ navigation }: Props) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {}
+        <View style={styles.topSpacer} />
         <View style={styles.container}>
           {}
 
@@ -481,6 +483,8 @@ export default function LoginScreen({ navigation }: Props) {
             {t("auth.login.forgotPasswordHint")}
           </Text>
         </View>
+        {}
+        <View style={styles.bottomSpacer} />
       </SafeScrollView>
     </SafeView>
   );
@@ -488,10 +492,16 @@ export default function LoginScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   scrollContent: {
+
     flexGrow: 1,
-    justifyContent: "center",
     paddingHorizontal: SIZES.xlarge,
-    paddingVertical: 48,
+    paddingVertical: 24,
+  },
+  topSpacer: {
+    flex: 2,
+  },
+  bottomSpacer: {
+    flex: 1,
   },
   container: {
     width: "100%",
