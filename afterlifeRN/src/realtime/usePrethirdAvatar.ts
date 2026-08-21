@@ -295,9 +295,12 @@ export function v_3d8d48(v_328259): v_b01667 {
       const v_f71b56 = `${v_694b25}/offer`;
       if (__DEV__) console.log(`[CALL-ROUTE] route=prethird base=${v_694b25} pipeline=${v_da7dc4 ?? 'default'} experimental=${v_dbf208} clone_id=${v_6e0fd3}`);
 
-      const v_146d3d = await v_1fcb40(v_6e0fd3);
+      const { location: v_146d3d, askIntro: v_ea4829 } = await v_1fcb40(v_6e0fd3);
       const v_7524b9 = { type: 'offer', sdp: v_582c5e, clone_id: v_6e0fd3, access_token: v_f915d0 };
-      if (v_146d3d) v_7524b9.user_location = v_146d3d;
+      if (v_146d3d) {
+        v_7524b9.user_location = v_146d3d;
+        v_7524b9.ask_region_intro = v_ea4829;
+      }
       const v_cb35cb = await fetch(v_f71b56, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
