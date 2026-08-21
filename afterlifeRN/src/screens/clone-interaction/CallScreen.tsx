@@ -1355,6 +1355,8 @@ function CallScreenInner({ route, navigation }: Props) {
   const exitInFlightRef = useRef(false);
 
   const cancelInFlightRef = useRef(false);
+
+  const retryLockUntilRef = useRef(0);
   const exitToMain = useCallback(() => {
     if (exitInFlightRef.current) {
       console.log("[Call][exit] 이미 진행 중 — 재요청 무시");
@@ -1729,7 +1731,13 @@ function CallScreenInner({ route, navigation }: Props) {
             exitToMain();
           }}
           onRetry={() => {
-            console.log(`[Call][flow] +${Date.now()} DialingScreen.onRetry → startLive`);
+
+            const now = Date.now();
+            if (now < retryLockUntilRef.current) {
+              return;
+            }
+            retryLockUntilRef.current = now + 1000;
+            console.log(`[Call][flow] +${now} DialingScreen.onRetry → startLive`);
             setGreetingStarted(false);
             void startLive();
           }}
