@@ -498,7 +498,9 @@ const v_d81136 = v_472849.create({
     paddingVertical: 24,
   },
   topSpacer: {
-    flex: 2,
+
+    flex: 3,
+    minHeight: 40,
   },
   bottomSpacer: {
     flex: 1,
