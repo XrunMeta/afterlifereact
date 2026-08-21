@@ -49,11 +49,17 @@ _EMOJI_RE = re.compile(
 
 
 def strip_emojis_for_tts(text: str) -> str:
-    """이모지·심볼 제거 + 연속 공백 정규화. 순수 함수(테스트용)."""
+    """이모지·심볼 + 마크다운 기호 제거 + 연속 공백 정규화. 순수 함수(테스트용).
+
+    T-545B (2026-08-21): markdown 기호 (**, _, ` 등) 도 제거. wetext 정규화가
+      이 기호들 있으면 tokenize 결과 empty → AssertionError → TTS 500.
+    """
     if not text:
         return text
     cleaned = _EMOJI_RE.sub("", text)
-    # 이모지 제거 후 남은 여백 정리
+    # 마크다운 기호 제거 — LLM 이 실수로 응답에 넣어도 TTS 안 깨지게.
+    cleaned = re.sub(r"[*_`~]+", "", cleaned)
+    # 여백 정리
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return cleaned
 
