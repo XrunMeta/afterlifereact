@@ -115,12 +115,16 @@ export default function SignupScreen({ navigation, route }: Props) {
     }
     try {
       const Location = await import('expo-location');
-      let perm = await Location.getForegroundPermissionsAsync();
-      if (!perm.granted && perm.canAskAgain) {
-        perm = await Location.requestForegroundPermissionsAsync();
-      }
+      const initial = await Location.getForegroundPermissionsAsync();
+      console.log(`[SignupScreen] location initial perm: granted=${initial.granted} status=${initial.status} canAskAgain=${initial.canAskAgain}`);
+
+      const perm = initial.granted
+        ? initial
+        : await Location.requestForegroundPermissionsAsync();
+      console.log(`[SignupScreen] location after request: granted=${perm.granted} status=${perm.status} canAskAgain=${perm.canAskAgain}`);
       if (!perm.granted) {
 
+        console.log(`[SignupScreen] location DENIED — showing alert`);
         showAlert(
           t("auth.signup.locationPermTitle", { defaultValue: "위치 권한 필요" }),
           t("auth.signup.locationPermDesc", {
@@ -129,6 +133,7 @@ export default function SignupScreen({ navigation, route }: Props) {
         );
         return;
       }
+      console.log(`[SignupScreen] location GRANTED — checking box`);
       setAgreeLocation(true);
     } catch (err) {
       console.warn('[SignupScreen] location permission request failed:', err);
