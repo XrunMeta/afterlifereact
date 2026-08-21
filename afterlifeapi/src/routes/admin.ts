@@ -1211,7 +1211,7 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
 });
 
 const v_dcf9cd = v_1f4ea7.object({
-  pipeline: v_1f4ea7.enum(["musetalk", "echomimic_v3"]).optional(),
+  pipeline: v_1f4ea7.enum(["musetalk", "echomimic_v3", "viseme_playback"]).optional(),
 });
 
 v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
