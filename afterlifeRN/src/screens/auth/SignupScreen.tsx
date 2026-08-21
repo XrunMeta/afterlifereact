@@ -108,19 +108,35 @@ export default function SignupScreen({ navigation, route }: Props) {
   const [agreeLocation, setAgreeLocation] = useState(false);
 
   const toggleLocationConsent = async () => {
-    const next = !agreeLocation;
-    if (next) {
-      try {
-        const Location = await import('expo-location');
-        const perm = await Location.getForegroundPermissionsAsync();
-        if (!perm.granted && perm.canAskAgain) {
-          await Location.requestForegroundPermissionsAsync();
-        }
-      } catch (err) {
-        console.warn('[SignupScreen] location permission request failed:', err);
-      }
+
+    if (agreeLocation) {
+      setAgreeLocation(false);
+      return;
     }
-    setAgreeLocation(next);
+    try {
+      const Location = await import('expo-location');
+      let perm = await Location.getForegroundPermissionsAsync();
+      if (!perm.granted && perm.canAskAgain) {
+        perm = await Location.requestForegroundPermissionsAsync();
+      }
+      if (!perm.granted) {
+
+        showAlert(
+          t("auth.signup.locationPermTitle", { defaultValue: "위치 권한 필요" }),
+          t("auth.signup.locationPermDesc", {
+            defaultValue: "통화 시 지역 기반 대화를 하려면 위치 권한이 필요합니다.\n기기 설정 → 위치 → AfterLife 에서 허용해 주십시오.",
+          }),
+        );
+        return;
+      }
+      setAgreeLocation(true);
+    } catch (err) {
+      console.warn('[SignupScreen] location permission request failed:', err);
+      showAlert(
+        t("common.error"),
+        t("auth.signup.locationPermError", { defaultValue: "위치 권한 요청 중 문제가 발생했습니다." }),
+      );
+    }
   };
 
   const agreeRequired = agreeService && agreePrivacy;
