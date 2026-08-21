@@ -107,6 +107,22 @@ export default function SignupScreen({ navigation, route }: Props) {
 
   const [agreeLocation, setAgreeLocation] = useState(false);
 
+  const toggleLocationConsent = async () => {
+    const next = !agreeLocation;
+    if (next) {
+      try {
+        const Location = await import('expo-location');
+        const perm = await Location.getForegroundPermissionsAsync();
+        if (!perm.granted && perm.canAskAgain) {
+          await Location.requestForegroundPermissionsAsync();
+        }
+      } catch (err) {
+        console.warn('[SignupScreen] location permission request failed:', err);
+      }
+    }
+    setAgreeLocation(next);
+  };
+
   const agreeRequired = agreeService && agreePrivacy;
   const agreeAll =
     agreeRequired && agreeMarketing && agreeCallLearning && agreeFaceBiometric && agreeLocation;
@@ -619,10 +635,11 @@ export default function SignupScreen({ navigation, route }: Props) {
               </TouchableOpacity>
             </View>
 
-            {}
+            {
+}
             <View style={styles.checkRow}>
               <TouchableOpacity
-                onPress={() => setAgreeLocation(!agreeLocation)}
+                onPress={() => void toggleLocationConsent()}
                 hitSlop={8}
               >
                 <View style={[styles.checkbox, agreeLocation && styles.checkboxChecked]}>
