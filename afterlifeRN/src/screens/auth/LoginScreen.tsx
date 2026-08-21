@@ -467,7 +467,14 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
             </View>
           )}
 
-          {}
+          {
+}
+          <View style={v_d81136.signupRow}>
+            <Text style={v_d81136.signupText}>{v_8d41d7("auth.login.signupHint")} </Text>
+            <TouchableOpacity onPress={() => v_c65f5d.navigate("Signup", {})}>
+              <Text style={v_d81136.signupLink}>{v_8d41d7("auth.login.signupBtn")}</Text>
+            </TouchableOpacity>
+          </View>
 
           {}
           <Text style={v_d81136.forgotPasswordHint}>
@@ -502,7 +509,7 @@ const v_d81136 = v_472849.create({
   },
   tabRow: {
 
-    marginTop: 80,
+    marginTop: 0,
     flexDirection: "row",
     backgroundColor: v_1bfbd0.zinc100,
     borderRadius: v_8b0c90.md,
