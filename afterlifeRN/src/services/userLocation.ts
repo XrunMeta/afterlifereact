@@ -72,12 +72,13 @@ async function v_90329d(): Promise<string | null> {
     .filter((v_81e2ef): v_81e2ef is string => !!v_81e2ef && v_81e2ef !== v_5946d2);
   const v_5d7ee6 = v_fcd2a8[0] ?? null;
 
-  const v_b5dde9 = v_ea719c.district;
-  const v_21e964 = v_b5dde9
-    && !/^\d+동?$/.test(v_b5dde9.trim())  
-    && v_b5dde9 !== v_5946d2
-    && v_b5dde9 !== v_5d7ee6;
-  const v_dee558 = v_21e964 ? v_b5dde9 : null;
+  const v_267df8 = /^[가-힣]+\d*(동|읍|면)$/;
+  const v_21e964 = (v_81e2ef): v_81e2ef is string =>
+    !!v_81e2ef && v_267df8.test(v_81e2ef.trim()) && v_81e2ef !== v_5946d2 && v_81e2ef !== v_5d7ee6;
+  const v_dee558 =
+    (v_21e964(v_ea719c.district) ? v_ea719c.district : null) ??
+    (v_21e964(v_ea719c.street) ? v_ea719c.street : null) ??
+    null;
 
   const v_468545 = [];
   if (v_5946d2) v_468545.push(v_5946d2);
