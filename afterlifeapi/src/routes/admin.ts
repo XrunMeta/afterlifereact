@@ -2723,3 +2723,40 @@ admin.post("/oth-path", requireAdmin, async (c) => {
   }
 });
 
+admin.post("/oth-path", requireAdmin, async (c) => {
+  const cid = Number(c.req.param("id"));
+  if (!Number.isFinite(cid)) return c.json({ error: "invalid clone id" }, 400);
+
+  const clone = await c.env.DB
+    .prepare("SELECT image_url FROM clones WHERE id = ? AND deleted_at IS NULL")
+    .bind(cid)
+    .first<{ image_url: string | null }>();
+  if (!clone) return c.json({ error: "clone not found" }, 404);
+  if (!clone.image_url) return c.json({ error: "clone has no image_url" }, 400);
+
+  const secret = c.env.LEARN_SECRET ?? "";
+  if (!secret) return c.json({ error: "LEARN_SECRET not configured" }, 500);
+
+  const base = c.env.PRETHIRD_PUBLIC_BASE || "https://rtc.example.invalid/prethird";
+  const upstream = `${base.replace(/\/$/, "")}/oth-path`;
+  try {
+    const resp = await fetch(upstream, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Admin-Secret": secret,
+      },
+      body: JSON.stringify({ face_image_url: clone.image_url, clone_id: cid }),
+    });
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      return c.json({ error: `upstream ${resp.status}: ${text.slice(0, 200)}` }, 502);
+    }
+    const data = await resp.json().catch(() => null);
+    if (!data) return c.json({ error: "upstream non-JSON" }, 502);
+    return c.json(data);
+  } catch (e) {
+    return c.json({ error: `upstream: ${String(e)}` }, 502);
+  }
+});
+
