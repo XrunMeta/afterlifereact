@@ -3,9 +3,8 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import VisemePlayer, { type VisemeSynthResponse } from "../../components/viseme/VisemePlayer";
-import { PRETHIRD_BASE } from "../../config/apiBase";
-
-const LEARN_SECRET = process.env.EXPO_PUBLIC_LEARN_SECRET ?? "";
+import { API_BASE } from "../../config/apiBase";
+import { useAuthStore } from "../../stores/authStore";
 
 const DEFAULT_PREFIX = process.env.EXPO_PUBLIC_VISEME_PREFIX ?? "";
 
@@ -20,22 +19,23 @@ export default function VisemeTestScreen() {
   const [error, setError] = useState<string | null>(null);
   const [meta, setMeta] = useState<string>("");
 
+  const accessToken = useAuthStore((s) => s.accessToken);
   const synth = async () => {
     if (!text.trim()) return;
-    if (!LEARN_SECRET) {
-      setError("EXPO_PUBLIC_LEARN_SECRET env 미설정. .env 파일에 세팅 후 재시작.");
+    if (!accessToken) {
+      setError("로그인이 필요합니다.");
       return;
     }
     setLoading(true);
     setError(null);
     setResponse(null);
     try {
-      const url = `${PRETHIRD_BASE}/oth-path`;
+      const url = `${API_BASE}/oth-path`;
       const r = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Admin-Secret": LEARN_SECRET,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ text, se_key: seKey }),
       });
