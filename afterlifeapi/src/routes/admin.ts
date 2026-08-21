@@ -1199,7 +1199,10 @@ admin.get("/oth-path", requireAdmin, async (c) => {
             c.deletion_state AS deletionState,
             c.soft_deleted_at AS softDeletedAt,
             c.deleted_at AS deletedAt,
-            c.pipeline
+            c.pipeline,
+            c.viseme_prefix AS visemePrefix,
+            c.viseme_generated_at AS visemeGeneratedAt,
+            c.viseme_version AS visemeVersion
        FROM clones c
        LEFT JOIN users u ON u.id = c.owner_id
       WHERE c.id = ?`,
@@ -1212,6 +1215,9 @@ admin.get("/oth-path", requireAdmin, async (c) => {
 
 const adminClonePatchSchema = z.object({
   pipeline: z.enum(["musetalk", "echomimic_v3", "viseme_playback"]).optional(),
+
+  visemePrefix: z.string().max(500).nullable().optional(),
+  visemeVersion: z.string().max(50).nullable().optional(),
 });
 
 admin.patch("/oth-path", requireAdmin, async (c) => {
@@ -1236,6 +1242,19 @@ admin.patch("/oth-path", requireAdmin, async (c) => {
   if (body.pipeline !== undefined) {
     sets.push(`pipeline = ?`);
     binds.push(body.pipeline);
+  }
+
+  if (body.visemePrefix !== undefined) {
+    sets.push(`viseme_prefix = ?`);
+    binds.push(body.visemePrefix);
+    if (body.visemePrefix) {
+      sets.push(`viseme_generated_at = ?`);
+      binds.push(Date.now());
+    }
+  }
+  if (body.visemeVersion !== undefined) {
+    sets.push(`viseme_version = ?`);
+    binds.push(body.visemeVersion);
   }
   if (sets.length === 0) {
     return c.json({ ok: true, updated: 0 });
