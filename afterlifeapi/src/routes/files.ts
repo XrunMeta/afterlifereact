@@ -137,6 +137,29 @@ v_ff9685.post("/", v_6690d9, async (v_3f4e2e) => {
   );
 });
 
+v_ff9685.get("/oth-path", async (v_3f4e2e) => {
+  const v_56b68f = v_3f4e2e.req.param("cloneId");
+  const v_c424ac = v_3f4e2e.req.param("filename");
+  const v_6e0fd3 = Number(v_56b68f);
+  if (!Number.isFinite(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "invalid clone id");
+  }
+
+  if (!/^viseme_[a-z]{1,8}\.png$/.test(v_c424ac)) {
+    throw new v_3ebe58("VALIDATION_FAILED", "invalid viseme filename");
+  }
+  const v_0037e3 = `visemes/${v_6e0fd3}/${v_c424ac}`;
+  const v_8839e3 = await v_3f4e2e.env.R2_ARCHIVE.get(v_0037e3);
+  if (!v_8839e3) throw new v_3ebe58("NOT_FOUND", "viseme not found.");
+  return new Response(v_8839e3.body, {
+    headers: {
+      "Content-Type": "image/png",
+      "Cache-Control": "public, max-age=86400",
+      "Cross-Origin-Resource-Policy": "cross-origin",
+    },
+  });
+});
+
 v_ff9685.get("/:id", async (v_3f4e2e) => {
   const v_2c44c0 = v_3f4e2e.req.param("id");
   const v_389afb = Number(v_2c44c0);
