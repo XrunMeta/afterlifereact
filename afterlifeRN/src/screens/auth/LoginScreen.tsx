@@ -467,7 +467,14 @@ export default function LoginScreen({ navigation }: Props) {
             </View>
           )}
 
-          {}
+          {
+}
+          <View style={styles.signupRow}>
+            <Text style={styles.signupText}>{t("auth.login.signupHint")} </Text>
+            <TouchableOpacity onPress={() => navigation.navigate("Signup", {})}>
+              <Text style={styles.signupLink}>{t("auth.login.signupBtn")}</Text>
+            </TouchableOpacity>
+          </View>
 
           {}
           <Text style={styles.forgotPasswordHint}>
@@ -502,7 +509,7 @@ const styles = StyleSheet.create({
   },
   tabRow: {
 
-    marginTop: 80,
+    marginTop: 0,
     flexDirection: "row",
     backgroundColor: COLORS.zinc100,
     borderRadius: RADIUS.md,
