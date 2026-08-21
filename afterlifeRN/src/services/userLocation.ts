@@ -122,10 +122,16 @@ async function _resolveLocation(): Promise<string | null> {
     (isValidDong(first.street) ? first.street : null) ??
     null;
 
+  const shorten = (t: string): string =>
+    t
+      .replace(/특별시$|광역시$/, '')
+      .replace(/특별자치시$|특별자치도$/, '');
+  const shortenDong = (t: string): string => t.replace(/([가-힣]+)\d+(동|가)$/, '$1$2');
+
   const parts: string[] = [];
-  if (level1) parts.push(level1);
+  if (level1) parts.push(shorten(level1));
   if (level2) parts.push(level2);
-  if (level3) parts.push(level3);
+  if (level3) parts.push(shortenDong(level3));
   let text = parts.length ? parts.join(' ') : null;
 
   if (!level2 && level1 && (level3 || pos.coords)) {
@@ -135,9 +141,9 @@ async function _resolveLocation(): Promise<string | null> {
         console.log('[userLocation] nominatim boost:', nom);
 
         const boostedParts: string[] = [];
-        if (nom.city) boostedParts.push(nom.city);
+        if (nom.city) boostedParts.push(shorten(nom.city));
         if (nom.gu && nom.gu !== nom.city) boostedParts.push(nom.gu);
-        if (nom.dong && nom.dong !== nom.gu && nom.dong !== nom.city) boostedParts.push(nom.dong);
+        if (nom.dong && nom.dong !== nom.gu && nom.dong !== nom.city) boostedParts.push(shortenDong(nom.dong));
         if (boostedParts.length > parts.length) {
           text = boostedParts.join(' ');
         }
