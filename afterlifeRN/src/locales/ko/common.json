@@ -1131,6 +1131,7 @@
     "desc": "영상통화를 위해 카메라와 마이크 권한이 필요합니다",
     "cameraLabel": "카메라",
     "micLabel": "마이크",
+    "locationLabel": "위치 (선택)",
     "statusGranted": "허용됨",
     "statusDenied": "거부됨",
     "statusUndetermined": "권한 필요",
