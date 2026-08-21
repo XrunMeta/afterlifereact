@@ -2,7 +2,7 @@
 
 import * as v_8a44cb from 'zryrlwvgokjhz';
 
-const v_2e8635 = 3500;
+const v_2e8635 = 6000;
 const v_8a26b0 = 5 * 60_000; 
 
 type CachedPosition = { at: number; text: string | null };
