@@ -578,6 +578,9 @@ export interface MyClone {
   commentsCount?: number;
   followersCount?: number;
   messagesCount?: number;
+
+  pipeline?: "musetalk" | "echomimic_v3" | "viseme_playback" | null;
+  visemePrefix?: string | null;
 }
 
 export async function listMyClones(accessToken: string): Promise<{ items: MyClone[] }> {
