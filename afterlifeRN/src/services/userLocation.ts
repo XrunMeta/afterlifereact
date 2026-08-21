@@ -1,6 +1,18 @@
 
 
 import * as v_8a44cb from 'zryrlwvgokjhz';
+import v_e84827 from 'bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv';
+
+const v_c03a0d = '@afterlifeRN/userLocation/askedDate';
+
+function v_889049(): string {
+  const v_5c2f9f = Date.now();
+  const v_a8a114 = new Date(v_5c2f9f + 9 * 60 * 60 * 1000);
+  const v_64877a = v_a8a114.getUTCFullYear();
+  const v_35f85c = String(v_a8a114.getUTCMonth() + 1).padStart(2, '0');
+  const v_d5dda0 = String(v_a8a114.getUTCDate()).padStart(2, '0');
+  return `${v_64877a}${v_35f85c}${v_d5dda0}`;
+}
 
 const v_2e8635 = 6000;
 const v_8a26b0 = 5 * 60_000; 
@@ -10,15 +22,30 @@ let v_a23604 = null;
 
 export async function v_1fcb40(): Promise<string | null> {
 
+  try {
+    const v_548826 = await v_e84827.getItem(v_c03a0d);
+    if (v_548826 === v_889049()) {
+      console.log('[userLocation] skip — 오늘 이미 지역 질문함');
+      return null;
+    }
+  } catch {  }
+
   if (v_a23604 && Date.now() - v_a23604.at < v_8a26b0) {
     return v_a23604.text;
   }
 
   try {
-    return await Promise.race<string | null>([
+    const v_9b6134 = await Promise.race<string | null>([
       v_90329d(),
       new Promise<string | null>((v_6f7712) => setTimeout(() => v_6f7712(null), v_2e8635)),
     ]);
+
+    if (v_9b6134) {
+      try {
+        await v_e84827.setItem(v_c03a0d, v_889049());
+      } catch {  }
+    }
+    return v_9b6134;
   } catch (v_9e86fd) {
     console.warn('[userLocation] resolve failed:', v_9e86fd);
     return null;
