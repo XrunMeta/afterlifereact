@@ -27,7 +27,10 @@ export async function getUserLocationForCall(): Promise<string | null> {
 
 async function _resolveLocation(): Promise<string | null> {
 
-  const perm = await Location.getForegroundPermissionsAsync();
+  let perm = await Location.getForegroundPermissionsAsync();
+  if (!perm.granted && perm.status === 'undetermined' && perm.canAskAgain) {
+    perm = await Location.requestForegroundPermissionsAsync();
+  }
   if (!perm.granted) {
     cache = { at: Date.now(), text: null };
     return null;
