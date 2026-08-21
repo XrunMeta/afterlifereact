@@ -72,12 +72,13 @@ async function _resolveLocation(): Promise<string | null> {
     .filter((v): v is string => !!v && v !== level1);
   const level2 = level2Candidates[0] ?? null;
 
-  const rawDistrict = first.district;
-  const isValidDong = rawDistrict
-    && !/^\d+동?$/.test(rawDistrict.trim())  
-    && rawDistrict !== level1
-    && rawDistrict !== level2;
-  const level3 = isValidDong ? rawDistrict : null;
+  const dongPattern = /^[가-힣]+\d*(동|읍|면)$/;
+  const isValidDong = (v: string | null | undefined): v is string =>
+    !!v && dongPattern.test(v.trim()) && v !== level1 && v !== level2;
+  const level3 =
+    (isValidDong(first.district) ? first.district : null) ??
+    (isValidDong(first.street) ? first.street : null) ??
+    null;
 
   const parts: string[] = [];
   if (level1) parts.push(level1);
