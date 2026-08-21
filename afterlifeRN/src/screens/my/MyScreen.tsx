@@ -283,6 +283,33 @@ export default function v_ed02a5() {
               }
             },
           },
+
+          {
+            icon: "mic" as const,
+            labelKey: "분리 재생 페르소나 만들기 (실험)",
+            descKey: "TTS + 사전 렌더 viseme 클립 sync",
+            action: async () => {
+              try {
+                const { setNextPipeline: v_e935e7 } = await import(
+                  "../../lib/experimentalPipelineFlag"
+                );
+                v_e935e7("viseme_playback");
+                v_c65f5d.getParent()?.dispatch(
+                  v_650cfa.navigate({ name: "CreateTab" }),
+                );
+              } catch (v_49263d) {
+                console.warn("[viseme-persona] nav failed:", v_49263d);
+                v_889fad("오류", "페르소나 만들기 화면 이동 실패");
+              }
+            },
+          },
+
+          {
+            icon: "activity" as const,
+            labelKey: "Viseme 파이프라인 테스트 (dev)",
+            descKey: "합성 + 재생 · 사전 렌더 이미지 필요",
+            action: () => v_c65f5d.navigate("VisemeTest"),
+          },
         ]
       : []),
     {

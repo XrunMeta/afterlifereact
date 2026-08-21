@@ -38,7 +38,7 @@ function v_dd5e8b(status: v_2455ca): string {
   }
 }
 
-function v_fb542f({ icon: v_9ddfab, label: v_2869c1, status: v_d308b5 }: { icon: 'camera' | 'mic'; label: string; status: v_2455ca }) {
+function v_fb542f({ icon: v_9ddfab, label: v_2869c1, status: v_d308b5 }: { icon: 'camera' | 'mic' | 'map-pin'; label: string; status: v_2455ca }) {
   const { t: v_8d41d7 } = v_772971();
   return (
     <View style={v_d81136.row} accessibilityRole="text" accessibilityLabel={`${v_2869c1}: ${v_c4180e(v_8d41d7, v_d308b5)}`}>
@@ -71,6 +71,9 @@ export default function v_6d377c() {
           <PermRow icon="camera" label={v_8d41d7('permissionGate.cameraLabel')} status={v_b6e533.camera} />
           <View style={v_d81136.divider} />
           <PermRow icon="mic" label={v_8d41d7('permissionGate.micLabel')} status={v_b6e533.mic} />
+          <View style={v_d81136.divider} />
+          {}
+          <PermRow icon="map-pin" label={v_8d41d7('permissionGate.locationLabel')} status={v_b6e533.location} />
         </View>
 
         {v_5e9bfe && (

@@ -5,6 +5,8 @@ export type PermStatus = 'granted' | 'denied' | 'undetermined' | 'blocked';
 export interface GateState {
   camera: PermStatus;
   mic: PermStatus;
+
+  location: PermStatus;
 }
 
 export interface GateDecision {
@@ -38,6 +40,12 @@ export function v_b5b955(v_479f05): PermStatus {
   if (v_479f05.status === 'granted') return 'granted';
   if (v_479f05.status === 'undetermined') return 'undetermined';
 
+  return v_479f05.canAskAgain === false ? 'blocked' : 'denied';
+}
+
+export function v_77042d(v_479f05): PermStatus {
+  if (v_479f05.status === 'granted') return 'granted';
+  if (v_479f05.status === 'undetermined') return 'undetermined';
   return v_479f05.canAskAgain === false ? 'blocked' : 'denied';
 }
 

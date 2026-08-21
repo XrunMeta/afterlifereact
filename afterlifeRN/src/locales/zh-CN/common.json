@@ -1131,6 +1131,7 @@
     "desc": "视频通话需要摄像头和麦克风权限",
     "cameraLabel": "摄像头",
     "micLabel": "麦克风",
+    "locationLabel": "位置 (可选)",
     "statusGranted": "已允许",
     "statusDenied": "已拒绝",
     "statusUndetermined": "需要授权",
