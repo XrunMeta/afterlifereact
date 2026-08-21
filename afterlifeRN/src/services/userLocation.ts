@@ -22,34 +22,36 @@ let v_a23604 = null;
 
 export async function v_1fcb40(): Promise<string | null> {
 
+  let v_9b6134 = null;
+  if (v_a23604 && Date.now() - v_a23604.at < v_8a26b0) {
+    v_9b6134 = v_a23604.text;
+  } else {
+    try {
+      v_9b6134 = await Promise.race<string | null>([
+        v_90329d(),
+        new Promise<string | null>((v_6f7712) => setTimeout(() => v_6f7712(null), v_2e8635)),
+      ]);
+    } catch (v_9e86fd) {
+      console.warn('[userLocation] resolve failed:', v_9e86fd);
+      return null;
+    }
+  }
+
+  if (!v_9b6134) return null;
+
+  const v_c84c22 = `${v_889049()}|${v_9b6134}`;
   try {
-    const v_548826 = await v_e84827.getItem(v_c03a0d);
-    if (v_548826 === v_889049()) {
-      console.log('[userLocation] skip — 오늘 이미 지역 질문함');
+    const v_5d85f8 = await v_e84827.getItem(v_c03a0d);
+    if (v_5d85f8 === v_c84c22) {
+      console.log('[userLocation] skip — 오늘 이미 같은 위치로 질문함:', v_9b6134);
       return null;
     }
   } catch {  }
 
-  if (v_a23604 && Date.now() - v_a23604.at < v_8a26b0) {
-    return v_a23604.text;
-  }
-
   try {
-    const v_9b6134 = await Promise.race<string | null>([
-      v_90329d(),
-      new Promise<string | null>((v_6f7712) => setTimeout(() => v_6f7712(null), v_2e8635)),
-    ]);
-
-    if (v_9b6134) {
-      try {
-        await v_e84827.setItem(v_c03a0d, v_889049());
-      } catch {  }
-    }
-    return v_9b6134;
-  } catch (v_9e86fd) {
-    console.warn('[userLocation] resolve failed:', v_9e86fd);
-    return null;
-  }
+    await v_e84827.setItem(v_c03a0d, v_c84c22);
+  } catch {  }
+  return v_9b6134;
 }
 
 async function v_90329d(): Promise<string | null> {
