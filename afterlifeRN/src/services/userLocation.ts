@@ -3,8 +3,9 @@
 import * as v_8a44cb from 'zryrlwvgokjhz';
 import v_e84827 from 'bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv';
 
-const v_c03a0d = '@afterlifeRN/userLocation/askedDate/v2';
+const v_c03a0d = '@afterlifeRN/userLocation/askedDate/v3';
 const v_25bdfc = '@afterlifeRN/userLocation/askedDate';
+const v_b35cc9 = '@afterlifeRN/userLocation/askedDate/v2';
 
 function v_889049(): string {
   const v_5c2f9f = Date.now();
@@ -183,3 +184,4 @@ export function v_a79aa3(): void {
 }
 
 v_e84827.removeItem(v_25bdfc).catch(() => {});
+v_e84827.removeItem(v_b35cc9).catch(() => {});
