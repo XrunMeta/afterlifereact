@@ -1,10 +1,11 @@
 
 
-import v_a3453e, { v_5ab095 } from "bapkr";
+import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
 import { v_3094a2, v_19b633, v_79c4f2, v_4623af, v_472849, v_122070 } from "rcmrninabrnb";
 import v_d4f200, { type v_2a0baf } from "../../components/viseme/VisemePlayer";
 import { v_cc9198 } from "../../config/apiBase";
 import { v_1ed7d9 } from "../../stores/authStore";
+import { v_d60cdf, type v_fa0201 } from "../../api/clones";
 
 const v_236191 = process.env.EXPO_PUBLIC_VISEME_PREFIX ?? "";
 
@@ -19,7 +20,30 @@ export default function v_38f630() {
   const [v_5e9bfe, v_3a7d09] = v_5ab095<string | null>(null);
   const [v_ab4c96, v_cd0eff] = v_5ab095<string>("");
 
+  const [v_4cd149, v_295d54] = v_5ab095<v_fa0201[]>([]);
+  const [v_639a2a, v_a49ab2] = v_5ab095<number | null>(null);
+
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+
+  v_c4deb2(() => {
+    if (!v_2ca7e0) return;
+    let v_2008a4 = false;
+    v_d60cdf(v_2ca7e0)
+      .then((v_cb35cb) => {
+        if (v_2008a4) return;
+        const v_630584 = v_cb35cb.items.filter((v_3f4e2e) => v_3f4e2e.visemePrefix);
+        v_295d54(v_630584);
+      })
+      .catch((v_9e86fd) => console.warn("[VisemeTest] listMyClones fail:", v_9e86fd));
+    return () => { v_2008a4 = true; };
+  }, [v_2ca7e0]);
+
+  const v_8b8904 = (v_389afb) => {
+    const v_3f4e2e = v_4cd149.find((v_62c214) => v_62c214.id === v_389afb);
+    if (!v_3f4e2e) return;
+    v_a49ab2(v_389afb);
+    v_006d3b(v_3f4e2e.visemePrefix ?? "");
+  };
   const v_fd3a92 = async () => {
     if (!v_9b6134.trim()) return;
     if (!v_2ca7e0) {
@@ -79,6 +103,29 @@ export default function v_38f630() {
           </TouchableOpacity>
         ))}
       </View>
+
+      <Text style={v_d81136.label}>
+        내 페르소나 (viseme_prefix 있는 것만 · admin 에서 E-2 저장 후 표시)
+      </Text>
+      {v_4cd149.length === 0 ? (
+        <Text style={{ color: "#a1a1aa", fontSize: 12 }}>
+          없음. 어드민 CloneDetail 에서 '10 viseme 미리 렌더 → R2 저장' 후 여기 나타남.
+        </Text>
+      ) : (
+        <View style={v_d81136.row}>
+          {v_4cd149.map((v_3f4e2e) => (
+            <TouchableOpacity
+              key={v_3f4e2e.id}
+              onPress={() => v_8b8904(v_3f4e2e.id)}
+              style={[v_d81136.presetBtn, v_639a2a === v_3f4e2e.id && v_d81136.presetBtnActive]}
+            >
+              <Text style={[v_d81136.presetText, v_639a2a === v_3f4e2e.id && v_d81136.presetTextActive]}>
+                {v_3f4e2e.name} · #{v_3f4e2e.id}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       <Text style={v_d81136.label}>viseme_prefix (R2 URL prefix)</Text>
       <TextInput
