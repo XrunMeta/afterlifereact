@@ -21,8 +21,14 @@ const POS_CACHE_MS = 5 * 60_000;
 type CachedPosition = { at: number; text: string | null };
 let cache: CachedPosition | null = null;
 
-export async function getUserLocationForCall(cloneId?: number): Promise<string | null> {
+export interface UserLocationResult {
 
+  location: string | null;
+
+  askIntro: boolean;
+}
+
+export async function getUserLocationForCall(cloneId?: number): Promise<UserLocationResult> {
   let text: string | null = null;
   if (cache && Date.now() - cache.at < POS_CACHE_MS) {
     text = cache.text;
@@ -34,27 +40,30 @@ export async function getUserLocationForCall(cloneId?: number): Promise<string |
       ]);
     } catch (e) {
       console.warn('[userLocation] resolve failed:', e);
-      return null;
+      return { location: null, askIntro: false };
     }
   }
 
-  if (!text) return null;
+  if (!text) return { location: null, askIntro: false };
 
   const currentKey = cloneId != null
     ? `${todayKstDate()}|c${cloneId}|${text}`
     : `${todayKstDate()}|${text}`;
+  let askIntro = true;
   try {
     const askedKey = await AsyncStorage.getItem(LOCATION_ASKED_DATE_KEY);
     if (askedKey === currentKey) {
-      console.log(`[userLocation] skip — 오늘 이미 clone=${cloneId ?? '?'} 에 같은 위치로 질문함: ${text}`);
-      return null;
+      console.log(`[userLocation] askIntro=false — 오늘 이미 clone=${cloneId ?? '?'} 에 인사함: ${text}`);
+      askIntro = false;
     }
   } catch {  }
 
-  try {
-    await AsyncStorage.setItem(LOCATION_ASKED_DATE_KEY, currentKey);
-  } catch {  }
-  return text;
+  if (askIntro) {
+    try {
+      await AsyncStorage.setItem(LOCATION_ASKED_DATE_KEY, currentKey);
+    } catch {  }
+  }
+  return { location: text, askIntro };
 }
 
 async function _resolveLocation(): Promise<string | null> {
