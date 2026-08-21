@@ -84,11 +84,57 @@ async function _resolveLocation(): Promise<string | null> {
   if (level1) parts.push(level1);
   if (level2) parts.push(level2);
   if (level3) parts.push(level3);
-  const text = parts.length ? parts.join(' ') : null;
+  let text = parts.length ? parts.join(' ') : null;
+
+  if (!level2 && level1 && (level3 || pos.coords)) {
+    try {
+      const nom = await _nominatimReverse(pos.coords.latitude, pos.coords.longitude);
+      if (nom) {
+        console.log('[userLocation] nominatim boost:', nom);
+
+        const boostedParts: string[] = [];
+        if (nom.city) boostedParts.push(nom.city);
+        if (nom.gu && nom.gu !== nom.city) boostedParts.push(nom.gu);
+        if (nom.dong && nom.dong !== nom.gu && nom.dong !== nom.city) boostedParts.push(nom.dong);
+        if (boostedParts.length > parts.length) {
+          text = boostedParts.join(' ');
+        }
+      }
+    } catch (err) {
+      console.warn('[userLocation] nominatim boost failed:', err);
+    }
+  }
 
   cache = { at: Date.now(), text };
   console.log('[userLocation] resolved:', text);
   return text;
+}
+
+async function _nominatimReverse(
+  lat: number,
+  lng: number,
+): Promise<{ city: string | null; gu: string | null; dong: string | null } | null> {
+  const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1&accept-language=ko&zoom=16`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 2500);
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'AfterLife/1.0 (oth-staff@example.invalid)' },
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { address?: Record<string, string> };
+    const a = json.address ?? {};
+
+    const city = a.city ?? a.province ?? null;
+    const gu = a.borough ?? a.city_district ?? a.county ?? a.district ?? null;
+    const dong = a.suburb ?? a.neighbourhood ?? a.quarter ?? null;
+    return { city, gu, dong };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 export function clearUserLocationCache(): void {
