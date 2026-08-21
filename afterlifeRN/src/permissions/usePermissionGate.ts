@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, type AppStateStatus, Linking } from 'react-native';
 import { Camera as VisionCamera } from 'react-native-vision-camera';
 import { ExpoSpeechRecognitionModule } from 'expo-speech-recognition';
+import * as Location from 'expo-location';
 import {
   gateDecision,
   normalizeCameraStatus,
+  normalizeLocationStatus,
   normalizeMicStatus,
   type GateDecision,
   type GateState,
@@ -35,6 +37,22 @@ async function queryMicStatus(): Promise<{ status: PermStatus; error: string | n
   }
 }
 
+async function queryLocationStatus(): Promise<{ status: PermStatus; error: string | null }> {
+  try {
+    const res = await Location.getForegroundPermissionsAsync();
+    return {
+      status: normalizeLocationStatus({
+        status: (res.granted ? 'granted' : res.status) as 'granted' | 'denied' | 'undetermined',
+        canAskAgain: res.canAskAgain,
+      }),
+      error: null,
+    };
+  } catch (err) {
+    console.warn('[usePermissionGate] location status query failed:', err);
+    return { status: 'undetermined', error: null }; 
+  }
+}
+
 export interface UsePermissionGateResult {
   decision: GateDecision;
   state: GateState;
@@ -50,7 +68,7 @@ export interface UsePermissionGateResult {
 }
 
 export function usePermissionGate(): UsePermissionGateResult {
-  const [state, setState] = useState<GateState>({ camera: 'undetermined', mic: 'undetermined' });
+  const [state, setState] = useState<GateState>({ camera: 'undetermined', mic: 'undetermined', location: 'undetermined' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,8 +80,8 @@ export function usePermissionGate(): UsePermissionGateResult {
     recheckInFlightRef.current = true;
     try {
       const cam = queryCameraStatus();
-      const mic = await queryMicStatus();
-      setState({ camera: cam.status, mic: mic.status });
+      const [mic, loc] = await Promise.all([queryMicStatus(), queryLocationStatus()]);
+      setState({ camera: cam.status, mic: mic.status, location: loc.status });
 
       setError(cam.error ?? mic.error);
     } finally {
@@ -108,6 +126,15 @@ export function usePermissionGate(): UsePermissionGateResult {
         }
       } catch (err) {
         console.warn('[usePermissionGate] mic permission request failed:', err);
+      }
+
+      try {
+        const locRaw = await Location.getForegroundPermissionsAsync();
+        if (!locRaw.granted && locRaw.canAskAgain) {
+          await Location.requestForegroundPermissionsAsync();
+        }
+      } catch (err) {
+        console.warn('[usePermissionGate] location permission request failed:', err);
       }
 
       await recheck();

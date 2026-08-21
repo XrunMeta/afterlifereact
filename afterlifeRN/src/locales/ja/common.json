@@ -1134,6 +1134,7 @@
     "desc": "ビデオ通話のためにカメラとマイクの権限が必要です",
     "cameraLabel": "カメラ",
     "micLabel": "マイク",
+    "locationLabel": "位置情報 (任意)",
     "statusGranted": "許可済み",
     "statusDenied": "拒否",
     "statusUndetermined": "権限が必要",
