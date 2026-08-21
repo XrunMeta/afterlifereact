@@ -2760,3 +2760,79 @@ admin.post("/oth-path", requireAdmin, async (c) => {
   }
 });
 
+admin.post("/oth-path", requireAdmin, async (c) => {
+  const cid = Number(c.req.param("id"));
+  if (!Number.isFinite(cid)) return c.json({ error: "invalid clone id" }, 400);
+
+  const clone = await c.env.DB
+    .prepare("SELECT id FROM clones WHERE id = ? AND deleted_at IS NULL")
+    .bind(cid)
+    .first<{ id: number }>();
+  if (!clone) return c.json({ error: "clone not found" }, 404);
+
+  let body: { visemes?: Array<{ v?: string; png_b64?: string }> };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "invalid json" }, 400);
+  }
+  const items = Array.isArray(body.visemes) ? body.visemes : [];
+  if (items.length !== 10) return c.json({ error: "10 visemes required" }, 400);
+
+  const ORDER = ["REST", "A", "E", "I", "O", "U", "EO", "EU", "BILAB", "DENT"];
+  const seen = new Set<string>();
+  const uploads: Array<{ key: string; buf: Uint8Array }> = [];
+  for (const item of items) {
+    const v = (item?.v ?? "").toString().toUpperCase();
+    if (!ORDER.includes(v)) return c.json({ error: `unknown viseme: ${v}` }, 400);
+    if (seen.has(v)) return c.json({ error: `duplicate viseme: ${v}` }, 400);
+    seen.add(v);
+    const b64 = item?.png_b64 ?? "";
+    if (typeof b64 !== "string" || b64.length === 0) return c.json({ error: `empty png for ${v}` }, 400);
+
+    let bin: string;
+    try { bin = atob(b64); } catch { return c.json({ error: `invalid base64 for ${v}` }, 400); }
+    if (bin.length > 5 * 1024 * 1024) return c.json({ error: `png too large for ${v}` }, 400);
+    const buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    uploads.push({
+      key: `visemes/${cid}/oth-path_${v.toLowerCase()}.png`,
+      buf,
+    });
+  }
+  if (seen.size !== 10) return c.json({ error: "missing viseme(s)" }, 400);
+
+  try {
+    await Promise.all(
+      uploads.map((u) =>
+        c.env.R2_ARCHIVE.put(u.key, u.buf, {
+          httpMetadata: { contentType: "image/png" },
+          customMetadata: { purpose: "viseme", cloneId: String(cid) },
+        }),
+      ),
+    );
+  } catch (e) {
+    return c.json({ error: `R2 put failed: ${String(e)}` }, 502);
+  }
+
+  const origin = new URL(c.req.url).origin;
+  const prefix = `${origin}/oth-path${cid}/`;
+  const now = Date.now();
+  try {
+    await c.env.DB
+      .prepare("UPDATE clones SET viseme_prefix = ?, viseme_version = ?, viseme_generated_at = ? WHERE id = ?")
+      .bind(prefix, "v1-pil", now, cid)
+      .run();
+  } catch (e) {
+    return c.json({ error: `D1 update failed: ${String(e)}` }, 500);
+  }
+
+  return c.json({
+    ok: true,
+    visemePrefix: prefix,
+    visemeVersion: "v1-pil",
+    visemeGeneratedAt: now,
+    uploaded: uploads.length,
+  });
+});
+
