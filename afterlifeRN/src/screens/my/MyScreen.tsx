@@ -303,6 +303,13 @@ export default function v_ed02a5() {
               }
             },
           },
+
+          {
+            icon: "activity" as const,
+            labelKey: "Viseme 파이프라인 테스트 (dev)",
+            descKey: "합성 + 재생 · 사전 렌더 이미지 필요",
+            action: () => v_c65f5d.navigate("VisemeTest"),
+          },
         ]
       : []),
     {
