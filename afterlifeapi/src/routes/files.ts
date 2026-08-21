@@ -137,6 +137,29 @@ files.post("/", requireAuth, async (c) => {
   );
 });
 
+files.get("/oth-path", async (c) => {
+  const cloneIdRaw = c.req.param("cloneId");
+  const filename = c.req.param("filename");
+  const cloneId = Number(cloneIdRaw);
+  if (!Number.isFinite(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "invalid clone id");
+  }
+
+  if (!/^viseme_[a-z]{1,8}\.png$/.test(filename)) {
+    throw new APIError("VALIDATION_FAILED", "invalid viseme filename");
+  }
+  const r2Key = `visemes/${cloneId}/${filename}`;
+  const obj = await c.env.R2_ARCHIVE.get(r2Key);
+  if (!obj) throw new APIError("NOT_FOUND", "viseme not found.");
+  return new Response(obj.body, {
+    headers: {
+      "Content-Type": "image/png",
+      "Cache-Control": "public, max-age=86400",
+      "Cross-Origin-Resource-Policy": "cross-origin",
+    },
+  });
+});
+
 files.get("/:id", async (c) => {
   const idRaw = c.req.param("id");
   const id = Number(idRaw);
