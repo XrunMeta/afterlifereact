@@ -319,6 +319,8 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {}
+        <View style={v_d81136.topSpacer} />
         <View style={v_d81136.container}>
           {}
 
@@ -481,6 +483,8 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
             {v_8d41d7("auth.login.forgotPasswordHint")}
           </Text>
         </View>
+        {}
+        <View style={v_d81136.bottomSpacer} />
       </SafeScrollView>
     </SafeView>
   );
@@ -488,10 +492,16 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
 
 const v_d81136 = v_472849.create({
   scrollContent: {
+
     flexGrow: 1,
-    justifyContent: "center",
     paddingHorizontal: v_9b1a04.xlarge,
-    paddingVertical: 48,
+    paddingVertical: 24,
+  },
+  topSpacer: {
+    flex: 2,
+  },
+  bottomSpacer: {
+    flex: 1,
   },
   container: {
     width: "100%",
