@@ -110,10 +110,17 @@ export function v_b5d684(): UsePermissionGateResult {
     v_423866.current = true;
     try {
 
+      let v_8ea51c = false;
+
       try {
         const v_e5b83d = v_c1dff7(v_628d75.getCameraPermissionStatus());
         if (v_e5b83d !== 'granted') {
           await v_628d75.requestCameraPermission();
+          const v_33efc5 = v_c1dff7(v_628d75.getCameraPermissionStatus());
+          if (v_33efc5 !== 'granted' && (v_e5b83d === 'denied' || v_e5b83d === 'blocked')) {
+
+            v_8ea51c = true;
+          }
         }
       } catch (v_49263d) {
         console.warn('[usePermissionGate] camera permission request failed:', v_49263d);
@@ -122,7 +129,11 @@ export function v_b5d684(): UsePermissionGateResult {
       try {
         const v_e44f92 = await v_e243ee.getPermissionsAsync();
         if (v_e44f92.status !== 'granted') {
+          const v_901c04 = v_e44f92.canAskAgain === false;
           await v_e243ee.requestPermissionsAsync();
+          if (v_901c04) {
+            v_8ea51c = true;
+          }
         }
       } catch (v_49263d) {
         console.warn('[usePermissionGate] mic permission request failed:', v_49263d);
@@ -130,7 +141,7 @@ export function v_b5d684(): UsePermissionGateResult {
 
       try {
         const v_e98c01 = await v_8a44cb.getForegroundPermissionsAsync();
-        if (!v_e98c01.granted && v_e98c01.canAskAgain) {
+        if (!v_e98c01.granted) {
           await v_8a44cb.requestForegroundPermissionsAsync();
         }
       } catch (v_49263d) {
@@ -138,6 +149,15 @@ export function v_b5d684(): UsePermissionGateResult {
       }
 
       await v_f3f9e8();
+
+      if (v_8ea51c) {
+        console.log('[usePermissionGate] popup impossible — opening settings');
+        try {
+          v_f2c756.openSettings();
+        } catch (v_49263d) {
+          console.warn('[usePermissionGate] openSettings failed:', v_49263d);
+        }
+      }
     } finally {
       v_423866.current = false;
     }
