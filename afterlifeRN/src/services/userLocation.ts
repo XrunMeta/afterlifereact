@@ -20,7 +20,7 @@ const v_8a26b0 = 5 * 60_000;
 type CachedPosition = { at: number; text: string | null };
 let v_a23604 = null;
 
-export async function v_1fcb40(): Promise<string | null> {
+export async function v_1fcb40(v_6e0fd3): Promise<string | null> {
 
   let v_9b6134 = null;
   if (v_a23604 && Date.now() - v_a23604.at < v_8a26b0) {
@@ -39,11 +39,13 @@ export async function v_1fcb40(): Promise<string | null> {
 
   if (!v_9b6134) return null;
 
-  const v_c84c22 = `${v_889049()}|${v_9b6134}`;
+  const v_c84c22 = v_6e0fd3 != null
+    ? `${v_889049()}|c${v_6e0fd3}|${v_9b6134}`
+    : `${v_889049()}|${v_9b6134}`;
   try {
     const v_5d85f8 = await v_e84827.getItem(v_c03a0d);
     if (v_5d85f8 === v_c84c22) {
-      console.log('[userLocation] skip — 오늘 이미 같은 위치로 질문함:', v_9b6134);
+      console.log(`[userLocation] skip — 오늘 이미 clone=${v_6e0fd3 ?? '?'} 에 같은 위치로 질문함: ${v_9b6134}`);
       return null;
     }
   } catch {  }
