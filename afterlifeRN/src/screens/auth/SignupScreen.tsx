@@ -115,12 +115,16 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     }
     try {
       const v_8a44cb = await import('zryrlwvgokjhz');
-      let v_d60769 = await v_8a44cb.getForegroundPermissionsAsync();
-      if (!v_d60769.granted && v_d60769.canAskAgain) {
-        v_d60769 = await v_8a44cb.requestForegroundPermissionsAsync();
-      }
+      const v_fc6010 = await v_8a44cb.getForegroundPermissionsAsync();
+      console.log(`[SignupScreen] location initial perm: granted=${v_fc6010.granted} status=${v_fc6010.status} canAskAgain=${v_fc6010.canAskAgain}`);
+
+      const v_d60769 = v_fc6010.granted
+        ? v_fc6010
+        : await v_8a44cb.requestForegroundPermissionsAsync();
+      console.log(`[SignupScreen] location after request: granted=${v_d60769.granted} status=${v_d60769.status} canAskAgain=${v_d60769.canAskAgain}`);
       if (!v_d60769.granted) {
 
+        console.log(`[SignupScreen] location DENIED — showing alert`);
         v_889fad(
           v_8d41d7("auth.signup.locationPermTitle", { defaultValue: "위치 권한 필요" }),
           v_8d41d7("auth.signup.locationPermDesc", {
@@ -129,6 +133,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         );
         return;
       }
+      console.log(`[SignupScreen] location GRANTED — checking box`);
       v_a67880(true);
     } catch (v_49263d) {
       console.warn('[SignupScreen] location permission request failed:', v_49263d);
