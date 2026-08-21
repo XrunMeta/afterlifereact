@@ -55,12 +55,12 @@ async function _resolveLocation(): Promise<string | null> {
   }
 
   const parts: string[] = [];
-  const city = first.city ?? first.region ?? first.administrativeArea;
-  const district = first.district ?? first.subregion ?? first.subAdministrativeArea;
-  const dong = first.name ?? first.street;
-  if (city) parts.push(city);
-  if (district && district !== city) parts.push(district);
-  if (dong && dong !== district && dong !== city) parts.push(dong);
+  const level1 = first.region ?? first.administrativeArea;  
+  const level2 = first.subregion ?? first.subAdministrativeArea ?? first.city;  
+  const level3 = first.district;  
+  if (level1) parts.push(level1);
+  if (level2 && level2 !== level1) parts.push(level2);
+  if (level3 && level3 !== level2 && level3 !== level1) parts.push(level3);
   const text = parts.length ? parts.join(' ') : null;
 
   cache = { at: Date.now(), text };
