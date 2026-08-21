@@ -157,8 +157,6 @@ export async function addIntimacyScore(
   }
 }
 
-const INTIMACY_CALL_TEST_USER_IDS = new Set<number>([9007]);
-
 export async function addCallIntimacyDaily(
   env: Bindings,
   userId: number,
@@ -169,16 +167,6 @@ export async function addCallIntimacyDaily(
     return { crossedThreshold: false, scoreApplied: 0, totalSeconds: 0 };
   }
 
-  if (INTIMACY_CALL_TEST_USER_IDS.has(userId)) {
-    console.log(`[T-250 test] direct +1 for user=${userId} clone=${cloneId} dur=${durationSeconds}`);
-    const r = await addIntimacyScore(env, userId, cloneId, 1, "call");
-    console.log(`[T-250 test] addIntimacyScore result applied=${r.applied} remaining=${r.dailyRemaining}`);
-    return {
-      crossedThreshold: r.applied > 0,
-      scoreApplied: r.applied,
-      totalSeconds: durationSeconds,
-    };
-  }
   const key = `intimacy_call_total:${userId}:${cloneId}:${kstDateYYYYMMDD()}`;
   let oldTotal = 0;
   let newTotal = durationSeconds;
