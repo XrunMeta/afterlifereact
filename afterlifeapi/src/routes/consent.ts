@@ -74,15 +74,42 @@ v_74e200.post("/consent/face-biometric", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true, state: v_b6e533 });
 });
 
+v_74e200.post("/consent/location", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = await v_3f4e2e.req.json<{ state?: string; termsVersion?: string; channel?: string }>()
+    .catch(() => ({} as { state?: string; termsVersion?: string; channel?: string }));
+  const v_b6e533 = v_4d33b2.state;
+  if (v_b6e533 !== "granted" && v_b6e533 !== "revoked") {
+    throw new v_3ebe58("VALIDATION_FAILED", "state must be 'granted' or 'revoked'.");
+  }
+  const v_5c2f9f = Date.now();
+  const v_5ba503 = v_4d33b2.termsVersion ?? null;
+  const v_8e9fad = v_4d33b2.channel ?? "settings";
+
+  await v_3f4e2e.env.DB.batch([
+    v_3f4e2e.env.DB.prepare(
+      "UPDATE users SET location_consent = ?, location_consent_at = ? WHERE id = ?",
+    ).bind(v_b6e533 === "granted" ? 1 : 0, v_5c2f9f, v_43e90c),
+    v_3f4e2e.env.DB.prepare(
+      `INSERT INTO user_consent_log (user_id, consent_type, state, terms_version, channel, changed_at)
+       VALUES (?, 'location', ?, ?, ?, ?)`,
+    ).bind(v_43e90c, v_b6e533, v_5ba503, v_8e9fad, v_5c2f9f),
+  ]);
+
+  return v_3f4e2e.json({ ok: true, state: v_b6e533 });
+});
+
 v_74e200.get("/consent", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_3ac7e7 = await v_3f4e2e.env.DB.prepare(
     `SELECT call_learning_consent AS c, call_learning_consent_at AS at,
-            face_biometric_consent AS fbc, face_consent_at AS fbAt, face_consent_version AS fbVer
+            face_biometric_consent AS fbc, face_consent_at AS fbAt, face_consent_version AS fbVer,
+            location_consent AS lc, location_consent_at AS lcAt
      FROM users WHERE id = ?`,
   ).bind(v_43e90c).first<{
     c: number; at: number | null;
     fbc: number; fbAt: number | null; fbVer: string | null;
+    lc: number; lcAt: number | null;
   }>();
   return v_3f4e2e.json({
     call_learning: { state: v_3ac7e7?.c === 1 ? "granted" : "none", at: v_3ac7e7?.at ?? null },
@@ -91,6 +118,7 @@ v_74e200.get("/consent", v_6690d9, async (v_3f4e2e) => {
       at: v_3ac7e7?.fbAt ?? null,
       version: v_3ac7e7?.fbVer ?? null,
     },
+    location: { state: v_3ac7e7?.lc === 1 ? "granted" : "none", at: v_3ac7e7?.lcAt ?? null },
   });
 });
 
