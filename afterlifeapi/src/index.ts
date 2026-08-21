@@ -44,6 +44,7 @@ import { callConfig } from "./routes/call-config";
 import { pricingConfig } from "./routes/pricing-config";
 import { authConfig } from "./routes/auth-config";
 import { consent } from "./routes/consent";
+import { viseme } from "./routes/viseme";
 import { crashes, crashesAdmin } from "./routes/crashes";
 
 import { recommendedKeywords, recommendedKeywordsAdmin } from "./routes/recommendedKeywords";
@@ -96,6 +97,8 @@ app.route("/oth-path", files);
 
 app.route("/oth-path", deletion);
 app.route("/oth-path", consent);
+
+app.route("/oth-path", viseme);
 app.route("/oth-path", users);
 app.route("/oth-path", clones);
 
