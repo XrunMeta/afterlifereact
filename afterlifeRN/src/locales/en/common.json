@@ -1134,6 +1134,7 @@
     "desc": "We need camera and microphone access for video calls",
     "cameraLabel": "Camera",
     "micLabel": "Microphone",
+    "locationLabel": "Location (optional)",
     "statusGranted": "Allowed",
     "statusDenied": "Denied",
     "statusUndetermined": "Needs permission",
