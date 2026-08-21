@@ -22,34 +22,36 @@ let cache: CachedPosition | null = null;
 
 export async function getUserLocationForCall(): Promise<string | null> {
 
+  let text: string | null = null;
+  if (cache && Date.now() - cache.at < POS_CACHE_MS) {
+    text = cache.text;
+  } else {
+    try {
+      text = await Promise.race<string | null>([
+        _resolveLocation(),
+        new Promise<string | null>((resolve) => setTimeout(() => resolve(null), CALL_TIMEOUT_MS)),
+      ]);
+    } catch (e) {
+      console.warn('[userLocation] resolve failed:', e);
+      return null;
+    }
+  }
+
+  if (!text) return null;
+
+  const currentKey = `${todayKstDate()}|${text}`;
   try {
-    const askedDate = await AsyncStorage.getItem(LOCATION_ASKED_DATE_KEY);
-    if (askedDate === todayKstDate()) {
-      console.log('[userLocation] skip — 오늘 이미 지역 질문함');
+    const askedKey = await AsyncStorage.getItem(LOCATION_ASKED_DATE_KEY);
+    if (askedKey === currentKey) {
+      console.log('[userLocation] skip — 오늘 이미 같은 위치로 질문함:', text);
       return null;
     }
   } catch {  }
 
-  if (cache && Date.now() - cache.at < POS_CACHE_MS) {
-    return cache.text;
-  }
-
   try {
-    const text = await Promise.race<string | null>([
-      _resolveLocation(),
-      new Promise<string | null>((resolve) => setTimeout(() => resolve(null), CALL_TIMEOUT_MS)),
-    ]);
-
-    if (text) {
-      try {
-        await AsyncStorage.setItem(LOCATION_ASKED_DATE_KEY, todayKstDate());
-      } catch {  }
-    }
-    return text;
-  } catch (e) {
-    console.warn('[userLocation] resolve failed:', e);
-    return null;
-  }
+    await AsyncStorage.setItem(LOCATION_ASKED_DATE_KEY, currentKey);
+  } catch {  }
+  return text;
 }
 
 async function _resolveLocation(): Promise<string | null> {
