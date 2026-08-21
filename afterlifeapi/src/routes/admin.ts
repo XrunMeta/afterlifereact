@@ -2747,3 +2747,79 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   }
 });
 
+v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_062ae9 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isFinite(v_062ae9)) return v_3f4e2e.json({ error: "invalid clone id" }, 400);
+
+  const v_eb25ce = await v_3f4e2e.env.DB
+    .prepare("SELECT id FROM clones WHERE id = ? AND deleted_at IS NULL")
+    .bind(v_062ae9)
+    .first<{ id: number }>();
+  if (!v_eb25ce) return v_3f4e2e.json({ error: "clone not found" }, 404);
+
+  let v_4d33b2;
+  try {
+    v_4d33b2 = await v_3f4e2e.req.json();
+  } catch {
+    return v_3f4e2e.json({ error: "invalid json" }, 400);
+  }
+  const v_4622b9 = Array.isArray(v_4d33b2.visemes) ? v_4d33b2.visemes : [];
+  if (v_4622b9.length !== 10) return v_3f4e2e.json({ error: "10 visemes required" }, 400);
+
+  const v_da110c = ["REST", "A", "E", "I", "O", "U", "EO", "EU", "BILAB", "DENT"];
+  const v_110a8b = new Set<string>();
+  const v_5bfece = [];
+  for (const v_8c0b26 of v_4622b9) {
+    const v_81e2ef = (v_8c0b26?.v ?? "").toString().toUpperCase();
+    if (!v_da110c.includes(v_81e2ef)) return v_3f4e2e.json({ error: `unknown viseme: ${v_81e2ef}` }, 400);
+    if (v_110a8b.has(v_81e2ef)) return v_3f4e2e.json({ error: `duplicate viseme: ${v_81e2ef}` }, 400);
+    v_110a8b.add(v_81e2ef);
+    const v_8a9589 = v_8c0b26?.png_b64 ?? "";
+    if (typeof v_8a9589 !== "string" || v_8a9589.length === 0) return v_3f4e2e.json({ error: `empty png for ${v_81e2ef}` }, 400);
+
+    let v_d8cac9;
+    try { v_d8cac9 = atob(v_8a9589); } catch { return v_3f4e2e.json({ error: `invalid base64 for ${v_81e2ef}` }, 400); }
+    if (v_d8cac9.length > 5 * 1024 * 1024) return v_3f4e2e.json({ error: `png too large for ${v_81e2ef}` }, 400);
+    const v_83ee53 = new Uint8Array(v_d8cac9.length);
+    for (let v_ebec57 = 0; v_ebec57 < v_d8cac9.length; v_ebec57++) v_83ee53[v_ebec57] = v_d8cac9.charCodeAt(v_ebec57);
+    v_5bfece.push({
+      key: `visemes/${v_062ae9}/oth-path_${v_81e2ef.toLowerCase()}.png`,
+      buf: v_83ee53,
+    });
+  }
+  if (v_110a8b.size !== 10) return v_3f4e2e.json({ error: "missing viseme(s)" }, 400);
+
+  try {
+    await Promise.all(
+      v_5bfece.map((v_ceb55a) =>
+        v_3f4e2e.env.R2_ARCHIVE.put(v_ceb55a.key, v_ceb55a.buf, {
+          httpMetadata: { contentType: "image/png" },
+          customMetadata: { purpose: "viseme", cloneId: String(v_062ae9) },
+        }),
+      ),
+    );
+  } catch (v_9e86fd) {
+    return v_3f4e2e.json({ error: `R2 put failed: ${String(v_9e86fd)}` }, 502);
+  }
+
+  const v_f17108 = new URL(v_3f4e2e.req.url).origin;
+  const v_cd931c = `${v_f17108}/oth-path${v_062ae9}/`;
+  const v_5c2f9f = Date.now();
+  try {
+    await v_3f4e2e.env.DB
+      .prepare("UPDATE clones SET viseme_prefix = ?, viseme_version = ?, viseme_generated_at = ? WHERE id = ?")
+      .bind(v_cd931c, "v1-pil", v_5c2f9f, v_062ae9)
+      .run();
+  } catch (v_9e86fd) {
+    return v_3f4e2e.json({ error: `D1 update failed: ${String(v_9e86fd)}` }, 500);
+  }
+
+  return v_3f4e2e.json({
+    ok: true,
+    visemePrefix: v_cd931c,
+    visemeVersion: "v1-pil",
+    visemeGeneratedAt: v_5c2f9f,
+    uploaded: v_5bfece.length,
+  });
+});
+
