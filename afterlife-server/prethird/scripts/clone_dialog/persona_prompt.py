@@ -306,7 +306,22 @@ def _format_pref_history(val) -> str:
     return "; ".join(parts)
 
 
-def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list[dict]:
+
+def _apply_location_hint(messages: list[dict], user_location: str | None) -> list[dict]:
+    """T-502: system 메시지 뒤에 사용자 위치 섹션 append. user_location falsy 면 no-op."""
+    if not user_location or not messages:
+        return messages
+    hint = (
+        "\n\n## 사용자 지금 위치\n"
+        + user_location
+        + "\n필요하면 그 지역에서 유명한 것 (맛집, 랜드마크, 특산품, 지역 문화) 을 "
+        "자연스럽게 대화에 녹여도 좋아. 억지로 언급하지는 마."
+    )
+    messages[0] = {**messages[0], "content": messages[0]["content"] + hint}
+    return messages
+
+
+def bundle_to_messages(bundle: dict | None, speaker: dict | None = None, user_location: str | None = None) -> list[dict]:
     """personaBundle dict → [{"role": "system", "content": str}].
 
     None, 빈 dict, personaBundle 키 없음 → [].
@@ -549,11 +564,11 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None) -> list
         # 상황에서 방어가 벗겨지는 셈이라, 미확정일 때만은 머리말을 남긴다.
         if not unconfirmed:
             return []
-        return [{"role": "system", "content": header}]
+        return _apply_location_hint([{"role": "system", "content": header}], user_location)
     content = f"{header}\n\n{body}"
 
     # [T-467] 강제 규칙 앵커 — 맨 뒤라 attention 이 가장 강하다. env 미설정이면 회귀 0.
     if os.environ.get("PRETHIRD_STRICT_TONE_RULES", "").strip() == "1":
         content = f"{content}\n\n{STRICT_TONE_ANCHOR}"
 
-    return [{"role": "system", "content": content}]
+    return _apply_location_hint([{"role": "system", "content": content}], user_location)
