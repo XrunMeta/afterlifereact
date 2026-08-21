@@ -1211,7 +1211,7 @@ admin.get("/oth-path", requireAdmin, async (c) => {
 });
 
 const adminClonePatchSchema = z.object({
-  pipeline: z.enum(["musetalk", "echomimic_v3"]).optional(),
+  pipeline: z.enum(["musetalk", "echomimic_v3", "viseme_playback"]).optional(),
 });
 
 admin.patch("/oth-path", requireAdmin, async (c) => {

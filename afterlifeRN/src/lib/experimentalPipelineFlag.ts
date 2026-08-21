@@ -1,6 +1,6 @@
 
 
-export type ExperimentalPipeline = "echomimic_v3";
+export type ExperimentalPipeline = "echomimic_v3" | "viseme_playback";
 
 let _next: ExperimentalPipeline | null = null;
 

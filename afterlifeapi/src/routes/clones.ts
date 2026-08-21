@@ -156,7 +156,7 @@ const createSchema = z.object({
   idle_video_job_id: z.string().uuid().optional(),
   voice_clone_job_id: z.string().uuid().optional(),
 
-  pipeline: z.enum(["musetalk", "echomimic_v3"]).optional(),
+  pipeline: z.enum(["musetalk", "echomimic_v3", "viseme_playback"]).optional(),
 });
 
 const TEST_PRICE_EMAILS = new Set(["oth-user@example.invalid", "oth-test@example.invalid"]);
