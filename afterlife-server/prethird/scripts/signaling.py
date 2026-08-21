@@ -1502,6 +1502,9 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
         try:
             from tts_admin_endpoint import register_tts_admin_routes
             register_tts_admin_routes(app)
+            # T-545: viseme_playback 파이프라인용 TTS + viseme 시퀀스 endpoint
+            from viseme_synth_endpoint import register_viseme_routes
+            register_viseme_routes(app)
         except ImportError:
             log.info("tts_admin_endpoint 없음 — 등록 건너뜀(라이브 전용 모듈)")
         try:
