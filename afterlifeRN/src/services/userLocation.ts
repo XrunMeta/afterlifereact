@@ -37,8 +37,8 @@ async function v_90329d(): Promise<string | null> {
   }
 
   const v_9e7a9d =
-    (await v_8a44cb.getLastKnownPositionAsync({ maxAge: 60_000, requiredAccuracy: 1000 })) ??
-    (await v_8a44cb.getCurrentPositionAsync({ accuracy: v_8a44cb.Accuracy.Balanced }));
+    (await v_8a44cb.getLastKnownPositionAsync({ maxAge: 60_000, requiredAccuracy: 100 })) ??
+    (await v_8a44cb.getCurrentPositionAsync({ accuracy: v_8a44cb.Accuracy.High }));
   if (!v_9e7a9d?.coords) {
     v_a23604 = { at: Date.now(), text: null };
     return null;
@@ -54,13 +54,35 @@ async function v_90329d(): Promise<string | null> {
     return null;
   }
 
+  console.log('[userLocation] geo fields:', JSON.stringify({
+    city: v_ea719c.city,
+    country: v_ea719c.country,
+    district: v_ea719c.district,
+    name: v_ea719c.name,
+    postalCode: v_ea719c.postalCode,
+    region: v_ea719c.region,
+    street: v_ea719c.street,
+    streetNumber: v_ea719c.streetNumber,
+    subregion: v_ea719c.subregion,
+  }));
+
+  const v_5946d2 = v_ea719c.region;  
+
+  const v_fcd2a8 = [v_ea719c.subregion, v_ea719c.city]
+    .filter((v_81e2ef): v_81e2ef is string => !!v_81e2ef && v_81e2ef !== v_5946d2);
+  const v_5d7ee6 = v_fcd2a8[0] ?? null;
+
+  const v_b5dde9 = v_ea719c.district;
+  const v_21e964 = v_b5dde9
+    && !/^\d+동?$/.test(v_b5dde9.trim())  
+    && v_b5dde9 !== v_5946d2
+    && v_b5dde9 !== v_5d7ee6;
+  const v_dee558 = v_21e964 ? v_b5dde9 : null;
+
   const v_468545 = [];
-  const v_5946d2 = v_ea719c.region ?? v_ea719c.administrativeArea;  
-  const v_5d7ee6 = v_ea719c.subregion ?? v_ea719c.subAdministrativeArea ?? v_ea719c.city;  
-  const v_dee558 = v_ea719c.district;  
   if (v_5946d2) v_468545.push(v_5946d2);
-  if (v_5d7ee6 && v_5d7ee6 !== v_5946d2) v_468545.push(v_5d7ee6);
-  if (v_dee558 && v_dee558 !== v_5d7ee6 && v_dee558 !== v_5946d2) v_468545.push(v_dee558);
+  if (v_5d7ee6) v_468545.push(v_5d7ee6);
+  if (v_dee558) v_468545.push(v_dee558);
   const v_9b6134 = v_468545.length ? v_468545.join(' ') : null;
 
   v_a23604 = { at: Date.now(), text: v_9b6134 };
