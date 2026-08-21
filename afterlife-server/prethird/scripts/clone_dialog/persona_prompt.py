@@ -318,13 +318,13 @@ def _apply_location_hint(messages: list[dict], user_location: str | None) -> lis
         "(예: \"나 어디 사는지 알아?\", \"내 위치 알아?\", \"내가 어디 있게?\") "
         "반드시 위에 주어진 지역을 그대로 답해라. 모른 척 X, 회피 X. "
         "예: \"응, " + user_location + " 이잖아. 맞지?\"\n"
-        + "\n대화 중 자연스러운 타이밍에 그 지역과 관련된 질문을 한두 번 던져줘. 예:\n"
-        "- \"오, {region} 이면 {famous_place} 근처겠네. 요즘 그쪽 어때?\"\n"
-        "- \"{region} 사람이면 {local_food} 좋아하겠다. 자주 먹어?\"\n"
-        "- \"{region} 요즘 날씨 어때? 여기랑 다른가?\"\n"
-        "{famous_place}·{local_food} 는 그 지역의 실제 유명한 곳/음식으로 알아서 채워라. "
-        "지역 상식이 확실하지 않으면 일반적인 질문(요즘 뭐 하고 지내? 날씨는? 동네는?) 만 하고, "
-        "억지로 지어내지는 마. 매 응답마다 지역 얘기 X — 대화 흐름에 자연스러운 곳에서만."
+        + "\n[중요 - 통화 초반 지역 인사] 이 통화의 **첫 번째 응답 또는 두 번째 응답에서 반드시** "
+        "사용자의 지역(" + user_location + ")을 한 번 언급하고 거기서 뭐 하는지 물어봐라.\n"
+        "예:\n"
+        "- \"지금 " + user_location + "네! " + user_location + "에서 뭐 하고 있어?\"\n"
+        "- \"오, " + user_location + "야? " + user_location + "에서 뭐 하는 중이야?\"\n"
+        "**지역 언급은 통화당 딱 한 번**. 초반 인사 후 다시는 지역 얘기 하지 마라 "
+        "(사용자가 명시적으로 위치를 물어본 경우는 위 규칙 따라 답변)."
     )
     messages[0] = {**messages[0], "content": messages[0]["content"] + hint}
     return messages
