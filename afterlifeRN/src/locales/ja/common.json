@@ -672,6 +672,9 @@
       "pushPermTitle": "プッシュ通知権限が必要です",
       "pushPermDesc": "マーケティング情報通知を受け取るには、プッシュ通知権限が必要です。\nデバイス設定→通知→AfterLifeで許可してください。",
       "pushPermError": "権限リクエスト中に問題が発生しました。",
+      "locationPermTitle": "位置情報権限が必要です",
+      "locationPermDesc": "通話中に地域ベースの会話を行うには、位置情報権限が必要です。\nデバイス設定→位置情報→AfterLifeで許可してください。",
+      "locationPermError": "位置情報権限のリクエスト中に問題が発生しました。",
       "rateLimit": "しばらくしてから再度お試しください。(1分クールダウン)",
       "sendCodeFailed": "コードの送信に失敗しました。ネットワークをご確認ください。"
     },
