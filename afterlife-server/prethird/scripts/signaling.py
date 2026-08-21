@@ -437,6 +437,7 @@ async def _maybe_swap_l2p(sess, pid: int, name, epoch: int | None = None) -> Non
         new_messages = bundle_to_messages(
             bundle,
             speaker={"name": name, "l2p_data": l2p_data, "person_id": pid},
+            user_location=sess.user_location,
         )
         if not new_messages:
             # [T-252 fix / el I-1] 입력(bundle) 가드만으로는 부족하다 — truthy bundle
@@ -542,7 +543,7 @@ def _unconfirmed_timeout(sess) -> None:
         if not callable(update):
             return
         # speaker 인자 없음 = 상태 1(기본 상대 · 이름 호칭 허용).
-        new_messages = bundle_to_messages(bundle)
+        new_messages = bundle_to_messages(bundle, user_location=sess.user_location)
         if not new_messages:
             log.warning(
                 "session %s 상태1 복귀 재조립 결과가 비어 프롬프트를 유지한다(전소 방지)",
@@ -671,7 +672,7 @@ def _clear_current_speaker(sess, event: str) -> None:
         update = getattr(pipeline, "update_persona", None)
         if not callable(update):
             return
-        new_messages = bundle_to_messages(bundle, speaker={"unconfirmed": True})
+        new_messages = bundle_to_messages(bundle, speaker={"unconfirmed": True}, user_location=sess.user_location)
         if not new_messages:
             # [T-252 fix / el I-1] 입력(bundle) 가드만으로는 부족하다 — truthy bundle
             # 로도 재조립 결과가 [] 가 될 수 있다(L0 rules_text 부재 + 클론 자기 속성
@@ -1313,7 +1314,11 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                         )
                     # T-252: 화자 교대 시 프롬프트를 통째로 재조립하기 위해 원본을 보관한다.
                     sess.bundle = bundle
-                    sess.persona_messages = bundle_to_messages(bundle)
+                    # T-502 사용자 지금 위치 (선택 · 없으면 스킵). str 만 신뢰, 100자 상한.
+                    _user_loc = params.get("user_location")
+                    if isinstance(_user_loc, str) and 1 <= len(_user_loc) <= 100:
+                        sess.user_location = _user_loc.strip() or None
+                    sess.persona_messages = bundle_to_messages(bundle, user_location=sess.user_location)
                     assets = bundle.get("assets") or {}
                     se_key = assets.get("voiceSeKey")
                     # voice.wav lazy fetch: voiceRawUrl(원본 음성) → reference_voices/{clone_id}/voice.wav
@@ -1511,10 +1516,5 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     register_knowledge_interpret_routes(app)
     from knowledge_followup_endpoint import register_knowledge_followup_routes
     register_knowledge_followup_routes(app)
-
-    # T-500 관리자 대화 조회 — /data/records/<clone_id>/*.txt 를 admin UI 로 반환.
-    #   auth = Authorization: Bearer <PRETHIRD_LEARN_SECRET>. api 프록시가 서명.
-    from admin_records_endpoint import register_admin_records_routes
-    register_admin_records_routes(app)
 
     return app

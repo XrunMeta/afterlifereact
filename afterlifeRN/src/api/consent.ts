@@ -75,3 +75,37 @@ export async function getFaceBiometricConsent(
   );
   return result.face_biometric;
 }
+
+export type LocationConsentState = 'granted' | 'none';
+
+export interface SaveLocationConsentOptions {
+  termsVersion?: string;
+  channel?: 'signup' | 'settings';
+}
+
+export async function saveLocationConsent(
+  accessToken: string,
+  state: 'granted' | 'revoked',
+  opts?: SaveLocationConsentOptions,
+): Promise<{ ok: boolean; state: string }> {
+  const body: Record<string, unknown> = { state };
+  if (opts?.termsVersion !== undefined) body.termsVersion = opts.termsVersion;
+  if (opts?.channel !== undefined) body.channel = opts.channel;
+
+  return authFetch<{ ok: boolean; state: string }>(
+    '/oth-path',
+    accessToken,
+    { method: 'POST', body: JSON.stringify(body) },
+  );
+}
+
+export async function getLocationConsent(
+  accessToken: string,
+): Promise<LocationConsentState> {
+  const result = await authFetch<{ location: { state: LocationConsentState; at?: number | null } }>(
+    '/oth-path',
+    accessToken,
+    { method: 'GET' },
+  );
+  return result.location.state;
+}

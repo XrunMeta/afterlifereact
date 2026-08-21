@@ -8,6 +8,7 @@ import { ensureFreshAccessToken } from '../lib/authFetch';
 import { type AudioSessionControl, defaultAudioSessionControl } from './useAudioSession';
 import { type AvatarCall, type LiveAvatarState, type CallPhase, type SpeechSignal, type FaceEvent, classifyTrack } from './avatarCall';
 import { emitTimingEvent } from './timingEvents';
+import { getUserLocationForCall } from '../services/userLocation';
 
 const nowMs = () => Date.now();
 
@@ -299,10 +300,14 @@ export function usePrethirdAvatar(opts: {
       const base = useExperimental ? cfg.experimentalBase! : cfg.prethirdBase;
       const url = `${base}/offer`;
       if (__DEV__) console.log(`[CALL-ROUTE] route=prethird base=${base} pipeline=${currentPipeline ?? 'default'} experimental=${useExperimental} clone_id=${cloneId}`);
+
+      const userLocation = await getUserLocationForCall();
+      const offerBody: Record<string, unknown> = { type: 'offer', sdp: offerSdp, clone_id: cloneId, access_token: freshToken };
+      if (userLocation) offerBody.user_location = userLocation;
       const r = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'offer', sdp: offerSdp, clone_id: cloneId, access_token: freshToken }),
+        body: JSON.stringify(offerBody),
       });
       const text = await r.text();
       if (r.status === 424) {
