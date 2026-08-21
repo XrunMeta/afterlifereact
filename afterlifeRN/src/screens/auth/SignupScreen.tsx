@@ -107,6 +107,22 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
   const [v_540cd3, v_a67880] = v_5ab095(false);
 
+  const v_26e7c7 = async () => {
+    const v_a448ad = !v_540cd3;
+    if (v_a448ad) {
+      try {
+        const v_8a44cb = await import('zryrlwvgokjhz');
+        const v_d60769 = await v_8a44cb.getForegroundPermissionsAsync();
+        if (!v_d60769.granted && v_d60769.canAskAgain) {
+          await v_8a44cb.requestForegroundPermissionsAsync();
+        }
+      } catch (v_49263d) {
+        console.warn('[SignupScreen] location permission request failed:', v_49263d);
+      }
+    }
+    v_a67880(v_a448ad);
+  };
+
   const v_5c764d = v_51b53b && v_09b7fa;
   const v_33f2ba =
     v_5c764d && v_8c98c4 && v_7f128f && v_a03498 && v_540cd3;
@@ -619,10 +635,11 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
               </TouchableOpacity>
             </View>
 
-            {}
+            {
+}
             <View style={v_d81136.checkRow}>
               <TouchableOpacity
-                onPress={() => v_a67880(!v_540cd3)}
+                onPress={() => void v_26e7c7()}
                 hitSlop={8}
               >
                 <View style={[v_d81136.checkbox, v_540cd3 && v_d81136.checkboxChecked]}>
