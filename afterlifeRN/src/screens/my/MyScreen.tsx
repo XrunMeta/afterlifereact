@@ -303,6 +303,13 @@ export default function MyScreen() {
               }
             },
           },
+
+          {
+            icon: "activity" as const,
+            labelKey: "Viseme 파이프라인 테스트 (dev)",
+            descKey: "합성 + 재생 · 사전 렌더 이미지 필요",
+            action: () => navigation.navigate("VisemeTest"),
+          },
         ]
       : []),
     {
