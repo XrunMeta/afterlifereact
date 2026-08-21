@@ -1353,6 +1353,8 @@ function CallScreenInner({ route, navigation }: Props) {
   const [isTerminating, setIsTerminating] = useState(false);
 
   const exitInFlightRef = useRef(false);
+
+  const cancelInFlightRef = useRef(false);
   const exitToMain = useCallback(() => {
     if (exitInFlightRef.current) {
       console.log("[Call][exit] 이미 진행 중 — 재요청 무시");
@@ -1713,8 +1715,17 @@ function CallScreenInner({ route, navigation }: Props) {
             setDialingDone(true);
           }}
           onCancel={async () => {
+
+            if (cancelInFlightRef.current) {
+              return;
+            }
+            cancelInFlightRef.current = true;
             console.log(`[Call][flow] +${Date.now()} DialingScreen.onCancel → stopLive + exitToMain`);
-            await stopLive();
+            try {
+              await stopLive();
+            } catch (err) {
+              console.warn("[Call] onCancel stopLive failed:", err);
+            }
             exitToMain();
           }}
           onRetry={() => {
