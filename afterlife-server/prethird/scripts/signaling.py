@@ -1499,17 +1499,26 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
         # 무조건 import 하면 repo·CI 에서 ImportError 로 죽는다 — 실제로 그렇게 만들었다가
         # prethird 테스트 실패가 31→46 으로 늘었다. 모듈을 repo 로 가져오는 것이 정석이지만
         # 그것은 별개 작업이므로, 여기서는 있으면 등록하고 없으면 조용히 건너뛴다.
+        # 개별 try 로 감싸서 한 모듈 실패가 이후 endpoint 등록을 막지 않게.
+        #   (T-545 E 배포 때 viseme_render_endpoint import 실패 하나로 viseme_synth·tts_admin
+        #    모두 조용히 스킵되던 이슈 방지.)
         try:
             from tts_admin_endpoint import register_tts_admin_routes
             register_tts_admin_routes(app)
+        except Exception as e:
+            log.info("tts_admin_endpoint skip: %s", e)
+        try:
             # T-545: viseme_playback 파이프라인용 TTS + viseme 시퀀스 endpoint
             from viseme_synth_endpoint import register_viseme_routes
             register_viseme_routes(app)
-            # T-545 E: 얼굴 → 10 viseme PNG 사전 렌더 endpoint
+        except Exception as e:
+            log.info("viseme_synth_endpoint skip: %s", e)
+        try:
+            # T-545 E: 얼굴 → 10 viseme PNG 사전 렌더 endpoint (PIL 필요)
             from viseme_render_endpoint import register_viseme_render_routes
             register_viseme_render_routes(app)
-        except ImportError:
-            log.info("tts_admin_endpoint 없음 — 등록 건너뜀(라이브 전용 모듈)")
+        except Exception as e:
+            log.warning("viseme_render_endpoint skip: %s", e)
         try:
             from admin_records_endpoint import register_admin_records_routes
             register_admin_records_routes(app)
