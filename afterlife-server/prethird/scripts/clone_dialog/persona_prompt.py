@@ -314,8 +314,13 @@ def _apply_location_hint(messages: list[dict], user_location: str | None) -> lis
     hint = (
         "\n\n## 사용자 지금 위치\n"
         + user_location
-        + "\n필요하면 그 지역에서 유명한 것 (맛집, 랜드마크, 특산품, 지역 문화) 을 "
-        "자연스럽게 대화에 녹여도 좋아. 억지로 언급하지는 마."
+        + "\n대화 중 자연스러운 타이밍에 그 지역과 관련된 질문을 한두 번 던져줘. 예:\n"
+        "- \"오, {region} 이면 {famous_place} 근처겠네. 요즘 그쪽 어때?\"\n"
+        "- \"{region} 사람이면 {local_food} 좋아하겠다. 자주 먹어?\"\n"
+        "- \"{region} 요즘 날씨 어때? 여기랑 다른가?\"\n"
+        "{famous_place}·{local_food} 는 그 지역의 실제 유명한 곳/음식으로 알아서 채워라. "
+        "지역 상식이 확실하지 않으면 일반적인 질문(요즘 뭐 하고 지내? 날씨는? 동네는?) 만 하고, "
+        "억지로 지어내지는 마. 매 응답마다 지역 얘기 X — 대화 흐름에 자연스러운 곳에서만."
     )
     messages[0] = {**messages[0], "content": messages[0]["content"] + hint}
     return messages
