@@ -672,6 +672,9 @@
       "pushPermTitle": "Push permission required",
       "pushPermDesc": "Marketing notifications require push permission.\nDevice Settings → Notifications → AfterLife to enable.",
       "pushPermError": "Failed to request permission.",
+      "locationPermTitle": "Location permission required",
+      "locationPermDesc": "Location permission is needed for region-based conversation during calls.\nDevice Settings → Location → AfterLife to enable.",
+      "locationPermError": "An error occurred while requesting location permission.",
       "rateLimit": "Please try again later. (1-minute cooldown)",
       "sendCodeFailed": "Failed to send code. Please check your network."
     },

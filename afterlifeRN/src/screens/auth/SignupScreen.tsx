@@ -108,19 +108,35 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_540cd3, v_a67880] = v_5ab095(false);
 
   const v_26e7c7 = async () => {
-    const v_a448ad = !v_540cd3;
-    if (v_a448ad) {
-      try {
-        const v_8a44cb = await import('zryrlwvgokjhz');
-        const v_d60769 = await v_8a44cb.getForegroundPermissionsAsync();
-        if (!v_d60769.granted && v_d60769.canAskAgain) {
-          await v_8a44cb.requestForegroundPermissionsAsync();
-        }
-      } catch (v_49263d) {
-        console.warn('[SignupScreen] location permission request failed:', v_49263d);
-      }
+
+    if (v_540cd3) {
+      v_a67880(false);
+      return;
     }
-    v_a67880(v_a448ad);
+    try {
+      const v_8a44cb = await import('zryrlwvgokjhz');
+      let v_d60769 = await v_8a44cb.getForegroundPermissionsAsync();
+      if (!v_d60769.granted && v_d60769.canAskAgain) {
+        v_d60769 = await v_8a44cb.requestForegroundPermissionsAsync();
+      }
+      if (!v_d60769.granted) {
+
+        v_889fad(
+          v_8d41d7("auth.signup.locationPermTitle", { defaultValue: "위치 권한 필요" }),
+          v_8d41d7("auth.signup.locationPermDesc", {
+            defaultValue: "통화 시 지역 기반 대화를 하려면 위치 권한이 필요합니다.\n기기 설정 → 위치 → AfterLife 에서 허용해 주십시오.",
+          }),
+        );
+        return;
+      }
+      v_a67880(true);
+    } catch (v_49263d) {
+      console.warn('[SignupScreen] location permission request failed:', v_49263d);
+      v_889fad(
+        v_8d41d7("common.error"),
+        v_8d41d7("auth.signup.locationPermError", { defaultValue: "위치 권한 요청 중 문제가 발생했습니다." }),
+      );
+    }
   };
 
   const v_5c764d = v_51b53b && v_09b7fa;
