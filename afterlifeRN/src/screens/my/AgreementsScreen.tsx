@@ -25,8 +25,11 @@ import {
   v_b14b3b,
   v_421733,
   v_0f8436,
+  v_2d09bf,
+  v_74fdb6,
   type v_6a3f07,
   type v_f8228d,
+  type v_a4ab1b,
 } from "../../api/consent";
 
 export default function v_c78d4f() {
@@ -42,6 +45,10 @@ export default function v_c78d4f() {
   const [v_ef3473, v_a782b8] = v_5ab095<v_f8228d>("none");
   const [v_2fe581, v_5d7683] = v_5ab095(true);
   const [v_09250c, v_07c9fd] = v_5ab095(false);
+
+  const [v_a55f0b, v_0326b2] = v_5ab095<v_a4ab1b>("none");
+  const [v_ac7590, v_e7566a] = v_5ab095(true);
+  const [v_039b0a, v_67f419] = v_5ab095(false);
 
   const v_fbea7d = v_de06a3(async () => {
     if (!v_2ca7e0) {
@@ -77,16 +84,35 @@ export default function v_c78d4f() {
     }
   }, [v_2ca7e0]);
 
+  const v_d56263 = v_de06a3(async () => {
+    if (!v_2ca7e0) {
+      v_0326b2("none");
+      v_e7566a(false);
+      return;
+    }
+    v_e7566a(true);
+    try {
+      const v_b6e533 = await v_74fdb6(v_2ca7e0);
+      v_0326b2(v_b6e533);
+    } catch (v_49263d) {
+      console.warn("[Agreements] getLocationConsent failed:", v_49263d);
+    } finally {
+      v_e7566a(false);
+    }
+  }, [v_2ca7e0]);
+
   v_c4deb2(() => {
     v_fbea7d();
     v_ffac69();
-  }, [v_fbea7d, v_ffac69]);
+    v_d56263();
+  }, [v_fbea7d, v_ffac69, v_d56263]);
 
   v_cf763b(
     v_a3453e.useCallback(() => {
       v_fbea7d();
       v_ffac69();
-    }, [v_fbea7d, v_ffac69]),
+      v_d56263();
+    }, [v_fbea7d, v_ffac69, v_d56263]),
   );
 
   const v_da6541 = async (v_3b402b) => {
@@ -129,6 +155,53 @@ export default function v_c78d4f() {
       v_889fad(v_8d41d7("common.error"), v_badeaf);
     } finally {
       v_07c9fd(false);
+    }
+  };
+
+  const v_157703 = async (v_3b402b) => {
+    if (!v_2ca7e0 || v_039b0a) return;
+    if (v_3b402b) {
+      v_67f419(true);
+      try {
+        const v_0e45c5 = await import("zryrlwvgokjhz");
+        const v_fc6010 = await v_0e45c5.getForegroundPermissionsAsync();
+        const v_d60769 = v_fc6010.granted
+          ? v_fc6010
+          : await v_0e45c5.requestForegroundPermissionsAsync();
+        if (!v_d60769.granted) {
+          v_889fad(
+            v_8d41d7("auth.signup.locationPermTitle", { defaultValue: "위치 권한 필요" }),
+            v_8d41d7("auth.signup.locationPermDesc", {
+              defaultValue:
+                "통화 시 지역 기반 대화를 하려면 위치 권한이 필요합니다.\n기기 설정 → 위치 → AfterLife 에서 허용해 주십시오.",
+            }),
+          );
+          v_67f419(false);
+          return;
+        }
+        const v_cb35cb = await v_2d09bf(v_2ca7e0, "granted", { channel: "settings" });
+        v_0326b2(v_cb35cb.state === "granted" ? "granted" : "none");
+      } catch (v_49263d) {
+        const v_badeaf = v_49263d instanceof Error ? v_49263d.message : String(v_49263d);
+        v_889fad(v_8d41d7("common.error"), v_badeaf);
+      } finally {
+        v_67f419(false);
+      }
+      return;
+    }
+
+    const v_ba2215 = v_a55f0b;
+    v_67f419(true);
+    v_0326b2("none");
+    try {
+      const v_cb35cb = await v_2d09bf(v_2ca7e0, "revoked", { channel: "settings" });
+      v_0326b2(v_cb35cb.state === "granted" ? "granted" : "none");
+    } catch (v_49263d) {
+      v_0326b2(v_ba2215);
+      const v_badeaf = v_49263d instanceof Error ? v_49263d.message : String(v_49263d);
+      v_889fad(v_8d41d7("common.error"), v_badeaf);
+    } finally {
+      v_67f419(false);
     }
   };
 
@@ -181,6 +254,15 @@ export default function v_c78d4f() {
         loading={v_2fe581}
         saving={v_09250c}
         onToggle={v_e334fb}
+        t={v_8d41d7}
+      />
+
+      {}
+      <LocationConsentSection
+        state={v_a55f0b}
+        loading={v_ac7590}
+        saving={v_039b0a}
+        onToggle={v_157703}
         t={v_8d41d7}
       />
 
@@ -309,6 +391,59 @@ function v_b8358a({
           ) : (
             <Switch
               testID="face-biometric-consent-toggle"
+              value={v_b6e533 === "granted"}
+              onValueChange={v_0a2cea}
+              disabled={v_35bf26}
+              trackColor={{ false: v_1bfbd0.zinc200, true: v_1bfbd0.violet600 }}
+              thumbColor={v_1bfbd0.white}
+            />
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+interface LocationConsentSectionProps {
+  state: v_a4ab1b;
+  loading: boolean;
+  saving: boolean;
+  onToggle: (value: boolean) => void;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}
+
+function v_4764e7({
+  state: v_b6e533,
+  loading: v_683210,
+  saving: v_35bf26,
+  onToggle: v_0a2cea,
+  t: v_8d41d7,
+}: LocationConsentSectionProps) {
+  return (
+    <View
+      testID="location-consent-section"
+      style={[v_fd5f43.content, { paddingTop: 0, paddingBottom: 32 }]}
+    >
+      <Text style={v_fd5f43.sectionTitle}>
+        {v_8d41d7("settings.privacy.location.sectionTitle", { defaultValue: "위치기반 서비스" })}
+      </Text>
+      <View style={v_fd5f43.card}>
+        <View style={v_fd5f43.row}>
+          <View style={{ flex: 1 }}>
+            <Text style={v_fd5f43.rowName}>
+              {v_8d41d7("settings.privacy.location.toggleLabel", { defaultValue: "위치 정보 사용" })}
+            </Text>
+            <Text style={v_fd5f43.rowSub}>
+              {v_8d41d7("settings.privacy.location.description", {
+                defaultValue: "통화 시 현재 지역을 페르소나에게 힌트로 전달합니다. (선택)",
+              })}
+            </Text>
+          </View>
+          {v_683210 ? (
+            <ActivityIndicator color={v_1bfbd0.zinc500} />
+          ) : (
+            <Switch
+              testID="location-consent-toggle"
               value={v_b6e533 === "granted"}
               onValueChange={v_0a2cea}
               disabled={v_35bf26}
