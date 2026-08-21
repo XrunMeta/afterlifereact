@@ -1131,6 +1131,7 @@
     "desc": "Kami memerlukan izin kamera dan mikrofon untuk panggilan video",
     "cameraLabel": "Kamera",
     "micLabel": "Mikrofon",
+    "locationLabel": "Lokasi (opsional)",
     "statusGranted": "Diizinkan",
     "statusDenied": "Ditolak",
     "statusUndetermined": "Perlu izin",

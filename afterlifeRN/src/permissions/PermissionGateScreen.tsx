@@ -38,7 +38,7 @@ function statusColor(status: PermStatus): string {
   }
 }
 
-function PermRow({ icon, label, status }: { icon: 'camera' | 'mic'; label: string; status: PermStatus }) {
+function PermRow({ icon, label, status }: { icon: 'camera' | 'mic' | 'map-pin'; label: string; status: PermStatus }) {
   const { t } = useTranslation();
   return (
     <View style={styles.row} accessibilityRole="text" accessibilityLabel={`${label}: ${statusLabel(t, status)}`}>
@@ -71,6 +71,9 @@ export default function PermissionGateScreen() {
           <PermRow icon="camera" label={t('permissionGate.cameraLabel')} status={state.camera} />
           <View style={styles.divider} />
           <PermRow icon="mic" label={t('permissionGate.micLabel')} status={state.mic} />
+          <View style={styles.divider} />
+          {}
+          <PermRow icon="map-pin" label={t('permissionGate.locationLabel')} status={state.location} />
         </View>
 
         {error && (

@@ -283,6 +283,33 @@ export default function MyScreen() {
               }
             },
           },
+
+          {
+            icon: "mic" as const,
+            labelKey: "분리 재생 페르소나 만들기 (실험)",
+            descKey: "TTS + 사전 렌더 viseme 클립 sync",
+            action: async () => {
+              try {
+                const { setNextPipeline } = await import(
+                  "../../lib/experimentalPipelineFlag"
+                );
+                setNextPipeline("viseme_playback");
+                navigation.getParent()?.dispatch(
+                  CommonActions.navigate({ name: "CreateTab" }),
+                );
+              } catch (err) {
+                console.warn("[viseme-persona] nav failed:", err);
+                showAlert("오류", "페르소나 만들기 화면 이동 실패");
+              }
+            },
+          },
+
+          {
+            icon: "activity" as const,
+            labelKey: "Viseme 파이프라인 테스트 (dev)",
+            descKey: "합성 + 재생 · 사전 렌더 이미지 필요",
+            action: () => navigation.navigate("VisemeTest"),
+          },
         ]
       : []),
     {

@@ -1,6 +1,7 @@
 import {
   gateDecision,
   normalizeCameraStatus,
+  normalizeLocationStatus,
   normalizeMicStatus,
   type GateState,
 } from '../permissionGate';
@@ -38,44 +39,64 @@ describe('normalizeMicStatus', () => {
   });
 });
 
+describe('normalizeLocationStatus', () => {
+  it('granted → granted', () => {
+    expect(normalizeLocationStatus({ status: 'granted', canAskAgain: false })).toBe('granted');
+  });
+  it('undetermined → undetermined', () => {
+    expect(normalizeLocationStatus({ status: 'undetermined', canAskAgain: true })).toBe('undetermined');
+  });
+  it('denied + canAskAgain=false → blocked', () => {
+    expect(normalizeLocationStatus({ status: 'denied', canAskAgain: false })).toBe('blocked');
+  });
+  it('denied + canAskAgain=true → denied', () => {
+    expect(normalizeLocationStatus({ status: 'denied', canAskAgain: true })).toBe('denied');
+  });
+});
+
 describe('gateDecision', () => {
-  it('camera+mic 모두 granted → pass, canRequest/showSettingsHint 모두 false', () => {
-    const state: GateState = { camera: 'granted', mic: 'granted' };
+  it('camera+mic 모두 granted, 위치 무관 → pass (위치는 옵션이라 판정 제외)', () => {
+    const state: GateState = { camera: 'granted', mic: 'granted', location: 'denied' };
+    expect(gateDecision(state)).toEqual({ pass: true, canRequest: false, showSettingsHint: false });
+  });
+
+  it('camera+mic granted, location granted → pass', () => {
+    const state: GateState = { camera: 'granted', mic: 'granted', location: 'granted' };
     expect(gateDecision(state)).toEqual({ pass: true, canRequest: false, showSettingsHint: false });
   });
 
   it('camera undetermined, mic granted → !pass, canRequest+showSettingsHint 둘 다 true', () => {
-    const state: GateState = { camera: 'undetermined', mic: 'granted' };
+    const state: GateState = { camera: 'undetermined', mic: 'granted', location: 'undetermined' };
     expect(gateDecision(state)).toEqual({ pass: false, canRequest: true, showSettingsHint: true });
   });
 
   it('camera granted, mic denied → !pass, canRequest+showSettingsHint 둘 다 true', () => {
-    const state: GateState = { camera: 'granted', mic: 'denied' };
+    const state: GateState = { camera: 'granted', mic: 'denied', location: 'undetermined' };
     expect(gateDecision(state)).toEqual({ pass: false, canRequest: true, showSettingsHint: true });
   });
 
   it('camera blocked, mic granted → !pass 여도 canRequest 는 여전히 true(mustOpenSettings 강제 없음, false positive 방지)', () => {
-    const state: GateState = { camera: 'blocked', mic: 'granted' };
+    const state: GateState = { camera: 'blocked', mic: 'granted', location: 'undetermined' };
     expect(gateDecision(state)).toEqual({ pass: false, canRequest: true, showSettingsHint: true });
   });
 
   it('camera granted, mic blocked → 동일하게 canRequest+showSettingsHint 둘 다 true', () => {
-    const state: GateState = { camera: 'granted', mic: 'blocked' };
+    const state: GateState = { camera: 'granted', mic: 'blocked', location: 'undetermined' };
     expect(gateDecision(state)).toEqual({ pass: false, canRequest: true, showSettingsHint: true });
   });
 
   it('camera denied, mic blocked → canRequest+showSettingsHint 유지(탈출 경로 보장)', () => {
-    const state: GateState = { camera: 'denied', mic: 'blocked' };
+    const state: GateState = { camera: 'denied', mic: 'blocked', location: 'undetermined' };
     expect(gateDecision(state)).toEqual({ pass: false, canRequest: true, showSettingsHint: true });
   });
 
   it('camera blocked, mic blocked → 그래도 canRequest 는 true', () => {
-    const state: GateState = { camera: 'blocked', mic: 'blocked' };
+    const state: GateState = { camera: 'blocked', mic: 'blocked', location: 'undetermined' };
     expect(gateDecision(state)).toEqual({ pass: false, canRequest: true, showSettingsHint: true });
   });
 
   it('camera undetermined, mic undetermined → canRequest+showSettingsHint 둘 다 true', () => {
-    const state: GateState = { camera: 'undetermined', mic: 'undetermined' };
+    const state: GateState = { camera: 'undetermined', mic: 'undetermined', location: 'undetermined' };
     expect(gateDecision(state)).toEqual({ pass: false, canRequest: true, showSettingsHint: true });
   });
 });

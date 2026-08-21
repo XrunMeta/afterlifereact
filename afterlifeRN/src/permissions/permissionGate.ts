@@ -5,6 +5,8 @@ export type PermStatus = 'granted' | 'denied' | 'undetermined' | 'blocked';
 export interface GateState {
   camera: PermStatus;
   mic: PermStatus;
+
+  location: PermStatus;
 }
 
 export interface GateDecision {
@@ -41,6 +43,15 @@ export function normalizeMicStatus(raw: {
   if (raw.status === 'granted') return 'granted';
   if (raw.status === 'undetermined') return 'undetermined';
 
+  return raw.canAskAgain === false ? 'blocked' : 'denied';
+}
+
+export function normalizeLocationStatus(raw: {
+  status: 'granted' | 'denied' | 'undetermined';
+  canAskAgain?: boolean;
+}): PermStatus {
+  if (raw.status === 'granted') return 'granted';
+  if (raw.status === 'undetermined') return 'undetermined';
   return raw.canAskAgain === false ? 'blocked' : 'denied';
 }
 
