@@ -2,7 +2,7 @@
 
 import * as Location from 'expo-location';
 
-const CALL_TIMEOUT_MS = 3500;
+const CALL_TIMEOUT_MS = 6000;
 const POS_CACHE_MS = 5 * 60_000; 
 
 type CachedPosition = { at: number; text: string | null };
