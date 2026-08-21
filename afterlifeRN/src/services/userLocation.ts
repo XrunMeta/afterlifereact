@@ -1,6 +1,18 @@
 
 
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const LOCATION_ASKED_DATE_KEY = '@afterlifeRN/userLocation/askedDate';
+
+function todayKstDate(): string {
+  const now = Date.now();
+  const kst = new Date(now + 9 * 60 * 60 * 1000);
+  const y = kst.getUTCFullYear();
+  const m = String(kst.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(kst.getUTCDate()).padStart(2, '0');
+  return `${y}${m}${d}`;
+}
 
 const CALL_TIMEOUT_MS = 6000;
 const POS_CACHE_MS = 5 * 60_000; 
@@ -10,15 +22,30 @@ let cache: CachedPosition | null = null;
 
 export async function getUserLocationForCall(): Promise<string | null> {
 
+  try {
+    const askedDate = await AsyncStorage.getItem(LOCATION_ASKED_DATE_KEY);
+    if (askedDate === todayKstDate()) {
+      console.log('[userLocation] skip — 오늘 이미 지역 질문함');
+      return null;
+    }
+  } catch {  }
+
   if (cache && Date.now() - cache.at < POS_CACHE_MS) {
     return cache.text;
   }
 
   try {
-    return await Promise.race<string | null>([
+    const text = await Promise.race<string | null>([
       _resolveLocation(),
       new Promise<string | null>((resolve) => setTimeout(() => resolve(null), CALL_TIMEOUT_MS)),
     ]);
+
+    if (text) {
+      try {
+        await AsyncStorage.setItem(LOCATION_ASKED_DATE_KEY, todayKstDate());
+      } catch {  }
+    }
+    return text;
   } catch (e) {
     console.warn('[userLocation] resolve failed:', e);
     return null;
