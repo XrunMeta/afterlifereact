@@ -21,7 +21,7 @@ import OtpVerifyView from "../../components/auth/OtpVerifyView";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { requestEmailCode, signup, googleCheck, googleSignIn, AuthApiError } from "../../api/auth";
-import { saveCallLearningConsent, saveFaceBiometricConsent } from "../../api/consent";
+import { saveCallLearningConsent, saveFaceBiometricConsent, saveLocationConsent } from "../../api/consent";
 import { faceBiometricSignupState } from "./faceBiometricSignupFlag";
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 import { getOrCreateDeviceId } from "../../lib/deviceId";
@@ -192,6 +192,14 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
         });
       } catch (err) {
         console.warn("[AUTH/signup] saveFaceBiometricConsent failed:", err);
+      }
+
+      if (params.agreeLocation) {
+        try {
+          await saveLocationConsent(res.accessToken, "granted", { channel: "signup" });
+        } catch (err) {
+          console.warn("[AUTH/signup] saveLocationConsent failed:", err);
+        }
       }
 
       console.log("[AUTH/signup] success, accessExpiresIn:", res.accessExpiresIn);

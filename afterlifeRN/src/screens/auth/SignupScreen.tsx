@@ -23,7 +23,7 @@ import CountryRegionPicker from "../../components/common/CountryRegionPicker";
 import TermsModal, { type AgreementType } from "../../components/common/TermsModal";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { requestEmailCode, signup, AuthApiError } from "../../api/auth";
-import { saveCallLearningConsent, saveFaceBiometricConsent } from "../../api/consent";
+import { saveCallLearningConsent, saveFaceBiometricConsent, saveLocationConsent } from "../../api/consent";
 import { faceBiometricSignupState } from "./faceBiometricSignupFlag";
 import { requestPushPermission } from "../../lib/pushNotifications";
 import { getOrCreateDeviceId } from "../../lib/deviceId";
@@ -105,9 +105,11 @@ export default function SignupScreen({ navigation, route }: Props) {
 
   const [agreeFaceBiometric, setAgreeFaceBiometric] = useState(false);
 
+  const [agreeLocation, setAgreeLocation] = useState(false);
+
   const agreeRequired = agreeService && agreePrivacy;
   const agreeAll =
-    agreeRequired && agreeMarketing && agreeCallLearning && agreeFaceBiometric;
+    agreeRequired && agreeMarketing && agreeCallLearning && agreeFaceBiometric && agreeLocation;
   const [submitting, setSubmitting] = useState(false);
 
   const [pushToken, setPushToken] = useState<string | null>(null);
@@ -123,6 +125,7 @@ export default function SignupScreen({ navigation, route }: Props) {
       setAgreeMarketing(false);
       setAgreeCallLearning(false);
       setAgreeFaceBiometric(false);
+      setAgreeLocation(false);
       setPushToken(null);
       setPushPlatform(null);
       setDeviceId(null);
@@ -133,6 +136,7 @@ export default function SignupScreen({ navigation, route }: Props) {
     setAgreePrivacy(true);
     setAgreeCallLearning(true);
     setAgreeFaceBiometric(true);
+    setAgreeLocation(true);
     if (!agreeMarketing) {
       await toggleMarketing();
     }
@@ -294,6 +298,14 @@ export default function SignupScreen({ navigation, route }: Props) {
           console.warn("[AUTH/signup] saveFaceBiometricConsent (google) failed:", err);
         }
 
+        if (agreeLocation) {
+          try {
+            await saveLocationConsent(res.accessToken, "granted", { channel: "signup" });
+          } catch (err) {
+            console.warn("[AUTH/signup] saveLocationConsent (google) failed:", err);
+          }
+        }
+
         void activateAuthSession({
           accessToken: res.accessToken,
           refreshToken: res.refreshToken ?? null,
@@ -315,6 +327,7 @@ export default function SignupScreen({ navigation, route }: Props) {
         marketingConsent: agreeMarketing,
         agreeCallLearning,
         agreeFaceBiometric,
+        agreeLocation,
         pushToken: pushToken ?? undefined,
         platform: pushPlatform ?? undefined,
         deviceId: deviceId ?? undefined,
@@ -602,6 +615,27 @@ export default function SignupScreen({ navigation, route }: Props) {
               >
                 <Text style={[styles.termText, styles.termLink]}>
                   {t("auth.signup.faceBiometricConsent")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {}
+            <View style={styles.checkRow}>
+              <TouchableOpacity
+                onPress={() => setAgreeLocation(!agreeLocation)}
+                hitSlop={8}
+              >
+                <View style={[styles.checkbox, agreeLocation && styles.checkboxChecked]}>
+                  {agreeLocation && <Feather name="check" size={14} color={COLORS.white} />}
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.termTextWrap}
+                onPress={() => setTermsModalType(2)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.termText, styles.termLink]}>
+                  {t("auth.signup.locationConsent", { defaultValue: "[선택] 위치기반 서비스 이용동의" })}
                 </Text>
               </TouchableOpacity>
             </View>
