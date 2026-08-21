@@ -438,6 +438,7 @@ async def _maybe_swap_l2p(sess, pid: int, name, epoch: int | None = None) -> Non
             bundle,
             speaker={"name": name, "l2p_data": l2p_data, "person_id": pid},
             user_location=sess.user_location,
+            ask_region_intro=getattr(sess, "ask_region_intro", True),
         )
         if not new_messages:
             # [T-252 fix / el I-1] 입력(bundle) 가드만으로는 부족하다 — truthy bundle
@@ -543,7 +544,11 @@ def _unconfirmed_timeout(sess) -> None:
         if not callable(update):
             return
         # speaker 인자 없음 = 상태 1(기본 상대 · 이름 호칭 허용).
-        new_messages = bundle_to_messages(bundle, user_location=sess.user_location)
+        new_messages = bundle_to_messages(
+            bundle,
+            user_location=sess.user_location,
+            ask_region_intro=getattr(sess, "ask_region_intro", True),
+        )
         if not new_messages:
             log.warning(
                 "session %s 상태1 복귀 재조립 결과가 비어 프롬프트를 유지한다(전소 방지)",
@@ -672,7 +677,12 @@ def _clear_current_speaker(sess, event: str) -> None:
         update = getattr(pipeline, "update_persona", None)
         if not callable(update):
             return
-        new_messages = bundle_to_messages(bundle, speaker={"unconfirmed": True}, user_location=sess.user_location)
+        new_messages = bundle_to_messages(
+            bundle,
+            speaker={"unconfirmed": True},
+            user_location=sess.user_location,
+            ask_region_intro=getattr(sess, "ask_region_intro", True),
+        )
         if not new_messages:
             # [T-252 fix / el I-1] 입력(bundle) 가드만으로는 부족하다 — truthy bundle
             # 로도 재조립 결과가 [] 가 될 수 있다(L0 rules_text 부재 + 클론 자기 속성
@@ -1318,7 +1328,14 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                     _user_loc = params.get("user_location")
                     if isinstance(_user_loc, str) and 1 <= len(_user_loc) <= 100:
                         sess.user_location = _user_loc.strip() or None
-                    sess.persona_messages = bundle_to_messages(bundle, user_location=sess.user_location)
+                    # T-539J: ask_region_intro flag — true 면 인사 규칙 A/B 삽입, false 면 D(답변)만.
+                    _ask_intro = params.get("ask_region_intro")
+                    sess.ask_region_intro = bool(_ask_intro) if _ask_intro is not None else True
+                    sess.persona_messages = bundle_to_messages(
+                        bundle,
+                        user_location=sess.user_location,
+                        ask_region_intro=sess.ask_region_intro,
+                    )
                     assets = bundle.get("assets") or {}
                     se_key = assets.get("voiceSeKey")
                     # voice.wav lazy fetch: voiceRawUrl(원본 음성) → reference_voices/{clone_id}/voice.wav

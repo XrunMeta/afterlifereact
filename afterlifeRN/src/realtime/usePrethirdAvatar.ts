@@ -305,9 +305,12 @@ export function usePrethirdAvatar(opts: {
       const url = `${base}/offer`;
       if (__DEV__) console.log(`[CALL-ROUTE] route=prethird base=${base} pipeline=${currentPipeline ?? 'default'} experimental=${useExperimental} clone_id=${cloneId}`);
 
-      const userLocation = await getUserLocationForCall(cloneId);
+      const { location: userLocation, askIntro } = await getUserLocationForCall(cloneId);
       const offerBody: Record<string, unknown> = { type: 'offer', sdp: offerSdp, clone_id: cloneId, access_token: freshToken };
-      if (userLocation) offerBody.user_location = userLocation;
+      if (userLocation) {
+        offerBody.user_location = userLocation;
+        offerBody.ask_region_intro = askIntro;
+      }
       const r = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
