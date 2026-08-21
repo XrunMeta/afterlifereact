@@ -3,7 +3,8 @@
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const LOCATION_ASKED_DATE_KEY = '@afterlifeRN/userLocation/askedDate';
+const LOCATION_ASKED_DATE_KEY = '@afterlifeRN/userLocation/askedDate/v2';
+const LOCATION_ASKED_DATE_KEY_LEGACY_V1 = '@afterlifeRN/userLocation/askedDate';
 
 function todayKstDate(): string {
   const now = Date.now();
@@ -171,3 +172,5 @@ async function _nominatimReverse(
 export function clearUserLocationCache(): void {
   cache = null;
 }
+
+AsyncStorage.removeItem(LOCATION_ASKED_DATE_KEY_LEGACY_V1).catch(() => {});
