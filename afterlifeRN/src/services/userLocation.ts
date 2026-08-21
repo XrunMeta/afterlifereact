@@ -3,8 +3,9 @@
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const LOCATION_ASKED_DATE_KEY = '@afterlifeRN/userLocation/askedDate/v2';
+const LOCATION_ASKED_DATE_KEY = '@afterlifeRN/userLocation/askedDate/v3';
 const LOCATION_ASKED_DATE_KEY_LEGACY_V1 = '@afterlifeRN/userLocation/askedDate';
+const LOCATION_ASKED_DATE_KEY_LEGACY_V2 = '@afterlifeRN/userLocation/askedDate/v2';
 
 function todayKstDate(): string {
   const now = Date.now();
@@ -183,3 +184,4 @@ export function clearUserLocationCache(): void {
 }
 
 AsyncStorage.removeItem(LOCATION_ASKED_DATE_KEY_LEGACY_V1).catch(() => {});
+AsyncStorage.removeItem(LOCATION_ASKED_DATE_KEY_LEGACY_V2).catch(() => {});
