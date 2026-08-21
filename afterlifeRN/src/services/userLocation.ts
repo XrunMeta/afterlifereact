@@ -55,12 +55,12 @@ async function v_90329d(): Promise<string | null> {
   }
 
   const v_468545 = [];
-  const v_db80cc = v_ea719c.city ?? v_ea719c.region ?? v_ea719c.administrativeArea;
-  const v_570fd1 = v_ea719c.district ?? v_ea719c.subregion ?? v_ea719c.subAdministrativeArea;
-  const v_7888b9 = v_ea719c.name ?? v_ea719c.street;
-  if (v_db80cc) v_468545.push(v_db80cc);
-  if (v_570fd1 && v_570fd1 !== v_db80cc) v_468545.push(v_570fd1);
-  if (v_7888b9 && v_7888b9 !== v_570fd1 && v_7888b9 !== v_db80cc) v_468545.push(v_7888b9);
+  const v_5946d2 = v_ea719c.region ?? v_ea719c.administrativeArea;  
+  const v_5d7ee6 = v_ea719c.subregion ?? v_ea719c.subAdministrativeArea ?? v_ea719c.city;  
+  const v_dee558 = v_ea719c.district;  
+  if (v_5946d2) v_468545.push(v_5946d2);
+  if (v_5d7ee6 && v_5d7ee6 !== v_5946d2) v_468545.push(v_5d7ee6);
+  if (v_dee558 && v_dee558 !== v_5d7ee6 && v_dee558 !== v_5946d2) v_468545.push(v_dee558);
   const v_9b6134 = v_468545.length ? v_468545.join(' ') : null;
 
   v_a23604 = { at: Date.now(), text: v_9b6134 };
