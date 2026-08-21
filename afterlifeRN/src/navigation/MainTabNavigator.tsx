@@ -43,6 +43,8 @@ import TransactionsScreen from "../screens/my/TransactionsScreen";
 
 import PurchaseScreen from "../screens/my/PurchaseScreen";
 
+import VisemeTestScreen from "../screens/dev/VisemeTestScreen";
+
 const ClonesStack = createNativeStackNavigator<ClonesStackParamList>();
 const CreateStack = createNativeStackNavigator<CreateStackParamList>();
 const MyStack = createNativeStackNavigator<MyStackParamList>();
@@ -101,6 +103,7 @@ function MyStackNavigator() {
       <MyStack.Screen name="Transactions" component={TransactionsScreen} />
       <MyStack.Screen name="Purchase" component={PurchaseScreen} />
       <MyStack.Screen name="Reports" component={ReportsScreen} />
+      <MyStack.Screen name="VisemeTest" component={VisemeTestScreen} />
     </MyStack.Navigator>
   );
 }
