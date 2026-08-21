@@ -307,15 +307,19 @@ def _format_pref_history(val) -> str:
 
 
 
-def _apply_location_hint(messages: list[dict], user_location: str | None) -> list[dict]:
-    """T-502: system 메시지 뒤에 사용자 위치 섹션 append. user_location falsy 면 no-op."""
+def _apply_location_hint(
+    messages: list[dict],
+    user_location: str | None,
+    ask_region_intro: bool = True,
+) -> list[dict]:
+    """T-502: system 메시지 뒤에 사용자 위치 섹션 append. user_location falsy 면 no-op.
+
+    T-539J (2026-08-21): ask_region_intro=False 면 규칙 A/B/C 스킵 (이미 오늘 인사한 클론).
+      규칙 D (사용자 위치 질문 답변) 은 항상 활성.
+    """
     if not user_location or not messages:
         return messages
-    # T-539E (2026-08-21): 프롬프트 attention 강화. [절대 규칙] 형태로 맨 뒤에 붙여
-    # LLM 이 반드시 지키도록. 명령형 + 예시 반복.
-    hint = (
-        "\n\n[절대 규칙 · 위치 대화]\n"
-        "사용자의 현재 위치는 **" + user_location + "** 이다.\n"
+    intro_block = (
         "\n"
         "규칙 A. 통화 첫 응답 (\"여보세요?\" 다음 첫 응답) 은 반드시 지역 언급 + 뭐 하는지 질문.\n"
         "  형식: \"지금 [지역]이네! [지역]에서 뭐 해?\" 또는 유사 표현.\n"
@@ -331,6 +335,15 @@ def _apply_location_hint(messages: list[dict], user_location: str | None) -> lis
         "\n"
         "규칙 C. 규칙 B 확인 후 지역 얘기 종료. 이후 대화에서 반복 언급 X.\n"
         "\n"
+    ) if ask_region_intro else (
+        "\n"
+        "(이미 오늘 이 사용자와 지역 인사 완료 · 규칙 A/B/C 스킵. 지역 얘기 먼저 꺼내지 마라.)\n"
+        "\n"
+    )
+    hint = (
+        "\n\n[절대 규칙 · 위치 대화]\n"
+        "사용자의 현재 위치는 **" + user_location + "** 이다.\n"
+        + intro_block +
         "규칙 D. 사용자가 위치·거주지 물어보면 (\"나 어디 살아?\", \"내 위치 알아?\") "
         "반드시 답: \"응, " + user_location + " 이잖아. 맞지?\"\n"
         "  → 모른 척·회피 절대 금지."
@@ -339,7 +352,12 @@ def _apply_location_hint(messages: list[dict], user_location: str | None) -> lis
     return messages
 
 
-def bundle_to_messages(bundle: dict | None, speaker: dict | None = None, user_location: str | None = None) -> list[dict]:
+def bundle_to_messages(
+    bundle: dict | None,
+    speaker: dict | None = None,
+    user_location: str | None = None,
+    ask_region_intro: bool = True,
+) -> list[dict]:
     """personaBundle dict → [{"role": "system", "content": str}].
 
     None, 빈 dict, personaBundle 키 없음 → [].
@@ -582,11 +600,11 @@ def bundle_to_messages(bundle: dict | None, speaker: dict | None = None, user_lo
         # 상황에서 방어가 벗겨지는 셈이라, 미확정일 때만은 머리말을 남긴다.
         if not unconfirmed:
             return []
-        return _apply_location_hint([{"role": "system", "content": header}], user_location)
+        return _apply_location_hint([{"role": "system", "content": header}], user_location, ask_region_intro)
     content = f"{header}\n\n{body}"
 
     # [T-467] 강제 규칙 앵커 — 맨 뒤라 attention 이 가장 강하다. env 미설정이면 회귀 0.
     if os.environ.get("PRETHIRD_STRICT_TONE_RULES", "").strip() == "1":
         content = f"{content}\n\n{STRICT_TONE_ANCHOR}"
 
-    return _apply_location_hint([{"role": "system", "content": content}], user_location)
+    return _apply_location_hint([{"role": "system", "content": content}], user_location, ask_region_intro)
