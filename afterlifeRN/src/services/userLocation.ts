@@ -20,7 +20,7 @@ const POS_CACHE_MS = 5 * 60_000;
 type CachedPosition = { at: number; text: string | null };
 let cache: CachedPosition | null = null;
 
-export async function getUserLocationForCall(): Promise<string | null> {
+export async function getUserLocationForCall(cloneId?: number): Promise<string | null> {
 
   let text: string | null = null;
   if (cache && Date.now() - cache.at < POS_CACHE_MS) {
@@ -39,11 +39,13 @@ export async function getUserLocationForCall(): Promise<string | null> {
 
   if (!text) return null;
 
-  const currentKey = `${todayKstDate()}|${text}`;
+  const currentKey = cloneId != null
+    ? `${todayKstDate()}|c${cloneId}|${text}`
+    : `${todayKstDate()}|${text}`;
   try {
     const askedKey = await AsyncStorage.getItem(LOCATION_ASKED_DATE_KEY);
     if (askedKey === currentKey) {
-      console.log('[userLocation] skip — 오늘 이미 같은 위치로 질문함:', text);
+      console.log(`[userLocation] skip — 오늘 이미 clone=${cloneId ?? '?'} 에 같은 위치로 질문함: ${text}`);
       return null;
     }
   } catch {  }
