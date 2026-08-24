@@ -13,12 +13,8 @@ export type ValidationResult =
   | { ok: true }
   | { ok: false; reason: ValidationReason };
 
-const v_6a5345 = 0.20;
-const v_822ad2 = 0.42;
-const v_cf2aaf = 0.13;
-const v_79db15 = 0.65;
-const v_0e7d10 = 0.35;
-const v_25c159 = 0.65;
+const v_6a5345 = 0.08;
+const v_822ad2 = 0.85;
 
 function v_333679(v_cd1446): Promise<{ width: number; height: number }> {
   return new Promise((v_6f7712, v_bad6f3) => {
@@ -62,8 +58,7 @@ export async function v_9139dc(v_cd1446): Promise<ValidationResult> {
     console.log("[validatePersonaImage] metrics", { ratio: v_80396f, cx: v_4148d9, cy: v_85ddfd, fw: v_754d3a, fh: v_80ac06 });
     if (v_80396f < v_6a5345) return { ok: false, reason: "too_small" };
     if (v_80396f > v_822ad2) return { ok: false, reason: "too_large" };
-    if (v_85ddfd < v_cf2aaf || v_85ddfd > v_79db15) return { ok: false, reason: "off_center" };
-    if (v_4148d9 < v_0e7d10 || v_4148d9 > v_25c159) return { ok: false, reason: "off_center" };
+
     return { ok: true };
   } catch (v_49263d) {
 
