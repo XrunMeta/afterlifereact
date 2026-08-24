@@ -191,18 +191,76 @@ export default function CallScreen(props: Props) {
 
   const [callEntryOpen, setCallEntryOpen] = React.useState<boolean | null>(false);
 
+  const [preCallGate, setPreCallGate] = React.useState<"checking" | "skip">("checking");
+  React.useEffect(() => {
+    if (!wrapperAccessToken) {
+      setPreCallGate("skip");
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+
+      if (!cancelled) {
+        console.warn("[Call][preCallGate] timeout → skip");
+        setPreCallGate("skip");
+      }
+    }, 2000);
+    (async () => {
+      try {
+        const [consentR, personsR] = await Promise.all([
+          getFaceBiometricConsent(wrapperAccessToken).catch(() => null),
+          listPersons(wrapperAccessToken, cloneId).catch(() => null),
+        ]);
+        if (cancelled) return;
+        clearTimeout(timer);
+        const granted = consentR?.state === "granted";
+        const personCount = personsR?.items?.length ?? -1;
+        const shouldRedirect = granted && personCount === 0;
+        console.log(
+          `[Call][preCallGate] granted=${granted} · personCount=${personCount} · redirect=${shouldRedirect}`,
+        );
+        if (shouldRedirect) {
+
+          props.navigation.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [
+                {
+                  name: "PreCallFaceEnroll",
+                  params: { cloneId, name: paramName, image: paramImage },
+                },
+              ],
+            }),
+          );
+          return;
+        }
+        setPreCallGate("skip");
+      } catch (err) {
+        if (cancelled) return;
+        clearTimeout(timer);
+        console.warn("[Call][preCallGate] error, skip:", err);
+        setPreCallGate("skip");
+      }
+    })();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+
+  }, [wrapperAccessToken, cloneId]);
+
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.zinc950 }}>
       {
 
 }
-      {callEntryOpen !== false || !heavyReady ? (
+      {callEntryOpen !== false || !heavyReady || preCallGate === "checking" ? (
         <DialingScreen
           liveState="idle"
           personaName={paramName ?? ""}
           personaImage={placeholderImage}
 
-          silent={callEntryOpen !== false}
+          silent={callEntryOpen !== false || preCallGate === "checking"}
           onConnected={() => {}}
           onCancel={() => props.navigation.goBack()}
           onRetry={() => {}}
