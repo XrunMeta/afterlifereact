@@ -36,7 +36,7 @@ export const GRACE_HOLD_MS = 60_000;
 
 export const RECENT_SEEN_MS = 90_000;
 
-export const UNKNOWN_ESCALATE_STREAK = 3;
+export const UNKNOWN_ESCALATE_STREAK = 2;
 
 export const ENROLL_GRACE_MS = 60_000;
 

@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
+  ScrollView,
 } from "react-native";
 import { COLORS, RADIUS } from "../constants";
 
@@ -78,6 +79,15 @@ export default function RememberMeSheet({
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         {
+
+}
+        <ScrollView
+          style={styles.scrollBox}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+        {
 }
         <View style={styles.card} testID="remember-me-sheet">
           <Text style={styles.title}>이 분은 누구신가요?</Text>
@@ -139,6 +149,7 @@ export default function RememberMeSheet({
             </Pressable>
           </View>
         </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -152,9 +163,15 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
+  },
 
+  scrollBox: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: "center",
+    alignItems: "center",
     padding: 24,
   },
   card: {
