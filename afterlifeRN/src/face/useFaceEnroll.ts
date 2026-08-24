@@ -1,7 +1,7 @@
 
 
 import { v_de06a3, v_e662ae, v_5ab095 } from "bapkr";
-import { v_4e7b87, v_31967f, v_4585d1 } from "../api/persons";
+import { v_4e7b87, v_31967f, v_4585d1, v_865d38 } from "../api/persons";
 import type { v_4f64ba } from "./embeddingBuffer";
 
 export const v_9e3bb7 = 3;
@@ -69,7 +69,21 @@ export function v_3fc8fd(v_328259): UseFaceEnrollResult {
       try {
         let v_306a28 = v_9d3e9b.current;
         if (!v_306a28) {
-          v_306a28 = await v_84b93d.createPersonFn(v_2ca7e0, { cloneId: v_6e0fd3, displayName: v_1833e7 });
+
+          try {
+            v_306a28 = await v_84b93d.createPersonFn(v_2ca7e0, { cloneId: v_6e0fd3, displayName: v_1833e7 });
+          } catch (v_7df476) {
+            const v_badeaf = (v_7df476 as Error).message ?? "";
+            if (/이미 등록된 이름/.test(v_badeaf)) {
+              const v_ef8ab1 = await v_865d38(v_2ca7e0, v_6e0fd3);
+              const v_3c8572 = v_ef8ab1.items.find((v_e2a85c) => (v_e2a85c.displayName ?? "") === v_1833e7);
+              if (!v_3c8572) throw v_7df476;
+              v_306a28 = { id: v_3c8572.id };
+              console.log(`[useFaceEnroll] 이미 존재 person 재사용 · id=${v_3c8572.id} · displayName=${v_1833e7}`);
+            } else {
+              throw v_7df476;
+            }
+          }
           v_9d3e9b.current = v_306a28;
         }
         if (!v_9dac17.current) {
