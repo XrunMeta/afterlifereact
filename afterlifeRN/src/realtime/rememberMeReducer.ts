@@ -9,6 +9,8 @@ export interface RememberMeState {
 
   sheetOpen: boolean;
 
+  promptRegister: boolean;
+
   graceSinceMs: number | null;
 
   graceHadActivity: boolean;
@@ -55,7 +57,11 @@ export type RememberMeEvent =
 
   | { type: "OPEN_SHEET" }
 
-  | { type: "ENROLLED" };
+  | { type: "ENROLLED" }
+
+  | { type: "CONFIRM_PROMPT" }
+
+  | { type: "DISMISS_PROMPT" };
 
 export type RememberMeAction =
 
@@ -83,6 +89,7 @@ export function v_178dfb(): RememberMeState {
     mode: "identified",
     personId: null,
     sheetOpen: false,
+    promptRegister: false,
     graceSinceMs: null,
     graceHadActivity: false,
     mentionName: false,
@@ -97,6 +104,10 @@ export function v_f8761c(v_fd5f43): boolean {
   return v_fd5f43.mode === "pending";
 }
 
+export function v_4f0ecc(v_fd5f43): boolean {
+  return v_fd5f43.promptRegister;
+}
+
 export function v_b94941(v_fd5f43): boolean {
   return v_fd5f43.mode === "pending" || v_fd5f43.sheetOpen;
 }
@@ -105,14 +116,14 @@ function v_60164c(
   v_fd5f43,
   v_67e77e,
 
-  v_a113eb = false,
+  v_8e790d = false,
 ): RememberMeState {
-
   return {
     ...v_fd5f43,
     mode: "pending",
     personId: null,
-    sheetOpen: v_a113eb,
+    sheetOpen: false, 
+    promptRegister: v_8e790d,
     graceSinceMs: null,
     graceHadActivity: false,
     mentionName: false,
@@ -231,11 +242,11 @@ function v_a448ad(
         };
       }
 
-      const v_20b227 =
+      const v_29bced =
         typeof v_d48baf.score === "number" && v_d48baf.score > 0;
       if (v_b6e533.personId === null) {
         return {
-          state: v_60164c(v_b6e533, v_67e77e, v_20b227),
+          state: v_60164c(v_b6e533, v_67e77e, v_29bced),
           actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
         };
       }
@@ -309,6 +320,16 @@ function v_a448ad(
         },
         actions: v_b6e533.mode === "pending" || v_b6e533.sheetOpen ? [{ type: "MIC_ON" }] : [],
       };
+
+    case "CONFIRM_PROMPT":
+
+      if (!v_b6e533.promptRegister) return { state: v_b6e533, actions: [] };
+      return { state: { ...v_b6e533, promptRegister: false }, actions: [] };
+
+    case "DISMISS_PROMPT":
+
+      if (!v_b6e533.promptRegister) return { state: v_b6e533, actions: [] };
+      return { state: { ...v_b6e533, promptRegister: false }, actions: [] };
 
     default:
       return { state: v_b6e533, actions: [] };
