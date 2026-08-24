@@ -26,9 +26,10 @@ import { v_e74bab } from "../../face/largestFace";
 import { v_a40fe8 } from "../../face/frameTimestamp";
 import { v_a64bce } from "../../face/l2normalize";
 import { v_1ed7d9 } from "../../stores/authStore";
-import { v_4e7b87, v_4585d1 } from "../../api/persons";
+import { v_4e7b87, v_4585d1, v_a94a1b } from "../../api/persons";
 import { v_889fad } from "../../stores/dialogStore";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
+import v_258c1c from "../../components/common/PageHeader";
 import type { v_8ad91b } from "../../navigation/types";
 
 type Nav = v_390fcc<v_8ad91b, "PreCallFaceEnroll">;
@@ -197,6 +198,8 @@ export default function v_8640b9() {
     if (v_cb66b4) return;
     v_ee9ec1(true);
     void (async () => {
+
+      let v_d794c4 = null;
       try {
         const v_8a1355 = (v_625c74.name ?? "본인").trim() || "본인";
 
@@ -205,12 +208,23 @@ export default function v_8640b9() {
           displayName: v_8a1355,
           enrolledVia: "auto_biometric",
         });
+        v_d794c4 = v_306a28.id;
 
         await v_4585d1(v_2ca7e0, v_306a28.id, v_74e259);
+        v_d794c4 = null; 
         v_889fad("등록 완료", "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.");
         setTimeout(v_e9b971, 400);
       } catch (v_49263d) {
         console.warn("[PreCallFaceEnroll] enroll 실패:", v_49263d);
+
+        if (v_d794c4 != null) {
+          try {
+            await v_a94a1b(v_2ca7e0, v_d794c4);
+            console.log(`[PreCallFaceEnroll] rollback person ${v_d794c4} 삭제 완료`);
+          } catch (v_d42b37) {
+            console.warn("[PreCallFaceEnroll] rollback 실패:", v_d42b37);
+          }
+        }
         v_889fad(
           "등록 실패",
           `${(v_49263d as Error).message ?? "네트워크 오류"}. 등록 없이 통화만 진행할까요?`,
@@ -246,7 +260,10 @@ export default function v_8640b9() {
   const v_2fb8cc = v_729796 >= v_77ce37.length;
 
   return (
-    <View style={[v_fd5f43.container, { paddingTop: v_033e14.top, paddingBottom: v_033e14.bottom }]}>
+    <View style={[v_fd5f43.container, { paddingBottom: v_033e14.bottom }]}>
+      {}
+      <PageHeader showBackButton onBackPress={() => v_3c9f12.goBack()} transparent />
+
       {}
       <View style={v_fd5f43.header}>
         <Text style={v_fd5f43.title}>얼굴 등록</Text>
