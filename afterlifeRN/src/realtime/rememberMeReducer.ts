@@ -36,7 +36,7 @@ export const v_575cf8 = 60_000;
 
 export const v_e6be56 = 90_000;
 
-export const v_fb3fee = 5;
+export const v_fb3fee = 3;
 
 export const v_a5c955 = 60_000;
 
