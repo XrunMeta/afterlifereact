@@ -251,9 +251,9 @@ export default function v_8640b9() {
       for (let v_ebec57 = 0; v_ebec57 < v_2d3c27.length; v_ebec57++) v_75195c[v_ebec57] = v_2d3c27[v_ebec57] * 2 - 1;
       const v_8d4337 = v_23f1a4.runSync([v_75195c])[0] as Float32Array;
 
-      const v_c81315 = (v_127e92 as unknown as { yawAngle?: number }).yawAngle ?? 0;
-      const v_e4ff5e = (v_127e92 as unknown as { pitchAngle?: number }).pitchAngle ?? 0;
-      v_998534(Array.from(v_8d4337), v_a51d09.length, v_c81315, v_e4ff5e);
+      const v_c5ddcd = (v_127e92 as unknown as { yawAngle?: number }).yawAngle ?? 0;
+      const v_1c80a4 = (v_127e92 as unknown as { pitchAngle?: number }).pitchAngle ?? 0;
+      v_998534(Array.from(v_8d4337), v_a51d09.length, -v_c5ddcd, -v_1c80a4);
     },
     [v_de4d76, v_23f1a4, v_2e11e8, v_5111a7, v_44c2eb, v_998534],
   );
