@@ -227,14 +227,29 @@ describe("rememberMeReducer — 대기(pending)", () => {
     expect(v_b6e533.sheetOpen).toBe(true);
   });
 
-  it("아는 얼굴이 돌아오면 대기가 풀리고 재인사한다 — 유일한 자동 해제 경로", () => {
+  it("아는 얼굴이 처음으로 잡히면 대기가 풀리고 조용히 확정 (재인사 X · T-561)", () => {
+
     const { state: v_b6e533, actions: v_dd943a } = v_729796(v_483de2(), v_d81543(58));
     expect(v_b6e533.mode).toBe("identified");
     expect(v_b6e533.personId).toBe(58);
     expect(v_b6e533.sheetOpen).toBe(false);
     expect(v_dd943a).toEqual([
       { type: "MIC_ON" },
-      { type: "NOTIFY_CONFIRMED", personId: 58, displayName: "도기", rejoin: true },
+      { type: "NOTIFY_CONFIRMED", personId: 58, displayName: "도기", rejoin: false, mentionName: false },
+    ]);
+  });
+
+  it("오래 전 (90초 초과) 봤던 사람이 pending 후 돌아오면 rejoin=true (다시 오셨네요)", () => {
+
+    let v_fd5f43 = v_729796(v_178dfb(), v_d81543(58), 0).state; 
+    v_fd5f43 = v_729796(v_fd5f43, { type: "MATCH_UNKNOWN" }, 100_000).state; 
+    v_fd5f43 = v_729796(v_fd5f43, { type: "ACTIVITY" }, 105_000).state;
+    v_fd5f43 = v_729796(v_fd5f43, { type: "TICK" }, 100_000 + v_575cf8).state; 
+
+    const { actions: v_dd943a } = v_729796(v_fd5f43, v_d81543(58), 200_000);
+    expect(v_dd943a).toEqual([
+      { type: "MIC_ON" },
+      { type: "NOTIFY_CONFIRMED", personId: 58, displayName: "도기", rejoin: true, mentionName: false },
     ]);
   });
 
