@@ -142,7 +142,13 @@ persons.post("/match", requireAuth, async (c) => {
 
   const matches = scoped
     .filter((m) => names.has(m.personId))
-    .map((m) => ({ personId: m.personId, displayName: names.get(m.personId) ?? null, score: m.score }));
+    .map((m) => ({
+      personId: m.personId,
+      displayName: names.get(m.personId) ?? null,
+      score: m.score,
+
+      landmarkRatiosList: m.landmarkRatiosList ?? null,
+    }));
 
   const best = matches[0] && matches[0].score >= threshold ? matches[0] : null;
 
@@ -319,8 +325,8 @@ persons.post("/:id/faces", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const personId = parsePersonId(c);
   const body = await c.req
-    .json<{ vectors?: number[][]; cloneId?: number }>()
-    .catch(() => ({}) as { vectors?: number[][]; cloneId?: number });
+    .json<{ vectors?: number[][]; cloneId?: number; landmarkRatios?: (Record<string, number> | null)[] }>()
+    .catch(() => ({}) as { vectors?: number[][]; cloneId?: number; landmarkRatios?: (Record<string, number> | null)[] });
   const vectors = body.vectors;
   if (
     !Array.isArray(vectors) ||
@@ -335,6 +341,21 @@ persons.post("/:id/faces", requireAuth, async (c) => {
   const cloneId = body.cloneId;
   if (typeof cloneId !== "number" || !Number.isInteger(cloneId) || cloneId <= 0)
     throw new APIError("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+
+  const landmarkRatios = body.landmarkRatios;
+  if (landmarkRatios !== undefined) {
+    if (!Array.isArray(landmarkRatios) || landmarkRatios.length !== vectors.length)
+      throw new APIError("VALIDATION_FAILED", "landmarkRatios: vectors 와 동일 길이 배열이어야 합니다");
+    for (const r of landmarkRatios) {
+      if (r == null) continue;
+      if (typeof r !== "object")
+        throw new APIError("VALIDATION_FAILED", "landmarkRatios 항목: object 또는 null 이어야 합니다");
+      for (const v of Object.values(r)) {
+        if (typeof v !== "number" || !Number.isFinite(v))
+          throw new APIError("VALIDATION_FAILED", "landmarkRatios 값: 유한 수치여야 합니다");
+      }
+    }
+  }
 
   const clone = await loadAccessibleClone(c.env.DB, cloneId, userId);
   if (!clone) throw new APIError("NOT_FOUND", "person이 존재하지 않습니다.");
@@ -354,6 +375,7 @@ persons.post("/:id/faces", requireAuth, async (c) => {
       cloneId,
       personId,
       vectors,
+      landmarkRatios,
       source: "call",
     });
 

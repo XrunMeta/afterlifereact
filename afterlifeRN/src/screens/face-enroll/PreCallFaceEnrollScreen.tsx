@@ -29,6 +29,7 @@ import { useTensorflowModel } from "react-native-fast-tflite";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 import { largestFace } from "../../face/largestFace";
 import { computeAlignedCrop } from "../../face/faceAlignCrop";
+import { computeLandmarkRatios, type LandmarkRatios } from "../../face/faceLandmarkRatios";
 import { normalizeFrameTimestampMs } from "../../face/frameTimestamp";
 import { l2normalize } from "../../face/l2normalize";
 import { useAuthStore } from "../../stores/authStore";
@@ -111,6 +112,8 @@ export default function PreCallFaceEnrollScreen() {
   const [permissionOk, setPermissionOk] = useState<boolean | null>(null);
   const [step, setStep] = useState(0);
   const [captured, setCaptured] = useState<number[][]>([]);
+
+  const [capturedRatios, setCapturedRatios] = useState<(Record<string, number> | null)[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const [formName, setFormName] = useState("");
@@ -179,7 +182,13 @@ export default function PreCallFaceEnrollScreen() {
 
   const handleEmbeddingOnJS = useMemo(
     () =>
-      Worklets.createRunOnJS((vector: number[], faceCount: number, yaw: number, pitch: number) => {
+      Worklets.createRunOnJS((
+        vector: number[],
+        faceCount: number,
+        yaw: number,
+        pitch: number,
+        landmarkRatios: LandmarkRatios | null,
+      ) => {
         latestVectorRef.current = vector;
         latestFaceCountRef.current = faceCount;
         if (faceCount > 0) setPose({ yaw, pitch });
@@ -216,6 +225,11 @@ export default function PreCallFaceEnrollScreen() {
           if (prev.length >= (idx + 1) * FRAMES_PER_STEP) return prev;
           return [...prev, norm];
         });
+
+        setCapturedRatios((prev) => {
+          if (prev.length >= (idx + 1) * FRAMES_PER_STEP) return prev;
+          return [...prev, landmarkRatios];
+        });
       }),
     [flashOpacity],
   );
@@ -230,7 +244,7 @@ export default function PreCallFaceEnrollScreen() {
       lastEmbedTs.value = nowMs;
       const primary = largestFace(faces);
       if (primary == null) {
-        handleEmbeddingOnJS([], 0, 0, 0);
+        handleEmbeddingOnJS([], 0, 0, 0, null);
         return;
       }
 
@@ -268,7 +282,9 @@ export default function PreCallFaceEnrollScreen() {
 
       const rawYaw = (primary as unknown as { yawAngle?: number }).yawAngle ?? 0;
       const rawPitch = (primary as unknown as { pitchAngle?: number }).pitchAngle ?? 0;
-      handleEmbeddingOnJS(Array.from(out), faces.length, -rawYaw, -rawPitch);
+
+      const ratios = computeLandmarkRatios(primary as unknown as { bounds: { x: number; y: number; width: number; height: number }; landmarks?: Record<string, { x: number; y: number }> | null });
+      handleEmbeddingOnJS(Array.from(out), faces.length, -rawYaw, -rawPitch, ratios);
     },
     [detectFaces, faceEmbedModel, resize, lastEmbedTs, isAndroidFrame, handleEmbeddingOnJS],
   );
@@ -374,7 +390,9 @@ export default function PreCallFaceEnrollScreen() {
           const CHUNK = 5;
           for (let i = 0; i < captured.length; i += CHUNK) {
             const batch = captured.slice(i, i + CHUNK);
-            await enrollFaces(accessToken, personId, batch, cloneId);
+
+            const ratioBatch = capturedRatios.slice(i, i + CHUNK);
+            await enrollFaces(accessToken, personId, batch, cloneId, ratioBatch);
           }
           const trimmedRel = relation.trim();
           if (trimmedRel) {
@@ -403,7 +421,7 @@ export default function PreCallFaceEnrollScreen() {
         }
       })();
     },
-    [accessToken, user, captured, cloneId, midCall, goToCall],
+    [accessToken, user, captured, capturedRatios, cloneId, midCall, goToCall],
   );
 
   const onSubmit = useCallback(() => {

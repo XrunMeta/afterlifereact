@@ -89,6 +89,8 @@ export interface MatchCandidate {
   personId: number;
   displayName: string | null;
   score: number;
+
+  landmarkRatiosList?: (Record<string, number> | null)[] | null;
 }
 
 export interface MatchResult {
@@ -113,10 +115,13 @@ export async function enrollFaces(
   personId: number,
   vectors: number[][],
   cloneId: number,
+  landmarkRatios?: (Record<string, number> | null)[],
 ): Promise<{ enrolled: number }> {
+  const body: Record<string, unknown> = { vectors, cloneId };
+  if (landmarkRatios !== undefined) body.landmarkRatios = landmarkRatios;
   return authFetch<{ enrolled: number }>(`/oth-path${personId}/faces`, accessToken, {
     method: 'POST',
-    body: JSON.stringify({ vectors, cloneId }),
+    body: JSON.stringify(body),
   });
 }
 
