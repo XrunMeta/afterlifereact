@@ -20,11 +20,20 @@ interface Person {
   id: number;
   cloneId: number | null;
   displayName: string | null;
+  faceCount: number;
+  isSelf: boolean;
 }
 interface Match { personId: number; displayName: string | null; score: number }
-interface Result { matches: Match[]; matchThreshold: number; autoEnrollThreshold: number }
+interface Result {
+  matches: Match[];
+  matchThreshold: number;
+  autoEnrollThreshold: number;
+  vectorPreview: number[]; 
+}
 
 const v_13450a = 112;
+
+const v_f72c06 = 0.75;
 
 export default function v_30f4d7() {
   const v_3c9f12 = v_ada615();
@@ -42,27 +51,30 @@ export default function v_30f4d7() {
   const [v_43c42e, v_47323f] = v_5ab095<Result | null>(null);
   const [v_49263d, v_8a5996] = v_5ab095<string | null>(null);
 
-  v_c4deb2(() => {
-    void (async () => {
-      if (!v_2ca7e0) return;
-      try {
-        const v_cb35cb = await v_865d38(v_2ca7e0);
-        const v_4622b9 = v_cb35cb.items
-          .map((v_e2a85c) => ({
-            id: v_e2a85c.id,
-            cloneId: v_e2a85c.cloneId ?? null,
-            displayName: v_e2a85c.displayName ?? null,
-          }))
-          .filter((v_e2a85c) => v_e2a85c.cloneId != null);
-        console.log(`[FaceTest] persons loaded: ${v_4622b9.length}`, v_4622b9);
-        v_1b22c3(v_4622b9);
+  const v_5f83d7 = v_de06a3(async () => {
+    if (!v_2ca7e0) return;
+    try {
+      const v_cb35cb = await v_865d38(v_2ca7e0);
+      const v_4622b9 = v_cb35cb.items
+        .map((v_e2a85c) => ({
+          id: v_e2a85c.id,
+          cloneId: v_e2a85c.cloneId ?? null,
+          displayName: v_e2a85c.displayName ?? null,
+          faceCount: v_e2a85c.faceCount ?? 0,
+          isSelf: v_e2a85c.isSelf ?? false,
+        }))
+        .filter((v_e2a85c) => v_e2a85c.cloneId != null);
+      console.log(`[FaceTest] persons loaded: ${v_4622b9.length}`, v_4622b9);
+      v_1b22c3(v_4622b9);
+      if (v_4622b9.length > 0 && v_75d7fc == null) v_13fb8b(v_4622b9[0].id);
+    } catch (v_9e86fd) {
+      console.warn("[FaceTest] listPersons 실패:", v_9e86fd);
+    }
+  }, [v_2ca7e0, v_75d7fc]);
 
-        if (v_4622b9.length > 0) v_13fb8b(v_4622b9[0].id);
-      } catch (v_9e86fd) {
-        console.warn("[FaceTest] listPersons 실패:", v_9e86fd);
-      }
-    })();
-  }, [v_2ca7e0]);
+  v_c4deb2(() => {
+    void v_5f83d7();
+  }, [v_5f83d7]);
 
   const v_2e22e6 = v_de06a3(async () => {
     v_8a5996(null);
@@ -112,8 +124,10 @@ export default function v_30f4d7() {
       v_47323f({
         matches: v_cb35cb.matches,
         matchThreshold: v_cb35cb.threshold,
-        autoEnrollThreshold: 0.75, 
+        autoEnrollThreshold: v_f72c06,
+        vectorPreview: Array.from(v_75195c.slice(0, 8)),
       });
+
     } catch (v_9e86fd) {
       v_8a5996((v_9e86fd as Error).message);
     } finally {
@@ -122,10 +136,12 @@ export default function v_30f4d7() {
   }, [v_74f4a3, v_62a304, v_768389, v_2ca7e0, v_b113dd]);
 
   const v_5e5963 = (v_740dd8, v_3b6e81, v_cf62e1) => {
-    if (v_740dd8 >= v_cf62e1) return { bg: "#0f3d1f", tag: "#22c55e", label: `enroll+match (${v_cf62e1.toFixed(2)}↑)` };
-    if (v_740dd8 >= v_3b6e81) return { bg: "#3d3410", tag: "#eab308", label: `match only (${v_3b6e81.toFixed(2)}~${v_cf62e1.toFixed(2)})` };
-    return { bg: "#3d0f0f", tag: "#ef4444", label: `unknown (<${v_3b6e81.toFixed(2)})` };
+    if (v_740dd8 >= v_cf62e1) return { bg: "#0f3d1f", tag: "#22c55e", label: `enroll+match ≥${v_cf62e1.toFixed(2)}` };
+    if (v_740dd8 >= v_3b6e81) return { bg: "#3d3410", tag: "#eab308", label: `match ≥${v_3b6e81.toFixed(2)}` };
+    return { bg: "#3d0f0f", tag: "#ef4444", label: `unknown <${v_3b6e81.toFixed(2)}` };
   };
+
+  const v_de146c = v_43c42e?.matchThreshold ?? 0.55;
 
   return (
     <View style={[v_fd5f43.container, { paddingBottom: v_033e14.bottom }]}>
@@ -135,6 +151,25 @@ export default function v_30f4d7() {
         <Text style={v_fd5f43.desc}>
           갤러리 이미지 → 앱과 동일 tflite 로 512-D 임베딩 → 서버 매칭. 얼굴 정면이 화면 대부분을 차지하는 사진 사용 권장 (얼굴 검출 X).
         </Text>
+
+        {}
+        <View style={v_fd5f43.thresholdBanner}>
+          <Text style={v_fd5f43.thresholdBannerTitle}>현재 임계값</Text>
+          <View style={v_fd5f43.thresholdRow}>
+            <View style={[v_fd5f43.thChip, { backgroundColor: "#eab308" }]}>
+              <Text style={v_fd5f43.thChipLabel}>match</Text>
+              <Text style={v_fd5f43.thChipVal}>≥ {v_de146c.toFixed(2)}</Text>
+            </View>
+            <Text style={v_fd5f43.thExplain}>서버 · 통화 중 얼굴 이름 부르기 게이트 (관대)</Text>
+          </View>
+          <View style={v_fd5f43.thresholdRow}>
+            <View style={[v_fd5f43.thChip, { backgroundColor: "#22c55e" }]}>
+              <Text style={v_fd5f43.thChipLabel}>enroll</Text>
+              <Text style={v_fd5f43.thChipVal}>≥ {v_f72c06.toFixed(2)}</Text>
+            </View>
+            <Text style={v_fd5f43.thExplain}>앱 · auto-enroll 학습 게이트 (엄격)</Text>
+          </View>
+        </View>
 
         {v_2ce97f.state === "loading" && (
           <View style={v_fd5f43.loading}><ActivityIndicator color={v_1bfbd0.white} /><Text style={v_fd5f43.loadingText}>모델 로딩 중...</Text></View>
@@ -148,7 +183,12 @@ export default function v_30f4d7() {
         </TouchableOpacity>
         {v_74f4a3 && <Image source={{ uri: v_74f4a3 }} style={v_fd5f43.preview} resizeMode="cover" />}
 
-        <Text style={v_fd5f43.label}>Person 선택</Text>
+        <View style={v_fd5f43.personHeader}>
+          <Text style={v_fd5f43.label}>저장된 person ({v_fded81.length})</Text>
+          <TouchableOpacity onPress={() => void v_5f83d7()}>
+            <Text style={v_fd5f43.refreshBtn}>새로고침</Text>
+          </TouchableOpacity>
+        </View>
         {v_fded81.length === 0 ? (
           <Text style={v_fd5f43.err}>
             등록된 person 이 하나도 없어요. MyScreen → "얼굴 5각도 등록 (dev)" 로 먼저
@@ -161,11 +201,22 @@ export default function v_30f4d7() {
               <TouchableOpacity
                 key={v_e2a85c.id}
                 onPress={() => v_13fb8b(v_e2a85c.id)}
+                activeOpacity={0.7}
                 style={[v_fd5f43.personItem, v_f8b770 && v_fd5f43.personItemActive]}
               >
-                <Text style={[v_fd5f43.personText, v_f8b770 && v_fd5f43.personTextActive]}>
-                  [{v_e2a85c.id}] {v_e2a85c.displayName ?? "(이름없음)"} · clone {v_e2a85c.cloneId}
-                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[v_fd5f43.personText, v_f8b770 && v_fd5f43.personTextActive]}>
+                    {v_e2a85c.displayName ?? "(이름없음)"} {v_e2a85c.isSelf ? "★self" : ""}
+                  </Text>
+                  <Text style={v_fd5f43.personMeta}>personId {v_e2a85c.id} · cloneId {v_e2a85c.cloneId}</Text>
+                </View>
+                <View style={v_fd5f43.faceCountBadge}>
+                  <Text style={v_fd5f43.faceCountNum}>{v_e2a85c.faceCount}</Text>
+                  <Text style={v_fd5f43.faceCountLbl}>faces</Text>
+                </View>
+                {v_f8b770 && (
+                  <View style={v_fd5f43.selectMark}><Text style={v_fd5f43.selectMarkText}>✓</Text></View>
+                )}
               </TouchableOpacity>
             );
           })
@@ -185,15 +236,19 @@ export default function v_30f4d7() {
           <View style={v_fd5f43.resultCard}>
             <Text style={v_fd5f43.resultTitle}>매칭 결과 (top {v_43c42e.matches.length})</Text>
             {v_43c42e.matches.length === 0 ? (
-              <Text style={v_fd5f43.desc}>매칭된 person 없음</Text>
+              <Text style={v_fd5f43.desc}>매칭된 person 없음 (해당 clone 스코프에 저장된 얼굴 자체가 없거나, 모든 후보가 top-3 밖).</Text>
             ) : v_43c42e.matches.map((v_35f85c) => {
               const v_3f4e2e = v_5e5963(v_35f85c.score, v_43c42e.matchThreshold, v_43c42e.autoEnrollThreshold);
+              const v_24d678 = v_35f85c.score >= v_43c42e.matchThreshold;
+              const v_9c3b6a = v_35f85c.score >= v_43c42e.autoEnrollThreshold;
               return (
                 <View key={v_35f85c.personId} style={[v_fd5f43.matchRow, { backgroundColor: v_3f4e2e.bg }]}>
                   <Text style={v_fd5f43.matchScore}>{v_35f85c.score.toFixed(3)}</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={v_fd5f43.matchName}>{v_35f85c.displayName ?? "(이름없음)"}</Text>
-                    <Text style={v_fd5f43.matchMeta}>personId {v_35f85c.personId}</Text>
+                    <Text style={v_fd5f43.matchMeta}>
+                      personId {v_35f85c.personId} · match {v_24d678 ? "✓" : "✗"} / enroll {v_9c3b6a ? "✓" : "✗"}
+                    </Text>
                   </View>
                   <View style={[v_fd5f43.chip, { backgroundColor: v_3f4e2e.tag }]}>
                     <Text style={v_fd5f43.chipText}>{v_3f4e2e.label}</Text>
@@ -201,8 +256,13 @@ export default function v_30f4d7() {
                 </View>
               );
             })}
+            <View style={v_fd5f43.divider} />
+            <Text style={v_fd5f43.sectionSub}>임베딩 (첫 8차원 · L2 정규화 후)</Text>
+            <Text style={v_fd5f43.vectorPreview}>
+              [{v_43c42e.vectorPreview.map((v_81e2ef) => v_81e2ef.toFixed(3)).join(", ")}, …]
+            </Text>
             <Text style={v_fd5f43.thresholdInfo}>
-              match {v_43c42e.matchThreshold} (서버) · enroll {v_43c42e.autoEnrollThreshold} (앱 auto-enroll)
+              match ≥{v_43c42e.matchThreshold.toFixed(2)} (서버 게이트) · enroll ≥{v_43c42e.autoEnrollThreshold.toFixed(2)} (앱 auto-enroll)
             </Text>
           </View>
         )}
@@ -217,25 +277,50 @@ const v_fd5f43 = v_472849.create({
   desc: { color: v_1bfbd0.zinc400, fontSize: 12, lineHeight: 18, marginBottom: 12 },
   loading: { flexDirection: "row", gap: 8, padding: 12, alignItems: "center" },
   loadingText: { color: v_1bfbd0.zinc300, fontSize: 13 },
+  thresholdBanner: {
+    marginTop: 8, marginBottom: 8, padding: 12, borderRadius: v_8b0c90.md,
+    backgroundColor: v_1bfbd0.zinc900, borderWidth: 1, borderColor: v_1bfbd0.zinc800,
+  },
+  thresholdBannerTitle: { color: v_1bfbd0.white, fontSize: 12, fontWeight: "700", marginBottom: 6, letterSpacing: 0.5 },
+  thresholdRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
+  thChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, minWidth: 90, alignItems: "center" },
+  thChipLabel: { color: v_1bfbd0.white, fontSize: 10, fontWeight: "700", opacity: 0.85 },
+  thChipVal: { color: v_1bfbd0.white, fontSize: 13, fontWeight: "800", fontVariant: ["tabular-nums"] },
+  thExplain: { color: v_1bfbd0.zinc400, fontSize: 11, flex: 1 },
   pickBtn: { backgroundColor: v_1bfbd0.zinc800, padding: 14, borderRadius: v_8b0c90.md, alignItems: "center", marginTop: 8 },
   pickBtnText: { color: v_1bfbd0.white, fontSize: 14, fontWeight: "600" },
   preview: { width: 200, height: 200, borderRadius: v_8b0c90.md, marginTop: 12, alignSelf: "center", backgroundColor: v_1bfbd0.zinc900 },
-  label: { color: v_1bfbd0.zinc300, fontSize: 13, fontWeight: "600", marginTop: 20, marginBottom: 8 },
-  personItem: { padding: 12, borderRadius: v_8b0c90.sm, backgroundColor: v_1bfbd0.zinc900, marginBottom: 6, borderWidth: 1, borderColor: v_1bfbd0.zinc800 },
-  personItemActive: { borderColor: v_1bfbd0.white, backgroundColor: v_1bfbd0.zinc800 },
-  personText: { color: v_1bfbd0.zinc300, fontSize: 13 },
-  personTextActive: { color: v_1bfbd0.white, fontWeight: "600" },
+  personHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 20, marginBottom: 8 },
+  label: { color: v_1bfbd0.zinc300, fontSize: 13, fontWeight: "600" },
+  refreshBtn: { color: "#60a5fa", fontSize: 12, fontWeight: "600" },
+  personItem: {
+    padding: 12, borderRadius: v_8b0c90.sm, backgroundColor: v_1bfbd0.zinc900,
+    marginBottom: 6, borderWidth: 1, borderColor: v_1bfbd0.zinc800,
+    flexDirection: "row", alignItems: "center", gap: 10,
+  },
+  personItemActive: { borderColor: "#60a5fa", borderWidth: 2, backgroundColor: "#1e293b" },
+  personText: { color: v_1bfbd0.zinc300, fontSize: 14 },
+  personTextActive: { color: v_1bfbd0.white, fontWeight: "700" },
+  personMeta: { color: v_1bfbd0.zinc500, fontSize: 10, marginTop: 2 },
+  faceCountBadge: { backgroundColor: v_1bfbd0.zinc800, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, alignItems: "center", minWidth: 48 },
+  faceCountNum: { color: v_1bfbd0.white, fontSize: 16, fontWeight: "800", fontVariant: ["tabular-nums"] },
+  faceCountLbl: { color: v_1bfbd0.zinc400, fontSize: 9 },
+  selectMark: { width: 24, height: 24, borderRadius: 12, backgroundColor: "#60a5fa", alignItems: "center", justifyContent: "center" },
+  selectMarkText: { color: v_1bfbd0.zinc900, fontSize: 14, fontWeight: "800" },
   calcBtn: { backgroundColor: v_1bfbd0.white, padding: 14, borderRadius: v_8b0c90.full, alignItems: "center", marginTop: 20 },
   calcBtnDisabled: { opacity: 0.4 },
   calcBtnText: { color: v_1bfbd0.zinc900, fontSize: 16, fontWeight: "700" },
-  err: { color: "#f87171", fontSize: 13, marginTop: 12 },
+  err: { color: "#f87171", fontSize: 13, marginTop: 12, lineHeight: 18 },
   resultCard: { marginTop: 20, padding: 12, backgroundColor: v_1bfbd0.zinc900, borderRadius: v_8b0c90.md },
   resultTitle: { color: v_1bfbd0.white, fontSize: 15, fontWeight: "700", marginBottom: 10 },
   matchRow: { flexDirection: "row", gap: 10, padding: 10, borderRadius: v_8b0c90.sm, marginBottom: 6, alignItems: "center" },
   matchScore: { color: v_1bfbd0.white, fontSize: 20, fontWeight: "700", minWidth: 70, fontVariant: ["tabular-nums"] },
   matchName: { color: v_1bfbd0.white, fontSize: 14, fontWeight: "600" },
-  matchMeta: { color: v_1bfbd0.zinc400, fontSize: 11 },
+  matchMeta: { color: v_1bfbd0.zinc400, fontSize: 11, marginTop: 2 },
   chip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 },
   chipText: { color: v_1bfbd0.white, fontSize: 10, fontWeight: "700" },
+  divider: { height: 1, backgroundColor: v_1bfbd0.zinc800, marginTop: 10, marginBottom: 10 },
+  sectionSub: { color: v_1bfbd0.zinc400, fontSize: 11, fontWeight: "600", marginBottom: 4 },
+  vectorPreview: { color: v_1bfbd0.zinc300, fontSize: 11, fontFamily: "monospace", lineHeight: 16 },
   thresholdInfo: { color: v_1bfbd0.zinc400, fontSize: 11, marginTop: 8, textAlign: "center" },
 });

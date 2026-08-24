@@ -16,6 +16,10 @@ export interface Person {
   channel?: string | null;
   createdAt?: string;
   updatedAt?: string;
+
+  faceCount?: number;
+
+  isSelf?: boolean;
 }
 
 export interface CreatePersonPayload {
