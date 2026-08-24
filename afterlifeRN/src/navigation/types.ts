@@ -6,7 +6,13 @@ export type RootStackParamList = {
   Chat: { cloneId: number };
   Call: { cloneId: number; name?: string; image?: string | number };
 
-  PreCallFaceEnroll: { cloneId: number; name?: string; image?: string | number };
+  PreCallFaceEnroll: {
+    cloneId: number;
+    name?: string;
+    image?: string | number;
+
+    midCall?: boolean;
+  };
   EmergencyContacts: undefined;
   InheritanceAccept: { token?: string };
   RestoreDeleted: undefined;
