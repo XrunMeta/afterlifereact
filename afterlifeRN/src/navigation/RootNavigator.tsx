@@ -18,6 +18,8 @@ import MainTabNavigator from "./MainTabNavigator";
 
 import ChatScreen from "../screens/clone-interaction/ChatScreen";
 import CallScreen from "../screens/clone-interaction/CallScreen";
+
+import PreCallFaceEnrollScreen from "../screens/face-enroll/PreCallFaceEnrollScreen";
 import InviteAcceptScreen from "../screens/clones/InviteAcceptScreen";
 import NotificationsScreen from "../screens/notifications/NotificationsScreen";
 import UserProfileScreen from "../screens/user/UserProfileScreen";
@@ -82,6 +84,12 @@ export default function RootNavigator() {
 
               animation: "none",
             }}
+          />
+          {}
+          <RootStack.Screen
+            name="PreCallFaceEnroll"
+            component={PreCallFaceEnrollScreen}
+            options={{ presentation: "fullScreenModal", animation: "fade" }}
           />
           <RootStack.Screen name="InviteAccept" component={InviteAcceptScreen} />
           <RootStack.Screen name="Notifications" component={NotificationsScreen} />
