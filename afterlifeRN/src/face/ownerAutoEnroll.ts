@@ -10,11 +10,9 @@ export interface OwnerAutoEnrollInput {
 }
 
 export function shouldAutoEnrollOwner(input: OwnerAutoEnrollInput): boolean {
-  if (input.alreadyTried) return false;
-  if (input.personCount !== 0) return false;
-  const name = (input.ownerName ?? "").trim();
-  if (!name) return false;
-  return true;
+
+  void input;
+  return false;
 }
 
 export function ownerEnrollName(ownerName: string | null | undefined): string {
