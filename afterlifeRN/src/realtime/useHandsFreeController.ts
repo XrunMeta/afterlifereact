@@ -25,7 +25,8 @@ const v_5443e5 = 0.05;
 const v_d641fa = 5000;
 
 const v_d30826 = 3000;
-const v_e1d3e1 = '여보세요?';
+
+const v_e1d3e1 = '';
 
 export function v_7df8a4(opts: {
 
@@ -196,15 +197,20 @@ export function v_7df8a4(opts: {
             v_3f36e6.current = setTimeout(
               () => v_700737.current({ type: 'GREET_TIMEOUT' }), v_a3a40c);
             break;
-          case 'SPEAK_FALLBACK':
+          case 'SPEAK_FALLBACK': {
 
+            const v_ad1e0c = (v_c6145f ?? '').trim();
+            const v_2c5027 = !!v_5069ec.current && !!v_ad1e0c;
             v_d7f7b1('tx', {
-              mode: v_5069ec.current ? 'speak' : 'skip', seq: v_b6611b ?? null,
-              text: v_4069c9(v_c6145f), eff: 'SPEAK_FALLBACK',
+              mode: v_2c5027 ? 'speak' : 'skip',
+              seq: v_b6611b ?? null,
+              text: v_4069c9(v_ad1e0c),
+              eff: 'SPEAK_FALLBACK',
             });
-            if (v_5069ec.current) {
-              v_5069ec.current(v_c6145f).catch(() => v_700737.current({ type: 'RESPONSE_DONE' }));
-            } else {
+            if (v_2c5027) {
+              v_5069ec.current!(v_ad1e0c).catch(() => v_700737.current({ type: 'RESPONSE_DONE' }));
+            } else if (!v_5069ec.current) {
+
               v_700737.current({ type: 'RESPONSE_DONE' });
             }
 
@@ -212,6 +218,7 @@ export function v_7df8a4(opts: {
             v_3f36e6.current = setTimeout(
               () => v_700737.current({ type: 'RESPONSE_DONE' }), v_a3a40c);
             break;
+          }
         }
       }
     },

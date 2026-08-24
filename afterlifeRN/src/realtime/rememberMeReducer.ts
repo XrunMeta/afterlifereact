@@ -28,11 +28,15 @@ export interface RememberMeState {
   lastConfirmedPerson: { personId: number; displayName: string | null } | null;
 
   dismissedPromptInCall: boolean;
+
+  unknownStreak: number;
 }
 
 export const v_575cf8 = 60_000;
 
 export const v_e6be56 = 90_000;
+
+export const v_fb3fee = 5;
 
 export const v_a5c955 = 60_000;
 
@@ -107,6 +111,7 @@ export function v_178dfb(): RememberMeState {
     recentlySeen: {},
     lastConfirmedPerson: null,
     dismissedPromptInCall: false,
+    unknownStreak: 0,
   };
 }
 
@@ -165,6 +170,8 @@ function v_9638ca(
 
     lastNotifyUnknownMs: null,
     pendingSwitch: null,
+
+    unknownStreak: 0,
     lastConfirmedPerson: v_dca8b5,
   };
 }
@@ -247,34 +254,77 @@ function v_a448ad(
 
       if (v_865ed9) return { state: v_b6e533, actions: [] };
 
-      if (v_b6e533.mode === "grace") return { state: v_b6e533, actions: [] };
+      const v_950bbe = v_b6e533.unknownStreak + 1;
+      const v_29bced =
+        v_950bbe >= v_fb3fee && !v_b6e533.dismissedPromptInCall;
 
       if (v_b6e533.mode === "pending") {
+        const v_3459a5 =
+          !v_b6e533.promptRegister && v_29bced
+            ? { promptRegister: true }
+            : {};
         if (
           v_b6e533.lastNotifyUnknownMs !== null &&
           v_67e77e - v_b6e533.lastNotifyUnknownMs < v_059bf8
         ) {
-          return { state: v_b6e533, actions: [] };
+          return {
+            state: { ...v_b6e533, unknownStreak: v_950bbe, ...v_3459a5 },
+            actions: [],
+          };
         }
         return {
-          state: { ...v_b6e533, lastNotifyUnknownMs: v_67e77e },
+          state: {
+            ...v_b6e533,
+            unknownStreak: v_950bbe,
+            lastNotifyUnknownMs: v_67e77e,
+            ...v_3459a5,
+          },
           actions: [{ type: "NOTIFY_UNKNOWN" }],
         };
       }
 
-      const v_29bced =
-        typeof v_d48baf.score === "number" &&
-        v_d48baf.score > 0 &&
-        !v_b6e533.dismissedPromptInCall;
+      if (v_b6e533.mode === "grace") {
+        if (v_29bced) {
+          const v_7e8d96 = v_b6e533.lastConfirmedPerson !== null;
+          return {
+            state: {
+              ...v_60164c(v_b6e533, v_67e77e, v_7e8d96),
+              unknownStreak: v_950bbe,
+            },
+            actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
+          };
+        }
+        return {
+          state: { ...v_b6e533, unknownStreak: v_950bbe },
+          actions: [],
+        };
+      }
+
+      const v_27f93f = !v_b6e533.dismissedPromptInCall;
       if (v_b6e533.personId === null) {
         return {
-          state: v_60164c(v_b6e533, v_67e77e, v_29bced),
+          state: {
+            ...v_60164c(v_b6e533, v_67e77e, v_27f93f),
+            unknownStreak: v_950bbe,
+          },
+          actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
+        };
+      }
+
+      if (v_29bced) {
+        const v_7e8d96 = v_b6e533.lastConfirmedPerson !== null;
+        return {
+          state: {
+            ...v_60164c(v_b6e533, v_67e77e, v_7e8d96),
+            unknownStreak: v_950bbe,
+          },
           actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
         };
       }
       return {
         state: {
           ...v_b6e533,
+          unknownStreak: v_950bbe,
           mode: "grace",
           graceSinceMs: v_67e77e,
           graceHadActivity: false,
