@@ -146,12 +146,19 @@ export default function PreCallFaceEnrollScreen() {
         handleEmbeddingOnJS([], 0);
         return;
       }
+
+      const _bx = primary.bounds.x;
+      const _by = primary.bounds.y;
+      const _bw = primary.bounds.width;
+      const _bh = primary.bounds.height;
+      const _mx = _bw * 0.15;
+      const _my = _bh * 0.15;
       const resized = resize(frame, {
         crop: {
-          x: primary.bounds.x,
-          y: primary.bounds.y,
-          width: primary.bounds.width,
-          height: primary.bounds.height,
+          x: Math.max(0, _bx - _mx),
+          y: Math.max(0, _by - _my),
+          width: _bw + _mx * 2,
+          height: _bh + _my * 2,
         },
         scale: { width: 112, height: 112 },
         pixelFormat: "rgb",
