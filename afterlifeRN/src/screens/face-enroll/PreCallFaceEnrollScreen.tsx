@@ -30,7 +30,7 @@ import { v_e74bab } from "../../face/largestFace";
 import { v_a40fe8 } from "../../face/frameTimestamp";
 import { v_a64bce } from "../../face/l2normalize";
 import { v_1ed7d9 } from "../../stores/authStore";
-import { v_4e7b87, v_4585d1, v_a94a1b, v_6ffcc5 } from "../../api/persons";
+import { v_4e7b87, v_4585d1, v_a94a1b, v_6ffcc5, v_865d38 } from "../../api/persons";
 import { v_889fad } from "../../stores/dialogStore";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import v_258c1c from "../../components/common/PageHeader";
@@ -228,21 +228,38 @@ export default function v_8640b9() {
       void (async () => {
         let v_d794c4 = null;
         try {
-          const v_306a28 = await v_4e7b87(v_2ca7e0, {
-            cloneId: v_6e0fd3,
-            displayName: v_affc3e,
-            enrolledVia: "auto_biometric",
-          });
-          v_d794c4 = v_306a28.id;
+
+          let v_ca1ec5;
+          try {
+            const v_306a28 = await v_4e7b87(v_2ca7e0, {
+              cloneId: v_6e0fd3,
+              displayName: v_affc3e,
+              enrolledVia: "auto_biometric",
+            });
+            v_ca1ec5 = v_306a28.id;
+            v_d794c4 = v_306a28.id;
+          } catch (v_7df476) {
+            const v_badeaf = (v_7df476 as Error).message ?? "";
+            if (/이미 등록된 이름/.test(v_badeaf)) {
+
+              const v_ef8ab1 = await v_865d38(v_2ca7e0, v_6e0fd3);
+              const v_3c8572 = v_ef8ab1.items.find((v_e2a85c) => (v_e2a85c.displayName ?? "") === v_affc3e);
+              if (!v_3c8572) throw v_7df476; 
+              v_ca1ec5 = v_3c8572.id;
+              console.log(`[PreCallFaceEnroll] 이미 존재 person 재사용 · id=${v_ca1ec5} · faces 추가`);
+            } else {
+              throw v_7df476;
+            }
+          }
           const v_e646b6 = 5;
           for (let v_ebec57 = 0; v_ebec57 < v_74e259.length; v_ebec57 += v_e646b6) {
             const v_36e01f = v_74e259.slice(v_ebec57, v_ebec57 + v_e646b6);
-            await v_4585d1(v_2ca7e0, v_306a28.id, v_36e01f, v_6e0fd3);
+            await v_4585d1(v_2ca7e0, v_ca1ec5, v_36e01f, v_6e0fd3);
           }
           const v_d04cc5 = v_dd8af0.trim();
           if (v_d04cc5) {
             try {
-              await v_6ffcc5(v_2ca7e0, v_306a28.id, v_d04cc5);
+              await v_6ffcc5(v_2ca7e0, v_ca1ec5, v_d04cc5);
             } catch (v_2530bf) {
               console.warn("[PreCallFaceEnroll] updatePersonRelation 실패 (무시):", v_2530bf);
             }
