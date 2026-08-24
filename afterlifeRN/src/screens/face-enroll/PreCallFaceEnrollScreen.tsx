@@ -200,66 +200,80 @@ export default function PreCallFaceEnrollScreen() {
     setStep((prev) => prev + 1);
   }, [playFlash]);
 
-  const onSubmit = useCallback(() => {
-    if (!accessToken || !user) {
-      setFormError("로그인 정보가 없어요. 다시 시도해 주세요.");
-      return;
-    }
-    if (captured.length !== STEPS.length) {
-      setFormError("얼굴 촬영을 먼저 완료해 주세요.");
-      return;
-    }
-    const trimmedName = formName.trim();
-    if (!trimmedName) {
-      setFormError("이름을 입력해 주세요.");
-      return;
-    }
-    Keyboard.dismiss();
-    setFormError(null);
-    setSubmitting(true);
-    void (async () => {
-      let createdPersonId: number | null = null;
-      try {
-        const person = await createPerson(accessToken, {
-          cloneId,
-          displayName: trimmedName,
-          enrolledVia: "auto_biometric",
-        });
-        createdPersonId = person.id;
-
-        const CHUNK = 5;
-        for (let i = 0; i < captured.length; i += CHUNK) {
-          const batch = captured.slice(i, i + CHUNK);
-          await enrollFaces(accessToken, person.id, batch, cloneId);
-        }
-
-        const trimmedRel = formRelation.trim();
-        if (trimmedRel) {
-          try {
-            await updatePersonRelation(accessToken, person.id, trimmedRel);
-          } catch (relErr) {
-            console.warn("[PreCallFaceEnroll] updatePersonRelation 실패 (무시):", relErr);
-          }
-        }
-        createdPersonId = null;
-        const message = midCall
-          ? "얼굴 등록 완료! 통화를 다시 시작합니다."
-          : "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.";
-        showAlert("등록 완료", message, [{ text: "통화 시작", onPress: goToCall }]);
-      } catch (err) {
-        console.warn("[PreCallFaceEnroll] enroll 실패:", err);
-        if (createdPersonId != null) {
-          try {
-            await deletePerson(accessToken, createdPersonId);
-          } catch (delErr) {
-            console.warn("[PreCallFaceEnroll] rollback 실패:", delErr);
-          }
-        }
-        setFormError((err as Error).message ?? "네트워크 오류");
-        setSubmitting(false);
+  const runEnroll = useCallback(
+    (displayName: string, relation: string) => {
+      if (!accessToken || !user) {
+        setFormError("로그인 정보가 없어요. 다시 시도해 주세요.");
+        return;
       }
-    })();
-  }, [accessToken, user, captured, cloneId, formName, formRelation, midCall, goToCall]);
+      if (captured.length !== STEPS.length) {
+        setFormError("얼굴 촬영을 먼저 완료해 주세요.");
+        return;
+      }
+      const trimmedName = displayName.trim();
+      if (!trimmedName) {
+        setFormError("이름을 입력해 주세요.");
+        return;
+      }
+      Keyboard.dismiss();
+      setFormError(null);
+      setSubmitting(true);
+      void (async () => {
+        let createdPersonId: number | null = null;
+        try {
+          const person = await createPerson(accessToken, {
+            cloneId,
+            displayName: trimmedName,
+            enrolledVia: "auto_biometric",
+          });
+          createdPersonId = person.id;
+          const CHUNK = 5;
+          for (let i = 0; i < captured.length; i += CHUNK) {
+            const batch = captured.slice(i, i + CHUNK);
+            await enrollFaces(accessToken, person.id, batch, cloneId);
+          }
+          const trimmedRel = relation.trim();
+          if (trimmedRel) {
+            try {
+              await updatePersonRelation(accessToken, person.id, trimmedRel);
+            } catch (relErr) {
+              console.warn("[PreCallFaceEnroll] updatePersonRelation 실패 (무시):", relErr);
+            }
+          }
+          createdPersonId = null;
+          const message = midCall
+            ? "얼굴 등록 완료! 통화를 다시 시작합니다."
+            : "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.";
+          showAlert("등록 완료", message, [{ text: "통화 시작", onPress: goToCall }]);
+        } catch (err) {
+          console.warn("[PreCallFaceEnroll] enroll 실패:", err);
+          if (createdPersonId != null) {
+            try {
+              await deletePerson(accessToken, createdPersonId);
+            } catch (delErr) {
+              console.warn("[PreCallFaceEnroll] rollback 실패:", delErr);
+            }
+          }
+          setFormError((err as Error).message ?? "네트워크 오류");
+          setSubmitting(false);
+        }
+      })();
+    },
+    [accessToken, user, captured, cloneId, midCall, goToCall],
+  );
+
+  const onSubmit = useCallback(() => {
+    runEnroll(formName, formRelation);
+  }, [runEnroll, formName, formRelation]);
+
+  const autoEnrollTriedRef = useRef(false);
+  const captureDone = step >= STEPS.length;
+  useEffect(() => {
+    if (!captureDone || midCall || autoEnrollTriedRef.current || submitting) return;
+    const defaultName = (user?.name ?? "").trim() || "나";
+    autoEnrollTriedRef.current = true;
+    runEnroll(defaultName, "");
+  }, [captureDone, midCall, submitting, user, runEnroll]);
 
   if (permissionOk === false) {
     return (
@@ -288,27 +302,28 @@ export default function PreCallFaceEnrollScreen() {
       {}
       <PageHeader showBackButton onBackPress={() => nav.goBack()} transparent />
 
-      {}
-      <View style={s.header}>
-        <Text style={s.title}>얼굴 등록</Text>
-        <Text style={s.subtitle}>
-          {midCall
-            ? "새 얼굴을 등록하고 통화를 다시 시작해요."
-            : `${personaName ?? "페르소나"} 과 자연스럽게 대화하도록 얼굴을 각도·거리별로 담아둘게요.`}
-        </Text>
-      </View>
+      {
+}
+      {!(done && midCall) && (
+        <View style={s.header}>
+          <Text style={s.title}>얼굴 등록</Text>
+          <Text style={s.subtitle}>
+            {midCall
+              ? "새 얼굴을 등록하고 통화를 다시 시작해요."
+              : `${personaName ?? "페르소나"} 과 자연스럽게 대화하도록 얼굴을 각도·거리별로 담아둘게요.`}
+          </Text>
+        </View>
+      )}
 
       {}
-      {done ? (
+      {done && midCall ? (
         <KeyboardAvoidingView
           style={s.centerBlock}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
           <Text style={s.formTitle}>이 분은 누구신가요?</Text>
           <Text style={s.formDesc}>
-            {midCall
-              ? "이름과 관계를 알려주시면 다음 통화부터 알아볼 수 있어요."
-              : "알려주시면 다음 통화부터 기억할게요."}
+            이름과 관계를 알려주시면 다음 통화부터 알아볼 수 있어요.
           </Text>
           <Text style={s.formLabel}>이름</Text>
           <TextInput
@@ -334,6 +349,12 @@ export default function PreCallFaceEnrollScreen() {
           />
           {formError ? <Text style={s.formError}>{formError}</Text> : null}
         </KeyboardAvoidingView>
+      ) : done && !midCall ? (
+
+        <View style={s.centerBlock}>
+          <ActivityIndicator size="large" color={COLORS.white} />
+          <Text style={s.hint}>얼굴 등록 중...</Text>
+        </View>
       ) : (
         <View style={s.centerBlock}>
           <View style={s.cameraBox}>
@@ -414,13 +435,14 @@ const s = StyleSheet.create({
   header: { alignItems: "center", gap: 6, marginBottom: 8 },
   centerBlock: { flex: 1, justifyContent: "center", alignItems: "center", gap: 16 },
 
-  bottomBlock: { gap: 2, marginTop: 8 },
+  bottomBlock: { gap: 0 },
   privacyNote: {
     color: COLORS.zinc400,
     fontSize: 12,
     textAlign: "center",
     lineHeight: 18,
-    marginTop: 6,
+    marginTop: 10,
+    marginBottom: 16,
     paddingHorizontal: 12,
   },
 
@@ -471,12 +493,14 @@ const s = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: RADIUS.full,
     alignItems: "center",
-    marginTop: 8,
+
+    marginTop: 0,
   },
   captureBtnText: { color: COLORS.zinc900, fontSize: 16, fontWeight: "700" },
   skipBtn: {
 
-    paddingVertical: 4,
+    paddingTop: 12,
+    paddingBottom: 4,
     alignItems: "center",
   },
   skipBtnText: { color: COLORS.zinc400, fontSize: 13, textDecorationLine: "underline" },
