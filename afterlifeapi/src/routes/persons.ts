@@ -325,12 +325,12 @@ v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
   if (
     !Array.isArray(v_f94e64) ||
     v_f94e64.length < 1 ||
-    v_f94e64.length > 5 ||
+    v_f94e64.length > 10 ||
     v_f94e64.some(
       (v_81e2ef) => !Array.isArray(v_81e2ef) || v_81e2ef.length !== 512 || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214))
     )
   )
-    throw new v_3ebe58("VALIDATION_FAILED", "vectors: 1~5개의 512차원 수치 배열이어야 합니다");
+    throw new v_3ebe58("VALIDATION_FAILED", "vectors: 1~10개의 512차원 수치 배열이어야 합니다");
 
   const v_6e0fd3 = v_4d33b2.cloneId;
   if (typeof v_6e0fd3 !== "number" || !Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
