@@ -46,6 +46,8 @@ const v_77ce37 = [
   { key: "left", label: "왼쪽", hint: "고개를 왼쪽으로 살짝 돌려주세요" },
   { key: "up", label: "위", hint: "고개를 위로 살짝 들어주세요" },
   { key: "down", label: "아래", hint: "고개를 아래로 살짝 숙여주세요" },
+  { key: "close", label: "가까이", hint: "얼굴을 카메라에 가까이 대주세요" },
+  { key: "far", label: "멀리", hint: "얼굴을 카메라에서 조금 멀리 떨어뜨려 주세요" },
 ] as const;
 
 const v_10f62f = {
@@ -249,7 +251,7 @@ export default function v_8640b9() {
       <View style={v_fd5f43.header}>
         <Text style={v_fd5f43.title}>얼굴 등록</Text>
         <Text style={v_fd5f43.subtitle}>
-          {v_dfb220} 과 자연스럽게 대화하도록 얼굴을 5각도 담아둘게요.
+          {v_dfb220} 과 자연스럽게 대화하도록 얼굴을 각도·거리별로 담아둘게요.
         </Text>
       </View>
 
