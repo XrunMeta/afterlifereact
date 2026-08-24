@@ -310,6 +310,30 @@ export default function MyScreen() {
             descKey: "합성 + 재생 · 사전 렌더 이미지 필요",
             action: () => navigation.navigate("VisemeTest"),
           },
+
+          {
+            icon: "user-plus" as const,
+            labelKey: "얼굴 5각도 등록 (dev)",
+            descKey: "정면·좌·우·위·아래 촬영 → clones 첫 통화 대비",
+            action: () => {
+
+              const firstClone = apiMyClonesList?.[0];
+              if (!firstClone) {
+                showAlert("페르소나 없음", "먼저 페르소나를 만들어주세요.");
+                return;
+              }
+              navigation.getParent()?.dispatch(
+                CommonActions.navigate({
+                  name: "PreCallFaceEnroll",
+                  params: {
+                    cloneId: firstClone.id,
+                    name: firstClone.name,
+                    image: firstClone.avatarUrl ?? undefined,
+                  },
+                }),
+              );
+            },
+          },
         ]
       : []),
     {

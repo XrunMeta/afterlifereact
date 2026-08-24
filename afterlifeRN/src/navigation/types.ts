@@ -5,6 +5,8 @@ export type RootStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList> | undefined;
   Chat: { cloneId: number };
   Call: { cloneId: number; name?: string; image?: string | number };
+
+  PreCallFaceEnroll: { cloneId: number; name?: string; image?: string | number };
   EmergencyContacts: undefined;
   InheritanceAccept: { token?: string };
   RestoreDeleted: undefined;
