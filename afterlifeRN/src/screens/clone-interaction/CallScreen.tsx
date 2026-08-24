@@ -1061,9 +1061,17 @@ function CallScreenInner({ route, navigation }: Props) {
     if (!rmState.promptRegister) return;
     showAlert(
       "새 얼굴이 보여요",
-      "얼굴을 등록할까요? 다음 통화부터 알아볼 수 있어요.",
+      "얼굴을 등록할까요?",
       [
-        { text: "취소", style: "cancel", onPress: () => dispatchRm({ type: "DISMISS_PROMPT" }) },
+        {
+          text: "나중에",
+          style: "cancel",
+          onPress: () => dispatchRm({ type: "DISMISS_LATER" }),
+        },
+        {
+          text: "나야 (오인식)",
+          onPress: () => dispatchRm({ type: "CONFIRM_SAME_PERSON" }),
+        },
         {
           text: "등록",
           onPress: () => {
