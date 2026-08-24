@@ -13,12 +13,8 @@ export type ValidationResult =
   | { ok: true }
   | { ok: false; reason: ValidationReason };
 
-const MIN_FACE_RATIO = 0.20;
-const MAX_FACE_RATIO = 0.42;
-const CY_MIN = 0.13;
-const CY_MAX = 0.65;
-const CX_MIN = 0.35;
-const CX_MAX = 0.65;
+const MIN_FACE_RATIO = 0.08;
+const MAX_FACE_RATIO = 0.85;
 
 function getImageSize(uri: string): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
@@ -62,8 +58,7 @@ export async function validatePersonaImage(uri: string): Promise<ValidationResul
     console.log("[validatePersonaImage] metrics", { ratio, cx, cy, fw, fh });
     if (ratio < MIN_FACE_RATIO) return { ok: false, reason: "too_small" };
     if (ratio > MAX_FACE_RATIO) return { ok: false, reason: "too_large" };
-    if (cy < CY_MIN || cy > CY_MAX) return { ok: false, reason: "off_center" };
-    if (cx < CX_MIN || cx > CX_MAX) return { ok: false, reason: "off_center" };
+
     return { ok: true };
   } catch (err) {
 
