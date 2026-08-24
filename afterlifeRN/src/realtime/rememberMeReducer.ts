@@ -102,11 +102,12 @@ export function v_b94941(v_fd5f43): boolean {
 }
 
 function v_60164c(v_fd5f43, v_67e77e): RememberMeState {
+
   return {
     ...v_fd5f43,
     mode: "pending",
     personId: null,
-    sheetOpen: true,
+    sheetOpen: false,
     graceSinceMs: null,
     graceHadActivity: false,
     mentionName: false,
