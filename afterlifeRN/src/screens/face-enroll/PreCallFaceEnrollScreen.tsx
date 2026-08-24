@@ -26,9 +26,10 @@ import { largestFace } from "../../face/largestFace";
 import { normalizeFrameTimestampMs } from "../../face/frameTimestamp";
 import { l2normalize } from "../../face/l2normalize";
 import { useAuthStore } from "../../stores/authStore";
-import { createPerson, enrollFaces } from "../../api/persons";
+import { createPerson, enrollFaces, deletePerson } from "../../api/persons";
 import { showAlert } from "../../stores/dialogStore";
 import { COLORS, RADIUS } from "../../components/constants";
+import PageHeader from "../../components/common/PageHeader";
 import type { RootStackParamList } from "../../navigation/types";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "PreCallFaceEnroll">;
@@ -197,6 +198,8 @@ export default function PreCallFaceEnrollScreen() {
     if (submitting) return;
     setSubmitting(true);
     void (async () => {
+
+      let createdPersonId: number | null = null;
       try {
         const displayName = (user.name ?? "본인").trim() || "본인";
 
@@ -205,12 +208,23 @@ export default function PreCallFaceEnrollScreen() {
           displayName,
           enrolledVia: "auto_biometric",
         });
+        createdPersonId = person.id;
 
         await enrollFaces(accessToken, person.id, captured);
+        createdPersonId = null; 
         showAlert("등록 완료", "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.");
         setTimeout(goToCall, 400);
       } catch (err) {
         console.warn("[PreCallFaceEnroll] enroll 실패:", err);
+
+        if (createdPersonId != null) {
+          try {
+            await deletePerson(accessToken, createdPersonId);
+            console.log(`[PreCallFaceEnroll] rollback person ${createdPersonId} 삭제 완료`);
+          } catch (delErr) {
+            console.warn("[PreCallFaceEnroll] rollback 실패:", delErr);
+          }
+        }
         showAlert(
           "등록 실패",
           `${(err as Error).message ?? "네트워크 오류"}. 등록 없이 통화만 진행할까요?`,
@@ -246,7 +260,10 @@ export default function PreCallFaceEnrollScreen() {
   const done = step >= STEPS.length;
 
   return (
-    <View style={[s.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[s.container, { paddingBottom: insets.bottom }]}>
+      {}
+      <PageHeader showBackButton onBackPress={() => nav.goBack()} transparent />
+
       {}
       <View style={s.header}>
         <Text style={s.title}>얼굴 등록</Text>
