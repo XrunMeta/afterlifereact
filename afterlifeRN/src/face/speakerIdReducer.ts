@@ -22,7 +22,7 @@ export type SpeakerIdState = {
 
 export const CONFIRM_STREAK = 1;
 
-export const UNKNOWN_FACE_REEMIT_MS = 60_000;
+export const UNKNOWN_FACE_REEMIT_MS = 10_000;
 
 export const INITIAL_SPEAKER_STATE: SpeakerIdState = {
   confirmed: "none",
