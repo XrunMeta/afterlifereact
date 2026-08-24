@@ -354,7 +354,8 @@ const v_fd5f43 = v_472849.create({
   center: { alignItems: "center", justifyContent: "center", gap: 12 },
   header: { alignItems: "center", gap: 6, marginBottom: 8 },
   centerBlock: { flex: 1, justifyContent: "center", alignItems: "center", gap: 16 },
-  bottomBlock: { gap: 8, marginTop: 12 },
+
+  bottomBlock: { gap: 2, marginTop: 8 },
   privacyNote: {
     color: v_1bfbd0.zinc400,
     fontSize: 12,
@@ -400,7 +401,8 @@ const v_fd5f43 = v_472849.create({
   },
   captureBtnText: { color: v_1bfbd0.zinc900, fontSize: 16, fontWeight: "700" },
   skipBtn: {
-    paddingVertical: 12,
+
+    paddingVertical: 4,
     alignItems: "center",
   },
   skipBtnText: { color: v_1bfbd0.zinc400, fontSize: 13, textDecorationLine: "underline" },
