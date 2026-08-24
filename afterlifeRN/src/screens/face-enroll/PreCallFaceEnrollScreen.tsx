@@ -44,16 +44,39 @@ interface Step {
   key: string;
   label: string;
   hint: string;
+
+  checkPose: (yaw: number, pitch: number) => boolean;
+
+  guide: (yaw: number, pitch: number) => string;
 }
+const FRAMES_PER_STEP = 6;
 
 const STEPS: readonly Step[] = [
-  { key: "front", label: "정면", hint: "화면 정중앙을 정시해 주세요" },
-  { key: "right", label: "오른쪽", hint: "고개를 오른쪽으로 살짝 돌려주세요" },
-  { key: "left", label: "왼쪽", hint: "고개를 왼쪽으로 살짝 돌려주세요" },
-  { key: "up", label: "위", hint: "고개를 위로 살짝 들어주세요" },
-  { key: "down", label: "아래", hint: "고개를 아래로 살짝 숙여주세요" },
-  { key: "close", label: "가까이", hint: "얼굴을 카메라에 가까이 대주세요" },
-  { key: "far", label: "멀리", hint: "얼굴을 카메라에서 조금 멀리 떨어뜨려 주세요" },
+  {
+    key: "front", label: "정면", hint: "카메라를 정면으로 봐주세요",
+    checkPose: (y, p) => Math.abs(y) < 12 && Math.abs(p) < 12,
+    guide: (y, p) => Math.abs(y) >= 12 ? "좌우로 고개 돌리지 마세요" : Math.abs(p) >= 12 ? "고개 각도 낮춰주세요" : "완벽!",
+  },
+  {
+    key: "right", label: "오른쪽", hint: "고개를 오른쪽으로 돌려주세요",
+    checkPose: (y, p) => y > 18 && Math.abs(p) < 20,
+    guide: (y, _p) => y < 18 ? `조금만 더 오른쪽으로 (${Math.round(y)}°/18°)` : "완벽!",
+  },
+  {
+    key: "left", label: "왼쪽", hint: "고개를 왼쪽으로 돌려주세요",
+    checkPose: (y, p) => y < -18 && Math.abs(p) < 20,
+    guide: (y, _p) => y > -18 ? `조금만 더 왼쪽으로 (${Math.round(y)}°/-18°)` : "완벽!",
+  },
+  {
+    key: "up", label: "위", hint: "고개를 위로 들어주세요",
+    checkPose: (y, p) => p < -10 && Math.abs(y) < 20,
+    guide: (_y, p) => p > -10 ? `조금만 더 위로 (${Math.round(p)}°/-10°)` : "완벽!",
+  },
+  {
+    key: "down", label: "아래", hint: "고개를 아래로 숙여주세요",
+    checkPose: (y, p) => p > 10 && Math.abs(y) < 20,
+    guide: (_y, p) => p < 10 ? `조금만 더 아래로 (${Math.round(p)}°/10°)` : "완벽!",
+  },
 ] as const;
 
 const FACE_DETECTOR_OPTIONS = {
@@ -97,6 +120,13 @@ export default function PreCallFaceEnrollScreen() {
 
   const latestVectorRef = useRef<number[] | null>(null);
   const latestFaceCountRef = useRef(0);
+
+  const [pose, setPose] = useState<{ yaw: number; pitch: number } | null>(null);
+
+  const stepRef = useRef(0);
+  useEffect(() => { stepRef.current = step; }, [step]);
+
+  const lastAutoCaptureRef = useRef(0);
 
   const flashOpacity = useRef(new Animated.Value(0)).current;
   const playFlash = useCallback(() => {
@@ -145,11 +175,33 @@ export default function PreCallFaceEnrollScreen() {
 
   const handleEmbeddingOnJS = useMemo(
     () =>
-      Worklets.createRunOnJS((vector: number[], faceCount: number) => {
+      Worklets.createRunOnJS((vector: number[], faceCount: number, yaw: number, pitch: number) => {
         latestVectorRef.current = vector;
         latestFaceCountRef.current = faceCount;
+        if (faceCount > 0) setPose({ yaw, pitch });
+        else setPose(null);
+
+        const idx = stepRef.current;
+        if (idx >= STEPS.length) return;
+        if (faceCount === 0 || !vector || vector.length !== 512) return;
+        const currStep = STEPS[idx];
+        if (!currStep.checkPose(yaw, pitch)) return;
+        const now = Date.now();
+        if (now - lastAutoCaptureRef.current < 500) return;
+        lastAutoCaptureRef.current = now;
+        const norm = Array.from(l2normalize(Float32Array.from(vector)));
+        Vibration.vibrate(20);
+        Animated.sequence([
+          Animated.timing(flashOpacity, { toValue: 0.4, duration: 60, useNativeDriver: true }),
+          Animated.timing(flashOpacity, { toValue: 0, duration: 180, useNativeDriver: true }),
+        ]).start();
+        setCaptured((prev) => {
+
+          if (prev.length >= (idx + 1) * FRAMES_PER_STEP) return prev;
+          return [...prev, norm];
+        });
       }),
-    [],
+    [flashOpacity],
   );
 
   const faceFrameProcessor = useFrameProcessor(
@@ -162,7 +214,7 @@ export default function PreCallFaceEnrollScreen() {
       lastEmbedTs.value = nowMs;
       const primary = largestFace(faces);
       if (primary == null) {
-        handleEmbeddingOnJS([], 0);
+        handleEmbeddingOnJS([], 0, 0, 0);
         return;
       }
 
@@ -186,7 +238,10 @@ export default function PreCallFaceEnrollScreen() {
       const normalized = new Float32Array(resized.length);
       for (let i = 0; i < resized.length; i++) normalized[i] = resized[i] * 2 - 1;
       const out = faceEmbedModel.runSync([normalized])[0] as Float32Array;
-      handleEmbeddingOnJS(Array.from(out), faces.length);
+
+      const yaw = (primary as unknown as { yawAngle?: number }).yawAngle ?? 0;
+      const pitch = (primary as unknown as { pitchAngle?: number }).pitchAngle ?? 0;
+      handleEmbeddingOnJS(Array.from(out), faces.length, yaw, pitch);
     },
     [detectFaces, faceEmbedModel, resize, lastEmbedTs, isAndroidFrame, handleEmbeddingOnJS],
   );
@@ -225,6 +280,14 @@ export default function PreCallFaceEnrollScreen() {
     return () => sub.remove();
   }, [handleBack]);
 
+  useEffect(() => {
+    if (step >= STEPS.length) return;
+    const target = (step + 1) * FRAMES_PER_STEP;
+    if (captured.length >= target) {
+      setStep((s) => s + 1);
+    }
+  }, [captured.length, step]);
+
   const onSkip = useCallback(() => {
     showAlert(
       "등록 없이 진행",
@@ -236,28 +299,14 @@ export default function PreCallFaceEnrollScreen() {
     );
   }, [goToCall]);
 
-  const onCapture = useCallback(() => {
-    const vec = latestVectorRef.current;
-    const faceCount = latestFaceCountRef.current;
-    if (!vec || vec.length !== 512 || faceCount === 0) {
-      showAlert("얼굴을 찾지 못했어요", "가이드 원 안에 얼굴이 잘 보이도록 자세를 잡아주세요.");
-      return;
-    }
-
-    const norm = Array.from(l2normalize(Float32Array.from(vec)));
-
-    playFlash();
-    setCaptured((prev) => [...prev, norm]);
-    setStep((prev) => prev + 1);
-  }, [playFlash]);
-
   const runEnroll = useCallback(
     (displayName: string, relation: string) => {
       if (!accessToken || !user) {
         setFormError("로그인 정보가 없어요. 다시 시도해 주세요.");
         return;
       }
-      if (captured.length !== STEPS.length) {
+
+      if (captured.length < STEPS.length * FRAMES_PER_STEP) {
         setFormError("얼굴 촬영을 먼저 완료해 주세요.");
         return;
       }
@@ -461,9 +510,15 @@ export default function PreCallFaceEnrollScreen() {
 
           <View style={s.stepBox}>
             <Text style={s.stepLabel}>
-              {step + 1}/{STEPS.length} · {currentStep.label}
+              {step + 1}/{STEPS.length} · {currentStep.label} · {Math.max(0, captured.length - step * FRAMES_PER_STEP)}/{FRAMES_PER_STEP}
             </Text>
             <Text style={s.stepHint}>{currentStep.hint}</Text>
+            {}
+            <Text style={[s.stepHint, { marginTop: 4, opacity: 0.7 }]}>
+              {pose
+                ? currentStep.guide(pose.yaw, pose.pitch)
+                : "얼굴이 카메라에 잘 보이도록 해주세요"}
+            </Text>
           </View>
 
           <View style={s.progressRow}>
@@ -491,11 +546,7 @@ export default function PreCallFaceEnrollScreen() {
               <Text style={s.captureBtnText}>등록</Text>
             )}
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity onPress={onCapture} style={s.captureBtn} disabled={submitting}>
-            <Text style={s.captureBtnText}>촬영</Text>
-          </TouchableOpacity>
-        )}
+        ) : null}
 
         <TouchableOpacity onPress={onSkip} style={s.skipBtn} disabled={submitting}>
           <Text style={s.skipBtnText}>
