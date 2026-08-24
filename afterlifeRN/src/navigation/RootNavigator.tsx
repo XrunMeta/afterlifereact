@@ -18,6 +18,8 @@ import v_19ba0e from "./MainTabNavigator";
 
 import v_02d653 from "../screens/clone-interaction/ChatScreen";
 import v_bfc6c1 from "../screens/clone-interaction/CallScreen";
+
+import v_8640b9 from "../screens/face-enroll/PreCallFaceEnrollScreen";
 import v_000f0a from "../screens/clones/InviteAcceptScreen";
 import v_18ad36 from "../screens/notifications/NotificationsScreen";
 import v_c501aa from "../screens/user/UserProfileScreen";
@@ -82,6 +84,12 @@ export default function v_3b950c() {
 
               animation: "none",
             }}
+          />
+          {}
+          <RootStack.Screen
+            name="PreCallFaceEnroll"
+            component={v_8640b9}
+            options={{ presentation: "fullScreenModal", animation: "fade" }}
           />
           <RootStack.Screen name="InviteAccept" component={v_000f0a} />
           <RootStack.Screen name="Notifications" component={v_18ad36} />
