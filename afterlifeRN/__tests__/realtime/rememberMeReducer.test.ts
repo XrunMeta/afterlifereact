@@ -227,14 +227,29 @@ describe("rememberMeReducer — 대기(pending)", () => {
     expect(state.sheetOpen).toBe(true);
   });
 
-  it("아는 얼굴이 돌아오면 대기가 풀리고 재인사한다 — 유일한 자동 해제 경로", () => {
+  it("아는 얼굴이 처음으로 잡히면 대기가 풀리고 조용히 확정 (재인사 X · T-561)", () => {
+
     const { state, actions } = step(pending(), known(58));
     expect(state.mode).toBe("identified");
     expect(state.personId).toBe(58);
     expect(state.sheetOpen).toBe(false);
     expect(actions).toEqual([
       { type: "MIC_ON" },
-      { type: "NOTIFY_CONFIRMED", personId: 58, displayName: "도기", rejoin: true },
+      { type: "NOTIFY_CONFIRMED", personId: 58, displayName: "도기", rejoin: false, mentionName: false },
+    ]);
+  });
+
+  it("오래 전 (90초 초과) 봤던 사람이 pending 후 돌아오면 rejoin=true (다시 오셨네요)", () => {
+
+    let s = step(initRememberMeState(), known(58), 0).state; 
+    s = step(s, { type: "MATCH_UNKNOWN" }, 100_000).state; 
+    s = step(s, { type: "ACTIVITY" }, 105_000).state;
+    s = step(s, { type: "TICK" }, 100_000 + GRACE_HOLD_MS).state; 
+
+    const { actions } = step(s, known(58), 200_000);
+    expect(actions).toEqual([
+      { type: "MIC_ON" },
+      { type: "NOTIFY_CONFIRMED", personId: 58, displayName: "도기", rejoin: true, mentionName: false },
     ]);
   });
 
