@@ -129,6 +129,9 @@ export default function PreCallFaceEnrollScreen() {
 
   const lastAutoCaptureRef = useRef(0);
 
+  const lastPoseRef = useRef<{ yaw: number; pitch: number } | null>(null);
+  const poseStreakRef = useRef(0);
+
   const flashOpacity = useRef(new Animated.Value(0)).current;
   const playFlash = useCallback(() => {
 
@@ -186,10 +189,22 @@ export default function PreCallFaceEnrollScreen() {
         if (idx >= STEPS.length) return;
         if (faceCount === 0 || !vector || vector.length !== 512) return;
         const currStep = STEPS[idx];
-        if (!currStep.checkPose(yaw, pitch)) return;
+
+        const prevPose = lastPoseRef.current;
+        const deltaYaw = prevPose ? Math.abs(yaw - prevPose.yaw) : 0;
+        const deltaPitch = prevPose ? Math.abs(pitch - prevPose.pitch) : 0;
+        lastPoseRef.current = { yaw, pitch };
+        const moving = deltaYaw > 5 || deltaPitch > 5;
+        if (!currStep.checkPose(yaw, pitch) || moving) {
+          poseStreakRef.current = 0;
+          return;
+        }
+        poseStreakRef.current += 1;
+        if (poseStreakRef.current < 3) return;
         const now = Date.now();
         if (now - lastAutoCaptureRef.current < 500) return;
         lastAutoCaptureRef.current = now;
+        poseStreakRef.current = 0;
         const norm = Array.from(l2normalize(Float32Array.from(vector)));
         Vibration.vibrate(20);
         Animated.sequence([
