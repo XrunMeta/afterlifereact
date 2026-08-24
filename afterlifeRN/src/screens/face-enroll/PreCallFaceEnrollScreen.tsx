@@ -44,16 +44,39 @@ interface Step {
   key: string;
   label: string;
   hint: string;
+
+  checkPose: (yaw: number, pitch: number) => boolean;
+
+  guide: (yaw: number, pitch: number) => string;
 }
+const v_df1250 = 6;
 
 const v_77ce37 = [
-  { key: "front", label: "정면", hint: "화면 정중앙을 정시해 주세요" },
-  { key: "right", label: "오른쪽", hint: "고개를 오른쪽으로 살짝 돌려주세요" },
-  { key: "left", label: "왼쪽", hint: "고개를 왼쪽으로 살짝 돌려주세요" },
-  { key: "up", label: "위", hint: "고개를 위로 살짝 들어주세요" },
-  { key: "down", label: "아래", hint: "고개를 아래로 살짝 숙여주세요" },
-  { key: "close", label: "가까이", hint: "얼굴을 카메라에 가까이 대주세요" },
-  { key: "far", label: "멀리", hint: "얼굴을 카메라에서 조금 멀리 떨어뜨려 주세요" },
+  {
+    key: "front", label: "정면", hint: "카메라를 정면으로 봐주세요",
+    checkPose: (v_64877a, v_e2a85c) => Math.abs(v_64877a) < 12 && Math.abs(v_e2a85c) < 12,
+    guide: (v_64877a, v_e2a85c) => Math.abs(v_64877a) >= 12 ? "좌우로 고개 돌리지 마세요" : Math.abs(v_e2a85c) >= 12 ? "고개 각도 낮춰주세요" : "완벽!",
+  },
+  {
+    key: "right", label: "오른쪽", hint: "고개를 오른쪽으로 돌려주세요",
+    checkPose: (v_64877a, v_e2a85c) => v_64877a > 18 && Math.abs(v_e2a85c) < 20,
+    guide: (v_64877a, v_2d3e87) => v_64877a < 18 ? `조금만 더 오른쪽으로 (${Math.round(v_64877a)}°/18°)` : "완벽!",
+  },
+  {
+    key: "left", label: "왼쪽", hint: "고개를 왼쪽으로 돌려주세요",
+    checkPose: (v_64877a, v_e2a85c) => v_64877a < -18 && Math.abs(v_e2a85c) < 20,
+    guide: (v_64877a, v_2d3e87) => v_64877a > -18 ? `조금만 더 왼쪽으로 (${Math.round(v_64877a)}°/-18°)` : "완벽!",
+  },
+  {
+    key: "up", label: "위", hint: "고개를 위로 들어주세요",
+    checkPose: (v_64877a, v_e2a85c) => v_e2a85c < -10 && Math.abs(v_64877a) < 20,
+    guide: (v_0331f5, v_e2a85c) => v_e2a85c > -10 ? `조금만 더 위로 (${Math.round(v_e2a85c)}°/-10°)` : "완벽!",
+  },
+  {
+    key: "down", label: "아래", hint: "고개를 아래로 숙여주세요",
+    checkPose: (v_64877a, v_e2a85c) => v_e2a85c > 10 && Math.abs(v_64877a) < 20,
+    guide: (v_0331f5, v_e2a85c) => v_e2a85c < 10 ? `조금만 더 아래로 (${Math.round(v_e2a85c)}°/10°)` : "완벽!",
+  },
 ] as const;
 
 const v_10f62f = {
@@ -97,6 +120,13 @@ export default function v_8640b9() {
 
   const v_d0be9c = v_e662ae<number[] | null>(null);
   const v_5428c9 = v_e662ae(0);
+
+  const [v_26803c, v_807576] = v_5ab095<{ yaw: number; pitch: number } | null>(null);
+
+  const v_4f103d = v_e662ae(0);
+  v_c4deb2(() => { v_4f103d.current = v_729796; }, [v_729796]);
+
+  const v_330375 = v_e662ae(0);
 
   const v_ac8592 = v_e662ae(new v_a2349e.Value(0)).current;
   const v_7454ea = v_de06a3(() => {
@@ -145,11 +175,33 @@ export default function v_8640b9() {
 
   const v_998534 = v_df9f57(
     () =>
-      v_d73d29.createRunOnJS((v_f9a45c, v_0b2889) => {
+      v_d73d29.createRunOnJS((v_f9a45c, v_0b2889, v_c81315, v_e4ff5e) => {
         v_d0be9c.current = v_f9a45c;
         v_5428c9.current = v_0b2889;
+        if (v_0b2889 > 0) v_807576({ yaw: v_c81315, pitch: v_e4ff5e });
+        else v_807576(null);
+
+        const v_e86ad8 = v_4f103d.current;
+        if (v_e86ad8 >= v_77ce37.length) return;
+        if (v_0b2889 === 0 || !v_f9a45c || v_f9a45c.length !== 512) return;
+        const v_7b22b3 = v_77ce37[v_e86ad8];
+        if (!v_7b22b3.checkPose(v_c81315, v_e4ff5e)) return;
+        const v_5c2f9f = Date.now();
+        if (v_5c2f9f - v_330375.current < 500) return;
+        v_330375.current = v_5c2f9f;
+        const v_825625 = Array.from(v_a64bce(Float32Array.from(v_f9a45c)));
+        v_d49152.vibrate(20);
+        v_a2349e.sequence([
+          v_a2349e.timing(v_ac8592, { toValue: 0.4, duration: 60, useNativeDriver: true }),
+          v_a2349e.timing(v_ac8592, { toValue: 0, duration: 180, useNativeDriver: true }),
+        ]).start();
+        v_49cc35((v_ba2215) => {
+
+          if (v_ba2215.length >= (v_e86ad8 + 1) * v_df1250) return v_ba2215;
+          return [...v_ba2215, v_825625];
+        });
       }),
-    [],
+    [v_ac8592],
   );
 
   const v_a61ebf = v_b08ef3(
@@ -162,7 +214,7 @@ export default function v_8640b9() {
       v_5111a7.value = v_67e77e;
       const v_127e92 = v_e74bab(v_a51d09);
       if (v_127e92 == null) {
-        v_998534([], 0);
+        v_998534([], 0, 0, 0);
         return;
       }
 
@@ -186,7 +238,10 @@ export default function v_8640b9() {
       const v_75195c = new Float32Array(v_2d3c27.length);
       for (let v_ebec57 = 0; v_ebec57 < v_2d3c27.length; v_ebec57++) v_75195c[v_ebec57] = v_2d3c27[v_ebec57] * 2 - 1;
       const v_8d4337 = v_23f1a4.runSync([v_75195c])[0] as Float32Array;
-      v_998534(Array.from(v_8d4337), v_a51d09.length);
+
+      const v_c81315 = (v_127e92 as unknown as { yawAngle?: number }).yawAngle ?? 0;
+      const v_e4ff5e = (v_127e92 as unknown as { pitchAngle?: number }).pitchAngle ?? 0;
+      v_998534(Array.from(v_8d4337), v_a51d09.length, v_c81315, v_e4ff5e);
     },
     [v_de4d76, v_23f1a4, v_2e11e8, v_5111a7, v_44c2eb, v_998534],
   );
@@ -225,6 +280,14 @@ export default function v_8640b9() {
     return () => v_1ae212.remove();
   }, [v_6ca26b]);
 
+  v_c4deb2(() => {
+    if (v_729796 >= v_77ce37.length) return;
+    const v_5f5d6d = (v_729796 + 1) * v_df1250;
+    if (v_74e259.length >= v_5f5d6d) {
+      v_fd7d1f((v_fd5f43) => v_fd5f43 + 1);
+    }
+  }, [v_74e259.length, v_729796]);
+
   const v_bcff1c = v_de06a3(() => {
     v_889fad(
       "등록 없이 진행",
@@ -236,28 +299,14 @@ export default function v_8640b9() {
     );
   }, [v_e9b971]);
 
-  const v_94e3dc = v_de06a3(() => {
-    const v_46ff7a = v_d0be9c.current;
-    const v_0b2889 = v_5428c9.current;
-    if (!v_46ff7a || v_46ff7a.length !== 512 || v_0b2889 === 0) {
-      v_889fad("얼굴을 찾지 못했어요", "가이드 원 안에 얼굴이 잘 보이도록 자세를 잡아주세요.");
-      return;
-    }
-
-    const v_825625 = Array.from(v_a64bce(Float32Array.from(v_46ff7a)));
-
-    v_7454ea();
-    v_49cc35((v_ba2215) => [...v_ba2215, v_825625]);
-    v_fd7d1f((v_ba2215) => v_ba2215 + 1);
-  }, [v_7454ea]);
-
   const v_cd685a = v_de06a3(
     (v_8a1355, v_dd8af0) => {
       if (!v_2ca7e0 || !v_625c74) {
         v_342bf2("로그인 정보가 없어요. 다시 시도해 주세요.");
         return;
       }
-      if (v_74e259.length !== v_77ce37.length) {
+
+      if (v_74e259.length < v_77ce37.length * v_df1250) {
         v_342bf2("얼굴 촬영을 먼저 완료해 주세요.");
         return;
       }
@@ -461,9 +510,15 @@ export default function v_8640b9() {
 
           <View style={v_fd5f43.stepBox}>
             <Text style={v_fd5f43.stepLabel}>
-              {v_729796 + 1}/{v_77ce37.length} · {v_91943c.label}
+              {v_729796 + 1}/{v_77ce37.length} · {v_91943c.label} · {Math.max(0, v_74e259.length - v_729796 * v_df1250)}/{v_df1250}
             </Text>
             <Text style={v_fd5f43.stepHint}>{v_91943c.hint}</Text>
+            {}
+            <Text style={[v_fd5f43.stepHint, { marginTop: 4, opacity: 0.7 }]}>
+              {v_26803c
+                ? v_91943c.guide(v_26803c.yaw, v_26803c.pitch)
+                : "얼굴이 카메라에 잘 보이도록 해주세요"}
+            </Text>
           </View>
 
           <View style={v_fd5f43.progressRow}>
@@ -491,11 +546,7 @@ export default function v_8640b9() {
               <Text style={v_fd5f43.captureBtnText}>등록</Text>
             )}
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity onPress={v_94e3dc} style={v_fd5f43.captureBtn} disabled={v_cb66b4}>
-            <Text style={v_fd5f43.captureBtnText}>촬영</Text>
-          </TouchableOpacity>
-        )}
+        ) : null}
 
         <TouchableOpacity onPress={v_bcff1c} style={v_fd5f43.skipBtn} disabled={v_cb66b4}>
           <Text style={v_fd5f43.skipBtnText}>
