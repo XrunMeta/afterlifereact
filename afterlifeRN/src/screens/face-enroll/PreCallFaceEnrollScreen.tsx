@@ -217,8 +217,12 @@ export default function PreCallFaceEnrollScreen() {
           await enrollFaces(accessToken, person.id, batch, cloneId);
         }
         createdPersonId = null; 
-        showAlert("등록 완료", "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.");
-        setTimeout(goToCall, 400);
+
+        showAlert(
+          "등록 완료",
+          "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.",
+          [{ text: "통화 시작", onPress: goToCall }],
+        );
       } catch (err) {
         console.warn("[PreCallFaceEnroll] enroll 실패:", err);
 

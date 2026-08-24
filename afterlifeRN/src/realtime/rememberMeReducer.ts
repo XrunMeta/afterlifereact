@@ -159,6 +159,7 @@ function next(
 
         const lastSeenMs = state.recentlySeen[event.personId];
         const recentlyKnown = lastSeenMs != null && nowMs - lastSeenMs < RECENT_SEEN_MS;
+        const neverSeenBefore = lastSeenMs == null;
         return {
           state: { ...enterIdentified(state, event.personId), recentlySeen: updatedRecent },
           actions: [
@@ -167,7 +168,8 @@ function next(
               type: "NOTIFY_CONFIRMED",
               personId: event.personId,
               displayName: event.displayName,
-              rejoin: !recentlyKnown, 
+
+              rejoin: !recentlyKnown && !neverSeenBefore,
               mentionName: recentlyKnown, 
             },
           ],
