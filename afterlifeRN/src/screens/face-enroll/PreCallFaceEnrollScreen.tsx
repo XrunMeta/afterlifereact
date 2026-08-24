@@ -284,7 +284,8 @@ export default function v_8640b9() {
       const v_1c80a4 = (v_127e92 as unknown as { pitchAngle?: number }).pitchAngle ?? 0;
 
       const v_6719e3 = v_6efd56(v_127e92 as unknown as { bounds: { x: number; y: number; width: number; height: number }; landmarks?: Record<string, { x: number; y: number }> | null });
-      v_998534(Array.from(v_8d4337), v_a51d09.length, -v_c5ddcd, -v_1c80a4, v_6719e3);
+
+      v_998534(Array.from(v_8d4337), v_a51d09.length, v_c5ddcd, v_1c80a4, v_6719e3);
     },
     [v_de4d76, v_23f1a4, v_2e11e8, v_5111a7, v_44c2eb, v_998534],
   );
