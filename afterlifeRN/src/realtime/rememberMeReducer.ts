@@ -24,6 +24,10 @@ export interface RememberMeState {
   pendingSwitch: { personId: number; displayName: string | null } | null;
 
   recentlySeen: Record<number, number>;
+
+  lastConfirmedPerson: { personId: number; displayName: string | null } | null;
+
+  dismissedPromptInCall: boolean;
 }
 
 export const GRACE_HOLD_MS = 60_000;
@@ -61,7 +65,11 @@ export type RememberMeEvent =
 
   | { type: "CONFIRM_PROMPT" }
 
-  | { type: "DISMISS_PROMPT" };
+  | { type: "DISMISS_PROMPT" }
+
+  | { type: "CONFIRM_SAME_PERSON" }
+
+  | { type: "DISMISS_LATER" };
 
 export type RememberMeAction =
 
@@ -97,6 +105,8 @@ export function initRememberMeState(): RememberMeState {
     lastNotifyUnknownMs: null,
     pendingSwitch: null,
     recentlySeen: {},
+    lastConfirmedPerson: null,
+    dismissedPromptInCall: false,
   };
 }
 
@@ -132,7 +142,16 @@ function enterPending(
   };
 }
 
-function enterIdentified(s: RememberMeState, personId: number): RememberMeState {
+function enterIdentified(
+  s: RememberMeState,
+  personId: number,
+  displayName?: string | null,
+): RememberMeState {
+
+  const lastConfirmedPerson =
+    displayName !== undefined
+      ? { personId, displayName }
+      : s.lastConfirmedPerson;
   return {
     ...s,
     mode: "identified",
@@ -146,6 +165,7 @@ function enterIdentified(s: RememberMeState, personId: number): RememberMeState 
 
     lastNotifyUnknownMs: null,
     pendingSwitch: null,
+    lastConfirmedPerson,
   };
 }
 
@@ -172,7 +192,7 @@ function next(
         const recentlyKnown = lastSeenMs != null && nowMs - lastSeenMs < RECENT_SEEN_MS;
         const neverSeenBefore = lastSeenMs == null;
         return {
-          state: { ...enterIdentified(state, event.personId), recentlySeen: updatedRecent },
+          state: { ...enterIdentified(state, event.personId, event.displayName), recentlySeen: updatedRecent },
           actions: [
             { type: "MIC_ON" },
             {
@@ -191,7 +211,7 @@ function next(
         if (state.mode === "grace") {
 
           return {
-            state: { ...enterIdentified(state, event.personId), recentlySeen: updatedRecent },
+            state: { ...enterIdentified(state, event.personId, event.displayName), recentlySeen: updatedRecent },
             actions: [
               {
                 type: "NOTIFY_CONFIRMED",
@@ -208,7 +228,7 @@ function next(
       }
 
       return {
-        state: { ...enterIdentified(state, event.personId), recentlySeen: updatedRecent },
+        state: { ...enterIdentified(state, event.personId, event.displayName), recentlySeen: updatedRecent },
         actions: [
 
           ...(event.cloneSpeaking ? [{ type: "INTERRUPT_TTS" } as RememberMeAction] : []),
@@ -243,7 +263,9 @@ function next(
       }
 
       const shouldPrompt =
-        typeof event.score === "number" && event.score > 0;
+        typeof event.score === "number" &&
+        event.score > 0 &&
+        !state.dismissedPromptInCall;
       if (state.personId === null) {
         return {
           state: enterPending(state, nowMs, shouldPrompt),
@@ -277,8 +299,11 @@ function next(
 
         return { state, actions: [{ type: "END_CALL" }] };
       }
+
+      const promptOnTick =
+        state.lastConfirmedPerson !== null && !state.dismissedPromptInCall;
       return {
-        state: enterPending(state, nowMs),
+        state: enterPending(state, nowMs, promptOnTick),
         actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
       };
     }
@@ -287,7 +312,7 @@ function next(
       const sw = state.pendingSwitch;
       if (!sw) return { state, actions: [] };
       return {
-        state: enterIdentified(state, sw.personId),
+        state: enterIdentified(state, sw.personId, sw.displayName),
         actions: [
           {
             type: "NOTIFY_CONFIRMED",
@@ -330,6 +355,47 @@ function next(
 
       if (!state.promptRegister) return { state, actions: [] };
       return { state: { ...state, promptRegister: false }, actions: [] };
+
+    case "CONFIRM_SAME_PERSON": {
+
+      if (!state.promptRegister) return { state, actions: [] };
+      const restore = state.lastConfirmedPerson;
+      if (restore == null) {
+
+        return {
+          state: {
+            ...state,
+            promptRegister: false,
+            dismissedPromptInCall: true,
+            mode: "identified", 
+            personId: null,
+          },
+          actions: [{ type: "MIC_ON" }],
+        };
+      }
+      return {
+        state: {
+          ...enterIdentified(state, restore.personId, restore.displayName),
+          promptRegister: false,
+          dismissedPromptInCall: true,
+        },
+        actions: [{ type: "MIC_ON" }],
+      };
+    }
+
+    case "DISMISS_LATER":
+
+      if (!state.promptRegister) return { state, actions: [] };
+      return {
+        state: {
+          ...state,
+          promptRegister: false,
+          dismissedPromptInCall: true,
+          mode: "identified",
+          personId: null,
+        },
+        actions: [{ type: "MIC_ON" }],
+      };
 
     default:
       return { state, actions: [] };
