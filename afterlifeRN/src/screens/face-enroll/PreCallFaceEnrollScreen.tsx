@@ -217,8 +217,12 @@ export default function v_8640b9() {
           await v_4585d1(v_2ca7e0, v_306a28.id, v_36e01f, v_6e0fd3);
         }
         v_d794c4 = null; 
-        v_889fad("등록 완료", "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.");
-        setTimeout(v_e9b971, 400);
+
+        v_889fad(
+          "등록 완료",
+          "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.",
+          [{ text: "통화 시작", onPress: v_e9b971 }],
+        );
       } catch (v_49263d) {
         console.warn("[PreCallFaceEnroll] enroll 실패:", v_49263d);
 
