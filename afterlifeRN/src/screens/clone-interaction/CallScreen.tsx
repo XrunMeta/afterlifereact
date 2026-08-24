@@ -48,6 +48,7 @@ import { useSharedValue } from "react-native-worklets-core";
 import { useFaceDetection } from "../../hooks/useFaceDetection";
 import { largestFace } from "../../face/largestFace";
 import { computeAlignedCrop } from "../../face/faceAlignCrop";
+import { computeLandmarkRatios, type LandmarkRatios } from "../../face/faceLandmarkRatios";
 import { shouldRunEmbedding } from "../../face/embeddingThrottle";
 import { normalizeFrameTimestampMs } from "../../face/frameTimestamp";
 import { detectNewFaces } from "../../face/newFaceDetector";
@@ -524,6 +525,8 @@ function CallScreenInner({ route, navigation }: Props) {
 
   const seenFaceIdsRef = useRef<Set<number>>(new Set());
 
+  const currentLandmarkRef = useRef<LandmarkRatios | null>(null);
+
   const handleSpeakerEventRef = useRef<(evt: SpeakerEvent) => void>(() => {});
 
   const myNameRef = useRef<string | null>(null);
@@ -600,6 +603,8 @@ function CallScreenInner({ route, navigation }: Props) {
     onDiag: setFaceDiag,
     calibrate: calibrateOpt,
     onCollected: angleCollector.observe,
+
+    getCurrentLandmark: useCallback(() => currentLandmarkRef.current, []),
   });
 
   useEffect(() => {
@@ -926,7 +931,7 @@ function CallScreenInner({ route, navigation }: Props) {
   const handleEmbeddingOnJS = React.useMemo(
     () =>
       Worklets.createRunOnJS(
-        (vector: number[], faceCount: number, trackingIds: number[]) => {
+        (vector: number[], faceCount: number, trackingIds: number[], landmarkRatiosJson: string | null) => {
           if (faceCount > 1) {
             const { newIds, seen } = detectNewFaces(seenFaceIdsRef.current, trackingIds);
             seenFaceIdsRef.current = seen;
@@ -934,6 +939,10 @@ function CallScreenInner({ route, navigation }: Props) {
               sendFaceEvent?.({ event: "multi_face" });
             }
           }
+
+          currentLandmarkRef.current = landmarkRatiosJson
+            ? (JSON.parse(landmarkRatiosJson) as LandmarkRatios)
+            : null;
           onFaceEmbedding(vector);
 
           publishFaceTracks(trackingIds, Date.now());
@@ -993,7 +1002,10 @@ function CallScreenInner({ route, navigation }: Props) {
           const trackingIds = faces
             .map((f) => f.trackingId)
             .filter((id): id is number => typeof id === "number");
-          handleEmbeddingOnJS(Array.from(out), faces.length, trackingIds);
+
+          const rtRatios = computeLandmarkRatios(primary as unknown as { bounds: { x: number; y: number; width: number; height: number }; landmarks?: Record<string, { x: number; y: number }> | null });
+          const rtRatiosJson: string | null = rtRatios ? JSON.stringify(rtRatios) : null;
+          handleEmbeddingOnJS(Array.from(out), faces.length, trackingIds, rtRatiosJson);
         }
       }
     },
