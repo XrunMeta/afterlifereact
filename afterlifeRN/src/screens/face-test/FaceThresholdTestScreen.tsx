@@ -47,13 +47,17 @@ export default function v_30f4d7() {
       if (!v_2ca7e0) return;
       try {
         const v_cb35cb = await v_865d38(v_2ca7e0);
-        v_1b22c3(
-          v_cb35cb.items.map((v_e2a85c) => ({
+        const v_4622b9 = v_cb35cb.items
+          .map((v_e2a85c) => ({
             id: v_e2a85c.id,
             cloneId: v_e2a85c.cloneId ?? null,
             displayName: v_e2a85c.displayName ?? null,
-          })),
-        );
+          }))
+          .filter((v_e2a85c) => v_e2a85c.cloneId != null);
+        console.log(`[FaceTest] persons loaded: ${v_4622b9.length}`, v_4622b9);
+        v_1b22c3(v_4622b9);
+
+        if (v_4622b9.length > 0) v_13fb8b(v_4622b9[0].id);
       } catch (v_9e86fd) {
         console.warn("[FaceTest] listPersons 실패:", v_9e86fd);
       }
@@ -146,9 +150,12 @@ export default function v_30f4d7() {
 
         <Text style={v_fd5f43.label}>Person 선택</Text>
         {v_fded81.length === 0 ? (
-          <Text style={v_fd5f43.desc}>등록된 person 없음</Text>
+          <Text style={v_fd5f43.err}>
+            등록된 person 이 하나도 없어요. MyScreen → "얼굴 5각도 등록 (dev)" 로 먼저
+            등록하거나, 페르소나에 실제 통화해서 auto-enroll 이 person 을 만들면 여기 뜹니다.
+          </Text>
         ) : (
-          v_fded81.filter((v_e2a85c) => v_e2a85c.cloneId != null).map((v_e2a85c) => {
+          v_fded81.map((v_e2a85c) => {
             const v_f8b770 = v_e2a85c.id === v_75d7fc;
             return (
               <TouchableOpacity
