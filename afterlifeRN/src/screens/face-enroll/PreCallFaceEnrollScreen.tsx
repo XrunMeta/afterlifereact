@@ -129,6 +129,9 @@ export default function v_8640b9() {
 
   const v_330375 = v_e662ae(0);
 
+  const v_e1fdd2 = v_e662ae<{ yaw: number; pitch: number } | null>(null);
+  const v_c260c5 = v_e662ae(0);
+
   const v_ac8592 = v_e662ae(new v_a2349e.Value(0)).current;
   const v_7454ea = v_de06a3(() => {
 
@@ -186,10 +189,22 @@ export default function v_8640b9() {
         if (v_e86ad8 >= v_77ce37.length) return;
         if (v_0b2889 === 0 || !v_f9a45c || v_f9a45c.length !== 512) return;
         const v_7b22b3 = v_77ce37[v_e86ad8];
-        if (!v_7b22b3.checkPose(v_c81315, v_e4ff5e)) return;
+
+        const v_553640 = v_e1fdd2.current;
+        const v_f49dad = v_553640 ? Math.abs(v_c81315 - v_553640.yaw) : 0;
+        const v_5276c6 = v_553640 ? Math.abs(v_e4ff5e - v_553640.pitch) : 0;
+        v_e1fdd2.current = { yaw: v_c81315, pitch: v_e4ff5e };
+        const v_ef4e5b = v_f49dad > 5 || v_5276c6 > 5;
+        if (!v_7b22b3.checkPose(v_c81315, v_e4ff5e) || v_ef4e5b) {
+          v_c260c5.current = 0;
+          return;
+        }
+        v_c260c5.current += 1;
+        if (v_c260c5.current < 3) return;
         const v_5c2f9f = Date.now();
         if (v_5c2f9f - v_330375.current < 500) return;
         v_330375.current = v_5c2f9f;
+        v_c260c5.current = 0;
         const v_825625 = Array.from(v_a64bce(Float32Array.from(v_f9a45c)));
         v_d49152.vibrate(20);
         v_a2349e.sequence([
