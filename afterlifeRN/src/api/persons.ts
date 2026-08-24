@@ -89,6 +89,8 @@ export interface MatchCandidate {
   personId: number;
   displayName: string | null;
   score: number;
+
+  landmarkRatiosList?: (Record<string, number> | null)[] | null;
 }
 
 export interface MatchResult {
@@ -113,10 +115,13 @@ export async function v_4585d1(
   v_ca1ec5,
   v_f94e64,
   v_6e0fd3,
+  v_bef6f8,
 ): Promise<{ enrolled: number }> {
+  const v_4d33b2 = { vectors: v_f94e64, cloneId: v_6e0fd3 };
+  if (v_bef6f8 !== undefined) v_4d33b2.landmarkRatios = v_bef6f8;
   return v_04b58a<{ enrolled: number }>(`/oth-path${v_ca1ec5}/faces`, v_2ca7e0, {
     method: 'POST',
-    body: JSON.stringify({ vectors: v_f94e64, cloneId: v_6e0fd3 }),
+    body: JSON.stringify(v_4d33b2),
   });
 }
 
