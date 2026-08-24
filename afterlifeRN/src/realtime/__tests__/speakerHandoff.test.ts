@@ -39,6 +39,27 @@ describe('speakerHandoffReducer', () => {
     expect(actions).toEqual([]);
   });
 
+  it('T-561 · 같은 사람이 짧게 놓쳤다 돌아오면 재인사 스킵 (naming 중 + 같은 personId)', () => {
+
+    const s0 = { lastKnownSpeaker: known, naming: true };
+    const { state, actions } = speakerHandoffReducer(s0,
+      { type: 'SPEAKER_CONFIRMED', personId: 9, name: '주인' });
+    expect(state).toEqual({ lastKnownSpeaker: known, naming: false });
+    expect(actions).toEqual([]);
+  });
+
+  it('naming 중 · 진짜 다른 사람이 오면 재인사 (기존 동작 유지)', () => {
+
+    const s0 = { lastKnownSpeaker: known, naming: true };
+    const { state, actions } = speakerHandoffReducer(s0,
+      { type: 'SPEAKER_CONFIRMED', personId: 15, name: '미미' });
+    expect(state).toEqual({ lastKnownSpeaker: { personId: 15, name: '미미' }, naming: false });
+    expect(actions).toEqual([
+      { type: 'SAY', text: '미미님 다시 오셨네요' },
+      { type: 'END_NAMING' },
+    ]);
+  });
+
   it('NAME_ENROLLED(naming 중) → END_NAMING, naming=false', () => {
     const s0 = { lastKnownSpeaker: null, naming: true };
     const { state, actions } = speakerHandoffReducer(s0,
