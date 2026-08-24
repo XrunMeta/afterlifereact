@@ -5,6 +5,8 @@ export type RootStackParamList = {
   Main: v_e56625<MainTabParamList> | undefined;
   Chat: { cloneId: number };
   Call: { cloneId: number; name?: string; image?: string | number };
+
+  PreCallFaceEnroll: { cloneId: number; name?: string; image?: string | number };
   EmergencyContacts: undefined;
   InheritanceAccept: { token?: string };
   RestoreDeleted: undefined;

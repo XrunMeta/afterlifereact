@@ -310,6 +310,30 @@ export default function v_ed02a5() {
             descKey: "합성 + 재생 · 사전 렌더 이미지 필요",
             action: () => v_c65f5d.navigate("VisemeTest"),
           },
+
+          {
+            icon: "user-plus" as const,
+            labelKey: "얼굴 5각도 등록 (dev)",
+            descKey: "정면·좌·우·위·아래 촬영 → clones 첫 통화 대비",
+            action: () => {
+
+              const v_f1fc28 = v_58e68f?.[0];
+              if (!v_f1fc28) {
+                v_889fad("페르소나 없음", "먼저 페르소나를 만들어주세요.");
+                return;
+              }
+              v_c65f5d.getParent()?.dispatch(
+                v_650cfa.navigate({
+                  name: "PreCallFaceEnroll",
+                  params: {
+                    cloneId: v_f1fc28.id,
+                    name: v_f1fc28.name,
+                    image: v_f1fc28.avatarUrl ?? undefined,
+                  },
+                }),
+              );
+            },
+          },
         ]
       : []),
     {
