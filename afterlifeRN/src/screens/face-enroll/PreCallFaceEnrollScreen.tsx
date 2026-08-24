@@ -200,66 +200,80 @@ export default function v_8640b9() {
     v_fd7d1f((v_ba2215) => v_ba2215 + 1);
   }, [v_7454ea]);
 
-  const v_3bfe4c = v_de06a3(() => {
-    if (!v_2ca7e0 || !v_625c74) {
-      v_342bf2("로그인 정보가 없어요. 다시 시도해 주세요.");
-      return;
-    }
-    if (v_74e259.length !== v_77ce37.length) {
-      v_342bf2("얼굴 촬영을 먼저 완료해 주세요.");
-      return;
-    }
-    const v_affc3e = v_595acb.trim();
-    if (!v_affc3e) {
-      v_342bf2("이름을 입력해 주세요.");
-      return;
-    }
-    v_0e1f26.dismiss();
-    v_342bf2(null);
-    v_ee9ec1(true);
-    void (async () => {
-      let v_d794c4 = null;
-      try {
-        const v_306a28 = await v_4e7b87(v_2ca7e0, {
-          cloneId: v_6e0fd3,
-          displayName: v_affc3e,
-          enrolledVia: "auto_biometric",
-        });
-        v_d794c4 = v_306a28.id;
-
-        const v_e646b6 = 5;
-        for (let v_ebec57 = 0; v_ebec57 < v_74e259.length; v_ebec57 += v_e646b6) {
-          const v_36e01f = v_74e259.slice(v_ebec57, v_ebec57 + v_e646b6);
-          await v_4585d1(v_2ca7e0, v_306a28.id, v_36e01f, v_6e0fd3);
-        }
-
-        const v_d04cc5 = v_d7d38d.trim();
-        if (v_d04cc5) {
-          try {
-            await v_6ffcc5(v_2ca7e0, v_306a28.id, v_d04cc5);
-          } catch (v_2530bf) {
-            console.warn("[PreCallFaceEnroll] updatePersonRelation 실패 (무시):", v_2530bf);
-          }
-        }
-        v_d794c4 = null;
-        const v_a8cd21 = v_c414dc
-          ? "얼굴 등록 완료! 통화를 다시 시작합니다."
-          : "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.";
-        v_889fad("등록 완료", v_a8cd21, [{ text: "통화 시작", onPress: v_e9b971 }]);
-      } catch (v_49263d) {
-        console.warn("[PreCallFaceEnroll] enroll 실패:", v_49263d);
-        if (v_d794c4 != null) {
-          try {
-            await v_a94a1b(v_2ca7e0, v_d794c4);
-          } catch (v_d42b37) {
-            console.warn("[PreCallFaceEnroll] rollback 실패:", v_d42b37);
-          }
-        }
-        v_342bf2((v_49263d as Error).message ?? "네트워크 오류");
-        v_ee9ec1(false);
+  const v_cd685a = v_de06a3(
+    (v_8a1355, v_dd8af0) => {
+      if (!v_2ca7e0 || !v_625c74) {
+        v_342bf2("로그인 정보가 없어요. 다시 시도해 주세요.");
+        return;
       }
-    })();
-  }, [v_2ca7e0, v_625c74, v_74e259, v_6e0fd3, v_595acb, v_d7d38d, v_c414dc, v_e9b971]);
+      if (v_74e259.length !== v_77ce37.length) {
+        v_342bf2("얼굴 촬영을 먼저 완료해 주세요.");
+        return;
+      }
+      const v_affc3e = v_8a1355.trim();
+      if (!v_affc3e) {
+        v_342bf2("이름을 입력해 주세요.");
+        return;
+      }
+      v_0e1f26.dismiss();
+      v_342bf2(null);
+      v_ee9ec1(true);
+      void (async () => {
+        let v_d794c4 = null;
+        try {
+          const v_306a28 = await v_4e7b87(v_2ca7e0, {
+            cloneId: v_6e0fd3,
+            displayName: v_affc3e,
+            enrolledVia: "auto_biometric",
+          });
+          v_d794c4 = v_306a28.id;
+          const v_e646b6 = 5;
+          for (let v_ebec57 = 0; v_ebec57 < v_74e259.length; v_ebec57 += v_e646b6) {
+            const v_36e01f = v_74e259.slice(v_ebec57, v_ebec57 + v_e646b6);
+            await v_4585d1(v_2ca7e0, v_306a28.id, v_36e01f, v_6e0fd3);
+          }
+          const v_d04cc5 = v_dd8af0.trim();
+          if (v_d04cc5) {
+            try {
+              await v_6ffcc5(v_2ca7e0, v_306a28.id, v_d04cc5);
+            } catch (v_2530bf) {
+              console.warn("[PreCallFaceEnroll] updatePersonRelation 실패 (무시):", v_2530bf);
+            }
+          }
+          v_d794c4 = null;
+          const v_a8cd21 = v_c414dc
+            ? "얼굴 등록 완료! 통화를 다시 시작합니다."
+            : "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.";
+          v_889fad("등록 완료", v_a8cd21, [{ text: "통화 시작", onPress: v_e9b971 }]);
+        } catch (v_49263d) {
+          console.warn("[PreCallFaceEnroll] enroll 실패:", v_49263d);
+          if (v_d794c4 != null) {
+            try {
+              await v_a94a1b(v_2ca7e0, v_d794c4);
+            } catch (v_d42b37) {
+              console.warn("[PreCallFaceEnroll] rollback 실패:", v_d42b37);
+            }
+          }
+          v_342bf2((v_49263d as Error).message ?? "네트워크 오류");
+          v_ee9ec1(false);
+        }
+      })();
+    },
+    [v_2ca7e0, v_625c74, v_74e259, v_6e0fd3, v_c414dc, v_e9b971],
+  );
+
+  const v_3bfe4c = v_de06a3(() => {
+    v_cd685a(v_595acb, v_d7d38d);
+  }, [v_cd685a, v_595acb, v_d7d38d]);
+
+  const v_4e7e60 = v_e662ae(false);
+  const v_1e2ad6 = v_729796 >= v_77ce37.length;
+  v_c4deb2(() => {
+    if (!v_1e2ad6 || v_c414dc || v_4e7e60.current || v_cb66b4) return;
+    const v_d48d1e = (v_625c74?.name ?? "").trim() || "나";
+    v_4e7e60.current = true;
+    v_cd685a(v_d48d1e, "");
+  }, [v_1e2ad6, v_c414dc, v_cb66b4, v_625c74, v_cd685a]);
 
   if (v_f9f059 === false) {
     return (
@@ -288,27 +302,28 @@ export default function v_8640b9() {
       {}
       <PageHeader showBackButton onBackPress={() => v_3c9f12.goBack()} transparent />
 
-      {}
-      <View style={v_fd5f43.header}>
-        <Text style={v_fd5f43.title}>얼굴 등록</Text>
-        <Text style={v_fd5f43.subtitle}>
-          {v_c414dc
-            ? "새 얼굴을 등록하고 통화를 다시 시작해요."
-            : `${v_dfb220 ?? "페르소나"} 과 자연스럽게 대화하도록 얼굴을 각도·거리별로 담아둘게요.`}
-        </Text>
-      </View>
+      {
+}
+      {!(v_2fb8cc && v_c414dc) && (
+        <View style={v_fd5f43.header}>
+          <Text style={v_fd5f43.title}>얼굴 등록</Text>
+          <Text style={v_fd5f43.subtitle}>
+            {v_c414dc
+              ? "새 얼굴을 등록하고 통화를 다시 시작해요."
+              : `${v_dfb220 ?? "페르소나"} 과 자연스럽게 대화하도록 얼굴을 각도·거리별로 담아둘게요.`}
+          </Text>
+        </View>
+      )}
 
       {}
-      {v_2fb8cc ? (
+      {v_2fb8cc && v_c414dc ? (
         <KeyboardAvoidingView
           style={v_fd5f43.centerBlock}
           behavior={v_326be8.OS === "ios" ? "padding" : "height"}
         >
           <Text style={v_fd5f43.formTitle}>이 분은 누구신가요?</Text>
           <Text style={v_fd5f43.formDesc}>
-            {v_c414dc
-              ? "이름과 관계를 알려주시면 다음 통화부터 알아볼 수 있어요."
-              : "알려주시면 다음 통화부터 기억할게요."}
+            이름과 관계를 알려주시면 다음 통화부터 알아볼 수 있어요.
           </Text>
           <Text style={v_fd5f43.formLabel}>이름</Text>
           <TextInput
@@ -334,6 +349,12 @@ export default function v_8640b9() {
           />
           {v_056b4f ? <Text style={v_fd5f43.formError}>{v_056b4f}</Text> : null}
         </KeyboardAvoidingView>
+      ) : v_2fb8cc && !v_c414dc ? (
+
+        <View style={v_fd5f43.centerBlock}>
+          <ActivityIndicator size="large" color={v_1bfbd0.white} />
+          <Text style={v_fd5f43.hint}>얼굴 등록 중...</Text>
+        </View>
       ) : (
         <View style={v_fd5f43.centerBlock}>
           <View style={v_fd5f43.cameraBox}>
@@ -414,13 +435,14 @@ const v_fd5f43 = v_472849.create({
   header: { alignItems: "center", gap: 6, marginBottom: 8 },
   centerBlock: { flex: 1, justifyContent: "center", alignItems: "center", gap: 16 },
 
-  bottomBlock: { gap: 2, marginTop: 8 },
+  bottomBlock: { gap: 0 },
   privacyNote: {
     color: v_1bfbd0.zinc400,
     fontSize: 12,
     textAlign: "center",
     lineHeight: 18,
-    marginTop: 6,
+    marginTop: 10,
+    marginBottom: 16,
     paddingHorizontal: 12,
   },
 
@@ -471,12 +493,14 @@ const v_fd5f43 = v_472849.create({
     paddingVertical: 14,
     borderRadius: v_8b0c90.full,
     alignItems: "center",
-    marginTop: 8,
+
+    marginTop: 0,
   },
   captureBtnText: { color: v_1bfbd0.zinc900, fontSize: 16, fontWeight: "700" },
   skipBtn: {
 
-    paddingVertical: 4,
+    paddingTop: 12,
+    paddingBottom: 4,
     alignItems: "center",
   },
   skipBtnText: { color: v_1bfbd0.zinc400, fontSize: 13, textDecorationLine: "underline" },
