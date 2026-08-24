@@ -2823,3 +2823,54 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   });
 });
 
+v_b7f2b4.post("/face-test/match", v_c0a297, async (v_3f4e2e) => {
+  const v_4d33b2 = await v_3f4e2e.req.json<{
+    vector?: number[];
+    userId?: number;
+    cloneId?: number;
+    topK?: number;
+  }>().catch(() => ({} as { vector?: number[]; userId?: number; cloneId?: number; topK?: number }));
+
+  const v_81e2ef = v_4d33b2.vector;
+  if (!Array.isArray(v_81e2ef) || v_81e2ef.length !== 512 || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214))) {
+    throw new v_3ebe58("VALIDATION_FAILED", "vector: 512차원 수치 배열이어야 합니다");
+  }
+  const v_43e90c = v_4d33b2.userId;
+  if (typeof v_43e90c !== "number" || !Number.isInteger(v_43e90c) || v_43e90c <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "userId: 양의 정수여야 합니다");
+  }
+  const v_6e0fd3 = v_4d33b2.cloneId;
+  if (typeof v_6e0fd3 !== "number" || !Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+  }
+  const v_171a8a = Math.max(1, Math.min(10, v_4d33b2.topK ?? 5));
+
+  const { queryCloneScope: v_97be02 } = await import("../lib/cloneFaceScope");
+  const v_495447 = await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef, topK: v_171a8a });
+
+  const v_52e08b = v_495447.map((v_35f85c) => v_35f85c.personId);
+  const v_77b1ac = new Map<number, string | null>();
+  if (v_52e08b.length) {
+    const v_315151 = await v_3f4e2e.env.DB.prepare(
+      `SELECT p.id, p.display_name FROM persons p WHERE p.user_id = ? AND p.clone_id = ? AND p.id IN (${v_52e08b.map(() => "?").join(",")})`,
+    ).bind(v_43e90c, v_6e0fd3, ...v_52e08b).all<{ id: number; display_name: string | null }>();
+    for (const v_3ac7e7 of v_315151.results) v_77b1ac.set(v_3ac7e7.id, v_3ac7e7.display_name);
+  }
+  const v_a49907 = v_495447.map((v_35f85c) => ({
+    personId: v_35f85c.personId,
+    displayName: v_77b1ac.get(v_35f85c.personId) ?? null,
+    score: v_35f85c.score,
+  }));
+
+  const v_01dcf5 = await v_3f4e2e.env.DB.prepare(
+    "SELECT value FROM app_config WHERE key = 'face.match_threshold'",
+  ).first<{ value: string }>();
+  const v_8a58fa = v_01dcf5?.value != null && Number.isFinite(Number(v_01dcf5.value)) ? Number(v_01dcf5.value) : 0.55;
+
+  return v_3f4e2e.json({
+    matches: v_a49907,
+    matchThreshold: v_8a58fa,
+    autoEnrollThreshold: 0.75, 
+  });
+});
+
