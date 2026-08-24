@@ -342,11 +342,30 @@ describe("rememberMeReducer — T-559 프로액티브 sheet (score gate)", () =>
     expect(state.sheetOpen).toBe(false);
   });
 
-  it("score > 0 — 프로액티브 sheet 자동 open (다른 사람 가능성)", () => {
+  it("score > 0 — 프로액티브 등록 팝업 (T-562: sheet 대신 promptRegister)", () => {
+
     const { state } = step(initRememberMeState(), { type: "MATCH_UNKNOWN", score: 0.25 }, 1000);
     expect(state.mode).toBe("pending");
-    expect(state.sheetOpen).toBe(true);
+    expect(state.sheetOpen).toBe(false); 
+    expect(state.promptRegister).toBe(true); 
     expect(shouldHoldMic(state)).toBe(true);
+  });
+
+  it("T-562 · CONFIRM_PROMPT — 팝업만 닫고 대기 유지", () => {
+    let s = step(initRememberMeState(), { type: "MATCH_UNKNOWN", score: 0.3 }, 1000).state;
+    expect(s.promptRegister).toBe(true);
+    const r = step(s, { type: "CONFIRM_PROMPT" }, 2000);
+    expect(r.state.promptRegister).toBe(false);
+    expect(r.state.mode).toBe("pending"); 
+    expect(r.actions).toEqual([]); 
+  });
+
+  it("T-562 · DISMISS_PROMPT — 팝업만 닫고 대기 유지 (재통보 주기 후 다시 뜸)", () => {
+    let s = step(initRememberMeState(), { type: "MATCH_UNKNOWN", score: 0.3 }, 1000).state;
+    const r = step(s, { type: "DISMISS_PROMPT" }, 2000);
+    expect(r.state.promptRegister).toBe(false);
+    expect(r.state.mode).toBe("pending");
+    expect(r.actions).toEqual([]);
   });
 
   it("score > 0 이라도 확정자가 있으면 grace 로 감 (sheet 자동 open X · 그 사람 유지)", () => {
