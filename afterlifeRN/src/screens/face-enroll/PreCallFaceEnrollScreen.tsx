@@ -92,6 +92,8 @@ export default function v_8640b9() {
   const [v_d7d38d, v_23c9e5] = v_5ab095("");
   const [v_056b4f, v_342bf2] = v_5ab095<string | null>(null);
 
+  const [v_e59ef2, v_81766e] = v_5ab095<{ id: number; displayName: string | null }[]>([]);
+
   const v_d0be9c = v_e662ae<number[] | null>(null);
   const v_5428c9 = v_e662ae(0);
 
@@ -111,6 +113,22 @@ export default function v_8640b9() {
       v_7c7b9c(v_d308b5 === "granted");
     })();
   }, []);
+
+  v_c4deb2(() => {
+    if (!v_c414dc || !v_2ca7e0) return;
+    void (async () => {
+      try {
+        const v_cb35cb = await v_865d38(v_2ca7e0, v_6e0fd3);
+        v_81766e(
+          v_cb35cb.items
+            .filter((v_e2a85c) => v_e2a85c.displayName && v_e2a85c.displayName.trim().length > 0)
+            .map((v_e2a85c) => ({ id: v_e2a85c.id, displayName: v_e2a85c.displayName ?? null })),
+        );
+      } catch (v_9e86fd) {
+        console.warn("[PreCallFaceEnroll] listPersons 실패 (chip 렌더 skip):", v_9e86fd);
+      }
+    })();
+  }, [v_c414dc, v_2ca7e0, v_6e0fd3]);
 
   const v_ac8c13 = v_db5a6b("front");
   const { detectFaces: v_de4d76 } = v_ac8611(v_10f62f);
@@ -349,6 +367,29 @@ export default function v_8640b9() {
           <Text style={v_fd5f43.formDesc}>
             이름과 관계를 알려주시면 다음 통화부터 알아볼 수 있어요.
           </Text>
+          {v_e59ef2.length > 0 && (
+            <View style={v_fd5f43.chipSection}>
+              <Text style={v_fd5f43.chipSectionLabel}>이미 등록된 사람 (이 중에서 선택하면 학습만 추가돼요)</Text>
+              <View style={v_fd5f43.chipRow}>
+                {v_e59ef2.map((v_e2a85c) => {
+                  const v_f8b770 = v_595acb.trim() === (v_e2a85c.displayName ?? "").trim();
+                  return (
+                    <TouchableOpacity
+                      key={v_e2a85c.id}
+                      onPress={() => v_9ad9a9(v_e2a85c.displayName ?? "")}
+                      style={[v_fd5f43.personChip, v_f8b770 && v_fd5f43.personChipActive]}
+                      disabled={v_cb66b4}
+                    >
+                      <Text style={[v_fd5f43.personChipText, v_f8b770 && v_fd5f43.personChipTextActive]}>
+                        {v_e2a85c.displayName}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <Text style={v_fd5f43.chipHint}>새로운 사람이면 아래에 이름을 직접 입력하세요</Text>
+            </View>
+          )}
           <Text style={v_fd5f43.formLabel}>이름</Text>
           <TextInput
             style={v_fd5f43.formInput}
@@ -483,6 +524,17 @@ const v_fd5f43 = v_472849.create({
     fontSize: 16,
   },
   formError: { color: "#f87171", fontSize: 12, marginTop: 10, alignSelf: "flex-start" },
+  chipSection: { alignSelf: "stretch", marginTop: 12, marginBottom: 4 },
+  chipSectionLabel: { color: v_1bfbd0.zinc400, fontSize: 12, marginBottom: 8 },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  personChip: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
+    backgroundColor: v_1bfbd0.zinc800, borderWidth: 1, borderColor: v_1bfbd0.zinc700,
+  },
+  personChipActive: { backgroundColor: "#1e3a8a", borderColor: "#60a5fa" },
+  personChipText: { color: v_1bfbd0.zinc200, fontSize: 13, fontWeight: "600" },
+  personChipTextActive: { color: v_1bfbd0.white, fontWeight: "700" },
+  chipHint: { color: v_1bfbd0.zinc500, fontSize: 11, marginTop: 8, fontStyle: "italic" },
   captureBtnDisabled: { opacity: 0.6 },
   title: { color: v_1bfbd0.white, fontSize: 22, fontWeight: "700" },
   subtitle: { color: v_1bfbd0.zinc300, fontSize: 13, textAlign: "center" },
