@@ -302,12 +302,19 @@ function v_a448ad(
 
       const v_27f93f = !v_b6e533.dismissedPromptInCall;
       if (v_b6e533.personId === null) {
+        if (v_29bced) {
+          return {
+            state: {
+              ...v_60164c(v_b6e533, v_67e77e, v_27f93f),
+              unknownStreak: v_950bbe,
+            },
+            actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
+          };
+        }
+
         return {
-          state: {
-            ...v_60164c(v_b6e533, v_67e77e, v_27f93f),
-            unknownStreak: v_950bbe,
-          },
-          actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
+          state: { ...v_b6e533, unknownStreak: v_950bbe },
+          actions: [],
         };
       }
 
