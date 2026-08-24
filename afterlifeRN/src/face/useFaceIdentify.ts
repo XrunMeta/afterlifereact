@@ -161,15 +161,15 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
             console.log(`[useFaceIdentify] cycle personId=${v_bdad26.personId ?? "null"} score=${v_bdad26.score?.toFixed(3) ?? "?"} streak=${v_b6e533.speaker.streak} onCollected=${!!v_d23335}`);
           }
 
-          const v_9d9155 = 0.72;
-          const v_c29169 = 3;
+          const v_c4d427 = 0.75;   
+          const v_a079c5 = 3;     
           if (
             v_d23335 &&
             v_bdad26 &&
             v_bdad26.personId != null &&
             typeof v_bdad26.score === "number" &&
-            v_bdad26.score >= v_9d9155 &&
-            v_b6e533.speaker.streak >= v_c29169
+            v_bdad26.score >= v_c4d427 &&
+            v_b6e533.speaker.streak >= v_a079c5
           ) {
             try {
               v_d23335(v_bdad26.personId, v_46ff7a);
