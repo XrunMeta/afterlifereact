@@ -28,6 +28,7 @@ import { useFaceDetector } from "react-native-vision-camera-face-detector";
 import { useTensorflowModel } from "react-native-fast-tflite";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 import { largestFace } from "../../face/largestFace";
+import { computeAlignedCrop } from "../../face/faceAlignCrop";
 import { normalizeFrameTimestampMs } from "../../face/frameTimestamp";
 import { l2normalize } from "../../face/l2normalize";
 import { useAuthStore } from "../../stores/authStore";
@@ -81,7 +82,7 @@ const STEPS: readonly Step[] = [
 
 const FACE_DETECTOR_OPTIONS = {
   performanceMode: "fast",
-  landmarkMode: "none",
+  landmarkMode: "all",
   contourMode: "none",
   classificationMode: "none",
   minFaceSize: 0.2,
@@ -218,19 +219,30 @@ export default function PreCallFaceEnrollScreen() {
         return;
       }
 
-      const _bx = primary.bounds.x;
-      const _by = primary.bounds.y;
-      const _bw = primary.bounds.width;
-      const _bh = primary.bounds.height;
-      const _mx = _bw * 0.15;
-      const _my = _bh * 0.15;
+      const aligned = computeAlignedCrop(primary);
+      let cropX: number;
+      let cropY: number;
+      let cropW: number;
+      let cropH: number;
+      if (aligned != null) {
+        cropX = aligned.x;
+        cropY = aligned.y;
+        cropW = aligned.width;
+        cropH = aligned.height;
+      } else {
+        const _bx = primary.bounds.x;
+        const _by = primary.bounds.y;
+        const _bw = primary.bounds.width;
+        const _bh = primary.bounds.height;
+        const _mx = _bw * 0.15;
+        const _my = _bh * 0.15;
+        cropX = Math.max(0, _bx - _mx);
+        cropY = Math.max(0, _by - _my);
+        cropW = _bw + _mx * 2;
+        cropH = _bh + _my * 2;
+      }
       const resized = resize(frame, {
-        crop: {
-          x: Math.max(0, _bx - _mx),
-          y: Math.max(0, _by - _my),
-          width: _bw + _mx * 2,
-          height: _bh + _my * 2,
-        },
+        crop: { x: cropX, y: cropY, width: cropW, height: cropH },
         scale: { width: 112, height: 112 },
         pixelFormat: "rgb",
         dataType: "float32",
