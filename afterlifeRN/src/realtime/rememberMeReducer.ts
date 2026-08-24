@@ -302,12 +302,19 @@ function next(
 
       const promptFresh = !state.dismissedPromptInCall;
       if (state.personId === null) {
+        if (shouldPrompt) {
+          return {
+            state: {
+              ...enterPending(state, nowMs, promptFresh),
+              unknownStreak: newStreak,
+            },
+            actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
+          };
+        }
+
         return {
-          state: {
-            ...enterPending(state, nowMs, promptFresh),
-            unknownStreak: newStreak,
-          },
-          actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
+          state: { ...state, unknownStreak: newStreak },
+          actions: [],
         };
       }
 
