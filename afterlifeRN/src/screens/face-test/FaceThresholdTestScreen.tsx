@@ -9,6 +9,8 @@ import * as v_3c288d from "bxoplsnixpmvnirxbbkstg";
 import { v_b24f74 } from "hpkstesipoootxeqkajlxyxt";
 import * as v_4decc2 from "pubobne";
 import { v_c8d567 } from "gbpmiu";
+import v_283009 from "tqfwpajvwzisfnophfklndhmbxhydolxisx";
+import { v_cf9c33 as v_47a47d } from "rcmrninabrnb";
 import { v_a64bce } from "../../face/l2normalize";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_865d38, v_afc2e6 } from "../../api/persons";
@@ -29,11 +31,22 @@ interface Result {
   matchThreshold: number;
   autoEnrollThreshold: number;
   vectorPreview: number[]; 
+  detected: boolean;       
+  faceRatio: number;       
+  cropUri?: string;        
 }
 
 const v_13450a = 112;
 
 const v_f72c06 = 0.75;
+
+const v_d00c3a = 0.15;
+
+function v_688ce0(v_cd1446): Promise<{ width: number; height: number }> {
+  return new Promise((v_6f7712, v_bad6f3) => {
+    v_47a47d.getSize(v_cd1446, (v_32f7b8, v_65a2cd) => v_6f7712({ width: v_32f7b8, height: v_65a2cd }), v_bad6f3);
+  });
+}
 
 export default function v_30f4d7() {
   const v_3c9f12 = v_ada615();
@@ -99,8 +112,50 @@ export default function v_30f4d7() {
     v_b4f1d2(true); v_8a5996(null); v_47323f(null);
     try {
 
+      const { width: v_b6a07b, height: v_8cde4c } = await v_688ce0(v_74f4a3);
+      let v_03943b = v_74f4a3;
+      let v_2df143 = false;
+      let v_1f6878 = 0;
+      try {
+        const v_a51d09 = await v_283009.detect(v_74f4a3, {
+          performanceMode: "accurate",
+          landmarkMode: "none",
+          contourMode: "none",
+          classificationMode: "none",
+          minFaceSize: 0.1,
+        });
+        if (v_a51d09 && v_a51d09.length > 0) {
+
+          const v_127e92 = v_a51d09.reduce((v_779914, v_148ff6) =>
+            v_779914.frame.width * v_779914.frame.height >= v_148ff6.frame.width * v_148ff6.frame.height ? v_779914 : v_148ff6,
+          );
+          const v_754d3a = v_127e92.frame.width;
+          const v_80ac06 = v_127e92.frame.height;
+          v_1f6878 = Math.max(v_754d3a, v_80ac06) / Math.max(v_b6a07b, v_8cde4c);
+
+          const v_4148d9 = v_127e92.frame.left + v_754d3a / 2;
+          const v_85ddfd = v_127e92.frame.top + v_80ac06 / 2;
+          const v_fceac7 = Math.max(v_754d3a, v_80ac06) * (1 + v_d00c3a * 2);
+          const v_4a51c5 = Math.max(0, Math.min(v_b6a07b - v_fceac7, v_4148d9 - v_fceac7 / 2));
+          const v_f6d4d3 = Math.max(0, Math.min(v_8cde4c - v_fceac7, v_85ddfd - v_fceac7 / 2));
+          const v_2da699 = Math.min(v_fceac7, v_b6a07b - v_4a51c5, v_8cde4c - v_f6d4d3);
+          const v_40d7c6 = await v_3c288d.manipulateAsync(
+            v_74f4a3,
+            [{ crop: { originX: v_4a51c5, originY: v_f6d4d3, width: v_2da699, height: v_2da699 } }],
+            { compress: 1, format: v_3c288d.SaveFormat.JPEG },
+          );
+          v_03943b = v_40d7c6.uri;
+          v_2df143 = true;
+          console.log(`[FaceTest] face detected · ratio=${v_1f6878.toFixed(2)} · bb=${v_754d3a.toFixed(0)}x${v_80ac06.toFixed(0)}`);
+        } else {
+          console.warn("[FaceTest] no face detected — 원본 이미지 그대로 넣음 (score 부정확)");
+        }
+      } catch (v_9e86fd) {
+        console.warn("[FaceTest] face detection 실패:", v_9e86fd);
+      }
+
       const v_e873c0 = await v_3c288d.manipulateAsync(
-        v_74f4a3,
+        v_03943b,
         [{ resize: { width: v_13450a, height: v_13450a } }],
         { compress: 1, format: v_3c288d.SaveFormat.JPEG, base64: true },
       );
@@ -126,8 +181,10 @@ export default function v_30f4d7() {
         matchThreshold: v_cb35cb.threshold,
         autoEnrollThreshold: v_f72c06,
         vectorPreview: Array.from(v_75195c.slice(0, 8)),
+        detected: v_2df143,
+        faceRatio: v_1f6878,
+        cropUri: v_2df143 ? v_e873c0.uri : undefined,
       });
-
     } catch (v_9e86fd) {
       v_8a5996((v_9e86fd as Error).message);
     } finally {
@@ -234,6 +291,21 @@ export default function v_30f4d7() {
 
         {v_43c42e && (
           <View style={v_fd5f43.resultCard}>
+            <View style={v_fd5f43.detectRow}>
+              <View
+                style={[
+                  v_fd5f43.detectChip,
+                  { backgroundColor: v_43c42e.detected ? "#22c55e" : "#ef4444" },
+                ]}
+              >
+                <Text style={v_fd5f43.detectChipText}>
+                  {v_43c42e.detected ? `얼굴 검출 ✓ (${(v_43c42e.faceRatio * 100).toFixed(0)}%)` : "얼굴 검출 ✗ (원본 fallback)"}
+                </Text>
+              </View>
+              {v_43c42e.cropUri && (
+                <Image source={{ uri: v_43c42e.cropUri }} style={v_fd5f43.cropThumb} resizeMode="cover" />
+              )}
+            </View>
             <Text style={v_fd5f43.resultTitle}>매칭 결과 (top {v_43c42e.matches.length})</Text>
             {v_43c42e.matches.length === 0 ? (
               <Text style={v_fd5f43.desc}>매칭된 person 없음 (해당 clone 스코프에 저장된 얼굴 자체가 없거나, 모든 후보가 top-3 밖).</Text>
@@ -323,4 +395,8 @@ const v_fd5f43 = v_472849.create({
   sectionSub: { color: v_1bfbd0.zinc400, fontSize: 11, fontWeight: "600", marginBottom: 4 },
   vectorPreview: { color: v_1bfbd0.zinc300, fontSize: 11, fontFamily: "monospace", lineHeight: 16 },
   thresholdInfo: { color: v_1bfbd0.zinc400, fontSize: 11, marginTop: 8, textAlign: "center" },
+  detectRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 },
+  detectChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, flex: 1 },
+  detectChipText: { color: v_1bfbd0.white, fontSize: 11, fontWeight: "700", textAlign: "center" },
+  cropThumb: { width: 56, height: 56, borderRadius: 6, backgroundColor: v_1bfbd0.zinc800 },
 });
