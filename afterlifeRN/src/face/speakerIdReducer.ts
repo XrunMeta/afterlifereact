@@ -8,7 +8,8 @@ export type SpeakerIdAction = MatchCycle | ResetRecognitionAction;
 
 export type SpeakerEvent =
   | { type: "speaker_confirmed"; personId: number; displayName: string | null }
-  | { type: "unknown_face" }
+
+  | { type: "unknown_face"; score: number }
   | null;
 
 export type SpeakerIdState = {
@@ -56,7 +57,8 @@ export function v_be2f9f(
     if (v_b24339 !== v_aa96a3) {
       v_aa96a3 = v_b24339;
       if (v_b24339 === "unknown") {
-        v_d48baf = { type: "unknown_face" };
+
+        v_d48baf = { type: "unknown_face", score: v_bdad26.score };
         v_f2ea56 = v_67e77e;
       } else {
         v_d48baf = { type: "speaker_confirmed", personId: v_b24339, displayName: v_bdad26.displayName };
@@ -69,7 +71,7 @@ export function v_be2f9f(
       v_67e77e - v_f2ea56 >= v_fcf2b4
     ) {
 
-      v_d48baf = { type: "unknown_face" };
+      v_d48baf = { type: "unknown_face", score: v_bdad26.score };
       v_f2ea56 = v_67e77e;
     }
   }

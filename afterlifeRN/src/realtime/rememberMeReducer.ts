@@ -43,7 +43,7 @@ export type RememberMeEvent =
       cloneSpeaking: boolean;
     }
 
-  | { type: "MATCH_UNKNOWN" }
+  | { type: "MATCH_UNKNOWN"; score?: number }
 
   | { type: "ACTIVITY" }
 
@@ -101,13 +101,18 @@ export function v_b94941(v_fd5f43): boolean {
   return v_fd5f43.mode === "pending" || v_fd5f43.sheetOpen;
 }
 
-function v_60164c(v_fd5f43, v_67e77e): RememberMeState {
+function v_60164c(
+  v_fd5f43,
+  v_67e77e,
+
+  v_a113eb = false,
+): RememberMeState {
 
   return {
     ...v_fd5f43,
     mode: "pending",
     personId: null,
-    sheetOpen: false,
+    sheetOpen: v_a113eb,
     graceSinceMs: null,
     graceHadActivity: false,
     mentionName: false,
@@ -224,9 +229,11 @@ function v_a448ad(
         };
       }
 
+      const v_20b227 =
+        typeof v_d48baf.score === "number" && v_d48baf.score > 0;
       if (v_b6e533.personId === null) {
         return {
-          state: v_60164c(v_b6e533, v_67e77e),
+          state: v_60164c(v_b6e533, v_67e77e, v_20b227),
           actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
         };
       }

@@ -85,7 +85,7 @@ describe("rememberMeReducer — grace(30초 유지)", () => {
     v_fd5f43 = v_729796(v_fd5f43, { type: "ACTIVITY" }, 5000).state;
     const v_cb35cb = v_729796(v_fd5f43, { type: "TICK" }, 1000 + v_575cf8);
     expect(v_cb35cb.state.mode).toBe("pending");
-    expect(v_cb35cb.state.sheetOpen).toBe(true);
+    expect(v_cb35cb.state.sheetOpen).toBe(false);
     expect(v_cb35cb.actions).toEqual([{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }]);
   });
 
@@ -310,5 +310,43 @@ describe("rememberMeReducer — 순수성", () => {
     v_729796(v_ca01e0, { type: "ACTIVITY" });
     v_729796(v_ca01e0, v_d81543(70));
     expect(JSON.stringify(v_ca01e0)).toBe(v_5392c4);
+  });
+});
+
+describe("rememberMeReducer — T-559 프로액티브 sheet (score gate)", () => {
+  it("score 미제공 (undefined) — sheet 자동 open 안 함 (T-557 기본)", () => {
+    const { state: v_b6e533 } = v_729796(v_178dfb(), { type: "MATCH_UNKNOWN" }, 1000);
+    expect(v_b6e533.mode).toBe("pending");
+    expect(v_b6e533.sheetOpen).toBe(false);
+    expect(v_f8761c(v_b6e533)).toBe(true);
+  });
+
+  it("score === 0 — sheet 자동 open 안 함 (DB 비어있음 · 완전 미확정 케이스)", () => {
+    const { state: v_b6e533 } = v_729796(v_178dfb(), { type: "MATCH_UNKNOWN", score: 0 }, 1000);
+    expect(v_b6e533.mode).toBe("pending");
+    expect(v_b6e533.sheetOpen).toBe(false);
+  });
+
+  it("score > 0 — 프로액티브 sheet 자동 open (다른 사람 가능성)", () => {
+    const { state: v_b6e533 } = v_729796(v_178dfb(), { type: "MATCH_UNKNOWN", score: 0.25 }, 1000);
+    expect(v_b6e533.mode).toBe("pending");
+    expect(v_b6e533.sheetOpen).toBe(true);
+    expect(v_b94941(v_b6e533)).toBe(true);
+  });
+
+  it("score > 0 이라도 확정자가 있으면 grace 로 감 (sheet 자동 open X · 그 사람 유지)", () => {
+
+    const { state: v_b6e533 } = v_729796(v_30b0d4(), { type: "MATCH_UNKNOWN", score: 0.3 }, 1000);
+    expect(v_b6e533.mode).toBe("grace");
+    expect(v_b6e533.sheetOpen).toBe(false);
+  });
+
+  it("grace 만료로 TICK → pending 진입 시엔 sheet 자동 open X (자리 뜬 케이스)", () => {
+
+    let v_fd5f43 = v_729796(v_30b0d4(), { type: "MATCH_UNKNOWN", score: 0.3 }, 1000).state;
+    v_fd5f43 = v_729796(v_fd5f43, { type: "ACTIVITY" }, 5_000).state;
+    const { state: v_b6e533 } = v_729796(v_fd5f43, { type: "TICK" }, 1000 + v_575cf8);
+    expect(v_b6e533.mode).toBe("pending");
+    expect(v_b6e533.sheetOpen).toBe(false);
   });
 });
