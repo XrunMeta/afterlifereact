@@ -251,9 +251,9 @@ export default function PreCallFaceEnrollScreen() {
       for (let i = 0; i < resized.length; i++) normalized[i] = resized[i] * 2 - 1;
       const out = faceEmbedModel.runSync([normalized])[0] as Float32Array;
 
-      const yaw = (primary as unknown as { yawAngle?: number }).yawAngle ?? 0;
-      const pitch = (primary as unknown as { pitchAngle?: number }).pitchAngle ?? 0;
-      handleEmbeddingOnJS(Array.from(out), faces.length, yaw, pitch);
+      const rawYaw = (primary as unknown as { yawAngle?: number }).yawAngle ?? 0;
+      const rawPitch = (primary as unknown as { pitchAngle?: number }).pitchAngle ?? 0;
+      handleEmbeddingOnJS(Array.from(out), faces.length, -rawYaw, -rawPitch);
     },
     [detectFaces, faceEmbedModel, resize, lastEmbedTs, isAndroidFrame, handleEmbeddingOnJS],
   );
