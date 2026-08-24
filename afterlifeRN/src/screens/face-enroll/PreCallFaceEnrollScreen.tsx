@@ -6,9 +6,13 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  TextInput,
   ActivityIndicator,
   Animated,
   Vibration,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -26,7 +30,7 @@ import { largestFace } from "../../face/largestFace";
 import { normalizeFrameTimestampMs } from "../../face/frameTimestamp";
 import { l2normalize } from "../../face/l2normalize";
 import { useAuthStore } from "../../stores/authStore";
-import { createPerson, enrollFaces, deletePerson } from "../../api/persons";
+import { createPerson, enrollFaces, deletePerson, updatePersonRelation } from "../../api/persons";
 import { showAlert } from "../../stores/dialogStore";
 import { COLORS, RADIUS } from "../../components/constants";
 import PageHeader from "../../components/common/PageHeader";
@@ -66,7 +70,7 @@ export default function PreCallFaceEnrollScreen() {
 
   const rawCloneId = (route.params as { cloneId: unknown }).cloneId;
   const cloneId = Number(rawCloneId);
-  const { name: personaName, image: personaImage } = route.params;
+  const { name: personaName, image: personaImage, midCall } = route.params;
   const accessToken = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.apiUser);
 
@@ -83,6 +87,10 @@ export default function PreCallFaceEnrollScreen() {
   const [step, setStep] = useState(0);
   const [captured, setCaptured] = useState<number[][]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  const [formName, setFormName] = useState("");
+  const [formRelation, setFormRelation] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
 
   const latestVectorRef = useRef<number[] | null>(null);
   const latestFaceCountRef = useRef(0);
@@ -192,20 +200,29 @@ export default function PreCallFaceEnrollScreen() {
     setStep((prev) => prev + 1);
   }, [playFlash]);
 
-  useEffect(() => {
-    if (captured.length !== STEPS.length) return;
-    if (!accessToken || !user) return;
-    if (submitting) return;
+  const onSubmit = useCallback(() => {
+    if (!accessToken || !user) {
+      setFormError("로그인 정보가 없어요. 다시 시도해 주세요.");
+      return;
+    }
+    if (captured.length !== STEPS.length) {
+      setFormError("얼굴 촬영을 먼저 완료해 주세요.");
+      return;
+    }
+    const trimmedName = formName.trim();
+    if (!trimmedName) {
+      setFormError("이름을 입력해 주세요.");
+      return;
+    }
+    Keyboard.dismiss();
+    setFormError(null);
     setSubmitting(true);
     void (async () => {
-
       let createdPersonId: number | null = null;
       try {
-        const displayName = (user.name ?? "본인").trim() || "본인";
-
         const person = await createPerson(accessToken, {
           cloneId,
-          displayName,
+          displayName: trimmedName,
           enrolledVia: "auto_biometric",
         });
         createdPersonId = person.id;
@@ -213,38 +230,36 @@ export default function PreCallFaceEnrollScreen() {
         const CHUNK = 5;
         for (let i = 0; i < captured.length; i += CHUNK) {
           const batch = captured.slice(i, i + CHUNK);
-
           await enrollFaces(accessToken, person.id, batch, cloneId);
         }
-        createdPersonId = null; 
 
-        showAlert(
-          "등록 완료",
-          "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.",
-          [{ text: "통화 시작", onPress: goToCall }],
-        );
+        const trimmedRel = formRelation.trim();
+        if (trimmedRel) {
+          try {
+            await updatePersonRelation(accessToken, person.id, trimmedRel);
+          } catch (relErr) {
+            console.warn("[PreCallFaceEnroll] updatePersonRelation 실패 (무시):", relErr);
+          }
+        }
+        createdPersonId = null;
+        const message = midCall
+          ? "얼굴 등록 완료! 통화를 다시 시작합니다."
+          : "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.";
+        showAlert("등록 완료", message, [{ text: "통화 시작", onPress: goToCall }]);
       } catch (err) {
         console.warn("[PreCallFaceEnroll] enroll 실패:", err);
-
         if (createdPersonId != null) {
           try {
             await deletePerson(accessToken, createdPersonId);
-            console.log(`[PreCallFaceEnroll] rollback person ${createdPersonId} 삭제 완료`);
           } catch (delErr) {
             console.warn("[PreCallFaceEnroll] rollback 실패:", delErr);
           }
         }
-        showAlert(
-          "등록 실패",
-          `${(err as Error).message ?? "네트워크 오류"}. 등록 없이 통화만 진행할까요?`,
-          [
-            { text: "다시 시도", style: "cancel", onPress: () => { setCaptured([]); setStep(0); setSubmitting(false); } },
-            { text: "그대로 진행", onPress: goToCall },
-          ],
-        );
+        setFormError((err as Error).message ?? "네트워크 오류");
+        setSubmitting(false);
       }
     })();
-  }, [captured, accessToken, user, cloneId, submitting, goToCall]);
+  }, [accessToken, user, captured, cloneId, formName, formRelation, midCall, goToCall]);
 
   if (permissionOk === false) {
     return (
@@ -277,59 +292,103 @@ export default function PreCallFaceEnrollScreen() {
       <View style={s.header}>
         <Text style={s.title}>얼굴 등록</Text>
         <Text style={s.subtitle}>
-          {personaName} 과 자연스럽게 대화하도록 얼굴을 각도·거리별로 담아둘게요.
+          {midCall
+            ? "새 얼굴을 등록하고 통화를 다시 시작해요."
+            : `${personaName ?? "페르소나"} 과 자연스럽게 대화하도록 얼굴을 각도·거리별로 담아둘게요.`}
         </Text>
       </View>
 
       {}
-      <View style={s.centerBlock}>
-        <View style={s.cameraBox}>
-          <VisionCamera
-            style={StyleSheet.absoluteFill}
-            device={device}
-            isActive={!submitting}
-            frameProcessor={faceEmbedModel ? faceFrameProcessor : undefined}
-            pixelFormat="yuv"
+      {done ? (
+        <KeyboardAvoidingView
+          style={s.centerBlock}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <Text style={s.formTitle}>이 분은 누구신가요?</Text>
+          <Text style={s.formDesc}>
+            {midCall
+              ? "이름과 관계를 알려주시면 다음 통화부터 알아볼 수 있어요."
+              : "알려주시면 다음 통화부터 기억할게요."}
+          </Text>
+          <Text style={s.formLabel}>이름</Text>
+          <TextInput
+            style={s.formInput}
+            value={formName}
+            onChangeText={setFormName}
+            placeholder="예: 지호"
+            placeholderTextColor={COLORS.zinc500}
+            autoFocus
+            returnKeyType="next"
+            editable={!submitting}
           />
-          <View style={s.guideCircle} pointerEvents="none" />
-        </View>
-
-        <View style={s.stepBox}>
-          {done ? (
-            <>
-              <ActivityIndicator color={COLORS.white} />
-              <Text style={s.stepLabel}>등록 중...</Text>
-            </>
-          ) : (
-            <>
-              <Text style={s.stepLabel}>
-                {step + 1}/{STEPS.length} · {currentStep.label}
-              </Text>
-              <Text style={s.stepHint}>{currentStep.hint}</Text>
-            </>
-          )}
-        </View>
-
-        <View style={s.progressRow}>
-          {STEPS.map((sItem, idx) => (
-            <View
-              key={sItem.key}
-              style={[s.dot, idx < step && s.dotDone, idx === step && !done && s.dotActive]}
+          <Text style={s.formLabel}>관계 (선택)</Text>
+          <TextInput
+            style={s.formInput}
+            value={formRelation}
+            onChangeText={setFormRelation}
+            placeholder="예: 손주, 오랜 친구"
+            placeholderTextColor={COLORS.zinc500}
+            returnKeyType="done"
+            editable={!submitting}
+            onSubmitEditing={onSubmit}
+          />
+          {formError ? <Text style={s.formError}>{formError}</Text> : null}
+        </KeyboardAvoidingView>
+      ) : (
+        <View style={s.centerBlock}>
+          <View style={s.cameraBox}>
+            <VisionCamera
+              style={StyleSheet.absoluteFill}
+              device={device}
+              isActive={!submitting}
+              frameProcessor={faceEmbedModel ? faceFrameProcessor : undefined}
+              pixelFormat="yuv"
             />
-          ))}
+            <View style={s.guideCircle} pointerEvents="none" />
+          </View>
+
+          <View style={s.stepBox}>
+            <Text style={s.stepLabel}>
+              {step + 1}/{STEPS.length} · {currentStep.label}
+            </Text>
+            <Text style={s.stepHint}>{currentStep.hint}</Text>
+          </View>
+
+          <View style={s.progressRow}>
+            {STEPS.map((sItem, idx) => (
+              <View
+                key={sItem.key}
+                style={[s.dot, idx < step && s.dotDone, idx === step && !done && s.dotActive]}
+              />
+            ))}
+          </View>
         </View>
-      </View>
+      )}
 
       {}
       <View style={s.bottomBlock}>
-        {!done && (
+        {done ? (
+          <TouchableOpacity
+            onPress={onSubmit}
+            style={[s.captureBtn, submitting && s.captureBtnDisabled]}
+            disabled={submitting || !formName.trim()}
+          >
+            {submitting ? (
+              <ActivityIndicator color={COLORS.zinc900} />
+            ) : (
+              <Text style={s.captureBtnText}>등록</Text>
+            )}
+          </TouchableOpacity>
+        ) : (
           <TouchableOpacity onPress={onCapture} style={s.captureBtn} disabled={submitting}>
             <Text style={s.captureBtnText}>촬영</Text>
           </TouchableOpacity>
         )}
 
         <TouchableOpacity onPress={onSkip} style={s.skipBtn} disabled={submitting}>
-          <Text style={s.skipBtnText}>나중에 하기 (지금 통화)</Text>
+          <Text style={s.skipBtnText}>
+            {midCall ? "등록 없이 통화 재개" : "나중에 하기 (지금 통화)"}
+          </Text>
         </TouchableOpacity>
 
         {}
@@ -364,6 +423,21 @@ const s = StyleSheet.create({
     marginTop: 6,
     paddingHorizontal: 12,
   },
+
+  formTitle: { color: COLORS.white, fontSize: 20, fontWeight: "700", textAlign: "center" },
+  formDesc: { color: COLORS.zinc300, fontSize: 13, textAlign: "center", marginTop: 6, marginBottom: 20 },
+  formLabel: { color: COLORS.zinc300, fontSize: 13, alignSelf: "flex-start", marginTop: 12, marginBottom: 6 },
+  formInput: {
+    alignSelf: "stretch",
+    backgroundColor: COLORS.zinc900,
+    color: COLORS.white,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+  },
+  formError: { color: "#f87171", fontSize: 12, marginTop: 10, alignSelf: "flex-start" },
+  captureBtnDisabled: { opacity: 0.6 },
   title: { color: COLORS.white, fontSize: 22, fontWeight: "700" },
   subtitle: { color: COLORS.zinc300, fontSize: 13, textAlign: "center" },
   cameraBox: {
