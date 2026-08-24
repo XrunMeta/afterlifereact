@@ -187,12 +187,16 @@ export default function PreCallFaceEnrollScreen() {
         faceCount: number,
         yaw: number,
         pitch: number,
-        landmarkRatios: LandmarkRatios | null,
+
+        landmarkRatiosJson: string | null,
       ) => {
         latestVectorRef.current = vector;
         latestFaceCountRef.current = faceCount;
         if (faceCount > 0) setPose({ yaw, pitch });
         else setPose(null);
+        const landmarkRatios: LandmarkRatios | null = landmarkRatiosJson
+          ? (JSON.parse(landmarkRatiosJson) as LandmarkRatios)
+          : null;
 
         const idx = stepRef.current;
         if (idx >= STEPS.length) return;
@@ -230,6 +234,8 @@ export default function PreCallFaceEnrollScreen() {
           if (prev.length >= (idx + 1) * FRAMES_PER_STEP) return prev;
           return [...prev, landmarkRatios];
         });
+
+        console.log(`[PreCall] captured step=${idx} landmark=${landmarkRatios ? 'YES' : 'null'}`);
       }),
     [flashOpacity],
   );
@@ -284,8 +290,9 @@ export default function PreCallFaceEnrollScreen() {
       const rawPitch = (primary as unknown as { pitchAngle?: number }).pitchAngle ?? 0;
 
       const ratios = computeLandmarkRatios(primary as unknown as { bounds: { x: number; y: number; width: number; height: number }; landmarks?: Record<string, { x: number; y: number }> | null });
+      const ratiosJson: string | null = ratios ? JSON.stringify(ratios) : null;
 
-      handleEmbeddingOnJS(Array.from(out), faces.length, rawYaw, rawPitch, ratios);
+      handleEmbeddingOnJS(Array.from(out), faces.length, rawYaw, rawPitch, ratiosJson);
     },
     [detectFaces, faceEmbedModel, resize, lastEmbedTs, isAndroidFrame, handleEmbeddingOnJS],
   );
