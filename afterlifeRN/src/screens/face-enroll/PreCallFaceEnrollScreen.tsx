@@ -6,7 +6,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Animated,
   Vibration,
@@ -61,9 +60,21 @@ export default function PreCallFaceEnrollScreen() {
   const nav = useNavigation<Nav>();
   const route = useRoute<Rt>();
   const insets = useSafeAreaInsets();
-  const { cloneId, name: personaName, image: personaImage } = route.params;
+
+  const rawCloneId = (route.params as { cloneId: unknown }).cloneId;
+  const cloneId = Number(rawCloneId);
+  const { name: personaName, image: personaImage } = route.params;
   const accessToken = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.apiUser);
+
+  useEffect(() => {
+    if (!Number.isInteger(cloneId) || cloneId <= 0) {
+      showAlert("페르소나 정보 오류", "잘못된 페르소나로 진입했어요. 다시 시도해 주세요.", [
+        { text: "확인", onPress: () => nav.goBack() },
+      ]);
+    }
+
+  }, [cloneId]);
 
   const [permissionOk, setPermissionOk] = useState<boolean | null>(null);
   const [step, setStep] = useState(0);
@@ -153,7 +164,7 @@ export default function PreCallFaceEnrollScreen() {
   }, [nav, cloneId, personaName, personaImage]);
 
   const onSkip = useCallback(() => {
-    Alert.alert(
+    showAlert(
       "등록 없이 진행",
       "얼굴 인식·기억 기능이 제한될 수 있습니다. 계속하시겠어요?",
       [
@@ -198,7 +209,7 @@ export default function PreCallFaceEnrollScreen() {
         setTimeout(goToCall, 400);
       } catch (err) {
         console.warn("[PreCallFaceEnroll] enroll 실패:", err);
-        Alert.alert(
+        showAlert(
           "등록 실패",
           `${(err as Error).message ?? "네트워크 오류"}. 등록 없이 통화만 진행할까요?`,
           [
@@ -233,7 +244,8 @@ export default function PreCallFaceEnrollScreen() {
   const done = step >= STEPS.length;
 
   return (
-    <View style={[s.container, { paddingTop: insets.top }]}>
+    <View style={[s.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      {}
       <View style={s.header}>
         <Text style={s.title}>얼굴 등록</Text>
         <Text style={s.subtitle}>
@@ -241,51 +253,62 @@ export default function PreCallFaceEnrollScreen() {
         </Text>
       </View>
 
-      <View style={s.cameraBox}>
-        <VisionCamera
-          style={StyleSheet.absoluteFill}
-          device={device}
-          isActive={!submitting}
-          frameProcessor={faceEmbedModel ? faceFrameProcessor : undefined}
-          pixelFormat="yuv"
-        />
-        <View style={s.guideCircle} pointerEvents="none" />
-      </View>
-
-      <View style={s.stepBox}>
-        {done ? (
-          <>
-            <ActivityIndicator color={COLORS.white} />
-            <Text style={s.stepLabel}>등록 중...</Text>
-          </>
-        ) : (
-          <>
-            <Text style={s.stepLabel}>
-              {step + 1}/{STEPS.length} · {currentStep.label}
-            </Text>
-            <Text style={s.stepHint}>{currentStep.hint}</Text>
-          </>
-        )}
-      </View>
-
-      <View style={s.progressRow}>
-        {STEPS.map((sItem, idx) => (
-          <View
-            key={sItem.key}
-            style={[s.dot, idx < step && s.dotDone, idx === step && !done && s.dotActive]}
+      {}
+      <View style={s.centerBlock}>
+        <View style={s.cameraBox}>
+          <VisionCamera
+            style={StyleSheet.absoluteFill}
+            device={device}
+            isActive={!submitting}
+            frameProcessor={faceEmbedModel ? faceFrameProcessor : undefined}
+            pixelFormat="yuv"
           />
-        ))}
+          <View style={s.guideCircle} pointerEvents="none" />
+        </View>
+
+        <View style={s.stepBox}>
+          {done ? (
+            <>
+              <ActivityIndicator color={COLORS.white} />
+              <Text style={s.stepLabel}>등록 중...</Text>
+            </>
+          ) : (
+            <>
+              <Text style={s.stepLabel}>
+                {step + 1}/{STEPS.length} · {currentStep.label}
+              </Text>
+              <Text style={s.stepHint}>{currentStep.hint}</Text>
+            </>
+          )}
+        </View>
+
+        <View style={s.progressRow}>
+          {STEPS.map((sItem, idx) => (
+            <View
+              key={sItem.key}
+              style={[s.dot, idx < step && s.dotDone, idx === step && !done && s.dotActive]}
+            />
+          ))}
+        </View>
       </View>
 
-      {!done && (
-        <TouchableOpacity onPress={onCapture} style={s.captureBtn} disabled={submitting}>
-          <Text style={s.captureBtnText}>촬영</Text>
-        </TouchableOpacity>
-      )}
+      {}
+      <View style={s.bottomBlock}>
+        {!done && (
+          <TouchableOpacity onPress={onCapture} style={s.captureBtn} disabled={submitting}>
+            <Text style={s.captureBtnText}>촬영</Text>
+          </TouchableOpacity>
+        )}
 
-      <TouchableOpacity onPress={onSkip} style={s.skipBtn} disabled={submitting}>
-        <Text style={s.skipBtnText}>나중에 하기 (지금 통화)</Text>
-      </TouchableOpacity>
+        <TouchableOpacity onPress={onSkip} style={s.skipBtn} disabled={submitting}>
+          <Text style={s.skipBtnText}>나중에 하기 (지금 통화)</Text>
+        </TouchableOpacity>
+
+        {}
+        <Text style={s.privacyNote}>
+          촬영한 사진은 서버에 저장되지 않아요. 얼굴을 알아보기 위한 숫자 특징(벡터)만 안전하게 담아둡니다.
+        </Text>
+      </View>
 
       {}
       <Animated.View
@@ -299,9 +322,19 @@ export default function PreCallFaceEnrollScreen() {
 const CIRCLE_SIZE = 260;
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.zinc950, padding: 20, gap: 16 },
+  container: { flex: 1, backgroundColor: COLORS.zinc950, padding: 20 },
   center: { alignItems: "center", justifyContent: "center", gap: 12 },
-  header: { alignItems: "center", gap: 6 },
+  header: { alignItems: "center", gap: 6, marginBottom: 8 },
+  centerBlock: { flex: 1, justifyContent: "center", alignItems: "center", gap: 16 },
+  bottomBlock: { gap: 8, marginTop: 12 },
+  privacyNote: {
+    color: COLORS.zinc400,
+    fontSize: 12,
+    textAlign: "center",
+    lineHeight: 18,
+    marginTop: 6,
+    paddingHorizontal: 12,
+  },
   title: { color: COLORS.white, fontSize: 22, fontWeight: "700" },
   subtitle: { color: COLORS.zinc300, fontSize: 13, textAlign: "center" },
   cameraBox: {
