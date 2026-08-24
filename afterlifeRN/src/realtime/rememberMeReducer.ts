@@ -24,6 +24,10 @@ export interface RememberMeState {
   pendingSwitch: { personId: number; displayName: string | null } | null;
 
   recentlySeen: Record<number, number>;
+
+  lastConfirmedPerson: { personId: number; displayName: string | null } | null;
+
+  dismissedPromptInCall: boolean;
 }
 
 export const v_575cf8 = 60_000;
@@ -61,7 +65,11 @@ export type RememberMeEvent =
 
   | { type: "CONFIRM_PROMPT" }
 
-  | { type: "DISMISS_PROMPT" };
+  | { type: "DISMISS_PROMPT" }
+
+  | { type: "CONFIRM_SAME_PERSON" }
+
+  | { type: "DISMISS_LATER" };
 
 export type RememberMeAction =
 
@@ -97,6 +105,8 @@ export function v_178dfb(): RememberMeState {
     lastNotifyUnknownMs: null,
     pendingSwitch: null,
     recentlySeen: {},
+    lastConfirmedPerson: null,
+    dismissedPromptInCall: false,
   };
 }
 
@@ -132,7 +142,16 @@ function v_60164c(
   };
 }
 
-function v_9638ca(v_fd5f43, v_ca1ec5): RememberMeState {
+function v_9638ca(
+  v_fd5f43,
+  v_ca1ec5,
+  v_8a1355,
+): RememberMeState {
+
+  const v_dca8b5 =
+    v_8a1355 !== undefined
+      ? { personId: v_ca1ec5, displayName: v_8a1355 }
+      : v_fd5f43.lastConfirmedPerson;
   return {
     ...v_fd5f43,
     mode: "identified",
@@ -146,6 +165,7 @@ function v_9638ca(v_fd5f43, v_ca1ec5): RememberMeState {
 
     lastNotifyUnknownMs: null,
     pendingSwitch: null,
+    lastConfirmedPerson: v_dca8b5,
   };
 }
 
@@ -172,7 +192,7 @@ function v_a448ad(
         const v_c29192 = v_ebdcca != null && v_67e77e - v_ebdcca < v_e6be56;
         const v_f1ed8d = v_ebdcca == null;
         return {
-          state: { ...v_9638ca(v_b6e533, v_d48baf.personId), recentlySeen: v_3d04cc },
+          state: { ...v_9638ca(v_b6e533, v_d48baf.personId, v_d48baf.displayName), recentlySeen: v_3d04cc },
           actions: [
             { type: "MIC_ON" },
             {
@@ -191,7 +211,7 @@ function v_a448ad(
         if (v_b6e533.mode === "grace") {
 
           return {
-            state: { ...v_9638ca(v_b6e533, v_d48baf.personId), recentlySeen: v_3d04cc },
+            state: { ...v_9638ca(v_b6e533, v_d48baf.personId, v_d48baf.displayName), recentlySeen: v_3d04cc },
             actions: [
               {
                 type: "NOTIFY_CONFIRMED",
@@ -208,7 +228,7 @@ function v_a448ad(
       }
 
       return {
-        state: { ...v_9638ca(v_b6e533, v_d48baf.personId), recentlySeen: v_3d04cc },
+        state: { ...v_9638ca(v_b6e533, v_d48baf.personId, v_d48baf.displayName), recentlySeen: v_3d04cc },
         actions: [
 
           ...(v_d48baf.cloneSpeaking ? [{ type: "INTERRUPT_TTS" } as RememberMeAction] : []),
@@ -243,7 +263,9 @@ function v_a448ad(
       }
 
       const v_29bced =
-        typeof v_d48baf.score === "number" && v_d48baf.score > 0;
+        typeof v_d48baf.score === "number" &&
+        v_d48baf.score > 0 &&
+        !v_b6e533.dismissedPromptInCall;
       if (v_b6e533.personId === null) {
         return {
           state: v_60164c(v_b6e533, v_67e77e, v_29bced),
@@ -277,8 +299,11 @@ function v_a448ad(
 
         return { state: v_b6e533, actions: [{ type: "END_CALL" }] };
       }
+
+      const v_ba5475 =
+        v_b6e533.lastConfirmedPerson !== null && !v_b6e533.dismissedPromptInCall;
       return {
-        state: v_60164c(v_b6e533, v_67e77e),
+        state: v_60164c(v_b6e533, v_67e77e, v_ba5475),
         actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
       };
     }
@@ -287,7 +312,7 @@ function v_a448ad(
       const v_714e04 = v_b6e533.pendingSwitch;
       if (!v_714e04) return { state: v_b6e533, actions: [] };
       return {
-        state: v_9638ca(v_b6e533, v_714e04.personId),
+        state: v_9638ca(v_b6e533, v_714e04.personId, v_714e04.displayName),
         actions: [
           {
             type: "NOTIFY_CONFIRMED",
@@ -330,6 +355,47 @@ function v_a448ad(
 
       if (!v_b6e533.promptRegister) return { state: v_b6e533, actions: [] };
       return { state: { ...v_b6e533, promptRegister: false }, actions: [] };
+
+    case "CONFIRM_SAME_PERSON": {
+
+      if (!v_b6e533.promptRegister) return { state: v_b6e533, actions: [] };
+      const v_d2d3fb = v_b6e533.lastConfirmedPerson;
+      if (v_d2d3fb == null) {
+
+        return {
+          state: {
+            ...v_b6e533,
+            promptRegister: false,
+            dismissedPromptInCall: true,
+            mode: "identified", 
+            personId: null,
+          },
+          actions: [{ type: "MIC_ON" }],
+        };
+      }
+      return {
+        state: {
+          ...v_9638ca(v_b6e533, v_d2d3fb.personId, v_d2d3fb.displayName),
+          promptRegister: false,
+          dismissedPromptInCall: true,
+        },
+        actions: [{ type: "MIC_ON" }],
+      };
+    }
+
+    case "DISMISS_LATER":
+
+      if (!v_b6e533.promptRegister) return { state: v_b6e533, actions: [] };
+      return {
+        state: {
+          ...v_b6e533,
+          promptRegister: false,
+          dismissedPromptInCall: true,
+          mode: "identified",
+          personId: null,
+        },
+        actions: [{ type: "MIC_ON" }],
+      };
 
     default:
       return { state: v_b6e533, actions: [] };
