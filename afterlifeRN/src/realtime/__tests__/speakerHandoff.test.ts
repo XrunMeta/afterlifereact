@@ -39,6 +39,27 @@ describe('speakerHandoffReducer', () => {
     expect(v_dd943a).toEqual([]);
   });
 
+  it('T-561 · 같은 사람이 짧게 놓쳤다 돌아오면 재인사 스킵 (naming 중 + 같은 personId)', () => {
+
+    const v_ca01e0 = { lastKnownSpeaker: v_d81543, naming: true };
+    const { state: v_b6e533, actions: v_dd943a } = v_5ecb22(v_ca01e0,
+      { type: 'SPEAKER_CONFIRMED', personId: 9, name: '주인' });
+    expect(v_b6e533).toEqual({ lastKnownSpeaker: v_d81543, naming: false });
+    expect(v_dd943a).toEqual([]);
+  });
+
+  it('naming 중 · 진짜 다른 사람이 오면 재인사 (기존 동작 유지)', () => {
+
+    const v_ca01e0 = { lastKnownSpeaker: v_d81543, naming: true };
+    const { state: v_b6e533, actions: v_dd943a } = v_5ecb22(v_ca01e0,
+      { type: 'SPEAKER_CONFIRMED', personId: 15, name: '미미' });
+    expect(v_b6e533).toEqual({ lastKnownSpeaker: { personId: 15, name: '미미' }, naming: false });
+    expect(v_dd943a).toEqual([
+      { type: 'SAY', text: '미미님 다시 오셨네요' },
+      { type: 'END_NAMING' },
+    ]);
+  });
+
   it('NAME_ENROLLED(naming 중) → END_NAMING, naming=false', () => {
     const v_ca01e0 = { lastKnownSpeaker: null, naming: true };
     const { state: v_b6e533, actions: v_dd943a } = v_5ecb22(v_ca01e0,
