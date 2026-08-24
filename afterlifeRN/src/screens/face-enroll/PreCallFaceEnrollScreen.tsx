@@ -354,7 +354,8 @@ const s = StyleSheet.create({
   center: { alignItems: "center", justifyContent: "center", gap: 12 },
   header: { alignItems: "center", gap: 6, marginBottom: 8 },
   centerBlock: { flex: 1, justifyContent: "center", alignItems: "center", gap: 16 },
-  bottomBlock: { gap: 8, marginTop: 12 },
+
+  bottomBlock: { gap: 2, marginTop: 8 },
   privacyNote: {
     color: COLORS.zinc400,
     fontSize: 12,
@@ -400,7 +401,8 @@ const s = StyleSheet.create({
   },
   captureBtnText: { color: COLORS.zinc900, fontSize: 16, fontWeight: "700" },
   skipBtn: {
-    paddingVertical: 12,
+
+    paddingVertical: 4,
     alignItems: "center",
   },
   skipBtnText: { color: COLORS.zinc400, fontSize: 13, textDecorationLine: "underline" },
