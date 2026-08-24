@@ -85,7 +85,7 @@ describe("rememberMeReducer — grace(30초 유지)", () => {
     s = step(s, { type: "ACTIVITY" }, 5000).state;
     const r = step(s, { type: "TICK" }, 1000 + GRACE_HOLD_MS);
     expect(r.state.mode).toBe("pending");
-    expect(r.state.sheetOpen).toBe(true);
+    expect(r.state.sheetOpen).toBe(false);
     expect(r.actions).toEqual([{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }]);
   });
 
@@ -310,5 +310,43 @@ describe("rememberMeReducer — 순수성", () => {
     step(s0, { type: "ACTIVITY" });
     step(s0, known(70));
     expect(JSON.stringify(s0)).toBe(snapshot);
+  });
+});
+
+describe("rememberMeReducer — T-559 프로액티브 sheet (score gate)", () => {
+  it("score 미제공 (undefined) — sheet 자동 open 안 함 (T-557 기본)", () => {
+    const { state } = step(initRememberMeState(), { type: "MATCH_UNKNOWN" }, 1000);
+    expect(state.mode).toBe("pending");
+    expect(state.sheetOpen).toBe(false);
+    expect(shouldShowRememberMeButton(state)).toBe(true);
+  });
+
+  it("score === 0 — sheet 자동 open 안 함 (DB 비어있음 · 완전 미확정 케이스)", () => {
+    const { state } = step(initRememberMeState(), { type: "MATCH_UNKNOWN", score: 0 }, 1000);
+    expect(state.mode).toBe("pending");
+    expect(state.sheetOpen).toBe(false);
+  });
+
+  it("score > 0 — 프로액티브 sheet 자동 open (다른 사람 가능성)", () => {
+    const { state } = step(initRememberMeState(), { type: "MATCH_UNKNOWN", score: 0.25 }, 1000);
+    expect(state.mode).toBe("pending");
+    expect(state.sheetOpen).toBe(true);
+    expect(shouldHoldMic(state)).toBe(true);
+  });
+
+  it("score > 0 이라도 확정자가 있으면 grace 로 감 (sheet 자동 open X · 그 사람 유지)", () => {
+
+    const { state } = step(identified58(), { type: "MATCH_UNKNOWN", score: 0.3 }, 1000);
+    expect(state.mode).toBe("grace");
+    expect(state.sheetOpen).toBe(false);
+  });
+
+  it("grace 만료로 TICK → pending 진입 시엔 sheet 자동 open X (자리 뜬 케이스)", () => {
+
+    let s = step(identified58(), { type: "MATCH_UNKNOWN", score: 0.3 }, 1000).state;
+    s = step(s, { type: "ACTIVITY" }, 5_000).state;
+    const { state } = step(s, { type: "TICK" }, 1000 + GRACE_HOLD_MS);
+    expect(state.mode).toBe("pending");
+    expect(state.sheetOpen).toBe(false);
   });
 });

@@ -8,7 +8,8 @@ export type SpeakerIdAction = MatchCycle | ResetRecognitionAction;
 
 export type SpeakerEvent =
   | { type: "speaker_confirmed"; personId: number; displayName: string | null }
-  | { type: "unknown_face" }
+
+  | { type: "unknown_face"; score: number }
   | null;
 
 export type SpeakerIdState = {
@@ -56,7 +57,8 @@ export function speakerIdReducer(
     if (key !== confirmed) {
       confirmed = key;
       if (key === "unknown") {
-        event = { type: "unknown_face" };
+
+        event = { type: "unknown_face", score: cycle.score };
         lastUnknownEmitMs = nowMs;
       } else {
         event = { type: "speaker_confirmed", personId: key, displayName: cycle.displayName };
@@ -69,7 +71,7 @@ export function speakerIdReducer(
       nowMs - lastUnknownEmitMs >= UNKNOWN_FACE_REEMIT_MS
     ) {
 
-      event = { type: "unknown_face" };
+      event = { type: "unknown_face", score: cycle.score };
       lastUnknownEmitMs = nowMs;
     }
   }

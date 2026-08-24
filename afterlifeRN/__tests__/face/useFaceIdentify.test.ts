@@ -61,7 +61,7 @@ describe("runIdentifyCycle (순수 로직)", () => {
     const matchFaceFn = jest.fn().mockResolvedValue({ matches: [], best: null, threshold: 0.5 });
     const s: IdentifyCycleState = INITIAL_IDENTIFY_CYCLE_STATE;
     const r = await runIdentifyCycle(s, VEC, "tok", 999, 1000, { matchFaceFn });
-    expect(r.event).toEqual({ type: "unknown_face" });
+    expect(r.event).toEqual({ type: "unknown_face", score: 0 });
   });
 
   it("matchFace 실패(네트워크) → 사이클 스킵, event null, 크래시 없음", async () => {
@@ -123,7 +123,7 @@ describe("runIdentifyCycle (순수 로직)", () => {
       const r = await runIdentifyCycle(s, VEC, "tok", 999, t, { matchFaceFn });
       s = r.state;
       if (r.event) {
-        expect(r.event).toEqual({ type: "unknown_face" });
+        expect(r.event).toEqual({ type: "unknown_face", score: 0 });
         emitted.push(t);
       }
     }

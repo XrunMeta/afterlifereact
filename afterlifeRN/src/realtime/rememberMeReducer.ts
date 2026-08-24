@@ -43,7 +43,7 @@ export type RememberMeEvent =
       cloneSpeaking: boolean;
     }
 
-  | { type: "MATCH_UNKNOWN" }
+  | { type: "MATCH_UNKNOWN"; score?: number }
 
   | { type: "ACTIVITY" }
 
@@ -101,13 +101,18 @@ export function shouldHoldMic(s: RememberMeState): boolean {
   return s.mode === "pending" || s.sheetOpen;
 }
 
-function enterPending(s: RememberMeState, nowMs: number): RememberMeState {
+function enterPending(
+  s: RememberMeState,
+  nowMs: number,
+
+  autoOpenSheet: boolean = false,
+): RememberMeState {
 
   return {
     ...s,
     mode: "pending",
     personId: null,
-    sheetOpen: false,
+    sheetOpen: autoOpenSheet,
     graceSinceMs: null,
     graceHadActivity: false,
     mentionName: false,
@@ -224,9 +229,11 @@ function next(
         };
       }
 
+      const shouldAutoOpen =
+        typeof event.score === "number" && event.score > 0;
       if (state.personId === null) {
         return {
-          state: enterPending(state, nowMs),
+          state: enterPending(state, nowMs, shouldAutoOpen),
           actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
         };
       }
