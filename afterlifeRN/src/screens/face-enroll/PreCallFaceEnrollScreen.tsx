@@ -13,6 +13,7 @@ import {
   v_e767d1,
   v_326be8,
   v_0e1f26,
+  v_1ed974,
 } from "rcmrninabrnb";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
@@ -198,6 +199,31 @@ export default function v_8640b9() {
       }),
     );
   }, [v_3c9f12, v_6e0fd3, v_dfb220, v_0e38ad]);
+
+  const v_6ca26b = v_de06a3(() => {
+    if (v_c414dc) {
+
+      v_3c9f12.dispatch(
+        v_650cfa.reset({
+          index: 0,
+          routes: [{ name: "Call", params: { cloneId: v_6e0fd3, name: v_dfb220, image: v_0e38ad } }],
+        }),
+      );
+      return true;
+    }
+    if (v_3c9f12.canGoBack()) {
+      v_3c9f12.goBack();
+      return true;
+    }
+
+    v_3c9f12.dispatch(v_650cfa.reset({ index: 0, routes: [{ name: "MainTabs" }] }));
+    return true;
+  }, [v_c414dc, v_3c9f12, v_6e0fd3, v_dfb220, v_0e38ad]);
+
+  v_c4deb2(() => {
+    const v_1ae212 = v_1ed974.addEventListener("hardwareBackPress", () => v_6ca26b());
+    return () => v_1ae212.remove();
+  }, [v_6ca26b]);
 
   const v_bcff1c = v_de06a3(() => {
     v_889fad(
