@@ -68,7 +68,7 @@ export default function v_30f4d7() {
       v_889fad("권한 필요", "갤러리 접근 권한을 허용해 주세요.");
       return;
     }
-    const v_cb35cb = await v_d05ab5.launchImageLibraryAsync({ mediaTypes: v_d05ab5.MediaTypeOptions.Images, quality: 1 });
+    const v_cb35cb = await v_d05ab5.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 1 });
     if (v_cb35cb.canceled || v_cb35cb.assets.length === 0) return;
     v_54e4fb(v_cb35cb.assets[0].uri);
   }, []);
