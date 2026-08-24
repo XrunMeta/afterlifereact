@@ -34,17 +34,12 @@ export function speakerHandoffReducer(
       };
     }
     case 'SPEAKER_CONFIRMED': {
+
       const known: KnownSpeaker = { personId: event.personId, name: event.name };
-
-      const sameAsBefore = state.lastKnownSpeaker?.personId === event.personId;
-      if (state.naming && !sameAsBefore) {
-        return {
-          state: { lastKnownSpeaker: known, naming: false },
-          actions: [{ type: 'SAY', text: `${event.name}님 다시 오셨네요` }, { type: 'END_NAMING' }],
-        };
-      }
-
-      return { state: { lastKnownSpeaker: known, naming: false }, actions: [] };
+      return {
+        state: { lastKnownSpeaker: known, naming: false },
+        actions: state.naming ? [{ type: 'END_NAMING' }] : [],
+      };
     }
     case 'NAME_ENROLLED': {
       if (!state.naming) return { state, actions: [] };
