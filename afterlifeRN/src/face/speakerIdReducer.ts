@@ -22,7 +22,7 @@ export type SpeakerIdState = {
 
 export const v_3451db = 1;
 
-export const v_fcf2b4 = 10_000;
+export const v_fcf2b4 = 3_000;
 
 export const v_22f27b = {
   confirmed: "none",
