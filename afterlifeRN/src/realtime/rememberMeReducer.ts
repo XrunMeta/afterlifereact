@@ -102,11 +102,12 @@ export function shouldHoldMic(s: RememberMeState): boolean {
 }
 
 function enterPending(s: RememberMeState, nowMs: number): RememberMeState {
+
   return {
     ...s,
     mode: "pending",
     personId: null,
-    sheetOpen: true,
+    sheetOpen: false,
     graceSinceMs: null,
     graceHadActivity: false,
     mentionName: false,

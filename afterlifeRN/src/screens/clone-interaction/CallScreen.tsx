@@ -17,6 +17,7 @@ import {
   Linking,
   TextInput,
   BackHandler,
+  ActivityIndicator,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
@@ -2175,6 +2176,16 @@ function CallScreenInner({ route, navigation }: Props) {
       />
 
       {}
+
+      {
+
+}
+      {isTerminating && (
+        <View style={s.exitOverlay} pointerEvents="auto">
+          <ActivityIndicator size="large" color={COLORS.white} />
+          <Text style={s.exitOverlayText}>종료 중...</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -2510,4 +2521,19 @@ const s = StyleSheet.create({
   },
   toastText: { fontSize: 14, color: COLORS.white },
 
+  exitOverlay: {
+    position: "absolute",
+    inset: 0 as unknown as number, 
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 999,
+    gap: 12,
+  },
+  exitOverlayText: {
+    fontSize: 15,
+    color: COLORS.white,
+    fontWeight: "600",
+  },
 });
