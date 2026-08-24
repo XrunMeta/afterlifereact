@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Animated,
+  Vibration,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -40,11 +42,11 @@ interface Step {
 }
 
 const STEPS: readonly Step[] = [
-  { key: "front", label: "정면", hint: "화면 중앙을 봐주세요" },
-  { key: "left", label: "왼쪽", hint: "천천히 왼쪽으로 고개를 돌려주세요" },
-  { key: "right", label: "오른쪽", hint: "천천히 오른쪽으로 고개를 돌려주세요" },
-  { key: "up", label: "위", hint: "고개를 살짝 위로 들어주세요" },
-  { key: "down", label: "아래", hint: "고개를 살짝 아래로 숙여주세요" },
+  { key: "front", label: "정면", hint: "화면 정중앙을 정시해 주세요" },
+  { key: "right", label: "오른쪽", hint: "고개를 오른쪽으로 살짝 돌려주세요" },
+  { key: "left", label: "왼쪽", hint: "고개를 왼쪽으로 살짝 돌려주세요" },
+  { key: "up", label: "위", hint: "고개를 위로 살짝 들어주세요" },
+  { key: "down", label: "아래", hint: "고개를 아래로 살짝 숙여주세요" },
 ] as const;
 
 const FACE_DETECTOR_OPTIONS = {
@@ -70,6 +72,16 @@ export default function PreCallFaceEnrollScreen() {
 
   const latestVectorRef = useRef<number[] | null>(null);
   const latestFaceCountRef = useRef(0);
+
+  const flashOpacity = useRef(new Animated.Value(0)).current;
+  const playFlash = useCallback(() => {
+
+    Vibration.vibrate(30);
+    Animated.sequence([
+      Animated.timing(flashOpacity, { toValue: 0.6, duration: 80, useNativeDriver: true }),
+      Animated.timing(flashOpacity, { toValue: 0, duration: 220, useNativeDriver: true }),
+    ]).start();
+  }, [flashOpacity]);
 
   useEffect(() => {
     void (async () => {
@@ -160,9 +172,11 @@ export default function PreCallFaceEnrollScreen() {
     }
 
     const norm = Array.from(l2normalize(Float32Array.from(vec)));
+
+    playFlash();
     setCaptured((prev) => [...prev, norm]);
     setStep((prev) => prev + 1);
-  }, []);
+  }, [playFlash]);
 
   useEffect(() => {
     if (captured.length !== STEPS.length) return;
@@ -272,6 +286,12 @@ export default function PreCallFaceEnrollScreen() {
       <TouchableOpacity onPress={onSkip} style={s.skipBtn} disabled={submitting}>
         <Text style={s.skipBtnText}>나중에 하기 (지금 통화)</Text>
       </TouchableOpacity>
+
+      {}
+      <Animated.View
+        pointerEvents="none"
+        style={[s.flash, { opacity: flashOpacity }]}
+      />
     </View>
   );
 }
@@ -324,4 +344,9 @@ const s = StyleSheet.create({
   },
   skipBtnText: { color: COLORS.zinc400, fontSize: 13, textDecorationLine: "underline" },
   hint: { color: COLORS.zinc300, fontSize: 14, textAlign: "center" },
+
+  flash: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: COLORS.white,
+  },
 });
