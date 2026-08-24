@@ -159,6 +159,7 @@ function v_a448ad(
 
         const v_ebdcca = v_b6e533.recentlySeen[v_d48baf.personId];
         const v_c29192 = v_ebdcca != null && v_67e77e - v_ebdcca < v_e6be56;
+        const v_f1ed8d = v_ebdcca == null;
         return {
           state: { ...v_9638ca(v_b6e533, v_d48baf.personId), recentlySeen: v_3d04cc },
           actions: [
@@ -167,7 +168,8 @@ function v_a448ad(
               type: "NOTIFY_CONFIRMED",
               personId: v_d48baf.personId,
               displayName: v_d48baf.displayName,
-              rejoin: !v_c29192, 
+
+              rejoin: !v_c29192 && !v_f1ed8d,
               mentionName: v_c29192, 
             },
           ],
