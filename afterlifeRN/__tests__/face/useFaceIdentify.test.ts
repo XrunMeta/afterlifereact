@@ -61,7 +61,7 @@ describe("runIdentifyCycle (순수 로직)", () => {
     const v_a97841 = jest.fn().mockResolvedValue({ matches: [], best: null, threshold: 0.5 });
     const s: v_90fd14 = v_48b3dc;
     const v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 999, 1000, { matchFaceFn: v_a97841 });
-    expect(v_cb35cb.event).toEqual({ type: "unknown_face" });
+    expect(v_cb35cb.event).toEqual({ type: "unknown_face", score: 0 });
   });
 
   it("matchFace 실패(네트워크) → 사이클 스킵, event null, 크래시 없음", async () => {
@@ -123,7 +123,7 @@ describe("runIdentifyCycle (순수 로직)", () => {
       const v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 999, v_8d41d7, { matchFaceFn: v_a97841 });
       v_fd5f43 = v_cb35cb.state;
       if (v_cb35cb.event) {
-        expect(v_cb35cb.event).toEqual({ type: "unknown_face" });
+        expect(v_cb35cb.event).toEqual({ type: "unknown_face", score: 0 });
         v_96bb97.push(v_8d41d7);
       }
     }

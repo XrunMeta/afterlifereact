@@ -41,13 +41,13 @@ it("확정된 사람을 놓을 때도 1회다 — 완충은 rememberMeReducer �
 
   const v_fd5f43 = v_be2f9f(v_22f27b, v_c6b64b, v_ca573c).state;
   const v_cb35cb = v_be2f9f(v_fd5f43, v_fa8caa, 3000);
-  expect(v_cb35cb.event).toEqual({ type: "unknown_face" });
+  expect(v_cb35cb.event).toEqual({ type: "unknown_face", score: 0 });
   expect(v_cb35cb.state.confirmed).toBe("unknown");
 });
 
 it("unknown 도 1회에 발행된다", () => {
   const v_cb35cb = v_be2f9f(v_22f27b, v_fa8caa, v_ca573c);
-  expect(v_cb35cb.event).toEqual({ type: "unknown_face" });
+  expect(v_cb35cb.event).toEqual({ type: "unknown_face", score: 0 });
 });
 
 it("unknown 이 이어져도 주기 전에는 재발행하지 않는다", () => {
@@ -66,7 +66,7 @@ it("unknown 고착: 주기(60초)마다 정확히 1회씩 재발행한다", () =
     const v_cb35cb = v_be2f9f(v_fd5f43, v_fa8caa, v_8d41d7);
     v_fd5f43 = v_cb35cb.state;
     if (v_cb35cb.event) {
-      expect(v_cb35cb.event).toEqual({ type: "unknown_face" });
+      expect(v_cb35cb.event).toEqual({ type: "unknown_face", score: 0 });
       v_96bb97.push(v_8d41d7);
     }
   }
@@ -103,7 +103,7 @@ it("speaker_confirmed 로 전이하면 재발행 기준점이 초기화된다", 
   expect(v_fd5f43.lastUnknownEmitMs).toBeNull();
 
   const v_cb35cb = v_be2f9f(v_fd5f43, v_fa8caa, 20_000);
-  expect(v_cb35cb.event).toEqual({ type: "unknown_face" });
+  expect(v_cb35cb.event).toEqual({ type: "unknown_face", score: 0 });
   expect(v_cb35cb.state.lastUnknownEmitMs).toBe(20_000);
 });
 
@@ -113,7 +113,7 @@ it("RESET_RECOGNITION 은 상태를 통째로 되돌린다 — 주기와 무관�
   expect(v_fd5f43).toEqual(v_22f27b);
 
   const v_cb35cb = v_be2f9f(v_fd5f43, v_fa8caa, 1_000);
-  expect(v_cb35cb.event).toEqual({ type: "unknown_face" });
+  expect(v_cb35cb.event).toEqual({ type: "unknown_face", score: 0 });
   expect(v_cb35cb.state.lastUnknownEmitMs).toBe(1_000);
 });
 
