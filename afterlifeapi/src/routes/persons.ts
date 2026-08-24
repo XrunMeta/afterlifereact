@@ -325,12 +325,12 @@ persons.post("/:id/faces", requireAuth, async (c) => {
   if (
     !Array.isArray(vectors) ||
     vectors.length < 1 ||
-    vectors.length > 5 ||
+    vectors.length > 10 ||
     vectors.some(
       (v) => !Array.isArray(v) || v.length !== 512 || v.some((x) => typeof x !== "number" || !Number.isFinite(x))
     )
   )
-    throw new APIError("VALIDATION_FAILED", "vectors: 1~5개의 512차원 수치 배열이어야 합니다");
+    throw new APIError("VALIDATION_FAILED", "vectors: 1~10개의 512차원 수치 배열이어야 합니다");
 
   const cloneId = body.cloneId;
   if (typeof cloneId !== "number" || !Number.isInteger(cloneId) || cloneId <= 0)

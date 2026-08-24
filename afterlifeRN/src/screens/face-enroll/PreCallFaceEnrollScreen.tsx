@@ -46,6 +46,8 @@ const STEPS: readonly Step[] = [
   { key: "left", label: "왼쪽", hint: "고개를 왼쪽으로 살짝 돌려주세요" },
   { key: "up", label: "위", hint: "고개를 위로 살짝 들어주세요" },
   { key: "down", label: "아래", hint: "고개를 아래로 살짝 숙여주세요" },
+  { key: "close", label: "가까이", hint: "얼굴을 카메라에 가까이 대주세요" },
+  { key: "far", label: "멀리", hint: "얼굴을 카메라에서 조금 멀리 떨어뜨려 주세요" },
 ] as const;
 
 const FACE_DETECTOR_OPTIONS = {
@@ -249,7 +251,7 @@ export default function PreCallFaceEnrollScreen() {
       <View style={s.header}>
         <Text style={s.title}>얼굴 등록</Text>
         <Text style={s.subtitle}>
-          {personaName} 과 자연스럽게 대화하도록 얼굴을 5각도 담아둘게요.
+          {personaName} 과 자연스럽게 대화하도록 얼굴을 각도·거리별로 담아둘게요.
         </Text>
       </View>
 
