@@ -34,17 +34,12 @@ export function v_5ecb22(
       };
     }
     case 'SPEAKER_CONFIRMED': {
+
       const v_d81543 = { personId: v_d48baf.personId, name: v_d48baf.name };
-
-      const v_f26cde = v_b6e533.lastKnownSpeaker?.personId === v_d48baf.personId;
-      if (v_b6e533.naming && !v_f26cde) {
-        return {
-          state: { lastKnownSpeaker: v_d81543, naming: false },
-          actions: [{ type: 'SAY', text: `${v_d48baf.name}님 다시 오셨네요` }, { type: 'END_NAMING' }],
-        };
-      }
-
-      return { state: { lastKnownSpeaker: v_d81543, naming: false }, actions: [] };
+      return {
+        state: { lastKnownSpeaker: v_d81543, naming: false },
+        actions: v_b6e533.naming ? [{ type: 'END_NAMING' }] : [],
+      };
     }
     case 'NAME_ENROLLED': {
       if (!v_b6e533.naming) return { state: v_b6e533, actions: [] };
