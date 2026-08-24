@@ -9,6 +9,8 @@ export interface RememberMeState {
 
   sheetOpen: boolean;
 
+  promptRegister: boolean;
+
   graceSinceMs: number | null;
 
   graceHadActivity: boolean;
@@ -55,7 +57,11 @@ export type RememberMeEvent =
 
   | { type: "OPEN_SHEET" }
 
-  | { type: "ENROLLED" };
+  | { type: "ENROLLED" }
+
+  | { type: "CONFIRM_PROMPT" }
+
+  | { type: "DISMISS_PROMPT" };
 
 export type RememberMeAction =
 
@@ -83,6 +89,7 @@ export function initRememberMeState(): RememberMeState {
     mode: "identified",
     personId: null,
     sheetOpen: false,
+    promptRegister: false,
     graceSinceMs: null,
     graceHadActivity: false,
     mentionName: false,
@@ -97,6 +104,10 @@ export function shouldShowRememberMeButton(s: RememberMeState): boolean {
   return s.mode === "pending";
 }
 
+export function shouldShowRegisterPrompt(s: RememberMeState): boolean {
+  return s.promptRegister;
+}
+
 export function shouldHoldMic(s: RememberMeState): boolean {
   return s.mode === "pending" || s.sheetOpen;
 }
@@ -105,14 +116,14 @@ function enterPending(
   s: RememberMeState,
   nowMs: number,
 
-  autoOpenSheet: boolean = false,
+  autoPromptRegister: boolean = false,
 ): RememberMeState {
-
   return {
     ...s,
     mode: "pending",
     personId: null,
-    sheetOpen: autoOpenSheet,
+    sheetOpen: false, 
+    promptRegister: autoPromptRegister,
     graceSinceMs: null,
     graceHadActivity: false,
     mentionName: false,
@@ -231,11 +242,11 @@ function next(
         };
       }
 
-      const shouldAutoOpen =
+      const shouldPrompt =
         typeof event.score === "number" && event.score > 0;
       if (state.personId === null) {
         return {
-          state: enterPending(state, nowMs, shouldAutoOpen),
+          state: enterPending(state, nowMs, shouldPrompt),
           actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
         };
       }
@@ -309,6 +320,16 @@ function next(
         },
         actions: state.mode === "pending" || state.sheetOpen ? [{ type: "MIC_ON" }] : [],
       };
+
+    case "CONFIRM_PROMPT":
+
+      if (!state.promptRegister) return { state, actions: [] };
+      return { state: { ...state, promptRegister: false }, actions: [] };
+
+    case "DISMISS_PROMPT":
+
+      if (!state.promptRegister) return { state, actions: [] };
+      return { state: { ...state, promptRegister: false }, actions: [] };
 
     default:
       return { state, actions: [] };
