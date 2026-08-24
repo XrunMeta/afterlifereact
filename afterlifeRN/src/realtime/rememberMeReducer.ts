@@ -28,11 +28,15 @@ export interface RememberMeState {
   lastConfirmedPerson: { personId: number; displayName: string | null } | null;
 
   dismissedPromptInCall: boolean;
+
+  unknownStreak: number;
 }
 
 export const GRACE_HOLD_MS = 60_000;
 
 export const RECENT_SEEN_MS = 90_000;
+
+export const UNKNOWN_ESCALATE_STREAK = 5;
 
 export const ENROLL_GRACE_MS = 60_000;
 
@@ -107,6 +111,7 @@ export function initRememberMeState(): RememberMeState {
     recentlySeen: {},
     lastConfirmedPerson: null,
     dismissedPromptInCall: false,
+    unknownStreak: 0,
   };
 }
 
@@ -165,6 +170,8 @@ function enterIdentified(
 
     lastNotifyUnknownMs: null,
     pendingSwitch: null,
+
+    unknownStreak: 0,
     lastConfirmedPerson,
   };
 }
@@ -247,34 +254,77 @@ function next(
 
       if (inEnrollGrace) return { state, actions: [] };
 
-      if (state.mode === "grace") return { state, actions: [] };
+      const newStreak = state.unknownStreak + 1;
+      const shouldPrompt =
+        newStreak >= UNKNOWN_ESCALATE_STREAK && !state.dismissedPromptInCall;
 
       if (state.mode === "pending") {
+        const promoted =
+          !state.promptRegister && shouldPrompt
+            ? { promptRegister: true }
+            : {};
         if (
           state.lastNotifyUnknownMs !== null &&
           nowMs - state.lastNotifyUnknownMs < UNKNOWN_RENOTIFY_MS
         ) {
-          return { state, actions: [] };
+          return {
+            state: { ...state, unknownStreak: newStreak, ...promoted },
+            actions: [],
+          };
         }
         return {
-          state: { ...state, lastNotifyUnknownMs: nowMs },
+          state: {
+            ...state,
+            unknownStreak: newStreak,
+            lastNotifyUnknownMs: nowMs,
+            ...promoted,
+          },
           actions: [{ type: "NOTIFY_UNKNOWN" }],
         };
       }
 
-      const shouldPrompt =
-        typeof event.score === "number" &&
-        event.score > 0 &&
-        !state.dismissedPromptInCall;
+      if (state.mode === "grace") {
+        if (shouldPrompt) {
+          const promptWhenLcp = state.lastConfirmedPerson !== null;
+          return {
+            state: {
+              ...enterPending(state, nowMs, promptWhenLcp),
+              unknownStreak: newStreak,
+            },
+            actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
+          };
+        }
+        return {
+          state: { ...state, unknownStreak: newStreak },
+          actions: [],
+        };
+      }
+
+      const promptFresh = !state.dismissedPromptInCall;
       if (state.personId === null) {
         return {
-          state: enterPending(state, nowMs, shouldPrompt),
+          state: {
+            ...enterPending(state, nowMs, promptFresh),
+            unknownStreak: newStreak,
+          },
+          actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
+        };
+      }
+
+      if (shouldPrompt) {
+        const promptWhenLcp = state.lastConfirmedPerson !== null;
+        return {
+          state: {
+            ...enterPending(state, nowMs, promptWhenLcp),
+            unknownStreak: newStreak,
+          },
           actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
         };
       }
       return {
         state: {
           ...state,
+          unknownStreak: newStreak,
           mode: "grace",
           graceSinceMs: nowMs,
           graceHadActivity: false,
