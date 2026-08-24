@@ -284,7 +284,8 @@ export default function PreCallFaceEnrollScreen() {
       const rawPitch = (primary as unknown as { pitchAngle?: number }).pitchAngle ?? 0;
 
       const ratios = computeLandmarkRatios(primary as unknown as { bounds: { x: number; y: number; width: number; height: number }; landmarks?: Record<string, { x: number; y: number }> | null });
-      handleEmbeddingOnJS(Array.from(out), faces.length, -rawYaw, -rawPitch, ratios);
+
+      handleEmbeddingOnJS(Array.from(out), faces.length, rawYaw, rawPitch, ratios);
     },
     [detectFaces, faceEmbedModel, resize, lastEmbedTs, isAndroidFrame, handleEmbeddingOnJS],
   );
