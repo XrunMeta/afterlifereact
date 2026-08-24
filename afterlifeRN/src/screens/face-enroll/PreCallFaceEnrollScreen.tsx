@@ -6,7 +6,6 @@ import {
   v_19b633,
   v_472849,
   v_4623af,
-  v_03e392,
   v_39a996,
   v_a2349e,
   v_d49152,
@@ -61,9 +60,21 @@ export default function v_8640b9() {
   const v_3c9f12 = v_ada615<Nav>();
   const v_c7daf6 = v_2d8264<Rt>();
   const v_033e14 = v_e0068c();
-  const { cloneId: v_6e0fd3, name: v_dfb220, image: v_0e38ad } = v_c7daf6.params;
+
+  const v_79a64b = (v_c7daf6.params as { cloneId: unknown }).cloneId;
+  const v_6e0fd3 = Number(v_79a64b);
+  const { name: v_dfb220, image: v_0e38ad } = v_c7daf6.params;
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_625c74 = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
+
+  v_c4deb2(() => {
+    if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+      v_889fad("페르소나 정보 오류", "잘못된 페르소나로 진입했어요. 다시 시도해 주세요.", [
+        { text: "확인", onPress: () => v_3c9f12.goBack() },
+      ]);
+    }
+
+  }, [v_6e0fd3]);
 
   const [v_f9f059, v_7c7b9c] = v_5ab095<boolean | null>(null);
   const [v_729796, v_fd7d1f] = v_5ab095(0);
@@ -153,7 +164,7 @@ export default function v_8640b9() {
   }, [v_3c9f12, v_6e0fd3, v_dfb220, v_0e38ad]);
 
   const v_bcff1c = v_de06a3(() => {
-    v_03e392.alert(
+    v_889fad(
       "등록 없이 진행",
       "얼굴 인식·기억 기능이 제한될 수 있습니다. 계속하시겠어요?",
       [
@@ -198,7 +209,7 @@ export default function v_8640b9() {
         setTimeout(v_e9b971, 400);
       } catch (v_49263d) {
         console.warn("[PreCallFaceEnroll] enroll 실패:", v_49263d);
-        v_03e392.alert(
+        v_889fad(
           "등록 실패",
           `${(v_49263d as Error).message ?? "네트워크 오류"}. 등록 없이 통화만 진행할까요?`,
           [
@@ -233,7 +244,8 @@ export default function v_8640b9() {
   const v_2fb8cc = v_729796 >= v_77ce37.length;
 
   return (
-    <View style={[v_fd5f43.container, { paddingTop: v_033e14.top }]}>
+    <View style={[v_fd5f43.container, { paddingTop: v_033e14.top, paddingBottom: v_033e14.bottom }]}>
+      {}
       <View style={v_fd5f43.header}>
         <Text style={v_fd5f43.title}>얼굴 등록</Text>
         <Text style={v_fd5f43.subtitle}>
@@ -241,51 +253,62 @@ export default function v_8640b9() {
         </Text>
       </View>
 
-      <View style={v_fd5f43.cameraBox}>
-        <VisionCamera
-          style={v_472849.absoluteFill}
-          device={v_ac8c13}
-          isActive={!v_cb66b4}
-          frameProcessor={v_23f1a4 ? v_a61ebf : undefined}
-          pixelFormat="yuv"
-        />
-        <View style={v_fd5f43.guideCircle} pointerEvents="none" />
-      </View>
-
-      <View style={v_fd5f43.stepBox}>
-        {v_2fb8cc ? (
-          <>
-            <ActivityIndicator color={v_1bfbd0.white} />
-            <Text style={v_fd5f43.stepLabel}>등록 중...</Text>
-          </>
-        ) : (
-          <>
-            <Text style={v_fd5f43.stepLabel}>
-              {v_729796 + 1}/{v_77ce37.length} · {v_91943c.label}
-            </Text>
-            <Text style={v_fd5f43.stepHint}>{v_91943c.hint}</Text>
-          </>
-        )}
-      </View>
-
-      <View style={v_fd5f43.progressRow}>
-        {v_77ce37.map((v_9dd05b, v_e86ad8) => (
-          <View
-            key={v_9dd05b.key}
-            style={[v_fd5f43.dot, v_e86ad8 < v_729796 && v_fd5f43.dotDone, v_e86ad8 === v_729796 && !v_2fb8cc && v_fd5f43.dotActive]}
+      {}
+      <View style={v_fd5f43.centerBlock}>
+        <View style={v_fd5f43.cameraBox}>
+          <VisionCamera
+            style={v_472849.absoluteFill}
+            device={v_ac8c13}
+            isActive={!v_cb66b4}
+            frameProcessor={v_23f1a4 ? v_a61ebf : undefined}
+            pixelFormat="yuv"
           />
-        ))}
+          <View style={v_fd5f43.guideCircle} pointerEvents="none" />
+        </View>
+
+        <View style={v_fd5f43.stepBox}>
+          {v_2fb8cc ? (
+            <>
+              <ActivityIndicator color={v_1bfbd0.white} />
+              <Text style={v_fd5f43.stepLabel}>등록 중...</Text>
+            </>
+          ) : (
+            <>
+              <Text style={v_fd5f43.stepLabel}>
+                {v_729796 + 1}/{v_77ce37.length} · {v_91943c.label}
+              </Text>
+              <Text style={v_fd5f43.stepHint}>{v_91943c.hint}</Text>
+            </>
+          )}
+        </View>
+
+        <View style={v_fd5f43.progressRow}>
+          {v_77ce37.map((v_9dd05b, v_e86ad8) => (
+            <View
+              key={v_9dd05b.key}
+              style={[v_fd5f43.dot, v_e86ad8 < v_729796 && v_fd5f43.dotDone, v_e86ad8 === v_729796 && !v_2fb8cc && v_fd5f43.dotActive]}
+            />
+          ))}
+        </View>
       </View>
 
-      {!v_2fb8cc && (
-        <TouchableOpacity onPress={v_94e3dc} style={v_fd5f43.captureBtn} disabled={v_cb66b4}>
-          <Text style={v_fd5f43.captureBtnText}>촬영</Text>
-        </TouchableOpacity>
-      )}
+      {}
+      <View style={v_fd5f43.bottomBlock}>
+        {!v_2fb8cc && (
+          <TouchableOpacity onPress={v_94e3dc} style={v_fd5f43.captureBtn} disabled={v_cb66b4}>
+            <Text style={v_fd5f43.captureBtnText}>촬영</Text>
+          </TouchableOpacity>
+        )}
 
-      <TouchableOpacity onPress={v_bcff1c} style={v_fd5f43.skipBtn} disabled={v_cb66b4}>
-        <Text style={v_fd5f43.skipBtnText}>나중에 하기 (지금 통화)</Text>
-      </TouchableOpacity>
+        <TouchableOpacity onPress={v_bcff1c} style={v_fd5f43.skipBtn} disabled={v_cb66b4}>
+          <Text style={v_fd5f43.skipBtnText}>나중에 하기 (지금 통화)</Text>
+        </TouchableOpacity>
+
+        {}
+        <Text style={v_fd5f43.privacyNote}>
+          촬영한 사진은 서버에 저장되지 않아요. 얼굴을 알아보기 위한 숫자 특징(벡터)만 안전하게 담아둡니다.
+        </Text>
+      </View>
 
       {}
       <Animated.View
@@ -299,9 +322,19 @@ export default function v_8640b9() {
 const v_fdd448 = 260;
 
 const v_fd5f43 = v_472849.create({
-  container: { flex: 1, backgroundColor: v_1bfbd0.zinc950, padding: 20, gap: 16 },
+  container: { flex: 1, backgroundColor: v_1bfbd0.zinc950, padding: 20 },
   center: { alignItems: "center", justifyContent: "center", gap: 12 },
-  header: { alignItems: "center", gap: 6 },
+  header: { alignItems: "center", gap: 6, marginBottom: 8 },
+  centerBlock: { flex: 1, justifyContent: "center", alignItems: "center", gap: 16 },
+  bottomBlock: { gap: 8, marginTop: 12 },
+  privacyNote: {
+    color: v_1bfbd0.zinc400,
+    fontSize: 12,
+    textAlign: "center",
+    lineHeight: 18,
+    marginTop: 6,
+    paddingHorizontal: 12,
+  },
   title: { color: v_1bfbd0.white, fontSize: 22, fontWeight: "700" },
   subtitle: { color: v_1bfbd0.zinc300, fontSize: 13, textAlign: "center" },
   cameraBox: {
