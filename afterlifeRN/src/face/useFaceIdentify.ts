@@ -90,7 +90,8 @@ export async function runIdentifyCycle(
   const cycle: MatchCycle = {
     personId: result.best?.personId ?? null,
     displayName: result.best?.displayName ?? null,
-    score: result.best?.score ?? 0,
+
+    score: result.best?.score ?? result.matches[0]?.score ?? 0,
   };
 
   const { state: speaker, event } = speakerIdReducer(state.speaker, cycle, nowMs);

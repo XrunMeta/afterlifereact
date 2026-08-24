@@ -254,6 +254,8 @@ function next(
 
       if (inEnrollGrace) return { state, actions: [] };
 
+      if ((event.score ?? 0) <= 0) return { state, actions: [] };
+
       const newStreak = state.unknownStreak + 1;
       const shouldPrompt =
         newStreak >= UNKNOWN_ESCALATE_STREAK && !state.dismissedPromptInCall;
