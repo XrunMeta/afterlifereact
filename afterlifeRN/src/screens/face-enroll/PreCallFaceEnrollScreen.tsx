@@ -187,12 +187,16 @@ export default function v_8640b9() {
         v_0b2889,
         v_c81315,
         v_e4ff5e,
-        landmarkRatios: v_90e668 | null,
+
+        v_eea4f2,
       ) => {
         v_d0be9c.current = v_f9a45c;
         v_5428c9.current = v_0b2889;
         if (v_0b2889 > 0) v_807576({ yaw: v_c81315, pitch: v_e4ff5e });
         else v_807576(null);
+        const landmarkRatios: v_90e668 | null = v_eea4f2
+          ? (JSON.parse(v_eea4f2) as v_90e668)
+          : null;
 
         const v_e86ad8 = v_4f103d.current;
         if (v_e86ad8 >= v_77ce37.length) return;
@@ -230,6 +234,8 @@ export default function v_8640b9() {
           if (v_ba2215.length >= (v_e86ad8 + 1) * v_df1250) return v_ba2215;
           return [...v_ba2215, v_bef6f8];
         });
+
+        console.log(`[PreCall] captured step=${v_e86ad8} landmark=${v_bef6f8 ? 'YES' : 'null'}`);
       }),
     [v_ac8592],
   );
@@ -284,8 +290,9 @@ export default function v_8640b9() {
       const v_1c80a4 = (v_127e92 as unknown as { pitchAngle?: number }).pitchAngle ?? 0;
 
       const v_6719e3 = v_6efd56(v_127e92 as unknown as { bounds: { x: number; y: number; width: number; height: number }; landmarks?: Record<string, { x: number; y: number }> | null });
+      const v_3d819f = v_6719e3 ? JSON.stringify(v_6719e3) : null;
 
-      v_998534(Array.from(v_8d4337), v_a51d09.length, v_c5ddcd, v_1c80a4, v_6719e3);
+      v_998534(Array.from(v_8d4337), v_a51d09.length, v_c5ddcd, v_1c80a4, v_3d819f);
     },
     [v_de4d76, v_23f1a4, v_2e11e8, v_5111a7, v_44c2eb, v_998534],
   );
