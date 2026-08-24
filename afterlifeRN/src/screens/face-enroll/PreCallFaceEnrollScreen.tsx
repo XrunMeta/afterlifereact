@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
+  BackHandler,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -198,6 +199,31 @@ export default function PreCallFaceEnrollScreen() {
       }),
     );
   }, [nav, cloneId, personaName, personaImage]);
+
+  const handleBack = useCallback(() => {
+    if (midCall) {
+
+      nav.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Call", params: { cloneId, name: personaName, image: personaImage } }],
+        }),
+      );
+      return true;
+    }
+    if (nav.canGoBack()) {
+      nav.goBack();
+      return true;
+    }
+
+    nav.dispatch(CommonActions.reset({ index: 0, routes: [{ name: "MainTabs" }] }));
+    return true;
+  }, [midCall, nav, cloneId, personaName, personaImage]);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => handleBack());
+    return () => sub.remove();
+  }, [handleBack]);
 
   const onSkip = useCallback(() => {
     showAlert(
