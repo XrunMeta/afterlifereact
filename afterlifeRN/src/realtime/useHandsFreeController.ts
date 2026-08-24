@@ -25,7 +25,8 @@ const CLONE_GATE_LEVEL = 0.05;
 const RESPONSE_DONE_TAIL_MAX_MS = 5000;
 
 const GREET_TIMEOUT_MS_DEFAULT = 3000;
-const GREETING_FALLBACK_TEXT_DEFAULT = '여보세요?';
+
+const GREETING_FALLBACK_TEXT_DEFAULT = '';
 
 export function useHandsFreeController(opts: {
 
@@ -196,15 +197,20 @@ export function useHandsFreeController(opts: {
             greetTimerRef.current = setTimeout(
               () => dispatchRef.current({ type: 'GREET_TIMEOUT' }), greetTimeoutMs);
             break;
-          case 'SPEAK_FALLBACK':
+          case 'SPEAK_FALLBACK': {
 
+            const _fallbackText = (fallbackText ?? '').trim();
+            const _willSpeak = !!speakRef.current && !!_fallbackText;
             emitTimingEvent('tx', {
-              mode: speakRef.current ? 'speak' : 'skip', seq: saySeq ?? null,
-              text: head20(fallbackText), eff: 'SPEAK_FALLBACK',
+              mode: _willSpeak ? 'speak' : 'skip',
+              seq: saySeq ?? null,
+              text: head20(_fallbackText),
+              eff: 'SPEAK_FALLBACK',
             });
-            if (speakRef.current) {
-              speakRef.current(fallbackText).catch(() => dispatchRef.current({ type: 'RESPONSE_DONE' }));
-            } else {
+            if (_willSpeak) {
+              speakRef.current!(_fallbackText).catch(() => dispatchRef.current({ type: 'RESPONSE_DONE' }));
+            } else if (!speakRef.current) {
+
               dispatchRef.current({ type: 'RESPONSE_DONE' });
             }
 
@@ -212,6 +218,7 @@ export function useHandsFreeController(opts: {
             greetTimerRef.current = setTimeout(
               () => dispatchRef.current({ type: 'RESPONSE_DONE' }), greetTimeoutMs);
             break;
+          }
         }
       }
     },
