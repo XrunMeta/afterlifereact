@@ -8,6 +8,8 @@ import {
   v_4623af,
   v_03e392,
   v_39a996,
+  v_a2349e,
+  v_d49152,
 } from "rcmrninabrnb";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
@@ -40,11 +42,11 @@ interface Step {
 }
 
 const v_77ce37 = [
-  { key: "front", label: "정면", hint: "화면 중앙을 봐주세요" },
-  { key: "left", label: "왼쪽", hint: "천천히 왼쪽으로 고개를 돌려주세요" },
-  { key: "right", label: "오른쪽", hint: "천천히 오른쪽으로 고개를 돌려주세요" },
-  { key: "up", label: "위", hint: "고개를 살짝 위로 들어주세요" },
-  { key: "down", label: "아래", hint: "고개를 살짝 아래로 숙여주세요" },
+  { key: "front", label: "정면", hint: "화면 정중앙을 정시해 주세요" },
+  { key: "right", label: "오른쪽", hint: "고개를 오른쪽으로 살짝 돌려주세요" },
+  { key: "left", label: "왼쪽", hint: "고개를 왼쪽으로 살짝 돌려주세요" },
+  { key: "up", label: "위", hint: "고개를 위로 살짝 들어주세요" },
+  { key: "down", label: "아래", hint: "고개를 아래로 살짝 숙여주세요" },
 ] as const;
 
 const v_10f62f = {
@@ -70,6 +72,16 @@ export default function v_8640b9() {
 
   const v_d0be9c = v_e662ae<number[] | null>(null);
   const v_5428c9 = v_e662ae(0);
+
+  const v_ac8592 = v_e662ae(new v_a2349e.Value(0)).current;
+  const v_7454ea = v_de06a3(() => {
+
+    v_d49152.vibrate(30);
+    v_a2349e.sequence([
+      v_a2349e.timing(v_ac8592, { toValue: 0.6, duration: 80, useNativeDriver: true }),
+      v_a2349e.timing(v_ac8592, { toValue: 0, duration: 220, useNativeDriver: true }),
+    ]).start();
+  }, [v_ac8592]);
 
   v_c4deb2(() => {
     void (async () => {
@@ -160,9 +172,11 @@ export default function v_8640b9() {
     }
 
     const v_825625 = Array.from(v_a64bce(Float32Array.from(v_46ff7a)));
+
+    v_7454ea();
     v_49cc35((v_ba2215) => [...v_ba2215, v_825625]);
     v_fd7d1f((v_ba2215) => v_ba2215 + 1);
-  }, []);
+  }, [v_7454ea]);
 
   v_c4deb2(() => {
     if (v_74e259.length !== v_77ce37.length) return;
@@ -272,6 +286,12 @@ export default function v_8640b9() {
       <TouchableOpacity onPress={v_bcff1c} style={v_fd5f43.skipBtn} disabled={v_cb66b4}>
         <Text style={v_fd5f43.skipBtnText}>나중에 하기 (지금 통화)</Text>
       </TouchableOpacity>
+
+      {}
+      <Animated.View
+        pointerEvents="none"
+        style={[v_fd5f43.flash, { opacity: v_ac8592 }]}
+      />
     </View>
   );
 }
@@ -324,4 +344,9 @@ const v_fd5f43 = v_472849.create({
   },
   skipBtnText: { color: v_1bfbd0.zinc400, fontSize: 13, textDecorationLine: "underline" },
   hint: { color: v_1bfbd0.zinc300, fontSize: 14, textAlign: "center" },
+
+  flash: {
+    ...v_472849.absoluteFillObject,
+    backgroundColor: v_1bfbd0.white,
+  },
 });
