@@ -128,6 +128,8 @@ export type MyStackParamList = {
   Reports: { tab?: "made" | "received" } | undefined;
 
   VisemeTest: undefined;
+
+  FaceThresholdTest: undefined;
 };
 
 declare global {

@@ -312,6 +312,13 @@ export default function v_ed02a5() {
           },
 
           {
+            icon: "target" as const,
+            labelKey: "얼굴 임계값 테스트 (dev)",
+            descKey: "이미지 업로드 → 매칭 score 확인",
+            action: () => v_c65f5d.navigate("FaceThresholdTest"),
+          },
+
+          {
             icon: "user-plus" as const,
             labelKey: "얼굴 5각도 등록 (dev)",
             descKey: "정면·좌·우·위·아래 촬영 → clones 첫 통화 대비",
