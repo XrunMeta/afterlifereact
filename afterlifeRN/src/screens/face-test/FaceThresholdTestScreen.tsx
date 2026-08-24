@@ -68,7 +68,7 @@ export default function FaceThresholdTestScreen() {
       showAlert("권한 필요", "갤러리 접근 권한을 허용해 주세요.");
       return;
     }
-    const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 1 });
+    const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 1 });
     if (r.canceled || r.assets.length === 0) return;
     setImgUri(r.assets[0].uri);
   }, []);
