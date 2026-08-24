@@ -86,7 +86,8 @@ export async function v_f644ce(
   const cycle: v_6aebaf = {
     personId: v_43c42e.best?.personId ?? null,
     displayName: v_43c42e.best?.displayName ?? null,
-    score: v_43c42e.best?.score ?? 0,
+
+    score: v_43c42e.best?.score ?? v_43c42e.matches[0]?.score ?? 0,
   };
 
   const { state: v_60d563, event: v_d48baf } = v_be2f9f(v_b6e533.speaker, v_bdad26, v_67e77e);

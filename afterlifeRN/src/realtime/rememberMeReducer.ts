@@ -254,6 +254,8 @@ function v_a448ad(
 
       if (v_865ed9) return { state: v_b6e533, actions: [] };
 
+      if ((v_d48baf.score ?? 0) <= 0) return { state: v_b6e533, actions: [] };
+
       const v_950bbe = v_b6e533.unknownStreak + 1;
       const v_29bced =
         v_950bbe >= v_fb3fee && !v_b6e533.dismissedPromptInCall;
