@@ -9,6 +9,8 @@ import * as ImageManipulator from "expo-image-manipulator";
 import { useTensorflowModel } from "react-native-fast-tflite";
 import * as JPEG from "jpeg-js";
 import { Buffer } from "buffer";
+import FaceDetection from "@react-native-ml-kit/face-detection";
+import { Image as RNImage } from "react-native";
 import { l2normalize } from "../../face/l2normalize";
 import { useAuthStore } from "../../stores/authStore";
 import { listPersons, matchFace } from "../../api/persons";
@@ -29,11 +31,22 @@ interface Result {
   matchThreshold: number;
   autoEnrollThreshold: number;
   vectorPreview: number[]; 
+  detected: boolean;       
+  faceRatio: number;       
+  cropUri?: string;        
 }
 
 const CENTER_112 = 112;
 
 const AUTO_ENROLL_THRESHOLD = 0.75;
+
+const BB_MARGIN = 0.15;
+
+function getImgSize(uri: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    RNImage.getSize(uri, (w, h) => resolve({ width: w, height: h }), reject);
+  });
+}
 
 export default function FaceThresholdTestScreen() {
   const nav = useNavigation();
@@ -99,8 +112,50 @@ export default function FaceThresholdTestScreen() {
     setBusy(true); setErr(null); setResult(null);
     try {
 
+      const { width: imgW, height: imgH } = await getImgSize(imgUri);
+      let cropUri = imgUri;
+      let detected = false;
+      let faceRatio = 0;
+      try {
+        const faces = await FaceDetection.detect(imgUri, {
+          performanceMode: "accurate",
+          landmarkMode: "none",
+          contourMode: "none",
+          classificationMode: "none",
+          minFaceSize: 0.1,
+        });
+        if (faces && faces.length > 0) {
+
+          const primary = faces.reduce((a, b) =>
+            a.frame.width * a.frame.height >= b.frame.width * b.frame.height ? a : b,
+          );
+          const fw = primary.frame.width;
+          const fh = primary.frame.height;
+          faceRatio = Math.max(fw, fh) / Math.max(imgW, imgH);
+
+          const cx = primary.frame.left + fw / 2;
+          const cy = primary.frame.top + fh / 2;
+          const side = Math.max(fw, fh) * (1 + BB_MARGIN * 2);
+          const originX = Math.max(0, Math.min(imgW - side, cx - side / 2));
+          const originY = Math.max(0, Math.min(imgH - side, cy - side / 2));
+          const cropSide = Math.min(side, imgW - originX, imgH - originY);
+          const manipCrop = await ImageManipulator.manipulateAsync(
+            imgUri,
+            [{ crop: { originX, originY, width: cropSide, height: cropSide } }],
+            { compress: 1, format: ImageManipulator.SaveFormat.JPEG },
+          );
+          cropUri = manipCrop.uri;
+          detected = true;
+          console.log(`[FaceTest] face detected · ratio=${faceRatio.toFixed(2)} · bb=${fw.toFixed(0)}x${fh.toFixed(0)}`);
+        } else {
+          console.warn("[FaceTest] no face detected — 원본 이미지 그대로 넣음 (score 부정확)");
+        }
+      } catch (e) {
+        console.warn("[FaceTest] face detection 실패:", e);
+      }
+
       const manip = await ImageManipulator.manipulateAsync(
-        imgUri,
+        cropUri,
         [{ resize: { width: CENTER_112, height: CENTER_112 } }],
         { compress: 1, format: ImageManipulator.SaveFormat.JPEG, base64: true },
       );
@@ -126,8 +181,10 @@ export default function FaceThresholdTestScreen() {
         matchThreshold: r.threshold,
         autoEnrollThreshold: AUTO_ENROLL_THRESHOLD,
         vectorPreview: Array.from(normalized.slice(0, 8)),
+        detected,
+        faceRatio,
+        cropUri: detected ? manip.uri : undefined,
       });
-
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -234,6 +291,21 @@ export default function FaceThresholdTestScreen() {
 
         {result && (
           <View style={s.resultCard}>
+            <View style={s.detectRow}>
+              <View
+                style={[
+                  s.detectChip,
+                  { backgroundColor: result.detected ? "#22c55e" : "#ef4444" },
+                ]}
+              >
+                <Text style={s.detectChipText}>
+                  {result.detected ? `얼굴 검출 ✓ (${(result.faceRatio * 100).toFixed(0)}%)` : "얼굴 검출 ✗ (원본 fallback)"}
+                </Text>
+              </View>
+              {result.cropUri && (
+                <Image source={{ uri: result.cropUri }} style={s.cropThumb} resizeMode="cover" />
+              )}
+            </View>
             <Text style={s.resultTitle}>매칭 결과 (top {result.matches.length})</Text>
             {result.matches.length === 0 ? (
               <Text style={s.desc}>매칭된 person 없음 (해당 clone 스코프에 저장된 얼굴 자체가 없거나, 모든 후보가 top-3 밖).</Text>
@@ -323,4 +395,8 @@ const s = StyleSheet.create({
   sectionSub: { color: COLORS.zinc400, fontSize: 11, fontWeight: "600", marginBottom: 4 },
   vectorPreview: { color: COLORS.zinc300, fontSize: 11, fontFamily: "monospace", lineHeight: 16 },
   thresholdInfo: { color: COLORS.zinc400, fontSize: 11, marginTop: 8, textAlign: "center" },
+  detectRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 },
+  detectChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, flex: 1 },
+  detectChipText: { color: COLORS.white, fontSize: 11, fontWeight: "700", textAlign: "center" },
+  cropThumb: { width: 56, height: 56, borderRadius: 6, backgroundColor: COLORS.zinc800 },
 });
