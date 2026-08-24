@@ -210,7 +210,11 @@ export default function PreCallFaceEnrollScreen() {
         });
         createdPersonId = person.id;
 
-        await enrollFaces(accessToken, person.id, captured);
+        const CHUNK = 5;
+        for (let i = 0; i < captured.length; i += CHUNK) {
+          const batch = captured.slice(i, i + CHUNK);
+          await enrollFaces(accessToken, person.id, batch);
+        }
         createdPersonId = null; 
         showAlert("등록 완료", "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.");
         setTimeout(goToCall, 400);
