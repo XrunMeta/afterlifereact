@@ -36,7 +36,7 @@ export const v_575cf8 = 60_000;
 
 export const v_e6be56 = 90_000;
 
-export const v_fb3fee = 3;
+export const v_fb3fee = 5;
 
 export const v_a5c955 = 60_000;
 
@@ -244,7 +244,7 @@ function v_a448ad(
             personId: v_d48baf.personId,
             displayName: v_d48baf.displayName,
 
-            rejoin: v_b6e533.personId !== null,
+            rejoin: v_b6e533.personId !== null && v_b6e533.personId !== v_d48baf.personId,
           },
         ],
       };
