@@ -47,13 +47,17 @@ export default function FaceThresholdTestScreen() {
       if (!accessToken) return;
       try {
         const r = await listPersons(accessToken);
-        setPersons(
-          r.items.map((p) => ({
+        const items = r.items
+          .map((p) => ({
             id: p.id,
             cloneId: p.cloneId ?? null,
             displayName: p.displayName ?? null,
-          })),
-        );
+          }))
+          .filter((p) => p.cloneId != null);
+        console.log(`[FaceTest] persons loaded: ${items.length}`, items);
+        setPersons(items);
+
+        if (items.length > 0) setSelectedPersonId(items[0].id);
       } catch (e) {
         console.warn("[FaceTest] listPersons 실패:", e);
       }
@@ -146,9 +150,12 @@ export default function FaceThresholdTestScreen() {
 
         <Text style={s.label}>Person 선택</Text>
         {persons.length === 0 ? (
-          <Text style={s.desc}>등록된 person 없음</Text>
+          <Text style={s.err}>
+            등록된 person 이 하나도 없어요. MyScreen → "얼굴 5각도 등록 (dev)" 로 먼저
+            등록하거나, 페르소나에 실제 통화해서 auto-enroll 이 person 을 만들면 여기 뜹니다.
+          </Text>
         ) : (
-          persons.filter((p) => p.cloneId != null).map((p) => {
+          persons.map((p) => {
             const active = p.id === selectedPersonId;
             return (
               <TouchableOpacity
