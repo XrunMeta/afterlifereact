@@ -1,7 +1,7 @@
 
 
 import { useCallback, useRef, useState } from "react";
-import { createPerson, saveFaceConsent, enrollFaces } from "../api/persons";
+import { createPerson, saveFaceConsent, enrollFaces, listPersons } from "../api/persons";
 import type { EmbeddingBuffer } from "./embeddingBuffer";
 
 export const FACE_ENROLL_VECTOR_COUNT = 3;
@@ -69,7 +69,21 @@ export function useFaceEnroll(opts: UseFaceEnrollOptions): UseFaceEnrollResult {
       try {
         let person = personRef.current;
         if (!person) {
-          person = await deps.createPersonFn(accessToken, { cloneId, displayName: name });
+
+          try {
+            person = await deps.createPersonFn(accessToken, { cloneId, displayName: name });
+          } catch (createErr) {
+            const msg = (createErr as Error).message ?? "";
+            if (/이미 등록된 이름/.test(msg)) {
+              const list = await listPersons(accessToken, cloneId);
+              const existing = list.items.find((p) => (p.displayName ?? "") === name);
+              if (!existing) throw createErr;
+              person = { id: existing.id };
+              console.log(`[useFaceEnroll] 이미 존재 person 재사용 · id=${existing.id} · displayName=${name}`);
+            } else {
+              throw createErr;
+            }
+          }
           personRef.current = person;
         }
         if (!consentDoneRef.current) {
