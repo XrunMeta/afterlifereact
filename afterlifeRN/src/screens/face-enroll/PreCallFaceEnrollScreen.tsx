@@ -213,7 +213,8 @@ export default function v_8640b9() {
         const v_e646b6 = 5;
         for (let v_ebec57 = 0; v_ebec57 < v_74e259.length; v_ebec57 += v_e646b6) {
           const v_36e01f = v_74e259.slice(v_ebec57, v_ebec57 + v_e646b6);
-          await v_4585d1(v_2ca7e0, v_306a28.id, v_36e01f);
+
+          await v_4585d1(v_2ca7e0, v_306a28.id, v_36e01f, v_6e0fd3);
         }
         v_d794c4 = null; 
         v_889fad("등록 완료", "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.");
