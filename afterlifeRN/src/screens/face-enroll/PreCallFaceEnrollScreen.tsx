@@ -92,6 +92,8 @@ export default function PreCallFaceEnrollScreen() {
   const [formRelation, setFormRelation] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
+  const [existingPersons, setExistingPersons] = useState<{ id: number; displayName: string | null }[]>([]);
+
   const latestVectorRef = useRef<number[] | null>(null);
   const latestFaceCountRef = useRef(0);
 
@@ -111,6 +113,22 @@ export default function PreCallFaceEnrollScreen() {
       setPermissionOk(status === "granted");
     })();
   }, []);
+
+  useEffect(() => {
+    if (!midCall || !accessToken) return;
+    void (async () => {
+      try {
+        const r = await listPersons(accessToken, cloneId);
+        setExistingPersons(
+          r.items
+            .filter((p) => p.displayName && p.displayName.trim().length > 0)
+            .map((p) => ({ id: p.id, displayName: p.displayName ?? null })),
+        );
+      } catch (e) {
+        console.warn("[PreCallFaceEnroll] listPersons 실패 (chip 렌더 skip):", e);
+      }
+    })();
+  }, [midCall, accessToken, cloneId]);
 
   const device = useCameraDevice("front");
   const { detectFaces } = useFaceDetector(FACE_DETECTOR_OPTIONS);
@@ -349,6 +367,29 @@ export default function PreCallFaceEnrollScreen() {
           <Text style={s.formDesc}>
             이름과 관계를 알려주시면 다음 통화부터 알아볼 수 있어요.
           </Text>
+          {existingPersons.length > 0 && (
+            <View style={s.chipSection}>
+              <Text style={s.chipSectionLabel}>이미 등록된 사람 (이 중에서 선택하면 학습만 추가돼요)</Text>
+              <View style={s.chipRow}>
+                {existingPersons.map((p) => {
+                  const active = formName.trim() === (p.displayName ?? "").trim();
+                  return (
+                    <TouchableOpacity
+                      key={p.id}
+                      onPress={() => setFormName(p.displayName ?? "")}
+                      style={[s.personChip, active && s.personChipActive]}
+                      disabled={submitting}
+                    >
+                      <Text style={[s.personChipText, active && s.personChipTextActive]}>
+                        {p.displayName}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <Text style={s.chipHint}>새로운 사람이면 아래에 이름을 직접 입력하세요</Text>
+            </View>
+          )}
           <Text style={s.formLabel}>이름</Text>
           <TextInput
             style={s.formInput}
@@ -483,6 +524,17 @@ const s = StyleSheet.create({
     fontSize: 16,
   },
   formError: { color: "#f87171", fontSize: 12, marginTop: 10, alignSelf: "flex-start" },
+  chipSection: { alignSelf: "stretch", marginTop: 12, marginBottom: 4 },
+  chipSectionLabel: { color: COLORS.zinc400, fontSize: 12, marginBottom: 8 },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  personChip: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
+    backgroundColor: COLORS.zinc800, borderWidth: 1, borderColor: COLORS.zinc700,
+  },
+  personChipActive: { backgroundColor: "#1e3a8a", borderColor: "#60a5fa" },
+  personChipText: { color: COLORS.zinc200, fontSize: 13, fontWeight: "600" },
+  personChipTextActive: { color: COLORS.white, fontWeight: "700" },
+  chipHint: { color: COLORS.zinc500, fontSize: 11, marginTop: 8, fontStyle: "italic" },
   captureBtnDisabled: { opacity: 0.6 },
   title: { color: COLORS.white, fontSize: 22, fontWeight: "700" },
   subtitle: { color: COLORS.zinc300, fontSize: 13, textAlign: "center" },
