@@ -29,6 +29,7 @@ import { v_b24f74 } from "hpkstesipoootxeqkajlxyxt";
 import { v_cb507d } from "hbzwhsuegbhzscystubugxnkiwe";
 import { v_e74bab } from "../../face/largestFace";
 import { v_2c12f7 } from "../../face/faceAlignCrop";
+import { v_6efd56, type v_90e668 } from "../../face/faceLandmarkRatios";
 import { v_a40fe8 } from "../../face/frameTimestamp";
 import { v_a64bce } from "../../face/l2normalize";
 import { v_1ed7d9 } from "../../stores/authStore";
@@ -111,6 +112,8 @@ export default function v_8640b9() {
   const [v_f9f059, v_7c7b9c] = v_5ab095<boolean | null>(null);
   const [v_729796, v_fd7d1f] = v_5ab095(0);
   const [v_74e259, v_49cc35] = v_5ab095<number[][]>([]);
+
+  const [v_f9508a, v_9abbbd] = v_5ab095<(Record<string, number> | null)[]>([]);
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
 
   const [v_595acb, v_9ad9a9] = v_5ab095("");
@@ -179,7 +182,13 @@ export default function v_8640b9() {
 
   const v_998534 = v_df9f57(
     () =>
-      v_d73d29.createRunOnJS((v_f9a45c, v_0b2889, v_c81315, v_e4ff5e) => {
+      v_d73d29.createRunOnJS((
+        v_f9a45c,
+        v_0b2889,
+        v_c81315,
+        v_e4ff5e,
+        landmarkRatios: v_90e668 | null,
+      ) => {
         v_d0be9c.current = v_f9a45c;
         v_5428c9.current = v_0b2889;
         if (v_0b2889 > 0) v_807576({ yaw: v_c81315, pitch: v_e4ff5e });
@@ -216,6 +225,11 @@ export default function v_8640b9() {
           if (v_ba2215.length >= (v_e86ad8 + 1) * v_df1250) return v_ba2215;
           return [...v_ba2215, v_825625];
         });
+
+        v_9abbbd((v_ba2215) => {
+          if (v_ba2215.length >= (v_e86ad8 + 1) * v_df1250) return v_ba2215;
+          return [...v_ba2215, v_bef6f8];
+        });
       }),
     [v_ac8592],
   );
@@ -230,7 +244,7 @@ export default function v_8640b9() {
       v_5111a7.value = v_67e77e;
       const v_127e92 = v_e74bab(v_a51d09);
       if (v_127e92 == null) {
-        v_998534([], 0, 0, 0);
+        v_998534([], 0, 0, 0, null);
         return;
       }
 
@@ -268,7 +282,9 @@ export default function v_8640b9() {
 
       const v_c5ddcd = (v_127e92 as unknown as { yawAngle?: number }).yawAngle ?? 0;
       const v_1c80a4 = (v_127e92 as unknown as { pitchAngle?: number }).pitchAngle ?? 0;
-      v_998534(Array.from(v_8d4337), v_a51d09.length, -v_c5ddcd, -v_1c80a4);
+
+      const v_6719e3 = v_6efd56(v_127e92 as unknown as { bounds: { x: number; y: number; width: number; height: number }; landmarks?: Record<string, { x: number; y: number }> | null });
+      v_998534(Array.from(v_8d4337), v_a51d09.length, -v_c5ddcd, -v_1c80a4, v_6719e3);
     },
     [v_de4d76, v_23f1a4, v_2e11e8, v_5111a7, v_44c2eb, v_998534],
   );
@@ -374,7 +390,9 @@ export default function v_8640b9() {
           const v_e646b6 = 5;
           for (let v_ebec57 = 0; v_ebec57 < v_74e259.length; v_ebec57 += v_e646b6) {
             const v_36e01f = v_74e259.slice(v_ebec57, v_ebec57 + v_e646b6);
-            await v_4585d1(v_2ca7e0, v_ca1ec5, v_36e01f, v_6e0fd3);
+
+            const v_36b25b = v_f9508a.slice(v_ebec57, v_ebec57 + v_e646b6);
+            await v_4585d1(v_2ca7e0, v_ca1ec5, v_36e01f, v_6e0fd3, v_36b25b);
           }
           const v_d04cc5 = v_dd8af0.trim();
           if (v_d04cc5) {
@@ -403,7 +421,7 @@ export default function v_8640b9() {
         }
       })();
     },
-    [v_2ca7e0, v_625c74, v_74e259, v_6e0fd3, v_c414dc, v_e9b971],
+    [v_2ca7e0, v_625c74, v_74e259, v_f9508a, v_6e0fd3, v_c414dc, v_e9b971],
   );
 
   const v_3bfe4c = v_de06a3(() => {
