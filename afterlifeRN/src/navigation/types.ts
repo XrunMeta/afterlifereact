@@ -119,6 +119,7 @@ export type MyStackParamList = {
   Agreements: undefined;
   SavedItems: undefined;
   RememberingClones: undefined;
+  RememberingCloneDetail: { cloneId: number; cloneName: string };
   LanguageSettings: undefined;
   PaymentPin: undefined;
   InviteStatus: undefined;

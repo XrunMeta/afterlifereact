@@ -12,6 +12,8 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { MyStackParamList } from "../../navigation/types";
 import { useTranslation } from "react-i18next";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, RADIUS } from "../../components/constants";
@@ -23,8 +25,10 @@ import {
   type RememberingClone,
 } from "../../api/persons";
 
+type Nav = NativeStackNavigationProp<MyStackParamList, "RememberingClones">;
+
 export default function RememberingClonesScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<Nav>();
   const { t } = useTranslation();
   const accessToken = useAuthStore((s) => s.accessToken);
 
@@ -136,7 +140,17 @@ export default function RememberingClonesScreen() {
             <View style={s.card}>
             {items.map((clone, i) => (
               <View key={clone.cloneId}>
-                <View style={s.row}>
+                {}
+                <TouchableOpacity
+                  style={s.row}
+                  onPress={() =>
+                    navigation.navigate("RememberingCloneDetail", {
+                      cloneId: clone.cloneId,
+                      cloneName: clone.name,
+                    })
+                  }
+                  activeOpacity={0.7}
+                >
                   <View style={[s.avatar, s.avatarPh]}>
                     <Feather name="user" size={20} color={COLORS.zinc400} />
                   </View>
@@ -163,7 +177,8 @@ export default function RememberingClonesScreen() {
                       </Text>
                     )}
                   </TouchableOpacity>
-                </View>
+                  <Feather name="chevron-right" size={18} color={COLORS.zinc400} />
+                </TouchableOpacity>
                 {i < items.length - 1 && <View style={s.divider} />}
               </View>
             ))}
