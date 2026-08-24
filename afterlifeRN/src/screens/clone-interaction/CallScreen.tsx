@@ -128,15 +128,13 @@ import { getCreditBalance } from "../../api/credits";
 import { sendGiftOffchain } from "../../api/giftInventory";
 import { showAlert } from "../../stores/dialogStore";
 import { CommonActions } from "@react-navigation/native";
-import RememberMeButton from "../../components/call/RememberMeButton";
+
 import { updatePersonRelation } from "../../api/persons";
 import { shouldAutoEnrollOwner, ownerEnrollName } from "../../face/ownerAutoEnroll";
-import RememberMeSheet from "../../components/call/RememberMeSheet";
 import {
   initRememberMeState,
   rememberMeReducer,
   shouldHoldMic,
-  shouldShowRememberMeButton,
   GRACE_HOLD_MS,
   type RememberMeAction,
   type RememberMeEvent,
@@ -1058,6 +1056,38 @@ function CallScreenInner({ route, navigation }: Props) {
     }, 5_000);
     return () => clearInterval(id);
   }, [liveState, rmState.mode, dispatchRm]);
+
+  useEffect(() => {
+    if (!rmState.promptRegister) return;
+    showAlert(
+      "새 얼굴이 보여요",
+      "얼굴을 등록할까요? 다음 통화부터 알아볼 수 있어요.",
+      [
+        { text: "취소", style: "cancel", onPress: () => dispatchRm({ type: "DISMISS_PROMPT" }) },
+        {
+          text: "등록",
+          onPress: () => {
+            dispatchRm({ type: "CONFIRM_PROMPT" });
+            navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [{
+                  name: "PreCallFaceEnroll",
+                  params: {
+                    cloneId,
+                    name: paramName,
+                    image: paramImage,
+                    midCall: true,
+                  },
+                }],
+              }),
+            );
+          },
+        },
+      ],
+    );
+
+  }, [rmState.promptRegister]);
 
   useEffect(() => {
     micOnRef.current = micOn;
@@ -2222,17 +2252,6 @@ function CallScreenInner({ route, navigation }: Props) {
       {
 
 }
-      <RememberMeButton
-        visible={shouldShowRememberMeButton(rmState)}
-        onPress={() => dispatchRm({ type: "OPEN_SHEET" })}
-      />
-      <RememberMeSheet
-        visible={rmState.sheetOpen}
-        saving={rmSaving}
-        error={rmError}
-        onSubmit={handleRememberMeSubmit}
-        onDismiss={() => dispatchRm({ type: "DISMISS" })}
-      />
 
       {}
 
