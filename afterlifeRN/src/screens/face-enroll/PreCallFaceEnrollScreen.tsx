@@ -146,12 +146,19 @@ export default function v_8640b9() {
         v_998534([], 0);
         return;
       }
+
+      const v_138ccc = v_127e92.bounds.x;
+      const v_29057a = v_127e92.bounds.y;
+      const v_5975be = v_127e92.bounds.width;
+      const v_75930d = v_127e92.bounds.height;
+      const v_818eab = v_5975be * 0.15;
+      const v_737234 = v_75930d * 0.15;
       const v_2d3c27 = v_2e11e8(v_143cb5, {
         crop: {
-          x: v_127e92.bounds.x,
-          y: v_127e92.bounds.y,
-          width: v_127e92.bounds.width,
-          height: v_127e92.bounds.height,
+          x: Math.max(0, v_138ccc - v_818eab),
+          y: Math.max(0, v_29057a - v_737234),
+          width: v_5975be + v_818eab * 2,
+          height: v_75930d + v_737234 * 2,
         },
         scale: { width: 112, height: 112 },
         pixelFormat: "rgb",

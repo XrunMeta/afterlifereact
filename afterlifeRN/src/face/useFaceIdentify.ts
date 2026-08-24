@@ -161,8 +161,8 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
             console.log(`[useFaceIdentify] cycle personId=${v_bdad26.personId ?? "null"} score=${v_bdad26.score?.toFixed(3) ?? "?"} streak=${v_b6e533.speaker.streak} onCollected=${!!v_d23335}`);
           }
 
-          const v_9d9155 = 0.80;
-          const v_c29169 = 8;
+          const v_9d9155 = 0.72;
+          const v_c29169 = 3;
           if (
             v_d23335 &&
             v_bdad26 &&
