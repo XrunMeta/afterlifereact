@@ -30,7 +30,7 @@ import { largestFace } from "../../face/largestFace";
 import { normalizeFrameTimestampMs } from "../../face/frameTimestamp";
 import { l2normalize } from "../../face/l2normalize";
 import { useAuthStore } from "../../stores/authStore";
-import { createPerson, enrollFaces, deletePerson, updatePersonRelation } from "../../api/persons";
+import { createPerson, enrollFaces, deletePerson, updatePersonRelation, listPersons } from "../../api/persons";
 import { showAlert } from "../../stores/dialogStore";
 import { COLORS, RADIUS } from "../../components/constants";
 import PageHeader from "../../components/common/PageHeader";
@@ -228,21 +228,38 @@ export default function PreCallFaceEnrollScreen() {
       void (async () => {
         let createdPersonId: number | null = null;
         try {
-          const person = await createPerson(accessToken, {
-            cloneId,
-            displayName: trimmedName,
-            enrolledVia: "auto_biometric",
-          });
-          createdPersonId = person.id;
+
+          let personId: number;
+          try {
+            const person = await createPerson(accessToken, {
+              cloneId,
+              displayName: trimmedName,
+              enrolledVia: "auto_biometric",
+            });
+            personId = person.id;
+            createdPersonId = person.id;
+          } catch (createErr) {
+            const msg = (createErr as Error).message ?? "";
+            if (/이미 등록된 이름/.test(msg)) {
+
+              const list = await listPersons(accessToken, cloneId);
+              const existing = list.items.find((p) => (p.displayName ?? "") === trimmedName);
+              if (!existing) throw createErr; 
+              personId = existing.id;
+              console.log(`[PreCallFaceEnroll] 이미 존재 person 재사용 · id=${personId} · faces 추가`);
+            } else {
+              throw createErr;
+            }
+          }
           const CHUNK = 5;
           for (let i = 0; i < captured.length; i += CHUNK) {
             const batch = captured.slice(i, i + CHUNK);
-            await enrollFaces(accessToken, person.id, batch, cloneId);
+            await enrollFaces(accessToken, personId, batch, cloneId);
           }
           const trimmedRel = relation.trim();
           if (trimmedRel) {
             try {
-              await updatePersonRelation(accessToken, person.id, trimmedRel);
+              await updatePersonRelation(accessToken, personId, trimmedRel);
             } catch (relErr) {
               console.warn("[PreCallFaceEnroll] updatePersonRelation 실패 (무시):", relErr);
             }
