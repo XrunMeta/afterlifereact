@@ -360,12 +360,71 @@ describe("rememberMeReducer — T-559 프로액티브 sheet (score gate)", () =>
     expect(v_cb35cb.actions).toEqual([]); 
   });
 
-  it("T-562 · DISMISS_PROMPT — 팝업만 닫고 대기 유지 (재통보 주기 후 다시 뜸)", () => {
+  it("T-562 · DISMISS_PROMPT — 팝업만 닫고 대기 유지 (하위호환)", () => {
     let v_fd5f43 = v_729796(v_178dfb(), { type: "MATCH_UNKNOWN", score: 0.3 }, 1000).state;
     const v_cb35cb = v_729796(v_fd5f43, { type: "DISMISS_PROMPT" }, 2000);
     expect(v_cb35cb.state.promptRegister).toBe(false);
     expect(v_cb35cb.state.mode).toBe("pending");
     expect(v_cb35cb.actions).toEqual([]);
+  });
+
+  it("T-562 (B안) · CONFIRM_SAME_PERSON — lastConfirmedPerson 복원 + MIC_ON + dismiss 플래그", () => {
+
+    let v_fd5f43 = v_729796(v_178dfb(), {
+      type: "MATCH_KNOWN",
+      personId: 58,
+      named: true,
+      displayName: "서지호",
+      score: 0.9,
+    }, 500).state;
+    expect(v_fd5f43.lastConfirmedPerson).toEqual({ personId: 58, displayName: "서지호" });
+
+    v_fd5f43 = v_729796(v_fd5f43, { type: "MATCH_UNKNOWN", score: 0.3 }, 1000).state;
+    v_fd5f43 = v_729796(v_fd5f43, { type: "ACTIVITY" }, 5_000).state;
+    v_fd5f43 = v_729796(v_fd5f43, { type: "TICK" }, 2000 + v_575cf8).state;
+    expect(v_fd5f43.mode).toBe("pending");
+    expect(v_fd5f43.promptRegister).toBe(true);
+
+    const v_cb35cb = v_729796(v_fd5f43, { type: "CONFIRM_SAME_PERSON" }, 10_000);
+    expect(v_cb35cb.state.mode).toBe("identified");
+    expect(v_cb35cb.state.personId).toBe(58);
+    expect(v_cb35cb.state.promptRegister).toBe(false);
+    expect(v_cb35cb.state.dismissedPromptInCall).toBe(true);
+    expect(v_cb35cb.actions).toContainEqual({ type: "MIC_ON" });
+  });
+
+  it("T-562 (B안) · CONFIRM_SAME_PERSON — 복원할 person 없으면 DISMISS_LATER 처럼 처리", () => {
+
+    let v_fd5f43 = v_729796(v_178dfb(), { type: "MATCH_UNKNOWN", score: 0.3 }, 1000).state;
+    expect(v_fd5f43.lastConfirmedPerson).toBeNull();
+    expect(v_fd5f43.promptRegister).toBe(true);
+    const v_cb35cb = v_729796(v_fd5f43, { type: "CONFIRM_SAME_PERSON" }, 2000);
+    expect(v_cb35cb.state.promptRegister).toBe(false);
+    expect(v_cb35cb.state.dismissedPromptInCall).toBe(true);
+    expect(v_cb35cb.state.mode).toBe("identified");
+    expect(v_cb35cb.state.personId).toBeNull();
+    expect(v_cb35cb.actions).toContainEqual({ type: "MIC_ON" });
+  });
+
+  it("T-562 (B안) · DISMISS_LATER — pending 해제 + MIC_ON + 이번 통화 재출현 억제", () => {
+    let v_fd5f43 = v_729796(v_178dfb(), { type: "MATCH_UNKNOWN", score: 0.3 }, 1000).state;
+    expect(v_fd5f43.promptRegister).toBe(true);
+    const v_cb35cb = v_729796(v_fd5f43, { type: "DISMISS_LATER" }, 2000);
+    expect(v_cb35cb.state.promptRegister).toBe(false);
+    expect(v_cb35cb.state.dismissedPromptInCall).toBe(true);
+    expect(v_cb35cb.state.mode).toBe("identified");
+    expect(v_cb35cb.actions).toContainEqual({ type: "MIC_ON" });
+
+    const v_826279 = v_729796(v_cb35cb.state, { type: "MATCH_UNKNOWN", score: 0.3 }, 60_000);
+    expect(v_826279.state.promptRegister).toBe(false);
+  });
+
+  it("T-562 (B안) · ENROLLED 는 dismissedPromptInCall 을 리셋 (등록 완료 = 클린 슬레이트)", () => {
+    let v_fd5f43 = v_729796(v_178dfb(), { type: "MATCH_UNKNOWN", score: 0.3 }, 1000).state;
+    v_fd5f43 = v_729796(v_fd5f43, { type: "DISMISS_LATER" }, 2000).state;
+    expect(v_fd5f43.dismissedPromptInCall).toBe(true);
+    const v_cb35cb = v_729796(v_fd5f43, { type: "ENROLLED" }, 3000);
+    expect(v_cb35cb.state.dismissedPromptInCall).toBe(false);
   });
 
   it("score > 0 이라도 확정자가 있으면 grace 로 감 (sheet 자동 open X · 그 사람 유지)", () => {
