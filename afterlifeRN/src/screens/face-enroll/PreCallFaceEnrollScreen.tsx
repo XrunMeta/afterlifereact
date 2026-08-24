@@ -6,9 +6,13 @@ import {
   v_19b633,
   v_472849,
   v_4623af,
+  v_79c4f2,
   v_39a996,
   v_a2349e,
   v_d49152,
+  v_e767d1,
+  v_326be8,
+  v_0e1f26,
 } from "rcmrninabrnb";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
@@ -26,7 +30,7 @@ import { v_e74bab } from "../../face/largestFace";
 import { v_a40fe8 } from "../../face/frameTimestamp";
 import { v_a64bce } from "../../face/l2normalize";
 import { v_1ed7d9 } from "../../stores/authStore";
-import { v_4e7b87, v_4585d1, v_a94a1b } from "../../api/persons";
+import { v_4e7b87, v_4585d1, v_a94a1b, v_6ffcc5 } from "../../api/persons";
 import { v_889fad } from "../../stores/dialogStore";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import v_258c1c from "../../components/common/PageHeader";
@@ -66,7 +70,7 @@ export default function v_8640b9() {
 
   const v_79a64b = (v_c7daf6.params as { cloneId: unknown }).cloneId;
   const v_6e0fd3 = Number(v_79a64b);
-  const { name: v_dfb220, image: v_0e38ad } = v_c7daf6.params;
+  const { name: v_dfb220, image: v_0e38ad, midCall: v_c414dc } = v_c7daf6.params;
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_625c74 = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
 
@@ -83,6 +87,10 @@ export default function v_8640b9() {
   const [v_729796, v_fd7d1f] = v_5ab095(0);
   const [v_74e259, v_49cc35] = v_5ab095<number[][]>([]);
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
+
+  const [v_595acb, v_9ad9a9] = v_5ab095("");
+  const [v_d7d38d, v_23c9e5] = v_5ab095("");
+  const [v_056b4f, v_342bf2] = v_5ab095<string | null>(null);
 
   const v_d0be9c = v_e662ae<number[] | null>(null);
   const v_5428c9 = v_e662ae(0);
@@ -192,20 +200,29 @@ export default function v_8640b9() {
     v_fd7d1f((v_ba2215) => v_ba2215 + 1);
   }, [v_7454ea]);
 
-  v_c4deb2(() => {
-    if (v_74e259.length !== v_77ce37.length) return;
-    if (!v_2ca7e0 || !v_625c74) return;
-    if (v_cb66b4) return;
+  const v_3bfe4c = v_de06a3(() => {
+    if (!v_2ca7e0 || !v_625c74) {
+      v_342bf2("로그인 정보가 없어요. 다시 시도해 주세요.");
+      return;
+    }
+    if (v_74e259.length !== v_77ce37.length) {
+      v_342bf2("얼굴 촬영을 먼저 완료해 주세요.");
+      return;
+    }
+    const v_affc3e = v_595acb.trim();
+    if (!v_affc3e) {
+      v_342bf2("이름을 입력해 주세요.");
+      return;
+    }
+    v_0e1f26.dismiss();
+    v_342bf2(null);
     v_ee9ec1(true);
     void (async () => {
-
       let v_d794c4 = null;
       try {
-        const v_8a1355 = (v_625c74.name ?? "본인").trim() || "본인";
-
         const v_306a28 = await v_4e7b87(v_2ca7e0, {
           cloneId: v_6e0fd3,
-          displayName: v_8a1355,
+          displayName: v_affc3e,
           enrolledVia: "auto_biometric",
         });
         v_d794c4 = v_306a28.id;
@@ -213,38 +230,36 @@ export default function v_8640b9() {
         const v_e646b6 = 5;
         for (let v_ebec57 = 0; v_ebec57 < v_74e259.length; v_ebec57 += v_e646b6) {
           const v_36e01f = v_74e259.slice(v_ebec57, v_ebec57 + v_e646b6);
-
           await v_4585d1(v_2ca7e0, v_306a28.id, v_36e01f, v_6e0fd3);
         }
-        v_d794c4 = null; 
 
-        v_889fad(
-          "등록 완료",
-          "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.",
-          [{ text: "통화 시작", onPress: v_e9b971 }],
-        );
+        const v_d04cc5 = v_d7d38d.trim();
+        if (v_d04cc5) {
+          try {
+            await v_6ffcc5(v_2ca7e0, v_306a28.id, v_d04cc5);
+          } catch (v_2530bf) {
+            console.warn("[PreCallFaceEnroll] updatePersonRelation 실패 (무시):", v_2530bf);
+          }
+        }
+        v_d794c4 = null;
+        const v_a8cd21 = v_c414dc
+          ? "얼굴 등록 완료! 통화를 다시 시작합니다."
+          : "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.";
+        v_889fad("등록 완료", v_a8cd21, [{ text: "통화 시작", onPress: v_e9b971 }]);
       } catch (v_49263d) {
         console.warn("[PreCallFaceEnroll] enroll 실패:", v_49263d);
-
         if (v_d794c4 != null) {
           try {
             await v_a94a1b(v_2ca7e0, v_d794c4);
-            console.log(`[PreCallFaceEnroll] rollback person ${v_d794c4} 삭제 완료`);
           } catch (v_d42b37) {
             console.warn("[PreCallFaceEnroll] rollback 실패:", v_d42b37);
           }
         }
-        v_889fad(
-          "등록 실패",
-          `${(v_49263d as Error).message ?? "네트워크 오류"}. 등록 없이 통화만 진행할까요?`,
-          [
-            { text: "다시 시도", style: "cancel", onPress: () => { v_49cc35([]); v_fd7d1f(0); v_ee9ec1(false); } },
-            { text: "그대로 진행", onPress: v_e9b971 },
-          ],
-        );
+        v_342bf2((v_49263d as Error).message ?? "네트워크 오류");
+        v_ee9ec1(false);
       }
     })();
-  }, [v_74e259, v_2ca7e0, v_625c74, v_6e0fd3, v_cb66b4, v_e9b971]);
+  }, [v_2ca7e0, v_625c74, v_74e259, v_6e0fd3, v_595acb, v_d7d38d, v_c414dc, v_e9b971]);
 
   if (v_f9f059 === false) {
     return (
@@ -277,59 +292,103 @@ export default function v_8640b9() {
       <View style={v_fd5f43.header}>
         <Text style={v_fd5f43.title}>얼굴 등록</Text>
         <Text style={v_fd5f43.subtitle}>
-          {v_dfb220} 과 자연스럽게 대화하도록 얼굴을 각도·거리별로 담아둘게요.
+          {v_c414dc
+            ? "새 얼굴을 등록하고 통화를 다시 시작해요."
+            : `${v_dfb220 ?? "페르소나"} 과 자연스럽게 대화하도록 얼굴을 각도·거리별로 담아둘게요.`}
         </Text>
       </View>
 
       {}
-      <View style={v_fd5f43.centerBlock}>
-        <View style={v_fd5f43.cameraBox}>
-          <VisionCamera
-            style={v_472849.absoluteFill}
-            device={v_ac8c13}
-            isActive={!v_cb66b4}
-            frameProcessor={v_23f1a4 ? v_a61ebf : undefined}
-            pixelFormat="yuv"
+      {v_2fb8cc ? (
+        <KeyboardAvoidingView
+          style={v_fd5f43.centerBlock}
+          behavior={v_326be8.OS === "ios" ? "padding" : "height"}
+        >
+          <Text style={v_fd5f43.formTitle}>이 분은 누구신가요?</Text>
+          <Text style={v_fd5f43.formDesc}>
+            {v_c414dc
+              ? "이름과 관계를 알려주시면 다음 통화부터 알아볼 수 있어요."
+              : "알려주시면 다음 통화부터 기억할게요."}
+          </Text>
+          <Text style={v_fd5f43.formLabel}>이름</Text>
+          <TextInput
+            style={v_fd5f43.formInput}
+            value={v_595acb}
+            onChangeText={v_9ad9a9}
+            placeholder="예: 지호"
+            placeholderTextColor={v_1bfbd0.zinc500}
+            autoFocus
+            returnKeyType="next"
+            editable={!v_cb66b4}
           />
-          <View style={v_fd5f43.guideCircle} pointerEvents="none" />
-        </View>
-
-        <View style={v_fd5f43.stepBox}>
-          {v_2fb8cc ? (
-            <>
-              <ActivityIndicator color={v_1bfbd0.white} />
-              <Text style={v_fd5f43.stepLabel}>등록 중...</Text>
-            </>
-          ) : (
-            <>
-              <Text style={v_fd5f43.stepLabel}>
-                {v_729796 + 1}/{v_77ce37.length} · {v_91943c.label}
-              </Text>
-              <Text style={v_fd5f43.stepHint}>{v_91943c.hint}</Text>
-            </>
-          )}
-        </View>
-
-        <View style={v_fd5f43.progressRow}>
-          {v_77ce37.map((v_9dd05b, v_e86ad8) => (
-            <View
-              key={v_9dd05b.key}
-              style={[v_fd5f43.dot, v_e86ad8 < v_729796 && v_fd5f43.dotDone, v_e86ad8 === v_729796 && !v_2fb8cc && v_fd5f43.dotActive]}
+          <Text style={v_fd5f43.formLabel}>관계 (선택)</Text>
+          <TextInput
+            style={v_fd5f43.formInput}
+            value={v_d7d38d}
+            onChangeText={v_23c9e5}
+            placeholder="예: 손주, 오랜 친구"
+            placeholderTextColor={v_1bfbd0.zinc500}
+            returnKeyType="done"
+            editable={!v_cb66b4}
+            onSubmitEditing={v_3bfe4c}
+          />
+          {v_056b4f ? <Text style={v_fd5f43.formError}>{v_056b4f}</Text> : null}
+        </KeyboardAvoidingView>
+      ) : (
+        <View style={v_fd5f43.centerBlock}>
+          <View style={v_fd5f43.cameraBox}>
+            <VisionCamera
+              style={v_472849.absoluteFill}
+              device={v_ac8c13}
+              isActive={!v_cb66b4}
+              frameProcessor={v_23f1a4 ? v_a61ebf : undefined}
+              pixelFormat="yuv"
             />
-          ))}
+            <View style={v_fd5f43.guideCircle} pointerEvents="none" />
+          </View>
+
+          <View style={v_fd5f43.stepBox}>
+            <Text style={v_fd5f43.stepLabel}>
+              {v_729796 + 1}/{v_77ce37.length} · {v_91943c.label}
+            </Text>
+            <Text style={v_fd5f43.stepHint}>{v_91943c.hint}</Text>
+          </View>
+
+          <View style={v_fd5f43.progressRow}>
+            {v_77ce37.map((v_9dd05b, v_e86ad8) => (
+              <View
+                key={v_9dd05b.key}
+                style={[v_fd5f43.dot, v_e86ad8 < v_729796 && v_fd5f43.dotDone, v_e86ad8 === v_729796 && !v_2fb8cc && v_fd5f43.dotActive]}
+              />
+            ))}
+          </View>
         </View>
-      </View>
+      )}
 
       {}
       <View style={v_fd5f43.bottomBlock}>
-        {!v_2fb8cc && (
+        {v_2fb8cc ? (
+          <TouchableOpacity
+            onPress={v_3bfe4c}
+            style={[v_fd5f43.captureBtn, v_cb66b4 && v_fd5f43.captureBtnDisabled]}
+            disabled={v_cb66b4 || !v_595acb.trim()}
+          >
+            {v_cb66b4 ? (
+              <ActivityIndicator color={v_1bfbd0.zinc900} />
+            ) : (
+              <Text style={v_fd5f43.captureBtnText}>등록</Text>
+            )}
+          </TouchableOpacity>
+        ) : (
           <TouchableOpacity onPress={v_94e3dc} style={v_fd5f43.captureBtn} disabled={v_cb66b4}>
             <Text style={v_fd5f43.captureBtnText}>촬영</Text>
           </TouchableOpacity>
         )}
 
         <TouchableOpacity onPress={v_bcff1c} style={v_fd5f43.skipBtn} disabled={v_cb66b4}>
-          <Text style={v_fd5f43.skipBtnText}>나중에 하기 (지금 통화)</Text>
+          <Text style={v_fd5f43.skipBtnText}>
+            {v_c414dc ? "등록 없이 통화 재개" : "나중에 하기 (지금 통화)"}
+          </Text>
         </TouchableOpacity>
 
         {}
@@ -364,6 +423,21 @@ const v_fd5f43 = v_472849.create({
     marginTop: 6,
     paddingHorizontal: 12,
   },
+
+  formTitle: { color: v_1bfbd0.white, fontSize: 20, fontWeight: "700", textAlign: "center" },
+  formDesc: { color: v_1bfbd0.zinc300, fontSize: 13, textAlign: "center", marginTop: 6, marginBottom: 20 },
+  formLabel: { color: v_1bfbd0.zinc300, fontSize: 13, alignSelf: "flex-start", marginTop: 12, marginBottom: 6 },
+  formInput: {
+    alignSelf: "stretch",
+    backgroundColor: v_1bfbd0.zinc900,
+    color: v_1bfbd0.white,
+    borderRadius: v_8b0c90.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+  },
+  formError: { color: "#f87171", fontSize: 12, marginTop: 10, alignSelf: "flex-start" },
+  captureBtnDisabled: { opacity: 0.6 },
   title: { color: v_1bfbd0.white, fontSize: 22, fontWeight: "700" },
   subtitle: { color: v_1bfbd0.zinc300, fontSize: 13, textAlign: "center" },
   cameraBox: {
