@@ -53,7 +53,7 @@ export type RememberMeEvent =
       cloneSpeaking: boolean;
     }
 
-  | { type: "MATCH_UNKNOWN"; score?: number }
+  | { type: "MATCH_UNKNOWN"; score?: number; topPersonId?: number | null }
 
   | { type: "ACTIVITY" }
 
@@ -256,9 +256,24 @@ function v_a448ad(
 
       if ((v_d48baf.score ?? 0) <= 0) return { state: v_b6e533, actions: [] };
 
+      const v_00d284 = v_b6e533.personId ?? v_b6e533.lastConfirmedPerson?.personId ?? null;
+      if (
+        v_d48baf.topPersonId != null &&
+        v_00d284 != null &&
+        v_d48baf.topPersonId === v_00d284
+      ) {
+
+        return { state: v_b6e533, actions: [] };
+      }
+      const v_4512fb =
+        v_d48baf.topPersonId != null &&
+        v_00d284 != null &&
+        v_d48baf.topPersonId !== v_00d284;
+
       const v_950bbe = v_b6e533.unknownStreak + 1;
       const v_29bced =
-        v_950bbe >= v_fb3fee && !v_b6e533.dismissedPromptInCall;
+        (v_4512fb || v_950bbe >= v_fb3fee) &&
+        !v_b6e533.dismissedPromptInCall;
 
       if (v_b6e533.mode === "pending") {
         const v_3459a5 =
