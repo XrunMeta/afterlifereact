@@ -300,7 +300,7 @@ export default function v_0035e1() {
   };
 
   return (
-    <SafeView backgroundColor={v_1bfbd0.white}>
+    <SafeView backgroundColor={v_1bfbd0.white} bottomBackgroundColor={v_1bfbd0.white}>
       <PageHeader
         title={v_8d41d7("my.menu.purchase", { defaultValue: "크레딧 충전 · 구독" })}
         showBackButton
