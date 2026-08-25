@@ -53,7 +53,7 @@ export type RememberMeEvent =
       cloneSpeaking: boolean;
     }
 
-  | { type: "MATCH_UNKNOWN"; score?: number }
+  | { type: "MATCH_UNKNOWN"; score?: number; topPersonId?: number | null }
 
   | { type: "ACTIVITY" }
 
@@ -256,9 +256,24 @@ function next(
 
       if ((event.score ?? 0) <= 0) return { state, actions: [] };
 
+      const refPersonId = state.personId ?? state.lastConfirmedPerson?.personId ?? null;
+      if (
+        event.topPersonId != null &&
+        refPersonId != null &&
+        event.topPersonId === refPersonId
+      ) {
+
+        return { state, actions: [] };
+      }
+      const differentPersonImmediate =
+        event.topPersonId != null &&
+        refPersonId != null &&
+        event.topPersonId !== refPersonId;
+
       const newStreak = state.unknownStreak + 1;
       const shouldPrompt =
-        newStreak >= UNKNOWN_ESCALATE_STREAK && !state.dismissedPromptInCall;
+        (differentPersonImmediate || newStreak >= UNKNOWN_ESCALATE_STREAK) &&
+        !state.dismissedPromptInCall;
 
       if (state.mode === "pending") {
         const promoted =
