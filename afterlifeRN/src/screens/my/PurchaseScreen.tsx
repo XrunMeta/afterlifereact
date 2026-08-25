@@ -121,6 +121,14 @@ const PLAN_BENEFITS: Record<string, { tagline: string; benefits: string[]; recom
 function stripMock(id: string): string {
   return id.startsWith(MOCK_PREFIX) ? id.slice(MOCK_PREFIX.length) : id;
 }
+
+function isCurrentPlanSku(sku: string, planCode: string | null | undefined): boolean {
+  if (!planCode) return sku === FREE_SKU;
+  const clean = stripMock(sku);
+
+  const afterSub = clean.split(".sub.")[1] ?? "";
+  return afterSub.toLowerCase().startsWith(planCode.toLowerCase());
+}
 function getPlanMeta(id: string): { tagline: string; benefits: string[]; recommended?: boolean } {
   return PLAN_BENEFITS[stripMock(id)] ?? { tagline: "", benefits: [] };
 }
@@ -419,11 +427,22 @@ export default function PurchaseScreen() {
             const meta = getPlanMeta(p.id);
             const isBuying = buying === p.id;
             const isFree = isFreeSku(p.id);
+
+            const isCurrent = isCurrentPlanSku(p.id, balance?.subscription?.planCode ?? null);
             return (
-              <View key={p.id} style={[s.planCard, meta.recommended && s.planCardRecommended]}>
-                {meta.recommended && (
-                  <View style={s.recommendBadge}>
-                    <Text style={s.recommendBadgeText}>추천 요금제</Text>
+              <View key={p.id} style={[s.planCard, (meta.recommended || isCurrent) && s.planCardRecommended]}>
+                {(isCurrent || meta.recommended) && (
+                  <View style={s.badgeRow}>
+                    {isCurrent && (
+                      <View style={[s.recommendBadge, s.currentBadge]}>
+                        <Text style={[s.recommendBadgeText, s.currentBadgeText]}>이용 중인 플랜</Text>
+                      </View>
+                    )}
+                    {meta.recommended && !isCurrent && (
+                      <View style={s.recommendBadge}>
+                        <Text style={s.recommendBadgeText}>추천 요금제</Text>
+                      </View>
+                    )}
                   </View>
                 )}
                 <View style={s.planHeader}>
@@ -599,13 +618,17 @@ const s = StyleSheet.create({
     paddingVertical: 4,
     backgroundColor: COLORS.violet100,
     borderRadius: 999,
-    marginBottom: 10,
   },
   recommendBadgeText: {
     fontSize: 11,
     fontWeight: "700",
     color: COLORS.violet700,
   },
+
+  badgeRow: { flexDirection: "row", gap: 6, marginBottom: 10 },
+
+  currentBadge: { backgroundColor: COLORS.violet600 },
+  currentBadgeText: { color: COLORS.white },
   planHeader: { marginBottom: 12 },
   planName: { fontSize: 20, fontWeight: "700", color: COLORS.zinc900 },
   planTagline: { fontSize: 13, color: COLORS.zinc500, marginTop: 4 },
