@@ -255,7 +255,7 @@ export default function v_0035e1() {
 
     if (v_4bfbf2(v_399dbd)) return;
     if (v_2cc272(v_399dbd)) {
-      v_03e392.alert(
+      v_889fad(
         v_8d41d7("purchase.mockAlertTitle", { defaultValue: "MOCK 상품" }),
         v_8d41d7("purchase.mockAlertMessage", { defaultValue: "유료 앱 계약 활성화 후 실제 결제 가능합니다." }),
       );
@@ -269,7 +269,7 @@ export default function v_0035e1() {
     } catch (v_49263d) {
       const v_badeaf = (v_49263d as Error).message ?? "";
       if (!v_badeaf.includes("cancel")) {
-        v_03e392.alert(v_8d41d7("purchase.paymentErrorTitle", { defaultValue: "결제 오류" }), v_badeaf);
+        v_889fad(v_8d41d7("purchase.paymentErrorTitle", { defaultValue: "결제 오류" }), v_badeaf);
       }
     } finally {
       setTimeout(() => v_ce0cde(null), 3000);
@@ -279,7 +279,7 @@ export default function v_0035e1() {
   const v_bdb045 = async (v_399dbd) => {
     if (v_c63375) return;
     if (v_2cc272(v_399dbd)) {
-      v_03e392.alert(
+      v_889fad(
         v_8d41d7("purchase.mockAlertTitle", { defaultValue: "MOCK 상품" }),
         v_8d41d7("purchase.mockAlertMessage", { defaultValue: "유료 앱 계약 활성화 후 실제 결제 가능합니다." }),
       );
@@ -292,7 +292,7 @@ export default function v_0035e1() {
     } catch (v_49263d) {
       const v_badeaf = (v_49263d as Error).message ?? "";
       if (!v_badeaf.includes("cancel")) {
-        v_03e392.alert(v_8d41d7("purchase.paymentErrorTitle", { defaultValue: "결제 오류" }), v_badeaf);
+        v_889fad(v_8d41d7("purchase.paymentErrorTitle", { defaultValue: "결제 오류" }), v_badeaf);
       }
     } finally {
       setTimeout(() => v_ce0cde(null), 3000);
