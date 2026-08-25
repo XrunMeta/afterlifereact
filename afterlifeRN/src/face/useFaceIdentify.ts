@@ -121,6 +121,8 @@ export async function runIdentifyCycle(
     displayName: bestDisplayName,
 
     score: bestPersonId != null ? effectiveScore : result.matches[0]?.score ?? 0,
+
+    topPersonId: result.matches[0]?.personId ?? null,
   };
 
   const { state: speaker, event } = speakerIdReducer(state.speaker, cycle, nowMs);
