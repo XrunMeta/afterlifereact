@@ -366,18 +366,10 @@ export default function PurchaseScreen() {
             style={s.giftRedeemCard}
             activeOpacity={0.75}
             onPress={async () => {
-              const email = encodeURIComponent(apiUserEmail ?? "");
-              const deepLink = `xrun://afterlife/gifts?email=${email}`;
-              const canOpen = await Linking.canOpenURL(deepLink).catch(() => false);
-              if (canOpen) {
-                await Linking.openURL(deepLink);
-                return;
-              }
 
-              const storeUrl = Platform.OS === "ios"
-                ? "https://apps.apple.com/kr/app/xrun-go/id6502924173"
-                : `https://play.google.com/store/apps/details?id=run.xrun.xrun&referrer=email%3D${email}`;
-              await Linking.openURL(storeUrl);
+              const email = encodeURIComponent(apiUserEmail ?? "");
+              const inviteUrl = `https://www.xrun.run/invite?referral=${email}`;
+              await Linking.openURL(inviteUrl);
             }}
           >
             <View style={{ flex: 1 }}>
