@@ -98,6 +98,8 @@ const styles = StyleSheet.create({
   left: {
     width: 44,
     alignItems: "flex-start",
+
+    marginLeft: -SIZES.small,
   },
   center: {
     flex: 1,
@@ -108,7 +110,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   backButton: {
-    padding: 8,
+    padding: 4,
     borderRadius: 8,
   },
   stepText: {

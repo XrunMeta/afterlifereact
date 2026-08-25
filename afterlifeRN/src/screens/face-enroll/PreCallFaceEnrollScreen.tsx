@@ -323,7 +323,7 @@ export default function PreCallFaceEnrollScreen() {
       return true;
     }
 
-    nav.dispatch(CommonActions.reset({ index: 0, routes: [{ name: "MainTabs" }] }));
+    nav.dispatch(CommonActions.reset({ index: 0, routes: [{ name: "Main" }] }));
     return true;
   }, [midCall, nav, cloneId, personaName, personaImage]);
 
