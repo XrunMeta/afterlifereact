@@ -241,6 +241,7 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
                 ts: v_5de650(),
                 score: v_ef2205.score,
                 personId: v_ef2205.personId,
+                topPersonId: v_bdad26.topPersonId ?? null,
                 streak: v_ef2205.streak,
                 verdict: v_ef2205.verdict,
                 threshold: v_ef2205.threshold,
