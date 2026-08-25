@@ -41,12 +41,11 @@ function v_429a79(v_b6a7e0, t: v_75de9d): string {
     : v_8d41d7("common.durationMin", { m: v_43e24b, defaultValue: `${v_43e24b}분` });
 }
 
-const v_176062 = 60;
-function v_da6788(v_b6a7e0): string {
-  const v_76be17 = v_b6a7e0 / v_176062;
-
-  const v_fd5f43 = Number.isInteger(v_76be17) ? v_76be17.toLocaleString() : v_76be17.toFixed(1);
-  return `${v_fd5f43} XRUN`;
+function v_2e0619(v_b6a7e0): string {
+  const v_43e24b = Math.floor(v_b6a7e0 / 60);
+  const v_fd5f43 = v_b6a7e0 % 60;
+  if (v_fd5f43 > 0 && v_43e24b < 10) return `${v_43e24b}분 ${v_fd5f43}초`;
+  return `${v_43e24b}분`;
 }
 
 const v_5348ba = "__mock__";
@@ -144,7 +143,7 @@ export default function v_0035e1() {
       v_889fad(
         "교환 확인",
 
-        `${v_8c0b26.name} ${v_8c0b26.count}개를 ${v_da6788(v_8c0b26.xrunTotal)} XRUN 으로 교환할까요?`,
+        `${v_8c0b26.name} ${v_8c0b26.count}개를 ${v_2e0619(v_8c0b26.xrunTotal)}으로 교환할까요?`,
         [
           { text: "취소", style: "cancel" },
           {
@@ -163,7 +162,7 @@ export default function v_0035e1() {
                 v_889fad(
                   "교환 완료 🎉",
 
-                  `${v_da6788(v_8f00b9.xrunCredited)} XRUN 이 지갑에 충전됐어요.`,
+                  `${v_2e0619(v_8f00b9.xrunCredited)}이 지갑에 충전됐어요.`,
                 );
                 await v_1a1b9b();
               } catch (v_49263d) {
@@ -272,43 +271,26 @@ export default function v_0035e1() {
 
         {}
         <View style={v_fd5f43.balanceCard}>
-          <Text style={v_fd5f43.balanceTitle}>{v_8d41d7("my.balance.remainingTokens", { defaultValue: "남은 토큰 수량" })}</Text>
+          <Text style={v_fd5f43.balanceTitle}>{v_8d41d7("my.balance.remainingTokens", { defaultValue: "남은 통화 시간" })}</Text>
           {v_55599a ? (
             <ActivityIndicator color={v_1bfbd0.violet600} />
           ) : v_c88e9b ? (
             <>
-              <Text style={v_fd5f43.balanceTotal}>{v_da6788(v_c88e9b.totalSec)}</Text>
+              <Text style={v_fd5f43.balanceTotal}>{v_2e0619(v_c88e9b.totalSec)}</Text>
               <View style={v_fd5f43.balanceRow}>
                 <View style={v_fd5f43.balanceCol}>
                   <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("purchase.bucketFree", { defaultValue: "무료" })}</Text>
-                  <Text style={v_fd5f43.balanceVal}>{v_da6788(v_c88e9b.freeSec)}</Text>
+                  <Text style={v_fd5f43.balanceVal}>{v_2e0619(v_c88e9b.freeSec)}</Text>
                 </View>
                 <View style={v_fd5f43.balanceCol}>
                   <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("purchase.bucketSub", { defaultValue: "구독" })}</Text>
-                  <Text style={v_fd5f43.balanceVal}>{v_da6788(v_c88e9b.subSec)}</Text>
+                  <Text style={v_fd5f43.balanceVal}>{v_2e0619(v_c88e9b.subSec)}</Text>
                 </View>
                 <View style={v_fd5f43.balanceCol}>
                   <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("purchase.bucketTopup", { defaultValue: "충전" })}</Text>
-                  <Text style={v_fd5f43.balanceVal}>{v_da6788(v_c88e9b.topupSec)}</Text>
+                  <Text style={v_fd5f43.balanceVal}>{v_2e0619(v_c88e9b.topupSec)}</Text>
                 </View>
                 {}
-                {
-}
-                {v_f66a30 && (
-                  <TouchableOpacity style={v_fd5f43.balanceCol} onPress={v_1c51b0} activeOpacity={0.6}>
-                    <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("purchase.bucketGift", { defaultValue: "선물" })}</Text>
-                    {}
-                    {
-
-}
-                    <Text style={v_fd5f43.balanceVal}>
-                      {v_da6788(
-                        v_f04609.reduce((v_dce0a8, v_206b88) => v_dce0a8 + v_206b88.xrunTotal, 0) +
-                          (v_c88e9b?.giftSec ?? 0),
-                      )}
-                    </Text>
-                  </TouchableOpacity>
-                )}
               </View>
               {v_c88e9b.subscription && (
                 <Text style={v_fd5f43.subInfo}>
@@ -333,7 +315,7 @@ export default function v_0035e1() {
             onLayout={(v_9e86fd) => { v_e7f875.current = v_9e86fd.nativeEvent.layout.y; }}
           >
             <Text style={v_fd5f43.sectionTitle}>받은 선물</Text>
-            <Text style={v_fd5f43.sectionDesc}>[교환] 을 누르면 XRUN 크레딧으로 충전돼요.</Text>
+            <Text style={v_fd5f43.sectionDesc}>[교환] 을 누르면 통화 시간으로 충전돼요.</Text>
             {v_f04609.map((v_8c0b26) => {
               const v_3f8465 = v_08031a === v_8c0b26.giftId;
               return (
@@ -348,7 +330,7 @@ export default function v_0035e1() {
                   <View style={v_fd5f43.giftInfo}>
                     <Text style={v_fd5f43.giftName}>{v_8c0b26.name} {v_8c0b26.count}개</Text>
                     {}
-                    <Text style={v_fd5f43.giftAmount}>= {v_da6788(v_8c0b26.xrunTotal)} XRUN</Text>
+                    <Text style={v_fd5f43.giftAmount}>= {v_2e0619(v_8c0b26.xrunTotal)} XRUN</Text>
                   </View>
                   <TouchableOpacity
                     style={[v_fd5f43.swapBtn, v_3f8465 && { opacity: 0.6 }]}
