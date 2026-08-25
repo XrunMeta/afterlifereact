@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Linking,
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
@@ -135,6 +136,8 @@ export default function PurchaseScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation();
   const accessToken = useAuthStore((s) => s.accessToken);
+
+  const apiUserEmail = useAuthStore((s) => s.apiUser?.email ?? null);
 
   const giftInventoryVisible = true;
 
@@ -356,7 +359,36 @@ export default function PurchaseScreen() {
         </View>
 
         {
+
 }
+        {giftInventoryVisible && (
+          <TouchableOpacity
+            style={s.giftRedeemCard}
+            activeOpacity={0.75}
+            onPress={async () => {
+              const email = encodeURIComponent(apiUserEmail ?? "");
+              const deepLink = `xrun://afterlife/gifts?email=${email}`;
+              const canOpen = await Linking.canOpenURL(deepLink).catch(() => false);
+              if (canOpen) {
+                await Linking.openURL(deepLink);
+                return;
+              }
+
+              const storeUrl = Platform.OS === "ios"
+                ? "https://apps.apple.com/kr/app/xrun-go/id6502924173"
+                : `https://play.google.com/store/apps/details?id=run.xrun.xrun&referrer=email%3D${email}`;
+              await Linking.openURL(storeUrl);
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={s.giftRedeemTitle}>받은 선물 교환하기</Text>
+              <Text style={s.giftRedeemDesc}>
+                받은 꽃을 XRUN 앱에서 광고 시청하고 통화용 꽃으로 바꿔보세요.
+              </Text>
+            </View>
+            <Text style={s.giftRedeemArrow}>›</Text>
+          </TouchableOpacity>
+        )}
 
         {}
         <Text style={s.sectionTitle}>{t("purchase.subSectionTitle", { defaultValue: "월 구독" })}</Text>
@@ -552,6 +584,21 @@ const s = StyleSheet.create({
 
   currentBadge: { backgroundColor: COLORS.violet600 },
   currentBadgeText: { color: COLORS.white },
+
+  giftRedeemCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 24,
+    padding: 16,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    backgroundColor: "#faf5ff",
+  },
+  giftRedeemTitle: { fontSize: 15, fontWeight: "700", color: COLORS.zinc900 },
+  giftRedeemDesc: { fontSize: 12, color: COLORS.zinc600, marginTop: 4, lineHeight: 17 },
+  giftRedeemArrow: { fontSize: 24, color: COLORS.violet600, marginLeft: 12 },
   planHeader: { marginBottom: 12 },
   planName: { fontSize: 20, fontWeight: "700", color: COLORS.zinc900 },
   planTagline: { fontSize: 13, color: COLORS.zinc500, marginTop: 4 },
