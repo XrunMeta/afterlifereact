@@ -60,24 +60,25 @@ const STEPS: readonly Step[] = [
     guide: (y, p) => Math.abs(y) >= 12 ? "좌우로 고개 돌리지 마세요" : Math.abs(p) >= 12 ? "고개 각도 낮춰주세요" : "완벽!",
   },
   {
-    key: "right", label: "오른쪽", hint: "고개를 오른쪽으로 돌려주세요",
+
+    key: "right", label: "왼쪽", hint: "고개를 왼쪽으로 돌려주세요",
     checkPose: (y, p) => y > 18 && Math.abs(p) < 20,
-    guide: (y, _p) => y < 18 ? `조금만 더 오른쪽으로 (${Math.round(y)}°/18°)` : "완벽!",
+    guide: (y, _p) => y < 18 ? `조금만 더 왼쪽으로 (${Math.round(y)}°/18°)` : "완벽!",
   },
   {
-    key: "left", label: "왼쪽", hint: "고개를 왼쪽으로 돌려주세요",
+    key: "left", label: "오른쪽", hint: "고개를 오른쪽으로 돌려주세요",
     checkPose: (y, p) => y < -18 && Math.abs(p) < 20,
-    guide: (y, _p) => y > -18 ? `조금만 더 왼쪽으로 (${Math.round(y)}°/-18°)` : "완벽!",
+    guide: (y, _p) => y > -18 ? `조금만 더 오른쪽으로 (${Math.round(y)}°/-18°)` : "완벽!",
   },
   {
-    key: "up", label: "위", hint: "고개를 위로 들어주세요",
+    key: "up", label: "아래", hint: "고개를 아래로 숙여주세요",
     checkPose: (y, p) => p < -10 && Math.abs(y) < 20,
-    guide: (_y, p) => p > -10 ? `조금만 더 위로 (${Math.round(p)}°/-10°)` : "완벽!",
+    guide: (_y, p) => p > -10 ? `조금만 더 아래로 (${Math.round(p)}°/-10°)` : "완벽!",
   },
   {
-    key: "down", label: "아래", hint: "고개를 아래로 숙여주세요",
+    key: "down", label: "위", hint: "고개를 위로 들어주세요",
     checkPose: (y, p) => p > 10 && Math.abs(y) < 20,
-    guide: (_y, p) => p < 10 ? `조금만 더 아래로 (${Math.round(p)}°/10°)` : "완벽!",
+    guide: (_y, p) => p < 10 ? `조금만 더 위로 (${Math.round(p)}°/10°)` : "완벽!",
   },
 ] as const;
 
