@@ -51,17 +51,15 @@ function v_2e0619(v_b6a7e0): string {
 const v_5348ba = "__mock__";
 
 const v_2c427c = "__free__";
+
 const MOCK_SUBS: v_23b84c[] = [
-  { id: "run.xrun.afterlife.sub.light", title: "xLight 30min", description: "월 30분 통화", displayPrice: "₩2,200", price: 2200, currency: "KRW", platform: "ios", type: "subs" } as unknown as v_23b84c,
-  { id: "run.xrun.afterlife.sub.basic.v3", title: "xBasic 100min", description: "월 100분 통화", displayPrice: "₩6,600", price: 6600, currency: "KRW", platform: "ios", type: "subs" } as unknown as v_23b84c,
-  { id: "run.xrun.afterlife.sub.standard", title: "xStandard 300min", description: "월 300분 통화", displayPrice: "₩19,900", price: 19900, currency: "KRW", platform: "ios", type: "subs" } as unknown as v_23b84c,
-  { id: "run.xrun.afterlife.sub.plus", title: "xPlus 600min", description: "월 600분 통화", displayPrice: "₩39,900", price: 39900, currency: "KRW", platform: "ios", type: "subs" } as unknown as v_23b84c,
-  { id: "run.xrun.afterlife.sub.premium", title: "xPremium 1000min", description: "월 1000분 통화", displayPrice: "₩69,900", price: 69900, currency: "KRW", platform: "ios", type: "subs" } as unknown as v_23b84c,
+  { id: "run.xrun.afterlife.sub.run", title: "RUN", description: "광고없이 이용", displayPrice: "₩13,000", price: 13000, currency: "KRW", platform: "ios", type: "subs" } as unknown as v_23b84c,
+  { id: "run.xrun.afterlife.sub.monster", title: "Monster", description: "광고없이 이용", displayPrice: "₩65,000", price: 65000, currency: "KRW", platform: "ios", type: "subs" } as unknown as v_23b84c,
 ].map((v_e2a85c) => ({ ...v_e2a85c, id: `${v_5348ba}${v_e2a85c.id}` }) as v_23b84c);
 
 const FREE_SUB: v_23b84c = {
   id: v_2c427c,
-  title: "GO (Free)",
+  title: "Go (Free)",
   description: "회원가입 시 자동 부여",
   displayPrice: "무료",
   price: 0,
@@ -96,26 +94,24 @@ const v_0ce4cc = {
       "월 50분 통화 제공",
     ],
   },
-  "run.xrun.afterlife.sub.light": {
-    tagline: "가볍게 시작",
-    benefits: ["월 30분 통화 또는 선물 가능"],
-  },
-  "run.xrun.afterlife.sub.basic.v3": {
-    tagline: "일상 대화",
-    benefits: ["월 100분 통화 또는 선물 가능"],
-  },
-  "run.xrun.afterlife.sub.standard": {
-    tagline: "자주 통화",
-    benefits: ["월 300분 통화 또는 선물 가능"],
+  "run.xrun.afterlife.sub.run": {
+    tagline: "광고 없이 이용",
+    benefits: [
+      "클론 2개 생성",
+      "클론 삭제/생성 10회 제공",
+      "월 120분 통화 제공",
+      "꽃 2개 제공 (선물하기용)",
+    ],
     recommended: true,
   },
-  "run.xrun.afterlife.sub.plus": {
-    tagline: "매일 대화",
-    benefits: ["월 600분 통화 또는 선물 가능"],
-  },
-  "run.xrun.afterlife.sub.premium": {
-    tagline: "무제한급 사용",
-    benefits: ["월 1000분 통화 또는 선물 가능"],
+  "run.xrun.afterlife.sub.monster": {
+    tagline: "광고 없이 이용",
+    benefits: [
+      "클론 무제한 생성",
+      "클론 삭제/생성 무제한",
+      "월 1000분 통화 제공",
+      "꽃 10개 제공 (선물하기용)",
+    ],
   },
 };
 function v_9fe308(v_389afb): string {
@@ -127,7 +123,7 @@ function v_5fd964(v_399dbd, v_8c9d89): boolean {
   const v_76a373 = v_9fe308(v_399dbd);
 
   const v_a5364f = v_76a373.split(".sub.")[1] ?? "";
-  return v_a5364f.toLowerCase().startsWith(v_8c9d89.toLowerCase());
+  return v_a5364f.toLowerCase() === v_8c9d89.toLowerCase();
 }
 function v_3cb64a(v_389afb): { tagline: string; benefits: string[]; recommended?: boolean } {
   return v_0ce4cc[v_9fe308(v_389afb)] ?? { tagline: "", benefits: [] };
@@ -508,44 +504,8 @@ export default function v_0035e1() {
           </TouchableOpacity>
         ))}
 
-        {}
-        <Text style={[v_fd5f43.sectionTitle, { marginTop: 32 }]}>{v_8d41d7("purchase.topupSectionTitle", { defaultValue: "충전 (일회성)" })}</Text>
-        <Text style={v_fd5f43.sectionDesc}>{v_8d41d7("purchase.topupSectionDesc", { defaultValue: "구독과 별개로 통화 시간을 추가할 수 있어요. 5년 유효." })}</Text>
-
-        {v_723218 ? (
-          <ActivityIndicator color={v_1bfbd0.violet600} style={{ marginVertical: 20 }} />
-        ) : v_275767.length === 0 ? (
-          <View style={v_fd5f43.emptyBlock}>
-            <Text style={v_fd5f43.emptyText}>{v_8d41d7("purchase.topupLoadFailed", { defaultValue: "충전 상품을 불러올 수 없어요." })}</Text>
-            <TouchableOpacity
-              style={v_fd5f43.retryBtn}
-              onPress={v_d5d7b5}
-              activeOpacity={0.85}
-            >
-              <Text style={v_fd5f43.retryBtnText}>{v_8d41d7("common.retry", { defaultValue: "다시 시도" })}</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          v_275767.map((v_e2a85c) => (
-            <TouchableOpacity
-              key={v_e2a85c.id}
-              style={[v_fd5f43.card, v_c63375 === v_e2a85c.id && v_fd5f43.cardDisabled]}
-              onPress={() => v_bdb045(v_e2a85c.id)}
-              disabled={v_c63375 !== null}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={v_fd5f43.cardName}>{v_e2a85c.title || v_e2a85c.id}</Text>
-                <Text style={v_fd5f43.cardDesc}>{v_e2a85c.description || ""}</Text>
-              </View>
-              <View style={v_fd5f43.cardPriceCol}>
-                <Text style={v_fd5f43.cardPrice}>{v_e2a85c.displayPrice}</Text>
-                {v_c63375 === v_e2a85c.id && (
-                  <ActivityIndicator color={v_1bfbd0.violet600} size="small" />
-                )}
-              </View>
-            </TouchableOpacity>
-          ))
-        )}
+        {
+}
 
         {}
         <View style={{ marginTop: 32, alignItems: "center" }}>
