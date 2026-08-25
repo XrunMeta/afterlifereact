@@ -10,6 +10,7 @@ import {
   v_39a996,
   v_03e392,
   v_326be8,
+  v_f2c756,
 } from "rcmrninabrnb";
 import { v_cf763b, v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -135,6 +136,8 @@ export default function v_0035e1() {
   const { t: v_8d41d7 } = v_772971();
   const v_c65f5d = v_ada615();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+
+  const v_6ed1bd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? null);
 
   const v_f66a30 = true;
 
@@ -356,7 +359,36 @@ export default function v_0035e1() {
         </View>
 
         {
+
 }
+        {v_f66a30 && (
+          <TouchableOpacity
+            style={v_fd5f43.giftRedeemCard}
+            activeOpacity={0.75}
+            onPress={async () => {
+              const v_e0c7e8 = encodeURIComponent(v_6ed1bd ?? "");
+              const v_6045c3 = `xrun://afterlife/gifts?email=${v_e0c7e8}`;
+              const v_20e8d1 = await v_f2c756.canOpenURL(v_6045c3).catch(() => false);
+              if (v_20e8d1) {
+                await v_f2c756.openURL(v_6045c3);
+                return;
+              }
+
+              const v_b71a74 = v_326be8.OS === "ios"
+                ? "https://apps.apple.com/kr/app/xrun-go/id6502924173"
+                : `https://play.google.com/store/apps/details?id=run.xrun.xrun&referrer=email%3D${v_e0c7e8}`;
+              await v_f2c756.openURL(v_b71a74);
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={v_fd5f43.giftRedeemTitle}>받은 선물 교환하기</Text>
+              <Text style={v_fd5f43.giftRedeemDesc}>
+                받은 꽃을 XRUN 앱에서 광고 시청하고 통화용 꽃으로 바꿔보세요.
+              </Text>
+            </View>
+            <Text style={v_fd5f43.giftRedeemArrow}>›</Text>
+          </TouchableOpacity>
+        )}
 
         {}
         <Text style={v_fd5f43.sectionTitle}>{v_8d41d7("purchase.subSectionTitle", { defaultValue: "월 구독" })}</Text>
@@ -552,6 +584,21 @@ const v_fd5f43 = v_472849.create({
 
   currentBadge: { backgroundColor: v_1bfbd0.violet600 },
   currentBadgeText: { color: v_1bfbd0.white },
+
+  giftRedeemCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 24,
+    padding: 16,
+    borderRadius: v_8b0c90.lg,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    backgroundColor: "#faf5ff",
+  },
+  giftRedeemTitle: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  giftRedeemDesc: { fontSize: 12, color: v_1bfbd0.zinc600, marginTop: 4, lineHeight: 17 },
+  giftRedeemArrow: { fontSize: 24, color: v_1bfbd0.violet600, marginLeft: 12 },
   planHeader: { marginBottom: 12 },
   planName: { fontSize: 20, fontWeight: "700", color: v_1bfbd0.zinc900 },
   planTagline: { fontSize: 13, color: v_1bfbd0.zinc500, marginTop: 4 },
