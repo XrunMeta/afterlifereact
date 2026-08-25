@@ -357,45 +357,6 @@ export default function v_0035e1() {
 
         {
 }
-        {v_f66a30 && v_f04609.length > 0 && (
-          <View
-            style={{ marginTop: 8, marginBottom: 24 }}
-            onLayout={(v_9e86fd) => { v_e7f875.current = v_9e86fd.nativeEvent.layout.y; }}
-          >
-            <Text style={v_fd5f43.sectionTitle}>받은 선물</Text>
-            <Text style={v_fd5f43.sectionDesc}>[교환] 을 누르면 통화 시간으로 충전돼요.</Text>
-            {v_f04609.map((v_8c0b26) => {
-              const v_3f8465 = v_08031a === v_8c0b26.giftId;
-              return (
-                <View key={v_8c0b26.giftId} style={v_fd5f43.giftRow}>
-                  {v_8c0b26.imageUrl ? (
-                    <Image source={{ uri: v_8c0b26.imageUrl }} style={v_fd5f43.giftImg} />
-                  ) : (
-                    <View style={[v_fd5f43.giftImg, v_fd5f43.giftEmojiWrap]}>
-                      <Text style={v_fd5f43.giftEmoji}>{v_8c0b26.emoji}</Text>
-                    </View>
-                  )}
-                  <View style={v_fd5f43.giftInfo}>
-                    <Text style={v_fd5f43.giftName}>{v_8c0b26.name} {v_8c0b26.count}개</Text>
-                    {}
-                    <Text style={v_fd5f43.giftAmount}>= {v_2e0619(v_8c0b26.xrunTotal)} XRUN</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[v_fd5f43.swapBtn, v_3f8465 && { opacity: 0.6 }]}
-                    onPress={() => v_3295c9(v_8c0b26)}
-                    disabled={v_3f8465}
-                  >
-                    {v_3f8465 ? (
-                      <ActivityIndicator size="small" color={v_1bfbd0.white} />
-                    ) : (
-                      <Text style={v_fd5f43.swapBtnText}>교환</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              );
-            })}
-          </View>
-        )}
 
         {}
         <Text style={v_fd5f43.sectionTitle}>{v_8d41d7("purchase.subSectionTitle", { defaultValue: "월 구독" })}</Text>
