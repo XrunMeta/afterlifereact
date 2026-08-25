@@ -49,6 +49,8 @@ function v_2e0619(v_b6a7e0): string {
 }
 
 const v_5348ba = "__mock__";
+
+const v_2c427c = "__free__";
 const MOCK_SUBS: v_23b84c[] = [
   { id: "run.xrun.afterlife.sub.light", title: "xLight 30min", description: "월 30분 통화", displayPrice: "₩2,200", price: 2200, currency: "KRW", platform: "ios", type: "subs" } as unknown as v_23b84c,
   { id: "run.xrun.afterlife.sub.basic.v3", title: "xBasic 100min", description: "월 100분 통화", displayPrice: "₩6,600", price: 6600, currency: "KRW", platform: "ios", type: "subs" } as unknown as v_23b84c,
@@ -56,15 +58,44 @@ const MOCK_SUBS: v_23b84c[] = [
   { id: "run.xrun.afterlife.sub.plus", title: "xPlus 600min", description: "월 600분 통화", displayPrice: "₩39,900", price: 39900, currency: "KRW", platform: "ios", type: "subs" } as unknown as v_23b84c,
   { id: "run.xrun.afterlife.sub.premium", title: "xPremium 1000min", description: "월 1000분 통화", displayPrice: "₩69,900", price: 69900, currency: "KRW", platform: "ios", type: "subs" } as unknown as v_23b84c,
 ].map((v_e2a85c) => ({ ...v_e2a85c, id: `${v_5348ba}${v_e2a85c.id}` }) as v_23b84c);
+
+const FREE_SUB: v_23b84c = {
+  id: v_2c427c,
+  title: "GO (Free)",
+  description: "회원가입 시 자동 부여",
+  displayPrice: "무료",
+  price: 0,
+  currency: "KRW",
+  platform: "ios",
+  type: "subs",
+} as unknown as v_23b84c;
 const MOCK_CONSUMABLES: v_678322[] = [
   { id: "run.xrun.afterlife.credit.30", title: "Recharge 30min", description: "30분 충전 · 5년 유효", displayPrice: "₩2,200", price: 2200, currency: "KRW", platform: "ios", type: "in-app" } as unknown as v_678322,
   { id: "run.xrun.afterlife.credit.60", title: "Recharge 60min", description: "60분 충전 · 5년 유효", displayPrice: "₩4,400", price: 4400, currency: "KRW", platform: "ios", type: "in-app" } as unknown as v_678322,
   { id: "run.xrun.afterlife.credit.150", title: "Recharge 150min", description: "150분 충전 · 5년 유효", displayPrice: "₩9,900", price: 9900, currency: "KRW", platform: "ios", type: "in-app" } as unknown as v_678322,
   { id: "run.xrun.afterlife.credit.300", title: "Recharge 300min", description: "300분 충전 · 5년 유효", displayPrice: "₩19,900", price: 19900, currency: "KRW", platform: "ios", type: "in-app" } as unknown as v_678322,
 ].map((v_e2a85c) => ({ ...v_e2a85c, id: `${v_5348ba}${v_e2a85c.id}` }) as v_678322);
+
+const MOCK_GIFT_PACKS: v_678322[] = [
+  { id: "run.xrun.afterlife.gift.pack.1", title: "꽃 1개", description: "선물하기 1회 사용", displayPrice: "₩3,000", price: 3000, currency: "KRW", platform: "ios", type: "in-app" } as unknown as v_678322,
+  { id: "run.xrun.afterlife.gift.pack.5", title: "꽃 5개", description: "선물하기 5회 사용", displayPrice: "₩14,000", price: 14000, currency: "KRW", platform: "ios", type: "in-app" } as unknown as v_678322,
+  { id: "run.xrun.afterlife.gift.pack.10", title: "꽃 10개", description: "선물하기 10회 사용", displayPrice: "₩27,000", price: 27000, currency: "KRW", platform: "ios", type: "in-app" } as unknown as v_678322,
+].map((v_e2a85c) => ({ ...v_e2a85c, id: `${v_5348ba}${v_e2a85c.id}` }) as v_678322);
 const v_2cc272 = (v_389afb): boolean => v_389afb.startsWith(v_5348ba);
+const v_4bfbf2 = (v_389afb): boolean => v_389afb === v_2c427c;
+const v_03b27f = (v_389afb): boolean => v_9fe308(v_389afb).startsWith("run.xrun.afterlife.gift.pack.");
 
 const v_0ce4cc = {
+  [v_2c427c]: {
+    tagline: "회원가입 시 자동 제공",
+    benefits: [
+      "광고 시청 후 서비스 이용",
+      "서비스 중간 광고 삽입",
+      "클론 1개 생성",
+      "클론 삭제/생성 5회 제공",
+      "월 50분 통화 제공",
+    ],
+  },
   "run.xrun.afterlife.sub.light": {
     tagline: "가볍게 시작",
     benefits: ["월 30분 통화 또는 선물 가능"],
@@ -212,6 +243,8 @@ export default function v_0035e1() {
 
   const v_0b9762 = async (v_399dbd) => {
     if (v_c63375) return;
+
+    if (v_4bfbf2(v_399dbd)) return;
     if (v_2cc272(v_399dbd)) {
       v_03e392.alert(
         v_8d41d7("purchase.mockAlertTitle", { defaultValue: "MOCK 상품" }),
@@ -290,7 +323,16 @@ export default function v_0035e1() {
                   <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("purchase.bucketTopup", { defaultValue: "충전" })}</Text>
                   <Text style={v_fd5f43.balanceVal}>{v_2e0619(v_c88e9b.topupSec)}</Text>
                 </View>
-                {}
+                {
+}
+                {v_f66a30 && (
+                  <TouchableOpacity style={v_fd5f43.balanceCol} onPress={v_1c51b0} activeOpacity={0.6}>
+                    <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("purchase.bucketGift", { defaultValue: "선물" })}</Text>
+                    <Text style={v_fd5f43.balanceVal}>
+                      {v_f04609.reduce((v_dce0a8, v_206b88) => v_dce0a8 + v_206b88.count, 0)}개
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
               {v_c88e9b.subscription && (
                 <Text style={v_fd5f43.subInfo}>
@@ -372,9 +414,11 @@ export default function v_0035e1() {
             </TouchableOpacity>
           </View>
         ) : (
-          v_ab371b.map((v_e2a85c) => {
+
+          [v_6f8613, ...v_ab371b].map((v_e2a85c) => {
             const v_ab4c96 = v_3cb64a(v_e2a85c.id);
             const v_7e898c = v_c63375 === v_e2a85c.id;
+            const v_d5ee40 = v_4bfbf2(v_e2a85c.id);
             return (
               <View key={v_e2a85c.id} style={[v_fd5f43.planCard, v_ab4c96.recommended && v_fd5f43.planCardRecommended]}>
                 {v_ab4c96.recommended && (
@@ -389,20 +433,22 @@ export default function v_0035e1() {
                 <View style={v_fd5f43.planPriceRow}>
                   <View style={{ flex: 1 }}>
                     <Text style={v_fd5f43.planPrice}>{v_e2a85c.displayPrice}</Text>
-                    <Text style={v_fd5f43.planPricePeriod}>매월 자동 청구</Text>
+                    <Text style={v_fd5f43.planPricePeriod}>{v_d5ee40 ? "가입 시 자동 적용" : "매월 자동 청구"}</Text>
                   </View>
-                  <TouchableOpacity
-                    style={[v_fd5f43.planCta, v_7e898c && v_fd5f43.planCtaDisabled]}
-                    onPress={() => v_0b9762(v_e2a85c.id)}
-                    disabled={v_c63375 !== null}
-                    activeOpacity={0.85}
-                  >
-                    {v_7e898c ? (
-                      <ActivityIndicator color={v_1bfbd0.white} size="small" />
-                    ) : (
-                      <Text style={v_fd5f43.planCtaText}>업그레이드</Text>
-                    )}
-                  </TouchableOpacity>
+                  {!v_d5ee40 && (
+                    <TouchableOpacity
+                      style={[v_fd5f43.planCta, v_7e898c && v_fd5f43.planCtaDisabled]}
+                      onPress={() => v_0b9762(v_e2a85c.id)}
+                      disabled={v_c63375 !== null}
+                      activeOpacity={0.85}
+                    >
+                      {v_7e898c ? (
+                        <ActivityIndicator color={v_1bfbd0.white} size="small" />
+                      ) : (
+                        <Text style={v_fd5f43.planCtaText}>업그레이드</Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
                 </View>
                 {v_ab4c96.benefits.length > 0 && (
                   <View style={v_fd5f43.planBenefits}>
@@ -418,6 +464,30 @@ export default function v_0035e1() {
             );
           })
         )}
+
+        {
+}
+        <Text style={[v_fd5f43.sectionTitle, { marginTop: 32 }]}>꽃 구매</Text>
+        <Text style={v_fd5f43.sectionDesc}>선물하기 전용 · 구매 후 통화 중 사용 가능.</Text>
+        {v_5ff45c.map((v_e2a85c) => (
+          <TouchableOpacity
+            key={v_e2a85c.id}
+            style={[v_fd5f43.card, v_c63375 === v_e2a85c.id && v_fd5f43.cardDisabled]}
+            onPress={() => v_bdb045(v_e2a85c.id)}
+            disabled={v_c63375 !== null}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={v_fd5f43.cardName}>{v_e2a85c.title || v_e2a85c.id}</Text>
+              <Text style={v_fd5f43.cardDesc}>{v_e2a85c.description || ""}</Text>
+            </View>
+            <View style={v_fd5f43.cardPriceCol}>
+              <Text style={v_fd5f43.cardPrice}>{v_e2a85c.displayPrice}</Text>
+              {v_c63375 === v_e2a85c.id && (
+                <ActivityIndicator color={v_1bfbd0.violet600} size="small" />
+              )}
+            </View>
+          </TouchableOpacity>
+        ))}
 
         {}
         <Text style={[v_fd5f43.sectionTitle, { marginTop: 32 }]}>{v_8d41d7("purchase.topupSectionTitle", { defaultValue: "충전 (일회성)" })}</Text>
