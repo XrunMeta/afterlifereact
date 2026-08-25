@@ -378,8 +378,8 @@ export default function v_0035e1() {
             <Text style={v_fd5f43.emptyText}>{v_8d41d7("purchase.subLoadFailed", { defaultValue: "구독 상품을 불러올 수 없어요." })}</Text>
             <Text style={v_fd5f43.emptyHint}>
               {v_326be8.OS === "ios"
-                ? v_8d41d7("purchase.subLoadHintIos", { defaultValue: "설정 → App Store → Sandbox 계정 로그인 확인 후 다시 시도해주세요." })
-                : v_8d41d7("purchase.subLoadHintOther", { defaultValue: "잠시 후 다시 시도해주세요." })}
+                ? v_8d41d7("purchase.subLoadHintIos", { defaultValue: "설정 → App Store 계정 로그인 확인 후 다시 시도해주세요." })
+                : v_8d41d7("purchase.subLoadHintAndroid", { defaultValue: "Play 스토어 계정 로그인 확인 후 다시 시도해주세요." })}
             </Text>
             <TouchableOpacity
               style={v_fd5f43.retryBtn}
@@ -476,19 +476,18 @@ export default function v_0035e1() {
           ))
         )}
 
-        {v_326be8.OS === "android" && (
-          <Text style={[v_fd5f43.emptyText, { marginTop: 20 }]}>
-            {v_8d41d7("purchase.androidNotReady", { defaultValue: "Android 결제는 준비 중이에요. iOS 로 먼저 이용해주세요." })}
-          </Text>
-        )}
-
         {}
         <View style={{ marginTop: 32, alignItems: "center" }}>
           <Text style={v_fd5f43.footer}>
-            {v_8d41d7("purchase.termsFooter", {
-              defaultValue:
-                "자동 갱신 구독은 해지 전까지 매 주기 결제됩니다.\n해지: 설정 → Apple ID → 구독 → afterlife",
-            })}
+            {v_326be8.OS === "ios"
+              ? v_8d41d7("purchase.termsFooterIos", {
+                  defaultValue:
+                    "자동 갱신 구독은 해지 전까지 매 주기 결제됩니다.\n해지: 설정 → Apple ID → 구독 → afterlife",
+                })
+              : v_8d41d7("purchase.termsFooterAndroid", {
+                  defaultValue:
+                    "자동 갱신 구독은 해지 전까지 매 주기 결제됩니다.\n해지: Play 스토어 → 정기 결제 → afterlife",
+                })}
           </Text>
         </View>
       </ScrollView>
