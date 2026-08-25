@@ -304,7 +304,7 @@ export default function v_0035e1() {
         onBackPress={() => v_c65f5d.goBack()}
       />
 
-      <ScrollView ref={v_5ca6b8} contentContainerStyle={{ padding: v_9b1a04.large, paddingBottom: 40 }}>
+      <ScrollView ref={v_5ca6b8} contentContainerStyle={{ padding: v_9b1a04.large, paddingBottom: 8 }}>
         {
 }
 
@@ -389,7 +389,7 @@ export default function v_0035e1() {
 
             const v_86cc3d = v_5fd964(v_e2a85c.id, v_c88e9b?.subscription?.planCode ?? null);
             return (
-              <View key={v_e2a85c.id} style={[v_fd5f43.planCard, (v_ab4c96.recommended || v_86cc3d) && v_fd5f43.planCardRecommended]}>
+              <View key={v_e2a85c.id} style={[v_fd5f43.planCard, v_86cc3d && v_fd5f43.planCardRecommended]}>
                 {(v_86cc3d || v_ab4c96.recommended) && (
                   <View style={v_fd5f43.badgeRow}>
                     {v_86cc3d && (
