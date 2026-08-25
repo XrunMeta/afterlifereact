@@ -300,7 +300,7 @@ export default function PurchaseScreen() {
   };
 
   return (
-    <SafeView backgroundColor={COLORS.white}>
+    <SafeView backgroundColor={COLORS.white} bottomBackgroundColor={COLORS.white}>
       <PageHeader
         title={t("my.menu.purchase", { defaultValue: "크레딧 충전 · 구독" })}
         showBackButton
