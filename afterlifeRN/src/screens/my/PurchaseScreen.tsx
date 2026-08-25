@@ -65,6 +65,36 @@ const MOCK_CONSUMABLES: v_678322[] = [
 ].map((v_e2a85c) => ({ ...v_e2a85c, id: `${v_5348ba}${v_e2a85c.id}` }) as v_678322);
 const v_2cc272 = (v_389afb): boolean => v_389afb.startsWith(v_5348ba);
 
+const v_0ce4cc = {
+  "run.xrun.afterlife.sub.light": {
+    tagline: "가볍게 시작",
+    benefits: ["월 30분 통화", "표준 음질", "기본 감정 인식"],
+  },
+  "run.xrun.afterlife.sub.basic.v3": {
+    tagline: "일상 대화",
+    benefits: ["월 100분 통화", "표준 음질", "기본 감정 인식", "얼굴 인식 기본"],
+  },
+  "run.xrun.afterlife.sub.standard": {
+    tagline: "자주 통화",
+    benefits: ["월 300분 통화", "고음질 음성", "감정 인식 강화", "얼굴 인식 무제한"],
+    recommended: true,
+  },
+  "run.xrun.afterlife.sub.plus": {
+    tagline: "매일 대화",
+    benefits: ["월 600분 통화", "고음질 음성", "우선 서버 접근", "얼굴 인식 무제한", "선물 pool 우선"],
+  },
+  "run.xrun.afterlife.sub.premium": {
+    tagline: "무제한급 사용",
+    benefits: ["월 1000분 통화", "최고음질 음성", "전용 서버 우선", "얼굴 인식 무제한", "선물 pool 우선", "베타 기능 우선 체험"],
+  },
+};
+function v_9fe308(v_389afb): string {
+  return v_389afb.startsWith(v_5348ba) ? v_389afb.slice(v_5348ba.length) : v_389afb;
+}
+function v_3cb64a(v_389afb): { tagline: string; benefits: string[]; recommended?: boolean } {
+  return v_0ce4cc[v_9fe308(v_389afb)] ?? { tagline: "", benefits: [] };
+}
+
 export default function v_0035e1() {
   const { t: v_8d41d7 } = v_772971();
   const v_c65f5d = v_ada615();
@@ -360,25 +390,51 @@ export default function v_0035e1() {
             </TouchableOpacity>
           </View>
         ) : (
-          v_ab371b.map((v_e2a85c) => (
-            <TouchableOpacity
-              key={v_e2a85c.id}
-              style={[v_fd5f43.card, v_c63375 === v_e2a85c.id && v_fd5f43.cardDisabled]}
-              onPress={() => v_0b9762(v_e2a85c.id)}
-              disabled={v_c63375 !== null}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={v_fd5f43.cardName}>{v_e2a85c.title || v_e2a85c.id}</Text>
-                <Text style={v_fd5f43.cardDesc}>{v_e2a85c.description || ""}</Text>
-              </View>
-              <View style={v_fd5f43.cardPriceCol}>
-                <Text style={v_fd5f43.cardPrice}>{v_e2a85c.displayPrice}</Text>
-                {v_c63375 === v_e2a85c.id && (
-                  <ActivityIndicator color={v_1bfbd0.violet600} size="small" />
+          v_ab371b.map((v_e2a85c) => {
+            const v_ab4c96 = v_3cb64a(v_e2a85c.id);
+            const v_7e898c = v_c63375 === v_e2a85c.id;
+            return (
+              <View key={v_e2a85c.id} style={[v_fd5f43.planCard, v_ab4c96.recommended && v_fd5f43.planCardRecommended]}>
+                {v_ab4c96.recommended && (
+                  <View style={v_fd5f43.recommendBadge}>
+                    <Text style={v_fd5f43.recommendBadgeText}>추천 요금제</Text>
+                  </View>
+                )}
+                <View style={v_fd5f43.planHeader}>
+                  <Text style={v_fd5f43.planName}>{v_e2a85c.title || v_e2a85c.id}</Text>
+                  {v_ab4c96.tagline ? <Text style={v_fd5f43.planTagline}>{v_ab4c96.tagline}</Text> : null}
+                </View>
+                <View style={v_fd5f43.planPriceRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={v_fd5f43.planPrice}>{v_e2a85c.displayPrice}</Text>
+                    <Text style={v_fd5f43.planPricePeriod}>매월 자동 청구</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[v_fd5f43.planCta, v_7e898c && v_fd5f43.planCtaDisabled]}
+                    onPress={() => v_0b9762(v_e2a85c.id)}
+                    disabled={v_c63375 !== null}
+                    activeOpacity={0.85}
+                  >
+                    {v_7e898c ? (
+                      <ActivityIndicator color={v_1bfbd0.white} size="small" />
+                    ) : (
+                      <Text style={v_fd5f43.planCtaText}>업그레이드</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+                {v_ab4c96.benefits.length > 0 && (
+                  <View style={v_fd5f43.planBenefits}>
+                    {v_ab4c96.benefits.map((v_148ff6, v_ebec57) => (
+                      <View key={v_ebec57} style={v_fd5f43.benefitRow}>
+                        <Text style={v_fd5f43.benefitCheck}>✓</Text>
+                        <Text style={v_fd5f43.benefitText}>{v_148ff6}</Text>
+                      </View>
+                    ))}
+                  </View>
                 )}
               </View>
-            </TouchableOpacity>
-          ))
+            );
+          })
         )}
 
         {}
@@ -473,6 +529,62 @@ const v_fd5f43 = v_472849.create({
   cardDesc: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
   cardPriceCol: { alignItems: "flex-end", gap: 4 },
   cardPrice: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.violet600 },
+
+  planCard: {
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    padding: 20,
+    marginBottom: 12,
+  },
+  planCardRecommended: {
+    borderColor: v_1bfbd0.violet600,
+    borderWidth: 2,
+  },
+  recommendBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: v_1bfbd0.violet100,
+    borderRadius: 999,
+    marginBottom: 10,
+  },
+  recommendBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: v_1bfbd0.violet700,
+  },
+  planHeader: { marginBottom: 12 },
+  planName: { fontSize: 20, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  planTagline: { fontSize: 13, color: v_1bfbd0.zinc500, marginTop: 4 },
+  planPriceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  planPrice: { fontSize: 22, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  planPricePeriod: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
+  planCta: {
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+    backgroundColor: v_1bfbd0.violet600,
+    borderRadius: 999,
+    minWidth: 96,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  planCtaDisabled: { opacity: 0.6 },
+  planCtaText: { color: v_1bfbd0.white, fontWeight: "700", fontSize: 14 },
+  planBenefits: {
+    borderTopWidth: 1,
+    borderTopColor: v_1bfbd0.zinc200,
+    paddingTop: 14,
+    gap: 8,
+  },
+  benefitRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  benefitCheck: { color: v_1bfbd0.violet600, fontWeight: "700", fontSize: 14, width: 16 },
+  benefitText: { flex: 1, fontSize: 13, color: v_1bfbd0.zinc700, lineHeight: 18 },
 
   emptyText: { fontSize: 13, color: v_1bfbd0.zinc500, textAlign: "center", marginVertical: 8 },
   emptyBlock: {
