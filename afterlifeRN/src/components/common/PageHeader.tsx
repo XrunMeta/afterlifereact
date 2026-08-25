@@ -98,6 +98,8 @@ const v_d81136 = v_472849.create({
   left: {
     width: 44,
     alignItems: "flex-start",
+
+    marginLeft: -v_9b1a04.small,
   },
   center: {
     flex: 1,
@@ -108,7 +110,7 @@ const v_d81136 = v_472849.create({
     alignItems: "flex-end",
   },
   backButton: {
-    padding: 8,
+    padding: 4,
     borderRadius: 8,
   },
   stepText: {

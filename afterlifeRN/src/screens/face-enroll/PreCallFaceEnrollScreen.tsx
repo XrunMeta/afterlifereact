@@ -323,7 +323,7 @@ export default function v_8640b9() {
       return true;
     }
 
-    v_3c9f12.dispatch(v_650cfa.reset({ index: 0, routes: [{ name: "MainTabs" }] }));
+    v_3c9f12.dispatch(v_650cfa.reset({ index: 0, routes: [{ name: "Main" }] }));
     return true;
   }, [v_c414dc, v_3c9f12, v_6e0fd3, v_dfb220, v_0e38ad]);
 
