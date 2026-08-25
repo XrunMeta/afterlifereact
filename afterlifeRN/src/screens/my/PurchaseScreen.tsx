@@ -49,6 +49,8 @@ function fmtSecToMinShort(sec: number): string {
 }
 
 const MOCK_PREFIX = "__mock__";
+
+const FREE_SKU = "__free__";
 const MOCK_SUBS: ProductSubscription[] = [
   { id: "run.xrun.afterlife.sub.light", title: "xLight 30min", description: "월 30분 통화", displayPrice: "₩2,200", price: 2200, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
   { id: "run.xrun.afterlife.sub.basic.v3", title: "xBasic 100min", description: "월 100분 통화", displayPrice: "₩6,600", price: 6600, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
@@ -56,15 +58,44 @@ const MOCK_SUBS: ProductSubscription[] = [
   { id: "run.xrun.afterlife.sub.plus", title: "xPlus 600min", description: "월 600분 통화", displayPrice: "₩39,900", price: 39900, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
   { id: "run.xrun.afterlife.sub.premium", title: "xPremium 1000min", description: "월 1000분 통화", displayPrice: "₩69,900", price: 69900, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
 ].map((p) => ({ ...p, id: `${MOCK_PREFIX}${p.id}` }) as ProductSubscription);
+
+const FREE_SUB: ProductSubscription = {
+  id: FREE_SKU,
+  title: "GO (Free)",
+  description: "회원가입 시 자동 부여",
+  displayPrice: "무료",
+  price: 0,
+  currency: "KRW",
+  platform: "ios",
+  type: "subs",
+} as unknown as ProductSubscription;
 const MOCK_CONSUMABLES: Product[] = [
   { id: "run.xrun.afterlife.credit.30", title: "Recharge 30min", description: "30분 충전 · 5년 유효", displayPrice: "₩2,200", price: 2200, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
   { id: "run.xrun.afterlife.credit.60", title: "Recharge 60min", description: "60분 충전 · 5년 유효", displayPrice: "₩4,400", price: 4400, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
   { id: "run.xrun.afterlife.credit.150", title: "Recharge 150min", description: "150분 충전 · 5년 유효", displayPrice: "₩9,900", price: 9900, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
   { id: "run.xrun.afterlife.credit.300", title: "Recharge 300min", description: "300분 충전 · 5년 유효", displayPrice: "₩19,900", price: 19900, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
 ].map((p) => ({ ...p, id: `${MOCK_PREFIX}${p.id}` }) as Product);
+
+const MOCK_GIFT_PACKS: Product[] = [
+  { id: "run.xrun.afterlife.gift.pack.1", title: "꽃 1개", description: "선물하기 1회 사용", displayPrice: "₩3,000", price: 3000, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
+  { id: "run.xrun.afterlife.gift.pack.5", title: "꽃 5개", description: "선물하기 5회 사용", displayPrice: "₩14,000", price: 14000, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
+  { id: "run.xrun.afterlife.gift.pack.10", title: "꽃 10개", description: "선물하기 10회 사용", displayPrice: "₩27,000", price: 27000, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
+].map((p) => ({ ...p, id: `${MOCK_PREFIX}${p.id}` }) as Product);
 const isMockSku = (id: string): boolean => id.startsWith(MOCK_PREFIX);
+const isFreeSku = (id: string): boolean => id === FREE_SKU;
+const isGiftPackSku = (id: string): boolean => stripMock(id).startsWith("run.xrun.afterlife.gift.pack.");
 
 const PLAN_BENEFITS: Record<string, { tagline: string; benefits: string[]; recommended?: boolean }> = {
+  [FREE_SKU]: {
+    tagline: "회원가입 시 자동 제공",
+    benefits: [
+      "광고 시청 후 서비스 이용",
+      "서비스 중간 광고 삽입",
+      "클론 1개 생성",
+      "클론 삭제/생성 5회 제공",
+      "월 50분 통화 제공",
+    ],
+  },
   "run.xrun.afterlife.sub.light": {
     tagline: "가볍게 시작",
     benefits: ["월 30분 통화 또는 선물 가능"],
@@ -212,6 +243,8 @@ export default function PurchaseScreen() {
 
   const handleBuySubscription = async (sku: string) => {
     if (buying) return;
+
+    if (isFreeSku(sku)) return;
     if (isMockSku(sku)) {
       Alert.alert(
         t("purchase.mockAlertTitle", { defaultValue: "MOCK 상품" }),
@@ -290,7 +323,16 @@ export default function PurchaseScreen() {
                   <Text style={s.balanceLabel}>{t("purchase.bucketTopup", { defaultValue: "충전" })}</Text>
                   <Text style={s.balanceVal}>{fmtSecToMinShort(balance.topupSec)}</Text>
                 </View>
-                {}
+                {
+}
+                {giftInventoryVisible && (
+                  <TouchableOpacity style={s.balanceCol} onPress={scrollToGift} activeOpacity={0.6}>
+                    <Text style={s.balanceLabel}>{t("purchase.bucketGift", { defaultValue: "선물" })}</Text>
+                    <Text style={s.balanceVal}>
+                      {giftItems.reduce((sum, g) => sum + g.count, 0)}개
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
               {balance.subscription && (
                 <Text style={s.subInfo}>
@@ -372,9 +414,11 @@ export default function PurchaseScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          subs.map((p) => {
+
+          [FREE_SUB, ...subs].map((p) => {
             const meta = getPlanMeta(p.id);
             const isBuying = buying === p.id;
+            const isFree = isFreeSku(p.id);
             return (
               <View key={p.id} style={[s.planCard, meta.recommended && s.planCardRecommended]}>
                 {meta.recommended && (
@@ -389,20 +433,22 @@ export default function PurchaseScreen() {
                 <View style={s.planPriceRow}>
                   <View style={{ flex: 1 }}>
                     <Text style={s.planPrice}>{p.displayPrice}</Text>
-                    <Text style={s.planPricePeriod}>매월 자동 청구</Text>
+                    <Text style={s.planPricePeriod}>{isFree ? "가입 시 자동 적용" : "매월 자동 청구"}</Text>
                   </View>
-                  <TouchableOpacity
-                    style={[s.planCta, isBuying && s.planCtaDisabled]}
-                    onPress={() => handleBuySubscription(p.id)}
-                    disabled={buying !== null}
-                    activeOpacity={0.85}
-                  >
-                    {isBuying ? (
-                      <ActivityIndicator color={COLORS.white} size="small" />
-                    ) : (
-                      <Text style={s.planCtaText}>업그레이드</Text>
-                    )}
-                  </TouchableOpacity>
+                  {!isFree && (
+                    <TouchableOpacity
+                      style={[s.planCta, isBuying && s.planCtaDisabled]}
+                      onPress={() => handleBuySubscription(p.id)}
+                      disabled={buying !== null}
+                      activeOpacity={0.85}
+                    >
+                      {isBuying ? (
+                        <ActivityIndicator color={COLORS.white} size="small" />
+                      ) : (
+                        <Text style={s.planCtaText}>업그레이드</Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
                 </View>
                 {meta.benefits.length > 0 && (
                   <View style={s.planBenefits}>
@@ -418,6 +464,30 @@ export default function PurchaseScreen() {
             );
           })
         )}
+
+        {
+}
+        <Text style={[s.sectionTitle, { marginTop: 32 }]}>꽃 구매</Text>
+        <Text style={s.sectionDesc}>선물하기 전용 · 구매 후 통화 중 사용 가능.</Text>
+        {MOCK_GIFT_PACKS.map((p) => (
+          <TouchableOpacity
+            key={p.id}
+            style={[s.card, buying === p.id && s.cardDisabled]}
+            onPress={() => handleBuyConsumable(p.id)}
+            disabled={buying !== null}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={s.cardName}>{p.title || p.id}</Text>
+              <Text style={s.cardDesc}>{p.description || ""}</Text>
+            </View>
+            <View style={s.cardPriceCol}>
+              <Text style={s.cardPrice}>{p.displayPrice}</Text>
+              {buying === p.id && (
+                <ActivityIndicator color={COLORS.violet600} size="small" />
+              )}
+            </View>
+          </TouchableOpacity>
+        ))}
 
         {}
         <Text style={[s.sectionTitle, { marginTop: 32 }]}>{t("purchase.topupSectionTitle", { defaultValue: "충전 (일회성)" })}</Text>
