@@ -304,7 +304,7 @@ export default function PurchaseScreen() {
         onBackPress={() => navigation.goBack()}
       />
 
-      <ScrollView ref={scrollRef} contentContainerStyle={{ padding: SIZES.large, paddingBottom: 40 }}>
+      <ScrollView ref={scrollRef} contentContainerStyle={{ padding: SIZES.large, paddingBottom: 8 }}>
         {
 }
 
@@ -389,7 +389,7 @@ export default function PurchaseScreen() {
 
             const isCurrent = isCurrentPlanSku(p.id, balance?.subscription?.planCode ?? null);
             return (
-              <View key={p.id} style={[s.planCard, (meta.recommended || isCurrent) && s.planCardRecommended]}>
+              <View key={p.id} style={[s.planCard, isCurrent && s.planCardRecommended]}>
                 {(isCurrent || meta.recommended) && (
                   <View style={s.badgeRow}>
                     {isCurrent && (
