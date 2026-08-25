@@ -79,16 +79,8 @@ export default function RememberMeSheet({
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         {
-
 }
-        <ScrollView
-          style={styles.scrollBox}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-        {
-}
+        <View style={styles.cardWrapper} pointerEvents="box-none">
         <View style={styles.card} testID="remember-me-sheet">
           <Text style={styles.title}>이 분은 누구신가요?</Text>
           <Text style={styles.desc}>
@@ -149,7 +141,7 @@ export default function RememberMeSheet({
             </Pressable>
           </View>
         </View>
-        </ScrollView>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -163,16 +155,14 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-  },
 
-  scrollBox: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: "center",
+    justifyContent: "flex-end",
     alignItems: "center",
     padding: 24,
+  },
+  cardWrapper: {
+    width: "100%",
+    maxWidth: 380,
   },
   card: {
     width: "100%",
