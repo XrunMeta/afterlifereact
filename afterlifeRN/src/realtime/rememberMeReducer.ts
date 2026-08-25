@@ -257,14 +257,6 @@ function v_a448ad(
       if ((v_d48baf.score ?? 0) <= 0) return { state: v_b6e533, actions: [] };
 
       const v_00d284 = v_b6e533.personId ?? v_b6e533.lastConfirmedPerson?.personId ?? null;
-      if (
-        v_d48baf.topPersonId != null &&
-        v_00d284 != null &&
-        v_d48baf.topPersonId === v_00d284
-      ) {
-
-        return { state: v_b6e533, actions: [] };
-      }
       const v_4512fb =
         v_d48baf.topPersonId != null &&
         v_00d284 != null &&
