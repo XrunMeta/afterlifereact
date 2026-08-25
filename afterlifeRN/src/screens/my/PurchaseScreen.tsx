@@ -41,12 +41,11 @@ function fmtSecToMin(sec: number, t: TFunction): string {
     : t("common.durationMin", { m: min, defaultValue: `${min}분` });
 }
 
-const SEC_PER_XRUN = 60;
-function fmtSecToXrun(sec: number): string {
-  const xrun = sec / SEC_PER_XRUN;
-
-  const s = Number.isInteger(xrun) ? xrun.toLocaleString() : xrun.toFixed(1);
-  return `${s} XRUN`;
+function fmtSecToMinShort(sec: number): string {
+  const min = Math.floor(sec / 60);
+  const s = sec % 60;
+  if (s > 0 && min < 10) return `${min}분 ${s}초`;
+  return `${min}분`;
 }
 
 const MOCK_PREFIX = "__mock__";
@@ -144,7 +143,7 @@ export default function PurchaseScreen() {
       showAlert(
         "교환 확인",
 
-        `${item.name} ${item.count}개를 ${fmtSecToXrun(item.xrunTotal)} XRUN 으로 교환할까요?`,
+        `${item.name} ${item.count}개를 ${fmtSecToMinShort(item.xrunTotal)}으로 교환할까요?`,
         [
           { text: "취소", style: "cancel" },
           {
@@ -163,7 +162,7 @@ export default function PurchaseScreen() {
                 showAlert(
                   "교환 완료 🎉",
 
-                  `${fmtSecToXrun(res.xrunCredited)} XRUN 이 지갑에 충전됐어요.`,
+                  `${fmtSecToMinShort(res.xrunCredited)}이 지갑에 충전됐어요.`,
                 );
                 await refresh();
               } catch (err) {
@@ -272,43 +271,26 @@ export default function PurchaseScreen() {
 
         {}
         <View style={s.balanceCard}>
-          <Text style={s.balanceTitle}>{t("my.balance.remainingTokens", { defaultValue: "남은 토큰 수량" })}</Text>
+          <Text style={s.balanceTitle}>{t("my.balance.remainingTokens", { defaultValue: "남은 통화 시간" })}</Text>
           {balLoading ? (
             <ActivityIndicator color={COLORS.violet600} />
           ) : balance ? (
             <>
-              <Text style={s.balanceTotal}>{fmtSecToXrun(balance.totalSec)}</Text>
+              <Text style={s.balanceTotal}>{fmtSecToMinShort(balance.totalSec)}</Text>
               <View style={s.balanceRow}>
                 <View style={s.balanceCol}>
                   <Text style={s.balanceLabel}>{t("purchase.bucketFree", { defaultValue: "무료" })}</Text>
-                  <Text style={s.balanceVal}>{fmtSecToXrun(balance.freeSec)}</Text>
+                  <Text style={s.balanceVal}>{fmtSecToMinShort(balance.freeSec)}</Text>
                 </View>
                 <View style={s.balanceCol}>
                   <Text style={s.balanceLabel}>{t("purchase.bucketSub", { defaultValue: "구독" })}</Text>
-                  <Text style={s.balanceVal}>{fmtSecToXrun(balance.subSec)}</Text>
+                  <Text style={s.balanceVal}>{fmtSecToMinShort(balance.subSec)}</Text>
                 </View>
                 <View style={s.balanceCol}>
                   <Text style={s.balanceLabel}>{t("purchase.bucketTopup", { defaultValue: "충전" })}</Text>
-                  <Text style={s.balanceVal}>{fmtSecToXrun(balance.topupSec)}</Text>
+                  <Text style={s.balanceVal}>{fmtSecToMinShort(balance.topupSec)}</Text>
                 </View>
                 {}
-                {
-}
-                {giftInventoryVisible && (
-                  <TouchableOpacity style={s.balanceCol} onPress={scrollToGift} activeOpacity={0.6}>
-                    <Text style={s.balanceLabel}>{t("purchase.bucketGift", { defaultValue: "선물" })}</Text>
-                    {}
-                    {
-
-}
-                    <Text style={s.balanceVal}>
-                      {fmtSecToXrun(
-                        giftItems.reduce((sum, g) => sum + g.xrunTotal, 0) +
-                          (balance?.giftSec ?? 0),
-                      )}
-                    </Text>
-                  </TouchableOpacity>
-                )}
               </View>
               {balance.subscription && (
                 <Text style={s.subInfo}>
@@ -333,7 +315,7 @@ export default function PurchaseScreen() {
             onLayout={(e) => { giftSectionYRef.current = e.nativeEvent.layout.y; }}
           >
             <Text style={s.sectionTitle}>받은 선물</Text>
-            <Text style={s.sectionDesc}>[교환] 을 누르면 XRUN 크레딧으로 충전돼요.</Text>
+            <Text style={s.sectionDesc}>[교환] 을 누르면 통화 시간으로 충전돼요.</Text>
             {giftItems.map((item) => {
               const busy = swappingGift === item.giftId;
               return (
@@ -348,7 +330,7 @@ export default function PurchaseScreen() {
                   <View style={s.giftInfo}>
                     <Text style={s.giftName}>{item.name} {item.count}개</Text>
                     {}
-                    <Text style={s.giftAmount}>= {fmtSecToXrun(item.xrunTotal)} XRUN</Text>
+                    <Text style={s.giftAmount}>= {fmtSecToMinShort(item.xrunTotal)} XRUN</Text>
                   </View>
                   <TouchableOpacity
                     style={[s.swapBtn, busy && { opacity: 0.6 }]}
