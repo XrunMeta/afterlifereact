@@ -53,8 +53,8 @@ const v_5348ba = "__mock__";
 const v_2c427c = "__free__";
 
 const MOCK_SUBS: v_23b84c[] = [
-  { id: "run.xrun.afterlife.sub.run", title: "RUN", description: "광고없이 이용", displayPrice: "₩13,000", price: 13000, currency: "KRW", platform: "ios", type: "subs" } as unknown as v_23b84c,
-  { id: "run.xrun.afterlife.sub.monster", title: "Monster", description: "광고없이 이용", displayPrice: "₩65,000", price: 65000, currency: "KRW", platform: "ios", type: "subs" } as unknown as v_23b84c,
+  { id: "run.xrun.afterlife.sub.light", title: "RUN", description: "광고없이 이용", displayPrice: "₩13,000", price: 13000, currency: "KRW", platform: "ios", type: "subs" } as unknown as v_23b84c,
+  { id: "run.xrun.afterlife.sub.monste", title: "Monster", description: "광고없이 이용", displayPrice: "₩65,000", price: 65000, currency: "KRW", platform: "ios", type: "subs" } as unknown as v_23b84c,
 ].map((v_e2a85c) => ({ ...v_e2a85c, id: `${v_5348ba}${v_e2a85c.id}` }) as v_23b84c);
 
 const FREE_SUB: v_23b84c = {
@@ -94,7 +94,8 @@ const v_0ce4cc = {
       "월 50분 통화 제공",
     ],
   },
-  "run.xrun.afterlife.sub.run": {
+  "run.xrun.afterlife.sub.light": {
+
     tagline: "광고 없이 이용",
     benefits: [
       "클론 2개 생성",
@@ -104,7 +105,8 @@ const v_0ce4cc = {
     ],
     recommended: true,
   },
-  "run.xrun.afterlife.sub.monster": {
+  "run.xrun.afterlife.sub.monste": {
+
     tagline: "광고 없이 이용",
     benefits: [
       "클론 무제한 생성",
