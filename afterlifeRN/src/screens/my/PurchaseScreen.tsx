@@ -53,8 +53,8 @@ const MOCK_PREFIX = "__mock__";
 const FREE_SKU = "__free__";
 
 const MOCK_SUBS: ProductSubscription[] = [
-  { id: "run.xrun.afterlife.sub.run", title: "RUN", description: "광고없이 이용", displayPrice: "₩13,000", price: 13000, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
-  { id: "run.xrun.afterlife.sub.monster", title: "Monster", description: "광고없이 이용", displayPrice: "₩65,000", price: 65000, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
+  { id: "run.xrun.afterlife.sub.light", title: "RUN", description: "광고없이 이용", displayPrice: "₩13,000", price: 13000, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
+  { id: "run.xrun.afterlife.sub.monste", title: "Monster", description: "광고없이 이용", displayPrice: "₩65,000", price: 65000, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
 ].map((p) => ({ ...p, id: `${MOCK_PREFIX}${p.id}` }) as ProductSubscription);
 
 const FREE_SUB: ProductSubscription = {
@@ -94,7 +94,8 @@ const PLAN_BENEFITS: Record<string, { tagline: string; benefits: string[]; recom
       "월 50분 통화 제공",
     ],
   },
-  "run.xrun.afterlife.sub.run": {
+  "run.xrun.afterlife.sub.light": {
+
     tagline: "광고 없이 이용",
     benefits: [
       "클론 2개 생성",
@@ -104,7 +105,8 @@ const PLAN_BENEFITS: Record<string, { tagline: string; benefits: string[]; recom
     ],
     recommended: true,
   },
-  "run.xrun.afterlife.sub.monster": {
+  "run.xrun.afterlife.sub.monste": {
+
     tagline: "광고 없이 이용",
     benefits: [
       "클론 무제한 생성",
