@@ -65,6 +65,36 @@ const MOCK_CONSUMABLES: Product[] = [
 ].map((p) => ({ ...p, id: `${MOCK_PREFIX}${p.id}` }) as Product);
 const isMockSku = (id: string): boolean => id.startsWith(MOCK_PREFIX);
 
+const PLAN_BENEFITS: Record<string, { tagline: string; benefits: string[]; recommended?: boolean }> = {
+  "run.xrun.afterlife.sub.light": {
+    tagline: "가볍게 시작",
+    benefits: ["월 30분 통화", "표준 음질", "기본 감정 인식"],
+  },
+  "run.xrun.afterlife.sub.basic.v3": {
+    tagline: "일상 대화",
+    benefits: ["월 100분 통화", "표준 음질", "기본 감정 인식", "얼굴 인식 기본"],
+  },
+  "run.xrun.afterlife.sub.standard": {
+    tagline: "자주 통화",
+    benefits: ["월 300분 통화", "고음질 음성", "감정 인식 강화", "얼굴 인식 무제한"],
+    recommended: true,
+  },
+  "run.xrun.afterlife.sub.plus": {
+    tagline: "매일 대화",
+    benefits: ["월 600분 통화", "고음질 음성", "우선 서버 접근", "얼굴 인식 무제한", "선물 pool 우선"],
+  },
+  "run.xrun.afterlife.sub.premium": {
+    tagline: "무제한급 사용",
+    benefits: ["월 1000분 통화", "최고음질 음성", "전용 서버 우선", "얼굴 인식 무제한", "선물 pool 우선", "베타 기능 우선 체험"],
+  },
+};
+function stripMock(id: string): string {
+  return id.startsWith(MOCK_PREFIX) ? id.slice(MOCK_PREFIX.length) : id;
+}
+function getPlanMeta(id: string): { tagline: string; benefits: string[]; recommended?: boolean } {
+  return PLAN_BENEFITS[stripMock(id)] ?? { tagline: "", benefits: [] };
+}
+
 export default function PurchaseScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation();
@@ -360,25 +390,51 @@ export default function PurchaseScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          subs.map((p) => (
-            <TouchableOpacity
-              key={p.id}
-              style={[s.card, buying === p.id && s.cardDisabled]}
-              onPress={() => handleBuySubscription(p.id)}
-              disabled={buying !== null}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={s.cardName}>{p.title || p.id}</Text>
-                <Text style={s.cardDesc}>{p.description || ""}</Text>
-              </View>
-              <View style={s.cardPriceCol}>
-                <Text style={s.cardPrice}>{p.displayPrice}</Text>
-                {buying === p.id && (
-                  <ActivityIndicator color={COLORS.violet600} size="small" />
+          subs.map((p) => {
+            const meta = getPlanMeta(p.id);
+            const isBuying = buying === p.id;
+            return (
+              <View key={p.id} style={[s.planCard, meta.recommended && s.planCardRecommended]}>
+                {meta.recommended && (
+                  <View style={s.recommendBadge}>
+                    <Text style={s.recommendBadgeText}>추천 요금제</Text>
+                  </View>
+                )}
+                <View style={s.planHeader}>
+                  <Text style={s.planName}>{p.title || p.id}</Text>
+                  {meta.tagline ? <Text style={s.planTagline}>{meta.tagline}</Text> : null}
+                </View>
+                <View style={s.planPriceRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.planPrice}>{p.displayPrice}</Text>
+                    <Text style={s.planPricePeriod}>매월 자동 청구</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[s.planCta, isBuying && s.planCtaDisabled]}
+                    onPress={() => handleBuySubscription(p.id)}
+                    disabled={buying !== null}
+                    activeOpacity={0.85}
+                  >
+                    {isBuying ? (
+                      <ActivityIndicator color={COLORS.white} size="small" />
+                    ) : (
+                      <Text style={s.planCtaText}>업그레이드</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+                {meta.benefits.length > 0 && (
+                  <View style={s.planBenefits}>
+                    {meta.benefits.map((b, i) => (
+                      <View key={i} style={s.benefitRow}>
+                        <Text style={s.benefitCheck}>✓</Text>
+                        <Text style={s.benefitText}>{b}</Text>
+                      </View>
+                    ))}
+                  </View>
                 )}
               </View>
-            </TouchableOpacity>
-          ))
+            );
+          })
         )}
 
         {}
@@ -473,6 +529,62 @@ const s = StyleSheet.create({
   cardDesc: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
   cardPriceCol: { alignItems: "flex-end", gap: 4 },
   cardPrice: { fontSize: 15, fontWeight: "700", color: COLORS.violet600 },
+
+  planCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    padding: 20,
+    marginBottom: 12,
+  },
+  planCardRecommended: {
+    borderColor: COLORS.violet600,
+    borderWidth: 2,
+  },
+  recommendBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: COLORS.violet100,
+    borderRadius: 999,
+    marginBottom: 10,
+  },
+  recommendBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: COLORS.violet700,
+  },
+  planHeader: { marginBottom: 12 },
+  planName: { fontSize: 20, fontWeight: "700", color: COLORS.zinc900 },
+  planTagline: { fontSize: 13, color: COLORS.zinc500, marginTop: 4 },
+  planPriceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  planPrice: { fontSize: 22, fontWeight: "700", color: COLORS.zinc900 },
+  planPricePeriod: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
+  planCta: {
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+    backgroundColor: COLORS.violet600,
+    borderRadius: 999,
+    minWidth: 96,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  planCtaDisabled: { opacity: 0.6 },
+  planCtaText: { color: COLORS.white, fontWeight: "700", fontSize: 14 },
+  planBenefits: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.zinc200,
+    paddingTop: 14,
+    gap: 8,
+  },
+  benefitRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  benefitCheck: { color: COLORS.violet600, fontWeight: "700", fontSize: 14, width: 16 },
+  benefitText: { flex: 1, fontSize: 13, color: COLORS.zinc700, lineHeight: 18 },
 
   emptyText: { fontSize: 13, color: COLORS.zinc500, textAlign: "center", marginVertical: 8 },
   emptyBlock: {
