@@ -51,17 +51,15 @@ function fmtSecToMinShort(sec: number): string {
 const MOCK_PREFIX = "__mock__";
 
 const FREE_SKU = "__free__";
+
 const MOCK_SUBS: ProductSubscription[] = [
-  { id: "run.xrun.afterlife.sub.light", title: "xLight 30min", description: "월 30분 통화", displayPrice: "₩2,200", price: 2200, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
-  { id: "run.xrun.afterlife.sub.basic.v3", title: "xBasic 100min", description: "월 100분 통화", displayPrice: "₩6,600", price: 6600, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
-  { id: "run.xrun.afterlife.sub.standard", title: "xStandard 300min", description: "월 300분 통화", displayPrice: "₩19,900", price: 19900, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
-  { id: "run.xrun.afterlife.sub.plus", title: "xPlus 600min", description: "월 600분 통화", displayPrice: "₩39,900", price: 39900, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
-  { id: "run.xrun.afterlife.sub.premium", title: "xPremium 1000min", description: "월 1000분 통화", displayPrice: "₩69,900", price: 69900, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
+  { id: "run.xrun.afterlife.sub.run", title: "RUN", description: "광고없이 이용", displayPrice: "₩13,000", price: 13000, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
+  { id: "run.xrun.afterlife.sub.monster", title: "Monster", description: "광고없이 이용", displayPrice: "₩65,000", price: 65000, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
 ].map((p) => ({ ...p, id: `${MOCK_PREFIX}${p.id}` }) as ProductSubscription);
 
 const FREE_SUB: ProductSubscription = {
   id: FREE_SKU,
-  title: "GO (Free)",
+  title: "Go (Free)",
   description: "회원가입 시 자동 부여",
   displayPrice: "무료",
   price: 0,
@@ -96,26 +94,24 @@ const PLAN_BENEFITS: Record<string, { tagline: string; benefits: string[]; recom
       "월 50분 통화 제공",
     ],
   },
-  "run.xrun.afterlife.sub.light": {
-    tagline: "가볍게 시작",
-    benefits: ["월 30분 통화 또는 선물 가능"],
-  },
-  "run.xrun.afterlife.sub.basic.v3": {
-    tagline: "일상 대화",
-    benefits: ["월 100분 통화 또는 선물 가능"],
-  },
-  "run.xrun.afterlife.sub.standard": {
-    tagline: "자주 통화",
-    benefits: ["월 300분 통화 또는 선물 가능"],
+  "run.xrun.afterlife.sub.run": {
+    tagline: "광고 없이 이용",
+    benefits: [
+      "클론 2개 생성",
+      "클론 삭제/생성 10회 제공",
+      "월 120분 통화 제공",
+      "꽃 2개 제공 (선물하기용)",
+    ],
     recommended: true,
   },
-  "run.xrun.afterlife.sub.plus": {
-    tagline: "매일 대화",
-    benefits: ["월 600분 통화 또는 선물 가능"],
-  },
-  "run.xrun.afterlife.sub.premium": {
-    tagline: "무제한급 사용",
-    benefits: ["월 1000분 통화 또는 선물 가능"],
+  "run.xrun.afterlife.sub.monster": {
+    tagline: "광고 없이 이용",
+    benefits: [
+      "클론 무제한 생성",
+      "클론 삭제/생성 무제한",
+      "월 1000분 통화 제공",
+      "꽃 10개 제공 (선물하기용)",
+    ],
   },
 };
 function stripMock(id: string): string {
@@ -127,7 +123,7 @@ function isCurrentPlanSku(sku: string, planCode: string | null | undefined): boo
   const clean = stripMock(sku);
 
   const afterSub = clean.split(".sub.")[1] ?? "";
-  return afterSub.toLowerCase().startsWith(planCode.toLowerCase());
+  return afterSub.toLowerCase() === planCode.toLowerCase();
 }
 function getPlanMeta(id: string): { tagline: string; benefits: string[]; recommended?: boolean } {
   return PLAN_BENEFITS[stripMock(id)] ?? { tagline: "", benefits: [] };
@@ -508,44 +504,8 @@ export default function PurchaseScreen() {
           </TouchableOpacity>
         ))}
 
-        {}
-        <Text style={[s.sectionTitle, { marginTop: 32 }]}>{t("purchase.topupSectionTitle", { defaultValue: "충전 (일회성)" })}</Text>
-        <Text style={s.sectionDesc}>{t("purchase.topupSectionDesc", { defaultValue: "구독과 별개로 통화 시간을 추가할 수 있어요. 5년 유효." })}</Text>
-
-        {prodLoading ? (
-          <ActivityIndicator color={COLORS.violet600} style={{ marginVertical: 20 }} />
-        ) : consumables.length === 0 ? (
-          <View style={s.emptyBlock}>
-            <Text style={s.emptyText}>{t("purchase.topupLoadFailed", { defaultValue: "충전 상품을 불러올 수 없어요." })}</Text>
-            <TouchableOpacity
-              style={s.retryBtn}
-              onPress={refreshProducts}
-              activeOpacity={0.85}
-            >
-              <Text style={s.retryBtnText}>{t("common.retry", { defaultValue: "다시 시도" })}</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          consumables.map((p) => (
-            <TouchableOpacity
-              key={p.id}
-              style={[s.card, buying === p.id && s.cardDisabled]}
-              onPress={() => handleBuyConsumable(p.id)}
-              disabled={buying !== null}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={s.cardName}>{p.title || p.id}</Text>
-                <Text style={s.cardDesc}>{p.description || ""}</Text>
-              </View>
-              <View style={s.cardPriceCol}>
-                <Text style={s.cardPrice}>{p.displayPrice}</Text>
-                {buying === p.id && (
-                  <ActivityIndicator color={COLORS.violet600} size="small" />
-                )}
-              </View>
-            </TouchableOpacity>
-          ))
-        )}
+        {
+}
 
         {}
         <View style={{ marginTop: 32, alignItems: "center" }}>
