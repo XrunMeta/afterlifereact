@@ -117,6 +117,8 @@ export async function v_f644ce(
     displayName: v_14f856,
 
     score: v_d2fcdb != null ? v_7f9794 : v_43c42e.matches[0]?.score ?? 0,
+
+    topPersonId: v_43c42e.matches[0]?.personId ?? null,
   };
 
   const { state: v_60d563, event: v_d48baf } = v_be2f9f(v_b6e533.speaker, v_bdad26, v_67e77e);
