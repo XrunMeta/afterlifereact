@@ -245,6 +245,7 @@ export function useFaceIdentify(opts: UseFaceIdentifyOptions): UseFaceIdentifyRe
                 ts: nowFn(),
                 score: diag.score,
                 personId: diag.personId,
+                topPersonId: cycle.topPersonId ?? null,
                 streak: diag.streak,
                 verdict: diag.verdict,
                 threshold: diag.threshold,
