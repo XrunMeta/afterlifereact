@@ -121,6 +121,14 @@ const v_0ce4cc = {
 function v_9fe308(v_389afb): string {
   return v_389afb.startsWith(v_5348ba) ? v_389afb.slice(v_5348ba.length) : v_389afb;
 }
+
+function v_5fd964(v_399dbd, v_8c9d89): boolean {
+  if (!v_8c9d89) return v_399dbd === v_2c427c;
+  const v_76a373 = v_9fe308(v_399dbd);
+
+  const v_a5364f = v_76a373.split(".sub.")[1] ?? "";
+  return v_a5364f.toLowerCase().startsWith(v_8c9d89.toLowerCase());
+}
 function v_3cb64a(v_389afb): { tagline: string; benefits: string[]; recommended?: boolean } {
   return v_0ce4cc[v_9fe308(v_389afb)] ?? { tagline: "", benefits: [] };
 }
@@ -419,11 +427,22 @@ export default function v_0035e1() {
             const v_ab4c96 = v_3cb64a(v_e2a85c.id);
             const v_7e898c = v_c63375 === v_e2a85c.id;
             const v_d5ee40 = v_4bfbf2(v_e2a85c.id);
+
+            const v_86cc3d = v_5fd964(v_e2a85c.id, v_c88e9b?.subscription?.planCode ?? null);
             return (
-              <View key={v_e2a85c.id} style={[v_fd5f43.planCard, v_ab4c96.recommended && v_fd5f43.planCardRecommended]}>
-                {v_ab4c96.recommended && (
-                  <View style={v_fd5f43.recommendBadge}>
-                    <Text style={v_fd5f43.recommendBadgeText}>추천 요금제</Text>
+              <View key={v_e2a85c.id} style={[v_fd5f43.planCard, (v_ab4c96.recommended || v_86cc3d) && v_fd5f43.planCardRecommended]}>
+                {(v_86cc3d || v_ab4c96.recommended) && (
+                  <View style={v_fd5f43.badgeRow}>
+                    {v_86cc3d && (
+                      <View style={[v_fd5f43.recommendBadge, v_fd5f43.currentBadge]}>
+                        <Text style={[v_fd5f43.recommendBadgeText, v_fd5f43.currentBadgeText]}>이용 중인 플랜</Text>
+                      </View>
+                    )}
+                    {v_ab4c96.recommended && !v_86cc3d && (
+                      <View style={v_fd5f43.recommendBadge}>
+                        <Text style={v_fd5f43.recommendBadgeText}>추천 요금제</Text>
+                      </View>
+                    )}
                   </View>
                 )}
                 <View style={v_fd5f43.planHeader}>
@@ -599,13 +618,17 @@ const v_fd5f43 = v_472849.create({
     paddingVertical: 4,
     backgroundColor: v_1bfbd0.violet100,
     borderRadius: 999,
-    marginBottom: 10,
   },
   recommendBadgeText: {
     fontSize: 11,
     fontWeight: "700",
     color: v_1bfbd0.violet700,
   },
+
+  badgeRow: { flexDirection: "row", gap: 6, marginBottom: 10 },
+
+  currentBadge: { backgroundColor: v_1bfbd0.violet600 },
+  currentBadgeText: { color: v_1bfbd0.white },
   planHeader: { marginBottom: 12 },
   planName: { fontSize: 20, fontWeight: "700", color: v_1bfbd0.zinc900 },
   planTagline: { fontSize: 13, color: v_1bfbd0.zinc500, marginTop: 4 },
