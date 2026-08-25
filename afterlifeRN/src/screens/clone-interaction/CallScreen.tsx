@@ -127,7 +127,7 @@ import {
   getCloneDetail,
 } from "../../api/clones";
 import { getCreditBalance } from "../../api/credits";
-import { sendGiftOffchain } from "../../api/giftInventory";
+import { sendGiftOffchain, getGiftInventory, type GiftInventoryItem } from "../../api/giftInventory";
 import { showAlert } from "../../stores/dialogStore";
 import { CommonActions } from "@react-navigation/native";
 
@@ -1246,15 +1246,26 @@ function CallScreenInner({ route, navigation }: Props) {
   const myAvatarUrl = useAuthStore((s) => s.apiUser?.avatarUrl ?? null);
 
   const [gifts, setGifts] = useState<GiftCatalogItem[]>([]);
+
+  const [giftInventory, setGiftInventory] = useState<GiftInventoryItem[]>([]);
+  const giftOwnedCount = React.useMemo(
+    () => giftInventory.reduce((sum, g) => sum + g.count, 0),
+    [giftInventory],
+  );
   useEffect(() => {
     let cancelled = false;
     void fetchGiftCatalog().then((items) => {
       if (!cancelled) setGifts(items);
     });
+    if (accessToken) {
+      void getGiftInventory(accessToken).then((res) => {
+        if (!cancelled) setGiftInventory(res.items);
+      }).catch(() => {  });
+    }
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [accessToken]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -2240,13 +2251,31 @@ function CallScreenInner({ route, navigation }: Props) {
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={s.giftItem}
-                  onPress={() => handleGiftSend(item)}
+                  onPress={() => {
+
+                    if (giftOwnedCount <= 0) {
+                      Alert.alert(
+                        "보유 꽃이 없어요",
+                        "꽃을 구매하러 이동할까요?",
+                        [
+                          { text: "취소", style: "cancel" },
+                          {
+                            text: "구매하기",
+                            style: "default",
+                            onPress: () => {
+                              setShowGiftModal(false);
+                              (navigation as unknown as { navigate: (n: string) => void }).navigate("Purchase");
+                            },
+                          },
+                        ],
+                      );
+                      return;
+                    }
+                    handleGiftSend(item);
+                  }}
                   activeOpacity={0.7}
                 >
                   <View style={s.giftEmojiWrap}>
-                    {
-
-}
                     {item.imageUrl ? (
                       <Image source={{ uri: item.imageUrl }} style={s.giftImage} />
                     ) : (
@@ -2254,11 +2283,10 @@ function CallScreenInner({ route, navigation }: Props) {
                     )}
                   </View>
                   <Text style={s.giftName} numberOfLines={1}>{item.name}</Text>
-                  {typeof item.xrunPrice === "number" ? (
-                    <Text style={s.giftPrice}>{item.xrunPrice} XRUN</Text>
-                  ) : (
-                    <View style={{ minWidth: 60 }} />
-                  )}
+                  {}
+                  <Text style={[s.giftPrice, giftOwnedCount === 0 && { color: COLORS.zinc400 }]}>
+                    {giftOwnedCount}개 보유
+                  </Text>
                 </TouchableOpacity>
               )}
             />
