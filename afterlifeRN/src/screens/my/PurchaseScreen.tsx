@@ -357,45 +357,6 @@ export default function PurchaseScreen() {
 
         {
 }
-        {giftInventoryVisible && giftItems.length > 0 && (
-          <View
-            style={{ marginTop: 8, marginBottom: 24 }}
-            onLayout={(e) => { giftSectionYRef.current = e.nativeEvent.layout.y; }}
-          >
-            <Text style={s.sectionTitle}>받은 선물</Text>
-            <Text style={s.sectionDesc}>[교환] 을 누르면 통화 시간으로 충전돼요.</Text>
-            {giftItems.map((item) => {
-              const busy = swappingGift === item.giftId;
-              return (
-                <View key={item.giftId} style={s.giftRow}>
-                  {item.imageUrl ? (
-                    <Image source={{ uri: item.imageUrl }} style={s.giftImg} />
-                  ) : (
-                    <View style={[s.giftImg, s.giftEmojiWrap]}>
-                      <Text style={s.giftEmoji}>{item.emoji}</Text>
-                    </View>
-                  )}
-                  <View style={s.giftInfo}>
-                    <Text style={s.giftName}>{item.name} {item.count}개</Text>
-                    {}
-                    <Text style={s.giftAmount}>= {fmtSecToMinShort(item.xrunTotal)} XRUN</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[s.swapBtn, busy && { opacity: 0.6 }]}
-                    onPress={() => onSwapGift(item)}
-                    disabled={busy}
-                  >
-                    {busy ? (
-                      <ActivityIndicator size="small" color={COLORS.white} />
-                    ) : (
-                      <Text style={s.swapBtnText}>교환</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              );
-            })}
-          </View>
-        )}
 
         {}
         <Text style={s.sectionTitle}>{t("purchase.subSectionTitle", { defaultValue: "월 구독" })}</Text>
