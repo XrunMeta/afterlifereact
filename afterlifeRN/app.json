@@ -3,7 +3,7 @@
     "name": "afterlife",
     "slug": "afterlifeRN",
     "scheme": "afterlife",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "runtimeVersion": "1.1.0",
     "updates": {
       "url": "https://u.expo.dev/430bccd3-e48e-45e6-b819-a22816a1dad3",
@@ -39,7 +39,7 @@
     },
     "android": {
       "package": "run.xrun.afterlifeRN",
-      "versionCode": 14,
+      "versionCode": 16,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
