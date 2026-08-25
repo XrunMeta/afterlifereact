@@ -366,18 +366,10 @@ export default function v_0035e1() {
             style={v_fd5f43.giftRedeemCard}
             activeOpacity={0.75}
             onPress={async () => {
-              const v_e0c7e8 = encodeURIComponent(v_6ed1bd ?? "");
-              const v_6045c3 = `xrun://afterlife/gifts?email=${v_e0c7e8}`;
-              const v_20e8d1 = await v_f2c756.canOpenURL(v_6045c3).catch(() => false);
-              if (v_20e8d1) {
-                await v_f2c756.openURL(v_6045c3);
-                return;
-              }
 
-              const v_b71a74 = v_326be8.OS === "ios"
-                ? "https://apps.apple.com/kr/app/xrun-go/id6502924173"
-                : `https://play.google.com/store/apps/details?id=run.xrun.xrun&referrer=email%3D${v_e0c7e8}`;
-              await v_f2c756.openURL(v_b71a74);
+              const v_e0c7e8 = encodeURIComponent(v_6ed1bd ?? "");
+              const v_9466ca = `https://www.xrun.run/invite?referral=${v_e0c7e8}`;
+              await v_f2c756.openURL(v_9466ca);
             }}
           >
             <View style={{ flex: 1 }}>
