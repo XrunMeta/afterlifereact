@@ -257,14 +257,6 @@ function next(
       if ((event.score ?? 0) <= 0) return { state, actions: [] };
 
       const refPersonId = state.personId ?? state.lastConfirmedPerson?.personId ?? null;
-      if (
-        event.topPersonId != null &&
-        refPersonId != null &&
-        event.topPersonId === refPersonId
-      ) {
-
-        return { state, actions: [] };
-      }
       const differentPersonImmediate =
         event.topPersonId != null &&
         refPersonId != null &&
