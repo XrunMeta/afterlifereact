@@ -255,7 +255,7 @@ export default function PurchaseScreen() {
 
     if (isFreeSku(sku)) return;
     if (isMockSku(sku)) {
-      Alert.alert(
+      showAlert(
         t("purchase.mockAlertTitle", { defaultValue: "MOCK 상품" }),
         t("purchase.mockAlertMessage", { defaultValue: "유료 앱 계약 활성화 후 실제 결제 가능합니다." }),
       );
@@ -269,7 +269,7 @@ export default function PurchaseScreen() {
     } catch (err) {
       const msg = (err as Error).message ?? "";
       if (!msg.includes("cancel")) {
-        Alert.alert(t("purchase.paymentErrorTitle", { defaultValue: "결제 오류" }), msg);
+        showAlert(t("purchase.paymentErrorTitle", { defaultValue: "결제 오류" }), msg);
       }
     } finally {
       setTimeout(() => setBuying(null), 3000);
@@ -279,7 +279,7 @@ export default function PurchaseScreen() {
   const handleBuyConsumable = async (sku: string) => {
     if (buying) return;
     if (isMockSku(sku)) {
-      Alert.alert(
+      showAlert(
         t("purchase.mockAlertTitle", { defaultValue: "MOCK 상품" }),
         t("purchase.mockAlertMessage", { defaultValue: "유료 앱 계약 활성화 후 실제 결제 가능합니다." }),
       );
@@ -292,7 +292,7 @@ export default function PurchaseScreen() {
     } catch (err) {
       const msg = (err as Error).message ?? "";
       if (!msg.includes("cancel")) {
-        Alert.alert(t("purchase.paymentErrorTitle", { defaultValue: "결제 오류" }), msg);
+        showAlert(t("purchase.paymentErrorTitle", { defaultValue: "결제 오류" }), msg);
       }
     } finally {
       setTimeout(() => setBuying(null), 3000);
