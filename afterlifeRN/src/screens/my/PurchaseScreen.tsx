@@ -378,8 +378,8 @@ export default function PurchaseScreen() {
             <Text style={s.emptyText}>{t("purchase.subLoadFailed", { defaultValue: "구독 상품을 불러올 수 없어요." })}</Text>
             <Text style={s.emptyHint}>
               {Platform.OS === "ios"
-                ? t("purchase.subLoadHintIos", { defaultValue: "설정 → App Store → Sandbox 계정 로그인 확인 후 다시 시도해주세요." })
-                : t("purchase.subLoadHintOther", { defaultValue: "잠시 후 다시 시도해주세요." })}
+                ? t("purchase.subLoadHintIos", { defaultValue: "설정 → App Store 계정 로그인 확인 후 다시 시도해주세요." })
+                : t("purchase.subLoadHintAndroid", { defaultValue: "Play 스토어 계정 로그인 확인 후 다시 시도해주세요." })}
             </Text>
             <TouchableOpacity
               style={s.retryBtn}
@@ -476,19 +476,18 @@ export default function PurchaseScreen() {
           ))
         )}
 
-        {Platform.OS === "android" && (
-          <Text style={[s.emptyText, { marginTop: 20 }]}>
-            {t("purchase.androidNotReady", { defaultValue: "Android 결제는 준비 중이에요. iOS 로 먼저 이용해주세요." })}
-          </Text>
-        )}
-
         {}
         <View style={{ marginTop: 32, alignItems: "center" }}>
           <Text style={s.footer}>
-            {t("purchase.termsFooter", {
-              defaultValue:
-                "자동 갱신 구독은 해지 전까지 매 주기 결제됩니다.\n해지: 설정 → Apple ID → 구독 → afterlife",
-            })}
+            {Platform.OS === "ios"
+              ? t("purchase.termsFooterIos", {
+                  defaultValue:
+                    "자동 갱신 구독은 해지 전까지 매 주기 결제됩니다.\n해지: 설정 → Apple ID → 구독 → afterlife",
+                })
+              : t("purchase.termsFooterAndroid", {
+                  defaultValue:
+                    "자동 갱신 구독은 해지 전까지 매 주기 결제됩니다.\n해지: Play 스토어 → 정기 결제 → afterlife",
+                })}
           </Text>
         </View>
       </ScrollView>
