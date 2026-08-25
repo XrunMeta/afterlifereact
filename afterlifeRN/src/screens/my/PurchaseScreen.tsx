@@ -68,24 +68,24 @@ const isMockSku = (id: string): boolean => id.startsWith(MOCK_PREFIX);
 const PLAN_BENEFITS: Record<string, { tagline: string; benefits: string[]; recommended?: boolean }> = {
   "run.xrun.afterlife.sub.light": {
     tagline: "가볍게 시작",
-    benefits: ["월 30분 통화", "표준 음질", "기본 감정 인식"],
+    benefits: ["월 30분 통화 또는 선물 가능"],
   },
   "run.xrun.afterlife.sub.basic.v3": {
     tagline: "일상 대화",
-    benefits: ["월 100분 통화", "표준 음질", "기본 감정 인식", "얼굴 인식 기본"],
+    benefits: ["월 100분 통화 또는 선물 가능"],
   },
   "run.xrun.afterlife.sub.standard": {
     tagline: "자주 통화",
-    benefits: ["월 300분 통화", "고음질 음성", "감정 인식 강화", "얼굴 인식 무제한"],
+    benefits: ["월 300분 통화 또는 선물 가능"],
     recommended: true,
   },
   "run.xrun.afterlife.sub.plus": {
     tagline: "매일 대화",
-    benefits: ["월 600분 통화", "고음질 음성", "우선 서버 접근", "얼굴 인식 무제한", "선물 pool 우선"],
+    benefits: ["월 600분 통화 또는 선물 가능"],
   },
   "run.xrun.afterlife.sub.premium": {
     tagline: "무제한급 사용",
-    benefits: ["월 1000분 통화", "최고음질 음성", "전용 서버 우선", "얼굴 인식 무제한", "선물 pool 우선", "베타 기능 우선 체험"],
+    benefits: ["월 1000분 통화 또는 선물 가능"],
   },
 };
 function stripMock(id: string): string {
