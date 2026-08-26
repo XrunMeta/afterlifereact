@@ -1657,7 +1657,7 @@ function CallScreenInner({ route, navigation }: Props) {
     }
     if (!ownerIdResolved) {
       console.warn(
-        `[gift] send skipped — ownerId still null after fetch. cloneId=${cloneId} cloneName=${clone?.name ?? "?"}`,
+        `[gift] send skipped — ownerId still null after fetch. cloneId=${cloneId} cloneName=${clone?.displayName ?? paramName ?? "?"}`,
       );
       return;
     }
