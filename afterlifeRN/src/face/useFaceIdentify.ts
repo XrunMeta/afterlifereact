@@ -32,7 +32,7 @@ export interface IdentifyCycleDeps {
 
   calibrateFn?: CalibrateFaceFn;
 
-  getCurrentLandmark?: () => Record<string, number> | null;
+  getCurrentLandmark?: () => LandmarkRatios | null;
 }
 
 export function deriveVerdict(sp: {
@@ -98,10 +98,11 @@ export async function runIdentifyCycle(
   const rtLandmark = deps.getCurrentLandmark?.();
   const savedLandmarks = result.best?.landmarkRatiosList;
   if (bestPersonId != null && rtLandmark && savedLandmarks && savedLandmarks.length > 0) {
+
     const nonNullSaved = savedLandmarks.filter((l): l is Record<string, number> => l != null);
     if (nonNullSaved.length > 0) {
       const sims = nonNullSaved.map((saved) =>
-        compareLandmarkRatios(rtLandmark as LandmarkRatios, saved as LandmarkRatios),
+        compareLandmarkRatios(rtLandmark, saved as unknown as LandmarkRatios),
       );
       const meanSim = sims.reduce((a, b) => a + b, 0) / sims.length;
 
@@ -139,7 +140,7 @@ export interface UseFaceIdentifyOptions {
   enabled: boolean;
   accessToken: string;
 
-  getCurrentLandmark?: () => Record<string, number> | null;
+  getCurrentLandmark?: () => LandmarkRatios | null;
 
   cloneId: number;
   onEvent: (evt: SpeakerEvent) => void;

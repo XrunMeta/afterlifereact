@@ -28,7 +28,7 @@ export const COUNTRY_DIAL_CODES: CountryDialCode[] = [
   { iso2: 'se', name: 'Sweden', dialCode: '+46', flagEmoji: '🇸🇪' },
   { iso2: 'no', name: 'Norway', dialCode: '+47', flagEmoji: '🇳🇴' },
   { iso2: 'pl', name: 'Poland', dialCode: '+48', flagEmoji: '🇵🇱' },
-  { iso2: 'de', name: 'Germany', dialCode: '+49', flagCode: '🇩🇪' },
+  { iso2: 'de', name: 'Germany', dialCode: '+49', flagEmoji: '🇩🇪' },
   { iso2: 'pe', name: 'Peru', dialCode: '+51', flagEmoji: '🇵🇪' },
   { iso2: 'mx', name: 'Mexico', dialCode: '+52', flagEmoji: '🇲🇽' },
   { iso2: 'cu', name: 'Cuba', dialCode: '+53', flagEmoji: '🇨🇺' },

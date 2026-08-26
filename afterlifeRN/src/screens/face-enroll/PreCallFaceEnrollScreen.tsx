@@ -114,7 +114,7 @@ export default function PreCallFaceEnrollScreen() {
   const [step, setStep] = useState(0);
   const [captured, setCaptured] = useState<number[][]>([]);
 
-  const [capturedRatios, setCapturedRatios] = useState<(Record<string, number> | null)[]>([]);
+  const [capturedRatios, setCapturedRatios] = useState<(LandmarkRatios | null)[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const [formName, setFormName] = useState("");
@@ -401,7 +401,8 @@ export default function PreCallFaceEnrollScreen() {
             const batch = captured.slice(i, i + CHUNK);
 
             const ratioBatch = capturedRatios.slice(i, i + CHUNK);
-            await enrollFaces(accessToken, personId, batch, cloneId, ratioBatch);
+
+            await enrollFaces(accessToken, personId, batch, cloneId, ratioBatch as (Record<string, number> | null)[]);
           }
           const trimmedRel = relation.trim();
           if (trimmedRel) {
