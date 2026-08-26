@@ -2836,3 +2836,54 @@ admin.post("/oth-path", requireAdmin, async (c) => {
   });
 });
 
+admin.post("/face-test/match", requireAdmin, async (c) => {
+  const body = await c.req.json<{
+    vector?: number[];
+    userId?: number;
+    cloneId?: number;
+    topK?: number;
+  }>().catch(() => ({} as { vector?: number[]; userId?: number; cloneId?: number; topK?: number }));
+
+  const v = body.vector;
+  if (!Array.isArray(v) || v.length !== 512 || v.some((x) => typeof x !== "number" || !Number.isFinite(x))) {
+    throw new APIError("VALIDATION_FAILED", "vector: 512차원 수치 배열이어야 합니다");
+  }
+  const userId = body.userId;
+  if (typeof userId !== "number" || !Number.isInteger(userId) || userId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "userId: 양의 정수여야 합니다");
+  }
+  const cloneId = body.cloneId;
+  if (typeof cloneId !== "number" || !Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+  }
+  const topK = Math.max(1, Math.min(10, body.topK ?? 5));
+
+  const { queryCloneScope } = await import("../lib/cloneFaceScope");
+  const scoped = await queryCloneScope(c.env, { userId, cloneId, vector: v, topK });
+
+  const ids = scoped.map((m) => m.personId);
+  const names = new Map<number, string | null>();
+  if (ids.length) {
+    const rs = await c.env.DB.prepare(
+      `SELECT p.id, p.display_name FROM persons p WHERE p.user_id = ? AND p.clone_id = ? AND p.id IN (${ids.map(() => "?").join(",")})`,
+    ).bind(userId, cloneId, ...ids).all<{ id: number; display_name: string | null }>();
+    for (const row of rs.results) names.set(row.id, row.display_name);
+  }
+  const matches = scoped.map((m) => ({
+    personId: m.personId,
+    displayName: names.get(m.personId) ?? null,
+    score: m.score,
+  }));
+
+  const cfg = await c.env.DB.prepare(
+    "SELECT value FROM app_config WHERE key = 'face.match_threshold'",
+  ).first<{ value: string }>();
+  const matchThreshold = cfg?.value != null && Number.isFinite(Number(cfg.value)) ? Number(cfg.value) : 0.55;
+
+  return c.json({
+    matches,
+    matchThreshold,
+    autoEnrollThreshold: 0.75, 
+  });
+});
+

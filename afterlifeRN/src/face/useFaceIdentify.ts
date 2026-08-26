@@ -11,6 +11,7 @@ import {
   type MatchCycle,
 } from "./speakerIdReducer";
 import { matchFace, calibrateFace, type MatchResult } from "../api/persons";
+import { compareLandmarkRatios, type LandmarkRatios } from "./faceLandmarkRatios";
 import { FACE_DIAG_ENABLED, type FaceDiag, type FaceVerdict } from "../config/faceDiag";
 
 export const NETWORK_FAIL_BACKOFF_THRESHOLD = 3;
@@ -30,6 +31,8 @@ export interface IdentifyCycleDeps {
   matchFaceFn: MatchFaceFn;
 
   calibrateFn?: CalibrateFaceFn;
+
+  getCurrentLandmark?: () => LandmarkRatios | null;
 }
 
 export function deriveVerdict(sp: {
@@ -87,10 +90,40 @@ export async function runIdentifyCycle(
     return { state: { ...state, consecutiveFailures, backoffUntilMs }, event: null, cycle: null, threshold: null };
   }
 
+  let bestPersonId = result.best?.personId ?? null;
+  let bestDisplayName = result.best?.displayName ?? null;
+  const rawEmbeddingScore = result.best?.score ?? result.matches[0]?.score ?? 0;
+  let effectiveScore = rawEmbeddingScore;
+
+  const rtLandmark = deps.getCurrentLandmark?.();
+  const savedLandmarks = result.best?.landmarkRatiosList;
+  if (bestPersonId != null && rtLandmark && savedLandmarks && savedLandmarks.length > 0) {
+
+    const nonNullSaved = savedLandmarks.filter((l): l is Record<string, number> => l != null);
+    if (nonNullSaved.length > 0) {
+      const sims = nonNullSaved.map((saved) =>
+        compareLandmarkRatios(rtLandmark, saved as unknown as LandmarkRatios),
+      );
+      const meanSim = sims.reduce((a, b) => a + b, 0) / sims.length;
+
+      const combined = rawEmbeddingScore * meanSim;
+      const COMBINED_MIN = 0.5; 
+      if (combined < COMBINED_MIN) {
+
+        bestPersonId = null;
+        bestDisplayName = null;
+      }
+      effectiveScore = combined;
+    }
+  }
+
   const cycle: MatchCycle = {
-    personId: result.best?.personId ?? null,
-    displayName: result.best?.displayName ?? null,
-    score: result.best?.score ?? 0,
+    personId: bestPersonId,
+    displayName: bestDisplayName,
+
+    score: bestPersonId != null ? effectiveScore : result.matches[0]?.score ?? 0,
+
+    topPersonId: result.matches[0]?.personId ?? null,
   };
 
   const { state: speaker, event } = speakerIdReducer(state.speaker, cycle, nowMs);
@@ -106,6 +139,8 @@ export interface UseFaceIdentifyOptions {
 
   enabled: boolean;
   accessToken: string;
+
+  getCurrentLandmark?: () => LandmarkRatios | null;
 
   cloneId: number;
   onEvent: (evt: SpeakerEvent) => void;
@@ -131,8 +166,11 @@ export interface UseFaceIdentifyResult {
 }
 
 export function useFaceIdentify(opts: UseFaceIdentifyOptions): UseFaceIdentifyResult {
-  const { enabled, accessToken, cloneId, onEvent, onDiag, calibrate, onCollected } = opts;
-  const deps = useMemo<IdentifyCycleDeps>(() => opts.deps ?? { matchFaceFn: matchFace }, [opts.deps]);
+  const { enabled, accessToken, cloneId, onEvent, onDiag, calibrate, onCollected, getCurrentLandmark } = opts;
+  const deps = useMemo<IdentifyCycleDeps>(
+    () => opts.deps ?? { matchFaceFn: matchFace, getCurrentLandmark },
+    [opts.deps, getCurrentLandmark],
+  );
   const nowFn = opts.now ?? Date.now;
 
   const stateRef = useRef<IdentifyCycleState>(INITIAL_IDENTIFY_CYCLE_STATE);
@@ -165,15 +203,15 @@ export function useFaceIdentify(opts: UseFaceIdentifyOptions): UseFaceIdentifyRe
             console.log(`[useFaceIdentify] cycle personId=${cycle.personId ?? "null"} score=${cycle.score?.toFixed(3) ?? "?"} streak=${state.speaker.streak} onCollected=${!!onCollected}`);
           }
 
-          const HIGH_CONFIDENCE_SCORE = 0.65;
-          const MIN_STREAK_FOR_ENROLL = 3;
+          const AUTO_ENROLL_MIN_SCORE = 0.75;   
+          const AUTO_ENROLL_MIN_STREAK = 3;     
           if (
             onCollected &&
             cycle &&
             cycle.personId != null &&
             typeof cycle.score === "number" &&
-            cycle.score >= HIGH_CONFIDENCE_SCORE &&
-            state.speaker.streak >= MIN_STREAK_FOR_ENROLL
+            cycle.score >= AUTO_ENROLL_MIN_SCORE &&
+            state.speaker.streak >= AUTO_ENROLL_MIN_STREAK
           ) {
             try {
               onCollected(cycle.personId, vec);
@@ -208,6 +246,7 @@ export function useFaceIdentify(opts: UseFaceIdentifyOptions): UseFaceIdentifyRe
                 ts: nowFn(),
                 score: diag.score,
                 personId: diag.personId,
+                topPersonId: cycle.topPersonId ?? null,
                 streak: diag.streak,
                 verdict: diag.verdict,
                 threshold: diag.threshold,

@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Linking,
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
@@ -41,34 +42,102 @@ function fmtSecToMin(sec: number, t: TFunction): string {
     : t("common.durationMin", { m: min, defaultValue: `${min}분` });
 }
 
-const SEC_PER_XRUN = 60;
-function fmtSecToXrun(sec: number): string {
-  const xrun = sec / SEC_PER_XRUN;
-
-  const s = Number.isInteger(xrun) ? xrun.toLocaleString() : xrun.toFixed(1);
-  return `${s} XRUN`;
+function fmtSecToMinShort(sec: number): string {
+  const min = Math.floor(sec / 60);
+  const s = sec % 60;
+  if (s > 0 && min < 10) return `${min}분 ${s}초`;
+  return `${min}분`;
 }
 
 const MOCK_PREFIX = "__mock__";
+
+const FREE_SKU = "__free__";
+
 const MOCK_SUBS: ProductSubscription[] = [
-  { id: "run.xrun.afterlife.sub.light", title: "xLight 30min", description: "월 30분 통화", displayPrice: "₩2,200", price: 2200, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
-  { id: "run.xrun.afterlife.sub.basic.v3", title: "xBasic 100min", description: "월 100분 통화", displayPrice: "₩6,600", price: 6600, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
-  { id: "run.xrun.afterlife.sub.standard", title: "xStandard 300min", description: "월 300분 통화", displayPrice: "₩19,900", price: 19900, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
-  { id: "run.xrun.afterlife.sub.plus", title: "xPlus 600min", description: "월 600분 통화", displayPrice: "₩39,900", price: 39900, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
-  { id: "run.xrun.afterlife.sub.premium", title: "xPremium 1000min", description: "월 1000분 통화", displayPrice: "₩69,900", price: 69900, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
+  { id: "run.xrun.afterlife.sub.light", title: "RUN", description: "광고없이 이용", displayPrice: "₩13,000", price: 13000, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
+  { id: "run.xrun.afterlife.sub.monste", title: "Monster", description: "광고없이 이용", displayPrice: "₩65,000", price: 65000, currency: "KRW", platform: "ios", type: "subs" } as unknown as ProductSubscription,
 ].map((p) => ({ ...p, id: `${MOCK_PREFIX}${p.id}` }) as ProductSubscription);
+
+const FREE_SUB: ProductSubscription = {
+  id: FREE_SKU,
+  title: "Go (Free)",
+  description: "회원가입 시 자동 부여",
+  displayPrice: "무료",
+  price: 0,
+  currency: "KRW",
+  platform: "ios",
+  type: "subs",
+} as unknown as ProductSubscription;
 const MOCK_CONSUMABLES: Product[] = [
   { id: "run.xrun.afterlife.credit.30", title: "Recharge 30min", description: "30분 충전 · 5년 유효", displayPrice: "₩2,200", price: 2200, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
   { id: "run.xrun.afterlife.credit.60", title: "Recharge 60min", description: "60분 충전 · 5년 유효", displayPrice: "₩4,400", price: 4400, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
   { id: "run.xrun.afterlife.credit.150", title: "Recharge 150min", description: "150분 충전 · 5년 유효", displayPrice: "₩9,900", price: 9900, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
   { id: "run.xrun.afterlife.credit.300", title: "Recharge 300min", description: "300분 충전 · 5년 유효", displayPrice: "₩19,900", price: 19900, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
 ].map((p) => ({ ...p, id: `${MOCK_PREFIX}${p.id}` }) as Product);
+
+const MOCK_GIFT_PACKS: Product[] = [
+  { id: "run.xrun.afterlife.gift.pack.1", title: "꽃 1개", description: "선물하기 1회 사용", displayPrice: "₩3,000", price: 3000, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
+  { id: "run.xrun.afterlife.gift.pack.5", title: "꽃 5개", description: "선물하기 5회 사용", displayPrice: "₩14,000", price: 14000, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
+  { id: "run.xrun.afterlife.gift.pack.10", title: "꽃 10개", description: "선물하기 10회 사용", displayPrice: "₩27,000", price: 27000, currency: "KRW", platform: "ios", type: "in-app" } as unknown as Product,
+].map((p) => ({ ...p, id: `${MOCK_PREFIX}${p.id}` }) as Product);
 const isMockSku = (id: string): boolean => id.startsWith(MOCK_PREFIX);
+const isFreeSku = (id: string): boolean => id === FREE_SKU;
+const isGiftPackSku = (id: string): boolean => stripMock(id).startsWith("run.xrun.afterlife.gift.pack.");
+
+const PLAN_BENEFITS: Record<string, { tagline: string; benefits: string[]; recommended?: boolean }> = {
+  [FREE_SKU]: {
+    tagline: "회원가입 시 자동 제공",
+    benefits: [
+      "광고 시청 후 서비스 이용",
+      "서비스 중간 광고 삽입",
+      "클론 1개 생성",
+      "클론 삭제/생성 5회 제공",
+      "월 50분 통화 제공",
+    ],
+  },
+  "run.xrun.afterlife.sub.light": {
+
+    tagline: "광고 없이 이용",
+    benefits: [
+      "클론 2개 생성",
+      "클론 삭제/생성 10회 제공",
+      "월 120분 통화 제공",
+      "꽃 2개 제공 (선물하기용)",
+    ],
+    recommended: true,
+  },
+  "run.xrun.afterlife.sub.monste": {
+
+    tagline: "광고 없이 이용",
+    benefits: [
+      "클론 무제한 생성",
+      "클론 삭제/생성 무제한",
+      "월 1000분 통화 제공",
+      "꽃 10개 제공 (선물하기용)",
+    ],
+  },
+};
+function stripMock(id: string): string {
+  return id.startsWith(MOCK_PREFIX) ? id.slice(MOCK_PREFIX.length) : id;
+}
+
+function isCurrentPlanSku(sku: string, planCode: string | null | undefined): boolean {
+  if (!planCode) return sku === FREE_SKU;
+  const clean = stripMock(sku);
+
+  const afterSub = clean.split(".sub.")[1] ?? "";
+  return afterSub.toLowerCase() === planCode.toLowerCase();
+}
+function getPlanMeta(id: string): { tagline: string; benefits: string[]; recommended?: boolean } {
+  return PLAN_BENEFITS[stripMock(id)] ?? { tagline: "", benefits: [] };
+}
 
 export default function PurchaseScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation();
   const accessToken = useAuthStore((s) => s.accessToken);
+
+  const apiUserEmail = useAuthStore((s) => s.apiUser?.email ?? null);
 
   const giftInventoryVisible = true;
 
@@ -114,7 +183,7 @@ export default function PurchaseScreen() {
       showAlert(
         "교환 확인",
 
-        `${item.name} ${item.count}개를 ${fmtSecToXrun(item.xrunTotal)} XRUN 으로 교환할까요?`,
+        `${item.name} ${item.count}개를 ${fmtSecToMinShort(item.xrunTotal)}으로 교환할까요?`,
         [
           { text: "취소", style: "cancel" },
           {
@@ -133,7 +202,7 @@ export default function PurchaseScreen() {
                 showAlert(
                   "교환 완료 🎉",
 
-                  `${fmtSecToXrun(res.xrunCredited)} XRUN 이 지갑에 충전됐어요.`,
+                  `${fmtSecToMinShort(res.xrunCredited)}이 지갑에 충전됐어요.`,
                 );
                 await refresh();
               } catch (err) {
@@ -183,8 +252,10 @@ export default function PurchaseScreen() {
 
   const handleBuySubscription = async (sku: string) => {
     if (buying) return;
+
+    if (isFreeSku(sku)) return;
     if (isMockSku(sku)) {
-      Alert.alert(
+      showAlert(
         t("purchase.mockAlertTitle", { defaultValue: "MOCK 상품" }),
         t("purchase.mockAlertMessage", { defaultValue: "유료 앱 계약 활성화 후 실제 결제 가능합니다." }),
       );
@@ -198,7 +269,7 @@ export default function PurchaseScreen() {
     } catch (err) {
       const msg = (err as Error).message ?? "";
       if (!msg.includes("cancel")) {
-        Alert.alert(t("purchase.paymentErrorTitle", { defaultValue: "결제 오류" }), msg);
+        showAlert(t("purchase.paymentErrorTitle", { defaultValue: "결제 오류" }), msg);
       }
     } finally {
       setTimeout(() => setBuying(null), 3000);
@@ -208,7 +279,7 @@ export default function PurchaseScreen() {
   const handleBuyConsumable = async (sku: string) => {
     if (buying) return;
     if (isMockSku(sku)) {
-      Alert.alert(
+      showAlert(
         t("purchase.mockAlertTitle", { defaultValue: "MOCK 상품" }),
         t("purchase.mockAlertMessage", { defaultValue: "유료 앱 계약 활성화 후 실제 결제 가능합니다." }),
       );
@@ -221,7 +292,7 @@ export default function PurchaseScreen() {
     } catch (err) {
       const msg = (err as Error).message ?? "";
       if (!msg.includes("cancel")) {
-        Alert.alert(t("purchase.paymentErrorTitle", { defaultValue: "결제 오류" }), msg);
+        showAlert(t("purchase.paymentErrorTitle", { defaultValue: "결제 오류" }), msg);
       }
     } finally {
       setTimeout(() => setBuying(null), 3000);
@@ -229,53 +300,45 @@ export default function PurchaseScreen() {
   };
 
   return (
-    <SafeView backgroundColor={COLORS.white}>
+    <SafeView backgroundColor={COLORS.white} bottomBackgroundColor={COLORS.white}>
       <PageHeader
         title={t("my.menu.purchase", { defaultValue: "크레딧 충전 · 구독" })}
         showBackButton
         onBackPress={() => navigation.goBack()}
       />
 
-      <ScrollView ref={scrollRef} contentContainerStyle={{ padding: SIZES.large, paddingBottom: 40 }}>
+      <ScrollView ref={scrollRef} contentContainerStyle={{ padding: SIZES.large, paddingBottom: 8 }}>
         {
 }
 
         {}
         <View style={s.balanceCard}>
-          <Text style={s.balanceTitle}>{t("my.balance.remainingTokens", { defaultValue: "남은 토큰 수량" })}</Text>
+          <Text style={s.balanceTitle}>{t("my.balance.remainingTokens", { defaultValue: "남은 통화 시간" })}</Text>
           {balLoading ? (
             <ActivityIndicator color={COLORS.violet600} />
           ) : balance ? (
             <>
-              <Text style={s.balanceTotal}>{fmtSecToXrun(balance.totalSec)}</Text>
+              <Text style={s.balanceTotal}>{fmtSecToMinShort(balance.totalSec)}</Text>
               <View style={s.balanceRow}>
                 <View style={s.balanceCol}>
                   <Text style={s.balanceLabel}>{t("purchase.bucketFree", { defaultValue: "무료" })}</Text>
-                  <Text style={s.balanceVal}>{fmtSecToXrun(balance.freeSec)}</Text>
+                  <Text style={s.balanceVal}>{fmtSecToMinShort(balance.freeSec)}</Text>
                 </View>
                 <View style={s.balanceCol}>
                   <Text style={s.balanceLabel}>{t("purchase.bucketSub", { defaultValue: "구독" })}</Text>
-                  <Text style={s.balanceVal}>{fmtSecToXrun(balance.subSec)}</Text>
+                  <Text style={s.balanceVal}>{fmtSecToMinShort(balance.subSec)}</Text>
                 </View>
                 <View style={s.balanceCol}>
                   <Text style={s.balanceLabel}>{t("purchase.bucketTopup", { defaultValue: "충전" })}</Text>
-                  <Text style={s.balanceVal}>{fmtSecToXrun(balance.topupSec)}</Text>
+                  <Text style={s.balanceVal}>{fmtSecToMinShort(balance.topupSec)}</Text>
                 </View>
-                {}
                 {
 }
                 {giftInventoryVisible && (
                   <TouchableOpacity style={s.balanceCol} onPress={scrollToGift} activeOpacity={0.6}>
                     <Text style={s.balanceLabel}>{t("purchase.bucketGift", { defaultValue: "선물" })}</Text>
-                    {}
-                    {
-
-}
                     <Text style={s.balanceVal}>
-                      {fmtSecToXrun(
-                        giftItems.reduce((sum, g) => sum + g.xrunTotal, 0) +
-                          (balance?.giftSec ?? 0),
-                      )}
+                      {giftItems.reduce((sum, g) => sum + g.count, 0)}개
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -296,45 +359,27 @@ export default function PurchaseScreen() {
         </View>
 
         {
+
 }
-        {giftInventoryVisible && giftItems.length > 0 && (
-          <View
-            style={{ marginTop: 8, marginBottom: 24 }}
-            onLayout={(e) => { giftSectionYRef.current = e.nativeEvent.layout.y; }}
+        {giftInventoryVisible && (
+          <TouchableOpacity
+            style={s.giftRedeemCard}
+            activeOpacity={0.75}
+            onPress={async () => {
+
+              const email = encodeURIComponent(apiUserEmail ?? "");
+              const inviteUrl = `https://www.xrun.run/invite?referral=${email}`;
+              await Linking.openURL(inviteUrl);
+            }}
           >
-            <Text style={s.sectionTitle}>받은 선물</Text>
-            <Text style={s.sectionDesc}>[교환] 을 누르면 XRUN 크레딧으로 충전돼요.</Text>
-            {giftItems.map((item) => {
-              const busy = swappingGift === item.giftId;
-              return (
-                <View key={item.giftId} style={s.giftRow}>
-                  {item.imageUrl ? (
-                    <Image source={{ uri: item.imageUrl }} style={s.giftImg} />
-                  ) : (
-                    <View style={[s.giftImg, s.giftEmojiWrap]}>
-                      <Text style={s.giftEmoji}>{item.emoji}</Text>
-                    </View>
-                  )}
-                  <View style={s.giftInfo}>
-                    <Text style={s.giftName}>{item.name} {item.count}개</Text>
-                    {}
-                    <Text style={s.giftAmount}>= {fmtSecToXrun(item.xrunTotal)} XRUN</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[s.swapBtn, busy && { opacity: 0.6 }]}
-                    onPress={() => onSwapGift(item)}
-                    disabled={busy}
-                  >
-                    {busy ? (
-                      <ActivityIndicator size="small" color={COLORS.white} />
-                    ) : (
-                      <Text style={s.swapBtnText}>교환</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              );
-            })}
-          </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.giftRedeemTitle}>받은 선물 교환하기</Text>
+              <Text style={s.giftRedeemDesc}>
+                받은 꽃을 XRUN 앱에서 광고 시청하고 통화용 꽃으로 바꿔보세요.
+              </Text>
+            </View>
+            <Text style={s.giftRedeemArrow}>›</Text>
+          </TouchableOpacity>
         )}
 
         {}
@@ -348,8 +393,8 @@ export default function PurchaseScreen() {
             <Text style={s.emptyText}>{t("purchase.subLoadFailed", { defaultValue: "구독 상품을 불러올 수 없어요." })}</Text>
             <Text style={s.emptyHint}>
               {Platform.OS === "ios"
-                ? t("purchase.subLoadHintIos", { defaultValue: "설정 → App Store → Sandbox 계정 로그인 확인 후 다시 시도해주세요." })
-                : t("purchase.subLoadHintOther", { defaultValue: "잠시 후 다시 시도해주세요." })}
+                ? t("purchase.subLoadHintIos", { defaultValue: "설정 → App Store 계정 로그인 확인 후 다시 시도해주세요." })
+                : t("purchase.subLoadHintAndroid", { defaultValue: "Play 스토어 계정 로그인 확인 후 다시 시도해주세요." })}
             </Text>
             <TouchableOpacity
               style={s.retryBtn}
@@ -360,79 +405,107 @@ export default function PurchaseScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          subs.map((p) => (
-            <TouchableOpacity
-              key={p.id}
-              style={[s.card, buying === p.id && s.cardDisabled]}
-              onPress={() => handleBuySubscription(p.id)}
-              disabled={buying !== null}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={s.cardName}>{p.title || p.id}</Text>
-                <Text style={s.cardDesc}>{p.description || ""}</Text>
-              </View>
-              <View style={s.cardPriceCol}>
-                <Text style={s.cardPrice}>{p.displayPrice}</Text>
-                {buying === p.id && (
-                  <ActivityIndicator color={COLORS.violet600} size="small" />
+
+          [FREE_SUB, ...subs].map((p) => {
+            const meta = getPlanMeta(p.id);
+            const isBuying = buying === p.id;
+            const isFree = isFreeSku(p.id);
+
+            const isCurrent = isCurrentPlanSku(p.id, balance?.subscription?.planCode ?? null);
+            return (
+              <View key={p.id} style={[s.planCard, isCurrent && s.planCardRecommended]}>
+                {(isCurrent || meta.recommended) && (
+                  <View style={s.badgeRow}>
+                    {isCurrent && (
+                      <View style={[s.recommendBadge, s.currentBadge]}>
+                        <Text style={[s.recommendBadgeText, s.currentBadgeText]}>이용 중인 플랜</Text>
+                      </View>
+                    )}
+                    {meta.recommended && !isCurrent && (
+                      <View style={s.recommendBadge}>
+                        <Text style={s.recommendBadgeText}>추천 요금제</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+                <View style={s.planHeader}>
+                  <Text style={s.planName}>{p.title || p.id}</Text>
+                  {meta.tagline ? <Text style={s.planTagline}>{meta.tagline}</Text> : null}
+                </View>
+                <View style={s.planPriceRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.planPrice}>{p.displayPrice}</Text>
+                    <Text style={s.planPricePeriod}>{isFree ? "가입 시 자동 적용" : "매월 자동 청구"}</Text>
+                  </View>
+                  {!isFree && (
+                    <TouchableOpacity
+                      style={[s.planCta, isBuying && s.planCtaDisabled]}
+                      onPress={() => handleBuySubscription(p.id)}
+                      disabled={buying !== null}
+                      activeOpacity={0.85}
+                    >
+                      {isBuying ? (
+                        <ActivityIndicator color={COLORS.white} size="small" />
+                      ) : (
+                        <Text style={s.planCtaText}>업그레이드</Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                </View>
+                {meta.benefits.length > 0 && (
+                  <View style={s.planBenefits}>
+                    {meta.benefits.map((b, i) => (
+                      <View key={i} style={s.benefitRow}>
+                        <Text style={s.benefitCheck}>✓</Text>
+                        <Text style={s.benefitText}>{b}</Text>
+                      </View>
+                    ))}
+                  </View>
                 )}
               </View>
-            </TouchableOpacity>
-          ))
+            );
+          })
         )}
 
-        {}
-        <Text style={[s.sectionTitle, { marginTop: 32 }]}>{t("purchase.topupSectionTitle", { defaultValue: "충전 (일회성)" })}</Text>
-        <Text style={s.sectionDesc}>{t("purchase.topupSectionDesc", { defaultValue: "구독과 별개로 통화 시간을 추가할 수 있어요. 5년 유효." })}</Text>
+        {
+}
+        <Text style={[s.sectionTitle, { marginTop: 32 }]}>꽃 구매</Text>
+        <Text style={s.sectionDesc}>선물하기 전용 · 구매 후 통화 중 사용 가능.</Text>
+        {MOCK_GIFT_PACKS.map((p) => (
+          <TouchableOpacity
+            key={p.id}
+            style={[s.card, buying === p.id && s.cardDisabled]}
+            onPress={() => handleBuyConsumable(p.id)}
+            disabled={buying !== null}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={s.cardName}>{p.title || p.id}</Text>
+              <Text style={s.cardDesc}>{p.description || ""}</Text>
+            </View>
+            <View style={s.cardPriceCol}>
+              <Text style={s.cardPrice}>{p.displayPrice}</Text>
+              {buying === p.id && (
+                <ActivityIndicator color={COLORS.violet600} size="small" />
+              )}
+            </View>
+          </TouchableOpacity>
+        ))}
 
-        {prodLoading ? (
-          <ActivityIndicator color={COLORS.violet600} style={{ marginVertical: 20 }} />
-        ) : consumables.length === 0 ? (
-          <View style={s.emptyBlock}>
-            <Text style={s.emptyText}>{t("purchase.topupLoadFailed", { defaultValue: "충전 상품을 불러올 수 없어요." })}</Text>
-            <TouchableOpacity
-              style={s.retryBtn}
-              onPress={refreshProducts}
-              activeOpacity={0.85}
-            >
-              <Text style={s.retryBtnText}>{t("common.retry", { defaultValue: "다시 시도" })}</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          consumables.map((p) => (
-            <TouchableOpacity
-              key={p.id}
-              style={[s.card, buying === p.id && s.cardDisabled]}
-              onPress={() => handleBuyConsumable(p.id)}
-              disabled={buying !== null}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={s.cardName}>{p.title || p.id}</Text>
-                <Text style={s.cardDesc}>{p.description || ""}</Text>
-              </View>
-              <View style={s.cardPriceCol}>
-                <Text style={s.cardPrice}>{p.displayPrice}</Text>
-                {buying === p.id && (
-                  <ActivityIndicator color={COLORS.violet600} size="small" />
-                )}
-              </View>
-            </TouchableOpacity>
-          ))
-        )}
-
-        {Platform.OS === "android" && (
-          <Text style={[s.emptyText, { marginTop: 20 }]}>
-            {t("purchase.androidNotReady", { defaultValue: "Android 결제는 준비 중이에요. iOS 로 먼저 이용해주세요." })}
-          </Text>
-        )}
+        {
+}
 
         {}
         <View style={{ marginTop: 32, alignItems: "center" }}>
           <Text style={s.footer}>
-            {t("purchase.termsFooter", {
-              defaultValue:
-                "자동 갱신 구독은 해지 전까지 매 주기 결제됩니다.\n해지: 설정 → Apple ID → 구독 → afterlife",
-            })}
+            {Platform.OS === "ios"
+              ? t("purchase.termsFooterIos", {
+                  defaultValue:
+                    "자동 갱신 구독은 해지 전까지 매 주기 결제됩니다.\n해지: 설정 → Apple ID → 구독 → afterlife",
+                })
+              : t("purchase.termsFooterAndroid", {
+                  defaultValue:
+                    "자동 갱신 구독은 해지 전까지 매 주기 결제됩니다.\n해지: Play 스토어 → 정기 결제 → afterlife",
+                })}
           </Text>
         </View>
       </ScrollView>
@@ -473,6 +546,81 @@ const s = StyleSheet.create({
   cardDesc: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
   cardPriceCol: { alignItems: "flex-end", gap: 4 },
   cardPrice: { fontSize: 15, fontWeight: "700", color: COLORS.violet600 },
+
+  planCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    padding: 20,
+    marginBottom: 12,
+  },
+  planCardRecommended: {
+    borderColor: COLORS.violet600,
+    borderWidth: 2,
+  },
+  recommendBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: COLORS.violet100,
+    borderRadius: 999,
+  },
+  recommendBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: COLORS.violet700,
+  },
+
+  badgeRow: { flexDirection: "row", gap: 6, marginBottom: 10 },
+
+  currentBadge: { backgroundColor: COLORS.violet600 },
+  currentBadgeText: { color: COLORS.white },
+
+  giftRedeemCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 24,
+    padding: 16,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    backgroundColor: "#faf5ff",
+  },
+  giftRedeemTitle: { fontSize: 15, fontWeight: "700", color: COLORS.zinc900 },
+  giftRedeemDesc: { fontSize: 12, color: COLORS.zinc600, marginTop: 4, lineHeight: 17 },
+  giftRedeemArrow: { fontSize: 24, color: COLORS.violet600, marginLeft: 12 },
+  planHeader: { marginBottom: 12 },
+  planName: { fontSize: 20, fontWeight: "700", color: COLORS.zinc900 },
+  planTagline: { fontSize: 13, color: COLORS.zinc500, marginTop: 4 },
+  planPriceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  planPrice: { fontSize: 22, fontWeight: "700", color: COLORS.zinc900 },
+  planPricePeriod: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
+  planCta: {
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+    backgroundColor: COLORS.violet600,
+    borderRadius: 999,
+    minWidth: 96,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  planCtaDisabled: { opacity: 0.6 },
+  planCtaText: { color: COLORS.white, fontWeight: "700", fontSize: 14 },
+  planBenefits: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.zinc200,
+    paddingTop: 14,
+    gap: 8,
+  },
+  benefitRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  benefitCheck: { color: COLORS.violet600, fontWeight: "700", fontSize: 14, width: 16 },
+  benefitText: { flex: 1, fontSize: 13, color: COLORS.zinc700, lineHeight: 18 },
 
   emptyText: { fontSize: 13, color: COLORS.zinc500, textAlign: "center", marginVertical: 8 },
   emptyBlock: {

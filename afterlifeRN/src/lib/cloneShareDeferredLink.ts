@@ -36,10 +36,10 @@ function navigateToClone(cloneId: number) {
   }
   try {
 
-    nav.navigate("Main" as never, {
+    (nav.navigate as (name: string, params?: unknown) => void)("Main", {
       screen: "ClonesTab",
       params: { screen: "CloneDetail", params: { cloneId } },
-    } as never);
+    });
     console.log("[CloneShareDDL] CloneDetail 이동:", cloneId);
   } catch (err) {
     console.warn("[CloneShareDDL] navigate 실패:", err);

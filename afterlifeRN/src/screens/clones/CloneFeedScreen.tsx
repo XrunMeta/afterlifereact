@@ -49,6 +49,8 @@ import {
   postCloneLearnEvent,
   type FeedComment,
 } from "../../api/clones";
+
+import type { CloneType, Visibility } from "../../api/clones";
 import ReportReasonModal from "../../components/common/ReportReasonModal";
 import { formatRelativeKo } from "../../lib/relativeTime";
 import { COLORS } from "../../components/constants";
@@ -79,14 +81,15 @@ export default function CloneFeedScreen(props: Props) {
           likedByMe: c.likedByMe ?? false,
           commentsCount: c.stats?.comments ?? 0,
           createdAt: c.createdAt,
+
           clone: {
             id: c.id,
             ownerId: c.ownerId,
             name: c.name,
             username: c.username ?? "",
             avatarUrl: c.avatarUrl,
-            cloneType: c.cloneType,
-            visibility: c.visibility,
+            cloneType: c.cloneType as CloneType,
+            visibility: c.visibility as Visibility,
           },
           interests: c.interests ?? [],
         });

@@ -72,6 +72,9 @@ export interface CloneDetailResponse {
     createdAt: string;
 
     pipeline?: string | null;
+
+    interests?: string[];
+    trainingStatus?: string;
   };
 }
 export async function getCloneDetail(

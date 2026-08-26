@@ -31,8 +31,15 @@ jest.mock('../../src/stores/authStore', () => ({
 }));
 
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: jest.fn(), replace: jest.fn() }),
-  CommonActions: { navigate: jest.fn() },
+
+  useNavigation: () => ({ navigate: jest.fn(), replace: jest.fn(), dispatch: jest.fn(), goBack: jest.fn() }),
+  useFocusEffect: (cb: () => void | (() => void)) => {
+    const React = require('react');
+    React.useEffect(() => { const c = cb(); return typeof c === 'function' ? c : undefined; }, []);
+  },
+  useIsFocused: () => true,
+  useRoute: () => ({ params: {}, name: 'MockRoute', key: 'mock' }),
+  CommonActions: { navigate: jest.fn(), reset: jest.fn() },
 }));
 
 jest.mock('../../src/stores/dialogStore', () => ({

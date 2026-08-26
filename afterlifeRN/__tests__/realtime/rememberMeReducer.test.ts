@@ -47,9 +47,10 @@ describe("rememberMeReducer — 확정", () => {
 
   it("이름 없는 매칭은 확정이 아니다 — unknown 과 동일 취급(교착 방지)", () => {
 
-    const { state } = step(initRememberMeState(), known(45, { named: false }));
-    expect(state.mode).toBe("pending");
-    expect(shouldShowRememberMeButton(state)).toBe(true);
+    let s = step(initRememberMeState(), known(45, { named: false })).state;
+    s = step(s, known(45, { named: false }), 500).state;
+    expect(s.mode).toBe("pending");
+    expect(shouldShowRememberMeButton(s)).toBe(true);
   });
 });
 
@@ -64,11 +65,11 @@ describe("rememberMeReducer — grace(30초 유지)", () => {
     expect(shouldShowRememberMeButton(state)).toBe(false);
   });
 
-  it("unknown 이 반복돼도 유지 기준점이 리셋되지 않는다", () => {
+  it("unknown 이 반복돼도 유지 기준점이 리셋되지 않는다 (streak escalation 전까지)", () => {
 
-    let s = step(identified58(), { type: "MATCH_UNKNOWN" }, 1000).state;
-    s = step(s, { type: "MATCH_UNKNOWN" }, 4000).state;
-    s = step(s, { type: "MATCH_UNKNOWN" }, 7000).state;
+    const s = step(identified58(), { type: "MATCH_UNKNOWN" }, 1000).state;
+
+    expect(s.mode).toBe("grace");
     expect(s.graceSinceMs).toBe(1000);
   });
 
@@ -113,11 +114,12 @@ describe("rememberMeReducer — grace(30초 유지)", () => {
     ]);
   });
 
-  it("확정된 적이 없는 통화의 unknown 은 grace 를 거치지 않고 바로 대기로 간다", () => {
+  it("확정된 적이 없는 통화의 unknown 은 grace 를 거치지 않고 바로 대기로 간다 (streak 2 도달 시)", () => {
 
-    const { state, actions } = step(initRememberMeState(), { type: "MATCH_UNKNOWN" });
-    expect(state.mode).toBe("pending");
-    expect(actions).toEqual([{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }]);
+    let s = step(initRememberMeState(), { type: "MATCH_UNKNOWN" }).state;
+    const r = step(s, { type: "MATCH_UNKNOWN" }, 500);
+    expect(r.state.mode).toBe("pending");
+    expect(r.actions).toEqual([{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }]);
   });
 
   it("ACTIVITY 는 유지 시간을 연장하지 않는다 — 갈 곳만 바꾼다", () => {
@@ -151,22 +153,25 @@ describe("rememberMeReducer — 다른 사람 등장", () => {
     ]);
   });
 
-  it("클론이 말하는 중이면 전환을 미룬다 — 하던 말을 끊지 않는다", () => {
+  it("클론이 말하는 중이어도 즉시 컷인 + INTERRUPT_TTS (T-532B 정책 변경)", () => {
+
     const { state, actions } = step(
       identified58(),
       known(70, { name: "미미", cloneSpeaking: true }),
     );
     expect(state.mode).toBe("identified");
-    expect(state.personId).toBe(58); 
-    expect(state.pendingSwitch).toEqual({ personId: 70, displayName: "미미" });
-    expect(actions).toEqual([]);
+    expect(state.personId).toBe(70); 
+    expect(state.pendingSwitch).toBeNull();
+    expect(actions).toEqual([
+      { type: "INTERRUPT_TTS" },
+      { type: "NOTIFY_CONFIRMED", personId: 70, displayName: "미미", rejoin: true },
+    ]);
   });
 
-  it("클론 발화가 끝나면 미뤄 둔 전환이 실행된다", () => {
-    const s = step(identified58(), known(70, { name: "미미", cloneSpeaking: true })).state;
-    const { state, actions } = step(s, { type: "CLONE_SPEECH_END" });
+  it("cloneSpeaking=false 도 즉시 전환 (INTERRUPT_TTS 는 안 냄)", () => {
+
+    const { state, actions } = step(identified58(), known(70, { name: "미미" }));
     expect(state.personId).toBe(70);
-    expect(state.pendingSwitch).toBeNull();
     expect(actions).toEqual([
       { type: "NOTIFY_CONFIRMED", personId: 70, displayName: "미미", rejoin: true },
     ]);
@@ -180,7 +185,11 @@ describe("rememberMeReducer — 다른 사람 등장", () => {
 });
 
 describe("rememberMeReducer — 대기(pending)", () => {
-  const pending = () => step(initRememberMeState(), { type: "MATCH_UNKNOWN" }).state;
+
+  const pending = () => {
+    const s1 = step(initRememberMeState(), { type: "MATCH_UNKNOWN", score: 0.3 }, 0).state;
+    return step(s1, { type: "MATCH_UNKNOWN", score: 0.3 }, 500).state;
+  };
 
   it("대기 중에는 버튼이 뜨고 마이크가 닫혀 있다", () => {
     const s = pending();
@@ -211,13 +220,17 @@ describe("rememberMeReducer — 대기(pending)", () => {
 
   it("대기가 길어지면 서버에 주기적으로 다시 알린다", () => {
 
-    const s = step(initRememberMeState(), { type: "MATCH_UNKNOWN" }, 1000).state;
-    expect(step(s, { type: "MATCH_UNKNOWN" }, 1000 + 30_000).actions).toEqual([]);
-    const r = step(s, { type: "MATCH_UNKNOWN" }, 1000 + UNKNOWN_RENOTIFY_MS);
+    let s = step(initRememberMeState(), { type: "MATCH_UNKNOWN" }, 1000).state;
+    s = step(s, { type: "MATCH_UNKNOWN" }, 1500).state; 
+    expect(s.mode).toBe("pending");
+
+    expect(step(s, { type: "MATCH_UNKNOWN" }, 1500 + 1000).actions).toEqual([]);
+
+    const r = step(s, { type: "MATCH_UNKNOWN" }, 1500 + UNKNOWN_RENOTIFY_MS);
     expect(r.actions).toEqual([{ type: "NOTIFY_UNKNOWN" }]);
 
     expect(
-      step(r.state, { type: "MATCH_UNKNOWN" }, 1000 + UNKNOWN_RENOTIFY_MS + 3000).actions,
+      step(r.state, { type: "MATCH_UNKNOWN" }, 1500 + UNKNOWN_RENOTIFY_MS + 3000).actions,
     ).toEqual([]);
   });
 
@@ -296,9 +309,11 @@ describe("rememberMeReducer — 등록 직후 유예", () => {
   });
 
   it("유예가 지나면 다시 대기로 떨어진다 — 등록이 끝내 반영 안 될 때의 탈출구", () => {
+
     const s = step(initRememberMeState(), { type: "ENROLLED" }, 1000).state;
-    const { state } = step(s, { type: "MATCH_UNKNOWN" }, 1000 + ENROLL_GRACE_MS + 1);
-    expect(state.mode).toBe("pending");
+    let after = step(s, { type: "MATCH_UNKNOWN" }, 1000 + ENROLL_GRACE_MS + 1).state;
+    after = step(after, { type: "MATCH_UNKNOWN" }, 1000 + ENROLL_GRACE_MS + 100).state;
+    expect(after.mode).toBe("pending");
   });
 
   it("매칭이 돌아오면 유예는 즉시 끝난다", () => {
@@ -329,22 +344,31 @@ describe("rememberMeReducer — 순수성", () => {
 });
 
 describe("rememberMeReducer — T-559 프로액티브 sheet (score gate)", () => {
+
+  const toPending = (score: number | undefined) => {
+    const evt = score !== undefined
+      ? ({ type: "MATCH_UNKNOWN" as const, score })
+      : ({ type: "MATCH_UNKNOWN" as const });
+    let s = step(initRememberMeState(), evt, 1000).state;
+    return step(s, evt, 1500);
+  };
+
   it("score 미제공 (undefined) — sheet 자동 open 안 함 (T-557 기본)", () => {
-    const { state } = step(initRememberMeState(), { type: "MATCH_UNKNOWN" }, 1000);
+    const { state } = toPending(undefined);
     expect(state.mode).toBe("pending");
     expect(state.sheetOpen).toBe(false);
     expect(shouldShowRememberMeButton(state)).toBe(true);
   });
 
   it("score === 0 — sheet 자동 open 안 함 (DB 비어있음 · 완전 미확정 케이스)", () => {
-    const { state } = step(initRememberMeState(), { type: "MATCH_UNKNOWN", score: 0 }, 1000);
+    const { state } = toPending(0);
     expect(state.mode).toBe("pending");
     expect(state.sheetOpen).toBe(false);
   });
 
   it("score > 0 — 프로액티브 등록 팝업 (T-562: sheet 대신 promptRegister)", () => {
 
-    const { state } = step(initRememberMeState(), { type: "MATCH_UNKNOWN", score: 0.25 }, 1000);
+    const { state } = toPending(0.25);
     expect(state.mode).toBe("pending");
     expect(state.sheetOpen).toBe(false); 
     expect(state.promptRegister).toBe(true); 
@@ -352,7 +376,7 @@ describe("rememberMeReducer — T-559 프로액티브 sheet (score gate)", () =>
   });
 
   it("T-562 · CONFIRM_PROMPT — 팝업만 닫고 대기 유지", () => {
-    let s = step(initRememberMeState(), { type: "MATCH_UNKNOWN", score: 0.3 }, 1000).state;
+    const s = toPending(0.3).state;
     expect(s.promptRegister).toBe(true);
     const r = step(s, { type: "CONFIRM_PROMPT" }, 2000);
     expect(r.state.promptRegister).toBe(false);
@@ -360,12 +384,76 @@ describe("rememberMeReducer — T-559 프로액티브 sheet (score gate)", () =>
     expect(r.actions).toEqual([]); 
   });
 
-  it("T-562 · DISMISS_PROMPT — 팝업만 닫고 대기 유지 (재통보 주기 후 다시 뜸)", () => {
-    let s = step(initRememberMeState(), { type: "MATCH_UNKNOWN", score: 0.3 }, 1000).state;
+  it("T-562 · DISMISS_PROMPT — 팝업만 닫고 대기 유지 (하위호환)", () => {
+    const s = toPending(0.3).state;
     const r = step(s, { type: "DISMISS_PROMPT" }, 2000);
     expect(r.state.promptRegister).toBe(false);
     expect(r.state.mode).toBe("pending");
     expect(r.actions).toEqual([]);
+  });
+
+  it("T-562 (B안) · CONFIRM_SAME_PERSON — lastConfirmedPerson 복원 + MIC_ON + dismiss 플래그", () => {
+
+    let s = step(initRememberMeState(), {
+      type: "MATCH_KNOWN",
+      personId: 58,
+      named: true,
+      displayName: "서지호",
+      cloneSpeaking: false,
+    }, 500).state;
+    expect(s.lastConfirmedPerson).toEqual({ personId: 58, displayName: "서지호" });
+
+    s = step(s, { type: "MATCH_UNKNOWN", score: 0.3 }, 1000).state;
+    s = step(s, { type: "ACTIVITY" }, 5_000).state;
+    s = step(s, { type: "TICK" }, 2000 + GRACE_HOLD_MS).state;
+    expect(s.mode).toBe("pending");
+    expect(s.promptRegister).toBe(true);
+
+    const r = step(s, { type: "CONFIRM_SAME_PERSON" }, 10_000);
+    expect(r.state.mode).toBe("identified");
+    expect(r.state.personId).toBe(58);
+    expect(r.state.promptRegister).toBe(false);
+    expect(r.state.dismissedPromptInCall).toBe(true);
+    expect(r.actions).toContainEqual({ type: "MIC_ON" });
+  });
+
+  it("T-562 (B안) · CONFIRM_SAME_PERSON — 복원할 person 없으면 DISMISS_LATER 처럼 처리", () => {
+
+    let s = step(initRememberMeState(), { type: "MATCH_UNKNOWN", score: 0.3 }, 1000).state;
+    s = step(s, { type: "MATCH_UNKNOWN", score: 0.3 }, 1500).state;
+    expect(s.lastConfirmedPerson).toBeNull();
+    expect(s.promptRegister).toBe(true);
+    const r = step(s, { type: "CONFIRM_SAME_PERSON" }, 2000);
+    expect(r.state.promptRegister).toBe(false);
+    expect(r.state.dismissedPromptInCall).toBe(true);
+    expect(r.state.mode).toBe("identified");
+    expect(r.state.personId).toBeNull();
+    expect(r.actions).toContainEqual({ type: "MIC_ON" });
+  });
+
+  it("T-562 (B안) · DISMISS_LATER — pending 해제 + MIC_ON + 이번 통화 재출현 억제", () => {
+
+    let s = step(initRememberMeState(), { type: "MATCH_UNKNOWN", score: 0.3 }, 1000).state;
+    s = step(s, { type: "MATCH_UNKNOWN", score: 0.3 }, 1500).state;
+    expect(s.promptRegister).toBe(true);
+    const r = step(s, { type: "DISMISS_LATER" }, 2000);
+    expect(r.state.promptRegister).toBe(false);
+    expect(r.state.dismissedPromptInCall).toBe(true);
+    expect(r.state.mode).toBe("identified");
+    expect(r.actions).toContainEqual({ type: "MIC_ON" });
+
+    const again = step(r.state, { type: "MATCH_UNKNOWN", score: 0.3 }, 60_000);
+    expect(again.state.promptRegister).toBe(false);
+  });
+
+  it("T-562 (B안) · ENROLLED 는 dismissedPromptInCall 을 리셋 (등록 완료 = 클린 슬레이트)", () => {
+
+    let s = step(initRememberMeState(), { type: "MATCH_UNKNOWN", score: 0.3 }, 1000).state;
+    s = step(s, { type: "MATCH_UNKNOWN", score: 0.3 }, 1500).state;
+    s = step(s, { type: "DISMISS_LATER" }, 2000).state;
+    expect(s.dismissedPromptInCall).toBe(true);
+    const r = step(s, { type: "ENROLLED" }, 3000);
+    expect(r.state.dismissedPromptInCall).toBe(false);
   });
 
   it("score > 0 이라도 확정자가 있으면 grace 로 감 (sheet 자동 open X · 그 사람 유지)", () => {

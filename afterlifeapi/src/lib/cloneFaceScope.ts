@@ -13,6 +13,8 @@ export function faceNamespace(userId: number, cloneId: number): string {
 export interface CloneScopeMatch {
   personId: number;
   score: number;
+
+  landmarkRatiosList?: (Record<string, number> | null)[];
 }
 
 export async function queryCloneScope(
@@ -34,8 +36,43 @@ export async function queryCloneScope(
     byPerson.set(pid, Math.max(byPerson.get(pid) ?? -1, m.score));
   }
 
+  const personIds = [...byPerson.keys()];
+
+  const landmarksByPerson = new Map<number, (Record<string, number> | null)[]>();
+  if (personIds.length) {
+    try {
+      const placeholders = personIds.map(() => "?").join(",");
+      const rs = await env.DB.prepare(
+        `SELECT person_id, landmark_ratios FROM clone_person_faces
+          WHERE clone_id = ? AND person_id IN (${placeholders})`,
+      )
+        .bind(cloneId, ...personIds)
+        .all<{ person_id: number; landmark_ratios: string | null }>();
+      for (const row of rs.results) {
+        const arr = landmarksByPerson.get(row.person_id) ?? [];
+        if (row.landmark_ratios) {
+          try {
+            const parsed = JSON.parse(row.landmark_ratios);
+            arr.push(parsed);
+          } catch {
+            arr.push(null);
+          }
+        } else {
+          arr.push(null);
+        }
+        landmarksByPerson.set(row.person_id, arr);
+      }
+    } catch {
+
+    }
+  }
+
   return [...byPerson.entries()]
-    .map(([personId, score]) => ({ personId, score }))
+    .map(([personId, score]) => ({
+      personId,
+      score,
+      landmarkRatiosList: landmarksByPerson.get(personId),
+    }))
     .sort((a, b) => b.score - a.score);
 }
 
@@ -50,10 +87,12 @@ export async function enrollCloneScopeFaces(
     cloneId: number;
     personId: number;
     vectors: number[][];
+
+    landmarkRatios?: (Record<string, number> | null)[];
     source?: "enroll" | "call" | "self";
   },
 ): Promise<EnrollResult> {
-  const { userId, cloneId, personId, vectors, source = "call" } = opts;
+  const { userId, cloneId, personId, vectors, landmarkRatios, source = "call" } = opts;
 
   const rows = vectors.map((values) => ({
     id: crypto.randomUUID(),
@@ -70,14 +109,31 @@ export async function enrollCloneScopeFaces(
     `INSERT INTO face_embeddings (person_id, vectorize_id, model, dim, source, created_at)
      VALUES (?, ?, 'w600k_mbf', 512, ?, ?)`,
   );
+
   const scopeStmt = env.DB.prepare(
+    `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at, landmark_ratios)
+     VALUES (?, ?, ?, 'w600k_mbf', 512, ?, ?, ?)`,
+  );
+  const scopeStmtLegacy = env.DB.prepare(
     `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
      VALUES (?, ?, ?, 'w600k_mbf', 512, ?, ?)`,
   );
-  await env.DB.batch([
-    ...rows.map((r) => legacyStmt.bind(personId, r.id, legacySource, createdAt)),
-    ...rows.map((r) => scopeStmt.bind(cloneId, personId, r.id, source, createdAt)),
-  ]);
+  try {
+    await env.DB.batch([
+      ...rows.map((r) => legacyStmt.bind(personId, r.id, legacySource, createdAt)),
+      ...rows.map((r, i) => {
+        const lm = landmarkRatios?.[i];
+        const lmJson = lm != null ? JSON.stringify(lm) : null;
+        return scopeStmt.bind(cloneId, personId, r.id, source, createdAt, lmJson);
+      }),
+    ]);
+  } catch {
+
+    await env.DB.batch([
+      ...rows.map((r) => legacyStmt.bind(personId, r.id, legacySource, createdAt)),
+      ...rows.map((r) => scopeStmtLegacy.bind(cloneId, personId, r.id, source, createdAt)),
+    ]);
+  }
 
   try {
     await getFaceIndex(env).insert(rows);

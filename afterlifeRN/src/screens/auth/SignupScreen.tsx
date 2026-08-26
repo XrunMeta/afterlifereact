@@ -1,4 +1,5 @@
 import { showAlert } from "../../stores/dialogStore";
+import { activateAuthSession } from "../../lib/activateAuthSession";
 import React, { useState, useRef } from "react";
 import {
   View,

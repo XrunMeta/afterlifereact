@@ -22,7 +22,8 @@ viseme.post("/synth", requireAuth, async (c) => {
     .first<{ email: string | null }>();
   const email = (row?.email ?? "").toLowerCase();
   if (!WHITELIST_EMAILS.has(email)) {
-    throw new APIError("PERMISSION_DENIED", "viseme synth is not enabled for this account.");
+
+    throw new APIError("FORBIDDEN", "viseme synth is not enabled for this account.");
   }
 
   const secret = c.env.LEARN_SECRET ?? "";
@@ -30,7 +31,9 @@ viseme.post("/synth", requireAuth, async (c) => {
     return c.json({ error: "LEARN_SECRET not configured" }, 500);
   }
 
-  const body = await c.req.json<{ text?: string; se_key?: string }>().catch(() => ({}));
+  const body = await c.req
+    .json<{ text?: string; se_key?: string }>()
+    .catch(() => ({} as { text?: string; se_key?: string }));
   const text = (body.text ?? "").trim();
   if (!text) throw new APIError("VALIDATION_FAILED", "text required.");
   if (text.length > 500) throw new APIError("VALIDATION_FAILED", "text too long (max 500).");

@@ -4,6 +4,40 @@ jest.mock('react-native/Libraries/Alert/Alert', () => ({
   alert: jest.fn(),
 }));
 
+jest.mock('@react-native-async-storage/async-storage', () => {
+  const store = new Map<string, string>();
+  return {
+    __esModule: true,
+    default: {
+      getItem: jest.fn((key: string) => Promise.resolve(store.get(key) ?? null)),
+      setItem: jest.fn((key: string, value: string) => {
+        store.set(key, value);
+        return Promise.resolve();
+      }),
+      removeItem: jest.fn((key: string) => {
+        store.delete(key);
+        return Promise.resolve();
+      }),
+      clear: jest.fn(() => {
+        store.clear();
+        return Promise.resolve();
+      }),
+      getAllKeys: jest.fn(() => Promise.resolve(Array.from(store.keys()))),
+      multiGet: jest.fn((keys: string[]) =>
+        Promise.resolve(keys.map((k) => [k, store.get(k) ?? null])),
+      ),
+      multiSet: jest.fn((pairs: [string, string][]) => {
+        pairs.forEach(([k, v]) => store.set(k, v));
+        return Promise.resolve();
+      }),
+      multiRemove: jest.fn((keys: string[]) => {
+        keys.forEach((k) => store.delete(k));
+        return Promise.resolve();
+      }),
+    },
+  };
+});
+
 jest.mock('@expo/vector-icons', () => {
   const { View } = require('react-native');
   return {
@@ -11,6 +45,33 @@ jest.mock('@expo/vector-icons', () => {
     AntDesign: View,
     MaterialIcons: View,
     Ionicons: View,
+  };
+});
+
+jest.mock('@react-navigation/native', () => {
+  const actual = jest.requireActual('@react-navigation/native');
+  return {
+    ...actual,
+    useFocusEffect: jest.fn((cb) => {
+
+      const React = require('react');
+      React.useEffect(() => {
+        const c = cb();
+        return typeof c === 'function' ? c : undefined;
+      }, []);
+    }),
+    useIsFocused: jest.fn(() => true),
+    useNavigation: jest.fn(() => ({
+      navigate: jest.fn(),
+      dispatch: jest.fn(),
+      goBack: jest.fn(),
+      canGoBack: jest.fn(() => false),
+      addListener: jest.fn(() => () => {}),
+      removeListener: jest.fn(),
+      setOptions: jest.fn(),
+      reset: jest.fn(),
+    })),
+    useRoute: jest.fn(() => ({ params: {}, name: 'MockRoute', key: 'mock' })),
   };
 });
 
