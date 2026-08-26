@@ -1084,20 +1084,9 @@ const v_fd5f43 = v_472849.create({
     elevation: 8, shadowColor: v_1bfbd0.black, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 12,
   },
 
-  centerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: 24 },
   bottomOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-
-  infoBox: { backgroundColor: v_1bfbd0.white, borderRadius: 20, padding: 24, maxWidth: 360, width: "100%" },
-  infoHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  infoHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
-  infoTitle: { fontSize: 18, fontWeight: "600", color: v_1bfbd0.zinc900 },
   infoDesc: { fontSize: 14, color: v_1bfbd0.zinc600, lineHeight: 20, marginBottom: 16 },
-  levelRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
-  levelRange: { width: 80, fontSize: 14, fontWeight: "500", color: v_1bfbd0.zinc700 },
-  levelDesc: { fontSize: 14, color: v_1bfbd0.zinc500 },
-  activityBox: { backgroundColor: "#eff6ff", borderRadius: v_8b0c90.lg, padding: 16 },
   activityBoxTitle: { fontSize: 12, fontWeight: "500", color: "#2563eb", marginBottom: 8 },
-  activityItem: { fontSize: 14, color: "#1e3a5f", marginBottom: 4 },
 
   confirmBox: { backgroundColor: v_1bfbd0.white, borderRadius: 20, padding: 24, maxWidth: 360, width: "100%", alignItems: "center" },
   confirmTitle: { fontSize: 18, fontWeight: "600", color: v_1bfbd0.zinc900, marginBottom: 8 },
