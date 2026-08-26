@@ -419,7 +419,8 @@ export default function MyScreen() {
                 disabled={disabled}
                 onPress={() => {
                   if (isAction) item.action();
-                  else navigation.navigate(item.route);
+
+                  else (navigation.navigate as (name: string) => void)(item.route);
                 }}
               >
                 <View style={s.settingsIcon}>
