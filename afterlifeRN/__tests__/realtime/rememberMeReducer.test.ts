@@ -375,7 +375,7 @@ describe("rememberMeReducer — T-559 프로액티브 sheet (score gate)", () =>
       personId: 58,
       named: true,
       displayName: "서지호",
-      score: 0.9,
+      cloneSpeaking: false,
     }, 500).state;
     expect(s.lastConfirmedPerson).toEqual({ personId: 58, displayName: "서지호" });
 

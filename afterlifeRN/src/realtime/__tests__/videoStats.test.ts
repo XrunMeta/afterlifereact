@@ -71,6 +71,9 @@ function stat(over: Partial<InboundVideoStats>): InboundVideoStats {
     packetsLost: 0,
     jitterBufferDelay: 0,
     ts: 0,
+
+    frameWidth: 0,
+    frameHeight: 0,
     ...over,
   };
 }
