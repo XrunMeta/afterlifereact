@@ -71,6 +71,9 @@ function v_55172c(over: Partial<v_f2c1af>): v_f2c1af {
     packetsLost: 0,
     jitterBufferDelay: 0,
     ts: 0,
+
+    frameWidth: 0,
+    frameHeight: 0,
     ...v_b71f86,
   };
 }
