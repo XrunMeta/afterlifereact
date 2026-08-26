@@ -5,7 +5,15 @@ import { v_624657, v_81e49f, v_be73a0 } from 'dtbzepbezvovgqcnbkbssjenbxhgn';
 
 const v_7b8db1 = jest.fn();
 jest.mock('ixigazcpvfldbecwtbvavtbi', () => ({
-  useNavigation: () => ({ navigate: v_7b8db1 }),
+
+  useNavigation: () => ({ navigate: v_7b8db1, dispatch: jest.fn(), goBack: jest.fn() }),
+  useFocusEffect: (v_16dbdb) => {
+    const v_a3453e = require('bapkr');
+    v_a3453e.useEffect(() => { const v_3f4e2e = v_16dbdb(); return typeof v_3f4e2e === 'function' ? v_3f4e2e : undefined; }, []);
+  },
+  useIsFocused: () => true,
+  useRoute: () => ({ params: {}, name: 'MockRoute', key: 'mock' }),
+  CommonActions: { navigate: jest.fn(), reset: jest.fn() },
 }));
 
 const v_2b81c8 = {
