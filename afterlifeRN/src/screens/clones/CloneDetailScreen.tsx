@@ -46,16 +46,17 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     v_003cf2(v_6e0fd3, v_2ca7e0 ?? undefined)
       .then((v_8f00b9) => {
         const v_3f4e2e = v_8f00b9.clone;
+
         const adapted: v_affcc0 = {
           id: v_3f4e2e.id,
-          cloneType: v_3f4e2e.cloneType,
+          cloneType: v_3f4e2e.cloneType as v_affcc0["cloneType"],
           ownerId: v_3f4e2e.ownerId,
           displayName: v_3f4e2e.name,
           username: v_3f4e2e.username ?? undefined,
           description: v_3f4e2e.description ?? "",
           interests: v_3f4e2e.interests ?? [],
           imageUrl: v_3f4e2e.avatarUrl ?? undefined,
-          visibility: v_3f4e2e.visibility,
+          visibility: v_3f4e2e.visibility as v_affcc0["visibility"],
           status: (v_3f4e2e.trainingStatus as v_affcc0["status"]) ?? "active",
           createdAt: v_3f4e2e.createdAt,
         };

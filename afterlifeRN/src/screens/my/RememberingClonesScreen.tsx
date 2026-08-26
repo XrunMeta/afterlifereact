@@ -12,6 +12,8 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_cf763b, v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
+import type { v_e57140 } from "../../navigation/types";
 import { v_772971 } from "jmpfvteuuztnp";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
@@ -23,8 +25,10 @@ import {
   type v_485676,
 } from "../../api/persons";
 
+type Nav = v_390fcc<v_e57140, "RememberingClones">;
+
 export default function v_e6afa3() {
-  const v_c65f5d = v_ada615();
+  const v_c65f5d = v_ada615<Nav>();
   const { t: v_8d41d7 } = v_772971();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
 
@@ -136,7 +140,17 @@ export default function v_e6afa3() {
             <View style={v_fd5f43.card}>
             {v_4622b9.map((v_eb25ce, v_ebec57) => (
               <View key={v_eb25ce.cloneId}>
-                <View style={v_fd5f43.row}>
+                {}
+                <TouchableOpacity
+                  style={v_fd5f43.row}
+                  onPress={() =>
+                    v_c65f5d.navigate("RememberingCloneDetail", {
+                      cloneId: v_eb25ce.cloneId,
+                      cloneName: v_eb25ce.name,
+                    })
+                  }
+                  activeOpacity={0.7}
+                >
                   <View style={[v_fd5f43.avatar, v_fd5f43.avatarPh]}>
                     <Feather name="user" size={20} color={v_1bfbd0.zinc400} />
                   </View>
@@ -163,7 +177,8 @@ export default function v_e6afa3() {
                       </Text>
                     )}
                   </TouchableOpacity>
-                </View>
+                  <Feather name="chevron-right" size={18} color={v_1bfbd0.zinc400} />
+                </TouchableOpacity>
                 {v_ebec57 < v_4622b9.length - 1 && <View style={v_fd5f43.divider} />}
               </View>
             ))}

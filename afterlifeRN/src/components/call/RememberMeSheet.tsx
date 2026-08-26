@@ -11,6 +11,7 @@ import {
   v_e767d1,
   v_326be8,
   v_0e1f26,
+  v_122070,
 } from "rcmrninabrnb";
 import { v_1bfbd0, v_8b0c90 } from "../constants";
 
@@ -79,6 +80,7 @@ export default function v_39b6c7({
       >
         {
 }
+        <View style={v_d81136.cardWrapper} pointerEvents="box-none">
         <View style={v_d81136.card} testID="remember-me-sheet">
           <Text style={v_d81136.title}>이 분은 누구신가요?</Text>
           <Text style={v_d81136.desc}>
@@ -139,6 +141,7 @@ export default function v_39b6c7({
             </Pressable>
           </View>
         </View>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -152,10 +155,14 @@ const v_d81136 = v_472849.create({
   },
   backdrop: {
     ...v_472849.absoluteFillObject,
-    alignItems: "center",
 
-    justifyContent: "center",
+    justifyContent: "flex-end",
+    alignItems: "center",
     padding: 24,
+  },
+  cardWrapper: {
+    width: "100%",
+    maxWidth: 380,
   },
   card: {
     width: "100%",

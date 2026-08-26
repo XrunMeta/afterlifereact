@@ -34,6 +34,7 @@ import v_9232cf from "../screens/my/PrivacySettingsScreen";
 import v_c78d4f from "../screens/my/AgreementsScreen";
 import v_e797c6 from "../screens/my/SavedItemsScreen";
 import v_e6afa3 from "../screens/my/RememberingClonesScreen";
+import v_2b785f from "../screens/my/RememberingCloneDetailScreen";
 import v_d3b6fb from "../screens/my/LanguageSettingsScreen";
 import v_da4f91 from "../screens/my/PaymentPinScreen";
 import v_14fa9c from "../screens/my/InviteStatusScreen";
@@ -44,6 +45,8 @@ import v_9e01f7 from "../screens/my/TransactionsScreen";
 import v_0035e1 from "../screens/my/PurchaseScreen";
 
 import v_38f630 from "../screens/dev/VisemeTestScreen";
+
+import v_30f4d7 from "../screens/face-test/FaceThresholdTestScreen";
 
 const v_3ea452 = v_709be7<v_2d88fc>();
 const v_be1c7b = v_709be7<v_2b51a5>();
@@ -96,6 +99,7 @@ function v_d9c5dd() {
       <MyStack.Screen name="Agreements" component={v_c78d4f} />
       <MyStack.Screen name="SavedItems" component={v_e797c6} />
       <MyStack.Screen name="RememberingClones" component={v_e6afa3} />
+      <MyStack.Screen name="RememberingCloneDetail" component={v_2b785f} />
       <MyStack.Screen name="LanguageSettings" component={v_d3b6fb} />
       <MyStack.Screen name="PaymentPin" component={v_da4f91} />
       <MyStack.Screen name="InviteStatus" component={v_14fa9c} />
@@ -104,6 +108,7 @@ function v_d9c5dd() {
       <MyStack.Screen name="Purchase" component={v_0035e1} />
       <MyStack.Screen name="Reports" component={v_7e6637} />
       <MyStack.Screen name="VisemeTest" component={v_38f630} />
+      <MyStack.Screen name="FaceThresholdTest" component={v_30f4d7} />
     </MyStack.Navigator>
   );
 }
