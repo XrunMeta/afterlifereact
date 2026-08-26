@@ -2270,16 +2270,15 @@ function CallScreenInner({ route, navigation }: Props) {
                   onPress={() => {
 
                     if (giftOwnedCount <= 0) {
-                      Alert.alert(
+                      showAlert(
                         "보유 꽃이 없어요",
                         "꽃을 구매하러 이동할까요?",
                         [
                           { text: "취소", style: "cancel" },
                           {
                             text: "구매하기",
-                            style: "default",
                             onPress: () => {
-                              setShowGiftModal(false);
+                              setShowGifts(false);
                               (navigation as unknown as { navigate: (n: string) => void }).navigate("Purchase");
                             },
                           },
