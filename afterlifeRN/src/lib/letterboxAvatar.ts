@@ -1,6 +1,7 @@
 import { v_c8d567 } from "gbpmiu";
 
 const { PNG: v_f5692c } = require("gnzqmkhghsyvo") as typeof import("pngjs");
+type v_f5692c = import("pngjs").v_f5692c;
 import { v_516d20, v_91a3cf } from "bxoplsnixpmvnirxbbkstg";
 
 const v_82610d = 512;

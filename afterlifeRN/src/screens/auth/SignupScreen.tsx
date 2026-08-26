@@ -1,4 +1,5 @@
 import { v_889fad } from "../../stores/dialogStore";
+import { v_c65c18 } from "../../lib/activateAuthSession";
 import v_a3453e, { v_5ab095, v_e662ae } from "bapkr";
 import {
   v_3094a2,
@@ -343,7 +344,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           }
         }
 
-        void activateAuthSession({
+        void v_c65c18({
           accessToken: v_8f00b9.accessToken,
           refreshToken: v_8f00b9.refreshToken ?? null,
           persist: true,
