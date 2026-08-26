@@ -32,7 +32,7 @@ export interface IdentifyCycleDeps {
 
   calibrateFn?: CalibrateFaceFn;
 
-  getCurrentLandmark?: () => Record<string, number> | null;
+  getCurrentLandmark?: () => v_90e668 | null;
 }
 
 export function v_10735f(v_b48d3d): v_71bfaa {
@@ -94,10 +94,11 @@ export async function v_f644ce(
   const v_20e745 = v_84b93d.getCurrentLandmark?.();
   const v_63e1ab = v_43c42e.best?.landmarkRatiosList;
   if (v_d2fcdb != null && v_20e745 && v_63e1ab && v_63e1ab.length > 0) {
+
     const v_f2d98f = v_63e1ab.filter((v_1614db): v_1614db is Record<string, number> => v_1614db != null);
     if (v_f2d98f.length > 0) {
       const v_b552b6 = v_f2d98f.map((v_39de0e) =>
-        v_f9bbe6(v_20e745 as v_90e668, v_39de0e as v_90e668),
+        v_f9bbe6(v_20e745, v_39de0e as unknown as v_90e668),
       );
       const v_1f22f7 = v_b552b6.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6, 0) / v_b552b6.length;
 
@@ -135,7 +136,7 @@ export interface UseFaceIdentifyOptions {
   enabled: boolean;
   accessToken: string;
 
-  getCurrentLandmark?: () => Record<string, number> | null;
+  getCurrentLandmark?: () => v_90e668 | null;
 
   cloneId: number;
   onEvent: (evt: v_b26216) => void;
