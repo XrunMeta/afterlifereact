@@ -62,7 +62,7 @@ describe("runIdentifyCycle (순수 로직)", () => {
     const s: v_90fd14 = v_48b3dc;
     const v_cb35cb = await v_f644ce(v_fd5f43, v_87d4f2, "tok", 999, 1000, { matchFaceFn: v_a97841 });
 
-expect(v_cb35cb.event).toEqual({ type: "unknown_face", score: 0, topPersonId: null });
+    expect(v_cb35cb.event).toEqual({ type: "unknown_face", score: 0, topPersonId: null });
   });
 
   it("matchFace 실패(네트워크) → 사이클 스킵, event null, 크래시 없음", async () => {
@@ -125,7 +125,7 @@ expect(v_cb35cb.event).toEqual({ type: "unknown_face", score: 0, topPersonId: nu
       v_fd5f43 = v_cb35cb.state;
       if (v_cb35cb.event) {
 
-expect(v_cb35cb.event).toEqual({ type: "unknown_face", score: 0, topPersonId: null });
+        expect(v_cb35cb.event).toEqual({ type: "unknown_face", score: 0, topPersonId: null });
         v_96bb97.push(v_8d41d7);
       }
     }
