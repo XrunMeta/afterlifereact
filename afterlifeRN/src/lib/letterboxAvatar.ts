@@ -1,6 +1,7 @@
 import { Buffer } from "buffer";
 
 const { PNG } = require("pngjs/browser") as typeof import("pngjs");
+type PNG = import("pngjs").PNG;
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 
 const OUT_W = 512;
