@@ -48,6 +48,33 @@ jest.mock('@expo/vector-icons', () => {
   };
 });
 
+jest.mock('@react-navigation/native', () => {
+  const actual = jest.requireActual('@react-navigation/native');
+  return {
+    ...actual,
+    useFocusEffect: jest.fn((cb) => {
+
+      const React = require('react');
+      React.useEffect(() => {
+        const c = cb();
+        return typeof c === 'function' ? c : undefined;
+      }, []);
+    }),
+    useIsFocused: jest.fn(() => true),
+    useNavigation: jest.fn(() => ({
+      navigate: jest.fn(),
+      dispatch: jest.fn(),
+      goBack: jest.fn(),
+      canGoBack: jest.fn(() => false),
+      addListener: jest.fn(() => () => {}),
+      removeListener: jest.fn(),
+      setOptions: jest.fn(),
+      reset: jest.fn(),
+    })),
+    useRoute: jest.fn(() => ({ params: {}, name: 'MockRoute', key: 'mock' })),
+  };
+});
+
 jest.mock('react-native-safe-area-context', () => {
   const { View } = require('react-native');
   return {

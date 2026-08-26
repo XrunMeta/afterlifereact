@@ -5,7 +5,15 @@ import { render, waitFor, act } from '@testing-library/react-native';
 
 const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: mockNavigate }),
+
+  useNavigation: () => ({ navigate: mockNavigate, dispatch: jest.fn(), goBack: jest.fn() }),
+  useFocusEffect: (cb: () => void | (() => void)) => {
+    const React = require('react');
+    React.useEffect(() => { const c = cb(); return typeof c === 'function' ? c : undefined; }, []);
+  },
+  useIsFocused: () => true,
+  useRoute: () => ({ params: {}, name: 'MockRoute', key: 'mock' }),
+  CommonActions: { navigate: jest.fn(), reset: jest.fn() },
 }));
 
 const draftStore: Record<string, unknown> = {
