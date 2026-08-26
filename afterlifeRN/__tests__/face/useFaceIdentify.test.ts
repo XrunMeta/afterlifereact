@@ -62,7 +62,7 @@ describe("runIdentifyCycle (순수 로직)", () => {
     const s: IdentifyCycleState = INITIAL_IDENTIFY_CYCLE_STATE;
     const r = await runIdentifyCycle(s, VEC, "tok", 999, 1000, { matchFaceFn });
 
-expect(r.event).toEqual({ type: "unknown_face", score: 0, topPersonId: null });
+    expect(r.event).toEqual({ type: "unknown_face", score: 0, topPersonId: null });
   });
 
   it("matchFace 실패(네트워크) → 사이클 스킵, event null, 크래시 없음", async () => {
@@ -125,7 +125,7 @@ expect(r.event).toEqual({ type: "unknown_face", score: 0, topPersonId: null });
       s = r.state;
       if (r.event) {
 
-expect(r.event).toEqual({ type: "unknown_face", score: 0, topPersonId: null });
+        expect(r.event).toEqual({ type: "unknown_face", score: 0, topPersonId: null });
         emitted.push(t);
       }
     }

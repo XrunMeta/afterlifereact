@@ -42,14 +42,14 @@ it("확정된 사람을 놓을 때도 1회다 — 완충은 rememberMeReducer �
   const s = speakerIdReducer(INITIAL_SPEAKER_STATE, dogi, T0).state;
   const r = speakerIdReducer(s, U, 3000);
 
-expect(r.event).toEqual({ type: "unknown_face", score: 0, topPersonId: null });
+  expect(r.event).toEqual({ type: "unknown_face", score: 0, topPersonId: null });
   expect(r.state.confirmed).toBe("unknown");
 });
 
 it("unknown 도 1회에 발행된다", () => {
   const r = speakerIdReducer(INITIAL_SPEAKER_STATE, U, T0);
 
-expect(r.event).toEqual({ type: "unknown_face", score: 0, topPersonId: null });
+  expect(r.event).toEqual({ type: "unknown_face", score: 0, topPersonId: null });
 });
 
 it("unknown 이 이어져도 주기 전에는 재발행하지 않는다", () => {
@@ -109,7 +109,7 @@ it("speaker_confirmed 로 전이하면 재발행 기준점이 초기화된다", 
 
   const r = speakerIdReducer(s, U, 20_000);
 
-expect(r.event).toEqual({ type: "unknown_face", score: 0, topPersonId: null });
+  expect(r.event).toEqual({ type: "unknown_face", score: 0, topPersonId: null });
   expect(r.state.lastUnknownEmitMs).toBe(20_000);
 });
 
@@ -120,7 +120,7 @@ it("RESET_RECOGNITION 은 상태를 통째로 되돌린다 — 주기와 무관�
 
   const r = speakerIdReducer(s, U, 1_000);
 
-expect(r.event).toEqual({ type: "unknown_face", score: 0, topPersonId: null });
+  expect(r.event).toEqual({ type: "unknown_face", score: 0, topPersonId: null });
   expect(r.state.lastUnknownEmitMs).toBe(1_000);
 });
 

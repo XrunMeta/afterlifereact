@@ -36,6 +36,7 @@ export function speakerHandoffReducer(
     case 'SPEAKER_CONFIRMED': {
 
       const known: KnownSpeaker = { personId: event.personId, name: event.name };
+
       return {
         state: { lastKnownSpeaker: known, naming: false },
         actions: state.naming ? [{ type: 'END_NAMING' }] : [],
