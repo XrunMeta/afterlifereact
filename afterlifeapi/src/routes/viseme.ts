@@ -22,7 +22,8 @@ v_5c0bb5.post("/synth", v_6690d9, async (v_3f4e2e) => {
     .first<{ email: string | null }>();
   const v_e0c7e8 = (v_3ac7e7?.email ?? "").toLowerCase();
   if (!v_c930ce.has(v_e0c7e8)) {
-    throw new v_3ebe58("PERMISSION_DENIED", "viseme synth is not enabled for this account.");
+
+    throw new v_3ebe58("FORBIDDEN", "viseme synth is not enabled for this account.");
   }
 
   const v_43fd42 = v_3f4e2e.env.LEARN_SECRET ?? "";
@@ -30,7 +31,9 @@ v_5c0bb5.post("/synth", v_6690d9, async (v_3f4e2e) => {
     return v_3f4e2e.json({ error: "LEARN_SECRET not configured" }, 500);
   }
 
-  const v_4d33b2 = await v_3f4e2e.req.json<{ text?: string; se_key?: string }>().catch(() => ({}));
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ text?: string; se_key?: string }>()
+    .catch(() => ({} as { text?: string; se_key?: string }));
   const v_9b6134 = (v_4d33b2.text ?? "").trim();
   if (!v_9b6134) throw new v_3ebe58("VALIDATION_FAILED", "text required.");
   if (v_9b6134.length > 500) throw new v_3ebe58("VALIDATION_FAILED", "text too long (max 500).");
