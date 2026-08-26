@@ -45,7 +45,8 @@ export default function CloneInviteScreen() {
   const cloneId = params.cloneId;
   const accessToken = useAuthStore((s) => s.accessToken);
   const currentUserId = useAuthStore((s) => s.apiUser?.id ?? s.user?.id ?? null);
-  const myEmail = useAuthStore((s) => s.apiUser?.email ?? s.user?.email ?? null);
+
+  const myEmail = useAuthStore((s) => s.apiUser?.email ?? null);
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
 
   const isOwner =
