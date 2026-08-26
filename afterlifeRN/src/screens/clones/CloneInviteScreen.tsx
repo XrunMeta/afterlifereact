@@ -45,7 +45,8 @@ export default function v_07335f() {
   const v_6e0fd3 = v_24baff.cloneId;
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_493eec = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.id ?? v_fd5f43.user?.id ?? null);
-  const v_78547c = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? v_fd5f43.user?.email ?? null);
+
+  const v_78547c = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? null);
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
 
   const v_2aec08 =
