@@ -20,7 +20,8 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const [v_483de2, v_266e0d] = v_5ab095('');
   const [v_8d779a, v_5f3183] = v_5ab095(false);
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
-  const v_78547c = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? v_fd5f43.user?.email ?? null);
+
+  const v_78547c = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? null);
   v_c4deb2(() => {
     if (v_f04727.visibility !== 'private') v_b187d9({ visibility: 'private' });
   }, []); 
