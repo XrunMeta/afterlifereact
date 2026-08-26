@@ -36,6 +36,7 @@ export function v_5ecb22(
     case 'SPEAKER_CONFIRMED': {
 
       const v_d81543 = { personId: v_d48baf.personId, name: v_d48baf.name };
+
       return {
         state: { lastKnownSpeaker: v_d81543, naming: false },
         actions: v_b6e533.naming ? [{ type: 'END_NAMING' }] : [],
