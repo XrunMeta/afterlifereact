@@ -46,16 +46,17 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
     getCloneDetail(cloneId, accessToken ?? undefined)
       .then((res) => {
         const c = res.clone;
+
         const adapted: Clone = {
           id: c.id,
-          cloneType: c.cloneType,
+          cloneType: c.cloneType as Clone["cloneType"],
           ownerId: c.ownerId,
           displayName: c.name,
           username: c.username ?? undefined,
           description: c.description ?? "",
           interests: c.interests ?? [],
           imageUrl: c.avatarUrl ?? undefined,
-          visibility: c.visibility,
+          visibility: c.visibility as Clone["visibility"],
           status: (c.trainingStatus as Clone["status"]) ?? "active",
           createdAt: c.createdAt,
         };

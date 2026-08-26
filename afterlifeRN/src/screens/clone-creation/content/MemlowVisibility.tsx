@@ -20,7 +20,8 @@ function Component({ draft, onChange }: Props) {
   const [pending, setPending] = useState('');
   const [checking, setChecking] = useState(false);
   const accessToken = useAuthStore((s) => s.accessToken);
-  const myEmail = useAuthStore((s) => s.apiUser?.email ?? s.user?.email ?? null);
+
+  const myEmail = useAuthStore((s) => s.apiUser?.email ?? null);
   useEffect(() => {
     if (draft.visibility !== 'private') onChange({ visibility: 'private' });
   }, []); 
