@@ -254,8 +254,6 @@ function next(
 
       if (inEnrollGrace) return { state, actions: [] };
 
-      if ((event.score ?? 0) <= 0) return { state, actions: [] };
-
       const refPersonId = state.personId ?? state.lastConfirmedPerson?.personId ?? null;
       const differentPersonImmediate =
         event.topPersonId != null &&
