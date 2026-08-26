@@ -78,6 +78,7 @@ import {
   updatePersonName,
   selfConfirm,
   fetchFacePolicy,
+  enrollFaces,
   type Person,
 } from "../../api/persons";
 import { AuthApiError } from "../../api/auth";
@@ -1102,7 +1103,22 @@ function CallScreenInner({ route, navigation }: Props) {
         },
         {
           text: "나야 (오인식)",
-          onPress: () => dispatchRm({ type: "CONFIRM_SAME_PERSON" }),
+          onPress: () => {
+
+            const snapshot = unknownFaceSnapshotRef.current;
+            const restore = rmState.lastConfirmedPerson;
+            if (snapshot && snapshot.length > 0 && restore != null && accessToken) {
+              enrollFaces(accessToken, restore.personId, snapshot, cloneId)
+                .then((res) => {
+                  console.log(`[Call][face] 나야 → enrollFaces personId=${restore.personId} vectors=${snapshot.length} enrolled=${res.enrolled}`);
+                })
+                .catch((err) => {
+                  console.warn(`[Call][face] 나야 → enrollFaces 실패 personId=${restore.personId}:`, err);
+                });
+              unknownFaceSnapshotRef.current = null;
+            }
+            dispatchRm({ type: "CONFIRM_SAME_PERSON" });
+          },
         },
         {
           text: "등록",
