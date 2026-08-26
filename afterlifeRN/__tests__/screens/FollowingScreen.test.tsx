@@ -10,7 +10,17 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 );
 
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: jest.fn() }),
+
+  useNavigation: () => ({ navigate: jest.fn(), dispatch: jest.fn(), goBack: jest.fn(), canGoBack: () => false }),
+  useFocusEffect: (cb: () => void | (() => void)) => {
+    const React = require('react');
+    React.useEffect(() => {
+      const c = cb();
+      return typeof c === 'function' ? c : undefined;
+    }, []);
+  },
+  useIsFocused: () => true,
+  useRoute: () => ({ params: {}, name: 'MockRoute', key: 'mock' }),
 }));
 
 const UID = 1;
