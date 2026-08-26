@@ -36,10 +36,10 @@ function v_5b5900(v_6e0fd3) {
   }
   try {
 
-    v_3c9f12.navigate("Main" as never, {
+    (v_3c9f12.navigate as (name: string, params?: unknown) => void)("Main", {
       screen: "ClonesTab",
       params: { screen: "CloneDetail", params: { cloneId: v_6e0fd3 } },
-    } as never);
+    });
     console.log("[CloneShareDDL] CloneDetail 이동:", v_6e0fd3);
   } catch (v_49263d) {
     console.warn("[CloneShareDDL] navigate 실패:", v_49263d);

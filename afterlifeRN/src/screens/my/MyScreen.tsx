@@ -419,7 +419,8 @@ export default function v_ed02a5() {
                 disabled={v_4a6533}
                 onPress={() => {
                   if (v_d57179) v_8c0b26.action();
-                  else v_c65f5d.navigate(v_8c0b26.route);
+
+                  else (v_c65f5d.navigate as (name: string) => void)(v_8c0b26.route);
                 }}
               >
                 <View style={v_fd5f43.settingsIcon}>
