@@ -189,6 +189,13 @@ database_name = "afterlife-db"
 database_id = "09507858-14f8-4f3a-89e5-784244d592a4"
 migrations_dir = "migrations"
 
+# xrun D1 — sender='afterlife' EmailLogs / gift 수수료 정산. preview 와 동일 xrun DB.
+#   wrangler 3.x 는 env 상속 안 됨 → top-level XRUN_DB 배선을 env.production 에 명시 필수.
+[[env.production.d1_databases]]
+binding = "XRUN_DB"
+database_name = "xrun"
+database_id = "f446edf4-05aa-45c0-a5b1-67f1f96a9544"
+
 [[env.production.kv_namespaces]]
 binding = "KV_AUTH"
 id = "1307484997f540849155979a695baabf"

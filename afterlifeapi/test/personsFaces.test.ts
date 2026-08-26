@@ -114,7 +114,7 @@ describe("POST /oth-path", () => {
     expect(queryResult.matches[0].metadata?.personId).toBe(String(personId));
   });
 
-  it("vectors 검증: 512 아님/6개 초과/비수치 → 422 VALIDATION_FAILED", async () => {
+  it("vectors 검증: 512 아님/10개 초과(T-561 max=5→10)/비수치 → 422 VALIDATION_FAILED", async () => {
     const userId = await seedUser("faces-invalid@test.local");
     const tok = await issueAccessToken(userId);
     const cloneId = await seedClone(userId, "faces-invalid-clone");
@@ -132,7 +132,7 @@ describe("POST /oth-path", () => {
     const res2 = await SELF.fetch(`http://localhost/oth-path${personId}/faces`, {
       method: "POST",
       headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ cloneId, vectors: Array(6).fill(vec()) }),
+      body: JSON.stringify({ cloneId, vectors: Array(11).fill(vec()) }),
     });
     expect(res2.status).toBe(422);
 
