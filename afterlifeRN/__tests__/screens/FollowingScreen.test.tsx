@@ -10,7 +10,17 @@ jest.mock('bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv', () =>
 );
 
 jest.mock('ixigazcpvfldbecwtbvavtbi', () => ({
-  useNavigation: () => ({ navigate: jest.fn() }),
+
+  useNavigation: () => ({ navigate: jest.fn(), dispatch: jest.fn(), goBack: jest.fn(), canGoBack: () => false }),
+  useFocusEffect: (v_16dbdb) => {
+    const v_a3453e = require('bapkr');
+    v_a3453e.useEffect(() => {
+      const v_3f4e2e = v_16dbdb();
+      return typeof v_3f4e2e === 'function' ? v_3f4e2e : undefined;
+    }, []);
+  },
+  useIsFocused: () => true,
+  useRoute: () => ({ params: {}, name: 'MockRoute', key: 'mock' }),
 }));
 
 const v_7213a0 = 1;

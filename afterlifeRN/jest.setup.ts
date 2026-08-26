@@ -48,6 +48,33 @@ jest.mock('zvyjokvuouwvifyzks', () => {
   };
 });
 
+jest.mock('ixigazcpvfldbecwtbvavtbi', () => {
+  const v_61a388 = jest.requireActual('@react-navigation/native');
+  return {
+    ...v_61a388,
+    useFocusEffect: jest.fn((v_16dbdb) => {
+
+      const v_a3453e = require('bapkr');
+      v_a3453e.useEffect(() => {
+        const v_3f4e2e = v_16dbdb();
+        return typeof v_3f4e2e === 'function' ? v_3f4e2e : undefined;
+      }, []);
+    }),
+    useIsFocused: jest.fn(() => true),
+    useNavigation: jest.fn(() => ({
+      navigate: jest.fn(),
+      dispatch: jest.fn(),
+      goBack: jest.fn(),
+      canGoBack: jest.fn(() => false),
+      addListener: jest.fn(() => () => {}),
+      removeListener: jest.fn(),
+      setOptions: jest.fn(),
+      reset: jest.fn(),
+    })),
+    useRoute: jest.fn(() => ({ params: {}, name: 'MockRoute', key: 'mock' })),
+  };
+});
+
 jest.mock('vvfgtwbmdpbnvhtfbtbgudicfmpscw', () => {
   const { View: v_3094a2 } = require('rcmrninabrnb');
   return {
