@@ -114,7 +114,7 @@ export default function v_8640b9() {
   const [v_729796, v_fd7d1f] = v_5ab095(0);
   const [v_74e259, v_49cc35] = v_5ab095<number[][]>([]);
 
-  const [v_f9508a, v_9abbbd] = v_5ab095<(Record<string, number> | null)[]>([]);
+  const [v_f9508a, v_9abbbd] = v_5ab095<(v_90e668 | null)[]>([]);
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
 
   const [v_595acb, v_9ad9a9] = v_5ab095("");
@@ -401,7 +401,8 @@ export default function v_8640b9() {
             const v_36e01f = v_74e259.slice(v_ebec57, v_ebec57 + v_e646b6);
 
             const v_36b25b = v_f9508a.slice(v_ebec57, v_ebec57 + v_e646b6);
-            await v_4585d1(v_2ca7e0, v_ca1ec5, v_36e01f, v_6e0fd3, v_36b25b);
+
+            await v_4585d1(v_2ca7e0, v_ca1ec5, v_36e01f, v_6e0fd3, v_36b25b as (Record<string, number> | null)[]);
           }
           const v_d04cc5 = v_dd8af0.trim();
           if (v_d04cc5) {
