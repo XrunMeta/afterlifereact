@@ -114,7 +114,7 @@ v_469bf2("POST /oth-path", () => {
     v_4d37e3(v_80a1ce.matches[0].metadata?.personId).toBe(String(v_ca1ec5));
   });
 
-  v_23805a("vectors 검증: 512 아님/6개 초과/비수치 → 422 VALIDATION_FAILED", async () => {
+  v_23805a("vectors 검증: 512 아님/10개 초과(T-561 max=5→10)/비수치 → 422 VALIDATION_FAILED", async () => {
     const v_43e90c = await v_bfb240("faces-invalid@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "faces-invalid-clone");
@@ -132,7 +132,7 @@ v_469bf2("POST /oth-path", () => {
     const v_48bbbd = await v_1df298.fetch(`http://localhost/oth-path${v_ca1ec5}/faces`, {
       method: "POST",
       headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ cloneId: v_6e0fd3, vectors: Array(6).fill(v_46ff7a()) }),
+      body: JSON.stringify({ cloneId: v_6e0fd3, vectors: Array(11).fill(v_46ff7a()) }),
     });
     v_4d37e3(v_48bbbd.status).toBe(422);
 
