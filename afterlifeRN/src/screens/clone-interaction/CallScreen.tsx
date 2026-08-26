@@ -47,6 +47,8 @@ import { useResizePlugin } from "vision-camera-resize-plugin";
 import { useSharedValue } from "react-native-worklets-core";
 import { useFaceDetection } from "../../hooks/useFaceDetection";
 import { largestFace } from "../../face/largestFace";
+import { computeAlignedCrop } from "../../face/faceAlignCrop";
+import { computeLandmarkRatios, type LandmarkRatios } from "../../face/faceLandmarkRatios";
 import { shouldRunEmbedding } from "../../face/embeddingThrottle";
 import { normalizeFrameTimestampMs } from "../../face/frameTimestamp";
 import { detectNewFaces } from "../../face/newFaceDetector";
@@ -76,6 +78,7 @@ import {
   updatePersonName,
   selfConfirm,
   fetchFacePolicy,
+  enrollFaces,
   type Person,
 } from "../../api/persons";
 import { AuthApiError } from "../../api/auth";
@@ -125,7 +128,7 @@ import {
   getCloneDetail,
 } from "../../api/clones";
 import { getCreditBalance } from "../../api/credits";
-import { sendGiftOffchain } from "../../api/giftInventory";
+import { sendGiftOffchain, getGiftInventory, type GiftInventoryItem } from "../../api/giftInventory";
 import { showAlert } from "../../stores/dialogStore";
 import { CommonActions } from "@react-navigation/native";
 
@@ -162,6 +165,7 @@ const SPEAK_OK_COLOR = "#2fbf6b";
 const FACE_DETECTOR_OPTIONS = {
   performanceMode: "fast",
   trackingEnabled: true,
+  landmarkMode: "all",
 } as const;
 
 interface FloatingGift {
@@ -522,6 +526,8 @@ function CallScreenInner({ route, navigation }: Props) {
 
   const seenFaceIdsRef = useRef<Set<number>>(new Set());
 
+  const currentLandmarkRef = useRef<LandmarkRatios | null>(null);
+
   const handleSpeakerEventRef = useRef<(evt: SpeakerEvent) => void>(() => {});
 
   const myNameRef = useRef<string | null>(null);
@@ -598,6 +604,8 @@ function CallScreenInner({ route, navigation }: Props) {
     onDiag: setFaceDiag,
     calibrate: calibrateOpt,
     onCollected: angleCollector.observe,
+
+    getCurrentLandmark: useCallback(() => currentLandmarkRef.current, []),
   });
 
   useEffect(() => {
@@ -663,14 +671,14 @@ function CallScreenInner({ route, navigation }: Props) {
 
               console.warn("[Call][face] owner auto-enroll 실패 → Remember Me:", err);
 
-              dispatchRm({ type: "MATCH_UNKNOWN", score: evt.score });
+              dispatchRm({ type: "MATCH_UNKNOWN", score: evt.score, topPersonId: evt.topPersonId ?? null });
             });
 
           dispatchSh({ type: "UNKNOWN_FACE" });
           return;
         }
 
-        dispatchRm({ type: "MATCH_UNKNOWN", score: evt.score });
+        dispatchRm({ type: "MATCH_UNKNOWN", score: evt.score, topPersonId: evt.topPersonId ?? null });
         dispatchSh({ type: "UNKNOWN_FACE" });
 
         unknownFaceSnapshotRef.current = getFaceEmbeddingBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
@@ -924,7 +932,7 @@ function CallScreenInner({ route, navigation }: Props) {
   const handleEmbeddingOnJS = React.useMemo(
     () =>
       Worklets.createRunOnJS(
-        (vector: number[], faceCount: number, trackingIds: number[]) => {
+        (vector: number[], faceCount: number, trackingIds: number[], landmarkRatiosJson: string | null) => {
           if (faceCount > 1) {
             const { newIds, seen } = detectNewFaces(seenFaceIdsRef.current, trackingIds);
             seenFaceIdsRef.current = seen;
@@ -932,6 +940,10 @@ function CallScreenInner({ route, navigation }: Props) {
               sendFaceEvent?.({ event: "multi_face" });
             }
           }
+
+          currentLandmarkRef.current = landmarkRatiosJson
+            ? (JSON.parse(landmarkRatiosJson) as LandmarkRatios)
+            : null;
           onFaceEmbedding(vector);
 
           publishFaceTracks(trackingIds, Date.now());
@@ -953,13 +965,31 @@ function CallScreenInner({ route, navigation }: Props) {
         lastEmbedTs.value = nowMs;
         const primary = largestFace(faces);
         if (primary != null) {
+
+          const aligned = computeAlignedCrop(primary);
+          let cropX: number;
+          let cropY: number;
+          let cropW: number;
+          let cropH: number;
+          if (aligned != null) {
+            cropX = aligned.x;
+            cropY = aligned.y;
+            cropW = aligned.width;
+            cropH = aligned.height;
+          } else {
+            const _bx = primary.bounds.x;
+            const _by = primary.bounds.y;
+            const _bw = primary.bounds.width;
+            const _bh = primary.bounds.height;
+            const _mx = _bw * 0.15;
+            const _my = _bh * 0.15;
+            cropX = Math.max(0, _bx - _mx);
+            cropY = Math.max(0, _by - _my);
+            cropW = _bw + _mx * 2;
+            cropH = _bh + _my * 2;
+          }
           const resized = resize(frame, {
-            crop: {
-              x: primary.bounds.x,
-              y: primary.bounds.y,
-              width: primary.bounds.width,
-              height: primary.bounds.height,
-            },
+            crop: { x: cropX, y: cropY, width: cropW, height: cropH },
             scale: { width: 112, height: 112 },
             pixelFormat: "rgb",
             dataType: "float32",
@@ -973,7 +1003,10 @@ function CallScreenInner({ route, navigation }: Props) {
           const trackingIds = faces
             .map((f) => f.trackingId)
             .filter((id): id is number => typeof id === "number");
-          handleEmbeddingOnJS(Array.from(out), faces.length, trackingIds);
+
+          const rtRatios = computeLandmarkRatios(primary as unknown as { bounds: { x: number; y: number; width: number; height: number }; landmarks?: Record<string, { x: number; y: number }> | null });
+          const rtRatiosJson: string | null = rtRatios ? JSON.stringify(rtRatios) : null;
+          handleEmbeddingOnJS(Array.from(out), faces.length, trackingIds, rtRatiosJson);
         }
       }
     },
@@ -1061,9 +1094,32 @@ function CallScreenInner({ route, navigation }: Props) {
     if (!rmState.promptRegister) return;
     showAlert(
       "새 얼굴이 보여요",
-      "얼굴을 등록할까요? 다음 통화부터 알아볼 수 있어요.",
+      "얼굴을 등록할까요?",
       [
-        { text: "취소", style: "cancel", onPress: () => dispatchRm({ type: "DISMISS_PROMPT" }) },
+        {
+          text: "나중에",
+          style: "cancel",
+          onPress: () => dispatchRm({ type: "DISMISS_LATER" }),
+        },
+        {
+          text: "나야 (오인식)",
+          onPress: () => {
+
+            const snapshot = unknownFaceSnapshotRef.current;
+            const restore = rmState.lastConfirmedPerson;
+            if (snapshot && snapshot.length > 0 && restore != null && accessToken) {
+              enrollFaces(accessToken, restore.personId, snapshot, cloneId)
+                .then((res) => {
+                  console.log(`[Call][face] 나야 → enrollFaces personId=${restore.personId} vectors=${snapshot.length} enrolled=${res.enrolled}`);
+                })
+                .catch((err) => {
+                  console.warn(`[Call][face] 나야 → enrollFaces 실패 personId=${restore.personId}:`, err);
+                });
+              unknownFaceSnapshotRef.current = null;
+            }
+            dispatchRm({ type: "CONFIRM_SAME_PERSON" });
+          },
+        },
         {
           text: "등록",
           onPress: () => {
@@ -1206,15 +1262,26 @@ function CallScreenInner({ route, navigation }: Props) {
   const myAvatarUrl = useAuthStore((s) => s.apiUser?.avatarUrl ?? null);
 
   const [gifts, setGifts] = useState<GiftCatalogItem[]>([]);
+
+  const [giftInventory, setGiftInventory] = useState<GiftInventoryItem[]>([]);
+  const giftOwnedCount = React.useMemo(
+    () => giftInventory.reduce((sum, g) => sum + g.count, 0),
+    [giftInventory],
+  );
   useEffect(() => {
     let cancelled = false;
     void fetchGiftCatalog().then((items) => {
       if (!cancelled) setGifts(items);
     });
+    if (accessToken) {
+      void getGiftInventory(accessToken).then((res) => {
+        if (!cancelled) setGiftInventory(res.items);
+      }).catch(() => {  });
+    }
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [accessToken]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -1590,7 +1657,7 @@ function CallScreenInner({ route, navigation }: Props) {
     }
     if (!ownerIdResolved) {
       console.warn(
-        `[gift] send skipped — ownerId still null after fetch. cloneId=${cloneId} cloneName=${clone?.name ?? "?"}`,
+        `[gift] send skipped — ownerId still null after fetch. cloneId=${cloneId} cloneName=${clone?.displayName ?? paramName ?? "?"}`,
       );
       return;
     }
@@ -2200,13 +2267,30 @@ function CallScreenInner({ route, navigation }: Props) {
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={s.giftItem}
-                  onPress={() => handleGiftSend(item)}
+                  onPress={() => {
+
+                    if (giftOwnedCount <= 0) {
+                      showAlert(
+                        "보유 꽃이 없어요",
+                        "꽃을 구매하러 이동할까요?",
+                        [
+                          { text: "취소", style: "cancel" },
+                          {
+                            text: "구매하기",
+                            onPress: () => {
+                              setShowGifts(false);
+                              (navigation as unknown as { navigate: (n: string) => void }).navigate("Purchase");
+                            },
+                          },
+                        ],
+                      );
+                      return;
+                    }
+                    handleGiftSend(item);
+                  }}
                   activeOpacity={0.7}
                 >
                   <View style={s.giftEmojiWrap}>
-                    {
-
-}
                     {item.imageUrl ? (
                       <Image source={{ uri: item.imageUrl }} style={s.giftImage} />
                     ) : (
@@ -2214,11 +2298,10 @@ function CallScreenInner({ route, navigation }: Props) {
                     )}
                   </View>
                   <Text style={s.giftName} numberOfLines={1}>{item.name}</Text>
-                  {typeof item.xrunPrice === "number" ? (
-                    <Text style={s.giftPrice}>{item.xrunPrice} XRUN</Text>
-                  ) : (
-                    <View style={{ minWidth: 60 }} />
-                  )}
+                  {}
+                  <Text style={[s.giftPrice, giftOwnedCount === 0 && { color: COLORS.zinc400 }]}>
+                    {giftOwnedCount}개 보유
+                  </Text>
                 </TouchableOpacity>
               )}
             />

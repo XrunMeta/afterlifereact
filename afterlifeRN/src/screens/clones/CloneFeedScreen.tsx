@@ -49,6 +49,8 @@ import {
   v_ba8b3a,
   type v_52af9d,
 } from "../../api/clones";
+
+import type { v_d79d7f, v_b0b271 } from "../../api/clones";
 import v_4d58d7 from "../../components/common/ReportReasonModal";
 import { v_bfd883 } from "../../lib/relativeTime";
 import { v_1bfbd0 } from "../../components/constants";
@@ -79,14 +81,15 @@ export default function v_9887a2(v_b1927c) {
           likedByMe: v_3f4e2e.likedByMe ?? false,
           commentsCount: v_3f4e2e.stats?.comments ?? 0,
           createdAt: v_3f4e2e.createdAt,
+
           clone: {
             id: v_3f4e2e.id,
             ownerId: v_3f4e2e.ownerId,
             name: v_3f4e2e.name,
             username: v_3f4e2e.username ?? "",
             avatarUrl: v_3f4e2e.avatarUrl,
-            cloneType: v_3f4e2e.cloneType,
-            visibility: v_3f4e2e.visibility,
+            cloneType: v_3f4e2e.cloneType as v_d79d7f,
+            visibility: v_3f4e2e.visibility as v_b0b271,
           },
           interests: v_3f4e2e.interests ?? [],
         });

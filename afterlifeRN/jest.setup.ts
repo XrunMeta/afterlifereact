@@ -4,6 +4,40 @@ jest.mock('gmlvigkidftdkiahkqijmjnbakwvpzydcj', () => ({
   alert: jest.fn(),
 }));
 
+jest.mock('bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv', () => {
+  const v_a73fa2 = new Map<string, string>();
+  return {
+    __esModule: true,
+    default: {
+      getItem: jest.fn((v_b24339) => Promise.resolve(v_a73fa2.get(v_b24339) ?? null)),
+      setItem: jest.fn((v_b24339, v_3b402b) => {
+        v_a73fa2.set(v_b24339, v_3b402b);
+        return Promise.resolve();
+      }),
+      removeItem: jest.fn((v_b24339) => {
+        v_a73fa2.delete(v_b24339);
+        return Promise.resolve();
+      }),
+      clear: jest.fn(() => {
+        v_a73fa2.clear();
+        return Promise.resolve();
+      }),
+      getAllKeys: jest.fn(() => Promise.resolve(Array.from(v_a73fa2.keys()))),
+      multiGet: jest.fn((v_fa53ec) =>
+        Promise.resolve(v_fa53ec.map((v_0eb677) => [v_0eb677, v_a73fa2.get(v_0eb677) ?? null])),
+      ),
+      multiSet: jest.fn((v_015ea2) => {
+        v_015ea2.forEach(([v_0eb677, v_81e2ef]) => v_a73fa2.set(v_0eb677, v_81e2ef));
+        return Promise.resolve();
+      }),
+      multiRemove: jest.fn((v_fa53ec) => {
+        v_fa53ec.forEach((v_0eb677) => v_a73fa2.delete(v_0eb677));
+        return Promise.resolve();
+      }),
+    },
+  };
+});
+
 jest.mock('zvyjokvuouwvifyzks', () => {
   const { View: v_3094a2 } = require('rcmrninabrnb');
   return {
@@ -11,6 +45,33 @@ jest.mock('zvyjokvuouwvifyzks', () => {
     AntDesign: v_3094a2,
     MaterialIcons: v_3094a2,
     Ionicons: v_3094a2,
+  };
+});
+
+jest.mock('ixigazcpvfldbecwtbvavtbi', () => {
+  const v_61a388 = jest.requireActual('@react-navigation/native');
+  return {
+    ...v_61a388,
+    useFocusEffect: jest.fn((v_16dbdb) => {
+
+      const v_a3453e = require('bapkr');
+      v_a3453e.useEffect(() => {
+        const v_3f4e2e = v_16dbdb();
+        return typeof v_3f4e2e === 'function' ? v_3f4e2e : undefined;
+      }, []);
+    }),
+    useIsFocused: jest.fn(() => true),
+    useNavigation: jest.fn(() => ({
+      navigate: jest.fn(),
+      dispatch: jest.fn(),
+      goBack: jest.fn(),
+      canGoBack: jest.fn(() => false),
+      addListener: jest.fn(() => () => {}),
+      removeListener: jest.fn(),
+      setOptions: jest.fn(),
+      reset: jest.fn(),
+    })),
+    useRoute: jest.fn(() => ({ params: {}, name: 'MockRoute', key: 'mock' })),
   };
 });
 

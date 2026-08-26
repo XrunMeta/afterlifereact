@@ -11,6 +11,7 @@ import {
   type v_6aebaf,
 } from "./speakerIdReducer";
 import { v_afc2e6, v_383262, type v_ac8014 } from "../api/persons";
+import { v_f9bbe6, type v_90e668 } from "./faceLandmarkRatios";
 import { v_55dbc4, type v_8a6b56, type v_71bfaa } from "../config/faceDiag";
 
 export const v_65c90d = 3;
@@ -30,6 +31,8 @@ export interface IdentifyCycleDeps {
   matchFaceFn: MatchFaceFn;
 
   calibrateFn?: CalibrateFaceFn;
+
+  getCurrentLandmark?: () => v_90e668 | null;
 }
 
 export function v_10735f(v_b48d3d): v_71bfaa {
@@ -83,10 +86,40 @@ export async function v_f644ce(
     return { state: { ...v_b6e533, consecutiveFailures: v_3b90a4, backoffUntilMs: v_b93b45 }, event: null, cycle: null, threshold: null };
   }
 
+  let v_d2fcdb = v_43c42e.best?.personId ?? null;
+  let v_14f856 = v_43c42e.best?.displayName ?? null;
+  const v_d15b72 = v_43c42e.best?.score ?? v_43c42e.matches[0]?.score ?? 0;
+  let v_7f9794 = v_d15b72;
+
+  const v_20e745 = v_84b93d.getCurrentLandmark?.();
+  const v_63e1ab = v_43c42e.best?.landmarkRatiosList;
+  if (v_d2fcdb != null && v_20e745 && v_63e1ab && v_63e1ab.length > 0) {
+
+    const v_f2d98f = v_63e1ab.filter((v_1614db): v_1614db is Record<string, number> => v_1614db != null);
+    if (v_f2d98f.length > 0) {
+      const v_b552b6 = v_f2d98f.map((v_39de0e) =>
+        v_f9bbe6(v_20e745, v_39de0e as unknown as v_90e668),
+      );
+      const v_1f22f7 = v_b552b6.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6, 0) / v_b552b6.length;
+
+      const v_e75c90 = v_d15b72 * v_1f22f7;
+      const v_aa1c73 = 0.5; 
+      if (v_e75c90 < v_aa1c73) {
+
+        v_d2fcdb = null;
+        v_14f856 = null;
+      }
+      v_7f9794 = v_e75c90;
+    }
+  }
+
   const cycle: v_6aebaf = {
-    personId: v_43c42e.best?.personId ?? null,
-    displayName: v_43c42e.best?.displayName ?? null,
-    score: v_43c42e.best?.score ?? 0,
+    personId: v_d2fcdb,
+    displayName: v_14f856,
+
+    score: v_d2fcdb != null ? v_7f9794 : v_43c42e.matches[0]?.score ?? 0,
+
+    topPersonId: v_43c42e.matches[0]?.personId ?? null,
   };
 
   const { state: v_60d563, event: v_d48baf } = v_be2f9f(v_b6e533.speaker, v_bdad26, v_67e77e);
@@ -102,6 +135,8 @@ export interface UseFaceIdentifyOptions {
 
   enabled: boolean;
   accessToken: string;
+
+  getCurrentLandmark?: () => v_90e668 | null;
 
   cloneId: number;
   onEvent: (evt: v_b26216) => void;
@@ -127,8 +162,11 @@ export interface UseFaceIdentifyResult {
 }
 
 export function v_e9685b(v_328259): UseFaceIdentifyResult {
-  const { enabled: v_d20c84, accessToken: v_2ca7e0, cloneId: v_6e0fd3, onEvent: v_68885c, onDiag: v_32837c, calibrate: v_faccce, onCollected: v_d23335 } = v_328259;
-  const v_84b93d = v_df9f57<IdentifyCycleDeps>(() => v_328259.deps ?? { matchFaceFn: v_afc2e6 }, [v_328259.deps]);
+  const { enabled: v_d20c84, accessToken: v_2ca7e0, cloneId: v_6e0fd3, onEvent: v_68885c, onDiag: v_32837c, calibrate: v_faccce, onCollected: v_d23335, getCurrentLandmark: v_bed13d } = v_328259;
+  const v_84b93d = v_df9f57<IdentifyCycleDeps>(
+    () => v_328259.deps ?? { matchFaceFn: v_afc2e6, getCurrentLandmark: v_bed13d },
+    [v_328259.deps, v_bed13d],
+  );
   const v_5de650 = v_328259.now ?? Date.now;
 
   const v_8d3dea = v_e662ae<IdentifyCycleState>(v_48b3dc);
@@ -161,15 +199,15 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
             console.log(`[useFaceIdentify] cycle personId=${v_bdad26.personId ?? "null"} score=${v_bdad26.score?.toFixed(3) ?? "?"} streak=${v_b6e533.speaker.streak} onCollected=${!!v_d23335}`);
           }
 
-          const v_9d9155 = 0.65;
-          const v_c29169 = 3;
+          const v_c4d427 = 0.75;   
+          const v_a079c5 = 3;     
           if (
             v_d23335 &&
             v_bdad26 &&
             v_bdad26.personId != null &&
             typeof v_bdad26.score === "number" &&
-            v_bdad26.score >= v_9d9155 &&
-            v_b6e533.speaker.streak >= v_c29169
+            v_bdad26.score >= v_c4d427 &&
+            v_b6e533.speaker.streak >= v_a079c5
           ) {
             try {
               v_d23335(v_bdad26.personId, v_46ff7a);
@@ -204,6 +242,7 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
                 ts: v_5de650(),
                 score: v_ef2205.score,
                 personId: v_ef2205.personId,
+                topPersonId: v_bdad26.topPersonId ?? null,
                 streak: v_ef2205.streak,
                 verdict: v_ef2205.verdict,
                 threshold: v_ef2205.threshold,

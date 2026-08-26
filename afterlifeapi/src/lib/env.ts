@@ -91,6 +91,8 @@ export interface Bindings {
   ANDROID_PACKAGE_NAME?: string;              
 
   CREDIT_DECAY_DRY_RUN?: string;
+
+  XRUN_BRIDGE_SECRET?: string;
 }
 
 export type AppEnv = {

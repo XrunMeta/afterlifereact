@@ -142,7 +142,13 @@ v_fded81.post("/match", v_6690d9, async (v_3f4e2e) => {
 
   const v_a49907 = v_495447
     .filter((v_35f85c) => v_77b1ac.has(v_35f85c.personId))
-    .map((v_35f85c) => ({ personId: v_35f85c.personId, displayName: v_77b1ac.get(v_35f85c.personId) ?? null, score: v_35f85c.score }));
+    .map((v_35f85c) => ({
+      personId: v_35f85c.personId,
+      displayName: v_77b1ac.get(v_35f85c.personId) ?? null,
+      score: v_35f85c.score,
+
+      landmarkRatiosList: v_35f85c.landmarkRatiosList ?? null,
+    }));
 
   const v_643757 = v_a49907[0] && v_a49907[0].score >= v_d361d7 ? v_a49907[0] : null;
 
@@ -319,8 +325,8 @@ v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_ca1ec5 = v_5c8583(v_3f4e2e);
   const v_4d33b2 = await v_3f4e2e.req
-    .json<{ vectors?: number[][]; cloneId?: number }>()
-    .catch(() => ({}) as { vectors?: number[][]; cloneId?: number });
+    .json<{ vectors?: number[][]; cloneId?: number; landmarkRatios?: (Record<string, number> | null)[] }>()
+    .catch(() => ({}) as { vectors?: number[][]; cloneId?: number; landmarkRatios?: (Record<string, number> | null)[] });
   const v_f94e64 = v_4d33b2.vectors;
   if (
     !Array.isArray(v_f94e64) ||
@@ -335,6 +341,21 @@ v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = v_4d33b2.cloneId;
   if (typeof v_6e0fd3 !== "number" || !Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
     throw new v_3ebe58("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+
+  const v_bef6f8 = v_4d33b2.landmarkRatios;
+  if (v_bef6f8 !== undefined) {
+    if (!Array.isArray(v_bef6f8) || v_bef6f8.length !== v_f94e64.length)
+      throw new v_3ebe58("VALIDATION_FAILED", "landmarkRatios: vectors 와 동일 길이 배열이어야 합니다");
+    for (const v_cb35cb of v_bef6f8) {
+      if (v_cb35cb == null) continue;
+      if (typeof v_cb35cb !== "object")
+        throw new v_3ebe58("VALIDATION_FAILED", "landmarkRatios 항목: object 또는 null 이어야 합니다");
+      for (const v_81e2ef of Object.values(v_cb35cb)) {
+        if (typeof v_81e2ef !== "number" || !Number.isFinite(v_81e2ef))
+          throw new v_3ebe58("VALIDATION_FAILED", "landmarkRatios 값: 유한 수치여야 합니다");
+      }
+    }
+  }
 
   const v_eb25ce = await v_0b07b9(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c);
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "person이 존재하지 않습니다.");
@@ -354,6 +375,7 @@ v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
       cloneId: v_6e0fd3,
       personId: v_ca1ec5,
       vectors: v_f94e64,
+      landmarkRatios: v_bef6f8,
       source: "call",
     });
 

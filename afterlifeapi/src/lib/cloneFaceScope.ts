@@ -13,6 +13,8 @@ export function v_929ead(v_43e90c, v_6e0fd3): string {
 export interface CloneScopeMatch {
   personId: number;
   score: number;
+
+  landmarkRatiosList?: (Record<string, number> | null)[];
 }
 
 export async function v_97be02(
@@ -34,8 +36,43 @@ export async function v_97be02(
     v_8a69ab.set(v_d4923e, Math.max(v_8a69ab.get(v_d4923e) ?? -1, v_35f85c.score));
   }
 
+  const v_70f4f7 = [...v_8a69ab.keys()];
+
+  const v_04f336 = new Map<number, (Record<string, number> | null)[]>();
+  if (v_70f4f7.length) {
+    try {
+      const v_1cdc07 = v_70f4f7.map(() => "?").join(",");
+      const v_315151 = await v_c9c489.DB.prepare(
+        `SELECT person_id, landmark_ratios FROM clone_person_faces
+          WHERE clone_id = ? AND person_id IN (${v_1cdc07})`,
+      )
+        .bind(v_6e0fd3, ...v_70f4f7)
+        .all<{ person_id: number; landmark_ratios: string | null }>();
+      for (const v_3ac7e7 of v_315151.results) {
+        const v_d0c056 = v_04f336.get(v_3ac7e7.person_id) ?? [];
+        if (v_3ac7e7.landmark_ratios) {
+          try {
+            const v_8decf8 = JSON.parse(v_3ac7e7.landmark_ratios);
+            v_d0c056.push(v_8decf8);
+          } catch {
+            v_d0c056.push(null);
+          }
+        } else {
+          v_d0c056.push(null);
+        }
+        v_04f336.set(v_3ac7e7.person_id, v_d0c056);
+      }
+    } catch {
+
+    }
+  }
+
   return [...v_8a69ab.entries()]
-    .map(([v_ca1ec5, v_740dd8]) => ({ personId: v_ca1ec5, score: v_740dd8 }))
+    .map(([v_ca1ec5, v_740dd8]) => ({
+      personId: v_ca1ec5,
+      score: v_740dd8,
+      landmarkRatiosList: v_04f336.get(v_ca1ec5),
+    }))
     .sort((v_779914, v_148ff6) => v_148ff6.score - v_779914.score);
 }
 
@@ -47,7 +84,7 @@ export async function v_003ee1(
   env: v_273a0c,
   v_328259,
 ): Promise<EnrollResult> {
-  const { userId: v_43e90c, cloneId: v_6e0fd3, personId: v_ca1ec5, vectors: v_f94e64, source: v_04e790 = "call" } = v_328259;
+  const { userId: v_43e90c, cloneId: v_6e0fd3, personId: v_ca1ec5, vectors: v_f94e64, landmarkRatios: v_bef6f8, source: v_04e790 = "call" } = v_328259;
 
   const v_18b8bf = v_f94e64.map((v_6fea0b) => ({
     id: crypto.randomUUID(),
@@ -64,14 +101,31 @@ export async function v_003ee1(
     `INSERT INTO face_embeddings (person_id, vectorize_id, model, dim, source, created_at)
      VALUES (?, ?, 'w600k_mbf', 512, ?, ?)`,
   );
+
   const v_eb55c5 = v_c9c489.DB.prepare(
+    `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at, landmark_ratios)
+     VALUES (?, ?, ?, 'w600k_mbf', 512, ?, ?, ?)`,
+  );
+  const v_437cb0 = v_c9c489.DB.prepare(
     `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
      VALUES (?, ?, ?, 'w600k_mbf', 512, ?, ?)`,
   );
-  await v_c9c489.DB.batch([
-    ...v_18b8bf.map((v_cb35cb) => v_657f41.bind(v_ca1ec5, v_cb35cb.id, v_9b9019, v_9e67a6)),
-    ...v_18b8bf.map((v_cb35cb) => v_eb55c5.bind(v_6e0fd3, v_ca1ec5, v_cb35cb.id, v_04e790, v_9e67a6)),
-  ]);
+  try {
+    await v_c9c489.DB.batch([
+      ...v_18b8bf.map((v_cb35cb) => v_657f41.bind(v_ca1ec5, v_cb35cb.id, v_9b9019, v_9e67a6)),
+      ...v_18b8bf.map((v_cb35cb, v_ebec57) => {
+        const v_8c6427 = v_bef6f8?.[v_ebec57];
+        const v_4a4eb3 = v_8c6427 != null ? JSON.stringify(v_8c6427) : null;
+        return v_eb55c5.bind(v_6e0fd3, v_ca1ec5, v_cb35cb.id, v_04e790, v_9e67a6, v_4a4eb3);
+      }),
+    ]);
+  } catch {
+
+    await v_c9c489.DB.batch([
+      ...v_18b8bf.map((v_cb35cb) => v_657f41.bind(v_ca1ec5, v_cb35cb.id, v_9b9019, v_9e67a6)),
+      ...v_18b8bf.map((v_cb35cb) => v_437cb0.bind(v_6e0fd3, v_ca1ec5, v_cb35cb.id, v_04e790, v_9e67a6)),
+    ]);
+  }
 
   try {
     await v_a8d2cc(v_c9c489).insert(v_18b8bf);

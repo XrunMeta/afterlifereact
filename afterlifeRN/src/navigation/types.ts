@@ -119,6 +119,7 @@ export type MyStackParamList = {
   Agreements: undefined;
   SavedItems: undefined;
   RememberingClones: undefined;
+  RememberingCloneDetail: { cloneId: number; cloneName: string };
   LanguageSettings: undefined;
   PaymentPin: undefined;
   InviteStatus: undefined;
@@ -128,6 +129,8 @@ export type MyStackParamList = {
   Reports: { tab?: "made" | "received" } | undefined;
 
   VisemeTest: undefined;
+
+  FaceThresholdTest: undefined;
 };
 
 declare global {
