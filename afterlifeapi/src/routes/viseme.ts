@@ -99,12 +99,55 @@ viseme.post("/chat", requireAuth, async (c) => {
   const userLocation = typeof body.user_location === "string" && body.user_location.trim() ? body.user_location.trim().slice(0, 200) : undefined;
 
   let personaDescription: string | undefined = undefined;
+  let personaAttrsSummary: string | undefined = undefined;
+  let personaCore: string | undefined = undefined;
+  let personaTone: string | undefined = undefined;
+  let personaKnowledge: Array<{ q: string; a: string }> | undefined = undefined;
   if (cloneId !== undefined) {
-    const cloneRow = await c.env.DB.prepare("SELECT description FROM clones WHERE id = ?")
+    const cloneRow = await c.env.DB.prepare(
+      "SELECT description, l1_profile FROM clones WHERE id = ?"
+    )
       .bind(cloneId)
-      .first<{ description: string | null }>();
+      .first<{ description: string | null; l1_profile: string | null }>();
     const desc = (cloneRow?.description ?? "").trim();
     if (desc) personaDescription = desc.slice(0, 600);
+    if (cloneRow?.l1_profile) {
+      try {
+        const p = JSON.parse(cloneRow.l1_profile) as {
+          attrs?: Record<string, string>;
+          personality_core?: string;
+          tone?: string;
+          knowledge?: Array<{ q?: string; a?: string }>;
+        };
+
+        if (p.attrs && typeof p.attrs === "object") {
+          const parts: string[] = [];
+          for (const [k, v] of Object.entries(p.attrs)) {
+            if (typeof v === "string" && v.trim()) parts.push(`${k}=${v.trim().slice(0, 40)}`);
+          }
+          if (parts.length) personaAttrsSummary = parts.slice(0, 12).join(", ").slice(0, 400);
+        }
+        if (typeof p.personality_core === "string" && p.personality_core.trim())
+          personaCore = p.personality_core.trim().slice(0, 300);
+        if (typeof p.tone === "string" && p.tone.trim())
+          personaTone = p.tone.trim().slice(0, 300);
+
+        if (Array.isArray(p.knowledge)) {
+          const items: Array<{ q: string; a: string }> = [];
+          for (const k of p.knowledge) {
+            if (k && typeof k.q === "string" && typeof k.a === "string") {
+              const q = k.q.trim();
+              const a = k.a.trim();
+              if (q && a) items.push({ q: q.slice(0, 120), a: a.slice(0, 240) });
+            }
+            if (items.length >= 10) break;
+          }
+          if (items.length) personaKnowledge = items;
+        }
+      } catch {
+
+      }
+    }
   }
 
   let rememberedName: string | undefined = undefined;
@@ -137,6 +180,10 @@ viseme.post("/chat", requireAuth, async (c) => {
         user_location: userLocation,
 
         persona_description: personaDescription,
+        persona_attrs_summary: personaAttrsSummary,  
+        persona_core: personaCore,                    
+        persona_tone: personaTone,                    
+        persona_knowledge: personaKnowledge,          
         remembered_name: rememberedName,
       }),
     });
