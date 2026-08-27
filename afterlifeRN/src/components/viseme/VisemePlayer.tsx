@@ -142,7 +142,8 @@ export default function v_d4f200({
 }
 
 const v_d81136 = v_472849.create({
-  container: { width: "100%", aspectRatio: 1 },
+
+  container: { width: "100%", height: "100%" },
   image: { width: "100%", height: "100%" },
   placeholder: { backgroundColor: "#222" },
 });
