@@ -93,6 +93,9 @@ export interface Bindings {
   CREDIT_DECAY_DRY_RUN?: string;
 
   XRUN_BRIDGE_SECRET?: string;
+
+  VISEME_RENDER_URL?: string;
+  VISEME_RENDER_SECRET?: string;  
 }
 
 export type AppEnv = {
