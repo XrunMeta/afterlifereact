@@ -3,8 +3,11 @@
 import { v_de06a3, v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import { v_cc9198 } from "../config/apiBase";
 import { v_335e37 } from "../lib/authFetch";
-import { type v_b01667, type v_d20273, type v_b190e4, type v_9d43cd } from "./avatarCall";
+import { type v_b01667, type v_d20273, type v_b190e4, type v_9d43cd, type v_14f245 } from "./avatarCall";
 import { type v_2a0baf } from "../components/viseme/VisemePlayer";
+import { v_194498 } from "../stores/cloneStore";
+import { v_1ed7d9 } from "../stores/authStore";
+import { v_1fcb40 } from "../services/userLocation";
 
 export interface UseVisemeAvatarResult extends v_b01667 {
 
@@ -15,6 +18,10 @@ export interface UseVisemeAvatarResult extends v_b01667 {
 
 export function v_e52b18(v_328259): UseVisemeAvatarResult {
   const { cloneId: v_6e0fd3, accessToken: v_2ca7e0 } = v_328259;
+
+  const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
+  const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
+  const v_090778 = v_e662ae<number | null>(null);
   const [v_b6e533, v_1fa668] = v_5ab095<v_d20273>("idle");
   const [v_ab4803, v_ae4844] = v_5ab095<v_b190e4>("idle");
   const [v_5e9bfe, v_3a7d09] = v_5ab095<Error | null>(null);
@@ -93,6 +100,10 @@ export function v_e52b18(v_328259): UseVisemeAvatarResult {
     v_8c8005({ type: "speech_start", ts: Date.now() });
     try {
       const v_f915d0 = await v_335e37(v_2ca7e0);
+
+      const v_146d3d = await v_1fcb40(v_6e0fd3)
+        .then(v_8f00b9 => v_8f00b9.location || undefined)
+        .catch(() => undefined);
       const v_f71b56 = `${v_cc9198}/oth-path`;
       const v_cb35cb = await fetch(v_f71b56, {
         method: "POST",
@@ -100,7 +111,16 @@ export function v_e52b18(v_328259): UseVisemeAvatarResult {
           "Content-Type": "application/json",
           Authorization: `Bearer ${v_f915d0}`,
         },
-        body: JSON.stringify({ text: v_8d41d7, clone_id: v_6e0fd3 }),
+        body: JSON.stringify({
+          text: v_8d41d7,
+          clone_id: v_6e0fd3,
+
+          clone_name: v_eb25ce?.displayName || undefined,
+          user_name: v_b113dd?.name || undefined,
+
+          active_person_id: v_090778.current ?? undefined,
+          user_location: v_146d3d,
+        }),
       });
       if (!v_cb35cb.ok) {
         const v_9be017 = await v_cb35cb.text().catch(() => "");
@@ -161,6 +181,13 @@ export function v_e52b18(v_328259): UseVisemeAvatarResult {
 
   }, []);
 
+  const v_11f4a1 = v_de06a3((evt: v_14f245) => {
+    if (v_9e6ec9.event === "speaker_confirmed" && typeof v_9e6ec9.personId === "number") {
+      v_090778.current = v_9e6ec9.personId;
+      if (__DEV__) console.log(`[useVisemeAvatar] active person → ${v_9e6ec9.personId}`);
+    }
+  }, []);
+
   const v_791152 = v_de06a3(() => {
 
     return null;
@@ -179,6 +206,7 @@ export function v_e52b18(v_328259): UseVisemeAvatarResult {
     greet: v_009e58,
     speak: v_a1d9db,
     lastSignal: v_88c591,
+    sendFaceEvent: v_11f4a1,
     synthResponse: v_194cc6,
 
     visemeResponse: v_194cc6,
