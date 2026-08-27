@@ -39,7 +39,7 @@ v_5c0bb5.post("/synth", v_6690d9, async (v_3f4e2e) => {
   if (v_9b6134.length > 500) throw new v_3ebe58("VALIDATION_FAILED", "text too long (max 500).");
   const v_2f693a = v_4d33b2.se_key && typeof v_4d33b2.se_key === "string" ? v_4d33b2.se_key : undefined;
 
-  const v_694b25 = v_3f4e2e.env.PRETHIRD_PUBLIC_BASE || v_1c386b;
+  const v_694b25 = v_3f4e2e.env.CALL_PRETHIRD_BASE || v_1c386b;
   const v_0a6a65 = `${v_694b25.replace(/\/$/, "")}/oth-path`;
   let v_eb792a;
   try {
@@ -87,7 +87,7 @@ v_5c0bb5.post("/chat", v_6690d9, async (v_3f4e2e) => {
   if (v_9b6134.length > 2000) throw new v_3ebe58("VALIDATION_FAILED", "text too long (max 2000).");
   const v_6e0fd3 = Number.isInteger(v_4d33b2.clone_id) ? v_4d33b2.clone_id : undefined;
 
-  const v_694b25 = v_3f4e2e.env.PRETHIRD_PUBLIC_BASE || v_1c386b;
+  const v_694b25 = v_3f4e2e.env.CALL_PRETHIRD_BASE || v_1c386b;
   const v_0a6a65 = `${v_694b25.replace(/\/$/, "")}/oth-path`;
   let v_eb792a;
   try {
