@@ -2,6 +2,8 @@
 
 import type { MediaStream } from 'react-native-webrtc';
 
+import type { VisemeSynthResponse } from '../components/viseme/VisemePlayer';
+
 export type LiveAvatarState =
   | 'idle' | 'requesting' | 'connecting' | 'live' | 'error' | 'ended';
 
@@ -46,6 +48,8 @@ export interface AvatarCall {
   lastSignal?: SpeechSignal | null;
 
   sendFaceEvent?: (evt: FaceEvent) => void;
+
+  visemeResponse?: VisemeSynthResponse | null;
 }
 
 export type UseAvatarCall = (opts: {
