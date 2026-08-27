@@ -34,6 +34,8 @@ import CallEntryQuestionsScreen from "../call-entry/CallEntryQuestionsScreen";
 
 import SvgaThumb from "../../components/gift/SvgaThumb";
 import { RTCView } from "react-native-webrtc";
+
+import VisemePlayer from "../../components/viseme/VisemePlayer";
 import {
   Camera as VisionCamera,
   useCameraDevice,
@@ -451,6 +453,8 @@ function CallScreenInner({ route, navigation }: Props) {
 
   const [livePipeline, setLivePipeline] = useState<string | null>(null);
 
+  const [liveVisemePrefix, setLiveVisemePrefix] = useState<string | null>(null);
+
   const {
     state: liveState,
     remoteStream,
@@ -463,6 +467,8 @@ function CallScreenInner({ route, navigation }: Props) {
     speak,
     lastSignal,
     sendFaceEvent,
+
+    visemeResponse,
   } = useAvatarCall({
     cloneId,
     accessToken: accessToken ?? "",
@@ -481,9 +487,12 @@ function CallScreenInner({ route, navigation }: Props) {
         const { getCloneDetail } = await import("../../api/clones");
         const detail = await getCloneDetail(cloneId, accessToken);
         if (alive) {
-          const p = (detail as { clone?: { pipeline?: string | null } })?.clone?.pipeline ?? null;
+          const cloneData = (detail as { clone?: { pipeline?: string | null; visemePrefix?: string | null } })?.clone;
+          const p = cloneData?.pipeline ?? null;
+          const vp = cloneData?.visemePrefix ?? null;
           setLivePipeline(p);
-          if (__DEV__) console.log(`[T-467] livePipeline for clone ${cloneId} = ${p}`);
+          setLiveVisemePrefix(vp);
+          if (__DEV__) console.log(`[T-467] livePipeline for clone ${cloneId} = ${p} · visemePrefix = ${vp ? "set" : "null"}`);
         }
       } catch (err) {
         if (__DEV__) console.warn("[T-467] getCloneDetail pipeline fetch failed:", err);
@@ -1750,6 +1759,15 @@ function CallScreenInner({ route, navigation }: Props) {
           <RTCView
             streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
             objectFit="cover"
+            style={s.videoFixedRtc}
+          />
+        </View>
+      ) : visemeResponse !== undefined && livePipeline === 'viseme_playback' ? (
+
+        <View style={s.videoFixedContainer}>
+          <VisemePlayer
+            response={visemeResponse}
+            visemePrefix={liveVisemePrefix}
             style={s.videoFixedRtc}
           />
         </View>
