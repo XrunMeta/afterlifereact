@@ -254,7 +254,8 @@ function next(
 
       if (inEnrollGrace) return { state, actions: [] };
 
-      if (!event.score || event.score === 0 || event.topPersonId == null) {
+      const CONFIDENCE_MIN = 0.55;
+      if (!event.score || event.score < CONFIDENCE_MIN || event.topPersonId == null) {
         return { state: { ...state, unknownStreak: state.unknownStreak + 1 }, actions: [] };
       }
       const refPersonId = state.personId ?? state.lastConfirmedPerson?.personId ?? null;
