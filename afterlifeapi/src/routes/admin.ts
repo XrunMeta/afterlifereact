@@ -1269,6 +1269,53 @@ v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true, updated: v_75ae3e.length - 1 });
 });
 
+v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const v_eb25ce = await v_3f4e2e.env.DB
+    .prepare(`SELECT id, name FROM clones WHERE id = ?`)
+    .bind(v_389afb)
+    .first<{ id: number; name: string }>();
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+
+  const v_555aed = v_3f4e2e.env.VISEME_RENDER_URL;
+  if (!v_555aed) {
+    return v_3f4e2e.json(
+      {
+        ok: false,
+        code: "NOT_CONFIGURED",
+        message: "VISEME_RENDER_URL is not set. 가비아 GPU 렌더 서버 배선 대기 중.",
+      },
+      501,
+    );
+  }
+
+  const v_4d33b2 = await v_3f4e2e.req.json().catch(() => ({} as { photoUrl?: string }));
+  const v_0838a4 = typeof (v_4d33b2 as { photoUrl?: unknown }).photoUrl === "string"
+    ? (v_4d33b2 as { photoUrl: string }).photoUrl
+    : undefined;
+
+  const v_3f4675 = { "Content-Type": "application/json" };
+  if (v_3f4e2e.env.VISEME_RENDER_SECRET) {
+    v_3f4675["Authorization"] = `Bearer ${v_3f4e2e.env.VISEME_RENDER_SECRET}`;
+  }
+  const v_0a6a65 = await fetch(v_555aed, {
+    method: "POST",
+    headers: v_3f4675,
+    body: JSON.stringify({ cloneId: v_389afb, photoUrl: v_0838a4 }),
+  });
+  const v_9b6134 = await v_0a6a65.text();
+  let v_931bf0;
+  try {
+    v_931bf0 = JSON.parse(v_9b6134);
+  } catch {
+    v_931bf0 = { raw: v_9b6134 };
+  }
+  return v_3f4e2e.json({ ok: v_0a6a65.ok, status: v_0a6a65.status, payload: v_931bf0 });
+});
+
 v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_ab6401 = (v_f71b56.searchParams.get("q") ?? "").trim();
@@ -2724,7 +2771,7 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_43fd42 = v_3f4e2e.env.LEARN_SECRET ?? "";
   if (!v_43fd42) return v_3f4e2e.json({ error: "LEARN_SECRET not configured" }, 500);
 
-  const v_694b25 = v_3f4e2e.env.PRETHIRD_PUBLIC_BASE || "https://rtc.example.invalid/prethird";
+  const v_694b25 = v_3f4e2e.env.CALL_PRETHIRD_BASE || "https://rtc.example.invalid/prethird";
   const v_0a6a65 = `${v_694b25.replace(/\/$/, "")}/oth-path`;
   try {
     const v_eb792a = await fetch(v_0a6a65, {

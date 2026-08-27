@@ -34,6 +34,8 @@ import CallEntryQuestionsScreen from "../call-entry/CallEntryQuestionsScreen";
 
 import SvgaThumb from "../../components/gift/SvgaThumb";
 import { RTCView } from "react-native-webrtc";
+
+import VisemePlayer from "../../components/viseme/VisemePlayer";
 import {
   Camera as VisionCamera,
   useCameraDevice,
@@ -194,6 +196,46 @@ export default function CallScreen(props: Props) {
   const [callEntryOpen, setCallEntryOpen] = React.useState<boolean | null>(false);
 
   const [preCallGate, setPreCallGate] = React.useState<"checking" | "skip">("checking");
+
+  const [prefetchedPipeline, setPrefetchedPipeline] = React.useState<string | null | undefined>(undefined);
+  React.useEffect(() => {
+    if (!wrapperAccessToken) {
+      setPrefetchedPipeline(null);
+      return;
+    }
+
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        console.warn("[Call][prefetch] pipeline timeout → null (15s)");
+        setPrefetchedPipeline(null);
+      }
+    }, 15000);
+    (async () => {
+      try {
+        const { getCloneDetail } = await import("../../api/clones");
+        const detail = await getCloneDetail(cloneId, wrapperAccessToken);
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        const p = (detail as { clone?: { pipeline?: string | null } })?.clone?.pipeline ?? null;
+        if (__DEV__) console.log(`[Call][prefetch] pipeline for clone ${cloneId} = ${p ?? 'null'}`);
+        setPrefetchedPipeline(p);
+      } catch (err) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        console.warn("[Call][prefetch] error, null:", err);
+        setPrefetchedPipeline(null);
+      }
+    })();
+    return () => {
+      settled = true;
+      clearTimeout(timer);
+    };
+
+  }, [wrapperAccessToken, cloneId]);
   React.useEffect(() => {
     if (!wrapperAccessToken) {
       setPreCallGate("skip");
@@ -256,19 +298,20 @@ export default function CallScreen(props: Props) {
       {
 
 }
-      {callEntryOpen !== false || !heavyReady || preCallGate === "checking" ? (
+      {callEntryOpen !== false || !heavyReady || preCallGate === "checking" || prefetchedPipeline === undefined ? (
         <DialingScreen
           liveState="idle"
           personaName={paramName ?? ""}
           personaImage={placeholderImage}
 
-          silent={callEntryOpen !== false || preCallGate === "checking"}
+          silent={callEntryOpen !== false || preCallGate === "checking" || prefetchedPipeline === undefined}
           onConnected={() => {}}
           onCancel={() => props.navigation.goBack()}
           onRetry={() => {}}
         />
       ) : (
-        <CallScreenInner {...props} />
+
+        <CallScreenInner {...props} initialPipeline={prefetchedPipeline} />
       )}
 
       {
@@ -316,7 +359,11 @@ export default function CallScreen(props: Props) {
   );
 }
 
-function CallScreenInner({ route, navigation }: Props) {
+interface InnerProps extends Props {
+  initialPipeline: string | null;
+}
+
+function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const { t } = useTranslation();
   const { cloneId, name: paramName, image: paramImage } = route.params;
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
@@ -449,7 +496,9 @@ function CallScreenInner({ route, navigation }: Props) {
     enrollSuggestImplRef.current(name, personId);
   }, []);
 
-  const [livePipeline, setLivePipeline] = useState<string | null>(null);
+  const [livePipeline, setLivePipeline] = useState<string | null>(initialPipeline);
+
+  const [liveVisemePrefix, setLiveVisemePrefix] = useState<string | null>(null);
 
   const {
     state: liveState,
@@ -463,6 +512,8 @@ function CallScreenInner({ route, navigation }: Props) {
     speak,
     lastSignal,
     sendFaceEvent,
+
+    visemeResponse,
   } = useAvatarCall({
     cloneId,
     accessToken: accessToken ?? "",
@@ -481,9 +532,12 @@ function CallScreenInner({ route, navigation }: Props) {
         const { getCloneDetail } = await import("../../api/clones");
         const detail = await getCloneDetail(cloneId, accessToken);
         if (alive) {
-          const p = (detail as { clone?: { pipeline?: string | null } })?.clone?.pipeline ?? null;
+          const cloneData = (detail as { clone?: { pipeline?: string | null; visemePrefix?: string | null } })?.clone;
+          const p = cloneData?.pipeline ?? null;
+          const vp = cloneData?.visemePrefix ?? null;
           setLivePipeline(p);
-          if (__DEV__) console.log(`[T-467] livePipeline for clone ${cloneId} = ${p}`);
+          setLiveVisemePrefix(vp);
+          if (__DEV__) console.log(`[T-467] livePipeline for clone ${cloneId} = ${p} · visemePrefix = ${vp ? "set" : "null"}`);
         }
       } catch (err) {
         if (__DEV__) console.warn("[T-467] getCloneDetail pipeline fetch failed:", err);
@@ -1750,6 +1804,15 @@ function CallScreenInner({ route, navigation }: Props) {
           <RTCView
             streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
             objectFit="cover"
+            style={s.videoFixedRtc}
+          />
+        </View>
+      ) : visemeResponse !== undefined && livePipeline === 'viseme_playback' ? (
+
+        <View style={s.videoFixedContainer}>
+          <VisemePlayer
+            response={visemeResponse}
+            visemePrefix={liveVisemePrefix}
             style={s.videoFixedRtc}
           />
         </View>
