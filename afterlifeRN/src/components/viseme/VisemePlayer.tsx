@@ -81,10 +81,12 @@ export default function v_d4f200({
 
     try {
 
+      if (__DEV__) console.log(`[VisemePlayer] create · b64_len=${v_3393e3.audio_wav_b64.length} · dur=${v_3393e3.duration_ms}ms · visemes=${v_3393e3.visemes.length}`);
       const v_86394a = v_e82960({
         uri: `data:audio/wav;base64,${v_3393e3.audio_wav_b64}`,
       });
       v_205807.current = v_86394a;
+      if (__DEV__) console.log(`[VisemePlayer] player created OK`);
 
       const v_bf9904 = v_3393e3.visemes;
       let v_05f387 = 0;
@@ -105,7 +107,12 @@ export default function v_d4f200({
         v_1e1f71.current = setTimeout(() => v_729796(v_e86ad8 + 1), v_4b24d2);
       };
 
-      v_86394a.play();
+      try {
+        v_86394a.play();
+        if (__DEV__) console.log(`[VisemePlayer] player.play() invoked`);
+      } catch (v_2cc79c) {
+        console.warn("[VisemePlayer] player.play() threw:", v_2cc79c);
+      }
       v_729796(0);
     } catch (v_9e86fd) {
       console.warn("[VisemePlayer] play failed:", v_9e86fd);
