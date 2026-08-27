@@ -39,7 +39,7 @@ viseme.post("/synth", requireAuth, async (c) => {
   if (text.length > 500) throw new APIError("VALIDATION_FAILED", "text too long (max 500).");
   const seKey = body.se_key && typeof body.se_key === "string" ? body.se_key : undefined;
 
-  const base = c.env.PRETHIRD_PUBLIC_BASE || DEFAULT_PRETHIRD_BASE;
+  const base = c.env.CALL_PRETHIRD_BASE || DEFAULT_PRETHIRD_BASE;
   const upstream = `${base.replace(/\/$/, "")}/oth-path`;
   let resp: Response;
   try {
@@ -87,7 +87,7 @@ viseme.post("/chat", requireAuth, async (c) => {
   if (text.length > 2000) throw new APIError("VALIDATION_FAILED", "text too long (max 2000).");
   const cloneId = Number.isInteger(body.clone_id) ? body.clone_id : undefined;
 
-  const base = c.env.PRETHIRD_PUBLIC_BASE || DEFAULT_PRETHIRD_BASE;
+  const base = c.env.CALL_PRETHIRD_BASE || DEFAULT_PRETHIRD_BASE;
   const upstream = `${base.replace(/\/$/, "")}/oth-path`;
   let resp: Response;
   try {
