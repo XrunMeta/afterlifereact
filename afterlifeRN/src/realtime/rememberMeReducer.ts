@@ -254,17 +254,16 @@ function next(
 
       if (inEnrollGrace) return { state, actions: [] };
 
-      const CONFIDENCE_MIN = 0.55;
-      if (!event.score || event.score < CONFIDENCE_MIN || event.topPersonId == null) {
-        return { state: { ...state, unknownStreak: state.unknownStreak + 1 }, actions: [] };
-      }
       const refPersonId = state.personId ?? state.lastConfirmedPerson?.personId ?? null;
-
       const differentPersonImmediate =
-        refPersonId != null && event.topPersonId !== refPersonId;
+        event.topPersonId != null &&
+        refPersonId != null &&
+        event.topPersonId !== refPersonId;
+
       const newStreak = state.unknownStreak + 1;
       const shouldPrompt =
-        differentPersonImmediate && !state.dismissedPromptInCall;
+        (differentPersonImmediate || newStreak >= UNKNOWN_ESCALATE_STREAK) &&
+        !state.dismissedPromptInCall;
 
       if (state.mode === "pending") {
         const promoted =
