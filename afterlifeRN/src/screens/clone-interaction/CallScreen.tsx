@@ -196,6 +196,43 @@ export default function CallScreen(props: Props) {
   const [callEntryOpen, setCallEntryOpen] = React.useState<boolean | null>(false);
 
   const [preCallGate, setPreCallGate] = React.useState<"checking" | "skip">("checking");
+
+  const [prefetchedPipeline, setPrefetchedPipeline] = React.useState<string | null | undefined>(undefined);
+  React.useEffect(() => {
+    if (!wrapperAccessToken) {
+      setPrefetchedPipeline(null);
+      return;
+    }
+    let cancelled = false;
+
+    const timer = setTimeout(() => {
+      if (!cancelled) {
+        console.warn("[Call][prefetch] pipeline timeout → null");
+        setPrefetchedPipeline(null);
+      }
+    }, 2000);
+    (async () => {
+      try {
+        const { getCloneDetail } = await import("../../api/clones");
+        const detail = await getCloneDetail(cloneId, wrapperAccessToken);
+        if (cancelled) return;
+        clearTimeout(timer);
+        const p = (detail as { clone?: { pipeline?: string | null } })?.clone?.pipeline ?? null;
+        if (__DEV__) console.log(`[Call][prefetch] pipeline for clone ${cloneId} = ${p ?? 'null'}`);
+        setPrefetchedPipeline(p);
+      } catch (err) {
+        if (cancelled) return;
+        clearTimeout(timer);
+        console.warn("[Call][prefetch] error, null:", err);
+        setPrefetchedPipeline(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+
+  }, [wrapperAccessToken, cloneId]);
   React.useEffect(() => {
     if (!wrapperAccessToken) {
       setPreCallGate("skip");
@@ -258,19 +295,20 @@ export default function CallScreen(props: Props) {
       {
 
 }
-      {callEntryOpen !== false || !heavyReady || preCallGate === "checking" ? (
+      {callEntryOpen !== false || !heavyReady || preCallGate === "checking" || prefetchedPipeline === undefined ? (
         <DialingScreen
           liveState="idle"
           personaName={paramName ?? ""}
           personaImage={placeholderImage}
 
-          silent={callEntryOpen !== false || preCallGate === "checking"}
+          silent={callEntryOpen !== false || preCallGate === "checking" || prefetchedPipeline === undefined}
           onConnected={() => {}}
           onCancel={() => props.navigation.goBack()}
           onRetry={() => {}}
         />
       ) : (
-        <CallScreenInner {...props} />
+
+        <CallScreenInner {...props} initialPipeline={prefetchedPipeline} />
       )}
 
       {
@@ -318,7 +356,11 @@ export default function CallScreen(props: Props) {
   );
 }
 
-function CallScreenInner({ route, navigation }: Props) {
+interface InnerProps extends Props {
+  initialPipeline: string | null;
+}
+
+function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const { t } = useTranslation();
   const { cloneId, name: paramName, image: paramImage } = route.params;
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
@@ -451,7 +493,7 @@ function CallScreenInner({ route, navigation }: Props) {
     enrollSuggestImplRef.current(name, personId);
   }, []);
 
-  const [livePipeline, setLivePipeline] = useState<string | null>(null);
+  const [livePipeline, setLivePipeline] = useState<string | null>(initialPipeline);
 
   const [liveVisemePrefix, setLiveVisemePrefix] = useState<string | null>(null);
 
