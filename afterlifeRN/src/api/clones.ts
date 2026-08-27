@@ -75,6 +75,8 @@ export interface CloneDetailResponse {
 
     interests?: string[];
     trainingStatus?: string;
+
+    visemePrefix?: string | null;
   };
 }
 export async function getCloneDetail(

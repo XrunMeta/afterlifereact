@@ -1360,6 +1360,8 @@ clones.get("/:id", async (c) => {
       createdAt: clone.created_at,
       viewerRole,
       pipeline: clone.pipeline,
+
+      visemePrefix: clone.viseme_prefix,
     },
   });
 });

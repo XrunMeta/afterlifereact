@@ -1269,6 +1269,53 @@ admin.patch("/oth-path", requireAdmin, async (c) => {
   return c.json({ ok: true, updated: sets.length - 1 });
 });
 
+admin.post("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const clone = await c.env.DB
+    .prepare(`SELECT id, name FROM clones WHERE id = ?`)
+    .bind(id)
+    .first<{ id: number; name: string }>();
+  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+
+  const renderUrl = c.env.VISEME_RENDER_URL;
+  if (!renderUrl) {
+    return c.json(
+      {
+        ok: false,
+        code: "NOT_CONFIGURED",
+        message: "VISEME_RENDER_URL is not set. 가비아 GPU 렌더 서버 배선 대기 중.",
+      },
+      501,
+    );
+  }
+
+  const body = await c.req.json().catch(() => ({} as { photoUrl?: string }));
+  const photoUrl = typeof (body as { photoUrl?: unknown }).photoUrl === "string"
+    ? (body as { photoUrl: string }).photoUrl
+    : undefined;
+
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (c.env.VISEME_RENDER_SECRET) {
+    headers["Authorization"] = `Bearer ${c.env.VISEME_RENDER_SECRET}`;
+  }
+  const upstream = await fetch(renderUrl, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ cloneId: id, photoUrl }),
+  });
+  const text = await upstream.text();
+  let payload: unknown;
+  try {
+    payload = JSON.parse(text);
+  } catch {
+    payload = { raw: text };
+  }
+  return c.json({ ok: upstream.ok, status: upstream.status, payload });
+});
+
 admin.get("/oth-path", requireAdmin, async (c) => {
   const url = new URL(c.req.url);
   const q = (url.searchParams.get("q") ?? "").trim();
@@ -2737,7 +2784,7 @@ admin.post("/oth-path", requireAdmin, async (c) => {
   const secret = c.env.LEARN_SECRET ?? "";
   if (!secret) return c.json({ error: "LEARN_SECRET not configured" }, 500);
 
-  const base = c.env.PRETHIRD_PUBLIC_BASE || "https://rtc.example.invalid/prethird";
+  const base = c.env.CALL_PRETHIRD_BASE || "https://rtc.example.invalid/prethird";
   const upstream = `${base.replace(/\/$/, "")}/oth-path`;
   try {
     const resp = await fetch(upstream, {
