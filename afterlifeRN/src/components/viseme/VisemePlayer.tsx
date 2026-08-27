@@ -81,10 +81,12 @@ export default function VisemePlayer({
 
     try {
 
+      if (__DEV__) console.log(`[VisemePlayer] create · b64_len=${response.audio_wav_b64.length} · dur=${response.duration_ms}ms · visemes=${response.visemes.length}`);
       const player = createAudioPlayer({
         uri: `data:audio/wav;base64,${response.audio_wav_b64}`,
       });
       playerRef.current = player;
+      if (__DEV__) console.log(`[VisemePlayer] player created OK`);
 
       const events = response.visemes;
       let cumulative = 0;
@@ -105,7 +107,12 @@ export default function VisemePlayer({
         timerRef.current = setTimeout(() => step(idx + 1), delay);
       };
 
-      player.play();
+      try {
+        player.play();
+        if (__DEV__) console.log(`[VisemePlayer] player.play() invoked`);
+      } catch (playErr) {
+        console.warn("[VisemePlayer] player.play() threw:", playErr);
+      }
       step(0);
     } catch (e) {
       console.warn("[VisemePlayer] play failed:", e);

@@ -3,8 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { API_BASE } from "../config/apiBase";
 import { ensureFreshAccessToken } from "../lib/authFetch";
-import { type AvatarCall, type LiveAvatarState, type CallPhase, type SpeechSignal } from "./avatarCall";
+import { type AvatarCall, type LiveAvatarState, type CallPhase, type SpeechSignal, type FaceEvent } from "./avatarCall";
 import { type VisemeSynthResponse } from "../components/viseme/VisemePlayer";
+import { useCloneStore } from "../stores/cloneStore";
+import { useAuthStore } from "../stores/authStore";
+import { getUserLocationForCall } from "../services/userLocation";
 
 export interface UseVisemeAvatarResult extends AvatarCall {
 
@@ -21,6 +24,10 @@ export function useVisemeAvatar(opts: {
   pipeline?: string | null;
 }): UseVisemeAvatarResult {
   const { cloneId, accessToken } = opts;
+
+  const clone = useCloneStore((s) => s.getCloneById(cloneId));
+  const apiUser = useAuthStore((s) => s.apiUser);
+  const activePersonIdRef = useRef<number | null>(null);
   const [state, setState] = useState<LiveAvatarState>("idle");
   const [phase, setPhase] = useState<CallPhase>("idle");
   const [error, setError] = useState<Error | null>(null);
@@ -89,7 +96,88 @@ export function useVisemeAvatar(opts: {
 
   const speak = useCallback(async (text: string) => { await speakWithOpts(text); }, [speakWithOpts]);
 
-  const say = speak;
+  const chatSeqRef = useRef(0);
+  const chat = useCallback(async (userText: string) => {
+    if (!aliveRef.current) return;
+    const t = (userText ?? "").trim();
+    if (!t) return;
+    const mySeq = ++chatSeqRef.current;
+    setPhase("speaking");
+    setLastSignal({ type: "speech_start", ts: Date.now() });
+    try {
+      const freshToken = await ensureFreshAccessToken(accessToken);
+
+      const userLocation = await getUserLocationForCall(cloneId)
+        .then(res => res.location || undefined)
+        .catch(() => undefined);
+      const url = `${API_BASE}/oth-path`;
+      const r = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${freshToken}`,
+        },
+        body: JSON.stringify({
+          text: t,
+          clone_id: cloneId,
+
+          clone_name: clone?.displayName || undefined,
+          user_name: apiUser?.name || undefined,
+
+          active_person_id: activePersonIdRef.current ?? undefined,
+          user_location: userLocation,
+        }),
+      });
+      if (!r.ok) {
+        const errBody = await r.text().catch(() => "");
+        throw new Error(`viseme_chat_http_${r.status}: ${errBody.slice(0, 200)}`);
+      }
+      const data = (await r.json()) as {
+        response_text?: string;
+        sentences?: Array<VisemeSynthResponse & { text?: string }>;
+      };
+      if (!aliveRef.current || chatSeqRef.current !== mySeq) return;
+      const sentences = Array.isArray(data.sentences) ? data.sentences : [];
+      if (sentences.length === 0) {
+
+        console.warn("[useVisemeAvatar] chat: empty sentences · text=", t);
+        setLastSignal({ type: "speech_end", ts: Date.now(), remainingMs: 0 });
+        setError(null);
+        return;
+      }
+
+      let cursor = 0;
+      const playNext = () => {
+        if (!aliveRef.current || chatSeqRef.current !== mySeq) return;
+        const seg = sentences[cursor];
+        setSynthResponse({ ...seg });
+        if (seg.text) {
+          setLastSignal({ type: "speech_text", ts: Date.now(), text: seg.text });
+        }
+        const dur = seg.duration_ms ?? 0;
+        cursor += 1;
+        if (cursor >= sentences.length) {
+
+          setLastSignal({ type: "speech_end", ts: Date.now(), remainingMs: dur });
+          return;
+        }
+        setTimeout(playNext, dur);
+      };
+      playNext();
+      setError(null);
+    } catch (e) {
+      if (aliveRef.current && chatSeqRef.current === mySeq) {
+        setError(e as Error);
+        console.warn("[useVisemeAvatar] chat failed:", e);
+
+        setLastSignal({ type: "speech_end", ts: Date.now(), remainingMs: 0 });
+      }
+    } finally {
+      if (aliveRef.current && chatSeqRef.current === mySeq) setPhase("listening");
+    }
+  }, [accessToken, cloneId]);
+
+  const say = chat;
 
   const greet = useCallback(async () => {
     await speak("안녕하세요");
@@ -97,6 +185,13 @@ export function useVisemeAvatar(opts: {
 
   const notifySpeechEnd = useCallback(() => {
 
+  }, []);
+
+  const sendFaceEvent = useCallback((evt: FaceEvent) => {
+    if (evt.event === "speaker_confirmed" && typeof evt.personId === "number") {
+      activePersonIdRef.current = evt.personId;
+      if (__DEV__) console.log(`[useVisemeAvatar] active person → ${evt.personId}`);
+    }
   }, []);
 
   const getStatsReport = useCallback(() => {
@@ -117,7 +212,10 @@ export function useVisemeAvatar(opts: {
     greet,
     speak,
     lastSignal,
+    sendFaceEvent,
     synthResponse,
+
+    visemeResponse: synthResponse,
     speakWithOpts,
   };
 }
