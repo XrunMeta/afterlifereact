@@ -254,7 +254,8 @@ function v_a448ad(
 
       if (v_865ed9) return { state: v_b6e533, actions: [] };
 
-      if (!v_d48baf.score || v_d48baf.score === 0 || v_d48baf.topPersonId == null) {
+      const v_6da077 = 0.55;
+      if (!v_d48baf.score || v_d48baf.score < v_6da077 || v_d48baf.topPersonId == null) {
         return { state: { ...v_b6e533, unknownStreak: v_b6e533.unknownStreak + 1 }, actions: [] };
       }
       const v_00d284 = v_b6e533.personId ?? v_b6e533.lastConfirmedPerson?.personId ?? null;
