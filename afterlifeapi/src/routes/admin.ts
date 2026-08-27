@@ -2771,7 +2771,7 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_43fd42 = v_3f4e2e.env.LEARN_SECRET ?? "";
   if (!v_43fd42) return v_3f4e2e.json({ error: "LEARN_SECRET not configured" }, 500);
 
-  const v_694b25 = v_3f4e2e.env.PRETHIRD_PUBLIC_BASE || "https://rtc.example.invalid/prethird";
+  const v_694b25 = v_3f4e2e.env.CALL_PRETHIRD_BASE || "https://rtc.example.invalid/prethird";
   const v_0a6a65 = `${v_694b25.replace(/\/$/, "")}/oth-path`;
   try {
     const v_eb792a = await fetch(v_0a6a65, {
