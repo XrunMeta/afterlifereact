@@ -289,7 +289,7 @@ export function v_3d8d48(v_328259): v_b01667 {
       const v_dbf208 = v_da7dc4 === 'echomimic_v3' && !!v_01dcf5.experimentalBase;
 
       if (v_da7dc4 === 'viseme_playback') {
-        console.warn('[CALL-ROUTE] viseme_playback: T-626 CallScreen 통합 대기 · 이번 통화는 musetalk 로 폴백');
+        console.warn('[CALL-ROUTE] viseme_playback: pipeline late-arrived (route 확정 후 fetch 완료) · 이번 통화는 musetalk 로 폴백. 다음 통화부터 정상 라우팅.');
       }
       const v_694b25 = v_dbf208 ? v_01dcf5.experimentalBase! : v_01dcf5.prethirdBase;
       const v_f71b56 = `${v_694b25}/offer`;
