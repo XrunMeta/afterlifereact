@@ -45,27 +45,43 @@ VISEMES = ["REST", "A", "E", "I", "O", "U", "EO", "EU", "BILAB", "DENT"]
 # 입 모양 파라미터 — (width_ratio, height_ratio, shape).
 # ratios 는 얼굴 이미지 짧은 변 대비 비율.
 # shape: "closed" | "oval" | "wide" | "round" | "teeth".
+# T-640 (2026-08-27): 이전 값이 너무 작아 viseme 간 시각적 차이가 안 보임. 2~3배 확대 + outline 두께 증가.
 MOUTH_STYLES: dict[str, tuple[float, float, str]] = {
-    "REST":  (0.14, 0.02, "closed"),  # 살짝 닫힘
-    "A":     (0.14, 0.10, "oval"),    # 크게 열림 (아)
-    "E":     (0.18, 0.03, "wide"),    # 옆으로 넓게 (에)
-    "I":     (0.16, 0.02, "wide"),    # 이 — 살짝 벌리고 옆으로
-    "O":     (0.10, 0.09, "round"),   # 동그랗게 (오)
-    "U":     (0.07, 0.07, "round"),   # 작고 동그랗게 (우)
-    "EO":    (0.13, 0.07, "oval"),    # 중간 (어)
-    "EU":    (0.12, 0.03, "wide"),    # 으
-    "BILAB": (0.13, 0.005, "closed"), # 완전히 다물음 (ㅁㅂㅍ)
-    "DENT":  (0.15, 0.04, "teeth"),   # 이 드러남 (ㄷㅌㅅ)
+    "REST":  (0.22, 0.03, "closed"),  # 살짝 닫힘
+    "A":     (0.24, 0.20, "oval"),    # 크게 열림 (아)
+    "E":     (0.32, 0.07, "wide"),    # 옆으로 넓게 (에)
+    "I":     (0.26, 0.05, "wide"),    # 이 — 살짝 벌리고 옆으로
+    "O":     (0.16, 0.16, "round"),   # 동그랗게 (오)
+    "U":     (0.12, 0.12, "round"),   # 작고 동그랗게 (우)
+    "EO":    (0.22, 0.14, "oval"),    # 중간 (어)
+    "EU":    (0.20, 0.06, "wide"),    # 으
+    "BILAB": (0.22, 0.02, "closed"),  # 완전히 다물음 (ㅁㅂㅍ)
+    "DENT":  (0.24, 0.09, "teeth"),   # 이 드러남 (ㄷㅌㅅ)
 }
 
 # 얼굴 이미지 대비 입 위치 — (x_ratio, y_ratio).
-# 정면 얼굴 표준 비율: 입은 세로 중앙보다 살짝 아래 (약 0.72), 가로 중앙 (0.5).
-MOUTH_POS = (0.5, 0.72)
+# T-640 (2026-08-27): 이전 (0.5, 0.72) 고정값은 정사각 얼굴 close-up 을 가정.
+#   세로가 긴 인물 사진 (aspect > 1.4) 에서는 얼굴이 상단 1/3 에만 있어서 0.72 는 가슴/배 위치.
+#   이미지 aspect 비율로 heuristic. MediaPipe/OpenCV 없이 근사.
+def _mouth_position(W: int, H: int) -> tuple[float, float]:
+    aspect = H / max(W, 1)
+    if aspect >= 1.8:
+        # 세로 인물 사진 (9:16 등) — 얼굴 y=0.10~0.55, 입 대략 y=0.48
+        return (0.5, 0.48)
+    elif aspect >= 1.3:
+        # 세로 긴 사진 (2:3) — 얼굴 y=0.05~0.65, 입 대략 y=0.48
+        return (0.5, 0.48)
+    else:
+        # 정사각 또는 가로 (얼굴 close-up)
+        return (0.5, 0.72)
 
-# 입 색상 — 어두운 붉은색 (검정 배경 · 붉은 립 이질감 방지).
-LIP_COLOR = (110, 40, 45)
-TEETH_COLOR = (240, 235, 220)
-INNER_MOUTH_COLOR = (60, 25, 30)
+# 입 색상 — T-640: 대비 강화. 이전 (110, 40, 45) 은 얼굴 위 blending 되어 잘 안 보임.
+LIP_COLOR = (55, 15, 20)         # 매우 진한 검붉은색 · outline 확실
+TEETH_COLOR = (245, 240, 225)    # 밝은 이빨색
+INNER_MOUTH_COLOR = (30, 10, 15) # 거의 검정 · 입안 확실히 어둡게
+
+# T-640: outline 두께 상수 · 이전 width=OUTLINE_W 는 너무 얇음.
+OUTLINE_W = 4
 
 
 def _draw_mouth(img: Image.Image, viseme: str) -> Image.Image:
@@ -73,9 +89,18 @@ def _draw_mouth(img: Image.Image, viseme: str) -> Image.Image:
     out = img.copy().convert("RGBA")
     draw = ImageDraw.Draw(out, "RGBA")
     W, H = out.size
-    short = min(W, H)
-    cx = int(W * MOUTH_POS[0])
-    cy = int(H * MOUTH_POS[1])
+    # T-640 fix: mouth 크기 기준을 짧은 변 → "얼굴 폭 추정" 으로 교체.
+    #   세로 인물 사진(aspect >= 1.4)에선 얼굴이 W의 약 50% 만 차지 → short(=W) 기준으로 mouth 만들면 얼굴 폭의 절반 크기라 코까지 덮음.
+    #   heuristic: 세로 인물 사진에선 short * 0.5, 그 외는 short 그대로.
+    aspect = H / max(W, 1)
+    if aspect >= 1.4:
+        face_short = int(min(W, H) * 0.5)
+    else:
+        face_short = min(W, H)
+    short = face_short
+    mx, my = _mouth_position(W, H)
+    cx = int(W * mx)
+    cy = int(H * my)
 
     w_ratio, h_ratio, shape = MOUTH_STYLES[viseme]
     w = int(short * w_ratio)
@@ -89,10 +114,10 @@ def _draw_mouth(img: Image.Image, viseme: str) -> Image.Image:
         draw.line([(left, cy), (right, cy)], fill=LIP_COLOR, width=max(2, h))
     elif shape == "oval":
         # 세로로 열린 타원 — 안쪽 어둡게, 립 라인.
-        draw.ellipse(bbox, fill=INNER_MOUTH_COLOR, outline=LIP_COLOR, width=2)
+        draw.ellipse(bbox, fill=INNER_MOUTH_COLOR, outline=LIP_COLOR, width=OUTLINE_W)
     elif shape == "wide":
         # 옆으로 넓은 타원 (얇음). 이가 살짝 보이도록 안쪽 밝게.
-        draw.ellipse(bbox, fill=TEETH_COLOR, outline=LIP_COLOR, width=2)
+        draw.ellipse(bbox, fill=TEETH_COLOR, outline=LIP_COLOR, width=OUTLINE_W)
     elif shape == "round":
         # 원형 (O/U). 안쪽 어둡게.
         r = min(w, h) // 2
@@ -100,11 +125,11 @@ def _draw_mouth(img: Image.Image, viseme: str) -> Image.Image:
             (cx - r, cy - r, cx + r, cy + r),
             fill=INNER_MOUTH_COLOR,
             outline=LIP_COLOR,
-            width=2,
+            width=OUTLINE_W,
         )
     elif shape == "teeth":
         # 이 드러난 모양 (ㄷㅌㅅ). 밝은 안쪽 + 위쪽 이빨 선.
-        draw.ellipse(bbox, fill=TEETH_COLOR, outline=LIP_COLOR, width=2)
+        draw.ellipse(bbox, fill=TEETH_COLOR, outline=LIP_COLOR, width=OUTLINE_W)
         # 위쪽 이빨 세로선 3개.
         teeth_top = top + max(1, h // 4)
         teeth_bot = cy
