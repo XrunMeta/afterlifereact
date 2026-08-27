@@ -80,12 +80,43 @@ viseme.post("/chat", requireAuth, async (c) => {
   }
 
   const body = await c.req
-    .json<{ text?: string; clone_id?: number }>()
-    .catch(() => ({} as { text?: string; clone_id?: number }));
+    .json<{
+      text?: string;
+      clone_id?: number;
+      clone_name?: string;
+      user_name?: string;
+      active_person_id?: number;
+      user_location?: string;
+    }>()
+    .catch(() => ({} as { text?: string; clone_id?: number; clone_name?: string; user_name?: string; active_person_id?: number; user_location?: string }));
   const text = (body.text ?? "").trim();
   if (!text) throw new APIError("VALIDATION_FAILED", "text required.");
   if (text.length > 2000) throw new APIError("VALIDATION_FAILED", "text too long (max 2000).");
   const cloneId = Number.isInteger(body.clone_id) ? body.clone_id : undefined;
+  const cloneName = typeof body.clone_name === "string" && body.clone_name.trim() ? body.clone_name.trim().slice(0, 80) : undefined;
+  const userName = typeof body.user_name === "string" && body.user_name.trim() ? body.user_name.trim().slice(0, 80) : undefined;
+  const activePersonId = Number.isInteger(body.active_person_id) ? body.active_person_id : undefined;
+  const userLocation = typeof body.user_location === "string" && body.user_location.trim() ? body.user_location.trim().slice(0, 200) : undefined;
+
+  let personaDescription: string | undefined = undefined;
+  if (cloneId !== undefined) {
+    const cloneRow = await c.env.DB.prepare("SELECT description FROM clones WHERE id = ?")
+      .bind(cloneId)
+      .first<{ description: string | null }>();
+    const desc = (cloneRow?.description ?? "").trim();
+    if (desc) personaDescription = desc.slice(0, 600);
+  }
+
+  let rememberedName: string | undefined = undefined;
+  if (activePersonId !== undefined && cloneId !== undefined) {
+    const personRow = await c.env.DB.prepare(
+      "SELECT display_name FROM persons WHERE id = ? AND clone_id = ? LIMIT 1"
+    )
+      .bind(activePersonId, cloneId)
+      .first<{ display_name: string | null }>();
+    const dn = (personRow?.display_name ?? "").trim();
+    if (dn) rememberedName = dn.slice(0, 80);
+  }
 
   const base = c.env.CALL_PRETHIRD_BASE || DEFAULT_PRETHIRD_BASE;
   const upstream = `${base.replace(/\/$/, "")}/oth-path`;
@@ -97,7 +128,17 @@ viseme.post("/chat", requireAuth, async (c) => {
         "Content-Type": "application/json",
         "X-Admin-Secret": secret,
       },
-      body: JSON.stringify({ text, clone_id: cloneId }),
+      body: JSON.stringify({
+        text,
+        clone_id: cloneId,
+        clone_name: cloneName,
+        user_name: userName,
+        active_person_id: activePersonId,
+        user_location: userLocation,
+
+        persona_description: personaDescription,
+        remembered_name: rememberedName,
+      }),
     });
   } catch (e) {
     return c.json({ error: `upstream: ${(e as Error).message}` }, 502);
