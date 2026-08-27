@@ -112,6 +112,8 @@ export function v_e52b18(v_328259): UseVisemeAvatarResult {
     speak: v_a1d9db,
     lastSignal: v_88c591,
     synthResponse: v_194cc6,
+
+    visemeResponse: v_194cc6,
     speakWithOpts: v_4a0f16,
   };
 }
