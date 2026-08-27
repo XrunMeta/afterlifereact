@@ -254,17 +254,16 @@ function v_a448ad(
 
       if (v_865ed9) return { state: v_b6e533, actions: [] };
 
-      const v_6da077 = 0.55;
-      if (!v_d48baf.score || v_d48baf.score < v_6da077 || v_d48baf.topPersonId == null) {
-        return { state: { ...v_b6e533, unknownStreak: v_b6e533.unknownStreak + 1 }, actions: [] };
-      }
       const v_00d284 = v_b6e533.personId ?? v_b6e533.lastConfirmedPerson?.personId ?? null;
-
       const v_4512fb =
-        v_00d284 != null && v_d48baf.topPersonId !== v_00d284;
+        v_d48baf.topPersonId != null &&
+        v_00d284 != null &&
+        v_d48baf.topPersonId !== v_00d284;
+
       const v_950bbe = v_b6e533.unknownStreak + 1;
       const v_29bced =
-        v_4512fb && !v_b6e533.dismissedPromptInCall;
+        (v_4512fb || v_950bbe >= v_fb3fee) &&
+        !v_b6e533.dismissedPromptInCall;
 
       if (v_b6e533.mode === "pending") {
         const v_3459a5 =
