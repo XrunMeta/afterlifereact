@@ -9,6 +9,8 @@ import { type v_2a0baf } from "../components/viseme/VisemePlayer";
 export interface UseVisemeAvatarResult extends v_b01667 {
 
   synthResponse: v_2a0baf | null;
+
+  speakWithOpts: (text: string, opts?: { seKey?: string }) => Promise<void>;
 }
 
 export function v_e52b18(v_328259): UseVisemeAvatarResult {
@@ -40,7 +42,7 @@ export function v_e52b18(v_328259): UseVisemeAvatarResult {
     v_88fed0(null);
   }, []);
 
-  const v_a1d9db = v_de06a3(async (v_9b6134) => {
+  const v_4a0f16 = v_de06a3(async (v_9b6134, v_328259) => {
     if (!v_62d405.current) return;
     const v_8d41d7 = (v_9b6134 ?? "").trim();
     if (!v_8d41d7) return;
@@ -49,23 +51,26 @@ export function v_e52b18(v_328259): UseVisemeAvatarResult {
     try {
       const v_f915d0 = await v_335e37(v_2ca7e0);
       const v_f71b56 = `${v_cc9198}/oth-path`;
+      const v_4d33b2 = { text: v_8d41d7 };
+      if (v_328259?.seKey) v_4d33b2.se_key = v_328259.seKey;
       const v_cb35cb = await fetch(v_f71b56, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${v_f915d0}`,
         },
-        body: JSON.stringify({ text: v_8d41d7 }),
+        body: JSON.stringify(v_4d33b2),
       });
       if (!v_cb35cb.ok) {
-        const v_4d33b2 = await v_cb35cb.text().catch(() => "");
-        throw new Error(`viseme_synth_http_${v_cb35cb.status}: ${v_4d33b2.slice(0, 200)}`);
+        const v_9be017 = await v_cb35cb.text().catch(() => "");
+        throw new Error(`viseme_synth_http_${v_cb35cb.status}: ${v_9be017.slice(0, 200)}`);
       }
       const v_9390e8 = (await v_cb35cb.json()) as v_2a0baf;
       if (!v_62d405.current) return;
       v_88fed0({ ...v_9390e8 }); 
 
       v_8c8005({ type: "speech_end", ts: Date.now(), remainingMs: v_9390e8.duration_ms });
+      v_3a7d09(null);
     } catch (v_9e86fd) {
       if (v_62d405.current) {
         v_3a7d09(v_9e86fd as Error);
@@ -75,6 +80,8 @@ export function v_e52b18(v_328259): UseVisemeAvatarResult {
       if (v_62d405.current) v_ae4844("listening");
     }
   }, [v_2ca7e0]);
+
+  const v_a1d9db = v_de06a3(async (v_9b6134) => { await v_4a0f16(v_9b6134); }, [v_4a0f16]);
 
   const v_3e2c87 = v_a1d9db;
 
@@ -105,5 +112,6 @@ export function v_e52b18(v_328259): UseVisemeAvatarResult {
     speak: v_a1d9db,
     lastSignal: v_88c591,
     synthResponse: v_194cc6,
+    speakWithOpts: v_4a0f16,
   };
 }
