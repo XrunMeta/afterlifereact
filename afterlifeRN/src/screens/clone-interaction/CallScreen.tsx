@@ -203,32 +203,35 @@ export default function CallScreen(props: Props) {
       setPrefetchedPipeline(null);
       return;
     }
-    let cancelled = false;
 
+    let settled = false;
     const timer = setTimeout(() => {
-      if (!cancelled) {
-        console.warn("[Call][prefetch] pipeline timeout → null");
+      if (!settled) {
+        settled = true;
+        console.warn("[Call][prefetch] pipeline timeout → null (15s)");
         setPrefetchedPipeline(null);
       }
-    }, 2000);
+    }, 15000);
     (async () => {
       try {
         const { getCloneDetail } = await import("../../api/clones");
         const detail = await getCloneDetail(cloneId, wrapperAccessToken);
-        if (cancelled) return;
+        if (settled) return;
+        settled = true;
         clearTimeout(timer);
         const p = (detail as { clone?: { pipeline?: string | null } })?.clone?.pipeline ?? null;
         if (__DEV__) console.log(`[Call][prefetch] pipeline for clone ${cloneId} = ${p ?? 'null'}`);
         setPrefetchedPipeline(p);
       } catch (err) {
-        if (cancelled) return;
+        if (settled) return;
+        settled = true;
         clearTimeout(timer);
         console.warn("[Call][prefetch] error, null:", err);
         setPrefetchedPipeline(null);
       }
     })();
     return () => {
-      cancelled = true;
+      settled = true;
       clearTimeout(timer);
     };
 
