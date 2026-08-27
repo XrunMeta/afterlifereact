@@ -1347,6 +1347,8 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
       createdAt: v_eb25ce.created_at,
       viewerRole: v_00efe2,
       pipeline: v_eb25ce.pipeline,
+
+      visemePrefix: v_eb25ce.viseme_prefix,
     },
   });
 });
