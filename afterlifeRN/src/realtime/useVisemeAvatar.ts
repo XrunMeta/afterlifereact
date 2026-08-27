@@ -9,6 +9,8 @@ import { type VisemeSynthResponse } from "../components/viseme/VisemePlayer";
 export interface UseVisemeAvatarResult extends AvatarCall {
 
   synthResponse: VisemeSynthResponse | null;
+
+  speakWithOpts: (text: string, opts?: { seKey?: string }) => Promise<void>;
 }
 
 export function useVisemeAvatar(opts: {
@@ -43,7 +45,7 @@ export function useVisemeAvatar(opts: {
     setSynthResponse(null);
   }, []);
 
-  const speak = useCallback(async (text: string) => {
+  const speakWithOpts = useCallback(async (text: string, opts?: { seKey?: string }) => {
     if (!aliveRef.current) return;
     const t = (text ?? "").trim();
     if (!t) return;
@@ -52,23 +54,26 @@ export function useVisemeAvatar(opts: {
     try {
       const freshToken = await ensureFreshAccessToken(accessToken);
       const url = `${API_BASE}/oth-path`;
+      const body: { text: string; se_key?: string } = { text: t };
+      if (opts?.seKey) body.se_key = opts.seKey;
       const r = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${freshToken}`,
         },
-        body: JSON.stringify({ text: t }),
+        body: JSON.stringify(body),
       });
       if (!r.ok) {
-        const body = await r.text().catch(() => "");
-        throw new Error(`viseme_synth_http_${r.status}: ${body.slice(0, 200)}`);
+        const errBody = await r.text().catch(() => "");
+        throw new Error(`viseme_synth_http_${r.status}: ${errBody.slice(0, 200)}`);
       }
       const data = (await r.json()) as VisemeSynthResponse;
       if (!aliveRef.current) return;
       setSynthResponse({ ...data }); 
 
       setLastSignal({ type: "speech_end", ts: Date.now(), remainingMs: data.duration_ms });
+      setError(null);
     } catch (e) {
       if (aliveRef.current) {
         setError(e as Error);
@@ -78,6 +83,8 @@ export function useVisemeAvatar(opts: {
       if (aliveRef.current) setPhase("listening");
     }
   }, [accessToken]);
+
+  const speak = useCallback(async (text: string) => { await speakWithOpts(text); }, [speakWithOpts]);
 
   const say = speak;
 
@@ -108,5 +115,6 @@ export function useVisemeAvatar(opts: {
     speak,
     lastSignal,
     synthResponse,
+    speakWithOpts,
   };
 }

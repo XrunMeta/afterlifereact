@@ -1,11 +1,11 @@
 
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
-import VisemePlayer, { type VisemeSynthResponse } from "../../components/viseme/VisemePlayer";
-import { API_BASE } from "../../config/apiBase";
+import VisemePlayer from "../../components/viseme/VisemePlayer";
 import { useAuthStore } from "../../stores/authStore";
 import { listMyClones, type MyClone } from "../../api/clones";
+import { useVisemeAvatar } from "../../realtime/useVisemeAvatar";
 
 const DEFAULT_PREFIX = process.env.EXPO_PUBLIC_VISEME_PREFIX ?? "";
 
@@ -15,15 +15,13 @@ export default function VisemeTestScreen() {
   const [text, setText] = useState("안녕하세요, 오늘 날씨 좋네요");
   const [seKey, setSeKey] = useState<string>(PRESET_KEYS[0]);
   const [prefix, setPrefix] = useState<string>(DEFAULT_PREFIX);
-  const [response, setResponse] = useState<VisemeSynthResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [meta, setMeta] = useState<string>("");
 
   const [myClones, setMyClones] = useState<MyClone[]>([]);
   const [pickedCloneId, setPickedCloneId] = useState<number | null>(null);
 
   const accessToken = useAuthStore((s) => s.accessToken);
+
+  const avatar = useVisemeAvatar({ cloneId: pickedCloneId ?? 0, accessToken: accessToken ?? "" });
 
   useEffect(() => {
     if (!accessToken) return;
@@ -44,42 +42,24 @@ export default function VisemeTestScreen() {
     setPickedCloneId(id);
     setPrefix(c.visemePrefix ?? "");
   };
+
   const synth = async () => {
     if (!text.trim()) return;
-    if (!accessToken) {
-      setError("로그인이 필요합니다.");
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    setResponse(null);
-    try {
-      const url = `${API_BASE}/oth-path`;
-      const r = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ text, se_key: seKey }),
-      });
-      if (!r.ok) {
-        setError(`HTTP ${r.status}: ${await r.text().catch(() => "")}`);
-        return;
-      }
-      const data = (await r.json()) as VisemeSynthResponse;
-      setResponse(data);
-      setMeta(`${data.duration_ms}ms · ${data.visemes.length} events · audio ${data.audio_wav_b64.length}b`);
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setLoading(false);
-    }
+    if (!accessToken) return;
+    await avatar.speakWithOpts(text, { seKey });
   };
+
+  const loading = avatar.phase === "speaking";
+  const errorMsg = avatar.error ? String(avatar.error.message ?? avatar.error) : null;
+  const meta = useMemo(() => {
+    const r = avatar.synthResponse;
+    if (!r) return "";
+    return `${r.duration_ms}ms · ${r.visemes.length} events · audio ${r.audio_wav_b64.length}b`;
+  }, [avatar.synthResponse]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 20 }}>
-      <Text style={styles.title}>Viseme 파이프라인 테스트 (T-545)</Text>
+      <Text style={styles.title}>Viseme 파이프라인 테스트 (T-545/T-625)</Text>
 
       <Text style={styles.label}>text</Text>
       <TextInput
@@ -141,21 +121,21 @@ export default function VisemeTestScreen() {
         <Text style={styles.buttonText}>{loading ? "생성 중…" : "합성 + 재생"}</Text>
       </TouchableOpacity>
 
-      {error && <Text style={styles.error}>{error}</Text>}
+      {errorMsg && <Text style={styles.error}>{errorMsg}</Text>}
       {meta ? <Text style={styles.meta}>{meta}</Text> : null}
 
       <View style={styles.playerBox}>
         <VisemePlayer
-          response={response}
+          response={avatar.synthResponse}
           visemePrefix={prefix || null}
           style={{ width: "100%", height: 300 }}
         />
       </View>
 
-      {response && (
+      {avatar.synthResponse && (
         <View style={styles.seqBox}>
           <Text style={styles.seqTitle}>viseme sequence</Text>
-          {response.visemes.map((ev, i) => (
+          {avatar.synthResponse.visemes.map((ev, i) => (
             <Text key={i} style={styles.seqRow}>
               {i.toString().padStart(2, " ")} {ev.v.padEnd(6, " ")} {ev.dur_ms}ms
             </Text>
