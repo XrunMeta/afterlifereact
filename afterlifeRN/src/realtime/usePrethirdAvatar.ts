@@ -298,8 +298,8 @@ export function usePrethirdAvatar(opts: {
       const cfg = useCallConfigStore.getState();
       const useExperimental = currentPipeline === 'echomimic_v3' && !!cfg.experimentalBase;
 
-      if (__DEV__ && currentPipeline === 'viseme_playback') {
-        console.log('[CALL-ROUTE] viseme_playback: 렌더러 미구현 — musetalk 폴백');
+      if (currentPipeline === 'viseme_playback') {
+        console.warn('[CALL-ROUTE] viseme_playback: T-626 CallScreen 통합 대기 · 이번 통화는 musetalk 로 폴백');
       }
       const base = useExperimental ? cfg.experimentalBase! : cfg.prethirdBase;
       const url = `${base}/offer`;
