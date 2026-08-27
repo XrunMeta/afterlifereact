@@ -131,6 +131,8 @@ export default function VisemePlayer({
           source={{ uri: currentUri }}
           style={styles.image}
           resizeMode="cover"
+          onLoad={() => { if (__DEV__) console.log(`[VisemePlayer] IMG OK: ${currentViseme}`); }}
+          onError={(e) => { if (__DEV__) console.warn(`[VisemePlayer] IMG FAIL: ${currentViseme} · ${currentUri} · ${e?.nativeEvent?.error ?? "?"}`); }}
         />
       ) : (
         <View style={[styles.image, styles.placeholder]} />
