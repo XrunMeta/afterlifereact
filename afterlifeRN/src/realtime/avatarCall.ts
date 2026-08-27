@@ -2,6 +2,8 @@
 
 import type { v_802da4 } from 'rthlnescfffbyxfmhgq';
 
+import type { v_2a0baf } from '../components/viseme/VisemePlayer';
+
 export type LiveAvatarState =
   | 'idle' | 'requesting' | 'connecting' | 'live' | 'error' | 'ended';
 
@@ -46,6 +48,8 @@ export interface AvatarCall {
   lastSignal?: SpeechSignal | null;
 
   sendFaceEvent?: (evt: FaceEvent) => void;
+
+  visemeResponse?: v_2a0baf | null;
 }
 
 export type UseAvatarCall = (opts: {
