@@ -2784,7 +2784,7 @@ admin.post("/oth-path", requireAdmin, async (c) => {
   const secret = c.env.LEARN_SECRET ?? "";
   if (!secret) return c.json({ error: "LEARN_SECRET not configured" }, 500);
 
-  const base = c.env.PRETHIRD_PUBLIC_BASE || "https://rtc.example.invalid/prethird";
+  const base = c.env.CALL_PRETHIRD_BASE || "https://rtc.example.invalid/prethird";
   const upstream = `${base.replace(/\/$/, "")}/oth-path`;
   try {
     const resp = await fetch(upstream, {
