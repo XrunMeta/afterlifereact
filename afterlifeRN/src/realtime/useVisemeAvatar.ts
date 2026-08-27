@@ -118,6 +118,8 @@ export function useVisemeAvatar(opts: {
     speak,
     lastSignal,
     synthResponse,
+
+    visemeResponse: synthResponse,
     speakWithOpts,
   };
 }
