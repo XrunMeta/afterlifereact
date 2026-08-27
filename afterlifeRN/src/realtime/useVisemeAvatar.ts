@@ -3,8 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { API_BASE } from "../config/apiBase";
 import { ensureFreshAccessToken } from "../lib/authFetch";
-import { type AvatarCall, type LiveAvatarState, type CallPhase, type SpeechSignal } from "./avatarCall";
+import { type AvatarCall, type LiveAvatarState, type CallPhase, type SpeechSignal, type FaceEvent } from "./avatarCall";
 import { type VisemeSynthResponse } from "../components/viseme/VisemePlayer";
+import { useCloneStore } from "../stores/cloneStore";
+import { useAuthStore } from "../stores/authStore";
+import { getUserLocationForCall } from "../services/userLocation";
 
 export interface UseVisemeAvatarResult extends AvatarCall {
 
@@ -21,6 +24,10 @@ export function useVisemeAvatar(opts: {
   pipeline?: string | null;
 }): UseVisemeAvatarResult {
   const { cloneId, accessToken } = opts;
+
+  const clone = useCloneStore((s) => s.getCloneById(cloneId));
+  const apiUser = useAuthStore((s) => s.apiUser);
+  const activePersonIdRef = useRef<number | null>(null);
   const [state, setState] = useState<LiveAvatarState>("idle");
   const [phase, setPhase] = useState<CallPhase>("idle");
   const [error, setError] = useState<Error | null>(null);
@@ -99,6 +106,10 @@ export function useVisemeAvatar(opts: {
     setLastSignal({ type: "speech_start", ts: Date.now() });
     try {
       const freshToken = await ensureFreshAccessToken(accessToken);
+
+      const userLocation = await getUserLocationForCall(cloneId)
+        .then(res => res.location || undefined)
+        .catch(() => undefined);
       const url = `${API_BASE}/oth-path`;
       const r = await fetch(url, {
         method: "POST",
@@ -106,7 +117,16 @@ export function useVisemeAvatar(opts: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${freshToken}`,
         },
-        body: JSON.stringify({ text: t, clone_id: cloneId }),
+        body: JSON.stringify({
+          text: t,
+          clone_id: cloneId,
+
+          clone_name: clone?.displayName || undefined,
+          user_name: apiUser?.name || undefined,
+
+          active_person_id: activePersonIdRef.current ?? undefined,
+          user_location: userLocation,
+        }),
       });
       if (!r.ok) {
         const errBody = await r.text().catch(() => "");
@@ -167,6 +187,13 @@ export function useVisemeAvatar(opts: {
 
   }, []);
 
+  const sendFaceEvent = useCallback((evt: FaceEvent) => {
+    if (evt.event === "speaker_confirmed" && typeof evt.personId === "number") {
+      activePersonIdRef.current = evt.personId;
+      if (__DEV__) console.log(`[useVisemeAvatar] active person → ${evt.personId}`);
+    }
+  }, []);
+
   const getStatsReport = useCallback(() => {
 
     return null;
@@ -185,6 +212,7 @@ export function useVisemeAvatar(opts: {
     greet,
     speak,
     lastSignal,
+    sendFaceEvent,
     synthResponse,
 
     visemeResponse: synthResponse,
