@@ -299,7 +299,7 @@ export function usePrethirdAvatar(opts: {
       const useExperimental = currentPipeline === 'echomimic_v3' && !!cfg.experimentalBase;
 
       if (currentPipeline === 'viseme_playback') {
-        console.warn('[CALL-ROUTE] viseme_playback: T-626 CallScreen 통합 대기 · 이번 통화는 musetalk 로 폴백');
+        console.warn('[CALL-ROUTE] viseme_playback: pipeline late-arrived (route 확정 후 fetch 완료) · 이번 통화는 musetalk 로 폴백. 다음 통화부터 정상 라우팅.');
       }
       const base = useExperimental ? cfg.experimentalBase! : cfg.prethirdBase;
       const url = `${base}/offer`;
