@@ -16,6 +16,9 @@ export interface UseVisemeAvatarResult extends AvatarCall {
 export function useVisemeAvatar(opts: {
   cloneId: number;
   accessToken: string;
+  onEnrollSuggest?: (name: string, personId?: number) => void;
+  onRememberMe?: () => void;
+  pipeline?: string | null;
 }): UseVisemeAvatarResult {
   const { cloneId, accessToken } = opts;
   const [state, setState] = useState<LiveAvatarState>("idle");
