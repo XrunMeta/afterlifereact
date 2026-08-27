@@ -1,11 +1,11 @@
 
 
-import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
+import v_a3453e, { v_c4deb2, v_df9f57, v_5ab095 } from "bapkr";
 import { v_3094a2, v_19b633, v_79c4f2, v_4623af, v_472849, v_122070 } from "rcmrninabrnb";
-import v_d4f200, { type v_2a0baf } from "../../components/viseme/VisemePlayer";
-import { v_cc9198 } from "../../config/apiBase";
+import v_d4f200 from "../../components/viseme/VisemePlayer";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_d60cdf, type v_fa0201 } from "../../api/clones";
+import { v_e52b18 } from "../../realtime/useVisemeAvatar";
 
 const v_236191 = process.env.EXPO_PUBLIC_VISEME_PREFIX ?? "";
 
@@ -15,15 +15,13 @@ export default function v_38f630() {
   const [v_9b6134, v_43d2ef] = v_5ab095("안녕하세요, 오늘 날씨 좋네요");
   const [v_2f693a, v_f20c3b] = v_5ab095<string>(v_c08994[0]);
   const [v_cd931c, v_006d3b] = v_5ab095<string>(v_236191);
-  const [v_3393e3, v_0f0593] = v_5ab095<v_2a0baf | null>(null);
-  const [v_683210, v_34a50a] = v_5ab095(false);
-  const [v_5e9bfe, v_3a7d09] = v_5ab095<string | null>(null);
-  const [v_ab4c96, v_cd0eff] = v_5ab095<string>("");
 
   const [v_4cd149, v_295d54] = v_5ab095<v_fa0201[]>([]);
   const [v_639a2a, v_a49ab2] = v_5ab095<number | null>(null);
 
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+
+  const v_0a6316 = v_e52b18({ cloneId: v_639a2a ?? 0, accessToken: v_2ca7e0 ?? "" });
 
   v_c4deb2(() => {
     if (!v_2ca7e0) return;
@@ -44,42 +42,24 @@ export default function v_38f630() {
     v_a49ab2(v_389afb);
     v_006d3b(v_3f4e2e.visemePrefix ?? "");
   };
+
   const v_fd3a92 = async () => {
     if (!v_9b6134.trim()) return;
-    if (!v_2ca7e0) {
-      v_3a7d09("로그인이 필요합니다.");
-      return;
-    }
-    v_34a50a(true);
-    v_3a7d09(null);
-    v_0f0593(null);
-    try {
-      const v_f71b56 = `${v_cc9198}/oth-path`;
-      const v_cb35cb = await fetch(v_f71b56, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${v_2ca7e0}`,
-        },
-        body: JSON.stringify({ text: v_9b6134, se_key: v_2f693a }),
-      });
-      if (!v_cb35cb.ok) {
-        v_3a7d09(`HTTP ${v_cb35cb.status}: ${await v_cb35cb.text().catch(() => "")}`);
-        return;
-      }
-      const v_9390e8 = (await v_cb35cb.json()) as v_2a0baf;
-      v_0f0593(v_9390e8);
-      v_cd0eff(`${v_9390e8.duration_ms}ms · ${v_9390e8.visemes.length} events · audio ${v_9390e8.audio_wav_b64.length}b`);
-    } catch (v_9e86fd) {
-      v_3a7d09(String(v_9e86fd));
-    } finally {
-      v_34a50a(false);
-    }
+    if (!v_2ca7e0) return;
+    await v_0a6316.speakWithOpts(v_9b6134, { seKey: v_2f693a });
   };
+
+  const v_683210 = v_0a6316.phase === "speaking";
+  const v_976e82 = v_0a6316.error ? String(v_0a6316.error.message ?? v_0a6316.error) : null;
+  const v_ab4c96 = v_df9f57(() => {
+    const v_cb35cb = v_0a6316.synthResponse;
+    if (!v_cb35cb) return "";
+    return `${v_cb35cb.duration_ms}ms · ${v_cb35cb.visemes.length} events · audio ${v_cb35cb.audio_wav_b64.length}b`;
+  }, [v_0a6316.synthResponse]);
 
   return (
     <ScrollView style={v_d81136.container} contentContainerStyle={{ padding: 20 }}>
-      <Text style={v_d81136.title}>Viseme 파이프라인 테스트 (T-545)</Text>
+      <Text style={v_d81136.title}>Viseme 파이프라인 테스트 (T-545/T-625)</Text>
 
       <Text style={v_d81136.label}>text</Text>
       <TextInput
@@ -141,21 +121,21 @@ export default function v_38f630() {
         <Text style={v_d81136.buttonText}>{v_683210 ? "생성 중…" : "합성 + 재생"}</Text>
       </TouchableOpacity>
 
-      {v_5e9bfe && <Text style={v_d81136.error}>{v_5e9bfe}</Text>}
+      {v_976e82 && <Text style={v_d81136.error}>{v_976e82}</Text>}
       {v_ab4c96 ? <Text style={v_d81136.meta}>{v_ab4c96}</Text> : null}
 
       <View style={v_d81136.playerBox}>
         <VisemePlayer
-          response={v_3393e3}
+          response={v_0a6316.synthResponse}
           visemePrefix={v_cd931c || null}
           style={{ width: "100%", height: 300 }}
         />
       </View>
 
-      {v_3393e3 && (
+      {v_0a6316.synthResponse && (
         <View style={v_d81136.seqBox}>
           <Text style={v_d81136.seqTitle}>viseme sequence</Text>
-          {v_3393e3.visemes.map((v_1d299c, v_ebec57) => (
+          {v_0a6316.synthResponse.visemes.map((v_1d299c, v_ebec57) => (
             <Text key={v_ebec57} style={v_d81136.seqRow}>
               {v_ebec57.toString().padStart(2, " ")} {v_1d299c.v.padEnd(6, " ")} {v_1d299c.dur_ms}ms
             </Text>
