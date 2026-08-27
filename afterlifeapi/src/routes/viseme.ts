@@ -99,12 +99,55 @@ v_5c0bb5.post("/chat", v_6690d9, async (v_3f4e2e) => {
   const v_146d3d = typeof v_4d33b2.user_location === "string" && v_4d33b2.user_location.trim() ? v_4d33b2.user_location.trim().slice(0, 200) : undefined;
 
   let v_102587 = undefined;
+  let v_ab7387 = undefined;
+  let v_4676ca = undefined;
+  let v_600d71 = undefined;
+  let v_f7975f = undefined;
   if (v_6e0fd3 !== undefined) {
-    const v_1de203 = await v_3f4e2e.env.DB.prepare("SELECT description FROM clones WHERE id = ?")
+    const v_1de203 = await v_3f4e2e.env.DB.prepare(
+      "SELECT description, l1_profile FROM clones WHERE id = ?"
+    )
       .bind(v_6e0fd3)
-      .first<{ description: string | null }>();
+      .first<{ description: string | null; l1_profile: string | null }>();
     const v_41b99d = (v_1de203?.description ?? "").trim();
     if (v_41b99d) v_102587 = v_41b99d.slice(0, 600);
+    if (v_1de203?.l1_profile) {
+      try {
+        const v_e2a85c = JSON.parse(v_1de203.l1_profile) as {
+          attrs?: Record<string, string>;
+          personality_core?: string;
+          tone?: string;
+          knowledge?: Array<{ q?: string; a?: string }>;
+        };
+
+        if (v_e2a85c.attrs && typeof v_e2a85c.attrs === "object") {
+          const v_468545 = [];
+          for (const [v_0eb677, v_81e2ef] of Object.entries(v_e2a85c.attrs)) {
+            if (typeof v_81e2ef === "string" && v_81e2ef.trim()) v_468545.push(`${v_0eb677}=${v_81e2ef.trim().slice(0, 40)}`);
+          }
+          if (v_468545.length) v_ab7387 = v_468545.slice(0, 12).join(", ").slice(0, 400);
+        }
+        if (typeof v_e2a85c.personality_core === "string" && v_e2a85c.personality_core.trim())
+          v_4676ca = v_e2a85c.personality_core.trim().slice(0, 300);
+        if (typeof v_e2a85c.tone === "string" && v_e2a85c.tone.trim())
+          v_600d71 = v_e2a85c.tone.trim().slice(0, 300);
+
+        if (Array.isArray(v_e2a85c.knowledge)) {
+          const v_4622b9 = [];
+          for (const v_0eb677 of v_e2a85c.knowledge) {
+            if (v_0eb677 && typeof v_0eb677.q === "string" && typeof v_0eb677.a === "string") {
+              const v_ab6401 = v_0eb677.q.trim();
+              const v_779914 = v_0eb677.a.trim();
+              if (v_ab6401 && v_779914) v_4622b9.push({ q: v_ab6401.slice(0, 120), a: v_779914.slice(0, 240) });
+            }
+            if (v_4622b9.length >= 10) break;
+          }
+          if (v_4622b9.length) v_f7975f = v_4622b9;
+        }
+      } catch {
+
+      }
+    }
   }
 
   let v_076306 = undefined;
@@ -137,6 +180,10 @@ v_5c0bb5.post("/chat", v_6690d9, async (v_3f4e2e) => {
         user_location: v_146d3d,
 
         persona_description: v_102587,
+        persona_attrs_summary: v_ab7387,  
+        persona_core: v_4676ca,                    
+        persona_tone: v_600d71,                    
+        persona_knowledge: v_f7975f,          
         remembered_name: v_076306,
       }),
     });
