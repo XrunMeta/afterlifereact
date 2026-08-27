@@ -89,7 +89,75 @@ export function useVisemeAvatar(opts: {
 
   const speak = useCallback(async (text: string) => { await speakWithOpts(text); }, [speakWithOpts]);
 
-  const say = speak;
+  const chatSeqRef = useRef(0);
+  const chat = useCallback(async (userText: string) => {
+    if (!aliveRef.current) return;
+    const t = (userText ?? "").trim();
+    if (!t) return;
+    const mySeq = ++chatSeqRef.current;
+    setPhase("speaking");
+    setLastSignal({ type: "speech_start", ts: Date.now() });
+    try {
+      const freshToken = await ensureFreshAccessToken(accessToken);
+      const url = `${API_BASE}/oth-path`;
+      const r = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${freshToken}`,
+        },
+        body: JSON.stringify({ text: t, clone_id: cloneId }),
+      });
+      if (!r.ok) {
+        const errBody = await r.text().catch(() => "");
+        throw new Error(`viseme_chat_http_${r.status}: ${errBody.slice(0, 200)}`);
+      }
+      const data = (await r.json()) as {
+        response_text?: string;
+        sentences?: Array<VisemeSynthResponse & { text?: string }>;
+      };
+      if (!aliveRef.current || chatSeqRef.current !== mySeq) return;
+      const sentences = Array.isArray(data.sentences) ? data.sentences : [];
+      if (sentences.length === 0) {
+
+        console.warn("[useVisemeAvatar] chat: empty sentences · text=", t);
+        setLastSignal({ type: "speech_end", ts: Date.now(), remainingMs: 0 });
+        setError(null);
+        return;
+      }
+
+      let cursor = 0;
+      const playNext = () => {
+        if (!aliveRef.current || chatSeqRef.current !== mySeq) return;
+        const seg = sentences[cursor];
+        setSynthResponse({ ...seg });
+        if (seg.text) {
+          setLastSignal({ type: "speech_text", ts: Date.now(), text: seg.text });
+        }
+        const dur = seg.duration_ms ?? 0;
+        cursor += 1;
+        if (cursor >= sentences.length) {
+
+          setLastSignal({ type: "speech_end", ts: Date.now(), remainingMs: dur });
+          return;
+        }
+        setTimeout(playNext, dur);
+      };
+      playNext();
+      setError(null);
+    } catch (e) {
+      if (aliveRef.current && chatSeqRef.current === mySeq) {
+        setError(e as Error);
+        console.warn("[useVisemeAvatar] chat failed:", e);
+
+        setLastSignal({ type: "speech_end", ts: Date.now(), remainingMs: 0 });
+      }
+    } finally {
+      if (aliveRef.current && chatSeqRef.current === mySeq) setPhase("listening");
+    }
+  }, [accessToken, cloneId]);
+
+  const say = chat;
 
   const greet = useCallback(async () => {
     await speak("안녕하세요");
