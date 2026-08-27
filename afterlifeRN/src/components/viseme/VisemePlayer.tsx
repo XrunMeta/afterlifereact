@@ -131,6 +131,8 @@ export default function v_d4f200({
           source={{ uri: v_3155e5 }}
           style={v_d81136.image}
           resizeMode="cover"
+          onLoad={() => { if (__DEV__) console.log(`[VisemePlayer] IMG OK: ${v_634a62}`); }}
+          onError={(v_9e86fd) => { if (__DEV__) console.warn(`[VisemePlayer] IMG FAIL: ${v_634a62} · ${v_3155e5} · ${v_9e86fd?.nativeEvent?.error ?? "?"}`); }}
         />
       ) : (
         <View style={[v_d81136.image, v_d81136.placeholder]} />
