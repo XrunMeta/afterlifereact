@@ -1871,6 +1871,19 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         <View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.zinc900 }]} />
       )}
 
+      {
+
+}
+      {capturingWithLogo && personaImage ? (
+        <View style={s.videoFixedContainer} pointerEvents="none">
+          <Image
+            source={typeof personaImage === "number" ? personaImage : { uri: personaImage }}
+            style={s.videoFixedRtc}
+            resizeMode="cover"
+          />
+        </View>
+      ) : null}
+
       {hudDevBox ? (
         <View style={{ position: "absolute", top: 8, right: 8, zIndex: 10,
           backgroundColor: "rgba(0,0,0,0.5)", padding: 4 }}>
