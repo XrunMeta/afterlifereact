@@ -472,7 +472,7 @@ export default function PreCallFaceEnrollScreen() {
   return (
     <View style={[s.container, { paddingBottom: insets.bottom }]}>
       {}
-      <PageHeader showBackButton onBackPress={() => nav.goBack()} transparent />
+      <PageHeader showBackButton onBackPress={handleBack} transparent />
 
       {
 }

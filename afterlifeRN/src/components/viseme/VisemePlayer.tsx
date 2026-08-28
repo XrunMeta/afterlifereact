@@ -1,7 +1,7 @@
 
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, Image, StyleSheet } from "react-native";
+import { View, Image, StyleSheet, Animated, Easing } from "react-native";
 import { createAudioPlayer, type AudioPlayer } from "expo-audio";
 
 export type Viseme =
@@ -58,11 +58,34 @@ export default function VisemePlayer({
     return urls;
   }, [visemePrefix]);
 
+  const [dataUris, setDataUris] = useState<Record<Viseme, string> | null>(null);
   useEffect(() => {
-    if (!visemeUris) return;
-    Object.values(visemeUris).forEach((u) => {
-      Image.prefetch(u).catch(() => {  });
-    });
+    if (!visemeUris) { setDataUris(null); return; }
+    let cancelled = false;
+    (async () => {
+      const out: Record<Viseme, string> = {} as Record<Viseme, string>;
+      await Promise.all(VISEME_ORDER.map(async (v) => {
+        try {
+          const res = await fetch(visemeUris[v]);
+          const blob = await res.blob();
+          const reader = new FileReader();
+          const dataUri = await new Promise<string>((resolve, reject) => {
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(blob);
+          });
+          out[v] = dataUri;
+        } catch (e) {
+          if (__DEV__) console.warn(`[VisemePlayer] preload ${v} fail:`, e);
+          out[v] = visemeUris[v]; 
+        }
+      }));
+      if (!cancelled) {
+        if (__DEV__) console.log(`[VisemePlayer] preload done · 10 dataUris ready`);
+        setDataUris(out);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [visemeUris]);
 
   useEffect(() => {
@@ -96,11 +119,13 @@ export default function VisemePlayer({
         if (cancelled) return;
         if (idx >= events.length) {
           setCurrentViseme("REST");
+          if (__DEV__) console.log(`[VisemePlayer] STEP end → REST`);
           onComplete?.();
           return;
         }
         const ev = events[idx];
         setCurrentViseme(ev.v);
+        if (__DEV__) console.log(`[VisemePlayer] STEP ${idx} → ${ev.v} · dur=${ev.dur_ms}ms`);
         cumulative += ev.dur_ms;
         const target = startAt + cumulative;
         const delay = Math.max(0, target - Date.now());
@@ -122,21 +147,11 @@ export default function VisemePlayer({
     return () => { cancelled = true; cleanup(); };
   }, [response, onComplete]);
 
-  const currentUri = visemeUris ? visemeUris[currentViseme] : null;
-
   return (
     <View style={[styles.container, style]}>
-      {currentUri ? (
-        <Image
+      {dataUris ? (
 
-          key={currentViseme}
-          source={{ uri: currentUri }}
-          style={styles.image}
-          resizeMode="cover"
-          fadeDuration={0}
-          onLoad={() => { if (__DEV__) console.log(`[VisemePlayer] IMG OK: ${currentViseme}`); }}
-          onError={(e) => { if (__DEV__) console.warn(`[VisemePlayer] IMG FAIL: ${currentViseme} · ${currentUri} · ${e?.nativeEvent?.error ?? "?"}`); }}
-        />
+        <FadeStack dataUris={dataUris} currentViseme={currentViseme} />
       ) : (
         <View style={[styles.image, styles.placeholder]} />
       )}
@@ -144,9 +159,53 @@ export default function VisemePlayer({
   );
 }
 
+function FadeStack({
+  dataUris,
+  currentViseme,
+}: {
+  dataUris: Record<Viseme, string>;
+  currentViseme: Viseme;
+}) {
+
+  const opsRef = useRef<Record<Viseme, Animated.Value> | null>(null);
+  if (!opsRef.current) {
+    const map: Record<Viseme, Animated.Value> = {} as Record<Viseme, Animated.Value>;
+    for (const v of VISEME_ORDER) map[v] = new Animated.Value(v === "REST" ? 1 : 0);
+    opsRef.current = map;
+  }
+  const ops = opsRef.current;
+
+  useEffect(() => {
+
+    VISEME_ORDER.forEach((v) => {
+      Animated.timing(ops[v], {
+        toValue: v === currentViseme ? 1 : 0,
+        duration: 100,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }).start();
+    });
+  }, [currentViseme, ops]);
+
+  return (
+    <>
+      {VISEME_ORDER.map((v) => (
+        <Animated.Image
+          key={v}
+          source={{ uri: dataUris[v] }}
+          style={[styles.image, styles.overlayImage, { opacity: ops[v] }]}
+          resizeMode="cover"
+          fadeDuration={0}
+        />
+      ))}
+    </>
+  );
+}
+
 const styles = StyleSheet.create({
 
   container: { width: "100%", height: "100%" },
   image: { width: "100%", height: "100%" },
+  overlayImage: { position: "absolute", top: 0, left: 0 },
   placeholder: { backgroundColor: "#222" },
 });
