@@ -472,7 +472,7 @@ export default function v_8640b9() {
   return (
     <View style={[v_fd5f43.container, { paddingBottom: v_033e14.bottom }]}>
       {}
-      <PageHeader showBackButton onBackPress={() => v_3c9f12.goBack()} transparent />
+      <PageHeader showBackButton onBackPress={v_6ca26b} transparent />
 
       {
 }
