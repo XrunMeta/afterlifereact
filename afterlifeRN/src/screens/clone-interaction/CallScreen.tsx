@@ -18,7 +18,12 @@ import {
   TextInput,
   BackHandler,
   ActivityIndicator,
+  ToastAndroid,
 } from "react-native";
+
+import * as ScreenCapture from "expo-screen-capture";
+import ViewShot, { captureRef } from "react-native-view-shot";
+import * as MediaLibrary from "expo-media-library";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import {
@@ -1793,8 +1798,48 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const subtitleBottom = bottomInset + 96 + 112 + 12;
 
+  const [capturingWithLogo, setCapturingWithLogo] = useState(false);
+  const rootCaptureRef = useRef<View>(null);
+
+  useEffect(() => {
+    void (async () => {
+      try { await MediaLibrary.requestPermissionsAsync(); } catch {  }
+    })();
+  }, []);
+
+  useEffect(() => {
+    const sub = ScreenCapture.addScreenshotListener(() => {
+      void (async () => {
+        try {
+          setCapturingWithLogo(true);
+
+          await new Promise((r) => setTimeout(r, 120));
+          if (!rootCaptureRef.current) return;
+          const uri = await captureRef(rootCaptureRef.current, {
+            format: "jpg",
+            quality: 0.9,
+          });
+          const perm = await MediaLibrary.getPermissionsAsync();
+          if (!perm.granted) {
+            const req = await MediaLibrary.requestPermissionsAsync();
+            if (!req.granted) throw new Error("media permission denied");
+          }
+          await MediaLibrary.createAssetAsync(uri);
+          if (Platform.OS === "android") {
+            ToastAndroid.show("저장됨", ToastAndroid.SHORT);
+          }
+        } catch (e) {
+          if (__DEV__) console.warn("[capture] screenshot save failed:", e);
+        } finally {
+          setCapturingWithLogo(false);
+        }
+      })();
+    });
+    return () => sub.remove();
+  }, []);
+
   return (
-    <View style={s.container}>
+    <View style={s.container} ref={rootCaptureRef} collapsable={false}>
       {}
       {
 
@@ -2228,16 +2273,18 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       {
 
 }
-      <View
-        style={[s.watermarkLayer, { bottom: bottomInset + 24 + 56 + 16 }]}
-        pointerEvents="none"
-      >
-        <Image
-          source={require("../../../assets/images/logo.png")}
-          style={s.watermarkLogo}
-          resizeMode="contain"
-        />
-      </View>
+      {capturingWithLogo ? (
+        <View
+          style={[s.watermarkLayer, { bottom: bottomInset + 24 + 56 + 16 }]}
+          pointerEvents="none"
+        >
+          <Image
+            source={require("../../../assets/images/logo.png")}
+            style={s.watermarkLogo}
+            resizeMode="contain"
+          />
+        </View>
+      ) : null}
 
       {
 
