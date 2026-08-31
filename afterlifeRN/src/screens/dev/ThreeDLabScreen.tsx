@@ -15,6 +15,7 @@ import {
   v_405151,
 } from "rcmrninabrnb";
 import * as v_d05ab5 from "khtmgrssvfqqjmzoc";
+import * as v_3c288d from "bxoplsnixpmvnirxbbkstg";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_9b1a04 } from "../../components/constants";
@@ -42,9 +43,22 @@ export default function v_bf7ede() {
       mediaTypes: ["images"],
       quality: 0.9,
       allowsEditing: false,
+      exif: true,
     });
     if (v_8f00b9.canceled || !v_8f00b9.assets?.[0]?.uri) return;
-    v_3456cd(v_8f00b9.assets[0].uri);
+
+    let v_26fd9d = v_8f00b9.assets[0].uri;
+    try {
+      const v_dc56f0 = await v_3c288d.manipulateAsync(
+        v_26fd9d,
+        [{ resize: { width: 1024 } }], 
+        { compress: 0.9, format: v_3c288d.SaveFormat.JPEG },
+      );
+      v_26fd9d = v_dc56f0.uri;
+    } catch (v_9e86fd) {
+      if (__DEV__) console.warn("[3d-lab] manipulate fail:", v_9e86fd);
+    }
+    v_3456cd(v_26fd9d);
     v_47323f(null);
     v_3a7d09(null);
   };
