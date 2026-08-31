@@ -46,6 +46,7 @@ import { v_110512 } from "./routes/pricing-config";
 import { v_037921 } from "./routes/auth-config";
 import { v_74e200 } from "./routes/consent";
 import { v_5c0bb5 } from "./routes/viseme";
+import { v_5add74 } from "./routes/triposr";
 import { v_8d1314, v_bf54ef } from "./routes/crashes";
 
 import { v_f31e9b, v_a63db8 } from "./routes/recommendedKeywords";
@@ -100,6 +101,8 @@ v_466992.route("/oth-path", v_dda4b9);
 v_466992.route("/oth-path", v_74e200);
 
 v_466992.route("/oth-path", v_5c0bb5);
+
+v_466992.route("/oth-path", v_5add74);
 v_466992.route("/oth-path", v_de7ba7);
 v_466992.route("/oth-path", v_f891e6);
 
