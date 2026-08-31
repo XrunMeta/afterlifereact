@@ -16,8 +16,8 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Feather } from "@expo/vector-icons";
-import PageHeader from "../../components/ui/PageHeader";
-import { COLORS, SIZES } from "../../styles/theme";
+import PageHeader from "../../components/common/PageHeader";
+import { COLORS, SIZES } from "../../components/constants";
 import { useAuthStore } from "../../stores/authStore";
 import {
   triposrGenerate,
