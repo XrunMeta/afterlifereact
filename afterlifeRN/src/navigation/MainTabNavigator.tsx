@@ -45,6 +45,7 @@ import TransactionsScreen from "../screens/my/TransactionsScreen";
 import PurchaseScreen from "../screens/my/PurchaseScreen";
 
 import VisemeTestScreen from "../screens/dev/VisemeTestScreen";
+import ThreeDLabScreen from "../screens/dev/ThreeDLabScreen";
 
 import FaceThresholdTestScreen from "../screens/face-test/FaceThresholdTestScreen";
 
@@ -109,6 +110,7 @@ function MyStackNavigator() {
       <MyStack.Screen name="Reports" component={ReportsScreen} />
       <MyStack.Screen name="VisemeTest" component={VisemeTestScreen} />
       <MyStack.Screen name="FaceThresholdTest" component={FaceThresholdTestScreen} />
+      <MyStack.Screen name="ThreeDLab" component={ThreeDLabScreen} />
     </MyStack.Navigator>
   );
 }

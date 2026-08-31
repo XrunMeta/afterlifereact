@@ -319,6 +319,13 @@ export default function MyScreen() {
           },
 
           {
+            icon: "box" as const,
+            labelKey: "3D 생성 테스트 (dev)",
+            descKey: "사진 → mesh + 5각도 렌더 · 5~30초",
+            action: () => navigation.navigate("ThreeDLab"),
+          },
+
+          {
             icon: "user-plus" as const,
             labelKey: "얼굴 5각도 등록 (dev)",
             descKey: "정면·좌·우·위·아래 촬영 → clones 첫 통화 대비",
