@@ -1,6 +1,6 @@
 
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -119,18 +119,12 @@ export default function ThreeDLabScreen() {
         {result ? (
           <View style={s.resultCard}>
             <Text style={s.sectionLabel}>
-              결과 · {(result.elapsed_ms / 1000).toFixed(1)}s · mesh {(result.mesh_bytes / 1024 / 1024).toFixed(1)}MB
+              결과 · {(result.elapsed_ms / 1000).toFixed(1)}s · mesh {(result.mesh_bytes / 1024 / 1024).toFixed(1)}MB · {result.render_urls.length}각도
             </Text>
-            <View style={s.renderRow}>
-              {result.render_urls.map((rel, i) => (
-                <Image
-                  key={i}
-                  source={{ uri: absoluteAssetUrl(result.base_url, rel) }}
-                  style={s.renderThumb}
-                  resizeMode="cover"
-                />
-              ))}
-            </View>
+            <TurntablePlayer
+              baseUrl={result.base_url}
+              renderUrls={result.render_urls}
+            />
             <TouchableOpacity style={s.meshBtn} onPress={openMesh}>
               <Feather name="download" size={16} color={COLORS.white} />
               <Text style={s.meshBtnLabel}>mesh.obj 열기 (브라우저)</Text>
@@ -142,6 +136,112 @@ export default function ThreeDLabScreen() {
     </View>
   );
 }
+
+function TurntablePlayer({
+  baseUrl,
+  renderUrls,
+}: {
+  baseUrl: string;
+  renderUrls: string[];
+}) {
+  const urls = renderUrls.map((rel) => absoluteAssetUrl(baseUrl, rel));
+  const [idx, setIdx] = useState(0);
+  const [playing, setPlaying] = useState(true);
+  const [ready, setReady] = useState(false);
+  const idxRef = useRef(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    let loaded = 0;
+    urls.forEach((u) => {
+      void Image.prefetch(u).then(() => {
+        loaded += 1;
+        if (loaded === urls.length && !cancelled) setReady(true);
+      }).catch(() => {
+        loaded += 1;
+        if (loaded === urls.length && !cancelled) setReady(true);
+      });
+    });
+    return () => { cancelled = true; };
+  }, [urls.join(",")]);
+
+  useEffect(() => {
+    if (!playing || !ready) return;
+    const id = setInterval(() => {
+      idxRef.current = (idxRef.current + 1) % urls.length;
+      setIdx(idxRef.current);
+    }, 83); 
+    return () => clearInterval(id);
+  }, [playing, ready, urls.length]);
+
+  return (
+    <View>
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={() => setPlaying((p) => !p)}
+        style={sTurntable.frame}
+      >
+        {urls.map((u, i) => (
+          <Image
+            key={i}
+            source={{ uri: u }}
+            style={[sTurntable.image, { opacity: i === idx ? 1 : 0 }]}
+            resizeMode="contain"
+            fadeDuration={0}
+          />
+        ))}
+        {!ready ? (
+          <View style={sTurntable.loadingOverlay}>
+            <ActivityIndicator color="#fff" />
+            <Text style={sTurntable.loadingText}>프레임 로딩 중...</Text>
+          </View>
+        ) : !playing ? (
+          <View style={sTurntable.pauseBadge}>
+            <Feather name="play" size={20} color="#fff" />
+          </View>
+        ) : null}
+      </TouchableOpacity>
+      <Text style={sTurntable.hint}>
+        {ready ? (playing ? "탭 = 일시정지" : "탭 = 재생") : "프레임 로딩 중..."} · {idx + 1} / {urls.length}
+      </Text>
+    </View>
+  );
+}
+
+const sTurntable = StyleSheet.create({
+  frame: {
+    width: "100%",
+    aspectRatio: 1,
+    backgroundColor: "#000",
+    borderRadius: 8,
+    overflow: "hidden",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  image: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+  },
+  loadingOverlay: {
+    position: "absolute",
+    inset: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  loadingText: { color: "#fff", fontSize: 12 },
+  pauseBadge: {
+    position: "absolute",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    padding: 16,
+    borderRadius: 999,
+  },
+  hint: { color: "#a1a1aa", fontSize: 11, textAlign: "center", marginTop: 6 },
+});
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.zinc950 },
