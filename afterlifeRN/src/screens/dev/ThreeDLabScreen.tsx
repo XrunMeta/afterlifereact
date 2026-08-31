@@ -15,6 +15,7 @@ import {
   ToastAndroid,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import { Feather } from "@expo/vector-icons";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, SIZES } from "../../components/constants";
@@ -42,9 +43,22 @@ export default function ThreeDLabScreen() {
       mediaTypes: ["images"],
       quality: 0.9,
       allowsEditing: false,
+      exif: true,
     });
     if (res.canceled || !res.assets?.[0]?.uri) return;
-    setImageUri(res.assets[0].uri);
+
+    let normalizedUri = res.assets[0].uri;
+    try {
+      const manipulated = await ImageManipulator.manipulateAsync(
+        normalizedUri,
+        [{ resize: { width: 1024 } }], 
+        { compress: 0.9, format: ImageManipulator.SaveFormat.JPEG },
+      );
+      normalizedUri = manipulated.uri;
+    } catch (e) {
+      if (__DEV__) console.warn("[3d-lab] manipulate fail:", e);
+    }
+    setImageUri(normalizedUri);
     setResult(null);
     setError(null);
   };
