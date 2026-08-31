@@ -16,8 +16,8 @@ import {
 } from "rcmrninabrnb";
 import * as v_d05ab5 from "khtmgrssvfqqjmzoc";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
-import v_258c1c from "../../components/ui/PageHeader";
-import { v_1bfbd0, v_9b1a04 } from "../../styles/theme";
+import v_258c1c from "../../components/common/PageHeader";
+import { v_1bfbd0, v_9b1a04 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
 import {
   v_8881f3,
