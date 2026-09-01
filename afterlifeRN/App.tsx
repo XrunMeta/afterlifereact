@@ -6,7 +6,7 @@ import { useAndroidBackHandler } from "./src/navigation/useAndroidBackHandler";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, View } from "react-native";
+import { AppState, StyleSheet, View } from "react-native";
 import RootNavigator from "./src/navigation/RootNavigator";
 import AppDialog from "./src/components/ui/AppDialog";
 import EmergencyBanner from "./src/components/EmergencyBanner";
@@ -82,6 +82,59 @@ export default function App() {
   const [ready, setReady] = useState(false);
 
   useAndroidBackHandler();
+
+  useEffect(() => {
+    if (__DEV__) return;
+    let cancelled = false;
+    let checking = false;
+    let lastCheckAt = 0;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    const INTERVAL_LOGGED_IN_MS = 5 * 60 * 1000; 
+    const INTERVAL_LOGGED_OUT_MS = 500;          
+
+    const runCheck = async (label: string) => {
+      if (cancelled || checking) return;
+      checking = true;
+      try {
+        const Updates = require("expo-updates");
+        const check = await Updates.checkForUpdateAsync();
+        if (cancelled || !check?.isAvailable) return;
+        console.log(`[OTA] (${label}) 새 업데이트 감지 → fetch`);
+        await Updates.fetchUpdateAsync();
+        if (cancelled) return;
+        console.log(`[OTA] (${label}) fetch 완료 → reload`);
+        await Updates.reloadAsync();
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn(`[OTA] (${label}) check/apply 실패:`, msg);
+      } finally {
+        checking = false;
+        lastCheckAt = Date.now();
+      }
+    };
+
+    const bootTimer = setTimeout(() => runCheck("boot"), 1500);
+
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") void runCheck("foreground");
+    });
+
+    intervalId = setInterval(() => {
+      if (cancelled || checking) return;
+      const isLoggedOut = !useAuthStore.getState().accessToken;
+      const minInterval = isLoggedOut ? INTERVAL_LOGGED_OUT_MS : INTERVAL_LOGGED_IN_MS;
+      if (Date.now() - lastCheckAt < minInterval) return;
+      void runCheck(isLoggedOut ? "interval-loggedout" : "interval-loggedin");
+    }, INTERVAL_LOGGED_OUT_MS);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(bootTimer);
+      if (intervalId) clearInterval(intervalId);
+      sub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     Promise.all([
