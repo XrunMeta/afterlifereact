@@ -197,22 +197,6 @@ const EMOTE_CLIPS: Record<number, Record<EmoteKey, number>> = {
   },
 };
 
-function EmoteVideoOverlay({ source }: { source: number }) {
-  const player = useVideoPlayer(source, (p) => {
-    p.loop = false;
-    p.muted = true;
-    p.play();
-  });
-  return (
-    <VideoView
-      player={player}
-      style={StyleSheet.absoluteFillObject}
-      contentFit="cover"
-      nativeControls={false}
-    />
-  );
-}
-
 export default function CallScreen(props: Props) {
   const [heavyReady, setHeavyReady] = React.useState(false);
   React.useEffect(() => {
@@ -1422,21 +1406,40 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const emoteAnim = useRef(new Animated.Value(0)).current;
   const emoteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const emoteVideoSource = emoteReaction ? EMOTE_CLIPS[cloneId]?.[emoteReaction.key] : undefined;
+
+  const emoteInitialSource = React.useMemo<number | null>(
+    () => EMOTE_CLIPS[cloneId]?.laugh ?? null,
+    [cloneId],
+  );
+  const emotePlayer = useVideoPlayer(emoteInitialSource, (p) => {
+    p.loop = false;
+    p.muted = true;
+  });
   const triggerEmote = useCallback(
     (key: EmoteKey, emoji: string, label: string) => {
       if (emoteTimerRef.current) clearTimeout(emoteTimerRef.current);
+      const src = EMOTE_CLIPS[cloneId]?.[key];
+      if (src && emotePlayer) {
+        try {
+          emotePlayer.replace(src);
+          emotePlayer.currentTime = 0;
+          emotePlayer.play();
+        } catch (err) {
+          console.warn("[Call][emote] player.replace/play failed:", err);
+        }
+      }
       setEmoteReaction({ key, emoji, label });
       emoteAnim.setValue(0);
       Animated.timing(emoteAnim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
 
-      const hold = EMOTE_CLIPS[cloneId]?.[key] ? 3200 : 2200;
+      const hold = src ? 3200 : 2200;
       emoteTimerRef.current = setTimeout(() => {
         Animated.timing(emoteAnim, { toValue: 0, duration: 280, useNativeDriver: true }).start(
           () => setEmoteReaction(null),
         );
       }, hold);
     },
-    [emoteAnim, cloneId],
+    [emoteAnim, cloneId, emotePlayer],
   );
   useEffect(() => () => {
     if (emoteTimerRef.current) clearTimeout(emoteTimerRef.current);
@@ -2551,8 +2554,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       {emoteReaction && (
         <Animated.View pointerEvents="none" style={[s.emoteOverlay, { opacity: emoteAnim }]}>
           {emoteVideoSource ? (
-
-            <EmoteVideoOverlay key={`${emoteReaction.key}-${Date.now()}`} source={emoteVideoSource} />
+            <VideoView
+              player={emotePlayer}
+              style={StyleSheet.absoluteFillObject}
+              contentFit="cover"
+              nativeControls={false}
+            />
           ) : (
             <Animated.View
               style={{
