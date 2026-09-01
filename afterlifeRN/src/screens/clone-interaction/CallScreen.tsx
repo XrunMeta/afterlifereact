@@ -375,6 +375,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const accessToken = useAuthStore((s) => s.accessToken);
   const currentUserId = useAuthStore((s) => s.apiUser?.id ?? null);
 
+  const debugEmail = useAuthStore((s) => s.apiUser?.email ?? null);
+  const emoteDebugEnabled =
+    debugEmail === "oth-staff@example.invalid" || debugEmail === "oth-user@example.invalid";
+
   const isOwnClone =
     !!clone && clone.ownerId != null && currentUserId != null && clone.ownerId === currentUserId;
   const insets = useSafeAreaInsets();
@@ -1384,6 +1388,27 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const [floatingGifts, setFloatingGifts] = useState<FloatingGift[]>([]);
   const giftCounterRef = useRef(0);
 
+  const [emoteReaction, setEmoteReaction] = useState<{ emoji: string; label: string } | null>(null);
+  const emoteAnim = useRef(new Animated.Value(0)).current;
+  const emoteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const triggerEmote = useCallback(
+    (emoji: string, label: string) => {
+      if (emoteTimerRef.current) clearTimeout(emoteTimerRef.current);
+      setEmoteReaction({ emoji, label });
+      emoteAnim.setValue(0);
+      Animated.timing(emoteAnim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
+      emoteTimerRef.current = setTimeout(() => {
+        Animated.timing(emoteAnim, { toValue: 0, duration: 280, useNativeDriver: true }).start(
+          () => setEmoteReaction(null),
+        );
+      }, 2200);
+    },
+    [emoteAnim],
+  );
+  useEffect(() => () => {
+    if (emoteTimerRef.current) clearTimeout(emoteTimerRef.current);
+  }, []);
+
   const [callSeconds, setCallSeconds] = useState(0);
   useEffect(() => {
     if (liveState !== "live") return;
@@ -2148,6 +2173,32 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       {
 
 }
+      {emoteDebugEnabled && liveState === "live" && (
+        <View style={[s.emoteRow, { top: insets.top + 80 }]}>
+          {(
+            [
+              { key: "laugh", emoji: "😄", label: "웃음" },
+              { key: "cry", emoji: "😢", label: "울음" },
+              { key: "angry", emoji: "😠", label: "화남" },
+              { key: "yawn", emoji: "🥱", label: "하품" },
+            ] as const
+          ).map((it) => (
+            <TouchableOpacity
+              key={it.key}
+              style={s.emoteBtn}
+              onPress={() => triggerEmote(it.emoji, it.label)}
+              hitSlop={8}
+            >
+              <Text style={s.emoteBtnEmoji}>{it.emoji}</Text>
+              <Text style={s.emoteBtnLabel}>{it.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {
+
+}
       {clone?.cloneType === "expert" && (
         <View style={[s.expertBadge, { top: insets.top + 24 }]}>
           <ExpertBadge size={44} />
@@ -2460,6 +2511,27 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 }
 
       {}
+
+      {}
+      {emoteReaction && (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            s.emoteOverlay,
+            {
+              opacity: emoteAnim,
+              transform: [
+                {
+                  scale: emoteAnim.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Text style={s.emoteOverlayEmoji}>{emoteReaction.emoji}</Text>
+          <Text style={s.emoteOverlayLabel}>{emoteReaction.label}</Text>
+        </Animated.View>
+      )}
 
       {
 
@@ -2819,5 +2891,51 @@ const s = StyleSheet.create({
     fontSize: 15,
     color: COLORS.white,
     fontWeight: "600",
+  },
+
+  emoteRow: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 10,
+    zIndex: 20,
+  },
+  emoteBtn: {
+    minWidth: 56,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emoteBtnEmoji: { fontSize: 22, lineHeight: 26 },
+  emoteBtnLabel: { fontSize: 11, color: COLORS.white, marginTop: 2, fontWeight: "600" },
+  emoteOverlay: {
+    position: "absolute",
+    top: 0, left: 0, right: 0, bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 30,
+  },
+  emoteOverlayEmoji: {
+    fontSize: 160,
+    textShadowColor: "rgba(0,0,0,0.55)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
+  },
+  emoteOverlayLabel: {
+    marginTop: 12,
+    fontSize: 22,
+    fontWeight: "800",
+    color: COLORS.white,
+    textShadowColor: "rgba(0,0,0,0.7)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+    letterSpacing: 2,
   },
 });
