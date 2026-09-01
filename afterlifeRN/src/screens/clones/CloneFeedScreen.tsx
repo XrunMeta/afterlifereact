@@ -511,6 +511,7 @@ function CloneFeedInner({ route, navigation, feed }: InnerProps) {
         onCommentPress={() => setCommentOpen(true)}
         onMorePress={() => setMoreOpen(true)}
         onSharePress={handleShare}
+        contentTopInset={insets.top + 8}
       />
 
       {}

@@ -52,6 +52,8 @@ interface FeedCardProps {
   onDescriptionScrollEnd?: () => void;
 
   onDescriptionPress?: () => void;
+
+  contentTopInset?: number;
 }
 
 const FeedCard: React.FC<FeedCardProps> = ({
@@ -75,6 +77,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
   onDescriptionScrollStart,
   onDescriptionScrollEnd,
   onDescriptionPress,
+  contentTopInset = 0,
 }) => {
   const { t } = useTranslation();
   const nav = useNavigation<BottomTabNavigationProp<MainTabParamList>>();
@@ -129,7 +132,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
       {
 }
       {isActive && (item.ownerName || item.ownerAvatarUrl || onMorePress) ? (
-        <View style={styles.ownerHeader}>
+        <View style={[styles.ownerHeader, contentTopInset ? { top: 100 + contentTopInset } : null]}>
           <TouchableOpacity
             style={styles.ownerInfo}
             onPress={onOwnerPress}
@@ -163,7 +166,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
       {
 }
       {isActive && hashtags.length > 0 ? (
-        <View style={styles.hashtagRowWrap} pointerEvents="box-none">
+        <View style={[styles.hashtagRowWrap, contentTopInset ? { top: 56 + contentTopInset } : null]} pointerEvents="box-none">
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
