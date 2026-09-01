@@ -35,6 +35,8 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 
 import SvgaOverlay from "../../components/gift/SvgaOverlay";
 
+import { useVideoPlayer, VideoView } from "expo-video";
+
 import CallEntryQuestionsScreen from "../call-entry/CallEntryQuestionsScreen";
 
 import SvgaThumb from "../../components/gift/SvgaThumb";
@@ -183,6 +185,32 @@ interface FloatingGift {
   animY: Animated.Value;
   animOpacity: Animated.Value;
   x: number;
+}
+
+type EmoteKey = "laugh" | "cry" | "angry" | "yawn";
+const EMOTE_CLIPS: Record<number, Record<EmoteKey, number>> = {
+  9145: {
+    laugh: require("../../../assets/emote/paker/laugh.mp4"),
+    cry: require("../../../assets/emote/paker/cry.mp4"),
+    angry: require("../../../assets/emote/paker/angry.mp4"),
+    yawn: require("../../../assets/emote/paker/yawn.mp4"),
+  },
+};
+
+function EmoteVideoOverlay({ source }: { source: number }) {
+  const player = useVideoPlayer(source, (p) => {
+    p.loop = false;
+    p.muted = true;
+    p.play();
+  });
+  return (
+    <VideoView
+      player={player}
+      style={StyleSheet.absoluteFillObject}
+      contentFit="cover"
+      nativeControls={false}
+    />
+  );
 }
 
 export default function CallScreen(props: Props) {
@@ -1388,22 +1416,27 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const [floatingGifts, setFloatingGifts] = useState<FloatingGift[]>([]);
   const giftCounterRef = useRef(0);
 
-  const [emoteReaction, setEmoteReaction] = useState<{ emoji: string; label: string } | null>(null);
+  const [emoteReaction, setEmoteReaction] = useState<
+    { key: EmoteKey; emoji: string; label: string } | null
+  >(null);
   const emoteAnim = useRef(new Animated.Value(0)).current;
   const emoteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const emoteVideoSource = emoteReaction ? EMOTE_CLIPS[cloneId]?.[emoteReaction.key] : undefined;
   const triggerEmote = useCallback(
-    (emoji: string, label: string) => {
+    (key: EmoteKey, emoji: string, label: string) => {
       if (emoteTimerRef.current) clearTimeout(emoteTimerRef.current);
-      setEmoteReaction({ emoji, label });
+      setEmoteReaction({ key, emoji, label });
       emoteAnim.setValue(0);
       Animated.timing(emoteAnim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
+
+      const hold = EMOTE_CLIPS[cloneId]?.[key] ? 3200 : 2200;
       emoteTimerRef.current = setTimeout(() => {
         Animated.timing(emoteAnim, { toValue: 0, duration: 280, useNativeDriver: true }).start(
           () => setEmoteReaction(null),
         );
-      }, 2200);
+      }, hold);
     },
-    [emoteAnim],
+    [emoteAnim, cloneId],
   );
   useEffect(() => () => {
     if (emoteTimerRef.current) clearTimeout(emoteTimerRef.current);
@@ -2186,7 +2219,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
             <TouchableOpacity
               key={it.key}
               style={s.emoteBtn}
-              onPress={() => triggerEmote(it.emoji, it.label)}
+              onPress={() => triggerEmote(it.key, it.emoji, it.label)}
               hitSlop={8}
             >
               <Text style={s.emoteBtnEmoji}>{it.emoji}</Text>
@@ -2512,24 +2545,27 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
       {}
 
-      {}
+      {
+
+}
       {emoteReaction && (
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            s.emoteOverlay,
-            {
-              opacity: emoteAnim,
-              transform: [
-                {
-                  scale: emoteAnim.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }),
-                },
-              ],
-            },
-          ]}
-        >
-          <Text style={s.emoteOverlayEmoji}>{emoteReaction.emoji}</Text>
-          <Text style={s.emoteOverlayLabel}>{emoteReaction.label}</Text>
+        <Animated.View pointerEvents="none" style={[s.emoteOverlay, { opacity: emoteAnim }]}>
+          {emoteVideoSource ? (
+
+            <EmoteVideoOverlay key={`${emoteReaction.key}-${Date.now()}`} source={emoteVideoSource} />
+          ) : (
+            <Animated.View
+              style={{
+                alignItems: "center",
+                transform: [
+                  { scale: emoteAnim.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }) },
+                ],
+              }}
+            >
+              <Text style={s.emoteOverlayEmoji}>{emoteReaction.emoji}</Text>
+              <Text style={s.emoteOverlayLabel}>{emoteReaction.label}</Text>
+            </Animated.View>
+          )}
         </Animated.View>
       )}
 
