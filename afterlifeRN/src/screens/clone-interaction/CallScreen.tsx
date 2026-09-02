@@ -1440,7 +1440,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       emoteAnim.setValue(0);
       Animated.timing(emoteAnim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
 
-      const hold = src ? 3200 : 2200;
+      const hold = src ? 1200 : 2200;
       emoteTimerRef.current = setTimeout(() => {
         Animated.timing(emoteAnim, { toValue: 0, duration: 280, useNativeDriver: true }).start(
           () => setEmoteReaction(null),
