@@ -185,13 +185,15 @@ interface FloatingGift {
   x: number;
 }
 
-type EmoteKey = "laugh" | "cry" | "angry" | "yawn";
-const EMOTE_STILLS: Record<number, Record<EmoteKey, number>> = {
+type EmoteKey = "laugh" | "cry" | "angry" | "yawn" | "wink";
+const EMOTE_STILLS: Record<number, Partial<Record<EmoteKey, number>>> = {
   9145: {
     laugh: require("../../../assets/emote/paker/laugh.jpg"),
     cry: require("../../../assets/emote/paker/cry.jpg"),
     angry: require("../../../assets/emote/paker/angry.jpg"),
     yawn: require("../../../assets/emote/paker/yawn.jpg"),
+
+    wink: require("../../../assets/emote/paker/wink.jpg"),
   },
 };
 
@@ -1290,14 +1292,24 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     if (
       lastSignal.type === 'speech_text' &&
       lastSignal.text &&
-      !laughFiredThisTurn.current &&
-      EMOTE_STILLS[cloneId]?.laugh
+      !laughFiredThisTurn.current
     ) {
       const t = lastSignal.text;
 
-      if (/ㅋ{2,}|ㅎ{2,}|하하|헤헤|히히|웃긴|웃겨|재밌|재밋|너무\s*좋/.test(t)) {
+      if (
+        EMOTE_STILLS[cloneId]?.laugh &&
+        /ㅋ{2,}|ㅎ{2,}|하하|헤헤|히히|웃긴|웃겨|재밌|재밋|너무\s*좋/.test(t)
+      ) {
         laughFiredThisTurn.current = true;
         triggerEmote('laugh', '😄', '웃음');
+      }
+
+      else if (
+        EMOTE_STILLS[cloneId]?.wink &&
+        /사랑해|예뻐|이뻐|귀여워|귀엽|보고\s*싶|좋아해|좋아함|자기야|우리\s*(?:둘|사이)|안아|뽀뽀|설레|심쿵|❤|💕|💗|😘|😍/.test(t)
+      ) {
+        laughFiredThisTurn.current = true;
+        triggerEmote('wink', '😉', '윙크');
       }
     }
   }, [lastSignal, cloneId, triggerEmote]);
