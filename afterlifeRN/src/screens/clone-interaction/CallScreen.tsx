@@ -1280,6 +1280,28 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     }
   }, [lastSignal]);
 
+  const laughFiredThisTurn = useRef(false);
+  useEffect(() => {
+    if (!lastSignal) return;
+    if (lastSignal.type === 'speech_start') {
+      laughFiredThisTurn.current = false;
+      return;
+    }
+    if (
+      lastSignal.type === 'speech_text' &&
+      lastSignal.text &&
+      !laughFiredThisTurn.current &&
+      EMOTE_STILLS[cloneId]?.laugh
+    ) {
+      const t = lastSignal.text;
+
+      if (/ㅋ{2,}|ㅎ{2,}|하하|헤헤|히히|웃긴|웃겨|재밌|재밋|너무\s*좋/.test(t)) {
+        laughFiredThisTurn.current = true;
+        triggerEmote('laugh', '😄', '웃음');
+      }
+    }
+  }, [lastSignal, cloneId, triggerEmote]);
+
   const startedRef = useRef(false);
   useEffect(() => {
     if (!accessToken) return;
