@@ -101,6 +101,25 @@ calls.get("/:cloneId/bundle", requireAuth, async (c) => {
     throw new APIError("FORBIDDEN", "This clone is currently suspended.");
   }
   const { personaBundle, assets } = await buildCallBundle(c.env.DB, clone, userId, new URL(c.req.url).origin);
+
+  if (assets.faceUrl && c.env.EMOTE_RENDER_SECRET) {
+    const emoteBase = c.env.CALL_PRETHIRD_BASE?.replace(/\/prethird\/?$/, "") ?? "https://rtc.example.invalid";
+    const renderUrl = `${emoteBase}/emote/render`;
+    c.executionCtx.waitUntil(
+      fetch(renderUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${c.env.EMOTE_RENDER_SECRET}`,
+        },
+        body: JSON.stringify({
+          cloneId,
+          action: "smile",
+          faceUrl: assets.faceUrl,
+        }),
+      }).catch(() => {}),
+    );
+  }
   return c.json({ personaBundle, assets });
 });
 
