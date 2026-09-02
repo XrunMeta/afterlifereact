@@ -190,9 +190,10 @@ interface FloatingGift {
 type EmoteKey = "smile" | "wink" | "cry" | "angry" | "yawn";
 const EMOTE_BASE_URL = "https://rtc.example.invalid/emote";
 const EMOTE_SERVER_ACTIONS: ReadonlySet<EmoteKey> = new Set(["smile"]);
-function emoteVideoUri(cloneId: number, key: EmoteKey): { uri: string } | null {
+
+function emoteVideoUri(cloneId: number, key: EmoteKey): string | null {
   if (!EMOTE_SERVER_ACTIONS.has(key) || !Number.isFinite(cloneId) || cloneId <= 0) return null;
-  return { uri: `${EMOTE_BASE_URL}/${cloneId}/${key}.mp4` };
+  return `${EMOTE_BASE_URL}/${cloneId}/${key}.mp4`;
 }
 
 export default function CallScreen(props: Props) {
@@ -1445,7 +1446,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const emoteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const emoteVideoSource = emoteReaction ? emoteVideoUri(cloneId, emoteReaction.key) : null;
 
-  const emoteVideoInitial = React.useMemo<{ uri: string } | null>(
+  const emoteVideoInitial = React.useMemo<string | null>(
     () => emoteVideoUri(cloneId, "smile"),
     [cloneId],
   );
@@ -1457,7 +1458,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     (key: EmoteKey, emoji: string, label: string) => {
       if (emoteTimerRef.current) clearTimeout(emoteTimerRef.current);
       const videoSrc = emoteVideoUri(cloneId, key);
-      console.log(`[Call][emote] trigger key=${key} cloneId=${cloneId} video=${videoSrc ? videoSrc.uri : "none"}`);
+      console.log(`[Call][emote] trigger key=${key} cloneId=${cloneId} video=${videoSrc ?? "none"}`);
 
       if (!videoSrc) {
         return;
@@ -1465,24 +1466,43 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       if (emotePlayer) {
         try {
           const p: any = emotePlayer;
+          const doPlay = () => {
+            try {
+              p.currentTime = 0;
+              p.play();
+              console.log(`[Call][emote] play() called status=${p.status ?? "?"} duration=${p.duration ?? "?"}`);
+            } catch (err) {
+              console.warn("[Call][emote] play() throw:", err);
+            }
+          };
+
           if (typeof p.replaceAsync === "function") {
             p.replaceAsync(videoSrc)
-              .then(() => { p.currentTime = 0; p.play(); })
-              .catch((err: unknown) => console.warn("[Call][emote] replaceAsync failed:", err));
-          } else {
+              .then(() => {
+                console.log(`[Call][emote] replaceAsync resolved status=${p.status ?? "?"}`);
+                doPlay();
+              })
+              .catch((err: unknown) => {
+                console.warn("[Call][emote] replaceAsync failed:", err);
+                doPlay(); 
+              });
+          } else if (typeof p.replace === "function") {
             p.replace(videoSrc);
-            p.currentTime = 0;
-            p.play();
+            doPlay();
+          } else {
+            doPlay();
           }
         } catch (err) {
           console.warn("[Call][emote] player play failed:", err);
         }
+      } else {
+        console.warn("[Call][emote] emotePlayer null");
       }
       setEmoteReaction({ key, emoji, label });
       emoteAnim.setValue(0);
       Animated.timing(emoteAnim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
 
-      const hold = 1200;
+      const hold = 1500;
       emoteTimerRef.current = setTimeout(() => {
         Animated.timing(emoteAnim, { toValue: 0, duration: 280, useNativeDriver: true }).start(
           () => setEmoteReaction(null),
