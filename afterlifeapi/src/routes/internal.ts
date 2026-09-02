@@ -225,6 +225,33 @@ v_dcd415.post("/asset-job-done", async (v_3f4e2e) => {
 
   await v_2fb81a(v_3f4e2e.env.DB, v_04211c, v_43af15!.id, v_7ce8a7, v_0a2cd1.clone_id, v_0a2cd1.kind);
 
+  if (v_0a2cd1.kind === "idle_video" && v_0a2cd1.clone_id && v_3f4e2e.env.EMOTE_RENDER_SECRET) {
+    const v_d0c2ab = v_3f4e2e.env.CALL_PRETHIRD_BASE?.replace(/\/prethird\/?$/, "") ?? "https://rtc.example.invalid";
+    const v_555aed = `${v_d0c2ab}/emote/render`;
+
+    const v_7d769d = await v_3f4e2e.env.DB
+      .prepare(`SELECT src_file_id FROM clone_asset_jobs WHERE id=?`)
+      .bind(v_04211c)
+      .first<{ src_file_id: number | null }>();
+    if (v_7d769d?.src_file_id) {
+      const v_2d0601 = `${v_f17108}/oth-path${v_7d769d.src_file_id}`;
+      v_3f4e2e.executionCtx.waitUntil(
+        fetch(v_555aed, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${v_3f4e2e.env.EMOTE_RENDER_SECRET}`,
+          },
+          body: JSON.stringify({
+            cloneId: v_0a2cd1.clone_id,
+            action: "smile",
+            faceUrl: v_2d0601,
+          }),
+        }).catch(() => {}),
+      );
+    }
+  }
+
   return v_3f4e2e.json({ ok: true, out_url: v_7ce8a7 });
 });
 
