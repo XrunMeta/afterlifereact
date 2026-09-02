@@ -225,6 +225,33 @@ internal.post("/asset-job-done", async (c) => {
 
   await finalizeJob(c.env.DB, jobId, ins!.id, outUrl, claimed.clone_id, claimed.kind);
 
+  if (claimed.kind === "idle_video" && claimed.clone_id && c.env.EMOTE_RENDER_SECRET) {
+    const emoteBase = c.env.CALL_PRETHIRD_BASE?.replace(/\/prethird\/?$/, "") ?? "https://rtc.example.invalid";
+    const renderUrl = `${emoteBase}/emote/render`;
+
+    const face = await c.env.DB
+      .prepare(`SELECT src_file_id FROM clone_asset_jobs WHERE id=?`)
+      .bind(jobId)
+      .first<{ src_file_id: number | null }>();
+    if (face?.src_file_id) {
+      const faceUrl = `${origin}/oth-path${face.src_file_id}`;
+      c.executionCtx.waitUntil(
+        fetch(renderUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${c.env.EMOTE_RENDER_SECRET}`,
+          },
+          body: JSON.stringify({
+            cloneId: claimed.clone_id,
+            action: "smile",
+            faceUrl,
+          }),
+        }).catch(() => {}),
+      );
+    }
+  }
+
   return c.json({ ok: true, out_url: outUrl });
 });
 
