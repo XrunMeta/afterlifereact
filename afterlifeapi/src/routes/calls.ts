@@ -101,6 +101,25 @@ v_20e160.get("/:cloneId/bundle", v_6690d9, async (v_3f4e2e) => {
     throw new v_3ebe58("FORBIDDEN", "This clone is currently suspended.");
   }
   const { personaBundle: v_ba0fde, assets: v_7adc95 } = await v_87cfd2(v_3f4e2e.env.DB, v_eb25ce, v_43e90c, new URL(v_3f4e2e.req.url).origin);
+
+  if (v_7adc95.faceUrl && v_3f4e2e.env.EMOTE_RENDER_SECRET) {
+    const v_d0c2ab = v_3f4e2e.env.CALL_PRETHIRD_BASE?.replace(/\/prethird\/?$/, "") ?? "https://rtc.example.invalid";
+    const v_555aed = `${v_d0c2ab}/emote/render`;
+    v_3f4e2e.executionCtx.waitUntil(
+      fetch(v_555aed, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${v_3f4e2e.env.EMOTE_RENDER_SECRET}`,
+        },
+        body: JSON.stringify({
+          cloneId: v_6e0fd3,
+          action: "smile",
+          faceUrl: v_7adc95.faceUrl,
+        }),
+      }).catch(() => {}),
+    );
+  }
   return v_3f4e2e.json({ personaBundle: v_ba0fde, assets: v_7adc95 });
 });
 
