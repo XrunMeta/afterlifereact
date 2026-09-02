@@ -1420,10 +1420,18 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       if (emoteTimerRef.current) clearTimeout(emoteTimerRef.current);
       const src = EMOTE_CLIPS[cloneId]?.[key];
       if (src && emotePlayer) {
+
         try {
-          emotePlayer.replace(src);
-          emotePlayer.currentTime = 0;
-          emotePlayer.play();
+          const p: any = emotePlayer;
+          if (typeof p.replaceAsync === "function") {
+            p.replaceAsync(src)
+              .then(() => { p.currentTime = 0; p.play(); })
+              .catch((err: unknown) => console.warn("[Call][emote] replaceAsync failed:", err));
+          } else {
+            p.replace(src);
+            p.currentTime = 0;
+            p.play();
+          }
         } catch (err) {
           console.warn("[Call][emote] player.replace/play failed:", err);
         }
