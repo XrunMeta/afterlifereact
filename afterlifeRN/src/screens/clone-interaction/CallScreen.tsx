@@ -1471,6 +1471,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       const stillSrc = EMOTE_STILLS[cloneId]?.[key];
       console.log(`[Call][emote] trigger key=${key} cloneId=${cloneId} video=${!!videoSrc} still=${!!stillSrc}`);
 
+      if (!videoSrc && !stillSrc) {
+        return;
+      }
+
       if (videoSrc && emotePlayer) {
         try {
           const p: any = emotePlayer;
@@ -1491,7 +1495,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       emoteAnim.setValue(0);
       Animated.timing(emoteAnim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
 
-      const hold = videoSrc ? 1200 : stillSrc ? 1200 : 2200;
+      const hold = videoSrc ? 1200 : 1200;
       emoteTimerRef.current = setTimeout(() => {
         Animated.timing(emoteAnim, { toValue: 0, duration: 280, useNativeDriver: true }).start(
           () => setEmoteReaction(null),
