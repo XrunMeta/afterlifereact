@@ -35,6 +35,8 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 
 import SvgaOverlay from "../../components/gift/SvgaOverlay";
 
+import { useVideoPlayer, VideoView } from "expo-video";
+
 import CallEntryQuestionsScreen from "../call-entry/CallEntryQuestionsScreen";
 
 import SvgaThumb from "../../components/gift/SvgaThumb";
@@ -194,6 +196,12 @@ const EMOTE_STILLS: Record<number, Partial<Record<EmoteKey, number>>> = {
     yawn: require("../../../assets/emote/paker/yawn.jpg"),
 
     wink: require("../../../assets/emote/paker/wink.jpg"),
+  },
+};
+
+const EMOTE_VIDEOS: Record<number, Partial<Record<EmoteKey, number>>> = {
+  9145: {
+    laugh: require("../../../assets/emote/paker/laugh.mp4"),
   },
 };
 
@@ -1446,22 +1454,51 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   >(null);
   const emoteAnim = useRef(new Animated.Value(0)).current;
   const emoteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const emoteVideoSource = emoteReaction ? EMOTE_VIDEOS[cloneId]?.[emoteReaction.key] : undefined;
   const emoteStillSource = emoteReaction ? EMOTE_STILLS[cloneId]?.[emoteReaction.key] : undefined;
+
+  const emoteVideoInitial = React.useMemo<number | null>(
+    () => EMOTE_VIDEOS[cloneId]?.laugh ?? null,
+    [cloneId],
+  );
+  const emotePlayer = useVideoPlayer(emoteVideoInitial, (p) => {
+    p.loop = false;
+    p.muted = true;
+  });
   const triggerEmote = useCallback(
     (key: EmoteKey, emoji: string, label: string) => {
       if (emoteTimerRef.current) clearTimeout(emoteTimerRef.current);
+      const videoSrc = EMOTE_VIDEOS[cloneId]?.[key];
+      const stillSrc = EMOTE_STILLS[cloneId]?.[key];
+
+      if (videoSrc && emotePlayer) {
+        try {
+          const p: any = emotePlayer;
+          if (typeof p.replaceAsync === "function") {
+            p.replaceAsync(videoSrc)
+              .then(() => { p.currentTime = 0; p.play(); })
+              .catch((err: unknown) => console.warn("[Call][emote] replaceAsync failed:", err));
+          } else {
+            p.replace(videoSrc);
+            p.currentTime = 0;
+            p.play();
+          }
+        } catch (err) {
+          console.warn("[Call][emote] player play failed:", err);
+        }
+      }
       setEmoteReaction({ key, emoji, label });
       emoteAnim.setValue(0);
       Animated.timing(emoteAnim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
 
-      const hold = EMOTE_STILLS[cloneId]?.[key] ? 1200 : 2200;
+      const hold = videoSrc ? 5000 : stillSrc ? 1200 : 2200;
       emoteTimerRef.current = setTimeout(() => {
         Animated.timing(emoteAnim, { toValue: 0, duration: 280, useNativeDriver: true }).start(
           () => setEmoteReaction(null),
         );
       }, hold);
     },
-    [emoteAnim, cloneId],
+    [emoteAnim, cloneId, emotePlayer],
   );
   useEffect(() => () => {
     if (emoteTimerRef.current) clearTimeout(emoteTimerRef.current);
@@ -2575,7 +2612,14 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 }
       {emoteReaction && (
         <Animated.View pointerEvents="none" style={[s.emoteOverlay, { opacity: emoteAnim }]}>
-          {emoteStillSource ? (
+          {emoteVideoSource ? (
+            <VideoView
+              player={emotePlayer}
+              style={StyleSheet.absoluteFillObject}
+              contentFit="cover"
+              nativeControls={false}
+            />
+          ) : emoteStillSource ? (
             <Image
               source={emoteStillSource}
               style={StyleSheet.absoluteFillObject}
