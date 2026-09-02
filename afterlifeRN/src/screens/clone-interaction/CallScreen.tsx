@@ -187,10 +187,10 @@ interface FloatingGift {
   x: number;
 }
 
-type EmoteKey = "laugh" | "cry" | "angry" | "yawn" | "wink";
+type EmoteKey = "smile" | "cry" | "angry" | "yawn" | "wink";
 const EMOTE_STILLS: Record<number, Partial<Record<EmoteKey, number>>> = {
   9145: {
-    laugh: require("../../../assets/emote/paker/laugh.jpg"),
+    smile: require("../../../assets/emote/paker/smile.jpg"),
     cry: require("../../../assets/emote/paker/cry.jpg"),
     angry: require("../../../assets/emote/paker/angry.jpg"),
     yawn: require("../../../assets/emote/paker/yawn.jpg"),
@@ -201,7 +201,7 @@ const EMOTE_STILLS: Record<number, Partial<Record<EmoteKey, number>>> = {
 
 const EMOTE_VIDEOS: Record<number, Partial<Record<EmoteKey, number>>> = {
   9145: {
-    laugh: require("../../../assets/emote/paker/laugh.mp4"),
+    smile: require("../../../assets/emote/paker/smile.mp4"),
   },
 };
 
@@ -1245,11 +1245,14 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       chatPrevTranscript.current = transcript;
       chatUserSentAt.current = Date.now();
 
-      if (EMOTE_STILLS[cloneId]?.laugh && /웃어\s*봐|웃겨\s*봐|웃겨줘|재밌게\s*해줘|웃어보렴/.test(transcript)) {
-        triggerEmote('laugh', '😄', '웃음');
+      if (
+        EMOTE_STILLS[cloneId]?.smile &&
+        /안녕|반가워|반갑|오랜만|고마워|고맙|감사|잘생겼|예뻐|이뻐|귀여워|귀엽|멋져|멋있|대박|최고|잘\s*했|잘한|웃어\s*봐|웃겨\s*봐|웃겨줘|재밌게\s*해줘/.test(transcript)
+      ) {
+        triggerEmote('smile', '🙂', '미소');
       } else if (
         EMOTE_STILLS[cloneId]?.wink &&
-        /사랑해|좋아해|보고\s*싶|귀여워|예뻐|이뻐|자기야|뽀뽀|안아|설레|심쿵|❤|💕|💗|😘|😍/.test(transcript)
+        /사랑해|좋아해|보고\s*싶|자기야|뽀뽀|안아|설레|심쿵|❤|💕|💗|😘|😍/.test(transcript)
       ) {
         triggerEmote('wink', '😉', '윙크');
       }
@@ -1299,33 +1302,33 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     }
   }, [lastSignal]);
 
-  const laughFiredThisTurn = useRef(false);
+  const emoteFiredThisTurn = useRef(false);
   useEffect(() => {
     if (!lastSignal) return;
     if (lastSignal.type === 'speech_start') {
-      laughFiredThisTurn.current = false;
+      emoteFiredThisTurn.current = false;
       return;
     }
     if (
       lastSignal.type === 'speech_text' &&
       lastSignal.text &&
-      !laughFiredThisTurn.current
+      !emoteFiredThisTurn.current
     ) {
       const t = lastSignal.text;
 
       if (
-        EMOTE_STILLS[cloneId]?.laugh &&
-        /ㅋ{2,}|ㅎ{2,}|하하|헤헤|히히|웃긴|웃겨|재밌|재밋|너무\s*좋/.test(t)
+        EMOTE_STILLS[cloneId]?.smile &&
+        /안녕|반가워|반갑|오랜만|고마워|고맙|감사|맞아|맞네|그렇지|그러네|좋아(?!해)|좋네|오케이|okay|okey|잘생겼|잘생김|예뻐|이뻐|귀여워|귀엽|멋져|멋있|대박|최고|잘\s*했|잘한|ㅋ{2,}|ㅎ{2,}|하하|헤헤|히히|웃긴|웃겨|재밌|재밋/.test(t)
       ) {
-        laughFiredThisTurn.current = true;
-        triggerEmote('laugh', '😄', '웃음');
+        emoteFiredThisTurn.current = true;
+        triggerEmote('smile', '🙂', '미소');
       }
 
       else if (
         EMOTE_STILLS[cloneId]?.wink &&
-        /사랑해|예뻐|이뻐|귀여워|귀엽|보고\s*싶|좋아해|좋아함|자기야|우리\s*(?:둘|사이)|안아|뽀뽀|설레|심쿵|❤|💕|💗|😘|😍/.test(t)
+        /사랑해|보고\s*싶|좋아해|좋아함|자기야|우리\s*(?:둘|사이)|안아|뽀뽀|설레|심쿵|❤|💕|💗|😘|😍/.test(t)
       ) {
-        laughFiredThisTurn.current = true;
+        emoteFiredThisTurn.current = true;
         triggerEmote('wink', '😉', '윙크');
       }
     }
@@ -1458,7 +1461,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const emoteStillSource = emoteReaction ? EMOTE_STILLS[cloneId]?.[emoteReaction.key] : undefined;
 
   const emoteVideoInitial = React.useMemo<number | null>(
-    () => EMOTE_VIDEOS[cloneId]?.laugh ?? null,
+    () => EMOTE_VIDEOS[cloneId]?.smile ?? null,
     [cloneId],
   );
   const emotePlayer = useVideoPlayer(emoteVideoInitial, (p) => {
@@ -1470,6 +1473,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       if (emoteTimerRef.current) clearTimeout(emoteTimerRef.current);
       const videoSrc = EMOTE_VIDEOS[cloneId]?.[key];
       const stillSrc = EMOTE_STILLS[cloneId]?.[key];
+      console.log(`[Call][emote] trigger key=${key} cloneId=${cloneId} video=${!!videoSrc} still=${!!stillSrc}`);
 
       if (videoSrc && emotePlayer) {
         try {
@@ -1491,7 +1495,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       emoteAnim.setValue(0);
       Animated.timing(emoteAnim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
 
-      const hold = videoSrc ? 5000 : stillSrc ? 1200 : 2200;
+      const hold = videoSrc ? 1200 : stillSrc ? 1200 : 2200;
       emoteTimerRef.current = setTimeout(() => {
         Animated.timing(emoteAnim, { toValue: 0, duration: 280, useNativeDriver: true }).start(
           () => setEmoteReaction(null),
@@ -2272,7 +2276,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         <View style={[s.emoteRow, { top: insets.top + 80 }]}>
           {(
             [
-              { key: "laugh", emoji: "😄", label: "웃음" },
+              { key: "smile", emoji: "🙂", label: "미소" },
               { key: "cry", emoji: "😢", label: "울음" },
               { key: "angry", emoji: "😠", label: "화남" },
               { key: "yawn", emoji: "🥱", label: "하품" },
