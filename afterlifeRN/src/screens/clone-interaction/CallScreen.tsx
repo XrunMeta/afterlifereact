@@ -3024,8 +3024,12 @@ const s = StyleSheet.create({
   emoteBtnEmoji: { fontSize: 22, lineHeight: 26 },
   emoteBtnLabel: { fontSize: 11, color: COLORS.white, marginTop: 2, fontWeight: "600" },
   emoteOverlay: {
+
     position: "absolute",
-    top: 0, left: 0, right: 0, bottom: 0,
+    top: VIDEO_TOP,
+    left: VIDEO_LEFT,
+    width: VIDEO_W,
+    height: VIDEO_H,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 30,
