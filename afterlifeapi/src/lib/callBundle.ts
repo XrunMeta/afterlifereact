@@ -24,6 +24,8 @@ export interface CallBundle {
     fillerVideoUrls: string[];
 
     guideVideoUrls: string[];
+
+    emoteSmileUrl: string | null;
   };
 }
 
@@ -135,6 +137,9 @@ export async function buildCallBundle(db: D1Database, clone: CloneRow, userId: n
     }
   }
 
+  const emoteBase = "https://rtc.example.invalid"; 
+  const emoteSmileUrl = faceUrl ? `${emoteBase}/emote/${cloneId}/smile.mp4` : null;
+
   const assets = {
 
     idleVideoUrl: rebaseOrigin(clone.idle_video_url ?? null),
@@ -145,6 +150,7 @@ export async function buildCallBundle(db: D1Database, clone: CloneRow, userId: n
     faceUrl,
     fillerVideoUrls: fillerVideoUrls.map((u) => rebaseOrigin(u) ?? u),
     guideVideoUrls: guideVideoUrls.map((u) => rebaseOrigin(u) ?? u),
+    emoteSmileUrl,
   };
 
   return { personaBundle, assets };

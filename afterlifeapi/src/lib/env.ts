@@ -40,6 +40,8 @@ export interface Bindings {
 
   CALL_EXPERIMENTAL_BASE?: string;
 
+  EMOTE_RENDER_SECRET?: string;
+
   ADMIN_BOOTSTRAP_TOKEN?: string;
 
   GOOGLE_CLIENT_ID: string;
