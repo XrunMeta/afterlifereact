@@ -326,6 +326,13 @@ export default function MyScreen() {
           },
 
           {
+            icon: "user" as const,
+            labelKey: "3D 페르소나 (dev)",
+            descKey: "GLB 헤드 렌더 + 립싱크 데모 · Phase 1",
+            action: () => navigation.navigate("ThreeDPersona"),
+          },
+
+          {
             icon: "user-plus" as const,
             labelKey: "얼굴 5각도 등록 (dev)",
             descKey: "정면·좌·우·위·아래 촬영 → clones 첫 통화 대비",
