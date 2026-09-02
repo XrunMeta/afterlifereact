@@ -133,6 +133,8 @@ export type MyStackParamList = {
   FaceThresholdTest: undefined;
 
   ThreeDLab: undefined;
+
+  ThreeDPersona: undefined;
 };
 
 declare global {
