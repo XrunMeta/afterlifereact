@@ -1246,12 +1246,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       chatUserSentAt.current = Date.now();
 
       if (
-        EMOTE_STILLS[cloneId]?.smile &&
         /안녕|반가워|반갑|오랜만|고마워|고맙|감사|잘생겼|예뻐|이뻐|귀여워|귀엽|멋져|멋있|대박|최고|잘\s*했|잘한|웃어\s*봐|웃겨\s*봐|웃겨줘|재밌게\s*해줘/.test(transcript)
       ) {
         triggerEmote('smile', '🙂', '미소');
       } else if (
-        EMOTE_STILLS[cloneId]?.wink &&
         /사랑해|좋아해|보고\s*싶|자기야|뽀뽀|안아|설레|심쿵|❤|💕|💗|😘|😍/.test(transcript)
       ) {
         triggerEmote('wink', '😉', '윙크');
@@ -1317,7 +1315,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       const t = lastSignal.text;
 
       if (
-        EMOTE_STILLS[cloneId]?.smile &&
         /안녕|반가워|반갑|오랜만|고마워|고맙|감사|맞아|맞네|그렇지|그러네|좋아(?!해)|좋네|오케이|okay|okey|잘생겼|잘생김|예뻐|이뻐|귀여워|귀엽|멋져|멋있|대박|최고|잘\s*했|잘한|ㅋ{2,}|ㅎ{2,}|하하|헤헤|히히|웃긴|웃겨|재밌|재밋/.test(t)
       ) {
         emoteFiredThisTurn.current = true;
@@ -1325,7 +1322,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       }
 
       else if (
-        EMOTE_STILLS[cloneId]?.wink &&
         /사랑해|보고\s*싶|좋아해|좋아함|자기야|우리\s*(?:둘|사이)|안아|뽀뽀|설레|심쿵|❤|💕|💗|😘|😍/.test(t)
       ) {
         emoteFiredThisTurn.current = true;
