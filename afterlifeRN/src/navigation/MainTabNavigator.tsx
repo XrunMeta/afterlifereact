@@ -47,6 +47,8 @@ import v_0035e1 from "../screens/my/PurchaseScreen";
 import v_38f630 from "../screens/dev/VisemeTestScreen";
 import v_bf7ede from "../screens/dev/ThreeDLabScreen";
 
+import v_ecc90b from "../screens/dev/ThreeDPersonaScreen";
+
 import v_30f4d7 from "../screens/face-test/FaceThresholdTestScreen";
 
 const v_3ea452 = v_709be7<v_2d88fc>();
@@ -111,6 +113,7 @@ function v_d9c5dd() {
       <MyStack.Screen name="VisemeTest" component={v_38f630} />
       <MyStack.Screen name="FaceThresholdTest" component={v_30f4d7} />
       <MyStack.Screen name="ThreeDLab" component={v_bf7ede} />
+      <MyStack.Screen name="ThreeDPersona" component={v_ecc90b} />
     </MyStack.Navigator>
   );
 }
