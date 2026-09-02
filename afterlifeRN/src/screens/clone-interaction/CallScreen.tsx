@@ -1239,11 +1239,13 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       if (
         /안녕|반가워|반갑|오랜만|고마워|고맙|감사|잘생겼|예뻐|이뻐|귀여워|귀엽|멋져|멋있|대박|최고|잘\s*했|잘한|웃어\s*봐|웃겨\s*봐|웃겨줘|재밌게\s*해줘/.test(transcript)
       ) {
-        triggerEmote('smile', '🙂', '미소');
+        pendingEmoteRef.current = { key: 'smile', emoji: '🙂', label: '미소' };
+        console.log('[Call][emote] pending smile queued (fire on clone speech_end)');
       } else if (
         /사랑해|좋아해|보고\s*싶|자기야|뽀뽀|안아|설레|심쿵|❤|💕|💗|😘|😍/.test(transcript)
       ) {
-        triggerEmote('wink', '😉', '윙크');
+        pendingEmoteRef.current = { key: 'wink', emoji: '😉', label: '윙크' };
+        console.log('[Call][emote] pending wink queued (fire on clone speech_end)');
       }
 
       dispatchRm({ type: "ACTIVITY" });
@@ -1264,10 +1266,17 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       console.log(`[Call][chat] clone reply end${dur !== null ? ` (took ${dur}ms)` : ''}`);
       chatReplyStartAt.current = null;
 
+      const pending = pendingEmoteRef.current;
+      if (pending) {
+        pendingEmoteRef.current = null;
+
+        setTimeout(() => triggerEmote(pending.key, pending.emoji, pending.label), 150);
+      }
+
       dispatchRm({ type: "CLONE_SPEECH_END" });
       dispatchRm({ type: "ACTIVITY" });
     }
-  }, [lastSignal, dispatchRm]);
+  }, [lastSignal, dispatchRm, triggerEmote]);
 
   const canSpeak = (phase === 'listening' || phase === 'confirming') && sttActive;
 
@@ -1292,6 +1301,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   }, [lastSignal]);
 
   const emoteFiredThisTurn = useRef(false);
+
+  const pendingEmoteRef = useRef<{ key: EmoteKey; emoji: string; label: string } | null>(null);
   useEffect(() => {
     if (!lastSignal) return;
     if (lastSignal.type === 'speech_start') {
@@ -3025,7 +3036,7 @@ const s = StyleSheet.create({
     height: VIDEO_H,
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 30,
+    zIndex: 5,
   },
   emoteOverlayEmoji: {
     fontSize: 160,
