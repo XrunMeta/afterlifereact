@@ -24,6 +24,8 @@ export interface CallBundle {
     fillerVideoUrls: string[];
 
     guideVideoUrls: string[];
+
+    emoteSmileUrl: string | null;
   };
 }
 
@@ -135,6 +137,9 @@ export async function v_87cfd2(v_a1651b, clone: v_b107dc, v_43e90c, v_f17108): P
     }
   }
 
+  const v_d0c2ab = "https://rtc.example.invalid"; 
+  const v_14c073 = v_2d0601 ? `${v_d0c2ab}/emote/${v_6e0fd3}/smile.mp4` : null;
+
   const v_7adc95 = {
 
     idleVideoUrl: v_b484d5(v_eb25ce.idle_video_url ?? null),
@@ -145,6 +150,7 @@ export async function v_87cfd2(v_a1651b, clone: v_b107dc, v_43e90c, v_f17108): P
     faceUrl: v_2d0601,
     fillerVideoUrls: v_c53bd1.map((v_ceb55a) => v_b484d5(v_ceb55a) ?? v_ceb55a),
     guideVideoUrls: v_fa8b40.map((v_ceb55a) => v_b484d5(v_ceb55a) ?? v_ceb55a),
+    emoteSmileUrl: v_14c073,
   };
 
   return { personaBundle: v_ba0fde, assets: v_7adc95 };

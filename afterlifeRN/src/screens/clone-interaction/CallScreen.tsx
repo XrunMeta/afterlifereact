@@ -187,23 +187,13 @@ interface FloatingGift {
   x: number;
 }
 
-type EmoteKey = "smile" | "cry" | "angry" | "yawn" | "wink";
-const EMOTE_STILLS: Record<number, Partial<Record<EmoteKey, number>>> = {
-  9145: {
-    smile: require("../../../assets/emote/paker/smile.jpg"),
-    cry: require("../../../assets/emote/paker/cry.jpg"),
-    angry: require("../../../assets/emote/paker/angry.jpg"),
-    yawn: require("../../../assets/emote/paker/yawn.jpg"),
-
-    wink: require("../../../assets/emote/paker/wink.jpg"),
-  },
-};
-
-const EMOTE_VIDEOS: Record<number, Partial<Record<EmoteKey, number>>> = {
-  9145: {
-    smile: require("../../../assets/emote/paker/smile.mp4"),
-  },
-};
+type EmoteKey = "smile" | "wink" | "cry" | "angry" | "yawn";
+const EMOTE_BASE_URL = "https://rtc.example.invalid/emote";
+const EMOTE_SERVER_ACTIONS: ReadonlySet<EmoteKey> = new Set(["smile"]);
+function emoteVideoUri(cloneId: number, key: EmoteKey): { uri: string } | null {
+  if (!EMOTE_SERVER_ACTIONS.has(key) || !Number.isFinite(cloneId) || cloneId <= 0) return null;
+  return { uri: `${EMOTE_BASE_URL}/${cloneId}/${key}.mp4` };
+}
 
 export default function CallScreen(props: Props) {
   const [heavyReady, setHeavyReady] = React.useState(false);
@@ -1453,11 +1443,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   >(null);
   const emoteAnim = useRef(new Animated.Value(0)).current;
   const emoteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const emoteVideoSource = emoteReaction ? EMOTE_VIDEOS[cloneId]?.[emoteReaction.key] : undefined;
-  const emoteStillSource = emoteReaction ? EMOTE_STILLS[cloneId]?.[emoteReaction.key] : undefined;
+  const emoteVideoSource = emoteReaction ? emoteVideoUri(cloneId, emoteReaction.key) : null;
 
-  const emoteVideoInitial = React.useMemo<number | null>(
-    () => EMOTE_VIDEOS[cloneId]?.smile ?? null,
+  const emoteVideoInitial = React.useMemo<{ uri: string } | null>(
+    () => emoteVideoUri(cloneId, "smile"),
     [cloneId],
   );
   const emotePlayer = useVideoPlayer(emoteVideoInitial, (p) => {
@@ -1467,15 +1456,13 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const triggerEmote = useCallback(
     (key: EmoteKey, emoji: string, label: string) => {
       if (emoteTimerRef.current) clearTimeout(emoteTimerRef.current);
-      const videoSrc = EMOTE_VIDEOS[cloneId]?.[key];
-      const stillSrc = EMOTE_STILLS[cloneId]?.[key];
-      console.log(`[Call][emote] trigger key=${key} cloneId=${cloneId} video=${!!videoSrc} still=${!!stillSrc}`);
+      const videoSrc = emoteVideoUri(cloneId, key);
+      console.log(`[Call][emote] trigger key=${key} cloneId=${cloneId} video=${videoSrc ? videoSrc.uri : "none"}`);
 
-      if (!videoSrc && !stillSrc) {
+      if (!videoSrc) {
         return;
       }
-
-      if (videoSrc && emotePlayer) {
+      if (emotePlayer) {
         try {
           const p: any = emotePlayer;
           if (typeof p.replaceAsync === "function") {
@@ -1495,7 +1482,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       emoteAnim.setValue(0);
       Animated.timing(emoteAnim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
 
-      const hold = videoSrc ? 1200 : 1200;
+      const hold = 1200;
       emoteTimerRef.current = setTimeout(() => {
         Animated.timing(emoteAnim, { toValue: 0, duration: 280, useNativeDriver: true }).start(
           () => setEmoteReaction(null),
@@ -2623,25 +2610,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
               contentFit="cover"
               nativeControls={false}
             />
-          ) : emoteStillSource ? (
-            <Image
-              source={emoteStillSource}
-              style={StyleSheet.absoluteFillObject}
-              resizeMode="cover"
-            />
-          ) : (
-            <Animated.View
-              style={{
-                alignItems: "center",
-                transform: [
-                  { scale: emoteAnim.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }) },
-                ],
-              }}
-            >
-              <Text style={s.emoteOverlayEmoji}>{emoteReaction.emoji}</Text>
-              <Text style={s.emoteOverlayLabel}>{emoteReaction.label}</Text>
-            </Animated.View>
-          )}
+          ) : null}
         </Animated.View>
       )}
 
