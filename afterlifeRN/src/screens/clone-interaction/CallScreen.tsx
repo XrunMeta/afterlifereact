@@ -1237,6 +1237,15 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       chatPrevTranscript.current = transcript;
       chatUserSentAt.current = Date.now();
 
+      if (EMOTE_STILLS[cloneId]?.laugh && /웃어\s*봐|웃겨\s*봐|웃겨줘|재밌게\s*해줘|웃어보렴/.test(transcript)) {
+        triggerEmote('laugh', '😄', '웃음');
+      } else if (
+        EMOTE_STILLS[cloneId]?.wink &&
+        /사랑해|좋아해|보고\s*싶|귀여워|예뻐|이뻐|자기야|뽀뽀|안아|설레|심쿵|❤|💕|💗|😘|😍/.test(transcript)
+      ) {
+        triggerEmote('wink', '😉', '윙크');
+      }
+
       dispatchRm({ type: "ACTIVITY" });
 
     }
