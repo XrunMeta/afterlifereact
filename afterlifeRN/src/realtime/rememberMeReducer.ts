@@ -272,8 +272,26 @@ function next(
       const CONFIDENCE_MIN = 0.55;
       if (!event.score || event.score < CONFIDENCE_MIN || event.topPersonId == null) {
 
+        const newUnknownStreak = state.unknownStreak + 1;
+        const UNKNOWN_MIN_FOR_PROMPT = 3;
+        const canPromptOnUnknown =
+          state.personId !== null &&
+          newUnknownStreak >= UNKNOWN_MIN_FOR_PROMPT &&
+          !state.dismissedPromptInCall &&
+          !state.promptRegister; 
+        if (canPromptOnUnknown) {
+          const promptWhenLcp = state.lastConfirmedPerson !== null;
+          return {
+            state: {
+              ...enterPending(state, nowMs, promptWhenLcp),
+              unknownStreak: newUnknownStreak,
+              differentPersonStreak: 0,
+            },
+            actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
+          };
+        }
         return {
-          state: { ...state, unknownStreak: state.unknownStreak + 1, differentPersonStreak: 0 },
+          state: { ...state, unknownStreak: newUnknownStreak, differentPersonStreak: 0 },
           actions: [],
         };
       }
