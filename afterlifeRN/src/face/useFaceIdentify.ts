@@ -97,7 +97,16 @@ export async function runIdentifyCycle(
 
   const rtLandmark = deps.getCurrentLandmark?.();
   const savedLandmarks = result.best?.landmarkRatiosList;
-  if (bestPersonId != null && rtLandmark && savedLandmarks && savedLandmarks.length > 0) {
+
+  const prevConfirmedNum = typeof state.speaker.confirmed === "number" ? state.speaker.confirmed : null;
+  const isSelfMatch = prevConfirmedNum != null && bestPersonId === prevConfirmedNum;
+  if (
+    !isSelfMatch &&
+    bestPersonId != null &&
+    rtLandmark &&
+    savedLandmarks &&
+    savedLandmarks.length > 0
+  ) {
 
     const nonNullSaved = savedLandmarks.filter((l): l is Record<string, number> => l != null);
     if (nonNullSaved.length > 0) {
@@ -107,7 +116,7 @@ export async function runIdentifyCycle(
       const meanSim = sims.reduce((a, b) => a + b, 0) / sims.length;
 
       const combined = rawEmbeddingScore * meanSim;
-      const COMBINED_MIN = 0.5; 
+      const COMBINED_MIN = 0.4;
       if (combined < COMBINED_MIN) {
 
         bestPersonId = null;
