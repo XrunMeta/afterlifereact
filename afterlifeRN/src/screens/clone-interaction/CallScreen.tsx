@@ -2291,28 +2291,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       {
 
 }
-      {emoteDebugEnabled && liveState === "live" && (
-        <View style={[s.emoteRow, { top: insets.top + 80 }]}>
-          {(
-            [
-              { key: "smile", emoji: "🙂", label: "미소" },
-              { key: "cry", emoji: "😢", label: "울음" },
-              { key: "angry", emoji: "😠", label: "화남" },
-              { key: "yawn", emoji: "🥱", label: "하품" },
-            ] as const
-          ).map((it) => (
-            <TouchableOpacity
-              key={it.key}
-              style={s.emoteBtn}
-              onPress={() => triggerEmote(it.key, it.emoji, it.label)}
-              hitSlop={8}
-            >
-              <Text style={s.emoteBtnEmoji}>{it.emoji}</Text>
-              <Text style={s.emoteBtnLabel}>{it.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
 
       {
 
