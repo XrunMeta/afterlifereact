@@ -1310,7 +1310,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     const prev = prevPhaseRef.current;
     prevPhaseRef.current = phase;
 
-    if ((prev === 'speaking' || prev === 'sending') && phase === 'listening') {
+    if (prev === 'listening' && phase === 'sending') {
       if (pendingEmoteFireTimer.current) {
         clearTimeout(pendingEmoteFireTimer.current);
         pendingEmoteFireTimer.current = null;
@@ -1318,7 +1318,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       const pending = pendingEmoteRef.current;
       if (pending) {
         pendingEmoteRef.current = null;
-        console.log(`[Call][emote] fire on phase→listening (was ${prev}): ${pending.key}`);
+        console.log(`[Call][emote] fire on phase→sending (before speech): ${pending.key}`);
         triggerEmote(pending.key, pending.emoji, pending.label);
       }
     }
