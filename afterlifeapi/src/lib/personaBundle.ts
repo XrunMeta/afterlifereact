@@ -29,7 +29,24 @@ export async function v_db508f(
     .prepare("SELECT l1_profile, l2_profile FROM clones WHERE id = ?")
     .bind(v_6e0fd3)
     .first<{ l1_profile: string | null; l2_profile: string | null }>();
-  return { l1: v_4c95c2(v_3ac7e7?.l1_profile ?? null), l2: v_4c95c2(v_3ac7e7?.l2_profile ?? null) };
+  const v_f75ddd = v_4c95c2(v_3ac7e7?.l1_profile ?? null);
+  const v_1af19b = v_4c95c2(v_3ac7e7?.l2_profile ?? null);
+
+  const v_63f502 = await v_a1651b
+    .prepare("SELECT key, value FROM persona_attributes WHERE clone_id = ? AND level = 'l1'")
+    .bind(v_6e0fd3)
+    .all<{ key: string; value: string }>();
+  const v_6531eb = v_63f502.results ?? [];
+  let v_020b4b = v_f75ddd;
+  if (v_6531eb.length > 0) {
+    const v_3555ae = {};
+    for (const v_cb35cb of v_6531eb) v_3555ae[v_cb35cb.key] = v_cb35cb.value;
+    const v_694b25 = (v_020b4b ?? {}) as Record<string, unknown>;
+    const v_3c8572 = (v_694b25.attrs && typeof v_694b25.attrs === "object") ? (v_694b25.attrs as Record<string, unknown>) : {};
+    v_020b4b = { ...v_694b25, attrs: { ...v_3c8572, ...v_3555ae } } as v_1f7dcf;
+  }
+
+  return { l1: v_020b4b, l2: v_1af19b };
 }
 
 export function v_445ba7(
