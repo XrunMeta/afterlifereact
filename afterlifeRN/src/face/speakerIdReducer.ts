@@ -1,6 +1,13 @@
 
 
-export type MatchCycle = { personId: number | null; displayName: string | null; score: number; topPersonId?: number | null };
+export type MatchCycle = {
+  personId: number | null;
+  displayName: string | null;
+  score: number;
+  topPersonId?: number | null;
+
+  landmarkVsRef?: number | null;
+};
 
 export type ResetRecognitionAction = { type: "RESET_RECOGNITION" };
 
@@ -9,7 +16,7 @@ export type SpeakerIdAction = MatchCycle | ResetRecognitionAction;
 export type SpeakerEvent =
   | { type: "speaker_confirmed"; personId: number; displayName: string | null }
 
-  | { type: "unknown_face"; score: number; topPersonId?: number | null }
+  | { type: "unknown_face"; score: number; topPersonId?: number | null; landmarkVsRef?: number | null }
   | null;
 
 export type SpeakerIdState = {
@@ -58,7 +65,7 @@ export function v_be2f9f(
       v_aa96a3 = v_b24339;
       if (v_b24339 === "unknown") {
 
-        v_d48baf = { type: "unknown_face", score: v_bdad26.score, topPersonId: v_bdad26.topPersonId ?? null };
+        v_d48baf = { type: "unknown_face", score: v_bdad26.score, topPersonId: v_bdad26.topPersonId ?? null, landmarkVsRef: v_bdad26.landmarkVsRef ?? null };
         v_f2ea56 = v_67e77e;
       } else {
         v_d48baf = { type: "speaker_confirmed", personId: v_b24339, displayName: v_bdad26.displayName };
