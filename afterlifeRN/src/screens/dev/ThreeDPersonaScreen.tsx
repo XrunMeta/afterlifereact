@@ -34,6 +34,8 @@ function ThreeDPersonaInner() {
   const [error, setError] = useState<string | null>(null);
   const [morphNames, setMorphNames] = useState<string[]>([]);
 
+  const [jawOpenValue, setJawOpenValue] = useState(0);
+
   const onLoaded = useCallback((names: string[]) => {
     console.log(`[3DPersona] GLB loaded · morphs=${names.join(",")}`);
     setMorphNames(names);
@@ -92,6 +94,7 @@ function ThreeDPersonaInner() {
         next[0] = 0; 
         next[1] = 0; 
         weights.value = next;
+        setJawOpenValue(0); 
         setSpeaking(false);
         return;
       }
@@ -101,6 +104,7 @@ function ThreeDPersonaInner() {
 
       next[1] = jaw * 0.7;
       weights.value = next;
+      setJawOpenValue(jaw); 
       requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
@@ -136,6 +140,21 @@ function ThreeDPersonaInner() {
               <ActivityIndicator size="large" color={COLORS.white} />
               <Text style={s.loadingText}>GLB 로딩중…</Text>
             </View>
+          ) : null}
+          {
+
+}
+          {loaded && !error && jawOpenValue > 0 ? (
+            <View
+              style={[
+                s.mouthCavityOverlay,
+                {
+                  opacity: Math.min(0.88, jawOpenValue * 0.95),
+                  height: 22 + jawOpenValue * 28, 
+                },
+              ]}
+              pointerEvents="none"
+            />
           ) : null}
         </View>
 
@@ -197,6 +216,16 @@ const s = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.4)",
   },
   loadingText: { color: COLORS.white, marginTop: 12, fontSize: 14 },
+
+  mouthCavityOverlay: {
+    position: "absolute",
+    left: "50%",
+    top: 245,
+    width: 60,
+    marginLeft: -30,
+    borderRadius: 30,
+    backgroundColor: "#000000",
+  },
   errorBox: {
     flex: 1,
     padding: 20,
