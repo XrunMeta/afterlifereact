@@ -1238,7 +1238,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       chatUserSentAt.current = Date.now();
 
       if (
-        /안녕|반가워|반갑|오랜만|고마워|고맙|감사|잘생겼|예뻐|이뻐|귀여워|귀엽|멋져|멋있|대박|최고|잘\s*했|잘한|웃어\s*봐|웃겨\s*봐|웃겨줘|재밌게\s*해줘/.test(transcript)
+        /안녕|반가워|반갑|오랜만|고마워|고맙|감사|잘생|예쁘|이쁘|예뻐|이뻐|귀여|귀엽|멋져|멋지|멋있|대박|최고|잘\s*했|잘한|웃어\s*봐|웃겨\s*봐|웃겨줘|재밌게\s*해줘|사랑스|짱|훌륭|완벽|굿|나이스/.test(transcript)
       ) {
         pendingEmoteRef.current = { key: 'smile', emoji: '🙂', label: '미소' };
         console.log('[Call][emote] pending smile queued (fire on clone speech_end)');
@@ -1318,7 +1318,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       const t = lastSignal.text;
 
       if (
-        /안녕|반가워|반갑|오랜만|고마워|고맙|감사|맞아|맞네|그렇지|그러네|좋아(?!해)|좋네|오케이|okay|okey|잘생겼|잘생김|예뻐|이뻐|귀여워|귀엽|멋져|멋있|대박|최고|잘\s*했|잘한|ㅋ{2,}|ㅎ{2,}|하하|헤헤|히히|웃긴|웃겨|재밌|재밋/.test(t)
+        /안녕|반가워|반갑|오랜만|고마워|고맙|감사|맞아|맞네|그렇지|그러네|좋아(?!해)|좋네|오케이|okay|okey|잘생|예쁘|이쁘|예뻐|이뻐|귀여|귀엽|멋져|멋지|멋있|대박|최고|잘\s*했|잘한|ㅋ{2,}|ㅎ{2,}|하하|헤헤|히히|웃긴|웃겨|재밌|재밋|사랑스|짱|훌륭|완벽|굿|나이스/.test(t)
       ) {
         emoteFiredThisTurn.current = true;
         triggerEmote('smile', '🙂', '미소');
