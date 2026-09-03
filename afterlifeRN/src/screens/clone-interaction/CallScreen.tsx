@@ -746,14 +746,14 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
               console.warn("[Call][face] owner auto-enroll 실패 → Remember Me:", err);
 
-              dispatchRm({ type: "MATCH_UNKNOWN", score: evt.score, topPersonId: evt.topPersonId ?? null });
+              dispatchRm({ type: "MATCH_UNKNOWN", score: evt.score, topPersonId: evt.topPersonId ?? null, landmarkVsRef: evt.landmarkVsRef ?? null });
             });
 
           dispatchSh({ type: "UNKNOWN_FACE" });
           return;
         }
 
-        dispatchRm({ type: "MATCH_UNKNOWN", score: evt.score, topPersonId: evt.topPersonId ?? null });
+        dispatchRm({ type: "MATCH_UNKNOWN", score: evt.score, topPersonId: evt.topPersonId ?? null, landmarkVsRef: evt.landmarkVsRef ?? null });
         dispatchSh({ type: "UNKNOWN_FACE" });
 
         unknownFaceSnapshotRef.current = getFaceEmbeddingBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
