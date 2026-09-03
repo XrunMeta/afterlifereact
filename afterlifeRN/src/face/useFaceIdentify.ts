@@ -88,7 +88,14 @@ export async function v_f644ce(
 
   let v_d2fcdb = v_43c42e.best?.personId ?? null;
   let v_14f856 = v_43c42e.best?.displayName ?? null;
-  const v_d15b72 = v_43c42e.best?.score ?? v_43c42e.matches[0]?.score ?? 0;
+  let v_d15b72 = v_43c42e.best?.score ?? v_43c42e.matches[0]?.score ?? 0;
+
+  const v_f30b0d = 0.5;
+  if (v_d2fcdb == null && v_43c42e.matches[0]?.personId != null && v_43c42e.matches[0].score >= v_f30b0d) {
+    v_d2fcdb = v_43c42e.matches[0].personId;
+    v_14f856 = v_43c42e.matches[0].displayName;
+    v_d15b72 = v_43c42e.matches[0].score;
+  }
   let v_7f9794 = v_d15b72;
 
   const v_20e745 = v_84b93d.getCurrentLandmark?.();
