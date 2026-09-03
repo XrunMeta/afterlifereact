@@ -6,6 +6,8 @@ export interface FaceIndexLike {
   query(values: number[], opts: { topK: number; namespace: string; returnMetadata?: boolean }):
     Promise<{ matches: { id: string; score: number; metadata?: Record<string, string> }[] }>;
   deleteByIds(ids: string[]): Promise<void>;
+
+  getByIds(ids: string[]): Promise<Array<{ id: string; values: number[]; metadata?: Record<string, string>; namespace?: string }>>;
 }
 
 const v_d4d4f6 = new Map<string, FaceIndexRow>();
@@ -29,6 +31,9 @@ const v_9ac1b8 = {
     return { matches: v_a49907 };
   },
   async deleteByIds(v_52e08b) { for (const v_389afb of v_52e08b) v_d4d4f6.delete(v_389afb); },
+  async getByIds(v_52e08b) {
+    return v_52e08b.map((v_389afb) => v_d4d4f6.get(v_389afb)).filter((v_cb35cb): v_cb35cb is FaceIndexRow => v_cb35cb != null);
+  },
 };
 
 export function v_a8d2cc(v_c9c489): FaceIndexLike {
@@ -47,6 +52,16 @@ export function v_a8d2cc(v_c9c489): FaceIndexLike {
         };
       },
       async deleteByIds(v_52e08b) { await v_81e2ef.deleteByIds(v_52e08b); },
+      async getByIds(v_52e08b) {
+        if (v_52e08b.length === 0) return [];
+        const v_8f00b9 = await v_81e2ef.getByIds(v_52e08b);
+        return v_8f00b9.map((v_3ac7e7) => ({
+          id: v_3ac7e7.id,
+          values: Array.from(v_3ac7e7.values as number[] | Float32Array),
+          metadata: v_3ac7e7.metadata as Record<string, string> | undefined,
+          namespace: v_3ac7e7.namespace,
+        }));
+      },
     };
   }
   if (v_c9c489.ENVIRONMENT === "production") throw new Error("FACE_VECTORS binding missing in production"); 
