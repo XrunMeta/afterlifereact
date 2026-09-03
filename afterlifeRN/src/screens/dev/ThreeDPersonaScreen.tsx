@@ -23,7 +23,7 @@ const v_7f7fe8 = (() => {
     const v_8d41d7 = v_ebec57 / 60;
 
     const v_729db2 = 0.35 + 0.35 * Math.sin(v_8d41d7 * 22) * Math.sin(v_8d41d7 * 4.3);
-    v_8d4337[v_ebec57] = Math.max(0, Math.min(0.85, v_729db2));
+    v_8d4337[v_ebec57] = Math.max(0, Math.min(1.0, v_729db2));
   }
   return v_8d4337;
 })();
@@ -90,12 +90,16 @@ function v_57ae6b() {
       if (v_143cb5 >= v_7f7fe8.length) {
         const v_a448ad = [...v_e5c9ed.value];
         v_a448ad[0] = 0; 
+        v_a448ad[1] = 0; 
         v_e5c9ed.value = v_a448ad;
         v_75c87f(false);
         return;
       }
       const v_a448ad = [...v_e5c9ed.value];
-      v_a448ad[0] = v_7f7fe8[v_143cb5];
+      const v_93cb95 = v_7f7fe8[v_143cb5];
+      v_a448ad[0] = v_93cb95; 
+
+      v_a448ad[1] = v_93cb95 * 0.7;
       v_e5c9ed.value = v_a448ad;
       requestAnimationFrame(v_729796);
     };
