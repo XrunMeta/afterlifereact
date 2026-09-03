@@ -1272,16 +1272,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       console.log(`[Call][chat] clone reply end${dur !== null ? ` (took ${dur}ms)` : ''}`);
       chatReplyStartAt.current = null;
 
-      if (pendingEmoteRef.current) {
-        if (pendingEmoteFireTimer.current) clearTimeout(pendingEmoteFireTimer.current);
-        pendingEmoteFireTimer.current = setTimeout(() => {
-          const pending = pendingEmoteRef.current;
-          pendingEmoteRef.current = null;
-          pendingEmoteFireTimer.current = null;
-          if (pending) triggerEmote(pending.key, pending.emoji, pending.label);
-        }, 800);
-      }
-
       dispatchRm({ type: "CLONE_SPEECH_END" });
       dispatchRm({ type: "ACTIVITY" });
     }
@@ -1314,6 +1304,25 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const pendingEmoteRef = useRef<{ key: EmoteKey; emoji: string; label: string } | null>(null);
 
   const pendingEmoteFireTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const prevPhaseRef = useRef<typeof phase>(phase);
+  useEffect(() => {
+    const prev = prevPhaseRef.current;
+    prevPhaseRef.current = phase;
+
+    if ((prev === 'speaking' || prev === 'sending') && phase === 'listening') {
+      if (pendingEmoteFireTimer.current) {
+        clearTimeout(pendingEmoteFireTimer.current);
+        pendingEmoteFireTimer.current = null;
+      }
+      const pending = pendingEmoteRef.current;
+      if (pending) {
+        pendingEmoteRef.current = null;
+        console.log(`[Call][emote] fire on phase→listening (was ${prev}): ${pending.key}`);
+        triggerEmote(pending.key, pending.emoji, pending.label);
+      }
+    }
+  }, [phase, triggerEmote]);
   useEffect(() => {
     if (!lastSignal) return;
     if (lastSignal.type === 'speech_start') {
