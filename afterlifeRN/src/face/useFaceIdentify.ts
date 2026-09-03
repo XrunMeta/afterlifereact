@@ -97,12 +97,12 @@ export async function runIdentifyCycle(
 
   const rtLandmark = deps.getCurrentLandmark?.();
   const savedLandmarks = result.best?.landmarkRatiosList;
-
   const prevConfirmedNum = typeof state.speaker.confirmed === "number" ? state.speaker.confirmed : null;
-  const isSelfMatch = prevConfirmedNum != null && bestPersonId === prevConfirmedNum;
+
+  const shouldApplyLandmarkGate =
+    prevConfirmedNum != null && bestPersonId != null && bestPersonId !== prevConfirmedNum;
   if (
-    !isSelfMatch &&
-    bestPersonId != null &&
+    shouldApplyLandmarkGate &&
     rtLandmark &&
     savedLandmarks &&
     savedLandmarks.length > 0
