@@ -7,6 +7,8 @@ export type MatchCycle = {
   topPersonId?: number | null;
 
   landmarkVsRef?: number | null;
+
+  hasFace?: boolean;
 };
 
 export type ResetRecognitionAction = { type: "RESET_RECOGNITION" };
@@ -16,7 +18,7 @@ export type SpeakerIdAction = MatchCycle | ResetRecognitionAction;
 export type SpeakerEvent =
   | { type: "speaker_confirmed"; personId: number; displayName: string | null }
 
-  | { type: "unknown_face"; score: number; topPersonId?: number | null; landmarkVsRef?: number | null }
+  | { type: "unknown_face"; score: number; topPersonId?: number | null; landmarkVsRef?: number | null; hasFace?: boolean }
   | null;
 
 export type SpeakerIdState = {
@@ -65,7 +67,7 @@ export function speakerIdReducer(
       confirmed = key;
       if (key === "unknown") {
 
-        event = { type: "unknown_face", score: cycle.score, topPersonId: cycle.topPersonId ?? null, landmarkVsRef: cycle.landmarkVsRef ?? null };
+        event = { type: "unknown_face", score: cycle.score, topPersonId: cycle.topPersonId ?? null, landmarkVsRef: cycle.landmarkVsRef ?? null, hasFace: cycle.hasFace ?? false };
         lastUnknownEmitMs = nowMs;
       } else {
         event = { type: "speaker_confirmed", personId: key, displayName: cycle.displayName };
