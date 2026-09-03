@@ -65,6 +65,8 @@ export type RememberMeEvent =
       topPersonId?: number | null;
 
       landmarkVsRef?: number | null;
+
+      hasFace?: boolean;
     }
 
   | { type: "ACTIVITY" }
@@ -274,13 +276,16 @@ function v_a448ad(
 
         const v_1210b5 = v_b6e533.unknownStreak + 1;
         const v_f340bd = 3;
+        const v_aa5f6b = v_b6e533.personId !== null;
+        const v_793d69 = (v_d48baf.hasFace ?? false) === true; 
         const v_8cd7d6 =
-          v_b6e533.personId !== null &&
+          (v_aa5f6b || v_793d69) &&
           v_1210b5 >= v_f340bd &&
           !v_b6e533.dismissedPromptInCall &&
           !v_b6e533.promptRegister; 
         if (v_8cd7d6) {
-          const v_7e8d96 = v_b6e533.lastConfirmedPerson !== null;
+
+          const v_7e8d96 = v_b6e533.lastConfirmedPerson !== null || v_793d69;
           return {
             state: {
               ...v_60164c(v_b6e533, v_67e77e, v_7e8d96),

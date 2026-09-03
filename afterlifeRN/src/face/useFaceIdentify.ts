@@ -154,6 +154,8 @@ export async function v_f644ce(
     topPersonId: v_43c42e.matches[0]?.personId ?? null,
 
     landmarkVsRef: v_b84cf8,
+
+    hasFace: v_20e745 != null,
   };
 
   const { state: v_60d563, event: v_d48baf } = v_be2f9f(v_b6e533.speaker, v_bdad26, v_67e77e);
