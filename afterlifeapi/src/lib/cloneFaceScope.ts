@@ -76,6 +76,117 @@ export async function queryCloneScope(
     .sort((a, b) => b.score - a.score);
 }
 
+export async function autoAdoptFromOtherClone(
+  env: Bindings,
+  opts: { userId: number; targetCloneId: number },
+): Promise<{ adopted: boolean; personId?: number; count?: number }> {
+  const { userId, targetCloneId } = opts;
+
+  const existing = await env.DB.prepare(
+    "SELECT COUNT(*) AS cnt FROM persons WHERE user_id = ? AND clone_id = ?",
+  ).bind(userId, targetCloneId).first<{ cnt: number }>();
+  if ((existing?.cnt ?? 0) > 0) return { adopted: false };
+
+  const source = await env.DB.prepare(
+    `SELECT p.id AS person_id, p.clone_id, p.display_name, p.consent_state, p.consent_at, p.enrolled_via
+       FROM persons p
+       JOIN clone_person_faces f ON f.person_id = p.id
+      WHERE p.user_id = ? AND p.clone_id != ?
+      GROUP BY p.id
+      ORDER BY p.created_at ASC
+      LIMIT 1`,
+  ).bind(userId, targetCloneId).first<{
+    person_id: number;
+    clone_id: number;
+    display_name: string | null;
+    consent_state: string;
+    consent_at: number | null;
+    enrolled_via: string;
+  }>();
+
+  if (!source) return { adopted: false };
+
+  const srcFaces = await env.DB.prepare(
+    `SELECT vectorize_id, landmark_ratios FROM clone_person_faces
+      WHERE clone_id = ? AND person_id = ?`,
+  ).bind(source.clone_id, source.person_id).all<{
+    vectorize_id: string;
+    landmark_ratios: string | null;
+  }>();
+
+  const srcIds = srcFaces.results.map((r) => r.vectorize_id);
+  if (srcIds.length === 0) return { adopted: false };
+
+  const idx = getFaceIndex(env);
+  const rawVectors = await idx.getByIds(srcIds);
+  const vectorMap = new Map<string, number[]>();
+  for (const v of rawVectors) vectorMap.set(v.id, v.values);
+
+  const facesWithValues = srcFaces.results
+    .map((src) => ({
+      values: vectorMap.get(src.vectorize_id),
+      landmark_ratios: src.landmark_ratios,
+    }))
+    .filter((r): r is { values: number[]; landmark_ratios: string | null } => r.values != null);
+
+  if (facesWithValues.length === 0) return { adopted: false };
+
+  const now = Date.now();
+  const consentState = source.consent_state === "granted" ? "granted" : "none";
+  const enrolledVia = source.enrolled_via === "auto_biometric" ? "auto_biometric" : "card";
+  const insPerson = await env.DB.prepare(
+    `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(userId, targetCloneId, source.display_name, consentState, source.consent_at, enrolledVia, now)
+    .run();
+  const newPersonId = insPerson.meta.last_row_id as number;
+
+  const newRows = facesWithValues.map((f) => ({
+    id: crypto.randomUUID(),
+    values: f.values,
+    namespace: faceNamespace(userId, targetCloneId),
+    metadata: { personId: String(newPersonId) },
+    landmark_ratios: f.landmark_ratios,
+  }));
+
+  const legacyStmt = env.DB.prepare(
+    `INSERT INTO face_embeddings (person_id, vectorize_id, model, dim, source, created_at)
+     VALUES (?, ?, 'w600k_mbf', 512, 'enroll', ?)`,
+  );
+  const scopeStmt = env.DB.prepare(
+    `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at, landmark_ratios)
+     VALUES (?, ?, ?, 'w600k_mbf', 512, 'enroll', ?, ?)`,
+  );
+  const scopeStmtLegacy = env.DB.prepare(
+    `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
+     VALUES (?, ?, ?, 'w600k_mbf', 512, 'enroll', ?)`,
+  );
+  try {
+    await env.DB.batch([
+      ...newRows.map((r) => legacyStmt.bind(newPersonId, r.id, now)),
+      ...newRows.map((r) => scopeStmt.bind(targetCloneId, newPersonId, r.id, now, r.landmark_ratios)),
+    ]);
+  } catch {
+
+    await env.DB.batch([
+      ...newRows.map((r) => legacyStmt.bind(newPersonId, r.id, now)),
+      ...newRows.map((r) => scopeStmtLegacy.bind(targetCloneId, newPersonId, r.id, now)),
+    ]);
+  }
+
+  await idx.insert(
+    newRows.map((r) => ({ id: r.id, values: r.values, namespace: r.namespace, metadata: r.metadata })),
+  );
+
+  const existingL2 = await readOntPerson(env, targetCloneId, newPersonId);
+  if (existingL2 === null) {
+    await writeOntPerson(env, targetCloneId, newPersonId, JSON.stringify({}), false);
+  }
+
+  return { adopted: true, personId: newPersonId, count: newRows.length };
+}
+
 export interface EnrollResult {
   enrolled: number;
 }
