@@ -65,6 +65,8 @@ export type RememberMeEvent =
       topPersonId?: number | null;
 
       landmarkVsRef?: number | null;
+
+      hasFace?: boolean;
     }
 
   | { type: "ACTIVITY" }
@@ -274,13 +276,16 @@ function next(
 
         const newUnknownStreak = state.unknownStreak + 1;
         const UNKNOWN_MIN_FOR_PROMPT = 3;
+        const hasIdentity = state.personId !== null;
+        const faceButNoMatch = (event.hasFace ?? false) === true; 
         const canPromptOnUnknown =
-          state.personId !== null &&
+          (hasIdentity || faceButNoMatch) &&
           newUnknownStreak >= UNKNOWN_MIN_FOR_PROMPT &&
           !state.dismissedPromptInCall &&
           !state.promptRegister; 
         if (canPromptOnUnknown) {
-          const promptWhenLcp = state.lastConfirmedPerson !== null;
+
+          const promptWhenLcp = state.lastConfirmedPerson !== null || faceButNoMatch;
           return {
             state: {
               ...enterPending(state, nowMs, promptWhenLcp),

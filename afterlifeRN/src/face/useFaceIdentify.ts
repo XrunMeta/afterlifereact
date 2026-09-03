@@ -158,6 +158,8 @@ export async function runIdentifyCycle(
     topPersonId: result.matches[0]?.personId ?? null,
 
     landmarkVsRef,
+
+    hasFace: rtLandmark != null,
   };
 
   const { state: speaker, event } = speakerIdReducer(state.speaker, cycle, nowMs);
