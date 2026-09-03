@@ -117,6 +117,22 @@ export async function runIdentifyCycle(
     }
   }
 
+  const refPersonId = typeof state.speaker.confirmed === "number" ? state.speaker.confirmed : null;
+  let landmarkVsRef: number | null = null;
+  if (refPersonId != null && rtLandmark) {
+    const refCand = result.matches.find((m) => m.personId === refPersonId);
+    const refLandmarks = refCand?.landmarkRatiosList;
+    if (refLandmarks && refLandmarks.length > 0) {
+      const nonNull = refLandmarks.filter((l): l is Record<string, number> => l != null);
+      if (nonNull.length > 0) {
+        const sims = nonNull.map((saved) =>
+          compareLandmarkRatios(rtLandmark, saved as unknown as LandmarkRatios),
+        );
+        landmarkVsRef = sims.reduce((a, b) => a + b, 0) / sims.length;
+      }
+    }
+  }
+
   const cycle: MatchCycle = {
     personId: bestPersonId,
     displayName: bestDisplayName,
@@ -124,6 +140,8 @@ export async function runIdentifyCycle(
     score: bestPersonId != null ? effectiveScore : result.matches[0]?.score ?? 0,
 
     topPersonId: result.matches[0]?.personId ?? null,
+
+    landmarkVsRef,
   };
 
   const { state: speaker, event } = speakerIdReducer(state.speaker, cycle, nowMs);
