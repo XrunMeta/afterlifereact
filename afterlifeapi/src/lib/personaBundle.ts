@@ -29,7 +29,24 @@ export async function loadCloneProfiles(
     .prepare("SELECT l1_profile, l2_profile FROM clones WHERE id = ?")
     .bind(cloneId)
     .first<{ l1_profile: string | null; l2_profile: string | null }>();
-  return { l1: parseJson(row?.l1_profile ?? null), l2: parseJson(row?.l2_profile ?? null) };
+  const l1Json = parseJson(row?.l1_profile ?? null);
+  const l2 = parseJson(row?.l2_profile ?? null);
+
+  const attrRes = await db
+    .prepare("SELECT key, value FROM persona_attributes WHERE clone_id = ? AND level = 'l1'")
+    .bind(cloneId)
+    .all<{ key: string; value: string }>();
+  const attrRows = attrRes.results ?? [];
+  let l1 = l1Json;
+  if (attrRows.length > 0) {
+    const attrs: Record<string, string> = {};
+    for (const r of attrRows) attrs[r.key] = r.value;
+    const base = (l1 ?? {}) as Record<string, unknown>;
+    const existing = (base.attrs && typeof base.attrs === "object") ? (base.attrs as Record<string, unknown>) : {};
+    l1 = { ...base, attrs: { ...existing, ...attrs } } as PersonaDict;
+  }
+
+  return { l1, l2 };
 }
 
 export function buildPersonaBundle(
