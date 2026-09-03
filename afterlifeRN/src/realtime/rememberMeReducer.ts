@@ -272,8 +272,26 @@ function v_a448ad(
       const v_6da077 = 0.55;
       if (!v_d48baf.score || v_d48baf.score < v_6da077 || v_d48baf.topPersonId == null) {
 
+        const v_1210b5 = v_b6e533.unknownStreak + 1;
+        const v_f340bd = 3;
+        const v_8cd7d6 =
+          v_b6e533.personId !== null &&
+          v_1210b5 >= v_f340bd &&
+          !v_b6e533.dismissedPromptInCall &&
+          !v_b6e533.promptRegister; 
+        if (v_8cd7d6) {
+          const v_7e8d96 = v_b6e533.lastConfirmedPerson !== null;
+          return {
+            state: {
+              ...v_60164c(v_b6e533, v_67e77e, v_7e8d96),
+              unknownStreak: v_1210b5,
+              differentPersonStreak: 0,
+            },
+            actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
+          };
+        }
         return {
-          state: { ...v_b6e533, unknownStreak: v_b6e533.unknownStreak + 1, differentPersonStreak: 0 },
+          state: { ...v_b6e533, unknownStreak: v_1210b5, differentPersonStreak: 0 },
           actions: [],
         };
       }
