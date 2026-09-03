@@ -6,6 +6,8 @@ export interface FaceIndexLike {
   query(values: number[], opts: { topK: number; namespace: string; returnMetadata?: boolean }):
     Promise<{ matches: { id: string; score: number; metadata?: Record<string, string> }[] }>;
   deleteByIds(ids: string[]): Promise<void>;
+
+  getByIds(ids: string[]): Promise<Array<{ id: string; values: number[]; metadata?: Record<string, string>; namespace?: string }>>;
 }
 
 const mem = new Map<string, FaceIndexRow>();
@@ -29,6 +31,9 @@ const memoryIndex: FaceIndexLike = {
     return { matches };
   },
   async deleteByIds(ids) { for (const id of ids) mem.delete(id); },
+  async getByIds(ids) {
+    return ids.map((id) => mem.get(id)).filter((r): r is FaceIndexRow => r != null);
+  },
 };
 
 export function getFaceIndex(env: { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string }): FaceIndexLike {
@@ -47,6 +52,16 @@ export function getFaceIndex(env: { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?:
         };
       },
       async deleteByIds(ids) { await v.deleteByIds(ids); },
+      async getByIds(ids) {
+        if (ids.length === 0) return [];
+        const res = await v.getByIds(ids);
+        return res.map((row: VectorizeVector) => ({
+          id: row.id,
+          values: Array.from(row.values as number[] | Float32Array),
+          metadata: row.metadata as Record<string, string> | undefined,
+          namespace: row.namespace,
+        }));
+      },
     };
   }
   if (env.ENVIRONMENT === "production") throw new Error("FACE_VECTORS binding missing in production"); 

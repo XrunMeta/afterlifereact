@@ -8,7 +8,7 @@ import { getFaceIndex } from "../lib/faceVectors";
 import { deletePersonCascade } from "../lib/personDelete";
 import { assertValidDisplayName } from "../lib/displayName";
 import { loadAccessibleClone } from "../lib/cloneAccess";
-import { faceNamespace, queryCloneScope, enrollCloneScopeFaces } from "../lib/cloneFaceScope";
+import { faceNamespace, queryCloneScope, enrollCloneScopeFaces, autoAdoptFromOtherClone } from "../lib/cloneFaceScope";
 import { claimL2OwnerFace } from "../lib/personaBundle";
 import { logActivity } from "../lib/logger";
 
@@ -122,6 +122,13 @@ persons.post("/match", requireAuth, async (c) => {
     value: string;
   }>();
   const threshold = cfg?.value !== undefined && Number.isFinite(Number(cfg.value)) ? Number(cfg.value) : DEFAULT_FACE_THRESHOLD;
+
+  try {
+    await autoAdoptFromOtherClone(c.env, { userId, targetCloneId: cloneId });
+  } catch (e) {
+
+    console.warn(`[persons/match] autoAdopt failed cloneId=${cloneId} userId=${userId}:`, e);
+  }
 
   const scoped = await queryCloneScope(c.env, { userId, cloneId, vector: v, topK: 3 });
   const ids = scoped.map((m) => m.personId);
