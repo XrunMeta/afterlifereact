@@ -34,6 +34,8 @@ function v_57ae6b() {
   const [v_5e9bfe, v_3a7d09] = v_5ab095<string | null>(null);
   const [v_a893b0, v_767e63] = v_5ab095<string[]>([]);
 
+  const [v_804a1b, v_31437d] = v_5ab095(0);
+
   const v_a98ec7 = v_de06a3((v_77b1ac) => {
     console.log(`[3DPersona] GLB loaded · morphs=${v_77b1ac.join(",")}`);
     v_767e63(v_77b1ac);
@@ -92,6 +94,7 @@ function v_57ae6b() {
         v_a448ad[0] = 0; 
         v_a448ad[1] = 0; 
         v_e5c9ed.value = v_a448ad;
+        v_31437d(0); 
         v_75c87f(false);
         return;
       }
@@ -101,6 +104,7 @@ function v_57ae6b() {
 
       v_a448ad[1] = v_93cb95 * 0.7;
       v_e5c9ed.value = v_a448ad;
+      v_31437d(v_93cb95); 
       requestAnimationFrame(v_729796);
     };
     requestAnimationFrame(v_729796);
@@ -136,6 +140,21 @@ function v_57ae6b() {
               <ActivityIndicator size="large" color={v_1bfbd0.white} />
               <Text style={v_fd5f43.loadingText}>GLB 로딩중…</Text>
             </View>
+          ) : null}
+          {
+
+}
+          {v_bf751c && !v_5e9bfe && v_804a1b > 0 ? (
+            <View
+              style={[
+                v_fd5f43.mouthCavityOverlay,
+                {
+                  opacity: Math.min(0.88, v_804a1b * 0.95),
+                  height: 22 + v_804a1b * 28, 
+                },
+              ]}
+              pointerEvents="none"
+            />
           ) : null}
         </View>
 
@@ -197,6 +216,16 @@ const v_fd5f43 = v_472849.create({
     backgroundColor: "rgba(0,0,0,0.4)",
   },
   loadingText: { color: v_1bfbd0.white, marginTop: 12, fontSize: 14 },
+
+  mouthCavityOverlay: {
+    position: "absolute",
+    left: "50%",
+    top: 245,
+    width: 60,
+    marginLeft: -30,
+    borderRadius: 30,
+    backgroundColor: "#000000",
+  },
   errorBox: {
     flex: 1,
     padding: 20,
