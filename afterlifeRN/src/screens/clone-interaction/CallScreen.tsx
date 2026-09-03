@@ -1177,7 +1177,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           onPress: () => dispatchRm({ type: "DISMISS_LATER" }),
         },
         {
-          text: "나야 (오인식)",
+          text: "본인",
           onPress: () => {
 
             const snapshot = unknownFaceSnapshotRef.current;
