@@ -36,6 +36,18 @@ function v_57ae6b() {
 
   const [v_804a1b, v_31437d] = v_5ab095(0);
 
+  const [v_ec25ce, v_be68a6] = v_5ab095<boolean[]>([false, false, false, false, false]);
+  const v_6cdf7b = v_de06a3((v_e86ad8) => {
+    v_be68a6((v_ba2215) => {
+      const v_a448ad = [...v_ba2215];
+      v_a448ad[v_e86ad8] = !v_a448ad[v_e86ad8];
+      const v_32f7b8 = [...v_e5c9ed.value];
+      v_32f7b8[v_e86ad8] = v_a448ad[v_e86ad8] ? 1 : 0;
+      v_e5c9ed.value = v_32f7b8;
+      return v_a448ad;
+    });
+  }, [v_e5c9ed]);
+
   const v_a98ec7 = v_de06a3((v_77b1ac) => {
     console.log(`[3DPersona] GLB loaded · morphs=${v_77b1ac.join(",")}`);
     v_767e63(v_77b1ac);
@@ -149,12 +161,22 @@ function v_57ae6b() {
               style={[
                 v_fd5f43.mouthCavityOverlay,
                 {
-                  opacity: Math.min(0.88, v_804a1b * 0.95),
-                  height: 22 + v_804a1b * 28, 
+                  opacity: Math.min(0.92, v_804a1b * 1.05),
+                  height: 18 + v_804a1b * 34,
+                  width: 56 + v_804a1b * 12,
+                  marginLeft: -(56 + v_804a1b * 12) / 2,
+                  borderTopLeftRadius: 30 + v_804a1b * 6,
+                  borderTopRightRadius: 30 + v_804a1b * 6,
+                  borderBottomLeftRadius: 40 + v_804a1b * 10,
+                  borderBottomRightRadius: 40 + v_804a1b * 10,
                 },
               ]}
               pointerEvents="none"
-            />
+            >
+              {
+}
+              <View style={v_fd5f43.mouthCavityCore} pointerEvents="none" />
+            </View>
           ) : null}
         </View>
 
@@ -171,6 +193,33 @@ function v_57ae6b() {
             <Text style={v_fd5f43.infoTitle}>Morph Target 검증</Text>
             <Text style={v_fd5f43.infoText}>{v_189455}</Text>
             <Text style={v_fd5f43.infoText}>총 {v_ceeae8} 개 · 순서: {v_c4faef.join(", ")}</Text>
+          </View>
+        ) : null}
+
+        {
+
+}
+        {v_bf751c && !v_5e9bfe ? (
+          <View style={v_fd5f43.infoBox}>
+            <Text style={v_fd5f43.infoTitle}>Morph 개별 토글 (진단)</Text>
+            <Text style={v_fd5f43.infoText}>
+              각 morph 를 0 ↔ 1 로 토글해서 실제 vertices 이동이 일어나는지 확인. GLB rigging 결함
+              추적용.
+            </Text>
+            <View style={v_fd5f43.morphDiagRow}>
+              {v_c4faef.map((v_1833e7, v_e86ad8) => (
+                <TouchableOpacity
+                  key={v_1833e7}
+                  style={[v_fd5f43.morphChip, v_ec25ce[v_e86ad8] && v_fd5f43.morphChipOn, v_8672be && v_fd5f43.btnDisabled]}
+                  onPress={() => v_6cdf7b(v_e86ad8)}
+                  disabled={v_8672be}
+                >
+                  <Text style={[v_fd5f43.morphChipText, v_ec25ce[v_e86ad8] && v_fd5f43.morphChipTextOn]}>
+                    {v_1833e7}{v_ec25ce[v_e86ad8] ? " ✓" : ""}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         ) : null}
 
@@ -221,10 +270,49 @@ const v_fd5f43 = v_472849.create({
     position: "absolute",
     left: "50%",
     top: 245,
-    width: 60,
-    marginLeft: -30,
-    borderRadius: 30,
     backgroundColor: "#000000",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.9,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+
+  mouthCavityCore: {
+    position: "absolute",
+    top: 3,
+    left: 6,
+    right: 6,
+    bottom: 2,
+    borderRadius: 20,
+    backgroundColor: "#0a0a0a",
+  },
+
+  morphDiagRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 8,
+    gap: 6,
+  },
+  morphChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    backgroundColor: v_1bfbd0.zinc800,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc700,
+  },
+  morphChipOn: {
+    backgroundColor: v_1bfbd0.primary,
+    borderColor: v_1bfbd0.primary,
+  },
+  morphChipText: {
+    color: v_1bfbd0.zinc300,
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  morphChipTextOn: {
+    color: v_1bfbd0.white,
   },
   errorBox: {
     flex: 1,
