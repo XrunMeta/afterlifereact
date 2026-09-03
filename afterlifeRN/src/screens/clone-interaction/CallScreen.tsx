@@ -1260,6 +1260,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       console.log(`[Call][chat] clone reply start${wait !== null ? ` (waited ${wait}ms after user)` : ''}`);
       chatReplyStartAt.current = Date.now();
       chatUserSentAt.current = null;
+
+      if (pendingEmoteFireTimer.current) {
+        clearTimeout(pendingEmoteFireTimer.current);
+        pendingEmoteFireTimer.current = null;
+      }
     } else if (lastSignal.type === 'speech_text' && lastSignal.text) {
       console.log(`[Call][chat] clone: "${lastSignal.text}"`);
     } else if (lastSignal.type === 'speech_end') {
@@ -1267,11 +1272,14 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       console.log(`[Call][chat] clone reply end${dur !== null ? ` (took ${dur}ms)` : ''}`);
       chatReplyStartAt.current = null;
 
-      const pending = pendingEmoteRef.current;
-      if (pending) {
-        pendingEmoteRef.current = null;
-
-        setTimeout(() => triggerEmote(pending.key, pending.emoji, pending.label), 150);
+      if (pendingEmoteRef.current) {
+        if (pendingEmoteFireTimer.current) clearTimeout(pendingEmoteFireTimer.current);
+        pendingEmoteFireTimer.current = setTimeout(() => {
+          const pending = pendingEmoteRef.current;
+          pendingEmoteRef.current = null;
+          pendingEmoteFireTimer.current = null;
+          if (pending) triggerEmote(pending.key, pending.emoji, pending.label);
+        }, 800);
       }
 
       dispatchRm({ type: "CLONE_SPEECH_END" });
@@ -1304,6 +1312,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const emoteFiredThisTurn = useRef(false);
 
   const pendingEmoteRef = useRef<{ key: EmoteKey; emoji: string; label: string } | null>(null);
+
+  const pendingEmoteFireTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!lastSignal) return;
     if (lastSignal.type === 'speech_start') {
