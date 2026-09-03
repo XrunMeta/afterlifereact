@@ -30,6 +30,8 @@ export interface RememberMeState {
   dismissedPromptInCall: boolean;
 
   unknownStreak: number;
+
+  differentPersonStreak: number;
 }
 
 export const GRACE_HOLD_MS = 60_000;
@@ -37,6 +39,10 @@ export const GRACE_HOLD_MS = 60_000;
 export const RECENT_SEEN_MS = 90_000;
 
 export const UNKNOWN_ESCALATE_STREAK = 2;
+
+export const DIFFERENT_PERSON_STREAK = 3;
+
+export const LANDMARK_SELF_MIN = 0.7;
 
 export const ENROLL_GRACE_MS = 60_000;
 
@@ -53,7 +59,13 @@ export type RememberMeEvent =
       cloneSpeaking: boolean;
     }
 
-  | { type: "MATCH_UNKNOWN"; score?: number; topPersonId?: number | null }
+  | {
+      type: "MATCH_UNKNOWN";
+      score?: number;
+      topPersonId?: number | null;
+
+      landmarkVsRef?: number | null;
+    }
 
   | { type: "ACTIVITY" }
 
@@ -112,6 +124,7 @@ export function initRememberMeState(): RememberMeState {
     lastConfirmedPerson: null,
     dismissedPromptInCall: false,
     unknownStreak: 0,
+    differentPersonStreak: 0,
   };
 }
 
@@ -172,6 +185,8 @@ function enterIdentified(
     pendingSwitch: null,
 
     unknownStreak: 0,
+
+    differentPersonStreak: 0,
     lastConfirmedPerson,
   };
 }
@@ -256,15 +271,38 @@ function next(
 
       const CONFIDENCE_MIN = 0.55;
       if (!event.score || event.score < CONFIDENCE_MIN || event.topPersonId == null) {
-        return { state: { ...state, unknownStreak: state.unknownStreak + 1 }, actions: [] };
+
+        return {
+          state: { ...state, unknownStreak: state.unknownStreak + 1, differentPersonStreak: 0 },
+          actions: [],
+        };
       }
       const refPersonId = state.personId ?? state.lastConfirmedPerson?.personId ?? null;
 
-      const differentPersonImmediate =
+      const isDifferentPerson =
         refPersonId != null && event.topPersonId !== refPersonId;
+
+      const landmarkSelfHit =
+        typeof event.landmarkVsRef === "number" && event.landmarkVsRef >= LANDMARK_SELF_MIN;
+      if (isDifferentPerson && landmarkSelfHit) {
+        return {
+          state: {
+            ...state,
+            unknownStreak: state.unknownStreak + 1,
+            differentPersonStreak: 0, 
+          },
+          actions: [],
+        };
+      }
+
+      const newDifferentStreak = isDifferentPerson
+        ? state.differentPersonStreak + 1
+        : 0;
       const newStreak = state.unknownStreak + 1;
       const shouldPrompt =
-        differentPersonImmediate && !state.dismissedPromptInCall;
+        isDifferentPerson &&
+        newDifferentStreak >= DIFFERENT_PERSON_STREAK &&
+        !state.dismissedPromptInCall;
 
       if (state.mode === "pending") {
         const promoted =
@@ -276,7 +314,12 @@ function next(
           nowMs - state.lastNotifyUnknownMs < UNKNOWN_RENOTIFY_MS
         ) {
           return {
-            state: { ...state, unknownStreak: newStreak, ...promoted },
+            state: {
+              ...state,
+              unknownStreak: newStreak,
+              differentPersonStreak: newDifferentStreak,
+              ...promoted,
+            },
             actions: [],
           };
         }
@@ -284,6 +327,7 @@ function next(
           state: {
             ...state,
             unknownStreak: newStreak,
+            differentPersonStreak: newDifferentStreak,
             lastNotifyUnknownMs: nowMs,
             ...promoted,
           },
@@ -298,12 +342,17 @@ function next(
             state: {
               ...enterPending(state, nowMs, promptWhenLcp),
               unknownStreak: newStreak,
+              differentPersonStreak: newDifferentStreak,
             },
             actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
           };
         }
         return {
-          state: { ...state, unknownStreak: newStreak },
+          state: {
+            ...state,
+            unknownStreak: newStreak,
+            differentPersonStreak: newDifferentStreak,
+          },
           actions: [],
         };
       }
@@ -315,13 +364,18 @@ function next(
             state: {
               ...enterPending(state, nowMs, promptFresh),
               unknownStreak: newStreak,
+              differentPersonStreak: newDifferentStreak,
             },
             actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
           };
         }
 
         return {
-          state: { ...state, unknownStreak: newStreak },
+          state: {
+            ...state,
+            unknownStreak: newStreak,
+            differentPersonStreak: newDifferentStreak,
+          },
           actions: [],
         };
       }
@@ -332,6 +386,7 @@ function next(
           state: {
             ...enterPending(state, nowMs, promptWhenLcp),
             unknownStreak: newStreak,
+            differentPersonStreak: newDifferentStreak,
           },
           actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
         };
@@ -340,6 +395,7 @@ function next(
         state: {
           ...state,
           unknownStreak: newStreak,
+          differentPersonStreak: newDifferentStreak,
           mode: "grace",
           graceSinceMs: nowMs,
           graceHadActivity: false,
