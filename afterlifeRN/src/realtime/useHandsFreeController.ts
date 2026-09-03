@@ -335,11 +335,12 @@ export function useHandsFreeController(opts: {
       } else {
 
         const remainingMs = sig.remainingMs ?? 0;
-        releaseNotBeforeRef.current = Date.now() + remainingMs;
+        const cappedRemainingMs = Math.min(remainingMs, 500);
+        releaseNotBeforeRef.current = Date.now() + cappedRemainingMs;
         pendingDoneAtRef.current = Date.now();
         if (pendingDoneTimerRef.current) clearTimeout(pendingDoneTimerRef.current);
         emitTimingEvent('timer', {
-          name: 'pendingDone', action: 'set', ms: remainingMs + RESPONSE_DONE_TAIL_MAX_MS,
+          name: 'pendingDone', action: 'set', ms: cappedRemainingMs + RESPONSE_DONE_TAIL_MAX_MS,
         });
         pendingDoneTimerRef.current = setTimeout(() => {
           pendingDoneTimerRef.current = null;
@@ -347,7 +348,7 @@ export function useHandsFreeController(opts: {
           releaseNotBeforeRef.current = 0;
           emitTimingEvent('timer', { name: 'pendingDone', action: 'fire', by: 'tailMax' });
           dispatchRef.current({ type: 'RESPONSE_DONE', seq: endSeq });
-        }, remainingMs + RESPONSE_DONE_TAIL_MAX_MS);
+        }, cappedRemainingMs + RESPONSE_DONE_TAIL_MAX_MS);
       }
     }
 
