@@ -92,7 +92,14 @@ export async function runIdentifyCycle(
 
   let bestPersonId = result.best?.personId ?? null;
   let bestDisplayName = result.best?.displayName ?? null;
-  const rawEmbeddingScore = result.best?.score ?? result.matches[0]?.score ?? 0;
+  let rawEmbeddingScore = result.best?.score ?? result.matches[0]?.score ?? 0;
+
+  const CLIENT_CONFIRM_MIN = 0.5;
+  if (bestPersonId == null && result.matches[0]?.personId != null && result.matches[0].score >= CLIENT_CONFIRM_MIN) {
+    bestPersonId = result.matches[0].personId;
+    bestDisplayName = result.matches[0].displayName;
+    rawEmbeddingScore = result.matches[0].score;
+  }
   let effectiveScore = rawEmbeddingScore;
 
   const rtLandmark = deps.getCurrentLandmark?.();
