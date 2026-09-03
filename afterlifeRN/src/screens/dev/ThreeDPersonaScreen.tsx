@@ -36,6 +36,18 @@ function ThreeDPersonaInner() {
 
   const [jawOpenValue, setJawOpenValue] = useState(0);
 
+  const [morphDiag, setMorphDiag] = useState<boolean[]>([false, false, false, false, false]);
+  const toggleMorph = useCallback((idx: number) => {
+    setMorphDiag((prev) => {
+      const next = [...prev];
+      next[idx] = !next[idx];
+      const w = [...weights.value];
+      w[idx] = next[idx] ? 1 : 0;
+      weights.value = w;
+      return next;
+    });
+  }, [weights]);
+
   const onLoaded = useCallback((names: string[]) => {
     console.log(`[3DPersona] GLB loaded · morphs=${names.join(",")}`);
     setMorphNames(names);
@@ -149,12 +161,22 @@ function ThreeDPersonaInner() {
               style={[
                 s.mouthCavityOverlay,
                 {
-                  opacity: Math.min(0.88, jawOpenValue * 0.95),
-                  height: 22 + jawOpenValue * 28, 
+                  opacity: Math.min(0.92, jawOpenValue * 1.05),
+                  height: 18 + jawOpenValue * 34,
+                  width: 56 + jawOpenValue * 12,
+                  marginLeft: -(56 + jawOpenValue * 12) / 2,
+                  borderTopLeftRadius: 30 + jawOpenValue * 6,
+                  borderTopRightRadius: 30 + jawOpenValue * 6,
+                  borderBottomLeftRadius: 40 + jawOpenValue * 10,
+                  borderBottomRightRadius: 40 + jawOpenValue * 10,
                 },
               ]}
               pointerEvents="none"
-            />
+            >
+              {
+}
+              <View style={s.mouthCavityCore} pointerEvents="none" />
+            </View>
           ) : null}
         </View>
 
@@ -171,6 +193,33 @@ function ThreeDPersonaInner() {
             <Text style={s.infoTitle}>Morph Target 검증</Text>
             <Text style={s.infoText}>{morphInfo}</Text>
             <Text style={s.infoText}>총 {MORPH_COUNT} 개 · 순서: {MORPH_NAMES.join(", ")}</Text>
+          </View>
+        ) : null}
+
+        {
+
+}
+        {loaded && !error ? (
+          <View style={s.infoBox}>
+            <Text style={s.infoTitle}>Morph 개별 토글 (진단)</Text>
+            <Text style={s.infoText}>
+              각 morph 를 0 ↔ 1 로 토글해서 실제 vertices 이동이 일어나는지 확인. GLB rigging 결함
+              추적용.
+            </Text>
+            <View style={s.morphDiagRow}>
+              {MORPH_NAMES.map((name, idx) => (
+                <TouchableOpacity
+                  key={name}
+                  style={[s.morphChip, morphDiag[idx] && s.morphChipOn, speaking && s.btnDisabled]}
+                  onPress={() => toggleMorph(idx)}
+                  disabled={speaking}
+                >
+                  <Text style={[s.morphChipText, morphDiag[idx] && s.morphChipTextOn]}>
+                    {name}{morphDiag[idx] ? " ✓" : ""}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         ) : null}
 
@@ -221,10 +270,49 @@ const s = StyleSheet.create({
     position: "absolute",
     left: "50%",
     top: 245,
-    width: 60,
-    marginLeft: -30,
-    borderRadius: 30,
     backgroundColor: "#000000",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.9,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+
+  mouthCavityCore: {
+    position: "absolute",
+    top: 3,
+    left: 6,
+    right: 6,
+    bottom: 2,
+    borderRadius: 20,
+    backgroundColor: "#0a0a0a",
+  },
+
+  morphDiagRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 8,
+    gap: 6,
+  },
+  morphChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    backgroundColor: COLORS.zinc800,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.zinc700,
+  },
+  morphChipOn: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  morphChipText: {
+    color: COLORS.zinc300,
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  morphChipTextOn: {
+    color: COLORS.white,
   },
   errorBox: {
     flex: 1,
