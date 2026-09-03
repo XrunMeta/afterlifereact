@@ -99,6 +99,15 @@ describe("POST /oth-path — 클론 스코프", () => {
     expect(consentRes.status).toBe(200);
     await seedCloneFace(userId, cloneA, person.id, vec(1));
 
+    const nowMs = Date.now();
+    await db()
+      .prepare(
+        `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at)
+         VALUES (?, ?, 'dummy-b', 'granted', ?, 'card', ?)`,
+      )
+      .bind(userId, cloneB, nowMs, nowMs)
+      .run();
+
     const hitRes = await SELF.fetch("https://x/oth-path", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
@@ -348,6 +357,15 @@ describe("unknown → L2′ 생성 왕복", () => {
       headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
       body: JSON.stringify({ state: "granted" }),
     });
+
+    const nowMs = Date.now();
+    await db()
+      .prepare(
+        `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at)
+         VALUES (?, ?, 'dummy-b', 'granted', ?, 'card', ?)`,
+      )
+      .bind(userId, cloneB, nowMs, nowMs)
+      .run();
 
     const vectorizeId = crypto.randomUUID();
     await getFaceIndex(env as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string }).insert([
