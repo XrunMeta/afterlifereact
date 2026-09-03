@@ -335,11 +335,12 @@ export function v_7df8a4(opts: {
       } else {
 
         const v_2d99a5 = v_f2c979.remainingMs ?? 0;
-        v_c2616d.current = Date.now() + v_2d99a5;
+        const v_dcf9cb = Math.min(v_2d99a5, 500);
+        v_c2616d.current = Date.now() + v_dcf9cb;
         v_8a777f.current = Date.now();
         if (v_d65758.current) clearTimeout(v_d65758.current);
         v_d7f7b1('timer', {
-          name: 'pendingDone', action: 'set', ms: v_2d99a5 + v_d641fa,
+          name: 'pendingDone', action: 'set', ms: v_dcf9cb + v_d641fa,
         });
         v_d65758.current = setTimeout(() => {
           v_d65758.current = null;
@@ -347,7 +348,7 @@ export function v_7df8a4(opts: {
           v_c2616d.current = 0;
           v_d7f7b1('timer', { name: 'pendingDone', action: 'fire', by: 'tailMax' });
           v_700737.current({ type: 'RESPONSE_DONE', seq: v_efacaa });
-        }, v_2d99a5 + v_d641fa);
+        }, v_dcf9cb + v_d641fa);
       }
     }
 
