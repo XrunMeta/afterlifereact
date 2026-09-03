@@ -23,7 +23,7 @@ const SCRIPTED_JAW: number[] = (() => {
     const t = i / 60;
 
     const wave = 0.35 + 0.35 * Math.sin(t * 22) * Math.sin(t * 4.3);
-    out[i] = Math.max(0, Math.min(0.85, wave));
+    out[i] = Math.max(0, Math.min(1.0, wave));
   }
   return out;
 })();
@@ -90,12 +90,16 @@ function ThreeDPersonaInner() {
       if (frame >= SCRIPTED_JAW.length) {
         const next = [...weights.value];
         next[0] = 0; 
+        next[1] = 0; 
         weights.value = next;
         setSpeaking(false);
         return;
       }
       const next = [...weights.value];
-      next[0] = SCRIPTED_JAW[frame];
+      const jaw = SCRIPTED_JAW[frame];
+      next[0] = jaw; 
+
+      next[1] = jaw * 0.7;
       weights.value = next;
       requestAnimationFrame(step);
     };
