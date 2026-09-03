@@ -93,7 +93,16 @@ export async function v_f644ce(
 
   const v_20e745 = v_84b93d.getCurrentLandmark?.();
   const v_63e1ab = v_43c42e.best?.landmarkRatiosList;
-  if (v_d2fcdb != null && v_20e745 && v_63e1ab && v_63e1ab.length > 0) {
+
+  const v_3dc98e = typeof v_b6e533.speaker.confirmed === "number" ? v_b6e533.speaker.confirmed : null;
+  const v_e45908 = v_3dc98e != null && v_d2fcdb === v_3dc98e;
+  if (
+    !v_e45908 &&
+    v_d2fcdb != null &&
+    v_20e745 &&
+    v_63e1ab &&
+    v_63e1ab.length > 0
+  ) {
 
     const v_f2d98f = v_63e1ab.filter((v_1614db): v_1614db is Record<string, number> => v_1614db != null);
     if (v_f2d98f.length > 0) {
@@ -103,7 +112,7 @@ export async function v_f644ce(
       const v_1f22f7 = v_b552b6.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6, 0) / v_b552b6.length;
 
       const v_e75c90 = v_d15b72 * v_1f22f7;
-      const v_aa1c73 = 0.5; 
+      const v_aa1c73 = 0.4;
       if (v_e75c90 < v_aa1c73) {
 
         v_d2fcdb = null;
