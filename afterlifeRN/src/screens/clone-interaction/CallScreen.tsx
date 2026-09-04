@@ -2443,6 +2443,18 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       {
 
 }
+      {phase === 'sending' && livePipeline === 'echomimic_v3' && !cloneSubtitle ? (
+        <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
+          <View style={s.thinkingBadge}>
+            <ActivityIndicator size="small" color={COLORS.white} />
+            <Text style={s.thinkingText}>생성 중…</Text>
+          </View>
+        </View>
+      ) : null}
+
+      {
+
+}
       {(phase === 'speaking' || phase === 'greeting') && !!cloneSubtitle ? (
         <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
           <CloneSubtitleTicker text={cloneSubtitle} style={s.subtitleText} />
@@ -2847,6 +2859,22 @@ const s = StyleSheet.create({
     textAlign: 'center',
     alignSelf: 'center',
     maxWidth: '100%',
+  },
+
+  thinkingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 8,
+    alignSelf: 'center',
+  },
+  thinkingText: {
+    color: COLORS.white,
+    fontSize: 13,
+    fontWeight: '500',
   },
 
   confirmTapArea: {
