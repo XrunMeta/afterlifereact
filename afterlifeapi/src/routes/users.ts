@@ -453,6 +453,7 @@ v_de7ba7.get("/me/clones", v_6690d9, async (v_3f4e2e) => {
           c.l1_profile     AS l1ProfileJson,
           c.pipeline       AS pipeline,
           c.viseme_prefix  AS visemePrefix,
+          c.avatar_sdk_glb_url AS avatarSdkGlbUrl,
           (CASE WHEN c.owner_id = ? THEN 'owner' ELSE 'coowner' END) AS myRole,
           (SELECT COUNT(*) FROM clone_shares s
             WHERE s.clone_id = c.id AND s.status = 'accepted') AS coownerCount,
