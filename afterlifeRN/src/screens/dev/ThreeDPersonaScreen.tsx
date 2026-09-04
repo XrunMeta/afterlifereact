@@ -16,6 +16,8 @@ import { useSharedValue } from "react-native-worklets-core";
 import { COLORS } from "../../components/constants";
 import { Head, NEUTRAL_WEIGHTS } from "./threedPersona/Head";
 import { MORPH_COUNT, MORPH_NAMES } from "./threedPersona/config";
+import { listMyClones, type MyClone } from "../../api/clones";
+import { useAuthStore } from "../../stores/authStore";
 
 const SCRIPTED_JAW: number[] = (() => {
   const N = 180;
@@ -71,6 +73,35 @@ function ThreeDPersonaInner() {
     setJawOpenValue(0);
     setMorphDiag([false, false, false, false, false]);
     setActiveRemoteUrl(null);
+  }, [weights]);
+
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const [myThreedClones, setMyThreedClones] = useState<MyClone[]>([]);
+  useEffect(() => {
+    if (!accessToken) return;
+    let cancelled = false;
+    listMyClones(accessToken)
+      .then((r) => {
+        if (cancelled) return;
+        const filtered = r.items.filter((c) => c.pipeline === "threed" && c.avatarSdkGlbUrl);
+        setMyThreedClones(filtered);
+      })
+      .catch((e) => {
+        if (!cancelled) console.warn("[3DPersona] listMyClones fail:", e);
+      });
+    return () => { cancelled = true; };
+  }, [accessToken]);
+  const onLoadClone = useCallback((clone: MyClone) => {
+    const url = clone.avatarSdkGlbUrl;
+    if (!url) return;
+    setUrlInput(url);
+    setLoaded(false);
+    setError(null);
+    setMorphNames([]);
+    weights.value = [...NEUTRAL_WEIGHTS];
+    setJawOpenValue(0);
+    setMorphDiag([false, false, false, false, false]);
+    setActiveRemoteUrl(url);
   }, [weights]);
 
   const onLoaded = useCallback((names: string[]) => {
@@ -222,8 +253,32 @@ function ThreeDPersonaInner() {
 
         {
 }
+        {myThreedClones.length > 0 ? (
+          <View style={s.infoBox}>
+            <Text style={s.infoTitle}>내 3D 페르소나 ({myThreedClones.length}개)</Text>
+            <Text style={s.infoText}>
+              admin 에서 pipeline=threed + Avatar SDK URL 저장한 페르소나. 탭 → 즉시 로드.
+            </Text>
+            <View style={s.morphDiagRow}>
+              {myThreedClones.map((c) => (
+                <TouchableOpacity
+                  key={c.id}
+                  style={[s.morphChip, activeRemoteUrl === c.avatarSdkGlbUrl && s.morphChipOn]}
+                  onPress={() => onLoadClone(c)}
+                >
+                  <Text style={[s.morphChipText, activeRemoteUrl === c.avatarSdkGlbUrl && s.morphChipTextOn]}>
+                    {c.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        {
+}
         <View style={s.infoBox}>
-          <Text style={s.infoTitle}>원격 GLB URL (실험)</Text>
+          <Text style={s.infoTitle}>원격 GLB URL (실험 · 수동 붙여넣기)</Text>
           <Text style={s.infoText}>
             Avatar SDK / MetaPerson Creator / Ready Player Me 등에서 뽑은 GLB URL 을 붙여넣으세요.
             비워두거나 초기화 누르면 번들된 head_9053.glb 로 되돌아갑니다.
