@@ -1349,6 +1349,8 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
       pipeline: v_eb25ce.pipeline,
 
       visemePrefix: v_eb25ce.viseme_prefix,
+
+      avatarSdkGlbUrl: v_eb25ce.avatar_sdk_glb_url ?? null,
     },
   });
 });
