@@ -305,6 +305,26 @@ export default function v_ed02a5() {
           },
 
           {
+            icon: "box" as const,
+            labelKey: "3D 페르소나 만들기 (베타)",
+            descKey: "Avatar SDK 3D 얼굴 · GLB URL 별도 세팅 필요",
+            action: async () => {
+              try {
+                const { setNextPipeline: v_e935e7 } = await import(
+                  "../../lib/experimentalPipelineFlag"
+                );
+                v_e935e7("threed");
+                v_c65f5d.getParent()?.dispatch(
+                  v_650cfa.navigate({ name: "CreateTab" }),
+                );
+              } catch (v_49263d) {
+                console.warn("[threed-persona] nav failed:", v_49263d);
+                v_889fad("오류", "페르소나 만들기 화면 이동 실패");
+              }
+            },
+          },
+
+          {
             icon: "activity" as const,
             labelKey: "Viseme 파이프라인 테스트 (dev)",
             descKey: "합성 + 재생 · 사전 렌더 이미지 필요",

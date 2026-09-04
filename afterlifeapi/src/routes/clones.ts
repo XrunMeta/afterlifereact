@@ -156,7 +156,7 @@ const v_722b6d = v_1f4ea7.object({
   idle_video_job_id: v_1f4ea7.string().uuid().optional(),
   voice_clone_job_id: v_1f4ea7.string().uuid().optional(),
 
-  pipeline: v_1f4ea7.enum(["musetalk", "echomimic_v3", "viseme_playback"]).optional(),
+  pipeline: v_1f4ea7.enum(["musetalk", "echomimic_v3", "viseme_playback", "threed"]).optional(),
 });
 
 const v_34d2d5 = new Set(["oth-user@example.invalid", "oth-test@example.invalid"]);
