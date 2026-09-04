@@ -1202,7 +1202,9 @@ admin.get("/oth-path", requireAdmin, async (c) => {
             c.pipeline,
             c.viseme_prefix AS visemePrefix,
             c.viseme_generated_at AS visemeGeneratedAt,
-            c.viseme_version AS visemeVersion
+            c.viseme_version AS visemeVersion,
+            c.avatar_sdk_glb_url AS avatarSdkGlbUrl,
+            c.avatar_sdk_id AS avatarSdkId
        FROM clones c
        LEFT JOIN users u ON u.id = c.owner_id
       WHERE c.id = ?`,
@@ -1214,10 +1216,13 @@ admin.get("/oth-path", requireAdmin, async (c) => {
 });
 
 const adminClonePatchSchema = z.object({
-  pipeline: z.enum(["musetalk", "echomimic_v3", "viseme_playback"]).optional(),
+  pipeline: z.enum(["musetalk", "echomimic_v3", "viseme_playback", "threed"]).optional(),
 
   visemePrefix: z.string().max(500).nullable().optional(),
   visemeVersion: z.string().max(50).nullable().optional(),
+
+  avatarSdkGlbUrl: z.string().url().max(1000).nullable().optional(),
+  avatarSdkId: z.string().max(200).nullable().optional(),
 });
 
 admin.patch("/oth-path", requireAdmin, async (c) => {
@@ -1255,6 +1260,15 @@ admin.patch("/oth-path", requireAdmin, async (c) => {
   if (body.visemeVersion !== undefined) {
     sets.push(`viseme_version = ?`);
     binds.push(body.visemeVersion);
+  }
+
+  if (body.avatarSdkGlbUrl !== undefined) {
+    sets.push(`avatar_sdk_glb_url = ?`);
+    binds.push(body.avatarSdkGlbUrl);
+  }
+  if (body.avatarSdkId !== undefined) {
+    sets.push(`avatar_sdk_id = ?`);
+    binds.push(body.avatarSdkId);
   }
   if (sets.length === 0) {
     return c.json({ ok: true, updated: 0 });

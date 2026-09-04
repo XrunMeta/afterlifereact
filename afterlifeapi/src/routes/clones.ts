@@ -1362,6 +1362,8 @@ clones.get("/:id", async (c) => {
       pipeline: clone.pipeline,
 
       visemePrefix: clone.viseme_prefix,
+
+      avatarSdkGlbUrl: clone.avatar_sdk_glb_url ?? null,
     },
   });
 });
