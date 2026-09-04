@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -46,6 +47,30 @@ function ThreeDPersonaInner() {
       weights.value = w;
       return next;
     });
+  }, [weights]);
+
+  const [urlInput, setUrlInput] = useState("");
+  const [activeRemoteUrl, setActiveRemoteUrl] = useState<string | null>(null);
+  const onLoadRemote = useCallback(() => {
+    const trimmed = urlInput.trim();
+    if (!trimmed) return;
+
+    setLoaded(false);
+    setError(null);
+    setMorphNames([]);
+    weights.value = [...NEUTRAL_WEIGHTS];
+    setJawOpenValue(0);
+    setMorphDiag([false, false, false, false, false]);
+    setActiveRemoteUrl(trimmed);
+  }, [urlInput, weights]);
+  const onResetToBundle = useCallback(() => {
+    setLoaded(false);
+    setError(null);
+    setMorphNames([]);
+    weights.value = [...NEUTRAL_WEIGHTS];
+    setJawOpenValue(0);
+    setMorphDiag([false, false, false, false, false]);
+    setActiveRemoteUrl(null);
   }, [weights]);
 
   const onLoaded = useCallback((names: string[]) => {
@@ -145,7 +170,14 @@ function ThreeDPersonaInner() {
               <Text style={s.errorDetail}>{error}</Text>
             </View>
           ) : (
-            <Head weights={weights} onLoaded={onLoaded} onError={onError} />
+            <Head
+
+              key={activeRemoteUrl ?? "bundled"}
+              weights={weights}
+              onLoaded={onLoaded}
+              onError={onError}
+              remoteUrl={activeRemoteUrl ?? undefined}
+            />
           )}
           {!loaded && !error ? (
             <View style={s.loadingOverlay} pointerEvents="none">
@@ -188,11 +220,54 @@ function ThreeDPersonaInner() {
           <Text style={s.btnText}>{speaking ? "말하는 중…" : "말하기 데모 (3초)"}</Text>
         </TouchableOpacity>
 
-        {morphInfo ? (
+        {
+}
+        <View style={s.infoBox}>
+          <Text style={s.infoTitle}>원격 GLB URL (실험)</Text>
+          <Text style={s.infoText}>
+            Avatar SDK / MetaPerson Creator / Ready Player Me 등에서 뽑은 GLB URL 을 붙여넣으세요.
+            비워두거나 초기화 누르면 번들된 head_9053.glb 로 되돌아갑니다.
+          </Text>
+          <TextInput
+            style={s.urlInput}
+            value={urlInput}
+            onChangeText={setUrlInput}
+            placeholder="https://models.readyplayerme.com/... 또는 Avatar SDK GLB URL"
+            placeholderTextColor={COLORS.zinc500}
+            autoCapitalize="none"
+            autoCorrect={false}
+            multiline
+          />
+          <View style={s.remoteBtnRow}>
+            <TouchableOpacity
+              style={[s.btnSmall, s.btnSmallPrimary, !urlInput.trim() && s.btnDisabled]}
+              onPress={onLoadRemote}
+              disabled={!urlInput.trim()}
+            >
+              <Text style={s.btnText}>이 URL 로드</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.btnSmall, s.btnSmallSecondary]}
+              onPress={onResetToBundle}
+            >
+              <Text style={s.btnText}>번들로 초기화</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={s.infoText}>
+            현재 소스: {activeRemoteUrl ? "원격 URL" : "번들 head_9053.glb"}
+          </Text>
+          {activeRemoteUrl ? (
+            <Text style={[s.infoText, s.mono]} numberOfLines={2}>{activeRemoteUrl}</Text>
+          ) : null}
+        </View>
+
+        {morphNames.length > 0 ? (
           <View style={s.infoBox}>
-            <Text style={s.infoTitle}>Morph Target 검증</Text>
-            <Text style={s.infoText}>{morphInfo}</Text>
-            <Text style={s.infoText}>총 {MORPH_COUNT} 개 · 순서: {MORPH_NAMES.join(", ")}</Text>
+            <Text style={s.infoTitle}>Morph Target 목록 ({morphNames.length}개)</Text>
+            {morphInfo ? <Text style={s.infoText}>{morphInfo}</Text> : null}
+            <Text style={[s.infoText, s.mono]}>
+              {morphNames.map((n, i) => `[${i}] ${n}`).join("\n")}
+            </Text>
           </View>
         ) : null}
 
@@ -313,6 +388,37 @@ const s = StyleSheet.create({
   },
   morphChipTextOn: {
     color: COLORS.white,
+  },
+
+  urlInput: {
+    marginTop: 8,
+    marginBottom: 8,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: COLORS.zinc800,
+    borderWidth: 1,
+    borderColor: COLORS.zinc700,
+    color: COLORS.white,
+    fontSize: 12,
+    minHeight: 60,
+    textAlignVertical: "top",
+  },
+  remoteBtnRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 8,
+  },
+  btnSmall: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  btnSmallPrimary: {
+    backgroundColor: COLORS.primary,
+  },
+  btnSmallSecondary: {
+    backgroundColor: COLORS.zinc700,
   },
   errorBox: {
     flex: 1,

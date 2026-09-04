@@ -11,10 +11,15 @@ interface Props {
 
   onLoaded: (targetNames: string[]) => void
   onError: (message: string) => void
+
+  remoteUrl?: string
 }
 
-export function Head({ weights, onLoaded, onError }: Props) {
-  const model = useModel(require('../../../../assets/3d/head_9053.glb'))
+export function Head({ weights, onLoaded, onError, remoteUrl }: Props) {
+
+  const model = useModel(
+    remoteUrl ? { uri: remoteUrl } : require('../../../../assets/3d/head_9053.glb'),
+  )
   const { renderableManager } = useFilamentContext()
 
   const asset = model.state === 'loaded' ? model.asset : undefined
