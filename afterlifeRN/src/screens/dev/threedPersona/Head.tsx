@@ -11,10 +11,15 @@ interface Props {
 
   onLoaded: (targetNames: string[]) => void
   onError: (message: string) => void
+
+  remoteUrl?: string
 }
 
-export function v_842502({ weights: v_e5c9ed, onLoaded: v_a98ec7, onError: v_c6eab8 }: Props) {
-  const v_768389 = v_c86c88(require('../../../../assets/3d/head_9053.glb'))
+export function v_842502({ weights: v_e5c9ed, onLoaded: v_a98ec7, onError: v_c6eab8, remoteUrl: v_a33a1f }: Props) {
+
+  const v_768389 = v_c86c88(
+    v_a33a1f ? { uri: v_a33a1f } : require('../../../../assets/3d/head_9053.glb'),
+  )
   const { renderableManager: v_233948 } = v_cfd06e()
 
   const v_b76cd8 = v_768389.state === 'loaded' ? v_768389.asset : undefined
