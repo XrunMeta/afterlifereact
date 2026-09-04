@@ -16,6 +16,8 @@ import { v_fc0657 } from "fkysyevuehkssftyrtweoolhfw";
 import { v_1bfbd0 } from "../../components/constants";
 import { v_842502, v_45df48 } from "./threedPersona/Head";
 import { v_ceeae8, v_c4faef } from "./threedPersona/config";
+import { v_d60cdf, type v_fa0201 } from "../../api/clones";
+import { v_1ed7d9 } from "../../stores/authStore";
 
 const v_7f7fe8 = (() => {
   const v_f791ed = 180;
@@ -71,6 +73,35 @@ function v_57ae6b() {
     v_31437d(0);
     v_be68a6([false, false, false, false, false]);
     v_f8a8be(null);
+  }, [v_e5c9ed]);
+
+  const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const [v_5b8f3f, v_5ef9ce] = v_5ab095<v_fa0201[]>([]);
+  v_c4deb2(() => {
+    if (!v_2ca7e0) return;
+    let v_2008a4 = false;
+    v_d60cdf(v_2ca7e0)
+      .then((v_cb35cb) => {
+        if (v_2008a4) return;
+        const v_e4cf17 = v_cb35cb.items.filter((v_3f4e2e) => v_3f4e2e.pipeline === "threed" && v_3f4e2e.avatarSdkGlbUrl);
+        v_5ef9ce(v_e4cf17);
+      })
+      .catch((v_9e86fd) => {
+        if (!v_2008a4) console.warn("[3DPersona] listMyClones fail:", v_9e86fd);
+      });
+    return () => { v_2008a4 = true; };
+  }, [v_2ca7e0]);
+  const v_70ac22 = v_de06a3((clone: v_fa0201) => {
+    const v_f71b56 = v_eb25ce.avatarSdkGlbUrl;
+    if (!v_f71b56) return;
+    v_107655(v_f71b56);
+    v_8bbf9d(false);
+    v_3a7d09(null);
+    v_767e63([]);
+    v_e5c9ed.value = [...v_45df48];
+    v_31437d(0);
+    v_be68a6([false, false, false, false, false]);
+    v_f8a8be(v_f71b56);
   }, [v_e5c9ed]);
 
   const v_a98ec7 = v_de06a3((v_77b1ac) => {
@@ -222,8 +253,32 @@ function v_57ae6b() {
 
         {
 }
+        {v_5b8f3f.length > 0 ? (
+          <View style={v_fd5f43.infoBox}>
+            <Text style={v_fd5f43.infoTitle}>내 3D 페르소나 ({v_5b8f3f.length}개)</Text>
+            <Text style={v_fd5f43.infoText}>
+              admin 에서 pipeline=threed + Avatar SDK URL 저장한 페르소나. 탭 → 즉시 로드.
+            </Text>
+            <View style={v_fd5f43.morphDiagRow}>
+              {v_5b8f3f.map((v_3f4e2e) => (
+                <TouchableOpacity
+                  key={v_3f4e2e.id}
+                  style={[v_fd5f43.morphChip, v_5d6327 === v_3f4e2e.avatarSdkGlbUrl && v_fd5f43.morphChipOn]}
+                  onPress={() => v_70ac22(v_3f4e2e)}
+                >
+                  <Text style={[v_fd5f43.morphChipText, v_5d6327 === v_3f4e2e.avatarSdkGlbUrl && v_fd5f43.morphChipTextOn]}>
+                    {v_3f4e2e.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        {
+}
         <View style={v_fd5f43.infoBox}>
-          <Text style={v_fd5f43.infoTitle}>원격 GLB URL (실험)</Text>
+          <Text style={v_fd5f43.infoTitle}>원격 GLB URL (실험 · 수동 붙여넣기)</Text>
           <Text style={v_fd5f43.infoText}>
             Avatar SDK / MetaPerson Creator / Ready Player Me 등에서 뽑은 GLB URL 을 붙여넣으세요.
             비워두거나 초기화 누르면 번들된 head_9053.glb 로 되돌아갑니다.
