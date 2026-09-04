@@ -7,6 +7,7 @@ import {
   v_122070,
   v_472849,
   v_19b633,
+  v_79c4f2,
   v_4623af,
   v_3094a2,
 } from "rcmrninabrnb";
@@ -46,6 +47,30 @@ function v_57ae6b() {
       v_e5c9ed.value = v_32f7b8;
       return v_a448ad;
     });
+  }, [v_e5c9ed]);
+
+  const [v_48e28a, v_107655] = v_5ab095("");
+  const [v_5d6327, v_f8a8be] = v_5ab095<string | null>(null);
+  const v_0ef735 = v_de06a3(() => {
+    const v_2f361a = v_48e28a.trim();
+    if (!v_2f361a) return;
+
+    v_8bbf9d(false);
+    v_3a7d09(null);
+    v_767e63([]);
+    v_e5c9ed.value = [...v_45df48];
+    v_31437d(0);
+    v_be68a6([false, false, false, false, false]);
+    v_f8a8be(v_2f361a);
+  }, [v_48e28a, v_e5c9ed]);
+  const v_529ca2 = v_de06a3(() => {
+    v_8bbf9d(false);
+    v_3a7d09(null);
+    v_767e63([]);
+    v_e5c9ed.value = [...v_45df48];
+    v_31437d(0);
+    v_be68a6([false, false, false, false, false]);
+    v_f8a8be(null);
   }, [v_e5c9ed]);
 
   const v_a98ec7 = v_de06a3((v_77b1ac) => {
@@ -145,7 +170,14 @@ function v_57ae6b() {
               <Text style={v_fd5f43.errorDetail}>{v_5e9bfe}</Text>
             </View>
           ) : (
-            <Head weights={v_e5c9ed} onLoaded={v_a98ec7} onError={v_c6eab8} />
+            <Head
+
+              key={v_5d6327 ?? "bundled"}
+              weights={v_e5c9ed}
+              onLoaded={v_a98ec7}
+              onError={v_c6eab8}
+              remoteUrl={v_5d6327 ?? undefined}
+            />
           )}
           {!v_bf751c && !v_5e9bfe ? (
             <View style={v_fd5f43.loadingOverlay} pointerEvents="none">
@@ -188,11 +220,54 @@ function v_57ae6b() {
           <Text style={v_fd5f43.btnText}>{v_8672be ? "말하는 중…" : "말하기 데모 (3초)"}</Text>
         </TouchableOpacity>
 
-        {v_189455 ? (
+        {
+}
+        <View style={v_fd5f43.infoBox}>
+          <Text style={v_fd5f43.infoTitle}>원격 GLB URL (실험)</Text>
+          <Text style={v_fd5f43.infoText}>
+            Avatar SDK / MetaPerson Creator / Ready Player Me 등에서 뽑은 GLB URL 을 붙여넣으세요.
+            비워두거나 초기화 누르면 번들된 head_9053.glb 로 되돌아갑니다.
+          </Text>
+          <TextInput
+            style={v_fd5f43.urlInput}
+            value={v_48e28a}
+            onChangeText={v_107655}
+            placeholder="https://models.readyplayerme.com/... 또는 Avatar SDK GLB URL"
+            placeholderTextColor={v_1bfbd0.zinc500}
+            autoCapitalize="none"
+            autoCorrect={false}
+            multiline
+          />
+          <View style={v_fd5f43.remoteBtnRow}>
+            <TouchableOpacity
+              style={[v_fd5f43.btnSmall, v_fd5f43.btnSmallPrimary, !v_48e28a.trim() && v_fd5f43.btnDisabled]}
+              onPress={v_0ef735}
+              disabled={!v_48e28a.trim()}
+            >
+              <Text style={v_fd5f43.btnText}>이 URL 로드</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[v_fd5f43.btnSmall, v_fd5f43.btnSmallSecondary]}
+              onPress={v_529ca2}
+            >
+              <Text style={v_fd5f43.btnText}>번들로 초기화</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={v_fd5f43.infoText}>
+            현재 소스: {v_5d6327 ? "원격 URL" : "번들 head_9053.glb"}
+          </Text>
+          {v_5d6327 ? (
+            <Text style={[v_fd5f43.infoText, v_fd5f43.mono]} numberOfLines={2}>{v_5d6327}</Text>
+          ) : null}
+        </View>
+
+        {v_a893b0.length > 0 ? (
           <View style={v_fd5f43.infoBox}>
-            <Text style={v_fd5f43.infoTitle}>Morph Target 검증</Text>
-            <Text style={v_fd5f43.infoText}>{v_189455}</Text>
-            <Text style={v_fd5f43.infoText}>총 {v_ceeae8} 개 · 순서: {v_c4faef.join(", ")}</Text>
+            <Text style={v_fd5f43.infoTitle}>Morph Target 목록 ({v_a893b0.length}개)</Text>
+            {v_189455 ? <Text style={v_fd5f43.infoText}>{v_189455}</Text> : null}
+            <Text style={[v_fd5f43.infoText, v_fd5f43.mono]}>
+              {v_a893b0.map((v_f4e98d, v_ebec57) => `[${v_ebec57}] ${v_f4e98d}`).join("\n")}
+            </Text>
           </View>
         ) : null}
 
@@ -313,6 +388,37 @@ const v_fd5f43 = v_472849.create({
   },
   morphChipTextOn: {
     color: v_1bfbd0.white,
+  },
+
+  urlInput: {
+    marginTop: 8,
+    marginBottom: 8,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: v_1bfbd0.zinc800,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc700,
+    color: v_1bfbd0.white,
+    fontSize: 12,
+    minHeight: 60,
+    textAlignVertical: "top",
+  },
+  remoteBtnRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 8,
+  },
+  btnSmall: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  btnSmallPrimary: {
+    backgroundColor: v_1bfbd0.primary,
+  },
+  btnSmallSecondary: {
+    backgroundColor: v_1bfbd0.zinc700,
   },
   errorBox: {
     flex: 1,
