@@ -135,6 +135,8 @@ export type MyStackParamList = {
   ThreeDLab: undefined;
 
   ThreeDPersona: undefined;
+
+  TtsLocalPoc: undefined;
 };
 
 declare global {

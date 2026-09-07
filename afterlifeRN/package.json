@@ -61,6 +61,7 @@
     "expo-video": "~3.0.16",
     "i18next": "^24.2.3",
     "jpeg-js": "^0.4.4",
+    "onnxruntime-react-native": "^1.24.3",
     "pngjs": "^7.0.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
