@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Audio } from 'expo-av';
+import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 import * as FileSystem from 'expo-file-system';
 import { COLORS, SIZES, RADIUS } from '../../components/constants';
 import SafeView from '../../components/ui/SafeView';
@@ -65,7 +65,7 @@ export default function TtsLocalPocScreen() {
   const [status, setStatus] = useState<string>('준비');
   const [duration, setDuration] = useState<number>(0);
   const g2pRef = useRef<ReturnType<typeof createG2p> | null>(null);
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const soundRef = useRef<AudioPlayer | null>(null);
 
   useEffect(() => {
 
@@ -79,7 +79,7 @@ export default function TtsLocalPocScreen() {
       }
     }, 100);
     return () => {
-      soundRef.current?.unloadAsync();
+      soundRef.current?.remove();
     };
   }, []);
 
@@ -129,12 +129,10 @@ export default function TtsLocalPocScreen() {
       });
 
       setStatus('재생 중…');
-      if (soundRef.current) {
-        await soundRef.current.unloadAsync();
-      }
-      const { sound } = await Audio.Sound.createAsync({ uri: wavPath });
-      soundRef.current = sound;
-      await sound.playAsync();
+      soundRef.current?.remove();
+      const player = createAudioPlayer(wavPath);
+      soundRef.current = player;
+      player.play();
 
       const totalMs = Date.now() - start;
       const audioDurationSec = audioData.length / 44100;
