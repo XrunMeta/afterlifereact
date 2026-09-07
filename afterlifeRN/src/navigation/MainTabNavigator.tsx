@@ -51,6 +51,8 @@ import ThreeDPersonaScreen from "../screens/dev/ThreeDPersonaScreen";
 
 import FaceThresholdTestScreen from "../screens/face-test/FaceThresholdTestScreen";
 
+import TtsLocalPocScreen from "../screens/dev/TtsLocalPocScreen";
+
 const ClonesStack = createNativeStackNavigator<ClonesStackParamList>();
 const CreateStack = createNativeStackNavigator<CreateStackParamList>();
 const MyStack = createNativeStackNavigator<MyStackParamList>();
@@ -114,6 +116,7 @@ function MyStackNavigator() {
       <MyStack.Screen name="FaceThresholdTest" component={FaceThresholdTestScreen} />
       <MyStack.Screen name="ThreeDLab" component={ThreeDLabScreen} />
       <MyStack.Screen name="ThreeDPersona" component={ThreeDPersonaScreen} />
+      <MyStack.Screen name="TtsLocalPoc" component={TtsLocalPocScreen} />
     </MyStack.Navigator>
   );
 }

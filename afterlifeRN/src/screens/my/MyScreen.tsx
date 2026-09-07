@@ -332,6 +332,13 @@ export default function MyScreen() {
           },
 
           {
+            icon: "volume-2" as const,
+            labelKey: "로컬 TTS POC (dev)",
+            descKey: "g2p-js + halbae ONNX · 완전 로컬 · 서버 X",
+            action: () => navigation.navigate("TtsLocalPoc"),
+          },
+
+          {
             icon: "target" as const,
             labelKey: "얼굴 임계값 테스트 (dev)",
             descKey: "이미지 업로드 → 매칭 score 확인",
