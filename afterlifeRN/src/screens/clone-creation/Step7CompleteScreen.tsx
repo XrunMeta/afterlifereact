@@ -60,6 +60,19 @@ const v_549a47 = {
   celeb:  { title: '팬클럽이 시작됐어요', sub: '첫 메시지를 남겨 보세요.' },
 };
 
+function v_1d1af8(v_1833e7, v_dd8af0): string {
+  const v_f4e98d = (v_1833e7 ?? "").trim();
+  const v_aa444d = v_f4e98d ? `${v_f4e98d}이에요.` : "만나서 반가워요.";
+  const v_2534ba = {
+    memlow: "함께한 추억을 이어가고 싶어요.",
+    friend: "편하게 이야기 나눠봐요!",
+    mentor: "궁금한 게 있으면 뭐든 물어봐요.",
+    celeb: "팬 여러분, 만나서 정말 반가워요.",
+  };
+  const v_ba70d8 = v_2534ba[(v_dd8af0 ?? "") as string] ?? "오늘 하루도 잘 지내봐요.";
+  return `${v_aa444d} ${v_ba70d8}`;
+}
+
 function v_78ed2a({ uri: v_cd1446 }: { uri: string }) {
   const { t: v_8d41d7 } = v_772971();
   const v_86394a = v_110960(v_cd1446, (v_e2a85c) => {
@@ -104,13 +117,24 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const [v_7f3fda, v_3773cd] = v_5ab095<v_e5d62a | null>(null);
   const v_835261 = v_e662ae<ReturnType<typeof setInterval> | null>(null);
 
-  const [v_6044a8, v_1d6b6a] = v_5ab095((v_f04727.description ?? "").slice(0, 500));
+  const v_1c6048 = v_e662ae(false);
+  const [v_6044a8, v_1d6b6a] = v_5ab095(() => {
+    const v_41b99d = (v_f04727.description ?? "").slice(0, 500);
+    if (v_41b99d) return v_41b99d;
+    v_1c6048.current = true;
+    return v_1d1af8(v_f04727.name, v_f04727.relation);
+  });
 
   const v_d9bc63 = v_e662ae(false);
 
   v_c4deb2(() => {
-    if (v_f04727.description && v_6044a8.trim().length === 0 && !v_d9bc63.current) {
+    if (
+      v_f04727.description &&
+      !v_d9bc63.current &&
+      (v_6044a8.trim().length === 0 || v_1c6048.current)
+    ) {
       v_1d6b6a(v_f04727.description.slice(0, 500));
+      v_1c6048.current = false;
     }
 
   }, [v_f04727.description]);
