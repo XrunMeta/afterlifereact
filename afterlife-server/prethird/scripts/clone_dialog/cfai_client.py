@@ -71,7 +71,13 @@ def _delta_token(line: bytes) -> str | None:
         log.warning("cfai: SSE 파싱 실패, 해당 줄 skip: %r", data[:120])
         return None
     choices = obj.get("choices") or [{}]
-    return choices[0].get("delta", {}).get("content") or None
+    content = choices[0].get("delta", {}).get("content")
+    if content is None or content == "":
+        return None
+    # 일부 모델(@cf/meta/llama-4-scout-…)이 content 를 숫자로 실어 보낸다 —
+    # 실호출로만 드러나는 동작이라 여기서 정규화한다. 상위는 "".join() 을 하므로
+    # str 이 아닌 값이 새면 통화 도중 TypeError 로 죽는다.
+    return content if isinstance(content, str) else str(content)
 
 async def chat_stream_cf(
     messages: list[dict],
@@ -130,4 +136,6 @@ async def chat_once_cf(
         # 빈 응답을 다루고 있다. 대신 원문을 로그로 남겨 추적 가능하게 한다.
         log.warning("cfai: choices 없음 — 응답 형태 확인 필요: %r", str(obj)[:200])
         return ""
-    return choices[0].get("message", {}).get("content", "")
+    content = choices[0].get("message", {}).get("content", "")
+    # 스트림과 같은 이유로 str 정규화 — 호출부는 문자열을 기대한다.
+    return content if isinstance(content, str) else str(content)
