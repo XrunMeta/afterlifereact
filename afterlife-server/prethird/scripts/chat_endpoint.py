@@ -19,6 +19,7 @@ from aiohttp import web
 from clone_dialog import fetch_bundle, bundle_to_messages, chat_stream, extract_l2
 from clone_dialog.persona_prompt import sanitize_display_name
 from clone_dialog.llm_client import chat_once
+from clone_dialog import cfai_catalog
 
 log = logging.getLogger("prethird.verify")
 
@@ -747,6 +748,52 @@ async def verify_l2p(req: web.Request) -> web.Response:
         return web.json_response({"error": "upstream error"}, status=502)
     return web.json_response(data)
 
+_CF_MODELS_URL = ("https://oth-path.cloudflare.com/client/v4/accounts/{acct}"
+                  "/ai/models/search?task=Text+Generation&per_page=200")
+
+async def _cf_list_models() -> list[str]:
+    """CF 에서 텍스트 생성 모델 이름 목록을 받아온다. 실패 시 예외를 올린다.
+
+    별도 함수인 이유는 테스트가 여기만 갈아끼우면 되게 하기 위해서다.
+    """
+    acct = os.environ.get("CF_ACCOUNT_ID")
+    token = os.environ.get("CF_AI_TOKEN")
+    if not (acct and token):
+        raise RuntimeError("CF_ACCOUNT_ID / CF_AI_TOKEN 미설정")
+    timeout = aiohttp.ClientTimeout(total=_API_TIMEOUT_S)
+    async with aiohttp.ClientSession(timeout=timeout) as sess:
+        async with sess.get(_CF_MODELS_URL.format(acct=acct),
+                            headers={"Authorization": f"Bearer {token}"}) as r:
+            r.raise_for_status()
+            data = await r.json()
+    if not data.get("success"):
+        raise RuntimeError(f"cf models search 실패: {str(data)[:120]}")
+    return [m["name"] for m in data.get("result", [])]
+
+async def verify_llm_models(req: web.Request) -> web.Response:
+    """모델 드롭다운용 — CF 라이브 목록 + 실측 메타(cfai_catalog).
+
+    CF 를 못 부르면 카탈로그만으로 채운다. 토큰이 없다고 화면이 비면 "왜 안 되지"
+    를 한참 뒤지게 되므로, 폴백했다는 사실을 source 필드로 알린다.
+    """
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
+    if not _bearer(req):
+        return web.json_response({"error": "missing bearer token"}, status=401)
+    try:
+        rows = cfai_catalog.merge(await _cf_list_models())
+        source = "live"
+    except Exception as e:
+        log.warning("verify_llm_models: CF 목록 실패 → 카탈로그 폴백 (%s)", e)
+        rows = cfai_catalog.merge(list(cfai_catalog.CATALOG))
+        source = "catalog"
+    return web.json_response({
+        # 빈 값 = model 미지정 → 서버 기본(ollama). 기준선으로 되돌아가는 선택지.
+        "ollama": {"value": "", "label": f"ollama {_DEFAULT_MODEL} (기본)"},
+        "cf": rows,
+        "source": source,
+    })
+
 async def verify_page(_req: web.Request) -> web.FileResponse:
     html = pathlib.Path(__file__).resolve().parents[1] / "static" / "verify_chat.html"
     return web.FileResponse(html)
@@ -756,6 +803,7 @@ def register_verify_routes(app: web.Application) -> None:
     app.router.add_get("/oth-path", verify_page)
     app.router.add_post("/oth-path", verify_login)
     app.router.add_get("/oth-path", verify_clones)
+    app.router.add_get("/oth-path", verify_llm_models)
     app.router.add_get("/oth-path", verify_persons)
     app.router.add_post("/oth-path", verify_person_create)
     app.router.add_post("/oth-path", verify_chat)
