@@ -172,6 +172,29 @@ async def test_stream_ignores_empty_delta():
     assert toks == ["A"]
 
 
+async def test_stream_coerces_non_string_delta_to_str():
+    """일부 모델이 content 를 숫자로 보낸다 — 실호출에서 확인된 동작.
+
+    @cf/meta/llama-4-scout-17b-16e-instruct 가 델타 content 로 int 를 실어 보내
+    상위의 "".join(...) 이 TypeError 로 죽었다. 목킹만으로는 안 잡히는 종류라
+    실측으로 발견했다. 토큰은 항상 str 로 정규화해 내보낸다.
+    """
+    _FakeSession.lines = [
+        b'data: {"choices":[{"delta":{"content":7}}]}\n',
+        'data: {"choices":[{"delta":{"content":"번"}}]}\n'.encode(),
+        b"data: [DONE]\n",
+    ]
+    toks = await _drain(cf.chat_stream_cf([{"role": "user", "content": "x"}], model="@cf/m"))
+    assert toks == ["7", "번"]
+    assert all(isinstance(t, str) for t in toks)
+
+
+async def test_once_coerces_non_string_content_to_str():
+    _FakeSession.json_body = {"choices": [{"message": {"content": 42}}]}
+    out = await cf.chat_once_cf([{"role": "user", "content": "x"}], model="@cf/m")
+    assert out == "42"
+
+
 async def test_stream_survives_malformed_json_line():
     """중간에 깨진 줄 하나로 통화 전체가 죽으면 안 된다 — 그 줄만 버린다."""
     _FakeSession.lines = [
