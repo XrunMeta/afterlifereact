@@ -35,7 +35,7 @@ export interface CreateClonePayload {
 
   pin?: string;
 
-  pipeline?: "musetalk" | "echomimic_v3" | "viseme_playback";
+  pipeline?: "musetalk" | "echomimic_v3" | "viseme_playback" | "threed";
 }
 
 export interface CreatedClone {
