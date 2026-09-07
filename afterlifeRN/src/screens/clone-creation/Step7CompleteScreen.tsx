@@ -62,14 +62,29 @@ const COPY: Record<'memlow' | 'friend' | 'mentor' | 'celeb', { title: string; su
 
 function buildFallbackCaption(name?: string, relation?: string): string {
   const n = (name ?? "").trim();
-  const nick = n ? `${n}이에요.` : "만나서 반가워요.";
-  const relCopy: Record<string, string> = {
-    memlow: "함께한 추억을 이어가고 싶어요.",
-    friend: "편하게 이야기 나눠봐요!",
-    mentor: "궁금한 게 있으면 뭐든 물어봐요.",
-    celeb: "팬 여러분, 만나서 정말 반가워요.",
+
+  const hasBatchim = (s: string): boolean => {
+    if (!s) return false;
+    const code = s.charCodeAt(s.length - 1) - 0xac00;
+    if (code < 0 || code > 11171) return false; 
+    return code % 28 !== 0;
   };
-  const rel = relCopy[(relation ?? "") as string] ?? "오늘 하루도 잘 지내봐요.";
+  const nick = n
+    ? `안녕하세요, ${n}${hasBatchim(n) ? "이에요" : "예요"}.`
+    : "안녕하세요, 만나서 반가워요.";
+  const relCopy: Record<string, string> = {
+    memlow:
+      "함께한 추억이 아직 마음에 남아 있어요. 편지가 도착하면 언제든 함께 읽어봐요. 소소한 이야기라도 들려주시면 좋겠어요.",
+    friend:
+      "편하게 말 걸어주세요. 하루 있었던 일, 요즘 관심사, 사소한 고민까지 뭐든 이야기해요. 같이 웃고 같이 생각하고 싶어요.",
+    mentor:
+      "궁금한 게 있으면 언제든 물어봐 주세요. 아는 만큼 정성껏 나눠드릴게요. 함께 배우고 성장하는 시간을 만들어요.",
+    celeb:
+      "만나 뵙게 되어 정말 반가워요. 팬 여러분과 이야기 나누는 이 시간을 아낍니다. 궁금한 것도, 응원의 말도 편하게 남겨주세요.",
+  };
+  const rel =
+    relCopy[(relation ?? "") as string] ??
+    "편하게 이야기 나눠봐요. 관심사도, 오늘 있었던 소소한 일도, 궁금한 것도 뭐든 좋아요. 함께 즐거운 시간 보내요.";
   return `${nick} ${rel}`;
 }
 
