@@ -499,8 +499,7 @@ const styles = StyleSheet.create({
   },
   topSpacer: {
 
-    flex: 3,
-    minHeight: 40,
+    height: 180,
   },
   bottomSpacer: {
     flex: 1,
