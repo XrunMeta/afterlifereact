@@ -91,7 +91,13 @@
   <span id="personFilterNote" class="muted" style="font-size:11px"></span>
   <input id="newPerson" type="text" placeholder="새 화자 이름" style="width:110px" />
   <button id="addPerson">화자+</button>
+  <!-- LLM 백엔드 선택. 고르면 옆 model 칸을 채운다 — 칸에 직접 타이핑하는 기존
+       방식도 그대로 살아 있다(CF 가 새 모델을 내면 목록을 안 기다리고 바로 시도). -->
+  <select id="modelPreset" style="max-width:300px" title="LLM 모델 — 고르면 model 칸이 채워집니다">
+    <option value="">— LLM 모델 —</option>
+  </select>
   <input id="model" type="text" placeholder="model (기본값)" style="width:130px" />
+  <span id="modelNote" class="muted" style="font-size:11px"></span>
   <label>temp <input id="temp" type="number" min="0" max="2" step="0.1" style="width:60px" /></label>
   <label><input id="multiturn" type="checkbox" checked /> 멀티턴</label>
   <label><input id="memory" type="checkbox" checked /> 기억 모드</label>
@@ -474,6 +480,77 @@ $("loadClones").onclick = async () => {
     sel.appendChild(o);
   }
   await loadKnowledgeQuestions();
+  await loadLlmModels();
+};
+
+const _TIER_GROUPS = [
+  ["call",        "통화 가능"],
+  ["slow",        "느림 — 텍스트 검증용"],
+  ["unknown",     "미검증 (새 모델)"],
+  ["unfit",       "통화 부적합"],
+  ["unavailable", "호출 불가"],
+];
+let _modelMeta = {};
+
+async function loadLlmModels() {
+  const sel = $("modelPreset");
+  let body;
+  try {
+    const r = await fetch("/oth-path", { headers: authHeaders() });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    body = await r.json();
+  } catch (e) {
+
+    sel.innerHTML = '<option value="">— 모델 목록 실패, 직접 입력 —</option>';
+    return;
+  }
+  _modelMeta = {};
+  sel.innerHTML = "";
+  const base = document.createElement("option");
+  base.value = body.ollama.value;
+  base.textContent = body.ollama.label;
+  sel.appendChild(base);
+
+  for (const [tier, label] of _TIER_GROUPS) {
+    const rows = body.cf.filter(r => r.tier === tier);
+    if (!rows.length) continue;
+    const g = document.createElement("optgroup");
+    g.label = label;
+    for (const r of rows) {
+      _modelMeta[r.value] = r;
+      const o = document.createElement("option");
+      o.value = r.value;
+
+      const shortName = r.name.replace(/^@cf\//, "");
+      const bits = [];
+      if (r.ttft_ms != null) bits.push(r.ttft_ms + "ms");
+      if (r.json === true) bits.push("JSON");
+      o.textContent = shortName + (bits.length ? "  · " + bits.join(" · ") : "");
+      g.appendChild(o);
+    }
+    sel.appendChild(g);
+  }
+  if (body.source === "catalog") {
+
+    const o = document.createElement("option");
+    o.disabled = true;
+    o.textContent = "※ CF 목록 조회 실패 — 실측 카탈로그로 표시 중";
+    sel.appendChild(o);
+  }
+}
+
+$("modelPreset").onchange = () => {
+  const v = $("modelPreset").value;
+  $("model").value = v;
+  const m = _modelMeta[v];
+  $("modelNote").textContent = m && m.note ? m.note : "";
+};
+
+$("model").oninput = () => {
+  if ($("model").value !== $("modelPreset").value) {
+    $("modelPreset").value = "";
+    $("modelNote").textContent = "";
+  }
 };
 
 let _sending = false;
