@@ -60,6 +60,19 @@ const COPY: Record<'memlow' | 'friend' | 'mentor' | 'celeb', { title: string; su
   celeb:  { title: '팬클럽이 시작됐어요', sub: '첫 메시지를 남겨 보세요.' },
 };
 
+function buildFallbackCaption(name?: string, relation?: string): string {
+  const n = (name ?? "").trim();
+  const nick = n ? `${n}이에요.` : "만나서 반가워요.";
+  const relCopy: Record<string, string> = {
+    memlow: "함께한 추억을 이어가고 싶어요.",
+    friend: "편하게 이야기 나눠봐요!",
+    mentor: "궁금한 게 있으면 뭐든 물어봐요.",
+    celeb: "팬 여러분, 만나서 정말 반가워요.",
+  };
+  const rel = relCopy[(relation ?? "") as string] ?? "오늘 하루도 잘 지내봐요.";
+  return `${nick} ${rel}`;
+}
+
 function IdleVideoPreview({ uri }: { uri: string }) {
   const { t } = useTranslation();
   const player = useVideoPlayer(uri, (p) => {
@@ -104,13 +117,24 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   const [idleJob, setIdleJob] = useState<AssetJob | null>(null);
   const idleJobIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const [caption, setCaption] = useState((draft.description ?? "").slice(0, 500));
+  const isFallbackRef = useRef(false);
+  const [caption, setCaption] = useState(() => {
+    const desc = (draft.description ?? "").slice(0, 500);
+    if (desc) return desc;
+    isFallbackRef.current = true;
+    return buildFallbackCaption(draft.name, draft.relation);
+  });
 
   const captionTouchedRef = useRef(false);
 
   useEffect(() => {
-    if (draft.description && caption.trim().length === 0 && !captionTouchedRef.current) {
+    if (
+      draft.description &&
+      !captionTouchedRef.current &&
+      (caption.trim().length === 0 || isFallbackRef.current)
+    ) {
       setCaption(draft.description.slice(0, 500));
+      isFallbackRef.current = false;
     }
 
   }, [draft.description]);

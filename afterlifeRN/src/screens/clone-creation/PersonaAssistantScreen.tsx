@@ -266,15 +266,25 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
           });
 
           if (accessToken) {
+            console.log('[introSuggest] START', {
+              name: answers.name,
+              relation: answers.relation,
+              answersCount: Object.keys(answers.schemaAnswers ?? {}).length,
+            });
             introSuggest(accessToken, {
               name: answers.name,
               relation: answers.relation,
               personaAnswers: answers.schemaAnswers,
             })
               .then((intro) => {
+                console.log('[introSuggest] DONE len=', (intro ?? '').length, 'preview=', (intro ?? '').slice(0, 60));
                 if (intro) setCreationDraft({ description: intro });
               })
-              .catch(() => {});
+              .catch((err) => {
+                console.warn('[introSuggest] ERROR', err);
+              });
+          } else {
+            console.warn('[introSuggest] SKIP — no accessToken');
           }
 
           navigation.navigate('Step5');
