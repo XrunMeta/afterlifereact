@@ -2,8 +2,9 @@
 
 import { v_5ab095, v_de06a3, v_e662ae, v_c4deb2 } from 'bapkr';
 import { v_3094a2, v_19b633, v_79c4f2, v_472849, v_4623af, v_122070 } from 'rcmrninabrnb';
-import { v_55ee01 } from 'ngfuhpl';
+import { v_e82960, type v_0eab75 } from 'qmmwyqbwrg';
 import * as v_f38d26 from 'umnthslqstcsfmed';
+import { v_da5c4b } from 'feadcwrczd';
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from '../../components/constants';
 import v_556baf from '../../components/ui/SafeView';
 import { v_be46cf } from '../../text/g2pk-js';
@@ -65,7 +66,7 @@ export default function v_e2119c() {
   const [v_d308b5, v_5193f8] = v_5ab095<string>('준비');
   const [v_a712cf, v_ab79a4] = v_5ab095<number>(0);
   const v_f4a23b = v_e662ae<ReturnType<typeof v_be46cf> | null>(null);
-  const v_f4fa42 = v_e662ae<v_55ee01.Sound | null>(null);
+  const v_f4fa42 = v_e662ae<v_0eab75 | null>(null);
 
   v_c4deb2(() => {
 
@@ -79,7 +80,7 @@ export default function v_e2119c() {
       }
     }, 100);
     return () => {
-      v_f4fa42.current?.unloadAsync();
+      v_f4fa42.current?.remove();
     };
   }, []);
 
@@ -102,14 +103,21 @@ export default function v_e2119c() {
       const v_a5c994 = Date.now();
       const { InferenceSession: v_eee163, Tensor: v_239850 } = await import('xwvwngpckyeydbryrllvuafz');
 
-      const v_eec957 = require('../../../assets/tts/halbae_9053.onnx');
-      const v_a3ff5a = await v_eee163.create(v_eec957);
+      const v_b76cd8 = v_da5c4b.fromModule(require('../../../assets/tts/halbae_9053.onnx'));
+      if (!v_b76cd8.localUri) {
+        await v_b76cd8.downloadAsync();
+      }
+      const v_3e9268 = v_b76cd8.localUri;
+      if (!v_3e9268) throw new Error('ONNX asset localUri 확보 실패');
+
+      const v_5006e1 = v_3e9268.replace(/^file:\/\//, '');
+      const v_a3ff5a = await v_eee163.create(v_5006e1);
 
       const v_c2ff59 = BigInt64Array.from(v_52e08b.map((v_f4e98d) => BigInt(v_f4e98d)));
       const v_101948 = BigInt64Array.from([BigInt(v_52e08b.length)]);
       const v_b50631 = {
         x: new v_239850('int64', v_c2ff59, [1, v_52e08b.length]),
-        x_lengths: new v_239850('int64', v_101948, [1]),
+        x_length: new v_239850('int64', v_101948, [1]),
         noise_scale: new v_239850('float32', new Float32Array([0.667]), [1]),
         length_scale: new v_239850('float32', new Float32Array([1.0]), [1]),
         noise_scale_w: new v_239850('float32', new Float32Array([0.8]), [1]),
@@ -129,12 +137,10 @@ export default function v_e2119c() {
       });
 
       v_5193f8('재생 중…');
-      if (v_f4fa42.current) {
-        await v_f4fa42.current.unloadAsync();
-      }
-      const { sound: v_90e7ea } = await v_55ee01.Sound.createAsync({ uri: v_f2bb81 });
-      v_f4fa42.current = v_90e7ea;
-      await v_90e7ea.playAsync();
+      v_f4fa42.current?.remove();
+      const v_86394a = v_e82960(v_f2bb81);
+      v_f4fa42.current = v_86394a;
+      v_86394a.play();
 
       const v_57324b = Date.now() - v_965edf;
       const v_c46b36 = v_116170.length / 44100;

@@ -7,6 +7,8 @@ v_74a79c.resolver.assetExts.push('tflite');
 
 v_74a79c.resolver.assetExts.push('glb', 'gltf', 'bin', 'ktx', 'hdr', 'filamat');
 
+v_74a79c.resolver.assetExts.push('onnx');
+
 v_74a79c.resolver.extraNodeModules = {
   ...(v_74a79c.resolver.extraNodeModules || {}),
   buffer: require.resolve('buffer/'),
