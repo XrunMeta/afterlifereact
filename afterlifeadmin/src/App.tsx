@@ -22,6 +22,7 @@ import { v_394bcd } from "./pages/PersonaQuestionsEditPage";
 import { v_9febbb } from "./pages/VoicePresetsPage";
 import { v_f731ac } from "./pages/CrashReportsPage";
 import { v_7f766f } from "./pages/FaceRecognitionPage";
+import { v_4fbbee } from "./pages/FaceAnimationBenchmarkPage";
 import { v_d3670a } from "./pages/VerifyLabPage";
 import v_5bca36 from "./pages/ConversationsPage";
 
@@ -61,6 +62,7 @@ function v_6540c3() {
         <Route path="/conversations" element={<ProtectedLayout><ConversationsPage /></ProtectedLayout>} />
         <Route path="/crashes" element={<ProtectedLayout><CrashReportsPage /></ProtectedLayout>} />
         <Route path="/face-recognition" element={<ProtectedLayout><FaceRecognitionPage /></ProtectedLayout>} />
+        <Route path="/face-animation-benchmark" element={<ProtectedLayout><FaceAnimationBenchmarkPage /></ProtectedLayout>} />
         <Route
           path="/oth-path"
           element={
