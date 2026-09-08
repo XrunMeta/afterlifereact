@@ -1,5 +1,7 @@
 
 
+import { SMILE_B64, FRESH_B64 } from "./benchmarkVideos";
+
 export const BENCHMARK_HTML = `<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -193,6 +195,25 @@ export const BENCHMARK_HTML = `<!DOCTYPE html>
     letter-spacing: 0.16em; color: var(--muted);
   }
 
+  .video-grid {
+    grid-column: 1 / -1; margin: 4px 0 30px;
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px;
+  }
+  @media (max-width: 700px) { .video-grid { grid-template-columns: 1fr; gap: 14px; } }
+  .video-grid figure { margin: 0; }
+  .video-grid video {
+    width: 100%; aspect-ratio: 1 / 1; display: block; object-fit: cover;
+    background: var(--paper);
+    border: 1px solid color-mix(in oklab, var(--rule) 55%, transparent);
+  }
+  .video-grid figcaption {
+    font-family: var(--mono); font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.16em; color: var(--muted); margin-top: 8px;
+  }
+  .video-grid figcaption strong {
+    color: var(--ink); font-weight: 700; margin-right: 8px;
+  }
+
   .conclusion { padding: 80px 0 32px; border-bottom: 1px solid var(--rule); }
   .conclusion .eyebrow { color: var(--good); }
   .conclusion .verdict em { color: var(--good); }
@@ -336,6 +357,18 @@ export const BENCHMARK_HTML = `<!DOCTYPE html>
           <strong>3초짜리 대사 하나에 이론 최소 18초.</strong>
           <span>3초 · 프레임 75개 · 프레임당 0.5s</span>
         </div>
+      </div>
+      <div class="video-grid" aria-label="EchoMimicV3 실측 렌더 샘플">
+        <figure>
+          <video autoplay muted loop playsinline preload="metadata"
+                 src="data:video/mp4;base64,${SMILE_B64}"></video>
+          <figcaption><strong>SAMPLE A</strong> 자연스러움 실측 · smile</figcaption>
+        </figure>
+        <figure>
+          <video autoplay muted loop playsinline preload="metadata"
+                 src="data:video/mp4;base64,${FRESH_B64}"></video>
+          <figcaption><strong>SAMPLE B</strong> 감정 표현 렌더 · fresh</figcaption>
+        </figure>
       </div>
       <div class="prose">
         <p>
