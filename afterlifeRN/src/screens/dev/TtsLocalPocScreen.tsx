@@ -3,7 +3,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
-import * as FileSystem from 'expo-file-system';
+
+import * as FileSystem from 'expo-file-system/legacy';
 import { Asset } from 'expo-asset';
 import { COLORS, SIZES, RADIUS } from '../../components/constants';
 import SafeView from '../../components/ui/SafeView';
