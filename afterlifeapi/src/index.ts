@@ -94,6 +94,17 @@ app.get("/health", async (c) => {
   return c.json({ ok: db?.ok === 1, ts: Date.now() });
 });
 
+app.get("/benchmark", async (c) => {
+  const { BENCHMARK_HTML } = await import("./benchmarkPage");
+  return new Response(BENCHMARK_HTML, {
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "public, max-age=300",
+      "X-Robots-Tag": "noindex",
+    },
+  });
+});
+
 app.route("/oth-path", auth);
 app.route("/oth-path", files);
 
