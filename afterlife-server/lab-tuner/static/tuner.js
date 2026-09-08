@@ -111,6 +111,7 @@ async function v_1857f4() {
   v_32dc97.onopen = () => {
     document.getElementById('say-input').disabled = false;
     document.getElementById('say-btn').disabled = false;
+    document.querySelectorAll('.quick-say-btn').forEach(v_148ff6 => { v_148ff6.disabled = false; });
     v_0b0398.textContent = '✅ dc open — say 가능';
     v_5af772();
   };
@@ -141,6 +142,7 @@ function v_cad05d() {
   if (v_81e2ef) v_81e2ef.srcObject = null;
   document.getElementById('say-input').disabled = true;
   document.getElementById('say-btn').disabled = true;
+  document.querySelectorAll('.quick-say-btn').forEach(v_148ff6 => { v_148ff6.disabled = true; });
   document.getElementById('conn-status').textContent = '끊김 — 재연결 가능';
   document.getElementById('hangup-btn').disabled = true;
   document.getElementById('connect-btn').disabled = false;
@@ -1150,8 +1152,9 @@ async function v_9a2a8d(v_78c274) {
   }
 }
 
-function v_409b14() {
-  const v_8d41d7 = document.getElementById('say-input').value;
+function v_409b14(v_9b6134) {
+
+  const v_8d41d7 = (v_9b6134 === undefined) ? document.getElementById('say-input').value : v_9b6134;
   const v_0b0398 = document.getElementById('conn-status');
   if (!v_32dc97 || v_32dc97.readyState !== 'open') {
     v_0b0398.textContent = `say 불가 — dc:${v_32dc97 ? v_32dc97.readyState : '없음'}(연결/개통 대기)`;
@@ -1442,7 +1445,11 @@ async function v_d73d4a() {
 document.getElementById('apply-knobs').onclick = () => v_9a2a8d();
 document.getElementById('promote').onclick = v_3e5dbc;
 document.getElementById('restart-prethird').onclick = v_3fd5d1;
-document.getElementById('say-btn').onclick = v_409b14;
+document.getElementById('say-btn').onclick = () => v_409b14();
+
+document.querySelectorAll('.quick-say-btn').forEach(v_148ff6 => {
+  v_148ff6.onclick = () => v_409b14(v_148ff6.dataset.text);
+});
 document.getElementById('say-input').addEventListener('keydown', (v_9e86fd) => {
   if (v_9e86fd.key === 'Enter' && !v_9e86fd.isComposing) {   
     v_9e86fd.preventDefault();
