@@ -21,3 +21,4 @@ d1-snapshots/*
 *-dump.sql
 *.sql.dump
 d1-dump*.sql
+*.png
