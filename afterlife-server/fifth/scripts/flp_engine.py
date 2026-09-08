@@ -45,6 +45,67 @@ import cv2
 import numpy as np
 from omegaconf import OmegaConf
 
+
+# ---------------------------------------------------------------------------
+# 3층: FLP infer_params env 오버라이드 (lab-tuner)
+#
+# configs/trt_infer.yaml 을 파일로 수정하지 않고 로드 직후 덮는다. 아래 __init__ 이
+# 일부 값을 코드로 강제(flag_normalize_lip=False, flag_lip_retargeting=True 등)하므로,
+# env 오버라이드는 그 강제 뒤에 적용해야 사용자가 최종 승자가 된다.
+# ---------------------------------------------------------------------------
+
+_ANIMATION_REGIONS = ("all", "exp", "pose", "lip", "eyes")
+
+
+def _as_bool(s):
+    return str(s).strip() not in ("0", "false", "False")
+
+
+def _as_region(s):
+    v = str(s).strip()
+    if v not in _ANIMATION_REGIONS:
+        raise ValueError(f"animation_region 은 {_ANIMATION_REGIONS} 중 하나여야 함: {v!r}")
+    return v
+
+
+# env 이름 → (infer_params 속성, 캐스터)
+_FLP_ENV = {
+    "FIFTH_FLP_ANIMATION_REGION":   ("animation_region", _as_region),
+    "FIFTH_FLP_STITCHING":          ("flag_stitching", _as_bool),
+    "FIFTH_FLP_LIP_RETARGETING":    ("flag_lip_retargeting", _as_bool),
+    "FIFTH_FLP_EYE_RETARGETING":    ("flag_eye_retargeting", _as_bool),
+    "FIFTH_FLP_PASTEBACK":          ("flag_pasteback", _as_bool),
+    "FIFTH_FLP_NORMALIZE_LIP":      ("flag_normalize_lip", _as_bool),
+    "FIFTH_FLP_LIP_NORM_THRESHOLD": ("lip_normalize_threshold", float),
+    "FIFTH_FLP_CFG_SCALE":          ("cfg_scale", float),
+    "FIFTH_FLP_DRIVING_MULTIPLIER": ("driving_multiplier", float),
+}
+
+
+def apply_flp_env_overrides(infer_params, environ) -> list[str]:
+    """FIFTH_FLP_* env 로 infer_params 를 덮는다. yaml 파일은 건드리지 않는다.
+
+    잘못된 값은 경고만 남기고 건너뛴다 — 렌더서버가 못 뜨면 통화 전체가 죽으므로
+    기동 실패보다 기본값 유지(fail-open)가 안전하다.
+
+    Returns:
+        실제로 적용된 "속성=값" 문자열 리스트(로그용). 아무것도 안 바뀌면 빈 리스트.
+    """
+    applied: list[str] = []
+    for env_name, (attr, cast) in _FLP_ENV.items():
+        raw = environ.get(env_name)
+        if raw is None or str(raw).strip() == "":
+            continue
+        try:
+            value = cast(raw)
+        except (TypeError, ValueError) as exc:
+            print(f"[flp_engine] {env_name} 무시 ({exc})", flush=True)
+            continue
+        setattr(infer_params, attr, value)
+        applied.append(f"{attr}={value}")
+    return applied
+
+
 class FifthFLPEngine:
     """FasterLivePortrait lip retargeting 엔진 래퍼.
 
@@ -79,6 +140,12 @@ class FifthFLPEngine:
         # x_s + lip_delta 만 남아 머리/표정이 고정됨 (FLP _run() L459 버그).
         # False 시: R_d_i 절대 rotation + x_d_i_new(exp 포함)에 lip_delta 가산 → 정상 동작.
         cfg.infer_params.flag_relative_motion = False
+
+        # 3층 env 오버라이드 — 위 코드 강제값보다 나중에 적용해야 사용자가 최종 승자.
+        # flag_relative_motion 은 FLP _run() 버그 회피용이라 오버라이드 대상에서 제외한다.
+        _applied = apply_flp_env_overrides(cfg.infer_params, os.environ)
+        if _applied:
+            print(f"[flp_engine] FLP env 오버라이드: {', '.join(_applied)}", flush=True)
 
         from src.pipelines.faster_live_portrait_pipeline import FasterLivePortraitPipeline
 
@@ -180,7 +247,7 @@ class FifthFLPEngine:
             # 106점 서브셋 — 눈 대략 0~35(좌눈), 36~71(우눈), 코: 80~86
             left_eye = lmk[0:18].mean(axis=0).astype(np.float32)
             right_eye = lmk[36:54].mean(axis=0).astype(np.float32)
-            nose = lmk[86].astype(np.float32) if n > 86 else lmk[n 
+            nose = lmk[86].astype(np.float32) if n > 86 else lmk[n // 2].astype(np.float32)
         else:
             # 최소 5점 (dlib 5-point: 0=좌눈, 1=좌눈, 2=우눈, 3=우눈, 4=코)
             left_eye = ((lmk[0] + lmk[1]) / 2).astype(np.float32)
@@ -442,7 +509,7 @@ class FifthFLPEngine:
             mouth_pts = lmk[48:].copy()
         else:
             # 너무 적으면 고정 타원 폴백
-            cx, cy = img_size 
+            cx, cy = img_size // 2, int(img_size * 0.72)
             cv2.ellipse(mask, (cx, cy), (int(img_size * 0.22), int(img_size * 0.10)), 0, 0, 360, 1.0, -1)
             ksize = feather_sigma * 6 + 1 if (feather_sigma * 6 + 1) % 2 == 1 else feather_sigma * 6 + 2
             mask = cv2.GaussianBlur(mask, (ksize, ksize), feather_sigma)

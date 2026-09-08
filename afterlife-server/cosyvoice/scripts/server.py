@@ -36,11 +36,20 @@ class SynthReq(BaseModel):
     noise_scale: float = 0.6
     noise_scale_w: float = 1.0
     # qwen3 gen 파라미터 — CV2 미사용, 계약 호환 위해 수신만.
+    # qwen3 호환 필드 — CosyVoice 엔진은 쓰지 않는다(스키마 호환용으로만 유지).
     temperature: float | None = None
     top_p: float | None = None
     top_k: int | None = None
     repetition_penalty: float | None = None
     max_new_tokens: int | None = None
+
+    # CosyVoice 전용 per-request 파라미터(lab-tuner). None 이면 config 기본값 = 회귀 0.
+    sampling_top_k: int | None = None
+    sampling_top_p: float | None = None
+    ramble_base_sec: float | None = None
+    ramble_per_char_sec: float | None = None
+    ramble_retries: int | None = None
+    ramble_fallback_top_k: int | None = None
     # 클론 지정: ① clone_id(우선) → ② se_path(하위호환).
     clone_id: str | None = None
     se_path: str | None = None
@@ -75,8 +84,13 @@ def synth(req: SynthReq):
 
     t0 = time.time()
     try:
+        # per-request 파라미터를 엔진으로 넘긴다. 지금까지는 스키마로 받기만 하고
+        # 버려서 lab-tuner 에서 무엇을 보내도 speed 외에는 반영되지 않았다.
+        from synth_opts import SYNTH_OPT_KEYS
+        opts = {k: getattr(req, k, None) for k in SYNTH_OPT_KEYS}
+        opts = {k: v for k, v in opts.items() if v is not None}
         wav = eng.synth(txt, clone_id=clone_id, voice_wav=voice_wav,
-                        ref_text=ref_text, speed=req.speed)
+                        ref_text=ref_text, speed=req.speed, opts=opts or None)
     except ValueError as exc:
         log.warning("synth fail clone '%s': %s", clone_id, exc)
         raise HTTPException(503, f"synth failed for clone '{clone_id}': {exc}")
