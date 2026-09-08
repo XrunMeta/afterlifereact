@@ -15,6 +15,7 @@ const menu: MenuGroup[] = [
       { path: "/testbed", label: "API Testbed" },
       { path: "/oth-path-lab", label: "대화 트레이닝 랩" },
       { path: "/conversations", label: "통화 대화 조회" },
+      { path: "/face-animation-benchmark", label: "얼굴 렌더 실측 비교" },
     ],
   },
   {
