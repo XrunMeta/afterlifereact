@@ -1,4 +1,5 @@
 from registry import KnobsRegistry
+from knobs import FifthKnobs
 
 def test_get_returns_default():
     r = KnobsRegistry()
@@ -77,8 +78,11 @@ def test_update_same_value_as_current_not_dirty():
 
 def test_update_only_actually_changed_key_marked_dirty():
     r = KnobsRegistry()
-    # cfg_scale은 기본값(2.0)과 동일(미변경), render_mode만 실제로 바뀜.
-    r.update({"fifth": {"render_mode": "batch", "cfg_scale": 2.0}})
+    # cfg_scale 은 기본값과 동일(미변경), render_mode 만 실제로 바뀜.
+    # 리터럴 대신 실제 기본값을 쓴다 — 기본값은 튜닝으로 바뀐다.
+    # 기본값이 batch(라이브와 동일)라 변경을 보려면 partial 로 돌려야 한다.
+    _dflt_cfg = FifthKnobs().cfg_scale
+    r.update({"fifth": {"render_mode": "partial", "cfg_scale": _dflt_cfg}})
     assert r.dirty() == {"fifth.render_mode"}
 
 def test_update_reapply_same_value_does_not_add_duplicate_dirty():
@@ -87,5 +91,5 @@ def test_update_reapply_same_value_does_not_add_duplicate_dirty():
     assert r.dirty() == {"tts.speed"}
     r.update({"tts": {"speed": 1.5}})   # 동일 값 재적용 — 이미 dirty이지만 새 오염 없음
     assert r.dirty() == {"tts.speed"}
-    r.update({"fifth": {"cfg_scale": 2.0}})  # 기본값과 동일 — dirty 늘지 않아야 함
+    r.update({"fifth": {"cfg_scale": FifthKnobs().cfg_scale}})  # 기본값과 동일 — dirty 늘지 않아야 함
     assert r.dirty() == {"tts.speed"}
