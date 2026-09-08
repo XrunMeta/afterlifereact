@@ -107,6 +107,20 @@
       <button id="send">전송</button>
     </div>
   </section>
+
+  <!-- 🎤 TTS 미리듣기 (앱 통화와 동일 파이프라인) -->
+  <section id="tts-preview-section" style="padding:10px;border:1px solid #cbd5e1;border-radius:6px;margin:8px;background:#f8fafc">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <strong style="font-size:13px">🎤 목소리 미리듣기</strong>
+      <span class="muted" style="font-size:11px">위에서 클론 선택 후 텍스트 입력 → ▶ 재생</span>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <textarea id="ttsText" placeholder="예: 안녕하세요, 오늘 날씨 참 좋네요" style="flex:1;min-height:36px;font-size:13px"></textarea>
+      <button id="ttsPlay" style="white-space:nowrap">▶ 재생</button>
+    </div>
+    <div id="ttsStatus" class="muted" style="font-size:11px;margin-top:6px"></div>
+    <audio id="ttsAudio" controls style="width:100%;margin-top:6px;display:none"></audio>
+  </section>
   <section id="learn">
     <h3>L1 학습 (지식 질문)</h3>
     <div id="learnProgress">
@@ -911,6 +925,33 @@ $("clone").addEventListener("change", () => { loadBundle(false); loadPersons(); 
 window.addEventListener("DOMContentLoaded", () => {
   if (!$("token").value && $("email").value && $("password").value) {
     $("login").click();
+  }
+});
+
+document.getElementById("ttsPlay")?.addEventListener("click", async () => {
+  const cloneId = document.getElementById("clone").value;
+  const text = document.getElementById("ttsText").value.trim();
+  const status = document.getElementById("ttsStatus");
+  const audio = document.getElementById("ttsAudio");
+  if (!cloneId) { status.textContent = "⚠ 클론을 먼저 선택하세요"; return; }
+  if (!text) { status.textContent = "⚠ 텍스트를 입력하세요"; return; }
+  status.textContent = "🔄 TTS 생성 중... (5~10초)";
+  audio.style.display = "none";
+  try {
+    const url = "/oth-path?clone_id=" + encodeURIComponent(cloneId) + "&text=" + encodeURIComponent(text);
+    const resp = await fetch(url, { headers: authHeaders() });
+    if (!resp.ok) {
+      const err = await resp.text();
+      status.textContent = "❌ 실패 " + resp.status + " — " + err.slice(0, 200);
+      return;
+    }
+    const blob = await resp.blob();
+    audio.src = URL.createObjectURL(blob);
+    audio.style.display = "block";
+    audio.play().catch((e) => { status.textContent = "❌ 재생 실패: " + e.message; });
+    status.textContent = "✅ 재생 중 (" + Math.round(blob.size / 1024) + " KB)";
+  } catch (e) {
+    status.textContent = "❌ 네트워크 오류: " + e.message;
   }
 });
 </script>
