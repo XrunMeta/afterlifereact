@@ -23,6 +23,12 @@ KNOB_TO_LIVE = {
     "transport.width": {"env": "PRETHIRD_WIDTH", "file": _PRETHIRD_DROPIN},
     "transport.height": {"env": "PRETHIRD_HEIGHT", "file": _PRETHIRD_DROPIN},
     "transport.idle_source_mode": {"env": "IDLE_SOURCE_MODE", "file": _PRETHIRD_DROPIN},
+    # 통화 렌더러(fifth|musetalk). prethird server._select_renderer_name() 이 기동 시
+    # 1회 읽으므로 drop-in 기록 + prethird 재기동이 있어야 바뀐다.
+    # ⚠️ 라이브에는 zz-musetalk.conf 라는 별도 drop-in 으로 전환해 온 이력이 있다.
+    #    파일명이 알파벳 뒤라 lab-tuner.conf 를 덮으므로, 그 파일이 남아 있으면
+    #    여기서 promote 한 값이 무시된다 — /production-status 로 실행 중 값을 확인할 것.
+    "transport.renderer": {"env": "PRETHIRD_RENDERER", "file": _PRETHIRD_DROPIN},
     "filler.enabled": {"env": "PRETHIRD_FILLER", "file": _PRETHIRD_DROPIN},
     "filler.lookahead_sec": {"env": "FILLER_LOOKAHEAD_SEC", "file": _PRETHIRD_DROPIN},
     "filler.blend_frames": {"env": "PRETHIRD_IDLE_BLEND_FRAMES", "file": _PRETHIRD_DROPIN},
@@ -40,6 +46,40 @@ KNOB_TO_LIVE = {
     # PRETHIRD_RENDER_MODE(partial|batch)를 직접 읽도록 배포됨 → 더 이상
     # fifth 컨테이너 재기동이 필요 없는 host-baked 노브로 재분류.
     "fifth.render_mode": {"env": "PRETHIRD_RENDER_MODE", "file": _PRETHIRD_DROPIN},
+
+    # --- 1층 나머지: 컨테이너 env, 기동 시 1회 로드 → 재기동 필요 ---
+    "fifth.head_smooth": {"env": "FIFTH_HEAD_SMOOTH", "file": _FIFTH_ENV_NOTE, "container": True},
+    "fifth.blink_dur": {"env": "FIFTH_BLINK_DUR", "file": _FIFTH_ENV_NOTE, "container": True},
+    "fifth.eye_source_lock": {"env": "FIFTH_EYE_SOURCE_LOCK", "file": _FIFTH_ENV_NOTE, "container": True},
+    "fifth.eye_target_scale": {"env": "FIFTH_EYE_TARGET_SCALE", "file": _FIFTH_ENV_NOTE, "container": True},
+    "fifth.input_normalize": {"env": "FIFTH_INPUT_NORMALIZE", "file": _FIFTH_ENV_NOTE, "container": True},
+    "fifth.pasteback_output": {"env": "FIFTH_PASTEBACK_OUTPUT", "file": _FIFTH_ENV_NOTE, "container": True},
+    "fifth.cdlip_smooth": {"env": "FIFTH_CDLIP_SMOOTH", "file": _FIFTH_ENV_NOTE, "container": True},
+    "fifth.cdlip_sigma": {"env": "FIFTH_CDLIP_SIGMA", "file": _FIFTH_ENV_NOTE, "container": True},
+
+    # --- 3층: FLP 플러그인 infer_params 오버라이드 (컨테이너 재기동) ---
+    "flp.animation_region": {"env": "FIFTH_FLP_ANIMATION_REGION", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.flag_stitching": {"env": "FIFTH_FLP_STITCHING", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.flag_lip_retargeting": {"env": "FIFTH_FLP_LIP_RETARGETING", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.flag_eye_retargeting": {"env": "FIFTH_FLP_EYE_RETARGETING", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.flag_pasteback": {"env": "FIFTH_FLP_PASTEBACK", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.flag_normalize_lip": {"env": "FIFTH_FLP_NORMALIZE_LIP", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.lip_normalize_threshold": {"env": "FIFTH_FLP_LIP_NORM_THRESHOLD", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.cfg_scale": {"env": "FIFTH_FLP_CFG_SCALE", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.driving_multiplier": {"env": "FIFTH_FLP_DRIVING_MULTIPLIER", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.src_dsize": {"env": "FIFTH_FLP_SRC_DSIZE", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.src_scale": {"env": "FIFTH_FLP_SRC_SCALE", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.src_vx_ratio": {"env": "FIFTH_FLP_SRC_VX_RATIO", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.src_vy_ratio": {"env": "FIFTH_FLP_SRC_VY_RATIO", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.source_max_dim": {"env": "FIFTH_FLP_SOURCE_MAX_DIM", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.source_division": {"env": "FIFTH_FLP_SOURCE_DIVISION", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.flag_do_crop": {"env": "FIFTH_FLP_DO_CROP", "file": _FIFTH_ENV_NOTE, "container": True},
+
+    # --- 호스트 drop-in: 문장 분할·응답 길이(지연 직결) ---
+    "dialogue.first_min_len": {"env": "PRETHIRD_SENTENCE_FIRST_MIN_LEN", "file": _PRETHIRD_DROPIN},
+    "dialogue.max_response_tokens": {"env": "PRETHIRD_MAX_RESPONSE_TOKENS", "file": _PRETHIRD_DROPIN},
+    "dialogue.min_len": {"env": "PRETHIRD_SENTENCE_MIN_LEN", "file": _PRETHIRD_DROPIN},
+    "dialogue.force_flush": {"env": "PRETHIRD_SENTENCE_FORCE_FLUSH", "file": _PRETHIRD_DROPIN},
 }
 
 
@@ -254,3 +294,144 @@ def restore_file(backup_id, allowed_root: str | None = None) -> str:
     target = real.rsplit(".bak-", 1)[0]
     shutil.copy2(real, target)
     return target
+
+# ---------------------------------------------------------------------------
+# fifth 렌더서버 env 반영 (2026-08-18)
+#
+# fifth/flp 노브는 렌더서버가 기동 시 1회 읽는다. cfg_scale 은 아예 JoyVASA 모델
+# 생성자 인자라 요청별로 못 바꾼다. 그래서 랩에서 값을 바꿔도 반영 경로가 없었다 —
+# /render body 로도(서버가 그 키를 안 받는다), promote apply 로도(container=True 라
+# 제외된다). UI 는 "재기동 필요"라 안내했지만 그 버튼은 prethird 를 재기동해서
+# fifth 와는 무관했다(2026-08-18 히즈키 보고, 실측으로 규명).
+#
+# 반영 경로는 있다 — env 가 서비스 파일 ExecStart 안에 **인라인 export** 로 박혀 있다.
+# 컨테이너 재생성 없이 서비스만 재시작하면 새 값으로 뜬다.
+#
+# 🔴 systemd drop-in 의 Environment= 로는 안 된다. docker exec 는 호스트 env 를
+#    컨테이너로 전달하지 않으므로, ExecStart 자체를 재정의해야 한다.
+# 🔴 그래서 노브 값이 bash -c 문자열 안으로 들어간다 = 셸 인젝션 표면. 검증 필수.
+# ---------------------------------------------------------------------------
+FIFTH_SERVICE = "afterlife-fifth-render.service"
+FIFTH_UNIT = "/etc/systemd/system/afterlife-fifth-render.service"
+FIFTH_DROPIN = "/etc/systemd/system/afterlife-fifth-render.service.d/lab-tuner.conf"
+
+# 값은 bash 의 export 인자로 들어간다 — 공백은 인자 분리라 치명적이라 _SAFE_ENV_VAL
+# (공백 허용)보다 엄격하게 간다. 빈 값도 거부한다(export K= 는 의미가 달라진다).
+_SAFE_SH_VAL = re.compile(r'\A[A-Za-z0-9_./:\-]+\Z')
+_SAFE_SH_KEY = re.compile(r'\A[A-Z][A-Z0-9_]*\Z')
+
+_EXPORT_MARK = "export "
+_EXEC_MARK = " && exec "
+
+
+def _parse_exec_env(exec_start: str) -> tuple:
+    """ExecStart → (앞부분, {env}, 뒷부분). 구조가 예상과 다르면 ValueError.
+
+    못 알아보면 **아무것도 하지 않는 쪽**이 옳다 — 반쯤 맞는 조립으로 덮어쓰면
+    라이브 렌더서버가 아예 안 뜬다.
+    """
+    if not exec_start or _EXPORT_MARK not in exec_start or _EXEC_MARK not in exec_start:
+        raise ValueError(
+            "예상과 다른 ExecStart — export/exec 구간을 못 찾았다. 서비스 정의가 바뀌었다면 "
+            "손대지 않는다(수동 확인 필요)")
+    head, rest = exec_start.split(_EXPORT_MARK, 1)
+    env_part, tail = rest.split(_EXEC_MARK, 1)
+    env = {}
+    for token in env_part.split():
+        if "=" not in token:
+            raise ValueError(f"export 구간에 K=V 아닌 토큰: {token!r}")
+        k, v = token.split("=", 1)
+        env[k] = v
+    if not env:
+        raise ValueError("export 구간이 비어 있다")
+    return head, env, tail
+
+
+def build_fifth_dropin(exec_start: str, env_updates: dict) -> str:
+    """fifth 렌더서버 ExecStart 를 재정의하는 systemd drop-in 내용을 만든다.
+
+    원본의 인라인 export 목록에서 env_updates 만 갈아끼우고 나머지(cd·
+    LD_LIBRARY_PATH·exec 실행부)는 그대로 보존한다.
+    """
+    if not env_updates:
+        raise ValueError("바꿀 env 가 없다 — 공연히 라이브 렌더를 재기동하지 않는다")
+    for k, v in env_updates.items():
+        if not _SAFE_SH_KEY.match(str(k)):
+            raise UnsafeEnvValueError(f"unsafe env key rejected: {k!r}")
+        if not _SAFE_SH_VAL.match(str(v)):
+            raise UnsafeEnvValueError(f"unsafe env value rejected: {v!r}")
+
+    head, env, tail = _parse_exec_env(exec_start)
+    env.update({str(k): str(v) for k, v in env_updates.items()})
+    rebuilt = head + _EXPORT_MARK + " ".join(f"{k}={v}" for k, v in env.items()) + _EXEC_MARK + tail
+    # ExecStart 는 systemd 에서 누적된다 — 비우기 줄이 재정의보다 먼저 와야 한다.
+    return f"[Service]\nExecStart=\nExecStart={rebuilt}\n"
+
+
+def _same_env_value(a, b) -> bool:
+    """env 값 두 개가 실질적으로 같은가.
+
+    🔴 숫자는 표기가 달라도 같다 — '0' 과 '0.0', '2' 와 '2.0'. 문자열로만 비교하면
+    바뀐 게 없는데 "재기동 대기"가 계속 떠서 불필요한 라이브 재기동을 유도한다
+    (2026-08-18: idle_motion_scale 이 int 0 → float 0.0 이 되며 실제로 발생).
+    숫자로 못 읽는 값(enum·경로)은 문자열 그대로 비교한다.
+    """
+    sa, sb = str(a), str(b)
+    if sa == sb:
+        return True
+    try:
+        return float(sa) == float(sb)
+    except (TypeError, ValueError):
+        return False
+
+
+def fifth_env_updates(knobs, dirty: set | None = None, baked: dict | None = None) -> dict:
+    """KNOB_TO_LIVE 의 container 항목만 {ENV: 값} 으로 모은다.
+
+    prethird drop-in 으로 가야 할 값이 섞이면 렌더서버 ExecStart 에 엉뚱한 env 가
+    박히므로 container 플래그로만 고른다.
+
+    dirty: 이번 세션에 실제로 바꾼 노브 경로. 새 키는 여기 있을 때만 굽는다 —
+        랩 기본값은 "랩이 정한 값"일 뿐이라, 안 건드린 값을 구우면 렌더서버 기본값이
+        조용히 덮인다.
+    baked: 지금 ExecStart 에 이미 구워져 있는 {ENV: 값}. 🔴 **한 번 구운 키는 dirty
+        여부와 무관하게 계속 추적한다.** 안 그러면 노브를 기본값으로 되돌렸을 때
+        (= dirty 에 안 잡힘) 구운 값이 영영 남아 되돌릴 방법이 없다
+        (2026-08-18: FIFTH_FLP_EYE_RETARGETING=0 이 남아 깜빡임이 죽은 채 고정).
+    """
+    baked = baked or {}
+    out = {}
+    for path, loc in KNOB_TO_LIVE.items():
+        if not loc.get("container"):
+            continue
+        env_name = loc["env"]
+        val = _knob_value(knobs, path)
+        if val is None:
+            continue
+        new_val = _fmt(val)
+        if env_name in baked:
+            # 이미 구운 키 — 값이 달라졌을 때만 다시 굽는다(숫자 표기 차이는 무시).
+            if not _same_env_value(baked[env_name], new_val):
+                out[env_name] = new_val
+            continue
+        if dirty is not None and path not in dirty:
+            continue
+        out[env_name] = new_val
+    return out
+
+def extract_exec_start(unit_text: str) -> str:
+    """유닛 파일 본문에서 ExecStart 한 줄을 꺼낸다.
+
+    ExecStartPre 를 집으면 pkill 명령을 서버 기동 명령으로 덮어쓰게 되므로
+    정확히 "ExecStart=" 로 시작하는 줄만 본다. 여러 개면 이미 재정의된 상태이거나
+    유닛이 우리 가정과 다르다는 뜻이라 거부한다(중첩 적용 방지).
+    """
+    lines = [l.strip() for l in unit_text.splitlines()]
+    found = [l[len("ExecStart="):] for l in lines
+             if l.startswith("ExecStart=") and l.strip() != "ExecStart="]
+    if not found:
+        raise ValueError("유닛에서 ExecStart 를 찾지 못했다")
+    if len(found) > 1:
+        raise ValueError(f"ExecStart 가 {len(found)}개다 — 이미 재정의된 상태일 수 있어 "
+                         "자동 조립을 중단한다(수동 확인 필요)")
+    return found[0]
