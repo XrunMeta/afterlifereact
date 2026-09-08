@@ -2,8 +2,9 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Audio } from 'expo-av';
+import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 import * as FileSystem from 'expo-file-system';
+import { Asset } from 'expo-asset';
 import { COLORS, SIZES, RADIUS } from '../../components/constants';
 import SafeView from '../../components/ui/SafeView';
 import { createG2p } from '../../text/g2pk-js';
@@ -65,7 +66,7 @@ export default function TtsLocalPocScreen() {
   const [status, setStatus] = useState<string>('준비');
   const [duration, setDuration] = useState<number>(0);
   const g2pRef = useRef<ReturnType<typeof createG2p> | null>(null);
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const soundRef = useRef<AudioPlayer | null>(null);
 
   useEffect(() => {
 
@@ -79,7 +80,7 @@ export default function TtsLocalPocScreen() {
       }
     }, 100);
     return () => {
-      soundRef.current?.unloadAsync();
+      soundRef.current?.remove();
     };
   }, []);
 
@@ -102,14 +103,21 @@ export default function TtsLocalPocScreen() {
       const onnxStart = Date.now();
       const { InferenceSession, Tensor } = await import('onnxruntime-react-native');
 
-      const modelUri = require('../../../assets/tts/halbae_9053.onnx');
-      const session = await InferenceSession.create(modelUri);
+      const asset = Asset.fromModule(require('../../../assets/tts/halbae_9053.onnx'));
+      if (!asset.localUri) {
+        await asset.downloadAsync();
+      }
+      const modelPath = asset.localUri;
+      if (!modelPath) throw new Error('ONNX asset localUri 확보 실패');
+
+      const cleanPath = modelPath.replace(/^file:\/\//, '');
+      const session = await InferenceSession.create(cleanPath);
 
       const xArr = BigInt64Array.from(ids.map((n) => BigInt(n)));
       const xLenArr = BigInt64Array.from([BigInt(ids.length)]);
       const inputs = {
         x: new Tensor('int64', xArr, [1, ids.length]),
-        x_lengths: new Tensor('int64', xLenArr, [1]),
+        x_length: new Tensor('int64', xLenArr, [1]),
         noise_scale: new Tensor('float32', new Float32Array([0.667]), [1]),
         length_scale: new Tensor('float32', new Float32Array([1.0]), [1]),
         noise_scale_w: new Tensor('float32', new Float32Array([0.8]), [1]),
@@ -129,12 +137,10 @@ export default function TtsLocalPocScreen() {
       });
 
       setStatus('재생 중…');
-      if (soundRef.current) {
-        await soundRef.current.unloadAsync();
-      }
-      const { sound } = await Audio.Sound.createAsync({ uri: wavPath });
-      soundRef.current = sound;
-      await sound.playAsync();
+      soundRef.current?.remove();
+      const player = createAudioPlayer(wavPath);
+      soundRef.current = player;
+      player.play();
 
       const totalMs = Date.now() - start;
       const audioDurationSec = audioData.length / 44100;
