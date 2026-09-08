@@ -94,6 +94,17 @@ v_466992.get("/health", async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: v_a1651b?.ok === 1, ts: Date.now() });
 });
 
+v_466992.get("/benchmark", async (v_3f4e2e) => {
+  const { BENCHMARK_HTML: v_790962 } = await import("./benchmarkPage");
+  return new Response(v_790962, {
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "public, max-age=300",
+      "X-Robots-Tag": "noindex",
+    },
+  });
+});
+
 v_466992.route("/oth-path", v_68f0aa);
 v_466992.route("/oth-path", v_ff9685);
 
