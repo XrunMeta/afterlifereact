@@ -63,6 +63,11 @@ class AvatarVideoTrack(VideoStreamTrack):
         self._idle_t0 = 0.0
         self._last_real_ts = time.time()
         self._idle_grace = float(os.environ.get("IDLE_GRACE_SEC", "0.5"))
+        # 말이 끝난 뒤(_stream_ended)에 쓸 별도 grace. 문장 **중간** 갭은 길게 버텨
+        # 끊김을 막고, 말이 **끝난** 지점에서는 빠르게 idle 로 디졸브하기 위함이다.
+        # 미설정이면 _idle_grace 를 그대로 써 기존 동작과 완전히 같다(회귀 0).
+        self._idle_grace_end = float(
+            os.environ.get("PRETHIRD_IDLE_GRACE_END_SEC", self._idle_grace))
         # idle 진입(speak→idle) cross-dissolve. 0 이면 hard cut(기존 동작).
         self._idle_blend_n = int(os.environ.get("PRETHIRD_IDLE_BLEND_FRAMES", "5"))
         self._blend_from: Optional[np.ndarray] = None
@@ -276,7 +281,9 @@ class AvatarVideoTrack(VideoStreamTrack):
                 _was_idle = self._idle_t0 > 0
                 arr, self._idle_t0 = _select_idle_frame(
                     _now, self._last_real_ts,
-                    self._idle_grace, self._idle_frames, self._idle_t0, self._last_frame,
+                    # 턴이 끝났으면 짧은 grace — 말 끝난 뒤 입 모양을 물고 있지 않게 한다.
+                    (self._idle_grace_end if self._stream_ended else self._idle_grace),
+                    self._idle_frames, self._idle_t0, self._last_frame,
                 )
                 if self._idle_t0 > 0:
                     if not _was_idle:
