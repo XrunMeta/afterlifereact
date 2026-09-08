@@ -113,6 +113,15 @@ export const BENCHMARK_HTML = `<!DOCTYPE html>
     font-family: var(--sans); font-weight: 500; font-size: 0.32em; letter-spacing: 0;
     color: var(--muted); margin-left: 4px; vertical-align: 0.55em;
   }
+  @media (max-width: 640px) {
+    .metric {
+      grid-template-columns: 1fr;
+      gap: 4px;
+      padding: 20px 0 22px;
+    }
+    .metric .label { order: 1; }
+    .metric .value { order: 2; font-size: 52px; line-height: 1; }
+  }
 
   .section {
     display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
