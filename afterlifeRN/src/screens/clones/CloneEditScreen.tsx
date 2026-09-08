@@ -7,6 +7,8 @@ import {
   v_19b633,
   v_472849,
   v_39a996,
+  v_4623af,
+  v_122070,
 } from "rcmrninabrnb";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
@@ -18,12 +20,18 @@ import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
-import { v_bb226e, v_d60cdf } from "../../api/clones";
+import {
+  v_bb226e,
+  v_d60cdf,
+  v_3ee8c0,
+  type v_d80981,
+} from "../../api/clones";
 import { v_84a859 } from "../../api/auth";
 import { v_a8d790 } from "../../lib/adaptMyClone";
 import { v_5401ae } from "../../testIDs";
 import type { v_4b85a1 as v_affcc0 } from "../../types/domain";
 import { v_1bfbd0, v_9b1a04 } from "../../components/constants";
+import { v_e82960, type v_0eab75 } from "qmmwyqbwrg";
 
 type Visibility = "public" | "private" | "followers";
 
@@ -44,6 +52,12 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_35bf26, v_04e389] = v_5ab095(false);
 
   const [v_43fc49, v_ff2ade] = v_5ab095(false);
+
+  const [v_1f4508, v_8dfbff] = v_5ab095<number | null>(null);
+  const [v_53e1f3, v_de0f36] = v_5ab095<v_d80981[]>([]);
+  const [v_7e4593, v_9ae340] = v_5ab095(false);
+  const [v_aa617a, v_b76e01] = v_5ab095<number | null>(null);
+  const v_b53f6c = v_e662ae<v_0eab75 | null>(null);
 
   const v_586061 = v_e662ae(false);
   v_c4deb2(() => {
@@ -66,7 +80,40 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
     v_b7e174((v_eb25ce.description ?? "").slice(0, 500));
     v_2cf16e((v_eb25ce.visibility as Visibility) ?? "public");
+    v_8dfbff(v_eb25ce.voicePresetId ?? null);
   }, [v_eb25ce]);
+
+  v_c4deb2(() => {
+    const v_2ca7e0 = v_1ed7d9.getState().accessToken;
+    if (!v_2ca7e0) return;
+    v_9ae340(true);
+    v_3ee8c0(v_2ca7e0)
+      .then(v_de0f36)
+      .catch((v_49263d) => console.warn("[CloneEdit] getVoices failed:", v_49263d))
+      .finally(() => v_9ae340(false));
+    return () => {
+      v_b53f6c.current?.remove();
+    };
+  }, []);
+
+  const v_1bf8db = (v: v_d80981) => {
+
+    v_b53f6c.current?.remove();
+    v_b53f6c.current = null;
+    if (v_aa617a === v_81e2ef.id) {
+      v_b76e01(null);
+      return;
+    }
+    if (!v_81e2ef.sampleUrl) return;
+    try {
+      const v_86394a = v_e82960(v_81e2ef.sampleUrl);
+      v_b53f6c.current = v_86394a;
+      v_b76e01(v_81e2ef.id);
+      v_86394a.play();
+    } catch (v_49263d) {
+      console.warn("[CloneEdit] preview failed:", v_49263d);
+    }
+  };
 
   if (!v_eb25ce) {
     return (
@@ -90,16 +137,17 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     try {
       if (v_2ca7e0) {
 
-        await v_bb226e(v_2ca7e0, v_eb25ce.id, {
-          name: v_1833e7,
-          description: v_6856a9,
-          visibility: v_818579,
-        });
+        const v_931bf0 = { name: v_1833e7, description: v_6856a9, visibility: v_818579 };
+        if (v_1f4508 !== (v_eb25ce.voicePresetId ?? null)) {
+          v_931bf0.voice_preset_id = v_1f4508;
+        }
+        await v_bb226e(v_2ca7e0, v_eb25ce.id, v_931bf0);
       }
       v_941cd7(v_eb25ce.id, {
         displayName: v_1833e7,
         description: v_6856a9,
         visibility: v_818579,
+        voicePresetId: v_1f4508,
       } as Partial<v_affcc0>);
       v_c65f5d.goBack();
     } catch (v_49263d) {
@@ -152,6 +200,67 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           {v_6856a9.length}/500
         </Text>
 
+        {}
+        <View style={v_fd5f43.voiceSection}>
+          <Text style={v_fd5f43.sectionLabel}>{v_8d41d7("edit.voiceLabel", { defaultValue: "목소리" })}</Text>
+
+          {}
+          <View style={v_fd5f43.currentVoiceCard}>
+            <Text style={v_fd5f43.currentVoiceLabel}>현재 목소리</Text>
+            <Text style={v_fd5f43.currentVoiceValue}>
+              {v_1f4508 == null
+                ? "🎙 직접 녹음한 목소리 (페르소나 생성 시 설정)"
+                : v_53e1f3.find((v_81e2ef) => v_81e2ef.id === v_1f4508)?.name
+                  ? `🎵 ${v_53e1f3.find((v_81e2ef) => v_81e2ef.id === v_1f4508)!.name}`
+                  : "🎵 카탈로그 목소리"}
+            </Text>
+            <Text style={v_fd5f43.currentVoiceHint}>
+              아래 목록에서 다른 목소리를 선택하면 통화 시 그 목소리로 재생됩니다.
+            </Text>
+          </View>
+
+          {v_7e4593 ? (
+            <ActivityIndicator color={v_1bfbd0.zinc400} style={{ marginTop: 12 }} />
+          ) : v_53e1f3.length === 0 ? (
+            <Text style={v_fd5f43.emptyVoice}>{v_8d41d7("edit.voiceEmpty", { defaultValue: "등록된 목소리가 없습니다." })}</Text>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={v_fd5f43.voiceRow}
+            >
+              {v_53e1f3.map((v_81e2ef) => {
+                const v_599a41 = v_81e2ef.id === v_1f4508;
+                const v_087c92 = v_81e2ef.id === v_aa617a;
+                return (
+                  <TouchableOpacity
+                    key={v_81e2ef.id}
+                    style={[v_fd5f43.voiceCard, v_599a41 && v_fd5f43.voiceCardSelected]}
+                    onPress={() => v_8dfbff(v_81e2ef.id)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[v_fd5f43.voiceName, v_599a41 && v_fd5f43.voiceNameSelected]}>
+                      {v_81e2ef.name}
+                    </Text>
+                    {(v_81e2ef.gender || v_81e2ef.ageRange) && (
+                      <Text style={v_fd5f43.voiceMeta}>
+                        {[v_81e2ef.gender, v_81e2ef.ageRange].filter(Boolean).join(" · ")}
+                      </Text>
+                    )}
+                    <TouchableOpacity
+                      style={v_fd5f43.previewBtn}
+                      onPress={() => v_1bf8db(v_81e2ef)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={v_fd5f43.previewBtnText}>{v_087c92 ? "■ 정지" : "▶ 미리듣기"}</Text>
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
+        </View>
+
         {
 }
       </View>
@@ -194,4 +303,83 @@ const v_fd5f43 = v_472849.create({
     backgroundColor: v_1bfbd0.white,
   },
   saveBtn: { width: "500%" },
+
+  voiceSection: {
+    marginTop: 24,
+  },
+  currentVoiceCard: {
+    padding: 14,
+    borderRadius: 10,
+    backgroundColor: v_1bfbd0.zinc100,
+    marginBottom: 12,
+  },
+  currentVoiceLabel: {
+    fontSize: 11,
+    color: v_1bfbd0.zinc500,
+    marginBottom: 4,
+  },
+  currentVoiceValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: v_1bfbd0.zinc900,
+  },
+  currentVoiceHint: {
+    fontSize: 11,
+    color: v_1bfbd0.zinc500,
+    marginTop: 6,
+    lineHeight: 16,
+  },
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: v_1bfbd0.zinc700,
+    marginBottom: 10,
+  },
+  emptyVoice: {
+    fontSize: 13,
+    color: v_1bfbd0.zinc400,
+    paddingVertical: 12,
+  },
+  voiceRow: {
+    gap: 10,
+    paddingRight: v_9b1a04.large,
+  },
+  voiceCard: {
+    width: 130,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc300,
+    backgroundColor: v_1bfbd0.white,
+  },
+  voiceCardSelected: {
+    borderColor: v_1bfbd0.violet500,
+    borderWidth: 2,
+    backgroundColor: "#f5f3ff",
+  },
+  voiceName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: v_1bfbd0.zinc900,
+  },
+  voiceNameSelected: {
+    color: v_1bfbd0.violet500,
+  },
+  voiceMeta: {
+    fontSize: 11,
+    color: v_1bfbd0.zinc500,
+    marginTop: 4,
+  },
+  previewBtn: {
+    marginTop: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: v_1bfbd0.zinc100,
+    borderRadius: 6,
+    alignSelf: "flex-start",
+  },
+  previewBtnText: {
+    fontSize: 11,
+    color: v_1bfbd0.zinc700,
+  },
 });
