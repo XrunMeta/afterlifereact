@@ -397,6 +397,12 @@ async def _maybe_swap_l2p(sess, pid: int, name, epoch: int | None = None) -> Non
             # 세대가 이미 넘어갔으면 최신 화자를 지우게 되므로 건드리지 않는다.
             if epoch is None or getattr(sess, "speaker_epoch", epoch) == epoch:
                 sess.current_speaker = None
+        # [T-566 2026-08-24] pipeline 자동 화자 힌트도 해제.
+        try:
+            _pl = getattr(sess, "pipeline", None)
+            if _pl is not None: _pl.current_speaker_name = None
+        except Exception:
+            pass
             log.warning(
                 "session %s bundle 부재로 L2' 스왑 스킵 — 학습 귀속도 익명으로 보류 person=%s",
                 getattr(sess, "session_id", "?"), pid,
@@ -454,6 +460,13 @@ async def _maybe_swap_l2p(sess, pid: int, name, epoch: int | None = None) -> Non
         update = getattr(pipeline, "update_persona", None)
         if callable(update):
             update(new_messages)
+            # [T-566 2026-08-24] 매 턴 자동 화자 힌트용 (pipeline.say 가 소비).
+            #   speaker_confirmed 로 화자가 확정될 때마다 갱신 → 프롬프트 재조립
+            #   결과와 별개로 매 응답에 실시간 신원 힌트 반영.
+            try:
+                pipeline.current_speaker_name = name if name else None
+            except Exception:
+                pass
             if _face_diag_on():
                 # [T-135] l2p_data 원문(memories_personal/preference_personal 값)은 절대
                 # 로깅하지 않는다 — 요약(_diag_summarize_l2p: 키/길이/개수만)만 남긴다
@@ -1491,9 +1504,29 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
             await pc.close()
             mgr.remove(sess.session_id)
             raise
+        # T-651 후속 (2026-09-01): WebRTC 비디오 비트레이트 상향 · offline mp4 급 근접.
+        #   기본 aiortc 는 SDP 에 명시적 상한 없어 실제 인코더가 ~1Mbps 로 clamp.
+        #   b=AS 라인 삽입해 6Mbps 로 밀어올림 (Wi-Fi 기준 여유). PRETHIRD_VIDEO_BITRATE_KBPS env override.
+        _kbps = int(os.environ.get('PRETHIRD_VIDEO_BITRATE_KBPS', '6000'))
+        _sdp = pc.localDescription.sdp
+        _use_crlf = chr(13) + chr(10) in _sdp
+        _eol = (chr(13) + chr(10)) if _use_crlf else chr(10)
+        _lines = _sdp.split(_eol)
+        _out = []
+        _in_video = False
+        for _ln in _lines:
+            _out.append(_ln)
+            if _ln.startswith('m=video'):
+                _in_video = True
+                continue
+            if _in_video and _ln.startswith('m='):
+                _in_video = False
+            if _in_video and _ln.startswith('c='):
+                _out.append('b=AS:' + str(_kbps))
+        _sdp = _eol.join(_out)
         return web.json_response({
             "session_id": sess.session_id,
-            "sdp": pc.localDescription.sdp,
+            "sdp": _sdp,
             "type": pc.localDescription.type,
         })
 
