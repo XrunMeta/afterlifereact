@@ -42,6 +42,12 @@ chmod 600 /home/afterlife/.lab_tuner_token
 export LAB_TUNER_PORT=8700
 # fifth 렌더는 라이브 공유(컨테이너 bridge IP). 라이브 prethird FIFTH_RENDER_URL과 동일.
 export FIFTH_RENDER_URL=http://203.0.113.30:8810
+# 🔴 이 줄이 없으면 server.py._select_renderer_name() 이 기본값 musetalk 을 고른다
+# (2026-08-20 실측: URL 만 있고 이 값이 없어 랩이 내내 musetalk 으로 돌았다).
+# 증상은 "노브를 바꿔도 전혀 반영 안 되고 영상이 멈춤" — fifth 노브는 musetalk 이
+# 읽지 않고, musetalk 은 실시간 미달로 [avsync] v_content 가 고정된다.
+# 라이브는 drop-in fifth.conf 로 설정되지만 랩은 별도 프로세스라 여기서 줘야 한다.
+export PRETHIRD_RENDERER=fifth
 export LAB_LIVE_HEALTHZ=http://127.0.0.1:8600/healthz
 export PRETHIRD_API_BASE=https://edge-alt-preview.example.invalid
 export PRETHIRD_REFERENCE_VIDEO=/home/afterlife/afterlife-server/musetalk-afterlife/reference_videos/halbae/halbae-d18m04-25fps.mp4
@@ -68,16 +74,20 @@ export PRETHIRD_TTS_PATH=/tts/kr
 # 전환이 필요할 때는 dissolve 를 길게 줘 튀지 않게 한다.
 #   IDLE_GRACE_SEC          큐가 빈 뒤 idle 로 넘어가기까지 대기(코드 기본 0.5)
 #   PRETHIRD_IDLE_BLEND_FRAMES  speak→idle 크로스디졸브 프레임 수(코드 기본 5 = 0.2초)
-export IDLE_GRACE_SEC=1.8
-export PRETHIRD_IDLE_BLEND_FRAMES=15
+# 🔴 2026-08-20: 아래 4개가 라이브와 달라 랩에서만 비디오가 멈췄다
+# (렌더는 도는데 [avsync] v_content 가 7초에서 정지·오디오만 흘러 offset 140초).
+# 라이브 실측: PREROLL_FRAMES=0 · IDLE_BLEND_FRAMES=5 · IDLE_GRACE_SEC 미설정(0.5).
+# PREROLL_FRAMES>0 이면 프리버퍼가 안 풀릴 때 드레인이 보류돼 프레임이 안 나간다.
+export IDLE_GRACE_SEC=0.5
+export PRETHIRD_IDLE_BLEND_FRAMES=5
 # 말이 **끝난** 지점에서만 쓰는 짧은 grace(media_tracks._stream_ended 분기).
 # 문장 중간 갭은 위 IDLE_GRACE_SEC 로 길게 버티고, 말이 끝나면 곧바로 idle 로
 # 디졸브해 입 모양을 물고 있지 않게 한다. 미설정이면 IDLE_GRACE_SEC 와 동일(회귀 0).
-export PRETHIRD_IDLE_GRACE_END_SEC=0.3
+# export PRETHIRD_IDLE_GRACE_END_SEC=0.3   # 라이브 미설정 — 맞춤
 # 리드 버퍼(프리롤) — 응답 시작 시 큐에 이만큼 쌓일 때까지 재생을 늦춘다. 중간에
 # 렌더가 잠깐 늦어도 버퍼가 버텨 큐 고갈(= idle 로 빠짐)을 줄인다.
 # 대가: 첫 소리까지 그만큼 늦어진다(12프레임 = 0.48초 @25fps). 코드 기본 0 = 비활성.
-export PRETHIRD_PREROLL_FRAMES=12
+export PRETHIRD_PREROLL_FRAMES=0
 # 🔴 렌더 생성 방식. prethird pipeline._resolve_render_mode() 가 **노브가 아니라 이 env**
 # 를 읽고, 미설정이면 "partial" 로 떨어진다 — 랩 노브에는 batch 로 보이는데 실제로는
 # partial 로 돌고 있었다(2026-08-18 실측). partial 은 조각마다 큐가 마르기 쉬워

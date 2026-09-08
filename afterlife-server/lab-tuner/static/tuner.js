@@ -111,6 +111,7 @@ async function connect() {
   dc.onopen = () => {
     document.getElementById('say-input').disabled = false;
     document.getElementById('say-btn').disabled = false;
+    document.querySelectorAll('.quick-say-btn').forEach(b => { b.disabled = false; });
     cst.textContent = '✅ dc open — say 가능';
     renderMeter();
   };
@@ -141,6 +142,7 @@ function hangup() {
   if (v) v.srcObject = null;
   document.getElementById('say-input').disabled = true;
   document.getElementById('say-btn').disabled = true;
+  document.querySelectorAll('.quick-say-btn').forEach(b => { b.disabled = true; });
   document.getElementById('conn-status').textContent = '끊김 — 재연결 가능';
   document.getElementById('hangup-btn').disabled = true;
   document.getElementById('connect-btn').disabled = false;
@@ -1150,8 +1152,9 @@ async function applyKnobs(only) {
   }
 }
 
-function sendSay() {
-  const t = document.getElementById('say-input').value;
+function sendSay(text) {
+
+  const t = (text === undefined) ? document.getElementById('say-input').value : text;
   const cst = document.getElementById('conn-status');
   if (!dc || dc.readyState !== 'open') {
     cst.textContent = `say 불가 — dc:${dc ? dc.readyState : '없음'}(연결/개통 대기)`;
@@ -1442,7 +1445,11 @@ async function loadDevToken() {
 document.getElementById('apply-knobs').onclick = () => applyKnobs();
 document.getElementById('promote').onclick = promotePreview;
 document.getElementById('restart-prethird').onclick = restartShowConfirm;
-document.getElementById('say-btn').onclick = sendSay;
+document.getElementById('say-btn').onclick = () => sendSay();
+
+document.querySelectorAll('.quick-say-btn').forEach(b => {
+  b.onclick = () => sendSay(b.dataset.text);
+});
 document.getElementById('say-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.isComposing) {   
     e.preventDefault();

@@ -335,8 +335,8 @@ KNOB_META: dict[str, dict] = {
                 "과하면 피크가 깎여 움직임이 뭉개진다(2~5 권장)",
     },
     "fifth.blink_dur": {
-        "type": "number", "choices": None, "reflow": "container", "label": "깜빡임 길이(프레임)",
-        "param": "FIFTH_BLINK_DUR", "default": "6", "min": 1, "max": 20,
+        "type": "number", "choices": None, "reflow": "immediate", "label": "깜빡임 길이(프레임)",
+        "param": "blink_dur / FIFTH_BLINK_DUR", "default": "6", "min": 1, "max": 20,
         "desc": "한 번 깜빡이는 데 쓰는 프레임 수. 8이면 눈을 완전히 감는다",
     },
     "fifth.eye_source_lock": {
@@ -413,6 +413,45 @@ KNOB_META: dict[str, dict] = {
         "param": "FIFTH_FLP_CFG_SCALE", "default": "1.2", "min": 0.5, "max": 6,
         "desc": "FLP 자체의 생성 강도. 위쪽 '표정 세기'(JoyVASA)와는 다른 층의 값이다",
     },
+    "flp.src_scale": {
+        "type": "number", "choices": None, "reflow": "container", "label": "얼굴 잡는 범위",
+        "param": "FIFTH_FLP_SRC_SCALE", "default": "2.3", "min": 1.0, "max": 4.0,
+        "desc": "얼굴 주변을 얼마나 넓게 잘라낼지. 키우면 어깨까지 넓게 잡혀 얼굴이 작아지고, "
+                "줄이면 얼굴로 바짝 당겨진다. 영상이 확대돼 보일 때 먼저 만질 값",
+    },
+    "flp.src_vy_ratio": {
+        "type": "number", "choices": None, "reflow": "container", "label": "잡는 위치 상하",
+        "param": "FIFTH_FLP_SRC_VY_RATIO", "default": "-0.125", "min": -0.5, "max": 0.5,
+        "desc": "잘라낼 영역의 위아래 중심. 음수면 위(이마 쪽), 양수면 아래(턱 쪽)로 내려간다",
+    },
+    "flp.src_vx_ratio": {
+        "type": "number", "choices": None, "reflow": "container", "label": "잡는 위치 좌우",
+        "param": "FIFTH_FLP_SRC_VX_RATIO", "default": "0", "min": -0.5, "max": 0.5,
+        "desc": "잘라낼 영역의 좌우 중심. 얼굴이 한쪽으로 치우쳐 보일 때 쓴다",
+    },
+    "flp.src_dsize": {
+        "type": "number", "choices": None, "reflow": "container", "label": "얼굴 처리 해상도",
+        "param": "FIFTH_FLP_SRC_DSIZE", "default": "512", "min": 256, "max": 1024,
+        "desc": "잘라낸 얼굴을 몇 픽셀로 처리할지. 키우면 또렷해지지만 렌더가 느려져 "
+                "통화가 끊길 수 있다. 512 가 실시간 기준값",
+    },
+    "flp.source_max_dim": {
+        "type": "number", "choices": None, "reflow": "container", "label": "원본 크기 상한",
+        "param": "FIFTH_FLP_SOURCE_MAX_DIM", "default": "1280", "min": 512, "max": 2048,
+        "desc": "원본 사진을 이 크기 이하로 줄인 뒤 얼굴을 찾는다. 작으면 빠르지만 "
+                "작게 찍힌 얼굴을 놓칠 수 있다",
+    },
+    "flp.source_division": {
+        "type": "number", "choices": None, "reflow": "container", "label": "원본 크기 배수",
+        "param": "FIFTH_FLP_SOURCE_DIVISION", "default": "2", "min": 1, "max": 64,
+        "desc": "원본을 이 수의 배수로 맞춰 자른다. 보통 건드릴 일 없다",
+    },
+    "flp.flag_do_crop": {
+        "type": "bool", "choices": None, "reflow": "container", "label": "얼굴만 잘라 처리",
+        "param": "FIFTH_FLP_DO_CROP", "default": "켜짐",
+        "desc": "얼굴 영역만 잘라 렌더할지. 끄면 되붙이기가 함께 꺼져 화면이 크게 달라진다 — "
+                "실험용",
+    },
     "flp.driving_multiplier": {
         "type": "number", "choices": None, "reflow": "container", "label": "FLP 구동 배율",
         "param": "FIFTH_FLP_DRIVING_MULTIPLIER", "default": "1.0", "min": 0.1, "max": 3,
@@ -440,6 +479,15 @@ KNOB_META: dict[str, dict] = {
         "type": "number", "choices": None, "reflow": "lab_restart", "label": "세로 해상도",
         "param": "PRETHIRD_HEIGHT", "default": "1024", "min": 128, "max": 2048,
         "desc": "송출 영상 세로 픽셀. 576×1024 가 9:16 세로 기준이다",
+    },
+    "transport.renderer": {
+        "type": "enum", "choices": ["fifth", "musetalk"],
+        "reflow": "lab_restart", "label": "통화 렌더러",
+        "param": "PRETHIRD_RENDERER", "default": "fifth (라이브·랩) · 코드 기본 musetalk",
+        "desc": "클론 얼굴을 그리는 엔진. fifth = 정면사진도 되고 실시간을 지킨다(현행). "
+                "musetalk = 영상(mp4)만 받고 실시간 미달 전례가 있다(offset 34초·30분에 4회 사망). "
+                "🔴 바꾸면 렌더 방식도 함께 맞춰야 한다 — fifth 는 batch, musetalk 은 partial. "
+                "🔴 musetalk 은 사진을 못 받아 mp4 없는 클론이 halbae 로 폴백한다",
     },
     "transport.idle_source_mode": {
         "type": "enum", "choices": ["auto", "prebake", "clone_mp4", "fallback"],

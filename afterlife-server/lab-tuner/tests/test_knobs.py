@@ -135,3 +135,28 @@ def test_from_env_는_env가_없으면_dataclass_기본값과_같다(monkeypatch
             assert getattr(got, f.name) == getattr(want, f.name), (
                 f"{sec}.{f.name}: from_env={getattr(got, f.name)!r} "
                 f"dataclass={getattr(want, f.name)!r} — 기본값이 두 곳에 어긋나 있다")
+
+
+# --- 통화 렌더러 노브 (fifth|musetalk) --------------------------------------
+# prethird server._select_renderer_name() 과 같은 규칙을 랩에서도 지킨다.
+# UI 에는 fifth 로 보이는데 실제로는 musetalk 이 도는 어긋남을 막기 위함이다.
+
+def test_renderer_from_env(monkeypatch):
+    monkeypatch.setenv("PRETHIRD_RENDERER", "fifth")
+    assert RunKnobs.from_env().transport.renderer == "fifth"
+
+
+def test_renderer_default_is_musetalk_like_prethird():
+    # 코드 기본은 prethird 와 동일하게 musetalk (배포 env 가 항상 fifth 를 준다).
+    assert RunKnobs().transport.renderer == "musetalk"
+
+
+def test_renderer_unsupported_value_falls_back(monkeypatch):
+    # prethird 가 조용히 musetalk 으로 떨어뜨리므로 랩도 같은 값을 보여줘야 한다.
+    monkeypatch.setenv("PRETHIRD_RENDERER", "ditto")
+    assert RunKnobs.from_env().transport.renderer == "musetalk"
+
+
+def test_renderer_env_is_case_insensitive(monkeypatch):
+    monkeypatch.setenv("PRETHIRD_RENDERER", " FIFTH ")
+    assert RunKnobs.from_env().transport.renderer == "fifth"
