@@ -499,7 +499,7 @@ const v_d81136 = v_472849.create({
   },
   topSpacer: {
 
-    height: 180,
+    height: 60,
   },
   bottomSpacer: {
     flex: 1,
