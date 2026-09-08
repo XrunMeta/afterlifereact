@@ -14,6 +14,7 @@ from live_guard import LiveBusyError
 from knobs import KNOB_META
 import promote
 import prod_status
+import render_runtime
 
 log = logging.getLogger("lab-tuner.app")
 
@@ -79,13 +80,45 @@ def _dev_token_response(remote: str | None, token: str | None) -> web.Response:
     return web.json_response({"token": token})
 
 
-def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None) -> web.Application:
+def _sh(cmd, timeout=30):
+    """systemctl 등 외부 명령 1회 실행. 테스트가 통째로 갈아끼운다."""
+    import subprocess
+    return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+
+
+def _render_healthy(url, tries=45, delay=2.0) -> bool:
+    """렌더서버가 다시 응답할 때까지 폴링. 임의 sleep 대신 조건으로 기다린다.
+
+    상한을 넉넉히(90초) 잡는 이유: fifth 는 TensorRT 엔진과 JoyVASA 모델을 다시
+    올린다. 너무 일찍 포기하면 **정상 기동 중인 서버를 실패로 보고 롤백**하고,
+    그 롤백이 또 한 번의 재기동을 부른다 — 거짓 실패가 진짜 중단보다 나쁘다.
+    """
+    import time
+    import urllib.request
+    for i in range(tries):
+        try:
+            with urllib.request.urlopen(f"{url}/health", timeout=3) as r:
+                if r.status == 200:
+                    return True
+        except Exception:
+            pass
+        if i < tries - 1:
+            time.sleep(delay)
+    return False
+
+
+def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None,
+              metrics=None, renderer=None) -> web.Application:
     # say_fn/render_url/guard는 Task 9·12에서 사용(초기 Task 11 단계는 None 허용).
     app = make_app(pipeline_factory=factory)   # /offer /healthz /static/ /prebuild
     app["lab_registry"] = registry
     app["lab_store"] = store
     app["lab_guard"] = guard
+    # metrics: TurnMetrics | None. None 이면 /metrics 는 빈 dict 를 흘려보낸다
+    # (기존 동작 — 이 키는 하위호환을 위해 남긴다).
     app["lab_metrics"] = {"last": {}}
+    app["lab_turn_metrics"] = metrics
+    app["lab_renderer"] = renderer     # last_sent(마지막 /render 전송값) 조회용
 
     # mizu HIGH 3: promote mutating 엔드포인트(apply/rollback/restart) 인증.
     # LAB_TUNER_TOKEN 미설정(로컬 개발) 시 통과시키되 기동 시 경고 로그 1회.
@@ -140,7 +173,14 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
         await resp.prepare(req)
         try:
             while True:
-                payload = json.dumps(app["lab_metrics"]["last"])
+                _tm = app.get("lab_turn_metrics")
+                snap = _tm.snapshot() if _tm is not None else dict(app["lab_metrics"]["last"])
+                # 마지막 렌더에 실제로 실려 간 파라미터를 함께 흘려보낸다.
+                # UI 가 "적용됐나?" 를 추측하지 않고 실제 전송값을 보여줄 수 있다.
+                # 클래스 변수라 통화·replay 어느 경로로 보냈든 잡힌다.
+                from harness import KnobsFifthInproc
+                snap["last_render"] = KnobsFifthInproc.last_sent
+                payload = json.dumps(snap)
                 await resp.write(f"data: {payload}\n\n".encode())
                 await asyncio.sleep(0.5)
         except (asyncio.CancelledError, ConnectionResetError):
@@ -169,7 +209,11 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
                              headers={"Cache-Control": "no-store"})
 
     async def tuner_js(_req):
-        return web.FileResponse(_STATIC / "tuner.js")
+        # no-cache 강제 — 배포가 잦은데 파일명에 버전이 없어서, 브라우저가
+        # Last-Modified 휴리스틱으로 옛 번들을 계속 실행하는 일이 실제로 있었다
+        # (외부 URL 에서 새 함수가 undefined 로 나옴). 재검증만 하게 만든다.
+        return web.FileResponse(_STATIC / "tuner.js",
+                                headers={"Cache-Control": "no-cache"})
 
     async def login_proxy(req):
         """api POST /oth-path 프록시 — accessToken만 반환.
@@ -360,6 +404,388 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
             "mainpid_info": status.stdout.strip(),
         })
 
+    async def flp_config(_req):
+        """3층(FLP) 읽기전용 스냅샷 — 컨테이너 렌더서버 GET /oth-path 프록시.
+
+        랩은 컨테이너 밖(호스트)에서 돌아 yaml 을 직접 못 읽는다.
+        렌더서버가 죽어 있어도 랩 자체는 계속 떠 있어야 하므로 예외를 삼키고
+        200 + error 로 응답한다(UI 는 패널에만 '조회 실패' 를 띄운다).
+        """
+        url = render_url or os.environ.get("FIFTH_RENDER_URL", "http://127.0.0.1:8810")
+        try:
+            timeout = aiohttp.ClientTimeout(total=3)
+            async with aiohttp.ClientSession(timeout=timeout) as s:
+                async with s.get(f"{url}/config") as r:
+                    return web.json_response(await r.json())
+        except Exception as exc:
+            return web.json_response({"error": f"렌더서버 조회 실패: {exc}"})
+
+    async def render_logs(req):
+        """fifth 렌더서버 로그 프록시 — 파라미터가 실제 렌더까지 갔는지 화면에서 확인.
+
+        렌더서버는 systemd + docker exec 조합이라 stdout 이 journal 에도 파일에도
+        안 남는 경우가 있다. 서버가 메모리 링버퍼에 들고 있는 것을 그대로 내준다.
+        since 커서로 증분 조회한다(폴링마다 전량 전송 방지).
+        """
+        url = render_url or os.environ.get("FIFTH_RENDER_URL", "http://127.0.0.1:8810")
+        since = req.query.get("since", "0")
+        try:
+            timeout = aiohttp.ClientTimeout(total=4)
+            async with aiohttp.ClientSession(timeout=timeout) as s:
+                async with s.get(f"{url}/logs", params={"since": since}) as r:
+                    return web.json_response(await r.json())
+        except Exception as exc:
+            # 렌더서버가 죽어 있어도 랩은 계속 떠 있어야 한다.
+            return web.json_response({"error": f"렌더서버 로그 조회 실패: {exc}", "lines": []})
+
+    async def sources_list(req):
+        """업로드 소스 목록(최신 우선). 저장 루트도 함께 내려 UI 가 경로를 보여준다."""
+        err = _auth_or_401(req)
+        if err is not None:
+            return err
+        import source_lab
+        return web.json_response({
+            "root": str(source_lab.root()),
+            "sources": source_lab.list_sources(),
+            "max_mb": source_lab.MAX_BYTES // 1048576,
+            "idle_spec": {"sec": source_lab.IDLE_SEC, "fps": source_lab.IDLE_FPS,
+                          "w": source_lab.IDLE_W, "h": source_lab.IDLE_H},
+        })
+
+    async def source_upload(req):
+        """multipart 업로드 → lab-sources/{날짜시간}/source.ext (+ 영상이면 idle.mp4).
+
+        용량은 **읽는 도중** 누적으로 막는다 — 전부 받고 나서 검사하면 상한을
+        넘는 파일이 이미 메모리에 올라온 뒤다.
+        """
+        err = _auth_or_401(req)
+        if err is not None:
+            return err
+        import source_lab
+        try:
+            reader = await req.multipart()
+        except Exception as exc:
+            return web.json_response({"error": f"multipart 파싱 실패: {exc}"}, status=400)
+
+        filename, buf, total = None, [], 0
+        while True:
+            field = await reader.next()
+            if field is None:
+                break
+            if field.name != "file":
+                continue
+            filename = field.filename or ""
+            try:
+                source_lab.kind_of(filename)   # 확장자는 바이트를 받기 전에 거른다
+            except source_lab.SourceError as exc:
+                return web.json_response({"error": str(exc)}, status=400)
+            while True:
+                chunk = await field.read_chunk()
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > source_lab.MAX_BYTES:
+                    return web.json_response(
+                        {"error": f"용량 초과: {source_lab.MAX_BYTES // 1048576}MB 상한"},
+                        status=413)
+                buf.append(chunk)
+            break
+
+        if filename is None:
+            return web.json_response({"error": "file 파트가 없습니다"}, status=400)
+        try:
+            meta = source_lab.save_bytes(b"".join(buf), filename)
+        except source_lab.SourceError as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        except Exception as exc:
+            log.warning("source upload 실패: %s", exc)
+            return web.json_response({"error": f"저장 실패: {exc}"}, status=500)
+        return web.json_response(meta)
+
+    async def source_thumb(req):
+        """목록 섬네일 이미지. 없으면 그 자리에서 만든다(구 업로드 호환).
+
+        <img src> 로 직접 못 건다 — 인증이 커스텀 헤더라 img 태그가 못 싣는다.
+        프런트가 fetch 로 받아 blob URL 로 붙인다(tuner.js loadSources).
+        """
+        err = _auth_or_401(req)
+        if err is not None:
+            return err
+        import source_lab
+        path = source_lab.ensure_thumb(req.query.get("id", ""))
+        if not path:
+            raise web.HTTPNotFound()
+        # id 마다 내용이 고정이라 캐시해도 안전하다(같은 id 로 다른 그림이 오지 않는다).
+        return web.FileResponse(path, headers={"Cache-Control": "public, max-age=3600"})
+
+    async def source_delete(req):
+        err = _auth_or_401(req)
+        if err is not None:
+            return err
+        import source_lab
+        data = await req.json()
+        try:
+            ok = source_lab.delete(data.get("id", ""))
+        except source_lab.SourceError as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        # 지운 소스를 노브가 아직 가리키고 있으면 클론 기본으로 되돌린다
+        # (resolve 가 fail-open 이라 통화는 살지만, UI 가 유령 id 를 보여주지 않게).
+        if ok and registry.get().source.render_source == data.get("id"):
+            registry.update({"source": {"render_source": ""}})
+        return web.json_response({"deleted": ok})
+
+    async def voices_list(req):
+        """업로드 음성 목록(최신 우선). 저장 루트도 함께 내려 UI 가 경로를 보여준다."""
+        err = _auth_or_401(req)
+        if err is not None:
+            return err
+        import voice_lab
+        return web.json_response({
+            "root": str(voice_lab.root()),
+            "voices": voice_lab.list_voices(),
+            "max_mb": voice_lab.MAX_BYTES // 1048576,
+            "exts": list(voice_lab.AUDIO_EXTS),
+        })
+
+    async def voice_upload(req):
+        """multipart 업로드 → reference_voices/lab-{날짜시간}/voice.wav (+ 참조 문장).
+
+        선택 필드 ref_text 를 같이 보내면 그것을 참조 문장으로 쓰고 STT 를 건너뛴다
+        (전사가 422 로 거부되는 음성도 쓸 수 있게 하는 탈출구).
+
+        용량은 **읽는 도중** 누적으로 막는다 — source_upload 와 같은 이유다.
+        """
+        err = _auth_or_401(req)
+        if err is not None:
+            return err
+        import voice_lab
+        try:
+            reader = await req.multipart()
+        except Exception as exc:
+            return web.json_response({"error": f"multipart 파싱 실패: {exc}"}, status=400)
+
+        filename, buf, total, ref_text = None, [], 0, None
+        while True:
+            field = await reader.next()
+            if field is None:
+                break
+            if field.name == "ref_text":
+                ref_text = (await field.text()).strip()
+                continue
+            if field.name != "file":
+                continue
+            filename = field.filename or ""
+            try:
+                voice_lab.check_ext(filename)  # 확장자는 바이트를 받기 전에 거른다
+            except voice_lab.VoiceError as exc:
+                return web.json_response({"error": str(exc)}, status=400)
+            while True:
+                chunk = await field.read_chunk()
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > voice_lab.MAX_BYTES:
+                    return web.json_response(
+                        {"error": f"용량 초과: {voice_lab.MAX_BYTES // 1048576}MB 상한"},
+                        status=413)
+                buf.append(chunk)
+            # file 파트 뒤에 ref_text 가 올 수 있으므로 여기서 끊지 않는다.
+
+        if filename is None:
+            return web.json_response({"error": "file 파트가 없습니다"}, status=400)
+        try:
+            meta = voice_lab.save_bytes(b"".join(buf), filename, ref_text=ref_text)
+        except voice_lab.VoiceError as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        except Exception as exc:
+            log.warning("voice upload 실패: %s", exc)
+            return web.json_response({"error": f"저장 실패: {exc}"}, status=500)
+        return web.json_response(meta)
+
+    async def voice_delete(req):
+        err = _auth_or_401(req)
+        if err is not None:
+            return err
+        import voice_lab
+        data = await req.json()
+        try:
+            ok = voice_lab.delete(data.get("id", ""))
+        except voice_lab.VoiceError as exc:
+            # 랩이 만들지 않은 디렉터리(= 실 클론 음성 자산) 요청도 여기로 온다.
+            return web.json_response({"error": str(exc)}, status=400)
+        if ok and registry.get().source.voice_source == data.get("id"):
+            registry.update({"source": {"voice_source": ""}})
+        return web.json_response({"deleted": ok})
+
+    def _fifth_changes():
+        """현재 유닛의 env 대비 바뀔 항목. (변경목록, ExecStart 원문).
+
+        🔴 drop-in 이 있으면 **그쪽이 현재값**이다. base unit 만 읽으면 이미 구운 값이
+        "아직 안 구워졌다"로 보이고, 그 상태로 재기동하면 base 기준으로 drop-in 을 새로
+        만들어 **앞서 구운 값이 통째로 날아간다**(2026-08-18 실측).
+        """
+        exec_start = None
+        for path in (promote.FIFTH_DROPIN, promote.FIFTH_UNIT):
+            try:
+                exec_start = promote.extract_exec_start(open(path, encoding="utf-8").read())
+                break
+            except (OSError, ValueError):
+                continue
+        if exec_start is None:
+            raise ValueError("ExecStart 를 찾지 못했다(drop-in·base unit 모두)")
+        _, cur_env, _ = promote._parse_exec_env(exec_start)
+        # 🔴 이번 세션에 실제로 바꾼 값만 굽는다.
+        # 랩 노브의 기본값은 "랩이 정한 값"일 뿐 렌더서버가 실제로 쓰는 기본값이 아니다.
+        # ExecStart 에 없던 키를 굽는 순간 렌더서버 코드/yaml 기본값이 랩 값으로 덮여,
+        # 사용자가 건드리지도 않은 라이브 동작이 조용히 바뀐다.
+        # baked=cur_env: 이미 구운 키는 dirty 가 아니어도 추적한다 — 노브를 기본값으로
+        # 되돌렸을 때(dirty 에 안 잡힘) 구운 값이 영영 남는 것을 막는다.
+        want = promote.fifth_env_updates(registry.get(), dirty=registry.dirty(),
+                                         baked=cur_env)
+        changes = [{"env": k, "current": cur_env.get(k), "new": v}
+                   for k, v in want.items()
+                   if not promote._same_env_value(cur_env.get(k), v)]
+        return changes, exec_start
+
+    async def render_preview(req):
+        """렌더서버 재기동으로 바뀔 값 미리보기. 아무것도 실행하지 않는다."""
+        err = _auth_or_401(req)
+        if err is not None:
+            return err
+        try:
+            changes, _ = _fifth_changes()
+        except (OSError, ValueError) as exc:
+            return web.json_response({"error": f"유닛 조회 실패: {exc}", "changes": []},
+                                     status=500)
+        return web.json_response({
+            "changes": changes,
+            "service": promote.FIFTH_SERVICE,
+            "shared_with_live": True,   # UI 가 경고 문구를 띄우는 근거
+        })
+
+    async def render_restart(req):
+        """fifth 렌더서버 env 반영 + 재기동.
+
+        🔴 이 컨테이너는 라이브 통화와 공유한다 — 재기동하면 진행 중인 통화가 끊긴다.
+        그래서 (1) 토큰 (2) 2단계 확인 (3) 라이브 통화 0건, 셋을 모두 요구한다.
+        🔴 기동에 실패하면 사람 손을 기다리지 않고 즉시 되돌린다. 렌더서버가 안 뜨면
+        라이브가 통째로 죽기 때문이다.
+        """
+        err = _auth_or_401(req)
+        if err is not None:
+            return err
+        try:
+            data = await req.json()
+        except Exception:
+            data = {}
+        if data.get("confirm") != "RESTART_RENDER" or data.get("confirm2") is not True:
+            return web.json_response(
+                {"error": "2단계 확인 필요: body={'confirm':'RESTART_RENDER','confirm2':true}"},
+                status=400)
+        if guard is not None and guard.active_sessions() > 0:
+            return web.json_response(
+                {"error": "라이브 통화가 진행 중입니다 — 렌더서버를 재기동하면 그 통화가 끊깁니다"},
+                status=409)
+
+        try:
+            changes, exec_start = _fifth_changes()
+        except (OSError, ValueError) as exc:
+            return web.json_response({"error": f"유닛 조회 실패: {exc}"}, status=500)
+        if not changes:
+            return web.json_response(
+                {"error": "바뀔 값이 없습니다 — 재기동하지 않았습니다", "changes": []},
+                status=400)
+        try:
+            content = promote.build_fifth_dropin(
+                exec_start, {c["env"]: c["new"] for c in changes})
+        except (ValueError, promote.UnsafeEnvValueError) as exc:
+            return web.json_response({"error": f"drop-in 조립 거부: {exc}"}, status=400)
+
+        prev = None
+        if os.path.isfile(promote.FIFTH_DROPIN):
+            prev = open(promote.FIFTH_DROPIN, encoding="utf-8").read()
+        # /etc/systemd/system 은 root 소유다 — os.makedirs 로는 PermissionError.
+        # prethird 쪽 drop-in 디렉터리가 afterlife 소유인 것과 같은 상태로 만들어
+        # 이후 쓰기는 sudo 없이 되게 한다(2026-08-18 서버 실측).
+        _dir = os.path.dirname(promote.FIFTH_DROPIN)
+        if not os.path.isdir(_dir):
+            mk = _sh(["sudo", "mkdir", "-p", _dir])
+            ch = _sh(["sudo", "chown", f"{os.getuid()}:{os.getgid()}", _dir])
+            if mk.returncode != 0 or not os.path.isdir(_dir):
+                return web.json_response(
+                    {"error": f"drop-in 디렉터리 생성 실패: {mk.stderr or ch.stderr}"}, status=500)
+
+        def _write(text):
+            with open(promote.FIFTH_DROPIN, "w", encoding="utf-8") as f:
+                f.write(text)
+
+        def _restore():
+            # 이전 상태로 되돌린다 — 없었으면 파일 자체를 지운다.
+            if prev is None:
+                try:
+                    os.unlink(promote.FIFTH_DROPIN)
+                except OSError:
+                    pass
+            else:
+                _write(prev)
+            _sh(["sudo", "systemctl", "daemon-reload"])
+            _sh(["sudo", "systemctl", "restart", promote.FIFTH_SERVICE], timeout=120)
+
+        _write(content)
+        reload_proc = _sh(["sudo", "systemctl", "daemon-reload"])
+        restart_proc = _sh(["sudo", "systemctl", "restart", promote.FIFTH_SERVICE], timeout=120)
+        url = render_url or os.environ.get("FIFTH_RENDER_URL", "http://127.0.0.1:8810")
+        healthy = _render_healthy(url)
+        if not healthy:
+            _restore()
+            log.warning("[render-restart] 기동 실패 → 자동 롤백 (changes=%s)", changes)
+            return web.json_response({
+                "ok": False, "rolled_back": True, "changes": changes,
+                "error": "렌더서버가 다시 뜨지 않아 이전 설정으로 되돌렸습니다",
+                "restart_stderr": restart_proc.stderr,
+            })
+        log.info("[render-restart] 반영 완료: %s", changes)
+        return web.json_response({
+            "ok": True, "rolled_back": False, "changes": changes,
+            "daemon_reload_returncode": reload_proc.returncode,
+            "restart_returncode": restart_proc.returncode,
+        })
+
+    async def render_runtime_view(req):
+        """렌더서버가 **실제로 쓰고 있는 값**. 기동·렌더 로그에서 읽는다.
+
+        /config(=/flp-config) 를 쓰지 않는 이유: 스스로 "env 오버라이드까지 반영된
+        최종값"이라 주장하면서 cfg_scale 을 env 가 2.0 이든 2.5 든 항상 1.2 로
+        보여준다(2026-08-18 실측). driving_multiplier 는 맞게 보여줘 더 헷갈린다.
+        일부만 맞는 계기판은 아예 없는 것보다 나쁘다.
+
+        로그 조회가 실패해도 200 + error 로 답한다 — 패널 하나 때문에 랩이 막히면 안 된다.
+        """
+        err = _auth_or_401(req)
+        if err is not None:
+            return err
+        proc = _sh(["sudo", "journalctl", "-u", promote.FIFTH_SERVICE,
+                    "-n", "5000", "--no-pager"], timeout=30)
+        if getattr(proc, "returncode", 1) != 0:
+            empty = render_runtime.parse("")
+            empty["error"] = f"렌더서버 로그 조회 실패: {(proc.stderr or '').strip()[:200]}"
+            empty["mismatches"] = []
+            return web.json_response(empty)
+
+        snap = render_runtime.parse(proc.stdout or "")
+        # 실제 ExecStart 는 drop-in 이 있으면 그쪽이다(재기동으로 값을 바꾼 뒤 상태).
+        env = {}
+        for path in (promote.FIFTH_DROPIN, promote.FIFTH_UNIT):
+            try:
+                exec_start = promote.extract_exec_start(open(path, encoding="utf-8").read())
+                _, env, _ = promote._parse_exec_env(exec_start)
+                break
+            except (OSError, ValueError):
+                continue
+        snap["env"] = env
+        snap["mismatches"] = render_runtime.mismatches(snap, env)
+        return web.json_response(snap)
+
     async def production_status(_req):
         import subprocess
         keys = [loc["env"] for path, loc in promote.KNOB_TO_LIVE.items()
@@ -404,5 +830,17 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
     app.router.add_post("/promote/apply", promote_apply)
     app.router.add_post("/promote/rollback", promote_rollback)
     app.router.add_post("/promote/restart", promote_restart)
+    app.router.add_get("/promote/render-preview", render_preview)   # fifth env 미리보기
+    app.router.add_post("/promote/render-restart", render_restart)  # fifth 렌더서버 재기동
+    app.router.add_get("/render-runtime", render_runtime_view)      # 실제 적용값(로그)
     app.router.add_get("/production-status", production_status)
+    app.router.add_get("/flp-config", flp_config)   # 3층 읽기전용 스냅샷
+    app.router.add_get("/render-logs", render_logs)  # 렌더서버 로그 프록시
+    app.router.add_get("/sources", sources_list)          # 업로드 소스 목록
+    app.router.add_post("/source/upload", source_upload)  # 업로드(multipart)
+    app.router.add_get("/voices", voices_list)             # 업로드 음성 목록
+    app.router.add_post("/voice/upload", voice_upload)     # 음성 업로드(multipart)
+    app.router.add_post("/voice/delete", voice_delete)
+    app.router.add_get("/source/thumb", source_thumb)     # 목록 섬네일
+    app.router.add_post("/source/delete", source_delete)
     return app
