@@ -1,13 +1,14 @@
 import asyncio
 import harness
 from registry import KnobsRegistry
-from knobs import DialogueKnobs
+from knobs import DialogueKnobs, FifthKnobs
 
 def test_build_chat_fn_passes_knobs(monkeypatch):
     captured = {}
-    async def fake_stream(messages, model=None, temperature=None):
+    async def fake_stream(messages, model=None, temperature=None, num_predict=None):
         captured["model"] = model
         captured["temperature"] = temperature
+        captured["num_predict"] = num_predict
         yield "hi"
     monkeypatch.setattr(harness, "chat_stream", fake_stream)
     r = KnobsRegistry()
@@ -18,7 +19,8 @@ def test_build_chat_fn_passes_knobs(monkeypatch):
         return [t async for t in fn([{"role": "user", "content": "x"}])]
     out = asyncio.run(run())
     assert out == ["hi"]
-    assert captured == {"model": "gemma3:4b", "temperature": 0.9}
+    # num_predict 는 미지정(None) → ollama 서버 기본을 그대로 쓴다(회귀 0).
+    assert captured == {"model": "gemma3:4b", "temperature": 0.9, "num_predict": None}
 
 def test_apply_persona_knobs_prepends_override():
     base = [{"role": "system", "content": "persona"}]
@@ -90,6 +92,64 @@ def test_knobs_fifth_build_body_injects_per_request():
     assert body["idle_motion_scale"] == 0.3
     assert body["idle_rms_low"] == 0.05        # 기본 유지
     assert body["head_slew_frames"] == 5       # 기본 유지
+
+def test_미지정_노브는_body에_안_실린다():
+    """None(미지정) 노브를 실어 보내면 컨테이너 env 기본을 덮어버린다 — 회귀 0 위반.
+
+    2026-08-18 에 튜닝값 다수가 기본값으로 승격돼(knobs.FifthKnobs 독스트링) 기본
+    상태에서 None 인 노브가 줄었다. 검증하려는 계약은 "기본값이 무엇이냐"가 아니라
+    **"None 이면 키를 싣지 않는다"** 이므로, None 을 명시해 그 계약만 본다.
+    """
+    from harness import KnobsFifthInproc
+    unset = ("lip_open", "lip_closed", "sigma", "gamma", "offset", "silence",
+             "lip_lock", "source_face_lock", "source_face_lock_full",
+             "eyes_open_lock", "head_sway_amp", "head_yaw_offset", "fps")
+    r = KnobsRegistry()
+    r.update({"fifth": {k: None for k in unset}})
+    f = KnobsFifthInproc("/vid.jpg", registry=r, render_url="http://127.0.0.1:8810")
+    body = f._build_body("/w.wav", "/v.jpg")
+    for key in unset:
+        assert key not in body, f"미지정인데 실렸다: {key}"
+    # 명시 기본값을 가진 것들은 그대로 실린다(기존 동작).
+    assert body["blink"] is True
+    assert body["jpeg_quality"] == 90
+
+def test_지정한_입모양_노브는_실린다():
+    from harness import KnobsFifthInproc
+    r = KnobsRegistry()
+    r.update({"fifth": {"lip_open": 0.3, "sigma": 1.5, "offset": 3,
+                        "source_face_lock": True}})
+    f = KnobsFifthInproc("/vid.jpg", registry=r, render_url="http://127.0.0.1:8810")
+    body = f._build_body("/w.wav", "/v.jpg")
+    assert body["lip_open"] == 0.3
+    assert body["sigma"] == 1.5
+    assert body["offset"] == 3
+    assert body["source_face_lock"] is True
+    assert "gamma" not in body        # 안 건드린 건 여전히 미전송
+
+def test_false_는_미지정이_아니다():
+    """bool 노브를 False 로 명시하면 반드시 실려야 한다(None 과 구분)."""
+    from harness import KnobsFifthInproc
+    r = KnobsRegistry()
+    r.update({"fifth": {"lip_lock": False, "source_face_lock": False}})
+    f = KnobsFifthInproc("/vid.jpg", registry=r, render_url="http://127.0.0.1:8810")
+    body = f._build_body("/w.wav", "/v.jpg")
+    assert body["lip_lock"] is False
+    assert body["source_face_lock"] is False
+
+def test_0_은_미지정이_아니다():
+    """숫자 0 이 falsy 라고 걸러지면 안 된다 — is None 으로만 판정해야 한다."""
+    from harness import KnobsFifthInproc
+    r = KnobsRegistry()
+    r.update({"fifth": {"head_yaw_offset": 0, "lip_closed": 0.0}})
+    f = KnobsFifthInproc("/vid.jpg", registry=r, render_url="http://127.0.0.1:8810")
+    body = f._build_body("/w.wav", "/v.jpg")
+    assert body["head_yaw_offset"] == 0
+    assert body["lip_closed"] == 0.0
+
+def test_cosyvoice_엔진_url():
+    """라이브 TTS(:8203) 로 보낼 수 있어야 한다."""
+    assert harness._ENGINE_URLS["cosyvoice"] == "http://127.0.0.1:8203"
 
 class _FakeResp:
     status = 200
@@ -220,4 +280,101 @@ def test_knobs_fifth_build_body_forwards_extra_kwargs(monkeypatch):
     f = KnobsFifthInproc("/v.jpg", registry=r, render_url="http://127.0.0.1:8810")
     body = f._build_body("/w.wav", "/v.jpg", phase_token="TOK")
     assert recorded == {"phase_token": "TOK"}
-    assert body["blink"] is True and body["idle_motion_scale"] == 0.15
+    assert body["blink"] is True and body["idle_motion_scale"] == FifthKnobs().idle_motion_scale
+
+def test_max_response_tokens가_num_predict로_전달된다(monkeypatch):
+    """노브만 있고 배선이 없으면 UI 에서 바꿔도 아무 일이 안 일어난다."""
+    captured = {}
+
+    async def fake_stream(messages, model=None, temperature=None, num_predict=None):
+        captured["num_predict"] = num_predict
+        yield "hi"
+
+    monkeypatch.setattr(harness, "chat_stream", fake_stream)
+    r = KnobsRegistry()
+    r.update({"dialogue": {"max_response_tokens": 120}})
+    fn = harness.build_chat_fn(r)
+
+    async def run():
+        return [t async for t in fn([{"role": "user", "content": "x"}])]
+    asyncio.run(run())
+    assert captured["num_predict"] == 120
+
+def test_last_sent_에_전송값이_기록된다():
+    """UI 가 "실제로 뭐가 갔는지" 를 보여주려면 마지막 전송값이 기록돼야 한다."""
+    from harness import KnobsFifthInproc
+    KnobsFifthInproc.last_sent = None      # 클래스 변수라 테스트 간 오염 방지
+    r = KnobsRegistry()
+    r.update({"fifth": {"lip_open": 0.44, "sigma": 1.7}})
+    f = KnobsFifthInproc("/vid.jpg", registry=r, render_url="http://x")
+    assert KnobsFifthInproc.last_sent is None      # 렌더 전에는 없음
+    f._build_body("/w.wav", "/v.jpg")
+    assert KnobsFifthInproc.last_sent["params"]["lip_open"] == 0.44
+    assert KnobsFifthInproc.last_sent["params"]["sigma"] == 1.7
+    assert KnobsFifthInproc.last_sent["at"] > 0
+
+def test_last_sent_는_매_렌더마다_갱신된다():
+    from harness import KnobsFifthInproc
+    KnobsFifthInproc.last_sent = None
+    r = KnobsRegistry()
+    f = KnobsFifthInproc("/vid.jpg", registry=r, render_url="http://x")
+    r.update({"fifth": {"lip_open": 0.1}})
+    f._build_body("/w.wav", "/v.jpg")
+    first = dict(KnobsFifthInproc.last_sent["params"])
+    r.update({"fifth": {"lip_open": 0.8}})
+    f._build_body("/w.wav", "/v.jpg")
+    assert first["lip_open"] == 0.1
+    assert KnobsFifthInproc.last_sent["params"]["lip_open"] == 0.8
+
+def test_last_sent_는_다른_인스턴스_전송도_잡는다():
+    """replay 는 통화 경로와 다른 렌더러 인스턴스를 새로 만든다 — 그래도 UI 에 보여야 한다."""
+    from harness import KnobsFifthInproc
+    KnobsFifthInproc.last_sent = None
+    r = KnobsRegistry()
+    r.update({"fifth": {"lip_open": 0.33}})
+    other = KnobsFifthInproc("/other.jpg", registry=r, render_url="http://x")
+    other._build_body("/w.wav", "/v.jpg")
+    # 전혀 다른 인스턴스에서 조회해도 보인다
+    watcher = KnobsFifthInproc("/watch.jpg", registry=r, render_url="http://x")
+    assert watcher.last_sent["params"]["lip_open"] == 0.33
+
+def test_cosyvoice_파라미터가_전송된다():
+    """CosyVoice 는 sampling/ramble 계열을 받는다(qwen 의 gen params 와 다른 값)."""
+    posts = {}
+    import harness as h
+    r = KnobsRegistry()
+    r.update({"tts": {"engine": "cosyvoice", "cv_sampling_top_k": 1,
+                      "cv_ramble_retries": 5}})
+    fn = h.build_say_fn(r)
+    import unittest.mock as mock
+    with mock.patch.object(h.aiohttp, "ClientSession", lambda: _FakeSession(posts)):
+        asyncio.run(fn("안녕"))
+    assert posts["url"] == "http://127.0.0.1:8203/tts/kr"
+    assert posts["json"]["sampling_top_k"] == 1        # cv_ 접두어를 떼고 보낸다
+    assert posts["json"]["ramble_retries"] == 5
+    assert "cv_sampling_top_k" not in posts["json"]    # 랩 내부 이름은 새지 않는다
+    assert "sampling_top_p" not in posts["json"]       # 미지정은 미전송(서버 기본)
+
+def test_qwen_파라미터는_cosyvoice로_안_샌다():
+    """엔진마다 해석이 달라 잘못 보내면 조용히 다른 결과가 나온다."""
+    posts = {}
+    import harness as h
+    r = KnobsRegistry()
+    r.update({"tts": {"engine": "cosyvoice", "temperature": 0.9, "top_k": 30}})
+    fn = h.build_say_fn(r)
+    import unittest.mock as mock
+    with mock.patch.object(h.aiohttp, "ClientSession", lambda: _FakeSession(posts)):
+        asyncio.run(fn("안녕"))
+    assert "temperature" not in posts["json"]
+    assert "top_k" not in posts["json"]
+
+def test_cosyvoice_파라미터는_qwen으로_안_샌다():
+    posts = {}
+    import harness as h
+    r = KnobsRegistry()
+    r.update({"tts": {"engine": "qwen", "cv_sampling_top_k": 1}})
+    fn = h.build_say_fn(r)
+    import unittest.mock as mock
+    with mock.patch.object(h.aiohttp, "ClientSession", lambda: _FakeSession(posts)):
+        asyncio.run(fn("안녕"))
+    assert "sampling_top_k" not in posts["json"]
