@@ -218,6 +218,11 @@
        <input id="say-input" placeholder="말 걸기 (Enter 전송)" disabled style="flex:1">
        <button id="say-btn" disabled>say</button>
      </div>
+     <!-- 튜닝용 고정 질문 — 같은 문장으로 전후를 비교해야 값 차이가 보인다. -->
+     <div id="quick-say" style="display:flex;gap:6px;margin-top:4px">
+       <button class="quick-say-btn" data-text="안녕하세요" disabled style="flex:1">안녕하세요</button>
+       <button class="quick-say-btn" data-text="오늘은 뭐하실거에요" disabled style="flex:1">오늘은 뭐하실거에요</button>
+     </div>
      <div id="metrics"><h4>상태</h4><div id="metrics-out"></div></div>
      <div id="runs"><h4>Runs <button id="refresh-runs">새로고침</button></h4>
        <div id="runs-list"></div></div>

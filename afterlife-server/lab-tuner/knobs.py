@@ -138,9 +138,15 @@ class FifthKnobs:
         "lip_lock", "source_face_lock", "source_face_lock_full",
         "eyes_open_lock", "blink_interval_sec", "head_sway_amp",
         "head_sway_slow", "head_yaw_offset", "head_pitch_offset",
+        # 2026-08-19: 통화 경로가 6 프레임을 하드코딩하고 있어 env(FIFTH_BLINK_DUR)가
+        # 무시됐다. per-request 로도 보내 실제로 먹게 한다(idle 제작 경로는 env 유지).
+        "blink_dur",
     )
     RESTART_BAKED = (
-        "cfg_scale", "driving_multiplier", "head_smooth", "blink_dur",
+        # blink_dur 는 2026-08-19 부터 per-request(PER_REQUEST) 다 — 통화 경로가
+        # env 를 안 읽고 6 을 하드코딩하고 있었다. promote 의 FIFTH_BLINK_DUR 매핑은
+        # idle 제작(render_offline) 경로용으로 남겨 둔다.
+        "cfg_scale", "driving_multiplier", "head_smooth",
         "eye_source_lock", "eye_target_scale", "input_normalize",
         "pasteback_output", "cdlip_smooth", "cdlip_sigma",
     )
@@ -163,6 +169,16 @@ class FlpKnobs:
     lip_normalize_threshold: float = 0.1
     cfg_scale: float = 1.2
     driving_multiplier: float = 1.0
+    # --- 2026-08-19: 그동안 랩 화면에 없던 실사용 파라미터 ---
+    # 얼굴 프레이밍(crop_params) — prepare_source 의 crop_image() 인자로 직행한다.
+    src_dsize: int = 512          # 크롭 출력 해상도
+    src_scale: float = 2.3        # 클수록 넓게 잡아 얼굴이 작아진다
+    src_vx_ratio: float = 0.0     # 크롭 중심 좌우 이동
+    src_vy_ratio: float = -0.125  # 크롭 중심 상하 이동
+    # 입력 이미지 전처리(infer_params)
+    source_max_dim: int = 1280
+    source_division: int = 2
+    flag_do_crop: bool = True
 
 
 @dataclass(frozen=True)
@@ -179,6 +195,20 @@ class SourceKnobs:
     voice_source: str = ""       # 음성 업로드 id. 빈 값 = 클론 목소리(회귀 0)
 
 
+VALID_RENDERERS = ("musetalk", "fifth")
+
+
+def _normalize_renderer(name: str) -> str:
+    """prethird server._select_renderer_name() 과 같은 규칙으로 정규화.
+
+    미지원 값을 그대로 들고 있으면 UI 에는 그 값이 보이는데 실제로는 musetalk 이
+    도는 어긋남이 생긴다(prethird 가 조용히 폴백한다). 랩 노브는 "지금 무엇이
+    도는가" 를 보여야 하므로 여기서 같은 폴백을 적용한다.
+    """
+    v = (name or "").strip().lower()
+    return v if v in VALID_RENDERERS else "musetalk"
+
+
 @dataclass(frozen=True)
 class TransportKnobs:
     playback_buffer_ms: int = 0
@@ -186,6 +216,10 @@ class TransportKnobs:
     width: int = 576
     height: int = 1024
     idle_source_mode: str = "auto"  # auto|prebake|clone_mp4|fallback
+    # 통화 렌더러. prethird server._select_renderer_name() 이 PRETHIRD_RENDERER 를
+    # 읽고 미설정/미지원이면 musetalk 으로 떨어진다 — 기본값을 그 동작에 맞춘다.
+    # 랩·라이브는 배포 시 항상 fifth 를 명시하므로 실제로는 fifth 로 뜬다.
+    renderer: str = "musetalk"  # musetalk|fifth
 
 
 @dataclass(frozen=True)
@@ -296,6 +330,13 @@ class RunKnobs:
                 lip_normalize_threshold=_env_f("FIFTH_FLP_LIP_NORM_THRESHOLD", _dflt(FlpKnobs, "lip_normalize_threshold")),
                 cfg_scale=_env_f("FIFTH_FLP_CFG_SCALE", _dflt(FlpKnobs, "cfg_scale")),
                 driving_multiplier=_env_f("FIFTH_FLP_DRIVING_MULTIPLIER", _dflt(FlpKnobs, "driving_multiplier")),
+                src_dsize=_env_i("FIFTH_FLP_SRC_DSIZE", _dflt(FlpKnobs, "src_dsize")),
+                src_scale=_env_f("FIFTH_FLP_SRC_SCALE", _dflt(FlpKnobs, "src_scale")),
+                src_vx_ratio=_env_f("FIFTH_FLP_SRC_VX_RATIO", _dflt(FlpKnobs, "src_vx_ratio")),
+                src_vy_ratio=_env_f("FIFTH_FLP_SRC_VY_RATIO", _dflt(FlpKnobs, "src_vy_ratio")),
+                source_max_dim=_env_i("FIFTH_FLP_SOURCE_MAX_DIM", _dflt(FlpKnobs, "source_max_dim")),
+                source_division=_env_i("FIFTH_FLP_SOURCE_DIVISION", _dflt(FlpKnobs, "source_division")),
+                flag_do_crop=_env_b("FIFTH_FLP_DO_CROP", _dflt(FlpKnobs, "flag_do_crop")),
             ),
             transport=TransportKnobs(
                 playback_buffer_ms=_env_i("PRETHIRD_PLAYBACK_BUFFER_MS", 0),
@@ -303,6 +344,9 @@ class RunKnobs:
                 width=_env_i("PRETHIRD_WIDTH", 576),
                 height=_env_i("PRETHIRD_HEIGHT", 1024),
                 idle_source_mode=os.environ.get("IDLE_SOURCE_MODE", "auto"),
+                # prethird 와 같은 규칙으로 정규화 — 미설정/오타는 musetalk.
+                renderer=_normalize_renderer(
+                    os.environ.get("PRETHIRD_RENDERER", _dflt(TransportKnobs, "renderer"))),
             ),
             filler=FillerKnobs(
                 enabled=os.environ.get("PRETHIRD_FILLER", "0") == "1",

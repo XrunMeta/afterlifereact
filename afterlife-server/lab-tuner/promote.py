@@ -23,6 +23,12 @@ KNOB_TO_LIVE = {
     "transport.width": {"env": "PRETHIRD_WIDTH", "file": _PRETHIRD_DROPIN},
     "transport.height": {"env": "PRETHIRD_HEIGHT", "file": _PRETHIRD_DROPIN},
     "transport.idle_source_mode": {"env": "IDLE_SOURCE_MODE", "file": _PRETHIRD_DROPIN},
+    # 통화 렌더러(fifth|musetalk). prethird server._select_renderer_name() 이 기동 시
+    # 1회 읽으므로 drop-in 기록 + prethird 재기동이 있어야 바뀐다.
+    # ⚠️ 라이브에는 zz-musetalk.conf 라는 별도 drop-in 으로 전환해 온 이력이 있다.
+    #    파일명이 알파벳 뒤라 lab-tuner.conf 를 덮으므로, 그 파일이 남아 있으면
+    #    여기서 promote 한 값이 무시된다 — /production-status 로 실행 중 값을 확인할 것.
+    "transport.renderer": {"env": "PRETHIRD_RENDERER", "file": _PRETHIRD_DROPIN},
     "filler.enabled": {"env": "PRETHIRD_FILLER", "file": _PRETHIRD_DROPIN},
     "filler.lookahead_sec": {"env": "FILLER_LOOKAHEAD_SEC", "file": _PRETHIRD_DROPIN},
     "filler.blend_frames": {"env": "PRETHIRD_IDLE_BLEND_FRAMES", "file": _PRETHIRD_DROPIN},
@@ -61,6 +67,13 @@ KNOB_TO_LIVE = {
     "flp.lip_normalize_threshold": {"env": "FIFTH_FLP_LIP_NORM_THRESHOLD", "file": _FIFTH_ENV_NOTE, "container": True},
     "flp.cfg_scale": {"env": "FIFTH_FLP_CFG_SCALE", "file": _FIFTH_ENV_NOTE, "container": True},
     "flp.driving_multiplier": {"env": "FIFTH_FLP_DRIVING_MULTIPLIER", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.src_dsize": {"env": "FIFTH_FLP_SRC_DSIZE", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.src_scale": {"env": "FIFTH_FLP_SRC_SCALE", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.src_vx_ratio": {"env": "FIFTH_FLP_SRC_VX_RATIO", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.src_vy_ratio": {"env": "FIFTH_FLP_SRC_VY_RATIO", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.source_max_dim": {"env": "FIFTH_FLP_SOURCE_MAX_DIM", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.source_division": {"env": "FIFTH_FLP_SOURCE_DIVISION", "file": _FIFTH_ENV_NOTE, "container": True},
+    "flp.flag_do_crop": {"env": "FIFTH_FLP_DO_CROP", "file": _FIFTH_ENV_NOTE, "container": True},
 
     # --- 호스트 drop-in: 문장 분할·응답 길이(지연 직결) ---
     "dialogue.first_min_len": {"env": "PRETHIRD_SENTENCE_FIRST_MIN_LEN", "file": _PRETHIRD_DROPIN},
