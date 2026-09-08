@@ -28,8 +28,141 @@
  .channel{background:var(--surface-2);border:1px solid var(--border);border-top:2px solid var(--gold);
    border-radius:4px;padding:12px;box-shadow:1px 2px 8px #CA8A0420}
  .channel .panel-title{font-size:14px;margin-bottom:8px;text-transform:capitalize}
- .knob-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0}
+ .knob-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0;
+   flex-wrap:wrap}
  .knob-row label{font-size:12px;color:var(--text-dim);display:flex;flex-direction:column}
+ /* --- 압축 모드(기본): 노브 60종을 한눈에 --- */
+ /* 채널 안에서 노브를 여러 열로 깔고, 설명·스펙은 접는다(행 tooltip 으로 확인). */
+ body.compact .channel .knob-row{
+   display:grid;grid-template-columns:1fr auto;align-items:center;
+   gap:4px 6px;margin:0;padding:3px 4px;border-radius:3px}
+ body.compact .channel .knob-row:hover{background:var(--surface)}
+ body.compact .knob-desc,
+ body.compact .knob-spec{display:none}
+ body.compact .channel .knob-row label{font-size:11px;flex-direction:row;
+   align-items:center;gap:4px;flex-wrap:wrap;line-height:1.3}
+ body.compact .channel .knob-row .reflow-chip,
+ body.compact .channel .knob-row .stage-tag{margin-top:0;font-size:8px;padding:0 4px}
+ body.compact .knob-row input,body.compact .knob-row select{width:86px;padding:3px 5px;font-size:11px}
+ body.compact .stepper input{width:52px}
+ body.compact .stepper button{padding:3px 6px;font-size:11px;line-height:1}
+ body.compact .kill-badge{grid-column:1/-1;margin:0;font-size:9px;padding:1px 4px}
+ /* 채널을 1열로 펴서 폭을 확보하고, 그 안에서 노브를 여러 열로 깐다.
+    (채널을 2열로 두면 채널 폭이 좁아 노브가 결국 1열로 떨어진다) */
+ body.compact #knob-fields{grid-template-columns:1fr;gap:8px}
+ body.compact .channel .knob-list,
+ body.compact #latency-fields{display:grid;
+   grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:1px 14px}
+ /* 압축 모드에선 반영시점·단계 배지를 숨긴다 — 행 tooltip 에 전부 들어 있다.
+    단 "재기동 필요" 계열만 남겨 즉시 반영되지 않는 값을 구분한다. */
+ body.compact .knob-row .stage-tag{display:none}
+ body.compact .knob-row .reflow-chip{display:none}
+ body.compact .knob-row.needs-restart > label::after{content:"⟳";color:var(--gold);
+   font-size:10px;margin-left:3px}
+ /* container(fifth 렌더서버 env)는 해야 할 행동이 다르다 — 기호도 달라야 오해가 없다. */
+ body.compact .knob-row.needs-container > label::after{content:"▣";color:var(--red);
+   font-size:10px;margin-left:3px}
+ /* 파라미터 설명 — 컨트롤 아래 전체 폭 한 줄 */
+ .knob-desc{flex-basis:100%;font-size:11px;line-height:1.5;color:var(--text-dim);
+   opacity:.85;margin:2px 0 2px;padding-left:1px}
+ /* 실제 파라미터 이름 · 기본값 · 범위 */
+ .knob-spec{flex-basis:100%;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+   font-size:10px;line-height:1.5;color:var(--text-dim);opacity:.62;
+   margin:0 0 9px;padding-left:1px;word-break:break-all}
+ .stage-tag{font-family:"Cinzel",serif;font-size:9px;letter-spacing:.05em;
+   color:var(--green);background:#15803D18;border-radius:2px;padding:1px 6px;
+   margin-top:2px;width:max-content}
+ /* 응답속도 구역 */
+ #latency-panel{border-top:2px solid var(--green);margin-bottom:12px}
+ #latency-meter{margin-bottom:10px}
+ .lat-row{display:flex;align-items:center;gap:8px;margin:3px 0;font-size:11px}
+ .lat-name{color:var(--text-dim);min-width:72px}
+ .lat-val{min-width:52px;text-align:right;font-variant-numeric:tabular-nums}
+ .lat-track{flex:1;height:6px;background:var(--surface);border-radius:3px;overflow:hidden}
+ .lat-bar{height:100%;background:var(--green);border-radius:3px;transition:width .3s}
+ /* FLP 읽기전용 */
+ .knob-row.ro .ro-val{font-size:12px;color:var(--text);font-variant-numeric:tabular-nums}
+ .ro-group{font-family:"Cinzel",serif;font-size:10px;letter-spacing:.08em;
+   text-transform:uppercase;color:var(--gold);margin:10px 0 4px}
+ /* 재기동해야 반영되는 값을 건드렸을 때 — 재기동 버튼을 주황색으로 강조 */
+ button.needs-attention{background:#EA580C;color:#fff;border-color:#C2410C;
+   font-weight:700;animation:pulse-attn 1.6s ease-in-out infinite}
+ @keyframes pulse-attn{0%,100%{box-shadow:0 0 0 0 #EA580C66}
+   50%{box-shadow:0 0 0 5px #EA580C00}}
+ /* Runs — 목록이 길어지므로 스크롤 안에 가둔다(최근 것이 위) */
+ #runs-list{max-height:300px;overflow-y:auto;border:1px solid var(--border);
+   border-radius:4px}
+ #runs-list table{width:100%;border-collapse:collapse}
+ #runs-list th{position:sticky;top:0;background:var(--surface-2);z-index:1}
+ /* 잠금 스위치에 무력화된 노브 경고 */
+ .kill-badge{flex-basis:100%;font-size:10px;line-height:1.5;margin:1px 0 6px;
+   padding:2px 6px;border-radius:3px;background:#B91C1C14;color:#B91C1C;
+   font-weight:600;width:max-content}
+ /* 최상단 고정 적용 바 — 노브가 길어 스크롤해도 항상 누를 수 있게 */
+ #apply-bar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:10px;
+   padding:8px 12px;margin-bottom:10px;background:var(--surface-2);
+   border:1px solid var(--border);border-top:2px solid var(--gold);border-radius:4px;
+   box-shadow:0 2px 10px #CA8A0430}
+ #apply-bar .apply-status{margin:0;flex:1}
+ /* 렌더서버 로그 */
+ #render-log{height:220px;overflow-y:auto;background:var(--surface);
+   border-radius:4px;padding:6px 8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+   font-size:10px;line-height:1.55}
+ .log-row{white-space:pre-wrap;word-break:break-all;color:var(--text-dim)}
+ .log-row.final{color:var(--green);font-weight:600}
+ .log-row.override{color:var(--gold)}
+ .log-row.bad{color:#B91C1C}
+ /* 마지막 렌더에 실제로 실려 간 값 */
+ .last-sent{font-size:11px;line-height:1.6;margin:8px 0 10px;padding:7px 9px;
+   background:var(--surface);border-radius:4px;border-left:2px solid var(--green)}
+ .last-sent.empty{color:var(--text-dim);opacity:.7;border-left-color:var(--border)}
+ .ls-head{font-family:"Cinzel",serif;font-size:10px;letter-spacing:.05em;
+   color:var(--text-dim);margin-bottom:3px}
+ .ls-row{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;
+   word-break:break-all;color:var(--text-dim)}
+ .ls-row.tuned{color:var(--green);font-weight:600}
+ .ls-row.empty{color:var(--text-dim);opacity:.7;font-family:inherit}
+ /* 렌더 소스·목소리 업로드 (두 패널이 같은 스타일을 공유한다) */
+ #source-panel,#voice-panel{border-top:2px solid var(--gold);margin-bottom:12px}
+ .source-hint{font-size:11px;line-height:1.6;color:var(--text-dim);margin-bottom:8px}
+ .source-upload{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+ .source-upload input[type=file]{font-size:11px;flex:1;min-width:150px}
+ #source-upload-status,#voice-upload-status{font-size:11px;color:var(--text-dim)}
+ #source-upload-status.ok,#voice-upload-status.ok{color:var(--green)}
+ #source-upload-status.bad,#voice-upload-status.bad{color:#B91C1C;font-weight:600}
+ /* 섬네일 그리드 — 얼굴을 보고 고른다 */
+ #source-list{display:grid;gap:8px;
+   grid-template-columns:repeat(auto-fill,minmax(104px,1fr))}
+ /* 음성은 얼굴과 달리 볼 게 글자뿐이라 한 줄에 하나씩 넓게 쌓는다 */
+ #voice-list{display:grid;gap:6px;grid-template-columns:1fr}
+ .src-card{position:relative;display:flex;flex-direction:column;cursor:pointer;
+   border:1px solid var(--border);border-radius:5px;overflow:hidden;
+   background:var(--surface);transition:border-color .15s}
+ .src-card:hover{border-color:var(--gold)}
+ .src-card.on{border-color:var(--green);box-shadow:0 0 0 1px var(--green) inset}
+ .src-card.gone{opacity:.45}
+ .src-thumb{width:100%;height:132px;object-fit:cover;display:block;
+   background:var(--surface-2)}
+ .src-thumb.ph{display:flex;align-items:center;justify-content:center;
+   font-size:22px;color:var(--text-dim)}
+ .src-body{padding:5px 6px}
+ .src-name{font-size:10px;line-height:1.35;word-break:break-all;
+   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+ .src-meta{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9px;
+   line-height:1.4;color:var(--text-dim);margin-top:2px}
+ .src-check{position:absolute;top:4px;left:4px;width:17px;height:17px;border-radius:50%;
+   background:var(--green);color:#fff;font-size:11px;line-height:17px;text-align:center}
+ .src-del{position:absolute;top:4px;right:4px;padding:1px 5px;font-size:9px;
+   opacity:.75;background:var(--surface)}
+ .src-del:hover{opacity:1}
+ .source-root{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9px;
+   color:var(--text-dim);opacity:.6;margin-top:6px;word-break:break-all}
+ /* 적용 결과 — 값이 실제로 들어갔는지 즉시 알려준다 */
+ .apply-status{font-size:11px;line-height:1.5;margin:-4px 0 10px;min-height:14px;
+   color:var(--text-dim)}
+ .apply-status.ok{color:var(--green)}
+ .apply-status.warn{color:var(--gold)}
+ .apply-status.bad{color:#B91C1C;font-weight:600}
  .reflow-chip{font-family:"Cinzel",serif;font-size:9px;letter-spacing:.05em;text-transform:uppercase;
    color:var(--gold);background:#CA8A0420;border-radius:2px;padding:1px 6px;margin-top:2px;width:max-content}
  .knob-row input,.knob-row select{width:120px}
@@ -56,7 +189,7 @@
    .col-right{width:100%;min-width:0}
    #knob-fields{grid-template-columns:1fr}
  }
-</style></head><body>
+</style></head><body class="compact">
  <div id="live-banner">라이브 통화 중 — 튜닝 대기</div>
  <div id="login-bar">
    <input id="login-email" placeholder="email" autocomplete="username" value="oth-test@example.invalid">
@@ -68,12 +201,27 @@
    <span id="login-status" style="font-size:12px;color:var(--text-dim)"></span>
    <span id="conn-status" style="font-size:12px;color:var(--green);margin-left:8px"></span>
  </div>
+ <!-- 노브가 60종이라 스크롤이 길다 — 어디서든 적용할 수 있게 최상단 고정. -->
+ <div id="apply-bar">
+   <button id="apply-knobs-top" class="primary">적용</button>
+   <button id="restart-top" type="button" title="재기동해야 반영되는 값을 바꿨을 때 사용">재기동</button>
+   <button id="toggle-locks" type="button" title="입·눈 잠금 4종을 한 번에 켜고 끕니다">잠금 전체 끄기</button>
+   <button id="clear-saved" type="button"
+     title="이 브라우저에 저장해 둔 노브 값을 지웁니다. 서버에 들어간 값은 그대로입니다">저장 지우기</button>
+   <button id="toggle-compact" type="button">설명 펼치기</button>
+   <span id="apply-status-top" class="apply-status"></span>
+ </div>
  <div id="main-row">
    <div class="col-left">
      <video id="clone-video" autoplay playsinline></video>
      <div style="display:flex;gap:6px">
        <input id="say-input" placeholder="말 걸기 (Enter 전송)" disabled style="flex:1">
        <button id="say-btn" disabled>say</button>
+     </div>
+     <!-- 튜닝용 고정 질문 — 같은 문장으로 전후를 비교해야 값 차이가 보인다. -->
+     <div id="quick-say" style="display:flex;gap:6px;margin-top:4px">
+       <button class="quick-say-btn" data-text="안녕하세요" disabled style="flex:1">안녕하세요</button>
+       <button class="quick-say-btn" data-text="오늘은 뭐하실거에요" disabled style="flex:1">오늘은 뭐하실거에요</button>
      </div>
      <div id="metrics"><h4>상태</h4><div id="metrics-out"></div></div>
      <div id="runs"><h4>Runs <button id="refresh-runs">새로고침</button></h4>
@@ -82,19 +230,102 @@
    <div class="col-right">
      <div id="knobs-panel">
        <h3 class="panel-title">MIXER</h3>
+       <div id="latency-panel" class="channel">
+         <div class="panel-title">⚡ 응답속도 <span id="ttff-badge" class="reflow-chip">측정 전</span></div>
+         <div id="latency-meter"></div>
+         <div id="last-sent" class="last-sent empty"></div>
+         <div id="latency-fields"></div>
+       </div>
+       <div id="source-panel" class="channel">
+         <div class="panel-title">🎬 렌더 소스 — 업로드한 얼굴로 테스트</div>
+         <div class="source-hint">
+           <b>영상과 사진 둘 다</b> 올릴 수 있습니다. 얼굴만 업로드본으로 바꾸고
+           <b>목소리·성격은 선택한 클론 것</b>을 그대로 씁니다.
+           <br>영상은 말하지 않는 동안 재생할 <b>정지 영상</b>까지 함께 만들고,
+           사진은 그 한 장으로 정지 영상을 미리 굽습니다 — 어느 쪽이든 얼굴이 잘 보이는
+           정면이 가장 좋습니다.
+           <br>고르면 <b>바로 저장</b>되고, 끊고 다시 걸면 반영됩니다(적용 버튼 불필요).
+         </div>
+         <div class="source-upload">
+           <input id="source-file" type="file"
+             accept=".mp4,.mov,.webm,.mkv,.m4v,.jpg,.jpeg,.png,.webp,.bmp">
+           <button id="source-upload-btn" type="button">업로드</button>
+           <span id="source-upload-status"></span>
+         </div>
+         <div id="source-auth" style="display:none">
+           <div class="source-hint">
+             외부 주소로 접속하면 토큰이 자동으로 안 들어옵니다(<code>/dev-token</code> 은
+             admin 토큰 유출 방지로 nginx 가 막아둔 경로). 서버의
+             <code>/home/afterlife/.lab_tuner_token</code> 값을 한 번 붙여넣으세요 —
+             메모리에만 두고 저장하지 않습니다.
+           </div>
+           <div class="source-upload">
+             <input id="source-token" type="password" placeholder="LAB_TUNER_TOKEN"
+               style="flex:1;min-width:150px">
+             <button id="source-token-btn" type="button">적용</button>
+           </div>
+         </div>
+         <div id="source-list"></div>
+         <div id="source-root" class="source-root"></div>
+       </div>
+       <div id="voice-panel" class="channel">
+         <div class="panel-title">🎙️ 목소리 — 업로드한 음성으로 테스트</div>
+         <div class="source-hint">
+           올린 음성의 <b>목소리로 말합니다</b>. <b>얼굴·성격은 선택한 클론 것</b>을
+           그대로 쓰고 목소리만 바뀝니다 — 위 렌더 소스와 서로 <b>독립</b>이라
+           하나만 올려도 됩니다.
+           <br>말이 또렷한 <b>10초 안팎</b>이 가장 좋습니다. 잡음이 섞이면 클론이
+           말을 길게 늘이거나 엉뚱한 소리를 냅니다(참조 음성 품질이 곧 목소리 품질).
+           <br>고르면 <b>바로 저장</b>되고, 끊고 다시 걸면 반영됩니다(적용 버튼 불필요).
+         </div>
+         <div class="source-upload">
+           <input id="voice-file" type="file"
+             accept=".wav,.mp3,.m4a,.aac,.flac,.ogg,.opus,.webm">
+           <button id="voice-upload-btn" type="button">업로드</button>
+           <span id="voice-upload-status"></span>
+         </div>
+         <div class="source-upload">
+           <input id="voice-ref-text" type="text" style="flex:1;min-width:180px"
+             placeholder="참조 문장 — 비우면 받아쓰기로 자동 생성">
+         </div>
+         <div class="source-hint">
+           참조 문장은 <b>올린 음성에서 실제로 말한 내용</b>이어야 합니다. 비워두면
+           서버가 받아쓰기로 채웁니다. 받아쓰기가 거부될 때(잡음·비한국어)만 직접 넣으세요 —
+           내용이 어긋나면 오히려 발음이 무너집니다.
+         </div>
+         <div id="voice-list"></div>
+         <div id="voice-root" class="source-root"></div>
+       </div>
        <div id="knob-fields"></div>
        <div style="display:flex;gap:8px;margin:12px 0">
          <button id="apply-knobs" class="primary">적용</button>
          <button id="promote">라이브 적용</button>
          <button id="restart-prethird">재기동(restart)</button>
+         <button id="restart-render" title="표정 세기·움직임 배율·눈 원본 고정 등은 이 버튼으로만 반영됩니다(라이브 통화와 공유)">렌더서버 재기동</button>
        </div>
+       <div id="apply-status" class="apply-status"></div>
        <div id="promote-confirm" style="display:none"></div>
        <div id="restart-confirm" style="display:none"></div>
+       <div id="render-restart-confirm" style="display:none"></div>
        <input id="promote-token" type="password" placeholder="LAB_TUNER_TOKEN"
          style="display:none;width:100%;box-sizing:border-box;margin-bottom:8px">
        <fieldset><legend>프로덕션 상태(read-only)</legend>
          <button id="refresh-prod">새로고침</button>
          <div id="prod-status"></div>
+       </fieldset>
+       <fieldset><legend>FLP 플러그인(read-only)</legend>
+         <button id="refresh-flp" type="button">새로고침</button>
+         <div id="render-runtime"></div>
+         <div id="flp-readonly"></div>
+       </fieldset>
+       <fieldset><legend>렌더서버 로그 — 실제 적용값 확인</legend>
+         <div style="display:flex;gap:6px;margin-bottom:6px">
+           <button id="log-pause" type="button">일시정지</button>
+           <button id="log-clear" type="button">지우기</button>
+           <span style="font-size:10px;color:var(--text-dim);align-self:center">
+             cfg-final = 렌더에 실제로 쓰인 값</span>
+         </div>
+         <div id="render-log"></div>
        </fieldset>
      </div>
    </div>

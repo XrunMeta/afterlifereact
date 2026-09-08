@@ -42,7 +42,8 @@ async def test_knobs_meta_endpoint(tmp_path):
         body = await resp.json()
         assert "meta" in body
         assert body["meta"]["filler.enabled"]["type"] == "bool"
-        assert body["meta"]["tts.engine"]["choices"] == ["openvoice", "qwen"]
+        # cosyvoice(:8203) 가 라이브 기본 엔진 — 목록에 반드시 있어야 한다.
+        assert body["meta"]["tts.engine"]["choices"] == ["openvoice", "qwen", "cosyvoice"]
     finally:
         await client.close()
 
@@ -776,3 +777,32 @@ async def test_index_response_has_cache_control_no_store(tmp_path, monkeypatch):
         assert resp.headers.get("Cache-Control") == "no-store"
     finally:
         await client.close()
+
+
+@pytest.mark.asyncio
+async def test_flp_config_렌더서버_미응답이면_error(tmp_path):
+    """패널이 못 뜨는 건 괜찮지만 랩 전체가 500 나면 안 된다."""
+    r = KnobsRegistry()
+    store = ArtifactStore(str(tmp_path))
+    # 아무도 안 듣는 포트 → 연결 실패 경로
+    application = labapp.build_app(r, factory=None, store=store,
+                                   render_url="http://127.0.0.1:9")
+    client = TestClient(TestServer(application))
+    await client.start_server()
+    try:
+        resp = await client.get("/flp-config")
+        assert resp.status == 200
+        body = await resp.json()
+        assert "error" in body
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_metrics_없으면_기존_동작(tmp_path):
+    """metrics 미주입 시 /metrics 가 기존처럼 빈 dict 를 흘려보내야 한다."""
+    r = KnobsRegistry()
+    store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    assert application["lab_turn_metrics"] is None
+    assert application["lab_metrics"] == {"last": {}}

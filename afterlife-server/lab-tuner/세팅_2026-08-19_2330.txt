@@ -1,0 +1,158 @@
+# lab-tuner 세팅 스냅샷 — 2026-08-19 23:30 KST (히즈키 수동 튜닝 후)
+
+`GET https://rtc.example.invalid:8443/knobs` 실측 회수.
+기계 판독용: `스냅샷_2026-08-19_2330_서버값.json` (그대로 POST /oth-path 하면 복원)
+렌더서버 3층 실제값: `스냅샷_2026-08-19_2330_flp실제값.json`
+
+## 실측 주입값(참조영상 기반) 대비 히즈키가 바꾼 값
+
+  fifth.lip_open            0.30  ->  1.0     최대 벌림
+  fifth.open_scale          1.1   ->  2.5
+  fifth.sigma               2.0   ->  0       스무딩 해제
+  fifth.gamma               0.8   ->  1.5
+  fifth.offset              2     ->  1
+  fifth.blink_interval_sec  2.6   ->  2
+  fifth.blink_dur           3     ->  6
+  fifth.head_sway_amp       0.10  ->  1.2
+  fifth.head_sway_slow      1.0   ->  1.5
+  tts.speed                 1.15  ->  0.8
+
+  그 밖에 바뀐 값(직전 스냅샷 대비)
+  fifth.jpeg_quality        25    ->  20
+  fifth.cdlip_smooth        false ->  true    ⚠️ 통화 경로 미적용 노브
+  fifth.cdlip_sigma         1.5   ->  2       ⚠️ 위와 동일
+  fifth.driving_multiplier  0.25  ->  1
+  flp.cfg_scale             1.2   ->  1
+  dialogue.temperature      0.8   ->  1
+
+## ⚠️ 이 스냅샷 상태에서 알아둘 점 (실측 근거)
+
+1. `lip_open 1.0 × open_scale 2.5 = 2.5` — c_d_lip 상한 1.0 의 2.5배라
+   발화 대부분이 최대 개구에서 잘린다(직전 0.7×3=2.1 일 때 클론 음성 6개 실측
+   평균 67.3% 클램프). 불변식은 `lip_open × open_scale <= 1.0`.
+2. `sigma 0` — 스무딩 없음. 입이 소리 파형에 그대로 붙어 떨린다.
+3. `cdlip_smooth`/`cdlip_sigma` 는 `render_offline.py` 에만 구현돼 있어
+   **통화에서는 아무 효과가 없다**(떨림은 `sigma` 로 잡아야 한다).
+4. `pasteback_output=false` — 얼굴만 잘린 512×512 가 송출된다(확대돼 보임).
+   원본 비율로 내보내려면 true + 렌더서버 재기동.
+
+## 노브 값 (전량)
+
+### fifth
+  blink                    = true
+  jpeg_quality             = 20
+  idle_motion_scale        = 0
+  idle_rms_low             = 0.05
+  idle_rms_high            = 0.3
+  head_slew_frames         = 5
+  lip_open                 = 1
+  lip_closed               = 0.0023
+  open_scale               = 2.5
+  offset                   = 1
+  sigma                    = 0
+  gamma                    = 1.5
+  silence                  = 0.05
+  closed_thresh            = 기본값
+  open_thresh              = 0.13
+  fps                      = 25
+  lip_lock                 = false
+  source_face_lock         = false
+  source_face_lock_full    = false
+  eyes_open_lock           = true
+  blink_interval_sec       = 2
+  head_sway_amp            = 1.2
+  head_sway_slow           = 1.5
+  head_yaw_offset          = 0
+  head_pitch_offset        = 0
+  cfg_scale                = 0.1
+  driving_multiplier       = 1
+  head_smooth              = 3.5
+  blink_dur                = 6
+  eye_source_lock          = false
+  eye_target_scale         = 1.07
+  input_normalize          = false
+  pasteback_output         = false
+  cdlip_smooth             = true
+  cdlip_sigma              = 2
+  render_mode              = batch
+
+### flp
+  animation_region         = all
+  flag_stitching           = true
+  flag_lip_retargeting     = true
+  flag_eye_retargeting     = true
+  flag_pasteback           = true
+  flag_normalize_lip       = false
+  lip_normalize_threshold  = 0.1
+  cfg_scale                = 1
+  driving_multiplier       = 1
+  src_dsize                = 512
+  src_scale                = 2.3
+  src_vx_ratio             = 0
+  src_vy_ratio             = -0.125
+  source_max_dim           = 1280
+  source_division          = 2
+  flag_do_crop             = true
+
+### dialogue
+  model                    = 기본값
+  temperature              = 1
+  system_override          = 기본값
+  min_len                  = 4
+  force_flush              = 30
+  first_min_len            = 기본값
+  max_response_tokens      = 기본값
+
+### tts
+  engine                   = cosyvoice
+  url                      = 기본값
+  speed                    = 0.8
+  denoise                  = false
+  temperature              = 기본값
+  top_p                    = 기본값
+  top_k                    = 기본값
+  repetition_penalty       = 기본값
+  max_new_tokens           = 기본값
+  cv_sampling_top_k        = 기본값
+  cv_sampling_top_p        = 0.5
+  cv_ramble_base_sec       = 0.5
+  cv_ramble_per_char_sec   = 기본값
+  cv_ramble_retries        = 0
+  cv_ramble_fallback_top_k = 기본값
+
+### transport
+  playback_buffer_ms       = 200
+  idle_grace_sec           = 0.5
+  width                    = 576
+  height                   = 1024
+  idle_source_mode         = auto
+
+### filler
+  enabled                  = false
+  volume                   = 0.3
+  padding_sec              = 0
+  lookahead_sec            = 1
+  blend_frames             = 5
+  idle_prebake             = true
+  order                    = pre_speak
+
+### source
+  render_source            = (없음)
+  use_idle                 = true
+  mute_filler              = true
+  voice_source             = (없음)
+
+## 렌더서버 3층 실제 적용값 (GET /oth-path · 기동 시점 값)
+
+  crop_params  src_dsize 512 · src_scale 2.3 · src_vx_ratio 0 · src_vy_ratio -0.125
+  infer_params source_max_dim 1280 · source_division 2 · flag_do_crop true
+               animation_region all · cfg_scale 1.2 · driving_multiplier 0.25
+               flag_relative_motion false (코드 강제)
+
+  ※ flp.* 와 fifth 의 restart-baked 값은 **렌더서버 재기동 시점**에 구워진 값이라
+    위 노브 값과 다를 수 있다. 노브를 바꿨다면 재기동해야 3층에 반영된다.
+
+## 되돌리기
+
+  이 시점으로: 스냅샷_2026-08-19_2330_서버값.json 을 POST /oth-path
+  참조영상 실측값으로: 참조영상_실측세팅_2026-08-19.md 의 3항 표

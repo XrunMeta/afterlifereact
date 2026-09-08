@@ -28,6 +28,10 @@ function renderMeter() {
 const TTS_QWEN_ONLY_FIELDS = new Set(
   ["temperature", "top_p", "top_k", "repetition_penalty", "max_new_tokens"]);
 
+const TTS_COSYVOICE_ONLY_FIELDS = new Set(
+  ["cv_sampling_top_k", "cv_sampling_top_p", "cv_ramble_base_sec",
+   "cv_ramble_per_char_sec", "cv_ramble_retries", "cv_ramble_fallback_top_k"]);
+
 async function login() {
   const email = document.getElementById('login-email').value;
   const password = document.getElementById('login-pw').value;
@@ -107,6 +111,7 @@ async function connect() {
   dc.onopen = () => {
     document.getElementById('say-input').disabled = false;
     document.getElementById('say-btn').disabled = false;
+    document.querySelectorAll('.quick-say-btn').forEach(b => { b.disabled = false; });
     cst.textContent = '✅ dc open — say 가능';
     renderMeter();
   };
@@ -137,6 +142,7 @@ function hangup() {
   if (v) v.srcObject = null;
   document.getElementById('say-input').disabled = true;
   document.getElementById('say-btn').disabled = true;
+  document.querySelectorAll('.quick-say-btn').forEach(b => { b.disabled = true; });
   document.getElementById('conn-status').textContent = '끊김 — 재연결 가능';
   document.getElementById('hangup-btn').disabled = true;
   document.getElementById('connect-btn').disabled = false;
@@ -144,8 +150,163 @@ function hangup() {
 }
 
 const REFLOW_NOTE = {
-  next_call: '다음 통화부터', container: '컨테이너 재기동', session: '다음 접속부터',
+  immediate: '적용 즉시(다음 발화부터)',
+  next_call: '적용 즉시(다음 발화부터)',   
+  session: '재연결 후',
+  container: '렌더서버 재기동 필요(라이브 공유)',
+  lab_restart: '적용만으론 안 먹음 · 재기동 필요',
 };
+
+function buildKnobRow(section, key, m, val) {
+  const path = `${section}.${key}`;
+  const row = document.createElement('div'); row.className = 'knob-row';
+
+  if (m.reflow === 'container') {
+    row.classList.add('needs-container');
+  } else if (m.reflow === 'lab_restart' || m.reflow === 'session') {
+    row.classList.add('needs-restart');
+  }
+  const label = document.createElement('label'); label.textContent = m.label || key;
+  const note = REFLOW_NOTE[m.reflow];
+  if (note) { const s = document.createElement('span'); s.className = 'reflow-chip'; s.textContent = note; label.appendChild(s); }
+
+  if (m.group === 'latency' && m.stage) {
+    const t = document.createElement('span'); t.className = 'stage-tag';
+    t.textContent = m.stage; label.appendChild(t);
+  }
+
+  if (KNOB_ENV_MAP[path]) {
+    const badge = document.createElement('span');
+    badge.id = `running-${path}`; badge.className = 'reflow-chip';
+    badge.textContent = '실행값 조회중...';
+    label.appendChild(badge);
+  }
+  row.appendChild(label);
+  let ctrl;
+  if (m.type === 'bool') {                     
+    ctrl = document.createElement('select'); ctrl.className = 'knob-toggle';
+    for (const opt of ['true', 'false']) {
+      const o = document.createElement('option'); o.value = opt; o.textContent = opt;
+      if (String(val) === opt) o.selected = true; ctrl.appendChild(o);
+    }
+  } else if (m.type === 'enum') {              
+    ctrl = document.createElement('select'); ctrl.className = 'knob-seg';
+    for (const opt of (m.choices || [])) {
+      const o = document.createElement('option'); o.value = opt; o.textContent = opt;
+      if (String(val) === opt) o.selected = true; ctrl.appendChild(o);
+    }
+  } else {                                     
+    ctrl = document.createElement('input');
+    ctrl.value = (val == null ? '' : val);
+
+    if (val == null) ctrl.placeholder = '기본값';
+
+    if (m.type === 'number') {
+      if (m.min != null) ctrl.min = m.min;
+      if (m.max != null) ctrl.max = m.max;
+      ctrl.title = _rangeHint(m);
+    }
+  }
+  ctrl.id = `k_${section}_${key}`;
+  ctrl.dataset.s = section; ctrl.dataset.k = key;
+
+  if (m.reflow === 'container') {
+
+    ctrl.addEventListener('change', markRenderDirty);
+    ctrl.addEventListener('input', markRenderDirty);
+  } else if (m.reflow === 'lab_restart') {
+    ctrl.addEventListener('change', markRestartDirty);
+    ctrl.addEventListener('input', markRestartDirty);
+  }
+  if (m.type === 'number') {                   
+    const wrap = document.createElement('div'); wrap.className = 'stepper';
+    const step = stepFor(m, val);
+    ctrl.dataset.step = String(step);
+    ctrl.step = String(step);
+    const down = document.createElement('button'); down.type='button';
+    down.className = 'step-down'; down.textContent = '−';
+    const up = document.createElement('button'); up.type='button';
+    up.className = 'step-up'; up.textContent = '+';
+
+    const bump = (d) => {
+      const cur = Number(String(ctrl.value).replace(',', '.')) || 0;
+      let next = cur + d * step;
+      const dec = (String(step).split('.')[1] || '').length;
+      next = Number(next.toFixed(dec));
+      if (m.min != null) next = Math.max(m.min, next);
+      if (m.max != null) next = Math.min(m.max, next);
+      ctrl.value = next;
+
+      if (row.classList.contains('needs-restart')) markRestartDirty();
+      if (row.classList.contains('needs-container')) markRenderDirty();
+    };
+    down.onclick = () => bump(-1); up.onclick = () => bump(1);
+    wrap.appendChild(down); wrap.appendChild(ctrl); wrap.appendChild(up);
+    row.appendChild(wrap);
+  } else {
+    row.appendChild(ctrl);
+  }
+
+  const specBits = [];
+  if (m.param) specBits.push(m.param);
+  if (m.default != null) specBits.push(`기본 ${m.default}`);
+  const rangeHint = _rangeHint(m);
+  if (rangeHint) specBits.push(rangeHint);
+
+  const tip = [m.label || key, m.desc, specBits.join(' · ')].filter(Boolean).join('\n');
+  row.title = tip;
+
+  if (m.desc) {
+    const d = document.createElement('div');
+    d.className = 'knob-desc'; d.textContent = m.desc;
+    row.appendChild(d);
+  }
+  if (specBits.length) {
+    const s = document.createElement('div');
+    s.className = 'knob-spec';
+    s.textContent = specBits.join('  ·  ');   
+    row.appendChild(s);
+  }
+  return row;
+}
+
+function stepFor(m, val) {
+  if (m.step != null) return m.step;
+  const min = m.min, max = m.max;
+  let step;
+  if (min == null || max == null) {
+    step = String(val).includes('.') ? 0.01 : 1;
+  } else {
+    const range = Math.abs(max - min);
+
+    const defNum = String(m.default ?? '').match(/-?\d+(\.\d+)?/);
+    const defIsFloat = defNum ? defNum[0].includes('.') : false;
+    const bothInt = Number.isInteger(min) && Number.isInteger(max) && !defIsFloat;
+    if (bothInt && range >= 5) step = 1;          
+    else if (range <= 0.05) step = 0.001;
+    else if (range <= 2) step = 0.01;
+    else if (range <= 20) step = 0.1;
+    else step = 1;
+  }
+
+  const probe = (val != null && val !== '')
+    ? val
+    : ((String(m.default ?? '').match(/-?\d+(\.\d+)?/) || [''])[0]);
+  const dec = (String(probe).split('.')[1] || '').length;
+  if (dec >= 3) step = Math.min(step, 0.001);
+  else if (dec === 2) step = Math.min(step, 0.01);
+  else if (dec === 1) step = Math.min(step, 0.1);
+  return step;
+}
+
+function _rangeHint(m) {
+  if (m.min != null && m.max != null) return `범위 ${m.min}~${m.max}`;
+  if (m.min != null) return `최소 ${m.min}`;
+  if (m.max != null) return `최대 ${m.max}`;
+  return '';
+}
+
+let KNOB_META_CACHE = {};
 
 async function loadKnobs() {
   const [k, metaResp] = await Promise.all([
@@ -153,68 +314,315 @@ async function loadKnobs() {
     (await fetch('/knobs/meta')).json(),
   ]);
   const meta = metaResp.meta || {};
+  KNOB_META_CACHE = meta;
   const box = document.getElementById('knob-fields'); box.innerHTML = '';
+  const latBox = document.getElementById('latency-fields');
+  if (latBox) latBox.innerHTML = '';
   for (const [section, vals] of Object.entries(k)) {
     const ch = document.createElement('div'); ch.className = 'channel';
     const title = document.createElement('div'); title.className = 'panel-title';
     title.textContent = section; ch.appendChild(title);
+
+    const list = document.createElement('div'); list.className = 'knob-list';
+    ch.appendChild(list);
     for (const [key, val] of Object.entries(vals)) {
       const path = `${section}.${key}`;
       const m = meta[path] || {type: 'string', reflow: 'next_call'};
-      const row = document.createElement('div'); row.className = 'knob-row';
-      const label = document.createElement('label'); label.textContent = m.label || key;
-      const note = REFLOW_NOTE[m.reflow];
-      if (note) { const s = document.createElement('span'); s.className = 'reflow-chip'; s.textContent = note; label.appendChild(s); }
+      const row = buildKnobRow(section, key, m, val);
 
-      if (KNOB_ENV_MAP[path]) {
-        const badge = document.createElement('span');
-        badge.id = `running-${path}`; badge.className = 'reflow-chip';
-        badge.textContent = '실행값 조회중...';
-        label.appendChild(badge);
-      }
-      row.appendChild(label);
-      let ctrl;
-      if (m.type === 'bool') {                     
-        ctrl = document.createElement('select'); ctrl.className = 'knob-toggle';
-        for (const opt of ['true', 'false']) {
-          const o = document.createElement('option'); o.value = opt; o.textContent = opt;
-          if (String(val) === opt) o.selected = true; ctrl.appendChild(o);
-        }
-      } else if (m.type === 'enum') {              
-        ctrl = document.createElement('select'); ctrl.className = 'knob-seg';
-        for (const opt of (m.choices || [])) {
-          const o = document.createElement('option'); o.value = opt; o.textContent = opt;
-          if (String(val) === opt) o.selected = true; ctrl.appendChild(o);
-        }
-      } else {                                     
-        ctrl = document.createElement('input');
-        ctrl.value = (val == null ? '' : val);
-      }
-      ctrl.id = `k_${section}_${key}`;
-      ctrl.dataset.s = section; ctrl.dataset.k = key;
-      if (m.type === 'number') {                   
-        const wrap = document.createElement('div'); wrap.className = 'stepper';
-        const step = (String(val).includes('.') ? 0.05 : 1);
-        ctrl.dataset.step = String(step);
-        const down = document.createElement('button'); down.type='button';
-        down.className = 'step-down'; down.textContent = '▼';
-        const up = document.createElement('button'); up.type='button';
-        up.className = 'step-up'; up.textContent = '▲';
-        const bump = (d) => { const cur = Number(String(ctrl.value).replace(',', '.')) || 0;
-          ctrl.value = (Math.round((cur + d*step)*1000)/1000); };
-        down.onclick = () => bump(-1); up.onclick = () => bump(1);
-        wrap.appendChild(down); wrap.appendChild(ctrl); wrap.appendChild(up);
-        row.appendChild(wrap);
-      } else {
-        row.appendChild(ctrl);
-      }
-      ch.appendChild(row);
+      if (m.group === 'latency' && latBox) latBox.appendChild(row);
+      else list.appendChild(row);
     }
-    box.appendChild(ch);
+
+    if (list.querySelectorAll('.knob-row').length) box.appendChild(ch);
   }
   refreshTtsDim();
   document.getElementById('k_tts_engine')?.addEventListener('change', refreshTtsDim);
+  refreshLockWarnings();
+
+  for (const k of ['lip_lock', 'source_face_lock', 'source_face_lock_full', 'eyes_open_lock']) {
+    document.getElementById(`k_fifth_${k}`)?.addEventListener('change', refreshLockWarnings);
+  }
   applyKnobDriftBadges();   
+}
+
+const LOCK_SWITCHES = ['lip_lock', 'source_face_lock', 'source_face_lock_full', 'eyes_open_lock'];
+
+let restartDirty = false;
+
+function markRestartDirty() {
+  restartDirty = true;
+  for (const id of ['restart-top', 'restart-prethird']) {
+    document.getElementById(id)?.classList.add('needs-attention');
+  }
+}
+
+function markRenderDirty() {
+  document.getElementById('restart-render')?.classList.add('needs-attention');
+}
+
+function clearRenderDirty() {
+  document.getElementById('restart-render')?.classList.remove('needs-attention');
+}
+
+function clearRestartDirty() {
+  restartDirty = false;
+  for (const id of ['restart-top', 'restart-prethird']) {
+    document.getElementById(id)?.classList.remove('needs-attention');
+  }
+}
+
+const LOCK_RULES = [
+  {switch: 'source_face_lock', kills: ['lip_open', 'lip_closed', 'open_scale', 'offset',
+                                       'sigma', 'gamma', 'silence', 'closed_thresh', 'open_thresh'],
+   why: '입 원본 고정이 켜져 있어 무시됨'},
+  {switch: 'source_face_lock_full', kills: ['lip_open', 'lip_closed', 'open_scale', 'offset',
+                                            'sigma', 'gamma', 'silence'],
+   why: '표정 전체 고정이 켜져 있어 무시됨'},
+  {switch: 'lip_lock', kills: ['lip_open', 'open_scale', 'offset', 'sigma', 'gamma', 'silence'],
+   why: '입 강제 다뭄이 켜져 있어 무시됨(입이 lip_closed 로 고정)'},
+  {switch: 'eyes_open_lock', kills: ['blink', 'blink_interval_sec'],
+   why: '눈 뜬 채 고정이 켜져 있어 무시됨'},
+];
+
+function refreshLockWarnings() {
+
+  document.querySelectorAll('.kill-badge').forEach(el => el.remove());
+  const on = (k) => document.getElementById(`k_fifth_${k}`)?.value === 'true';
+  const killed = {};
+  for (const rule of LOCK_RULES) {
+    if (!on(rule.switch)) continue;
+    for (const k of rule.kills) if (!killed[k]) killed[k] = rule.why;
+  }
+  for (const [k, why] of Object.entries(killed)) {
+    const ctrl = document.getElementById(`k_fifth_${k}`);
+    if (!ctrl) continue;
+    const row = ctrl.closest('.knob-row');
+    if (!row) continue;
+    const b = document.createElement('div');
+    b.className = 'kill-badge';
+
+    const compact = document.body.classList.contains('compact');
+    b.textContent = compact ? '⚠ 지금 안 먹음' : `⚠ 지금 안 먹음 — ${why}`;
+    b.title = why;
+    row.appendChild(b);
+  }
+}
+
+function renderLatency(m) {
+  const box = document.getElementById('latency-meter');
+  if (!box) return;
+  box.innerHTML = '';
+  const rows = [
+    ['LLM 첫토큰', m.llm_first_token_ms],
+    ['TTS 합성', m.tts_ms],
+    ['fifth 렌더', m.render_ms],
+  ];
+  const max = Math.max(1, ...rows.map(r => r[1] || 0));
+  for (const [name, v] of rows) {
+    const row = document.createElement('div'); row.className = 'lat-row';
+    const lab = document.createElement('span'); lab.className = 'lat-name';
+    lab.textContent = name;
+    const val = document.createElement('span'); val.className = 'lat-val';
+    val.textContent = (v == null ? '–' : `${v}ms`);
+    const track = document.createElement('div'); track.className = 'lat-track';
+    const bar = document.createElement('div'); bar.className = 'lat-bar';
+    bar.style.width = `${Math.round((v || 0) / max * 100)}%`;
+    track.appendChild(bar);
+    row.appendChild(lab); row.appendChild(val); row.appendChild(track);
+    box.appendChild(row);
+  }
+  const badge = document.getElementById('ttff-badge');
+  if (badge) {
+    badge.textContent = (m.ttff_ms == null)
+      ? '측정 전' : `첫 소리까지 ${(m.ttff_ms / 1000).toFixed(2)}s`;
+  }
+  renderLastSent(m.last_render);
+}
+
+function renderLastSent(ls) {
+  const box = document.getElementById('last-sent');
+  if (!box) return;
+  box.innerHTML = '';
+  if (!ls || !ls.params) {
+    box.textContent = '아직 렌더 없음 — 통화 연결 후 말을 걸면 여기에 실제 전송값이 뜹니다';
+    box.className = 'last-sent empty';
+    return;
+  }
+  box.className = 'last-sent';
+  const ago = Math.max(0, Math.round(Date.now() / 1000 - ls.at));
+  const head = document.createElement('div');
+  head.className = 'ls-head';
+  const keys = Object.keys(ls.params);
+  head.textContent = `실제 렌더 전송값 · ${keys.length}개 · ${ago}초 전`;
+  box.appendChild(head);
+
+  const ALWAYS = ['blink', 'jpeg_quality', 'idle_motion_scale', 'idle_rms_low',
+                  'idle_rms_high', 'head_slew_frames'];
+  const tuned = keys.filter(k => !ALWAYS.includes(k));
+  const base = keys.filter(k => ALWAYS.includes(k));
+  for (const [label, list] of [['내가 지정한 값', tuned], ['기본 전송', base]]) {
+    if (!list.length) continue;
+    const row = document.createElement('div');
+    row.className = 'ls-row' + (label === '내가 지정한 값' ? ' tuned' : '');
+    row.textContent = `${label}: ` + list.map(k => `${k}=${ls.params[k]}`).join(', ');
+    box.appendChild(row);
+  }
+  if (!tuned.length) {
+    const hint = document.createElement('div');
+    hint.className = 'ls-row empty';
+    hint.textContent = '지정한 값 없음 — 입력칸이 비어 있으면 컨테이너 기본값을 씁니다';
+    box.appendChild(hint);
+  }
+}
+
+let RENDER_LOG_CURSOR = 0;
+let renderLogPaused = false;
+
+async function pollRenderLogs() {
+  if (renderLogPaused) return;
+  const box = document.getElementById('render-log');
+  if (!box) return;
+  let data;
+  try {
+    data = await (await fetch(`/render-logs?since=${RENDER_LOG_CURSOR}`)).json();
+  } catch (e) { return; }
+  if (data.error && !(data.lines || []).length) {
+    if (!RENDER_LOG_CURSOR) box.textContent = data.error;
+    return;
+  }
+  const lines = data.lines || [];
+  if (!lines.length) return;
+  for (const ln of lines) {
+    RENDER_LOG_CURSOR = Math.max(RENDER_LOG_CURSOR, ln.seq);
+    const row = document.createElement('div');
+    row.className = 'log-row';
+    if (ln.level === 'ERROR' || ln.level === 'WARNING') row.className += ' bad';
+    if (ln.msg.includes('[cfg-final]')) row.className += ' final';
+    else if (ln.msg.includes('[cfg-override]')) row.className += ' override';
+    const t = new Date(ln.ts * 1000).toTimeString().slice(0, 8);
+    row.textContent = `${t} ${ln.msg}`;   
+    box.appendChild(row);
+  }
+  while (box.childElementCount > 300) box.removeChild(box.firstChild);
+  if (!renderLogPaused) box.scrollTop = box.scrollHeight;
+}
+
+const FLP_RO_NOTE = {
+  src_scale: '얼굴 대비 crop 배율. 바꾸면 클론별 소스 캐시를 전부 버려야 한다',
+  src_vy_ratio: 'crop 중심의 상하 오프셋. 위와 같은 이유로 잠겨 있다',
+  src_dsize: 'crop 결과 한 변 픽셀. 모델 입력 규격이라 고정',
+  source_max_dim: '소스 이미지 최대 변. 올리면 화질이 좋아지고 느려진다',
+  source_division: '소스 해상도가 나누어떨어져야 하는 값',
+  driving_smooth_observation_variance: '영상 소스일 때의 스무딩 강도',
+};
+
+function _roRow(box, key, val, note) {
+  const row = document.createElement('div'); row.className = 'knob-row ro';
+  const lab = document.createElement('label'); lab.textContent = key;
+  const v = document.createElement('span'); v.className = 'ro-val';
+  v.textContent = String(val);
+  row.appendChild(lab); row.appendChild(v);
+  if (note) {
+    const d = document.createElement('div'); d.className = 'knob-desc';
+    d.textContent = note; row.appendChild(d);
+  }
+  box.appendChild(row);
+  return row;
+}
+
+function _roHead(box, text) {
+  const h = document.createElement('div');
+  h.className = 'ro-group'; h.textContent = text;
+  box.appendChild(h);
+}
+
+async function loadRenderRuntime() {
+  const box = document.getElementById('render-runtime');
+  if (!box) return;
+  box.innerHTML = '';
+  let d;
+  try {
+    const r = await fetch('/render-runtime', {headers: _labHeaders()});
+    if (r.status === 401) { box.textContent = '토큰이 필요합니다'; return; }
+    d = await r.json();
+  } catch (e) { box.textContent = '조회 실패: ' + e; return; }
+  if (d.error) { box.textContent = d.error; return; }
+
+  if ((d.mismatches || []).length) {
+    const warn = document.createElement('div');
+    warn.className = 'knob-desc';
+    warn.style.color = 'var(--red)';
+    warn.style.fontWeight = '600';
+    warn.textContent = '⚠️ 설정한 env 와 실제 적용값이 다릅니다 — '
+      + d.mismatches.map(m => `${m.env}: 설정 ${m.expected} → 실제 ${m.actual}`).join(' · ');
+    box.appendChild(warn);
+  }
+
+  _roHead(box, d.booted_at ? `엔진 실제값 (기동 ${d.booted_at})` : '엔진 실제값');
+  if (Object.keys(d.flp_engine || {}).length) {
+    const ov = d.flp_override || {};
+    for (const [k, v] of Object.entries(d.flp_engine)) {
+
+      _roRow(box, k, v, (k in ov) ? 'env 로 덮은 값(랩 설정이 이김)' : null);
+    }
+  } else {
+    _roRow(box, '(없음)', '기동 로그가 조회 범위 밖입니다', '재기동하면 다시 보입니다');
+  }
+  if (d.joyvasa && d.joyvasa.cfg_scale != null) {
+    _roRow(box, 'JoyVASA cfg_scale', d.joyvasa.cfg_scale);
+  }
+
+  if (d.cfg_final) {
+    _roHead(box, `마지막 렌더 최종값 (${d.cfg_final.at})`);
+    _roRow(box, 'override', d.cfg_final.override,
+           '이번 요청에서 랩이 덮어쓴 항목. "없음"이면 서버 기본값으로 렌더된 것');
+    for (const [k, v] of Object.entries(d.cfg_final.values || {})) _roRow(box, k, v);
+  }
+  if (d.lip_path) {
+    _roHead(box, '입모양 경로');
+    _roRow(box, 'lip-path', d.lip_path,
+           'source_face_lock > lip_lock > 오디오 순으로 이긴 경로. 앞의 둘이 켜지면 lip_open 은 무시된다');
+  }
+}
+
+async function loadFlpConfig() {
+  const box = document.getElementById('flp-readonly');
+  if (!box) return;
+  box.innerHTML = '';
+  let data;
+  try {
+    data = await (await fetch('/flp-config')).json();
+  } catch (e) {
+    box.textContent = '조회 실패';
+    return;
+  }
+  if (data.error) { box.textContent = data.error; return; }
+
+  const note = document.createElement('div');
+  note.className = 'knob-desc';
+  note.textContent = '참고용 yaml 원본 — 실제 적용값과 다를 수 있습니다(위 패널이 정본)';
+  box.appendChild(note);
+  for (const group of ['crop_params', 'infer_params']) {
+    const vals = data[group];
+    if (!vals) continue;
+    const head = document.createElement('div');
+    head.className = 'ro-group'; head.textContent = group;
+    box.appendChild(head);
+    for (const [k, v] of Object.entries(vals)) {
+      const row = document.createElement('div'); row.className = 'knob-row ro';
+      const lab = document.createElement('label'); lab.textContent = k;
+      const val = document.createElement('span'); val.className = 'ro-val';
+      val.textContent = String(v);
+      row.appendChild(lab); row.appendChild(val);
+      if (FLP_RO_NOTE[k]) {
+        const d = document.createElement('div');
+        d.className = 'knob-desc'; d.textContent = FLP_RO_NOTE[k];
+        row.appendChild(d);
+      }
+      box.appendChild(row);
+    }
+  }
 }
 
 const KNOB_ENV_MAP = { 'fifth.render_mode': 'PRETHIRD_RENDER_MODE' };
@@ -249,20 +657,448 @@ function applyKnobDriftBadges() {
 
 function refreshTtsDim() {
   const eng = document.getElementById('k_tts_engine');
-  const isOv = eng && eng.value === 'openvoice';
-  for (const field of TTS_QWEN_ONLY_FIELDS) {
+  const engine = eng ? eng.value : '';
+  const dim = (field, off, why) => {
     const el = document.getElementById(`k_tts_${field}`);
-    if (!el) continue;
+    if (!el) return;
     const row = el.closest('.knob-row');
-    if (row) { row.classList.toggle('knob-dim', !!isOv);
-      row.title = isOv ? 'openvoice 엔진에선 무시됨(qwen 전용)' : ''; }
+    if (!row) return;
+    row.classList.toggle('knob-dim', !!off);
+    if (off) row.title = why;
+  };
+  for (const field of TTS_QWEN_ONLY_FIELDS) {
+    dim(field, engine !== 'qwen', `${engine} 엔진에선 무시됨 — qwen 전용`);
+  }
+  for (const field of TTS_COSYVOICE_ONLY_FIELDS) {
+    dim(field, engine !== 'cosyvoice', `${engine} 엔진에선 무시됨 — cosyvoice 전용`);
   }
 }
 
-async function applyKnobs() {
+function _labHeaders(extra) {
+  const h = Object.assign({}, extra || {});
+
+  const t = document.getElementById('promote-token')?.value
+         || document.getElementById('source-token')?.value || '';
+  if (t) h['X-Lab-Tuner-Token'] = t;   
+  return h;
+}
+
+function _showSourceAuth(on) {
+  const el = document.getElementById('source-auth');
+  if (el) el.style.display = on ? 'block' : 'none';
+}
+
+function _setSourceStatus(text, kind) {
+  const el = document.getElementById('source-upload-status');
+  if (!el) return;
+  el.textContent = text;
+  el.className = kind || '';
+}
+
+function _fmtMB(n) { return (Number(n || 0) / 1048576).toFixed(1) + 'MB'; }
+
+const THUMB_URLS = new Map();
+
+function _revokeThumb(id) {
+  const u = THUMB_URLS.get(id);
+  if (u) { URL.revokeObjectURL(u); THUMB_URLS.delete(id); }
+}
+
+async function _attachThumb(img, id) {
+  if (THUMB_URLS.has(id)) { img.src = THUMB_URLS.get(id); return; }
+  try {
+    const r = await fetch(`/source/thumb?id=${encodeURIComponent(id)}`,
+                          {headers: _labHeaders()});
+    if (!r.ok) return;                       
+    const url = URL.createObjectURL(await r.blob());
+    THUMB_URLS.set(id, url);
+    img.src = url;
+  } catch (e) {  }
+}
+
+function _sourceCard(s, current) {
+  const on = String(current) === String(s.id);
+  const card = document.createElement('div');
+  card.className = 'src-card' + (on ? ' on' : '') + (s.id && s.ok === false ? ' gone' : '');
+  card.title = s.id ? `${s.orig_name}\n${s.id}` : '클론 원래 자산을 그대로 씁니다';
+
+  if (s.id) {
+    const img = document.createElement('img');
+    img.className = 'src-thumb'; img.alt = s.orig_name; img.loading = 'lazy';
+    card.appendChild(img);
+    _attachThumb(img, s.id);
+  } else {
+    const ph = document.createElement('div');
+    ph.className = 'src-thumb ph'; ph.textContent = '👤';
+    card.appendChild(ph);
+  }
+
+  const body = document.createElement('div'); body.className = 'src-body';
+  const name = document.createElement('div'); name.className = 'src-name';
+  name.textContent = s.id ? s.orig_name : '클론 기본';
+  body.appendChild(name);
+  const meta = document.createElement('div'); meta.className = 'src-meta';
+  meta.textContent = s.id ? [
+    s.kind === 'video' ? '영상' : '사진',
+    _fmtMB(s.bytes),
+
+    s.kind === 'video' ? (s.idle ? '정지영상 ✓' : '정지영상 ✗') : '미리굽기',
+    s.ok === false ? '파일 없음' : '',
+  ].filter(Boolean).join(' · ') : '업로드 사용 안 함';
+  body.appendChild(meta);
+  card.appendChild(body);
+
+  if (on) {
+    const chk = document.createElement('div');
+    chk.className = 'src-check'; chk.textContent = '✓';
+    card.appendChild(chk);
+  }
+  card.addEventListener('click', () => selectSource(s.id || ''));
+
+  if (s.id) {
+    const del = document.createElement('button');
+    del.type = 'button'; del.className = 'src-del'; del.textContent = '삭제';
+
+    del.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (del.dataset.armed === '1') { deleteSource(s.id); return; }
+      del.dataset.armed = '1'; del.textContent = '정말?';
+      setTimeout(() => { del.dataset.armed = ''; del.textContent = '삭제'; }, 4000);
+    });
+    card.appendChild(del);
+  }
+  return card;
+}
+
+async function loadSources() {
+  const box = document.getElementById('source-list');
+  if (!box) return;
+  let d;
+  try {
+    const r = await fetch('/sources', {headers: _labHeaders()});
+    if (r.status === 401) {          
+      box.textContent = '';
+      _showSourceAuth(true);
+      _setSourceStatus('토큰을 넣어야 업로드 목록이 보입니다', 'bad');
+      return;
+    }
+    d = await r.json();
+  } catch (e) {
+    box.textContent = '소스 목록 조회 실패: ' + e; return;
+  }
+  if (d.error) { box.textContent = d.error; return; }
+  _showSourceAuth(false);
+  const spec = d.idle_spec || {};
+  const rootEl = document.getElementById('source-root');
+  if (rootEl) {
+    rootEl.textContent = `저장 위치 ${d.root} · 최대 ${d.max_mb}MB · `
+      + `정지 영상은 ${spec.w}x${spec.h} ${spec.fps}fps ${spec.sec}초로 정규화`;
+  }
+  const cur = document.getElementById('k_source_render_source')?.value || '';
+  const alive = new Set((d.sources || []).map(s => s.id));
+  for (const id of [...THUMB_URLS.keys()]) {   
+    if (!alive.has(id)) _revokeThumb(id);
+  }
+  box.innerHTML = '';
+  box.appendChild(_sourceCard({id: ''}, cur));
+  for (const s of (d.sources || [])) box.appendChild(_sourceCard(s, cur));
+}
+
+async function selectSource(id) {
+  const inp = document.getElementById('k_source_render_source');
+  if (inp) inp.value = id;
+  try {
+    await fetch('/knobs', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({source: {render_source: id}}),
+    });
+  } catch (e) {
+    _setSourceStatus('저장 실패: ' + e, 'bad'); return;
+  }
+  saveKnobsLocal();   
+  _setSourceStatus(id ? `선택: ${id} — 다음 통화부터 반영(끊고 다시 걸기)`
+                      : '클론 기본 자산으로 되돌림 — 다음 통화부터', 'ok');
+  await loadSources();
+}
+
+async function uploadSource() {
+  const fileEl = document.getElementById('source-file');
+  const btn = document.getElementById('source-upload-btn');
+  const f = fileEl?.files?.[0];
+  if (!f) { _setSourceStatus('파일을 먼저 고르세요', 'bad'); return; }
+  const fd = new FormData(); fd.append('file', f, f.name);
+  btn.disabled = true;
+  _setSourceStatus(`업로드 중… ${_fmtMB(f.size)}`, '');
+  try {
+    const r = await fetch('/source/upload', {
+      method: 'POST', headers: _labHeaders(), body: fd,
+    });
+    if (r.status === 401) {
+      _showSourceAuth(true);
+      _setSourceStatus('토큰이 필요합니다 — 아래에 넣고 다시 업로드하세요', 'bad');
+      return;
+    }
+    if (r.status === 413) {          
+      _setSourceStatus('용량 초과 — 프록시/서버 상한을 넘었습니다', 'bad'); return;
+    }
+    const d = await r.json();
+    if (!r.ok || d.error) { _setSourceStatus(d.error || `실패(${r.status})`, 'bad'); return; }
+    fileEl.value = '';
+
+    await selectSource(d.id);
+    _setSourceStatus(
+      d.kind === 'video' && !d.idle
+        ? `업로드 완료 ${d.id} — 정지 영상 생성 실패(클론 정지 영상 유지)`
+        : `업로드 완료 ${d.id} — 다음 통화부터 반영`,
+      d.kind === 'video' && !d.idle ? 'bad' : 'ok');
+  } catch (e) {
+    _setSourceStatus('업로드 실패: ' + e, 'bad');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteSource(id) {
+  try {
+    const d = await (await fetch('/source/delete', {
+      method: 'POST', headers: _labHeaders({'Content-Type': 'application/json'}),
+      body: JSON.stringify({id}),
+    })).json();
+    if (d.error) { _setSourceStatus(d.error, 'bad'); return; }
+    _setSourceStatus(d.deleted ? `삭제: ${id}` : `없는 항목: ${id}`, d.deleted ? 'ok' : 'bad');
+  } catch (e) {
+    _setSourceStatus('삭제 실패: ' + e, 'bad'); return;
+  }
+  _revokeThumb(id);
+  const inp = document.getElementById('k_source_render_source');
+  if (inp && inp.value === id) inp.value = '';   
+  loadSources();
+}
+
+function _setVoiceStatus(text, kind) {
+  const el = document.getElementById('voice-upload-status');
+  if (!el) return;
+  el.textContent = text;
+  el.className = kind || '';
+}
+
+function _voiceCard(v, current) {
+  const on = String(current) === String(v.id);
+  const card = document.createElement('div');
+  card.className = 'src-card' + (on ? ' on' : '') + (v.id && v.ok === false ? ' gone' : '');
+  card.title = v.id ? `${v.orig_name}\n${v.id}` : '클론 원래 목소리를 그대로 씁니다';
+
+  const body = document.createElement('div'); body.className = 'src-body';
+  const name = document.createElement('div'); name.className = 'src-name';
+  name.textContent = v.id ? `🎙️ ${v.orig_name}` : '👤 클론 기본';
+  body.appendChild(name);
+
+  const meta = document.createElement('div'); meta.className = 'src-meta';
+  meta.textContent = v.id ? [
+    _fmtMB(v.bytes),
+
+    v.prompt_pair ? '짧은 참조 ✓' : '짧은 참조 ✗ (짧은 말이 늘어질 수 있음)',
+    v.ok === false ? '파일 없음' : '',
+  ].filter(Boolean).join(' · ') : '업로드 사용 안 함';
+  body.appendChild(meta);
+
+  if (v.id) {
+    const txt = document.createElement('div'); txt.className = 'src-meta';
+    txt.textContent = v.ref_text ? `“${v.ref_text}”` : '참조 문장 없음 — 발음이 흔들릴 수 있음';
+    body.appendChild(txt);
+  }
+  card.appendChild(body);
+
+  if (on) {
+    const chk = document.createElement('div');
+    chk.className = 'src-check'; chk.textContent = '✓';
+    card.appendChild(chk);
+  }
+  card.addEventListener('click', () => selectVoice(v.id || ''));
+
+  if (v.id) {
+    const del = document.createElement('button');
+    del.type = 'button'; del.className = 'src-del'; del.textContent = '삭제';
+
+    del.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (del.dataset.armed === '1') { deleteVoice(v.id); return; }
+      del.dataset.armed = '1'; del.textContent = '정말?';
+      setTimeout(() => { del.dataset.armed = ''; del.textContent = '삭제'; }, 4000);
+    });
+    card.appendChild(del);
+  }
+  return card;
+}
+
+async function loadVoices() {
+  const box = document.getElementById('voice-list');
+  if (!box) return;
+  let d;
+  try {
+    const r = await fetch('/voices', {headers: _labHeaders()});
+    if (r.status === 401) {          
+      box.textContent = '';
+      _showSourceAuth(true);
+      _setVoiceStatus('토큰을 넣어야 업로드 목록이 보입니다', 'bad');
+      return;
+    }
+    d = await r.json();
+  } catch (e) {
+    box.textContent = '음성 목록 조회 실패: ' + e; return;
+  }
+  if (d.error) { box.textContent = d.error; return; }
+  const rootEl = document.getElementById('voice-root');
+  if (rootEl) {
+    rootEl.textContent = `저장 위치 ${d.root} · 최대 ${d.max_mb}MB · `
+      + `허용 ${(d.exts || []).join(' ')}`;
+  }
+  const cur = document.getElementById('k_source_voice_source')?.value || '';
+  box.innerHTML = '';
+  box.appendChild(_voiceCard({id: ''}, cur));
+  for (const v of (d.voices || [])) box.appendChild(_voiceCard(v, cur));
+}
+
+async function selectVoice(id) {
+  const inp = document.getElementById('k_source_voice_source');
+  if (inp) inp.value = id;
+  try {
+    await fetch('/knobs', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({source: {voice_source: id}}),
+    });
+  } catch (e) {
+    _setVoiceStatus('저장 실패: ' + e, 'bad'); return;
+  }
+  saveKnobsLocal();   
+  _setVoiceStatus(id ? `선택: ${id} — 다음 통화부터 반영(끊고 다시 걸기)`
+                     : '클론 기본 목소리로 되돌림 — 다음 통화부터', 'ok');
+  await loadVoices();
+}
+
+async function uploadVoice() {
+  const fileEl = document.getElementById('voice-file');
+  const btn = document.getElementById('voice-upload-btn');
+  const refEl = document.getElementById('voice-ref-text');
+  const f = fileEl?.files?.[0];
+  if (!f) { _setVoiceStatus('파일을 먼저 고르세요', 'bad'); return; }
+  const fd = new FormData();
+  fd.append('file', f, f.name);
+  const ref = (refEl?.value || '').trim();
+  if (ref) fd.append('ref_text', ref);
+  btn.disabled = true;
+
+  _setVoiceStatus(ref ? `업로드 중… ${_fmtMB(f.size)}`
+                      : `업로드 중… ${_fmtMB(f.size)} (받아쓰기까지 하느라 조금 걸립니다)`, '');
+  try {
+    const r = await fetch('/voice/upload', {
+      method: 'POST', headers: _labHeaders(), body: fd,
+    });
+    if (r.status === 401) {
+      _showSourceAuth(true);
+      _setVoiceStatus('토큰이 필요합니다 — 렌더 소스 아래에 넣고 다시 업로드하세요', 'bad');
+      return;
+    }
+    if (r.status === 413) {          
+      _setVoiceStatus('용량 초과 — 프록시/서버 상한을 넘었습니다', 'bad'); return;
+    }
+    const d = await r.json();
+    if (!r.ok || d.error) { _setVoiceStatus(d.error || `실패(${r.status})`, 'bad'); return; }
+    fileEl.value = '';
+    if (refEl) refEl.value = '';
+
+    await selectVoice(d.id);
+    if (!d.ref_text) {
+      _setVoiceStatus(`업로드 완료 ${d.id} — 받아쓰기 실패(참조 문장 없이 합성). `
+        + '참조 문장을 직접 넣어 다시 올리면 발음이 안정됩니다', 'bad');
+    } else if (!d.prompt_pair) {
+      _setVoiceStatus(`업로드 완료 ${d.id} — 짧은 참조를 못 만들었습니다. `
+        + '짧은 말에서 늘어질 수 있습니다', 'bad');
+    } else {
+      _setVoiceStatus(`업로드 완료 ${d.id} — 다음 통화부터 반영`, 'ok');
+    }
+  } catch (e) {
+    _setVoiceStatus('업로드 실패: ' + e, 'bad');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteVoice(id) {
+  try {
+    const r = await fetch('/voice/delete', {
+      method: 'POST', headers: _labHeaders({'Content-Type': 'application/json'}),
+      body: JSON.stringify({id}),
+    });
+    const d = await r.json();
+
+    if (!r.ok || d.error) { _setVoiceStatus(d.error || `실패(${r.status})`, 'bad'); return; }
+    _setVoiceStatus(d.deleted ? `삭제: ${id}` : `없는 항목: ${id}`, d.deleted ? 'ok' : 'bad');
+  } catch (e) {
+    _setVoiceStatus('삭제 실패: ' + e, 'bad'); return;
+  }
+  const inp = document.getElementById('k_source_voice_source');
+  if (inp && inp.value === id) inp.value = '';   
+  loadVoices();
+}
+
+const KNOB_INPUT_SELECTOR =
+  '#knob-fields input, #knob-fields select, #latency-fields input, #latency-fields select';
+
+const KNOB_STORE_KEY = 'lab-tuner.knobs.v1';
+
+function saveKnobsLocal() {
+  const vals = {};
+  document.querySelectorAll(KNOB_INPUT_SELECTOR).forEach(inp => {
+    vals[`${inp.dataset.s}.${inp.dataset.k}`] = inp.value;   
+  });
+  try {
+    localStorage.setItem(KNOB_STORE_KEY, JSON.stringify(vals));
+  } catch (e) {
+
+    console.warn('[lab-tuner] 노브 저장 실패:', e);
+  }
+}
+
+function restoreKnobsLocal() {
+  let vals;
+  try {
+    const raw = localStorage.getItem(KNOB_STORE_KEY);
+    if (!raw) return {count: 0, vals: null};
+    vals = JSON.parse(raw);
+  } catch (e) { return {count: 0, vals: null}; }
+  if (!vals || typeof vals !== 'object') return {count: 0, vals: null};
+  const changed = new Set();
+  document.querySelectorAll(KNOB_INPUT_SELECTOR).forEach(inp => {
+    const key = `${inp.dataset.s}.${inp.dataset.k}`;
+    if (!(key in vals)) return;                    
+    if (inp.value === vals[key]) return;
+    inp.value = vals[key];
+    changed.add(key);
+  });
+  return {count: changed.size, changed, vals};
+}
+
+function clearKnobsLocal() {
+  try { localStorage.removeItem(KNOB_STORE_KEY); } catch (e) {  }
+}
+
+function _setApplyStatus(text, kind) {
+  for (const id of ['apply-status', 'apply-status-top']) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.textContent = text;                     
+    el.className = 'apply-status' + (kind ? ' ' + kind : '');
+  }
+}
+
+async function applyKnobs(only) {
+
+  const filter = (only instanceof Set) ? only : null;
   const partial = {};
-  document.querySelectorAll('#knob-fields input, #knob-fields select').forEach(inp => {
+  document.querySelectorAll(KNOB_INPUT_SELECTOR).forEach(inp => {
     const s = inp.dataset.s, k = inp.dataset.k; let v = inp.value;
+    if (filter && !filter.has(`${s}.${k}`)) return;
     if (v === '') return;
     if (v === 'true') v = true; else if (v === 'false') v = false;
     else {
@@ -272,14 +1108,53 @@ async function applyKnobs() {
     }
     (partial[s] ||= {})[k] = v;
   });
-  await fetch('/knobs', {method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify(partial)});
-  appliedKnobCount = Object.values(partial).reduce((n, o) => n + Object.keys(o).length, 0);
+
+  const sent = Object.values(partial).reduce((n, o) => n + Object.keys(o).length, 0);
+  _setApplyStatus(`적용 중… (${sent}개)`, '');
+
+  let merged;
+  try {
+    const resp = await fetch('/knobs', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(partial)});
+    if (!resp.ok) { _setApplyStatus(`적용 실패 — 서버 ${resp.status}`, 'bad'); return; }
+    merged = await resp.json();
+  } catch (e) {
+    _setApplyStatus(`적용 실패 — ${e}`, 'bad');
+    return;
+  }
+
+  const mismatched = [];
+  const needRestart = [];
+  for (const [sec, vals] of Object.entries(partial)) {
+    for (const [k, v] of Object.entries(vals)) {
+      const got = (merged[sec] || {})[k];
+      if (String(got) !== String(v)) mismatched.push(`${sec}.${k}(보냄 ${v} / 서버 ${got})`);
+      const rf = (KNOB_META_CACHE[`${sec}.${k}`] || {}).reflow;
+      if (rf === 'container' || rf === 'lab_restart' || rf === 'session') {
+        needRestart.push(`${sec}.${k}`);
+      }
+    }
+  }
+
+  appliedKnobCount = sent;
+  await loadKnobs();          
+  saveKnobsLocal();           
   renderMeter();
+
+  if (mismatched.length) {
+    _setApplyStatus(`반영 안 된 값 ${mismatched.length}개: ${mismatched.join(', ')}`, 'bad');
+  } else if (needRestart.length) {
+    _setApplyStatus(
+      `${sent}개 적용됨 — 단 ${needRestart.length}개는 재기동해야 먹습니다: ${needRestart.join(', ')}`,
+      'warn');
+  } else {
+    _setApplyStatus(`${sent}개 적용됨 · 다음 발화부터 반영`, 'ok');
+  }
 }
 
-function sendSay() {
-  const t = document.getElementById('say-input').value;
+function sendSay(text) {
+
+  const t = (text === undefined) ? document.getElementById('say-input').value : text;
   const cst = document.getElementById('conn-status');
   if (!dc || dc.readyState !== 'open') {
     cst.textContent = `say 불가 — dc:${dc ? dc.readyState : '없음'}(연결/개통 대기)`;
@@ -294,7 +1169,11 @@ function sendSay() {
 
 function startMetrics() {
   const es = new EventSource('/metrics');
-  es.onmessage = () => { renderMeter(); };
+  es.onmessage = (ev) => {
+    renderMeter();
+
+    try { renderLatency(JSON.parse(ev.data) || {}); } catch (e) {  }
+  };
 }
 
 async function pollLiveStatus() {
@@ -326,6 +1205,8 @@ async function loadRuns() {
   try {
     const runs = await (await fetch('/runs')).json();
     if (!runs.length) { box.innerHTML = '<i>run 없음</i>'; return; }
+
+    runs.reverse();
     let html = '<table><tr><th>run_id</th><th>pinned</th><th></th></tr>';
     for (const r of runs) {
       html += `<tr><td>${r.run_id}</td><td>${r.pinned ? '📌' : ''}</td>`+
@@ -406,6 +1287,79 @@ async function promoteApply() {
   } catch (e) { cbox.innerHTML = '<i>promote apply 실패</i>'; }
 }
 
+async function renderRestartShowConfirm() {
+  const cbox = document.getElementById('render-restart-confirm');
+  cbox.style.display = 'block';
+  cbox.innerHTML = '<div><i>바뀔 값 확인 중…</i></div>';
+  let rows = '', d = null;
+  try {
+    const r = await fetch('/promote/render-preview', {headers: _labHeaders()});
+    if (r.status === 401) {
+      _showSourceAuth(true);
+      cbox.innerHTML = '<div style="color:var(--red)">토큰이 필요합니다</div>';
+      return;
+    }
+    d = await r.json();
+  } catch (e) {
+    cbox.innerHTML = '<div style="color:var(--red)">미리보기 실패: ' + e + '</div>';
+    return;
+  }
+  if (d.error) {
+    cbox.innerHTML = '<div style="color:var(--red)">' + d.error + '</div>';
+    return;
+  }
+  if (!(d.changes || []).length) {
+    cbox.innerHTML = '<div>바뀔 값이 없습니다 — 재기동할 필요가 없습니다.</div>';
+    return;
+  }
+  for (const c of d.changes) {
+    rows += `<li><code>${escapeHtml(c.env)}</code> ${escapeHtml(String(c.current))}`
+          + ` → <b>${escapeHtml(String(c.new))}</b></li>`;
+  }
+  cbox.innerHTML =
+    '<div style="border:1px solid var(--red);border-radius:4px;padding:8px;margin-top:8px">' +
+    '<b>fifth 렌더서버 재기동 — 이 값들이 반영됩니다.</b>' +
+    `<ul style="margin:6px 0 8px 18px;font-size:11px">${rows}</ul>` +
+    '<b style="color:var(--red)">⚠️ 렌더서버는 라이브 통화와 공유합니다.</b> ' +
+    '진행 중인 라이브 통화가 있으면 요청이 거부되고, 없더라도 재기동 동안(약 10~30초) ' +
+    '통화를 걸 수 없습니다. 기동에 실패하면 자동으로 이전 설정으로 되돌립니다.<br>' +
+    '<button id="render-restart-go" class="primary">확인·재기동</button> ' +
+    '<button id="render-restart-cancel">취소</button></div>';
+  document.getElementById('render-restart-go').onclick = renderRestartApply;
+  document.getElementById('render-restart-cancel').onclick = () => { cbox.style.display = 'none'; };
+}
+
+async function renderRestartApply() {
+  const cbox = document.getElementById('render-restart-confirm');
+  cbox.innerHTML = '<div><i>재기동 중… 렌더서버가 다시 뜰 때까지 기다립니다(최대 30초)</i></div>';
+  let r, d;
+  try {
+    r = await fetch('/promote/render-restart', {
+      method: 'POST', headers: _labHeaders({'Content-Type': 'application/json'}),
+      body: JSON.stringify({confirm: 'RESTART_RENDER', confirm2: true}),
+    });
+    d = await r.json();
+  } catch (e) {
+    cbox.innerHTML = '<div style="color:var(--red)">재기동 실패: ' + e + '</div>';
+    return;
+  }
+  if (r.status === 409) {
+
+    cbox.innerHTML = '<div style="color:var(--red)"><b>라이브 통화 진행 중이라 거부됐습니다.</b><br>'
+      + escapeHtml(d.error || '') + ' 통화가 끝난 뒤 다시 눌러주세요.</div>';
+    return;
+  }
+  if (!r.ok || d.error || d.rolled_back) {
+    cbox.innerHTML = '<div style="color:var(--red)"><b>반영되지 않았습니다.</b><br>'
+      + escapeHtml(d.error || `실패(${r.status})`) + '</div>';
+    return;
+  }
+  clearRenderDirty();
+  cbox.innerHTML = '<div style="color:var(--green)"><b>렌더서버 재기동 완료 — 값이 반영됐습니다.</b><br>'
+    + `${(d.changes || []).length}개 적용. 다음 통화부터 새 값으로 렌더됩니다.</div>`;
+  loadRenderRuntime(); loadFlpConfig();
+}
+
 async function restartShowConfirm() {
   const cbox = document.getElementById('restart-confirm');
   cbox.style.display = 'block';
@@ -470,6 +1424,7 @@ async function restartApply() {
       `새 프로세스 기동 대기중…</div>`;
     const started = await pollForNewMainPid(oldMainPid, cbox);
     if (started) {
+      clearRestartDirty();   
       cbox.innerHTML = `<div>재기동 완료(MainPID:${escapeHtml(lastProdMainPid)}) — 실행값 갱신됨</div>`;
       await loadProdStatus();
     } else {
@@ -487,10 +1442,14 @@ async function loadDevToken() {
   } catch (e) {  }
 }
 
-document.getElementById('apply-knobs').onclick = applyKnobs;
+document.getElementById('apply-knobs').onclick = () => applyKnobs();
 document.getElementById('promote').onclick = promotePreview;
 document.getElementById('restart-prethird').onclick = restartShowConfirm;
-document.getElementById('say-btn').onclick = sendSay;
+document.getElementById('say-btn').onclick = () => sendSay();
+
+document.querySelectorAll('.quick-say-btn').forEach(b => {
+  b.onclick = () => sendSay(b.dataset.text);
+});
 document.getElementById('say-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.isComposing) {   
     e.preventDefault();
@@ -505,7 +1464,86 @@ document.getElementById('login-btn').onclick = login;
 document.getElementById('connect-btn').onclick = connect;
 document.getElementById('hangup-btn').onclick = hangup;
 
-loadKnobs(); startMetrics(); loadRuns(); loadProdStatus(); loadDevToken();
+loadKnobs().then(async () => {
+  const {count, changed, vals} = restoreKnobsLocal();
+  if (count) {
+    _setApplyStatus(`이 브라우저에 저장된 노브 ${count}개 복원 중…`, '');
+    await applyKnobs(changed);   
+  }
+
+  if (vals && 'source.render_source' in vals) {
+    await selectSource(vals['source.render_source']);
+  } else {
+    await loadSources();
+  }
+
+  if (vals && 'source.voice_source' in vals) {
+    await selectVoice(vals['source.voice_source']);
+  } else {
+    await loadVoices();
+  }
+  if (count) _setApplyStatus(`이 브라우저에 저장된 노브 ${count}개를 복원했습니다`, 'ok');
+});
+document.getElementById('clear-saved')?.addEventListener('click', () => {
+  clearKnobsLocal();
+  _setApplyStatus('이 브라우저 저장값을 지웠습니다 — 다음 새로고침부터 서버 값 그대로', 'warn');
+});
+document.getElementById('restart-render')?.addEventListener('click', renderRestartShowConfirm);
+document.getElementById('source-upload-btn')?.addEventListener('click', uploadSource);
+document.getElementById('voice-upload-btn')?.addEventListener('click', uploadVoice);
+
+function _retryWithToken() {
+  _setSourceStatus('토큰 확인 중…', '');
+  loadSources();
+  loadVoices();
+}
+document.getElementById('source-token-btn')?.addEventListener('click', _retryWithToken);
+document.getElementById('source-token')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') _retryWithToken();
+});
+startMetrics(); loadRuns(); loadProdStatus(); loadDevToken();
+loadRenderRuntime(); loadFlpConfig();
+document.getElementById('refresh-flp')?.addEventListener('click', () => {
+  loadRenderRuntime(); loadFlpConfig();
+});
+
+pollRenderLogs();
+setInterval(pollRenderLogs, 2000);
+document.getElementById('log-pause')?.addEventListener('click', (e) => {
+  renderLogPaused = !renderLogPaused;
+  e.target.textContent = renderLogPaused ? '재개' : '일시정지';
+});
+document.getElementById('log-clear')?.addEventListener('click', () => {
+  const box = document.getElementById('render-log');
+  if (box) box.innerHTML = '';
+});
+
+document.getElementById('apply-knobs-top')?.addEventListener('click', () => applyKnobs());
+
+document.getElementById('restart-top')?.addEventListener('click', () => {
+  document.getElementById('restart-prethird')?.scrollIntoView({block: 'center'});
+  restartShowConfirm();
+});
+
+document.getElementById('toggle-locks')?.addEventListener('click', (e) => {
+  const anyOn = LOCK_SWITCHES.some(k =>
+    document.getElementById(`k_fifth_${k}`)?.value === 'true');
+  const next = anyOn ? 'false' : 'true';
+  for (const k of LOCK_SWITCHES) {
+    const el = document.getElementById(`k_fifth_${k}`);
+    if (el) el.value = next;
+  }
+  e.target.textContent = next === 'true' ? '잠금 전체 끄기' : '잠금 전체 켜기';
+  refreshLockWarnings();
+
+  _setApplyStatus(`잠금 4종을 전부 ${next === 'true' ? '켰습니다' : '껐습니다'} — 적용을 누르면 다음 발화부터 반영`, 'warn');
+});
+
+document.getElementById('toggle-compact')?.addEventListener('click', (e) => {
+  const on = document.body.classList.toggle('compact');
+  e.target.textContent = on ? '설명 펼치기' : '압축 보기';
+  refreshLockWarnings();   
+});
 renderMeter();
 pollLiveStatus();
 setInterval(pollLiveStatus, 3000);
