@@ -139,9 +139,34 @@ export default function v_e2119c() {
     try {
       const v_965edf = Date.now();
 
-      v_5193f8('g2p 실행 중…');
+      let v_df5436 = v_9b6134;
+      const v_2f361a = v_9b6134.trim();
+      const v_409404 = /^안녕([\s,.\!?]|$)/;
+      if (v_409404.test(v_2f361a)) {
+        v_5193f8('pre-recorded 재생 중…');
+        const v_66b303 = v_da5c4b.fromModule(
+          require('../../../assets/tts/greetings/halbae_annyeong.wav'),
+        );
+        if (!v_66b303.localUri) await v_66b303.downloadAsync();
+        v_f4fa42.current?.remove();
+        const v_cce341 = v_e82960(v_66b303.localUri!);
+        v_f4fa42.current = v_cce341;
+        v_cce341.play();
+        const v_83bbcd = v_2f361a.replace(/^안녕[\s,.\!?]*/, '').trim();
+        if (!v_83bbcd) {
+          v_5193f8('완료 (pre-recorded)');
+          v_ab79a4(0.8);
+          return;
+        }
 
-      let v_f0c8d3 = v_9b6134
+        await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 900));
+        v_df5436 = v_83bbcd;
+        v_5193f8(`이어붙임 TTS: "${v_83bbcd}"`);
+      }
+
+      v_5193f8((v_ba2215) => (v_ba2215.startsWith('이어붙임') ? v_ba2215 : 'g2p 실행 중…'));
+
+      let v_f0c8d3 = v_df5436
         .replace(/예요/g, '에요')
         .replace(/이에요/g, '이애요');
 
