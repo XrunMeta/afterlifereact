@@ -368,7 +368,7 @@ export const BENCHMARK_HTML = `<!DOCTYPE html>
         <figure>
           <video autoplay muted loop playsinline preload="metadata"
                  src="data:video/mp4;base64,${FRESH_B64}"></video>
-          <figcaption><strong>SAMPLE B</strong> 감정 표현 렌더 · fresh</figcaption>
+          <figcaption><strong>SAMPLE B</strong> 미소</figcaption>
         </figure>
         <figure>
           <video autoplay muted loop playsinline preload="metadata"
