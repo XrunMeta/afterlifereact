@@ -110,6 +110,8 @@ export default function TtsLocalPocScreen() {
   const [previewingId, setPreviewingId] = useState<number | null>(null);
   const previewPlayerRef = useRef<AudioPlayer | null>(null);
 
+  const [activeVoice, setActiveVoice] = useState<CatalogVoice | null>(null);
+
   useEffect(() => {
 
     setStatus('g2p 로드 중…');
@@ -282,6 +284,15 @@ export default function TtsLocalPocScreen() {
           placeholder="한국어 텍스트를 입력하세요"
         />
 
+        <View style={s.activeVoiceRow}>
+          <Text style={s.activeVoiceLabel}>현재 목소리</Text>
+          <Text style={s.activeVoiceName}>
+            {activeVoice
+              ? activeVoice.name
+              : '(선택 안 됨 · 로컬 halbae 로 실행)'}
+          </Text>
+        </View>
+
         <TouchableOpacity style={s.btn} onPress={handleRun}>
           <Text style={s.btnText}>실행</Text>
         </TouchableOpacity>
@@ -320,8 +331,12 @@ export default function TtsLocalPocScreen() {
             >
               {voices.map((v) => {
                 const isPlaying = v.id === previewingId;
+                const isActive = activeVoice?.id === v.id;
                 return (
-                  <View key={v.id} style={s.voiceItem}>
+                  <View
+                    key={v.id}
+                    style={[s.voiceItem, isActive && s.voiceItemActive]}
+                  >
                     <Text style={s.voiceItemName}>{v.name}</Text>
                     {(v.gender || v.ageRange) && (
                       <Text style={s.voiceItemMeta}>
@@ -334,6 +349,22 @@ export default function TtsLocalPocScreen() {
                     >
                       <Text style={s.voicePreviewBtnText}>
                         {isPlaying ? '■ 정지' : '▶ 미리듣기'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        s.voiceApplyBtn,
+                        isActive && s.voiceApplyBtnActive,
+                      ]}
+                      onPress={() => setActiveVoice(isActive ? null : v)}
+                    >
+                      <Text
+                        style={[
+                          s.voiceApplyBtnText,
+                          isActive && s.voiceApplyBtnTextActive,
+                        ]}
+                      >
+                        {isActive ? '✓ 적용됨' : '적용하기'}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -462,5 +493,53 @@ const s = StyleSheet.create({
     fontSize: 11,
     color: COLORS.white,
     fontWeight: '600',
+  },
+  voiceItemActive: {
+    borderColor: COLORS.violet500,
+    backgroundColor: COLORS.violet50 ?? '#F5F3FF',
+  },
+  voiceApplyBtn: {
+    marginTop: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: COLORS.violet500,
+    alignSelf: 'flex-start',
+  },
+  voiceApplyBtnText: {
+    fontSize: 11,
+    color: COLORS.violet500,
+    fontWeight: '600',
+  },
+  voiceApplyBtnActive: {
+    backgroundColor: COLORS.violet500,
+    borderColor: COLORS.violet500,
+  },
+  voiceApplyBtnTextActive: {
+    color: COLORS.white,
+  },
+  activeVoiceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: COLORS.zinc50,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+  },
+  activeVoiceLabel: {
+    fontSize: 11,
+    color: COLORS.zinc500,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  activeVoiceName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.zinc900,
+    flex: 1,
   },
 });
