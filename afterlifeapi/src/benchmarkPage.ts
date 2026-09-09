@@ -1,6 +1,6 @@
 
 
-import { v_5c17a3, v_4e79d8, v_f6758c } from "./benchmarkVideos";
+import { v_3c06d1, v_12fa2b, v_f6758c } from "./benchmarkVideos";
 
 export const v_790962 = `<!DOCTYPE html>
 <html lang="ko">
@@ -369,13 +369,13 @@ export const v_790962 = `<!DOCTYPE html>
       <div class="video-grid" aria-label="EchoMimicV3 실측 렌더 샘플">
         <figure>
           <video autoplay muted loop playsinline preload="metadata"
-                 src="data:video/mp4;base64,${v_5c17a3}"></video>
-          <figcaption><strong>SAMPLE A</strong> 자연스러움 실측 · smile</figcaption>
+                 src="data:video/mp4;base64,${v_3c06d1}"></video>
+          <figcaption><strong>SAMPLE A</strong> 2초 발화 · 8step · 768</figcaption>
         </figure>
         <figure>
           <video autoplay muted loop playsinline preload="metadata"
-                 src="data:video/mp4;base64,${v_4e79d8}"></video>
-          <figcaption><strong>SAMPLE B</strong> 미소</figcaption>
+                 src="data:video/mp4;base64,${v_12fa2b}"></video>
+          <figcaption><strong>SAMPLE B</strong> 감정 렌더 · happy</figcaption>
         </figure>
       </div>
       <div class="prose">
