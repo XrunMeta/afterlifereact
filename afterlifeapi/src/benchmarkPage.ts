@@ -1,6 +1,6 @@
 
 
-import { SMILE_B64, FRESH_B64, JAMO_B64 } from "./benchmarkVideos";
+import { B1_B64, HAPPY_B64, JAMO_B64 } from "./benchmarkVideos";
 
 export const BENCHMARK_HTML = `<!DOCTYPE html>
 <html lang="ko">
@@ -369,13 +369,13 @@ export const BENCHMARK_HTML = `<!DOCTYPE html>
       <div class="video-grid" aria-label="EchoMimicV3 실측 렌더 샘플">
         <figure>
           <video autoplay muted loop playsinline preload="metadata"
-                 src="data:video/mp4;base64,${SMILE_B64}"></video>
-          <figcaption><strong>SAMPLE A</strong> 자연스러움 실측 · smile</figcaption>
+                 src="data:video/mp4;base64,${B1_B64}"></video>
+          <figcaption><strong>SAMPLE A</strong> 2초 발화 · 8step · 768</figcaption>
         </figure>
         <figure>
           <video autoplay muted loop playsinline preload="metadata"
-                 src="data:video/mp4;base64,${FRESH_B64}"></video>
-          <figcaption><strong>SAMPLE B</strong> 미소</figcaption>
+                 src="data:video/mp4;base64,${HAPPY_B64}"></video>
+          <figcaption><strong>SAMPLE B</strong> 감정 렌더 · happy</figcaption>
         </figure>
       </div>
       <div class="prose">
