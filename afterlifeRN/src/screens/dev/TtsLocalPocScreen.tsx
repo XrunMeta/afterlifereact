@@ -139,9 +139,34 @@ export default function TtsLocalPocScreen() {
     try {
       const start = Date.now();
 
-      setStatus('g2p 실행 중…');
+      let effectiveText = text;
+      const trimmed = text.trim();
+      const greetPrefix = /^안녕([\s,.\!?]|$)/;
+      if (greetPrefix.test(trimmed)) {
+        setStatus('pre-recorded 재생 중…');
+        const greetAsset = Asset.fromModule(
+          require('../../../assets/tts/greetings/halbae_annyeong.wav'),
+        );
+        if (!greetAsset.localUri) await greetAsset.downloadAsync();
+        soundRef.current?.remove();
+        const greetPlayer = createAudioPlayer(greetAsset.localUri!);
+        soundRef.current = greetPlayer;
+        greetPlayer.play();
+        const rest = trimmed.replace(/^안녕[\s,.\!?]*/, '').trim();
+        if (!rest) {
+          setStatus('완료 (pre-recorded)');
+          setDuration(0.8);
+          return;
+        }
 
-      let preNormalized = text
+        await new Promise((r) => setTimeout(r, 900));
+        effectiveText = rest;
+        setStatus(`이어붙임 TTS: "${rest}"`);
+      }
+
+      setStatus((prev) => (prev.startsWith('이어붙임') ? prev : 'g2p 실행 중…'));
+
+      let preNormalized = effectiveText
         .replace(/예요/g, '에요')
         .replace(/이에요/g, '이애요');
 
