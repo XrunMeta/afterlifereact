@@ -110,6 +110,8 @@ export default function v_e2119c() {
   const [v_aa617a, v_b76e01] = v_5ab095<number | null>(null);
   const v_b53f6c = v_e662ae<v_0eab75 | null>(null);
 
+  const [v_afec1b, v_a684ce] = v_5ab095<v_d80981 | null>(null);
+
   v_c4deb2(() => {
 
     v_5193f8('g2p 로드 중…');
@@ -282,6 +284,15 @@ export default function v_e2119c() {
           placeholder="한국어 텍스트를 입력하세요"
         />
 
+        <View style={v_fd5f43.activeVoiceRow}>
+          <Text style={v_fd5f43.activeVoiceLabel}>현재 목소리</Text>
+          <Text style={v_fd5f43.activeVoiceName}>
+            {v_afec1b
+              ? v_afec1b.name
+              : '(선택 안 됨 · 로컬 halbae 로 실행)'}
+          </Text>
+        </View>
+
         <TouchableOpacity style={v_fd5f43.btn} onPress={v_fbef80}>
           <Text style={v_fd5f43.btnText}>실행</Text>
         </TouchableOpacity>
@@ -320,8 +331,12 @@ export default function v_e2119c() {
             >
               {v_53e1f3.map((v_81e2ef) => {
                 const v_087c92 = v_81e2ef.id === v_aa617a;
+                const v_26dce6 = v_afec1b?.id === v_81e2ef.id;
                 return (
-                  <View key={v_81e2ef.id} style={v_fd5f43.voiceItem}>
+                  <View
+                    key={v_81e2ef.id}
+                    style={[v_fd5f43.voiceItem, v_26dce6 && v_fd5f43.voiceItemActive]}
+                  >
                     <Text style={v_fd5f43.voiceItemName}>{v_81e2ef.name}</Text>
                     {(v_81e2ef.gender || v_81e2ef.ageRange) && (
                       <Text style={v_fd5f43.voiceItemMeta}>
@@ -334,6 +349,22 @@ export default function v_e2119c() {
                     >
                       <Text style={v_fd5f43.voicePreviewBtnText}>
                         {v_087c92 ? '■ 정지' : '▶ 미리듣기'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        v_fd5f43.voiceApplyBtn,
+                        v_26dce6 && v_fd5f43.voiceApplyBtnActive,
+                      ]}
+                      onPress={() => v_a684ce(v_26dce6 ? null : v_81e2ef)}
+                    >
+                      <Text
+                        style={[
+                          v_fd5f43.voiceApplyBtnText,
+                          v_26dce6 && v_fd5f43.voiceApplyBtnTextActive,
+                        ]}
+                      >
+                        {v_26dce6 ? '✓ 적용됨' : '적용하기'}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -462,5 +493,53 @@ const v_fd5f43 = v_472849.create({
     fontSize: 11,
     color: v_1bfbd0.white,
     fontWeight: '600',
+  },
+  voiceItemActive: {
+    borderColor: v_1bfbd0.violet500,
+    backgroundColor: v_1bfbd0.violet50 ?? '#F5F3FF',
+  },
+  voiceApplyBtn: {
+    marginTop: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.violet500,
+    alignSelf: 'flex-start',
+  },
+  voiceApplyBtnText: {
+    fontSize: 11,
+    color: v_1bfbd0.violet500,
+    fontWeight: '600',
+  },
+  voiceApplyBtnActive: {
+    backgroundColor: v_1bfbd0.violet500,
+    borderColor: v_1bfbd0.violet500,
+  },
+  voiceApplyBtnTextActive: {
+    color: v_1bfbd0.white,
+  },
+  activeVoiceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: v_1bfbd0.zinc50,
+    borderRadius: v_8b0c90.md,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+  },
+  activeVoiceLabel: {
+    fontSize: 11,
+    color: v_1bfbd0.zinc500,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  activeVoiceName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: v_1bfbd0.zinc900,
+    flex: 1,
   },
 });
