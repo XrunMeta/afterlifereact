@@ -1,6 +1,6 @@
 
 
-import { SMILE_B64, FRESH_B64, HAPPY_B64 } from "./benchmarkVideos";
+import { SMILE_B64, FRESH_B64 } from "./benchmarkVideos";
 
 export const BENCHMARK_HTML = `<!DOCTYPE html>
 <html lang="ko">
@@ -197,10 +197,9 @@ export const BENCHMARK_HTML = `<!DOCTYPE html>
 
   .video-grid {
     grid-column: 1 / -1; margin: 4px 0 30px;
-    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px;
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px;
   }
-  @media (max-width: 900px) { .video-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; } }
-  @media (max-width: 560px) { .video-grid { grid-template-columns: 1fr; gap: 14px; } }
+  @media (max-width: 700px) { .video-grid { grid-template-columns: 1fr; gap: 14px; } }
   .video-grid figure { margin: 0; }
   .video-grid video {
     width: 100%; aspect-ratio: 1 / 1; display: block; object-fit: cover;
@@ -369,11 +368,6 @@ export const BENCHMARK_HTML = `<!DOCTYPE html>
           <video autoplay muted loop playsinline preload="metadata"
                  src="data:video/mp4;base64,${FRESH_B64}"></video>
           <figcaption><strong>SAMPLE B</strong> 미소</figcaption>
-        </figure>
-        <figure>
-          <video autoplay muted loop playsinline preload="metadata"
-                 src="data:video/mp4;base64,${HAPPY_B64}"></video>
-          <figcaption><strong>SAMPLE C</strong> 팀 로컬 실측 · happy 데모</figcaption>
         </figure>
       </div>
       <div class="prose">
