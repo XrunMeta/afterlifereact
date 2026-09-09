@@ -1,6 +1,6 @@
 
 
-import { SMILE_B64, FRESH_B64, HAPPY_B64 } from "./benchmarkVideos";
+import { B1_B64, HAPPY_B64, JAMO_B64 } from "./benchmarkVideos";
 
 export const BENCHMARK_HTML = `<!DOCTYPE html>
 <html lang="ko">
@@ -197,11 +197,11 @@ export const BENCHMARK_HTML = `<!DOCTYPE html>
 
   .video-grid {
     grid-column: 1 / -1; margin: 4px 0 30px;
-    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px;
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px;
   }
-  @media (max-width: 900px) { .video-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; } }
-  @media (max-width: 560px) { .video-grid { grid-template-columns: 1fr; gap: 14px; } }
+  @media (max-width: 700px) { .video-grid { grid-template-columns: 1fr; gap: 14px; } }
   .video-grid figure { margin: 0; }
+  .video-grid .video-solo { grid-column: 1 / -1; max-width: 480px; margin: 0 auto; width: 100%; }
   .video-grid video {
     width: 100%; aspect-ratio: 1 / 1; display: block; object-fit: cover;
     background: var(--paper);
@@ -314,6 +314,13 @@ export const BENCHMARK_HTML = `<!DOCTYPE html>
         자모별 입 모양을 미리 촬영해 TTS 순서에 맞춰
         이어붙이는 가장 단순한 접근.
       </p>
+      <div class="video-grid" aria-label="자모 프레임 캡처 실측">
+        <figure class="video-solo">
+          <video autoplay muted loop playsinline preload="metadata"
+                 src="data:video/mp4;base64,${JAMO_B64}"></video>
+          <figcaption><strong>자모 14장 이어붙임</strong> 5차 시제 실측 · 뚝뚝 끊긴다</figcaption>
+        </figure>
+      </div>
       <div class="prose">
         <p>
           자연스럽게 보이려면 5초 발화당 대략 2,000장의 프레임이 필요하다.
@@ -362,18 +369,13 @@ export const BENCHMARK_HTML = `<!DOCTYPE html>
       <div class="video-grid" aria-label="EchoMimicV3 실측 렌더 샘플">
         <figure>
           <video autoplay muted loop playsinline preload="metadata"
-                 src="data:video/mp4;base64,${SMILE_B64}"></video>
-          <figcaption><strong>SAMPLE A</strong> 자연스러움 실측 · smile</figcaption>
-        </figure>
-        <figure>
-          <video autoplay muted loop playsinline preload="metadata"
-                 src="data:video/mp4;base64,${FRESH_B64}"></video>
-          <figcaption><strong>SAMPLE B</strong> 미소</figcaption>
+                 src="data:video/mp4;base64,${B1_B64}"></video>
+          <figcaption><strong>SAMPLE A</strong> 2초 발화 · 8step · 768</figcaption>
         </figure>
         <figure>
           <video autoplay muted loop playsinline preload="metadata"
                  src="data:video/mp4;base64,${HAPPY_B64}"></video>
-          <figcaption><strong>SAMPLE C</strong> 팀 로컬 실측 · happy 데모</figcaption>
+          <figcaption><strong>SAMPLE B</strong> 감정 렌더 · happy</figcaption>
         </figure>
       </div>
       <div class="prose">
