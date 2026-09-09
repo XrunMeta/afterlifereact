@@ -1,6 +1,6 @@
 
 
-import { v_3c06d1, v_12fa2b, v_f6758c } from "./benchmarkVideos";
+import { v_3c06d1, v_12fa2b, v_f6758c, v_1b1071 } from "./benchmarkVideos";
 
 export const v_790962 = `<!DOCTYPE html>
 <html lang="ko">
@@ -415,6 +415,13 @@ export const v_790962 = `<!DOCTYPE html>
         기본 얼굴 영상은 미리 만들어 재생하고, 음성에 맞춰
         입 영역만 실시간으로 덧그린다.
       </p>
+      <div class="video-grid" aria-label="MuseTalk 실측">
+        <figure class="video-solo">
+          <video autoplay muted loop playsinline preload="metadata"
+                 src="data:video/mp4;base64,${v_1b1071}"></video>
+          <figcaption><strong>gabia 실측</strong> MuseTalk 리포 셋업 후 렌더 · 입 모양 정확도 낮음</figcaption>
+        </figure>
+      </div>
       <div class="prose">
         <p>
           속도는 세 방식 중 유일하게 실시간에 도달한다. 그러나 입 모양
