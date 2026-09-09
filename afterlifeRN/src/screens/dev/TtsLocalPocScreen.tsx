@@ -10,8 +10,15 @@ import { v_1bfbd0, v_9b1a04, v_8b0c90 } from '../../components/constants';
 import v_556baf from '../../components/ui/SafeView';
 import { v_be46cf } from '../../text/g2pk-js';
 import { v_4bb4ce } from '../../text/g2pk-js/jamo';
-import { v_3ee8c0, type v_d80981 } from '../../api/clones';
-import { v_1ed7d9 } from '../../stores/authStore';
+
+const v_98dff2 = [
+  {
+    id: 9053,
+    name: '차분한 청년 남성 (할배)',
+    asset: require('../../../assets/tts/halbae_9053.onnx'),
+  },
+] as const;
+type LocalVoice = (typeof v_98dff2)[number];
 
 const v_34ca2a = {
   '_': 0, ',': 1, '.': 2, '!': 3, '?': 4, '…': 5, '~': 6,
@@ -104,13 +111,9 @@ export default function v_e2119c() {
   const v_f4a23b = v_e662ae<ReturnType<typeof v_be46cf> | null>(null);
   const v_f4fa42 = v_e662ae<v_0eab75 | null>(null);
 
-  const v_d61830 = v_e662ae<any>(null);
+  const v_d61830 = v_e662ae<{ voiceId: number; session: any } | null>(null);
 
-  const [v_53e1f3, v_de0f36] = v_5ab095<v_d80981[]>([]);
-  const [v_aa617a, v_b76e01] = v_5ab095<number | null>(null);
-  const v_b53f6c = v_e662ae<v_0eab75 | null>(null);
-
-  const [v_afec1b, v_a684ce] = v_5ab095<v_d80981 | null>(null);
+  const [v_afec1b, v_a684ce] = v_5ab095<LocalVoice>(v_98dff2[0]);
 
   v_c4deb2(() => {
 
@@ -123,36 +126,10 @@ export default function v_e2119c() {
         v_5193f8(`g2p 로드 실패: ${v_49263d}`);
       }
     }, 100);
-
-    const v_2ca7e0 = v_1ed7d9.getState().accessToken;
-    if (v_2ca7e0) {
-      v_3ee8c0(v_2ca7e0)
-        .then(v_de0f36)
-        .catch((v_49263d) => console.warn('[TtsLocalPoc] getVoices failed:', v_49263d));
-    }
     return () => {
       v_f4fa42.current?.remove();
-      v_b53f6c.current?.remove();
     };
   }, []);
-
-  const v_1bf8db = (v: v_d80981) => {
-    v_b53f6c.current?.remove();
-    v_b53f6c.current = null;
-    if (v_aa617a === v_81e2ef.id) {
-      v_b76e01(null);
-      return;
-    }
-    if (!v_81e2ef.sampleUrl) return;
-    try {
-      const v_86394a = v_e82960(v_81e2ef.sampleUrl);
-      v_b53f6c.current = v_86394a;
-      v_b76e01(v_81e2ef.id);
-      v_86394a.play();
-    } catch (v_49263d) {
-      console.warn('[TtsLocalPoc] preview failed:', v_49263d);
-    }
-  };
 
   const v_fbef80 = v_de06a3(async () => {
     if (!v_f4a23b.current) {
@@ -190,10 +167,12 @@ export default function v_e2119c() {
       const v_a5c994 = Date.now();
       const { InferenceSession: v_eee163, Tensor: v_239850 } = await import('xwvwngpckyeydbryrllvuafz');
 
-      let v_a3ff5a = v_d61830.current;
+      let v_a3ff5a = v_d61830.current?.voiceId === v_afec1b.id
+        ? v_d61830.current.session
+        : null;
       if (!v_a3ff5a) {
-        v_5193f8('ONNX 초회 로드… (~130s)');
-        const v_b76cd8 = v_da5c4b.fromModule(require('../../../assets/tts/halbae_9053.onnx'));
+        v_5193f8(`ONNX 초회 로드… (${v_afec1b.name})`);
+        const v_b76cd8 = v_da5c4b.fromModule(v_afec1b.asset);
         if (!v_b76cd8.localUri) {
           await v_b76cd8.downloadAsync();
         }
@@ -201,7 +180,7 @@ export default function v_e2119c() {
         if (!v_3e9268) throw new Error('ONNX asset localUri 확보 실패');
         const v_5006e1 = v_3e9268.replace(/^file:\/\//, '');
         v_a3ff5a = await v_eee163.create(v_5006e1);
-        v_d61830.current = v_a3ff5a;
+        v_d61830.current = { voiceId: v_afec1b.id, session: v_a3ff5a };
       }
       v_5193f8('추론 중…');
 
@@ -266,7 +245,7 @@ export default function v_e2119c() {
       v_5193f8(`에러: ${v_49263d}`);
       console.error('[TtsLocalPoc]', v_49263d);
     }
-  }, [v_9b6134]);
+  }, [v_9b6134, v_afec1b]);
 
   return (
     <SafeView backgroundColor={v_1bfbd0.zinc50}>
@@ -286,11 +265,7 @@ export default function v_e2119c() {
 
         <View style={v_fd5f43.activeVoiceRow}>
           <Text style={v_fd5f43.activeVoiceLabel}>현재 목소리</Text>
-          <Text style={v_fd5f43.activeVoiceName}>
-            {v_afec1b
-              ? v_afec1b.name
-              : '(선택 안 됨 · 로컬 halbae 로 실행)'}
-          </Text>
+          <Text style={v_fd5f43.activeVoiceName}>{v_afec1b.name}</Text>
         </View>
 
         <TouchableOpacity style={v_fd5f43.btn} onPress={v_fbef80}>
@@ -316,62 +291,45 @@ export default function v_e2119c() {
 
         {}
         <View style={v_fd5f43.voicesSection}>
-          <Text style={v_fd5f43.voicesTitle}>등록된 목소리 (서버 카탈로그)</Text>
+          <Text style={v_fd5f43.voicesTitle}>로컬 실행 목소리</Text>
           <Text style={v_fd5f43.voicesHint}>
-            ▶ 미리듣기 는 서버에 업로드된 샘플 재생.{'\n'}
-            로컬 ONNX 는 halbae 하나만 앱에 번들. 다른 목소리 로컬 실행은 각 ONNX 를 앱에 넣어야 함.
+            앱에 ONNX 가 번들된 목소리만 노출. 다른 preset 을 추가하려면
+            해당 ONNX 를 assets/tts/ 에 넣고 LOCAL_VOICES 에 등록.
           </Text>
-          {v_53e1f3.length === 0 ? (
-            <Text style={v_fd5f43.voicesEmpty}>(등록된 목소리 없음 or 아직 로딩 중)</Text>
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={v_fd5f43.voicesRow}
-            >
-              {v_53e1f3.map((v_81e2ef) => {
-                const v_087c92 = v_81e2ef.id === v_aa617a;
-                const v_26dce6 = v_afec1b?.id === v_81e2ef.id;
-                return (
-                  <View
-                    key={v_81e2ef.id}
-                    style={[v_fd5f43.voiceItem, v_26dce6 && v_fd5f43.voiceItemActive]}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={v_fd5f43.voicesRow}
+          >
+            {v_98dff2.map((v_81e2ef) => {
+              const v_26dce6 = v_afec1b.id === v_81e2ef.id;
+              return (
+                <View
+                  key={v_81e2ef.id}
+                  style={[v_fd5f43.voiceItem, v_26dce6 && v_fd5f43.voiceItemActive]}
+                >
+                  <Text style={v_fd5f43.voiceItemName}>{v_81e2ef.name}</Text>
+                  <TouchableOpacity
+                    style={[
+                      v_fd5f43.voiceApplyBtn,
+                      v_26dce6 && v_fd5f43.voiceApplyBtnActive,
+                    ]}
+                    onPress={() => v_a684ce(v_81e2ef)}
+                    disabled={v_26dce6}
                   >
-                    <Text style={v_fd5f43.voiceItemName}>{v_81e2ef.name}</Text>
-                    {(v_81e2ef.gender || v_81e2ef.ageRange) && (
-                      <Text style={v_fd5f43.voiceItemMeta}>
-                        {[v_81e2ef.gender, v_81e2ef.ageRange].filter(Boolean).join(' · ')}
-                      </Text>
-                    )}
-                    <TouchableOpacity
-                      style={v_fd5f43.voicePreviewBtn}
-                      onPress={() => v_1bf8db(v_81e2ef)}
-                    >
-                      <Text style={v_fd5f43.voicePreviewBtnText}>
-                        {v_087c92 ? '■ 정지' : '▶ 미리듣기'}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
+                    <Text
                       style={[
-                        v_fd5f43.voiceApplyBtn,
-                        v_26dce6 && v_fd5f43.voiceApplyBtnActive,
+                        v_fd5f43.voiceApplyBtnText,
+                        v_26dce6 && v_fd5f43.voiceApplyBtnTextActive,
                       ]}
-                      onPress={() => v_a684ce(v_26dce6 ? null : v_81e2ef)}
                     >
-                      <Text
-                        style={[
-                          v_fd5f43.voiceApplyBtnText,
-                          v_26dce6 && v_fd5f43.voiceApplyBtnTextActive,
-                        ]}
-                      >
-                        {v_26dce6 ? '✓ 적용됨' : '적용하기'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                );
-              })}
-            </ScrollView>
-          )}
+                      {v_26dce6 ? '✓ 적용됨' : '적용하기'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+          </ScrollView>
         </View>
       </ScrollView>
     </SafeView>
