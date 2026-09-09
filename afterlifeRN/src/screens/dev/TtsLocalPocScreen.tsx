@@ -10,8 +10,15 @@ import { COLORS, SIZES, RADIUS } from '../../components/constants';
 import SafeView from '../../components/ui/SafeView';
 import { createG2p } from '../../text/g2pk-js';
 import { toCompat } from '../../text/g2pk-js/jamo';
-import { getVoices, type CatalogVoice } from '../../api/clones';
-import { useAuthStore } from '../../stores/authStore';
+
+const LOCAL_VOICES = [
+  {
+    id: 9053,
+    name: '차분한 청년 남성 (할배)',
+    asset: require('../../../assets/tts/halbae_9053.onnx'),
+  },
+] as const;
+type LocalVoice = (typeof LOCAL_VOICES)[number];
 
 const VOCAB: Record<string, number> = {
   '_': 0, ',': 1, '.': 2, '!': 3, '?': 4, '…': 5, '~': 6,
@@ -104,11 +111,9 @@ export default function TtsLocalPocScreen() {
   const g2pRef = useRef<ReturnType<typeof createG2p> | null>(null);
   const soundRef = useRef<AudioPlayer | null>(null);
 
-  const sessionRef = useRef<any>(null);
+  const sessionRef = useRef<{ voiceId: number; session: any } | null>(null);
 
-  const [voices, setVoices] = useState<CatalogVoice[]>([]);
-  const [previewingId, setPreviewingId] = useState<number | null>(null);
-  const previewPlayerRef = useRef<AudioPlayer | null>(null);
+  const [activeVoice, setActiveVoice] = useState<LocalVoice>(LOCAL_VOICES[0]);
 
   useEffect(() => {
 
@@ -121,36 +126,10 @@ export default function TtsLocalPocScreen() {
         setStatus(`g2p 로드 실패: ${err}`);
       }
     }, 100);
-
-    const accessToken = useAuthStore.getState().accessToken;
-    if (accessToken) {
-      getVoices(accessToken)
-        .then(setVoices)
-        .catch((err) => console.warn('[TtsLocalPoc] getVoices failed:', err));
-    }
     return () => {
       soundRef.current?.remove();
-      previewPlayerRef.current?.remove();
     };
   }, []);
-
-  const togglePreview = (v: CatalogVoice) => {
-    previewPlayerRef.current?.remove();
-    previewPlayerRef.current = null;
-    if (previewingId === v.id) {
-      setPreviewingId(null);
-      return;
-    }
-    if (!v.sampleUrl) return;
-    try {
-      const player = createAudioPlayer(v.sampleUrl);
-      previewPlayerRef.current = player;
-      setPreviewingId(v.id);
-      player.play();
-    } catch (err) {
-      console.warn('[TtsLocalPoc] preview failed:', err);
-    }
-  };
 
   const handleRun = useCallback(async () => {
     if (!g2pRef.current) {
@@ -160,9 +139,34 @@ export default function TtsLocalPocScreen() {
     try {
       const start = Date.now();
 
-      setStatus('g2p 실행 중…');
+      let effectiveText = text;
+      const trimmed = text.trim();
+      const greetPrefix = /^안녕([\s,.\!?]|$)/;
+      if (greetPrefix.test(trimmed)) {
+        setStatus('pre-recorded 재생 중…');
+        const greetAsset = Asset.fromModule(
+          require('../../../assets/tts/greetings/halbae_annyeong.wav'),
+        );
+        if (!greetAsset.localUri) await greetAsset.downloadAsync();
+        soundRef.current?.remove();
+        const greetPlayer = createAudioPlayer(greetAsset.localUri!);
+        soundRef.current = greetPlayer;
+        greetPlayer.play();
+        const rest = trimmed.replace(/^안녕[\s,.\!?]*/, '').trim();
+        if (!rest) {
+          setStatus('완료 (pre-recorded)');
+          setDuration(0.8);
+          return;
+        }
 
-      let preNormalized = text
+        await new Promise((r) => setTimeout(r, 900));
+        effectiveText = rest;
+        setStatus(`이어붙임 TTS: "${rest}"`);
+      }
+
+      setStatus((prev) => (prev.startsWith('이어붙임') ? prev : 'g2p 실행 중…'));
+
+      let preNormalized = effectiveText
         .replace(/예요/g, '에요')
         .replace(/이에요/g, '이애요');
 
@@ -188,10 +192,12 @@ export default function TtsLocalPocScreen() {
       const onnxStart = Date.now();
       const { InferenceSession, Tensor } = await import('onnxruntime-react-native');
 
-      let session = sessionRef.current;
+      let session = sessionRef.current?.voiceId === activeVoice.id
+        ? sessionRef.current.session
+        : null;
       if (!session) {
-        setStatus('ONNX 초회 로드… (~130s)');
-        const asset = Asset.fromModule(require('../../../assets/tts/halbae_9053.onnx'));
+        setStatus(`ONNX 초회 로드… (${activeVoice.name})`);
+        const asset = Asset.fromModule(activeVoice.asset);
         if (!asset.localUri) {
           await asset.downloadAsync();
         }
@@ -199,7 +205,7 @@ export default function TtsLocalPocScreen() {
         if (!modelPath) throw new Error('ONNX asset localUri 확보 실패');
         const cleanPath = modelPath.replace(/^file:\/\//, '');
         session = await InferenceSession.create(cleanPath);
-        sessionRef.current = session;
+        sessionRef.current = { voiceId: activeVoice.id, session };
       }
       setStatus('추론 중…');
 
@@ -264,7 +270,7 @@ export default function TtsLocalPocScreen() {
       setStatus(`에러: ${err}`);
       console.error('[TtsLocalPoc]', err);
     }
-  }, [text]);
+  }, [text, activeVoice]);
 
   return (
     <SafeView backgroundColor={COLORS.zinc50}>
@@ -281,6 +287,11 @@ export default function TtsLocalPocScreen() {
           multiline
           placeholder="한국어 텍스트를 입력하세요"
         />
+
+        <View style={s.activeVoiceRow}>
+          <Text style={s.activeVoiceLabel}>현재 목소리</Text>
+          <Text style={s.activeVoiceName}>{activeVoice.name}</Text>
+        </View>
 
         <TouchableOpacity style={s.btn} onPress={handleRun}>
           <Text style={s.btnText}>실행</Text>
@@ -305,42 +316,45 @@ export default function TtsLocalPocScreen() {
 
         {}
         <View style={s.voicesSection}>
-          <Text style={s.voicesTitle}>등록된 목소리 (서버 카탈로그)</Text>
+          <Text style={s.voicesTitle}>로컬 실행 목소리</Text>
           <Text style={s.voicesHint}>
-            ▶ 미리듣기 는 서버에 업로드된 샘플 재생.{'\n'}
-            로컬 ONNX 는 halbae 하나만 앱에 번들. 다른 목소리 로컬 실행은 각 ONNX 를 앱에 넣어야 함.
+            앱에 ONNX 가 번들된 목소리만 노출. 다른 preset 을 추가하려면
+            해당 ONNX 를 assets/tts/ 에 넣고 LOCAL_VOICES 에 등록.
           </Text>
-          {voices.length === 0 ? (
-            <Text style={s.voicesEmpty}>(등록된 목소리 없음 or 아직 로딩 중)</Text>
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={s.voicesRow}
-            >
-              {voices.map((v) => {
-                const isPlaying = v.id === previewingId;
-                return (
-                  <View key={v.id} style={s.voiceItem}>
-                    <Text style={s.voiceItemName}>{v.name}</Text>
-                    {(v.gender || v.ageRange) && (
-                      <Text style={s.voiceItemMeta}>
-                        {[v.gender, v.ageRange].filter(Boolean).join(' · ')}
-                      </Text>
-                    )}
-                    <TouchableOpacity
-                      style={s.voicePreviewBtn}
-                      onPress={() => togglePreview(v)}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={s.voicesRow}
+          >
+            {LOCAL_VOICES.map((v) => {
+              const isActive = activeVoice.id === v.id;
+              return (
+                <View
+                  key={v.id}
+                  style={[s.voiceItem, isActive && s.voiceItemActive]}
+                >
+                  <Text style={s.voiceItemName}>{v.name}</Text>
+                  <TouchableOpacity
+                    style={[
+                      s.voiceApplyBtn,
+                      isActive && s.voiceApplyBtnActive,
+                    ]}
+                    onPress={() => setActiveVoice(v)}
+                    disabled={isActive}
+                  >
+                    <Text
+                      style={[
+                        s.voiceApplyBtnText,
+                        isActive && s.voiceApplyBtnTextActive,
+                      ]}
                     >
-                      <Text style={s.voicePreviewBtnText}>
-                        {isPlaying ? '■ 정지' : '▶ 미리듣기'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                );
-              })}
-            </ScrollView>
-          )}
+                      {isActive ? '✓ 적용됨' : '적용하기'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+          </ScrollView>
         </View>
       </ScrollView>
     </SafeView>
@@ -462,5 +476,53 @@ const s = StyleSheet.create({
     fontSize: 11,
     color: COLORS.white,
     fontWeight: '600',
+  },
+  voiceItemActive: {
+    borderColor: COLORS.violet500,
+    backgroundColor: COLORS.violet50 ?? '#F5F3FF',
+  },
+  voiceApplyBtn: {
+    marginTop: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: COLORS.violet500,
+    alignSelf: 'flex-start',
+  },
+  voiceApplyBtnText: {
+    fontSize: 11,
+    color: COLORS.violet500,
+    fontWeight: '600',
+  },
+  voiceApplyBtnActive: {
+    backgroundColor: COLORS.violet500,
+    borderColor: COLORS.violet500,
+  },
+  voiceApplyBtnTextActive: {
+    color: COLORS.white,
+  },
+  activeVoiceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: COLORS.zinc50,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+  },
+  activeVoiceLabel: {
+    fontSize: 11,
+    color: COLORS.zinc500,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  activeVoiceName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.zinc900,
+    flex: 1,
   },
 });
