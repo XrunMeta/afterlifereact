@@ -467,3 +467,54 @@ v_469bf2("enrollCloneScopeFaces — source 매핑(face_embeddings CHECK 어휘 �
     v_4d37e3(v_ac752c?.source).toBe("call");
   });
 });
+
+v_469bf2("POST /oth-path — 한 사람이 후보를 독점하지 않는다", () => {
+  v_ff107d(() => {
+    v_dbed3e();
+  });
+
+  function v_80cae9(v_468545): number[] {
+    const v_81e2ef = new Array(512).fill(0);
+    for (const [v_ebec57, v_62c214] of Object.entries(v_468545)) v_81e2ef[Number(v_ebec57)] = v_62c214;
+    const v_f4e98d = Math.hypot(...v_81e2ef);
+    return v_81e2ef.map((v_62c214) => v_62c214 / v_f4e98d);
+  }
+
+  async function v_a03658(v_21cc31, v_6e0fd3, v_1833e7): Promise<number> {
+    const v_8f00b9 = await v_1df298.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${v_21cc31}` },
+      body: JSON.stringify({ cloneId: v_6e0fd3, displayName: v_1833e7, enrolledVia: "card" }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(201);
+    const { id: v_389afb } = await v_8f00b9.json<{ id: number }>();
+    await v_1df298.fetch(`https://x/oth-path${v_389afb}/consent`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${v_21cc31}` },
+      body: JSON.stringify({ state: "granted" }),
+    });
+    return v_389afb;
+  }
+
+  v_23805a("벡터가 많은 사람 A 가 있어도 점수가 조금 낮은 B 도 matches 에 나온다", async () => {
+    const v_43e90c = await v_bfb240("topk-hog@x.com");
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "topk-hog-clone");
+    const v_21cc31 = await v_86c39f(v_43e90c);
+    const v_779914 = await v_a03658(v_21cc31, v_6e0fd3, "에이");
+    const v_148ff6 = await v_a03658(v_21cc31, v_6e0fd3, "비");
+
+    for (let v_ebec57 = 1; v_ebec57 <= 6; v_ebec57++) await v_a09be7(v_43e90c, v_6e0fd3, v_779914, v_80cae9({ 0: 1, [10 + v_ebec57]: 0.05 }));
+    await v_a09be7(v_43e90c, v_6e0fd3, v_148ff6, v_80cae9({ 0: 0.8, 300: 0.6 }));
+
+    const v_8f00b9 = await v_1df298.fetch("https://x/oth-path", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${v_21cc31}` },
+      body: JSON.stringify({ vector: v_80cae9({ 0: 1 }), cloneId: v_6e0fd3 }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_4d33b2 = await v_8f00b9.json<{ matches: { personId: number; score: number }[] }>();
+    const v_52e08b = v_4d33b2.matches.map((v_35f85c) => v_35f85c.personId);
+    v_4d37e3(v_52e08b[0]).toBe(v_779914);
+    v_4d37e3(v_52e08b).toContain(v_148ff6);
+  });
+});

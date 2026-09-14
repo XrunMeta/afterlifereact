@@ -274,7 +274,8 @@ export default function CallScreen(props: Props) {
         ]);
         if (cancelled) return;
         clearTimeout(timer);
-        const granted = consentR?.state === "granted";
+
+        const granted = consentR != null && consentR.state !== "revoked";
         const personCount = personsR?.items?.length ?? -1;
         const shouldRedirect = granted && personCount === 0;
         console.log(
@@ -461,7 +462,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     if (!accessToken) return;
     let cancelled = false;
 
-    setConsentGranted(true);
     listPersons(accessToken, cloneId)
       .then(({ items }) => {
         if (cancelled) return;
@@ -487,13 +487,18 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     getFaceBiometricConsent(accessToken)
       .then((r) => {
         if (cancelled) return;
-        setFaceBiometricConsent(r.state === "granted");
-        console.log(`[Call][face] getFaceBiometricConsent ← granted=${r.state === "granted"}`);
+
+        const allowed = r.state !== "revoked";
+        setFaceBiometricConsent(allowed);
+        setConsentGranted(allowed);
+        console.log(`[Call][face] getFaceBiometricConsent ← state=${r.state} · faceId=${allowed ? "on" : "off(설정에서 끔)"}`);
       })
       .catch((err) => {
         if (cancelled) return;
-        setFaceBiometricConsent(false); 
-        console.warn("[Call][face] getFaceBiometricConsent failed, fallback to card flow:", err);
+
+        setFaceBiometricConsent(false);
+        setConsentGranted(false);
+        console.warn("[Call][face] getFaceBiometricConsent failed → faceId off for this call:", err);
       });
     return () => {
       cancelled = true;

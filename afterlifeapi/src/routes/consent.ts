@@ -114,7 +114,8 @@ v_74e200.get("/consent", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({
     call_learning: { state: v_3ac7e7?.c === 1 ? "granted" : "none", at: v_3ac7e7?.at ?? null },
     face_biometric: {
-      state: v_3ac7e7?.fbc === 1 ? "granted" : "none",
+
+      state: v_3ac7e7?.fbc === 1 ? "granted" : v_3ac7e7?.fbAt != null ? "revoked" : "none",
       at: v_3ac7e7?.fbAt ?? null,
       version: v_3ac7e7?.fbVer ?? null,
     },
