@@ -791,3 +791,32 @@ def test_person_id_문자열도_주인으로_인식한다():
         speaker={"name": "도기", "l2p_data": {}, "person_id": 58},
     )
     assert "아내" in msgs[0]["content"]
+
+
+# [2026-09-14] 페르소나 생성 시 입력한 정보는 클론이 항상 자기 사실로 안다.
+# 실측: age/gender 는 "## 참고" 에 "- age: 20대" 로, mbti 는 "참고용 일반 성향" 카탈로그로만 들어가
+# 클론이 "MBTI 뭐야" 에 "기억이 잘 안 나" 로 답하고, 상대가 "isfp 지?" 하면 그대로 따라갔다.
+_WIZARD = {
+    "displayName": "페이커",
+    "age": "20대",
+    "gender": "남성",
+    "mbti": "ISFJ",
+    "personality_core": "침착함",
+    "tone": "표준말",
+    "speech_speed": "평범한 편",
+}
+
+
+@pytest.mark.parametrize("speaker", [None, {"unconfirmed": True}])
+def test_생성_입력값은_너의_정보에_사실로_들어간다(speaker):
+    content = bundle_to_messages(_bundle_v(dict(_WIZARD), "지호"), speaker=speaker)[0]["content"]
+    # 규칙 문장에도 "'## 너의 정보'" 가 인용되므로 줄로 둘러싸인 실제 헤딩으로 나눈다.
+    self_block = content.split("\n## 너의 정보\n")[1].split("\n## ")[0]
+    for line in ("- 나이: 20대", "- 성별: 남성", "- MBTI: ISFJ", "- 핵심 성격: 침착함", "- 말의 속도: 평범한 편"):
+        assert line in self_block, line
+    # 말투 "표준말" 은 T-473 에 따라 MBTI 기본 말투로 채워진다 — 줄 존재만 확인.
+    assert "- 말투: " in self_block
+    # 참고 블록에 raw 키로 새지 않는다.
+    assert "- age:" not in content and "- gender:" not in content
+    # 사실로 답하고 상대 말에 바뀌지 않는다는 규칙.
+    assert "생성 시 정해진 너의 사실" in content
