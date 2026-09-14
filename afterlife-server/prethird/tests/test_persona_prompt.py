@@ -331,6 +331,11 @@ def test_상태4_는_모르는_상대로_대화하고_UI_를_말하지_않는다
     assert "상대가 누구인지 아직 모른다" in content
     assert "화면 조작" in content  # 버튼·등록·팝업 안내 금지
 
+    # 모르는 건 상대뿐 — 자기 프로필(성격·MBTI 등)은 그대로 안다고 명시한다.
+    # 실측(2026-09-14, gemma3:27b): 이 문장이 없으면 "기억하는 척하지 마라" 를 자기 정보에도
+    # 적용해 MBTI(INTJ)가 프롬프트에 있는데도 "음… 기억이 잘 안 나" 로 3/3 답했다.
+    assert "너 자신의 정보" in content
+
     # 상태 1·2 에는 이 규칙이 붙지 않는다.
     assert "상대가 누구인지 아직 모른다" not in bundle_to_messages(bundle)[0]["content"]
     assert "상대가 누구인지 아직 모른다" not in bundle_to_messages(
