@@ -315,22 +315,25 @@ def test_상태4_미확정_얼굴():
     assert "## 상대 정보" not in content      # 블록 자체가 없다
 
 
-def test_상태4_는_신원_입력을_요구한다():
-    """미확정 모드에서는 정상 대화 대신 이름 입력을 계속 요구한다.
+def test_상태4_는_모르는_상대로_대화하고_UI_를_말하지_않는다():
+    """미확정 모드: 대화는 평소처럼 이어가되, 버튼·등록 같은 화면 조작을 말로 안내하지 않는다.
 
-    닫기(Remember Me 무시)는 면제가 아니라 유예다 — 해제 조건은 등록된 얼굴 인식뿐이고,
-    그때까지 클론은 대화를 진행시키는 대신 신원 입력을 반복 요청한다.
+    앱의 Remember Me 버튼은 T-562 에서 등록 팝업으로 바뀌어 화면에 없다. 그런데 이 규칙이
+    "왼쪽 Remember Me 버튼을 눌러달라" 를 매 응답마다 말하게 해서, 없는 버튼을 안내하고
+    대화가 겉돌았다. 신원 등록은 앱 팝업이 맡고, 클론은 모르는 상대로만 대한다.
     """
     # persona 에 속성을 실제로 넣는다 — displayName 뿐이면 렌더할 줄이 없어 상태 1 이
     # 정상적으로 [] 를 반환해버려, 비교군이 성립하지 않는다.
     bundle = _bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, "지호")
 
     content = bundle_to_messages(bundle, speaker={"unconfirmed": True})[0]["content"]
-    assert "Remember Me" in content
+    assert "Remember Me" not in content
+    assert "상대가 누구인지 아직 모른다" in content
+    assert "화면 조작" in content  # 버튼·등록·팝업 안내 금지
 
-    # 상태 1·2 에는 이 요구가 붙지 않는다 — 정상 대화를 막으면 안 된다.
-    assert "Remember Me" not in bundle_to_messages(bundle)[0]["content"]
-    assert "Remember Me" not in bundle_to_messages(
+    # 상태 1·2 에는 이 규칙이 붙지 않는다.
+    assert "상대가 누구인지 아직 모른다" not in bundle_to_messages(bundle)[0]["content"]
+    assert "상대가 누구인지 아직 모른다" not in bundle_to_messages(
         bundle, speaker={"name": "민수", "l2p_data": {"memories_personal": ["민수 기억"]}}
     )[0]["content"]
 
