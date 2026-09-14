@@ -187,7 +187,9 @@ export function v_306c75(v_38a552, { secret: v_43fd42, cfg: v_01dcf5 = {}, deps:
 
       v_4fa62b.enqueue({ job_id: v_b0d200, kind: v_94302c, face_url: v_1ba158, clone_id: v_fccde8, voice_raw_url: v_49ec2c, callback_token: v_85f723, persona: v_5ed063 });
     } else {
-      v_4fa62b.enqueue({ job_id: v_b0d200, kind: v_94302c, src_url: v_b0c618, callback_token: v_85f723 });
+
+      const v_1e3df0 = typeof v_309144.body.engine === 'string' ? v_309144.body.engine : undefined;
+      v_4fa62b.enqueue({ job_id: v_b0d200, kind: v_94302c, src_url: v_b0c618, callback_token: v_85f723, ...(v_1e3df0 ? { engine: v_1e3df0 } : {}) });
     }
     v_8f00b9.status(202).json({ accepted: true });
   });

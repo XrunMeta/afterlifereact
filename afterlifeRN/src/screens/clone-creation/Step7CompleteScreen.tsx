@@ -187,7 +187,11 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   const [v_f6dbfe, v_f77874] = v_5ab095(false);
 
-  const v_798360 = v_f04727.idleVideoJobId ? v_7f3fda?.status !== 'done' : true;
+  const v_4d3a74 =
+    !!v_f04727.idleVideoJobId && (!v_7f3fda || v_7f3fda.status === 'pending' || v_7f3fda.status === 'running');
+  const v_798360 = v_f04727.idleVideoJobId
+    ? v_7f3fda?.status !== 'done' && !(v_f04727.idleEngine && v_4d3a74)
+    : true;
 
   const v_a3d9bc = v_de06a3(async () => {
     if (v_f6dbfe) return;
@@ -221,6 +225,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       const v_94abbb = await v_ab4719(v_2ca7e0, {
         kind: 'idle_video',
         src_file_id: v_57ac81.id,
+        ...(v_f04727.idleEngine ? { engine: v_f04727.idleEngine } : {}),
       });
 
       v_3773cd(null);
@@ -325,6 +330,8 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         visibility: v_818579,
         hasAvatar: !!v_bf6b43,
       });
+
+      console.log("[CLONE-CREATE] persona →", { personaAnswers: v_60d170, l1Attrs: v_55a58f });
 
       const v_85010a = v_f04727.voiceCloneJobId
         ? { voice_clone_job_id: v_f04727.voiceCloneJobId }
@@ -668,7 +675,9 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
               <View style={[v_d81136.videoBadge, v_d81136.videoBadgePending]}>
                 <ActivityIndicator size="small" color={v_1bfbd0.white} style={{ marginRight: 6 }} />
                 <Text style={v_d81136.videoBadgeText}>
-                  {v_8d41d7("create.step7.videoPending", { defaultValue: "영상 준비 중" })}
+                  {v_f04727.idleEngine
+                    ? "영상 준비 중 · 먼저 게시해도 몇 분 뒤 적용돼요"
+                    : v_8d41d7("create.step7.videoPending", { defaultValue: "영상 준비 중" })}
                 </Text>
               </View>
             </View>

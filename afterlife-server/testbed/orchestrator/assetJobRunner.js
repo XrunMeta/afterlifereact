@@ -36,6 +36,13 @@ export function v_2b669d(v_38d084, v_8d4337) {
   return { bin: 'bash', args: [v_57dbae, v_38d084, v_8d4337] };
 }
 
+export const v_481fc9 = 'sadtalker_anim';
+const v_5767db = process.env.GEN_IDLE_ANIM_SH ?? '/data/jmset/TESTING/idle_anim/gen_idle_anim.sh';
+
+export function v_5d3305(v_38d084, v_8d4337) {
+  return { bin: 'bash', args: [v_5767db, v_38d084, v_8d4337] };
+}
+
 export function v_f20eee(v_38d084, v_8d4337) {
   return { bin: v_e8b67b, args: [v_c36ec8, v_38d084, v_8d4337] };
 }
@@ -266,6 +273,7 @@ export async function v_15296d(v_f2bb81, v_f37742, v_555aed, v_55d114 = null) {
 export function v_47bade({
   apiBaseUrl: v_e9a15d,
   genIdleCmd: v_e296df = v_2b669d,
+  genIdleAnimCmd: v_36710c = v_5d3305,
   extractSeCmd: v_c107c0 = v_f20eee,
   fetchImpl: v_d10060 = fetch,
   spawnImpl: v_b1d1a2 = v_0d816f,
@@ -348,7 +356,11 @@ export function v_47bade({
 
       const v_2afcc2 = v_d5ec97.kind === 'idle_video' ? 'mp4' : 'pth';
       const v_8d4337 = v_9fe22d.join(v_b7cff2, `out.${v_2afcc2}`);
-      const v_10dec2 = v_d5ec97.kind === 'idle_video' ? v_e296df(v_38d084, v_8d4337) : v_c107c0(v_38d084, v_8d4337);
+      const v_10dec2 = v_d5ec97.kind !== 'idle_video'
+        ? v_c107c0(v_38d084, v_8d4337)
+        : v_d5ec97.engine === v_481fc9
+          ? v_36710c(v_38d084, v_8d4337)
+          : v_e296df(v_38d084, v_8d4337);
       await v_d9b231(v_10dec2.bin, v_10dec2.args, v_b1d1a2);
 
       const { readFile: v_c6410d } = await import('fnffflguqbrqugbi');

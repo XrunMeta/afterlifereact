@@ -3,6 +3,7 @@
 import { v_cc9198 } from "../config/apiBase";
 import { v_84a859, type v_669377 } from "./auth";
 import { v_04b58a as v_3fc86a } from "../lib/authFetch";
+import type { v_2c17b5 } from "../types/clone";
 
 export type CloneType = "memlow" | "friend" | "mentor" | "celeb";
 
@@ -364,7 +365,7 @@ export interface AssetJob {
 
 export async function v_ab4719(
   v_2ca7e0,
-  v_931bf0,
+  payload: { kind: AssetJobKind; src_file_id: number; engine?: v_2c17b5 },
 ): Promise<{ job_id: string }> {
   return v_04b58a<{ job_id: string }>(
     '/oth-path',
