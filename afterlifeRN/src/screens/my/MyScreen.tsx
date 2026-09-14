@@ -285,6 +285,26 @@ export default function v_ed02a5() {
           },
 
           {
+            icon: "smile" as const,
+            labelKey: "애니메이션 페르소나 만들기 (실험)",
+            descKey: "사진 → 눈 깜빡임·고개·몸 움직임 idle · 생성 3분 내외",
+            action: () => {
+              try {
+                const { setCreationDraft: v_5795de, resetCreationDraft: v_7a77e1 } = v_194498.getState();
+
+                v_7a77e1();
+                v_5795de({ cloneType: "friend", visibility: "public", idleEngine: "sadtalker_anim" });
+                v_c65f5d.getParent()?.dispatch(
+                  v_650cfa.navigate({ name: "CreateTab" }),
+                );
+              } catch (v_49263d) {
+                console.warn("[anim-persona] nav failed:", v_49263d);
+                v_889fad("오류", "페르소나 만들기 화면 이동 실패");
+              }
+            },
+          },
+
+          {
             icon: "mic" as const,
             labelKey: "분리 재생 페르소나 만들기 (실험)",
             descKey: "TTS + 사전 렌더 viseme 클립 sync",
