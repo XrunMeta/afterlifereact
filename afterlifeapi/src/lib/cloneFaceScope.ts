@@ -17,11 +17,13 @@ export interface CloneScopeMatch {
   landmarkRatiosList?: (Record<string, number> | null)[];
 }
 
+export const v_b39ff0 = 20;
+
 export async function v_97be02(
   env: v_273a0c,
   v_328259,
 ): Promise<CloneScopeMatch[]> {
-  const { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_f9a45c, topK: v_171a8a = 3 } = v_328259;
+  const { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_f9a45c, topK: v_171a8a = v_b39ff0 } = v_328259;
   const v_e86ad8 = v_a8d2cc(v_c9c489);
   const v_cb35cb = await v_e86ad8.query(v_f9a45c, {
     topK: v_171a8a,
