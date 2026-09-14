@@ -9,6 +9,7 @@ from fastapi import FastAPI, Response, HTTPException
 from pydantic import BaseModel
 import config
 from clone_ref import parse_clone_id, ref_audio_path, load_ref_text, ref_pair
+from kr_numbers import spell_numbers
 
 logging.basicConfig(level=os.environ.get("COSYVOICE_LOG_LEVEL", "INFO"))
 log = logging.getLogger("cosyvoice")
@@ -60,7 +61,8 @@ def synth(req: SynthReq):
     eng = app.state.engine
     if eng is None:
         raise HTTPException(503, "engine not loaded")
-    txt = req.text.strip()
+    # 아라비아 숫자는 한글 읽기로 — wetext 정규화가 한국어 속 숫자에서 죽어 500 이 났다.
+    txt = spell_numbers(req.text.strip())
     if not txt:
         raise HTTPException(400, "empty text")
     if len(txt) > 1500:
