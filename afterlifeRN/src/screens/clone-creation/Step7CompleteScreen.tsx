@@ -221,6 +221,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       const v_94abbb = await v_ab4719(v_2ca7e0, {
         kind: 'idle_video',
         src_file_id: v_57ac81.id,
+        ...(v_f04727.idleEngine ? { engine: v_f04727.idleEngine } : {}),
       });
 
       v_3773cd(null);

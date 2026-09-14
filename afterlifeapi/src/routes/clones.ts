@@ -1185,14 +1185,30 @@ v_f891e6.post("/intro-suggest", v_6690d9, async (v_3f4e2e) => {
   }
 });
 
+const v_019a62 = new Set(["sadtalker_anim"]);
+const v_63ecc2 = new Set(["oth-staff@example.invalid", "oth-user@example.invalid"]);
+
 v_f891e6.post("/asset-job", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
-  const v_479f05 = await v_3f4e2e.req.json<{ kind?: string; src_file_id?: number }>().catch(() => null);
+  const v_479f05 = await v_3f4e2e.req.json<{ kind?: string; src_file_id?: number; engine?: unknown }>().catch(() => null);
   const v_94302c = v_479f05?.kind;
   const v_2fa661 = v_479f05?.src_file_id;
 
   if (v_94302c !== "idle_video" && v_94302c !== "voice_clone" && v_94302c !== "filler") {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid kind. Must be idle_video, voice_clone, or filler.");
+  }
+
+  const v_1e3df0 = v_479f05?.engine;
+  if (v_1e3df0 !== undefined && v_1e3df0 !== null) {
+    if (v_94302c !== "idle_video" || !v_019a62.has(v_1e3df0 as string)) {
+      throw new v_3ebe58("VALIDATION_FAILED", "Invalid engine.");
+    }
+    const v_ceb55a = await v_3f4e2e.env.DB.prepare(`SELECT email FROM users WHERE id = ?`)
+      .bind(v_43e90c)
+      .first<{ email: string | null }>();
+    if (!v_63ecc2.has((v_ceb55a?.email ?? "").toLowerCase())) {
+      throw new v_3ebe58("FORBIDDEN", "engine is not enabled for this account.");
+    }
   }
   if (!v_2fa661 || !Number.isInteger(v_2fa661)) {
     throw new v_3ebe58("VALIDATION_FAILED", "src_file_id required.");
@@ -1221,7 +1237,13 @@ v_f891e6.post("/asset-job", v_6690d9, async (v_3f4e2e) => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${v_3f4e2e.env.ORCH_SECRET}`,
         },
-        body: JSON.stringify({ job_id: v_04211c, kind: v_94302c, src_url: v_0ad77a, callback_token: v_59b4e0 }),
+        body: JSON.stringify({
+          job_id: v_04211c,
+          kind: v_94302c,
+          src_url: v_0ad77a,
+          callback_token: v_59b4e0,
+          ...(v_1e3df0 ? { engine: v_1e3df0 } : {}),
+        }),
         signal: AbortSignal.timeout(8000),
       })
 

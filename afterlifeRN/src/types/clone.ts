@@ -54,6 +54,8 @@ export type PersonaGender = typeof v_f17565[number];
 export type PersonaTypeId = typeof v_2934e9[number]['id'];
 export type PersonaMbti = typeof v_336485[number];
 
+export type IdleEngine = "sadtalker_anim";
+
 export interface CloneCreationDraft {
   cloneType?: v_d79d7f;
   name?: string;
@@ -87,6 +89,8 @@ export interface CloneCreationDraft {
 
   idleVideoJobId?: string;
   voiceCloneJobId?: string;
+
+  idleEngine?: IdleEngine;
 
   avatarFileId?: number;
   avatarUrl?: string;
