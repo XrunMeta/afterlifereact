@@ -71,7 +71,8 @@ def test_unknown_face_는_기억도_이름도_주지_않는다():
     content = msgs[0]["content"]
     assert "어제 등산 감" not in content    # L2 미주입
     assert "지호" not in content            # 이름 억제
-    assert "Remember Me" in content         # 대신 신원 입력을 요구한다
+    assert "상대가 누구인지 아직 모른다" in content  # 모르는 상대로 대한다
+    assert "Remember Me" not in content               # 없는 버튼을 안내하지 않는다
 
 
 class _Channel:
@@ -355,7 +356,7 @@ def test_상태4_강등은_빈_persona에서도_수행된다_clear():
 
     msgs = bundle_to_messages(sess.bundle, speaker={"unconfirmed": True})
     assert msgs != []
-    assert "Remember Me" in msgs[0]["content"]
+    assert "상대가 누구인지 아직 모른다" in msgs[0]["content"]
 
     _clear_current_speaker(sess, "unknown_face")
 
