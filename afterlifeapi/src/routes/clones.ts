@@ -1186,7 +1186,6 @@ v_f891e6.post("/intro-suggest", v_6690d9, async (v_3f4e2e) => {
 });
 
 const v_019a62 = new Set(["sadtalker_anim"]);
-const v_63ecc2 = new Set(["oth-staff@example.invalid", "oth-user@example.invalid"]);
 
 v_f891e6.post("/asset-job", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
@@ -1202,12 +1201,6 @@ v_f891e6.post("/asset-job", v_6690d9, async (v_3f4e2e) => {
   if (v_1e3df0 !== undefined && v_1e3df0 !== null) {
     if (v_94302c !== "idle_video" || !v_019a62.has(v_1e3df0 as string)) {
       throw new v_3ebe58("VALIDATION_FAILED", "Invalid engine.");
-    }
-    const v_ceb55a = await v_3f4e2e.env.DB.prepare(`SELECT email FROM users WHERE id = ?`)
-      .bind(v_43e90c)
-      .first<{ email: string | null }>();
-    if (!v_63ecc2.has((v_ceb55a?.email ?? "").toLowerCase())) {
-      throw new v_3ebe58("FORBIDDEN", "engine is not enabled for this account.");
     }
   }
   if (!v_2fa661 || !Number.isInteger(v_2fa661)) {
