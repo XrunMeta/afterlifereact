@@ -100,7 +100,7 @@ v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
   );
 });
 
-const v_0eeb45 = 0.45;
+const v_0eeb45 = 0.6;
 
 v_fded81.post("/match", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
@@ -130,7 +130,7 @@ v_fded81.post("/match", v_6690d9, async (v_3f4e2e) => {
     console.warn(`[persons/match] autoAdopt failed cloneId=${v_6e0fd3} userId=${v_43e90c}:`, v_9e86fd);
   }
 
-  const v_495447 = await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef, topK: 3 });
+  const v_495447 = await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef });
   const v_52e08b = v_495447.map((v_35f85c) => v_35f85c.personId);
 
   const v_77b1ac = new Map<number, string | null>();
