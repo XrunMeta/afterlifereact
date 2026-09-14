@@ -121,6 +121,47 @@ v_469bf2("asset-job 생성/상태", () => {
     v_4d37e3(v_3ac7e7!.kind).toBe("filler");
   });
 
+  v_23805a("idle_video engine='sadtalker_anim' — 화이트리스트 사용자는 201", async () => {
+    const v_0c8987 = await v_bfb240("oth-staff@example.invalid");
+    const v_8d41d7 = await v_21cc31(v_0c8987);
+    const v_8e2335 = await v_c808bd(v_0c8987, "ajanim_ok");
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_8d41d7}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "idle_video", src_file_id: v_8e2335, engine: "sadtalker_anim" }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(201);
+  });
+
+  v_23805a("idle_video engine 지정 — 화이트리스트 밖 사용자는 403", async () => {
+    const v_0c8987 = await v_bfb240("ajanim_denied@test.com");
+    const v_8d41d7 = await v_21cc31(v_0c8987);
+    const v_8e2335 = await v_c808bd(v_0c8987, "ajanim_denied");
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_8d41d7}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "idle_video", src_file_id: v_8e2335, engine: "sadtalker_anim" }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(403);
+  });
+
+  v_23805a("알 수 없는 engine 또는 idle_video 외 kind 의 engine 은 422", async () => {
+    const v_0c8987 = await v_bfb240("oth-user@example.invalid");
+    const v_8d41d7 = await v_21cc31(v_0c8987);
+    const v_8e2335 = await v_c808bd(v_0c8987, "ajanim_bad");
+    for (const v_4d33b2 of [
+      { kind: "idle_video", src_file_id: v_8e2335, engine: "nope" },
+      { kind: "voice_clone", src_file_id: v_8e2335, engine: "sadtalker_anim" },
+    ]) {
+      const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${v_8d41d7}`, "Content-Type": "application/json" },
+        body: JSON.stringify(v_4d33b2),
+      });
+      v_4d37e3(v_8f00b9.status).toBe(422);
+    }
+  });
+
   v_23805a("GET asset-job/:id 응답에 callback_token 미노출", async () => {
     const v_0c8987 = await v_bfb240("aj_noleak@test.com");
     const v_8d41d7 = await v_21cc31(v_0c8987);
