@@ -327,6 +327,8 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         hasAvatar: !!v_bf6b43,
       });
 
+      console.log("[CLONE-CREATE] persona →", { personaAnswers: v_60d170, l1Attrs: v_55a58f });
+
       const v_85010a = v_f04727.voiceCloneJobId
         ? { voice_clone_job_id: v_f04727.voiceCloneJobId }
         : v_f04727.voicePresetId
