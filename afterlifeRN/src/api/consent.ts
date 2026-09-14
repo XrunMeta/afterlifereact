@@ -36,7 +36,7 @@ export async function v_b14b3b(
   return v_43c42e.call_learning.state;
 }
 
-export type FaceBiometricState = 'granted' | 'none';
+export type FaceBiometricState = 'granted' | 'none' | 'revoked';
 
 export interface FaceBiometricConsent {
   state: FaceBiometricState;
