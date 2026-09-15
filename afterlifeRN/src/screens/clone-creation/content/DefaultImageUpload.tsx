@@ -22,6 +22,8 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     v_8d41d7('create.image.guide1'),
     v_8d41d7('create.image.guide2'),
     v_8d41d7('create.image.guide3'),
+    v_8d41d7('create.image.guide4'),
+    v_8d41d7('create.image.guide5'),
   ];
 
   const v_e1c60b = async () => {
