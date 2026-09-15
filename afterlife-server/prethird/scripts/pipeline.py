@@ -168,8 +168,10 @@ class DialoguePipeline:
         persona_messages: list | None = None,
         se_path: str | None = None,
         clone_locked: bool = False,
+        history_turns: int | None = None,
     ) -> None:
         from sentence_buffer import SentenceBuffer
+        from clone_dialog.conversation_history import ConversationHistory
         from audio_utils import (
             _resample_int16, _balance_pcm_to_video,
             _apply_edge_fade, _normalize_peak,
@@ -184,6 +186,12 @@ class DialoguePipeline:
         self.persona_messages = persona_messages or []
         self.se_path = se_path
         self.clone_locked = clone_locked
+        # [멀티턴] 세션 = 이 인스턴스(통화 1회). 인자 미지정이면 env
+        # PRETHIRD_HISTORY_TURNS, 그것도 없으면 0 = 비활성(기존 동작 그대로).
+        self.history = (
+            ConversationHistory(history_turns) if history_turns is not None
+            else ConversationHistory.from_env()
+        )
         # SentenceBuffer 파라미터는 env(PRETHIRD_SENTENCE_*)로 주입 → 세그먼트 병합 런타임 튜닝
         # (T-120 B: 과분절 해소, first_min_len 으로 첫 응답 지연 방지). 미설정 시 회귀 0.
         self._sb_factory = lambda: SentenceBuffer.from_env()
@@ -220,7 +228,13 @@ class DialoguePipeline:
         if self.clone_locked and not self.se_path:
             log.warning("clone voice 미준비 — 발화 skip (폴백 없음)")
             return
-        messages = self.persona_messages + [{"role": "user", "content": user_text}]
+        # [멀티턴] persona → 지금까지의 대화(오래된 순) → 이번 발화.
+        # history 가 비활성(기본)이면 messages() 가 [] 라 기존과 동일한 조립이다.
+        messages = (
+            self.persona_messages
+            + self.history.messages()
+            + [{"role": "user", "content": user_text}]
+        )
 
         # [Remember Me 2026-08-13] 이름 부르기 힌트 — 딱 1회 소비하고 지운다.
         #
@@ -257,12 +271,17 @@ class DialoguePipeline:
 
         async def produce(q: asyncio.Queue):
             sb = self._sb_factory()
+            reply: list[str] = []
             async for tok in self.chat_fn(messages):
+                reply.append(tok)
                 turn.append_token(tok)
                 for s in sb.push(tok):
                     await q.put(s)
             for s in sb.flush():
                 await q.put(s)
+            # 스트림이 정상 종료된 턴만 기록한다 — 도중에 예외가 나면 반쪽 응답이
+            # 히스토리에 남아 다음 턴을 오염시킨다.
+            self.history.record(user_text, "".join(reply))
             await q.put(None)
 
         await self._run_pipeline(produce, turn, on_first_audio, on_response_ready, on_sentence=on_sentence)
@@ -335,16 +354,27 @@ class DialoguePipeline:
         if self.clone_locked and not self.se_path:
             log.warning("clone voice 미준비 — %s skip (폴백 없음)", label)
             return
-        messages = self.persona_messages + [{"role": "user", "content": prompt}]
+        # [멀티턴] 인사·맞이말도 그때까지의 대화 맥락 위에서 나가야 자연스럽다.
+        messages = (
+            self.persona_messages
+            + self.history.messages()
+            + [{"role": "user", "content": prompt}]
+        )
 
         async def produce(q: asyncio.Queue):
             sb = self._sb_factory()
+            reply: list[str] = []
             async for tok in self.chat_fn(messages):
+                reply.append(tok)
                 turn.append_token(tok)
                 for s in sb.push(tok):
                     await q.put(s)
             for s in sb.flush():
                 await q.put(s)
+            # user_text=None — 지시문("처음 보는 분이 나타났어…")은 상대가 한 말이
+            # 아니므로 히스토리에 남기지 않는다. 클론이 실제로 내보낸 인사말만 남겨야
+            # 다음 턴에 또 인사하지 않는다.
+            self.history.record(None, "".join(reply))
             await q.put(None)
 
         await self._run_pipeline(
