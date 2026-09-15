@@ -782,6 +782,8 @@
       "guide1": "Use a photo facing forward",
       "guide2": "A clear face shot works best",
       "guide3": "Simple backgrounds give better results",
+      "guide4": "Use a photo with only you in it",
+      "guide5": "Eyes open and mouth closed works best",
       "memlowNote": "You can add the photo now or later.",
       "memlowSelectHint": "Pick a photo or skip",
       "memlowRights": "I confirm the rights to use this photo (family consent, image rights).",
@@ -802,7 +804,11 @@
       "validateTooSmall": "Your face is too small. Please move closer to the camera and try again.",
       "validateTooLarge": "Your face is too large. Please move back a bit and try again.",
       "validateOffCenter": "Your face is outside the silhouette. Please center your face and try again.",
-      "validateLetterbox": "Square or landscape photos can't be used. Please choose a portrait photo."
+      "validateLetterbox": "Square or landscape photos can't be used. Please choose a portrait photo.",
+      "validateMultipleFaces": "More than one person is in the photo. Please try a photo of just one person.",
+      "validateNotFrontal": "The face is turned away. Please try a photo facing straight ahead.",
+      "validateEyesClosed": "The eyes look closed. Please try a photo with eyes open, without sunglasses.",
+      "validateMouthOpen": "The mouth is open. Please try a photo with the mouth closed."
     },
     "voice": {
       "presets": "Default voice presets",
