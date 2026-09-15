@@ -12,7 +12,10 @@ import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
-from pipeline import DialoguePipeline
+from pipeline import DialoguePipeline, HISTORY_NOTE
+
+# 히스토리가 있을 때 현재 발화 바로 앞에 붙는 안내(기록 안 됨).
+NOTE = {"role": "system", "content": HISTORY_NOTE}
 
 
 class _FakeTrack:
@@ -94,6 +97,7 @@ def test_second_turn_carries_first_turn():
         {"role": "system", "content": "너는 할배다"},
         {"role": "user", "content": "1턴"},
         {"role": "assistant", "content": "답1"},
+        NOTE,
         {"role": "user", "content": "2턴"},
     ]
 
@@ -104,7 +108,8 @@ def test_persona_stays_first_and_history_precedes_current_turn():
     for i in (1, 2, 3):
         asyncio.run(pipe.say(f"{i}턴"))
     roles = [m["role"] for m in sent[2]]
-    assert roles == ["system", "user", "assistant", "user", "assistant", "user"]
+    assert roles == ["system", "user", "assistant", "user", "assistant", "system", "user"]
+    assert sent[2][-2] == NOTE
     assert sent[2][0]["content"] == "너는 할배다"
     assert sent[2][-1]["content"] == "3턴"
 
@@ -113,7 +118,7 @@ def test_history_is_capped_at_max_turns():
     pipe, sent = _make_pipe(["답1", "답2", "답3"], history_turns=1)
     for i in (1, 2, 3):
         asyncio.run(pipe.say(f"{i}턴"))
-    assert [m["content"] for m in sent[2]] == ["너는 할배다", "2턴", "답2", "3턴"]
+    assert [m["content"] for m in sent[2]] == ["너는 할배다", "2턴", "답2", HISTORY_NOTE, "3턴"]
 
 
 def test_sessions_do_not_leak_between_pipelines():
@@ -155,6 +160,7 @@ def test_system_utterance_reply_carries_into_next_turn_without_its_prompt():
     assert sent[1] == [
         {"role": "system", "content": "너는 할배다"},
         {"role": "assistant", "content": "어서 와"},
+        NOTE,
         {"role": "user", "content": "안녕"},
     ]
 
@@ -165,7 +171,7 @@ def test_system_utterance_sees_prior_history():
     asyncio.run(pipe.say("1턴"))
     asyncio.run(pipe._system_utterance("아는 얼굴이 돌아왔어", label="react"))
     assert [m["content"] for m in sent[1]] == [
-        "너는 할배다", "1턴", "답1", "아는 얼굴이 돌아왔어",
+        "너는 할배다", "1턴", "답1", HISTORY_NOTE, "아는 얼굴이 돌아왔어",
     ]
 
 
@@ -203,3 +209,24 @@ def test_history_turns_from_env(monkeypatch):
     asyncio.run(pipe.say("1턴"))
     asyncio.run(pipe.say("2턴"))
     assert {"role": "user", "content": "1턴"} in sent[1]
+
+
+def test_history_note_only_when_history_exists():
+    """[AFL-734] 첫 턴·비활성에는 안내가 없고, 기록된 턴이 생긴 뒤에만 붙는다.
+
+    페르소나의 "모르면 '기억이 잘 안 나' 로 되물어라" 규칙 때문에 모델이 이 통화에서
+    들은 말까지 모르는 척했다(실측 react 낀 통화 3/3). 안내 없이는 멀티턴이 소용없다.
+    """
+    off, sent_off = _make_pipe(["답1", "답2"])
+    asyncio.run(off.say("1턴"))
+    asyncio.run(off.say("2턴"))
+    assert NOTE not in sent_off[1]
+
+    on, sent_on = _make_pipe(["답1", "답2", "답3"], history_turns=3)
+    asyncio.run(on.say("1턴"))
+    assert NOTE not in sent_on[0]
+    asyncio.run(on.say("2턴"))
+    asyncio.run(on.say("3턴"))
+    assert sent_on[2].count(NOTE) == 1
+    assert len(on.history) == 3
+    assert all(m != NOTE for m in on.history.messages())
