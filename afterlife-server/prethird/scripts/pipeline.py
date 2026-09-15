@@ -114,6 +114,14 @@ GREETING_PROMPT = (
     "이름·별명·호칭 (지호야, 언니, 오빠 등) 사용 금지. 얼굴 인식 후 별도 알림이 오면 그때 이름을 부르게 될 거야."
 )
 
+# [AFL-734] 멀티턴 히스토리 뒤에 붙는 안내 — DialoguePipeline._history_note 참조.
+HISTORY_NOTE = (
+    "위 user/assistant 메시지는 지금 이 통화에서 방금 실제로 오간 대화다. "
+    "이 통화에서 상대가 직접 말한 내용은 네가 들어서 알고 있다. "
+    "그 내용을 물으면 '기억이 안 난다'고 하지 말고 대화에 나온 그대로 짚어서 답해라. "
+    "대화에 없는 과거 일만 모른다고 한다."
+)
+
 # [T-067] 얼굴 인식 이벤트에 대한 선제 발화 프롬프트 (react()).
 REACT_PROMPT_KNOWN = (
     "방금 화면에 '{name}'님이 새로 나타났어. 하던 이야기를 잠깐 멈추고, "
@@ -204,6 +212,17 @@ class DialoguePipeline:
         self._last_emit_end: float | None = None  # [seg] 직전 _emit_sentence 종료 시각
         self._render_mode = _resolve_render_mode()  # [T-113] partial(기본)|batch 분기용
 
+    def _history_note(self) -> list[dict]:
+        """[멀티턴] 히스토리가 있을 때만 붙이는 system 안내 1줄. 기록하지 않는다.
+
+        페르소나 규칙(_RULE_UNKNOWN_ASK)은 '상대에 대해 모르면 "기억이 잘 안 나" 로 되물어라'
+        이다. 그대로 두면 모델이 이 통화에서 방금 들은 말까지 모르는 척한다
+        (실측 2026-09-15 gemma3:27b: react 가 낀 통화 3/3 이 "기억이 잘 안 나").
+        """
+        if not len(self.history):
+            return []
+        return [{"role": "system", "content": HISTORY_NOTE}]
+
     # ------------------------------------------------------------------
     # 퍼블릭 API
     # ------------------------------------------------------------------
@@ -233,6 +252,7 @@ class DialoguePipeline:
         messages = (
             self.persona_messages
             + self.history.messages()
+            + self._history_note()
             + [{"role": "user", "content": user_text}]
         )
 
@@ -358,6 +378,7 @@ class DialoguePipeline:
         messages = (
             self.persona_messages
             + self.history.messages()
+            + self._history_note()
             + [{"role": "user", "content": prompt}]
         )
 
