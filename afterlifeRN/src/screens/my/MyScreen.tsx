@@ -372,6 +372,13 @@ export default function v_ed02a5() {
           },
 
           {
+            icon: "mic" as const,
+            labelKey: "VITS TTS · AFL-737 (dev)",
+            descKey: "sherpa-onnx · 모델 캐시 · 1초 목표 측정",
+            action: () => v_c65f5d.navigate("TtsVits"),
+          },
+
+          {
             icon: "target" as const,
             labelKey: "얼굴 임계값 테스트 (dev)",
             descKey: "이미지 업로드 → 매칭 score 확인",
