@@ -87,8 +87,13 @@ v_5c0bb5.post("/chat", v_6690d9, async (v_3f4e2e) => {
       user_name?: string;
       active_person_id?: number;
       user_location?: string;
+
+      text_only?: boolean;
     }>()
-    .catch(() => ({} as { text?: string; clone_id?: number; clone_name?: string; user_name?: string; active_person_id?: number; user_location?: string }));
+    .catch(() => ({} as {
+      text?: string; clone_id?: number; clone_name?: string; user_name?: string;
+      active_person_id?: number; user_location?: string; text_only?: boolean;
+    }));
   const v_9b6134 = (v_4d33b2.text ?? "").trim();
   if (!v_9b6134) throw new v_3ebe58("VALIDATION_FAILED", "text required.");
   if (v_9b6134.length > 2000) throw new v_3ebe58("VALIDATION_FAILED", "text too long (max 2000).");
@@ -97,6 +102,7 @@ v_5c0bb5.post("/chat", v_6690d9, async (v_3f4e2e) => {
   const v_f08a5e = typeof v_4d33b2.user_name === "string" && v_4d33b2.user_name.trim() ? v_4d33b2.user_name.trim().slice(0, 80) : undefined;
   const v_c6a7ad = Number.isInteger(v_4d33b2.active_person_id) ? v_4d33b2.active_person_id : undefined;
   const v_146d3d = typeof v_4d33b2.user_location === "string" && v_4d33b2.user_location.trim() ? v_4d33b2.user_location.trim().slice(0, 200) : undefined;
+  const v_9fb0f4 = v_4d33b2.text_only === true;
 
   let v_102587 = undefined;
   let v_ab7387 = undefined;
@@ -185,6 +191,7 @@ v_5c0bb5.post("/chat", v_6690d9, async (v_3f4e2e) => {
         persona_tone: v_600d71,                    
         persona_knowledge: v_f7975f,          
         remembered_name: v_076306,
+        text_only: v_9fb0f4,                          
       }),
     });
   } catch (v_9e86fd) {

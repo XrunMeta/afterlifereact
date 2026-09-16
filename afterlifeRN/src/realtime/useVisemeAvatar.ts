@@ -9,6 +9,9 @@ import { v_194498 } from "../stores/cloneStore";
 import { v_1ed7d9 } from "../stores/authStore";
 import { v_1fcb40 } from "../services/userLocation";
 
+import { v_2911e0 as v_205f4c, v_8b9843 as v_5ee539, v_f06cb9 as v_4dc40f } from "../tts/ttsLocal";
+import { v_b65e4f } from "../viseme/koreanViseme";
+
 export interface UseVisemeAvatarResult extends v_b01667 {
 
   synthResponse: v_2a0baf | null;
@@ -91,6 +94,24 @@ export function v_e52b18(v_328259): UseVisemeAvatarResult {
   const v_a1d9db = v_de06a3(async (v_9b6134) => { await v_4a0f16(v_9b6134); }, [v_4a0f16]);
 
   const v_1f0249 = v_e662ae(0);
+
+  const v_ca3d91 = v_e662ae(false);
+  v_c4deb2(() => {
+    if (!v_205f4c()) return;
+    let v_2008a4 = false;
+    (async () => {
+      try {
+        await v_5ee539();
+        if (!v_2008a4) {
+          v_ca3d91.current = true;
+          if (__DEV__) console.log("[useVisemeAvatar] sherpa-onnx ready · §5-4 폰 TTS 활성");
+        }
+      } catch (v_9e86fd) {
+        if (__DEV__) console.warn("[useVisemeAvatar] sherpa prepare failed · 서버 TTS 폴백:", v_9e86fd);
+      }
+    })();
+    return () => { v_2008a4 = true; };
+  }, []);
   const v_bff046 = v_de06a3(async (v_602e0f) => {
     if (!v_62d405.current) return;
     const v_8d41d7 = (v_602e0f ?? "").trim();
@@ -100,6 +121,7 @@ export function v_e52b18(v_328259): UseVisemeAvatarResult {
     v_8c8005({ type: "speech_start", ts: Date.now() });
     try {
       const v_f915d0 = await v_335e37(v_2ca7e0);
+      const v_715226 = v_ca3d91.current;
 
       const v_146d3d = await v_1fcb40(v_6e0fd3)
         .then(v_8f00b9 => v_8f00b9.location || undefined)
@@ -120,6 +142,8 @@ export function v_e52b18(v_328259): UseVisemeAvatarResult {
 
           active_person_id: v_090778.current ?? undefined,
           user_location: v_146d3d,
+
+          text_only: v_715226,
         }),
       });
       if (!v_cb35cb.ok) {
@@ -131,10 +155,59 @@ export function v_e52b18(v_328259): UseVisemeAvatarResult {
         sentences?: Array<v_2a0baf & { text?: string }>;
       };
       if (!v_62d405.current || v_1f0249.current !== v_50bfdb) return;
-      const v_fe6160 = Array.isArray(v_9390e8.sentences) ? v_9390e8.sentences : [];
-      if (v_fe6160.length === 0) {
+      const v_9e0648 = Array.isArray(v_9390e8.sentences) ? v_9390e8.sentences : [];
+      if (v_9e0648.length === 0) {
 
         console.warn("[useVisemeAvatar] chat: empty sentences · text=", v_8d41d7);
+        v_8c8005({ type: "speech_end", ts: Date.now(), remainingMs: 0 });
+        v_3a7d09(null);
+        return;
+      }
+
+      const preparedSentences: Array<v_2a0baf & { text?: string }> = [];
+      if (v_715226) {
+        const v_952012 = Date.now();
+        for (const v_267ca3 of v_9e0648) {
+          const v_8bda9d = (v_267ca3.text ?? "").trim();
+          if (!v_8bda9d) continue;
+          try {
+            const v_43c42e = await v_4dc40f(v_8bda9d);
+            if (!v_62d405.current || v_1f0249.current !== v_50bfdb) return;
+
+            const v_8a9589 = await fetch(v_43c42e.uri).then(v_cb35cb => v_cb35cb.blob()).then(v_3263c7 =>
+              new Promise<string>((v_6f7712, v_bad6f3) => {
+                const v_3f7d00 = new FileReader();
+                v_3f7d00.onload = () => {
+                  const v_fd5f43 = v_3f7d00.result as string;
+
+                  const v_e86ad8 = v_fd5f43.indexOf("base64,");
+                  v_6f7712(v_e86ad8 >= 0 ? v_fd5f43.slice(v_e86ad8 + 7) : v_fd5f43);
+                };
+                v_3f7d00.onerror = () => v_bad6f3(v_3f7d00.error);
+                v_3f7d00.readAsDataURL(v_3263c7);
+              })
+            );
+            const v_c846fb = Math.round(v_43c42e.durationSec * 1000);
+            const v_ba091c = v_b65e4f(v_8bda9d, v_c846fb);
+            v_f15f30.push({
+              text: v_8bda9d,
+              audio_wav_b64: v_8a9589,
+              duration_ms: v_c846fb,
+              visemes: v_ba091c,
+            });
+          } catch (v_9e86fd) {
+            if (__DEV__) console.warn(`[useVisemeAvatar] local TTS failed on '${v_8bda9d.slice(0, 40)}':`, v_9e86fd);
+
+          }
+        }
+        if (__DEV__) console.log(`[useVisemeAvatar] §5-4 폰 TTS ${v_f15f30.length}개 · ${Date.now() - v_952012}ms`);
+      } else {
+
+        for (const v_267ca3 of v_9e0648) v_f15f30.push(v_267ca3);
+      }
+
+      if (v_f15f30.length === 0) {
+        console.warn("[useVisemeAvatar] chat: no playable sentences");
         v_8c8005({ type: "speech_end", ts: Date.now(), remainingMs: 0 });
         v_3a7d09(null);
         return;
@@ -143,15 +216,14 @@ export function v_e52b18(v_328259): UseVisemeAvatarResult {
       let v_75cbf4 = 0;
       const v_8e7e15 = () => {
         if (!v_62d405.current || v_1f0249.current !== v_50bfdb) return;
-        const v_267ca3 = v_fe6160[v_75cbf4];
+        const v_267ca3 = v_f15f30[v_75cbf4];
         v_88fed0({ ...v_267ca3 });
         if (v_267ca3.text) {
           v_8c8005({ type: "speech_text", ts: Date.now(), text: v_267ca3.text });
         }
         const v_7dc4bb = v_267ca3.duration_ms ?? 0;
         v_75cbf4 += 1;
-        if (v_75cbf4 >= v_fe6160.length) {
-
+        if (v_75cbf4 >= v_f15f30.length) {
           v_8c8005({ type: "speech_end", ts: Date.now(), remainingMs: v_7dc4bb });
           return;
         }
