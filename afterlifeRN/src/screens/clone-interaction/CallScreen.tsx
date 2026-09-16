@@ -528,6 +528,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const [liveTtsOutput, setLiveTtsOutput] = useState<string | null>(null);
 
+  const [liveVoiceModelManifestUrl, setLiveVoiceModelManifestUrl] = useState<string | null>(null);
+
   const {
     state: liveState,
     remoteStream,
@@ -552,6 +554,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     pipeline: livePipeline ?? (clone as { pipeline?: string | null })?.pipeline ?? null,
 
     ttsOutput: liveTtsOutput ?? (clone as { ttsOutput?: string | null })?.ttsOutput ?? null,
+
+    voiceModelManifestUrl: liveVoiceModelManifestUrl,
   });
 
   useEffect(() => {
@@ -562,14 +566,16 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         const { getCloneDetail } = await import("../../api/clones");
         const detail = await getCloneDetail(cloneId, accessToken);
         if (alive) {
-          const cloneData = (detail as { clone?: { pipeline?: string | null; visemePrefix?: string | null; ttsOutput?: string | null } })?.clone;
+          const cloneData = (detail as { clone?: { pipeline?: string | null; visemePrefix?: string | null; ttsOutput?: string | null; voiceModelManifestUrl?: string | null } })?.clone;
           const p = cloneData?.pipeline ?? null;
           const vp = cloneData?.visemePrefix ?? null;
           const to = cloneData?.ttsOutput ?? null;
+          const vmu = cloneData?.voiceModelManifestUrl ?? null;
           setLivePipeline(p);
           setLiveVisemePrefix(vp);
           setLiveTtsOutput(to);
-          if (__DEV__) console.log(`[T-467] livePipeline for clone ${cloneId} = ${p} · visemePrefix = ${vp ? "set" : "null"} · ttsOutput = ${to ?? "null"}`);
+          setLiveVoiceModelManifestUrl(vmu);
+          if (__DEV__) console.log(`[T-467] livePipeline for clone ${cloneId} = ${p} · visemePrefix = ${vp ? "set" : "null"} · ttsOutput = ${to ?? "null"} · voiceManifest = ${vmu ? "set" : "null"}`);
         }
       } catch (err) {
         if (__DEV__) console.warn("[T-467] getCloneDetail pipeline fetch failed:", err);

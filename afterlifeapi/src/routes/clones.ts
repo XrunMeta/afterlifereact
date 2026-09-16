@@ -1320,6 +1320,18 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
     .bind(v_6e0fd3, v_6e0fd3)
     .first<{ likesCount: number; commentsCount: number }>();
 
+  let v_28aeca = null;
+  if (v_eb25ce.voice_preset_id) {
+    const v_f653fc = await v_3f4e2e.env.DB
+      .prepare(`SELECT se_key FROM voice_presets WHERE id = ? AND is_active = 1`)
+      .bind(v_eb25ce.voice_preset_id)
+      .first<{ se_key: string | null }>();
+    if (v_f653fc?.se_key) {
+      const v_f17108 = new URL(v_3f4e2e.req.url).origin;
+      v_28aeca = `${v_f17108}/oth-path${encodeURIComponent(v_f653fc.se_key)}/manifest.json`;
+    }
+  }
+
   let v_db2b0a = false;
   if (v_43e90c) {
     const v_cb35cb = await v_3f4e2e.env.DB
@@ -1368,6 +1380,8 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
       avatarSdkGlbUrl: v_eb25ce.avatar_sdk_glb_url ?? null,
 
       ttsOutput: v_eb25ce.tts_output,
+
+      voiceModelManifestUrl: v_28aeca,
     },
   });
 });

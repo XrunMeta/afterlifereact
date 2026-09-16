@@ -80,6 +80,8 @@ export interface CloneDetailResponse {
     visemePrefix?: string | null;
 
     ttsOutput?: string | null;
+
+    voiceModelManifestUrl?: string | null;
   };
 }
 export async function v_003cf2(
