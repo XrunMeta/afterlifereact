@@ -526,6 +526,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const [liveVisemePrefix, setLiveVisemePrefix] = useState<string | null>(null);
 
+  const [liveTtsOutput, setLiveTtsOutput] = useState<string | null>(null);
+
   const {
     state: liveState,
     remoteStream,
@@ -548,6 +550,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     onRememberMe: handleRememberMeAsked,
 
     pipeline: livePipeline ?? (clone as { pipeline?: string | null })?.pipeline ?? null,
+
+    ttsOutput: liveTtsOutput ?? (clone as { ttsOutput?: string | null })?.ttsOutput ?? null,
   });
 
   useEffect(() => {
@@ -558,12 +562,14 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         const { getCloneDetail } = await import("../../api/clones");
         const detail = await getCloneDetail(cloneId, accessToken);
         if (alive) {
-          const cloneData = (detail as { clone?: { pipeline?: string | null; visemePrefix?: string | null } })?.clone;
+          const cloneData = (detail as { clone?: { pipeline?: string | null; visemePrefix?: string | null; ttsOutput?: string | null } })?.clone;
           const p = cloneData?.pipeline ?? null;
           const vp = cloneData?.visemePrefix ?? null;
+          const to = cloneData?.ttsOutput ?? null;
           setLivePipeline(p);
           setLiveVisemePrefix(vp);
-          if (__DEV__) console.log(`[T-467] livePipeline for clone ${cloneId} = ${p} · visemePrefix = ${vp ? "set" : "null"}`);
+          setLiveTtsOutput(to);
+          if (__DEV__) console.log(`[T-467] livePipeline for clone ${cloneId} = ${p} · visemePrefix = ${vp ? "set" : "null"} · ttsOutput = ${to ?? "null"}`);
         }
       } catch (err) {
         if (__DEV__) console.warn("[T-467] getCloneDetail pipeline fetch failed:", err);

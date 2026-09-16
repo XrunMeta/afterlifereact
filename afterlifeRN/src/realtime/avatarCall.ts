@@ -61,6 +61,8 @@ export type UseAvatarCall = (opts: {
   onRememberMe?: () => void;
 
   pipeline?: string | null;
+
+  ttsOutput?: string | null;
 }) => AvatarCall;
 
 export function v_d8a22b(
