@@ -53,6 +53,8 @@ import v_30f4d7 from "../screens/face-test/FaceThresholdTestScreen";
 
 import v_e2119c from "../screens/dev/TtsLocalPocScreen";
 
+import v_cca0cf from "../screens/dev/TtsVitsScreen";
+
 const v_3ea452 = v_709be7<v_2d88fc>();
 const v_be1c7b = v_709be7<v_2b51a5>();
 const v_3ce8b8 = v_709be7<v_e57140>();
@@ -117,6 +119,7 @@ function v_d9c5dd() {
       <MyStack.Screen name="ThreeDLab" component={v_bf7ede} />
       <MyStack.Screen name="ThreeDPersona" component={v_ecc90b} />
       <MyStack.Screen name="TtsLocalPoc" component={v_e2119c} />
+      <MyStack.Screen name="TtsVits" component={v_cca0cf} />
     </MyStack.Navigator>
   );
 }
