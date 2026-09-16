@@ -97,8 +97,6 @@
       "expo-apple-authentication",
       "expo-audio",
       "expo-video",
-      "onnxruntime-react-native",
-      "./plugins/withOnnxruntimeNative.js",
       [
         "expo-font",
         {

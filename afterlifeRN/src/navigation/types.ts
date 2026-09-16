@@ -136,8 +136,6 @@ export type MyStackParamList = {
 
   ThreeDPersona: undefined;
 
-  TtsLocalPoc: undefined;
-
   TtsVits: undefined;
 };
 
