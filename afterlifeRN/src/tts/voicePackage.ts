@@ -147,46 +147,22 @@ export async function v_e786af(
 
   for (const v_2b8338 of v_88e564.files) {
     const v_f71b56 = `${v_1f00b4}/${v_2b8338.name}`
-    const v_3393e3 = await fetch(v_f71b56, { headers: v_6d219b })
-    if (!v_3393e3.ok) throw new Error(`${v_2b8338.name} ${v_3393e3.status}`)
 
-    const v_5f5d6d = new v_6d148f(v_b7cff2, v_2b8338.name)
-    v_5f5d6d.create()
-
-    const v_f47a40 = v_3393e3.body?.getReader?.()
-    if (v_f47a40) {
-
-      const v_f13980 = v_5f5d6d.open()
-      let v_79f454 = 0
-      try {
-        for (;;) {
-          const { done: v_2fb8cc, value: v_3b402b } = await v_f47a40.read()
-          if (v_2fb8cc) break
-          if (v_3b402b) {
-            v_f13980.writeBytes(v_3b402b)
-            v_79f454 += v_3b402b.byteLength
-            v_94c617?.({
-              file: v_2b8338.name,
-              receivedBytes: v_79f454,
-              totalBytes: v_2b8338.size,
-              ratio: v_2b8338.size ? v_79f454 / v_2b8338.size : 0,
-            })
-          }
-        }
-      } finally {
-        v_f13980.close()
-      }
-    } else {
-
-      const v_062bb0 = await v_3393e3.arrayBuffer()
-      v_5f5d6d.write(new Uint8Array(v_062bb0))
-      v_94c617?.({
-        file: v_2b8338.name,
-        receivedBytes: v_062bb0.byteLength,
-        totalBytes: v_2b8338.size,
-        ratio: 1,
-      })
-    }
+    v_94c617?.({
+      file: v_2b8338.name,
+      receivedBytes: 0,
+      totalBytes: v_2b8338.size,
+      ratio: 0,
+    })
+    await v_6d148f.downloadFileAsync(v_f71b56, new v_6d148f(v_b7cff2, v_2b8338.name), {
+      headers: v_6d219b,
+    })
+    v_94c617?.({
+      file: v_2b8338.name,
+      receivedBytes: v_2b8338.size,
+      totalBytes: v_2b8338.size,
+      ratio: 1,
+    })
 
     const v_745f8c = new v_6d148f(v_b7cff2, v_2b8338.name).size ?? 0
     if (v_745f8c !== v_2b8338.size) {
