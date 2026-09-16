@@ -112,29 +112,44 @@ export function v_e52b18(v_328259): UseVisemeAvatarResult {
   const v_1f0249 = v_e662ae(0);
 
   const v_ca3d91 = v_e662ae(false);
+
   v_c4deb2(() => {
+    if (__DEV__) {
+      const v_ed0865 = v_205f4c();
+      console.log(`[useVisemeAvatar/gate] tts=${v_76b338 ?? "null"} · wantsLocal=${v_938803} · sherpaAvailable=${v_ed0865} · manifestUrl=${v_28aeca ? "set" : "null"} · ready=${v_ca3d91.current}`);
+    }
     if (!v_938803) {
       if (__DEV__) console.log(`[useVisemeAvatar] §5-5 폰 TTS 비활성 · ttsOutput=${v_76b338 ?? "null"} (서버 TTS 유지)`);
       return;
     }
     if (!v_205f4c()) {
-      if (__DEV__) console.warn("[useVisemeAvatar] §5-5 tts_output=local_play 지만 sherpa 모듈 없음 · 서버 TTS 폴백");
+      if (__DEV__) console.warn("[useVisemeAvatar] §5-5 tts_output=local_play 지만 sherpa 모듈 없음 · 서버 TTS 폴백 (require('@siteed/sherpa-onnx.rn') 실패 · 개발 빌드 재생성 필요)");
+      return;
+    }
+    if (v_ca3d91.current) {
+      if (__DEV__) console.log("[useVisemeAvatar] sherpa 이미 준비됨 · skip init");
       return;
     }
     let v_2008a4 = false;
     (async () => {
       try {
+        if (__DEV__) console.log(`[useVisemeAvatar] sherpa prepare 시작 · manifestUrl=${v_28aeca ?? "(dev 폴백)"} · cloneId=${v_6e0fd3}`);
+        const v_b66f2c = Date.now();
 
         const v_04e790 = v_28aeca
           ? { manifestUrl: v_28aeca, accessToken: v_2ca7e0 }
           : undefined;
-        await v_5ee539(undefined, {
-          cloneId: String(v_6e0fd3),
-          source: v_04e790,
-        });
+        const v_e42213 = await v_5ee539(
+          (v_a63fde) => {
+            if (__DEV__ && v_a63fde.ratio > 0) {
+              console.log(`[useVisemeAvatar] sherpa download ${v_a63fde.file}: ${(v_a63fde.ratio * 100).toFixed(1)}% (${v_a63fde.receivedBytes}/${v_a63fde.totalBytes})`);
+            }
+          },
+          { cloneId: String(v_6e0fd3), source: v_04e790 },
+        );
         if (!v_2008a4) {
           v_ca3d91.current = true;
-          if (__DEV__) console.log(`[useVisemeAvatar] sherpa-onnx ready · §5-5 폰 TTS 활성 (source=${v_28aeca ? "R2" : "dev-8204"})`);
+          if (__DEV__) console.log(`[useVisemeAvatar] sherpa-onnx ready · §5-5 폰 TTS 활성 (source=${v_28aeca ? "R2" : "dev-8204"}, ${Date.now() - v_b66f2c}ms, downloaded=${v_e42213.downloaded})`);
         }
       } catch (v_9e86fd) {
         if (__DEV__) console.warn("[useVisemeAvatar] sherpa prepare failed · 서버 TTS 폴백:", v_9e86fd);
@@ -152,6 +167,7 @@ export function v_e52b18(v_328259): UseVisemeAvatarResult {
     try {
       const v_f915d0 = await v_335e37(v_2ca7e0);
       const v_715226 = v_ca3d91.current;
+      if (__DEV__) console.log(`[useVisemeAvatar/chat] text_only=${v_715226} · '${v_8d41d7.slice(0, 30)}${v_8d41d7.length > 30 ? '…' : ''}'`);
 
       const v_146d3d = await v_1fcb40(v_6e0fd3)
         .then(v_8f00b9 => v_8f00b9.location || undefined)
