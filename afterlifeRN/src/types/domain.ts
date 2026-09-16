@@ -55,6 +55,8 @@ export interface DomainClone {
   messagesCount?: number;
 
   pipeline?: string | null;
+
+  ttsOutput?: string | null;
 }
 
 export interface DomainFollow {

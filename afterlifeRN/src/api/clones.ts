@@ -78,6 +78,8 @@ export interface CloneDetailResponse {
     trainingStatus?: string;
 
     visemePrefix?: string | null;
+
+    ttsOutput?: string | null;
   };
 }
 export async function v_003cf2(
