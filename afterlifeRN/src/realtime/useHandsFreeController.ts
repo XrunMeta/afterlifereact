@@ -57,6 +57,8 @@ export function v_7df8a4(opts: {
   confirmGate?: boolean;
 
   signalGating?: boolean;
+
+  contextualStrings?: string[];
 }) {
   const [v_b6e533, v_1fa668] = v_5ab095(v_3075fa());
   const v_8d3dea = v_e662ae(v_b6e533);
@@ -99,6 +101,7 @@ export function v_7df8a4(opts: {
     engine: v_328259.speechEngine,
 
     silenceMs: v_328259.silenceMs ?? 1500,
+    contextualStrings: v_328259.contextualStrings,
     onFinalResult: (v_9b6134) => {
 
       const v_1c0b3c = Date.now() - v_84a65f.current;
