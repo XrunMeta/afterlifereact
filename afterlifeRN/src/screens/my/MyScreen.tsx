@@ -365,13 +365,6 @@ export default function v_ed02a5() {
           },
 
           {
-            icon: "volume-2" as const,
-            labelKey: "로컬 TTS POC (dev)",
-            descKey: "g2p-js + halbae ONNX · 완전 로컬 · 서버 X",
-            action: () => v_c65f5d.navigate("TtsLocalPoc"),
-          },
-
-          {
             icon: "mic" as const,
             labelKey: "VITS TTS · AFL-737 (dev)",
             descKey: "sherpa-onnx · 모델 캐시 · 1초 목표 측정",
