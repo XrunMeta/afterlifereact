@@ -1204,7 +1204,8 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
             c.viseme_generated_at AS visemeGeneratedAt,
             c.viseme_version AS visemeVersion,
             c.avatar_sdk_glb_url AS avatarSdkGlbUrl,
-            c.avatar_sdk_id AS avatarSdkId
+            c.avatar_sdk_id AS avatarSdkId,
+            c.tts_output AS ttsOutput
        FROM clones c
        LEFT JOIN users u ON u.id = c.owner_id
       WHERE c.id = ?`,
@@ -1223,6 +1224,8 @@ const v_dcf9cd = v_1f4ea7.object({
 
   avatarSdkGlbUrl: v_1f4ea7.string().url().max(1000).nullable().optional(),
   avatarSdkId: v_1f4ea7.string().max(200).nullable().optional(),
+
+  ttsOutput: v_1f4ea7.enum(["server_stream", "local_play", "server_upload"]).optional(),
 });
 
 v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
@@ -1269,6 +1272,11 @@ v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
   if (v_4d33b2.avatarSdkId !== undefined) {
     v_75ae3e.push(`avatar_sdk_id = ?`);
     v_925171.push(v_4d33b2.avatarSdkId);
+  }
+
+  if (v_4d33b2.ttsOutput !== undefined) {
+    v_75ae3e.push(`tts_output = ?`);
+    v_925171.push(v_4d33b2.ttsOutput);
   }
   if (v_75ae3e.length === 0) {
     return v_3f4e2e.json({ ok: true, updated: 0 });

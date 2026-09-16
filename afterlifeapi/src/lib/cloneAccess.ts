@@ -52,6 +52,8 @@ export interface CloneRow {
 
   avatar_sdk_glb_url: string | null;
   avatar_sdk_id: string | null;
+
+  tts_output: string;
 }
 
 export async function v_5d4a51(
@@ -66,7 +68,7 @@ export async function v_5d4a51(
               c.is_system,
               c.idle_video_url, c.voice_se_url, c.filler_video_urls, c.guide_video_urls,
               c.relation, c.admin_suspended_at, c.pipeline, c.viseme_prefix,
-              c.avatar_sdk_glb_url, c.avatar_sdk_id,
+              c.avatar_sdk_glb_url, c.avatar_sdk_id, c.tts_output,
               COALESCE(s.followers_count, 0) AS followers_count,
               COALESCE(s.messages_count, 0)  AS messages_count,
               COALESCE(s.gifts_count, 0)     AS gifts_count

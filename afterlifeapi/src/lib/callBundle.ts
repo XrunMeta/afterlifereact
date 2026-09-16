@@ -27,6 +27,10 @@ export interface CallBundle {
 
     emoteSmileUrl: string | null;
   };
+
+  ttsOutput: string;
+
+  voiceModelManifestUrl: string | null;
 }
 
 export async function v_87cfd2(v_a1651b, clone: v_b107dc, v_43e90c, v_f17108): Promise<CallBundle> {
@@ -153,5 +157,12 @@ export async function v_87cfd2(v_a1651b, clone: v_b107dc, v_43e90c, v_f17108): P
     emoteSmileUrl: v_14c073,
   };
 
-  return { personaBundle: v_ba0fde, assets: v_7adc95 };
+  const v_28aeca = null;
+
+  return {
+    personaBundle: v_ba0fde,
+    assets: v_7adc95,
+    ttsOutput: v_eb25ce.tts_output,
+    voiceModelManifestUrl: v_28aeca,
+  };
 }

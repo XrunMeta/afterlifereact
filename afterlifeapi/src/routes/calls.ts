@@ -100,7 +100,8 @@ v_20e160.get("/:cloneId/bundle", v_6690d9, async (v_3f4e2e) => {
   if (v_a697ec(v_eb25ce, v_00efe2)) {
     throw new v_3ebe58("FORBIDDEN", "This clone is currently suspended.");
   }
-  const { personaBundle: v_ba0fde, assets: v_7adc95 } = await v_87cfd2(v_3f4e2e.env.DB, v_eb25ce, v_43e90c, new URL(v_3f4e2e.req.url).origin);
+  const v_79521f = await v_87cfd2(v_3f4e2e.env.DB, v_eb25ce, v_43e90c, new URL(v_3f4e2e.req.url).origin);
+  const { personaBundle: v_ba0fde, assets: v_7adc95 } = v_79521f;
 
   if (v_7adc95.faceUrl && v_3f4e2e.env.EMOTE_RENDER_SECRET) {
     const v_d0c2ab = v_3f4e2e.env.CALL_PRETHIRD_BASE?.replace(/\/prethird\/?$/, "") ?? "https://rtc.example.invalid";
@@ -120,7 +121,13 @@ v_20e160.get("/:cloneId/bundle", v_6690d9, async (v_3f4e2e) => {
       }).catch(() => {}),
     );
   }
-  return v_3f4e2e.json({ personaBundle: v_ba0fde, assets: v_7adc95 });
+
+  return v_3f4e2e.json({
+    personaBundle: v_ba0fde,
+    assets: v_7adc95,
+    ttsOutput: v_79521f.ttsOutput,
+    voiceModelManifestUrl: v_79521f.voiceModelManifestUrl,
+  });
 });
 
 const v_f52f0d = v_1f4ea7.object({
