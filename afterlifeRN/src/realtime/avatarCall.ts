@@ -63,6 +63,8 @@ export type UseAvatarCall = (opts: {
   pipeline?: string | null;
 
   ttsOutput?: string | null;
+
+  voiceModelManifestUrl?: string | null;
 }) => AvatarCall;
 
 export function v_d8a22b(

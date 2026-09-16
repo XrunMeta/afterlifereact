@@ -157,7 +157,9 @@ export async function v_87cfd2(v_a1651b, clone: v_b107dc, v_43e90c, v_f17108): P
     emoteSmileUrl: v_14c073,
   };
 
-  const v_28aeca = null;
+  const v_28aeca = v_4f80ac
+    ? `${v_f17108}/oth-path${encodeURIComponent(v_4f80ac)}/manifest.json`
+    : null;
 
   return {
     personaBundle: v_ba0fde,
