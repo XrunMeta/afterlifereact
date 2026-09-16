@@ -2,11 +2,16 @@
 
 import { v_6d148f, v_4e6085 } from 'umnthslqstcsfmed'
 
-import { v_50b660 } from './config'
+import { v_e11ce9, v_50b660 } from './config'
 import { v_ee4cd6, type v_1219dc } from './envelope'
 import { v_c99bc7, v_51b50b } from './hangul'
 import { v_2bb41d, v_bdb9cf } from './wav'
-import { v_e786af, type v_d7f057, type v_997669 } from './voicePackage'
+import {
+  v_e786af,
+  type v_d7f057,
+  type v_997669,
+  type v_2149af,
+} from './voicePackage'
 
 export interface LocalSynthResult {
   uri: string
@@ -54,9 +59,11 @@ export function v_2911e0(): boolean {
 }
 
 export async function v_8b9843(
-  onProgress?: (progress: v_d7f057) => void
+  onProgress?: (progress: v_d7f057) => void,
+  options?: { cloneId?: string; source?: v_2149af }
 ): Promise<v_997669> {
-  const v_e42213 = await v_e786af(v_94c617)
+  const v_6e0fd3 = v_b36f96?.cloneId ?? v_e11ce9
+  const v_e42213 = await v_e786af(v_94c617, v_6e0fd3, v_b36f96?.source)
 
   const v_8fc3e4 = v_b5875f()
   if (!v_8fc3e4) throw new Error('sherpa-onnx 네이티브 모듈 없음 (개발 빌드 재생성 필요)')
