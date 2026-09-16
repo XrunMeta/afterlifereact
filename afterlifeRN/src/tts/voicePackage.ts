@@ -50,10 +50,27 @@ export async function v_a58650(): Promise<string[]> {
   return v_4d33b2.voices ?? []
 }
 
-export async function v_fef4d7(v_6e0fd3 = v_e11ce9): Promise<VoiceManifest> {
-  const v_3393e3 = await fetch(`${v_c83945}/voices/${v_6e0fd3}/manifest.json`)
+export interface VoiceSourceOptions {
+  manifestUrl?: string | null
+  filesBaseUrl?: string | null
+  accessToken?: string | null
+}
+
+function v_b90e6c(v_2ca7e0): Record<string, string> {
+  return v_2ca7e0 ? { Authorization: `Bearer ${v_2ca7e0}` } : {}
+}
+
+export async function v_fef4d7(v_6e0fd3 = v_e11ce9, v_04e790): Promise<VoiceManifest> {
+  const v_f71b56 = v_04e790?.manifestUrl ?? `${v_c83945}/voices/${v_6e0fd3}/manifest.json`
+  const v_3393e3 = await fetch(v_f71b56, { headers: v_b90e6c(v_04e790?.accessToken) })
   if (!v_3393e3.ok) throw new Error(`manifest ${v_3393e3.status}`)
   return (await v_3393e3.json()) as VoiceManifest
+}
+
+function v_dbae8b(v_04e790, v_6e0fd3): string {
+  if (v_04e790?.filesBaseUrl) return v_04e790.filesBaseUrl.replace(/\/$/, '')
+  if (v_04e790?.manifestUrl) return v_04e790.manifestUrl.replace(/\/manifest\.json$/, '')
+  return `${v_c83945}/voices/${v_6e0fd3}`
 }
 
 function v_49774a(v_88e564): boolean {
@@ -78,15 +95,18 @@ function v_49774a(v_88e564): boolean {
 
 export async function v_e786af(
   v_94c617,
-  v_6e0fd3 = v_e11ce9
+  v_6e0fd3 = v_e11ce9,
+  v_04e790
 ): Promise<VoicePackage> {
   const v_f6634c = Date.now()
   const v_b7cff2 = v_7001bd(v_6e0fd3)
+  const v_1f00b4 = v_dbae8b(v_04e790, v_6e0fd3)
+  const v_6d219b = v_b90e6c(v_04e790?.accessToken)
 
   let v_88e564
   let v_b2caa3 = false
   try {
-    v_88e564 = await v_fef4d7(v_6e0fd3)
+    v_88e564 = await v_fef4d7(v_6e0fd3, v_04e790)
   } catch (v_5e9bfe) {
     const v_c67510 = v_68ef0f(v_6e0fd3)
     if (!v_c67510.exists) throw v_5e9bfe
@@ -126,8 +146,8 @@ export async function v_e786af(
   v_b7cff2.create({ intermediates: true })
 
   for (const v_2b8338 of v_88e564.files) {
-    const v_f71b56 = `${v_c83945}/voices/${v_6e0fd3}/${v_2b8338.name}`
-    const v_3393e3 = await fetch(v_f71b56)
+    const v_f71b56 = `${v_1f00b4}/${v_2b8338.name}`
+    const v_3393e3 = await fetch(v_f71b56, { headers: v_6d219b })
     if (!v_3393e3.ok) throw new Error(`${v_2b8338.name} ${v_3393e3.status}`)
 
     const v_5f5d6d = new v_6d148f(v_b7cff2, v_2b8338.name)

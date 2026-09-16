@@ -36,6 +36,8 @@ export function v_e52b18(v_328259): UseVisemeAvatarResult {
   const v_76b338 = v_328259.ttsOutput;
   const v_938803 = v_76b338 === 'local_play';
 
+  const v_28aeca = v_328259.voiceModelManifestUrl ?? null;
+
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
   const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
   const v_090778 = v_e662ae<number | null>(null);
@@ -122,17 +124,24 @@ export function v_e52b18(v_328259): UseVisemeAvatarResult {
     let v_2008a4 = false;
     (async () => {
       try {
-        await v_5ee539();
+
+        const v_04e790 = v_28aeca
+          ? { manifestUrl: v_28aeca, accessToken: v_2ca7e0 }
+          : undefined;
+        await v_5ee539(undefined, {
+          cloneId: String(v_6e0fd3),
+          source: v_04e790,
+        });
         if (!v_2008a4) {
           v_ca3d91.current = true;
-          if (__DEV__) console.log("[useVisemeAvatar] sherpa-onnx ready · §5-5 폰 TTS 활성");
+          if (__DEV__) console.log(`[useVisemeAvatar] sherpa-onnx ready · §5-5 폰 TTS 활성 (source=${v_28aeca ? "R2" : "dev-8204"})`);
         }
       } catch (v_9e86fd) {
         if (__DEV__) console.warn("[useVisemeAvatar] sherpa prepare failed · 서버 TTS 폴백:", v_9e86fd);
       }
     })();
     return () => { v_2008a4 = true; };
-  }, [v_938803, v_76b338]);
+  }, [v_938803, v_76b338, v_28aeca, v_2ca7e0, v_6e0fd3]);
   const v_bff046 = v_de06a3(async (v_602e0f) => {
     if (!v_62d405.current) return;
     const v_8d41d7 = (v_602e0f ?? "").trim();
