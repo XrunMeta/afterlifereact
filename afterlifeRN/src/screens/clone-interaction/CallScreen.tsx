@@ -1134,6 +1134,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     confirmGate: __DEV__ && confirmGateEnabled,
 
     signalGating: typeof greet === 'function',
+
+    contextualStrings: (paramName || clone?.displayName)
+      ? [(paramName || clone?.displayName) as string]
+      : undefined,
   });
 
   useEffect(() => {

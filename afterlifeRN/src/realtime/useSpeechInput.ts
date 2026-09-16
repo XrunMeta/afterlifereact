@@ -29,6 +29,11 @@ export function v_fee12d(v_328259) {
   const v_5254bf = v_328259?.lang ?? 'ko-KR';
   const v_05b2f6 = v_328259?.silenceMs ?? v_c45689;
 
+  const v_a4265b = v_e662ae(v_328259?.contextualStrings);
+  v_c4deb2(() => {
+    v_a4265b.current = v_328259?.contextualStrings;
+  });
+
   const v_dcd851 = v_e662ae(v_328259?.onFinalResult);
   v_c4deb2(() => {
     v_dcd851.current = v_328259?.onFinalResult;
@@ -186,12 +191,14 @@ export function v_fee12d(v_328259) {
             try {
 
               v_b5958d.current = true; 
+              const v_427ca2 = v_a4265b.current;
               v_1e3df0.start({
                 lang: v_5254bf,
                 interimResults: true,
                 continuous: true,
                 volumeChangeEventOptions: { enabled: true, intervalMillis: 100 },
-              });
+                ...(v_427ca2 && v_427ca2.length > 0 ? { contextualStrings: v_427ca2 } : {}),
+              } as any);
 
               if (v_168497.current) clearTimeout(v_168497.current);
               v_168497.current = setTimeout(() => {
@@ -285,12 +292,14 @@ export function v_fee12d(v_328259) {
     }, v_74fd06);
     try {
 
+      const v_427ca2 = v_a4265b.current;
       v_1e3df0.start({
         lang: v_5254bf,
         interimResults: true,
         continuous: true,
         volumeChangeEventOptions: { enabled: true, intervalMillis: 100 },
-      });
+        ...(v_427ca2 && v_427ca2.length > 0 ? { contextualStrings: v_427ca2 } : {}),
+      } as any);
     } catch (v_b17aaa) {
       const v_9e86fd = v_b17aaa instanceof Error ? v_b17aaa : new Error(String(v_b17aaa));
       if (v_168497.current) {
