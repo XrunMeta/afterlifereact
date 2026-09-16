@@ -9,8 +9,19 @@ import { v_194498 } from "../stores/cloneStore";
 import { v_1ed7d9 } from "../stores/authStore";
 import { v_1fcb40 } from "../services/userLocation";
 
+import { v_6d148f } from "umnthslqstcsfmed";
 import { v_2911e0 as v_205f4c, v_8b9843 as v_5ee539, v_f06cb9 as v_4dc40f } from "../tts/ttsLocal";
 import { v_b65e4f } from "../viseme/koreanViseme";
+
+function v_4d2f90(v_fbb6da): string {
+  const v_e646b6 = 0x8000;
+  const v_468545 = [];
+  for (let v_ebec57 = 0; v_ebec57 < v_fbb6da.length; v_ebec57 += v_e646b6) {
+    v_468545.push(String.fromCharCode(...v_fbb6da.subarray(v_ebec57, Math.min(v_ebec57 + v_e646b6, v_fbb6da.length))));
+  }
+
+  return typeof btoa === "function" ? btoa(v_468545.join("")) : globalThis.btoa(v_468545.join(""));
+}
 
 export interface UseVisemeAvatarResult extends v_b01667 {
 
@@ -174,19 +185,9 @@ export function v_e52b18(v_328259): UseVisemeAvatarResult {
             const v_43c42e = await v_4dc40f(v_8bda9d);
             if (!v_62d405.current || v_1f0249.current !== v_50bfdb) return;
 
-            const v_8a9589 = await fetch(v_43c42e.uri).then(v_cb35cb => v_cb35cb.blob()).then(v_3263c7 =>
-              new Promise<string>((v_6f7712, v_bad6f3) => {
-                const v_3f7d00 = new FileReader();
-                v_3f7d00.onload = () => {
-                  const v_fd5f43 = v_3f7d00.result as string;
-
-                  const v_e86ad8 = v_fd5f43.indexOf("base64,");
-                  v_6f7712(v_e86ad8 >= 0 ? v_fd5f43.slice(v_e86ad8 + 7) : v_fd5f43);
-                };
-                v_3f7d00.onerror = () => v_bad6f3(v_3f7d00.error);
-                v_3f7d00.readAsDataURL(v_3263c7);
-              })
-            );
+            const v_fda5ab = new v_6d148f(v_43c42e.uri);
+            const v_fbb6da = v_fda5ab.bytesSync();
+            const v_8a9589 = v_4d2f90(v_fbb6da);
             const v_c846fb = Math.round(v_43c42e.durationSec * 1000);
             const v_ba091c = v_b65e4f(v_8bda9d, v_c846fb);
             v_f15f30.push({
