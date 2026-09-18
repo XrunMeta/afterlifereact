@@ -542,6 +542,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     speak,
     lastSignal,
     sendFaceEvent,
+    sendAudioReady,
 
     visemeResponse,
   } = useAvatarCall({
@@ -1308,6 +1309,38 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       t.enabled = shouldEnable;
     });
   }, [remoteStream, dialingDone, isMuted]);
+
+  const audioReadySentRef = useRef(false);
+  useEffect(() => {
+    if (liveState !== 'live') return;
+    if (!sendAudioReady) return;
+    audioReadySentRef.current = false;
+    let cancelled = false;
+    const poll = async () => {
+      while (!cancelled && !audioReadySentRef.current) {
+        try {
+          const report = await getStatsReport?.();
+          if (report) {
+            for (const [, s] of report as Iterable<[string, Record<string, unknown>]>) {
+              if (s.type === 'inbound-rtp' && s.kind === 'audio') {
+                const pkts = Number(s.packetsReceived ?? 0);
+                if (pkts >= 5) {
+                  sendAudioReady();
+                  audioReadySentRef.current = true;
+                  break;
+                }
+              }
+            }
+          }
+        } catch {
+
+        }
+        if (!audioReadySentRef.current) await new Promise((r) => setTimeout(r, 50));
+      }
+    };
+    poll();
+    return () => { cancelled = true; };
+  }, [liveState, sendAudioReady, getStatsReport]);
 
   const [cloneSubtitle, setCloneSubtitle] = useState('');
   useEffect(() => {
