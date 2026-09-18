@@ -1303,11 +1303,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   useEffect(() => {
     const audio = (remoteStream as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })
       ?.getAudioTracks?.() ?? [];
-    const shouldEnable = !isMuted;
+    const shouldEnable = dialingDone && !isMuted;
     audio.forEach((t) => {
       t.enabled = shouldEnable;
     });
-  }, [remoteStream, isMuted]);
+  }, [remoteStream, dialingDone, isMuted]);
 
   const [cloneSubtitle, setCloneSubtitle] = useState('');
   useEffect(() => {
