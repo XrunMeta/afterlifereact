@@ -1312,7 +1312,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   useEffect(() => {
     if (!dialingDone || !sendAudioReady) return;
-    const t = setTimeout(() => { sendAudioReady(); }, 700);
+    const t = setTimeout(() => { sendAudioReady(); }, 2700);
     return () => clearTimeout(t);
   }, [dialingDone, sendAudioReady]);
 
