@@ -49,6 +49,8 @@ export interface AvatarCall {
 
   sendFaceEvent?: (evt: FaceEvent) => void;
 
+  sendAudioReady?: () => void;
+
   visemeResponse?: v_2a0baf | null;
 }
 
