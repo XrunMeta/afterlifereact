@@ -1192,7 +1192,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const lastBridgeTextRef = useRef<string>("");
   const [bridgeActive, setBridgeActive] = useState(false);
 
-  const BRIDGE_GRACE_MS = 500;
+  const BRIDGE_GRACE_MS = 2000;
   const bridgeGraceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bridgePendingTextRef = useRef<string | null>(null);
   const clearBridgeGrace = useCallback(() => {
@@ -1242,53 +1242,9 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     else if (lastSignal.type === 'speech_end') { setSpeakActive(false); speakActiveRef.current = false; }
   }, [isAvatarV2, lastSignal]);
 
-  const bridgeChainCountRef = useRef(0);
-  const bridgeChainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const BRIDGE_CHAIN_GAP_MS = 300;
-  const BRIDGE_CHAIN_MAX = 4; 
-  const BRIDGE_CHAIN_FALLBACKS: readonly string[] = ['generic', 'complex', 'advice', 'generic'];
-  const clearBridgeChain = useCallback(() => {
-    if (bridgeChainTimerRef.current) { clearTimeout(bridgeChainTimerRef.current); bridgeChainTimerRef.current = null; }
-  }, []);
   const onBridgeEnd = useCallback(() => {
     setBridgeActive(false);
-
-    if (speakActiveRef.current) return;
-    if (bridgeChainCountRef.current >= BRIDGE_CHAIN_MAX) {
-      if (__DEV__) console.log(`[T-806/chain] max chain reached (${BRIDGE_CHAIN_MAX})`);
-      return;
-    }
-    clearBridgeChain();
-    bridgeChainTimerRef.current = setTimeout(() => {
-      if (speakActiveRef.current) return;
-      const idx = bridgeChainCountRef.current;
-      const fallbackKey = BRIDGE_CHAIN_FALLBACKS[idx % BRIDGE_CHAIN_FALLBACKS.length];
-
-      const hintText = fallbackKey === 'complex'
-        ? '조금만 더 시간이 필요해서 잠깐 정리하고 있는 중이라 잠시만 기다려줘 정말 미안해'
-        : fallbackKey === 'advice'
-        ? '음 이거 추천해줄게'
-        : '';
-      bridgeChainCountRef.current += 1;
-      if (__DEV__) console.log(`[T-806/chain] fire chain ${bridgeChainCountRef.current}/${BRIDGE_CHAIN_MAX} (${fallbackKey})`);
-      try { yoonjeongRef.current?.playBridge(hintText); } catch (e) {
-        if (__DEV__) console.warn('[T-806/chain] playBridge failed:', e);
-      }
-    }, BRIDGE_CHAIN_GAP_MS);
-  }, [clearBridgeChain]);
-
-  useEffect(() => {
-    if (!isAvatarV2) return;
-    if (lastSignal?.type === 'speech_start') {
-      clearBridgeChain();
-      bridgeChainCountRef.current = 0;
-      try { yoonjeongRef.current?.stopBridge(); } catch {}
-      setBridgeActive(false);
-    } else if (lastSignal?.type === 'speech_end') {
-
-      bridgeChainCountRef.current = 0;
-    }
-  }, [isAvatarV2, lastSignal, clearBridgeChain]);
+  }, []);
 
   useEffect(() => {
     if (liveState !== "live" || rmState.mode !== "grace") return;
