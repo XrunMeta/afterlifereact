@@ -15,15 +15,46 @@
 from __future__ import annotations
 
 import asyncio
+import io
 import logging
 import os
 import re
 import tempfile
 import time
+import wave
 from typing import Callable
 
 import numpy as np
 from recorder import NULL_TURN
+
+
+# T-806 (2026-09-22): TTS wav 앞뒤 무음 padding 헬퍼. 스펙 §6 "Speak 앞뒤 0.2s 무음"
+#   요구사항 구현. Bridge 끝(입 다문 중립 포즈) → Speak 시작 (입 다문 상태) 자연 전환.
+def _pad_silence(pcm: np.ndarray, sr: int, front_ms: int = 200, back_ms: int = 200) -> np.ndarray:
+    """pcm(int16 1-D) 앞뒤에 무음 (zeros) 추가.
+    stereo/multichannel 은 currently 이 파이프라인 미사용이라 1-D 만 다룬다."""
+    if pcm.ndim != 1:
+        return pcm
+    n_front = int(sr * front_ms / 1000)
+    n_back = int(sr * back_ms / 1000)
+    silence_front = np.zeros(n_front, dtype=pcm.dtype)
+    silence_back = np.zeros(n_back, dtype=pcm.dtype)
+    return np.concatenate([silence_front, pcm, silence_back])
+
+
+def _encode_wav_pcm(pcm: np.ndarray, sr: int) -> bytes:
+    """int16 1-D pcm → 표준 WAV bytes (16-bit mono).
+    MuseTalk infer_fn 은 wav_path 를 tempfile 로 소비 (pipeline.py L388 근처) 하므로
+    padded pcm 을 다시 표준 WAV 로 인코딩해 넘긴다."""
+    if pcm.dtype != np.int16:
+        pcm = pcm.astype(np.int16)
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(sr)
+        w.writeframes(pcm.tobytes())
+    return buf.getvalue()
 
 
 # T-497: 이모지·기타 유니코드 심볼 strip — TTS(MeloTTS/OpenVoice) 가 이모지를 이상한
@@ -362,12 +393,61 @@ class DialoguePipeline:
         T-497: 이모지 strip. LLM 이 프롬프트 규칙 어기고 이모지 뱉어도 여기서
         방어적으로 제거해 TTS 왜곡("이모치 하피") 방지. 원본 sentence 는 자막
         발신에서 이미 소비된 뒤라 여기서 sanitize 해도 UX 영향 없음.
+
+        T-806 (2026-09-22): TTS 앞뒤에 각 200ms 무음 padding 추가 (스펙 §6).
+          MuseTalk 이 wav 를 입 다문 상태로 시작·종료 → Bridge (입 다문 중립 포즈로
+          끝남) 에서 Speak 로 넘어갈 때 표정 점프 없음.
         """
         clean = strip_emojis_for_tts(sentence)
         wav_bytes = await self.say_fn(clean or sentence, self.se_path)
         pcm, sr, _ = self.decode_wav_fn(wav_bytes)
+        # T-806 무음 padding — pcm 앞뒤 각 200ms 추가.
+        pcm = _pad_silence(pcm, sr, front_ms=200, back_ms=200)
+        wav_bytes = _encode_wav_pcm(pcm, sr)  # MuseTalk 은 wav_bytes 를 파일로 저장해 소비
         pcm48 = self._resample(pcm, sr, 48000)
         return wav_bytes, pcm48
+
+    async def _tts_stage_multi(self, full_text: str):
+        """다중 문장 → 각 문장별 _tts_stage → pcm concat → 통합 wav + pcm48 반환.
+
+        T-806 후속 (2026-09-22): Batch mode 로 답변 통째 TTS 하면 Qwen3-TTS 가
+        문장 사이 pause 를 자연 처리하다가 filler/hallucination (클럽 노래 같은
+        비-음성 소리) 를 생성하는 버그 회피. 마침표/느낌표/물음표 기준으로 분리해
+        문장별로 TTS 호출하면 각 호출 앞뒤 200ms padding 이 문장 사이 400ms 무음
+        구간으로 자연 삽입 → TTS 가 filler 낄 자리가 사라짐.
+
+        단일 문장이면 기존 _tts_stage 그대로 위임 (backward compat).
+        """
+        sentences = [s.strip() for s in re.split(r'(?<=[.!?…])\s+|\n+', full_text) if s.strip()]
+        if len(sentences) <= 1:
+            return await self._tts_stage(full_text)
+        pcm_native_parts: list[np.ndarray] = []
+        pcm_48k_parts: list[np.ndarray] = []
+        sr_native: int | None = None
+        for sent in sentences:
+            clean = strip_emojis_for_tts(sent)
+            wav_bytes_i = await self.say_fn(clean or sent, self.se_path)
+            pcm_i, sr_i, _ = self.decode_wav_fn(wav_bytes_i)
+            pcm_i = _pad_silence(pcm_i, sr_i, front_ms=200, back_ms=200)
+            if sr_native is None:
+                sr_native = sr_i
+            elif sr_i != sr_native:
+                # sr 이 문장 사이 다르면 concat 불가 — 안전 폴백: 통짜 TTS.
+                log.warning(
+                    "[T-806/tts-multi] sr mismatch (first=%d, cur=%d) — 통짜 TTS 로 폴백",
+                    sr_native, sr_i,
+                )
+                return await self._tts_stage(full_text)
+            pcm_native_parts.append(pcm_i)
+            pcm_48k_parts.append(self._resample(pcm_i, sr_i, 48000))
+        combined_native = np.concatenate(pcm_native_parts)
+        combined_48k = np.concatenate(pcm_48k_parts)
+        wav_bytes = _encode_wav_pcm(combined_native, sr_native)
+        log.info(
+            "[T-806/tts-multi] %d문장 concat 완료 (총 %d samples @ %dHz)",
+            len(sentences), combined_native.shape[0], sr_native,
+        )
+        return wav_bytes, combined_48k
 
     async def _infer_stage(
         self, wav_bytes: bytes, pcm48: np.ndarray, turn=None, on_before_push=None,
@@ -608,7 +688,9 @@ class DialoguePipeline:
                 # 기본은 꺼 둔다 — 통화 내용은 PII 다. 검증 중에만 env 로 켠다.
                 if os.environ.get("PRETHIRD_TTS_TEXT_LOG", "0") == "1":
                     log.info("[T-113] TTS 입력 원문 ⟪%s⟫", full_text[:200])
-                wav_bytes, pcm48 = await self._tts_stage(full_text)
+                # T-806 후속: 문장별 TTS + concat (Qwen3-TTS 문장 사이 filler
+                #   hallucination 회피). 단일 문장이면 내부에서 _tts_stage 로 위임.
+                wav_bytes, pcm48 = await self._tts_stage_multi(full_text)
                 turn.append_wav(wav_bytes)
                 await self._infer_stage(
                     wav_bytes, pcm48, turn,
