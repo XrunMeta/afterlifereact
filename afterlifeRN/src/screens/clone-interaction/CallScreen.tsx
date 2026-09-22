@@ -43,6 +43,11 @@ import SvgaThumb from "../../components/gift/SvgaThumb";
 import { RTCView } from "react-native-webrtc";
 
 import VisemePlayer from "../../components/viseme/VisemePlayer";
+
+import {
+  YoonjeongAvatarPlayer,
+  type YoonjeongAvatarPlayerHandle,
+} from "../../components/avatar/YoonjeongAvatarPlayer";
 import {
   Camera as VisionCamera,
   useCameraDevice,
@@ -1177,6 +1182,26 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     embedAllowed.value = phase !== "sending";
   }, [phase]);
 
+  const nameOverrideAvatarV2 = String(paramName || (clone as { displayName?: string } | null | undefined)?.displayName || '')
+    .toLowerCase().includes('[v2]');
+  const isAvatarV2 = livePipeline === 'avatar_v2' || nameOverrideAvatarV2;
+  const yoonjeongRef = useRef<YoonjeongAvatarPlayerHandle>(null);
+  const lastBridgeTextRef = useRef<string>("");
+  const [bridgeActive, setBridgeActive] = useState(false);
+  useEffect(() => {
+    if (!isAvatarV2) return;
+
+    if (phase !== 'sending') return;
+    const text = (pendingText ?? '').trim();
+    if (!text) return;
+    if (text === lastBridgeTextRef.current) return; 
+    lastBridgeTextRef.current = text;
+    try { yoonjeongRef.current?.playBridge(text); } catch {}
+  }, [isAvatarV2, phase, pendingText]);
+
+  const onBridgeStart = useCallback(() => setBridgeActive(true), []);
+  const onBridgeEnd = useCallback(() => setBridgeActive(false), []);
+
   useEffect(() => {
     if (liveState !== "live" || rmState.mode !== "grace") return;
     const id = setInterval(() => {
@@ -2034,7 +2059,24 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       {
 
 }
-      {remoteStream ? (
+      {isAvatarV2 ? (
+
+        <View style={s.videoFixedContainer}>
+          <YoonjeongAvatarPlayer
+            ref={yoonjeongRef}
+            style={s.videoFixedRtc}
+            onBridgeStart={onBridgeStart}
+            onBridgeEnd={onBridgeEnd}
+          />
+          {!bridgeActive && remoteStream ? (
+            <RTCView
+              streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
+              objectFit="cover"
+              style={[s.videoFixedRtc, StyleSheet.absoluteFillObject]}
+            />
+          ) : null}
+        </View>
+      ) : remoteStream ? (
         <View style={s.videoFixedContainer}>
           <RTCView
             streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
