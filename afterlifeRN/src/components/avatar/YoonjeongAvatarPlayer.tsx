@@ -81,69 +81,12 @@ interface Props {
 export const v_6976f2 = v_680bcc<YoonjeongAvatarPlayerHandle, Props>(
   function v_6976f2({ style: v_7fa4e4, paused: v_9ab695, onBridgeStart: v_48b312, onBridgeEnd: v_d2c1bc }, v_6d4ed3) {
 
-    const [v_4b73e1, v_f6a718] = v_5ab095<IdleKey>('breath');
-    const v_3f4f2f = v_e662ae<IdleKey>('breath');
-    v_c4deb2(() => { v_3f4f2f.current = v_4b73e1; }, [v_4b73e1]);
-
-    const v_7e34d2 = v_906445[v_4b73e1];
+    const v_7e34d2 = v_906445.breath;
     const v_948c88 = v_110960(v_7e34d2, (v_e2a85c) => {
-      v_e2a85c.loop = false; 
+      v_e2a85c.loop = true; 
       v_e2a85c.muted = true;
       v_e2a85c.play();
     });
-
-    v_c4deb2(() => {
-      const v_e2a85c = v_948c88;
-      if (!v_e2a85c) return;
-      try {
-        if (typeof v_e2a85c.replaceAsync === 'function') {
-          v_e2a85c.replaceAsync(v_7e34d2).then(() => { try { v_e2a85c.play(); } catch {} }).catch(() => {});
-        } else if (typeof v_e2a85c.replace === 'function') {
-          v_e2a85c.replace(v_7e34d2);
-          try { v_e2a85c.play(); } catch {}
-        } else {
-          v_e2a85c.currentTime = 0;
-          v_e2a85c.play();
-        }
-      } catch {}
-    }, [v_4b73e1, v_7e34d2, v_948c88]);
-
-    v_c4deb2(() => {
-      const v_e2a85c = v_948c88;
-      if (!v_e2a85c) return;
-      let v_259675 = false;
-      const v_219251 = () => {
-        if (v_259675) return;
-        const v_a448ad = v_c609dc(v_3f4f2f.current);
-        v_f6a718(v_a448ad);
-      };
-      const v_9fde29 = [];
-      try {
-
-        if (typeof v_e2a85c.addListener === 'function') {
-          const v_1ae212 = v_e2a85c.addListener('playToEnd', v_219251);
-          if (v_1ae212 && typeof v_1ae212.remove === 'function') v_9fde29.push(() => v_1ae212.remove());
-        }
-      } catch {}
-
-      let v_16badd = null;
-      if (v_9fde29.length === 0) {
-        v_16badd = setInterval(() => {
-          try {
-            const v_7dc4bb = Number(v_e2a85c.duration);
-            const v_c3bc75 = Number(v_e2a85c.currentTime);
-            if (Number.isFinite(v_7dc4bb) && v_7dc4bb > 0 && Number.isFinite(v_c3bc75) && v_7dc4bb - v_c3bc75 < 0.05) {
-              v_219251();
-            }
-          } catch {}
-        }, 400);
-      }
-      return () => {
-        v_259675 = true;
-        for (const v_fa04a0 of v_9fde29) { try { v_fa04a0(); } catch {} }
-        if (v_16badd) clearInterval(v_16badd);
-      };
-    }, [v_948c88]);
 
     v_c4deb2(() => {
       const v_e2a85c = v_948c88;
