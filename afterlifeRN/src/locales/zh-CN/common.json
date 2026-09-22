@@ -782,6 +782,8 @@
       "guide1": "请使用正面照片",
       "guide2": "面部清晰可见的照片更佳",
       "guide3": "背景越简单效果越好",
+      "guide4": "请使用只有您一人的照片",
+      "guide5": "睁眼、闭嘴的表情效果最好",
       "memlowNote": "照片可以现在添加，也可以之后再添加。",
       "memlowSelectHint": "可以选择照片或跳过",
       "memlowRights": "我已确认对该照片的使用权（家人同意·肖像权）。",
@@ -802,7 +804,11 @@
       "validateTooSmall": "人脸过小，请靠近相机后重试。",
       "validateTooLarge": "人脸过大，请稍微后退后重试。",
       "validateOffCenter": "人脸超出轮廓，请对准中央后重试。",
-      "validateLetterbox": "不能使用方形或横向照片，请选择竖向照片。"
+      "validateLetterbox": "不能使用方形或横向照片，请选择竖向照片。",
+      "validateMultipleFaces": "照片中有多个人。请使用只有一人的照片重试。",
+      "validateNotFrontal": "脸部朝向侧面或上下。请使用正面照片重试。",
+      "validateEyesClosed": "眼睛似乎是闭着的。请使用睁眼的照片重试，并摘下墨镜。",
+      "validateMouthOpen": "嘴巴是张开的。请使用闭嘴的表情重试。"
     },
     "voice": {
       "presets": "默认音色预设",

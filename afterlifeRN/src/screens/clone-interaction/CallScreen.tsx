@@ -18,7 +18,12 @@ import {
   TextInput,
   BackHandler,
   ActivityIndicator,
+  ToastAndroid,
 } from "react-native";
+
+import * as ScreenCapture from "expo-screen-capture";
+import ViewShot, { captureRef } from "react-native-view-shot";
+import * as MediaLibrary from "expo-media-library";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import {
@@ -30,12 +35,19 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 
 import SvgaOverlay from "../../components/gift/SvgaOverlay";
 
+import { useVideoPlayer, VideoView } from "expo-video";
+
 import CallEntryQuestionsScreen from "../call-entry/CallEntryQuestionsScreen";
 
 import SvgaThumb from "../../components/gift/SvgaThumb";
 import { RTCView } from "react-native-webrtc";
 
 import VisemePlayer from "../../components/viseme/VisemePlayer";
+
+import {
+  YoonjeongAvatarPlayer,
+  type YoonjeongAvatarPlayerHandle,
+} from "../../components/avatar/YoonjeongAvatarPlayer";
 import {
   Camera as VisionCamera,
   useCameraDevice,
@@ -180,6 +192,15 @@ interface FloatingGift {
   x: number;
 }
 
+type EmoteKey = "smile" | "wink" | "cry" | "angry" | "yawn";
+const EMOTE_BASE_URL = "https://rtc.example.invalid/emote";
+const EMOTE_SERVER_ACTIONS: ReadonlySet<EmoteKey> = new Set(["smile"]);
+
+function emoteVideoUri(cloneId: number, key: EmoteKey): string | null {
+  if (!EMOTE_SERVER_ACTIONS.has(key) || !Number.isFinite(cloneId) || cloneId <= 0) return null;
+  return `${EMOTE_BASE_URL}/${cloneId}/${key}.mp4`;
+}
+
 export default function CallScreen(props: Props) {
   const [heavyReady, setHeavyReady] = React.useState(false);
   React.useEffect(() => {
@@ -251,17 +272,19 @@ export default function CallScreen(props: Props) {
     }, 2000);
     (async () => {
       try {
+
         const [consentR, personsR] = await Promise.all([
           getFaceBiometricConsent(wrapperAccessToken).catch(() => null),
-          listPersons(wrapperAccessToken, cloneId).catch(() => null),
+          listPersons(wrapperAccessToken).catch(() => null),
         ]);
         if (cancelled) return;
         clearTimeout(timer);
-        const granted = consentR?.state === "granted";
+
+        const granted = consentR != null && consentR.state !== "revoked";
         const personCount = personsR?.items?.length ?? -1;
         const shouldRedirect = granted && personCount === 0;
         console.log(
-          `[Call][preCallGate] granted=${granted} · personCount=${personCount} · redirect=${shouldRedirect}`,
+          `[Call][preCallGate] granted=${granted} · personCount=${personCount} (user-wide) · redirect=${shouldRedirect}`,
         );
         if (shouldRedirect) {
 
@@ -370,6 +393,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const accessToken = useAuthStore((s) => s.accessToken);
   const currentUserId = useAuthStore((s) => s.apiUser?.id ?? null);
 
+  const debugEmail = useAuthStore((s) => s.apiUser?.email ?? null);
+  const emoteDebugEnabled =
+    debugEmail === "oth-staff@example.invalid" || debugEmail === "oth-user@example.invalid";
+
   const isOwnClone =
     !!clone && clone.ownerId != null && currentUserId != null && clone.ownerId === currentUserId;
   const insets = useSafeAreaInsets();
@@ -440,7 +467,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     if (!accessToken) return;
     let cancelled = false;
 
-    setConsentGranted(true);
     listPersons(accessToken, cloneId)
       .then(({ items }) => {
         if (cancelled) return;
@@ -466,13 +492,18 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     getFaceBiometricConsent(accessToken)
       .then((r) => {
         if (cancelled) return;
-        setFaceBiometricConsent(r.state === "granted");
-        console.log(`[Call][face] getFaceBiometricConsent ← granted=${r.state === "granted"}`);
+
+        const allowed = r.state !== "revoked";
+        setFaceBiometricConsent(allowed);
+        setConsentGranted(allowed);
+        console.log(`[Call][face] getFaceBiometricConsent ← state=${r.state} · faceId=${allowed ? "on" : "off(설정에서 끔)"}`);
       })
       .catch((err) => {
         if (cancelled) return;
-        setFaceBiometricConsent(false); 
-        console.warn("[Call][face] getFaceBiometricConsent failed, fallback to card flow:", err);
+
+        setFaceBiometricConsent(false);
+        setConsentGranted(false);
+        console.warn("[Call][face] getFaceBiometricConsent failed → faceId off for this call:", err);
       });
     return () => {
       cancelled = true;
@@ -500,6 +531,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const [liveVisemePrefix, setLiveVisemePrefix] = useState<string | null>(null);
 
+  const [liveTtsOutput, setLiveTtsOutput] = useState<string | null>(null);
+
+  const [liveVoiceModelManifestUrl, setLiveVoiceModelManifestUrl] = useState<string | null>(null);
+
   const {
     state: liveState,
     remoteStream,
@@ -512,6 +547,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     speak,
     lastSignal,
     sendFaceEvent,
+    sendAudioReady,
 
     visemeResponse,
   } = useAvatarCall({
@@ -522,6 +558,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     onRememberMe: handleRememberMeAsked,
 
     pipeline: livePipeline ?? (clone as { pipeline?: string | null })?.pipeline ?? null,
+
+    ttsOutput: liveTtsOutput ?? (clone as { ttsOutput?: string | null })?.ttsOutput ?? null,
+
+    voiceModelManifestUrl: liveVoiceModelManifestUrl,
   });
 
   useEffect(() => {
@@ -532,12 +572,16 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         const { getCloneDetail } = await import("../../api/clones");
         const detail = await getCloneDetail(cloneId, accessToken);
         if (alive) {
-          const cloneData = (detail as { clone?: { pipeline?: string | null; visemePrefix?: string | null } })?.clone;
+          const cloneData = (detail as { clone?: { pipeline?: string | null; visemePrefix?: string | null; ttsOutput?: string | null; voiceModelManifestUrl?: string | null } })?.clone;
           const p = cloneData?.pipeline ?? null;
           const vp = cloneData?.visemePrefix ?? null;
+          const to = cloneData?.ttsOutput ?? null;
+          const vmu = cloneData?.voiceModelManifestUrl ?? null;
           setLivePipeline(p);
           setLiveVisemePrefix(vp);
-          if (__DEV__) console.log(`[T-467] livePipeline for clone ${cloneId} = ${p} · visemePrefix = ${vp ? "set" : "null"}`);
+          setLiveTtsOutput(to);
+          setLiveVoiceModelManifestUrl(vmu);
+          if (__DEV__) console.log(`[T-467] livePipeline for clone ${cloneId} = ${p} · visemePrefix = ${vp ? "set" : "null"} · ttsOutput = ${to ?? "null"} · voiceManifest = ${vmu ? "set" : "null"}`);
         }
       } catch (err) {
         if (__DEV__) console.warn("[T-467] getCloneDetail pipeline fetch failed:", err);
@@ -725,14 +769,14 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
               console.warn("[Call][face] owner auto-enroll 실패 → Remember Me:", err);
 
-              dispatchRm({ type: "MATCH_UNKNOWN", score: evt.score, topPersonId: evt.topPersonId ?? null });
+              dispatchRm({ type: "MATCH_UNKNOWN", score: evt.score, topPersonId: evt.topPersonId ?? null, landmarkVsRef: evt.landmarkVsRef ?? null, hasFace: evt.hasFace ?? false });
             });
 
           dispatchSh({ type: "UNKNOWN_FACE" });
           return;
         }
 
-        dispatchRm({ type: "MATCH_UNKNOWN", score: evt.score, topPersonId: evt.topPersonId ?? null });
+        dispatchRm({ type: "MATCH_UNKNOWN", score: evt.score, topPersonId: evt.topPersonId ?? null, landmarkVsRef: evt.landmarkVsRef ?? null, hasFace: evt.hasFace ?? false });
         dispatchSh({ type: "UNKNOWN_FACE" });
 
         unknownFaceSnapshotRef.current = getFaceEmbeddingBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
@@ -1108,6 +1152,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     confirmGate: __DEV__ && confirmGateEnabled,
 
     signalGating: typeof greet === 'function',
+
+    contextualStrings: (paramName || clone?.displayName)
+      ? [(paramName || clone?.displayName) as string]
+      : undefined,
   });
 
   useEffect(() => {
@@ -1134,6 +1182,26 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     embedAllowed.value = phase !== "sending";
   }, [phase]);
 
+  const nameOverrideAvatarV2 = String(paramName || (clone as { displayName?: string } | null | undefined)?.displayName || '')
+    .toLowerCase().includes('[v2]');
+  const isAvatarV2 = livePipeline === 'avatar_v2' || nameOverrideAvatarV2;
+  const yoonjeongRef = useRef<YoonjeongAvatarPlayerHandle>(null);
+  const lastBridgeTextRef = useRef<string>("");
+  const [bridgeActive, setBridgeActive] = useState(false);
+  useEffect(() => {
+    if (!isAvatarV2) return;
+
+    if (phase !== 'sending') return;
+    const text = (pendingText ?? '').trim();
+    if (!text) return;
+    if (text === lastBridgeTextRef.current) return; 
+    lastBridgeTextRef.current = text;
+    try { yoonjeongRef.current?.playBridge(text); } catch {}
+  }, [isAvatarV2, phase, pendingText]);
+
+  const onBridgeStart = useCallback(() => setBridgeActive(true), []);
+  const onBridgeEnd = useCallback(() => setBridgeActive(false), []);
+
   useEffect(() => {
     if (liveState !== "live" || rmState.mode !== "grace") return;
     const id = setInterval(() => {
@@ -1156,7 +1224,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           onPress: () => dispatchRm({ type: "DISMISS_LATER" }),
         },
         {
-          text: "나야 (오인식)",
+          text: "본인",
           onPress: () => {
 
             const snapshot = unknownFaceSnapshotRef.current;
@@ -1216,6 +1284,18 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       chatPrevTranscript.current = transcript;
       chatUserSentAt.current = Date.now();
 
+      if (
+        /안녕|반가워|반갑|오랜만|고마워|고맙|감사|잘생|예쁘|이쁘|예뻐|이뻐|귀여|귀엽|멋져|멋지|멋있|대박|최고|잘\s*했|잘한|웃어\s*봐|웃겨\s*봐|웃겨줘|재밌게\s*해줘|사랑스|짱|훌륭|완벽|굿|나이스/.test(transcript)
+      ) {
+        pendingEmoteRef.current = { key: 'smile', emoji: '🙂', label: '미소' };
+        console.log('[Call][emote] pending smile queued (fire on clone speech_end)');
+      } else if (
+        /사랑해|좋아해|보고\s*싶|자기야|뽀뽀|안아|설레|심쿵|❤|💕|💗|😘|😍/.test(transcript)
+      ) {
+        pendingEmoteRef.current = { key: 'wink', emoji: '😉', label: '윙크' };
+        console.log('[Call][emote] pending wink queued (fire on clone speech_end)');
+      }
+
       dispatchRm({ type: "ACTIVITY" });
 
     }
@@ -1227,6 +1307,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       console.log(`[Call][chat] clone reply start${wait !== null ? ` (waited ${wait}ms after user)` : ''}`);
       chatReplyStartAt.current = Date.now();
       chatUserSentAt.current = null;
+
+      if (pendingEmoteFireTimer.current) {
+        clearTimeout(pendingEmoteFireTimer.current);
+        pendingEmoteFireTimer.current = null;
+      }
     } else if (lastSignal.type === 'speech_text' && lastSignal.text) {
       console.log(`[Call][chat] clone: "${lastSignal.text}"`);
     } else if (lastSignal.type === 'speech_end') {
@@ -1237,7 +1322,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       dispatchRm({ type: "CLONE_SPEECH_END" });
       dispatchRm({ type: "ACTIVITY" });
     }
-  }, [lastSignal, dispatchRm]);
+  }, [lastSignal, dispatchRm, triggerEmote]);
 
   const canSpeak = (phase === 'listening' || phase === 'confirming') && sttActive;
 
@@ -1250,6 +1335,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     });
   }, [remoteStream, dialingDone, isMuted]);
 
+  useEffect(() => {
+    if (!dialingDone || !sendAudioReady) return;
+    const t = setTimeout(() => { sendAudioReady(); }, 700);
+    return () => clearTimeout(t);
+  }, [dialingDone, sendAudioReady]);
+
   const [cloneSubtitle, setCloneSubtitle] = useState('');
   useEffect(() => {
     if (!lastSignal) return;
@@ -1260,6 +1351,59 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       setCloneSubtitle('');
     }
   }, [lastSignal]);
+
+  const emoteFiredThisTurn = useRef(false);
+
+  const pendingEmoteRef = useRef<{ key: EmoteKey; emoji: string; label: string } | null>(null);
+
+  const pendingEmoteFireTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const prevPhaseRef = useRef<typeof phase>(phase);
+  useEffect(() => {
+    const prev = prevPhaseRef.current;
+    prevPhaseRef.current = phase;
+
+    if (prev === 'listening' && phase === 'sending') {
+      if (pendingEmoteFireTimer.current) {
+        clearTimeout(pendingEmoteFireTimer.current);
+        pendingEmoteFireTimer.current = null;
+      }
+      const pending = pendingEmoteRef.current;
+      if (pending) {
+        pendingEmoteRef.current = null;
+        console.log(`[Call][emote] fire on phase→sending (before speech): ${pending.key}`);
+        triggerEmote(pending.key, pending.emoji, pending.label);
+      }
+    }
+  }, [phase, triggerEmote]);
+  useEffect(() => {
+    if (!lastSignal) return;
+    if (lastSignal.type === 'speech_start') {
+      emoteFiredThisTurn.current = false;
+      return;
+    }
+    if (
+      lastSignal.type === 'speech_text' &&
+      lastSignal.text &&
+      !emoteFiredThisTurn.current
+    ) {
+      const t = lastSignal.text;
+
+      if (
+        /안녕|반가워|반갑|오랜만|고마워|고맙|감사|맞아|맞네|그렇지|그러네|좋아(?!해)|좋네|오케이|okay|okey|잘생|예쁘|이쁘|예뻐|이뻐|귀여|귀엽|멋져|멋지|멋있|대박|최고|잘\s*했|잘한|ㅋ{2,}|ㅎ{2,}|하하|헤헤|히히|웃긴|웃겨|재밌|재밋|사랑스|짱|훌륭|완벽|굿|나이스/.test(t)
+      ) {
+        emoteFiredThisTurn.current = true;
+        triggerEmote('smile', '🙂', '미소');
+      }
+
+      else if (
+        /사랑해|보고\s*싶|좋아해|좋아함|자기야|우리\s*(?:둘|사이)|안아|뽀뽀|설레|심쿵|❤|💕|💗|😘|😍/.test(t)
+      ) {
+        emoteFiredThisTurn.current = true;
+        triggerEmote('wink', '😉', '윙크');
+      }
+    }
+  }, [lastSignal, cloneId, triggerEmote]);
 
   const startedRef = useRef(false);
   useEffect(() => {
@@ -1378,6 +1522,82 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [floatingGifts, setFloatingGifts] = useState<FloatingGift[]>([]);
   const giftCounterRef = useRef(0);
+
+  const [emoteReaction, setEmoteReaction] = useState<
+    { key: EmoteKey; emoji: string; label: string } | null
+  >(null);
+  const emoteAnim = useRef(new Animated.Value(0)).current;
+  const emoteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const emoteVideoSource = emoteReaction ? emoteVideoUri(cloneId, emoteReaction.key) : null;
+
+  const emoteVideoInitial = React.useMemo<string | null>(
+    () => emoteVideoUri(cloneId, "smile"),
+    [cloneId],
+  );
+  const emotePlayer = useVideoPlayer(emoteVideoInitial, (p) => {
+    p.loop = false;
+    p.muted = true;
+  });
+  const triggerEmote = useCallback(
+    (key: EmoteKey, emoji: string, label: string) => {
+      if (emoteTimerRef.current) clearTimeout(emoteTimerRef.current);
+      const videoSrc = emoteVideoUri(cloneId, key);
+      console.log(`[Call][emote] trigger key=${key} cloneId=${cloneId} video=${videoSrc ?? "none"}`);
+
+      if (!videoSrc) {
+        return;
+      }
+      if (emotePlayer) {
+        try {
+          const p: any = emotePlayer;
+          const doPlay = () => {
+            try {
+              p.currentTime = 0;
+              p.play();
+              console.log(`[Call][emote] play() called status=${p.status ?? "?"} duration=${p.duration ?? "?"}`);
+            } catch (err) {
+              console.warn("[Call][emote] play() throw:", err);
+            }
+          };
+
+          if (typeof p.replaceAsync === "function") {
+            p.replaceAsync(videoSrc)
+              .then(() => {
+                console.log(`[Call][emote] replaceAsync resolved status=${p.status ?? "?"}`);
+                doPlay();
+              })
+              .catch((err: unknown) => {
+                console.warn("[Call][emote] replaceAsync failed:", err);
+                doPlay(); 
+              });
+          } else if (typeof p.replace === "function") {
+            p.replace(videoSrc);
+            doPlay();
+          } else {
+            doPlay();
+          }
+        } catch (err) {
+          console.warn("[Call][emote] player play failed:", err);
+        }
+      } else {
+        console.warn("[Call][emote] emotePlayer null");
+      }
+      setEmoteReaction({ key, emoji, label });
+      emoteAnim.setValue(0);
+      Animated.timing(emoteAnim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
+
+      const hold = 1500;
+      emoteTimerRef.current = setTimeout(() => {
+        Animated.timing(emoteAnim, { toValue: 0, duration: 280, useNativeDriver: true }).start(
+          () => setEmoteReaction(null),
+        );
+      }, hold);
+    },
+    [emoteAnim, cloneId, emotePlayer],
+  );
+  useEffect(() => () => {
+    if (emoteTimerRef.current) clearTimeout(emoteTimerRef.current);
+  }, []);
 
   const [callSeconds, setCallSeconds] = useState(0);
   useEffect(() => {
@@ -1793,13 +2013,70 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const subtitleBottom = bottomInset + 96 + 112 + 12;
 
+  const [capturingWithLogo, setCapturingWithLogo] = useState(false);
+  const rootCaptureRef = useRef<View>(null);
+
+  useEffect(() => {
+    void (async () => {
+      try { await MediaLibrary.requestPermissionsAsync(); } catch {  }
+    })();
+  }, []);
+
+  useEffect(() => {
+    const sub = ScreenCapture.addScreenshotListener(() => {
+      void (async () => {
+        try {
+          setCapturingWithLogo(true);
+
+          await new Promise((r) => setTimeout(r, 120));
+          if (!rootCaptureRef.current) return;
+          const uri = await captureRef(rootCaptureRef.current, {
+            format: "jpg",
+            quality: 0.9,
+          });
+          const perm = await MediaLibrary.getPermissionsAsync();
+          if (!perm.granted) {
+            const req = await MediaLibrary.requestPermissionsAsync();
+            if (!req.granted) throw new Error("media permission denied");
+          }
+          await MediaLibrary.createAssetAsync(uri);
+          if (Platform.OS === "android") {
+            ToastAndroid.show("저장됨", ToastAndroid.SHORT);
+          }
+        } catch (e) {
+          if (__DEV__) console.warn("[capture] screenshot save failed:", e);
+        } finally {
+          setCapturingWithLogo(false);
+        }
+      })();
+    });
+    return () => sub.remove();
+  }, []);
+
   return (
-    <View style={s.container}>
+    <View style={s.container} ref={rootCaptureRef} collapsable={false}>
       {}
       {
 
 }
-      {remoteStream ? (
+      {isAvatarV2 ? (
+
+        <View style={s.videoFixedContainer}>
+          <YoonjeongAvatarPlayer
+            ref={yoonjeongRef}
+            style={s.videoFixedRtc}
+            onBridgeStart={onBridgeStart}
+            onBridgeEnd={onBridgeEnd}
+          />
+          {!bridgeActive && remoteStream ? (
+            <RTCView
+              streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
+              objectFit="cover"
+              style={[s.videoFixedRtc, StyleSheet.absoluteFillObject]}
+            />
+          ) : null}
+        </View>
+      ) : remoteStream ? (
         <View style={s.videoFixedContainer}>
           <RTCView
             streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
@@ -1825,6 +2102,19 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       ) : (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.zinc900 }]} />
       )}
+
+      {
+
+}
+      {capturingWithLogo && personaImage ? (
+        <View style={s.videoFixedContainer} pointerEvents="none">
+          <Image
+            source={typeof personaImage === "number" ? personaImage : { uri: personaImage }}
+            style={s.videoFixedRtc}
+            resizeMode="cover"
+          />
+        </View>
+      ) : null}
 
       {hudDevBox ? (
         <View style={{ position: "absolute", top: 8, right: 8, zIndex: 10,
@@ -2090,6 +2380,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       {
 
 }
+
+      {
+
+}
       {clone?.cloneType === "expert" && (
         <View style={[s.expertBadge, { top: insets.top + 24 }]}>
           <ExpertBadge size={44} />
@@ -2219,6 +2513,18 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       {
 
 }
+      {phase === 'sending' && livePipeline === 'echomimic_v3' && !cloneSubtitle ? (
+        <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
+          <View style={s.thinkingBadge}>
+            <ActivityIndicator size="small" color={COLORS.white} />
+            <Text style={s.thinkingText}>생성 중…</Text>
+          </View>
+        </View>
+      ) : null}
+
+      {
+
+}
       {(phase === 'speaking' || phase === 'greeting') && !!cloneSubtitle ? (
         <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
           <CloneSubtitleTicker text={cloneSubtitle} style={s.subtitleText} />
@@ -2228,16 +2534,18 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       {
 
 }
-      <View
-        style={[s.watermarkLayer, { bottom: bottomInset + 24 + 56 + 16 }]}
-        pointerEvents="none"
-      >
-        <Image
-          source={require("../../../assets/images/logo.png")}
-          style={s.watermarkLogo}
-          resizeMode="contain"
-        />
-      </View>
+      {capturingWithLogo ? (
+        <View
+          style={[s.watermarkLayer, { bottom: bottomInset + 24 + 56 + 16 }]}
+          pointerEvents="none"
+        >
+          <Image
+            source={require("../../../assets/images/logo.png")}
+            style={s.watermarkLogo}
+            resizeMode="contain"
+          />
+        </View>
+      ) : null}
 
       {
 
@@ -2400,6 +2708,22 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 }
 
       {}
+
+      {
+
+}
+      {emoteReaction && (
+        <Animated.View pointerEvents="none" style={[s.emoteOverlay, { opacity: emoteAnim }]}>
+          {emoteVideoSource ? (
+            <VideoView
+              player={emotePlayer}
+              style={StyleSheet.absoluteFillObject}
+              contentFit="cover"
+              nativeControls={false}
+            />
+          ) : null}
+        </Animated.View>
+      )}
 
       {
 
@@ -2607,6 +2931,22 @@ const s = StyleSheet.create({
     maxWidth: '100%',
   },
 
+  thinkingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 8,
+    alignSelf: 'center',
+  },
+  thinkingText: {
+    color: COLORS.white,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+
   confirmTapArea: {
     position: 'absolute',
     left: 0, right: 0, bottom: 0,
@@ -2759,5 +3099,55 @@ const s = StyleSheet.create({
     fontSize: 15,
     color: COLORS.white,
     fontWeight: "600",
+  },
+
+  emoteRow: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 10,
+    zIndex: 20,
+  },
+  emoteBtn: {
+    minWidth: 56,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emoteBtnEmoji: { fontSize: 22, lineHeight: 26 },
+  emoteBtnLabel: { fontSize: 11, color: COLORS.white, marginTop: 2, fontWeight: "600" },
+  emoteOverlay: {
+
+    position: "absolute",
+    top: VIDEO_TOP,
+    left: VIDEO_LEFT,
+    width: VIDEO_W,
+    height: VIDEO_H,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 5,
+  },
+  emoteOverlayEmoji: {
+    fontSize: 160,
+    textShadowColor: "rgba(0,0,0,0.55)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
+  },
+  emoteOverlayLabel: {
+    marginTop: 12,
+    fontSize: 22,
+    fontWeight: "800",
+    color: COLORS.white,
+    textShadowColor: "rgba(0,0,0,0.7)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+    letterSpacing: 2,
   },
 });

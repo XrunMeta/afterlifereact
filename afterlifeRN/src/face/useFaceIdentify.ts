@@ -88,12 +88,28 @@ export async function v_f644ce(
 
   let v_d2fcdb = v_43c42e.best?.personId ?? null;
   let v_14f856 = v_43c42e.best?.displayName ?? null;
-  const v_d15b72 = v_43c42e.best?.score ?? v_43c42e.matches[0]?.score ?? 0;
+  let v_d15b72 = v_43c42e.best?.score ?? v_43c42e.matches[0]?.score ?? 0;
+
+  const v_f30b0d = 0.5;
+  if (v_d2fcdb == null && v_43c42e.matches[0]?.personId != null && v_43c42e.matches[0].score >= v_f30b0d) {
+    v_d2fcdb = v_43c42e.matches[0].personId;
+    v_14f856 = v_43c42e.matches[0].displayName;
+    v_d15b72 = v_43c42e.matches[0].score;
+  }
   let v_7f9794 = v_d15b72;
 
   const v_20e745 = v_84b93d.getCurrentLandmark?.();
   const v_63e1ab = v_43c42e.best?.landmarkRatiosList;
-  if (v_d2fcdb != null && v_20e745 && v_63e1ab && v_63e1ab.length > 0) {
+  const v_3dc98e = typeof v_b6e533.speaker.confirmed === "number" ? v_b6e533.speaker.confirmed : null;
+
+  const v_a1c0f4 =
+    v_3dc98e != null && v_d2fcdb != null && v_d2fcdb !== v_3dc98e;
+  if (
+    v_a1c0f4 &&
+    v_20e745 &&
+    v_63e1ab &&
+    v_63e1ab.length > 0
+  ) {
 
     const v_f2d98f = v_63e1ab.filter((v_1614db): v_1614db is Record<string, number> => v_1614db != null);
     if (v_f2d98f.length > 0) {
@@ -103,13 +119,29 @@ export async function v_f644ce(
       const v_1f22f7 = v_b552b6.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6, 0) / v_b552b6.length;
 
       const v_e75c90 = v_d15b72 * v_1f22f7;
-      const v_aa1c73 = 0.5; 
+      const v_aa1c73 = 0.4;
       if (v_e75c90 < v_aa1c73) {
 
         v_d2fcdb = null;
         v_14f856 = null;
       }
       v_7f9794 = v_e75c90;
+    }
+  }
+
+  const v_00d284 = typeof v_b6e533.speaker.confirmed === "number" ? v_b6e533.speaker.confirmed : null;
+  let v_b84cf8 = null;
+  if (v_00d284 != null && v_20e745) {
+    const v_cd7842 = v_43c42e.matches.find((v_35f85c) => v_35f85c.personId === v_00d284);
+    const v_630d46 = v_cd7842?.landmarkRatiosList;
+    if (v_630d46 && v_630d46.length > 0) {
+      const v_db0bb5 = v_630d46.filter((v_1614db): v_1614db is Record<string, number> => v_1614db != null);
+      if (v_db0bb5.length > 0) {
+        const v_b552b6 = v_db0bb5.map((v_39de0e) =>
+          v_f9bbe6(v_20e745, v_39de0e as unknown as v_90e668),
+        );
+        v_b84cf8 = v_b552b6.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6, 0) / v_b552b6.length;
+      }
     }
   }
 
@@ -120,6 +152,10 @@ export async function v_f644ce(
     score: v_d2fcdb != null ? v_7f9794 : v_43c42e.matches[0]?.score ?? 0,
 
     topPersonId: v_43c42e.matches[0]?.personId ?? null,
+
+    landmarkVsRef: v_b84cf8,
+
+    hasFace: v_20e745 != null,
   };
 
   const { state: v_60d563, event: v_d48baf } = v_be2f9f(v_b6e533.speaker, v_bdad26, v_67e77e);

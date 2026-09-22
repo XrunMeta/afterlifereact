@@ -49,6 +49,8 @@ export interface AvatarCall {
 
   sendFaceEvent?: (evt: FaceEvent) => void;
 
+  sendAudioReady?: () => void;
+
   visemeResponse?: v_2a0baf | null;
 }
 
@@ -61,6 +63,10 @@ export type UseAvatarCall = (opts: {
   onRememberMe?: () => void;
 
   pipeline?: string | null;
+
+  ttsOutput?: string | null;
+
+  voiceModelManifestUrl?: string | null;
 }) => AvatarCall;
 
 export function v_d8a22b(

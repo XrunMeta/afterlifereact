@@ -261,6 +261,39 @@ export default function v_ed02a5() {
       },
     },
 
+    {
+      icon: "smile" as const,
+      labelKey: "애니메이션 페르소나 만들기",
+      descKey: "사진 → 눈 깜빡임·고개·몸 움직임 idle · 생성 3분 내외",
+      action: () => {
+        try {
+          const { setCreationDraft: v_5795de, resetCreationDraft: v_7a77e1 } = v_194498.getState();
+
+          v_7a77e1();
+          v_5795de({ cloneType: "friend", visibility: "public", idleEngine: "sadtalker_anim" });
+
+          const v_08681a = v_c65f5d.getParent();
+          const v_26865c = v_08681a?.getState();
+          const v_3f8a47 = v_26865c?.routes.findIndex((v_cb35cb) => v_cb35cb.name === "CreateTab") ?? -1;
+          if (!v_08681a || !v_26865c || v_3f8a47 < 0) throw new Error("CreateTab not found");
+          v_08681a.dispatch(
+            v_650cfa.reset({
+              ...v_26865c,
+              index: v_3f8a47,
+              routes: v_26865c.routes.map((v_c7daf6) =>
+                v_c7daf6.name === "CreateTab"
+                  ? { ...v_c7daf6, state: { routes: [{ name: "Step3", key: `Step3-${Date.now()}` }], index: 0 } }
+                  : v_c7daf6,
+              ),
+            }),
+          );
+        } catch (v_49263d) {
+          console.warn("[anim-persona] nav failed:", v_49263d);
+          v_889fad("오류", "페르소나 만들기 화면 이동 실패");
+        }
+      },
+    },
+
     ...(["oth-staff@example.invalid", "oth-user@example.invalid"].includes(v_b113dd?.email ?? "")
       ? [
           {
@@ -305,6 +338,26 @@ export default function v_ed02a5() {
           },
 
           {
+            icon: "box" as const,
+            labelKey: "3D 페르소나 만들기 (베타)",
+            descKey: "Avatar SDK 3D 얼굴 · GLB URL 별도 세팅 필요",
+            action: async () => {
+              try {
+                const { setNextPipeline: v_e935e7 } = await import(
+                  "../../lib/experimentalPipelineFlag"
+                );
+                v_e935e7("threed");
+                v_c65f5d.getParent()?.dispatch(
+                  v_650cfa.navigate({ name: "CreateTab" }),
+                );
+              } catch (v_49263d) {
+                console.warn("[threed-persona] nav failed:", v_49263d);
+                v_889fad("오류", "페르소나 만들기 화면 이동 실패");
+              }
+            },
+          },
+
+          {
             icon: "activity" as const,
             labelKey: "Viseme 파이프라인 테스트 (dev)",
             descKey: "합성 + 재생 · 사전 렌더 이미지 필요",
@@ -312,10 +365,31 @@ export default function v_ed02a5() {
           },
 
           {
+            icon: "mic" as const,
+            labelKey: "VITS TTS · AFL-737 (dev)",
+            descKey: "sherpa-onnx · 모델 캐시 · 1초 목표 측정",
+            action: () => v_c65f5d.navigate("TtsVits"),
+          },
+
+          {
             icon: "target" as const,
             labelKey: "얼굴 임계값 테스트 (dev)",
             descKey: "이미지 업로드 → 매칭 score 확인",
             action: () => v_c65f5d.navigate("FaceThresholdTest"),
+          },
+
+          {
+            icon: "box" as const,
+            labelKey: "3D 생성 테스트 (dev)",
+            descKey: "사진 → mesh + 5각도 렌더 · 5~30초",
+            action: () => v_c65f5d.navigate("ThreeDLab"),
+          },
+
+          {
+            icon: "user" as const,
+            labelKey: "3D 페르소나 (dev)",
+            descKey: "GLB 헤드 렌더 + 립싱크 데모 · Phase 1",
+            action: () => v_c65f5d.navigate("ThreeDPersona"),
           },
 
           {

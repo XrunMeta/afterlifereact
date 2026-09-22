@@ -315,22 +315,30 @@ def test_상태4_미확정_얼굴():
     assert "## 상대 정보" not in content      # 블록 자체가 없다
 
 
-def test_상태4_는_신원_입력을_요구한다():
-    """미확정 모드에서는 정상 대화 대신 이름 입력을 계속 요구한다.
+def test_상태4_는_모르는_상대로_대화하고_UI_를_말하지_않는다():
+    """미확정 모드: 대화는 평소처럼 이어가되, 버튼·등록 같은 화면 조작을 말로 안내하지 않는다.
 
-    닫기(Remember Me 무시)는 면제가 아니라 유예다 — 해제 조건은 등록된 얼굴 인식뿐이고,
-    그때까지 클론은 대화를 진행시키는 대신 신원 입력을 반복 요청한다.
+    앱의 Remember Me 버튼은 T-562 에서 등록 팝업으로 바뀌어 화면에 없다. 그런데 이 규칙이
+    "왼쪽 Remember Me 버튼을 눌러달라" 를 매 응답마다 말하게 해서, 없는 버튼을 안내하고
+    대화가 겉돌았다. 신원 등록은 앱 팝업이 맡고, 클론은 모르는 상대로만 대한다.
     """
     # persona 에 속성을 실제로 넣는다 — displayName 뿐이면 렌더할 줄이 없어 상태 1 이
     # 정상적으로 [] 를 반환해버려, 비교군이 성립하지 않는다.
     bundle = _bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, "지호")
 
     content = bundle_to_messages(bundle, speaker={"unconfirmed": True})[0]["content"]
-    assert "Remember Me" in content
+    assert "Remember Me" not in content
+    assert "상대가 누구인지 아직 모른다" in content
+    assert "화면 조작" in content  # 버튼·등록·팝업 안내 금지
 
-    # 상태 1·2 에는 이 요구가 붙지 않는다 — 정상 대화를 막으면 안 된다.
-    assert "Remember Me" not in bundle_to_messages(bundle)[0]["content"]
-    assert "Remember Me" not in bundle_to_messages(
+    # 모르는 건 상대뿐 — 자기 프로필(성격·MBTI 등)은 그대로 안다고 명시한다.
+    # 실측(2026-09-14, gemma3:27b): 이 문장이 없으면 "기억하는 척하지 마라" 를 자기 정보에도
+    # 적용해 MBTI(INTJ)가 프롬프트에 있는데도 "음… 기억이 잘 안 나" 로 3/3 답했다.
+    assert "너 자신의 정보" in content
+
+    # 상태 1·2 에는 이 규칙이 붙지 않는다.
+    assert "상대가 누구인지 아직 모른다" not in bundle_to_messages(bundle)[0]["content"]
+    assert "상대가 누구인지 아직 모른다" not in bundle_to_messages(
         bundle, speaker={"name": "민수", "l2p_data": {"memories_personal": ["민수 기억"]}}
     )[0]["content"]
 
@@ -783,3 +791,32 @@ def test_person_id_문자열도_주인으로_인식한다():
         speaker={"name": "도기", "l2p_data": {}, "person_id": 58},
     )
     assert "아내" in msgs[0]["content"]
+
+
+# [2026-09-14] 페르소나 생성 시 입력한 정보는 클론이 항상 자기 사실로 안다.
+# 실측: age/gender 는 "## 참고" 에 "- age: 20대" 로, mbti 는 "참고용 일반 성향" 카탈로그로만 들어가
+# 클론이 "MBTI 뭐야" 에 "기억이 잘 안 나" 로 답하고, 상대가 "isfp 지?" 하면 그대로 따라갔다.
+_WIZARD = {
+    "displayName": "페이커",
+    "age": "20대",
+    "gender": "남성",
+    "mbti": "ISFJ",
+    "personality_core": "침착함",
+    "tone": "표준말",
+    "speech_speed": "평범한 편",
+}
+
+
+@pytest.mark.parametrize("speaker", [None, {"unconfirmed": True}])
+def test_생성_입력값은_너의_정보에_사실로_들어간다(speaker):
+    content = bundle_to_messages(_bundle_v(dict(_WIZARD), "지호"), speaker=speaker)[0]["content"]
+    # 규칙 문장에도 "'## 너의 정보'" 가 인용되므로 줄로 둘러싸인 실제 헤딩으로 나눈다.
+    self_block = content.split("\n## 너의 정보\n")[1].split("\n## ")[0]
+    for line in ("- 나이: 20대", "- 성별: 남성", "- MBTI: ISFJ", "- 핵심 성격: 침착함", "- 말의 속도: 평범한 편"):
+        assert line in self_block, line
+    # 말투 "표준말" 은 T-473 에 따라 MBTI 기본 말투로 채워진다 — 줄 존재만 확인.
+    assert "- 말투: " in self_block
+    # 참고 블록에 raw 키로 새지 않는다.
+    assert "- age:" not in content and "- gender:" not in content
+    # 사실로 답하고 상대 말에 바뀌지 않는다는 규칙.
+    assert "생성 시 정해진 너의 사실" in content

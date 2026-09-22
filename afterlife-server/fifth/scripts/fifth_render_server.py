@@ -21,9 +21,11 @@ import os
 import struct
 import threading
 import time
+from dataclasses import replace
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Callable, Iterator, Optional
+from urllib.parse import parse_qs, urlparse
 
 import numpy as np
 
@@ -35,6 +37,58 @@ except ModuleNotFoundError:
     cv2 = None  # type: ignore[assignment]  # 테스트 환경 — mock으로 주입
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# 로그 링버퍼 — GET /oth-path 로 최근 로그를 조회한다.
+#
+# systemd(afterlife-fifth-render.service)가 docker exec 로 띄우면 stdout 이
+# 파이프로 빠져 journal 에도 파일에도 안 남는 경우가 있다(2026-08-14 실측).
+# 그러면 "파라미터가 실제 LivePortrait 까지 갔는가" 를 확인할 방법이 사라진다.
+# 그래서 서버가 자기 로그를 메모리에 들고 있다가 HTTP 로 내준다.
+# ---------------------------------------------------------------------------
+
+class RingLogHandler(logging.Handler):
+    """최근 N줄만 유지하는 로그 핸들러. 스레드 안전."""
+
+    def __init__(self, capacity: int = 500):
+        super().__init__()
+        self._cap = capacity
+        self._buf: list[dict] = []
+        self._seq = 0
+        self._lock = threading.Lock()
+
+    def emit(self, record: logging.LogRecord) -> None:
+        # 로깅이 렌더를 죽이면 안 된다 — 어떤 예외도 삼킨다.
+        try:
+            msg = record.getMessage()
+        except Exception:
+            try:
+                msg = str(record.msg)
+            except Exception:
+                msg = "<메시지 포맷 실패>"
+        try:
+            with self._lock:
+                self._seq += 1
+                self._buf.append({
+                    "seq": self._seq,
+                    "ts": record.created,
+                    "level": record.levelname,
+                    "msg": msg,
+                })
+                if len(self._buf) > self._cap:
+                    del self._buf[:len(self._buf) - self._cap]
+        except Exception:
+            pass
+
+    def snapshot(self, since: int = 0, limit: int = 200) -> list[dict]:
+        """since 이후(미포함) 줄만 최대 limit 개. since=0 이면 최근 limit 개."""
+        with self._lock:
+            rows = [r for r in self._buf if r["seq"] > since] if since else list(self._buf)
+        return rows[-limit:]
+
+
+_ring = RingLogHandler()
 
 # ---------------------------------------------------------------------------
 # S4: 토큰 트레일러 프로토콜
@@ -288,6 +342,7 @@ class RenderService:
         jpeg_quality: int = 90,
         idle_opts: dict | None = None,
         render_mode: str | None = None,
+        cfg_overrides: dict | None = None,
     ) -> int:
         """wav → 프레임 청크 write. 반환: 프레임 수.
 
@@ -334,6 +389,37 @@ class RenderService:
         # idle_opts=None(기본) → {} → stream_wav_frames 인자 미전달(env 기본, 회귀 0).
         _idle = _idle_kwargs(idle_opts)
 
+        # per-request 입싱크 오버라이드(lab-tuner). 비어 있으면 self.cfg 를 **동일 객체**로
+        # 넘겨 기존 경로와 100% 같게 유지한다(회귀 0). 값이 있으면 파생 cfg 만 만들고
+        # self.cfg 는 그대로 둬서 다음 요청이 이번 값을 물려받지 않게 한다.
+        cfg = replace(self.cfg, **cfg_overrides) if cfg_overrides else self.cfg
+        if cfg_overrides:
+            # 랩 쪽 "[fifth-knobs] /render body ..." 로그와 대조하기 위한 수신 확인.
+            # 둘 중 한쪽만 찍히면 어디서 값이 사라졌는지 바로 좁혀진다.
+            logger.info("[cfg-override] 수신 %d개: %s", len(cfg_overrides), cfg_overrides)
+        # 실제로 LivePortrait 렌더에 넘어가는 최종 cfg. 오버라이드가 없어도 매번 남긴다 —
+        # "내가 넣은 값이 진짜 렌더에 쓰였나" 를 이 한 줄로 확정할 수 있어야 한다.
+        logger.info(
+            "[cfg-final] lip_open=%s lip_closed=%s open_scale=%s offset=%s sigma=%s "
+            "gamma=%s silence=%s closed_thresh=%s open_thresh=%s fps=%s (override=%s)",
+            cfg.lip_open, cfg.lip_closed, cfg.open_scale, cfg.offset, cfg.sigma,
+            cfg.gamma, cfg.silence, cfg.closed_thresh, cfg.open_thresh, cfg.fps,
+            sorted(cfg_overrides) if cfg_overrides else "없음",
+        )
+        # 동작 플래그(lip_lock·source_face_lock·eyes_open_lock·head_sway 등)는 cfg 가 아니라
+        # stream_wav_frames 의 kwargs 로 간다. cfg-final 만 보면 이쪽이 확인 사각지대가 되므로
+        # 함께 남긴다. 값이 하나도 없으면 "기본" 이라고 명시해 "안 보낸 것" 과 구분한다.
+        logger.info("[opts-final] %s", _idle if _idle else "전부 기본(미지정)")
+        # 입 모양 결정 경로를 한 줄로 못박는다 — lip_lock/source_face_lock 이 켜지면
+        # lip_open 이 계산에 아예 안 쓰인다(fifth_render.py 우선순위).
+        if _idle.get("source_face_lock"):
+            _lip_path = "source_face_lock → 원본 사진 입 모양 고정 (lip_open 무시됨)"
+        elif _idle.get("lip_lock"):
+            _lip_path = f"lip_lock → lip_closed({cfg.lip_closed})로 고정 (lip_open 무시됨)"
+        else:
+            _lip_path = f"오디오 기반 계산 (lip_open={cfg.lip_open} 사용)"
+        logger.info("[lip-path] %s", _lip_path)
+
         _batch = is_batch(render_mode)
         _buffer: list[bytes] = []
 
@@ -376,7 +462,7 @@ class RenderService:
 
                 if self._stream_wav_fn is not None:
                     count, end_tok = self._stream_wav_fn(
-                        self.engine, self.jp, self.cfg, sources, wav_path,
+                        self.engine, self.jp, cfg, sources, wav_path,
                         _on_frame_render_timed,
                         blink_enabled,
                         phase_token,
@@ -385,7 +471,7 @@ class RenderService:
                 else:
                     from fifth_render import stream_wav_frames
                     count, end_tok = stream_wav_frames(
-                        self.engine, self.jp, self.cfg, sources, wav_path,
+                        self.engine, self.jp, cfg, sources, wav_path,
                         on_frame=_on_frame_render_timed,
                         blink_enabled=blink_enabled,
                         phase_token=phase_token,
@@ -405,7 +491,7 @@ class RenderService:
                 # 계측 OFF: 기존 동작 완전 동일 (perf_counter 호출 0)
                 if self._stream_wav_fn is not None:
                     count, end_tok = self._stream_wav_fn(
-                        self.engine, self.jp, self.cfg, sources, wav_path,
+                        self.engine, self.jp, cfg, sources, wav_path,
                         lambda f: _write(encode_frame_chunk(f, quality=jpeg_quality)),
                         blink_enabled,
                         phase_token,
@@ -414,7 +500,7 @@ class RenderService:
                 else:
                     from fifth_render import stream_wav_frames
                     count, end_tok = stream_wav_frames(
-                        self.engine, self.jp, self.cfg, sources, wav_path,
+                        self.engine, self.jp, cfg, sources, wav_path,
                         on_frame=lambda f: _write(encode_frame_chunk(f, quality=jpeg_quality)),
                         blink_enabled=blink_enabled,
                         phase_token=phase_token,
@@ -484,8 +570,46 @@ def _validate_phase_tok_fields(tok) -> None:
         )
 
 
-def _parse_render_body(raw: bytes) -> tuple[str, str, Optional[object], dict]:
-    """POST /oth-path body(JSON) → (wav_path, video_path, phase_token|None, render_opts).
+# FifthConfig 필드 → 캐스터. per-request 로 덮을 수 있는 입싱크 파라미터 전량.
+# 여기 없는 FIFTH_* env(head_smooth·eye_source_lock 등)는 기동 시 1회만 읽히므로
+# 컨테이너 재기동이 필요하다 — lab-tuner 는 그것들을 "container" reflow 로 표시한다.
+_CFG_KEYS = {
+    "fps": int,
+    "lip_open": float,
+    "lip_closed": float,
+    "open_scale": float,
+    "offset": int,
+    "sigma": float,
+    "gamma": float,
+    "silence": float,
+    "closed_thresh": float,
+    "open_thresh": float,
+}
+
+
+def _parse_cfg_overrides(req: dict) -> dict:
+    """요청 body 에서 FifthConfig 필드만 추출·캐스팅.
+
+    키 없음 또는 명시 None 은 제외한다 → RenderService 가 self.cfg 를 그대로 쓰고
+    fifth_render.py 가 env 기본값 경로를 탄다(회귀 0).
+
+    캐스팅 실패는 ValueError 로 올려 do_POST 가 400 으로 변환한다(500 방지 —
+    기존 phase_token 검증과 같은 규약).
+    """
+    out: dict = {}
+    for key, cast in _CFG_KEYS.items():
+        v = req.get(key)
+        if v is None:
+            continue
+        try:
+            out[key] = cast(v)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{key} 캐스팅 실패: {v!r}") from exc
+    return out
+
+
+def _parse_render_body(raw: bytes) -> tuple[str, str, Optional[object], dict, dict]:
+    """POST /oth-path body(JSON) → (wav_path, video_path, phase_token|None, render_opts, cfg_overrides).
 
     설계 v3(공유 볼륨): wav_path/video_path 모두 필수.
     호스트-컨테이너가 /home/afterlife/afterlife-server 를 공유 마운트하므로
@@ -560,7 +684,34 @@ def _parse_render_body(raw: bytes) -> tuple[str, str, Optional[object], dict]:
         "render_mode": req.get("render_mode") or None,
     }
 
-    return str(wav_path_raw), str(video_path), phase_token, render_opts
+    # per-request FifthConfig 오버라이드(입싱크 파라미터). 키 없으면 {} → self.cfg 그대로.
+    cfg_overrides = _parse_cfg_overrides(req)
+
+    return str(wav_path_raw), str(video_path), phase_token, render_opts, cfg_overrides
+
+
+def _config_snapshot() -> dict:
+    """3층(FLP) 현재값 스냅샷 — lab-tuner 읽기전용 패널용.
+
+    yaml 원본이 아니라 **엔진이 최종적으로 들고 있는 값**을 보여준다.
+    flp_engine.__init__ 이 flag_normalize_lip / flag_lip_retargeting /
+    flag_relative_motion 등을 코드로 덮으므로, yaml 을 그대로 보여주면
+    실제 동작과 다른 값을 표시하게 된다.
+    """
+    if _service is None or getattr(_service, "engine", None) is None:
+        return {"error": "엔진 미초기화"}
+    cfg = getattr(_service.engine, "_cfg", None)
+    if cfg is None:
+        return {"error": "엔진 cfg 없음"}
+    try:
+        from omegaconf import OmegaConf
+        return {
+            "infer_params": OmegaConf.to_container(cfg.infer_params, resolve=True),
+            "crop_params": OmegaConf.to_container(cfg.crop_params, resolve=True),
+            "note": "infer_params 는 코드 강제·env 오버라이드까지 반영된 최종값",
+        }
+    except Exception as exc:      # OmegaConf 미탑재 등 — 패널만 비고 서버는 산다
+        return {"error": f"스냅샷 실패: {exc}"}
 
 
 class _RenderHandler(BaseHTTPRequestHandler):
@@ -580,6 +731,23 @@ class _RenderHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/health":
             self._send_json(200, {"status": "ok"})
+        elif self.path == "/config":
+            # 3층(FLP yaml) 현재값 스냅샷. lab-tuner 는 컨테이너 밖에 있어 yaml 을
+            # 직접 못 읽으므로 이 라우트가 읽기전용 패널의 유일한 데이터원이다.
+            self._send_json(200, _config_snapshot())
+        elif self.path.startswith("/logs"):
+            # 최근 로그 조회. systemd/docker 조합에서 stdout 이 어디에도 안 남을 때
+            # 파라미터가 실제 렌더까지 갔는지 확인할 유일한 경로다.
+            qs = parse_qs(urlparse(self.path).query)
+            try:
+                since = int(qs.get("since", ["0"])[0])
+            except ValueError:
+                since = 0
+            try:
+                limit = min(int(qs.get("limit", ["200"])[0]), 500)
+            except ValueError:
+                limit = 200
+            self._send_json(200, {"lines": _ring.snapshot(since=since, limit=limit)})
         else:
             self._send_json(404, {"error": "not found"})
 
@@ -592,7 +760,8 @@ class _RenderHandler(BaseHTTPRequestHandler):
         body = self.rfile.read(length) if length else b""
 
         try:
-            wav_path, video_path, phase_token, render_opts = _parse_render_body(body)
+            (wav_path, video_path, phase_token,
+             render_opts, cfg_overrides) = _parse_render_body(body)
         except (ValueError, KeyError, json.JSONDecodeError) as exc:
             self._send_json(400, {"error": str(exc)})
             return
@@ -625,6 +794,7 @@ class _RenderHandler(BaseHTTPRequestHandler):
                 phase_token=phase_token,
                 idle_opts=render_opts,   # idle_* 4종 전달(None이면 env)
                 render_mode=render_opts["render_mode"],  # T-113: None이면 env fallback
+                cfg_overrides=cfg_overrides,   # 입싱크 per-request(빈 dict면 self.cfg 그대로)
             )
         except Exception as exc:
             logger.exception("render 오류: %s", exc)
@@ -642,6 +812,9 @@ def main():
         level=logging.INFO,
         format="%(asctime)s [fifth_render_server] %(levelname)s %(message)s",
     )
+    # 링버퍼를 루트에 물려 이 서버의 모든 로그를 GET /oth-path 로 조회 가능하게 한다.
+    # stdout 이 systemd/docker 파이프로 사라져도 최근 로그는 남는다.
+    logging.getLogger().addHandler(_ring)
 
     port = int(os.environ.get("FIFTH_RENDER_PORT", "8810"))
     cache_root = os.environ.get("FIFTH_CACHE_ROOT", "/tmp/fifth_cache")

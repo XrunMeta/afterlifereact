@@ -419,6 +419,57 @@ v_2a805f('POST /oth-path — 유효 바디 → 202 + enqueue 호출', async () =
   v_88781f.close();
 });
 
+v_2a805f('POST /oth-path — idle_video engine 을 큐까지 전달', async () => {
+  const v_48cb8e = [];
+  const v_436905 = {
+    enqueue(v_d5ec97) { v_48cb8e.push(v_d5ec97); },
+    _size: () => v_48cb8e.length,
+    _running: () => false,
+  };
+
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_f8ce16(), 'sek', null, { assetJobRunner: v_436905 });
+  const v_cb35cb = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'job_anim',
+      kind: 'idle_video',
+      src_url: 'https://oth-path.example.com/oth-path',
+      callback_token: 'tok1',
+      engine: 'sadtalker_anim',
+    }),
+  });
+  v_ce93bd.equal(v_cb35cb.status, 202);
+  v_ce93bd.equal(v_48cb8e.length, 1);
+  v_ce93bd.equal(v_48cb8e[0].engine, 'sadtalker_anim');
+  v_88781f.close();
+});
+
+v_2a805f('POST /oth-path — engine 이 문자열이 아니면 무시(기본 엔진)', async () => {
+  const v_48cb8e = [];
+  const v_436905 = {
+    enqueue(v_d5ec97) { v_48cb8e.push(v_d5ec97); },
+    _size: () => v_48cb8e.length,
+    _running: () => false,
+  };
+
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_f8ce16(), 'sek', null, { assetJobRunner: v_436905 });
+  const v_cb35cb = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'job_bad_engine',
+      kind: 'idle_video',
+      src_url: 'https://oth-path.example.com/oth-path',
+      callback_token: 'tok1',
+      engine: { evil: true },
+    }),
+  });
+  v_ce93bd.equal(v_cb35cb.status, 202);
+  v_ce93bd.equal(v_48cb8e[0].engine, undefined);
+  v_88781f.close();
+});
+
 v_2a805f('POST /oth-path — voice_clone kind 허용', async () => {
   const v_48cb8e = [];
   const v_436905 = { enqueue(v_d5ec97) { v_48cb8e.push(v_d5ec97); } };

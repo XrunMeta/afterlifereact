@@ -45,8 +45,13 @@ import v_9e01f7 from "../screens/my/TransactionsScreen";
 import v_0035e1 from "../screens/my/PurchaseScreen";
 
 import v_38f630 from "../screens/dev/VisemeTestScreen";
+import v_bf7ede from "../screens/dev/ThreeDLabScreen";
+
+import v_ecc90b from "../screens/dev/ThreeDPersonaScreen";
 
 import v_30f4d7 from "../screens/face-test/FaceThresholdTestScreen";
+
+import v_cca0cf from "../screens/dev/TtsVitsScreen";
 
 const v_3ea452 = v_709be7<v_2d88fc>();
 const v_be1c7b = v_709be7<v_2b51a5>();
@@ -109,6 +114,9 @@ function v_d9c5dd() {
       <MyStack.Screen name="Reports" component={v_7e6637} />
       <MyStack.Screen name="VisemeTest" component={v_38f630} />
       <MyStack.Screen name="FaceThresholdTest" component={v_30f4d7} />
+      <MyStack.Screen name="ThreeDLab" component={v_bf7ede} />
+      <MyStack.Screen name="ThreeDPersona" component={v_ecc90b} />
+      <MyStack.Screen name="TtsVits" component={v_cca0cf} />
     </MyStack.Navigator>
   );
 }

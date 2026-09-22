@@ -782,6 +782,8 @@
       "guide1": "Silakan gunakan foto yang menghadap ke depan",
       "guide2": "Foto dengan wajah yang jelas terlihat lebih baik",
       "guide3": "Latar belakang yang sederhana memberikan hasil yang lebih baik",
+      "guide4": "Gunakan foto yang hanya berisi satu orang",
+      "guide5": "Mata terbuka dan mulut tertutup memberikan hasil terbaik",
       "memlowNote": "Foto dapat ditambahkan sekarang atau nanti.",
       "memlowSelectHint": "Anda dapat memilih foto atau melewati langkah ini",
       "memlowRights": "Saya telah memastikan hak untuk menggunakan foto ini (persetujuan keluarga·hak potret).",
@@ -802,7 +804,11 @@
       "validateTooSmall": "Wajah terlalu kecil. Mohon mendekat ke kamera dan coba lagi.",
       "validateTooLarge": "Wajah terlalu besar. Mohon mundur sedikit dan coba lagi.",
       "validateOffCenter": "Wajah di luar siluet. Silakan posisikan di tengah dan coba lagi.",
-      "validateLetterbox": "Foto persegi atau lanskap tidak dapat digunakan. Silakan pilih foto potret."
+      "validateLetterbox": "Foto persegi atau lanskap tidak dapat digunakan. Silakan pilih foto potret.",
+      "validateMultipleFaces": "Ada lebih dari satu orang di foto. Silakan coba foto satu orang saja.",
+      "validateNotFrontal": "Wajah menoleh ke samping atau atas/bawah. Silakan coba foto yang menghadap ke depan.",
+      "validateEyesClosed": "Mata tampak tertutup. Silakan coba foto dengan mata terbuka, tanpa kacamata hitam.",
+      "validateMouthOpen": "Mulut terbuka. Silakan coba foto dengan mulut tertutup."
     },
     "voice": {
       "presets": "Preset Suara Dasar",

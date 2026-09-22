@@ -57,6 +57,7 @@ export default function v_3d9025({ navigation: v_c65f5d }: Props) {
         const v_94abbb = await v_ab4719(v_2ca7e0, {
           kind: 'idle_video',
           src_file_id: v_57ac81.id,
+          ...(v_f04727.idleEngine ? { engine: v_f04727.idleEngine } : {}),
         });
         v_04211c = v_94abbb.job_id;
         console.log('[Step3] idle_video job created:', v_04211c);

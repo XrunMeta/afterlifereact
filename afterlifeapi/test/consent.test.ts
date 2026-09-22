@@ -209,3 +209,29 @@ v_469bf2("GET /oth-path — face_biometric 필드", () => {
     v_4d37e3(v_7ecfd1.call_learning).toEqual({ state: "none", at: null });
   });
 });
+
+v_469bf2("GET /oth-path — face_biometric none/revoked 구분", () => {
+  async function v_e6efc3(v_21cc31) {
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", { headers: { Authorization: `Bearer ${v_21cc31}` } });
+    return (await v_8f00b9.json<{ face_biometric: { state: string } }>()).face_biometric.state;
+  }
+  async function v_89982c(v_21cc31, v_b6e533) {
+    await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST", headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ state: v_b6e533 }),
+    });
+  }
+
+  v_23805a("한 번도 설정 안 함 → none", async () => {
+    const { token: v_21cc31 } = await v_d33950("face_none@test.test");
+    v_4d37e3(await v_e6efc3(v_21cc31)).toBe("none");
+  });
+
+  v_23805a("설정에서 끔 → revoked, 다시 켬 → granted", async () => {
+    const { token: v_21cc31 } = await v_d33950("face_revoke@test.test");
+    await v_89982c(v_21cc31, "revoked");
+    v_4d37e3(await v_e6efc3(v_21cc31)).toBe("revoked");
+    await v_89982c(v_21cc31, "granted");
+    v_4d37e3(await v_e6efc3(v_21cc31)).toBe("granted");
+  });
+});

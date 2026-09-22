@@ -30,6 +30,8 @@ export interface Bindings {
   L2_PREF_HISTORY_ENABLED?: string; 
 
   CALL_PRETHIRD_BASE?: string;
+
+  CALL_TRIPOSR_BASE?: string;
   CALL_ROUTE?: string;
 
   AUTH_GOOGLE_ENABLED_IOS?: string;
@@ -37,6 +39,8 @@ export interface Bindings {
   CALL_SECOND_BASE?: string;
 
   CALL_EXPERIMENTAL_BASE?: string;
+
+  EMOTE_RENDER_SECRET?: string;
 
   ADMIN_BOOTSTRAP_TOKEN?: string;
 

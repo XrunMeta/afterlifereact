@@ -306,3 +306,98 @@ def test_render_mode_env_included_in_non_container_keys():
     non_container_envs = [loc["env"] for loc in promote.KNOB_TO_LIVE.values()
                            if not loc.get("container")]
     assert "PRETHIRD_RENDER_MODE" in non_container_envs
+
+
+def test_재기동_노브는_전부_매핑되어_있다():
+    """RESTART_BAKED 인데 promote 매핑이 없으면 라이브에 반영할 방법이 없다."""
+    from knobs import FifthKnobs
+    for name in FifthKnobs.RESTART_BAKED:
+        assert f"fifth.{name}" in promote.KNOB_TO_LIVE, f"매핑 없음: fifth.{name}"
+
+
+def test_flp_노브는_전부_매핑되어_있다():
+    from dataclasses import fields
+    from knobs import FlpKnobs
+    for f in fields(FlpKnobs):
+        assert f"flp.{f.name}" in promote.KNOB_TO_LIVE, f"매핑 없음: flp.{f.name}"
+
+
+def test_fifth_flp_env는_전부_container_플래그():
+    """컨테이너 env 인데 플래그가 없으면 UI 가 '즉시 반영' 으로 오안내한다."""
+    for path, loc in promote.KNOB_TO_LIVE.items():
+        if loc["env"].startswith("FIFTH_") and loc["env"] != "FIFTH_IDLE_PREBAKE":
+            assert loc.get("container") is True, f"{path} 에 container 플래그 없음"
+
+
+def test_animation_region_값이_안전문자셋을_통과():
+    for v in ("all", "exp", "pose", "lip", "eyes"):
+        promote._validate_env_value(v)
+
+
+def test_매핑된_경로가_실제_노브다():
+    """오타 방지 — 존재하지 않는 노브를 promote 하려 하면 조용히 실패한다."""
+    from knobs import RunKnobs
+    flat = {f"{s}.{k}" for s, vals in RunKnobs().to_dict().items() for k in vals}
+    orphans = set(promote.KNOB_TO_LIVE) - flat
+    assert orphans == set(), f"고아 매핑: {sorted(orphans)}"
+
+
+# ---------------------------------------------------------------------------
+# 2026-08-19: 랩 화면에 추가한 얼굴 프레이밍/입력 전처리 노브가 실제로
+# 컨테이너 env 까지 나가는지 — "화면엔 있는데 서버가 안 받는" 배선 누락 방지.
+# ---------------------------------------------------------------------------
+_NEW_FLP = {
+    "flp.src_dsize": "FIFTH_FLP_SRC_DSIZE",
+    "flp.src_scale": "FIFTH_FLP_SRC_SCALE",
+    "flp.src_vx_ratio": "FIFTH_FLP_SRC_VX_RATIO",
+    "flp.src_vy_ratio": "FIFTH_FLP_SRC_VY_RATIO",
+    "flp.source_max_dim": "FIFTH_FLP_SOURCE_MAX_DIM",
+    "flp.source_division": "FIFTH_FLP_SOURCE_DIVISION",
+    "flp.flag_do_crop": "FIFTH_FLP_DO_CROP",
+}
+
+
+def test_신규_flp_노브가_컨테이너_env로_매핑된다():
+    for path, env in _NEW_FLP.items():
+        loc = promote.KNOB_TO_LIVE.get(path)
+        assert loc, f"{path} 가 KNOB_TO_LIVE 에 없다 — 재기동해도 반영 안 됨"
+        assert loc["env"] == env
+        assert loc.get("container") is True, f"{path} 는 컨테이너 env 여야 한다"
+
+
+def test_신규_flp_노브가_dirty일때_구워진다():
+    knobs = RunKnobs.from_dict({"flp": {"src_scale": 1.8, "src_dsize": 640}})
+    out = promote.fifth_env_updates(
+        knobs, dirty={"flp.src_scale", "flp.src_dsize"}, baked={})
+    assert out["FIFTH_FLP_SRC_SCALE"] == "1.8"
+    assert out["FIFTH_FLP_SRC_DSIZE"] == "640"
+
+
+def test_안건드린_신규노브는_굽지_않는다():
+    """랩 기본값이 렌더서버 기본값을 조용히 덮으면 안 된다(기존 규약)."""
+    knobs = RunKnobs.from_dict({"flp": {"src_scale": 1.8}})
+    out = promote.fifth_env_updates(knobs, dirty={"flp.src_scale"}, baked={})
+    assert "FIFTH_FLP_SRC_VY_RATIO" not in out
+    assert "FIFTH_FLP_DO_CROP" not in out
+
+
+def test_renderer_promotes_to_prethird_dropin():
+    """통화 렌더러는 host 노브 — prethird drop-in 에 PRETHIRD_RENDERER 로 기록된다.
+
+    컨테이너 노브로 잘못 분류되면 promote 가 값을 버리고 경고만 띄우므로
+    (container_warnings), drop-in 파일에 실제로 실리는지까지 확인한다.
+    """
+    knobs = RunKnobs.from_dict({"transport": {"renderer": "musetalk"}})
+    entries = promote.diff(knobs, lambda _n: "fifth", dirty={"transport.renderer"})
+    hit = [e for e in entries if e["env"] == "PRETHIRD_RENDERER"]
+    assert hit, f"PRETHIRD_RENDERER 미등장: {entries}"
+    assert hit[0]["current"] == "fifth" and hit[0]["new"] == "musetalk"
+    assert not hit[0].get("container"), "렌더러는 host 노브여야 한다"
+
+
+def test_renderer_rejects_value_outside_choices():
+    """enum 검증 — 지원하지 않는 렌더러 이름은 라이브에 실리기 전에 거부한다."""
+    import pytest
+    knobs = RunKnobs.from_dict({"transport": {"renderer": "ditto"}})
+    with pytest.raises(promote.UnsafeEnvValueError):
+        promote.diff(knobs, lambda _n: "", dirty={"transport.renderer"})

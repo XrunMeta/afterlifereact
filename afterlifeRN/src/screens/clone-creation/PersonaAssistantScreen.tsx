@@ -266,15 +266,25 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
           });
 
           if (v_2ca7e0) {
+            console.log('[introSuggest] START', {
+              name: v_00da68.name,
+              relation: v_00da68.relation,
+              answersCount: Object.keys(v_00da68.schemaAnswers ?? {}).length,
+            });
             v_be66ca(v_2ca7e0, {
               name: v_00da68.name,
               relation: v_00da68.relation,
               personaAnswers: v_00da68.schemaAnswers,
             })
               .then((v_456484) => {
+                console.log('[introSuggest] DONE len=', (v_456484 ?? '').length, 'preview=', (v_456484 ?? '').slice(0, 60));
                 if (v_456484) v_5795de({ description: v_456484 });
               })
-              .catch(() => {});
+              .catch((v_49263d) => {
+                console.warn('[introSuggest] ERROR', v_49263d);
+              });
+          } else {
+            console.warn('[introSuggest] SKIP — no accessToken');
           }
 
           v_c65f5d.navigate('Step5');

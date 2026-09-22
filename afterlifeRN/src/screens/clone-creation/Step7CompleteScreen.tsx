@@ -60,6 +60,34 @@ const v_549a47 = {
   celeb:  { title: '팬클럽이 시작됐어요', sub: '첫 메시지를 남겨 보세요.' },
 };
 
+function v_1d1af8(v_1833e7, v_dd8af0): string {
+  const v_f4e98d = (v_1833e7 ?? "").trim();
+
+  const v_0671ac = (v_fd5f43): boolean => {
+    if (!v_fd5f43) return false;
+    const v_c99bd2 = v_fd5f43.charCodeAt(v_fd5f43.length - 1) - 0xac00;
+    if (v_c99bd2 < 0 || v_c99bd2 > 11171) return false; 
+    return v_c99bd2 % 28 !== 0;
+  };
+  const v_aa444d = v_f4e98d
+    ? `안녕하세요, ${v_f4e98d}${v_0671ac(v_f4e98d) ? "이에요" : "예요"}.`
+    : "안녕하세요, 만나서 반가워요.";
+  const v_2534ba = {
+    memlow:
+      "함께한 추억이 아직 마음에 남아 있어요. 편지가 도착하면 언제든 함께 읽어봐요. 소소한 이야기라도 들려주시면 좋겠어요.",
+    friend:
+      "편하게 말 걸어주세요. 하루 있었던 일, 요즘 관심사, 사소한 고민까지 뭐든 이야기해요. 같이 웃고 같이 생각하고 싶어요.",
+    mentor:
+      "궁금한 게 있으면 언제든 물어봐 주세요. 아는 만큼 정성껏 나눠드릴게요. 함께 배우고 성장하는 시간을 만들어요.",
+    celeb:
+      "만나 뵙게 되어 정말 반가워요. 팬 여러분과 이야기 나누는 이 시간을 아낍니다. 궁금한 것도, 응원의 말도 편하게 남겨주세요.",
+  };
+  const v_ba70d8 =
+    v_2534ba[(v_dd8af0 ?? "") as string] ??
+    "편하게 이야기 나눠봐요. 관심사도, 오늘 있었던 소소한 일도, 궁금한 것도 뭐든 좋아요. 함께 즐거운 시간 보내요.";
+  return `${v_aa444d} ${v_ba70d8}`;
+}
+
 function v_78ed2a({ uri: v_cd1446 }: { uri: string }) {
   const { t: v_8d41d7 } = v_772971();
   const v_86394a = v_110960(v_cd1446, (v_e2a85c) => {
@@ -104,13 +132,24 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const [v_7f3fda, v_3773cd] = v_5ab095<v_e5d62a | null>(null);
   const v_835261 = v_e662ae<ReturnType<typeof setInterval> | null>(null);
 
-  const [v_6044a8, v_1d6b6a] = v_5ab095((v_f04727.description ?? "").slice(0, 500));
+  const v_1c6048 = v_e662ae(false);
+  const [v_6044a8, v_1d6b6a] = v_5ab095(() => {
+    const v_41b99d = (v_f04727.description ?? "").slice(0, 500);
+    if (v_41b99d) return v_41b99d;
+    v_1c6048.current = true;
+    return v_1d1af8(v_f04727.name, v_f04727.relation);
+  });
 
   const v_d9bc63 = v_e662ae(false);
 
   v_c4deb2(() => {
-    if (v_f04727.description && v_6044a8.trim().length === 0 && !v_d9bc63.current) {
+    if (
+      v_f04727.description &&
+      !v_d9bc63.current &&
+      (v_6044a8.trim().length === 0 || v_1c6048.current)
+    ) {
       v_1d6b6a(v_f04727.description.slice(0, 500));
+      v_1c6048.current = false;
     }
 
   }, [v_f04727.description]);
@@ -148,7 +187,11 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   const [v_f6dbfe, v_f77874] = v_5ab095(false);
 
-  const v_798360 = v_f04727.idleVideoJobId ? v_7f3fda?.status !== 'done' : true;
+  const v_4d3a74 =
+    !!v_f04727.idleVideoJobId && (!v_7f3fda || v_7f3fda.status === 'pending' || v_7f3fda.status === 'running');
+  const v_798360 = v_f04727.idleVideoJobId
+    ? v_7f3fda?.status !== 'done' && !(v_f04727.idleEngine && v_4d3a74)
+    : true;
 
   const v_a3d9bc = v_de06a3(async () => {
     if (v_f6dbfe) return;
@@ -182,6 +225,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       const v_94abbb = await v_ab4719(v_2ca7e0, {
         kind: 'idle_video',
         src_file_id: v_57ac81.id,
+        ...(v_f04727.idleEngine ? { engine: v_f04727.idleEngine } : {}),
       });
 
       v_3773cd(null);
@@ -286,6 +330,8 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         visibility: v_818579,
         hasAvatar: !!v_bf6b43,
       });
+
+      console.log("[CLONE-CREATE] persona →", { personaAnswers: v_60d170, l1Attrs: v_55a58f });
 
       const v_85010a = v_f04727.voiceCloneJobId
         ? { voice_clone_job_id: v_f04727.voiceCloneJobId }
@@ -629,7 +675,9 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
               <View style={[v_d81136.videoBadge, v_d81136.videoBadgePending]}>
                 <ActivityIndicator size="small" color={v_1bfbd0.white} style={{ marginRight: 6 }} />
                 <Text style={v_d81136.videoBadgeText}>
-                  {v_8d41d7("create.step7.videoPending", { defaultValue: "영상 준비 중" })}
+                  {v_f04727.idleEngine
+                    ? "영상 준비 중 · 먼저 게시해도 몇 분 뒤 적용돼요"
+                    : v_8d41d7("create.step7.videoPending", { defaultValue: "영상 준비 중" })}
                 </Text>
               </View>
             </View>
