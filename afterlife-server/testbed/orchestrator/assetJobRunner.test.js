@@ -127,6 +127,52 @@ v_2a805f('idle_video 잡 성공 시 callback status=done + file 페이로드', a
   v_ce93bd.ok(v_23563e.get('file'), 'file 필드 필요');
 });
 
+v_2a805f('idle_video engine=sadtalker_anim 이면 genIdleAnimCmd 로 생성', async () => {
+  const v_0a664b = [];
+  const v_87cbd5 = [];
+  const v_eedf31 = v_47bade({
+    apiBaseUrl: v_cc9198,
+    genIdleCmd: (v_38d084, v_8d4337) => { v_87cbd5.push('default'); return { bin: 'echo', args: [v_38d084, v_8d4337] }; },
+    genIdleAnimCmd: (v_38d084, v_8d4337) => { v_87cbd5.push('anim'); return { bin: 'echo', args: [v_38d084, v_8d4337] }; },
+    extractSeCmd: (v_38d084, v_8d4337) => ({ bin: 'echo', args: [v_38d084, v_8d4337] }),
+    fetchImpl: v_4de825({ callbackCalls: v_0a664b }),
+    spawnImpl: v_142ee6(0),
+  });
+
+  v_eedf31.enqueue({
+    job_id: 'job_anim',
+    kind: 'idle_video',
+    src_url: `${v_cc9198}/oth-path`,
+    callback_token: 'tok_anim',
+    engine: 'sadtalker_anim',
+  });
+  await v_26eff3(v_eedf31);
+
+  v_ce93bd.deepEqual(v_87cbd5, ['anim']);
+  v_ce93bd.equal(v_0a664b.length, 1);
+  v_ce93bd.equal(v_0a664b[0].body.get('status'), 'done');
+});
+
+v_2a805f('idle_video engine 미지정·미지원 값이면 기존 genIdleCmd 그대로', async () => {
+  const v_0a664b = [];
+  const v_87cbd5 = [];
+  const v_eedf31 = v_47bade({
+    apiBaseUrl: v_cc9198,
+    genIdleCmd: (v_38d084, v_8d4337) => { v_87cbd5.push('default'); return { bin: 'echo', args: [v_38d084, v_8d4337] }; },
+    genIdleAnimCmd: (v_38d084, v_8d4337) => { v_87cbd5.push('anim'); return { bin: 'echo', args: [v_38d084, v_8d4337] }; },
+    extractSeCmd: (v_38d084, v_8d4337) => ({ bin: 'echo', args: [v_38d084, v_8d4337] }),
+    fetchImpl: v_4de825({ callbackCalls: v_0a664b }),
+    spawnImpl: v_142ee6(0),
+  });
+
+  v_eedf31.enqueue({ job_id: 'a', kind: 'idle_video', src_url: `${v_cc9198}/oth-path`, callback_token: 'ta' });
+  v_eedf31.enqueue({ job_id: 'b', kind: 'idle_video', src_url: `${v_cc9198}/oth-path`, callback_token: 'tb', engine: 'unknown' });
+  await v_26eff3(v_eedf31);
+
+  v_ce93bd.deepEqual(v_87cbd5, ['default', 'default']);
+  v_ce93bd.equal(v_0a664b.length, 2);
+});
+
 v_2a805f('voice_clone 잡 성공 시 callback status=done', async () => {
   const v_0a664b = [];
   const v_d10060 = v_4de825({ callbackCalls: v_0a664b });

@@ -156,7 +156,7 @@ const v_722b6d = v_1f4ea7.object({
   idle_video_job_id: v_1f4ea7.string().uuid().optional(),
   voice_clone_job_id: v_1f4ea7.string().uuid().optional(),
 
-  pipeline: v_1f4ea7.enum(["musetalk", "echomimic_v3", "viseme_playback"]).optional(),
+  pipeline: v_1f4ea7.enum(["musetalk", "echomimic_v3", "viseme_playback", "threed"]).optional(),
 });
 
 const v_34d2d5 = new Set(["oth-user@example.invalid", "oth-test@example.invalid"]);
@@ -1185,14 +1185,23 @@ v_f891e6.post("/intro-suggest", v_6690d9, async (v_3f4e2e) => {
   }
 });
 
+const v_019a62 = new Set(["sadtalker_anim"]);
+
 v_f891e6.post("/asset-job", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
-  const v_479f05 = await v_3f4e2e.req.json<{ kind?: string; src_file_id?: number }>().catch(() => null);
+  const v_479f05 = await v_3f4e2e.req.json<{ kind?: string; src_file_id?: number; engine?: unknown }>().catch(() => null);
   const v_94302c = v_479f05?.kind;
   const v_2fa661 = v_479f05?.src_file_id;
 
   if (v_94302c !== "idle_video" && v_94302c !== "voice_clone" && v_94302c !== "filler") {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid kind. Must be idle_video, voice_clone, or filler.");
+  }
+
+  const v_1e3df0 = v_479f05?.engine;
+  if (v_1e3df0 !== undefined && v_1e3df0 !== null) {
+    if (v_94302c !== "idle_video" || !v_019a62.has(v_1e3df0 as string)) {
+      throw new v_3ebe58("VALIDATION_FAILED", "Invalid engine.");
+    }
   }
   if (!v_2fa661 || !Number.isInteger(v_2fa661)) {
     throw new v_3ebe58("VALIDATION_FAILED", "src_file_id required.");
@@ -1221,7 +1230,13 @@ v_f891e6.post("/asset-job", v_6690d9, async (v_3f4e2e) => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${v_3f4e2e.env.ORCH_SECRET}`,
         },
-        body: JSON.stringify({ job_id: v_04211c, kind: v_94302c, src_url: v_0ad77a, callback_token: v_59b4e0 }),
+        body: JSON.stringify({
+          job_id: v_04211c,
+          kind: v_94302c,
+          src_url: v_0ad77a,
+          callback_token: v_59b4e0,
+          ...(v_1e3df0 ? { engine: v_1e3df0 } : {}),
+        }),
         signal: AbortSignal.timeout(8000),
       })
 
@@ -1305,6 +1320,18 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
     .bind(v_6e0fd3, v_6e0fd3)
     .first<{ likesCount: number; commentsCount: number }>();
 
+  let v_28aeca = null;
+  if (v_eb25ce.voice_preset_id) {
+    const v_f653fc = await v_3f4e2e.env.DB
+      .prepare(`SELECT se_key FROM voice_presets WHERE id = ? AND is_active = 1`)
+      .bind(v_eb25ce.voice_preset_id)
+      .first<{ se_key: string | null }>();
+    if (v_f653fc?.se_key) {
+      const v_f17108 = new URL(v_3f4e2e.req.url).origin;
+      v_28aeca = `${v_f17108}/oth-path${encodeURIComponent(v_f653fc.se_key)}/manifest.json`;
+    }
+  }
+
   let v_db2b0a = false;
   if (v_43e90c) {
     const v_cb35cb = await v_3f4e2e.env.DB
@@ -1349,6 +1376,12 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
       pipeline: v_eb25ce.pipeline,
 
       visemePrefix: v_eb25ce.viseme_prefix,
+
+      avatarSdkGlbUrl: v_eb25ce.avatar_sdk_glb_url ?? null,
+
+      ttsOutput: v_eb25ce.tts_output,
+
+      voiceModelManifestUrl: v_28aeca,
     },
   });
 });

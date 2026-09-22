@@ -32,6 +32,7 @@ import { v_87e8b2 } from "./routes/adminGdpr";
 import { v_dda4b9 } from "./routes/deletion";
 import { v_19f1fa } from "./routes/adminDeletion";
 import { v_ff9685 } from "./routes/files";
+import { v_4bc206 } from "./routes/voicePackages";
 import { v_a35f69 } from "./routes/payments";
 import { v_68bb66 } from "./routes/gifts";
 import { v_0bc486 } from "./routes/giftInventory";
@@ -46,6 +47,7 @@ import { v_110512 } from "./routes/pricing-config";
 import { v_037921 } from "./routes/auth-config";
 import { v_74e200 } from "./routes/consent";
 import { v_5c0bb5 } from "./routes/viseme";
+import { v_5add74 } from "./routes/triposr";
 import { v_8d1314, v_bf54ef } from "./routes/crashes";
 
 import { v_f31e9b, v_a63db8 } from "./routes/recommendedKeywords";
@@ -93,13 +95,28 @@ v_466992.get("/health", async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: v_a1651b?.ok === 1, ts: Date.now() });
 });
 
+v_466992.get("/benchmark", async (v_3f4e2e) => {
+  const { BENCHMARK_HTML: v_790962 } = await import("./benchmarkPage");
+  return new Response(v_790962, {
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "public, max-age=300",
+      "X-Robots-Tag": "noindex",
+    },
+  });
+});
+
 v_466992.route("/oth-path", v_68f0aa);
 v_466992.route("/oth-path", v_ff9685);
+
+v_466992.route("/oth-path", v_4bc206);
 
 v_466992.route("/oth-path", v_dda4b9);
 v_466992.route("/oth-path", v_74e200);
 
 v_466992.route("/oth-path", v_5c0bb5);
+
+v_466992.route("/oth-path", v_5add74);
 v_466992.route("/oth-path", v_de7ba7);
 v_466992.route("/oth-path", v_f891e6);
 

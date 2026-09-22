@@ -32,6 +32,10 @@ export const v_a43d0e = [
   "run.xrun.afterlife.credit.300",
 
   "credits_1000",
+
+  "run.xrun.afterlife.gift.pack.1",
+  "run.xrun.afterlife.gift.pack.5",
+  "run.xrun.afterlife.gift.pack.10",
 ] as const;
 
 export type SubscriptionSku = (typeof v_ca8f48)[number];

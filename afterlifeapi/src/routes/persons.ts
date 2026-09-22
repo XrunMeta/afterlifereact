@@ -8,7 +8,7 @@ import { v_a8d2cc } from "../lib/faceVectors";
 import { v_430d2b } from "../lib/personDelete";
 import { v_d0fd96 } from "../lib/displayName";
 import { v_0b07b9 } from "../lib/cloneAccess";
-import { v_929ead, v_97be02, v_003ee1 } from "../lib/cloneFaceScope";
+import { v_929ead, v_97be02, v_003ee1, v_d4c21d } from "../lib/cloneFaceScope";
 import { v_a752e9 } from "../lib/personaBundle";
 import { v_74defc } from "../lib/logger";
 
@@ -100,7 +100,7 @@ v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
   );
 });
 
-const v_0eeb45 = 0.45;
+const v_0eeb45 = 0.6;
 
 v_fded81.post("/match", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
@@ -123,7 +123,14 @@ v_fded81.post("/match", v_6690d9, async (v_3f4e2e) => {
   }>();
   const v_d361d7 = v_01dcf5?.value !== undefined && Number.isFinite(Number(v_01dcf5.value)) ? Number(v_01dcf5.value) : v_0eeb45;
 
-  const v_495447 = await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef, topK: 3 });
+  try {
+    await v_d4c21d(v_3f4e2e.env, { userId: v_43e90c, targetCloneId: v_6e0fd3 });
+  } catch (v_9e86fd) {
+
+    console.warn(`[persons/match] autoAdopt failed cloneId=${v_6e0fd3} userId=${v_43e90c}:`, v_9e86fd);
+  }
+
+  const v_495447 = await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef });
   const v_52e08b = v_495447.map((v_35f85c) => v_35f85c.personId);
 
   const v_77b1ac = new Map<number, string | null>();

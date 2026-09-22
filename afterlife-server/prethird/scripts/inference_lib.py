@@ -199,6 +199,9 @@ def run_inference(args, models, frame_callback=None, timing_out=None, batch_emit
                 audio_padding_length_left=args.audio_padding_length_left,
                 audio_padding_length_right=args.audio_padding_length_right,
             )
+            # 무음(문장 끝 tail silence 등) 프레임은 입을 다물게 — PRETHIRD_SILENT_MOUTH=1 일 때만.
+            import silence_mouth
+            whisper_chunks = silence_mouth.apply(whisper_chunks, audio_path, fps)
             _t_audio = time.time() - _t_audio_s
 
             # Preprocess input images (landmark/bbox)

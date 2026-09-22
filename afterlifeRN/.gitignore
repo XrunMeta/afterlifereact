@@ -74,3 +74,9 @@ credentials/
 e2e/.e2e-credentials.json
 test-results/
 playwright-report/
+
+# T-705 (2026-09-07): 로컬 TTS ONNX 파일 · 100MB+ · git 커밋 금지 · CDN/서버 다운로드로 배포 예정
+assets/tts/*.onnx
+
+# T-705 g2pk-js · CMU 영어 발음 사전 (5.3MB · 앱 번들 포함하나 커밋은 skip · 서버 nltk 로 재생성 가능)
+src/text/g2pk-js/data/cmudict.json

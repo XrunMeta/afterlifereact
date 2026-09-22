@@ -1,7 +1,7 @@
 
 
 import v_a3453e, { v_c4deb2, v_df9f57, v_e662ae, v_5ab095 } from "bapkr";
-import { v_3094a2, v_cf9c33, v_472849 } from "rcmrninabrnb";
+import { v_3094a2, v_cf9c33, v_472849, v_a2349e, v_cdbae1 } from "rcmrninabrnb";
 import { v_e82960, type v_0eab75 } from "qmmwyqbwrg";
 
 export type Viseme =
@@ -58,11 +58,34 @@ export default function v_d4f200({
     return v_942aa2;
   }, [v_f3ade9]);
 
+  const [v_fc05fe, v_4206c5] = v_5ab095<Record<Viseme, string> | null>(null);
   v_c4deb2(() => {
-    if (!v_cc2223) return;
-    Object.values(v_cc2223).forEach((v_ceb55a) => {
-      v_cf9c33.prefetch(v_ceb55a).catch(() => {  });
-    });
+    if (!v_cc2223) { v_4206c5(null); return; }
+    let v_2008a4 = false;
+    (async () => {
+      const v_8d4337 = {} as Record<Viseme, string>;
+      await Promise.all(v_da5a32.map(async (v_81e2ef) => {
+        try {
+          const v_8f00b9 = await fetch(v_cc2223[v_81e2ef]);
+          const v_3263c7 = await v_8f00b9.blob();
+          const v_f47a40 = new FileReader();
+          const v_8d6b19 = await new Promise<string>((v_6f7712, v_bad6f3) => {
+            v_f47a40.onload = () => v_6f7712(v_f47a40.result as string);
+            v_f47a40.onerror = () => v_bad6f3(v_f47a40.error);
+            v_f47a40.readAsDataURL(v_3263c7);
+          });
+          v_8d4337[v_81e2ef] = v_8d6b19;
+        } catch (v_9e86fd) {
+          if (__DEV__) console.warn(`[VisemePlayer] preload ${v_81e2ef} fail:`, v_9e86fd);
+          v_8d4337[v_81e2ef] = v_cc2223[v_81e2ef]; 
+        }
+      }));
+      if (!v_2008a4) {
+        if (__DEV__) console.log(`[VisemePlayer] preload done · 10 dataUris ready`);
+        v_4206c5(v_8d4337);
+      }
+    })();
+    return () => { v_2008a4 = true; };
   }, [v_cc2223]);
 
   v_c4deb2(() => {
@@ -96,11 +119,13 @@ export default function v_d4f200({
         if (v_2008a4) return;
         if (v_e86ad8 >= v_bf9904.length) {
           v_de470b("REST");
+          if (__DEV__) console.log(`[VisemePlayer] STEP end → REST`);
           v_9397ad?.();
           return;
         }
         const v_1d299c = v_bf9904[v_e86ad8];
         v_de470b(v_1d299c.v);
+        if (__DEV__) console.log(`[VisemePlayer] STEP ${v_e86ad8} → ${v_1d299c.v} · dur=${v_1d299c.dur_ms}ms`);
         v_05f387 += v_1d299c.dur_ms;
         const v_5f5d6d = v_39e0bf + v_05f387;
         const v_4b24d2 = Math.max(0, v_5f5d6d - Date.now());
@@ -122,21 +147,11 @@ export default function v_d4f200({
     return () => { v_2008a4 = true; v_a983d4(); };
   }, [v_3393e3, v_9397ad]);
 
-  const v_3155e5 = v_cc2223 ? v_cc2223[v_634a62] : null;
-
   return (
     <View style={[v_d81136.container, v_7fa4e4]}>
-      {v_3155e5 ? (
-        <Image
+      {v_fc05fe ? (
 
-          key={v_634a62}
-          source={{ uri: v_3155e5 }}
-          style={v_d81136.image}
-          resizeMode="cover"
-          fadeDuration={0}
-          onLoad={() => { if (__DEV__) console.log(`[VisemePlayer] IMG OK: ${v_634a62}`); }}
-          onError={(v_9e86fd) => { if (__DEV__) console.warn(`[VisemePlayer] IMG FAIL: ${v_634a62} · ${v_3155e5} · ${v_9e86fd?.nativeEvent?.error ?? "?"}`); }}
-        />
+        <FadeStack dataUris={v_fc05fe} currentViseme={v_634a62} />
       ) : (
         <View style={[v_d81136.image, v_d81136.placeholder]} />
       )}
@@ -144,9 +159,53 @@ export default function v_d4f200({
   );
 }
 
+function v_ab412d({
+  dataUris: v_fc05fe,
+  currentViseme: v_634a62,
+}: {
+  dataUris: Record<Viseme, string>;
+  currentViseme: Viseme;
+}) {
+
+  const v_05c322 = v_e662ae<Record<Viseme, v_a2349e.Value> | null>(null);
+  if (!v_05c322.current) {
+    const map: Record<Viseme, v_a2349e.Value> = {} as Record<Viseme, v_a2349e.Value>;
+    for (const v_81e2ef of v_da5a32) v_8dcb51[v_81e2ef] = new v_a2349e.Value(v_81e2ef === "REST" ? 1 : 0);
+    v_05c322.current = v_8dcb51;
+  }
+  const v_152909 = v_05c322.current;
+
+  v_c4deb2(() => {
+
+    v_da5a32.forEach((v_81e2ef) => {
+      v_a2349e.timing(v_152909[v_81e2ef], {
+        toValue: v_81e2ef === v_634a62 ? 1 : 0,
+        duration: 100,
+        easing: v_cdbae1.linear,
+        useNativeDriver: true,
+      }).start();
+    });
+  }, [v_634a62, v_152909]);
+
+  return (
+    <>
+      {v_da5a32.map((v_81e2ef) => (
+        <Animated.Image
+          key={v_81e2ef}
+          source={{ uri: v_fc05fe[v_81e2ef] }}
+          style={[v_d81136.image, v_d81136.overlayImage, { opacity: v_152909[v_81e2ef] }]}
+          resizeMode="cover"
+          fadeDuration={0}
+        />
+      ))}
+    </>
+  );
+}
+
 const v_d81136 = v_472849.create({
 
   container: { width: "100%", height: "100%" },
   image: { width: "100%", height: "100%" },
+  overlayImage: { position: "absolute", top: 0, left: 0 },
   placeholder: { backgroundColor: "#222" },
 });

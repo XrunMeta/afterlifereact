@@ -279,6 +279,10 @@ async def viseme_chat(req: web.Request) -> web.Response:
     persona_knowledge = body.get("persona_knowledge")
     if not isinstance(persona_knowledge, list):
         persona_knowledge = None
+    # AFL-737 §5-4 (2026-09-16): true 이면 gemma3 응답만 반환하고 TTS · viseme_synth 는 건너뛴다.
+    # 폰이 sherpa-onnx 로 wav 를 만들고 koreanViseme.ts 로 viseme 매핑까지 담당하는 경로.
+    # clone.pipeline == 'viseme_playback' 이고 sherpa-onnx 사용 가능한 기기에서만 폰이 세팅.
+    text_only = bool(body.get("text_only"))
     if not text:
         return web.json_response({"error": "text required"}, status=400)
     if len(text) > 2000:
@@ -309,6 +313,14 @@ async def viseme_chat(req: web.Request) -> web.Response:
     sentence_texts = _split_sentences(response_text)
     if not sentence_texts:
         return web.json_response({"response_text": response_text, "sentences": []})
+
+    # AFL-737 §5-4: text_only 이면 여기서 반환. 폰이 TTS · viseme 담당.
+    if text_only:
+        text_only_sentences = [{"text": s} for s in sentence_texts if s]
+        return web.json_response({
+            "response_text": response_text,
+            "sentences": text_only_sentences,
+        })
 
     # 3) 각 문장 TTS + viseme 생성 (순차 · 병렬 안 함 — TTS GPU 경합 방지).
     try:

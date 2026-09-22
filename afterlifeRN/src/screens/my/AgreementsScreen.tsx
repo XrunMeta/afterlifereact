@@ -141,14 +141,14 @@ export default function v_c78d4f() {
     if (!v_2ca7e0) return;
     const v_ba2215 = v_ef3473;
     v_07c9fd(true);
-    v_a782b8(v_3b402b ? "granted" : "none");
+    v_a782b8(v_3b402b ? "granted" : "revoked");
     try {
       const v_cb35cb = await v_421733(
         v_2ca7e0,
         v_3b402b ? "granted" : "revoked",
         v_3b402b ? { termsVersion: "v1", channel: "settings" } : { channel: "settings" },
       );
-      v_a782b8(v_cb35cb.state === "granted" ? "granted" : "none");
+      v_a782b8(v_cb35cb.state === "granted" ? "granted" : "revoked");
     } catch (v_49263d) {
       v_a782b8(v_ba2215);
       const v_badeaf = v_49263d instanceof Error ? v_49263d.message : v_8d41d7("settings.privacy.faceBiometric.saveError");
@@ -391,7 +391,8 @@ function v_b8358a({
           ) : (
             <Switch
               testID="face-biometric-consent-toggle"
-              value={v_b6e533 === "granted"}
+
+              value={v_b6e533 !== "revoked"}
               onValueChange={v_0a2cea}
               disabled={v_35bf26}
               trackColor={{ false: v_1bfbd0.zinc200, true: v_1bfbd0.violet600 }}
