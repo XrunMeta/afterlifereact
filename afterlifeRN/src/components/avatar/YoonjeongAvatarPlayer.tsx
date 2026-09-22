@@ -87,8 +87,8 @@ export const v_6976f2 = v_680bcc<YoonjeongAvatarPlayerHandle, Props>(
     const v_1e8236 = v_e662ae<IdleKey>('breath');
     const v_a96a73 = v_e662ae<IdleKey>(v_c609dc('breath'));
 
-    const v_f805d8 = v_110960(v_6bdb36, (v_e2a85c) => { v_e2a85c.loop = false; v_e2a85c.muted = true; v_e2a85c.play(); });
-    const v_be4a32 = v_110960(v_60a91a, (v_e2a85c) => { v_e2a85c.loop = false; v_e2a85c.muted = true;  });
+    const v_f805d8 = v_110960(v_6bdb36, (v_e2a85c) => { v_e2a85c.loop = false; v_e2a85c.muted = true; v_e2a85c.pause(); });
+    const v_be4a32 = v_110960(v_60a91a, (v_e2a85c) => { v_e2a85c.loop = false; v_e2a85c.muted = true; v_e2a85c.pause(); });
 
     v_c4deb2(() => {
       const v_f8b770 = v_20dfdc === 0 ? v_f805d8 : v_be4a32;
@@ -136,12 +136,8 @@ export const v_6976f2 = v_680bcc<YoonjeongAvatarPlayerHandle, Props>(
     }, [v_20dfdc, v_f805d8, v_be4a32]);
 
     v_c4deb2(() => {
-      const v_f8b770 = v_20dfdc === 0 ? v_f805d8 : v_be4a32;
-      if (!v_f8b770) return;
-      try {
-        if (v_9ab695) v_f8b770.pause();
-        else v_f8b770.play();
-      } catch {}
+      try { (v_f805d8 as any)?.pause?.(); } catch {}
+      try { (v_be4a32 as any)?.pause?.(); } catch {}
     }, [v_9ab695, v_20dfdc, v_f805d8, v_be4a32]);
 
     const [v_ee2cf8, v_af7f7f] = v_5ab095<number | null>(null);
