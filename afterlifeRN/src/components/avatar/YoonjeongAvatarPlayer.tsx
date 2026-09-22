@@ -9,9 +9,9 @@ import v_a3453e, {
   v_e662ae,
   v_5ab095,
 } from 'bapkr';
-import { v_472849, v_3094a2, type v_7e4944 } from 'rcmrninabrnb';
+import { v_a2349e, v_472849, v_3094a2, type v_7e4944 } from 'rcmrninabrnb';
 import { v_110960, v_52ec3e } from 'euzpkmxzoe';
-import { v_e82960, type v_0eab75 } from 'qmmwyqbwrg';
+import { v_e82960, v_0e491a, type v_0eab75 } from 'qmmwyqbwrg';
 
 import { v_dd9753, v_919a30, v_a60398, type v_7ae8bf } from '../../realtime/avatarIntent';
 
@@ -43,8 +43,7 @@ const BRIDGE_MP3_ASSETS: Record<v_7ae8bf, number> = {
   generic: require('../../../assets/avatar/yoonjeong/bridge/bridge_generic.mp3'),
   location: require('../../../assets/avatar/yoonjeong/bridge/bridge_location.mp3'),
   advice: require('../../../assets/avatar/yoonjeong/bridge/bridge_advice.mp3'),
-  self: require('../../../assets/avatar/yoonjeong/bridge/bridge_self.mp3'),
-
+  self: require('../../../assets/avatar/yoonjeong/bridge/bridge_generic.mp3'),
   emotion_neg: require('../../../assets/avatar/yoonjeong/bridge/bridge_generic.mp3'),
 };
 
@@ -160,25 +159,45 @@ export const v_6976f2 = v_680bcc<YoonjeongAvatarPlayerHandle, Props>(
     const v_9fdec5 = v_e662ae<v_7ae8bf | null>(null);
     const v_400fbc = v_e662ae<v_7ae8bf | null>(null);
 
+    const v_9cebd7 = v_e662ae(new v_a2349e.Value(1)).current;
+    const v_093525 = 250;
+
     const v_0d6297 = v_110960(null, (v_e2a85c) => {
       v_e2a85c.loop = false;
-      v_e2a85c.muted = true;
-      v_e2a85c.volume = 0;
+      v_e2a85c.muted = false;
+      v_e2a85c.volume = 1.0;
     });
 
     const v_890dcc = v_e662ae<Partial<Record<v_7ae8bf, v_0eab75>>>({});
-    const v_33556b = v_de06a3((intent: v_7ae8bf): v_0eab75 | null => {
+    const v_da3f78 = v_e662ae<v_0eab75 | null>(null);
+    const v_667039 = v_de06a3((intent: v_7ae8bf): v_0eab75 | null => {
       try {
-        const v_a23604 = v_890dcc.current;
-        if (v_a23604[v_9d78c8]) return v_a23604[v_9d78c8] as v_0eab75;
+        const v_3f4e2e = v_890dcc.current;
+        if (v_3f4e2e[v_9d78c8]) return v_3f4e2e[v_9d78c8] as v_0eab75;
         const v_86394a = v_e82960(v_fb22ba[v_9d78c8]);
-        v_a23604[v_9d78c8] = v_86394a;
+        try { v_86394a.volume = 1.0; } catch {}
+        v_3f4e2e[v_9d78c8] = v_86394a;
         return v_86394a;
       } catch {
         return null;
       }
     }, []);
-    const v_da3f78 = v_e662ae<v_0eab75 | null>(null);
+
+    v_c4deb2(() => {
+      void (async () => {
+        try {
+          await v_0e491a({
+            playsInSilentMode: true,
+            interruptionMode: 'mixWithOthers',
+            allowsRecording: true,     
+            shouldPlayInBackground: false,
+            shouldRouteThroughEarpiece: false, 
+          });
+        } catch (v_9e86fd) {
+          if (__DEV__) console.warn('[T-806/audio] setAudioModeAsync failed:', v_9e86fd);
+        }
+      })();
+    }, []);
 
     const v_056b18 = v_de06a3(() => {
       const v_e2a85c = v_0d6297;
@@ -197,24 +216,23 @@ export const v_6976f2 = v_680bcc<YoonjeongAvatarPlayerHandle, Props>(
       v_9fdec5.current = v_9d78c8;
       v_400fbc.current = v_9d78c8;
       v_af7f7f(v_04e790);
+
+      v_9cebd7.setValue(1);
       v_7e1326(true);
+
       try { v_48b312?.(v_9d78c8); } catch {}
-
-      const v_7b2eb9 = v_da3f78.current;
-      if (v_7b2eb9) { try { v_7b2eb9.pause(); } catch {} }
-
-      const v_ff0300 = v_33556b(v_9d78c8);
-      v_da3f78.current = v_ff0300;
-      if (v_ff0300) {
-        try {
-          void v_ff0300.seekTo(0);
-          v_ff0300.play();
-        } catch {}
-      }
       const v_e2a85c = v_0d6297;
       if (!v_e2a85c) return;
       try {
-        const v_94d529 = () => { try { v_e2a85c.currentTime = 0; v_e2a85c.play(); } catch {} };
+        const v_94d529 = () => {
+          try {
+            v_e2a85c.currentTime = 0;
+
+            v_e2a85c.muted = false;
+            v_e2a85c.volume = 1.0;
+            v_e2a85c.play();
+          } catch {}
+        };
         if (typeof v_e2a85c.replaceAsync === 'function') {
           v_e2a85c.replaceAsync(v_04e790).then(v_94d529).catch(v_94d529);
         } else if (typeof v_e2a85c.replace === 'function') {
@@ -224,7 +242,7 @@ export const v_6976f2 = v_680bcc<YoonjeongAvatarPlayerHandle, Props>(
           v_94d529();
         }
       } catch {}
-    }, [v_0d6297, v_48b312, v_33556b]);
+    }, [v_0d6297, v_48b312]);
 
     v_c4deb2(() => {
       const v_e2a85c = v_0d6297;
@@ -233,12 +251,20 @@ export const v_6976f2 = v_680bcc<YoonjeongAvatarPlayerHandle, Props>(
       const v_9e0440 = () => {
         if (v_259675) return;
         const v_cc0753 = v_400fbc.current;
-        v_7e1326(false);
-        v_af7f7f(null);
-        v_400fbc.current = null;
-        const v_4d1236 = v_da3f78.current;
-        if (v_4d1236) { try { v_4d1236.pause(); } catch {} v_da3f78.current = null; }
-        if (v_cc0753) v_d2c1bc?.(v_cc0753);
+
+        v_a2349e.timing(v_9cebd7, {
+          toValue: 0,
+          duration: v_093525,
+          useNativeDriver: true,
+        }).start(({ finished: v_85bc9b }) => {
+          if (!v_85bc9b) return;
+          v_7e1326(false);
+          v_af7f7f(null);
+          v_400fbc.current = null;
+          const v_4d1236 = v_da3f78.current;
+          if (v_4d1236) { try { v_4d1236.pause(); } catch {} v_da3f78.current = null; }
+          if (v_cc0753) v_d2c1bc?.(v_cc0753);
+        });
       };
       const v_9fde29 = [];
       try {
@@ -276,8 +302,8 @@ export const v_6976f2 = v_680bcc<YoonjeongAvatarPlayerHandle, Props>(
     v_c4deb2(() => () => {
       try { (v_0d6297 as any)?.pause?.(); } catch {}
       const v_a23604 = v_890dcc.current;
-      for (const v_b24339 of Object.keys(v_a23604) as v_7ae8bf[]) {
-        const v_4d1236 = v_a23604[v_b24339];
+      for (const v_0eb677 of Object.keys(v_a23604) as v_7ae8bf[]) {
+        const v_4d1236 = v_a23604[v_0eb677];
         if (v_4d1236) { try { v_4d1236.pause(); } catch {} try { v_4d1236.remove(); } catch {} }
       }
       v_890dcc.current = {};
@@ -289,6 +315,7 @@ export const v_6976f2 = v_680bcc<YoonjeongAvatarPlayerHandle, Props>(
     return (
       <View style={v_4affe9} pointerEvents="none">
         {}
+        {}
         <VideoView
           player={v_948c88}
           style={v_472849.absoluteFillObject}
@@ -297,12 +324,14 @@ export const v_6976f2 = v_680bcc<YoonjeongAvatarPlayerHandle, Props>(
         />
         {}
         {v_902e94 && v_ee2cf8 != null ? (
-          <VideoView
-            player={v_0d6297}
-            style={v_472849.absoluteFillObject}
-            contentFit="cover"
-            nativeControls={false}
-          />
+          <Animated.View style={[v_472849.absoluteFillObject, { opacity: v_9cebd7 }]} pointerEvents="none">
+            <VideoView
+              player={v_0d6297}
+              style={v_472849.absoluteFillObject}
+              contentFit="cover"
+              nativeControls={false}
+            />
+          </Animated.View>
         ) : null}
       </View>
     );
