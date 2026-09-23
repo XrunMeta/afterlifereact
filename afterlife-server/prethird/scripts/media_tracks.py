@@ -81,6 +81,52 @@ class AvatarVideoTrack(VideoStreamTrack):
         self._drop_total = 0        # 이 트랙 수명 동안 버린 총 프레임 수
         self._drop_pending = 0      # 아직 로그로 못 뱉은 누적분
         self._drop_log_ts = 0.0     # 마지막 드롭 로그 시각(0=아직 없음 → 첫 건 즉시 로그)
+        # [2026-09-23 임시] idle 스트림 dump — PRETHIRD_RECORD_IDLE=1 일 때만.
+        #   목적: 사용자가 idle 시간에 실제로 본 프레임을 사후 회수. answer.mp4 는
+        #   말하는 프레임만 담기고 idle 은 없어서 debug 시 재구성 불가.
+        #   구조: recv() idle 분기에서 arr 를 buffer 에 누적, 다음 real frame 이
+        #   들어올 때 dump (idle 세그먼트 = 턴 사이 대기). context (clone/session)
+        #   는 signaling 이 attach 로 주입.
+        self._idle_rec_enabled = os.environ.get("PRETHIRD_RECORD_IDLE", "0") == "1"
+        self._idle_rec_buf: list[np.ndarray] = []
+        self._idle_rec_clone: str | None = None
+        self._idle_rec_sess: str | None = None
+        self._idle_rec_seq = 0
+        self._idle_rec_max_frames = int(os.environ.get("PRETHIRD_RECORD_IDLE_MAX_FRAMES", "3000"))  # 2min@25fps
+
+    def attach_idle_recorder(self, clone_id, session_id: str) -> None:
+        """[2026-09-23 임시] idle 스트림 dump 컨텍스트 주입.
+        signaling.py 에서 clone_id / session_id 확보 시점에 호출.
+        PRETHIRD_RECORD_IDLE=0 이면 no-op (설정된 값만 남고 dump 는 안 함)."""
+        self._idle_rec_clone = str(clone_id) if clone_id is not None else None
+        self._idle_rec_sess = str(session_id) if session_id else None
+
+    def _dump_idle_segment(self) -> None:
+        """buffered idle frames → mp4. 파일명: {session}-idle-{seq}.mp4.
+        호출 조건: buffer 비어있지 않고 clone/session 컨텍스트 있음."""
+        if not self._idle_rec_buf or not self._idle_rec_clone or not self._idle_rec_sess:
+            self._idle_rec_buf = []
+            return
+        frames = self._idle_rec_buf
+        self._idle_rec_buf = []
+        self._idle_rec_seq += 1
+        seq = self._idle_rec_seq
+        clone = self._idle_rec_clone
+        sess = self._idle_rec_sess
+        try:
+            import imageio
+            root = os.environ.get("PRETHIRD_RECORDS_ROOT", "/data/records")
+            dest_dir = os.path.join(root, clone)
+            os.makedirs(dest_dir, exist_ok=True)
+            path = os.path.join(dest_dir, f"{sess}-idle-{seq:03d}.mp4")
+            imageio.mimwrite(path, frames, fps=25, codec="libx264", quality=8)
+            try:
+                os.chmod(path, 0o600)
+            except OSError:
+                pass
+            log.info("[idle-rec] dump seq=%d frames=%d → %s", seq, len(frames), path)
+        except Exception as e:
+            log.warning("[idle-rec] dump 실패 seq=%d: %s", seq, e)
 
     def set_mode(self, mode: str) -> None:
         if mode not in ("dummy", "queue"):
@@ -272,6 +318,9 @@ class AvatarVideoTrack(VideoStreamTrack):
                 self._last_frame = arr
                 self._last_real_ts = time.time()  # 029-H: 마지막 대화 frame 시각 (wall clock — __init__/_select 와 단위 일관)
                 self.frames_real += 1  # 029-avsync-measure
+                # [2026-09-23 임시] real frame 진입 → 이전 idle 세그먼트 dump.
+                if self._idle_rec_enabled and self._idle_rec_buf:
+                    self._dump_idle_segment()
                 # 회차 029-D-3c-sync: 첫 real frame 도착 시 audio gate open
                 if self._sync_event is not None and not self._sync_event.is_set():
                     self._sync_event.set()
@@ -289,6 +338,11 @@ class AvatarVideoTrack(VideoStreamTrack):
                     if not _was_idle:
                         log.info("[029-H] idle 진입 (gap=%.1fs, frames=%d)", _now - self._last_real_ts, len(self._idle_frames))
                     arr = self._apply_idle_blend(arr, _was_idle)
+                    # [2026-09-23 임시] idle 프레임 dump 버퍼에 축적. cap 넘으면 즉시 flush.
+                    if self._idle_rec_enabled and arr is not None:
+                        self._idle_rec_buf.append(arr.copy())
+                        if len(self._idle_rec_buf) >= self._idle_rec_max_frames:
+                            self._dump_idle_segment()
         # dummy 모드 또는 queue 모드에서 last 도 없을 때
         if arr is None:
             arr = _dummy_rgb_frame(time.time() - self._start)
