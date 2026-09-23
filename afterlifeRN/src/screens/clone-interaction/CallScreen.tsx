@@ -1193,6 +1193,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const [bridgeActive, setBridgeActive] = useState(false);
 
   const BRIDGE_GRACE_MS = 2000;
+
+  const BRIDGE_DISABLED = true;
   const bridgeGraceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bridgePendingTextRef = useRef<string | null>(null);
   const clearBridgeGrace = useCallback(() => {
@@ -1201,6 +1203,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   }, []);
   useEffect(() => {
     if (!isAvatarV2) return;
+    if (BRIDGE_DISABLED) return; 
 
     if (phase !== 'sending') return;
 
