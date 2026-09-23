@@ -81,17 +81,17 @@ interface Props {
 export const v_6976f2 = v_680bcc<YoonjeongAvatarPlayerHandle, Props>(
   function v_6976f2({ style: v_7fa4e4, paused: v_9ab695, onBridgeStart: v_48b312, onBridgeEnd: v_d2c1bc }, v_6d4ed3) {
 
-    const [v_20dfdc] = v_5ab095<0>(0);
     const v_7e34d2 = v_906445.breath; 
-    const v_f805d8 = v_110960(v_7e34d2, (v_e2a85c) => { v_e2a85c.loop = true; v_e2a85c.muted = true; v_e2a85c.play(); });
-    const v_be4a32 = v_f805d8; 
+    const v_948c88 = v_110960(v_7e34d2, (v_e2a85c) => { v_e2a85c.loop = true; v_e2a85c.muted = true; v_e2a85c.play(); });
 
     v_c4deb2(() => {
+      const v_e2a85c = v_948c88;
+      if (!v_e2a85c) return;
       try {
-        if (v_9ab695) (v_f805d8 as any)?.pause?.();
-        else (v_f805d8 as any)?.play?.();
+        if (v_9ab695) v_e2a85c.pause();
+        else v_e2a85c.play();
       } catch {}
-    }, [v_9ab695, v_f805d8]);
+    }, [v_9ab695, v_948c88]);
 
     const [v_ee2cf8, v_af7f7f] = v_5ab095<number | null>(null);
     const [v_902e94, v_7e1326] = v_5ab095(false);
@@ -254,17 +254,9 @@ export const v_6976f2 = v_680bcc<YoonjeongAvatarPlayerHandle, Props>(
     return (
       <View style={v_4affe9} pointerEvents="none">
         {}
-        {
-}
         <VideoView
-          player={v_f805d8}
-          style={[v_472849.absoluteFillObject, { opacity: v_20dfdc === 0 ? 1 : 0 }]}
-          contentFit="cover"
-          nativeControls={false}
-        />
-        <VideoView
-          player={v_be4a32}
-          style={[v_472849.absoluteFillObject, { opacity: v_20dfdc === 1 ? 1 : 0 }]}
+          player={v_948c88}
+          style={v_472849.absoluteFillObject}
           contentFit="cover"
           nativeControls={false}
         />
