@@ -99,7 +99,8 @@ export const v_6976f2 = v_680bcc<YoonjeongAvatarPlayerHandle, Props>(
     const v_400fbc = v_e662ae<v_7ae8bf | null>(null);
 
     const v_9cebd7 = v_e662ae(new v_a2349e.Value(1)).current;
-    const v_093525 = 250;
+
+    const v_093525 = 600;
 
     const v_0d6297 = v_110960(null, (v_e2a85c) => {
       v_e2a85c.loop = false;
