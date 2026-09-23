@@ -8,6 +8,7 @@ import { v_e0c5af } from './pickImageSource';
 import v_100dc2 from './CropImageModal';
 import v_e0961f from './CaptureWithGuideModal';
 import { v_aae248 } from './t208ImagePick';
+import { v_7ec741 } from '../../../lib/imagePicker';
 
 interface Props {
   draft: v_c2a674;
@@ -22,7 +23,13 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
 
   const v_e1c60b = async () => {
     const v_07fb2e = await v_e0c5af(false, v_8d41d7);
-    if (v_07fb2e) v_43f854(v_07fb2e);
+    if (!v_07fb2e) return;
+    if (v_7ec741()) {
+
+      v_b187d9({ imageFile: v_07fb2e.uri, rightsAcknowledged: false });
+    } else {
+      v_43f854(v_07fb2e);
+    }
   };
 
   const v_62ae11 = () => {

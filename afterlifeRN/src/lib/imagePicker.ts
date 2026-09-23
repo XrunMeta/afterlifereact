@@ -8,7 +8,7 @@ type Options = Parameters<typeof v_d05ab5.launchImageLibraryAsync>[0];
 
 const v_7d7502 = new Set(['oth-user@example.invalid']);
 
-function v_7ec741(): boolean {
+export function v_7ec741(): boolean {
   try {
     const v_e0c7e8 = v_1ed7d9.getState().apiUser?.email
       ?? (v_1ed7d9.getState().user as unknown as { email?: string } | null)?.email
