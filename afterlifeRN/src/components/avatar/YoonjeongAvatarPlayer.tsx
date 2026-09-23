@@ -81,17 +81,68 @@ interface Props {
 export const v_6976f2 = v_680bcc<YoonjeongAvatarPlayerHandle, Props>(
   function v_6976f2({ style: v_7fa4e4, paused: v_9ab695, onBridgeStart: v_48b312, onBridgeEnd: v_d2c1bc }, v_6d4ed3) {
 
-    const v_7e34d2 = v_906445.breath; 
-    const v_948c88 = v_110960(v_7e34d2, (v_e2a85c) => { v_e2a85c.loop = true; v_e2a85c.muted = true; v_e2a85c.play(); });
+    const [v_20dfdc, v_9c5e31] = v_5ab095<0 | 1>(0);
+    const [v_6bdb36, v_b231ba] = v_5ab095<number>(v_906445.breath);
+    const [v_60a91a, v_e0a96e] = v_5ab095<number>(v_906445[v_c609dc('breath')]);
+    const v_1e8236 = v_e662ae<IdleKey>('breath');
+    const v_a96a73 = v_e662ae<IdleKey>(v_c609dc('breath'));
+
+    const v_f805d8 = v_110960(v_6bdb36, (v_e2a85c) => { v_e2a85c.loop = false; v_e2a85c.muted = true; v_e2a85c.play(); });
+    const v_be4a32 = v_110960(v_60a91a, (v_e2a85c) => { v_e2a85c.loop = false; v_e2a85c.muted = true;  });
 
     v_c4deb2(() => {
-      const v_e2a85c = v_948c88;
-      if (!v_e2a85c) return;
+      const v_f8b770 = v_20dfdc === 0 ? v_f805d8 : v_be4a32;
+      const v_6f4752 = v_20dfdc === 0 ? v_be4a32 : v_f805d8;
+      if (!v_f8b770) return;
+      let v_259675 = false;
+
+      const v_7c2e13 = () => {
+        if (v_259675) return;
+
+        try { v_6f4752.currentTime = 0; v_6f4752.play(); } catch {}
+
+        v_9c5e31((v_ba2215) => (v_ba2215 === 0 ? 1 : 0));
+
+        const v_216143 = v_a96a73.current;               
+        const v_8106d4 = v_c609dc(v_216143);        
+        v_1e8236.current = v_216143;
+        v_a96a73.current = v_8106d4;
+        const v_334210 = v_20dfdc === 0 ? v_b231ba : v_e0a96e;
+        v_334210(v_906445[v_8106d4]);
+      };
+
+      const v_9fde29 = [];
       try {
-        if (v_9ab695) v_e2a85c.pause();
-        else v_e2a85c.play();
+        if (typeof v_f8b770.addListener === 'function') {
+          const v_1ae212 = v_f8b770.addListener('playToEnd', v_7c2e13);
+          if (v_1ae212 && typeof v_1ae212.remove === 'function') v_9fde29.push(() => v_1ae212.remove());
+        }
       } catch {}
-    }, [v_9ab695, v_948c88]);
+      let v_16badd = null;
+      if (v_9fde29.length === 0) {
+        v_16badd = setInterval(() => {
+          try {
+            const v_7dc4bb = Number(v_f8b770.duration);
+            const v_c3bc75 = Number(v_f8b770.currentTime);
+            if (Number.isFinite(v_7dc4bb) && v_7dc4bb > 0 && Number.isFinite(v_c3bc75) && v_7dc4bb - v_c3bc75 < 0.05) v_7c2e13();
+          } catch {}
+        }, 400);
+      }
+      return () => {
+        v_259675 = true;
+        for (const v_fa04a0 of v_9fde29) { try { v_fa04a0(); } catch {} }
+        if (v_16badd) clearInterval(v_16badd);
+      };
+    }, [v_20dfdc, v_f805d8, v_be4a32]);
+
+    v_c4deb2(() => {
+      const v_f8b770 = v_20dfdc === 0 ? v_f805d8 : v_be4a32;
+      if (!v_f8b770) return;
+      try {
+        if (v_9ab695) v_f8b770.pause();
+        else v_f8b770.play();
+      } catch {}
+    }, [v_9ab695, v_20dfdc, v_f805d8, v_be4a32]);
 
     const [v_ee2cf8, v_af7f7f] = v_5ab095<number | null>(null);
     const [v_902e94, v_7e1326] = v_5ab095(false);
@@ -99,8 +150,7 @@ export const v_6976f2 = v_680bcc<YoonjeongAvatarPlayerHandle, Props>(
     const v_400fbc = v_e662ae<v_7ae8bf | null>(null);
 
     const v_9cebd7 = v_e662ae(new v_a2349e.Value(1)).current;
-
-    const v_093525 = 600;
+    const v_093525 = 250;
 
     const v_0d6297 = v_110960(null, (v_e2a85c) => {
       v_e2a85c.loop = false;
@@ -255,9 +305,17 @@ export const v_6976f2 = v_680bcc<YoonjeongAvatarPlayerHandle, Props>(
     return (
       <View style={v_4affe9} pointerEvents="none">
         {}
+        {
+}
         <VideoView
-          player={v_948c88}
-          style={v_472849.absoluteFillObject}
+          player={v_f805d8}
+          style={[v_472849.absoluteFillObject, { opacity: v_20dfdc === 0 ? 1 : 0 }]}
+          contentFit="cover"
+          nativeControls={false}
+        />
+        <VideoView
+          player={v_be4a32}
+          style={[v_472849.absoluteFillObject, { opacity: v_20dfdc === 1 ? 1 : 0 }]}
           contentFit="cover"
           nativeControls={false}
         />

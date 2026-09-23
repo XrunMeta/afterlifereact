@@ -10,7 +10,7 @@ export interface DialingConfig {
   timeoutMs: number;
 }
 
-export const v_cfc2ee = { minMs: 500, timeoutMs: 60000 };
+export const v_cfc2ee = { minMs: 500, timeoutMs: 20000 };
 
 export function v_f135e1(
   liveState: v_d20273,

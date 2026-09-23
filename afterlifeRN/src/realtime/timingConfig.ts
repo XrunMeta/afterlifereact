@@ -22,8 +22,7 @@ export const v_5c20ea = {
 
   cloneResumeMs: 300,
   cloneTailGraceMs: 1000,
-
-  responseDoneTimeoutMs: 90000,
+  responseDoneTimeoutMs: 45000,
 };
 
 export const v_2e0251 = {

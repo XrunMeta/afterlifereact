@@ -1193,8 +1193,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const [bridgeActive, setBridgeActive] = useState(false);
 
   const BRIDGE_GRACE_MS = 2000;
-
-  const BRIDGE_DISABLED = true;
   const bridgeGraceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bridgePendingTextRef = useRef<string | null>(null);
   const clearBridgeGrace = useCallback(() => {
@@ -1203,14 +1201,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   }, []);
   useEffect(() => {
     if (!isAvatarV2) return;
-    if (BRIDGE_DISABLED) return; 
 
     if (phase !== 'sending') return;
-
-    if (!dialingDone) {
-      console.log('[T-806/bridge] skip — DialingScreen visible');
-      return;
-    }
     const text = (pendingText ?? '').trim();
     if (!text) return;
     if (text === lastBridgeTextRef.current) return;
@@ -1229,7 +1221,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       bridgeGraceTimerRef.current = null;
       bridgePendingTextRef.current = null;
     }, BRIDGE_GRACE_MS);
-  }, [isAvatarV2, phase, pendingText, clearBridgeGrace, dialingDone]);
+  }, [isAvatarV2, phase, pendingText, clearBridgeGrace]);
 
   useEffect(() => {
     if (!isAvatarV2) return;
@@ -1244,29 +1236,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const [speakActive, setSpeakActive] = useState(false);
   const speakActiveRef = useRef(false);
-
-  const [firstSpeechReceived, setFirstSpeechReceived] = useState(false);
   useEffect(() => {
     if (!isAvatarV2) return;
     if (!lastSignal) return;
-    if (lastSignal.type === 'speech_start') {
-      setSpeakActive(true);
-      speakActiveRef.current = true;
-      if (!firstSpeechReceived) setFirstSpeechReceived(true);
-    } else if (lastSignal.type === 'speech_end') {
-      setSpeakActive(false);
-      speakActiveRef.current = false;
-    }
-  }, [isAvatarV2, lastSignal, firstSpeechReceived]);
-
-  useEffect(() => {
-    if (!isAvatarV2 || firstSpeechReceived) return;
-    const t = setTimeout(() => {
-      console.log('[T-806/warmup] 45s fallback → force firstSpeechReceived');
-      setFirstSpeechReceived(true);
-    }, 45000);
-    return () => clearTimeout(t);
-  }, [isAvatarV2, firstSpeechReceived]);
+    if (lastSignal.type === 'speech_start') { setSpeakActive(true); speakActiveRef.current = true; }
+    else if (lastSignal.type === 'speech_end') { setSpeakActive(false); speakActiveRef.current = false; }
+  }, [isAvatarV2, lastSignal]);
 
   const onBridgeEnd = useCallback(() => {
     setBridgeActive(false);
@@ -2141,17 +2116,18 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           {
 
 }
-          {
-
-}
-          {remoteStream && firstSpeechReceived ? (
+          {remoteStream ? (
             <View
-              style={[s.videoFixedRtc, { opacity: bridgeActive ? 0 : 1 }]}
+              style={[
+                s.videoFixedRtc,
+                StyleSheet.absoluteFillObject,
+                { opacity: !bridgeActive && speakActive ? 1 : 0 },
+              ]}
               pointerEvents="none"
             >
               <RTCView
                 streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
-                objectFit="cover"
+                objectFit="contain"
                 style={s.videoFixedRtc}
               />
             </View>
@@ -2303,11 +2279,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           personaName={personaName}
           personaImage={typeof personaImage === "string" ? personaImage : ""}
 
-          greetingStarted={
-            isAvatarV2
-              ? firstSpeechReceived
-              : greetingOn ? phase !== "greeting" && phase !== "idle" : undefined
-          }
+          greetingStarted={greetingOn ? phase !== "greeting" && phase !== "idle" : undefined}
           onConnected={() => {
             console.log(`[Call][flow] +${Date.now()} DialingScreen.onConnected → setDialingDone(true)`);
             setDialingDone(true);

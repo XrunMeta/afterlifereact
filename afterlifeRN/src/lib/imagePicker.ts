@@ -2,35 +2,17 @@
 
 import { v_b5df25, v_326be8 } from "rcmrninabrnb";
 import * as v_d05ab5 from "khtmgrssvfqqjmzoc";
-import { v_1ed7d9 } from "../stores/authStore";
 
 type Options = Parameters<typeof v_d05ab5.launchImageLibraryAsync>[0];
-
-const v_7d7502 = new Set(['oth-user@example.invalid']);
-
-export function v_7ec741(): boolean {
-  try {
-    const v_e0c7e8 = v_1ed7d9.getState().apiUser?.email
-      ?? (v_1ed7d9.getState().user as unknown as { email?: string } | null)?.email
-      ?? null;
-    if (!v_e0c7e8) return false;
-    return v_7d7502.has(v_e0c7e8.toLowerCase());
-  } catch {
-    return false;
-  }
-}
 
 export async function v_04686a(
   v_b36f96,
 ): Promise<v_d05ab5.ImagePickerResult> {
-  const v_cd2021 = v_7ec741()
-    ? ({ ...v_b36f96, allowsEditing: false, aspect: undefined } as Options)
-    : v_b36f96;
   if (v_326be8.OS === "ios") {
     v_b5df25.setBarStyle("light-content");
   }
   try {
-    return await v_d05ab5.launchImageLibraryAsync(v_cd2021);
+    return await v_d05ab5.launchImageLibraryAsync(v_b36f96);
   } finally {
     if (v_326be8.OS === "ios") {
 

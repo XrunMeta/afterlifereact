@@ -34,7 +34,7 @@ import { v_84a859 } from "../../api/auth";
 import { v_7d2692 } from "../../api/files";
 import { v_cf9c33 } from "rcmrninabrnb";
 import { v_110960, v_52ec3e } from "euzpkmxzoe";
-import { v_04686a, v_7ec741 } from "../../lib/imagePicker";
+import { v_04686a } from "../../lib/imagePicker";
 
 type Props = {
   navigation: v_390fcc<v_2b51a5, "Step7">;
@@ -189,11 +189,9 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   const v_4d3a74 =
     !!v_f04727.idleVideoJobId && (!v_7f3fda || v_7f3fda.status === 'pending' || v_7f3fda.status === 'running');
-  const v_ec43c1 = v_f04727.idleVideoJobId
+  const v_798360 = v_f04727.idleVideoJobId
     ? v_7f3fda?.status !== 'done' && !(v_f04727.idleEngine && v_4d3a74)
     : true;
-
-  const v_798360 = v_7ec741() ? false : v_ec43c1;
 
   const v_a3d9bc = v_de06a3(async () => {
     if (v_f6dbfe) return;
