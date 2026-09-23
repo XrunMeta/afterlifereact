@@ -1203,6 +1203,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     if (!isAvatarV2) return;
 
     if (phase !== 'sending') return;
+
+    if (!dialingDone) {
+      console.log('[T-806/bridge] skip — DialingScreen visible');
+      return;
+    }
     const text = (pendingText ?? '').trim();
     if (!text) return;
     if (text === lastBridgeTextRef.current) return;
@@ -1221,7 +1226,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       bridgeGraceTimerRef.current = null;
       bridgePendingTextRef.current = null;
     }, BRIDGE_GRACE_MS);
-  }, [isAvatarV2, phase, pendingText, clearBridgeGrace]);
+  }, [isAvatarV2, phase, pendingText, clearBridgeGrace, dialingDone]);
 
   useEffect(() => {
     if (!isAvatarV2) return;
