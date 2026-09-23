@@ -2138,11 +2138,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           {
 
 }
-          {remoteStream ? (
+          {
 
+}
+          {remoteStream && firstSpeechReceived ? (
             <View
-
-              style={[s.videoFixedRtc, { opacity: !bridgeActive && firstSpeechReceived ? 1 : 0 }]}
+              style={[s.videoFixedRtc, { opacity: bridgeActive ? 0 : 1 }]}
               pointerEvents="none"
             >
               <RTCView
