@@ -1236,12 +1236,29 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const [speakActive, setSpeakActive] = useState(false);
   const speakActiveRef = useRef(false);
+
+  const [firstSpeechReceived, setFirstSpeechReceived] = useState(false);
   useEffect(() => {
     if (!isAvatarV2) return;
     if (!lastSignal) return;
-    if (lastSignal.type === 'speech_start') { setSpeakActive(true); speakActiveRef.current = true; }
-    else if (lastSignal.type === 'speech_end') { setSpeakActive(false); speakActiveRef.current = false; }
-  }, [isAvatarV2, lastSignal]);
+    if (lastSignal.type === 'speech_start') {
+      setSpeakActive(true);
+      speakActiveRef.current = true;
+      if (!firstSpeechReceived) setFirstSpeechReceived(true);
+    } else if (lastSignal.type === 'speech_end') {
+      setSpeakActive(false);
+      speakActiveRef.current = false;
+    }
+  }, [isAvatarV2, lastSignal, firstSpeechReceived]);
+
+  useEffect(() => {
+    if (!isAvatarV2 || firstSpeechReceived) return;
+    const t = setTimeout(() => {
+      console.log('[T-806/warmup] 45s fallback → force firstSpeechReceived');
+      setFirstSpeechReceived(true);
+    }, 45000);
+    return () => clearTimeout(t);
+  }, [isAvatarV2, firstSpeechReceived]);
 
   const onBridgeEnd = useCallback(() => {
     setBridgeActive(false);
@@ -2279,7 +2296,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           personaName={personaName}
           personaImage={typeof personaImage === "string" ? personaImage : ""}
 
-          greetingStarted={greetingOn ? phase !== "greeting" && phase !== "idle" : undefined}
+          greetingStarted={
+            isAvatarV2
+              ? firstSpeechReceived
+              : greetingOn ? phase !== "greeting" && phase !== "idle" : undefined
+          }
           onConnected={() => {
             console.log(`[Call][flow] +${Date.now()} DialingScreen.onConnected → setDialingDone(true)`);
             setDialingDone(true);
