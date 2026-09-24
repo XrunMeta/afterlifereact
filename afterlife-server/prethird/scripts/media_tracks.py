@@ -92,7 +92,7 @@ class AvatarVideoTrack(VideoStreamTrack):
         self._idle_rec_clone: str | None = None
         self._idle_rec_sess: str | None = None
         self._idle_rec_seq = 0
-        self._idle_rec_max_frames = int(os.environ.get("PRETHIRD_RECORD_IDLE_MAX_FRAMES", "3000"))  # 2min@25fps
+        self._idle_rec_max_frames = int(os.environ.get("PRETHIRD_RECORD_IDLE_MAX_FRAMES", "250"))  # 10s@25fps — 짧게 잘라 세션 급종료 시 유실 최소화
 
     def attach_idle_recorder(self, clone_id, session_id: str) -> None:
         """[2026-09-23 임시] idle 스트림 dump 컨텍스트 주입.
