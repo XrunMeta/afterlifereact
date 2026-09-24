@@ -1207,9 +1207,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     if (!text) return;
     if (text === lastBridgeTextRef.current) return;
     lastBridgeTextRef.current = text;
+
+    clearBridgeGrace();
     bridgePendingTextRef.current = text;
     console.log(`[T-806/bridge] grace start · text="${text.slice(0, 40)}"`);
-    clearBridgeGrace();
     bridgeGraceTimerRef.current = setTimeout(() => {
       const pending = bridgePendingTextRef.current;
       if (!pending) return; 
