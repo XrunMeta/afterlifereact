@@ -11,7 +11,7 @@ import v_a3453e, {
 } from 'bapkr';
 import { v_a2349e, v_472849, v_3094a2, type v_7e4944 } from 'rcmrninabrnb';
 import { v_110960, v_52ec3e } from 'euzpkmxzoe';
-import { v_e82960, v_0e491a, type v_0eab75 } from 'qmmwyqbwrg';
+import { v_0e491a } from 'qmmwyqbwrg';
 
 import { v_dd9753, v_919a30, v_a60398, type v_7ae8bf } from '../../realtime/avatarIntent';
 
@@ -30,18 +30,6 @@ const BRIDGE_MP4_ASSETS: Record<v_7ae8bf, number> = {
   advice: require('../../../assets/avatar/yoonjeong/bridge/bridge_generic.mp4'),
   self: require('../../../assets/avatar/yoonjeong/bridge/bridge_generic.mp4'),
   emotion_neg: require('../../../assets/avatar/yoonjeong/bridge/bridge_generic.mp4'),
-};
-
-const BRIDGE_MP3_ASSETS: Record<v_7ae8bf, number> = {
-  fact: require('../../../assets/avatar/yoonjeong/bridge/bridge_fact.mp3'),
-  emotion_pos: require('../../../assets/avatar/yoonjeong/bridge/bridge_emotion_pos.mp3'),
-  complex: require('../../../assets/avatar/yoonjeong/bridge/bridge_complex.mp3'),
-  challenge: require('../../../assets/avatar/yoonjeong/bridge/bridge_challenge.mp3'),
-  generic: require('../../../assets/avatar/yoonjeong/bridge/bridge_generic.mp3'),
-  location: require('../../../assets/avatar/yoonjeong/bridge/bridge_location.mp3'),
-  advice: require('../../../assets/avatar/yoonjeong/bridge/bridge_advice.mp3'),
-  self: require('../../../assets/avatar/yoonjeong/bridge/bridge_generic.mp3'),
-  emotion_neg: require('../../../assets/avatar/yoonjeong/bridge/bridge_generic.mp3'),
 };
 
 export interface YoonjeongAvatarPlayerHandle {
@@ -93,21 +81,6 @@ export const v_6976f2 = v_680bcc<YoonjeongAvatarPlayerHandle, Props>(
       v_e2a85c.volume = 1.0;
     });
 
-    const v_890dcc = v_e662ae<Partial<Record<v_7ae8bf, v_0eab75>>>({});
-    const v_da3f78 = v_e662ae<v_0eab75 | null>(null);
-    const v_667039 = v_de06a3((intent: v_7ae8bf): v_0eab75 | null => {
-      try {
-        const v_3f4e2e = v_890dcc.current;
-        if (v_3f4e2e[v_9d78c8]) return v_3f4e2e[v_9d78c8] as v_0eab75;
-        const v_86394a = v_e82960(v_fb22ba[v_9d78c8]);
-        try { v_86394a.volume = 1.0; } catch {}
-        v_3f4e2e[v_9d78c8] = v_86394a;
-        return v_86394a;
-      } catch {
-        return null;
-      }
-    }, []);
-
     v_c4deb2(() => {
       void (async () => {
         try {
@@ -127,8 +100,6 @@ export const v_6976f2 = v_680bcc<YoonjeongAvatarPlayerHandle, Props>(
     const v_056b18 = v_de06a3(() => {
       const v_e2a85c = v_0d6297;
       try { if (v_e2a85c) v_e2a85c.pause(); } catch {}
-      const v_4d1236 = v_da3f78.current;
-      if (v_4d1236) { try { v_4d1236.pause(); } catch {} v_da3f78.current = null; }
       v_7e1326(false);
       v_af7f7f(null);
       v_400fbc.current = null;
@@ -186,8 +157,6 @@ export const v_6976f2 = v_680bcc<YoonjeongAvatarPlayerHandle, Props>(
           v_7e1326(false);
           v_af7f7f(null);
           v_400fbc.current = null;
-          const v_4d1236 = v_da3f78.current;
-          if (v_4d1236) { try { v_4d1236.pause(); } catch {} v_da3f78.current = null; }
           if (v_cc0753) v_d2c1bc?.(v_cc0753);
         });
       };
@@ -226,13 +195,6 @@ export const v_6976f2 = v_680bcc<YoonjeongAvatarPlayerHandle, Props>(
 
     v_c4deb2(() => () => {
       try { (v_0d6297 as any)?.pause?.(); } catch {}
-      const v_a23604 = v_890dcc.current;
-      for (const v_0eb677 of Object.keys(v_a23604) as v_7ae8bf[]) {
-        const v_4d1236 = v_a23604[v_0eb677];
-        if (v_4d1236) { try { v_4d1236.pause(); } catch {} try { v_4d1236.remove(); } catch {} }
-      }
-      v_890dcc.current = {};
-      v_da3f78.current = null;
     }, [v_0d6297]);
 
     const v_4affe9 = v_df9f57(() => [v_d81136.container, v_7fa4e4], [v_7fa4e4]);
