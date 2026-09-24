@@ -1398,6 +1398,11 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                                 #    이전에 반드시 완료돼야 한다 — idle mp4 pull을 asyncio
                                 #    create_task 등 fire-and-forget으로 바꾸지 말 것(순서 무력화).
                                 sess.idle_video_applied = True
+                            # [2026-09-23 임시] idle 스트림 dump 컨텍스트 주입 — 환경변수 게이트.
+                            try:
+                                sess.video_track.attach_idle_recorder(clone_id, sess.session_id)
+                            except Exception:
+                                pass
                             log.info("idle video pull OK clone=%s dest=%s applied=%s", clone_id, dest, _applied)
                         except Exception as e:
                             log.warning("idle video pull 실패 clone=%s: %s", clone_id, e)
