@@ -1192,7 +1192,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const lastBridgeTextRef = useRef<string>("");
   const [bridgeActive, setBridgeActive] = useState(false);
 
-  const BRIDGE_GRACE_MS = 2000;
+  const BRIDGE_GRACE_MS = 3000;
   const bridgeGraceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bridgePendingTextRef = useRef<string | null>(null);
   const clearBridgeGrace = useCallback(() => {
