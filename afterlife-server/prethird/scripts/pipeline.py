@@ -745,7 +745,14 @@ class DialoguePipeline:
                     break
                 if _m["first_sent_ms"] is None:
                     _m["first_sent_ms"] = int((time.perf_counter() - _t_turn) * 1000)
-                wav_bytes, pcm48 = await self._tts_stage(s)
+                # T-806 (2026-09-25): _tts_stage → _tts_stage_multi 로 교체.
+                #   sentence_buffer 가 짧은 응답 을 안 나누고 뭉쳐 보내는 경우
+                #   Qwen3-TTS 가 "안녕" 만 렌더 후 나머지 8s 를 filler
+                #   hallucination (공사장 잡음) 로 채우는 문제 회피.
+                #   _tts_stage_multi 내부에서 [.!?] 로 문장 split 후
+                #   각 문장별 TTS + 200ms padding concat.
+                #   단일 문장이면 _tts_stage 로 위임 (회귀 0).
+                wav_bytes, pcm48 = await self._tts_stage_multi(s)
                 turn.append_wav(wav_bytes)
                 _m["n_seg"] += 1
                 # [T-151 라운드2] on_sentence는 여기서 더 이상 발신하지 않는다
