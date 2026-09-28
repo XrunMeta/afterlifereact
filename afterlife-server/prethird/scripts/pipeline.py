@@ -227,6 +227,17 @@ class DialoguePipeline:
         self._last_emit_end: float | None = None  # [seg] 직전 _emit_sentence 종료 시각
         self._render_mode = _resolve_render_mode()  # [T-113] partial(기본)|batch 분기용
 
+        # T-820 (2026-09-28): pre-render greeting during dialing (백그라운드 워밍업).
+        #   목적: 사용자가 dialing 화면 보는 동안 서버가 greeting 을 LLM+TTS+MuseTalk
+        #   까지 완료 후 캐시. 첫 say() 호출 시 22s → 0s 로 즉시 응답.
+        #   초기값: not ready · not used. prerender_greeting() 이 채움.
+        self._prerender_ready = False
+        self._prerender_used = False
+        self._prerender_text: str = ""
+        self._prerender_wav_bytes: bytes | None = None
+        self._prerender_frames: list = []
+        self._prerender_pcm_bal = None
+
     # ------------------------------------------------------------------
     # 퍼블릭 API
     # ------------------------------------------------------------------
@@ -235,6 +246,66 @@ class DialoguePipeline:
         """[T-067 Task 12] persona_messages 교체 — 다음 턴(say/speak/react/greet)부터 반영.
         진행 중인 발화에는 영향 없음(각 호출 시점에 self.persona_messages를 읽어 조립)."""
         self.persona_messages = list(messages)
+
+    async def _render_to_cache(self, wav_bytes: bytes, pcm48: np.ndarray) -> tuple[list, "np.ndarray"]:
+        """T-820: MuseTalk infer 을 트랙에 push 안 하고 frames+pcm_bal 반환.
+        _infer_stage 와 동일한 렌더링 로직이지만 tvt/at push 대신 결과만 리턴."""
+        loop = asyncio.get_event_loop()
+        frames_buf: list = []
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+            f.write(wav_bytes)
+            wav_path = f.name
+
+        def on_frame(arr):
+            frames_buf.append(arr)
+
+        try:
+            await loop.run_in_executor(None, self.infer_fn, wav_path, on_frame)
+        finally:
+            try:
+                os.unlink(wav_path)
+            except OSError:
+                pass
+
+        nframes = len(frames_buf)
+        if nframes > 0:
+            pcm_bal, _ = self._balance(pcm48, nframes)
+        else:
+            pcm_bal = pcm48
+        if self._norm_on:
+            pcm_bal = self._normalize(pcm_bal)
+        pcm_bal = self._edge_fade(pcm_bal, fade_ms=self._fade_ms)
+        return frames_buf, pcm_bal
+
+    async def prerender_greeting(self, text: str = "안녕! 반가워.") -> None:
+        """T-820 (2026-09-28): dialing 중 인사말 pre-render (백그라운드).
+
+        signaling.py 의 offer 핸들러가 세션 setup 직후 asyncio.ensure_future 로 호출.
+        LLM 우회 (고정 텍스트) + TTS + MuseTalk 완료 후 cache 에 저장.
+        첫 say() 호출 시 캐시된 frames/audio 즉시 push → 22s → 0s 응답.
+
+        clone 미준비면 skip. 이미 준비됐거나 사용됐으면 no-op."""
+        if self._prerender_ready or self._prerender_used:
+            return
+        if self.clone_locked and not self.se_path:
+            log.info("[T-820/prerender] clone voice 미준비 — skip")
+            return
+        import time as _time
+        t0 = _time.perf_counter()
+        try:
+            wav_bytes, pcm48 = await self._tts_stage(text)
+            frames, pcm_bal = await self._render_to_cache(wav_bytes, pcm48)
+            self._prerender_text = text
+            self._prerender_wav_bytes = wav_bytes
+            self._prerender_frames = frames
+            self._prerender_pcm_bal = pcm_bal
+            self._prerender_ready = True
+            log.info(
+                "[T-820/prerender] cached '%s' frames=%d prep_ms=%d",
+                text[:40], len(frames), int((_time.perf_counter() - t0) * 1000),
+            )
+        except Exception as e:
+            log.warning("[T-820/prerender] failed: %s", e)
 
     async def say(
         self, user_text: str, turn=None, on_first_audio=None, on_response_ready=None,
@@ -251,6 +322,42 @@ class DialoguePipeline:
         if self.clone_locked and not self.se_path:
             log.warning("clone voice 미준비 — 발화 skip (폴백 없음)")
             return
+
+        # T-820 (2026-09-28): pre-render cache hit — 첫 say() 1회만 사용.
+        #   dialing 중 prerender_greeting() 이 채운 캐시가 준비되어 있으면
+        #   LLM+TTS+MuseTalk 전체 스킵하고 즉시 push. 나머지 turn 은 정상 흐름.
+        if self._prerender_ready and not self._prerender_used:
+            self._prerender_used = True
+            log.info(
+                "[T-820/prerender] cache hit · pushing '%s' (%d frames)",
+                self._prerender_text[:40], len(self._prerender_frames),
+            )
+            try:
+                if on_response_ready is not None:
+                    try:
+                        on_response_ready()
+                    except Exception as e:
+                        log.warning("on_response_ready callback failed: %s", e)
+                if on_sentence is not None:
+                    try:
+                        on_sentence(self._prerender_text)
+                    except Exception as e:
+                        log.warning("on_sentence callback failed: %s", e)
+                # recorder 반영 (answer.txt/wav/mp4 저장 시 사용).
+                for tok in self._prerender_text:
+                    turn.append_token(tok)
+                if self._prerender_wav_bytes is not None:
+                    turn.append_wav(self._prerender_wav_bytes)
+                for arr in self._prerender_frames:
+                    self.vt.push_ndarray(arr)
+                if self._prerender_pcm_bal is not None:
+                    self.at.push_pcm_int16(self._prerender_pcm_bal)
+                turn.append_frames(self._prerender_frames, self._prerender_pcm_bal, fps=25)
+            finally:
+                self.vt.signal_end()
+                self.at.signal_end()
+            return
+
         messages = self.persona_messages + [{"role": "user", "content": user_text}]
 
         # [Remember Me 2026-08-13] 이름 부르기 힌트 — 딱 1회 소비하고 지운다.
@@ -745,7 +852,14 @@ class DialoguePipeline:
                     break
                 if _m["first_sent_ms"] is None:
                     _m["first_sent_ms"] = int((time.perf_counter() - _t_turn) * 1000)
-                wav_bytes, pcm48 = await self._tts_stage(s)
+                # T-806 (2026-09-25): _tts_stage → _tts_stage_multi 로 교체.
+                #   sentence_buffer 가 짧은 응답 을 안 나누고 뭉쳐 보내는 경우
+                #   Qwen3-TTS 가 "안녕" 만 렌더 후 나머지 8s 를 filler
+                #   hallucination (공사장 잡음) 로 채우는 문제 회피.
+                #   _tts_stage_multi 내부에서 [.!?] 로 문장 split 후
+                #   각 문장별 TTS + 200ms padding concat.
+                #   단일 문장이면 _tts_stage 로 위임 (회귀 0).
+                wav_bytes, pcm48 = await self._tts_stage_multi(s)
                 turn.append_wav(wav_bytes)
                 _m["n_seg"] += 1
                 # [T-151 라운드2] on_sentence는 여기서 더 이상 발신하지 않는다

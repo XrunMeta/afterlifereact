@@ -1465,6 +1465,15 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
             if pipeline_factory is not None:
                 sess.pipeline = pipeline_factory(sess)
 
+                # T-820 (2026-09-28): dialing 중 인사말 pre-render (백그라운드).
+                #   목적: 사용자 대기 시간 22s → 0s (첫 say() 즉시 응답).
+                #   env off: PRETHIRD_PRERENDER_GREETING=0.
+                if os.environ.get("PRETHIRD_PRERENDER_GREETING", "1") == "1":
+                    _pg_text = os.environ.get("PRETHIRD_PRERENDER_TEXT", "안녕! 반가워.")
+                    asyncio.ensure_future(sess.pipeline.prerender_greeting(_pg_text))
+                    log.info("[T-820/prerender] triggered clone=%s text=%r",
+                             sess.clone_id, _pg_text[:40])
+
             @pc.on("datachannel")
             def _on_dc(channel):
                 sess.datachannel = channel
