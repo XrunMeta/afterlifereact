@@ -26,6 +26,7 @@ from typing import Callable
 
 import numpy as np
 from recorder import NULL_TURN
+from clone_dialog.conversation_history import ConversationHistory
 
 
 # T-806 (2026-09-22): TTS wav 앞뒤 무음 padding 헬퍼. 스펙 §6 "Speak 앞뒤 0.2s 무음"
@@ -238,6 +239,12 @@ class DialoguePipeline:
         self._prerender_frames: list = []
         self._prerender_pcm_bal = None
 
+        # T-821 (2026-09-28): 대화 히스토리 배선. env PRETHIRD_HISTORY_TURNS=N 이면 최근 N턴을
+        #   LLM messages 에 첨부 · 미설정 시 0 (기존 동작). say()/_system_utterance() 완료
+        #   후 record() 로 assistant 응답을 누적. 이전엔 클래스만 있고 wiring 이 없어 매 턴이
+        #   첫 턴처럼 취급되어 페르소나 규칙 A (초반 인사)가 반복 발동했다.
+        self._history = ConversationHistory.from_env()
+
     # ------------------------------------------------------------------
     # 퍼블릭 API
     # ------------------------------------------------------------------
@@ -356,9 +363,18 @@ class DialoguePipeline:
             finally:
                 self.vt.signal_end()
                 self.at.signal_end()
+            # T-821: prerender 인사도 history 에 남긴다 (다음 turn 에 클론이 또 인사하는 것 방지).
+            #   user_text=None (prerender 는 시스템 발화 · greet 과 동일 취급).
+            self._history.record(None, self._prerender_text)
             return
 
-        messages = self.persona_messages + [{"role": "user", "content": user_text}]
+        # T-821: 이전 턴 messages 를 persona 뒤 · 현재 발화 앞에 삽입.
+        #   미설정(0) 이면 messages() 가 [] → 회귀 0.
+        messages = (
+            self.persona_messages
+            + self._history.messages()
+            + [{"role": "user", "content": user_text}]
+        )
 
         # [Remember Me 2026-08-13] 이름 부르기 힌트 — 딱 1회 소비하고 지운다.
         #
@@ -393,10 +409,16 @@ class DialoguePipeline:
                 ),
             }]
 
+        # T-821: assistant 응답 로컬 누적 → _run_pipeline 종료 후 history.record().
+        #   turn._tokens 를 재사용하지 않는 이유: turn 이 NULL_TURN 이면 실기록이
+        #   없어 그 값에 기대면 히스토리도 빈다. 로컬 리스트로 대체.
+        answer_tokens: list[str] = []
+
         async def produce(q: asyncio.Queue):
             sb = self._sb_factory()
             async for tok in self.chat_fn(messages):
                 turn.append_token(tok)
+                answer_tokens.append(str(tok))
                 for s in sb.push(tok):
                     await q.put(s)
             for s in sb.flush():
@@ -404,6 +426,8 @@ class DialoguePipeline:
             await q.put(None)
 
         await self._run_pipeline(produce, turn, on_first_audio, on_response_ready, on_sentence=on_sentence)
+        # T-821: 발화 완료 · assistant_text 기록. 빈 응답이면 클래스 내부에서 skip.
+        self._history.record(user_text, "".join(answer_tokens))
 
     async def speak(
         self, text: str, turn=None, on_first_audio=None, on_response_ready=None,
@@ -473,12 +497,23 @@ class DialoguePipeline:
         if self.clone_locked and not self.se_path:
             log.warning("clone voice 미준비 — %s skip (폴백 없음)", label)
             return
-        messages = self.persona_messages + [{"role": "user", "content": prompt}]
+        # T-821: greet/react 는 시스템 지시라 user turn 아님 · 히스토리에는 persona
+        #   context 도, 이전 턴도 그대로 활용. prompt 는 지시문이니 messages 에는
+        #   포함하되 history.record 는 user_text=None 으로 남긴다 (다음 턴 프롬프트
+        #   오염 방지 — ConversationHistory 주석 참조).
+        messages = (
+            self.persona_messages
+            + self._history.messages()
+            + [{"role": "user", "content": prompt}]
+        )
+
+        answer_tokens: list[str] = []
 
         async def produce(q: asyncio.Queue):
             sb = self._sb_factory()
             async for tok in self.chat_fn(messages):
                 turn.append_token(tok)
+                answer_tokens.append(str(tok))
                 for s in sb.push(tok):
                     await q.put(s)
             for s in sb.flush():
@@ -489,6 +524,8 @@ class DialoguePipeline:
             produce, turn, on_first_audio, on_response_ready, force_partial=True,
             on_sentence=on_sentence,
         )
+        # T-821: greet/react 응답도 히스토리에 남긴다 (다음 턴에 재-인사 방지).
+        self._history.record(None, "".join(answer_tokens))
 
     # ------------------------------------------------------------------
     # 내부: 문장 1개 처리 (스테이지 분리)
