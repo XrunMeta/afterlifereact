@@ -314,6 +314,33 @@ class DialoguePipeline:
         except Exception as e:
             log.warning("[T-820/prerender] failed: %s", e)
 
+    async def prewarm(self, text: str = "웜") -> None:
+        """[T-825] GPU/모델 warm-up: 짧은 텍스트로 TTS+MuseTalk 통과 · 결과 버림.
+
+        Session offer 직후 signaling 이 백그라운드로 호출. 첫 실통화 turn 시
+        whisper cold=1.9s → warm=0.03s · unet cudnn 캐시 활성 등 · Turn 1 지연 감소.
+
+        T-820 (prerender_greeting) 과 결정적 차이 — 결과 (frames/wav) 를
+        **캐시하지 않음** · self._prerender_* 안 건드림 · say() 캐시 hit 없음.
+        따라서 사용자에게 두 답변 사고 발생 안 함 (T-820 실패 원인 회피).
+
+        Clone 미준비면 skip."""
+        if self.clone_locked and not self.se_path:
+            log.info("[T-825/prewarm] clone voice 미준비 — skip")
+            return
+        import time as _time
+        t0 = _time.perf_counter()
+        try:
+            wav_bytes, pcm48 = await self._tts_stage(text)
+            # 렌더 후 결과 버림 · push 안 함
+            frames, _ = await self._render_to_cache(wav_bytes, pcm48)
+            log.info(
+                "[T-825/prewarm] done text=%r frames=%d prep_ms=%d",
+                text, len(frames), int((_time.perf_counter() - t0) * 1000),
+            )
+        except Exception as e:
+            log.warning("[T-825/prewarm] failed: %s", e)
+
     async def say(
         self, user_text: str, turn=None, on_first_audio=None, on_response_ready=None,
         on_sentence=None,

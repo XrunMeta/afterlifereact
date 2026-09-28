@@ -1468,11 +1468,23 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                 # T-820 (2026-09-28): dialing 중 인사말 pre-render (백그라운드).
                 #   목적: 사용자 대기 시간 22s → 0s (첫 say() 즉시 응답).
                 #   env off: PRETHIRD_PRERENDER_GREETING=0.
-                if os.environ.get("PRETHIRD_PRERENDER_GREETING", "1") == "1":
+                _prerender_on = os.environ.get("PRETHIRD_PRERENDER_GREETING", "1") == "1"
+                if _prerender_on:
                     _pg_text = os.environ.get("PRETHIRD_PRERENDER_TEXT", "안녕! 반가워.")
                     asyncio.ensure_future(sess.pipeline.prerender_greeting(_pg_text))
                     log.info("[T-820/prerender] triggered clone=%s text=%r",
                              sess.clone_id, _pg_text[:40])
+
+                # T-825 (2026-09-28): dialing 중 GPU/모델 warm-up (백그라운드).
+                #   push 없음 · 결과 버림 · 두 답변 사고 회피 (T-820 실패 원인).
+                #   효과: Turn 1 whisper cold=1.9s → warm=0.03s · unet cudnn 캐시.
+                #   T-820 prerender_greeting 이 활성이면 그 자체가 warm-up 역할이므로 skip.
+                #   env off: PRETHIRD_PREWARM=0.
+                if os.environ.get("PRETHIRD_PREWARM", "1") == "1" and not _prerender_on:
+                    _pw_text = os.environ.get("PRETHIRD_PREWARM_TEXT", "웜")
+                    asyncio.ensure_future(sess.pipeline.prewarm(_pw_text))
+                    log.info("[T-825/prewarm] triggered clone=%s text=%r",
+                             sess.clone_id, _pw_text)
 
             @pc.on("datachannel")
             def _on_dc(channel):
