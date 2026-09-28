@@ -606,7 +606,7 @@ class DialoguePipeline:
 
     async def _infer_stage(
         self, wav_bytes: bytes, pcm48: np.ndarray, turn=None, on_before_push=None,
-        render_mode: str | None = None,
+        render_mode: str | None = None, min_push_at: float | None = None,
     ) -> None:
         """wav → musetalk infer(executor) → frames 일괄 push + balance audio. (GPU1)
         turn: recorder Turn — PRETHIRD_RECORD_MP4=1 시 frames 누적.
@@ -616,7 +616,11 @@ class DialoguePipeline:
           이 지점~push 사이 await 없음 → stop→flush→응답push 원자성 유지.
         render_mode: [T-113] batch 경로에서만 명시 전달("batch"). partial(기존 호출부)은
           항상 기본값 None 이라 infer_fn 호출이 기존과 100% 동일(positional-only,
-          kwarg 미부여)하게 유지된다 — partial 무변경 보장."""
+          kwarg 미부여)하게 유지된다 — partial 무변경 보장.
+        min_push_at: [T-824] time.perf_counter() 기준 이 시각 전에는 push 하지 않고 대기.
+          Bridge 재생 종료 시점까지 첫 세그 push 를 미뤄 오디오 겹침 방지.
+          _fire_hook (F7 즉시컷) 은 render 완료 즉시 fire (필러 정지 timely) · 그 후 wait · push.
+          None (기본) 이면 대기 없음 · 기존 동작."""
         turn = turn if turn is not None else NULL_TURN
         loop = asyncio.get_event_loop()
         frames_buf: list[np.ndarray] = []
@@ -652,6 +656,16 @@ class DialoguePipeline:
             # 필러 오디오("음...")를 반드시 끊어야 응답 음성과 겹치지 않는다.
             # 이 지점~push 사이 await 없음 → stop→flush→응답push 원자성 유지.
             _fire_hook()
+            # T-824: min_push_at 지정 시 그 시각까지 대기 후 push
+            #   (Bridge 재생 종료 시점 · 오디오 겹침 방지)
+            if min_push_at is not None:
+                wait_s = min_push_at - time.perf_counter()
+                if wait_s > 0:
+                    log.info(
+                        "[T-824] delaying first push by %dms (Bridge 재생 종료 대기)",
+                        int(wait_s * 1000),
+                    )
+                    await asyncio.sleep(wait_s)
             for arr in frames_buf:
                 self.vt.push_ndarray(arr)
             nframes = len(frames_buf)
@@ -947,9 +961,24 @@ class DialoguePipeline:
                 # 렌더(수 초) 동안 필러가 순환하도록 여기서 미리 자르지 않는다
                 # (과거 infer 직전 컷 = 렌더 시간만큼 idle 갭, T-088 라운드4 실측).
                 # 호출은 이벤트루프 스레드(코루틴) → call_soon_threadsafe 불필요.
+                _is_first_seg = _first_infer
                 _hook = _make_hook(s, _first_infer)
                 _first_infer = False
-                await self._infer_stage(wav_bytes, pcm48, turn, on_before_push=_hook)
+                # T-824: 첫 세그 push 는 Bridge 재생 종료까지 미룸 (오디오 겹침 방지).
+                #   앱 client BRIDGE_GRACE_MS=3000 · Bridge mp4 8s = 총 11s.
+                #   Partial 활성 후 첫 push 가 7~10s 로 빨라져 Bridge (~3~11s) 재생 중 도착 →
+                #   Bridge audio track + 응답 audio track 앱측 겹침. 서버가 push 를 지연.
+                #   짧은 응답 (첫 세그 < grace=3s 안에 준비) 은 지연 안 함 (Bridge 스킵 케이스).
+                _min_push_at = None
+                if _is_first_seg:
+                    _grace_ms = int(os.environ.get("PRETHIRD_BRIDGE_GRACE_MS", "3000"))
+                    _bridge_ms = int(os.environ.get("PRETHIRD_BRIDGE_DURATION_MS", "8000"))
+                    _elapsed_ms = int((time.perf_counter() - _t_turn) * 1000)
+                    if _elapsed_ms >= _grace_ms:
+                        _min_push_at = _t_turn + (_grace_ms + _bridge_ms) / 1000.0
+                await self._infer_stage(
+                    wav_bytes, pcm48, turn, on_before_push=_hook, min_push_at=_min_push_at,
+                )
                 if _m["first_audio_ms"] is None:
                     _m["first_audio_ms"] = int((time.perf_counter() - _t_turn) * 1000)
                 # 첫 오디오 프레임 송출 직후 1회 통지(연결 중 화면 종료·speech_start echo).
