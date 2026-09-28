@@ -1162,7 +1162,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     notifyFaceInterruptRef.current = notifyFaceInterrupt;
   }, [notifyFaceInterrupt]);
 
-  const micHeld = shouldHoldMic(rmState);
+  const micHeld = shouldHoldMic(rmState) || bridgeActive;
   const micWasOnRef = useRef(false);
   useEffect(() => {
     if (liveState !== "live") return;
