@@ -541,12 +541,20 @@ class DialoguePipeline:
         T-806 (2026-09-22): TTS 앞뒤에 각 200ms 무음 padding 추가 (스펙 §6).
           MuseTalk 이 wav 를 입 다문 상태로 시작·종료 → Bridge (입 다문 중립 포즈로
           끝남) 에서 Speak 로 넘어갈 때 표정 점프 없음.
+
+        T-822 (2026-09-28): pad ms 를 env 로 노출.
+          PRETHIRD_TTS_PAD_FRONT_MS · PRETHIRD_TTS_PAD_BACK_MS · 기본 200/200.
+          Partial 모드에선 문장마다 padding 이 붙어 문장 사이 무음이 (back+front)
+          만큼 이중으로 삽입된다 — 사용자 체감 "공백 길다". 값을 50/50 등으로
+          낮추면 문장 사이 100ms 로 줄어들고 Bridge 이음매 padding 은 그대로 유지.
         """
         clean = strip_emojis_for_tts(sentence)
         wav_bytes = await self.say_fn(clean or sentence, self.se_path)
         pcm, sr, _ = self.decode_wav_fn(wav_bytes)
-        # T-806 무음 padding — pcm 앞뒤 각 200ms 추가.
-        pcm = _pad_silence(pcm, sr, front_ms=200, back_ms=200)
+        # T-806/822 무음 padding — env 기본 200/200, 조정 가능.
+        front = int(os.environ.get("PRETHIRD_TTS_PAD_FRONT_MS", "200"))
+        back = int(os.environ.get("PRETHIRD_TTS_PAD_BACK_MS", "200"))
+        pcm = _pad_silence(pcm, sr, front_ms=front, back_ms=back)
         wav_bytes = _encode_wav_pcm(pcm, sr)  # MuseTalk 은 wav_bytes 를 파일로 저장해 소비
         pcm48 = self._resample(pcm, sr, 48000)
         return wav_bytes, pcm48
@@ -568,11 +576,14 @@ class DialoguePipeline:
         pcm_native_parts: list[np.ndarray] = []
         pcm_48k_parts: list[np.ndarray] = []
         sr_native: int | None = None
+        # T-822: env 로 pad ms 노출 (기본 200/200). _tts_stage 와 동일 값 사용.
+        _pad_front = int(os.environ.get("PRETHIRD_TTS_PAD_FRONT_MS", "200"))
+        _pad_back = int(os.environ.get("PRETHIRD_TTS_PAD_BACK_MS", "200"))
         for sent in sentences:
             clean = strip_emojis_for_tts(sent)
             wav_bytes_i = await self.say_fn(clean or sent, self.se_path)
             pcm_i, sr_i, _ = self.decode_wav_fn(wav_bytes_i)
-            pcm_i = _pad_silence(pcm_i, sr_i, front_ms=200, back_ms=200)
+            pcm_i = _pad_silence(pcm_i, sr_i, front_ms=_pad_front, back_ms=_pad_back)
             if sr_native is None:
                 sr_native = sr_i
             elif sr_i != sr_native:
