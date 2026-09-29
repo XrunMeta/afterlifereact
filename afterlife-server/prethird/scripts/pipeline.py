@@ -1041,18 +1041,17 @@ class DialoguePipeline:
                 _is_first_seg = _first_infer
                 _hook = _make_hook(s, _first_infer)
                 _first_infer = False
-                # T-824: 첫 세그 push 는 Bridge 재생 종료까지 미룸 (오디오 겹침 방지).
-                #   앱 client BRIDGE_GRACE_MS=3000 · Bridge mp4 8s = 총 11s.
-                #   Partial 활성 후 첫 push 가 7~10s 로 빨라져 Bridge (~3~11s) 재생 중 도착 →
-                #   Bridge audio track + 응답 audio track 앱측 겹침. 서버가 push 를 지연.
-                #   짧은 응답 (첫 세그 < grace=3s 안에 준비) 은 지연 안 함 (Bridge 스킵 케이스).
+                # T-824/830: 첫 세그 push 는 Bridge 재생 종료 시점 (grace + duration) 까지 미룸.
+                #   T-830 (2026-09-29): 이전 조건 `elapsed >= grace_ms` 제거 · 항상 min_push_at 세팅.
+                #   Reason: LLM 첫 문장 매우 빠른 turn 은 elapsed < grace 라 delay 발동 안 됨.
+                #   Render 완료 시점이 grace 안에 들어와도 Bridge 는 앱에서 grace 후 이미 뜸 →
+                #   서버 push 가 Bridge 재생 중 도착 · 오디오 겹침 발생. 항상 delay 로 통일.
+                #   Render 완료가 이미 min_push_at 넘었으면 _infer_stage 내부에서 wait_s<=0 로 skip.
                 _min_push_at = None
                 if _is_first_seg:
                     _grace_ms = int(os.environ.get("PRETHIRD_BRIDGE_GRACE_MS", "3000"))
                     _bridge_ms = int(os.environ.get("PRETHIRD_BRIDGE_DURATION_MS", "8000"))
-                    _elapsed_ms = int((time.perf_counter() - _t_turn) * 1000)
-                    if _elapsed_ms >= _grace_ms:
-                        _min_push_at = _t_turn + (_grace_ms + _bridge_ms) / 1000.0
+                    _min_push_at = _t_turn + (_grace_ms + _bridge_ms) / 1000.0
                 await self._infer_stage(
                     wav_bytes, pcm48, turn, on_before_push=_hook, min_push_at=_min_push_at,
                 )
