@@ -576,6 +576,12 @@ class DialoguePipeline:
           낮추면 문장 사이 100ms 로 줄어들고 Bridge 이음매 padding 은 그대로 유지.
         """
         clean = strip_emojis_for_tts(sentence)
+        # T-828 (2026-09-29): 종결 부호 없는 짧은 문장 (예: "고마워") 에 마침표 자동 추가.
+        #   CosyVoice2/Qwen3-TTS 는 마침표 있으면 종결 하강 억양 유도 · 없으면 애매 종결.
+        #   실통화 실측: "고마워" 끝음 상승 · "고마워." 끝음 하강. env 로 off 가능.
+        if os.environ.get("PRETHIRD_TTS_AUTO_PERIOD", "1") == "1":
+            if clean and not clean.rstrip().endswith(('.', '!', '?', '…', '。', '！', '？')):
+                clean = clean.rstrip() + '.'
         wav_bytes = await self.say_fn(clean or sentence, self.se_path)
         pcm, sr, _ = self.decode_wav_fn(wav_bytes)
         # T-806/822 무음 padding — env 기본 200/200, 조정 가능.
@@ -606,8 +612,12 @@ class DialoguePipeline:
         # T-822: env 로 pad ms 노출 (기본 200/200). _tts_stage 와 동일 값 사용.
         _pad_front = int(os.environ.get("PRETHIRD_TTS_PAD_FRONT_MS", "200"))
         _pad_back = int(os.environ.get("PRETHIRD_TTS_PAD_BACK_MS", "200"))
+        # T-828: multi 분기도 auto-period 적용 (개별 세그 각각).
+        _auto_period = os.environ.get("PRETHIRD_TTS_AUTO_PERIOD", "1") == "1"
         for sent in sentences:
             clean = strip_emojis_for_tts(sent)
+            if _auto_period and clean and not clean.rstrip().endswith(('.', '!', '?', '…', '。', '！', '？')):
+                clean = clean.rstrip() + '.'
             wav_bytes_i = await self.say_fn(clean or sent, self.se_path)
             pcm_i, sr_i, _ = self.decode_wav_fn(wav_bytes_i)
             pcm_i = _pad_silence(pcm_i, sr_i, front_ms=_pad_front, back_ms=_pad_back)
