@@ -107,6 +107,7 @@ import { GREETING_ENABLED, GREETING_FALLBACK_TEXT, GREET_TIMEOUT_MS } from "../.
 import { useHandsFreeController } from "../../realtime/useHandsFreeController";
 import { shouldSkipUnknownFaceEntry, computeFaceKey } from "../../realtime/faceInterruptRouting";
 import { useVideoStatsDiag } from "../../realtime/useVideoStatsDiag";
+import { useJsFpsDiag } from "../../realtime/useJsFpsDiag";
 import { DialingScreen } from "../../components/call/DialingScreen";
 import { CallVoiceBall } from "../../components/call/CallVoiceBall";
 import { CallTimingHUD } from "../../components/call/CallTimingHUD";
@@ -607,7 +608,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const greetingOn = GREETING_ENABLED && typeof greet === 'function';
 
-  useVideoStatsDiag({ getStatsReport, enabled: __DEV__ && liveState === "live" });
+  useVideoStatsDiag({ getStatsReport, enabled: liveState === "live" });
+  useJsFpsDiag({ enabled: liveState === "live" });
 
   const faceEmbedModelPlugin = useTensorflowModel(
     require("../../../assets/models/w600k_mbf.tflite"),
