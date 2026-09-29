@@ -95,6 +95,41 @@ def strip_emojis_for_tts(text: str) -> str:
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return cleaned
 
+
+# T-829 (2026-09-29): 응답 첫머리 감정 도입/추임새 제거 · 짧은 세그 hallucination + 지연 감소.
+#   LLM 이 "아, 그렇구나." · "어, 지호야." · "음, 그러네." 같은 짧은 도입부 자주 뱉음.
+#   이걸 첫 세그로 flush 하면 CosyVoice2 hallucination · 그리고 뒤 본문과 gap.
+#   후처리로 첫머리 도입부 삭제 · LLM 프롬프트 규칙 11 우회 안 지킴 방어책.
+#   env off: PRETHIRD_STRIP_LEAD_FILLER=0.
+_LEAD_FILLER_RE = re.compile(
+    r"^\s*"
+    r"(응|어|아|음|와|헐|어휴|어머|이런|어어|아아)"           # 추임새/감탄사
+    r"[\,\.\!\?…\s]*"                                        # 구두점·공백
+    r"(?:그?렇?구?나?|맞|맞아|그래|그러네|정말|진짜)?"      # "그렇구나" 등 리액션
+    r"[\,\.\!\?…\s]*"
+    r"(?:[가-힣]{1,4}(?:야|아|이야|이|씨))?"                # 상대 이름 (지호야/민경아/윤정이)
+    r"[\,\.\!\?…\s]*"
+)
+
+
+def strip_leading_filler(text: str) -> str:
+    """[T-829] 첫머리 감정 도입/추임새/호칭 제거.
+    - 응/어/아/음/와/헐/어휴/어머 등 추임새
+    - 그렇구나/맞/그래/정말 등 짧은 리액션
+    - [이름]야/아/이야 등 호칭
+    - 뒤 본문이 없으면(전부 제거되면) 원본 반환(빈 응답 방지).
+    env `PRETHIRD_STRIP_LEAD_FILLER=0` 로 off.
+    """
+    if not text:
+        return text
+    if os.environ.get("PRETHIRD_STRIP_LEAD_FILLER", "1") != "1":
+        return text
+    stripped = _LEAD_FILLER_RE.sub("", text, count=1).strip()
+    # 완전히 지워졌으면 원본 유지 (LLM 응답이 짧아 도입부 하나뿐인 경우)
+    if not stripped:
+        return text
+    return stripped
+
 log = logging.getLogger("prethird.pipeline")
 
 # [T-120 e2e] 계측 로그(`[seg]`/`[turn]`)를 /data 영구 파일로 tee (additive).
@@ -576,6 +611,8 @@ class DialoguePipeline:
           낮추면 문장 사이 100ms 로 줄어들고 Bridge 이음매 padding 은 그대로 유지.
         """
         clean = strip_emojis_for_tts(sentence)
+        # T-829 (2026-09-29): 첫머리 감정 도입/추임새 제거.
+        clean = strip_leading_filler(clean)
         # T-828 (2026-09-29): 종결 부호 없는 짧은 문장 (예: "고마워") 에 마침표 자동 추가.
         #   CosyVoice2/Qwen3-TTS 는 마침표 있으면 종결 하강 억양 유도 · 없으면 애매 종결.
         #   실통화 실측: "고마워" 끝음 상승 · "고마워." 끝음 하강. env 로 off 가능.
@@ -613,9 +650,12 @@ class DialoguePipeline:
         _pad_front = int(os.environ.get("PRETHIRD_TTS_PAD_FRONT_MS", "200"))
         _pad_back = int(os.environ.get("PRETHIRD_TTS_PAD_BACK_MS", "200"))
         # T-828: multi 분기도 auto-period 적용 (개별 세그 각각).
+        # T-829: multi 분기 · 첫 세그(sentences[0])에만 lead-filler 제거 · 뒤 세그는 유지.
         _auto_period = os.environ.get("PRETHIRD_TTS_AUTO_PERIOD", "1") == "1"
-        for sent in sentences:
+        for _idx, sent in enumerate(sentences):
             clean = strip_emojis_for_tts(sent)
+            if _idx == 0:
+                clean = strip_leading_filler(clean)
             if _auto_period and clean and not clean.rstrip().endswith(('.', '!', '?', '…', '。', '！', '？')):
                 clean = clean.rstrip() + '.'
             wav_bytes_i = await self.say_fn(clean or sent, self.se_path)
