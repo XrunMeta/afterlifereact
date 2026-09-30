@@ -2340,32 +2340,26 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       {
 
 }
-      {!isVideoOff && (
+      {!isVideoOff && vcDevice && dialingDone && (
       <TouchableOpacity
         style={[s.pip, { top: insets.top + 8 }]}
         activeOpacity={0.9}
         onPress={() => setCameraFacing((f) => (f === "front" ? "back" : "front"))}
       >
-        {vcDevice && dialingDone ? (
+        {
 
-          <VisionCamera
-            ref={pipCameraRef}
-            style={s.pipCamera}
-            device={vcDevice}
-            isActive={!isVideoOff}
-
-            androidPreviewViewType="texture-view"
-
-            frameProcessor={consentGranted && !faceProcOff && !isTerminating ? faceFrameProcessor : undefined}
-            onError={(e) =>
-              console.log("[Call][face] camera error:", e.code, e.message)
-            }
-          />
-        ) : (
-          <View style={s.pipOff}>
-            <Feather name="camera-off" size={20} color={COLORS.zinc600} />
-          </View>
-        )}
+}
+        <VisionCamera
+          ref={pipCameraRef}
+          style={s.pipCamera}
+          device={vcDevice}
+          isActive={!isVideoOff}
+          androidPreviewViewType="texture-view"
+          frameProcessor={consentGranted && !faceProcOff && !isTerminating ? faceFrameProcessor : undefined}
+          onError={(e) =>
+            console.log("[Call][face] camera error:", e.code, e.message)
+          }
+        />
 
         {}
         {consentGranted && vcDevice ? (
