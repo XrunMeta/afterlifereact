@@ -1,0 +1,18 @@
+{
+  "name": "higgsfield-smoke",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "T-848 · Higgsfield API 스모크 테스트 · Seedance 2.5 text-to-video 1건 렌더. 이 프로젝트는 통합 실작업 아님(별도 orchestrator 배선은 후속).",
+  "scripts": {
+    "smoke": "tsx index.ts"
+  },
+  "dependencies": {
+    "@higgsfield/client": "latest",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.5.3"
+  }
+}
