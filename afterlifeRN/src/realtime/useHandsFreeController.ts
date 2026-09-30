@@ -552,5 +552,7 @@ export function v_7df8a4(opts: {
     micLevel: v_60bef6.micLevel,
 
     cloneAudioLevel: v_09b641,
+
+    idleGreetCount: v_b6e533.idleGreetCount,
   };
 }
