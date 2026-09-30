@@ -863,6 +863,26 @@ def _handle_face_event(sess, data: dict) -> None:
                     getattr(sess, "session_id", "?"), pid_int,
                 )
             asyncio.ensure_future(_maybe_swap_l2p(sess, pid_int, name, epoch))
+            # T-840 (2026-09-30): known → known 스왑 자동 인사 (독립 게이트).
+            #   지호 → 민경 처럼 등록된 사람이 다른 등록된 사람으로 바뀔 때만 · face react 발화.
+            #   FACE_REACT_ENABLED off 여도 · 이 케이스만 별도 게이트로 활성.
+            #   첫 confirmed (prev=None) · unknown → known 은 대상 아님 (사용자 요구).
+            if (prev is not None and prev[0] is not None and prev[0] != pid_int and name
+                    and os.environ.get("PRETHIRD_SPEAKER_SWAP_REACT_ENABLED", "1") == "1"):
+                async def _swap_react():
+                    try:
+                        if sess.pipeline is not None:
+                            await sess.pipeline.react("known", name)
+                    except Exception as e:
+                        log.warning(
+                            "session %s T-840 speaker_swap_react failed: %s",
+                            getattr(sess, "session_id", "?"), e,
+                        )
+                asyncio.ensure_future(_swap_react())
+                log.info(
+                    "T-840 speaker_swap_react session=%s prev_pid=%s new_pid=%s new_name=%s",
+                    getattr(sess, "session_id", "?"), prev[0], pid_int, name,
+                )
     elif event in ("unknown_face", "multi_face") and identity_on:
         # [T-135 v2] 화자 확실성 게이팅 — 낯선 얼굴/다중 얼굴이면 즉시 익명으로 해제.
         # speaker_confirmed로 재확정될 때까지 이름/L2' 주입·learn_writeback person
