@@ -2340,16 +2340,13 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       {
 
 }
+      {!isVideoOff && (
       <TouchableOpacity
         style={[s.pip, { top: insets.top + 8 }]}
         activeOpacity={0.9}
         onPress={() => setCameraFacing((f) => (f === "front" ? "back" : "front"))}
       >
-        {isVideoOff ? (
-          <View style={s.pipOff}>
-            <Feather name="video-off" size={20} color={COLORS.zinc600} />
-          </View>
-        ) : vcDevice && dialingDone ? (
+        {vcDevice && dialingDone ? (
 
           <VisionCamera
             ref={pipCameraRef}
@@ -2371,7 +2368,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         )}
 
         {}
-        {consentGranted && !isVideoOff && vcDevice ? (
+        {consentGranted && vcDevice ? (
           <View
             style={[
               s.faceIndicator,
@@ -2380,6 +2377,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           />
         ) : null}
       </TouchableOpacity>
+      )}
 
       {
 
