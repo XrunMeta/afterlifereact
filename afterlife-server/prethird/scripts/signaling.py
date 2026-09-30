@@ -985,6 +985,22 @@ async def _send_enroll_suggest(sess, channel, text: str, person_id: Optional[int
         log.warning("session %s enroll name extract failed: %s",
                     getattr(sess, "session_id", "?"), e)
         name = ""
+    # T-836 (2026-09-30): 추출된 이름이 클론 자기 이름과 같으면 · 오추출 (사용자가 클론을 "안녕
+    #   [클론이름]아" 로 부른 것 · SPEAKER 본인 이름 아님) · name="" 로 대체.
+    #   실측: person 121 display_name="윤정" (clone 9151 이름과 동일) 로 저장됨 · LLM 이
+    #   "안녕 윤정아" 발화를 · 화자 본인 이름 "윤정" 이라고 오추출.
+    try:
+        persona = (getattr(sess, "bundle", None) or {}).get("persona") or {}
+        clone_display = _sanitize_display_name(persona.get("displayName"))
+        if name and clone_display and name.strip() == clone_display.strip():
+            log.info(
+                "session %s enroll_suggest 스킵: name=%r == clone.displayName (사용자가 클론 부른 것 · SPEAKER 이름 아님)",
+                getattr(sess, "session_id", "?"), name,
+            )
+            name = ""
+    except Exception as exc:
+        log.warning("session %s clone_name 필터 실패 (무시): %s",
+                    getattr(sess, "session_id", "?"), exc)
     if channel is not None and getattr(channel, "readyState", None) == "open":
         payload = {"type": "enroll_suggest", "name": name}
         if person_id is not None:
