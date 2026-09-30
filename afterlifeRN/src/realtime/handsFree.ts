@@ -4,9 +4,14 @@ export type HandsFreePhase =
   | 'idle' | 'greeting' | 'listening' | 'confirming' | 'sending' | 'speaking' | 'paused'
   | 'interrupting';
 
-export const v_6fc7ac = [30000, 60000];
+export const v_6fc7ac = [30000, 30000];
 
-export const v_de0ee8 = '안녕하세요, 듣고 있어요';
+export const v_d3181a = [
+  '듣고 있어요',
+  '오늘 통화해서 재밌었어 끊을게',
+];
+
+export const v_de0ee8 = v_d3181a[0];
 
 export const v_778702 = 3000;
 
@@ -321,13 +326,15 @@ export function v_6920f0(v_b6e533, v_1d299c): HandsFreeResult {
       if (!v_b6e533.micOn) return { state: v_b6e533, effects: [] };
       if (v_b6e533.idleGreetCount >= v_6fc7ac.length) return { state: v_b6e533, effects: [] };
       const v_1923e2 = v_b6e533.nextSeq;
+
+      const v_98aa7c = v_d3181a[v_b6e533.idleGreetCount] ?? v_de0ee8;
       return {
         state: {
           ...v_b6e533, phase: 'interrupting', pendingText: '',
           activeSeq: v_1923e2, nextSeq: v_1923e2 + 1, idleGreetCount: v_b6e533.idleGreetCount + 1,
         },
         effects: ['STOP_STT', 'SAY_IDLE_GREETING', 'START_DETECTOR'],
-        sayText: v_de0ee8,
+        sayText: v_98aa7c,
         saySeq: v_1923e2,
       };
     }

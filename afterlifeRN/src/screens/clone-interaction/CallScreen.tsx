@@ -105,6 +105,7 @@ import { submitDevText } from "../../realtime/devCallText";
 import { CALL_ROUTE } from "../../config/callRoute";
 import { GREETING_ENABLED, GREETING_FALLBACK_TEXT, GREET_TIMEOUT_MS } from "../../config/greeting";
 import { useHandsFreeController } from "../../realtime/useHandsFreeController";
+import { IDLE_GREET_DELAYS_MS } from "../../realtime/handsFree";
 import { shouldSkipUnknownFaceEntry, computeFaceKey } from "../../realtime/faceInterruptRouting";
 import { useVideoStatsDiag } from "../../realtime/useVideoStatsDiag";
 import { useJsFpsDiag } from "../../realtime/useJsFpsDiag";
@@ -1138,6 +1139,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     cloneAudioLevel,
     sttActive,
     notifyFaceInterrupt,
+    idleGreetCount,
   } = useHandsFreeController({
 
     enabled: liveState === "live",
@@ -1183,6 +1185,24 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
     embedAllowed.value = phase !== "sending";
   }, [phase]);
+
+  const hangupInFlightRef = useRef(false);
+  const idleHangupTriggerRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    if (liveState !== "live") return;
+    if (hangupInFlightRef.current) return;
+    if (idleGreetCount < IDLE_GREET_DELAYS_MS.length) return;
+    hangupInFlightRef.current = true;
+    console.log(
+      `[Call][idle] 무발화 워치독 종점 (${IDLE_GREET_DELAYS_MS.length}회) · goodbye 발화 후 종료 예약`,
+    );
+
+    const id = setTimeout(() => {
+      console.log("[Call][idle] goodbye 재생 완료 예상 · stopLive + exitToMain");
+      idleHangupTriggerRef.current();
+    }, 8000);
+    return () => clearTimeout(id);
+  }, [idleGreetCount, liveState]);
 
   const nameForCheck = String(paramName || (clone as { displayName?: string } | null | undefined)?.displayName || '');
   const nameOverrideAvatarV2 = nameForCheck.toLowerCase().includes('[v2]');
@@ -1855,6 +1875,13 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       }
     }, 200);
   }, [navigation]);
+
+  useEffect(() => {
+    idleHangupTriggerRef.current = () => {
+      void stopLive();
+      exitToMain();
+    };
+  }, [stopLive, exitToMain]);
 
   useEffect(() => {
     rmActionRef.current = (a: RememberMeAction) => {
