@@ -1057,7 +1057,11 @@ class DialoguePipeline:
                 if _is_first_seg:
                     _grace_ms = int(os.environ.get("PRETHIRD_BRIDGE_GRACE_MS", "3000"))
                     _bridge_ms = int(os.environ.get("PRETHIRD_BRIDGE_DURATION_MS", "8000"))
-                    _min_push_at = _t_turn + (_grace_ms + _bridge_ms) / 1000.0
+                    # T-845 (2026-09-30): Bridge 종료 후 추가 대기(default 2000ms).
+                    #   사용자 요구 — Bridge 재생 끝나고 TTS+MuseTalk push 사이 여유.
+                    #   0 이면 종전 동작(즉시 push).
+                    _post_bridge_ms = int(os.environ.get("PRETHIRD_POST_BRIDGE_DELAY_MS", "2000"))
+                    _min_push_at = _t_turn + (_grace_ms + _bridge_ms + _post_bridge_ms) / 1000.0
                 await self._infer_stage(
                     wav_bytes, pcm48, turn, on_before_push=_hook, min_push_at=_min_push_at,
                 )
