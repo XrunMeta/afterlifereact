@@ -1261,6 +1261,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   useEffect(() => {
     if (!rmState.promptRegister) return;
+
+    dispatchRm({ type: "DISMISS_LATER" });
+    return;
+
     showAlert(
       "새 얼굴이 보여요",
       "얼굴을 등록할까요?",
