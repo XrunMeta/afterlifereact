@@ -14,6 +14,7 @@ import {
   v_09d0e5,
   v_0e1f26,
   v_122070,
+  v_6c4f62,
 } from "rcmrninabrnb";
 import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
@@ -169,24 +170,50 @@ export default function v_5db6c6() {
     }
   }, []);
 
-  const v_b0ad70 = v_de06a3(async () => {
-    v_dbbd5d(true);
+  const [v_a71470, v_e11929] = v_5ab095(false);
+  const v_ba9047 = v_e662ae(false);
+  const v_00778f = v_e662ae(0);
+  const v_b0ad70 = v_de06a3(async (v_34e5bb = "focus") => {
+    const v_1923e2 = ++v_00778f.current;
+    if (v_34e5bb === "pull") v_e11929(true);
+    else if (!v_ba9047.current) v_dbbd5d(true);
     try {
       const v_8f00b9 = await v_f5cc38({
         limit: 60,
         accessToken: v_2ca7e0 ?? null,
       });
+
+      if (v_1923e2 !== v_00778f.current) return;
+      v_ba9047.current = true;
       v_5593fb(v_8f00b9.items);
     } catch (v_49263d) {
       console.warn("[Search] discover fetch failed:", v_49263d);
     } finally {
-      v_dbbd5d(false);
+      if (v_1923e2 === v_00778f.current) {
+        v_dbbd5d(false);
+        v_e11929(false);
+      }
     }
   }, [v_2ca7e0]);
 
-  v_c4deb2(() => {
-    v_b0ad70();
+  v_cf763b(
+    v_de06a3(() => {
+      void v_b0ad70("focus");
+    }, [v_b0ad70]),
+  );
+
+  const v_0cde43 = v_de06a3(() => {
+    void v_b0ad70("pull");
   }, [v_b0ad70]);
+
+  const v_4e1696 = (
+    <RefreshControl
+      refreshing={v_a71470}
+      onRefresh={v_0cde43}
+      tintColor={v_1bfbd0.zinc500}
+      colors={[v_1bfbd0.zinc500]}
+    />
+  );
 
   const v_f47618 = v_e662ae<ReturnType<typeof setTimeout> | null>(null);
   v_c4deb2(() => {
@@ -548,6 +575,7 @@ export default function v_5db6c6() {
                 numColumns={v_f229b8}
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ paddingBottom: v_033e14.bottom + 32 }}
+                refreshControl={v_4e1696}
               />
             )
           )}
@@ -562,6 +590,7 @@ export default function v_5db6c6() {
                 renderItem={v_51e832}
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ paddingBottom: v_033e14.bottom + 32 }}
+                refreshControl={v_4e1696}
               />
             )
           )}
@@ -608,6 +637,7 @@ export default function v_5db6c6() {
             numColumns={v_f229b8}
             contentContainerStyle={{ paddingBottom: v_033e14.bottom + 32 }}
             showsVerticalScrollIndicator={false}
+            refreshControl={v_4e1696}
           />
         )
       )}
