@@ -31,7 +31,7 @@
   #l0Edit textarea { width: 100%; box-sizing: border-box; height: 110px; font: 12px/1.45 inherit; padding: 6px; border: 1px solid #ccc; border-radius: 6px; resize: vertical; }
   #l0Edit textarea.short { height: 56px; }
   #l0Edit .l0lbl { display: block; font-size: 11px; color: #65676b; margin: 6px 0 2px; }
-  #l0Edit .l0chk { display: block; font-size: 12px; margin: 6px 0; }
+  #l0Edit .l0hint { font-size: 11px; margin: 6px 0; }
   #l0Edit .l0btns { display: flex; gap: 6px; }
   #l0Edit .l0btns button { font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
   #l0Edit .l0btns button.primary { background: #0b66ff; border-color: #0b66ff; color: #fff; }
@@ -161,7 +161,7 @@
       <textarea id="l0Rules" placeholder="클론 선택 시 현재 L0 가 채워집니다"></textarea>
       <label class="l0lbl">금지어 (한 줄에 하나)</label>
       <textarea id="l0Block" class="short"></textarea>
-      <label class="l0chk"><input id="useL0Draft" type="checkbox" /> 랩 대화에 이 L0 사용 (저장 안 함)</label>
+      <div class="l0hint muted">고치면 다음 메시지부터 랩 대화에 바로 들어갑니다 (운영 저장 안 함).</div>
       <div class="l0btns">
         <button id="l0Reset" type="button">원래대로</button>
         <button id="l0Apply" type="button" class="primary">운영 적용…</button>
@@ -221,7 +221,7 @@ function l0Dirty(){
 function updateL0State(){
   const s = $("l0State");
   const dirty = l0Dirty();
-  s.textContent = !l0Orig ? "" : dirty ? "● 수정됨 (운영 미반영)" : "운영값과 같음";
+  s.textContent = !l0Orig ? "" : dirty ? "● 랩 대화에 적용 중 (운영 미반영)" : "운영값과 같음";
   s.classList.toggle("dirty", dirty);
 }
 function renderL0(l0, force){
@@ -686,7 +686,7 @@ async function send() {
     if ($("model").value.trim()) body.model = $("model").value.trim();
     if ($("temp").value !== "") body.temperature = parseFloat($("temp").value);
     if ($("useOverride").checked && $("overrideText").value.trim()) body.system_override = $("overrideText").value;
-    if ($("useL0Draft").checked) body.l0_override = l0Draft();
+    if (l0Dirty()) body.l0_override = l0Draft();
     const pid = parseInt($("person").value, 10);
     if (pid) { body.person_id = pid; }
 
