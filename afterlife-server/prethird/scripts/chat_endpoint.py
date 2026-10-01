@@ -390,6 +390,29 @@ async def verify_login(req: web.Request) -> web.Response:
         return web.json_response({"error": "login error"}, status=502)
     return web.json_response({"accessToken": data.get("accessToken")})
 
+# 랩 L0 초안 상한 — 운영 저장(PUT /oth-path)과 같은 값. 랩에서 통과한
+# 초안이 운영 저장에서 길이로 거부되는 일이 없게 맞춘다.
+_L0_RULES_MAX = 8000
+_L0_BLOCKLIST_MAX = 1000
+
+def _parse_l0_override(raw) -> tuple[dict | None, str | None]:
+    """body.l0_override → ({"rules_text", "blocklist"}, None) | (None, None 미지정) | (None, 오류)."""
+    if raw is None:
+        return None, None
+    if not isinstance(raw, dict):
+        return None, "l0_override must be an object"
+    rules_text = raw.get("rules_text", "")
+    if not isinstance(rules_text, str):
+        return None, "l0_override.rules_text must be a string"
+    if len(rules_text) > _L0_RULES_MAX:
+        return None, f"l0_override.rules_text too long (max {_L0_RULES_MAX})"
+    blocklist = raw.get("blocklist", [])
+    if not isinstance(blocklist, list) or not all(isinstance(x, str) for x in blocklist):
+        return None, "l0_override.blocklist must be a list of strings"
+    if len(blocklist) > _L0_BLOCKLIST_MAX:
+        return None, f"l0_override.blocklist too long (max {_L0_BLOCKLIST_MAX})"
+    return {"rules_text": rules_text, "blocklist": blocklist}, None
+
 async def verify_chat(req: web.Request) -> web.StreamResponse | web.Response:
     """SSE — system(or override) + history → chat_stream → token*/done/error.
 
@@ -412,7 +435,17 @@ async def verify_chat(req: web.Request) -> web.StreamResponse | web.Response:
     if system_override is not None and len(str(system_override)) > 16000:
         return web.json_response({"error": "system_override too long (max 16000)"}, status=400)
 
+    l0_override, l0_err = _parse_l0_override(body.get("l0_override"))
+    if l0_err:
+        return web.json_response({"error": l0_err}, status=400)
+
     bundle = await fetch_bundle(API_BASE, clone_id, token)
+    if l0_override is not None:
+        # 랩 L0 초안 — 이 요청의 프롬프트에만 끼우고 어디에도 저장하지 않는다.
+        # 원본 bundle 을 건드리지 않도록 personaBundle 만 얕은 복사로 갈아 끼운다.
+        pb = dict((bundle or {}).get("personaBundle") or {})
+        pb["l0"] = l0_override
+        bundle = {**(bundle or {}), "personaBundle": pb}
     if system_override:
         system_messages = [{"role": "system", "content": system_override}]
     else:
@@ -469,6 +502,7 @@ async def verify_chat(req: web.Request) -> web.StreamResponse | web.Response:
             "final_messages": final_messages,
             "model": model or _DEFAULT_MODEL,
             "persona_bundle": (bundle or {}).get("personaBundle"),
+            "l0_override": l0_override is not None,
         }})
     except Exception as e:
         log.warning("verify_chat failed clone=%s: %s", clone_id, e)

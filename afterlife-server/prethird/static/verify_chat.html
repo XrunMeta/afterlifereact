@@ -28,6 +28,16 @@
   table.kv th, table.kv td { border: 1px solid #e4e6eb; padding: 4px 7px; text-align: left; vertical-align: top; word-break: break-word; }
   table.kv th { background: #f0f2f5; font-weight: 600; }
   table.kv td.lv { white-space: nowrap; color: #65676b; width: 1%; }
+  #l0Edit textarea { width: 100%; box-sizing: border-box; height: 110px; font: 12px/1.45 inherit; padding: 6px; border: 1px solid #ccc; border-radius: 6px; resize: vertical; }
+  #l0Edit textarea.short { height: 56px; }
+  #l0Edit .l0lbl { display: block; font-size: 11px; color: #65676b; margin: 6px 0 2px; }
+  #l0Edit .l0chk { display: block; font-size: 12px; margin: 6px 0; }
+  #l0Edit .l0btns { display: flex; gap: 6px; }
+  #l0Edit .l0btns button { font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+  #l0Edit .l0btns button.primary { background: #0b66ff; border-color: #0b66ff; color: #fff; }
+  #l0Edit .l0btns button:disabled { opacity: .5; cursor: default; }
+  #l0Msg { font-size: 12px; margin-top: 4px; white-space: pre-wrap; }
+  #l0State.dirty { color: #c26a00; }
   table.kv tr.chg td { background: #fff6d6; }
   .l2live { color: #d33; font-size: 11px; }
   details summary { cursor: pointer; font-size: 12px; color: #65676b; margin: 10px 0 6px; font-weight: 600; }
@@ -139,8 +149,19 @@
     </div>
   </section>
   <aside id="dbg">
-    <h3>L0 전역 안전</h3>
-    <div id="tblL0"><span class="muted">클론 선택 시 표시</span></div>
+    <h3>L0 전역 안전 <span id="l0State" class="muted" style="font-weight:400"></span></h3>
+    <div id="l0Edit">
+      <label class="l0lbl">안전규칙 (rules_text)</label>
+      <textarea id="l0Rules" placeholder="클론 선택 시 현재 L0 가 채워집니다"></textarea>
+      <label class="l0lbl">금지어 (한 줄에 하나)</label>
+      <textarea id="l0Block" class="short"></textarea>
+      <label class="l0chk"><input id="useL0Draft" type="checkbox" /> 랩 대화에 이 L0 사용 (저장 안 함)</label>
+      <div class="l0btns">
+        <button id="l0Reset" type="button">원래대로</button>
+        <button id="l0Apply" type="button" class="primary">운영 적용…</button>
+      </div>
+      <div id="l0Msg" class="muted"></div>
+    </div>
     <h3>L1 기본 페르소나</h3>
     <div id="tblL1"><span class="muted">클론 선택 시 표시</span></div>
     <h3>L2 학습 기억 <span class="l2live">● 실시간</span> <span id="l2owner" class="muted" style="font-weight:400"></span></h3>
@@ -177,14 +198,92 @@ function parseKV(text){
   });
 }
 
-function renderL0(l0){
-  const rules = (l0 && l0.rules_text) || "";
-  const block = (l0 && l0.blocklist) ? (Array.isArray(l0.blocklist)?l0.blocklist.join(", "):l0.blocklist) : "";
-  let rows = "";
-  if(rules) rows += `<tr><td class="lv">안전규칙</td><td>${esc(rules)}</td></tr>`;
-  if(block) rows += `<tr><td class="lv">금지어</td><td>${esc(block)}</td></tr>`;
-  $("tblL0").innerHTML = rows ? `<table class="kv">${rows}</table>` : '<span class="muted">없음</span>';
+let l0Orig = null;  
+
+function normBlocklist(b){
+  if (Array.isArray(b)) return b.map(s=>String(s).trim()).filter(Boolean);
+  return String(b||"").split(/[\n,]/).map(s=>s.trim()).filter(Boolean);
 }
+function l0Draft(){
+  return { rules_text: $("l0Rules").value, blocklist: normBlocklist($("l0Block").value) };
+}
+function l0Dirty(){
+  if (!l0Orig) return false;
+  const d = l0Draft();
+  return d.rules_text !== l0Orig.rules_text || d.blocklist.join("\n") !== l0Orig.blocklist.join("\n");
+}
+function updateL0State(){
+  const s = $("l0State");
+  const dirty = l0Dirty();
+  s.textContent = !l0Orig ? "" : dirty ? "● 수정됨 (운영 미반영)" : "운영값과 같음";
+  s.classList.toggle("dirty", dirty);
+}
+function renderL0(l0, force){
+  const next = { rules_text: (l0 && l0.rules_text) || "", blocklist: normBlocklist(l0 && l0.blocklist) };
+
+  const keepDraft = !force && l0Dirty();
+  l0Orig = next;
+  if (!keepDraft) {
+    $("l0Rules").value = next.rules_text;
+    $("l0Block").value = next.blocklist.join("\n");
+  }
+  updateL0State();
+}
+function l0Msg(text, isErr){
+  $("l0Msg").textContent = text || "";
+  $("l0Msg").style.color = isErr ? "#c0392b" : "";
+}
+$("l0Rules").addEventListener("input", updateL0State);
+$("l0Block").addEventListener("input", updateL0State);
+$("l0Reset").addEventListener("click", () => {
+  if (!l0Orig) return;
+  renderL0(l0Orig, true);
+  l0Msg("운영값으로 되돌렸습니다.");
+});
+
+function parentOrigin(){
+  if (window.parent === window) return null;
+  try {
+    if (location.ancestorOrigins && location.ancestorOrigins.length) return location.ancestorOrigins[0];
+    if (document.referrer) return new URL(document.referrer).origin;
+  } catch (e) {}
+  return null;
+}
+let l0ApplyReq = null;  
+$("l0Apply").addEventListener("click", () => {
+  const origin = parentOrigin();
+  if (!origin) {
+    l0Msg("운영 적용은 어드민 '대화 트레이닝 랩' 화면 안에서만 할 수 있어요.\n(어드민 로그인으로 저장합니다 — 이 창에는 어드민 권한이 없습니다)", true);
+    return;
+  }
+  const draft = l0Draft();
+  if (draft.rules_text.length > 8000) { l0Msg("안전규칙이 8000자를 넘습니다.", true); return; }
+  l0ApplyReq = "l0-" + Date.now();
+  $("l0Apply").disabled = true;
+  l0Msg("어드민에서 확인창을 띄웠어요. 내용을 확인하고 적용해 주세요.");
+  window.parent.postMessage({ type: "afl:l0-apply", id: l0ApplyReq, draft }, origin);
+});
+window.addEventListener("message", async (ev) => {
+  const d = ev.data;
+  if (!d || d.type !== "afl:l0-apply-result" || d.id !== l0ApplyReq) return;
+  if (ev.source !== window.parent || ev.origin !== parentOrigin()) return;
+  l0ApplyReq = null;
+  $("l0Apply").disabled = false;
+  if (d.ok) {
+    l0Msg("운영 L0 에 저장했어요. 이제부터 새로 시작하는 통화에 반영됩니다.");
+
+    const cloneId = parseInt($("clone").value, 10);
+    if (cloneId) {
+      try {
+        const r = await fetch("/oth-path?clone_id="+cloneId, { headers: authHeaders() });
+        if (r.ok) { const { l0 } = await r.json(); renderL0(l0, true); return; }
+      } catch (e) {}
+    }
+    renderL0(d.saved || l0Draft(), true);
+  } else {
+    l0Msg(d.cancelled ? "운영 적용을 취소했어요." : "운영 적용 실패: " + (d.error || "알 수 없는 오류"), !d.cancelled);
+  }
+});
 
 function renderL1(l1){
   const keys = Object.keys(l1||{});
@@ -510,6 +609,7 @@ async function send() {
     if ($("model").value.trim()) body.model = $("model").value.trim();
     if ($("temp").value !== "") body.temperature = parseFloat($("temp").value);
     if ($("useOverride").checked && $("overrideText").value.trim()) body.system_override = $("overrideText").value;
+    if ($("useL0Draft").checked) body.l0_override = l0Draft();
     const pid = parseInt($("person").value, 10);
     if (pid) { body.person_id = pid; }
 
