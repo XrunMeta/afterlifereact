@@ -75,19 +75,26 @@ def _mouth_position(W: int, H: int) -> tuple[float, float]:
         # 정사각 또는 가로 (얼굴 close-up)
         return (0.5, 0.72)
 
-# 입 색상 — T-640: 대비 강화. 이전 (110, 40, 45) 은 얼굴 위 blending 되어 잘 안 보임.
-LIP_COLOR = (55, 15, 20)         # 매우 진한 검붉은색 · outline 확실
-TEETH_COLOR = (245, 240, 225)    # 밝은 이빨색
-INNER_MOUTH_COLOR = (30, 10, 15) # 거의 검정 · 입안 확실히 어둡게
+# T-641 (2026-08-27): 사용자 지시 · T-640 크기·위치는 유지, 색만 자연스러운 입술 톤으로.
+#   이전 (55,15,20) 진한 검붉은색 + 불투명 → 얼굴 위에 "붉은 원 검정 점" 처럼 튀어 보임.
+#   자연스러운 입술 색 (알파 = 반투명) 로 얼굴에 blend.
+LIP_COLOR = (170, 100, 95, 200)      # 자연스러운 입술 톤 · 반투명 (a=200)
+TEETH_COLOR = (240, 230, 210, 230)   # 크림톤 이빨
+INNER_MOUTH_COLOR = (90, 45, 45, 220) # 어두운 붉음 · 열린 입 안쪽
 
-# T-640: outline 두께 상수 · 이전 width=OUTLINE_W 는 너무 얇음.
-OUTLINE_W = 4
+# T-641: outline 얇게 (얼굴에 자연 blend).
+OUTLINE_W = 2
 
 
 def _draw_mouth(img: Image.Image, viseme: str) -> Image.Image:
-    """이미지 사본에 viseme 에 맞는 입 오버레이 그리고 반환."""
+    """이미지 사본에 viseme 에 맞는 입 오버레이 그리고 반환.
+    T-641 (2026-08-27): 도형 색으로 덮어 그리지 않고, 얼굴 원본 픽셀 위에 반투명 어두운/밝은
+      마스크만 얹어서 "입 안이 열린" 느낌을 낸다. 얼굴 색이 살아있어 자연스러움.
+    """
     out = img.copy().convert("RGBA")
-    draw = ImageDraw.Draw(out, "RGBA")
+    # 오버레이 레이어 (원본 얼굴 위에 alpha_composite).
+    overlay = Image.new("RGBA", out.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay, "RGBA")
     W, H = out.size
     # T-640 fix: mouth 크기 기준을 짧은 변 → "얼굴 폭 추정" 으로 교체.
     #   세로 인물 사진(aspect >= 1.4)에선 얼굴이 W의 약 50% 만 차지 → short(=W) 기준으로 mouth 만들면 얼굴 폭의 절반 크기라 코까지 덮음.
@@ -109,35 +116,29 @@ def _draw_mouth(img: Image.Image, viseme: str) -> Image.Image:
     right, bottom = cx + w // 2, cy + h // 2
     bbox = (left, top, right, bottom)
 
-    if shape == "closed":
-        # 얇은 선 — 얼굴 위에 입 라인.
-        draw.line([(left, cy), (right, cy)], fill=LIP_COLOR, width=max(2, h))
-    elif shape == "oval":
-        # 세로로 열린 타원 — 안쪽 어둡게, 립 라인.
-        draw.ellipse(bbox, fill=INNER_MOUTH_COLOR, outline=LIP_COLOR, width=OUTLINE_W)
-    elif shape == "wide":
-        # 옆으로 넓은 타원 (얇음). 이가 살짝 보이도록 안쪽 밝게.
-        draw.ellipse(bbox, fill=TEETH_COLOR, outline=LIP_COLOR, width=OUTLINE_W)
-    elif shape == "round":
-        # 원형 (O/U). 안쪽 어둡게.
-        r = min(w, h) // 2
-        draw.ellipse(
-            (cx - r, cy - r, cx + r, cy + r),
-            fill=INNER_MOUTH_COLOR,
-            outline=LIP_COLOR,
-            width=OUTLINE_W,
-        )
-    elif shape == "teeth":
-        # 이 드러난 모양 (ㄷㅌㅅ). 밝은 안쪽 + 위쪽 이빨 선.
-        draw.ellipse(bbox, fill=TEETH_COLOR, outline=LIP_COLOR, width=OUTLINE_W)
-        # 위쪽 이빨 세로선 3개.
-        teeth_top = top + max(1, h // 4)
-        teeth_bot = cy
-        step = w // 4
-        for i in range(1, 4):
-            x = left + step * i
-            draw.line([(x, teeth_top), (x, teeth_bot)], fill=(200, 195, 180), width=1)
+    # T-641: alpha overlay 색 정의 (원본 얼굴 색을 살리는 반투명 마스크).
+    DARK = (0, 0, 0, 180)         # 입 안 열린 어두운 톤 (좀더 확실히 어둡게)
+    BRIGHT = (255, 255, 255, 100) # 이 드러난 밝은 톤
 
+    if shape == "closed":
+        # 다물음 · 마스크 안 얹음 (원본 얼굴 그대로).
+        pass
+    elif shape == "oval":
+        # 세로로 열린 · 어두운 반투명 타원.
+        draw.ellipse(bbox, fill=DARK)
+    elif shape == "wide":
+        # 옆으로 얇게 열림 · 살짝 어둡게.
+        draw.ellipse(bbox, fill=DARK)
+    elif shape == "round":
+        # 원형 (O/U) · 어둡게.
+        r = min(w, h) // 2
+        draw.ellipse((cx - r, cy - r, cx + r, cy + r), fill=DARK)
+    elif shape == "teeth":
+        # 이 드러남 · 살짝 밝게.
+        draw.ellipse(bbox, fill=BRIGHT)
+
+    # 원본 얼굴 위에 반투명 마스크 blend.
+    out = Image.alpha_composite(out, overlay)
     return out.convert("RGB")
 
 

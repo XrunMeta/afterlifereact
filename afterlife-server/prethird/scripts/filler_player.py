@@ -155,6 +155,22 @@ class FillerPlayer:
         # 직전 재생 index (랜덤 중복 방지)
         self._last_idx: int = -1
 
+        # AFL-746 (2026-09-18) — 세션 최초 filler 발동만 고정 idx 강제 재생.
+        # basename 이 'filler-04.mp4' (여보세요) 인 파일이 있으면 그 idx 를 첫 재생으로
+        # 강제하고, 이후 랜덤 풀에서는 완전히 제외한다.
+        #   · _first_idx    : 첫 재생 강제 idx (없으면 None → 원래 랜덤)
+        #   · _first_played : 첫 재생 소비 flag
+        #   · _exclude_idx  : 이후 랜덤에서 제외할 idx 집합
+        import os as _os
+        self._first_idx: Optional[int] = None
+        self._first_played: bool = False
+        self._exclude_idx: set[int] = set()
+        for _i, _p in enumerate(self._paths):
+            if _os.path.basename(_p) == "filler-04.mp4":
+                self._first_idx = _i
+                self._exclude_idx.add(_i)
+                break
+
     # ── 디코드 / 캐시 ─────────────────────────────────────────────────────
 
     def _get_decoded(
@@ -190,14 +206,23 @@ class FillerPlayer:
 
         - paths 0개 → -1(무효)
         - paths 1개 → 항상 0
-        - paths 2개 이상 → 직전(_last_idx)과 다른 index 우선(없으면 전체에서 선택)
+        - paths 2개 이상 → 직전(_last_idx)과 다른 index 우선(없으면 전체에서 선택).
+          _exclude_idx 는 랜덤 풀에서 완전히 배제(예: filler-04 여보세요).
+
+        ※ _first_idx (여보세요) 는 여기서 다루지 않는다 — _play_loop 가
+          세션 최초 start() 시 1회만 재생 후 루프를 종료한다.
         """
         n = len(self._paths)
         if n == 0:
             return -1
         if n == 1:
             return 0
-        candidates = [i for i in range(n) if i != self._last_idx]
+        candidates = [
+            i for i in range(n)
+            if i != self._last_idx and i not in self._exclude_idx
+        ]
+        if not candidates:
+            candidates = [i for i in range(n) if i not in self._exclude_idx]
         if not candidates:
             candidates = list(range(n))
         return random.choice(candidates)
@@ -218,9 +243,20 @@ class FillerPlayer:
         n = len(self._paths)
         consecutive_failures = 0
 
+        # AFL-746: 세션 최초 start() 는 _first_idx (여보세요) 1회만 재생 후 종료.
+        # 이후 start() 는 원래 무한 랜덤 루프.
+        _first_only_this_call = (
+            not self._first_played and self._first_idx is not None
+        )
+        _forced_first_idx = self._first_idx if _first_only_this_call else None
+        self._first_played = True
+
         try:
             while True:
-                idx = self._pick_next_idx()
+                if _forced_first_idx is not None:
+                    idx = _forced_first_idx
+                else:
+                    idx = self._pick_next_idx()
                 if idx < 0:
                     # paths 없음(방어 — start()에서 걸러지지만 안전장치)
                     break
@@ -259,9 +295,19 @@ class FillerPlayer:
                 if pcm.size > 0:
                     self._at.push_pcm_int16(pcm)
 
-                # LOOKAHEAD 전에 깨어나 다음 필러를 연속으로 push
-                # (큐 언더런 방지 + overflow 방지 — spec §4.C I-1)
+                # LOOKAHEAD 전에 깨어나 다음 필러를 연속으로 push (큐 언더런/overflow 방지).
+                # 이 await 이 빠지면 while 이 tight loop 로 폭주하여 매 iter 다음 filler 를
+                # 즉시 push → audio/video 큐가 순식간에 max 초과 → queue-drop 폭주.
                 await self._sleep_fn(sleep_dur)
+
+                # AFL-746 (2026-09-21): 매 start() 마다 필러 1개만 재생 후 루프 종료.
+                # 원래 무한 랜덤 루프는 응답 대기 중 여러 개가 연달아 재생돼 사용자
+                # 관점에서 "4개 연속" 으로 느껴짐. 1회로 자름.
+                log.info(
+                    "[filler] 1회 재생 완료 idx=%d (first=%s) — 루프 종료",
+                    idx, _forced_first_idx is not None,
+                )
+                break
 
         except asyncio.CancelledError:
             # stop() 또는 F7 즉시컷으로 인한 정상 취소
