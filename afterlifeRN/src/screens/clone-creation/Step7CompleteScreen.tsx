@@ -190,7 +190,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const v_4d3a74 =
     !!v_f04727.idleVideoJobId && (!v_7f3fda || v_7f3fda.status === 'pending' || v_7f3fda.status === 'running');
   const v_798360 = v_f04727.idleVideoJobId
-    ? v_7f3fda?.status !== 'done' && !(v_f04727.idleEngine && v_4d3a74)
+    ? v_7f3fda?.status === 'failed'
     : true;
 
   const v_a3d9bc = v_de06a3(async () => {
