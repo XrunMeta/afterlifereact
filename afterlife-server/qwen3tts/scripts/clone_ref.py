@@ -43,6 +43,33 @@ def ref_audio_path(clone_id: str, ref_root: str | None = None) -> str:
     return os.path.join(root, clone_id, "voice.wav")
 
 
+def pick_ref_pair(clone_id: str, ref_root: str | None = None) -> tuple[str, str | None, str]:
+    """(참조 wav, 그 wav 의 대본, 출처) 를 고른다.
+
+    문장 경계로 자른 견본 쌍(voice_prompt.wav + ref_prompt.txt)이 있으면 그것을 쓴다. 없으면 기존
+    voice.wav + ref_text.txt.
+
+    왜(2026-10-02): voice.wav 는 대개 10초보다 길어(102개 중 97개) extract_ref_clip 이 말 중간에서
+    자른다. 그 자리의 대본이 어긋나면 모델이 견본을 이어 말하듯 끝 구절을 매 문장 앞에 붙인다 —
+    프리셋 9522 는 10초 지점이 "예쁜 하|늘이나" 인데 대본이 "하이라이트가 있을까요?" 라서 모든 대답
+    앞에 "하이라이트가 있을까요?" 가 나왔다. 견본 쌍은 2026-08-13 CosyVoice 폭주 대응 때 문장 경계 +
+    꼬리 무음으로 잘라 대본을 맞춰 둔 것이다.
+    QWEN3TTS_PREFER_PROMPT_PAIR=0 이면 기존 동작으로 되돌린다.
+    """
+    root = ref_root if ref_root is not None else config.REF_ROOT
+    if os.environ.get("QWEN3TTS_PREFER_PROMPT_PAIR", "1") != "0":
+        pw = os.path.join(root, clone_id, "voice_prompt.wav")
+        pt = os.path.join(root, clone_id, "ref_prompt.txt")
+        if os.path.isfile(pw) and os.path.getsize(pw) >= 100 and os.path.isfile(pt):
+            try:
+                text = open(pt, encoding="utf-8").read().strip()
+            except OSError:
+                text = ""
+            if text:
+                return pw, text, "prompt_pair"
+    return ref_audio_path(clone_id, ref_root), load_ref_text(clone_id, ref_root), "voice_wav"
+
+
 def extract_ref_clip(voice_wav: str, max_sec: float | None = None):
     """voice.wav 앞부분 최대 max_sec 초를 mono float32 로 반환. (clip, sr).
     VAD(침묵 제거)는 후속 — 현재는 단순 head trim(위저드 녹음은 대본 1개라 충분히 김).

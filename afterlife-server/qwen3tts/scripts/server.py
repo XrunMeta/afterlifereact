@@ -3,7 +3,7 @@ import os, time, logging, threading
 from fastapi import FastAPI, Response, HTTPException
 from pydantic import BaseModel
 import config
-from clone_ref import parse_clone_id, ref_audio_path, load_ref_text
+from clone_ref import parse_clone_id, pick_ref_pair
 
 # 동시통화 음성 섞임 방지: GPU synth 직렬화 Lock
 _SYNTH_LOCK = threading.Lock()
@@ -68,7 +68,9 @@ def synth(req: SynthReq):
     else:
         raise HTTPException(400, "no clone specified (clone_id and se_path both absent)")
 
-    voice_wav = ref_audio_path(clone_id)
+    # 문장 경계 견본 쌍(voice_prompt.wav + ref_prompt.txt)이 있으면 우선 — voice.wav 를 10초에서
+    # 말 중간에 자르면 견본 끝 구절이 대답 앞에 새어 나온다(clone_ref.pick_ref_pair).
+    voice_wav, ref_text, ref_source = pick_ref_pair(clone_id)
     if not os.path.isfile(voice_wav):
         raise HTTPException(503, f"voice.wav missing for clone '{clone_id}'")
 
@@ -78,8 +80,7 @@ def synth(req: SynthReq):
     if _wav_size < 100:
         raise HTTPException(503, f"voice.wav too small ({_wav_size}B) for clone '{clone_id}'")
 
-    # ICL ref_text 배선: ref_text.txt 있으면 ICL 모드, 없으면 x_vector_only (기존 경로)
-    ref_text = load_ref_text(clone_id)
+    # ICL ref_text 배선: 대본이 있으면 ICL 모드, 없으면 x_vector_only (기존 경로) — pick_ref_pair 가 함께 고른다.
 
     gen_params = {k: getattr(req, k) for k in _GEN_KEYS if getattr(req, k) is not None}
 
@@ -103,6 +104,7 @@ def synth(req: SynthReq):
             "X-Wav-Bytes": str(len(wav)),
             "X-Clone-Id": clone_id,
             "X-Icl-Mode": "true" if ref_text is not None else "false",
+            "X-Ref-Source": ref_source,
         },
     )
 
