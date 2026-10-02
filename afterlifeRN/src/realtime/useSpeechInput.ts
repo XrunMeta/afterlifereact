@@ -2,6 +2,13 @@
 
 import { v_de06a3, v_c4deb2, v_df9f57, v_e662ae, v_5ab095 } from 'bapkr';
 import { v_d08429, v_3032b0 } from './voiceBall';
+import { v_d7f7b1 } from './timingEvents';
+
+const v_f47f7d = new Set(['not-allowed', 'service-not-allowed', 'language-not-supported']);
+export const v_b90ee2 = 5;
+export const v_1d6b6a = 800;
+
+export const v_7f5942 = [1000, 2000, 4000, 8000];
 
 export interface SpeechEngine {
 
@@ -42,6 +49,10 @@ export function v_fee12d(v_328259) {
   v_c4deb2(() => {
     v_dcd851.current = v_328259?.onFinalResult;
   });
+  const v_2c309a = v_e662ae(v_328259?.onUnrecoverable);
+  v_c4deb2(() => {
+    v_2c309a.current = v_328259?.onUnrecoverable;
+  });
 
   const v_3dfa34 = v_e662ae(v_328259?.onSpeechActivity);
   v_c4deb2(() => {
@@ -66,6 +77,14 @@ export function v_fee12d(v_328259) {
 
   const v_fe2b35 = v_e662ae(false);
   const v_6e2738 = v_e662ae<ReturnType<typeof setTimeout> | null>(null);
+
+  const v_b3ab0e = v_e662ae(0);
+
+  const v_130126 = v_e662ae(0);
+
+  const v_13d028 = v_e662ae(false);
+
+  const v_a39a3e = v_e662ae(false);
 
   const v_168497 = v_e662ae<ReturnType<typeof setTimeout> | null>(null);
 
@@ -128,6 +147,43 @@ export function v_fee12d(v_328259) {
     v_e2c189.current = setTimeout(() => v_f641ee.current(), v_9a5dc9.current);
   }, []);
 
+  const v_13effb = v_de06a3((v_3325c8, v_336f81) => {
+    if (v_6e2738.current) clearTimeout(v_6e2738.current);
+    v_6e2738.current = setTimeout(() => {
+      v_6e2738.current = null;
+      v_13d028.current = false;
+      v_a39a3e.current = false;
+      v_d7f7b1('stt_engine', { ev: 'restart', why: v_3325c8 });
+      if (!v_fe2b35.current) return;
+
+      if (v_b5958d.current) return;
+      try {
+
+        v_b5958d.current = true; 
+        const v_427ca2 = v_a4265b.current;
+        v_1e3df0.start({
+          lang: v_5254bf,
+          interimResults: true,
+          continuous: true,
+          volumeChangeEventOptions: { enabled: true, intervalMillis: 100 },
+          ...(v_427ca2 && v_427ca2.length > 0 ? { contextualStrings: v_427ca2 } : {}),
+        } as any);
+
+        if (v_168497.current) clearTimeout(v_168497.current);
+        v_168497.current = setTimeout(() => {
+          v_168497.current = null;
+
+          v_b5958d.current = false;
+        }, v_74fd06);
+      } catch {
+
+        v_b5958d.current = false;
+      }
+    }, v_336f81);
+  }, [v_1e3df0, v_5254bf]);
+  const v_b68c2b = v_e662ae(v_13effb);
+  v_b68c2b.current = v_13effb;
+
   const v_9061f1 = v_de06a3(() => {
     if (v_168497.current) {
       clearTimeout(v_168497.current);
@@ -150,6 +206,8 @@ export function v_fee12d(v_328259) {
       v_1e3df0.addListener('result', (v_e2a85c) => {
 
         if (!v_fe2b35.current) return;
+        v_b3ab0e.current = 0;
+        v_130126.current = 0;
         const v_8d41d7 = v_e2a85c?.results?.[0]?.transcript ?? '';
         const v_f6e5b7 = v_e2a85c?.isFinal === true;
 
@@ -178,6 +236,8 @@ export function v_fee12d(v_328259) {
 
       v_1e3df0.addListener('error', (v_e2a85c) => {
         const v_badeaf = v_e2a85c?.message ?? v_e2a85c?.error ?? 'stt_error';
+        const v_c99bd2 = v_e2a85c?.error ?? '';
+        v_d7f7b1('stt_engine', { ev: 'error', code: v_c99bd2, msg: String(v_badeaf).slice(0, 80), want: v_fe2b35.current });
 
         if (v_168497.current) {
           clearTimeout(v_168497.current);
@@ -194,8 +254,39 @@ export function v_fee12d(v_328259) {
           v_17e228(false);
         }, v_4c6a50);
         v_3a7d09(new Error(v_badeaf));
+        if (v_c99bd2 === 'no-speech') v_130126.current = 0; 
+        if (v_fe2b35.current && v_c99bd2 === 'network') {
+          const v_f4e98d = v_130126.current;
+          v_13d028.current = true;
+          if (v_f4e98d >= v_7f5942.length) {
+            v_d7f7b1('stt_engine', { ev: 'give_up', why: 'network', fails: v_f4e98d + 1 });
+            v_a39a3e.current = false;
+            v_fe2b35.current = false;
+            if (v_6e2738.current) {
+              clearTimeout(v_6e2738.current);
+              v_6e2738.current = null;
+            }
+            v_2c309a.current?.('network');
+          } else {
+            v_130126.current = v_f4e98d + 1;
+            v_a39a3e.current = true;
+            v_d7f7b1('stt_engine', { ev: 'backoff', ms: v_7f5942[v_f4e98d] });
+            v_b68c2b.current('network', v_7f5942[v_f4e98d]);
+          }
+        } else if (v_fe2b35.current) {
+          v_13d028.current = true;
+          if (v_f47f7d.has(v_c99bd2)) {
+            v_d7f7b1('stt_engine', { ev: 'restart_skip', why: 'fatal', code: v_c99bd2 });
+          } else if (v_b3ab0e.current >= v_b90ee2) {
+            v_d7f7b1('stt_engine', { ev: 'restart_skip', why: 'max', code: v_c99bd2 });
+          } else {
+            v_b3ab0e.current += 1;
+            v_b68c2b.current('error', v_1d6b6a);
+          }
+        }
       }),
       v_1e3df0.addListener('end', () => {
+        v_d7f7b1('stt_engine', { ev: 'end', want: v_fe2b35.current });
         v_b680bc(false);
         v_23245d.current = 0;
         v_d404a7(0); 
@@ -206,39 +297,15 @@ export function v_fee12d(v_328259) {
           v_17e228(false);
         }, v_4c6a50);
 
-        if (v_fe2b35.current) {
-          if (v_6e2738.current) clearTimeout(v_6e2738.current);
-          v_6e2738.current = setTimeout(() => {
-            if (!v_fe2b35.current) return;
-
-            if (v_b5958d.current) return;
-            try {
-
-              v_b5958d.current = true; 
-              const v_427ca2 = v_a4265b.current;
-              v_1e3df0.start({
-                lang: v_5254bf,
-                interimResults: true,
-                continuous: true,
-                volumeChangeEventOptions: { enabled: true, intervalMillis: 100 },
-                ...(v_427ca2 && v_427ca2.length > 0 ? { contextualStrings: v_427ca2 } : {}),
-              } as any);
-
-              if (v_168497.current) clearTimeout(v_168497.current);
-              v_168497.current = setTimeout(() => {
-                v_168497.current = null;
-
-                v_b5958d.current = false;
-              }, v_74fd06);
-            } catch {
-
-              v_b5958d.current = false;
-            }
-          }, 400);
+        if (v_13d028.current) {
+          v_13d028.current = false; 
+        } else if (v_fe2b35.current) {
+          v_b68c2b.current('end', 400);
         }
       }),
 
       v_1e3df0.addListener('start', (v_2d3e87) => {
+        v_d7f7b1('stt_engine', { ev: 'start', want: v_fe2b35.current });
 
         if (!v_fe2b35.current) return;
         v_9061f1();
@@ -295,6 +362,11 @@ export function v_fee12d(v_328259) {
     if (v_b5958d.current) {
       return;
     }
+
+    if (v_a39a3e.current) {
+      v_fe2b35.current = true;
+      return;
+    }
     v_fe2b35.current = true; 
     v_3a7d09(null);
     v_8028c0('');
@@ -341,6 +413,10 @@ export function v_fee12d(v_328259) {
 
     v_fe2b35.current = false; 
     v_b5958d.current = false; 
+
+    v_130126.current = 0;
+    v_a39a3e.current = false;
+    v_13d028.current = false;
     if (v_6e2738.current) {
       clearTimeout(v_6e2738.current);
       v_6e2738.current = null;

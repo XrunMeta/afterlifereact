@@ -40,6 +40,8 @@ export function v_7df8a4(opts: {
   speechEngine?: v_be7277;
 
   silenceMs?: number;
+
+  onSttUnrecoverable?: (reason: 'network') => void;
   silenceConfig?: Partial<v_5a4c65>;
 
   confirmMs?: number;
@@ -104,6 +106,7 @@ export function v_7df8a4(opts: {
 
     silenceMs: v_328259.silenceMs ?? 1500,
     contextualStrings: v_328259.contextualStrings,
+    onUnrecoverable: (v_58ca36) => v_328259.onSttUnrecoverable?.(v_58ca36),
     onFinalResult: (v_9b6134) => {
 
       const v_1c0b3c = Date.now() - v_84a65f.current;
