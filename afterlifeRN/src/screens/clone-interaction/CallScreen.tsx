@@ -2133,12 +2133,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const rootCaptureRef = useRef<View>(null);
 
   useEffect(() => {
-    void (async () => {
-      try { await MediaLibrary.requestPermissionsAsync(); } catch {  }
-    })();
-  }, []);
-
-  useEffect(() => {
     const sub = ScreenCapture.addScreenshotListener(() => {
       void (async () => {
         try {
@@ -2150,9 +2144,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
             format: "jpg",
             quality: 0.9,
           });
-          const perm = await MediaLibrary.getPermissionsAsync();
+
+          const perm = await MediaLibrary.getPermissionsAsync(true);
           if (!perm.granted) {
-            const req = await MediaLibrary.requestPermissionsAsync();
+            const req = await MediaLibrary.requestPermissionsAsync(true);
             if (!req.granted) throw new Error("media permission denied");
           }
           await MediaLibrary.createAssetAsync(uri);
