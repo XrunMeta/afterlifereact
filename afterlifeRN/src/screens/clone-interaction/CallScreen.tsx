@@ -2209,18 +2209,20 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       ) : remoteStream ? (
 
         <View style={s.videoFixedContainer}>
+          {
+}
           {liveIdleVideoUrl ? (
             <VideoView
               player={idlePlayer}
               style={StyleSheet.absoluteFillObject}
               nativeControls={false}
-              contentFit="cover"
+              contentFit="contain"
             />
           ) : personaImage ? (
             <Image
               source={typeof personaImage === "number" ? personaImage : { uri: personaImage }}
               style={StyleSheet.absoluteFillObject}
-              resizeMode="cover"
+              resizeMode="contain"
             />
           ) : null}
           <View
@@ -2229,7 +2231,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           >
             <RTCView
               streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
-              objectFit="cover"
+              objectFit="contain"
               style={s.videoFixedRtc}
             />
           </View>
