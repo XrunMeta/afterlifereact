@@ -1386,11 +1386,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       chatUserSentAt.current = Date.now();
 
       if (
-        /안녕|반가워|반갑|오랜만|고마워|고맙|감사|잘생|예쁘|이쁘|예뻐|이뻐|귀여|귀엽|멋져|멋지|멋있|대박|최고|잘\s*했|잘한|웃어\s*봐|웃겨\s*봐|웃겨줘|재밌게\s*해줘|사랑스|짱|훌륭|완벽|굿|나이스/.test(transcript)
-      ) {
-        pendingEmoteRef.current = { key: 'smile', emoji: '🙂', label: '미소' };
-        console.log('[Call][emote] pending smile queued (fire on clone speech_end)');
-      } else if (
         /사랑해|좋아해|보고\s*싶|자기야|뽀뽀|안아|설레|심쿵|❤|💕|💗|😘|😍/.test(transcript)
       ) {
         pendingEmoteRef.current = { key: 'wink', emoji: '😉', label: '윙크' };
