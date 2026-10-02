@@ -138,11 +138,14 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
   const v_7c2f5d = v_bbb3d3.status === "detected";
   const v_6a5345 = 0.15; 
 
+  const v_822ad2 = 0.98;
+
   const v_4e2fd3 = 0.15;
   const v_061968 = 0.55;
   const v_b9889b = 0.25;
   const v_892cc8 = 0.75;
-  const v_3c43bd = v_7c2f5d && v_1f6878 >= v_6a5345;
+  const v_3c43bd =
+    v_7c2f5d && v_1f6878 >= v_6a5345 && v_1f6878 <= v_822ad2;
   const v_3fa3e2 =
     v_f61235 >= v_4e2fd3 &&
     v_f61235 <= v_061968 &&
@@ -154,6 +157,8 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
     ? v_8d41d7("create.image.faceGuideHint")
     : v_1f6878 < v_6a5345
     ? v_8d41d7("create.image.faceTooSmall")
+    : v_1f6878 > v_822ad2
+    ? v_8d41d7("create.image.faceTooLarge")
     : !v_3fa3e2
     ? v_8d41d7("create.image.faceOffCenter")
     : null;
