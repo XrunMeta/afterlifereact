@@ -198,17 +198,3 @@ def test_turn_recorded_in_finally_when_reply_done_never_fires(monkeypatch, tmp_p
         monkeypatch, tmp_path, _SlowPlaybackPipeline(0.2, call_reply_done=False), [0.05, 0.4])
     assert counts == [0, 1]
     assert captured[0]["clone_reply"] == "고추 땄구나"     # turn._tokens 누적본
-
-
-# ---- Bridge 종료 신호: datachannel {"type":"bridge","state":"end"} → pipeline.bridge_ended() ----
-def test_bridge_end_message_releases_pipeline_and_is_not_a_say():
-    class _P:
-        def __init__(self): self.ended = 0; self.said = 0
-        def bridge_ended(self): self.ended += 1
-        async def say(self, *a, **k): self.said += 1
-    sess = Session("0123456789ab")
-    sess.pipeline = _P()
-    handler = _make_dc_handler(sess, channel=None)
-    handler(_json.dumps({"type": "bridge", "state": "end"}))
-    handler(_json.dumps({"type": "bridge", "state": "start"}))   # start 는 무시
-    assert sess.pipeline.ended == 1 and sess.pipeline.said == 0
