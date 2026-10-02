@@ -24,7 +24,7 @@ v_469bf2("GET /oth-path", () => {
     const v_4d33b2 = await v_8f00b9.json<{ questions: { key: string }[] }>();
     v_4d37e3(Array.isArray(v_4d33b2.questions)).toBe(true);
 
-    v_4d37e3(v_4d33b2.questions.some((v_ab6401) => v_ab6401.key === "tone")).toBe(true);
+    v_4d37e3(v_4d33b2.questions.some((v_ab6401) => v_ab6401.key === "age")).toBe(true);
   });
 
   v_23805a("401 without token", async () => {

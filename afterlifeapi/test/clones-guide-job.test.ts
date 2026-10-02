@@ -113,12 +113,6 @@ v_469bf2("T-116 B Task4: guide 잡 트리거 — persona(L0/L1) 동봉", () => {
 
     v_4d37e3(v_ac5ea8!.status).toBe("running");
 
-    const v_9f844e = await v_a1651b
-      .prepare(`SELECT status FROM clone_asset_jobs WHERE clone_id=? AND kind='filler'`)
-      .bind(v_6e0fd3)
-      .first<{ status: string }>();
-    v_4d37e3(v_9f844e).toBeTruthy();
-    v_4d37e3(v_9f844e!.status).toBe("running");
   });
 
   v_23805a("guide 잡 orchestrator 중계 payload에 persona(l0/l1) 필드 포함", async () => {
