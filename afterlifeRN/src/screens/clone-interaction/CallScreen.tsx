@@ -2211,30 +2211,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         <View style={s.videoFixedContainer}>
           {
 }
-          {liveIdleVideoUrl ? (
-            <VideoView
-              player={idlePlayer}
-              style={StyleSheet.absoluteFillObject}
-              nativeControls={false}
-              contentFit="contain"
-            />
-          ) : personaImage ? (
-            <Image
-              source={typeof personaImage === "number" ? personaImage : { uri: personaImage }}
-              style={StyleSheet.absoluteFillObject}
-              resizeMode="contain"
-            />
-          ) : null}
-          <View
-            style={[s.videoFixedRtc, StyleSheet.absoluteFillObject, { opacity: speakActive ? 1 : 0 }]}
-            pointerEvents="none"
-          >
-            <RTCView
-              streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
-              objectFit="contain"
-              style={s.videoFixedRtc}
-            />
-          </View>
+          <RTCView
+            streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
+            objectFit="contain"
+            style={s.videoFixedRtc}
+          />
         </View>
       ) : visemeResponse !== undefined && livePipeline === 'viseme_playback' ? (
 
