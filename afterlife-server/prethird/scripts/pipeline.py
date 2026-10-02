@@ -186,9 +186,32 @@ GREETING_PROMPT = (
 GREETING_PROMPT_WITH_PRIOR = (
     "방금 통화가 연결됐어. 이 상대와는 전에 통화한 적이 있어(위 '지난 통화 기록'). "
     "아직 얼굴을 확인하기 전이니 상대 이름·호칭은 절대 부르지 마. "
-    "아는 사람 전화를 받은 것처럼 반갑게, 한두 문장으로 짧게 인사해. "
-    "지난 통화에서 나온 이야기 하나를 자연스럽게 이어 꺼내도 좋아(없는 얘기는 지어내지 마)."
+    "아는 사람 전화를 받은 것처럼 반갑게, **딱 한 문장, 20자 안팎**으로만 인사해. "
+    "지난 통화 이야기를 꺼내려면 그 한 문장 안에 짧게 담아(예: '고추는 다 땄어?'). "
+    "없는 얘기는 지어내지 마."
 )
+
+# AFL-926 (2026-10-02 실통화): 인사가 두 문장·10초 분량으로 나와 TTS 9s + 렌더 14s →
+#   연결 화면 25s 안전망을 1초 차로 넘겼다. 인사 문장은 렌더 시간이 곧 연결 대기라
+#   첫 문장만 쓰고 GREETING_MAX_CHARS 로 자른다(프롬프트만으로는 길이가 안 지켜진다).
+GREETING_MAX_CHARS = 40
+_SENTENCE_END_RE = re.compile(r"[.?!…~](?=\s|$)|\n")
+
+
+def first_sentence(text: str, max_chars: int = GREETING_MAX_CHARS) -> str:
+    """첫 문장(종결부호 포함)만. 그래도 길면 max_chars 안의 마지막 쉼표·공백에서 자른다."""
+    t = (text or "").strip()
+    m = _SENTENCE_END_RE.search(t)
+    if m:
+        t = t[: m.end()].strip()
+    if len(t) <= max_chars:
+        return t
+    cut = t[:max_chars]
+    for sep in (",", " "):
+        i = cut.rfind(sep)
+        if i >= max_chars // 2:
+            return cut[:i].strip()
+    return cut.strip()
 
 
 def greeting_prompt(has_prior: bool) -> str:
@@ -368,9 +391,18 @@ class DialoguePipeline:
         )
         try:
             out: list[str] = []
-            async for tok in self.chat_fn(messages):
-                out.append(str(tok))
-            return "".join(out).strip()
+            agen = self.chat_fn(messages)
+            try:
+                async for tok in agen:
+                    out.append(str(tok))
+                    # 첫 문장이 끝나면 더 받지 않는다 — 어차피 잘라 버릴 토큰이다.
+                    if _SENTENCE_END_RE.search("".join(out).strip()):
+                        break
+            finally:
+                aclose = getattr(agen, "aclose", None)
+                if aclose is not None:
+                    await aclose()
+            return first_sentence("".join(out))
         except Exception as e:  # noqa: BLE001
             log.warning("[AFL-926/prerender] 인사 생성 실패: %s", e)
             return ""
