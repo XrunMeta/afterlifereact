@@ -165,7 +165,8 @@ export function v_306c75(v_38a552, { secret: v_43fd42, cfg: v_01dcf5 = {}, deps:
 
     const v_c8813c = v_94302c === 'filler';
     const v_927a9c = v_94302c === 'guide';
-    const v_c5037d = v_c8813c || v_927a9c; 
+    const v_966ea0 = v_94302c === 'persona_videos'; 
+    const v_c5037d = v_c8813c || v_927a9c || v_966ea0; 
     const v_e1287a = v_94302c === 'idle_video' || v_94302c === 'voice_clone';
     if (
       !v_b0d200 ||
