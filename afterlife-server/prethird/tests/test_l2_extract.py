@@ -165,3 +165,10 @@ async def test_extract_drops_non_string_memories(monkeypatch):
     monkeypatch.setattr(l2_extract, "chat_once", _fake)
     out = await l2_extract.extract_l2("오이 땄어", "고생했네")
     assert out["memories_personal"] == ["오이를 땄다"]
+
+
+def test_extract_prompt_ignores_clone_facts_and_prefixes_subject():
+    # 2026-10-02: 클론의 "취미는 텃밭 · 막걸리 한잔" 이 사용자 취향으로 저장됐다.
+    p = l2_extract._EXTRACT_SYSTEM
+    assert "NEVER store the clone's own hobbies" in p
+    assert "each starting with '사용자는'" in p
