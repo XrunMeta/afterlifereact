@@ -20,11 +20,13 @@ export function v_1980fb(props: {
   onCancel: () => void;
   onRetry: () => void;
 
+  poorConnection?: boolean;
+
   greetingStarted?: boolean;
 
   silent?: boolean;
 }) {
-  const { liveState: v_6cc918, personaName: v_dfb220, personaImage: v_0e38ad, greetingStarted: v_7a419e, silent: v_669bef, onConnected: v_a4c77b, onCancel: v_c7001c, onRetry: v_09e13b } = v_b1927c;
+  const { liveState: v_6cc918, personaName: v_dfb220, personaImage: v_0e38ad, greetingStarted: v_7a419e, silent: v_669bef, onConnected: v_a4c77b, onCancel: v_c7001c, onRetry: v_09e13b, poorConnection: v_c518d6 } = v_b1927c;
   const { t: v_8d41d7 } = v_772971();
   const v_f22657 = v_e662ae(Date.now());
   const v_5d6849 = v_e662ae(0);
@@ -69,8 +71,8 @@ export function v_1980fb(props: {
   }, [v_f22838, v_05d0df, v_a4c77b, v_6cc918, v_e56026, v_669bef]);
 
   v_c4deb2(() => {
-    if (v_f22838 === 'timeout' || v_f22838 === 'error') v_05d0df.stopDialingTone();
-  }, [v_f22838, v_05d0df]);
+    if (v_f22838 === 'timeout' || v_f22838 === 'error' || v_c518d6) v_05d0df.stopDialingTone();
+  }, [v_f22838, v_05d0df, v_c518d6]);
 
   const v_10b69e = v_e662ae(new v_a2349e.Value(0)).current;
   v_c4deb2(() => {
@@ -83,7 +85,7 @@ export function v_1980fb(props: {
   const v_d104ce = v_10b69e.interpolate({ inputRange: [0, 1], outputRange: [1, 1.8] });
   const v_ce1ac8 = v_10b69e.interpolate({ inputRange: [0, 1], outputRange: [0.5, 0] });
 
-  const v_0bc646 = v_f22838 === 'timeout' || v_f22838 === 'error';
+  const v_0bc646 = v_f22838 === 'timeout' || v_f22838 === 'error' || (!!v_c518d6 && !v_163855);
   const v_75d782 = !v_163855 && v_0bc646 && v_32428f >= v_7bc42a; 
 
   const v_1a397e = () => {
@@ -102,6 +104,8 @@ export function v_1980fb(props: {
         <Text style={v_d81136.sub}>
           {v_75d782
             ? v_8d41d7('call.connectExhausted', { defaultValue: '지금은 연결이 어려워요\n잠시 후 다시 시도해 주세요' })
+            : v_c518d6 && !v_163855
+            ? v_8d41d7('call.poorConnection', { defaultValue: '전화 상태가 좋지 않습니다\n다시 걸어주세요' })
             : v_f22838 === 'error'
             ? v_8d41d7('call.connectFailed', { defaultValue: '연결에 실패했어요' })
             : v_f22838 === 'timeout'

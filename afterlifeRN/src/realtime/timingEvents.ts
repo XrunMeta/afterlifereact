@@ -12,7 +12,8 @@ export type TimingEventType =
   | 'seq_drop'   
   | 'timer'      
   | 'avatar'     
-  | 'interrupt'; 
+  | 'interrupt'  
+  | 'stt_engine'; 
 
 export type TimingDetail = Record<string, string | number | boolean | null>;
 
