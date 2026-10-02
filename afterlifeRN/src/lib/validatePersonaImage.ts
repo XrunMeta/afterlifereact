@@ -18,7 +18,6 @@ export type ValidationResult =
   | { ok: false; reason: ValidationReason };
 
 const v_6a5345 = 0.08;
-const v_822ad2 = 0.85;
 
 export const v_eb3a93 = 0.35;
 
@@ -53,7 +52,6 @@ export function v_8472c4(faces: v_ab3a39[] | null | undefined, v_05b441): Valida
   const v_58b636 = Math.max(v_05b441.width, v_05b441.height);
   const v_80396f = v_58b636 > 0 ? v_cecddc / v_58b636 : 0;
   if (v_80396f < v_6a5345) return { ok: false, reason: "too_small" };
-  if (v_80396f > v_822ad2) return { ok: false, reason: "too_large" };
 
   if (v_b16994.length > 1 && v_3df367(v_b16994[1]) >= v_3df367(v_127e92) * v_eb3a93) {
     return { ok: false, reason: "multiple_faces" };
