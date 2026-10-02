@@ -229,6 +229,26 @@ it('start: usesBridge 미지정이면 bridge 를 싣지 않는다(서버는 기�
   expect('bridge' in JSON.parse(v_00cfc6.body)).toBe(false);
 });
 
+it.each([[true, true], [false, false]])('start: usesBridge=%s → bridge_signal 포함=%s', async (v_2aa951, v_505a6d) => {
+  v_897bd0();
+  const v_32dc97 = v_9051ce(); const v_12cd99 = v_e6273b(v_32dc97);
+  const { result: v_43c42e } = v_0da18b(() =>
+    v_3d8d48({ cloneId: 7, accessToken: 't', usesBridge: v_2aa951, deps: v_84b93d(v_12cd99) as never }));
+  await v_be73a0(async () => { await v_43c42e.current.start(); });
+  const [, v_00cfc6] = (global.fetch as jest.Mock).mock.calls[0];
+  expect(JSON.parse(v_00cfc6.body).bridge_signal === true).toBe(v_505a6d);
+});
+
+it('sendBridgeEnd: 열린 datachannel 로 {type:bridge,state:end} 를 보낸다', async () => {
+  v_897bd0();
+  const v_32dc97 = v_9051ce(); const v_12cd99 = v_e6273b(v_32dc97);
+  const { result: v_43c42e } = v_0da18b(() =>
+    v_3d8d48({ cloneId: 7, accessToken: 't', usesBridge: true, deps: v_84b93d(v_12cd99) as never }));
+  await v_be73a0(async () => { await v_43c42e.current.start(); });
+  v_be73a0(() => { v_43c42e.current.sendBridgeEnd(); });
+  expect(v_32dc97.sent.map((v_62c214) => JSON.parse(v_62c214))).toContainEqual({ type: 'bridge', state: 'end' });
+});
+
 function v_1d3fbb() {
   const v_32dc97 = v_9051ce();
   const v_12cd99 = v_e6273b(v_32dc97);

@@ -554,6 +554,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     lastSignal,
     sendFaceEvent,
     sendAudioReady,
+    sendBridgeEnd,
 
     visemeResponse,
   } = useAvatarCall({
@@ -1269,6 +1270,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     bridgeGraceTimerRef.current = setTimeout(() => {
       const pending = bridgePendingTextRef.current;
       if (!pending) return; 
+
+      if (speakActiveRef.current) {
+        bridgeGraceTimerRef.current = null;
+        bridgePendingTextRef.current = null;
+        return;
+      }
       console.log(`[T-806/bridge] grace elapsed · playBridge`);
       try { yoonjeongRef.current?.playBridge(pending); } catch (e) {
         console.warn(`[T-806/bridge] playBridge failed:`, e);
@@ -1300,7 +1307,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const onBridgeEnd = useCallback(() => {
     setBridgeActive(false);
-  }, []);
+    sendBridgeEnd?.();
+  }, [sendBridgeEnd]);
 
   useEffect(() => {
     if (liveState !== "live" || rmState.mode !== "grace") return;
