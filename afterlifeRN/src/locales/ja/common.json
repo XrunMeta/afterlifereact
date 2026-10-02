@@ -223,6 +223,8 @@
     "noCredits": "クレジットが不足しています",
     "giftSent": "{{name}}をプレゼントしました",
     "giftTitle": "ギフトを贈る",
+    "captureSavedToast": "保存しました",
+    "capturePermNeededToast": "スクリーンショットを保存するには、設定で写真へのアクセスを許可してください",
     "faceDetected": "顔を検出しました",
     "faceNotDetected": "未検出",
     "faceConsentHint": "顔の位置のみ検出し、顔データは保存されません。",
