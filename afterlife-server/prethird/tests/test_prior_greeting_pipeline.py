@@ -207,3 +207,41 @@ async def test_say_on_reply_done_failure_does_not_break_say(prior_on):
         raise RuntimeError("record failed")
     await pipe.say("안녕", on_reply_done=_boom)
     assert vt.frames and at.ended
+
+
+# ---- AFL-926 (2026-10-02 4차 실통화): 첫인사 한 문장 강제 ----
+from pipeline import first_sentence, GREETING_MAX_CHARS  # noqa: E402
+
+
+@pytest.mark.parametrize("raw,want", [
+    ("오랜만이네, 전에 말하던 그 생각 정리하는 거는 좀 됐어? 아직 얼굴은 안 보이네.",
+     "오랜만이네, 전에 말하던 그 생각 정리하는 거는 좀 됐어?"),
+    ("고추는 다 땄어?", "고추는 다 땄어?"),
+    ("여보세요\n누구세요", "여보세요"),
+    ("", ""),
+])
+def test_first_sentence(raw, want):
+    assert first_sentence(raw) == want
+
+
+def test_first_sentence_caps_length_at_separator():
+    raw = "아이고 반갑다 우리 손주 오늘은 날씨도 좋은데 밥은 잘 챙겨 먹었고 학교는 잘 다녀왔나 궁금하다"
+    out = first_sentence(raw)
+    assert len(out) <= GREETING_MAX_CHARS and raw.startswith(out) and not out.endswith(" ")
+
+
+@pytest.mark.asyncio
+async def test_prerender_greeting_uses_only_first_sentence(prior_on):
+    """LLM 이 길게 말해도 인사는 첫 문장만 — 렌더 시간이 곧 연결 대기다."""
+    pulled = []
+    pipe, vt, at = _make([], reply=("반갑다,", " 고추는 다 땄어?", " 오늘은", " 날씨가", " 좋네."))
+    orig = pipe.chat_fn
+
+    async def _counting(messages):
+        async for t in orig(messages):
+            pulled.append(t)
+            yield t
+    pipe.chat_fn = _counting
+    await pipe.prerender_greeting(None)
+    assert pipe._prerender_text == "반갑다, 고추는 다 땄어?"
+    assert len(pulled) == 2                  # 첫 문장 뒤 토큰은 받지 않는다
