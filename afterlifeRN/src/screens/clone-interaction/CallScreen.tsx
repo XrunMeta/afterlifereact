@@ -2167,10 +2167,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
         <View style={s.videoFixedContainer}>
           {
+
 }
           <RTCView
             streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
-            objectFit="contain"
+            objectFit="cover"
             style={s.videoFixedRtc}
           />
         </View>
