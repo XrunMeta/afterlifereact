@@ -39,10 +39,11 @@ TMP=$(mktemp -d)
 cd "$LP"
 
 # driving 영상 trim + slow down (ffmpeg -t + setpts) — T-947 (2026-10-02)
-#   사용자 "너무 빨라" — 깜박임 간격을 2배 느리게.
-#   setpts=2.0*PTS → 재생 속도 1/2 → 깜박임 간격 2배. 결과 영상도 2배 길이(10s).
-#   LivePortrait inference 는 그 길이에 비례해 조금 더 걸리지만 더 자연스러운 체감.
-DRIVING_SLOW_FACTOR=2.0
+#   사용자 "너무 빨라" → 2배 느리게 (SLOW=2.0).
+#   재튜닝 (2026-10-02 2차): "눈 감는 거 더 줄여줘... 너무 많이 깜박거린다" → 3.5배로.
+#   setpts=3.5*PTS → 재생 속도 ~0.29x → 깜박임 간격 3.5배. 결과 영상 ~17.5s(5s * 3.5).
+#   loop 재생이라 길이는 체감 영향 없고 깜박임 빈도만 더 뜸해진다.
+DRIVING_SLOW_FACTOR=3.5
 TRIMMED_DRIVING="$TMP/driving-${DRIVING_TRIM_SEC}s-slow.mp4"
 ffmpeg -y -loglevel error \
   -i "$LP/assets/examples/driving/$DRIVING.mp4" \
