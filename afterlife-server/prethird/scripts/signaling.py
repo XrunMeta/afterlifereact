@@ -1065,6 +1065,12 @@ def _make_dc_handler(sess, channel):
         except (ValueError, TypeError):
             return
         mtype = data.get("type")
+        # 앱의 Bridge 재생 종료 통보 — 이번 턴의 첫 응답 대기를 푼다(발화 경로 아님).
+        if mtype == "bridge" and data.get("state") == "end" and sess.pipeline is not None:
+            fn = getattr(sess.pipeline, "bridge_ended", None)
+            if callable(fn):
+                fn()
+            return
         if mtype not in ("say", "speak", "greet", "face_event") or sess.pipeline is None:
             return
         if mtype == "face_event":
@@ -1542,6 +1548,11 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                 if isinstance(_bridge, bool):
                     sess.pipeline.uses_bridge = _bridge
                     log.info("session %s bridge=%s", sess.session_id, _bridge)
+                # 앱이 Bridge 종료를 datachannel 로 알려 주는지. true 면 첫 응답을 고정 12s 대신
+                #   "렌더 완료 ∧ Bridge 종료" 시점에 보낸다(pipeline._wait_bridge_gate). 없으면 기존 대기.
+                if params.get("bridge_signal") is True:
+                    sess.pipeline.bridge_signal = True
+                    log.info("session %s bridge_signal=on", sess.session_id)
 
                 # AFL-926: 이 계정×클론의 이전 대화를 다이얼링 중에 받아 둔다(백그라운드).
                 #   env PRETHIRD_PRIOR_CONVERSATION=1 일 때만 실제 조회(prior_conversation.py).
