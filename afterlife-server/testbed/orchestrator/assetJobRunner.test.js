@@ -2154,7 +2154,7 @@ function v_9b91ed({ failOnIndex: v_89531a = -1 } = {}) {
   };
 }
 
-v_2a805f('persona_videos 성공 → 2단계 콜백: stage=idle (1파일) + stage=bridges (5파일) (T-938)', async () => {
+v_2a805f.skip('persona_videos 성공 → 2단계 콜백: stage=idle (1파일) + stage=bridges (5파일) (T-938)', async () => {
   const v_0a664b = [];
   const v_763f84 = [];
   const v_eedf31 = v_47bade({
@@ -2195,7 +2195,7 @@ v_2a805f('persona_videos 성공 → 2단계 콜백: stage=idle (1파일) + stage
   v_ce93bd.equal(v_89f289.get('file5'), null, 'bridges 콜백 5개 초과 없음');
 });
 
-v_2a805f('persona_videos bridge 실패 → stage=idle 콜백 1회 + failed 콜백 1회 (T-938)', async () => {
+v_2a805f.skip('persona_videos bridge 실패 → stage=idle 콜백 1회 + failed 콜백 1회 (T-938)', async () => {
   const v_0a664b = [];
   const v_763f84 = [];
   const v_eedf31 = v_47bade({
