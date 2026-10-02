@@ -78,7 +78,7 @@ function v_9d05cd(v_32dc97, v_11bcf9): Promise<boolean> {
 }
 
 export function v_3d8d48(v_328259): v_b01667 {
-  const { cloneId: v_6e0fd3, accessToken: v_2ca7e0, onEnrollSuggest: v_46947d, onRememberMe: v_b94db0, pipeline: v_883ce9 } = v_328259;
+  const { cloneId: v_6e0fd3, accessToken: v_2ca7e0, onEnrollSuggest: v_46947d, onRememberMe: v_b94db0, pipeline: v_883ce9, usesBridge: v_b7b2b2 } = v_328259;
 
   const v_84b93d = v_328259.deps ?? v_17f880;
   const [v_b6e533, v_1fa668] = v_5ab095<v_d20273>('idle');
@@ -104,6 +104,9 @@ export function v_3d8d48(v_328259): v_b01667 {
 
   const v_1402c0 = v_e662ae(v_883ce9);
   v_c4deb2(() => { v_1402c0.current = v_883ce9; }, [v_883ce9]);
+
+  const v_5fa2a5 = v_e662ae(v_b7b2b2);
+  v_c4deb2(() => { v_5fa2a5.current = v_b7b2b2; }, [v_b7b2b2]);
 
   v_c4deb2(() => { v_d7f7b1('avatar', { phase: v_ab4803 }); }, [v_ab4803]);
 
@@ -311,6 +314,8 @@ export function v_3d8d48(v_328259): v_b01667 {
         v_7524b9.user_location = v_146d3d;
         v_7524b9.ask_region_intro = v_ea4829;
       }
+
+      if (typeof v_5fa2a5.current === 'boolean') v_7524b9.bridge = v_5fa2a5.current;
       const v_cb35cb = await fetch(v_f71b56, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

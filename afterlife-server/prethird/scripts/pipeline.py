@@ -318,6 +318,8 @@ class DialoguePipeline:
         self._history = ConversationHistory.from_env()
         # AFL-926: 이전 대화 로딩·인사 prerender 태스크. signaling 이 offer 직후 띄운다.
         #   발화 경로(say/greet/react)는 메시지 조립 전에 이전 대화 로딩을 잠깐 기다린다.
+        # AFL-926: 앱이 Bridge 클립을 트는 통화인지(offer "bridge"). None = 모름(구 앱) → 기존처럼 대기.
+        self.uses_bridge: bool | None = None
         self._prior_task: asyncio.Future | None = None
         self._prerender_task: asyncio.Future | None = None
 
@@ -1000,7 +1002,8 @@ class DialoguePipeline:
             # Bridge 대기는 사용자 응답(say/speak)에만 — greet/react(force_partial)는 앱이 Bridge 를
             # 틀지 않으므로(onUserFinal 트리거) 기다리면 무음만 늘어난다(AFL-926 실측 첫인사 ~21초).
             await self._run_pipeline_partial(produce, turn, on_first_audio, on_response_ready,
-                                             on_sentence=on_sentence, bridge_wait=not force_partial)
+                                             on_sentence=on_sentence,
+                                             bridge_wait=(not force_partial) and self.uses_bridge is not False)
 
     async def _run_batch(
         self, produce, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None,

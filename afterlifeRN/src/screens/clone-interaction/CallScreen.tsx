@@ -561,6 +561,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
     pipeline: livePipeline ?? (clone as { pipeline?: string | null })?.pipeline ?? null,
 
+    usesBridge:
+      (livePipeline ?? (clone as { pipeline?: string | null })?.pipeline ?? null) === 'avatar_v2' ||
+      String(paramName || (clone as { displayName?: string } | null | undefined)?.displayName || '')
+        .toLowerCase().includes('[v2]'),
+
     ttsOutput: liveTtsOutput ?? (clone as { ttsOutput?: string | null })?.ttsOutput ?? null,
 
     voiceModelManifestUrl: liveVoiceModelManifestUrl,
@@ -1206,6 +1211,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const nameForCheck = String(paramName || (clone as { displayName?: string } | null | undefined)?.displayName || '');
   const nameOverrideAvatarV2 = nameForCheck.toLowerCase().includes('[v2]');
+
   const isAvatarV2 = livePipeline === 'avatar_v2' || nameOverrideAvatarV2;
   useEffect(() => {
     console.log(`[T-806/gate] cloneId=${cloneId} livePipeline=${livePipeline ?? "null"} paramName=${paramName ?? "?"} cloneName=${(clone as {displayName?:string}|null|undefined)?.displayName ?? "?"} nameOverride=${nameOverrideAvatarV2} isAvatarV2=${isAvatarV2}`);

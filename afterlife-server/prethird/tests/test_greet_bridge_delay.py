@@ -79,3 +79,23 @@ async def test_say_still_waits_for_bridge(bridge_env):
     pipe = _make()
     t = await _first_audio_s(lambda cb: pipe.say("안녕", on_first_audio=cb))
     assert t >= 0.38, f"say 가 Bridge 를 기다리지 않음: {t:.2f}s"
+
+
+# ---- AFL-926: 앱이 offer 로 알려준 Bridge 사용 여부 ----
+@pytest.mark.asyncio
+async def test_say_without_bridge_is_not_delayed(bridge_env):
+    """Bridge 를 안 트는 통화(musetalk 클론 — 앱 offer bridge=false)는 기다리지 않는다."""
+    pipe = _make()
+    pipe.uses_bridge = False
+    t = await _first_audio_s(lambda cb: pipe.say("안녕", on_first_audio=cb))
+    assert t < 0.3, f"Bridge 없는 통화가 Bridge 대기만큼 밀림: {t:.2f}s"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("flag", [None, True])
+async def test_say_waits_when_bridge_used_or_unknown(bridge_env, flag):
+    """Bridge 를 트는 통화(avatar_v2)·구 앱(값 없음)은 기존대로 기다린다."""
+    pipe = _make()
+    pipe.uses_bridge = flag
+    t = await _first_audio_s(lambda cb: pipe.say("안녕", on_first_audio=cb))
+    assert t >= 0.38, f"Bridge 대기를 건너뜀(flag={flag}): {t:.2f}s"
