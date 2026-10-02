@@ -17,6 +17,7 @@ from __future__ import annotations
 import os, io, wave, base64, logging, re, asyncio
 from aiohttp import web
 from clone_dialog.llm_client import chat_once
+from clone_dialog.persona_prompt import spoken_location
 from viseme.korean_viseme import text_to_visemes
 
 log = logging.getLogger("prethird.viseme")
@@ -174,6 +175,8 @@ def _compose_system_prompt(
         parts.append(
             f"사용자의 이름은 '{effective_user_name}'입니다. 대화 중 이름을 자연스럽게 부르세요. 절대 '사용자님'이라 부르지 마세요."
         )
+    # AFL-926: 전체 주소("경기도 안양시 안양동")를 그대로 읽지 않게 동·대표 지명 하나로 줄인다.
+    user_location = spoken_location(user_location)
     if user_location:
         parts.append(
             f"사용자는 지금 '{user_location}' 근처에 있습니다. 대화 흐름에 자연스럽게 지역·날씨 같은 화제를 섞을 수 있습니다."
