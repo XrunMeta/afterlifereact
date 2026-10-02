@@ -654,31 +654,9 @@ export function v_47bade({
       console.error('[assetJobRunner] persona_videos stage=idle callback error (continuing)', v_9e86fd?.message);
     }
 
-    console.log('[assetJobRunner] persona_videos bridge disabled (T-952) → idle only', v_d5ec97.job_id);
+    console.log('[assetJobRunner] persona_videos bridge disabled → idle only', v_d5ec97.job_id);
     return;
 
-    const v_67cd67 = Date.now();
-    const v_15552e = await Promise.all(
-      v_5fb99c.map(async (v_2750f3) => {
-
-        const v_055b42 = v_f9c770
-          ? await v_690443(v_2750f3.text, v_d5ec97.clone_id, v_2a7b41, v_d10060)
-          : await v_90e114(v_2750f3.text, v_3dfceb, v_d10060);
-        const v_f2bb81 = v_9fe22d.join(v_b7cff2, `${v_2750f3.key}.wav`);
-        await v_354e0a(v_f2bb81, v_055b42);
-
-        const v_8ce5f3 = `p${v_d5ec97.clone_id}-${v_2750f3.key}-${v_67cd67}`;
-        const v_dba2c7 = await v_ae37c0(v_f2bb81, v_ae3ab3, v_8ce5f3, v_9b58c5);
-
-        const v_ce0413 = v_9fe22d.join(v_b7cff2, `${v_2750f3.key}.mp4`);
-        const v_c65314 = v_c1ed0a(v_dba2c7, v_ce0413);
-        await v_d9b231(v_c65314.bin, v_c65314.args, v_b1d1a2);
-
-        return await v_c6410d(v_ce0413);
-      }),
-    );
-
-    await v_7a2fb8(v_d5ec97, v_15552e, 'bridges');
   }
 
   function v_d9b231(v_d8cac9, v_4317d1, v_80b7f4) {
