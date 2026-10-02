@@ -2360,7 +2360,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       {hudState && liveState === "live" ? <CallStateHUD /> : null}
       {
 }
-      {hudFaceTrack && FACE_DIAG_ENABLED ? <FaceTrackHUD /> : null}
+      {}
       {showCallDev && liveState === "live" ? (
 
         <View
