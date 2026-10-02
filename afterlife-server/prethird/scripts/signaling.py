@@ -519,6 +519,14 @@ def _cleanup_session_resources(sess) -> None:
     _cancel_credit_guard(sess)
     # [T-252 Task 8] 상태 4 수명 타이머 정리 — 남으면 죽은 세션의 pipeline 을 건드린다.
     _cancel_unconfirmed_timer(sess)
+    # AFL-926 (el): 이전 대화 로딩·인사 prerender 태스크 — 끊긴 통화의 TTS·GPU 렌더를 멈춘다.
+    _cancel = getattr(getattr(sess, "pipeline", None), "cancel_background", None)
+    if callable(_cancel):
+        try:
+            _cancel()
+        except Exception as exc:  # noqa: BLE001 — 정리 실패가 종료 경로를 막으면 안 된다
+            log.warning("session %s cancel_background failed: %s",
+                        getattr(sess, "session_id", "?"), exc)
 
 
 def _unconfirmed_timeout(sess) -> None:
@@ -1504,7 +1512,8 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                 # AFL-926: 이 계정×클론의 이전 대화를 다이얼링 중에 받아 둔다(백그라운드).
                 #   env PRETHIRD_PRIOR_CONVERSATION=1 일 때만 실제 조회(prior_conversation.py).
                 #   발화 경로는 메시지 조립 전에 이 태스크를 잠깐(2.5s) 기다린다.
-                if getattr(sess, "user_id", None) and hasattr(sess.pipeline, "load_prior"):
+                if (getattr(sess, "user_id", None)
+                        and asyncio.iscoroutinefunction(getattr(sess.pipeline, "load_prior", None))):
                     sess.pipeline._prior_task = asyncio.ensure_future(
                         sess.pipeline.load_prior(sess.user_id, sess.clone_id, sess.session_id))
 

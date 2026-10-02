@@ -20,6 +20,22 @@ _DEFAULT_MODEL = "gpt-4.1-mini"
 _REASONING_RE = re.compile(r"^(o\d|gpt-5|gpt-6)", re.IGNORECASE)
 
 
+_KEY_RE = re.compile(r"sk-[A-Za-z0-9_-]+")
+
+
+def _error_summary(status: int, body: str) -> str:
+    """mizu M-1: 에러 본문을 그대로 로그로 흘리지 않는다 — 400 은 입력(대화 원문)을 인용할 수
+    있고 401 은 키 일부를 에코한다. error.type/code 와 마스킹한 짧은 메시지만 남긴다."""
+    import json as _json
+    try:
+        err = (_json.loads(body) or {}).get("error") or {}
+        kind = f"{err.get('type') or '?'}/{err.get('code') or '?'}"
+        msg = str(err.get("message") or "")
+    except (ValueError, AttributeError):
+        kind, msg = "?", body
+    return f"openai http {status} {kind}: {_KEY_RE.sub('sk-***', msg)[:100]}"
+
+
 class OpenAiConfigError(RuntimeError):
     """OPENAI_API_KEY 누락 등 설정 문제. 조용히 빈 응답을 내지 않고 이름을 대고 죽는다
     (상위 llm_client 가 로그를 남기고 ollama 로 1회 폴백한다)."""
@@ -78,8 +94,7 @@ async def chat_stream_openai(
     async with aiohttp.ClientSession() as sess:
         async with sess.post(url, json=body, headers=headers) as resp:
             if resp.status >= 400:
-                detail = (await resp.text())[:300]
-                raise RuntimeError(f"openai http {resp.status}: {detail}")
+                raise RuntimeError(_error_summary(resp.status, await resp.text()))
             async for raw in resp.content:
                 tok = _delta_token(raw)
                 if tok is None:
@@ -109,8 +124,7 @@ async def chat_once_openai(
     async with aiohttp.ClientSession() as sess:
         async with sess.post(url, json=body, headers=headers) as resp:
             if resp.status >= 400:
-                detail = (await resp.text())[:300]
-                raise RuntimeError(f"openai http {resp.status}: {detail}")
+                raise RuntimeError(_error_summary(resp.status, await resp.text()))
             obj = await resp.json()
     choices = obj.get("choices") or []
     if not choices:

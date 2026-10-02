@@ -175,3 +175,31 @@ async def test_ollama_provider_has_no_fallback_path(monkeypatch):
     monkeypatch.setattr(llm, "_ollama_stream", _boom)
     with pytest.raises(RuntimeError):
         await _drain(llm.chat_stream(MSGS))
+
+
+def test_error_summary_masks_key_and_drops_body():
+    """mizu M-1: 에러 본문(입력 인용·키 에코)을 로그로 흘리지 않는다."""
+    body = '{"error": {"type": "invalid_request_error", "code": "invalid_api_key", ' \
+           '"message": "Incorrect API key provided: sk-proj-ABCDEF1234567890. 사용자 대화 원문 ' + "가" * 300 + '"}}'
+    s = oai._error_summary(401, body)
+    assert "sk-proj-ABCDEF" not in s and "sk-***" in s
+    assert "invalid_request_error/invalid_api_key" in s
+    assert len(s) < 200
+    assert "openai http 500" in oai._error_summary(500, "not json sk-abcdefghijklmnop")
+    assert "sk-abcdef" not in oai._error_summary(500, "not json sk-abcdefghijklmnop")
+
+
+@pytest.mark.asyncio
+async def test_empty_remote_stream_falls_back(monkeypatch):
+    """(el) 토큰 0개로 끝난 원격 응답 → 무음 대신 ollama 폴백."""
+    monkeypatch.setenv("PRETHIRD_LLM_PROVIDER", "openai")
+    monkeypatch.delenv("PRETHIRD_LLM_FALLBACK", raising=False)
+
+    async def _empty(*a, **kw):
+        return
+        yield  # pragma: no cover
+
+    calls = []
+    monkeypatch.setattr(llm, "chat_stream_openai", _empty)
+    monkeypatch.setattr(llm, "_ollama_stream", _fake_ollama_stream(["대체"], calls))
+    assert await _drain(llm.chat_stream(MSGS)) == ["대체"]

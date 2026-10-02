@@ -109,7 +109,10 @@ async def chat_stream(
                 yield tok
             return
         except StopAsyncIteration:
-            return                                   # 빈 응답 — 상위가 이미 다룬다
+            # (el) 토큰 0개로 끝난 원격 응답도 "첫 토큰 전 실패" 로 본다 — 무음 턴 방지.
+            if not _fallback_enabled():
+                return
+            log.error("llm: %s 빈 응답 → ollama 폴백", provider)
         except Exception as e:  # noqa: BLE001
             if sent or not _fallback_enabled():
                 raise

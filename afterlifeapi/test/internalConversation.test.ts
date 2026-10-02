@@ -75,6 +75,20 @@ v_469bf2("GET /oth-path", () => {
     v_4d37e3(v_4d33b2.turns.map((v_8d41d7) => v_8d41d7.text)).toEqual(["본 시연"]);
   });
 
+  v_23805a("reset 직전 통화의 늦게 도착한 턴도 새지 않는다(통화 단위 컷오프)", async () => {
+    await v_98daea("cv-d1", 906, 801, 1_000_000, [["user", "리허설"]]);
+    const v_cb35cb = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST", headers: v_68f0aa(),
+    });
+    const { resetAt: v_b98b4f } = await v_cb35cb.json() as { resetAt: number };
+
+    await v_c9c489.DB.prepare(
+      "INSERT INTO call_turns (call_id, seq, role, text, created_at) VALUES (?,?,?,?,?)"
+    ).bind("cv-d1", 2, "clone", "늦게 온 답", v_b98b4f + 5).run();
+    const v_4d33b2 = await (await v_aff13d("906/801")).json() as { turns: Turn[] };
+    v_4d37e3(v_4d33b2.turns).toEqual([]);
+  });
+
   v_23805a("reset 은 멱등 upsert — 두 번 불러도 200", async () => {
     for (let v_ebec57 = 0; v_ebec57 < 2; v_ebec57++) {
       const v_cb35cb = await v_1df298.fetch("http://localhost/oth-path", {

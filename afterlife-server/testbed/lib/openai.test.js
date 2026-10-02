@@ -64,3 +64,32 @@ v_2a805f('chatOnceWith — openai 실패 시 ollama 1회 폴백, none 이면 그
   await v_2d2829({ messages: v_3b2d64 }, {}, async () => { v_f23ae0 = true; return ''; }, v_c18212);
   v_ce93bd.equal(v_f23ae0, false);
 });
+
+v_2a805f('chatStreamOpenAI — 키 누락은 동기로 onFirstError (폴백 핸들 덮어쓰기 회귀 방지, el)', async () => {
+  const { chatStreamOpenAI: v_164864 } = await import('./openai.js');
+  let v_ea719c = null;
+  const v_65a2cd = v_164864({ messages: v_3b2d64, env: {}, onFirstError: (v_9e86fd) => { v_ea719c = v_9e86fd; } });
+  await new Promise((v_cb35cb) => setImmediate(v_cb35cb));
+  v_ce93bd.match(String(v_ea719c?.message), /OPENAI_API_KEY/);
+  v_65a2cd.abort();
+});
+
+v_2a805f('chatStreamOpenAI — 첫 토큰 타임아웃이면 onFirstError 로 폴백 신호 (el)', async () => {
+  const { chatStreamOpenAI: v_164864 } = await import('./openai.js');
+  const v_fa845f = (v_f71b56, v_00cfc6) => new Promise((v_37eab7, v_bad6f3) => {
+    v_00cfc6.signal.addEventListener('abort', () => v_bad6f3(new Error('aborted')));
+  });
+  const v_49263d = await new Promise((v_6f7712) => {
+    v_164864({ messages: v_3b2d64, env: { OPENAI_API_KEY: 'k', PRETHIRD_LLM_FIRST_TOKEN_TIMEOUT_S: '0.05' },
+      fetchFn: v_fa845f, onFirstError: v_6f7712, onError: v_6f7712 });
+  });
+  v_ce93bd.match(String(v_49263d?.message), /첫 토큰/);
+});
+
+v_2a805f('errorSummary — 키 마스킹·본문 축약 (mizu M-1)', async () => {
+  const { errorSummary: v_453097 } = await import('./openai.js');
+  const v_fd5f43 = v_453097(401, JSON.stringify({ error: { type: 't', code: 'c', message: 'key sk-proj-SECRET123 ' + '가'.repeat(300) } }));
+  v_ce93bd.equal(v_fd5f43.includes('SECRET123'), false);
+  v_ce93bd.equal(v_fd5f43.includes('t/c'), true);
+  v_ce93bd.ok(v_fd5f43.length < 200);
+});

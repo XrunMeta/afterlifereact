@@ -375,6 +375,12 @@ class DialoguePipeline:
             log.warning("[AFL-926/prerender] 인사 생성 실패: %s", e)
             return ""
 
+    def cancel_background(self) -> None:
+        """통화 종료 시 signaling teardown 이 부른다 — 남은 prior·prerender 태스크 취소."""
+        for task in (self._prior_task, self._prerender_task):
+            if task is not None and not task.done():
+                task.cancel()
+
     def start_prerender_greeting(self, text: str | None) -> None:
         """signaling 용: prerender 를 백그라운드로 띄우고 greet() 가 기다릴 수 있게 잡아 둔다."""
         self._prerender_task = asyncio.ensure_future(self.prerender_greeting(text))
@@ -408,7 +414,11 @@ class DialoguePipeline:
                     # 생성하는 사이 greet 가 기다리다 포기하고 직접 인사했다 — 버린다.
                     return
             wav_bytes, pcm48 = await self._tts_stage(text)
+            if self._prerender_used:
+                return                    # (el) 포기된 인사에 GPU 렌더를 쓰지 않는다
             frames, pcm_bal = await self._render_to_cache(wav_bytes, pcm48)
+            if self._prerender_used:
+                return
             self._prerender_text = text
             self._prerender_wav_bytes = wav_bytes
             self._prerender_frames = frames
@@ -628,6 +638,8 @@ class DialoguePipeline:
                 await asyncio.wait_for(asyncio.shield(task), wait_s)
             except Exception as e:  # noqa: BLE001
                 log.warning("[AFL-926/greet] prerender 대기 생략: %s", type(e).__name__)
+                if not self._prerender_ready:
+                    task.cancel()         # (el) 직접 인사와 GPU 를 다투지 않게 접는다
         if self._prerender_ready and not self._prerender_used:
             await self._push_prerender(turn_, on_first_audio, on_response_ready, on_sentence)
             return
@@ -648,6 +660,9 @@ class DialoguePipeline:
             REACT_PROMPT_KNOWN.format(name=display_name)
             if kind == "known" else REACT_PROMPT_UNKNOWN
         )
+        # AFL-926 (el): react 가 greet 보다 먼저 오면, react 맥락 없이 만든 캐시 인사가 뒤늦게
+        #   나가지 않게 막는다(greet 는 직접 LLM 경로로 간다).
+        self._prerender_used = True
         await self._system_utterance(prompt, "react", turn=turn, on_first_audio=on_first_audio)
 
     # ------------------------------------------------------------------
