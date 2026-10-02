@@ -501,7 +501,7 @@ class DialoguePipeline:
 
     async def say(
         self, user_text: str, turn=None, on_first_audio=None, on_response_ready=None,
-        on_sentence=None,
+        on_sentence=None, on_reply_done=None,
     ) -> None:
         """user_text 1턴을 처리해 video/audio 트랙에 적재하고 signal_end 호출.
         turn: recorder Turn 핸들(없으면 NULL_TURN) — LLM 토큰·TTS wav 누적.
@@ -585,6 +585,13 @@ class DialoguePipeline:
                 answer_tokens.append(str(tok))
                 for s in sb.push(tok):
                     await q.put(s)
+            # AFL-926: 응답 텍스트 확정 시점 통지(턴 기록용). 재생(Bridge·렌더·push)은 아직
+            #   한참 남았지만 기록은 지금 해야 끊고 바로 다시 건 통화가 이 턴을 받아 온다.
+            if on_reply_done is not None:
+                try:
+                    on_reply_done("".join(answer_tokens))
+                except Exception as e:  # noqa: BLE001 — 기록 실패가 발화를 막으면 안 된다
+                    log.warning("on_reply_done callback failed: %s", e)
             for s in sb.flush():
                 await q.put(s)
             await q.put(None)
