@@ -268,6 +268,13 @@ class MuseTalkInproc:
             # bgr[:, :, ::-1]: BGR → RGB (채널 순서 뒤집기)
             # np.ascontiguousarray: VideoFrame.from_ndarray 가 연속 메모리 배열 기대
             rgb = np.ascontiguousarray(bgr[:, :, ::-1])
+            # 디버그: 첫 프레임의 shape 로그 (shape mismatch 추적용 2026-10-02)
+            if _frame_count[0] == 0:
+                import logging as _lg
+                _lg.getLogger("prethird.musetalk_inproc").info(
+                    "[musetalk-cb] first frame shape=%s video_path=%s",
+                    rgb.shape, video_path_obj.name,
+                )
             on_frame(rgb)
             _frame_count[0] += 1
 
