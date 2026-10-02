@@ -192,16 +192,6 @@ export function v_3d8d48(v_328259): v_b01667 {
     }
   }, []);
 
-  const v_5344af = v_de06a3(() => {
-    const v_32dc97 = v_fa9144.current;
-    if (!v_f98743.current || !v_32dc97 || v_32dc97.readyState !== 'open') return;
-    try {
-      v_32dc97.send(JSON.stringify({ type: 'bridge', state: 'end' }));
-    } catch {
-
-    }
-  }, []);
-
   const v_811f30 = v_de06a3(() => {
     if (v_6b43e5.current) { clearTimeout(v_6b43e5.current); v_6b43e5.current = null; }
     v_ae4844('idle');
@@ -326,8 +316,6 @@ export function v_3d8d48(v_328259): v_b01667 {
       }
 
       if (typeof v_5fa2a5.current === 'boolean') v_7524b9.bridge = v_5fa2a5.current;
-
-      if (v_5fa2a5.current === true) v_7524b9.bridge_signal = true;
       const v_cb35cb = await fetch(v_f71b56, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -369,5 +357,5 @@ export function v_3d8d48(v_328259): v_b01667 {
 
   v_c4deb2(() => () => { void v_3e54f8();  }, []);
 
-  return { state: v_b6e533, remoteStream: v_b4d824, error: v_5e9bfe, start: v_965edf, stop: v_3e54f8, phase: v_ab4803, say: v_3e2c87, notifySpeechEnd: v_811f30, getStatsReport: v_791152, greet: v_009e58, speak: v_a1d9db, lastSignal: v_88c591, sendFaceEvent: v_11f4a1, sendAudioReady: v_2a35c1, sendBridgeEnd: v_5344af };
+  return { state: v_b6e533, remoteStream: v_b4d824, error: v_5e9bfe, start: v_965edf, stop: v_3e54f8, phase: v_ab4803, say: v_3e2c87, notifySpeechEnd: v_811f30, getStatsReport: v_791152, greet: v_009e58, speak: v_a1d9db, lastSignal: v_88c591, sendFaceEvent: v_11f4a1, sendAudioReady: v_2a35c1 };
 }
