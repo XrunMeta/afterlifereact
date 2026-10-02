@@ -62,6 +62,72 @@ v_dcd415.post("/oth-path", async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true });
 });
 
+const v_d8577a = 400;
+const v_d00cca = 1000;
+
+function v_4efd28(v_ad8d0d, v_43fd42): boolean {
+  const v_68f0aa = v_ad8d0d ?? "";
+  const v_21cc31 = v_68f0aa.startsWith("Bearer ") ? v_68f0aa.slice(7) : "";
+  return !!v_21cc31 && !!v_43fd42 && v_a155c4(v_21cc31, v_43fd42);
+}
+
+function v_d740ff(v_fd5f43): number | null {
+  return /^[1-9][0-9]{0,15}$/.test(v_fd5f43) ? Number(v_fd5f43) : null;
+}
+
+v_dcd415.get("/conversations/:userId/:cloneId", async (v_3f4e2e) => {
+  if (!v_4efd28(v_3f4e2e.req.header("Authorization"), v_3f4e2e.env.ORCH_SECRET)) {
+    return v_3f4e2e.json({ error: "unauthorized" }, 401);
+  }
+  const v_43e90c = v_d740ff(v_3f4e2e.req.param("userId"));
+  const v_6e0fd3 = v_d740ff(v_3f4e2e.req.param("cloneId"));
+  if (!v_43e90c || !v_6e0fd3) return v_3f4e2e.json({ error: "bad_id" }, 400);
+
+  const v_d11aca = v_3f4e2e.req.query("excludeCallId") ?? "";
+  const v_989937 = Number(v_3f4e2e.req.query("maxTurns") ?? v_d8577a);
+  const v_1cae38 = Number.isInteger(v_989937) && v_989937 > 0
+    ? Math.min(v_989937, v_d00cca) : v_d8577a;
+
+  const v_487a25 = await v_3f4e2e.env.DB.prepare(
+    "SELECT reset_at FROM conversation_resets WHERE user_id = ? AND clone_id = ?"
+  ).bind(v_43e90c, v_6e0fd3).first<{ reset_at: number }>();
+  const v_b98b4f = v_487a25?.reset_at ?? 0;
+
+  const { results: v_a7f568 } = await v_3f4e2e.env.DB.prepare(
+    `SELECT t.call_id, t.role, t.text, t.created_at
+       FROM call_turns t
+       JOIN call_sessions s ON s.call_id = t.call_id
+      WHERE s.user_id = ? AND s.clone_id = ?
+        AND s.started_at > ?
+        AND t.call_id != ?
+      ORDER BY s.started_at DESC, t.seq DESC
+      LIMIT ?`
+  ).bind(v_43e90c, v_6e0fd3, v_b98b4f, v_d11aca, v_1cae38)
+    .all<{ call_id: string; role: string; text: string; created_at: number }>();
+
+  const v_3035d9 = (v_a7f568 ?? []).reverse().map((v_cb35cb) => ({
+    callId: v_cb35cb.call_id, role: v_cb35cb.role, text: v_cb35cb.text, at: v_cb35cb.created_at,
+  }));
+  return v_3f4e2e.json({ turns: v_3035d9, resetAt: v_b98b4f });
+});
+
+v_dcd415.post("/conversations/:userId/:cloneId/reset", async (v_3f4e2e) => {
+  if (!v_4efd28(v_3f4e2e.req.header("Authorization"), v_3f4e2e.env.ORCH_SECRET)) {
+    return v_3f4e2e.json({ error: "unauthorized" }, 401);
+  }
+  const v_43e90c = v_d740ff(v_3f4e2e.req.param("userId"));
+  const v_6e0fd3 = v_d740ff(v_3f4e2e.req.param("cloneId"));
+  if (!v_43e90c || !v_6e0fd3) return v_3f4e2e.json({ error: "bad_id" }, 400);
+  const v_b98b4f = Date.now();
+  await v_3f4e2e.env.DB.prepare(
+    `INSERT INTO conversation_resets (user_id, clone_id, reset_at) VALUES (?, ?, ?)
+     ON CONFLICT(user_id, clone_id) DO UPDATE SET reset_at = excluded.reset_at`
+  ).bind(v_43e90c, v_6e0fd3, v_b98b4f).run();
+
+  console.log(`[conversation-reset] user=${v_43e90c} clone=${v_6e0fd3} reset_at=${v_b98b4f}`);
+  return v_3f4e2e.json({ ok: true, resetAt: v_b98b4f });
+});
+
 v_dcd415.post("/oth-path", async (v_3f4e2e) => {
   const v_68f0aa = v_3f4e2e.req.header("Authorization") ?? "";
   const v_21cc31 = v_68f0aa.startsWith("Bearer ") ? v_68f0aa.slice(7) : "";

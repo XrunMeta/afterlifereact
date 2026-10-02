@@ -18,7 +18,7 @@ from aiohttp import web
 
 from clone_dialog import fetch_bundle, bundle_to_messages, chat_stream, extract_l2
 from clone_dialog.persona_prompt import sanitize_display_name
-from clone_dialog.llm_client import chat_once
+from clone_dialog.llm_client import chat_once, default_model_label
 from clone_dialog import cfai_catalog
 
 log = logging.getLogger("prethird.verify")
@@ -501,7 +501,7 @@ async def verify_chat(req: web.Request) -> web.StreamResponse | web.Response:
             await send("token", {"text": tok})
         await send("done", {"debug": {
             "final_messages": final_messages,
-            "model": model or _DEFAULT_MODEL,
+            "model": model or default_model_label(),
             "persona_bundle": (bundle or {}).get("personaBundle"),
             "l0_override": l0_override is not None,
         }})
@@ -822,8 +822,8 @@ async def verify_llm_models(req: web.Request) -> web.Response:
         rows = cfai_catalog.merge(list(cfai_catalog.CATALOG))
         source = "catalog"
     return web.json_response({
-        # 빈 값 = model 미지정 → 서버 기본(ollama). 기준선으로 되돌아가는 선택지.
-        "ollama": {"value": "", "label": f"ollama {_DEFAULT_MODEL} (기본)"},
+        # 빈 값 = model 미지정 → 서버 기본(PRETHIRD_LLM_PROVIDER · AFL-926 이후 openai 가능).
+        "ollama": {"value": "", "label": f"서버 기본 ({default_model_label()})"},
         "cf": rows,
         "source": source,
     })
