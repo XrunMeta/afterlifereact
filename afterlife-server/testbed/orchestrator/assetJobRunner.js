@@ -192,6 +192,19 @@ export async function v_36d0cf(v_9b6134, v_6e0fd3, v_bddb73, v_9718cb) {
   return Buffer.from(await v_cb35cb.arrayBuffer());
 }
 
+export async function v_eed15c(v_9b6134, v_bddb73, v_9718cb) {
+  const v_cb35cb = await v_9718cb(`${v_bddb73}/tts/kr`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: v_9b6134 }),
+  });
+  if (!v_cb35cb.ok) {
+    const v_a896d5 = await v_cb35cb.text().catch(() => '');
+    throw new Error(`melotts /tts/kr failed: HTTP ${v_cb35cb.status} — ${v_a896d5.slice(0, 200)}`);
+  }
+  return Buffer.from(await v_cb35cb.arrayBuffer());
+}
+
 export async function v_15296d(v_f2bb81, v_f37742, v_555aed, v_55d114 = null) {
   const { default: v_00cd2e } = await import('owqxojxvg');
   const { default: v_5fedb4 } = await import('shmzpkmabg');
@@ -355,6 +368,9 @@ export function v_47bade({
   museTalkUrl: v_9b58c5 = process.env.MUSETALK_URL ?? 'http://127.0.0.1:8300',
   ffmpegReencodeAacCmd: v_c1ed0a = v_3a935d,
   _museTalkRenderFn: v_e5d0b4 = null, 
+
+  meloTtsUrl: v_3dfceb = process.env.MELO_TTS_URL ?? 'http://127.0.0.1:8200',
+  _meloTtsFn: v_8bb67e = null, 
 } = {}) {
 
   const v_e45ed0 = [];
@@ -364,6 +380,7 @@ export function v_47bade({
   const v_dc2910 = v_5a5306 ?? ((v_f2bb81, v_f37742, v_f71b56, v_55d114) => v_15296d(v_f2bb81, v_f37742, v_f71b56, v_55d114));
   const v_9920b6 = v_72992b ?? v_af8891;
   const v_ae37c0 = v_e5d0b4 ?? ((v_779914, v_81e2ef, v_389afb, v_f71b56) => v_870b57(v_779914, v_81e2ef, v_389afb, v_f71b56));
+  const v_90e114 = v_8bb67e ?? ((v_9b6134, v_f71b56, v_9718cb) => v_eed15c(v_9b6134, v_f71b56, v_9718cb));
 
   async function v_26f71f() {
     if (v_ea9258) return;
@@ -637,16 +654,13 @@ export function v_47bade({
       console.error('[assetJobRunner] persona_videos stage=idle callback error (continuing)', v_9e86fd?.message);
     }
 
-    if (!v_f9c770) {
-
-      console.log('[assetJobRunner] persona_videos voice-less → bridge skip (idle only)', v_d5ec97.job_id);
-      return;
-    }
     const v_67cd67 = Date.now();
     const v_15552e = await Promise.all(
       v_5fb99c.map(async (v_2750f3) => {
 
-        const v_055b42 = await v_690443(v_2750f3.text, v_d5ec97.clone_id, v_2a7b41, v_d10060);
+        const v_055b42 = v_f9c770
+          ? await v_690443(v_2750f3.text, v_d5ec97.clone_id, v_2a7b41, v_d10060)
+          : await v_90e114(v_2750f3.text, v_3dfceb, v_d10060);
         const v_f2bb81 = v_9fe22d.join(v_b7cff2, `${v_2750f3.key}.wav`);
         await v_354e0a(v_f2bb81, v_055b42);
 
