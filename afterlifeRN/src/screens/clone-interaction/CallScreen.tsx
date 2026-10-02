@@ -539,6 +539,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const [liveVoiceModelManifestUrl, setLiveVoiceModelManifestUrl] = useState<string | null>(null);
 
+  const [liveIdleVideoUrl, setLiveIdleVideoUrl] = useState<string | null>(null);
+
   const {
     state: liveState,
     remoteStream,
@@ -581,16 +583,18 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         const { getCloneDetail } = await import("../../api/clones");
         const detail = await getCloneDetail(cloneId, accessToken);
         if (alive) {
-          const cloneData = (detail as { clone?: { pipeline?: string | null; visemePrefix?: string | null; ttsOutput?: string | null; voiceModelManifestUrl?: string | null } })?.clone;
+          const cloneData = (detail as { clone?: { pipeline?: string | null; visemePrefix?: string | null; ttsOutput?: string | null; voiceModelManifestUrl?: string | null; idleVideoUrl?: string | null } })?.clone;
           const p = cloneData?.pipeline ?? null;
           const vp = cloneData?.visemePrefix ?? null;
           const to = cloneData?.ttsOutput ?? null;
           const vmu = cloneData?.voiceModelManifestUrl ?? null;
+          const iv = cloneData?.idleVideoUrl ?? null;
           setLivePipeline(p);
           setLiveVisemePrefix(vp);
           setLiveTtsOutput(to);
           setLiveVoiceModelManifestUrl(vmu);
-          if (__DEV__) console.log(`[T-467] livePipeline for clone ${cloneId} = ${p} · visemePrefix = ${vp ? "set" : "null"} · ttsOutput = ${to ?? "null"} · voiceManifest = ${vmu ? "set" : "null"}`);
+          setLiveIdleVideoUrl(iv);
+          if (__DEV__) console.log(`[T-467] livePipeline for clone ${cloneId} = ${p} · visemePrefix = ${vp ? "set" : "null"} · ttsOutput = ${to ?? "null"} · voiceManifest = ${vmu ? "set" : "null"} · idleVideo = ${iv ? "set" : "null"}`);
         }
       } catch (err) {
         if (__DEV__) console.warn("[T-467] getCloneDetail pipeline fetch failed:", err);
@@ -1625,6 +1629,14 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     p.loop = false;
     p.muted = true;
   });
+
+  const idlePlayer = useVideoPlayer(liveIdleVideoUrl, (p) => {
+    p.loop = true;
+    p.muted = true;
+    if (liveIdleVideoUrl) {
+      try { p.play(); } catch {  }
+    }
+  });
   const triggerEmote = useCallback(
     (key: EmoteKey, emoji: string, label: string) => {
       if (emoteTimerRef.current) clearTimeout(emoteTimerRef.current);
@@ -2187,12 +2199,32 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           {}
         </View>
       ) : remoteStream ? (
+
         <View style={s.videoFixedContainer}>
-          <RTCView
-            streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
-            objectFit="cover"
-            style={s.videoFixedRtc}
-          />
+          {liveIdleVideoUrl ? (
+            <VideoView
+              player={idlePlayer}
+              style={StyleSheet.absoluteFillObject}
+              nativeControls={false}
+              contentFit="cover"
+            />
+          ) : personaImage ? (
+            <Image
+              source={typeof personaImage === "number" ? personaImage : { uri: personaImage }}
+              style={StyleSheet.absoluteFillObject}
+              resizeMode="cover"
+            />
+          ) : null}
+          <View
+            style={[s.videoFixedRtc, StyleSheet.absoluteFillObject, { opacity: speakActive ? 1 : 0 }]}
+            pointerEvents="none"
+          >
+            <RTCView
+              streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
+              objectFit="cover"
+              style={s.videoFixedRtc}
+            />
+          </View>
         </View>
       ) : visemeResponse !== undefined && livePipeline === 'viseme_playback' ? (
 

@@ -1412,6 +1412,8 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
       ttsOutput: v_eb25ce.tts_output,
 
       voiceModelManifestUrl: v_28aeca,
+
+      idleVideoUrl: v_eb25ce.idle_video_url ?? null,
     },
   });
 });
