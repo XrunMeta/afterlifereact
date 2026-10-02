@@ -108,8 +108,6 @@ export function v_1980fb(props: {
             ? v_8d41d7('call.poorConnection', { defaultValue: '전화 상태가 좋지 않습니다\n다시 걸어주세요' })
             : v_f22838 === 'error'
             ? v_8d41d7('call.connectFailed', { defaultValue: '연결에 실패했어요' })
-            : v_f22838 === 'timeout'
-            ? v_8d41d7('call.connectDelayed', { defaultValue: '연결이 지연돼요' })
             : v_8d41d7('call.dialing', { defaultValue: '전화 거는 중...' })}
         </Text>
       </View>
