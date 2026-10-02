@@ -225,6 +225,8 @@
     "giftTitle": "Kirim Hadiah",
     "captureSavedToast": "Tersimpan",
     "capturePermNeededToast": "Untuk menyimpan tangkapan layar, izinkan akses foto di pengaturan",
+    "assetBuildingTitle": "Menyiapkan panggilan",
+    "assetBuildingBody": "Persiapan wajah dan suara memerlukan 5~15 menit. Silakan coba lagi sebentar.",
     "faceDetected": "Wajah terdeteksi",
     "faceNotDetected": "Tidak terdeteksi",
     "faceConsentHint": "Hanya posisi wajah yang dideteksi; data wajah tidak disimpan.",

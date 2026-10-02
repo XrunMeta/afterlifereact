@@ -225,6 +225,8 @@
     "giftTitle": "Send a Gift",
     "captureSavedToast": "Saved",
     "capturePermNeededToast": "To save screenshots, please allow photo permission in settings",
+    "assetBuildingTitle": "Getting ready for calls",
+    "assetBuildingBody": "Face and voice setup takes 5–15 minutes. Please try again shortly.",
     "faceDetected": "Face detected",
     "faceNotDetected": "No face",
     "faceConsentHint": "Detects face position only — no face data is stored.",
