@@ -251,6 +251,12 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   const [v_c3de9c, v_4b9b17] = v_5ab095(false);
 
+  const [v_473be5, v_8761d5] = v_5ab095(false);
+  v_c4deb2(() => {
+    const v_cb36b1 = setTimeout(() => v_8761d5(true), 10000);
+    return () => clearTimeout(v_cb36b1);
+  }, []);
+
   const v_140aea = v_de06a3(
     async (): Promise<number> => {
       const v_f04727 = v_194498.getState().creationDraft;
@@ -741,7 +747,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
                 : v_d01790
             }
             variant="accent"
-            disabled={v_798360 || v_c3de9c || (v_805753 && v_af4871 == null && !v_5e9bfe)}
+            disabled={!v_473be5 || v_798360 || v_c3de9c || (v_805753 && v_af4871 == null && !v_5e9bfe)}
           />
         </View>
       </KeyboardAvoidingView>
