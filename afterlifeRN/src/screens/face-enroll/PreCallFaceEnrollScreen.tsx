@@ -59,27 +59,6 @@ const v_77ce37 = [
     checkPose: (v_64877a, v_e2a85c) => Math.abs(v_64877a) < 12 && Math.abs(v_e2a85c) < 12,
     guide: (v_64877a, v_e2a85c) => Math.abs(v_64877a) >= 12 ? "좌우로 고개 돌리지 마세요" : Math.abs(v_e2a85c) >= 12 ? "고개 각도 낮춰주세요" : "완벽!",
   },
-  {
-
-    key: "right", label: "왼쪽", hint: "고개를 왼쪽으로 돌려주세요",
-    checkPose: (v_64877a, v_e2a85c) => v_64877a > 18 && Math.abs(v_e2a85c) < 20,
-    guide: (v_64877a, v_2d3e87) => v_64877a < 18 ? `조금만 더 왼쪽으로 (${Math.round(v_64877a)}°/18°)` : "완벽!",
-  },
-  {
-    key: "left", label: "오른쪽", hint: "고개를 오른쪽으로 돌려주세요",
-    checkPose: (v_64877a, v_e2a85c) => v_64877a < -18 && Math.abs(v_e2a85c) < 20,
-    guide: (v_64877a, v_2d3e87) => v_64877a > -18 ? `조금만 더 오른쪽으로 (${Math.round(v_64877a)}°/-18°)` : "완벽!",
-  },
-  {
-    key: "up", label: "아래", hint: "고개를 아래로 숙여주세요",
-    checkPose: (v_64877a, v_e2a85c) => v_e2a85c < -10 && Math.abs(v_64877a) < 20,
-    guide: (v_0331f5, v_e2a85c) => v_e2a85c > -10 ? `조금만 더 아래로 (${Math.round(v_e2a85c)}°/-10°)` : "완벽!",
-  },
-  {
-    key: "down", label: "위", hint: "고개를 위로 들어주세요",
-    checkPose: (v_64877a, v_e2a85c) => v_e2a85c > 10 && Math.abs(v_64877a) < 20,
-    guide: (v_0331f5, v_e2a85c) => v_e2a85c < 10 ? `조금만 더 위로 (${Math.round(v_e2a85c)}°/10°)` : "완벽!",
-  },
 ] as const;
 
 const v_10f62f = {
