@@ -24,6 +24,8 @@ const v_5443e5 = 0.05;
 
 const v_d641fa = 5000;
 
+const v_9fca02 = 1000;
+
 const v_d30826 = 3000;
 
 const v_e1d3e1 = '';
@@ -338,12 +340,13 @@ export function v_7df8a4(opts: {
       } else {
 
         const v_2d99a5 = v_f2c979.remainingMs ?? 0;
-        const v_dcf9cb = Math.min(v_2d99a5, 500);
-        v_c2616d.current = Date.now() + v_dcf9cb;
+        v_c2616d.current = Date.now() + Math.max(0, v_2d99a5 - v_9fca02);
         v_8a777f.current = Date.now();
         if (v_d65758.current) clearTimeout(v_d65758.current);
+
+        const v_9cd4f6 = v_2d99a5 + v_d641fa;
         v_d7f7b1('timer', {
-          name: 'pendingDone', action: 'set', ms: v_dcf9cb + v_d641fa,
+          name: 'pendingDone', action: 'set', ms: v_9cd4f6,
         });
         v_d65758.current = setTimeout(() => {
           v_d65758.current = null;
@@ -351,7 +354,7 @@ export function v_7df8a4(opts: {
           v_c2616d.current = 0;
           v_d7f7b1('timer', { name: 'pendingDone', action: 'fire', by: 'tailMax' });
           v_700737.current({ type: 'RESPONSE_DONE', seq: v_efacaa });
-        }, v_dcf9cb + v_d641fa);
+        }, v_9cd4f6);
       }
     }
 

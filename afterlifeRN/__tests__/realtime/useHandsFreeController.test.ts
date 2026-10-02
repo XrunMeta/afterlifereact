@@ -7,6 +7,7 @@ import {
   v_3711bb,
   v_99c713,
 } from '../../src/realtime/handsFree';
+import { v_183224 } from '../../src/realtime/timingConfig';
 
 function v_c2295a() {
   const v_9fde29 = {};
@@ -297,7 +298,7 @@ it('[A] suppress 중(sttSuppressed=true)엔 sttActive=true — 클론 에코 억
   expect(v_43c42e.current.sttActive).toBe(true);
 });
 
-it('[CLONE_RESUME 600] suppress 후 클론 무음 — 400ms엔 재개 안 함, 800ms엔 재개', async () => {
+it('[CLONE_RESUME] suppress 후 클론 무음 — cloneResumeMs 전엔 재개 안 함, 경과 후 재개', async () => {
 
   const v_1e3df0 = v_c2295a();
   let v_fbe91e = 0.9; 
@@ -315,10 +316,11 @@ it('[CLONE_RESUME 600] suppress 후 클론 무음 — 400ms엔 재개 안 함, 8
   await v_81e49f(() => expect(v_1e3df0.stop).toHaveBeenCalled(), { timeout: 800 });
   expect(v_43c42e.current.sttActive).toBe(true); 
 
+  const v_3105da = v_183224.cloneResumeMs;
   const v_2a192f = v_1e3df0.start.mock.calls.length;
   v_fbe91e = 0.01;
 
-  await new Promise<void>((v_cb35cb) => setTimeout(v_cb35cb, 400));
+  await new Promise<void>((v_cb35cb) => setTimeout(v_cb35cb, v_3105da - 200));
   expect(v_1e3df0.start.mock.calls.length).toBe(v_2a192f);
 
   await new Promise<void>((v_cb35cb) => setTimeout(v_cb35cb, 500));
@@ -428,12 +430,13 @@ it('[B] say reject → sending→listening(RESPONSE_END) 직후 grace 내 suppre
 
   await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'), { timeout: 500 });
 
+  const v_59f40c = v_183224.cloneTailGraceMs;
   const v_a56917 = v_1e3df0.stop.mock.calls.length;
   await new Promise<void>((v_cb35cb) => setTimeout(v_cb35cb, 400)); 
   const v_4caf35 = v_1e3df0.stop.mock.calls.length;
   expect(v_4caf35).toBe(v_a56917);
 
-  await new Promise<void>((v_cb35cb) => setTimeout(v_cb35cb, 700));
+  await new Promise<void>((v_cb35cb) => setTimeout(v_cb35cb, v_59f40c - 400 + 300));
   const v_5ef960 = v_1e3df0.stop.mock.calls.length;
   expect(v_5ef960).toBeGreaterThan(v_4caf35);
 });
@@ -787,7 +790,7 @@ describe('Task 13: speech_end 오디오 꼬리 대기', () => {
     expect(v_43c42e.current.phase).toBe('speaking');
 
     v_fbe91e = 0.01;
-    await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(1000); });
+    await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(v_183224.cloneResumeMs + 400); });
     expect(v_43c42e.current.phase).toBe('listening');
   });
 
@@ -888,7 +891,7 @@ describe('Task 19: remaining_ms 기반 녹음 재개 게이팅', () => {
 
   afterEach(() => { jest.useRealTimers(); });
 
-  it('(a) remainingMs=4000 — 4s 전엔 무음 폴링에도 speaking 유지, 4s 경과+무음 후 listening', async () => {
+  it('(a) remainingMs=4000 — 봉인(4s-1s=3s) 전엔 무음 폴링에도 speaking 유지, 경과+무음 후 listening', async () => {
     jest.useFakeTimers();
     const v_1e3df0 = v_c2295a();
     const v_791152 = jest.fn(() => v_cde30b(0)); 
@@ -904,7 +907,7 @@ describe('Task 19: remaining_ms 기반 녹음 재개 게이팅', () => {
     v_2726cb({ signal: { type: 'speech_end', seq: 1, ts: 2, remainingMs: 4000 } });
     expect(v_43c42e.current.phase).toBe('speaking');
 
-    await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(3800); });
+    await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(2800); });
     expect(v_43c42e.current.phase).toBe('speaking');
 
     await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(400); });
