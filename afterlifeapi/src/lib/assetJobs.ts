@@ -290,7 +290,7 @@ export async function v_f9d88f(
     v_3e6264.push(
       v_a1651b
         .prepare(
-          `UPDATE clone_asset_jobs SET out_url=?, updated_at=datetime('now')
+          `UPDATE clone_asset_jobs SET status='done', out_url=?, updated_at=datetime('now')
             WHERE id=? AND status='running'`,
         )
         .bind(JSON.stringify([v_f71b56]), v_04211c),
