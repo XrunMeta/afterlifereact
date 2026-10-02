@@ -317,6 +317,9 @@ class AvatarVideoTrack(VideoStreamTrack):
         pts, time_base = self._pts_25, VIDEO_TIME_BASE
         arr: Optional[np.ndarray] = None
 
+        # 2026-10-02 — shape mismatch 디버그: 이 arr 가 어디서 왔는지 추적용 flag.
+        arr_source: str = "none"
+
         if self.mode == "queue":
             # 리드 버퍼: 목표 프레임이 쌓이면 해제(이후 정상 드레인). 버퍼링 중엔 아래
             # try 에서 큐를 소비하지 않고 idle 폴백 경로를 재사용 → audio gate 미개방 유지
@@ -331,6 +334,7 @@ class AvatarVideoTrack(VideoStreamTrack):
                     raise asyncio.TimeoutError
                 # 짧은 timeout 으로 폴링 — 비면 idle/last/dummy fallback
                 arr = await asyncio.wait_for(self.queue.get(), timeout=0.02)
+                arr_source = "queue"
                 self._last_frame = arr
                 self._last_real_ts = time.time()  # 029-H: 마지막 대화 frame 시각 (wall clock — __init__/_select 와 단위 일관)
                 self.frames_real += 1  # 029-avsync-measure
@@ -350,6 +354,7 @@ class AvatarVideoTrack(VideoStreamTrack):
                     (self._idle_grace_end if self._stream_ended else self._idle_grace),
                     self._idle_frames, self._idle_t0, self._last_frame,
                 )
+                arr_source = "idle" if self._idle_t0 > 0 else ("last_frame" if arr is self._last_frame else "none")
                 if self._idle_t0 > 0:
                     if not _was_idle:
                         log.info("[029-H] idle 진입 (gap=%.1fs, frames=%d)", _now - self._last_real_ts, len(self._idle_frames))
@@ -362,19 +367,31 @@ class AvatarVideoTrack(VideoStreamTrack):
         # dummy 모드 또는 queue 모드에서 last 도 없을 때
         if arr is None:
             arr = _dummy_rgb_frame(time.time() - self._start)
+            arr_source = "dummy"
 
         # 안전 — 차원 검증
         if arr.ndim != 3 or arr.shape[2] != 3:
             arr = _dummy_rgb_frame(time.time() - self._start)
+            arr_source = "dummy_bad_shape"
 
         # 2026-10-02 — frame shape lock. idle/speaking 전환 시 WebRTC track resolution
         #   재협상을 막아 RTCView 재조정에 의한 "크기 변동" 체감 제거.
         h_cur, w_cur = arr.shape[:2]
         if self._target_shape is None:
             self._target_shape = (w_cur, h_cur)
-            log.info("[frame-lock] target_shape locked to %dx%d", w_cur, h_cur)
+            log.info("[frame-lock] target_shape locked to %dx%d (source=%s)", w_cur, h_cur, arr_source)
         elif (w_cur, h_cur) != self._target_shape:
             tw, th = self._target_shape
+            # 디버그: 5초 쓰로틀 로그. 어느 source 에서 다른 shape 가 오는지 추적.
+            if not hasattr(self, "_shape_mismatch_log_ts"):
+                self._shape_mismatch_log_ts = 0.0
+                self._shape_mismatch_counts: dict = {}
+            self._shape_mismatch_counts[arr_source] = self._shape_mismatch_counts.get(arr_source, 0) + 1
+            _now_log = time.time()
+            if _now_log - self._shape_mismatch_log_ts > 5.0:
+                self._shape_mismatch_log_ts = _now_log
+                log.info("[frame-lock] shape mismatch: got %dx%d (source=%s) → resize to %dx%d; counts=%s",
+                         w_cur, h_cur, arr_source, tw, th, self._shape_mismatch_counts)
             arr = cv2.resize(arr, (tw, th), interpolation=cv2.INTER_LINEAR)
 
         frame = VideoFrame.from_ndarray(arr, format="rgb24")
