@@ -2,6 +2,19 @@ from __future__ import annotations
 import logging
 import os
 from collections import deque
+from datetime import datetime, timedelta, timezone
+
+_KST = timezone(timedelta(hours=9))
+
+# AFL-926: 이전 통화 기록을 감싸는 지시문. 역할 메시지(user/assistant)로 흩어 넣지 않고
+# system 1개에 대화록으로 담는다 — 통화 경계·날짜를 표시할 수 있고, 연속 user 턴·중간
+# system 메시지가 생기지 않아 ollama 폴백(gemma 템플릿)에서도 깨지지 않는다.
+PRIOR_HEADER = (
+    "[지난 통화 기록] 아래는 지금 통화하는 상대와 예전 통화에서 실제로 나눈 대화야 "
+    "(오래된 것부터). '나'는 너, '상대'는 지금 통화하는 사람이야. 지금은 새 통화가 "
+    "시작된 거야 — 지난 대화를 기억하는 사람처럼 자연스럽게 이어가되, 기록을 읽는 "
+    "티는 내지 마. 기록에 없는 일은 지어내지 마."
+)
 
 log = logging.getLogger("clone_dialog.history")
 
@@ -30,11 +43,19 @@ class ConversationHistory:
     """
 
     ENV_KEY = "PRETHIRD_HISTORY_TURNS"
+    # AFL-926: 이전 대화 + 이번 통화를 합친 글자 상한. 평소엔 닿지 않는 안전 상한이고,
+    # 넘치면 가장 오래된 지난 통화 줄부터, 그다음 이번 통화의 오래된 턴부터 버린다.
+    # 0 이하 = 상한 없음.
+    ENV_MAX_CHARS = "PRETHIRD_HISTORY_MAX_CHARS"
+    DEFAULT_MAX_CHARS = 16000
 
-    def __init__(self, max_turns: int = 0) -> None:
+    def __init__(self, max_turns: int = 0, max_chars: int = DEFAULT_MAX_CHARS) -> None:
         # 음수(잘못된 env)는 비활성으로 접는다 — deque(maxlen=-1) 은 예외다.
         self.max_turns = max_turns if max_turns > 0 else 0
+        self.max_chars = max_chars if max_chars > 0 else 0
         self._turns: deque[tuple[str | None, str]] = deque(maxlen=self.max_turns or 1)
+        # AFL-926: 이전 통화 턴 (call_id, at_ms, role, text). 통화 시작 시 1회 seed.
+        self._prior: list[tuple[str, int, str, str]] = []
 
     @classmethod
     def from_env(cls) -> "ConversationHistory":
@@ -43,14 +64,55 @@ class ConversationHistory:
         통화 중 env 오타 하나로 파이프라인이 죽으면 안 되므로 파싱 실패는
         경고만 남기고 기존 동작(히스토리 없음)으로 떨어진다.
         """
+        max_chars = cls.DEFAULT_MAX_CHARS
+        raw_chars = os.environ.get(cls.ENV_MAX_CHARS)
+        if raw_chars:
+            try:
+                max_chars = int(raw_chars)
+            except (TypeError, ValueError):
+                log.warning("%s=%r 파싱 실패 → 기본 %d", cls.ENV_MAX_CHARS, raw_chars,
+                            cls.DEFAULT_MAX_CHARS)
         raw = os.environ.get(cls.ENV_KEY)
         if not raw:
-            return cls(0)
+            return cls(0, max_chars)
         try:
-            return cls(int(raw))
+            return cls(int(raw), max_chars)
         except (TypeError, ValueError):
             log.warning("%s=%r 파싱 실패 → 히스토리 비활성", cls.ENV_KEY, raw)
-            return cls(0)
+            return cls(0, max_chars)
+
+    def seed_prior(self, turns: list) -> None:
+        """AFL-926: 이 계정×클론의 이전 통화 턴을 심는다(시간순 · API 응답 그대로).
+
+        형식이 어긋난 행은 조용히 버린다 — 이전 대화는 보조 맥락이라, 행 하나 때문에
+        통화 준비가 실패하면 안 된다. 통화 내 턴 수 설정(max_turns)과 독립이다.
+        """
+        out: list[tuple[str, int, str, str]] = []
+        for t in turns or []:
+            if not isinstance(t, dict):
+                continue
+            role, text = t.get("role"), t.get("text")
+            if role not in ("user", "clone") or not isinstance(text, str) or not text.strip():
+                continue
+            at = t.get("at") if isinstance(t.get("at"), int) else 0
+            out.append((str(t.get("callId") or ""), at, role, text.strip()))
+        self._prior = out
+
+    def has_prior(self) -> bool:
+        return bool(self._prior)
+
+    @staticmethod
+    def _render_prior(prior: list[tuple[str, int, str, str]]) -> str:
+        lines = [PRIOR_HEADER]
+        last_call = None
+        for call_id, at, role, text in prior:
+            if call_id != last_call:
+                when = (datetime.fromtimestamp(at / 1000, _KST).strftime("%Y-%m-%d %H:%M")
+                        if at else "날짜 미상")
+                lines.append(f"\n[{when} 통화]")
+                last_call = call_id
+            lines.append(f"{'상대' if role == 'user' else '나'}: {text}")
+        return "\n".join(lines)
 
     def record(self, user_text: str | None, assistant_text: str) -> None:
         """한 턴을 기록한다.
@@ -68,18 +130,31 @@ class ConversationHistory:
         self._turns.append((user_text, assistant_text))
 
     def messages(self) -> list[dict]:
-        """오래된 턴부터 정렬된 messages 배열. 호출자가 조작해도 안전한 새 리스트."""
-        if not self.max_turns:
-            return []
-        out: list[dict] = []
-        for user_text, assistant_text in self._turns:
-            if user_text:
-                out.append({"role": "user", "content": user_text})
-            out.append({"role": "assistant", "content": assistant_text})
-        return out
+        """[지난 통화 대화록 system 1개] + 이번 통화 턴들(오래된 것부터).
+
+        호출자가 조작해도 안전한 새 리스트. 글자 상한을 넘으면 오래된 쪽부터 버린다.
+        """
+        current: list[dict] = []
+        if self.max_turns:
+            for user_text, assistant_text in self._turns:
+                if user_text:
+                    current.append({"role": "user", "content": user_text})
+                current.append({"role": "assistant", "content": assistant_text})
+        prior = list(self._prior)
+        if self.max_chars:
+            cur_len = sum(len(m["content"]) for m in current)
+            while prior and len(self._render_prior(prior)) + cur_len > self.max_chars:
+                prior.pop(0)
+            if not prior:
+                while current and cur_len > self.max_chars:
+                    cur_len -= len(current.pop(0)["content"])
+        if not prior:
+            return current
+        return [{"role": "system", "content": self._render_prior(prior)}] + current
 
     def clear(self) -> None:
         self._turns.clear()
+        self._prior = []
 
     def __len__(self) -> int:
         return len(self._turns) if self.max_turns else 0
