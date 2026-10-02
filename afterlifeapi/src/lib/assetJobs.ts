@@ -254,6 +254,149 @@ export async function v_c12e45(
   return v_12ade7(v_a1651b, v_04211c, v_1e6eca, v_43e90c, v_6e0fd3, v_f17108, "filler");
 }
 
+export async function v_f9d88f(
+  v_a1651b,
+  v_04211c,
+  v_2b8338,
+  v_43e90c,
+  v_6e0fd3,
+  v_f17108,
+): Promise<string | null> {
+  let v_8c65c3 = null;
+  try {
+    const v_43af15 = await v_a1651b
+      .prepare(
+        `INSERT INTO files (r2_key, content_type, size_bytes, owner_user_id, purpose) VALUES (?,?,?,?,?) RETURNING id`,
+      )
+      .bind(v_2b8338.r2Key, "video/mp4", v_2b8338.sizeBytes, v_43e90c, "asset_persona_video")
+      .first<{ id: number }>();
+    v_8c65c3 = v_43af15!.id;
+    const v_f71b56 = `${v_f17108}/oth-path${v_8c65c3}`;
+
+    const v_3e6264 = [];
+    if (v_6e0fd3 !== null && v_6e0fd3 !== undefined) {
+      v_3e6264.push(
+        v_a1651b
+          .prepare(
+            `UPDATE clones SET idle_video_url = ?
+              WHERE id = ?
+                AND (SELECT status FROM clone_asset_jobs WHERE id = ?) = 'running'`,
+          )
+          .bind(v_f71b56, v_6e0fd3, v_04211c),
+      );
+    }
+
+    const v_1d82d8 = v_3e6264.length;
+    v_3e6264.push(
+      v_a1651b
+        .prepare(
+          `UPDATE clone_asset_jobs SET out_url=?, updated_at=datetime('now')
+            WHERE id=? AND status='running'`,
+        )
+        .bind(JSON.stringify([v_f71b56]), v_04211c),
+    );
+    const v_a7f568 = await v_a1651b.batch(v_3e6264);
+    const v_0be20a = v_a7f568[v_1d82d8]?.meta?.changes ?? 0;
+    if (v_0be20a === 0) {
+
+      if (v_8c65c3 !== null) {
+        await v_a1651b.prepare(`DELETE FROM files WHERE id = ?`).bind(v_8c65c3).run().catch(() => {});
+      }
+      return null;
+    }
+    return v_f71b56;
+  } catch (v_49263d) {
+    if (v_8c65c3 !== null) {
+      await v_a1651b.prepare(`DELETE FROM files WHERE id = ?`).bind(v_8c65c3).run().catch(() => {});
+    }
+    throw v_49263d;
+  }
+}
+
+export async function v_dec905(
+  v_a1651b,
+  v_04211c,
+  v_1e6eca,
+  v_43e90c,
+  v_6e0fd3,
+  v_f17108,
+): Promise<string[] | null> {
+  if (v_1e6eca.length !== v_a7025e.length) {
+    throw new Error(
+      `persona_videos bridges: expected ${v_a7025e.length} entries, got ${v_1e6eca.length}`,
+    );
+  }
+  const v_942aa2 = [];
+  const v_90403f = [];
+
+  try {
+    for (const { r2Key: v_0037e3, sizeBytes: v_27cd00 } of v_1e6eca) {
+      const v_43af15 = await v_a1651b
+        .prepare(
+          `INSERT INTO files (r2_key, content_type, size_bytes, owner_user_id, purpose) VALUES (?,?,?,?,?) RETURNING id`,
+        )
+        .bind(v_0037e3, "video/mp4", v_27cd00, v_43e90c, "asset_persona_video")
+        .first<{ id: number }>();
+      v_90403f.push(v_43af15!.id);
+      v_942aa2.push(`${v_f17108}/oth-path${v_43af15!.id}`);
+    }
+
+    const v_a8b0d9 = {};
+    v_a7025e.forEach((v_b24339, v_ebec57) => {
+      v_a8b0d9[v_b24339] = v_942aa2[v_ebec57]!;
+    });
+    const v_564ed2 = JSON.stringify(v_a8b0d9);
+
+    const v_3e6264 = [];
+    if (v_6e0fd3 !== null && v_6e0fd3 !== undefined) {
+      v_3e6264.push(
+        v_a1651b
+          .prepare(
+            `UPDATE clones SET bridge_video_urls = ?
+              WHERE id = ?
+                AND (SELECT status FROM clone_asset_jobs WHERE id = ?) = 'running'`,
+          )
+          .bind(v_564ed2, v_6e0fd3, v_04211c),
+      );
+    }
+    const v_1d82d8 = v_3e6264.length;
+    v_3e6264.push(
+      v_a1651b
+        .prepare(
+          `UPDATE clone_asset_jobs SET status='done', out_url=?, updated_at=datetime('now')
+            WHERE id=? AND status='running'`,
+        )
+        .bind(JSON.stringify(v_942aa2), v_04211c),
+    );
+    const v_a7f568 = await v_a1651b.batch(v_3e6264);
+    const v_0be20a = v_a7f568[v_1d82d8]?.meta?.changes ?? 0;
+    if (v_0be20a === 0) {
+      if (v_90403f.length > 0) {
+        await v_a1651b
+          .prepare(
+            `DELETE FROM files WHERE id IN (${v_90403f.map(() => "?").join(",")})`,
+          )
+          .bind(...v_90403f)
+          .run()
+          .catch(() => {});
+      }
+      return null;
+    }
+    return v_942aa2;
+  } catch (v_49263d) {
+    if (v_90403f.length > 0) {
+      await v_a1651b
+        .prepare(
+          `DELETE FROM files WHERE id IN (${v_90403f.map(() => "?").join(",")})`,
+        )
+        .bind(...v_90403f)
+        .run()
+        .catch(() => {});
+    }
+    throw v_49263d;
+  }
+}
+
 export async function v_7d2f16(
   v_a1651b,
   v_04211c,
