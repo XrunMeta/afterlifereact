@@ -2121,10 +2121,13 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
             if (!req.granted) throw new Error("media permission denied");
           }
           await MediaLibrary.createAssetAsync(uri);
-          if (Platform.OS === "android") {
-            ToastAndroid.show("저장됨", ToastAndroid.SHORT);
-          }
+          setToastMessage(t("call.captureSavedToast"));
         } catch (e) {
+
+          const isPermDenied = e instanceof Error && e.message === "media permission denied";
+          if (isPermDenied) {
+            setToastMessage(t("call.capturePermNeededToast"));
+          }
           if (__DEV__) console.warn("[capture] screenshot save failed:", e);
         } finally {
           setCapturingWithLogo(false);
@@ -2132,7 +2135,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       })();
     });
     return () => sub.remove();
-  }, []);
+  }, [t]);
 
   return (
     <View style={s.container} ref={rootCaptureRef} collapsable={false}>

@@ -223,6 +223,8 @@
     "noCredits": "Not enough credits",
     "giftSent": "Sent {{name}}",
     "giftTitle": "Send a Gift",
+    "captureSavedToast": "Saved",
+    "capturePermNeededToast": "To save screenshots, please allow photo permission in settings",
     "faceDetected": "Face detected",
     "faceNotDetected": "No face",
     "faceConsentHint": "Detects face position only — no face data is stored.",
