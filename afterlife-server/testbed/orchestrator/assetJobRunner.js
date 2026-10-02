@@ -654,6 +654,9 @@ export function v_47bade({
       console.error('[assetJobRunner] persona_videos stage=idle callback error (continuing)', v_9e86fd?.message);
     }
 
+    console.log('[assetJobRunner] persona_videos bridge disabled (T-952) → idle only', v_d5ec97.job_id);
+    return;
+
     const v_67cd67 = Date.now();
     const v_15552e = await Promise.all(
       v_5fb99c.map(async (v_2750f3) => {
