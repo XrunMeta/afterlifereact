@@ -755,3 +755,53 @@ describe('STT network 백오프', () => {
     expect(v_540cc7).not.toHaveBeenCalled();
   });
 });
+
+describe('STT network 백오프 — self-heal 폴링 아래에서도', () => {
+  it('대기 중 startListening 은 무시되고 1·2·4·8초 뒤 포기까지 간다', async () => {
+    const v_1e3df0 = v_c2295a();
+    const v_540cc7 = jest.fn();
+    const v_ae701f = v_0da18b(() => v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a, onUnrecoverable: v_540cc7 }));
+    await v_be73a0(async () => { await v_ae701f.result.current.startListening(); });
+    v_be73a0(() => { v_1e3df0.emit('start'); });
+    const v_16badd = async (v_d799e2) => {
+      for (let v_8d41d7 = 0; v_8d41d7 < v_d799e2; v_8d41d7 += 200) {
+        await v_be73a0(async () => { await v_ae701f.result.current.startListening(); });
+        v_be73a0(() => { jest.advanceTimersByTime(200); });
+      }
+    };
+    const v_9c716c = [];
+    for (const v_d799e2 of v_7f5942) {
+      const v_e98932 = v_1e3df0.start.mock.calls.length;
+      v_be73a0(() => { v_1e3df0.emit('error', { error: 'network' }); v_1e3df0.emit('end'); });
+      await v_16badd(v_d799e2 - 200);
+      expect(v_1e3df0.start).toHaveBeenCalledTimes(v_e98932);      
+      await v_16badd(400);
+      v_9c716c.push(v_1e3df0.start.mock.calls.length - v_e98932);
+      v_be73a0(() => { v_1e3df0.emit('start'); });
+    }
+    expect(v_9c716c).toEqual([1, 1, 1, 1]);
+    v_be73a0(() => { v_1e3df0.emit('error', { error: 'network' }); v_1e3df0.emit('end'); });
+    expect(v_540cc7).toHaveBeenCalledWith('network');
+  });
+
+  it('stopListening(턴 넘김·통화 종료) 뒤 새 듣기는 백오프를 처음부터', async () => {
+    const v_1e3df0 = v_c2295a();
+    const v_540cc7 = jest.fn();
+    const v_ae701f = v_0da18b(() => v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a, onUnrecoverable: v_540cc7 }));
+    await v_be73a0(async () => { await v_ae701f.result.current.startListening(); });
+    v_be73a0(() => { v_1e3df0.emit('start'); });
+    for (const v_d799e2 of v_7f5942.slice(0, 3)) {
+      v_be73a0(() => { v_1e3df0.emit('error', { error: 'network' }); v_1e3df0.emit('end'); });
+      v_be73a0(() => { jest.advanceTimersByTime(v_d799e2); });
+      v_be73a0(() => { v_1e3df0.emit('start'); });
+    }
+    v_be73a0(() => { v_ae701f.result.current.stopListening(); });
+    await v_be73a0(async () => { await v_ae701f.result.current.startListening(); });
+    v_be73a0(() => { v_1e3df0.emit('start'); });
+    const v_e98932 = v_1e3df0.start.mock.calls.length;
+    v_be73a0(() => { v_1e3df0.emit('error', { error: 'network' }); v_1e3df0.emit('end'); });
+    v_be73a0(() => { jest.advanceTimersByTime(v_7f5942[0]); });
+    expect(v_1e3df0.start).toHaveBeenCalledTimes(v_e98932 + 1);    
+    expect(v_540cc7).not.toHaveBeenCalled();
+  });
+});
