@@ -181,3 +181,29 @@ async def test_abandoned_prerender_skips_render(prior_on):
     pipe._tts_stage = _tts_then_abandon
     await pipe.prerender_greeting("여보세요")
     assert rendered == [] and not pipe._prerender_ready
+
+
+@pytest.mark.asyncio
+async def test_say_on_reply_done_fires_before_playback(prior_on):
+    """AFL-926: 응답 텍스트는 렌더·push(재생) 전에 통지된다."""
+    events = []
+    pipe, vt, at = _make([], reply=("고추", " 땄구나."))
+    orig_infer = pipe.infer_fn
+
+    def _infer(wav_path, on_frame):
+        events.append("render")
+        return orig_infer(wav_path, on_frame)
+    pipe.infer_fn = _infer
+    await pipe.say("나 오늘 고추 땄어", on_reply_done=lambda t: events.append(("done", t)))
+    assert events[0] == ("done", "고추 땄구나.")
+    assert "render" in events
+
+
+@pytest.mark.asyncio
+async def test_say_on_reply_done_failure_does_not_break_say(prior_on):
+    pipe, vt, at = _make([])
+
+    def _boom(_t):
+        raise RuntimeError("record failed")
+    await pipe.say("안녕", on_reply_done=_boom)
+    assert vt.frames and at.ended
