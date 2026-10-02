@@ -146,8 +146,11 @@ _OTHER_LABELS: list[tuple[str, str]] = [
     ("relation_episode", "관계 일화"),      # T-484 (사용자와의 구체 에피소드)
     ("address_form", "너가 상대를 부르는 호칭"),  # T-484 (예: "은지야", "아들")
     ("relationship", "관계 맥락"),
-    ("preference_personal", "취향"),
-    ("memories_personal", "기억"),
+    # AFL-926 (2026-10-02 실통화): 기억 문장엔 주어가 없다("아침에 고추를 땄다"). 라벨이 "기억"
+    #   뿐이라 클론이 "고추랑 오이 키우고 있어. 아침엔 고추 따고" 처럼 상대의 일을 자기 일로
+    #   말했다. 라벨에 소유자를 박는다.
+    ("preference_personal", "상대의 취향"),
+    ("memories_personal", "상대에 대한 기억(모두 상대가 한 일·상대의 사정이다. 너의 일이 아니다)"),
     ("preference_history", "취향 변화"),
     ("memory_summary", "기억 요약"),
     ("recent_topics", "최근 화제"),
