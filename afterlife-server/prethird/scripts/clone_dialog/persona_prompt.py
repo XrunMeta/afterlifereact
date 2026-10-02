@@ -394,6 +394,33 @@ def _format_pref_history(val) -> str:
     return "; ".join(parts)
 
 
+_DONG_SUFFIX = ("동", "읍", "면", "리", "가")
+
+
+def spoken_location(user_location: str | None) -> str | None:
+    """앱이 보낸 주소("경기도 안양시 안양동" · "서울 강남구 역삼동")를 말로 부르는 이름 하나로 줄인다.
+
+    AFL-926 (2026-10-02 히즈키): 위치를 물으면 "경기도 안양시 안양동에 있잖아" 처럼 주소를
+    통째로 읽었다. 사람은 "안양동에 있네" · "안산에 있네" 처럼 동 이름이나 대표 지명으로 말한다.
+    프롬프트에 전체 주소를 아예 넣지 않아야 모델이 이어 붙여 읽지 못한다.
+    동이 있으면 동, 없으면 시·군(접미사 뗀 이름) 또는 구, 그것도 없으면 맨 앞 이름.
+    """
+    if not isinstance(user_location, str):
+        return None
+    tokens = user_location.split()
+    if not tokens:
+        return None
+    last = tokens[-1]
+    if len(tokens) > 1 and len(last) >= 2 and last.endswith(_DONG_SUFFIX):
+        return last
+    for t in tokens[1:]:
+        if len(t) >= 3 and t.endswith(("시", "군")):
+            return t[:-1]
+    for t in tokens[1:]:
+        if len(t) >= 2 and t.endswith("구"):
+            return t
+    return tokens[0]
+
 
 def _apply_location_hint(
     messages: list[dict],
@@ -404,7 +431,9 @@ def _apply_location_hint(
 
     T-539J (2026-08-21): ask_region_intro=False 면 규칙 A/B/C 스킵 (이미 오늘 인사한 클론).
       규칙 D (사용자 위치 질문 답변) 은 항상 활성.
+    AFL-926: 전체 주소 대신 spoken_location() 으로 줄인 이름 하나만 넣는다.
     """
+    user_location = spoken_location(user_location)
     if not user_location or not messages:
         return messages
     intro_block = (
@@ -433,6 +462,7 @@ def _apply_location_hint(
     hint = (
         "\n\n[절대 규칙 · 위치 대화]\n"
         "사용자의 현재 위치는 " + user_location + " 이다.\n"
+        "위치를 말할 때는 '" + user_location + "' 이름 하나로만 말한다. 도·시·구를 앞에 붙여 주소처럼 읽지 마라.\n"
         + intro_block +
         "규칙 D. 사용자가 자기 위치·거주지·집이 어딘지 물어보면 (\"나 어디 살아?\", "
         "\"내 집이 어디야?\", \"내 위치 알아?\", \"내가 어디 있게?\") **반드시 답변만** 하고 "
