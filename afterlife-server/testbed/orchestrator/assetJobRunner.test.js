@@ -2154,7 +2154,7 @@ function v_9b91ed({ failOnIndex: v_89531a = -1 } = {}) {
   };
 }
 
-v_2a805f('persona_videos 성공 → /oth-path 1회, idle + bridge 5개 파일 포함 (T-927)', async () => {
+v_2a805f('persona_videos 성공 → 2단계 콜백: stage=idle (1파일) + stage=bridges (5파일) (T-938)', async () => {
   const v_0a664b = [];
   const v_763f84 = [];
   const v_eedf31 = v_47bade({
@@ -2177,22 +2177,25 @@ v_2a805f('persona_videos 성공 → /oth-path 1회, idle + bridge 5개 파일 �
 
   await v_26eff3(v_eedf31, 6000);
 
-  v_ce93bd.equal(v_763f84.length, 1, '/oth-path 1회 호출 필요');
+  v_ce93bd.equal(v_763f84.length, 2, '/oth-path 2회 호출 (idle + bridges)');
   v_ce93bd.equal(v_0a664b.length, 0, 'asset-job-done 호출 없어야 함 (성공)');
 
-  const v_23563e = v_763f84[0].body;
-  v_ce93bd.ok(v_23563e instanceof FormData, 'body 는 FormData');
-  v_ce93bd.equal(v_23563e.get('job_id'), 'pv_ok');
-  v_ce93bd.equal(v_23563e.get('status'), 'done');
-  v_ce93bd.equal(v_23563e.get('callback_token'), 'tok_pv_ok');
+  const v_31f61e = v_763f84[0].body;
+  v_ce93bd.equal(v_31f61e.get('stage'), 'idle', '1차 콜백 stage=idle');
+  v_ce93bd.equal(v_31f61e.get('job_id'), 'pv_ok');
+  v_ce93bd.equal(v_31f61e.get('callback_token'), 'tok_pv_ok');
+  v_ce93bd.ok(v_31f61e.get('file0'), 'idle file0 필요');
+  v_ce93bd.equal(v_31f61e.get('file1'), null, 'idle 콜백에 file1 없어야 함');
 
-  for (let v_ebec57 = 0; v_ebec57 < 6; v_ebec57++) {
-    v_ce93bd.ok(v_23563e.get(`file${v_ebec57}`), `file${v_ebec57} 필드 필요`);
+  const v_89f289 = v_763f84[1].body;
+  v_ce93bd.equal(v_89f289.get('stage'), 'bridges', '2차 콜백 stage=bridges');
+  for (let v_ebec57 = 0; v_ebec57 < 5; v_ebec57++) {
+    v_ce93bd.ok(v_89f289.get(`file${v_ebec57}`), `bridges file${v_ebec57} 필요`);
   }
-  v_ce93bd.equal(v_23563e.get('file6'), null, '6개 초과 필드 없음');
+  v_ce93bd.equal(v_89f289.get('file5'), null, 'bridges 콜백 5개 초과 없음');
 });
 
-v_2a805f('persona_videos MuseTalk 2번째(index 1) 실패 → 전부-or-전무: persona 콜백 0회, failed 콜백 1회 (T-927)', async () => {
+v_2a805f('persona_videos bridge 실패 → stage=idle 콜백 1회 + failed 콜백 1회 (T-938)', async () => {
   const v_0a664b = [];
   const v_763f84 = [];
   const v_eedf31 = v_47bade({
@@ -2215,10 +2218,10 @@ v_2a805f('persona_videos MuseTalk 2번째(index 1) 실패 → 전부-or-전무: 
 
   await v_26eff3(v_eedf31, 6000);
 
-  v_ce93bd.equal(v_763f84.length, 0, 'persona-videos-job-done 미호출');
-  v_ce93bd.equal(v_0a664b.length, 1, 'asset-job-done(failed) 1회');
-  const v_23563e = v_0a664b[0].body;
-  v_ce93bd.equal(v_23563e.get('status'), 'failed');
+  v_ce93bd.equal(v_763f84.length, 1, 'persona-videos-job-done 1회 (stage=idle)');
+  v_ce93bd.equal(v_763f84[0].body.get('stage'), 'idle');
+  v_ce93bd.equal(v_0a664b.length, 1, 'asset-job-done(failed) 1회 (bridge 실패)');
+  v_ce93bd.equal(v_0a664b[0].body.get('status'), 'failed');
 });
 
 v_2a805f('persona_videos — face_url 이 apiBaseUrl prefix 아니면 즉시 failed (SSRF, T-927)', async () => {
