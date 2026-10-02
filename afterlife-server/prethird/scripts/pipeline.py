@@ -320,6 +320,10 @@ class DialoguePipeline:
         #   발화 경로(say/greet/react)는 메시지 조립 전에 이전 대화 로딩을 잠깐 기다린다.
         # AFL-926: 앱이 Bridge 클립을 트는 통화인지(offer "bridge"). None = 모름(구 앱) → 기존처럼 대기.
         self.uses_bridge: bool | None = None
+        # 앱이 Bridge 재생이 끝나는 순간 datachannel {"type":"bridge","state":"end"} 를 보내는지
+        #   (offer "bridge_signal"). True 면 첫 응답을 고정 12s 대신 "렌더 완료 ∧ Bridge 종료" 에 맞춰 보낸다.
+        self.bridge_signal: bool = False
+        self._bridge_end = asyncio.Event()
         self._prior_task: asyncio.Future | None = None
         self._prerender_task: asyncio.Future | None = None
 
@@ -408,6 +412,40 @@ class DialoguePipeline:
         except Exception as e:  # noqa: BLE001
             log.warning("[AFL-926/prerender] 인사 생성 실패: %s", e)
             return ""
+
+    def bridge_ended(self) -> None:
+        """앱이 이번 턴의 Bridge 재생을 끝냈다(datachannel bridge end). 대기 중인 첫 응답을 풀어 준다."""
+        self._bridge_end.set()
+
+    async def _wait_bridge_gate(self, t_turn: float) -> None:
+        """첫 응답 push 시점 — 렌더가 끝난 직후 호출된다(bridge_signal 통화 전용).
+
+        앱은 사용자 말 전송 후 grace(3s) 안에 speech_start 가 오면 Bridge 를 건너뛰고, 아니면
+        Bridge 를 끝까지 튼다. 그래서
+          1. grace 안(네트워크 여유 margin 을 뺀 시각)에 렌더가 끝났으면 바로 보낸다 → 앱이 Bridge 를 건너뜀.
+          2. 그보다 늦으면 Bridge 가 재생 중(또는 곧 시작)이다 → 앱의 종료 신호를 기다렸다가 곧바로 보낸다.
+             이미 끝났으면(렌더가 Bridge 보다 늦음) 기다리지 않는다.
+          3. 신호가 안 오면(유실·앱 오류) 기존 고정 대기(grace + duration + post)에서 보낸다.
+        """
+        grace = int(os.environ.get("PRETHIRD_BRIDGE_GRACE_MS", "3000")) / 1000.0
+        margin = int(os.environ.get("PRETHIRD_BRIDGE_EARLY_MARGIN_MS", "700")) / 1000.0
+        now = time.perf_counter()
+        if now <= t_turn + grace - margin:
+            log.info("[bridge] render ready in grace (%dms) — push now, app skips Bridge",
+                     int((now - t_turn) * 1000))
+            return
+        fallback = t_turn + (grace * 1000 + int(os.environ.get("PRETHIRD_BRIDGE_DURATION_MS", "8000"))
+                             + int(os.environ.get("PRETHIRD_POST_BRIDGE_DELAY_MS", "2000"))) / 1000.0
+        if self._bridge_end.is_set():
+            log.info("[bridge] Bridge already ended — push now (%dms)", int((now - t_turn) * 1000))
+            return
+        try:
+            await asyncio.wait_for(self._bridge_end.wait(), timeout=max(0.0, fallback - now))
+            log.info("[bridge] Bridge end signal — push (%dms after turn)",
+                     int((time.perf_counter() - t_turn) * 1000))
+        except asyncio.TimeoutError:
+            log.warning("[bridge] no Bridge end signal — fallback push at %dms",
+                        int((time.perf_counter() - t_turn) * 1000))
 
     def cancel_background(self) -> None:
         """통화 종료 시 signaling teardown 이 부른다 — 남은 prior·prerender 태스크 취소."""
@@ -545,6 +583,8 @@ class DialoguePipeline:
           additive. (기존: tts_worker dequeue 직후 호출이라 재생보다 수 초
           선행 — 실기 피드백으로 push 단계로 이동)"""
         turn = turn if turn is not None else NULL_TURN
+        # 이번 턴의 Bridge 는 아직 끝나지 않았다 — 이전 턴의 종료 신호가 남아 있으면 지운다.
+        self._bridge_end.clear()
         if self.clone_locked and not self.se_path:
             log.warning("clone voice 미준비 — 발화 skip (폴백 없음)")
             return
@@ -853,6 +893,7 @@ class DialoguePipeline:
     async def _infer_stage(
         self, wav_bytes: bytes, pcm48: np.ndarray, turn=None, on_before_push=None,
         render_mode: str | None = None, min_push_at: float | None = None,
+        push_gate=None,
     ) -> None:
         """wav → musetalk infer(executor) → frames 일괄 push + balance audio. (GPU1)
         turn: recorder Turn — PRETHIRD_RECORD_MP4=1 시 frames 누적.
@@ -904,7 +945,10 @@ class DialoguePipeline:
             _fire_hook()
             # T-824: min_push_at 지정 시 그 시각까지 대기 후 push
             #   (Bridge 재생 종료 시점 · 오디오 겹침 방지)
-            if min_push_at is not None:
+            # push_gate(코루틴 함수)가 있으면 그쪽이 우선 — 앱의 Bridge 종료 신호를 기다린다.
+            if push_gate is not None:
+                await push_gate()
+            elif min_push_at is not None:
                 wait_s = min_push_at - time.perf_counter()
                 if wait_s > 0:
                     log.info(
@@ -1230,8 +1274,14 @@ class DialoguePipeline:
                     #   0 이면 종전 동작(즉시 push).
                     _post_bridge_ms = int(os.environ.get("PRETHIRD_POST_BRIDGE_DELAY_MS", "2000"))
                     _min_push_at = _t_turn + (_grace_ms + _bridge_ms + _post_bridge_ms) / 1000.0
+                # 앱이 Bridge 종료 신호를 보내는 통화는 고정 대기 대신 "렌더 완료 ∧ Bridge 종료" 에 맞춘다
+                #   (히즈키 2026-10-02: 렌더 준비되는 대로, Bridge 끝나면 이어서).
+                _push_gate = None
+                if _min_push_at is not None and self.bridge_signal:
+                    _push_gate = lambda _t=_t_turn: self._wait_bridge_gate(_t)  # noqa: E731
                 await self._infer_stage(
                     wav_bytes, pcm48, turn, on_before_push=_hook, min_push_at=_min_push_at,
+                    push_gate=_push_gate,
                 )
                 if _m["first_audio_ms"] is None:
                     _m["first_audio_ms"] = int((time.perf_counter() - _t_turn) * 1000)

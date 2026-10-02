@@ -99,3 +99,69 @@ async def test_say_waits_when_bridge_used_or_unknown(bridge_env, flag):
     pipe.uses_bridge = flag
     t = await _first_audio_s(lambda cb: pipe.say("안녕", on_first_audio=cb))
     assert t >= 0.38, f"Bridge 대기를 건너뜀(flag={flag}): {t:.2f}s"
+
+
+# ---- Bridge 종료 신호(offer bridge_signal) — 렌더 준비되는 대로, Bridge 끝나면 이어서 ----
+@pytest.fixture
+def signal_env(monkeypatch):
+    # grace 0.3s · margin 0.1s(즉시 송출 한계 0.2s) · 고정 대기 폴백 0.3+0.6+0.2 = 1.1s
+    monkeypatch.setenv("PRETHIRD_BRIDGE_GRACE_MS", "300")
+    monkeypatch.setenv("PRETHIRD_BRIDGE_EARLY_MARGIN_MS", "100")
+    monkeypatch.setenv("PRETHIRD_BRIDGE_DURATION_MS", "600")
+    monkeypatch.setenv("PRETHIRD_POST_BRIDGE_DELAY_MS", "200")
+    monkeypatch.setenv("PRETHIRD_RENDER_MODE", "partial")
+
+
+def _make_slow(render_s):
+    pipe = _make()
+    fast = pipe.infer_fn
+    def slow_infer(wav_path, on_frame):
+        time.sleep(render_s)
+        return fast(wav_path, on_frame)
+    pipe.infer_fn = slow_infer
+    pipe.uses_bridge = True
+    pipe.bridge_signal = True
+    return pipe
+
+
+async def _say_with_end_at(pipe, end_at_s):
+    if end_at_s is not None:
+        asyncio.get_event_loop().call_later(end_at_s, pipe.bridge_ended)
+    return await _first_audio_s(lambda cb: pipe.say("안녕", on_first_audio=cb))
+
+
+@pytest.mark.asyncio
+async def test_signal_render_in_grace_pushes_now(signal_env):
+    """렌더가 grace 안에 끝나면 바로 보낸다 — 앱은 speech_start 를 받고 Bridge 를 건너뛴다."""
+    t = await _say_with_end_at(_make_slow(0.0), None)
+    assert t < 0.2, f"grace 안 렌더인데 대기함: {t:.2f}s"
+
+
+@pytest.mark.asyncio
+async def test_signal_waits_for_bridge_end_then_pushes(signal_env):
+    """grace 를 넘긴 렌더는 Bridge 종료 신호(0.6s)를 기다렸다가 곧바로 — 고정 1.1s 까지 안 기다린다."""
+    t = await _say_with_end_at(_make_slow(0.3), 0.6)
+    assert 0.55 <= t < 0.85, f"Bridge 종료 직후가 아님: {t:.2f}s"
+
+
+@pytest.mark.asyncio
+async def test_signal_missing_falls_back_to_fixed_wait(signal_env):
+    """신호가 안 오면(유실·앱 오류) 기존 고정 대기에서 보낸다."""
+    t = await _say_with_end_at(_make_slow(0.3), None)
+    assert 1.05 <= t < 1.4, f"폴백 시점이 아님: {t:.2f}s"
+
+
+@pytest.mark.asyncio
+async def test_signal_bridge_ended_before_render_pushes_on_ready(signal_env):
+    """Bridge 가 렌더보다 먼저 끝났으면 렌더 완료 즉시 보낸다."""
+    t = await _say_with_end_at(_make_slow(0.4), 0.25)
+    assert 0.38 <= t < 0.6, f"렌더 완료 즉시가 아님: {t:.2f}s"
+
+
+@pytest.mark.asyncio
+async def test_stale_bridge_end_from_previous_turn_is_cleared(signal_env):
+    """이전 턴의 종료 신호가 남아 있어도 새 턴은 자기 Bridge 를 기다린다."""
+    pipe = _make_slow(0.3)
+    pipe.bridge_ended()                      # 이전 턴의 늦은 신호
+    t = await _say_with_end_at(pipe, 0.6)
+    assert t >= 0.55, f"이전 턴 신호로 일찍 나감: {t:.2f}s"
