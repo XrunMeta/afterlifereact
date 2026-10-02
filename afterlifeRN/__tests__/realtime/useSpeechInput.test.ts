@@ -805,3 +805,40 @@ describe('STT network 백오프 — self-heal 폴링 아래에서도', () => {
     expect(v_540cc7).not.toHaveBeenCalled();
   });
 });
+
+describe('이어질 모양 endpoint 연장', () => {
+  const v_953766 = 300;
+  async function v_a1d9db(v_9b6134) {
+    const v_1e3df0 = v_c2295a();
+    const v_f28164 = jest.fn();
+    const v_ae701f = v_0da18b(() =>
+      v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a, incompleteHoldMs: v_953766, onFinalResult: v_f28164 }));
+    await v_be73a0(async () => { await v_ae701f.result.current.startListening(); });
+    v_be73a0(() => { v_1e3df0.emit('start'); });
+    v_be73a0(() => { v_1e3df0.emit('result', { isFinal: true, results: [{ transcript: v_9b6134 }] }); });
+    return { engine: v_1e3df0, onFinalResult: v_f28164 };
+  }
+
+  it('"특별한 일은" 은 silenceMs 에 보내지 않고 HOLD 까지 기다린다', async () => {
+    const { onFinalResult: v_f28164 } = await v_a1d9db('특별한 일은');
+    v_be73a0(() => { jest.advanceTimersByTime(v_6d843a + 10); });
+    expect(v_f28164).not.toHaveBeenCalled();
+    v_be73a0(() => { jest.advanceTimersByTime(v_953766); });
+    expect(v_f28164).toHaveBeenCalledWith('특별한 일은');
+  });
+
+  it('기다리는 동안 이어서 말하면 합쳐서 한 번에 보낸다', async () => {
+    const { engine: v_1e3df0, onFinalResult: v_f28164 } = await v_a1d9db('어 지금은 좀');
+    v_be73a0(() => { jest.advanceTimersByTime(v_6d843a + 100); });
+    v_be73a0(() => { v_1e3df0.emit('result', { isFinal: true, results: [{ transcript: '그냥 쉬고 있는 중이야' }] }); });
+    v_be73a0(() => { jest.advanceTimersByTime(v_6d843a + 10); });
+    expect(v_f28164).toHaveBeenCalledTimes(1);
+    expect(v_f28164).toHaveBeenCalledWith('어 지금은 좀 그냥 쉬고 있는 중이야');
+  });
+
+  it('끝난 모양이면 기존처럼 silenceMs 에 보낸다', async () => {
+    const { onFinalResult: v_f28164 } = await v_a1d9db('그래 알았다');
+    v_be73a0(() => { jest.advanceTimersByTime(v_6d843a + 10); });
+    expect(v_f28164).toHaveBeenCalledWith('그래 알았다');
+  });
+});
