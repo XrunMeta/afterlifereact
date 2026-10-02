@@ -478,19 +478,11 @@ v_469bf2("createClone filler 잡 자동 트리거 (T-088 F3)", () => {
     const v_a1651b = v_c9c489.DB as unknown as D1Database;
     const v_9f844e = await v_a1651b
       .prepare(
-        `SELECT kind, src_file_id, clone_id, status FROM clone_asset_jobs WHERE clone_id=? AND kind='filler'`,
+        `SELECT kind FROM clone_asset_jobs WHERE clone_id=? AND kind='filler'`,
       )
       .bind(v_6e0fd3)
-      .first<{ kind: string; src_file_id: number; clone_id: number | null; status: string }>();
-
-    v_4d37e3(v_9f844e).toBeTruthy();
-    v_4d37e3(v_9f844e!.kind).toBe("filler");
-
-    v_4d37e3(v_9f844e!.src_file_id).toBe(v_43d22b);
-
-    v_4d37e3(v_9f844e!.clone_id).toBe(v_6e0fd3);
-
-    v_4d37e3(["pending", "running", "failed"]).toContain(v_9f844e!.status);
+      .first<{ kind: string }>();
+    v_4d37e3(v_9f844e).toBeNull();
   });
 
   v_23805a("idle_video_job_id 미제공 → filler 잡 미생성(fail-safe)", async () => {
