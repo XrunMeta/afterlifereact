@@ -605,12 +605,16 @@ export function v_47bade({
     if (!v_d5ec97.clone_id) {
       throw new Error('persona_videos job requires clone_id');
     }
-    if (!v_d5ec97.voice_raw_url || !v_d5ec97.voice_raw_url.startsWith(v_5bf8fd)) {
-      throw new Error(
-        `voice_raw_url not allowed or missing: must start with apiBaseUrl prefix (${v_5bf8fd})`,
-      );
+
+    const v_f9c770 = !!v_d5ec97.voice_raw_url;
+    if (v_f9c770) {
+      if (!v_d5ec97.voice_raw_url.startsWith(v_5bf8fd)) {
+        throw new Error(
+          `voice_raw_url not allowed: must start with apiBaseUrl prefix (${v_5bf8fd})`,
+        );
+      }
+      await v_9920b6(v_d5ec97.clone_id, v_d5ec97.voice_raw_url, v_4ed329, v_d10060, v_b1d1a2);
     }
-    await v_9920b6(v_d5ec97.clone_id, v_d5ec97.voice_raw_url, v_4ed329, v_d10060, v_b1d1a2);
 
     const v_4c580f = await v_d10060(v_d5ec97.face_url);
     if (!v_4c580f.ok) throw new Error(`face.jpg fetch failed: HTTP ${v_4c580f.status}`);
@@ -633,6 +637,11 @@ export function v_47bade({
       console.error('[assetJobRunner] persona_videos stage=idle callback error (continuing)', v_9e86fd?.message);
     }
 
+    if (!v_f9c770) {
+
+      console.log('[assetJobRunner] persona_videos voice-less → bridge skip (idle only)', v_d5ec97.job_id);
+      return;
+    }
     const v_67cd67 = Date.now();
     const v_15552e = await Promise.all(
       v_5fb99c.map(async (v_2750f3) => {
