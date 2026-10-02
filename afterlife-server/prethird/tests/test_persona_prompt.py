@@ -89,7 +89,7 @@ def test_preference_personal_렌더_가독():
     msgs = bundle_to_messages(_bundle({"preference_personal": {"커피": "라떼", "취미": "여행"}}))
     content = msgs[0]["content"]
     assert "## 상대 정보" in content
-    assert "- 취향: " in content
+    assert "- 상대의 취향: " in content
     assert "커피: 라떼" in content
     assert "{" not in content and "'" not in content   # 파이썬 dict repr 금지
 
@@ -100,6 +100,8 @@ def test_memories_personal_렌더_가독():
     content = msgs[0]["content"]
     assert "기억" in content
     assert "여행 좋아함" in content and "고양이 키움" in content
+    # AFL-926: 기억 문장엔 주어가 없다 — 라벨이 소유자를 밝혀야 클론이 상대 일을 자기 일로 말하지 않는다.
+    assert "- 상대에 대한 기억(모두 상대가 한 일·상대의 사정이다. 너의 일이 아니다): 여행 좋아함" in content
     assert "[" not in content   # 파이썬 list repr 금지
 
 

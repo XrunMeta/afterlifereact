@@ -31,9 +31,15 @@ _EXTRACT_SYSTEM = (
     "(likes, interests, habits). {} if none.\n"
     '  "relation": short string of how the user relates to the clone (e.g. "손녀", "오랜 친구"), '
     "or null if unclear/unchanged.\n"
-    '  "memories_personal": array of short factual statements worth remembering about the user. [] if none.\n'
+    '  "memories_personal": array of short factual statements worth remembering about the user, '
+    "each starting with '사용자는' (e.g. '사용자는 아침에 고추를 땄다'). [] if none.\n"
     "RULES:\n"
     "- Only facts explicitly stated by the USER in this turn. Never guess.\n"
+    # AFL-926 (2026-10-02 실통화): 클론이 "텃밭 만지는 거랑 이것저것 고치는 게 취미야 · 막걸리
+    #   한잔" 이라고 하자 그게 사용자 취향(취미·음료)으로 저장됐다. 클론 대답은 사용자의 짧은
+    #   말("응", "나도")을 이해하는 데만 쓴다.
+    "- The CLONE's reply is about the clone, not the user. NEVER store the clone's own hobbies, job, "
+    "plans or experiences. Use the clone's reply only to understand a short USER answer like '응' or '나도'.\n"
     # AFL-926 (2026-10-02): 시연 통화에서 통화 품질 소감 7줄("말이 자꾸 반복되는 것을 불편해함")과
     #   음성 인식 오류("사용자가 '스크린도 먹었단다'라고 말했다")가 기억으로 쌓였고, 다음 통화마다
     #   다시 주입돼 클론이 상담원처럼 대화 품질 얘기로 돌아갔다.
