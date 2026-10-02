@@ -142,3 +142,42 @@ async def test_prerender_llm_failure_falls_back_to_fixed_text(prior_on, monkeypa
     pipe.chat_fn = _broken
     await pipe.prerender_greeting(None)
     assert pipe._prerender_ready and pipe._prerender_text == "여보세요?"
+
+
+@pytest.mark.asyncio
+async def test_cancel_background_and_react_blocks_cache(prior_on):
+    pipe, vt, at = _make([])
+
+    async def _forever():
+        await asyncio.sleep(10)
+    pipe._prior_task = asyncio.ensure_future(_forever())
+    pipe._prerender_task = asyncio.ensure_future(_forever())
+    pipe.cancel_background()
+    await asyncio.sleep(0)
+    assert pipe._prior_task.cancelled() and pipe._prerender_task.cancelled()
+
+    pipe2, _, _ = _make([])
+    await pipe2.react("unknown")
+    assert pipe2._prerender_used        # react 가 먼저 오면 캐시 인사는 나가지 않는다
+
+
+@pytest.mark.asyncio
+async def test_abandoned_prerender_skips_render(prior_on):
+    """(el) greet 가 포기한 뒤엔 TTS 이후 GPU 렌더를 하지 않는다."""
+    pipe, vt, at = _make([])
+    rendered = []
+    orig = pipe._render_to_cache
+
+    async def _spy(*a, **kw):
+        rendered.append(1)
+        return await orig(*a, **kw)
+    pipe._render_to_cache = _spy
+
+    orig_tts = pipe._tts_stage
+    async def _tts_then_abandon(text):
+        out = await orig_tts(text)
+        pipe._prerender_used = True     # TTS 도중 greet 가 포기
+        return out
+    pipe._tts_stage = _tts_then_abandon
+    await pipe.prerender_greeting("여보세요")
+    assert rendered == [] and not pipe._prerender_ready

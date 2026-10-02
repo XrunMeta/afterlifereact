@@ -163,16 +163,17 @@ export function v_3f4abd(v_4317d1) {
 
 export function v_a26277(v_4317d1) {
   if (v_e38ca2(process.env) !== 'openai') return v_248c13(v_4317d1);
-  let v_db991d = null;
+
+  let v_9eebad = null;
   let v_6c558f = false;
-  v_db991d = v_164864({
+  const v_127e92 = v_164864({
     ...v_4317d1,
     onFirstError: (v_49263d) => {
       if (v_6c558f) return;
       if (!v_4aa676(process.env)) return v_4317d1.onError?.(v_49263d);
       console.error(`[llm] openai chatStream 실패(첫 토큰 전) → ollama 폴백: ${v_49263d?.message ?? v_49263d}`);
-      v_db991d = v_248c13(v_4317d1);
+      v_9eebad = v_248c13(v_4317d1);
     },
   });
-  return { abort() { v_6c558f = true; v_db991d?.abort(); } };
+  return { abort() { v_6c558f = true; v_127e92?.abort(); v_9eebad?.abort(); } };
 }

@@ -98,7 +98,7 @@ v_dcd415.get("/conversations/:userId/:cloneId", async (v_3f4e2e) => {
        FROM call_turns t
        JOIN call_sessions s ON s.call_id = t.call_id
       WHERE s.user_id = ? AND s.clone_id = ?
-        AND t.created_at > ?
+        AND s.started_at > ?
         AND t.call_id != ?
       ORDER BY s.started_at DESC, t.seq DESC
       LIMIT ?`
@@ -123,6 +123,8 @@ v_dcd415.post("/conversations/:userId/:cloneId/reset", async (v_3f4e2e) => {
     `INSERT INTO conversation_resets (user_id, clone_id, reset_at) VALUES (?, ?, ?)
      ON CONFLICT(user_id, clone_id) DO UPDATE SET reset_at = excluded.reset_at`
   ).bind(v_43e90c, v_6e0fd3, v_b98b4f).run();
+
+  console.log(`[conversation-reset] user=${v_43e90c} clone=${v_6e0fd3} reset_at=${v_b98b4f}`);
   return v_3f4e2e.json({ ok: true, resetAt: v_b98b4f });
 });
 

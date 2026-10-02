@@ -22,6 +22,17 @@ export function v_747807({ messages: v_fa56e0, options: v_b36f96 = {}, format: v
   return v_4d33b2;
 }
 
+export function v_453097(v_d308b5, v_9b6134) {
+  let v_94302c = '?';
+  let v_badeaf = String(v_9b6134 ?? '');
+  try {
+    const v_49263d = JSON.parse(v_badeaf)?.error ?? {};
+    v_94302c = `${v_49263d.type ?? '?'}/${v_49263d.code ?? '?'}`;
+    v_badeaf = String(v_49263d.message ?? '');
+  } catch {  }
+  return `openai ${v_d308b5} ${v_94302c}: ${v_badeaf.replace(/sk-[A-Za-z0-9_-]+/g, 'sk-***').slice(0, 100)}`;
+}
+
 function v_576f5a(v_c9c489, v_4d33b2, v_9718cb, v_361415) {
   const v_b24339 = v_c9c489.OPENAI_API_KEY;
   if (!v_b24339) throw new Error('OPENAI_API_KEY 가 설정되지 않았다');
@@ -38,7 +49,7 @@ export async function v_a65bcd({ messages: v_fa56e0, options: v_b36f96 = {}, for
   env: v_c9c489 = process.env, fetchFn: v_9718cb = fetch }) {
   const v_4d33b2 = v_747807({ messages: v_fa56e0, options: v_b36f96, format: v_db3cc6, stream: false, env: v_c9c489 });
   const v_8f00b9 = await v_576f5a(v_c9c489, v_4d33b2, v_9718cb, AbortSignal.timeout(v_11bcf9));
-  if (!v_8f00b9.ok) throw new Error(`openai ${v_8f00b9.status}: ${(await v_8f00b9.text()).slice(0, 300)}`);
+  if (!v_8f00b9.ok) throw new Error(v_453097(v_8f00b9.status, await v_8f00b9.text()));
   const v_8839e3 = await v_8f00b9.json();
   const v_b43b74 = v_8839e3?.choices?.[0]?.message?.content ?? '';
   return typeof v_b43b74 === 'string' ? v_b43b74 : String(v_b43b74);
@@ -67,10 +78,14 @@ export function v_164864({ messages: v_fa56e0, options: v_b36f96 = {}, onChunk: 
   const v_57bcd5 = new AbortController();
   let v_6c558f = false;
   let v_f966e3 = false;
+
+  const v_e1a8d0 = Number(v_c9c489.PRETHIRD_LLM_FIRST_TOKEN_TIMEOUT_S ?? 6) * 1000;
+  let v_8a167a = false;
+  const v_d4a3aa = setTimeout(() => { v_8a167a = true; v_57bcd5.abort(); }, v_e1a8d0 > 0 ? v_e1a8d0 : 6000);
   (async () => {
     try {
       const v_8f00b9 = await v_576f5a(v_c9c489, v_747807({ messages: v_fa56e0, options: v_b36f96, stream: true, env: v_c9c489 }), v_9718cb, v_57bcd5.signal);
-      if (!v_8f00b9.ok) throw new Error(`openai ${v_8f00b9.status}: ${(await v_8f00b9.text()).slice(0, 300)}`);
+      if (!v_8f00b9.ok) throw new Error(v_453097(v_8f00b9.status, await v_8f00b9.text()));
       const v_d2f56d = new TextDecoder();
       let v_83ee53 = '';
       for await (const v_334f63 of v_8f00b9.body) {
@@ -78,16 +93,23 @@ export function v_164864({ messages: v_fa56e0, options: v_b36f96 = {}, onChunk: 
         v_83ee53 += v_d2f56d.decode(v_334f63, { stream: true });
         const { tokens: v_ef86b6, done: v_2fb8cc, rest: v_83bbcd } = v_59cec7(v_83ee53);
         v_83ee53 = v_83bbcd;
-        for (const v_8d41d7 of v_ef86b6) { v_f966e3 = true; v_c4fafc?.(v_8d41d7); }
+        for (const v_8d41d7 of v_ef86b6) {
+          if (!v_f966e3) clearTimeout(v_d4a3aa);
+          v_f966e3 = true;
+          v_c4fafc?.(v_8d41d7);
+        }
         if (v_2fb8cc) break;
       }
+      clearTimeout(v_d4a3aa);
       if (!v_6c558f) v_7b5712?.({ done_reason: 'stop', eval_count: 0, eval_duration_ms: 0, total_duration_ms: 0 });
     } catch (v_49263d) {
+      clearTimeout(v_d4a3aa);
       if (v_6c558f) return;
+      if (v_8a167a) v_49263d = new Error(`openai 첫 토큰 ${v_e1a8d0}ms 초과`);
 
       if (!v_f966e3 && v_de49e3) v_de49e3(v_49263d);
       else v_c6eab8?.(v_49263d);
     }
   })();
-  return { abort() { v_6c558f = true; v_57bcd5.abort(); } };
+  return { abort() { v_6c558f = true; clearTimeout(v_d4a3aa); v_57bcd5.abort(); } };
 }
