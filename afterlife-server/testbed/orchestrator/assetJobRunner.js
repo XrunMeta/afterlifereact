@@ -648,15 +648,7 @@ export function v_47bade({
     }
     const v_80de10 = await v_c6410d(v_ae3ab3);
 
-    try {
-      await v_7a2fb8(v_d5ec97, [v_80de10], 'idle');
-    } catch (v_9e86fd) {
-      console.error('[assetJobRunner] persona_videos stage=idle callback error (continuing)', v_9e86fd?.message);
-    }
-
-    console.log('[assetJobRunner] persona_videos bridge disabled → idle only', v_d5ec97.job_id);
-    return;
-
+    await v_7a2fb8(v_d5ec97, v_80de10);
   }
 
   function v_d9b231(v_d8cac9, v_4317d1, v_80b7f4) {
@@ -732,18 +724,12 @@ export function v_47bade({
     }).catch((v_9e86fd) => console.error('[assetJobRunner] guide callback done fetch error', v_9e86fd?.message));
   }
 
-  async function v_7a2fb8(v_d5ec97, v_163edf, v_2ae4e7) {
+  async function v_7a2fb8(v_d5ec97, v_80de10) {
     const v_23563e = new FormData();
     v_23563e.append('job_id', v_d5ec97.job_id);
     v_23563e.append('status', 'done');
     v_23563e.append('callback_token', v_d5ec97.callback_token);
-    v_23563e.append('stage', v_2ae4e7);
-    const v_77b1ac = v_2ae4e7 === 'idle'
-      ? ['idle.mp4']
-      : v_5fb99c.map((v_fd5f43) => `${v_fd5f43.key}.mp4`);
-    for (let v_ebec57 = 0; v_ebec57 < v_163edf.length; v_ebec57++) {
-      v_23563e.append(`file${v_ebec57}`, new Blob([v_163edf[v_ebec57]]), v_77b1ac[v_ebec57] ?? `file_${v_ebec57}.mp4`);
-    }
+    v_23563e.append('file0', new Blob([v_80de10]), 'idle.mp4');
     const v_cb35cb = await v_d10060(`${v_e9a15d}/oth-path`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${process.env.ORCH_SECRET ?? ''}` },
@@ -751,10 +737,9 @@ export function v_47bade({
     });
     const v_4d33b2 = typeof v_cb35cb?.text === 'function' ? await v_cb35cb.text().catch(() => '') : '';
     if (v_cb35cb?.ok) {
-      console.log('[assetJobRunner] persona_videos callback done ok', v_d5ec97.job_id, v_2ae4e7, v_cb35cb.status, v_4d33b2.slice(0, 120));
+      console.log('[assetJobRunner] persona_videos callback done ok', v_d5ec97.job_id, v_cb35cb.status, v_4d33b2.slice(0, 120));
     } else {
-      console.error('[assetJobRunner] persona_videos callback done non-ok', v_d5ec97.job_id, v_2ae4e7, v_cb35cb?.status, v_4d33b2.slice(0, 200));
-
+      console.error('[assetJobRunner] persona_videos callback done non-ok', v_d5ec97.job_id, v_cb35cb?.status, v_4d33b2.slice(0, 200));
       throw new Error(`persona_videos callback non-ok: ${v_cb35cb?.status}`);
     }
   }
