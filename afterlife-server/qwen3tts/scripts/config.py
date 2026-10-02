@@ -21,3 +21,12 @@ REF_CLIP_MAX_SEC = float(os.environ.get("QWEN3TTS_REF_CLIP_MAX_SEC", "10.0"))
 
 # attention 구현. flash-attn 미설치 환경 기본 sdpa. 설치 시 QWEN3TTS_ATTN=flash_attention_2.
 ATTN_IMPL = os.environ.get("QWEN3TTS_ATTN", "sdpa")
+
+# --- 화자 검증 가드 (경계 화자의 짧은 발화 화자 붕괴 출력단 차단) ----------------
+# 배경: 낮은 톤 여성 등 경계 화자(예: 9055 ~180Hz)는 qwen 짧은 발화에서 확률적으로
+#   남성으로 붕괴(speaker embedding cos 측정: 정상 >=0.98, 붕괴 0.91~0.95).
+# 동작: 합성 wav 의 speaker embedding 이 ref 와 cos<SPK_GUARD_COS 면 다른 seed 로
+#   재합성(최대 SPK_GUARD_RETRIES 회). 모두 미달이면 최선(best cos) 반환(무한루프 방지).
+# RETRIES=0 또는 COS<=0 이면 가드 off(회귀). 재합성은 붕괴 시에만 발생(병합으로 드묾).
+SPK_GUARD_COS = float(os.environ.get("QWEN3TTS_SPK_GUARD_COS", "0.95"))
+SPK_GUARD_RETRIES = int(os.environ.get("QWEN3TTS_SPK_GUARD_RETRIES", "2"))

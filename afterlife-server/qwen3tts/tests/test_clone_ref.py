@@ -42,3 +42,40 @@ def test_extract_ref_clip_rejects_empty(tmp_path):
     sf.write(str(wav), np.zeros(0, dtype="float32"), 16000)
     with pytest.raises(ValueError):
         extract_ref_clip(str(wav))
+
+
+# ---- 2026-10-02: 문장 경계 견본 쌍 우선 (voice.wav 10초 머리 자르기 → 견본 끝 구절 누출) ----
+from clone_ref import pick_ref_pair  # noqa: E402
+
+
+def _voice_dir(tmp_path, *, pair=True, prompt_text="반가워요. 드디어 이렇게 목소리를 들려주게 되었네요."):
+    d = tmp_path / "preset-9522"
+    d.mkdir()
+    _write_wav(d / "voice.wav", 26)
+    (d / "ref_text.txt").write_text("반가워요. … 예쁜 하이라이트가 있을까요?", encoding="utf-8")
+    if pair:
+        _write_wav(d / "voice_prompt.wav", 4)
+        (d / "ref_prompt.txt").write_text(prompt_text, encoding="utf-8")
+    return d
+
+
+def test_pick_ref_pair_prefers_sentence_bounded_prompt_pair(tmp_path):
+    d = _voice_dir(tmp_path)
+    wav, text, src = pick_ref_pair("preset-9522", ref_root=str(tmp_path))
+    assert (wav, src) == (str(d / "voice_prompt.wav"), "prompt_pair")
+    assert text == "반가워요. 드디어 이렇게 목소리를 들려주게 되었네요."
+
+
+@pytest.mark.parametrize("kw", [{"pair": False}, {"prompt_text": "   "}])
+def test_pick_ref_pair_falls_back_to_voice_wav(tmp_path, kw):
+    d = _voice_dir(tmp_path, **kw)
+    wav, text, src = pick_ref_pair("preset-9522", ref_root=str(tmp_path))
+    assert (wav, src) == (str(d / "voice.wav"), "voice_wav")
+    assert text.endswith("하이라이트가 있을까요?")
+
+
+def test_pick_ref_pair_switch_off_restores_old_behavior(tmp_path, monkeypatch):
+    d = _voice_dir(tmp_path)
+    monkeypatch.setenv("QWEN3TTS_PREFER_PROMPT_PAIR", "0")
+    wav, _, src = pick_ref_pair("preset-9522", ref_root=str(tmp_path))
+    assert (wav, src) == (str(d / "voice.wav"), "voice_wav")
