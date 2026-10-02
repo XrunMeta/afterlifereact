@@ -1,5 +1,11 @@
 import { v_0da18b, v_be73a0, v_81e49f } from 'dtbzepbezvovgqcnbkbssjenbxhgn';
-import { v_fee12d, v_74fd06, v_4c6a50 } from '../../src/realtime/useSpeechInput';
+import {
+  v_fee12d,
+  v_74fd06,
+  v_4c6a50,
+  v_3937db,
+  v_4811dd,
+} from '../../src/realtime/useSpeechInput';
 
 function v_c2295a() {
   const v_9fde29 = {};
@@ -577,5 +583,59 @@ describe('onSpeechActivity', () => {
     v_be73a0(() => { v_1e3df0.emit('result', { results: [{ transcript: '안녕' }], isFinal: true }); });
     v_be73a0(() => { jest.advanceTimersByTime(v_6d843a + 20); });
     expect(v_f28164).toHaveBeenCalledWith('안녕');
+  });
+});
+
+describe('마이크 볼륨 기반 전송 유예', () => {
+  async function v_9a4ebd() {
+    const v_1e3df0 = v_c2295a();
+    const v_f28164 = jest.fn();
+    const { result: v_43c42e } = v_0da18b(() => v_fee12d({ engine: v_1e3df0, onFinalResult: v_f28164, silenceMs: v_6d843a }));
+    await v_be73a0(async () => {
+      await v_43c42e.current.startListening();
+    });
+    v_be73a0(() => {
+      v_1e3df0.emit('result', { results: [{ transcript: '저 지금' }], isFinal: false });
+    });
+    return { engine: v_1e3df0, onFinalResult: v_f28164 };
+  }
+
+  it('result 가 끊겨도 마이크가 시끄러우면 전송을 미루고, 조용해진 뒤 silenceMs 후 전송한다', async () => {
+    const { engine: v_1e3df0, onFinalResult: v_f28164 } = await v_9a4ebd();
+
+    for (let v_ebec57 = 0; v_ebec57 < 4; v_ebec57++) {
+      v_be73a0(() => {
+        jest.advanceTimersByTime(v_6d843a / 2);
+        v_1e3df0.emit('volumechange', { value: v_3937db + 5 });
+      });
+    }
+    expect(v_f28164).not.toHaveBeenCalled();
+
+    v_be73a0(() => {
+      v_1e3df0.emit('volumechange', { value: -1 });
+      jest.advanceTimersByTime(v_6d843a + 10);
+    });
+    expect(v_f28164).toHaveBeenCalledWith('저 지금');
+  });
+
+  it('기준 미만 볼륨(무음 대역)은 전송을 미루지 않는다', async () => {
+    const { engine: v_1e3df0, onFinalResult: v_f28164 } = await v_9a4ebd();
+    v_be73a0(() => {
+      v_1e3df0.emit('volumechange', { value: v_3937db - 1 });
+      jest.advanceTimersByTime(v_6d843a + 10);
+    });
+    expect(v_f28164).toHaveBeenCalledWith('저 지금');
+  });
+
+  it('소음으로 볼륨이 계속 커도 VOICE_HOLD_MAX_MS 를 넘기면 전송한다', async () => {
+    const { engine: v_1e3df0, onFinalResult: v_f28164 } = await v_9a4ebd();
+    const v_eb271c = Math.ceil((v_4811dd + v_6d843a * 2) / (v_6d843a / 2));
+    for (let v_ebec57 = 0; v_ebec57 < v_eb271c && v_f28164.mock.calls.length === 0; v_ebec57++) {
+      v_be73a0(() => {
+        v_1e3df0.emit('volumechange', { value: v_3937db + 5 });
+        jest.advanceTimersByTime(v_6d843a / 2);
+      });
+    }
+    expect(v_f28164).toHaveBeenCalledWith('저 지금');
   });
 });

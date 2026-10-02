@@ -23,6 +23,10 @@ export const v_74fd06 = 1500;
 
 export const v_4c6a50 = 2000;
 
+export const v_3937db = 3;
+
+export const v_4811dd = 3000;
+
 export function v_fee12d(v_328259) {
 
   const v_1e3df0 = v_df9f57(() => v_328259?.engine ?? v_0fc68d(), [v_328259?.engine]);
@@ -73,9 +77,15 @@ export function v_fee12d(v_328259) {
   const v_5484ad = v_e662ae('');
   const v_e2c189 = v_e662ae<ReturnType<typeof setTimeout> | null>(null);
 
+  const v_5a468c = v_e662ae(0);
+
+  const v_33d425 = v_e662ae(0);
+
   const v_f59c40 = v_de06a3(() => {
     v_c4dfc6.current = [];
     v_5484ad.current = '';
+    v_5a468c.current = 0;
+    v_33d425.current = 0;
     if (v_e2c189.current) {
       clearTimeout(v_e2c189.current);
       v_e2c189.current = null;
@@ -96,13 +106,27 @@ export function v_fee12d(v_328259) {
     }
   }, [v_f59c40]);
 
+  const v_70e4e3 = v_de06a3(() => {
+    v_e2c189.current = null;
+    const v_5c2f9f = Date.now();
+    const v_6393fb = v_5c2f9f - v_5a468c.current;
+    if (v_5a468c.current > 0 && v_6393fb < v_9a5dc9.current) {
+      if (v_33d425.current === 0) v_33d425.current = v_5c2f9f;
+      if (v_5c2f9f - v_33d425.current < v_4811dd) {
+        v_e2c189.current = setTimeout(v_f641ee.current, v_9a5dc9.current - v_6393fb);
+        return;
+      }
+    }
+    v_b6e358();
+  }, [v_b6e358]);
+  const v_f641ee = v_e662ae(v_70e4e3);
+  v_f641ee.current = v_70e4e3;
+
   const v_aa432e = v_de06a3(() => {
     if (v_e2c189.current) clearTimeout(v_e2c189.current);
-    v_e2c189.current = setTimeout(() => {
-      v_e2c189.current = null;
-      v_b6e358();
-    }, v_9a5dc9.current);
-  }, [v_b6e358]);
+    v_33d425.current = 0; 
+    v_e2c189.current = setTimeout(() => v_f641ee.current(), v_9a5dc9.current);
+  }, []);
 
   const v_9061f1 = v_de06a3(() => {
     if (v_168497.current) {
@@ -231,6 +255,7 @@ export function v_fee12d(v_328259) {
         if (!v_fe2b35.current) return;
         const v_479f05 = typeof v_e2a85c?.value === 'number' && !Number.isNaN(v_e2a85c.value) ? v_e2a85c.value : undefined;
         if (v_479f05 === undefined) return;
+        if (v_479f05 >= v_3937db) v_5a468c.current = Date.now();
         const v_a448ad = v_d08429(v_479f05);
         if (v_3032b0(v_23245d.current, v_a448ad)) {
           v_23245d.current = v_a448ad;
