@@ -595,6 +595,16 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           setLiveVoiceModelManifestUrl(vmu);
           setLiveIdleVideoUrl(iv);
           if (__DEV__) console.log(`[T-467] livePipeline for clone ${cloneId} = ${p} · visemePrefix = ${vp ? "set" : "null"} · ttsOutput = ${to ?? "null"} · voiceManifest = ${vmu ? "set" : "null"} · idleVideo = ${iv ? "set" : "null"}`);
+
+          const needsIdleAsset = p === 'musetalk' || p === 'echomimic_v3';
+          if (needsIdleAsset && !iv) {
+            showAlert(
+              t('call.assetBuildingTitle', { defaultValue: '통화 준비 중이에요' }),
+              t('call.assetBuildingBody', { defaultValue: '얼굴·목소리 준비에 5~15분이 걸려요. 조금 뒤에 다시 걸어주세요.' }),
+            );
+            if (navigation.canGoBack()) navigation.goBack();
+            return;
+          }
         }
       } catch (err) {
         if (__DEV__) console.warn("[T-467] getCloneDetail pipeline fetch failed:", err);
