@@ -436,13 +436,6 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const v_d01790 = async () => {
     if (v_805753 || v_c3de9c) return;
 
-    if (v_798360) {
-      v_889fad(
-        v_8d41d7('create.step7.waitTitle', { defaultValue: '잠깐요' }),
-        v_8d41d7('create.step7.waitVideoBuilding', { defaultValue: '영상 생성이 완료되면 게시할 수 있어요.' }),
-      );
-      return;
-    }
     const v_2f361a = v_6044a8.trim();
 
     const v_055e6a = {
@@ -747,7 +740,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
                 : v_d01790
             }
             variant="accent"
-            disabled={!v_473be5 || v_798360 || v_c3de9c || (v_805753 && v_af4871 == null && !v_5e9bfe)}
+            disabled={!v_473be5 || v_c3de9c || (v_805753 && v_af4871 == null && !v_5e9bfe)}
           />
         </View>
       </KeyboardAvoidingView>
