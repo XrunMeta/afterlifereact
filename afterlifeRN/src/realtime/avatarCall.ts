@@ -51,8 +51,6 @@ export interface AvatarCall {
 
   sendAudioReady?: () => void;
 
-  sendBridgeEnd?: () => void;
-
   visemeResponse?: v_2a0baf | null;
 }
 
