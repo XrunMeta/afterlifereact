@@ -1,8 +1,8 @@
 
 
-export const v_413278 = 60000;
+export const v_413278 = 30000;
 
-export const v_00f5bb = 60000;
+export const v_00f5bb = 30000;
 
 export function v_34e478(v_77aea7, v_74b69e): number {
   const v_f4e98d = v_74b69e != null && v_74b69e !== "" ? Number(v_74b69e) : NaN;

@@ -644,6 +644,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const lastEmbedTs = useSharedValue(0);
 
+  const lastFaceCount = useSharedValue(-1);
+
   const embedAllowed = useSharedValue(true);
 
   const seenFaceIdsRef = useRef<Set<number>>(new Set());
@@ -1083,6 +1085,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
       const nowMs = normalizeFrameTimestampMs(frame.timestamp, isAndroidFrame);
 
+      const curFaceCount = faces.length;
+      if (lastFaceCount.value !== -1 && curFaceCount !== lastFaceCount.value) {
+        lastEmbedTs.value = 0;
+      }
+      lastFaceCount.value = curFaceCount;
+
       if (faceEmbedModel != null && embedAllowed.value && shouldRunEmbedding(lastEmbedTs.value, nowMs)) {
         lastEmbedTs.value = nowMs;
         const primary = largestFace(faces);
@@ -1138,6 +1146,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       faceEmbedModel,
       resize,
       lastEmbedTs,
+      lastFaceCount,
       embedAllowed,
       isAndroidFrame,
       handleEmbeddingOnJS,
