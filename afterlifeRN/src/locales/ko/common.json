@@ -225,6 +225,8 @@
     "giftTitle": "선물 보내기",
     "captureSavedToast": "저장됨",
     "capturePermNeededToast": "스크린샷을 저장하려면 설정에서 사진 권한을 허용해 주세요",
+    "assetBuildingTitle": "통화 준비 중이에요",
+    "assetBuildingBody": "얼굴·목소리 준비에 5~15분이 걸려요. 조금 뒤에 다시 걸어주세요.",
     "faceDetected": "얼굴 감지됨",
     "faceNotDetected": "미감지",
     "faceConsentHint": "얼굴 위치만 감지하며, 얼굴 데이터는 저장되지 않습니다.",
