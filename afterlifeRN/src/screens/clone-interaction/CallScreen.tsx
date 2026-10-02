@@ -2258,7 +2258,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         </View>
       ) : null}
 
-      {hudDevBox ? (
+      {}
+      {false && hudDevBox ? (
         <View style={{ position: "absolute", top: 8, right: 8, zIndex: 10,
           backgroundColor: "rgba(0,0,0,0.5)", padding: 4 }}>
           <Text style={{ color: "#0f0", fontSize: 10 }}>route:{CALL_ROUTE}</Text>
