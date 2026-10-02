@@ -128,7 +128,10 @@ async def test_say_waits_for_prior_and_includes_it(prior_on):
         await pipe.load_prior(7, 9)
     pipe._prior_task = asyncio.ensure_future(_slow_load())
     await pipe.say("고추 얘기 기억나요?")
-    assert any(m["role"] == "system" and "다음 주에 딴다" in m["content"] for m in captured[0])
+    prior_sys = [m["content"] for m in captured[0] if m["role"] == "system" and "<prior_transcript>" in m["content"]]
+    assert prior_sys, "이전 대화가 프롬프트에 없다"
+    # AFL-926: 상대 말만 넣고 클론의 지난 말은 넣지 않는다(예전 말버릇 재생산 방지).
+    assert "다음 주에 딴다" not in prior_sys[0]
 
 
 @pytest.mark.asyncio
