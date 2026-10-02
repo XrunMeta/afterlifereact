@@ -965,7 +965,10 @@ class DialoguePipeline:
         if self._render_mode == "batch" and not force_partial:
             await self._run_batch(produce, turn, on_first_audio, on_response_ready, on_sentence=on_sentence)
         else:
-            await self._run_pipeline_partial(produce, turn, on_first_audio, on_response_ready, on_sentence=on_sentence)
+            # Bridge 대기는 사용자 응답(say/speak)에만 — greet/react(force_partial)는 앱이 Bridge 를
+            # 틀지 않으므로(onUserFinal 트리거) 기다리면 무음만 늘어난다(AFL-926 실측 첫인사 ~21초).
+            await self._run_pipeline_partial(produce, turn, on_first_audio, on_response_ready,
+                                             on_sentence=on_sentence, bridge_wait=not force_partial)
 
     async def _run_batch(
         self, produce, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None,
@@ -1095,6 +1098,7 @@ class DialoguePipeline:
 
     async def _run_pipeline_partial(
         self, produce, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None,
+        bridge_wait: bool = True,
     ) -> None:
         """produce(sentence_q): 문장을 sentence_q 에 put 하고 끝에 None.
         TTS 워커(GPU0)와 infer 워커(GPU1)를 wav_q 로 연결해 오버랩 실행.
@@ -1183,7 +1187,7 @@ class DialoguePipeline:
                 #   서버 push 가 Bridge 재생 중 도착 · 오디오 겹침 발생. 항상 delay 로 통일.
                 #   Render 완료가 이미 min_push_at 넘었으면 _infer_stage 내부에서 wait_s<=0 로 skip.
                 _min_push_at = None
-                if _is_first_seg:
+                if _is_first_seg and bridge_wait:
                     _grace_ms = int(os.environ.get("PRETHIRD_BRIDGE_GRACE_MS", "3000"))
                     _bridge_ms = int(os.environ.get("PRETHIRD_BRIDGE_DURATION_MS", "8000"))
                     # T-845 (2026-09-30): Bridge 종료 후 추가 대기(default 2000ms).
