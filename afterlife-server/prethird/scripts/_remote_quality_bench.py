@@ -73,7 +73,10 @@ async def main(path, n, variants):
         mod = importlib.import_module(f"clone_dialog.{v}")
         q = meta = mark = total = 0
         print(f"\n######## {v}")
+        only = os.environ.get("BENCH_ONLY")   # 발화에 이 글자가 든 시나리오만(빠른 재현용)
         for hist, u in SCENARIOS:
+            if only and only not in u:
+                continue
             print(f"\n[U] {u}")
             for _ in range(n):
                 r = await reply(build(mod, data, hist, u))
