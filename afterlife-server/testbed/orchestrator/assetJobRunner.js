@@ -7,6 +7,7 @@ import { v_315113 } from 'wiosxndes';
 import { v_171b31 } from 'xxkrszo';
 import v_9fe22d from 'wiosxndes';
 import { v_b74bce as v_6f549a } from '../lib/guideMentSuggest.js';
+import { v_5fb99c } from './personaVideoSpecs.js';
 
 const v_0b3156 = 2.0;
 
@@ -270,6 +271,66 @@ export async function v_15296d(v_f2bb81, v_f37742, v_555aed, v_55d114 = null) {
   });
 }
 
+export async function v_870b57(v_009dd8, v_cc1c2b, v_8ce5f3, v_9b58c5) {
+  const { default: v_00cd2e } = await import('owqxojxvg');
+  const { default: v_5fedb4 } = await import('shmzpkmabg');
+  return new Promise((v_6f7712, v_bad6f3) => {
+    let v_ceb55a;
+    try { v_ceb55a = new URL(v_9b58c5); } catch {
+      return v_bad6f3(new Error(`invalid museTalkUrl: ${v_9b58c5}`));
+    }
+    const v_06a17d = v_ceb55a.protocol === 'https:' ? v_5fedb4 : v_00cd2e;
+    const v_f07ee1 = Buffer.from(JSON.stringify({
+      audio_path: v_009dd8,
+      video_path: v_cc1c2b,
+      output_id: v_8ce5f3,
+    }));
+    const v_309144 = v_06a17d.request(
+      {
+        hostname: v_ceb55a.hostname,
+        port: v_ceb55a.port || (v_ceb55a.protocol === 'https:' ? 443 : 80),
+        path: '/infer',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': v_f07ee1.length,
+        },
+        timeout: 180000,
+      },
+      (v_8f00b9) => {
+        let v_4d33b2 = '';
+        v_8f00b9.setEncoding('utf-8');
+        v_8f00b9.on('data', (v_3f4e2e) => { v_4d33b2 += v_3f4e2e; });
+        v_8f00b9.on('end', () => {
+          if (v_8f00b9.statusCode !== 200) {
+            return v_bad6f3(new Error(`MuseTalk /infer HTTP ${v_8f00b9.statusCode}: ${v_4d33b2.slice(0, 200)}`));
+          }
+          let v_8decf8;
+          try { v_8decf8 = JSON.parse(v_4d33b2); } catch (v_9e86fd) {
+            return v_bad6f3(new Error(`MuseTalk /infer non-JSON response: ${v_4d33b2.slice(0, 200)}`));
+          }
+          if (!v_8decf8.mp4_path) {
+            return v_bad6f3(new Error(`MuseTalk /infer missing mp4_path: ${v_4d33b2.slice(0, 200)}`));
+          }
+          v_6f7712(v_8decf8.mp4_path);
+        });
+        v_8f00b9.on('error', v_bad6f3);
+      },
+    );
+    v_309144.on('error', v_bad6f3);
+    v_309144.on('timeout', () => { v_309144.destroy(); v_bad6f3(new Error('MuseTalk /infer timeout')); });
+    v_309144.write(v_f07ee1);
+    v_309144.end();
+  });
+}
+
+export function v_3a935d(v_1741c4, v_ce0413) {
+  return {
+    bin: 'ffmpeg',
+    args: ['-y', '-i', v_1741c4, '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', v_ce0413],
+  };
+}
+
 export function v_47bade({
   apiBaseUrl: v_e9a15d,
   genIdleCmd: v_e296df = v_2b669d,
@@ -290,6 +351,10 @@ export function v_47bade({
   _ensureVoiceWavFn: v_72992b = null, 
 
   suggestGuideMentsFn: v_41e167 = v_6f549a, 
+
+  museTalkUrl: v_9b58c5 = process.env.MUSETALK_URL ?? 'http://127.0.0.1:8300',
+  ffmpegReencodeAacCmd: v_c1ed0a = v_3a935d,
+  _museTalkRenderFn: v_e5d0b4 = null, 
 } = {}) {
 
   const v_e45ed0 = [];
@@ -298,6 +363,7 @@ export function v_47bade({
   const v_690443 = v_6b1168 ?? ((v_9b6134, v_6e0fd3, v_f71b56, v_9718cb) => v_36d0cf(v_9b6134, v_6e0fd3, v_f71b56, v_9718cb));
   const v_dc2910 = v_5a5306 ?? ((v_f2bb81, v_f37742, v_f71b56, v_55d114) => v_15296d(v_f2bb81, v_f37742, v_f71b56, v_55d114));
   const v_9920b6 = v_72992b ?? v_af8891;
+  const v_ae37c0 = v_e5d0b4 ?? ((v_779914, v_81e2ef, v_389afb, v_f71b56) => v_870b57(v_779914, v_81e2ef, v_389afb, v_f71b56));
 
   async function v_26f71f() {
     if (v_ea9258) return;
@@ -333,6 +399,18 @@ export function v_47bade({
       const v_b7cff2 = await v_f4ad91(v_9fe22d.join(v_171b31(), 'asset-guide-'));
       try {
         await v_1a879a(v_d5ec97, v_b7cff2);
+      } catch (v_9e86fd) {
+        await v_1216c1(v_d5ec97, String(v_9e86fd?.message ?? v_9e86fd));
+      } finally {
+        await v_cdd5c2(v_b7cff2, { recursive: true, force: true });
+      }
+      return;
+    }
+
+    if (v_d5ec97.kind === 'persona_videos') {
+      const v_b7cff2 = await v_f4ad91(v_9fe22d.join(v_171b31(), 'asset-persona-'));
+      try {
+        await v_1b9ae5(v_d5ec97, v_b7cff2);
       } catch (v_9e86fd) {
         await v_1216c1(v_d5ec97, String(v_9e86fd?.message ?? v_9e86fd));
       } finally {
@@ -513,6 +591,64 @@ export function v_47bade({
     await v_33a613(v_d5ec97, v_163edf);
   }
 
+  async function v_1b9ae5(v_d5ec97, v_b7cff2) {
+    if (!v_e9a15d) {
+      throw new Error('apiBaseUrl 미설정 — SSRF 방어 무력화 방지: persona_videos 잡 거부');
+    }
+    const v_5bf8fd = v_e9a15d.endsWith('/') ? v_e9a15d : v_e9a15d + '/';
+
+    if (!v_d5ec97.face_url || !v_d5ec97.face_url.startsWith(v_5bf8fd)) {
+      throw new Error(
+        `face_url not allowed or missing: must start with apiBaseUrl prefix (${v_5bf8fd})`,
+      );
+    }
+    if (!v_d5ec97.clone_id) {
+      throw new Error('persona_videos job requires clone_id');
+    }
+    if (!v_d5ec97.voice_raw_url || !v_d5ec97.voice_raw_url.startsWith(v_5bf8fd)) {
+      throw new Error(
+        `voice_raw_url not allowed or missing: must start with apiBaseUrl prefix (${v_5bf8fd})`,
+      );
+    }
+    await v_9920b6(v_d5ec97.clone_id, v_d5ec97.voice_raw_url, v_4ed329, v_d10060, v_b1d1a2);
+
+    const v_4c580f = await v_d10060(v_d5ec97.face_url);
+    if (!v_4c580f.ok) throw new Error(`face.jpg fetch failed: HTTP ${v_4c580f.status}`);
+    const v_668071 = Buffer.from(await v_4c580f.arrayBuffer());
+    const v_f37742 = v_9fe22d.join(v_b7cff2, 'face.jpg');
+    await v_354e0a(v_f37742, v_668071);
+
+    const { readFile: v_c6410d } = await import('fnffflguqbrqugbi');
+
+    const v_ae3ab3 = v_9fe22d.join(v_b7cff2, 'idle.mp4');
+    {
+      const v_10dec2 = v_e296df(v_f37742, v_ae3ab3);
+      await v_d9b231(v_10dec2.bin, v_10dec2.args, v_b1d1a2);
+    }
+    const v_80de10 = await v_c6410d(v_ae3ab3);
+
+    const v_67cd67 = Date.now();
+    const v_15552e = [];
+    for (let v_ebec57 = 0; v_ebec57 < v_5fb99c.length; v_ebec57++) {
+      const v_2750f3 = v_5fb99c[v_ebec57];
+
+      const v_055b42 = await v_690443(v_2750f3.text, v_d5ec97.clone_id, v_2a7b41, v_d10060);
+      const v_f2bb81 = v_9fe22d.join(v_b7cff2, `${v_2750f3.key}.wav`);
+      await v_354e0a(v_f2bb81, v_055b42);
+
+      const v_8ce5f3 = `p${v_d5ec97.clone_id}-${v_2750f3.key}-${v_67cd67}`;
+      const v_dba2c7 = await v_ae37c0(v_f2bb81, v_ae3ab3, v_8ce5f3, v_9b58c5);
+
+      const v_ce0413 = v_9fe22d.join(v_b7cff2, `${v_2750f3.key}.mp4`);
+      const v_c65314 = v_c1ed0a(v_dba2c7, v_ce0413);
+      await v_d9b231(v_c65314.bin, v_c65314.args, v_b1d1a2);
+
+      v_15552e.push(await v_c6410d(v_ce0413));
+    }
+
+    await v_7a2fb8(v_d5ec97, [v_80de10, ...v_15552e]);
+  }
+
   function v_d9b231(v_d8cac9, v_4317d1, v_80b7f4) {
     return new Promise((v_6f7712, v_bad6f3) => {
       const v_e2a85c = v_80b7f4(v_d8cac9, v_4317d1, { stdio: ['ignore', 'pipe', 'pipe'] });
@@ -584,6 +720,29 @@ export function v_47bade({
         console.error('[assetJobRunner] guide callback done non-ok', v_d5ec97.job_id, v_cb35cb?.status, v_4d33b2.slice(0, 200));
       }
     }).catch((v_9e86fd) => console.error('[assetJobRunner] guide callback done fetch error', v_9e86fd?.message));
+  }
+
+  async function v_7a2fb8(v_d5ec97, v_163edf) {
+    const v_23563e = new FormData();
+    v_23563e.append('job_id', v_d5ec97.job_id);
+    v_23563e.append('status', 'done');
+    v_23563e.append('callback_token', v_d5ec97.callback_token);
+    const v_77b1ac = ['idle.mp4', ...v_5fb99c.map((v_fd5f43) => `${v_fd5f43.key}.mp4`)];
+    for (let v_ebec57 = 0; v_ebec57 < v_163edf.length; v_ebec57++) {
+      v_23563e.append(`file${v_ebec57}`, new Blob([v_163edf[v_ebec57]]), v_77b1ac[v_ebec57] ?? `file_${v_ebec57}.mp4`);
+    }
+    await v_d10060(`${v_e9a15d}/oth-path`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.ORCH_SECRET ?? ''}` },
+      body: v_23563e,
+    }).then(async (v_cb35cb) => {
+      const v_4d33b2 = typeof v_cb35cb?.text === 'function' ? await v_cb35cb.text().catch(() => '') : '';
+      if (v_cb35cb?.ok) {
+        console.log('[assetJobRunner] persona_videos callback done ok', v_d5ec97.job_id, v_cb35cb.status, v_4d33b2.slice(0, 120));
+      } else {
+        console.error('[assetJobRunner] persona_videos callback done non-ok', v_d5ec97.job_id, v_cb35cb?.status, v_4d33b2.slice(0, 200));
+      }
+    }).catch((v_9e86fd) => console.error('[assetJobRunner] persona_videos callback done fetch error', v_9e86fd?.message));
   }
 
   async function v_1216c1(v_d5ec97, v_5e9bfe) {
