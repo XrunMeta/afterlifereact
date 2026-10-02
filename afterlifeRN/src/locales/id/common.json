@@ -223,6 +223,8 @@
     "noCredits": "Kredit tidak mencukupi",
     "giftSent": "Anda telah mengirim {{name}}",
     "giftTitle": "Kirim Hadiah",
+    "captureSavedToast": "Tersimpan",
+    "capturePermNeededToast": "Untuk menyimpan tangkapan layar, izinkan akses foto di pengaturan",
     "faceDetected": "Wajah terdeteksi",
     "faceNotDetected": "Tidak terdeteksi",
     "faceConsentHint": "Hanya posisi wajah yang dideteksi; data wajah tidak disimpan.",
