@@ -1501,15 +1501,28 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
             if pipeline_factory is not None:
                 sess.pipeline = pipeline_factory(sess)
 
+                # AFL-926: 이 계정×클론의 이전 대화를 다이얼링 중에 받아 둔다(백그라운드).
+                #   env PRETHIRD_PRIOR_CONVERSATION=1 일 때만 실제 조회(prior_conversation.py).
+                #   발화 경로는 메시지 조립 전에 이 태스크를 잠깐(2.5s) 기다린다.
+                if getattr(sess, "user_id", None) and hasattr(sess.pipeline, "load_prior"):
+                    sess.pipeline._prior_task = asyncio.ensure_future(
+                        sess.pipeline.load_prior(sess.user_id, sess.clone_id, sess.session_id))
+
                 # T-820 (2026-09-28): dialing 중 인사말 pre-render (백그라운드).
                 #   목적: 사용자 대기 시간 22s → 0s (첫 say() 즉시 응답).
                 #   env off: PRETHIRD_PRERENDER_GREETING=0.
+                # AFL-926 대안 B: PRETHIRD_PRERENDER_LLM=1 이면 고정 문구 대신 LLM 이 이전 대화를
+                #   보고 인사를 만들어 prerender 하고, greet() 가 그 캐시를 쓴다.
                 _prerender_on = os.environ.get("PRETHIRD_PRERENDER_GREETING", "1") == "1"
                 if _prerender_on:
-                    _pg_text = os.environ.get("PRETHIRD_PRERENDER_TEXT", "안녕! 반가워.")
-                    asyncio.ensure_future(sess.pipeline.prerender_greeting(_pg_text))
+                    _pg_text = (None if os.environ.get("PRETHIRD_PRERENDER_LLM", "0") == "1"
+                                else os.environ.get("PRETHIRD_PRERENDER_TEXT", "안녕! 반가워."))
+                    if hasattr(sess.pipeline, "start_prerender_greeting"):
+                        sess.pipeline.start_prerender_greeting(_pg_text)
+                    else:
+                        asyncio.ensure_future(sess.pipeline.prerender_greeting(_pg_text))
                     log.info("[T-820/prerender] triggered clone=%s text=%r",
-                             sess.clone_id, _pg_text[:40])
+                             sess.clone_id, (_pg_text or "<llm>")[:40])
 
                 # T-825 (2026-09-28): dialing 중 GPU/모델 warm-up (백그라운드).
                 #   push 없음 · 결과 버림 · 두 답변 사고 회피 (T-820 실패 원인).

@@ -181,6 +181,20 @@ GREETING_PROMPT = (
     "이름·별명·호칭 (지호야, 언니, 오빠 등) 사용 금지. 얼굴 인식 후 별도 알림이 오면 그때 이름을 부르게 될 거야."
 )
 
+# AFL-926: 이 계정과 전에 통화한 적이 있을 때의 첫인사. 이름 금지 규칙은 GREETING_PROMPT 와
+# 같다(얼굴 확인 전) — 다른 점은 "처음 받는 전화" 가 아니라 "아는 사람의 전화" 로 받는 것.
+GREETING_PROMPT_WITH_PRIOR = (
+    "방금 통화가 연결됐어. 이 상대와는 전에 통화한 적이 있어(위 '지난 통화 기록'). "
+    "아직 얼굴을 확인하기 전이니 상대 이름·호칭은 절대 부르지 마. "
+    "아는 사람 전화를 받은 것처럼 반갑게, 한두 문장으로 짧게 인사해. "
+    "지난 통화에서 나온 이야기 하나를 자연스럽게 이어 꺼내도 좋아(없는 얘기는 지어내지 마)."
+)
+
+
+def greeting_prompt(has_prior: bool) -> str:
+    return GREETING_PROMPT_WITH_PRIOR if has_prior else GREETING_PROMPT
+
+
 # [T-067] 얼굴 인식 이벤트에 대한 선제 발화 프롬프트 (react()).
 REACT_PROMPT_KNOWN = (
     "방금 화면에 '{name}'님이 새로 나타났어. 하던 이야기를 잠깐 멈추고, "
@@ -279,6 +293,10 @@ class DialoguePipeline:
         #   후 record() 로 assistant 응답을 누적. 이전엔 클래스만 있고 wiring 이 없어 매 턴이
         #   첫 턴처럼 취급되어 페르소나 규칙 A (초반 인사)가 반복 발동했다.
         self._history = ConversationHistory.from_env()
+        # AFL-926: 이전 대화 로딩·인사 prerender 태스크. signaling 이 offer 직후 띄운다.
+        #   발화 경로(say/greet/react)는 메시지 조립 전에 이전 대화 로딩을 잠깐 기다린다.
+        self._prior_task: asyncio.Future | None = None
+        self._prerender_task: asyncio.Future | None = None
 
     # ------------------------------------------------------------------
     # 퍼블릭 API
@@ -319,12 +337,57 @@ class DialoguePipeline:
         pcm_bal = self._edge_fade(pcm_bal, fade_ms=self._fade_ms)
         return frames_buf, pcm_bal
 
-    async def prerender_greeting(self, text: str = "안녕! 반가워.") -> None:
+    # ------------------------------------------------------------------
+    # AFL-926: 이전 대화 (통화 간 이어붙이기)
+    # ------------------------------------------------------------------
+
+    async def load_prior(self, user_id, clone_id, call_id: str | None = None) -> None:
+        """이 계정×클론의 이전 통화 턴을 받아 히스토리에 심는다. 실패해도 조용히 빈 채로."""
+        from prior_conversation import fetch_prior_turns
+        turns = await fetch_prior_turns(user_id, clone_id, exclude_call_id=call_id)
+        if turns:
+            self._history.seed_prior(turns)
+
+    async def _await_prior(self, timeout: float = 2.5) -> None:
+        """이전 대화 로딩이 진행 중이면 잠깐 기다린다. 넘기면 없는 채로 진행(통화 우선)."""
+        task = self._prior_task
+        if task is None or task.done():
+            return
+        try:
+            await asyncio.wait_for(asyncio.shield(task), timeout)
+        except Exception as e:  # noqa: BLE001 — timeout 포함, 발화를 막지 않는다
+            log.warning("[AFL-926/prior] 대기 생략: %s", type(e).__name__)
+
+    async def _generate_greeting_text(self) -> str:
+        """AFL-926 대안 B: 첫인사 문장을 LLM 으로 만든다(이전 대화 반영). 실패하면 ""."""
+        await self._await_prior()
+        messages = (
+            self.persona_messages
+            + self._history.messages()
+            + [{"role": "user", "content": greeting_prompt(self._history.has_prior())}]
+        )
+        try:
+            out: list[str] = []
+            async for tok in self.chat_fn(messages):
+                out.append(str(tok))
+            return "".join(out).strip()
+        except Exception as e:  # noqa: BLE001
+            log.warning("[AFL-926/prerender] 인사 생성 실패: %s", e)
+            return ""
+
+    def start_prerender_greeting(self, text: str | None) -> None:
+        """signaling 용: prerender 를 백그라운드로 띄우고 greet() 가 기다릴 수 있게 잡아 둔다."""
+        self._prerender_task = asyncio.ensure_future(self.prerender_greeting(text))
+
+    async def prerender_greeting(self, text: str | None = "안녕! 반가워.") -> None:
         """T-820 (2026-09-28): dialing 중 인사말 pre-render (백그라운드).
 
         signaling.py 의 offer 핸들러가 세션 setup 직후 asyncio.ensure_future 로 호출.
-        LLM 우회 (고정 텍스트) + TTS + MuseTalk 완료 후 cache 에 저장.
-        첫 say() 호출 시 캐시된 frames/audio 즉시 push → 22s → 0s 응답.
+        TTS + MuseTalk 완료 후 cache 에 저장 → 인사 즉시 push.
+
+        AFL-926: text=None 이면 고정 문구 대신 LLM 이 인사를 만든다(이전 대화 반영 —
+        대안 B). 생성이 실패하면 env PRETHIRD_PRERENDER_TEXT(기본 "안녕! 반가워.")로 폴백.
+        캐시는 greet() 가 먼저 쓴다(greet 꺼진 레거시 모드에서만 첫 say() 가 쓴다).
 
         clone 미준비면 skip. 이미 준비됐거나 사용됐으면 no-op."""
         if self._prerender_ready or self._prerender_used:
@@ -335,6 +398,15 @@ class DialoguePipeline:
         import time as _time
         t0 = _time.perf_counter()
         try:
+            if text is None:
+                text = await self._generate_greeting_text() or os.environ.get(
+                    "PRETHIRD_PRERENDER_TEXT", "안녕! 반가워.")
+                log.info("[AFL-926/prerender] LLM 인사 '%s' prior=%s llm_ms=%d",
+                         text[:40], self._history.has_prior(),
+                         int((_time.perf_counter() - t0) * 1000))
+                if self._prerender_used:
+                    # 생성하는 사이 greet 가 기다리다 포기하고 직접 인사했다 — 버린다.
+                    return
             wav_bytes, pcm48 = await self._tts_stage(text)
             frames, pcm_bal = await self._render_to_cache(wav_bytes, pcm48)
             self._prerender_text = text
@@ -376,6 +448,47 @@ class DialoguePipeline:
         except Exception as e:
             log.warning("[T-825/prewarm] failed: %s", e)
 
+    async def _push_prerender(self, turn, on_first_audio, on_response_ready, on_sentence) -> None:
+        """T-820 캐시(frames/wav)를 즉시 push 하고 히스토리에 남긴다. 1회용."""
+        self._prerender_used = True
+        log.info(
+            "[T-820/prerender] cache hit · pushing '%s' (%d frames)",
+            self._prerender_text[:40], len(self._prerender_frames),
+        )
+        try:
+            if on_response_ready is not None:
+                try:
+                    on_response_ready()
+                except Exception as e:
+                    log.warning("on_response_ready callback failed: %s", e)
+            if on_sentence is not None:
+                try:
+                    on_sentence(self._prerender_text)
+                except Exception as e:
+                    log.warning("on_sentence callback failed: %s", e)
+            # AFL-926: greet 경로는 첫 오디오 = speech_start(다이얼링 해제)·과금 시작점.
+            if on_first_audio is not None:
+                try:
+                    on_first_audio()
+                except Exception as e:
+                    log.warning("on_first_audio callback failed: %s", e)
+            # recorder 반영 (answer.txt/wav/mp4 저장 시 사용).
+            for tok in self._prerender_text:
+                turn.append_token(tok)
+            if self._prerender_wav_bytes is not None:
+                turn.append_wav(self._prerender_wav_bytes)
+            for arr in self._prerender_frames:
+                self.vt.push_ndarray(arr)
+            if self._prerender_pcm_bal is not None:
+                self.at.push_pcm_int16(self._prerender_pcm_bal)
+            turn.append_frames(self._prerender_frames, self._prerender_pcm_bal, fps=25)
+        finally:
+            self.vt.signal_end()
+            self.at.signal_end()
+        # T-821: prerender 인사도 history 에 남긴다 (다음 turn 에 클론이 또 인사하는 것 방지).
+        #   user_text=None (prerender 는 시스템 발화 · greet 과 동일 취급).
+        self._history.record(None, self._prerender_text)
+
     async def say(
         self, user_text: str, turn=None, on_first_audio=None, on_response_ready=None,
         on_sentence=None,
@@ -395,41 +508,14 @@ class DialoguePipeline:
         # T-820 (2026-09-28): pre-render cache hit — 첫 say() 1회만 사용.
         #   dialing 중 prerender_greeting() 이 채운 캐시가 준비되어 있으면
         #   LLM+TTS+MuseTalk 전체 스킵하고 즉시 push. 나머지 turn 은 정상 흐름.
-        if self._prerender_ready and not self._prerender_used:
-            self._prerender_used = True
-            log.info(
-                "[T-820/prerender] cache hit · pushing '%s' (%d frames)",
-                self._prerender_text[:40], len(self._prerender_frames),
-            )
-            try:
-                if on_response_ready is not None:
-                    try:
-                        on_response_ready()
-                    except Exception as e:
-                        log.warning("on_response_ready callback failed: %s", e)
-                if on_sentence is not None:
-                    try:
-                        on_sentence(self._prerender_text)
-                    except Exception as e:
-                        log.warning("on_sentence callback failed: %s", e)
-                # recorder 반영 (answer.txt/wav/mp4 저장 시 사용).
-                for tok in self._prerender_text:
-                    turn.append_token(tok)
-                if self._prerender_wav_bytes is not None:
-                    turn.append_wav(self._prerender_wav_bytes)
-                for arr in self._prerender_frames:
-                    self.vt.push_ndarray(arr)
-                if self._prerender_pcm_bal is not None:
-                    self.at.push_pcm_int16(self._prerender_pcm_bal)
-                turn.append_frames(self._prerender_frames, self._prerender_pcm_bal, fps=25)
-            finally:
-                self.vt.signal_end()
-                self.at.signal_end()
-            # T-821: prerender 인사도 history 에 남긴다 (다음 turn 에 클론이 또 인사하는 것 방지).
-            #   user_text=None (prerender 는 시스템 발화 · greet 과 동일 취급).
-            self._history.record(None, self._prerender_text)
+        # AFL-926: greet 가 켜져 있으면 캐시는 greet() 의 것이다. 여기서 쓰면 사용자의 첫
+        #   말에 인사가 대답으로 나간다(2026-09-28 prerender-off 의 원인으로 추정).
+        if (self._prerender_ready and not self._prerender_used
+                and os.environ.get("PRETHIRD_GREETING_ENABLED", "1") != "1"):
+            await self._push_prerender(turn, None, on_response_ready, on_sentence)
             return
 
+        await self._await_prior()
         # T-821: 이전 턴 messages 를 persona 뒤 · 현재 발화 앞에 삽입.
         #   미설정(0) 이면 messages() 가 [] → 회귀 0.
         messages = (
@@ -527,9 +613,29 @@ class DialoguePipeline:
         """통화 연결 직후 클론이 먼저 건네는 인사. LLM이 페르소나 기반 1문장 생성.
         say()와 동일 파이프라인이되 user 입력 대신 GREETING_PROMPT 지시를 준다.
         on_response_ready: 첫 infer 완료 후·첫 push 직전 1회 호출 (F7 filler 즉시컷, greet는 보통 None).
-        on_sentence: [T-151] 클론 발화 자막용 문장별 콜백(say() 참조)."""
+        on_sentence: [T-151] 클론 발화 자막용 문장별 콜백(say() 참조).
+
+        AFL-926 대안 B: 다이얼링 중 prerender 가 돌고 있으면 잠깐 기다렸다가(기본 6초)
+        캐시된 인사를 즉시 내보낸다. 준비가 안 되면 기존대로 LLM 으로 바로 만든다."""
+        turn_ = turn if turn is not None else NULL_TURN
+        task = self._prerender_task
+        if task is not None and not task.done() and not self._prerender_used:
+            try:
+                wait_s = float(os.environ.get("PRETHIRD_PRERENDER_WAIT_S", "6"))
+            except ValueError:
+                wait_s = 6.0
+            try:
+                await asyncio.wait_for(asyncio.shield(task), wait_s)
+            except Exception as e:  # noqa: BLE001
+                log.warning("[AFL-926/greet] prerender 대기 생략: %s", type(e).__name__)
+        if self._prerender_ready and not self._prerender_used:
+            await self._push_prerender(turn_, on_first_audio, on_response_ready, on_sentence)
+            return
+        # 캐시 없이 직접 인사 — 뒤늦게 끝난 prerender 가 첫 say 로 새지 않게 막는다.
+        self._prerender_used = True
+        await self._await_prior()
         await self._system_utterance(
-            GREETING_PROMPT, "greet", turn=turn,
+            greeting_prompt(self._history.has_prior()), "greet", turn=turn,
             on_first_audio=on_first_audio, on_response_ready=on_response_ready,
             on_sentence=on_sentence,
         )
@@ -565,6 +671,7 @@ class DialoguePipeline:
         if self.clone_locked and not self.se_path:
             log.warning("clone voice 미준비 — %s skip (폴백 없음)", label)
             return
+        await self._await_prior()
         # T-821: greet/react 는 시스템 지시라 user turn 아님 · 히스토리에는 persona
         #   context 도, 이전 턴도 그대로 활용. prompt 는 지시문이니 messages 에는
         #   포함하되 history.record 는 user_text=None 으로 남긴다 (다음 턴 프롬프트
