@@ -1,7 +1,7 @@
 
 import { v_b7c41b } from "zmui";
 import type { v_de0a25 } from "../lib/env";
-import { v_278a53, v_80401b, v_7a6ff6, v_c12e45, v_12ade7, v_2fb81a, v_4b949c } from "../lib/assetJobs";
+import { v_278a53, v_80401b, v_7a6ff6, v_c12e45, v_12ade7, v_2fb81a, v_7d2f16, v_1a00b7, v_4b949c } from "../lib/assetJobs";
 import { v_1f4ea7 } from "../lib/validate";
 import { v_74c502, v_5d4a51 } from "../lib/cloneAccess";
 import { v_842ce7 } from "../lib/guideJob";
@@ -620,6 +620,132 @@ v_dcd415.post("/guide-job-done", async (v_3f4e2e) => {
   }
 
   return v_3f4e2e.json({ ok: true, guide_video_urls: v_942aa2 });
+});
+
+const v_853b99 = "video/mp4";
+
+const v_219eed = 50 * 1024 * 1024;
+
+v_dcd415.post("/persona-videos-job-done", async (v_3f4e2e) => {
+
+  const v_68f0aa = v_3f4e2e.req.header("Authorization") ?? "";
+  const v_ea333d = v_68f0aa.startsWith("Bearer ") ? v_68f0aa.slice(7) : "";
+  if (!v_ea333d || !v_3f4e2e.env.ORCH_SECRET || !v_a155c4(v_ea333d, v_3f4e2e.env.ORCH_SECRET)) {
+    return v_3f4e2e.json({ error: "unauthorized" }, 401);
+  }
+
+  const v_ebd523 = await v_3f4e2e.req.formData();
+  const v_04211c = String(v_ebd523.get("job_id") ?? "");
+  const v_d308b5 = String(v_ebd523.get("status") ?? "");
+  if (!v_04211c) return v_3f4e2e.json({ error: "job_id required" }, 400);
+
+  const v_d5ec97 = await v_4b949c(v_3f4e2e.env.DB, v_04211c);
+  if (!v_d5ec97) return v_3f4e2e.json({ error: "job not found" }, 404);
+
+  const v_59b4e0 = String(v_ebd523.get("callback_token") ?? "");
+  if (!v_d5ec97.callback_token || !v_59b4e0 || !v_a155c4(v_59b4e0, v_d5ec97.callback_token)) {
+    return v_3f4e2e.json({ error: "invalid callback_token" }, 403);
+  }
+
+  if (v_d308b5 === "failed") {
+    await v_7a6ff6(v_3f4e2e.env.DB, v_04211c, String(v_ebd523.get("error") ?? "generation failed"));
+    return v_3f4e2e.json({ ok: true });
+  }
+
+  if (v_ebd523.get(`file${v_1a00b7}`) !== null) {
+    return v_3f4e2e.json(
+      { error: `too many files: expected exactly ${v_1a00b7} (file0..file${v_1a00b7 - 1})` },
+      400,
+    );
+  }
+  const v_58b838 = [];
+  for (let v_ebec57 = 0; v_ebec57 < v_1a00b7; v_ebec57++) {
+    const v_2b8338 = v_ebd523.get(`file${v_ebec57}`);
+    if (v_2b8338 === null) {
+      return v_3f4e2e.json({ error: `file${v_ebec57} required (expected exactly ${v_1a00b7} files)` }, 400);
+    }
+    if (typeof v_2b8338 === "string") {
+      return v_3f4e2e.json({ error: `file${v_ebec57} must be a file` }, 400);
+    }
+    v_58b838.push(v_2b8338 as File);
+  }
+
+  for (let v_ebec57 = 0; v_ebec57 < v_1a00b7; v_ebec57++) {
+    const v_8b5cd8 = v_58b838[v_ebec57];
+    if (!v_8b5cd8) return v_3f4e2e.json({ error: `file${v_ebec57} missing` }, 400);
+    if (v_8b5cd8.size === 0) return v_3f4e2e.json({ error: `file${v_ebec57} is empty (0 bytes)` }, 400);
+    if (v_8b5cd8.size > v_219eed) {
+      return v_3f4e2e.json(
+        { error: `file${v_ebec57} too large: ${v_8b5cd8.size} > ${v_219eed} bytes` },
+        400,
+      );
+    }
+  }
+
+  const v_329662 = [];
+  for (let v_ebec57 = 0; v_ebec57 < v_1a00b7; v_ebec57++) {
+    const v_83ee53 = await v_58b838[v_ebec57]?.arrayBuffer();
+    if (!v_83ee53) return v_3f4e2e.json({ error: `file${v_ebec57} read failed` }, 400);
+    v_329662.push(v_83ee53);
+  }
+
+  if (v_d5ec97.kind !== "persona_videos") {
+    return v_3f4e2e.json({ error: "kind_mismatch" }, 409);
+  }
+
+  const v_0a2cd1 = await v_80401b(v_3f4e2e.env.DB, v_04211c);
+  if (!v_0a2cd1) {
+    return v_3f4e2e.json({ ok: true, idempotent: true });
+  }
+
+  const v_f17108 = new URL(v_3f4e2e.req.url).origin;
+  const v_9cd995 = [];
+  try {
+    for (let v_ebec57 = 0; v_ebec57 < v_1a00b7; v_ebec57++) {
+      const v_83ee53 = v_329662[v_ebec57];
+      if (!v_83ee53) throw new Error(`buf${v_ebec57} missing`);
+      const v_07ba85 = crypto.randomUUID();
+      const v_cd931c = v_ebec57 === 0 ? "persona-idle" : "persona-bridge";
+      const v_0037e3 = `assets/${v_cd931c}/${v_07ba85}.mp4`;
+      await v_3f4e2e.env.R2_ARCHIVE.put(v_0037e3, v_83ee53, {
+        httpMetadata: { contentType: v_853b99 },
+      });
+      v_9cd995.push({ r2Key: v_0037e3, sizeBytes: v_83ee53.byteLength });
+    }
+  } catch (v_49263d) {
+    for (const { r2Key: v_0037e3 } of v_9cd995) {
+      await v_3f4e2e.env.R2_ARCHIVE.delete(v_0037e3).catch(() => {});
+    }
+    await v_7a6ff6(v_3f4e2e.env.DB, v_04211c, `r2_upload_failed: ${String(v_49263d).slice(0, 400)}`);
+    return v_3f4e2e.json({ error: "r2_upload_failed" }, 500);
+  }
+
+  let v_942aa2;
+  try {
+    v_942aa2 = await v_7d2f16(
+      v_3f4e2e.env.DB,
+      v_04211c,
+      v_9cd995,
+      v_d5ec97.user_id,
+      v_0a2cd1.clone_id,
+      v_f17108,
+    );
+  } catch (v_49263d) {
+    for (const { r2Key: v_0037e3 } of v_9cd995) {
+      await v_3f4e2e.env.R2_ARCHIVE.delete(v_0037e3).catch(() => {});
+    }
+    await v_7a6ff6(v_3f4e2e.env.DB, v_04211c, `db_commit_failed: ${String(v_49263d).slice(0, 400)}`);
+    return v_3f4e2e.json({ error: "db_commit_failed" }, 500);
+  }
+
+  if (v_942aa2 === null) {
+    for (const { r2Key: v_0037e3 } of v_9cd995) {
+      await v_3f4e2e.env.R2_ARCHIVE.delete(v_0037e3).catch(() => {});
+    }
+    return v_3f4e2e.json({ ok: true, idempotent: true });
+  }
+
+  return v_3f4e2e.json({ ok: true, idle_video_url: v_942aa2[0], bridge_video_urls: v_942aa2.slice(1) });
 });
 
 const v_918eb6 = v_1f4ea7.object({
