@@ -37,7 +37,9 @@ def test_prior_rendered_as_single_system_transcript_grouped_by_call():
     body = msgs[0]["content"]
     # 통화 단위로 날짜 머리가 붙고, 오래된 통화가 먼저
     assert body.index("2025-10-01") < body.index("2025-10-02")
-    assert "상대: 고추 언제 따요?" in body and "나: 다음 주에 딴다" in body
+    assert "상대: 고추 언제 따요?" in body
+    # AFL-926: 클론 자신의 지난 말은 넣지 않는다 — 모델이 예전 말버릇을 이어 간다.
+    assert "다음 주에 딴다" not in body and "나:" not in body
     assert h.has_prior()
 
 def test_prior_comes_before_current_call():
