@@ -2668,7 +2668,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       {
 
 }
-      {(phase === 'speaking' || phase === 'greeting') && !!cloneSubtitle ? (
+      {}
+      {showCallDev && (phase === 'speaking' || phase === 'greeting') && !!cloneSubtitle ? (
         <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
           <CloneSubtitleTicker text={cloneSubtitle} style={s.subtitleText} />
         </View>
