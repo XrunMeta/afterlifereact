@@ -421,6 +421,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const [dialingDone, setDialingDone] = useState(false);
 
+  const [poorConnection, setPoorConnection] = useState(false);
+
   const [faceIdentifyEnabled, setFaceIdentifyEnabled] = useState(true);
   const [selfConfirmed, setSelfConfirmed] = useState(true); 
   const selfSamplesRef = useRef<number[][]>([]);
@@ -1123,6 +1125,16 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     ],
   );
 
+  const sttGiveUpRef = useRef(false);
+  const handleSttUnrecoverable = useCallback((reason: 'network') => {
+    if (sttGiveUpRef.current) return;
+    sttGiveUpRef.current = true;
+    console.log(`[Call][flow] +${Date.now()} STT unrecoverable(${reason}) → stopLive + DialingScreen(poorConnection)`);
+    setPoorConnection(true);
+    setDialingDone(false);
+    void stopLive();
+  }, [stopLive]);
+
   const sttEndpointMs = useTimingConfigStore((s) => s.sttEndpointMs);
 
   const confirmGateEnabled = useTimingConfigStore((s) => s.confirmGateEnabled);
@@ -1141,6 +1153,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     notifyFaceInterrupt,
     idleGreetCount,
   } = useHandsFreeController({
+    onSttUnrecoverable: handleSttUnrecoverable,
 
     enabled: liveState === "live",
     say,
@@ -2337,8 +2350,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
             retryLockUntilRef.current = now + 1000;
             console.log(`[Call][flow] +${now} DialingScreen.onRetry → startLive`);
             setGreetingStarted(false);
+
+            setPoorConnection(false);
+            sttGiveUpRef.current = false;
             void startLive();
           }}
+          poorConnection={poorConnection}
         />
       )}
 
