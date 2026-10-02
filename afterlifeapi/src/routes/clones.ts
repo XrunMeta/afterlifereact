@@ -476,6 +476,36 @@ v_f891e6.post(
           }
         }
 
+        const v_a12924 = crypto.randomUUID();
+        const v_51615a = await v_041f8e(
+          v_3f4e2e.env.DB, v_a12924, v_43e90c, "persona_videos", v_7f3fda.src_file_id,
+        );
+        await v_f64843(v_3f4e2e.env.DB, v_a12924, v_6e0fd3);
+        if (v_3f4e2e.env.ORCHESTRATOR_URL && v_3f4e2e.env.ORCH_SECRET) {
+          const v_f17108 = new URL(v_3f4e2e.req.url).origin;
+          const v_2d0601 = `${v_f17108}/oth-path${v_7f3fda.src_file_id}`;
+          v_3f4e2e.executionCtx.waitUntil(
+            fetch(`${v_3f4e2e.env.ORCHESTRATOR_URL}/oth-path`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${v_3f4e2e.env.ORCH_SECRET}`,
+              },
+              body: JSON.stringify({
+                job_id: v_a12924,
+                kind: "persona_videos",
+                face_url: v_2d0601,
+                clone_id: String(v_6e0fd3),
+                ...(v_35d74b ? { voice_raw_url: v_35d74b } : {}),
+                callback_token: v_51615a,
+              }),
+              signal: AbortSignal.timeout(8000),
+            })
+              .then((v_8f00b9) => v_5193f8(v_3f4e2e.env.DB, v_a12924, v_8f00b9.ok ? "running" : "failed"))
+              .catch(() => v_5193f8(v_3f4e2e.env.DB, v_a12924, "failed")),
+          );
+        }
+
         if (v_35d74b) {
           const v_9d7647 = crypto.randomUUID();
           const v_657c8f = await v_041f8e(
@@ -520,36 +550,6 @@ v_f891e6.post(
             waitUntil: (v_e2a85c) => v_3f4e2e.executionCtx.waitUntil(v_e2a85c),
           });
 
-        }
-
-        const v_a12924 = crypto.randomUUID();
-        const v_51615a = await v_041f8e(
-          v_3f4e2e.env.DB, v_a12924, v_43e90c, "persona_videos", v_7f3fda.src_file_id,
-        );
-        await v_f64843(v_3f4e2e.env.DB, v_a12924, v_6e0fd3);
-        if (v_3f4e2e.env.ORCHESTRATOR_URL && v_3f4e2e.env.ORCH_SECRET) {
-          const v_f17108 = new URL(v_3f4e2e.req.url).origin;
-          const v_2d0601 = `${v_f17108}/oth-path${v_7f3fda.src_file_id}`;
-          v_3f4e2e.executionCtx.waitUntil(
-            fetch(`${v_3f4e2e.env.ORCHESTRATOR_URL}/oth-path`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${v_3f4e2e.env.ORCH_SECRET}`,
-              },
-              body: JSON.stringify({
-                job_id: v_a12924,
-                kind: "persona_videos",
-                face_url: v_2d0601,
-                clone_id: String(v_6e0fd3),
-                ...(v_35d74b ? { voice_raw_url: v_35d74b } : {}),
-                callback_token: v_51615a,
-              }),
-              signal: AbortSignal.timeout(8000),
-            })
-              .then((v_8f00b9) => v_5193f8(v_3f4e2e.env.DB, v_a12924, v_8f00b9.ok ? "running" : "failed"))
-              .catch(() => v_5193f8(v_3f4e2e.env.DB, v_a12924, "failed")),
-          );
         }
       }
     }
