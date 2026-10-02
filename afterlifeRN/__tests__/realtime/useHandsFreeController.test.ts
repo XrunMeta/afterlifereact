@@ -544,6 +544,35 @@ describe('greeting 배선', () => {
     jest.useRealTimers();
   });
 
+  it('첫인사 렌더 대기 중엔 3초가 지나도 listening 으로 넘어가지 않는다 (안전망 25초)', async () => {
+    jest.useFakeTimers();
+    const v_a1d9db = jest.fn().mockResolvedValue(undefined);
+    const { result: v_43c42e } = v_0da18b(() => v_7df8a4(v_b2d8b4({
+      greeting: true, greet: jest.fn().mockResolvedValue(undefined),
+      speak: v_a1d9db, greetTimeoutMs: 25000, fallbackText: '',
+    })));
+    await v_be73a0(async () => {});
+    v_be73a0(() => { jest.advanceTimersByTime(10000); });
+    expect(v_43c42e.current.phase).toBe('greeting');
+    expect(v_a1d9db).not.toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+
+  it('폴백 대사가 비면 안전망 도달 즉시 listening — 두 번째 대기 없음', async () => {
+    jest.useFakeTimers();
+    const v_a1d9db = jest.fn().mockResolvedValue(undefined);
+    const { result: v_43c42e } = v_0da18b(() => v_7df8a4(v_b2d8b4({
+      greeting: true, greet: jest.fn().mockResolvedValue(undefined),
+      speak: v_a1d9db, greetTimeoutMs: 25000, fallbackText: '',
+    })));
+    await v_be73a0(async () => {});
+    v_be73a0(() => { jest.advanceTimersByTime(25000); });
+    v_be73a0(() => { jest.advanceTimersByTime(10); });   
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+    expect(v_a1d9db).not.toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+
   it('greeting=false면 기존처럼 즉시 listening (무회귀)', async () => {
     const v_009e58 = jest.fn();
     const { result: v_43c42e } = v_0da18b(() =>
