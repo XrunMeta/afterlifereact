@@ -38,11 +38,16 @@ TMP=$(mktemp -d)
 
 cd "$LP"
 
-# driving 영상 trim (ffmpeg -t) — 짧은 driving → 더 빠른 inference
-TRIMMED_DRIVING="$TMP/driving-${DRIVING_TRIM_SEC}s.mp4"
+# driving 영상 trim + slow down (ffmpeg -t + setpts) — T-947 (2026-10-02)
+#   사용자 "너무 빨라" — 깜박임 간격을 2배 느리게.
+#   setpts=2.0*PTS → 재생 속도 1/2 → 깜박임 간격 2배. 결과 영상도 2배 길이(10s).
+#   LivePortrait inference 는 그 길이에 비례해 조금 더 걸리지만 더 자연스러운 체감.
+DRIVING_SLOW_FACTOR=2.0
+TRIMMED_DRIVING="$TMP/driving-${DRIVING_TRIM_SEC}s-slow.mp4"
 ffmpeg -y -loglevel error \
   -i "$LP/assets/examples/driving/$DRIVING.mp4" \
   -t "$DRIVING_TRIM_SEC" \
+  -filter:v "setpts=${DRIVING_SLOW_FACTOR}*PTS" \
   -c:v libx264 -pix_fmt yuv420p -an \
   "$TRIMMED_DRIVING"
 
@@ -51,6 +56,7 @@ if ! CUDA_VISIBLE_DEVICES=1 "$PY" inference.py \
   -s "$SRC" \
   -d "$TRIMMED_DRIVING" \
   --driving_multiplier 0.4 \
+  --animation-region exp \
   --no-flag_do_torch_compile \
   -o "$TMP" > "$LPLOG" 2>&1; then
   echo "ERR: LivePortrait exited nonzero" >&2
