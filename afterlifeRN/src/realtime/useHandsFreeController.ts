@@ -212,12 +212,14 @@ export function v_7df8a4(opts: {
               text: v_4069c9(v_ad1e0c),
               eff: 'SPEAK_FALLBACK',
             });
-            if (v_2c5027) {
-              v_5069ec.current!(v_ad1e0c).catch(() => v_700737.current({ type: 'RESPONSE_DONE' }));
-            } else if (!v_5069ec.current) {
+            if (!v_2c5027) {
 
-              v_700737.current({ type: 'RESPONSE_DONE' });
+              if (v_3f36e6.current) clearTimeout(v_3f36e6.current);
+              v_3f36e6.current = setTimeout(
+                () => v_700737.current({ type: 'RESPONSE_DONE' }), 0);
+              break;
             }
+            v_5069ec.current!(v_ad1e0c).catch(() => v_700737.current({ type: 'RESPONSE_DONE' }));
 
             if (v_3f36e6.current) clearTimeout(v_3f36e6.current);
             v_3f36e6.current = setTimeout(
