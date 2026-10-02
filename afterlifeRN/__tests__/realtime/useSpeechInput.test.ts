@@ -5,7 +5,10 @@ import {
   v_4c6a50,
   v_3937db,
   v_4811dd,
+  v_b90ee2,
+  v_1d6b6a,
 } from '../../src/realtime/useSpeechInput';
+import { v_08004c, v_8c24f4 } from '../../src/realtime/timingEvents';
 
 function v_c2295a() {
   const v_9fde29 = {};
@@ -637,5 +640,62 @@ describe('마이크 볼륨 기반 전송 유예', () => {
       });
     }
     expect(v_f28164).toHaveBeenCalledWith('저 지금');
+  });
+});
+
+describe('STT error 재시작', () => {
+  async function v_4c6dd7() {
+    const v_1e3df0 = v_c2295a();
+    const v_ae701f = v_0da18b(() => v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a }));
+    await v_be73a0(async () => { await v_ae701f.result.current.startListening(); });
+    v_be73a0(() => { v_1e3df0.emit('start'); });
+    return { engine: v_1e3df0, hook: v_ae701f };
+  }
+
+  it('듣기 중 error(end 없음) → 재시작 + stt_engine 로그', async () => {
+    v_8c24f4();
+    const { engine: v_1e3df0 } = await v_4c6dd7();
+    expect(v_1e3df0.start).toHaveBeenCalledTimes(1);
+    v_be73a0(() => { v_1e3df0.emit('error', { error: 'audio-capture', message: 'busy' }); });
+    v_be73a0(() => { jest.advanceTimersByTime(v_1d6b6a); });
+    expect(v_1e3df0.start).toHaveBeenCalledTimes(2);
+    const v_7866ae = v_08004c().filter((v_9e86fd) => v_9e86fd.type === 'stt_engine').map((v_9e86fd) => (v_9e86fd.detail as any).ev);
+    expect(v_7866ae).toEqual(expect.arrayContaining(['start', 'error', 'restart']));
+  });
+
+  it('error 다음 end 가 와도 start 는 한 번만', async () => {
+    const { engine: v_1e3df0 } = await v_4c6dd7();
+    v_be73a0(() => { v_1e3df0.emit('error', { error: 'no-speech' }); v_1e3df0.emit('end'); });
+    v_be73a0(() => { jest.advanceTimersByTime(v_1d6b6a + 500); });
+    expect(v_1e3df0.start).toHaveBeenCalledTimes(2);
+  });
+
+  it('권한 오류는 재시작하지 않는다', async () => {
+    const { engine: v_1e3df0 } = await v_4c6dd7();
+    v_be73a0(() => { v_1e3df0.emit('error', { error: 'not-allowed' }); });
+    v_be73a0(() => { jest.advanceTimersByTime(v_1d6b6a * 2); });
+    expect(v_1e3df0.start).toHaveBeenCalledTimes(1);
+  });
+
+  it('stopListening 뒤의 error 는 재시작하지 않는다', async () => {
+    const { engine: v_1e3df0, hook: v_ae701f } = await v_4c6dd7();
+    v_be73a0(() => { v_ae701f.result.current.stopListening(); });
+    v_be73a0(() => { v_1e3df0.emit('error', { error: 'aborted' }); });
+    v_be73a0(() => { jest.advanceTimersByTime(v_1d6b6a * 2); });
+    expect(v_1e3df0.start).toHaveBeenCalledTimes(1);
+  });
+
+  it('연속 error 재시작은 상한까지 — result 가 오면 다시 센다', async () => {
+    const { engine: v_1e3df0 } = await v_4c6dd7();
+    for (let v_ebec57 = 0; v_ebec57 < v_b90ee2 + 2; v_ebec57++) {
+      v_be73a0(() => { v_1e3df0.emit('error', { error: 'network' }); });
+      v_be73a0(() => { jest.advanceTimersByTime(v_1d6b6a); });
+      v_be73a0(() => { v_1e3df0.emit('start'); });
+    }
+    expect(v_1e3df0.start).toHaveBeenCalledTimes(1 + v_b90ee2);
+    v_be73a0(() => { v_1e3df0.emit('result', { isFinal: false, results: [{ transcript: '안녕' }] }); });
+    v_be73a0(() => { v_1e3df0.emit('error', { error: 'network' }); });
+    v_be73a0(() => { jest.advanceTimersByTime(v_1d6b6a); });
+    expect(v_1e3df0.start).toHaveBeenCalledTimes(2 + v_b90ee2);
   });
 });
