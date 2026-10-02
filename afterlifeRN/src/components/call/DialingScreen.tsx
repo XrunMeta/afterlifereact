@@ -135,19 +135,15 @@ export function v_1980fb(props: {
             <Feather name="x" size={26} color={v_1bfbd0.white} />
           </TouchableOpacity>
         ) : v_0bc646 ? (
-          <>
-            <TouchableOpacity style={[v_d81136.btn, v_d81136.retry]} onPress={v_1a397e}>
-              <Feather name="phone-call" size={26} color={v_1bfbd0.white} />
-            </TouchableOpacity>
-            <TouchableOpacity style={[v_d81136.btn, v_d81136.end]} onPress={v_c7001c}>
-              <Feather
-                name="phone"
-                size={26}
-                color={v_1bfbd0.white}
-                style={{ transform: [{ rotate: '135deg' }] }}
-              />
-            </TouchableOpacity>
-          </>
+
+          <TouchableOpacity style={[v_d81136.btn, v_d81136.end]} onPress={v_c7001c}>
+            <Feather
+              name="phone"
+              size={26}
+              color={v_1bfbd0.white}
+              style={{ transform: [{ rotate: '135deg' }] }}
+            />
+          </TouchableOpacity>
         ) : (
           <TouchableOpacity style={[v_d81136.btn, v_d81136.end]} onPress={v_c7001c}>
             <Feather
