@@ -64,6 +64,8 @@ export type UseAvatarCall = (opts: {
 
   pipeline?: string | null;
 
+  usesBridge?: boolean;
+
   ttsOutput?: string | null;
 
   voiceModelManifestUrl?: string | null;

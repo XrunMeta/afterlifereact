@@ -1535,6 +1535,14 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
             if pipeline_factory is not None:
                 sess.pipeline = pipeline_factory(sess)
 
+                # AFL-926: 앱이 이 통화에서 Bridge 클립을 트는지(offer "bridge"). false 면 서버는 첫 응답을
+                #   Bridge 시간(≈12s)만큼 미루지 않는다 — Bridge 는 avatar_v2 클론에서만 재생되는데 그동안
+                #   musetalk 클론도 매 턴 재생되지 않는 Bridge 를 기다렸다. 값이 없으면(구 앱) 기존 대기 유지.
+                _bridge = params.get("bridge")
+                if isinstance(_bridge, bool):
+                    sess.pipeline.uses_bridge = _bridge
+                    log.info("session %s bridge=%s", sess.session_id, _bridge)
+
                 # AFL-926: 이 계정×클론의 이전 대화를 다이얼링 중에 받아 둔다(백그라운드).
                 #   env PRETHIRD_PRIOR_CONVERSATION=1 일 때만 실제 조회(prior_conversation.py).
                 #   발화 경로는 메시지 조립 전에 이 태스크를 잠깐(2.5s) 기다린다.
