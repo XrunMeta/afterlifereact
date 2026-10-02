@@ -114,6 +114,21 @@ export async function v_87cfd2(v_a1651b, clone: v_b107dc, v_43e90c, v_f17108): P
       .first<{ file_id: number }>();
     v_2d0601 = v_dcfd51 ? `${v_f17108}/oth-path${v_dcfd51.file_id}` : null;
   }
+  if (!v_2d0601) {
+
+    const v_b2639a = await v_a1651b
+      .prepare(
+        `SELECT f.id AS file_id
+           FROM clone_asset_jobs j
+           JOIN files f ON j.src_file_id = f.id
+          WHERE j.clone_id = ? AND j.kind IN ('idle_video','persona_videos')
+          ORDER BY j.created_at DESC, j.rowid DESC
+          LIMIT 1`,
+      )
+      .bind(v_6e0fd3)
+      .first<{ file_id: number }>();
+    v_2d0601 = v_b2639a ? `${v_f17108}/oth-path${v_b2639a.file_id}` : null;
+  }
 
   let v_c53bd1 = [];
   if (v_eb25ce.filler_video_urls) {
