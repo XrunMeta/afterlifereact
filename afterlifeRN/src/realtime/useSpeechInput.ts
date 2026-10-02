@@ -3,6 +3,7 @@
 import { v_de06a3, v_c4deb2, v_df9f57, v_e662ae, v_5ab095 } from 'bapkr';
 import { v_d08429, v_3032b0 } from './voiceBall';
 import { v_d7f7b1 } from './timingEvents';
+import { v_8fae09 } from './utteranceEnd';
 
 const v_f47f7d = new Set(['not-allowed', 'service-not-allowed', 'language-not-supported']);
 export const v_b90ee2 = 5;
@@ -33,6 +34,8 @@ export const v_4c6a50 = 2000;
 export const v_3937db = 3;
 
 export const v_4811dd = 3000;
+
+export const v_1be526 = 1800;
 
 export function v_fee12d(v_328259) {
 
@@ -100,11 +103,16 @@ export function v_fee12d(v_328259) {
 
   const v_33d425 = v_e662ae(0);
 
+  const v_5a6c41 = v_e662ae(0);
+  const v_de1c15 = v_e662ae(v_328259?.incompleteHoldMs ?? v_1be526);
+  v_de1c15.current = v_328259?.incompleteHoldMs ?? v_1be526;
+
   const v_f59c40 = v_de06a3(() => {
     v_c4dfc6.current = [];
     v_5484ad.current = '';
     v_5a468c.current = 0;
     v_33d425.current = 0;
+    v_5a6c41.current = 0;
     if (v_e2c189.current) {
       clearTimeout(v_e2c189.current);
       v_e2c189.current = null;
@@ -136,6 +144,15 @@ export function v_fee12d(v_328259) {
         return;
       }
     }
+
+    const v_def12c = [...v_c4dfc6.current, v_5484ad.current].join(' ').trim();
+    const v_d812bd = v_5c2f9f - v_5a6c41.current;
+    const v_354244 = v_de1c15.current;
+    if (v_5a6c41.current > 0 && v_d812bd < v_354244 && v_8fae09(v_def12c)) {
+      v_d7f7b1('stt_engine', { ev: 'hold_incomplete', ms: v_354244 - v_d812bd, tail: v_def12c.slice(-8) });
+      v_e2c189.current = setTimeout(v_f641ee.current, v_354244 - v_d812bd);
+      return;
+    }
     v_b6e358();
   }, [v_b6e358]);
   const v_f641ee = v_e662ae(v_70e4e3);
@@ -144,6 +161,7 @@ export function v_fee12d(v_328259) {
   const v_aa432e = v_de06a3(() => {
     if (v_e2c189.current) clearTimeout(v_e2c189.current);
     v_33d425.current = 0; 
+    v_5a6c41.current = Date.now();
     v_e2c189.current = setTimeout(() => v_f641ee.current(), v_9a5dc9.current);
   }, []);
 
