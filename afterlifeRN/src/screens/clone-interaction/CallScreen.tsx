@@ -2135,41 +2135,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const [capturingWithLogo, setCapturingWithLogo] = useState(false);
   const rootCaptureRef = useRef<View>(null);
 
-  useEffect(() => {
-    const sub = ScreenCapture.addScreenshotListener(() => {
-      void (async () => {
-        try {
-          setCapturingWithLogo(true);
-
-          await new Promise((r) => setTimeout(r, 120));
-          if (!rootCaptureRef.current) return;
-          const uri = await captureRef(rootCaptureRef.current, {
-            format: "jpg",
-            quality: 0.9,
-          });
-
-          const perm = await MediaLibrary.getPermissionsAsync(true);
-          if (!perm.granted) {
-            const req = await MediaLibrary.requestPermissionsAsync(true);
-            if (!req.granted) throw new Error("media permission denied");
-          }
-          await MediaLibrary.createAssetAsync(uri);
-          setToastMessage(t("call.captureSavedToast"));
-        } catch (e) {
-
-          const isPermDenied = e instanceof Error && e.message === "media permission denied";
-          if (isPermDenied) {
-            setToastMessage(t("call.capturePermNeededToast"));
-          }
-          if (__DEV__) console.warn("[capture] screenshot save failed:", e);
-        } finally {
-          setCapturingWithLogo(false);
-        }
-      })();
-    });
-    return () => sub.remove();
-  }, [t]);
-
   return (
     <View style={s.container} ref={rootCaptureRef} collapsable={false}>
       {}
