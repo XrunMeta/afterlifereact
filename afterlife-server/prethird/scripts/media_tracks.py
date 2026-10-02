@@ -3,6 +3,7 @@ import asyncio, os, time
 from fractions import Fraction
 from typing import Optional
 import numpy as np
+import cv2
 from aiortc.mediastreams import AudioStreamTrack, VideoStreamTrack
 from av import AudioFrame, VideoFrame
 import logging
@@ -93,6 +94,21 @@ class AvatarVideoTrack(VideoStreamTrack):
         self._idle_rec_sess: str | None = None
         self._idle_rec_seq = 0
         self._idle_rec_max_frames = int(os.environ.get("PRETHIRD_RECORD_IDLE_MAX_FRAMES", "250"))  # 10s@25fps — 짧게 잘라 세션 급종료 시 유실 최소화
+        # 2026-10-02 — 송출 프레임 해상도 lock.
+        #   idle (LivePortrait 사전 생성) 과 speaking (MuseTalk inference) 영상의
+        #   해상도가 달라, RTCView 가 track 전환마다 재조정하며 사용자 체감 "크기 변동" 유발.
+        #   첫 송출 프레임의 (W, H) 를 target 으로 잡고 이후 다른 shape 들어오면 resize 해
+        #   WebRTC track resolution 자체를 고정 → 수신측 재조정 없음.
+        #   PRETHIRD_FRAME_LOCK_WH="512x512" 로 명시 지정 가능 (미지정이면 첫 프레임 shape).
+        _lock = os.environ.get("PRETHIRD_FRAME_LOCK_WH", "").strip()
+        if _lock and "x" in _lock:
+            try:
+                _w, _h = (int(x) for x in _lock.lower().split("x", 1))
+                self._target_shape: Optional[tuple[int, int]] = (_w, _h)
+            except Exception:
+                self._target_shape = None
+        else:
+            self._target_shape = None
 
     def attach_idle_recorder(self, clone_id, session_id: str) -> None:
         """[2026-09-23 임시] idle 스트림 dump 컨텍스트 주입.
@@ -350,6 +366,16 @@ class AvatarVideoTrack(VideoStreamTrack):
         # 안전 — 차원 검증
         if arr.ndim != 3 or arr.shape[2] != 3:
             arr = _dummy_rgb_frame(time.time() - self._start)
+
+        # 2026-10-02 — frame shape lock. idle/speaking 전환 시 WebRTC track resolution
+        #   재협상을 막아 RTCView 재조정에 의한 "크기 변동" 체감 제거.
+        h_cur, w_cur = arr.shape[:2]
+        if self._target_shape is None:
+            self._target_shape = (w_cur, h_cur)
+            log.info("[frame-lock] target_shape locked to %dx%d", w_cur, h_cur)
+        elif (w_cur, h_cur) != self._target_shape:
+            tw, th = self._target_shape
+            arr = cv2.resize(arr, (tw, th), interpolation=cv2.INTER_LINEAR)
 
         frame = VideoFrame.from_ndarray(arr, format="rgb24")
         frame.pts = pts
