@@ -19,6 +19,15 @@ DEFAULT_CLONE = os.environ.get("QWEN3TTS_DEFAULT_CLONE", "halbae")
 WARMUP_CLONE = os.environ.get("QWEN3TTS_WARMUP_CLONE", "halbae")
 REF_CLIP_MAX_SEC = float(os.environ.get("QWEN3TTS_REF_CLIP_MAX_SEC", "10.0"))
 
+# --- 폭주 차단 상한 (2026-10-03 실통화) -------------------------------------------
+# 한 문장이 끝(EOS)을 못 내고 모델 기본 상한(generation_config.json 8192토큰)까지
+# 8분 넘게 생성하며 _SYNTH_LOCK 을 쥐어, 그 뒤 모든 통화의 합성이 줄을 섰다.
+# 상한은 prethird 의 한 문장 대기 상한(PRETHIRD_TTS_TIMEOUT_S=60)과 맞춘다 — prethird 가
+# 포기할 때 여기서도 생성이 끝나야 잠금이 풀린다. qwen_tts 는 시간 기준 중단(max_time)을
+# 넘겨주지 않아 토큰으로 환산: 가비아 GPU0 실측 16.5토큰/초 × 58초 ≈ 960토큰.
+MAX_NEW_TOKENS = int(os.environ.get("QWEN3TTS_MAX_NEW_TOKENS", "960"))
+MAX_TEXT_CHARS = int(os.environ.get("QWEN3TTS_MAX_TEXT_CHARS", "500"))
+
 # attention 구현. flash-attn 미설치 환경 기본 sdpa. 설치 시 QWEN3TTS_ATTN=flash_attention_2.
 ATTN_IMPL = os.environ.get("QWEN3TTS_ATTN", "sdpa")
 

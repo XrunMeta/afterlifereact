@@ -235,10 +235,50 @@ def test_synth_forwards_gen_params(client_with_fake_engine):
         "temperature": 0.5, "top_p": 0.8,
     })
     assert r.status_code == 200
-    assert fake.last_synth_kwargs["gen_params"] == {"temperature": 0.5, "top_p": 0.8}
+    assert fake.last_synth_kwargs["gen_params"] == {"temperature": 0.5, "top_p": 0.8, "max_new_tokens": cfg.MAX_NEW_TOKENS}
 
 def test_synth_omits_unset_gen_params(client_with_fake_engine):
     client, fake = client_with_fake_engine
     r = client.post("/tts/kr", json={"text": "안녕", "clone_id": "halbae"})
     assert r.status_code == 200
-    assert fake.last_synth_kwargs["gen_params"] == {}
+    # 미지정 파라미터는 넘기지 않는다 — 단 생성 상한(max_new_tokens)만은 항상 채운다.
+    assert fake.last_synth_kwargs["gen_params"] == {"max_new_tokens": cfg.MAX_NEW_TOKENS}
+
+
+# ── 폭주 차단 상한 (2026-10-03 실통화: 한 문장이 7분 넘게 생성되며 잠금을 쥠) ──────────
+
+def test_max_new_tokens_default_matches_prethird_60s():
+    # prethird 60초 대기와 함께 끝나야 한다 — 실측 16.5토큰/초 기준 60초 이내.
+    import os
+    assert "QWEN3TTS_MAX_NEW_TOKENS" not in os.environ
+    assert cfg.MAX_NEW_TOKENS == 960
+    assert cfg.MAX_NEW_TOKENS / 16.5 <= 60
+
+def test_synth_caps_max_new_tokens_by_default(client_with_fake_engine):
+    client, fake = client_with_fake_engine
+    r = client.post("/tts/kr", json={"text": "안녕", "clone_id": "halbae"})
+    assert r.status_code == 200
+    assert fake.last_synth_kwargs["gen_params"]["max_new_tokens"] == cfg.MAX_NEW_TOKENS
+
+def test_synth_clamps_requested_max_new_tokens(client_with_fake_engine):
+    client, fake = client_with_fake_engine
+    r = client.post("/tts/kr", json={"text": "안녕", "clone_id": "halbae", "max_new_tokens": 9000})
+    assert r.status_code == 200
+    assert fake.last_synth_kwargs["gen_params"]["max_new_tokens"] == cfg.MAX_NEW_TOKENS
+
+def test_synth_keeps_smaller_requested_max_new_tokens(client_with_fake_engine):
+    client, fake = client_with_fake_engine
+    r = client.post("/tts/kr", json={"text": "안녕", "clone_id": "halbae", "max_new_tokens": 200})
+    assert r.status_code == 200
+    assert fake.last_synth_kwargs["gen_params"]["max_new_tokens"] == 200
+
+def test_tts_kr_text_over_500_chars_413(client_with_fake_engine):
+    client, fake = client_with_fake_engine
+    r = client.post("/tts/kr", json={"text": "가" * 501, "clone_id": "halbae"})
+    assert r.status_code == 413
+    assert fake.last_synth_kwargs is None
+
+def test_tts_kr_text_500_chars_ok(client_with_fake_engine):
+    client, fake = client_with_fake_engine
+    r = client.post("/tts/kr", json={"text": "가" * 500, "clone_id": "halbae"})
+    assert r.status_code == 200
