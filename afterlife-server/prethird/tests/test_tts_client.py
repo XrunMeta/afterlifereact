@@ -66,3 +66,45 @@ async def test_say_includes_se_path_when_set():
 
     assert captured.get("se_path") == "reference_voices/halbae/se.pth"
     assert captured.get("speed") == 1.0
+
+
+def _capture_session_timeout():
+    """ClientSession(...) 에 넘어간 timeout 을 잡아 둔다."""
+    captured = {}
+    resp = _make_mock_resp(b"WAV")
+    sess = _make_mock_session(resp)
+
+    def fake_session(*args, **kwargs):
+        captured["timeout"] = kwargs.get("timeout")
+        return sess
+
+    return captured, fake_session
+
+
+@pytest.mark.asyncio
+async def test_say_timeout_defaults_to_60s(monkeypatch):
+    # 2026-10-03 실통화: qwen3tts 가 한 문장을 끝내지 못하자 aiohttp 기본값(300s)
+    # 만큼 대답이 멈췄다. 한 문장 합성은 60초를 넘기지 않는다.
+    monkeypatch.delenv("PRETHIRD_TTS_TIMEOUT_S", raising=False)
+    captured, fake_session = _capture_session_timeout()
+    with patch("aiohttp.ClientSession", side_effect=fake_session):
+        await tts_client.say("안녕")
+    assert captured["timeout"].total == 60.0
+
+
+@pytest.mark.asyncio
+async def test_say_timeout_env_override(monkeypatch):
+    monkeypatch.setenv("PRETHIRD_TTS_TIMEOUT_S", "15")
+    captured, fake_session = _capture_session_timeout()
+    with patch("aiohttp.ClientSession", side_effect=fake_session):
+        await tts_client.say("안녕")
+    assert captured["timeout"].total == 15.0
+
+
+@pytest.mark.asyncio
+async def test_say_timeout_bad_env_falls_back(monkeypatch):
+    monkeypatch.setenv("PRETHIRD_TTS_TIMEOUT_S", "abc")
+    captured, fake_session = _capture_session_timeout()
+    with patch("aiohttp.ClientSession", side_effect=fake_session):
+        await tts_client.say("안녕")
+    assert captured["timeout"].total == 60.0
