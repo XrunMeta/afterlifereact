@@ -193,3 +193,52 @@ def test_atempo_ffmpeg_called_process_error_returns_original_bytes(monkeypatch, 
     original = b"RIFF-ORIGINAL-BYTES"
     out = tts_engine._apply_atempo(original, 1.5)
     assert out == original
+
+
+# ── 폭주 판정 (2026-10-03: 한 문장이 상한까지 생성하며 잠금을 쥠) ────────────────
+
+class LenModel(FakeModel):
+    """호출마다 정해 둔 길이(12Hz 토큰 수)의 24kHz 음성을 돌려준다."""
+    def __init__(self, token_lens):
+        super().__init__()
+        self.token_lens = list(token_lens)
+    def generate_voice_clone(self, text, language, voice_clone_prompt, **kwargs):
+        self.gen_calls += 1
+        self.last_gen_kwargs = kwargs
+        n = self.token_lens.pop(0)
+        return [np.zeros(n * 2000, dtype="float32")], 24000
+
+def test_ramble_retries_once_then_ok(tmp_path):
+    wav = _make_wav(str(tmp_path / "halbae" / "voice.wav"))
+    m = LenModel([46, 20])          # 첫 시도는 상한(48) 근처까지 = 폭주, 두 번째는 정상
+    eng = Qwen3Engine(model=m, clip_fn=_fake_clip)
+    out = eng.synth("안녕", clone_id="halbae", voice_wav=wav,
+                    gen_params={"max_new_tokens": 48}, ramble_cap_tokens=48)
+    assert m.gen_calls == 2
+    assert isinstance(out, (bytes, bytearray)) and len(out) > 0
+
+def test_ramble_twice_raises(tmp_path):
+    from tts_engine import RambleError
+    wav = _make_wav(str(tmp_path / "halbae" / "voice.wav"))
+    m = LenModel([46, 47])
+    eng = Qwen3Engine(model=m, clip_fn=_fake_clip)
+    with pytest.raises(RambleError):
+        eng.synth("안녕", clone_id="halbae", voice_wav=wav,
+                  gen_params={"max_new_tokens": 48}, ramble_cap_tokens=48)
+    assert m.gen_calls == 2
+
+def test_no_ramble_check_without_cap(tmp_path):
+    wav = _make_wav(str(tmp_path / "halbae" / "voice.wav"))
+    m = LenModel([46])
+    eng = Qwen3Engine(model=m, clip_fn=_fake_clip)
+    eng.synth("안녕", clone_id="halbae", voice_wav=wav, gen_params={"max_new_tokens": 48})
+    assert m.gen_calls == 1
+
+def test_natural_end_below_threshold_is_ok(tmp_path):
+    # 실측: 상한에 걸리면 길이가 상한의 0.93~0.96 이 된다. 0.9 미만은 정상 종료.
+    wav = _make_wav(str(tmp_path / "halbae" / "voice.wav"))
+    m = LenModel([42])
+    eng = Qwen3Engine(model=m, clip_fn=_fake_clip)
+    eng.synth("안녕", clone_id="halbae", voice_wav=wav,
+              gen_params={"max_new_tokens": 48}, ramble_cap_tokens=48)
+    assert m.gen_calls == 1

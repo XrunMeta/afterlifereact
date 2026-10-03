@@ -2,8 +2,10 @@ from __future__ import annotations
 import os, time, logging, threading
 from fastapi import FastAPI, Response, HTTPException
 from pydantic import BaseModel
+import math, re
 import config
 from clone_ref import parse_clone_id, pick_ref_pair
+from tts_engine import RambleError
 
 # 동시통화 음성 섞임 방지: GPU synth 직렬화 Lock
 _SYNTH_LOCK = threading.Lock()
@@ -49,6 +51,16 @@ class SynthReq(BaseModel):
 _GEN_KEYS = ("temperature", "top_p", "top_k", "repetition_penalty", "max_new_tokens")
 
 
+_NON_SPOKEN = re.compile(r"[\s.,!?…~\-\"'·:;()\[\]]")
+
+
+def _auto_cap_tokens(text: str) -> int:
+    """글자 수 비례 생성 상한(토큰). 짧은 문장이 폭주해도 몇 초 만에 끊는다."""
+    n = len(_NON_SPOKEN.sub("", text))
+    sec = n / config.RAMBLE_CHARS_PER_SEC + config.RAMBLE_BASE_SEC
+    return min(math.ceil(sec * 12), config.MAX_NEW_TOKENS)
+
+
 @app.post("/tts/kr")
 def synth(req: SynthReq):
     eng = app.state.engine
@@ -83,16 +95,26 @@ def synth(req: SynthReq):
     # ICL ref_text 배선: 대본이 있으면 ICL 모드, 없으면 x_vector_only (기존 경로) — pick_ref_pair 가 함께 고른다.
 
     gen_params = {k: getattr(req, k) for k in _GEN_KEYS if getattr(req, k) is not None}
-    # 생성 상한은 항상 건다 — 요청이 더 크게 불러도 config 상한으로 자른다.
-    gen_params["max_new_tokens"] = min(
-        gen_params.get("max_new_tokens", config.MAX_NEW_TOKENS), config.MAX_NEW_TOKENS
-    )
+    # 생성 상한은 항상 건다. 요청이 상한을 직접 주면(실험) 그 값을 config 상한으로만 자르고
+    # 폭주 판정은 하지 않는다. 안 주면 글자 수 비례 상한 + 폭주 판정(상한 도달 = 끝을 못 냄).
+    ramble_cap = None
+    if "max_new_tokens" in gen_params:
+        gen_params["max_new_tokens"] = min(gen_params["max_new_tokens"], config.MAX_NEW_TOKENS)
+    else:
+        ramble_cap = _auto_cap_tokens(txt)
+        gen_params["max_new_tokens"] = ramble_cap
 
     t0 = time.time()
     try:
         with _SYNTH_LOCK:
             wav = eng.synth(txt, clone_id=clone_id, voice_wav=voice_wav, ref_text=ref_text,
-                             speed=req.speed, gen_params=gen_params)
+                             speed=req.speed, gen_params=gen_params,
+                             ramble_cap_tokens=ramble_cap)
+    except RambleError as exc:
+        # 웅얼거림을 대답으로 내보내지 않는다 — 호출측은 이 문장을 실패로 처리.
+        log.warning("ramble clone='%s' text_len=%d: %s", clone_id, len(txt), exc)
+        raise HTTPException(503, "tts ramble (generation did not end)",
+                            headers={"X-Ramble": "1"})
     except ValueError as exc:
         # extract_ref_clip 에서 raise 하는 "corrupt/unreadable wav" 를 503 으로 매핑.
         # 무음 응답 대신 명시적 에러 반환 (sion MAJOR3).

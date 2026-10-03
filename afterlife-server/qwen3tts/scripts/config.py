@@ -28,6 +28,17 @@ REF_CLIP_MAX_SEC = float(os.environ.get("QWEN3TTS_REF_CLIP_MAX_SEC", "10.0"))
 MAX_NEW_TOKENS = int(os.environ.get("QWEN3TTS_MAX_NEW_TOKENS", "960"))
 MAX_TEXT_CHARS = int(os.environ.get("QWEN3TTS_MAX_TEXT_CHARS", "500"))
 
+# 글자 수 비례 상한 — 짧은 문장이 폭주하면 1분이 아니라 몇 초 만에 끊는다.
+# 상한(초) = 글자 수(공백·문장부호 제외) / RAMBLE_CHARS_PER_SEC + RAMBLE_BASE_SEC.
+# 근거: 가비아 /data/records 실통화 503건(앞뒤 무음 포함)의 가장 느린 정상 발화도
+# 이 식 안에 든다(유일한 예외 13자 10.9초는 견본 누출로 의심되는 출력).
+RAMBLE_CHARS_PER_SEC = float(os.environ.get("QWEN3TTS_RAMBLE_CHARS_PER_SEC", "2.0"))
+RAMBLE_BASE_SEC = float(os.environ.get("QWEN3TTS_RAMBLE_BASE_SEC", "3.0"))
+# 상한에 걸린 출력은 길이가 상한의 0.93~0.96 이 된다(실측). 이 비율 이상이면 폭주로 본다.
+RAMBLE_HIT_RATIO = float(os.environ.get("QWEN3TTS_RAMBLE_HIT_RATIO", "0.9"))
+# 폭주 판정 시 다른 seed 로 다시 생성할 횟수. 모두 폭주면 503(웅얼거림을 내보내지 않는다).
+RAMBLE_RETRIES = int(os.environ.get("QWEN3TTS_RAMBLE_RETRIES", "1"))
+
 # attention 구현. flash-attn 미설치 환경 기본 sdpa. 설치 시 QWEN3TTS_ATTN=flash_attention_2.
 ATTN_IMPL = os.environ.get("QWEN3TTS_ATTN", "sdpa")
 
