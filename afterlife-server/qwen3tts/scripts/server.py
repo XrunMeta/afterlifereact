@@ -57,8 +57,8 @@ def synth(req: SynthReq):
     txt = req.text.strip()
     if not txt:
         raise HTTPException(400, "empty text")
-    if len(txt) > 1500:
-        raise HTTPException(413, "text too long (max 1500)")
+    if len(txt) > config.MAX_TEXT_CHARS:
+        raise HTTPException(413, f"text too long (max {config.MAX_TEXT_CHARS})")
 
     # clone_id 결정 우선순위: ① req.clone_id → ② parse_clone_id(req.se_path) → ③ 400
     if req.clone_id:
@@ -83,6 +83,10 @@ def synth(req: SynthReq):
     # ICL ref_text 배선: 대본이 있으면 ICL 모드, 없으면 x_vector_only (기존 경로) — pick_ref_pair 가 함께 고른다.
 
     gen_params = {k: getattr(req, k) for k in _GEN_KEYS if getattr(req, k) is not None}
+    # 생성 상한은 항상 건다 — 요청이 더 크게 불러도 config 상한으로 자른다.
+    gen_params["max_new_tokens"] = min(
+        gen_params.get("max_new_tokens", config.MAX_NEW_TOKENS), config.MAX_NEW_TOKENS
+    )
 
     t0 = time.time()
     try:
