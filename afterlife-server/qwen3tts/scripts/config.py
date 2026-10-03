@@ -19,6 +19,13 @@ DEFAULT_CLONE = os.environ.get("QWEN3TTS_DEFAULT_CLONE", "halbae")
 WARMUP_CLONE = os.environ.get("QWEN3TTS_WARMUP_CLONE", "halbae")
 REF_CLIP_MAX_SEC = float(os.environ.get("QWEN3TTS_REF_CLIP_MAX_SEC", "10.0"))
 
+# --- 폭주 차단 상한 (2026-10-03 실통화) -------------------------------------------
+# 한 문장이 끝(EOS)을 못 내고 qwen 기본 상한(2048토큰 ≈ 170초 음성)까지 7분 넘게
+# 생성하며 _SYNTH_LOCK 을 쥐어, 그 뒤 모든 통화의 합성이 줄을 섰다.
+# 12Hz 코덱이라 500토큰 ≈ 42초 음성 — 통화 한 문장(보통 1~10초)에는 넉넉하다.
+MAX_NEW_TOKENS = int(os.environ.get("QWEN3TTS_MAX_NEW_TOKENS", "500"))
+MAX_TEXT_CHARS = int(os.environ.get("QWEN3TTS_MAX_TEXT_CHARS", "500"))
+
 # attention 구현. flash-attn 미설치 환경 기본 sdpa. 설치 시 QWEN3TTS_ATTN=flash_attention_2.
 ATTN_IMPL = os.environ.get("QWEN3TTS_ATTN", "sdpa")
 
