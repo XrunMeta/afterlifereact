@@ -105,8 +105,10 @@ import { submitDevText } from "../../realtime/devCallText";
 import { CALL_ROUTE } from "../../config/callRoute";
 import { GREETING_ENABLED, GREETING_FALLBACK_TEXT, GREET_TIMEOUT_MS } from "../../config/greeting";
 import { useHandsFreeController } from "../../realtime/useHandsFreeController";
+import { IDLE_GREET_DELAYS_MS } from "../../realtime/handsFree";
 import { shouldSkipUnknownFaceEntry, computeFaceKey } from "../../realtime/faceInterruptRouting";
 import { useVideoStatsDiag } from "../../realtime/useVideoStatsDiag";
+import { useJsFpsDiag } from "../../realtime/useJsFpsDiag";
 import { DialingScreen } from "../../components/call/DialingScreen";
 import { CallVoiceBall } from "../../components/call/CallVoiceBall";
 import { CallTimingHUD } from "../../components/call/CallTimingHUD";
@@ -419,6 +421,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const [dialingDone, setDialingDone] = useState(false);
 
+  const [poorConnection, setPoorConnection] = useState(false);
+
   const [faceIdentifyEnabled, setFaceIdentifyEnabled] = useState(true);
   const [selfConfirmed, setSelfConfirmed] = useState(true); 
   const selfSamplesRef = useRef<number[][]>([]);
@@ -535,6 +539,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const [liveVoiceModelManifestUrl, setLiveVoiceModelManifestUrl] = useState<string | null>(null);
 
+  const [liveIdleVideoUrl, setLiveIdleVideoUrl] = useState<string | null>(null);
+
   const {
     state: liveState,
     remoteStream,
@@ -559,6 +565,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
     pipeline: livePipeline ?? (clone as { pipeline?: string | null })?.pipeline ?? null,
 
+    usesBridge:
+      (livePipeline ?? (clone as { pipeline?: string | null })?.pipeline ?? null) === 'avatar_v2' ||
+      String(paramName || (clone as { displayName?: string } | null | undefined)?.displayName || '')
+        .toLowerCase().includes('[v2]'),
+
     ttsOutput: liveTtsOutput ?? (clone as { ttsOutput?: string | null })?.ttsOutput ?? null,
 
     voiceModelManifestUrl: liveVoiceModelManifestUrl,
@@ -572,16 +583,28 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         const { getCloneDetail } = await import("../../api/clones");
         const detail = await getCloneDetail(cloneId, accessToken);
         if (alive) {
-          const cloneData = (detail as { clone?: { pipeline?: string | null; visemePrefix?: string | null; ttsOutput?: string | null; voiceModelManifestUrl?: string | null } })?.clone;
+          const cloneData = (detail as { clone?: { pipeline?: string | null; visemePrefix?: string | null; ttsOutput?: string | null; voiceModelManifestUrl?: string | null; idleVideoUrl?: string | null } })?.clone;
           const p = cloneData?.pipeline ?? null;
           const vp = cloneData?.visemePrefix ?? null;
           const to = cloneData?.ttsOutput ?? null;
           const vmu = cloneData?.voiceModelManifestUrl ?? null;
+          const iv = cloneData?.idleVideoUrl ?? null;
           setLivePipeline(p);
           setLiveVisemePrefix(vp);
           setLiveTtsOutput(to);
           setLiveVoiceModelManifestUrl(vmu);
-          if (__DEV__) console.log(`[T-467] livePipeline for clone ${cloneId} = ${p} · visemePrefix = ${vp ? "set" : "null"} · ttsOutput = ${to ?? "null"} · voiceManifest = ${vmu ? "set" : "null"}`);
+          setLiveIdleVideoUrl(iv);
+          if (__DEV__) console.log(`[T-467] livePipeline for clone ${cloneId} = ${p} · visemePrefix = ${vp ? "set" : "null"} · ttsOutput = ${to ?? "null"} · voiceManifest = ${vmu ? "set" : "null"} · idleVideo = ${iv ? "set" : "null"}`);
+
+          const needsIdleAsset = p === 'musetalk' || p === 'echomimic_v3';
+          if (needsIdleAsset && !iv) {
+            showAlert(
+              t('call.assetBuildingTitle', { defaultValue: '통화 준비 중이에요' }),
+              t('call.assetBuildingBody', { defaultValue: '얼굴·목소리 준비에 5~15분이 걸려요. 조금 뒤에 다시 걸어주세요.' }),
+            );
+            if (navigation.canGoBack()) navigation.goBack();
+            return;
+          }
         }
       } catch (err) {
         if (__DEV__) console.warn("[T-467] getCloneDetail pipeline fetch failed:", err);
@@ -607,7 +630,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const greetingOn = GREETING_ENABLED && typeof greet === 'function';
 
-  useVideoStatsDiag({ getStatsReport, enabled: __DEV__ && liveState === "live" });
+  useVideoStatsDiag({ getStatsReport, enabled: liveState === "live" });
+  useJsFpsDiag({ enabled: liveState === "live" });
 
   const faceEmbedModelPlugin = useTensorflowModel(
     require("../../../assets/models/w600k_mbf.tflite"),
@@ -619,6 +643,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const isAndroidFrame = Platform.OS === "android";
 
   const lastEmbedTs = useSharedValue(0);
+
+  const lastFaceCount = useSharedValue(-1);
 
   const embedAllowed = useSharedValue(true);
 
@@ -1059,6 +1085,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
       const nowMs = normalizeFrameTimestampMs(frame.timestamp, isAndroidFrame);
 
+      const curFaceCount = faces.length;
+      if (lastFaceCount.value !== -1 && curFaceCount !== lastFaceCount.value) {
+        lastEmbedTs.value = 0;
+      }
+      lastFaceCount.value = curFaceCount;
+
       if (faceEmbedModel != null && embedAllowed.value && shouldRunEmbedding(lastEmbedTs.value, nowMs)) {
         lastEmbedTs.value = nowMs;
         const primary = largestFace(faces);
@@ -1114,11 +1146,22 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       faceEmbedModel,
       resize,
       lastEmbedTs,
+      lastFaceCount,
       embedAllowed,
       isAndroidFrame,
       handleEmbeddingOnJS,
     ],
   );
+
+  const sttGiveUpRef = useRef(false);
+  const handleSttUnrecoverable = useCallback((reason: 'network') => {
+    if (sttGiveUpRef.current) return;
+    sttGiveUpRef.current = true;
+    console.log(`[Call][flow] +${Date.now()} STT unrecoverable(${reason}) → stopLive + DialingScreen(poorConnection)`);
+    setPoorConnection(true);
+    setDialingDone(false);
+    void stopLive();
+  }, [stopLive]);
 
   const sttEndpointMs = useTimingConfigStore((s) => s.sttEndpointMs);
 
@@ -1136,7 +1179,9 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     cloneAudioLevel,
     sttActive,
     notifyFaceInterrupt,
+    idleGreetCount,
   } = useHandsFreeController({
+    onSttUnrecoverable: handleSttUnrecoverable,
 
     enabled: liveState === "live",
     say,
@@ -1162,7 +1207,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     notifyFaceInterruptRef.current = notifyFaceInterrupt;
   }, [notifyFaceInterrupt]);
 
-  const micHeld = shouldHoldMic(rmState);
+  const micHeld = shouldHoldMic(rmState) || bridgeActive;
   const micWasOnRef = useRef(false);
   useEffect(() => {
     if (liveState !== "live") return;
@@ -1182,25 +1227,89 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     embedAllowed.value = phase !== "sending";
   }, [phase]);
 
-  const nameOverrideAvatarV2 = String(paramName || (clone as { displayName?: string } | null | undefined)?.displayName || '')
-    .toLowerCase().includes('[v2]');
+  const hangupInFlightRef = useRef(false);
+  const idleHangupTriggerRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    if (liveState !== "live") return;
+    if (hangupInFlightRef.current) return;
+    if (idleGreetCount < IDLE_GREET_DELAYS_MS.length) return;
+    hangupInFlightRef.current = true;
+    console.log(
+      `[Call][idle] 무발화 워치독 종점 (${IDLE_GREET_DELAYS_MS.length}회) · goodbye 발화 후 종료 예약`,
+    );
+
+    const id = setTimeout(() => {
+      console.log("[Call][idle] goodbye 재생 완료 예상 · stopLive + exitToMain");
+      idleHangupTriggerRef.current();
+    }, 8000);
+    return () => clearTimeout(id);
+  }, [idleGreetCount, liveState]);
+
+  const nameForCheck = String(paramName || (clone as { displayName?: string } | null | undefined)?.displayName || '');
+  const nameOverrideAvatarV2 = nameForCheck.toLowerCase().includes('[v2]');
+
   const isAvatarV2 = livePipeline === 'avatar_v2' || nameOverrideAvatarV2;
+  useEffect(() => {
+    console.log(`[T-806/gate] cloneId=${cloneId} livePipeline=${livePipeline ?? "null"} paramName=${paramName ?? "?"} cloneName=${(clone as {displayName?:string}|null|undefined)?.displayName ?? "?"} nameOverride=${nameOverrideAvatarV2} isAvatarV2=${isAvatarV2}`);
+  }, [cloneId, livePipeline, paramName, nameForCheck, nameOverrideAvatarV2, isAvatarV2, clone]);
   const yoonjeongRef = useRef<YoonjeongAvatarPlayerHandle>(null);
   const lastBridgeTextRef = useRef<string>("");
   const [bridgeActive, setBridgeActive] = useState(false);
+
+  const BRIDGE_GRACE_MS = 3000;
+  const bridgeGraceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bridgePendingTextRef = useRef<string | null>(null);
+  const clearBridgeGrace = useCallback(() => {
+    if (bridgeGraceTimerRef.current) { clearTimeout(bridgeGraceTimerRef.current); bridgeGraceTimerRef.current = null; }
+    bridgePendingTextRef.current = null;
+  }, []);
   useEffect(() => {
     if (!isAvatarV2) return;
 
     if (phase !== 'sending') return;
     const text = (pendingText ?? '').trim();
     if (!text) return;
-    if (text === lastBridgeTextRef.current) return; 
+    if (text === lastBridgeTextRef.current) return;
     lastBridgeTextRef.current = text;
-    try { yoonjeongRef.current?.playBridge(text); } catch {}
-  }, [isAvatarV2, phase, pendingText]);
+
+    clearBridgeGrace();
+    bridgePendingTextRef.current = text;
+    console.log(`[T-806/bridge] grace start · text="${text.slice(0, 40)}"`);
+    bridgeGraceTimerRef.current = setTimeout(() => {
+      const pending = bridgePendingTextRef.current;
+      if (!pending) return; 
+      console.log(`[T-806/bridge] grace elapsed · playBridge`);
+      try { yoonjeongRef.current?.playBridge(pending); } catch (e) {
+        console.warn(`[T-806/bridge] playBridge failed:`, e);
+      }
+      bridgeGraceTimerRef.current = null;
+      bridgePendingTextRef.current = null;
+    }, BRIDGE_GRACE_MS);
+  }, [isAvatarV2, phase, pendingText, clearBridgeGrace]);
+
+  useEffect(() => {
+    if (!isAvatarV2) return;
+    if (lastSignal?.type !== 'speech_start') return;
+    if (bridgeGraceTimerRef.current) {
+      console.log(`[T-806/bridge] speech_start within grace · skip Bridge`);
+      clearBridgeGrace();
+    }
+  }, [isAvatarV2, lastSignal, clearBridgeGrace]);
 
   const onBridgeStart = useCallback(() => setBridgeActive(true), []);
-  const onBridgeEnd = useCallback(() => setBridgeActive(false), []);
+
+  const [speakActive, setSpeakActive] = useState(false);
+  const speakActiveRef = useRef(false);
+  useEffect(() => {
+    if (!isAvatarV2) return;
+    if (!lastSignal) return;
+    if (lastSignal.type === 'speech_start') { setSpeakActive(true); speakActiveRef.current = true; }
+    else if (lastSignal.type === 'speech_end') { setSpeakActive(false); speakActiveRef.current = false; }
+  }, [isAvatarV2, lastSignal]);
+
+  const onBridgeEnd = useCallback(() => {
+    setBridgeActive(false);
+  }, []);
 
   useEffect(() => {
     if (liveState !== "live" || rmState.mode !== "grace") return;
@@ -1214,6 +1323,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   useEffect(() => {
     if (!rmState.promptRegister) return;
+
     showAlert(
       "새 얼굴이 보여요",
       "얼굴을 등록할까요?",
@@ -1285,11 +1395,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       chatUserSentAt.current = Date.now();
 
       if (
-        /안녕|반가워|반갑|오랜만|고마워|고맙|감사|잘생|예쁘|이쁘|예뻐|이뻐|귀여|귀엽|멋져|멋지|멋있|대박|최고|잘\s*했|잘한|웃어\s*봐|웃겨\s*봐|웃겨줘|재밌게\s*해줘|사랑스|짱|훌륭|완벽|굿|나이스/.test(transcript)
-      ) {
-        pendingEmoteRef.current = { key: 'smile', emoji: '🙂', label: '미소' };
-        console.log('[Call][emote] pending smile queued (fire on clone speech_end)');
-      } else if (
         /사랑해|좋아해|보고\s*싶|자기야|뽀뽀|안아|설레|심쿵|❤|💕|💗|😘|😍/.test(transcript)
       ) {
         pendingEmoteRef.current = { key: 'wink', emoji: '😉', label: '윙크' };
@@ -1538,6 +1643,14 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     p.loop = false;
     p.muted = true;
   });
+
+  const idlePlayer = useVideoPlayer(liveIdleVideoUrl, (p) => {
+    p.loop = true;
+    p.muted = true;
+    if (liveIdleVideoUrl) {
+      try { p.play(); } catch {  }
+    }
+  });
   const triggerEmote = useCallback(
     (key: EmoteKey, emoji: string, label: string) => {
       if (emoteTimerRef.current) clearTimeout(emoteTimerRef.current);
@@ -1628,22 +1741,13 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const warnedRef = useRef(false);
   const exhaustedRef = useRef(false);
+
   useEffect(() => {
-    if (!accessToken) return;
-    let cancelled = false;
-    getCreditBalance(accessToken)
-      .then((b) => {
-        if (cancelled) return;
-        setRemainingSec(Math.max(0, Math.floor(b.totalSec ?? 0)));
-      })
-      .catch((err) => {
-        console.warn("[Call] balance fetch failed:", (err as Error)?.message ?? err);
-      });
-    return () => {
-      cancelled = true;
-    };
+    return; 
   }, [accessToken]);
   useEffect(() => {
+    return; 
+
     if (liveState !== "live" || remainingSec === null) return;
     const id = setInterval(() => {
       setRemainingSec((prev) => {
@@ -1807,6 +1911,13 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       }
     }, 200);
   }, [navigation]);
+
+  useEffect(() => {
+    idleHangupTriggerRef.current = () => {
+      void stopLive();
+      exitToMain();
+    };
+  }, [stopLive, exitToMain]);
 
   useEffect(() => {
     rmActionRef.current = (a: RememberMeAction) => {
@@ -2016,43 +2127,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const [capturingWithLogo, setCapturingWithLogo] = useState(false);
   const rootCaptureRef = useRef<View>(null);
 
-  useEffect(() => {
-    void (async () => {
-      try { await MediaLibrary.requestPermissionsAsync(); } catch {  }
-    })();
-  }, []);
-
-  useEffect(() => {
-    const sub = ScreenCapture.addScreenshotListener(() => {
-      void (async () => {
-        try {
-          setCapturingWithLogo(true);
-
-          await new Promise((r) => setTimeout(r, 120));
-          if (!rootCaptureRef.current) return;
-          const uri = await captureRef(rootCaptureRef.current, {
-            format: "jpg",
-            quality: 0.9,
-          });
-          const perm = await MediaLibrary.getPermissionsAsync();
-          if (!perm.granted) {
-            const req = await MediaLibrary.requestPermissionsAsync();
-            if (!req.granted) throw new Error("media permission denied");
-          }
-          await MediaLibrary.createAssetAsync(uri);
-          if (Platform.OS === "android") {
-            ToastAndroid.show("저장됨", ToastAndroid.SHORT);
-          }
-        } catch (e) {
-          if (__DEV__) console.warn("[capture] screenshot save failed:", e);
-        } finally {
-          setCapturingWithLogo(false);
-        }
-      })();
-    });
-    return () => sub.remove();
-  }, []);
-
   return (
     <View style={s.container} ref={rootCaptureRef} collapsable={false}>
       {}
@@ -2068,16 +2142,33 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
             onBridgeStart={onBridgeStart}
             onBridgeEnd={onBridgeEnd}
           />
-          {!bridgeActive && remoteStream ? (
-            <RTCView
-              streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
-              objectFit="cover"
-              style={[s.videoFixedRtc, StyleSheet.absoluteFillObject]}
-            />
+          {
+
+}
+          {remoteStream ? (
+            <View
+              style={[
+                s.videoFixedRtc,
+                StyleSheet.absoluteFillObject,
+                { opacity: !bridgeActive && speakActive ? 1 : 0 },
+              ]}
+              pointerEvents="none"
+            >
+              <RTCView
+                streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
+                objectFit="contain"
+                style={s.videoFixedRtc}
+              />
+            </View>
           ) : null}
+          {}
         </View>
       ) : remoteStream ? (
+
         <View style={s.videoFixedContainer}>
+          {
+
+}
           <RTCView
             streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
             objectFit="cover"
@@ -2116,7 +2207,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         </View>
       ) : null}
 
-      {hudDevBox ? (
+      {}
+      {__DEV__ && hudDevBox ? (
         <View style={{ position: "absolute", top: 8, right: 8, zIndex: 10,
           backgroundColor: "rgba(0,0,0,0.5)", padding: 4 }}>
           <Text style={{ color: "#0f0", fontSize: 10 }}>route:{CALL_ROUTE}</Text>
@@ -2249,8 +2341,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
             retryLockUntilRef.current = now + 1000;
             console.log(`[Call][flow] +${now} DialingScreen.onRetry → startLive`);
             setGreetingStarted(false);
+
+            setPoorConnection(false);
+            sttGiveUpRef.current = false;
             void startLive();
           }}
+          poorConnection={poorConnection}
         />
       )}
 
@@ -2279,38 +2375,29 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       {
 
 }
+      {!isVideoOff && vcDevice && dialingDone && (
       <TouchableOpacity
         style={[s.pip, { top: insets.top + 8 }]}
         activeOpacity={0.9}
         onPress={() => setCameraFacing((f) => (f === "front" ? "back" : "front"))}
       >
-        {isVideoOff ? (
-          <View style={s.pipOff}>
-            <Feather name="video-off" size={20} color={COLORS.zinc600} />
-          </View>
-        ) : vcDevice && dialingDone ? (
+        {
 
-          <VisionCamera
-            ref={pipCameraRef}
-            style={s.pipCamera}
-            device={vcDevice}
-            isActive={!isVideoOff}
-
-            androidPreviewViewType="texture-view"
-
-            frameProcessor={consentGranted && !faceProcOff && !isTerminating ? faceFrameProcessor : undefined}
-            onError={(e) =>
-              console.log("[Call][face] camera error:", e.code, e.message)
-            }
-          />
-        ) : (
-          <View style={s.pipOff}>
-            <Feather name="camera-off" size={20} color={COLORS.zinc600} />
-          </View>
-        )}
+}
+        <VisionCamera
+          ref={pipCameraRef}
+          style={s.pipCamera}
+          device={vcDevice}
+          isActive={!isVideoOff}
+          androidPreviewViewType="texture-view"
+          frameProcessor={consentGranted && !faceProcOff && !isTerminating ? faceFrameProcessor : undefined}
+          onError={(e) =>
+            console.log("[Call][face] camera error:", e.code, e.message)
+          }
+        />
 
         {}
-        {consentGranted && !isVideoOff && vcDevice ? (
+        {consentGranted && vcDevice ? (
           <View
             style={[
               s.faceIndicator,
@@ -2319,6 +2406,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           />
         ) : null}
       </TouchableOpacity>
+      )}
 
       {
 
@@ -2525,7 +2613,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       {
 
 }
-      {(phase === 'speaking' || phase === 'greeting') && !!cloneSubtitle ? (
+      {}
+      {showCallDev && (phase === 'speaking' || phase === 'greeting') && !!cloneSubtitle ? (
         <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
           <CloneSubtitleTicker text={cloneSubtitle} style={s.subtitleText} />
         </View>

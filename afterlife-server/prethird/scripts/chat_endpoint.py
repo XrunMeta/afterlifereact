@@ -18,7 +18,8 @@ from aiohttp import web
 
 from clone_dialog import fetch_bundle, bundle_to_messages, chat_stream, extract_l2
 from clone_dialog.persona_prompt import sanitize_display_name
-from clone_dialog.llm_client import chat_once
+from clone_dialog.llm_client import chat_once, default_model_label
+from clone_dialog import cfai_catalog
 
 log = logging.getLogger("prethird.verify")
 
@@ -390,6 +391,29 @@ async def verify_login(req: web.Request) -> web.Response:
         return web.json_response({"error": "login error"}, status=502)
     return web.json_response({"accessToken": data.get("accessToken")})
 
+# 랩 L0 초안 상한 — 운영 저장(PUT /oth-path)과 같은 값. 랩에서 통과한
+# 초안이 운영 저장에서 길이로 거부되는 일이 없게 맞춘다.
+_L0_RULES_MAX = 8000
+_L0_BLOCKLIST_MAX = 1000
+
+def _parse_l0_override(raw) -> tuple[dict | None, str | None]:
+    """body.l0_override → ({"rules_text", "blocklist"}, None) | (None, None 미지정) | (None, 오류)."""
+    if raw is None:
+        return None, None
+    if not isinstance(raw, dict):
+        return None, "l0_override must be an object"
+    rules_text = raw.get("rules_text", "")
+    if not isinstance(rules_text, str):
+        return None, "l0_override.rules_text must be a string"
+    if len(rules_text) > _L0_RULES_MAX:
+        return None, f"l0_override.rules_text too long (max {_L0_RULES_MAX})"
+    blocklist = raw.get("blocklist", [])
+    if not isinstance(blocklist, list) or not all(isinstance(x, str) for x in blocklist):
+        return None, "l0_override.blocklist must be a list of strings"
+    if len(blocklist) > _L0_BLOCKLIST_MAX:
+        return None, f"l0_override.blocklist too long (max {_L0_BLOCKLIST_MAX})"
+    return {"rules_text": rules_text, "blocklist": blocklist}, None
+
 async def verify_chat(req: web.Request) -> web.StreamResponse | web.Response:
     """SSE — system(or override) + history → chat_stream → token*/done/error.
 
@@ -412,7 +436,17 @@ async def verify_chat(req: web.Request) -> web.StreamResponse | web.Response:
     if system_override is not None and len(str(system_override)) > 16000:
         return web.json_response({"error": "system_override too long (max 16000)"}, status=400)
 
+    l0_override, l0_err = _parse_l0_override(body.get("l0_override"))
+    if l0_err:
+        return web.json_response({"error": l0_err}, status=400)
+
     bundle = await fetch_bundle(API_BASE, clone_id, token)
+    if l0_override is not None:
+        # 랩 L0 초안 — 이 요청의 프롬프트에만 끼우고 어디에도 저장하지 않는다.
+        # 원본 bundle 을 건드리지 않도록 personaBundle 만 얕은 복사로 갈아 끼운다.
+        pb = dict((bundle or {}).get("personaBundle") or {})
+        pb["l0"] = l0_override
+        bundle = {**(bundle or {}), "personaBundle": pb}
     if system_override:
         system_messages = [{"role": "system", "content": system_override}]
     else:
@@ -467,8 +501,9 @@ async def verify_chat(req: web.Request) -> web.StreamResponse | web.Response:
             await send("token", {"text": tok})
         await send("done", {"debug": {
             "final_messages": final_messages,
-            "model": model or _DEFAULT_MODEL,
+            "model": model or default_model_label(),
             "persona_bundle": (bundle or {}).get("personaBundle"),
+            "l0_override": l0_override is not None,
         }})
     except Exception as e:
         log.warning("verify_chat failed clone=%s: %s", clone_id, e)
@@ -747,6 +782,52 @@ async def verify_l2p(req: web.Request) -> web.Response:
         return web.json_response({"error": "upstream error"}, status=502)
     return web.json_response(data)
 
+_CF_MODELS_URL = ("https://oth-path.cloudflare.com/client/v4/accounts/{acct}"
+                  "/ai/models/search?task=Text+Generation&per_page=200")
+
+async def _cf_list_models() -> list[str]:
+    """CF 에서 텍스트 생성 모델 이름 목록을 받아온다. 실패 시 예외를 올린다.
+
+    별도 함수인 이유는 테스트가 여기만 갈아끼우면 되게 하기 위해서다.
+    """
+    acct = os.environ.get("CF_ACCOUNT_ID")
+    token = os.environ.get("CF_AI_TOKEN")
+    if not (acct and token):
+        raise RuntimeError("CF_ACCOUNT_ID / CF_AI_TOKEN 미설정")
+    timeout = aiohttp.ClientTimeout(total=_API_TIMEOUT_S)
+    async with aiohttp.ClientSession(timeout=timeout) as sess:
+        async with sess.get(_CF_MODELS_URL.format(acct=acct),
+                            headers={"Authorization": f"Bearer {token}"}) as r:
+            r.raise_for_status()
+            data = await r.json()
+    if not data.get("success"):
+        raise RuntimeError(f"cf models search 실패: {str(data)[:120]}")
+    return [m["name"] for m in data.get("result", [])]
+
+async def verify_llm_models(req: web.Request) -> web.Response:
+    """모델 드롭다운용 — CF 라이브 목록 + 실측 메타(cfai_catalog).
+
+    CF 를 못 부르면 카탈로그만으로 채운다. 토큰이 없다고 화면이 비면 "왜 안 되지"
+    를 한참 뒤지게 되므로, 폴백했다는 사실을 source 필드로 알린다.
+    """
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
+    if not _bearer(req):
+        return web.json_response({"error": "missing bearer token"}, status=401)
+    try:
+        rows = cfai_catalog.merge(await _cf_list_models())
+        source = "live"
+    except Exception as e:
+        log.warning("verify_llm_models: CF 목록 실패 → 카탈로그 폴백 (%s)", e)
+        rows = cfai_catalog.merge(list(cfai_catalog.CATALOG))
+        source = "catalog"
+    return web.json_response({
+        # 빈 값 = model 미지정 → 서버 기본(PRETHIRD_LLM_PROVIDER · AFL-926 이후 openai 가능).
+        "ollama": {"value": "", "label": f"서버 기본 ({default_model_label()})"},
+        "cf": rows,
+        "source": source,
+    })
+
 async def verify_page(_req: web.Request) -> web.FileResponse:
     html = pathlib.Path(__file__).resolve().parents[1] / "static" / "verify_chat.html"
     return web.FileResponse(html)
@@ -756,6 +837,7 @@ def register_verify_routes(app: web.Application) -> None:
     app.router.add_get("/oth-path", verify_page)
     app.router.add_post("/oth-path", verify_login)
     app.router.add_get("/oth-path", verify_clones)
+    app.router.add_get("/oth-path", verify_llm_models)
     app.router.add_get("/oth-path", verify_persons)
     app.router.add_post("/oth-path", verify_person_create)
     app.router.add_post("/oth-path", verify_chat)

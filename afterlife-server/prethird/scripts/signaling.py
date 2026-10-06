@@ -497,6 +497,16 @@ def _cancel_unconfirmed_timer(sess) -> None:
     sess.unconfirmed_timer = None
 
 
+def _accepts_kw(fn, name: str) -> bool:
+    """fn 이 키워드 인자 name(또는 **kwargs)을 받는지. 테스트 가짜·구버전 파이프라인 호환용."""
+    import inspect
+    try:
+        params = inspect.signature(fn).parameters
+    except (TypeError, ValueError):
+        return False
+    return name in params or any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
+
+
 def _cleanup_session_resources(sess) -> None:
     """[T-252 Task 9] 통화 종료 시 세션에 매달린 자원(플레이어·타이머) 정리.
 
@@ -519,6 +529,14 @@ def _cleanup_session_resources(sess) -> None:
     _cancel_credit_guard(sess)
     # [T-252 Task 8] 상태 4 수명 타이머 정리 — 남으면 죽은 세션의 pipeline 을 건드린다.
     _cancel_unconfirmed_timer(sess)
+    # AFL-926 (el): 이전 대화 로딩·인사 prerender 태스크 — 끊긴 통화의 TTS·GPU 렌더를 멈춘다.
+    _cancel = getattr(getattr(sess, "pipeline", None), "cancel_background", None)
+    if callable(_cancel):
+        try:
+            _cancel()
+        except Exception as exc:  # noqa: BLE001 — 정리 실패가 종료 경로를 막으면 안 된다
+            log.warning("session %s cancel_background failed: %s",
+                        getattr(sess, "session_id", "?"), exc)
 
 
 def _unconfirmed_timeout(sess) -> None:
@@ -863,6 +881,26 @@ def _handle_face_event(sess, data: dict) -> None:
                     getattr(sess, "session_id", "?"), pid_int,
                 )
             asyncio.ensure_future(_maybe_swap_l2p(sess, pid_int, name, epoch))
+            # T-840 (2026-09-30): known → known 스왑 자동 인사 (독립 게이트).
+            #   지호 → 민경 처럼 등록된 사람이 다른 등록된 사람으로 바뀔 때만 · face react 발화.
+            #   FACE_REACT_ENABLED off 여도 · 이 케이스만 별도 게이트로 활성.
+            #   첫 confirmed (prev=None) · unknown → known 은 대상 아님 (사용자 요구).
+            if (prev is not None and prev[0] is not None and prev[0] != pid_int and name
+                    and os.environ.get("PRETHIRD_SPEAKER_SWAP_REACT_ENABLED", "1") == "1"):
+                async def _swap_react():
+                    try:
+                        if sess.pipeline is not None:
+                            await sess.pipeline.react("known", name)
+                    except Exception as e:
+                        log.warning(
+                            "session %s T-840 speaker_swap_react failed: %s",
+                            getattr(sess, "session_id", "?"), e,
+                        )
+                asyncio.ensure_future(_swap_react())
+                log.info(
+                    "T-840 speaker_swap_react session=%s prev_pid=%s new_pid=%s new_name=%s",
+                    getattr(sess, "session_id", "?"), prev[0], pid_int, name,
+                )
     elif event in ("unknown_face", "multi_face") and identity_on:
         # [T-135 v2] 화자 확실성 게이팅 — 낯선 얼굴/다중 얼굴이면 즉시 익명으로 해제.
         # speaker_confirmed로 재확정될 때까지 이름/L2' 주입·learn_writeback person
@@ -985,6 +1023,22 @@ async def _send_enroll_suggest(sess, channel, text: str, person_id: Optional[int
         log.warning("session %s enroll name extract failed: %s",
                     getattr(sess, "session_id", "?"), e)
         name = ""
+    # T-836 (2026-09-30): 추출된 이름이 클론 자기 이름과 같으면 · 오추출 (사용자가 클론을 "안녕
+    #   [클론이름]아" 로 부른 것 · SPEAKER 본인 이름 아님) · name="" 로 대체.
+    #   실측: person 121 display_name="윤정" (clone 9151 이름과 동일) 로 저장됨 · LLM 이
+    #   "안녕 윤정아" 발화를 · 화자 본인 이름 "윤정" 이라고 오추출.
+    try:
+        persona = (getattr(sess, "bundle", None) or {}).get("persona") or {}
+        clone_display = _sanitize_display_name(persona.get("displayName"))
+        if name and clone_display and name.strip() == clone_display.strip():
+            log.info(
+                "session %s enroll_suggest 스킵: name=%r == clone.displayName (사용자가 클론 부른 것 · SPEAKER 이름 아님)",
+                getattr(sess, "session_id", "?"), name,
+            )
+            name = ""
+    except Exception as exc:
+        log.warning("session %s clone_name 필터 실패 (무시): %s",
+                    getattr(sess, "session_id", "?"), exc)
     if channel is not None and getattr(channel, "readyState", None) == "open":
         payload = {"type": "enroll_suggest", "name": name}
         if person_id is not None:
@@ -1090,6 +1144,60 @@ def _make_dc_handler(sess, channel):
                     log.warning("session %s speech_text send failed: %s",
                                 sess.session_id, exc)
 
+        # 대화 원문 기록 + Phase B 자동학습. 둘 다 say 턴에서만, 둘 다
+        # fire-and-forget(통화 무영향)이지만 서로 독립이다 — 아래 순서·조건이
+        # 얽히면 안 된다. AFL-926: 턴당 1회 — GPT 응답 직후(on_reply_done) 또는 끝(finally).
+        _recorded = {"v": False}
+
+        def _record_say_turn(_clone_reply, text=text, seq=seq):
+            if _recorded["v"]:
+                return
+            _recorded["v"] = True
+
+            # [T-067 Task 12] 화자 확정 상태. 기록(turn_writeback)과 학습
+            # (learn_writeback)이 **같은 시점의 화자**를 봐야 하므로 여기서 한 번만
+            # 읽는다. 예전엔 학습 직전에만 읽어서, 기록에는 화자가 아예 실리지 않았다
+            # (call_turns.speaker_person_id 462턴 전량 NULL). 둘이 서로 다른 값을 보면
+            # "L2'는 A 에게 학습됐는데 원문은 B 가 말한 것"이라는 대조 불가능한 기록이
+            # 남는다. 아래 두 ensure_future 는 인자로 값을 캡처하므로 시점이 고정된다.
+            _speaker = getattr(sess, "current_speaker", None)
+            _person_id = _speaker[0] if _speaker else None
+
+            # [T-252 Task14] call_turns 기록. 학습(아래)과 달리 어떤 게이트도 없다 —
+            # PRETHIRD_LEARN_ENABLED 가 꺼져 있든 사용자가 학습에 동의하지 않았든
+            # 통화 원문은 남긴다(통화 내역 화면·감사의 유일한 출처). 학습보다 먼저
+            # 스케줄하되, ensure_future 라 학습을 지연시키지 않는다.
+            # call_id 는 별도 값이 아니라 prethird session_id 그대로다 —
+            # call_lifecycle.call_start 가 sessionId 를 그대로 call_sessions.call_id 로
+            # INSERT 한다(afterlifeapi calls.ts prethird-start).
+            try:
+                from turn_writeback import turn_writeback
+                _sid = getattr(sess, "session_id", None)
+                asyncio.ensure_future(turn_writeback(
+                    _sid, text, _clone_reply,
+                    # seq 는 RN 이 통화 안에서 턴마다 부여한 값이라 재진입 방어 키로 충분.
+                    # 없으면(None) 중복검사 없이 그대로 기록한다.
+                    dedupe_key=f"{_sid}:{seq}" if seq is not None else None,
+                    # 화자 미확정이면 None — 기록은 익명으로 남는다(기록 자체는 항상 나간다).
+                    speaker_person_id=_person_id,
+                ))
+            except Exception as exc:
+                # import 실패 등도 통화·학습에 절대 영향 주지 않는다.
+                log.warning("session %s turn writeback schedule failed: %s",
+                            getattr(sess, "session_id", "?"), exc)
+
+            # [T-067 Task 12] current_speaker(화자 확정 상태) 있으면 화자별 L2'로 라우팅,
+            # 없으면 기존 사용자별 L2 그대로(learn_writeback 내부 person_id 분기).
+            # _person_id 는 위에서 기록과 공유하는 값 — 여기서 다시 읽지 않는다.
+            from learn_writeback import learn_writeback
+            asyncio.ensure_future(learn_writeback(
+                getattr(sess, "clone_id", None),
+                getattr(sess, "user_id", None),
+                getattr(sess, "session_id", None),
+                text, _clone_reply,
+                person_id=_person_id,
+            ))
+
         async def _run(mode=mtype, text=text, seq=seq, turn=turn):
             _se_present = bool(getattr(sess, "se_path", None))
             _offer_t = getattr(sess, "offer_time", None)
@@ -1136,11 +1244,17 @@ def _make_dc_handler(sess, channel):
                             on_sentence=_emit_speech_text,
                         )
                     else:
+                        _say_kw = {}
+                        if _accepts_kw(sess.pipeline.say, "on_reply_done"):
+                            # AFL-926: GPT 응답이 끝나는 즉시 기록 — 재생(Bridge·렌더) 뒤까지 미루면
+                            # 끊고 바로 다시 건 통화가 직전 턴을 이전 대화로 못 받아 온다.
+                            _say_kw["on_reply_done"] = _record_say_turn
                         await sess.pipeline.say(
                             text, turn=turn,
                             on_first_audio=_emit_speech_start,
                             on_response_ready=_response_hook,
                             on_sentence=_emit_speech_text,
+                            **_say_kw,
                         )
             except asyncio.CancelledError:
                 log.warning("session %s %s cancelled", sess.session_id, mode)
@@ -1159,55 +1273,11 @@ def _make_dc_handler(sess, channel):
                         )
                     except Exception as exc:
                         log.warning("session %s finalize failed: %s", sess.session_id, exc)
-                # 대화 원문 기록 + Phase B 자동학습. 둘 다 say 턴에서만, 둘 다
-                # fire-and-forget(통화 무영향)이지만 서로 독립이다 — 아래 순서·조건이
-                # 얽히면 안 된다.
-                if mode == "say":
-                    _clone_reply = "".join(getattr(turn, "_tokens", [])) if turn is not None else ""
-
-                    # [T-067 Task 12] 화자 확정 상태. 기록(turn_writeback)과 학습
-                    # (learn_writeback)이 **같은 시점의 화자**를 봐야 하므로 여기서 한 번만
-                    # 읽는다. 예전엔 학습 직전에만 읽어서, 기록에는 화자가 아예 실리지 않았다
-                    # (call_turns.speaker_person_id 462턴 전량 NULL). 둘이 서로 다른 값을 보면
-                    # "L2'는 A 에게 학습됐는데 원문은 B 가 말한 것"이라는 대조 불가능한 기록이
-                    # 남는다. 아래 두 ensure_future 는 인자로 값을 캡처하므로 시점이 고정된다.
-                    _speaker = getattr(sess, "current_speaker", None)
-                    _person_id = _speaker[0] if _speaker else None
-
-                    # [T-252 Task14] call_turns 기록. 학습(아래)과 달리 어떤 게이트도 없다 —
-                    # PRETHIRD_LEARN_ENABLED 가 꺼져 있든 사용자가 학습에 동의하지 않았든
-                    # 통화 원문은 남긴다(통화 내역 화면·감사의 유일한 출처). 학습보다 먼저
-                    # 스케줄하되, ensure_future 라 학습을 지연시키지 않는다.
-                    # call_id 는 별도 값이 아니라 prethird session_id 그대로다 —
-                    # call_lifecycle.call_start 가 sessionId 를 그대로 call_sessions.call_id 로
-                    # INSERT 한다(afterlifeapi calls.ts prethird-start).
-                    try:
-                        from turn_writeback import turn_writeback
-                        _sid = getattr(sess, "session_id", None)
-                        asyncio.ensure_future(turn_writeback(
-                            _sid, text, _clone_reply,
-                            # seq 는 RN 이 통화 안에서 턴마다 부여한 값이라 재진입 방어 키로 충분.
-                            # 없으면(None) 중복검사 없이 그대로 기록한다.
-                            dedupe_key=f"{_sid}:{seq}" if seq is not None else None,
-                            # 화자 미확정이면 None — 기록은 익명으로 남는다(기록 자체는 항상 나간다).
-                            speaker_person_id=_person_id,
-                        ))
-                    except Exception as exc:
-                        # import 실패 등도 통화·학습에 절대 영향 주지 않는다.
-                        log.warning("session %s turn writeback schedule failed: %s",
-                                    getattr(sess, "session_id", "?"), exc)
-
-                    # [T-067 Task 12] current_speaker(화자 확정 상태) 있으면 화자별 L2'로 라우팅,
-                    # 없으면 기존 사용자별 L2 그대로(learn_writeback 내부 person_id 분기).
-                    # _person_id 는 위에서 기록과 공유하는 값 — 여기서 다시 읽지 않는다.
-                    from learn_writeback import learn_writeback
-                    asyncio.ensure_future(learn_writeback(
-                        getattr(sess, "clone_id", None),
-                        getattr(sess, "user_id", None),
-                        getattr(sess, "session_id", None),
-                        text, _clone_reply,
-                        person_id=_person_id,
-                    ))
+                if mode == "say" and not _recorded["v"]:
+                    # 응답 직후 기록(on_reply_done)이 안 불린 턴 — 캐시 응답·응답 전 실패·
+                    # on_reply_done 을 모르는 파이프라인. 기존처럼 여기서 한 번 기록한다.
+                    _record_say_turn(
+                        "".join(getattr(turn, "_tokens", [])) if turn is not None else "")
                 # 발화 push 완료 → 클라에 종료 신호(say/speak/greet 성공·실패 모두 전송).
                 # sess.datachannel 재참조 금지 — stop()+start() 재연결로 채널이
                 # 교체되면 엉뚱한 새 채널로 전송될 수 있다. 이 메시지를 받은
@@ -1398,6 +1468,11 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                                 #    이전에 반드시 완료돼야 한다 — idle mp4 pull을 asyncio
                                 #    create_task 등 fire-and-forget으로 바꾸지 말 것(순서 무력화).
                                 sess.idle_video_applied = True
+                            # [2026-09-23 임시] idle 스트림 dump 컨텍스트 주입 — 환경변수 게이트.
+                            try:
+                                sess.video_track.attach_idle_recorder(clone_id, sess.session_id)
+                            except Exception:
+                                pass
                             log.info("idle video pull OK clone=%s dest=%s applied=%s", clone_id, dest, _applied)
                         except Exception as e:
                             log.warning("idle video pull 실패 clone=%s: %s", clone_id, e)
@@ -1459,6 +1534,49 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
             # pipeline factory가 있으면 세션에 주입
             if pipeline_factory is not None:
                 sess.pipeline = pipeline_factory(sess)
+
+                # AFL-926: 앱이 이 통화에서 Bridge 클립을 트는지(offer "bridge"). false 면 서버는 첫 응답을
+                #   Bridge 시간(≈12s)만큼 미루지 않는다 — Bridge 는 avatar_v2 클론에서만 재생되는데 그동안
+                #   musetalk 클론도 매 턴 재생되지 않는 Bridge 를 기다렸다. 값이 없으면(구 앱) 기존 대기 유지.
+                _bridge = params.get("bridge")
+                if isinstance(_bridge, bool):
+                    sess.pipeline.uses_bridge = _bridge
+                    log.info("session %s bridge=%s", sess.session_id, _bridge)
+
+                # AFL-926: 이 계정×클론의 이전 대화를 다이얼링 중에 받아 둔다(백그라운드).
+                #   env PRETHIRD_PRIOR_CONVERSATION=1 일 때만 실제 조회(prior_conversation.py).
+                #   발화 경로는 메시지 조립 전에 이 태스크를 잠깐(2.5s) 기다린다.
+                if (getattr(sess, "user_id", None)
+                        and asyncio.iscoroutinefunction(getattr(sess.pipeline, "load_prior", None))):
+                    sess.pipeline._prior_task = asyncio.ensure_future(
+                        sess.pipeline.load_prior(sess.user_id, sess.clone_id, sess.session_id))
+
+                # T-820 (2026-09-28): dialing 중 인사말 pre-render (백그라운드).
+                #   목적: 사용자 대기 시간 22s → 0s (첫 say() 즉시 응답).
+                #   env off: PRETHIRD_PRERENDER_GREETING=0.
+                # AFL-926 대안 B: PRETHIRD_PRERENDER_LLM=1 이면 고정 문구 대신 LLM 이 이전 대화를
+                #   보고 인사를 만들어 prerender 하고, greet() 가 그 캐시를 쓴다.
+                _prerender_on = os.environ.get("PRETHIRD_PRERENDER_GREETING", "1") == "1"
+                if _prerender_on:
+                    _pg_text = (None if os.environ.get("PRETHIRD_PRERENDER_LLM", "0") == "1"
+                                else os.environ.get("PRETHIRD_PRERENDER_TEXT", "안녕! 반가워."))
+                    if hasattr(sess.pipeline, "start_prerender_greeting"):
+                        sess.pipeline.start_prerender_greeting(_pg_text)
+                    else:
+                        asyncio.ensure_future(sess.pipeline.prerender_greeting(_pg_text))
+                    log.info("[T-820/prerender] triggered clone=%s text=%r",
+                             sess.clone_id, (_pg_text or "<llm>")[:40])
+
+                # T-825 (2026-09-28): dialing 중 GPU/모델 warm-up (백그라운드).
+                #   push 없음 · 결과 버림 · 두 답변 사고 회피 (T-820 실패 원인).
+                #   효과: Turn 1 whisper cold=1.9s → warm=0.03s · unet cudnn 캐시.
+                #   T-820 prerender_greeting 이 활성이면 그 자체가 warm-up 역할이므로 skip.
+                #   env off: PRETHIRD_PREWARM=0.
+                if os.environ.get("PRETHIRD_PREWARM", "1") == "1" and not _prerender_on:
+                    _pw_text = os.environ.get("PRETHIRD_PREWARM_TEXT", "웜")
+                    asyncio.ensure_future(sess.pipeline.prewarm(_pw_text))
+                    log.info("[T-825/prewarm] triggered clone=%s text=%r",
+                             sess.clone_id, _pw_text)
 
             @pc.on("datachannel")
             def _on_dc(channel):

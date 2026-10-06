@@ -31,9 +31,26 @@ _EXTRACT_SYSTEM = (
     "(likes, interests, habits). {} if none.\n"
     '  "relation": short string of how the user relates to the clone (e.g. "손녀", "오랜 친구"), '
     "or null if unclear/unchanged.\n"
-    '  "memories_personal": array of short factual statements worth remembering about the user. [] if none.\n'
+    '  "memories_personal": array of short factual statements worth remembering about the user, '
+    "each starting with '사용자는' (e.g. '사용자는 아침에 고추를 땄다'). [] if none.\n"
     "RULES:\n"
     "- Only facts explicitly stated by the USER in this turn. Never guess.\n"
+    # AFL-926 (2026-10-02 실통화): 클론이 "텃밭 만지는 거랑 이것저것 고치는 게 취미야 · 막걸리
+    #   한잔" 이라고 하자 그게 사용자 취향(취미·음료)으로 저장됐다. 클론 대답은 사용자의 짧은
+    #   말("응", "나도")을 이해하는 데만 쓴다.
+    "- The CLONE's reply is about the clone, not the user. NEVER store the clone's own hobbies, job, "
+    "plans or experiences. Use the clone's reply only to understand a short USER answer like '응' or '나도'.\n"
+    # AFL-926 (2026-10-02): 시연 통화에서 통화 품질 소감 7줄("말이 자꾸 반복되는 것을 불편해함")과
+    #   음성 인식 오류("사용자가 '스크린도 먹었단다'라고 말했다")가 기억으로 쌓였고, 다음 통화마다
+    #   다시 주입돼 클론이 상담원처럼 대화 품질 얘기로 돌아갔다.
+    "- SKIP remarks about the call itself, the app, sound/mic, speech recognition, response speed, "
+    "or how the clone talks (e.g. '말이 자꾸 반복돼', '마이크가 꺼졌어', '대화가 되는지 확인해 보자'). "
+    "They are feedback about the system, not facts about the user's life.\n"
+    "- SKIP text that does not make sense in context — it is likely a speech-recognition error "
+    "(e.g. '스크린도 먹었단다'). Store the fact itself, not '사용자가 ~라고 말했다'.\n"
+    "- SKIP momentary states that will be stale by the next call (e.g. '지금 앉아 있다', '지금 쉬는 중'). "
+    "But KEEP things the user did or will do (e.g. '오늘 고추를 땄다', '아이스크림을 먹었다', '저녁에 오이를 딴다').\n"
+    "- relation: only when the user explicitly states the relationship. Pronouns like '우리' are not a relation.\n"
     "- For preference_personal, use a normalized CATEGORY as the key "
     "(e.g. 음료/음식/취미/색상), and always the SAME key for the same category "
     "so a changed preference reuses the key (음료: 콜라 → 음료: 사이다).\n"
@@ -93,7 +110,8 @@ async def extract_l2(user_text: str, clone_reply: str) -> dict:
         out["relation"] = rel.strip()
     mems = data.get("memories_personal")
     if isinstance(mems, list):
-        clean = [str(m).strip() for m in mems if str(m).strip() and not _has_pii(str(m))]
+        # AFL-926: 문자열만 — 객체가 오면 str() 이 "{'키': '값'}" 같은 repr 을 기억으로 남긴다.
+        clean = [m.strip() for m in mems if isinstance(m, str) and m.strip() and not _has_pii(m)]
         if clean:
             out["memories_personal"] = clean
     return out

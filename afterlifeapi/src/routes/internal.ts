@@ -1,7 +1,7 @@
 
 import { v_b7c41b } from "zmui";
 import type { v_de0a25 } from "../lib/env";
-import { v_278a53, v_80401b, v_7a6ff6, v_c12e45, v_12ade7, v_2fb81a, v_4b949c } from "../lib/assetJobs";
+import { v_278a53, v_80401b, v_7a6ff6, v_c12e45, v_12ade7, v_2fb81a, v_f9d88f, v_4b949c } from "../lib/assetJobs";
 import { v_1f4ea7 } from "../lib/validate";
 import { v_74c502, v_5d4a51 } from "../lib/cloneAccess";
 import { v_842ce7 } from "../lib/guideJob";
@@ -60,6 +60,72 @@ v_dcd415.post("/oth-path", async (v_3f4e2e) => {
      FROM call_turns WHERE call_id = ?`
   ).bind(v_be62d3, v_22da99, v_9b6134, Date.now(), v_b73ff1, v_be62d3, v_be62d3).run();
   return v_3f4e2e.json({ ok: true });
+});
+
+const v_d8577a = 400;
+const v_d00cca = 1000;
+
+function v_4efd28(v_ad8d0d, v_43fd42): boolean {
+  const v_68f0aa = v_ad8d0d ?? "";
+  const v_21cc31 = v_68f0aa.startsWith("Bearer ") ? v_68f0aa.slice(7) : "";
+  return !!v_21cc31 && !!v_43fd42 && v_a155c4(v_21cc31, v_43fd42);
+}
+
+function v_d740ff(v_fd5f43): number | null {
+  return /^[1-9][0-9]{0,15}$/.test(v_fd5f43) ? Number(v_fd5f43) : null;
+}
+
+v_dcd415.get("/conversations/:userId/:cloneId", async (v_3f4e2e) => {
+  if (!v_4efd28(v_3f4e2e.req.header("Authorization"), v_3f4e2e.env.ORCH_SECRET)) {
+    return v_3f4e2e.json({ error: "unauthorized" }, 401);
+  }
+  const v_43e90c = v_d740ff(v_3f4e2e.req.param("userId"));
+  const v_6e0fd3 = v_d740ff(v_3f4e2e.req.param("cloneId"));
+  if (!v_43e90c || !v_6e0fd3) return v_3f4e2e.json({ error: "bad_id" }, 400);
+
+  const v_d11aca = v_3f4e2e.req.query("excludeCallId") ?? "";
+  const v_989937 = Number(v_3f4e2e.req.query("maxTurns") ?? v_d8577a);
+  const v_1cae38 = Number.isInteger(v_989937) && v_989937 > 0
+    ? Math.min(v_989937, v_d00cca) : v_d8577a;
+
+  const v_487a25 = await v_3f4e2e.env.DB.prepare(
+    "SELECT reset_at FROM conversation_resets WHERE user_id = ? AND clone_id = ?"
+  ).bind(v_43e90c, v_6e0fd3).first<{ reset_at: number }>();
+  const v_b98b4f = v_487a25?.reset_at ?? 0;
+
+  const { results: v_a7f568 } = await v_3f4e2e.env.DB.prepare(
+    `SELECT t.call_id, t.role, t.text, t.created_at
+       FROM call_turns t
+       JOIN call_sessions s ON s.call_id = t.call_id
+      WHERE s.user_id = ? AND s.clone_id = ?
+        AND s.started_at > ?
+        AND t.call_id != ?
+      ORDER BY s.started_at DESC, t.seq DESC
+      LIMIT ?`
+  ).bind(v_43e90c, v_6e0fd3, v_b98b4f, v_d11aca, v_1cae38)
+    .all<{ call_id: string; role: string; text: string; created_at: number }>();
+
+  const v_3035d9 = (v_a7f568 ?? []).reverse().map((v_cb35cb) => ({
+    callId: v_cb35cb.call_id, role: v_cb35cb.role, text: v_cb35cb.text, at: v_cb35cb.created_at,
+  }));
+  return v_3f4e2e.json({ turns: v_3035d9, resetAt: v_b98b4f });
+});
+
+v_dcd415.post("/conversations/:userId/:cloneId/reset", async (v_3f4e2e) => {
+  if (!v_4efd28(v_3f4e2e.req.header("Authorization"), v_3f4e2e.env.ORCH_SECRET)) {
+    return v_3f4e2e.json({ error: "unauthorized" }, 401);
+  }
+  const v_43e90c = v_d740ff(v_3f4e2e.req.param("userId"));
+  const v_6e0fd3 = v_d740ff(v_3f4e2e.req.param("cloneId"));
+  if (!v_43e90c || !v_6e0fd3) return v_3f4e2e.json({ error: "bad_id" }, 400);
+  const v_b98b4f = Date.now();
+  await v_3f4e2e.env.DB.prepare(
+    `INSERT INTO conversation_resets (user_id, clone_id, reset_at) VALUES (?, ?, ?)
+     ON CONFLICT(user_id, clone_id) DO UPDATE SET reset_at = excluded.reset_at`
+  ).bind(v_43e90c, v_6e0fd3, v_b98b4f).run();
+
+  console.log(`[conversation-reset] user=${v_43e90c} clone=${v_6e0fd3} reset_at=${v_b98b4f}`);
+  return v_3f4e2e.json({ ok: true, resetAt: v_b98b4f });
 });
 
 v_dcd415.post("/oth-path", async (v_3f4e2e) => {
@@ -554,6 +620,96 @@ v_dcd415.post("/guide-job-done", async (v_3f4e2e) => {
   }
 
   return v_3f4e2e.json({ ok: true, guide_video_urls: v_942aa2 });
+});
+
+const v_853b99 = "video/mp4";
+const v_219eed = 50 * 1024 * 1024;
+
+v_dcd415.post("/persona-videos-job-done", async (v_3f4e2e) => {
+
+  const v_68f0aa = v_3f4e2e.req.header("Authorization") ?? "";
+  const v_ea333d = v_68f0aa.startsWith("Bearer ") ? v_68f0aa.slice(7) : "";
+  if (!v_ea333d || !v_3f4e2e.env.ORCH_SECRET || !v_a155c4(v_ea333d, v_3f4e2e.env.ORCH_SECRET)) {
+    return v_3f4e2e.json({ error: "unauthorized" }, 401);
+  }
+
+  const v_ebd523 = await v_3f4e2e.req.formData();
+  const v_04211c = String(v_ebd523.get("job_id") ?? "");
+  const v_d308b5 = String(v_ebd523.get("status") ?? "");
+  if (!v_04211c) return v_3f4e2e.json({ error: "job_id required" }, 400);
+
+  const v_d5ec97 = await v_4b949c(v_3f4e2e.env.DB, v_04211c);
+  if (!v_d5ec97) return v_3f4e2e.json({ error: "job not found" }, 404);
+
+  const v_59b4e0 = String(v_ebd523.get("callback_token") ?? "");
+  if (!v_d5ec97.callback_token || !v_59b4e0 || !v_a155c4(v_59b4e0, v_d5ec97.callback_token)) {
+    return v_3f4e2e.json({ error: "invalid callback_token" }, 403);
+  }
+
+  if (v_d308b5 === "failed") {
+    await v_7a6ff6(v_3f4e2e.env.DB, v_04211c, String(v_ebd523.get("error") ?? "generation failed"));
+    return v_3f4e2e.json({ ok: true });
+  }
+
+  if (v_ebd523.get("file1") !== null) {
+    return v_3f4e2e.json({ error: "too many files: expects exactly 1 (idle.mp4)" }, 400);
+  }
+  const v_2b8338 = v_ebd523.get("file0");
+  if (v_2b8338 === null) return v_3f4e2e.json({ error: "file0 required (idle.mp4)" }, 400);
+  if (typeof v_2b8338 === "string") return v_3f4e2e.json({ error: "file0 must be a file" }, 400);
+  const v_4de33e = v_2b8338 as File;
+
+  if (v_4de33e.size === 0) return v_3f4e2e.json({ error: "file0 is empty (0 bytes)" }, 400);
+  if (v_4de33e.size > v_219eed) {
+    return v_3f4e2e.json(
+      { error: `file0 too large: ${v_4de33e.size} > ${v_219eed} bytes` },
+      400,
+    );
+  }
+
+  const v_83ee53 = await v_4de33e.arrayBuffer();
+  if (!v_83ee53) return v_3f4e2e.json({ error: "file0 read failed" }, 400);
+
+  if (v_d5ec97.kind !== "persona_videos") {
+    return v_3f4e2e.json({ error: "kind_mismatch" }, 409);
+  }
+
+  const v_0a2cd1 = await v_80401b(v_3f4e2e.env.DB, v_04211c);
+  if (!v_0a2cd1) {
+    return v_3f4e2e.json({ ok: true, idempotent: true });
+  }
+
+  const v_f17108 = new URL(v_3f4e2e.req.url).origin;
+  const v_07ba85 = crypto.randomUUID();
+  const v_0037e3 = `assets/persona-idle/${v_07ba85}.mp4`;
+  try {
+    await v_3f4e2e.env.R2_ARCHIVE.put(v_0037e3, v_83ee53, {
+      httpMetadata: { contentType: v_853b99 },
+    });
+  } catch (v_49263d) {
+    await v_7a6ff6(v_3f4e2e.env.DB, v_04211c, `r2_upload_failed: ${String(v_49263d).slice(0, 400)}`);
+    return v_3f4e2e.json({ error: "r2_upload_failed" }, 500);
+  }
+
+  try {
+    const v_c95239 = await v_f9d88f(
+      v_3f4e2e.env.DB,
+      v_04211c,
+      { r2Key: v_0037e3, sizeBytes: v_83ee53.byteLength },
+      v_d5ec97.user_id,
+      v_0a2cd1.clone_id,
+      v_f17108,
+    );
+    if (v_c95239 === null) {
+      await v_3f4e2e.env.R2_ARCHIVE.delete(v_0037e3).catch(() => {});
+      return v_3f4e2e.json({ ok: true, idempotent: true });
+    }
+    return v_3f4e2e.json({ ok: true, idle_video_url: v_c95239 });
+  } catch (v_49263d) {
+    await v_3f4e2e.env.R2_ARCHIVE.delete(v_0037e3).catch(() => {});
+    await v_7a6ff6(v_3f4e2e.env.DB, v_04211c, `db_commit_failed: ${String(v_49263d).slice(0, 400)}`);
+    return v_3f4e2e.json({ error: "db_commit_failed" }, 500);
+  }
 });
 
 const v_918eb6 = v_1f4ea7.object({

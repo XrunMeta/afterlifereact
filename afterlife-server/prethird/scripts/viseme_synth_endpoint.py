@@ -14,9 +14,10 @@ Response: {
 인증: LEARN_SECRET (기존 tts_admin_endpoint 와 동일).
 """
 from __future__ import annotations
-import os, io, wave, base64, logging, re
-import aiohttp
+import os, io, wave, base64, logging, re, asyncio
 from aiohttp import web
+from clone_dialog.llm_client import chat_once
+from clone_dialog.persona_prompt import spoken_location
 from viseme.korean_viseme import text_to_visemes
 
 log = logging.getLogger("prethird.viseme")
@@ -99,8 +100,10 @@ async def viseme_synth(req: web.Request) -> web.Response:
 # 파이프라인: 사용자 발화 text → ollama gemma3:27b → 응답 → 문장 청킹 → 각 문장 TTS+viseme.
 # 페르소나 프롬프트 통합은 후속 (지금 MVP · 일반 대화 프롬프트).
 
-OLLAMA_URL = os.environ.get("PRETHIRD_OLLAMA_URL", "http://127.0.0.1:11435")
-CHAT_MODEL = os.environ.get("VISEME_CHAT_MODEL", "gemma3:27b")
+# AFL-926: LLM 호출은 llm_client 경유(전역 provider·ollama 폴백 공통). 예전엔 이 파일만
+#   ollama /oth-path 을 직접 불러 provider 전환에서 빠졌다. VISEME_CHAT_MODEL 이 비어 있으면
+#   서버 기본(PRETHIRD_LLM_PROVIDER)을 쓴다. 특정 백엔드 고정은 접두어로(예: "ollama:gemma3:27b").
+CHAT_MODEL = os.environ.get("VISEME_CHAT_MODEL") or None
 
 # MVP 시스템 프롬프트 — 짧은 응답 + 자연스러운 한국어. 페르소나 통합 시 clone_id 로 확장.
 # T-636 (2026-08-27): 이모지·이모티콘 절대 금지 (음성 통화 → TTS 가 읽어야 하는데
@@ -172,6 +175,8 @@ def _compose_system_prompt(
         parts.append(
             f"사용자의 이름은 '{effective_user_name}'입니다. 대화 중 이름을 자연스럽게 부르세요. 절대 '사용자님'이라 부르지 마세요."
         )
+    # AFL-926: 전체 주소("경기도 안양시 안양동")를 그대로 읽지 않게 동·대표 지명 하나로 줄인다.
+    user_location = spoken_location(user_location)
     if user_location:
         parts.append(
             f"사용자는 지금 '{user_location}' 근처에 있습니다. 대화 흐름에 자연스럽게 지역·날씨 같은 화제를 섞을 수 있습니다."
@@ -192,8 +197,7 @@ async def _generate_response(
     persona_tone: str | None = None,
     persona_knowledge: list | None = None,
 ) -> str:
-    """ollama gemma3 호출 · 전체 응답 텍스트 반환."""
-    timeout = aiohttp.ClientTimeout(total=30)
+    """LLM 1회 호출(llm_client.chat_once) · 전체 응답 텍스트 반환."""
     system_prompt = _compose_system_prompt(
         clone_name,
         user_name,
@@ -205,26 +209,15 @@ async def _generate_response(
         persona_tone=persona_tone,
         persona_knowledge=persona_knowledge,
     )
-    payload = {
-        "model": CHAT_MODEL,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_text},
-        ],
-        "stream": False,
-        "options": {
-            "temperature": 0.7,
-            "num_predict": int(os.environ.get("PRETHIRD_MAX_RESPONSE_TOKENS", "200")),
-        },
-    }
-    async with aiohttp.ClientSession(timeout=timeout) as session:
-        async with session.post(f"{OLLAMA_URL}/oth-path", json=payload) as r:
-            if r.status != 200:
-                body = await r.text()
-                raise RuntimeError(f"ollama http {r.status}: {body[:200]}")
-            data = await r.json()
-    msg = data.get("message") or {}
-    content = (msg.get("content") or "").strip()
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_text},
+    ]
+    content = (await asyncio.wait_for(
+        chat_once(messages, model=CHAT_MODEL, temperature=0.7,
+                  num_predict=int(os.environ.get("PRETHIRD_MAX_RESPONSE_TOKENS", "200"))),
+        30,
+    )).strip()
     # T-636 (2026-08-27): 이모지·이모티콘 응답 후처리 정화. gemma3 가 시스템 프롬프트 무시하고
     #   이모지 섞어 낼 때가 있어 이중 방어. 유니코드 이모지 범위 + 흔한 텍스트 이모티콘 제거.
     content = _strip_emojis(content)

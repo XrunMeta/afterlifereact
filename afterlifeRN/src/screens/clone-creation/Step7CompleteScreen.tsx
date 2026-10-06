@@ -190,7 +190,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const v_4d3a74 =
     !!v_f04727.idleVideoJobId && (!v_7f3fda || v_7f3fda.status === 'pending' || v_7f3fda.status === 'running');
   const v_798360 = v_f04727.idleVideoJobId
-    ? v_7f3fda?.status !== 'done' && !(v_f04727.idleEngine && v_4d3a74)
+    ? v_7f3fda?.status === 'failed'
     : true;
 
   const v_a3d9bc = v_de06a3(async () => {
@@ -250,6 +250,12 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   }, [v_f6dbfe, v_2ca7e0, v_5795de, v_8d41d7]);
 
   const [v_c3de9c, v_4b9b17] = v_5ab095(false);
+
+  const [v_473be5, v_8761d5] = v_5ab095(false);
+  v_c4deb2(() => {
+    const v_cb36b1 = setTimeout(() => v_8761d5(true), 10000);
+    return () => clearTimeout(v_cb36b1);
+  }, []);
 
   const v_140aea = v_de06a3(
     async (): Promise<number> => {
@@ -430,13 +436,6 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const v_d01790 = async () => {
     if (v_805753 || v_c3de9c) return;
 
-    if (v_798360) {
-      v_889fad(
-        v_8d41d7('create.step7.waitTitle', { defaultValue: '잠깐요' }),
-        v_8d41d7('create.step7.waitVideoBuilding', { defaultValue: '영상 생성이 완료되면 게시할 수 있어요.' }),
-      );
-      return;
-    }
     const v_2f361a = v_6044a8.trim();
 
     const v_055e6a = {
@@ -741,7 +740,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
                 : v_d01790
             }
             variant="accent"
-            disabled={v_798360 || v_c3de9c || (v_805753 && v_af4871 == null && !v_5e9bfe)}
+            disabled={!v_473be5 || v_c3de9c || (v_805753 && v_af4871 == null && !v_5e9bfe)}
           />
         </View>
       </KeyboardAvoidingView>

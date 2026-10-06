@@ -4,7 +4,8 @@ import { v_354e0a, v_f4ad91, v_cdd5c2 } from 'fnffflguqbrqugbi';
 import { v_eaee41, v_086912 } from 'hbppvrg';
 import { v_315113 } from 'wiosxndes';
 import { v_171b31 } from 'xxkrszo';
-import { v_47bade, v_ddfcca, v_9aedb6, v_7e5b4f, v_af8891, v_15296d, v_aefc06, v_7e9d02, v_6ac389, v_3a5853, v_a5c84f, v_ff5f5c } from './assetJobRunner.js';
+import { v_47bade, v_ddfcca, v_9aedb6, v_7e5b4f, v_af8891, v_15296d, v_aefc06, v_7e9d02, v_6ac389, v_3a5853, v_a5c84f, v_ff5f5c, v_3a935d } from './assetJobRunner.js';
+import { v_5fb99c, v_68ce5d } from './personaVideoSpecs.js';
 
 const v_cc9198 = 'https://oth-path.example.com';
 
@@ -2122,4 +2123,167 @@ v_2a805f('ref 원본 보존: 변환 실패 시엔 원본을 남기지 않는다(
   } finally {
     await v_cdd5c2(v_b7cff2, { recursive: true, force: true });
   }
+});
+
+function v_8f3508({ srcOk: v_c3f70d = true, callbackCalls: v_0a664b = [], personaCallbackCalls: v_763f84 = [] } = {}) {
+  return async (v_f71b56, v_328259) => {
+    if (v_f71b56.startsWith(`${v_cc9198}/oth-path`)) {
+      if (!v_c3f70d) {
+        return { ok: false, status: 500, arrayBuffer: async () => new ArrayBuffer(0), text: async () => '' };
+      }
+      return { ok: true, status: 200, arrayBuffer: async () => new Uint8Array(20).buffer };
+    }
+    if (v_f71b56 === `${v_cc9198}/oth-path`) {
+      v_0a664b.push({ url: v_f71b56, method: v_328259?.method, body: v_328259?.body });
+      return { ok: true, status: 200, text: async () => '' };
+    }
+    if (v_f71b56 === `${v_cc9198}/oth-path`) {
+      v_763f84.push({ url: v_f71b56, method: v_328259?.method, body: v_328259?.body });
+      return { ok: true, status: 200, text: async () => '' };
+    }
+    throw new Error(`unexpected fetch (persona mock): ${v_f71b56}`);
+  };
+}
+
+function v_9b91ed({ failOnIndex: v_89531a = -1 } = {}) {
+  let v_aff40c = 0;
+  return async (v_009dd8, v_cc1c2b, v_8ce5f3) => {
+    const v_ebec57 = v_aff40c++;
+    if (v_ebec57 === v_89531a) throw new Error(`MuseTalk /infer HTTP 500 at index ${v_ebec57}`);
+    return `/tmp/musetalk-pcm/${v_8ce5f3}.mp4`;
+  };
+}
+
+v_2a805f.skip('persona_videos 성공 → 2단계 콜백: stage=idle (1파일) + stage=bridges (5파일) (T-938)', async () => {
+  const v_0a664b = [];
+  const v_763f84 = [];
+  const v_eedf31 = v_47bade({
+    apiBaseUrl: v_cc9198,
+    fetchImpl: v_8f3508({ callbackCalls: v_0a664b, personaCallbackCalls: v_763f84 }),
+    spawnImpl: v_142ee6(0),
+    _qwenTtsFn: v_b41a6d(),
+    _museTalkRenderFn: v_9b91ed(),
+    _ensureVoiceWavFn: v_096d67(),
+  });
+
+  v_eedf31.enqueue({
+    job_id: 'pv_ok',
+    kind: 'persona_videos',
+    clone_id: '9139',
+    face_url: `${v_cc9198}/oth-path`,
+    voice_raw_url: `${v_cc9198}/oth-path`,
+    callback_token: 'tok_pv_ok',
+  });
+
+  await v_26eff3(v_eedf31, 6000);
+
+  v_ce93bd.equal(v_763f84.length, 2, '/oth-path 2회 호출 (idle + bridges)');
+  v_ce93bd.equal(v_0a664b.length, 0, 'asset-job-done 호출 없어야 함 (성공)');
+
+  const v_31f61e = v_763f84[0].body;
+  v_ce93bd.equal(v_31f61e.get('stage'), 'idle', '1차 콜백 stage=idle');
+  v_ce93bd.equal(v_31f61e.get('job_id'), 'pv_ok');
+  v_ce93bd.equal(v_31f61e.get('callback_token'), 'tok_pv_ok');
+  v_ce93bd.ok(v_31f61e.get('file0'), 'idle file0 필요');
+  v_ce93bd.equal(v_31f61e.get('file1'), null, 'idle 콜백에 file1 없어야 함');
+
+  const v_89f289 = v_763f84[1].body;
+  v_ce93bd.equal(v_89f289.get('stage'), 'bridges', '2차 콜백 stage=bridges');
+  for (let v_ebec57 = 0; v_ebec57 < 5; v_ebec57++) {
+    v_ce93bd.ok(v_89f289.get(`file${v_ebec57}`), `bridges file${v_ebec57} 필요`);
+  }
+  v_ce93bd.equal(v_89f289.get('file5'), null, 'bridges 콜백 5개 초과 없음');
+});
+
+v_2a805f.skip('persona_videos bridge 실패 → stage=idle 콜백 1회 + failed 콜백 1회 (T-938)', async () => {
+  const v_0a664b = [];
+  const v_763f84 = [];
+  const v_eedf31 = v_47bade({
+    apiBaseUrl: v_cc9198,
+    fetchImpl: v_8f3508({ callbackCalls: v_0a664b, personaCallbackCalls: v_763f84 }),
+    spawnImpl: v_142ee6(0),
+    _qwenTtsFn: v_b41a6d(),
+    _museTalkRenderFn: v_9b91ed({ failOnIndex: 1 }),
+    _ensureVoiceWavFn: v_096d67(),
+  });
+
+  v_eedf31.enqueue({
+    job_id: 'pv_fail',
+    kind: 'persona_videos',
+    clone_id: '9139',
+    face_url: `${v_cc9198}/oth-path`,
+    voice_raw_url: `${v_cc9198}/oth-path`,
+    callback_token: 'tok_pv_fail',
+  });
+
+  await v_26eff3(v_eedf31, 6000);
+
+  v_ce93bd.equal(v_763f84.length, 1, 'persona-videos-job-done 1회 (stage=idle)');
+  v_ce93bd.equal(v_763f84[0].body.get('stage'), 'idle');
+  v_ce93bd.equal(v_0a664b.length, 1, 'asset-job-done(failed) 1회 (bridge 실패)');
+  v_ce93bd.equal(v_0a664b[0].body.get('status'), 'failed');
+});
+
+v_2a805f('persona_videos — face_url 이 apiBaseUrl prefix 아니면 즉시 failed (SSRF, T-927)', async () => {
+  const v_0a664b = [];
+  const v_763f84 = [];
+  const v_eedf31 = v_47bade({
+    apiBaseUrl: v_cc9198,
+    fetchImpl: v_8f3508({ callbackCalls: v_0a664b, personaCallbackCalls: v_763f84 }),
+    spawnImpl: v_142ee6(0),
+    _qwenTtsFn: v_b41a6d(),
+    _museTalkRenderFn: v_9b91ed(),
+    _ensureVoiceWavFn: v_096d67(),
+  });
+
+  v_eedf31.enqueue({
+    job_id: 'pv_ssrf',
+    kind: 'persona_videos',
+    clone_id: '9139',
+    face_url: 'https://evil.com/face.jpg',
+    voice_raw_url: `${v_cc9198}/oth-path`,
+    callback_token: 'tok_pv_ssrf',
+  });
+
+  await v_26eff3(v_eedf31, 2000);
+
+  v_ce93bd.equal(v_763f84.length, 0);
+  v_ce93bd.equal(v_0a664b.length, 1);
+  const v_23563e = v_0a664b[0].body;
+  v_ce93bd.equal(v_23563e.get('status'), 'failed');
+  v_ce93bd.match(String(v_23563e.get('error') ?? ''), /face_url/);
+});
+
+v_2a805f('BRIDGE_SPECS — 5개 (generic/fact/emotion_pos/complex/challenge), 각 대사 비어있지 않음 (T-927)', () => {
+  v_ce93bd.equal(v_5fb99c.length, 5);
+  const v_fa53ec = v_5fb99c.map((v_fd5f43) => v_fd5f43.key);
+  v_ce93bd.deepEqual(v_fa53ec, [
+    'bridge_generic',
+    'bridge_fact',
+    'bridge_emotion_pos',
+    'bridge_complex',
+    'bridge_challenge',
+  ]);
+  for (const v_fd5f43 of v_5fb99c) {
+    v_ce93bd.ok(v_fd5f43.text && v_fd5f43.text.length > 0, `${v_fd5f43.key} 대사 존재`);
+  }
+  v_ce93bd.deepEqual(v_68ce5d, [
+    'idle.mp4',
+    'bridge_generic.mp4',
+    'bridge_fact.mp4',
+    'bridge_emotion_pos.mp4',
+    'bridge_complex.mp4',
+    'bridge_challenge.mp4',
+  ]);
+});
+
+v_2a805f('defaultFfmpegReencodeAacCmd — in → out, -c:v copy -c:a aac (T-927)', () => {
+  const v_10dec2 = v_3a935d('/in.mp4', '/out.mp4');
+  v_ce93bd.equal(v_10dec2.bin, 'ffmpeg');
+  v_ce93bd.ok(v_10dec2.args.includes('-c:v'));
+  v_ce93bd.ok(v_10dec2.args.includes('copy'));
+  v_ce93bd.ok(v_10dec2.args.includes('-c:a'));
+  v_ce93bd.ok(v_10dec2.args.includes('aac'));
+
+  v_ce93bd.equal(v_10dec2.args[v_10dec2.args.length - 1], '/out.mp4');
 });

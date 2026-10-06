@@ -61,3 +61,23 @@ def test_이름을_추출하지_않는다():
     assert wants_remember_me("내 이름은 지호야 기억해줘") is True
     # 반환값에 "지호" 가 실려 나갈 수 있는 형태(str/dict/tuple)면 안 된다.
     assert isinstance(wants_remember_me("내 이름은 지호야 기억해줘"), bool)
+
+
+def test_내가_한_일을_기억하라는_말은_발동하지_않는다():
+    """AFL-926 (2026-10-02 실통화): "아침에 내가 뭐 했는지 너 기억해" 가 시트를 열고 마이크를
+    닫아, 클론 대답 뒤에도 턴이 돌아오지 않았다. 여기서 기억할 대상은 '내가 한 일' 이다 —
+    주어형(내가·제가)은 사건을 가리키므로 발동 근거가 아니다."""
+    for text in (
+        "아침에 내가 뭐 했는지 너 기억해",
+        "내가 한 말 기억해",
+        "제가 어제 말한 거 기억해 주세요",
+        "내가 좋아하는 음식 기억해줘",
+        "저 노래 좋더라 기억해",
+        "나중에 그거 기억해줘",
+    ):
+        assert wants_remember_me(text) is False, text
+
+
+def test_나_자신을_기억하라는_말은_계속_발동한다():
+    for text in ("나 좀 기억해줘", "날 꼭 기억해", "저 기억해 주세요", "너 나 기억해줘"):
+        assert wants_remember_me(text) is True, text

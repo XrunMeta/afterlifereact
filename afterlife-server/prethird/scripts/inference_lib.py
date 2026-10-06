@@ -281,6 +281,18 @@ def run_inference(args, models, frame_callback=None, timing_out=None, batch_emit
             frame_list_cycle = frame_list + frame_list[::-1]
             coord_list_cycle = coord_list + coord_list[::-1]
             input_latent_list_cycle = input_latent_list + input_latent_list[::-1]
+
+            # 2026-09-17 히즈키 지시: 매 turn 시작 프레임 인덱스 랜덤 rotate.
+            # base video 사이클(예: 500 frames = 20s @ 25fps) 안에 blink 이 5초 주기.
+            # 짧은 응답(2~5s = 50~125 frames)이면 항상 i=0 부터 소비 → blink 프레임 안 담김.
+            # 3개 list (frame·coord·latent) 를 같은 offset 로 rotate 하면 정합성 유지되면서
+            # 매 turn 다른 시작점 · blink 이 담길 확률 up.
+            import time as _t_rot
+            _rot = int(_t_rot.time() * 25) % len(frame_list_cycle)
+            if _rot > 0:
+                frame_list_cycle = frame_list_cycle[_rot:] + frame_list_cycle[:_rot]
+                coord_list_cycle = coord_list_cycle[_rot:] + coord_list_cycle[:_rot]
+                input_latent_list_cycle = input_latent_list_cycle[_rot:] + input_latent_list_cycle[:_rot]
             
             # Batch inference
             print("Starting inference")
