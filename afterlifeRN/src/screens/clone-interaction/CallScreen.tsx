@@ -1741,22 +1741,13 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const warnedRef = useRef(false);
   const exhaustedRef = useRef(false);
+
   useEffect(() => {
-    if (!accessToken) return;
-    let cancelled = false;
-    getCreditBalance(accessToken)
-      .then((b) => {
-        if (cancelled) return;
-        setRemainingSec(Math.max(0, Math.floor(b.totalSec ?? 0)));
-      })
-      .catch((err) => {
-        console.warn("[Call] balance fetch failed:", (err as Error)?.message ?? err);
-      });
-    return () => {
-      cancelled = true;
-    };
+    return; 
   }, [accessToken]);
   useEffect(() => {
+    return; 
+
     if (liveState !== "live" || remainingSec === null) return;
     const id = setInterval(() => {
       setRemainingSec((prev) => {
