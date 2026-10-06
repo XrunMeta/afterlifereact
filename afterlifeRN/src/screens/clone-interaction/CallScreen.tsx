@@ -1719,24 +1719,74 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     return () => clearInterval(id);
   }, [liveState]);
 
-  const adShownMinutesRef = useRef<Set<number>>(new Set());
+  const AFL971_COUNT_KEY = "afl971:lifetimeCallCount";
+  const afl971IsFirstCallRef = useRef<boolean | null>(null); 
+  const afl971RoundCountRef = useRef<number>(0);
+  const afl971AdShownRoundsRef = useRef<Set<number>>(new Set());
+  const afl971ConnectingAdFiredRef = useRef<boolean>(false);
+  const afl971LastSpeakingRef = useRef<boolean>(false);
+
   useEffect(() => {
-    if (liveState !== "live" || callSeconds <= 0) return;
-    if (callSeconds % 600 !== 0) return; 
-    const minute = Math.floor(callSeconds / 60);
-    if (adShownMinutesRef.current.has(minute)) return;
-    adShownMinutesRef.current.add(minute);
-    console.log(`[Call][pangle] ${minute} min — rewarded ad trigger`);
     (async () => {
       try {
+        const raw = await AsyncStorage.getItem(AFL971_COUNT_KEY);
+        const prev = raw ? Number(raw) || 0 : 0;
+        afl971IsFirstCallRef.current = prev === 0;
+        await AsyncStorage.setItem(AFL971_COUNT_KEY, String(prev + 1));
+        console.log(`[Call][afl971] lifetime count ${prev} → ${prev + 1}, isFirstCall=${afl971IsFirstCallRef.current}`);
+      } catch (err) {
+        console.warn("[Call][afl971] lifetime count load failed:", err);
+        afl971IsFirstCallRef.current = false;
+      }
+
+      if (afl971ConnectingAdFiredRef.current) return;
+      afl971ConnectingAdFiredRef.current = true;
+      try {
+        console.log("[Call][afl971] 연결중 전면광고 trigger");
         const { loadAndShowRewardedAd } = await import("../../lib/pangle");
         await loadAndShowRewardedAd();
-        console.log(`[Call][pangle] ${minute} min — ad closed, call resumes`);
+        console.log("[Call][afl971] 연결중 광고 닫힘");
       } catch (err) {
-        console.warn(`[Call][pangle] ${minute} min — ad failed:`, (err as Error)?.message ?? err);
+        console.warn("[Call][afl971] 연결중 광고 실패:", (err as Error)?.message ?? err);
       }
     })();
-  }, [callSeconds, liveState]);
+
+  }, []);
+
+  useEffect(() => {
+    const wasSpeaking = afl971LastSpeakingRef.current;
+    const isSpeaking = phase === "speaking";
+    afl971LastSpeakingRef.current = isSpeaking;
+    if (!wasSpeaking || isSpeaking) return;
+
+    const round = afl971RoundCountRef.current + 1;
+    afl971RoundCountRef.current = round;
+    console.log(`[Call][afl971] round ${round} complete`);
+
+    if (afl971IsFirstCallRef.current === true) {
+      console.log("[Call][afl971] 첫 통화 — 라운드 광고 skip");
+      return;
+    }
+    if (afl971IsFirstCallRef.current === null) {
+      console.log("[Call][afl971] lifetime count 로딩 중 — 광고 skip");
+      return;
+    }
+    const shouldShow = round === 10 || (round > 10 && (round - 10) % 5 === 0);
+    if (!shouldShow) return;
+    if (afl971AdShownRoundsRef.current.has(round)) return;
+    afl971AdShownRoundsRef.current.add(round);
+
+    (async () => {
+      try {
+        console.log(`[Call][afl971] round ${round} 전면광고 trigger`);
+        const { loadAndShowRewardedAd } = await import("../../lib/pangle");
+        await loadAndShowRewardedAd();
+        console.log(`[Call][afl971] round ${round} 광고 닫힘`);
+      } catch (err) {
+        console.warn(`[Call][afl971] round ${round} 광고 실패:`, (err as Error)?.message ?? err);
+      }
+    })();
+  }, [phase]);
 
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const warnedRef = useRef(false);
