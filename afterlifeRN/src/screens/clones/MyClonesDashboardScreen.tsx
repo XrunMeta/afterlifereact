@@ -870,48 +870,6 @@ export default function v_def15b() {
             </View>
 
             {}
-            <TouchableOpacity
-              style={v_fd5f43.balanceCard}
-              activeOpacity={0.85}
-              onPress={() => {
-                v_c65f5d.getParent()?.dispatch(
-                  v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
-                );
-              }}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("my.balance.remainingTokens", { defaultValue: "남은 토큰 수량" })}</Text>
-                {v_747a87 && !v_c88e9b ? (
-                  <ActivityIndicator color={v_1bfbd0.violet600} style={{ marginTop: 6 }} />
-                ) : v_c88e9b ? (
-                  <>
-                    <Text style={v_fd5f43.balanceTotal}>
-                      {(() => {
-
-                        const v_76be17 = Math.max(0, v_c88e9b.totalSec) / 60;
-                        const v_fd5f43 = Number.isInteger(v_76be17) ? v_76be17.toLocaleString() : v_76be17.toFixed(1);
-                        return `${v_fd5f43} XRUN`;
-                      })()}
-                    </Text>
-                    <Text style={v_fd5f43.balanceBreakdown}>
-                      {v_8d41d7("my.balance.free", { time: `${(v_c88e9b.freeSec / 60).toLocaleString()} XRUN` })}
-                      {v_c88e9b.subSec > 0
-                        ? ` · ${v_8d41d7("my.balance.sub", { time: `${(v_c88e9b.subSec / 60).toLocaleString()} XRUN` })}`
-                        : ""}
-                      {v_c88e9b.topupSec > 0
-                        ? ` · ${v_8d41d7("my.balance.topup", { time: `${(v_c88e9b.topupSec / 60).toLocaleString()} XRUN` })}`
-                        : ""}
-                    </Text>
-                  </>
-                ) : (
-                  <Text style={v_fd5f43.balanceEmpty}>{v_8d41d7("my.balance.failed")}</Text>
-                )}
-              </View>
-              <View style={v_fd5f43.balanceCta}>
-                <Text style={v_fd5f43.balanceCtaText}>{v_8d41d7("my.balance.charge")}</Text>
-                <Feather name="chevron-right" size={16} color="#fff" />
-              </View>
-            </TouchableOpacity>
 
             {}
 
