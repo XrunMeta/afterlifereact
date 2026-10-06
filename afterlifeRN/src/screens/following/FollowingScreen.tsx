@@ -641,11 +641,7 @@ export default function v_14b43e() {
                 leftIcon={<Feather name="video" size={14} color={v_1bfbd0.zinc900} />}
                 onPress={async () => {
 
-                  const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
-                    v_f4c991.dispatch(
-                      v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
-                    );
-                  });
+                  const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {});
                   if (!v_3ed4c3) return;
                   v_f4c991.navigate("Call", {
                     cloneId: v_8c0b26.persona.id,
@@ -1002,11 +998,7 @@ export default function v_14b43e() {
                       style={v_fd5f43.callBtn}
                       onPress={async () => {
 
-                        const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
-                          v_f4c991.dispatch(
-                            v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
-                          );
-                        });
+                        const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {});
                         if (!v_3ed4c3) return;
                         v_22a5cb(false);
                         v_f4c991.navigate("Call", { cloneId: v_e2a85c.id, name: v_e2a85c.name, image: v_e2a85c.avatar });
