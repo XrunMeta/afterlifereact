@@ -147,3 +147,28 @@ async def test_extract_drops_numeric_pii_value(monkeypatch):
     monkeypatch.setattr(l2_extract, "chat_once", _fake)
     out = await l2_extract.extract_l2("계좌", "네")
     assert out["preference_personal"] == {"취미": "등산"}
+
+
+# ---- AFL-926: 통화 품질 소감·인식 오류·순간 상태는 기억이 아니다 ----
+def test_extract_prompt_skips_system_feedback_and_stt_noise():
+    p = l2_extract._EXTRACT_SYSTEM
+    assert "SKIP remarks about the call itself" in p     # "말이 자꾸 반복돼" 류
+    assert "speech-recognition error" in p                # "스크린도 먹었단다" 류
+    assert "SKIP momentary states" in p and "KEEP things the user did" in p
+    assert "'우리' are not a relation" in p
+
+
+async def test_extract_drops_non_string_memories(monkeypatch):
+    # 실측(2026-10-02): 모델이 기억 배열에 객체를 넣어 "{'키': '값'}" repr 이 그대로 저장될 뻔했다.
+    async def _fake(*a, **k):
+        return '{"preference_personal": {}, "relation": null, "memories_personal": [{"오이": "무겁다"}, "오이를 땄다", 3]}'
+    monkeypatch.setattr(l2_extract, "chat_once", _fake)
+    out = await l2_extract.extract_l2("오이 땄어", "고생했네")
+    assert out["memories_personal"] == ["오이를 땄다"]
+
+
+def test_extract_prompt_ignores_clone_facts_and_prefixes_subject():
+    # 2026-10-02: 클론의 "취미는 텃밭 · 막걸리 한잔" 이 사용자 취향으로 저장됐다.
+    p = l2_extract._EXTRACT_SYSTEM
+    assert "NEVER store the clone's own hobbies" in p
+    assert "each starting with '사용자는'" in p

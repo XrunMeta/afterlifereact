@@ -21,11 +21,12 @@ class FakeEngine:
     def __init__(self):
         self.calls = []
         self.last_synth_kwargs = None
-    def synth(self, text, clone_id, voice_wav, ref_text=None, speed=1.0, gen_params=None):
+    def synth(self, text, clone_id, voice_wav, ref_text=None, speed=1.0, gen_params=None, **kw):
         self.calls.append({"text": text, "clone_id": clone_id, "voice_wav": voice_wav, "speed": speed})
         self.last_synth_kwargs = {
             "text": text, "clone_id": clone_id, "voice_wav": voice_wav,
             "ref_text": ref_text, "speed": speed, "gen_params": gen_params,
+            "ramble_cap_tokens": kw.get("ramble_cap_tokens"),
         }
         buf = io.BytesIO()
         sf.write(buf, np.zeros(1600, dtype="float32"), 16000, format="WAV", subtype="PCM_16")
@@ -129,7 +130,7 @@ def test_tts_kr_corrupt_voice_503(tmp_path, monkeypatch):
     monkeypatch.setattr(cfg, "REF_ROOT", str(tmp_path))
 
     class CorruptEngine:
-        def synth(self, text, clone_id, voice_wav, ref_text=None, speed=1.0, gen_params=None):
+        def synth(self, text, clone_id, voice_wav, ref_text=None, speed=1.0, gen_params=None, **kw):
             raise ValueError(f"corrupt/unreadable wav: {voice_wav!r}")
 
     from fastapi.testclient import TestClient
@@ -178,7 +179,7 @@ def test_synth_lock_serializes_concurrent_calls(tmp_path, monkeypatch):
     order = []  # synth 진입 순서 기록
 
     class SlowEngine:
-        def synth(self, text, clone_id, voice_wav, ref_text=None, speed=1.0, gen_params=None):
+        def synth(self, text, clone_id, voice_wav, ref_text=None, speed=1.0, gen_params=None, **kw):
             # 첫 번째 진입자만 0.05s 슬립해 두 번째 호출이 Lock 앞에서 대기하도록 유도
             idx = len(order)
             order.append(idx)
@@ -235,10 +236,94 @@ def test_synth_forwards_gen_params(client_with_fake_engine):
         "temperature": 0.5, "top_p": 0.8,
     })
     assert r.status_code == 200
-    assert fake.last_synth_kwargs["gen_params"] == {"temperature": 0.5, "top_p": 0.8}
+    assert fake.last_synth_kwargs["gen_params"] == {"temperature": 0.5, "top_p": 0.8, "max_new_tokens": 48}
 
 def test_synth_omits_unset_gen_params(client_with_fake_engine):
     client, fake = client_with_fake_engine
     r = client.post("/tts/kr", json={"text": "안녕", "clone_id": "halbae"})
     assert r.status_code == 200
-    assert fake.last_synth_kwargs["gen_params"] == {}
+    # 미지정 파라미터는 넘기지 않는다 — 단 생성 상한(max_new_tokens)만은 항상 채운다
+    # ("안녕" 2글자 → 글자 수 비례 상한 48).
+    assert fake.last_synth_kwargs["gen_params"] == {"max_new_tokens": 48}
+
+
+# ── 폭주 차단 상한 (2026-10-03 실통화: 한 문장이 7분 넘게 생성되며 잠금을 쥠) ──────────
+
+def test_max_new_tokens_default_matches_prethird_60s():
+    # prethird 60초 대기와 함께 끝나야 한다 — 실측 16.5토큰/초 기준 60초 이내.
+    import os
+    assert "QWEN3TTS_MAX_NEW_TOKENS" not in os.environ
+    assert cfg.MAX_NEW_TOKENS == 960
+    assert cfg.MAX_NEW_TOKENS / 16.5 <= 60
+
+def test_synth_caps_max_new_tokens_by_default(client_with_fake_engine):
+    client, fake = client_with_fake_engine
+    r = client.post("/tts/kr", json={"text": "안녕", "clone_id": "halbae"})
+    assert r.status_code == 200
+    assert 0 < fake.last_synth_kwargs["gen_params"]["max_new_tokens"] <= cfg.MAX_NEW_TOKENS
+
+def test_synth_clamps_requested_max_new_tokens(client_with_fake_engine):
+    client, fake = client_with_fake_engine
+    r = client.post("/tts/kr", json={"text": "안녕", "clone_id": "halbae", "max_new_tokens": 9000})
+    assert r.status_code == 200
+    assert fake.last_synth_kwargs["gen_params"]["max_new_tokens"] == cfg.MAX_NEW_TOKENS
+
+def test_synth_keeps_smaller_requested_max_new_tokens(client_with_fake_engine):
+    client, fake = client_with_fake_engine
+    r = client.post("/tts/kr", json={"text": "안녕", "clone_id": "halbae", "max_new_tokens": 200})
+    assert r.status_code == 200
+    assert fake.last_synth_kwargs["gen_params"]["max_new_tokens"] == 200
+
+def test_tts_kr_text_over_500_chars_413(client_with_fake_engine):
+    client, fake = client_with_fake_engine
+    r = client.post("/tts/kr", json={"text": "가" * 501, "clone_id": "halbae"})
+    assert r.status_code == 413
+    assert fake.last_synth_kwargs is None
+
+def test_tts_kr_text_500_chars_ok(client_with_fake_engine):
+    client, fake = client_with_fake_engine
+    r = client.post("/tts/kr", json={"text": "가" * 500, "clone_id": "halbae"})
+    assert r.status_code == 200
+
+
+# ── 글자 수 비례 상한 + 폭주 판정 ──────────────────────────────────────────────────
+
+def test_auto_cap_scales_with_text_length(client_with_fake_engine):
+    # 2글자 → (2/2.0 + 3초) × 12 = 48토큰. 폭주 판정용 상한도 같이 넘긴다.
+    client, fake = client_with_fake_engine
+    r = client.post("/tts/kr", json={"text": "안녕.", "clone_id": "halbae"})
+    assert r.status_code == 200
+    assert fake.last_synth_kwargs["gen_params"]["max_new_tokens"] == 48
+    assert fake.last_synth_kwargs["ramble_cap_tokens"] == 48
+
+def test_auto_cap_ignores_spaces_and_punct(client_with_fake_engine):
+    client, fake = client_with_fake_engine
+    r = client.post("/tts/kr", json={"text": "응, 잘 들려. 뭐 하고 있어?", "clone_id": "halbae"})
+    assert r.status_code == 200
+    # 글자 9개 → (4.5 + 3) × 12 = 90
+    assert fake.last_synth_kwargs["gen_params"]["max_new_tokens"] == 90
+
+def test_auto_cap_never_exceeds_max(client_with_fake_engine):
+    client, fake = client_with_fake_engine
+    r = client.post("/tts/kr", json={"text": "가" * 400, "clone_id": "halbae"})
+    assert r.status_code == 200
+    assert fake.last_synth_kwargs["gen_params"]["max_new_tokens"] == cfg.MAX_NEW_TOKENS
+    assert fake.last_synth_kwargs["ramble_cap_tokens"] == cfg.MAX_NEW_TOKENS
+
+def test_explicit_max_new_tokens_skips_ramble_check(client_with_fake_engine):
+    # 실험용으로 상한을 직접 준 요청은 잘려도 폭주로 보지 않는다.
+    client, fake = client_with_fake_engine
+    r = client.post("/tts/kr", json={"text": "안녕", "clone_id": "halbae", "max_new_tokens": 300})
+    assert r.status_code == 200
+    assert fake.last_synth_kwargs["gen_params"]["max_new_tokens"] == 300
+    assert fake.last_synth_kwargs["ramble_cap_tokens"] is None
+
+def test_ramble_returns_503(tmp_path, monkeypatch):
+    from tts_engine import RambleError
+    client, eng = _client_with_fake_engine(tmp_path, monkeypatch)
+    def boom(*a, **kw):
+        raise RambleError("cap hit")
+    eng.synth = boom
+    r = client.post("/tts/kr", json={"text": "안녕", "clone_id": "halbae"})
+    assert r.status_code == 503
+    assert r.headers.get("X-Ramble") == "1"

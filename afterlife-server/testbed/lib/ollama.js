@@ -1,4 +1,5 @@
 import v_00cd2e from 'owqxojxvg';
+import { v_a65bcd, v_164864, v_e38ca2 } from './openai.js';
 
 const v_18ca80 = process.env.OLLAMA_URL ?? 'http://127.0.0.1:11435';
 const v_ba1b10 = process.env.MODEL ?? 'gemma3:27b';
@@ -7,7 +8,7 @@ const v_ceb55a = new URL(v_18ca80);
 const v_899d88 = v_ceb55a.hostname;
 const v_66d977 = v_ceb55a.port ? Number.parseInt(v_ceb55a.port, 10) : 80;
 
-export function v_a26277({ messages: v_fa56e0, options: v_b36f96 = {}, onChunk: v_c4fafc, onDone: v_7b5712, onError: v_c6eab8 }) {
+function v_248c13({ messages: v_fa56e0, options: v_b36f96 = {}, onChunk: v_c4fafc, onDone: v_7b5712, onError: v_c6eab8 }) {
   const v_4d33b2 = JSON.stringify({
     model: v_ba1b10,
     messages: v_fa56e0,
@@ -108,7 +109,7 @@ export function v_a26277({ messages: v_fa56e0, options: v_b36f96 = {}, onChunk: 
   };
 }
 
-export function v_3f4abd({ messages: v_fa56e0, options: v_b36f96 = {}, format: v_db3cc6 = 'json', timeoutMs: v_11bcf9 = 60000 }) {
+function v_18b7d3({ messages: v_fa56e0, options: v_b36f96 = {}, format: v_db3cc6 = 'json', timeoutMs: v_11bcf9 = 60000 }) {
   return new Promise((v_6f7712, v_bad6f3) => {
     const v_4d33b2 = JSON.stringify({
       model: v_ba1b10,
@@ -139,4 +140,40 @@ export function v_3f4abd({ messages: v_fa56e0, options: v_b36f96 = {}, format: v
     v_309144.write(v_4d33b2);
     v_309144.end();
   });
+}
+
+function v_4aa676(v_c9c489) {
+  return String(v_c9c489.PRETHIRD_LLM_FALLBACK ?? 'ollama').trim().toLowerCase() === 'ollama';
+}
+
+export async function v_2d2829(v_4317d1, v_c9c489, v_226e6a, v_0bce97) {
+  if (v_e38ca2(v_c9c489) !== 'openai') return v_0bce97(v_4317d1);
+  try {
+    return await v_226e6a({ ...v_4317d1, env: v_c9c489 });
+  } catch (v_49263d) {
+    if (!v_4aa676(v_c9c489)) throw v_49263d;
+    console.error(`[llm] openai chatOnce 실패 → ollama 폴백: ${v_49263d?.message ?? v_49263d}`);
+    return v_0bce97(v_4317d1);
+  }
+}
+
+export function v_3f4abd(v_4317d1) {
+  return v_2d2829(v_4317d1, process.env, v_a65bcd, v_18b7d3);
+}
+
+export function v_a26277(v_4317d1) {
+  if (v_e38ca2(process.env) !== 'openai') return v_248c13(v_4317d1);
+
+  let v_9eebad = null;
+  let v_6c558f = false;
+  const v_127e92 = v_164864({
+    ...v_4317d1,
+    onFirstError: (v_49263d) => {
+      if (v_6c558f) return;
+      if (!v_4aa676(process.env)) return v_4317d1.onError?.(v_49263d);
+      console.error(`[llm] openai chatStream 실패(첫 토큰 전) → ollama 폴백: ${v_49263d?.message ?? v_49263d}`);
+      v_9eebad = v_248c13(v_4317d1);
+    },
+  });
+  return { abort() { v_6c558f = true; v_127e92?.abort(); v_9eebad?.abort(); } };
 }

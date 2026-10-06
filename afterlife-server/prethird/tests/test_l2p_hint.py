@@ -46,4 +46,4 @@ def test_hint_includes_relation_and_prefs():
     assert "## 상대 정보" in content
     assert "너와의 관계: 친구" in content
     assert "취향: 음료: 아메리카노" in content
-    assert "기억: 지난주 등산" in content
+    assert "너의 일이 아니다): 지난주 등산" in content   # AFL-926: 기억 라벨에 소유자 명시

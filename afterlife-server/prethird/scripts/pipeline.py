@@ -15,15 +15,47 @@
 from __future__ import annotations
 
 import asyncio
+import io
 import logging
 import os
 import re
 import tempfile
 import time
+import wave
 from typing import Callable
 
 import numpy as np
 from recorder import NULL_TURN
+from clone_dialog.conversation_history import ConversationHistory
+
+
+# T-806 (2026-09-22): TTS wav 앞뒤 무음 padding 헬퍼. 스펙 §6 "Speak 앞뒤 0.2s 무음"
+#   요구사항 구현. Bridge 끝(입 다문 중립 포즈) → Speak 시작 (입 다문 상태) 자연 전환.
+def _pad_silence(pcm: np.ndarray, sr: int, front_ms: int = 200, back_ms: int = 200) -> np.ndarray:
+    """pcm(int16 1-D) 앞뒤에 무음 (zeros) 추가.
+    stereo/multichannel 은 currently 이 파이프라인 미사용이라 1-D 만 다룬다."""
+    if pcm.ndim != 1:
+        return pcm
+    n_front = int(sr * front_ms / 1000)
+    n_back = int(sr * back_ms / 1000)
+    silence_front = np.zeros(n_front, dtype=pcm.dtype)
+    silence_back = np.zeros(n_back, dtype=pcm.dtype)
+    return np.concatenate([silence_front, pcm, silence_back])
+
+
+def _encode_wav_pcm(pcm: np.ndarray, sr: int) -> bytes:
+    """int16 1-D pcm → 표준 WAV bytes (16-bit mono).
+    MuseTalk infer_fn 은 wav_path 를 tempfile 로 소비 (pipeline.py L388 근처) 하므로
+    padded pcm 을 다시 표준 WAV 로 인코딩해 넘긴다."""
+    if pcm.dtype != np.int16:
+        pcm = pcm.astype(np.int16)
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(sr)
+        w.writeframes(pcm.tobytes())
+    return buf.getvalue()
 
 
 # T-497: 이모지·기타 유니코드 심볼 strip — TTS(MeloTTS/OpenVoice) 가 이모지를 이상한
@@ -62,6 +94,46 @@ def strip_emojis_for_tts(text: str) -> str:
     # 여백 정리
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return cleaned
+
+
+# T-829 (2026-09-29): 응답 첫머리 감정 도입/추임새 제거 · 짧은 세그 hallucination + 지연 감소.
+#   LLM 이 "아, 그렇구나." · "어, 지호야." · "음, 그러네." 같은 짧은 도입부 자주 뱉음.
+#   이걸 첫 세그로 flush 하면 CosyVoice2 hallucination · 그리고 뒤 본문과 gap.
+#   후처리로 첫머리 도입부 삭제 · LLM 프롬프트 규칙 11 우회 안 지킴 방어책.
+#   env off: PRETHIRD_STRIP_LEAD_FILLER=0.
+#
+# (2026-10-02 실통화) 단어 경계가 없어 진짜 단어를 먹었다 — "응, 안양동이잖아." → "잖아."
+#   ("안양동이" 를 호칭으로 오인), "아니, 나는…" → "니, 나는…"("아니" 의 "아"), "응, 그게…" →
+#   "게…". 추임새·리액션 뒤에는 공백·부호·끝이, 호칭 뒤에는 부호가 와야만 지운다.
+_LEAD_B = r"(?=[\s,.!?…]|$)"      # 추임새·리액션 뒤 경계
+_LEAD_FILLER_RE = re.compile(
+    r"^\s*"
+    r"(어휴|어머|이런|어어|아아|응|어|아|음|와|헐)" + _LEAD_B +   # 추임새/감탄사
+    r"[\,\.\!\?…\s]*"                                              # 구두점·공백
+    r"(?:(?:그렇구나|그렇네|그러네|맞아|그래|정말|진짜|맞)" + _LEAD_B + r")?"   # "그렇구나" 등 리액션
+    r"[\,\.\!\?…\s]*"
+    r"(?:[가-힣]{1,4}(?:이야|야|아|이|씨)(?=[,.!?…]))?"           # 상대 이름 (지호야/민경아/윤정이) — 부호가 뒤따를 때만
+    r"[\,\.\!\?…\s]*"
+)
+
+
+def strip_leading_filler(text: str) -> str:
+    """[T-829] 첫머리 감정 도입/추임새/호칭 제거.
+    - 응/어/아/음/와/헐/어휴/어머 등 추임새
+    - 그렇구나/맞/그래/정말 등 짧은 리액션
+    - [이름]야/아/이야 등 호칭
+    - 뒤 본문이 없으면(전부 제거되면) 원본 반환(빈 응답 방지).
+    env `PRETHIRD_STRIP_LEAD_FILLER=0` 로 off.
+    """
+    if not text:
+        return text
+    if os.environ.get("PRETHIRD_STRIP_LEAD_FILLER", "1") != "1":
+        return text
+    stripped = _LEAD_FILLER_RE.sub("", text, count=1).strip()
+    # 완전히 지워졌으면 원본 유지 (LLM 응답이 짧아 도입부 하나뿐인 경우)
+    if not stripped:
+        return text
+    return stripped
 
 log = logging.getLogger("prethird.pipeline")
 
@@ -113,6 +185,43 @@ GREETING_PROMPT = (
     "전화 받은 사람처럼 익명으로 짧게 한 문장 인사만 해. 예: '여보세요?', '네, 여보세요.', '네~', '어 왔어?'. "
     "이름·별명·호칭 (지호야, 언니, 오빠 등) 사용 금지. 얼굴 인식 후 별도 알림이 오면 그때 이름을 부르게 될 거야."
 )
+
+# AFL-926: 이 계정과 전에 통화한 적이 있을 때의 첫인사. 이름 금지 규칙은 GREETING_PROMPT 와
+# 같다(얼굴 확인 전) — 다른 점은 "처음 받는 전화" 가 아니라 "아는 사람의 전화" 로 받는 것.
+GREETING_PROMPT_WITH_PRIOR = (
+    "방금 통화가 연결됐어. 이 상대와는 전에 통화한 적이 있어(위 '지난 통화 기록'). "
+    "아직 얼굴을 확인하기 전이니 상대 이름·호칭은 절대 부르지 마. "
+    "아는 사람 전화를 받은 것처럼 반갑게, **딱 한 문장, 20자 안팎**으로만 인사해. "
+    "지난 통화 이야기를 꺼내려면 그 한 문장 안에 짧게 담아(예: '고추는 다 땄어?'). "
+    "없는 얘기는 지어내지 마."
+)
+
+# AFL-926 (2026-10-02 실통화): 인사가 두 문장·10초 분량으로 나와 TTS 9s + 렌더 14s →
+#   연결 화면 25s 안전망을 1초 차로 넘겼다. 인사 문장은 렌더 시간이 곧 연결 대기라
+#   첫 문장만 쓰고 GREETING_MAX_CHARS 로 자른다(프롬프트만으로는 길이가 안 지켜진다).
+GREETING_MAX_CHARS = 40
+_SENTENCE_END_RE = re.compile(r"[.?!…~](?=\s|$)|\n")
+
+
+def first_sentence(text: str, max_chars: int = GREETING_MAX_CHARS) -> str:
+    """첫 문장(종결부호 포함)만. 그래도 길면 max_chars 안의 마지막 쉼표·공백에서 자른다."""
+    t = (text or "").strip()
+    m = _SENTENCE_END_RE.search(t)
+    if m:
+        t = t[: m.end()].strip()
+    if len(t) <= max_chars:
+        return t
+    cut = t[:max_chars]
+    for sep in (",", " "):
+        i = cut.rfind(sep)
+        if i >= max_chars // 2:
+            return cut[:i].strip()
+    return cut.strip()
+
+
+def greeting_prompt(has_prior: bool) -> str:
+    return GREETING_PROMPT_WITH_PRIOR if has_prior else GREETING_PROMPT
+
 
 # [T-067] 얼굴 인식 이벤트에 대한 선제 발화 프롬프트 (react()).
 REACT_PROMPT_KNOWN = (
@@ -196,6 +305,29 @@ class DialoguePipeline:
         self._last_emit_end: float | None = None  # [seg] 직전 _emit_sentence 종료 시각
         self._render_mode = _resolve_render_mode()  # [T-113] partial(기본)|batch 분기용
 
+        # T-820 (2026-09-28): pre-render greeting during dialing (백그라운드 워밍업).
+        #   목적: 사용자가 dialing 화면 보는 동안 서버가 greeting 을 LLM+TTS+MuseTalk
+        #   까지 완료 후 캐시. 첫 say() 호출 시 22s → 0s 로 즉시 응답.
+        #   초기값: not ready · not used. prerender_greeting() 이 채움.
+        self._prerender_ready = False
+        self._prerender_used = False
+        self._prerender_text: str = ""
+        self._prerender_wav_bytes: bytes | None = None
+        self._prerender_frames: list = []
+        self._prerender_pcm_bal = None
+
+        # T-821 (2026-09-28): 대화 히스토리 배선. env PRETHIRD_HISTORY_TURNS=N 이면 최근 N턴을
+        #   LLM messages 에 첨부 · 미설정 시 0 (기존 동작). say()/_system_utterance() 완료
+        #   후 record() 로 assistant 응답을 누적. 이전엔 클래스만 있고 wiring 이 없어 매 턴이
+        #   첫 턴처럼 취급되어 페르소나 규칙 A (초반 인사)가 반복 발동했다.
+        self._history = ConversationHistory.from_env()
+        # AFL-926: 이전 대화 로딩·인사 prerender 태스크. signaling 이 offer 직후 띄운다.
+        #   발화 경로(say/greet/react)는 메시지 조립 전에 이전 대화 로딩을 잠깐 기다린다.
+        # AFL-926: 앱이 Bridge 클립을 트는 통화인지(offer "bridge"). None = 모름(구 앱) → 기존처럼 대기.
+        self.uses_bridge: bool | None = None
+        self._prior_task: asyncio.Future | None = None
+        self._prerender_task: asyncio.Future | None = None
+
     # ------------------------------------------------------------------
     # 퍼블릭 API
     # ------------------------------------------------------------------
@@ -205,9 +337,210 @@ class DialoguePipeline:
         진행 중인 발화에는 영향 없음(각 호출 시점에 self.persona_messages를 읽어 조립)."""
         self.persona_messages = list(messages)
 
+    async def _render_to_cache(self, wav_bytes: bytes, pcm48: np.ndarray) -> tuple[list, "np.ndarray"]:
+        """T-820: MuseTalk infer 을 트랙에 push 안 하고 frames+pcm_bal 반환.
+        _infer_stage 와 동일한 렌더링 로직이지만 tvt/at push 대신 결과만 리턴."""
+        loop = asyncio.get_event_loop()
+        frames_buf: list = []
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+            f.write(wav_bytes)
+            wav_path = f.name
+
+        def on_frame(arr):
+            frames_buf.append(arr)
+
+        try:
+            await loop.run_in_executor(None, self.infer_fn, wav_path, on_frame)
+        finally:
+            try:
+                os.unlink(wav_path)
+            except OSError:
+                pass
+
+        nframes = len(frames_buf)
+        if nframes > 0:
+            pcm_bal, _ = self._balance(pcm48, nframes)
+        else:
+            pcm_bal = pcm48
+        if self._norm_on:
+            pcm_bal = self._normalize(pcm_bal)
+        pcm_bal = self._edge_fade(pcm_bal, fade_ms=self._fade_ms)
+        return frames_buf, pcm_bal
+
+    # ------------------------------------------------------------------
+    # AFL-926: 이전 대화 (통화 간 이어붙이기)
+    # ------------------------------------------------------------------
+
+    async def load_prior(self, user_id, clone_id, call_id: str | None = None) -> None:
+        """이 계정×클론의 이전 통화 턴을 받아 히스토리에 심는다. 실패해도 조용히 빈 채로."""
+        from prior_conversation import fetch_prior_turns
+        turns = await fetch_prior_turns(user_id, clone_id, exclude_call_id=call_id)
+        if turns:
+            self._history.seed_prior(turns)
+
+    async def _await_prior(self, timeout: float = 2.5) -> None:
+        """이전 대화 로딩이 진행 중이면 잠깐 기다린다. 넘기면 없는 채로 진행(통화 우선)."""
+        task = self._prior_task
+        if task is None or task.done():
+            return
+        try:
+            await asyncio.wait_for(asyncio.shield(task), timeout)
+        except Exception as e:  # noqa: BLE001 — timeout 포함, 발화를 막지 않는다
+            log.warning("[AFL-926/prior] 대기 생략: %s", type(e).__name__)
+
+    async def _generate_greeting_text(self) -> str:
+        """AFL-926 대안 B: 첫인사 문장을 LLM 으로 만든다(이전 대화 반영). 실패하면 ""."""
+        await self._await_prior()
+        messages = (
+            self.persona_messages
+            + self._history.messages()
+            + [{"role": "user", "content": greeting_prompt(self._history.has_prior())}]
+        )
+        try:
+            out: list[str] = []
+            agen = self.chat_fn(messages)
+            try:
+                async for tok in agen:
+                    out.append(str(tok))
+                    # 첫 문장이 끝나면 더 받지 않는다 — 어차피 잘라 버릴 토큰이다.
+                    if _SENTENCE_END_RE.search("".join(out).strip()):
+                        break
+            finally:
+                aclose = getattr(agen, "aclose", None)
+                if aclose is not None:
+                    await aclose()
+            return first_sentence("".join(out))
+        except Exception as e:  # noqa: BLE001
+            log.warning("[AFL-926/prerender] 인사 생성 실패: %s", e)
+            return ""
+
+    def cancel_background(self) -> None:
+        """통화 종료 시 signaling teardown 이 부른다 — 남은 prior·prerender 태스크 취소."""
+        for task in (self._prior_task, self._prerender_task):
+            if task is not None and not task.done():
+                task.cancel()
+
+    def start_prerender_greeting(self, text: str | None) -> None:
+        """signaling 용: prerender 를 백그라운드로 띄우고 greet() 가 기다릴 수 있게 잡아 둔다."""
+        self._prerender_task = asyncio.ensure_future(self.prerender_greeting(text))
+
+    async def prerender_greeting(self, text: str | None = "안녕! 반가워.") -> None:
+        """T-820 (2026-09-28): dialing 중 인사말 pre-render (백그라운드).
+
+        signaling.py 의 offer 핸들러가 세션 setup 직후 asyncio.ensure_future 로 호출.
+        TTS + MuseTalk 완료 후 cache 에 저장 → 인사 즉시 push.
+
+        AFL-926: text=None 이면 고정 문구 대신 LLM 이 인사를 만든다(이전 대화 반영 —
+        대안 B). 생성이 실패하면 env PRETHIRD_PRERENDER_TEXT(기본 "안녕! 반가워.")로 폴백.
+        캐시는 greet() 가 먼저 쓴다(greet 꺼진 레거시 모드에서만 첫 say() 가 쓴다).
+
+        clone 미준비면 skip. 이미 준비됐거나 사용됐으면 no-op."""
+        if self._prerender_ready or self._prerender_used:
+            return
+        if self.clone_locked and not self.se_path:
+            log.info("[T-820/prerender] clone voice 미준비 — skip")
+            return
+        import time as _time
+        t0 = _time.perf_counter()
+        try:
+            if text is None:
+                text = await self._generate_greeting_text() or os.environ.get(
+                    "PRETHIRD_PRERENDER_TEXT", "안녕! 반가워.")
+                log.info("[AFL-926/prerender] LLM 인사 '%s' prior=%s llm_ms=%d",
+                         text[:40], self._history.has_prior(),
+                         int((_time.perf_counter() - t0) * 1000))
+                if self._prerender_used:
+                    # 생성하는 사이 greet 가 기다리다 포기하고 직접 인사했다 — 버린다.
+                    return
+            wav_bytes, pcm48 = await self._tts_stage(text)
+            if self._prerender_used:
+                return                    # (el) 포기된 인사에 GPU 렌더를 쓰지 않는다
+            frames, pcm_bal = await self._render_to_cache(wav_bytes, pcm48)
+            if self._prerender_used:
+                return
+            self._prerender_text = text
+            self._prerender_wav_bytes = wav_bytes
+            self._prerender_frames = frames
+            self._prerender_pcm_bal = pcm_bal
+            self._prerender_ready = True
+            log.info(
+                "[T-820/prerender] cached '%s' frames=%d prep_ms=%d",
+                text[:40], len(frames), int((_time.perf_counter() - t0) * 1000),
+            )
+        except Exception as e:
+            log.warning("[T-820/prerender] failed: %s", e)
+
+    async def prewarm(self, text: str = "웜") -> None:
+        """[T-825] GPU/모델 warm-up: 짧은 텍스트로 TTS+MuseTalk 통과 · 결과 버림.
+
+        Session offer 직후 signaling 이 백그라운드로 호출. 첫 실통화 turn 시
+        whisper cold=1.9s → warm=0.03s · unet cudnn 캐시 활성 등 · Turn 1 지연 감소.
+
+        T-820 (prerender_greeting) 과 결정적 차이 — 결과 (frames/wav) 를
+        **캐시하지 않음** · self._prerender_* 안 건드림 · say() 캐시 hit 없음.
+        따라서 사용자에게 두 답변 사고 발생 안 함 (T-820 실패 원인 회피).
+
+        Clone 미준비면 skip."""
+        if self.clone_locked and not self.se_path:
+            log.info("[T-825/prewarm] clone voice 미준비 — skip")
+            return
+        import time as _time
+        t0 = _time.perf_counter()
+        try:
+            wav_bytes, pcm48 = await self._tts_stage(text)
+            # 렌더 후 결과 버림 · push 안 함
+            frames, _ = await self._render_to_cache(wav_bytes, pcm48)
+            log.info(
+                "[T-825/prewarm] done text=%r frames=%d prep_ms=%d",
+                text, len(frames), int((_time.perf_counter() - t0) * 1000),
+            )
+        except Exception as e:
+            log.warning("[T-825/prewarm] failed: %s", e)
+
+    async def _push_prerender(self, turn, on_first_audio, on_response_ready, on_sentence) -> None:
+        """T-820 캐시(frames/wav)를 즉시 push 하고 히스토리에 남긴다. 1회용."""
+        self._prerender_used = True
+        log.info(
+            "[T-820/prerender] cache hit · pushing '%s' (%d frames)",
+            self._prerender_text[:40], len(self._prerender_frames),
+        )
+        try:
+            if on_response_ready is not None:
+                try:
+                    on_response_ready()
+                except Exception as e:
+                    log.warning("on_response_ready callback failed: %s", e)
+            if on_sentence is not None:
+                try:
+                    on_sentence(self._prerender_text)
+                except Exception as e:
+                    log.warning("on_sentence callback failed: %s", e)
+            # AFL-926: greet 경로는 첫 오디오 = speech_start(다이얼링 해제)·과금 시작점.
+            if on_first_audio is not None:
+                try:
+                    on_first_audio()
+                except Exception as e:
+                    log.warning("on_first_audio callback failed: %s", e)
+            # recorder 반영 (answer.txt/wav/mp4 저장 시 사용).
+            for tok in self._prerender_text:
+                turn.append_token(tok)
+            if self._prerender_wav_bytes is not None:
+                turn.append_wav(self._prerender_wav_bytes)
+            for arr in self._prerender_frames:
+                self.vt.push_ndarray(arr)
+            if self._prerender_pcm_bal is not None:
+                self.at.push_pcm_int16(self._prerender_pcm_bal)
+            turn.append_frames(self._prerender_frames, self._prerender_pcm_bal, fps=25)
+        finally:
+            self.vt.signal_end()
+            self.at.signal_end()
+        # T-821: prerender 인사도 history 에 남긴다 (다음 turn 에 클론이 또 인사하는 것 방지).
+        #   user_text=None (prerender 는 시스템 발화 · greet 과 동일 취급).
+        self._history.record(None, self._prerender_text)
+
     async def say(
         self, user_text: str, turn=None, on_first_audio=None, on_response_ready=None,
-        on_sentence=None,
+        on_sentence=None, on_reply_done=None,
     ) -> None:
         """user_text 1턴을 처리해 video/audio 트랙에 적재하고 signal_end 호출.
         turn: recorder Turn 핸들(없으면 NULL_TURN) — LLM 토큰·TTS wav 누적.
@@ -220,7 +553,25 @@ class DialoguePipeline:
         if self.clone_locked and not self.se_path:
             log.warning("clone voice 미준비 — 발화 skip (폴백 없음)")
             return
-        messages = self.persona_messages + [{"role": "user", "content": user_text}]
+
+        # T-820 (2026-09-28): pre-render cache hit — 첫 say() 1회만 사용.
+        #   dialing 중 prerender_greeting() 이 채운 캐시가 준비되어 있으면
+        #   LLM+TTS+MuseTalk 전체 스킵하고 즉시 push. 나머지 turn 은 정상 흐름.
+        # AFL-926: greet 가 켜져 있으면 캐시는 greet() 의 것이다. 여기서 쓰면 사용자의 첫
+        #   말에 인사가 대답으로 나간다(2026-09-28 prerender-off 의 원인으로 추정).
+        if (self._prerender_ready and not self._prerender_used
+                and os.environ.get("PRETHIRD_GREETING_ENABLED", "1") != "1"):
+            await self._push_prerender(turn, None, on_response_ready, on_sentence)
+            return
+
+        await self._await_prior()
+        # T-821: 이전 턴 messages 를 persona 뒤 · 현재 발화 앞에 삽입.
+        #   미설정(0) 이면 messages() 가 [] → 회귀 0.
+        messages = (
+            self.persona_messages
+            + self._history.messages()
+            + [{"role": "user", "content": user_text}]
+        )
 
         # [Remember Me 2026-08-13] 이름 부르기 힌트 — 딱 1회 소비하고 지운다.
         #
@@ -239,7 +590,13 @@ class DialoguePipeline:
                     f"[중요] 지금 카메라 앞에 실제로 있는 사람은 '{_speaker_now}' 님이야. "
                     f"사용자가 '너 나 알아?' '내 얼굴 봤을 때 누군지 맞춰봐' 같이 신원을 묻거나 "
                     f"확인을 요청하면 '{_speaker_now}'라는 이름을 자연스럽게 말하며 알아본다고 답해줘. "
-                    f"'기억이 잘 안 나' '누군지 모르겠다' 같은 회피성 답변 금지."
+                    f"'기억이 잘 안 나' '누군지 모르겠다' 같은 회피성 답변 금지. "
+                    # T-838 (2026-09-30): 얼굴 환각 방지 · 실제 볼 수 있는 건 이름 매칭 결과뿐 ·
+                    #   외모·표정·기분·복장·날씨는 판단 못 함. "오늘따라 멋있어" "피곤해 보이네"
+                    #   "얼굴이 좋아 보여" 같은 환각 표현 절대 금지.
+                    f"⚠️ 단, 상대의 얼굴 상태·표정·기분·외모·복장(멋있다·피곤해 보인다·"
+                    f"오늘따라 다르다·안색이 어떻다 등)은 **실제로 볼 수 없으니 절대 언급 X**. "
+                    f"이건 신원 매칭 결과일 뿐 · 시각적 관찰 아님. 외모 판단은 환각."
                 ),
             }]
 
@@ -255,17 +612,32 @@ class DialoguePipeline:
                 ),
             }]
 
+        # T-821: assistant 응답 로컬 누적 → _run_pipeline 종료 후 history.record().
+        #   turn._tokens 를 재사용하지 않는 이유: turn 이 NULL_TURN 이면 실기록이
+        #   없어 그 값에 기대면 히스토리도 빈다. 로컬 리스트로 대체.
+        answer_tokens: list[str] = []
+
         async def produce(q: asyncio.Queue):
             sb = self._sb_factory()
             async for tok in self.chat_fn(messages):
                 turn.append_token(tok)
+                answer_tokens.append(str(tok))
                 for s in sb.push(tok):
                     await q.put(s)
+            # AFL-926: 응답 텍스트 확정 시점 통지(턴 기록용). 재생(Bridge·렌더·push)은 아직
+            #   한참 남았지만 기록은 지금 해야 끊고 바로 다시 건 통화가 이 턴을 받아 온다.
+            if on_reply_done is not None:
+                try:
+                    on_reply_done("".join(answer_tokens))
+                except Exception as e:  # noqa: BLE001 — 기록 실패가 발화를 막으면 안 된다
+                    log.warning("on_reply_done callback failed: %s", e)
             for s in sb.flush():
                 await q.put(s)
             await q.put(None)
 
         await self._run_pipeline(produce, turn, on_first_audio, on_response_ready, on_sentence=on_sentence)
+        # T-821: 발화 완료 · assistant_text 기록. 빈 응답이면 클래스 내부에서 skip.
+        self._history.record(user_text, "".join(answer_tokens))
 
     async def speak(
         self, text: str, turn=None, on_first_audio=None, on_response_ready=None,
@@ -297,9 +669,31 @@ class DialoguePipeline:
         """통화 연결 직후 클론이 먼저 건네는 인사. LLM이 페르소나 기반 1문장 생성.
         say()와 동일 파이프라인이되 user 입력 대신 GREETING_PROMPT 지시를 준다.
         on_response_ready: 첫 infer 완료 후·첫 push 직전 1회 호출 (F7 filler 즉시컷, greet는 보통 None).
-        on_sentence: [T-151] 클론 발화 자막용 문장별 콜백(say() 참조)."""
+        on_sentence: [T-151] 클론 발화 자막용 문장별 콜백(say() 참조).
+
+        AFL-926 대안 B: 다이얼링 중 prerender 가 돌고 있으면 잠깐 기다렸다가(기본 6초)
+        캐시된 인사를 즉시 내보낸다. 준비가 안 되면 기존대로 LLM 으로 바로 만든다."""
+        turn_ = turn if turn is not None else NULL_TURN
+        task = self._prerender_task
+        if task is not None and not task.done() and not self._prerender_used:
+            try:
+                wait_s = float(os.environ.get("PRETHIRD_PRERENDER_WAIT_S", "6"))
+            except ValueError:
+                wait_s = 6.0
+            try:
+                await asyncio.wait_for(asyncio.shield(task), wait_s)
+            except Exception as e:  # noqa: BLE001
+                log.warning("[AFL-926/greet] prerender 대기 생략: %s", type(e).__name__)
+                if not self._prerender_ready:
+                    task.cancel()         # (el) 직접 인사와 GPU 를 다투지 않게 접는다
+        if self._prerender_ready and not self._prerender_used:
+            await self._push_prerender(turn_, on_first_audio, on_response_ready, on_sentence)
+            return
+        # 캐시 없이 직접 인사 — 뒤늦게 끝난 prerender 가 첫 say 로 새지 않게 막는다.
+        self._prerender_used = True
+        await self._await_prior()
         await self._system_utterance(
-            GREETING_PROMPT, "greet", turn=turn,
+            greeting_prompt(self._history.has_prior()), "greet", turn=turn,
             on_first_audio=on_first_audio, on_response_ready=on_response_ready,
             on_sentence=on_sentence,
         )
@@ -312,6 +706,9 @@ class DialoguePipeline:
             REACT_PROMPT_KNOWN.format(name=display_name)
             if kind == "known" else REACT_PROMPT_UNKNOWN
         )
+        # AFL-926 (el): react 가 greet 보다 먼저 오면, react 맥락 없이 만든 캐시 인사가 뒤늦게
+        #   나가지 않게 막는다(greet 는 직접 LLM 경로로 간다).
+        self._prerender_used = True
         await self._system_utterance(prompt, "react", turn=turn, on_first_audio=on_first_audio)
 
     # ------------------------------------------------------------------
@@ -335,12 +732,24 @@ class DialoguePipeline:
         if self.clone_locked and not self.se_path:
             log.warning("clone voice 미준비 — %s skip (폴백 없음)", label)
             return
-        messages = self.persona_messages + [{"role": "user", "content": prompt}]
+        await self._await_prior()
+        # T-821: greet/react 는 시스템 지시라 user turn 아님 · 히스토리에는 persona
+        #   context 도, 이전 턴도 그대로 활용. prompt 는 지시문이니 messages 에는
+        #   포함하되 history.record 는 user_text=None 으로 남긴다 (다음 턴 프롬프트
+        #   오염 방지 — ConversationHistory 주석 참조).
+        messages = (
+            self.persona_messages
+            + self._history.messages()
+            + [{"role": "user", "content": prompt}]
+        )
+
+        answer_tokens: list[str] = []
 
         async def produce(q: asyncio.Queue):
             sb = self._sb_factory()
             async for tok in self.chat_fn(messages):
                 turn.append_token(tok)
+                answer_tokens.append(str(tok))
                 for s in sb.push(tok):
                     await q.put(s)
             for s in sb.flush():
@@ -351,6 +760,8 @@ class DialoguePipeline:
             produce, turn, on_first_audio, on_response_ready, force_partial=True,
             on_sentence=on_sentence,
         )
+        # T-821: greet/react 응답도 히스토리에 남긴다 (다음 턴에 재-인사 방지).
+        self._history.record(None, "".join(answer_tokens))
 
     # ------------------------------------------------------------------
     # 내부: 문장 1개 처리 (스테이지 분리)
@@ -362,16 +773,91 @@ class DialoguePipeline:
         T-497: 이모지 strip. LLM 이 프롬프트 규칙 어기고 이모지 뱉어도 여기서
         방어적으로 제거해 TTS 왜곡("이모치 하피") 방지. 원본 sentence 는 자막
         발신에서 이미 소비된 뒤라 여기서 sanitize 해도 UX 영향 없음.
+
+        T-806 (2026-09-22): TTS 앞뒤에 각 200ms 무음 padding 추가 (스펙 §6).
+          MuseTalk 이 wav 를 입 다문 상태로 시작·종료 → Bridge (입 다문 중립 포즈로
+          끝남) 에서 Speak 로 넘어갈 때 표정 점프 없음.
+
+        T-822 (2026-09-28): pad ms 를 env 로 노출.
+          PRETHIRD_TTS_PAD_FRONT_MS · PRETHIRD_TTS_PAD_BACK_MS · 기본 200/200.
+          Partial 모드에선 문장마다 padding 이 붙어 문장 사이 무음이 (back+front)
+          만큼 이중으로 삽입된다 — 사용자 체감 "공백 길다". 값을 50/50 등으로
+          낮추면 문장 사이 100ms 로 줄어들고 Bridge 이음매 padding 은 그대로 유지.
         """
         clean = strip_emojis_for_tts(sentence)
+        # T-829 (2026-09-29): 첫머리 감정 도입/추임새 제거.
+        clean = strip_leading_filler(clean)
+        # T-828 (2026-09-29): 종결 부호 없는 짧은 문장 (예: "고마워") 에 마침표 자동 추가.
+        #   CosyVoice2/Qwen3-TTS 는 마침표 있으면 종결 하강 억양 유도 · 없으면 애매 종결.
+        #   실통화 실측: "고마워" 끝음 상승 · "고마워." 끝음 하강. env 로 off 가능.
+        if os.environ.get("PRETHIRD_TTS_AUTO_PERIOD", "1") == "1":
+            if clean and not clean.rstrip().endswith(('.', '!', '?', '…', '。', '！', '？')):
+                clean = clean.rstrip() + '.'
         wav_bytes = await self.say_fn(clean or sentence, self.se_path)
         pcm, sr, _ = self.decode_wav_fn(wav_bytes)
+        # T-806/822 무음 padding — env 기본 200/200, 조정 가능.
+        front = int(os.environ.get("PRETHIRD_TTS_PAD_FRONT_MS", "200"))
+        back = int(os.environ.get("PRETHIRD_TTS_PAD_BACK_MS", "200"))
+        pcm = _pad_silence(pcm, sr, front_ms=front, back_ms=back)
+        wav_bytes = _encode_wav_pcm(pcm, sr)  # MuseTalk 은 wav_bytes 를 파일로 저장해 소비
         pcm48 = self._resample(pcm, sr, 48000)
         return wav_bytes, pcm48
 
+    async def _tts_stage_multi(self, full_text: str):
+        """다중 문장 → 각 문장별 _tts_stage → pcm concat → 통합 wav + pcm48 반환.
+
+        T-806 후속 (2026-09-22): Batch mode 로 답변 통째 TTS 하면 Qwen3-TTS 가
+        문장 사이 pause 를 자연 처리하다가 filler/hallucination (클럽 노래 같은
+        비-음성 소리) 를 생성하는 버그 회피. 마침표/느낌표/물음표 기준으로 분리해
+        문장별로 TTS 호출하면 각 호출 앞뒤 200ms padding 이 문장 사이 400ms 무음
+        구간으로 자연 삽입 → TTS 가 filler 낄 자리가 사라짐.
+
+        단일 문장이면 기존 _tts_stage 그대로 위임 (backward compat).
+        """
+        sentences = [s.strip() for s in re.split(r'(?<=[.!?…])\s+|\n+', full_text) if s.strip()]
+        if len(sentences) <= 1:
+            return await self._tts_stage(full_text)
+        pcm_native_parts: list[np.ndarray] = []
+        pcm_48k_parts: list[np.ndarray] = []
+        sr_native: int | None = None
+        # T-822: env 로 pad ms 노출 (기본 200/200). _tts_stage 와 동일 값 사용.
+        _pad_front = int(os.environ.get("PRETHIRD_TTS_PAD_FRONT_MS", "200"))
+        _pad_back = int(os.environ.get("PRETHIRD_TTS_PAD_BACK_MS", "200"))
+        # T-828: multi 분기도 auto-period 적용 (개별 세그 각각).
+        # T-829: multi 분기 · 첫 세그(sentences[0])에만 lead-filler 제거 · 뒤 세그는 유지.
+        _auto_period = os.environ.get("PRETHIRD_TTS_AUTO_PERIOD", "1") == "1"
+        for _idx, sent in enumerate(sentences):
+            clean = strip_emojis_for_tts(sent)
+            if _idx == 0:
+                clean = strip_leading_filler(clean)
+            if _auto_period and clean and not clean.rstrip().endswith(('.', '!', '?', '…', '。', '！', '？')):
+                clean = clean.rstrip() + '.'
+            wav_bytes_i = await self.say_fn(clean or sent, self.se_path)
+            pcm_i, sr_i, _ = self.decode_wav_fn(wav_bytes_i)
+            pcm_i = _pad_silence(pcm_i, sr_i, front_ms=_pad_front, back_ms=_pad_back)
+            if sr_native is None:
+                sr_native = sr_i
+            elif sr_i != sr_native:
+                # sr 이 문장 사이 다르면 concat 불가 — 안전 폴백: 통짜 TTS.
+                log.warning(
+                    "[T-806/tts-multi] sr mismatch (first=%d, cur=%d) — 통짜 TTS 로 폴백",
+                    sr_native, sr_i,
+                )
+                return await self._tts_stage(full_text)
+            pcm_native_parts.append(pcm_i)
+            pcm_48k_parts.append(self._resample(pcm_i, sr_i, 48000))
+        combined_native = np.concatenate(pcm_native_parts)
+        combined_48k = np.concatenate(pcm_48k_parts)
+        wav_bytes = _encode_wav_pcm(combined_native, sr_native)
+        log.info(
+            "[T-806/tts-multi] %d문장 concat 완료 (총 %d samples @ %dHz)",
+            len(sentences), combined_native.shape[0], sr_native,
+        )
+        return wav_bytes, combined_48k
+
     async def _infer_stage(
         self, wav_bytes: bytes, pcm48: np.ndarray, turn=None, on_before_push=None,
-        render_mode: str | None = None,
+        render_mode: str | None = None, min_push_at: float | None = None,
     ) -> None:
         """wav → musetalk infer(executor) → frames 일괄 push + balance audio. (GPU1)
         turn: recorder Turn — PRETHIRD_RECORD_MP4=1 시 frames 누적.
@@ -381,7 +867,11 @@ class DialoguePipeline:
           이 지점~push 사이 await 없음 → stop→flush→응답push 원자성 유지.
         render_mode: [T-113] batch 경로에서만 명시 전달("batch"). partial(기존 호출부)은
           항상 기본값 None 이라 infer_fn 호출이 기존과 100% 동일(positional-only,
-          kwarg 미부여)하게 유지된다 — partial 무변경 보장."""
+          kwarg 미부여)하게 유지된다 — partial 무변경 보장.
+        min_push_at: [T-824] time.perf_counter() 기준 이 시각 전에는 push 하지 않고 대기.
+          Bridge 재생 종료 시점까지 첫 세그 push 를 미뤄 오디오 겹침 방지.
+          _fire_hook (F7 즉시컷) 은 render 완료 즉시 fire (필러 정지 timely) · 그 후 wait · push.
+          None (기본) 이면 대기 없음 · 기존 동작."""
         turn = turn if turn is not None else NULL_TURN
         loop = asyncio.get_event_loop()
         frames_buf: list[np.ndarray] = []
@@ -417,6 +907,16 @@ class DialoguePipeline:
             # 필러 오디오("음...")를 반드시 끊어야 응답 음성과 겹치지 않는다.
             # 이 지점~push 사이 await 없음 → stop→flush→응답push 원자성 유지.
             _fire_hook()
+            # T-824: min_push_at 지정 시 그 시각까지 대기 후 push
+            #   (Bridge 재생 종료 시점 · 오디오 겹침 방지)
+            if min_push_at is not None:
+                wait_s = min_push_at - time.perf_counter()
+                if wait_s > 0:
+                    log.info(
+                        "[T-824] delaying first push by %dms (Bridge 재생 종료 대기)",
+                        int(wait_s * 1000),
+                    )
+                    await asyncio.sleep(wait_s)
             for arr in frames_buf:
                 self.vt.push_ndarray(arr)
             nframes = len(frames_buf)
@@ -504,7 +1004,11 @@ class DialoguePipeline:
         if self._render_mode == "batch" and not force_partial:
             await self._run_batch(produce, turn, on_first_audio, on_response_ready, on_sentence=on_sentence)
         else:
-            await self._run_pipeline_partial(produce, turn, on_first_audio, on_response_ready, on_sentence=on_sentence)
+            # Bridge 대기는 사용자 응답(say/speak)에만 — greet/react(force_partial)는 앱이 Bridge 를
+            # 틀지 않으므로(onUserFinal 트리거) 기다리면 무음만 늘어난다(AFL-926 실측 첫인사 ~21초).
+            await self._run_pipeline_partial(produce, turn, on_first_audio, on_response_ready,
+                                             on_sentence=on_sentence,
+                                             bridge_wait=(not force_partial) and self.uses_bridge is not False)
 
     async def _run_batch(
         self, produce, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None,
@@ -608,7 +1112,9 @@ class DialoguePipeline:
                 # 기본은 꺼 둔다 — 통화 내용은 PII 다. 검증 중에만 env 로 켠다.
                 if os.environ.get("PRETHIRD_TTS_TEXT_LOG", "0") == "1":
                     log.info("[T-113] TTS 입력 원문 ⟪%s⟫", full_text[:200])
-                wav_bytes, pcm48 = await self._tts_stage(full_text)
+                # T-806 후속: 문장별 TTS + concat (Qwen3-TTS 문장 사이 filler
+                #   hallucination 회피). 단일 문장이면 내부에서 _tts_stage 로 위임.
+                wav_bytes, pcm48 = await self._tts_stage_multi(full_text)
                 turn.append_wav(wav_bytes)
                 await self._infer_stage(
                     wav_bytes, pcm48, turn,
@@ -632,6 +1138,7 @@ class DialoguePipeline:
 
     async def _run_pipeline_partial(
         self, produce, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None,
+        bridge_wait: bool = True,
     ) -> None:
         """produce(sentence_q): 문장을 sentence_q 에 put 하고 끝에 None.
         TTS 워커(GPU0)와 infer 워커(GPU1)를 wav_q 로 연결해 오버랩 실행.
@@ -663,7 +1170,14 @@ class DialoguePipeline:
                     break
                 if _m["first_sent_ms"] is None:
                     _m["first_sent_ms"] = int((time.perf_counter() - _t_turn) * 1000)
-                wav_bytes, pcm48 = await self._tts_stage(s)
+                # T-806 (2026-09-25): _tts_stage → _tts_stage_multi 로 교체.
+                #   sentence_buffer 가 짧은 응답 을 안 나누고 뭉쳐 보내는 경우
+                #   Qwen3-TTS 가 "안녕" 만 렌더 후 나머지 8s 를 filler
+                #   hallucination (공사장 잡음) 로 채우는 문제 회피.
+                #   _tts_stage_multi 내부에서 [.!?] 로 문장 split 후
+                #   각 문장별 TTS + 200ms padding concat.
+                #   단일 문장이면 _tts_stage 로 위임 (회귀 0).
+                wav_bytes, pcm48 = await self._tts_stage_multi(s)
                 turn.append_wav(wav_bytes)
                 _m["n_seg"] += 1
                 # [T-151 라운드2] on_sentence는 여기서 더 이상 발신하지 않는다
@@ -703,9 +1217,27 @@ class DialoguePipeline:
                 # 렌더(수 초) 동안 필러가 순환하도록 여기서 미리 자르지 않는다
                 # (과거 infer 직전 컷 = 렌더 시간만큼 idle 갭, T-088 라운드4 실측).
                 # 호출은 이벤트루프 스레드(코루틴) → call_soon_threadsafe 불필요.
+                _is_first_seg = _first_infer
                 _hook = _make_hook(s, _first_infer)
                 _first_infer = False
-                await self._infer_stage(wav_bytes, pcm48, turn, on_before_push=_hook)
+                # T-824/830: 첫 세그 push 는 Bridge 재생 종료 시점 (grace + duration) 까지 미룸.
+                #   T-830 (2026-09-29): 이전 조건 `elapsed >= grace_ms` 제거 · 항상 min_push_at 세팅.
+                #   Reason: LLM 첫 문장 매우 빠른 turn 은 elapsed < grace 라 delay 발동 안 됨.
+                #   Render 완료 시점이 grace 안에 들어와도 Bridge 는 앱에서 grace 후 이미 뜸 →
+                #   서버 push 가 Bridge 재생 중 도착 · 오디오 겹침 발생. 항상 delay 로 통일.
+                #   Render 완료가 이미 min_push_at 넘었으면 _infer_stage 내부에서 wait_s<=0 로 skip.
+                _min_push_at = None
+                if _is_first_seg and bridge_wait:
+                    _grace_ms = int(os.environ.get("PRETHIRD_BRIDGE_GRACE_MS", "3000"))
+                    _bridge_ms = int(os.environ.get("PRETHIRD_BRIDGE_DURATION_MS", "8000"))
+                    # T-845 (2026-09-30): Bridge 종료 후 추가 대기(default 2000ms).
+                    #   사용자 요구 — Bridge 재생 끝나고 TTS+MuseTalk push 사이 여유.
+                    #   0 이면 종전 동작(즉시 push).
+                    _post_bridge_ms = int(os.environ.get("PRETHIRD_POST_BRIDGE_DELAY_MS", "2000"))
+                    _min_push_at = _t_turn + (_grace_ms + _bridge_ms + _post_bridge_ms) / 1000.0
+                await self._infer_stage(
+                    wav_bytes, pcm48, turn, on_before_push=_hook, min_push_at=_min_push_at,
+                )
                 if _m["first_audio_ms"] is None:
                     _m["first_audio_ms"] = int((time.perf_counter() - _t_turn) * 1000)
                 # 첫 오디오 프레임 송출 직후 1회 통지(연결 중 화면 종료·speech_start echo).

@@ -14,10 +14,10 @@ describe('timingConfig store', () => {
 
   it('defaults match current hardcoded values', () => {
     const v_fd5f43 = v_7347b3.getState();
-    expect(v_fd5f43.sttEndpointMs).toBe(2500);
+    expect(v_fd5f43.sttEndpointMs).toBe(800);
     expect(v_fd5f43.echoGateMs).toBe(3500);
-    expect(v_fd5f43.cloneResumeMs).toBe(300);
-    expect(v_fd5f43.cloneTailGraceMs).toBe(1000);
+    expect(v_fd5f43.cloneResumeMs).toBe(1000);
+    expect(v_fd5f43.cloneTailGraceMs).toBe(1500);
     expect(v_fd5f43.responseDoneTimeoutMs).toBe(45000);
   });
 
@@ -36,13 +36,13 @@ describe('timingConfig store', () => {
 
   it('setField ignores non-finite values', () => {
     v_7347b3.getState().setField('cloneResumeMs', Number.NaN);
-    expect(v_7347b3.getState().cloneResumeMs).toBe(300);
+    expect(v_7347b3.getState().cloneResumeMs).toBe(1000);
   });
 
   it('reset restores defaults', () => {
     v_7347b3.getState().setField('sttEndpointMs', 800);
     v_7347b3.getState().reset();
-    expect(v_7347b3.getState().sttEndpointMs).toBe(2500);
+    expect(v_7347b3.getState().sttEndpointMs).toBe(800);
   });
 });
 

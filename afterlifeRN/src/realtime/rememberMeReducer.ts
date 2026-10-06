@@ -38,9 +38,9 @@ export const v_575cf8 = 60_000;
 
 export const v_e6be56 = 90_000;
 
-export const v_fb3fee = 2;
+export const v_fb3fee = 5;
 
-export const v_0e9727 = 3;
+export const v_0e9727 = 5;
 
 export const v_a4afab = 0.7;
 

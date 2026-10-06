@@ -129,3 +129,72 @@ def test_say_survives_turn_writeback_failure(monkeypatch, tmp_path):
 
     assert sess.pipeline.said == ["여보세요"]
     assert sess.state == "idle"
+
+
+class _SlowPlaybackPipeline:
+    """GPT 응답은 바로 끝나고(on_reply_done) 재생(Bridge·렌더·push)은 오래 걸리는 say."""
+
+    def __init__(self, playback_s=0.5, call_reply_done=True):
+        self.playback_s = playback_s
+        self.call_reply_done = call_reply_done
+
+    async def say(self, text, turn=None, on_first_audio=None, on_response_ready=None,
+                  on_sentence=None, on_reply_done=None):
+        if turn is not None:
+            turn.append_token("고추 ")
+            turn.append_token("땄구나")
+        if self.call_reply_done and on_reply_done is not None:
+            on_reply_done("고추 땄구나")
+        await asyncio.sleep(self.playback_s)
+
+
+def _run_slow(monkeypatch, tmp_path, pipeline, checkpoints):
+    """say 시작 후 checkpoints(초) 시점마다 기록된 턴 수를 잰다."""
+    from recorder import make_recorder
+
+    captured: list[dict] = []
+
+    async def _fake_tw(call_id, user_text, clone_reply, dedupe_key=None,
+                       speaker_person_id=None):
+        captured.append({"user_text": user_text, "clone_reply": clone_reply})
+
+    monkeypatch.setattr(tw, "turn_writeback", _fake_tw)
+    monkeypatch.setenv("PRETHIRD_LEARN_ENABLED", "0")
+    sess = Session("0123456789ab")
+    sess.pipeline = pipeline
+    sess.offer_time = 1_700_000_000.0
+    sess.recorder = make_recorder(9114, sess.session_id, root=str(tmp_path))
+
+    counts = []
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        handler = _make_dc_handler(sess, channel=None)
+        handler(_json.dumps({"type": "say", "text": "나 오늘 고추 땄어", "seq": 5}))
+        last = 0.0
+        for t in checkpoints:
+            loop.run_until_complete(asyncio.sleep(t - last))
+            last = t
+            counts.append(len(captured))
+    finally:
+        asyncio.set_event_loop(None)
+        loop.close()
+    return captured, counts
+
+
+def test_turn_recorded_when_reply_done_not_after_playback(monkeypatch, tmp_path):
+    """AFL-926: 기록은 GPT 응답 직후 — 재생이 끝날 때까지 기다리지 않는다.
+
+    재생 뒤에 기록하면 끊고 바로 다시 건 통화가 직전 턴을 못 받아 온다(2026-10-02
+    실측: 고추 턴 기록 13:06:38 > 다음 통화 이전 대화 조회 13:06:25)."""
+    captured, counts = _run_slow(monkeypatch, tmp_path, _SlowPlaybackPipeline(0.5), [0.05, 0.7])
+    assert counts == [1, 1]                       # 재생 중에 이미 기록 · 끝나도 중복 없음
+    assert captured[0] == {"user_text": "나 오늘 고추 땄어", "clone_reply": "고추 땄구나"}
+
+
+def test_turn_recorded_in_finally_when_reply_done_never_fires(monkeypatch, tmp_path):
+    """캐시 응답·응답 전 실패처럼 콜백이 안 불린 턴은 기존처럼 끝에서 한 번 기록한다."""
+    captured, counts = _run_slow(
+        monkeypatch, tmp_path, _SlowPlaybackPipeline(0.2, call_reply_done=False), [0.05, 0.4])
+    assert counts == [0, 1]
+    assert captured[0]["clone_reply"] == "고추 땄구나"     # turn._tokens 누적본

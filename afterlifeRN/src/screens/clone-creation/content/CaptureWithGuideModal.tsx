@@ -137,7 +137,8 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
 
   const v_7c2f5d = v_bbb3d3.status === "detected";
   const v_6a5345 = 0.15; 
-  const v_822ad2 = 0.55; 
+
+  const v_822ad2 = 0.98;
 
   const v_4e2fd3 = 0.15;
   const v_061968 = 0.55;

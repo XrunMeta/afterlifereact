@@ -51,7 +51,8 @@ interface Step {
 
   guide: (yaw: number, pitch: number) => string;
 }
-const v_df1250 = 6;
+
+const v_df1250 = 1;
 
 const v_77ce37 = [
   {

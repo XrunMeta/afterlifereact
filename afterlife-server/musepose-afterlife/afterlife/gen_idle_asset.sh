@@ -28,15 +28,36 @@ PY=/home/afterlife/miniconda3/envs/liveportrait/bin/python
 # 구동 모션 소스(확장자 제외 stem). driving 폴더에 <DRIVING>.mp4 또는 <DRIVING>.pkl 이 있어야 함.
 # mp4 지정 시 첫 실행에서 <DRIVING>.pkl 캐시가 driving 폴더에 자동 생성됨(systemd ReadWritePaths 허용).
 DRIVING=normal-idle
+# T-942 (2026-10-02): driving 영상 5초로 trim → LivePortrait inference 시간 ~1/4.
+#   사용자 "눈 깜박임만 나오는데 5분이나 걸려". normal-idle.mp4 는 20s 길이,
+#   inference 가 프레임 수에 선형이므로 5s 로 자르면 ~2~5분 → ~1분으로 단축.
+#   결과 영상도 5s 지만 CallScreen idlePlayer 가 loop 재생해 체감 영향 없음.
+#   driving pkl 캐시는 trimmed 영상 기준으로 자동 생성(첫 호출만 추가 비용).
+DRIVING_TRIM_SEC=5
 TMP=$(mktemp -d)
 
 cd "$LP"
 
+# driving 영상 trim + slow down (ffmpeg -t + setpts) — T-947 (2026-10-02)
+#   사용자 "너무 빨라" → 2배 느리게 (SLOW=2.0).
+#   재튜닝 (2026-10-02 2차): "눈 감는 거 더 줄여줘... 너무 많이 깜박거린다" → 3.5배로.
+#   setpts=3.5*PTS → 재생 속도 ~0.29x → 깜박임 간격 3.5배. 결과 영상 ~17.5s(5s * 3.5).
+#   loop 재생이라 길이는 체감 영향 없고 깜박임 빈도만 더 뜸해진다.
+DRIVING_SLOW_FACTOR=3.5
+TRIMMED_DRIVING="$TMP/driving-${DRIVING_TRIM_SEC}s-slow.mp4"
+ffmpeg -y -loglevel error \
+  -i "$LP/assets/examples/driving/$DRIVING.mp4" \
+  -t "$DRIVING_TRIM_SEC" \
+  -filter:v "setpts=${DRIVING_SLOW_FACTOR}*PTS" \
+  -c:v libx264 -pix_fmt yuv420p -an \
+  "$TRIMMED_DRIVING"
+
 LPLOG="$TMP/lp.log"
 if ! CUDA_VISIBLE_DEVICES=1 "$PY" inference.py \
   -s "$SRC" \
-  -d "$LP/assets/examples/driving/$DRIVING.mp4" \
+  -d "$TRIMMED_DRIVING" \
   --driving_multiplier 0.4 \
+  --animation-region exp \
   --no-flag_do_torch_compile \
   -o "$TMP" > "$LPLOG" 2>&1; then
   echo "ERR: LivePortrait exited nonzero" >&2
@@ -46,7 +67,9 @@ if ! CUDA_VISIBLE_DEVICES=1 "$PY" inference.py \
   exit 1
 fi
 
-GEN=$(find "$TMP" -name "*--$DRIVING.mp4" ! -name "*concat*" | head -1)
+# T-942: trimmed driving 파일명 기준 (driving-5s.mp4 → *--driving-5s.mp4)
+TRIMMED_STEM=$(basename "$TRIMMED_DRIVING" .mp4)
+GEN=$(find "$TMP" -name "*--$TRIMMED_STEM.mp4" ! -name "*concat*" | head -1)
 
 if [ -z "$GEN" ]; then
   echo "ERR: no output generated" >&2

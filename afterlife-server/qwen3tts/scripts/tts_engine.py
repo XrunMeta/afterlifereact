@@ -16,6 +16,10 @@ log = logging.getLogger("qwen3tts.engine")
 _GUARD_SEED_BASE = 7777
 
 
+class RambleError(RuntimeError):
+    """생성이 끝(EOS)을 내지 못하고 상한까지 간 출력 — 재시도까지 모두 폭주."""
+
+
 def _apply_atempo(wav_bytes: bytes, speed: float) -> bytes:
     """ffmpeg atempo 로 피치 보존 속도 변경. speed≈1.0 이면 no-op(회귀 0).
     atempo 는 0.5~2.0 만 지원 → 범위 밖은 체인으로 분해."""
@@ -199,9 +203,40 @@ class Qwen3Engine:
         )
         return prompt
 
+    def _generate(self, text: str, prompt, gen_params: dict | None,
+                  ramble_cap_tokens: int | None, clone_id: str):
+        """한 번 생성. ramble_cap_tokens 가 있으면 상한까지 간 출력(=끝을 못 낸 폭주)을
+        다른 seed 로 다시 만들고, 끝내 폭주면 RambleError — 웅얼거림을 내보내지 않는다."""
+        retries = int(getattr(config, "RAMBLE_RETRIES", 0)) if ramble_cap_tokens else 0
+        ratio = float(getattr(config, "RAMBLE_HIT_RATIO", 0.9))
+        for i in range(1 + retries):
+            if i > 0:
+                try:
+                    import torch, time
+                    torch.manual_seed((time.time_ns() + _GUARD_SEED_BASE + 100 + i) & 0x7FFFFFFF)
+                except Exception:  # noqa: BLE001
+                    pass
+            wavs, sr = self._model.generate_voice_clone(
+                text=text, language=config.LANGUAGE, voice_clone_prompt=prompt,
+                **(gen_params or {}),
+            )
+            wav = wavs[0]
+            if not ramble_cap_tokens:
+                return wav, sr
+            tokens = len(wav) / sr * 12.0  # 12Hz 코덱
+            if tokens < ramble_cap_tokens * ratio:
+                if i > 0:
+                    log.info("ramble clone=%s: 재생성 %d회 만에 정상 (%.0f/%d토큰)",
+                             clone_id, i, tokens, ramble_cap_tokens)
+                return wav, sr
+            log.warning("ramble clone=%s text_len=%d: 상한 도달 %.0f/%d토큰 (시도 %d)",
+                        clone_id, len(text), tokens, ramble_cap_tokens, i + 1)
+        raise RambleError(f"generation hit cap {ramble_cap_tokens} tokens")
+
     def synth(self, text: str, clone_id: str, voice_wav: str,
               ref_text: str | None = None, speed: float = 1.0,
-              gen_params: dict | None = None) -> bytes:
+              gen_params: dict | None = None,
+              ramble_cap_tokens: int | None = None) -> bytes:
         prompt = self.get_prompt(clone_id, voice_wav, ref_text)
         entry = self._cache.get(clone_id)
         ref_emb = getattr(entry, "ref_emb", None) if entry is not None else None
@@ -222,11 +257,7 @@ class Qwen3Engine:
                     torch.manual_seed((time.time_ns() + _GUARD_SEED_BASE + i) & 0x7FFFFFFF)
                 except Exception:  # noqa: BLE001 — torch 부재 시 가드 재시도만 비결정
                     pass
-            wavs, sr = self._model.generate_voice_clone(
-                text=text, language=config.LANGUAGE, voice_clone_prompt=prompt,
-                **(gen_params or {}),
-            )
-            wav = wavs[0]
+            wav, sr = self._generate(text, prompt, gen_params, ramble_cap_tokens, clone_id)
             if not guard:
                 return _apply_atempo(self._encode(wav, sr), speed)
             emb = self._extract_spk_emb(wav, sr)
