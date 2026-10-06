@@ -228,14 +228,7 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
 
   const v_f8043e = async () => {
 
-    const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
-      v_c65f5d.dispatch(
-        v_650cfa.navigate({
-          name: "Main",
-          params: { screen: "MyTab", params: { screen: "Purchase" } },
-        }),
-      );
-    });
+    const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {});
     if (!v_3ed4c3) return;
     v_c65f5d.navigate("Call", {
       cloneId: v_8c0b26.cloneId,
