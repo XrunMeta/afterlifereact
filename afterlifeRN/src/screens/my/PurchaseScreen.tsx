@@ -1,5 +1,7 @@
 
 
+const v_1e3d67 = true;
+
 import v_a3453e, { v_de06a3, v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
@@ -302,7 +304,11 @@ export default function v_0035e1() {
   return (
     <SafeView backgroundColor={v_1bfbd0.white} bottomBackgroundColor={v_1bfbd0.white}>
       <PageHeader
-        title={v_8d41d7("my.menu.purchase", { defaultValue: "크레딧 충전 · 구독" })}
+        title={
+          v_1e3d67
+            ? v_8d41d7("my.menu.flower", { defaultValue: "꽃 선물" })
+            : v_8d41d7("my.menu.purchase", { defaultValue: "크레딧 충전 · 구독" })
+        }
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
       />
@@ -311,7 +317,9 @@ export default function v_0035e1() {
         {
 }
 
-        {}
+        {
+}
+        {!v_1e3d67 && (
         <View style={v_fd5f43.balanceCard}>
           <Text style={v_fd5f43.balanceTitle}>{v_8d41d7("my.balance.remainingTokens", { defaultValue: "남은 통화 시간" })}</Text>
           {v_55599a ? (
@@ -357,6 +365,7 @@ export default function v_0035e1() {
             <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("my.balance.failed", { defaultValue: "잔액 조회 실패" })}</Text>
           )}
         </View>
+        )}
 
         {
 
@@ -383,6 +392,8 @@ export default function v_0035e1() {
         )}
 
         {}
+        {!v_1e3d67 && (
+        <>
         <Text style={v_fd5f43.sectionTitle}>{v_8d41d7("purchase.subSectionTitle", { defaultValue: "월 구독" })}</Text>
         <Text style={v_fd5f43.sectionDesc}>{v_8d41d7("purchase.subSectionDesc", { defaultValue: "매월 자동 갱신." })}</Text>
 
@@ -467,9 +478,13 @@ export default function v_0035e1() {
           })
         )}
 
+        </>
+        )}
+
         {
+
 }
-        <Text style={[v_fd5f43.sectionTitle, { marginTop: 32 }]}>꽃 구매</Text>
+        <Text style={[v_fd5f43.sectionTitle, { marginTop: v_1e3d67 ? 0 : 32 }]}>꽃 구매</Text>
         <Text style={v_fd5f43.sectionDesc}>선물하기 전용 · 구매 후 통화 중 사용 가능.</Text>
         {v_5ff45c.map((v_e2a85c) => (
           <TouchableOpacity
@@ -494,7 +509,9 @@ export default function v_0035e1() {
         {
 }
 
-        {}
+        {
+}
+        {!v_1e3d67 && (
         <View style={{ marginTop: 32, alignItems: "center" }}>
           <Text style={v_fd5f43.footer}>
             {v_326be8.OS === "ios"
@@ -508,6 +525,7 @@ export default function v_0035e1() {
                 })}
           </Text>
         </View>
+        )}
       </ScrollView>
     </SafeView>
   );
