@@ -231,19 +231,6 @@ export default function v_ed02a5() {
     },
 
     {
-      icon: "credit-card",
-      labelKey: "my.menu.purchase",
-      descKey: "my.menu.purchaseDesc",
-      route: "Purchase",
-    },
-    {
-      icon: "file-text",
-      labelKey: "my.coin.transactions",
-      descKey: "my.coin.viewAll",
-      route: "Transactions",
-    },
-
-    {
       icon: "film",
       labelKey: "Pangle 광고 테스트",
       descKey: "즉시 rewarded 광고 표시 (개발용)",
