@@ -2789,7 +2789,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
                             text: "구매하기",
                             onPress: () => {
                               setShowGifts(false);
-                              (navigation as unknown as { navigate: (n: string) => void }).navigate("Purchase");
+
+                              navigation.getParent()?.dispatch(
+                                CommonActions.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                              );
                             },
                           },
                         ],
