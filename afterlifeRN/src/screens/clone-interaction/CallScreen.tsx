@@ -1719,6 +1719,28 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     return () => clearInterval(id);
   }, [liveState]);
 
+  const afl971MuteCallAudio = useCallback(() => {
+    try {
+      const audio = (remoteStream as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })
+        .getAudioTracks?.() ?? [];
+      audio.forEach((t) => { t.enabled = false; });
+      console.log(`[Call][afl971] remote audio muted (${audio.length} tracks)`);
+    } catch (err) {
+      console.warn("[Call][afl971] mute 실패:", (err as Error)?.message ?? err);
+    }
+  }, [remoteStream]);
+  const afl971UnmuteCallAudio = useCallback(() => {
+    try {
+      const audio = (remoteStream as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })
+        .getAudioTracks?.() ?? [];
+
+      audio.forEach((t) => { t.enabled = !isMuted; });
+      console.log(`[Call][afl971] remote audio unmuted (isMuted=${isMuted})`);
+    } catch (err) {
+      console.warn("[Call][afl971] unmute 실패:", (err as Error)?.message ?? err);
+    }
+  }, [remoteStream, isMuted]);
+
   const AFL971_COUNT_KEY = "afl971:lifetimeCallCount";
   const afl971IsFirstCallRef = useRef<boolean | null>(null); 
   const afl971RoundCountRef = useRef<number>(0);
@@ -1744,7 +1766,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       try {
         console.log("[Call][afl971] 연결중 전면광고 trigger");
         const { loadAndShowRewardedAd } = await import("../../lib/pangle");
-        await loadAndShowRewardedAd();
+        afl971MuteCallAudio();
+        try {
+          await loadAndShowRewardedAd();
+        } finally {
+          afl971UnmuteCallAudio();
+        }
         console.log("[Call][afl971] 연결중 광고 닫힘");
       } catch (err) {
         console.warn("[Call][afl971] 연결중 광고 실패:", (err as Error)?.message ?? err);
@@ -1780,7 +1807,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       try {
         console.log(`[Call][afl971] round ${round} 전면광고 trigger`);
         const { loadAndShowRewardedAd } = await import("../../lib/pangle");
-        await loadAndShowRewardedAd();
+        afl971MuteCallAudio();
+        try {
+          await loadAndShowRewardedAd();
+        } finally {
+          afl971UnmuteCallAudio();
+        }
         console.log(`[Call][afl971] round ${round} 광고 닫힘`);
       } catch (err) {
         console.warn(`[Call][afl971] round ${round} 광고 실패:`, (err as Error)?.message ?? err);
