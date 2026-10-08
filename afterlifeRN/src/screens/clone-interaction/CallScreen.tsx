@@ -1207,7 +1207,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     notifyFaceInterruptRef.current = notifyFaceInterrupt;
   }, [notifyFaceInterrupt]);
 
-  const micHeld = shouldHoldMic(rmState) || bridgeActive;
+  const micHeld = shouldHoldMic(rmState) || bridgeActive || afl971AdInProgress;
   const micWasOnRef = useRef(false);
   useEffect(() => {
     if (liveState !== "live") return;
@@ -1751,7 +1751,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const AFL971_PRE_MESSAGE = "{userName}줄 꽃 좀 따올게! 영상 보고 있으면 금방 다녀올게 🌸";
   const AFL971_POST_MESSAGE = "기다려줘서 고마워! 꽃 선물 짠 🌸";
   const AFL971_FLOWER_TOAST = "{cloneName}에게 꽃을 받았습니다 🌸";
+
+  const [afl971AdInProgress, setAfl971AdInProgress] = useState(false);
   const afl971AdInProgressRef = useRef<boolean>(false);
+  useEffect(() => {
+    afl971AdInProgressRef.current = afl971AdInProgress;
+  }, [afl971AdInProgress]);
   const afl971PendingPhaseEndResolveRef = useRef<(() => void) | null>(null);
 
   const renderAfl971Message = useCallback((template: string): string => {
@@ -1795,6 +1800,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
       if (afl971ConnectingAdFiredRef.current) return;
       afl971ConnectingAdFiredRef.current = true;
+      setAfl971AdInProgress(true);
       try {
         console.log("[Call][afl971] 연결중 전면광고 trigger");
         const { loadAndShowRewardedAd } = await import("../../lib/pangle");
@@ -1807,6 +1813,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         console.log("[Call][afl971] 연결중 광고 닫힘");
       } catch (err) {
         console.warn("[Call][afl971] 연결중 광고 실패:", (err as Error)?.message ?? err);
+      } finally {
+        setAfl971AdInProgress(false);
       }
     })();
 
@@ -1846,7 +1854,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     if (afl971AdShownRoundsRef.current.has(round)) return;
     afl971AdShownRoundsRef.current.add(round);
 
-    afl971AdInProgressRef.current = true;
+    setAfl971AdInProgress(true);
     (async () => {
       try {
         console.log(`[Call][afl971] round ${round} — 광고 전 멘트`);
@@ -1870,7 +1878,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       } catch (err) {
         console.warn(`[Call][afl971] round ${round} 광고 사이클 실패:`, (err as Error)?.message ?? err);
       } finally {
-        afl971AdInProgressRef.current = false;
+        setAfl971AdInProgress(false);
       }
     })();
   }, [phase, say, renderAfl971Message, afl971WaitForPhaseEnd, afl971MuteCallAudio, afl971UnmuteCallAudio]);
