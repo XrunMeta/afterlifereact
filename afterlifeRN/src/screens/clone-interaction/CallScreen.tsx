@@ -1752,6 +1752,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const AFL971_POST_MESSAGE = "기다려줘서 고마워! 꽃 선물 짠 🌸";
   const AFL971_FLOWER_TOAST = "{cloneName}에게 꽃을 받았습니다 🌸";
 
+  const micOnRef = useRef(micOn);
+  useEffect(() => { micOnRef.current = micOn; }, [micOn]);
+  const toggleMicRef = useRef(toggleMic);
+  useEffect(() => { toggleMicRef.current = toggleMic; }, [toggleMic]);
+
   const [afl971AdInProgress, setAfl971AdInProgress] = useState(false);
   const afl971AdInProgressRef = useRef<boolean>(false);
   useEffect(() => {
@@ -1801,6 +1806,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       if (afl971ConnectingAdFiredRef.current) return;
       afl971ConnectingAdFiredRef.current = true;
       setAfl971AdInProgress(true);
+
+      if (micOnRef.current) {
+        console.log("[Call][afl971] 광고 직전 즉시 mic off (연결중)");
+        toggleMicRef.current();
+      }
       try {
         console.log("[Call][afl971] 연결중 전면광고 trigger");
         const { loadAndShowRewardedAd } = await import("../../lib/pangle");
@@ -1855,6 +1865,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     afl971AdShownRoundsRef.current.add(round);
 
     setAfl971AdInProgress(true);
+
+    if (micOnRef.current) {
+      console.log(`[Call][afl971] 광고 직전 즉시 mic off (round ${round})`);
+      toggleMicRef.current();
+    }
     (async () => {
       try {
         console.log(`[Call][afl971] round ${round} — 광고 전 멘트`);
