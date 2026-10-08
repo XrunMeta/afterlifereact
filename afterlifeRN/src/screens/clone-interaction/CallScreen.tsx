@@ -1748,9 +1748,9 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const afl971ConnectingAdFiredRef = useRef<boolean>(false);
   const afl971LastSpeakingRef = useRef<boolean>(false);
 
-  const AFL971_PRE_MESSAGE = "{userName}줄 꽃 좀 따올게! 영상 보고 있으면 금방 다녀올게 🌸";
-  const AFL971_POST_MESSAGE = "기다려줘서 고마워! 꽃 선물 짠 🌸";
-  const AFL971_FLOWER_TOAST = "{cloneName}에게 꽃을 받았습니다 🌸";
+  const AFL971_PRE_MESSAGE = "{userName}줄 꽃 좀 따올게! 영상 보고 있으면 금방 다녀올게";
+  const AFL971_POST_MESSAGE = "기다려줘서 고마워! 꽃 선물 짠";
+  const AFL971_FLOWER_TOAST = "{cloneName}에게 꽃을 받았습니다";
 
   const toggleMicRef = useRef(toggleMic);
   useEffect(() => { toggleMicRef.current = toggleMic; }, [toggleMic]);
@@ -1877,22 +1877,24 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     afl971AdShownRoundsRef.current.add(round);
 
     setAfl971AdInProgress(true);
+    let micWasOnBeforeAd = false;
     (async () => {
 
-      let micWasOnBeforeAd = false;
       try {
-        console.log(`[Call][afl971] round ${round} — 광고 전 멘트`);
-        const preMsg = renderAfl971Message(AFL971_PRE_MESSAGE);
-
-        notifySpeechEndRef.current();
-        await new Promise((r) => setTimeout(r, 50));
-        sayRef.current(preMsg);
-        await afl971WaitForPhaseEnd();
-        console.log(`[Call][afl971] round ${round} — 광고 전 멘트 완료, mic off + 광고 open`);
+        console.log(`[Call][afl971] round ${round} — mic off + 광고 전 멘트`);
 
         micWasOnBeforeAd = !!micOnRef.current;
         if (micOnRef.current) toggleMicRef.current();
+        await new Promise((r) => setTimeout(r, 150));
 
+        notifySpeechEndRef.current();
+        await new Promise((r) => setTimeout(r, 80));
+
+        const preMsg = renderAfl971Message(AFL971_PRE_MESSAGE);
+        sayRef.current(preMsg);
+        await new Promise((r) => setTimeout(r, 4500));
+
+        console.log(`[Call][afl971] round ${round} — 광고 open`);
         const { loadAndShowRewardedAd } = await import("../../lib/pangle");
         afl971MuteCallAudio();
         try {
@@ -1901,16 +1903,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           afl971UnmuteCallAudio();
         }
 
-        if (micWasOnBeforeAd && !micOnRef.current && !isMuted) {
-          console.log(`[Call][afl971] round ${round} 광고 닫힘 — post 멘트 전 mic 복원`);
-          toggleMicRef.current();
-        }
-        console.log(`[Call][afl971] round ${round} — 광고 후 멘트`);
-        const postMsg = renderAfl971Message(AFL971_POST_MESSAGE);
-
+        console.log(`[Call][afl971] round ${round} — 광고 닫힘, post 멘트`);
         notifySpeechEndRef.current();
-        await new Promise((r) => setTimeout(r, 50));
+        await new Promise((r) => setTimeout(r, 80));
+        const postMsg = renderAfl971Message(AFL971_POST_MESSAGE);
         sayRef.current(postMsg);
+        await new Promise((r) => setTimeout(r, 3000));
 
       } catch (err) {
         console.warn(`[Call][afl971] round ${round} 광고 사이클 실패:`, (err as Error)?.message ?? err);
@@ -1918,7 +1916,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         setAfl971AdInProgress(false);
 
         if (micWasOnBeforeAd && !micOnRef.current && !isMuted) {
-          console.log(`[Call][afl971] round ${round} finally safety — mic 복원`);
+          console.log(`[Call][afl971] round ${round} 종료 — mic 복원`);
           toggleMicRef.current();
         }
       }
