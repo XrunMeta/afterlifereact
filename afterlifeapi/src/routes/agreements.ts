@@ -5,6 +5,13 @@ import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_c0a297 } from "../middleware/auth";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
+import { v_733425 } from "../lib/xrun";
+
+const v_ceda34 = {
+  1: 1, 
+  2: 3, 
+  3: 2, 
+};
 
 interface AgreementRow {
   type: number;
@@ -35,6 +42,25 @@ v_cbf5ec.get("/", async (v_3f4e2e) => {
   const v_5254bf = v_2a3537 ? v_97036c(v_2a3537) : null;
 
   if (v_653390 !== null && v_5254bf !== null) {
+
+    if (v_653390 in v_ceda34) {
+      const v_794648 = v_ceda34[v_653390]!;
+      const v_43c42e = await v_733425(v_3f4e2e.env, v_794648, v_5254bf);
+      if (v_43c42e.ok) {
+        const v_cb35cb = v_43c42e.row;
+        return v_3f4e2e.json({
+          data: {
+            type: v_653390, 
+            language: v_cb35cb.language,
+            content: v_cb35cb.content,
+            updated_at: v_cb35cb.updated_at ?? 0,
+            updated_by: null,
+          } satisfies AgreementRow,
+        });
+      }
+      console.warn(`[agreements] xrun proxy failed type=${v_653390} lang=${v_5254bf}: ${v_43c42e.reason} — falling back to afterlife D1`);
+
+    }
 
     let v_3ac7e7 = await v_3f4e2e.env.DB.prepare(
       "SELECT type, language, content, updated_at, updated_by FROM Agreements WHERE type = ? AND language = ?",
