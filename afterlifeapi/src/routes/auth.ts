@@ -89,14 +89,18 @@ v_68f0aa.post("/google/check", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_a55a85);
   const v_931bf0 = await v_a32f1d(v_3f4e2e.env, v_4d33b2.idToken);
 
-  const v_ed2073 = await v_3f4e2e.env.DB
-    .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`)
-    .bind(v_931bf0.email)
-    .first<{ id: number }>();
+  const [v_ed2073, v_76be17] = await Promise.all([
+    v_3f4e2e.env.DB
+      .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`)
+      .bind(v_931bf0.email)
+      .first<{ id: number }>(),
+
+    v_a0ec33(v_3f4e2e.env, v_931bf0.email),
+  ]);
 
   return v_3f4e2e.json({
     afterlifeExists: !!v_ed2073,
-    xrunExists: false,
+    xrunExists: !!v_76be17.found,
     email: v_931bf0.email,
     name: v_931bf0.name ?? null,
     picture: v_931bf0.picture ?? null,
@@ -145,6 +149,38 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
       .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null }>();
     if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user.");
     v_d1b635 = v_81161e;
+
+    try {
+      const v_6bd187 = await v_6e4cc8(v_3f4e2e.env, {
+        email: v_931bf0.email,
+        name: v_ef7664,
+      });
+      let v_9816e7 = null;
+      let v_3ac92c = null;
+      let v_0cd34d = null;
+      if (v_6bd187.status === "created" && v_6bd187.member) {
+        v_9816e7 = v_6bd187.member;
+        v_3ac92c = v_6bd187.guid ?? null;
+        v_0cd34d = v_6bd187.wallet ?? null;
+      } else if (v_6bd187.status === "duplicate") {
+        const v_534695 = await v_a0ec33(v_3f4e2e.env, v_931bf0.email);
+        if (v_534695.found && v_534695.member) {
+          v_9816e7 = v_534695.member;
+          v_3ac92c = v_534695.guid ?? null;
+          v_0cd34d = v_534695.wallet ?? null;
+        }
+      }
+      if (v_9816e7) {
+        await v_a1651b
+          .prepare(`UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_wallet = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`)
+          .bind(v_9816e7, v_3ac92c, v_0cd34d, v_81161e.id)
+          .run();
+      } else if (v_6bd187.status === "failed") {
+        console.warn(`[auth.google.signup] xrun register failed user_id=${v_81161e.id}: ${v_6bd187.reason ?? ""}`);
+      }
+    } catch (v_49263d) {
+      console.warn(`[auth.google.signup] xrun register error user_id=${v_81161e.id}:`, (v_49263d as Error).message);
+    }
 
     await v_74defc(v_3f4e2e, {
       userId: v_81161e.id,
@@ -254,6 +290,38 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
       .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null }>();
     if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user.");
     v_d1b635 = v_81161e;
+
+    try {
+      const v_6bd187 = await v_6e4cc8(v_3f4e2e.env, {
+        email: v_931bf0.email,
+        name: v_ef7664,
+      });
+      let v_9816e7 = null;
+      let v_3ac92c = null;
+      let v_0cd34d = null;
+      if (v_6bd187.status === "created" && v_6bd187.member) {
+        v_9816e7 = v_6bd187.member;
+        v_3ac92c = v_6bd187.guid ?? null;
+        v_0cd34d = v_6bd187.wallet ?? null;
+      } else if (v_6bd187.status === "duplicate") {
+        const v_534695 = await v_a0ec33(v_3f4e2e.env, v_931bf0.email);
+        if (v_534695.found && v_534695.member) {
+          v_9816e7 = v_534695.member;
+          v_3ac92c = v_534695.guid ?? null;
+          v_0cd34d = v_534695.wallet ?? null;
+        }
+      }
+      if (v_9816e7) {
+        await v_a1651b
+          .prepare(`UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_wallet = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`)
+          .bind(v_9816e7, v_3ac92c, v_0cd34d, v_81161e.id)
+          .run();
+      } else if (v_6bd187.status === "failed") {
+        console.warn(`[auth.apple.signup] xrun register failed user_id=${v_81161e.id}: ${v_6bd187.reason ?? ""}`);
+      }
+    } catch (v_49263d) {
+      console.warn(`[auth.apple.signup] xrun register error user_id=${v_81161e.id}:`, (v_49263d as Error).message);
+    }
 
     await v_74defc(v_3f4e2e, {
       userId: v_81161e.id,
