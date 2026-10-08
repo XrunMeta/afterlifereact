@@ -1748,6 +1748,38 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const afl971ConnectingAdFiredRef = useRef<boolean>(false);
   const afl971LastSpeakingRef = useRef<boolean>(false);
 
+  const AFL971_PRE_MESSAGE = "{userName}줄 꽃 좀 따올게! 영상 보고 있으면 금방 다녀올게 🌸";
+  const AFL971_POST_MESSAGE = "기다려줘서 고마워! 꽃 선물 짠 🌸";
+  const AFL971_FLOWER_TOAST = "{cloneName}에게 꽃을 받았습니다 🌸";
+  const afl971AdInProgressRef = useRef<boolean>(false);
+  const afl971PendingPhaseEndResolveRef = useRef<(() => void) | null>(null);
+
+  const renderAfl971Message = useCallback((template: string): string => {
+    const userName = myName ?? "";
+    const cloneName = String(paramName || (clone as { displayName?: string } | null | undefined)?.displayName || "");
+    return template.replace(/\{userName\}/g, userName).replace(/\{cloneName\}/g, cloneName);
+  }, [myName, paramName, clone]);
+
+  const afl971WaitForPhaseEnd = useCallback((timeoutMs = 15000): Promise<void> => {
+    return new Promise((resolve) => {
+      const resolver = () => {
+        if (afl971PendingPhaseEndResolveRef.current === resolver) {
+          afl971PendingPhaseEndResolveRef.current = null;
+          clearTimeout(timeoutId);
+          resolve();
+        }
+      };
+      afl971PendingPhaseEndResolveRef.current = resolver;
+      const timeoutId = setTimeout(() => {
+        if (afl971PendingPhaseEndResolveRef.current === resolver) {
+          afl971PendingPhaseEndResolveRef.current = null;
+          console.warn(`[Call][afl971] waitForPhaseEnd ${timeoutMs}ms timeout — force resolve`);
+          resolve();
+        }
+      }, timeoutMs);
+    });
+  }, []);
+
   useEffect(() => {
     (async () => {
       try {
@@ -1786,6 +1818,17 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     afl971LastSpeakingRef.current = isSpeaking;
     if (!wasSpeaking || isSpeaking) return;
 
+    if (afl971PendingPhaseEndResolveRef.current) {
+      const r = afl971PendingPhaseEndResolveRef.current;
+      afl971PendingPhaseEndResolveRef.current = null;
+      r();
+    }
+
+    if (afl971AdInProgressRef.current) {
+      console.log("[Call][afl971] 광고 사이클 중 — 라운드 count skip");
+      return;
+    }
+
     const round = afl971RoundCountRef.current + 1;
     afl971RoundCountRef.current = round;
     console.log(`[Call][afl971] round ${round} complete`);
@@ -1803,9 +1846,15 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     if (afl971AdShownRoundsRef.current.has(round)) return;
     afl971AdShownRoundsRef.current.add(round);
 
+    afl971AdInProgressRef.current = true;
     (async () => {
       try {
-        console.log(`[Call][afl971] round ${round} 전면광고 trigger`);
+        console.log(`[Call][afl971] round ${round} — 광고 전 멘트`);
+        const preMsg = renderAfl971Message(AFL971_PRE_MESSAGE);
+        say(preMsg);
+        await afl971WaitForPhaseEnd();
+        console.log(`[Call][afl971] round ${round} — 광고 전 멘트 완료, 광고 open`);
+
         const { loadAndShowRewardedAd } = await import("../../lib/pangle");
         afl971MuteCallAudio();
         try {
@@ -1813,12 +1862,18 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         } finally {
           afl971UnmuteCallAudio();
         }
-        console.log(`[Call][afl971] round ${round} 광고 닫힘`);
+        console.log(`[Call][afl971] round ${round} — 광고 닫힘, 광고 후 멘트 + 토스트`);
+
+        const postMsg = renderAfl971Message(AFL971_POST_MESSAGE);
+        say(postMsg);
+        setToastMessage(renderAfl971Message(AFL971_FLOWER_TOAST));
       } catch (err) {
-        console.warn(`[Call][afl971] round ${round} 광고 실패:`, (err as Error)?.message ?? err);
+        console.warn(`[Call][afl971] round ${round} 광고 사이클 실패:`, (err as Error)?.message ?? err);
+      } finally {
+        afl971AdInProgressRef.current = false;
       }
     })();
-  }, [phase]);
+  }, [phase, say, renderAfl971Message, afl971WaitForPhaseEnd, afl971MuteCallAudio, afl971UnmuteCallAudio]);
 
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const warnedRef = useRef(false);
