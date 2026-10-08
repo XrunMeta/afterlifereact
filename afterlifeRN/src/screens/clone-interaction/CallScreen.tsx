@@ -554,6 +554,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     lastSignal,
     sendFaceEvent,
     sendAudioReady,
+    getCallId,
 
     visemeResponse,
   } = useAvatarCall({
@@ -1876,9 +1877,63 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     if (afl971AdShownRoundsRef.current.has(round)) return;
     afl971AdShownRoundsRef.current.add(round);
 
-    console.log(`[Call][afl971] round ${round} — 토스트만 노출 (재생흐름 비활성)`);
-    setToastMessage(renderAfl971Message(AFL971_FLOWER_TOAST));
-  }, [phase, renderAfl971Message, debugEmail]);
+    setAfl971AdInProgress(true);
+    let micWasOnBeforeAd = false;
+    (async () => {
+      try {
+        console.log(`[Call][afl971] round ${round} — mic off + 광고`);
+        micWasOnBeforeAd = !!micOnRef.current;
+        if (micOnRef.current) toggleMicRef.current();
+        await new Promise((r) => setTimeout(r, 150));
+
+        const { loadAndShowRewardedAd } = await import("../../lib/pangle");
+        afl971MuteCallAudio();
+        try {
+          await loadAndShowRewardedAd();
+        } finally {
+          afl971UnmuteCallAudio();
+        }
+
+        const callIdNow = getCallId?.() ?? null;
+        if (callIdNow && accessToken) {
+          try {
+            const { API_BASE } = await import("../../config/apiBase");
+            const res = await fetch(`${API_BASE}/oth-path`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`,
+              },
+              body: JSON.stringify({ callId: callIdNow, round, giftId: "gift-bouquet" }),
+            });
+            if (res.ok) {
+              const data = (await res.json()) as { giftId?: string; alreadyGranted?: boolean };
+              console.log(`[Call][afl971] 꽃 지급 ✅ giftId=${data.giftId} already=${data.alreadyGranted}`);
+              setToastMessage(renderAfl971Message(AFL971_FLOWER_TOAST));
+            } else {
+              console.warn(`[Call][afl971] 꽃 지급 실패 status=${res.status}`);
+
+              setToastMessage(renderAfl971Message(AFL971_FLOWER_TOAST));
+            }
+          } catch (err) {
+            console.warn(`[Call][afl971] 꽃 지급 호출 실패:`, (err as Error)?.message ?? err);
+            setToastMessage(renderAfl971Message(AFL971_FLOWER_TOAST));
+          }
+        } else {
+          console.warn(`[Call][afl971] callIdNow=${callIdNow} accessToken=${!!accessToken} — 지급 skip, 토스트만`);
+          setToastMessage(renderAfl971Message(AFL971_FLOWER_TOAST));
+        }
+      } catch (err) {
+        console.warn(`[Call][afl971] round ${round} 광고 cycle 실패:`, (err as Error)?.message ?? err);
+      } finally {
+        setAfl971AdInProgress(false);
+        if (micWasOnBeforeAd && !micOnRef.current && !isMuted) {
+          console.log(`[Call][afl971] round ${round} 종료 — mic 복원`);
+          toggleMicRef.current();
+        }
+      }
+    })();
+  }, [phase, renderAfl971Message, afl971MuteCallAudio, afl971UnmuteCallAudio, debugEmail, isMuted, getCallId, accessToken]);
 
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const warnedRef = useRef(false);
