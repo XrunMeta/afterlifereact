@@ -89,6 +89,8 @@ export function v_3d8d48(v_328259): v_b01667 {
   const v_2d5539 = v_e662ae(0);
   const v_f98743 = v_e662ae<PrethirdPeerConnection | null>(null);
   const v_fa9144 = v_e662ae<any>(null);
+
+  const v_6e83c5 = v_e662ae<string | null>(null);
   const v_9998ac = v_e662ae<v_802da4 | null>(null);
   const v_6b43e5 = v_e662ae<ReturnType<typeof setTimeout> | null>(null);
   const v_bba900 = v_e662ae(0);
@@ -210,6 +212,7 @@ export function v_3d8d48(v_328259): v_b01667 {
     const v_12cd99 = v_f98743.current;
     v_f98743.current = null;
     v_fa9144.current = null;
+    v_6e83c5.current = null;
     if (v_12cd99) v_3c664f(v_12cd99); 
     v_b944e3(null);
     v_9998ac.current = null;
@@ -330,6 +333,10 @@ export function v_3d8d48(v_328259): v_b01667 {
       const v_9390e8 = v_9b6134 ? JSON.parse(v_9b6134) : {};
       const v_3f08aa = v_9390e8.sdp as string | undefined;
       if (!v_3f08aa) throw new Error('prethird_offer_no_answer');
+
+      if (typeof v_9390e8.session_id === 'string' && v_9390e8.session_id) {
+        v_6e83c5.current = v_9390e8.session_id;
+      }
       if (__DEV__) console.log(`[CALL-ROUTE] prethird /offer ok session_id=${v_9390e8.session_id}`);
 
       if (!v_759436()) { v_3c664f(v_12cd99); return; }
@@ -357,5 +364,6 @@ export function v_3d8d48(v_328259): v_b01667 {
 
   v_c4deb2(() => () => { void v_3e54f8();  }, []);
 
-  return { state: v_b6e533, remoteStream: v_b4d824, error: v_5e9bfe, start: v_965edf, stop: v_3e54f8, phase: v_ab4803, say: v_3e2c87, notifySpeechEnd: v_811f30, getStatsReport: v_791152, greet: v_009e58, speak: v_a1d9db, lastSignal: v_88c591, sendFaceEvent: v_11f4a1, sendAudioReady: v_2a35c1 };
+  const v_800a73 = () => v_6e83c5.current;
+  return { state: v_b6e533, remoteStream: v_b4d824, error: v_5e9bfe, start: v_965edf, stop: v_3e54f8, phase: v_ab4803, say: v_3e2c87, notifySpeechEnd: v_811f30, getStatsReport: v_791152, greet: v_009e58, speak: v_a1d9db, lastSignal: v_88c591, sendFaceEvent: v_11f4a1, sendAudioReady: v_2a35c1, getCallId: v_800a73 };
 }

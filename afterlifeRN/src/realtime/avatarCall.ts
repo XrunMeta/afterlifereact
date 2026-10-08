@@ -52,6 +52,8 @@ export interface AvatarCall {
   sendAudioReady?: () => void;
 
   visemeResponse?: v_2a0baf | null;
+
+  getCallId?: () => string | null;
 }
 
 export type UseAvatarCall = (opts: {
