@@ -21,7 +21,7 @@ import { v_b78f7e, v_656e8b } from "../lib/otp";
 import { v_a32f1d } from "../lib/googleAuth";
 import { v_bb3c56 } from "../lib/appleAuth";
 import { v_4960d7 } from "../lib/credits";
-import { v_6e4cc8, v_a0ec33 } from "../lib/xrun";
+import { v_6e4cc8, v_a0ec33, v_937e23 } from "../lib/xrun";
 
 export const v_68f0aa = new v_b7c41b<v_de0a25>();
 
@@ -624,7 +624,7 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
 
   await v_f8ffae(v_a1651b, v_4d33b2.deviceId);
 
-  const v_625c74 = await v_a1651b
+  let v_625c74 = await v_a1651b
     .prepare(
       `SELECT id, password_hash, failed_login_count, locked_until, deletion_state, banned_until
          FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
@@ -638,6 +638,46 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
       deletion_state: string;
       banned_until: string | null;
     }>();
+
+  let v_1329db = false;
+  if (!v_625c74) {
+    const v_dd506d = await v_937e23(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.password);
+    if (v_dd506d.found && v_dd506d.member) {
+      const v_3fc173 = await v_54846c(v_4d33b2.password);
+      const v_ef7664 = v_4d33b2.email.split("@")[0] || "user";
+      const v_81161e = await v_a1651b
+        .prepare(
+          `INSERT INTO users (name, email, password_hash, xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at)
+           VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+           RETURNING id, password_hash, failed_login_count, locked_until, deletion_state, banned_until`,
+        )
+        .bind(
+          v_ef7664,
+          v_4d33b2.email,
+          v_3fc173,
+          v_dd506d.member,
+          v_dd506d.guid ?? null,
+          v_dd506d.wallet ?? null,
+        )
+        .first<{
+          id: number;
+          password_hash: string;
+          failed_login_count: number;
+          locked_until: string | null;
+          deletion_state: string;
+          banned_until: string | null;
+        }>();
+      if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user from xrun link.");
+      v_625c74 = v_81161e;
+      v_1329db = true;
+      try {
+        await v_4960d7(v_3f4e2e, v_81161e.id);
+      } catch (v_49263d) {
+        console.error(`[AUTH/login.xrun_link] credit grant failed user_id=${v_81161e.id} err=${(v_49263d as Error).message}`);
+      }
+      await v_74defc(v_3f4e2e, { userId: v_81161e.id, action: "auth.login.xrun_link" });
+    }
+  }
 
   const v_2d56e5 = v_625c74?.password_hash ?? (await v_54846c("dummy-nonmatch-0000"));
 
@@ -726,9 +766,9 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
   const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(v_3f4e2e, v_625c74.id, v_4d33b2.deviceId);
   v_56035d(v_3f4e2e, v_dfaee3);
 
-  await v_74defc(v_3f4e2e, { userId: v_625c74.id, action: "auth.login" });
+  await v_74defc(v_3f4e2e, { userId: v_625c74.id, action: v_1329db ? "auth.login.xrun_link.session" : "auth.login" });
 
-  return v_3f4e2e.json({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 });
+  return v_3f4e2e.json({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95, linkedFromXrun: v_1329db });
 });
 
 v_68f0aa.post("/refresh", async (v_3f4e2e) => {
