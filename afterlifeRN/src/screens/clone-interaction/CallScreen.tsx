@@ -1866,7 +1866,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
         const postMsg = renderAfl971Message(AFL971_POST_MESSAGE);
         say(postMsg);
-        setToastMessage(renderAfl971Message(AFL971_FLOWER_TOAST));
+
       } catch (err) {
         console.warn(`[Call][afl971] round ${round} 광고 사이클 실패:`, (err as Error)?.message ?? err);
       } finally {
