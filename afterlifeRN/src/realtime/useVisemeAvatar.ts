@@ -318,6 +318,8 @@ export function v_e52b18(v_328259): UseVisemeAvatarResult {
     synthResponse: v_194cc6,
 
     visemeResponse: v_194cc6,
+
+    getCallId: () => null,
     speakWithOpts: v_4a0f16,
   };
 }
