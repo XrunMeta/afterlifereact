@@ -1872,18 +1872,18 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     afl971AdShownRoundsRef.current.add(round);
 
     setAfl971AdInProgress(true);
-
-    if (micOnRef.current) {
-      console.log(`[Call][afl971] 광고 직전 즉시 mic off (round ${round})`);
-      toggleMicRef.current();
-    }
     (async () => {
+
+      let micWasOnBeforeAd = false;
       try {
         console.log(`[Call][afl971] round ${round} — 광고 전 멘트`);
         const preMsg = renderAfl971Message(AFL971_PRE_MESSAGE);
         say(preMsg);
         await afl971WaitForPhaseEnd();
-        console.log(`[Call][afl971] round ${round} — 광고 전 멘트 완료, 광고 open`);
+        console.log(`[Call][afl971] round ${round} — 광고 전 멘트 완료, mic off + 광고 open`);
+
+        micWasOnBeforeAd = !!micOnRef.current;
+        if (micOnRef.current) toggleMicRef.current();
 
         const { loadAndShowRewardedAd } = await import("../../lib/pangle");
         afl971MuteCallAudio();
@@ -1892,8 +1892,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         } finally {
           afl971UnmuteCallAudio();
         }
-        console.log(`[Call][afl971] round ${round} — 광고 닫힘, 광고 후 멘트 + 토스트`);
 
+        if (micWasOnBeforeAd && !micOnRef.current && !isMuted) {
+          console.log(`[Call][afl971] round ${round} 광고 닫힘 — post 멘트 전 mic 복원`);
+          toggleMicRef.current();
+        }
+        console.log(`[Call][afl971] round ${round} — 광고 후 멘트`);
         const postMsg = renderAfl971Message(AFL971_POST_MESSAGE);
         say(postMsg);
 
@@ -1902,8 +1906,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       } finally {
         setAfl971AdInProgress(false);
 
-        if (!micOnRef.current && !isMuted) {
-          console.log(`[Call][afl971] round ${round} 광고 종료 — mic 복원`);
+        if (micWasOnBeforeAd && !micOnRef.current && !isMuted) {
+          console.log(`[Call][afl971] round ${round} finally safety — mic 복원`);
           toggleMicRef.current();
         }
       }
