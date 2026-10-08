@@ -25,8 +25,11 @@ import {
   v_dc0a0b,
   v_88bb3b,
   v_1f7eef,
+  v_99e8be,
+  v_824b75,
   type v_83f27d,
   type v_f56907,
+  type v_eb1456,
 } from "../lib/appConfig";
 
 export const v_b7f2b4 = new v_b7c41b<v_de0a25>();
@@ -117,6 +120,27 @@ v_b7f2b4.get("/config/knowledge-rules", v_c0a297, async (v_3f4e2e) => {
   const v_ddf1dc = await v_399bbb(v_3f4e2e.env);
   return v_3f4e2e.json({ rules: v_ddf1dc });
 });
+
+v_b7f2b4.get("/config/ad-messages", v_c0a297, async (v_3f4e2e) => {
+  const v_fa56e0 = await v_99e8be(v_3f4e2e.env);
+  return v_3f4e2e.json({ messages: v_fa56e0 });
+});
+v_b7f2b4.patch("/config/ad-messages", v_c0a297, async (v_3f4e2e) => {
+  const v_4d33b2 = await v_3f4e2e
+    .req.json<{ pre?: unknown; post?: unknown; toast?: unknown }>()
+    .catch(() => ({} as { pre?: unknown; post?: unknown; toast?: unknown }));
+  const patch: Partial<v_eb1456> = {};
+  if (typeof v_4d33b2.pre === "string") v_17dc8a.pre = v_4d33b2.pre;
+  if (typeof v_4d33b2.post === "string") v_17dc8a.post = v_4d33b2.post;
+  if (typeof v_4d33b2.toast === "string") v_17dc8a.toast = v_4d33b2.toast;
+  try {
+    const v_fa56e0 = await v_824b75(v_3f4e2e.env, v_17dc8a);
+    return v_3f4e2e.json({ ok: true, messages: v_fa56e0 });
+  } catch (v_49263d) {
+    throw new v_3ebe58("VALIDATION_FAILED", (v_49263d as Error)?.message ?? "invalid");
+  }
+});
+
 v_b7f2b4.patch("/config/knowledge-rules", v_c0a297, async (v_3f4e2e) => {
   const v_4d33b2 = await v_3f4e2e.req.json<{ rules?: unknown }>().catch(() => ({} as { rules?: unknown }));
   const v_ddf1dc = typeof v_4d33b2.rules === "string" ? v_4d33b2.rules : "";

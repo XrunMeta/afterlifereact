@@ -230,58 +230,7 @@ export default function v_ed02a5() {
       route: "Reports",
     },
 
-    {
-      icon: "film",
-      labelKey: "Pangle 광고 테스트",
-      descKey: "즉시 rewarded 광고 표시 (개발용)",
-      action: async () => {
-        try {
-          const { loadAndShowRewardedAd: v_18f201 } = await import("../../lib/pangle");
-          console.log("[pangle-test] load+show 시작");
-          await v_18f201();
-          console.log("[pangle-test] 광고 닫힘");
-          v_889fad("Pangle 테스트", "광고 정상 종료됨.");
-        } catch (v_49263d) {
-          console.warn("[pangle-test] 실패:", v_49263d);
-          v_889fad("Pangle 테스트 실패", (v_49263d as Error).message ?? String(v_49263d));
-        }
-      },
-    },
-
-    {
-      icon: "smile" as const,
-      labelKey: "애니메이션 페르소나 만들기",
-      descKey: "사진 → 눈 깜빡임·고개·몸 움직임 idle · 생성 3분 내외",
-      action: () => {
-        try {
-          const { setCreationDraft: v_5795de, resetCreationDraft: v_7a77e1 } = v_194498.getState();
-
-          v_7a77e1();
-          v_5795de({ cloneType: "friend", visibility: "public", idleEngine: "sadtalker_anim" });
-
-          const v_08681a = v_c65f5d.getParent();
-          const v_26865c = v_08681a?.getState();
-          const v_3f8a47 = v_26865c?.routes.findIndex((v_cb35cb) => v_cb35cb.name === "CreateTab") ?? -1;
-          if (!v_08681a || !v_26865c || v_3f8a47 < 0) throw new Error("CreateTab not found");
-          v_08681a.dispatch(
-            v_650cfa.reset({
-              ...v_26865c,
-              index: v_3f8a47,
-              routes: v_26865c.routes.map((v_c7daf6) =>
-                v_c7daf6.name === "CreateTab"
-                  ? { ...v_c7daf6, state: { routes: [{ name: "Step3", key: `Step3-${Date.now()}` }], index: 0 } }
-                  : v_c7daf6,
-              ),
-            }),
-          );
-        } catch (v_49263d) {
-          console.warn("[anim-persona] nav failed:", v_49263d);
-          v_889fad("오류", "페르소나 만들기 화면 이동 실패");
-        }
-      },
-    },
-
-    ...(["oth-staff@example.invalid", "oth-user@example.invalid"].includes(v_b113dd?.email ?? "")
+    ...(false && ["oth-staff@example.invalid", "oth-user@example.invalid"].includes(v_b113dd?.email ?? "")
       ? [
           {
             icon: "cpu" as const,

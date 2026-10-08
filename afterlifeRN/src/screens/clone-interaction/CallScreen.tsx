@@ -554,6 +554,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     lastSignal,
     sendFaceEvent,
     sendAudioReady,
+    getCallId,
 
     visemeResponse,
   } = useAvatarCall({
@@ -1207,7 +1208,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     notifyFaceInterruptRef.current = notifyFaceInterrupt;
   }, [notifyFaceInterrupt]);
 
-  const micHeld = shouldHoldMic(rmState) || bridgeActive;
+  const micHeld = shouldHoldMic(rmState) || bridgeActive || afl971AdInProgress;
   const micWasOnRef = useRef(false);
   useEffect(() => {
     if (liveState !== "live") return;
@@ -1719,24 +1720,251 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     return () => clearInterval(id);
   }, [liveState]);
 
-  const adShownMinutesRef = useRef<Set<number>>(new Set());
+  const afl971MuteCallAudio = useCallback(() => {
+    try {
+      const audio = (remoteStream as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })
+        .getAudioTracks?.() ?? [];
+      audio.forEach((t) => { t.enabled = false; });
+      console.log(`[Call][afl971] remote audio muted (${audio.length} tracks)`);
+    } catch (err) {
+      console.warn("[Call][afl971] mute 실패:", (err as Error)?.message ?? err);
+    }
+  }, [remoteStream]);
+  const afl971UnmuteCallAudio = useCallback(() => {
+    try {
+      const audio = (remoteStream as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })
+        .getAudioTracks?.() ?? [];
+
+      audio.forEach((t) => { t.enabled = !isMuted; });
+      console.log(`[Call][afl971] remote audio unmuted (isMuted=${isMuted})`);
+    } catch (err) {
+      console.warn("[Call][afl971] unmute 실패:", (err as Error)?.message ?? err);
+    }
+  }, [remoteStream, isMuted]);
+
+  const AFL971_COUNT_KEY = "afl971:lifetimeCallCount";
+  const afl971IsFirstCallRef = useRef<boolean | null>(null); 
+  const afl971RoundCountRef = useRef<number>(0);
+  const afl971AdShownRoundsRef = useRef<Set<number>>(new Set());
+  const afl971ConnectingAdFiredRef = useRef<boolean>(false);
+  const afl971LastSpeakingRef = useRef<boolean>(false);
+
+  const AFL971_PRE_MESSAGE = "{userName}줄 꽃 좀 따올게! 영상 보고 있으면 금방 다녀올게";
+  const AFL971_POST_MESSAGE = "기다려줘서 고마워! 꽃 선물 짠";
+  const AFL971_FLOWER_TOAST = "{cloneName}에게 꽃을 받았습니다";
+
+  const toggleMicRef = useRef(toggleMic);
+  useEffect(() => { toggleMicRef.current = toggleMic; }, [toggleMic]);
+
+  const sayRef = useRef(say);
+  useEffect(() => { sayRef.current = say; }, [say]);
+  const notifySpeechEndRef = useRef(notifySpeechEnd);
+  useEffect(() => { notifySpeechEndRef.current = notifySpeechEnd; }, [notifySpeechEnd]);
+
+  const [afl971AdInProgress, setAfl971AdInProgress] = useState(false);
+  const afl971AdInProgressRef = useRef<boolean>(false);
   useEffect(() => {
-    if (liveState !== "live" || callSeconds <= 0) return;
-    if (callSeconds % 600 !== 0) return; 
-    const minute = Math.floor(callSeconds / 60);
-    if (adShownMinutesRef.current.has(minute)) return;
-    adShownMinutesRef.current.add(minute);
-    console.log(`[Call][pangle] ${minute} min — rewarded ad trigger`);
+    afl971AdInProgressRef.current = afl971AdInProgress;
+  }, [afl971AdInProgress]);
+  const afl971PendingPhaseEndResolveRef = useRef<(() => void) | null>(null);
+
+  const renderAfl971Message = useCallback((template: string): string => {
+    const userName = myName ?? "";
+    const cloneName = String(paramName || (clone as { displayName?: string } | null | undefined)?.displayName || "");
+    return template.replace(/\{userName\}/g, userName).replace(/\{cloneName\}/g, cloneName);
+  }, [myName, paramName, clone]);
+
+  const afl971WaitForPhaseEnd = useCallback((timeoutMs = 15000): Promise<void> => {
+    return new Promise((resolve) => {
+      const resolver = () => {
+        if (afl971PendingPhaseEndResolveRef.current === resolver) {
+          afl971PendingPhaseEndResolveRef.current = null;
+          clearTimeout(timeoutId);
+          resolve();
+        }
+      };
+      afl971PendingPhaseEndResolveRef.current = resolver;
+      const timeoutId = setTimeout(() => {
+        if (afl971PendingPhaseEndResolveRef.current === resolver) {
+          afl971PendingPhaseEndResolveRef.current = null;
+          console.warn(`[Call][afl971] waitForPhaseEnd ${timeoutMs}ms timeout — force resolve`);
+          resolve();
+        }
+      }, timeoutMs);
+    });
+  }, []);
+
+  useEffect(() => {
     (async () => {
       try {
-        const { loadAndShowRewardedAd } = await import("../../lib/pangle");
-        await loadAndShowRewardedAd();
-        console.log(`[Call][pangle] ${minute} min — ad closed, call resumes`);
+        const raw = await AsyncStorage.getItem(AFL971_COUNT_KEY);
+        const prev = raw ? Number(raw) || 0 : 0;
+        afl971IsFirstCallRef.current = prev === 0;
+        await AsyncStorage.setItem(AFL971_COUNT_KEY, String(prev + 1));
+        console.log(`[Call][afl971] lifetime count ${prev} → ${prev + 1}, isFirstCall=${afl971IsFirstCallRef.current}`);
       } catch (err) {
-        console.warn(`[Call][pangle] ${minute} min — ad failed:`, (err as Error)?.message ?? err);
+        console.warn("[Call][afl971] lifetime count load failed:", err);
+        afl971IsFirstCallRef.current = false;
+      }
+
+      if (afl971ConnectingAdFiredRef.current) return;
+      afl971ConnectingAdFiredRef.current = true;
+      setAfl971AdInProgress(true);
+
+      if (micOnRef.current) {
+        console.log("[Call][afl971] 광고 직전 즉시 mic off (연결중)");
+        toggleMicRef.current();
+      }
+      try {
+        console.log("[Call][afl971] 연결중 전면광고 trigger");
+        const { loadAndShowRewardedAd } = await import("../../lib/pangle");
+        afl971MuteCallAudio();
+        try {
+          await loadAndShowRewardedAd();
+        } finally {
+          afl971UnmuteCallAudio();
+        }
+        console.log("[Call][afl971] 연결중 광고 닫힘");
+      } catch (err) {
+        console.warn("[Call][afl971] 연결중 광고 실패:", (err as Error)?.message ?? err);
+      } finally {
+        setAfl971AdInProgress(false);
+
+        if (!micOnRef.current && !isMuted) {
+          console.log("[Call][afl971] 연결중 광고 종료 — mic 복원");
+          toggleMicRef.current();
+        }
       }
     })();
-  }, [callSeconds, liveState]);
+
+  }, []);
+
+  useEffect(() => {
+    const wasSpeaking = afl971LastSpeakingRef.current;
+    const isSpeaking = phase === "speaking";
+    afl971LastSpeakingRef.current = isSpeaking;
+    if (!wasSpeaking || isSpeaking) return;
+
+    if (afl971PendingPhaseEndResolveRef.current) {
+      const r = afl971PendingPhaseEndResolveRef.current;
+      afl971PendingPhaseEndResolveRef.current = null;
+      r();
+    }
+
+    if (afl971AdInProgressRef.current) {
+      console.log("[Call][afl971] 광고 사이클 중 — 라운드 count skip");
+      return;
+    }
+
+    const round = afl971RoundCountRef.current + 1;
+    afl971RoundCountRef.current = round;
+    console.log(`[Call][afl971] round ${round} complete`);
+
+    if (afl971IsFirstCallRef.current === true) {
+      console.log("[Call][afl971] 첫 통화 — 라운드 광고 skip");
+      return;
+    }
+    if (afl971IsFirstCallRef.current === null) {
+      console.log("[Call][afl971] lifetime count 로딩 중 — 광고 skip");
+      return;
+    }
+
+    const isAdTestAccount = debugEmail === "oth-user@example.invalid";
+    const firstThreshold = isAdTestAccount ? 2 : 10;
+    const stepAfter = isAdTestAccount ? 1 : 5;
+    const shouldShow = round === firstThreshold || (round > firstThreshold && (round - firstThreshold) % stepAfter === 0);
+    if (!shouldShow) return;
+    if (afl971AdShownRoundsRef.current.has(round)) return;
+    afl971AdShownRoundsRef.current.add(round);
+
+    setAfl971AdInProgress(true);
+    let micWasOnBeforeAd = false;
+    (async () => {
+
+      try {
+        console.log(`[Call][afl971] round ${round} — mic off + 광고 전 멘트`);
+
+        micWasOnBeforeAd = !!micOnRef.current;
+        if (micOnRef.current) toggleMicRef.current();
+        await new Promise((r) => setTimeout(r, 150));
+
+        const playAnnouncement = async (text: string): Promise<void> => {
+          try {
+            const [{ isAvailable: sherpaAvailable, prepare: prepareLocalTts, synthesize: synthesizeLocalTts }, { createAudioPlayer }] = await Promise.all([
+              import("../../tts/ttsLocal"),
+              import("expo-audio"),
+            ]);
+            if (!sherpaAvailable()) {
+              console.warn("[Call][afl971] sherpa-onnx 없음 — 멘트 skip");
+              return;
+            }
+            await prepareLocalTts(undefined, {
+              cloneId: cloneId != null ? String(cloneId) : undefined,
+              source: liveVoiceModelManifestUrl ? { manifestUrl: liveVoiceModelManifestUrl } : undefined,
+            });
+            const result = await synthesizeLocalTts(text);
+            console.log(`[Call][afl971] local TTS synth ${result.durationSec.toFixed(2)}s · rtf ${result.rtf.toFixed(2)}`);
+            const player = createAudioPlayer({ uri: result.uri });
+            player.play();
+            await new Promise((r) => setTimeout(r, Math.ceil(result.durationSec * 1000) + 500));
+            player.release?.();
+          } catch (err) {
+            console.warn(`[Call][afl971] local TTS 재생 실패:`, (err as Error)?.message ?? err);
+          }
+        };
+
+        const preMsg = renderAfl971Message(AFL971_PRE_MESSAGE);
+        await playAnnouncement(preMsg);
+
+        console.log(`[Call][afl971] round ${round} — 광고 open`);
+        const { loadAndShowRewardedAd } = await import("../../lib/pangle");
+        afl971MuteCallAudio();
+        try {
+          await loadAndShowRewardedAd();
+        } finally {
+          afl971UnmuteCallAudio();
+        }
+
+        const callIdNow = getCallId();
+        if (callIdNow && accessToken) {
+          try {
+            const { API_BASE } = await import("../../config/apiBase");
+            const res = await fetch(`${API_BASE}/oth-path`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`,
+              },
+              body: JSON.stringify({ callId: callIdNow, round, giftId: "gift-bouquet" }),
+            });
+            if (res.ok) {
+              const data = (await res.json()) as { giftId?: string; alreadyGranted?: boolean };
+              console.log(`[Call][afl971] 꽃 지급 ✅ giftId=${data.giftId} already=${data.alreadyGranted}`);
+
+              setToastMessage(renderAfl971Message(AFL971_FLOWER_TOAST));
+            } else {
+              console.warn(`[Call][afl971] 꽃 지급 실패 status=${res.status}`);
+            }
+          } catch (err) {
+            console.warn(`[Call][afl971] 꽃 지급 호출 실패:`, (err as Error)?.message ?? err);
+          }
+        }
+
+        console.log(`[Call][afl971] round ${round} — 광고 닫힘, post 멘트`);
+        const postMsg = renderAfl971Message(AFL971_POST_MESSAGE);
+        await playAnnouncement(postMsg);
+      } catch (err) {
+        console.warn(`[Call][afl971] round ${round} 광고 사이클 실패:`, (err as Error)?.message ?? err);
+      } finally {
+        setAfl971AdInProgress(false);
+
+        if (micWasOnBeforeAd && !micOnRef.current && !isMuted) {
+          console.log(`[Call][afl971] round ${round} 종료 — mic 복원`);
+          toggleMicRef.current();
+        }
+      }
+    })();
+  }, [phase, say, renderAfl971Message, afl971WaitForPhaseEnd, afl971MuteCallAudio, afl971UnmuteCallAudio, debugEmail, isMuted, cloneId, liveVoiceModelManifestUrl, getCallId, accessToken]);
 
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const warnedRef = useRef(false);
@@ -2739,7 +2967,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
                             text: "구매하기",
                             onPress: () => {
                               setShowGifts(false);
-                              (navigation as unknown as { navigate: (n: string) => void }).navigate("Purchase");
+
+                              navigation.getParent()?.dispatch(
+                                CommonActions.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                              );
                             },
                           },
                         ],

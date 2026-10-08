@@ -327,3 +327,63 @@ export async function v_88bb3b(
   }
   return v_dc0a0b(v_c9c489);
 }
+
+const v_76434b = "ad.messages";
+const v_9aa6be = 500; 
+export interface AdMessages {
+  pre: string;
+  post: string;
+  toast: string;
+}
+export const v_71229a = {
+  pre: "{userName}줄 꽃 좀 따올게! 영상 보고 있으면 금방 다녀올게 🌸",
+  post: "기다려줘서 고마워! 꽃 선물 짠 🌸",
+  toast: "{cloneName}에게 꽃을 받았습니다 🌸",
+};
+
+export async function v_99e8be(env: v_273a0c): Promise<AdMessages> {
+  try {
+    const v_3ac7e7 = await v_c9c489.DB
+      .prepare(`SELECT value FROM app_config WHERE key = ? LIMIT 1`)
+      .bind(v_76434b)
+      .first<{ value: string }>();
+    if (!v_3ac7e7) return v_71229a;
+    const v_8decf8 = JSON.parse(v_3ac7e7.value) as unknown;
+    if (!v_8decf8 || typeof v_8decf8 !== "object") return v_71229a;
+    const v_e2a85c = v_8decf8 as Partial<AdMessages>;
+    return {
+      pre: typeof v_e2a85c.pre === "string" && v_e2a85c.pre.length > 0 ? v_e2a85c.pre : v_71229a.pre,
+      post: typeof v_e2a85c.post === "string" && v_e2a85c.post.length > 0 ? v_e2a85c.post : v_71229a.post,
+      toast: typeof v_e2a85c.toast === "string" && v_e2a85c.toast.length > 0 ? v_e2a85c.toast : v_71229a.toast,
+    };
+  } catch {
+    return v_71229a;
+  }
+}
+
+export async function v_824b75(
+  env: v_273a0c,
+  v_17dc8a,
+): Promise<AdMessages> {
+  const v_275ccd = await v_99e8be(v_c9c489);
+  const v_a448ad = {
+    pre: typeof v_17dc8a.pre === "string" ? v_17dc8a.pre : v_275ccd.pre,
+    post: typeof v_17dc8a.post === "string" ? v_17dc8a.post : v_275ccd.post,
+    toast: typeof v_17dc8a.toast === "string" ? v_17dc8a.toast : v_275ccd.toast,
+  };
+
+  for (const [v_0eb677, v_81e2ef] of Object.entries(v_a448ad)) {
+    if (v_81e2ef.length === 0) throw new Error(`ad messages ${v_0eb677} must be non-empty`);
+    if (v_81e2ef.length > v_9aa6be) {
+      throw new Error(`ad messages ${v_0eb677} must be ≤ ${v_9aa6be} chars`);
+    }
+  }
+  await v_c9c489.DB
+    .prepare(
+      `INSERT INTO app_config (key, value, updated_at) VALUES (?, ?, unixepoch())
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = unixepoch()`,
+    )
+    .bind(v_76434b, JSON.stringify(v_a448ad))
+    .run();
+  return v_a448ad;
+}

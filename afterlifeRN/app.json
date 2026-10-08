@@ -3,7 +3,7 @@
     "name": "afterlife",
     "slug": "afterlifeRN",
     "scheme": "afterlife",
-    "version": "1.0.1",
+    "version": "1.1.0",
     "runtimeVersion": "1.1.0",
     "updates": {
       "url": "https://u.expo.dev/430bccd3-e48e-45e6-b819-a22816a1dad3",
@@ -33,13 +33,13 @@
         "NSLocationWhenInUseUsageDescription": "통화 시 클론이 지역 관련 대화를 나눌 수 있도록 현재 위치를 사용합니다. (선택 · 설정에서 언제든 끌 수 있어요)"
       },
       "appleTeamId": "677WG96CUJ",
-      "buildNumber": "17",
+      "buildNumber": "100",
       "googleServicesFile": "./GoogleService-Info.plist",
       "usesAppleSignIn": true
     },
     "android": {
       "package": "run.xrun.afterlifeRN",
-      "versionCode": 17,
+      "versionCode": 101,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -63,6 +63,7 @@
       "./plugins/withAndroidAbiFilters.js",
       "./plugins/withNotifeeCallFgsType.js",
       "./plugins/withPangle.js",
+      "./plugins/withAdIdPermission.js",
       [
         "expo-splash-screen",
         {
