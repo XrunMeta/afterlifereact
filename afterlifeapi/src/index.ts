@@ -35,6 +35,7 @@ import { v_ff9685 } from "./routes/files";
 import { v_4bc206 } from "./routes/voicePackages";
 import { v_a35f69 } from "./routes/payments";
 import { v_68bb66 } from "./routes/gifts";
+import { v_b92a72 } from "./routes/settings";
 import { v_0bc486 } from "./routes/giftInventory";
 import { v_62a1b6 } from "./routes/xrunBridge";
 import { v_9e7c53 } from "./routes/iapWebhooks";
@@ -144,6 +145,7 @@ v_466992.route("/oth-path", v_98b245);
 v_466992.route("/oth-path", v_e2c945);
 v_466992.route("/oth-path", v_a35f69);
 v_466992.route("/oth-path", v_68bb66);
+v_466992.route("/oth-path", v_b92a72);
 v_466992.route("/oth-path", v_62a1b6);
 
 v_466992.route("/oth-path", v_0bc486);
