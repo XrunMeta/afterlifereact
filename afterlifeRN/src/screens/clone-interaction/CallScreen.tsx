@@ -554,6 +554,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     lastSignal,
     sendFaceEvent,
     sendAudioReady,
+    getCallId,
 
     visemeResponse,
   } = useAvatarCall({
@@ -1924,10 +1925,34 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           afl971UnmuteCallAudio();
         }
 
+        const callIdNow = getCallId();
+        if (callIdNow && accessToken) {
+          try {
+            const { API_BASE } = await import("../../config/apiBase");
+            const res = await fetch(`${API_BASE}/oth-path`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`,
+              },
+              body: JSON.stringify({ callId: callIdNow, round, giftId: "gift-bouquet" }),
+            });
+            if (res.ok) {
+              const data = (await res.json()) as { giftId?: string; alreadyGranted?: boolean };
+              console.log(`[Call][afl971] 꽃 지급 ✅ giftId=${data.giftId} already=${data.alreadyGranted}`);
+
+              setToastMessage(renderAfl971Message(AFL971_FLOWER_TOAST));
+            } else {
+              console.warn(`[Call][afl971] 꽃 지급 실패 status=${res.status}`);
+            }
+          } catch (err) {
+            console.warn(`[Call][afl971] 꽃 지급 호출 실패:`, (err as Error)?.message ?? err);
+          }
+        }
+
         console.log(`[Call][afl971] round ${round} — 광고 닫힘, post 멘트`);
         const postMsg = renderAfl971Message(AFL971_POST_MESSAGE);
         await playAnnouncement(postMsg);
-
       } catch (err) {
         console.warn(`[Call][afl971] round ${round} 광고 사이클 실패:`, (err as Error)?.message ?? err);
       } finally {
@@ -1939,7 +1964,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         }
       }
     })();
-  }, [phase, say, renderAfl971Message, afl971WaitForPhaseEnd, afl971MuteCallAudio, afl971UnmuteCallAudio, debugEmail, isMuted, cloneId, liveVoiceModelManifestUrl]);
+  }, [phase, say, renderAfl971Message, afl971WaitForPhaseEnd, afl971MuteCallAudio, afl971UnmuteCallAudio, debugEmail, isMuted, cloneId, liveVoiceModelManifestUrl, getCallId, accessToken]);
 
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const warnedRef = useRef(false);

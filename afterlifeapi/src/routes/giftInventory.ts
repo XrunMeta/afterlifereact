@@ -291,3 +291,79 @@ v_0bc486.post(
     });
   },
 );
+
+const v_c31ac2 = v_1f4ea7.object({
+  callId: v_1f4ea7.string().min(1).max(128),
+  round: v_1f4ea7.number().int().positive(),
+  giftId: v_1f4ea7.string().min(1).max(80).optional(),
+});
+v_0bc486.post("/ad-reward-grant", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_c31ac2);
+  const v_96f93d = v_4d33b2.giftId ?? "gift-bouquet";
+
+  const v_d7296e = await v_3f4e2e.env.DB
+    .prepare("SELECT user_id FROM call_sessions WHERE call_id = ?")
+    .bind(v_4d33b2.callId)
+    .first<{ user_id: number }>();
+  if (!v_d7296e) throw new v_3ebe58("NOT_FOUND", "call_not_found");
+  if (v_d7296e.user_id !== v_43e90c) throw new v_3ebe58("FORBIDDEN", "not_call_owner");
+
+  const v_a0e308 = `ad-reward:${v_4d33b2.callId}:${v_4d33b2.round}`;
+  const v_3c8572 = await v_3f4e2e.env.DB
+    .prepare("SELECT id FROM gift_inventory_events WHERE ref_id = ? LIMIT 1")
+    .bind(v_a0e308)
+    .first<{ id: number }>();
+  if (v_3c8572) {
+
+    const v_f0104f = await v_3f4e2e.env.DB
+      .prepare("SELECT count, total_received FROM user_gift_inventory WHERE user_id = ? AND gift_id = ?")
+      .bind(v_43e90c, v_96f93d)
+      .first<{ count: number; total_received: number }>();
+    return v_3f4e2e.json({
+      ok: true,
+      giftId: v_96f93d,
+      alreadyGranted: true,
+      count: v_f0104f?.count ?? 0,
+      totalReceived: v_f0104f?.total_received ?? 0,
+    });
+  }
+
+  await v_3f4e2e.env.DB.batch([
+    v_3f4e2e.env.DB
+      .prepare(
+        `INSERT INTO user_gift_inventory (user_id, gift_id, count, total_received, updated_at)
+           VALUES (?, ?, 1, 1, strftime('%s','now'))
+         ON CONFLICT(user_id, gift_id) DO UPDATE SET
+           count = count + 1,
+           total_received = total_received + 1,
+           updated_at = strftime('%s','now')`,
+      )
+      .bind(v_43e90c, v_96f93d),
+    v_3f4e2e.env.DB
+      .prepare(
+        `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id)
+           VALUES (?, NULL, ?, 1, 0, 'ad_reward', ?)`,
+      )
+      .bind(v_43e90c, v_96f93d, v_a0e308),
+  ]);
+
+  const v_f0104f = await v_3f4e2e.env.DB
+    .prepare("SELECT count, total_received FROM user_gift_inventory WHERE user_id = ? AND gift_id = ?")
+    .bind(v_43e90c, v_96f93d)
+    .first<{ count: number; total_received: number }>();
+
+  await v_74defc(v_3f4e2e, {
+    userId: v_43e90c,
+    action: "gift.ad_reward_granted",
+    details: { callId: v_4d33b2.callId, round: v_4d33b2.round, giftId: v_96f93d, newCount: v_f0104f?.count ?? 0 },
+  });
+
+  return v_3f4e2e.json({
+    ok: true,
+    giftId: v_96f93d,
+    alreadyGranted: false,
+    count: v_f0104f?.count ?? 1,
+    totalReceived: v_f0104f?.total_received ?? 1,
+  });
+});
