@@ -1823,6 +1823,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         console.warn("[Call][afl971] 연결중 광고 실패:", (err as Error)?.message ?? err);
       } finally {
         setAfl971AdInProgress(false);
+
+        if (!micOnRef.current && !isMuted) {
+          console.log("[Call][afl971] 연결중 광고 종료 — mic 복원");
+          toggleMicRef.current();
+        }
       }
     })();
 
@@ -1892,6 +1897,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         console.warn(`[Call][afl971] round ${round} 광고 사이클 실패:`, (err as Error)?.message ?? err);
       } finally {
         setAfl971AdInProgress(false);
+
+        if (!micOnRef.current && !isMuted) {
+          console.log(`[Call][afl971] round ${round} 광고 종료 — mic 복원`);
+          toggleMicRef.current();
+        }
       }
     })();
   }, [phase, say, renderAfl971Message, afl971WaitForPhaseEnd, afl971MuteCallAudio, afl971UnmuteCallAudio]);
