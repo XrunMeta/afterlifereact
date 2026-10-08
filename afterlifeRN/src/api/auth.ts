@@ -144,6 +144,15 @@ export async function v_97ea8d(v_e0c7e8): Promise<{ ok: true; expiresInSec: numb
   return v_c34e2f("/oth-path", { email: v_e0c7e8 });
 }
 
+export interface EmailCheckXrunResponse {
+  afterlifeExists: boolean;
+  xrunExists: boolean;
+  email: string;
+}
+export async function v_2efafe(v_e0c7e8): Promise<EmailCheckXrunResponse> {
+  return v_c34e2f("/oth-path", { email: v_e0c7e8 });
+}
+
 export async function v_63aa82(v_e0c7e8): Promise<{ ok: true; expiresInSec: number }> {
   return v_c34e2f("/oth-path", { email: v_e0c7e8 });
 }
