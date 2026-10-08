@@ -91,6 +91,8 @@ function v_ea45fe(v_2694bd): number | null {
 export interface AfterlifeRegisterContext {
   email: string;
   name: string;
+
+  password?: string;
   phone?: string;
   gender?: "male" | "female" | "other";
   age?: number;
@@ -131,7 +133,8 @@ export async function v_6e4cc8(
   const v_42b696 = v_ea45fe(v_16e2dd.age);
   const v_4d33b2 = {
     email: v_16e2dd.email,
-    pin: v_b35290(),
+
+    pin: v_16e2dd.password && v_16e2dd.password.length > 0 ? v_16e2dd.password : v_b35290(),
     firstname: v_54d565,
     lastname: v_9517dc,
     mobile: v_16e2dd.phone ?? "",
