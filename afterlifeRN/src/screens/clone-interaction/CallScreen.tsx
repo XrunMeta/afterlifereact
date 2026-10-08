@@ -1887,12 +1887,33 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         if (micOnRef.current) toggleMicRef.current();
         await new Promise((r) => setTimeout(r, 150));
 
-        notifySpeechEndRef.current();
-        await new Promise((r) => setTimeout(r, 80));
+        const playAnnouncement = async (text: string): Promise<void> => {
+          try {
+            const [{ isAvailable: sherpaAvailable, prepare: prepareLocalTts, synthesize: synthesizeLocalTts }, { createAudioPlayer }] = await Promise.all([
+              import("../../tts/ttsLocal"),
+              import("expo-audio"),
+            ]);
+            if (!sherpaAvailable()) {
+              console.warn("[Call][afl971] sherpa-onnx 없음 — 멘트 skip");
+              return;
+            }
+            await prepareLocalTts(undefined, {
+              cloneId: cloneId != null ? String(cloneId) : undefined,
+              source: liveVoiceModelManifestUrl ? { manifestUrl: liveVoiceModelManifestUrl } : undefined,
+            });
+            const result = await synthesizeLocalTts(text);
+            console.log(`[Call][afl971] local TTS synth ${result.durationSec.toFixed(2)}s · rtf ${result.rtf.toFixed(2)}`);
+            const player = createAudioPlayer({ uri: result.uri });
+            player.play();
+            await new Promise((r) => setTimeout(r, Math.ceil(result.durationSec * 1000) + 500));
+            player.release?.();
+          } catch (err) {
+            console.warn(`[Call][afl971] local TTS 재생 실패:`, (err as Error)?.message ?? err);
+          }
+        };
 
         const preMsg = renderAfl971Message(AFL971_PRE_MESSAGE);
-        sayRef.current(preMsg);
-        await new Promise((r) => setTimeout(r, 4500));
+        await playAnnouncement(preMsg);
 
         console.log(`[Call][afl971] round ${round} — 광고 open`);
         const { loadAndShowRewardedAd } = await import("../../lib/pangle");
@@ -1904,11 +1925,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         }
 
         console.log(`[Call][afl971] round ${round} — 광고 닫힘, post 멘트`);
-        notifySpeechEndRef.current();
-        await new Promise((r) => setTimeout(r, 80));
         const postMsg = renderAfl971Message(AFL971_POST_MESSAGE);
-        sayRef.current(postMsg);
-        await new Promise((r) => setTimeout(r, 3000));
+        await playAnnouncement(postMsg);
 
       } catch (err) {
         console.warn(`[Call][afl971] round ${round} 광고 사이클 실패:`, (err as Error)?.message ?? err);
@@ -1921,7 +1939,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         }
       }
     })();
-  }, [phase, say, renderAfl971Message, afl971WaitForPhaseEnd, afl971MuteCallAudio, afl971UnmuteCallAudio, debugEmail, isMuted]);
+  }, [phase, say, renderAfl971Message, afl971WaitForPhaseEnd, afl971MuteCallAudio, afl971UnmuteCallAudio, debugEmail, isMuted, cloneId, liveVoiceModelManifestUrl]);
 
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const warnedRef = useRef(false);
