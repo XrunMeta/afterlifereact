@@ -1648,7 +1648,11 @@ v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
               created_at AS createdAt,
               soft_deleted_at AS softDeletedAt,
               suspended_until AS suspendedUntil,
-              banned_until AS bannedUntil
+              banned_until AS bannedUntil,
+              face_biometric_consent AS faceBiometricConsent,
+              face_biometric_consent_at AS faceBiometricConsentAt,
+              call_learning_consent AS callLearningConsent,
+              call_learning_consent_at AS callLearningConsentAt
          FROM users
         WHERE xrun_member_id = ?
         ORDER BY (deletion_state = 'active' AND deleted_at IS NULL) DESC, id DESC
@@ -1664,6 +1668,10 @@ v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
       softDeletedAt: string | null;
       suspendedUntil: string | null;
       bannedUntil: string | null;
+      faceBiometricConsent: number | null;
+      faceBiometricConsentAt: number | null;
+      callLearningConsent: number | null;
+      callLearningConsentAt: number | null;
     }>();
 
   if (!v_625c74) {
