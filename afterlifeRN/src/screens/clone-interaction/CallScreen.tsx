@@ -1752,8 +1752,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const AFL971_POST_MESSAGE = "기다려줘서 고마워! 꽃 선물 짠 🌸";
   const AFL971_FLOWER_TOAST = "{cloneName}에게 꽃을 받았습니다 🌸";
 
-  const micOnRef = useRef(micOn);
-  useEffect(() => { micOnRef.current = micOn; }, [micOn]);
   const toggleMicRef = useRef(toggleMic);
   useEffect(() => { toggleMicRef.current = toggleMic; }, [toggleMic]);
 
