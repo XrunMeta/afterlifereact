@@ -1755,6 +1755,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const toggleMicRef = useRef(toggleMic);
   useEffect(() => { toggleMicRef.current = toggleMic; }, [toggleMic]);
 
+  const sayRef = useRef(say);
+  useEffect(() => { sayRef.current = say; }, [say]);
+  const notifySpeechEndRef = useRef(notifySpeechEnd);
+  useEffect(() => { notifySpeechEndRef.current = notifySpeechEnd; }, [notifySpeechEnd]);
+
   const [afl971AdInProgress, setAfl971AdInProgress] = useState(false);
   const afl971AdInProgressRef = useRef<boolean>(false);
   useEffect(() => {
@@ -1878,7 +1883,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       try {
         console.log(`[Call][afl971] round ${round} — 광고 전 멘트`);
         const preMsg = renderAfl971Message(AFL971_PRE_MESSAGE);
-        say(preMsg);
+
+        notifySpeechEndRef.current();
+        await new Promise((r) => setTimeout(r, 50));
+        sayRef.current(preMsg);
         await afl971WaitForPhaseEnd();
         console.log(`[Call][afl971] round ${round} — 광고 전 멘트 완료, mic off + 광고 open`);
 
@@ -1899,7 +1907,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         }
         console.log(`[Call][afl971] round ${round} — 광고 후 멘트`);
         const postMsg = renderAfl971Message(AFL971_POST_MESSAGE);
-        say(postMsg);
+
+        notifySpeechEndRef.current();
+        await new Promise((r) => setTimeout(r, 50));
+        sayRef.current(postMsg);
 
       } catch (err) {
         console.warn(`[Call][afl971] round ${round} 광고 사이클 실패:`, (err as Error)?.message ?? err);
