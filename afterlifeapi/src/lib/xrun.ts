@@ -508,6 +508,38 @@ export async function v_a33f6b(env: v_273a0c, v_660822): Promise<XrunCloseResult
   };
 }
 
+export interface XrunAgreement {
+  type: number;
+  language: string;
+  content: string;
+  updated_at?: number;
+}
+
+export async function v_733425(
+  env: v_273a0c,
+  v_794648,
+  v_5254bf,
+): Promise<{ ok: true; row: XrunAgreement } | { ok: false; reason: string }> {
+  if (!v_c9c489.XRUN_INTERNAL_SECRET) return { ok: false, reason: "missing XRUN_INTERNAL_SECRET" };
+  const v_f71b56 = `${v_c9c489.XRUN_API_URL}/oth-path?type=${v_794648}&language=${encodeURIComponent(v_5254bf)}`;
+  let v_8f00b9;
+  try {
+    v_8f00b9 = await fetch(v_f71b56, { method: "GET", headers: v_9765c6(v_c9c489) });
+  } catch (v_49263d) {
+    return { ok: false, reason: `network: ${(v_49263d as Error).message}` };
+  }
+  let v_7ecfd1;
+  try {
+    v_7ecfd1 = (await v_8f00b9.json()) as typeof v_7ecfd1;
+  } catch {
+    return { ok: false, reason: `non-json (${v_8f00b9.status})` };
+  }
+  if (v_8f00b9.ok && v_7ecfd1?.status === "success" && v_7ecfd1.data) {
+    return { ok: true, row: v_7ecfd1.data };
+  }
+  return { ok: false, reason: `xrun agreements ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}` };
+}
+
 export async function v_fb09c6(
   env: v_273a0c,
   v_660822,
