@@ -1862,7 +1862,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       console.log("[Call][afl971] lifetime count 로딩 중 — 광고 skip");
       return;
     }
-    const shouldShow = round === 10 || (round > 10 && (round - 10) % 5 === 0);
+
+    const isAdTestAccount = debugEmail === "oth-user@example.invalid";
+    const firstThreshold = isAdTestAccount ? 2 : 10;
+    const stepAfter = isAdTestAccount ? 1 : 5;
+    const shouldShow = round === firstThreshold || (round > firstThreshold && (round - firstThreshold) % stepAfter === 0);
     if (!shouldShow) return;
     if (afl971AdShownRoundsRef.current.has(round)) return;
     afl971AdShownRoundsRef.current.add(round);
@@ -1904,7 +1908,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         }
       }
     })();
-  }, [phase, say, renderAfl971Message, afl971WaitForPhaseEnd, afl971MuteCallAudio, afl971UnmuteCallAudio]);
+  }, [phase, say, renderAfl971Message, afl971WaitForPhaseEnd, afl971MuteCallAudio, afl971UnmuteCallAudio, debugEmail, isMuted]);
 
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const warnedRef = useRef(false);
