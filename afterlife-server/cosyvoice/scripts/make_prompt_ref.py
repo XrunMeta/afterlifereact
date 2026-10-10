@@ -13,8 +13,9 @@ inference_zero_shot 이 직접 경고하듯("synthesis text too short than promp
 
 무엇을 하는가
 -------------
-1. voice.wav 에서 **말이 있는 구간만** 고른다(히즈키 지시). 앞뒤 무음을 버리고,
-   발화가 시작되는 지점부터 목표 길이만큼 잘라낸다.
+1. voice.wav 에서 **말이 있는 구간만** 고른다(히즈키 지시). 앞 무음을 버리고,
+   발화 8초가 지난 뒤 처음 나오는 쉼에서 자른다(AFL-1002). 30초까지 쉼이 없거나
+   녹음이 15초가 안 되면 자르지 않고 실패한다 — 말 중간에서 끊긴 견본이 단어 반복을 부른다.
 2. 잘라낸 구간을 STT 로 전사해 ref_prompt.txt 에 쓴다.
    🔴 오디오와 텍스트는 반드시 **같은 구간**이어야 한다. 기존 ref_text.txt 를
    재사용하면 안 된다 — 그건 앞 10초의 전사라 잘라낸 구간과 어긋나고, 그 불일치가
@@ -37,20 +38,26 @@ import sys
 import config
 from clone_ref import ref_audio_path, prompt_pair_paths
 
-# 목표 길이(초). 실측에서 3.2초가 가장 안정적이었고, 음색 학습을 위해 약간의 여유를 둔다.
-TARGET_SEC = float(os.environ.get("COSYVOICE_PROMPT_SEC", "4.0"))
+# 자르기 규칙(AFL-1002, 히즈키 결정 2026-10-10):
+#   - 녹음(발화)은 RECORD_MIN_SEC 이상이어야 한다.
+#   - 통화용 견본은 발화 CUT_AFTER_SEC 가 지난 뒤 처음 나오는 쉼에서 자른다. 15초로 잘랐더니
+#     견본이 길어 문장마다 응답이 0.5~0.6초 느려져(A/B 3회차) 8초로 줄였다.
+#   - MAX_PROMPT_SEC 까지 쉼이 없으면 자르지 않고 실패한다(기계 절단 금지).
+#     30초는 CosyVoice 가 받는 프롬프트 상한이기도 하다.
+RECORD_MIN_SEC = float(os.environ.get("COSYVOICE_PROMPT_RECORD_MIN_SEC", "15.0"))
+CUT_AFTER_SEC = float(os.environ.get("COSYVOICE_PROMPT_CUT_AFTER_SEC", "8.0"))
+MAX_PROMPT_SEC = float(os.environ.get("COSYVOICE_PROMPT_MAX_SEC", "30.0"))
 # 무음 판정 임계. -40dB 는 ref 분석에서 발화/무음이 깨끗이 갈린 값.
 SILENCE_DB = os.environ.get("COSYVOICE_PROMPT_SILENCE_DB", "-40dB")
-# 이보다 짧은 무음은 문장 내 호흡이라 자르지 않는다.
-SILENCE_MIN = float(os.environ.get("COSYVOICE_PROMPT_SILENCE_MIN", "0.35"))
-# 문장 끝 무음을 이만큼 물고 간다. 마지막 음절 바로 뒤에서 끊으면 모델이 그 음절을
-# 이어받아 생성 앞에 흘린다("박영미입니다." → "다~"). 무음이 곧 종결 신호다.
+# 이보다 짧은 무음은 문장 내 호흡이라 자르지 않는다. 0.35 였을 때 프리셋 9520(문장 사이 쉼
+# 0.25~0.34초)에서 쉼을 하나도 못 찾아 기계 절단으로 빠졌다 → 0.2.
+SILENCE_MIN = float(os.environ.get("COSYVOICE_PROMPT_SILENCE_MIN", "0.2"))
+# 문장 끝 무음을 이만큼 물고 간다(쉼이 더 짧으면 쉼 길이까지만). 마지막 음절 바로 뒤에서
+# 끊으면 모델이 그 음절을 이어받아 생성 앞에 흘린다("박영미입니다." → "다~").
 TAIL_SILENCE_SEC = float(os.environ.get("COSYVOICE_PROMPT_TAIL_SILENCE", "0.35"))
 # 앞쪽 공백을 걷어낼 때 쓰는 임계. 무음 판정(-40dB)보다 민감하게 잡아 첫 소리 직전까지
 # 바짝 붙인다. 여백이 남으면 모델이 앞 음절을 되풀이했다(히즈키 실청: "다" 반복).
 LEAD_TRIM_DB = os.environ.get("COSYVOICE_PROMPT_LEAD_TRIM_DB", "-45dB")
-# 프롬프트 최소 길이(초). 마지막 유성 구간을 버리는 만큼 짧아지므로 하한이 필요하다.
-MIN_PROMPT_SEC = float(os.environ.get("COSYVOICE_PROMPT_MIN_SEC", "1.2"))
 STT_URL = os.environ.get("PRETHIRD_STT_URL", "http://127.0.0.1:8202")
 
 _SIL_START = re.compile(r"silence_start:\s*([0-9.]+)")
@@ -87,37 +94,29 @@ def speech_start(path: str) -> float:
     return 0.0
 
 
-def pick_end(path: str, start: float, target: float) -> float:
-    """자를 지점(초, 절대시각)을 고른다 — **문장 경계에서 끊기 위해**.
+def pick_end(path: str, start: float, total: float) -> tuple[float | None, str]:
+    """자를 지점(초, 절대시각)과 사유를 고른다 — **문장 경계에서만 끊는다**.
 
-    목표 길이에서 기계적으로 자르면 문장 한복판에서 끊긴다. 그러면 프롬프트 텍스트가
-    "…오늘 하루는 다" 처럼 미완으로 끝나고, CosyVoice 는 프롬프트의 **연속**으로
-    생성하므로 그 뒷말을 이어붙인다 — 실사용에서 클론이 말 앞에 "다오~" 같은 추임새를
-    붙였다(히즈키 보고 2026-08-13).
+    규칙(AFL-1002): 녹음이 RECORD_MIN_SEC 이상이면, 발화 시작 후 CUT_AFTER_SEC 가 지난 뒤
+    **처음 나오는 쉼**에서 끊는다.
+    반환: (끝 시각, "ok") 또는 (None, "too_short" | "no_pause").
 
-    문장 끝에는 대개 무음이 온다. 그 무음 지점을 끝으로 삼으면 문장 경계에 맞춰 끊긴다.
-
-    🔴 **마지막 유성 구간은 버린다**(히즈키 지시 2026-08-13).
-    무음 지점에서 끊어도 그 직전 음절이 생성 앞에 새어 나왔다("…박영미입니다." →
-    앞에 "다"). 꼬리 무음을 물려도 12분의 1 확률로 남았다. 마지막 소리를 아예
-    포함하지 않으면 샐 음절 자체가 없다 —
-
-        [안녕하세요] [공백] [박영미입니다] [무음]    ← 끝 음절이 샌다
-        [안녕하세요] [공백]                          ← 마지막 소리 앞 공백에서 끊는다
-
-    그래서 마지막 무음이 아니라 **뒤에서 두 번째 무음**을 고른다. 후보가 하나뿐이면
-    (문장이 하나뿐이면) 그것을 쓴다 — 더 줄이면 음색을 학습할 재료가 없어진다.
+    🔴 쉼을 못 찾으면 자르지 않는다. 예전에는 목표 길이(4초)에서 기계적으로 잘랐고,
+    프리셋 9520 견본이 "…되었네요 오늘따라 당신과" 처럼 말 중간에서 끊겨 텍스트와
+    어긋났다 — 통화에서 "잘 잘 잘…" 단어 반복의 원인이었다(AFL-1002).
+    실패 사유는 재녹음 안내(AFL-1005)에 그대로 쓴다.
     """
-    limit = start + target
-    starts, _ = silences(path)
-    # MIN_PROMPT_SEC 보다 이른 무음은 후보에서 뺀다 — 프롬프트가 너무 짧으면 음색이 무너진다.
-    candidates = sorted(s for s in starts if start + MIN_PROMPT_SEC < s <= limit)
-    if not candidates:
-        return limit
-    chosen = candidates[-2] if len(candidates) >= 2 else candidates[-1]
-    # 무음이 **시작되는** 지점에서 딱 끊으면 직전 음절에 바짝 붙는다.
-    # 종결 신호가 되도록 무음을 조금 물고 간다(TAIL_SILENCE_SEC).
-    return min(chosen + TAIL_SILENCE_SEC, limit + TAIL_SILENCE_SEC)
+    if total - start < RECORD_MIN_SEC:
+        return None, "too_short"
+    lo, hi = start + CUT_AFTER_SEC, start + MAX_PROMPT_SEC
+    starts, ends = silences(path)
+    for i, s in enumerate(starts):
+        if lo <= s <= hi:
+            # 쉼이 끝나지 않은 채 파일이 끝나면 ffmpeg 가 silence_end 를 안 줄 수 있다.
+            gap = (ends[i] if i < len(ends) else total) - s
+            # 종결 신호가 되도록 쉼을 물고 가되, 쉼보다 길게 물면 다음 말 첫소리가 섞인다.
+            return s + min(TAIL_SILENCE_SEC, gap), "ok"
+    return None, "no_pause"
 
 
 def cut(src: str, dst: str, start: float, dur: float) -> bool:
@@ -209,8 +208,9 @@ def build(clone_id: str, ref_root: str | None = None) -> bool:
     wav_dst, txt_dst = prompt_pair_paths(clone_id, ref_root)
     start = speech_start(src)
     total = duration(src)
-    if total - start < 1.0:
-        print(f"[{clone_id}] 발화 구간이 너무 짧음({total - start:.1f}s) — skip")
+    end, reason = pick_end(src, start, total)
+    if end is None:
+        print(f"[{clone_id}] 다듬기 실패({reason}) 발화 {total - start:.1f}s — 견본 쌍 안 만듦")
         return False
 
     # 원본(voice.raw·voice.wav)은 건드리지 않는다 — qwen3tts·openvoice 가 voice.wav 를
@@ -219,8 +219,7 @@ def build(clone_id: str, ref_root: str | None = None) -> bool:
     # wav 를 먼저 제자리에 쓰고 텍스트를 나중에 쓴다. STT(/transcribe_path)가 REF_ROOT
     # 아래 경로만 받기 때문이고, 그 사이의 중간 상태(wav 만 있고 txt 없음)는 ref_pair 가
     # 쌍 미완으로 보고 기존 자산으로 폴백하므로 안전하다(test_클론_ref_pair 로 고정).
-    end = min(pick_end(src, start, TARGET_SEC), total)
-    if not cut(src, wav_dst, start, max(end - start, 1.0)):
+    if not cut(src, wav_dst, start, min(end, total) - start):
         print(f"[{clone_id}] 자르기 실패 — skip")
         return False
     text = transcribe(wav_dst)
