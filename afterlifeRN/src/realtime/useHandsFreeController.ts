@@ -251,16 +251,19 @@ export function v_7df8a4(opts: {
   const v_6be210 = v_de06a3(
     (ev: v_01cdf6) => {
 
-      if (v_1d299c.type === 'RESPONSE_DONE' || v_1d299c.type === 'RESPONSE_END' || v_1d299c.type === 'CALL_ENDED') {
-        v_1ab00a();
-      }
-
       if (v_1d299c.type === 'CALL_ENDED') {
         v_938712.current = 0;
         v_d7f7b1('timer', { name: 'cooldown', action: 'clear', by: 'call_ended' });
       }
       const v_ba2215 = v_8d3dea.current;
       const { state: v_a448ad, effects: v_27ef63, sayText: v_b03676, saySeq: v_b6611b } = v_6920f0(v_ba2215, v_1d299c);
+
+      if (
+        v_1d299c.type === 'RESPONSE_DONE' || v_1d299c.type === 'CALL_ENDED'
+        || (v_1d299c.type === 'RESPONSE_END' && v_a448ad !== v_ba2215)
+      ) {
+        v_1ab00a();
+      }
 
       const v_81b6e6 =
         v_ba2215.phase === 'speaking' || v_ba2215.phase === 'sending';
