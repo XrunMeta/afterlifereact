@@ -1298,11 +1298,24 @@ def _make_dc_handler(sess, channel):
                         except Exception:
                             pass
                         channel.send(_json.dumps(_payload))
+                        # [AFL-1008] 앱 마이크가 다시 안 열리는 사고에서 서버가 보냈는지
+                        # 증명할 수 없었다 — 송신 사실과 잔량을 남긴다(턴당 1줄).
+                        log.info(
+                            "session %s speech_end sent seq=%s remaining_ms=%s",
+                            sess.session_id, seq, _payload.get("remaining_ms"),
+                        )
                     except Exception as exc:
                         log.warning(
                             "session %s speech_end send failed: %s",
                             sess.session_id, exc,
                         )
+                else:
+                    # [AFL-1008] 예전엔 여기서 조용히 건너뛰었다 — 앱은 끝 신호를 영영 못 받는다.
+                    log.warning(
+                        "session %s speech_end skipped seq=%s channel=%s",
+                        sess.session_id, seq,
+                        getattr(channel, "readyState", None) if channel is not None else None,
+                    )
             # [T-067 §6.2] 이 발화 종료(성공/실패 모두, 취소 제외) → 대기 중이던 pending
             # react가 있으면 지금 재생. face_event 토글 off/미도착 시 pending은 항상
             # None이라 _drain_pending_react는 즉시 반환(회귀 0).
