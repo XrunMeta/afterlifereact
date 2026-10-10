@@ -128,3 +128,28 @@ def test_speech_end_omits_remaining_ms_without_audio_track():
     _run_handler(sess, ch, {"type": "greet", "seq": 12})
     speech_end = next(m for m in ch.sent if m["type"] == "speech_end")
     assert "remaining_ms" not in speech_end
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AFL-1008: speech_end 송신을 로그로 남긴다.
+#
+# 클론 대답이 끝났는데 앱 마이크가 다시 안 열리는 사고(9177, 2회)에서, 서버가 speech_end 를
+# 보냈는지 로그로 증명할 수 없었다 — 성공은 무기록, 채널이 안 열려 있으면 조용히 건너뛰었다.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_speech_end_송신을_INFO_로_남긴다(caplog):
+    sess, ch = _Sess(), _Channel()
+    sess.audio_track = _AudioTrack(96000)
+    with caplog.at_level("INFO", logger="prethird.signaling"):
+        _run_handler(sess, ch, {"type": "say", "text": "안녕", "seq": 21})
+    lines = [r.getMessage() for r in caplog.records if "speech_end" in r.getMessage()]
+    assert any("s1" in m and "seq=21" in m and "remaining_ms=2000" in m for m in lines), lines
+
+
+def test_채널이_닫혀_speech_end_를_못_보내면_WARNING(caplog):
+    sess, ch = _Sess(), _Channel()
+    ch.readyState = "closed"
+    with caplog.at_level("INFO", logger="prethird.signaling"):
+        _run_handler(sess, ch, {"type": "say", "text": "안녕", "seq": 22})
+    warns = [r for r in caplog.records if r.levelname == "WARNING" and "speech_end" in r.getMessage()]
+    assert warns and "seq=22" in warns[0].getMessage() and "closed" in warns[0].getMessage()
