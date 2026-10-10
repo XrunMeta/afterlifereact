@@ -1385,3 +1385,50 @@ describe('T-258 최종 리뷰 fix: 계층 경계 회귀', () => {
     }
   });
 });
+
+describe('AFL-1008: 게이팅 중 감지기 RESPONSE_END 가 꼬리 대기를 지우지 않는다', () => {
+  it('speech_end(remainingMs) 뒤 감지기가 먼저 끝나도 봉인 해제 후 listening 으로 돌아온다', async () => {
+
+    jest.useFakeTimers();
+    const v_1e3df0 = v_c2295a();
+    let v_fbe91e = 0.9;
+    const v_791152 = jest.fn(() => v_cde30b(v_fbe91e));
+    const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
+      (v_b1927c) => v_7df8a4({
+        enabled: true,
+        say: jest.fn().mockResolvedValue(undefined),
+        notifySpeechEnd: jest.fn(),
+        speechEngine: v_1e3df0,
+        signalGating: true,
+        silenceMs: 20,
+        getStatsReport: v_791152,
+        lastSignal: v_b1927c.signal,
+      }),
+      { initialProps: { signal: null as any } },
+    );
+    try {
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(100); });
+      expect(v_43c42e.current.phase).toBe('listening');
+
+      v_be73a0(() => { v_1e3df0.emitFinal('그랬구나'); });
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(100); });
+      expect(v_43c42e.current.phase).toBe('sending');
+
+      v_2726cb({ signal: { type: 'speech_start', seq: 1, ts: 1 } });
+
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(1000); });
+      expect(v_43c42e.current.phase).toBe('speaking');
+
+      v_2726cb({ signal: { type: 'speech_end', seq: 1, ts: 2, remainingMs: 3000 } });
+      v_fbe91e = 0;
+
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(1600); });
+      expect(v_43c42e.current.phase).toBe('speaking');
+
+      await v_be73a0(async () => { await jest.advanceTimersByTimeAsync(2000); });
+      expect(v_43c42e.current.phase).toBe('listening');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});
