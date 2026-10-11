@@ -10,16 +10,29 @@ import io, os, threading, logging
 import numpy as np
 import soundfile as sf
 import config
-from clone_ref import load_ref_text
+from clone_ref import load_ref_text, PROMPT_WAV
 
 log = logging.getLogger("cosyvoice")
+
+
+def seed_for(clone_id: str, text: str, attempt: int) -> int:
+    """합성 시드. 같은 (clone_id, text, attempt) 는 늘 같은 소리 — 발음 문제 재현용(AFL-746).
+
+    attempt 를 섞는 이유(AFL-1002): 라이브는 (clone_id, text) 만으로 시드를 고정했고 재시도도
+    top_k=1 이라, 폭주가 나면 재시도 6번이 전부 같은 폭주를 반복했다.
+    hashlib 를 쓰는 이유: 내장 hash() 는 PYTHONHASHSEED 에 따라 바뀌어 env 가 빠지면 재현성이 깨진다.
+    """
+    import hashlib
+    h = hashlib.sha256(f"{clone_id}::{text}::{attempt}".encode()).digest()
+    return (int.from_bytes(h[:4], "big") + config.SEED_OFFSET) & 0x7FFFFFFF or 42
 
 
 class CosyEngine:
     def __init__(self):
         self.model = None
         self.sr = None
-        self._registered: set[str] = set()   # 프롬프트 캐시된 clone_id
+        # clone_id → 등록한 견본의 서명(경로·크기·수정시각·텍스트). 서명이 바뀌면 다시 등록한다.
+        self._registered: dict[str, tuple] = {}
         self._reg_lock = threading.Lock()     # 클론 등록 직렬화
         self._synth_lock = threading.Lock()   # GPU 합성 직렬화(동시통화 음성 섞임 방지)
         os.makedirs(config.PROMPT_CACHE_DIR, exist_ok=True)
@@ -61,41 +74,65 @@ class CosyEngine:
         except Exception as e:
             log.warning("warmup fail: %s", e)
 
+    @staticmethod
+    def _prompt_sig(voice_wav: str, ref_text: str | None) -> tuple:
+        st = os.stat(voice_wav)
+        return (voice_wav, st.st_size, st.st_mtime_ns, ref_text)
+
     def _ensure_prompt(self, clone_id: str, voice_wav: str, ref_text: str | None):
-        """클론 프롬프트 1회 등록(스레드세이프). 이미 등록됐으면 no-op."""
-        if clone_id in self._registered:
+        """클론 프롬프트 등록(스레드세이프). 같은 견본이면 no-op.
+
+        견본 파일이나 텍스트가 바뀌면(프리셋 견본 교체·재녹음) 재시작 없이 다시 등록한다(AFL-1002).
+        예전에는 clone_id 만 보고 캐시해서, 교체한 견본이 프로세스 재시작 전까지 반영되지 않았다.
+        """
+        sig = self._prompt_sig(voice_wav, ref_text)
+        if self._registered.get(clone_id) == sig:
             return
         with self._reg_lock:
-            if clone_id in self._registered:
+            if self._registered.get(clone_id) == sig:
                 return
             data, sr = sf.read(voice_wav, dtype="float32")
             if data.ndim > 1:
                 data = data[:, 0]
             if data.size == 0:
                 raise ValueError(f"empty voice.wav: {voice_wav!r}")
-            data = data[: int(config.REF_CLIP_MAX_SEC * sr)]        # 앞 10s 트림(ref_text 정합)
+            # 견본 쌍(AFL-1002)은 make_prompt_ref 가 문장 끝 쉼을 물고 잘라 통째로 전사한 것이다.
+            # 그래서 아래 두 손질은 voice.wav 폴백에만 한다:
+            #   - 앞 10s 트림: ref_text.txt(앞 10초 전사)와 맞추려는 것. 견본 쌍을 자르면 텍스트와 어긋난다.
+            #   - 끝 무음 패딩: 견본 쌍은 이미 쉼으로 끝난다. 또 붙이면 끝 무음이 0.6초를 넘어
+            #     합성 앞머리 무음이 늘었다(9520 평균 0.77초 → 짧은 말이 폭주 검사에 걸림).
+            is_pair = os.path.basename(voice_wav) == PROMPT_WAV
+            if not is_pair:
+                data = data[: int(config.REF_CLIP_MAX_SEC * sr)]
             # 프롬프트 끝 무음 패딩 → 하드컷 경계 아티팩트("똥" 선행 환청) 제거 + 과생성 완화.
             # 실측(5회): 뒤침묵 없으면 lead-RMS 1607(아티팩트), 있으면 16(클린). ref_text 는 길이불변.
-            if config.PROMPT_TAIL_SILENCE_MS > 0:
+            if config.PROMPT_TAIL_SILENCE_MS > 0 and not is_pair:
                 tail = np.zeros(int(config.PROMPT_TAIL_SILENCE_MS / 1000 * sr), dtype=data.dtype)
                 data = np.concatenate([data, tail])
             ppath = os.path.join(config.PROMPT_CACHE_DIR, f"{clone_id}_prompt.wav")
             sf.write(ppath, data, sr, format="WAV")
             # ref_text 없으면 빈문자(cross-lingual 유사) — 있으면 ICL 프롬프트 텍스트로 사용.
             self.model.add_zero_shot_spk(ref_text or "", ppath, clone_id)
-            self._registered.add(clone_id)
+            self._registered[clone_id] = sig
             log.info("prompt cached: clone=%s (%.1fs, icl=%s)", clone_id, len(data) / sr, ref_text is not None)
 
     def _synth_once(self, text: str, clone_id: str, speed: float, top_k: int | None = None,
-                    top_p: float | None = None):
+                    top_p: float | None = None, attempt: int = 0):
         """1회 합성 → float32 [T] numpy (빈 텍스트면 None). GPU 직렬화.
-        top_k/top_p 지정 시 이 합성만 해당 샘플링 사용(폭주 재합성 폴백·랩 튜닝)·이후 기본값 복원."""
+        top_k/top_p 지정 시 이 합성만 해당 샘플링 사용(폭주 재합성 폴백·랩 튜닝)·이후 기본값 복원.
+        attempt: 폭주 재합성 회차 — 시드에 섞어 재시도마다 다른 결과가 나오게 한다."""
         import torch
         chunks = []
         # top_p 만 바꾸는 경우에도 샘플링을 갈아끼워야 하므로 top_k 기본값을 채워 준다.
         _need_override = (top_k is not None or top_p is not None) and config.SAMPLING_TOP_K > 0
         _tk = config.SAMPLING_TOP_K if top_k is None else top_k
         with self._synth_lock:
+            # 시드는 잠금 안에서 건다 — 밖에서 걸면 다른 요청이 그 사이 시드를 덮는다.
+            if config.SEED_LOCK:
+                _seed = seed_for(clone_id, text, attempt)
+                torch.manual_seed(_seed)
+                if torch.cuda.is_available():
+                    torch.cuda.manual_seed_all(_seed)
             if _need_override:
                 self._set_sampling(_tk, top_p)
             try:
@@ -136,7 +173,7 @@ class CosyEngine:
             # 1차=기본(또는 요청) 샘플링, 재합성=폴백 top_k(greedy 1, 폭주율↓).
             tk = _req_tk if attempt == 0 else o["ramble_fallback_top_k"]
             tp = _req_tp if attempt == 0 else None
-            audio = self._synth_once(text, clone_id, speed, top_k=tk, top_p=tp)
+            audio = self._synth_once(text, clone_id, speed, top_k=tk, top_p=tp, attempt=attempt)
             if audio is None:
                 # 정규화 후 빈 텍스트(문장부호·이모지) → 짧은 무음(스트리밍 무중단·503 방지).
                 log.info("empty audio clone=%s text=%r → 무음 반환", clone_id, text[:40])
