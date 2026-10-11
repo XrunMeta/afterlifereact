@@ -49,3 +49,8 @@ SAMPLING_TOP_P = float(os.environ.get("COSYVOICE_SAMPLING_TOP_P", "0.8"))
 # 폭주 재합성 시 폴백 top_k — greedy(1)=폭주 20%로 가장 안정. 재합성만 이 값 사용(밋밋하나 노이즈 아님).
 # 조합 escape ≈ P(top5 폭주)×P(greedy 폭주)^retries = 0.5×0.2^3 ≈ 0.4%.
 RAMBLE_FALLBACK_TOP_K = int(os.environ.get("COSYVOICE_RAMBLE_FALLBACK_TOP_K", "1"))
+
+# 시드 고정(AFL-746, 2026-09-18 라이브에서 직접 추가된 것을 AFL-1002 에서 repo 로 흡수).
+# 같은 (clone_id, text, 재시도 회차)는 늘 같은 소리 → 발음 문제를 재현할 수 있다. 0 이면 끔.
+SEED_LOCK = os.environ.get("COSYVOICE_SEED_LOCK", "1") == "1"
+SEED_OFFSET = int(os.environ.get("COSYVOICE_SEED_OFFSET", "0"))

@@ -117,48 +117,87 @@ def test_빈_문자열은_None():
 # ─────────────────────────────────────────────────────────────────────────────
 # 자를 지점 고르기 — 문장 경계(무음)에서 끊는다.
 #
-# 목표 길이에서 기계적으로 자르면 문장 한복판에서 끊기고, 프롬프트가 미완으로 끝난다.
-# CosyVoice 는 프롬프트의 연속으로 생성하므로 그 뒷말을 이어붙인다 — 실사용에서
-# 클론이 말 앞에 "다오~" 같은 추임새를 붙였다(히즈키 보고 2026-08-13).
+# 규칙(AFL-1002, 히즈키 결정 2026-10-10):
+#   - 녹음(발화)은 RECORD_MIN_SEC(15초) 이상이어야 한다. 짧으면 too_short.
+#   - 통화용 견본은 발화 CUT_AFTER_SEC(8초)가 지난 뒤 **처음 나오는 쉼**에서 자른다.
+#     15초 기준으로 잘랐더니 문장마다 응답이 0.5~0.6초 느려져(A/B 3회차) 8초로 줄였다.
+#   - MAX_PROMPT_SEC(30초)까지 쉼이 없으면 자르지 않고 no_pause.
+#
+# 🔴 기계 절단 금지. 예전 규칙은 쉼을 못 찾으면 목표 길이(4초)에서 그냥 잘랐고,
+# 프리셋 9520 견본이 "…되었네요 오늘따라 당신과" 처럼 말 중간에서 끊겨 텍스트와
+# 어긋났다 → 통화에서 "잘 잘 잘…" 단어 반복(9177 문장의 32%). 같은 절단 견본 48/97.
 # ─────────────────────────────────────────────────────────────────────────────
 
-def test_마지막_유성구간을_버리고_그_앞_무음에서_끊는다(monkeypatch):
-    """끝 음절이 생성 앞에 새어 나오므로, 마지막 소리를 아예 포함하지 않는다."""
-    monkeypatch.setattr(make_prompt_ref, "silences", lambda p: ([1.5, 3.0, 4.5], [1.9, 3.4, 4.9]))
-    # target 4.0 → 후보 [1.5, 3.0]. 마지막(3.0)이 아니라 그 앞(1.5)을 고른다.
-    assert make_prompt_ref.pick_end("x", 0.0, 4.0) == 1.5 + make_prompt_ref.TAIL_SILENCE_SEC
+REC = make_prompt_ref.RECORD_MIN_SEC
+CUT = make_prompt_ref.CUT_AFTER_SEC
+MAX = make_prompt_ref.MAX_PROMPT_SEC
+TAIL = make_prompt_ref.TAIL_SILENCE_SEC
 
 
-def test_무음이_하나뿐이면_그것을_쓴다(monkeypatch):
-    """문장이 하나뿐인 ref — 더 줄이면 음색을 학습할 재료가 없다."""
-    monkeypatch.setattr(make_prompt_ref, "silences", lambda p: ([2.0], [2.6]))
-    assert make_prompt_ref.pick_end("x", 0.0, 4.0) == 2.0 + make_prompt_ref.TAIL_SILENCE_SEC
+def test_8초_이후_첫_쉼에서_끊는다(monkeypatch):
+    """8초 전의 쉼은 건너뛰고, 8초 이후 처음 나오는 쉼을 고른다(마지막 쉼이 아니라)."""
+    monkeypatch.setattr(make_prompt_ref, "silences",
+                        lambda p: ([3.0, 9.2, 13.0], [3.5, 9.8, 13.6]))
+    assert make_prompt_ref.pick_end("x", 0.0, 20.0) == (9.2 + TAIL, "ok")
 
 
-def test_쓸만한_무음이_없으면_목표_길이를_그대로_쓴다(monkeypatch):
-    monkeypatch.setattr(make_prompt_ref, "silences", lambda p: ([], []))
-    assert make_prompt_ref.pick_end("x", 0.0, 4.0) == 4.0
+def test_정확히_8초에서_시작하는_쉼도_인정한다(monkeypatch):
+    monkeypatch.setattr(make_prompt_ref, "silences", lambda p: ([8.0], [8.6]))
+    assert make_prompt_ref.pick_end("x", 0.0, 20.0) == (8.0 + TAIL, "ok")
 
 
-def test_너무_이른_무음은_후보가_아니다(monkeypatch):
-    """MIN_PROMPT_SEC 미만이면 음색 학습이 안 된다."""
-    monkeypatch.setattr(make_prompt_ref, "silences", lambda p: ([0.4], [0.8]))
-    assert make_prompt_ref.pick_end("x", 0.0, 4.0) == 4.0
+def test_발화_시작점부터_센다(monkeypatch):
+    """앞 무음은 길이에 넣지 않는다 — 실제 말을 기준으로 센다."""
+    monkeypatch.setattr(make_prompt_ref, "silences",
+                        lambda p: ([0.0, 9.0, 11.5], [2.0, 9.5, 12.0]))
+    # start=2.0 → 기준 10.0. 9.0 은 너무 이르고 11.5 를 고른다.
+    assert make_prompt_ref.pick_end("x", 2.0, 20.0) == (11.5 + TAIL, "ok")
 
 
-def test_발화_시작점_이후만_후보로_본다(monkeypatch):
-    """앞부분 무음(발화 전)을 끝점으로 고르면 빈 오디오가 된다."""
-    monkeypatch.setattr(make_prompt_ref, "silences", lambda p: ([0.1, 6.0], [2.0, 6.5]))
-    assert make_prompt_ref.pick_end("x", 2.0, 4.0) == 6.0 + make_prompt_ref.TAIL_SILENCE_SEC
+def test_쉼이_짧으면_꼬리를_쉼_길이만큼만_문다(monkeypatch):
+    """꼬리를 쉼보다 길게 물면 다음 문장 첫소리가 섞인다 — 9520 쉼은 0.25~0.34초였다."""
+    monkeypatch.setattr(make_prompt_ref, "silences", lambda p: ([9.0], [9.22]))
+    end, reason = make_prompt_ref.pick_end("x", 0.0, 20.0)
+    assert reason == "ok"
+    assert abs(end - 9.22) < 1e-9
 
 
 def test_문장_끝_무음을_물고_간다(monkeypatch):
-    """마지막 음절 바로 뒤에서 끊으면 모델이 그 음절을 이어받는다.
+    """마지막 음절 바로 뒤에서 끊으면 모델이 그 음절을 이어받는다(2026-08-13 "다" 누출)."""
+    monkeypatch.setattr(make_prompt_ref, "silences", lambda p: ([9.0], [10.0]))
+    end, _ = make_prompt_ref.pick_end("x", 0.0, 20.0)
+    assert end > 9.0, "무음 시작점에서 딱 끊으면 안 된다"
 
-    실청(2026-08-13 샘플2): 프롬프트가 "박영미입니다." 로 끝나자 생성 앞에 "다" 가
-    새어 나왔다. 무음이 곧 "여기서 끝났다"는 종결 신호이므로 조금 물고 가야 한다.
-    """
-    monkeypatch.setattr(make_prompt_ref, "silences", lambda p: ([2.0], [2.6]))
-    end = make_prompt_ref.pick_end("x", 0.0, 4.0)
-    assert end > 2.0, "무음 시작점에서 딱 끊으면 안 된다"
-    assert end == 2.0 + make_prompt_ref.TAIL_SILENCE_SEC
+
+def test_녹음이_15초보다_짧으면_실패(monkeypatch):
+    """8초 이후 쉼이 있어도 녹음 자체가 15초 미만이면 받지 않는다."""
+    monkeypatch.setattr(make_prompt_ref, "silences", lambda p: ([9.0], [9.5]))
+    assert make_prompt_ref.pick_end("x", 0.0, 14.9) == (None, "too_short")
+
+
+def test_녹음_길이도_발화_시작점부터_센다(monkeypatch):
+    monkeypatch.setattr(make_prompt_ref, "silences", lambda p: ([0.0, 9.0], [1.0, 9.5]))
+    assert make_prompt_ref.pick_end("x", 1.0, 15.5) == (None, "too_short")
+
+
+def test_30초까지_쉼이_없으면_실패하고_자르지_않는다(monkeypatch):
+    """예전처럼 목표 길이에서 기계적으로 자르지 않는다."""
+    monkeypatch.setattr(make_prompt_ref, "silences", lambda p: ([5.0, 31.0], [5.5, 31.5]))
+    assert make_prompt_ref.pick_end("x", 0.0, 40.0) == (None, "no_pause")
+
+
+def test_쉼이_전혀_없으면_실패(monkeypatch):
+    monkeypatch.setattr(make_prompt_ref, "silences", lambda p: ([], []))
+    assert make_prompt_ref.pick_end("x", 0.0, 25.0) == (None, "no_pause")
+
+
+def test_30초_상한은_발화_시작점_기준(monkeypatch):
+    monkeypatch.setattr(make_prompt_ref, "silences", lambda p: ([0.0, 31.0], [1.0, 31.5]))
+    # start=1.0 → 상한 31.0. 31.0 에서 시작하는 쉼은 인정.
+    assert make_prompt_ref.pick_end("x", 1.0, 40.0) == (31.0 + TAIL, "ok")
+
+
+def test_기본값은_결정된_규칙():
+    assert REC == 15.0
+    assert CUT == 8.0
+    assert MAX == 30.0
