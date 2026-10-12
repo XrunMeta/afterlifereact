@@ -376,7 +376,7 @@ export default function CallScreen(props: Props) {
       {
 
 }
-      {callEntryOpen !== false || !heavyReady || preCallGate === "checking" || prefetchedPipeline === undefined || consentGate !== "ok" ? (
+      {consentGate === "need" ? null : callEntryOpen !== false || !heavyReady || preCallGate === "checking" || prefetchedPipeline === undefined || consentGate !== "ok" ? (
         <DialingScreen
           liveState="idle"
           personaName={paramName ?? ""}
