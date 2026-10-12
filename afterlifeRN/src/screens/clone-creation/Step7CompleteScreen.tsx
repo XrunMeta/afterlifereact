@@ -594,7 +594,16 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
     v_4b9b17(false);
     v_7a77e1();
-    if (v_80a1e3) v_c65f5d.replace("Step8", { cloneId: v_80a1e3 });
+    if (!v_80a1e3) return;
+
+    const v_2a460b = v_f04727.visibility ?? "public";
+    if (v_2a460b === "private") {
+      v_c65f5d.replace("Step8", { cloneId: v_80a1e3 });
+    } else {
+      v_c65f5d.getParent()?.dispatch(
+        v_650cfa.navigate({ name: "HomeTab" }),
+      );
+    }
   };
 
   const v_8a1355 = v_f04727.name ?? v_8d41d7("create.step7.displayNameFallback", { defaultValue: "사용자 이름" });
