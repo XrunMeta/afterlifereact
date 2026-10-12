@@ -46,7 +46,9 @@ async function v_b4f765(
   const v_24f50c = v_66e19e[v_3b27d9]
     ? v_3b27d9 === "clone"
       ? "deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, deleted_at = CURRENT_TIMESTAMP"
-      : "deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP"
+      : v_3b27d9 === "user"
+        ? "deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, face_biometric_consent = 0, face_consent_at = NULL, face_consent_version = NULL, call_learning_consent = 0, call_learning_consent_at = NULL"
+        : "deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP"
     : "deletion_state = 'soft_deleted'";
 
   await v_a1651b

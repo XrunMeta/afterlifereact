@@ -96,7 +96,13 @@ import {
   type Person,
 } from "../../api/persons";
 import { AuthApiError } from "../../api/auth";
-import { getFaceBiometricConsent } from "../../api/consent";
+import {
+  getCallLearningConsent,
+  getFaceBiometricConsent,
+  type CallLearningState,
+  type FaceBiometricState,
+} from "../../api/consent";
+import ConsentPromptModal from "../../components/consent/ConsentPromptModal";
 import { decideEnrollSuggestAction, decideOrphanCleanupBeforeSilent } from "../../face/autoEnrollGuard";
 import { FACE_DIAG_ENABLED, formatFaceHud, type FaceDiag } from "../../config/faceDiag";
 import TermsModal from "../../components/common/TermsModal";
@@ -220,6 +226,10 @@ export default function CallScreen(props: Props) {
 
   const [preCallGate, setPreCallGate] = React.useState<"checking" | "skip">("checking");
 
+  const [consentGate, setConsentGate] = React.useState<"checking" | "need" | "ok">("checking");
+  const [faceConsentState, setFaceConsentState] = React.useState<FaceBiometricState | null>(null);
+  const [callConsentState, setCallConsentState] = React.useState<CallLearningState | null>(null);
+
   const [prefetchedPipeline, setPrefetchedPipeline] = React.useState<string | null | undefined>(undefined);
   React.useEffect(() => {
     if (!wrapperAccessToken) {
@@ -318,18 +328,61 @@ export default function CallScreen(props: Props) {
 
   }, [wrapperAccessToken, cloneId]);
 
+  React.useEffect(() => {
+    if (!wrapperAccessToken) {
+      setConsentGate("ok");
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      if (!cancelled) {
+        console.warn("[Call][consentGate] timeout → ok");
+        setConsentGate("ok");
+      }
+    }, 2000);
+    (async () => {
+      try {
+        const [face, call] = await Promise.all([
+          getFaceBiometricConsent(wrapperAccessToken).catch(() => null),
+          getCallLearningConsent(wrapperAccessToken).catch(() => null),
+        ]);
+        if (cancelled) return;
+        clearTimeout(timer);
+        const faceOk = face == null || face.state === "granted";
+        const callOk = call == null || call === "granted";
+        setFaceConsentState(face?.state ?? null);
+        setCallConsentState(call);
+        const needed = !faceOk || !callOk;
+        console.log(
+          `[Call][consentGate] face=${face?.state ?? "none"} · call=${call ?? "none"} · need=${needed}`,
+        );
+        setConsentGate(needed ? "need" : "ok");
+      } catch (err) {
+        if (cancelled) return;
+        clearTimeout(timer);
+        console.warn("[Call][consentGate] error, ok:", err);
+        setConsentGate("ok");
+      }
+    })();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+
+  }, [wrapperAccessToken]);
+
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.zinc950 }}>
       {
 
 }
-      {callEntryOpen !== false || !heavyReady || preCallGate === "checking" || prefetchedPipeline === undefined ? (
+      {consentGate === "need" ? null : callEntryOpen !== false || !heavyReady || preCallGate === "checking" || prefetchedPipeline === undefined || consentGate !== "ok" ? (
         <DialingScreen
           liveState="idle"
           personaName={paramName ?? ""}
           personaImage={placeholderImage}
 
-          silent={callEntryOpen !== false || preCallGate === "checking" || prefetchedPipeline === undefined}
+          silent={callEntryOpen !== false || preCallGate === "checking" || prefetchedPipeline === undefined || consentGate !== "ok"}
           onConnected={() => {}}
           onCancel={() => props.navigation.goBack()}
           onRetry={() => {}}
@@ -378,6 +431,24 @@ export default function CallScreen(props: Props) {
               ],
             }),
           );
+        }}
+      />
+
+      {
+}
+      <ConsentPromptModal
+        visible={consentGate === "need"}
+        accessToken={wrapperAccessToken}
+        faceState={faceConsentState}
+        callState={callConsentState}
+        onComplete={(next) => {
+          setFaceConsentState(next.face);
+          setCallConsentState(next.call);
+          setConsentGate("ok");
+        }}
+        onCancel={() => {
+          setConsentGate("ok"); 
+          props.navigation.goBack();
         }}
       />
     </View>
