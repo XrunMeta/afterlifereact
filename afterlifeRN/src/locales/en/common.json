@@ -1156,7 +1156,10 @@
     "settingsButton": "Open settings",
     "settingsHint": "If the permission dialog doesn't appear, turn it on in Settings",
     "loading": "Checking permissions...",
-    "logout": "Log out"
+    "logout": "Log out",
+    "consentIntro": "Please review the agreements below before starting a call.",
+    "callLearningConsent": "(Optional) I agree to call conversation learning",
+    "faceBiometricConsent": "(Optional) I agree to the use of face recognition (biometric data)"
   },
   "terms": {
     "langNotice": "⚠️ {{expected}} → {{returned}} (terms for this language are being prepared)"

@@ -1153,7 +1153,10 @@
     "settingsButton": "Buka pengaturan",
     "settingsHint": "Jika dialog izin tidak muncul, aktifkan lewat pengaturan",
     "loading": "Memeriksa izin...",
-    "logout": "Keluar"
+    "logout": "Keluar",
+    "consentIntro": "Harap tinjau persetujuan di bawah sebelum memulai panggilan.",
+    "callLearningConsent": "(Opsional) Saya setuju dengan pembelajaran percakapan panggilan",
+    "faceBiometricConsent": "(Opsional) Saya setuju dengan penggunaan pengenalan wajah (data biometrik)"
   },
   "terms": {
     "langNotice": "⚠️ {{expected}} → {{returned}} (Ketentuan dalam bahasa terkait sedang dipersiapkan)"
