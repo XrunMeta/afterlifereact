@@ -1153,7 +1153,10 @@
     "settingsButton": "前往设置开启权限",
     "settingsHint": "如果没有弹出权限对话框,请前往设置开启",
     "loading": "正在检查权限...",
-    "logout": "退出登录"
+    "logout": "退出登录",
+    "consentIntro": "通话前请确认以下同意事项。",
+    "callLearningConsent": "(可选) 同意通话对话学习",
+    "faceBiometricConsent": "(可选) 同意使用人脸识别(生物识别信息)"
   },
   "terms": {
     "langNotice": "⚠️ {{expected}} → {{returned}}（该语言条款准备中）"
