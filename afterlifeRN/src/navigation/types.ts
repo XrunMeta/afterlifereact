@@ -64,7 +64,7 @@ export type AuthStackParamList = {
     deviceId?: string;
   };
 
-  EmailOtpLogin: { email: string; autoLogin: boolean };
+  EmailOtpLogin: { email: string; autoLogin: boolean; password?: string };
   ForgotPassword: undefined;
 
 };

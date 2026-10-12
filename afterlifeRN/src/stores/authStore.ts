@@ -133,8 +133,12 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
   loginWithApi: async (v_931bf0, v_328259) => {
     const v_3c038e = v_328259?.persist !== false;
     const v_445b40 = await v_ac9e58(v_931bf0);
+
+    if (v_445b40.requiresEmailVerification) {
+      throw new Error("[authStore.loginWithApi] email verification required — use handleLogin flow");
+    }
     const { accessToken: v_2ca7e0 } = v_445b40;
-    const v_dfaee3 = (v_445b40 as { refreshToken?: string }).refreshToken ?? null;
+    const v_dfaee3 = v_445b40.refreshToken ?? null;
     const { user: v_625c74 } = await v_7ef860(v_2ca7e0);
     await v_e84827.setItem(v_1278db, v_2ca7e0);
     if (v_dfaee3) {

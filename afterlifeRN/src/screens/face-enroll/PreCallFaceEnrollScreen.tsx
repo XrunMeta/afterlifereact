@@ -16,6 +16,8 @@ import {
   v_1ed974,
 } from "rcmrninabrnb";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import v_f595b9, { v_bf60de } from "vpztcxjmsfanunln";
+import { v_e82960 } from "qmmwyqbwrg";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import { v_650cfa, v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
 import {
@@ -138,14 +140,31 @@ export default function v_8640b9() {
   const v_c260c5 = v_e662ae(0);
 
   const v_ac8592 = v_e662ae(new v_a2349e.Value(0)).current;
+
+  const v_c327d7 = v_df9f57(
+    () => v_e82960(require("../../../assets/sfx/shutter.mp3")),
+    [],
+  );
+  v_c4deb2(
+    () => () => {
+      try { v_c327d7.remove(); } catch {  }
+    },
+    [v_c327d7],
+  );
   const v_7454ea = v_de06a3(() => {
 
     v_d49152.vibrate(30);
+    try {
+      void v_c327d7.seekTo(0);
+      v_c327d7.play();
+    } catch (v_49263d) {
+      console.warn("[PreCallFaceEnroll] shutter sound play failed:", v_49263d);
+    }
     v_a2349e.sequence([
       v_a2349e.timing(v_ac8592, { toValue: 0.6, duration: 80, useNativeDriver: true }),
       v_a2349e.timing(v_ac8592, { toValue: 0, duration: 220, useNativeDriver: true }),
     ]).start();
-  }, [v_ac8592]);
+  }, [v_ac8592, v_c327d7]);
 
   v_c4deb2(() => {
     void (async () => {
@@ -561,13 +580,41 @@ export default function v_8640b9() {
               frameProcessor={v_23f1a4 ? v_a61ebf : undefined}
               pixelFormat="yuv"
             />
-            <View style={v_fd5f43.guideCircle} pointerEvents="none" />
+            {
+}
+            <Svg
+              width={v_fdd448}
+              height={v_fdd448}
+              style={v_472849.absoluteFill}
+              pointerEvents="none"
+            >
+              {}
+              <Circle
+                cx={v_fdd448 / 2}
+                cy={v_fdd448 / 2}
+                r={v_20d9ab}
+                stroke="rgba(255,255,255,0.25)"
+                strokeWidth={v_9edd6c}
+                fill="none"
+              />
+              {}
+              <Circle
+                cx={v_fdd448 / 2}
+                cy={v_fdd448 / 2}
+                r={v_20d9ab}
+                stroke="#22c55e"
+                strokeWidth={v_9edd6c}
+                fill="none"
+                strokeLinecap="round"
+                strokeDasharray={v_981f64}
+                strokeDashoffset={v_981f64 * (1 - Math.min(1, v_729796 / v_77ce37.length))}
+                transform={`rotate(-90 ${v_fdd448 / 2} ${v_fdd448 / 2})`}
+              />
+            </Svg>
           </View>
 
           <View style={v_fd5f43.stepBox}>
-            <Text style={v_fd5f43.stepLabel}>
-              {v_729796 + 1}/{v_77ce37.length} · {v_91943c.label} · {Math.max(0, v_74e259.length - v_729796 * v_df1250)}/{v_df1250}
-            </Text>
+            <Text style={v_fd5f43.stepLabel}>{v_91943c.label}</Text>
             <Text style={v_fd5f43.stepHint}>{v_91943c.hint}</Text>
             {}
             <Text style={[v_fd5f43.stepHint, { marginTop: 4, opacity: 0.7 }]}>
@@ -575,15 +622,6 @@ export default function v_8640b9() {
                 ? v_91943c.guide(v_26803c.yaw, v_26803c.pitch)
                 : "얼굴이 카메라에 잘 보이도록 해주세요"}
             </Text>
-          </View>
-
-          <View style={v_fd5f43.progressRow}>
-            {v_77ce37.map((v_9dd05b, v_e86ad8) => (
-              <View
-                key={v_9dd05b.key}
-                style={[v_fd5f43.dot, v_e86ad8 < v_729796 && v_fd5f43.dotDone, v_e86ad8 === v_729796 && !v_2fb8cc && v_fd5f43.dotActive]}
-              />
-            ))}
           </View>
         </View>
       )}
@@ -626,6 +664,10 @@ export default function v_8640b9() {
 }
 
 const v_fdd448 = 260;
+
+const v_9edd6c = 6;
+const v_20d9ab = (v_fdd448 - v_9edd6c) / 2;
+const v_981f64 = 2 * Math.PI * v_20d9ab;
 
 const v_fd5f43 = v_472849.create({
   container: { flex: 1, backgroundColor: v_1bfbd0.zinc950, padding: 20 },
