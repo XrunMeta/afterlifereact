@@ -677,6 +677,8 @@ const v_5460cc = v_1f4ea7.object({
   deviceId: v_1f4ea7.string().min(1).max(200).optional(),
   pushToken: v_1f4ea7.string().min(1).max(500).optional(),
   platform: v_1f4ea7.enum(["ios", "android", "web"]).optional(),
+
+  verificationCode: v_1f4ea7.string().regex(/^\d{6}$/).optional(),
 });
 
 const v_91027d = 5;
@@ -710,6 +712,16 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
   if (v_735a1e) {
     const v_dd506d = await v_937e23(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.password);
     if (v_dd506d.found && v_dd506d.member) {
+
+      if (!v_4d33b2.verificationCode) {
+        await v_b78f7e(v_3f4e2e.env, v_4d33b2.email);
+        return v_3f4e2e.json({
+          requiresEmailVerification: true,
+          email: v_4d33b2.email,
+          expiresInSec: 300,
+        });
+      }
+      await v_656e8b(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.verificationCode);
       if (v_625c74) {
 
         const v_3fc173 = await v_54846c(v_4d33b2.password);

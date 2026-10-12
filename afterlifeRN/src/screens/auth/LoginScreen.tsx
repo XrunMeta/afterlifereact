@@ -35,6 +35,7 @@ import {
   v_5c746e,
   v_7ef860,
   v_1d5b64,
+  v_182fdb as v_ac9e58,
 } from "../../api/auth";
 import { v_ea1c99 } from "../../lib/deviceId";
 import { v_4eac84, v_8d3720 } from "tdbilgxptaometuphydosyywsglhnlfgkfkzstthk";
@@ -57,7 +58,6 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
   const [v_f53eaa, v_36bbbe] = v_5ab095(false);
 
   const v_232d52 = v_1ed7d9((v_fd5f43) => v_fd5f43.hydrate);
-  const v_957ace = v_1ed7d9((v_fd5f43) => v_fd5f43.loginWithApi);
   const [v_a5d73f, v_7ba4a6] = v_5ab095(false);
 
   const v_c39df9 = v_688424((v_fd5f43) => v_fd5f43.googleEnabled);
@@ -116,12 +116,26 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
     try {
       const v_929b58 = await v_ea1c99();
 
-      const v_625c74 = await v_957ace(
-        { email: v_e0c7e8, password: v_adc076, deviceId: v_929b58 },
-        { persist: v_f53eaa },
-      );
+      const v_5cce2c = await v_ac9e58({ email: v_e0c7e8, password: v_adc076, deviceId: v_929b58 });
+      if (v_5cce2c.requiresEmailVerification) {
+        v_c65f5d.navigate("EmailOtpLogin", {
+          email: v_e0c7e8.trim().toLowerCase(),
+          autoLogin: v_f53eaa,
+          password: v_adc076,
+        });
+        return;
+      }
+
+      if (!v_5cce2c.accessToken) {
+        throw new v_84a859(500, "INTERNAL_ERROR", v_8d41d7("auth.login.loginFailed"));
+      }
+      const v_9ec4c0 = await v_7ef860(v_5cce2c.accessToken);
+      await v_31080f(v_5cce2c.accessToken, v_9ec4c0.user, {
+        persist: v_f53eaa,
+        refreshToken: v_5cce2c.refreshToken ?? null,
+      });
       console.log(
-        `[AUTH/login] user: ${v_625c74.email} autoLogin=${v_f53eaa ? "ON" : "OFF"}`,
+        `[AUTH/login] user: ${v_9ec4c0.user.email} autoLogin=${v_f53eaa ? "ON" : "OFF"}`,
       );
 
       await v_679b55(v_e0c7e8);
