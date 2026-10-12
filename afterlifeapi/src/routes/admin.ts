@@ -2975,3 +2975,86 @@ v_b7f2b4.post("/face-test/match", v_c0a297, async (v_3f4e2e) => {
   });
 });
 
+v_b7f2b4.get("/gifts/events", v_c0a297, async (v_3f4e2e) => {
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 100);
+  const v_02be30 = Math.max(1, Math.min(500, Number.isFinite(v_cf2260) ? v_cf2260 : 100));
+  const v_40e259 = Number(v_f71b56.searchParams.get("offset") ?? 0);
+  const v_3bbadf = Math.max(0, Number.isFinite(v_40e259) ? v_40e259 : 0);
+  const v_f7e120 = v_f71b56.searchParams.get("senderId");
+  const v_43d534 = v_f71b56.searchParams.get("receiverId");
+  const v_96f93d = v_f71b56.searchParams.get("giftId");
+  const v_a13c2e = v_f71b56.searchParams.get("from");
+  const v_257132 = v_f71b56.searchParams.get("to");
+  const v_ab6401 = (v_f71b56.searchParams.get("q") ?? "").trim();
+
+  const v_abcc8d = ["e.kind = 'sent'"];
+  const v_925171 = [];
+  if (v_f7e120) { v_abcc8d.push("e.user_id = ?"); v_925171.push(Number(v_f7e120)); }
+  if (v_43d534) { v_abcc8d.push("e.counterpart_user_id = ?"); v_925171.push(Number(v_43d534)); }
+  if (v_96f93d) { v_abcc8d.push("e.gift_id = ?"); v_925171.push(v_96f93d); }
+  if (v_a13c2e) { v_abcc8d.push("e.created_at >= ?"); v_925171.push(Number(v_a13c2e)); }
+  if (v_257132) { v_abcc8d.push("e.created_at <= ?"); v_925171.push(Number(v_257132)); }
+  if (v_ab6401) {
+    v_abcc8d.push("(us.email LIKE ? OR us.name LIKE ? OR ur.email LIKE ? OR ur.name LIKE ?)");
+    const v_2a1d60 = `%${v_ab6401}%`;
+    v_925171.push(v_2a1d60, v_2a1d60, v_2a1d60, v_2a1d60);
+  }
+  const v_8b4d7e = `WHERE ${v_abcc8d.join(" AND ")}`;
+
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT e.id              AS id,
+              e.user_id         AS senderId,
+              us.email          AS senderEmail,
+              us.name           AS senderName,
+              e.counterpart_user_id AS receiverId,
+              ur.email          AS receiverEmail,
+              ur.name           AS receiverName,
+              e.gift_id         AS giftId,
+              e.count           AS count,
+              e.xrun_amount     AS xrunAmount,
+              e.created_at      AS createdAt
+         FROM gift_inventory_events e
+         LEFT JOIN users us ON us.id = e.user_id
+         LEFT JOIN users ur ON ur.id = e.counterpart_user_id
+         ${v_8b4d7e}
+         ORDER BY e.created_at DESC
+         LIMIT ? OFFSET ?`,
+    )
+    .bind(...v_925171, v_02be30, v_3bbadf)
+    .all<{
+      id: number;
+      senderId: number;
+      senderEmail: string | null;
+      senderName: string | null;
+      receiverId: number | null;
+      receiverEmail: string | null;
+      receiverName: string | null;
+      giftId: string;
+      count: number;
+      xrunAmount: number;
+      createdAt: number;
+    }>();
+
+  const v_679404 = await v_3f4e2e.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM gift_inventory_events e LEFT JOIN users us ON us.id = e.user_id LEFT JOIN users ur ON ur.id = e.counterpart_user_id ${v_8b4d7e}`)
+    .bind(...v_925171)
+    .first<{ n: number }>();
+
+  const v_dbebe7 = await v_0edc13(v_3f4e2e.env);
+  const v_6413c7 = new Map(v_dbebe7.map((v_206b88) => [v_206b88.id, v_206b88]));
+
+  const v_4622b9 = (v_18b8bf.results ?? []).map((v_cb35cb) => {
+    const v_ab4c96 = v_6413c7.get(v_cb35cb.giftId);
+    return {
+      ...v_cb35cb,
+      giftName: v_ab4c96?.name ?? v_cb35cb.giftId,
+      giftEmoji: v_ab4c96?.emoji ?? "🎁",
+      giftImageUrl: v_ab4c96?.imageUrl ?? null,
+    };
+  });
+
+  return v_3f4e2e.json({ items: v_4622b9, total: v_679404?.n ?? 0, limit: v_02be30, offset: v_3bbadf });
+});
+
