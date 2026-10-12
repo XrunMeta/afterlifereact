@@ -292,7 +292,7 @@ export default function CallScreen(props: Props) {
         if (cancelled) return;
         clearTimeout(timer);
 
-        const granted = consentR != null && consentR.state !== "revoked";
+        const granted = consentR?.state === "granted";
         const personCount = personsR?.items?.length ?? -1;
         const shouldRedirect = granted && personCount === 0;
         console.log(
