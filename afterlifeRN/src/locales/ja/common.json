@@ -1156,7 +1156,10 @@
     "settingsButton": "設定で権限をオンにする",
     "settingsHint": "権限ダイアログが表示されない場合は設定でオンにしてください",
     "loading": "権限を確認中...",
-    "logout": "ログアウト"
+    "logout": "ログアウト",
+    "consentIntro": "通話を始める前に以下の同意をご確認ください。",
+    "callLearningConsent": "(任意) 通話内容の学習に同意します",
+    "faceBiometricConsent": "(任意) 顔認識(生体情報)の利用に同意します"
   },
   "terms": {
     "langNotice": "⚠️ {{expected}} → {{returned}}(該当言語の規約を準備中)"
