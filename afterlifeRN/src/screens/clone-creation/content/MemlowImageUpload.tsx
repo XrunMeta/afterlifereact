@@ -18,6 +18,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const { t: v_8d41d7 } = v_772971();
   const [v_04e790, v_43f854] = v_5ab095<{ uri: string; width: number; height: number } | null>(null);
   const [v_30246f, v_9bce1c] = v_5ab095(false);
+  const [v_4b3863, v_902cfc] = v_5ab095(true);
   const v_d32efd = v_f04727.rightsAcknowledged ?? false;
 
   const v_e1c60b = async () => {
@@ -42,16 +43,25 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   return (
     <View style={v_d81136.wrap}>
       <Text style={v_d81136.note}>{v_8d41d7('create.image.memlowNote')}</Text>
-      <TouchableOpacity style={v_d81136.preview} onPress={v_62ae11}>
+      <TouchableOpacity style={v_d81136.preview} onPress={v_62ae11} activeOpacity={0.9}>
         {v_f04727.imageFile ? (
-          <Image source={{ uri: v_f04727.imageFile }} style={v_d81136.img} />
-        ) : (
           <>
+            <Image source={{ uri: v_f04727.imageFile }} style={v_d81136.img} />
+            <View style={v_d81136.gridOverlay} pointerEvents="none">
+              <View style={[v_d81136.gridLine, v_d81136.gridLineV, { left: '33.33%' }]} />
+              <View style={[v_d81136.gridLine, v_d81136.gridLineV, { left: '66.66%' }]} />
+              <View style={[v_d81136.gridLine, v_d81136.gridLineH, { top: '33.33%' }]} />
+              <View style={[v_d81136.gridLine, v_d81136.gridLineH, { top: '66.66%' }]} />
+            </View>
+          </>
+        ) : (
+          <View style={v_d81136.emptyInner}>
             <Feather name="image" size={32} color={v_1bfbd0.zinc400} />
             <Text style={v_d81136.hint}>{v_8d41d7('create.image.memlowSelectHint')}</Text>
-          </>
+          </View>
         )}
       </TouchableOpacity>
+
       {v_f04727.imageFile && (
         <TouchableOpacity
           style={v_d81136.rightsRow}
@@ -67,6 +77,70 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
           </Text>
         </TouchableOpacity>
       )}
+
+      <TouchableOpacity
+        style={v_d81136.guideHeader}
+        onPress={() => v_902cfc((v_81e2ef) => !v_81e2ef)}
+        activeOpacity={0.7}
+      >
+        <View style={v_d81136.guideHeaderInner}>
+          <View style={v_d81136.guideDivider} />
+          <Text style={v_d81136.guideHeaderText}>
+            {v_8d41d7('create.image.guideTitle', { defaultValue: '사진 가이드라인' })}
+          </Text>
+          <Feather
+            name={v_4b3863 ? 'chevron-up' : 'chevron-down'}
+            size={16}
+            color={v_1bfbd0.zinc700}
+            style={v_d81136.guideChevron}
+          />
+          <View style={v_d81136.guideDivider} />
+        </View>
+      </TouchableOpacity>
+
+      {v_4b3863 && (
+        <>
+          <Text style={v_d81136.guideBody}>
+            {v_8d41d7('create.image.guideBody', {
+              defaultValue:
+                '비율을 적절히 유지하려면 양쪽 어깨가 프레임에 완전히 들어오는 정면, 어깨 위쪽을 향한 세로 방향 사진을 사용하십시오. 1024×1024 이상의 이미지가 가장 적합합니다.',
+            })}
+          </Text>
+          <View style={v_d81136.examplesRow}>
+            <View style={v_d81136.exampleCol}>
+              <View style={v_d81136.exampleImgWrap}>
+                <Image
+                  source={require('../../../../assets/images/photo-guide-good.webp')}
+                  style={v_d81136.exampleImg}
+                  resizeMode="cover"
+                />
+                <View style={[v_d81136.exampleBadge, v_d81136.exampleBadgeGood]}>
+                  <Feather name="check" size={16} color="#fff" />
+                </View>
+              </View>
+              <Text style={v_d81136.exampleLabel}>
+                {v_8d41d7('create.image.exampleGood', { defaultValue: '명확하고, 전면에 배치된' })}
+              </Text>
+            </View>
+            <View style={v_d81136.exampleCol}>
+              <View style={v_d81136.exampleImgWrap}>
+                <Image
+                  source={require('../../../../assets/images/photo-guide-bad.webp')}
+                  style={v_d81136.exampleImg}
+                  resizeMode="cover"
+                />
+                <View style={[v_d81136.exampleBadge, v_d81136.exampleBadgeBad]}>
+                  <Feather name="x" size={16} color="#fff" />
+                </View>
+              </View>
+              <Text style={v_d81136.exampleLabel}>
+                {v_8d41d7('create.image.exampleBad', { defaultValue: '너무 클로즈업됨' })}
+              </Text>
+            </View>
+          </View>
+        </>
+      )}
+
       <CaptureWithGuideModal
         visible={v_30246f}
         onCancel={() => v_9bce1c(false)}
@@ -97,20 +171,55 @@ const v_922cea = v_b0de9c as typeof v_b0de9c & {
 export default v_922cea;
 
 const v_d81136 = v_472849.create({
-  wrap: { gap: 12 },
+  wrap: { gap: 16 },
   note: { fontSize: 13, color: v_1bfbd0.zinc600 },
   preview: {
-    aspectRatio: 1 / 2,
-    borderRadius: v_8b0c90.md,
+    aspectRatio: 1,
+    borderRadius: v_8b0c90.lg,
     borderWidth: 1,
     borderColor: v_1bfbd0.zinc200,
-    alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: v_1bfbd0.zinc50,
     overflow: 'hidden',
   },
   img: { width: '100%', height: '100%' },
+  emptyInner: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   hint: { marginTop: 8, color: v_1bfbd0.zinc500, textAlign: 'center', paddingHorizontal: 12 },
+  gridOverlay: { ...v_472849.absoluteFillObject },
+  gridLine: { position: 'absolute', backgroundColor: 'rgba(255,255,255,0.6)' },
+  gridLineV: { top: 0, bottom: 0, width: 1 },
+  gridLineH: { left: 0, right: 0, height: 1 },
+
   rightsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   rightsText: { fontSize: 13, color: v_1bfbd0.zinc700, flex: 1 },
+
+  guideHeader: { marginTop: 4 },
+  guideHeaderInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  guideDivider: { flex: 1, height: 1, backgroundColor: v_1bfbd0.zinc200 },
+  guideHeaderText: { fontSize: 13, color: v_1bfbd0.zinc700, fontWeight: '500' },
+  guideChevron: { marginLeft: -4 },
+  guideBody: { fontSize: 13, color: v_1bfbd0.zinc700, lineHeight: 20, textAlign: 'center' },
+
+  examplesRow: { flexDirection: 'row', gap: 12 },
+  exampleCol: { flex: 1, alignItems: 'center', gap: 6 },
+  exampleImgWrap: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: v_8b0c90.md,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: v_1bfbd0.zinc100,
+  },
+  exampleImg: { width: '100%', height: '100%' },
+  exampleBadge: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exampleBadgeGood: { backgroundColor: 'rgba(34,197,94,0.9)' },
+  exampleBadgeBad: { backgroundColor: 'rgba(239,68,68,0.9)' },
+  exampleLabel: { fontSize: 12, color: v_1bfbd0.zinc700, textAlign: 'center' },
 });
