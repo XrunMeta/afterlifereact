@@ -130,6 +130,7 @@ export default function v_def15b() {
 
   v_cf763b(
     v_de06a3(() => {
+      console.log("[MyClonesDashboard] useFocusEffect fire");
       v_8e46f5(false);
 
       if (v_2ca7e0) {
@@ -139,8 +140,13 @@ export default function v_def15b() {
           .catch((v_49263d) => console.warn("[MyClonesDashboard] balance fail:", v_49263d))
           .finally(() => v_3e37d1(false));
 
+        console.log("[MyClonesDashboard] giftInventory fetch start");
         v_83b207(v_2ca7e0)
-          .then((v_cb35cb) => v_f3ce9d(v_cb35cb.items.filter((v_23805a) => (v_23805a.count ?? 0) > 0)))
+          .then((v_cb35cb) => {
+            const v_e4cf17 = v_cb35cb.items.filter((v_23805a) => (v_23805a.count ?? 0) > 0);
+            console.log(`[MyClonesDashboard] giftInventory OK raw=${v_cb35cb.items.length} filtered=${v_e4cf17.length}`, v_e4cf17);
+            v_f3ce9d(v_e4cf17);
+          })
           .catch((v_49263d) => console.warn("[MyClonesDashboard] giftInventory fail:", v_49263d));
       }
     }, [v_8e46f5, v_2ca7e0]),
