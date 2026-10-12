@@ -41,7 +41,8 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     if (v_81e2ef === 'selected') {
 
       v_b187d9({ visibility: 'selected' });
-      v_0b6eca(true);
+
+      requestAnimationFrame(() => v_0b6eca(true));
       return;
     }
     v_b187d9({ visibility: v_81e2ef });
