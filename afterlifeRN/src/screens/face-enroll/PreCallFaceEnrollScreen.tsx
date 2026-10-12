@@ -142,7 +142,7 @@ export default function v_8640b9() {
   const v_ac8592 = v_e662ae(new v_a2349e.Value(0)).current;
 
   const v_c327d7 = v_df9f57(
-    () => v_e82960(require("../../../assets/sfx/shutter.wav")),
+    () => v_e82960(require("../../../assets/sfx/shutter.mp3")),
     [],
   );
   v_c4deb2(
