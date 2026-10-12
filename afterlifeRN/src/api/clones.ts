@@ -525,6 +525,8 @@ export interface UpdateClonePayload {
   cover_image_url?: string;
   visibility?: string;
   interests?: string[];
+
+  allowed_viewers?: number[];
 }
 export async function v_b4f9f6(
   v_2ca7e0,
