@@ -50,7 +50,30 @@ v_0bc486.post(
       .first<{ id: number }>();
     if (!v_b9fbb4) throw new v_3ebe58("NOT_FOUND", "받을 사용자를 찾을 수 없어요.");
 
+    const v_1ce0b4 = await v_3f4e2e.env.DB
+      .prepare(`SELECT count FROM user_gift_inventory WHERE user_id = ? AND gift_id = ? LIMIT 1`)
+      .bind(v_f7e120, v_4d33b2.giftId)
+      .first<{ count: number }>();
+    const v_7124bc = (v_1ce0b4?.count ?? 0) > 0;
+
+    if (v_7124bc) {
+
+      const v_eef514 = await v_3f4e2e.env.DB
+        .prepare(
+          `UPDATE user_gift_inventory
+              SET count = count - 1,
+                  updated_at = strftime('%s','now')
+            WHERE user_id = ? AND gift_id = ? AND count > 0`,
+        )
+        .bind(v_f7e120, v_4d33b2.giftId)
+        .run();
+      if ((v_eef514.meta?.changes ?? 0) === 0) {
+
+      }
+    }
+
     try {
+      if (!v_7124bc) {
       await v_20a4f4(v_3f4e2e, {
         userId: v_f7e120,
         amount: v_4547b1,
@@ -86,6 +109,7 @@ v_0bc486.post(
           .run();
         if ((v_b1eff4.meta?.changes ?? 0) > 0) break;
       }
+      } 
     } catch (v_49263d) {
       if ((v_49263d as v_3ebe58).code === "INSUFFICIENT_CREDITS") {
         throw new v_3ebe58("INSUFFICIENT_CREDITS", "XRUN 잔액이 부족해요.");
