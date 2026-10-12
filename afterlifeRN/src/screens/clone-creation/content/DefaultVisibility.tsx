@@ -5,6 +5,9 @@ import { v_772971 } from 'jmpfvteuuztnp';
 import type { v_c2a674 } from '../../../types/clone';
 import { v_1bfbd0, v_8b0c90 } from '../../../components/constants';
 import v_4c2648 from '../../clones/components/FriendPickerModal';
+import { v_1ed7d9 } from '../../../stores/authStore';
+import { v_5959d8 } from '../../../api/users';
+import { v_889fad } from '../../../stores/dialogStore';
 
 type V = 'public' | 'followers' | 'selected' | 'private';
 
@@ -16,6 +19,9 @@ interface Props {
 function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const { t: v_8d41d7 } = v_772971();
   const [v_fca930, v_0b6eca] = v_5ab095(false);
+  const [v_9f46ad, v_2f8055] = v_5ab095(false);
+  const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const v_f5f393 = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.id ?? v_fd5f43.user?.id ?? null);
   const v_275ccd = (v_f04727.visibility as V) ?? 'public';
   const v_a75897 = v_f04727.allowedViewerIds?.length ?? 0;
 
@@ -37,10 +43,39 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     { value: 'private', icon: 'lock', title: v_8d41d7('create.visibility.privateTitle'), desc: v_8d41d7('create.visibility.privateDesc') },
   ];
 
-  const v_6121dc = (v_81e2ef) => {
+  const v_6121dc = async (v_81e2ef) => {
     if (v_81e2ef === 'selected') {
 
       v_b187d9({ visibility: 'selected' });
+
+      if (!v_2ca7e0 || !v_f5f393) {
+        v_889fad(
+          v_8d41d7('common.notice'),
+          v_8d41d7('create.visibility.friendPickerNoAuth', {
+            defaultValue: '로그인 후 다시 시도하세요.',
+          }),
+        );
+        return;
+      }
+      v_2f8055(true);
+      try {
+        const v_8f00b9 = await v_5959d8(v_2ca7e0, v_f5f393);
+        if (!v_8f00b9.items || v_8f00b9.items.length === 0) {
+          v_889fad(
+            v_8d41d7('create.visibility.friendPickerEmptyTitle', { defaultValue: '친구가 없어요' }),
+            v_8d41d7('create.visibility.friendPickerEmptyMessage', {
+              defaultValue:
+                '아직 팔로우 중인 사람이 없습니다. 다른 공개 범위를 선택하거나, 다른 사람을 팔로우한 후 다시 시도하세요.',
+            }),
+          );
+          return;
+        }
+      } catch (v_49263d) {
+        console.warn('[DefaultVisibility] pre-fetch following failed:', v_49263d);
+
+      } finally {
+        v_2f8055(false);
+      }
 
       requestAnimationFrame(() => v_0b6eca(true));
       return;
@@ -52,11 +87,13 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     <View style={v_d81136.wrap}>
       {v_95825a.map((v_68b2be) => {
         const v_f8b770 = v_275ccd === v_68b2be.value;
+        const v_3f8465 = v_68b2be.value === 'selected' && v_9f46ad;
         return (
           <TouchableOpacity
             key={v_68b2be.value}
             style={[v_d81136.row, v_f8b770 && v_d81136.rowActive]}
             onPress={() => v_6121dc(v_68b2be.value)}
+            disabled={v_3f8465}
           >
             <Feather name={v_68b2be.icon as any} size={18} color={v_f8b770 ? v_1bfbd0.violet600 : v_1bfbd0.zinc500} />
             <View style={{ flex: 1 }}>
