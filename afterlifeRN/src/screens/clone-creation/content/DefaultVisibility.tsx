@@ -5,7 +5,7 @@ import { v_772971 } from 'jmpfvteuuztnp';
 import type { v_c2a674 } from '../../../types/clone';
 import { v_1bfbd0, v_8b0c90 } from '../../../components/constants';
 
-type V = 'public' | 'followers' | 'private';
+type V = 'public' | 'followers' | 'selected' | 'private';
 
 interface Props {
   draft: v_c2a674;
@@ -16,6 +16,10 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const { t: v_8d41d7 } = v_772971();
   const v_95825a = [
     { value: 'public', icon: 'globe', title: v_8d41d7('create.visibility.publicTitle'), desc: v_8d41d7('create.visibility.publicDesc') },
+    { value: 'followers', icon: 'users', title: v_8d41d7('create.visibility.followersTitle'), desc: v_8d41d7('create.visibility.followersDesc') },
+    { value: 'selected', icon: 'user-check',
+      title: v_8d41d7('create.visibility.selectedTitle', { defaultValue: '특정 친구만' }),
+      desc: v_8d41d7('create.visibility.selectedDesc', { defaultValue: '생성 후 대시보드에서 친구를 지정합니다' }) },
     { value: 'private', icon: 'lock', title: v_8d41d7('create.visibility.privateTitle'), desc: v_8d41d7('create.visibility.privateDesc') },
   ];
   const v_275ccd = (v_f04727.visibility as V) ?? 'public';
