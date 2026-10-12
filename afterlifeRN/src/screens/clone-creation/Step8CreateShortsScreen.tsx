@@ -37,7 +37,7 @@ export default function v_d19b01({ navigation: v_c65f5d }: Props) {
 
       <View style={v_d81136.bottomBar}>
         <Button
-          title={v_8d41d7("create.step8.toDashboard", { defaultValue: "대시보드로" })}
+          title={v_8d41d7("create.step8.confirm", { defaultValue: "확인" })}
           onPress={v_704242}
           variant="accent"
         />
