@@ -198,11 +198,17 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
           .prepare(`UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_wallet = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`)
           .bind(v_9816e7, v_3ac92c, v_0cd34d, v_81161e.id)
           .run();
-      } else if (v_6bd187.status === "failed") {
-        console.warn(`[auth.google.signup] xrun register failed user_id=${v_81161e.id}: ${v_6bd187.reason ?? ""}`);
+      } else {
+
+        console.warn(`[auth.google.signup] xrun register failed user_id=${v_81161e.id}: ${v_6bd187.status} ${v_6bd187.reason ?? ""}`);
+        await v_a1651b.prepare(`DELETE FROM users WHERE id = ?`).bind(v_81161e.id).run();
+        throw new v_3ebe58("XRUN_REGISTRATION_FAILED", "XRUN 가입에 실패했어요. 잠시 후 다시 시도해 주세요.");
       }
     } catch (v_49263d) {
+      if (v_49263d instanceof v_3ebe58) throw v_49263d;
       console.warn(`[auth.google.signup] xrun register error user_id=${v_81161e.id}:`, (v_49263d as Error).message);
+      await v_a1651b.prepare(`DELETE FROM users WHERE id = ?`).bind(v_81161e.id).run();
+      throw new v_3ebe58("XRUN_REGISTRATION_FAILED", "XRUN 가입에 실패했어요. 잠시 후 다시 시도해 주세요.");
     }
 
     await v_74defc(v_3f4e2e, {
@@ -361,11 +367,17 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
           .prepare(`UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_wallet = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`)
           .bind(v_9816e7, v_3ac92c, v_0cd34d, v_81161e.id)
           .run();
-      } else if (v_6bd187.status === "failed") {
-        console.warn(`[auth.apple.signup] xrun register failed user_id=${v_81161e.id}: ${v_6bd187.reason ?? ""}`);
+      } else {
+
+        console.warn(`[auth.apple.signup] xrun register failed user_id=${v_81161e.id}: ${v_6bd187.status} ${v_6bd187.reason ?? ""}`);
+        await v_a1651b.prepare(`DELETE FROM users WHERE id = ?`).bind(v_81161e.id).run();
+        throw new v_3ebe58("XRUN_REGISTRATION_FAILED", "XRUN 가입에 실패했어요. 잠시 후 다시 시도해 주세요.");
       }
     } catch (v_49263d) {
+      if (v_49263d instanceof v_3ebe58) throw v_49263d;
       console.warn(`[auth.apple.signup] xrun register error user_id=${v_81161e.id}:`, (v_49263d as Error).message);
+      await v_a1651b.prepare(`DELETE FROM users WHERE id = ?`).bind(v_81161e.id).run();
+      throw new v_3ebe58("XRUN_REGISTRATION_FAILED", "XRUN 가입에 실패했어요. 잠시 후 다시 시도해 주세요.");
     }
 
     await v_74defc(v_3f4e2e, {
@@ -615,11 +627,17 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
         .prepare(`UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_wallet = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`)
         .bind(v_9816e7, v_3ac92c, v_0cd34d, v_81161e.id)
         .run();
-    } else if (v_6bd187.status === "failed") {
-      console.warn(`[auth.signup] xrun register failed user_id=${v_81161e.id}: ${v_6bd187.reason ?? ""}`);
+    } else {
+
+      console.warn(`[auth.signup] xrun register failed user_id=${v_81161e.id}: ${v_6bd187.status} ${v_6bd187.reason ?? ""}`);
+      await v_3f4e2e.env.DB.prepare(`DELETE FROM users WHERE id = ?`).bind(v_81161e.id).run();
+      throw new v_3ebe58("XRUN_REGISTRATION_FAILED", "XRUN 가입에 실패했어요. 잠시 후 다시 시도해 주세요.");
     }
   } catch (v_49263d) {
+    if (v_49263d instanceof v_3ebe58) throw v_49263d;
     console.warn(`[auth.signup] xrun register error user_id=${v_81161e.id}:`, (v_49263d as Error).message);
+    await v_3f4e2e.env.DB.prepare(`DELETE FROM users WHERE id = ?`).bind(v_81161e.id).run();
+    throw new v_3ebe58("XRUN_REGISTRATION_FAILED", "XRUN 가입에 실패했어요. 잠시 후 다시 시도해 주세요.");
   }
 
   try {
