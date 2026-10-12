@@ -20,6 +20,14 @@ const v_357489 = v_d57f84 ? new v_0cafec(v_80fa10.PangleModule) : null;
 let v_c9f274 = false;
 let v_d40535 = false;
 
+const v_126e05 = true;
+function v_4b0422(v_badeaf, v_f91f33): void {
+  if (!v_126e05) return;
+  const v_8d41d7 = new Date().toISOString().slice(11, 23); 
+  if (v_f91f33 !== undefined) console.log(`[pangle][diag ${v_8d41d7}] ${v_badeaf}`, v_f91f33);
+  else console.log(`[pangle][diag ${v_8d41d7}] ${v_badeaf}`);
+}
+
 export async function v_f095b0(): Promise<boolean> {
   if (v_c9f274) return true;
   if (!v_d57f84) {
@@ -55,37 +63,57 @@ export function v_8dbaf4(): string {
 }
 
 export async function v_18f201(v_61418d): Promise<void> {
+  const v_b66f2c = Date.now();
+  const v_a48992 = () => `+${Date.now() - v_b66f2c}ms`;
+  v_4b0422(`loadAndShowRewardedAd() 호출 · nativeModule=${!!v_d57f84} emitter=${!!v_357489} platform=${v_326be8.OS}`);
   if (!v_d57f84 || !v_357489) {
+    v_4b0422("native module/emitter 없음 → throw (Expo Go 또는 JS-only 빌드)");
     throw new Error("Pangle native module unavailable");
   }
   const v_3ed4c3 = await v_f095b0();
+  v_4b0422(`initializePangle() → ${v_3ed4c3} (${v_a48992()})`);
   if (!v_3ed4c3) throw new Error("Pangle init failed");
   const v_80cae9 = v_61418d ?? v_3dc1fd();
+  v_4b0422(`adUnit=${v_80cae9}`);
 
   return new Promise<void>((v_6f7712, v_bad6f3) => {
     let v_35db80 = false;
     const v_a983d4 = () => {
       v_8d364c.remove();
       v_ac7dac.remove();
+      v_cabbf3.remove();
     };
-    const v_8d364c = v_357489.addListener("onRewardedAdClose", () => {
+    const v_8d364c = v_357489.addListener("onRewardedAdClose", (v_9e86fd) => {
+      v_4b0422(`event onRewardedAdClose (${v_a48992()})`, v_9e86fd);
       if (v_35db80) return;
       v_35db80 = true;
       v_a983d4();
       v_6f7712();
     });
     const v_ac7dac = v_357489.addListener("onRewardedAdLoadError", (v_9e86fd) => {
+
+      const v_94d701 = (v_9e86fd as { errorCode?: unknown } | null)?.errorCode;
+      const v_131f0d = (v_9e86fd as { errorMsg?: unknown } | null)?.errorMsg;
+      v_4b0422(`event onRewardedAdLoadError (${v_a48992()}) errorCode=${String(v_94d701)} errorMsg=${String(v_131f0d)}`, v_9e86fd);
       if (v_35db80) return;
       v_35db80 = true;
       v_a983d4();
       v_bad6f3(new Error(`Pangle load error: ${JSON.stringify(v_9e86fd)}`));
     });
 
+    const v_cabbf3 = v_357489.addListener("onRewardedAdReward", (v_9e86fd) => {
+      v_4b0422(`event onRewardedAdReward (${v_a48992()})`, v_9e86fd);
+    });
+
     (async () => {
       try {
+        v_4b0422(`loadRewardedAd(${v_80cae9}) 시작`);
         await v_d57f84.loadRewardedAd(v_80cae9);
+        v_4b0422(`loadRewardedAd 성공 (${v_a48992()}) → showRewardedAd 시작`);
         await v_d57f84.showRewardedAd(v_80cae9);
+        v_4b0422(`showRewardedAd 성공 (${v_a48992()}) — 광고 표시됨, close 대기`);
       } catch (v_49263d) {
+        v_4b0422(`load/show 예외 (${v_a48992()}): ${(v_49263d as Error)?.message ?? String(v_49263d)}`);
         if (v_35db80) return;
         v_35db80 = true;
         v_a983d4();
@@ -97,6 +125,7 @@ export async function v_18f201(v_61418d): Promise<void> {
       if (v_35db80) return;
       v_35db80 = true;
       v_a983d4();
+      v_4b0422(`rewarded 타임아웃 — 5분 무반응 (${v_a48992()}) 강제 resolve`);
       console.warn("[pangle] rewarded 타임아웃 — 5분 무반응");
       v_6f7712();
     }, 5 * 60 * 1000);
