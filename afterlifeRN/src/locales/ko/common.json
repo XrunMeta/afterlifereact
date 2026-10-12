@@ -889,6 +889,8 @@
       "publicDesc": "누구나 볼 수 있습니다",
       "followersTitle": "구독자 공개",
       "followersDesc": "구독자만 볼 수 있습니다",
+      "selectedTitle": "특정 친구만",
+      "selectedDesc": "생성 후 대시보드에서 친구를 지정합니다",
       "privateTitle": "비공개",
       "privateDesc": "본인만 볼 수 있습니다"
     },
