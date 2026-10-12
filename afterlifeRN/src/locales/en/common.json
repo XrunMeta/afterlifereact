@@ -1161,6 +1161,11 @@
     "callLearningConsent": "(Optional) I agree to call conversation learning",
     "faceBiometricConsent": "(Optional) I agree to the use of face recognition (biometric data)"
   },
+  "consentPrompt": {
+    "title": "Agreements needed before the call",
+    "desc": "Please review the agreements below for a smooth call.",
+    "continueBtn": "Continue"
+  },
   "terms": {
     "langNotice": "⚠️ {{expected}} → {{returned}} (terms for this language are being prepared)"
   },
