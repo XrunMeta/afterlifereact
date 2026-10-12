@@ -123,11 +123,34 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
 
   let v_d1b635 = await v_a1651b
     .prepare(
-      `SELECT id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until FROM users
-        WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
+      `SELECT id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until, deleted_at FROM users
+        WHERE email = ? LIMIT 1`,
     )
     .bind(v_931bf0.email)
-    .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null }>();
+    .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null; deleted_at: string | null }>();
+
+  if (v_d1b635 && (v_d1b635.deletion_state !== "active" || v_d1b635.deleted_at !== null)) {
+    const v_bc285e = await v_a1651b
+      .prepare(
+        `UPDATE users
+            SET deletion_state = 'active',
+                soft_deleted_at = NULL,
+                deleted_at = NULL,
+                failed_login_count = 0,
+                locked_until = NULL,
+                updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+          RETURNING id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until, deleted_at`,
+      )
+      .bind(v_d1b635.id)
+      .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null; deleted_at: string | null }>();
+    if (v_bc285e) v_d1b635 = v_bc285e;
+    await v_74defc(v_3f4e2e, {
+      userId: v_d1b635.id,
+      action: "auth.google.revive",
+      details: { sub: v_931bf0.sub, email: v_931bf0.email },
+    });
+  }
 
   if (!v_d1b635) {
 
@@ -143,10 +166,10 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
       .prepare(
         `INSERT INTO users (name, email, password_hash, avatar_url)
          VALUES (?, ?, ?, ?)
-         RETURNING id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until`,
+         RETURNING id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until, deleted_at`,
       )
       .bind(v_ef7664, v_931bf0.email, v_df7439, v_931bf0.picture ?? null)
-      .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null }>();
+      .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null; deleted_at: string | null }>();
     if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user.");
     v_d1b635 = v_81161e;
 
@@ -194,10 +217,6 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
       console.error(`[SIGNUP_GRANT_FAIL] user_id=${v_81161e.id} err=${(v_49263d as Error).message}`);
     }
   } else {
-
-    if (v_d1b635.deletion_state !== "active") {
-      throw new v_3ebe58("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
-    }
 
     if (v_d1b635.banned_until && v_e8cd3d(v_d1b635.banned_until) > Date.now()) {
       throw new v_3ebe58("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
@@ -266,11 +285,34 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
 
   let v_d1b635 = await v_a1651b
     .prepare(
-      `SELECT id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until FROM users
-        WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
+      `SELECT id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until, deleted_at FROM users
+        WHERE email = ? LIMIT 1`,
     )
     .bind(v_931bf0.email)
-    .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null }>();
+    .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null; deleted_at: string | null }>();
+
+  if (v_d1b635 && (v_d1b635.deletion_state !== "active" || v_d1b635.deleted_at !== null)) {
+    const v_bc285e = await v_a1651b
+      .prepare(
+        `UPDATE users
+            SET deletion_state = 'active',
+                soft_deleted_at = NULL,
+                deleted_at = NULL,
+                failed_login_count = 0,
+                locked_until = NULL,
+                updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+          RETURNING id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until, deleted_at`,
+      )
+      .bind(v_d1b635.id)
+      .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null; deleted_at: string | null }>();
+    if (v_bc285e) v_d1b635 = v_bc285e;
+    await v_74defc(v_3f4e2e, {
+      userId: v_d1b635.id,
+      action: "auth.apple.revive",
+      details: { sub: v_931bf0.sub },
+    });
+  }
 
   if (!v_d1b635) {
 
@@ -284,10 +326,10 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
       .prepare(
         `INSERT INTO users (name, email, password_hash, avatar_url)
          VALUES (?, ?, ?, NULL)
-         RETURNING id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until`,
+         RETURNING id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until, deleted_at`,
       )
       .bind(v_ef7664, v_931bf0.email, v_df7439)
-      .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null }>();
+      .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null; deleted_at: string | null }>();
     if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user.");
     v_d1b635 = v_81161e;
 
@@ -335,9 +377,7 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
       console.error(`[SIGNUP_GRANT_FAIL] user_id=${v_81161e.id} err=${(v_49263d as Error).message}`);
     }
   } else {
-    if (v_d1b635.deletion_state !== "active") {
-      throw new v_3ebe58("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
-    }
+
     if (v_d1b635.banned_until && v_e8cd3d(v_d1b635.banned_until) > Date.now()) {
       throw new v_3ebe58("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
         bannedUntil: v_d1b635.banned_until,
@@ -356,7 +396,7 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
         `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
            WHERE push_token = ? AND user_id != ? AND is_active = 1`,
       )
-      .bind(v_4d33b2.pushToken, v_d1b635.id)
+      .bind(v_4d33b2.pushToken, v_d1b635!.id)
       .run();
     await v_a1651b
       .prepare(
@@ -369,11 +409,11 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
            last_active_at = CURRENT_TIMESTAMP,
            updated_at = CURRENT_TIMESTAMP`,
       )
-      .bind(v_d1b635.id, v_4d33b2.deviceId, v_4d33b2.pushToken, v_4d33b2.platform ?? "ios")
+      .bind(v_d1b635!.id, v_4d33b2.deviceId, v_4d33b2.pushToken, v_4d33b2.platform ?? "ios")
       .run();
   }
 
-  const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(v_3f4e2e, v_d1b635.id, v_4d33b2.deviceId);
+  const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(v_3f4e2e, v_d1b635!.id, v_4d33b2.deviceId);
   v_56035d(v_3f4e2e, v_dfaee3);
 
   return v_3f4e2e.json({
@@ -381,10 +421,10 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
     refreshToken: v_dfaee3,
     accessExpiresIn: v_ff8c95,
     user: {
-      id: v_d1b635.id,
-      name: v_d1b635.name,
-      email: v_d1b635.email,
-      funnelStage: v_d1b635.funnelStage,
+      id: v_d1b635!.id,
+      name: v_d1b635!.name,
+      email: v_d1b635!.email,
+      funnelStage: v_d1b635!.funnelStage,
     },
   });
 });
@@ -626,8 +666,8 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
 
   let v_625c74 = await v_a1651b
     .prepare(
-      `SELECT id, password_hash, failed_login_count, locked_until, deletion_state, banned_until
-         FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
+      `SELECT id, password_hash, failed_login_count, locked_until, deletion_state, banned_until, deleted_at
+         FROM users WHERE email = ? LIMIT 1`,
     )
     .bind(v_4d33b2.email)
     .first<{
@@ -637,45 +677,91 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
       locked_until: string | null;
       deletion_state: string;
       banned_until: string | null;
+      deleted_at: string | null;
     }>();
 
   let v_1329db = false;
-  if (!v_625c74) {
+  const v_735a1e = !v_625c74 || v_625c74.deletion_state !== "active" || v_625c74.deleted_at !== null;
+  if (v_735a1e) {
     const v_dd506d = await v_937e23(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.password);
     if (v_dd506d.found && v_dd506d.member) {
-      const v_3fc173 = await v_54846c(v_4d33b2.password);
-      const v_ef7664 = v_4d33b2.email.split("@")[0] || "user";
-      const v_81161e = await v_a1651b
-        .prepare(
-          `INSERT INTO users (name, email, password_hash, xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at)
-           VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-           RETURNING id, password_hash, failed_login_count, locked_until, deletion_state, banned_until`,
-        )
-        .bind(
-          v_ef7664,
-          v_4d33b2.email,
-          v_3fc173,
-          v_dd506d.member,
-          v_dd506d.guid ?? null,
-          v_dd506d.wallet ?? null,
-        )
-        .first<{
-          id: number;
-          password_hash: string;
-          failed_login_count: number;
-          locked_until: string | null;
-          deletion_state: string;
-          banned_until: string | null;
-        }>();
-      if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user from xrun link.");
-      v_625c74 = v_81161e;
-      v_1329db = true;
-      try {
-        await v_4960d7(v_3f4e2e, v_81161e.id);
-      } catch (v_49263d) {
-        console.error(`[AUTH/login.xrun_link] credit grant failed user_id=${v_81161e.id} err=${(v_49263d as Error).message}`);
+      if (v_625c74) {
+
+        const v_3fc173 = await v_54846c(v_4d33b2.password);
+        const v_bc285e = await v_a1651b
+          .prepare(
+            `UPDATE users
+                SET password_hash = ?,
+                    deletion_state = 'active',
+                    soft_deleted_at = NULL,
+                    deleted_at = NULL,
+                    failed_login_count = 0,
+                    locked_until = NULL,
+                    xrun_member_id = ?,
+                    xrun_guid = ?,
+                    xrun_wallet = ?,
+                    xrun_linked_at = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+              WHERE id = ?
+              RETURNING id, password_hash, failed_login_count, locked_until, deletion_state, banned_until, deleted_at`,
+          )
+          .bind(
+            v_3fc173,
+            v_dd506d.member,
+            v_dd506d.guid ?? null,
+            v_dd506d.wallet ?? null,
+            v_625c74.id,
+          )
+          .first<{
+            id: number;
+            password_hash: string;
+            failed_login_count: number;
+            locked_until: string | null;
+            deletion_state: string;
+            banned_until: string | null;
+            deleted_at: string | null;
+          }>();
+        if (!v_bc285e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to revive user from xrun link.");
+        v_625c74 = v_bc285e;
+        v_1329db = true;
+        await v_74defc(v_3f4e2e, { userId: v_625c74.id, action: "auth.login.xrun_revive" });
+      } else {
+
+        const v_3fc173 = await v_54846c(v_4d33b2.password);
+        const v_ef7664 = v_4d33b2.email.split("@")[0] || "user";
+        const v_81161e = await v_a1651b
+          .prepare(
+            `INSERT INTO users (name, email, password_hash, xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at)
+             VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+             RETURNING id, password_hash, failed_login_count, locked_until, deletion_state, banned_until, deleted_at`,
+          )
+          .bind(
+            v_ef7664,
+            v_4d33b2.email,
+            v_3fc173,
+            v_dd506d.member,
+            v_dd506d.guid ?? null,
+            v_dd506d.wallet ?? null,
+          )
+          .first<{
+            id: number;
+            password_hash: string;
+            failed_login_count: number;
+            locked_until: string | null;
+            deletion_state: string;
+            banned_until: string | null;
+            deleted_at: string | null;
+          }>();
+        if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user from xrun link.");
+        v_625c74 = v_81161e;
+        v_1329db = true;
+        try {
+          await v_4960d7(v_3f4e2e, v_81161e.id);
+        } catch (v_49263d) {
+          console.error(`[AUTH/login.xrun_link] credit grant failed user_id=${v_81161e.id} err=${(v_49263d as Error).message}`);
+        }
+        await v_74defc(v_3f4e2e, { userId: v_81161e.id, action: "auth.login.xrun_link" });
       }
-      await v_74defc(v_3f4e2e, { userId: v_81161e.id, action: "auth.login.xrun_link" });
     }
   }
 
@@ -723,8 +809,21 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
     });
   }
 
-  if (v_625c74.deletion_state !== "active") {
-    throw new v_3ebe58("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
+  if (v_625c74.deletion_state !== "active" || v_625c74.deleted_at !== null) {
+    await v_a1651b
+      .prepare(
+        `UPDATE users
+            SET deletion_state = 'active',
+                soft_deleted_at = NULL,
+                deleted_at = NULL,
+                failed_login_count = 0,
+                locked_until = NULL,
+                updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?`,
+      )
+      .bind(v_625c74.id)
+      .run();
+    await v_74defc(v_3f4e2e, { userId: v_625c74.id, action: "auth.login.legacy_revive" });
   }
 
   if (v_625c74.banned_until && v_e8cd3d(v_625c74.banned_until) > Date.now()) {
