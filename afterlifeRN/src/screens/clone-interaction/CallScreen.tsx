@@ -274,6 +274,10 @@ export default function CallScreen(props: Props) {
       setPreCallGate("skip");
       return;
     }
+
+    if (consentGate !== "ok") {
+      return;
+    }
     let cancelled = false;
     const timer = setTimeout(() => {
 
@@ -291,7 +295,6 @@ export default function CallScreen(props: Props) {
         ]);
         if (cancelled) return;
         clearTimeout(timer);
-
         const granted = consentR?.state === "granted";
         const personCount = personsR?.items?.length ?? -1;
         const shouldRedirect = granted && personCount === 0;
@@ -326,7 +329,7 @@ export default function CallScreen(props: Props) {
       clearTimeout(timer);
     };
 
-  }, [wrapperAccessToken, cloneId]);
+  }, [wrapperAccessToken, cloneId, consentGate]);
 
   React.useEffect(() => {
     if (!wrapperAccessToken) {
