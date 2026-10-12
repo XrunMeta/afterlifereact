@@ -1161,6 +1161,11 @@
     "callLearningConsent": "(任意) 通話内容の学習に同意します",
     "faceBiometricConsent": "(任意) 顔認識(生体情報)の利用に同意します"
   },
+  "consentPrompt": {
+    "title": "通話の前に同意が必要です",
+    "desc": "スムーズな通話のため以下の同意をご確認ください。",
+    "continueBtn": "続行"
+  },
   "terms": {
     "langNotice": "⚠️ {{expected}} → {{returned}}(該当言語の規約を準備中)"
   },

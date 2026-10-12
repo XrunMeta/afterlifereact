@@ -1158,6 +1158,11 @@
     "callLearningConsent": "(Opsional) Saya setuju dengan pembelajaran percakapan panggilan",
     "faceBiometricConsent": "(Opsional) Saya setuju dengan penggunaan pengenalan wajah (data biometrik)"
   },
+  "consentPrompt": {
+    "title": "Persetujuan diperlukan sebelum panggilan",
+    "desc": "Harap tinjau persetujuan di bawah agar panggilan berjalan lancar.",
+    "continueBtn": "Lanjutkan"
+  },
   "terms": {
     "langNotice": "⚠️ {{expected}} → {{returned}} (Ketentuan dalam bahasa terkait sedang dipersiapkan)"
   },
