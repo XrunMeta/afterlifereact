@@ -129,7 +129,7 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
     .bind(v_931bf0.email)
     .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null; deleted_at: string | null }>();
 
-  if (v_d1b635 && (v_d1b635.deletion_state !== "active" || v_d1b635.deleted_at !== null)) {
+  if (v_d1b635 && v_d1b635.deletion_state === "soft_deleted") {
     const v_bc285e = await v_a1651b
       .prepare(
         `UPDATE users
@@ -218,6 +218,9 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
     }
   } else {
 
+    if (v_d1b635.deletion_state !== "active") {
+      throw new v_3ebe58("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
+    }
     if (v_d1b635.banned_until && v_e8cd3d(v_d1b635.banned_until) > Date.now()) {
       throw new v_3ebe58("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
         bannedUntil: v_d1b635.banned_until,
@@ -291,7 +294,7 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
     .bind(v_931bf0.email)
     .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null; deleted_at: string | null }>();
 
-  if (v_d1b635 && (v_d1b635.deletion_state !== "active" || v_d1b635.deleted_at !== null)) {
+  if (v_d1b635 && v_d1b635.deletion_state === "soft_deleted") {
     const v_bc285e = await v_a1651b
       .prepare(
         `UPDATE users
@@ -378,6 +381,9 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
     }
   } else {
 
+    if (v_d1b635.deletion_state !== "active") {
+      throw new v_3ebe58("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
+    }
     if (v_d1b635.banned_until && v_e8cd3d(v_d1b635.banned_until) > Date.now()) {
       throw new v_3ebe58("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
         bannedUntil: v_d1b635.banned_until,
@@ -681,7 +687,8 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
     }>();
 
   let v_1329db = false;
-  const v_735a1e = !v_625c74 || v_625c74.deletion_state !== "active" || v_625c74.deleted_at !== null;
+
+  const v_735a1e = !v_625c74 || v_625c74.deletion_state === "soft_deleted";
   if (v_735a1e) {
     const v_dd506d = await v_937e23(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.password);
     if (v_dd506d.found && v_dd506d.member) {
@@ -809,21 +816,8 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
     });
   }
 
-  if (v_625c74.deletion_state !== "active" || v_625c74.deleted_at !== null) {
-    await v_a1651b
-      .prepare(
-        `UPDATE users
-            SET deletion_state = 'active',
-                soft_deleted_at = NULL,
-                deleted_at = NULL,
-                failed_login_count = 0,
-                locked_until = NULL,
-                updated_at = CURRENT_TIMESTAMP
-          WHERE id = ?`,
-      )
-      .bind(v_625c74.id)
-      .run();
-    await v_74defc(v_3f4e2e, { userId: v_625c74.id, action: "auth.login.legacy_revive" });
+  if (v_625c74.deletion_state !== "active") {
+    throw new v_3ebe58("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
   }
 
   if (v_625c74.banned_until && v_e8cd3d(v_625c74.banned_until) > Date.now()) {
