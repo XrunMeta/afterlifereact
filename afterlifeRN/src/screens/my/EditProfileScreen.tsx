@@ -102,7 +102,16 @@ export default function v_e2b396() {
   const v_2a5c62 = v_df9f57<v_da1883 | null>(() => {
     if (!v_b113dd?.country || !v_b113dd.region) return null;
     const v_e94fdf = v_369014(v_b113dd.country.toLowerCase());
-    return v_e94fdf.find((v_cb35cb) => v_cb35cb.dialCode === v_b113dd.region) ?? null;
+    const v_ea6dff = v_e94fdf.find((v_cb35cb) => v_cb35cb.dialCode === v_b113dd.region);
+    if (v_ea6dff) return v_ea6dff;
+
+    return {
+      iso2: `fallback_${v_b113dd.region}`,
+      name: `지역 ${v_b113dd.region}`,
+      dialCode: v_b113dd.region,
+      flagEmoji: '📍',
+      countryCode: 0,
+    };
   }, [v_b113dd]);
   const [v_a6c30b, v_c030e3] = v_5ab095<v_da1883 | null>(v_2a5c62);
   const [v_9d56c4, v_7168a2] = v_5ab095(false);
