@@ -38,6 +38,7 @@ import { v_84d546 } from "../../lib/callGuard";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
 import { v_d60cdf, v_81d12f, v_f373d8, v_20d793, v_776874, v_914311, v_8ce643, v_d24912, type v_a9d96d, type v_d83ffc, type v_52af9d, type v_ceccc3, type v_6349d0, type v_1d741a } from "../../api/clones";
+import { v_83b207, type v_ccbfb2 } from "../../api/giftInventory";
 import v_feb82c from "../../mocks/gifts.json";
 import type { v_84fd28 } from "../../types/gift";
 
@@ -91,6 +92,8 @@ export default function v_def15b() {
   const [v_c88e9b, v_de20d8] = v_5ab095<v_2b70d7 | null>(null);
   const [v_747a87, v_3e37d1] = v_5ab095(false);
 
+  const [v_0bc486, v_f3ce9d] = v_5ab095<v_ccbfb2[]>([]);
+
   const v_8e46f5 = v_de06a3(async (v_cc88f5 = false) => {
     if (!v_2ca7e0) {
       v_d42991(null);
@@ -135,6 +138,10 @@ export default function v_def15b() {
           .then((v_148ff6) => v_de20d8(v_148ff6))
           .catch((v_49263d) => console.warn("[MyClonesDashboard] balance fail:", v_49263d))
           .finally(() => v_3e37d1(false));
+
+        v_83b207(v_2ca7e0)
+          .then((v_cb35cb) => v_f3ce9d(v_cb35cb.items.filter((v_23805a) => (v_23805a.count ?? 0) > 0)))
+          .catch((v_49263d) => console.warn("[MyClonesDashboard] giftInventory fail:", v_49263d));
       }
     }, [v_8e46f5, v_2ca7e0]),
   );
@@ -875,6 +882,35 @@ export default function v_def15b() {
 
             {
 }
+
+            {
+}
+            {v_0bc486.length > 0 && (
+              <View style={v_fd5f43.giftInventorySection}>
+                <Text style={v_fd5f43.giftInventoryTitle}>
+                  {v_8d41d7("dashboard.giftInventoryTitle", { defaultValue: "내 선물" })}
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={v_fd5f43.giftInventoryRow}
+                >
+                  {v_0bc486.map((v_206b88) => (
+                    <View key={v_206b88.giftId} style={v_fd5f43.giftInventoryItem}>
+                      {v_206b88.imageUrl ? (
+                        <Image source={{ uri: v_206b88.imageUrl }} style={v_fd5f43.giftInventoryIcon} />
+                      ) : (
+                        <View style={[v_fd5f43.giftInventoryIcon, { alignItems: "center", justifyContent: "center", backgroundColor: v_1bfbd0.zinc100 }]}>
+                          <Text style={{ fontSize: 24 }}>{v_206b88.emoji || "🎁"}</Text>
+                        </View>
+                      )}
+                      <Text style={v_fd5f43.giftInventoryName} numberOfLines={1}>{v_206b88.name}</Text>
+                      <Text style={v_fd5f43.giftInventoryCount}>×{v_206b88.count}</Text>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
           </>
         }
         ListFooterComponent={
@@ -1343,6 +1379,43 @@ const v_2fb1c1 = [
 ];
 
 const v_fd5f43 = v_472849.create({
+
+  giftInventorySection: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  giftInventoryTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: v_1bfbd0.zinc500,
+    marginBottom: 10,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  giftInventoryRow: { gap: 12, paddingRight: 8 },
+  giftInventoryItem: {
+    width: 72,
+    alignItems: "center",
+    gap: 4,
+  },
+  giftInventoryIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    backgroundColor: v_1bfbd0.zinc100,
+  },
+  giftInventoryName: {
+    fontSize: 11,
+    color: v_1bfbd0.zinc700,
+    textAlign: "center",
+    maxWidth: 72,
+  },
+  giftInventoryCount: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: v_1bfbd0.zinc900,
+  },
   systemClonesSection: {
     paddingHorizontal: 16,
     paddingTop: 8,
