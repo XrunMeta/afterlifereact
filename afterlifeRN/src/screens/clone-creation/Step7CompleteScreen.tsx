@@ -748,10 +748,10 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
               v_5e9bfe
                 ? v_8d41d7("common.retry", { defaultValue: "다시 시도" })
                 : v_af4871 != null
-                ? v_8d41d7("create.step7.next", { defaultValue: "다음" })
+                ? v_8d41d7("create.step7.confirm", { defaultValue: "확인" })
                 : v_c3de9c || v_805753
                 ? v_8d41d7("create.submitting", { defaultValue: "잠시만요..." })
-                : v_8d41d7("create.step7.next", { defaultValue: "다음" })
+                : v_8d41d7("create.step7.confirm", { defaultValue: "확인" })
             }
             onPress={
               v_5e9bfe
