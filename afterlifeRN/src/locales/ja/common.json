@@ -892,6 +892,8 @@
       "publicDesc": "誰でも閲覧できます",
       "followersTitle": "フォロワー公開",
       "followersDesc": "フォロワーのみ閲覧できます",
+      "selectedTitle": "特定の友達のみ",
+      "selectedDesc": "作成後にダッシュボードで友達を指定します",
       "privateTitle": "非公開",
       "privateDesc": "ご本人のみ閲覧できます"
     },

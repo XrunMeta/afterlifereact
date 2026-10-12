@@ -373,6 +373,20 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       console.log("[CLONE-CREATE] success:", v_8f00b9);
       const v_94519a = v_8f00b9.clone;
 
+      if (v_818579 === "selected" && (v_f04727.allowedViewerIds?.length ?? 0) > 0) {
+        try {
+          await v_b4f9f6(v_2ca7e0, v_94519a.id, {
+            allowed_viewers: v_f04727.allowedViewerIds,
+          });
+          console.log(
+            "[CLONE-CREATE] allowed_viewers set:",
+            v_f04727.allowedViewerIds?.length,
+          );
+        } catch (v_4cf250) {
+          console.warn("[CLONE-CREATE] allowed_viewers PATCH failed:", v_4cf250);
+        }
+      }
+
       const clone: v_affcc0 = {
         id: v_94519a.id,
         cloneType: v_94519a.cloneType,
@@ -580,7 +594,16 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
     v_4b9b17(false);
     v_7a77e1();
-    if (v_80a1e3) v_c65f5d.replace("Step8", { cloneId: v_80a1e3 });
+    if (!v_80a1e3) return;
+
+    const v_2a460b = v_f04727.visibility ?? "public";
+    if (v_2a460b === "private") {
+      v_c65f5d.replace("Step8", { cloneId: v_80a1e3 });
+    } else {
+      v_c65f5d.getParent()?.dispatch(
+        v_650cfa.navigate({ name: "HomeTab" }),
+      );
+    }
   };
 
   const v_8a1355 = v_f04727.name ?? v_8d41d7("create.step7.displayNameFallback", { defaultValue: "사용자 이름" });

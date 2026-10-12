@@ -663,7 +663,8 @@ export async function v_7a6fc0(
   try {
     v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
       method: "POST",
-      headers: v_4d1f4f(v_c9c489),
+
+      headers: { ...v_4d1f4f(v_c9c489), "X-Internal-Secret": v_c9c489.XRUN_INTERNAL_SECRET ?? "" },
       body: JSON.stringify({
         fromMember: v_4317d1.fromMember,
         recipients: v_4317d1.recipients,

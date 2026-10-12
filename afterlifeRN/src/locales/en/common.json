@@ -892,6 +892,8 @@
       "publicDesc": "Anyone can see",
       "followersTitle": "Followers",
       "followersDesc": "Only followers can see",
+      "selectedTitle": "Selected friends",
+      "selectedDesc": "Pick friends after creation on the dashboard",
       "privateTitle": "Private",
       "privateDesc": "Only you"
     },
