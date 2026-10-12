@@ -2348,6 +2348,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       );
       console.log(`[gift] sent OK ${gift.id} ${res.xrunAmount} XRUN → ${res.receiverId}`);
 
+      setGiftInventory((prev) =>
+        prev
+          .map((g) => (g.giftId === gift.id ? { ...g, count: g.count - 1 } : g))
+          .filter((g) => g.count > 0),
+      );
+
       if (gift.svgaUrl) {
         setSvgaSender({ name: myName, avatarUrl: myAvatarUrl, giftName: gift.name });
         setSvgaOverlayUrl(gift.svgaUrl);
