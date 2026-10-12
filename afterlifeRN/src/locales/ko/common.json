@@ -1155,6 +1155,11 @@
     "callLearningConsent": "(선택) 통화 대화 학습에 동의합니다",
     "faceBiometricConsent": "(선택) 얼굴 인식(생체정보) 활용에 동의합니다"
   },
+  "consentPrompt": {
+    "title": "통화 전 동의가 필요합니다",
+    "desc": "원활한 통화를 위해 아래 동의를 확인해 주세요.",
+    "continueBtn": "계속"
+  },
   "terms": {
     "langNotice": "⚠️ {{expected}} → {{returned}} (해당 언어 약관 준비 중)"
   },
