@@ -63,12 +63,22 @@ export interface SignupResponse {
   refreshToken?: string;
 }
 
-export interface LoginResponse {
+export interface LoginSuccessResponse {
   accessToken: string;
   accessExpiresIn: number;
 
   refreshToken?: string;
+  requiresEmailVerification?: never;
 }
+
+export interface LoginRequiresVerificationResponse {
+  requiresEmailVerification: true;
+  email: string;
+  expiresInSec: number;
+  accessToken?: never;
+}
+
+export type LoginResponse = LoginSuccessResponse | LoginRequiresVerificationResponse;
 
 export interface LoginPayload {
   email: string;
@@ -76,6 +86,8 @@ export interface LoginPayload {
   deviceId?: string;
   pushToken?: string;
   platform?: "ios" | "android" | "web";
+
+  verificationCode?: string;
 }
 
 export interface ApiErrorBody {
@@ -173,7 +185,7 @@ export async function v_1d5b64(v_e0c7e8): Promise<{ ok: true; expiresInSec: numb
   return v_c34e2f("/oth-path", { email: v_e0c7e8 });
 }
 
-export async function v_c0c425(v_931bf0): Promise<LoginResponse> {
+export async function v_c0c425(v_931bf0): Promise<LoginSuccessResponse> {
   return v_c34e2f("/oth-path", v_931bf0);
 }
 
@@ -183,7 +195,8 @@ export interface GoogleSignInPayload {
   pushToken?: string;
   platform?: "ios" | "android" | "web";
 }
-export async function v_dd2158(v_931bf0): Promise<LoginResponse> {
+
+export async function v_dd2158(v_931bf0): Promise<LoginSuccessResponse> {
   return v_c34e2f("/oth-path", v_931bf0);
 }
 
@@ -205,7 +218,7 @@ export interface AppleSignInPayload {
   pushToken?: string;
   platform?: "ios" | "android" | "web";
 }
-export async function v_c93bd8(v_931bf0): Promise<LoginResponse> {
+export async function v_c93bd8(v_931bf0): Promise<LoginSuccessResponse> {
   return v_c34e2f("/oth-path", v_931bf0);
 }
 
