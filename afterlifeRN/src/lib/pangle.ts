@@ -28,6 +28,35 @@ function v_4b0422(v_badeaf, v_f91f33): void {
   else console.log(`[pangle][diag ${v_8d41d7}] ${v_badeaf}`);
 }
 
+const v_4b24d2 = (v_d799e2) => new Promise<void>((v_cb35cb) => setTimeout(v_cb35cb, v_d799e2));
+
+export type AdStubEvent = "loading" | "loaded" | "showed" | "reward" | "close";
+
+export function v_36f8a3(): boolean {
+  const v_8b5cd8 = process.env.EXPO_PUBLIC_AD_STUB;
+  if (v_8b5cd8 === "1") return true;
+  if (v_8b5cd8 === "0") return false;
+  return typeof __DEV__ !== "undefined" && __DEV__ === true;
+}
+
+function v_9fd782(): number {
+  const v_f4e98d = Number(process.env.EXPO_PUBLIC_AD_STUB_MS);
+  return Number.isFinite(v_f4e98d) && v_f4e98d > 0 ? v_f4e98d : 6000; 
+}
+
+export async function v_cdacfb(
+  v_68885c = () => {},
+  v_b98005 = v_9fd782(),
+): Promise<void> {
+  v_68885c("loading");
+  await v_4b24d2(300); 
+  v_68885c("loaded");
+  v_68885c("showed"); 
+  await v_4b24d2(v_b98005); 
+  v_68885c("reward"); 
+  v_68885c("close"); 
+}
+
 export async function v_f095b0(): Promise<boolean> {
   if (v_c9f274) return true;
   if (!v_d57f84) {
@@ -65,7 +94,15 @@ export function v_8dbaf4(): string {
 export async function v_18f201(v_61418d): Promise<void> {
   const v_b66f2c = Date.now();
   const v_a48992 = () => `+${Date.now() - v_b66f2c}ms`;
-  v_4b0422(`loadAndShowRewardedAd() 호출 · nativeModule=${!!v_d57f84} emitter=${!!v_357489} platform=${v_326be8.OS}`);
+  v_4b0422(`loadAndShowRewardedAd() 호출 · nativeModule=${!!v_d57f84} emitter=${!!v_357489} platform=${v_326be8.OS} stub=${v_36f8a3()}`);
+
+  if (v_36f8a3()) {
+    v_4b0422(`STUB MODE on — 실광고 대신 시뮬레이션(${v_9fd782()}ms)`);
+    await v_cdacfb((v_9e86fd) => v_4b0422(`[stub] event ${v_9e86fd} (${v_a48992()})`));
+    v_4b0422(`STUB MODE 완료 — close 상당 지점 resolve (${v_a48992()})`);
+    return;
+  }
+
   if (!v_d57f84 || !v_357489) {
     v_4b0422("native module/emitter 없음 → throw (Expo Go 또는 JS-only 빌드)");
     throw new Error("Pangle native module unavailable");
