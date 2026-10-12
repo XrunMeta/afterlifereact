@@ -1158,6 +1158,11 @@
     "callLearningConsent": "(可选) 同意通话对话学习",
     "faceBiometricConsent": "(可选) 同意使用人脸识别(生物识别信息)"
   },
+  "consentPrompt": {
+    "title": "通话前需要同意",
+    "desc": "为了顺畅通话,请确认以下同意事项。",
+    "continueBtn": "继续"
+  },
   "terms": {
     "langNotice": "⚠️ {{expected}} → {{returned}}（该语言条款准备中）"
   },
