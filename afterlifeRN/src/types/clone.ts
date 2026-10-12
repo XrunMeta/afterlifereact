@@ -94,4 +94,6 @@ export interface CloneCreationDraft {
 
   avatarFileId?: number;
   avatarUrl?: string;
+
+  allowedViewerIds?: number[];
 }

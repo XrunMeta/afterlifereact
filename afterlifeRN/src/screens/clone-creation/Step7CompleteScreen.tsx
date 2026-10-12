@@ -373,6 +373,20 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       console.log("[CLONE-CREATE] success:", v_8f00b9);
       const v_94519a = v_8f00b9.clone;
 
+      if (v_818579 === "selected" && (v_f04727.allowedViewerIds?.length ?? 0) > 0) {
+        try {
+          await v_b4f9f6(v_2ca7e0, v_94519a.id, {
+            allowed_viewers: v_f04727.allowedViewerIds,
+          });
+          console.log(
+            "[CLONE-CREATE] allowed_viewers set:",
+            v_f04727.allowedViewerIds?.length,
+          );
+        } catch (v_4cf250) {
+          console.warn("[CLONE-CREATE] allowed_viewers PATCH failed:", v_4cf250);
+        }
+      }
+
       const clone: v_affcc0 = {
         id: v_94519a.id,
         cloneType: v_94519a.cloneType,
