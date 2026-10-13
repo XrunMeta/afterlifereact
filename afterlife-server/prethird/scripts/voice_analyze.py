@@ -6,6 +6,8 @@ POST /oth-path {voiceRawUrl} → 임시 wav 로 변환해 길이·쉼·STT char/
 쉼/길이 상수는 cosyvoice/scripts/make_prompt_ref.py 가 소스오브트루스다. 크로스 conda-env
 import 를 피하려 동일 env 이름·동일 기본값으로 미러한다(값은 test 로 고정). char/s 는
 prethird ref_quality 를 그대로 재사용한다.
+경고: 한쪽(여기 또는 make_prompt_ref.py)을 바꾸면 반드시 다른 쪽도 함께 바꿀 것 —
+test_constants_match_make_prompt_ref_spec 은 이쪽 리터럴만 고정한다.
 """
 from __future__ import annotations
 
