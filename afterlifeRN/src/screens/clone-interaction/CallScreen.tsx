@@ -21,7 +21,15 @@ import {
   ToastAndroid,
 } from "react-native";
 
-import { afl971ShouldShowAd, isAfl971AdTestAccount, afl971CanFireAd, afl971CallInteractive } from "./afl971Ad";
+import {
+  afl971ShouldShowAd,
+  isAfl971AdTestAccount,
+  afl971CanFireAd,
+  afl971CallInteractive,
+  afl971NormalizeCadence,
+  AFL971_CADENCE_DEFAULT,
+  type AdCadence,
+} from "./afl971Ad";
 import * as ScreenCapture from "expo-screen-capture";
 import ViewShot, { captureRef } from "react-native-view-shot";
 import * as MediaLibrary from "expo-media-library";
@@ -1270,15 +1278,17 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       const willBeRound = afl971RoundCountRef.current + 1;
 
       const faceBusy = rmStateRef.current.promptRegister;
+
       const adNext =
         afl971IsFirstCallRef.current === false &&
         !faceBusy &&
-        afl971ShouldShowAd(willBeRound, isAfl971AdTestAccount(debugEmail));
+        afl971ShouldShowAd(willBeRound, afl971CadenceRef.current);
 
       console.log(
         `[Call][afl971] 예고판정 willBeRound=${willBeRound} adNext=${adNext} ` +
         `isFirstCall=${afl971IsFirstCallRef.current} faceBusy=${faceBusy} ` +
         `promptRegister=${rmStateRef.current.promptRegister} naming=${shStateRef.current.naming} ` +
+        `cadence=${afl971CadenceRef.current.firstRound}/${afl971CadenceRef.current.interval} ` +
         `testAcct=${isAfl971AdTestAccount(debugEmail)}`,
       );
 
@@ -1894,6 +1904,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const AFL971_POST_MESSAGE_DEFAULT = "기다려줘서 고마워! 꽃 선물 짠";
   const AFL971_FLOWER_TOAST_DEFAULT = "{cloneName}에게 꽃을 받았습니다";
   const [afl971ToastTemplate, setAfl971ToastTemplate] = useState<string>(AFL971_FLOWER_TOAST_DEFAULT);
+
+  const afl971CadenceRef = useRef<AdCadence>(AFL971_CADENCE_DEFAULT);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -1901,9 +1913,14 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         const { API_BASE } = await import("../../config/apiBase");
         const res = await fetch(`${API_BASE}/oth-path`, { cache: "no-store" });
         if (!res.ok || cancelled) return;
-        const data = (await res.json()) as { messages?: { toast?: string } };
+        const data = (await res.json()) as { messages?: { toast?: string }; cadence?: unknown };
         const t = data?.messages?.toast;
         if (typeof t === "string" && t.trim().length > 0) setAfl971ToastTemplate(t);
+
+        afl971CadenceRef.current = afl971NormalizeCadence(data?.cadence);
+        console.log(
+          `[Call][afl971] 광고 주기 로드 firstRound=${afl971CadenceRef.current.firstRound} interval=${afl971CadenceRef.current.interval}`,
+        );
       } catch (err) {
         if (__DEV__) console.warn("[afl971] ad-messages fetch 실패:", (err as Error)?.message ?? err);
       }

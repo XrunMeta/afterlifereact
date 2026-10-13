@@ -27,9 +27,12 @@ import {
   v_1f7eef,
   v_99e8be,
   v_824b75,
+  v_4bc1db,
+  v_b7471b,
   type v_83f27d,
   type v_f56907,
   type v_eb1456,
+  type v_26435f,
 } from "../lib/appConfig";
 
 export const v_b7f2b4 = new v_b7c41b<v_de0a25>();
@@ -122,20 +125,29 @@ v_b7f2b4.get("/config/knowledge-rules", v_c0a297, async (v_3f4e2e) => {
 });
 
 v_b7f2b4.get("/config/ad-messages", v_c0a297, async (v_3f4e2e) => {
-  const v_fa56e0 = await v_99e8be(v_3f4e2e.env);
-  return v_3f4e2e.json({ messages: v_fa56e0 });
+
+  const [v_fa56e0, v_303197] = await Promise.all([v_99e8be(v_3f4e2e.env), v_4bc1db(v_3f4e2e.env)]);
+  return v_3f4e2e.json({ messages: v_fa56e0, cadence: v_303197 });
 });
 v_b7f2b4.patch("/config/ad-messages", v_c0a297, async (v_3f4e2e) => {
   const v_4d33b2 = await v_3f4e2e
-    .req.json<{ pre?: unknown; post?: unknown; toast?: unknown }>()
-    .catch(() => ({} as { pre?: unknown; post?: unknown; toast?: unknown }));
+    .req.json<{ pre?: unknown; post?: unknown; toast?: unknown; firstRound?: unknown; interval?: unknown }>()
+    .catch(() => ({} as { pre?: unknown; post?: unknown; toast?: unknown; firstRound?: unknown; interval?: unknown }));
   const patch: Partial<v_eb1456> = {};
   if (typeof v_4d33b2.pre === "string") v_17dc8a.pre = v_4d33b2.pre;
   if (typeof v_4d33b2.post === "string") v_17dc8a.post = v_4d33b2.post;
   if (typeof v_4d33b2.toast === "string") v_17dc8a.toast = v_4d33b2.toast;
+
+  const cadencePatch: Partial<v_26435f> = {};
+  if (v_4d33b2.firstRound !== undefined) v_6563a0.firstRound = Number(v_4d33b2.firstRound);
+  if (v_4d33b2.interval !== undefined) v_6563a0.interval = Number(v_4d33b2.interval);
   try {
     const v_fa56e0 = await v_824b75(v_3f4e2e.env, v_17dc8a);
-    return v_3f4e2e.json({ ok: true, messages: v_fa56e0 });
+    const v_303197 =
+      Object.keys(v_6563a0).length > 0
+        ? await v_b7471b(v_3f4e2e.env, v_6563a0)
+        : await v_4bc1db(v_3f4e2e.env);
+    return v_3f4e2e.json({ ok: true, messages: v_fa56e0, cadence: v_303197 });
   } catch (v_49263d) {
     throw new v_3ebe58("VALIDATION_FAILED", (v_49263d as Error)?.message ?? "invalid");
   }
