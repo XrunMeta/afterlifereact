@@ -196,7 +196,72 @@
     "topupSectionDesc": "Anda dapat menambah waktu panggilan secara terpisah dari langganan. Berlaku 5 tahun.",
     "topupLoadFailed": "Tidak dapat memuat produk isi ulang.",
     "androidNotReady": "Pembayaran Android sedang dipersiapkan. Silakan gunakan iOS terlebih dahulu.",
-    "termsFooter": "Langganan pembaruan otomatis akan ditagih setiap periode sampai dibatalkan.\nBatalkan: Pengaturan → Apple ID → Langganan → afterlife"
+    "termsFooter": "Langganan pembaruan otomatis akan ditagih setiap periode sampai dibatalkan.\nBatalkan: Pengaturan → Apple ID → Langganan → afterlife",
+    "bucketGift": "Hadiah",
+    "giftCount": "{{count}} buah",
+    "giftRedeemTitle": "Tukar hadiah yang diterima",
+    "giftRedeemDesc": "Tonton iklan di aplikasi XRUN untuk menukar bunga yang diterima menjadi bunga untuk panggilan.",
+    "flowerSectionTitle": "Beli bunga",
+    "flowerSectionDesc": "Khusus untuk hadiah · bisa dipakai saat panggilan setelah pembelian.",
+    "subLoadHintAndroid": "Pastikan akun Play Store Anda sudah login, lalu coba lagi.",
+    "currentPlanBadge": "Paket aktif",
+    "recommendedBadge": "Direkomendasikan",
+    "autoAssigned": "Otomatis diberikan saat daftar",
+    "monthlyBilling": "Ditagih setiap bulan",
+    "upgrade": "Upgrade",
+    "termsFooterAndroid": "Langganan perpanjangan otomatis ditagih setiap siklus hingga dibatalkan.\nBatalkan: Play Store → Langganan → afterlife",
+    "swapConfirmTitle": "Konfirmasi tukar",
+    "swapConfirmDesc": "Tukar {{count}} {{name}} dengan {{amount}}?",
+    "swap": "Tukar",
+    "swapCompleteTitle": "Tukar selesai 🎉",
+    "swapCompleteDesc": "{{amount}} telah ditambahkan ke dompet Anda.",
+    "swapFailedTitle": "Tukar gagal",
+    "swapFailedDefault": "Silakan coba lagi beberapa saat.",
+    "freeTitle": "Go (Free)",
+    "freeDesc": "Otomatis diberikan saat daftar",
+    "freePrice": "Gratis",
+    "freeTagline": "Otomatis diberikan saat daftar",
+    "lightTagline": "Tanpa iklan",
+    "lightTitle": "RUN",
+    "lightDesc": "Tanpa iklan",
+    "monsterTagline": "Tanpa iklan",
+    "monsterTitle": "Monster",
+    "monsterDesc": "Tanpa iklan",
+    "planFree": {
+      "watchAds": "Pakai layanan setelah menonton iklan",
+      "midAds": "Iklan di tengah layanan",
+      "clone1": "Buat 1 clone",
+      "cloneQuota5": "5 kali buat/hapus clone",
+      "callMinutes50": "50 menit panggilan per bulan"
+    },
+    "planLight": {
+      "clone2": "Buat 2 clone",
+      "cloneQuota10": "10 kali buat/hapus clone",
+      "callMinutes120": "120 menit panggilan per bulan",
+      "flowers2": "2 bunga disertakan (untuk hadiah)"
+    },
+    "planMonster": {
+      "cloneUnlimited": "Clone tak terbatas",
+      "cloneQuotaUnlimited": "Buat/hapus clone tak terbatas",
+      "callMinutes1000": "1000 menit panggilan per bulan",
+      "flowers10": "10 bunga disertakan (untuk hadiah)"
+    },
+    "flowerPack": {
+      "p1Title": "1 Bunga",
+      "p1Desc": "1 kali pakai hadiah",
+      "p5Title": "5 Bunga",
+      "p5Desc": "5 kali pakai hadiah",
+      "p10Title": "10 Bunga",
+      "p10Desc": "10 kali pakai hadiah"
+    },
+    "rechargeTitle30": "Recharge 30min",
+    "rechargeTitle60": "Recharge 60min",
+    "rechargeTitle150": "Recharge 150min",
+    "rechargeTitle300": "Recharge 300min",
+    "rechargeDesc30": "Top up 30 menit · berlaku 5 tahun",
+    "rechargeDesc60": "Top up 60 menit · berlaku 5 tahun",
+    "rechargeDesc150": "Top up 150 menit · berlaku 5 tahun",
+    "rechargeDesc300": "Top up 300 menit · berlaku 5 tahun"
   },
   "chat": {
     "personaFallback": "Klon",
@@ -536,7 +601,48 @@
       "purchaseDesc": "Tambah waktu panggilan dengan langganan bulanan · isi ulang",
       "giftInventory": "Dompet Hadiah",
       "giftInventoryDesc": "Tukar hadiah yang diterima menjadi kredit XRUN",
-      "logout": "Keluar"
+      "logout": "Keluar",
+      "flower": "Hadiah Bunga",
+      "pangleTest": "Tes Iklan Pangle",
+      "pangleTestDesc": "Tampilkan iklan rewarded langsung (dev)",
+      "animPersona": "Buat persona animasi",
+      "animPersonaDesc": "Foto → kedip·kepala·tubuh idle · ±3 menit",
+      "experimentalPersona": "Persona eksperimen (beta)",
+      "experimentalPersonaDesc": "Wajah lebih alami · delay respon 5~10 detik",
+      "visemePersona": "Persona split playback (eksperimen)",
+      "visemePersonaDesc": "TTS + sinkron klip viseme pra-render",
+      "threeDPersona": "Persona 3D (beta)",
+      "threeDPersonaDesc": "Avatar SDK wajah 3D · perlu setel GLB URL terpisah",
+      "visemeTest": "Tes pipeline viseme (dev)",
+      "visemeTestDesc": "Sintesis + playback · perlu gambar pra-render",
+      "vitsTts": "VITS TTS · AFL-737 (dev)",
+      "vitsTtsDesc": "sherpa-onnx · cache model · target 1 detik",
+      "faceThreshold": "Tes threshold wajah (dev)",
+      "faceThresholdDesc": "Upload gambar → cek skor cocok",
+      "threeDLab": "Tes generasi 3D (dev)",
+      "threeDLabDesc": "Foto → mesh + render 5 sudut · 5~30 detik",
+      "threeDPersonaDev": "Persona 3D (dev)",
+      "threeDPersonaDevDesc": "Render kepala GLB + demo lip-sync · Phase 1",
+      "faceEnrollDev": "Daftar wajah 5 sudut (dev)",
+      "faceEnrollDevDesc": "Depan·kiri·kanan·atas·bawah → siap panggilan pertama"
+    },
+    "logout": {
+      "title": "Keluar?",
+      "desc": "Anda perlu masuk kembali untuk memakai aplikasi.",
+      "confirm": "Keluar"
+    },
+    "pangleTest": {
+      "title": "Tes Pangle",
+      "okMessage": "Iklan selesai normal.",
+      "failTitle": "Tes Pangle gagal"
+    },
+    "navError": {
+      "title": "Kesalahan",
+      "personaNavFail": "Gagal pindah ke layar pembuatan persona"
+    },
+    "faceEnrollDev": {
+      "noneTitle": "Belum ada persona",
+      "noneDesc": "Buat persona terlebih dahulu."
     }
   },
   "auth": {
@@ -1545,5 +1651,182 @@
   "errorBoundary": {
     "title": "Tidak dapat menampilkan halaman",
     "body": "Silakan coba lagi nanti."
+  },
+  "relation": {
+    "category": {
+      "family": "Keluarga",
+      "friend": "Teman",
+      "romance": "Pasangan",
+      "workplace": "Rekan Kerja",
+      "celebrity": "Selebriti"
+    },
+    "subtype": {
+      "family": {
+        "father": "Ayah",
+        "mother": "Ibu",
+        "grandfather": "Kakek",
+        "grandmother": "Nenek",
+        "maternal_grandfather": "Kakek dari Ibu",
+        "maternal_grandmother": "Nenek dari Ibu",
+        "older_brother_male": "Kakak Laki-laki",
+        "older_brother_female": "Kakak Laki-laki",
+        "older_sister_male": "Kakak Perempuan",
+        "older_sister_female": "Kakak Perempuan",
+        "younger_sibling": "Adik",
+        "paternal_uncle": "Paman",
+        "maternal_aunt": "Bibi (dari ibu)",
+        "paternal_aunt": "Bibi (dari ayah)",
+        "maternal_uncle_husband": "Suami Bibi (dari ibu)",
+        "paternal_aunt_husband": "Suami Bibi (dari ayah)",
+        "cousin": "Sepupu",
+        "other": "Lainnya"
+      },
+      "friend": {
+        "best_friend": "Sahabat",
+        "childhood_friend": "Teman Kecil",
+        "school_friend": "Teman Sekolah",
+        "college_friend": "Teman Kuliah",
+        "neighbor_friend": "Teman Tetangga",
+        "other": "Lainnya"
+      },
+      "romance": {
+        "husband": "Suami",
+        "wife": "Istri",
+        "boyfriend": "Pacar",
+        "girlfriend": "Pacar",
+        "crush_mutual": "Gebetan",
+        "unrequited_love": "Cinta Sepihak",
+        "other": "Lainnya"
+      },
+      "workplace": {
+        "boss": "Atasan / Pimpinan",
+        "mentor": "Pembimbing",
+        "senior": "Senior",
+        "peer": "Rekan Angkatan",
+        "junior": "Junior / Bawahan",
+        "business_partner": "Mitra Bisnis",
+        "other": "Lainnya"
+      },
+      "celebrity": {
+        "actor": "Aktor",
+        "singer": "Penyanyi / Idola",
+        "youtuber": "YouTuber / Influencer",
+        "streamer": "Streamer",
+        "athlete": "Atlet",
+        "webtoon_artist": "Komikus Webtoon",
+        "other": "Lainnya"
+      }
+    }
+  },
+  "speechForm": {
+    "informal": "Santai",
+    "formal": "Sopan"
+  },
+  "occupation": {
+    "doctor": "Dokter",
+    "teacher": "Guru / Dosen",
+    "developer": "Developer",
+    "lawyer": "Pengacara",
+    "public_servant": "PNS",
+    "entertainer": "Entertainer",
+    "creator": "Kreator / Influencer",
+    "officer": "Polisi / Pemadam",
+    "journalist": "Jurnalis / Penyiar",
+    "chef": "Koki",
+    "other": "Lainnya"
+  },
+  "faceEnroll": {
+    "permissionRequired": "Izin kamera dibutuhkan.",
+    "permissionSkip": "Lewati pendaftaran dan telepon",
+    "cameraLoading": "Menyiapkan kamera...",
+    "title": "Pendaftaran Wajah",
+    "subtitleMidCall": "Daftarkan wajah baru dan lanjutkan panggilan.",
+    "subtitleFirst": "Agar percakapan dengan {{name}} terasa alami, kami akan mengambil wajah Anda dari beberapa sudut dan jarak.",
+    "personaFallback": "Persona",
+    "form": {
+      "title": "Siapa orang ini?",
+      "desc": "Beritahu nama dan hubungan agar kami bisa mengenalinya pada panggilan berikutnya.",
+      "existingLabel": "Sudah terdaftar (pilih untuk menambah pembelajaran saja)",
+      "existingHint": "Jika ini orang baru, ketik namanya di bawah",
+      "nameLabel": "Nama",
+      "namePlaceholder": "mis. Jiho",
+      "relationLabel": "Hubungan (opsional)",
+      "relationPlaceholder": "mis. Cucu, teman lama",
+      "needLogin": "Tidak ada info login. Silakan coba lagi.",
+      "needCapture": "Selesaikan pengambilan wajah terlebih dahulu.",
+      "needName": "Masukkan nama.",
+      "networkError": "Kesalahan jaringan"
+    },
+    "processing": "Mendaftarkan wajah...",
+    "hintStart": "Pastikan wajah terlihat jelas di kamera",
+    "register": "Daftarkan",
+    "skipMidCall": "Lanjutkan tanpa mendaftarkan",
+    "skipFirst": "Nanti saja (telepon sekarang)",
+    "privacyNote": "Foto yang diambil tidak disimpan di server. Hanya fitur numerik (vektor) untuk pengenalan wajah yang disimpan dengan aman.",
+    "skipConfirm": {
+      "title": "Lanjutkan tanpa mendaftar",
+      "desc": "Fitur pengenalan dan memori wajah mungkin terbatas. Lanjutkan?",
+      "cancel": "Batal",
+      "continue": "Lanjutkan"
+    },
+    "cloneError": {
+      "title": "Error info persona",
+      "desc": "Masuk dengan persona tidak valid. Silakan coba lagi.",
+      "ok": "OK"
+    },
+    "complete": {
+      "title": "Pendaftaran selesai",
+      "midCall": "Wajah terdaftar! Melanjutkan panggilan.",
+      "first": "Pengenalan wajah siap. Memulai panggilan.",
+      "start": "Mulai panggilan"
+    },
+    "defaultSelfName": "Saya",
+    "step": {
+      "perfect": "Sempurna!",
+      "frontLabel": "Depan",
+      "frontHint": "Lihat lurus ke kamera",
+      "frontDontTurn": "Jangan tolehkan kepala",
+      "frontLowerAngle": "Turunkan sudut kepala",
+      "leftLabel": "Kiri",
+      "leftHint": "Tolehkan kepala ke kiri",
+      "leftGuide": "Sedikit lagi ke kiri ({{deg}}°/18°)",
+      "rightLabel": "Kanan",
+      "rightHint": "Tolehkan kepala ke kanan",
+      "rightGuide": "Sedikit lagi ke kanan ({{deg}}°/-18°)",
+      "downLabel": "Bawah",
+      "downHint": "Tundukkan kepala",
+      "downGuide": "Sedikit lagi ke bawah ({{deg}}°/-10°)",
+      "upLabel": "Atas",
+      "upHint": "Angkat kepala",
+      "upGuide": "Sedikit lagi ke atas ({{deg}}°/10°)"
+    }
+  },
+  "callEntry": {
+    "cancel": "Batal",
+    "prepTitle": "Persiapan ngobrol dengan {{name}}",
+    "q1": {
+      "title": "Apa hubungan Anda dengan {{name}}?",
+      "subLabel": "Hubungan spesifik",
+      "otherPlaceholder": "mis. Guru, tetangga, orang baik hati",
+      "episodeLabel": "Ceritakan singkat tentang hubungan Anda dengan {{name}}.",
+      "episodePlaceholder": "mis. Teman yang hiking tiap akhir pekan; mentor yang menemani lembur",
+      "addressLabel": "{{name}} memanggil Anda apa?",
+      "addressPlaceholder": "mis. Eunji, nak, hei, Pak Jiho"
+    },
+    "q2": {
+      "title": "Gaya bicara seperti apa yang digunakan antara Anda dan {{name}}?"
+    },
+    "q3": {
+      "title": "Apa pekerjaan {{name}}?",
+      "otherPlaceholder": "mis. Astronot, penerjemah, penulis lepas",
+      "detailLabel": "Tuliskan secara spesifik pekerjaan {{name}}.",
+      "detailPlaceholder": "mis. Dokter IGD, guru SD, developer backend game"
+    },
+    "saveFailedTitle": "Gagal menyimpan",
+    "saveFailedDesc": "Gagal menyimpan karena kesalahan jaringan. Silakan coba lagi.",
+    "complete": "Selesai",
+    "doneTitle": "Siap mengobrol dengan {{name}}!",
+    "learnMore": "Pelajari lebih lanjut",
+    "startCall": "Telepon {{name}}"
   }
 }

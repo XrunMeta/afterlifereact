@@ -234,8 +234,8 @@ export default function v_ed02a5() {
       ? [
           {
             icon: "cpu" as const,
-            labelKey: "실험 페르소나 만들기 (베타)",
-            descKey: "자연스러운 얼굴 · 응답 5~10초 지연",
+            labelKey: "my.menu.experimentalPersona",
+            descKey: "my.menu.experimentalPersonaDesc",
             action: async () => {
               try {
                 const { setNextPipeline: v_e935e7 } = await import(
@@ -248,15 +248,18 @@ export default function v_ed02a5() {
                 );
               } catch (v_49263d) {
                 console.warn("[experimental-persona] nav failed:", v_49263d);
-                v_889fad("오류", "페르소나 만들기 화면 이동 실패");
+                v_889fad(
+                  v_8d41d7("my.navError.title", { defaultValue: "오류" }),
+                  v_8d41d7("my.navError.personaNavFail", { defaultValue: "페르소나 만들기 화면 이동 실패" }),
+                );
               }
             },
           },
 
           {
             icon: "mic" as const,
-            labelKey: "분리 재생 페르소나 만들기 (실험)",
-            descKey: "TTS + 사전 렌더 viseme 클립 sync",
+            labelKey: "my.menu.visemePersona",
+            descKey: "my.menu.visemePersonaDesc",
             action: async () => {
               try {
                 const { setNextPipeline: v_e935e7 } = await import(
@@ -268,15 +271,18 @@ export default function v_ed02a5() {
                 );
               } catch (v_49263d) {
                 console.warn("[viseme-persona] nav failed:", v_49263d);
-                v_889fad("오류", "페르소나 만들기 화면 이동 실패");
+                v_889fad(
+                  v_8d41d7("my.navError.title", { defaultValue: "오류" }),
+                  v_8d41d7("my.navError.personaNavFail", { defaultValue: "페르소나 만들기 화면 이동 실패" }),
+                );
               }
             },
           },
 
           {
             icon: "box" as const,
-            labelKey: "3D 페르소나 만들기 (베타)",
-            descKey: "Avatar SDK 3D 얼굴 · GLB URL 별도 세팅 필요",
+            labelKey: "my.menu.threeDPersona",
+            descKey: "my.menu.threeDPersonaDesc",
             action: async () => {
               try {
                 const { setNextPipeline: v_e935e7 } = await import(
@@ -288,55 +294,61 @@ export default function v_ed02a5() {
                 );
               } catch (v_49263d) {
                 console.warn("[threed-persona] nav failed:", v_49263d);
-                v_889fad("오류", "페르소나 만들기 화면 이동 실패");
+                v_889fad(
+                  v_8d41d7("my.navError.title", { defaultValue: "오류" }),
+                  v_8d41d7("my.navError.personaNavFail", { defaultValue: "페르소나 만들기 화면 이동 실패" }),
+                );
               }
             },
           },
 
           {
             icon: "activity" as const,
-            labelKey: "Viseme 파이프라인 테스트 (dev)",
-            descKey: "합성 + 재생 · 사전 렌더 이미지 필요",
+            labelKey: "my.menu.visemeTest",
+            descKey: "my.menu.visemeTestDesc",
             action: () => v_c65f5d.navigate("VisemeTest"),
           },
 
           {
             icon: "mic" as const,
-            labelKey: "VITS TTS · AFL-737 (dev)",
-            descKey: "sherpa-onnx · 모델 캐시 · 1초 목표 측정",
+            labelKey: "my.menu.vitsTts",
+            descKey: "my.menu.vitsTtsDesc",
             action: () => v_c65f5d.navigate("TtsVits"),
           },
 
           {
             icon: "target" as const,
-            labelKey: "얼굴 임계값 테스트 (dev)",
-            descKey: "이미지 업로드 → 매칭 score 확인",
+            labelKey: "my.menu.faceThreshold",
+            descKey: "my.menu.faceThresholdDesc",
             action: () => v_c65f5d.navigate("FaceThresholdTest"),
           },
 
           {
             icon: "box" as const,
-            labelKey: "3D 생성 테스트 (dev)",
-            descKey: "사진 → mesh + 5각도 렌더 · 5~30초",
+            labelKey: "my.menu.threeDLab",
+            descKey: "my.menu.threeDLabDesc",
             action: () => v_c65f5d.navigate("ThreeDLab"),
           },
 
           {
             icon: "user" as const,
-            labelKey: "3D 페르소나 (dev)",
-            descKey: "GLB 헤드 렌더 + 립싱크 데모 · Phase 1",
+            labelKey: "my.menu.threeDPersonaDev",
+            descKey: "my.menu.threeDPersonaDevDesc",
             action: () => v_c65f5d.navigate("ThreeDPersona"),
           },
 
           {
             icon: "user-plus" as const,
-            labelKey: "얼굴 5각도 등록 (dev)",
-            descKey: "정면·좌·우·위·아래 촬영 → clones 첫 통화 대비",
+            labelKey: "my.menu.faceEnrollDev",
+            descKey: "my.menu.faceEnrollDevDesc",
             action: () => {
 
               const v_f1fc28 = v_58e68f?.[0];
               if (!v_f1fc28) {
-                v_889fad("페르소나 없음", "먼저 페르소나를 만들어주세요.");
+                v_889fad(
+                  v_8d41d7("my.faceEnrollDev.noneTitle", { defaultValue: "페르소나 없음" }),
+                  v_8d41d7("my.faceEnrollDev.noneDesc", { defaultValue: "먼저 페르소나를 만들어주세요." }),
+                );
                 return;
               }
               v_c65f5d.getParent()?.dispatch(
