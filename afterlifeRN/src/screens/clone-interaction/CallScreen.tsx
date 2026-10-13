@@ -631,6 +631,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     lastSignal,
     sendFaceEvent,
     sendAudioReady,
+    sendAdPrepareReturn,
     sendAdReturned,
     getCallId,
 
@@ -2027,9 +2028,9 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         afl971MuteCallAudio();
         setAfl971AdShowingUI(true);
 
-        if (sendAdReturned) {
-          sendAdReturned();
-          console.log(`[Call][afl971] round ${round} 광고 시작 — 복귀 턴 준비 신호(ad_returned)`);
+        if (sendAdPrepareReturn) {
+          sendAdPrepareReturn();
+          console.log(`[Call][afl971] round ${round} 광고 시작 — 복귀 미리 준비 신호(ad_prepare_return)`);
         }
         try {
           await loadAndShowRewardedAd();
@@ -2042,8 +2043,9 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         setAfl971AdShowingUI(false);
         afl971UnmuteCallAudio();
         if (sendAdReturned) {
+          sendAdReturned();
+          console.log(`[Call][afl971] round ${round} 광고 종료 — 복귀 재생 신호(ad_returned)`);
 
-          console.log(`[Call][afl971] round ${round} 광고 종료 — 복귀 재생 대기(mic 닫힘 유지)`);
           await new Promise((r) => setTimeout(r, 8000));
           console.log(`[Call][afl971] round ${round} 복귀 윈도 종료 — mic 복원 예정`);
         }
@@ -2090,7 +2092,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         }
       }
     })();
-  }, [phase, renderAfl971Message, afl971MuteCallAudio, afl971UnmuteCallAudio, debugEmail, isMuted, getCallId, accessToken, afl971ToastTemplate, sendAdReturned, afl971WaitForSpeakingStart, afl971WaitForPhaseEnd]);
+  }, [phase, renderAfl971Message, afl971MuteCallAudio, afl971UnmuteCallAudio, debugEmail, isMuted, getCallId, accessToken, afl971ToastTemplate, sendAdPrepareReturn, sendAdReturned]);
 
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const warnedRef = useRef(false);

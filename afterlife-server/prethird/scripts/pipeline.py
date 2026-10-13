@@ -341,6 +341,17 @@ class DialoguePipeline:
         self._prerender_frames: list = []
         self._prerender_pcm_bal = None
 
+        # AFL-1003: 통화 광고 복귀 멘트 버퍼링. 광고 '시작'에 prepare_ad_return() 을 백그라운드로
+        #   돌려 복귀 턴(LLM+TTS+MuseTalk)을 미리 렌더해 둔다. 광고 '종료' 신호(push_ad_return)에
+        #   버퍼를 즉시 push → 종료 직후 바로 재생. 준비 전이면 실시간 say(ad_event="returned") 폴백.
+        self._ad_return_ready = False
+        self._ad_return_preparing = False
+        self._ad_return_task = None
+        self._ad_return_text: str = ""
+        self._ad_return_wav_bytes: bytes | None = None
+        self._ad_return_frames: list = []
+        self._ad_return_pcm_bal = None
+
         # T-821 (2026-09-28): 대화 히스토리 배선. env PRETHIRD_HISTORY_TURNS=N 이면 최근 N턴을
         #   LLM messages 에 첨부 · 미설정 시 0 (기존 동작). say()/_system_utterance() 완료
         #   후 record() 로 assistant 응답을 누적. 이전엔 클래스만 있고 wiring 이 없어 매 턴이
@@ -441,7 +452,7 @@ class DialoguePipeline:
 
     def cancel_background(self) -> None:
         """통화 종료 시 signaling teardown 이 부른다 — 남은 prior·prerender 태스크 취소."""
-        for task in (self._prior_task, self._prerender_task):
+        for task in (self._prior_task, self._prerender_task, self._ad_return_task):
             if task is not None and not task.done():
                 task.cancel()
 
@@ -562,6 +573,115 @@ class DialoguePipeline:
         # T-821: prerender 인사도 history 에 남긴다 (다음 turn 에 클론이 또 인사하는 것 방지).
         #   user_text=None (prerender 는 시스템 발화 · greet 과 동일 취급).
         self._history.record(None, self._prerender_text)
+
+    # ── AFL-1003: 광고 복귀 멘트 버퍼링 (prerender 패턴 재사용) ──────────────────────
+    def start_prepare_ad_return(self) -> None:
+        """signaling 용: 광고 '시작' 신호에 복귀 턴을 백그라운드로 미리 렌더."""
+        if self._ad_return_ready or self._ad_return_preparing:
+            return
+        self._ad_return_task = asyncio.ensure_future(self.prepare_ad_return())
+
+    async def prepare_ad_return(self) -> None:
+        """광고 재생 중 호출 — 복귀 턴(클론 주도 "광고 잘 봤어?")을 LLM+TTS+MuseTalk 로 미리
+        렌더해 버퍼에 담는다. push 는 안 한다(광고 종료 신호 때 push_ad_return 이 push).
+        clone 미준비/이미 준비됨/준비 중이면 no-op."""
+        if self._ad_return_ready or self._ad_return_preparing:
+            return
+        if self.clone_locked and not self.se_path:
+            log.info("[AFL-1003/ad_return] clone voice 미준비 — skip")
+            return
+        self._ad_return_preparing = True
+        import time as _time
+        t0 = _time.perf_counter()
+        try:
+            await self._await_prior()
+            messages = (
+                self.persona_messages
+                + self._history.messages()
+                + [ad_returned_system_message()]
+                + [{"role": "user", "content":
+                    "(사용자가 광고를 다 보고 막 돌아왔다. 네가 먼저 자연스럽게 말을 걸어 대화를 이어.)"}]
+            )
+            out: list[str] = []
+            agen = self.chat_fn(messages)
+            try:
+                async for tok in agen:
+                    out.append(str(tok))
+            finally:
+                aclose = getattr(agen, "aclose", None)
+                if aclose is not None:
+                    await aclose()
+            text = "".join(out).strip()
+            if not text:
+                log.warning("[AFL-1003/ad_return] 빈 응답 — 버퍼 skip")
+                return
+            wav_bytes, pcm48 = await self._tts_stage(text)
+            frames, pcm_bal = await self._render_to_cache(wav_bytes, pcm48)
+            self._ad_return_text = text
+            self._ad_return_wav_bytes = wav_bytes
+            self._ad_return_frames = frames
+            self._ad_return_pcm_bal = pcm_bal
+            self._ad_return_ready = True
+            log.info("[AFL-1003/ad_return] prepared '%s' frames=%d prep_ms=%d",
+                     text[:40], len(frames), int((_time.perf_counter() - t0) * 1000))
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:  # noqa: BLE001
+            log.warning("[AFL-1003/ad_return] prepare failed: %s", e)
+        finally:
+            self._ad_return_preparing = False
+
+    async def push_ad_return(
+        self, turn=None, on_first_audio=None, on_response_ready=None, on_sentence=None,
+        wait_ms: int = 8000,
+    ) -> None:
+        """광고 '종료' 신호에 호출 — 미리 렌더된 복귀 버퍼를 즉시 push. 아직 준비 중이면
+        최대 wait_ms 기다렸다 push. 버퍼가 끝내 없으면 실시간 say(ad_event="returned") 폴백."""
+        turn = turn if turn is not None else NULL_TURN
+        if not self._ad_return_ready and self._ad_return_preparing and wait_ms > 0:
+            waited = 0
+            while self._ad_return_preparing and not self._ad_return_ready and waited < wait_ms:
+                await asyncio.sleep(0.1)
+                waited += 100
+        if not self._ad_return_ready:
+            log.info("[AFL-1003/ad_return] 버퍼 미준비 — 실시간 say 폴백")
+            await self.say("", turn=turn, ad_event="returned", on_first_audio=on_first_audio,
+                           on_response_ready=on_response_ready, on_sentence=on_sentence)
+            return
+        # 1회용 소비.
+        self._ad_return_ready = False
+        text = self._ad_return_text
+        log.info("[AFL-1003/ad_return] push '%s' (%d frames)", text[:40], len(self._ad_return_frames))
+        try:
+            if on_response_ready is not None:
+                try:
+                    on_response_ready()
+                except Exception as e:
+                    log.warning("on_response_ready callback failed: %s", e)
+            if on_sentence is not None:
+                try:
+                    on_sentence(text)
+                except Exception as e:
+                    log.warning("on_sentence callback failed: %s", e)
+            if on_first_audio is not None:
+                try:
+                    on_first_audio()
+                except Exception as e:
+                    log.warning("on_first_audio callback failed: %s", e)
+            for tok in text:
+                turn.append_token(tok)
+            if self._ad_return_wav_bytes is not None:
+                turn.append_wav(self._ad_return_wav_bytes)
+            for arr in self._ad_return_frames:
+                self.vt.push_ndarray(arr)
+            if self._ad_return_pcm_bal is not None:
+                self.at.push_pcm_int16(self._ad_return_pcm_bal)
+            turn.append_frames(self._ad_return_frames, self._ad_return_pcm_bal, fps=25)
+        finally:
+            self.vt.signal_end()
+            self.at.signal_end()
+        # 복귀는 클론 주도 턴 — user_text=None 으로 기록(가짜 유저턴 프롬프트 오염 방지).
+        self._history.record(None, text)
 
     async def say(
         self, user_text: str, turn=None, on_first_audio=None, on_response_ready=None,
