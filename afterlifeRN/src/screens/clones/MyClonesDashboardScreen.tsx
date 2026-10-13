@@ -2236,33 +2236,17 @@ function v_3582ab({
   const [v_8af97b, v_d1a0d8] = v_5ab095(false);
 
   const v_0c2802 = async () => {
-    const v_e0c7e8 = v_78547c ?? "";
-    const v_6045c3 = `xrun://login?email=${encodeURIComponent(v_e0c7e8)}`;
-    console.log(`[openXrunApp] myEmail=${JSON.stringify(v_78547c)} deepLink=${v_6045c3}`);
-    if (!v_e0c7e8) {
-      console.warn("[openXrunApp] ⚠️ email is empty — pre-fill will not work in XRUN app");
-    }
-    try {
-      const v_29eaf2 = await v_f2c756.canOpenURL(v_6045c3);
-      console.log(`[openXrunApp] canOpenURL=${v_29eaf2}`);
-      if (v_29eaf2) {
-        await v_f2c756.openURL(v_6045c3);
-        console.log(`[openXrunApp] openURL done (deep link)`);
-        return;
-      }
-    } catch (v_49263d) {
-      console.warn("[giftLog] canOpenURL fail:", v_49263d);
-    }
 
-    const v_b71a74 =
-      v_326be8.OS === "ios"
-        ? "https://apps.apple.com/app/xrun/id6471024515"
-        : `https://play.google.com/store/apps/details?id=run.xrun.xrunapp&referrer=${encodeURIComponent(
-            `utm_source=afterlife_login&utm_content=${v_e0c7e8}`,
-          )}`;
+    const v_e0c7e8 = v_78547c ?? "";
+    const v_9466ca = v_e0c7e8
+      ? `https://www.xrun.run/invite?referral=${encodeURIComponent(v_e0c7e8)}`
+      : `https://www.xrun.run/invite`;
+    console.log(`[openXrunApp] myEmail=${JSON.stringify(v_78547c)} inviteUrl=${v_9466ca}`);
     try {
-      await v_f2c756.openURL(v_b71a74);
+      await v_f2c756.openURL(v_9466ca);
+      console.log(`[openXrunApp] openURL done (invite web)`);
     } catch (v_49263d) {
+      console.warn("[openXrunApp] openURL fail:", v_49263d);
       v_03e392.alert(
         v_8d41d7("dashboard.giftLogOpenFailTitle", { defaultValue: "열 수 없어요" }),
         v_8d41d7("dashboard.giftLogOpenFailDesc", { defaultValue: "XRUN 앱을 설치해 주세요." }),
