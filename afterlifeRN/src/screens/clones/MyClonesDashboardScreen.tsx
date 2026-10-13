@@ -2265,16 +2265,29 @@ function v_3582ab({
   };
 
   const v_cbd53a = async () => {
-    if (!v_2ca7e0 || v_8af97b) return;
+    console.log("[giftSwap] tap", { itemId: v_8c0b26.id, giftId: v_8c0b26.giftId, hasToken: !!v_2ca7e0, swapping: v_8af97b });
+    if (!v_2ca7e0) {
+      console.warn("[giftSwap] skip — no accessToken");
+      v_03e392.alert("로그인 필요", "다시 로그인 후 시도해 주세요.");
+      return;
+    }
+    if (v_8af97b) {
+      console.warn("[giftSwap] skip — already swapping");
+      return;
+    }
     v_d1a0d8(true);
+    const v_4fab5a = `swap-${v_8c0b26.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    console.log(`[giftSwap] POST /oth-path giftId=${v_8c0b26.giftId} idem=${v_4fab5a}`);
     try {
-      const v_4fab5a = `swap-${v_8c0b26.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      await v_422d96(v_2ca7e0, { giftId: v_8c0b26.giftId, count: 1 }, v_4fab5a);
+      const v_8f00b9 = await v_422d96(v_2ca7e0, { giftId: v_8c0b26.giftId, count: 1 }, v_4fab5a);
+      console.log(`[giftSwap] OK`, v_8f00b9);
       v_bec4b4();
     } catch (v_49263d) {
+      const v_badeaf = (v_49263d as Error).message ?? String(v_49263d);
+      console.warn(`[giftSwap] FAIL: ${v_badeaf}`, v_49263d);
       v_03e392.alert(
         v_8d41d7("dashboard.giftSwapFailTitle", { defaultValue: "교환 실패" }),
-        (v_49263d as Error).message ?? v_8d41d7("dashboard.giftSwapFailDesc", { defaultValue: "잠시 후 다시 시도해 주세요." }),
+        v_badeaf,
       );
     } finally {
       v_d1a0d8(false);
