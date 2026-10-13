@@ -1926,56 +1926,14 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   useEffect(() => {
     afl971AdInProgressRef.current = afl971AdInProgress;
   }, [afl971AdInProgress]);
-  const afl971PendingPhaseEndResolveRef = useRef<(() => void) | null>(null);
-
-  const afl971PendingSpeakStartResolveRef = useRef<(() => void) | null>(null);
 
   const afl971LastSpeechEndRef = useRef<{ at: number; remainingMs: number } | null>(null);
-  const afl971WaitForSpeakingStart = useCallback((timeoutMs = 20000): Promise<void> => {
-    return new Promise((resolve) => {
-      const resolver = () => {
-        if (afl971PendingSpeakStartResolveRef.current === resolver) {
-          afl971PendingSpeakStartResolveRef.current = null;
-          clearTimeout(timeoutId);
-          resolve();
-        }
-      };
-      afl971PendingSpeakStartResolveRef.current = resolver;
-      const timeoutId = setTimeout(() => {
-        if (afl971PendingSpeakStartResolveRef.current === resolver) {
-          afl971PendingSpeakStartResolveRef.current = null;
-          console.warn(`[Call][afl971] waitForSpeakingStart ${timeoutMs}ms timeout — force resolve`);
-          resolve();
-        }
-      }, timeoutMs);
-    });
-  }, []);
 
   const renderAfl971Message = useCallback((template: string): string => {
     const userName = myName ?? "";
     const cloneName = String(paramName || (clone as { displayName?: string } | null | undefined)?.displayName || "");
     return template.replace(/\{userName\}/g, userName).replace(/\{cloneName\}/g, cloneName);
   }, [myName, paramName, clone]);
-
-  const afl971WaitForPhaseEnd = useCallback((timeoutMs = 15000): Promise<void> => {
-    return new Promise((resolve) => {
-      const resolver = () => {
-        if (afl971PendingPhaseEndResolveRef.current === resolver) {
-          afl971PendingPhaseEndResolveRef.current = null;
-          clearTimeout(timeoutId);
-          resolve();
-        }
-      };
-      afl971PendingPhaseEndResolveRef.current = resolver;
-      const timeoutId = setTimeout(() => {
-        if (afl971PendingPhaseEndResolveRef.current === resolver) {
-          afl971PendingPhaseEndResolveRef.current = null;
-          console.warn(`[Call][afl971] waitForPhaseEnd ${timeoutMs}ms timeout — force resolve`);
-          resolve();
-        }
-      }, timeoutMs);
-    });
-  }, []);
 
   useEffect(() => {
     (async () => {
@@ -2162,19 +2120,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     const wasSpeaking = afl971LastSpeakingRef.current;
     const isSpeaking = phase === "speaking";
     afl971LastSpeakingRef.current = isSpeaking;
-
-    if (!wasSpeaking && isSpeaking && afl971PendingSpeakStartResolveRef.current) {
-      const rs = afl971PendingSpeakStartResolveRef.current;
-      afl971PendingSpeakStartResolveRef.current = null;
-      rs();
-    }
     if (!wasSpeaking || isSpeaking) return;
-
-    if (afl971PendingPhaseEndResolveRef.current) {
-      const r = afl971PendingPhaseEndResolveRef.current;
-      afl971PendingPhaseEndResolveRef.current = null;
-      r();
-    }
 
     if (afl971AdInProgressRef.current) {
       console.log("[Call][afl971] 광고 사이클 중 — 라운드 count skip");
