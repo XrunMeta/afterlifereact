@@ -10,7 +10,7 @@ v_b74951.post("/analyze", v_6690d9, async (v_3f4e2e) => {
   const v_4d33b2 = await v_3f4e2e.req
     .json<{ src_file_id?: number }>()
     .catch(() => ({}) as { src_file_id?: number });
-  const v_433c46 = Number(v_4d33b2.src_file_id);
+  const v_433c46 = Number(v_4d33b2?.src_file_id);
   if (!Number.isInteger(v_433c46) || v_433c46 <= 0) {
     throw new v_3ebe58("VALIDATION_FAILED", "src_file_id required.");
   }
@@ -38,8 +38,9 @@ v_b74951.post("/analyze", v_6690d9, async (v_3f4e2e) => {
       signal: AbortSignal.timeout(30000),
     });
     if (!v_8f00b9.ok) return v_3f4e2e.json({ ok: false, reason: "ANALYZE_FAILED" });
-    const v_1b0e1d = await v_8f00b9.json<{ ok: boolean; reason?: string }>();
-    return v_3f4e2e.json(v_1b0e1d);
+    const v_81e2ef = await v_8f00b9.json<{ ok?: unknown; reason?: unknown }>();
+    if (typeof v_81e2ef?.ok !== "boolean") return v_3f4e2e.json({ ok: false, reason: "ANALYZE_FAILED" });
+    return v_3f4e2e.json({ ok: v_81e2ef.ok, reason: typeof v_81e2ef.reason === "string" ? v_81e2ef.reason : undefined });
   } catch {
     return v_3f4e2e.json({ ok: false, reason: "ANALYZE_FAILED" });
   }
