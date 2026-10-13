@@ -21,7 +21,7 @@ import {
   ToastAndroid,
 } from "react-native";
 
-import { afl971ShouldShowAd, isAfl971AdTestAccount } from "./afl971Ad";
+import { afl971ShouldShowAd, isAfl971AdTestAccount, afl971CanFireAd } from "./afl971Ad";
 import * as ScreenCapture from "expo-screen-capture";
 import ViewShot, { captureRef } from "react-native-view-shot";
 import * as MediaLibrary from "expo-media-library";
@@ -758,6 +758,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const phaseRef = useRef<string>("idle");
 
+  const liveStateRef = useRef<string>("idle");
+
   const chatReplyStartAt = useRef<number | null>(null);
   const dispatchRm = useCallback((event: RememberMeEvent) => {
     const { state, actions } = rememberMeReducer(rmStateRef.current, event, Date.now());
@@ -1261,6 +1263,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         `promptRegister=${rmStateRef.current.promptRegister} naming=${shStateRef.current.naming} ` +
         `testAcct=${isAfl971AdTestAccount(debugEmail)}`,
       );
+
+      afl971AdCommittedRoundRef.current = adNext ? willBeRound : null;
       return adNext ? say(text, { adNotice: "pre" }) : say(text);
     },
     [say, debugEmail],
@@ -1325,6 +1329,9 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   }, [micHeld, liveState]);
 
+  useEffect(() => {
+    liveStateRef.current = liveState; 
+  }, [liveState]);
   useEffect(() => {
     phaseRef.current = phase;
 
@@ -1857,6 +1864,9 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const afl971ConnectingAdFiredRef = useRef<boolean>(false);
   const afl971LastSpeakingRef = useRef<boolean>(false);
 
+  const afl971AdCommittedRoundRef = useRef<number | null>(null);
+  const afl971PendingAdRoundRef = useRef<number | null>(null);
+
   const AFL971_PRE_MESSAGE_DEFAULT = "{userName}줄 꽃 좀 따올게! 영상 보고 있으면 금방 다녀올게";
   const AFL971_POST_MESSAGE_DEFAULT = "기다려줘서 고마워! 꽃 선물 짠";
   const AFL971_FLOWER_TOAST_DEFAULT = "{cloneName}에게 꽃을 받았습니다";
@@ -1990,54 +2000,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   }, []);
 
-  useEffect(() => {
-    const wasSpeaking = afl971LastSpeakingRef.current;
-    const isSpeaking = phase === "speaking";
-    afl971LastSpeakingRef.current = isSpeaking;
-
-    if (!wasSpeaking && isSpeaking && afl971PendingSpeakStartResolveRef.current) {
-      const rs = afl971PendingSpeakStartResolveRef.current;
-      afl971PendingSpeakStartResolveRef.current = null;
-      rs();
-    }
-    if (!wasSpeaking || isSpeaking) return;
-
-    if (afl971PendingPhaseEndResolveRef.current) {
-      const r = afl971PendingPhaseEndResolveRef.current;
-      afl971PendingPhaseEndResolveRef.current = null;
-      r();
-    }
-
-    if (afl971AdInProgressRef.current) {
-      console.log("[Call][afl971] 광고 사이클 중 — 라운드 count skip");
-      return;
-    }
-
-    const round = afl971RoundCountRef.current + 1;
-    afl971RoundCountRef.current = round;
-    console.log(`[Call][afl971] round ${round} complete`);
-
-    if (afl971IsFirstCallRef.current === true) {
-      console.log("[Call][afl971] 첫 통화 — 라운드 광고 skip");
-      return;
-    }
-    if (afl971IsFirstCallRef.current === null) {
-      console.log("[Call][afl971] lifetime count 로딩 중 — 광고 skip");
-      return;
-    }
-
-    const isAdTestAccount = isAfl971AdTestAccount(debugEmail);
-    const shouldShow = afl971ShouldShowAd(round, isAdTestAccount);
-    if (!shouldShow) return;
-
-    if (rmStateRef.current.promptRegister || shStateRef.current.naming) {
-      console.log("[Call][afl971] 얼굴인식 팝업/네이밍 중 — 광고 보류(얼굴 우선)");
-      return;
-    }
-    if (afl971AdShownRoundsRef.current.has(round)) return;
+  const runAfl971AdCycle = useCallback((round: number) => {
     afl971AdShownRoundsRef.current.add(round);
-
     setAfl971AdInProgress(true);
+    afl971AdInProgressRef.current = true; 
     let micWasOnBeforeAd = false;
     (async () => {
       try {
@@ -2103,6 +2069,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         console.warn(`[Call][afl971] round ${round} 광고 cycle 실패:`, (err as Error)?.message ?? err);
       } finally {
         setAfl971AdInProgress(false);
+        afl971AdInProgressRef.current = false;
 
         setAfl971AdShowingUI(false);
         afl971UnmuteCallAudio();
@@ -2112,7 +2079,72 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         }
       }
     })();
-  }, [phase, renderAfl971Message, afl971MuteCallAudio, afl971UnmuteCallAudio, debugEmail, isMuted, getCallId, accessToken, afl971ToastTemplate, sendAdPrepareReturn, sendAdReturned]);
+  }, [renderAfl971Message, afl971MuteCallAudio, afl971UnmuteCallAudio, isMuted, getCallId, accessToken, afl971ToastTemplate, sendAdPrepareReturn, sendAdReturned]);
+
+  const afl971TryFireAd = useCallback(() => {
+
+    if (liveStateRef.current !== "live") return;
+    if (phaseRef.current === "speaking") return;
+    const pending = afl971PendingAdRoundRef.current;
+    const faceBusy = rmStateRef.current.promptRegister || shStateRef.current.naming;
+    if (!afl971CanFireAd({ pendingRound: pending, faceBusy, adInProgress: afl971AdInProgressRef.current })) {
+      if (pending !== null && faceBusy) {
+        console.log("[Call][afl971] 얼굴인식 팝업/네이밍 중 — 예고된 광고 보류(유지·얼굴 우선)");
+      }
+      return;
+    }
+    afl971PendingAdRoundRef.current = null; 
+    runAfl971AdCycle(pending as number);
+  }, [runAfl971AdCycle]);
+
+  useEffect(() => {
+    afl971TryFireAd();
+
+  }, [rmState.promptRegister, phase, afl971AdInProgress, afl971TryFireAd]);
+
+  useEffect(() => {
+    const wasSpeaking = afl971LastSpeakingRef.current;
+    const isSpeaking = phase === "speaking";
+    afl971LastSpeakingRef.current = isSpeaking;
+
+    if (!wasSpeaking && isSpeaking && afl971PendingSpeakStartResolveRef.current) {
+      const rs = afl971PendingSpeakStartResolveRef.current;
+      afl971PendingSpeakStartResolveRef.current = null;
+      rs();
+    }
+    if (!wasSpeaking || isSpeaking) return;
+
+    if (afl971PendingPhaseEndResolveRef.current) {
+      const r = afl971PendingPhaseEndResolveRef.current;
+      afl971PendingPhaseEndResolveRef.current = null;
+      r();
+    }
+
+    if (afl971AdInProgressRef.current) {
+      console.log("[Call][afl971] 광고 사이클 중 — 라운드 count skip");
+      return;
+    }
+
+    const round = afl971RoundCountRef.current + 1;
+    afl971RoundCountRef.current = round;
+    console.log(`[Call][afl971] round ${round} complete`);
+
+    if (afl971IsFirstCallRef.current === true) {
+      console.log("[Call][afl971] 첫 통화 — 라운드 광고 skip");
+      return;
+    }
+    if (afl971IsFirstCallRef.current === null) {
+      console.log("[Call][afl971] lifetime count 로딩 중 — 광고 skip");
+      return;
+    }
+
+    if (afl971AdCommittedRoundRef.current !== round) return;
+    afl971AdCommittedRoundRef.current = null;
+    if (afl971AdShownRoundsRef.current.has(round)) return;
+
+    afl971PendingAdRoundRef.current = round;
+    afl971TryFireAd();
+  }, [phase, afl971TryFireAd]);
 
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const warnedRef = useRef(false);
