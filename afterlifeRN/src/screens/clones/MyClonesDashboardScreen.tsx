@@ -38,7 +38,7 @@ import { v_84d546 } from "../../lib/callGuard";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
 import { v_d60cdf, v_81d12f, v_f373d8, v_20d793, v_776874, v_914311, v_8ce643, v_d24912, type v_a9d96d, type v_d83ffc, type v_52af9d, type v_ceccc3, type v_6349d0, type v_1d741a } from "../../api/clones";
-import { v_83b207, type v_ccbfb2 } from "../../api/giftInventory";
+import { v_83b207, v_a71fb1, v_422d96, type v_ccbfb2, type v_dd1e7f } from "../../api/giftInventory";
 import v_feb82c from "../../mocks/gifts.json";
 import type { v_84fd28 } from "../../types/gift";
 
@@ -94,6 +94,9 @@ export default function v_def15b() {
 
   const [v_0bc486, v_f3ce9d] = v_5ab095<v_ccbfb2[]>([]);
 
+  const [v_c9ba75, v_4b3c02] = v_5ab095<v_dd1e7f[]>([]);
+  const [v_7e36ab, v_88d032] = v_5ab095(false);
+
   const v_8e46f5 = v_de06a3(async (v_cc88f5 = false) => {
     if (!v_2ca7e0) {
       v_d42991(null);
@@ -140,14 +143,13 @@ export default function v_def15b() {
           .catch((v_49263d) => console.warn("[MyClonesDashboard] balance fail:", v_49263d))
           .finally(() => v_3e37d1(false));
 
-        console.log("[MyClonesDashboard] giftInventory fetch start");
         v_83b207(v_2ca7e0)
-          .then((v_cb35cb) => {
-            const v_e4cf17 = v_cb35cb.items.filter((v_23805a) => (v_23805a.count ?? 0) > 0);
-            console.log(`[MyClonesDashboard] giftInventory OK raw=${v_cb35cb.items.length} filtered=${v_e4cf17.length}`, v_e4cf17);
-            v_f3ce9d(v_e4cf17);
-          })
+          .then((v_cb35cb) => v_f3ce9d(v_cb35cb.items.filter((v_23805a) => (v_23805a.count ?? 0) > 0)))
           .catch((v_49263d) => console.warn("[MyClonesDashboard] giftInventory fail:", v_49263d));
+
+        v_a71fb1(v_2ca7e0, { limit: 50 })
+          .then((v_cb35cb) => v_4b3c02(v_cb35cb.items))
+          .catch((v_49263d) => console.warn("[MyClonesDashboard] giftLog fail:", v_49263d));
       }
     }, [v_8e46f5, v_2ca7e0]),
   );
@@ -890,31 +892,43 @@ export default function v_def15b() {
 }
 
             {
+
 }
-            {v_0bc486.length > 0 && (
-              <View style={v_fd5f43.giftInventorySection}>
-                <Text style={v_fd5f43.giftInventoryTitle}>
+            {v_c9ba75.length > 0 && (
+              <View style={v_fd5f43.giftLogSection}>
+                <Text style={v_fd5f43.giftLogTitle}>
                   {v_8d41d7("dashboard.giftInventoryTitle", { defaultValue: "내 선물" })}
                 </Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={v_fd5f43.giftInventoryRow}
-                >
-                  {v_0bc486.map((v_206b88) => (
-                    <View key={v_206b88.giftId} style={v_fd5f43.giftInventoryItem}>
-                      {v_206b88.imageUrl ? (
-                        <Image source={{ uri: v_206b88.imageUrl }} style={v_fd5f43.giftInventoryIcon} />
-                      ) : (
-                        <View style={[v_fd5f43.giftInventoryIcon, { alignItems: "center", justifyContent: "center", backgroundColor: v_1bfbd0.zinc100 }]}>
-                          <Text style={{ fontSize: 24 }}>{v_206b88.emoji || "🎁"}</Text>
-                        </View>
-                      )}
-                      <Text style={v_fd5f43.giftInventoryName} numberOfLines={1}>{v_206b88.name}</Text>
-                      <Text style={v_fd5f43.giftInventoryCount}>×{v_206b88.count}</Text>
-                    </View>
-                  ))}
-                </ScrollView>
+                {(v_7e36ab ? v_c9ba75 : v_c9ba75.slice(0, 1)).map((v_206b88) => (
+                  <GiftLogRow
+                    key={v_206b88.id}
+                    item={v_206b88}
+                    myEmail={v_b113dd?.email ?? v_f38ee5?.email ?? null}
+                    accessToken={v_2ca7e0}
+                    onSwapped={() => {
+
+                      if (v_2ca7e0) {
+                        v_a71fb1(v_2ca7e0, { limit: 50 })
+                          .then((v_cb35cb) => v_4b3c02(v_cb35cb.items))
+                          .catch(() => {});
+                        v_48981e(v_2ca7e0).then(v_de20d8).catch(() => {});
+                      }
+                    }}
+                  />
+                ))}
+                {v_c9ba75.length > 1 && (
+                  <TouchableOpacity
+                    style={v_fd5f43.giftLogMoreBtn}
+                    onPress={() => v_88d032((v_81e2ef) => !v_81e2ef)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={v_fd5f43.giftLogMoreText}>
+                      {v_7e36ab
+                        ? v_8d41d7("dashboard.giftLogCollapse", { defaultValue: "접기" })
+                        : v_8d41d7("dashboard.giftLogMore", { defaultValue: `더보기 (${v_c9ba75.length - 1})` })}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
           </>
@@ -2154,4 +2168,150 @@ const v_fd5f43 = v_472849.create({
   intimacyInfoActivityItem: { fontSize: 13, color: v_1bfbd0.zinc700, lineHeight: 20 },
   intimacyInfoOkBtn: { marginTop: 16, paddingVertical: 12, borderRadius: v_8b0c90.full, backgroundColor: v_1bfbd0.violet600, alignItems: "center" },
   intimacyInfoOkText: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.white },
+
+  giftLogSection: { marginTop: 16, marginBottom: 20, paddingHorizontal: 4 },
+  giftLogTitle: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900, marginBottom: 10 },
+  giftLogRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc100,
+    gap: 10,
+  },
+  giftLogAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: v_1bfbd0.zinc100,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  giftLogAvatarImg: { width: 40, height: 40, borderRadius: 20 },
+  giftLogAvatarInitial: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc500 },
+  giftLogBody: { flex: 1, minWidth: 0 },
+  giftLogSenderLine: { flexDirection: "row", alignItems: "center", gap: 6 },
+  giftLogSenderName: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900, flexShrink: 1 },
+  giftLogGiftIcon: { fontSize: 14 },
+  giftLogMeta: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
+  giftLogSwapBtn: {
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: v_1bfbd0.violet600,
+  },
+  giftLogSwapText: { fontSize: 13, fontWeight: "700", color: v_1bfbd0.white },
+  giftLogMoreBtn: {
+    paddingVertical: 10,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  giftLogMoreText: { fontSize: 13, fontWeight: "600", color: v_1bfbd0.violet600 },
 });
+
+function v_3582ab({
+  item: v_8c0b26,
+  myEmail: v_78547c,
+  accessToken: v_2ca7e0,
+  onSwapped: v_bec4b4,
+}: {
+  item: v_dd1e7f;
+  myEmail: string | null;
+  accessToken: string | null;
+  onSwapped: () => void;
+}) {
+  const { t: v_8d41d7 } = v_772971();
+  const [v_8af97b, v_d1a0d8] = v_5ab095(false);
+
+  const v_0c2802 = async () => {
+    const v_e0c7e8 = v_78547c ?? "";
+    const v_6045c3 = `xrun://login?email=${encodeURIComponent(v_e0c7e8)}`;
+    try {
+      const v_29eaf2 = await v_f2c756.canOpenURL(v_6045c3);
+      if (v_29eaf2) {
+        await v_f2c756.openURL(v_6045c3);
+        return;
+      }
+    } catch (v_49263d) {
+      console.warn("[giftLog] canOpenURL fail:", v_49263d);
+    }
+
+    const v_b71a74 =
+      v_326be8.OS === "ios"
+        ? "https://apps.apple.com/app/xrun/id6471024515"
+        : `https://play.google.com/store/apps/details?id=run.xrun.xrunapp&referrer=${encodeURIComponent(
+            `utm_source=afterlife&email=${v_e0c7e8}`,
+          )}`;
+    try {
+      await v_f2c756.openURL(v_b71a74);
+    } catch (v_49263d) {
+      v_03e392.alert(
+        v_8d41d7("dashboard.giftLogOpenFailTitle", { defaultValue: "열 수 없어요" }),
+        v_8d41d7("dashboard.giftLogOpenFailDesc", { defaultValue: "XRUN 앱을 설치해 주세요." }),
+      );
+    }
+  };
+
+  const v_cbd53a = async () => {
+    if (!v_2ca7e0 || v_8af97b) return;
+    v_d1a0d8(true);
+    try {
+      const v_4fab5a = `swap-${v_8c0b26.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      await v_422d96(v_2ca7e0, { giftId: v_8c0b26.giftId, count: 1 }, v_4fab5a);
+      v_bec4b4();
+    } catch (v_49263d) {
+      v_03e392.alert(
+        v_8d41d7("dashboard.giftSwapFailTitle", { defaultValue: "교환 실패" }),
+        (v_49263d as Error).message ?? v_8d41d7("dashboard.giftSwapFailDesc", { defaultValue: "잠시 후 다시 시도해 주세요." }),
+      );
+    } finally {
+      v_d1a0d8(false);
+    }
+  };
+
+  const v_b85763 = v_8c0b26.senderName || v_8c0b26.senderEmail || `user_${v_8c0b26.senderId}`;
+  const v_f2ff36 = v_8c0b26.cloneName || `clone_${v_8c0b26.cloneId}`;
+  const v_8d37ae = v_bfd883(v_8c0b26.createdAt);
+  const v_33a948 = `${v_f2ff36}에게 · ${v_8d37ae}`;
+
+  return (
+    <TouchableOpacity
+      style={v_fd5f43.giftLogRow}
+      onPress={v_0c2802}
+      activeOpacity={0.7}
+    >
+      <View style={v_fd5f43.giftLogAvatar}>
+        {v_8c0b26.senderAvatarUrl ? (
+          <Image source={{ uri: v_8c0b26.senderAvatarUrl }} style={v_fd5f43.giftLogAvatarImg} />
+        ) : (
+          <Text style={v_fd5f43.giftLogAvatarInitial}>{v_b85763.charAt(0).toUpperCase()}</Text>
+        )}
+      </View>
+      <View style={v_fd5f43.giftLogBody}>
+        <View style={v_fd5f43.giftLogSenderLine}>
+          <Text style={v_fd5f43.giftLogSenderName} numberOfLines={1}>{v_b85763}</Text>
+          <Text style={v_fd5f43.giftLogGiftIcon}>{v_8c0b26.giftEmoji}</Text>
+          <Text style={v_fd5f43.giftLogSenderName} numberOfLines={1}>{v_8c0b26.giftName}</Text>
+        </View>
+        <Text style={v_fd5f43.giftLogMeta} numberOfLines={1}>{v_33a948}</Text>
+      </View>
+      <TouchableOpacity
+        style={v_fd5f43.giftLogSwapBtn}
+        onPress={v_cbd53a}
+        disabled={v_8af97b}
+        activeOpacity={0.7}
+      >
+        <Text style={v_fd5f43.giftLogSwapText}>
+          {v_8af97b
+            ? v_8d41d7("dashboard.giftSwapping", { defaultValue: "..." })
+            : v_8d41d7("dashboard.giftSwap", { defaultValue: "교환" })}
+        </Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+}
