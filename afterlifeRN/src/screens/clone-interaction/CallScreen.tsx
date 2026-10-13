@@ -1871,7 +1871,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const [afl971AdInProgress, setAfl971AdInProgress] = useState(false);
   const afl971AdInProgressRef = useRef<boolean>(false);
 
-  const afl971ReturnTurnPendingRef = useRef<boolean>(false);
+  const [afl971AdShowingUI, setAfl971AdShowingUI] = useState(false);
   useEffect(() => {
     afl971AdInProgressRef.current = afl971AdInProgress;
   }, [afl971AdInProgress]);
@@ -1928,9 +1928,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         console.log("[Call][afl971] 연결중 전면광고 trigger");
         const { loadAndShowRewardedAd } = await import("../../lib/pangle");
         afl971MuteCallAudio();
+        setAfl971AdShowingUI(true);
         try {
           await loadAndShowRewardedAd();
         } finally {
+          setAfl971AdShowingUI(false);
           afl971UnmuteCallAudio();
         }
 
@@ -1966,12 +1968,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       return;
     }
 
-    if (afl971ReturnTurnPendingRef.current) {
-      afl971ReturnTurnPendingRef.current = false;
-      console.log("[Call][afl971] 광고 복귀 턴 — 라운드 count 제외");
-      return;
-    }
-
     const round = afl971RoundCountRef.current + 1;
     afl971RoundCountRef.current = round;
     console.log(`[Call][afl971] round ${round} complete`);
@@ -2002,16 +1998,19 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
         const { loadAndShowRewardedAd } = await import("../../lib/pangle");
         afl971MuteCallAudio();
+        setAfl971AdShowingUI(true);
         try {
           await loadAndShowRewardedAd();
         } finally {
+          setAfl971AdShowingUI(false);
           afl971UnmuteCallAudio();
         }
 
         if (sendAdReturned) {
-          afl971ReturnTurnPendingRef.current = true;
           sendAdReturned();
-          console.log(`[Call][afl971] round ${round} 광고 닫힘 — 복귀 멘트 신호(ad_returned)`);
+          console.log(`[Call][afl971] round ${round} 광고 닫힘 — 복귀 신호(ad_returned), 복귀 턴 대기`);
+          await afl971WaitForPhaseEnd(25000);
+          console.log(`[Call][afl971] round ${round} 복귀 턴 재생 끝 — mic 복원 예정`);
         }
 
         const callIdNow = getCallId?.() ?? null;
@@ -3147,6 +3146,28 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         <View style={s.exitOverlay} pointerEvents="auto">
           <ActivityIndicator size="large" color={COLORS.white} />
           <Text style={s.exitOverlayText}>종료 중...</Text>
+        </View>
+      )}
+
+      {}
+      {__DEV__ && afl971AdShowingUI && (
+        <View
+          style={{
+            ...StyleSheet.absoluteFillObject,
+            backgroundColor: "rgba(0,0,0,0.82)",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+          pointerEvents="auto"
+        >
+          <ActivityIndicator size="large" color={COLORS.white} />
+          <Text style={{ color: COLORS.white, fontSize: 18, fontWeight: "700", marginTop: 16 }}>
+            광고 재생 중…
+          </Text>
+          <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 6 }}>
+            (개발 스텁 · 실광고 대체)
+          </Text>
         </View>
       )}
     </View>
