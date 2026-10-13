@@ -79,7 +79,8 @@ v_62a1b6.get("/received-gifts", async (v_3f4e2e) => {
 });
 
 const v_520523 = 11; 
-const v_ecb35d = 0.1; 
+const v_567ea6 = v_520523 - 1; 
+const v_cd14b0 = 0.01; 
 
 const v_597473 = v_1f4ea7.object({
   email: v_1f4ea7.string().email(),
@@ -96,6 +97,12 @@ v_62a1b6.post("/redeem-with-ad", async (v_3f4e2e) => {
   const v_8c0b26 = (v_dbebe7 as any[]).find((v_206b88) => v_206b88.id === v_4d33b2.giftId);
   if (!v_8c0b26) throw new v_3ebe58("NOT_FOUND", `선물 '${v_4d33b2.giftId}' 없음`);
 
+  const v_7ce83a = Number((v_8c0b26 as any).xrunPrice);
+  const v_e57e5c = Number.isFinite(v_7ce83a) && v_7ce83a > 0
+    ? v_7ce83a
+    : v_cd14b0;
+  const v_f8f913 = Number((v_567ea6 * v_e57e5c).toFixed(8));
+
   const v_eef514 = await v_3f4e2e.env.DB
     .prepare(
       `UPDATE user_gift_inventory
@@ -108,7 +115,7 @@ v_62a1b6.post("/redeem-with-ad", async (v_3f4e2e) => {
     throw new v_3ebe58("VALIDATION_FAILED", `교환은 ${v_520523}개부터 가능해요`);
   }
 
-  const v_b291d9 = Math.round(v_ecb35d * 100); 
+  const v_b291d9 = Math.round(v_f8f913 * 100);
   const v_5097fd = (v_8c0b26 as any).name ?? v_4d33b2.giftId;
   const v_56896b = (v_8c0b26 as any).emoji ?? "🎁";
   const v_92e7a1 = (v_8c0b26 as any).imageUrl ?? null;
@@ -138,7 +145,7 @@ v_62a1b6.post("/redeem-with-ad", async (v_3f4e2e) => {
         },
         body: JSON.stringify({
           email: v_4d33b2.email,
-          xrunAmount: v_ecb35d,
+          xrunAmount: v_f8f913,
           refId: v_a0e308,
           source: "afterlife_flower_redeem",
         }),
@@ -159,7 +166,7 @@ v_62a1b6.post("/redeem-with-ad", async (v_3f4e2e) => {
     }
   }
 
-  console.log(`[xrun-bridge] redeem email=${v_4d33b2.email} giftId=${v_4d33b2.giftId} burned=${v_520523} payout=${v_ecb35d}XRUN refId=${v_a0e308} grant=${v_96c1fe.ok ? `ok(txn=${v_96c1fe.txnId ?? "?"},bal=${v_96c1fe.newBalance ?? "?"},dup=${v_96c1fe.duplicate ? 1 : 0})` : `fail(${v_96c1fe.reason})`}`);
+  console.log(`[xrun-bridge] redeem email=${v_4d33b2.email} giftId=${v_4d33b2.giftId} burned=${v_520523} payout=${v_f8f913}XRUN refId=${v_a0e308} grant=${v_96c1fe.ok ? `ok(txn=${v_96c1fe.txnId ?? "?"},bal=${v_96c1fe.newBalance ?? "?"},dup=${v_96c1fe.duplicate ? 1 : 0})` : `fail(${v_96c1fe.reason})`}`);
 
   await v_74defc(v_3f4e2e, {
     userId: v_625c74.id,
@@ -167,7 +174,7 @@ v_62a1b6.post("/redeem-with-ad", async (v_3f4e2e) => {
     details: {
       giftId: v_4d33b2.giftId,
       burned: v_520523,
-      xrunPayout: v_ecb35d,
+      xrunPayout: v_f8f913,
       via: "pangle_ad",
       refId: v_a0e308,
       grant: v_96c1fe,
@@ -178,7 +185,8 @@ v_62a1b6.post("/redeem-with-ad", async (v_3f4e2e) => {
     ok: true,
     giftId: v_4d33b2.giftId,
     burned: v_520523,          
-    xrunAmount: v_ecb35d, 
+    xrunAmount: v_f8f913, 
+    perFlowerXrun: v_e57e5c,
     grant: v_96c1fe,
   });
 });
