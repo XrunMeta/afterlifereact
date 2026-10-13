@@ -387,3 +387,53 @@ export async function v_824b75(
     .run();
   return v_a448ad;
 }
+
+const v_b99c96 = "ad.cadence";
+const v_c7c40c = 1000; 
+export interface AdCadence {
+  firstRound: number;
+  interval: number;
+}
+export const v_599a4b = { firstRound: 11, interval: 5 };
+
+function v_bf244c(v_e2a85c): AdCadence {
+  const v_e84077 = Number(v_e2a85c?.firstRound);
+  const v_f9f313 = Number(v_e2a85c?.interval);
+  return {
+    firstRound:
+      Number.isInteger(v_e84077) && v_e84077 >= 1 && v_e84077 <= v_c7c40c ? v_e84077 : v_599a4b.firstRound,
+    interval:
+      Number.isInteger(v_f9f313) && v_f9f313 >= 1 && v_f9f313 <= v_c7c40c ? v_f9f313 : v_599a4b.interval,
+  };
+}
+
+export async function v_4bc1db(env: v_273a0c): Promise<AdCadence> {
+  try {
+    const v_3ac7e7 = await v_c9c489.DB
+      .prepare(`SELECT value FROM app_config WHERE key = ? LIMIT 1`)
+      .bind(v_b99c96)
+      .first<{ value: string }>();
+    if (!v_3ac7e7) return v_599a4b;
+    const v_8decf8 = JSON.parse(v_3ac7e7.value) as unknown;
+    if (!v_8decf8 || typeof v_8decf8 !== "object") return v_599a4b;
+    return v_bf244c(v_8decf8 as Partial<AdCadence>);
+  } catch {
+    return v_599a4b;
+  }
+}
+
+export async function v_b7471b(env: v_273a0c, v_17dc8a): Promise<AdCadence> {
+  const v_275ccd = await v_4bc1db(v_c9c489);
+  const v_a448ad = v_bf244c({
+    firstRound: v_17dc8a.firstRound ?? v_275ccd.firstRound,
+    interval: v_17dc8a.interval ?? v_275ccd.interval,
+  });
+  await v_c9c489.DB
+    .prepare(
+      `INSERT INTO app_config (key, value, updated_at) VALUES (?, ?, unixepoch())
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = unixepoch()`,
+    )
+    .bind(v_b99c96, JSON.stringify(v_a448ad))
+    .run();
+  return v_a448ad;
+}
