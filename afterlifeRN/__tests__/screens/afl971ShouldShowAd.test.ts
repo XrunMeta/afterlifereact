@@ -1,5 +1,5 @@
 
-import { v_8e0f80, v_25c9bd } from '../../src/screens/clone-interaction/afl971Ad';
+import { v_8e0f80, v_25c9bd, v_1c04ac } from '../../src/screens/clone-interaction/afl971Ad';
 
 describe('afl971ShouldShowAd', () => {
   it('일반 계정: 10, 15, 20 번째 라운드에 true', () => {
@@ -40,5 +40,23 @@ describe('isAfl971AdTestAccount', () => {
     expect(v_25c9bd('oth-staff@example.invalid')).toBe(false);
     expect(v_25c9bd(null)).toBe(false);
     expect(v_25c9bd(undefined)).toBe(false);
+  });
+});
+
+describe('afl971CanFireAd', () => {
+  it('예고된 광고(pendingRound!=null)·얼굴 한가·사이클 아님 → 재생(true)', () => {
+    expect(v_1c04ac({ pendingRound: 3, faceBusy: false, adInProgress: false })).toBe(true);
+  });
+  it('예고 없음(pendingRound=null) → 광고 없음(false) — 예고 없는 광고 차단', () => {
+    expect(v_1c04ac({ pendingRound: null, faceBusy: false, adInProgress: false })).toBe(false);
+  });
+  it('얼굴 팝업/네이밍 중(faceBusy) → 보류(false) — pending 은 호출부가 유지', () => {
+    expect(v_1c04ac({ pendingRound: 3, faceBusy: true, adInProgress: false })).toBe(false);
+  });
+  it('이미 광고 사이클 중(adInProgress) → 중복 방지(false)', () => {
+    expect(v_1c04ac({ pendingRound: 3, faceBusy: false, adInProgress: true })).toBe(false);
+  });
+  it('round 0 도 유효한 pending 으로 취급(null 만 skip)', () => {
+    expect(v_1c04ac({ pendingRound: 0, faceBusy: false, adInProgress: false })).toBe(true);
   });
 });
