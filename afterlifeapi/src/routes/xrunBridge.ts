@@ -97,22 +97,67 @@ v_62a1b6.post("/redeem-with-ad", async (v_3f4e2e) => {
   const v_8c0b26 = (v_dbebe7 as any[]).find((v_206b88) => v_206b88.id === v_4d33b2.giftId);
   if (!v_8c0b26) throw new v_3ebe58("NOT_FOUND", `선물 '${v_4d33b2.giftId}' 없음`);
 
-  const v_7ce83a = Number((v_8c0b26 as any).xrunPrice);
-  const v_e57e5c = Number.isFinite(v_7ce83a) && v_7ce83a > 0
-    ? v_7ce83a
-    : v_cd14b0;
-  const v_f8f913 = Number((v_567ea6 * v_e57e5c).toFixed(8));
-
-  const v_eef514 = await v_3f4e2e.env.DB
+  const v_37b6fa = await v_3f4e2e.env.DB
     .prepare(
-      `UPDATE user_gift_inventory
-          SET count = count - ?, updated_at = strftime('%s','now')
-        WHERE user_id = ? AND gift_id = ? AND count >= ?`,
+      `SELECT id, count_remaining, xrun_price_snapshot
+         FROM user_gift_lots
+        WHERE user_id = ? AND gift_id = ? AND count_remaining > 0
+        ORDER BY received_at ASC, id ASC`,
     )
-    .bind(v_520523, v_625c74.id, v_4d33b2.giftId, v_520523)
-    .run();
-  if ((v_eef514.meta?.changes ?? 0) === 0) {
+    .bind(v_625c74.id, v_4d33b2.giftId)
+    .all<{ id: number; count_remaining: number; xrun_price_snapshot: number }>();
+  const v_9fdb66 = v_37b6fa.results ?? [];
+  const v_df2ccf = v_9fdb66.reduce((v_fd5f43, v_1614db) => v_fd5f43 + Number(v_1614db.count_remaining), 0);
+  if (v_df2ccf < v_520523) {
     throw new v_3ebe58("VALIDATION_FAILED", `교환은 ${v_520523}개부터 가능해요`);
+  }
+
+  let v_d2d720 = v_520523;
+  const v_065369 = []; 
+  const v_8839ce = [];
+  for (const v_41d9f0 of v_9fdb66) {
+    if (v_d2d720 === 0) break;
+    const v_04326c = Math.min(v_d2d720, Number(v_41d9f0.count_remaining));
+    const v_6bbb57 = Number(v_41d9f0.xrun_price_snapshot) || v_cd14b0;
+    for (let v_ebec57 = 0; v_ebec57 < v_04326c; v_ebec57++) v_065369.push(v_6bbb57);
+    v_8839ce.push({ id: v_41d9f0.id, take: v_04326c });
+    v_d2d720 -= v_04326c;
+  }
+  if (v_d2d720 > 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", `교환은 ${v_520523}개부터 가능해요`);
+  }
+
+  const v_d99192 = v_065369.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6, 0);
+  const v_07001a = v_065369[v_065369.length - 1] ?? 0;
+  const v_f8f913 = Number((v_d99192 - v_07001a).toFixed(8));
+  const v_e57e5c = v_065369[0] ?? v_cd14b0; 
+
+  const v_fb1c1c = [];
+  for (const v_ceb55a of v_8839ce) {
+    v_fb1c1c.push(
+      v_3f4e2e.env.DB
+        .prepare(
+          `UPDATE user_gift_lots
+              SET count_remaining = count_remaining - ?
+            WHERE id = ? AND count_remaining >= ?`,
+        )
+        .bind(v_ceb55a.take, v_ceb55a.id, v_ceb55a.take),
+    );
+  }
+  v_fb1c1c.push(
+    v_3f4e2e.env.DB
+      .prepare(
+        `UPDATE user_gift_inventory
+            SET count = count - ?, updated_at = strftime('%s','now')
+          WHERE user_id = ? AND gift_id = ? AND count >= ?`,
+      )
+      .bind(v_520523, v_625c74.id, v_4d33b2.giftId, v_520523),
+  );
+  const v_532a82 = await v_3f4e2e.env.DB.batch(v_fb1c1c);
+
+  const v_70c7e2 = (v_532a82[v_532a82.length - 1]?.meta as any)?.changes ?? 0;
+  if (v_70c7e2 === 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", `교환 중 재고 변동 — 다시 시도해주세요`);
   }
 
   const v_b291d9 = Math.round(v_f8f913 * 100);
