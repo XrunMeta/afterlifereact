@@ -1249,7 +1249,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
       const faceBusy =
         rmStateRef.current.promptRegister ||
-        shouldHoldMic(rmStateRef.current) ||
         shStateRef.current.naming;
       const adNext =
         afl971IsFirstCallRef.current === false &&
@@ -2024,12 +2023,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     const shouldShow = afl971ShouldShowAd(round, isAdTestAccount);
     if (!shouldShow) return;
 
-    if (
-      rmStateRef.current.promptRegister ||
-      shouldHoldMic(rmStateRef.current) ||
-      shStateRef.current.naming
-    ) {
-      console.log("[Call][afl971] 얼굴인식 진행 중 — 광고 보류(얼굴 우선)");
+    if (rmStateRef.current.promptRegister || shStateRef.current.naming) {
+      console.log("[Call][afl971] 얼굴인식 팝업/네이밍 중 — 광고 보류(얼굴 우선)");
       return;
     }
     if (afl971AdShownRoundsRef.current.has(round)) return;
