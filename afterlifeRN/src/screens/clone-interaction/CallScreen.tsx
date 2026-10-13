@@ -207,6 +207,24 @@ const EMOTE_SERVER_ACTIONS: ReadonlySet<EmoteKey> = new Set(["smile"]);
 
 export { afl971ShouldShowAd };
 
+function afl971WaitForForeground(timeoutMs: number): Promise<boolean> {
+  if (AppState.currentState === "active") return Promise.resolve(true);
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (v: boolean) => {
+      if (done) return;
+      done = true;
+      sub.remove();
+      clearTimeout(timer);
+      resolve(v);
+    };
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") finish(true);
+    });
+    const timer = setTimeout(() => finish(false), timeoutMs);
+  });
+}
+
 function emoteVideoUri(cloneId: number, key: EmoteKey): string | null {
   if (!EMOTE_SERVER_ACTIONS.has(key) || !Number.isFinite(cloneId) || cloneId <= 0) return null;
   return `${EMOTE_BASE_URL}/${cloneId}/${key}.mp4`;
@@ -760,7 +778,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const liveStateRef = useRef<string>("idle");
 
-  const appActiveRef = useRef<boolean>(AppState.currentState === "active");
+  const afl971MicRestorePendingRef = useRef<boolean>(false);
 
   const chatReplyStartAt = useRef<number | null>(null);
   const dispatchRm = useCallback((event: RememberMeEvent) => {
@@ -1316,6 +1334,9 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   }, [notifyFaceInterrupt]);
 
   const micHeld = shouldHoldMic(rmState) || bridgeActive || afl971AdInProgress;
+
+  const micHeldRef = useRef(micHeld);
+  micHeldRef.current = micHeld;
   const micWasOnRef = useRef(false);
   useEffect(() => {
     if (liveState !== "live") return;
@@ -2031,11 +2052,9 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         setAfl971AdShowingUI(false);
         afl971UnmuteCallAudio();
 
-        const canReturn = afl971CallInteractive({
-          appActive: appActiveRef.current,
-          live: liveStateRef.current === "live",
-        });
-        if (sendAdReturned && canReturn) {
+        const fg = await afl971WaitForForeground(2500);
+        const interactive = afl971CallInteractive({ appActive: fg, live: liveStateRef.current === "live" });
+        if (sendAdReturned && interactive) {
           sendAdReturned();
           console.log(`[Call][afl971] round ${round} 광고 종료 — 복귀 재생 신호(ad_returned)`);
 
@@ -2081,15 +2100,19 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         setAfl971AdShowingUI(false);
         afl971UnmuteCallAudio();
 
-        const canRestoreMic = afl971CallInteractive({
-          appActive: appActiveRef.current,
+        const restoreNow = afl971CallInteractive({
+          appActive: AppState.currentState === "active",
           live: liveStateRef.current === "live",
         });
-        if (canRestoreMic && micWasOnBeforeAd && !micOnRef.current && !isMuted) {
-          console.log(`[Call][afl971] round ${round} 종료 — mic 복원`);
-          toggleMicRef.current();
-        } else if (!canRestoreMic) {
-          console.log(`[Call][afl971] round ${round} 종료 — 백그라운드/비라이브라 mic 복원 보류`);
+        if (micWasOnBeforeAd && !micOnRef.current && !isMuted) {
+          if (restoreNow) {
+            console.log(`[Call][afl971] round ${round} 종료 — mic 복원`);
+            micOnRef.current = true;
+            toggleMicRef.current();
+          } else {
+            afl971MicRestorePendingRef.current = true;
+            console.log(`[Call][afl971] round ${round} 종료 — 백그라운드라 mic 복원 보류(포그라운드 때 복원)`);
+          }
         }
       }
     })();
@@ -2280,13 +2303,19 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   useEffect(() => {
     const sub = AppState.addEventListener("change", (next: AppStateStatus) => {
 
-      appActiveRef.current = next === "active";
-
       if (next === "active" && liveState === "live") {
         afl971UnmuteCallAudio();
         setAfl971AdShowingUI(false);
-        if (!afl971AdInProgressRef.current && !micOnRef.current && !isMuted) {
-          console.log("[Call][afl971] 포그라운드 복귀 — 사용자 턴으로 mic 복원(listening)");
+        if (
+          afl971MicRestorePendingRef.current &&
+          !afl971AdInProgressRef.current &&
+          !micHeldRef.current &&
+          !micOnRef.current &&
+          !isMuted
+        ) {
+          afl971MicRestorePendingRef.current = false;
+          micOnRef.current = true;
+          console.log("[Call][afl971] 포그라운드 복귀 — 광고로 꺼둔 mic 복원(사용자 턴/listening)");
           toggleMicRef.current();
         }
       }
