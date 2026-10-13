@@ -2183,6 +2183,13 @@ const v_fd5f43 = v_472849.create({
     borderColor: v_1bfbd0.zinc100,
     gap: 10,
   },
+  giftLogLeftPanel: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    minWidth: 0,
+  },
   giftLogAvatar: {
     width: 40,
     height: 40,
@@ -2280,26 +2287,28 @@ function v_3582ab({
   const v_33a948 = `${v_f2ff36}에게 · ${v_8d37ae}`;
 
   return (
-    <TouchableOpacity
-      style={v_fd5f43.giftLogRow}
-      onPress={v_0c2802}
-      activeOpacity={0.7}
-    >
-      <View style={v_fd5f43.giftLogAvatar}>
-        {v_8c0b26.senderAvatarUrl ? (
-          <Image source={{ uri: v_8c0b26.senderAvatarUrl }} style={v_fd5f43.giftLogAvatarImg} />
-        ) : (
-          <Text style={v_fd5f43.giftLogAvatarInitial}>{v_b85763.charAt(0).toUpperCase()}</Text>
-        )}
-      </View>
-      <View style={v_fd5f43.giftLogBody}>
-        <View style={v_fd5f43.giftLogSenderLine}>
-          <Text style={v_fd5f43.giftLogSenderName} numberOfLines={1}>{v_b85763}</Text>
-          <Text style={v_fd5f43.giftLogGiftIcon}>{v_8c0b26.giftEmoji}</Text>
-          <Text style={v_fd5f43.giftLogSenderName} numberOfLines={1}>{v_8c0b26.giftName}</Text>
+    <View style={v_fd5f43.giftLogRow}>
+      <TouchableOpacity
+        style={v_fd5f43.giftLogLeftPanel}
+        onPress={v_0c2802}
+        activeOpacity={0.7}
+      >
+        <View style={v_fd5f43.giftLogAvatar}>
+          {v_8c0b26.senderAvatarUrl ? (
+            <Image source={{ uri: v_8c0b26.senderAvatarUrl }} style={v_fd5f43.giftLogAvatarImg} />
+          ) : (
+            <Text style={v_fd5f43.giftLogAvatarInitial}>{v_b85763.charAt(0).toUpperCase()}</Text>
+          )}
         </View>
-        <Text style={v_fd5f43.giftLogMeta} numberOfLines={1}>{v_33a948}</Text>
-      </View>
+        <View style={v_fd5f43.giftLogBody}>
+          <View style={v_fd5f43.giftLogSenderLine}>
+            <Text style={v_fd5f43.giftLogSenderName} numberOfLines={1}>{v_b85763}</Text>
+            <Text style={v_fd5f43.giftLogGiftIcon}>{v_8c0b26.giftEmoji}</Text>
+            <Text style={v_fd5f43.giftLogSenderName} numberOfLines={1}>{v_8c0b26.giftName}</Text>
+          </View>
+          <Text style={v_fd5f43.giftLogMeta} numberOfLines={1}>{v_33a948}</Text>
+        </View>
+      </TouchableOpacity>
       <TouchableOpacity
         style={v_fd5f43.giftLogSwapBtn}
         onPress={v_cbd53a}
@@ -2312,6 +2321,6 @@ function v_3582ab({
             : v_8d41d7("dashboard.giftSwap", { defaultValue: "교환" })}
         </Text>
       </TouchableOpacity>
-    </TouchableOpacity>
+    </View>
   );
 }
