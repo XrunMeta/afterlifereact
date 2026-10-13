@@ -20,3 +20,7 @@ export function v_1c04ac(v_328259): boolean {
   if (v_328259.adInProgress) return false;
   return true;
 }
+
+export function v_7841ab(v_328259): boolean {
+  return v_328259.appActive && v_328259.live;
+}

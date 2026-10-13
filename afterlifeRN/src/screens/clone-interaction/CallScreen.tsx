@@ -21,7 +21,7 @@ import {
   ToastAndroid,
 } from "react-native";
 
-import { afl971ShouldShowAd, isAfl971AdTestAccount, afl971CanFireAd } from "./afl971Ad";
+import { afl971ShouldShowAd, isAfl971AdTestAccount, afl971CanFireAd, afl971CallInteractive } from "./afl971Ad";
 import * as ScreenCapture from "expo-screen-capture";
 import ViewShot, { captureRef } from "react-native-view-shot";
 import * as MediaLibrary from "expo-media-library";
@@ -759,6 +759,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const phaseRef = useRef<string>("idle");
 
   const liveStateRef = useRef<string>("idle");
+
+  const appActiveRef = useRef<boolean>(AppState.currentState === "active");
 
   const chatReplyStartAt = useRef<number | null>(null);
   const dispatchRm = useCallback((event: RememberMeEvent) => {
@@ -2028,12 +2030,19 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
         setAfl971AdShowingUI(false);
         afl971UnmuteCallAudio();
-        if (sendAdReturned) {
+
+        const canReturn = afl971CallInteractive({
+          appActive: appActiveRef.current,
+          live: liveStateRef.current === "live",
+        });
+        if (sendAdReturned && canReturn) {
           sendAdReturned();
           console.log(`[Call][afl971] round ${round} 광고 종료 — 복귀 재생 신호(ad_returned)`);
 
           await new Promise((r) => setTimeout(r, 8000));
           console.log(`[Call][afl971] round ${round} 복귀 윈도 종료 — mic 복원 예정`);
+        } else if (sendAdReturned) {
+          console.log(`[Call][afl971] round ${round} 백그라운드/비라이브 — 복귀 신호 생략`);
         }
 
         const callIdNow = getCallId?.() ?? null;
@@ -2071,9 +2080,16 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
         setAfl971AdShowingUI(false);
         afl971UnmuteCallAudio();
-        if (micWasOnBeforeAd && !micOnRef.current && !isMuted) {
+
+        const canRestoreMic = afl971CallInteractive({
+          appActive: appActiveRef.current,
+          live: liveStateRef.current === "live",
+        });
+        if (canRestoreMic && micWasOnBeforeAd && !micOnRef.current && !isMuted) {
           console.log(`[Call][afl971] round ${round} 종료 — mic 복원`);
           toggleMicRef.current();
+        } else if (!canRestoreMic) {
+          console.log(`[Call][afl971] round ${round} 종료 — 백그라운드/비라이브라 mic 복원 보류`);
         }
       }
     })();
@@ -2263,6 +2279,18 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const lastBgWarnRef = useRef<number>(0);
   useEffect(() => {
     const sub = AppState.addEventListener("change", (next: AppStateStatus) => {
+
+      appActiveRef.current = next === "active";
+
+      if (next === "active" && liveState === "live") {
+        afl971UnmuteCallAudio();
+        setAfl971AdShowingUI(false);
+        if (!afl971AdInProgressRef.current && !micOnRef.current && !isMuted) {
+          console.log("[Call][afl971] 포그라운드 복귀 — 사용자 턴으로 mic 복원(listening)");
+          toggleMicRef.current();
+        }
+      }
+
       if (next !== "background") return;
       if (liveState !== "live") return;
 
@@ -2281,7 +2309,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       }).catch((err) => console.warn("[Call] bg warn schedule failed:", err?.message));
     });
     return () => sub.remove();
-  }, [liveState, t]);
+  }, [liveState, t, isMuted, afl971UnmuteCallAudio]);
 
   const confirmProgress = useRef(new Animated.Value(0)).current;
   useEffect(() => {
