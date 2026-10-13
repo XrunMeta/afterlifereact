@@ -81,7 +81,10 @@ v_469bf2("POST /oth-path", () => {
   v_23805a("타인 소유 파일 거부 (IDOR)", async () => {
     await v_c808bd(1004, 5004);
     await v_c808bd(9999, 5999);
+
     const v_8f00b9 = await v_4f438a(await v_2c6218(9999), 5004);
     v_4d37e3(v_8f00b9.status).toBe(404);
+    const v_b75e36 = await v_8f00b9.json<{ ok?: unknown }>();
+    v_4d37e3(v_b75e36.ok).toBeUndefined();
   });
 });
