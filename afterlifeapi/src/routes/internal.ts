@@ -5,6 +5,7 @@ import { v_278a53, v_80401b, v_7a6ff6, v_c12e45, v_12ade7, v_2fb81a, v_f9d88f, v
 import { v_1f4ea7 } from "../lib/validate";
 import { v_74c502, v_5d4a51 } from "../lib/cloneAccess";
 import { v_842ce7 } from "../lib/guideJob";
+import { v_67dc73 } from "../lib/prebuildClient";
 import {
   v_3821c0, v_0ac5b7, type v_d91e78,
   v_0761b1, v_600422,
@@ -314,6 +315,24 @@ v_dcd415.post("/asset-job-done", async (v_3f4e2e) => {
             faceUrl: v_2d0601,
           }),
         }).catch(() => {}),
+      );
+    }
+  }
+
+  if (v_0a2cd1.kind === "voice_clone" && v_0a2cd1.clone_id && v_3f4e2e.env.PREBUILD_SECRET && v_3f4e2e.env.PRETHIRD_PUBLIC_BASE) {
+    const v_fc9250 = await v_3f4e2e.env.DB
+      .prepare(`SELECT src_file_id FROM clone_asset_jobs WHERE id=?`)
+      .bind(v_04211c)
+      .first<{ src_file_id: number | null }>();
+    if (v_fc9250?.src_file_id) {
+      const v_35d74b = `${v_f17108}/oth-path${v_fc9250.src_file_id}`;
+      v_3f4e2e.executionCtx.waitUntil(
+        v_67dc73(fetch, {
+          base: v_3f4e2e.env.PRETHIRD_PUBLIC_BASE,
+          secret: v_3f4e2e.env.PREBUILD_SECRET,
+          cloneId: String(v_0a2cd1.clone_id),
+          voiceRawUrl: v_35d74b,
+        }),
       );
     }
   }
