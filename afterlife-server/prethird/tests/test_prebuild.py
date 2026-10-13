@@ -209,6 +209,7 @@ async def test_make_prompt_pair_graceful_on_failures(monkeypatch, tmp_path):
         returncode = None
         killed = False
         async def communicate(self): await asyncio.sleep(60)
+        async def wait(self): return 0
         def kill(self): _Hang.killed = True
     async def hang_exec(*a, **k): return _Hang()
     monkeypatch.setattr(prebuild.asyncio, "create_subprocess_exec", hang_exec)
@@ -226,3 +227,33 @@ async def test_prebuild_survives_prompt_pair_exception(monkeypatch):
     monkeypatch.setattr(prebuild, "_make_prompt_pair", boom)
     await _post_prebuild(prebuild)
     assert calls["stt"] == ["9200"]
+
+def _setup_pair_env(monkeypatch, tmp_path):
+    import prebuild
+    script = tmp_path / "make_prompt_ref.py"
+    script.write_text("")
+    monkeypatch.setattr(prebuild, "MAKE_PROMPT_REF", str(script))
+    monkeypatch.setattr(prebuild, "REF_VOICES_ROOT", str(tmp_path / "refs"))
+
+    class _Ok:
+        returncode = 0
+        async def communicate(self): return (b"ok", b"")
+    async def ok_exec(*a, **k): return _Ok()
+    monkeypatch.setattr(prebuild.asyncio, "create_subprocess_exec", ok_exec)
+    return prebuild
+
+@pytest.mark.asyncio
+async def test_make_prompt_pair_false_when_outputs_missing(monkeypatch, tmp_path, caplog):
+    prebuild = _setup_pair_env(monkeypatch, tmp_path)
+    with caplog.at_level("WARNING", logger="prethird.prebuild"):
+        assert await prebuild._make_prompt_pair("9200") is False
+    assert any("미생성" in r.message for r in caplog.records)
+
+@pytest.mark.asyncio
+async def test_make_prompt_pair_true_when_outputs_exist(monkeypatch, tmp_path):
+    prebuild = _setup_pair_env(monkeypatch, tmp_path)
+    d = tmp_path / "refs" / "9200"
+    d.mkdir(parents=True)
+    (d / "voice_prompt.wav").write_bytes(b"x")
+    (d / "ref_prompt.txt").write_text("안녕")
+    assert await prebuild._make_prompt_pair("9200") is True

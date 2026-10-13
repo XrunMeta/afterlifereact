@@ -67,6 +67,8 @@ async def _run_prebuild(clone_id: str, voice_raw_url: str) -> None:
         ok = await transcribe_clone(clone_id, stt_url=STT_URL)
         log.info("prebuild done clone=%s stt_ok=%s", clone_id, ok)
         _log_ref_quality(clone_id)
+        # 의도: 견본쌍 생성은 _sem 안에 둔다 — PREBUILD_MAX_CONCURRENCY 로 ffmpeg/STT
+        # 동시 실행을 제한(리소스 보호). _sem 밖으로 빼지 말 것.
         try:
             await _make_prompt_pair(clone_id)
         except Exception as e:  # 견본쌍은 부가 단계 — 선빌드를 깨지 않는다
@@ -96,6 +98,10 @@ async def _make_prompt_pair(clone_id: str) -> bool:
         log.warning("prompt pair 타임아웃 clone=%s (%ss)", clone_id, PROMPT_PAIR_TIMEOUT)
         try:
             proc.kill()
+        except Exception:
+            pass
+        try:  # 자식 회수(파이프 transport 잔류 방지)
+            await asyncio.wait_for(proc.wait(), 5)
         except Exception:
             pass
         return False
