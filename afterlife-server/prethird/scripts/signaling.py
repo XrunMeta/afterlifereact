@@ -1070,6 +1070,11 @@ def _make_dc_handler(sess, channel):
         if mtype == "face_event":
             _handle_face_event(sess, data)
             return
+        # [AFL-1003] 광고 복귀 턴은 pipeline.say(ad_event=) 를 지원하는 빌드에서만 처리한다.
+        #   RN(Metro)은 먼저 갱신되고 prethird(가비아)는 배포가 늦을 수 있어, 구버전에 ad_returned 가
+        #   닿으면 아래 say("") 가 빈 유저턴을 만든다 → 조기 드롭으로 방지.
+        if mtype == "ad_returned" and not _accepts_kw(sess.pipeline.say, "ad_event"):
+            return
         # 프로세스 시작 후에도 env 토글 평가, 테스트 monkeypatch 호환
         if mtype == "greet" and os.environ.get("PRETHIRD_GREETING_ENABLED", "1") != "1":
             return  # 토글 off — 인사 무시(RN 타임아웃 폴백이 처리)

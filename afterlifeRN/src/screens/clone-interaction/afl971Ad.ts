@@ -10,5 +10,6 @@ const v_9474af = new Set<string>([
   "oth-test@example.invalid",
 ]);
 export function v_25c9bd(v_e0c7e8): boolean {
-  return !!v_e0c7e8 && v_9474af.has(v_e0c7e8);
+  if (!v_e0c7e8) return false;
+  return v_9474af.has(v_e0c7e8.trim().toLowerCase());
 }

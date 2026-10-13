@@ -1870,6 +1870,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const [afl971AdInProgress, setAfl971AdInProgress] = useState(false);
   const afl971AdInProgressRef = useRef<boolean>(false);
+
+  const afl971ReturnTurnPendingRef = useRef<boolean>(false);
   useEffect(() => {
     afl971AdInProgressRef.current = afl971AdInProgress;
   }, [afl971AdInProgress]);
@@ -1932,7 +1934,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           afl971UnmuteCallAudio();
         }
 
-        sendAdReturned?.();
         console.log("[Call][afl971] 연결중 광고 닫힘");
       } catch (err) {
         console.warn("[Call][afl971] 연결중 광고 실패:", (err as Error)?.message ?? err);
@@ -1962,6 +1963,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
     if (afl971AdInProgressRef.current) {
       console.log("[Call][afl971] 광고 사이클 중 — 라운드 count skip");
+      return;
+    }
+
+    if (afl971ReturnTurnPendingRef.current) {
+      afl971ReturnTurnPendingRef.current = false;
+      console.log("[Call][afl971] 광고 복귀 턴 — 라운드 count 제외");
       return;
     }
 
@@ -1999,6 +2006,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           await loadAndShowRewardedAd();
         } finally {
           afl971UnmuteCallAudio();
+        }
+
+        if (sendAdReturned) {
+          afl971ReturnTurnPendingRef.current = true;
+          sendAdReturned();
+          console.log(`[Call][afl971] round ${round} 광고 닫힘 — 복귀 멘트 신호(ad_returned)`);
         }
 
         const callIdNow = getCallId?.() ?? null;
