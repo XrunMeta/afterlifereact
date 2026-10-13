@@ -466,3 +466,36 @@ it('ICE 대기 분기(타임아웃 아님): gathering→complete emit → fetch 
   const [v_f71b56] = (global.fetch as jest.Mock).mock.calls[0];
   expect(String(v_f71b56)).toContain('/prethird/offer');
 });
+
+describe('AFL-1003 adNotice / sendAdReturned', () => {
+  beforeEach(() => { v_897bd0(); });
+
+  it('say(text, {adNotice:"pre"}) → 페이로드에 adNotice 포함', async () => {
+    const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    await v_be73a0(async () => { await v_43c42e.current.say('안녕', { adNotice: 'pre' }); });
+    expect(JSON.parse(v_32dc97.sent[0])).toMatchObject({ type: 'say', text: '안녕', adNotice: 'pre' });
+  });
+
+  it('say(text) 인자 없이 → adNotice 키 없음(하위호환)', async () => {
+    const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    await v_be73a0(async () => { await v_43c42e.current.say('안녕'); });
+    expect(JSON.parse(v_32dc97.sent[0])).not.toHaveProperty('adNotice');
+  });
+
+  it('sendAdReturned → {type:"ad_returned", seq} 전송', async () => {
+    const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    v_be73a0(() => { v_43c42e.current.sendAdReturned!(); });
+    const v_f966e3 = JSON.parse(v_32dc97.sent[0]);
+    expect(v_f966e3.type).toBe('ad_returned');
+    expect(typeof v_f966e3.seq).toBe('number');
+  });
+});

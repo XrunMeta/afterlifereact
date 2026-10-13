@@ -1065,7 +1065,7 @@ def _make_dc_handler(sess, channel):
         except (ValueError, TypeError):
             return
         mtype = data.get("type")
-        if mtype not in ("say", "speak", "greet", "face_event") or sess.pipeline is None:
+        if mtype not in ("say", "speak", "greet", "face_event", "ad_returned") or sess.pipeline is None:
             return
         if mtype == "face_event":
             _handle_face_event(sess, data)
@@ -1114,6 +1114,9 @@ def _make_dc_handler(sess, channel):
             sess.name_extract_sent.add(pid)
             asyncio.ensure_future(_send_enroll_suggest(sess, channel, text, person_id=pid))
         seq = data.get("seq")   # RN이 부여(없으면 None), echo 전용
+        # [AFL-1003] 광고 예고 신호 — say 의 adNotice=="pre" 일 때만 pipeline.say(ad_event="pre").
+        #   ad_returned 는 text 없이 오는 클론 주도 턴(아래 else 분기가 ad_event="returned" 로 처리).
+        _ad_event = "pre" if (mtype == "say" and data.get("adNotice") == "pre") else None
         sess.set_state("speaking")
 
         # 턴 기록 시작 — input.txt 즉시 기록. recorder 없으면 None.
@@ -1245,7 +1248,14 @@ def _make_dc_handler(sess, channel):
                         )
                     else:
                         _say_kw = {}
-                        if _accepts_kw(sess.pipeline.say, "on_reply_done"):
+                        # [AFL-1003] 광고 멘트 — pipeline.say 가 ad_event 를 모르면(구버전·목) 생략.
+                        if mode == "ad_returned":
+                            if _accepts_kw(sess.pipeline.say, "ad_event"):
+                                _say_kw["ad_event"] = "returned"
+                        elif _ad_event is not None and _accepts_kw(sess.pipeline.say, "ad_event"):
+                            _say_kw["ad_event"] = _ad_event
+                        # ad_returned 는 사용자 발화가 없으므로 turn 기록(call_turns)·학습 대상이 아니다.
+                        if mode != "ad_returned" and _accepts_kw(sess.pipeline.say, "on_reply_done"):
                             # AFL-926: GPT 응답이 끝나는 즉시 기록 — 재생(Bridge·렌더) 뒤까지 미루면
                             # 끊고 바로 다시 건 통화가 직전 턴을 이전 대화로 못 받아 온다.
                             _say_kw["on_reply_done"] = _record_say_turn

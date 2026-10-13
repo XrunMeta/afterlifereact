@@ -223,6 +223,31 @@ def greeting_prompt(has_prior: bool) -> str:
     return GREETING_PROMPT_WITH_PRIOR if has_prior else GREETING_PROMPT
 
 
+# [AFL-1003] 통화 중 전면광고 앞뒤 멘트. 고정 TTS 클립이 아니라 LLM 메시지에
+# "곧 광고 나감 / 방금 광고 봤음" 사실을 system 으로 주입해 대화에 녹인다.
+# (클론이 광고 인지가 없어 "광고 안 보여줘" 라고 단언하던 것을 덮는다.)
+def ad_prenotice_system_message() -> dict:
+    return {
+        "role": "system",
+        "content": (
+            "[중요] 이 대답을 마치면 곧 짧은 광고가 나가. 이번 답변의 자연스러운 흐름 끝에 "
+            "'아, 잠깐만 나 광고 하나 보고 올게' 같은 느낌으로 가볍게 알리고 말을 맺어. "
+            "딱딱한 공지 말고 대화하듯 해. 광고를 거부하거나 '안 본다'고 하지 마. 짧게."
+        ),
+    }
+
+
+def ad_returned_system_message() -> dict:
+    return {
+        "role": "system",
+        "content": (
+            "[중요] 사용자가 방금 그 짧은 광고를 다 보고 돌아왔어(광고 보답으로 꽃도 받았어). "
+            "네가 먼저 '어 왔어? 광고 잘 봤어?' 처럼 반갑게 말을 걸어서 끊겼던 대화를 "
+            "자연스럽게 이어. 고맙다는 뉘앙스는 가볍게. 짧고 자연스럽게."
+        ),
+    }
+
+
 # [T-067] 얼굴 인식 이벤트에 대한 선제 발화 프롬프트 (react()).
 REACT_PROMPT_KNOWN = (
     "방금 화면에 '{name}'님이 새로 나타났어. 하던 이야기를 잠깐 멈추고, "
@@ -540,7 +565,7 @@ class DialoguePipeline:
 
     async def say(
         self, user_text: str, turn=None, on_first_audio=None, on_response_ready=None,
-        on_sentence=None, on_reply_done=None,
+        on_sentence=None, on_reply_done=None, ad_event: str | None = None,
     ) -> None:
         """user_text 1턴을 처리해 video/audio 트랙에 적재하고 signal_end 호출.
         turn: recorder Turn 핸들(없으면 NULL_TURN) — LLM 토큰·TTS wav 누적.
@@ -567,11 +592,22 @@ class DialoguePipeline:
         await self._await_prior()
         # T-821: 이전 턴 messages 를 persona 뒤 · 현재 발화 앞에 삽입.
         #   미설정(0) 이면 messages() 가 [] → 회귀 0.
-        messages = (
-            self.persona_messages
-            + self._history.messages()
-            + [{"role": "user", "content": user_text}]
-        )
+        if ad_event == "returned":
+            # [AFL-1003] 광고 복귀 — 사용자 발화 없는 클론 주도 턴. 가짜 유저턴은 LLM 입력에만
+            #   쓰고 history 에는 남기지 않는다(함수 끝 record 에서 user_text=None).
+            messages = (
+                self.persona_messages
+                + self._history.messages()
+                + [ad_returned_system_message()]
+                + [{"role": "user", "content":
+                    "(사용자가 광고를 다 보고 막 돌아왔다. 네가 먼저 자연스럽게 말을 걸어 대화를 이어.)"}]
+            )
+        else:
+            messages = (
+                self.persona_messages
+                + self._history.messages()
+                + [{"role": "user", "content": user_text}]
+            )
 
         # [Remember Me 2026-08-13] 이름 부르기 힌트 — 딱 1회 소비하고 지운다.
         #
@@ -612,6 +648,14 @@ class DialoguePipeline:
                 ),
             }]
 
+        # [AFL-1003] 광고 예고 — 인자(ad_event="pre") 또는 1회성 힌트. 소비 후 지운다.
+        #   복귀(returned) 턴에는 붙이지 않는다(서로 모순).
+        if ad_event != "returned" and (
+            ad_event == "pre" or getattr(self, "ad_notice_hint", None) == "pre"
+        ):
+            self.ad_notice_hint = None
+            messages = messages + [ad_prenotice_system_message()]
+
         # T-821: assistant 응답 로컬 누적 → _run_pipeline 종료 후 history.record().
         #   turn._tokens 를 재사용하지 않는 이유: turn 이 NULL_TURN 이면 실기록이
         #   없어 그 값에 기대면 히스토리도 빈다. 로컬 리스트로 대체.
@@ -637,7 +681,9 @@ class DialoguePipeline:
 
         await self._run_pipeline(produce, turn, on_first_audio, on_response_ready, on_sentence=on_sentence)
         # T-821: 발화 완료 · assistant_text 기록. 빈 응답이면 클래스 내부에서 skip.
-        self._history.record(user_text, "".join(answer_tokens))
+        # [AFL-1003] 광고 복귀는 클론 주도 턴 — greet 관례대로 user_text=None 으로 기록.
+        self._history.record(None if ad_event == "returned" else user_text,
+                             "".join(answer_tokens))
 
     async def speak(
         self, text: str, turn=None, on_first_audio=None, on_response_ready=None,
