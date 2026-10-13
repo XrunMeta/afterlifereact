@@ -6,6 +6,7 @@ import v_2dc4c2, {
   v_220e44,
 } from "bsiaazmwsayjedvznfsir";
 import { v_326be8 } from "rcmrninabrnb";
+import v_9c213b from "../i18n";
 
 const v_766105 = "call-foreground";
 const v_2fce34 = "call-fg";
@@ -29,7 +30,7 @@ export async function v_705e4e(v_4317d1): Promise<void> {
 
     await v_2dc4c2.createChannel({
       id: v_766105,
-      name: "통화",
+      name: v_9c213b.t("call.channelName", { defaultValue: "통화" }),
       importance: v_ad9c5b.LOW, 
       sound: undefined,
       vibration: false,

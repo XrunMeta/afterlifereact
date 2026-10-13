@@ -13,6 +13,7 @@ import {
   v_0e1f26,
   v_122070,
 } from "rcmrninabrnb";
+import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0, v_8b0c90 } from "../constants";
 
 export interface RememberMeSheetProps {
@@ -32,6 +33,7 @@ export default function v_39b6c7({
   onSubmit: v_3bfe4c,
   onDismiss: v_1b97a8,
 }: RememberMeSheetProps) {
+  const { t: v_8d41d7 } = v_772971();
   const [v_1833e7, v_318f24] = v_5ab095("");
   const [v_dd8af0, v_23e8d3] = v_5ab095("");
 
@@ -70,7 +72,7 @@ export default function v_39b6c7({
           }
           v_1b97a8();
         }}
-        accessibilityLabel="닫기"
+        accessibilityLabel={v_8d41d7("common.close", { defaultValue: "닫기" })}
       />
       <KeyboardAvoidingView
         style={v_d81136.backdrop}
@@ -82,31 +84,31 @@ export default function v_39b6c7({
 }
         <View style={v_d81136.cardWrapper} pointerEvents="box-none">
         <View style={v_d81136.card} testID="remember-me-sheet">
-          <Text style={v_d81136.title}>이 분은 누구신가요?</Text>
+          <Text style={v_d81136.title}>{v_8d41d7("call.rememberMe.sheetTitle", { defaultValue: "이 분은 누구신가요?" })}</Text>
           <Text style={v_d81136.desc}>
-            알려주시면 다음 통화부터 기억할게요.
+            {v_8d41d7("call.rememberMe.sheetDesc", { defaultValue: "알려주시면 다음 통화부터 기억할게요." })}
           </Text>
 
-          <Text style={v_d81136.label}>이름</Text>
+          <Text style={v_d81136.label}>{v_8d41d7("call.rememberMe.nameLabel", { defaultValue: "이름" })}</Text>
           <TextInput
             testID="remember-me-name"
             style={v_d81136.input}
             value={v_1833e7}
             onChangeText={v_318f24}
-            placeholder="예: 지호"
+            placeholder={v_8d41d7("call.rememberMe.namePlaceholder", { defaultValue: "예: 지호" })}
             placeholderTextColor="#9ca3af"
             autoFocus
             returnKeyType="next"
             editable={!v_35bf26}
           />
 
-          <Text style={v_d81136.label}>관계</Text>
+          <Text style={v_d81136.label}>{v_8d41d7("call.rememberMe.relationLabel", { defaultValue: "관계" })}</Text>
           <TextInput
             testID="remember-me-relation"
             style={v_d81136.input}
             value={v_dd8af0}
             onChangeText={v_23e8d3}
-            placeholder="예: 손주, 오랜 친구"
+            placeholder={v_8d41d7("call.rememberMe.relationPlaceholder", { defaultValue: "예: 손주, 오랜 친구" })}
             placeholderTextColor="#9ca3af"
             returnKeyType="done"
             editable={!v_35bf26}
@@ -123,7 +125,7 @@ export default function v_39b6c7({
               disabled={v_35bf26}
               style={({ pressed: v_aba1d2 }) => [v_d81136.btn, v_d81136.btnGhost, v_aba1d2 && v_d81136.pressed]}
             >
-              <Text style={v_d81136.btnGhostText}>나중에</Text>
+              <Text style={v_d81136.btnGhostText}>{v_8d41d7("call.rememberMe.later", { defaultValue: "나중에" })}</Text>
             </Pressable>
             <Pressable
               testID="remember-me-submit"
@@ -137,7 +139,7 @@ export default function v_39b6c7({
                 v_aba1d2 && v_d81136.pressed,
               ]}
             >
-              <Text style={v_d81136.btnPrimaryText}>{v_35bf26 ? "저장 중…" : "저장"}</Text>
+              <Text style={v_d81136.btnPrimaryText}>{v_35bf26 ? v_8d41d7("common.saving", { defaultValue: "저장 중…" }) : v_8d41d7("common.save", { defaultValue: "저장" })}</Text>
             </Pressable>
           </View>
         </View>

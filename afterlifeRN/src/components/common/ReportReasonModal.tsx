@@ -94,19 +94,19 @@ export default function v_4d58d7({
             {}
             {}
             <Text style={v_d81136.title}>{
-              v_6a1be1 === "comment" ? "댓글 신고하기"
-              : v_6a1be1 === "post" ? "게시물 신고하기"
+              v_6a1be1 === "comment" ? v_8d41d7("report.titleComment", { defaultValue: "댓글 신고하기" })
+              : v_6a1be1 === "post" ? v_8d41d7("report.titlePost", { defaultValue: "게시물 신고하기" })
               : v_8d41d7("report.title", { defaultValue: "신고하기" })
             }</Text>
             <Text style={v_d81136.desc}>
               {v_6a1be1 === "comment" ? (
                 v_8a1135
-                  ? `'${v_8a1135}' 님의 댓글을 신고하는 사유를 입력해 주세요.`
-                  : "댓글을 신고하는 사유를 입력해 주세요."
+                  ? v_8d41d7("report.descCommentWithName", { name: v_8a1135, defaultValue: "'{{name}}' 님의 댓글을 신고하는 사유를 입력해 주세요." })
+                  : v_8d41d7("report.descCommentNoName", { defaultValue: "댓글을 신고하는 사유를 입력해 주세요." })
               ) : v_6a1be1 === "post" ? (
                 v_8a1135
-                  ? `'${v_8a1135}' 님의 게시물을 신고하는 사유를 입력해 주세요.`
-                  : "게시물을 신고하는 사유를 입력해 주세요."
+                  ? v_8d41d7("report.descPostWithName", { name: v_8a1135, defaultValue: "'{{name}}' 님의 게시물을 신고하는 사유를 입력해 주세요." })
+                  : v_8d41d7("report.descPostNoName", { defaultValue: "게시물을 신고하는 사유를 입력해 주세요." })
               ) : (
                 v_8a1135
                   ? v_8d41d7("report.descWithName", {

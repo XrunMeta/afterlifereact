@@ -3,6 +3,7 @@
 import { v_de06a3, v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import { v_cc9198 } from "../config/apiBase";
 import { v_335e37 } from "../lib/authFetch";
+import v_9c213b from "../i18n";
 import { type v_b01667, type v_d20273, type v_b190e4, type v_9d43cd, type v_14f245 } from "./avatarCall";
 import { type v_2a0baf } from "../components/viseme/VisemePlayer";
 import { v_194498 } from "../stores/cloneStore";
@@ -282,7 +283,7 @@ export function v_e52b18(v_328259): UseVisemeAvatarResult {
   const v_3e2c87 = v_bff046;
 
   const v_009e58 = v_de06a3(async () => {
-    await v_a1d9db("안녕하세요");
+    await v_a1d9db(v_9c213b.t("greeting.default", { defaultValue: "안녕하세요" }));
   }, [v_a1d9db]);
 
   const v_811f30 = v_de06a3(() => {
