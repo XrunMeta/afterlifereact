@@ -112,7 +112,7 @@ v_62a1b6.post("/redeem-with-ad", async (v_3f4e2e) => {
   const v_5097fd = (v_8c0b26 as any).name ?? v_4d33b2.giftId;
   const v_56896b = (v_8c0b26 as any).emoji ?? "🎁";
   const v_92e7a1 = (v_8c0b26 as any).imageUrl ?? null;
-  await v_3f4e2e.env.DB
+  const v_f5353f = await v_3f4e2e.env.DB
     .prepare(
       `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id,
                                            clone_id, gift_name_snapshot, gift_emoji_snapshot, gift_image_url_snapshot)
@@ -121,13 +121,57 @@ v_62a1b6.post("/redeem-with-ad", async (v_3f4e2e) => {
     .bind(v_625c74.id, v_4d33b2.giftId, v_520523, v_b291d9, `xrun-bridge-ad:${Date.now()}`,
           v_5097fd, v_56896b, v_92e7a1)
     .run();
+  const v_0a1a70 = Number(v_f5353f.meta?.last_row_id ?? 0);
+  const v_a0e308 = `afterlife-redeem:${v_0a1a70 || Date.now()}`;
 
-  console.log(`[xrun-bridge] redeem OK email=${v_4d33b2.email} giftId=${v_4d33b2.giftId} burned=${v_520523} payout=${v_ecb35d}XRUN — attendance debit TODO`);
+  let v_96c1fe = { ok: false };
+  if (!v_3f4e2e.env.XRUN_API_URL || !v_3f4e2e.env.XRUN_INTERNAL_SECRET) {
+    v_96c1fe = { ok: false, reason: "missing XRUN_API_URL/XRUN_INTERNAL_SECRET" };
+    console.error(`[xrun-bridge] grant SKIP: ${v_96c1fe.reason}`);
+  } else {
+    try {
+      const v_1e7a69 = await fetch(`${v_3f4e2e.env.XRUN_API_URL}/oth-path`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Internal-Secret": v_3f4e2e.env.XRUN_INTERNAL_SECRET,
+        },
+        body: JSON.stringify({
+          email: v_4d33b2.email,
+          xrunAmount: v_ecb35d,
+          refId: v_a0e308,
+          source: "afterlife_flower_redeem",
+        }),
+      });
+      const v_ba458c = await v_1e7a69.json().catch(() => ({})) as any;
+      if (v_1e7a69.ok && v_ba458c?.status === "success") {
+        v_96c1fe = {
+          ok: true,
+          txnId: v_ba458c?.data?.txnId ?? null,
+          duplicate: !!v_ba458c?.data?.duplicate,
+          newBalance: v_ba458c?.data?.newBalance ?? null,
+        };
+      } else {
+        v_96c1fe = { ok: false, reason: `xrun-api ${v_1e7a69.status} ${v_ba458c?.message ?? "unknown"}` };
+      }
+    } catch (v_49263d) {
+      v_96c1fe = { ok: false, reason: `network: ${(v_49263d as Error).message}` };
+    }
+  }
+
+  console.log(`[xrun-bridge] redeem email=${v_4d33b2.email} giftId=${v_4d33b2.giftId} burned=${v_520523} payout=${v_ecb35d}XRUN refId=${v_a0e308} grant=${v_96c1fe.ok ? `ok(txn=${v_96c1fe.txnId ?? "?"},bal=${v_96c1fe.newBalance ?? "?"},dup=${v_96c1fe.duplicate ? 1 : 0})` : `fail(${v_96c1fe.reason})`}`);
 
   await v_74defc(v_3f4e2e, {
     userId: v_625c74.id,
     action: "gift.xrun_bridge_redeem",
-    details: { giftId: v_4d33b2.giftId, burned: v_520523, xrunPayout: v_ecb35d, via: "pangle_ad" },
+    details: {
+      giftId: v_4d33b2.giftId,
+      burned: v_520523,
+      xrunPayout: v_ecb35d,
+      via: "pangle_ad",
+      refId: v_a0e308,
+      grant: v_96c1fe,
+    },
   });
 
   return v_3f4e2e.json({
@@ -135,5 +179,6 @@ v_62a1b6.post("/redeem-with-ad", async (v_3f4e2e) => {
     giftId: v_4d33b2.giftId,
     burned: v_520523,          
     xrunAmount: v_ecb35d, 
+    grant: v_96c1fe,
   });
 });
