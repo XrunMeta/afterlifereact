@@ -1246,8 +1246,14 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const sayForHandsFree = useCallback(
     (text: string) => {
       const willBeRound = afl971RoundCountRef.current + 1;
+
+      const faceBusy =
+        rmStateRef.current.promptRegister ||
+        shouldHoldMic(rmStateRef.current) ||
+        shStateRef.current.naming;
       const adNext =
         afl971IsFirstCallRef.current === false &&
+        !faceBusy &&
         afl971ShouldShowAd(willBeRound, isAfl971AdTestAccount(debugEmail));
       return adNext ? say(text, { adNotice: "pre" }) : say(text);
     },
@@ -1417,7 +1423,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   useEffect(() => {
     if (!rmState.promptRegister) { afl971PromptAlertShownRef.current = false; return; }
     if (afl971PromptAlertShownRef.current) return;      
-    if (phase === "speaking") return;                   
+
+    if (phase === "speaking" || afl971AdInProgressRef.current) return;
     afl971PromptAlertShownRef.current = true;
 
     showAlert(
