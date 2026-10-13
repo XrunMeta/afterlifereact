@@ -32,6 +32,7 @@ import { v_87e8b2 } from "./routes/adminGdpr";
 import { v_dda4b9 } from "./routes/deletion";
 import { v_19f1fa } from "./routes/adminDeletion";
 import { v_ff9685 } from "./routes/files";
+import { v_b74951 } from "./routes/voice";
 import { v_4bc206 } from "./routes/voicePackages";
 import { v_a35f69 } from "./routes/payments";
 import { v_68bb66 } from "./routes/gifts";
@@ -109,6 +110,7 @@ v_466992.get("/benchmark", async (v_3f4e2e) => {
 
 v_466992.route("/oth-path", v_68f0aa);
 v_466992.route("/oth-path", v_ff9685);
+v_466992.route("/oth-path", v_b74951);
 
 v_466992.route("/oth-path", v_4bc206);
 
