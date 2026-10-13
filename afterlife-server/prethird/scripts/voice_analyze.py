@@ -79,6 +79,7 @@ import hmac
 import json as _json
 import logging
 import tempfile
+import urllib.error
 import urllib.request
 
 from aiohttp import web
@@ -95,7 +96,7 @@ _SIL_END = re.compile(r"silence_end:\s*([0-9.]+)")
 
 def _run(cmd: list[str]) -> str:
     import subprocess
-    p = subprocess.run(cmd, capture_output=True, text=True)
+    p = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
     return (p.stdout or "") + (p.stderr or "")
 
 
@@ -129,9 +130,11 @@ def _transcribe(wav_path: str) -> str | None:
     try:
         with urllib.request.urlopen(req, timeout=60) as resp:
             data = _json.loads(resp.read().decode("utf-8"))
-    except Exception as exc:  # noqa: BLE001 — HTTP 422(빈 전사)·네트워크 등 전부 미인식 취급
-        log.info("voice-analyze STT skip: %s", exc)
-        return None
+    except urllib.error.HTTPError as exc:
+        if exc.code == 422:  # 빈 전사/한글비율 미달 = 진짜 발화 없음 → NO_VOICE
+            log.info("voice-analyze STT 422: no speech")
+            return None
+        raise  # 5xx 등 인프라 오류는 전파 → 핸들러 500 (fail-closed)
     return data.get("ref_text") or None
 
 
@@ -152,7 +155,7 @@ async def analyze(voice_raw_url: str) -> dict:
         await voice_fetch.fetch_to(voice_raw_url, src)
         await voice_fetch._ffmpeg_to_wav(src, wav)
         # ffmpeg/ffprobe/STT 는 블로킹 → 이벤트 루프 밖에서.
-        return await asyncio.get_event_loop().run_in_executor(None, _analyze_sync, wav)
+        return await asyncio.get_running_loop().run_in_executor(None, _analyze_sync, wav)
     finally:
         for p in (src, wav):
             try:
