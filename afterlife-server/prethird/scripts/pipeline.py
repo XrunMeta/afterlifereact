@@ -584,7 +584,9 @@ class DialoguePipeline:
         #   LLM+TTS+MuseTalk 전체 스킵하고 즉시 push. 나머지 turn 은 정상 흐름.
         # AFL-926: greet 가 켜져 있으면 캐시는 greet() 의 것이다. 여기서 쓰면 사용자의 첫
         #   말에 인사가 대답으로 나간다(2026-09-28 prerender-off 의 원인으로 추정).
-        if (self._prerender_ready and not self._prerender_used
+        # AFL-1003: 광고 예고/복귀 턴은 캐시 인사로 빠지면 안 된다(ad_event 무시 방지). 운영은
+        #   GREETING_ENABLED=0 이라 이 분기가 켜져 있어, 가드 없으면 복귀 턴이 캐시 인사를 소비한다.
+        if (ad_event is None and self._prerender_ready and not self._prerender_used
                 and os.environ.get("PRETHIRD_GREETING_ENABLED", "1") != "1"):
             await self._push_prerender(turn, None, on_response_ready, on_sentence)
             return
