@@ -21,6 +21,7 @@ import {
   ToastAndroid,
 } from "react-native";
 
+import { afl971ShouldShowAd, isAfl971AdTestAccount } from "./afl971Ad";
 import * as ScreenCapture from "expo-screen-capture";
 import ViewShot, { captureRef } from "react-native-view-shot";
 import * as MediaLibrary from "expo-media-library";
@@ -203,6 +204,8 @@ interface FloatingGift {
 type EmoteKey = "smile" | "wink" | "cry" | "angry" | "yawn";
 const EMOTE_BASE_URL = "https://rtc.example.invalid/emote";
 const EMOTE_SERVER_ACTIONS: ReadonlySet<EmoteKey> = new Set(["smile"]);
+
+export { afl971ShouldShowAd };
 
 function emoteVideoUri(cloneId: number, key: EmoteKey): string | null {
   if (!EMOTE_SERVER_ACTIONS.has(key) || !Number.isFinite(cloneId) || cloneId <= 0) return null;
@@ -628,6 +631,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     lastSignal,
     sendFaceEvent,
     sendAudioReady,
+    sendAdReturned,
     getCallId,
 
     visemeResponse,
@@ -1238,6 +1242,17 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     void stopLive();
   }, [stopLive]);
 
+  const sayForHandsFree = useCallback(
+    (text: string) => {
+      const willBeRound = afl971RoundCountRef.current + 1;
+      const adNext =
+        afl971IsFirstCallRef.current === false &&
+        afl971ShouldShowAd(willBeRound, isAfl971AdTestAccount(debugEmail));
+      return adNext ? say(text, { adNotice: "pre" }) : say(text);
+    },
+    [say, debugEmail],
+  );
+
   const sttEndpointMs = useTimingConfigStore((s) => s.sttEndpointMs);
 
   const confirmGateEnabled = useTimingConfigStore((s) => s.confirmGateEnabled);
@@ -1259,7 +1274,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     onSttUnrecoverable: handleSttUnrecoverable,
 
     enabled: liveState === "live",
-    say,
+
+    say: sayForHandsFree,
     getStatsReport,
     notifySpeechEnd,
     greeting: greetingOn,
@@ -1915,6 +1931,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         } finally {
           afl971UnmuteCallAudio();
         }
+
+        sendAdReturned?.();
         console.log("[Call][afl971] 연결중 광고 닫힘");
       } catch (err) {
         console.warn("[Call][afl971] 연결중 광고 실패:", (err as Error)?.message ?? err);
@@ -1960,10 +1978,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       return;
     }
 
-    const isAdTestAccount = debugEmail === "oth-user@example.invalid";
-    const firstThreshold = isAdTestAccount ? 2 : 10;
-    const stepAfter = isAdTestAccount ? 1 : 5;
-    const shouldShow = round === firstThreshold || (round > firstThreshold && (round - firstThreshold) % stepAfter === 0);
+    const isAdTestAccount = isAfl971AdTestAccount(debugEmail);
+    const shouldShow = afl971ShouldShowAd(round, isAdTestAccount);
     if (!shouldShow) return;
     if (afl971AdShownRoundsRef.current.has(round)) return;
     afl971AdShownRoundsRef.current.add(round);
@@ -2024,7 +2040,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         }
       }
     })();
-  }, [phase, renderAfl971Message, afl971MuteCallAudio, afl971UnmuteCallAudio, debugEmail, isMuted, getCallId, accessToken, afl971ToastTemplate]);
+  }, [phase, renderAfl971Message, afl971MuteCallAudio, afl971UnmuteCallAudio, debugEmail, isMuted, getCallId, accessToken, afl971ToastTemplate, sendAdReturned]);
 
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const warnedRef = useRef(false);
