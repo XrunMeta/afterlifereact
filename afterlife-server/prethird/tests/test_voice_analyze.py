@@ -157,8 +157,9 @@ def test_speech_start_no_leading_silence():
 
 # --- analyze 정리 ---
 @pytest.mark.asyncio
-async def test_analyze_cleans_tmpdir_on_error(monkeypatch):
+async def test_analyze_cleans_tmpdir_on_error(monkeypatch, tmp_path):
     import tempfile
+    monkeypatch.setenv("REF_ROOT", str(tmp_path))
     captured = {}
     real = tempfile.mkdtemp
 
@@ -175,6 +176,33 @@ async def test_analyze_cleans_tmpdir_on_error(monkeypatch):
     with pytest.raises(RuntimeError):
         await va.analyze("http://x/y")
     assert "d" in captured and not os.path.exists(captured["d"])
+
+
+# STT /transcribe_path 는 REF_ROOT 하위 wav 만 허용 → 작업 wav 도 그 아래여야 한다.
+@pytest.mark.asyncio
+async def test_analyze_work_wav_under_ref_root(monkeypatch, tmp_path):
+    monkeypatch.setenv("REF_ROOT", str(tmp_path))
+    seen = {}
+
+    async def _fetch(url, dest):
+        open(dest, "w").write("x")
+
+    async def _ffmpeg(src, dest):
+        open(dest, "w").write("x")
+        seen["wav"] = dest
+
+    def _sync(wav):
+        seen["sync_wav"] = wav
+        return {"ok": True}
+
+    monkeypatch.setattr(va.voice_fetch, "fetch_to", _fetch)
+    monkeypatch.setattr(va.voice_fetch, "_ffmpeg_to_wav", _ffmpeg)
+    monkeypatch.setattr(va, "_analyze_sync", _sync)
+    assert await va.analyze("http://x/y") == {"ok": True}
+    root = str(tmp_path) + os.sep
+    assert seen["wav"].startswith(root)
+    assert seen["sync_wav"] == seen["wav"]
+    assert not os.path.exists(os.path.dirname(seen["wav"]))  # tmpdir 정리됨
 
 
 # --- _transcribe 분기 ---
