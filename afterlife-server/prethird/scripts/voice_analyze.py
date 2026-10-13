@@ -143,7 +143,17 @@ def _analyze_sync(wav_path: str) -> dict:
     sil_starts, sil_ends = _silences(wav_path)
     start = _speech_start(sil_starts, sil_ends)
     text = _transcribe(wav_path)
-    return classify(dur, start, sil_starts, sil_ends, text)
+    verdict = classify(dur, start, sil_starts, sil_ends, text)
+    try:
+        sz = os.path.getsize(wav_path)
+    except OSError:
+        sz = -1
+    log.info(
+        "[afl1005-diag] wav=%s size=%dB dur=%.3f start=%.3f sil=%d/%d stt_len=%s verdict=%s",
+        wav_path, sz, dur, start, len(sil_starts), len(sil_ends),
+        (len(text) if text else None), verdict,
+    )
+    return verdict
 
 
 _ANALYZE_SINK = "zz-voice-analyze"  # reference_voices 하위 전용 임시 sink (clone id 와 안 겹침)
