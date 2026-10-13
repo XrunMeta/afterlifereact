@@ -40,48 +40,91 @@ import { v_889fad } from "../../stores/dialogStore";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import v_258c1c from "../../components/common/PageHeader";
 import type { v_8ad91b } from "../../navigation/types";
+import { v_772971 } from "jmpfvteuuztnp";
 
 type Nav = v_390fcc<v_8ad91b, "PreCallFaceEnroll">;
 type Rt = v_ee3714<v_8ad91b, "PreCallFaceEnroll">;
 
+import type { v_75de9d } from "zqqvxke";
 interface Step {
   key: string;
+  labelKey: string;
   label: string;
+  hintKey: string;
   hint: string;
 
   checkPose: (yaw: number, pitch: number) => boolean;
 
-  guide: (yaw: number, pitch: number) => string;
+  guide: (t: v_75de9d, yaw: number, pitch: number) => string;
 }
 
 const v_df1250 = 1;
 
 const v_77ce37 = [
   {
-    key: "front", label: "정면", hint: "카메라를 정면으로 봐주세요",
+    key: "front",
+    labelKey: "faceEnroll.step.frontLabel", label: "정면",
+    hintKey: "faceEnroll.step.frontHint", hint: "카메라를 정면으로 봐주세요",
     checkPose: (v_64877a, v_e2a85c) => Math.abs(v_64877a) < 12 && Math.abs(v_e2a85c) < 12,
-    guide: (v_64877a, v_e2a85c) => Math.abs(v_64877a) >= 12 ? "좌우로 고개 돌리지 마세요" : Math.abs(v_e2a85c) >= 12 ? "고개 각도 낮춰주세요" : "완벽!",
+    guide: (v_8d41d7, v_64877a, v_e2a85c) =>
+      Math.abs(v_64877a) >= 12
+        ? v_8d41d7("faceEnroll.step.frontDontTurn", { defaultValue: "좌우로 고개 돌리지 마세요" })
+        : Math.abs(v_e2a85c) >= 12
+          ? v_8d41d7("faceEnroll.step.frontLowerAngle", { defaultValue: "고개 각도 낮춰주세요" })
+          : v_8d41d7("faceEnroll.step.perfect", { defaultValue: "완벽!" }),
   },
   {
 
-    key: "right", label: "왼쪽", hint: "고개를 왼쪽으로 돌려주세요",
+    key: "right",
+    labelKey: "faceEnroll.step.leftLabel", label: "왼쪽",
+    hintKey: "faceEnroll.step.leftHint", hint: "고개를 왼쪽으로 돌려주세요",
     checkPose: (v_64877a, v_e2a85c) => v_64877a > 18 && Math.abs(v_e2a85c) < 20,
-    guide: (v_64877a, v_2d3e87) => v_64877a < 18 ? `조금만 더 왼쪽으로 (${Math.round(v_64877a)}°/18°)` : "완벽!",
+    guide: (v_8d41d7, v_64877a, v_2d3e87) =>
+      v_64877a < 18
+        ? v_8d41d7("faceEnroll.step.leftGuide", {
+            deg: Math.round(v_64877a),
+            defaultValue: `조금만 더 왼쪽으로 (${Math.round(v_64877a)}°/18°)`,
+          })
+        : v_8d41d7("faceEnroll.step.perfect", { defaultValue: "완벽!" }),
   },
   {
-    key: "left", label: "오른쪽", hint: "고개를 오른쪽으로 돌려주세요",
+    key: "left",
+    labelKey: "faceEnroll.step.rightLabel", label: "오른쪽",
+    hintKey: "faceEnroll.step.rightHint", hint: "고개를 오른쪽으로 돌려주세요",
     checkPose: (v_64877a, v_e2a85c) => v_64877a < -18 && Math.abs(v_e2a85c) < 20,
-    guide: (v_64877a, v_2d3e87) => v_64877a > -18 ? `조금만 더 오른쪽으로 (${Math.round(v_64877a)}°/-18°)` : "완벽!",
+    guide: (v_8d41d7, v_64877a, v_2d3e87) =>
+      v_64877a > -18
+        ? v_8d41d7("faceEnroll.step.rightGuide", {
+            deg: Math.round(v_64877a),
+            defaultValue: `조금만 더 오른쪽으로 (${Math.round(v_64877a)}°/-18°)`,
+          })
+        : v_8d41d7("faceEnroll.step.perfect", { defaultValue: "완벽!" }),
   },
   {
-    key: "up", label: "아래", hint: "고개를 아래로 숙여주세요",
+    key: "up",
+    labelKey: "faceEnroll.step.downLabel", label: "아래",
+    hintKey: "faceEnroll.step.downHint", hint: "고개를 아래로 숙여주세요",
     checkPose: (v_64877a, v_e2a85c) => v_e2a85c < -10 && Math.abs(v_64877a) < 20,
-    guide: (v_0331f5, v_e2a85c) => v_e2a85c > -10 ? `조금만 더 아래로 (${Math.round(v_e2a85c)}°/-10°)` : "완벽!",
+    guide: (v_8d41d7, v_0331f5, v_e2a85c) =>
+      v_e2a85c > -10
+        ? v_8d41d7("faceEnroll.step.downGuide", {
+            deg: Math.round(v_e2a85c),
+            defaultValue: `조금만 더 아래로 (${Math.round(v_e2a85c)}°/-10°)`,
+          })
+        : v_8d41d7("faceEnroll.step.perfect", { defaultValue: "완벽!" }),
   },
   {
-    key: "down", label: "위", hint: "고개를 위로 들어주세요",
+    key: "down",
+    labelKey: "faceEnroll.step.upLabel", label: "위",
+    hintKey: "faceEnroll.step.upHint", hint: "고개를 위로 들어주세요",
     checkPose: (v_64877a, v_e2a85c) => v_e2a85c > 10 && Math.abs(v_64877a) < 20,
-    guide: (v_0331f5, v_e2a85c) => v_e2a85c < 10 ? `조금만 더 위로 (${Math.round(v_e2a85c)}°/10°)` : "완벽!",
+    guide: (v_8d41d7, v_0331f5, v_e2a85c) =>
+      v_e2a85c < 10
+        ? v_8d41d7("faceEnroll.step.upGuide", {
+            deg: Math.round(v_e2a85c),
+            defaultValue: `조금만 더 위로 (${Math.round(v_e2a85c)}°/10°)`,
+          })
+        : v_8d41d7("faceEnroll.step.perfect", { defaultValue: "완벽!" }),
   },
 ] as const;
 
@@ -97,6 +140,7 @@ export default function v_8640b9() {
   const v_3c9f12 = v_ada615<Nav>();
   const v_c7daf6 = v_2d8264<Rt>();
   const v_033e14 = v_e0068c();
+  const { t: v_8d41d7 } = v_772971();
 
   const v_79a64b = (v_c7daf6.params as { cloneId: unknown }).cloneId;
   const v_6e0fd3 = Number(v_79a64b);
@@ -106,9 +150,18 @@ export default function v_8640b9() {
 
   v_c4deb2(() => {
     if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
-      v_889fad("페르소나 정보 오류", "잘못된 페르소나로 진입했어요. 다시 시도해 주세요.", [
-        { text: "확인", onPress: () => v_3c9f12.goBack() },
-      ]);
+      v_889fad(
+        v_8d41d7("faceEnroll.cloneError.title", { defaultValue: "페르소나 정보 오류" }),
+        v_8d41d7("faceEnroll.cloneError.desc", {
+          defaultValue: "잘못된 페르소나로 진입했어요. 다시 시도해 주세요.",
+        }),
+        [
+          {
+            text: v_8d41d7("faceEnroll.cloneError.ok", { defaultValue: "확인" }),
+            onPress: () => v_3c9f12.goBack(),
+          },
+        ],
+      );
     }
 
   }, [v_6e0fd3]);
@@ -362,29 +415,38 @@ export default function v_8640b9() {
 
   const v_bcff1c = v_de06a3(() => {
     v_889fad(
-      "등록 없이 진행",
-      "얼굴 인식·기억 기능이 제한될 수 있습니다. 계속하시겠어요?",
+      v_8d41d7("faceEnroll.skipConfirm.title", { defaultValue: "등록 없이 진행" }),
+      v_8d41d7("faceEnroll.skipConfirm.desc", {
+        defaultValue: "얼굴 인식·기억 기능이 제한될 수 있습니다. 계속하시겠어요?",
+      }),
       [
-        { text: "취소", style: "cancel" },
-        { text: "그대로 진행", onPress: v_e9b971 },
+        { text: v_8d41d7("faceEnroll.skipConfirm.cancel", { defaultValue: "취소" }), style: "cancel" },
+        {
+          text: v_8d41d7("faceEnroll.skipConfirm.continue", { defaultValue: "그대로 진행" }),
+          onPress: v_e9b971,
+        },
       ],
     );
-  }, [v_e9b971]);
+  }, [v_e9b971, v_8d41d7]);
 
   const v_cd685a = v_de06a3(
     (v_8a1355, v_dd8af0) => {
       if (!v_2ca7e0 || !v_625c74) {
-        v_342bf2("로그인 정보가 없어요. 다시 시도해 주세요.");
+        v_342bf2(
+          v_8d41d7("faceEnroll.form.needLogin", { defaultValue: "로그인 정보가 없어요. 다시 시도해 주세요." }),
+        );
         return;
       }
 
       if (v_74e259.length < v_77ce37.length * v_df1250) {
-        v_342bf2("얼굴 촬영을 먼저 완료해 주세요.");
+        v_342bf2(
+          v_8d41d7("faceEnroll.form.needCapture", { defaultValue: "얼굴 촬영을 먼저 완료해 주세요." }),
+        );
         return;
       }
       const v_affc3e = v_8a1355.trim();
       if (!v_affc3e) {
-        v_342bf2("이름을 입력해 주세요.");
+        v_342bf2(v_8d41d7("faceEnroll.form.needName", { defaultValue: "이름을 입력해 주세요." }));
         return;
       }
       v_0e1f26.dismiss();
@@ -434,9 +496,22 @@ export default function v_8640b9() {
           }
           v_d794c4 = null;
           const v_a8cd21 = v_c414dc
-            ? "얼굴 등록 완료! 통화를 다시 시작합니다."
-            : "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.";
-          v_889fad("등록 완료", v_a8cd21, [{ text: "통화 시작", onPress: v_e9b971 }]);
+            ? v_8d41d7("faceEnroll.complete.midCall", {
+                defaultValue: "얼굴 등록 완료! 통화를 다시 시작합니다.",
+              })
+            : v_8d41d7("faceEnroll.complete.first", {
+                defaultValue: "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.",
+              });
+          v_889fad(
+            v_8d41d7("faceEnroll.complete.title", { defaultValue: "등록 완료" }),
+            v_a8cd21,
+            [
+              {
+                text: v_8d41d7("faceEnroll.complete.start", { defaultValue: "통화 시작" }),
+                onPress: v_e9b971,
+              },
+            ],
+          );
         } catch (v_49263d) {
           console.warn("[PreCallFaceEnroll] enroll 실패:", v_49263d);
           if (v_d794c4 != null) {
@@ -446,12 +521,15 @@ export default function v_8640b9() {
               console.warn("[PreCallFaceEnroll] rollback 실패:", v_d42b37);
             }
           }
-          v_342bf2((v_49263d as Error).message ?? "네트워크 오류");
+          v_342bf2(
+            (v_49263d as Error).message ??
+              v_8d41d7("faceEnroll.form.networkError", { defaultValue: "네트워크 오류" }),
+          );
           v_ee9ec1(false);
         }
       })();
     },
-    [v_2ca7e0, v_625c74, v_74e259, v_f9508a, v_6e0fd3, v_c414dc, v_e9b971],
+    [v_2ca7e0, v_625c74, v_74e259, v_f9508a, v_6e0fd3, v_c414dc, v_e9b971, v_8d41d7],
   );
 
   const v_3bfe4c = v_de06a3(() => {
@@ -462,17 +540,23 @@ export default function v_8640b9() {
   const v_1e2ad6 = v_729796 >= v_77ce37.length;
   v_c4deb2(() => {
     if (!v_1e2ad6 || v_c414dc || v_4e7e60.current || v_cb66b4) return;
-    const v_d48d1e = (v_625c74?.name ?? "").trim() || "나";
+    const v_d48d1e =
+      (v_625c74?.name ?? "").trim() ||
+      v_8d41d7("faceEnroll.defaultSelfName", { defaultValue: "나" });
     v_4e7e60.current = true;
     v_cd685a(v_d48d1e, "");
-  }, [v_1e2ad6, v_c414dc, v_cb66b4, v_625c74, v_cd685a]);
+  }, [v_1e2ad6, v_c414dc, v_cb66b4, v_625c74, v_cd685a, v_8d41d7]);
 
   if (v_f9f059 === false) {
     return (
       <View style={[v_fd5f43.container, v_fd5f43.center]}>
-        <Text style={v_fd5f43.hint}>카메라 권한이 필요합니다.</Text>
+        <Text style={v_fd5f43.hint}>
+          {v_8d41d7("faceEnroll.permissionRequired", { defaultValue: "카메라 권한이 필요합니다." })}
+        </Text>
         <TouchableOpacity onPress={v_bcff1c} style={v_fd5f43.skipBtn}>
-          <Text style={v_fd5f43.skipBtnText}>등록 건너뛰고 통화</Text>
+          <Text style={v_fd5f43.skipBtnText}>
+            {v_8d41d7("faceEnroll.permissionSkip", { defaultValue: "등록 건너뛰고 통화" })}
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -481,7 +565,9 @@ export default function v_8640b9() {
     return (
       <View style={[v_fd5f43.container, v_fd5f43.center]}>
         <ActivityIndicator color={v_1bfbd0.white} />
-        <Text style={v_fd5f43.hint}>카메라 준비 중...</Text>
+        <Text style={v_fd5f43.hint}>
+          {v_8d41d7("faceEnroll.cameraLoading", { defaultValue: "카메라 준비 중..." })}
+        </Text>
       </View>
     );
   }
@@ -498,11 +584,18 @@ export default function v_8640b9() {
 }
       {!(v_2fb8cc && v_c414dc) && (
         <View style={v_fd5f43.header}>
-          <Text style={v_fd5f43.title}>얼굴 등록</Text>
+          <Text style={v_fd5f43.title}>{v_8d41d7("faceEnroll.title", { defaultValue: "얼굴 등록" })}</Text>
           <Text style={v_fd5f43.subtitle}>
             {v_c414dc
-              ? "새 얼굴을 등록하고 통화를 다시 시작해요."
-              : `${v_dfb220 ?? "페르소나"} 과 자연스럽게 대화하도록 얼굴을 각도·거리별로 담아둘게요.`}
+              ? v_8d41d7("faceEnroll.subtitleMidCall", {
+                  defaultValue: "새 얼굴을 등록하고 통화를 다시 시작해요.",
+                })
+              : v_8d41d7("faceEnroll.subtitleFirst", {
+                  name:
+                    v_dfb220 ??
+                    v_8d41d7("faceEnroll.personaFallback", { defaultValue: "페르소나" }),
+                  defaultValue: `${v_dfb220 ?? "페르소나"} 과 자연스럽게 대화하도록 얼굴을 각도·거리별로 담아둘게요.`,
+                })}
           </Text>
         </View>
       )}
@@ -513,13 +606,21 @@ export default function v_8640b9() {
           style={v_fd5f43.centerBlock}
           behavior={v_326be8.OS === "ios" ? "padding" : "height"}
         >
-          <Text style={v_fd5f43.formTitle}>이 분은 누구신가요?</Text>
+          <Text style={v_fd5f43.formTitle}>
+            {v_8d41d7("faceEnroll.form.title", { defaultValue: "이 분은 누구신가요?" })}
+          </Text>
           <Text style={v_fd5f43.formDesc}>
-            이름과 관계를 알려주시면 다음 통화부터 알아볼 수 있어요.
+            {v_8d41d7("faceEnroll.form.desc", {
+              defaultValue: "이름과 관계를 알려주시면 다음 통화부터 알아볼 수 있어요.",
+            })}
           </Text>
           {v_e59ef2.length > 0 && (
             <View style={v_fd5f43.chipSection}>
-              <Text style={v_fd5f43.chipSectionLabel}>이미 등록된 사람 (이 중에서 선택하면 학습만 추가돼요)</Text>
+              <Text style={v_fd5f43.chipSectionLabel}>
+                {v_8d41d7("faceEnroll.form.existingLabel", {
+                  defaultValue: "이미 등록된 사람 (이 중에서 선택하면 학습만 추가돼요)",
+                })}
+              </Text>
               <View style={v_fd5f43.chipRow}>
                 {v_e59ef2.map((v_e2a85c) => {
                   const v_f8b770 = v_595acb.trim() === (v_e2a85c.displayName ?? "").trim();
@@ -537,26 +638,36 @@ export default function v_8640b9() {
                   );
                 })}
               </View>
-              <Text style={v_fd5f43.chipHint}>새로운 사람이면 아래에 이름을 직접 입력하세요</Text>
+              <Text style={v_fd5f43.chipHint}>
+                {v_8d41d7("faceEnroll.form.existingHint", {
+                  defaultValue: "새로운 사람이면 아래에 이름을 직접 입력하세요",
+                })}
+              </Text>
             </View>
           )}
-          <Text style={v_fd5f43.formLabel}>이름</Text>
+          <Text style={v_fd5f43.formLabel}>
+            {v_8d41d7("faceEnroll.form.nameLabel", { defaultValue: "이름" })}
+          </Text>
           <TextInput
             style={v_fd5f43.formInput}
             value={v_595acb}
             onChangeText={v_9ad9a9}
-            placeholder="예: 지호"
+            placeholder={v_8d41d7("faceEnroll.form.namePlaceholder", { defaultValue: "예: 지호" })}
             placeholderTextColor={v_1bfbd0.zinc500}
             autoFocus
             returnKeyType="next"
             editable={!v_cb66b4}
           />
-          <Text style={v_fd5f43.formLabel}>관계 (선택)</Text>
+          <Text style={v_fd5f43.formLabel}>
+            {v_8d41d7("faceEnroll.form.relationLabel", { defaultValue: "관계 (선택)" })}
+          </Text>
           <TextInput
             style={v_fd5f43.formInput}
             value={v_d7d38d}
             onChangeText={v_23c9e5}
-            placeholder="예: 손주, 오랜 친구"
+            placeholder={v_8d41d7("faceEnroll.form.relationPlaceholder", {
+              defaultValue: "예: 손주, 오랜 친구",
+            })}
             placeholderTextColor={v_1bfbd0.zinc500}
             returnKeyType="done"
             editable={!v_cb66b4}
@@ -568,7 +679,9 @@ export default function v_8640b9() {
 
         <View style={v_fd5f43.centerBlock}>
           <ActivityIndicator size="large" color={v_1bfbd0.white} />
-          <Text style={v_fd5f43.hint}>얼굴 등록 중...</Text>
+          <Text style={v_fd5f43.hint}>
+            {v_8d41d7("faceEnroll.processing", { defaultValue: "얼굴 등록 중..." })}
+          </Text>
         </View>
       ) : (
         <View style={v_fd5f43.centerBlock}>
@@ -614,13 +727,19 @@ export default function v_8640b9() {
           </View>
 
           <View style={v_fd5f43.stepBox}>
-            <Text style={v_fd5f43.stepLabel}>{v_91943c.label}</Text>
-            <Text style={v_fd5f43.stepHint}>{v_91943c.hint}</Text>
+            <Text style={v_fd5f43.stepLabel}>
+              {v_8d41d7(v_91943c.labelKey, { defaultValue: v_91943c.label })}
+            </Text>
+            <Text style={v_fd5f43.stepHint}>
+              {v_8d41d7(v_91943c.hintKey, { defaultValue: v_91943c.hint })}
+            </Text>
             {}
             <Text style={[v_fd5f43.stepHint, { marginTop: 4, opacity: 0.7 }]}>
               {v_26803c
-                ? v_91943c.guide(v_26803c.yaw, v_26803c.pitch)
-                : "얼굴이 카메라에 잘 보이도록 해주세요"}
+                ? v_91943c.guide(v_8d41d7, v_26803c.yaw, v_26803c.pitch)
+                : v_8d41d7("faceEnroll.hintStart", {
+                    defaultValue: "얼굴이 카메라에 잘 보이도록 해주세요",
+                  })}
             </Text>
           </View>
         </View>
@@ -637,20 +756,27 @@ export default function v_8640b9() {
             {v_cb66b4 ? (
               <ActivityIndicator color={v_1bfbd0.zinc900} />
             ) : (
-              <Text style={v_fd5f43.captureBtnText}>등록</Text>
+              <Text style={v_fd5f43.captureBtnText}>
+                {v_8d41d7("faceEnroll.register", { defaultValue: "등록" })}
+              </Text>
             )}
           </TouchableOpacity>
         ) : null}
 
         <TouchableOpacity onPress={v_bcff1c} style={v_fd5f43.skipBtn} disabled={v_cb66b4}>
           <Text style={v_fd5f43.skipBtnText}>
-            {v_c414dc ? "등록 없이 통화 재개" : "나중에 하기 (지금 통화)"}
+            {v_c414dc
+              ? v_8d41d7("faceEnroll.skipMidCall", { defaultValue: "등록 없이 통화 재개" })
+              : v_8d41d7("faceEnroll.skipFirst", { defaultValue: "나중에 하기 (지금 통화)" })}
           </Text>
         </TouchableOpacity>
 
         {}
         <Text style={v_fd5f43.privacyNote}>
-          촬영한 사진은 서버에 저장되지 않아요. 얼굴을 알아보기 위한 숫자 특징(벡터)만 안전하게 담아둡니다.
+          {v_8d41d7("faceEnroll.privacyNote", {
+            defaultValue:
+              "촬영한 사진은 서버에 저장되지 않아요. 얼굴을 알아보기 위한 숫자 특징(벡터)만 안전하게 담아둡니다.",
+          })}
         </Text>
       </View>
 

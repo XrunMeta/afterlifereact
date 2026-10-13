@@ -44,11 +44,12 @@ function v_429a79(v_b6a7e0, t: v_75de9d): string {
     : v_8d41d7("common.durationMin", { m: v_43e24b, defaultValue: `${v_43e24b}분` });
 }
 
-function v_2e0619(v_b6a7e0): string {
+function v_2e0619(v_b6a7e0, t: v_75de9d): string {
   const v_43e24b = Math.floor(v_b6a7e0 / 60);
   const v_fd5f43 = v_b6a7e0 % 60;
-  if (v_fd5f43 > 0 && v_43e24b < 10) return `${v_43e24b}분 ${v_fd5f43}초`;
-  return `${v_43e24b}분`;
+  if (v_fd5f43 > 0 && v_43e24b < 10)
+    return v_8d41d7("common.durationMinSec", { m: v_43e24b, s: v_fd5f43, defaultValue: `${v_43e24b}분 ${v_fd5f43}초` });
+  return v_8d41d7("common.durationMin", { m: v_43e24b, defaultValue: `${v_43e24b}분` });
 }
 
 const v_5348ba = "__mock__";
@@ -82,46 +83,101 @@ const MOCK_GIFT_PACKS: v_678322[] = [
   { id: "run.xrun.afterlife.gift.pack.5", title: "꽃 5개", description: "선물하기 5회 사용", displayPrice: "₩14,000", price: 14000, currency: "KRW", platform: "ios", type: "in-app" } as unknown as v_678322,
   { id: "run.xrun.afterlife.gift.pack.10", title: "꽃 10개", description: "선물하기 10회 사용", displayPrice: "₩27,000", price: 27000, currency: "KRW", platform: "ios", type: "in-app" } as unknown as v_678322,
 ].map((v_e2a85c) => ({ ...v_e2a85c, id: `${v_5348ba}${v_e2a85c.id}` }) as v_678322);
+
+function v_664ef7<T extends { id: string; title?: string; description?: string }>(
+  v_e2a85c,
+  t: v_75de9d,
+): T {
+  const v_694b25 = v_9fe308(v_e2a85c.id);
+  if (v_694b25 === v_2c427c) {
+    return {
+      ...v_e2a85c,
+      title: v_8d41d7("purchase.freeTitle", { defaultValue: "Go (Free)" }),
+      description: v_8d41d7("purchase.freeDesc", { defaultValue: "회원가입 시 자동 부여" }),
+      displayPrice: v_8d41d7("purchase.freePrice", { defaultValue: "무료" }),
+    } as T;
+  }
+  if (v_694b25 === "run.xrun.afterlife.sub.light") {
+    return {
+      ...v_e2a85c,
+      title: v_8d41d7("purchase.lightTitle", { defaultValue: "RUN" }),
+      description: v_8d41d7("purchase.lightDesc", { defaultValue: "광고없이 이용" }),
+    } as T;
+  }
+  if (v_694b25 === "run.xrun.afterlife.sub.monste") {
+    return {
+      ...v_e2a85c,
+      title: v_8d41d7("purchase.monsterTitle", { defaultValue: "Monster" }),
+      description: v_8d41d7("purchase.monsterDesc", { defaultValue: "광고없이 이용" }),
+    } as T;
+  }
+  if (v_694b25 === "run.xrun.afterlife.credit.30") {
+    return { ...v_e2a85c, title: v_8d41d7("purchase.rechargeTitle30", { defaultValue: "Recharge 30min" }), description: v_8d41d7("purchase.rechargeDesc30", { defaultValue: "30분 충전 · 5년 유효" }) } as T;
+  }
+  if (v_694b25 === "run.xrun.afterlife.credit.60") {
+    return { ...v_e2a85c, title: v_8d41d7("purchase.rechargeTitle60", { defaultValue: "Recharge 60min" }), description: v_8d41d7("purchase.rechargeDesc60", { defaultValue: "60분 충전 · 5년 유효" }) } as T;
+  }
+  if (v_694b25 === "run.xrun.afterlife.credit.150") {
+    return { ...v_e2a85c, title: v_8d41d7("purchase.rechargeTitle150", { defaultValue: "Recharge 150min" }), description: v_8d41d7("purchase.rechargeDesc150", { defaultValue: "150분 충전 · 5년 유효" }) } as T;
+  }
+  if (v_694b25 === "run.xrun.afterlife.credit.300") {
+    return { ...v_e2a85c, title: v_8d41d7("purchase.rechargeTitle300", { defaultValue: "Recharge 300min" }), description: v_8d41d7("purchase.rechargeDesc300", { defaultValue: "300분 충전 · 5년 유효" }) } as T;
+  }
+  if (v_694b25 === "run.xrun.afterlife.gift.pack.1") {
+    return { ...v_e2a85c, title: v_8d41d7("purchase.flowerPack.p1Title", { defaultValue: "꽃 1개" }), description: v_8d41d7("purchase.flowerPack.p1Desc", { defaultValue: "선물하기 1회 사용" }) } as T;
+  }
+  if (v_694b25 === "run.xrun.afterlife.gift.pack.5") {
+    return { ...v_e2a85c, title: v_8d41d7("purchase.flowerPack.p5Title", { defaultValue: "꽃 5개" }), description: v_8d41d7("purchase.flowerPack.p5Desc", { defaultValue: "선물하기 5회 사용" }) } as T;
+  }
+  if (v_694b25 === "run.xrun.afterlife.gift.pack.10") {
+    return { ...v_e2a85c, title: v_8d41d7("purchase.flowerPack.p10Title", { defaultValue: "꽃 10개" }), description: v_8d41d7("purchase.flowerPack.p10Desc", { defaultValue: "선물하기 10회 사용" }) } as T;
+  }
+  return v_e2a85c;
+}
 const v_2cc272 = (v_389afb): boolean => v_389afb.startsWith(v_5348ba);
 const v_4bfbf2 = (v_389afb): boolean => v_389afb === v_2c427c;
 const v_03b27f = (v_389afb): boolean => v_9fe308(v_389afb).startsWith("run.xrun.afterlife.gift.pack.");
 
+function v_9fe308(v_389afb): string {
+  return v_389afb.startsWith(v_5348ba) ? v_389afb.slice(v_5348ba.length) : v_389afb;
+}
+
 const v_0ce4cc = {
   [v_2c427c]: {
-    tagline: "회원가입 시 자동 제공",
-    benefits: [
-      "광고 시청 후 서비스 이용",
-      "서비스 중간 광고 삽입",
-      "클론 1개 생성",
-      "클론 삭제/생성 5회 제공",
-      "월 50분 통화 제공",
+    taglineKey: "purchase.freeTagline",
+    taglineFallback: "회원가입 시 자동 제공",
+    benefitKeys: [
+      { key: "purchase.planFree.watchAds", fallback: "광고 시청 후 서비스 이용" },
+      { key: "purchase.planFree.midAds", fallback: "서비스 중간 광고 삽입" },
+      { key: "purchase.planFree.clone1", fallback: "클론 1개 생성" },
+      { key: "purchase.planFree.cloneQuota5", fallback: "클론 삭제/생성 5회 제공" },
+      { key: "purchase.planFree.callMinutes50", fallback: "월 50분 통화 제공" },
     ],
   },
   "run.xrun.afterlife.sub.light": {
 
-    tagline: "광고 없이 이용",
-    benefits: [
-      "클론 2개 생성",
-      "클론 삭제/생성 10회 제공",
-      "월 120분 통화 제공",
-      "꽃 2개 제공 (선물하기용)",
+    taglineKey: "purchase.lightTagline",
+    taglineFallback: "광고 없이 이용",
+    benefitKeys: [
+      { key: "purchase.planLight.clone2", fallback: "클론 2개 생성" },
+      { key: "purchase.planLight.cloneQuota10", fallback: "클론 삭제/생성 10회 제공" },
+      { key: "purchase.planLight.callMinutes120", fallback: "월 120분 통화 제공" },
+      { key: "purchase.planLight.flowers2", fallback: "꽃 2개 제공 (선물하기용)" },
     ],
     recommended: true,
   },
   "run.xrun.afterlife.sub.monste": {
 
-    tagline: "광고 없이 이용",
-    benefits: [
-      "클론 무제한 생성",
-      "클론 삭제/생성 무제한",
-      "월 1000분 통화 제공",
-      "꽃 10개 제공 (선물하기용)",
+    taglineKey: "purchase.monsterTagline",
+    taglineFallback: "광고 없이 이용",
+    benefitKeys: [
+      { key: "purchase.planMonster.cloneUnlimited", fallback: "클론 무제한 생성" },
+      { key: "purchase.planMonster.cloneQuotaUnlimited", fallback: "클론 삭제/생성 무제한" },
+      { key: "purchase.planMonster.callMinutes1000", fallback: "월 1000분 통화 제공" },
+      { key: "purchase.planMonster.flowers10", fallback: "꽃 10개 제공 (선물하기용)" },
     ],
   },
 };
-function v_9fe308(v_389afb): string {
-  return v_389afb.startsWith(v_5348ba) ? v_389afb.slice(v_5348ba.length) : v_389afb;
-}
 
 function v_5fd964(v_399dbd, v_8c9d89): boolean {
   if (!v_8c9d89) return v_399dbd === v_2c427c;
@@ -130,8 +186,17 @@ function v_5fd964(v_399dbd, v_8c9d89): boolean {
   const v_a5364f = v_76a373.split(".sub.")[1] ?? "";
   return v_a5364f.toLowerCase() === v_8c9d89.toLowerCase();
 }
-function v_3cb64a(v_389afb): { tagline: string; benefits: string[]; recommended?: boolean } {
-  return v_0ce4cc[v_9fe308(v_389afb)] ?? { tagline: "", benefits: [] };
+function v_3cb64a(
+  v_389afb,
+  t: v_75de9d,
+): { tagline: string; benefits: string[]; recommended?: boolean } {
+  const v_479f05 = v_0ce4cc[v_9fe308(v_389afb)];
+  if (!v_479f05) return { tagline: "", benefits: [] };
+  return {
+    tagline: v_8d41d7(v_479f05.taglineKey, { defaultValue: v_479f05.taglineFallback }),
+    benefits: v_479f05.benefitKeys.map((v_148ff6) => v_8d41d7(v_148ff6.key, { defaultValue: v_148ff6.fallback })),
+    recommended: v_479f05.recommended,
+  };
 }
 
 export default function v_0035e1() {
@@ -182,14 +247,20 @@ export default function v_0035e1() {
 
   const v_3295c9 = v_de06a3(
     (item: v_ccbfb2) => {
-      v_889fad(
-        "교환 확인",
 
-        `${v_8c0b26.name} ${v_8c0b26.count}개를 ${v_2e0619(v_8c0b26.xrunTotal)}으로 교환할까요?`,
+      const v_f63e09 = v_2e0619(v_8c0b26.xrunTotal, v_8d41d7);
+      v_889fad(
+        v_8d41d7("purchase.swapConfirmTitle", { defaultValue: "교환 확인" }),
+        v_8d41d7("purchase.swapConfirmDesc", {
+          name: v_8c0b26.name,
+          count: v_8c0b26.count,
+          amount: v_f63e09,
+          defaultValue: `${v_8c0b26.name} ${v_8c0b26.count}개를 ${v_f63e09}으로 교환할까요?`,
+        }),
         [
-          { text: "취소", style: "cancel" },
+          { text: v_8d41d7("common.cancel", { defaultValue: "취소" }), style: "cancel" },
           {
-            text: "교환",
+            text: v_8d41d7("purchase.swap", { defaultValue: "교환" }),
             style: "default",
             onPress: async () => {
               if (!v_2ca7e0) return;
@@ -201,14 +272,21 @@ export default function v_0035e1() {
                   { giftId: v_8c0b26.giftId, count: v_8c0b26.count },
                   v_4fab5a,
                 );
+                const v_a47fd7 = v_2e0619(v_8f00b9.xrunCredited, v_8d41d7);
                 v_889fad(
-                  "교환 완료 🎉",
-
-                  `${v_2e0619(v_8f00b9.xrunCredited)}이 지갑에 충전됐어요.`,
+                  v_8d41d7("purchase.swapCompleteTitle", { defaultValue: "교환 완료 🎉" }),
+                  v_8d41d7("purchase.swapCompleteDesc", {
+                    amount: v_a47fd7,
+                    defaultValue: `${v_a47fd7}이 지갑에 충전됐어요.`,
+                  }),
                 );
                 await v_1a1b9b();
               } catch (v_49263d) {
-                v_889fad("교환 실패", (v_49263d as Error).message ?? "잠시 후 다시 시도해주세요.");
+                v_889fad(
+                  v_8d41d7("purchase.swapFailedTitle", { defaultValue: "교환 실패" }),
+                  (v_49263d as Error).message ??
+                    v_8d41d7("purchase.swapFailedDefault", { defaultValue: "잠시 후 다시 시도해주세요." }),
+                );
               } finally {
                 v_83363c(null);
               }
@@ -217,7 +295,7 @@ export default function v_0035e1() {
         ],
       );
     },
-    [v_2ca7e0, v_1a1b9b],
+    [v_2ca7e0, v_1a1b9b, v_8d41d7],
   );
 
   v_cf763b(
@@ -326,27 +404,32 @@ export default function v_0035e1() {
             <ActivityIndicator color={v_1bfbd0.violet600} />
           ) : v_c88e9b ? (
             <>
-              <Text style={v_fd5f43.balanceTotal}>{v_2e0619(v_c88e9b.totalSec)}</Text>
+              <Text style={v_fd5f43.balanceTotal}>{v_2e0619(v_c88e9b.totalSec, v_8d41d7)}</Text>
               <View style={v_fd5f43.balanceRow}>
                 <View style={v_fd5f43.balanceCol}>
                   <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("purchase.bucketFree", { defaultValue: "무료" })}</Text>
-                  <Text style={v_fd5f43.balanceVal}>{v_2e0619(v_c88e9b.freeSec)}</Text>
+                  <Text style={v_fd5f43.balanceVal}>{v_2e0619(v_c88e9b.freeSec, v_8d41d7)}</Text>
                 </View>
                 <View style={v_fd5f43.balanceCol}>
                   <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("purchase.bucketSub", { defaultValue: "구독" })}</Text>
-                  <Text style={v_fd5f43.balanceVal}>{v_2e0619(v_c88e9b.subSec)}</Text>
+                  <Text style={v_fd5f43.balanceVal}>{v_2e0619(v_c88e9b.subSec, v_8d41d7)}</Text>
                 </View>
                 <View style={v_fd5f43.balanceCol}>
                   <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("purchase.bucketTopup", { defaultValue: "충전" })}</Text>
-                  <Text style={v_fd5f43.balanceVal}>{v_2e0619(v_c88e9b.topupSec)}</Text>
+                  <Text style={v_fd5f43.balanceVal}>{v_2e0619(v_c88e9b.topupSec, v_8d41d7)}</Text>
                 </View>
                 {
 }
                 {v_f66a30 && (
                   <TouchableOpacity style={v_fd5f43.balanceCol} onPress={v_1c51b0} activeOpacity={0.6}>
-                    <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("purchase.bucketGift", { defaultValue: "선물" })}</Text>
+                    <Text style={v_fd5f43.balanceLabel}>
+                      {v_8d41d7("purchase.bucketGift", { defaultValue: "선물" })}
+                    </Text>
                     <Text style={v_fd5f43.balanceVal}>
-                      {v_f04609.reduce((v_dce0a8, v_206b88) => v_dce0a8 + v_206b88.count, 0)}개
+                      {v_8d41d7("purchase.giftCount", {
+                        count: v_f04609.reduce((v_dce0a8, v_206b88) => v_dce0a8 + v_206b88.count, 0),
+                        defaultValue: `${v_f04609.reduce((v_dce0a8, v_206b88) => v_dce0a8 + v_206b88.count, 0)}개`,
+                      })}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -382,9 +465,14 @@ export default function v_0035e1() {
             }}
           >
             <View style={{ flex: 1 }}>
-              <Text style={v_fd5f43.giftRedeemTitle}>받은 선물 교환하기</Text>
+              <Text style={v_fd5f43.giftRedeemTitle}>
+                {v_8d41d7("purchase.giftRedeemTitle", { defaultValue: "받은 선물 교환하기" })}
+              </Text>
               <Text style={v_fd5f43.giftRedeemDesc}>
-                받은 꽃을 XRUN 앱에서 광고 시청하고 통화용 꽃으로 바꿔보세요.
+                {v_8d41d7("purchase.giftRedeemDesc", {
+                  defaultValue:
+                    "받은 꽃을 XRUN 앱에서 광고 시청하고 통화용 꽃으로 바꿔보세요.",
+                })}
               </Text>
             </View>
             <Text style={v_fd5f43.giftRedeemArrow}>›</Text>
@@ -405,7 +493,9 @@ export default function v_0035e1() {
             <Text style={v_fd5f43.emptyHint}>
               {v_326be8.OS === "ios"
                 ? v_8d41d7("purchase.subLoadHintIos", { defaultValue: "설정 → App Store 계정 로그인 확인 후 다시 시도해주세요." })
-                : v_8d41d7("purchase.subLoadHintAndroid", { defaultValue: "Play 스토어 계정 로그인 확인 후 다시 시도해주세요." })}
+                : v_8d41d7("purchase.subLoadHintAndroid", {
+                    defaultValue: "Play 스토어 계정 로그인 확인 후 다시 시도해주세요.",
+                  })}
             </Text>
             <TouchableOpacity
               style={v_fd5f43.retryBtn}
@@ -417,8 +507,9 @@ export default function v_0035e1() {
           </View>
         ) : (
 
-          [v_6f8613, ...v_ab371b].map((v_e2a85c) => {
-            const v_ab4c96 = v_3cb64a(v_e2a85c.id);
+          [v_6f8613, ...v_ab371b].map((v_479f05) => {
+            const v_e2a85c = v_664ef7(v_479f05, v_8d41d7);
+            const v_ab4c96 = v_3cb64a(v_e2a85c.id, v_8d41d7);
             const v_7e898c = v_c63375 === v_e2a85c.id;
             const v_d5ee40 = v_4bfbf2(v_e2a85c.id);
 
@@ -429,12 +520,16 @@ export default function v_0035e1() {
                   <View style={v_fd5f43.badgeRow}>
                     {v_86cc3d && (
                       <View style={[v_fd5f43.recommendBadge, v_fd5f43.currentBadge]}>
-                        <Text style={[v_fd5f43.recommendBadgeText, v_fd5f43.currentBadgeText]}>이용 중인 플랜</Text>
+                        <Text style={[v_fd5f43.recommendBadgeText, v_fd5f43.currentBadgeText]}>
+                          {v_8d41d7("purchase.currentPlanBadge", { defaultValue: "이용 중인 플랜" })}
+                        </Text>
                       </View>
                     )}
                     {v_ab4c96.recommended && !v_86cc3d && (
                       <View style={v_fd5f43.recommendBadge}>
-                        <Text style={v_fd5f43.recommendBadgeText}>추천 요금제</Text>
+                        <Text style={v_fd5f43.recommendBadgeText}>
+                          {v_8d41d7("purchase.recommendedBadge", { defaultValue: "추천 요금제" })}
+                        </Text>
                       </View>
                     )}
                   </View>
@@ -446,7 +541,11 @@ export default function v_0035e1() {
                 <View style={v_fd5f43.planPriceRow}>
                   <View style={{ flex: 1 }}>
                     <Text style={v_fd5f43.planPrice}>{v_e2a85c.displayPrice}</Text>
-                    <Text style={v_fd5f43.planPricePeriod}>{v_d5ee40 ? "가입 시 자동 적용" : "매월 자동 청구"}</Text>
+                    <Text style={v_fd5f43.planPricePeriod}>
+                      {v_d5ee40
+                        ? v_8d41d7("purchase.autoAssigned", { defaultValue: "가입 시 자동 적용" })
+                        : v_8d41d7("purchase.monthlyBilling", { defaultValue: "매월 자동 청구" })}
+                    </Text>
                   </View>
                   {!v_d5ee40 && (
                     <TouchableOpacity
@@ -458,7 +557,9 @@ export default function v_0035e1() {
                       {v_7e898c ? (
                         <ActivityIndicator color={v_1bfbd0.white} size="small" />
                       ) : (
-                        <Text style={v_fd5f43.planCtaText}>업그레이드</Text>
+                        <Text style={v_fd5f43.planCtaText}>
+                          {v_8d41d7("purchase.upgrade", { defaultValue: "업그레이드" })}
+                        </Text>
                       )}
                     </TouchableOpacity>
                   )}
@@ -484,27 +585,36 @@ export default function v_0035e1() {
         {
 
 }
-        <Text style={[v_fd5f43.sectionTitle, { marginTop: v_1e3d67 ? 0 : 32 }]}>꽃 구매</Text>
-        <Text style={v_fd5f43.sectionDesc}>선물하기 전용 · 구매 후 통화 중 사용 가능.</Text>
-        {v_5ff45c.map((v_e2a85c) => (
-          <TouchableOpacity
-            key={v_e2a85c.id}
-            style={[v_fd5f43.card, v_c63375 === v_e2a85c.id && v_fd5f43.cardDisabled]}
-            onPress={() => v_bdb045(v_e2a85c.id)}
-            disabled={v_c63375 !== null}
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={v_fd5f43.cardName}>{v_e2a85c.title || v_e2a85c.id}</Text>
-              <Text style={v_fd5f43.cardDesc}>{v_e2a85c.description || ""}</Text>
-            </View>
-            <View style={v_fd5f43.cardPriceCol}>
-              <Text style={v_fd5f43.cardPrice}>{v_e2a85c.displayPrice}</Text>
-              {v_c63375 === v_e2a85c.id && (
-                <ActivityIndicator color={v_1bfbd0.violet600} size="small" />
-              )}
-            </View>
-          </TouchableOpacity>
-        ))}
+        <Text style={[v_fd5f43.sectionTitle, { marginTop: v_1e3d67 ? 0 : 32 }]}>
+          {v_8d41d7("purchase.flowerSectionTitle", { defaultValue: "꽃 구매" })}
+        </Text>
+        <Text style={v_fd5f43.sectionDesc}>
+          {v_8d41d7("purchase.flowerSectionDesc", {
+            defaultValue: "선물하기 전용 · 구매 후 통화 중 사용 가능.",
+          })}
+        </Text>
+        {v_5ff45c.map((v_479f05) => {
+          const v_e2a85c = v_664ef7(v_479f05, v_8d41d7);
+          return (
+            <TouchableOpacity
+              key={v_e2a85c.id}
+              style={[v_fd5f43.card, v_c63375 === v_e2a85c.id && v_fd5f43.cardDisabled]}
+              onPress={() => v_bdb045(v_e2a85c.id)}
+              disabled={v_c63375 !== null}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={v_fd5f43.cardName}>{v_e2a85c.title || v_e2a85c.id}</Text>
+                <Text style={v_fd5f43.cardDesc}>{v_e2a85c.description || ""}</Text>
+              </View>
+              <View style={v_fd5f43.cardPriceCol}>
+                <Text style={v_fd5f43.cardPrice}>{v_e2a85c.displayPrice}</Text>
+                {v_c63375 === v_e2a85c.id && (
+                  <ActivityIndicator color={v_1bfbd0.violet600} size="small" />
+                )}
+              </View>
+            </TouchableOpacity>
+          );
+        })}
 
         {
 }

@@ -196,7 +196,72 @@
     "topupSectionDesc": "サブスクとは別に通話時間を追加できます。5年有効。",
     "topupLoadFailed": "チャージ商品を読み込めません。",
     "androidNotReady": "Androidの決済は準備中です。まずはiOSからご利用ください。",
-    "termsFooter": "自動更新サブスクは解約するまで毎周期決済されます。\n解約: 設定 → Apple ID → サブスクリプション → afterlife"
+    "termsFooter": "自動更新サブスクは解約するまで毎周期決済されます。\n解約: 設定 → Apple ID → サブスクリプション → afterlife",
+    "bucketGift": "ギフト",
+    "giftCount": "{{count}}個",
+    "giftRedeemTitle": "受け取ったギフトを交換",
+    "giftRedeemDesc": "受け取ったお花をXRUNアプリで広告視聴して通話用のお花に交換してください。",
+    "flowerSectionTitle": "お花を購入",
+    "flowerSectionDesc": "ギフト専用 · 購入後、通話中に使用できます。",
+    "subLoadHintAndroid": "Playストアのアカウントを確認してからもう一度お試しください。",
+    "currentPlanBadge": "ご利用中のプラン",
+    "recommendedBadge": "おすすめ",
+    "autoAssigned": "登録時に自動付与",
+    "monthlyBilling": "毎月自動課金",
+    "upgrade": "アップグレード",
+    "termsFooterAndroid": "自動更新サブスクリプションは解約まで毎回自動課金されます。\n解約: Playストア → 定期購入 → afterlife",
+    "swapConfirmTitle": "交換確認",
+    "swapConfirmDesc": "{{name}} {{count}}個を {{amount}} に交換しますか?",
+    "swap": "交換",
+    "swapCompleteTitle": "交換完了 🎉",
+    "swapCompleteDesc": "{{amount}} がウォレットにチャージされました。",
+    "swapFailedTitle": "交換失敗",
+    "swapFailedDefault": "しばらく経ってからもう一度お試しください。",
+    "freeTitle": "Go (Free)",
+    "freeDesc": "登録時に自動付与",
+    "freePrice": "無料",
+    "freeTagline": "登録時に自動付与",
+    "lightTagline": "広告なしで利用",
+    "lightTitle": "RUN",
+    "lightDesc": "広告なしで利用",
+    "monsterTagline": "広告なしで利用",
+    "monsterTitle": "Monster",
+    "monsterDesc": "広告なしで利用",
+    "planFree": {
+      "watchAds": "広告視聴後にサービス利用",
+      "midAds": "サービス途中の広告挿入",
+      "clone1": "クローン1つ作成",
+      "cloneQuota5": "クローン作成・削除5回",
+      "callMinutes50": "月50分通話"
+    },
+    "planLight": {
+      "clone2": "クローン2つ作成",
+      "cloneQuota10": "クローン作成・削除10回",
+      "callMinutes120": "月120分通話",
+      "flowers2": "お花2個付き (ギフト用)"
+    },
+    "planMonster": {
+      "cloneUnlimited": "クローン無制限作成",
+      "cloneQuotaUnlimited": "クローン作成・削除無制限",
+      "callMinutes1000": "月1000分通話",
+      "flowers10": "お花10個付き (ギフト用)"
+    },
+    "flowerPack": {
+      "p1Title": "お花1個",
+      "p1Desc": "ギフト1回分",
+      "p5Title": "お花5個",
+      "p5Desc": "ギフト5回分",
+      "p10Title": "お花10個",
+      "p10Desc": "ギフト10回分"
+    },
+    "rechargeTitle30": "Recharge 30min",
+    "rechargeTitle60": "Recharge 60min",
+    "rechargeTitle150": "Recharge 150min",
+    "rechargeTitle300": "Recharge 300min",
+    "rechargeDesc30": "30分チャージ · 5年有効",
+    "rechargeDesc60": "60分チャージ · 5年有効",
+    "rechargeDesc150": "150分チャージ · 5年有効",
+    "rechargeDesc300": "300分チャージ · 5年有効"
   },
   "chat": {
     "personaFallback": "クローン",
@@ -536,7 +601,48 @@
       "purchaseDesc": "月額サブスクリプション・チャージで通話時間を追加",
       "giftInventory": "ギフトウォレット",
       "giftInventoryDesc": "受け取ったギフトを XRUN クレジットに交換",
-      "logout": "ログアウト"
+      "logout": "ログアウト",
+      "flower": "お花ギフト",
+      "pangleTest": "Pangle広告テスト",
+      "pangleTestDesc": "即座にrewarded広告を表示 (開発用)",
+      "animPersona": "アニメーションペルソナ作成",
+      "animPersonaDesc": "写真 → まばたき·頭·体の動きidle · 生成3分前後",
+      "experimentalPersona": "実験ペルソナ作成 (ベータ)",
+      "experimentalPersonaDesc": "自然な顔 · 応答5~10秒遅延",
+      "visemePersona": "分離再生ペルソナ作成 (実験)",
+      "visemePersonaDesc": "TTS + 事前レンダーvisemeクリップsync",
+      "threeDPersona": "3Dペルソナ作成 (ベータ)",
+      "threeDPersonaDesc": "Avatar SDK 3D顔 · GLB URL別途設定が必要",
+      "visemeTest": "Visemeパイプラインテスト (dev)",
+      "visemeTestDesc": "合成+再生 · 事前レンダー画像が必要",
+      "vitsTts": "VITS TTS · AFL-737 (dev)",
+      "vitsTtsDesc": "sherpa-onnx · モデルキャッシュ · 1秒目標計測",
+      "faceThreshold": "顔しきい値テスト (dev)",
+      "faceThresholdDesc": "画像アップロード → 一致スコア確認",
+      "threeDLab": "3D生成テスト (dev)",
+      "threeDLabDesc": "写真 → mesh + 5角度レンダー · 5~30秒",
+      "threeDPersonaDev": "3Dペルソナ (dev)",
+      "threeDPersonaDevDesc": "GLBヘッドレンダー + リップシンクデモ · Phase 1",
+      "faceEnrollDev": "顔5角度登録 (dev)",
+      "faceEnrollDevDesc": "正面·左·右·上·下撮影 → clones初回通話準備"
+    },
+    "logout": {
+      "title": "ログアウトしますか?",
+      "desc": "再度ご利用いただくにはログインが必要です。",
+      "confirm": "ログアウト"
+    },
+    "pangleTest": {
+      "title": "Pangleテスト",
+      "okMessage": "広告が正常終了しました。",
+      "failTitle": "Pangleテスト失敗"
+    },
+    "navError": {
+      "title": "エラー",
+      "personaNavFail": "ペルソナ作成画面への遷移に失敗しました"
+    },
+    "faceEnrollDev": {
+      "noneTitle": "ペルソナがありません",
+      "noneDesc": "先にペルソナを作成してください。"
     }
   },
   "auth": {
@@ -1550,5 +1656,182 @@
   "errorBoundary": {
     "title": "画面を表示できませんでした",
     "body": "しばらくしてからもう一度お試しください。"
+  },
+  "relation": {
+    "category": {
+      "family": "家族",
+      "friend": "友達",
+      "romance": "恋人",
+      "workplace": "職場",
+      "celebrity": "有名人"
+    },
+    "subtype": {
+      "family": {
+        "father": "お父さん",
+        "mother": "お母さん",
+        "grandfather": "祖父",
+        "grandmother": "祖母",
+        "maternal_grandfather": "母方の祖父",
+        "maternal_grandmother": "母方の祖母",
+        "older_brother_male": "兄",
+        "older_brother_female": "兄",
+        "older_sister_male": "姉",
+        "older_sister_female": "姉",
+        "younger_sibling": "弟・妹",
+        "paternal_uncle": "おじ",
+        "maternal_aunt": "母方のおば",
+        "paternal_aunt": "父方のおば",
+        "maternal_uncle_husband": "母方のおばの夫",
+        "paternal_aunt_husband": "父方のおばの夫",
+        "cousin": "いとこ",
+        "other": "その他"
+      },
+      "friend": {
+        "best_friend": "親友・ベストフレンド",
+        "childhood_friend": "幼なじみ",
+        "school_friend": "学生時代の同級生",
+        "college_friend": "大学の同期",
+        "neighbor_friend": "近所の友達",
+        "other": "その他"
+      },
+      "romance": {
+        "husband": "夫",
+        "wife": "妻",
+        "boyfriend": "彼氏",
+        "girlfriend": "彼女",
+        "crush_mutual": "気になる人",
+        "unrequited_love": "片思いの相手",
+        "other": "その他"
+      },
+      "workplace": {
+        "boss": "上司・チームリーダー",
+        "mentor": "指導役",
+        "senior": "先輩",
+        "peer": "入社同期",
+        "junior": "後輩・部下",
+        "business_partner": "ビジネスパートナー",
+        "other": "その他"
+      },
+      "celebrity": {
+        "actor": "俳優",
+        "singer": "歌手・アイドル",
+        "youtuber": "YouTuber・インフルエンサー",
+        "streamer": "ストリーマー",
+        "athlete": "スポーツ選手",
+        "webtoon_artist": "ウェブトゥーン作家",
+        "other": "その他"
+      }
+    }
+  },
+  "speechForm": {
+    "informal": "タメ口",
+    "formal": "敬語"
+  },
+  "occupation": {
+    "doctor": "医師",
+    "teacher": "教師・教授",
+    "developer": "開発者",
+    "lawyer": "弁護士",
+    "public_servant": "公務員",
+    "entertainer": "芸能人",
+    "creator": "クリエイター・インフルエンサー",
+    "officer": "警察官・消防士",
+    "journalist": "記者・アナウンサー",
+    "chef": "料理人",
+    "other": "その他"
+  },
+  "faceEnroll": {
+    "permissionRequired": "カメラの権限が必要です。",
+    "permissionSkip": "登録をスキップして通話",
+    "cameraLoading": "カメラ準備中...",
+    "title": "顔登録",
+    "subtitleMidCall": "新しい顔を登録して通話を再開します。",
+    "subtitleFirst": "{{name}} と自然に会話できるよう、顔を角度·距離別に撮影します。",
+    "personaFallback": "ペルソナ",
+    "form": {
+      "title": "この方はどなたですか?",
+      "desc": "名前と関係を教えていただくと、次回の通話から認識できます。",
+      "existingLabel": "すでに登録済みの人 (選択すると学習だけ追加されます)",
+      "existingHint": "新しい人の場合は、下に名前を直接入力してください",
+      "nameLabel": "名前",
+      "namePlaceholder": "例: 太郎",
+      "relationLabel": "関係 (任意)",
+      "relationPlaceholder": "例: 孫、長い友人",
+      "needLogin": "ログイン情報がありません。もう一度お試しください。",
+      "needCapture": "まず顔の撮影を完了してください。",
+      "needName": "名前を入力してください。",
+      "networkError": "ネットワークエラー"
+    },
+    "processing": "顔を登録中...",
+    "hintStart": "顔がカメラにはっきり映るようにしてください",
+    "register": "登録",
+    "skipMidCall": "登録せず通話を再開",
+    "skipFirst": "後で登録 (今は通話)",
+    "privacyNote": "撮影した写真はサーバーに保存されません。顔を認識するための数値特徴 (ベクトル) のみ安全に保管します。",
+    "skipConfirm": {
+      "title": "登録せず進む",
+      "desc": "顔認識·記憶機能が制限される可能性があります。続行しますか?",
+      "cancel": "キャンセル",
+      "continue": "そのまま続行"
+    },
+    "cloneError": {
+      "title": "ペルソナ情報エラー",
+      "desc": "無効なペルソナで進入しました。もう一度お試しください。",
+      "ok": "OK"
+    },
+    "complete": {
+      "title": "登録完了",
+      "midCall": "顔登録完了! 通話を再開します。",
+      "first": "顔認識の準備が完了しました。通話を開始します。",
+      "start": "通話開始"
+    },
+    "defaultSelfName": "私",
+    "step": {
+      "perfect": "完璧!",
+      "frontLabel": "正面",
+      "frontHint": "カメラを正面から見てください",
+      "frontDontTurn": "左右に顔を向けないでください",
+      "frontLowerAngle": "顔の角度を下げてください",
+      "leftLabel": "左",
+      "leftHint": "顔を左に向けてください",
+      "leftGuide": "もう少し左へ ({{deg}}°/18°)",
+      "rightLabel": "右",
+      "rightHint": "顔を右に向けてください",
+      "rightGuide": "もう少し右へ ({{deg}}°/-18°)",
+      "downLabel": "下",
+      "downHint": "顔を下に傾けてください",
+      "downGuide": "もう少し下へ ({{deg}}°/-10°)",
+      "upLabel": "上",
+      "upHint": "顔を上に傾けてください",
+      "upGuide": "もう少し上へ ({{deg}}°/10°)"
+    }
+  },
+  "callEntry": {
+    "cancel": "キャンセル",
+    "prepTitle": "{{name}}との会話準備",
+    "q1": {
+      "title": "{{name}}とはどんな関係でしたか?",
+      "subLabel": "詳細な関係",
+      "otherPlaceholder": "例: 恩師、ご近所、恩人",
+      "episodeLabel": "{{name}}とどんな間柄だったか短いエピソードを教えてください。",
+      "episodePlaceholder": "例: 毎週末登山に行く友人、辛い時期に一緒に残業した上司",
+      "addressLabel": "{{name}}はあなたを何と呼んでいましたか?",
+      "addressPlaceholder": "例: えみちゃん、息子、おい、太郎さん"
+    },
+    "q2": {
+      "title": "{{name}}とはお互いにどんな話し方をしていましたか?"
+    },
+    "q3": {
+      "title": "{{name}}の職業は何でしたか?",
+      "otherPlaceholder": "例: 宇宙飛行士、通訳翻訳者、フリーランス作家",
+      "detailLabel": "{{name}}が具体的にどんな仕事をしていたか教えてください。",
+      "detailPlaceholder": "例: 救急医、小学校の担任教師、ゲームバックエンド開発者"
+    },
+    "saveFailedTitle": "保存失敗",
+    "saveFailedDesc": "ネットワークエラーで保存に失敗しました。もう一度お試しください。",
+    "complete": "完了",
+    "doneTitle": "{{name}}と話す準備が整いました!",
+    "learnMore": "もっと学ぶ",
+    "startCall": "{{name}}と通話する"
   }
 }

@@ -196,7 +196,72 @@
     "topupSectionDesc": "구독과 별개로 통화 시간을 추가할 수 있습니다. 5년 유효.",
     "topupLoadFailed": "충전 상품을 불러올 수 없습니다.",
     "androidNotReady": "Android 결제는 준비 중입니다. iOS 로 먼저 이용해 주십시오.",
-    "termsFooter": "자동 갱신 구독은 해지 전까지 매 주기 결제됩니다.\n해지: 설정 → Apple ID → 구독 → afterlife"
+    "termsFooter": "자동 갱신 구독은 해지 전까지 매 주기 결제됩니다.\n해지: 설정 → Apple ID → 구독 → afterlife",
+    "bucketGift": "선물",
+    "giftCount": "{{count}}개",
+    "giftRedeemTitle": "받은 선물 교환하기",
+    "giftRedeemDesc": "받은 꽃을 XRUN 앱에서 광고 시청하고 통화용 꽃으로 바꿔보세요.",
+    "flowerSectionTitle": "꽃 구매",
+    "flowerSectionDesc": "선물하기 전용 · 구매 후 통화 중 사용 가능.",
+    "subLoadHintAndroid": "Play 스토어 계정 로그인 확인 후 다시 시도해주세요.",
+    "currentPlanBadge": "이용 중인 플랜",
+    "recommendedBadge": "추천 요금제",
+    "autoAssigned": "가입 시 자동 적용",
+    "monthlyBilling": "매월 자동 청구",
+    "upgrade": "업그레이드",
+    "termsFooterAndroid": "자동 갱신 구독은 해지 전까지 매 주기 결제됩니다.\n해지: Play 스토어 → 정기 결제 → afterlife",
+    "swapConfirmTitle": "교환 확인",
+    "swapConfirmDesc": "{{name}} {{count}}개를 {{amount}}으로 교환할까요?",
+    "swap": "교환",
+    "swapCompleteTitle": "교환 완료 🎉",
+    "swapCompleteDesc": "{{amount}}이 지갑에 충전됐어요.",
+    "swapFailedTitle": "교환 실패",
+    "swapFailedDefault": "잠시 후 다시 시도해주세요.",
+    "freeTitle": "Go (Free)",
+    "freeDesc": "회원가입 시 자동 부여",
+    "freePrice": "무료",
+    "freeTagline": "회원가입 시 자동 제공",
+    "lightTagline": "광고 없이 이용",
+    "lightTitle": "RUN",
+    "lightDesc": "광고없이 이용",
+    "monsterTagline": "광고 없이 이용",
+    "monsterTitle": "Monster",
+    "monsterDesc": "광고없이 이용",
+    "planFree": {
+      "watchAds": "광고 시청 후 서비스 이용",
+      "midAds": "서비스 중간 광고 삽입",
+      "clone1": "클론 1개 생성",
+      "cloneQuota5": "클론 삭제/생성 5회 제공",
+      "callMinutes50": "월 50분 통화 제공"
+    },
+    "planLight": {
+      "clone2": "클론 2개 생성",
+      "cloneQuota10": "클론 삭제/생성 10회 제공",
+      "callMinutes120": "월 120분 통화 제공",
+      "flowers2": "꽃 2개 제공 (선물하기용)"
+    },
+    "planMonster": {
+      "cloneUnlimited": "클론 무제한 생성",
+      "cloneQuotaUnlimited": "클론 삭제/생성 무제한",
+      "callMinutes1000": "월 1000분 통화 제공",
+      "flowers10": "꽃 10개 제공 (선물하기용)"
+    },
+    "flowerPack": {
+      "p1Title": "꽃 1개",
+      "p1Desc": "선물하기 1회 사용",
+      "p5Title": "꽃 5개",
+      "p5Desc": "선물하기 5회 사용",
+      "p10Title": "꽃 10개",
+      "p10Desc": "선물하기 10회 사용"
+    },
+    "rechargeTitle30": "Recharge 30min",
+    "rechargeTitle60": "Recharge 60min",
+    "rechargeTitle150": "Recharge 150min",
+    "rechargeTitle300": "Recharge 300min",
+    "rechargeDesc30": "30분 충전 · 5년 유효",
+    "rechargeDesc60": "60분 충전 · 5년 유효",
+    "rechargeDesc150": "150분 충전 · 5년 유효",
+    "rechargeDesc300": "300분 충전 · 5년 유효"
   },
   "chat": {
     "personaFallback": "클론",
@@ -536,7 +601,48 @@
       "purchaseDesc": "월 구독 · 충전으로 통화 시간 추가",
       "giftInventory": "선물 지갑",
       "giftInventoryDesc": "받은 선물을 XRUN 으로 교환",
-      "logout": "로그아웃"
+      "logout": "로그아웃",
+      "flower": "꽃 선물",
+      "pangleTest": "Pangle 광고 테스트",
+      "pangleTestDesc": "즉시 rewarded 광고 표시 (개발용)",
+      "animPersona": "애니메이션 페르소나 만들기",
+      "animPersonaDesc": "사진 → 눈 깜빡임·고개·몸 움직임 idle · 생성 3분 내외",
+      "experimentalPersona": "실험 페르소나 만들기 (베타)",
+      "experimentalPersonaDesc": "자연스러운 얼굴 · 응답 5~10초 지연",
+      "visemePersona": "분리 재생 페르소나 만들기 (실험)",
+      "visemePersonaDesc": "TTS + 사전 렌더 viseme 클립 sync",
+      "threeDPersona": "3D 페르소나 만들기 (베타)",
+      "threeDPersonaDesc": "Avatar SDK 3D 얼굴 · GLB URL 별도 세팅 필요",
+      "visemeTest": "Viseme 파이프라인 테스트 (dev)",
+      "visemeTestDesc": "합성 + 재생 · 사전 렌더 이미지 필요",
+      "vitsTts": "VITS TTS · AFL-737 (dev)",
+      "vitsTtsDesc": "sherpa-onnx · 모델 캐시 · 1초 목표 측정",
+      "faceThreshold": "얼굴 임계값 테스트 (dev)",
+      "faceThresholdDesc": "이미지 업로드 → 매칭 score 확인",
+      "threeDLab": "3D 생성 테스트 (dev)",
+      "threeDLabDesc": "사진 → mesh + 5각도 렌더 · 5~30초",
+      "threeDPersonaDev": "3D 페르소나 (dev)",
+      "threeDPersonaDevDesc": "GLB 헤드 렌더 + 립싱크 데모 · Phase 1",
+      "faceEnrollDev": "얼굴 5각도 등록 (dev)",
+      "faceEnrollDevDesc": "정면·좌·우·위·아래 촬영 → clones 첫 통화 대비"
+    },
+    "logout": {
+      "title": "로그아웃할까요?",
+      "desc": "다시 사용하려면 로그인이 필요해요.",
+      "confirm": "로그아웃"
+    },
+    "pangleTest": {
+      "title": "Pangle 테스트",
+      "okMessage": "광고 정상 종료됨.",
+      "failTitle": "Pangle 테스트 실패"
+    },
+    "navError": {
+      "title": "오류",
+      "personaNavFail": "페르소나 만들기 화면 이동 실패"
+    },
+    "faceEnrollDev": {
+      "noneTitle": "페르소나 없음",
+      "noneDesc": "먼저 페르소나를 만들어주세요."
     }
   },
   "auth": {
@@ -1544,5 +1650,182 @@
   "errorBoundary": {
     "title": "화면을 표시하지 못했어요",
     "body": "잠시 후 다시 시도해 주세요."
+  },
+  "relation": {
+    "category": {
+      "family": "가족",
+      "friend": "친구",
+      "romance": "연인",
+      "workplace": "직장",
+      "celebrity": "유명인"
+    },
+    "subtype": {
+      "family": {
+        "father": "아빠",
+        "mother": "엄마",
+        "grandfather": "할아버지",
+        "grandmother": "할머니",
+        "maternal_grandfather": "외할아버지",
+        "maternal_grandmother": "외할머니",
+        "older_brother_male": "형",
+        "older_brother_female": "오빠",
+        "older_sister_male": "누나",
+        "older_sister_female": "언니",
+        "younger_sibling": "동생",
+        "paternal_uncle": "삼촌",
+        "maternal_aunt": "이모",
+        "paternal_aunt": "고모",
+        "maternal_uncle_husband": "이모부",
+        "paternal_aunt_husband": "고모부",
+        "cousin": "사촌",
+        "other": "기타"
+      },
+      "friend": {
+        "best_friend": "절친/베프",
+        "childhood_friend": "소꿉친구",
+        "school_friend": "학창 시절 동창",
+        "college_friend": "대학 동기",
+        "neighbor_friend": "동네 친구",
+        "other": "기타"
+      },
+      "romance": {
+        "husband": "남편",
+        "wife": "아내",
+        "boyfriend": "남자친구",
+        "girlfriend": "여자친구",
+        "crush_mutual": "썸남/썸녀",
+        "unrequited_love": "짝사랑 상대",
+        "other": "기타"
+      },
+      "workplace": {
+        "boss": "상사/팀장",
+        "mentor": "사수",
+        "senior": "선배",
+        "peer": "입사 동기",
+        "junior": "후배/부사수",
+        "business_partner": "사업 파트너",
+        "other": "기타"
+      },
+      "celebrity": {
+        "actor": "배우",
+        "singer": "가수/아이돌",
+        "youtuber": "유튜버/인플루언서",
+        "streamer": "스트리머",
+        "athlete": "운동선수",
+        "webtoon_artist": "웹툰 작가",
+        "other": "기타"
+      }
+    }
+  },
+  "speechForm": {
+    "informal": "반말",
+    "formal": "존댓말"
+  },
+  "occupation": {
+    "doctor": "의사",
+    "teacher": "교사/교수",
+    "developer": "개발자",
+    "lawyer": "변호사",
+    "public_servant": "공무원",
+    "entertainer": "연예인",
+    "creator": "크리에이터/인플루언서",
+    "officer": "경찰관/소방관",
+    "journalist": "기자/아나운서",
+    "chef": "요리사",
+    "other": "기타"
+  },
+  "faceEnroll": {
+    "permissionRequired": "카메라 권한이 필요합니다.",
+    "permissionSkip": "등록 건너뛰고 통화",
+    "cameraLoading": "카메라 준비 중...",
+    "title": "얼굴 등록",
+    "subtitleMidCall": "새 얼굴을 등록하고 통화를 다시 시작해요.",
+    "subtitleFirst": "{{name}} 과 자연스럽게 대화하도록 얼굴을 각도·거리별로 담아둘게요.",
+    "personaFallback": "페르소나",
+    "form": {
+      "title": "이 분은 누구신가요?",
+      "desc": "이름과 관계를 알려주시면 다음 통화부터 알아볼 수 있어요.",
+      "existingLabel": "이미 등록된 사람 (이 중에서 선택하면 학습만 추가돼요)",
+      "existingHint": "새로운 사람이면 아래에 이름을 직접 입력하세요",
+      "nameLabel": "이름",
+      "namePlaceholder": "예: 지호",
+      "relationLabel": "관계 (선택)",
+      "relationPlaceholder": "예: 손주, 오랜 친구",
+      "needLogin": "로그인 정보가 없어요. 다시 시도해 주세요.",
+      "needCapture": "얼굴 촬영을 먼저 완료해 주세요.",
+      "needName": "이름을 입력해 주세요.",
+      "networkError": "네트워크 오류"
+    },
+    "processing": "얼굴 등록 중...",
+    "hintStart": "얼굴이 카메라에 잘 보이도록 해주세요",
+    "register": "등록",
+    "skipMidCall": "등록 없이 통화 재개",
+    "skipFirst": "나중에 하기 (지금 통화)",
+    "privacyNote": "촬영한 사진은 서버에 저장되지 않아요. 얼굴을 알아보기 위한 숫자 특징(벡터)만 안전하게 담아둡니다.",
+    "skipConfirm": {
+      "title": "등록 없이 진행",
+      "desc": "얼굴 인식·기억 기능이 제한될 수 있습니다. 계속하시겠어요?",
+      "cancel": "취소",
+      "continue": "그대로 진행"
+    },
+    "cloneError": {
+      "title": "페르소나 정보 오류",
+      "desc": "잘못된 페르소나로 진입했어요. 다시 시도해 주세요.",
+      "ok": "확인"
+    },
+    "complete": {
+      "title": "등록 완료",
+      "midCall": "얼굴 등록 완료! 통화를 다시 시작합니다.",
+      "first": "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.",
+      "start": "통화 시작"
+    },
+    "defaultSelfName": "나",
+    "step": {
+      "perfect": "완벽!",
+      "frontLabel": "정면",
+      "frontHint": "카메라를 정면으로 봐주세요",
+      "frontDontTurn": "좌우로 고개 돌리지 마세요",
+      "frontLowerAngle": "고개 각도 낮춰주세요",
+      "leftLabel": "왼쪽",
+      "leftHint": "고개를 왼쪽으로 돌려주세요",
+      "leftGuide": "조금만 더 왼쪽으로 ({{deg}}°/18°)",
+      "rightLabel": "오른쪽",
+      "rightHint": "고개를 오른쪽으로 돌려주세요",
+      "rightGuide": "조금만 더 오른쪽으로 ({{deg}}°/-18°)",
+      "downLabel": "아래",
+      "downHint": "고개를 아래로 숙여주세요",
+      "downGuide": "조금만 더 아래로 ({{deg}}°/-10°)",
+      "upLabel": "위",
+      "upHint": "고개를 위로 들어주세요",
+      "upGuide": "조금만 더 위로 ({{deg}}°/10°)"
+    }
+  },
+  "callEntry": {
+    "cancel": "취소",
+    "prepTitle": "{{name}}님과 대화 준비",
+    "q1": {
+      "title": "{{name}}님과 어떤 관계였나요?",
+      "subLabel": "세부 관계",
+      "otherPlaceholder": "예: 스승님, 이웃, 은인",
+      "episodeLabel": "{{name}}님과 어떤 사이였는지 간단한 일화를 적어주세요.",
+      "episodePlaceholder": "예: 매주 주말마다 등산 다니던 친구, 힘든 시기에 같이 야근한 사수",
+      "addressLabel": "{{name}}님이 당신을 어떻게 불렀나요?",
+      "addressPlaceholder": "예: 은지야, 아들, 야, 지호 씨"
+    },
+    "q2": {
+      "title": "{{name}}님과 서로 어떤 말투를 사용하는 사이였나요?"
+    },
+    "q3": {
+      "title": "{{name}}님의 직업은 무엇이었나요?",
+      "otherPlaceholder": "예: 우주비행사, 통번역가, 프리랜서 작가",
+      "detailLabel": "{{name}}님이 정확하게 어떤 일을 했는지 적어주세요.",
+      "detailPlaceholder": "예: 응급의학과 의사, 초등학교 담임선생님, 게임 백엔드 개발자"
+    },
+    "saveFailedTitle": "저장 실패",
+    "saveFailedDesc": "네트워크 오류로 저장에 실패했어요. 다시 시도해 주세요.",
+    "complete": "완료",
+    "doneTitle": "{{name}}님과 대화할 준비가 완료되었어요!",
+    "learnMore": "더 학습하기",
+    "startCall": "{{name}}님과 통화하기"
   }
 }
