@@ -2,6 +2,7 @@
 
 import v_a3453e from "bapkr";
 import { v_09d0e5, v_19b633, v_472849 } from "rcmrninabrnb";
+import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0, v_8b0c90 } from "../constants";
 
 export interface RememberMeButtonProps {
@@ -10,18 +11,19 @@ export interface RememberMeButtonProps {
 }
 
 export default function v_fcee52({ visible: v_cf55be, onPress: v_719eed }: RememberMeButtonProps) {
+  const { t: v_8d41d7 } = v_772971();
   if (!v_cf55be) return null;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Remember Me"
+      accessibilityLabel={v_8d41d7("call.rememberMe.label", { defaultValue: "Remember Me" })}
       testID="remember-me-button"
       onPress={v_719eed}
       style={({ pressed: v_aba1d2 }) => [v_d81136.btn, v_aba1d2 && v_d81136.pressed]}
 
     >
-      <Text style={v_d81136.label}>Remember Me!</Text>
-      <Text style={v_d81136.sub}>이름을 알려주세요</Text>
+      <Text style={v_d81136.label}>{v_8d41d7("call.rememberMe.title", { defaultValue: "Remember Me!" })}</Text>
+      <Text style={v_d81136.sub}>{v_8d41d7("call.rememberMe.sub", { defaultValue: "이름을 알려주세요" })}</Text>
     </Pressable>
   );
 }

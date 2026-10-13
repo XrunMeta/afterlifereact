@@ -5,6 +5,7 @@ import { v_6b5698, type v_c3551b, v_f2c756 } from 'rcmrninabrnb';
 import { v_862296 as v_628d75 } from 'mkqptszwrsxiemcjrtdlshyxlm';
 import { v_e243ee } from 'lvqvchptxazovhbxaycespq';
 import * as v_8a44cb from 'zryrlwvgokjhz';
+import v_9c213b from '../i18n';
 import {
   v_000b82,
   v_c1dff7,
@@ -20,7 +21,7 @@ function v_5674ca(): { status: v_2455ca; error: string | null } {
     return { status: v_c1dff7(v_628d75.getCameraPermissionStatus()), error: null };
   } catch (v_49263d) {
     console.warn('[usePermissionGate] camera status query failed:', v_49263d);
-    return { status: 'undetermined', error: '카메라 권한 상태를 확인하지 못했어요.' };
+    return { status: 'undetermined', error: v_9c213b.t('permissionGate.cameraStatusError', { defaultValue: '카메라 권한 상태를 확인하지 못했어요.' }) };
   }
 }
 
@@ -33,7 +34,7 @@ async function v_32601b(): Promise<{ status: v_2455ca; error: string | null }> {
     };
   } catch (v_49263d) {
     console.warn('[usePermissionGate] mic status query failed:', v_49263d);
-    return { status: 'undetermined', error: '마이크 권한 상태를 확인하지 못했어요.' };
+    return { status: 'undetermined', error: v_9c213b.t('permissionGate.micStatusError', { defaultValue: '마이크 권한 상태를 확인하지 못했어요.' }) };
   }
 }
 

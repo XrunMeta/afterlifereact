@@ -206,16 +206,16 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
           {}
           <View style={v_fd5f43.currentVoiceCard}>
-            <Text style={v_fd5f43.currentVoiceLabel}>현재 목소리</Text>
+            <Text style={v_fd5f43.currentVoiceLabel}>{v_8d41d7("edit.currentVoiceLabel", { defaultValue: "현재 목소리" })}</Text>
             <Text style={v_fd5f43.currentVoiceValue}>
               {v_1f4508 == null
-                ? "🎙 직접 녹음한 목소리 (페르소나 생성 시 설정)"
+                ? v_8d41d7("edit.currentVoiceRecorded", { defaultValue: "🎙 직접 녹음한 목소리 (페르소나 생성 시 설정)" })
                 : v_53e1f3.find((v_81e2ef) => v_81e2ef.id === v_1f4508)?.name
                   ? `🎵 ${v_53e1f3.find((v_81e2ef) => v_81e2ef.id === v_1f4508)!.name}`
-                  : "🎵 카탈로그 목소리"}
+                  : v_8d41d7("edit.currentVoiceCatalog", { defaultValue: "🎵 카탈로그 목소리" })}
             </Text>
             <Text style={v_fd5f43.currentVoiceHint}>
-              아래 목록에서 다른 목소리를 선택하면 통화 시 그 목소리로 재생됩니다.
+              {v_8d41d7("edit.currentVoiceHint", { defaultValue: "아래 목록에서 다른 목소리를 선택하면 통화 시 그 목소리로 재생됩니다." })}
             </Text>
           </View>
 
@@ -252,7 +252,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                       onPress={() => v_1bf8db(v_81e2ef)}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                      <Text style={v_fd5f43.previewBtnText}>{v_087c92 ? "■ 정지" : "▶ 미리듣기"}</Text>
+                      <Text style={v_fd5f43.previewBtnText}>{v_087c92 ? v_8d41d7("edit.voiceStop", { defaultValue: "■ 정지" }) : v_8d41d7("edit.voicePreview", { defaultValue: "▶ 미리듣기" })}</Text>
                     </TouchableOpacity>
                   </TouchableOpacity>
                 );

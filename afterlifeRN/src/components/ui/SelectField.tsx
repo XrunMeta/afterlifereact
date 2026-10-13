@@ -13,6 +13,7 @@ import {
   v_122070,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
+import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0, v_843035, v_9b1a04, v_8b0c90 } from "../constants";
 
 export interface SelectOption<T extends string = string> {
@@ -38,7 +39,7 @@ export default function v_d56c0a<T extends string = string>({
   options: v_b36f96,
   value: v_3b402b,
   onChange: v_b187d9,
-  placeholder: v_c6baea = "선택",
+  placeholder: v_c6baea,
   label: v_2869c1,
   errorText: v_74dc8b,
   leftIcon: v_86ef18,
@@ -46,6 +47,8 @@ export default function v_d56c0a<T extends string = string>({
   rounded: v_f52086 = 10,
   dropdownMaxHeight: v_79040b = 400,
 }: SelectFieldProps<T>) {
+  const { t: v_8d41d7 } = v_772971();
+  const v_2f4805 = v_c6baea ?? v_8d41d7("field.selectPlaceholder", { defaultValue: "선택" });
   const [v_207c31, v_3cc8fd] = v_5ab095(false);
   const v_587413 = v_b36f96.find((v_b6c474) => v_b6c474.value === v_3b402b);
 
@@ -59,7 +62,7 @@ export default function v_d56c0a<T extends string = string>({
       >
         {v_86ef18 ? <View style={v_d81136.leftIcon}>{v_86ef18}</View> : null}
         <Text style={[v_d81136.selectText, !v_587413 && v_d81136.placeholder]}>
-          {v_587413 ? v_587413.label : v_c6baea}
+          {v_587413 ? v_587413.label : v_2f4805}
         </Text>
         <Feather name="chevron-down" size={18} color={v_1bfbd0.zinc400} />
       </TouchableOpacity>

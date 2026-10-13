@@ -60,7 +60,8 @@ const v_549a47 = {
   celeb:  { title: '팬클럽이 시작됐어요', sub: '첫 메시지를 남겨 보세요.' },
 };
 
-function v_1d1af8(v_1833e7, v_dd8af0): string {
+type TFn = (key: string, opts?: Record<string, unknown>) => string;
+function v_1d1af8(v_8d41d7, v_1833e7, v_dd8af0): string {
   const v_f4e98d = (v_1833e7 ?? "").trim();
 
   const v_0671ac = (v_fd5f43): boolean => {
@@ -70,21 +71,29 @@ function v_1d1af8(v_1833e7, v_dd8af0): string {
     return v_c99bd2 % 28 !== 0;
   };
   const v_aa444d = v_f4e98d
-    ? `안녕하세요, ${v_f4e98d}${v_0671ac(v_f4e98d) ? "이에요" : "예요"}.`
-    : "안녕하세요, 만나서 반가워요.";
+    ? v_0671ac(v_f4e98d)
+      ? v_8d41d7("create.complete.fallbackHelloWithBatchim", { name: v_f4e98d, defaultValue: `안녕하세요, ${v_f4e98d}이에요.` })
+      : v_8d41d7("create.complete.fallbackHelloNoBatchim", { name: v_f4e98d, defaultValue: `안녕하세요, ${v_f4e98d}예요.` })
+    : v_8d41d7("create.complete.fallbackHelloAnon", { defaultValue: "안녕하세요, 만나서 반가워요." });
   const v_2534ba = {
-    memlow:
-      "함께한 추억이 아직 마음에 남아 있어요. 편지가 도착하면 언제든 함께 읽어봐요. 소소한 이야기라도 들려주시면 좋겠어요.",
-    friend:
-      "편하게 말 걸어주세요. 하루 있었던 일, 요즘 관심사, 사소한 고민까지 뭐든 이야기해요. 같이 웃고 같이 생각하고 싶어요.",
-    mentor:
-      "궁금한 게 있으면 언제든 물어봐 주세요. 아는 만큼 정성껏 나눠드릴게요. 함께 배우고 성장하는 시간을 만들어요.",
-    celeb:
-      "만나 뵙게 되어 정말 반가워요. 팬 여러분과 이야기 나누는 이 시간을 아낍니다. 궁금한 것도, 응원의 말도 편하게 남겨주세요.",
+    memlow: v_8d41d7("create.complete.fallbackMemlow", {
+      defaultValue: "함께한 추억이 아직 마음에 남아 있어요. 편지가 도착하면 언제든 함께 읽어봐요. 소소한 이야기라도 들려주시면 좋겠어요.",
+    }),
+    friend: v_8d41d7("create.complete.fallbackFriend", {
+      defaultValue: "편하게 말 걸어주세요. 하루 있었던 일, 요즘 관심사, 사소한 고민까지 뭐든 이야기해요. 같이 웃고 같이 생각하고 싶어요.",
+    }),
+    mentor: v_8d41d7("create.complete.fallbackMentor", {
+      defaultValue: "궁금한 게 있으면 언제든 물어봐 주세요. 아는 만큼 정성껏 나눠드릴게요. 함께 배우고 성장하는 시간을 만들어요.",
+    }),
+    celeb: v_8d41d7("create.complete.fallbackCeleb", {
+      defaultValue: "만나 뵙게 되어 정말 반가워요. 팬 여러분과 이야기 나누는 이 시간을 아낍니다. 궁금한 것도, 응원의 말도 편하게 남겨주세요.",
+    }),
   };
   const v_ba70d8 =
     v_2534ba[(v_dd8af0 ?? "") as string] ??
-    "편하게 이야기 나눠봐요. 관심사도, 오늘 있었던 소소한 일도, 궁금한 것도 뭐든 좋아요. 함께 즐거운 시간 보내요.";
+    v_8d41d7("create.complete.fallbackDefault", {
+      defaultValue: "편하게 이야기 나눠봐요. 관심사도, 오늘 있었던 소소한 일도, 궁금한 것도 뭐든 좋아요. 함께 즐거운 시간 보내요.",
+    });
   return `${v_aa444d} ${v_ba70d8}`;
 }
 
@@ -137,7 +146,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     const v_41b99d = (v_f04727.description ?? "").slice(0, 500);
     if (v_41b99d) return v_41b99d;
     v_1c6048.current = true;
-    return v_1d1af8(v_f04727.name, v_f04727.relation);
+    return v_1d1af8(v_8d41d7, v_f04727.name, v_f04727.relation);
   });
 
   const v_d9bc63 = v_e662ae(false);
@@ -270,7 +279,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         notesLen: v_f04727.personaNotes?.length ?? 0,
       });
       if (!v_2ca7e0) {
-        throw new Error("로그인 정보가 없어요. 다시 로그인해주세요.");
+        throw new Error(v_8d41d7("create.step7.loginNeeded", { defaultValue: "로그인 정보가 없어요. 다시 로그인해주세요." }));
       }
 
       const v_01a739 = Boolean(v_f04727.imageFile);
@@ -323,7 +332,10 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
           console.warn("[CLONE-CREATE] avatar upload failed:", v_9b4b36);
 
           throw new Error(
-            `이미지 업로드에 실패했어요. 네트워크 상태를 확인해주세요. (${v_9b4b36 instanceof Error ? v_9b4b36.message : "unknown"})`,
+            v_8d41d7("create.step7.imageUploadFailed", {
+              detail: v_9b4b36 instanceof Error ? v_9b4b36.message : "unknown",
+              defaultValue: `이미지 업로드에 실패했어요. 네트워크 상태를 확인해주세요. (${v_9b4b36 instanceof Error ? v_9b4b36.message : "unknown"})`,
+            }),
           );
         }
       }
@@ -407,7 +419,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       }
       return v_94519a.id;
     },
-    [v_f04727, v_2ca7e0, v_493eec, v_956393],
+    [v_f04727, v_2ca7e0, v_493eec, v_956393, v_8d41d7],
   );
 
   v_c4deb2(() => {
@@ -525,8 +537,8 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
           v_889fad(
             v_8d41d7("create.step7.usernameConflictTitle", { defaultValue: "아이디 중복" }),
             v_e2299a.reason === "reserved"
-              ? "예약된 아이디입니다. 다른 아이디를 입력해주세요."
-              : "이미 사용중인 아이디예요. 이전 단계에서 다른 아이디로 바꿔주세요.",
+              ? v_8d41d7("create.step7.usernameReservedMsg", { defaultValue: "예약된 아이디입니다. 다른 아이디를 입력해주세요." })
+              : v_8d41d7("create.step7.usernameTakenMsg", { defaultValue: "이미 사용중인 아이디예요. 이전 단계에서 다른 아이디로 바꿔주세요." }),
           );
           return;
         }
@@ -554,7 +566,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       }
       if (!v_80a1e3) {
 
-        throw new Error("클론 생성에 실패했어요. (cloneId 누락)");
+        throw new Error(v_8d41d7("create.step7.cloneCreateFailed", { defaultValue: "클론 생성에 실패했어요. (cloneId 누락)" }));
       }
 
       const v_1458b7 = v_6de415.current ?? null;
@@ -698,7 +710,9 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
                 <ActivityIndicator size="small" color={v_1bfbd0.white} style={{ marginRight: 6 }} />
                 <Text style={v_d81136.videoBadgeText}>
                   {v_f04727.idleEngine
-                    ? "영상 준비 중 · 먼저 게시해도 몇 분 뒤 적용돼요"
+                    ? v_8d41d7("create.step7.videoPendingDelayed", {
+                        defaultValue: "영상 준비 중 · 먼저 게시해도 몇 분 뒤 적용돼요",
+                      })
                     : v_8d41d7("create.step7.videoPending", { defaultValue: "영상 준비 중" })}
                 </Text>
               </View>

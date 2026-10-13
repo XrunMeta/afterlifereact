@@ -71,7 +71,13 @@
       "blockFailed": "ブロックに失敗しました",
       "commentReported": "コメントを通報しました",
       "reportFailed": "通報に失敗しました",
-      "reportSuccessBlocked": "通報を受け付けました。このクローンをブロックしました"
+      "reportSuccessBlocked": "通報を受け付けました。このクローンをブロックしました",
+      "userBlocked": "ブロックしました",
+      "blockUserFailed": "ブロックに失敗しました"
+    },
+    "actions": {
+      "block": "ブロック",
+      "report": "通報"
     }
   },
   "notifications": {
@@ -316,7 +322,50 @@
     "bgWarnTitle": "📞 通話が切れる可能性があります",
     "bgWarnBody": "アプリを開いたままにしないと通話が続きません。アプリに戻ってください。",
     "fgTitle": "📞 通話中",
-    "fgBody": "{{name}} と通話中です"
+    "fgBody": "{{name}} と通話中です",
+    "channelName": "通話",
+    "rememberMe": {
+      "label": "Remember Me",
+      "title": "Remember Me!",
+      "sub": "お名前を教えてください",
+      "sheetTitle": "この方はどなたですか?",
+      "sheetDesc": "教えていただければ次の通話から覚えておきます。",
+      "nameLabel": "名前",
+      "namePlaceholder": "例: 지호",
+      "relationLabel": "関係",
+      "relationPlaceholder": "例: 孫、旧友",
+      "later": "後で"
+    },
+    "rmEnrollFail": "登録に失敗しました。もう一度お試しください。",
+    "newFaceTitle": "新しい顔が見えます",
+    "newFaceBody": "この顔を登録しますか?",
+    "newFaceLater": "後で",
+    "newFaceSelf": "本人です",
+    "newFaceEnroll": "登録",
+    "afl971PreMessage": "{userName}さんにあげるお花を摘んでくるね!動画を見て待ってて、すぐ戻るから",
+    "afl971PostMessage": "待っててくれてありがとう!お花のプレゼントだよ、じゃーん",
+    "afl971FlowerToast": "{cloneName}さんからお花を受け取りました",
+    "giftSendFailFallback": "ギフトの送信に失敗しました",
+    "devTextPlaceholder": "[DEV] テキストで発話",
+    "devSend": "送信",
+    "devFaceLabel": "顔",
+    "thinking": "生成中…",
+    "endCallA11yReady": "通話終了(今話せます)",
+    "endCallA11y": "通話終了",
+    "endCallA11yHint": "今話せます。このボタンを押すと通話が終了します。",
+    "giftEmptyTitle": "お花を持っていません",
+    "giftEmptyBody": "お花を購入しに移動しますか?",
+    "giftEmptyBuy": "購入",
+    "giftOwnedCount": "{{count}}個所持",
+    "exiting": "終了中…",
+    "adPlaying": "広告再生中…",
+    "adStubNote": "(開発用スタブ · 実広告の代替)"
+  },
+  "greeting": {
+    "default": "こんにちは"
+  },
+  "persona": {
+    "emptyPrompt": "（クローン情報がありません）"
   },
   "feed": {
     "homeTitle": "ホーム",
@@ -443,7 +492,13 @@
     "l2SectionTitle": "詳細記憶 (L2) — 自動学習",
     "l2MemoryCount": "{{n}}件の記憶が蓄積されています。",
     "l2LastUpdated": "最終更新: {{date}}",
-    "l2Hint": "L2 は直接編集できず、会話・やり取りを通じて自動的に再学習されます。"
+    "l2Hint": "L2 は直接編集できず、会話・やり取りを通じて自動的に再学習されます。",
+    "currentVoiceLabel": "現在の声",
+    "currentVoiceRecorded": "🎙 自分で録音した声(ペルソナ作成時に設定)",
+    "currentVoiceCatalog": "🎵 カタログ音声",
+    "currentVoiceHint": "下のリストから別の声を選ぶと、通話時にその声で再生されます。",
+    "voiceStop": "■ 停止",
+    "voicePreview": "▶ プレビュー"
   },
   "dashboard": {
     "title": "My Page",
@@ -643,6 +698,11 @@
     "faceEnrollDev": {
       "noneTitle": "ペルソナがありません",
       "noneDesc": "先にペルソナを作成してください。"
+    },
+    "version": {
+      "otaEmergency": "OTA 緊急実行(embedded fallback)",
+      "otaEmbedded": "OTA 内蔵(embedded)",
+      "otaUpdate": "OTA {{id}}"
     }
   },
   "auth": {
@@ -786,7 +846,9 @@
       "locationPermDesc": "通話中に地域ベースの会話を行うには、位置情報権限が必要です。\nデバイス設定→位置情報→AfterLifeで許可してください。",
       "locationPermError": "位置情報権限のリクエスト中に問題が発生しました。",
       "rateLimit": "しばらくしてから再度お試しください。(1分クールダウン)",
-      "sendCodeFailed": "コードの送信に失敗しました。ネットワークをご確認ください。"
+      "sendCodeFailed": "コードの送信に失敗しました。ネットワークをご確認ください。",
+      "xrunFoundTitle": "XRUNアカウントを検出",
+      "xrunFoundDesc": "登録済みのXRUNアカウントが存在します。\n\nXRUNのアカウント情報でログインすれば、Afterlifeも併せてご利用いただけます。"
     },
     "emailVerify": {
       "title": "メール認証",
@@ -1029,7 +1091,15 @@
       "featSecurity": "データセキュリティ",
       "featSecurityDesc": "すべてのデータは安全に暗号化されて保護されます",
       "startVideo": "紹介動画を作成",
-      "goDashboard": "マイクローンへ戻る"
+      "goDashboard": "マイクローンへ戻る",
+      "fallbackHelloWithBatchim": "こんにちは、{{name}}です。",
+      "fallbackHelloNoBatchim": "こんにちは、{{name}}です。",
+      "fallbackHelloAnon": "こんにちは、お会いできて嬉しいです。",
+      "fallbackMemlow": "一緒に過ごした思い出が今も心に残っています。手紙が届いたらいつでも一緒に読みましょう。ささいな話でも聞かせてください。",
+      "fallbackFriend": "気軽に話しかけてね。今日の出来事、最近の興味、ちょっとした悩みまで何でも話そう。一緒に笑って、一緒に考えたいな。",
+      "fallbackMentor": "気になることがあれば、いつでも聞いてください。知っている限り、心を込めてお伝えします。一緒に学んで成長する時間を作りましょう。",
+      "fallbackCeleb": "お会いできて本当に嬉しいです。ファンのみなさんと話すこの時間を大切にしています。質問も応援の言葉も、気軽に残してください。",
+      "fallbackDefault": "気軽に話しましょう。興味のあること、今日のちょっとした出来事、気になること、何でも大歓迎です。一緒に楽しい時間を過ごしましょう。"
     },
     "errors": {
       "quotaExceeded": "同じタイプのクローンは1個まで作成できます。",
@@ -1112,12 +1182,23 @@
       "postFailed": "投稿失敗",
       "postFailedWithCode": "投稿失敗({{code}})",
       "unknownError": "不明なエラー",
-      "next": "次へ"
+      "next": "次へ",
+      "imageUploadFailed": "画像のアップロードに失敗しました。ネットワーク状況を確認してください。({{detail}})",
+      "usernameReservedMsg": "このIDは予約されています。別のIDを入力してください。",
+      "usernameTakenMsg": "このIDはすでに使われています。前のステップに戻って別のIDに変更してください。",
+      "cloneCreateFailed": "クローンの作成に失敗しました。(cloneIdが見つかりません)",
+      "videoPendingDelayed": "動画を準備中 · 先に投稿しても数分後に反映されます"
     },
     "step8": {
       "title": "クローンが完成しました",
       "subtitle": "これからクローンと会話したり\n新しい投稿を上げたりできます。",
       "toDashboard": "ダッシュボードへ"
+    },
+    "username": {
+      "taken": "このIDはすでに使われています。別のIDを入力してください。",
+      "reserved": "このIDは予約されています。別のIDを入力してください。",
+      "checking": "IDを確認中…",
+      "available": "このIDは使用できます。"
     }
   },
   "settings": {
@@ -1160,7 +1241,25 @@
       "copied": "トークンをコピーしました。",
       "comment": "コメント通知",
       "like": "いいね通知",
-      "marketing": "マーケティング通知"
+      "marketing": "マーケティング通知",
+      "prefs": {
+        "newFollower": {
+          "label": "新しいフォロワー",
+          "desc": "誰かがあなたをフォローしたとき"
+        },
+        "followingActivity": {
+          "label": "フォロー中メンバーのお知らせ",
+          "desc": "フォロー中のユーザーが新しいクローンを作成したとき"
+        },
+        "reactions": {
+          "label": "リアクション",
+          "desc": "あなたのクローンに「いいね」・コメント・通報があったとき"
+        },
+        "promotions": {
+          "label": "お得な情報",
+          "desc": "パーソナライズされた特典やイベントのお知らせ"
+        }
+      }
     },
     "agreements": {
       "title": "同意"
@@ -1254,6 +1353,9 @@
       "verifyOkMsg": "パスワードを確認しました。",
       "verifyError": "検証中にエラーが発生しました。",
       "xrunNotInstalled": "xrun アプリがインストールされていません。"
+    },
+    "rememberingCloneDetail": {
+      "deleteFailed": "削除に失敗しました。"
     }
   },
   "permissionGate": {
@@ -1273,7 +1375,9 @@
     "logout": "ログアウト",
     "consentIntro": "通話を始める前に以下の同意をご確認ください。",
     "callLearningConsent": "(任意) 通話内容の学習に同意します",
-    "faceBiometricConsent": "(任意) 顔認識(生体情報)の利用に同意します"
+    "faceBiometricConsent": "(任意) 顔認識(生体情報)の利用に同意します",
+    "cameraStatusError": "カメラの権限状態を確認できませんでした。",
+    "micStatusError": "マイクの権限状態を確認できませんでした。"
   },
   "consentPrompt": {
     "title": "通話の前に同意が必要です",
@@ -1288,7 +1392,29 @@
     "descWithName": "「{{name}}」クローンを通報する理由を\n簡単に入力してください。(任意)",
     "descNoName": "クローンを通報する理由を\n簡単に入力してください。(任意)",
     "placeholder": "例: 不適切な内容、なりすまし、スパムなど",
-    "submit": "通報する"
+    "submit": "通報する",
+    "titleComment": "コメントを報告",
+    "titlePost": "投稿を報告",
+    "descCommentWithName": "{{name}} さんのコメントを報告する理由を入力してください。",
+    "descCommentNoName": "コメントを報告する理由を入力してください。",
+    "descPostWithName": "{{name}} さんの投稿を報告する理由を入力してください。",
+    "descPostNoName": "投稿を報告する理由を入力してください。",
+    "targetComment": "コメント",
+    "targetPost": "投稿",
+    "targetClone": "クローン",
+    "sectionTitle": "この{{target}}を報告する理由",
+    "sectionDesc": "お客様の報告は匿名で処理されます。誰かが緊急事態にあると思われる場合は、直ちに地域の緊急サービスにご連絡ください。",
+    "reason": {
+      "dislike": "気に入らない",
+      "bullying": "いじめまたは望まない接触",
+      "selfHarm": "自殺、自傷行為および摂食障害",
+      "nudity": "ヌード画像または性的行為",
+      "hate": "ヘイトスピーチまたはシンボル",
+      "violence": "暴力または虐待",
+      "regulated": "規制対象品目の販売または宣伝",
+      "spam": "詐欺、不正行為またはスパム",
+      "falseInfo": "虚偽情報"
+    }
   },
   "merge": {
     "title": "クローン統合の確認が必要です",
@@ -1552,7 +1678,11 @@
     "sourceFileNotFound": "元のファイルが見つかりません。",
     "pinMustBe6Digits": "PIN は 6 桁の数字である必要があります。",
     "authRequired": "ログインが必要です。",
-    "resourceIdInvalid": "リソース ID が正しくありません。"
+    "resourceIdInvalid": "リソース ID が正しくありません。",
+    "usernameEmpty": "ユーザー名を入力してください。",
+    "usernameTooShort": "ユーザー名は3文字以上にしてください。",
+    "usernameTooLong": "ユーザー名は30文字以下にしてください。",
+    "usernameFormat": "ユーザー名は英小文字・数字・アンダースコア (_) のみ使用できます（大文字・非ASCII・空白は不可）。"
   },
   "question": {
     "label": {
@@ -1833,5 +1963,23 @@
     "doneTitle": "{{name}}と話す準備が整いました!",
     "learnMore": "もっと学ぶ",
     "startCall": "{{name}}と通話する"
+  },
+  "banner": {
+    "step3Entry": "この先の段階ではタイプ・関係を変更できません。別のタイプの場合は前の段階で修正してください。",
+    "closeA11y": "バナーを閉じる"
+  },
+  "block": {
+    "title": "{{name}} さんを\nブロックしますか?",
+    "subtitle": "この人が作成した他のプロフィール、および今後作成するすべてのプロフィールも併せてブロックされます。",
+    "info1": "ブロックされた人はあなたにコメントしたり、あなたのプロフィール・コンテンツを見つけたりできなくなります。",
+    "info2": "相手にはあなたがブロックしたことは通知されません。",
+    "info3": "マイページ > ブロックユーザー管理からいつでもブロックを解除できます。",
+    "confirm": "ブロック"
+  },
+  "field": {
+    "selectPlaceholder": "選択"
+  },
+  "gift": {
+    "receivedNotice": "さんが {{gift}} をプレゼントしました"
   }
 }

@@ -154,8 +154,8 @@ export default function v_57037e({
             )}
             <Text style={v_fd5f43.headerTitle}>
               {v_34e5bb === "country"
-                ? v_8d41d7("common:auth.signup.country") || "국가"
-                : v_8d41d7("common:auth.signup.region") || "지역"}
+                ? v_8d41d7("common:auth.signup.country", { defaultValue: "국가" })
+                : v_8d41d7("common:auth.signup.region", { defaultValue: "지역" })}
             </Text>
             <TouchableOpacity onPress={v_0890f8} style={v_fd5f43.headerBtn}>
               <Feather name="x" size={20} color={v_1bfbd0.zinc700} />
@@ -167,7 +167,7 @@ export default function v_57037e({
             <Feather name="search" size={16} color={v_1bfbd0.zinc400} />
             <TextInput
               style={v_fd5f43.searchInput}
-              placeholder={v_8d41d7("common:auth.signup.searchPlaceholder") || "검색..."}
+              placeholder={v_8d41d7("common:auth.signup.searchPlaceholder", { defaultValue: "검색..." })}
               placeholderTextColor={v_1bfbd0.zinc400}
               value={v_7c5791}
               onChangeText={v_c57190}
@@ -212,7 +212,7 @@ export default function v_57037e({
             }}
             ListEmptyComponent={
               <Text style={v_fd5f43.emptyText}>
-                {v_8d41d7("common:auth.signup.noResults") || "결과 없음"}
+                {v_8d41d7("common:auth.signup.noResults", { defaultValue: "결과 없음" })}
               </Text>
             }
           />
