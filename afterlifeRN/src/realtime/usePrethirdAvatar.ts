@@ -117,7 +117,7 @@ export function v_3d8d48(v_328259): v_b01667 {
     try { v_12cd99.close(); } catch {  }
   }, []);
 
-  const v_3e2c87 = v_de06a3(async (v_9b6134) => {
+  const v_3e2c87 = v_de06a3(async (v_9b6134, v_328259) => {
     const v_32dc97 = v_fa9144.current;
     if (!v_f98743.current || !v_32dc97) return;
     if (v_ab4803 === 'sending' || v_ab4803 === 'speaking') {
@@ -131,7 +131,7 @@ export function v_3d8d48(v_328259): v_b01667 {
     v_ae4844('sending');
     try {
       const v_1923e2 = (v_2d5539.current += 1);
-      v_32dc97.send(JSON.stringify({ type: 'say', text: v_8d41d7, seq: v_1923e2 }));
+      v_32dc97.send(JSON.stringify({ type: 'say', text: v_8d41d7, seq: v_1923e2, ...(v_328259?.adNotice ? { adNotice: v_328259.adNotice } : {}) }));
       v_ae4844('speaking');
       if (v_6b43e5.current) clearTimeout(v_6b43e5.current);
 
@@ -179,6 +179,28 @@ export function v_3d8d48(v_328259): v_b01667 {
     try {
       const v_1923e2 = (v_2d5539.current += 1);
       v_32dc97.send(JSON.stringify({ type: 'face_event', ...v_9e6ec9, seq: v_1923e2 }));
+    } catch {
+
+    }
+  }, []);
+
+  const v_16dd9f = v_de06a3(() => {
+    const v_32dc97 = v_fa9144.current;
+    if (!v_f98743.current || !v_32dc97 || v_32dc97.readyState !== 'open') return;
+    try {
+      const v_1923e2 = (v_2d5539.current += 1);
+      v_32dc97.send(JSON.stringify({ type: 'ad_prepare_return', seq: v_1923e2 }));
+    } catch {
+
+    }
+  }, []);
+
+  const v_86d961 = v_de06a3(() => {
+    const v_32dc97 = v_fa9144.current;
+    if (!v_f98743.current || !v_32dc97 || v_32dc97.readyState !== 'open') return;
+    try {
+      const v_1923e2 = (v_2d5539.current += 1);
+      v_32dc97.send(JSON.stringify({ type: 'ad_returned', seq: v_1923e2 }));
     } catch {
 
     }
@@ -365,5 +387,5 @@ export function v_3d8d48(v_328259): v_b01667 {
   v_c4deb2(() => () => { void v_3e54f8();  }, []);
 
   const v_800a73 = () => v_6e83c5.current;
-  return { state: v_b6e533, remoteStream: v_b4d824, error: v_5e9bfe, start: v_965edf, stop: v_3e54f8, phase: v_ab4803, say: v_3e2c87, notifySpeechEnd: v_811f30, getStatsReport: v_791152, greet: v_009e58, speak: v_a1d9db, lastSignal: v_88c591, sendFaceEvent: v_11f4a1, sendAudioReady: v_2a35c1, getCallId: v_800a73 };
+  return { state: v_b6e533, remoteStream: v_b4d824, error: v_5e9bfe, start: v_965edf, stop: v_3e54f8, phase: v_ab4803, say: v_3e2c87, notifySpeechEnd: v_811f30, getStatsReport: v_791152, greet: v_009e58, speak: v_a1d9db, lastSignal: v_88c591, sendFaceEvent: v_11f4a1, sendAudioReady: v_2a35c1, sendAdPrepareReturn: v_16dd9f, sendAdReturned: v_86d961, getCallId: v_800a73 };
 }

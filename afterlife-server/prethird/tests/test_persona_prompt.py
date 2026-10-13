@@ -91,7 +91,11 @@ def test_preference_personal_렌더_가독():
     assert "## 상대 정보" in content
     assert "- 상대의 취향: " in content
     assert "커피: 라떼" in content
-    assert "{" not in content and "'" not in content   # 파이썬 dict repr 금지
+    # dict repr(`{'커피': '라떼'}`)로 새지 않는지 — 상대 정보 블록에 한정해 검사한다.
+    # (머리말 되묻기 규칙 예시에는 작은따옴표가 정상적으로 들어가므로 content 전체를
+    #  보면 오탐한다. AFL-926 1차에서 머리말에 예시가 들어오며 선존재로 깨져 있던 것.)
+    other_block = content.split("\n## 상대 정보\n")[1].split("\n## ")[0]
+    assert "{" not in other_block and "'" not in other_block   # 파이썬 dict repr 금지
 
 
 def test_memories_personal_렌더_가독():
@@ -260,7 +264,8 @@ def test_상태1_기본상대_이름있음():
     assert '너는 "코조" 이다' in content
     assert "지호" in content
     assert "나 / 내 / 제가" in content
-    assert "매번 질문으로 끝내지 마라" in content
+    assert "매 턴 질문으로 끝내지는 마라" in content
+    assert "2~3턴에 한 번쯤" in content           # AFL-926 2차: 질문 빈도 완화(핸드오프 1)
     # AFL-926: 프로필 읊기 금지 · 지금·요즘 일상 허용 · 과거는 막연한 맞장구까지만.
     assert "프로필처럼 읊지 마라" in content
     assert "가벼운 일상은" in content
@@ -415,9 +420,13 @@ def _header_of(content: str) -> str:
     return content.split("\n\n", 1)[0]
 
 
-def test_머리말_10줄_이내():
-    """통화 첫 턴 지연 방어 — 머리말은 10줄을 넘지 않는다(상태 4는 안전 지시가
-    두 줄 더 필요해 8→10으로 완화됨. 실측: 상태1=7·상태2=7·상태3=8·상태4=10)."""
+def test_머리말_역할선언부_간결():
+    """통화 첫 턴 지연 방어 — '역할 선언부'(되묻기 규칙 블록 이전)는 장황해지지 않게 유지한다.
+
+    [AFL-926] 되묻기·모르는 정보 규칙 블록(_RULE_ASKBACK/_RULE_UNKNOWN_ASK)은 대화 품질상
+    머리말에 포함되며 길이가 크므로 라인 수에 세지 않는다. 역할 선언부는 _RULE_ASKBACK
+    시작 줄 이전까지로, 누가 신원·인칭 선언에 줄을 막 늘리는 것만 막는다.
+    실측: 상태1=4·상태2=4·상태3=5·상태4=11(상태4는 미확정 안전 지시 _RULE_REQUIRE_IDENTITY 6줄)."""
     상태1 = bundle_to_messages(_bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, "지호"))
     상태2 = bundle_to_messages(
         _bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, "지호"),
@@ -430,8 +439,9 @@ def test_머리말_10줄_이내():
     )
     for msgs in (상태1, 상태2, 상태3, 상태4):
         header = _header_of(msgs[0]["content"])
-        line_count = len([ln for ln in header.strip().split("\n") if ln.strip()])
-        assert line_count <= 10
+        role_decl = header.split("- 상대 말에 먼저 답하는 게 기본이다", 1)[0]
+        line_count = len([ln for ln in role_decl.strip().split("\n") if ln.strip()])
+        assert line_count <= 12, (line_count, role_decl)
 
 
 # ---------------------------------------------------------------------------
@@ -496,12 +506,22 @@ def test_화자확정_L2p_빈dict도_동일하게_차단된다():
 
 # 머리말의 되묻기·모르는 정보 규칙 — 소스 상수와 글자 단위로 같아야 한다(복사본으로 고정).
 _RULE_ASKBACK_TXT = (
-    '- 상대 말에 답하는 것으로 끝내는 게 기본이다. 매번 질문으로 끝내지 마라.\n'
-    '  질문은 몇 번에 한 번, 상대가 방금 한 말을 더 듣고 싶을 때만 한다. 할 때는 한 번에 하나,\n'
+    '- 상대 말에 먼저 답하는 게 기본이다. 매 턴 질문으로 끝내지는 마라.\n'
+    '  다만 2~3턴에 한 번쯤은 네가 대화를 끌고 가라 — 상대가 방금 한 말에서 이어지는 짧은 질문을\n'
+    '  하나 던지거나, 그 얘기에 네 생각·네 얘기를 짧게 덧붙인다. 질문은 한 번에 하나,\n'
     '  상대가 방금 한 말의 핵심어를 이어서, 물음표를 붙인 진짜 질문으로 한다.\n'
     "  이미 답한 걸 원점에서 다시 묻지 마라. 예: 상대 '일하고 있어' → '무슨 일 해?' (○) / '뭐 하고 있어?' (×)\n"
     '  상대가 대화를 끝내려 하면 묻지 말고 짧게 마무리한다.\n'
-    '- 상대가 너에 대해 물으면 너 자신의 이야기로 답하고 끝낸다. 같은 질문을 상대에게 되돌려 묻지 마라.\n'
+    "- 상대 말이 앞뒤가 안 맞거나 갑자기 엉뚱하면 음성 인식(STT)이 잘못 들은 것일 수 있다.\n"
+    "  아는 척 맞장구치지 말고 가볍게 되물어 확인하되, '문장이 끊겼어·말이 잘못 나온 것 같아·\n"
+    '  이상하게 들린다\' 같은 기계적인 말은 쓰지 말고, 영상통화에서 소리가 잠깐 안 좋았던 것처럼\n'
+    "  자연스럽게 되묻는다('어, 좀 안 들렸는데?' · '어어 뭐라고?' · '전화가 좀 그런가, 다시 말해줄래?').\n"
+    "  예: 상대 '오늘 바나나 회의했어' → '어, 바나나? 잘 안 들렸는데 무슨 회의였어?' (○)\n"
+    "   / '바나나 회의 재밌었겠다'(아는 척 ×) · '문장이 잘못 나온 것 같아'(기계적 ×)\n"
+    "- 상대가 하는 일·상황을 짚을 때 '너는 지금 ~할 생각이야' 처럼 서술하거나 객관화하지 말고,\n"
+    "  곁에서 말 걸듯 '~한다며?' · '~라더니' · '~하는 거 아니야?' 같은 구어체로 말한다.\n"
+    "  예: '너는 지금 저녁 먹을 생각이야, 피자 얘기했었지'(×) → '피자 먹는다더니, 먹었어?'(○)\n"
+    '- 상대가 너에 대해 물으면 너 자신의 이야기로 답한다. 같은 질문을 그대로 상대에게 되돌려 묻지 마라.\n'
     "  예: 상대 '너 뭐 하고 있니?' → (지금 하는 일을 답한다) (○) / '…너는 뭐 하고 있어?' (×)\n"
     '- 너는 이 통화 속 사람이다. 상담원·비서·AI·시스템처럼 말하지 마라. 통화가 잘 되는지 물으면\n'
     "  사람이 전화로 하듯 답하고('응, 잘 들려'), 소리·끊김·대화가 이상하다고 하면 짧게 반응한다\n"
@@ -527,6 +547,16 @@ _RULE_ASKBACK_TXT = (
     '  (알려준 정보는 시스템이 자동으로 다음 통화에 반영한다.)'
 )
 _RULE_OWNER_TXT = '- "## 상대 정보" 는 상대의 것이다. 네 경험처럼 말하지 마라.'
+
+# 미확정(상태 4) 전용 안전 지시 — 소스 _RULE_REQUIRE_IDENTITY 와 글자 단위로 같아야 한다.
+_RULE_REQUIRE_IDENTITY_TXT = (
+    "- 상대가 누구인지 아직 모른다. 처음 만난 사람처럼 평소 말투로 자연스럽게 대화한다.\n"
+    "  모르는 것은 상대에 대한 것뿐이다. 아래 '## 너의 정보'·MBTI 같은 너 자신의 정보는\n"
+    "  그대로 알고 있으니, 너에 대해 물으면 그 정보대로 답한다.\n"
+    "  상대에 대해 기억하는 척하거나 이름을 짐작하지 마라.\n"
+    "  상대가 말로 이름을 알려주더라도 그것을 신원으로 확정하지 마라.\n"
+    "  버튼·등록·팝업·입력 같은 화면 조작은 절대 말하지 마라."
+)
 
 _HEADER_PERSONA = {
     "displayName": "코조",
@@ -584,12 +614,11 @@ _HEADER_CASES = [
         {"unconfirmed": True},
         '너는 "코조" 이다. 아래 "너의 정보" 가 너 자신이다.\n'
         "지금 너와 통화 중인 상대가 있다. 누구인지는 확정하지 못했다.\n"
-        '아래 "## 상대 정보" 는 평소 너와 대화하던 상대의 것이다.\n'
         '- "나 / 내 / 제가" 는 항상 너(코조)를 가리킨다.\n'
         '- 상대가 "나 / 내" 라고 말하면 그것은 상대 자신을 가리킨다. 너가 아니다.\n'
         "- 상대를 이름으로 부르지 마라. 확정되지 않았다.\n"
-        + _RULE_ASKBACK_TXT + "\n" + _RULE_OWNER_TXT
-        + "\n  다만 그 사람이 맞는지 확신할 수 없으니 그 기억을 단정해서 꺼내지 마라.",
+        + _RULE_REQUIRE_IDENTITY_TXT + "\n"
+        + _RULE_ASKBACK_TXT,
     ),
 ]
 
@@ -610,7 +639,7 @@ def test_소유자_선언은_되묻기보다_뒤에_온다(label, bundle, speake
     header = _header_of(bundle_to_messages(bundle, speaker=speaker)[0]["content"])
     if _RULE_OWNER_TXT not in header:
         return  # 상태 2b — 상대 정보 블록이 없어 소유자 선언 줄 자체가 없다
-    assert header.index(_RULE_OWNER_TXT) > header.index("- 상대 말에 답하는 것으로 끝내는 게 기본이다")
+    assert header.index(_RULE_OWNER_TXT) > header.index("- 상대 말에 먼저 답하는 게 기본이다")
     assert header.rstrip().endswith(
         "네 경험처럼 말하지 마라."
         if not header.endswith("단정해서 꺼내지 마라.")
@@ -854,3 +883,54 @@ def test_생성_입력값은_너의_정보에_사실로_들어간다(speaker):
     assert "- age:" not in content and "- gender:" not in content
     # 사실로 답하고 상대 말에 바뀌지 않는다는 규칙.
     assert "생성 시 정해진 너의 사실" in content
+
+
+# ---------------------------------------------------------------------------
+# AFL-926 2차 (대화 품질) — 질문 빈도 완화 · STT 오인식 대응 · 지난 주제 이어가기
+# ---------------------------------------------------------------------------
+
+def test_askback_질문빈도_2to3턴_완화():
+    """규칙 10이 질문끝 2%까지 눌러 클론이 대화를 안 끌고 가던 문제(핸드오프 1).
+    머리말(항상 포함)의 되묻기 규칙이 '2~3턴에 한 번쯤' 능동 유도로 완화돼야 한다."""
+    content = bundle_to_messages(_bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, "지호"))[0]["content"]
+    assert "2~3턴에 한 번쯤" in content
+    # 매 턴 질문으로 끝내는 취조는 여전히 금지(53% 회귀 방지)
+    assert "매 턴 질문으로 끝내지는 마라" in content
+
+
+def test_askback_STT_오인식_되묻기():
+    """상대 말이 앞뒤 안 맞으면 STT 오류일 수 있으니 맞장구 말고 되묻기(핸드오프 2).
+    2026-10-12 보완: '문장이 끊겼어' 같은 기계적 표현 대신 영상통화에서 소리 안 좋을 때처럼
+    자연스럽게 되묻는다(히즈키 피드백)."""
+    content = bundle_to_messages(_bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, "지호"))[0]["content"]
+    assert "음성 인식" in content
+    # 통신·소리 탓 구어체 되묻기 유도
+    assert "안 들렸" in content
+    # 기계적 표현을 쓰지 말라고 명시(실통화에서 '문장이 끊겼어'로 새어나온 것 차단)
+    assert "기계적" in content
+
+
+def test_askback_상대상황_구어체():
+    """상대가 하는 일·상황을 짚을 때 '너는 지금 ~할 생각이야' 서술·객관화 대신
+    '~한다며?' 같은 구어체로(2026-10-12 히즈키 피드백 — '피자 얘기했었지' 가 어색)."""
+    content = bundle_to_messages(_bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, "지호"))[0]["content"]
+    assert "한다며" in content
+    assert "객관화" in content
+
+
+def test_strict_anchor_규칙10_완화(monkeypatch):
+    """STRICT_TONE_ANCHOR(env=1) 규칙 10도 머리말과 일관되게 완화돼야 한다."""
+    monkeypatch.setenv("PRETHIRD_STRICT_TONE_RULES", "1")
+    content = bundle_to_messages(_bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, "지호"))[0]["content"]
+    assert "2~3턴에 한 번쯤은 네가 대화를 이어가라" in content
+
+
+def test_location_규칙A_prior있으면_지역인사_생략():
+    """위치 규칙 A(지역 인사 강제)와 '지난 주제 이어가기'가 첫 응답을 두고 겹친다.
+    지난 통화 기록이 있으면 지역 인사를 생략하도록 프롬프트로 경합을 해소한다(핸드오프 3)."""
+    content = bundle_to_messages(
+        _bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, "지호"),
+        user_location="경기도 안양시 안양동",
+    )[0]["content"]
+    assert "<prior_transcript>" in content
+    assert "지역 인사" in content and "생략" in content
