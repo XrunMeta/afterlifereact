@@ -589,7 +589,7 @@ v_f891e6.post(
         (async () => {
           try {
             const v_fc9250 = await v_4b949c(v_a1651b, v_e85271);
-            if (!v_fc9250 || v_fc9250.user_id !== v_0c8987 || !v_fc9250.src_file_id) return;
+            if (!v_fc9250 || v_fc9250.kind !== "voice_clone" || v_fc9250.user_id !== v_0c8987 || !v_fc9250.src_file_id) return;
             const v_35d74b = `${v_f17108}/oth-path${v_fc9250.src_file_id}`;
             await v_67dc73(fetch, { base: v_694b25, secret: v_43fd42, cloneId: String(v_062ae9), voiceRawUrl: v_35d74b });
           } catch (v_9e86fd) {
