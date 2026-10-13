@@ -1254,6 +1254,13 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         afl971IsFirstCallRef.current === false &&
         !faceBusy &&
         afl971ShouldShowAd(willBeRound, isAfl971AdTestAccount(debugEmail));
+
+      console.log(
+        `[Call][afl971] 예고판정 willBeRound=${willBeRound} adNext=${adNext} ` +
+        `isFirstCall=${afl971IsFirstCallRef.current} faceBusy=${faceBusy} ` +
+        `promptRegister=${rmStateRef.current.promptRegister} naming=${shStateRef.current.naming} ` +
+        `testAcct=${isAfl971AdTestAccount(debugEmail)}`,
+      );
       return adNext ? say(text, { adNotice: "pre" }) : say(text);
     },
     [say, debugEmail],
