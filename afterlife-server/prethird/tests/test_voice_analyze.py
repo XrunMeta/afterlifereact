@@ -67,3 +67,73 @@ def test_constants_match_make_prompt_ref_spec():
     assert va.SILENCE_DB == "-40dB"
     assert va.SILENCE_MIN == 0.2
     assert va.STT_DURATION_CAP_SEC == 10.0
+
+
+# --- /voice-analyze 핸들러 ---
+import pytest
+from aiohttp.test_utils import TestClient, TestServer
+
+from aiohttp import web
+from voice_analyze import voice_analyze_handler
+
+
+def _make_test_app():
+    app = web.Application()
+    app.router.add_post("/voice-analyze", voice_analyze_handler)
+    return app
+
+
+@pytest.fixture
+def _secret(monkeypatch):
+    monkeypatch.setenv("PREBUILD_SECRET", "test-secret")
+
+
+@pytest.mark.asyncio
+async def test_handler_401_without_bearer(_secret):
+    app = _make_test_app()
+    async with TestClient(TestServer(app)) as client:
+        resp = await client.post("/voice-analyze", json={"voiceRawUrl": "http://x/y"})
+        assert resp.status == 401
+
+
+@pytest.mark.asyncio
+async def test_handler_400_without_url(_secret):
+    app = _make_test_app()
+    async with TestClient(TestServer(app)) as client:
+        resp = await client.post(
+            "/voice-analyze", headers={"Authorization": "Bearer test-secret"}, json={},
+        )
+        assert resp.status == 400
+
+
+@pytest.mark.asyncio
+async def test_handler_returns_verdict(monkeypatch, _secret):
+    async def _fake_analyze(url):
+        return {"ok": False, "reason": "TOO_SHORT"}
+
+    monkeypatch.setattr(va, "analyze", _fake_analyze)
+    app = _make_test_app()
+    async with TestClient(TestServer(app)) as client:
+        resp = await client.post(
+            "/voice-analyze",
+            headers={"Authorization": "Bearer test-secret"},
+            json={"voiceRawUrl": "http://x/y"},
+        )
+        assert resp.status == 200
+        assert await resp.json() == {"ok": False, "reason": "TOO_SHORT"}
+
+
+@pytest.mark.asyncio
+async def test_handler_500_on_analyze_error(monkeypatch, _secret):
+    async def _boom(url):
+        raise RuntimeError("ffmpeg failed")
+
+    monkeypatch.setattr(va, "analyze", _boom)
+    app = _make_test_app()
+    async with TestClient(TestServer(app)) as client:
+        resp = await client.post(
+            "/voice-analyze",
+            headers={"Authorization": "Bearer test-secret"},
+            json={"voiceRawUrl": "http://x/y"},
+        )
+        assert resp.status == 500
