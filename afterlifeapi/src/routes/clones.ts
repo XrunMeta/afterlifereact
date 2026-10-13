@@ -36,7 +36,6 @@ import { v_71b908, v_cba618 } from "../lib/knowledgeBlacklist";
 import { v_041f8e, v_4b949c, v_5193f8, v_f64843 } from "../lib/assetJobs";
 import { v_5acfc3 } from "../lib/utils";
 import { v_67dc73 } from "../lib/prebuildClient";
-import { v_87cfd2 } from "../lib/callBundle";
 import { v_842ce7 } from "../lib/guideJob";
 import { v_4c5429 } from "../lib/cloneFaceScope";
 import { v_d0fd96 } from "../lib/displayName";
@@ -578,22 +577,21 @@ v_f891e6.post(
       }
     }
 
-    if (v_3f4e2e.env.PREBUILD_SECRET && v_3f4e2e.env.PRETHIRD_PUBLIC_BASE) {
+    if (v_3f4e2e.env.PREBUILD_SECRET && v_3f4e2e.env.PRETHIRD_PUBLIC_BASE && v_4d33b2.voice_clone_job_id) {
       const v_f17108 = new URL(v_3f4e2e.req.url).origin;
       const v_a1651b = v_3f4e2e.env.DB;
       const v_43fd42 = v_3f4e2e.env.PREBUILD_SECRET;
       const v_694b25 = v_3f4e2e.env.PRETHIRD_PUBLIC_BASE;
       const v_062ae9 = v_6e0fd3;
       const v_0c8987 = v_43e90c;
+      const v_e85271 = v_4d33b2.voice_clone_job_id;
       v_3f4e2e.executionCtx.waitUntil(
         (async () => {
           try {
-            const v_3ac7e7 = await v_a1651b.prepare("SELECT * FROM clones WHERE id = ?").bind(v_062ae9).first<import("../lib/cloneAccess").CloneRow>();
-            if (!v_3ac7e7?.voice_se_url) return; 
-            const v_79521f = await v_87cfd2(v_a1651b, v_3ac7e7, v_0c8987, v_f17108);
-            await v_67dc73(fetch, {
-              base: v_694b25, secret: v_43fd42, cloneId: String(v_062ae9), voiceRawUrl: v_79521f.assets.voiceRawUrl,
-            });
+            const v_fc9250 = await v_4b949c(v_a1651b, v_e85271);
+            if (!v_fc9250 || v_fc9250.user_id !== v_0c8987 || !v_fc9250.src_file_id) return;
+            const v_35d74b = `${v_f17108}/oth-path${v_fc9250.src_file_id}`;
+            await v_67dc73(fetch, { base: v_694b25, secret: v_43fd42, cloneId: String(v_062ae9), voiceRawUrl: v_35d74b });
           } catch (v_9e86fd) {
             console.warn("[prebuild] trigger skipped:", v_9e86fd);
           }
