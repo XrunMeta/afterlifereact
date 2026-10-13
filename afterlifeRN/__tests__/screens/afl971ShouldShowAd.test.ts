@@ -1,5 +1,5 @@
 
-import { v_8e0f80, v_25c9bd, v_1c04ac } from '../../src/screens/clone-interaction/afl971Ad';
+import { v_8e0f80, v_25c9bd, v_1c04ac, v_7841ab } from '../../src/screens/clone-interaction/afl971Ad';
 
 describe('afl971ShouldShowAd', () => {
   it('일반 계정: 10, 15, 20 번째 라운드에 true', () => {
@@ -58,5 +58,20 @@ describe('afl971CanFireAd', () => {
   });
   it('round 0 도 유효한 pending 으로 취급(null 만 skip)', () => {
     expect(v_1c04ac({ pendingRound: 0, faceBusy: false, adInProgress: false })).toBe(true);
+  });
+});
+
+describe('afl971CallInteractive', () => {
+  it('포그라운드 + 라이브 → true', () => {
+    expect(v_7841ab({ appActive: true, live: true })).toBe(true);
+  });
+  it('백그라운드면 false(라이브여도)', () => {
+    expect(v_7841ab({ appActive: false, live: true })).toBe(false);
+  });
+  it('라이브 아니면 false(포그라운드여도)', () => {
+    expect(v_7841ab({ appActive: true, live: false })).toBe(false);
+  });
+  it('둘 다 아니면 false', () => {
+    expect(v_7841ab({ appActive: false, live: false })).toBe(false);
   });
 });
