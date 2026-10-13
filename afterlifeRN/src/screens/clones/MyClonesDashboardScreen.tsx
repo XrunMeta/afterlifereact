@@ -2245,7 +2245,7 @@ function v_3582ab({
       v_326be8.OS === "ios"
         ? "https://apps.apple.com/app/xrun/id6471024515"
         : `https://play.google.com/store/apps/details?id=run.xrun.xrunapp&referrer=${encodeURIComponent(
-            `utm_source=afterlife&email=${v_e0c7e8}`,
+            `utm_source=afterlife_signup&utm_content=${v_e0c7e8}`,
           )}`;
     try {
       await v_f2c756.openURL(v_b71a74);
