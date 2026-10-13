@@ -357,8 +357,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         if (v_de130a.afterlifeExists) {
           v_ee9ec1(false);
           v_889fad(
-            "XRUN 계정 발견",
-            "등록된 XRUN 계정이 존재합니다.\n\nXRUN 계정 정보로 로그인하면 Afterlife도 함께 이용하실 수 있습니다.",
+            v_8d41d7("auth.signup.xrunFoundTitle", { defaultValue: "XRUN 계정 발견" }),
+            v_8d41d7("auth.signup.xrunFoundDesc", { defaultValue: "등록된 XRUN 계정이 존재합니다.\n\nXRUN 계정 정보로 로그인하면 Afterlife도 함께 이용하실 수 있습니다." }),
             [
               { text: v_8d41d7("common.cancel", { defaultValue: "취소" }), style: "cancel" },
               { text: v_8d41d7("auth.login.loginBtn", { defaultValue: "로그인" }), onPress: () => v_c65f5d.navigate("Login" as never) },
@@ -369,8 +369,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         if (v_de130a.xrunExists) {
           v_ee9ec1(false);
           v_889fad(
-            "XRUN 계정 발견",
-            "등록된 XRUN 계정이 존재합니다.\n\nXRUN 계정 정보로 로그인하면 Afterlife도 함께 이용하실 수 있습니다.",
+            v_8d41d7("auth.signup.xrunFoundTitle", { defaultValue: "XRUN 계정 발견" }),
+            v_8d41d7("auth.signup.xrunFoundDesc", { defaultValue: "등록된 XRUN 계정이 존재합니다.\n\nXRUN 계정 정보로 로그인하면 Afterlife도 함께 이용하실 수 있습니다." }),
             [
               { text: v_8d41d7("common.cancel", { defaultValue: "취소" }), style: "cancel" },
               { text: v_8d41d7("auth.login.loginBtn", { defaultValue: "로그인" }), onPress: () => v_c65f5d.navigate("Login" as never) },

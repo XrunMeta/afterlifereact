@@ -73,7 +73,7 @@ export default function v_2b785f() {
                 await v_a94a1b(v_2ca7e0, v_306a28.id);
                 v_fa923c((v_ba2215) => v_ba2215.filter((v_e2a85c) => v_e2a85c.id !== v_306a28.id));
               } catch (v_49263d) {
-                const v_badeaf = v_49263d instanceof Error ? v_49263d.message : "삭제에 실패했어요.";
+                const v_badeaf = v_49263d instanceof Error ? v_49263d.message : v_8d41d7("settings.rememberingCloneDetail.deleteFailed", { defaultValue: "삭제에 실패했어요." });
                 v_889fad(v_8d41d7("common.error", { defaultValue: "오류" }), v_badeaf);
               } finally {
                 v_efdde3(null);

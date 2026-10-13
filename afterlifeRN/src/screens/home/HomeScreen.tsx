@@ -400,11 +400,11 @@ export default function v_c316d8() {
     const v_7aa0a5 = v_3f4e2e.user.name ?? v_3f4e2e.user.email ?? "";
     const list: v_e2b085[] = [];
 
-    if (v_3cb41c) v_ef8ab1.push({ label: "삭제", icon: "trash-2", onPress: () => v_b72645(v_3f4e2e.id) });
+    if (v_3cb41c) v_ef8ab1.push({ label: v_8d41d7("common.delete", { defaultValue: "삭제" }), icon: "trash-2", onPress: () => v_b72645(v_3f4e2e.id) });
     if (v_de3672) v_ef8ab1.push({
-      label: "차단", icon: "slash", onPress: () => v_ba41ed(v_3f4e2e),
+      label: v_8d41d7("home.actions.block", { defaultValue: "차단" }), icon: "slash", onPress: () => v_ba41ed(v_3f4e2e),
     });
-    if (v_de3672) v_ef8ab1.push({ label: "신고", icon: "alert-circle", style: "destructive", onPress: () => v_c03d7d({ commentId: v_3f4e2e.id, author: v_7aa0a5 }) });
+    if (v_de3672) v_ef8ab1.push({ label: v_8d41d7("home.actions.report", { defaultValue: "신고" }), icon: "alert-circle", style: "destructive", onPress: () => v_c03d7d({ commentId: v_3f4e2e.id, author: v_7aa0a5 }) });
     return v_ef8ab1;
   }, [v_0e5a5a, v_ed660d, v_f5f393, v_2ca7e0, v_415d29]);
 
@@ -1176,8 +1176,8 @@ export default function v_c316d8() {
               }
               return v_d41edb;
             });
-            v_15c939("차단되었습니다");
-          } catch (v_49263d) { console.warn("[blockUser] failed:", v_49263d); v_15c939("차단에 실패했습니다"); }
+            v_15c939(v_8d41d7("home.toasts.userBlocked", { defaultValue: "차단되었습니다" }));
+          } catch (v_49263d) { console.warn("[blockUser] failed:", v_49263d); v_15c939(v_8d41d7("home.toasts.blockUserFailed", { defaultValue: "차단에 실패했습니다" })); }
         }}
       />
 

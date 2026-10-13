@@ -71,7 +71,13 @@
       "blockFailed": "拉黑失败",
       "commentReported": "评论已举报",
       "reportFailed": "举报失败",
-      "reportSuccessBlocked": "举报已受理。该克隆已被拉黑"
+      "reportSuccessBlocked": "举报已受理。该克隆已被拉黑",
+      "userBlocked": "已屏蔽",
+      "blockUserFailed": "屏蔽失败"
+    },
+    "actions": {
+      "block": "屏蔽",
+      "report": "举报"
     }
   },
   "notifications": {
@@ -316,7 +322,50 @@
     "bgWarnTitle": "📞 通话可能中断",
     "bgWarnBody": "请保持应用打开以继续通话，快回到应用。",
     "fgTitle": "📞 通话中",
-    "fgBody": "正在与 {{name}} 通话"
+    "fgBody": "正在与 {{name}} 通话",
+    "channelName": "通话",
+    "rememberMe": {
+      "label": "Remember Me",
+      "title": "Remember Me!",
+      "sub": "请告诉我您的名字",
+      "sheetTitle": "这位是谁?",
+      "sheetDesc": "告诉我后,下次通话时我会记住。",
+      "nameLabel": "姓名",
+      "namePlaceholder": "例如:志浩",
+      "relationLabel": "关系",
+      "relationPlaceholder": "例如:孙子,老朋友",
+      "later": "稍后"
+    },
+    "rmEnrollFail": "注册失败,请重试。",
+    "newFaceTitle": "检测到新面孔",
+    "newFaceBody": "要注册这张面孔吗?",
+    "newFaceLater": "稍后",
+    "newFaceSelf": "是我本人",
+    "newFaceEnroll": "注册",
+    "afl971PreMessage": "{userName},我去给你摘些花!看着视频等我,马上回来",
+    "afl971PostMessage": "谢谢你的等待!送你一束花",
+    "afl971FlowerToast": "你收到了来自{cloneName}的花",
+    "giftSendFailFallback": "礼物发送失败",
+    "devTextPlaceholder": "[DEV] 以文本发声",
+    "devSend": "发送",
+    "devFaceLabel": "面部",
+    "thinking": "正在生成…",
+    "endCallA11yReady": "结束通话(现在可以说话)",
+    "endCallA11y": "结束通话",
+    "endCallA11yHint": "现在可以说话了。按下此按钮将结束通话。",
+    "giftEmptyTitle": "你没有花了",
+    "giftEmptyBody": "要去购买花吗?",
+    "giftEmptyBuy": "购买",
+    "giftOwnedCount": "拥有 {{count}} 个",
+    "exiting": "正在结束…",
+    "adPlaying": "广告播放中…",
+    "adStubNote": "(开发桩 · 替代真实广告)"
+  },
+  "greeting": {
+    "default": "你好"
+  },
+  "persona": {
+    "emptyPrompt": "（克隆信息为空）"
   },
   "feed": {
     "homeTitle": "首页",
@@ -443,7 +492,13 @@
     "l2SectionTitle": "深度记忆 (L2) — 自动学习",
     "l2MemoryCount": "已累积 {{n}} 条记忆。",
     "l2LastUpdated": "最后更新：{{date}}",
-    "l2Hint": "L2 无法直接编辑，会通过对话和互动自动再学习。"
+    "l2Hint": "L2 无法直接编辑，会通过对话和互动自动再学习。",
+    "currentVoiceLabel": "当前声音",
+    "currentVoiceRecorded": "🎙 自己录制的声音(创建角色时设置)",
+    "currentVoiceCatalog": "🎵 目录声音",
+    "currentVoiceHint": "在下方列表中选择其他声音后,通话时将使用该声音。",
+    "voiceStop": "■ 停止",
+    "voicePreview": "▶ 预览"
   },
   "dashboard": {
     "title": "My Page",
@@ -643,6 +698,11 @@
     "faceEnrollDev": {
       "noneTitle": "没有角色",
       "noneDesc": "请先创建角色。"
+    },
+    "version": {
+      "otaEmergency": "OTA 紧急运行(embedded fallback)",
+      "otaEmbedded": "OTA 内置(embedded)",
+      "otaUpdate": "OTA {{id}}"
     }
   },
   "auth": {
@@ -786,7 +846,9 @@
       "locationPermDesc": "通话时进行地区相关对话需要位置权限。\n请在设备设置 → 位置 → AfterLife 中允许。",
       "locationPermError": "请求位置权限时出现问题。",
       "rateLimit": "请稍后重试。（1 分钟冷却）",
-      "sendCodeFailed": "验证码发送失败，请检查网络。"
+      "sendCodeFailed": "验证码发送失败，请检查网络。",
+      "xrunFoundTitle": "发现 XRUN 账户",
+      "xrunFoundDesc": "已存在注册的 XRUN 账户。\n\n使用 XRUN 账户信息登录即可同时使用 Afterlife。"
     },
     "emailVerify": {
       "title": "邮箱验证",
@@ -1027,7 +1089,15 @@
       "featSecurity": "数据安全",
       "featSecurityDesc": "所有数据都经过安全加密保护",
       "startVideo": "制作介绍视频",
-      "goDashboard": "回到我的克隆"
+      "goDashboard": "回到我的克隆",
+      "fallbackHelloWithBatchim": "你好,我是{{name}}。",
+      "fallbackHelloNoBatchim": "你好,我是{{name}}。",
+      "fallbackHelloAnon": "你好,很高兴认识你。",
+      "fallbackMemlow": "我们一起度过的回忆依然留在心里。无论何时收到信,都想和你一起读。哪怕是些小事,也希望你能告诉我。",
+      "fallbackFriend": "随时和我聊聊天吧。无论是今天发生的事、最近的兴趣,还是一些小烦恼,都可以告诉我。想和你一起笑、一起思考。",
+      "fallbackMentor": "有任何疑问随时问我。我会把我所知的用心分享给你。一起学习、一起成长吧。",
+      "fallbackCeleb": "很高兴见到你。我珍惜与粉丝们交流的每一刻。无论是问题还是支持的话,都可以随意留言。",
+      "fallbackDefault": "随意聊聊吧。无论是兴趣、今天的小事,还是好奇的事情,都欢迎。一起度过愉快的时光吧。"
     },
     "errors": {
       "quotaExceeded": "同一类型的克隆最多只能创建 1 个。",
@@ -1110,12 +1180,23 @@
       "postFailed": "发布失败",
       "postFailedWithCode": "发布失败（{{code}}）",
       "unknownError": "未知错误",
-      "next": "下一步"
+      "next": "下一步",
+      "imageUploadFailed": "图片上传失败。请检查网络连接。({{detail}})",
+      "usernameReservedMsg": "该用户名已被保留,请使用其他名称。",
+      "usernameTakenMsg": "该用户名已被使用。请返回上一步并更换其他名称。",
+      "cloneCreateFailed": "克隆创建失败。(缺少 cloneId)",
+      "videoPendingDelayed": "视频准备中 · 可以先发布,几分钟后生效"
     },
     "step8": {
       "title": "克隆已完成",
       "subtitle": "现在可以与克隆对话\n或发布新的内容了。",
       "toDashboard": "前往仪表板"
+    },
+    "username": {
+      "taken": "该用户名已被使用,请换一个。",
+      "reserved": "该用户名已被保留,请使用其他名称。",
+      "checking": "正在检查用户名…",
+      "available": "该用户名可以使用。"
     }
   },
   "settings": {
@@ -1155,7 +1236,25 @@
       "tokenLoading": "令牌获取中...",
       "tokenNone": "尚未生成令牌",
       "copyToken": "复制",
-      "copied": "令牌已复制。"
+      "copied": "令牌已复制。",
+      "prefs": {
+        "newFollower": {
+          "label": "新粉丝",
+          "desc": "有人关注你时"
+        },
+        "followingActivity": {
+          "label": "关注成员动态",
+          "desc": "你关注的人创建新克隆时"
+        },
+        "reactions": {
+          "label": "互动",
+          "desc": "你的克隆收到点赞、评论或举报时"
+        },
+        "promotions": {
+          "label": "优惠信息",
+          "desc": "个性化优惠和活动通知"
+        }
+      }
     },
     "agreements": {
       "title": "同意事项"
@@ -1249,6 +1348,9 @@
       "verifyOkMsg": "密码验证成功。",
       "verifyError": "验证过程中出现错误。",
       "xrunNotInstalled": "尚未安装 xrun 应用。"
+    },
+    "rememberingCloneDetail": {
+      "deleteFailed": "删除失败。"
     }
   },
   "permissionGate": {
@@ -1268,7 +1370,9 @@
     "logout": "退出登录",
     "consentIntro": "通话前请确认以下同意事项。",
     "callLearningConsent": "(可选) 同意通话对话学习",
-    "faceBiometricConsent": "(可选) 同意使用人脸识别(生物识别信息)"
+    "faceBiometricConsent": "(可选) 同意使用人脸识别(生物识别信息)",
+    "cameraStatusError": "无法检查摄像头权限状态。",
+    "micStatusError": "无法检查麦克风权限状态。"
   },
   "consentPrompt": {
     "title": "通话前需要同意",
@@ -1283,7 +1387,29 @@
     "descWithName": "请简要输入举报\n'{{name}}' 克隆的理由。（可选）",
     "descNoName": "请简要输入举报\n该克隆的理由。（可选）",
     "placeholder": "例：不当内容、冒充、垃圾信息等",
-    "submit": "提交举报"
+    "submit": "提交举报",
+    "titleComment": "举报评论",
+    "titlePost": "举报帖子",
+    "descCommentWithName": "请输入举报 {{name}} 评论的理由。",
+    "descCommentNoName": "请输入举报该评论的理由。",
+    "descPostWithName": "请输入举报 {{name}} 帖子的理由。",
+    "descPostNoName": "请输入举报该帖子的理由。",
+    "targetComment": "评论",
+    "targetPost": "帖子",
+    "targetClone": "克隆",
+    "sectionTitle": "举报此{{target}}的原因",
+    "sectionDesc": "您的举报将匿名处理。如果您认为有人处于紧急危险中,请立即联系当地紧急服务机构。",
+    "reason": {
+      "dislike": "我不喜欢",
+      "bullying": "欺凌或不受欢迎的联系",
+      "selfHarm": "自杀、自残和饮食失调",
+      "nudity": "裸体图像或性行为",
+      "hate": "仇恨言论或符号",
+      "violence": "暴力或虐待",
+      "regulated": "销售或推广受管制商品",
+      "spam": "骗局、欺诈或垃圾信息",
+      "falseInfo": "虚假信息"
+    }
   },
   "merge": {
     "title": "需要确认克隆合并",
@@ -1547,7 +1673,11 @@
     "sourceFileNotFound": "未找到源文件。",
     "pinMustBe6Digits": "PIN 必须为 6 位数字。",
     "authRequired": "需要登录。",
-    "resourceIdInvalid": "资源 ID 无效。"
+    "resourceIdInvalid": "资源 ID 无效。",
+    "usernameEmpty": "请输入用户名。",
+    "usernameTooShort": "用户名至少需要 3 个字符。",
+    "usernameTooLong": "用户名不能超过 30 个字符。",
+    "usernameFormat": "用户名只能使用小写字母、数字和下划线 (_)。（不允许大写字母、非 ASCII 字符或空格。）"
   },
   "question": {
     "label": {
@@ -1828,5 +1958,23 @@
     "doneTitle": "与 {{name}} 对话的准备已完成!",
     "learnMore": "继续学习",
     "startCall": "与 {{name}} 通话"
+  },
+  "banner": {
+    "step3Entry": "从后续步骤开始将无法修改类型和关系。如需更改类型,请在上一步中调整。",
+    "closeA11y": "关闭横幅"
+  },
+  "block": {
+    "title": "要屏蔽 {{name}} 吗?",
+    "subtitle": "此人创建的其他资料以及今后创建的所有资料也将被一并屏蔽。",
+    "info1": "被屏蔽的人将无法在您的内容下评论,也找不到您的资料和内容。",
+    "info2": "我们不会告知对方您屏蔽了他们。",
+    "info3": "您可以随时在\"我的页面 > 已屏蔽用户管理\"中解除屏蔽。",
+    "confirm": "屏蔽"
+  },
+  "field": {
+    "selectPlaceholder": "选择"
+  },
+  "gift": {
+    "receivedNotice": "送出了 {{gift}} 礼物"
   }
 }

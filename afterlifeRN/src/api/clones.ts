@@ -4,6 +4,7 @@ import { v_cc9198 } from "../config/apiBase";
 import { v_84a859, type v_669377 } from "./auth";
 import { v_04b58a as v_3fc86a } from "../lib/authFetch";
 import type { v_2c17b5 } from "../types/clone";
+import v_9c213b from "../i18n";
 
 export type CloneType = "memlow" | "friend" | "mentor" | "celeb";
 
@@ -117,11 +118,11 @@ export const v_46829f = /^[a-z0-9_]+$/;
 
 export function v_96d757(v_479f05): string | null {
   const v_ceb55a = v_479f05.trim();
-  if (v_ceb55a.length === 0) return "아이디를 입력해주세요.";
-  if (v_ceb55a.length < 3) return "아이디는 3자 이상이어야 해요.";
-  if (v_ceb55a.length > 30) return "아이디는 30자 이하여야 해요.";
+  if (v_ceb55a.length === 0) return v_9c213b.t("errors.usernameEmpty", { defaultValue: "아이디를 입력해주세요." });
+  if (v_ceb55a.length < 3) return v_9c213b.t("errors.usernameTooShort", { defaultValue: "아이디는 3자 이상이어야 해요." });
+  if (v_ceb55a.length > 30) return v_9c213b.t("errors.usernameTooLong", { defaultValue: "아이디는 30자 이하여야 해요." });
   if (!v_46829f.test(v_ceb55a)) {
-    return "아이디는 영문 소문자·숫자·밑줄(_) 만 사용할 수 있어요. (대문자·한글·공백 불가)";
+    return v_9c213b.t("errors.usernameFormat", { defaultValue: "아이디는 영문 소문자·숫자·밑줄(_) 만 사용할 수 있어요. (대문자·한글·공백 불가)" });
   }
   return null;
 }

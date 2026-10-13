@@ -35,23 +35,31 @@ const v_5c002e = "@notif_pref:";
 const v_a5887f = [
   {
     key: "newFollower",
-    label: "새로운 팔로워",
-    desc: "누군가가 나를 팔로우했을 때",
+    labelKey: "settings.notifications.prefs.newFollower.label",
+    labelDefault: "새로운 팔로워",
+    descKey: "settings.notifications.prefs.newFollower.desc",
+    descDefault: "누군가가 나를 팔로우했을 때",
   },
   {
     key: "followingActivity",
-    label: "팔로잉하는 멤버 소식",
-    desc: "내가 팔로우한 사람이 새 클론을 만들 때",
+    labelKey: "settings.notifications.prefs.followingActivity.label",
+    labelDefault: "팔로잉하는 멤버 소식",
+    descKey: "settings.notifications.prefs.followingActivity.desc",
+    descDefault: "내가 팔로우한 사람이 새 클론을 만들 때",
   },
   {
     key: "reactions",
-    label: "반응",
-    desc: "내 클론에 좋아요·댓글·신고가 발생할 때",
+    labelKey: "settings.notifications.prefs.reactions.label",
+    labelDefault: "반응",
+    descKey: "settings.notifications.prefs.reactions.desc",
+    descDefault: "내 클론에 좋아요·댓글·신고가 발생할 때",
   },
   {
     key: "promotions",
-    label: "혜택정보 수신",
-    desc: "개인 맞춤 혜택과 이벤트 소식 안내",
+    labelKey: "settings.notifications.prefs.promotions.label",
+    labelDefault: "혜택정보 수신",
+    descKey: "settings.notifications.prefs.promotions.desc",
+    descDefault: "개인 맞춤 혜택과 이벤트 소식 안내",
   },
 ];
 
@@ -212,10 +220,10 @@ export default function v_4036d1() {
             >
               <View style={{ flex: 1, paddingRight: 12 }}>
                 <Text style={[v_fd5f43.subLabel, v_e44bd3 && v_fd5f43.subTextDim]}>
-                  {v_23805a.label}
+                  {v_8d41d7(v_23805a.labelKey, { defaultValue: v_23805a.labelDefault })}
                 </Text>
                 <Text style={[v_fd5f43.subDesc, v_e44bd3 && v_fd5f43.subTextDim]}>
-                  {v_23805a.desc}
+                  {v_8d41d7(v_23805a.descKey, { defaultValue: v_23805a.descDefault })}
                 </Text>
               </View>
               <Switch

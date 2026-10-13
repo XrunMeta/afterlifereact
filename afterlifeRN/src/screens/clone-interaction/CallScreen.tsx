@@ -1155,12 +1155,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         dispatchRm({ type: "ENROLLED" });
       } catch (err) {
         console.warn("[Call][rm] enroll 실패:", err);
-        setRmError("등록에 실패했어요. 다시 시도해 주세요.");
+        setRmError(t("call.rmEnrollFail", { defaultValue: "등록에 실패했어요. 다시 시도해 주세요." }));
       } finally {
         setRmSaving(false);
       }
     },
-    [faceEnroll, dispatchRm, accessToken, cloneId],
+    [faceEnroll, dispatchRm, accessToken, cloneId, t],
   );
 
   const handleEmbeddingOnJS = React.useMemo(
@@ -1472,16 +1472,16 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     afl971PromptAlertShownRef.current = true;
 
     showAlert(
-      "새 얼굴이 보여요",
-      "얼굴을 등록할까요?",
+      t("call.newFaceTitle", { defaultValue: "새 얼굴이 보여요" }),
+      t("call.newFaceBody", { defaultValue: "얼굴을 등록할까요?" }),
       [
         {
-          text: "나중에",
+          text: t("call.newFaceLater", { defaultValue: "나중에" }),
           style: "cancel",
           onPress: () => dispatchRm({ type: "DISMISS_LATER" }),
         },
         {
-          text: "본인",
+          text: t("call.newFaceSelf", { defaultValue: "본인" }),
           onPress: () => {
 
             const snapshot = unknownFaceSnapshotRef.current;
@@ -1500,7 +1500,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           },
         },
         {
-          text: "등록",
+          text: t("call.newFaceEnroll", { defaultValue: "등록" }),
           onPress: () => {
             dispatchRm({ type: "CONFIRM_PROMPT" });
             navigation.dispatch(
@@ -1900,9 +1900,9 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const afl971AdCommittedRoundRef = useRef<number | null>(null);
   const afl971PendingAdRoundRef = useRef<number | null>(null);
 
-  const AFL971_PRE_MESSAGE_DEFAULT = "{userName}줄 꽃 좀 따올게! 영상 보고 있으면 금방 다녀올게";
-  const AFL971_POST_MESSAGE_DEFAULT = "기다려줘서 고마워! 꽃 선물 짠";
-  const AFL971_FLOWER_TOAST_DEFAULT = "{cloneName}에게 꽃을 받았습니다";
+  const AFL971_PRE_MESSAGE_DEFAULT = t("call.afl971PreMessage", { defaultValue: "{userName}줄 꽃 좀 따올게! 영상 보고 있으면 금방 다녀올게" });
+  const AFL971_POST_MESSAGE_DEFAULT = t("call.afl971PostMessage", { defaultValue: "기다려줘서 고마워! 꽃 선물 짠" });
+  const AFL971_FLOWER_TOAST_DEFAULT = t("call.afl971FlowerToast", { defaultValue: "{cloneName}에게 꽃을 받았습니다" });
   const [afl971ToastTemplate, setAfl971ToastTemplate] = useState<string>(AFL971_FLOWER_TOAST_DEFAULT);
 
   const afl971CadenceRef = useRef<AdCadence>(AFL971_CADENCE_DEFAULT);
@@ -2518,7 +2518,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         playGiftAnimation(gift);
       }
     } catch (err) {
-      const msg = (err as Error).message ?? "선물 전송 실패";
+      const msg = (err as Error).message ?? t("call.giftSendFailFallback", { defaultValue: "선물 전송 실패" });
       const isInsufficient = /INSUFFICIENT_CREDITS|잔액이 부족/.test(msg);
 
       showAlert(
@@ -2731,7 +2731,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
             style={{ flex: 1, color: "#0f0", fontSize: 13, paddingHorizontal: 8, paddingVertical: 6 }}
             value={devText}
             onChangeText={setDevText}
-            placeholder="[DEV] 텍스트로 발화"
+            placeholder={t("call.devTextPlaceholder", { defaultValue: "[DEV] 텍스트로 발화" })}
             placeholderTextColor="#6b7280"
             autoCapitalize="none"
             returnKeyType="send"
@@ -2742,7 +2742,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
             onPress={() => submitDevText(devText, say, setDevText)}
             style={{ paddingHorizontal: 12, paddingVertical: 6 }}
           >
-            <Text style={{ color: "#0f0", fontSize: 13, fontWeight: "600" }}>전송</Text>
+            <Text style={{ color: "#0f0", fontSize: 13, fontWeight: "600" }}>{t("call.devSend", { defaultValue: "전송" })}</Text>
           </TouchableOpacity>
           {
 }
@@ -2751,7 +2751,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
             style={{ paddingHorizontal: 10, paddingVertical: 6 }}
           >
             <Text style={{ color: faceProcOff ? "#f87171" : "#0f0", fontSize: 13, fontWeight: "600" }}>
-              얼굴{faceProcOff ? "OFF" : "ON"}
+              {t("call.devFaceLabel", { defaultValue: "얼굴" })}{faceProcOff ? "OFF" : "ON"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -3056,7 +3056,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         <View style={[s.subtitleContainer, { bottom: subtitleBottom }]} pointerEvents="none">
           <View style={s.thinkingBadge}>
             <ActivityIndicator size="small" color={COLORS.white} />
-            <Text style={s.thinkingText}>생성 중…</Text>
+            <Text style={s.thinkingText}>{t("call.thinking", { defaultValue: "생성 중…" })}</Text>
           </View>
         </View>
       ) : null}
@@ -3125,8 +3125,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
             canSpeak && { backgroundColor: SPEAK_OK_COLOR, shadowColor: SPEAK_OK_COLOR },
           ]}
           accessibilityRole="button"
-          accessibilityLabel={canSpeak ? "통화 종료 (지금 말할 수 있음)" : "통화 종료"}
-          accessibilityHint={canSpeak ? "지금 말해도 됩니다. 이 버튼을 누르면 통화가 종료됩니다." : undefined}
+          accessibilityLabel={canSpeak ? t("call.endCallA11yReady", { defaultValue: "통화 종료 (지금 말할 수 있음)" }) : t("call.endCallA11y", { defaultValue: "통화 종료" })}
+          accessibilityHint={canSpeak ? t("call.endCallA11yHint", { defaultValue: "지금 말해도 됩니다. 이 버튼을 누르면 통화가 종료됩니다." }) : undefined}
           onPress={async () => {
             await stopLive();
             exitToMain();
@@ -3182,12 +3182,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
                     if (giftOwnedCount <= 0) {
                       showAlert(
-                        "보유 꽃이 없어요",
-                        "꽃을 구매하러 이동할까요?",
+                        t("call.giftEmptyTitle", { defaultValue: "보유 꽃이 없어요" }),
+                        t("call.giftEmptyBody", { defaultValue: "꽃을 구매하러 이동할까요?" }),
                         [
-                          { text: "취소", style: "cancel" },
+                          { text: t("common.cancel", { defaultValue: "취소" }), style: "cancel" },
                           {
-                            text: "구매하기",
+                            text: t("call.giftEmptyBuy", { defaultValue: "구매하기" }),
                             onPress: () => {
                               setShowGifts(false);
 
@@ -3214,7 +3214,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
                   <Text style={s.giftName} numberOfLines={1}>{item.name}</Text>
                   {}
                   <Text style={[s.giftPrice, giftOwnedCount === 0 && { color: COLORS.zinc400 }]}>
-                    {giftOwnedCount}개 보유
+                    {t("call.giftOwnedCount", { count: giftOwnedCount, defaultValue: "{{count}}개 보유" })}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -3274,7 +3274,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       {isTerminating && (
         <View style={s.exitOverlay} pointerEvents="auto">
           <ActivityIndicator size="large" color={COLORS.white} />
-          <Text style={s.exitOverlayText}>종료 중...</Text>
+          <Text style={s.exitOverlayText}>{t("call.exiting", { defaultValue: "종료 중..." })}</Text>
         </View>
       )}
 
@@ -3292,10 +3292,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         >
           <ActivityIndicator size="large" color={COLORS.white} />
           <Text style={{ color: COLORS.white, fontSize: 18, fontWeight: "700", marginTop: 16 }}>
-            광고 재생 중…
+            {t("call.adPlaying", { defaultValue: "광고 재생 중…" })}
           </Text>
           <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 6 }}>
-            (개발 스텁 · 실광고 대체)
+            {t("call.adStubNote", { defaultValue: "(개발 스텁 · 실광고 대체)" })}
           </Text>
         </View>
       )}
