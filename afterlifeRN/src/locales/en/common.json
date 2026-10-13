@@ -196,7 +196,72 @@
     "topupSectionDesc": "Add call minutes separately from your subscription. Valid for 5 years.",
     "topupLoadFailed": "Couldn't load top-up products.",
     "androidNotReady": "Android payments aren't ready yet. Please use iOS for now.",
-    "termsFooter": "Auto-renewing subscriptions are charged each cycle until cancelled.\nCancel: Settings → Apple ID → Subscriptions → afterlife"
+    "termsFooter": "Auto-renewing subscriptions are charged each cycle until cancelled.\nCancel: Settings → Apple ID → Subscriptions → afterlife",
+    "bucketGift": "Gifts",
+    "giftCount": "{{count}}",
+    "giftRedeemTitle": "Redeem received gifts",
+    "giftRedeemDesc": "Trade in received flowers in the XRUN app by watching an ad, and convert them into call flowers.",
+    "flowerSectionTitle": "Buy flowers",
+    "flowerSectionDesc": "For gifting only · usable during calls after purchase.",
+    "subLoadHintAndroid": "Make sure you're signed in to the Play Store, then try again.",
+    "currentPlanBadge": "Current plan",
+    "recommendedBadge": "Recommended",
+    "autoAssigned": "Auto-granted on sign-up",
+    "monthlyBilling": "Billed monthly",
+    "upgrade": "Upgrade",
+    "termsFooterAndroid": "Auto-renewing subscriptions are billed each cycle until canceled.\nCancel: Play Store → Subscriptions → afterlife",
+    "swapConfirmTitle": "Confirm exchange",
+    "swapConfirmDesc": "Exchange {{count}} {{name}} for {{amount}}?",
+    "swap": "Exchange",
+    "swapCompleteTitle": "Exchange complete 🎉",
+    "swapCompleteDesc": "{{amount}} has been added to your wallet.",
+    "swapFailedTitle": "Exchange failed",
+    "swapFailedDefault": "Please try again in a moment.",
+    "freeTitle": "Go (Free)",
+    "freeDesc": "Auto-granted on sign-up",
+    "freePrice": "Free",
+    "freeTagline": "Granted automatically on sign-up",
+    "lightTagline": "Ad-free",
+    "lightTitle": "RUN",
+    "lightDesc": "Ad-free use",
+    "monsterTagline": "Ad-free",
+    "monsterTitle": "Monster",
+    "monsterDesc": "Ad-free use",
+    "planFree": {
+      "watchAds": "Use the service after watching an ad",
+      "midAds": "Ads inserted mid-service",
+      "clone1": "Create 1 clone",
+      "cloneQuota5": "5 clone creates/deletes",
+      "callMinutes50": "50 call minutes per month"
+    },
+    "planLight": {
+      "clone2": "Create 2 clones",
+      "cloneQuota10": "10 clone creates/deletes",
+      "callMinutes120": "120 call minutes per month",
+      "flowers2": "2 flowers included (for gifting)"
+    },
+    "planMonster": {
+      "cloneUnlimited": "Unlimited clones",
+      "cloneQuotaUnlimited": "Unlimited clone creates/deletes",
+      "callMinutes1000": "1000 call minutes per month",
+      "flowers10": "10 flowers included (for gifting)"
+    },
+    "flowerPack": {
+      "p1Title": "1 Flower",
+      "p1Desc": "1 gift use",
+      "p5Title": "5 Flowers",
+      "p5Desc": "5 gift uses",
+      "p10Title": "10 Flowers",
+      "p10Desc": "10 gift uses"
+    },
+    "rechargeTitle30": "Recharge 30min",
+    "rechargeTitle60": "Recharge 60min",
+    "rechargeTitle150": "Recharge 150min",
+    "rechargeTitle300": "Recharge 300min",
+    "rechargeDesc30": "30 min top-up · valid 5 years",
+    "rechargeDesc60": "60 min top-up · valid 5 years",
+    "rechargeDesc150": "150 min top-up · valid 5 years",
+    "rechargeDesc300": "300 min top-up · valid 5 years"
   },
   "chat": {
     "personaFallback": "Clone",
@@ -536,7 +601,48 @@
       "purchaseDesc": "Add call minutes with subscription or top-up",
       "giftInventory": "Gift Wallet",
       "giftInventoryDesc": "Swap received gifts to XRUN credits",
-      "logout": "Logout"
+      "logout": "Logout",
+      "flower": "Flower Gifts",
+      "pangleTest": "Pangle Ad Test",
+      "pangleTestDesc": "Show a rewarded ad immediately (dev)",
+      "animPersona": "Create animated persona",
+      "animPersonaDesc": "Photo → blink · head · body idle · ~3 min to generate",
+      "experimentalPersona": "Experimental persona (beta)",
+      "experimentalPersonaDesc": "More natural face · 5-10 s response delay",
+      "visemePersona": "Split-playback persona (experimental)",
+      "visemePersonaDesc": "TTS + pre-rendered viseme clip sync",
+      "threeDPersona": "3D persona (beta)",
+      "threeDPersonaDesc": "Avatar SDK 3D face · requires separate GLB URL setup",
+      "visemeTest": "Viseme pipeline test (dev)",
+      "visemeTestDesc": "Synth + playback · requires pre-rendered images",
+      "vitsTts": "VITS TTS · AFL-737 (dev)",
+      "vitsTtsDesc": "sherpa-onnx · model cache · 1-second target",
+      "faceThreshold": "Face threshold test (dev)",
+      "faceThresholdDesc": "Upload image → check match score",
+      "threeDLab": "3D generation test (dev)",
+      "threeDLabDesc": "Photo → mesh + 5-angle render · 5-30 s",
+      "threeDPersonaDev": "3D persona (dev)",
+      "threeDPersonaDevDesc": "GLB head render + lip-sync demo · Phase 1",
+      "faceEnrollDev": "Face 5-angle enroll (dev)",
+      "faceEnrollDevDesc": "Front · left · right · up · down shots → first clone call prep"
+    },
+    "logout": {
+      "title": "Log out?",
+      "desc": "You'll need to sign in again to use the app.",
+      "confirm": "Log out"
+    },
+    "pangleTest": {
+      "title": "Pangle test",
+      "okMessage": "Ad closed normally.",
+      "failTitle": "Pangle test failed"
+    },
+    "navError": {
+      "title": "Error",
+      "personaNavFail": "Could not navigate to persona creation."
+    },
+    "faceEnrollDev": {
+      "noneTitle": "No persona",
+      "noneDesc": "Please create a persona first."
     }
   },
   "auth": {
@@ -850,6 +956,12 @@
       "notAudioTitle": "Not an audio file",
       "notAudioMsg": "Only audio files can be registered. Please choose an mp3, m4a, wav, or similar file.",
       "notAudioEmpty": "This file is empty. Please choose another file.",
+      "analyzing": "Analyzing your voice…",
+      "analyzeFailTitle": "Voice check needed",
+      "analyzeFailTooShort": "The recording is too short. Please speak for at least 15 seconds.",
+      "analyzeFailNoPause": "Please pause briefly between sentences, and speak clearly in a quiet place.",
+      "analyzeFailNoVoice": "We couldn't recognize your voice. Please record again clearly in a quiet place.",
+      "analyzeFailGeneric": "We couldn't verify your voice. Please try again in a moment.",
       "registerFailed": "Failed to register the recording.",
       "registerFailedFile": "Failed to register the voice file.",
       "registerRetry": "Retry registration",
@@ -1540,5 +1652,186 @@
       "secretHobby": "Does {name} have a surprising hobby they secretly enjoy that doesn't match their personality at all?",
       "lastWords": "What kind of monologue would {name} quietly mutter to themselves after finishing a day's work?"
     }
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "body": "Please try again in a moment."
+  },
+  "relation": {
+    "category": {
+      "family": "Family",
+      "friend": "Friend",
+      "romance": "Romantic",
+      "workplace": "Workplace",
+      "celebrity": "Celebrity"
+    },
+    "subtype": {
+      "family": {
+        "father": "Dad",
+        "mother": "Mom",
+        "grandfather": "Grandfather",
+        "grandmother": "Grandmother",
+        "maternal_grandfather": "Maternal Grandfather",
+        "maternal_grandmother": "Maternal Grandmother",
+        "older_brother_male": "Older Brother",
+        "older_brother_female": "Older Brother",
+        "older_sister_male": "Older Sister",
+        "older_sister_female": "Older Sister",
+        "younger_sibling": "Younger Sibling",
+        "paternal_uncle": "Uncle",
+        "maternal_aunt": "Aunt (mom's side)",
+        "paternal_aunt": "Aunt (dad's side)",
+        "maternal_uncle_husband": "Uncle (aunt's husband)",
+        "paternal_aunt_husband": "Uncle (aunt's husband)",
+        "cousin": "Cousin",
+        "other": "Other"
+      },
+      "friend": {
+        "best_friend": "Best Friend",
+        "childhood_friend": "Childhood Friend",
+        "school_friend": "School Classmate",
+        "college_friend": "College Classmate",
+        "neighbor_friend": "Neighborhood Friend",
+        "other": "Other"
+      },
+      "romance": {
+        "husband": "Husband",
+        "wife": "Wife",
+        "boyfriend": "Boyfriend",
+        "girlfriend": "Girlfriend",
+        "crush_mutual": "Crush",
+        "unrequited_love": "Unrequited Love",
+        "other": "Other"
+      },
+      "workplace": {
+        "boss": "Boss / Team Lead",
+        "mentor": "Supervisor",
+        "senior": "Senior",
+        "peer": "Peer / New Hire",
+        "junior": "Junior / Direct Report",
+        "business_partner": "Business Partner",
+        "other": "Other"
+      },
+      "celebrity": {
+        "actor": "Actor",
+        "singer": "Singer / Idol",
+        "youtuber": "YouTuber / Influencer",
+        "streamer": "Streamer",
+        "athlete": "Athlete",
+        "webtoon_artist": "Webtoon Artist",
+        "other": "Other"
+      }
+    }
+  },
+  "speechForm": {
+    "informal": "Casual",
+    "formal": "Polite"
+  },
+  "occupation": {
+    "doctor": "Doctor",
+    "teacher": "Teacher / Professor",
+    "developer": "Developer",
+    "lawyer": "Lawyer",
+    "public_servant": "Public Servant",
+    "entertainer": "Entertainer",
+    "creator": "Creator / Influencer",
+    "officer": "Police / Firefighter",
+    "journalist": "Journalist / Announcer",
+    "chef": "Chef",
+    "other": "Other"
+  },
+  "faceEnroll": {
+    "permissionRequired": "Camera permission is required.",
+    "permissionSkip": "Skip enroll and start call",
+    "cameraLoading": "Preparing camera...",
+    "title": "Face enrollment",
+    "subtitleMidCall": "Enroll a new face and resume the call.",
+    "subtitleFirst": "Capture {{name}}'s face from multiple angles so conversations feel natural.",
+    "personaFallback": "Persona",
+    "form": {
+      "title": "Who is this?",
+      "desc": "Tell us a name and relationship so we can recognize them next call.",
+      "existingLabel": "Already registered (pick one to just add more learning)",
+      "existingHint": "If this is someone new, type their name below",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Jiho",
+      "relationLabel": "Relationship (optional)",
+      "relationPlaceholder": "e.g. Grandchild, old friend",
+      "needLogin": "No login info. Please try again.",
+      "needCapture": "Please finish face capture first.",
+      "needName": "Please enter a name.",
+      "networkError": "Network error"
+    },
+    "processing": "Enrolling face...",
+    "hintStart": "Make sure your face is clearly visible to the camera",
+    "register": "Register",
+    "skipMidCall": "Resume call without enrolling",
+    "skipFirst": "Later (start call now)",
+    "privacyNote": "Captured photos are not stored on the server. Only secure numeric features (vectors) used for face recognition are kept.",
+    "skipConfirm": {
+      "title": "Continue without enrolling",
+      "desc": "Face recognition and memory features may be limited. Continue?",
+      "cancel": "Cancel",
+      "continue": "Continue"
+    },
+    "cloneError": {
+      "title": "Persona info error",
+      "desc": "Entered with an invalid persona. Please try again.",
+      "ok": "OK"
+    },
+    "complete": {
+      "title": "Enrollment complete",
+      "midCall": "Face enrolled! Restarting the call.",
+      "first": "Face recognition is ready. Starting the call.",
+      "start": "Start call"
+    },
+    "defaultSelfName": "Me",
+    "step": {
+      "perfect": "Perfect!",
+      "frontLabel": "Front",
+      "frontHint": "Look straight at the camera",
+      "frontDontTurn": "Don't turn your head left or right",
+      "frontLowerAngle": "Lower your head angle",
+      "leftLabel": "Left",
+      "leftHint": "Turn your head left",
+      "leftGuide": "A little more to the left ({{deg}}°/18°)",
+      "rightLabel": "Right",
+      "rightHint": "Turn your head right",
+      "rightGuide": "A little more to the right ({{deg}}°/-18°)",
+      "downLabel": "Down",
+      "downHint": "Tilt your head down",
+      "downGuide": "A little more downward ({{deg}}°/-10°)",
+      "upLabel": "Up",
+      "upHint": "Tilt your head up",
+      "upGuide": "A little more upward ({{deg}}°/10°)"
+    }
+  },
+  "callEntry": {
+    "cancel": "Cancel",
+    "prepTitle": "Prep to talk with {{name}}",
+    "q1": {
+      "title": "What was your relationship with {{name}}?",
+      "subLabel": "Specific relationship",
+      "otherPlaceholder": "e.g. Mentor, neighbor, benefactor",
+      "episodeLabel": "Share a short story about your relationship with {{name}}.",
+      "episodePlaceholder": "e.g. A friend I hiked with every weekend; a mentor who stayed late with me",
+      "addressLabel": "What did {{name}} call you?",
+      "addressPlaceholder": "e.g. Eunji, son, hey, Mr. Jiho"
+    },
+    "q2": {
+      "title": "What speech style did you use with {{name}}?"
+    },
+    "q3": {
+      "title": "What did {{name}} do for a living?",
+      "otherPlaceholder": "e.g. Astronaut, translator, freelance writer",
+      "detailLabel": "Tell us exactly what {{name}} did.",
+      "detailPlaceholder": "e.g. ER doctor, elementary school teacher, game backend developer"
+    },
+    "saveFailedTitle": "Save failed",
+    "saveFailedDesc": "Save failed due to a network error. Please try again.",
+    "complete": "Done",
+    "doneTitle": "Ready to talk with {{name}}!",
+    "learnMore": "Learn more",
+    "startCall": "Call {{name}}"
   }
 }

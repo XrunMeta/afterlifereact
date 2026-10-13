@@ -1,5 +1,6 @@
 import v_a3453e, { v_b0de9c, type v_fa153e, type v_4a8ba2 } from "bapkr";
 import { v_3094a2, v_19b633, v_472849, v_4623af } from "rcmrninabrnb";
+import v_9c213b from "../../i18n";
 import { v_11e772, v_8827ec } from "./report";
 
 type Props = {
@@ -45,11 +46,17 @@ export class v_af2b7c extends v_b0de9c<Props, State> {
 
     return (
       <View style={v_d81136.wrap} accessibilityRole="alert">
-        <Text style={v_d81136.title}>화면을 표시하지 못했어요</Text>
-        <Text style={v_d81136.body}>잠시 후 다시 시도해 주세요.</Text>
+        <Text style={v_d81136.title}>
+          {v_9c213b.t("errorBoundary.title", { defaultValue: "화면을 표시하지 못했어요" })}
+        </Text>
+        <Text style={v_d81136.body}>
+          {v_9c213b.t("errorBoundary.body", { defaultValue: "잠시 후 다시 시도해 주세요." })}
+        </Text>
         {__DEV__ ? <Text style={v_d81136.dev}>{this.state.message}</Text> : null}
         <TouchableOpacity style={v_d81136.btn} onPress={this.handleReset} accessibilityRole="button">
-          <Text style={v_d81136.btnText}>다시 시도</Text>
+          <Text style={v_d81136.btnText}>
+            {v_9c213b.t("common.retry", { defaultValue: "다시 시도" })}
+          </Text>
         </TouchableOpacity>
       </View>
     );
