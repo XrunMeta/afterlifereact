@@ -902,10 +902,10 @@ export default function v_def15b() {
 }
             {v_c9ba75.length > 0 && (
               <View style={v_fd5f43.giftLogSection}>
-                <View style={v_fd5f43.giftLogHeader}>
-                  <Text style={v_fd5f43.giftLogTitle}>
-                    {v_8d41d7("dashboard.giftInventoryTitle", { defaultValue: "내선물" })}
-                  </Text>
+                <Text style={v_fd5f43.giftLogTitle}>
+                  {v_8d41d7("dashboard.giftInventoryTitle", { defaultValue: "내선물" })}
+                </Text>
+                <View style={v_fd5f43.giftLogSummaryRow}>
                   <Text style={v_fd5f43.giftLogSummary} numberOfLines={1}>
                     {v_8d41d7("dashboard.giftTotalReceived", {
                       defaultValue: "총 받은 선물: {{n}}개",
@@ -2181,19 +2181,20 @@ const v_fd5f43 = v_472849.create({
   intimacyInfoOkText: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.white },
 
   giftLogSection: { marginTop: 16, marginBottom: 20, paddingHorizontal: 4 },
-  giftLogHeader: {
+
+  giftLogTitle: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900, marginBottom: 8 },
+  giftLogSummaryRow: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 10,
     gap: 10,
   },
-  giftLogTitle: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900 },
   giftLogSummary: {
     flex: 1,
     fontSize: 13,
     fontWeight: "600",
     color: v_1bfbd0.violet600,
-    textAlign: "center",
   },
   giftLogExchangeBtn: {
     paddingVertical: 8,
