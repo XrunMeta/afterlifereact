@@ -41,7 +41,7 @@ export function v_36f8a3(): boolean {
 
 function v_9fd782(): number {
   const v_f4e98d = Number(process.env.EXPO_PUBLIC_AD_STUB_MS);
-  return Number.isFinite(v_f4e98d) && v_f4e98d > 0 ? v_f4e98d : 6000; 
+  return Number.isFinite(v_f4e98d) && v_f4e98d > 0 ? v_f4e98d : 10000; 
 }
 
 export async function v_cdacfb(

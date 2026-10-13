@@ -30,10 +30,12 @@ def test_prenotice_does_not_encourage_refusal():
     assert "거부하거나" in c and "하지 마" in c
 
 
-def test_returned_mentions_return_and_flower():
+def test_returned_mentions_return_not_reward():
     c = ad_returned_system_message()["content"]
     assert "돌아" in c
-    assert "꽃" in c
+    assert "광고 잘 봤어" in c
+    # 꽃/선물 보상 얘기는 하지 말라는 지시가 포함되어야 한다(복귀 멘트가 꽃을 단언하지 않게).
+    assert "꽃" not in c or "하지 마" in c
 
 
 def _make_pipeline(captured):

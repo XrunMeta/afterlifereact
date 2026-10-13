@@ -1877,6 +1877,27 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   }, [afl971AdInProgress]);
   const afl971PendingPhaseEndResolveRef = useRef<(() => void) | null>(null);
 
+  const afl971PendingSpeakStartResolveRef = useRef<(() => void) | null>(null);
+  const afl971WaitForSpeakingStart = useCallback((timeoutMs = 20000): Promise<void> => {
+    return new Promise((resolve) => {
+      const resolver = () => {
+        if (afl971PendingSpeakStartResolveRef.current === resolver) {
+          afl971PendingSpeakStartResolveRef.current = null;
+          clearTimeout(timeoutId);
+          resolve();
+        }
+      };
+      afl971PendingSpeakStartResolveRef.current = resolver;
+      const timeoutId = setTimeout(() => {
+        if (afl971PendingSpeakStartResolveRef.current === resolver) {
+          afl971PendingSpeakStartResolveRef.current = null;
+          console.warn(`[Call][afl971] waitForSpeakingStart ${timeoutMs}ms timeout — force resolve`);
+          resolve();
+        }
+      }, timeoutMs);
+    });
+  }, []);
+
   const renderAfl971Message = useCallback((template: string): string => {
     const userName = myName ?? "";
     const cloneName = String(paramName || (clone as { displayName?: string } | null | undefined)?.displayName || "");
@@ -1955,6 +1976,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     const wasSpeaking = afl971LastSpeakingRef.current;
     const isSpeaking = phase === "speaking";
     afl971LastSpeakingRef.current = isSpeaking;
+
+    if (!wasSpeaking && isSpeaking && afl971PendingSpeakStartResolveRef.current) {
+      const rs = afl971PendingSpeakStartResolveRef.current;
+      afl971PendingSpeakStartResolveRef.current = null;
+      rs();
+    }
     if (!wasSpeaking || isSpeaking) return;
 
     if (afl971PendingPhaseEndResolveRef.current) {
@@ -1999,18 +2026,32 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         const { loadAndShowRewardedAd } = await import("../../lib/pangle");
         afl971MuteCallAudio();
         setAfl971AdShowingUI(true);
-        try {
-          await loadAndShowRewardedAd();
-        } finally {
-          setAfl971AdShowingUI(false);
-          afl971UnmuteCallAudio();
-        }
 
+        let speakStartP: Promise<void> | null = null;
         if (sendAdReturned) {
           sendAdReturned();
-          console.log(`[Call][afl971] round ${round} 광고 닫힘 — 복귀 신호(ad_returned), 복귀 턴 대기`);
+          console.log(`[Call][afl971] round ${round} 광고 시작 — 복귀 턴 준비 신호(ad_returned)`);
+          speakStartP = afl971WaitForSpeakingStart(25000);
+        }
+        try {
+          await loadAndShowRewardedAd();
+        } catch (adErr) {
+          setAfl971AdShowingUI(false);
+          afl971UnmuteCallAudio();
+          throw adErr;
+        }
+
+        if (speakStartP) {
+          await speakStartP; 
+          console.log(`[Call][afl971] round ${round} 복귀 턴 재생 시작 — unmute·오버레이 해제`);
+          setAfl971AdShowingUI(false);
+          afl971UnmuteCallAudio();
+
           await afl971WaitForPhaseEnd(25000);
-          console.log(`[Call][afl971] round ${round} 복귀 턴 재생 끝 — mic 복원 예정`);
+          console.log(`[Call][afl971] round ${round} 복귀 턴 끝 — mic 복원 예정`);
+        } else {
+          setAfl971AdShowingUI(false);
+          afl971UnmuteCallAudio();
         }
 
         const callIdNow = getCallId?.() ?? null;
@@ -2046,13 +2087,16 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         console.warn(`[Call][afl971] round ${round} 광고 cycle 실패:`, (err as Error)?.message ?? err);
       } finally {
         setAfl971AdInProgress(false);
+
+        setAfl971AdShowingUI(false);
+        afl971UnmuteCallAudio();
         if (micWasOnBeforeAd && !micOnRef.current && !isMuted) {
           console.log(`[Call][afl971] round ${round} 종료 — mic 복원`);
           toggleMicRef.current();
         }
       }
     })();
-  }, [phase, renderAfl971Message, afl971MuteCallAudio, afl971UnmuteCallAudio, debugEmail, isMuted, getCallId, accessToken, afl971ToastTemplate, sendAdReturned]);
+  }, [phase, renderAfl971Message, afl971MuteCallAudio, afl971UnmuteCallAudio, debugEmail, isMuted, getCallId, accessToken, afl971ToastTemplate, sendAdReturned, afl971WaitForSpeakingStart, afl971WaitForPhaseEnd]);
 
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const warnedRef = useRef(false);
