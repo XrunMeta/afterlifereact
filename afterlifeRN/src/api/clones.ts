@@ -379,6 +379,20 @@ export async function v_ab4719(
   );
 }
 
+export type VoiceAnalyzeReason = 'TOO_SHORT' | 'NO_PAUSE' | 'NO_VOICE' | 'ANALYZE_FAILED';
+export interface VoiceAnalyzeResult { ok: boolean; reason?: VoiceAnalyzeReason }
+
+export async function v_8aa90d(
+  v_2ca7e0,
+  v_931bf0,
+): Promise<VoiceAnalyzeResult> {
+  return v_04b58a<VoiceAnalyzeResult>(
+    '/oth-path',
+    v_2ca7e0,
+    { method: 'POST', body: JSON.stringify(v_931bf0) },
+  );
+}
+
 export async function v_b20cba(
   v_2ca7e0,
   v_04211c,
