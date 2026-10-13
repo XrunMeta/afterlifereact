@@ -1868,27 +1868,36 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     return () => clearInterval(id);
   }, [liveState]);
 
+  const remoteStreamRef = useRef(remoteStream);
+  remoteStreamRef.current = remoteStream;
+  const isMutedRef = useRef(isMuted);
+  isMutedRef.current = isMuted;
   const afl971MuteCallAudio = useCallback(() => {
+    const s = remoteStreamRef.current as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> } | null;
+    if (!s) {
+      console.log("[Call][afl971] remote audio mute 보류 — 스트림 아직 없음(연결 후 적용)");
+      return;
+    }
     try {
-      const audio = (remoteStream as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })
-        .getAudioTracks?.() ?? [];
+      const audio = s.getAudioTracks?.() ?? [];
       audio.forEach((t) => { t.enabled = false; });
       console.log(`[Call][afl971] remote audio muted (${audio.length} tracks)`);
     } catch (err) {
       console.warn("[Call][afl971] mute 실패:", (err as Error)?.message ?? err);
     }
-  }, [remoteStream]);
+  }, []);
   const afl971UnmuteCallAudio = useCallback(() => {
+    const s = remoteStreamRef.current as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> } | null;
+    if (!s) return;
     try {
-      const audio = (remoteStream as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })
-        .getAudioTracks?.() ?? [];
+      const audio = s.getAudioTracks?.() ?? [];
 
-      audio.forEach((t) => { t.enabled = !isMuted; });
-      console.log(`[Call][afl971] remote audio unmuted (isMuted=${isMuted})`);
+      audio.forEach((t) => { t.enabled = !isMutedRef.current; });
+      console.log(`[Call][afl971] remote audio unmuted (isMuted=${isMutedRef.current})`);
     } catch (err) {
       console.warn("[Call][afl971] unmute 실패:", (err as Error)?.message ?? err);
     }
-  }, [remoteStream, isMuted]);
+  }, []);
 
   const AFL971_COUNT_KEY = "afl971:lifetimeCallCount";
   const afl971IsFirstCallRef = useRef<boolean | null>(null); 
@@ -1943,6 +1952,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   useEffect(() => {
     afl971AdInProgressRef.current = afl971AdInProgress;
   }, [afl971AdInProgress]);
+
+  useEffect(() => {
+    if (remoteStream && afl971AdShowingUI) afl971MuteCallAudio();
+  }, [remoteStream, afl971AdShowingUI, afl971MuteCallAudio]);
 
   const afl971LastSpeechEndRef = useRef<{ at: number; remainingMs: number } | null>(null);
 
@@ -2765,6 +2778,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           personaImage={typeof personaImage === "string" ? personaImage : ""}
 
           greetingStarted={greetingOn ? phase !== "greeting" && phase !== "idle" : undefined}
+
+          audioSuppressed={afl971AdShowingUI}
           onConnected={() => {
             console.log(`[Call][flow] +${Date.now()} DialingScreen.onConnected → setDialingDone(true)`);
             setDialingDone(true);
