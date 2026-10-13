@@ -1413,8 +1413,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     return () => clearInterval(id);
   }, [liveState, rmState.mode, dispatchRm]);
 
+  const afl971PromptAlertShownRef = useRef(false);
   useEffect(() => {
-    if (!rmState.promptRegister) return;
+    if (!rmState.promptRegister) { afl971PromptAlertShownRef.current = false; return; }
+    if (afl971PromptAlertShownRef.current) return;      
+    if (phase === "speaking") return;                   
+    afl971PromptAlertShownRef.current = true;
 
     showAlert(
       "새 얼굴이 보여요",
@@ -1467,7 +1471,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       ],
     );
 
-  }, [rmState.promptRegister]);
+  }, [rmState.promptRegister, phase]);
 
   useEffect(() => {
     micOnRef.current = micOn;
@@ -2012,6 +2016,15 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     const isAdTestAccount = isAfl971AdTestAccount(debugEmail);
     const shouldShow = afl971ShouldShowAd(round, isAdTestAccount);
     if (!shouldShow) return;
+
+    if (
+      rmStateRef.current.promptRegister ||
+      shouldHoldMic(rmStateRef.current) ||
+      shStateRef.current.naming
+    ) {
+      console.log("[Call][afl971] 얼굴인식 진행 중 — 광고 보류(얼굴 우선)");
+      return;
+    }
     if (afl971AdShownRoundsRef.current.has(round)) return;
     afl971AdShownRoundsRef.current.add(round);
 
@@ -2051,33 +2064,31 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         }
 
         const callIdNow = getCallId?.() ?? null;
+        setToastMessage(renderAfl971Message(afl971ToastTemplate));
         if (callIdNow && accessToken) {
-          try {
-            const { API_BASE } = await import("../../config/apiBase");
-            const res = await fetch(`${API_BASE}/oth-path`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${accessToken}`,
-              },
-              body: JSON.stringify({ callId: callIdNow, round, giftId: "gift-bouquet" }),
-            });
-            if (res.ok) {
-              const data = (await res.json()) as { giftId?: string; alreadyGranted?: boolean };
-              console.log(`[Call][afl971] 꽃 지급 ✅ giftId=${data.giftId} already=${data.alreadyGranted}`);
-              setToastMessage(renderAfl971Message(afl971ToastTemplate));
-            } else {
-              console.warn(`[Call][afl971] 꽃 지급 실패 status=${res.status}`);
-
-              setToastMessage(renderAfl971Message(afl971ToastTemplate));
+          void (async () => {
+            try {
+              const { API_BASE } = await import("../../config/apiBase");
+              const res = await fetch(`${API_BASE}/oth-path`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify({ callId: callIdNow, round, giftId: "gift-bouquet" }),
+              });
+              if (res.ok) {
+                const data = (await res.json()) as { giftId?: string; alreadyGranted?: boolean };
+                console.log(`[Call][afl971] 꽃 지급 ✅ giftId=${data.giftId} already=${data.alreadyGranted}`);
+              } else {
+                console.warn(`[Call][afl971] 꽃 지급 실패 status=${res.status}`);
+              }
+            } catch (err) {
+              console.warn(`[Call][afl971] 꽃 지급 호출 실패:`, (err as Error)?.message ?? err);
             }
-          } catch (err) {
-            console.warn(`[Call][afl971] 꽃 지급 호출 실패:`, (err as Error)?.message ?? err);
-            setToastMessage(renderAfl971Message(afl971ToastTemplate));
-          }
+          })();
         } else {
           console.warn(`[Call][afl971] callIdNow=${callIdNow} accessToken=${!!accessToken} — 지급 skip, 토스트만`);
-          setToastMessage(renderAfl971Message(afl971ToastTemplate));
         }
       } catch (err) {
         console.warn(`[Call][afl971] round ${round} 광고 cycle 실패:`, (err as Error)?.message ?? err);
