@@ -126,4 +126,23 @@ v_469bf2("AFL-1017: createClone prebuild 트리거 (raw 음성 기반)", () => {
     v_980ff2.mockRestore();
     v_4d37e3(v_715950).toBe(false);
   });
+
+  v_23805a("voice_clone_job_id 가 idle_video kind 잡을 가리키면 트리거 안 함", async () => {
+    const v_0c8987 = await v_bfb240("pbtrig_kind@test.com");
+    const v_8d41d7 = await v_21cc31(v_0c8987);
+    const v_66a7ce = await v_c808bd(v_0c8987, "kind-img");
+    const v_cb35cb = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_8d41d7}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "idle_video", src_file_id: v_66a7ce }),
+    });
+    v_4d37e3(v_cb35cb.status).toBe(201);
+    const v_ecfd5e = (await v_cb35cb.json<{ job_id: string }>()).job_id;
+    const v_980ff2 = v_3889c0.spyOn(globalThis, "fetch");
+    await v_39eaf5(v_8d41d7, { voice_clone_job_id: v_ecfd5e });
+    await v_28be8c(400);
+    const v_715950 = v_980ff2.mock.calls.some((v_779914) => String(v_779914[0]).includes("/prethird/prebuild"));
+    v_980ff2.mockRestore();
+    v_4d37e3(v_715950).toBe(false);
+  });
 });
