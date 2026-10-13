@@ -78,6 +78,9 @@ v_62a1b6.get("/received-gifts", async (v_3f4e2e) => {
   return v_3f4e2e.json({ items: v_4622b9, userFound: true });
 });
 
+const v_520523 = 11; 
+const v_ecb35d = 0.1; 
+
 const v_597473 = v_1f4ea7.object({
   email: v_1f4ea7.string().email(),
   giftId: v_1f4ea7.string().min(1).max(80),
@@ -92,61 +95,45 @@ v_62a1b6.post("/redeem-with-ad", async (v_3f4e2e) => {
   const v_dbebe7 = await v_0edc13(v_3f4e2e.env);
   const v_8c0b26 = (v_dbebe7 as any[]).find((v_206b88) => v_206b88.id === v_4d33b2.giftId);
   if (!v_8c0b26) throw new v_3ebe58("NOT_FOUND", `선물 '${v_4d33b2.giftId}' 없음`);
-  const v_4547b1 = v_c19d94(v_8c0b26);
-  if (!(v_4547b1 > 0)) {
-    throw new v_3ebe58("VALIDATION_FAILED", "선물 가격 0 — 교환 불가");
-  }
 
   const v_eef514 = await v_3f4e2e.env.DB
     .prepare(
       `UPDATE user_gift_inventory
-          SET count = count - 1, updated_at = strftime('%s','now')
-        WHERE user_id = ? AND gift_id = ? AND count >= 1`,
+          SET count = count - ?, updated_at = strftime('%s','now')
+        WHERE user_id = ? AND gift_id = ? AND count >= ?`,
     )
-    .bind(v_625c74.id, v_4d33b2.giftId)
+    .bind(v_520523, v_625c74.id, v_4d33b2.giftId, v_520523)
     .run();
   if ((v_eef514.meta?.changes ?? 0) === 0) {
-    throw new v_3ebe58("VALIDATION_FAILED", "받은 선물 재고가 없어요");
+    throw new v_3ebe58("VALIDATION_FAILED", `교환은 ${v_520523}개부터 가능해요`);
   }
 
-  try {
-    const v_b1eff4 = await v_3f4e2e.env.DB
-      .prepare(
-        `UPDATE users SET credits_gift = credits_gift + ?, updated_at = CURRENT_TIMESTAMP
-           WHERE id = ? AND deleted_at IS NULL`,
-      )
-      .bind(v_4547b1, v_625c74.id)
-      .run();
-    if ((v_b1eff4.meta?.changes ?? 0) === 0) throw new Error("credits_gift 갱신 실패");
-  } catch (v_49263d) {
-    await v_3f4e2e.env.DB
-      .prepare(
-        `UPDATE user_gift_inventory SET count = count + 1, updated_at = strftime('%s','now')
-           WHERE user_id = ? AND gift_id = ?`,
-      )
-      .bind(v_625c74.id, v_4d33b2.giftId)
-      .run();
-    throw v_49263d;
-  }
-
+  const v_b291d9 = Math.round(v_ecb35d * 100); 
+  const v_5097fd = (v_8c0b26 as any).name ?? v_4d33b2.giftId;
+  const v_56896b = (v_8c0b26 as any).emoji ?? "🎁";
+  const v_92e7a1 = (v_8c0b26 as any).imageUrl ?? null;
   await v_3f4e2e.env.DB
     .prepare(
-      `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id)
-         VALUES (?, NULL, ?, 1, ?, 'swapped', ?)`,
+      `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id,
+                                           clone_id, gift_name_snapshot, gift_emoji_snapshot, gift_image_url_snapshot)
+         VALUES (?, NULL, ?, ?, ?, 'exchanged', ?, NULL, ?, ?, ?)`,
     )
-    .bind(v_625c74.id, v_4d33b2.giftId, v_4547b1, `xrun-bridge-ad:${Date.now()}`)
+    .bind(v_625c74.id, v_4d33b2.giftId, v_520523, v_b291d9, `xrun-bridge-ad:${Date.now()}`,
+          v_5097fd, v_56896b, v_92e7a1)
     .run();
+
+  console.log(`[xrun-bridge] redeem OK email=${v_4d33b2.email} giftId=${v_4d33b2.giftId} burned=${v_520523} payout=${v_ecb35d}XRUN — attendance debit TODO`);
 
   await v_74defc(v_3f4e2e, {
     userId: v_625c74.id,
     action: "gift.xrun_bridge_redeem",
-    details: { giftId: v_4d33b2.giftId, xrunAmount: v_4547b1, via: "pangle_ad" },
+    details: { giftId: v_4d33b2.giftId, burned: v_520523, xrunPayout: v_ecb35d, via: "pangle_ad" },
   });
 
   return v_3f4e2e.json({
     ok: true,
     giftId: v_4d33b2.giftId,
-    xrunCredited: v_4547b1, 
-    xrunAmount: v_4547b1 / 60,
+    burned: v_520523,          
+    xrunAmount: v_ecb35d, 
   });
 });
