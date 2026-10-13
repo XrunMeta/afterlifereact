@@ -36,11 +36,12 @@ v_0bc486.post(
     const v_8c0b26 = v_dbebe7.find((v_206b88) => v_206b88.id === v_4d33b2.giftId);
     if (!v_8c0b26) throw new v_3ebe58("NOT_FOUND", `선물 '${v_4d33b2.giftId}' 없음`);
 
-    const v_4547b1 =
+    const v_4f783f =
       typeof v_8c0b26.xrunPrice === "number" && v_8c0b26.xrunPrice > 0
         ? v_8c0b26.xrunPrice * 60
         : v_8c0b26.price;
-    if (v_4547b1 <= 0 || !Number.isInteger(v_4547b1)) {
+    const v_4547b1 = Math.max(1, Math.round(v_4f783f));
+    if (!(v_4547b1 > 0)) {
       throw new v_3ebe58("VALIDATION_FAILED", "선물 가격 설정이 잘못됐어요.");
     }
 
