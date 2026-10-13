@@ -146,9 +146,22 @@ def _analyze_sync(wav_path: str) -> dict:
     return classify(dur, start, sil_starts, sil_ends, text)
 
 
+_ANALYZE_SINK = "zz-voice-analyze"  # reference_voices 하위 전용 임시 sink (clone id 와 안 겹침)
+
+
+def _ref_root() -> str:
+    """STT 와 동일 기준의 REF_ROOT (호출 시점 env 해석)."""
+    return (os.environ.get("REF_ROOT")
+            or os.environ.get("PRETHIRD_REF_VOICES_ROOT")
+            or "/home/afterlife/afterlife-server/openvoice-afterlife/reference_voices")
+
+
 async def analyze(voice_raw_url: str) -> dict:
     """voiceRawUrl → 임시 wav 변환 → 판정. 임시 파일은 finally 로 정리."""
-    tmpdir = tempfile.mkdtemp(prefix="afl1005-")
+    # STT /transcribe_path 는 REF_ROOT 하위 wav 만 허용(traversal 가드) → /tmp 불가.
+    base = os.path.join(_ref_root(), _ANALYZE_SINK)
+    os.makedirs(base, exist_ok=True)
+    tmpdir = tempfile.mkdtemp(prefix="afl1005-", dir=base)
     src = os.path.join(tmpdir, "in.src")
     wav = os.path.join(tmpdir, "in.wav")
     try:
