@@ -173,6 +173,73 @@ v_0bc486.get("/inventory", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ items: v_4622b9 });
 });
 
+v_0bc486.get("/received-log", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
+  const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
+  const v_40e259 = Number(v_f71b56.searchParams.get("offset") ?? 0);
+  const v_3bbadf = Math.max(0, Number.isFinite(v_40e259) ? v_40e259 : 0);
+
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT g.id              AS id,
+              g.sender_user_id  AS senderId,
+              us.email          AS senderEmail,
+              us.name           AS senderName,
+              us.avatar_url     AS senderAvatarUrl,
+              g.clone_id        AS cloneId,
+              c.name            AS cloneName,
+              c.username        AS cloneUsername,
+              c.avatar_url      AS cloneAvatarUrl,
+              g.gift_id         AS giftId,
+              g.gift_name       AS giftName,
+              g.total_amount    AS xrunAmount,
+              g.created_at      AS createdAt
+         FROM gift_logs g
+         LEFT JOIN users  us ON us.id = g.sender_user_id
+         LEFT JOIN clones c  ON c.id  = g.clone_id
+        WHERE g.owner_user_id = ? AND g.status = 'sent'
+        ORDER BY g.created_at DESC
+        LIMIT ? OFFSET ?`,
+    )
+    .bind(v_43e90c, v_02be30, v_3bbadf)
+    .all<{
+      id: number;
+      senderId: number;
+      senderEmail: string | null;
+      senderName: string | null;
+      senderAvatarUrl: string | null;
+      cloneId: number;
+      cloneName: string | null;
+      cloneUsername: string | null;
+      cloneAvatarUrl: string | null;
+      giftId: string;
+      giftName: string;
+      xrunAmount: number;
+      createdAt: string;
+    }>();
+
+  const v_679404 = await v_3f4e2e.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM gift_logs WHERE owner_user_id = ? AND status = 'sent'`)
+    .bind(v_43e90c)
+    .first<{ n: number }>();
+
+  const v_dbebe7 = await v_0edc13(v_3f4e2e.env);
+  const v_6413c7 = new Map(v_dbebe7.map((v_206b88) => [v_206b88.id, v_206b88]));
+
+  const v_4622b9 = (v_18b8bf.results ?? []).map((v_cb35cb) => {
+    const v_ab4c96 = v_6413c7.get(v_cb35cb.giftId);
+    return {
+      ...v_cb35cb,
+      giftEmoji: v_ab4c96?.emoji ?? "🎁",
+      giftImageUrl: v_ab4c96?.imageUrl ?? null,
+    };
+  });
+
+  return v_3f4e2e.json({ items: v_4622b9, total: v_679404?.n ?? 0, limit: v_02be30, offset: v_3bbadf });
+});
+
 const v_d092c0 = v_1f4ea7.object({
   giftId: v_1f4ea7.string().min(1).max(80),
   count: v_1f4ea7.number().int().positive().max(10_000),
