@@ -1541,5 +1541,9 @@
       "secretHobby": "Apakah {name} punya hobi mengejutkan yang tidak cocok dengan karakternya, tetapi diam-diam ia nikmati atau minati?",
       "lastWords": "Setelah menyelesaikan kegiatan hari itu, gumaman khas apa yang mungkin dibisikkan {name} sendirian dalam diam?"
     }
+  },
+  "errorBoundary": {
+    "title": "Tidak dapat menampilkan halaman",
+    "body": "Silakan coba lagi nanti."
   }
 }

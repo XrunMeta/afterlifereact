@@ -1546,5 +1546,9 @@
       "secretHobby": "Does {name} have a surprising hobby they secretly enjoy that doesn't match their personality at all?",
       "lastWords": "What kind of monologue would {name} quietly mutter to themselves after finishing a day's work?"
     }
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "body": "Please try again in a moment."
   }
 }
