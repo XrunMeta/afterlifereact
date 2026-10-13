@@ -3004,17 +3004,20 @@ v_b7f2b4.get("/gifts/events", v_c0a297, async (v_3f4e2e) => {
 
   const v_18b8bf = await v_3f4e2e.env.DB
     .prepare(
-      `SELECT e.id              AS id,
-              e.user_id         AS senderId,
-              us.email          AS senderEmail,
-              us.name           AS senderName,
-              e.counterpart_user_id AS receiverId,
-              ur.email          AS receiverEmail,
-              ur.name           AS receiverName,
-              e.gift_id         AS giftId,
-              e.count           AS count,
-              e.xrun_amount     AS xrunAmount,
-              e.created_at      AS createdAt
+      `SELECT e.id                      AS id,
+              e.user_id                 AS senderId,
+              us.email                  AS senderEmail,
+              us.name                   AS senderName,
+              e.counterpart_user_id     AS receiverId,
+              ur.email                  AS receiverEmail,
+              ur.name                   AS receiverName,
+              e.gift_id                 AS giftId,
+              e.gift_name_snapshot      AS giftNameSnap,
+              e.gift_emoji_snapshot     AS giftEmojiSnap,
+              e.gift_image_url_snapshot AS giftImageUrlSnap,
+              e.count                   AS count,
+              e.xrun_amount             AS xrunAmount,
+              e.created_at              AS createdAt
          FROM gift_inventory_events e
          LEFT JOIN users us ON us.id = e.user_id
          LEFT JOIN users ur ON ur.id = e.counterpart_user_id
@@ -3032,6 +3035,9 @@ v_b7f2b4.get("/gifts/events", v_c0a297, async (v_3f4e2e) => {
       receiverEmail: string | null;
       receiverName: string | null;
       giftId: string;
+      giftNameSnap: string | null;
+      giftEmojiSnap: string | null;
+      giftImageUrlSnap: string | null;
       count: number;
       xrunAmount: number;
       createdAt: number;
@@ -3048,10 +3054,20 @@ v_b7f2b4.get("/gifts/events", v_c0a297, async (v_3f4e2e) => {
   const v_4622b9 = (v_18b8bf.results ?? []).map((v_cb35cb) => {
     const v_ab4c96 = v_6413c7.get(v_cb35cb.giftId);
     return {
-      ...v_cb35cb,
-      giftName: v_ab4c96?.name ?? v_cb35cb.giftId,
-      giftEmoji: v_ab4c96?.emoji ?? "🎁",
-      giftImageUrl: v_ab4c96?.imageUrl ?? null,
+      id: v_cb35cb.id,
+      senderId: v_cb35cb.senderId,
+      senderEmail: v_cb35cb.senderEmail,
+      senderName: v_cb35cb.senderName,
+      receiverId: v_cb35cb.receiverId,
+      receiverEmail: v_cb35cb.receiverEmail,
+      receiverName: v_cb35cb.receiverName,
+      giftId: v_cb35cb.giftId,
+      count: v_cb35cb.count,
+      xrunAmount: v_cb35cb.xrunAmount,
+      createdAt: v_cb35cb.createdAt,
+      giftName: v_cb35cb.giftNameSnap ?? v_ab4c96?.name ?? v_cb35cb.giftId,
+      giftEmoji: v_cb35cb.giftEmojiSnap ?? v_ab4c96?.emoji ?? "🎁",
+      giftImageUrl: v_cb35cb.giftImageUrlSnap ?? v_ab4c96?.imageUrl ?? null,
     };
   });
 

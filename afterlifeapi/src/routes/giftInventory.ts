@@ -95,6 +95,10 @@ v_0bc486.post(
       }
     }
 
+    const v_5097fd = v_8c0b26.name;
+    const v_56896b = v_8c0b26.emoji ?? "🎁";
+    const v_92e7a1 = v_8c0b26.imageUrl ?? null;
+    const v_a97aa2 = v_4d33b2.cloneId ?? null;
     await v_3f4e2e.env.DB.batch([
       v_3f4e2e.env.DB
         .prepare(
@@ -109,16 +113,20 @@ v_0bc486.post(
 
       v_3f4e2e.env.DB
         .prepare(
-          `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id)
-             VALUES (?, ?, ?, 1, ?, 'sent', ?)`,
+          `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id,
+                                               clone_id, gift_name_snapshot, gift_emoji_snapshot, gift_image_url_snapshot)
+             VALUES (?, ?, ?, 1, ?, 'sent', ?, ?, ?, ?, ?)`,
         )
-        .bind(v_f7e120, v_4d33b2.toUserId, v_4d33b2.giftId, v_4547b1, v_62c866),
+        .bind(v_f7e120, v_4d33b2.toUserId, v_4d33b2.giftId, v_4547b1, v_62c866,
+              v_a97aa2, v_5097fd, v_56896b, v_92e7a1),
       v_3f4e2e.env.DB
         .prepare(
-          `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id)
-             VALUES (?, ?, ?, 1, ?, 'received', ?)`,
+          `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id,
+                                               clone_id, gift_name_snapshot, gift_emoji_snapshot, gift_image_url_snapshot)
+             VALUES (?, ?, ?, 1, ?, 'received', ?, ?, ?, ?, ?)`,
         )
-        .bind(v_4d33b2.toUserId, v_f7e120, v_4d33b2.giftId, v_4547b1, v_62c866),
+        .bind(v_4d33b2.toUserId, v_f7e120, v_4d33b2.giftId, v_4547b1, v_62c866,
+              v_a97aa2, v_5097fd, v_56896b, v_92e7a1),
     ]);
 
     await v_74defc(v_3f4e2e, {
@@ -183,45 +191,52 @@ v_0bc486.get("/received-log", v_6690d9, async (v_3f4e2e) => {
 
   const v_18b8bf = await v_3f4e2e.env.DB
     .prepare(
-      `SELECT g.id              AS id,
-              g.sender_user_id  AS senderId,
-              us.email          AS senderEmail,
-              us.name           AS senderName,
-              us.avatar_url     AS senderAvatarUrl,
-              g.clone_id        AS cloneId,
-              c.name            AS cloneName,
-              c.username        AS cloneUsername,
-              c.avatar_url      AS cloneAvatarUrl,
-              g.gift_id         AS giftId,
-              g.gift_name       AS giftName,
-              g.total_amount    AS xrunAmount,
-              g.created_at      AS createdAt
-         FROM gift_logs g
-         LEFT JOIN users  us ON us.id = g.sender_user_id
-         LEFT JOIN clones c  ON c.id  = g.clone_id
-        WHERE g.owner_user_id = ? AND g.status = 'sent'
-        ORDER BY g.created_at DESC
+      `SELECT e.id                        AS id,
+              e.counterpart_user_id       AS senderId,
+              us.email                    AS senderEmail,
+              us.name                     AS senderName,
+              us.avatar_url               AS senderAvatarUrl,
+              e.clone_id                  AS cloneId,
+              c.name                      AS cloneName,
+              c.username                  AS cloneUsername,
+              c.avatar_url                AS cloneAvatarUrl,
+              e.gift_id                   AS giftId,
+              e.gift_name_snapshot        AS giftNameSnap,
+              e.gift_emoji_snapshot       AS giftEmojiSnap,
+              e.gift_image_url_snapshot   AS giftImageUrlSnap,
+              e.xrun_amount               AS xrunAmount,
+              e.created_at                AS createdAtSec
+         FROM gift_inventory_events e
+         LEFT JOIN users  us ON us.id = e.counterpart_user_id
+         LEFT JOIN clones c  ON c.id  = e.clone_id
+        WHERE e.user_id = ? AND e.kind IN ('received', 'ad_reward')
+        ORDER BY e.created_at DESC
         LIMIT ? OFFSET ?`,
     )
     .bind(v_43e90c, v_02be30, v_3bbadf)
     .all<{
       id: number;
-      senderId: number;
+      senderId: number | null;
       senderEmail: string | null;
       senderName: string | null;
       senderAvatarUrl: string | null;
-      cloneId: number;
+      cloneId: number | null;
       cloneName: string | null;
       cloneUsername: string | null;
       cloneAvatarUrl: string | null;
       giftId: string;
-      giftName: string;
+      giftNameSnap: string | null;
+      giftEmojiSnap: string | null;
+      giftImageUrlSnap: string | null;
       xrunAmount: number;
-      createdAt: string;
+      createdAtSec: number;
     }>();
 
   const v_679404 = await v_3f4e2e.env.DB
-    .prepare(`SELECT COUNT(*) AS n FROM gift_logs WHERE owner_user_id = ? AND status = 'sent'`)
+    .prepare(
+      `SELECT COUNT(*) AS n FROM gift_inventory_events
+        WHERE user_id = ? AND kind IN ('received', 'ad_reward')`,
+    )
     .bind(v_43e90c)
     .first<{ n: number }>();
 
@@ -230,10 +245,27 @@ v_0bc486.get("/received-log", v_6690d9, async (v_3f4e2e) => {
 
   const v_4622b9 = (v_18b8bf.results ?? []).map((v_cb35cb) => {
     const v_ab4c96 = v_6413c7.get(v_cb35cb.giftId);
+    const v_dcbe7a = v_cb35cb.giftNameSnap ?? v_ab4c96?.name ?? v_cb35cb.giftId;
+    const v_491b90 = v_cb35cb.giftEmojiSnap ?? v_ab4c96?.emoji ?? "🎁";
+    const v_c14742 = v_cb35cb.giftImageUrlSnap ?? v_ab4c96?.imageUrl ?? null;
+
+    const v_b3a6f2 = new Date(v_cb35cb.createdAtSec * 1000).toISOString();
     return {
-      ...v_cb35cb,
-      giftEmoji: v_ab4c96?.emoji ?? "🎁",
-      giftImageUrl: v_ab4c96?.imageUrl ?? null,
+      id: v_cb35cb.id,
+      senderId: v_cb35cb.senderId,
+      senderEmail: v_cb35cb.senderEmail,
+      senderName: v_cb35cb.senderName,
+      senderAvatarUrl: v_cb35cb.senderAvatarUrl,
+      cloneId: v_cb35cb.cloneId,
+      cloneName: v_cb35cb.cloneName,
+      cloneUsername: v_cb35cb.cloneUsername,
+      cloneAvatarUrl: v_cb35cb.cloneAvatarUrl,
+      giftId: v_cb35cb.giftId,
+      giftName: v_dcbe7a,
+      giftEmoji: v_491b90,
+      giftImageUrl: v_c14742,
+      xrunAmount: v_cb35cb.xrunAmount,
+      createdAt: v_b3a6f2,
     };
   });
 
@@ -366,6 +398,17 @@ v_0bc486.post("/ad-reward-grant", v_6690d9, async (v_3f4e2e) => {
     });
   }
 
+  const v_897111 = await v_0edc13(v_3f4e2e.env);
+  const v_910ae8 = v_897111.find((v_206b88) => v_206b88.id === v_96f93d);
+  const v_5097fd = v_910ae8?.name ?? v_96f93d;
+  const v_56896b = v_910ae8?.emoji ?? "🎁";
+  const v_92e7a1 = v_910ae8?.imageUrl ?? null;
+
+  const v_37fbac = await v_3f4e2e.env.DB
+    .prepare("SELECT clone_id FROM call_sessions WHERE call_id = ?")
+    .bind(v_4d33b2.callId)
+    .first<{ clone_id: number | null }>();
+  const v_a97aa2 = v_37fbac?.clone_id ?? null;
   await v_3f4e2e.env.DB.batch([
     v_3f4e2e.env.DB
       .prepare(
@@ -379,10 +422,11 @@ v_0bc486.post("/ad-reward-grant", v_6690d9, async (v_3f4e2e) => {
       .bind(v_43e90c, v_96f93d),
     v_3f4e2e.env.DB
       .prepare(
-        `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id)
-           VALUES (?, NULL, ?, 1, 0, 'ad_reward', ?)`,
+        `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id,
+                                             clone_id, gift_name_snapshot, gift_emoji_snapshot, gift_image_url_snapshot)
+           VALUES (?, NULL, ?, 1, 0, 'ad_reward', ?, ?, ?, ?, ?)`,
       )
-      .bind(v_43e90c, v_96f93d, v_a0e308),
+      .bind(v_43e90c, v_96f93d, v_a0e308, v_a97aa2, v_5097fd, v_56896b, v_92e7a1),
   ]);
 
   const v_f0104f = await v_3f4e2e.env.DB
