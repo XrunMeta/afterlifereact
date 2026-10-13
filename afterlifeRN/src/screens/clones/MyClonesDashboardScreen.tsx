@@ -2238,10 +2238,16 @@ function v_3582ab({
   const v_0c2802 = async () => {
     const v_e0c7e8 = v_78547c ?? "";
     const v_6045c3 = `xrun://login?email=${encodeURIComponent(v_e0c7e8)}`;
+    console.log(`[openXrunApp] myEmail=${JSON.stringify(v_78547c)} deepLink=${v_6045c3}`);
+    if (!v_e0c7e8) {
+      console.warn("[openXrunApp] ⚠️ email is empty — pre-fill will not work in XRUN app");
+    }
     try {
       const v_29eaf2 = await v_f2c756.canOpenURL(v_6045c3);
+      console.log(`[openXrunApp] canOpenURL=${v_29eaf2}`);
       if (v_29eaf2) {
         await v_f2c756.openURL(v_6045c3);
+        console.log(`[openXrunApp] openURL done (deep link)`);
         return;
       }
     } catch (v_49263d) {
