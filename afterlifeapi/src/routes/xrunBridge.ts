@@ -59,11 +59,45 @@ v_62a1b6.get("/received-gifts", async (v_3f4e2e) => {
   const v_dbebe7 = await v_0edc13(v_3f4e2e.env);
   const v_6413c7 = new Map(v_dbebe7.map((v_206b88) => [v_206b88.id, v_206b88]));
 
+  const v_37b6fa = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT gift_id, count_remaining, xrun_price_snapshot
+         FROM user_gift_lots
+        WHERE user_id = ? AND count_remaining > 0
+        ORDER BY gift_id, received_at ASC, id ASC`,
+    )
+    .bind(v_625c74.id)
+    .all<{ gift_id: string; count_remaining: number; xrun_price_snapshot: number }>();
+  const v_b16486 = new Map<string, { count: number; price: number }[]>();
+  for (const v_1614db of v_37b6fa.results ?? []) {
+    const v_d0c056 = v_b16486.get(v_1614db.gift_id) ?? [];
+    v_d0c056.push({ count: Number(v_1614db.count_remaining), price: Number(v_1614db.xrun_price_snapshot) });
+    v_b16486.set(v_1614db.gift_id, v_d0c056);
+  }
+
+  const v_520523 = 11;
   const v_4622b9 = (v_18b8bf.results ?? []).map((v_cb35cb) => {
     const v_ab4c96 = v_6413c7.get(v_cb35cb.gift_id) as any;
     const v_4547b1 = v_ab4c96 ? v_c19d94(v_ab4c96) : 0;
+    const v_b39525 = v_4547b1 / 60; 
 
-    const v_b39525 = v_4547b1 / 60;
+    const v_9fdb66 = v_b16486.get(v_cb35cb.gift_id) ?? [];
+    let v_d2d720 = v_520523;
+    const v_065369 = [];
+    for (const v_41d9f0 of v_9fdb66) {
+      if (v_d2d720 === 0) break;
+      const v_04326c = Math.min(v_d2d720, v_41d9f0.count);
+      for (let v_ebec57 = 0; v_ebec57 < v_04326c; v_ebec57++) v_065369.push(v_41d9f0.price);
+      v_d2d720 -= v_04326c;
+    }
+
+    const v_16efc3 = v_065369.length >= v_520523
+      ? Number((v_065369.slice(0, v_520523 - 1).reduce((v_779914, v_148ff6) => v_779914 + v_148ff6, 0)).toFixed(8))
+      : null;
+    const v_22ecbb = v_065369.length >= v_520523
+      ? Number((v_065369[v_520523 - 1] ?? 0).toFixed(8))
+      : null;
+
     return {
       giftId: v_cb35cb.gift_id,
       name: v_ab4c96?.name ?? v_cb35cb.gift_id,
@@ -71,7 +105,10 @@ v_62a1b6.get("/received-gifts", async (v_3f4e2e) => {
       imageUrl: v_ab4c96?.imageUrl ?? null,
       count: v_cb35cb.count,
       totalReceived: v_cb35cb.total_received,
-      xrunPerItem: v_b39525, 
+      xrunPerItem: v_b39525,           
+      nextRedeemPayout: v_16efc3,      
+      nextRedeemFee: v_22ecbb,         
+      exchangeUnit: v_520523,
     };
   });
 
