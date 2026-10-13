@@ -433,6 +433,10 @@ v_0bc486.post("/ad-reward-grant", v_6690d9, async (v_3f4e2e) => {
   const v_5097fd = v_910ae8?.name ?? v_96f93d;
   const v_56896b = v_910ae8?.emoji ?? "🎁";
   const v_92e7a1 = v_910ae8?.imageUrl ?? null;
+  const v_f9c48b =
+    typeof (v_910ae8 as any)?.xrunPrice === "number" && (v_910ae8 as any).xrunPrice > 0
+      ? Number((v_910ae8 as any).xrunPrice)
+      : 0.01;
 
   const v_37fbac = await v_3f4e2e.env.DB
     .prepare("SELECT clone_id FROM call_sessions WHERE call_id = ?")
@@ -457,6 +461,13 @@ v_0bc486.post("/ad-reward-grant", v_6690d9, async (v_3f4e2e) => {
            VALUES (?, NULL, ?, 1, 0, 'ad_reward', ?, ?, ?, ?, ?)`,
       )
       .bind(v_43e90c, v_96f93d, v_a0e308, v_a97aa2, v_5097fd, v_56896b, v_92e7a1),
+
+    v_3f4e2e.env.DB
+      .prepare(
+        `INSERT INTO user_gift_lots (user_id, gift_id, received_at, count_received, count_remaining, xrun_price_snapshot)
+           VALUES (?, ?, strftime('%s','now'), 1, 1, ?)`,
+      )
+      .bind(v_43e90c, v_96f93d, v_f9c48b),
   ]);
 
   const v_f0104f = await v_3f4e2e.env.DB
