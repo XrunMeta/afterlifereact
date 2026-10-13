@@ -207,6 +207,11 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       let v_1b0e1d;
       try {
         v_1b0e1d = await v_8aa90d(v_2ca7e0, { src_file_id: v_57ac81.id });
+      } catch (v_9e86fd) {
+        console.warn(`[DefaultVoice] ${v_35f85c} analyze failed:`, v_9e86fd);
+        v_889fad(v_8d41d7(v_7218f6), v_8d41d7(v_17fa33("ANALYZE_FAILED")));
+        v_2941d3((v_ba2215) => ({ ...v_ba2215, [v_35f85c]: true }));
+        return; 
       } finally {
         v_0bda1d(false);
       }

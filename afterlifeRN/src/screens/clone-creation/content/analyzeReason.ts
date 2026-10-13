@@ -9,5 +9,5 @@ const v_281ad7 = {
 };
 
 export function v_17fa33(v_58ca36): string {
-  return (v_58ca36 && Object.hasOwn(v_281ad7, v_58ca36) && v_281ad7[v_58ca36]) ||"create.voice.analyzeFailGeneric";
+  return (v_58ca36 && Object.prototype.hasOwnProperty.call(v_281ad7, v_58ca36) && v_281ad7[v_58ca36]) || "create.voice.analyzeFailGeneric";
 }
