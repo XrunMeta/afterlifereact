@@ -1561,6 +1561,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       console.log(`[Call][chat] clone reply end${dur !== null ? ` (took ${dur}ms)` : ''}`);
       chatReplyStartAt.current = null;
 
+      afl971LastSpeechEndRef.current = { at: Date.now(), remainingMs: lastSignal.remainingMs ?? 0 };
+
       dispatchRm({ type: "CLONE_SPEECH_END" });
       dispatchRm({ type: "ACTIVITY" });
     }
@@ -1927,6 +1929,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const afl971PendingPhaseEndResolveRef = useRef<(() => void) | null>(null);
 
   const afl971PendingSpeakStartResolveRef = useRef<(() => void) | null>(null);
+
+  const afl971LastSpeechEndRef = useRef<{ at: number; remainingMs: number } | null>(null);
   const afl971WaitForSpeakingStart = useCallback((timeoutMs = 20000): Promise<void> => {
     return new Promise((resolve) => {
       const resolver = () => {
@@ -2055,11 +2059,25 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         const fg = await afl971WaitForForeground(2500);
         const interactive = afl971CallInteractive({ appActive: fg, live: liveStateRef.current === "live" });
         if (sendAdReturned && interactive) {
+          const sentAt = Date.now();
           sendAdReturned();
           console.log(`[Call][afl971] round ${round} 광고 종료 — 복귀 재생 신호(ad_returned)`);
 
-          await new Promise((r) => setTimeout(r, 8000));
-          console.log(`[Call][afl971] round ${round} 복귀 윈도 종료 — mic 복원 예정`);
+          const RETURN_MAX_MS = 25000;
+          const TAIL_GRACE_MS = 700;
+          const hardDeadline = sentAt + RETURN_MAX_MS;
+          for (;;) {
+            if (liveStateRef.current !== "live") break; 
+            const se = afl971LastSpeechEndRef.current;
+            const now = Date.now();
+            if (se && se.at > sentAt && now >= se.at + se.remainingMs + TAIL_GRACE_MS) break;
+            if (now >= hardDeadline) {
+              console.warn(`[Call][afl971] round ${round} 복귀 종료 대기 ${RETURN_MAX_MS}ms 상한 — 강제 종료`);
+              break;
+            }
+            await new Promise((r) => setTimeout(r, 300));
+          }
+          console.log(`[Call][afl971] round ${round} 복귀 발화 종료 — mic 복원 예정`);
         } else if (sendAdReturned) {
           console.log(`[Call][afl971] round ${round} 백그라운드/비라이브 — 복귀 신호 생략`);
         }

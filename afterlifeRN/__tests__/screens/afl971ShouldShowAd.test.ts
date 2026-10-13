@@ -2,24 +2,22 @@
 import { v_8e0f80, v_25c9bd, v_1c04ac, v_7841ab } from '../../src/screens/clone-interaction/afl971Ad';
 
 describe('afl971ShouldShowAd', () => {
-  it('일반 계정: 10, 15, 20 번째 라운드에 true', () => {
-    for (const v_cb35cb of [10, 15, 20, 25]) expect(v_8e0f80(v_cb35cb, false)).toBe(true);
+  it('11, 16, 21, 26 번째 라운드에 true (11째 첫 광고, 이후 5라운드마다)', () => {
+    for (const v_cb35cb of [11, 16, 21, 26, 31]) expect(v_8e0f80(v_cb35cb, false)).toBe(true);
   });
-  it('일반 계정: 9, 11, 14 번째 라운드는 false', () => {
-    for (const v_cb35cb of [1, 9, 11, 14, 16]) expect(v_8e0f80(v_cb35cb, false)).toBe(false);
+  it('첫 10라운드(1~10)는 광고 없음(false)', () => {
+    for (let v_cb35cb = 1; v_cb35cb <= 10; v_cb35cb++) expect(v_8e0f80(v_cb35cb, false)).toBe(false);
   });
-  it('테스트 계정: 2, 3, 4 번째 라운드에 true', () => {
-    for (const v_cb35cb of [2, 3, 4, 5]) expect(v_8e0f80(v_cb35cb, true)).toBe(true);
+  it('11과 16 사이(12~15)·17~20 은 false', () => {
+    for (const v_cb35cb of [12, 13, 14, 15, 17, 18, 19, 20]) expect(v_8e0f80(v_cb35cb, false)).toBe(false);
   });
-  it('테스트 계정: 1 번째 라운드는 false', () => {
-    expect(v_8e0f80(1, true)).toBe(false);
-  });
-  it('테스트 계정: 6 이상도 매 라운드 true', () => {
-    for (const v_cb35cb of [6, 7, 20]) expect(v_8e0f80(v_cb35cb, true)).toBe(true);
-  });
-  it('일반 계정: 12·13·19 는 false, 30 은 true', () => {
-    for (const v_cb35cb of [12, 13, 19]) expect(v_8e0f80(v_cb35cb, false)).toBe(false);
-    expect(v_8e0f80(30, false)).toBe(true);
+  it('테스트 계정 여부와 무관하게 동일(2라운드 특례 폐지)', () => {
+    for (const v_cb35cb of [2, 3, 4, 5, 10]) expect(v_8e0f80(v_cb35cb, true)).toBe(false);
+    for (const v_cb35cb of [11, 16, 21]) expect(v_8e0f80(v_cb35cb, true)).toBe(true);
+
+    for (const v_cb35cb of [1, 10, 11, 12, 16, 21]) {
+      expect(v_8e0f80(v_cb35cb, true)).toBe(v_8e0f80(v_cb35cb, false));
+    }
   });
   it('0·음수·비정상 라운드는 광고 안 뜸(false)', () => {
     for (const v_cb35cb of [0, -1, NaN, Infinity]) expect(v_8e0f80(v_cb35cb, false)).toBe(false);
