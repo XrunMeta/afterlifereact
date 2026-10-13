@@ -2238,15 +2238,28 @@ function v_3582ab({
   const v_0c2802 = async () => {
 
     const v_e0c7e8 = v_78547c ?? "";
-    const v_9466ca = v_e0c7e8
-      ? `https://www.xrun.run/invite?referral=${encodeURIComponent(v_e0c7e8)}`
-      : `https://www.xrun.run/invite`;
-    console.log(`[openXrunApp] myEmail=${JSON.stringify(v_78547c)} inviteUrl=${v_9466ca}`);
+    const v_6045c3 = `xrun://login?email=${encodeURIComponent(v_e0c7e8)}`;
+    console.log(`[openXrunApp] myEmail=${JSON.stringify(v_78547c)} try deepLink=${v_6045c3}`);
     try {
-      await v_f2c756.openURL(v_9466ca);
-      console.log(`[openXrunApp] openURL done (invite web)`);
+      await v_f2c756.openURL(v_6045c3);
+      console.log(`[openXrunApp] openURL done (xrun scheme — app installed)`);
+      return;
     } catch (v_49263d) {
-      console.warn("[openXrunApp] openURL fail:", v_49263d);
+      console.log(`[openXrunApp] xrun:// failed (likely not installed): ${(v_49263d as Error).message}`);
+    }
+
+    const v_b71a74 =
+      v_326be8.OS === "ios"
+        ? "https://apps.apple.com/app/xrun/id6471024515"
+        : `https://play.google.com/store/apps/details?id=run.xrun.xrunapp&referrer=${encodeURIComponent(
+            `utm_source=afterlife_login&utm_content=${v_e0c7e8}`,
+          )}`;
+    console.log(`[openXrunApp] fallback storeUrl=${v_b71a74}`);
+    try {
+      await v_f2c756.openURL(v_b71a74);
+      console.log(`[openXrunApp] openURL done (store)`);
+    } catch (v_49263d) {
+      console.warn("[openXrunApp] store openURL also failed:", v_49263d);
       v_03e392.alert(
         v_8d41d7("dashboard.giftLogOpenFailTitle", { defaultValue: "열 수 없어요" }),
         v_8d41d7("dashboard.giftLogOpenFailDesc", { defaultValue: "XRUN 앱을 설치해 주세요." }),
