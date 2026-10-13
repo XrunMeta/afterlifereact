@@ -1065,10 +1065,21 @@ def _make_dc_handler(sess, channel):
         except (ValueError, TypeError):
             return
         mtype = data.get("type")
-        if mtype not in ("say", "speak", "greet", "face_event") or sess.pipeline is None:
+        if mtype not in ("say", "speak", "greet", "face_event", "ad_returned", "ad_prepare_return") or sess.pipeline is None:
             return
         if mtype == "face_event":
             _handle_face_event(sess, data)
+            return
+        # [AFL-1003] 광고 '시작' 신호 — 복귀 턴을 백그라운드로 미리 렌더(버퍼). 트랙 push 없음 →
+        #   _run 안 타고 즉시 반환. 구버전 pipeline(미지원)이면 조용히 무시.
+        if mtype == "ad_prepare_return":
+            if hasattr(sess.pipeline, "start_prepare_ad_return"):
+                sess.pipeline.start_prepare_ad_return()
+            return
+        # [AFL-1003] 광고 복귀는 push_ad_return 지원 빌드에서만 처리한다. RN(Metro)은 먼저 갱신되고
+        #   prethird(가비아)는 배포가 늦을 수 있어, 구버전에 ad_returned 가 닿으면 빈 유저턴이 생길 수
+        #   있다 → 조기 드롭으로 방지.
+        if mtype == "ad_returned" and not hasattr(sess.pipeline, "push_ad_return"):
             return
         # 프로세스 시작 후에도 env 토글 평가, 테스트 monkeypatch 호환
         if mtype == "greet" and os.environ.get("PRETHIRD_GREETING_ENABLED", "1") != "1":
@@ -1114,6 +1125,9 @@ def _make_dc_handler(sess, channel):
             sess.name_extract_sent.add(pid)
             asyncio.ensure_future(_send_enroll_suggest(sess, channel, text, person_id=pid))
         seq = data.get("seq")   # RN이 부여(없으면 None), echo 전용
+        # [AFL-1003] 광고 예고 신호 — say 의 adNotice=="pre" 일 때만 pipeline.say(ad_event="pre").
+        #   ad_returned 는 text 없이 오는 클론 주도 턴(아래 else 분기가 ad_event="returned" 로 처리).
+        _ad_event = "pre" if (mtype == "say" and data.get("adNotice") == "pre") else None
         sess.set_state("speaking")
 
         # 턴 기록 시작 — input.txt 즉시 기록. recorder 없으면 None.
@@ -1243,8 +1257,21 @@ def _make_dc_handler(sess, channel):
                             turn=turn, on_first_audio=_emit_speech_start,
                             on_sentence=_emit_speech_text,
                         )
+                    elif mode == "ad_returned":
+                        # [AFL-1003] 광고 '종료' — 광고 중 미리 렌더된 복귀 버퍼를 즉시 push
+                        #   (push_ad_return 내부에서 미준비 시 실시간 say(ad_event="returned") 폴백).
+                        #   사용자 발화 없는 클론 주도 턴이라 on_reply_done·call_turns·filler 미사용.
+                        await sess.pipeline.push_ad_return(
+                            turn=turn,
+                            on_first_audio=_emit_speech_start,
+                            on_response_ready=_response_hook,
+                            on_sentence=_emit_speech_text,
+                        )
                     else:
                         _say_kw = {}
+                        # [AFL-1003] 광고 예고 — say 가 ad_event 를 모르면(구버전·목) 생략.
+                        if _ad_event is not None and _accepts_kw(sess.pipeline.say, "ad_event"):
+                            _say_kw["ad_event"] = _ad_event
                         if _accepts_kw(sess.pipeline.say, "on_reply_done"):
                             # AFL-926: GPT 응답이 끝나는 즉시 기록 — 재생(Bridge·렌더) 뒤까지 미루면
                             # 끊고 바로 다시 건 통화가 직전 턴을 이전 대화로 못 받아 온다.

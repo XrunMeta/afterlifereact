@@ -21,6 +21,15 @@ import {
   ToastAndroid,
 } from "react-native";
 
+import {
+  afl971ShouldShowAd,
+  isAfl971AdTestAccount,
+  afl971CanFireAd,
+  afl971CallInteractive,
+  afl971NormalizeCadence,
+  AFL971_CADENCE_DEFAULT,
+  type AdCadence,
+} from "./afl971Ad";
 import * as ScreenCapture from "expo-screen-capture";
 import ViewShot, { captureRef } from "react-native-view-shot";
 import * as MediaLibrary from "expo-media-library";
@@ -203,6 +212,26 @@ interface FloatingGift {
 type EmoteKey = "smile" | "wink" | "cry" | "angry" | "yawn";
 const EMOTE_BASE_URL = "https://rtc.example.invalid/emote";
 const EMOTE_SERVER_ACTIONS: ReadonlySet<EmoteKey> = new Set(["smile"]);
+
+export { afl971ShouldShowAd };
+
+function afl971WaitForForeground(timeoutMs: number): Promise<boolean> {
+  if (AppState.currentState === "active") return Promise.resolve(true);
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (v: boolean) => {
+      if (done) return;
+      done = true;
+      sub.remove();
+      clearTimeout(timer);
+      resolve(v);
+    };
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") finish(true);
+    });
+    const timer = setTimeout(() => finish(false), timeoutMs);
+  });
+}
 
 function emoteVideoUri(cloneId: number, key: EmoteKey): string | null {
   if (!EMOTE_SERVER_ACTIONS.has(key) || !Number.isFinite(cloneId) || cloneId <= 0) return null;
@@ -628,6 +657,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     lastSignal,
     sendFaceEvent,
     sendAudioReady,
+    sendAdPrepareReturn,
+    sendAdReturned,
     getCallId,
 
     visemeResponse,
@@ -752,6 +783,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const rmActionRef = useRef<(a: RememberMeAction) => void>(() => {});
 
   const phaseRef = useRef<string>("idle");
+
+  const liveStateRef = useRef<string>("idle");
+
+  const afl971MicRestorePendingRef = useRef<boolean>(false);
 
   const chatReplyStartAt = useRef<number | null>(null);
   const dispatchRm = useCallback((event: RememberMeEvent) => {
@@ -1238,6 +1273,31 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     void stopLive();
   }, [stopLive]);
 
+  const sayForHandsFree = useCallback(
+    (text: string) => {
+      const willBeRound = afl971RoundCountRef.current + 1;
+
+      const faceBusy = rmStateRef.current.promptRegister;
+
+      const adNext =
+        afl971IsFirstCallRef.current === false &&
+        !faceBusy &&
+        afl971ShouldShowAd(willBeRound, afl971CadenceRef.current);
+
+      console.log(
+        `[Call][afl971] 예고판정 willBeRound=${willBeRound} adNext=${adNext} ` +
+        `isFirstCall=${afl971IsFirstCallRef.current} faceBusy=${faceBusy} ` +
+        `promptRegister=${rmStateRef.current.promptRegister} naming=${shStateRef.current.naming} ` +
+        `cadence=${afl971CadenceRef.current.firstRound}/${afl971CadenceRef.current.interval} ` +
+        `testAcct=${isAfl971AdTestAccount(debugEmail)}`,
+      );
+
+      afl971AdCommittedRoundRef.current = adNext ? willBeRound : null;
+      return adNext ? say(text, { adNotice: "pre" }) : say(text);
+    },
+    [say, debugEmail],
+  );
+
   const sttEndpointMs = useTimingConfigStore((s) => s.sttEndpointMs);
 
   const confirmGateEnabled = useTimingConfigStore((s) => s.confirmGateEnabled);
@@ -1259,7 +1319,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     onSttUnrecoverable: handleSttUnrecoverable,
 
     enabled: liveState === "live",
-    say,
+
+    say: sayForHandsFree,
     getStatsReport,
     notifySpeechEnd,
     greeting: greetingOn,
@@ -1283,6 +1344,9 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   }, [notifyFaceInterrupt]);
 
   const micHeld = shouldHoldMic(rmState) || bridgeActive || afl971AdInProgress;
+
+  const micHeldRef = useRef(micHeld);
+  micHeldRef.current = micHeld;
   const micWasOnRef = useRef(false);
   useEffect(() => {
     if (liveState !== "live") return;
@@ -1296,6 +1360,9 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   }, [micHeld, liveState]);
 
+  useEffect(() => {
+    liveStateRef.current = liveState; 
+  }, [liveState]);
   useEffect(() => {
     phaseRef.current = phase;
 
@@ -1396,8 +1463,13 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     return () => clearInterval(id);
   }, [liveState, rmState.mode, dispatchRm]);
 
+  const afl971PromptAlertShownRef = useRef(false);
   useEffect(() => {
-    if (!rmState.promptRegister) return;
+    if (!rmState.promptRegister) { afl971PromptAlertShownRef.current = false; return; }
+    if (afl971PromptAlertShownRef.current) return;      
+
+    if (phase === "speaking" || afl971AdInProgressRef.current) return;
+    afl971PromptAlertShownRef.current = true;
 
     showAlert(
       "새 얼굴이 보여요",
@@ -1450,7 +1522,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       ],
     );
 
-  }, [rmState.promptRegister]);
+  }, [rmState.promptRegister, phase]);
 
   useEffect(() => {
     micOnRef.current = micOn;
@@ -1498,6 +1570,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       const dur = chatReplyStartAt.current ? Date.now() - chatReplyStartAt.current : null;
       console.log(`[Call][chat] clone reply end${dur !== null ? ` (took ${dur}ms)` : ''}`);
       chatReplyStartAt.current = null;
+
+      afl971LastSpeechEndRef.current = { at: Date.now(), remainingMs: lastSignal.remainingMs ?? 0 };
 
       dispatchRm({ type: "CLONE_SPEECH_END" });
       dispatchRm({ type: "ACTIVITY" });
@@ -1823,10 +1897,15 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const afl971ConnectingAdFiredRef = useRef<boolean>(false);
   const afl971LastSpeakingRef = useRef<boolean>(false);
 
+  const afl971AdCommittedRoundRef = useRef<number | null>(null);
+  const afl971PendingAdRoundRef = useRef<number | null>(null);
+
   const AFL971_PRE_MESSAGE_DEFAULT = "{userName}줄 꽃 좀 따올게! 영상 보고 있으면 금방 다녀올게";
   const AFL971_POST_MESSAGE_DEFAULT = "기다려줘서 고마워! 꽃 선물 짠";
   const AFL971_FLOWER_TOAST_DEFAULT = "{cloneName}에게 꽃을 받았습니다";
   const [afl971ToastTemplate, setAfl971ToastTemplate] = useState<string>(AFL971_FLOWER_TOAST_DEFAULT);
+
+  const afl971CadenceRef = useRef<AdCadence>(AFL971_CADENCE_DEFAULT);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -1834,9 +1913,14 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         const { API_BASE } = await import("../../config/apiBase");
         const res = await fetch(`${API_BASE}/oth-path`, { cache: "no-store" });
         if (!res.ok || cancelled) return;
-        const data = (await res.json()) as { messages?: { toast?: string } };
+        const data = (await res.json()) as { messages?: { toast?: string }; cadence?: unknown };
         const t = data?.messages?.toast;
         if (typeof t === "string" && t.trim().length > 0) setAfl971ToastTemplate(t);
+
+        afl971CadenceRef.current = afl971NormalizeCadence(data?.cadence);
+        console.log(
+          `[Call][afl971] 광고 주기 로드 firstRound=${afl971CadenceRef.current.firstRound} interval=${afl971CadenceRef.current.interval}`,
+        );
       } catch (err) {
         if (__DEV__) console.warn("[afl971] ad-messages fetch 실패:", (err as Error)?.message ?? err);
       }
@@ -1854,36 +1938,19 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const [afl971AdInProgress, setAfl971AdInProgress] = useState(false);
   const afl971AdInProgressRef = useRef<boolean>(false);
+
+  const [afl971AdShowingUI, setAfl971AdShowingUI] = useState(false);
   useEffect(() => {
     afl971AdInProgressRef.current = afl971AdInProgress;
   }, [afl971AdInProgress]);
-  const afl971PendingPhaseEndResolveRef = useRef<(() => void) | null>(null);
+
+  const afl971LastSpeechEndRef = useRef<{ at: number; remainingMs: number } | null>(null);
 
   const renderAfl971Message = useCallback((template: string): string => {
     const userName = myName ?? "";
     const cloneName = String(paramName || (clone as { displayName?: string } | null | undefined)?.displayName || "");
     return template.replace(/\{userName\}/g, userName).replace(/\{cloneName\}/g, cloneName);
   }, [myName, paramName, clone]);
-
-  const afl971WaitForPhaseEnd = useCallback((timeoutMs = 15000): Promise<void> => {
-    return new Promise((resolve) => {
-      const resolver = () => {
-        if (afl971PendingPhaseEndResolveRef.current === resolver) {
-          afl971PendingPhaseEndResolveRef.current = null;
-          clearTimeout(timeoutId);
-          resolve();
-        }
-      };
-      afl971PendingPhaseEndResolveRef.current = resolver;
-      const timeoutId = setTimeout(() => {
-        if (afl971PendingPhaseEndResolveRef.current === resolver) {
-          afl971PendingPhaseEndResolveRef.current = null;
-          console.warn(`[Call][afl971] waitForPhaseEnd ${timeoutMs}ms timeout — force resolve`);
-          resolve();
-        }
-      }, timeoutMs);
-    });
-  }, []);
 
   useEffect(() => {
     (async () => {
@@ -1910,11 +1977,14 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         console.log("[Call][afl971] 연결중 전면광고 trigger");
         const { loadAndShowRewardedAd } = await import("../../lib/pangle");
         afl971MuteCallAudio();
+        setAfl971AdShowingUI(true);
         try {
           await loadAndShowRewardedAd();
         } finally {
+          setAfl971AdShowingUI(false);
           afl971UnmuteCallAudio();
         }
+
         console.log("[Call][afl971] 연결중 광고 닫힘");
       } catch (err) {
         console.warn("[Call][afl971] 연결중 광고 실패:", (err as Error)?.message ?? err);
@@ -1930,17 +2000,144 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   }, []);
 
+  const runAfl971AdCycle = useCallback((round: number) => {
+    afl971AdShownRoundsRef.current.add(round);
+    setAfl971AdInProgress(true);
+    afl971AdInProgressRef.current = true; 
+    let micWasOnBeforeAd = false;
+    (async () => {
+      try {
+        console.log(`[Call][afl971] round ${round} — mic off + 광고`);
+        micWasOnBeforeAd = !!micOnRef.current;
+        if (micOnRef.current) toggleMicRef.current();
+        await new Promise((r) => setTimeout(r, 150));
+
+        const { loadAndShowRewardedAd } = await import("../../lib/pangle");
+        afl971MuteCallAudio();
+        setAfl971AdShowingUI(true);
+
+        if (sendAdPrepareReturn) {
+          sendAdPrepareReturn();
+          console.log(`[Call][afl971] round ${round} 광고 시작 — 복귀 미리 준비 신호(ad_prepare_return)`);
+        }
+        try {
+          await loadAndShowRewardedAd();
+        } catch (adErr) {
+          setAfl971AdShowingUI(false);
+          afl971UnmuteCallAudio();
+          throw adErr;
+        }
+
+        setAfl971AdShowingUI(false);
+        afl971UnmuteCallAudio();
+
+        const fg = await afl971WaitForForeground(2500);
+        const interactive = afl971CallInteractive({ appActive: fg, live: liveStateRef.current === "live" });
+        if (sendAdReturned && interactive) {
+          const sentAt = Date.now();
+          sendAdReturned();
+          console.log(`[Call][afl971] round ${round} 광고 종료 — 복귀 재생 신호(ad_returned)`);
+
+          const RETURN_MAX_MS = 25000;
+          const TAIL_GRACE_MS = 700;
+          const hardDeadline = sentAt + RETURN_MAX_MS;
+          for (;;) {
+            if (liveStateRef.current !== "live") break; 
+            const se = afl971LastSpeechEndRef.current;
+            const now = Date.now();
+            if (se && se.at > sentAt && now >= se.at + se.remainingMs + TAIL_GRACE_MS) break;
+            if (now >= hardDeadline) {
+              console.warn(`[Call][afl971] round ${round} 복귀 종료 대기 ${RETURN_MAX_MS}ms 상한 — 강제 종료`);
+              break;
+            }
+            await new Promise((r) => setTimeout(r, 300));
+          }
+          console.log(`[Call][afl971] round ${round} 복귀 발화 종료 — mic 복원 예정`);
+        } else if (sendAdReturned) {
+          console.log(`[Call][afl971] round ${round} 백그라운드/비라이브 — 복귀 신호 생략`);
+        }
+
+        const callIdNow = getCallId?.() ?? null;
+        setToastMessage(renderAfl971Message(afl971ToastTemplate));
+        if (callIdNow && accessToken) {
+          void (async () => {
+            try {
+              const { API_BASE } = await import("../../config/apiBase");
+              const res = await fetch(`${API_BASE}/oth-path`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify({ callId: callIdNow, round, giftId: "gift-bouquet" }),
+              });
+              if (res.ok) {
+                const data = (await res.json()) as { giftId?: string; alreadyGranted?: boolean };
+                console.log(`[Call][afl971] 꽃 지급 ✅ giftId=${data.giftId} already=${data.alreadyGranted}`);
+              } else {
+                console.warn(`[Call][afl971] 꽃 지급 실패 status=${res.status}`);
+              }
+            } catch (err) {
+              console.warn(`[Call][afl971] 꽃 지급 호출 실패:`, (err as Error)?.message ?? err);
+            }
+          })();
+        } else {
+          console.warn(`[Call][afl971] callIdNow=${callIdNow} accessToken=${!!accessToken} — 지급 skip, 토스트만`);
+        }
+      } catch (err) {
+        console.warn(`[Call][afl971] round ${round} 광고 cycle 실패:`, (err as Error)?.message ?? err);
+      } finally {
+        setAfl971AdInProgress(false);
+        afl971AdInProgressRef.current = false;
+
+        setAfl971AdShowingUI(false);
+        afl971UnmuteCallAudio();
+
+        const restoreNow = afl971CallInteractive({
+          appActive: AppState.currentState === "active",
+          live: liveStateRef.current === "live",
+        });
+        if (micWasOnBeforeAd && !micOnRef.current && !isMuted) {
+          if (restoreNow) {
+            console.log(`[Call][afl971] round ${round} 종료 — mic 복원`);
+            micOnRef.current = true;
+            toggleMicRef.current();
+          } else {
+            afl971MicRestorePendingRef.current = true;
+            console.log(`[Call][afl971] round ${round} 종료 — 백그라운드라 mic 복원 보류(포그라운드 때 복원)`);
+          }
+        }
+      }
+    })();
+  }, [renderAfl971Message, afl971MuteCallAudio, afl971UnmuteCallAudio, isMuted, getCallId, accessToken, afl971ToastTemplate, sendAdPrepareReturn, sendAdReturned]);
+
+  const afl971TryFireAd = useCallback(() => {
+
+    if (liveStateRef.current !== "live") return;
+    if (phaseRef.current === "speaking") return;
+    const pending = afl971PendingAdRoundRef.current;
+
+    const faceBusy = rmStateRef.current.promptRegister;
+    if (!afl971CanFireAd({ pendingRound: pending, faceBusy, adInProgress: afl971AdInProgressRef.current })) {
+      if (pending !== null && faceBusy) {
+        console.log("[Call][afl971] 얼굴 등록 팝업 중 — 예고된 광고 보류(유지·얼굴 우선)");
+      }
+      return;
+    }
+    afl971PendingAdRoundRef.current = null; 
+    runAfl971AdCycle(pending as number);
+  }, [runAfl971AdCycle]);
+
+  useEffect(() => {
+    afl971TryFireAd();
+
+  }, [rmState.promptRegister, phase, afl971AdInProgress, afl971TryFireAd]);
+
   useEffect(() => {
     const wasSpeaking = afl971LastSpeakingRef.current;
     const isSpeaking = phase === "speaking";
     afl971LastSpeakingRef.current = isSpeaking;
     if (!wasSpeaking || isSpeaking) return;
-
-    if (afl971PendingPhaseEndResolveRef.current) {
-      const r = afl971PendingPhaseEndResolveRef.current;
-      afl971PendingPhaseEndResolveRef.current = null;
-      r();
-    }
 
     if (afl971AdInProgressRef.current) {
       console.log("[Call][afl971] 광고 사이클 중 — 라운드 count skip");
@@ -1960,71 +2157,13 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       return;
     }
 
-    const isAdTestAccount = debugEmail === "oth-user@example.invalid";
-    const firstThreshold = isAdTestAccount ? 2 : 10;
-    const stepAfter = isAdTestAccount ? 1 : 5;
-    const shouldShow = round === firstThreshold || (round > firstThreshold && (round - firstThreshold) % stepAfter === 0);
-    if (!shouldShow) return;
+    if (afl971AdCommittedRoundRef.current !== round) return;
+    afl971AdCommittedRoundRef.current = null;
     if (afl971AdShownRoundsRef.current.has(round)) return;
-    afl971AdShownRoundsRef.current.add(round);
 
-    setAfl971AdInProgress(true);
-    let micWasOnBeforeAd = false;
-    (async () => {
-      try {
-        console.log(`[Call][afl971] round ${round} — mic off + 광고`);
-        micWasOnBeforeAd = !!micOnRef.current;
-        if (micOnRef.current) toggleMicRef.current();
-        await new Promise((r) => setTimeout(r, 150));
-
-        const { loadAndShowRewardedAd } = await import("../../lib/pangle");
-        afl971MuteCallAudio();
-        try {
-          await loadAndShowRewardedAd();
-        } finally {
-          afl971UnmuteCallAudio();
-        }
-
-        const callIdNow = getCallId?.() ?? null;
-        if (callIdNow && accessToken) {
-          try {
-            const { API_BASE } = await import("../../config/apiBase");
-            const res = await fetch(`${API_BASE}/oth-path`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${accessToken}`,
-              },
-              body: JSON.stringify({ callId: callIdNow, round, giftId: "gift-bouquet" }),
-            });
-            if (res.ok) {
-              const data = (await res.json()) as { giftId?: string; alreadyGranted?: boolean };
-              console.log(`[Call][afl971] 꽃 지급 ✅ giftId=${data.giftId} already=${data.alreadyGranted}`);
-              setToastMessage(renderAfl971Message(afl971ToastTemplate));
-            } else {
-              console.warn(`[Call][afl971] 꽃 지급 실패 status=${res.status}`);
-
-              setToastMessage(renderAfl971Message(afl971ToastTemplate));
-            }
-          } catch (err) {
-            console.warn(`[Call][afl971] 꽃 지급 호출 실패:`, (err as Error)?.message ?? err);
-            setToastMessage(renderAfl971Message(afl971ToastTemplate));
-          }
-        } else {
-          console.warn(`[Call][afl971] callIdNow=${callIdNow} accessToken=${!!accessToken} — 지급 skip, 토스트만`);
-          setToastMessage(renderAfl971Message(afl971ToastTemplate));
-        }
-      } catch (err) {
-        console.warn(`[Call][afl971] round ${round} 광고 cycle 실패:`, (err as Error)?.message ?? err);
-      } finally {
-        setAfl971AdInProgress(false);
-        if (micWasOnBeforeAd && !micOnRef.current && !isMuted) {
-          console.log(`[Call][afl971] round ${round} 종료 — mic 복원`);
-          toggleMicRef.current();
-        }
-      }
-    })();
-  }, [phase, renderAfl971Message, afl971MuteCallAudio, afl971UnmuteCallAudio, debugEmail, isMuted, getCallId, accessToken, afl971ToastTemplate]);
+    afl971PendingAdRoundRef.current = round;
+    afl971TryFireAd();
+  }, [phase, afl971TryFireAd]);
 
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const warnedRef = useRef(false);
@@ -2144,6 +2283,24 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const lastBgWarnRef = useRef<number>(0);
   useEffect(() => {
     const sub = AppState.addEventListener("change", (next: AppStateStatus) => {
+
+      if (next === "active" && liveState === "live") {
+        afl971UnmuteCallAudio();
+        setAfl971AdShowingUI(false);
+        if (
+          afl971MicRestorePendingRef.current &&
+          !afl971AdInProgressRef.current &&
+          !micHeldRef.current &&
+          !micOnRef.current &&
+          !isMuted
+        ) {
+          afl971MicRestorePendingRef.current = false;
+          micOnRef.current = true;
+          console.log("[Call][afl971] 포그라운드 복귀 — 광고로 꺼둔 mic 복원(사용자 턴/listening)");
+          toggleMicRef.current();
+        }
+      }
+
       if (next !== "background") return;
       if (liveState !== "live") return;
 
@@ -2162,7 +2319,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       }).catch((err) => console.warn("[Call] bg warn schedule failed:", err?.message));
     });
     return () => sub.remove();
-  }, [liveState, t]);
+  }, [liveState, t, isMuted, afl971UnmuteCallAudio]);
 
   const confirmProgress = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -3118,6 +3275,28 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         <View style={s.exitOverlay} pointerEvents="auto">
           <ActivityIndicator size="large" color={COLORS.white} />
           <Text style={s.exitOverlayText}>종료 중...</Text>
+        </View>
+      )}
+
+      {}
+      {__DEV__ && afl971AdShowingUI && (
+        <View
+          style={{
+            ...StyleSheet.absoluteFillObject,
+            backgroundColor: "rgba(0,0,0,0.82)",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+          pointerEvents="auto"
+        >
+          <ActivityIndicator size="large" color={COLORS.white} />
+          <Text style={{ color: COLORS.white, fontSize: 18, fontWeight: "700", marginTop: 16 }}>
+            광고 재생 중…
+          </Text>
+          <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 6 }}>
+            (개발 스텁 · 실광고 대체)
+          </Text>
         </View>
       )}
     </View>

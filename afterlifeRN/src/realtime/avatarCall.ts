@@ -38,7 +38,7 @@ export interface AvatarCall {
   start: () => Promise<void>;
   stop: () => Promise<void>;
   phase: CallPhase;
-  say: (text: string) => Promise<void>;
+  say: (text: string, opts?: { adNotice?: 'pre' }) => Promise<void>;
   notifySpeechEnd: () => void;
   getStatsReport: () => Promise<Iterable<[string, Record<string, unknown>]>> | null;
 
@@ -50,6 +50,9 @@ export interface AvatarCall {
   sendFaceEvent?: (evt: FaceEvent) => void;
 
   sendAudioReady?: () => void;
+
+  sendAdPrepareReturn?: () => void;
+  sendAdReturned?: () => void;
 
   visemeResponse?: v_2a0baf | null;
 
