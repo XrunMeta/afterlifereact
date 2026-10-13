@@ -27,6 +27,7 @@ import {
 import { v_ac4be1, v_862d3d } from "../../api/clones";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_889fad } from "../../stores/dialogStore";
+import { v_772971 } from "jmpfvteuuztnp";
 
 interface Props {
   visible: boolean;
@@ -47,6 +48,7 @@ export default function v_601c02({
   onLearn: v_6d2805,
 }: Props) {
   const v_033e14 = v_e0068c();
+  const { t: v_8d41d7 } = v_772971();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
 
   const [v_35b883, v_8781ff] = v_5ab095<string>("");
@@ -156,7 +158,12 @@ export default function v_601c02({
       v_9b4aaf(true);
     } catch (v_49263d) {
       console.warn("[CallEntryQuestions] save 실패:", v_49263d);
-      v_889fad("저장 실패", "네트워크 오류로 저장에 실패했어요. 다시 시도해 주세요.");
+      v_889fad(
+        v_8d41d7("callEntry.saveFailedTitle", { defaultValue: "저장 실패" }),
+        v_8d41d7("callEntry.saveFailedDesc", {
+          defaultValue: "네트워크 오류로 저장에 실패했어요. 다시 시도해 주세요.",
+        }),
+      );
     } finally {
       v_04e389(false);
     }
@@ -173,9 +180,11 @@ export default function v_601c02({
       >
         <View style={[v_fd5f43.header, { paddingTop: Math.max(v_033e14.top, 12) + 8 }]}>
           <TouchableOpacity onPress={v_c7001c} style={v_fd5f43.headerBtn}>
-            <Text style={v_fd5f43.headerBtnText}>취소</Text>
+            <Text style={v_fd5f43.headerBtnText}>{v_8d41d7("callEntry.cancel", { defaultValue: "취소" })}</Text>
           </TouchableOpacity>
-          <Text style={v_fd5f43.headerTitle}>{v_1833e7}님과 대화 준비</Text>
+          <Text style={v_fd5f43.headerTitle}>
+            {v_8d41d7("callEntry.prepTitle", { name: v_1833e7, defaultValue: `${v_1833e7}님과 대화 준비` })}
+          </Text>
           <View style={v_fd5f43.headerBtn} />
         </View>
 
@@ -185,12 +194,12 @@ export default function v_601c02({
           keyboardShouldPersistTaps="handled"
         >
           {}
-          <Section title={`${v_1833e7}님과 어떤 관계였나요?`}>
+          <Section title={v_8d41d7("callEntry.q1.title", { name: v_1833e7, defaultValue: `${v_1833e7}님과 어떤 관계였나요?` })}>
             <View style={v_fd5f43.chipsWrap}>
               {v_88e76b.map((v_3f4e2e) => (
                 <Chip
                   key={v_3f4e2e.id}
-                  label={v_3f4e2e.label}
+                  label={v_8d41d7(v_3f4e2e.labelKey, { defaultValue: v_3f4e2e.label })}
                   active={v_35b883 === v_3f4e2e.label}
                   onPress={() => {
                     v_8781ff(v_3f4e2e.label);
@@ -201,12 +210,12 @@ export default function v_601c02({
             </View>
             {v_97969b.length > 0 ? (
               <>
-                <Text style={v_fd5f43.subLabel}>세부 관계</Text>
+                <Text style={v_fd5f43.subLabel}>{v_8d41d7("callEntry.q1.subLabel", { defaultValue: "세부 관계" })}</Text>
                 <View style={v_fd5f43.chipsWrap}>
                   {v_97969b.map((v_1ae212) => (
                     <Chip
                       key={v_1ae212.id}
-                      label={v_1ae212.label}
+                      label={v_8d41d7(v_1ae212.labelKey, { defaultValue: v_1ae212.label })}
                       active={v_1c3009 === v_1ae212.label}
                       onPress={() => v_bb1c6a(v_1ae212.label)}
                     />
@@ -216,7 +225,7 @@ export default function v_601c02({
                   <TextInput
                     value={v_6125e7}
                     onChangeText={v_46c351}
-                    placeholder="예: 스승님, 이웃, 은인"
+                    placeholder={v_8d41d7("callEntry.q1.otherPlaceholder", { defaultValue: "예: 스승님, 이웃, 은인" })}
                     placeholderTextColor={v_1bfbd0.zinc400}
                     style={v_fd5f43.textInputShort}
                     onFocus={(v_9e86fd) => v_de7f2d(v_efd272(v_9e86fd.target as unknown as number))}
@@ -224,22 +233,36 @@ export default function v_601c02({
                 ) : null}
 
                 {}
-                <Text style={v_fd5f43.subLabel}>{`${v_1833e7}님과 어떤 사이였는지 간단한 일화를 적어주세요.`}</Text>
+                <Text style={v_fd5f43.subLabel}>
+                  {v_8d41d7("callEntry.q1.episodeLabel", {
+                    name: v_1833e7,
+                    defaultValue: `${v_1833e7}님과 어떤 사이였는지 간단한 일화를 적어주세요.`,
+                  })}
+                </Text>
                 <TextInput
                   value={v_90eea7}
                   onChangeText={v_10c766}
-                  placeholder="예: 매주 주말마다 등산 다니던 친구, 힘든 시기에 같이 야근한 사수"
+                  placeholder={v_8d41d7("callEntry.q1.episodePlaceholder", {
+                    defaultValue: "예: 매주 주말마다 등산 다니던 친구, 힘든 시기에 같이 야근한 사수",
+                  })}
                   placeholderTextColor={v_1bfbd0.zinc400}
                   multiline
                   style={v_fd5f43.textInput}
                   onFocus={(v_9e86fd) => v_de7f2d(v_efd272(v_9e86fd.target as unknown as number))}
                 />
 
-                <Text style={v_fd5f43.subLabel}>{`${v_1833e7}님이 당신을 어떻게 불렀나요?`}</Text>
+                <Text style={v_fd5f43.subLabel}>
+                  {v_8d41d7("callEntry.q1.addressLabel", {
+                    name: v_1833e7,
+                    defaultValue: `${v_1833e7}님이 당신을 어떻게 불렀나요?`,
+                  })}
+                </Text>
                 <TextInput
                   value={v_e58d6f}
                   onChangeText={v_b697a1}
-                  placeholder="예: 은지야, 아들, 야, 지호 씨"
+                  placeholder={v_8d41d7("callEntry.q1.addressPlaceholder", {
+                    defaultValue: "예: 은지야, 아들, 야, 지호 씨",
+                  })}
                   placeholderTextColor={v_1bfbd0.zinc400}
                   style={v_fd5f43.textInputShort}
                   onFocus={(v_9e86fd) => v_de7f2d(v_efd272(v_9e86fd.target as unknown as number))}
@@ -249,12 +272,17 @@ export default function v_601c02({
           </Section>
 
           {}
-          <Section title={`${v_1833e7}님과 서로 어떤 말투를 사용하는 사이였나요?`}>
+          <Section
+            title={v_8d41d7("callEntry.q2.title", {
+              name: v_1833e7,
+              defaultValue: `${v_1833e7}님과 서로 어떤 말투를 사용하는 사이였나요?`,
+            })}
+          >
             <View style={v_fd5f43.chipsWrap}>
               {v_9a25f1.map((v_b6c474) => (
                 <Chip
                   key={v_b6c474.id}
-                  label={v_b6c474.label}
+                  label={v_8d41d7(v_b6c474.labelKey, { defaultValue: v_b6c474.label })}
                   active={v_60bef6 === v_b6c474.label}
                   onPress={() => v_b157ed(v_b6c474.label)}
                 />
@@ -263,12 +291,17 @@ export default function v_601c02({
           </Section>
 
           {}
-          <Section title={`${v_1833e7}님의 직업은 무엇이었나요?`}>
+          <Section
+            title={v_8d41d7("callEntry.q3.title", {
+              name: v_1833e7,
+              defaultValue: `${v_1833e7}님의 직업은 무엇이었나요?`,
+            })}
+          >
             <View style={v_fd5f43.chipsWrap}>
               {v_422a59.map((v_b6c474) => (
                 <Chip
                   key={v_b6c474.id}
-                  label={v_b6c474.label}
+                  label={v_8d41d7(v_b6c474.labelKey, { defaultValue: v_b6c474.label })}
                   active={v_d5ec97 === v_b6c474.label}
                   onPress={() => v_977c36(v_b6c474.label)}
                 />
@@ -278,17 +311,26 @@ export default function v_601c02({
               <TextInput
                 value={v_96e1fc}
                 onChangeText={v_ffde7a}
-                placeholder="예: 우주비행사, 통번역가, 프리랜서 작가"
+                placeholder={v_8d41d7("callEntry.q3.otherPlaceholder", {
+                  defaultValue: "예: 우주비행사, 통번역가, 프리랜서 작가",
+                })}
                 placeholderTextColor={v_1bfbd0.zinc400}
                 style={v_fd5f43.textInputShort}
                 onFocus={(v_9e86fd) => v_de7f2d(v_efd272(v_9e86fd.target as unknown as number))}
               />
             ) : null}
-            <Text style={v_fd5f43.subLabel}>{`${v_1833e7}님이 정확하게 어떤 일을 했는지 적어주세요.`}</Text>
+            <Text style={v_fd5f43.subLabel}>
+              {v_8d41d7("callEntry.q3.detailLabel", {
+                name: v_1833e7,
+                defaultValue: `${v_1833e7}님이 정확하게 어떤 일을 했는지 적어주세요.`,
+              })}
+            </Text>
             <TextInput
               value={v_cdce7c}
               onChangeText={v_eb1148}
-              placeholder="예: 응급의학과 의사, 초등학교 담임선생님, 게임 백엔드 개발자"
+              placeholder={v_8d41d7("callEntry.q3.detailPlaceholder", {
+                defaultValue: "예: 응급의학과 의사, 초등학교 담임선생님, 게임 백엔드 개발자",
+              })}
               placeholderTextColor={v_1bfbd0.zinc400}
               multiline
               style={v_fd5f43.textInput}
@@ -307,7 +349,7 @@ export default function v_601c02({
             {v_35bf26 ? (
               <ActivityIndicator color={v_1bfbd0.white} />
             ) : (
-              <Text style={v_fd5f43.saveBtnText}>완료</Text>
+              <Text style={v_fd5f43.saveBtnText}>{v_8d41d7("callEntry.complete", { defaultValue: "완료" })}</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -316,7 +358,12 @@ export default function v_601c02({
         <Modal visible={v_d5f375} transparent animationType="fade" onRequestClose={() => v_9b4aaf(false)}>
           <View style={v_fd5f43.modalBackdrop}>
             <View style={v_fd5f43.modalCard}>
-              <Text style={v_fd5f43.modalTitle}>{`${v_1833e7}님과 대화할 준비가 완료되었어요!`}</Text>
+              <Text style={v_fd5f43.modalTitle}>
+                {v_8d41d7("callEntry.doneTitle", {
+                  name: v_1833e7,
+                  defaultValue: `${v_1833e7}님과 대화할 준비가 완료되었어요!`,
+                })}
+              </Text>
               <View style={v_fd5f43.modalButtons}>
                 <TouchableOpacity
                   style={[v_fd5f43.modalBtn, v_fd5f43.modalBtnGhost]}
@@ -325,7 +372,9 @@ export default function v_601c02({
                     v_6d2805();
                   }}
                 >
-                  <Text style={v_fd5f43.modalBtnGhostText}>더 학습하기</Text>
+                  <Text style={v_fd5f43.modalBtnGhostText}>
+                    {v_8d41d7("callEntry.learnMore", { defaultValue: "더 학습하기" })}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[v_fd5f43.modalBtn, v_fd5f43.modalBtnPrimary]}
@@ -335,7 +384,12 @@ export default function v_601c02({
                     setTimeout(v_1bb83e, 250);
                   }}
                 >
-                  <Text style={v_fd5f43.modalBtnPrimaryText}>{`${v_1833e7}님과 통화하기`}</Text>
+                  <Text style={v_fd5f43.modalBtnPrimaryText}>
+                    {v_8d41d7("callEntry.startCall", {
+                      name: v_1833e7,
+                      defaultValue: `${v_1833e7}님과 통화하기`,
+                    })}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>

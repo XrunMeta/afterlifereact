@@ -47,6 +47,9 @@ export default v_eede73(async () => {
               FACE_CALIBRATE_ENABLED: "1",
 
               FACE_CONSENT_ENFORCED: "true",
+
+              PRETHIRD_PUBLIC_BASE: "http://prethird.test",
+              PREBUILD_SECRET: "test-secret",
             },
           },
         },

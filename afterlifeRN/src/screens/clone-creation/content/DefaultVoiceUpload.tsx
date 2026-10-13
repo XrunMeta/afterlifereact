@@ -18,7 +18,8 @@ import { v_772971 } from "jmpfvteuuztnp";
 import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_c2a674 } from "../../../types/clone";
 import { v_1bfbd0, v_8b0c90 } from "../../../components/constants";
-import { v_3ee8c0, v_ab4719, type v_d80981 } from "../../../api/clones";
+import { v_3ee8c0, v_ab4719, v_8aa90d, type v_d80981 } from "../../../api/clones";
+import { v_17fa33, v_7218f6, v_d76390 } from "./analyzeReason";
 import { v_7d2692 } from "../../../api/files";
 import { v_1ed7d9 } from "../../../stores/authStore";
 import { v_d7b329 } from "../../../lib/voicePresetName";
@@ -201,6 +202,25 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
         mimeType: v_38d084.mimeType,
         fileName: v_38d084.fileName,
       });
+
+      v_0bda1d(true);
+      let v_1b0e1d;
+      try {
+        v_1b0e1d = await v_8aa90d(v_2ca7e0, { src_file_id: v_57ac81.id });
+      } catch (v_9e86fd) {
+        console.warn(`[DefaultVoice] ${v_35f85c} analyze failed:`, v_9e86fd);
+        v_889fad(v_8d41d7(v_7218f6), v_8d41d7(v_17fa33("ANALYZE_FAILED")));
+        v_2941d3((v_ba2215) => ({ ...v_ba2215, [v_35f85c]: true }));
+        return; 
+      } finally {
+        v_0bda1d(false);
+      }
+      if (!v_1b0e1d.ok) {
+        v_889fad(v_8d41d7(v_7218f6), v_8d41d7(v_17fa33(v_1b0e1d.reason)));
+        v_2941d3((v_ba2215) => ({ ...v_ba2215, [v_35f85c]: true }));
+        return; 
+      }
+
       const v_94abbb = await v_ab4719(v_2ca7e0, {
         kind: "voice_clone",
         src_file_id: v_57ac81.id,
@@ -228,6 +248,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const [v_fd3c7b, v_4fbeaf] = v_5ab095(false);
   const [v_0c0b03, v_c98f46] = v_5ab095<string | null>(null);
   const [v_11c383, v_bbded0] = v_5ab095(false);
+  const [v_19d839, v_0bda1d] = v_5ab095(false);
 
   const [v_addcfe, v_523782] = v_5ab095<number | null>(null);
 
@@ -641,7 +662,9 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
             <View style={v_d81136.recordedRow}>
               <ActivityIndicator size="small" color={v_1bfbd0.violet600} />
               <Text style={v_d81136.recordedText}>
-                {v_8d41d7("create.voice.uploading", { defaultValue: "업로드 중..." })}
+                {v_19d839
+                  ? v_8d41d7(v_d76390, { defaultValue: "음성 분석 중..." })
+                  : v_8d41d7("create.voice.uploading", { defaultValue: "업로드 중..." })}
               </Text>
             </View>
           )}
@@ -693,7 +716,9 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
             )}
             <Text style={v_d81136.uploadText}>
               {v_11c383
-                ? v_8d41d7("create.voice.uploading", { defaultValue: "업로드 중..." })
+                ? v_19d839
+                  ? v_8d41d7(v_d76390, { defaultValue: "음성 분석 중..." })
+                  : v_8d41d7("create.voice.uploading", { defaultValue: "업로드 중..." })
                 : v_f04727.voiceFile
                 ? v_8d41d7("create.voice.pickAnother", { defaultValue: "다른 파일 선택" })
                 : v_8d41d7("create.voice.pickFile", { defaultValue: "음성 파일 선택" })}

@@ -196,7 +196,72 @@
     "topupSectionDesc": "可与订阅独立地追加通话时间。有效期 5 年。",
     "topupLoadFailed": "无法加载充值商品。",
     "androidNotReady": "Android 支付准备中。请先使用 iOS。",
-    "termsFooter": "自动续订订阅在取消前每个周期都会扣款。\n取消：设置 → Apple ID → 订阅 → afterlife"
+    "termsFooter": "自动续订订阅在取消前每个周期都会扣款。\n取消：设置 → Apple ID → 订阅 → afterlife",
+    "bucketGift": "礼物",
+    "giftCount": "{{count}}个",
+    "giftRedeemTitle": "兑换收到的礼物",
+    "giftRedeemDesc": "在XRUN应用中观看广告,将收到的花兑换为通话用的花。",
+    "flowerSectionTitle": "购买花",
+    "flowerSectionDesc": "仅用于送礼 · 购买后可在通话中使用。",
+    "subLoadHintAndroid": "请确认Play商店账号已登录后再试一次。",
+    "currentPlanBadge": "当前使用的套餐",
+    "recommendedBadge": "推荐套餐",
+    "autoAssigned": "注册时自动赠送",
+    "monthlyBilling": "每月自动扣费",
+    "upgrade": "升级",
+    "termsFooterAndroid": "自动续订订阅在取消前每个周期自动扣款。\n取消: Play商店 → 订阅 → afterlife",
+    "swapConfirmTitle": "兑换确认",
+    "swapConfirmDesc": "将 {{count}} 个 {{name}} 兑换为 {{amount}} 吗?",
+    "swap": "兑换",
+    "swapCompleteTitle": "兑换完成 🎉",
+    "swapCompleteDesc": "{{amount}} 已充入您的钱包。",
+    "swapFailedTitle": "兑换失败",
+    "swapFailedDefault": "请稍后再试。",
+    "freeTitle": "Go (Free)",
+    "freeDesc": "注册时自动赠送",
+    "freePrice": "免费",
+    "freeTagline": "注册时自动提供",
+    "lightTagline": "无广告使用",
+    "lightTitle": "RUN",
+    "lightDesc": "无广告使用",
+    "monsterTagline": "无广告使用",
+    "monsterTitle": "Monster",
+    "monsterDesc": "无广告使用",
+    "planFree": {
+      "watchAds": "观看广告后使用服务",
+      "midAds": "服务中间插入广告",
+      "clone1": "创建1个克隆",
+      "cloneQuota5": "克隆创建/删除共5次",
+      "callMinutes50": "每月50分钟通话"
+    },
+    "planLight": {
+      "clone2": "创建2个克隆",
+      "cloneQuota10": "克隆创建/删除共10次",
+      "callMinutes120": "每月120分钟通话",
+      "flowers2": "赠送2朵花 (送礼用)"
+    },
+    "planMonster": {
+      "cloneUnlimited": "克隆创建无限",
+      "cloneQuotaUnlimited": "克隆创建/删除无限",
+      "callMinutes1000": "每月1000分钟通话",
+      "flowers10": "赠送10朵花 (送礼用)"
+    },
+    "flowerPack": {
+      "p1Title": "1朵花",
+      "p1Desc": "可送礼1次",
+      "p5Title": "5朵花",
+      "p5Desc": "可送礼5次",
+      "p10Title": "10朵花",
+      "p10Desc": "可送礼10次"
+    },
+    "rechargeTitle30": "Recharge 30min",
+    "rechargeTitle60": "Recharge 60min",
+    "rechargeTitle150": "Recharge 150min",
+    "rechargeTitle300": "Recharge 300min",
+    "rechargeDesc30": "充值30分钟 · 有效期5年",
+    "rechargeDesc60": "充值60分钟 · 有效期5年",
+    "rechargeDesc150": "充值150分钟 · 有效期5年",
+    "rechargeDesc300": "充值300分钟 · 有效期5年"
   },
   "chat": {
     "personaFallback": "克隆",
@@ -536,7 +601,48 @@
       "purchaseDesc": "月度订阅 · 充值以延长通话时间",
       "giftInventory": "礼物钱包",
       "giftInventoryDesc": "将收到的礼物兑换为 XRUN 积分",
-      "logout": "退出登录"
+      "logout": "退出登录",
+      "flower": "鲜花礼物",
+      "pangleTest": "Pangle广告测试",
+      "pangleTestDesc": "立即展示奖励广告 (开发用)",
+      "animPersona": "创建动画角色",
+      "animPersonaDesc": "照片 → 眨眼·头部·身体动作idle · 生成约3分钟",
+      "experimentalPersona": "实验角色创建 (测试版)",
+      "experimentalPersonaDesc": "自然的脸部 · 响应延迟5~10秒",
+      "visemePersona": "分离播放角色创建 (实验)",
+      "visemePersonaDesc": "TTS + 预渲染viseme片段同步",
+      "threeDPersona": "3D角色创建 (测试版)",
+      "threeDPersonaDesc": "Avatar SDK 3D脸部 · 需要单独设置GLB URL",
+      "visemeTest": "Viseme管线测试 (dev)",
+      "visemeTestDesc": "合成+播放 · 需要预渲染图像",
+      "vitsTts": "VITS TTS · AFL-737 (dev)",
+      "vitsTtsDesc": "sherpa-onnx · 模型缓存 · 1秒目标测量",
+      "faceThreshold": "面部阈值测试 (dev)",
+      "faceThresholdDesc": "上传图像 → 查看匹配分数",
+      "threeDLab": "3D生成测试 (dev)",
+      "threeDLabDesc": "照片 → mesh + 5角度渲染 · 5~30秒",
+      "threeDPersonaDev": "3D角色 (dev)",
+      "threeDPersonaDevDesc": "GLB头部渲染 + 唇形同步演示 · Phase 1",
+      "faceEnrollDev": "面部5角度登记 (dev)",
+      "faceEnrollDevDesc": "正面·左·右·上·下拍摄 → 克隆首次通话准备"
+    },
+    "logout": {
+      "title": "要退出登录吗?",
+      "desc": "下次使用时需要重新登录。",
+      "confirm": "退出登录"
+    },
+    "pangleTest": {
+      "title": "Pangle测试",
+      "okMessage": "广告正常结束。",
+      "failTitle": "Pangle测试失败"
+    },
+    "navError": {
+      "title": "错误",
+      "personaNavFail": "无法跳转到角色创建页面"
+    },
+    "faceEnrollDev": {
+      "noneTitle": "没有角色",
+      "noneDesc": "请先创建角色。"
     }
   },
   "auth": {
@@ -850,6 +956,12 @@
       "notAudioTitle": "不是音频文件",
       "notAudioMsg": "只能注册音频文件。请选择 mp3、m4a、wav 等语音文件。",
       "notAudioEmpty": "文件为空。请选择其他文件。",
+      "analyzing": "正在分析您的声音…",
+      "analyzeFailTitle": "需要确认声音",
+      "analyzeFailTooShort": "录音太短了。请至少说满15秒。",
+      "analyzeFailNoPause": "请在句子之间稍作停顿，并在安静的环境中清晰地说话。",
+      "analyzeFailNoVoice": "无法识别您的声音。请在安静的环境中重新清晰录制。",
+      "analyzeFailGeneric": "无法确认您的声音。请稍后再试。",
       "registerFailed": "录音文件注册失败。",
       "registerFailedFile": "语音文件注册失败。",
       "registerRetry": "重新注册",
@@ -1535,5 +1647,186 @@
       "secretHobby": "{name} 是否有一个与其性格完全不符、却在暗中喜爱或关注的反差爱好？",
       "lastWords": "结束一天的日常后,{name} 独自安静时最有代表性的自言自语是什么？"
     }
+  },
+  "errorBoundary": {
+    "title": "无法显示页面",
+    "body": "请稍后再试。"
+  },
+  "relation": {
+    "category": {
+      "family": "家人",
+      "friend": "朋友",
+      "romance": "恋人",
+      "workplace": "职场",
+      "celebrity": "名人"
+    },
+    "subtype": {
+      "family": {
+        "father": "爸爸",
+        "mother": "妈妈",
+        "grandfather": "爷爷",
+        "grandmother": "奶奶",
+        "maternal_grandfather": "外公",
+        "maternal_grandmother": "外婆",
+        "older_brother_male": "哥哥",
+        "older_brother_female": "哥哥",
+        "older_sister_male": "姐姐",
+        "older_sister_female": "姐姐",
+        "younger_sibling": "弟弟妹妹",
+        "paternal_uncle": "叔叔",
+        "maternal_aunt": "阿姨",
+        "paternal_aunt": "姑姑",
+        "maternal_uncle_husband": "姨夫",
+        "paternal_aunt_husband": "姑父",
+        "cousin": "表亲",
+        "other": "其他"
+      },
+      "friend": {
+        "best_friend": "挚友/闺蜜",
+        "childhood_friend": "青梅竹马",
+        "school_friend": "学生时代同学",
+        "college_friend": "大学同学",
+        "neighbor_friend": "邻居朋友",
+        "other": "其他"
+      },
+      "romance": {
+        "husband": "丈夫",
+        "wife": "妻子",
+        "boyfriend": "男朋友",
+        "girlfriend": "女朋友",
+        "crush_mutual": "暧昧对象",
+        "unrequited_love": "暗恋对象",
+        "other": "其他"
+      },
+      "workplace": {
+        "boss": "上司/组长",
+        "mentor": "导师",
+        "senior": "前辈",
+        "peer": "同期入职",
+        "junior": "后辈/下属",
+        "business_partner": "商业伙伴",
+        "other": "其他"
+      },
+      "celebrity": {
+        "actor": "演员",
+        "singer": "歌手/偶像",
+        "youtuber": "YouTube博主/网红",
+        "streamer": "主播",
+        "athlete": "运动员",
+        "webtoon_artist": "漫画作者",
+        "other": "其他"
+      }
+    }
+  },
+  "speechForm": {
+    "informal": "非敬语",
+    "formal": "敬语"
+  },
+  "occupation": {
+    "doctor": "医生",
+    "teacher": "教师/教授",
+    "developer": "开发者",
+    "lawyer": "律师",
+    "public_servant": "公务员",
+    "entertainer": "艺人",
+    "creator": "创作者/网红",
+    "officer": "警察/消防员",
+    "journalist": "记者/主持人",
+    "chef": "厨师",
+    "other": "其他"
+  },
+  "faceEnroll": {
+    "permissionRequired": "需要摄像头权限。",
+    "permissionSkip": "跳过登记直接通话",
+    "cameraLoading": "准备摄像头中...",
+    "title": "面部登记",
+    "subtitleMidCall": "登记新面孔并恢复通话。",
+    "subtitleFirst": "为了与 {{name}} 自然对话,我们会按角度和距离采集您的面部。",
+    "personaFallback": "角色",
+    "form": {
+      "title": "这位是谁?",
+      "desc": "告诉我们姓名和关系,下次通话时就能认出来。",
+      "existingLabel": "已登记的人 (从中选择会追加学习)",
+      "existingHint": "如果是新的人,请在下方直接输入姓名",
+      "nameLabel": "姓名",
+      "namePlaceholder": "例: 智浩",
+      "relationLabel": "关系 (可选)",
+      "relationPlaceholder": "例: 孙辈, 多年老友",
+      "needLogin": "没有登录信息。请重试。",
+      "needCapture": "请先完成面部拍摄。",
+      "needName": "请输入姓名。",
+      "networkError": "网络错误"
+    },
+    "processing": "面部登记中...",
+    "hintStart": "请让面部清晰地出现在摄像头中",
+    "register": "登记",
+    "skipMidCall": "不登记并恢复通话",
+    "skipFirst": "稍后登记 (现在通话)",
+    "privacyNote": "拍摄的照片不会存储在服务器。只会安全保存用于面部识别的数值特征(向量)。",
+    "skipConfirm": {
+      "title": "不登记直接继续",
+      "desc": "面部识别和记忆功能可能受限。继续吗?",
+      "cancel": "取消",
+      "continue": "继续"
+    },
+    "cloneError": {
+      "title": "角色信息错误",
+      "desc": "进入了无效的角色。请重试。",
+      "ok": "确认"
+    },
+    "complete": {
+      "title": "登记完成",
+      "midCall": "面部登记完成! 恢复通话。",
+      "first": "面部识别准备就绪。开始通话。",
+      "start": "开始通话"
+    },
+    "defaultSelfName": "我",
+    "step": {
+      "perfect": "完美!",
+      "frontLabel": "正面",
+      "frontHint": "请正面看向摄像头",
+      "frontDontTurn": "不要左右转头",
+      "frontLowerAngle": "请降低头部角度",
+      "leftLabel": "左",
+      "leftHint": "请把头转向左边",
+      "leftGuide": "再向左一点 ({{deg}}°/18°)",
+      "rightLabel": "右",
+      "rightHint": "请把头转向右边",
+      "rightGuide": "再向右一点 ({{deg}}°/-18°)",
+      "downLabel": "下",
+      "downHint": "请把头向下低",
+      "downGuide": "再向下一点 ({{deg}}°/-10°)",
+      "upLabel": "上",
+      "upHint": "请把头向上抬",
+      "upGuide": "再向上一点 ({{deg}}°/10°)"
+    }
+  },
+  "callEntry": {
+    "cancel": "取消",
+    "prepTitle": "与 {{name}} 对话准备",
+    "q1": {
+      "title": "您与 {{name}} 是什么关系?",
+      "subLabel": "具体关系",
+      "otherPlaceholder": "例: 师傅, 邻居, 恩人",
+      "episodeLabel": "请简短讲述您与 {{name}} 的一段故事。",
+      "episodePlaceholder": "例: 每周末一起登山的朋友, 艰难时期陪我加班的师父",
+      "addressLabel": "{{name}} 怎样称呼您?",
+      "addressPlaceholder": "例: 恩熙啊, 儿子, 喂, 智浩先生"
+    },
+    "q2": {
+      "title": "您与 {{name}} 之间使用什么样的话语方式?"
+    },
+    "q3": {
+      "title": "{{name}} 的职业是什么?",
+      "otherPlaceholder": "例: 宇航员, 翻译, 自由撰稿人",
+      "detailLabel": "请具体写下 {{name}} 做什么工作。",
+      "detailPlaceholder": "例: 急诊医生, 小学班主任, 游戏后端开发者"
+    },
+    "saveFailedTitle": "保存失败",
+    "saveFailedDesc": "因网络错误保存失败。请重试。",
+    "complete": "完成",
+    "doneTitle": "与 {{name}} 对话的准备已完成!",
+    "learnMore": "继续学习",
+    "startCall": "与 {{name}} 通话"
   }
 }

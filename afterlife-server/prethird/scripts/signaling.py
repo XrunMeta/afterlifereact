@@ -9,6 +9,7 @@ from clone_dialog.persona_prompt import sanitize_display_name as _persona_saniti
 from asset_fetch import fetch_to
 from voice_fetch import ensure_voice_wav
 from prebuild import prebuild_handler
+from voice_analyze import voice_analyze_handler
 from recorder import make_recorder
 from idle_policy import clone_mp4_enabled, filler_order_pre_speak
 from json import dumps as _json_dumps
@@ -1691,6 +1692,7 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     app.router.add_get("/healthz", healthz)
     app.router.add_post("/offer", offer)
     app.router.add_post("/prebuild", prebuild_handler)
+    app.router.add_post("/voice-analyze", voice_analyze_handler)
     app.router.add_static("/static/", path=str(
         pathlib.Path(__file__).resolve().parents[1] / "static"))
 
