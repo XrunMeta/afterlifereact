@@ -1,9 +1,17 @@
+import io
+import os
 import pathlib
 import sys
+import urllib.error
+
+import pytest
+from aiohttp import web
+from aiohttp.test_utils import TestClient, TestServer
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
 
 import voice_analyze as va
+from voice_analyze import voice_analyze_handler
 
 
 # --- _pick_end_reason (순수 쉼 판정) ---
@@ -70,11 +78,7 @@ def test_constants_match_make_prompt_ref_spec():
 
 
 # --- /voice-analyze 핸들러 ---
-import pytest
-from aiohttp.test_utils import TestClient, TestServer
 
-from aiohttp import web
-from voice_analyze import voice_analyze_handler
 
 
 def _make_test_app():
@@ -137,3 +141,61 @@ async def test_handler_500_on_analyze_error(monkeypatch, _secret):
             json={"voiceRawUrl": "http://x/y"},
         )
         assert resp.status == 500
+
+
+# --- _speech_start ---
+def test_speech_start_leading_silence():
+    assert va._speech_start([0.0], [1.2]) == 1.2
+    assert va._speech_start([0.29], [0.9]) == 0.9
+
+
+def test_speech_start_no_leading_silence():
+    assert va._speech_start([0.3], [0.9]) == 0.0
+    assert va._speech_start([], []) == 0.0
+    assert va._speech_start([0.0], []) == 0.0
+
+
+# --- analyze 정리 ---
+@pytest.mark.asyncio
+async def test_analyze_cleans_tmpdir_on_error(monkeypatch):
+    import tempfile
+    captured = {}
+    real = tempfile.mkdtemp
+
+    def _spy(*a, **k):
+        captured["d"] = real(*a, **k)
+        return captured["d"]
+
+    async def _boom(url, dest):
+        open(dest, "w").write("x")
+        raise RuntimeError("fetch failed")
+
+    monkeypatch.setattr(tempfile, "mkdtemp", _spy)
+    monkeypatch.setattr(va.voice_fetch, "fetch_to", _boom)
+    with pytest.raises(RuntimeError):
+        await va.analyze("http://x/y")
+    assert "d" in captured and not os.path.exists(captured["d"])
+
+
+# --- _transcribe 분기 ---
+def test_transcribe_422_returns_none(monkeypatch):
+    def _raise(req, timeout=None):
+        raise urllib.error.HTTPError("u", 422, "unprocessable", {}, io.BytesIO(b""))
+    monkeypatch.setattr(va.urllib.request, "urlopen", _raise)
+    assert va._transcribe("/tmp/x.wav") is None
+
+
+def test_transcribe_5xx_propagates(monkeypatch):
+    def _raise(req, timeout=None):
+        raise urllib.error.HTTPError("u", 503, "down", {}, io.BytesIO(b""))
+    monkeypatch.setattr(va.urllib.request, "urlopen", _raise)
+    with pytest.raises(urllib.error.HTTPError):
+        va._transcribe("/tmp/x.wav")
+
+
+def test_transcribe_urlerror_propagates(monkeypatch):
+    def _raise(req, timeout=None):
+        raise urllib.error.URLError("refused")
+    monkeypatch.setattr(va.urllib.request, "urlopen", _raise)
+    with pytest.raises(urllib.error.URLError):
+        va._transcribe("/tmp/x.wav")
