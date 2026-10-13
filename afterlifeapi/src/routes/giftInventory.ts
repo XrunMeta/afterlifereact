@@ -181,7 +181,7 @@ v_0bc486.get("/inventory", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ items: v_4622b9 });
 });
 
-v_0bc486.get("/received-log", v_6690d9, async (v_3f4e2e) => {
+v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
@@ -192,10 +192,11 @@ v_0bc486.get("/received-log", v_6690d9, async (v_3f4e2e) => {
   const v_18b8bf = await v_3f4e2e.env.DB
     .prepare(
       `SELECT e.id                        AS id,
-              e.counterpart_user_id       AS senderId,
-              us.email                    AS senderEmail,
-              us.name                     AS senderName,
-              us.avatar_url               AS senderAvatarUrl,
+              e.kind                      AS kind,
+              e.counterpart_user_id       AS counterpartId,
+              cp.email                    AS counterpartEmail,
+              cp.name                     AS counterpartName,
+              cp.avatar_url               AS counterpartAvatarUrl,
               e.clone_id                  AS cloneId,
               c.name                      AS cloneName,
               c.username                  AS cloneUsername,
@@ -204,22 +205,24 @@ v_0bc486.get("/received-log", v_6690d9, async (v_3f4e2e) => {
               e.gift_name_snapshot        AS giftNameSnap,
               e.gift_emoji_snapshot       AS giftEmojiSnap,
               e.gift_image_url_snapshot   AS giftImageUrlSnap,
+              e.count                     AS count,
               e.xrun_amount               AS xrunAmount,
               e.created_at                AS createdAtSec
          FROM gift_inventory_events e
-         LEFT JOIN users  us ON us.id = e.counterpart_user_id
+         LEFT JOIN users  cp ON cp.id = e.counterpart_user_id
          LEFT JOIN clones c  ON c.id  = e.clone_id
-        WHERE e.user_id = ? AND e.kind IN ('received', 'ad_reward')
+        WHERE e.user_id = ? AND e.kind IN ('received', 'ad_reward', 'sent', 'exchanged')
         ORDER BY e.created_at DESC
         LIMIT ? OFFSET ?`,
     )
     .bind(v_43e90c, v_02be30, v_3bbadf)
     .all<{
       id: number;
-      senderId: number | null;
-      senderEmail: string | null;
-      senderName: string | null;
-      senderAvatarUrl: string | null;
+      kind: string;
+      counterpartId: number | null;
+      counterpartEmail: string | null;
+      counterpartName: string | null;
+      counterpartAvatarUrl: string | null;
       cloneId: number | null;
       cloneName: string | null;
       cloneUsername: string | null;
@@ -228,6 +231,7 @@ v_0bc486.get("/received-log", v_6690d9, async (v_3f4e2e) => {
       giftNameSnap: string | null;
       giftEmojiSnap: string | null;
       giftImageUrlSnap: string | null;
+      count: number;
       xrunAmount: number;
       createdAtSec: number;
     }>();
@@ -235,41 +239,55 @@ v_0bc486.get("/received-log", v_6690d9, async (v_3f4e2e) => {
   const v_679404 = await v_3f4e2e.env.DB
     .prepare(
       `SELECT COUNT(*) AS n FROM gift_inventory_events
-        WHERE user_id = ? AND kind IN ('received', 'ad_reward')`,
+        WHERE user_id = ? AND kind IN ('received', 'ad_reward', 'sent', 'exchanged')`,
     )
     .bind(v_43e90c)
     .first<{ n: number }>();
+
+  const v_9ba17d = await v_3f4e2e.env.DB
+    .prepare(`SELECT COALESCE(SUM(total_received), 0) AS totalReceived FROM user_gift_inventory WHERE user_id = ?`)
+    .bind(v_43e90c)
+    .first<{ totalReceived: number }>();
+
+  const v_b5069d = await v_3f4e2e.env.DB
+    .prepare(`SELECT COALESCE(SUM(count), 0) AS currentOwned FROM user_gift_inventory WHERE user_id = ?`)
+    .bind(v_43e90c)
+    .first<{ currentOwned: number }>();
 
   const v_dbebe7 = await v_0edc13(v_3f4e2e.env);
   const v_6413c7 = new Map(v_dbebe7.map((v_206b88) => [v_206b88.id, v_206b88]));
 
   const v_4622b9 = (v_18b8bf.results ?? []).map((v_cb35cb) => {
     const v_ab4c96 = v_6413c7.get(v_cb35cb.giftId);
-    const v_dcbe7a = v_cb35cb.giftNameSnap ?? v_ab4c96?.name ?? v_cb35cb.giftId;
-    const v_491b90 = v_cb35cb.giftEmojiSnap ?? v_ab4c96?.emoji ?? "🎁";
-    const v_c14742 = v_cb35cb.giftImageUrlSnap ?? v_ab4c96?.imageUrl ?? null;
-
-    const v_b3a6f2 = new Date(v_cb35cb.createdAtSec * 1000).toISOString();
     return {
       id: v_cb35cb.id,
-      senderId: v_cb35cb.senderId,
-      senderEmail: v_cb35cb.senderEmail,
-      senderName: v_cb35cb.senderName,
-      senderAvatarUrl: v_cb35cb.senderAvatarUrl,
+      kind: v_cb35cb.kind, 
+      counterpartId: v_cb35cb.counterpartId,
+      counterpartEmail: v_cb35cb.counterpartEmail,
+      counterpartName: v_cb35cb.counterpartName,
+      counterpartAvatarUrl: v_cb35cb.counterpartAvatarUrl,
       cloneId: v_cb35cb.cloneId,
       cloneName: v_cb35cb.cloneName,
       cloneUsername: v_cb35cb.cloneUsername,
       cloneAvatarUrl: v_cb35cb.cloneAvatarUrl,
       giftId: v_cb35cb.giftId,
-      giftName: v_dcbe7a,
-      giftEmoji: v_491b90,
-      giftImageUrl: v_c14742,
+      giftName: v_cb35cb.giftNameSnap ?? v_ab4c96?.name ?? v_cb35cb.giftId,
+      giftEmoji: v_cb35cb.giftEmojiSnap ?? v_ab4c96?.emoji ?? "🎁",
+      giftImageUrl: v_cb35cb.giftImageUrlSnap ?? v_ab4c96?.imageUrl ?? null,
+      count: v_cb35cb.count,
       xrunAmount: v_cb35cb.xrunAmount,
-      createdAt: v_b3a6f2,
+      createdAt: new Date(v_cb35cb.createdAtSec * 1000).toISOString(),
     };
   });
 
-  return v_3f4e2e.json({ items: v_4622b9, total: v_679404?.n ?? 0, limit: v_02be30, offset: v_3bbadf });
+  return v_3f4e2e.json({
+    items: v_4622b9,
+    total: v_679404?.n ?? 0,
+    totalReceived: v_9ba17d?.totalReceived ?? 0,
+    currentOwned: v_b5069d?.currentOwned ?? 0,
+    limit: v_02be30,
+    offset: v_3bbadf,
+  });
 });
 
 const v_d092c0 = v_1f4ea7.object({
