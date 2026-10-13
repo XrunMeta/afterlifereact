@@ -50,9 +50,9 @@ export default function v_805cd1({ value: v_3b402b, onChange: v_b187d9 }: Props)
     v_37e2fc && v_b6f6e4
       ? v_b6f6e4
       : v_e2299a === 'taken'
-        ? '이미 사용중인 아이디예요. 다른 아이디를 입력해주세요.'
+        ? v_8d41d7('create.username.taken', { defaultValue: '이미 사용중인 아이디예요. 다른 아이디를 입력해주세요.' })
         : v_e2299a === 'reserved'
-          ? '예약된 아이디입니다. 다른 아이디를 입력해주세요.'
+          ? v_8d41d7('create.username.reserved', { defaultValue: '예약된 아이디입니다. 다른 아이디를 입력해주세요.' })
           : undefined;
 
   return (
@@ -67,10 +67,10 @@ export default function v_805cd1({ value: v_3b402b, onChange: v_b187d9 }: Props)
         errorText={v_74dc8b}
       />
       {!v_74dc8b && v_e2299a === 'checking' ? (
-        <Text style={v_d81136.hint}>아이디 확인 중…</Text>
+        <Text style={v_d81136.hint}>{v_8d41d7('create.username.checking', { defaultValue: '아이디 확인 중…' })}</Text>
       ) : null}
       {!v_74dc8b && v_e2299a === 'available' ? (
-        <Text style={v_d81136.ok}>사용할 수 있는 아이디예요.</Text>
+        <Text style={v_d81136.ok}>{v_8d41d7('create.username.available', { defaultValue: '사용할 수 있는 아이디예요.' })}</Text>
       ) : null}
     </>
   );

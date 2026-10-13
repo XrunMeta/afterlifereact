@@ -71,7 +71,13 @@
       "blockFailed": "Gagal memblokir",
       "commentReported": "Komentar telah dilaporkan",
       "reportFailed": "Gagal melaporkan",
-      "reportSuccessBlocked": "Laporan telah diterima. Klon ini telah diblokir"
+      "reportSuccessBlocked": "Laporan telah diterima. Klon ini telah diblokir",
+      "userBlocked": "Pengguna diblokir",
+      "blockUserFailed": "Gagal memblokir pengguna"
+    },
+    "actions": {
+      "block": "Blokir",
+      "report": "Laporkan"
     }
   },
   "notifications": {
@@ -316,7 +322,50 @@
     "bgWarnTitle": "📞 Panggilan bisa terputus",
     "bgWarnBody": "Biarkan aplikasi tetap terbuka agar panggilan berlanjut. Kembali ke aplikasi.",
     "fgTitle": "📞 Dalam panggilan",
-    "fgBody": "Sedang menelepon dengan {{name}}"
+    "fgBody": "Sedang menelepon dengan {{name}}",
+    "channelName": "Panggilan",
+    "rememberMe": {
+      "label": "Remember Me",
+      "title": "Remember Me!",
+      "sub": "Beri tahu nama Anda",
+      "sheetTitle": "Siapakah orang ini?",
+      "sheetDesc": "Beri tahu saya, saya akan mengingatnya mulai panggilan berikutnya.",
+      "nameLabel": "Nama",
+      "namePlaceholder": "mis. Jiho",
+      "relationLabel": "Hubungan",
+      "relationPlaceholder": "mis. cucu, teman lama",
+      "later": "Nanti"
+    },
+    "rmEnrollFail": "Gagal mendaftar. Silakan coba lagi.",
+    "newFaceTitle": "Wajah baru terdeteksi",
+    "newFaceBody": "Daftarkan wajah ini?",
+    "newFaceLater": "Nanti",
+    "newFaceSelf": "Ini saya",
+    "newFaceEnroll": "Daftar",
+    "afl971PreMessage": "{userName}, aku pergi memetik bunga dulu! Tonton videonya, aku segera kembali",
+    "afl971PostMessage": "Terima kasih sudah menunggu! Ini hadiah bunganya",
+    "afl971FlowerToast": "Anda menerima bunga dari {cloneName}",
+    "giftSendFailFallback": "Gagal mengirim hadiah",
+    "devTextPlaceholder": "[DEV] Bicara via teks",
+    "devSend": "Kirim",
+    "devFaceLabel": "Wajah",
+    "thinking": "Memproses…",
+    "endCallA11yReady": "Akhiri panggilan (Anda bisa bicara sekarang)",
+    "endCallA11y": "Akhiri panggilan",
+    "endCallA11yHint": "Anda bisa bicara sekarang. Menekan tombol ini akan mengakhiri panggilan.",
+    "giftEmptyTitle": "Anda tidak punya bunga",
+    "giftEmptyBody": "Pergi membeli bunga?",
+    "giftEmptyBuy": "Beli",
+    "giftOwnedCount": "{{count}} dimiliki",
+    "exiting": "Mengakhiri…",
+    "adPlaying": "Iklan sedang diputar…",
+    "adStubNote": "(Stub pengembangan · pengganti iklan asli)"
+  },
+  "greeting": {
+    "default": "Halo"
+  },
+  "persona": {
+    "emptyPrompt": "(Informasi klon kosong)"
   },
   "feed": {
     "homeTitle": "Beranda",
@@ -443,7 +492,13 @@
     "l2SectionTitle": "Memori Mendalam (L2) — Pembelajaran Otomatis",
     "l2MemoryCount": "{{n}} memori telah terkumpul.",
     "l2LastUpdated": "Pembaruan terakhir: {{date}}",
-    "l2Hint": "L2 tidak dapat diedit langsung, dan akan dilatih ulang secara otomatis melalui percakapan dan interaksi."
+    "l2Hint": "L2 tidak dapat diedit langsung, dan akan dilatih ulang secara otomatis melalui percakapan dan interaksi.",
+    "currentVoiceLabel": "Suara saat ini",
+    "currentVoiceRecorded": "🎙 Suara rekaman sendiri (diatur saat membuat persona)",
+    "currentVoiceCatalog": "🎵 Suara katalog",
+    "currentVoiceHint": "Pilih suara lain di bawah dan panggilan akan diputar dengan suara itu.",
+    "voiceStop": "■ Berhenti",
+    "voicePreview": "▶ Pratinjau"
   },
   "dashboard": {
     "title": "My Page",
@@ -643,6 +698,11 @@
     "faceEnrollDev": {
       "noneTitle": "Belum ada persona",
       "noneDesc": "Buat persona terlebih dahulu."
+    },
+    "version": {
+      "otaEmergency": "OTA peluncuran darurat (embedded fallback)",
+      "otaEmbedded": "OTA tertanam (embedded)",
+      "otaUpdate": "OTA {{id}}"
     }
   },
   "auth": {
@@ -786,7 +846,9 @@
       "locationPermDesc": "Izin lokasi diperlukan untuk percakapan berbasis wilayah selama panggilan.\nSilakan izinkan di Pengaturan Perangkat → Lokasi → AfterLife.",
       "locationPermError": "Terjadi kesalahan saat meminta izin lokasi.",
       "rateLimit": "Silakan coba lagi nanti. (Cooldown 1 menit)",
-      "sendCodeFailed": "Gagal mengirim kode. Silakan periksa jaringan Anda."
+      "sendCodeFailed": "Gagal mengirim kode. Silakan periksa jaringan Anda.",
+      "xrunFoundTitle": "Akun XRUN ditemukan",
+      "xrunFoundDesc": "Akun XRUN terdaftar sudah ada.\n\nMasuk dengan kredensial XRUN Anda untuk menggunakan Afterlife juga."
     },
     "emailVerify": {
       "title": "Verifikasi Email",
@@ -1027,7 +1089,15 @@
       "featSecurity": "Keamanan Data",
       "featSecurityDesc": "Semua data dienkripsi dan dilindungi dengan aman",
       "startVideo": "Buat Video Perkenalan",
-      "goDashboard": "Kembali ke Klon Saya"
+      "goDashboard": "Kembali ke Klon Saya",
+      "fallbackHelloWithBatchim": "Halo, saya {{name}}.",
+      "fallbackHelloNoBatchim": "Halo, saya {{name}}.",
+      "fallbackHelloAnon": "Halo, senang bertemu denganmu.",
+      "fallbackMemlow": "Kenangan yang kita bagikan masih tersimpan di hati. Mari membaca surat bersama kapan pun datang. Aku ingin mendengar cerita-ceritamu, sekecil apa pun.",
+      "fallbackFriend": "Jangan sungkan menyapa aku kapan saja. Ceritakan hari-harimu, minatmu, atau kekhawatiran kecilmu — aku ingin tertawa dan berpikir bersama.",
+      "fallbackMentor": "Tanyakan apa pun yang kamu ingin tahu. Aku akan berbagi dengan tulus sejauh yang kutahu. Mari belajar dan tumbuh bersama.",
+      "fallbackCeleb": "Senang sekali bertemu denganmu. Aku menghargai setiap waktu berbincang dengan para penggemar. Jangan ragu meninggalkan pertanyaan atau dukungan.",
+      "fallbackDefault": "Mari mengobrol kapan pun kamu mau. Minat, cerita kecil hari ini, atau rasa penasaran — semua diterima. Mari habiskan waktu yang menyenangkan bersama."
     },
     "errors": {
       "quotaExceeded": "Anda hanya dapat membuat 1 klon per tipe yang sama.",
@@ -1110,12 +1180,23 @@
       "postFailed": "Posting gagal",
       "postFailedWithCode": "Posting gagal ({{code}})",
       "unknownError": "Kesalahan tidak diketahui",
-      "next": "Berikutnya"
+      "next": "Berikutnya",
+      "imageUploadFailed": "Gagal mengunggah gambar. Silakan periksa koneksi internetmu. ({{detail}})",
+      "usernameReservedMsg": "Nama pengguna ini sudah dicadangkan. Silakan pilih yang lain.",
+      "usernameTakenMsg": "Nama pengguna ini sudah dipakai. Silakan kembali dan pilih yang lain.",
+      "cloneCreateFailed": "Gagal membuat klon. (cloneId tidak ditemukan)",
+      "videoPendingDelayed": "Video sedang disiapkan — kamu bisa langsung memposting; akan muncul beberapa menit kemudian"
     },
     "step8": {
       "title": "Klon telah selesai dibuat",
       "subtitle": "Sekarang Anda dapat mengobrol dengan klon\natau memposting kiriman baru.",
       "toDashboard": "Ke Dashboard"
+    },
+    "username": {
+      "taken": "Nama pengguna ini sudah dipakai. Silakan pilih yang lain.",
+      "reserved": "Nama pengguna ini sudah dicadangkan. Silakan pilih yang lain.",
+      "checking": "Memeriksa nama pengguna…",
+      "available": "Nama pengguna ini tersedia."
     }
   },
   "settings": {
@@ -1155,7 +1236,25 @@
       "tokenLoading": "Menerbitkan token...",
       "tokenNone": "Tidak ada token yang diterbitkan",
       "copyToken": "Salin",
-      "copied": "Token telah disalin."
+      "copied": "Token telah disalin.",
+      "prefs": {
+        "newFollower": {
+          "label": "Pengikut baru",
+          "desc": "Ketika seseorang mengikutimu"
+        },
+        "followingActivity": {
+          "label": "Aktivitas yang diikuti",
+          "desc": "Ketika orang yang Anda ikuti membuat klon baru"
+        },
+        "reactions": {
+          "label": "Reaksi",
+          "desc": "Ketika klon Anda mendapat suka, komentar, atau laporan"
+        },
+        "promotions": {
+          "label": "Promosi",
+          "desc": "Penawaran yang dipersonalisasi dan pengumuman acara"
+        }
+      }
     },
     "agreements": {
       "title": "Persetujuan"
@@ -1249,6 +1348,9 @@
       "verifyOkMsg": "Kata sandi telah dikonfirmasi.",
       "verifyError": "Terjadi kesalahan saat memverifikasi.",
       "xrunNotInstalled": "Aplikasi xrun belum terpasang."
+    },
+    "rememberingCloneDetail": {
+      "deleteFailed": "Gagal menghapus."
     }
   },
   "permissionGate": {
@@ -1268,7 +1370,9 @@
     "logout": "Keluar",
     "consentIntro": "Harap tinjau persetujuan di bawah sebelum memulai panggilan.",
     "callLearningConsent": "(Opsional) Saya setuju dengan pembelajaran percakapan panggilan",
-    "faceBiometricConsent": "(Opsional) Saya setuju dengan penggunaan pengenalan wajah (data biometrik)"
+    "faceBiometricConsent": "(Opsional) Saya setuju dengan penggunaan pengenalan wajah (data biometrik)",
+    "cameraStatusError": "Gagal memeriksa status izin kamera.",
+    "micStatusError": "Gagal memeriksa status izin mikrofon."
   },
   "consentPrompt": {
     "title": "Persetujuan diperlukan sebelum panggilan",
@@ -1283,7 +1387,29 @@
     "descWithName": "Silakan masukkan alasan singkat\nuntuk melaporkan klon '{{name}}'. (opsional)",
     "descNoName": "Silakan masukkan alasan singkat\nuntuk melaporkan klon. (opsional)",
     "placeholder": "contoh: Konten tidak pantas, penipuan identitas, spam, dsb.",
-    "submit": "Laporkan"
+    "submit": "Laporkan",
+    "titleComment": "Laporkan komentar",
+    "titlePost": "Laporkan postingan",
+    "descCommentWithName": "Masukkan alasan melaporkan komentar {{name}}.",
+    "descCommentNoName": "Masukkan alasan melaporkan komentar ini.",
+    "descPostWithName": "Masukkan alasan melaporkan postingan {{name}}.",
+    "descPostNoName": "Masukkan alasan melaporkan postingan ini.",
+    "targetComment": "komentar",
+    "targetPost": "postingan",
+    "targetClone": "klon",
+    "sectionTitle": "Mengapa Anda melaporkan {{target}} ini?",
+    "sectionDesc": "Laporan Anda ditangani secara anonim. Jika Anda merasa seseorang dalam bahaya, segera hubungi layanan darurat setempat.",
+    "reason": {
+      "dislike": "Saya tidak menyukainya",
+      "bullying": "Perundungan atau kontak tak diinginkan",
+      "selfHarm": "Bunuh diri, melukai diri sendiri, dan gangguan makan",
+      "nudity": "Gambar telanjang atau aktivitas seksual",
+      "hate": "Ujaran kebencian atau simbol",
+      "violence": "Kekerasan atau pelecehan",
+      "regulated": "Penjualan atau promosi barang yang diatur",
+      "spam": "Penipuan, kecurangan, atau spam",
+      "falseInfo": "Informasi palsu"
+    }
   },
   "merge": {
     "title": "Konfirmasi Penggabungan Klon Diperlukan",
@@ -1547,7 +1673,11 @@
     "sourceFileNotFound": "File sumber tidak ditemukan.",
     "pinMustBe6Digits": "PIN harus 6 digit.",
     "authRequired": "Anda perlu masuk.",
-    "resourceIdInvalid": "ID sumber daya tidak valid."
+    "resourceIdInvalid": "ID sumber daya tidak valid.",
+    "usernameEmpty": "Silakan masukkan nama pengguna.",
+    "usernameTooShort": "Nama pengguna harus minimal 3 karakter.",
+    "usernameTooLong": "Nama pengguna maksimal 30 karakter.",
+    "usernameFormat": "Nama pengguna hanya boleh menggunakan huruf kecil, angka, dan garis bawah (_). (Tidak boleh huruf besar, karakter non-ASCII, atau spasi.)"
   },
   "question": {
     "label": {
@@ -1828,5 +1958,23 @@
     "doneTitle": "Siap mengobrol dengan {{name}}!",
     "learnMore": "Pelajari lebih lanjut",
     "startCall": "Telepon {{name}}"
+  },
+  "banner": {
+    "step3Entry": "Mulai langkah berikutnya, tipe dan hubungan tidak bisa diubah. Jika tipe berbeda, perbaiki di langkah sebelumnya.",
+    "closeA11y": "Tutup banner"
+  },
+  "block": {
+    "title": "Blokir {{name}}?",
+    "subtitle": "Profil lain yang dibuat orang ini dan semua profil yang mereka buat di masa depan juga akan diblokir.",
+    "info1": "Orang yang diblokir tidak dapat memberi komentar atau menemukan profil dan konten Anda.",
+    "info2": "Orang tersebut tidak akan diberi tahu bahwa Anda memblokirnya.",
+    "info3": "Anda bisa membuka blokir kapan saja di My Page > Manajemen pengguna yang diblokir.",
+    "confirm": "Blokir"
+  },
+  "field": {
+    "selectPlaceholder": "Pilih"
+  },
+  "gift": {
+    "receivedNotice": "mengirim hadiah {{gift}}"
   }
 }

@@ -71,7 +71,13 @@
       "blockFailed": "Block failed.",
       "commentReported": "The comment was reported.",
       "reportFailed": "Report failed.",
-      "reportSuccessBlocked": "Report received. This clone has been blocked."
+      "reportSuccessBlocked": "Report received. This clone has been blocked.",
+      "userBlocked": "User blocked",
+      "blockUserFailed": "Failed to block user"
+    },
+    "actions": {
+      "block": "Block",
+      "report": "Report"
     }
   },
   "notifications": {
@@ -316,7 +322,50 @@
     "bgWarnTitle": "📞 Your call may drop",
     "bgWarnBody": "Keep the app open to stay on the call. Return to the app.",
     "fgTitle": "📞 On a call",
-    "fgBody": "On a call with {{name}}"
+    "fgBody": "On a call with {{name}}",
+    "channelName": "Calls",
+    "rememberMe": {
+      "label": "Remember Me",
+      "title": "Remember Me!",
+      "sub": "Tell me your name",
+      "sheetTitle": "Who is this person?",
+      "sheetDesc": "Let me know and I'll remember from the next call.",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Jiho",
+      "relationLabel": "Relationship",
+      "relationPlaceholder": "e.g. grandchild, old friend",
+      "later": "Later"
+    },
+    "rmEnrollFail": "Failed to register. Please try again.",
+    "newFaceTitle": "A new face is detected",
+    "newFaceBody": "Would you like to register this face?",
+    "newFaceLater": "Later",
+    "newFaceSelf": "It's me",
+    "newFaceEnroll": "Register",
+    "afl971PreMessage": "{userName}, I'll go pick some flowers for you! Watch the video, I'll be right back",
+    "afl971PostMessage": "Thanks for waiting! Here's your flower gift",
+    "afl971FlowerToast": "You received flowers from {cloneName}",
+    "giftSendFailFallback": "Failed to send gift",
+    "devTextPlaceholder": "[DEV] Speak via text",
+    "devSend": "Send",
+    "devFaceLabel": "Face",
+    "thinking": "Generating…",
+    "endCallA11yReady": "End call (you can speak now)",
+    "endCallA11y": "End call",
+    "endCallA11yHint": "You can speak now. Pressing this button will end the call.",
+    "giftEmptyTitle": "You have no flowers",
+    "giftEmptyBody": "Go to the shop to buy flowers?",
+    "giftEmptyBuy": "Buy",
+    "giftOwnedCount": "{{count}} owned",
+    "exiting": "Ending…",
+    "adPlaying": "Ad playing…",
+    "adStubNote": "(Dev stub · replaces real ad)"
+  },
+  "greeting": {
+    "default": "Hello"
+  },
+  "persona": {
+    "emptyPrompt": "(No clone info)"
   },
   "feed": {
     "homeTitle": "Home",
@@ -443,7 +492,13 @@
     "l2SectionTitle": "Deep Memory (L2) — Auto-learned",
     "l2MemoryCount": "{{n}} memories accumulated so far.",
     "l2LastUpdated": "Last updated: {{date}}",
-    "l2Hint": "L2 can't be edited directly — it retrains automatically through conversations and interactions."
+    "l2Hint": "L2 can't be edited directly — it retrains automatically through conversations and interactions.",
+    "currentVoiceLabel": "Current voice",
+    "currentVoiceRecorded": "🎙 Self-recorded voice (set when creating persona)",
+    "currentVoiceCatalog": "🎵 Catalog voice",
+    "currentVoiceHint": "Pick a different voice below and calls will play with that voice.",
+    "voiceStop": "■ Stop",
+    "voicePreview": "▶ Preview"
   },
   "dashboard": {
     "title": "My Page",
@@ -643,6 +698,11 @@
     "faceEnrollDev": {
       "noneTitle": "No persona",
       "noneDesc": "Please create a persona first."
+    },
+    "version": {
+      "otaEmergency": "OTA emergency run (embedded fallback)",
+      "otaEmbedded": "OTA embedded",
+      "otaUpdate": "OTA {{id}}"
     }
   },
   "auth": {
@@ -786,7 +846,9 @@
       "locationPermDesc": "Location permission is needed for region-based conversation during calls.\nDevice Settings → Location → AfterLife to enable.",
       "locationPermError": "An error occurred while requesting location permission.",
       "rateLimit": "Please try again later. (1-minute cooldown)",
-      "sendCodeFailed": "Failed to send code. Please check your network."
+      "sendCodeFailed": "Failed to send code. Please check your network.",
+      "xrunFoundTitle": "XRUN account found",
+      "xrunFoundDesc": "A registered XRUN account exists.\n\nSign in with your XRUN credentials to use Afterlife as well."
     },
     "emailVerify": {
       "title": "Verify Email",
@@ -1029,7 +1091,15 @@
       "featSecurity": "Data Security",
       "featSecurityDesc": "All data is securely encrypted",
       "startVideo": "Make intro video",
-      "goDashboard": "Back to my clones"
+      "goDashboard": "Back to my clones",
+      "fallbackHelloWithBatchim": "Hi, I'm {{name}}.",
+      "fallbackHelloNoBatchim": "Hi, I'm {{name}}.",
+      "fallbackHelloAnon": "Hello, nice to meet you.",
+      "fallbackMemlow": "The memories we shared are still here with me. Let's read letters together whenever they arrive. I'd love to hear even the smallest stories from you.",
+      "fallbackFriend": "Feel free to chat with me anytime. Share your day, your interests, even the little worries — I'd love to laugh and think things through together.",
+      "fallbackMentor": "Ask me anything you're curious about. I'll share what I know with care. Let's make time to learn and grow together.",
+      "fallbackCeleb": "I'm so glad to meet you. I cherish every moment of talking with my fans. Feel free to share any questions or words of support.",
+      "fallbackDefault": "Let's chat whenever you like. Your interests, your little daily moments, your questions — anything's welcome. Let's enjoy our time together."
     },
     "errors": {
       "quotaExceeded": "You can only create one clone per type.",
@@ -1112,12 +1182,23 @@
       "postFailed": "Post failed",
       "postFailedWithCode": "Post failed ({{code}})",
       "unknownError": "Unknown error",
-      "next": "Next"
+      "next": "Next",
+      "imageUploadFailed": "Failed to upload the image. Please check your network connection. ({{detail}})",
+      "usernameReservedMsg": "This username is reserved. Please choose a different one.",
+      "usernameTakenMsg": "This username is already taken. Please go back and choose a different one.",
+      "cloneCreateFailed": "Failed to create the clone. (cloneId missing)",
+      "videoPendingDelayed": "Preparing video — you can post now; it will appear in a few minutes"
     },
     "step8": {
       "title": "Your clone is ready",
       "subtitle": "You can now chat with your clone\nor share a new post.",
       "toDashboard": "To dashboard"
+    },
+    "username": {
+      "taken": "This username is already taken. Please choose another one.",
+      "reserved": "This username is reserved. Please choose a different one.",
+      "checking": "Checking username…",
+      "available": "This username is available."
     }
   },
   "settings": {
@@ -1160,7 +1241,25 @@
       "tokenLoading": "Issuing token...",
       "tokenNone": "No token issued",
       "copyToken": "Copy",
-      "copied": "Token copied."
+      "copied": "Token copied.",
+      "prefs": {
+        "newFollower": {
+          "label": "New followers",
+          "desc": "When someone follows you"
+        },
+        "followingActivity": {
+          "label": "Following activity",
+          "desc": "When someone you follow creates a new clone"
+        },
+        "reactions": {
+          "label": "Reactions",
+          "desc": "When your clone gets likes, comments, or reports"
+        },
+        "promotions": {
+          "label": "Promotions",
+          "desc": "Personalized benefits and event announcements"
+        }
+      }
     },
     "agreements": {
       "title": "Consent"
@@ -1254,6 +1353,9 @@
       "en": "English",
       "zh-CN": "简体中文",
       "id": "Bahasa Indonesia"
+    },
+    "rememberingCloneDetail": {
+      "deleteFailed": "Failed to delete."
     }
   },
   "permissionGate": {
@@ -1273,7 +1375,9 @@
     "logout": "Log out",
     "consentIntro": "Please review the agreements below before starting a call.",
     "callLearningConsent": "(Optional) I agree to call conversation learning",
-    "faceBiometricConsent": "(Optional) I agree to the use of face recognition (biometric data)"
+    "faceBiometricConsent": "(Optional) I agree to the use of face recognition (biometric data)",
+    "cameraStatusError": "Couldn't check camera permission status.",
+    "micStatusError": "Couldn't check microphone permission status."
   },
   "consentPrompt": {
     "title": "Agreements needed before the call",
@@ -1288,7 +1392,29 @@
     "descWithName": "Briefly tell us why you're reporting\nthe '{{name}}' clone. (optional)",
     "descNoName": "Briefly tell us why you're reporting\nthis clone. (optional)",
     "placeholder": "e.g. inappropriate content, impersonation, spam",
-    "submit": "Report"
+    "submit": "Report",
+    "titleComment": "Report comment",
+    "titlePost": "Report post",
+    "descCommentWithName": "Please enter the reason for reporting {{name}}'s comment.",
+    "descCommentNoName": "Please enter the reason for reporting the comment.",
+    "descPostWithName": "Please enter the reason for reporting {{name}}'s post.",
+    "descPostNoName": "Please enter the reason for reporting the post.",
+    "targetComment": "comment",
+    "targetPost": "post",
+    "targetClone": "clone",
+    "sectionTitle": "Why are you reporting this {{target}}?",
+    "sectionDesc": "Your report is anonymous. If you think someone is in immediate danger, please contact your local emergency services right away.",
+    "reason": {
+      "dislike": "I don't like it",
+      "bullying": "Bullying or unwanted contact",
+      "selfHarm": "Suicide, self-harm and eating disorders",
+      "nudity": "Nudity or sexual activity",
+      "hate": "Hate speech or symbols",
+      "violence": "Violence or abuse",
+      "regulated": "Sale or promotion of regulated goods",
+      "spam": "Scam, fraud or spam",
+      "falseInfo": "False information"
+    }
   },
   "merge": {
     "title": "Clone merge confirmation needed",
@@ -1552,7 +1678,11 @@
     "sourceFileNotFound": "Source file not found.",
     "pinMustBe6Digits": "PIN must be 6 digits.",
     "authRequired": "You need to sign in.",
-    "resourceIdInvalid": "Invalid resource ID."
+    "resourceIdInvalid": "Invalid resource ID.",
+    "usernameEmpty": "Please enter a username.",
+    "usernameTooShort": "Username must be at least 3 characters.",
+    "usernameTooLong": "Username must be 30 characters or fewer.",
+    "usernameFormat": "Username can only use lowercase letters, numbers, and underscores (_). (No uppercase, non-ASCII, or spaces.)"
   },
   "question": {
     "label": {
@@ -1833,5 +1963,23 @@
     "doneTitle": "Ready to talk with {{name}}!",
     "learnMore": "Learn more",
     "startCall": "Call {{name}}"
+  },
+  "banner": {
+    "step3Entry": "From the next step onward, type and relationship can't be changed. If you need a different type, please update it in the previous step.",
+    "closeA11y": "Close banner"
+  },
+  "block": {
+    "title": "Block {{name}}?",
+    "subtitle": "Other profiles this person has created, and any they create in the future, will also be blocked.",
+    "info1": "Blocked people won't be able to comment on your content or find your profile.",
+    "info2": "The other person won't be notified that you've blocked them.",
+    "info3": "You can unblock them anytime from My Page > Blocked users.",
+    "confirm": "Block"
+  },
+  "field": {
+    "selectPlaceholder": "Select"
+  },
+  "gift": {
+    "receivedNotice": "sent a {{gift}} gift"
   }
 }

@@ -1,6 +1,7 @@
 
 
 import { v_a7c0d4 } from "vukrcww";
+import v_9c213b from "../i18n";
 
 export type DialogButtonStyle = "default" | "cancel" | "destructive";
 
@@ -53,7 +54,7 @@ export const v_b54176 = v_a7c0d4<DialogStore>((v_bb8024, v_38715b) => ({
       subMessage: v_b36f96?.subMessage,
       messageAlign: v_b36f96?.messageAlign ?? "center",
 
-      buttons: v_3d694a && v_3d694a.length > 0 ? v_3d694a : [{ text: "확인" }],
+      buttons: v_3d694a && v_3d694a.length > 0 ? v_3d694a : [{ text: v_9c213b.t("common.ok", { defaultValue: "확인" }) }],
       key: v_38715b().key + 1,
     });
   },

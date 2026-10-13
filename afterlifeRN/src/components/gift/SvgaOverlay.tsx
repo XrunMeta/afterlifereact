@@ -5,6 +5,7 @@ import { v_cf9c33, v_472849, v_19b633, v_3094a2 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_2694e4 } from "ahewcyoxtiosvtfuluxp";
+import { v_772971 } from "jmpfvteuuztnp";
 
 interface Props {
   visible: boolean;
@@ -124,6 +125,7 @@ export default function v_194b37({
   senderAvatarUrl: v_670f24,
   giftName: v_dcbe7a,
 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const [v_d91d98, v_5420ce] = v_5ab095<string | null>(null);
 
   const v_033e14 = v_e0068c();
@@ -178,7 +180,7 @@ export default function v_194b37({
               {v_b85763}
             </Text>
             <Text style={v_fd5f43.noticeMsg} numberOfLines={1}>
-              님의 {v_dcbe7a} 선물을 보냈습니다
+              {v_8d41d7("gift.receivedNotice", { gift: v_dcbe7a, defaultValue: "님의 {{gift}} 선물을 보냈습니다" })}
             </Text>
           </View>
         </View>

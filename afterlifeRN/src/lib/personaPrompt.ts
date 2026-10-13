@@ -100,5 +100,7 @@ export function v_d6d0ff(
   const v_661aec = v_e2a85c.l1?.notes?.trim();
   if (v_661aec) v_a52412.push('', v_661aec);
 
-  return v_a52412.length > 0 ? v_a52412.join('\n') : '(클론 정보가 비어 있음)';
+  return v_a52412.length > 0
+    ? v_a52412.join('\n')
+    : (v_8d41d7 ? v_8d41d7('persona.emptyPrompt') : '(클론 정보가 비어 있음)');
 }

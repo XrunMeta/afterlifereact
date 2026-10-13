@@ -12,6 +12,7 @@ import {
 } from "rcmrninabrnb";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
+import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0 } from "../constants";
 
 interface Props {
@@ -35,6 +36,7 @@ const InfoRow: v_a3453e.FC<RowProps> = ({ icon: v_9ddfab, text: v_9b6134 }) => (
 );
 
 export default function v_4d9c69({ visible: v_cf55be, userName: v_f08a5e, userAvatarUrl: v_9839ce, onCancel: v_c7001c, onConfirm: v_e2be2d }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const { height: v_c86e33 } = v_e45a99();
 
   const v_033e14 = v_e0068c();
@@ -62,26 +64,26 @@ export default function v_4d9c69({ visible: v_cf55be, userName: v_f08a5e, userAv
           </View>
 
           {}
-          <Text style={v_d81136.title}>{v_f08a5e} 님을{'\n'}차단하시겠어요?</Text>
+          <Text style={v_d81136.title}>{v_8d41d7("block.title", { name: v_f08a5e, defaultValue: "{{name}} 님을\n차단하시겠어요?" })}</Text>
 
           {}
           <Text style={v_d81136.subtitle}>
-            이 사람이 만든 다른 프로필과 앞으로 만드는 모든 프로필이 함께 차단됩니다.
+            {v_8d41d7("block.subtitle", { defaultValue: "이 사람이 만든 다른 프로필과 앞으로 만드는 모든 프로필이 함께 차단됩니다." })}
           </Text>
 
           {}
           <View style={v_d81136.infoList}>
             <InfoRow
               icon="slash"
-              text="차단된 사람은 회원님에게 댓글을 작성하거나 회원님의 프로필 · 콘텐츠를 찾을 수 없게 됩니다."
+              text={v_8d41d7("block.info1", { defaultValue: "차단된 사람은 회원님에게 댓글을 작성하거나 회원님의 프로필 · 콘텐츠를 찾을 수 없게 됩니다." })}
             />
             <InfoRow
               icon="bell-off"
-              text="상대방에게는 회원님이 차단한 사실을 알리지 않습니다."
+              text={v_8d41d7("block.info2", { defaultValue: "상대방에게는 회원님이 차단한 사실을 알리지 않습니다." })}
             />
             <InfoRow
               icon="settings"
-              text="마이페이지 > 차단 사용자 관리에서 언제든지 차단을 해제할 수 있습니다."
+              text={v_8d41d7("block.info3", { defaultValue: "마이페이지 > 차단 사용자 관리에서 언제든지 차단을 해제할 수 있습니다." })}
             />
           </View>
 
@@ -90,7 +92,7 @@ export default function v_4d9c69({ visible: v_cf55be, userName: v_f08a5e, userAv
             style={({ pressed: v_aba1d2 }) => [v_d81136.confirmBtn, v_aba1d2 && { opacity: 0.85 }]}
             onPress={v_e2be2d}
           >
-            <Text style={v_d81136.confirmBtnText}>차단</Text>
+            <Text style={v_d81136.confirmBtnText}>{v_8d41d7("block.confirm", { defaultValue: "차단" })}</Text>
           </Pressable>
         </Pressable>
       </Pressable>

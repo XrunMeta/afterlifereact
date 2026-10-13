@@ -1,5 +1,7 @@
 
 
+import v_9c213b from "../../i18n";
+
 export type CurrentlyRunningLike = {
   isEmbeddedLaunch: boolean;
   isEmergencyLaunch?: boolean;
@@ -7,10 +9,19 @@ export type CurrentlyRunningLike = {
 };
 
 export function v_3752e7(v_34d5e3): string {
-  if (v_34d5e3.isEmergencyLaunch) return "OTA 비상실행(embedded fallback)";
-  if (v_34d5e3.isEmbeddedLaunch) return "OTA 내장(embedded)";
+  if (v_34d5e3.isEmergencyLaunch) {
+    return v_9c213b.t("my.version.otaEmergency", {
+      defaultValue: "OTA 비상실행(embedded fallback)",
+    });
+  }
+  if (v_34d5e3.isEmbeddedLaunch) {
+    return v_9c213b.t("my.version.otaEmbedded", { defaultValue: "OTA 내장(embedded)" });
+  }
   const v_53aa09 = (v_34d5e3.updateId ?? "").slice(0, 8) || "—";
-  return `OTA ${v_53aa09}`;
+  return v_9c213b.t("my.version.otaUpdate", {
+    id: v_53aa09,
+    defaultValue: "OTA {{id}}",
+  });
 }
 
 export function v_8f6de1(
