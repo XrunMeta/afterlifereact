@@ -76,6 +76,13 @@ v_62a1b6.get("/received-gifts", async (v_3f4e2e) => {
   }
 
   const v_520523 = 11;
+
+  let v_2cb731 = 0;
+  for (const [, v_d0c056] of v_b16486) {
+    for (const v_41d9f0 of v_d0c056) v_2cb731 += v_41d9f0.count * v_41d9f0.price;
+  }
+  v_2cb731 = Number(v_2cb731.toFixed(8));
+
   const v_4622b9 = (v_18b8bf.results ?? []).map((v_cb35cb) => {
     const v_ab4c96 = v_6413c7.get(v_cb35cb.gift_id) as any;
     const v_4547b1 = v_ab4c96 ? v_c19d94(v_ab4c96) : 0;
@@ -112,7 +119,7 @@ v_62a1b6.get("/received-gifts", async (v_3f4e2e) => {
     };
   });
 
-  return v_3f4e2e.json({ items: v_4622b9, userFound: true });
+  return v_3f4e2e.json({ items: v_4622b9, userFound: true, totalBagValue: v_2cb731, exchangeUnit: v_520523 });
 });
 
 const v_520523 = 11; 
