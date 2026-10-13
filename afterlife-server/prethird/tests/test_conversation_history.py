@@ -116,3 +116,12 @@ def test_fit_prior_matches_rendered_budget():
     msgs = h.messages()
     assert len(msgs[0]["content"]) <= 1500
     assert "말299" in msgs[0]["content"]
+
+def test_prior_header_첫대답_지난주제_유도():
+    """AFL-926 2차(핸드오프 3·나 방식): 이전 대화가 있으면 첫 대답에서 지난 주제 하나를
+    가볍게 꺼내 이어가도록 PRIOR_HEADER가 유도해야 한다."""
+    h = ConversationHistory(10)
+    h.seed_prior(_prior(("c1", "user", "고추 땄어", DAY1)))
+    body = h.messages()[0]["content"]
+    assert "첫 대답에서는" in body
+    assert "하나만" in body

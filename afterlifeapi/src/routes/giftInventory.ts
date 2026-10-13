@@ -50,47 +50,17 @@ v_0bc486.post(
       .first<{ id: number }>();
     if (!v_b9fbb4) throw new v_3ebe58("NOT_FOUND", "받을 사용자를 찾을 수 없어요.");
 
-    try {
-      await v_20a4f4(v_3f4e2e, {
-        userId: v_f7e120,
-        amount: v_4547b1,
-        type: "gift",
-        refId: `send:${v_4d33b2.giftId}:to=${v_4d33b2.toUserId}`,
-        idempotencyKey: v_62c866,
-      });
-
-      for (let v_bc21cd = 0; v_bc21cd < 3; v_bc21cd++) {
-        const v_3ac7e7 = await v_3f4e2e.env.DB
-          .prepare(`SELECT credits_free, credits_sub, credits_topup FROM users WHERE id = ?`)
-          .bind(v_f7e120)
-          .first<{ credits_free: number; credits_sub: number; credits_topup: number }>();
-        if (!v_3ac7e7) break;
-        const v_c6935f = Math.min(v_4547b1, v_3ac7e7.credits_free);
-        const v_adc4ac = Math.min(v_4547b1 - v_c6935f, v_3ac7e7.credits_sub);
-        const v_413d81 = v_4547b1 - v_c6935f - v_adc4ac;
-
-        if (v_c6935f + v_adc4ac + v_413d81 < v_4547b1) break;
-        const v_b1eff4 = await v_3f4e2e.env.DB
-          .prepare(
-            `UPDATE users
-                SET credits_free  = credits_free  - ?,
-                    credits_sub   = credits_sub   - ?,
-                    credits_topup = credits_topup - ?,
-                    updated_at    = CURRENT_TIMESTAMP
-              WHERE id = ?
-                AND credits_free  >= ?
-                AND credits_sub   >= ?
-                AND credits_topup >= ?`,
-          )
-          .bind(v_c6935f, v_adc4ac, v_413d81, v_f7e120, v_c6935f, v_adc4ac, v_413d81)
-          .run();
-        if ((v_b1eff4.meta?.changes ?? 0) > 0) break;
-      }
-    } catch (v_49263d) {
-      if ((v_49263d as v_3ebe58).code === "INSUFFICIENT_CREDITS") {
-        throw new v_3ebe58("INSUFFICIENT_CREDITS", "XRUN 잔액이 부족해요.");
-      }
-      throw v_49263d;
+    const v_eef514 = await v_3f4e2e.env.DB
+      .prepare(
+        `UPDATE user_gift_inventory
+            SET count = count - 1,
+                updated_at = strftime('%s','now')
+          WHERE user_id = ? AND gift_id = ? AND count > 0`,
+      )
+      .bind(v_f7e120, v_4d33b2.giftId)
+      .run();
+    if ((v_eef514.meta?.changes ?? 0) === 0) {
+      throw new v_3ebe58("INSUFFICIENT_CREDITS", "선물 재고가 없어요.");
     }
 
     if (v_4d33b2.cloneId) {
@@ -125,6 +95,10 @@ v_0bc486.post(
       }
     }
 
+    const v_5097fd = v_8c0b26.name;
+    const v_56896b = v_8c0b26.emoji ?? "🎁";
+    const v_92e7a1 = v_8c0b26.imageUrl ?? null;
+    const v_a97aa2 = v_4d33b2.cloneId ?? null;
     await v_3f4e2e.env.DB.batch([
       v_3f4e2e.env.DB
         .prepare(
@@ -139,16 +113,20 @@ v_0bc486.post(
 
       v_3f4e2e.env.DB
         .prepare(
-          `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id)
-             VALUES (?, ?, ?, 1, ?, 'sent', ?)`,
+          `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id,
+                                               clone_id, gift_name_snapshot, gift_emoji_snapshot, gift_image_url_snapshot)
+             VALUES (?, ?, ?, 1, ?, 'sent', ?, ?, ?, ?, ?)`,
         )
-        .bind(v_f7e120, v_4d33b2.toUserId, v_4d33b2.giftId, v_4547b1, v_62c866),
+        .bind(v_f7e120, v_4d33b2.toUserId, v_4d33b2.giftId, v_4547b1, v_62c866,
+              v_a97aa2, v_5097fd, v_56896b, v_92e7a1),
       v_3f4e2e.env.DB
         .prepare(
-          `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id)
-             VALUES (?, ?, ?, 1, ?, 'received', ?)`,
+          `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id,
+                                               clone_id, gift_name_snapshot, gift_emoji_snapshot, gift_image_url_snapshot)
+             VALUES (?, ?, ?, 1, ?, 'received', ?, ?, ?, ?, ?)`,
         )
-        .bind(v_4d33b2.toUserId, v_f7e120, v_4d33b2.giftId, v_4547b1, v_62c866),
+        .bind(v_4d33b2.toUserId, v_f7e120, v_4d33b2.giftId, v_4547b1, v_62c866,
+              v_a97aa2, v_5097fd, v_56896b, v_92e7a1),
     ]);
 
     await v_74defc(v_3f4e2e, {
@@ -201,6 +179,115 @@ v_0bc486.get("/inventory", v_6690d9, async (v_3f4e2e) => {
   });
 
   return v_3f4e2e.json({ items: v_4622b9 });
+});
+
+v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
+  const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
+  const v_40e259 = Number(v_f71b56.searchParams.get("offset") ?? 0);
+  const v_3bbadf = Math.max(0, Number.isFinite(v_40e259) ? v_40e259 : 0);
+
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT e.id                        AS id,
+              e.kind                      AS kind,
+              e.counterpart_user_id       AS counterpartId,
+              cp.email                    AS counterpartEmail,
+              cp.name                     AS counterpartName,
+              cp.avatar_url               AS counterpartAvatarUrl,
+              e.clone_id                  AS cloneId,
+              c.name                      AS cloneName,
+              c.username                  AS cloneUsername,
+              c.avatar_url                AS cloneAvatarUrl,
+              e.gift_id                   AS giftId,
+              e.gift_name_snapshot        AS giftNameSnap,
+              e.gift_emoji_snapshot       AS giftEmojiSnap,
+              e.gift_image_url_snapshot   AS giftImageUrlSnap,
+              e.count                     AS count,
+              e.xrun_amount               AS xrunAmount,
+              e.created_at                AS createdAtSec
+         FROM gift_inventory_events e
+         LEFT JOIN users  cp ON cp.id = e.counterpart_user_id
+         LEFT JOIN clones c  ON c.id  = e.clone_id
+        WHERE e.user_id = ? AND e.kind IN ('received', 'ad_reward', 'sent', 'exchanged')
+        ORDER BY e.created_at DESC
+        LIMIT ? OFFSET ?`,
+    )
+    .bind(v_43e90c, v_02be30, v_3bbadf)
+    .all<{
+      id: number;
+      kind: string;
+      counterpartId: number | null;
+      counterpartEmail: string | null;
+      counterpartName: string | null;
+      counterpartAvatarUrl: string | null;
+      cloneId: number | null;
+      cloneName: string | null;
+      cloneUsername: string | null;
+      cloneAvatarUrl: string | null;
+      giftId: string;
+      giftNameSnap: string | null;
+      giftEmojiSnap: string | null;
+      giftImageUrlSnap: string | null;
+      count: number;
+      xrunAmount: number;
+      createdAtSec: number;
+    }>();
+
+  const v_679404 = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT COUNT(*) AS n FROM gift_inventory_events
+        WHERE user_id = ? AND kind IN ('received', 'ad_reward', 'sent', 'exchanged')`,
+    )
+    .bind(v_43e90c)
+    .first<{ n: number }>();
+
+  const v_9ba17d = await v_3f4e2e.env.DB
+    .prepare(`SELECT COALESCE(SUM(total_received), 0) AS totalReceived FROM user_gift_inventory WHERE user_id = ?`)
+    .bind(v_43e90c)
+    .first<{ totalReceived: number }>();
+
+  const v_b5069d = await v_3f4e2e.env.DB
+    .prepare(`SELECT COALESCE(SUM(count), 0) AS currentOwned FROM user_gift_inventory WHERE user_id = ?`)
+    .bind(v_43e90c)
+    .first<{ currentOwned: number }>();
+
+  const v_dbebe7 = await v_0edc13(v_3f4e2e.env);
+  const v_6413c7 = new Map(v_dbebe7.map((v_206b88) => [v_206b88.id, v_206b88]));
+
+  const v_4622b9 = (v_18b8bf.results ?? []).map((v_cb35cb) => {
+    const v_ab4c96 = v_6413c7.get(v_cb35cb.giftId);
+    return {
+      id: v_cb35cb.id,
+      kind: v_cb35cb.kind, 
+      counterpartId: v_cb35cb.counterpartId,
+      counterpartEmail: v_cb35cb.counterpartEmail,
+      counterpartName: v_cb35cb.counterpartName,
+      counterpartAvatarUrl: v_cb35cb.counterpartAvatarUrl,
+      cloneId: v_cb35cb.cloneId,
+      cloneName: v_cb35cb.cloneName,
+      cloneUsername: v_cb35cb.cloneUsername,
+      cloneAvatarUrl: v_cb35cb.cloneAvatarUrl,
+      giftId: v_cb35cb.giftId,
+      giftName: v_cb35cb.giftNameSnap ?? v_ab4c96?.name ?? v_cb35cb.giftId,
+      giftEmoji: v_cb35cb.giftEmojiSnap ?? v_ab4c96?.emoji ?? "🎁",
+      giftImageUrl: v_cb35cb.giftImageUrlSnap ?? v_ab4c96?.imageUrl ?? null,
+      count: v_cb35cb.count,
+      xrunAmount: v_cb35cb.xrunAmount,
+      createdAt: new Date(v_cb35cb.createdAtSec * 1000).toISOString(),
+    };
+  });
+
+  return v_3f4e2e.json({
+    items: v_4622b9,
+    total: v_679404?.n ?? 0,
+    totalReceived: v_9ba17d?.totalReceived ?? 0,
+    currentOwned: v_b5069d?.currentOwned ?? 0,
+    limit: v_02be30,
+    offset: v_3bbadf,
+  });
 });
 
 const v_d092c0 = v_1f4ea7.object({
@@ -329,6 +416,17 @@ v_0bc486.post("/ad-reward-grant", v_6690d9, async (v_3f4e2e) => {
     });
   }
 
+  const v_897111 = await v_0edc13(v_3f4e2e.env);
+  const v_910ae8 = v_897111.find((v_206b88) => v_206b88.id === v_96f93d);
+  const v_5097fd = v_910ae8?.name ?? v_96f93d;
+  const v_56896b = v_910ae8?.emoji ?? "🎁";
+  const v_92e7a1 = v_910ae8?.imageUrl ?? null;
+
+  const v_37fbac = await v_3f4e2e.env.DB
+    .prepare("SELECT clone_id FROM call_sessions WHERE call_id = ?")
+    .bind(v_4d33b2.callId)
+    .first<{ clone_id: number | null }>();
+  const v_a97aa2 = v_37fbac?.clone_id ?? null;
   await v_3f4e2e.env.DB.batch([
     v_3f4e2e.env.DB
       .prepare(
@@ -342,10 +440,11 @@ v_0bc486.post("/ad-reward-grant", v_6690d9, async (v_3f4e2e) => {
       .bind(v_43e90c, v_96f93d),
     v_3f4e2e.env.DB
       .prepare(
-        `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id)
-           VALUES (?, NULL, ?, 1, 0, 'ad_reward', ?)`,
+        `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id,
+                                             clone_id, gift_name_snapshot, gift_emoji_snapshot, gift_image_url_snapshot)
+           VALUES (?, NULL, ?, 1, 0, 'ad_reward', ?, ?, ?, ?, ?)`,
       )
-      .bind(v_43e90c, v_96f93d, v_a0e308),
+      .bind(v_43e90c, v_96f93d, v_a0e308, v_a97aa2, v_5097fd, v_56896b, v_92e7a1),
   ]);
 
   const v_f0104f = await v_3f4e2e.env.DB
