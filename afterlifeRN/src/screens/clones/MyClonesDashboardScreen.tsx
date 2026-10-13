@@ -914,10 +914,13 @@ export default function v_def15b() {
                   </Text>
                   <TouchableOpacity
                     style={v_fd5f43.giftLogExchangeBtn}
-                    onPress={() =>
-                      void v_623a74(v_b113dd?.email ?? v_f38ee5?.email ?? null, v_8d41d7)
-                    }
+                    onPress={() => {
+                      const v_131f0d = v_b113dd?.email ?? v_f38ee5?.email ?? null;
+                      console.log("[giftExchangeHeaderBtn] tap myEmail=", v_131f0d);
+                      void v_623a74(v_131f0d, v_8d41d7);
+                    }}
                     activeOpacity={0.7}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
                     <Text style={v_fd5f43.giftLogExchangeText}>
                       {v_8d41d7("dashboard.giftExchange", { defaultValue: "교환" })}
