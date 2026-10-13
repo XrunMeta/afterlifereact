@@ -99,6 +99,11 @@ v_0bc486.post(
     const v_56896b = v_8c0b26.emoji ?? "🎁";
     const v_92e7a1 = v_8c0b26.imageUrl ?? null;
     const v_a97aa2 = v_4d33b2.cloneId ?? null;
+
+    const v_f9c48b =
+      typeof (v_8c0b26 as any).xrunPrice === "number" && (v_8c0b26 as any).xrunPrice > 0
+        ? Number((v_8c0b26 as any).xrunPrice)
+        : 0.01;
     await v_3f4e2e.env.DB.batch([
       v_3f4e2e.env.DB
         .prepare(
@@ -127,6 +132,13 @@ v_0bc486.post(
         )
         .bind(v_4d33b2.toUserId, v_f7e120, v_4d33b2.giftId, v_4547b1, v_62c866,
               v_a97aa2, v_5097fd, v_56896b, v_92e7a1),
+
+      v_3f4e2e.env.DB
+        .prepare(
+          `INSERT INTO user_gift_lots (user_id, gift_id, received_at, count_received, count_remaining, xrun_price_snapshot)
+             VALUES (?, ?, strftime('%s','now'), 1, 1, ?)`,
+        )
+        .bind(v_4d33b2.toUserId, v_4d33b2.giftId, v_f9c48b),
     ]);
 
     await v_74defc(v_3f4e2e, {
