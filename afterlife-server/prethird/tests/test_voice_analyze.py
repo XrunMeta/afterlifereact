@@ -49,6 +49,16 @@ def test_classify_density_uses_10s_cap():
     assert va.classify(25.0, 0.0, [12.0], [12.5], text) == {"ok": True}
 
 
+def test_classify_too_short_when_late_speech_start():
+    # duration 16(>=15) 통과, 텍스트 충분(NO_VOICE 아님), 그러나 발화 시작 3초 → 실질 13초 < 15 → TOO_SHORT
+    assert va.classify(16.0, 3.0, [], [], "가" * 80) == {"ok": False, "reason": "TOO_SHORT"}
+
+
+def test_pick_end_no_pause_when_silence_beyond_max():
+    # 40초, 쉼이 35초(= lo8..hi30 범위 밖) → no_pause
+    assert va._pick_end_reason(0.0, 40.0, [35.0], [35.4])[1] == "no_pause"
+
+
 def test_constants_match_make_prompt_ref_spec():
     # make_prompt_ref 와 어긋나면 라이브 트림과 판정이 달라진다 — 값 고정.
     assert va.RECORD_MIN_SEC == 15.0
