@@ -2282,6 +2282,9 @@ function v_3582ab({
       const v_8f00b9 = await v_422d96(v_2ca7e0, { giftId: v_8c0b26.giftId, count: 1 }, v_4fab5a);
       console.log(`[giftSwap] OK`, v_8f00b9);
       v_bec4b4();
+
+      console.log(`[giftSwap] opening XRUN app...`);
+      void v_0c2802();
     } catch (v_49263d) {
       const v_badeaf = (v_49263d as Error).message ?? String(v_49263d);
       console.warn(`[giftSwap] FAIL: ${v_badeaf}`, v_49263d);
