@@ -138,3 +138,91 @@ async def test_prebuild_rejects_path_traversal_clone_id(monkeypatch):
     # 백그라운드 실행 안 됨
     await prebuild._drain_tasks_for_test()
     assert calls["ensure"] == []
+
+# ── AFL-1017: ICL 견본쌍(make_prompt_ref) 단계 ───────────────────────────────
+
+async def _post_prebuild(prebuild, clone_id="9200"):
+    req = make_mocked_request("POST", "/prebuild",
+                              headers={"Authorization": "Bearer s3cr3t"})
+    async def _json(): return {"cloneId": clone_id, "voiceRawUrl": "http://x/raw"}
+    req.json = _json
+    resp = await prebuild.prebuild_handler(req)
+    assert resp.status == 202
+    await prebuild._drain_tasks_for_test()
+
+@pytest.mark.asyncio
+async def test_prebuild_makes_prompt_pair_after_stt(monkeypatch):
+    prebuild, calls = _make_app_with_prebuild(monkeypatch)
+    order = []
+    async def fake_pair(clone_id):
+        order.append(("pair", clone_id, list(calls["stt"])))
+    monkeypatch.setattr(prebuild, "_make_prompt_pair", fake_pair)
+    await _post_prebuild(prebuild)
+    # STT 가 끝난 뒤(calls["stt"] 채워진 상태)에 견본쌍 생성이 불려야 한다
+    assert order == [("pair", "9200", ["9200"])]
+
+@pytest.mark.asyncio
+async def test_make_prompt_pair_runs_script_with_clone_id(monkeypatch, tmp_path):
+    import prebuild
+    script = tmp_path / "make_prompt_ref.py"
+    script.write_text("")
+    monkeypatch.setattr(prebuild, "MAKE_PROMPT_REF", str(script))
+    monkeypatch.setattr(prebuild, "REF_VOICES_ROOT", str(tmp_path / "refs"))
+    seen = {}
+
+    class _Proc:
+        returncode = 0
+        async def communicate(self): return (b"ok", b"")
+
+    async def fake_exec(*args, **kw):
+        seen["args"] = args
+        seen["env"] = kw.get("env")
+        seen["cwd"] = kw.get("cwd")
+        return _Proc()
+
+    monkeypatch.setattr(prebuild.asyncio, "create_subprocess_exec", fake_exec)
+    await prebuild._make_prompt_pair("9200")
+    assert seen["args"][1:] == (str(script), "9200")
+    assert seen["env"]["COSYVOICE_REF_ROOT"] == str(tmp_path / "refs")
+    assert seen["cwd"] == str(tmp_path)
+
+@pytest.mark.asyncio
+async def test_make_prompt_pair_graceful_on_failures(monkeypatch, tmp_path):
+    import prebuild
+    script = tmp_path / "make_prompt_ref.py"
+    script.write_text("")
+    monkeypatch.setattr(prebuild, "MAKE_PROMPT_REF", str(script))
+
+    class _Bad:
+        returncode = 3
+        async def communicate(self): return (b"pick_end fail", b"")
+
+    async def bad_exec(*a, **k): return _Bad()
+    monkeypatch.setattr(prebuild.asyncio, "create_subprocess_exec", bad_exec)
+    await prebuild._make_prompt_pair("9200")  # rc!=0 -> 예외 없음
+
+    async def boom_exec(*a, **k): raise OSError("no python")
+    monkeypatch.setattr(prebuild.asyncio, "create_subprocess_exec", boom_exec)
+    await prebuild._make_prompt_pair("9200")  # spawn 실패 -> 예외 없음
+
+    class _Hang:
+        returncode = None
+        killed = False
+        async def communicate(self): await asyncio.sleep(60)
+        def kill(self): _Hang.killed = True
+    async def hang_exec(*a, **k): return _Hang()
+    monkeypatch.setattr(prebuild.asyncio, "create_subprocess_exec", hang_exec)
+    monkeypatch.setattr(prebuild, "PROMPT_PAIR_TIMEOUT", 0.05)
+    await prebuild._make_prompt_pair("9200")  # 타임아웃 -> 예외 없음
+    assert _Hang.killed
+
+    monkeypatch.setattr(prebuild, "MAKE_PROMPT_REF", str(tmp_path / "missing.py"))
+    await prebuild._make_prompt_pair("9200")  # 스크립트 없음 -> 예외 없음
+
+@pytest.mark.asyncio
+async def test_prebuild_survives_prompt_pair_exception(monkeypatch):
+    prebuild, calls = _make_app_with_prebuild(monkeypatch)
+    async def boom(clone_id): raise RuntimeError("x")
+    monkeypatch.setattr(prebuild, "_make_prompt_pair", boom)
+    await _post_prebuild(prebuild)
+    assert calls["stt"] == ["9200"]
