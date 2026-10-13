@@ -1249,9 +1249,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     (text: string) => {
       const willBeRound = afl971RoundCountRef.current + 1;
 
-      const faceBusy =
-        rmStateRef.current.promptRegister ||
-        shStateRef.current.naming;
+      const faceBusy = rmStateRef.current.promptRegister;
       const adNext =
         afl971IsFirstCallRef.current === false &&
         !faceBusy &&
@@ -2086,10 +2084,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     if (liveStateRef.current !== "live") return;
     if (phaseRef.current === "speaking") return;
     const pending = afl971PendingAdRoundRef.current;
-    const faceBusy = rmStateRef.current.promptRegister || shStateRef.current.naming;
+
+    const faceBusy = rmStateRef.current.promptRegister;
     if (!afl971CanFireAd({ pendingRound: pending, faceBusy, adInProgress: afl971AdInProgressRef.current })) {
       if (pending !== null && faceBusy) {
-        console.log("[Call][afl971] 얼굴인식 팝업/네이밍 중 — 예고된 광고 보류(유지·얼굴 우선)");
+        console.log("[Call][afl971] 얼굴 등록 팝업 중 — 예고된 광고 보류(유지·얼굴 우선)");
       }
       return;
     }
