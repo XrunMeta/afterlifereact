@@ -30,7 +30,7 @@ async function v_bdb39e(v_94302c, v_a2935a, v_bd1444) {
   const v_04211c = `pbjob-${v_bd1444}`;
   await v_a1651b()
     .prepare(`INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, clone_id, status, callback_token) VALUES (?,?,?,?,?,'pending','tok')`)
-    .bind(v_04211c, v_ceb55a!.id, v_94302c, v_8b5cd8!.id, v_6e0fd3, )
+    .bind(v_04211c, v_ceb55a!.id, v_94302c, v_8b5cd8!.id, v_6e0fd3)
     .run();
   return { jobId: v_04211c, srcFileId: v_8b5cd8!.id, cloneId: v_6e0fd3 };
 }
