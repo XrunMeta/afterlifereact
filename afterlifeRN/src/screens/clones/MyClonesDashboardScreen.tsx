@@ -900,16 +900,23 @@ export default function v_def15b() {
             {
 
 }
-            {v_c9ba75.length > 0 && (
-              <View style={v_fd5f43.giftLogSection}>
-                <Text style={v_fd5f43.giftLogTitle}>
-                  {v_8d41d7("dashboard.giftInventoryTitle", { defaultValue: "내선물" })}
+            {}
+            <View style={v_fd5f43.giftLogSection}>
+              <Text style={v_fd5f43.giftLogTitle}>
+                {v_8d41d7("dashboard.giftInventoryTitle", { defaultValue: "내선물" })}
+              </Text>
+              {v_c9ba75.length === 0 ? (
+                <Text style={v_fd5f43.giftLogSummary}>
+                  {v_8d41d7("dashboard.giftEmpty", { defaultValue: "아직 받은 선물이 없어요" })}
                 </Text>
+              ) : (
+                <>
                 <View style={v_fd5f43.giftLogSummaryRow}>
                   <Text style={v_fd5f43.giftLogSummary} numberOfLines={1}>
-                    {v_8d41d7("dashboard.giftTotalReceived", {
-                      defaultValue: "총 받은 선물: {{n}}개",
+                    {v_8d41d7("dashboard.giftTotalAndRemaining", {
+                      defaultValue: "총 선물 {{n}}개 · 남은 {{r}}개",
                       n: v_489044,
+                      r: v_cfa43b,
                     })}
                   </Text>
                   <TouchableOpacity
@@ -943,8 +950,9 @@ export default function v_def15b() {
                     </Text>
                   </TouchableOpacity>
                 )}
-              </View>
-            )}
+                </>
+              )}
+            </View>
           </>
         }
         ListFooterComponent={
@@ -2312,15 +2320,19 @@ function v_3582ab({ item: v_8c0b26 }: { item: v_407a6d }) {
   v_468545.push(v_8d37ae);
   const v_33a948 = v_468545.join(" · ");
 
+  const v_bf6b43 = v_8c0b26.counterpartAvatarUrl ?? v_8c0b26.cloneAvatarUrl ?? null;
+  const v_d71150 = (v_526c36.charAt(0) || v_8c0b26.cloneName?.charAt(0) || "").toUpperCase();
+
   return (
     <View style={v_fd5f43.giftLogRow}>
       <View style={v_fd5f43.giftLogAvatar}>
-        {v_8c0b26.counterpartAvatarUrl ? (
-          <Image source={{ uri: v_8c0b26.counterpartAvatarUrl }} style={v_fd5f43.giftLogAvatarImg} />
+        {v_bf6b43 ? (
+          <Image source={{ uri: v_bf6b43 }} style={v_fd5f43.giftLogAvatarImg} />
+        ) : v_d71150 ? (
+          <Text style={v_fd5f43.giftLogAvatarInitial}>{v_d71150}</Text>
         ) : (
-          <Text style={v_fd5f43.giftLogAvatarInitial}>
-            {(v_526c36.charAt(0) || "?").toUpperCase()}
-          </Text>
+
+          <Text style={[v_fd5f43.giftLogAvatarInitial, { color: v_90e7ec.color }]}>{v_90e7ec.icon}</Text>
         )}
       </View>
       <View style={v_fd5f43.giftLogBody}>
