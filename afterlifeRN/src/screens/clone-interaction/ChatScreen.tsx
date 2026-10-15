@@ -1002,6 +1002,10 @@ const v_d81136 = v_472849.create({
     paddingBottom: 10,
     fontSize: 14,
     color: v_1bfbd0.zinc900,
+
+    textAlign: "left",
+    textAlignVertical: "top",
+    writingDirection: "ltr",
   },
   sendBtn: {
     width: 40, height: 40, borderRadius: 20,
