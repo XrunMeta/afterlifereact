@@ -604,7 +604,8 @@ export default function v_8640b9() {
       {v_2fb8cc && v_c414dc ? (
         <KeyboardAvoidingView
           style={v_fd5f43.centerBlock}
-          behavior={v_326be8.OS === "ios" ? "padding" : "height"}
+
+          behavior={v_326be8.OS === "ios" ? "padding" : undefined}
         >
           <Text style={v_fd5f43.formTitle}>
             {v_8d41d7("faceEnroll.form.title", { defaultValue: "이 분은 누구신가요?" })}
