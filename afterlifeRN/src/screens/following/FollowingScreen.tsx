@@ -782,7 +782,7 @@ export default function v_14b43e() {
   };
 
   return (
-    <SafeView backgroundColor="#FBF2EB" showBottomBackground={false}>
+    <SafeView backgroundColor={v_1bfbd0.violet100} showBottomBackground={false}>
       <PageHeader
         title="Subscribe"
         rightAction={<NotificationBell />}
@@ -1170,7 +1170,7 @@ const v_fd5f43 = v_472849.create({
   msgListContent: {
     paddingHorizontal: 16,
     paddingBottom: 120,
-    backgroundColor: "#FBF2EB",
+    backgroundColor: v_1bfbd0.violet100,
   },
   subSearchBar: {
     flexDirection: "row",
@@ -1188,7 +1188,7 @@ const v_fd5f43 = v_472849.create({
   },
   subAdBanner: {
     height: 60,
-    backgroundColor: "#B8674F",
+    backgroundColor: v_1bfbd0.violet600,
     borderRadius: 14,
     paddingHorizontal: 20,
     justifyContent: "center",
@@ -1218,11 +1218,11 @@ const v_fd5f43 = v_472849.create({
   msgAvatarWrap: { width: 48, height: 48, position: "relative" },
   msgAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: v_1bfbd0.zinc200 },
   msgAvatarFallback: {
-    backgroundColor: "#E8D5CA",
+    backgroundColor: v_1bfbd0.violet200,
     alignItems: "center",
     justifyContent: "center",
   },
-  msgAvatarInitial: { fontSize: 20, fontWeight: "700", color: "#8B5A42" },
+  msgAvatarInitial: { fontSize: 20, fontWeight: "700", color: v_1bfbd0.violet700 },
 
   msgOnlineDot: {
     position: "absolute",
@@ -1240,14 +1240,14 @@ const v_fd5f43 = v_472849.create({
 
   msgUnreadBadge: {
     minWidth: 20, height: 20, borderRadius: 10,
-    backgroundColor: "#E04E2A",
+    backgroundColor: v_1bfbd0.rose500,
     alignItems: "center", justifyContent: "center",
     paddingHorizontal: 6,
   },
   msgUnreadText: { fontSize: 11, fontWeight: "700", color: v_1bfbd0.white },
   msgCallBtn: {
     width: 32, height: 32, borderRadius: 16,
-    backgroundColor: "#E04E2A",
+    backgroundColor: v_1bfbd0.violet600,
     alignItems: "center", justifyContent: "center",
   },
 
