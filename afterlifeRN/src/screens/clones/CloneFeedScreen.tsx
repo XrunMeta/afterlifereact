@@ -574,7 +574,8 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
             style={[
               v_d81136.commentSheet,
               {
-                paddingBottom: 24 + v_2b650d,
+
+                paddingBottom: 8 + v_2b650d,
                 height: Math.max(v_28d8d8 * 0.7 - v_7e4acc, 200),
               },
             ]}
