@@ -7,7 +7,6 @@ import {
   v_19b633,
   v_472849,
   v_027028,
-  v_bfa1d6,
   v_7e4944,
   v_961e77,
 } from "rcmrninabrnb";
@@ -25,13 +24,10 @@ type NativeProps = {
 };
 
 const v_ec44be = "PangleBannerAdView";
-const v_0325bd =
-  v_326be8.OS === "android" &&
-  typeof v_bfa1d6.hasViewManagerConfig === "function" &&
-  v_bfa1d6.hasViewManagerConfig(v_ec44be);
-const v_db6966 = v_0325bd
-  ? v_027028<NativeProps>(v_ec44be)
-  : null;
+const v_db6966 =
+  v_326be8.OS === "android"
+    ? v_027028<NativeProps>(v_ec44be)
+    : null;
 
 export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4 }: Props) {
 
