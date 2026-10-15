@@ -412,7 +412,6 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
      transparent={false}
      animationType="none"
      statusBarTranslucent
-     navigationBarTranslucent={v_326be8.OS === "android"}
      onRequestClose={() => v_c65f5d.goBack()}
    >
     {
