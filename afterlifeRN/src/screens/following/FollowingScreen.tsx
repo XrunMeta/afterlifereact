@@ -1258,10 +1258,11 @@ export default function v_14b43e() {
         <View style={v_fd5f43.toast}><Text style={v_fd5f43.toastText}>{v_8282fa}</Text></View>
       )}
 
-      {}
+      {
+}
       <Modal visible={v_557d00} transparent animationType="slide">
         <Pressable style={v_fd5f43.bottomOverlay} onPress={() => v_538ca9(false)}>
-          <SwipeDownSheet onClose={() => v_538ca9(false)} style={v_fd5f43.sortSheet}>
+          <Pressable style={v_fd5f43.sortSheet} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
             <View style={v_fd5f43.sortSheetHandle} />
             <Text style={v_fd5f43.sortSheetTitle}>정렬</Text>
             {(["recent", "intimacy", "name"] as const).map((v_34e5bb) => (
@@ -1282,7 +1283,7 @@ export default function v_14b43e() {
                 )}
               </TouchableOpacity>
             ))}
-          </SwipeDownSheet>
+          </Pressable>
         </Pressable>
       </Modal>
     </SafeView>
