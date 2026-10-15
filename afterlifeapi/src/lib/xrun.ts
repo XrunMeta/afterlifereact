@@ -565,6 +565,31 @@ export async function v_fb09c6(
   }
 }
 
+export async function v_3326b4(
+  env: v_273a0c,
+  v_660822,
+  v_6ebcbe,
+): Promise<{ ok: boolean; reason?: string }> {
+  if (!v_c9c489.XRUN_INTERNAL_SECRET) {
+    return { ok: false, reason: "missing XRUN_INTERNAL_SECRET" };
+  }
+  try {
+    const v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: v_9765c6(v_c9c489),
+      body: JSON.stringify({ member: v_660822, ...v_6ebcbe }),
+    });
+    if (!v_8f00b9.ok) {
+      return { ok: false, reason: `HTTP ${v_8f00b9.status}` };
+    }
+    const v_7ecfd1 = (await v_8f00b9.json()) as { status?: string; message?: string };
+    if (v_7ecfd1.status === "success") return { ok: true };
+    return { ok: false, reason: v_7ecfd1.message ?? "unknown" };
+  } catch (v_49263d) {
+    return { ok: false, reason: `network: ${(v_49263d as Error).message}` };
+  }
+}
+
 export async function v_5f6369(env: v_273a0c, v_660822): Promise<XrunBalancesResult> {
   if (!v_c9c489.XRUN_GATEWAY_TOKEN) {
     return { ok: false, balances: [], reason: "missing XRUN_GATEWAY_TOKEN" };
