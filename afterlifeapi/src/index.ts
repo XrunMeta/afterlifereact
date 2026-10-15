@@ -12,7 +12,7 @@ import { v_de7ba7 } from "./routes/users";
 import { v_f891e6 } from "./routes/clones";
 import { v_773b4c } from "./routes/memory";
 import { v_19e2a3, v_fa56e0 } from "./routes/messages";
-import { v_1172ea } from "./routes/conversationTimeline";
+import { v_72aaee, v_1172ea } from "./routes/conversationTimeline";
 import { v_96e8d7, v_f1d06f } from "./routes/feeds";
 import { v_20e160 } from "./routes/calls";
 import { v_dcd415 } from "./routes/internal";
@@ -129,6 +129,8 @@ v_466992.route("/oth-path", v_773b4c);
 v_466992.route("/oth-path", v_19e2a3);
 
 v_466992.route("/oth-path", v_1172ea);
+
+v_466992.route("/oth-path", v_72aaee);
 
 v_466992.route("/oth-path", v_96e8d7);
 
