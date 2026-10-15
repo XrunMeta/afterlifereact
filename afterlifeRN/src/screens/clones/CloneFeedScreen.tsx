@@ -27,14 +27,14 @@ import { v_84d546 } from "../../lib/callGuard";
 import v_9706a6 from "../../components/ui/FeedCard";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import v_06b8c0 from "../../components/clone/IntimacyEventsSheet";
+import v_03e207 from "../../components/clone/GiftReceiptsSheet";
 import type { v_19b433 } from "../../types/feed";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_37977a } from "../../stores/feedStore";
 import { v_889fad } from "../../stores/dialogStore";
 import {
-  v_b14fce,
-  v_0ff331,
+
   v_4208e7,
   v_776874,
   v_3f8bc7,
@@ -114,6 +114,9 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
   const { t: v_8d41d7 } = v_772971();
   const v_033e14 = v_e0068c();
   const v_f9771e = v_c18c22(0);
+
+  const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
+  const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
 
   const { height: v_28d8d8 } = v_700696.get("window");
   const v_53dd92 = v_f9771e > 0 ? v_f9771e : v_033e14.bottom;
@@ -199,6 +202,8 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
   const [v_3e9618, v_eda097] = v_5ab095(false);
 
   const [v_d3a183, v_598141] = v_5ab095<{ cloneId: number; cloneName: string } | null>(null);
+
+  const [v_5e9fb7, v_cc306d] = v_5ab095<{ cloneId: number; cloneName: string } | null>(null);
   const [v_f18195, v_fdd7c1] = v_5ab095<{
     cloneId: number;
     author: string;
@@ -214,19 +219,10 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
   const v_d3af9c = async () => {
     const v_a448ad = !v_b84498;
     v_e24028(v_a448ad);
+
     v_a96ced(v_8c0b26.id);
 
     v_abdcca((v_ba2215) => Math.max(0, v_ba2215 + (v_a448ad ? 1 : -1)));
-    if (!v_2ca7e0) return;
-    try {
-      if (v_a448ad) await v_b14fce(v_2ca7e0, v_8c0b26.cloneId);
-      else await v_0ff331(v_2ca7e0, v_8c0b26.cloneId);
-    } catch (v_49263d) {
-      console.warn("[CloneFeed] like toggle failed:", v_49263d);
-
-      v_e24028(!v_a448ad);
-      v_abdcca((v_ba2215) => Math.max(0, v_ba2215 + (v_a448ad ? -1 : 1)));
-    }
   };
 
   const v_f8043e = async () => {
@@ -505,11 +501,21 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
         onToggleFollow={() => void v_3094d4(v_8c0b26.cloneId)}
         onCallPress={v_f8043e}
         onCommentPress={() => v_0c9768(true)}
-        onMorePress={() => v_eda097(true)}
+
+        onMorePress={v_799eb5 ? undefined : () => v_eda097(true)}
         onSharePress={v_22cd2d}
         contentTopInset={v_033e14.top + 8}
         hideHashtagsChip
         onIntimacyPress={() => v_598141({ cloneId: v_8c0b26.cloneId, cloneName: v_8c0b26.author })}
+
+        onGiftPress={() => v_cc306d({ cloneId: v_8c0b26.cloneId, cloneName: v_8c0b26.author })}
+        onOwnerPress={() => {
+          if (v_8c0b26.cloneOwnerId != null) {
+            v_c65f5d.navigate("UserProfile", { userId: v_8c0b26.cloneOwnerId });
+          }
+        }}
+
+        onDescriptionPress={() => v_0c9768(true)}
       />
 
       {}
@@ -542,7 +548,7 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
             style={[
               v_d81136.commentSheet,
               {
-                paddingBottom: 24 + Math.max(v_033e14.bottom, 0),
+                paddingBottom: 24 + v_2b650d,
                 height: Math.max(v_28d8d8 * 0.7 - v_7e4acc, 200),
               },
             ]}
@@ -773,7 +779,7 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
         <Pressable style={v_d81136.moreOverlay} onPress={() => v_eda097(false)}>
           <SwipeDownSheet
             onClose={() => v_eda097(false)}
-            style={[v_d81136.moreSheet, { paddingBottom: 24 + Math.max(v_033e14.bottom, 0) }]}
+            style={[v_d81136.moreSheet, { paddingBottom: 24 + v_2b650d }]}
           >
             <View style={v_d81136.moreSheetHandle} />
             <Text style={v_d81136.moreTitle}>{v_8c0b26.author}</Text>
@@ -854,6 +860,14 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
         cloneId={v_d3a183?.cloneId ?? null}
         cloneName={v_d3a183?.cloneName ?? ""}
         onClose={() => v_598141(null)}
+      />
+
+      {}
+      <GiftReceiptsSheet
+        visible={!!v_5e9fb7}
+        cloneId={v_5e9fb7?.cloneId ?? null}
+        cloneName={v_5e9fb7?.cloneName ?? ""}
+        onClose={() => v_cc306d(null)}
       />
 
       {v_8282fa && (

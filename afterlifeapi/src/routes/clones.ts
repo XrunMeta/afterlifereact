@@ -1723,6 +1723,52 @@ v_f891e6.delete("/:id/follow", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true });
 });
 
+v_f891e6.post("/:id/mute", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+
+  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  await v_3f4e2e.env.DB
+    .prepare(
+      `INSERT OR IGNORE INTO clone_notification_mutes (user_id, clone_id) VALUES (?, ?)`,
+    )
+    .bind(v_43e90c, v_6e0fd3)
+    .run();
+  return v_3f4e2e.json({ muted: true });
+});
+v_f891e6.delete("/:id/mute", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  await v_3f4e2e.env.DB
+    .prepare(
+      `DELETE FROM clone_notification_mutes WHERE user_id = ? AND clone_id = ?`,
+    )
+    .bind(v_43e90c, v_6e0fd3)
+    .run();
+  return v_3f4e2e.json({ muted: false });
+});
+v_f891e6.get("/:id/mute", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT 1 FROM clone_notification_mutes WHERE user_id = ? AND clone_id = ? LIMIT 1`,
+    )
+    .bind(v_43e90c, v_6e0fd3)
+    .first<{ 1: number }>();
+  return v_3f4e2e.json({ muted: !!v_3ac7e7 });
+});
+
 v_f891e6.get("/:id/followers", async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {

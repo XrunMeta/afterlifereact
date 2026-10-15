@@ -65,12 +65,14 @@ export default function v_ed02a5() {
 
   const v_74ecfc = (v_6e0fd3) => {
     v_d5cd7b(null);
-    v_c65f5d.getParent()?.dispatch(
-      v_650cfa.navigate({
-        name: "ClonesTab",
-        params: { screen: "CloneDetail", params: { cloneId: v_6e0fd3 } },
-      }),
-    );
+    const v_4eab4b = v_c65f5d.getParent();
+    if (v_4eab4b) {
+
+      (v_4eab4b as unknown as { navigate: (name: string, params: unknown) => void }).navigate(
+        "ClonesTab",
+        { screen: "CloneDetail", params: { cloneId: v_6e0fd3 } },
+      );
+    }
   };
   const [v_1f6f04, v_9127a1] = v_5ab095<v_c33ae3[] | null>(null);
   const [v_58e68f, v_6df89a] = v_5ab095<v_fa0201[] | null>(null);

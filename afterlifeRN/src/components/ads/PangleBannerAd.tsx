@@ -23,19 +23,41 @@ type NativeProps = {
   style?: v_961e77<v_7e4944>;
 };
 
+const v_ec44be = "PangleBannerAdView";
 const v_db6966 =
   v_326be8.OS === "android"
-    ? v_027028<NativeProps>("PangleBannerAdView")
+    ? v_027028<NativeProps>(v_ec44be)
     : null;
 
+console.log(
+  `[PangleBannerAd][module] platform=${v_326be8.OS} nativeComponent=${!!v_db6966}`,
+);
+
 export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4 }: Props) {
+
+  const v_86668d =
+    v_326be8.OS !== "android"
+      ? "fallback-ios"
+      : !v_db6966
+        ? "fallback-no-native"
+        : !v_61418d
+          ? "fallback-no-unit"
+          : "native";
+  console.log(
+    `[PangleBannerAd][render] branch=${v_86668d} adUnitId=${v_61418d || "(empty)"}`,
+  );
 
   v_c4deb2(() => {
     if (v_326be8.OS !== "android") return;
     if (!v_61418d) return;
-    void v_f095b0().catch((v_49263d) => {
-      console.warn("[PangleBannerAd] init 실패:", (v_49263d as Error)?.message ?? v_49263d);
-    });
+    console.log(`[PangleBannerAd][effect] initializePangle 호출 adUnitId=${v_61418d}`);
+    void v_f095b0()
+      .then((v_3ed4c3) => {
+        console.log(`[PangleBannerAd][effect] initializePangle → ${v_3ed4c3}`);
+      })
+      .catch((v_49263d) => {
+        console.warn("[PangleBannerAd] init 실패:", (v_49263d as Error)?.message ?? v_49263d);
+      });
   }, [v_61418d]);
 
   if (v_326be8.OS !== "android" || !v_db6966) {

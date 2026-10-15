@@ -23,6 +23,7 @@ import { v_04686a } from "../../lib/imagePicker";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_cf763b, v_ada615, v_2d8264, type v_ee3714, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_772971 } from "jmpfvteuuztnp";
 import * as v_fba5a0 from "hfxxehldoiokdq";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
@@ -75,6 +76,12 @@ export default function v_def15b() {
     v_8d41d7("common.exitPrompt", { defaultValue: "한 번 더 누르면 종료됩니다" }),
   );
   const v_033e14 = v_e0068c();
+
+  const v_f9771e = v_c18c22(0);
+  const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
+  const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
+
+  const v_9fd982 = v_e662ae<v_9cabcb<v_affcc0>>(null);
   const v_f38ee5 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
   const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
@@ -679,13 +686,6 @@ export default function v_def15b() {
         <View style={v_fd5f43.actionsRow}>
           <TouchableOpacity
             style={v_fd5f43.actionBtn}
-            onPress={() => v_c65f5d.navigate("CloneLearn", { cloneId: v_eb25ce.id })}
-          >
-            <Feather name="message-circle" size={16} color={v_1bfbd0.zinc700} />
-            <Text style={v_fd5f43.actionText}>{v_8d41d7("dashboard.actionLearn")}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={v_fd5f43.actionBtn}
             onPress={async () => {
 
               const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
@@ -768,6 +768,7 @@ export default function v_def15b() {
         </View>
       ) : (
       <FlatList
+        ref={v_9fd982}
         data={v_fc7f92}
         keyExtractor={(v_8c0b26) => String(v_8c0b26.id)}
         renderItem={v_b80d74}
@@ -881,10 +882,17 @@ export default function v_def15b() {
                       <Text style={v_fd5f43.profileStatLabel}>{v_8d41d7("dashboard.profileStatFollowing", { defaultValue: "팔로잉" })}</Text>
                     </TouchableOpacity>
                     <View style={v_fd5f43.profileStatDivider} />
-                    <View style={v_fd5f43.profileStatItem}>
+                    <TouchableOpacity
+                      style={v_fd5f43.profileStatItem}
+                      onPress={() => {
+
+                        if (v_fc7f92.length === 0) return;
+                        v_9fd982.current?.scrollToOffset({ offset: 0, animated: true });
+                      }}
+                    >
                       <Text style={v_fd5f43.profileStatValue}>{v_fc7f92.length}</Text>
                       <Text style={v_fd5f43.profileStatLabel}>{v_8d41d7("dashboard.profileStatClones", { defaultValue: "클론" })}</Text>
-                    </View>
+                    </TouchableOpacity>
                   </View>
                 </View>
               </View>
@@ -1149,7 +1157,7 @@ export default function v_def15b() {
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_d5cd7b(null)}>
           <SwipeDownSheet
             onClose={() => v_d5cd7b(null)}
-            style={[v_fd5f43.statsSheet, { paddingBottom: 32 + Math.max(v_033e14.bottom, 0) }]}
+            style={[v_fd5f43.statsSheet, { paddingBottom: 32 + v_2b650d }]}
           >
             <View style={v_fd5f43.sheetHandle} />
             <Text style={v_fd5f43.statsSheetTitle}>
@@ -1220,7 +1228,9 @@ export default function v_def15b() {
                         {v_ceb55a.avatarUrl ? (
                           <Image source={{ uri: v_ceb55a.avatarUrl }} style={v_fd5f43.accountAvatar} />
                         ) : (
-                          <View style={[v_fd5f43.accountAvatar, { backgroundColor: v_1bfbd0.zinc200 }]} />
+                          <View style={[v_fd5f43.accountAvatar, { backgroundColor: v_1bfbd0.zinc200, alignItems: "center", justifyContent: "center" }]}>
+                            <Feather name="user" size={18} color={v_1bfbd0.zinc400} />
+                          </View>
                         )}
                         <View style={v_fd5f43.accountInfo}>
                           <Text style={v_fd5f43.accountName}>{v_ceb55a.name ?? v_ceb55a.email}</Text>
@@ -1247,7 +1257,9 @@ export default function v_def15b() {
                         {v_ceb55a.avatarUrl ? (
                           <Image source={{ uri: v_ceb55a.avatarUrl }} style={v_fd5f43.accountAvatar} />
                         ) : (
-                          <View style={[v_fd5f43.accountAvatar, { backgroundColor: v_1bfbd0.zinc200 }]} />
+                          <View style={[v_fd5f43.accountAvatar, { backgroundColor: v_1bfbd0.zinc200, alignItems: "center", justifyContent: "center" }]}>
+                            <Feather name="user" size={18} color={v_1bfbd0.zinc400} />
+                          </View>
                         )}
                         <View style={v_fd5f43.accountInfo}>
                           <Text style={v_fd5f43.accountName}>{v_ceb55a.name ?? v_ceb55a.email}</Text>
@@ -1279,7 +1291,7 @@ export default function v_def15b() {
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_598141(null)}>
           <SwipeDownSheet
             onClose={() => v_598141(null)}
-            style={[v_fd5f43.statsSheet, { paddingBottom: 32 + Math.max(v_033e14.bottom, 0) }]}
+            style={[v_fd5f43.statsSheet, { paddingBottom: 32 + v_2b650d }]}
           >
             <View style={v_fd5f43.sheetHandle} />
             <View style={v_fd5f43.intimacyTitleRow}>

@@ -53,6 +53,9 @@ export interface AuthUser {
 
   followersCount: number;
   followingCount: number;
+
+  ssoConsentVersion?: string | null;
+  needsSsoReconsent?: boolean;
 }
 
 export interface SignupResponse {

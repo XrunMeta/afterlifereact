@@ -7,8 +7,10 @@ import {
   v_122070,
   v_472849,
   v_09d0e5,
+  v_326be8,
 } from "rcmrninabrnb";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
 import v_84e2fc from "./InterestChip";
@@ -36,6 +38,10 @@ const FilterModal: v_a3453e.FC<FilterModalProps> = ({
 }) => {
   const { t: v_8d41d7 } = v_772971();
   const v_033e14 = v_e0068c();
+
+  const v_f9771e = v_c18c22(0);
+  const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
+  const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
   return (
     <Modal
       visible={v_cf55be}
@@ -86,7 +92,7 @@ const FilterModal: v_a3453e.FC<FilterModalProps> = ({
         <View
           style={[
             v_d81136.footer,
-            { paddingBottom: v_9b1a04.xlarge + Math.max(v_033e14.bottom, 0) },
+            { paddingBottom: v_9b1a04.xlarge + v_2b650d },
           ]}
         >
           <TouchableOpacity

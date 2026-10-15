@@ -240,6 +240,18 @@ v_dda4b9.delete("/me", v_6690d9, async (v_3f4e2e) => {
     );
   }
 
+  try {
+    const { purgeUserAiAssets: v_fb2d8f } = await import("../lib/purgeAiAssets");
+    const v_3be8a1 = await v_fb2d8f(v_3f4e2e.env, v_43e90c);
+    console.log(
+      `[deletion.me] R2 AI assets purged: media=${v_3be8a1.mediaKeys} archive=${v_3be8a1.archiveKeys} errors=${v_3be8a1.errors}`,
+    );
+  } catch (v_49263d) {
+    console.error(
+      `[deletion.me] CRITICAL: R2 AI assets purge FAILED for user ${v_43e90c}: ${(v_49263d as Error).message}`,
+    );
+  }
+
   if (!v_d7b02d) {
     try {
       const v_d1b635 = await v_3f4e2e.env.DB
@@ -315,6 +327,18 @@ v_dda4b9.delete("/oth-path", v_6690d9, async (v_3f4e2e) => {
       )
       .bind(v_6e0fd3)
       .run();
+
+    try {
+      const { purgeCloneAiAssets: v_ed063f } = await import("../lib/purgeAiAssets");
+      const v_cb35cb = await v_ed063f(v_3f4e2e.env, v_6e0fd3);
+      console.log(
+        `[deletion.clone] R2 AI assets purged clone=${v_6e0fd3}: media=${v_cb35cb.mediaKeys} errors=${v_cb35cb.errors}`,
+      );
+    } catch (v_49263d) {
+      console.error(
+        `[deletion.clone] CRITICAL: R2 purge FAILED clone=${v_6e0fd3}: ${(v_49263d as Error).message}`,
+      );
+    }
     return v_3f4e2e.json({ ok: true, state: "soft_deleted", transferred: null });
   }
 
