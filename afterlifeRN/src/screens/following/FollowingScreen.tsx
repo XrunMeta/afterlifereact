@@ -7,6 +7,7 @@ import {
   v_4623af,
   v_cf9c33,
   v_9cabcb,
+  v_6c4f62,
   v_122070,
   v_aa7413,
   v_326be8,
@@ -133,6 +134,21 @@ export default function v_14b43e() {
 
   const v_7aa778 = v_8a85e2(v_f4fb5e);
   const [v_002f27, v_ff797f] = v_5ab095<v_17d27f[] | null>(null);
+
+  const [v_612e9f, v_575aad] = v_5ab095(false);
+  const v_0cde43 = async () => {
+    if (!v_2ca7e0) return;
+    v_575aad(true);
+    try {
+      if (v_7aa778) {
+        const v_8f00b9 = await v_e36429(v_2ca7e0);
+        v_ff797f(v_8f00b9?.items ?? []);
+      }
+
+    } finally {
+      v_575aad(false);
+    }
+  };
 
   v_c4deb2(() => {
     if (!v_7aa778 || !v_2ca7e0) {
@@ -910,6 +926,14 @@ export default function v_14b43e() {
         showsVerticalScrollIndicator={false}
         onScroll={v_023642}
         scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={v_612e9f}
+            onRefresh={v_0cde43}
+            tintColor={v_1bfbd0.violet600}
+            colors={[v_1bfbd0.violet600]}
+          />
+        }
         ListHeaderComponent={
           <View>
             {}
@@ -1262,7 +1286,10 @@ export default function v_14b43e() {
 }
       <Modal visible={v_557d00} transparent animationType="slide">
         <Pressable style={v_fd5f43.bottomOverlay} onPress={() => v_538ca9(false)}>
-          <Pressable style={v_fd5f43.sortSheet} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+          <Pressable
+            style={[v_fd5f43.sortSheet, { paddingBottom: 24 + v_2b650d }]}
+            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
+          >
             <View style={v_fd5f43.sortSheetHandle} />
             <Text style={v_fd5f43.sortSheetTitle}>정렬</Text>
             {(["recent", "intimacy", "name"] as const).map((v_34e5bb) => (
