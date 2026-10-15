@@ -16,7 +16,8 @@ import {
 export const v_1172ea = new v_b7c41b<v_de0a25>();
 
 type ChatItem = { type: "chat"; id: number; role: string; content: string; at: number; sessionId: string };
-type CallItem = { type: "call"; callId: string; startedAt: number; turnCount: number };
+
+type CallItem = { type: "call"; callId: string; startedAt: number; durationSec: number | null; turnCount: number };
 
 type SortKey = { at: number; kind: 0 | 1; id: string };
 
@@ -94,14 +95,14 @@ v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
     ).bind(v_43e90c, v_6e0fd3, v_5b31c3, v_02be30 + v_de3072)
       .all<{ id: number; session_id: string; role: string; content: string; created_at: string }>(),
     v_3f4e2e.env.DB.prepare(
-      `SELECT s.call_id, s.started_at,
+      `SELECT s.call_id, s.started_at, s.duration_sec,
               (SELECT COUNT(*) FROM call_turns t WHERE t.call_id = s.call_id) AS turn_count
          FROM call_sessions s
         WHERE s.user_id = ? AND s.clone_id = ? AND s.started_at <= ?
         ORDER BY s.started_at DESC, s.call_id DESC
         LIMIT ?`,
     ).bind(v_43e90c, v_6e0fd3, v_7a9a34, v_02be30 + v_de3072)
-      .all<{ call_id: string; started_at: number; turn_count: number }>(),
+      .all<{ call_id: string; started_at: number; duration_sec: number | null; turn_count: number }>(),
   ]);
 
   type Pending =
@@ -113,7 +114,10 @@ v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
     v_483de2.push({ k: { at: v_83d291, kind: 1, id: String(v_cb35cb.id).padStart(12, "0") }, chat: { ...v_cb35cb, at: v_83d291 } });
   }
   for (const v_cb35cb of v_20e160.results ?? []) {
-    const v_51c3d2 = { type: "call", callId: v_cb35cb.call_id, startedAt: v_cb35cb.started_at, turnCount: v_cb35cb.turn_count };
+    const v_51c3d2 = {
+      type: "call", callId: v_cb35cb.call_id, startedAt: v_cb35cb.started_at,
+      durationSec: v_cb35cb.duration_sec ?? null, turnCount: v_cb35cb.turn_count,
+    };
     v_483de2.push({ k: v_2c3bd9(v_51c3d2), call: v_51c3d2 });
   }
   v_483de2.sort((v_779914, v_148ff6) => v_2d012c(v_779914.k, v_148ff6.k));
