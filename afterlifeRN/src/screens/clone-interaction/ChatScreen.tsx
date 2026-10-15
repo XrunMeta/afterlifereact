@@ -13,7 +13,6 @@ import {
   v_09d0e5,
   v_326be8,
   v_0e1f26,
-  v_e767d1,
   type v_5b67a3,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
@@ -382,7 +381,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     v_c65f5d.navigate("CloneFeed", { cloneId: v_6e0fd3 });
   };
 
-  const v_53dd92 = v_033e14.bottom || 10;
+  const v_53dd92 = v_7e4acc > 0 ? 10 : v_033e14.bottom;
 
   const v_f9771e = v_c18c22(0);
   const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
@@ -390,11 +389,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   return (
 
-    <KeyboardAvoidingView
-      style={[v_d81136.root, { paddingTop: v_033e14.top }]}
-      behavior={v_326be8.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={v_326be8.OS === "ios" ? v_033e14.top : 0}
-    >
+    <View style={[v_d81136.root, { paddingTop: v_033e14.top, paddingBottom: v_7e4acc }]}>
       {}
       <View style={v_d81136.header}>
         <TouchableOpacity
@@ -702,7 +697,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           </Pressable>
         </Pressable>
       </Modal>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
