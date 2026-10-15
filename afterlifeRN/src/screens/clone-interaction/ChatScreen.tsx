@@ -605,30 +605,33 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       </ScrollView>
 
       {
+
 }
       <View style={[v_d81136.inputBar, { paddingBottom: v_53dd92 || 10 }]}>
-        <TextInput
-          style={v_d81136.inputField}
-          value={v_bbda62}
-          onChangeText={v_c31db7}
-          placeholder={`${v_dfb220}(으)로 채팅 중`}
-          placeholderTextColor={v_1bfbd0.zinc400}
-          multiline
-          maxLength={500}
-          returnKeyType="send"
-          onSubmitEditing={v_465869}
-          blurOnSubmit
-
-          onFocus={() => {
-            setTimeout(() => v_5ca6b8.current?.scrollToEnd({ animated: true }), 100);
-          }}
-        />
+        <View style={v_d81136.inputWrapper}>
+          <TextInput
+            style={v_d81136.inputField}
+            value={v_bbda62}
+            onChangeText={v_c31db7}
+            placeholder={`${v_dfb220}(으)로 채팅 중`}
+            placeholderTextColor="#7d7e83"
+            multiline
+            maxLength={500}
+            returnKeyType="send"
+            onSubmitEditing={v_465869}
+            blurOnSubmit
+            onFocus={() => {
+              setTimeout(() => v_5ca6b8.current?.scrollToEnd({ animated: true }), 100);
+            }}
+          />
+        </View>
         <TouchableOpacity
           style={[v_d81136.sendBtn, !v_bbda62.trim() && v_d81136.sendBtnDisabled]}
           onPress={v_465869}
           disabled={!v_bbda62.trim()}
+          activeOpacity={0.8}
         >
-          <Feather name="send" size={18} color={v_1bfbd0.white} />
+          <Text style={v_d81136.sendBtnText}>{v_8d41d7("chat.send") || "보내기"}</Text>
         </TouchableOpacity>
       </View>
 
@@ -984,35 +987,50 @@ const v_d81136 = v_472849.create({
   inputBar: {
     flexDirection: "row",
     alignItems: "flex-end",
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingTop: 8,
+    gap: 10,
+    paddingHorizontal: 24,
+    paddingTop: 16,
     backgroundColor: v_1bfbd0.white,
     borderTopWidth: 1,
     borderTopColor: v_1bfbd0.zinc100,
   },
-  inputField: {
+  inputWrapper: {
     flex: 1,
-    minHeight: 40,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#edeced",
+    backgroundColor: v_1bfbd0.white,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 48,
     maxHeight: 120,
-    backgroundColor: v_1bfbd0.violet100,
-    borderRadius: v_8b0c90.lg,
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 10,
+    justifyContent: "center",
+  },
+  inputField: {
     fontSize: 14,
-    color: v_1bfbd0.zinc900,
-
+    color: "#2a2727",
+    padding: 0,
+    margin: 0,
     textAlign: "left",
     textAlignVertical: "top",
     writingDirection: "ltr",
   },
   sendBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: v_1bfbd0.violet600,
-    alignItems: "center", justifyContent: "center",
+    backgroundColor: "#33395b",
+    borderRadius: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    minWidth: 60,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  sendBtnDisabled: { backgroundColor: v_1bfbd0.zinc300 },
+  sendBtnDisabled: { backgroundColor: "#b5b7c2" },
+  sendBtnText: {
+    color: v_1bfbd0.white,
+    fontSize: 14,
+    fontWeight: "600",
+  },
 
   sheetOverlay: {
     flex: 1,
