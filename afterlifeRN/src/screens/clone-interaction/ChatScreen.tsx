@@ -403,7 +403,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
   const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
 
-  const v_53dd92 = v_326be8.OS === "android" ? 0 : Math.max(v_033e14.bottom, 10);
+  const v_53dd92 = 10;
 
   return (
 
@@ -915,7 +915,8 @@ const v_d81136 = v_472849.create({
   },
 
   userBubble: {
-    width: "70%",
+    flexShrink: 1,
+    maxWidth: "70%",
     backgroundColor: v_1bfbd0.violet600,
     borderRadius: 18,
     paddingLeft: 14,
@@ -932,7 +933,8 @@ const v_d81136 = v_472849.create({
   },
 
   personaOutsideBubble: {
-    width: "70%",
+    flexShrink: 1,
+    maxWidth: "70%",
     backgroundColor: v_1bfbd0.white,
     borderRadius: 18,
     paddingLeft: 14,
