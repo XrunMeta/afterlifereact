@@ -5,6 +5,9 @@ import { v_1ed7d9 } from "../stores/authStore";
 import { v_b5d684 } from "../permissions/usePermissionGate";
 import v_6d377c from "../permissions/PermissionGateScreen";
 
+import { v_2f5414 } from "../hooks/useSsoReconsentGate";
+import v_ac767f from "../screens/auth/SsoReconsentScreen";
+
 import { v_54ca39 } from "../lib/iap";
 
 import v_f4f851 from "../screens/auth/LoginScreen";
@@ -58,6 +61,11 @@ export default function v_3b950c() {
   if (v_8a15d2) {
 
     return <PermissionGateScreen />;
+  }
+
+  const v_65e1e2 = v_2f5414();
+  if (v_042a8b && !v_65e1e2.loading && v_65e1e2.needs) {
+    return <SsoReconsentScreen onDone={v_65e1e2.refresh} />;
   }
 
   return (
