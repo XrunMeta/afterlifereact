@@ -921,7 +921,14 @@ const v_d81136 = v_472849.create({
     paddingRight: 14,
     paddingVertical: 10,
   },
-  userBubbleText: { color: v_1bfbd0.white, fontSize: 13, lineHeight: 19, flexShrink: 1 },
+  userBubbleText: {
+    color: v_1bfbd0.white,
+    fontSize: 13,
+    lineHeight: 19,
+    flexShrink: 1,
+    textAlign: "left",
+    includeFontPadding: false,
+  },
 
   personaOutsideBubble: {
     flexShrink: 1,
@@ -932,7 +939,14 @@ const v_d81136 = v_472849.create({
     paddingRight: 14,
     paddingVertical: 10,
   },
-  personaOutsideBubbleText: { color: v_1bfbd0.zinc800, fontSize: 13, lineHeight: 19, flexShrink: 1 },
+  personaOutsideBubbleText: {
+    color: v_1bfbd0.zinc800,
+    fontSize: 13,
+    lineHeight: 19,
+    flexShrink: 1,
+    textAlign: "left",
+    includeFontPadding: false,
+  },
 
   typingBubble: {
     width: undefined,
