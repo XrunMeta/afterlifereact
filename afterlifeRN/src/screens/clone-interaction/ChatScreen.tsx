@@ -246,6 +246,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     const v_206f77 = v_326be8.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
     const v_53f5d7 = v_0e1f26.addListener(v_399925, (e: v_5b67a3) => {
       v_de86c2(v_9e86fd.endCoordinates?.height ?? 0);
+
+      setTimeout(() => v_5ca6b8.current?.scrollToEnd({ animated: true }), 50);
     });
     const v_52528b = v_0e1f26.addListener(v_206f77, () => v_de86c2(0));
     return () => {
@@ -589,6 +591,10 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           returnKeyType="send"
           onSubmitEditing={v_465869}
           blurOnSubmit
+
+          onFocus={() => {
+            setTimeout(() => v_5ca6b8.current?.scrollToEnd({ animated: true }), 100);
+          }}
         />
         <TouchableOpacity
           style={[v_d81136.sendBtn, !v_bbda62.trim() && v_d81136.sendBtnDisabled]}
