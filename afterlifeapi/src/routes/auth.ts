@@ -23,6 +23,8 @@ import { v_bb3c56 } from "../lib/appleAuth";
 import { v_4960d7 } from "../lib/credits";
 import { v_6e4cc8, v_a0ec33, v_937e23 } from "../lib/xrun";
 
+import { v_31fb59 } from "./users";
+
 export const v_68f0aa = new v_b7c41b<v_de0a25>();
 
 function v_e8cd3d(v_3a5fef): number {
@@ -164,11 +166,11 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
 
     const v_81161e = await v_a1651b
       .prepare(
-        `INSERT INTO users (name, email, password_hash, avatar_url)
-         VALUES (?, ?, ?, ?)
+        `INSERT INTO users (name, email, password_hash, avatar_url, sso_consent_version, sso_consent_at)
+         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
          RETURNING id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until, deleted_at`,
       )
-      .bind(v_ef7664, v_931bf0.email, v_df7439, v_931bf0.picture ?? null)
+      .bind(v_ef7664, v_931bf0.email, v_df7439, v_931bf0.picture ?? null, v_31fb59)
       .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null; deleted_at: string | null }>();
     if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user.");
     v_d1b635 = v_81161e;
@@ -333,11 +335,11 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
       "user";
     const v_81161e = await v_a1651b
       .prepare(
-        `INSERT INTO users (name, email, password_hash, avatar_url)
-         VALUES (?, ?, ?, NULL)
+        `INSERT INTO users (name, email, password_hash, avatar_url, sso_consent_version, sso_consent_at)
+         VALUES (?, ?, ?, NULL, ?, CURRENT_TIMESTAMP)
          RETURNING id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until, deleted_at`,
       )
-      .bind(v_ef7664, v_931bf0.email, v_df7439)
+      .bind(v_ef7664, v_931bf0.email, v_df7439, v_31fb59)
       .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null; deleted_at: string | null }>();
     if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user.");
     v_d1b635 = v_81161e;
@@ -525,8 +527,8 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
     try {
       v_81161e = await v_a1651b
         .prepare(
-          `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent, country, mobile_code, region)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent, country, mobile_code, region, sso_consent_version, sso_consent_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
            RETURNING id, name, email, funnel_stage, created_at`,
         )
         .bind(
@@ -541,6 +543,7 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
           v_4d33b2.country ?? null,
           v_4d33b2.mobileCode ?? null,
           v_4d33b2.region ?? null,
+          v_31fb59,
         )
         .first();
     } catch (v_49263d) {
