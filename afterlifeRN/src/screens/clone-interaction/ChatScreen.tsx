@@ -403,7 +403,9 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
   const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
 
-  const v_53dd92 = v_7e4acc > 0 ? 10 : Math.max(v_f9771e, 10);
+  const v_53dd92 = v_7e4acc > 0
+    ? 10
+    : Math.max(v_033e14.bottom, v_f9771e, 10);
 
   return (
 
