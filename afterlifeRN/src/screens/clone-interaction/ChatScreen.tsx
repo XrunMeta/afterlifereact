@@ -153,6 +153,16 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     };
   }, [v_e721a8, v_2ca7e0, v_6e0fd3]);
 
+  const v_d50b65 = v_e662ae(false);
+  v_c4deb2(() => {
+    if (v_d50b65.current) return;
+    if (!v_e721a8) return;
+    if (v_2810d7 === null || v_2810d7.length === 0) return;
+    v_d50b65.current = true;
+    const v_8d41d7 = setTimeout(() => v_5ca6b8.current?.scrollToEnd({ animated: false }), 80);
+    return () => clearTimeout(v_8d41d7);
+  }, [v_e721a8, v_2810d7]);
+
   v_c4deb2(() => {
     if (!v_2ca7e0) return;
     let v_2008a4 = false;
@@ -701,8 +711,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                   <View
                     style={
                       v_8d41d7.role === "user"
-                        ? [v_d81136.userBubble, { width: "80%" }]
-                        : [v_d81136.personaOutsideBubble, { width: "80%" }]
+                        ? [v_d81136.userBubble, { maxWidth: "80%" }]
+                        : [v_d81136.personaOutsideBubble, { maxWidth: "80%" }]
                     }
                   >
                     <Text
@@ -890,7 +900,7 @@ const v_d81136 = v_472849.create({
 
   userBubble: {
     alignSelf: "flex-end",
-    width: "70%",
+    maxWidth: "70%",
     backgroundColor: v_1bfbd0.violet600,
     borderRadius: 14,
     paddingHorizontal: 12,
@@ -901,7 +911,7 @@ const v_d81136 = v_472849.create({
 
   personaOutsideBubble: {
     alignSelf: "flex-start",
-    width: "70%",
+    maxWidth: "70%",
     backgroundColor: v_1bfbd0.white,
     borderRadius: 14,
     paddingHorizontal: 12,
