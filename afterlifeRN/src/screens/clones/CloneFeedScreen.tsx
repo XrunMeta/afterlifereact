@@ -53,6 +53,7 @@ import {
 
 import type { v_d79d7f, v_b0b271 } from "../../api/clones";
 import v_4d58d7 from "../../components/common/ReportReasonModal";
+import v_5778ce from "../../components/common/HashtagText";
 import { v_bfd883 } from "../../lib/relativeTime";
 import { v_1bfbd0 } from "../../components/constants";
 
@@ -251,6 +252,29 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
   };
 
   const [v_1126f9, v_0c9768] = v_5ab095(v_c7daf6.params.openComments ?? false);
+
+  const [v_16a078, v_905ec3] = v_5ab095<boolean>(false);
+
+  const [v_415d29, v_d2b23a] = v_5ab095<{ followers: number; createdAt: string } | null>(null);
+  v_c4deb2(() => {
+    if (!v_1126f9 || !v_16a078) {
+      v_d2b23a(null);
+      return;
+    }
+    let v_2008a4 = false;
+    v_003cf2(v_2db2a5.cloneId, v_2ca7e0 ?? undefined)
+      .then((v_8f00b9) => {
+        if (v_2008a4) return;
+        v_d2b23a({
+          followers: v_8f00b9.clone.stats?.followers ?? 0,
+          createdAt: v_8f00b9.clone.createdAt ?? "",
+        });
+      })
+      .catch((v_49263d) => console.warn("[CloneFeed] detailCloneStats fetch failed:", v_49263d));
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_1126f9, v_16a078, v_2db2a5.cloneId, v_2ca7e0]);
   const [v_ecfc0f, v_04f2fc] = v_5ab095<v_52af9d[]>([]);
   const [v_465030, v_856daf] = v_5ab095(false);
   const [v_48e7fe, v_856f84] = v_5ab095("");
@@ -500,7 +524,7 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
         onToggleLike={v_d3af9c}
         onToggleFollow={() => void v_3094d4(v_8c0b26.cloneId)}
         onCallPress={v_f8043e}
-        onCommentPress={() => v_0c9768(true)}
+        onCommentPress={() => { v_905ec3(false); v_0c9768(true); }}
 
         onMorePress={v_799eb5 ? undefined : () => v_eda097(true)}
         onSharePress={v_22cd2d}
@@ -515,7 +539,7 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
           }
         }}
 
-        onDescriptionPress={() => v_0c9768(true)}
+        onDescriptionPress={() => { v_905ec3(true); v_0c9768(true); }}
       />
 
       {}
@@ -537,12 +561,14 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
           onPress={() => {
             v_0e1f26.dismiss();
             v_0c9768(false);
+            v_905ec3(false);
           }}
         >
           <SwipeDownSheet
             onClose={() => {
               v_0e1f26.dismiss();
               v_0c9768(false);
+              v_905ec3(false);
             }}
             keyboardOffset={v_7e4acc}
             style={[
@@ -555,11 +581,67 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
           >
             <View style={v_d81136.sheetHandle} />
             {}
-            <View style={v_d81136.commentHeaderRow}>
-              <Text style={v_d81136.commentTitle}>
-                {v_8d41d7("feed.commentCount", { n: v_ecfc0f.length })}
-              </Text>
-            </View>
+            {v_16a078 ? (
+              <View style={v_d81136.detailHeader}>
+                <View style={v_d81136.detailProfileRow}>
+                  {v_8c0b26.authorAvatar ? (
+                    <Image
+                      source={typeof v_8c0b26.authorAvatar === "number" ? v_8c0b26.authorAvatar : { uri: v_8c0b26.authorAvatar as string }}
+                      style={v_d81136.detailAvatar}
+                    />
+                  ) : (
+                    <View style={[v_d81136.detailAvatar, { backgroundColor: v_1bfbd0.zinc100 }]} />
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={v_d81136.detailAuthor} numberOfLines={1}>{v_8c0b26.author}</Text>
+                    <Text style={v_d81136.detailUsername} numberOfLines={1}>@{(v_8c0b26.username ?? "").replace(/^@+/, "")}</Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => { v_0e1f26.dismiss(); v_0c9768(false); v_905ec3(false); }}
+                    hitSlop={8}
+                  >
+                    <Feather name="x" size={22} color={v_1bfbd0.zinc600} />
+                  </TouchableOpacity>
+                </View>
+                {v_8c0b26.description ? (
+                  <HashtagText
+                    style={v_d81136.detailDescription}
+                    tagStyle={{ color: v_1bfbd0.violet600, fontWeight: "600" }}
+                  >
+                    {v_8c0b26.description}
+                  </HashtagText>
+                ) : null}
+                <View style={v_d81136.detailStatsRow}>
+                  <View style={v_d81136.detailStatCard}>
+                    <Text style={v_d81136.detailStatValue}>{v_415d29?.followers ?? 0}</Text>
+                    <Text style={v_d81136.detailStatLabel}>{v_8d41d7("feed.followers", { defaultValue: "구독자" })}</Text>
+                  </View>
+                  <View style={v_d81136.detailStatCard}>
+                    <Text style={v_d81136.detailStatValue}>{v_8c0b26.likes || "0"}</Text>
+                    <Text style={v_d81136.detailStatLabel}>{v_8d41d7("feed.likes", { defaultValue: "좋아요" })}</Text>
+                  </View>
+                  <View style={v_d81136.detailStatCard}>
+                    <Text style={v_d81136.detailStatValue}>{(() => {
+                      const v_38d084 = v_415d29?.createdAt ?? v_2db2a5.createdAt;
+                      if (!v_38d084) return "-";
+                      const v_d5dda0 = new Date(v_38d084);
+                      if (isNaN(v_d5dda0.getTime())) return "-";
+                      const v_64877a = v_d5dda0.getFullYear();
+                      const v_35f85c = String(v_d5dda0.getMonth() + 1).padStart(2, "0");
+                      const v_087ffc = String(v_d5dda0.getDate()).padStart(2, "0");
+                      return `${v_64877a}.${v_35f85c}.${v_087ffc}`;
+                    })()}</Text>
+                    <Text style={v_d81136.detailStatLabel}>{v_8d41d7("feed.createdAt", { defaultValue: "생성일" })}</Text>
+                  </View>
+                </View>
+              </View>
+            ) : (
+              <View style={v_d81136.commentHeaderRow}>
+                <Text style={v_d81136.commentTitle}>
+                  {v_8d41d7("feed.commentCount", { n: v_ecfc0f.length })}
+                </Text>
+              </View>
+            )}
             <ScrollView style={v_d81136.commentScroll} showsVerticalScrollIndicator={false}>
               {v_465030 ? (
                 <View style={v_d81136.emptyComment}>
@@ -924,6 +1006,17 @@ const v_d81136 = v_472849.create({
     borderBottomColor: v_1bfbd0.zinc100,
   },
   commentTitle: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
+
+  detailHeader: { paddingBottom: 16, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc100 },
+  detailProfileRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingBottom: 12, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc100 },
+  detailAvatar: { width: 40, height: 40, borderRadius: 20 },
+  detailAuthor: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  detailUsername: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
+  detailDescription: { fontSize: 14, color: v_1bfbd0.zinc700, lineHeight: 20, marginBottom: 14 },
+  detailStatsRow: { flexDirection: "row", gap: 8 },
+  detailStatCard: { flex: 1, backgroundColor: v_1bfbd0.zinc50, borderRadius: 12, paddingVertical: 10, alignItems: "center" },
+  detailStatValue: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  detailStatLabel: { fontSize: 11, color: v_1bfbd0.zinc500, marginTop: 2 },
   commentScroll: { flex: 1, marginTop: 12 },
 
   commentBlock: { marginBottom: 16 },
