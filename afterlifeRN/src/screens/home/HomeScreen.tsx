@@ -89,6 +89,9 @@ export default function v_c316d8() {
     : Math.max(v_f9771e, v_033e14.bottom);
   const v_1be4da = v_28d8d8 - v_e4d4c8 - v_53dd92;
 
+  const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
+  const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
+
   const v_632420 = v_37977a((v_fd5f43) => v_fd5f43.likedIds);
   const v_976e06 = v_37977a((v_fd5f43) => v_fd5f43.selectedInterests);
   const v_a96ced = v_37977a((v_fd5f43) => v_fd5f43.toggleLike);
@@ -634,7 +637,7 @@ export default function v_c316d8() {
               v_d81136.commentSheet,
 
               {
-                paddingBottom: 24 + Math.max(v_033e14.bottom, 0),
+                paddingBottom: 24 + v_2b650d,
                 height: Math.max(v_28d8d8 * 0.7 - v_7e4acc, 200),
               },
             ]}
@@ -978,7 +981,7 @@ export default function v_c316d8() {
         <Pressable style={v_d81136.moreOverlay} onPress={() => v_949e66(null)}>
           <SwipeDownSheet
             onClose={() => v_949e66(null)}
-            style={[v_d81136.moreSheet, { paddingBottom: 24 + Math.max(v_033e14.bottom, 0) }]}
+            style={[v_d81136.moreSheet, { paddingBottom: 24 + v_2b650d }]}
           >
             <View style={v_d81136.moreSheetHandle} />
             <Text style={v_d81136.moreTitle}>{v_12fa22?.author}</Text>

@@ -12,6 +12,7 @@ import {
   v_700696,
   v_aa7413,
   v_09d0e5,
+  v_326be8,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
@@ -22,6 +23,7 @@ import v_258c1c from "../../components/common/PageHeader";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import v_4d58d7 from "../../components/common/ReportReasonModal";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_889fad } from "../../stores/dialogStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
@@ -62,6 +64,10 @@ export default function v_c501aa() {
   const [v_3e9618, v_eda097] = v_5ab095(false);
   const [v_d61813, v_9b20ec] = v_5ab095(false);
   const v_033e14 = v_e0068c();
+  const v_f9771e = v_c18c22(0);
+
+  const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
+  const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
 
   const v_bcfa24 = v_700696.get("window").width;
   const v_3bf7ea = v_9b1a04.medium;
@@ -444,7 +450,7 @@ export default function v_c501aa() {
         <Pressable style={v_fd5f43.moreOverlay} onPress={() => v_eda097(false)}>
           <SwipeDownSheet
             onClose={() => v_eda097(false)}
-            style={[v_fd5f43.moreSheet, { paddingBottom: 24 + Math.max(v_033e14.bottom, 0) }]}
+            style={[v_fd5f43.moreSheet, { paddingBottom: 24 + v_2b650d }]}
           >
             <View style={v_fd5f43.moreSheetHandle} />
             <Text style={v_fd5f43.moreTitle}>{v_b7489c}</Text>
