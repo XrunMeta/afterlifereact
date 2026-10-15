@@ -605,7 +605,8 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={v_326be8.OS === 'ios' ? 'padding' : 'height'}
+
+        behavior={v_326be8.OS === 'ios' ? 'padding' : undefined}
       >
         {}
         <ScrollView
