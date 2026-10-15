@@ -13,10 +13,12 @@ import {
   v_09d0e5,
   v_326be8,
   v_0e1f26,
+  v_e767d1,
   type v_5b67a3,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_8ad91b } from "../../navigation/types";
 import { v_194498 } from "../../stores/cloneStore";
@@ -128,7 +130,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       }
     }
     v_b6e358();
-    return v_8d4337;
+    return v_8d4337.reverse(); 
   }, [v_2810d7]);
 
   v_c4deb2(() => {
@@ -325,7 +327,9 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   };
 
   const v_98409d = () => {
-    v_cafc04(v_dfb220, [
+    const v_f1620a = v_1ed7d9.getState().apiUser?.id ?? null;
+    const v_e009da = v_eb25ce?.ownerId != null && v_f1620a != null && v_eb25ce.ownerId === v_f1620a;
+    const v_dd943a = [
       {
         label: "통화",
         onPress: () => void v_21be1f(),
@@ -335,7 +339,9 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         disabled: v_f61bef,
         onPress: () => void v_4f52b6(),
       },
-      {
+    ];
+    if (!v_e009da) {
+      v_dd943a.push({
         label: "구독 취소",
         destructive: true,
         onPress: () => {
@@ -346,8 +352,9 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           }
           v_c65f5d.goBack();
         },
-      },
-    ]);
+      });
+    }
+    v_cafc04(v_dfb220, v_dd943a);
   };
 
   const v_c2e43c = () => {
@@ -356,8 +363,16 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const v_53dd92 = v_7e4acc > 0 ? v_7e4acc : v_033e14.bottom;
 
+  const v_f9771e = v_c18c22(0);
+  const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
+  const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
+
   return (
-    <View style={[v_d81136.root, { paddingTop: v_033e14.top }]}>
+    <KeyboardAvoidingView
+      style={[v_d81136.root, { paddingTop: v_033e14.top }]}
+      behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={0}
+    >
       {}
       <View style={v_d81136.header}>
         <TouchableOpacity
@@ -413,19 +428,21 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         </View>
       </View>
 
-      {}
+      {
+}
       <ScrollView
         ref={v_5ca6b8}
         style={v_d81136.scrollArea}
         contentContainerStyle={v_d81136.scrollContent}
         showsVerticalScrollIndicator={false}
-        onScroll={({ nativeEvent: v_76b943 }) => {
+        onContentSizeChange={() => {
 
+          if (v_e721a8) v_5ca6b8.current?.scrollToEnd({ animated: false });
+        }}
+        onScroll={({ nativeEvent: v_76b943 }) => {
           if (!v_e721a8) return;
-          const { layoutMeasurement: v_6f469f, contentOffset: v_e29918, contentSize: v_d1b3ac } = v_76b943;
-          const v_169e78 =
-            v_e29918.y + v_6f469f.height >= v_d1b3ac.height - 120;
-          if (v_169e78) void v_747b23();
+          const { contentOffset: v_e29918 } = v_76b943;
+          if (v_e29918.y <= 80) void v_747b23();
         }}
         scrollEventThrottle={200}
       >
@@ -434,10 +451,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 }
         {v_e721a8 && v_2810d7 !== null && (
           <>
-            {v_5e23ec && (
-              <View style={[v_d81136.personaOutsideBubble, v_d81136.typingBubble]}>
-                <Text style={v_d81136.typingText}>…</Text>
-              </View>
+            {v_dec728 && (
+              <Text style={v_d81136.loadingText}>이전 메시지 불러오는 중…</Text>
             )}
             {v_907715.map((v_23805a) => {
               if (v_c8c890(v_23805a)) {
@@ -504,8 +519,10 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                 </View>
               );
             })}
-            {v_dec728 && (
-              <Text style={v_d81136.loadingText}>불러오는 중…</Text>
+            {v_5e23ec && (
+              <View style={[v_d81136.personaOutsideBubble, v_d81136.typingBubble]}>
+                <Text style={v_d81136.typingText}>…</Text>
+              </View>
             )}
           </>
         )}
@@ -558,7 +575,10 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         onRequestClose={() => v_2c320e(null)}
       >
         <Pressable style={v_d81136.sheetOverlay} onPress={() => v_2c320e(null)}>
-          <Pressable style={v_d81136.actionSheet} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+          <Pressable
+            style={[v_d81136.actionSheet, { paddingBottom: 24 + v_2b650d }]}
+            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
+          >
             <View style={v_d81136.sheetHandle} />
             {v_fd08c6?.title ? <Text style={v_d81136.sheetTitle}>{v_fd08c6.title}</Text> : null}
             {v_fd08c6?.actions.map((v_779914, v_ebec57) => (
@@ -583,13 +603,6 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                 </Text>
               </TouchableOpacity>
             ))}
-            <TouchableOpacity
-              style={v_d81136.sheetCancel}
-              activeOpacity={0.7}
-              onPress={() => v_2c320e(null)}
-            >
-              <Text style={v_d81136.sheetActionText}>취소</Text>
-            </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>
@@ -657,7 +670,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           </Pressable>
         </Pressable>
       </Modal>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
