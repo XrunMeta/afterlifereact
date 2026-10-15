@@ -98,7 +98,6 @@ v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
               (SELECT COUNT(*) FROM call_turns t WHERE t.call_id = s.call_id) AS turn_count
          FROM call_sessions s
         WHERE s.user_id = ? AND s.clone_id = ? AND s.started_at <= ?
-          AND EXISTS (SELECT 1 FROM call_turns t WHERE t.call_id = s.call_id)
         ORDER BY s.started_at DESC, s.call_id DESC
         LIMIT ?`,
     ).bind(v_43e90c, v_6e0fd3, v_7a9a34, v_02be30 + v_de3072)
