@@ -552,6 +552,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                               ? v_d81136.userBubbleText
                               : v_d81136.personaOutsideBubbleText
                           }
+
+                          textBreakStrategy="simple"
                         >
                           {v_23805a.content}
                         </Text>
