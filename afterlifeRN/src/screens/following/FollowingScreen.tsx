@@ -56,6 +56,8 @@ import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_4b85a1, v_bc3df4 } from "../../types/domain";
 import v_5778ce from "../../components/common/HashtagText";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
+import v_fb73af from "../../components/ads/PangleBannerAd";
+import { v_60086b } from "../../lib/pangle";
 
 type RootNav = v_390fcc<v_8ad91b>;
 const { width: v_437248 } = v_700696.get("window");
@@ -819,10 +821,9 @@ export default function v_14b43e() {
                 </TouchableOpacity>
               )}
             </View>
-            {}
-            <View style={v_fd5f43.subAdBanner}>
-              <Text style={v_fd5f43.subAdBannerText}>배너광고</Text>
-            </View>
+            {
+}
+            <PangleBannerAd adUnitId={v_60086b()} style={v_fd5f43.subAdBanner} />
             {}
             <View style={v_fd5f43.subSectionHeader}>
               <Text style={v_fd5f43.subSectionCount}>
