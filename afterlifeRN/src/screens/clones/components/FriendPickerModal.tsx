@@ -175,6 +175,7 @@ const v_fd5f43 = v_472849.create({
     paddingHorizontal: v_9b1a04.large,
     paddingTop: 12,
 
+    height: "60%",
     maxHeight: "85%",
   },
   handle: {
