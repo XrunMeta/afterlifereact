@@ -1664,7 +1664,10 @@ v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
               face_biometric_consent AS faceBiometricConsent,
               face_biometric_consent_at AS faceBiometricConsentAt,
               call_learning_consent AS callLearningConsent,
-              call_learning_consent_at AS callLearningConsentAt
+              call_learning_consent_at AS callLearningConsentAt,
+              marketing_consent AS marketingConsent,
+              sso_consent_version AS ssoConsentVersion,
+              sso_consent_at AS ssoConsentAt
          FROM users
         WHERE xrun_member_id = ?
         ORDER BY (deletion_state = 'active' AND deleted_at IS NULL) DESC, id DESC
@@ -1684,6 +1687,9 @@ v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
       faceBiometricConsentAt: number | null;
       callLearningConsent: number | null;
       callLearningConsentAt: number | null;
+      marketingConsent: number | null;
+      ssoConsentVersion: string | null;
+      ssoConsentAt: string | null;
     }>();
 
   if (!v_625c74) {
