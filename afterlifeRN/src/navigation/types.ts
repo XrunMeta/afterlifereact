@@ -3,7 +3,7 @@ import type { v_e56625 } from "ixigazcpvfldbecwtbvavtbi";
 export type RootStackParamList = {
   Auth: undefined;
   Main: v_e56625<MainTabParamList> | undefined;
-  Chat: { cloneId: number };
+  Chat: { cloneId: number; name?: string; image?: string | null };
   Call: { cloneId: number; name?: string; image?: string | number };
 
   PreCallFaceEnroll: {

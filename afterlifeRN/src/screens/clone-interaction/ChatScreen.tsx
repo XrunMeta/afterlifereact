@@ -1,6 +1,6 @@
 
 
-import v_a3453e, { v_5ab095, v_e662ae, v_c4deb2, v_df9f57 } from "bapkr";
+import v_a3453e, { v_5ab095, v_e662ae, v_c4deb2 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -9,6 +9,8 @@ import {
   v_122070,
   v_79c4f2,
   v_cf9c33,
+  v_aa7413,
+  v_09d0e5,
   v_326be8,
   v_0e1f26,
   type v_5b67a3,
@@ -18,7 +20,27 @@ import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_8ad91b } from "../../navigation/types";
 import { v_194498 } from "../../stores/cloneStore";
+import { v_1ed7d9 } from "../../stores/authStore";
+import { v_84d546 } from "../../lib/callGuard";
+import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
+import {
+  v_8a85e2,
+  v_22ca9b,
+  v_40068b,
+  v_dd96e7,
+  type v_29686e,
+  type v_f19942,
+  type v_18a302,
+  type v_109480,
+} from "../../api/chat";
+
+type ActionItem = {
+  label: string;
+  onPress?: () => void;
+  destructive?: boolean;
+  disabled?: boolean;
+};
 
 type Props = v_432191<v_8ad91b, "Chat">;
 
@@ -54,16 +76,106 @@ const v_4750b0 = [
 ];
 
 export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
-  const { cloneId: v_6e0fd3 } = v_c7daf6.params;
+  const { cloneId: v_6e0fd3, name: v_a4744c, image: v_c1e151 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
   const v_033e14 = v_e0068c();
   const v_5ca6b8 = v_e662ae<v_122070>(null);
 
-  const v_dfb220 = v_eb25ce?.displayName ?? "페르소나";
-  const v_e7274c = v_eb25ce?.imageUrl ?? null;
+  const v_dfb220 = v_a4744c ?? v_eb25ce?.displayName ?? "페르소나";
+  const v_e7274c =
+    (typeof v_c1e151 === "string" && v_c1e151) || v_eb25ce?.imageUrl || null;
 
   const [v_bbda62, v_c31db7] = v_5ab095("");
   const [v_7e4acc, v_de86c2] = v_5ab095(0);
+
+  const [v_20e160, v_955c04] = v_5ab095<CallBlock[]>(v_4750b0);
+
+  const [v_229ff3, v_e4f239] = v_5ab095(true);
+
+  const [v_842b8b, v_0f6477] = v_5ab095(true);
+
+  const [v_fd08c6, v_2c320e] = v_5ab095<{ title?: string; actions: ActionItem[] } | null>(null);
+  const v_cafc04 = (v_9f1622, v_dd943a) =>
+    v_2c320e({ title: v_9f1622, actions: v_dd943a });
+  const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const v_f4fb5e = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? null);
+
+  const v_e721a8 = v_8a85e2(v_f4fb5e);
+  const [v_2810d7, v_7f73ef] = v_5ab095<v_29686e[] | null>(null);
+  const [v_a981b7, v_94405c] = v_5ab095<string | null>(null);
+  const [v_dec728, v_a7c3b5] = v_5ab095(false);
+  const [v_c5607b, v_1e756c] = v_5ab095<string | null>(null);
+  const [v_5e23ec, v_10837f] = v_5ab095(false);
+
+  const [v_db205d, v_fb20c7] = v_5ab095<{
+    callId: string;
+    turns: v_109480[];
+    cursor: string | null;
+    loading: boolean;
+  } | null>(null);
+
+  v_c4deb2(() => {
+    if (!v_e721a8 || !v_2ca7e0) return;
+    let v_2008a4 = false;
+    v_a7c3b5(true);
+    (async () => {
+      const v_8f00b9 = await v_22ca9b(v_6e0fd3, v_2ca7e0, { limit: 30 });
+      if (v_2008a4) return;
+      v_a7c3b5(false);
+      if (v_8f00b9) {
+        v_7f73ef(v_8f00b9.items);
+        v_94405c(v_8f00b9.nextCursor);
+      }
+    })();
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_e721a8, v_2ca7e0, v_6e0fd3]);
+
+  const v_747b23 = async () => {
+    if (!v_e721a8 || !v_2ca7e0 || !v_a981b7 || v_dec728) return;
+    v_a7c3b5(true);
+    const v_8f00b9 = await v_22ca9b(v_6e0fd3, v_2ca7e0, {
+      limit: 30,
+      cursor: v_a981b7,
+    });
+    v_a7c3b5(false);
+    if (!v_8f00b9) return;
+    v_7f73ef((v_ba2215) => [...(v_ba2215 ?? []), ...v_8f00b9.items]);
+    v_94405c(v_8f00b9.nextCursor);
+  };
+
+  const v_bbd0f3 = async (v_be62d3) => {
+    if (!v_e721a8 || !v_2ca7e0) return;
+    v_fb20c7({ callId: v_be62d3, turns: [], cursor: null, loading: true });
+    const v_8f00b9 = await v_40068b(v_6e0fd3, v_be62d3, v_2ca7e0, { limit: 50 });
+    v_fb20c7({
+      callId: v_be62d3,
+      turns: v_8f00b9?.turns ?? [],
+      cursor: v_8f00b9?.nextCursor ?? null,
+      loading: false,
+    });
+  };
+
+  const v_6deb64 = async () => {
+    if (!v_db205d || !v_2ca7e0 || !v_db205d.cursor || v_db205d.loading) return;
+    v_fb20c7((v_ba2215) => (v_ba2215 ? { ...v_ba2215, loading: true } : v_ba2215));
+    const v_8f00b9 = await v_40068b(v_6e0fd3, v_db205d.callId, v_2ca7e0, {
+      limit: 50,
+      cursor: v_db205d.cursor,
+    });
+    v_fb20c7((v_ba2215) =>
+      v_ba2215
+        ? {
+            ...v_ba2215,
+
+            turns: [...(v_8f00b9?.turns ?? []), ...v_ba2215.turns],
+            cursor: v_8f00b9?.nextCursor ?? null,
+            loading: false,
+          }
+        : v_ba2215,
+    );
+  };
 
   v_c4deb2(() => {
     const v_399925 = v_326be8.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
@@ -78,13 +190,119 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     };
   }, []);
 
-  const v_465869 = () => {
+  const v_465869 = async () => {
     const v_2f361a = v_bbda62.trim();
-    if (!v_2f361a) return;
+    if (!v_2f361a || v_5e23ec) return;
 
-    console.log("[Chat] send (placeholder):", v_2f361a);
+    if (!v_e721a8 || !v_2ca7e0) {
+      console.log("[Chat] send (placeholder):", v_2f361a);
+      v_c31db7("");
+      v_0e1f26.dismiss();
+      return;
+    }
+
+    v_10837f(true);
     v_c31db7("");
     v_0e1f26.dismiss();
+    try {
+      const v_8f00b9 = await v_dd96e7(v_6e0fd3, v_2f361a, v_2ca7e0, {
+        sessionId: v_c5607b ?? undefined,
+      });
+      if (!v_c5607b) v_1e756c(v_8f00b9.sessionId);
+      const v_5c2f9f = Date.now();
+      const userItem: v_f19942 = {
+        type: "chat",
+        id: v_8f00b9.userMessage.id,
+        role: "user",
+        content: v_8f00b9.userMessage.content,
+        at: v_5c2f9f,
+        sessionId: v_8f00b9.sessionId,
+      };
+      const cloneItem: v_f19942 = {
+        type: "chat",
+        id: v_8f00b9.cloneReply.id,
+        role: "clone",
+        content: v_8f00b9.cloneReply.content,
+        at: v_5c2f9f + 1,
+        sessionId: v_8f00b9.sessionId,
+      };
+
+      v_7f73ef((v_ba2215) => [v_e44122, v_2539b3, ...(v_ba2215 ?? [])]);
+    } catch (v_49263d) {
+      console.warn("[Chat] send failed:", (v_49263d as Error)?.message ?? v_49263d);
+
+      v_c31db7(v_2f361a);
+    } finally {
+      v_10837f(false);
+    }
+  };
+
+  const v_ed4b67 = () => {
+    v_cafc04(v_dfb220, [
+      {
+        label: v_842b8b ? "알림 끄기" : "알림 켜기",
+        onPress: () => v_0f6477((v_81e2ef) => !v_81e2ef),
+      },
+      {
+        label: "구독 취소",
+        destructive: true,
+        onPress: () => {
+
+          console.log("[Chat] 구독 취소 (placeholder) cloneId=", v_6e0fd3);
+          v_c65f5d.goBack();
+        },
+      },
+    ]);
+  };
+
+  const v_0fef43 = (v_be62d3, v_a6063d) => {
+    v_cafc04("메시지 삭제", [
+      {
+        label: "삭제",
+        destructive: true,
+        onPress: () => {
+          v_955c04((v_ba2215) =>
+            v_ba2215
+              .map((v_3f4e2e) =>
+                v_3f4e2e.id === v_be62d3
+                  ? { ...v_3f4e2e, messages: v_3f4e2e.messages.filter((v_37eab7, v_ebec57) => v_ebec57 !== v_a6063d) }
+                  : v_3f4e2e,
+              )
+              .filter((v_3f4e2e) => v_3f4e2e.messages.length > 0),
+          );
+        },
+      },
+    ]);
+  };
+
+  const v_e8c2aa = () => {
+    v_cafc04("메시지 삭제", [
+      {
+        label: "삭제",
+        destructive: true,
+        onPress: () => v_e4f239(false),
+      },
+    ]);
+  };
+
+  const v_d9545c = async () => {
+    const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {});
+    if (!v_3ed4c3) return;
+    v_c65f5d.navigate("Call", {
+      cloneId: v_6e0fd3,
+      name: v_dfb220,
+      image: v_e7274c ?? undefined,
+    });
+  };
+
+  const v_ff2826 = () => {
+    v_cafc04("개발 중", [
+      { label: "확인", onPress: () => {} },
+    ]);
+  };
+
+  const v_c2e43c = () => {
+    v_c65f5d.navigate("CloneFeed", { cloneId: v_6e0fd3 });
   };
 
   const v_53dd92 = v_7e4acc > 0 ? v_7e4acc : v_033e14.bottom;
@@ -101,26 +319,44 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         >
           <Feather name="chevron-left" size={26} color={v_1bfbd0.zinc900} />
         </TouchableOpacity>
-        {v_e7274c ? (
-          <Image source={{ uri: v_e7274c }} style={v_d81136.headerAvatar} />
-        ) : (
-          <View style={[v_d81136.headerAvatar, v_d81136.headerAvatarFallback]}>
-            <Text style={v_d81136.headerAvatarInitial}>
-              {v_dfb220.charAt(0) || "?"}
-            </Text>
-          </View>
-        )}
-        <Text style={v_d81136.headerName} numberOfLines={1}>
-          {v_dfb220}
-        </Text>
+        <TouchableOpacity
+          style={v_d81136.headerProfileWrap}
+          onPress={v_c2e43c}
+          activeOpacity={0.7}
+        >
+          {v_e7274c ? (
+            <Image source={{ uri: v_e7274c }} style={v_d81136.headerAvatar} />
+          ) : (
+            <View style={[v_d81136.headerAvatar, v_d81136.headerAvatarFallback]}>
+              <Text style={v_d81136.headerAvatarInitial}>
+                {v_dfb220.charAt(0) || "?"}
+              </Text>
+            </View>
+          )}
+          <Text style={v_d81136.headerName} numberOfLines={1}>
+            {v_dfb220}
+          </Text>
+        </TouchableOpacity>
         <View style={v_d81136.headerRight}>
-          <TouchableOpacity style={v_d81136.headerActionBtn} hitSlop={8}>
+          <TouchableOpacity
+            style={v_d81136.headerActionBtn}
+            hitSlop={8}
+            onPress={v_ff2826}
+          >
             <Feather name="image" size={18} color={v_1bfbd0.zinc700} />
           </TouchableOpacity>
-          <TouchableOpacity style={v_d81136.headerActionBtn} hitSlop={8}>
+          <TouchableOpacity
+            style={v_d81136.headerActionBtn}
+            hitSlop={8}
+            onPress={v_d9545c}
+          >
             <Feather name="phone" size={18} color={v_1bfbd0.zinc700} />
           </TouchableOpacity>
-          <TouchableOpacity style={v_d81136.headerActionBtn} hitSlop={8}>
+          <TouchableOpacity
+            style={v_d81136.headerActionBtn}
+            hitSlop={8}
+            onPress={v_ed4b67}
+          >
             <Feather name="more-horizontal" size={18} color={v_1bfbd0.zinc700} />
           </TouchableOpacity>
         </View>
@@ -133,11 +369,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         </View>
         <View style={{ flex: 1 }}>
           <Text style={v_d81136.promoTitle} numberOfLines={1}>
-            특별 혜택 - 재구독 시 첫 달 요금 50% 할인!
+            Pangle 배너 광고
           </Text>
-          <TouchableOpacity hitSlop={6}>
-            <Text style={v_d81136.promoCta}>50% 할인 혜택 받기</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -147,46 +380,131 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         style={v_d81136.scrollArea}
         contentContainerStyle={v_d81136.scrollContent}
         showsVerticalScrollIndicator={false}
+        onScroll={({ nativeEvent: v_76b943 }) => {
+
+          if (!v_e721a8) return;
+          const { layoutMeasurement: v_6f469f, contentOffset: v_e29918, contentSize: v_d1b3ac } = v_76b943;
+          const v_169e78 =
+            v_e29918.y + v_6f469f.height >= v_d1b3ac.height - 120;
+          if (v_169e78) void v_747b23();
+        }}
+        scrollEventThrottle={200}
       >
         {}
-        <View style={v_d81136.personaIntroRow}>
-          <Text style={v_d81136.personaIntroName}>{v_dfb220}</Text>
-          <View style={v_d81136.personaIntroBubble}>
-            <Text style={v_d81136.personaIntroText}>
-              오늘 하루는 어땠어요? 퇴근길에 비 오던데 조심히 들어와요.
-            </Text>
-          </View>
-        </View>
+        {v_e721a8 && v_2810d7 !== null && (
+          <>
+            {v_2810d7.map((v_23805a) =>
+              v_23805a.type === "chat" ? (
+                <TouchableOpacity
+                  key={`api-chat-${v_23805a.id}`}
+                  activeOpacity={0.85}
+                  style={v_23805a.role === "user" ? v_d81136.userBubble : v_d81136.personaOutsideBubble}
+                >
+                  <Text
+                    style={
+                      v_23805a.role === "user" ? v_d81136.userBubbleText : v_d81136.personaOutsideBubbleText
+                    }
+                  >
+                    {v_23805a.content}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <View key={`api-call-${v_23805a.callId}`} style={v_d81136.callBlock}>
+                  <View style={v_d81136.callHeader}>
+                    <View style={v_d81136.callIconWrap}>
+                      <Feather name="phone" size={14} color={v_1bfbd0.white} />
+                    </View>
+                    <Text style={v_d81136.callDurationText}>
+                      {v_f5aeb2(v_23805a)}
+                    </Text>
+                  </View>
+                  {v_23805a.turnCount > 0 ? (
+                    <TouchableOpacity
+                      style={v_d81136.transcriptBtn}
+                      hitSlop={6}
+                      onPress={() => v_bbd0f3(v_23805a.callId)}
+                    >
+                      <Text style={v_d81136.transcriptBtnText}>통화 내용보기</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <Text style={v_d81136.callEmptyText}>부재중 통화</Text>
+                  )}
+                </View>
+              ),
+            )}
+            {v_dec728 && (
+              <Text style={v_d81136.loadingText}>불러오는 중…</Text>
+            )}
+          </>
+        )}
 
         {}
-        {v_4750b0.map((v_51c3d2) => (
-          <View key={v_51c3d2.id} style={v_d81136.callBlock}>
-            <View style={v_d81136.callHeader}>
-              <View style={v_d81136.callIconWrap}>
-                <Feather name="phone" size={14} color={v_1bfbd0.white} />
+        {!(v_e721a8 && v_2810d7 !== null) && v_229ff3 && (
+          <View style={v_d81136.personaIntroRow}>
+            <Text style={v_d81136.personaIntroName}>{v_dfb220}</Text>
+            <TouchableOpacity
+              activeOpacity={1}
+              onLongPress={v_e8c2aa}
+              delayLongPress={300}
+            >
+              <View style={v_d81136.personaIntroBubble}>
+                <Text style={v_d81136.personaIntroText}>
+                  오늘 하루는 어땠어요? 퇴근길에 비 오던데 조심히 들어와요.
+                </Text>
               </View>
-              <Text style={v_d81136.callDurationText}>{v_51c3d2.duration}</Text>
-            </View>
-            {v_51c3d2.messages.map((v_badeaf, v_e86ad8) => (
-              <View
-                key={`${v_51c3d2.id}-${v_e86ad8}`}
-                style={[
-                  v_d81136.callBubble,
-                  v_badeaf.role === "user" ? v_d81136.callBubbleRight : v_d81136.callBubbleLeft,
-                ]}
-              >
-                <Text style={v_d81136.callBubbleText}>{v_badeaf.text}</Text>
-              </View>
-            ))}
-            <TouchableOpacity style={v_d81136.transcriptBtn} hitSlop={6}>
-              <Text style={v_d81136.transcriptBtnText}>대본 보기</Text>
             </TouchableOpacity>
           </View>
-        ))}
-      </ScrollView>
+        )}
 
-      {}
-      <Text style={v_d81136.footerHint}>계속 채팅하려면 구독하세요</Text>
+        {
+
+}
+        {!(v_e721a8 && v_2810d7 !== null) && v_20e160.map((v_51c3d2) => {
+          const v_5b069c = v_51c3d2.messages
+            .map((v_35f85c, v_ebec57) => ({ ...v_35f85c, idx: v_ebec57 }))
+            .filter((v_35f85c) => v_35f85c.role === "persona");
+          const v_b72d02 = v_51c3d2.messages
+            .map((v_35f85c, v_ebec57) => ({ ...v_35f85c, idx: v_ebec57 }))
+            .filter((v_35f85c) => v_35f85c.role === "user");
+          return (
+            <View key={v_51c3d2.id} style={v_d81136.callGroup}>
+              <View style={v_d81136.callBlock}>
+                <View style={v_d81136.callHeader}>
+                  <View style={v_d81136.callIconWrap}>
+                    <Feather name="phone" size={14} color={v_1bfbd0.white} />
+                  </View>
+                  <Text style={v_d81136.callDurationText}>{v_51c3d2.duration}</Text>
+                </View>
+                {v_5b069c.map((v_badeaf) => (
+                  <TouchableOpacity
+                    key={`${v_51c3d2.id}-p-${v_badeaf.idx}`}
+                    activeOpacity={0.85}
+                    onLongPress={() => v_0fef43(v_51c3d2.id, v_badeaf.idx)}
+                    delayLongPress={300}
+                    style={v_d81136.callBubbleInner}
+                  >
+                    <Text style={v_d81136.callBubbleText}>{v_badeaf.text}</Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity style={v_d81136.transcriptBtn} hitSlop={6}>
+                  <Text style={v_d81136.transcriptBtnText}>통화 내용보기</Text>
+                </TouchableOpacity>
+              </View>
+              {v_b72d02.map((v_badeaf) => (
+                <TouchableOpacity
+                  key={`${v_51c3d2.id}-u-${v_badeaf.idx}`}
+                  activeOpacity={0.85}
+                  onLongPress={() => v_0fef43(v_51c3d2.id, v_badeaf.idx)}
+                  delayLongPress={300}
+                  style={v_d81136.userBubble}
+                >
+                  <Text style={v_d81136.userBubbleText}>{v_badeaf.text}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          );
+        })}
+      </ScrollView>
 
       {}
       <View style={[v_d81136.inputBar, { paddingBottom: v_53dd92 || 10 }]}>
@@ -210,8 +528,134 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           <Feather name="send" size={18} color={v_1bfbd0.white} />
         </TouchableOpacity>
       </View>
+
+      {
+}
+      <Modal
+        visible={!!v_fd08c6}
+        transparent
+        animationType="fade"
+        onRequestClose={() => v_2c320e(null)}
+      >
+        <Pressable style={v_d81136.sheetOverlay} onPress={() => v_2c320e(null)}>
+          <Pressable style={v_d81136.actionSheet} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+            <SwipeDownSheet onClose={() => v_2c320e(null)}>
+              <View style={v_d81136.sheetHandle} />
+              {v_fd08c6?.title ? <Text style={v_d81136.sheetTitle}>{v_fd08c6.title}</Text> : null}
+              {v_fd08c6?.actions.map((v_779914, v_ebec57) => (
+                <TouchableOpacity
+                  key={`${v_779914.label}-${v_ebec57}`}
+                  style={v_d81136.sheetAction}
+                  disabled={v_779914.disabled}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    v_2c320e(null);
+                    v_779914.onPress?.();
+                  }}
+                >
+                  <Text
+                    style={[
+                      v_d81136.sheetActionText,
+                      v_779914.destructive && v_d81136.sheetActionDestructive,
+                      v_779914.disabled && { opacity: 0.4 },
+                    ]}
+                  >
+                    {v_779914.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={v_d81136.sheetCancel}
+                activeOpacity={0.7}
+                onPress={() => v_2c320e(null)}
+              >
+                <Text style={v_d81136.sheetActionText}>취소</Text>
+              </TouchableOpacity>
+            </SwipeDownSheet>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {}
+      <Modal
+        visible={!!v_db205d}
+        transparent
+        animationType="slide"
+        onRequestClose={() => v_fb20c7(null)}
+      >
+        <Pressable style={v_d81136.sheetOverlay} onPress={() => v_fb20c7(null)}>
+          <Pressable
+            style={[v_d81136.actionSheet, v_d81136.turnsSheet]}
+            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
+          >
+            <View style={v_d81136.sheetHandle} />
+            <Text style={v_d81136.sheetTitle}>통화 내용</Text>
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{ paddingBottom: 20 }}
+              onScroll={({ nativeEvent: v_76b943 }) => {
+                if (v_76b943.contentOffset.y <= 20) void v_6deb64();
+              }}
+              scrollEventThrottle={200}
+            >
+              {v_db205d?.loading && v_db205d.turns.length === 0 && (
+                <Text style={v_d81136.loadingText}>불러오는 중…</Text>
+              )}
+              {v_db205d?.turns.map((v_8d41d7) => (
+                <View
+                  key={`turn-${v_db205d.callId}-${v_8d41d7.seq}`}
+                  style={v_8d41d7.role === "user" ? v_d81136.turnUserRow : v_d81136.turnPersonaRow}
+                >
+                  <View
+                    style={
+                      v_8d41d7.role === "user"
+                        ? [v_d81136.userBubble, { width: "80%" }]
+                        : [v_d81136.personaOutsideBubble, { width: "80%" }]
+                    }
+                  >
+                    <Text
+                      style={
+                        v_8d41d7.role === "user"
+                          ? v_d81136.userBubbleText
+                          : v_d81136.personaOutsideBubbleText
+                      }
+                    >
+                      {v_8d41d7.text}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+              {v_db205d?.loading && v_db205d.turns.length > 0 && (
+                <Text style={v_d81136.loadingText}>이전 발화 불러오는 중…</Text>
+              )}
+            </ScrollView>
+            <TouchableOpacity
+              style={v_d81136.sheetCancel}
+              activeOpacity={0.7}
+              onPress={() => v_fb20c7(null)}
+            >
+              <Text style={v_d81136.sheetActionText}>닫기</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
+}
+
+function v_f5aeb2(it: v_18a302): string {
+  const v_d5dda0 = new Date(v_23805a.startedAt);
+  const v_f8e6b9 = `${v_d5dda0.getMonth() + 1}월 ${v_d5dda0.getDate()}일 ${v_d5dda0
+    .getHours()
+    .toString()
+    .padStart(2, "0")}:${v_d5dda0.getMinutes().toString().padStart(2, "0")}`;
+  if (v_23805a.durationSec && v_23805a.durationSec > 0) {
+    const v_35f85c = Math.floor(v_23805a.durationSec / 60);
+    const v_fd5f43 = v_23805a.durationSec % 60;
+    const v_7dc4bb = v_35f85c > 0 ? `${v_35f85c}분 ${v_fd5f43}초` : `${v_fd5f43}초`;
+    return `음성 통화 · ${v_7dc4bb} · ${v_f8e6b9}`;
+  }
+  return `음성 통화 · ${v_f8e6b9}`;
 }
 
 const v_d81136 = v_472849.create({
@@ -222,9 +666,17 @@ const v_d81136 = v_472849.create({
     alignItems: "center",
     gap: 10,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingTop: 16,
+    paddingBottom: 14,
   },
   headerIcon: { padding: 4 },
+
+  headerProfileWrap: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
   headerAvatar: {
     width: 36, height: 36, borderRadius: 18, backgroundColor: v_1bfbd0.zinc200,
   },
@@ -273,15 +725,19 @@ const v_d81136 = v_472849.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     alignSelf: "flex-start",
-    maxWidth: "85%",
+    maxWidth: "70%",
   },
   personaIntroText: { fontSize: 14, color: v_1bfbd0.zinc800, lineHeight: 20 },
+
+  callGroup: { marginBottom: 14 },
 
   callBlock: {
     backgroundColor: v_1bfbd0.violet600,
     borderRadius: 18,
     padding: 14,
-    marginBottom: 14,
+    alignSelf: "flex-end",
+    width: "70%",
+    marginBottom: 8,
   },
   callHeader: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
@@ -294,17 +750,62 @@ const v_d81136 = v_472849.create({
   },
   callDurationText: { color: v_1bfbd0.white, fontSize: 13, fontWeight: "600" },
 
-  callBubble: {
+  callBubbleInner: {
     backgroundColor: "rgba(255,255,255,0.15)",
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    maxWidth: "90%",
     marginBottom: 8,
   },
-  callBubbleLeft: { alignSelf: "flex-start" },
-  callBubbleRight: { alignSelf: "flex-end" },
   callBubbleText: { color: v_1bfbd0.white, fontSize: 13, lineHeight: 19 },
+
+  userBubble: {
+    alignSelf: "flex-end",
+    width: "70%",
+    backgroundColor: v_1bfbd0.violet600,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  userBubbleText: { color: v_1bfbd0.white, fontSize: 13, lineHeight: 19 },
+
+  personaOutsideBubble: {
+    alignSelf: "flex-start",
+    width: "70%",
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  personaOutsideBubbleText: { color: v_1bfbd0.zinc800, fontSize: 13, lineHeight: 19 },
+
+  loadingText: {
+    textAlign: "center",
+    color: v_1bfbd0.zinc500,
+    fontSize: 12,
+    paddingVertical: 8,
+  },
+  callEmptyText: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 12,
+    textAlign: "center",
+    marginTop: 6,
+  },
+
+  turnsSheet: {
+    height: "80%",
+    minHeight: 400,
+  },
+  turnUserRow: {
+    alignItems: "flex-end",
+    marginBottom: 6,
+  },
+  turnPersonaRow: {
+    alignItems: "flex-start",
+    marginBottom: 6,
+  },
 
   transcriptBtn: {
     alignSelf: "center",
@@ -316,14 +817,6 @@ const v_d81136 = v_472849.create({
     color: "rgba(255,255,255,0.9)",
     fontSize: 13,
     fontWeight: "600",
-  },
-
-  footerHint: {
-    textAlign: "center",
-    fontSize: 12,
-    color: v_1bfbd0.zinc500,
-    paddingVertical: 6,
-    backgroundColor: v_1bfbd0.violet100,
   },
 
   inputBar: {
@@ -354,4 +847,47 @@ const v_d81136 = v_472849.create({
     alignItems: "center", justifyContent: "center",
   },
   sendBtnDisabled: { backgroundColor: v_1bfbd0.zinc300 },
+
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  actionSheet: {
+    backgroundColor: v_1bfbd0.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 10,
+    paddingBottom: 24,
+    paddingHorizontal: 16,
+    minHeight: 180,
+  },
+  sheetHandle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: v_1bfbd0.zinc300,
+    alignSelf: "center",
+    marginBottom: 10,
+  },
+  sheetTitle: {
+    fontSize: 13, fontWeight: "600",
+    color: v_1bfbd0.zinc600,
+    textAlign: "center",
+    paddingVertical: 8,
+    marginBottom: 4,
+  },
+  sheetAction: {
+    paddingVertical: 14,
+    alignItems: "center",
+    borderTopWidth: v_472849.hairlineWidth,
+    borderTopColor: v_1bfbd0.zinc100,
+  },
+  sheetActionText: { fontSize: 15, color: v_1bfbd0.zinc900, fontWeight: "500" },
+  sheetActionDestructive: { color: "#DC2626", fontWeight: "600" },
+  sheetCancel: {
+    marginTop: 10,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: v_1bfbd0.violet100,
+    alignItems: "center",
+  },
 });
