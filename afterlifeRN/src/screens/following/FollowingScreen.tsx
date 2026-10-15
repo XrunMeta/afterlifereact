@@ -915,7 +915,7 @@ export default function v_14b43e() {
                 style={v_fd5f43.subSearchInput}
                 value={v_9e799c}
                 onChangeText={v_d69724}
-                placeholder="Kins, 대화 내용 검색"
+                placeholder="검색"
                 placeholderTextColor={v_1bfbd0.zinc400}
                 autoCapitalize="none"
                 autoCorrect={false}
