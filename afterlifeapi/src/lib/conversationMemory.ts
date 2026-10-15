@@ -28,7 +28,7 @@ type ConversationKey =
   | { kind: "shredded" }
   | { kind: "none" };
 
-async function v_a50613(v_c9c489): Promise<v_a7c42c | null> {
+export async function v_a50613(v_c9c489): Promise<v_a7c42c | null> {
   try {
     return await v_190a24(v_c9c489.DB, v_c9c489.MASTER_ROOT);
   } catch (v_49263d) {
@@ -168,8 +168,10 @@ export async function v_386d00(
   v_c9c489,
   v_43e90c,
   v_6e0fd3,
+
+  providerIn?: v_a7c42c | null,
 ): Promise<{ key: ConversationKey; provider: v_a7c42c | null }> {
-  const v_e38ca2 = await v_a50613(v_c9c489);
+  const v_e38ca2 = v_1ab7d8 !== undefined ? v_1ab7d8 : await v_a50613(v_c9c489);
   if (v_e38ca2) {
     const v_b24339 = await v_4c8dce(v_c9c489.DB, v_e38ca2, v_43e90c, v_6e0fd3, false).catch((v_49263d) => {
       console.error(`[CONV_KEY_LOAD_FAIL] user=${v_43e90c} clone=${v_6e0fd3} err=${(v_49263d as Error).message}`);
