@@ -13,7 +13,6 @@ import {
   v_09d0e5,
   v_326be8,
   v_0e1f26,
-  v_e767d1,
   type v_5b67a3,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
@@ -389,12 +388,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
 
   return (
-    <KeyboardAvoidingView
-      style={[v_d81136.root, { paddingTop: v_033e14.top }]}
 
-      behavior={v_326be8.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={v_033e14.top}
-    >
+    <View style={[v_d81136.root, { paddingTop: v_033e14.top }]}>
       {}
       <View style={v_d81136.header}>
         <TouchableOpacity
@@ -702,7 +697,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           </Pressable>
         </Pressable>
       </Modal>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
