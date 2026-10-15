@@ -9,7 +9,8 @@ import {
   v_122070,
   v_79c4f2,
   v_cf9c33,
-  v_03e392,
+  v_aa7413,
+  v_09d0e5,
   v_326be8,
   v_0e1f26,
   type v_5b67a3,
@@ -19,7 +20,17 @@ import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_8ad91b } from "../../navigation/types";
 import { v_194498 } from "../../stores/cloneStore";
+import { v_1ed7d9 } from "../../stores/authStore";
+import { v_84d546 } from "../../lib/callGuard";
+import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
+
+type ActionItem = {
+  label: string;
+  onPress?: () => void;
+  destructive?: boolean;
+  disabled?: boolean;
+};
 
 type Props = v_432191<v_8ad91b, "Chat">;
 
@@ -72,6 +83,11 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const [v_842b8b, v_0f6477] = v_5ab095(true);
 
+  const [v_fd08c6, v_2c320e] = v_5ab095<{ title?: string; actions: ActionItem[] } | null>(null);
+  const v_cafc04 = (v_9f1622, v_dd943a) =>
+    v_2c320e({ title: v_9f1622, actions: v_dd943a });
+  const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+
   v_c4deb2(() => {
     const v_399925 = v_326be8.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
     const v_206f77 = v_326be8.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
@@ -95,30 +111,28 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   };
 
   const v_ed4b67 = () => {
-    v_03e392.alert(v_dfb220, undefined, [
+    v_cafc04(v_dfb220, [
       {
-        text: v_842b8b ? "알림 끄기" : "알림 켜기",
+        label: v_842b8b ? "알림 끄기" : "알림 켜기",
         onPress: () => v_0f6477((v_81e2ef) => !v_81e2ef),
       },
       {
-        text: "구독 취소",
-        style: "destructive",
+        label: "구독 취소",
+        destructive: true,
         onPress: () => {
 
           console.log("[Chat] 구독 취소 (placeholder) cloneId=", v_6e0fd3);
           v_c65f5d.goBack();
         },
       },
-      { text: "취소", style: "cancel" },
     ]);
   };
 
   const v_0fef43 = (v_be62d3, v_a6063d) => {
-    v_03e392.alert("메시지 삭제", "이 메시지를 삭제할까요?", [
-      { text: "취소", style: "cancel" },
+    v_cafc04("메시지 삭제", [
       {
-        text: "삭제",
-        style: "destructive",
+        label: "삭제",
+        destructive: true,
         onPress: () => {
           v_955c04((v_ba2215) =>
             v_ba2215
@@ -132,6 +146,36 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         },
       },
     ]);
+  };
+
+  const v_e8c2aa = () => {
+    v_cafc04("메시지 삭제", [
+      {
+        label: "삭제",
+        destructive: true,
+        onPress: () => v_e4f239(false),
+      },
+    ]);
+  };
+
+  const v_d9545c = async () => {
+    const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {});
+    if (!v_3ed4c3) return;
+    v_c65f5d.navigate("Call", {
+      cloneId: v_6e0fd3,
+      name: v_dfb220,
+      image: v_e7274c ?? undefined,
+    });
+  };
+
+  const v_ff2826 = () => {
+    v_cafc04("개발 중", [
+      { label: "확인", onPress: () => {} },
+    ]);
+  };
+
+  const v_c2e43c = () => {
+    v_c65f5d.navigate("CloneFeed", { cloneId: v_6e0fd3 });
   };
 
   const v_53dd92 = v_7e4acc > 0 ? v_7e4acc : v_033e14.bottom;
@@ -148,23 +192,37 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         >
           <Feather name="chevron-left" size={26} color={v_1bfbd0.zinc900} />
         </TouchableOpacity>
-        {v_e7274c ? (
-          <Image source={{ uri: v_e7274c }} style={v_d81136.headerAvatar} />
-        ) : (
-          <View style={[v_d81136.headerAvatar, v_d81136.headerAvatarFallback]}>
-            <Text style={v_d81136.headerAvatarInitial}>
-              {v_dfb220.charAt(0) || "?"}
-            </Text>
-          </View>
-        )}
-        <Text style={v_d81136.headerName} numberOfLines={1}>
-          {v_dfb220}
-        </Text>
+        <TouchableOpacity
+          style={v_d81136.headerProfileWrap}
+          onPress={v_c2e43c}
+          activeOpacity={0.7}
+        >
+          {v_e7274c ? (
+            <Image source={{ uri: v_e7274c }} style={v_d81136.headerAvatar} />
+          ) : (
+            <View style={[v_d81136.headerAvatar, v_d81136.headerAvatarFallback]}>
+              <Text style={v_d81136.headerAvatarInitial}>
+                {v_dfb220.charAt(0) || "?"}
+              </Text>
+            </View>
+          )}
+          <Text style={v_d81136.headerName} numberOfLines={1}>
+            {v_dfb220}
+          </Text>
+        </TouchableOpacity>
         <View style={v_d81136.headerRight}>
-          <TouchableOpacity style={v_d81136.headerActionBtn} hitSlop={8}>
+          <TouchableOpacity
+            style={v_d81136.headerActionBtn}
+            hitSlop={8}
+            onPress={v_ff2826}
+          >
             <Feather name="image" size={18} color={v_1bfbd0.zinc700} />
           </TouchableOpacity>
-          <TouchableOpacity style={v_d81136.headerActionBtn} hitSlop={8}>
+          <TouchableOpacity
+            style={v_d81136.headerActionBtn}
+            hitSlop={8}
+            onPress={v_d9545c}
+          >
             <Feather name="phone" size={18} color={v_1bfbd0.zinc700} />
           </TouchableOpacity>
           <TouchableOpacity
@@ -184,11 +242,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         </View>
         <View style={{ flex: 1 }}>
           <Text style={v_d81136.promoTitle} numberOfLines={1}>
-            특별 혜택 - 재구독 시 첫 달 요금 50% 할인!
+            Pangle 배너 광고
           </Text>
-          <TouchableOpacity hitSlop={6}>
-            <Text style={v_d81136.promoCta}>50% 할인 혜택 받기</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -205,16 +260,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             <Text style={v_d81136.personaIntroName}>{v_dfb220}</Text>
             <TouchableOpacity
               activeOpacity={1}
-              onLongPress={() =>
-                v_03e392.alert("메시지 삭제", "이 메시지를 삭제할까요?", [
-                  { text: "취소", style: "cancel" },
-                  {
-                    text: "삭제",
-                    style: "destructive",
-                    onPress: () => v_e4f239(false),
-                  },
-                ])
-              }
+              onLongPress={v_e8c2aa}
               delayLongPress={300}
             >
               <View style={v_d81136.personaIntroBubble}>
@@ -278,6 +324,53 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           <Feather name="send" size={18} color={v_1bfbd0.white} />
         </TouchableOpacity>
       </View>
+
+      {
+}
+      <Modal
+        visible={!!v_fd08c6}
+        transparent
+        animationType="fade"
+        onRequestClose={() => v_2c320e(null)}
+      >
+        <Pressable style={v_d81136.sheetOverlay} onPress={() => v_2c320e(null)}>
+          <Pressable style={v_d81136.actionSheet} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+            <SwipeDownSheet onClose={() => v_2c320e(null)}>
+              <View style={v_d81136.sheetHandle} />
+              {v_fd08c6?.title ? <Text style={v_d81136.sheetTitle}>{v_fd08c6.title}</Text> : null}
+              {v_fd08c6?.actions.map((v_779914, v_ebec57) => (
+                <TouchableOpacity
+                  key={`${v_779914.label}-${v_ebec57}`}
+                  style={v_d81136.sheetAction}
+                  disabled={v_779914.disabled}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    v_2c320e(null);
+                    v_779914.onPress?.();
+                  }}
+                >
+                  <Text
+                    style={[
+                      v_d81136.sheetActionText,
+                      v_779914.destructive && v_d81136.sheetActionDestructive,
+                      v_779914.disabled && { opacity: 0.4 },
+                    ]}
+                  >
+                    {v_779914.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={v_d81136.sheetCancel}
+                activeOpacity={0.7}
+                onPress={() => v_2c320e(null)}
+              >
+                <Text style={v_d81136.sheetActionText}>취소</Text>
+              </TouchableOpacity>
+            </SwipeDownSheet>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -415,4 +508,47 @@ const v_d81136 = v_472849.create({
     alignItems: "center", justifyContent: "center",
   },
   sendBtnDisabled: { backgroundColor: v_1bfbd0.zinc300 },
+
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  actionSheet: {
+    backgroundColor: v_1bfbd0.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 10,
+    paddingBottom: 24,
+    paddingHorizontal: 16,
+    minHeight: 180,
+  },
+  sheetHandle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: v_1bfbd0.zinc300,
+    alignSelf: "center",
+    marginBottom: 10,
+  },
+  sheetTitle: {
+    fontSize: 13, fontWeight: "600",
+    color: v_1bfbd0.zinc600,
+    textAlign: "center",
+    paddingVertical: 8,
+    marginBottom: 4,
+  },
+  sheetAction: {
+    paddingVertical: 14,
+    alignItems: "center",
+    borderTopWidth: v_472849.hairlineWidth,
+    borderTopColor: v_1bfbd0.zinc100,
+  },
+  sheetActionText: { fontSize: 15, color: v_1bfbd0.zinc900, fontWeight: "500" },
+  sheetActionDestructive: { color: "#DC2626", fontWeight: "600" },
+  sheetCancel: {
+    marginTop: 10,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: v_1bfbd0.violet100,
+    alignItems: "center",
+  },
 });
