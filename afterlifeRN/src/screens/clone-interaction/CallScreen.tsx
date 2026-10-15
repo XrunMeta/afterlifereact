@@ -174,6 +174,7 @@ import {
   type RememberMeEvent,
 } from "../../realtime/rememberMeReducer";
 import ExpertBadge from "../../components/ui/ExpertBadge";
+import { logAppsFlyerCallVideoStart } from "../../lib/appsFlyer";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
 
@@ -523,6 +524,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const [faceProcOff, setFaceProcOff] = useState(false);
 
   const [dialingDone, setDialingDone] = useState(false);
+
+  const afCallVideoLoggedRef = useRef(false);
 
   const [poorConnection, setPoorConnection] = useState(false);
 
@@ -2783,6 +2786,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           onConnected={() => {
             console.log(`[Call][flow] +${Date.now()} DialingScreen.onConnected → setDialingDone(true)`);
             setDialingDone(true);
+            if (!afCallVideoLoggedRef.current) {
+              afCallVideoLoggedRef.current = true;
+              logAppsFlyerCallVideoStart(cloneId);
+            }
           }}
           onCancel={async () => {
 

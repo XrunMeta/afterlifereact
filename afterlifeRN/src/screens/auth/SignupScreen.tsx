@@ -25,6 +25,7 @@ import v_c0caa9, { type v_3ac6ea } from "../../components/common/TermsModal";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_97ea8d, v_35200c, v_2efafe, v_84a859 } from "../../api/auth";
 import { v_7f847d, v_421733, v_2d09bf } from "../../api/consent";
+import { v_fa872d } from "../../hooks/useSsoReconsentGate";
 import { v_d2929b } from "./faceBiometricSignupFlag";
 import { v_704bef } from "../../lib/pushNotifications";
 import { v_ea1c99 } from "../../lib/deviceId";
@@ -145,9 +146,9 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     }
   };
 
-  const v_5c764d = v_51b53b && v_09b7fa;
+  const v_5c764d = v_51b53b && v_09b7fa && v_540cd3 && v_7f128f;
   const v_33f2ba =
-    v_5c764d && v_8c98c4 && v_7f128f && v_a03498 && v_540cd3;
+    v_5c764d && v_8c98c4 && v_a03498;
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
 
   const [v_1a29d0, v_704175] = v_5ab095<string | null>(null);
@@ -344,10 +345,12 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           }
         }
 
+        void v_fa872d(v_8f00b9.accessToken);
         void v_c65c18({
           accessToken: v_8f00b9.accessToken,
           refreshToken: v_8f00b9.refreshToken ?? null,
           persist: true,
+          registrationMethod: "google",
         });
         return;
       }
@@ -570,7 +573,9 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             <Feather name="chevron-right" size={18} color={v_1bfbd0.zinc400} />
           </TouchableOpacity>
 
-          {}
+          {
+
+}
           <View style={v_d81136.terms}>
             {}
             <TouchableOpacity
@@ -604,7 +609,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                 activeOpacity={0.7}
               >
                 <Text style={[v_d81136.termText, v_d81136.termLink]}>
-                  {v_8d41d7("auth.signup.termsService")}
+                  {v_8d41d7("auth.signup.termsService", { defaultValue: "[필수] SSO 통합 서비스 이용약관" })}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -625,64 +630,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                 activeOpacity={0.7}
               >
                 <Text style={[v_d81136.termText, v_d81136.termLink]}>
-                  {v_8d41d7("auth.signup.termsPrivacy")}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {}
-            <TouchableOpacity
-              onPress={v_349606}
-              disabled={v_8d0e18}
-              style={v_d81136.checkRow}
-            >
-              <View style={[v_d81136.checkbox, v_8c98c4 && v_d81136.checkboxChecked]}>
-                {v_8c98c4 && <Feather name="check" size={14} color={v_1bfbd0.white} />}
-              </View>
-              <Text style={v_d81136.termText}>
-                {v_8d41d7("auth.signup.marketingConsent")}
-                {v_8d0e18 ? ` (${v_8d41d7("auth.signup.verifying")})` : ""}
-              </Text>
-            </TouchableOpacity>
-
-            {}
-            <View style={v_d81136.checkRow}>
-              <TouchableOpacity
-                onPress={() => v_06ec09(!v_7f128f)}
-                hitSlop={8}
-              >
-                <View style={[v_d81136.checkbox, v_7f128f && v_d81136.checkboxChecked]}>
-                  {v_7f128f && <Feather name="check" size={14} color={v_1bfbd0.white} />}
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={v_d81136.termTextWrap}
-                onPress={() => v_fe0d62(5)}
-                activeOpacity={0.7}
-              >
-                <Text style={[v_d81136.termText, v_d81136.termLink]}>
-                  {v_8d41d7("auth.signup.callLearningConsent")}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {}
-            <View style={v_d81136.checkRow}>
-              <TouchableOpacity
-                onPress={() => v_d34fc9(!v_a03498)}
-                hitSlop={8}
-              >
-                <View style={[v_d81136.checkbox, v_a03498 && v_d81136.checkboxChecked]}>
-                  {v_a03498 && <Feather name="check" size={14} color={v_1bfbd0.white} />}
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={v_d81136.termTextWrap}
-                onPress={() => v_fe0d62(4)}
-                activeOpacity={0.7}
-              >
-                <Text style={[v_d81136.termText, v_d81136.termLink]}>
-                  {v_8d41d7("auth.signup.faceBiometricConsent")}
+                  {v_8d41d7("auth.signup.termsPrivacy", { defaultValue: "[필수] SSO 통합 개인정보 처리방침" })}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -704,7 +652,65 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                 activeOpacity={0.7}
               >
                 <Text style={[v_d81136.termText, v_d81136.termLink]}>
-                  {v_8d41d7("auth.signup.locationConsent", { defaultValue: "[선택] 위치기반 서비스 이용동의" })}
+                  {v_8d41d7("auth.signup.locationConsent", { defaultValue: "[필수] 위치기반서비스 이용약관" })}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {
+}
+            <View style={v_d81136.checkRow}>
+              <TouchableOpacity
+                onPress={() => v_06ec09(!v_7f128f)}
+                hitSlop={8}
+              >
+                <View style={[v_d81136.checkbox, v_7f128f && v_d81136.checkboxChecked]}>
+                  {v_7f128f && <Feather name="check" size={14} color={v_1bfbd0.white} />}
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={v_d81136.termTextWrap}
+                onPress={() => v_fe0d62(5)}
+                activeOpacity={0.7}
+              >
+                <Text style={[v_d81136.termText, v_d81136.termLink]}>
+                  {v_8d41d7("auth.signup.callLearningConsent", { defaultValue: "[필수] AI 데이터 활용 및 생성 동의" })}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {}
+            <TouchableOpacity
+              onPress={v_349606}
+              disabled={v_8d0e18}
+              style={v_d81136.checkRow}
+            >
+              <View style={[v_d81136.checkbox, v_8c98c4 && v_d81136.checkboxChecked]}>
+                {v_8c98c4 && <Feather name="check" size={14} color={v_1bfbd0.white} />}
+              </View>
+              <Text style={v_d81136.termText}>
+                {v_8d41d7("auth.signup.marketingConsent", { defaultValue: "[선택] 마케팅 정보 수집 및 활용 동의" })}
+                {v_8d0e18 ? ` (${v_8d41d7("auth.signup.verifying")})` : ""}
+              </Text>
+            </TouchableOpacity>
+
+            {}
+            <View style={v_d81136.checkRow}>
+              <TouchableOpacity
+                onPress={() => v_d34fc9(!v_a03498)}
+                hitSlop={8}
+              >
+                <View style={[v_d81136.checkbox, v_a03498 && v_d81136.checkboxChecked]}>
+                  {v_a03498 && <Feather name="check" size={14} color={v_1bfbd0.white} />}
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={v_d81136.termTextWrap}
+                onPress={() => v_fe0d62(4)}
+                activeOpacity={0.7}
+              >
+                <Text style={[v_d81136.termText, v_d81136.termLink]}>
+                  {v_8d41d7("auth.signup.faceBiometricConsent", { defaultValue: "[선택] 얼굴 생체정보 처리 동의" })}
                 </Text>
               </TouchableOpacity>
             </View>

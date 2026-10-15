@@ -9,8 +9,10 @@ import {
   v_09d0e5,
   v_472849,
   v_e45a99,
+  v_326be8,
 } from "rcmrninabrnb";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0 } from "../constants";
@@ -40,13 +42,16 @@ export default function v_4d9c69({ visible: v_cf55be, userName: v_f08a5e, userAv
   const { height: v_c86e33 } = v_e45a99();
 
   const v_033e14 = v_e0068c();
+  const v_f9771e = v_c18c22(0);
+  const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
+  const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
   return (
     <Modal visible={v_cf55be} transparent animationType="slide" onRequestClose={v_c7001c}>
       <Pressable style={v_d81136.backdrop} onPress={v_c7001c}>
         <Pressable
           style={[
             v_d81136.sheet,
-            { maxHeight: v_c86e33 * 0.85, paddingBottom: 32 + Math.max(v_033e14.bottom, 0) },
+            { maxHeight: v_c86e33 * 0.85, paddingBottom: 32 + v_2b650d },
           ]}
           onPress={(v_9e86fd) => v_9e86fd.stopPropagation?.()}
         >

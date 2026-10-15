@@ -22,6 +22,7 @@ import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_97ea8d, v_35200c, v_5c746e, v_dd2158, v_84a859 } from "../../api/auth";
 import { v_7f847d, v_421733, v_2d09bf } from "../../api/consent";
+import { v_fa872d } from "../../hooks/useSsoReconsentGate";
 import { v_d2929b } from "./faceBiometricSignupFlag";
 import { v_4eac84, v_8d3720 } from "tdbilgxptaometuphydosyywsglhnlfgkfkzstthk";
 import { v_ea1c99 } from "../../lib/deviceId";
@@ -43,7 +44,8 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const v_32f473 = v_e662ae<v_79c4f2>(null);
 
   const v_f6037c = (v_2ca7e0, v_dfaee3) => {
-    void v_c65c18({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, persist: true });
+    void v_fa872d(v_2ca7e0);
+    void v_c65c18({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, persist: true, registrationMethod: "email" });
   };
 
   const v_1fe71f = (v_2ca7e0, v_dfaee3) => {

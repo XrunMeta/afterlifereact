@@ -9,8 +9,10 @@ import {
   v_472849,
   v_122070,
   v_e45a99,
+  v_326be8,
 } from "rcmrninabrnb";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0 } from "../constants";
@@ -39,6 +41,9 @@ export default function v_409416({ visible: v_cf55be, targetKind: v_6a1be1 = "co
   const { height: v_c86e33 } = v_e45a99();
 
   const v_033e14 = v_e0068c();
+  const v_f9771e = v_c18c22(0);
+  const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
+  const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
   const v_5778d5 = v_6a1be1 === "comment"
     ? v_8d41d7("report.targetComment", { defaultValue: "댓글" })
     : v_6a1be1 === "post"
@@ -89,7 +94,7 @@ export default function v_409416({ visible: v_cf55be, targetKind: v_6a1be1 = "co
               })}
             </View>
 
-            <View style={{ height: 32 + Math.max(v_033e14.bottom, 0) }} />
+            <View style={{ height: 32 + v_2b650d }} />
           </ScrollView>
         </Pressable>
       </Pressable>
