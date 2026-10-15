@@ -264,6 +264,18 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       return;
     }
 
+    const v_2413d4 = -Date.now(); 
+    const v_5c2f9f = Date.now();
+    const optimisticUser: v_f19942 = {
+      type: "chat",
+      id: v_2413d4,
+      role: "user",
+      content: v_2f361a,
+      at: v_5c2f9f,
+      sessionId: v_c5607b ?? "pending",
+    };
+
+    v_7f73ef((v_ba2215) => [v_fa1cce, ...(v_ba2215 ?? [])]);
     v_10837f(true);
     v_c31db7("");
     v_0e1f26.dismiss();
@@ -272,8 +284,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         sessionId: v_c5607b ?? undefined,
       });
       if (!v_c5607b) v_1e756c(v_8f00b9.sessionId);
-      const v_5c2f9f = Date.now();
-      const userItem: v_f19942 = {
+      const realUser: v_f19942 = {
         type: "chat",
         id: v_8f00b9.userMessage.id,
         role: "user",
@@ -290,10 +301,18 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         sessionId: v_8f00b9.sessionId,
       };
 
-      v_7f73ef((v_ba2215) => [v_e44122, v_2539b3, ...(v_ba2215 ?? [])]);
+      v_7f73ef((v_ba2215) => {
+        const v_694b25 = (v_ba2215 ?? []).filter((v_23805a) =>
+          !(v_23805a.type === "chat" && v_23805a.id === v_2413d4),
+        );
+        return [v_e44122, v_8338f4, ...v_694b25];
+      });
     } catch (v_49263d) {
       console.warn("[Chat] send failed:", (v_49263d as Error)?.message ?? v_49263d);
 
+      v_7f73ef((v_ba2215) =>
+        v_ba2215 ? v_ba2215.filter((v_23805a) => !(v_23805a.type === "chat" && v_23805a.id === v_2413d4)) : v_ba2215,
+      );
       v_c31db7(v_2f361a);
     } finally {
       v_10837f(false);
@@ -616,7 +635,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       >
         <Pressable style={v_d81136.sheetOverlay} onPress={() => v_fb20c7(null)}>
           <Pressable
-            style={[v_d81136.actionSheet, v_d81136.turnsSheet]}
+            style={[v_d81136.actionSheet, v_d81136.turnsSheet, { paddingBottom: v_2b650d }]}
             onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
           >
             <View style={v_d81136.sheetHandle} />
@@ -660,13 +679,6 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                 <Text style={v_d81136.loadingText}>이전 발화 불러오는 중…</Text>
               )}
             </ScrollView>
-            <TouchableOpacity
-              style={v_d81136.sheetCancel}
-              activeOpacity={0.7}
-              onPress={() => v_fb20c7(null)}
-            >
-              <Text style={v_d81136.sheetActionText}>닫기</Text>
-            </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>
@@ -686,8 +698,10 @@ function v_f5aeb2(it: v_18a302): string {
     .toString()
     .padStart(2, "0")}:${v_d5dda0.getMinutes().toString().padStart(2, "0")}`;
   if (v_23805a.durationSec && v_23805a.durationSec > 0) {
-    const v_35f85c = Math.floor(v_23805a.durationSec / 60);
-    const v_fd5f43 = v_23805a.durationSec % 60;
+
+    const v_b3dc28 = Math.floor(v_23805a.durationSec);
+    const v_35f85c = Math.floor(v_b3dc28 / 60);
+    const v_fd5f43 = v_b3dc28 % 60;
     const v_7dc4bb = v_35f85c > 0 ? `${v_35f85c}분 ${v_fd5f43}초` : `${v_fd5f43}초`;
     return `음성 통화 · ${v_7dc4bb} · ${v_f8e6b9}`;
   }
