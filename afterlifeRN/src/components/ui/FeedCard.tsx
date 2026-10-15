@@ -54,6 +54,8 @@ interface FeedCardProps {
   onDescriptionPress?: () => void;
 
   contentTopInset?: number;
+
+  hideHashtagsChip?: boolean;
 }
 
 const FeedCard: v_a3453e.FC<FeedCardProps> = ({
@@ -78,6 +80,7 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
   onDescriptionScrollEnd: v_bb9bff,
   onDescriptionPress: v_9c79dc,
   contentTopInset: v_3b0493 = 0,
+  hideHashtagsChip: v_ca9d56 = false,
 }) => {
   const { t: v_8d41d7 } = v_772971();
   const v_3c9f12 = v_ada615<v_5b8240<v_97a9a8>>();
@@ -130,9 +133,15 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
       />
 
       {
+
 }
       {v_26dce6 && (v_8c0b26.ownerName || v_8c0b26.ownerAvatarUrl || v_27b331) ? (
-        <View style={[v_d81136.ownerHeader, v_3b0493 ? { top: 100 + v_3b0493 } : null]}>
+        <View style={[
+          v_d81136.ownerHeader,
+          v_3b0493
+            ? { top: (v_ca9d56 || v_43c476.length === 0 ? 56 : 100) + v_3b0493 }
+            : null,
+        ]}>
           <TouchableOpacity
             style={v_d81136.ownerInfo}
             onPress={v_b85e42}
@@ -164,8 +173,9 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
       ) : null}
 
       {
+
 }
-      {v_26dce6 && v_43c476.length > 0 ? (
+      {v_26dce6 && !v_ca9d56 && v_43c476.length > 0 ? (
         <View style={[v_d81136.hashtagRowWrap, v_3b0493 ? { top: 56 + v_3b0493 } : null]} pointerEvents="box-none">
           <ScrollView
             horizontal
