@@ -420,7 +420,8 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={v_326be8.OS === "ios" ? "padding" : "height"}
+
+        behavior={v_326be8.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={0}
       >
         {!v_683210 && v_c3519b.length > 0 && (
