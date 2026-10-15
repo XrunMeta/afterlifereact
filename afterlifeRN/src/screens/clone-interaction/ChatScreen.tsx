@@ -421,7 +421,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 }
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+      behavior={v_326be8.OS === "ios" ? "padding" : "height"}
     >
     <View style={[v_d81136.root, { paddingTop: v_033e14.top }]}>
       {}
@@ -633,7 +633,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           blurOnSubmit
 
           onFocus={() => {
-            setTimeout(() => v_5ca6b8.current?.scrollToEnd({ animated: true }), 100);
+            requestAnimationFrame(() => v_5ca6b8.current?.scrollToEnd({ animated: true }));
           }}
         />
         <TouchableOpacity
