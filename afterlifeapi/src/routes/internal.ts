@@ -1,5 +1,6 @@
 
 import { v_b7c41b } from "zmui";
+import { v_60df93, v_0625b2, v_2fa0c9 } from "../lib/conversationMemory";
 import type { v_de0a25 } from "../lib/env";
 import { v_278a53, v_80401b, v_7a6ff6, v_c12e45, v_12ade7, v_2fb81a, v_f9d88f, v_4b949c } from "../lib/assetJobs";
 import { v_1f4ea7 } from "../lib/validate";
@@ -42,9 +43,14 @@ v_dcd415.post("/oth-path", async (v_3f4e2e) => {
   if (v_9b6134.length > 2000) return v_3f4e2e.json({ error: "text_too_long" }, 400);
 
   const v_d7296e = await v_3f4e2e.env.DB.prepare(
-    "SELECT 1 FROM call_sessions WHERE call_id = ?"
-  ).bind(v_be62d3).first();
+    "SELECT user_id, clone_id FROM call_sessions WHERE call_id = ?"
+  ).bind(v_be62d3).first<{ user_id: number; clone_id: number }>();
   if (!v_d7296e) return v_3f4e2e.json({ error: "call_not_found" }, 404);
+
+  const v_5885b8 = await v_2fa0c9(
+    v_3f4e2e.env, { userId: v_d7296e.user_id, cloneId: v_d7296e.clone_id, callId: v_be62d3, role: v_22da99 }, v_9b6134,
+  );
+  if (v_5885b8 === null) return v_3f4e2e.json({ ok: true });
 
   const v_01ad49 = v_4d33b2.speakerPersonId;
   const v_b73ff1 =
@@ -59,7 +65,7 @@ v_dcd415.post("/oth-path", async (v_3f4e2e) => {
               WHERE p.id = ?
                 AND p.clone_id = (SELECT clone_id FROM call_sessions WHERE call_id = ?))
      FROM call_turns WHERE call_id = ?`
-  ).bind(v_be62d3, v_22da99, v_9b6134, Date.now(), v_b73ff1, v_be62d3, v_be62d3).run();
+  ).bind(v_be62d3, v_22da99, v_5885b8, Date.now(), v_b73ff1, v_be62d3, v_be62d3).run();
   return v_3f4e2e.json({ ok: true });
 });
 
@@ -89,27 +95,28 @@ v_dcd415.get("/conversations/:userId/:cloneId", async (v_3f4e2e) => {
   const v_1cae38 = Number.isInteger(v_989937) && v_989937 > 0
     ? Math.min(v_989937, v_d00cca) : v_d8577a;
 
-  const v_487a25 = await v_3f4e2e.env.DB.prepare(
-    "SELECT reset_at FROM conversation_resets WHERE user_id = ? AND clone_id = ?"
-  ).bind(v_43e90c, v_6e0fd3).first<{ reset_at: number }>();
-  const v_b98b4f = v_487a25?.reset_at ?? 0;
-
-  const { results: v_a7f568 } = await v_3f4e2e.env.DB.prepare(
-    `SELECT t.call_id, t.role, t.text, t.created_at
-       FROM call_turns t
-       JOIN call_sessions s ON s.call_id = t.call_id
-      WHERE s.user_id = ? AND s.clone_id = ?
-        AND s.started_at > ?
-        AND t.call_id != ?
-      ORDER BY s.started_at DESC, t.seq DESC
-      LIMIT ?`
-  ).bind(v_43e90c, v_6e0fd3, v_b98b4f, v_d11aca, v_1cae38)
-    .all<{ call_id: string; role: string; text: string; created_at: number }>();
-
-  const v_3035d9 = (v_a7f568 ?? []).reverse().map((v_cb35cb) => ({
-    callId: v_cb35cb.call_id, role: v_cb35cb.role, text: v_cb35cb.text, at: v_cb35cb.created_at,
-  }));
+  const { turns: v_3035d9, resetAt: v_b98b4f } = await v_60df93(v_3f4e2e.env, {
+    userId: v_43e90c, cloneId: v_6e0fd3, maxTurns: v_1cae38, excludeCallId: v_d11aca,
+    includeChat: v_3f4e2e.env.CONVERSATION_INCLUDE_CHAT === "1",
+  });
   return v_3f4e2e.json({ turns: v_3035d9, resetAt: v_b98b4f });
+});
+
+v_dcd415.post("/call-turns/encrypt-backfill", async (v_3f4e2e) => {
+  if (!v_4efd28(v_3f4e2e.req.header("Authorization"), v_3f4e2e.env.ORCH_SECRET)) {
+    return v_3f4e2e.json({ error: "unauthorized" }, 401);
+  }
+  const v_4d33b2 = await v_3f4e2e.req.json<{ limit?: unknown; afterId?: unknown }>()
+    .catch(() => ({}) as { limit?: unknown; afterId?: unknown });
+  const v_479f05 = typeof v_4d33b2.limit === "number" && Number.isInteger(v_4d33b2.limit) ? v_4d33b2.limit : 100;
+  const v_02be30 = Math.min(Math.max(v_479f05, 1), 200);
+  const v_7bc053 = typeof v_4d33b2.afterId === "number" && Number.isInteger(v_4d33b2.afterId) && v_4d33b2.afterId > 0
+    ? v_4d33b2.afterId : 0;
+  const v_8d4337 = await v_0625b2(v_3f4e2e.env, v_02be30, v_7bc053);
+  console.log(
+    `[call-turns-backfill] afterId=${v_7bc053} processed=${v_8d4337.processed} erasedShredded=${v_8d4337.erasedShredded} lastId=${v_8d4337.lastId} remaining=${v_8d4337.remaining}`,
+  );
+  return v_3f4e2e.json(v_8d4337);
 });
 
 v_dcd415.post("/conversations/:userId/:cloneId/reset", async (v_3f4e2e) => {
