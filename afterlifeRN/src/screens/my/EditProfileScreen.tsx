@@ -105,9 +105,11 @@ export default function v_e2b396() {
       return;
     }
     let v_2008a4 = false;
+    console.log("[EditProfile] fetch xrun-profile start");
     void (async () => {
       try {
         const v_e2a85c = await v_2c296e(v_2ca7e0);
+        console.log("[EditProfile] xrun-profile fetched:", JSON.stringify(v_e2a85c));
         if (!v_2008a4) v_9ed797(v_e2a85c);
       } catch (v_49263d) {
         if (!v_2008a4) {
@@ -141,12 +143,19 @@ export default function v_e2b396() {
   v_c4deb2(() => {
     if (!v_786737) return;
     const v_32d8c3 = v_786737.firstname?.trim();
-    if (v_32d8c3) v_318f24(v_32d8c3);
     const v_f8874f = v_786737.mobile?.trim();
-    if (v_f8874f) v_fcce73(v_f8874f);
     const v_3b9456 = v_048a83(v_786737.gender);
-    if (v_3b9456) v_bdc43c(v_3b9456);
     const v_46d803 = v_786737.age;
+    console.log("[EditProfile] prefill from xrun:", JSON.stringify({
+      name: v_32d8c3,
+      phone: v_f8874f,
+      gender: v_3b9456,
+      age: v_46d803,
+      rawGender: v_786737.gender,
+    }));
+    if (v_32d8c3) v_318f24(v_32d8c3);
+    if (v_f8874f) v_fcce73(v_f8874f);
+    if (v_3b9456) v_bdc43c(v_3b9456);
     if (typeof v_46d803 === "number" && Number.isFinite(v_46d803)) {
       v_64a312(v_a09cf3(v_46d803));
     }
@@ -263,9 +272,11 @@ export default function v_e2b396() {
       }
       if (v_17dc8a.age !== undefined) v_588fa6.age = v_17dc8a.age;
 
+      console.log("[EditProfile] save start — afterlife patch:", JSON.stringify(v_17dc8a), "xrun patch:", JSON.stringify(v_588fa6));
       if (Object.keys(v_588fa6).length > 0) {
         try {
           const v_43c42e = await v_ad7aba(v_2ca7e0, v_588fa6);
+          console.log("[EditProfile] patchXrunProfile ok:", JSON.stringify(v_43c42e));
           if (v_43c42e.profile) v_9ed797(v_43c42e.profile);
         } catch (v_49263d) {
 
@@ -279,6 +290,7 @@ export default function v_e2b396() {
       if (Object.keys(v_17dc8a).length > 0) {
         await v_976b89(v_2ca7e0, v_17dc8a);
         v_21f395(v_17dc8a);
+        console.log("[EditProfile] patchMe ok");
       }
       v_889fad(
         v_8d41d7("settings.editProfile.savedTitle", { defaultValue: "저장됨" }),
