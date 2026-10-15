@@ -348,6 +348,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           accessToken: v_8f00b9.accessToken,
           refreshToken: v_8f00b9.refreshToken ?? null,
           persist: true,
+          registrationMethod: "google",
         });
         return;
       }

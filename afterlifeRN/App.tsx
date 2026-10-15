@@ -41,6 +41,9 @@ import { v_434962 } from "./src/stores/devOverlayStore";
 import { v_875d65 } from "./src/lib/callForegroundService";
 v_875d65();
 
+import { v_7cb644, v_9ff0b2 } from "./src/lib/appsFlyer";
+v_7cb644();
+
 v_b28903();
 
 v_61a1ef(v_04fed4);
@@ -151,6 +154,8 @@ export default function v_6540c3() {
       const v_21cc31 = v_1ed7d9.getState().accessToken;
       if (v_21cc31) {
         v_9bedf5(v_21cc31);
+
+        v_9ff0b2(v_1ed7d9.getState().apiUser?.id);
 
         v_98d20a.getState().hydrate();
       }
