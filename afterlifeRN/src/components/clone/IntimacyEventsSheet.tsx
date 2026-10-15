@@ -210,7 +210,8 @@ const v_fd5f43 = v_472849.create({
     borderTopRightRadius: 24,
     paddingTop: 12,
     paddingHorizontal: 20,
-    maxHeight: "80%",
+
+    height: "50%",
   },
   eventsSheetHandle: {
     width: 40, height: 4, borderRadius: 2,
