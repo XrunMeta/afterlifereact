@@ -149,6 +149,20 @@ export default function v_14b43e() {
     };
   }, [v_7aa778, v_2ca7e0]);
 
+  v_cf763b(
+    v_de06a3(() => {
+      if (!v_7aa778 || !v_2ca7e0) return;
+      let v_2008a4 = false;
+      (async () => {
+        const v_8f00b9 = await v_e36429(v_2ca7e0);
+        if (!v_2008a4) v_ff797f(v_8f00b9?.items ?? []);
+      })();
+      return () => {
+        v_2008a4 = true;
+      };
+    }, [v_7aa778, v_2ca7e0]),
+  );
+
   const v_7cf37a = async (v_6e0fd3, v_c09aa8) => {
     try {
       const v_7d5f12 = await v_003cf2(v_6e0fd3, v_2ca7e0 ?? undefined);
@@ -480,7 +494,7 @@ export default function v_14b43e() {
                 createdAt: new Date(v_23805a.last.at).toISOString(),
               } as v_bc3df4)
             : null;
-          return { persona: v_5ed063, feed: v_2db2a5 };
+          return { persona: v_5ed063, feed: v_2db2a5, unread: v_23805a.unreadCount };
         })
         .filter((v_3ac7e7) =>
           !v_ab6401
@@ -513,7 +527,7 @@ export default function v_14b43e() {
       )
       .map((v_5ed063) => {
         const v_2db2a5 = v_632473.find((v_8b5cd8) => v_8b5cd8.cloneId === v_5ed063.id);
-        return { persona: v_5ed063, feed: v_2db2a5 ?? null };
+        return { persona: v_5ed063, feed: v_2db2a5 ?? null, unread: 0 };
       });
     v_ef8ab1.sort((v_779914, v_148ff6) => {
       if (v_5e8330 === "intimacy") {
@@ -706,22 +720,13 @@ export default function v_14b43e() {
     );
   };
 
-  const v_4a5736 = ({ item: v_8c0b26, index: v_a56041 }: { item: (typeof v_066fa2)[0]; index: number }) => {
+  const v_4a5736 = ({ item: v_8c0b26 }: { item: (typeof v_066fa2)[0]; index: number }) => {
     const v_1833e7 = v_8c0b26.persona.name;
     const v_4d4e6b = v_1833e7.charAt(0) || "?";
 
-    const v_a04efe = v_a56041 % 2 === 0;
-
-    const v_a78249 = v_a56041 === 0 ? 2 : v_a56041 === 2 ? 1 : 0;
-
-    const v_0be5f7 = v_a56041 === 1 ? "영상통화 3분 12초" : "오늘 하루는 어땠어요? 퇴근길…";
-    const v_cf0109 =
-      (v_8c0b26.feed?.content ?? "").trim() || v_0be5f7;
-
-    const v_eda849 = ["오전 11:56", "오전 10:52", "10월 12일", "어제"];
-    const v_375a17 = v_8c0b26.feed?.createdAt
-      ? v_bfd883(v_8c0b26.feed.createdAt)
-      : v_eda849[v_a56041 % v_eda849.length];
+    const v_cf0109 = (v_8c0b26.feed?.content ?? "").trim();
+    const v_375a17 = v_8c0b26.feed?.createdAt ? v_bfd883(v_8c0b26.feed.createdAt) : "";
+    const v_a78249 = v_8c0b26.unread ?? 0;
 
     const v_6629cb = () => {
 
@@ -757,7 +762,6 @@ export default function v_14b43e() {
               style={[v_fd5f43.msgAvatar, { position: "absolute", top: 0, left: 0 }]}
             />
           ) : null}
-          {v_a04efe && <View style={v_fd5f43.msgOnlineDot} />}
         </View>
 
         {}
@@ -772,7 +776,7 @@ export default function v_14b43e() {
           <View style={v_fd5f43.msgRightBottomRow}>
             {v_a78249 > 0 ? (
               <View style={v_fd5f43.msgUnreadBadge}>
-                <Text style={v_fd5f43.msgUnreadText}>{v_a78249}</Text>
+                <Text style={v_fd5f43.msgUnreadText}>{v_a78249 > 99 ? "99+" : v_a78249}</Text>
               </View>
             ) : null}
             <TouchableOpacity
@@ -933,7 +937,7 @@ export default function v_14b43e() {
             {}
             <View style={v_fd5f43.subSectionHeader}>
               <Text style={v_fd5f43.subSectionCount}>
-                Kins {v_a48e44.length} / 최대 50
+                Kins {v_066fa2.length}
               </Text>
               <TouchableOpacity hitSlop={8} onPress={() => v_538ca9(true)}>
                 <Text style={v_fd5f43.subSectionSort}>
