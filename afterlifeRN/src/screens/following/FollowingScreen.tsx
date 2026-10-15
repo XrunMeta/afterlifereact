@@ -744,15 +744,19 @@ export default function v_14b43e() {
 
     return (
       <TouchableOpacity style={v_fd5f43.msgRow} activeOpacity={0.7} onPress={v_6629cb}>
-        {}
+        {
+
+}
         <View style={v_fd5f43.msgAvatarWrap}>
+          <View style={[v_fd5f43.msgAvatar, v_fd5f43.msgAvatarFallback]}>
+            <Text style={v_fd5f43.msgAvatarInitial}>{v_4d4e6b}</Text>
+          </View>
           {v_8c0b26.persona.avatar ? (
-            <Image source={{ uri: v_8c0b26.persona.avatar }} style={v_fd5f43.msgAvatar} />
-          ) : (
-            <View style={[v_fd5f43.msgAvatar, v_fd5f43.msgAvatarFallback]}>
-              <Text style={v_fd5f43.msgAvatarInitial}>{v_4d4e6b}</Text>
-            </View>
-          )}
+            <Image
+              source={{ uri: v_8c0b26.persona.avatar }}
+              style={[v_fd5f43.msgAvatar, { position: "absolute", top: 0, left: 0 }]}
+            />
+          ) : null}
           {v_a04efe && <View style={v_fd5f43.msgOnlineDot} />}
         </View>
 
