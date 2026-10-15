@@ -40,7 +40,7 @@ interface UserRow {
   sso_consent_version: string | null;
 }
 
-const v_31fb59 = "2026-10-16-v1";
+export const v_31fb59 = "2026-10-16-v1";
 
 async function v_3fb498(c: Parameters<typeof v_6690d9>[0]): Promise<never> {
   throw new Error("unused");
