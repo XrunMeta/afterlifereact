@@ -16,6 +16,7 @@ import { v_1bfbd0, v_9b1a04 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_84a859, v_1d5b64, v_c0c425, v_7ef860, v_182fdb as v_ac9e58 } from "../../api/auth";
 import { v_ea1c99 } from "../../lib/deviceId";
+import { v_e41029 } from "../../lib/appsFlyer";
 
 const v_101856 = "@afterlifeRN/auth/autoLoginPref";
 const v_6a7868 = "@afterlifeRN/auth/lastEmail";
@@ -79,6 +80,7 @@ export default function v_415807({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         persist: v_f53eaa,
         refreshToken: v_8f00b9.refreshToken ?? null,
       });
+      v_e41029(v_34ad95 && v_adc076 ? "email" : "email_otp");
       if (v_f53eaa) {
         await v_e84827.setItem(v_101856, "1");
         await v_e84827.setItem(v_6a7868, v_e0c7e8);
