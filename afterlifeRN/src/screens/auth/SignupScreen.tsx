@@ -25,6 +25,7 @@ import v_c0caa9, { type v_3ac6ea } from "../../components/common/TermsModal";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_97ea8d, v_35200c, v_2efafe, v_84a859 } from "../../api/auth";
 import { v_7f847d, v_421733, v_2d09bf } from "../../api/consent";
+import { v_fa872d } from "../../hooks/useSsoReconsentGate";
 import { v_d2929b } from "./faceBiometricSignupFlag";
 import { v_704bef } from "../../lib/pushNotifications";
 import { v_ea1c99 } from "../../lib/deviceId";
@@ -344,6 +345,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           }
         }
 
+        void v_fa872d();
         void v_c65c18({
           accessToken: v_8f00b9.accessToken,
           refreshToken: v_8f00b9.refreshToken ?? null,
