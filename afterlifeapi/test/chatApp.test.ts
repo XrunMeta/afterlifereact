@@ -165,11 +165,14 @@ v_469bf2("GET /oth-path", () => {
     const v_28c2de = v_4d33b2.items.map((v_ebec57) => (v_ebec57.type === "call" ? `call:${v_ebec57.callId}` : `chat:${v_ebec57.role}`));
     v_4d37e3(v_28c2de).toEqual([
       "chat:clone", "chat:user",     
+      "call:tl-call-empty",          
       "call:tl-call-1",              
       "chat:clone", "chat:user",     
     ]);
-    const v_5eae50 = v_4d33b2.items.find((v_ebec57) => v_ebec57.type === "call") as Extract<TimelineItem, { type: "call" }>;
+    const v_5eae50 = v_4d33b2.items.find((v_ebec57) => v_ebec57.type === "call" && v_ebec57.callId === "tl-call-1");
     v_4d37e3(v_5eae50).toEqual({ type: "call", callId: "tl-call-1", startedAt: v_4139cb, turnCount: 2 });
+    const v_ad3352 = v_4d33b2.items.find((v_ebec57) => v_ebec57.type === "call" && v_ebec57.callId === "tl-call-empty");
+    v_4d37e3(v_ad3352).toEqual({ type: "call", callId: "tl-call-empty", startedAt: v_4139cb + 1000, turnCount: 0 });
     v_4d37e3((v_4d33b2.items[1] as { content: string }).content).toBe("점심 채팅");
     v_4d37e3(v_4d33b2.nextCursor).toBeNull();
   });
