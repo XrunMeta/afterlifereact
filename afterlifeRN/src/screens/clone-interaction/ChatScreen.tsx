@@ -381,7 +381,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     v_c65f5d.navigate("CloneFeed", { cloneId: v_6e0fd3 });
   };
 
-  const v_53dd92 = v_7e4acc > 0 ? v_7e4acc : v_033e14.bottom;
+  const v_53dd92 = v_7e4acc > 0 ? 10 : v_033e14.bottom;
 
   const v_f9771e = v_c18c22(0);
   const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
@@ -389,7 +389,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   return (
 
-    <View style={[v_d81136.root, { paddingTop: v_033e14.top }]}>
+    <View style={[v_d81136.root, { paddingTop: v_033e14.top, paddingBottom: v_7e4acc }]}>
       {}
       <View style={v_d81136.header}>
         <TouchableOpacity
