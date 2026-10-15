@@ -211,7 +211,7 @@ const v_fd5f43 = v_472849.create({
     paddingTop: 12,
     paddingHorizontal: 20,
 
-    height: "50%",
+    height: "70%",
   },
   eventsSheetHandle: {
     width: 40, height: 4, borderRadius: 2,
