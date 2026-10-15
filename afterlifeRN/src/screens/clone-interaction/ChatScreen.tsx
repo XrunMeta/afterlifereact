@@ -434,8 +434,8 @@ const v_d81136 = v_472849.create({
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    alignSelf: "stretch",
-    maxWidth: "100%",
+    alignSelf: "flex-start",
+    maxWidth: "70%",
   },
   personaIntroText: { fontSize: 14, color: v_1bfbd0.zinc800, lineHeight: 20 },
 
@@ -461,11 +461,11 @@ const v_d81136 = v_472849.create({
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    maxWidth: "100%",
+    maxWidth: "70%",
     marginBottom: 8,
   },
-  callBubbleLeft: { alignSelf: "stretch" },
-  callBubbleRight: { alignSelf: "stretch" },
+  callBubbleLeft: { alignSelf: "flex-start" },
+  callBubbleRight: { alignSelf: "flex-end" },
   callBubbleText: { color: v_1bfbd0.white, fontSize: 13, lineHeight: 19 },
 
   transcriptBtn: {
