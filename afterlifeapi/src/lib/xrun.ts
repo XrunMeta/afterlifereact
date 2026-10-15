@@ -776,6 +776,9 @@ export async function v_3e801c(
   }
   if (v_8f00b9.ok && v_7ecfd1?.status === "success" && v_7ecfd1.data) {
     const v_d5dda0 = v_7ecfd1.data;
+    console.log(
+      `[getXrunMemberProfile] member=${v_660822} data=${JSON.stringify(v_d5dda0)}`,
+    );
     return {
       ok: true,
       profile: {
@@ -796,6 +799,9 @@ export async function v_3e801c(
       },
     };
   }
+  console.warn(
+    `[getXrunMemberProfile] member=${v_660822} failed status=${v_8f00b9.status} body=${JSON.stringify(v_7ecfd1).slice(0, 500)}`,
+  );
   if (v_06d04c(v_8f00b9, v_7ecfd1)) {
     await v_8ae861(v_c9c489, v_660822);
     return { ok: false, reason: "member not found", missing: true };
@@ -849,4 +855,58 @@ export async function v_c0f252(
     updated: 0,
     reason: `xrun ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}`,
   };
+}
+
+export async function v_f748f8(
+  env: v_273a0c,
+  v_43e90c,
+  v_e0c7e8,
+): Promise<void> {
+  try {
+
+    const v_534695 = await v_a0ec33(v_c9c489, v_e0c7e8);
+    if (v_534695.found && v_534695.member) {
+      const v_275ccd = await v_c9c489.DB
+        .prepare(`SELECT xrun_member_id, name FROM users WHERE id = ?`)
+        .bind(v_43e90c)
+        .first<{ xrun_member_id: number | null; name: string | null }>();
+      if (v_275ccd && v_275ccd.xrun_member_id !== v_534695.member) {
+        await v_c9c489.DB
+          .prepare(
+            `UPDATE users
+                SET xrun_member_id = ?, xrun_guid = ?, xrun_wallet = ?,
+                    xrun_linked_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+              WHERE id = ?`,
+          )
+          .bind(v_534695.member, v_534695.guid, v_534695.wallet, v_43e90c)
+          .run();
+        console.log(
+          `[syncXrunLink] user_id=${v_43e90c} ${v_275ccd.xrun_member_id} -> ${v_534695.member}`,
+        );
+      }
+    }
+
+    const v_3ac7e7 = await v_c9c489.DB
+      .prepare(`SELECT xrun_member_id, name FROM users WHERE id = ?`)
+      .bind(v_43e90c)
+      .first<{ xrun_member_id: number | null; name: string | null }>();
+    if (!v_3ac7e7 || !v_3ac7e7.xrun_member_id) return;
+    const v_43c42e = await v_3e801c(v_c9c489, v_3ac7e7.xrun_member_id);
+    if (!v_43c42e.ok) return;
+    const v_32d8c3 = v_43c42e.profile.firstname?.trim();
+    if (!v_32d8c3) return;
+    if (v_32d8c3 === v_3ac7e7.name) return;
+    await v_c9c489.DB
+      .prepare(`UPDATE users SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+      .bind(v_32d8c3, v_43e90c)
+      .run();
+    console.log(
+      `[syncXrunName] user_id=${v_43e90c} "${v_3ac7e7.name}" -> "${v_32d8c3}"`,
+    );
+  } catch (v_49263d) {
+    console.warn(
+      `[syncXrunLinkAndName] user_id=${v_43e90c} failed:`,
+      (v_49263d as Error).message,
+    );
+  }
 }
