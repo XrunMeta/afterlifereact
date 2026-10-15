@@ -1,6 +1,6 @@
 
 
-import v_a3453e, { v_5ab095, v_e662ae, v_c4deb2 } from "bapkr";
+import v_a3453e, { v_5ab095, v_e662ae, v_c4deb2, v_df9f57 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -41,6 +41,18 @@ type ActionItem = {
   destructive?: boolean;
   disabled?: boolean;
 };
+
+type MissedCallGroup = {
+  kind: "missed-group";
+  count: number;
+  latestAt: number;
+  oldestAt: number;
+  firstId: string;
+};
+type DisplayItem = v_29686e | MissedCallGroup;
+
+const v_c8c890 = (v_23805a): v_23805a is MissedCallGroup =>
+  (v_23805a as MissedCallGroup).kind === "missed-group";
 
 type Props = v_432191<v_8ad91b, "Chat">;
 
@@ -113,6 +125,40 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     cursor: string | null;
     loading: boolean;
   } | null>(null);
+
+  const v_907715 = v_df9f57<DisplayItem[]>(() => {
+    if (!v_2810d7) return [];
+    const v_8d4337 = [];
+    let buffer: v_18a302[] = [];
+    const v_b6e358 = () => {
+      if (v_062bb0.length === 0) return;
+      if (v_062bb0.length === 1) {
+        v_8d4337.push(v_062bb0[0]!);
+      } else {
+
+        const v_1300ee = v_062bb0[0]!;
+        const v_5ddec1 = v_062bb0[v_062bb0.length - 1]!;
+        v_8d4337.push({
+          kind: "missed-group",
+          count: v_062bb0.length,
+          latestAt: v_1300ee.startedAt,
+          oldestAt: v_5ddec1.startedAt,
+          firstId: v_5ddec1.callId,
+        });
+      }
+      v_062bb0 = [];
+    };
+    for (const v_23805a of v_2810d7) {
+      if (v_23805a.type === "call" && v_23805a.turnCount === 0) {
+        v_062bb0.push(v_23805a);
+      } else {
+        v_b6e358();
+        v_8d4337.push(v_23805a);
+      }
+    }
+    v_b6e358();
+    return v_8d4337;
+  }, [v_2810d7]);
 
   v_c4deb2(() => {
     if (!v_e721a8 || !v_2ca7e0) return;
@@ -390,29 +436,60 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         }}
         scrollEventThrottle={200}
       >
-        {}
+        {
+
+}
         {v_e721a8 && v_2810d7 !== null && (
           <>
-            {v_2810d7.map((v_23805a) =>
-              v_23805a.type === "chat" ? (
-                <TouchableOpacity
-                  key={`api-chat-${v_23805a.id}`}
-                  activeOpacity={0.85}
-                  style={v_23805a.role === "user" ? v_d81136.userBubble : v_d81136.personaOutsideBubble}
-                >
-                  <Text
-                    style={
-                      v_23805a.role === "user" ? v_d81136.userBubbleText : v_d81136.personaOutsideBubbleText
-                    }
+            {v_5e23ec && (
+              <View style={[v_d81136.personaOutsideBubble, v_d81136.typingBubble]}>
+                <Text style={v_d81136.typingText}>…</Text>
+              </View>
+            )}
+            {v_907715.map((v_23805a) => {
+              if (v_c8c890(v_23805a)) {
+                return (
+                  <View key={`missed-group-${v_23805a.firstId}`} style={v_d81136.callBlock}>
+                    <View style={v_d81136.callHeader}>
+                      <View style={v_d81136.callIconWrap}>
+                        <Feather name="phone-missed" size={14} color={v_1bfbd0.white} />
+                      </View>
+                      <Text style={v_d81136.callDurationText}>
+                        부재중 통화 {v_23805a.count}건 · {v_c1c940(v_23805a.latestAt)}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              }
+              if (v_23805a.type === "chat") {
+                return (
+                  <TouchableOpacity
+                    key={`api-chat-${v_23805a.id}`}
+                    activeOpacity={0.85}
+                    style={v_23805a.role === "user" ? v_d81136.userBubble : v_d81136.personaOutsideBubble}
                   >
-                    {v_23805a.content}
-                  </Text>
-                </TouchableOpacity>
-              ) : (
+                    <Text
+                      style={
+                        v_23805a.role === "user"
+                          ? v_d81136.userBubbleText
+                          : v_d81136.personaOutsideBubbleText
+                      }
+                    >
+                      {v_23805a.content}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              }
+
+              return (
                 <View key={`api-call-${v_23805a.callId}`} style={v_d81136.callBlock}>
                   <View style={v_d81136.callHeader}>
                     <View style={v_d81136.callIconWrap}>
-                      <Feather name="phone" size={14} color={v_1bfbd0.white} />
+                      <Feather
+                        name={v_23805a.turnCount > 0 ? "phone" : "phone-missed"}
+                        size={14}
+                        color={v_1bfbd0.white}
+                      />
                     </View>
                     <Text style={v_d81136.callDurationText}>
                       {v_f5aeb2(v_23805a)}
@@ -430,8 +507,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                     <Text style={v_d81136.callEmptyText}>부재중 통화</Text>
                   )}
                 </View>
-              ),
-            )}
+              );
+            })}
             {v_dec728 && (
               <Text style={v_d81136.loadingText}>불러오는 중…</Text>
             )}
@@ -643,6 +720,11 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   );
 }
 
+function v_c1c940(v_d799e2): string {
+  const v_d5dda0 = new Date(v_d799e2);
+  return `${v_d5dda0.getMonth() + 1}월 ${v_d5dda0.getDate()}일`;
+}
+
 function v_f5aeb2(it: v_18a302): string {
   const v_d5dda0 = new Date(v_23805a.startedAt);
   const v_f8e6b9 = `${v_d5dda0.getMonth() + 1}월 ${v_d5dda0.getDate()}일 ${v_d5dda0
@@ -780,6 +862,17 @@ const v_d81136 = v_472849.create({
     marginBottom: 8,
   },
   personaOutsideBubbleText: { color: v_1bfbd0.zinc800, fontSize: 13, lineHeight: 19 },
+
+  typingBubble: {
+    width: undefined,
+    minWidth: 60,
+  },
+  typingText: {
+    fontSize: 18,
+    color: v_1bfbd0.zinc500,
+    letterSpacing: 2,
+    lineHeight: 18,
+  },
 
   loadingText: {
     textAlign: "center",
