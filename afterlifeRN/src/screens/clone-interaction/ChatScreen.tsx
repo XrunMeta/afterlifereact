@@ -910,11 +910,14 @@ const v_d81136 = v_472849.create({
   callBubbleText: { color: v_1bfbd0.white, fontSize: 13, lineHeight: 19 },
 
   bubbleRow: {
+    width: "100%",
     flexDirection: "row",
+    alignItems: "flex-start",
     marginBottom: 8,
   },
 
   userBubble: {
+    flexShrink: 1,
     maxWidth: "70%",
     backgroundColor: v_1bfbd0.violet600,
     borderRadius: 18,
@@ -922,9 +925,10 @@ const v_d81136 = v_472849.create({
     paddingRight: 14,
     paddingVertical: 10,
   },
-  userBubbleText: { color: v_1bfbd0.white, fontSize: 13, lineHeight: 19 },
+  userBubbleText: { color: v_1bfbd0.white, fontSize: 13, lineHeight: 19, flexShrink: 1 },
 
   personaOutsideBubble: {
+    flexShrink: 1,
     maxWidth: "70%",
     backgroundColor: v_1bfbd0.white,
     borderRadius: 18,
@@ -932,7 +936,7 @@ const v_d81136 = v_472849.create({
     paddingRight: 14,
     paddingVertical: 10,
   },
-  personaOutsideBubbleText: { color: v_1bfbd0.zinc800, fontSize: 13, lineHeight: 19 },
+  personaOutsideBubbleText: { color: v_1bfbd0.zinc800, fontSize: 13, lineHeight: 19, flexShrink: 1 },
 
   typingBubble: {
     width: undefined,
