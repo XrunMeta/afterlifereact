@@ -74,7 +74,9 @@ export interface SendMailOptions {
 }
 
 export async function v_a71d8b(env: v_273a0c, v_328259): Promise<void> {
+  console.log(`[sendMail] start to=${v_328259.to} subject=${v_328259.subject} from=${v_c9c489.GMAIL_SENDER}`);
   const v_2ca7e0 = await v_9790e6(v_c9c489);
+  console.log(`[sendMail] accessToken ok (len=${v_2ca7e0.length})`);
   const v_479f05 = v_75e309(
     v_a122f8({ from: v_c9c489.GMAIL_SENDER, to: v_328259.to, subject: v_328259.subject, html: v_328259.html }),
   );
@@ -88,9 +90,12 @@ export async function v_a71d8b(env: v_273a0c, v_328259): Promise<void> {
     },
     body: JSON.stringify({ raw: v_479f05 }),
   });
+  const v_af2314 = await v_8f00b9.text();
+  console.log(
+    `[sendMail] gmail response status=${v_8f00b9.status} body=${v_af2314.slice(0, 300)}`,
+  );
   if (!v_8f00b9.ok) {
-    const v_c70495 = await v_8f00b9.text();
-    v_d8479a = `${v_8f00b9.status}: ${v_c70495.slice(0, 500)}`;
+    v_d8479a = `${v_8f00b9.status}: ${v_af2314.slice(0, 500)}`;
   }
 
   if (v_c9c489.XRUN_DB) {
