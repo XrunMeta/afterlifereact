@@ -342,7 +342,7 @@ const v_d81136 = v_472849.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     alignSelf: "flex-start",
-    maxWidth: "85%",
+    maxWidth: "80%",
   },
   personaIntroText: { fontSize: 14, color: v_1bfbd0.zinc800, lineHeight: 20 },
 
@@ -368,7 +368,7 @@ const v_d81136 = v_472849.create({
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    maxWidth: "90%",
+    maxWidth: "80%",
     marginBottom: 8,
   },
   callBubbleLeft: { alignSelf: "flex-start" },
