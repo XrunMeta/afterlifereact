@@ -549,6 +549,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       </View>
 
       {
+
 }
       <Modal
         visible={!!v_fd08c6}
@@ -558,39 +559,37 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       >
         <Pressable style={v_d81136.sheetOverlay} onPress={() => v_2c320e(null)}>
           <Pressable style={v_d81136.actionSheet} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
-            <SwipeDownSheet onClose={() => v_2c320e(null)}>
-              <View style={v_d81136.sheetHandle} />
-              {v_fd08c6?.title ? <Text style={v_d81136.sheetTitle}>{v_fd08c6.title}</Text> : null}
-              {v_fd08c6?.actions.map((v_779914, v_ebec57) => (
-                <TouchableOpacity
-                  key={`${v_779914.label}-${v_ebec57}`}
-                  style={v_d81136.sheetAction}
-                  disabled={v_779914.disabled}
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    v_2c320e(null);
-                    v_779914.onPress?.();
-                  }}
-                >
-                  <Text
-                    style={[
-                      v_d81136.sheetActionText,
-                      v_779914.destructive && v_d81136.sheetActionDestructive,
-                      v_779914.disabled && { opacity: 0.4 },
-                    ]}
-                  >
-                    {v_779914.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            <View style={v_d81136.sheetHandle} />
+            {v_fd08c6?.title ? <Text style={v_d81136.sheetTitle}>{v_fd08c6.title}</Text> : null}
+            {v_fd08c6?.actions.map((v_779914, v_ebec57) => (
               <TouchableOpacity
-                style={v_d81136.sheetCancel}
+                key={`${v_779914.label}-${v_ebec57}`}
+                style={v_d81136.sheetAction}
+                disabled={v_779914.disabled}
                 activeOpacity={0.7}
-                onPress={() => v_2c320e(null)}
+                onPress={() => {
+                  v_2c320e(null);
+                  v_779914.onPress?.();
+                }}
               >
-                <Text style={v_d81136.sheetActionText}>취소</Text>
+                <Text
+                  style={[
+                    v_d81136.sheetActionText,
+                    v_779914.destructive && v_d81136.sheetActionDestructive,
+                    v_779914.disabled && { opacity: 0.4 },
+                  ]}
+                >
+                  {v_779914.label}
+                </Text>
               </TouchableOpacity>
-            </SwipeDownSheet>
+            ))}
+            <TouchableOpacity
+              style={v_d81136.sheetCancel}
+              activeOpacity={0.7}
+              onPress={() => v_2c320e(null)}
+            >
+              <Text style={v_d81136.sheetActionText}>취소</Text>
+            </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>
