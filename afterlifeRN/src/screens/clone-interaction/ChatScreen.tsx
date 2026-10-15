@@ -24,6 +24,16 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_84d546 } from "../../lib/callGuard";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
+import {
+  v_8a85e2,
+  v_22ca9b,
+  v_40068b,
+  v_dd96e7,
+  type v_29686e,
+  type v_f19942,
+  type v_18a302,
+  type v_109480,
+} from "../../api/chat";
 
 type ActionItem = {
   label: string;
@@ -88,6 +98,84 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_cafc04 = (v_9f1622, v_dd943a) =>
     v_2c320e({ title: v_9f1622, actions: v_dd943a });
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const v_f4fb5e = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? null);
+
+  const v_e721a8 = v_8a85e2(v_f4fb5e);
+  const [v_2810d7, v_7f73ef] = v_5ab095<v_29686e[] | null>(null);
+  const [v_a981b7, v_94405c] = v_5ab095<string | null>(null);
+  const [v_dec728, v_a7c3b5] = v_5ab095(false);
+  const [v_c5607b, v_1e756c] = v_5ab095<string | null>(null);
+  const [v_5e23ec, v_10837f] = v_5ab095(false);
+
+  const [v_db205d, v_fb20c7] = v_5ab095<{
+    callId: string;
+    turns: v_109480[];
+    cursor: string | null;
+    loading: boolean;
+  } | null>(null);
+
+  v_c4deb2(() => {
+    if (!v_e721a8 || !v_2ca7e0) return;
+    let v_2008a4 = false;
+    v_a7c3b5(true);
+    (async () => {
+      const v_8f00b9 = await v_22ca9b(v_6e0fd3, v_2ca7e0, { limit: 30 });
+      if (v_2008a4) return;
+      v_a7c3b5(false);
+      if (v_8f00b9) {
+        v_7f73ef(v_8f00b9.items);
+        v_94405c(v_8f00b9.nextCursor);
+      }
+    })();
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_e721a8, v_2ca7e0, v_6e0fd3]);
+
+  const v_747b23 = async () => {
+    if (!v_e721a8 || !v_2ca7e0 || !v_a981b7 || v_dec728) return;
+    v_a7c3b5(true);
+    const v_8f00b9 = await v_22ca9b(v_6e0fd3, v_2ca7e0, {
+      limit: 30,
+      cursor: v_a981b7,
+    });
+    v_a7c3b5(false);
+    if (!v_8f00b9) return;
+    v_7f73ef((v_ba2215) => [...(v_ba2215 ?? []), ...v_8f00b9.items]);
+    v_94405c(v_8f00b9.nextCursor);
+  };
+
+  const v_bbd0f3 = async (v_be62d3) => {
+    if (!v_e721a8 || !v_2ca7e0) return;
+    v_fb20c7({ callId: v_be62d3, turns: [], cursor: null, loading: true });
+    const v_8f00b9 = await v_40068b(v_6e0fd3, v_be62d3, v_2ca7e0, { limit: 50 });
+    v_fb20c7({
+      callId: v_be62d3,
+      turns: v_8f00b9?.turns ?? [],
+      cursor: v_8f00b9?.nextCursor ?? null,
+      loading: false,
+    });
+  };
+
+  const v_6deb64 = async () => {
+    if (!v_db205d || !v_2ca7e0 || !v_db205d.cursor || v_db205d.loading) return;
+    v_fb20c7((v_ba2215) => (v_ba2215 ? { ...v_ba2215, loading: true } : v_ba2215));
+    const v_8f00b9 = await v_40068b(v_6e0fd3, v_db205d.callId, v_2ca7e0, {
+      limit: 50,
+      cursor: v_db205d.cursor,
+    });
+    v_fb20c7((v_ba2215) =>
+      v_ba2215
+        ? {
+            ...v_ba2215,
+
+            turns: [...(v_8f00b9?.turns ?? []), ...v_ba2215.turns],
+            cursor: v_8f00b9?.nextCursor ?? null,
+            loading: false,
+          }
+        : v_ba2215,
+    );
+  };
 
   v_c4deb2(() => {
     const v_399925 = v_326be8.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
@@ -102,13 +190,51 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     };
   }, []);
 
-  const v_465869 = () => {
+  const v_465869 = async () => {
     const v_2f361a = v_bbda62.trim();
-    if (!v_2f361a) return;
+    if (!v_2f361a || v_5e23ec) return;
 
-    console.log("[Chat] send (placeholder):", v_2f361a);
+    if (!v_e721a8 || !v_2ca7e0) {
+      console.log("[Chat] send (placeholder):", v_2f361a);
+      v_c31db7("");
+      v_0e1f26.dismiss();
+      return;
+    }
+
+    v_10837f(true);
     v_c31db7("");
     v_0e1f26.dismiss();
+    try {
+      const v_8f00b9 = await v_dd96e7(v_6e0fd3, v_2f361a, v_2ca7e0, {
+        sessionId: v_c5607b ?? undefined,
+      });
+      if (!v_c5607b) v_1e756c(v_8f00b9.sessionId);
+      const v_5c2f9f = Date.now();
+      const userItem: v_f19942 = {
+        type: "chat",
+        id: v_8f00b9.userMessage.id,
+        role: "user",
+        content: v_8f00b9.userMessage.content,
+        at: v_5c2f9f,
+        sessionId: v_8f00b9.sessionId,
+      };
+      const cloneItem: v_f19942 = {
+        type: "chat",
+        id: v_8f00b9.cloneReply.id,
+        role: "clone",
+        content: v_8f00b9.cloneReply.content,
+        at: v_5c2f9f + 1,
+        sessionId: v_8f00b9.sessionId,
+      };
+
+      v_7f73ef((v_ba2215) => [v_e44122, v_2539b3, ...(v_ba2215 ?? [])]);
+    } catch (v_49263d) {
+      console.warn("[Chat] send failed:", (v_49263d as Error)?.message ?? v_49263d);
+
+      v_c31db7(v_2f361a);
+    } finally {
+      v_10837f(false);
+    }
   };
 
   const v_ed4b67 = () => {
@@ -254,9 +380,66 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         style={v_d81136.scrollArea}
         contentContainerStyle={v_d81136.scrollContent}
         showsVerticalScrollIndicator={false}
+        onScroll={({ nativeEvent: v_76b943 }) => {
+
+          if (!v_e721a8) return;
+          const { layoutMeasurement: v_6f469f, contentOffset: v_e29918, contentSize: v_d1b3ac } = v_76b943;
+          const v_169e78 =
+            v_e29918.y + v_6f469f.height >= v_d1b3ac.height - 120;
+          if (v_169e78) void v_747b23();
+        }}
+        scrollEventThrottle={200}
       >
         {}
-        {v_229ff3 && (
+        {v_e721a8 && v_2810d7 !== null && (
+          <>
+            {v_2810d7.map((v_23805a) =>
+              v_23805a.type === "chat" ? (
+                <TouchableOpacity
+                  key={`api-chat-${v_23805a.id}`}
+                  activeOpacity={0.85}
+                  style={v_23805a.role === "user" ? v_d81136.userBubble : v_d81136.personaOutsideBubble}
+                >
+                  <Text
+                    style={
+                      v_23805a.role === "user" ? v_d81136.userBubbleText : v_d81136.personaOutsideBubbleText
+                    }
+                  >
+                    {v_23805a.content}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <View key={`api-call-${v_23805a.callId}`} style={v_d81136.callBlock}>
+                  <View style={v_d81136.callHeader}>
+                    <View style={v_d81136.callIconWrap}>
+                      <Feather name="phone" size={14} color={v_1bfbd0.white} />
+                    </View>
+                    <Text style={v_d81136.callDurationText}>
+                      {v_f5aeb2(v_23805a)}
+                    </Text>
+                  </View>
+                  {v_23805a.turnCount > 0 ? (
+                    <TouchableOpacity
+                      style={v_d81136.transcriptBtn}
+                      hitSlop={6}
+                      onPress={() => v_bbd0f3(v_23805a.callId)}
+                    >
+                      <Text style={v_d81136.transcriptBtnText}>통화 내용보기</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <Text style={v_d81136.callEmptyText}>부재중 통화</Text>
+                  )}
+                </View>
+              ),
+            )}
+            {v_dec728 && (
+              <Text style={v_d81136.loadingText}>불러오는 중…</Text>
+            )}
+          </>
+        )}
+
+        {}
+        {!(v_e721a8 && v_2810d7 !== null) && v_229ff3 && (
           <View style={v_d81136.personaIntroRow}>
             <Text style={v_d81136.personaIntroName}>{v_dfb220}</Text>
             <TouchableOpacity
@@ -276,7 +459,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         {
 
 }
-        {v_20e160.map((v_51c3d2) => {
+        {!(v_e721a8 && v_2810d7 !== null) && v_20e160.map((v_51c3d2) => {
           const v_5b069c = v_51c3d2.messages
             .map((v_35f85c, v_ebec57) => ({ ...v_35f85c, idx: v_ebec57 }))
             .filter((v_35f85c) => v_35f85c.role === "persona");
@@ -392,8 +575,87 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           </Pressable>
         </Pressable>
       </Modal>
+
+      {}
+      <Modal
+        visible={!!v_db205d}
+        transparent
+        animationType="slide"
+        onRequestClose={() => v_fb20c7(null)}
+      >
+        <Pressable style={v_d81136.sheetOverlay} onPress={() => v_fb20c7(null)}>
+          <Pressable
+            style={[v_d81136.actionSheet, v_d81136.turnsSheet]}
+            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
+          >
+            <View style={v_d81136.sheetHandle} />
+            <Text style={v_d81136.sheetTitle}>통화 내용</Text>
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{ paddingBottom: 20 }}
+              onScroll={({ nativeEvent: v_76b943 }) => {
+                if (v_76b943.contentOffset.y <= 20) void v_6deb64();
+              }}
+              scrollEventThrottle={200}
+            >
+              {v_db205d?.loading && v_db205d.turns.length === 0 && (
+                <Text style={v_d81136.loadingText}>불러오는 중…</Text>
+              )}
+              {v_db205d?.turns.map((v_8d41d7) => (
+                <View
+                  key={`turn-${v_db205d.callId}-${v_8d41d7.seq}`}
+                  style={v_8d41d7.role === "user" ? v_d81136.turnUserRow : v_d81136.turnPersonaRow}
+                >
+                  <View
+                    style={
+                      v_8d41d7.role === "user"
+                        ? [v_d81136.userBubble, { width: "80%" }]
+                        : [v_d81136.personaOutsideBubble, { width: "80%" }]
+                    }
+                  >
+                    <Text
+                      style={
+                        v_8d41d7.role === "user"
+                          ? v_d81136.userBubbleText
+                          : v_d81136.personaOutsideBubbleText
+                      }
+                    >
+                      {v_8d41d7.text}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+              {v_db205d?.loading && v_db205d.turns.length > 0 && (
+                <Text style={v_d81136.loadingText}>이전 발화 불러오는 중…</Text>
+              )}
+            </ScrollView>
+            <TouchableOpacity
+              style={v_d81136.sheetCancel}
+              activeOpacity={0.7}
+              onPress={() => v_fb20c7(null)}
+            >
+              <Text style={v_d81136.sheetActionText}>닫기</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
+}
+
+function v_f5aeb2(it: v_18a302): string {
+  const v_d5dda0 = new Date(v_23805a.startedAt);
+  const v_f8e6b9 = `${v_d5dda0.getMonth() + 1}월 ${v_d5dda0.getDate()}일 ${v_d5dda0
+    .getHours()
+    .toString()
+    .padStart(2, "0")}:${v_d5dda0.getMinutes().toString().padStart(2, "0")}`;
+  if (v_23805a.durationSec && v_23805a.durationSec > 0) {
+    const v_35f85c = Math.floor(v_23805a.durationSec / 60);
+    const v_fd5f43 = v_23805a.durationSec % 60;
+    const v_7dc4bb = v_35f85c > 0 ? `${v_35f85c}분 ${v_fd5f43}초` : `${v_fd5f43}초`;
+    return `음성 통화 · ${v_7dc4bb} · ${v_f8e6b9}`;
+  }
+  return `음성 통화 · ${v_f8e6b9}`;
 }
 
 const v_d81136 = v_472849.create({
@@ -507,6 +769,43 @@ const v_d81136 = v_472849.create({
     marginBottom: 8,
   },
   userBubbleText: { color: v_1bfbd0.white, fontSize: 13, lineHeight: 19 },
+
+  personaOutsideBubble: {
+    alignSelf: "flex-start",
+    width: "70%",
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  personaOutsideBubbleText: { color: v_1bfbd0.zinc800, fontSize: 13, lineHeight: 19 },
+
+  loadingText: {
+    textAlign: "center",
+    color: v_1bfbd0.zinc500,
+    fontSize: 12,
+    paddingVertical: 8,
+  },
+  callEmptyText: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 12,
+    textAlign: "center",
+    marginTop: 6,
+  },
+
+  turnsSheet: {
+    height: "80%",
+    minHeight: 400,
+  },
+  turnUserRow: {
+    alignItems: "flex-end",
+    marginBottom: 6,
+  },
+  turnPersonaRow: {
+    alignItems: "flex-start",
+    marginBottom: 6,
+  },
 
   transcriptBtn: {
     alignSelf: "center",
