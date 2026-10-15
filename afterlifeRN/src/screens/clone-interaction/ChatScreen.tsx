@@ -326,7 +326,9 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   };
 
   const v_98409d = () => {
-    v_cafc04(v_dfb220, [
+    const v_f1620a = v_1ed7d9.getState().apiUser?.id ?? null;
+    const v_e009da = v_eb25ce?.ownerId != null && v_f1620a != null && v_eb25ce.ownerId === v_f1620a;
+    const v_dd943a = [
       {
         label: "통화",
         onPress: () => void v_21be1f(),
@@ -336,7 +338,9 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         disabled: v_f61bef,
         onPress: () => void v_4f52b6(),
       },
-      {
+    ];
+    if (!v_e009da) {
+      v_dd943a.push({
         label: "구독 취소",
         destructive: true,
         onPress: () => {
@@ -347,8 +351,9 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           }
           v_c65f5d.goBack();
         },
-      },
-    ]);
+      });
+    }
+    v_cafc04(v_dfb220, v_dd943a);
   };
 
   const v_c2e43c = () => {
