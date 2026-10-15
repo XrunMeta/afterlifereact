@@ -34,8 +34,7 @@ import { v_b4902e } from "../../stores/followStore";
 import { v_37977a } from "../../stores/feedStore";
 import { v_889fad } from "../../stores/dialogStore";
 import {
-  v_b14fce,
-  v_0ff331,
+
   v_4208e7,
   v_776874,
   v_3f8bc7,
@@ -220,19 +219,10 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
   const v_d3af9c = async () => {
     const v_a448ad = !v_b84498;
     v_e24028(v_a448ad);
+
     v_a96ced(v_8c0b26.id);
 
     v_abdcca((v_ba2215) => Math.max(0, v_ba2215 + (v_a448ad ? 1 : -1)));
-    if (!v_2ca7e0) return;
-    try {
-      if (v_a448ad) await v_b14fce(v_2ca7e0, v_8c0b26.cloneId);
-      else await v_0ff331(v_2ca7e0, v_8c0b26.cloneId);
-    } catch (v_49263d) {
-      console.warn("[CloneFeed] like toggle failed:", v_49263d);
-
-      v_e24028(!v_a448ad);
-      v_abdcca((v_ba2215) => Math.max(0, v_ba2215 + (v_a448ad ? -1 : 1)));
-    }
   };
 
   const v_f8043e = async () => {
