@@ -7,6 +7,12 @@ const v_cfcd6e = "8874758";
 const v_9f718b = "983489678"; 
 const v_c7628e = "983489670";     
 
+const v_9f4c5f = "983741015";
+const v_a4a845 = "983741036";
+export function v_60086b(): string {
+  return v_326be8.OS === "ios" ? v_a4a845 : v_9f4c5f;
+}
+
 type PangleModuleType = {
   initialize(): Promise<boolean>;
   isReady(): Promise<boolean>;
