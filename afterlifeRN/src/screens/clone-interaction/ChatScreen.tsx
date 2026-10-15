@@ -13,7 +13,6 @@ import {
   v_09d0e5,
   v_326be8,
   v_0e1f26,
-  v_e767d1,
   type v_5b67a3,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
@@ -413,10 +412,6 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     {
 
 }
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={v_326be8.OS === "ios" ? "padding" : "height"}
-    >
     <View style={[v_d81136.root, { paddingTop: v_033e14.top }]}>
       {}
       <View style={v_d81136.header}>
@@ -731,7 +726,6 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         </Pressable>
       </Modal>
     </View>
-    </KeyboardAvoidingView>
     </Modal>
   );
 }
