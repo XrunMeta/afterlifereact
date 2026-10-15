@@ -1162,7 +1162,8 @@ const v_fd5f43 = v_472849.create({
 
   msgListContent: {
     paddingHorizontal: 16,
-    paddingBottom: 120,
+
+    paddingBottom: 0,
     backgroundColor: v_1bfbd0.violet100,
   },
   subSearchBar: {
