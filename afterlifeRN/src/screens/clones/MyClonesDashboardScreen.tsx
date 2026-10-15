@@ -23,6 +23,7 @@ import { v_04686a } from "../../lib/imagePicker";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_cf763b, v_ada615, v_2d8264, type v_ee3714, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_772971 } from "jmpfvteuuztnp";
 import * as v_fba5a0 from "hfxxehldoiokdq";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
@@ -75,6 +76,10 @@ export default function v_def15b() {
     v_8d41d7("common.exitPrompt", { defaultValue: "한 번 더 누르면 종료됩니다" }),
   );
   const v_033e14 = v_e0068c();
+
+  const v_f9771e = v_c18c22(0);
+  const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
+  const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
   const v_f38ee5 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
   const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
@@ -1142,7 +1147,7 @@ export default function v_def15b() {
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_d5cd7b(null)}>
           <SwipeDownSheet
             onClose={() => v_d5cd7b(null)}
-            style={[v_fd5f43.statsSheet, { paddingBottom: 32 + Math.max(v_033e14.bottom, 0) }]}
+            style={[v_fd5f43.statsSheet, { paddingBottom: 32 + v_2b650d }]}
           >
             <View style={v_fd5f43.sheetHandle} />
             <Text style={v_fd5f43.statsSheetTitle}>
@@ -1272,7 +1277,7 @@ export default function v_def15b() {
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_598141(null)}>
           <SwipeDownSheet
             onClose={() => v_598141(null)}
-            style={[v_fd5f43.statsSheet, { paddingBottom: 32 + Math.max(v_033e14.bottom, 0) }]}
+            style={[v_fd5f43.statsSheet, { paddingBottom: 32 + v_2b650d }]}
           >
             <View style={v_fd5f43.sheetHandle} />
             <View style={v_fd5f43.intimacyTitleRow}>

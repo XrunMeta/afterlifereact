@@ -15,6 +15,7 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_1ed7d9 } from "../../../stores/authStore";
 import { v_5959d8, type v_7428e9 } from "../../../api/users";
@@ -41,7 +42,9 @@ export default function v_4c2648({
   const v_f5f393 = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.id ?? v_fd5f43.user?.id ?? null);
   const v_033e14 = v_e0068c();
 
-  const v_284e24 = Math.max(v_033e14.bottom, v_326be8.OS === "android" ? 24 : 12);
+  const v_f9771e = v_c18c22(0);
+  const v_ad9bbd = v_326be8.OS === "android" ? 56 : 12;
+  const v_284e24 = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
 
   const [v_ba3f04, v_cd488d] = v_5ab095<v_7428e9[]>([]);
   const [v_683210, v_34a50a] = v_5ab095(false);
