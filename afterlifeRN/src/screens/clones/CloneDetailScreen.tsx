@@ -9,10 +9,12 @@ import {
   v_9cabcb,
   v_aa7413,
   v_09d0e5,
+  v_326be8,
 } from "rcmrninabrnb";
 import { v_5ade23 } from "xbfwaaanosqvazmrqoah";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_2d88fc } from "../../navigation/types";
@@ -71,6 +73,10 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const v_eb25ce = v_6a109b;
   const v_033e14 = v_e0068c();
+
+  const v_f9771e = v_c18c22(0);
+  const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
+  const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
   const [v_a7e879, v_88d896] = v_5ab095(false);
   const [v_8282fa, v_15c939] = v_5ab095<string | null>(null);
   const [v_68bb66, v_3bae81] = v_5ab095<v_83f27d[]>([]);
@@ -226,7 +232,7 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       <Modal visible={v_a7e879} transparent animationType="slide">
         <Pressable style={v_fd5f43.giftOverlay} onPress={() => v_88d896(false)}>
           <Pressable
-            style={[v_fd5f43.giftSheet, { paddingBottom: 32 + Math.max(v_033e14.bottom, 0) }]}
+            style={[v_fd5f43.giftSheet, { paddingBottom: 32 + v_2b650d }]}
             onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
           >
             {}
