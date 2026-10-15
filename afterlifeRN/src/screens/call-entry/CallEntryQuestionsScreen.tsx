@@ -175,8 +175,9 @@ export default function v_601c02({
     <Modal visible={v_cf55be} animationType="fade" onRequestClose={v_c7001c}>
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: v_1bfbd0.white }}
-        behavior={v_326be8.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={v_326be8.OS === "ios" ? 0 : 20}
+
+        behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={0}
       >
         <View style={[v_fd5f43.header, { paddingTop: Math.max(v_033e14.top, 12) + 8 }]}>
           <TouchableOpacity onPress={v_c7001c} style={v_fd5f43.headerBtn}>
