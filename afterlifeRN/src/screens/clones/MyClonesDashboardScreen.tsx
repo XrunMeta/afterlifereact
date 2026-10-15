@@ -679,13 +679,6 @@ export default function v_def15b() {
         <View style={v_fd5f43.actionsRow}>
           <TouchableOpacity
             style={v_fd5f43.actionBtn}
-            onPress={() => v_c65f5d.navigate("CloneLearn", { cloneId: v_eb25ce.id })}
-          >
-            <Feather name="message-circle" size={16} color={v_1bfbd0.zinc700} />
-            <Text style={v_fd5f43.actionText}>{v_8d41d7("dashboard.actionLearn")}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={v_fd5f43.actionBtn}
             onPress={async () => {
 
               const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
