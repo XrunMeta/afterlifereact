@@ -538,22 +538,29 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                 return (
                   <React.Fragment key={`api-chat-${v_23805a.id}`}>
                     {v_6583df}
-                    <TouchableOpacity
-                      activeOpacity={0.85}
-                      onLongPress={() => v_00fc5a(v_23805a)}
-                      delayLongPress={350}
-                      style={v_23805a.role === "user" ? v_d81136.userBubble : v_d81136.personaOutsideBubble}
-                    >
-                      <Text
-                        style={
-                          v_23805a.role === "user"
-                            ? v_d81136.userBubbleText
-                            : v_d81136.personaOutsideBubbleText
-                        }
+                    {
+}
+                    <View style={[
+                      v_d81136.bubbleRow,
+                      { justifyContent: v_23805a.role === "user" ? "flex-end" : "flex-start" },
+                    ]}>
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        onLongPress={() => v_00fc5a(v_23805a)}
+                        delayLongPress={350}
+                        style={v_23805a.role === "user" ? v_d81136.userBubble : v_d81136.personaOutsideBubble}
                       >
-                        {v_23805a.content}
-                      </Text>
-                    </TouchableOpacity>
+                        <Text
+                          style={
+                            v_23805a.role === "user"
+                              ? v_d81136.userBubbleText
+                              : v_d81136.personaOutsideBubbleText
+                          }
+                        >
+                          {v_23805a.content}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   </React.Fragment>
                 );
               }
@@ -902,27 +909,28 @@ const v_d81136 = v_472849.create({
   },
   callBubbleText: { color: v_1bfbd0.white, fontSize: 13, lineHeight: 19 },
 
+  bubbleRow: {
+    flexDirection: "row",
+    marginBottom: 8,
+  },
+
   userBubble: {
-    alignSelf: "flex-end",
     maxWidth: "70%",
     backgroundColor: v_1bfbd0.violet600,
     borderRadius: 18,
     paddingLeft: 14,
     paddingRight: 14,
     paddingVertical: 10,
-    marginBottom: 8,
   },
   userBubbleText: { color: v_1bfbd0.white, fontSize: 13, lineHeight: 19 },
 
   personaOutsideBubble: {
-    alignSelf: "flex-start",
     maxWidth: "70%",
     backgroundColor: v_1bfbd0.white,
     borderRadius: 18,
     paddingLeft: 14,
     paddingRight: 14,
     paddingVertical: 10,
-    marginBottom: 8,
   },
   personaOutsideBubbleText: { color: v_1bfbd0.zinc800, fontSize: 13, lineHeight: 19 },
 
