@@ -101,7 +101,12 @@ function v_59b7e7(v_74a79c) {
         throw new Error(`[withPangle] source dir not found: ${v_b51163}`);
       }
       v_9d3c52.mkdirSync(v_5a2990, { recursive: true });
-      for (const v_1833e7 of ["PangleModule.kt", "PanglePackage.kt"]) {
+
+      for (const v_1833e7 of [
+        "PangleModule.kt",
+        "PanglePackage.kt",
+        "PangleBannerAdViewManager.kt",
+      ]) {
         const v_38d084 = v_9d3c52.readFileSync(v_9fe22d.join(v_b51163, v_1833e7), "utf8");
 
         const v_2fb193 = v_38d084.replace(
