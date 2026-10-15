@@ -8,6 +8,7 @@ import {
   v_034656,
   v_137694,
   v_f7e14c,
+  v_85de88,
   v_80aaa1,
   v_2c21b1,
   v_535aac,
@@ -131,12 +132,64 @@ export async function v_2fa0c9(v_c9c489, v_6d4ed3, v_9b6134): Promise<string | n
   return v_9b6134;
 }
 
+export function v_2f0299(v_22da99): string {
+  return `chat_msg:${v_22da99}`;
+}
+
+export async function v_f500c0(
+  v_c9c489,
+  v_6d4ed3,
+  v_9b6134,
+): Promise<string | null> {
+  const { userId: v_43e90c, cloneId: v_6e0fd3 } = v_6d4ed3;
+  const v_e38ca2 = await v_a50613(v_c9c489);
+  if (v_e38ca2) {
+    try {
+      const v_b24339 = await v_4c8dce(v_c9c489.DB, v_e38ca2, v_43e90c, v_6e0fd3, true);
+      if (v_b24339.kind === "shredded") {
+        console.warn(`[CHAT_SHREDDED_SKIP] user=${v_43e90c} clone=${v_6e0fd3}`);
+        return null;
+      }
+      if (v_b24339.kind === "none") throw new Error("conversation key missing after create");
+      return v_80aaa1(v_b24339.kekId, v_b24339.dekId, v_b24339.dek, v_9b6134, v_2f0299(v_6d4ed3.role));
+    } catch (v_49263d) {
+      console.error(`[CHAT_SEAL_FAIL] user=${v_43e90c} clone=${v_6e0fd3} reason=${(v_49263d as Error).message}`);
+    }
+  }
+  if (await v_723a5d(v_c9c489.DB, v_43e90c, v_6e0fd3)) {
+    console.warn(`[CHAT_SHREDDED_SKIP] user=${v_43e90c} clone=${v_6e0fd3}`);
+    return null;
+  }
+  console.error(`[CHAT_SEAL_LEGACY] user=${v_43e90c} clone=${v_6e0fd3}`);
+  return v_85de88(v_9b6134, v_a8614b(v_c9c489.ALE_KEK), `msg:${v_6e0fd3}`);
+}
+
+export async function v_386d00(
+  v_c9c489,
+  v_43e90c,
+  v_6e0fd3,
+): Promise<{ key: ConversationKey; provider: v_a7c42c | null }> {
+  const v_e38ca2 = await v_a50613(v_c9c489);
+  if (v_e38ca2) {
+    const v_b24339 = await v_4c8dce(v_c9c489.DB, v_e38ca2, v_43e90c, v_6e0fd3, false).catch((v_49263d) => {
+      console.error(`[CONV_KEY_LOAD_FAIL] user=${v_43e90c} clone=${v_6e0fd3} err=${(v_49263d as Error).message}`);
+      return { kind: "none" } as ConversationKey;
+    });
+    return { key: v_b24339, provider: v_e38ca2 };
+  }
+  const v_cb1899 = await v_723a5d(v_c9c489.DB, v_43e90c, v_6e0fd3).catch(() => false);
+  return { key: v_cb1899 ? { kind: "shredded" } : { kind: "none" }, provider: null };
+}
+
+export type { ConversationKey };
+
 export interface ConversationTurn {
   callId: string;
   role: string;
   text: string;
   at: number;
   source: "call" | "chat";
+  msgId?: number;   
 }
 
 export interface AssembleOptions {
@@ -216,29 +269,23 @@ export async function v_60df93(
   v_9f97c4.sort((v_779914, v_148ff6) => v_148ff6.key - v_779914.key || v_148ff6.sub - v_779914.sub);
   const v_07fb2e = v_9f97c4.slice(0, v_1cae38).reverse();
 
-  const v_e38ca2 = await v_a50613(v_c9c489);
-  const v_b24339 = v_e38ca2
-    ? await v_4c8dce(v_c9c489.DB, v_e38ca2, v_43e90c, v_6e0fd3, false).catch((v_49263d) => {
-        console.error(`[CONV_KEY_LOAD_FAIL] user=${v_43e90c} clone=${v_6e0fd3} err=${(v_49263d as Error).message}`);
-        return { kind: "none" } as ConversationKey;
-      })
-    : ((await v_723a5d(v_c9c489.DB, v_43e90c, v_6e0fd3).catch(() => false))
-        ? ({ kind: "shredded" } as ConversationKey)
-        : ({ kind: "none" } as ConversationKey));
+  const { key: v_b24339, provider: v_e38ca2 } = await v_386d00(v_c9c489, v_43e90c, v_6e0fd3);
   const v_66ed66 = v_a8614b(v_c9c489.ALE_KEK);
 
   const v_3035d9 = [];
   for (const v_cb35cb of v_07fb2e) {
     const v_9b6134 = v_cb35cb.source === "call"
       ? v_cca3b3(v_b24339, v_cb35cb.blob, v_bee6d6(v_cb35cb.callId, v_cb35cb.role))
-      : await v_c56968(v_c9c489, v_e38ca2, v_66ed66, v_6e0fd3, v_cb35cb.blob);
+      : await v_c56968(v_c9c489, v_b24339, v_e38ca2, v_66ed66, v_6e0fd3, v_cb35cb.role, v_cb35cb.blob);
     if (v_9b6134 === null) continue;
-    v_3035d9.push({ callId: v_cb35cb.callId, role: v_cb35cb.role, text: v_9b6134, at: v_cb35cb.at, source: v_cb35cb.source });
+    v_3035d9.push(v_cb35cb.source === "chat"
+      ? { callId: v_cb35cb.callId, role: v_cb35cb.role, text: v_9b6134, at: v_cb35cb.at, source: v_cb35cb.source, msgId: v_cb35cb.sub }
+      : { callId: v_cb35cb.callId, role: v_cb35cb.role, text: v_9b6134, at: v_cb35cb.at, source: v_cb35cb.source });
   }
   return { turns: v_3035d9, resetAt: v_b98b4f };
 }
 
-function v_cca3b3(v_b24339, v_5885b8, v_14ac31): string | null {
+export function v_cca3b3(v_b24339, v_5885b8, v_14ac31): string | null {
   if (v_b24339.kind === "shredded") return null;
   if (!v_034656(v_5885b8)) return v_5885b8;    
   if (v_b24339.kind !== "ok") return null;
@@ -250,14 +297,21 @@ function v_cca3b3(v_b24339, v_5885b8, v_14ac31): string | null {
   }
 }
 
-async function v_c56968(
+export async function v_c56968(
   v_c9c489,
+  v_b24339,
   provider: v_a7c42c | null,
   legacy: v_a7c42c,
   v_6e0fd3,
+  v_22da99,
   v_3263c7,
 ): Promise<string | null> {
+  if (v_b24339.kind === "shredded") return null;
   try {
+    if (v_b24339.kind === "ok" && v_034656(v_3263c7)) {
+      const v_da74da = v_f7e14c(v_3263c7, v_b24339.dekId, v_b24339.dek, v_2f0299(v_22da99));
+      if (v_da74da !== null) return v_da74da;
+    }
     return await v_137694(v_3263c7, {
       db: v_c9c489.DB,
       hkdfContext: `msg:${v_6e0fd3}`,

@@ -1,6 +1,6 @@
 
 
-import { v_b7c41b } from "zmui";
+import { v_b7c41b, type v_437670 } from "zmui";
 import { v_043916 } from "bppretklejpcmw";
 import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
@@ -8,12 +8,12 @@ import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_6690d9 } from "../middleware/auth";
 import { v_a04a51 } from "../middleware/idempotency";
 import { v_74defc } from "../lib/logger";
-import { v_a8614b, v_137694, v_85de88 } from "../lib/ale";
+import { v_a8614b, v_034656, v_137694, v_f7e14c } from "../lib/ale";
 import { v_e44d97 } from "../lib/kekProvider";
-import { v_295cc5, v_841e05 } from "../lib/ai";
-import { v_20a4f4 } from "../lib/credits";
+import { v_295cc5 } from "../lib/ai";
+import { v_663c07, v_70ddfa, v_4dc423 } from "../lib/chatReply";
+import { v_2f0299, v_386d00, v_f500c0 } from "../lib/conversationMemory";
 import { v_74c502, v_7a9d93, v_5d4a51, v_09d461 } from "../lib/cloneAccess";
-import { v_fbb58c } from "../lib/pricing";
 import { v_e86502, v_fda4d7, v_3821c0 } from "../lib/memoryStore";
 import { v_dd9d7c, v_721d54, v_cf0463 } from "../lib/interactions";
 
@@ -42,6 +42,92 @@ const v_7c582e = v_1f4ea7.object({
   content: v_1f4ea7.string().min(1).max(4000),
 });
 
+async function v_c5d920(
+  c: v_437670<v_de0a25>,
+  v_6e0fd3,
+  v_4d33b2,
+) {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_a1651b = v_3f4e2e.env.DB;
+
+  const v_eb25ce = await v_5d4a51(v_a1651b, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  const v_22da99 = await v_09d461(v_3f4e2e, v_eb25ce, v_43e90c);
+  if (!v_22da99) throw new v_3ebe58("FORBIDDEN", "No access to this clone.");
+
+  if (v_7a9d93(v_eb25ce, v_22da99)) {
+    throw new v_3ebe58("FORBIDDEN", "This clone is currently suspended.");
+  }
+
+  const { key: v_169842 } = await v_386d00(v_3f4e2e.env, v_43e90c, v_6e0fd3);
+  if (v_169842.kind === "shredded") {
+    throw new v_3ebe58("FORBIDDEN", "This conversation is no longer available.");
+  }
+  await v_70ddfa(v_3f4e2e.env, v_43e90c);
+
+  const v_c5607b = v_4d33b2.session_id ?? crypto.randomUUID();
+
+  let v_b4c4d3;
+  if (v_3f4e2e.env.CHAT_REPLY_SOURCE === "prethird") {
+    const v_16e2dd = await v_663c07(v_3f4e2e.env, v_43e90c, v_6e0fd3);
+    const v_4eca64 = (v_3f4e2e.req.header("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+    v_b4c4d3 = await v_4dc423(v_3f4e2e.env, {
+      cloneId: v_6e0fd3, userToken: v_4eca64, text: v_4d33b2.content, prior: v_16e2dd.prior, recent: v_16e2dd.recent,
+    });
+  } else {
+    const [v_19fdaa, v_1405be, v_ee6431] = await Promise.all([
+      v_e86502(v_3f4e2e.env, v_6e0fd3),
+      v_fda4d7(v_3f4e2e.env, v_6e0fd3),
+      v_3821c0(v_3f4e2e.env, v_6e0fd3, v_43e90c),
+    ]);
+    const v_677216 = await v_295cc5(v_4d33b2.content, {
+      cloneName: v_eb25ce.name,
+      cloneType: v_eb25ce.clone_type,
+      persona: (v_991acb(v_19fdaa)?.persona as Record<string, unknown>) ?? {},
+      sharedEvents: v_79a0db(v_1405be?.events ?? null) ?? [],
+      personalL2: v_991acb(v_ee6431),
+    });
+    v_b4c4d3 = v_677216.content;
+  }
+
+  const v_369293 = await v_f500c0(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, role: "user" }, v_4d33b2.content);
+  const v_09f707 = await v_f500c0(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, role: "clone" }, v_b4c4d3);
+  if (v_369293 === null || v_09f707 === null) {
+    throw new v_3ebe58("FORBIDDEN", "This conversation is no longer available.");
+  }
+
+  const v_d70f86 = (v_cb35cb, v_b43b74) =>
+    v_a1651b
+      .prepare(
+        `INSERT INTO messages (clone_id, user_id, session_id, role, content, status, reconciliation_status)
+         VALUES (?, ?, ?, ?, ?, 'active', 'pending')
+         RETURNING id, created_at`,
+      )
+      .bind(v_6e0fd3, v_43e90c, v_c5607b, v_cb35cb, v_b43b74)
+      .first<{ id: number; created_at: string }>();
+  const v_43f890 = await v_d70f86("user", v_369293);
+  if (!v_43f890) throw new v_3ebe58("INTERNAL_ERROR", "Failed to persist user message.");
+  const v_56871e = await v_d70f86("clone", v_09f707);
+  if (!v_56871e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to persist clone reply.");
+
+  await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "chat");
+
+  await v_721d54(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_cf0463.chat, "chat");
+
+  v_3f4e2e.executionCtx.waitUntil(v_123140(v_3f4e2e.env, v_6e0fd3, v_43e90c, v_4d33b2.content, v_b4c4d3));
+
+  await v_a1651b
+    .prepare(
+      `UPDATE clone_stats SET messages_count = messages_count + 2, updated_at = CURRENT_TIMESTAMP
+         WHERE clone_id = ?`,
+    )
+    .bind(v_6e0fd3)
+    .run()
+    .catch((v_49263d) => console.error(`[STATS_UPDATE_FAIL] clone=${v_6e0fd3} ${v_49263d.message}`));
+
+  return { sessionId: v_c5607b, userMsg: v_43f890, cloneMsg: v_56871e, replyText: v_b4c4d3 };
+}
+
 v_19e2a3.post(
   "/:id/messages",
   v_6690d9,
@@ -49,136 +135,20 @@ v_19e2a3.post(
   async (v_3f4e2e) => {
     const v_6e0fd3 = v_31113b(v_3f4e2e);
     const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_7c582e);
-    const v_43e90c = v_3f4e2e.get("userId")!;
-    const v_a1651b = v_3f4e2e.env.DB;
-
-    const v_eb25ce = await v_5d4a51(v_a1651b, v_6e0fd3);
-    if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
-    const v_22da99 = await v_09d461(v_3f4e2e, v_eb25ce, v_43e90c);
-    if (!v_22da99) throw new v_3ebe58("FORBIDDEN", "No access to this clone.");
-
-    if (v_7a9d93(v_eb25ce, v_22da99)) {
-      throw new v_3ebe58("FORBIDDEN", "This clone is currently suspended.");
-    }
-
-    const v_c88e9b = await v_a1651b
-      .prepare(`SELECT credits FROM users WHERE id = ? AND deleted_at IS NULL`)
-      .bind(v_43e90c)
-      .first<{ credits: number }>();
-    if (!v_c88e9b || v_c88e9b.credits < 1) {
-      throw new v_3ebe58("INSUFFICIENT_CREDITS", "Not enough credits to chat.");
-    }
-
-    const v_c5607b = v_4d33b2.session_id ?? crypto.randomUUID();
-    const v_e38ca2 = v_a8614b(v_3f4e2e.env.ALE_KEK);
-    const v_742379 = `msg:${v_6e0fd3}`;
-    const v_369293 = v_85de88(v_4d33b2.content, v_e38ca2, v_742379);
-
-    const v_43f890 = await v_a1651b
-      .prepare(
-        `INSERT INTO messages (clone_id, user_id, session_id, role, content, status, reconciliation_status)
-         VALUES (?, ?, ?, 'user', ?, 'active', 'pending')
-         RETURNING id, created_at`,
-      )
-      .bind(v_6e0fd3, v_43e90c, v_c5607b, v_369293)
-      .first<{ id: number; created_at: string }>();
-    if (!v_43f890) throw new v_3ebe58("INTERNAL_ERROR", "Failed to persist user message.");
-
-    await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "chat");
-
-    await v_721d54(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_cf0463.chat, "chat");
-
-    const [v_19fdaa, v_1405be, v_ee6431] = await Promise.all([
-      v_e86502(v_3f4e2e.env, v_6e0fd3),
-      v_fda4d7(v_3f4e2e.env, v_6e0fd3),
-      v_3821c0(v_3f4e2e.env, v_6e0fd3, v_43e90c),
-    ]);
-    const v_dbdd5d = v_1405be?.events ?? null;
-    const v_5ed063 = v_991acb(v_19fdaa)?.persona as Record<string, unknown> ?? {};
-    const v_2fd848 = v_79a0db(v_dbdd5d) ?? [];
-    const v_1af19b = v_991acb(v_ee6431);
-
-    const v_e22973 = v_841e05({
-      cloneName: v_eb25ce.name,
-      cloneType: v_eb25ce.clone_type,
-      persona: v_5ed063,
-      sharedEvents: v_2fd848,
-      personalL2: v_1af19b,
-    });
-
-    void v_e22973;
-
-    const v_677216 = await v_295cc5(v_4d33b2.content, {
-      cloneName: v_eb25ce.name,
-      cloneType: v_eb25ce.clone_type,
-      persona: v_5ed063,
-      sharedEvents: v_2fd848,
-      personalL2: v_1af19b,
-    });
-
-    const v_09f707 = v_85de88(v_677216.content, v_e38ca2, v_742379);
-    const v_56871e = await v_a1651b
-      .prepare(
-        `INSERT INTO messages (clone_id, user_id, session_id, role, content, status, reconciliation_status)
-         VALUES (?, ?, ?, 'clone', ?, 'active', 'pending')
-         RETURNING id, created_at`,
-      )
-      .bind(v_6e0fd3, v_43e90c, v_c5607b, v_09f707)
-      .first<{ id: number; created_at: string }>();
-    if (!v_56871e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to persist clone reply.");
-
-    v_3f4e2e.executionCtx.waitUntil(
-      v_123140(v_3f4e2e.env, v_6e0fd3, v_43e90c, v_4d33b2.content, v_677216.content),
-    );
-
-    await v_a1651b
-      .prepare(
-        `UPDATE clone_stats SET messages_count = messages_count + 2, updated_at = CURRENT_TIMESTAMP
-           WHERE clone_id = ?`,
-      )
-      .bind(v_6e0fd3)
-      .run()
-      .catch((v_49263d) =>
-        console.error(`[STATS_UPDATE_FAIL] clone=${v_6e0fd3} ${v_49263d.message}`),
-      );
-
-    const v_62c866 = v_3f4e2e.req.header("X-Idempotency-Key")!;
-    const { credits: v_4bf933, tokens: v_3ad22d } = v_fbb58c({
-      userText: v_4d33b2.content,
-      replyText: v_677216.content,
-      actualTokens: v_677216.tokens,
-    });
-    await v_20a4f4(v_3f4e2e, {
-      userId: v_43e90c,
-      amount: v_4bf933,
-      type: "message_send",
-      refId: String(v_56871e.id),
-      idempotencyKey: `msg:${v_62c866}`,
-    });
+    const { sessionId: v_c5607b, userMsg: v_43f890, cloneMsg: v_56871e, replyText: v_b4c4d3 } = await v_c5d920(v_3f4e2e, v_6e0fd3, v_4d33b2);
 
     await v_74defc(v_3f4e2e, {
-      userId: v_43e90c,
+      userId: v_3f4e2e.get("userId")!,
       action: "message.send",
       details: { cloneId: v_6e0fd3, sessionId: v_c5607b, userMsgId: v_43f890.id, cloneMsgId: v_56871e.id },
     });
 
     return v_3f4e2e.json({
       sessionId: v_c5607b,
-      userMessage: {
-        id: v_43f890.id,
-        content: v_4d33b2.content,
-        createdAt: v_43f890.created_at,
-      },
-      cloneReply: {
-        id: v_56871e.id,
-        content: v_677216.content,
-        tokens: v_677216.tokens,
-        createdAt: v_56871e.created_at,
-      },
-      billing: {
-        credits: v_4bf933,
-        tokens: v_3ad22d,
-      },
+      userMessage: { id: v_43f890.id, content: v_4d33b2.content, createdAt: v_43f890.created_at },
+      cloneReply: { id: v_56871e.id, content: v_b4c4d3, tokens: 0, createdAt: v_56871e.created_at },
+
+      billing: { credits: 0, tokens: 0 },
     });
   },
 );
@@ -190,103 +160,12 @@ v_19e2a3.post(
   async (v_3f4e2e) => {
     const v_6e0fd3 = v_31113b(v_3f4e2e);
     const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_7c582e);
-    const v_43e90c = v_3f4e2e.get("userId")!;
-    const v_a1651b = v_3f4e2e.env.DB;
-
-    const v_eb25ce = await v_5d4a51(v_a1651b, v_6e0fd3);
-    if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
-    const v_22da99 = await v_09d461(v_3f4e2e, v_eb25ce, v_43e90c);
-    if (!v_22da99) throw new v_3ebe58("FORBIDDEN", "No access to this clone.");
-
-    if (v_7a9d93(v_eb25ce, v_22da99)) {
-      throw new v_3ebe58("FORBIDDEN", "This clone is currently suspended.");
-    }
-
-    const v_c88e9b = await v_a1651b
-      .prepare(`SELECT credits FROM users WHERE id = ? AND deleted_at IS NULL`)
-      .bind(v_43e90c)
-      .first<{ credits: number }>();
-    if (!v_c88e9b || v_c88e9b.credits < 1) {
-      throw new v_3ebe58("INSUFFICIENT_CREDITS", "Not enough credits to chat.");
-    }
-
-    const v_c5607b = v_4d33b2.session_id ?? crypto.randomUUID();
-    const v_e38ca2 = v_a8614b(v_3f4e2e.env.ALE_KEK);
-    const v_742379 = `msg:${v_6e0fd3}`;
-    const v_369293 = v_85de88(v_4d33b2.content, v_e38ca2, v_742379);
-
-    const v_43f890 = await v_a1651b
-      .prepare(
-        `INSERT INTO messages (clone_id, user_id, session_id, role, content, status, reconciliation_status)
-         VALUES (?, ?, ?, 'user', ?, 'active', 'pending')
-         RETURNING id, created_at`,
-      )
-      .bind(v_6e0fd3, v_43e90c, v_c5607b, v_369293)
-      .first<{ id: number; created_at: string }>();
-    if (!v_43f890) throw new v_3ebe58("INTERNAL_ERROR", "Failed to persist user message.");
-
-    const [v_19fdaa, v_1405be, v_ee6431] = await Promise.all([
-      v_e86502(v_3f4e2e.env, v_6e0fd3),
-      v_fda4d7(v_3f4e2e.env, v_6e0fd3),
-      v_3821c0(v_3f4e2e.env, v_6e0fd3, v_43e90c),
-    ]);
-    const v_dbdd5d = v_1405be?.events ?? null;
-    const v_5ed063 = (v_991acb(v_19fdaa)?.persona as Record<string, unknown>) ?? {};
-    const v_2fd848 = v_79a0db(v_dbdd5d) ?? [];
-    const v_1af19b = v_991acb(v_ee6431);
-
-    const v_677216 = await v_295cc5(v_4d33b2.content, {
-      cloneName: v_eb25ce.name,
-      cloneType: v_eb25ce.clone_type,
-      persona: v_5ed063,
-      sharedEvents: v_2fd848,
-      personalL2: v_1af19b,
-    });
-
-    const v_09f707 = v_85de88(v_677216.content, v_e38ca2, v_742379);
-    const v_56871e = await v_a1651b
-      .prepare(
-        `INSERT INTO messages (clone_id, user_id, session_id, role, content, status, reconciliation_status)
-         VALUES (?, ?, ?, 'clone', ?, 'active', 'pending')
-         RETURNING id, created_at`,
-      )
-      .bind(v_6e0fd3, v_43e90c, v_c5607b, v_09f707)
-      .first<{ id: number; created_at: string }>();
-    if (!v_56871e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to persist clone reply.");
-
-    v_3f4e2e.executionCtx.waitUntil(
-      v_123140(v_3f4e2e.env, v_6e0fd3, v_43e90c, v_4d33b2.content, v_677216.content),
-    );
-
-    await v_a1651b
-      .prepare(
-        `UPDATE clone_stats SET messages_count = messages_count + 2, updated_at = CURRENT_TIMESTAMP
-           WHERE clone_id = ?`,
-      )
-      .bind(v_6e0fd3)
-      .run()
-      .catch((v_49263d) =>
-        console.error(`[STATS_UPDATE_FAIL_SSE] clone=${v_6e0fd3} ${v_49263d.message}`),
-      );
-
-    const v_62c866 = v_3f4e2e.req.header("X-Idempotency-Key")!;
-    const { credits: v_4bf933, tokens: v_3ad22d } = v_fbb58c({
-      userText: v_4d33b2.content,
-      replyText: v_677216.content,
-      actualTokens: v_677216.tokens,
-    });
-    await v_20a4f4(v_3f4e2e, {
-      userId: v_43e90c,
-      amount: v_4bf933,
-      type: "message_send",
-      refId: String(v_56871e.id),
-      idempotencyKey: `msg:${v_62c866}`,
-    });
+    const { sessionId: v_c5607b, userMsg: v_43f890, cloneMsg: v_56871e, replyText: v_b4c4d3 } = await v_c5d920(v_3f4e2e, v_6e0fd3, v_4d33b2);
 
     await v_74defc(v_3f4e2e, {
-      userId: v_43e90c,
+      userId: v_3f4e2e.get("userId")!,
       action: "message.send.stream",
-      details: { cloneId: v_6e0fd3, sessionId: v_c5607b, userMsgId: v_43f890.id, cloneMsgId: v_56871e.id, credits: v_4bf933 },
+      details: { cloneId: v_6e0fd3, sessionId: v_c5607b, userMsgId: v_43f890.id, cloneMsgId: v_56871e.id, credits: 0 },
     });
 
     return v_043916(v_3f4e2e, async (v_cab51f) => {
@@ -295,7 +174,7 @@ v_19e2a3.post(
           event: "start",
           data: JSON.stringify({ sessionId: v_c5607b, userMessageId: v_43f890.id }),
         });
-        const v_7f18e9 = v_677216.content.split(/(\s+)/).filter(Boolean);
+        const v_7f18e9 = v_b4c4d3.split(/(\s+)/).filter(Boolean);
         for (const v_334f63 of v_7f18e9) {
           await v_cab51f.writeSSE({ event: "token", data: JSON.stringify({ chunk: v_334f63 }) });
           await v_cab51f.sleep(15);
@@ -304,8 +183,8 @@ v_19e2a3.post(
           event: "done",
           data: JSON.stringify({
             cloneMessageId: v_56871e.id,
-            tokens: v_3ad22d,
-            credits: v_4bf933,
+            tokens: 0,
+            credits: 0,
             createdAt: v_56871e.created_at,
           }),
         });
@@ -390,12 +269,17 @@ v_19e2a3.get("/:id/messages", v_6690d9, async (v_3f4e2e) => {
   const v_742379 = `msg:${v_6e0fd3}`;
   const v_4291aa = v_3f4e2e.env.LAZY_V2_MIGRATE_ENABLED === "1";
 
+  const { key: v_169842 } = await v_386d00(v_3f4e2e.env, v_43e90c, v_6e0fd3);
+
   const v_4622b9 = await Promise.all(
     v_2365e9.map(async (v_cb35cb) => {
       let v_b43b74 = null;
-      if (v_cb35cb.content) {
+      if (v_cb35cb.content && v_169842.kind !== "shredded") {
         try {
-          v_b43b74 = await v_137694(v_cb35cb.content, {
+          const v_da74da = v_169842.kind === "ok" && v_034656(v_cb35cb.content)
+            ? v_f7e14c(v_cb35cb.content, v_169842.dekId, v_169842.dek, v_2f0299(v_cb35cb.role))
+            : null;
+          v_b43b74 = v_da74da ?? await v_137694(v_cb35cb.content, {
             db: v_3f4e2e.env.DB,
             hkdfContext: v_742379,
             legacyProvider: v_d205b7,
