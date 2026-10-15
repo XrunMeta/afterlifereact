@@ -915,8 +915,7 @@ const v_d81136 = v_472849.create({
   },
 
   userBubble: {
-    flexShrink: 1,
-    maxWidth: "70%",
+    width: "70%",
     backgroundColor: v_1bfbd0.violet600,
     borderRadius: 18,
     paddingLeft: 14,
@@ -933,8 +932,7 @@ const v_d81136 = v_472849.create({
   },
 
   personaOutsideBubble: {
-    flexShrink: 1,
-    maxWidth: "70%",
+    width: "70%",
     backgroundColor: v_1bfbd0.white,
     borderRadius: 18,
     paddingLeft: 14,
