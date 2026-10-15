@@ -473,8 +473,8 @@ const v_d81136 = v_472849.create({
     backgroundColor: v_1bfbd0.violet600,
     borderRadius: 18,
     padding: 14,
-    alignSelf: "flex-start",
-    maxWidth: "70%",
+    alignSelf: "flex-end",
+    width: "70%",
     marginBottom: 8,
   },
   callHeader: {
@@ -499,7 +499,7 @@ const v_d81136 = v_472849.create({
 
   userBubble: {
     alignSelf: "flex-end",
-    maxWidth: "70%",
+    width: "70%",
     backgroundColor: v_1bfbd0.violet600,
     borderRadius: 14,
     paddingHorizontal: 12,
