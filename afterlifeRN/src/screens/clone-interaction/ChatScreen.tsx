@@ -1,6 +1,6 @@
 
 
-import v_a3453e, { v_5ab095, v_e662ae, v_c4deb2, v_df9f57 } from "bapkr";
+import v_a3453e, { v_5ab095, v_e662ae, v_c4deb2 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -9,6 +9,7 @@ import {
   v_122070,
   v_79c4f2,
   v_cf9c33,
+  v_03e392,
   v_326be8,
   v_0e1f26,
   type v_5b67a3,
@@ -65,6 +66,12 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_bbda62, v_c31db7] = v_5ab095("");
   const [v_7e4acc, v_de86c2] = v_5ab095(0);
 
+  const [v_20e160, v_955c04] = v_5ab095<CallBlock[]>(v_4750b0);
+
+  const [v_229ff3, v_e4f239] = v_5ab095(true);
+
+  const [v_842b8b, v_0f6477] = v_5ab095(true);
+
   v_c4deb2(() => {
     const v_399925 = v_326be8.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
     const v_206f77 = v_326be8.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
@@ -85,6 +92,46 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     console.log("[Chat] send (placeholder):", v_2f361a);
     v_c31db7("");
     v_0e1f26.dismiss();
+  };
+
+  const v_ed4b67 = () => {
+    v_03e392.alert(v_dfb220, undefined, [
+      {
+        text: v_842b8b ? "알림 끄기" : "알림 켜기",
+        onPress: () => v_0f6477((v_81e2ef) => !v_81e2ef),
+      },
+      {
+        text: "구독 취소",
+        style: "destructive",
+        onPress: () => {
+
+          console.log("[Chat] 구독 취소 (placeholder) cloneId=", v_6e0fd3);
+          v_c65f5d.goBack();
+        },
+      },
+      { text: "취소", style: "cancel" },
+    ]);
+  };
+
+  const v_0fef43 = (v_be62d3, v_a6063d) => {
+    v_03e392.alert("메시지 삭제", "이 메시지를 삭제할까요?", [
+      { text: "취소", style: "cancel" },
+      {
+        text: "삭제",
+        style: "destructive",
+        onPress: () => {
+          v_955c04((v_ba2215) =>
+            v_ba2215
+              .map((v_3f4e2e) =>
+                v_3f4e2e.id === v_be62d3
+                  ? { ...v_3f4e2e, messages: v_3f4e2e.messages.filter((v_37eab7, v_ebec57) => v_ebec57 !== v_a6063d) }
+                  : v_3f4e2e,
+              )
+              .filter((v_3f4e2e) => v_3f4e2e.messages.length > 0),
+          );
+        },
+      },
+    ]);
   };
 
   const v_53dd92 = v_7e4acc > 0 ? v_7e4acc : v_033e14.bottom;
@@ -120,7 +167,11 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           <TouchableOpacity style={v_d81136.headerActionBtn} hitSlop={8}>
             <Feather name="phone" size={18} color={v_1bfbd0.zinc700} />
           </TouchableOpacity>
-          <TouchableOpacity style={v_d81136.headerActionBtn} hitSlop={8}>
+          <TouchableOpacity
+            style={v_d81136.headerActionBtn}
+            hitSlop={8}
+            onPress={v_ed4b67}
+          >
             <Feather name="more-horizontal" size={18} color={v_1bfbd0.zinc700} />
           </TouchableOpacity>
         </View>
@@ -149,17 +200,34 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         showsVerticalScrollIndicator={false}
       >
         {}
-        <View style={v_d81136.personaIntroRow}>
-          <Text style={v_d81136.personaIntroName}>{v_dfb220}</Text>
-          <View style={v_d81136.personaIntroBubble}>
-            <Text style={v_d81136.personaIntroText}>
-              오늘 하루는 어땠어요? 퇴근길에 비 오던데 조심히 들어와요.
-            </Text>
+        {v_229ff3 && (
+          <View style={v_d81136.personaIntroRow}>
+            <Text style={v_d81136.personaIntroName}>{v_dfb220}</Text>
+            <TouchableOpacity
+              activeOpacity={1}
+              onLongPress={() =>
+                v_03e392.alert("메시지 삭제", "이 메시지를 삭제할까요?", [
+                  { text: "취소", style: "cancel" },
+                  {
+                    text: "삭제",
+                    style: "destructive",
+                    onPress: () => v_e4f239(false),
+                  },
+                ])
+              }
+              delayLongPress={300}
+            >
+              <View style={v_d81136.personaIntroBubble}>
+                <Text style={v_d81136.personaIntroText}>
+                  오늘 하루는 어땠어요? 퇴근길에 비 오던데 조심히 들어와요.
+                </Text>
+              </View>
+            </TouchableOpacity>
           </View>
-        </View>
+        )}
 
         {}
-        {v_4750b0.map((v_51c3d2) => (
+        {v_20e160.map((v_51c3d2) => (
           <View key={v_51c3d2.id} style={v_d81136.callBlock}>
             <View style={v_d81136.callHeader}>
               <View style={v_d81136.callIconWrap}>
@@ -168,15 +236,18 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
               <Text style={v_d81136.callDurationText}>{v_51c3d2.duration}</Text>
             </View>
             {v_51c3d2.messages.map((v_badeaf, v_e86ad8) => (
-              <View
+              <TouchableOpacity
                 key={`${v_51c3d2.id}-${v_e86ad8}`}
+                activeOpacity={0.85}
+                onLongPress={() => v_0fef43(v_51c3d2.id, v_e86ad8)}
+                delayLongPress={300}
                 style={[
                   v_d81136.callBubble,
                   v_badeaf.role === "user" ? v_d81136.callBubbleRight : v_d81136.callBubbleLeft,
                 ]}
               >
                 <Text style={v_d81136.callBubbleText}>{v_badeaf.text}</Text>
-              </View>
+              </TouchableOpacity>
             ))}
             <TouchableOpacity style={v_d81136.transcriptBtn} hitSlop={6}>
               <Text style={v_d81136.transcriptBtnText}>대본 보기</Text>
@@ -184,9 +255,6 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           </View>
         ))}
       </ScrollView>
-
-      {}
-      <Text style={v_d81136.footerHint}>계속 채팅하려면 구독하세요</Text>
 
       {}
       <View style={[v_d81136.inputBar, { paddingBottom: v_53dd92 || 10 }]}>
@@ -222,7 +290,8 @@ const v_d81136 = v_472849.create({
     alignItems: "center",
     gap: 10,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingTop: 16,
+    paddingBottom: 14,
   },
   headerIcon: { padding: 4 },
   headerAvatar: {
@@ -316,14 +385,6 @@ const v_d81136 = v_472849.create({
     color: "rgba(255,255,255,0.9)",
     fontSize: 13,
     fontWeight: "600",
-  },
-
-  footerHint: {
-    textAlign: "center",
-    fontSize: 12,
-    color: v_1bfbd0.zinc500,
-    paddingVertical: 6,
-    backgroundColor: v_1bfbd0.violet100,
   },
 
   inputBar: {
