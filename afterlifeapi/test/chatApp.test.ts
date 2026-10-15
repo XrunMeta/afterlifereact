@@ -70,6 +70,13 @@ async function v_98daea(v_be62d3, v_43e90c, v_6e0fd3, v_f6634c) {
   ).bind(v_be62d3, v_43e90c, v_6e0fd3, v_f6634c).run();
 }
 
+async function v_f19c91(v_43e90c, v_6e0fd3): Promise<void> {
+  await v_a1651b()
+    .prepare(`INSERT OR IGNORE INTO clone_follows (user_id, clone_id) VALUES (?, ?)`)
+    .bind(v_43e90c, v_6e0fd3)
+    .run();
+}
+
 async function v_180e63(v_be62d3, v_22da99, v_9b6134) {
   const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_be62d3}/turn`, {
     method: "POST",
@@ -437,6 +444,10 @@ v_469bf2("채팅 목록 클론 정보 · 대화한 클론 목록", () => {
     void v_9eb431;
     await v_a1651b().prepare("UPDATE clones SET avatar_url = 'https://x.test/c.png' WHERE id = ?").bind(v_8977fc).run();
 
+    await v_f19c91(v_b32680, v_8977fc);
+    await v_f19c91(v_b32680, v_6d4e32);
+    await v_f19c91(v_b32680, v_d50b63);
+
     v_4d37e3((await v_c5d920(v_b32680, v_8977fc, "줄1\n줄2   공백", "cl-b-1")).status).toBe(200);
     await v_a1651b().prepare("UPDATE messages SET created_at = '2025-10-03 00:00:00' WHERE user_id = ?").bind(v_b32680).run();
     await v_98daea("cl-b-call", v_b32680, v_6d4e32, Date.UTC(2025, 9, 2));
@@ -474,7 +485,7 @@ v_469bf2("채팅 목록 클론 정보 · 대화한 클론 목록", () => {
 
     const v_ef8ab1 = await v_fb3621<{ items: ConvItem[] }>(v_b32680, "/oth-path");
     v_4d37e3(v_ef8ab1.body.items).toEqual([
-      { clone: { id: v_1c1268, name: "CT", avatarUrl: null }, isMine: true, last: null },
+      { clone: { id: v_1c1268, name: "CT", avatarUrl: null }, isMine: true, last: null, unreadCount: 0 },
     ]);
     const v_fcb4e5 = await v_fb3621<{ items: unknown[] }>(v_b32680, `/oth-path${v_1c1268}/timeline`);
     v_4d37e3(v_fcb4e5.body.items).toEqual([]);
