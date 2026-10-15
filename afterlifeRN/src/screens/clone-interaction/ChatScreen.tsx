@@ -708,14 +708,14 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                     style={
                       v_8d41d7.role === "user"
                         ? [v_d81136.userBubble, { width: "80%" }]
-                        : [v_d81136.personaOutsideBubble, { width: "80%" }]
+                        : [v_d81136.personaOutsideBubble, v_d81136.turnPersonaBubble, { width: "80%" }]
                     }
                   >
                     <Text
                       style={
                         v_8d41d7.role === "user"
                           ? v_d81136.userBubbleText
-                          : v_d81136.personaOutsideBubbleText
+                          : [v_d81136.personaOutsideBubbleText, v_d81136.turnPersonaText]
                       }
                     >
                       {v_8d41d7.text}
@@ -960,6 +960,13 @@ const v_d81136 = v_472849.create({
   turnPersonaRow: {
     alignItems: "flex-start",
     marginBottom: 6,
+  },
+
+  turnPersonaBubble: {
+    backgroundColor: v_1bfbd0.zinc200,
+  },
+  turnPersonaText: {
+    color: v_1bfbd0.zinc900,
   },
 
   transcriptBtn: {
