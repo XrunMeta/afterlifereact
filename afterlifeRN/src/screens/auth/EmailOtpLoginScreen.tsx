@@ -46,6 +46,7 @@ export default function v_415807({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const v_cf9840 = async () => {
     if (v_600d5b > 0) return;
     try {
+      console.log(`[AUTH/otpResend] mode=${v_34ad95 && v_adc076 ? "firstLoginGate" : "emailLoginCode"} email=${v_e0c7e8}`);
       if (v_34ad95 && v_adc076) {
 
         const v_929b58 = await v_ea1c99();
@@ -53,10 +54,12 @@ export default function v_415807({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       } else {
         await v_1d5b64(v_e0c7e8);
       }
+      console.log(`[AUTH/otpResend] 서버 발송 요청 성공. 메일 안 오면 wrangler tail 로 sendMail 결과 확인.`);
       v_537cbb("");
       v_ec979d(v_d812cb);
       v_889fad(v_8d41d7("auth.emailOtpLogin.resendTitle"), v_8d41d7("auth.emailOtpLogin.resendToast"));
     } catch (v_49263d) {
+      console.warn(`[AUTH/otpResend] failed:`, v_49263d instanceof v_84a859 ? `${v_49263d.code} ${v_49263d.message}` : (v_49263d as Error)?.message);
       const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("auth.emailOtpLogin.resendFailed");
       v_889fad(v_8d41d7("common.error"), v_badeaf);
     }
@@ -68,9 +71,11 @@ export default function v_415807({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     try {
       const v_929b58 = await v_ea1c99();
 
+      console.log(`[AUTH/otpVerify] mode=${v_34ad95 && v_adc076 ? "firstLoginGate" : "emailLogin"} email=${v_e0c7e8} code=${v_c99bd2}`);
       const v_8f00b9 = v_34ad95 && v_adc076
         ? await v_ac9e58({ email: v_e0c7e8, password: v_adc076, deviceId: v_929b58, verificationCode: v_c99bd2 })
         : await v_c0c425({ email: v_e0c7e8, verificationCode: v_c99bd2, deviceId: v_929b58 });
+      console.log(`[AUTH/otpVerify] response: hasToken=${!!v_8f00b9.accessToken}`);
       if (!v_8f00b9.accessToken) {
 
         throw new v_84a859(400, "OTP_INVALID", v_8d41d7("auth.emailOtpLogin.wrongCode"));

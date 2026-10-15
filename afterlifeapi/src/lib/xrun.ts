@@ -730,3 +730,123 @@ export async function v_7a6fc0(
     reason: `xrun transfer ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}`,
   };
 }
+
+export interface XrunMemberProfile {
+  member: number;
+  email: string | null;
+  firstname: string | null;
+  lastname: string | null;
+  mobile: string | null;
+  mobilecode: string | null;
+  gender: number | null;
+  ages: number | null;
+  age: number | null;
+  countrycode: string | null;
+  country: number | null;
+  region: number | null;
+  guid: string | null;
+  appSource: string | null;
+}
+
+export async function v_3e801c(
+  env: v_273a0c,
+  v_660822,
+): Promise<
+  | { ok: true; profile: XrunMemberProfile }
+  | { ok: false; reason: string; missing?: boolean }
+> {
+  if (!v_c9c489.XRUN_GATEWAY_TOKEN) {
+    return { ok: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  }
+  let v_8f00b9;
+  try {
+    v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: v_4d1f4f(v_c9c489),
+      body: JSON.stringify({ member: v_660822 }),
+    });
+  } catch (v_49263d) {
+    return { ok: false, reason: `network: ${(v_49263d as Error).message}` };
+  }
+  let v_7ecfd1;
+  try {
+    v_7ecfd1 = (await v_8f00b9.json()) as typeof v_7ecfd1;
+  } catch {
+    return { ok: false, reason: `non-json (${v_8f00b9.status})` };
+  }
+  if (v_8f00b9.ok && v_7ecfd1?.status === "success" && v_7ecfd1.data) {
+    const v_d5dda0 = v_7ecfd1.data;
+    return {
+      ok: true,
+      profile: {
+        member: v_d5dda0.member,
+        email: v_d5dda0.email,
+        firstname: v_d5dda0.firstname,
+        lastname: v_d5dda0.lastname,
+        mobile: v_d5dda0.mobile,
+        mobilecode: v_d5dda0.mobilecode,
+        gender: v_d5dda0.gender,
+        ages: v_d5dda0.ages,
+        age: v_d5dda0.age,
+        countrycode: v_d5dda0.countrycode,
+        country: v_d5dda0.country,
+        region: v_d5dda0.region,
+        guid: v_d5dda0.guid,
+        appSource: v_d5dda0.app_source,
+      },
+    };
+  }
+  if (v_06d04c(v_8f00b9, v_7ecfd1)) {
+    await v_8ae861(v_c9c489, v_660822);
+    return { ok: false, reason: "member not found", missing: true };
+  }
+  return {
+    ok: false,
+    reason: `xrun ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}`,
+  };
+}
+
+export interface XrunMemberPatch {
+  firstname?: string | null;
+  mobile?: string | null;
+  mobilecode?: string | null;
+  gender?: number | null;
+  age?: number | null;
+  countrycode?: string | null;
+  country?: number | null;
+  region?: number | null;
+}
+
+export async function v_c0f252(
+  env: v_273a0c,
+  v_e0c7e8,
+  v_17dc8a,
+): Promise<{ ok: boolean; updated: number; reason?: string }> {
+  if (!v_c9c489.XRUN_GATEWAY_TOKEN) {
+    return { ok: false, updated: 0, reason: "missing XRUN_GATEWAY_TOKEN" };
+  }
+  let v_8f00b9;
+  try {
+    v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: v_4d1f4f(v_c9c489),
+      body: JSON.stringify({ email: v_e0c7e8, ...v_17dc8a }),
+    });
+  } catch (v_49263d) {
+    return { ok: false, updated: 0, reason: `network: ${(v_49263d as Error).message}` };
+  }
+  let v_7ecfd1;
+  try {
+    v_7ecfd1 = (await v_8f00b9.json()) as typeof v_7ecfd1;
+  } catch {
+    return { ok: false, updated: 0, reason: `non-json (${v_8f00b9.status})` };
+  }
+  if (v_8f00b9.ok && v_7ecfd1?.status === "success") {
+    return { ok: true, updated: v_7ecfd1.data?.updated ?? 0 };
+  }
+  return {
+    ok: false,
+    updated: 0,
+    reason: `xrun ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}`,
+  };
+}
