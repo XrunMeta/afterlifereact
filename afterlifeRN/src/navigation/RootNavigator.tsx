@@ -6,7 +6,7 @@ import { v_b5d684 } from "../permissions/usePermissionGate";
 import v_6d377c from "../permissions/PermissionGateScreen";
 
 import { v_2f5414 } from "../hooks/useSsoReconsentGate";
-import v_d53ede from "../components/common/SsoReconsentModal";
+import v_ac767f from "../screens/auth/SsoReconsentScreen";
 
 import { v_54ca39 } from "../lib/iap";
 
@@ -65,10 +65,11 @@ export default function v_3b950c() {
     return <PermissionGateScreen />;
   }
 
-  const v_863e42 = v_042a8b && !v_65e1e2.loading && v_65e1e2.needs;
+  if (v_042a8b && !v_65e1e2.loading && v_65e1e2.needs) {
+    return <SsoReconsentScreen onDone={v_65e1e2.refresh} />;
+  }
 
   return (
-    <>
     <RootStack.Navigator screenOptions={{ headerShown: false }}>
       {!v_042a8b ? (
         <>
@@ -119,7 +120,5 @@ export default function v_3b950c() {
         </>
       )}
     </RootStack.Navigator>
-    <SsoReconsentModal visible={v_863e42} onDone={v_65e1e2.refresh} />
-    </>
   );
 }
