@@ -505,6 +505,7 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
         onMorePress={() => v_eda097(true)}
         onSharePress={v_22cd2d}
         contentTopInset={v_033e14.top + 8}
+        hideHashtagsChip
       />
 
       {}
