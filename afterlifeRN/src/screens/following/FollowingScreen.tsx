@@ -285,6 +285,15 @@ export default function v_14b43e() {
 
   const [v_9e799c, v_d69724] = v_5ab095("");
 
+  type SortMode = "recent" | "intimacy" | "name";
+  const [v_5e8330, v_1db134] = v_5ab095<SortMode>("recent");
+  const [v_557d00, v_538ca9] = v_5ab095(false);
+  const v_904373 = {
+    recent: "최근 대화순",
+    intimacy: "친밀도 높은 순",
+    name: "이름순",
+  };
+
   const [v_c591dc, v_6f4b5a] = v_5ab095<Set<number>>(new Set());
 
   const [v_211631, v_40f767] = v_5ab095<Map<number, { likes: number; comments: number }>>(
@@ -431,13 +440,21 @@ export default function v_14b43e() {
         const v_2db2a5 = v_632473.find((v_8b5cd8) => v_8b5cd8.cloneId === v_5ed063.id);
         return { persona: v_5ed063, feed: v_2db2a5 ?? null };
       });
+
     v_ef8ab1.sort((v_779914, v_148ff6) => {
+      if (v_5e8330 === "intimacy") {
+        return (v_148ff6.persona.intimacy || 0) - (v_779914.persona.intimacy || 0);
+      }
+      if (v_5e8330 === "name") {
+        return (v_779914.persona.name || "").localeCompare(v_148ff6.persona.name || "", "ko");
+      }
+
       const v_d202ca = v_779914.feed?.createdAt ? new Date(v_779914.feed.createdAt).getTime() : 0;
       const v_afbf1c = v_148ff6.feed?.createdAt ? new Date(v_148ff6.feed.createdAt).getTime() : 0;
       return v_afbf1c - v_d202ca;
     });
     return v_ef8ab1;
-  }, [v_a48e44, v_632473, v_9e799c]);
+  }, [v_a48e44, v_632473, v_9e799c, v_5e8330]);
 
   const v_94f30e = v_df9f57(() => {
     if (!v_2116d2.trim()) return v_a48e44;
@@ -829,8 +846,10 @@ export default function v_14b43e() {
               <Text style={v_fd5f43.subSectionCount}>
                 Kins {v_a48e44.length} / 최대 50
               </Text>
-              <TouchableOpacity hitSlop={8}>
-                <Text style={v_fd5f43.subSectionSort}>최근 대화순 <Feather name="chevron-down" size={12} color={v_1bfbd0.zinc600} /></Text>
+              <TouchableOpacity hitSlop={8} onPress={() => v_538ca9(true)}>
+                <Text style={v_fd5f43.subSectionSort}>
+                  {v_904373[v_5e8330]} <Feather name="chevron-down" size={12} color={v_1bfbd0.zinc600} />
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1145,6 +1164,34 @@ export default function v_14b43e() {
       {v_8282fa && (
         <View style={v_fd5f43.toast}><Text style={v_fd5f43.toastText}>{v_8282fa}</Text></View>
       )}
+
+      {}
+      <Modal visible={v_557d00} transparent animationType="slide">
+        <Pressable style={v_fd5f43.bottomOverlay} onPress={() => v_538ca9(false)}>
+          <SwipeDownSheet onClose={() => v_538ca9(false)} style={v_fd5f43.sortSheet}>
+            <View style={v_fd5f43.sortSheetHandle} />
+            <Text style={v_fd5f43.sortSheetTitle}>정렬</Text>
+            {(["recent", "intimacy", "name"] as const).map((v_34e5bb) => (
+              <TouchableOpacity
+                key={v_34e5bb}
+                style={v_fd5f43.sortOptionRow}
+                activeOpacity={0.7}
+                onPress={() => {
+                  v_1db134(v_34e5bb);
+                  v_538ca9(false);
+                }}
+              >
+                <Text style={[v_fd5f43.sortOptionText, v_5e8330 === v_34e5bb && v_fd5f43.sortOptionActive]}>
+                  {v_904373[v_34e5bb]}
+                </Text>
+                {v_5e8330 === v_34e5bb && (
+                  <Feather name="check" size={18} color={v_1bfbd0.violet600} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </SwipeDownSheet>
+        </Pressable>
+      </Modal>
     </SafeView>
   );
 }
@@ -1199,6 +1246,29 @@ const v_fd5f43 = v_472849.create({
   },
   subSectionCount: { fontSize: 13, color: v_1bfbd0.zinc700, fontWeight: "500" },
   subSectionSort: { fontSize: 13, color: v_1bfbd0.zinc600 },
+
+  sortSheet: {
+    backgroundColor: v_1bfbd0.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+  },
+  sortSheetHandle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: v_1bfbd0.zinc300, alignSelf: "center", marginBottom: 12,
+  },
+  sortSheetTitle: {
+    fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900,
+    textAlign: "center", marginBottom: 12,
+  },
+  sortOptionRow: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingVertical: 14, borderTopWidth: 1, borderTopColor: v_1bfbd0.zinc100,
+  },
+  sortOptionText: { fontSize: 15, color: v_1bfbd0.zinc700 },
+  sortOptionActive: { color: v_1bfbd0.violet600, fontWeight: "700" },
 
   msgRow: {
     flexDirection: "row",
