@@ -908,51 +908,59 @@ export default function v_def15b() {
             {
 
 }
-            {v_c9ba75.length > 0 && (
-              <View style={v_fd5f43.giftLogSection}>
-                <Text style={v_fd5f43.giftLogTitle}>
-                  {v_8d41d7("dashboard.giftInventoryTitle", { defaultValue: "내선물" })}
+            {
+}
+            <View style={v_fd5f43.giftLogSection}>
+              <Text style={v_fd5f43.giftLogTitle}>
+                {v_8d41d7("dashboard.giftInventoryTitle", { defaultValue: "내선물" })}
+              </Text>
+              {v_c9ba75.length === 0 ? (
+                <Text style={v_fd5f43.giftLogEmptyText}>
+                  {v_8d41d7("dashboard.emptyGift", { defaultValue: "아직 받은 선물이 없어요" })}
                 </Text>
-                <View style={v_fd5f43.giftLogSummaryRow}>
-                  <Text style={v_fd5f43.giftLogSummary} numberOfLines={1}>
-                    {v_8d41d7("dashboard.giftTotalReceived", {
-                      defaultValue: "총 받은 선물: {{n}}개",
-                      n: v_489044,
-                    })}
-                  </Text>
-                  <TouchableOpacity
-                    style={v_fd5f43.giftLogExchangeBtn}
-                    onPress={() => {
-                      const v_131f0d = v_b113dd?.email ?? v_f38ee5?.email ?? null;
-                      console.log("[giftExchangeHeaderBtn] tap myEmail=", v_131f0d);
-                      void v_623a74(v_131f0d, v_8d41d7);
-                    }}
-                    activeOpacity={0.7}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <Text style={v_fd5f43.giftLogExchangeText}>
-                      {v_8d41d7("dashboard.giftExchange", { defaultValue: "교환" })}
+              ) : (
+                <>
+                  <View style={v_fd5f43.giftLogSummaryRow}>
+                    <Text style={v_fd5f43.giftLogSummary} numberOfLines={1}>
+                      {v_8d41d7("dashboard.giftTotalReceived", {
+                        defaultValue: "총 받은 선물: {{n}}개",
+                        n: v_489044,
+                      })}
                     </Text>
-                  </TouchableOpacity>
-                </View>
-                {(v_7e36ab ? v_c9ba75 : v_c9ba75.slice(0, 1)).map((v_206b88) => (
-                  <GiftLogRow key={v_206b88.id} item={v_206b88} />
-                ))}
-                {v_c9ba75.length > 1 && (
-                  <TouchableOpacity
-                    style={v_fd5f43.giftLogMoreBtn}
-                    onPress={() => v_88d032((v_81e2ef) => !v_81e2ef)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={v_fd5f43.giftLogMoreText}>
-                      {v_7e36ab
-                        ? v_8d41d7("dashboard.giftLogCollapse", { defaultValue: "접기" })
-                        : v_8d41d7("dashboard.giftLogMore", { defaultValue: `더보기 (${v_c9ba75.length - 1})` })}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
+                    <TouchableOpacity
+                      style={v_fd5f43.giftLogExchangeBtn}
+                      onPress={() => {
+                        const v_131f0d = v_b113dd?.email ?? v_f38ee5?.email ?? null;
+                        console.log("[giftExchangeHeaderBtn] tap myEmail=", v_131f0d);
+                        void v_623a74(v_131f0d, v_8d41d7);
+                      }}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Text style={v_fd5f43.giftLogExchangeText}>
+                        {v_8d41d7("dashboard.giftExchange", { defaultValue: "교환" })}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  {(v_7e36ab ? v_c9ba75 : v_c9ba75.slice(0, 1)).map((v_206b88) => (
+                    <GiftLogRow key={v_206b88.id} item={v_206b88} />
+                  ))}
+                  {v_c9ba75.length > 1 && (
+                    <TouchableOpacity
+                      style={v_fd5f43.giftLogMoreBtn}
+                      onPress={() => v_88d032((v_81e2ef) => !v_81e2ef)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={v_fd5f43.giftLogMoreText}>
+                        {v_7e36ab
+                          ? v_8d41d7("dashboard.giftLogCollapse", { defaultValue: "접기" })
+                          : v_8d41d7("dashboard.giftLogMore", { defaultValue: `더보기 (${v_c9ba75.length - 1})` })}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </>
+              )}
+            </View>
           </>
         }
         ListFooterComponent={
@@ -2198,6 +2206,12 @@ const v_fd5f43 = v_472849.create({
   giftLogSection: { marginTop: 16, marginBottom: 20, paddingHorizontal: 4 },
 
   giftLogTitle: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900, marginBottom: 8 },
+  giftLogEmptyText: {
+    fontSize: 13,
+    color: v_1bfbd0.zinc500,
+    paddingVertical: 20,
+    textAlign: "center",
+  },
   giftLogSummaryRow: {
     flexDirection: "row",
     alignItems: "center",

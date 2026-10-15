@@ -20,6 +20,7 @@ export function v_220c23(): boolean {
       webClientId: v_93942f,
       iosClientId: v_708346,
       offlineAccess: false,
+      scopes: ["profile", "email"],
     }) as unknown;
     if (v_cb35cb && typeof (v_cb35cb as Promise<void>).catch === 'function') {
       void (v_cb35cb as Promise<void>).catch(() => {});
