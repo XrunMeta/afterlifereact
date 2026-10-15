@@ -391,6 +391,13 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   return (
 
+   <Modal
+     visible={true}
+     transparent={false}
+     animationType="none"
+     statusBarTranslucent={false}
+     onRequestClose={() => v_c65f5d.goBack()}
+   >
     <View style={[v_d81136.root, { paddingTop: v_033e14.top }]}>
       {}
       <View style={v_d81136.header}>
@@ -579,9 +586,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       </ScrollView>
 
       {
-
 }
-      <View style={[v_d81136.inputBar, { paddingBottom: v_53dd92 || 10, transform: [{ translateY: -v_7e4acc }] }]}>
+      <View style={[v_d81136.inputBar, { paddingBottom: v_53dd92 || 10 }]}>
         <TextInput
           style={v_d81136.inputField}
           value={v_bbda62}
@@ -706,6 +712,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         </Pressable>
       </Modal>
     </View>
+    </Modal>
   );
 }
 
