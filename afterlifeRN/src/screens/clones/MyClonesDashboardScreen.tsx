@@ -80,6 +80,8 @@ export default function v_def15b() {
   const v_f9771e = v_c18c22(0);
   const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
   const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
+
+  const v_9fd982 = v_e662ae<v_9cabcb<v_affcc0>>(null);
   const v_f38ee5 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
   const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
@@ -766,6 +768,7 @@ export default function v_def15b() {
         </View>
       ) : (
       <FlatList
+        ref={v_9fd982}
         data={v_fc7f92}
         keyExtractor={(v_8c0b26) => String(v_8c0b26.id)}
         renderItem={v_b80d74}
@@ -879,10 +882,17 @@ export default function v_def15b() {
                       <Text style={v_fd5f43.profileStatLabel}>{v_8d41d7("dashboard.profileStatFollowing", { defaultValue: "팔로잉" })}</Text>
                     </TouchableOpacity>
                     <View style={v_fd5f43.profileStatDivider} />
-                    <View style={v_fd5f43.profileStatItem}>
+                    <TouchableOpacity
+                      style={v_fd5f43.profileStatItem}
+                      onPress={() => {
+
+                        if (v_fc7f92.length === 0) return;
+                        v_9fd982.current?.scrollToOffset({ offset: 0, animated: true });
+                      }}
+                    >
                       <Text style={v_fd5f43.profileStatValue}>{v_fc7f92.length}</Text>
                       <Text style={v_fd5f43.profileStatLabel}>{v_8d41d7("dashboard.profileStatClones", { defaultValue: "클론" })}</Text>
-                    </View>
+                    </TouchableOpacity>
                   </View>
                 </View>
               </View>
@@ -1218,7 +1228,9 @@ export default function v_def15b() {
                         {v_ceb55a.avatarUrl ? (
                           <Image source={{ uri: v_ceb55a.avatarUrl }} style={v_fd5f43.accountAvatar} />
                         ) : (
-                          <View style={[v_fd5f43.accountAvatar, { backgroundColor: v_1bfbd0.zinc200 }]} />
+                          <View style={[v_fd5f43.accountAvatar, { backgroundColor: v_1bfbd0.zinc200, alignItems: "center", justifyContent: "center" }]}>
+                            <Feather name="user" size={18} color={v_1bfbd0.zinc400} />
+                          </View>
                         )}
                         <View style={v_fd5f43.accountInfo}>
                           <Text style={v_fd5f43.accountName}>{v_ceb55a.name ?? v_ceb55a.email}</Text>
@@ -1245,7 +1257,9 @@ export default function v_def15b() {
                         {v_ceb55a.avatarUrl ? (
                           <Image source={{ uri: v_ceb55a.avatarUrl }} style={v_fd5f43.accountAvatar} />
                         ) : (
-                          <View style={[v_fd5f43.accountAvatar, { backgroundColor: v_1bfbd0.zinc200 }]} />
+                          <View style={[v_fd5f43.accountAvatar, { backgroundColor: v_1bfbd0.zinc200, alignItems: "center", justifyContent: "center" }]}>
+                            <Feather name="user" size={18} color={v_1bfbd0.zinc400} />
+                          </View>
                         )}
                         <View style={v_fd5f43.accountInfo}>
                           <Text style={v_fd5f43.accountName}>{v_ceb55a.name ?? v_ceb55a.email}</Text>
