@@ -237,6 +237,19 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
         bannedUntil: v_d1b635.banned_until,
       });
     }
+
+    const v_cc65d6 = v_931bf0.email.split("@")[0];
+    const v_771f4c =
+      v_931bf0.name ||
+      [v_931bf0.given_name, v_931bf0.family_name].filter(Boolean).join(" ");
+    if (v_771f4c && v_d1b635.name === v_cc65d6) {
+      await v_a1651b
+        .prepare(`UPDATE users SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+        .bind(v_771f4c, v_d1b635.id)
+        .run();
+      v_d1b635.name = v_771f4c;
+    }
+
     await v_74defc(v_3f4e2e, {
       userId: v_d1b635.id,
       action: "auth.google.login",
