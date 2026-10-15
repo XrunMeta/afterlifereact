@@ -47,6 +47,8 @@ const v_f229b8 = 2;
 const v_d056d4 = "@search_recent";
 const v_0ee015 = 10;
 
+const v_e4d4c8 = 56;
+
 type TabKey = "recommend" | "clone" | "account" | "tag";
 const v_322c3f = [
   { key: "recommend", labelKey: "search.tabRecommend" },
@@ -91,6 +93,8 @@ export default function v_5db6c6() {
   const [v_f31e9b, v_1c6ba1] = v_5ab095<v_268e9e[]>([]);
 
   const v_bcfa24 = v_700696.get("window").width;
+
+  const v_11a565 = v_033e14.bottom + v_e4d4c8 + 32;
   const v_675c6a = v_df9f57(
     () => Math.floor((v_bcfa24 - v_296ef9 * (v_f229b8 - 1)) / v_f229b8),
     [v_bcfa24],
@@ -537,7 +541,7 @@ export default function v_5db6c6() {
               keyExtractor={(v_23805a) => v_23805a}
               renderItem={v_35b27e}
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingBottom: v_033e14.bottom + 32 }}
+              contentContainerStyle={{ paddingBottom: v_11a565 }}
             />
           </View>
         )
@@ -574,7 +578,7 @@ export default function v_5db6c6() {
                 renderItem={v_71d43d}
                 numColumns={v_f229b8}
                 keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{ paddingBottom: v_033e14.bottom + 32 }}
+                contentContainerStyle={{ paddingBottom: v_11a565 }}
                 refreshControl={v_4e1696}
               />
             )
@@ -589,7 +593,7 @@ export default function v_5db6c6() {
                 keyExtractor={(v_23805a) => String(v_23805a.id)}
                 renderItem={v_51e832}
                 keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{ paddingBottom: v_033e14.bottom + 32 }}
+                contentContainerStyle={{ paddingBottom: v_11a565 }}
                 refreshControl={v_4e1696}
               />
             )
@@ -606,7 +610,7 @@ export default function v_5db6c6() {
                 keyExtractor={(v_23805a) => String(v_23805a.id)}
                 renderItem={v_358f4f}
                 keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{ paddingBottom: v_033e14.bottom + 32 }}
+                contentContainerStyle={{ paddingBottom: v_11a565 }}
               />
             )
           )}
@@ -620,7 +624,7 @@ export default function v_5db6c6() {
                 keyExtractor={(v_23805a) => v_23805a}
                 renderItem={v_854a87}
                 keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{ paddingBottom: v_033e14.bottom + 32 }}
+                contentContainerStyle={{ paddingBottom: v_11a565 }}
               />
             )
           )}
@@ -635,7 +639,7 @@ export default function v_5db6c6() {
             keyExtractor={(v_23805a) => String(v_23805a.id)}
             renderItem={v_71d43d}
             numColumns={v_f229b8}
-            contentContainerStyle={{ paddingBottom: v_033e14.bottom + 32 }}
+            contentContainerStyle={{ paddingBottom: v_11a565 }}
             showsVerticalScrollIndicator={false}
             refreshControl={v_4e1696}
           />
