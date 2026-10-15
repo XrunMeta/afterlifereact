@@ -10,7 +10,7 @@ import { v_74defc } from "../lib/logger";
 import { v_344b9e } from "../lib/memoryStore";
 import { v_c226a5 } from "../lib/notify";
 import { v_e0041f, v_cfdcb0 } from "../lib/similarity";
-import { v_fb09c6 } from "../lib/xrun";
+import { v_fb09c6, v_3326b4 } from "../lib/xrun";
 import { v_74c502 } from "../lib/cloneAccess";
 
 export const v_de7ba7 = new v_b7c41b<v_de0a25>();
@@ -215,6 +215,14 @@ v_de7ba7.post("/me/sso-reconsent", v_6690d9, async (v_3f4e2e) => {
     )
     .bind(v_31fb59, v_43e90c)
     .run();
+  const v_38066f = await v_3f4e2e.env.DB
+    .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
+    .bind(v_43e90c)
+    .first<{ xrun_member_id: number | null }>();
+  if (v_38066f?.xrun_member_id) {
+    void v_3326b4(v_3f4e2e.env, v_38066f.xrun_member_id, { service: true, location: true, privacy: true })
+      .then((v_cb35cb) => { if (!v_cb35cb.ok) console.warn(`[sso-reconsent] syncTermsToXrun failed: ${v_cb35cb.reason}`); });
+  }
   return v_3f4e2e.json({ ok: true, version: v_31fb59 });
 });
 
