@@ -283,8 +283,22 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     }
   };
 
-  const v_ed4b67 = () => {
+  const v_21be1f = async () => {
+    const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {});
+    if (!v_3ed4c3) return;
+    v_c65f5d.navigate("Call", {
+      cloneId: v_6e0fd3,
+      name: v_dfb220,
+      image: v_e7274c ?? undefined,
+    });
+  };
+
+  const v_98409d = () => {
     v_cafc04(v_dfb220, [
+      {
+        label: "통화",
+        onPress: () => void v_21be1f(),
+      },
       {
         label: v_842b8b ? "알림 끄기" : "알림 켜기",
         onPress: () => v_0f6477((v_81e2ef) => !v_81e2ef),
@@ -331,22 +345,6 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     ]);
   };
 
-  const v_d9545c = async () => {
-    const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {});
-    if (!v_3ed4c3) return;
-    v_c65f5d.navigate("Call", {
-      cloneId: v_6e0fd3,
-      name: v_dfb220,
-      image: v_e7274c ?? undefined,
-    });
-  };
-
-  const v_ff2826 = () => {
-    v_cafc04("개발 중", [
-      { label: "확인", onPress: () => {} },
-    ]);
-  };
-
   const v_c2e43c = () => {
     v_c65f5d.navigate("CloneFeed", { cloneId: v_6e0fd3 });
   };
@@ -384,26 +382,16 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           </Text>
         </TouchableOpacity>
         <View style={v_d81136.headerRight}>
+          {
+
+}
           <TouchableOpacity
             style={v_d81136.headerActionBtn}
             hitSlop={8}
-            onPress={v_ff2826}
+            onPress={v_98409d}
+            accessibilityLabel="settings"
           >
-            <Feather name="image" size={18} color={v_1bfbd0.zinc700} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={v_d81136.headerActionBtn}
-            hitSlop={8}
-            onPress={v_d9545c}
-          >
-            <Feather name="phone" size={18} color={v_1bfbd0.zinc700} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={v_d81136.headerActionBtn}
-            hitSlop={8}
-            onPress={v_ed4b67}
-          >
-            <Feather name="more-horizontal" size={18} color={v_1bfbd0.zinc700} />
+            <Feather name="settings" size={18} color={v_1bfbd0.zinc700} />
           </TouchableOpacity>
         </View>
       </View>
