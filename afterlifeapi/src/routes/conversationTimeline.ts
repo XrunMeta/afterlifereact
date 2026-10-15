@@ -277,15 +277,19 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
   const v_45c785 = new Map((v_2461e1.results ?? []).map((v_cb35cb) => [v_cb35cb.id, v_15ea73(v_cb35cb.created_at)]));
 
   const v_10387a = await v_a1651b
-    .prepare(`SELECT clone_id FROM clone_follows WHERE user_id = ?`)
+    .prepare(`SELECT clone_id, created_at FROM clone_follows WHERE user_id = ?`)
     .bind(v_43e90c)
-    .all<{ clone_id: number }>();
+    .all<{ clone_id: number; created_at: string }>();
   const v_559298 = new Set<number>(
     (v_10387a.results ?? []).map((v_cb35cb) => v_cb35cb.clone_id),
+  );
+  const v_b482e3 = new Map<number, number>(
+    (v_10387a.results ?? []).map((v_cb35cb) => [v_cb35cb.clone_id, v_15ea73(v_cb35cb.created_at)]),
   );
   const v_52e08b = new Set<number>([
     ...[...v_02fbf1.keys()].filter((v_062ae9) => v_559298.has(v_062ae9) || v_45c785.has(v_062ae9)),
     ...v_45c785.keys(),
+    ...v_559298, 
   ]);
 
   const v_66ed66 = v_a8614b(v_3f4e2e.env.ALE_KEK);
@@ -332,7 +336,8 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
       last: v_2f7952,
       unreadCount: v_8a6db3,
       sortAt: v_2f7952?.at ?? null,
-      createdAt: v_45c785.get(v_389afb) ?? 0,
+
+      createdAt: v_45c785.get(v_389afb) ?? v_b482e3.get(v_389afb) ?? 0,
     };
   }));
   const v_4622b9 = v_4d6839.filter((v_62c214): v_62c214 is NonNullable<typeof v_62c214> => v_62c214 !== null);
