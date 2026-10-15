@@ -784,7 +784,7 @@ export default function v_14b43e() {
   return (
     <SafeView backgroundColor={v_1bfbd0.violet100} showBottomBackground={false}>
       <PageHeader
-        title="Subscribe"
+        title="Message"
         rightAction={<NotificationBell />}
       />
 
