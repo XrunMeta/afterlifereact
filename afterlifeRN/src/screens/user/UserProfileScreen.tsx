@@ -585,6 +585,8 @@ const v_fd5f43 = v_472849.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 16,
+
+    minHeight: 220,
   },
   moreSheetHandle: {
     width: 40,
