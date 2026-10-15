@@ -115,6 +115,9 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
   const v_033e14 = v_e0068c();
   const v_f9771e = v_c18c22(0);
 
+  const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
+  const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
+
   const { height: v_28d8d8 } = v_700696.get("window");
   const v_53dd92 = v_f9771e > 0 ? v_f9771e : v_033e14.bottom;
   const v_3d6201 = v_28d8d8 - v_53dd92;
@@ -542,7 +545,7 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
             style={[
               v_d81136.commentSheet,
               {
-                paddingBottom: 24 + Math.max(v_033e14.bottom, 0),
+                paddingBottom: 24 + v_2b650d,
                 height: Math.max(v_28d8d8 * 0.7 - v_7e4acc, 200),
               },
             ]}
@@ -773,7 +776,7 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
         <Pressable style={v_d81136.moreOverlay} onPress={() => v_eda097(false)}>
           <SwipeDownSheet
             onClose={() => v_eda097(false)}
-            style={[v_d81136.moreSheet, { paddingBottom: 24 + Math.max(v_033e14.bottom, 0) }]}
+            style={[v_d81136.moreSheet, { paddingBottom: 24 + v_2b650d }]}
           >
             <View style={v_d81136.moreSheetHandle} />
             <Text style={v_d81136.moreTitle}>{v_8c0b26.author}</Text>
