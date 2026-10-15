@@ -1122,7 +1122,8 @@ export default function v_14b43e() {
       <Modal visible={!!v_5c83d5} transparent animationType="slide">
         <Pressable style={v_fd5f43.bottomOverlay} onPress={() => v_880166(null)}>
           <View
-            style={[v_fd5f43.commentSheet, { paddingBottom: 24 + v_2b650d }]}
+
+            style={[v_fd5f43.commentSheet, { paddingBottom: 8 + v_2b650d }]}
             onStartShouldSetResponder={() => true}
           >
             <View style={v_fd5f43.sheetHandle} />
