@@ -275,7 +275,18 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
     }
   }
   const v_45c785 = new Map((v_2461e1.results ?? []).map((v_cb35cb) => [v_cb35cb.id, v_15ea73(v_cb35cb.created_at)]));
-  const v_52e08b = new Set<number>([...v_02fbf1.keys(), ...v_45c785.keys()]);
+
+  const v_10387a = await v_a1651b
+    .prepare(`SELECT clone_id FROM clone_follows WHERE user_id = ?`)
+    .bind(v_43e90c)
+    .all<{ clone_id: number }>();
+  const v_559298 = new Set<number>(
+    (v_10387a.results ?? []).map((v_cb35cb) => v_cb35cb.clone_id),
+  );
+  const v_52e08b = new Set<number>([
+    ...[...v_02fbf1.keys()].filter((v_062ae9) => v_559298.has(v_062ae9) || v_45c785.has(v_062ae9)),
+    ...v_45c785.keys(),
+  ]);
 
   const v_66ed66 = v_a8614b(v_3f4e2e.env.ALE_KEK);
   const v_e38ca2 = await v_a50613(v_3f4e2e.env);
