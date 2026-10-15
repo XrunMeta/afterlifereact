@@ -399,11 +399,11 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     v_c65f5d.navigate("CloneFeed", { cloneId: v_6e0fd3 });
   };
 
-  const v_53dd92 = 10;
-
   const v_f9771e = v_c18c22(0);
   const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
   const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
+
+  const v_53dd92 = v_7e4acc > 0 ? 10 : Math.max(v_f9771e, 10);
 
   return (
 
@@ -902,7 +902,7 @@ const v_d81136 = v_472849.create({
     alignSelf: "flex-end",
     maxWidth: "70%",
     backgroundColor: v_1bfbd0.violet600,
-    borderRadius: 14,
+    borderRadius: 18,
     paddingLeft: 14,
     paddingRight: 14,
     paddingVertical: 10,
@@ -914,7 +914,7 @@ const v_d81136 = v_472849.create({
     alignSelf: "flex-start",
     maxWidth: "70%",
     backgroundColor: v_1bfbd0.white,
-    borderRadius: 14,
+    borderRadius: 18,
     paddingLeft: 14,
     paddingRight: 14,
     paddingVertical: 10,
