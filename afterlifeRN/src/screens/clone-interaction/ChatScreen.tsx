@@ -391,7 +391,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   return (
 
-    <View style={[v_d81136.root, { paddingTop: v_033e14.top, paddingBottom: v_7e4acc }]}>
+    <View style={[v_d81136.root, { paddingTop: v_033e14.top, paddingBottom: 56 + (v_7e4acc > 0 ? v_7e4acc : v_033e14.bottom) }]}>
       {}
       <View style={v_d81136.header}>
         <TouchableOpacity
@@ -578,8 +578,10 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         )}
       </ScrollView>
 
-      {}
-      <View style={[v_d81136.inputBar, { paddingBottom: v_53dd92 || 10 }]}>
+      {
+
+}
+      <View style={[v_d81136.inputBar, { position: "absolute", left: 0, right: 0, bottom: v_7e4acc > 0 ? v_7e4acc : v_033e14.bottom, paddingBottom: 10 }]}>
         <TextInput
           style={v_d81136.inputField}
           value={v_bbda62}
