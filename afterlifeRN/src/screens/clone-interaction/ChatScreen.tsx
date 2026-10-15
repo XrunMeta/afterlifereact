@@ -17,6 +17,7 @@ import {
   type v_5b67a3,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
+import { v_772971 } from "jmpfvteuuztnp";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
@@ -64,6 +65,7 @@ const v_c8c890 = (v_23805a): v_23805a is MissedCallGroup =>
 type Props = v_432191<v_8ad91b, "Chat">;
 
 export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const { cloneId: v_6e0fd3, name: v_a4744c, image: v_c1e151 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
   const v_033e14 = v_e0068c();
@@ -471,7 +473,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         {v_e721a8 && v_2810d7 !== null && (
           <>
             {v_dec728 && (
-              <Text style={v_d81136.loadingText}>이전 메시지 불러오는 중…</Text>
+              <Text style={v_d81136.loadingText}>{v_8d41d7("chat.loadingPrev")}</Text>
             )}
             {v_907715.map((v_23805a, v_e86ad8) => {
 
@@ -546,10 +548,10 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                         hitSlop={6}
                         onPress={() => v_bbd0f3(v_23805a.callId)}
                       >
-                        <Text style={v_d81136.transcriptBtnText}>통화 내용보기</Text>
+                        <Text style={v_d81136.transcriptBtnText}>{v_8d41d7("chat.callTranscriptBtn")}</Text>
                       </TouchableOpacity>
                     ) : (
-                      <Text style={v_d81136.callEmptyText}>부재중 통화</Text>
+                      <Text style={v_d81136.callEmptyText}>{v_8d41d7("chat.missedCall")}</Text>
                     )}
                   </View>
                 </React.Fragment>
@@ -568,12 +570,12 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 }
         {!v_e721a8 && (
           <View style={v_d81136.emptyWrap}>
-            <Text style={v_d81136.emptyText}>아직 대화가 없어요.</Text>
+            <Text style={v_d81136.emptyText}>{v_8d41d7("chat.emptyConversation")}</Text>
           </View>
         )}
         {v_e721a8 && v_2810d7 !== null && v_2810d7.length === 0 && !v_dec728 && (
           <View style={v_d81136.emptyWrap}>
-            <Text style={v_d81136.emptyText}>아직 대화가 없어요.</Text>
+            <Text style={v_d81136.emptyText}>{v_8d41d7("chat.emptyConversation")}</Text>
           </View>
         )}
       </ScrollView>
@@ -656,7 +658,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
           >
             <View style={v_d81136.sheetHandle} />
-            <Text style={v_d81136.sheetTitle}>통화 내용</Text>
+            <Text style={v_d81136.sheetTitle}>{v_8d41d7("chat.callTranscriptTitle")}</Text>
             <ScrollView
               style={{ flex: 1 }}
               contentContainerStyle={{ paddingBottom: 20 }}
@@ -666,7 +668,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
               scrollEventThrottle={200}
             >
               {v_db205d?.loading && v_db205d.turns.length === 0 && (
-                <Text style={v_d81136.loadingText}>불러오는 중…</Text>
+                <Text style={v_d81136.loadingText}>{v_8d41d7("chat.loadingGeneric")}</Text>
               )}
               {v_db205d?.turns.map((v_8d41d7) => (
                 <View
@@ -693,7 +695,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                 </View>
               ))}
               {v_db205d?.loading && v_db205d.turns.length > 0 && (
-                <Text style={v_d81136.loadingText}>이전 발화 불러오는 중…</Text>
+                <Text style={v_d81136.loadingText}>{v_8d41d7("chat.loadingPrevUtterances")}</Text>
               )}
             </ScrollView>
           </Pressable>

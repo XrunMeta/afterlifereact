@@ -943,7 +943,7 @@ export default function v_14b43e() {
                 style={v_fd5f43.subSearchInput}
                 value={v_9e799c}
                 onChangeText={v_d69724}
-                placeholder="검색"
+                placeholder={v_8d41d7("common.search")}
                 placeholderTextColor={v_1bfbd0.zinc400}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -1291,7 +1291,7 @@ export default function v_14b43e() {
             onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
           >
             <View style={v_fd5f43.sortSheetHandle} />
-            <Text style={v_fd5f43.sortSheetTitle}>정렬</Text>
+            <Text style={v_fd5f43.sortSheetTitle}>{v_8d41d7("chat.sort")}</Text>
             {(["recent", "intimacy", "name"] as const).map((v_34e5bb) => (
               <TouchableOpacity
                 key={v_34e5bb}
