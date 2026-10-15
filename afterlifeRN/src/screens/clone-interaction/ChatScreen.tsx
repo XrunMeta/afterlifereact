@@ -419,7 +419,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 }
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+      behavior={v_326be8.OS === "ios" ? "padding" : "height"}
     >
     <View style={[v_d81136.root, { paddingTop: v_033e14.top }]}>
       {}
