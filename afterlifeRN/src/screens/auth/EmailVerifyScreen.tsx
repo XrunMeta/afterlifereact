@@ -44,7 +44,7 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const v_32f473 = v_e662ae<v_79c4f2>(null);
 
   const v_f6037c = (v_2ca7e0, v_dfaee3) => {
-    void v_fa872d();
+    void v_fa872d(v_2ca7e0);
     void v_c65c18({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, persist: true, registrationMethod: "email" });
   };
 
