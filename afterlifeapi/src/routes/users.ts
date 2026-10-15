@@ -10,7 +10,12 @@ import { v_74defc } from "../lib/logger";
 import { v_344b9e } from "../lib/memoryStore";
 import { v_c226a5 } from "../lib/notify";
 import { v_e0041f, v_cfdcb0 } from "../lib/similarity";
-import { v_fb09c6, v_3326b4 } from "../lib/xrun";
+import {
+  v_fb09c6,
+  v_3326b4,
+  v_3e801c,
+  v_c0f252,
+} from "../lib/xrun";
 import { v_74c502 } from "../lib/cloneAccess";
 
 export const v_de7ba7 = new v_b7c41b<v_de0a25>();
@@ -224,6 +229,64 @@ v_de7ba7.post("/me/sso-reconsent", v_6690d9, async (v_3f4e2e) => {
       .then((v_cb35cb) => { if (!v_cb35cb.ok) console.warn(`[sso-reconsent] syncTermsToXrun failed: ${v_cb35cb.reason}`); });
   }
   return v_3f4e2e.json({ ok: true, version: v_31fb59 });
+});
+
+v_de7ba7.get("/me/xrun-profile", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_38066f = await v_3f4e2e.env.DB
+    .prepare(`SELECT xrun_member_id, email FROM users WHERE id = ? AND deleted_at IS NULL`)
+    .bind(v_43e90c)
+    .first<{ xrun_member_id: number | null; email: string }>();
+  if (!v_38066f) throw new v_3ebe58("NOT_FOUND", "User not found.");
+  if (!v_38066f.xrun_member_id) {
+    throw new v_3ebe58("XRUN_NOT_LINKED", "xrun 계정이 연결되어 있지 않아요.");
+  }
+  const v_43c42e = await v_3e801c(v_3f4e2e.env, v_38066f.xrun_member_id);
+  if (!v_43c42e.ok) {
+    throw new v_3ebe58(
+      v_43c42e.missing ? "XRUN_MEMBER_MISSING" : "XRUN_PROFILE_FAILED",
+      "xrun 프로필을 불러오지 못했어요.",
+      { reason: v_43c42e.reason },
+    );
+  }
+  return v_3f4e2e.json({ profile: v_43c42e.profile });
+});
+
+const v_33a534 = v_1f4ea7.object({
+  firstname: v_1f4ea7.string().min(1).max(80).nullable().optional(),
+  mobile: v_1f4ea7.string().min(1).max(40).nullable().optional(),
+  mobilecode: v_1f4ea7.string().min(1).max(10).nullable().optional(),
+  gender: v_1f4ea7.number().int().nullable().optional(),
+  age: v_1f4ea7.number().int().min(13).max(120).nullable().optional(),
+  countrycode: v_1f4ea7.string().min(2).max(8).nullable().optional(),
+  country: v_1f4ea7.number().int().nullable().optional(),
+  region: v_1f4ea7.number().int().nullable().optional(),
+});
+
+v_de7ba7.patch("/me/xrun-profile", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_33a534);
+  const v_38066f = await v_3f4e2e.env.DB
+    .prepare(`SELECT xrun_member_id, email FROM users WHERE id = ? AND deleted_at IS NULL`)
+    .bind(v_43e90c)
+    .first<{ xrun_member_id: number | null; email: string }>();
+  if (!v_38066f) throw new v_3ebe58("NOT_FOUND", "User not found.");
+  if (!v_38066f.xrun_member_id) {
+    throw new v_3ebe58("XRUN_NOT_LINKED", "xrun 계정이 연결되어 있지 않아요.");
+  }
+  const v_43c42e = await v_c0f252(v_3f4e2e.env, v_38066f.email, v_4d33b2);
+  if (!v_43c42e.ok) {
+    throw new v_3ebe58("XRUN_UPDATE_FAILED", "xrun 프로필 저장에 실패했어요.", {
+      reason: v_43c42e.reason,
+    });
+  }
+
+  const v_1300ee = await v_3e801c(v_3f4e2e.env, v_38066f.xrun_member_id);
+  return v_3f4e2e.json({
+    ok: true,
+    updated: v_43c42e.updated,
+    profile: v_1300ee.ok ? v_1300ee.profile : null,
+  });
 });
 
 const v_90be18 = v_1f4ea7.object({
