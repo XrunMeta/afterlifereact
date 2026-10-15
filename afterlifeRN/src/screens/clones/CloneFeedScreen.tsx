@@ -1070,6 +1070,8 @@ const v_d81136 = v_472849.create({
     borderTopRightRadius: 20,
     paddingTop: 0,
     paddingHorizontal: 16,
+
+    minHeight: 260,
   },
   moreSheetHandle: {
     width: 40,
