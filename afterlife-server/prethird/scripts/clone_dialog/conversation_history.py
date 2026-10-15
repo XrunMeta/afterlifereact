@@ -139,7 +139,9 @@ class ConversationHistory:
         last_call = None
         for call_id, at, role, text in prior:
             if call_id != last_call:
-                lines.append(f"\n[{cls._when(at)} 통화]")
+                # AFL-1018: 앱 채팅은 Worker 가 KST 하루 묶음 "chat-YYYY-MM-DD" 로 넘긴다.
+                kind = "채팅" if call_id.startswith("chat-") else "통화"
+                lines.append(f"\n[{cls._when(at)} {kind}]")
                 last_call = call_id
             lines.append(f"상대: {text}")   # seed_prior 가 상대 말만 남긴다
         lines.append(_PRIOR_CLOSE)

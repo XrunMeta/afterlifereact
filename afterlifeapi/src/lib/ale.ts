@@ -210,13 +210,13 @@ function v_fdb5ba(): string {
   return `dek_${v_993b31}`;
 }
 
-function v_535aac(v_dac30a, v_426a9a): string {
+export function v_535aac(v_dac30a, v_426a9a): string {
   const v_b0f9be = v_5f30e2(12);
   const v_414366 = v_6f25a3(v_dac30a, v_b0f9be).encrypt(v_426a9a);
   return `${v_8a9589(v_b0f9be)}.${v_8a9589(v_414366)}`;
 }
 
-function v_2c21b1(v_dac30a, v_6af611): Uint8Array {
+export function v_2c21b1(v_dac30a, v_6af611): Uint8Array {
   const [v_d2f1a2, v_d92b99] = v_6af611.split(".");
   if (!v_d2f1a2 || !v_d92b99) {
     throw new v_3ebe58("INTERNAL_ERROR", "Malformed encrypted_dek.");
@@ -251,6 +251,29 @@ export async function v_9eaae0(
   const v_f9f313 = v_5f30e2(12);
   const v_930b2e = v_6f25a3(v_426a9a, v_f9f313).encrypt(new TextEncoder().encode(v_9db068));
   return `${v_e1906a}.${v_f22f3e}.${v_9419a6}.${v_8a9589(v_f9f313)}.${v_8a9589(v_930b2e)}`;
+}
+
+export function v_80aaa1(
+  v_f22f3e, v_9419a6, v_426a9a, v_9db068, v_14ac31,
+): string {
+  const v_f9f313 = v_5f30e2(12);
+  const v_ddcfed = v_14ac31 === undefined ? undefined : new TextEncoder().encode(v_14ac31);
+  const v_930b2e = v_6f25a3(v_426a9a, v_f9f313, v_ddcfed).encrypt(new TextEncoder().encode(v_9db068));
+  return `${v_e1906a}.${v_f22f3e}.${v_9419a6}.${v_8a9589(v_f9f313)}.${v_8a9589(v_930b2e)}`;
+}
+
+export function v_f7e14c(
+  v_3263c7, v_9419a6, v_426a9a, v_14ac31,
+): string | null {
+  const v_468545 = v_3263c7.split(".");
+  if (v_468545[0] !== v_e1906a || v_468545.length !== 5 || v_468545[2] !== v_9419a6) return null;
+  const v_ddcfed = v_14ac31 === undefined ? undefined : new TextEncoder().encode(v_14ac31);
+  const v_181c64 = v_6f25a3(v_426a9a, v_394453(v_468545[3]!), v_ddcfed).decrypt(v_394453(v_468545[4]!));
+  return new TextDecoder().decode(v_181c64);
+}
+
+export function v_034656(v_fd5f43): boolean {
+  return /^v3\.[^.]+\.dek_[0-9a-f]{32}\.[A-Za-z0-9+/=]+\.[A-Za-z0-9+/=]+$/.test(v_fd5f43);
 }
 
 export interface OpenV3Opts {

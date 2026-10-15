@@ -26,6 +26,7 @@ import type { v_8ad91b } from "../../navigation/types";
 import { v_84d546 } from "../../lib/callGuard";
 import v_9706a6 from "../../components/ui/FeedCard";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
+import v_06b8c0 from "../../components/clone/IntimacyEventsSheet";
 import type { v_19b433 } from "../../types/feed";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
@@ -196,6 +197,8 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
   }, [v_2db2a5.cloneId, v_2ca7e0]);
 
   const [v_3e9618, v_eda097] = v_5ab095(false);
+
+  const [v_d3a183, v_598141] = v_5ab095<{ cloneId: number; cloneName: string } | null>(null);
   const [v_f18195, v_fdd7c1] = v_5ab095<{
     cloneId: number;
     author: string;
@@ -505,6 +508,8 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
         onMorePress={() => v_eda097(true)}
         onSharePress={v_22cd2d}
         contentTopInset={v_033e14.top + 8}
+        hideHashtagsChip
+        onIntimacyPress={() => v_598141({ cloneId: v_8c0b26.cloneId, cloneName: v_8c0b26.author })}
       />
 
       {}
@@ -841,6 +846,14 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
             v_15c939(v_8d41d7("home.toasts.reportFailed"));
           }
         }}
+      />
+
+      {}
+      <IntimacyEventsSheet
+        visible={!!v_d3a183}
+        cloneId={v_d3a183?.cloneId ?? null}
+        cloneName={v_d3a183?.cloneName ?? ""}
+        onClose={() => v_598141(null)}
       />
 
       {v_8282fa && (
