@@ -21,7 +21,7 @@ import { v_b78f7e, v_656e8b } from "../lib/otp";
 import { v_a32f1d } from "../lib/googleAuth";
 import { v_bb3c56 } from "../lib/appleAuth";
 import { v_4960d7 } from "../lib/credits";
-import { v_6e4cc8, v_a0ec33, v_937e23 } from "../lib/xrun";
+import { v_6e4cc8, v_a0ec33, v_937e23, v_3326b4 } from "../lib/xrun";
 
 import { v_31fb59 } from "./users";
 
@@ -200,6 +200,9 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
           .prepare(`UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_wallet = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`)
           .bind(v_9816e7, v_3ac92c, v_0cd34d, v_81161e.id)
           .run();
+
+        void v_3326b4(v_3f4e2e.env, v_9816e7, { service: true, location: true, privacy: true })
+          .then((v_cb35cb) => { if (!v_cb35cb.ok) console.warn(`[auth.google.signup] syncTermsToXrun failed: ${v_cb35cb.reason}`); });
       } else {
 
         console.warn(`[auth.google.signup] xrun register failed user_id=${v_81161e.id}: ${v_6bd187.status} ${v_6bd187.reason ?? ""}`);
@@ -369,6 +372,9 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
           .prepare(`UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_wallet = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`)
           .bind(v_9816e7, v_3ac92c, v_0cd34d, v_81161e.id)
           .run();
+
+        void v_3326b4(v_3f4e2e.env, v_9816e7, { service: true, location: true, privacy: true })
+          .then((v_cb35cb) => { if (!v_cb35cb.ok) console.warn(`[auth.apple.signup] syncTermsToXrun failed: ${v_cb35cb.reason}`); });
       } else {
 
         console.warn(`[auth.apple.signup] xrun register failed user_id=${v_81161e.id}: ${v_6bd187.status} ${v_6bd187.reason ?? ""}`);
@@ -630,6 +636,9 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
         .prepare(`UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_wallet = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`)
         .bind(v_9816e7, v_3ac92c, v_0cd34d, v_81161e.id)
         .run();
+
+      void v_3326b4(v_3f4e2e.env, v_9816e7, { service: true, location: true, privacy: true })
+        .then((v_cb35cb) => { if (!v_cb35cb.ok) console.warn(`[auth.signup] syncTermsToXrun failed: ${v_cb35cb.reason}`); });
     } else {
 
       console.warn(`[auth.signup] xrun register failed user_id=${v_81161e.id}: ${v_6bd187.status} ${v_6bd187.reason ?? ""}`);
