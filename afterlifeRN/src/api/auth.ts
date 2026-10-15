@@ -301,3 +301,51 @@ export async function v_976b89(
     { method: "PATCH", body: JSON.stringify(v_931bf0) },
   );
 }
+
+export interface XrunProfile {
+  member: number;
+  email: string | null;
+  firstname: string | null;
+  lastname: string | null;
+  mobile: string | null;
+  mobilecode: string | null;
+  gender: number | null;
+  ages: number | null;
+  age: number | null;
+  countrycode: string | null;
+  country: number | null;
+  region: number | null;
+  guid: string | null;
+  appSource: string | null;
+}
+
+export interface XrunProfilePatch {
+  firstname?: string | null;
+  mobile?: string | null;
+  mobilecode?: string | null;
+  gender?: number | null;
+  age?: number | null;
+  countrycode?: string | null;
+  country?: number | null;
+  region?: number | null;
+}
+
+export async function v_2c296e(v_2ca7e0): Promise<XrunProfile> {
+  const v_8f00b9 = await v_9b97b4<{ profile: XrunProfile }>(
+    "/oth-path",
+    v_2ca7e0,
+    { method: "GET" },
+  );
+  return v_8f00b9.profile;
+}
+
+export async function v_ad7aba(
+  v_2ca7e0,
+  v_931bf0,
+): Promise<{ ok: true; updated: number; profile: XrunProfile | null }> {
+  return v_9b97b4<{ ok: true; updated: number; profile: XrunProfile | null }>(
+    "/oth-path",
+    v_2ca7e0,
+    { method: "PATCH", body: JSON.stringify(v_931bf0) },
+  );
+}

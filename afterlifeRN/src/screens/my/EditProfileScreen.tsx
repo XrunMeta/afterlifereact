@@ -1,6 +1,6 @@
 
 
-import v_a3453e, { v_df9f57, v_5ab095 } from "bapkr";
+import v_a3453e, { v_c4deb2, v_df9f57, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -22,13 +22,30 @@ import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
 import {
   v_976b89,
+  v_2c296e,
+  v_ad7aba,
   v_84a859,
   type v_fd8a01,
+  type v_fa06b2,
+  type v_cc333b,
 } from "../../api/auth";
 import type { v_da1883 } from "../../types/country";
 import { v_202d44 } from "../../constants/countryDialCodes";
 import { v_369014 } from "../../constants/regions";
 import type { v_8ad91b } from "../../navigation/types";
+
+const v_7b2d46 = 2110;
+const v_a2df5a = 2111;
+const v_d97109 = (v_206b88): number | null => {
+  if (v_206b88 === "male") return v_7b2d46;
+  if (v_206b88 === "female") return v_a2df5a;
+  return null;
+};
+const v_048a83 = (v_f4e98d): "male" | "female" | "" => {
+  if (v_f4e98d === v_7b2d46) return "male";
+  if (v_f4e98d === v_a2df5a) return "female";
+  return "";
+};
 
 type Gender = "male" | "female";
 type NavProp = v_390fcc<v_8ad91b>;
@@ -78,6 +95,40 @@ export default function v_e2b396() {
     return "50+";
   };
 
+  const [v_786737, v_9ed797] = v_5ab095<v_fa06b2 | null>(null);
+  const [v_6361b5, v_824d29] = v_5ab095<boolean>(!!v_2ca7e0);
+  const [v_c538e4, v_8bd811] = v_5ab095<string | null>(null);
+
+  v_c4deb2(() => {
+    if (!v_2ca7e0) {
+      v_824d29(false);
+      return;
+    }
+    let v_2008a4 = false;
+    console.log("[EditProfile] fetch xrun-profile start");
+    void (async () => {
+      try {
+        const v_e2a85c = await v_2c296e(v_2ca7e0);
+        console.log("[EditProfile] xrun-profile fetched:", JSON.stringify(v_e2a85c));
+        if (!v_2008a4) v_9ed797(v_e2a85c);
+      } catch (v_49263d) {
+        if (!v_2008a4) {
+          const v_badeaf =
+            v_49263d instanceof v_84a859
+              ? v_49263d.message
+              : (v_49263d as Error)?.message ?? "unknown";
+          console.warn("[EditProfile] getXrunProfile failed:", v_badeaf);
+          v_8bd811(v_badeaf);
+        }
+      } finally {
+        if (!v_2008a4) v_824d29(false);
+      }
+    })();
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_2ca7e0]);
+
   const [v_1833e7, v_318f24] = v_5ab095(v_b113dd?.name ?? "");
   const [v_d74a81, v_fcce73] = v_5ab095(v_b113dd?.phone ?? "");
 
@@ -88,6 +139,27 @@ export default function v_e2b396() {
   );
 
   const [v_f83808, v_64a312] = v_5ab095<string>(v_a09cf3(v_b113dd?.age));
+
+  v_c4deb2(() => {
+    if (!v_786737) return;
+    const v_32d8c3 = v_786737.firstname?.trim();
+    const v_f8874f = v_786737.mobile?.trim();
+    const v_3b9456 = v_048a83(v_786737.gender);
+    const v_46d803 = v_786737.age;
+    console.log("[EditProfile] prefill from xrun:", JSON.stringify({
+      name: v_32d8c3,
+      phone: v_f8874f,
+      gender: v_3b9456,
+      age: v_46d803,
+      rawGender: v_786737.gender,
+    }));
+    if (v_32d8c3) v_318f24(v_32d8c3);
+    if (v_f8874f) v_fcce73(v_f8874f);
+    if (v_3b9456) v_bdc43c(v_3b9456);
+    if (typeof v_46d803 === "number" && Number.isFinite(v_46d803)) {
+      v_64a312(v_a09cf3(v_46d803));
+    }
+  }, [v_786737]);
 
   const v_686096 = v_df9f57<v_da1883 | null>(() => {
     if (!v_b113dd?.country) return null;
@@ -191,9 +263,34 @@ export default function v_e2b396() {
 
     v_04e389(true);
     try {
+
+      const xrunPatch: v_cc333b = {};
+      if (v_17dc8a.name !== undefined) v_588fa6.firstname = v_17dc8a.name;
+      if (v_17dc8a.phone !== undefined) v_588fa6.mobile = v_17dc8a.phone;
+      if (v_17dc8a.gender !== undefined) {
+        v_588fa6.gender = v_d97109(v_17dc8a.gender ?? "");
+      }
+      if (v_17dc8a.age !== undefined) v_588fa6.age = v_17dc8a.age;
+
+      console.log("[EditProfile] save start — afterlife patch:", JSON.stringify(v_17dc8a), "xrun patch:", JSON.stringify(v_588fa6));
+      if (Object.keys(v_588fa6).length > 0) {
+        try {
+          const v_43c42e = await v_ad7aba(v_2ca7e0, v_588fa6);
+          console.log("[EditProfile] patchXrunProfile ok:", JSON.stringify(v_43c42e));
+          if (v_43c42e.profile) v_9ed797(v_43c42e.profile);
+        } catch (v_49263d) {
+
+          console.warn(
+            "[EditProfile] patchXrunProfile failed:",
+            (v_49263d as Error)?.message ?? v_49263d,
+          );
+        }
+      }
+
       if (Object.keys(v_17dc8a).length > 0) {
         await v_976b89(v_2ca7e0, v_17dc8a);
         v_21f395(v_17dc8a);
+        console.log("[EditProfile] patchMe ok");
       }
       v_889fad(
         v_8d41d7("settings.editProfile.savedTitle", { defaultValue: "저장됨" }),
@@ -218,6 +315,26 @@ export default function v_e2b396() {
       v_04e389(false);
     }
   };
+
+  if (v_6361b5 || (!v_b113dd && !v_786737)) {
+    return (
+      <SafeScrollView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
+        <PageHeader
+          title={v_8d41d7("settings.editProfile.title")}
+          showBackButton
+          onBackPress={() => v_c65f5d.goBack()}
+        />
+        <View style={[v_fd5f43.content, { alignItems: "center", paddingVertical: 60 }]}>
+          <ActivityIndicator color={v_1bfbd0.violet600} />
+          {v_c538e4 ? (
+            <Text style={{ marginTop: 12, color: v_1bfbd0.zinc500, fontSize: 13 }}>
+              {v_c538e4}
+            </Text>
+          ) : null}
+        </View>
+      </SafeScrollView>
+    );
+  }
 
   return (
     <SafeScrollView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>

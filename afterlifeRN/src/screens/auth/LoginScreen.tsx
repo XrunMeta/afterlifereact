@@ -117,8 +117,16 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
     try {
       const v_929b58 = await v_ea1c99();
 
+      console.log(`[AUTH/login] POST /oth-path email=${v_e0c7e8}`);
       const v_5cce2c = await v_ac9e58({ email: v_e0c7e8, password: v_adc076, deviceId: v_929b58 });
+      console.log(
+        `[AUTH/login] response: requiresEmailVerification=${!!v_5cce2c.requiresEmailVerification} ` +
+          (v_5cce2c.requiresEmailVerification
+            ? `email=${v_5cce2c.email} expiresInSec=${v_5cce2c.expiresInSec}`
+            : "token issued"),
+      );
       if (v_5cce2c.requiresEmailVerification) {
+        console.log(`[AUTH/login] OTP sent to ${v_5cce2c.email}. 유저가 이메일 못받으면 서버 wrangler tail 로 UPSTREAM_FAILURE / sendMail 에러 확인 필요.`);
         v_c65f5d.navigate("EmailOtpLogin", {
           email: v_e0c7e8.trim().toLowerCase(),
           autoLogin: v_f53eaa,
@@ -181,10 +189,13 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
     }
     v_9d5a9f(true);
     try {
-      await v_1d5b64(v_9e86fd);
+      console.log(`[AUTH/sendOtp] POST /oth-path email=${v_9e86fd}`);
+      const v_cb35cb = await v_1d5b64(v_9e86fd);
+      console.log(`[AUTH/sendOtp] response: expiresInSec=${v_cb35cb.expiresInSec}. 이메일 못받으면 서버 wrangler tail 로 sendMail/UPSTREAM_FAILURE 확인.`);
 
       v_c65f5d.navigate("EmailOtpLogin", { email: v_9e86fd, autoLogin: v_f53eaa });
     } catch (v_49263d) {
+      console.warn(`[AUTH/sendOtp] failed:`, v_49263d instanceof v_84a859 ? `${v_49263d.code} ${v_49263d.message}` : (v_49263d as Error)?.message);
       const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("common.error");
       v_889fad(v_8d41d7("common.error"), v_badeaf);
     } finally {
