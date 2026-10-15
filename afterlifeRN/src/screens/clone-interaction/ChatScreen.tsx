@@ -66,13 +66,14 @@ const v_4750b0 = [
 ];
 
 export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
-  const { cloneId: v_6e0fd3 } = v_c7daf6.params;
+  const { cloneId: v_6e0fd3, name: v_a4744c, image: v_c1e151 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
   const v_033e14 = v_e0068c();
   const v_5ca6b8 = v_e662ae<v_122070>(null);
 
-  const v_dfb220 = v_eb25ce?.displayName ?? "페르소나";
-  const v_e7274c = v_eb25ce?.imageUrl ?? null;
+  const v_dfb220 = v_a4744c ?? v_eb25ce?.displayName ?? "페르소나";
+  const v_e7274c =
+    (typeof v_c1e151 === "string" && v_c1e151) || v_eb25ce?.imageUrl || null;
 
   const [v_bbda62, v_c31db7] = v_5ab095("");
   const [v_7e4acc, v_de86c2] = v_5ab095(0);
@@ -272,34 +273,54 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           </View>
         )}
 
-        {}
-        {v_20e160.map((v_51c3d2) => (
-          <View key={v_51c3d2.id} style={v_d81136.callBlock}>
-            <View style={v_d81136.callHeader}>
-              <View style={v_d81136.callIconWrap}>
-                <Feather name="phone" size={14} color={v_1bfbd0.white} />
+        {
+
+}
+        {v_20e160.map((v_51c3d2) => {
+          const v_5b069c = v_51c3d2.messages
+            .map((v_35f85c, v_ebec57) => ({ ...v_35f85c, idx: v_ebec57 }))
+            .filter((v_35f85c) => v_35f85c.role === "persona");
+          const v_b72d02 = v_51c3d2.messages
+            .map((v_35f85c, v_ebec57) => ({ ...v_35f85c, idx: v_ebec57 }))
+            .filter((v_35f85c) => v_35f85c.role === "user");
+          return (
+            <View key={v_51c3d2.id} style={v_d81136.callGroup}>
+              <View style={v_d81136.callBlock}>
+                <View style={v_d81136.callHeader}>
+                  <View style={v_d81136.callIconWrap}>
+                    <Feather name="phone" size={14} color={v_1bfbd0.white} />
+                  </View>
+                  <Text style={v_d81136.callDurationText}>{v_51c3d2.duration}</Text>
+                </View>
+                {v_5b069c.map((v_badeaf) => (
+                  <TouchableOpacity
+                    key={`${v_51c3d2.id}-p-${v_badeaf.idx}`}
+                    activeOpacity={0.85}
+                    onLongPress={() => v_0fef43(v_51c3d2.id, v_badeaf.idx)}
+                    delayLongPress={300}
+                    style={v_d81136.callBubbleInner}
+                  >
+                    <Text style={v_d81136.callBubbleText}>{v_badeaf.text}</Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity style={v_d81136.transcriptBtn} hitSlop={6}>
+                  <Text style={v_d81136.transcriptBtnText}>대본 보기</Text>
+                </TouchableOpacity>
               </View>
-              <Text style={v_d81136.callDurationText}>{v_51c3d2.duration}</Text>
+              {v_b72d02.map((v_badeaf) => (
+                <TouchableOpacity
+                  key={`${v_51c3d2.id}-u-${v_badeaf.idx}`}
+                  activeOpacity={0.85}
+                  onLongPress={() => v_0fef43(v_51c3d2.id, v_badeaf.idx)}
+                  delayLongPress={300}
+                  style={v_d81136.userBubble}
+                >
+                  <Text style={v_d81136.userBubbleText}>{v_badeaf.text}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
-            {v_51c3d2.messages.map((v_badeaf, v_e86ad8) => (
-              <TouchableOpacity
-                key={`${v_51c3d2.id}-${v_e86ad8}`}
-                activeOpacity={0.85}
-                onLongPress={() => v_0fef43(v_51c3d2.id, v_e86ad8)}
-                delayLongPress={300}
-                style={[
-                  v_d81136.callBubble,
-                  v_badeaf.role === "user" ? v_d81136.callBubbleRight : v_d81136.callBubbleLeft,
-                ]}
-              >
-                <Text style={v_d81136.callBubbleText}>{v_badeaf.text}</Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity style={v_d81136.transcriptBtn} hitSlop={6}>
-              <Text style={v_d81136.transcriptBtnText}>대본 보기</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
 
       {}
@@ -387,6 +408,13 @@ const v_d81136 = v_472849.create({
     paddingBottom: 14,
   },
   headerIcon: { padding: 4 },
+
+  headerProfileWrap: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
   headerAvatar: {
     width: 36, height: 36, borderRadius: 18, backgroundColor: v_1bfbd0.zinc200,
   },
@@ -439,13 +467,15 @@ const v_d81136 = v_472849.create({
   },
   personaIntroText: { fontSize: 14, color: v_1bfbd0.zinc800, lineHeight: 20 },
 
+  callGroup: { marginBottom: 14 },
+
   callBlock: {
     backgroundColor: v_1bfbd0.violet600,
     borderRadius: 18,
     padding: 14,
-    marginBottom: 14,
     alignSelf: "flex-start",
     maxWidth: "70%",
+    marginBottom: 8,
   },
   callHeader: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
@@ -458,17 +488,25 @@ const v_d81136 = v_472849.create({
   },
   callDurationText: { color: v_1bfbd0.white, fontSize: 13, fontWeight: "600" },
 
-  callBubble: {
+  callBubbleInner: {
     backgroundColor: "rgba(255,255,255,0.15)",
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    maxWidth: "100%",
     marginBottom: 8,
   },
-  callBubbleLeft: { alignSelf: "flex-start" },
-  callBubbleRight: { alignSelf: "flex-end" },
   callBubbleText: { color: v_1bfbd0.white, fontSize: 13, lineHeight: 19 },
+
+  userBubble: {
+    alignSelf: "flex-end",
+    maxWidth: "70%",
+    backgroundColor: v_1bfbd0.violet600,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  userBubbleText: { color: v_1bfbd0.white, fontSize: 13, lineHeight: 19 },
 
   transcriptBtn: {
     alignSelf: "center",

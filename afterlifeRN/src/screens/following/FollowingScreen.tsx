@@ -645,7 +645,11 @@ export default function v_14b43e() {
 
     const v_6629cb = () => {
 
-      v_f4c991.navigate("Chat", { cloneId: v_8c0b26.persona.id });
+      v_f4c991.navigate("Chat", {
+        cloneId: v_8c0b26.persona.id,
+        name: v_8c0b26.persona.name,
+        image: v_8c0b26.persona.avatar,
+      });
     };
     const v_c1d70c = async () => {
 
