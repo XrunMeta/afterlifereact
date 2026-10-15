@@ -21,6 +21,7 @@ import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_8ad91b } from "../../navigation/types";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
+import { v_b4902e } from "../../stores/followStore";
 import { v_84d546 } from "../../lib/callGuard";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
@@ -29,6 +30,10 @@ import {
   v_22ca9b,
   v_40068b,
   v_dd96e7,
+  v_3ce9ef,
+  v_9adabd,
+  v_1c758d,
+  v_9cb700,
   type v_29686e,
   type v_f19942,
   type v_18a302,
@@ -56,37 +61,6 @@ const v_c8c890 = (v_23805a): v_23805a is MissedCallGroup =>
 
 type Props = v_432191<v_8ad91b, "Chat">;
 
-type CallBlock = {
-  id: string;
-  duration: string;
-  messages: Array<{ role: "persona" | "user"; text: string }>;
-};
-
-const v_4750b0 = [
-  {
-    id: "call-1",
-    duration: "음성 통화 2m 31s",
-    messages: [
-      { role: "persona", text: "Yes, and I'll enter it. The." },
-      {
-        role: "user",
-        text: "어느 정도는 안 맞는데, 이 정도면 서비스 가능해요. 대표님이 한번 해봐요.",
-      },
-    ],
-  },
-  {
-    id: "call-2",
-    duration: "음성 통화 32s",
-    messages: [
-      { role: "persona", text: "뭐 하나?" },
-      {
-        role: "user",
-        text: "어... 오빠야? 죽는 줄 알았네... 너무 늦었잖아. 오빠가 그렇게 간다고 하더니 아직도 안 왔어.",
-      },
-    ],
-  },
-];
-
 export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
   const { cloneId: v_6e0fd3, name: v_a4744c, image: v_c1e151 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
@@ -100,11 +74,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_bbda62, v_c31db7] = v_5ab095("");
   const [v_7e4acc, v_de86c2] = v_5ab095(0);
 
-  const [v_20e160, v_955c04] = v_5ab095<CallBlock[]>(v_4750b0);
-
-  const [v_229ff3, v_e4f239] = v_5ab095(true);
-
   const [v_842b8b, v_0f6477] = v_5ab095(true);
+  const [v_f61bef, v_ceec45] = v_5ab095(false);
 
   const [v_fd08c6, v_2c320e] = v_5ab095<{ title?: string; actions: ActionItem[] } | null>(null);
   const v_cafc04 = (v_9f1622, v_dd943a) =>
@@ -177,6 +148,50 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       v_2008a4 = true;
     };
   }, [v_e721a8, v_2ca7e0, v_6e0fd3]);
+
+  v_c4deb2(() => {
+    if (!v_2ca7e0) return;
+    let v_2008a4 = false;
+    (async () => {
+      const v_9c58a3 = await v_3ce9ef(v_6e0fd3, v_2ca7e0);
+      if (!v_2008a4) v_0f6477(!v_9c58a3);
+    })();
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_2ca7e0, v_6e0fd3]);
+
+  v_c4deb2(() => {
+    if (!v_2ca7e0) return;
+    void v_9cb700(v_6e0fd3, v_2ca7e0);
+  }, [v_2ca7e0, v_6e0fd3]);
+
+  const v_00fc5a = (msg: v_f19942) => {
+    v_cafc04("메시지 삭제", [
+      {
+        label: "삭제",
+        destructive: true,
+        onPress: async () => {
+          if (!v_2ca7e0) return;
+
+          v_7f73ef((v_ba2215) =>
+            v_ba2215 ? v_ba2215.filter((v_23805a) => !(v_23805a.type === "chat" && v_23805a.id === v_badeaf.id)) : v_ba2215,
+          );
+          try {
+            await v_1c758d(v_badeaf.id, v_2ca7e0);
+          } catch (v_49263d) {
+            console.warn("[Chat] delete failed:", (v_49263d as Error)?.message ?? v_49263d);
+
+            const v_8f00b9 = await v_22ca9b(v_6e0fd3, v_2ca7e0, { limit: 30 });
+            if (v_8f00b9) {
+              v_7f73ef(v_8f00b9.items);
+              v_94405c(v_8f00b9.nextCursor);
+            }
+          }
+        },
+      },
+    ]);
+  };
 
   const v_747b23 = async () => {
     if (!v_e721a8 || !v_2ca7e0 || !v_a981b7 || v_dec728) return;
@@ -293,6 +308,22 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     });
   };
 
+  const v_4f52b6 = async () => {
+    if (!v_2ca7e0 || v_f61bef) return;
+    const v_5a6226 = !v_842b8b;
+    v_0f6477(v_5a6226);
+    v_ceec45(true);
+    try {
+
+      await v_9adabd(v_6e0fd3, v_2ca7e0, !v_5a6226);
+    } catch (v_49263d) {
+      console.warn("[Chat] mute toggle failed:", (v_49263d as Error)?.message ?? v_49263d);
+      v_0f6477(!v_5a6226); 
+    } finally {
+      v_ceec45(false);
+    }
+  };
+
   const v_98409d = () => {
     v_cafc04(v_dfb220, [
       {
@@ -301,46 +332,20 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       },
       {
         label: v_842b8b ? "알림 끄기" : "알림 켜기",
-        onPress: () => v_0f6477((v_81e2ef) => !v_81e2ef),
+        disabled: v_f61bef,
+        onPress: () => void v_4f52b6(),
       },
       {
         label: "구독 취소",
         destructive: true,
         onPress: () => {
 
-          console.log("[Chat] 구독 취소 (placeholder) cloneId=", v_6e0fd3);
+          const v_b30b81 = v_b4902e.getState().isFollowing(v_6e0fd3);
+          if (v_b30b81) {
+            void v_b4902e.getState().toggleFollow(v_6e0fd3);
+          }
           v_c65f5d.goBack();
         },
-      },
-    ]);
-  };
-
-  const v_0fef43 = (v_be62d3, v_a6063d) => {
-    v_cafc04("메시지 삭제", [
-      {
-        label: "삭제",
-        destructive: true,
-        onPress: () => {
-          v_955c04((v_ba2215) =>
-            v_ba2215
-              .map((v_3f4e2e) =>
-                v_3f4e2e.id === v_be62d3
-                  ? { ...v_3f4e2e, messages: v_3f4e2e.messages.filter((v_37eab7, v_ebec57) => v_ebec57 !== v_a6063d) }
-                  : v_3f4e2e,
-              )
-              .filter((v_3f4e2e) => v_3f4e2e.messages.length > 0),
-          );
-        },
-      },
-    ]);
-  };
-
-  const v_e8c2aa = () => {
-    v_cafc04("메시지 삭제", [
-      {
-        label: "삭제",
-        destructive: true,
-        onPress: () => v_e4f239(false),
       },
     ]);
   };
@@ -454,6 +459,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                   <TouchableOpacity
                     key={`api-chat-${v_23805a.id}`}
                     activeOpacity={0.85}
+                    onLongPress={() => v_00fc5a(v_23805a)}
+                    delayLongPress={350}
                     style={v_23805a.role === "user" ? v_d81136.userBubble : v_d81136.personaOutsideBubble}
                   >
                     <Text
@@ -503,72 +510,19 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           </>
         )}
 
-        {}
-        {!(v_e721a8 && v_2810d7 !== null) && v_229ff3 && (
-          <View style={v_d81136.personaIntroRow}>
-            <Text style={v_d81136.personaIntroName}>{v_dfb220}</Text>
-            <TouchableOpacity
-              activeOpacity={1}
-              onLongPress={v_e8c2aa}
-              delayLongPress={300}
-            >
-              <View style={v_d81136.personaIntroBubble}>
-                <Text style={v_d81136.personaIntroText}>
-                  오늘 하루는 어땠어요? 퇴근길에 비 오던데 조심히 들어와요.
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        )}
-
         {
 
 }
-        {!(v_e721a8 && v_2810d7 !== null) && v_20e160.map((v_51c3d2) => {
-          const v_5b069c = v_51c3d2.messages
-            .map((v_35f85c, v_ebec57) => ({ ...v_35f85c, idx: v_ebec57 }))
-            .filter((v_35f85c) => v_35f85c.role === "persona");
-          const v_b72d02 = v_51c3d2.messages
-            .map((v_35f85c, v_ebec57) => ({ ...v_35f85c, idx: v_ebec57 }))
-            .filter((v_35f85c) => v_35f85c.role === "user");
-          return (
-            <View key={v_51c3d2.id} style={v_d81136.callGroup}>
-              <View style={v_d81136.callBlock}>
-                <View style={v_d81136.callHeader}>
-                  <View style={v_d81136.callIconWrap}>
-                    <Feather name="phone" size={14} color={v_1bfbd0.white} />
-                  </View>
-                  <Text style={v_d81136.callDurationText}>{v_51c3d2.duration}</Text>
-                </View>
-                {v_5b069c.map((v_badeaf) => (
-                  <TouchableOpacity
-                    key={`${v_51c3d2.id}-p-${v_badeaf.idx}`}
-                    activeOpacity={0.85}
-                    onLongPress={() => v_0fef43(v_51c3d2.id, v_badeaf.idx)}
-                    delayLongPress={300}
-                    style={v_d81136.callBubbleInner}
-                  >
-                    <Text style={v_d81136.callBubbleText}>{v_badeaf.text}</Text>
-                  </TouchableOpacity>
-                ))}
-                <TouchableOpacity style={v_d81136.transcriptBtn} hitSlop={6}>
-                  <Text style={v_d81136.transcriptBtnText}>통화 내용보기</Text>
-                </TouchableOpacity>
-              </View>
-              {v_b72d02.map((v_badeaf) => (
-                <TouchableOpacity
-                  key={`${v_51c3d2.id}-u-${v_badeaf.idx}`}
-                  activeOpacity={0.85}
-                  onLongPress={() => v_0fef43(v_51c3d2.id, v_badeaf.idx)}
-                  delayLongPress={300}
-                  style={v_d81136.userBubble}
-                >
-                  <Text style={v_d81136.userBubbleText}>{v_badeaf.text}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          );
-        })}
+        {!v_e721a8 && (
+          <View style={v_d81136.emptyWrap}>
+            <Text style={v_d81136.emptyText}>아직 대화가 없어요.</Text>
+          </View>
+        )}
+        {v_e721a8 && v_2810d7 !== null && v_2810d7.length === 0 && !v_dec728 && (
+          <View style={v_d81136.emptyWrap}>
+            <Text style={v_d81136.emptyText}>아직 대화가 없어요.</Text>
+          </View>
+        )}
       </ScrollView>
 
       {}
@@ -867,6 +821,15 @@ const v_d81136 = v_472849.create({
     color: v_1bfbd0.zinc500,
     fontSize: 12,
     paddingVertical: 8,
+  },
+  emptyWrap: {
+    paddingTop: 60,
+    paddingBottom: 60,
+    alignItems: "center",
+  },
+  emptyText: {
+    color: v_1bfbd0.zinc500,
+    fontSize: 13,
   },
   callEmptyText: {
     color: "rgba(255,255,255,0.85)",

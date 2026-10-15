@@ -58,6 +58,8 @@ export interface ConversationListItem {
   last:
     | { type: "chat" | "call"; role: "user" | "clone" | null; text: string | null; at: number }
     | null;
+
+  unreadCount: number;
 }
 export interface ConversationListResponse {
   items: ConversationListItem[];
@@ -154,5 +156,57 @@ export async function v_40068b(
   } catch (v_49263d) {
     console.warn("[chat.getCallTurns] failed:", (v_49263d as Error)?.message ?? v_49263d);
     return null;
+  }
+}
+
+export async function v_5b6522(
+  v_6e0fd3,
+  v_2ca7e0,
+): Promise<{ muted: boolean }> {
+  return v_04b58a<{ muted: boolean }>(`/oth-path${v_6e0fd3}/mute`, v_2ca7e0);
+}
+export async function v_9adabd(
+  v_6e0fd3,
+  v_2ca7e0,
+  v_9c58a3,
+): Promise<{ muted: boolean }> {
+  return v_04b58a<{ muted: boolean }>(`/oth-path${v_6e0fd3}/mute`, v_2ca7e0, {
+    method: v_9c58a3 ? "POST" : "DELETE",
+  });
+}
+export async function v_3ce9ef(
+  v_6e0fd3,
+  v_2ca7e0,
+): Promise<boolean> {
+  try {
+    const v_8f00b9 = await v_5b6522(v_6e0fd3, v_2ca7e0);
+    return !!v_8f00b9.muted;
+  } catch (v_49263d) {
+    console.warn("[chat.getCloneMute] failed:", (v_49263d as Error)?.message ?? v_49263d);
+    return false;
+  }
+}
+
+export async function v_1c758d(
+  v_7f4466,
+  v_2ca7e0,
+): Promise<void> {
+  await v_04b58a<{ ok: boolean }>(`/oth-path${v_7f4466}`, v_2ca7e0, {
+    method: "DELETE",
+  });
+}
+
+export async function v_9cb700(
+  v_6e0fd3,
+  v_2ca7e0,
+): Promise<void> {
+  try {
+    await v_04b58a<{ ok: boolean }>(
+      `/oth-path${v_6e0fd3}/mark-read`,
+      v_2ca7e0,
+      { method: "POST" },
+    );
+  } catch (v_49263d) {
+    console.warn("[chat.markConversationRead] failed:", (v_49263d as Error)?.message ?? v_49263d);
   }
 }
