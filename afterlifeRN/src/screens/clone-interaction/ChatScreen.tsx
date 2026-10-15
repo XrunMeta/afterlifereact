@@ -13,6 +13,7 @@ import {
   v_09d0e5,
   v_326be8,
   v_0e1f26,
+  v_e767d1,
   type v_5b67a3,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
@@ -245,11 +246,16 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     const v_399925 = v_326be8.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
     const v_206f77 = v_326be8.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
     const v_53f5d7 = v_0e1f26.addListener(v_399925, (e: v_5b67a3) => {
-      v_de86c2(v_9e86fd.endCoordinates?.height ?? 0);
+      const v_65a2cd = v_9e86fd.endCoordinates?.height ?? 0;
+      console.log("[Chat] keyboardShow height=", v_65a2cd, "evt=", v_399925);
+      v_de86c2(v_65a2cd);
 
       setTimeout(() => v_5ca6b8.current?.scrollToEnd({ animated: true }), 50);
     });
-    const v_52528b = v_0e1f26.addListener(v_206f77, () => v_de86c2(0));
+    const v_52528b = v_0e1f26.addListener(v_206f77, () => {
+      console.log("[Chat] keyboardHide");
+      v_de86c2(0);
+    });
     return () => {
       v_53f5d7.remove();
       v_52528b.remove();
@@ -395,11 +401,16 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
      visible={true}
      transparent={false}
      animationType="none"
-     statusBarTranslucent={false}
+     statusBarTranslucent={true}
      onRequestClose={() => v_c65f5d.goBack()}
    >
     {
+
 }
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={v_326be8.OS === "ios" ? "padding" : "height"}
+    >
     <View style={[v_d81136.root, { paddingTop: v_033e14.top, paddingBottom: v_7e4acc }]}>
       {}
       <View style={v_d81136.header}>
@@ -714,6 +725,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         </Pressable>
       </Modal>
     </View>
+    </KeyboardAvoidingView>
     </Modal>
   );
 }
