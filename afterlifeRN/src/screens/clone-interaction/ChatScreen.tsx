@@ -391,8 +391,9 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   return (
     <KeyboardAvoidingView
       style={[v_d81136.root, { paddingTop: v_033e14.top }]}
-      behavior={v_326be8.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={0}
+
+      behavior={v_326be8.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={v_033e14.top}
     >
       {}
       <View style={v_d81136.header}>
