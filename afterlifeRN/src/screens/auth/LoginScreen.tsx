@@ -38,6 +38,7 @@ import {
   v_182fdb as v_ac9e58,
 } from "../../api/auth";
 import { v_ea1c99 } from "../../lib/deviceId";
+import { v_e41029 } from "../../lib/appsFlyer";
 import { v_4eac84, v_8d3720 } from "tdbilgxptaometuphydosyywsglhnlfgkfkzstthk";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_688424 } from "../../stores/authConfigStore";
@@ -134,6 +135,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
         persist: v_f53eaa,
         refreshToken: v_5cce2c.refreshToken ?? null,
       });
+      v_e41029("email");
       console.log(
         `[AUTH/login] user: ${v_9ec4c0.user.email} autoLogin=${v_f53eaa ? "ON" : "OFF"}`,
       );
@@ -231,6 +233,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
             persist: v_f53eaa,
             refreshToken: v_8f00b9.refreshToken ?? null,
           });
+          v_e41029("google");
           if (v_f53eaa) {
             await v_e84827.setItem(v_101856, "1");
             await v_e84827.setItem(v_6a7868, v_9ec4c0.user.email);
@@ -291,6 +294,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           persist: v_f53eaa,
           refreshToken: v_8f00b9.refreshToken ?? null,
         });
+        v_e41029("apple");
         if (v_f53eaa) {
           await v_e84827.setItem(v_101856, "1");
           await v_e84827.setItem(v_6a7868, v_9ec4c0.user.email);
