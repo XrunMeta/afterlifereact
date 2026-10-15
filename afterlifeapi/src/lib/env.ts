@@ -52,6 +52,8 @@ export interface Bindings {
   ORCHESTRATOR_URL: string;        
   ORCH_SECRET: string;             
 
+  CONVERSATION_INCLUDE_CHAT?: string;
+
   LEARN_SECRET?: string;     
   LEARN_FROM_CHAT?: string;  
 
