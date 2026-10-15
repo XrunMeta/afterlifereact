@@ -1,6 +1,7 @@
 
 
 import { v_b7c41b } from "zmui";
+import { v_2fa0c9 } from "../lib/conversationMemory";
 import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_6690d9 } from "../middleware/auth";
@@ -174,16 +175,22 @@ v_20e160.post("/:cloneId/call/:callId/say", v_6690d9, async (v_3f4e2e) => {
 
   if (v_9b6134.length > 2000) return v_3f4e2e.json({ error: "text_too_long" }, 400);
   const v_d7296e = await v_3f4e2e.env.DB.prepare(
-    "SELECT user_id FROM call_sessions WHERE call_id = ? AND ended_at IS NULL"
-  ).bind(v_be62d3).first<{ user_id: number }>();
+    "SELECT user_id, clone_id FROM call_sessions WHERE call_id = ? AND ended_at IS NULL"
+  ).bind(v_be62d3).first<{ user_id: number; clone_id: number }>();
   if (!v_d7296e) return v_3f4e2e.json({ error: "call_not_found" }, 404);
   if (v_d7296e.user_id !== v_43e90c) return v_3f4e2e.json({ error: "not_call_owner" }, 403);
 
-  await v_3f4e2e.env.DB.prepare(
-    `INSERT INTO call_turns (call_id, seq, role, text, created_at)
-     SELECT ?, COALESCE(MAX(seq),0)+1, 'user', ?, ?
-     FROM call_turns WHERE call_id = ?`
-  ).bind(v_be62d3, v_9b6134, Date.now(), v_be62d3).run();
+  const v_5885b8 = await v_2fa0c9(
+    v_3f4e2e.env, { userId: v_d7296e.user_id, cloneId: v_d7296e.clone_id, callId: v_be62d3, role: "user" }, v_9b6134,
+  );
+
+  if (v_5885b8 !== null) {
+    await v_3f4e2e.env.DB.prepare(
+      `INSERT INTO call_turns (call_id, seq, role, text, created_at)
+       SELECT ?, COALESCE(MAX(seq),0)+1, 'user', ?, ?
+       FROM call_turns WHERE call_id = ?`
+    ).bind(v_be62d3, v_5885b8, Date.now(), v_be62d3).run();
+  }
   const v_cb35cb = await fetch(`${v_3f4e2e.env.ORCHESTRATOR_URL}/oth-path${v_be62d3}/say`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${v_3f4e2e.env.ORCH_SECRET}` },

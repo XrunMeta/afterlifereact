@@ -7,6 +7,12 @@ const v_cfcd6e = "8874758";
 const v_9f718b = "983489678"; 
 const v_c7628e = "983489670";     
 
+const v_9f4c5f = "983741015";
+const v_a4a845 = "983741036";
+export function v_60086b(): string {
+  return v_326be8.OS === "ios" ? v_a4a845 : v_9f4c5f;
+}
+
 type PangleModuleType = {
   initialize(): Promise<boolean>;
   isReady(): Promise<boolean>;
@@ -36,7 +42,7 @@ export function v_36f8a3(): boolean {
   const v_8b5cd8 = process.env.EXPO_PUBLIC_AD_STUB;
   if (v_8b5cd8 === "1") return true;
   if (v_8b5cd8 === "0") return false;
-  return typeof __DEV__ !== "undefined" && __DEV__ === true;
+  return false;
 }
 
 function v_9fd782(): number {

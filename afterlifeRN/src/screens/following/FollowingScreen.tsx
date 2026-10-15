@@ -56,6 +56,8 @@ import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_4b85a1, v_bc3df4 } from "../../types/domain";
 import v_5778ce from "../../components/common/HashtagText";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
+import v_fb73af from "../../components/ads/PangleBannerAd";
+import { v_60086b } from "../../lib/pangle";
 
 type RootNav = v_390fcc<v_8ad91b>;
 const { width: v_437248 } = v_700696.get("window");
@@ -281,6 +283,8 @@ export default function v_14b43e() {
 
   const [v_69ddfb, v_09b78b] = v_5ab095(v_8d41d7("feed.categoryAll"));
 
+  const [v_9e799c, v_d69724] = v_5ab095("");
+
   const [v_c591dc, v_6f4b5a] = v_5ab095<Set<number>>(new Set());
 
   const [v_211631, v_40f767] = v_5ab095<Map<number, { likes: number; comments: number }>>(
@@ -413,6 +417,27 @@ export default function v_14b43e() {
         Boolean(v_62c214),
       );
   }, [v_632473, v_69ddfb, v_a48e44]);
+
+  const v_066fa2 = v_df9f57(() => {
+    const v_ab6401 = v_9e799c.trim().toLowerCase();
+    const v_ef8ab1 = v_a48e44
+      .filter((v_e2a85c) =>
+        !v_ab6401
+          ? true
+          : v_e2a85c.name.toLowerCase().includes(v_ab6401) ||
+            v_e2a85c.creatorAccount.toLowerCase().includes(v_ab6401),
+      )
+      .map((v_5ed063) => {
+        const v_2db2a5 = v_632473.find((v_8b5cd8) => v_8b5cd8.cloneId === v_5ed063.id);
+        return { persona: v_5ed063, feed: v_2db2a5 ?? null };
+      });
+    v_ef8ab1.sort((v_779914, v_148ff6) => {
+      const v_d202ca = v_779914.feed?.createdAt ? new Date(v_779914.feed.createdAt).getTime() : 0;
+      const v_afbf1c = v_148ff6.feed?.createdAt ? new Date(v_148ff6.feed.createdAt).getTime() : 0;
+      return v_afbf1c - v_d202ca;
+    });
+    return v_ef8ab1;
+  }, [v_a48e44, v_632473, v_9e799c]);
 
   const v_94f30e = v_df9f57(() => {
     if (!v_2116d2.trim()) return v_a48e44;
@@ -584,6 +609,80 @@ export default function v_14b43e() {
     );
   };
 
+  const v_4a5736 = ({ item: v_8c0b26, index: v_a56041 }: { item: (typeof v_066fa2)[0]; index: number }) => {
+    const v_1833e7 = v_8c0b26.persona.name;
+    const v_4d4e6b = v_1833e7.charAt(0) || "?";
+
+    const v_a04efe = v_a56041 % 2 === 0;
+
+    const v_a78249 = v_a56041 === 0 ? 2 : v_a56041 === 2 ? 1 : 0;
+
+    const v_0be5f7 = v_a56041 === 1 ? "영상통화 3분 12초" : "오늘 하루는 어땠어요? 퇴근길…";
+    const v_cf0109 =
+      (v_8c0b26.feed?.content ?? "").trim() || v_0be5f7;
+
+    const v_eda849 = ["오전 11:56", "오전 10:52", "10월 12일", "어제"];
+    const v_375a17 = v_8c0b26.feed?.createdAt
+      ? v_bfd883(v_8c0b26.feed.createdAt)
+      : v_eda849[v_a56041 % v_eda849.length];
+
+    const v_6629cb = () => {
+      void v_7cf37a(v_8c0b26.persona.id, v_8c0b26.feed?.id);
+    };
+    const v_c1d70c = async () => {
+
+      const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {});
+      if (!v_3ed4c3) return;
+      v_f4c991.navigate("Call", {
+        cloneId: v_8c0b26.persona.id,
+        name: v_8c0b26.persona.name,
+        image: v_8c0b26.persona.avatar,
+      });
+    };
+
+    return (
+      <TouchableOpacity style={v_fd5f43.msgRow} activeOpacity={0.7} onPress={v_6629cb}>
+        {}
+        <View style={v_fd5f43.msgAvatarWrap}>
+          {v_8c0b26.persona.avatar ? (
+            <Image source={{ uri: v_8c0b26.persona.avatar }} style={v_fd5f43.msgAvatar} />
+          ) : (
+            <View style={[v_fd5f43.msgAvatar, v_fd5f43.msgAvatarFallback]}>
+              <Text style={v_fd5f43.msgAvatarInitial}>{v_4d4e6b}</Text>
+            </View>
+          )}
+          {v_a04efe && <View style={v_fd5f43.msgOnlineDot} />}
+        </View>
+
+        {}
+        <View style={v_fd5f43.msgBody}>
+          <Text style={v_fd5f43.msgName} numberOfLines={1}>{v_1833e7}</Text>
+          <Text style={v_fd5f43.msgSub} numberOfLines={1}>{v_cf0109}</Text>
+        </View>
+
+        {}
+        <View style={v_fd5f43.msgRight}>
+          <Text style={v_fd5f43.msgTime} numberOfLines={1}>{v_375a17}</Text>
+          <View style={v_fd5f43.msgRightBottomRow}>
+            {v_a78249 > 0 ? (
+              <View style={v_fd5f43.msgUnreadBadge}>
+                <Text style={v_fd5f43.msgUnreadText}>{v_a78249}</Text>
+              </View>
+            ) : null}
+            <TouchableOpacity
+              style={v_fd5f43.msgCallBtn}
+              onPress={v_c1d70c}
+              hitSlop={8}
+              accessibilityLabel="video-call"
+            >
+              <Feather name="video" size={16} color={v_1bfbd0.white} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   const v_bdaeb6 = ({ item: v_8c0b26 }: { item: (typeof v_b94d82)[0] }) => {
     const v_afeceb = v_8c0b26.feed.mediaUrl ?? v_8c0b26.persona.avatar;
     return (
@@ -685,42 +784,69 @@ export default function v_14b43e() {
   };
 
   return (
-    <SafeView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
+    <SafeView backgroundColor={v_1bfbd0.violet100} showBottomBackground={false}>
       <PageHeader
-        title="Subscribe"
+        title="Message"
         rightAction={<NotificationBell />}
       />
 
-      {}
-
-      {}
+      {
+}
       <FlatList
-        data={v_b94d82}
-        keyExtractor={(v_8c0b26) => String(v_8c0b26.feed.id)}
-        renderItem={v_bdaeb6}
-        contentContainerStyle={v_fd5f43.feed}
+        data={v_066fa2}
+        keyExtractor={(v_8c0b26) => String(v_8c0b26.persona.id)}
+        renderItem={v_4a5736}
+        contentContainerStyle={v_fd5f43.msgListContent}
         showsVerticalScrollIndicator={false}
         onScroll={v_023642}
         scrollEventThrottle={16}
+        ListHeaderComponent={
+          <View>
+            {}
+            <View style={v_fd5f43.subSearchBar}>
+              <Feather name="search" size={18} color={v_1bfbd0.zinc500} />
+              <TextInput
+                style={v_fd5f43.subSearchInput}
+                value={v_9e799c}
+                onChangeText={v_d69724}
+                placeholder="Kins, 대화 내용 검색"
+                placeholderTextColor={v_1bfbd0.zinc400}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+              />
+              {v_9e799c.length > 0 && (
+                <TouchableOpacity onPress={() => v_d69724("")} hitSlop={8}>
+                  <Feather name="x-circle" size={18} color={v_1bfbd0.zinc400} />
+                </TouchableOpacity>
+              )}
+            </View>
+            {
+}
+            <PangleBannerAd adUnitId={v_60086b()} style={v_fd5f43.subAdBanner} />
+            {}
+            <View style={v_fd5f43.subSectionHeader}>
+              <Text style={v_fd5f43.subSectionCount}>
+                Kins {v_a48e44.length} / 최대 50
+              </Text>
+              <TouchableOpacity hitSlop={8}>
+                <Text style={v_fd5f43.subSectionSort}>최근 대화순 <Feather name="chevron-down" size={12} color={v_1bfbd0.zinc600} /></Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        }
         ListEmptyComponent={
           <View style={v_fd5f43.emptyWrap}>
-            <Feather name="users" size={48} color={v_1bfbd0.zinc300} />
+            <Feather name="message-circle" size={48} color={v_1bfbd0.zinc300} />
             <Text style={v_fd5f43.emptyTitle}>{v_8d41d7("feed.followingEmpty")}</Text>
             <Text style={v_fd5f43.emptyDesc}>{v_8d41d7("feed.followingEmptyHint")}</Text>
           </View>
         }
       />
 
-      {}
-      <Animated.View style={[v_fd5f43.floatingCallBtn, { transform: [{ translateY: v_e541d8 }] }]}>
-        <TouchableOpacity
-          style={v_fd5f43.floatingCallBtnInner}
-          activeOpacity={0.8}
-          onPress={() => { v_83f9d3(""); v_22a5cb(true); }}
-        >
-          <Feather name="phone" size={24} color={v_1bfbd0.white} />
-        </TouchableOpacity>
-      </Animated.View>
+      {
+
+}
 
       {}
       <Modal visible={!!v_821fc1} transparent animationType="slide">
@@ -1034,6 +1160,91 @@ const v_fd5f43 = v_472849.create({
 
   feed: { padding: 16, gap: 16 },
   postWrap: { marginBottom: 8 },
+
+  msgListContent: {
+    paddingHorizontal: 16,
+
+    paddingBottom: 0,
+    backgroundColor: v_1bfbd0.violet100,
+  },
+  subSearchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    height: 44,
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 22,
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  subSearchInput: {
+    flex: 1, fontSize: 14, color: v_1bfbd0.zinc900, padding: 0,
+  },
+  subAdBanner: {
+    height: 60,
+    backgroundColor: v_1bfbd0.violet600,
+    borderRadius: 14,
+    paddingHorizontal: 20,
+    justifyContent: "center",
+    marginBottom: 14,
+  },
+  subAdBannerText: { color: v_1bfbd0.white, fontSize: 15, fontWeight: "600" },
+  subSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 4,
+    marginBottom: 10,
+  },
+  subSectionCount: { fontSize: 13, color: v_1bfbd0.zinc700, fontWeight: "500" },
+  subSectionSort: { fontSize: 13, color: v_1bfbd0.zinc600 },
+
+  msgRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 10,
+  },
+  msgAvatarWrap: { width: 48, height: 48, position: "relative" },
+  msgAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: v_1bfbd0.zinc200 },
+  msgAvatarFallback: {
+    backgroundColor: v_1bfbd0.violet200,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  msgAvatarInitial: { fontSize: 20, fontWeight: "700", color: v_1bfbd0.violet700 },
+
+  msgOnlineDot: {
+    position: "absolute",
+    right: 0, bottom: 0,
+    width: 12, height: 12, borderRadius: 6,
+    backgroundColor: "#22c55e",
+    borderWidth: 2, borderColor: v_1bfbd0.white,
+  },
+  msgBody: { flex: 1, minWidth: 0 },
+  msgName: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900, marginBottom: 3 },
+  msgSub: { fontSize: 13, color: v_1bfbd0.zinc500 },
+  msgRight: { alignItems: "flex-end", gap: 6 },
+  msgTime: { fontSize: 12, color: v_1bfbd0.zinc400 },
+  msgRightBottomRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+
+  msgUnreadBadge: {
+    minWidth: 20, height: 20, borderRadius: 10,
+    backgroundColor: v_1bfbd0.rose500,
+    alignItems: "center", justifyContent: "center",
+    paddingHorizontal: 6,
+  },
+  msgUnreadText: { fontSize: 11, fontWeight: "700", color: v_1bfbd0.white },
+  msgCallBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: v_1bfbd0.violet600,
+    alignItems: "center", justifyContent: "center",
+  },
 
   imageWrap: { borderRadius: 24, overflow: "hidden", backgroundColor: v_1bfbd0.zinc100 },
   postImage: { width: "100%", aspectRatio: 3 / 4 },
