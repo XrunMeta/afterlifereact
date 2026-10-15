@@ -1254,6 +1254,7 @@ const v_fd5f43 = v_472849.create({
     paddingTop: 12,
     paddingHorizontal: 20,
     paddingBottom: 24,
+    minHeight: 300,
   },
   sortSheetHandle: {
     width: 40, height: 4, borderRadius: 2,
