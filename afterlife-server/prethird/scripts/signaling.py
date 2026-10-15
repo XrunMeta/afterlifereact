@@ -1741,5 +1741,8 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     register_knowledge_interpret_routes(app)
     from knowledge_followup_endpoint import register_knowledge_followup_routes
     register_knowledge_followup_routes(app)
+    # AFL-1018 앱 채팅 답장 — Worker 전용. PRETHIRD_CHAT_SECRET 미설정이면 503(닫힘).
+    from chat_reply_endpoint import register_chat_reply_routes
+    register_chat_reply_routes(app)
 
     return app

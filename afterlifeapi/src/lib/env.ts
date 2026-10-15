@@ -54,6 +54,10 @@ export interface Bindings {
 
   CONVERSATION_INCLUDE_CHAT?: string;
 
+  CHAT_REPLY_SOURCE?: string;
+  CHAT_REPLY_SECRET?: string;   
+  CHAT_DAILY_LIMIT?: string;    
+
   LEARN_SECRET?: string;     
   LEARN_FROM_CHAT?: string;  
 
