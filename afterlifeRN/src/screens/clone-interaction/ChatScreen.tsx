@@ -304,7 +304,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                   </TouchableOpacity>
                 ))}
                 <TouchableOpacity style={v_d81136.transcriptBtn} hitSlop={6}>
-                  <Text style={v_d81136.transcriptBtnText}>대본 보기</Text>
+                  <Text style={v_d81136.transcriptBtnText}>통화 내용보기</Text>
                 </TouchableOpacity>
               </View>
               {v_b72d02.map((v_badeaf) => (
