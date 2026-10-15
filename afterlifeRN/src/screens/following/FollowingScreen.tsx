@@ -843,16 +843,9 @@ export default function v_14b43e() {
         }
       />
 
-      {}
-      <Animated.View style={[v_fd5f43.floatingCallBtn, { transform: [{ translateY: v_e541d8 }] }]}>
-        <TouchableOpacity
-          style={v_fd5f43.floatingCallBtnInner}
-          activeOpacity={0.8}
-          onPress={() => { v_83f9d3(""); v_22a5cb(true); }}
-        >
-          <Feather name="phone" size={24} color={v_1bfbd0.white} />
-        </TouchableOpacity>
-      </Animated.View>
+      {
+
+}
 
       {}
       <Modal visible={!!v_821fc1} transparent animationType="slide">
