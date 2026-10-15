@@ -153,16 +153,6 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     };
   }, [v_e721a8, v_2ca7e0, v_6e0fd3]);
 
-  const v_d50b65 = v_e662ae(false);
-  v_c4deb2(() => {
-    if (v_d50b65.current) return;
-    if (!v_e721a8) return;
-    if (v_2810d7 === null || v_2810d7.length === 0) return;
-    v_d50b65.current = true;
-    const v_8d41d7 = setTimeout(() => v_5ca6b8.current?.scrollToEnd({ animated: false }), 80);
-    return () => clearTimeout(v_8d41d7);
-  }, [v_e721a8, v_2810d7]);
-
   v_c4deb2(() => {
     if (!v_2ca7e0) return;
     let v_2008a4 = false;
@@ -399,11 +389,11 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     v_c65f5d.navigate("CloneFeed", { cloneId: v_6e0fd3 });
   };
 
+  const v_53dd92 = 10;
+
   const v_f9771e = v_c18c22(0);
   const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
   const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
-
-  const v_53dd92 = 10;
 
   return (
 
@@ -411,7 +401,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
      visible={true}
      transparent={false}
      animationType="none"
-     statusBarTranslucent
+     statusBarTranslucent={true}
      onRequestClose={() => v_c65f5d.goBack()}
    >
     {
@@ -534,31 +524,22 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                 return (
                   <React.Fragment key={`api-chat-${v_23805a.id}`}>
                     {v_6583df}
-                    {
-}
-                    <View style={[
-                      v_d81136.bubbleRow,
-                      { justifyContent: v_23805a.role === "user" ? "flex-end" : "flex-start" },
-                    ]}>
-                      <TouchableOpacity
-                        activeOpacity={0.85}
-                        onLongPress={() => v_00fc5a(v_23805a)}
-                        delayLongPress={350}
-                        style={v_23805a.role === "user" ? v_d81136.userBubble : v_d81136.personaOutsideBubble}
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onLongPress={() => v_00fc5a(v_23805a)}
+                      delayLongPress={350}
+                      style={v_23805a.role === "user" ? v_d81136.userBubble : v_d81136.personaOutsideBubble}
+                    >
+                      <Text
+                        style={
+                          v_23805a.role === "user"
+                            ? v_d81136.userBubbleText
+                            : v_d81136.personaOutsideBubbleText
+                        }
                       >
-                        <Text
-                          style={
-                            v_23805a.role === "user"
-                              ? v_d81136.userBubbleText
-                              : v_d81136.personaOutsideBubbleText
-                          }
-
-                          textBreakStrategy="simple"
-                        >
-                          {v_23805a.content}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
+                        {v_23805a.content}
+                      </Text>
+                    </TouchableOpacity>
                   </React.Fragment>
                 );
               }
@@ -619,7 +600,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
       {
 }
-      <View style={[v_d81136.inputBar, { paddingBottom: v_53dd92 }]}>
+      <View style={[v_d81136.inputBar, { paddingBottom: v_53dd92 || 10 }]}>
         <TextInput
           style={v_d81136.inputField}
           value={v_bbda62}
@@ -633,7 +614,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           blurOnSubmit
 
           onFocus={() => {
-            requestAnimationFrame(() => v_5ca6b8.current?.scrollToEnd({ animated: true }));
+            setTimeout(() => v_5ca6b8.current?.scrollToEnd({ animated: true }), 100);
           }}
         />
         <TouchableOpacity
@@ -720,8 +701,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                   <View
                     style={
                       v_8d41d7.role === "user"
-                        ? [v_d81136.userBubble, { maxWidth: "80%" }]
-                        : [v_d81136.personaOutsideBubble, { maxWidth: "80%" }]
+                        ? [v_d81136.userBubble, { width: "80%" }]
+                        : [v_d81136.personaOutsideBubble, { width: "80%" }]
                     }
                   >
                     <Text
@@ -907,48 +888,27 @@ const v_d81136 = v_472849.create({
   },
   callBubbleText: { color: v_1bfbd0.white, fontSize: 13, lineHeight: 19 },
 
-  bubbleRow: {
-    width: "100%",
-    flexDirection: "row",
-    alignItems: "flex-start",
+  userBubble: {
+    alignSelf: "flex-end",
+    width: "70%",
+    backgroundColor: v_1bfbd0.violet600,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     marginBottom: 8,
   },
-
-  userBubble: {
-    flexShrink: 1,
-    maxWidth: "70%",
-    backgroundColor: v_1bfbd0.violet600,
-    borderRadius: 18,
-    paddingLeft: 14,
-    paddingRight: 14,
-    paddingVertical: 10,
-  },
-  userBubbleText: {
-    color: v_1bfbd0.white,
-    fontSize: 13,
-    lineHeight: 19,
-    flexShrink: 1,
-    textAlign: "left",
-    includeFontPadding: false,
-  },
+  userBubbleText: { color: v_1bfbd0.white, fontSize: 13, lineHeight: 19 },
 
   personaOutsideBubble: {
-    flexShrink: 1,
-    maxWidth: "70%",
+    alignSelf: "flex-start",
+    width: "70%",
     backgroundColor: v_1bfbd0.white,
-    borderRadius: 18,
-    paddingLeft: 14,
-    paddingRight: 14,
+    borderRadius: 14,
+    paddingHorizontal: 12,
     paddingVertical: 10,
+    marginBottom: 8,
   },
-  personaOutsideBubbleText: {
-    color: v_1bfbd0.zinc800,
-    fontSize: 13,
-    lineHeight: 19,
-    flexShrink: 1,
-    textAlign: "left",
-    includeFontPadding: false,
-  },
+  personaOutsideBubbleText: { color: v_1bfbd0.zinc800, fontSize: 13, lineHeight: 19 },
 
   typingBubble: {
     width: undefined,
