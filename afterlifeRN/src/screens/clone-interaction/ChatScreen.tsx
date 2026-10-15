@@ -473,69 +473,86 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             {v_dec728 && (
               <Text style={v_d81136.loadingText}>이전 메시지 불러오는 중…</Text>
             )}
-            {v_907715.map((v_23805a) => {
+            {v_907715.map((v_23805a, v_e86ad8) => {
+
+              const v_ba2215 = v_e86ad8 > 0 ? v_907715[v_e86ad8 - 1] : null;
+              const v_db51a9 = v_65604f(v_23805a);
+              const v_57e6ee = !v_ba2215 || !v_2f64a9(v_65604f(v_ba2215), v_db51a9);
+              const v_6583df = v_57e6ee ? (
+                <View key={`date-${v_db51a9}`} style={v_d81136.dateDividerWrap}>
+                  <Text style={v_d81136.dateDividerText}>{v_873982(v_db51a9)}</Text>
+                </View>
+              ) : null;
               if (v_c8c890(v_23805a)) {
                 return (
-                  <View key={`missed-group-${v_23805a.firstId}`} style={v_d81136.callBlock}>
-                    <View style={v_d81136.callHeader}>
-                      <View style={v_d81136.callIconWrap}>
-                        <Feather name="phone-missed" size={14} color={v_1bfbd0.white} />
+                  <React.Fragment key={`missed-group-${v_23805a.firstId}`}>
+                    {v_6583df}
+                    <View style={v_d81136.callBlock}>
+                      <View style={v_d81136.callHeader}>
+                        <View style={v_d81136.callIconWrap}>
+                          <Feather name="phone-missed" size={14} color={v_1bfbd0.white} />
+                        </View>
+                        <Text style={v_d81136.callDurationText}>
+                          부재중 통화 {v_23805a.count}건 · {v_c1c940(v_23805a.latestAt)}
+                        </Text>
                       </View>
-                      <Text style={v_d81136.callDurationText}>
-                        부재중 통화 {v_23805a.count}건 · {v_c1c940(v_23805a.latestAt)}
-                      </Text>
                     </View>
-                  </View>
+                  </React.Fragment>
                 );
               }
               if (v_23805a.type === "chat") {
                 return (
-                  <TouchableOpacity
-                    key={`api-chat-${v_23805a.id}`}
-                    activeOpacity={0.85}
-                    onLongPress={() => v_00fc5a(v_23805a)}
-                    delayLongPress={350}
-                    style={v_23805a.role === "user" ? v_d81136.userBubble : v_d81136.personaOutsideBubble}
-                  >
-                    <Text
-                      style={
-                        v_23805a.role === "user"
-                          ? v_d81136.userBubbleText
-                          : v_d81136.personaOutsideBubbleText
-                      }
+                  <React.Fragment key={`api-chat-${v_23805a.id}`}>
+                    {v_6583df}
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onLongPress={() => v_00fc5a(v_23805a)}
+                      delayLongPress={350}
+                      style={v_23805a.role === "user" ? v_d81136.userBubble : v_d81136.personaOutsideBubble}
                     >
-                      {v_23805a.content}
-                    </Text>
-                  </TouchableOpacity>
+                      <Text
+                        style={
+                          v_23805a.role === "user"
+                            ? v_d81136.userBubbleText
+                            : v_d81136.personaOutsideBubbleText
+                        }
+                      >
+                        {v_23805a.content}
+                      </Text>
+                    </TouchableOpacity>
+                  </React.Fragment>
                 );
               }
 
               return (
-                <View key={`api-call-${v_23805a.callId}`} style={v_d81136.callBlock}>
-                  <View style={v_d81136.callHeader}>
-                    <View style={v_d81136.callIconWrap}>
-                      <Feather
-                        name={v_23805a.turnCount > 0 ? "phone" : "phone-missed"}
-                        size={14}
-                        color={v_1bfbd0.white}
-                      />
+                <React.Fragment key={`api-call-${v_23805a.callId}`}>
+                  {v_6583df}
+                  <View style={v_d81136.callBlock}>
+                    <View style={v_d81136.callHeader}>
+                      <View style={v_d81136.callIconWrap}>
+                        <Feather
+                          name={v_23805a.turnCount > 0 ? "phone" : "phone-missed"}
+                          size={14}
+                          color={v_1bfbd0.white}
+                        />
+                      </View>
+                      <Text style={v_d81136.callDurationText}>
+                        {v_f5aeb2(v_23805a)}
+                      </Text>
                     </View>
-                    <Text style={v_d81136.callDurationText}>
-                      {v_f5aeb2(v_23805a)}
-                    </Text>
+                    {v_23805a.turnCount > 0 ? (
+                      <TouchableOpacity
+                        style={v_d81136.transcriptBtn}
+                        hitSlop={6}
+                        onPress={() => v_bbd0f3(v_23805a.callId)}
+                      >
+                        <Text style={v_d81136.transcriptBtnText}>통화 내용보기</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <Text style={v_d81136.callEmptyText}>부재중 통화</Text>
+                    )}
                   </View>
-                  {v_23805a.turnCount > 0 ? (
-                    <TouchableOpacity
-                      style={v_d81136.transcriptBtn}
-                      hitSlop={6}
-                      onPress={() => v_bbd0f3(v_23805a.callId)}
-                    >
-                      <Text style={v_d81136.transcriptBtnText}>통화 내용보기</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <Text style={v_d81136.callEmptyText}>부재중 통화</Text>
-                  )}
-                </View>
+                </React.Fragment>
               );
             })}
             {v_5e23ec && (
@@ -693,19 +710,40 @@ function v_c1c940(v_d799e2): string {
 
 function v_f5aeb2(it: v_18a302): string {
   const v_d5dda0 = new Date(v_23805a.startedAt);
-  const v_f8e6b9 = `${v_d5dda0.getMonth() + 1}월 ${v_d5dda0.getDate()}일 ${v_d5dda0
-    .getHours()
+  const v_df8a54 = `${v_d5dda0.getHours().toString().padStart(2, "0")}:${v_d5dda0
+    .getMinutes()
     .toString()
-    .padStart(2, "0")}:${v_d5dda0.getMinutes().toString().padStart(2, "0")}`;
+    .padStart(2, "0")}`;
   if (v_23805a.durationSec && v_23805a.durationSec > 0) {
-
     const v_b3dc28 = Math.floor(v_23805a.durationSec);
     const v_35f85c = Math.floor(v_b3dc28 / 60);
     const v_fd5f43 = v_b3dc28 % 60;
     const v_7dc4bb = v_35f85c > 0 ? `${v_35f85c}분 ${v_fd5f43}초` : `${v_fd5f43}초`;
-    return `음성 통화 · ${v_7dc4bb} · ${v_f8e6b9}`;
+    return `음성 통화 · ${v_7dc4bb} · ${v_df8a54}`;
   }
-  return `음성 통화 · ${v_f8e6b9}`;
+  return `음성 통화 · ${v_df8a54}`;
+}
+
+const v_c3f248 = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
+function v_873982(v_d799e2): string {
+  const v_d5dda0 = new Date(v_d799e2);
+  return `${v_d5dda0.getFullYear()}년 ${v_d5dda0.getMonth() + 1}월 ${v_d5dda0.getDate()}일 ${v_c3f248[v_d5dda0.getDay()]}`;
+}
+
+function v_65604f(v_23805a): number {
+  if (v_c8c890(v_23805a)) return v_23805a.oldestAt;
+  if (v_23805a.type === "chat") return v_23805a.at;
+  return v_23805a.startedAt;
+}
+
+function v_2f64a9(v_779914, v_148ff6): boolean {
+  const v_0a0f75 = new Date(v_779914);
+  const v_a1651b = new Date(v_148ff6);
+  return (
+    v_0a0f75.getFullYear() === v_a1651b.getFullYear() &&
+    v_0a0f75.getMonth() === v_a1651b.getMonth() &&
+    v_0a0f75.getDate() === v_a1651b.getDate()
+  );
 }
 
 const v_d81136 = v_472849.create({
@@ -799,6 +837,20 @@ const v_d81136 = v_472849.create({
     alignItems: "center", justifyContent: "center",
   },
   callDurationText: { color: v_1bfbd0.white, fontSize: 13, fontWeight: "600" },
+
+  dateDividerWrap: {
+    alignSelf: "center",
+    marginVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  dateDividerText: {
+    color: v_1bfbd0.white,
+    fontSize: 12,
+    fontWeight: "500",
+  },
 
   callBubbleInner: {
     backgroundColor: "rgba(255,255,255,0.15)",
