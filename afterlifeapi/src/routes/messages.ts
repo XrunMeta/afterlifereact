@@ -22,6 +22,26 @@ export const v_fa56e0 = new v_b7c41b<v_de0a25>();
 
 v_fa56e0.get("/health", (v_3f4e2e) => v_3f4e2e.json({ ok: true, module: "messages" }));
 
+v_fa56e0.delete("/:id", v_6690d9, async (v_3f4e2e) => {
+  const v_73ad51 = v_2ab119(v_3f4e2e);
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare(`SELECT user_id, deletion_state FROM messages WHERE id = ?`)
+    .bind(v_73ad51)
+    .first<{ user_id: number; deletion_state: string }>();
+  if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "Message not found.");
+
+  if (v_3ac7e7.user_id !== v_43e90c) throw new v_3ebe58("FORBIDDEN", "Not your message.");
+  if (v_3ac7e7.deletion_state !== "active") {
+    return v_3f4e2e.json({ ok: true, alreadyDeleted: true });
+  }
+  await v_3f4e2e.env.DB
+    .prepare(`UPDATE messages SET deletion_state = 'soft_deleted' WHERE id = ?`)
+    .bind(v_73ad51)
+    .run();
+  return v_3f4e2e.json({ ok: true });
+});
+
 function v_31113b(v_3f4e2e): number {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {

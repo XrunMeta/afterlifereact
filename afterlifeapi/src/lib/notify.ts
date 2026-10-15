@@ -139,6 +139,14 @@ export async function v_80a022(
     if (!v_eb25ce) return;
     if (v_eb25ce.owner_id === v_4317d1.actorId) return; 
 
+    const v_9c58a3 = await v_c9c489.DB
+      .prepare(
+        `SELECT 1 FROM clone_notification_mutes WHERE user_id = ? AND clone_id = ? LIMIT 1`,
+      )
+      .bind(v_eb25ce.owner_id, v_4317d1.cloneId)
+      .first<{ 1: number }>();
+    if (v_9c58a3) return;
+
     const v_380fb2 = await v_c9c489.DB
       .prepare(`SELECT name, email FROM users WHERE id = ?`)
       .bind(v_4317d1.actorId)

@@ -200,6 +200,20 @@ v_1172ea.get("/:id/calls/:callId/turns", v_6690d9, async (v_3f4e2e) => {
   });
 });
 
+v_1172ea.post("/:id/mark-read", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = v_31113b(v_3f4e2e.req.param("id"));
+  const { userId: v_43e90c } = await v_916232(v_3f4e2e, v_6e0fd3);
+  await v_3f4e2e.env.DB
+    .prepare(
+      `INSERT INTO conversation_read_markers (user_id, clone_id, last_read_at)
+         VALUES (?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(user_id, clone_id) DO UPDATE SET last_read_at = excluded.last_read_at`,
+    )
+    .bind(v_43e90c, v_6e0fd3)
+    .run();
+  return v_3f4e2e.json({ ok: true });
+});
+
 export const v_72aaee = new v_b7c41b<v_de0a25>();
 
 const v_41e5f1 = 120;
@@ -214,7 +228,7 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_a1651b = v_3f4e2e.env.DB;
 
-  const [v_2461e1, v_7e4351, v_20e160] = await Promise.all([
+  const [v_2461e1, v_7e4351, v_20e160, v_7fe886] = await Promise.all([
     v_a1651b.prepare(
       `SELECT id, created_at FROM clones WHERE owner_id = ? AND deleted_at IS NULL AND deletion_state = 'active'`,
     ).bind(v_43e90c).all<{ id: number; created_at: string }>(),
@@ -239,7 +253,15 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
          ) x
         WHERE x.rn = 1`,
     ).bind(v_43e90c).all<{ clone_id: number; call_id: string; started_at: number; role: string | null; text: string | null }>(),
+
+    v_a1651b.prepare(
+      `SELECT clone_id, last_read_at FROM conversation_read_markers WHERE user_id = ?`,
+    ).bind(v_43e90c).all<{ clone_id: number; last_read_at: string }>(),
   ]);
+  const v_2a4227 = new Map<number, number>();
+  for (const v_cb35cb of v_7fe886.results ?? []) {
+    v_2a4227.set(v_cb35cb.clone_id, v_15ea73(v_cb35cb.last_read_at));
+  }
 
   type Last = { type: "chat" | "call"; role: string | null; blob: string | null; at: number; callId?: string };
   const v_02fbf1 = new Map<number, Last>();
@@ -274,10 +296,30 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
       }
       v_2f7952 = { type: v_506e86.type, role: v_506e86.blob ? v_506e86.role : null, text: v_e54222(v_9b6134 || null), at: v_506e86.at };
     }
+
+    let v_8a6db3 = 0;
+    const v_f1909a = v_2a4227.get(v_389afb);
+    if (v_f1909a !== undefined) {
+      const v_5fc92f = Math.floor(v_f1909a / 1000);
+      const [v_9630aa, v_628c75] = await Promise.all([
+        v_a1651b.prepare(
+          `SELECT COUNT(*) AS n FROM messages
+             WHERE user_id = ? AND clone_id = ? AND role = 'clone'
+               AND status = 'active' AND deletion_state = 'active'
+               AND datetime(created_at) > datetime(?, 'unixepoch')`,
+        ).bind(v_43e90c, v_389afb, v_5fc92f).first<{ n: number }>(),
+        v_a1651b.prepare(
+          `SELECT COUNT(*) AS n FROM call_sessions
+             WHERE user_id = ? AND clone_id = ? AND started_at > ?`,
+        ).bind(v_43e90c, v_389afb, v_f1909a).first<{ n: number }>(),
+      ]);
+      v_8a6db3 = Number(v_9630aa?.n ?? 0) + Number(v_628c75?.n ?? 0);
+    }
     return {
       clone: v_7d767c(v_eb25ce),
       isMine: v_eb25ce.owner_id === v_43e90c,
       last: v_2f7952,
+      unreadCount: v_8a6db3,
       sortAt: v_2f7952?.at ?? null,
       createdAt: v_45c785.get(v_389afb) ?? 0,
     };
