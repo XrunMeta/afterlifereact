@@ -13,6 +13,7 @@ import {
   v_09d0e5,
   v_326be8,
   v_0e1f26,
+  v_e767d1,
   type v_5b67a3,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
@@ -129,7 +130,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       }
     }
     v_b6e358();
-    return v_8d4337;
+    return v_8d4337.reverse(); 
   }, [v_2810d7]);
 
   v_c4deb2(() => {
@@ -367,7 +368,11 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
 
   return (
-    <View style={[v_d81136.root, { paddingTop: v_033e14.top }]}>
+    <KeyboardAvoidingView
+      style={[v_d81136.root, { paddingTop: v_033e14.top }]}
+      behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={0}
+    >
       {}
       <View style={v_d81136.header}>
         <TouchableOpacity
@@ -423,19 +428,21 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         </View>
       </View>
 
-      {}
+      {
+}
       <ScrollView
         ref={v_5ca6b8}
         style={v_d81136.scrollArea}
         contentContainerStyle={v_d81136.scrollContent}
         showsVerticalScrollIndicator={false}
-        onScroll={({ nativeEvent: v_76b943 }) => {
+        onContentSizeChange={() => {
 
+          if (v_e721a8) v_5ca6b8.current?.scrollToEnd({ animated: false });
+        }}
+        onScroll={({ nativeEvent: v_76b943 }) => {
           if (!v_e721a8) return;
-          const { layoutMeasurement: v_6f469f, contentOffset: v_e29918, contentSize: v_d1b3ac } = v_76b943;
-          const v_169e78 =
-            v_e29918.y + v_6f469f.height >= v_d1b3ac.height - 120;
-          if (v_169e78) void v_747b23();
+          const { contentOffset: v_e29918 } = v_76b943;
+          if (v_e29918.y <= 80) void v_747b23();
         }}
         scrollEventThrottle={200}
       >
@@ -444,10 +451,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 }
         {v_e721a8 && v_2810d7 !== null && (
           <>
-            {v_5e23ec && (
-              <View style={[v_d81136.personaOutsideBubble, v_d81136.typingBubble]}>
-                <Text style={v_d81136.typingText}>…</Text>
-              </View>
+            {v_dec728 && (
+              <Text style={v_d81136.loadingText}>이전 메시지 불러오는 중…</Text>
             )}
             {v_907715.map((v_23805a) => {
               if (v_c8c890(v_23805a)) {
@@ -514,8 +519,10 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                 </View>
               );
             })}
-            {v_dec728 && (
-              <Text style={v_d81136.loadingText}>불러오는 중…</Text>
+            {v_5e23ec && (
+              <View style={[v_d81136.personaOutsideBubble, v_d81136.typingBubble]}>
+                <Text style={v_d81136.typingText}>…</Text>
+              </View>
             )}
           </>
         )}
@@ -663,7 +670,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           </Pressable>
         </Pressable>
       </Modal>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
