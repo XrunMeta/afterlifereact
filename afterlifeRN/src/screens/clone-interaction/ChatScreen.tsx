@@ -403,11 +403,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
   const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
 
-  const v_7d3ee3 = v_e662ae<number | null>(null);
-  if (v_7d3ee3.current === null) {
-    v_7d3ee3.current = Math.max(v_033e14.bottom, 10);
-  }
-  const v_53dd92 = v_7e4acc > 0 ? 10 : (v_7d3ee3.current ?? 10);
+  const v_ac3ab7 = v_7e4acc > 0;
+  const v_53dd92 = v_ac3ab7 ? 10 : Math.max(v_033e14.bottom, 10);
 
   return (
 
@@ -415,7 +412,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
      visible={true}
      transparent={false}
      animationType="none"
-     statusBarTranslucent={true}
+     statusBarTranslucent
+     navigationBarTranslucent={v_326be8.OS === "android"}
      onRequestClose={() => v_c65f5d.goBack()}
    >
     {
@@ -423,7 +421,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 }
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={v_326be8.OS === "ios" ? "padding" : "height"}
+      behavior={v_326be8.OS === "ios" ? "padding" : undefined}
     >
     <View style={[v_d81136.root, { paddingTop: v_033e14.top }]}>
       {}
