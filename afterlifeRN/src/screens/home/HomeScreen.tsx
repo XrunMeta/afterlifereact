@@ -637,7 +637,8 @@ export default function v_c316d8() {
               v_d81136.commentSheet,
 
               {
-                paddingBottom: 24 + v_2b650d,
+
+                paddingBottom: 8 + v_2b650d,
                 height: Math.max(v_28d8d8 * 0.7 - v_7e4acc, 200),
               },
             ]}
