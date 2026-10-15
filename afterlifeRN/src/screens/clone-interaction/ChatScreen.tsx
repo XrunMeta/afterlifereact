@@ -444,6 +444,8 @@ const v_d81136 = v_472849.create({
     borderRadius: 18,
     padding: 14,
     marginBottom: 14,
+    alignSelf: "flex-start",
+    maxWidth: "70%",
   },
   callHeader: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
@@ -461,7 +463,7 @@ const v_d81136 = v_472849.create({
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    maxWidth: "70%",
+    maxWidth: "100%",
     marginBottom: 8,
   },
   callBubbleLeft: { alignSelf: "flex-start" },
