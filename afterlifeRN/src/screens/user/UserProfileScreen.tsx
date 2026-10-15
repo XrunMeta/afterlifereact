@@ -138,6 +138,14 @@ export default function v_c501aa() {
     });
   };
 
+  const v_34658a = () => {
+    if (!v_727031) return;
+    v_c65f5d.navigate("UserCloneList", {
+      userId: v_43e90c,
+      userName: v_727031.user.name ?? v_727031.user.email,
+    });
+  };
+
   const v_74ecfc = (c: v_d64743) => {
     v_c65f5d.navigate("CloneFeed", {
       feed: {
@@ -377,14 +385,17 @@ export default function v_c501aa() {
                         </Text>
                       </TouchableOpacity>
                       <View style={v_fd5f43.profileStatDivider} />
-                      <View style={v_fd5f43.profileStatItem}>
+                      <TouchableOpacity
+                        style={v_fd5f43.profileStatItem}
+                        onPress={v_34658a}
+                      >
                         <Text style={v_fd5f43.profileStatValue}>
                           {v_727031.clones.length}
                         </Text>
                         <Text style={v_fd5f43.profileStatLabel}>
                           {v_8d41d7("user.statClones", { defaultValue: "클론" })}
                         </Text>
-                      </View>
+                      </TouchableOpacity>
                     </View>
                   </View>
                 </View>
