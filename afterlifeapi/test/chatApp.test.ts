@@ -88,7 +88,7 @@ async function v_fb3621<T>(v_43e90c, v_9fe22d): Promise<{ status: number; body: 
 
 type TimelineItem =
   | { type: "chat"; id: number; role: string; content: string; at: number }
-  | { type: "call"; callId: string; startedAt: number; turnCount: number };
+  | { type: "call"; callId: string; startedAt: number; durationSec: number | null; turnCount: number };
 
 v_469bf2("채팅 전송 — 크레딧 없음 · 대화 DEK 암호화", () => {
   v_ba7107(v_fc6bcf);
@@ -140,7 +140,7 @@ v_469bf2("채팅 전송 — 크레딧 없음 · 대화 DEK 암호화", () => {
 v_469bf2("GET /oth-path", () => {
   v_ba7107(v_fc6bcf);
 
-  v_23805a("채팅과 통화 카드를 최신순으로 섞어 주고, 통화 카드엔 길이 대신 시작 시각·발화 수만", async () => {
+  v_23805a("채팅과 통화 카드를 최신순으로 섞어 주고, 통화 카드엔 시작 시각·길이(표시 안 함)·발화 수", async () => {
     const v_0c8987 = await v_bfb240("tl-a@t.local");
     const v_062ae9 = await v_4d24a9(v_0c8987, "tl_a");
 
@@ -151,6 +151,8 @@ v_469bf2("GET /oth-path", () => {
     await v_98daea("tl-call-1", v_0c8987, v_062ae9, v_4139cb);
     await v_180e63("tl-call-1", "user", "통화 첫말");
     await v_180e63("tl-call-1", "clone", "통화 답");
+    await v_a1651b().prepare("UPDATE call_sessions SET ended_at = ?, duration_sec = 95 WHERE call_id = 'tl-call-1'")
+      .bind(v_4139cb + 95_000).run();
     v_4d37e3((await v_c5d920(v_0c8987, v_062ae9, "점심 채팅", "tl-a-2")).status).toBe(200);
     await v_a1651b().prepare(
       "UPDATE messages SET created_at = '2025-10-01 11:00:00' WHERE user_id = ? AND created_at > '2025-10-01 09:00:00'",
@@ -170,9 +172,9 @@ v_469bf2("GET /oth-path", () => {
       "chat:clone", "chat:user",     
     ]);
     const v_5eae50 = v_4d33b2.items.find((v_ebec57) => v_ebec57.type === "call" && v_ebec57.callId === "tl-call-1");
-    v_4d37e3(v_5eae50).toEqual({ type: "call", callId: "tl-call-1", startedAt: v_4139cb, turnCount: 2 });
+    v_4d37e3(v_5eae50).toEqual({ type: "call", callId: "tl-call-1", startedAt: v_4139cb, durationSec: 95, turnCount: 2 });
     const v_ad3352 = v_4d33b2.items.find((v_ebec57) => v_ebec57.type === "call" && v_ebec57.callId === "tl-call-empty");
-    v_4d37e3(v_ad3352).toEqual({ type: "call", callId: "tl-call-empty", startedAt: v_4139cb + 1000, turnCount: 0 });
+    v_4d37e3(v_ad3352).toEqual({ type: "call", callId: "tl-call-empty", startedAt: v_4139cb + 1000, durationSec: null, turnCount: 0 });
     v_4d37e3((v_4d33b2.items[1] as { content: string }).content).toBe("점심 채팅");
     v_4d37e3(v_4d33b2.nextCursor).toBeNull();
   });
