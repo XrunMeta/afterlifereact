@@ -127,7 +127,8 @@ const TAB_CONFIG: Record<string, { icon: keyof typeof v_dec439.glyphMap; labelKe
   HomeTab: { icon: "home", labelKey: "tabs.home" },
   SearchTab: { icon: "search", labelKey: "tabs.search" },
   CreateTab: { icon: "plus-circle", labelKey: "tabs.create" },
-  ShortsTab: { icon: "user-check", labelKey: "tabs.subscribing" },
+
+  ShortsTab: { icon: "message-circle", labelKey: "tabs.subscribing" },
   ClonesTab: { icon: "users", labelKey: "tabs.clones" },
   MyTab: { icon: "user", labelKey: "tabs.my" },
 };
