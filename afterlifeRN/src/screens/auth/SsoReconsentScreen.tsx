@@ -14,12 +14,14 @@ import v_556baf from "../../components/ui/SafeView";
 import v_1a40c4 from "../../components/ui/Button";
 import v_c0caa9, { type v_3ac6ea } from "../../components/common/TermsModal";
 import { v_fa872d } from "../../hooks/useSsoReconsentGate";
+import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 
 type Props = { onDone: () => void };
 
 export default function v_ac767f({ onDone: v_7b5712 }: Props) {
   const { t: v_8d41d7 } = v_772971();
+  const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const [v_d39271, v_fe0d62] = v_5ab095<v_3ac6ea | null>(null);
   const [v_51b53b, v_c8f346] = v_5ab095(false);
   const [v_09b7fa, v_1d4807] = v_5ab095(false);
@@ -41,7 +43,9 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
     if (!v_8c2724 || v_cb66b4) return;
     v_ee9ec1(true);
     try {
-      await v_fa872d();
+      await v_fa872d(v_2ca7e0);
+
+      await v_1ed7d9.getState().refreshApiUser?.();
       v_7b5712();
     } finally {
       v_ee9ec1(false);

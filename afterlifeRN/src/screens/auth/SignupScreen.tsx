@@ -345,7 +345,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           }
         }
 
-        void v_fa872d();
+        void v_fa872d(v_8f00b9.accessToken);
         void v_c65c18({
           accessToken: v_8f00b9.accessToken,
           refreshToken: v_8f00b9.refreshToken ?? null,

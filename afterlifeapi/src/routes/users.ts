@@ -36,7 +36,11 @@ interface UserRow {
   xrun_guid: string | null;
   xrun_wallet: string | null;
   xrun_linked_at: string | null;
+
+  sso_consent_version: string | null;
 }
+
+const v_31fb59 = "2026-10-16-v1";
 
 async function v_3fb498(c: Parameters<typeof v_6690d9>[0]): Promise<never> {
   throw new Error("unused");
@@ -89,7 +93,8 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
     .prepare(
       `SELECT id, name, email, avatar_url, credits, funnel_stage, phone, gender, age, age_enc, created_at,
               country, mobile_code, region,
-              xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at
+              xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at,
+              sso_consent_version
          FROM users WHERE id = ? AND deleted_at IS NULL`,
     )
     .bind(v_43e90c)
@@ -194,9 +199,23 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
       xrunLinkedAt: v_3ac7e7.xrun_linked_at,
       followersCount: v_62676b?.followersCount ?? 0,
       followingCount: v_62676b?.followingCount ?? 0,
+
+      ssoConsentVersion: v_3ac7e7.sso_consent_version,
+      needsSsoReconsent: v_3ac7e7.sso_consent_version !== v_31fb59,
     },
     interests: (v_774c91.results ?? []).map((v_cb35cb) => v_cb35cb.interest),
   });
+});
+
+v_de7ba7.post("/me/sso-reconsent", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  await v_3f4e2e.env.DB
+    .prepare(
+      `UPDATE users SET sso_consent_version = ?, sso_consent_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    )
+    .bind(v_31fb59, v_43e90c)
+    .run();
+  return v_3f4e2e.json({ ok: true, version: v_31fb59 });
 });
 
 const v_90be18 = v_1f4ea7.object({
