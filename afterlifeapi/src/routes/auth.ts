@@ -21,7 +21,13 @@ import { v_b78f7e, v_656e8b } from "../lib/otp";
 import { v_a32f1d } from "../lib/googleAuth";
 import { v_bb3c56 } from "../lib/appleAuth";
 import { v_4960d7 } from "../lib/credits";
-import { v_6e4cc8, v_a0ec33, v_937e23, v_3326b4 } from "../lib/xrun";
+import {
+  v_6e4cc8,
+  v_a0ec33,
+  v_937e23,
+  v_3326b4,
+  v_f748f8,
+} from "../lib/xrun";
 
 import { v_31fb59 } from "./users";
 
@@ -280,6 +286,8 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
       .run();
   }
 
+  v_3f4e2e.executionCtx.waitUntil(v_f748f8(v_3f4e2e.env, v_d1b635.id, v_d1b635.email));
+
   const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(v_3f4e2e, v_d1b635.id, v_4d33b2.deviceId);
   v_56035d(v_3f4e2e, v_dfaee3);
 
@@ -451,6 +459,8 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
       .bind(v_d1b635!.id, v_4d33b2.deviceId, v_4d33b2.pushToken, v_4d33b2.platform ?? "ios")
       .run();
   }
+
+  v_3f4e2e.executionCtx.waitUntil(v_f748f8(v_3f4e2e.env, v_d1b635!.id, v_d1b635!.email));
 
   const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(v_3f4e2e, v_d1b635!.id, v_4d33b2.deviceId);
   v_56035d(v_3f4e2e, v_dfaee3);
@@ -911,6 +921,8 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
       .run();
   }
 
+  v_3f4e2e.executionCtx.waitUntil(v_f748f8(v_3f4e2e.env, v_625c74.id, v_4d33b2.email));
+
   const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(v_3f4e2e, v_625c74.id, v_4d33b2.deviceId);
   v_56035d(v_3f4e2e, v_dfaee3);
 
@@ -1103,6 +1115,8 @@ v_68f0aa.post("/email/login", async (v_3f4e2e) => {
     )
     .bind(v_625c74.id)
     .run();
+
+  v_3f4e2e.executionCtx.waitUntil(v_f748f8(v_3f4e2e.env, v_625c74.id, v_4d33b2.email));
 
   const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(v_3f4e2e, v_625c74.id, v_4d33b2.deviceId);
   v_56035d(v_3f4e2e, v_dfaee3);
