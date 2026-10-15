@@ -3,11 +3,8 @@
 import { v_cc9198 } from "../config/apiBase";
 import { v_04b58a } from "../lib/authFetch";
 
-const v_27c3a5 = new Set<string>(["oth-test@example.invalid"]);
-
 export function v_8a85e2(v_e0c7e8): boolean {
-  if (!v_e0c7e8) return false;
-  return v_27c3a5.has(v_e0c7e8.trim().toLowerCase());
+  return !!v_e0c7e8 && v_e0c7e8.trim().length > 0;
 }
 
 export interface ChatCloneSummary {
