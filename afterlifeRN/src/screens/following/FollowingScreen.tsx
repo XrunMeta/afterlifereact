@@ -58,6 +58,11 @@ import v_5778ce from "../../components/common/HashtagText";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import v_fb73af from "../../components/ads/PangleBannerAd";
 import { v_60086b } from "../../lib/pangle";
+import {
+  v_8a85e2,
+  v_e36429,
+  type v_17d27f,
+} from "../../api/chat";
 
 type RootNav = v_390fcc<v_8ad91b>;
 const { width: v_437248 } = v_700696.get("window");
@@ -124,6 +129,25 @@ export default function v_14b43e() {
 
   const v_0c8987 = v_f38ee5?.id ?? v_b9d568;
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const v_f4fb5e = v_b113dd?.email ?? null;
+
+  const v_7aa778 = v_8a85e2(v_f4fb5e);
+  const [v_002f27, v_ff797f] = v_5ab095<v_17d27f[] | null>(null);
+
+  v_c4deb2(() => {
+    if (!v_7aa778 || !v_2ca7e0) {
+      v_ff797f(null);
+      return;
+    }
+    let v_2008a4 = false;
+    (async () => {
+      const v_8f00b9 = await v_e36429(v_2ca7e0);
+      if (!v_2008a4) v_ff797f(v_8f00b9?.items ?? []);
+    })();
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_7aa778, v_2ca7e0]);
 
   const v_7cf37a = async (v_6e0fd3, v_c09aa8) => {
     try {
@@ -429,6 +453,57 @@ export default function v_14b43e() {
 
   const v_066fa2 = v_df9f57(() => {
     const v_ab6401 = v_9e799c.trim().toLowerCase();
+
+    if (v_7aa778 && v_002f27 !== null) {
+      const v_ef8ab1 = v_002f27
+        .map((v_23805a) => {
+          const v_5ed063 = {
+            id: v_23805a.clone.id,
+            name: v_23805a.clone.name,
+            avatar: v_23805a.clone.avatarUrl ?? "",
+            interests: [],
+            creatorAccount: "",
+            intimacy: 0,
+            interactions: 0,
+            isOwn: v_23805a.isMine,
+          };
+          const feed: v_bc3df4 | null = v_23805a.last
+            ? ({
+                id: -v_23805a.clone.id,
+                cloneId: v_23805a.clone.id,
+                content:
+                  v_23805a.last.text ??
+                  (v_23805a.last.type === "call" ? "음성 통화" : ""),
+                mediaUrl: v_23805a.clone.avatarUrl ?? undefined,
+                mediaType: null,
+                likesCount: 0,
+                createdAt: new Date(v_23805a.last.at).toISOString(),
+              } as v_bc3df4)
+            : null;
+          return { persona: v_5ed063, feed: v_2db2a5 };
+        })
+        .filter((v_3ac7e7) =>
+          !v_ab6401
+            ? true
+            : v_3ac7e7.persona.name.toLowerCase().includes(v_ab6401) ||
+              (v_3ac7e7.feed?.content ?? "").toLowerCase().includes(v_ab6401),
+        );
+
+      v_ef8ab1.sort((v_779914, v_148ff6) => {
+        if (v_5e8330 === "intimacy") {
+          return (v_148ff6.persona.intimacy || 0) - (v_779914.persona.intimacy || 0);
+        }
+        if (v_5e8330 === "name") {
+          return (v_779914.persona.name || "").localeCompare(v_148ff6.persona.name || "", "ko");
+        }
+        const v_d202ca = v_779914.feed?.createdAt ? new Date(v_779914.feed.createdAt).getTime() : 0;
+        const v_afbf1c = v_148ff6.feed?.createdAt ? new Date(v_148ff6.feed.createdAt).getTime() : 0;
+        if (v_afbf1c !== v_d202ca) return v_afbf1c - v_d202ca;
+        return 0;
+      });
+      return v_ef8ab1;
+    }
+
     const v_ef8ab1 = v_a48e44
       .filter((v_e2a85c) =>
         !v_ab6401
@@ -440,7 +515,6 @@ export default function v_14b43e() {
         const v_2db2a5 = v_632473.find((v_8b5cd8) => v_8b5cd8.cloneId === v_5ed063.id);
         return { persona: v_5ed063, feed: v_2db2a5 ?? null };
       });
-
     v_ef8ab1.sort((v_779914, v_148ff6) => {
       if (v_5e8330 === "intimacy") {
         return (v_148ff6.persona.intimacy || 0) - (v_779914.persona.intimacy || 0);
@@ -448,13 +522,19 @@ export default function v_14b43e() {
       if (v_5e8330 === "name") {
         return (v_779914.persona.name || "").localeCompare(v_148ff6.persona.name || "", "ko");
       }
-
       const v_d202ca = v_779914.feed?.createdAt ? new Date(v_779914.feed.createdAt).getTime() : 0;
       const v_afbf1c = v_148ff6.feed?.createdAt ? new Date(v_148ff6.feed.createdAt).getTime() : 0;
       return v_afbf1c - v_d202ca;
     });
     return v_ef8ab1;
-  }, [v_a48e44, v_632473, v_9e799c, v_5e8330]);
+  }, [
+    v_7aa778,
+    v_002f27,
+    v_a48e44,
+    v_632473,
+    v_9e799c,
+    v_5e8330,
+  ]);
 
   const v_94f30e = v_df9f57(() => {
     if (!v_2116d2.trim()) return v_a48e44;
