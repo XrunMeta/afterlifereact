@@ -10,6 +10,7 @@ import {
   v_7e4944,
   v_961e77,
 } from "rcmrninabrnb";
+import { v_772971 } from "jmpfvteuuztnp";
 import { v_f095b0 } from "../../lib/pangle";
 import { v_1bfbd0 } from "../constants";
 
@@ -34,6 +35,7 @@ console.log(
 );
 
 export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
 
   const v_86668d =
     v_326be8.OS !== "android"
@@ -63,7 +65,7 @@ export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4 }: Props)
   if (v_326be8.OS !== "android" || !v_db6966) {
     return (
       <View style={[v_d81136.fallback, v_7fa4e4]}>
-        <Text style={v_d81136.fallbackText}>배너광고</Text>
+        <Text style={v_d81136.fallbackText}>{v_8d41d7("chat.adBannerFallback")}</Text>
       </View>
     );
   }
