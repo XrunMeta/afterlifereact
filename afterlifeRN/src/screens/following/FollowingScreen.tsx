@@ -1262,7 +1262,10 @@ export default function v_14b43e() {
 }
       <Modal visible={v_557d00} transparent animationType="slide">
         <Pressable style={v_fd5f43.bottomOverlay} onPress={() => v_538ca9(false)}>
-          <Pressable style={v_fd5f43.sortSheet} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+          <Pressable
+            style={[v_fd5f43.sortSheet, { paddingBottom: 24 + v_2b650d }]}
+            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
+          >
             <View style={v_fd5f43.sortSheetHandle} />
             <Text style={v_fd5f43.sortSheetTitle}>정렬</Text>
             {(["recent", "intimacy", "name"] as const).map((v_34e5bb) => (
