@@ -5,8 +5,9 @@ import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_6690d9 } from "../middleware/auth";
 import { v_a8614b } from "../lib/ale";
-import { v_5d4a51, v_09d461 } from "../lib/cloneAccess";
+import { v_74c502, v_5d4a51, v_09d461 } from "../lib/cloneAccess";
 import {
+  v_a50613,
   v_cca3b3,
   v_c56968,
   v_386d00,
@@ -223,6 +224,7 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
                 ROW_NUMBER() OVER (PARTITION BY clone_id ORDER BY datetime(created_at) DESC, id DESC) AS rn
            FROM messages
           WHERE user_id = ? AND status = 'active' AND deletion_state = 'active' AND content IS NOT NULL
+            AND clone_id IN (SELECT id FROM clones WHERE ${v_74c502()})
        ) WHERE rn = 1`,
     ).bind(v_43e90c).all<{ clone_id: number; role: string; content: string; created_at: string }>(),
     v_a1651b.prepare(
@@ -232,7 +234,8 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
          FROM (
            SELECT clone_id, call_id, started_at,
                   ROW_NUMBER() OVER (PARTITION BY clone_id ORDER BY started_at DESC, call_id DESC) AS rn
-             FROM call_sessions WHERE user_id = ?
+             FROM call_sessions
+            WHERE user_id = ? AND clone_id IN (SELECT id FROM clones WHERE ${v_74c502()})
          ) x
         WHERE x.rn = 1`,
     ).bind(v_43e90c).all<{ clone_id: number; call_id: string; started_at: number; role: string | null; text: string | null }>(),
@@ -253,16 +256,16 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
   const v_52e08b = new Set<number>([...v_02fbf1.keys(), ...v_45c785.keys()]);
 
   const v_66ed66 = v_a8614b(v_3f4e2e.env.ALE_KEK);
-  const v_4622b9 = [];
-  for (const v_389afb of v_52e08b) {
+  const v_e38ca2 = await v_a50613(v_3f4e2e.env);
+  const v_4d6839 = await Promise.all([...v_52e08b].map(async (v_389afb) => {
     const v_eb25ce = await v_5d4a51(v_a1651b, v_389afb);
-    if (!v_eb25ce) continue;
-    if (!(await v_09d461(v_3f4e2e, v_eb25ce, v_43e90c))) continue;
+    if (!v_eb25ce) return null;
+    if (!(await v_09d461(v_3f4e2e, v_eb25ce, v_43e90c))) return null;
     const v_506e86 = v_02fbf1.get(v_389afb);
     let v_2f7952 = null;
     if (v_506e86) {
-      const { key: v_b24339, provider: v_e38ca2 } = await v_386d00(v_3f4e2e.env, v_43e90c, v_389afb);
-      if (v_b24339.kind === "shredded") continue;
+      const { key: v_b24339 } = await v_386d00(v_3f4e2e.env, v_43e90c, v_389afb, v_e38ca2);
+      if (v_b24339.kind === "shredded") return null;
       let v_9b6134 = null;
       if (v_506e86.blob) {
         v_9b6134 = v_506e86.type === "chat"
@@ -271,14 +274,15 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
       }
       v_2f7952 = { type: v_506e86.type, role: v_506e86.blob ? v_506e86.role : null, text: v_e54222(v_9b6134 || null), at: v_506e86.at };
     }
-    v_4622b9.push({
+    return {
       clone: v_7d767c(v_eb25ce),
       isMine: v_eb25ce.owner_id === v_43e90c,
       last: v_2f7952,
       sortAt: v_2f7952?.at ?? null,
       createdAt: v_45c785.get(v_389afb) ?? 0,
-    });
-  }
+    };
+  }));
+  const v_4622b9 = v_4d6839.filter((v_62c214): v_62c214 is NonNullable<typeof v_62c214> => v_62c214 !== null);
 
   v_4622b9.sort((v_779914, v_148ff6) =>
     v_779914.sortAt !== null && v_148ff6.sortAt !== null ? v_148ff6.sortAt - v_779914.sortAt
