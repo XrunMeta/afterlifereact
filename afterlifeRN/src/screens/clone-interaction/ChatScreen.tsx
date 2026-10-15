@@ -17,6 +17,7 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_8ad91b } from "../../navigation/types";
 import { v_194498 } from "../../stores/cloneStore";
@@ -356,6 +357,10 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const v_53dd92 = v_7e4acc > 0 ? v_7e4acc : v_033e14.bottom;
 
+  const v_f9771e = v_c18c22(0);
+  const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
+  const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
+
   return (
     <View style={[v_d81136.root, { paddingTop: v_033e14.top }]}>
       {}
@@ -558,7 +563,10 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         onRequestClose={() => v_2c320e(null)}
       >
         <Pressable style={v_d81136.sheetOverlay} onPress={() => v_2c320e(null)}>
-          <Pressable style={v_d81136.actionSheet} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+          <Pressable
+            style={[v_d81136.actionSheet, { paddingBottom: 24 + v_2b650d }]}
+            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
+          >
             <View style={v_d81136.sheetHandle} />
             {v_fd08c6?.title ? <Text style={v_d81136.sheetTitle}>{v_fd08c6.title}</Text> : null}
             {v_fd08c6?.actions.map((v_779914, v_ebec57) => (
@@ -583,13 +591,6 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                 </Text>
               </TouchableOpacity>
             ))}
-            <TouchableOpacity
-              style={v_d81136.sheetCancel}
-              activeOpacity={0.7}
-              onPress={() => v_2c320e(null)}
-            >
-              <Text style={v_d81136.sheetActionText}>취소</Text>
-            </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>
