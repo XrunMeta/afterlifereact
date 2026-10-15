@@ -407,3 +407,87 @@ v_469bf2("채팅 남용·파쇄 방어(mizu H1·H2·M3)", () => {
     v_4d37e3(v_f4e98d!.n).toBe(2);
   });
 });
+
+v_469bf2("채팅 목록 클론 정보 · 대화한 클론 목록", () => {
+  v_ba7107(v_fc6bcf);
+
+  v_23805a("timeline 응답에 클론 id·이름·대표 사진이 같이 온다", async () => {
+    const v_0c8987 = await v_bfb240("cl-a@t.local");
+    const v_062ae9 = await v_4d24a9(v_0c8987, "cl_a");
+    await v_a1651b().prepare("UPDATE clones SET avatar_url = 'https://x.test/a.png' WHERE id = ?").bind(v_062ae9).run();
+    const { status: v_d308b5, body: v_4d33b2 } = await v_fb3621<{ clone: unknown }>(v_0c8987, `/oth-path${v_062ae9}/timeline`);
+    v_4d37e3(v_d308b5).toBe(200);
+    v_4d37e3(v_4d33b2.clone).toEqual({ id: v_062ae9, name: "CT", avatarUrl: "https://x.test/a.png" });
+  });
+
+  type ConvItem = {
+    clone: { id: number; name: string; avatarUrl: string | null };
+    isMine: boolean;
+    last: { type: "chat" | "call"; role: string | null; text: string | null; at: number } | null;
+  };
+
+  v_23805a("대화한 클론 + 내가 만든 클론을 마지막 대화 최신순으로, 마지막 한 줄·시각과 함께 준다", async () => {
+    const v_b32680 = await v_bfb240("cl-b@t.local");
+    const v_a9cbf1 = await v_bfb240("cl-b2@t.local");
+    const v_1c1268 = await v_4d24a9(v_b32680, "cl_b_mine");          
+    const v_8977fc = await v_4d24a9(v_a9cbf1, "cl_b_chat");      
+    const v_6d4e32 = await v_4d24a9(v_a9cbf1, "cl_b_call");      
+    const v_d50b63 = await v_4d24a9(v_a9cbf1, "cl_b_miss");      
+    const v_9eb431 = await v_4d24a9(v_a9cbf1, "cl_b_none");  
+    void v_9eb431;
+    await v_a1651b().prepare("UPDATE clones SET avatar_url = 'https://x.test/c.png' WHERE id = ?").bind(v_8977fc).run();
+
+    v_4d37e3((await v_c5d920(v_b32680, v_8977fc, "줄1\n줄2   공백", "cl-b-1")).status).toBe(200);
+    await v_a1651b().prepare("UPDATE messages SET created_at = '2025-10-03 00:00:00' WHERE user_id = ?").bind(v_b32680).run();
+    await v_98daea("cl-b-call", v_b32680, v_6d4e32, Date.UTC(2025, 9, 2));
+    await v_180e63("cl-b-call", "user", "통화 첫말");
+    await v_180e63("cl-b-call", "clone", "통화 끝말");
+    await v_98daea("cl-b-miss", v_b32680, v_d50b63, Date.UTC(2025, 9, 1));
+
+    await v_98daea("cl-b-other", v_a9cbf1, v_8977fc, Date.UTC(2025, 9, 9));
+    await v_180e63("cl-b-other", "user", "남의 말");
+
+    const { status: v_d308b5, body: v_4d33b2 } = await v_fb3621<{ items: ConvItem[] }>(v_b32680, "/oth-path");
+    v_4d37e3(v_d308b5).toBe(200);
+    v_4d37e3(v_4d33b2.items.map((v_ebec57) => v_ebec57.clone.id)).toEqual([v_8977fc, v_6d4e32, v_d50b63, v_1c1268]);
+
+    const [v_bff046, v_51c3d2, v_90d74f, v_da74da] = v_4d33b2.items;
+    v_4d37e3(v_bff046!.clone).toEqual({ id: v_8977fc, name: "CT", avatarUrl: "https://x.test/c.png" });
+    v_4d37e3(v_bff046!.isMine).toBe(false);
+    v_4d37e3(v_bff046!.last!.type).toBe("chat");
+    v_4d37e3(v_bff046!.last!.role).toBe("clone");               
+    v_4d37e3(v_bff046!.last!.at).toBe(Date.UTC(2025, 9, 3));
+    v_4d37e3(v_bff046!.last!.text).not.toContain("\n");
+
+    v_4d37e3(v_51c3d2!.last).toMatchObject({ type: "call", role: "clone", text: "통화 끝말" });
+    v_4d37e3(v_90d74f!.last).toEqual({ type: "call", role: null, text: null, at: Date.UTC(2025, 9, 1) });
+    v_4d37e3(v_da74da).toMatchObject({ isMine: true, last: null });
+  });
+
+  v_23805a("다른 사람이 내 클론과 한 대화는 내 대화 목록·채팅 화면·대화보기 어디에도 안 나온다", async () => {
+    const v_b32680 = await v_bfb240("cl-d@t.local");
+    const v_a9cbf1 = await v_bfb240("cl-d2@t.local");
+    const v_1c1268 = await v_4d24a9(v_b32680, "cl_d_mine");
+    v_4d37e3((await v_c5d920(v_a9cbf1, v_1c1268, "남이 보낸 채팅", "cl-d-1")).status).toBe(200);
+    await v_98daea("cl-d-call", v_a9cbf1, v_1c1268, Date.now());
+    await v_180e63("cl-d-call", "user", "남의 통화");
+
+    const v_ef8ab1 = await v_fb3621<{ items: ConvItem[] }>(v_b32680, "/oth-path");
+    v_4d37e3(v_ef8ab1.body.items).toEqual([
+      { clone: { id: v_1c1268, name: "CT", avatarUrl: null }, isMine: true, last: null },
+    ]);
+    const v_fcb4e5 = await v_fb3621<{ items: unknown[] }>(v_b32680, `/oth-path${v_1c1268}/timeline`);
+    v_4d37e3(v_fcb4e5.body.items).toEqual([]);
+    v_4d37e3((await v_fb3621(v_b32680, `/oth-path${v_1c1268}/oth-path`)).status).toBe(404);
+    const v_765b79 = await v_fb3621<{ items: unknown[] }>(v_b32680, `/oth-path${v_1c1268}/messages`);
+    v_4d37e3(v_765b79.body.items).toEqual([]);
+  });
+
+  v_23805a("삭제된 클론은 빠진다", async () => {
+    const v_b32680 = await v_bfb240("cl-c@t.local");
+    const v_062ae9 = await v_4d24a9(v_b32680, "cl_c");
+    await v_a1651b().prepare("UPDATE clones SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?").bind(v_062ae9).run();
+    const { body: v_4d33b2 } = await v_fb3621<{ items: ConvItem[] }>(v_b32680, "/oth-path");
+    v_4d37e3(v_4d33b2.items.map((v_ebec57) => v_ebec57.clone.id)).not.toContain(v_062ae9);
+  });
+});

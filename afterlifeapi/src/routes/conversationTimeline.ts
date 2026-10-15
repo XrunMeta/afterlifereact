@@ -62,14 +62,18 @@ async function v_916232(c: v_437670<v_de0a25, any>, v_6e0fd3) {
   if (!(await v_09d461(v_3f4e2e, v_eb25ce, v_43e90c))) {
     throw new v_3ebe58("FORBIDDEN", "No access to this clone.");
   }
-  return v_43e90c;
+  return { userId: v_43e90c, clone: v_eb25ce };
+}
+
+function v_7d767c(v_eb25ce) {
+  return { id: v_eb25ce.id, name: v_eb25ce.name, avatarUrl: v_eb25ce.avatar_url };
 }
 
 const v_de3072 = 50;
 
 v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = v_31113b(v_3f4e2e.req.param("id"));
-  const v_43e90c = await v_916232(v_3f4e2e, v_6e0fd3);
+  const { userId: v_43e90c, clone: v_eb25ce } = await v_916232(v_3f4e2e, v_6e0fd3);
 
   const v_cf2260 = Number(v_3f4e2e.req.query("limit") ?? 30);
   if (!Number.isInteger(v_cf2260) || v_cf2260 < 1 || v_cf2260 > 100) {
@@ -82,7 +86,7 @@ v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
   const v_5b31c3 = v_75cbf4 ? Math.floor(v_75cbf4.at / 1000) : 253402300799; 
 
   const { key: v_b24339, provider: v_e38ca2 } = await v_386d00(v_3f4e2e.env, v_43e90c, v_6e0fd3);
-  if (v_b24339.kind === "shredded") return v_3f4e2e.json({ items: [], nextCursor: null });
+  if (v_b24339.kind === "shredded") return v_3f4e2e.json({ clone: v_7d767c(v_eb25ce), items: [], nextCursor: null });
 
   const [v_7e4351, v_20e160] = await Promise.all([
     v_3f4e2e.env.DB.prepare(
@@ -141,6 +145,7 @@ v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
   }
 
   return v_3f4e2e.json({
+    clone: v_7d767c(v_eb25ce),
     items: v_4622b9,
     nextCursor: v_6bbe19 && v_2365e9.length ? v_c9de8c(v_2365e9[v_2365e9.length - 1]!.k) : null,
   });
@@ -148,7 +153,7 @@ v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
 
 v_1172ea.get("/:id/calls/:callId/turns", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = v_31113b(v_3f4e2e.req.param("id"));
-  const v_43e90c = await v_916232(v_3f4e2e, v_6e0fd3);
+  const { userId: v_43e90c } = await v_916232(v_3f4e2e, v_6e0fd3);
   const v_be62d3 = v_3f4e2e.req.param("callId");
   if (!v_be62d3 || v_be62d3.length > 128) throw new v_3ebe58("VALIDATION_FAILED", "Invalid call id.");
 
@@ -192,4 +197,91 @@ v_1172ea.get("/:id/calls/:callId/turns", v_6690d9, async (v_3f4e2e) => {
     turns: v_3035d9,
     nextCursor: v_6bbe19 && v_2365e9.length ? String(v_2365e9[0]!.seq) : null,
   });
+});
+
+export const v_72aaee = new v_b7c41b<v_de0a25>();
+
+const v_41e5f1 = 120;
+
+function v_e54222(v_9b6134): string | null {
+  if (v_9b6134 === null) return null;
+  const v_8d41d7 = v_9b6134.replace(/\s+/g, " ").trim();
+  return v_8d41d7.length > v_41e5f1 ? `${v_8d41d7.slice(0, v_41e5f1)}…` : v_8d41d7;
+}
+
+v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_a1651b = v_3f4e2e.env.DB;
+
+  const [v_2461e1, v_7e4351, v_20e160] = await Promise.all([
+    v_a1651b.prepare(
+      `SELECT id, created_at FROM clones WHERE owner_id = ? AND deleted_at IS NULL AND deletion_state = 'active'`,
+    ).bind(v_43e90c).all<{ id: number; created_at: string }>(),
+    v_a1651b.prepare(
+      `SELECT clone_id, role, content, created_at FROM (
+         SELECT clone_id, role, content, created_at,
+                ROW_NUMBER() OVER (PARTITION BY clone_id ORDER BY datetime(created_at) DESC, id DESC) AS rn
+           FROM messages
+          WHERE user_id = ? AND status = 'active' AND deletion_state = 'active' AND content IS NOT NULL
+       ) WHERE rn = 1`,
+    ).bind(v_43e90c).all<{ clone_id: number; role: string; content: string; created_at: string }>(),
+    v_a1651b.prepare(
+      `SELECT x.clone_id, x.call_id, x.started_at,
+              (SELECT t.role FROM call_turns t WHERE t.call_id = x.call_id ORDER BY t.seq DESC LIMIT 1) AS role,
+              (SELECT t.text FROM call_turns t WHERE t.call_id = x.call_id ORDER BY t.seq DESC LIMIT 1) AS text
+         FROM (
+           SELECT clone_id, call_id, started_at,
+                  ROW_NUMBER() OVER (PARTITION BY clone_id ORDER BY started_at DESC, call_id DESC) AS rn
+             FROM call_sessions WHERE user_id = ?
+         ) x
+        WHERE x.rn = 1`,
+    ).bind(v_43e90c).all<{ clone_id: number; call_id: string; started_at: number; role: string | null; text: string | null }>(),
+  ]);
+
+  type Last = { type: "chat" | "call"; role: string | null; blob: string | null; at: number; callId?: string };
+  const v_02fbf1 = new Map<number, Last>();
+  for (const v_cb35cb of v_7e4351.results ?? []) {
+    v_02fbf1.set(v_cb35cb.clone_id, { type: "chat", role: v_cb35cb.role, blob: v_cb35cb.content, at: v_15ea73(v_cb35cb.created_at) });
+  }
+  for (const v_cb35cb of v_20e160.results ?? []) {
+    const v_ba2215 = v_02fbf1.get(v_cb35cb.clone_id);
+    if (!v_ba2215 || v_cb35cb.started_at > v_ba2215.at) {
+      v_02fbf1.set(v_cb35cb.clone_id, { type: "call", role: v_cb35cb.role, blob: v_cb35cb.text, at: v_cb35cb.started_at, callId: v_cb35cb.call_id });
+    }
+  }
+  const v_45c785 = new Map((v_2461e1.results ?? []).map((v_cb35cb) => [v_cb35cb.id, v_15ea73(v_cb35cb.created_at)]));
+  const v_52e08b = new Set<number>([...v_02fbf1.keys(), ...v_45c785.keys()]);
+
+  const v_66ed66 = v_a8614b(v_3f4e2e.env.ALE_KEK);
+  const v_4622b9 = [];
+  for (const v_389afb of v_52e08b) {
+    const v_eb25ce = await v_5d4a51(v_a1651b, v_389afb);
+    if (!v_eb25ce) continue;
+    if (!(await v_09d461(v_3f4e2e, v_eb25ce, v_43e90c))) continue;
+    const v_506e86 = v_02fbf1.get(v_389afb);
+    let v_2f7952 = null;
+    if (v_506e86) {
+      const { key: v_b24339, provider: v_e38ca2 } = await v_386d00(v_3f4e2e.env, v_43e90c, v_389afb);
+      if (v_b24339.kind === "shredded") continue;
+      let v_9b6134 = null;
+      if (v_506e86.blob) {
+        v_9b6134 = v_506e86.type === "chat"
+          ? await v_c56968(v_3f4e2e.env, v_b24339, v_e38ca2, v_66ed66, v_389afb, v_506e86.role ?? "", v_506e86.blob)
+          : v_cca3b3(v_b24339, v_506e86.blob, v_bee6d6(v_506e86.callId!, v_506e86.role ?? ""));
+      }
+      v_2f7952 = { type: v_506e86.type, role: v_506e86.blob ? v_506e86.role : null, text: v_e54222(v_9b6134 || null), at: v_506e86.at };
+    }
+    v_4622b9.push({
+      clone: v_7d767c(v_eb25ce),
+      isMine: v_eb25ce.owner_id === v_43e90c,
+      last: v_2f7952,
+      sortAt: v_2f7952?.at ?? null,
+      createdAt: v_45c785.get(v_389afb) ?? 0,
+    });
+  }
+
+  v_4622b9.sort((v_779914, v_148ff6) =>
+    v_779914.sortAt !== null && v_148ff6.sortAt !== null ? v_148ff6.sortAt - v_779914.sortAt
+      : v_779914.sortAt !== null ? -1 : v_148ff6.sortAt !== null ? 1 : v_148ff6.createdAt - v_779914.createdAt);
+  return v_3f4e2e.json({ items: v_4622b9.map(({ sortAt: v_21a792, createdAt: v_837cf5, ...v_83bbcd }) => v_83bbcd) });
 });
