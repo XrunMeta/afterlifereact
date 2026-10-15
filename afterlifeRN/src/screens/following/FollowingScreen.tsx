@@ -56,6 +56,8 @@ import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_4b85a1, v_bc3df4 } from "../../types/domain";
 import v_5778ce from "../../components/common/HashtagText";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
+import v_fb73af from "../../components/ads/PangleBannerAd";
+import { v_60086b } from "../../lib/pangle";
 
 type RootNav = v_390fcc<v_8ad91b>;
 const { width: v_437248 } = v_700696.get("window");
@@ -782,9 +784,9 @@ export default function v_14b43e() {
   };
 
   return (
-    <SafeView backgroundColor="#FBF2EB" showBottomBackground={false}>
+    <SafeView backgroundColor={v_1bfbd0.violet100} showBottomBackground={false}>
       <PageHeader
-        title="Subscribe"
+        title="Message"
         rightAction={<NotificationBell />}
       />
 
@@ -819,10 +821,9 @@ export default function v_14b43e() {
                 </TouchableOpacity>
               )}
             </View>
-            {}
-            <View style={v_fd5f43.subAdBanner}>
-              <Text style={v_fd5f43.subAdBannerText}>배너광고</Text>
-            </View>
+            {
+}
+            <PangleBannerAd adUnitId={v_60086b()} style={v_fd5f43.subAdBanner} />
             {}
             <View style={v_fd5f43.subSectionHeader}>
               <Text style={v_fd5f43.subSectionCount}>
@@ -843,16 +844,9 @@ export default function v_14b43e() {
         }
       />
 
-      {}
-      <Animated.View style={[v_fd5f43.floatingCallBtn, { transform: [{ translateY: v_e541d8 }] }]}>
-        <TouchableOpacity
-          style={v_fd5f43.floatingCallBtnInner}
-          activeOpacity={0.8}
-          onPress={() => { v_83f9d3(""); v_22a5cb(true); }}
-        >
-          <Feather name="phone" size={24} color={v_1bfbd0.white} />
-        </TouchableOpacity>
-      </Animated.View>
+      {
+
+}
 
       {}
       <Modal visible={!!v_821fc1} transparent animationType="slide">
@@ -1169,8 +1163,9 @@ const v_fd5f43 = v_472849.create({
 
   msgListContent: {
     paddingHorizontal: 16,
-    paddingBottom: 120,
-    backgroundColor: "#FBF2EB",
+
+    paddingBottom: 0,
+    backgroundColor: v_1bfbd0.violet100,
   },
   subSearchBar: {
     flexDirection: "row",
@@ -1188,7 +1183,7 @@ const v_fd5f43 = v_472849.create({
   },
   subAdBanner: {
     height: 60,
-    backgroundColor: "#B8674F",
+    backgroundColor: v_1bfbd0.violet600,
     borderRadius: 14,
     paddingHorizontal: 20,
     justifyContent: "center",
@@ -1218,11 +1213,11 @@ const v_fd5f43 = v_472849.create({
   msgAvatarWrap: { width: 48, height: 48, position: "relative" },
   msgAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: v_1bfbd0.zinc200 },
   msgAvatarFallback: {
-    backgroundColor: "#E8D5CA",
+    backgroundColor: v_1bfbd0.violet200,
     alignItems: "center",
     justifyContent: "center",
   },
-  msgAvatarInitial: { fontSize: 20, fontWeight: "700", color: "#8B5A42" },
+  msgAvatarInitial: { fontSize: 20, fontWeight: "700", color: v_1bfbd0.violet700 },
 
   msgOnlineDot: {
     position: "absolute",
@@ -1240,14 +1235,14 @@ const v_fd5f43 = v_472849.create({
 
   msgUnreadBadge: {
     minWidth: 20, height: 20, borderRadius: 10,
-    backgroundColor: "#E04E2A",
+    backgroundColor: v_1bfbd0.rose500,
     alignItems: "center", justifyContent: "center",
     paddingHorizontal: 6,
   },
   msgUnreadText: { fontSize: 11, fontWeight: "700", color: v_1bfbd0.white },
   msgCallBtn: {
     width: 32, height: 32, borderRadius: 16,
-    backgroundColor: "#E04E2A",
+    backgroundColor: v_1bfbd0.violet600,
     alignItems: "center", justifyContent: "center",
   },
 

@@ -11,5 +11,5 @@ class PanglePackage : ReactPackage {
         listOf(PangleModule(reactContext))
 
     override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> =
-        emptyList()
+        listOf(PangleBannerAdViewManager())
 }
