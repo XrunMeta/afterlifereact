@@ -125,3 +125,14 @@ def test_prior_header_첫대답_지난주제_유도():
     body = h.messages()[0]["content"]
     assert "첫 대답에서는" in body
     assert "하나만" in body
+
+def test_chat_group_header_says_chat_not_call():
+    # AFL-1018: Worker 가 채팅을 KST 하루 묶음(callId "chat-YYYY-MM-DD")으로 넘긴다.
+    h = ConversationHistory(10)
+    h.seed_prior(_prior(
+        ("c1", "user", "고추 땄어", DAY1),
+        ("chat-2025-10-02", "user", "오이 샀어", DAY1 + 86_400_000),
+    ))
+    body = h.messages()[0]["content"]
+    assert "[2025-10-01 10:00 통화]" in body
+    assert "[2025-10-02 10:00 채팅]" in body
