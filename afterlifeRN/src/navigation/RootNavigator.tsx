@@ -56,6 +56,8 @@ export default function v_3b950c() {
 
   const { decision: v_403b73, loading: v_decd98 } = v_b5d684();
 
+  const v_65e1e2 = v_2f5414();
+
   const v_8a15d2 = v_042a8b && (v_decd98 || !v_403b73.pass);
 
   if (v_8a15d2) {
@@ -63,7 +65,6 @@ export default function v_3b950c() {
     return <PermissionGateScreen />;
   }
 
-  const v_65e1e2 = v_2f5414();
   if (v_042a8b && !v_65e1e2.loading && v_65e1e2.needs) {
     return <SsoReconsentScreen onDone={v_65e1e2.refresh} />;
   }
