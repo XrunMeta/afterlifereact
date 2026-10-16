@@ -675,7 +675,9 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         </Pressable>
       </Modal>
 
-      {}
+      {
+
+}
       <Modal
         visible={!!v_db205d}
         transparent
@@ -683,19 +685,21 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         onRequestClose={() => v_fb20c7(null)}
       >
         <Pressable style={v_d81136.sheetOverlay} onPress={() => v_fb20c7(null)}>
-          <Pressable
+          <View
             style={[v_d81136.actionSheet, v_d81136.turnsSheet, { paddingBottom: v_2b650d }]}
-            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
+            onStartShouldSetResponder={() => true}
           >
             <View style={v_d81136.sheetHandle} />
             <Text style={v_d81136.sheetTitle}>{v_8d41d7("chat.callTranscriptTitle")}</Text>
             <ScrollView
               style={{ flex: 1 }}
-              contentContainerStyle={{ paddingBottom: 20 }}
+              contentContainerStyle={{ paddingBottom: 20 + v_2b650d }}
               onScroll={({ nativeEvent: v_76b943 }) => {
                 if (v_76b943.contentOffset.y <= 20) void v_6deb64();
               }}
               scrollEventThrottle={200}
+              nestedScrollEnabled
+              showsVerticalScrollIndicator
             >
               {v_db205d?.loading && v_db205d.turns.length === 0 && (
                 <Text style={v_d81136.loadingText}>{v_8d41d7("chat.loadingGeneric")}</Text>
@@ -708,8 +712,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                   <View
                     style={
                       v_8d41d7.role === "user"
-                        ? [v_d81136.userBubble, { width: "80%" }]
-                        : [v_d81136.personaOutsideBubble, v_d81136.turnPersonaBubble, { width: "80%" }]
+                        ? [v_d81136.userBubble, { maxWidth: "80%" }]
+                        : [v_d81136.personaOutsideBubble, v_d81136.turnPersonaBubble, { maxWidth: "80%" }]
                     }
                   >
                     <Text
@@ -728,7 +732,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                 <Text style={v_d81136.loadingText}>{v_8d41d7("chat.loadingPrevUtterances")}</Text>
               )}
             </ScrollView>
-          </Pressable>
+          </View>
         </Pressable>
       </Modal>
     </View>
