@@ -21,6 +21,7 @@ import v_e775af from "../../components/ui/TextField";
 import v_d56c0a from "../../components/ui/SelectField";
 import v_258c1c from "../../components/common/PageHeader";
 import v_57037e from "../../components/common/CountryRegionPicker";
+import { v_867937 } from "../../constants/xrunCodes";
 import v_c0caa9, { type v_3ac6ea } from "../../components/common/TermsModal";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_97ea8d, v_35200c, v_2efafe, v_84a859 } from "../../api/auth";
@@ -46,30 +47,22 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   ];
 
   const v_ac0935 = v_a3453e.useMemo(
-    () => [
-      { value: "10", label: v_8d41d7("auth.signup.ageRange10", { defaultValue: "10대" }) },
-      { value: "20", label: v_8d41d7("auth.signup.ageRange20", { defaultValue: "20대" }) },
-      { value: "30", label: v_8d41d7("auth.signup.ageRange30", { defaultValue: "30대" }) },
-      { value: "40", label: v_8d41d7("auth.signup.ageRange40", { defaultValue: "40대" }) },
-      { value: "50+", label: v_8d41d7("auth.signup.ageRange50Plus", { defaultValue: "50대 이상" }) },
-    ],
+    () =>
+      v_867937.map((v_68b2be) => ({
+        value: v_68b2be.value,
+        label: v_8d41d7(`auth.signup.ageRange${v_68b2be.value}`, { defaultValue: v_68b2be.label }),
+      })),
     [v_8d41d7],
   );
 
   const v_56f818 = (v_cb35cb): number => {
     switch (v_cb35cb) {
-      case "10":
-        return 15;
-      case "20":
-        return 25;
-      case "30":
-        return 35;
-      case "40":
-        return 45;
-      case "50+":
-        return 55;
-      default:
-        return 0;
+      case 2210: return 15;
+      case 2220: return 25;
+      case 2230: return 35;
+      case 2240: return 45;
+      case 2250: return 55;
+      default: return 0;
     }
   };
   const v_a8d185 = v_c7daf6.params?.google;
@@ -81,7 +74,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_d74a81, v_fcce73] = v_5ab095("");
   const [v_c3eac4, v_bdc43c] = v_5ab095<"male" | "female" | "">("");
 
-  const [v_f83808, v_64a312] = v_5ab095<string>("");
+  const [v_f83808, v_64a312] = v_5ab095<number | null>(null);
   const [v_b9bbbd, v_b7066f] = v_5ab095<v_da1883 | null>(null);
   const [v_a6c30b, v_c030e3] = v_5ab095<v_da1883 | null>(null);
   const [v_9d56c4, v_7168a2] = v_5ab095(false);
@@ -286,7 +279,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       return;
     }
 
-    const v_f4fe8e = v_f83808 ? v_56f818(v_f83808) : undefined;
+    const v_f4fe8e = v_f83808 != null ? v_56f818(v_f83808) : undefined;
 
     v_ee9ec1(true);
     try {
@@ -533,10 +526,10 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
               />
             </View>
             <View style={{ flex: 1 }}>
-              <SelectField<string>
+              <SelectField<number>
                 options={v_ac0935}
-                value={v_f83808}
-                onChange={v_64a312}
+                value={v_f83808 ?? undefined}
+                onChange={(v_81e2ef) => v_64a312(v_81e2ef ?? null)}
                 placeholder={v_8d41d7("auth.signup.ageRangePlaceholder", { defaultValue: "연령대" })}
               />
             </View>
