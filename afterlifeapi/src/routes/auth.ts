@@ -665,20 +665,17 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
         .then((v_cb35cb) => { if (!v_cb35cb.ok) console.warn(`[auth.signup] syncTermsToXrun failed: ${v_cb35cb.reason}`); });
     } else {
 
-      const v_5f4e45 = `${v_6bd187.status}${v_6bd187.reason ? ": " + v_6bd187.reason : ""}`;
-      console.warn(`[auth.signup] xrun register failed user_id=${v_81161e.id}: ${v_5f4e45}`);
+      const v_b052de = v_6bd187.reason ?? "알 수 없는 오류";
+      console.warn(`[auth.signup] xrun register failed user_id=${v_81161e.id}: ${v_6bd187.status}: ${v_b052de}`);
       await v_3f4e2e.env.DB.prepare(`DELETE FROM users WHERE id = ?`).bind(v_81161e.id).run();
-      throw new v_3ebe58(
-        "XRUN_REGISTRATION_FAILED",
-        `XRUN 가입에 실패했어요. (${v_5f4e45})`,
-      );
+      throw new v_3ebe58("XRUN_REGISTRATION_FAILED", v_b052de);
     }
   } catch (v_49263d) {
     if (v_49263d instanceof v_3ebe58) throw v_49263d;
     const v_badeaf = (v_49263d as Error).message;
     console.warn(`[auth.signup] xrun register error user_id=${v_81161e.id}:`, v_badeaf);
     await v_3f4e2e.env.DB.prepare(`DELETE FROM users WHERE id = ?`).bind(v_81161e.id).run();
-    throw new v_3ebe58("XRUN_REGISTRATION_FAILED", `XRUN 가입 네트워크 오류: ${v_badeaf}`);
+    throw new v_3ebe58("XRUN_REGISTRATION_FAILED", v_badeaf);
   }
 
   try {
