@@ -511,6 +511,34 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     v_6a0bf8("");
   };
 
+  const v_2be27a = new Set<string>([
+
+    "naver.com",
+    "daum.net",
+    "hanmail.net",
+    "kakao.com",
+    "nate.com",
+
+    "gmail.com",
+    "hotmail.com",
+    "outlook.com",
+    "yahoo.com",
+    "icloud.com",
+    "me.com",
+    "aol.com",
+    "msn.com",
+    "live.com",
+    "protonmail.com",
+
+    "yahoo.co.id",
+  ]);
+  const v_b40551 = (v_33c3a8): boolean => {
+    const v_83d291 = v_33c3a8.lastIndexOf("@");
+    if (v_83d291 < 0) return false;
+    const v_52b478 = v_33c3a8.slice(v_83d291 + 1).trim().toLowerCase();
+    return v_2be27a.has(v_52b478);
+  };
+
   v_c4deb2(() => {
     if (v_a8d185) return; 
     const v_2f361a = v_e0c7e8.trim();
@@ -520,6 +548,11 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     }
 
     if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(v_2f361a)) {
+      v_11c6c1("invalid");
+      return;
+    }
+
+    if (!v_b40551(v_2f361a)) {
       v_11c6c1("invalid");
       return;
     }
@@ -580,6 +613,15 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       v_889fad(
         v_8d41d7("common.notice"),
         v_8d41d7("auth.signup.emailInvalid", { defaultValue: "이메일 형식이 올바르지 않아요" }),
+        [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: v_8fb688(v_776c12) }],
+      );
+      return;
+    }
+
+    if (!v_b40551(v_e0c7e8.trim())) {
+      v_889fad(
+        v_8d41d7("common.notice"),
+        v_8d41d7("auth.signup.emailDomainNotAllowed", { defaultValue: "지원하지 않는 이메일 도메인입니다. gmail.com / naver.com / kakao.com 등 유명 도메인을 사용해주세요." }),
         [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: v_8fb688(v_776c12) }],
       );
       return;
@@ -836,7 +878,9 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             }
             errorText={
               v_b37c6e === "invalid"
-                ? (v_8d41d7("auth.signup.emailInvalid", { defaultValue: "이메일 형식이 올바르지 않아요" }) as string)
+                ? (/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(v_e0c7e8.trim()) && !v_b40551(v_e0c7e8.trim())
+                    ? (v_8d41d7("auth.signup.emailDomainNotAllowed", { defaultValue: "지원하지 않는 도메인입니다 (gmail.com / naver.com 등)" }) as string)
+                    : (v_8d41d7("auth.signup.emailInvalid", { defaultValue: "이메일 형식이 올바르지 않아요" }) as string))
                 : v_b37c6e === "duplicate"
                   ? (v_8d41d7("auth.signup.emailDuplicateHint", { defaultValue: "이미 가입된 이메일입니다" }) as string)
                   : undefined
