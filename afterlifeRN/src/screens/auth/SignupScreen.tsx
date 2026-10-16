@@ -110,10 +110,11 @@ function v_89c10a({
 }
 
 const v_3da94c = v_472849.create({
+
   base: {
     height: 40,
     paddingHorizontal: 16,
-    borderRadius: 999,
+    borderRadius: 8,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
@@ -124,7 +125,7 @@ const v_3da94c = v_472849.create({
   },
   unselected: {
     backgroundColor: v_cafb6f.cardBg,
-    borderColor: v_cafb6f.fieldBorder,
+    borderColor: "#e3e9ed", 
   },
   label: {
     fontSize: 14,
@@ -152,16 +153,18 @@ function v_d7c611({
         v_da90dc ? v_4b34c0.boxChecked : v_4b34c0.boxUnchecked,
       ]}
     >
-      {v_da90dc ? <Feather name="check" size={14} color="#ffffff" /> : null}
+      {}
+      {v_da90dc ? <View style={v_4b34c0.checkMark} /> : null}
     </TouchableOpacity>
   );
 }
 
 const v_4b34c0 = v_472849.create({
+
   box: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
+    width: 24,
+    height: 24,
+    borderRadius: 8,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
@@ -173,7 +176,17 @@ const v_4b34c0 = v_472849.create({
   },
   boxUnchecked: {
     backgroundColor: v_cafb6f.cardBg,
-    borderColor: v_1bfbd0.zinc300,
+    borderColor: "#dedede",
+  },
+  checkMark: {
+    width: 10,
+    height: 6,
+    borderLeftWidth: 2,
+    borderBottomWidth: 2,
+    borderLeftColor: "#ffffff",
+    borderBottomColor: "#ffffff",
+    transform: [{ rotate: "-45deg" }],
+    marginTop: -2,
   },
 });
 
@@ -1284,19 +1297,21 @@ const v_d81136 = v_472849.create({
     marginTop: 12,
   },
   primaryButton: {
+
     height: 56,
-    borderRadius: v_8b0c90.lg,
+    borderRadius: 16,
     backgroundColor: v_cafb6f.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   primaryButtonDisabled: {
-    backgroundColor: v_1bfbd0.zinc300,
+    opacity: 0.5, 
   },
   primaryButtonText: {
     color: "#ffffff",
     fontSize: 16,
-    fontFamily: v_843035.bold,
+    lineHeight: 24,
+    fontFamily: v_843035.medium, 
   },
   loadingContainer: {
     marginTop: 12,
