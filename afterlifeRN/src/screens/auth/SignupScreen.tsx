@@ -994,6 +994,10 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             }
           />
 
+          {
+}
+          {v_326be8.OS !== "android" && (
+            <>
           {}
           <FormField
             ref={v_11ccfc}
@@ -1083,6 +1087,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
               ))}
             </ScrollView>
           </View>
+            </>
+          )}
 
           {}
           {}
