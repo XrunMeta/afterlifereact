@@ -21,7 +21,7 @@ import v_e775af from "../../components/ui/TextField";
 import v_d56c0a from "../../components/ui/SelectField";
 import v_258c1c from "../../components/common/PageHeader";
 import v_57037e from "../../components/common/CountryRegionPicker";
-import { v_867937 } from "../../constants/xrunCodes";
+import { v_867937, v_51973b } from "../../constants/xrunCodes";
 import v_c0caa9, { type v_3ac6ea } from "../../components/common/TermsModal";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_97ea8d, v_35200c, v_2efafe, v_84a859 } from "../../api/auth";
@@ -76,7 +76,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
   const [v_f83808, v_64a312] = v_5ab095<number | null>(null);
   const [v_b9bbbd, v_b7066f] = v_5ab095<v_da1883 | null>(null);
-  const [v_a6c30b, v_c030e3] = v_5ab095<v_da1883 | null>(null);
+
+  const [v_a6c30b, v_c030e3] = v_5ab095<number | null>(null);
   const [v_9d56c4, v_7168a2] = v_5ab095(false);
 
   const [v_d39271, v_fe0d62] = v_5ab095<v_3ac6ea | null>(null);
@@ -289,8 +290,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         ? (v_b9bbbd.countryCode ??
             (Number(v_b9bbbd.dialCode.replace(/[^\d]/g, "")) || 0))
         : undefined;
-      const v_222917 =
-        v_a6c30b && v_a6c30b.iso2 !== "global" ? v_a6c30b.dialCode : undefined;
+
+      const v_222917 = v_a6c30b != null ? String(v_a6c30b) : undefined;
 
       if (v_a8d185) {
 
@@ -508,10 +509,28 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           {}
           <TextField
             ref={v_11ccfc}
-            placeholder={v_8d41d7("auth.signup.phone")}
+            placeholder={
+              v_b9bbbd?.iso2 === "kr"
+                ? "01012345678"
+                : v_b9bbbd?.iso2 === "us"
+                  ? "1234567890"
+                  : v_8d41d7("auth.signup.phone")
+            }
             value={v_d74a81}
-            onChangeText={v_fcce73}
+            onChangeText={(v_81e2ef) => {
+              const v_e6d4a6 = v_81e2ef.replace(/[^0-9]/g, "");
+              const v_d2c6bf =
+                v_b9bbbd?.iso2 === "kr" ? 11
+                  : v_b9bbbd?.iso2 === "us" ? 10
+                    : 15;
+              v_fcce73(v_e6d4a6.slice(0, v_d2c6bf));
+            }}
             keyboardType="phone-pad"
+            maxLength={
+              v_b9bbbd?.iso2 === "kr" ? 11
+                : v_b9bbbd?.iso2 === "us" ? 10
+                  : 15
+            }
             leftIcon={<Feather name="phone" size={20} color={v_1bfbd0.zinc500} />}
           />
 
@@ -548,14 +567,6 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                   {v_8d41d7(`countries:${v_b9bbbd.iso2.toUpperCase()}`, {
                     defaultValue: v_b9bbbd.name,
                   })}
-                  {v_a6c30b && v_a6c30b.iso2 !== "global" && (
-                    <Text style={v_d81136.pickerRegion}>
-                      {"  ·  "}
-                      {v_8d41d7(`regions:${v_a6c30b.countryCode}_${v_a6c30b.dialCode}`, {
-                        defaultValue: v_a6c30b.name,
-                      })}
-                    </Text>
-                  )}
                 </Text>
               ) : (
                 <Text style={v_d81136.pickerPlaceholder}>
@@ -565,6 +576,37 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             </View>
             <Feather name="chevron-right" size={18} color={v_1bfbd0.zinc400} />
           </TouchableOpacity>
+
+          {}
+          {(() => {
+            const v_f6907d =
+              typeof v_b9bbbd?.countryCode === "number"
+                ? v_b9bbbd.countryCode
+                : v_b9bbbd?.dialCode
+                  ? Number(v_b9bbbd.dialCode.replace(/^\+/, ""))
+                  : null;
+            const v_1b4f92 =
+              v_b9bbbd && v_f6907d != null && Number.isFinite(v_f6907d) && v_f6907d > 0
+                ? v_51973b(v_f6907d, v_b9bbbd.iso2).map((v_cb35cb) => ({
+                    value: v_cb35cb.value,
+                    label: v_cb35cb.label,
+                  }))
+                : [];
+            if (!v_b9bbbd) {
+              return null; 
+            }
+            if (v_1b4f92.length === 0) {
+              return null; 
+            }
+            return (
+              <SelectField<number>
+                options={v_1b4f92}
+                value={v_a6c30b ?? undefined}
+                onChange={(v_81e2ef) => v_c030e3(v_81e2ef ?? null)}
+                placeholder={v_8d41d7("auth.signup.regionPlaceholder", { defaultValue: "지역을 선택해주세요" })}
+              />
+            );
+          })()}
 
           {
 
@@ -721,14 +763,16 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       {
 
 }
+      {}
       <CountryRegionPicker
         visible={v_9d56c4}
         onClose={() => v_7168a2(false)}
         selectedCountry={v_b9bbbd}
-        selectedRegion={v_a6c30b}
-        onSelect={(v_3f4e2e, v_cb35cb) => {
+        selectedRegion={null}
+        onSelect={(v_3f4e2e, v_50eb64) => {
           v_b7066f(v_3f4e2e);
-          v_c030e3(v_cb35cb);
+          v_c030e3(null); 
+          v_7168a2(false); 
         }}
       />
 
