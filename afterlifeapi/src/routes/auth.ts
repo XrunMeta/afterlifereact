@@ -638,6 +638,8 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
       country: v_4d33b2.country,
       mobileCode: v_4d33b2.mobileCode,
       region: v_4d33b2.region,
+
+      deviceId: v_4d33b2.deviceId,
     });
     let v_9816e7 = null;
     let v_3ac92c = null;
