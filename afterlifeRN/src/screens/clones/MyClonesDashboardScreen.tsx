@@ -886,8 +886,12 @@ export default function v_def15b() {
                       style={v_fd5f43.profileStatItem}
                       onPress={() => {
 
-                        if (v_fc7f92.length === 0) return;
-                        v_9fd982.current?.scrollToOffset({ offset: 0, animated: true });
+                        const v_44e218 = v_b113dd?.id;
+                        if (!v_44e218) return;
+                        v_f4c991.navigate("UserCloneList", {
+                          userId: v_44e218,
+                          userName: v_b113dd?.name ?? undefined,
+                        });
                       }}
                     >
                       <Text style={v_fd5f43.profileStatValue}>{v_fc7f92.length}</Text>
