@@ -118,6 +118,28 @@ v_469bf2("채팅 전송 — 크레딧 없음 · 대화 DEK 암호화", () => {
     v_4d37e3(v_7d5618!.n).toBe(0);
   });
 
+  v_23805a("전송 응답의 at 은 타임라인과 같은 형식(epoch ms)이고 같은 메시지면 값도 같다", async () => {
+    const v_0c8987 = await v_bfb240("chat-at@t.local");
+    const v_062ae9 = await v_4d24a9(v_0c8987, "chat_at");
+    const v_e98932 = Date.now() - 2000;
+    const v_8f00b9 = await v_c5d920(v_0c8987, v_062ae9, "몇 시예요", "at-1");
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_4d33b2 = (await v_8f00b9.json()) as {
+      userMessage: { id: number; at: number };
+      cloneReply: { id: number; at: number };
+    };
+    v_4d37e3(typeof v_4d33b2.userMessage.at).toBe("number");
+    v_4d37e3(typeof v_4d33b2.cloneReply.at).toBe("number");
+    v_4d37e3(v_4d33b2.userMessage.at).toBeGreaterThanOrEqual(Math.floor(v_e98932 / 1000) * 1000);
+    v_4d37e3(v_4d33b2.userMessage.at).toBeLessThanOrEqual(Date.now() + 2000);
+    const v_fcb4e5 = await v_fb3621<{ items: TimelineItem[] }>(v_0c8987, `/oth-path${v_062ae9}/timeline`);
+    const v_b6b02f = new Map(
+      v_fcb4e5.body.items.flatMap((v_ebec57) => (v_ebec57.type === "chat" ? [[v_ebec57.id, v_ebec57.at] as const] : [])),
+    );
+    v_4d37e3(v_b6b02f.get(v_4d33b2.userMessage.id)).toBe(v_4d33b2.userMessage.at);
+    v_4d37e3(v_b6b02f.get(v_4d33b2.cloneReply.id)).toBe(v_4d33b2.cloneReply.at);
+  });
+
   v_23805a("저장된 채팅은 통화와 같은 대화 DEK(v3)로 잠기고, 목록 조회는 평문을 돌려준다", async () => {
     const v_0c8987 = await v_bfb240("chat-enc@t.local");
     const v_062ae9 = await v_4d24a9(v_0c8987, "chat_enc");
