@@ -64,8 +64,9 @@ export interface ConversationListResponse {
 
 export interface PostMessageResponse {
   sessionId: string;
-  userMessage: { id: number; content: string; createdAt: string };
-  cloneReply: { id: number; content: string; tokens: number; createdAt: string };
+
+  userMessage: { id: number; content: string; at?: number; createdAt: string };
+  cloneReply: { id: number; content: string; tokens: number; at?: number; createdAt: string };
   billing: { credits: number; tokens: number };
 }
 
