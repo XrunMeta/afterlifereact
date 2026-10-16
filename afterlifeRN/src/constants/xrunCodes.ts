@@ -162,3 +162,21 @@ export function v_6491a7(v_733b65): ReadonlyArray<{ value: number; label: string
   if (v_733b65 == null) return [];
   return v_be9c13[v_733b65] ?? [];
 }
+
+import { v_944e0c } from "zjvstacmhzoahupuiw";
+
+export function v_51973b(
+  v_733b65,
+  v_cc0c7d,
+): ReadonlyArray<{ value: number; label: string }> {
+  if (v_733b65 == null) return [];
+  const v_6ef68e = v_be9c13[v_733b65];
+  if (v_6ef68e && v_6ef68e.length > 0) return v_6ef68e;
+  if (!v_cc0c7d) return [];
+  try {
+    const v_4cbaf4 = v_944e0c.getStatesOfCountry(v_cc0c7d.toUpperCase());
+    return v_4cbaf4.map((v_fd5f43, v_e86ad8) => ({ value: v_e86ad8 + 1, label: v_fd5f43.name }));
+  } catch {
+    return [];
+  }
+}
