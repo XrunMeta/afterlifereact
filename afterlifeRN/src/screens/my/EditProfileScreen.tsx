@@ -149,13 +149,28 @@ export default function v_e2b396() {
 
   v_c4deb2(() => {
     if (!v_786737) return;
-    if (v_786737.country) {
+
+    const v_7ebb7c = Number(v_786737.country);
+    console.log(
+      `[EditProfile] country prefill — xrun country=${v_786737.country} (target=${v_7ebb7c})`,
+    );
+    if (Number.isFinite(v_7ebb7c) && v_7ebb7c > 0) {
       const v_4b037d = v_202d44.find(
-        (v_3f4e2e) => v_3f4e2e.countryCode === v_786737.country,
+        (v_3f4e2e) => Number(v_3f4e2e.countryCode) === v_7ebb7c,
+      );
+      console.log(
+        `[EditProfile] matched country:`,
+        v_4b037d ? `${v_4b037d.iso2}/${v_4b037d.name}` : "null",
       );
       v_b7066f(v_4b037d ?? null);
+    } else {
+      v_b7066f(null);
     }
-    v_c030e3(v_786737.region ?? null);
+    const v_fb2a0d = Number(v_786737.region);
+    console.log(
+      `[EditProfile] region prefill — xrun region=${v_786737.region} (target=${v_fb2a0d})`,
+    );
+    v_c030e3(Number.isFinite(v_fb2a0d) && v_fb2a0d > 0 ? v_fb2a0d : null);
   }, [v_786737]);
 
   const v_afb146 = v_df9f57(
