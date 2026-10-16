@@ -327,7 +327,18 @@ export default function CallScreen(props: Props) {
         clearTimeout(timer);
         const granted = consentR?.state === "granted";
         const personCount = personsR?.items?.length ?? -1;
-        const shouldRedirect = granted && personCount === 0;
+
+        let skippedRecently = false;
+        try {
+          const AsyncStorage = (await import("@react-native-async-storage/async-storage")).default;
+          const atStr = await AsyncStorage.getItem("face_enroll_later_at");
+          if (atStr) {
+            const atMs = Number(atStr);
+            const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+            skippedRecently = Number.isFinite(atMs) && Date.now() - atMs < SEVEN_DAYS;
+          }
+        } catch {  }
+        const shouldRedirect = granted && personCount === 0 && !skippedRecently;
         console.log(
           `[Call][preCallGate] granted=${granted} · personCount=${personCount} (user-wide) · redirect=${shouldRedirect}`,
         );
