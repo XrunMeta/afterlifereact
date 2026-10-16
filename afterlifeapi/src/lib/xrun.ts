@@ -96,6 +96,8 @@ export interface AfterlifeRegisterContext {
   country?: string;
   mobileCode?: number;
   region?: string;
+
+  deviceId?: string;
 }
 
 function v_b6cf08(v_16e2dd): {
@@ -145,6 +147,8 @@ export async function v_6e4cc8(
     social_code: 0,
 
     app_source: "afterlife",
+
+    device_id: v_16e2dd.deviceId ?? null,
   };
 
   let v_8f00b9;
