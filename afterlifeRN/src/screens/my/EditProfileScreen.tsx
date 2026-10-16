@@ -358,28 +358,11 @@ export default function v_e2b396() {
               style={v_fd5f43.fieldInput}
               value={v_d74a81}
 
-              onChangeText={(v_81e2ef) => {
-                const v_e6d4a6 = v_81e2ef.replace(/[^0-9]/g, "");
-                const v_d2c6bf =
-                  v_b9bbbd?.iso2 === "kr" ? 11
-                    : v_b9bbbd?.iso2 === "us" ? 10
-                      : 15;
-                v_fcce73(v_e6d4a6.slice(0, v_d2c6bf));
-              }}
-              placeholder={
-                v_b9bbbd?.iso2 === "kr"
-                  ? "01012345678"
-                  : v_b9bbbd?.iso2 === "us"
-                    ? "1234567890"
-                    : "—"
-              }
+              onChangeText={(v_81e2ef) => v_fcce73(v_81e2ef.replace(/[^0-9]/g, "").slice(0, 11))}
+              placeholder="01012345678"
               placeholderTextColor={v_1bfbd0.zinc400}
               keyboardType="phone-pad"
-              maxLength={
-                v_b9bbbd?.iso2 === "kr" ? 11
-                  : v_b9bbbd?.iso2 === "us" ? 10
-                    : 15
-              }
+              maxLength={11}
             />
           </View>
           <View style={v_fd5f43.divider} />

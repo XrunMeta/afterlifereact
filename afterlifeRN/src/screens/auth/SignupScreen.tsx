@@ -509,28 +509,11 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           {}
           <TextField
             ref={v_11ccfc}
-            placeholder={
-              v_b9bbbd?.iso2 === "kr"
-                ? "01012345678"
-                : v_b9bbbd?.iso2 === "us"
-                  ? "1234567890"
-                  : v_8d41d7("auth.signup.phone")
-            }
+            placeholder="01012345678"
             value={v_d74a81}
-            onChangeText={(v_81e2ef) => {
-              const v_e6d4a6 = v_81e2ef.replace(/[^0-9]/g, "");
-              const v_d2c6bf =
-                v_b9bbbd?.iso2 === "kr" ? 11
-                  : v_b9bbbd?.iso2 === "us" ? 10
-                    : 15;
-              v_fcce73(v_e6d4a6.slice(0, v_d2c6bf));
-            }}
+            onChangeText={(v_81e2ef) => v_fcce73(v_81e2ef.replace(/[^0-9]/g, "").slice(0, 11))}
             keyboardType="phone-pad"
-            maxLength={
-              v_b9bbbd?.iso2 === "kr" ? 11
-                : v_b9bbbd?.iso2 === "us" ? 10
-                  : 15
-            }
+            maxLength={11}
             leftIcon={<Feather name="phone" size={20} color={v_1bfbd0.zinc500} />}
           />
 
