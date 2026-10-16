@@ -62,8 +62,15 @@ const v_cafb6f = {
   pageBg: "#f9fafc",
   fieldBorder: "#ededed",
   divider: "#f0f0f0",
-  primary: v_1bfbd0.zinc900, 
+  primary: "#343A5A", 
   danger: "#ff6b6b",
+};
+
+const v_843035 = {
+  regular: "Roboto-Regular",
+  medium: "Roboto-Medium",
+  semi: "Roboto-SemiBold",
+  bold: "Roboto-Bold",
 };
 
 const v_936fd7 = 72;
@@ -121,7 +128,7 @@ const v_3da94c = v_472849.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: "500",
+    fontFamily: v_843035.medium, 
   },
 
   labelSelected: { color: "#ffffff" },
@@ -248,7 +255,7 @@ const v_eff3be = v_472849.create({
     fontSize: 13,
     color: v_cafb6f.mutedText,
     marginBottom: 6,
-    fontWeight: "500",
+    fontFamily: v_843035.medium, 
   },
   inputWrap: {
     flexDirection: "row",
@@ -267,6 +274,7 @@ const v_eff3be = v_472849.create({
     fontSize: 15,
     color: "#2a2727",
     padding: 0,
+    fontFamily: v_843035.regular, 
   },
   errorText: {
     marginTop: 4,
@@ -732,18 +740,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
               v_a8d185 ? <Feather name="lock" size={16} color={v_1bfbd0.zinc400} /> : undefined
             }
           />
-          {
-}
-          {!v_a8d185 && v_e0c7e8.trim().length > 0 && (() => {
-            const v_d065ee = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v_e0c7e8.trim());
-            return (
-              <Text style={[v_d81136.emailHint, v_d065ee ? v_d81136.emailHintOk : v_d81136.emailHintErr]}>
-                {v_d065ee
-                  ? `✓ ${v_8d41d7("auth.signup.emailValid", { defaultValue: "유효한 이메일" })}`
-                  : `✗ ${v_8d41d7("auth.signup.emailInvalid", { defaultValue: "이메일 형식이 올바르지 않아요" })}`}
-              </Text>
-            );
-          })()}
+          {}
 
           {}
           <FormField
@@ -768,7 +765,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
               </TouchableOpacity>
             }
           />
-          <Text style={v_d81136.passwordHint}>{v_8d41d7("auth.signup.passwordHint")}</Text>
+          {}
 
           {}
           <FormField
@@ -1239,19 +1236,6 @@ const v_d81136 = v_472849.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  passwordHint: {
-    fontSize: 12,
-    color: v_cafb6f.mutedText,
-    marginTop: -10,
-    marginLeft: 4,
-  },
-  emailHint: {
-    fontSize: 12,
-    marginTop: -10,
-    marginLeft: 4,
-  },
-  emailHintOk: { color: "#1A9450" },
-  emailHintErr: { color: "#E24C4C" },
   termsRow: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -1266,19 +1250,20 @@ const v_d81136 = v_472849.create({
   termsText: {
     flex: 1,
     fontSize: 13,
-    lineHeight: 18,
+    lineHeight: 15, 
     color: v_cafb6f.mutedText,
     alignSelf: "center",
+    fontFamily: v_843035.regular,
   },
   termsTextAll: {
     fontSize: 14,
-    fontWeight: "700",
+    fontFamily: v_843035.bold,
     color: v_cafb6f.headingText,
   },
   termsHighlight: {
-    fontWeight: "600",
+
+    fontFamily: v_843035.semi,
     color: v_cafb6f.headingText,
-    textDecorationLine: "underline",
   },
   termsDivider: {
     height: 1,
@@ -1305,7 +1290,7 @@ const v_d81136 = v_472849.create({
   primaryButtonText: {
     color: "#ffffff",
     fontSize: 16,
-    fontWeight: "700",
+    fontFamily: v_843035.bold,
   },
   loadingContainer: {
     marginTop: 12,
@@ -1340,7 +1325,7 @@ const v_d81136 = v_472849.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: "700",
+    fontFamily: v_843035.bold,
     color: v_cafb6f.headingText,
   },
   modalCloseButton: {
@@ -1364,6 +1349,7 @@ const v_d81136 = v_472849.create({
     marginLeft: 8,
     fontSize: 15,
     color: v_cafb6f.headingText,
+    fontFamily: v_843035.regular,
   },
   modalListContent: {
     paddingHorizontal: 20,
@@ -1387,6 +1373,7 @@ const v_d81136 = v_472849.create({
     flex: 1,
     fontSize: 15,
     color: v_cafb6f.headingText,
+    fontFamily: v_843035.medium,
   },
   modalListMeta: {
     fontSize: 13,
