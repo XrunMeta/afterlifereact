@@ -142,20 +142,23 @@ export default function v_dab470() {
             @{v_8c0b26.username}
           </Text>
         </View>
-        <TouchableOpacity
-          onPress={(v_9e86fd) => {
-            v_9e86fd.stopPropagation?.();
-            void v_3094d4(v_8c0b26.id);
-          }}
-          style={[v_fd5f43.followBtn, v_10387a && v_fd5f43.followBtnActive]}
-          activeOpacity={0.8}
-        >
-          <Text style={[v_fd5f43.followBtnText, v_10387a && v_fd5f43.followBtnTextActive]}>
-            {v_10387a
-              ? v_8d41d7("user.subscribingBtn", { defaultValue: "구독중" })
-              : v_8d41d7("user.subscribeBtn", { defaultValue: "구독" })}
-          </Text>
-        </TouchableOpacity>
+        {}
+        {!v_0c8fa1 && (
+          <TouchableOpacity
+            onPress={(v_9e86fd) => {
+              v_9e86fd.stopPropagation?.();
+              void v_3094d4(v_8c0b26.id);
+            }}
+            style={[v_fd5f43.followBtn, v_10387a && v_fd5f43.followBtnActive]}
+            activeOpacity={0.8}
+          >
+            <Text style={[v_fd5f43.followBtnText, v_10387a && v_fd5f43.followBtnTextActive]}>
+              {v_10387a
+                ? v_8d41d7("user.subscribingBtn", { defaultValue: "구독중" })
+                : v_8d41d7("user.subscribeBtn", { defaultValue: "구독" })}
+            </Text>
+          </TouchableOpacity>
+        )}
       </TouchableOpacity>
     );
   };
