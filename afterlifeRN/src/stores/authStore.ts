@@ -11,7 +11,6 @@ const v_1278db = "@afterlifeRN/auth/accessToken";
 const v_a19d89 = "@afterlifeRN/auth/refreshToken";
 
 const v_474220 = "@afterlifeRN/auth/sessionExpiresAt";
-const v_8fc700 = 24 * 60 * 60 * 1000; 
 const v_b9d568 = 1;
 
 interface AuthState {
@@ -58,12 +57,9 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
 
       const v_d4785a = await v_e84827.getItem(v_474220);
       if (v_d4785a) {
-        const v_0b8131 = Number(v_d4785a);
-        if (Number.isFinite(v_0b8131) && Date.now() > v_0b8131) {
-          await v_e84827.removeItem(v_1278db);
-          await v_e84827.removeItem(v_a19d89);
-          await v_e84827.removeItem(v_474220);
-        }
+        await v_e84827.removeItem(v_1278db);
+        await v_e84827.removeItem(v_a19d89);
+        await v_e84827.removeItem(v_474220);
       }
       v_21cc31 = await v_e84827.getItem(v_1278db);
       v_2474a1 = await v_e84827.getItem(v_a19d89);
@@ -81,7 +77,6 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
 
           await v_e84827.removeItem(v_1278db);
           await v_e84827.removeItem(v_a19d89);
-          await v_e84827.removeItem(v_474220);
           v_21cc31 = null;
           v_2474a1 = null;
         }
@@ -141,14 +136,17 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
     const { accessToken: v_2ca7e0 } = v_445b40;
     const v_dfaee3 = v_445b40.refreshToken ?? null;
     const { user: v_625c74 } = await v_7ef860(v_2ca7e0);
-    await v_e84827.setItem(v_1278db, v_2ca7e0);
-    if (v_dfaee3) {
-      await v_e84827.setItem(v_a19d89, v_dfaee3);
-    }
     if (v_3c038e) {
-      await v_e84827.removeItem(v_474220);
+      await v_e84827.setItem(v_1278db, v_2ca7e0);
+      if (v_dfaee3) {
+        await v_e84827.setItem(v_a19d89, v_dfaee3);
+      }
+      await v_e84827.removeItem(v_474220); 
     } else {
-      await v_e84827.setItem(v_474220, String(Date.now() + v_8fc700));
+
+      await v_e84827.removeItem(v_1278db);
+      await v_e84827.removeItem(v_a19d89);
+      await v_e84827.removeItem(v_474220);
     }
     v_bb8024({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, apiUser: v_625c74, isLoggedIn: true });
     return v_625c74;
@@ -158,14 +156,16 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
     const v_3c038e = v_328259?.persist !== false;
     const v_dfaee3 = v_328259?.refreshToken ?? null;
 
-    await v_e84827.setItem(v_1278db, v_21cc31);
-    if (v_dfaee3) {
-      await v_e84827.setItem(v_a19d89, v_dfaee3);
-    }
     if (v_3c038e) {
-      await v_e84827.removeItem(v_474220);
+      await v_e84827.setItem(v_1278db, v_21cc31);
+      if (v_dfaee3) {
+        await v_e84827.setItem(v_a19d89, v_dfaee3);
+      }
+      await v_e84827.removeItem(v_474220); 
     } else {
-      await v_e84827.setItem(v_474220, String(Date.now() + v_8fc700));
+      await v_e84827.removeItem(v_1278db);
+      await v_e84827.removeItem(v_a19d89);
+      await v_e84827.removeItem(v_474220);
     }
     v_bb8024((v_fd5f43) => ({
       accessToken: v_21cc31,
