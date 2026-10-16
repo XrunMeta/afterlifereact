@@ -175,6 +175,20 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
     }));
 
     v_9ff0b2(v_625c74.id);
+
+    void (async () => {
+      try {
+        const { getXrunProfile: v_2c296e } = await import("../api/auth");
+        const v_786737 = await v_2c296e(v_21cc31);
+        const v_32d8c3 = v_786737.firstname?.trim();
+        if (v_32d8c3 && v_32d8c3 !== v_625c74.name) {
+          console.log(`[authStore] xrun name sync "${v_625c74.name}" -> "${v_32d8c3}"`);
+          v_bb8024((v_fd5f43) => (v_fd5f43.apiUser ? { apiUser: { ...v_fd5f43.apiUser, name: v_32d8c3 } } : v_fd5f43));
+        }
+      } catch (v_49263d) {
+        console.warn("[authStore] xrun name sync failed:", (v_49263d as Error)?.message);
+      }
+    })();
   },
 
   setApiTokens: async (v_2ca7e0, v_dfaee3, v_328259) => {
