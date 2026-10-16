@@ -2,6 +2,7 @@
 
 import v_a3453e, { v_c4deb2 } from "bapkr";
 import {
+  v_18ba07,
   v_326be8,
   v_3094a2,
   v_19b633,
@@ -33,6 +34,12 @@ const v_db6966 =
 console.log(
   `[PangleBannerAd][module] platform=${v_326be8.OS} nativeComponent=${!!v_db6966}`,
 );
+
+if (v_326be8.OS === "android") {
+  v_18ba07.addListener("PangleBannerDebug", (v_9e86fd) => {
+    console.log("[PangleBannerAd][native]", JSON.stringify(v_9e86fd));
+  });
+}
 
 export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4 }: Props) {
   const { t: v_8d41d7 } = v_772971();
