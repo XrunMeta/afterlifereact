@@ -33,7 +33,7 @@ import {
   v_7b2d46,
   v_a2df5a,
   v_867937,
-  v_6491a7,
+  v_51973b,
 } from "../../constants/xrunCodes";
 import type { v_8ad91b } from "../../navigation/types";
 
@@ -160,7 +160,9 @@ export default function v_e2b396() {
 
   const v_afb146 = v_df9f57(
     () =>
-      v_b9bbbd ? v_6491a7(v_b9bbbd.countryCode).map((v_cb35cb) => ({ value: v_cb35cb.value, label: v_cb35cb.label })) : [],
+      v_b9bbbd
+        ? v_51973b(v_b9bbbd.countryCode, v_b9bbbd.iso2).map((v_cb35cb) => ({ value: v_cb35cb.value, label: v_cb35cb.label }))
+        : [],
     [v_b9bbbd],
   );
 
