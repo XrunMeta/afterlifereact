@@ -321,6 +321,9 @@ export default function SignupScreen({ navigation, route }: Props) {
   const [email, setEmail] = useState(google?.email ?? "");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  type EmailStatus = "idle" | "checking" | "invalid" | "duplicate" | "ok";
+  const [emailStatus, setEmailStatus] = useState<EmailStatus>("idle");
   const [phone, setPhone] = useState("");
   const [gender, setGender] = useState<"male" | "female" | "">("");
   const [ageRange, setAgeRange] = useState<number | null>(null);
@@ -508,6 +511,36 @@ export default function SignupScreen({ navigation, route }: Props) {
     setRegionSearchQuery("");
   };
 
+  useEffect(() => {
+    if (google) return; 
+    const trimmed = email.trim();
+    if (!trimmed) {
+      setEmailStatus("idle");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setEmailStatus("invalid");
+      return;
+    }
+    setEmailStatus("checking");
+    const timer = setTimeout(async () => {
+      try {
+        const check = await checkEmailXrun(trimmed);
+
+        if (check.afterlifeExists || check.xrunExists) {
+          setEmailStatus("duplicate");
+        } else {
+          setEmailStatus("ok");
+        }
+      } catch (err) {
+
+        console.warn("[SignupScreen] email check failed:", (err as Error).message);
+        setEmailStatus("idle");
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [email, google]);
+
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   useEffect(() => {
     if (!countryModalVisible && !regionModalVisible) {
@@ -544,10 +577,29 @@ export default function SignupScreen({ navigation, route }: Props) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       showAlert(
         t("common.notice"),
-        t("auth.signup.emailInvalid"),
+        t("auth.signup.emailInvalid", { defaultValue: "이메일 형식이 올바르지 않아요" }),
         [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: focusAfterAlert(emailRef) }],
       );
       return;
+    }
+
+    if (!google) {
+      if (emailStatus === "checking") {
+        showAlert(
+          t("common.notice"),
+          t("auth.signup.emailChecking", { defaultValue: "이메일 확인 중입니다. 잠시만 기다려 주세요." }),
+          [{ text: t("common.confirm", { defaultValue: "확인" }) }],
+        );
+        return;
+      }
+      if (emailStatus === "duplicate") {
+        showAlert(
+          t("common.notice"),
+          t("auth.signup.emailDuplicateHint", { defaultValue: "이미 가입된 이메일입니다" }),
+          [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: focusAfterAlert(emailRef) }],
+        );
+        return;
+      }
     }
     if (!password) {
       showAlert(
@@ -768,10 +820,25 @@ export default function SignupScreen({ navigation, route }: Props) {
             autoCapitalize="none"
             editable={!google}
             rightAccessory={
-              google ? <Feather name="lock" size={16} color={COLORS.zinc400} /> : undefined
+
+              google
+                ? <Feather name="lock" size={16} color={COLORS.zinc400} />
+                : emailStatus === "checking"
+                  ? <ActivityIndicator size="small" color={XRUN.primary} />
+                  : emailStatus === "invalid" || emailStatus === "duplicate"
+                    ? <Feather name="x-circle" size={18} color={XRUN.danger} />
+                    : emailStatus === "ok"
+                      ? <Feather name="check-circle" size={18} color="#1A9450" />
+                      : undefined
+            }
+            errorText={
+              emailStatus === "invalid"
+                ? (t("auth.signup.emailInvalid", { defaultValue: "이메일 형식이 올바르지 않아요" }) as string)
+                : emailStatus === "duplicate"
+                  ? (t("auth.signup.emailDuplicateHint", { defaultValue: "이미 가입된 이메일입니다" }) as string)
+                  : undefined
             }
           />
-          {}
 
           {}
           <FormField
