@@ -67,10 +67,6 @@ function v_c9bfd6(v_e13cd0): { firstname: string; lastname: string } {
   if (v_468545.length >= 2) {
     return { firstname: v_468545[0]!, lastname: v_468545.slice(1).join(" ") };
   }
-
-  if (/^[가-힯]{2,}$/.test(v_2f361a)) {
-    return { firstname: v_2f361a.slice(1), lastname: v_2f361a.slice(0, 1) };
-  }
   return { firstname: v_2f361a, lastname: "" };
 }
 
