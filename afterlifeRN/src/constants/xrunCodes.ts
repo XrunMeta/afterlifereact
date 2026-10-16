@@ -5,11 +5,11 @@ export const v_a2df5a = 2111;
 export const v_53df46 = 2100;
 
 export const v_867937 = [
-  { value: 2210, label: "10대" },
-  { value: 2220, label: "20대" },
-  { value: 2230, label: "30대" },
-  { value: 2240, label: "40대" },
-  { value: 2250, label: "50대 이상" },
+  { value: 2210, label: "10" },
+  { value: 2220, label: "20" },
+  { value: 2230, label: "30" },
+  { value: 2240, label: "40" },
+  { value: 2250, label: "50+" },
 ];
 
 export const v_6f3478 = [
