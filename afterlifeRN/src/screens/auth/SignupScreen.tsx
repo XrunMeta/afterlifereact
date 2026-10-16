@@ -746,11 +746,14 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         type={v_d39271}
         onClose={() => v_fe0d62(null)}
         onAgree={() => {
-          if (v_d39271 === 1) v_c8f346(true);
-          else if (v_d39271 === 3) v_1d4807(true);
-          else if (v_d39271 === 4) v_d34fc9(true);
-          else if (v_d39271 === 5) v_06ec09(true);
+
+          const v_8d41d7 = v_d39271;
           v_fe0d62(null);
+          if (v_8d41d7 === 1) v_c8f346(true);
+          else if (v_8d41d7 === 2) void v_26e7c7();
+          else if (v_8d41d7 === 3) v_1d4807(true);
+          else if (v_8d41d7 === 4) v_d34fc9(true);
+          else if (v_8d41d7 === 5) v_06ec09(true);
         }}
       />
     </SafeView>
