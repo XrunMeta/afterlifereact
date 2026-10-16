@@ -708,8 +708,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                   <View
                     style={
                       v_8d41d7.role === "user"
-                        ? [v_d81136.userBubble, { width: "80%" }]
-                        : [v_d81136.personaOutsideBubble, v_d81136.turnPersonaBubble, { width: "80%" }]
+                        ? [v_d81136.userBubble, { maxWidth: "80%" }]
+                        : [v_d81136.personaOutsideBubble, v_d81136.turnPersonaBubble, { maxWidth: "80%" }]
                     }
                   >
                     <Text
