@@ -257,7 +257,8 @@ const v_33a534 = v_1f4ea7.object({
   mobile: v_1f4ea7.string().min(1).max(40).nullable().optional(),
   mobilecode: v_1f4ea7.string().min(1).max(10).nullable().optional(),
   gender: v_1f4ea7.number().int().nullable().optional(),
-  age: v_1f4ea7.number().int().min(13).max(120).nullable().optional(),
+
+  age: v_1f4ea7.number().int().min(0).max(9999).nullable().optional(),
   countrycode: v_1f4ea7.string().min(2).max(8).nullable().optional(),
   country: v_1f4ea7.number().int().nullable().optional(),
   region: v_1f4ea7.number().int().nullable().optional(),
