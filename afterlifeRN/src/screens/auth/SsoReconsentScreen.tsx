@@ -19,6 +19,13 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_fa872d } from "../../hooks/useSsoReconsentGate";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 
+import {
+  v_7f847d,
+  v_421733,
+  v_2d09bf,
+} from "../../api/consent";
+import { v_d2929b } from "./faceBiometricSignupFlag";
+
 type Props = {
   onDone: () => void;
 };
@@ -36,6 +43,8 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
   const [v_09b7fa, v_1d4807] = v_5ab095(false);
   const [v_540cd3, v_a67880] = v_5ab095(false);
   const [v_ae0efb, v_f2d945] = v_5ab095(false);
+
+  const [v_a03498, v_d34fc9] = v_5ab095(false);
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
 
   const v_8c2724 = v_51b53b && v_09b7fa && v_540cd3 && v_ae0efb;
@@ -46,12 +55,41 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
     v_1d4807(v_a448ad);
     v_a67880(v_a448ad);
     v_f2d945(v_a448ad);
+
+    v_d34fc9(v_a448ad);
   };
 
   const v_0577ff = async () => {
     if (!v_8c2724 || v_cb66b4) return;
     v_ee9ec1(true);
     try {
+
+      if (v_2ca7e0) {
+        if (v_540cd3) {
+          try {
+            await v_2d09bf(v_2ca7e0, "granted", { channel: "settings" });
+          } catch (v_49263d) {
+            console.warn("[SsoReconsent] saveLocationConsent failed:", v_49263d);
+          }
+        }
+        if (v_ae0efb) {
+          try {
+            await v_7f847d(v_2ca7e0, "granted", { channel: "settings" });
+          } catch (v_49263d) {
+            console.warn("[SsoReconsent] saveCallLearningConsent failed:", v_49263d);
+          }
+        }
+
+        try {
+          await v_421733(
+            v_2ca7e0,
+            v_d2929b(v_a03498),
+            { termsVersion: "v1", channel: "settings" },
+          );
+        } catch (v_49263d) {
+          console.warn("[SsoReconsent] saveFaceBiometricConsent failed:", v_49263d);
+        }
+      }
       await v_fa872d(v_2ca7e0);
       await v_1ed7d9.getState().refreshApiUser?.();
       v_7b5712();
@@ -144,6 +182,15 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
             defaultValue: "[필수] AI 데이터 활용 및 생성 동의",
           })}
         />
+        {}
+        <ConsentRow
+          checked={v_a03498}
+          onCheck={() => v_d34fc9(!v_a03498)}
+          onReadMore={() => v_fe0d62(4)}
+          label={v_8d41d7("auth.signup.faceBiometricConsent", {
+            defaultValue: "[선택] 얼굴 생체정보 처리 동의",
+          })}
+        />
       </ScrollView>
 
       <View style={[v_d81136.footer, { paddingBottom: 16 + v_53dd92 }]}>
@@ -169,11 +216,14 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
         type={v_d39271}
         onClose={() => v_fe0d62(null)}
         onAgree={() => {
-          if (v_d39271 === 1) v_c8f346(true);
-          else if (v_d39271 === 3) v_1d4807(true);
-          else if (v_d39271 === 2) v_a67880(true);
-          else if (v_d39271 === 5) v_f2d945(true);
+
+          const v_357868 = v_d39271;
           v_fe0d62(null);
+          if (v_357868 === 1) v_c8f346(true);
+          else if (v_357868 === 2) v_a67880(true);
+          else if (v_357868 === 3) v_1d4807(true);
+          else if (v_357868 === 4) v_d34fc9(true);
+          else if (v_357868 === 5) v_f2d945(true);
         }}
       />
     </View>

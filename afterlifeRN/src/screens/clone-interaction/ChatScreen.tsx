@@ -416,6 +416,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={v_326be8.OS === "ios" ? "padding" : "height"}
+      enabled={v_326be8.OS === "ios" ? true : v_7e4acc > 0}
     >
     <View style={[v_d81136.root, { paddingTop: v_033e14.top }]}>
       {}
@@ -896,7 +897,8 @@ const v_d81136 = v_472849.create({
 
   userBubble: {
     alignSelf: "flex-end",
-    width: "70%",
+
+    maxWidth: "70%",
     backgroundColor: v_1bfbd0.violet600,
     borderRadius: 14,
     paddingHorizontal: 12,
@@ -907,7 +909,7 @@ const v_d81136 = v_472849.create({
 
   personaOutsideBubble: {
     alignSelf: "flex-start",
-    width: "70%",
+    maxWidth: "70%",
     backgroundColor: v_1bfbd0.white,
     borderRadius: 14,
     paddingHorizontal: 12,
