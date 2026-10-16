@@ -897,7 +897,8 @@ const v_d81136 = v_472849.create({
 
   userBubble: {
     alignSelf: "flex-end",
-    width: "70%",
+
+    maxWidth: "70%",
     backgroundColor: v_1bfbd0.violet600,
     borderRadius: 14,
     paddingHorizontal: 12,
@@ -908,7 +909,7 @@ const v_d81136 = v_472849.create({
 
   personaOutsideBubble: {
     alignSelf: "flex-start",
-    width: "70%",
+    maxWidth: "70%",
     backgroundColor: v_1bfbd0.white,
     borderRadius: 14,
     paddingHorizontal: 12,
