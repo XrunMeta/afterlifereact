@@ -48,7 +48,17 @@ import {
   v_867937,
   v_51973b,
 } from "../../constants/xrunCodes";
-import { v_1bd8ad } from "../../constants";
+import { v_1bd8ad, v_202d44 } from "../../constants";
+
+const SIGNUP_COUNTRIES: v_da1883[] = (() => {
+  const v_110a8b = new Set<string>();
+  return v_202d44.filter((v_3f4e2e) => {
+    const v_b24339 = `${v_3f4e2e.iso2}|${v_3f4e2e.dialCode}`;
+    if (v_110a8b.has(v_b24339)) return false;
+    v_110a8b.add(v_b24339);
+    return true;
+  });
+})();
 
 type Props = {
   navigation: v_390fcc<v_384e19, "Signup">;
@@ -450,8 +460,9 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
   const v_daa71c = v_df9f57(() => {
     const v_ab6401 = v_bd30a1.trim().toLowerCase();
-    if (!v_ab6401) return v_1bd8ad;
-    return v_1bd8ad.filter((v_3f4e2e) => {
+
+    if (!v_ab6401) return v_df5e5f;
+    return v_df5e5f.filter((v_3f4e2e) => {
       const v_8cb36b = v_3f4e2e.name.toLowerCase().includes(v_ab6401);
       const v_6fc191 = v_3f4e2e.iso2.toLowerCase() === v_ab6401;
       const v_4ba62b = v_3f4e2e.dialCode.replace(/[^0-9]/g, "").includes(v_ab6401.replace(/^\+/, ""));
