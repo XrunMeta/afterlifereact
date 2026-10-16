@@ -996,15 +996,17 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
           {
 }
-          {v_326be8.OS !== "android" && (
-            <>
           {}
           <FormField
             ref={v_11ccfc}
-            label={`${v_8d41d7("auth.signup.phone", { defaultValue: "전화번호" })} (${v_8d41d7(
-              "auth.signup.optional",
-              { defaultValue: "선택사항" },
-            )})`}
+            label={
+              v_326be8.OS === "android"
+                ? (v_8d41d7("auth.signup.phone", { defaultValue: "전화번호" }) as string)
+                : `${v_8d41d7("auth.signup.phone", { defaultValue: "전화번호" })} (${v_8d41d7(
+                    "auth.signup.optional",
+                    { defaultValue: "선택사항" },
+                  )})`
+            }
             placeholder="01012345678"
             value={v_d74a81}
             onChangeText={(v_81e2ef) => v_fcce73(v_81e2ef.replace(/[^0-9]/g, "").slice(0, 11))}
@@ -1025,10 +1027,14 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           {}
           {v_afb146.length > 0 ? (
             <FormField
-              label={`${v_8d41d7("auth.signup.region", { defaultValue: "지역" })} (${v_8d41d7(
-                "auth.signup.optional",
-                { defaultValue: "선택사항" },
-              )})`}
+              label={
+                v_326be8.OS === "android"
+                  ? (v_8d41d7("auth.signup.region", { defaultValue: "지역" }) as string)
+                  : `${v_8d41d7("auth.signup.region", { defaultValue: "지역" })} (${v_8d41d7(
+                      "auth.signup.optional",
+                      { defaultValue: "선택사항" },
+                    )})`
+              }
               placeholder={v_8d41d7("auth.signup.regionPlaceholder", { defaultValue: "지역 선택" })}
               value={v_a6c30b != null ? v_56743f : ""}
               editable={false}
@@ -1039,7 +1045,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           {}
           <View style={v_d81136.fieldContainer}>
             <Text style={v_d81136.sectionLabel}>
-              {v_8d41d7("auth.signup.gender", { defaultValue: "성별" })} ({v_8d41d7("auth.signup.optional", { defaultValue: "선택사항" })})
+              {v_8d41d7("auth.signup.gender", { defaultValue: "성별" })}
+              {v_326be8.OS !== "android" && ` (${v_8d41d7("auth.signup.optional", { defaultValue: "선택사항" })})`}
             </Text>
             <View style={v_d81136.inlineOptions}>
               <OptionButton
@@ -1063,7 +1070,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           {}
           <View style={v_d81136.fieldContainer}>
             <Text style={v_d81136.sectionLabel}>
-              {v_8d41d7("auth.signup.ageRange", { defaultValue: "연령대" })} ({v_8d41d7("auth.signup.optional", { defaultValue: "선택사항" })})
+              {v_8d41d7("auth.signup.ageRange", { defaultValue: "연령대" })}
+              {v_326be8.OS !== "android" && ` (${v_8d41d7("auth.signup.optional", { defaultValue: "선택사항" })})`}
             </Text>
             <ScrollView
               horizontal
@@ -1087,8 +1095,6 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
               ))}
             </ScrollView>
           </View>
-            </>
-          )}
 
           {}
           {}
