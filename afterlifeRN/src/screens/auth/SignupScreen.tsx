@@ -324,6 +324,19 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
   type EmailStatus = "idle" | "checking" | "invalid" | "duplicate" | "ok";
   const [v_b37c6e, v_11c6c1] = v_5ab095<EmailStatus>("idle");
+
+  type PasswordStatus = "idle" | "invalid" | "ok";
+  const v_eb6846 = !v_adc076
+    ? "idle"
+    : /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/.test(v_adc076)
+      ? "ok"
+      : "invalid";
+  type ConfirmStatus = "idle" | "mismatch" | "ok";
+  const v_a41c7b = !v_0b3ebe
+    ? "idle"
+    : v_adc076 === v_0b3ebe
+      ? "ok"
+      : "mismatch";
   const [v_d74a81, v_fcce73] = v_5ab095("");
   const [v_c3eac4, v_bdc43c] = v_5ab095<"male" | "female" | "">("");
   const [v_f83808, v_64a312] = v_5ab095<number | null>(null);
@@ -897,20 +910,34 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             secureTextEntry={!v_b5ab16}
             autoCapitalize="none"
             rightAccessory={
-              <TouchableOpacity
-                onPress={() => v_b7733b((v_81e2ef) => !v_81e2ef)}
-                hitSlop={8}
-                style={v_d81136.eyeButton}
-              >
-                <Ionicons
-                  name={v_b5ab16 ? "eye-outline" : "eye-off-outline"}
-                  size={20}
-                  color="#666666"
-                />
-              </TouchableOpacity>
+
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                {v_eb6846 === "ok" ? (
+                  <Feather name="check-circle" size={18} color="#1A9450" />
+                ) : v_eb6846 === "invalid" ? (
+                  <Feather name="x-circle" size={18} color={v_cafb6f.danger} />
+                ) : null}
+                <TouchableOpacity
+                  onPress={() => v_b7733b((v_81e2ef) => !v_81e2ef)}
+                  hitSlop={8}
+                  style={v_d81136.eyeButton}
+                >
+                  <Ionicons
+                    name={v_b5ab16 ? "eye-outline" : "eye-off-outline"}
+                    size={20}
+                    color="#666666"
+                  />
+                </TouchableOpacity>
+              </View>
+            }
+            errorText={
+              v_eb6846 === "invalid"
+                ? (v_8d41d7("auth.signup.passwordTooShort", {
+                    defaultValue: "7자 이상, 영문 대/소문자 + 숫자 포함",
+                  }) as string)
+                : undefined
             }
           />
-          {}
 
           {}
           <FormField
@@ -922,21 +949,29 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             secureTextEntry={!v_0b85b1}
             autoCapitalize="none"
             rightAccessory={
-              <TouchableOpacity
-                onPress={() => v_3c4c2d((v_81e2ef) => !v_81e2ef)}
-                hitSlop={8}
-                style={v_d81136.eyeButton}
-              >
-                <Ionicons
-                  name={v_0b85b1 ? "eye-outline" : "eye-off-outline"}
-                  size={20}
-                  color="#666666"
-                />
-              </TouchableOpacity>
+
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                {v_a41c7b === "ok" ? (
+                  <Feather name="check-circle" size={18} color="#1A9450" />
+                ) : v_a41c7b === "mismatch" ? (
+                  <Feather name="x-circle" size={18} color={v_cafb6f.danger} />
+                ) : null}
+                <TouchableOpacity
+                  onPress={() => v_3c4c2d((v_81e2ef) => !v_81e2ef)}
+                  hitSlop={8}
+                  style={v_d81136.eyeButton}
+                >
+                  <Ionicons
+                    name={v_0b85b1 ? "eye-outline" : "eye-off-outline"}
+                    size={20}
+                    color="#666666"
+                  />
+                </TouchableOpacity>
+              </View>
             }
             errorText={
-              v_0b3ebe.length > 0 && v_0b3ebe !== v_adc076
-                ? v_8d41d7("auth.signup.passwordsNotMatch")
+              v_a41c7b === "mismatch"
+                ? (v_8d41d7("auth.signup.passwordsNotMatch", { defaultValue: "비밀번호가 일치하지 않습니다" }) as string)
                 : undefined
             }
           />
