@@ -759,21 +759,23 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       if (v_49263d instanceof v_84a859) {
         if (v_49263d.code === "OTP_COOLDOWN") {
           v_badeaf = v_8d41d7("auth.signup.rateLimit");
+        } else if (v_49263d.code === "VALIDATION_FAILED" && v_49263d.details) {
+
+          console.warn(
+            "[AUTH/signup] VALIDATION_FAILED details:",
+            JSON.stringify(v_49263d.details, null, 2),
+          );
+          const v_f8a42c = v_49263d.details as Array<{ path?: string[]; message?: string }>;
+          const v_b64199 = Array.isArray(v_f8a42c) && v_f8a42c.some((v_ebec57) =>
+            (v_ebec57.path ?? []).some((v_e2a85c) => String(v_e2a85c).toLowerCase() === "email"),
+          );
+          if (v_b64199) {
+            v_badeaf = v_8d41d7("auth.signup.emailInvalid", { defaultValue: "이메일 형식이 올바르지 않아요" }) as string;
+          } else {
+            v_badeaf = v_8d41d7("auth.signup.validationFailed", { defaultValue: "입력값이 올바르지 않습니다" }) as string;
+          }
         } else {
           v_badeaf = v_49263d.message;
-          if (v_49263d.code === "VALIDATION_FAILED" && v_49263d.details) {
-            console.warn(
-              "[AUTH/signup] VALIDATION_FAILED details:",
-              JSON.stringify(v_49263d.details, null, 2),
-            );
-            const v_f8a42c = v_49263d.details as Array<{ path?: string[]; message?: string }>;
-            if (Array.isArray(v_f8a42c) && v_f8a42c.length > 0) {
-              const v_a52412 = v_f8a42c
-                .map((v_ebec57) => `• ${(v_ebec57.path ?? []).join(".")}: ${v_ebec57.message ?? "?"}`)
-                .join("\n");
-              v_badeaf = `${v_49263d.message}\n\n${v_a52412}`;
-            }
-          }
         }
       }
       v_889fad(v_8d41d7("common.error"), v_badeaf);
