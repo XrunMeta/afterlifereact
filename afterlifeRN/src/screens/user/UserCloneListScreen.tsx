@@ -20,6 +20,8 @@ import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_9fd740, type v_d64743 } from "../../api/users";
+
+import { v_d60cdf } from "../../api/clones";
 import type { v_8ad91b } from "../../navigation/types";
 
 type RouteProps = v_ee3714<v_8ad91b, "UserCloneList">;
@@ -47,13 +49,35 @@ export default function v_dab470() {
   const [v_683210, v_34a50a] = v_5ab095(true);
   const [v_5e9bfe, v_3a7d09] = v_5ab095<string | null>(null);
 
+  const v_44e218 = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.id ?? null);
+  const v_0c8fa1 = v_44e218 != null && v_44e218 === v_43e90c;
+
   const v_f6f5de = v_de06a3(async () => {
     if (!v_2ca7e0) return;
     v_34a50a(true);
     v_3a7d09(null);
     try {
-      const v_727031 = await v_9fd740(v_2ca7e0, v_43e90c);
-      v_fa923c(v_727031.clones);
+      if (v_0c8fa1) {
+
+        const v_8f00b9 = await v_d60cdf(v_2ca7e0);
+        const mapped: v_d64743[] = v_8f00b9.items.map((v_3f4e2e) => ({
+          id: v_3f4e2e.id,
+          name: v_3f4e2e.name,
+          username: v_3f4e2e.username,
+          description: v_3f4e2e.description ?? null,
+          cloneType: v_3f4e2e.cloneType as string,
+          category: v_3f4e2e.category ?? null,
+          avatarUrl: v_3f4e2e.avatarUrl ?? null,
+          visibility: v_3f4e2e.visibility as string,
+          followersCount: v_3f4e2e.followersCount ?? 0,
+          likesCount: v_3f4e2e.likesCount ?? 0,
+          createdAt: v_3f4e2e.createdAt,
+        }));
+        v_fa923c(v_f15433);
+      } else {
+        const v_727031 = await v_9fd740(v_2ca7e0, v_43e90c);
+        v_fa923c(v_727031.clones);
+      }
     } catch (v_49263d) {
       console.warn("[UserCloneList] load failed:", v_49263d);
       v_3a7d09(
@@ -63,7 +87,7 @@ export default function v_dab470() {
     } finally {
       v_34a50a(false);
     }
-  }, [v_2ca7e0, v_43e90c, v_8d41d7]);
+  }, [v_2ca7e0, v_43e90c, v_0c8fa1, v_8d41d7]);
 
   v_c4deb2(() => {
     v_f6f5de();
