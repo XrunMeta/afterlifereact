@@ -996,15 +996,23 @@ v_68f0aa.post("/logout", v_6690d9, async (v_3f4e2e) => {
 
 v_68f0aa.post("/password/request-reset", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_192e7b);
-  const v_d1b635 = await v_3f4e2e.env.DB
-    .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL`)
-    .bind(v_4d33b2.email.trim().toLowerCase())
-    .first<{ id: number }>();
-  if (v_d1b635) {
-    await v_b78f7e(v_3f4e2e.env, v_4d33b2.email);
-  }
+  const v_e0c7e8 = v_4d33b2.email.trim().toLowerCase();
+  try {
+    const v_8f00b9 = await fetch(`${v_3f4e2e.env.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Internal-Secret": v_3f4e2e.env.XRUN_INTERNAL_SECRET ?? "",
+      },
+      body: JSON.stringify({ email: v_e0c7e8 }),
+    });
+    const v_7ecfd1 = (await v_8f00b9.json().catch(() => ({}))) as { code?: number; message?: string };
+    console.log(`[auth.password.request-reset] xrun code=${v_7ecfd1.code ?? v_8f00b9.status}`);
 
-  return v_3f4e2e.json({ ok: true, expiresInSec: 300 });
+  } catch (v_49263d) {
+    console.warn("[auth.password.request-reset] xrun fetch failed:", (v_49263d as Error).message);
+  }
+  return v_3f4e2e.json({ ok: true, expiresInSec: 600 });
 });
 
 const v_18702b = v_1f4ea7.object({
@@ -1023,31 +1031,50 @@ v_68f0aa.post("/password/reset", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_18702b);
   const v_bb4bfd = v_4d33b2.email.trim().toLowerCase();
 
-  await v_656e8b(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.verificationCode);
+  let v_69261d;
+  try {
+    const v_8f00b9 = await fetch(`${v_3f4e2e.env.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Internal-Secret": v_3f4e2e.env.XRUN_INTERNAL_SECRET ?? "",
+      },
+      body: JSON.stringify({ email: v_bb4bfd, code: v_4d33b2.verificationCode, newPin: v_4d33b2.newPassword }),
+    });
+    const v_7ecfd1 = (await v_8f00b9.json().catch(() => ({}))) as { code?: number; message?: string; status?: string };
+    v_69261d = v_7ecfd1.code ?? v_8f00b9.status;
+    console.log(`[auth.password.reset] xrun code=${v_69261d} msg=${v_7ecfd1.message ?? ""}`);
+    if (v_69261d === 410) throw new v_3ebe58("OTP_EXPIRED", "코드가 만료되었거나 발급된 적이 없습니다.");
+    if (v_69261d === 401) throw new v_3ebe58("OTP_INVALID", "코드가 올바르지 않습니다.");
+    if (v_69261d === 404) throw new v_3ebe58("NOT_FOUND", "가입된 이메일이 아닙니다.");
+    if (v_69261d !== 200 || v_7ecfd1.status !== "success") {
+      throw new v_3ebe58("INTERNAL_ERROR", `XRUN 비밀번호 재설정 실패 (code=${v_69261d})`);
+    }
+  } catch (v_49263d) {
+    if (v_49263d instanceof v_3ebe58) throw v_49263d;
+    console.warn("[auth.password.reset] xrun fetch failed:", (v_49263d as Error).message);
+    throw new v_3ebe58("INTERNAL_ERROR", `XRUN 네트워크 오류: ${(v_49263d as Error).message}`);
+  }
 
   const v_d1b635 = await v_3f4e2e.env.DB
     .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL`)
     .bind(v_bb4bfd)
     .first<{ id: number }>();
-  if (!v_d1b635) {
-    throw new v_3ebe58("NOT_FOUND", "가입된 이메일이 아닙니다.");
+  if (v_d1b635) {
+    const v_df7439 = await v_54846c(v_4d33b2.newPassword);
+    await v_3f4e2e.env.DB
+      .prepare(
+        `UPDATE users
+            SET password_hash = ?,
+                failed_login_count = 0,
+                locked_until = NULL,
+                updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?`,
+      )
+      .bind(v_df7439, v_d1b635.id)
+      .run();
+    await v_74defc(v_3f4e2e, { userId: v_d1b635.id, action: "auth.password.reset" });
   }
-
-  const v_df7439 = await v_54846c(v_4d33b2.newPassword);
-
-  await v_3f4e2e.env.DB
-    .prepare(
-      `UPDATE users
-          SET password_hash = ?,
-              failed_login_count = 0,
-              locked_until = NULL,
-              updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?`,
-    )
-    .bind(v_df7439, v_d1b635.id)
-    .run();
-
-  await v_74defc(v_3f4e2e, { userId: v_d1b635.id, action: "auth.password.reset" });
   return v_3f4e2e.json({ ok: true });
 });
 
