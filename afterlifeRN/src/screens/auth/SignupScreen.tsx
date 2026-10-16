@@ -52,12 +52,15 @@ import { v_1bd8ad, v_202d44 } from "../../constants";
 
 const SIGNUP_COUNTRIES: v_da1883[] = (() => {
   const v_110a8b = new Set<string>();
-  return v_202d44.filter((v_3f4e2e) => {
+  const v_2ac933 = v_202d44.filter((v_3f4e2e) => {
     const v_b24339 = `${v_3f4e2e.iso2}|${v_3f4e2e.dialCode}`;
     if (v_110a8b.has(v_b24339)) return false;
     v_110a8b.add(v_b24339);
     return true;
   });
+  const v_f886ba = v_2ac933.find((v_3f4e2e) => v_3f4e2e.iso2.toLowerCase() === "kr");
+  const v_83bbcd = v_2ac933.filter((v_3f4e2e) => v_3f4e2e.iso2.toLowerCase() !== "kr");
+  return v_f886ba ? [v_f886ba, ...v_83bbcd] : v_2ac933;
 })();
 
 type Props = {
@@ -991,6 +994,10 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             }
           />
 
+          {
+}
+          {v_326be8.OS !== "android" && (
+            <>
           {}
           <FormField
             ref={v_11ccfc}
@@ -1080,6 +1087,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
               ))}
             </ScrollView>
           </View>
+            </>
+          )}
 
           {}
           {}
