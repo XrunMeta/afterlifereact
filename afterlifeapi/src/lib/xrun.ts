@@ -862,14 +862,21 @@ export async function v_f748f8(
   v_43e90c,
   v_e0c7e8,
 ): Promise<void> {
+  console.log(`[syncXrunLinkAndName] START userId=${v_43e90c} email=${v_e0c7e8}`);
   try {
 
     const v_534695 = await v_a0ec33(v_c9c489, v_e0c7e8);
+    console.log(
+      `[syncXrunLinkAndName] lookup found=${v_534695.found} member=${v_534695.member ?? "null"}`,
+    );
     if (v_534695.found && v_534695.member) {
       const v_275ccd = await v_c9c489.DB
         .prepare(`SELECT xrun_member_id, name FROM users WHERE id = ?`)
         .bind(v_43e90c)
         .first<{ xrun_member_id: number | null; name: string | null }>();
+      console.log(
+        `[syncXrunLinkAndName] current xrun_member_id=${v_275ccd?.xrun_member_id ?? "null"} name=${v_275ccd?.name ?? "null"}`,
+      );
       if (v_275ccd && v_275ccd.xrun_member_id !== v_534695.member) {
         await v_c9c489.DB
           .prepare(

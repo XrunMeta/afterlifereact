@@ -286,6 +286,7 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
       .run();
   }
 
+  console.log(`[auth.google] success userId=${v_d1b635.id} email=${v_d1b635.email} name="${v_d1b635.name}" — queueing sync`);
   v_3f4e2e.executionCtx.waitUntil(v_f748f8(v_3f4e2e.env, v_d1b635.id, v_d1b635.email));
 
   const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(v_3f4e2e, v_d1b635.id, v_4d33b2.deviceId);
