@@ -1,71 +1,71 @@
 
 
-import v_a3453e, { v_5ab095, v_e662ae, v_df9f57, v_c4deb2 } from "bapkr";
+import React, { useState, useRef, useMemo, useEffect } from "react";
 import {
-  v_3094a2,
-  v_19b633,
-  v_472849,
-  v_326be8,
-  v_4623af,
-  v_39a996,
-  v_122070,
-  v_700696,
-  v_aa7413,
-  v_9cabcb,
-  v_79c4f2,
-  v_0e1f26,
-} from "rcmrninabrnb";
-import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
-import { v_772971 } from "jmpfvteuuztnp";
-import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
-import type { v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
+  View,
+  Text,
+  StyleSheet,
+  Platform,
+  TouchableOpacity,
+  ActivityIndicator,
+  ScrollView,
+  Dimensions,
+  Modal,
+  FlatList,
+  TextInput,
+  Keyboard,
+} from "react-native";
+import { Feather, Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RouteProp } from "@react-navigation/native";
 
-import { v_889fad } from "../../stores/dialogStore";
-import { v_c65c18 } from "../../lib/activateAuthSession";
-import v_556baf from "../../components/ui/SafeView";
-import v_570c34 from "../../components/ui/SafeScrollView";
-import v_258c1c from "../../components/common/PageHeader";
-import v_c0caa9, { type v_3ac6ea } from "../../components/common/TermsModal";
-import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
+import { showAlert } from "../../stores/dialogStore";
+import { activateAuthSession } from "../../lib/activateAuthSession";
+import SafeView from "../../components/ui/SafeView";
+import SafeScrollView from "../../components/ui/SafeScrollView";
+import PageHeader from "../../components/common/PageHeader";
+import TermsModal, { type AgreementType } from "../../components/common/TermsModal";
+import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import {
-  v_97ea8d,
-  v_35200c,
-  v_2efafe,
-  v_84a859,
+  requestEmailCode,
+  signup,
+  checkEmailXrun,
+  AuthApiError,
 } from "../../api/auth";
 import {
-  v_7f847d,
-  v_421733,
-  v_2d09bf,
+  saveCallLearningConsent,
+  saveFaceBiometricConsent,
+  saveLocationConsent,
 } from "../../api/consent";
-import { v_fa872d } from "../../hooks/useSsoReconsentGate";
-import { v_d2929b } from "./faceBiometricSignupFlag";
-import { v_704bef } from "../../lib/pushNotifications";
-import { v_ea1c99 } from "../../lib/deviceId";
-import type { v_384e19 } from "../../navigation/types";
-import type { v_da1883 } from "../../types/country";
+import { markSsoReconsentDone } from "../../hooks/useSsoReconsentGate";
+import { faceBiometricSignupState } from "./faceBiometricSignupFlag";
+import { requestPushPermission } from "../../lib/pushNotifications";
+import { getOrCreateDeviceId } from "../../lib/deviceId";
+import type { AuthStackParamList } from "../../navigation/types";
+import type { CountryDialCode } from "../../types/country";
 import {
-  v_867937,
-  v_51973b,
+  XRUN_AGES_OPTIONS,
+  getXrunRegionsOrFallback,
 } from "../../constants/xrunCodes";
-import { v_1bd8ad, v_202d44 } from "../../constants";
+import { ALLOWED_COUNTRIES, COUNTRY_DIAL_CODES } from "../../constants";
 
-const SIGNUP_COUNTRIES: v_da1883[] = (() => {
-  const v_110a8b = new Set<string>();
-  return v_202d44.filter((v_3f4e2e) => {
-    const v_b24339 = `${v_3f4e2e.iso2}|${v_3f4e2e.dialCode}`;
-    if (v_110a8b.has(v_b24339)) return false;
-    v_110a8b.add(v_b24339);
+const SIGNUP_COUNTRIES: CountryDialCode[] = (() => {
+  const seen = new Set<string>();
+  return COUNTRY_DIAL_CODES.filter((c) => {
+    const key = `${c.iso2}|${c.dialCode}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
 })();
 
 type Props = {
-  navigation: v_390fcc<v_384e19, "Signup">;
-  route: v_ee3714<v_384e19, "Signup">;
+  navigation: NativeStackNavigationProp<AuthStackParamList, "Signup">;
+  route: RouteProp<AuthStackParamList, "Signup">;
 };
 
-const v_cafb6f = {
+const XRUN = {
   mutedText: "#8e9bae",
   headingText: "#343A5A",
   cardBg: "#ffffff",
@@ -76,20 +76,20 @@ const v_cafb6f = {
   danger: "#ff6b6b",
 };
 
-const v_843035 = {
+const FONTS = {
   regular: "Roboto-Regular",
   medium: "Roboto-Medium",
   semi: "Roboto-SemiBold",
   bold: "Roboto-Bold",
 };
 
-const v_936fd7 = 72;
+const AGE_PILL_MIN_WIDTH = 72;
 
-function v_89c10a({
-  label: v_2869c1,
-  selected: v_587413,
-  onPress: v_719eed,
-  style: v_7fa4e4,
+function OptionButton({
+  label,
+  selected,
+  onPress,
+  style,
 }: {
   label: string;
   selected: boolean;
@@ -98,28 +98,28 @@ function v_89c10a({
 }) {
   return (
     <TouchableOpacity
-      onPress={v_719eed}
+      onPress={onPress}
       activeOpacity={0.7}
       style={[
-        v_3da94c.base,
-        v_587413 ? v_3da94c.selected : v_3da94c.unselected,
-        v_7fa4e4,
+        pillStyles.base,
+        selected ? pillStyles.selected : pillStyles.unselected,
+        style,
       ]}
     >
       <Text
         style={[
-          v_3da94c.label,
-          v_587413 ? v_3da94c.labelSelected : v_3da94c.labelUnselected,
+          pillStyles.label,
+          selected ? pillStyles.labelSelected : pillStyles.labelUnselected,
         ]}
         numberOfLines={1}
       >
-        {v_2869c1}
+        {label}
       </Text>
     </TouchableOpacity>
   );
 }
 
-const v_3da94c = v_472849.create({
+const pillStyles = StyleSheet.create({
 
   base: {
     height: 40,
@@ -130,46 +130,46 @@ const v_3da94c = v_472849.create({
     justifyContent: "center",
   },
   selected: {
-    backgroundColor: v_cafb6f.primary,
-    borderColor: v_cafb6f.primary,
+    backgroundColor: XRUN.primary,
+    borderColor: XRUN.primary,
   },
   unselected: {
-    backgroundColor: v_cafb6f.cardBg,
+    backgroundColor: XRUN.cardBg,
     borderColor: "#e3e9ed", 
   },
   label: {
     fontSize: 14,
-    fontFamily: v_843035.medium, 
+    fontFamily: FONTS.medium, 
   },
 
   labelSelected: { color: "#ffffff" },
-  labelUnselected: { color: v_cafb6f.headingText },
+  labelUnselected: { color: XRUN.headingText },
 });
 
-function v_d7c611({
-  checked: v_da90dc,
-  onToggle: v_0a2cea,
+function SquareCheckbox({
+  checked,
+  onToggle,
 }: {
   checked: boolean;
   onToggle: () => void;
 }) {
   return (
     <TouchableOpacity
-      onPress={v_0a2cea}
+      onPress={onToggle}
       hitSlop={8}
       activeOpacity={0.7}
       style={[
-        v_4b34c0.box,
-        v_da90dc ? v_4b34c0.boxChecked : v_4b34c0.boxUnchecked,
+        cbStyles.box,
+        checked ? cbStyles.boxChecked : cbStyles.boxUnchecked,
       ]}
     >
       {}
-      {v_da90dc ? <View style={v_4b34c0.checkMark} /> : null}
+      {checked ? <View style={cbStyles.checkMark} /> : null}
     </TouchableOpacity>
   );
 }
 
-const v_4b34c0 = v_472849.create({
+const cbStyles = StyleSheet.create({
 
   box: {
     width: 24,
@@ -181,11 +181,11 @@ const v_4b34c0 = v_472849.create({
     marginTop: 2,
   },
   boxChecked: {
-    backgroundColor: v_cafb6f.primary,
-    borderColor: v_cafb6f.primary,
+    backgroundColor: XRUN.primary,
+    borderColor: XRUN.primary,
   },
   boxUnchecked: {
-    backgroundColor: v_cafb6f.cardBg,
+    backgroundColor: XRUN.cardBg,
     borderColor: "#dedede",
   },
   checkMark: {
@@ -200,8 +200,8 @@ const v_4b34c0 = v_472849.create({
   },
 });
 
-const v_368e80 = v_a3453e.forwardRef<
-  v_79c4f2,
+const FormField = React.forwardRef<
+  TextInput,
   {
     label: string;
     placeholder?: string;
@@ -213,64 +213,64 @@ const v_368e80 = v_a3453e.forwardRef<
     editable?: boolean;
     maxLength?: number;
     onPress?: () => void;
-    leftAccessory?: v_a3453e.ReactNode;
-    rightAccessory?: v_a3453e.ReactNode;
+    leftAccessory?: React.ReactNode;
+    rightAccessory?: React.ReactNode;
     errorText?: string;
     showPressStyle?: boolean;
   }
->(function v_368e80(v_b1927c, v_6d4ed3) {
+>(function FormField(props, ref) {
   const {
-    label: v_2869c1,
-    placeholder: v_c6baea,
-    value: v_3b402b,
-    onChangeText: v_271a69,
-    keyboardType: v_130cff,
-    autoCapitalize: v_7cdc04,
-    secureTextEntry: v_458725,
-    editable: v_87d063 = true,
-    maxLength: v_701c63,
-    onPress: v_719eed,
-    leftAccessory: v_bea0eb,
-    rightAccessory: v_de8f73,
-    errorText: v_74dc8b,
-  } = v_b1927c;
+    label,
+    placeholder,
+    value,
+    onChangeText,
+    keyboardType,
+    autoCapitalize,
+    secureTextEntry,
+    editable = true,
+    maxLength,
+    onPress,
+    leftAccessory,
+    rightAccessory,
+    errorText,
+  } = props;
 
-  const v_db991d = (
-    <View style={[v_eff3be.inputWrap, !v_87d063 && v_eff3be.inputWrapDisabled]}>
-      {v_bea0eb}
+  const inner = (
+    <View style={[ffStyles.inputWrap, !editable && ffStyles.inputWrapDisabled]}>
+      {leftAccessory}
       <TextInput
-        ref={v_6d4ed3}
-        style={v_eff3be.input}
-        value={v_3b402b}
-        onChangeText={v_271a69}
-        placeholder={v_c6baea}
+        ref={ref}
+        style={ffStyles.input}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
         placeholderTextColor="#c4c7d1"
-        keyboardType={v_130cff}
-        autoCapitalize={v_7cdc04}
-        secureTextEntry={v_458725}
-        editable={v_87d063 && !v_719eed}
-        maxLength={v_701c63}
+        keyboardType={keyboardType}
+        autoCapitalize={autoCapitalize}
+        secureTextEntry={secureTextEntry}
+        editable={editable && !onPress}
+        maxLength={maxLength}
       />
-      {v_de8f73}
+      {rightAccessory}
     </View>
   );
 
   return (
-    <View style={v_eff3be.container}>
-      <Text style={v_eff3be.label}>{v_2869c1}</Text>
-      {v_719eed ? (
-        <TouchableOpacity onPress={v_719eed} activeOpacity={0.7}>
-          {v_db991d}
+    <View style={ffStyles.container}>
+      <Text style={ffStyles.label}>{label}</Text>
+      {onPress ? (
+        <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+          {inner}
         </TouchableOpacity>
       ) : (
-        v_db991d
+        inner
       )}
-      {v_74dc8b ? <Text style={v_eff3be.errorText}>{v_74dc8b}</Text> : null}
+      {errorText ? <Text style={ffStyles.errorText}>{errorText}</Text> : null}
     </View>
   );
 });
 
-const v_eff3be = v_472849.create({
+const ffStyles = StyleSheet.create({
   container: {
     width: "100%",
   },
@@ -280,7 +280,7 @@ const v_eff3be = v_472849.create({
     lineHeight: 24,
     color: "#2a2727",
     marginBottom: 8,
-    fontFamily: v_843035.medium,
+    fontFamily: FONTS.medium,
   },
   inputWrap: {
 
@@ -303,63 +303,63 @@ const v_eff3be = v_472849.create({
     fontSize: 15,
     color: "#2a2727",
     paddingVertical: 0,
-    fontFamily: v_843035.medium, 
+    fontFamily: FONTS.medium, 
   },
   errorText: {
     marginTop: 4,
     fontSize: 12,
-    color: v_cafb6f.danger,
+    color: XRUN.danger,
   },
 });
 
-export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Props) {
-  const { t: v_8d41d7 } = v_772971();
+export default function SignupScreen({ navigation, route }: Props) {
+  const { t } = useTranslation();
 
-  const v_a8d185 = v_c7daf6.params?.google;
+  const google = route.params?.google;
 
-  const [v_1833e7, v_318f24] = v_5ab095(v_a8d185?.name ?? "");
-  const [v_e0c7e8, v_fedf34] = v_5ab095(v_a8d185?.email ?? "");
-  const [v_adc076, v_52b279] = v_5ab095("");
-  const [v_0b3ebe, v_241a35] = v_5ab095("");
-  const [v_d74a81, v_fcce73] = v_5ab095("");
-  const [v_c3eac4, v_bdc43c] = v_5ab095<"male" | "female" | "">("");
-  const [v_f83808, v_64a312] = v_5ab095<number | null>(null);
+  const [name, setName] = useState(google?.name ?? "");
+  const [email, setEmail] = useState(google?.email ?? "");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [gender, setGender] = useState<"male" | "female" | "">("");
+  const [ageRange, setAgeRange] = useState<number | null>(null);
 
-  const [v_b9bbbd, v_b7066f] = v_5ab095<v_da1883>(v_1bd8ad[0]);
-  const [v_a6c30b, v_c030e3] = v_5ab095<number | null>(null);
-  const [v_b5ab16, v_b7733b] = v_5ab095(false);
-  const [v_0b85b1, v_3c4c2d] = v_5ab095(false);
+  const [country, setCountry] = useState<CountryDialCode>(ALLOWED_COUNTRIES[0]);
+  const [region, setRegion] = useState<number | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const [v_51b53b, v_c8f346] = v_5ab095(false);
-  const [v_09b7fa, v_1d4807] = v_5ab095(false);
-  const [v_540cd3, v_a67880] = v_5ab095(false);
-  const [v_7f128f, v_06ec09] = v_5ab095(false); 
-  const [v_8c98c4, v_e378a4] = v_5ab095(false);
-  const [v_a03498, v_d34fc9] = v_5ab095(false);
+  const [agreeService, setAgreeService] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const [agreeLocation, setAgreeLocation] = useState(false);
+  const [agreeCallLearning, setAgreeCallLearning] = useState(false); 
+  const [agreeMarketing, setAgreeMarketing] = useState(false);
+  const [agreeFaceBiometric, setAgreeFaceBiometric] = useState(false);
 
-  const [v_d39271, v_fe0d62] = v_5ab095<v_3ac6ea | null>(null);
-  const [v_b67b40, v_a259be] = v_5ab095(false);
-  const [v_3a64df, v_c73419] = v_5ab095(false);
-  const [v_bd30a1, v_e03dd9] = v_5ab095("");
-  const [v_7962f1, v_6a0bf8] = v_5ab095("");
+  const [termsModalType, setTermsModalType] = useState<AgreementType | null>(null);
+  const [countryModalVisible, setCountryModalVisible] = useState(false);
+  const [regionModalVisible, setRegionModalVisible] = useState(false);
+  const [countrySearchQuery, setCountrySearchQuery] = useState("");
+  const [regionSearchQuery, setRegionSearchQuery] = useState("");
 
-  const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
-  const [v_1a29d0, v_704175] = v_5ab095<string | null>(null);
-  const [v_ea920b, v_73f064] = v_5ab095<"ios" | "android" | "web" | null>(null);
-  const [v_929b58, v_94f796] = v_5ab095<string | null>(null);
-  const [v_8d0e18, v_3bb4d3] = v_5ab095(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [pushToken, setPushToken] = useState<string | null>(null);
+  const [pushPlatform, setPushPlatform] = useState<"ios" | "android" | "web" | null>(null);
+  const [deviceId, setDeviceId] = useState<string | null>(null);
+  const [requestingPush, setRequestingPush] = useState(false);
 
-  const v_237bb3 = v_e662ae<v_79c4f2>(null);
-  const v_776c12 = v_e662ae<v_79c4f2>(null);
-  const v_15e85c = v_e662ae<v_79c4f2>(null);
-  const v_68cd31 = v_e662ae<v_79c4f2>(null);
-  const v_11ccfc = v_e662ae<v_79c4f2>(null);
-  const v_8fb688 = (ref: v_a3453e.RefObject<v_79c4f2 | null>) => () => {
-    setTimeout(() => v_6d4ed3.current?.focus(), 100);
+  const nameRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
+  const phoneRef = useRef<TextInput>(null);
+  const focusAfterAlert = (ref: React.RefObject<TextInput | null>) => () => {
+    setTimeout(() => ref.current?.focus(), 100);
   };
 
-  const v_56f818 = (v_cb35cb): number => {
-    switch (v_cb35cb) {
+  const ageRangeToAge = (r: number | null): number => {
+    switch (r) {
       case 2210: return 15;
       case 2220: return 25;
       case 2230: return 35;
@@ -369,288 +369,288 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     }
   };
 
-  const v_5c764d =
-    v_51b53b && v_09b7fa && v_540cd3 && v_7f128f;
-  const v_33f2ba =
-    v_5c764d && v_8c98c4 && v_a03498;
+  const agreeRequired =
+    agreeService && agreePrivacy && agreeLocation && agreeCallLearning;
+  const agreeAll =
+    agreeRequired && agreeMarketing && agreeFaceBiometric;
 
-  const v_26e7c7 = async () => {
-    if (v_540cd3) {
-      v_a67880(false);
+  const toggleLocationConsent = async () => {
+    if (agreeLocation) {
+      setAgreeLocation(false);
       return;
     }
     try {
-      const v_8a44cb = await import("zryrlwvgokjhz");
-      const v_fc6010 = await v_8a44cb.getForegroundPermissionsAsync();
-      const v_d60769 = v_fc6010.granted
-        ? v_fc6010
-        : await v_8a44cb.requestForegroundPermissionsAsync();
-      if (!v_d60769.granted) {
-        v_889fad(
-          v_8d41d7("auth.signup.locationPermTitle", { defaultValue: "위치 권한 필요" }),
-          v_8d41d7("auth.signup.locationPermDesc", {
+      const Location = await import("expo-location");
+      const initial = await Location.getForegroundPermissionsAsync();
+      const perm = initial.granted
+        ? initial
+        : await Location.requestForegroundPermissionsAsync();
+      if (!perm.granted) {
+        showAlert(
+          t("auth.signup.locationPermTitle", { defaultValue: "위치 권한 필요" }),
+          t("auth.signup.locationPermDesc", {
             defaultValue:
               "통화 시 지역 기반 대화를 하려면 위치 권한이 필요합니다.\n기기 설정 → 위치 → AfterLife 에서 허용해 주십시오.",
           }),
         );
         return;
       }
-      v_a67880(true);
-    } catch (v_49263d) {
-      console.warn("[SignupScreen] location permission request failed:", v_49263d);
-      v_889fad(
-        v_8d41d7("common.error"),
-        v_8d41d7("auth.signup.locationPermError", {
+      setAgreeLocation(true);
+    } catch (err) {
+      console.warn("[SignupScreen] location permission request failed:", err);
+      showAlert(
+        t("common.error"),
+        t("auth.signup.locationPermError", {
           defaultValue: "위치 권한 요청 중 문제가 발생했습니다.",
         }),
       );
     }
   };
 
-  const v_349606 = async () => {
-    if (v_8c98c4) {
-      v_e378a4(false);
-      v_704175(null);
-      v_73f064(null);
-      v_94f796(null);
+  const toggleMarketing = async () => {
+    if (agreeMarketing) {
+      setAgreeMarketing(false);
+      setPushToken(null);
+      setPushPlatform(null);
+      setDeviceId(null);
       return;
     }
-    v_3bb4d3(true);
+    setRequestingPush(true);
     try {
-      const v_e43fa5 = await v_704bef();
-      if (!v_e43fa5.granted) {
-        v_889fad(
-          v_8d41d7("auth.signup.pushPermTitle"),
-          v_8d41d7("auth.signup.pushPermDesc"),
+      const reg = await requestPushPermission();
+      if (!reg.granted) {
+        showAlert(
+          t("auth.signup.pushPermTitle"),
+          t("auth.signup.pushPermDesc"),
         );
         return;
       }
-      const v_de2b1c = await v_ea1c99();
-      v_e378a4(true);
-      v_704175(v_e43fa5.token ?? null);
-      v_73f064(v_e43fa5.platform);
-      v_94f796(v_de2b1c);
+      const did = await getOrCreateDeviceId();
+      setAgreeMarketing(true);
+      setPushToken(reg.token ?? null);
+      setPushPlatform(reg.platform);
+      setDeviceId(did);
     } catch {
-      v_889fad(v_8d41d7("common.error"), v_8d41d7("auth.signup.pushPermError"));
+      showAlert(t("common.error"), t("auth.signup.pushPermError"));
     } finally {
-      v_3bb4d3(false);
+      setRequestingPush(false);
     }
   };
 
-  const v_0217e6 = async () => {
-    if (v_33f2ba) {
-      v_c8f346(false);
-      v_1d4807(false);
-      v_a67880(false);
-      v_06ec09(false);
-      v_e378a4(false);
-      v_d34fc9(false);
-      v_704175(null);
-      v_73f064(null);
-      v_94f796(null);
+  const toggleAll = async () => {
+    if (agreeAll) {
+      setAgreeService(false);
+      setAgreePrivacy(false);
+      setAgreeLocation(false);
+      setAgreeCallLearning(false);
+      setAgreeMarketing(false);
+      setAgreeFaceBiometric(false);
+      setPushToken(null);
+      setPushPlatform(null);
+      setDeviceId(null);
       return;
     }
-    v_c8f346(true);
-    v_1d4807(true);
-    v_06ec09(true);
-    v_d34fc9(true);
-    if (!v_540cd3) await v_26e7c7();
-    if (!v_8c98c4) await v_349606();
+    setAgreeService(true);
+    setAgreePrivacy(true);
+    setAgreeCallLearning(true);
+    setAgreeFaceBiometric(true);
+    if (!agreeLocation) await toggleLocationConsent();
+    if (!agreeMarketing) await toggleMarketing();
   };
 
-  const v_daa71c = v_df9f57(() => {
-    const v_ab6401 = v_bd30a1.trim().toLowerCase();
+  const filteredCountries = useMemo(() => {
+    const q = countrySearchQuery.trim().toLowerCase();
 
-    if (!v_ab6401) return v_df5e5f;
-    return v_df5e5f.filter((v_3f4e2e) => {
-      const v_8cb36b = v_3f4e2e.name.toLowerCase().includes(v_ab6401);
-      const v_6fc191 = v_3f4e2e.iso2.toLowerCase() === v_ab6401;
-      const v_4ba62b = v_3f4e2e.dialCode.replace(/[^0-9]/g, "").includes(v_ab6401.replace(/^\+/, ""));
-      const v_6dce25 = v_8d41d7(`countries:${v_3f4e2e.iso2.toUpperCase()}`, { defaultValue: "" }).toLowerCase();
-      return v_8cb36b || v_6fc191 || v_4ba62b || (v_6dce25 && v_6dce25.includes(v_ab6401));
+    if (!q) return SIGNUP_COUNTRIES;
+    return SIGNUP_COUNTRIES.filter((c) => {
+      const nameMatch = c.name.toLowerCase().includes(q);
+      const iso = c.iso2.toLowerCase() === q;
+      const dial = c.dialCode.replace(/[^0-9]/g, "").includes(q.replace(/^\+/, ""));
+      const translated = t(`countries:${c.iso2.toUpperCase()}`, { defaultValue: "" }).toLowerCase();
+      return nameMatch || iso || dial || (translated && translated.includes(q));
     });
-  }, [v_bd30a1, v_8d41d7]);
+  }, [countrySearchQuery, t]);
 
-  const v_afb146 = v_df9f57(() => {
-    const v_0ad8c5 =
-      typeof v_b9bbbd.countryCode === "number"
-        ? v_b9bbbd.countryCode
-        : Number(v_b9bbbd.dialCode.replace(/^\+/, "")) || 0;
-    return v_51973b(v_0ad8c5, v_b9bbbd.iso2);
-  }, [v_b9bbbd]);
+  const regionOptions = useMemo(() => {
+    const num =
+      typeof country.countryCode === "number"
+        ? country.countryCode
+        : Number(country.dialCode.replace(/^\+/, "")) || 0;
+    return getXrunRegionsOrFallback(num, country.iso2);
+  }, [country]);
 
-  const v_4e187d = v_df9f57(() => {
-    const v_ab6401 = v_7962f1.trim().toLowerCase();
-    if (!v_ab6401) return v_afb146;
-    return v_afb146.filter((v_cb35cb) =>
-      v_cb35cb.label.toLowerCase().includes(v_ab6401) || String(v_cb35cb.value).includes(v_ab6401),
+  const filteredRegions = useMemo(() => {
+    const q = regionSearchQuery.trim().toLowerCase();
+    if (!q) return regionOptions;
+    return regionOptions.filter((r) =>
+      r.label.toLowerCase().includes(q) || String(r.value).includes(q),
     );
-  }, [v_7962f1, v_afb146]);
+  }, [regionSearchQuery, regionOptions]);
 
-  const v_56743f = v_df9f57(() => {
-    if (v_a6c30b == null) {
-      return v_8d41d7("auth.signup.regionPlaceholder", { defaultValue: "지역 선택" });
+  const regionDisplayValue = useMemo(() => {
+    if (region == null) {
+      return t("auth.signup.regionPlaceholder", { defaultValue: "지역 선택" });
     }
-    const v_68b2be = v_afb146.find((v_cb35cb) => v_cb35cb.value === v_a6c30b);
-    return v_68b2be ? v_68b2be.label : "-";
-  }, [v_a6c30b, v_afb146, v_8d41d7]);
+    const opt = regionOptions.find((r) => r.value === region);
+    return opt ? opt.label : "-";
+  }, [region, regionOptions, t]);
 
-  const v_de5bf5 = (c: v_da1883) => {
-    v_b7066f(v_3f4e2e);
-    v_c030e3(null);
-    v_a259be(false);
-    v_e03dd9("");
+  const handleSelectCountry = (c: CountryDialCode) => {
+    setCountry(c);
+    setRegion(null);
+    setCountryModalVisible(false);
+    setCountrySearchQuery("");
   };
 
-  const v_477add = (v_68b2be) => {
-    v_c030e3(v_68b2be.value);
-    v_c73419(false);
-    v_6a0bf8("");
+  const handleSelectRegion = (opt: { value: number; label: string }) => {
+    setRegion(opt.value);
+    setRegionModalVisible(false);
+    setRegionSearchQuery("");
   };
 
-  const [v_7e4acc, v_de86c2] = v_5ab095(0);
-  v_c4deb2(() => {
-    if (!v_b67b40 && !v_3a64df) {
-      v_de86c2(0);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  useEffect(() => {
+    if (!countryModalVisible && !regionModalVisible) {
+      setKeyboardHeight(0);
       return;
     }
-    const v_ef3bab = v_326be8.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const v_ffd7d0 = v_326be8.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-    const v_fdffe1 = v_0e1f26.addListener(v_ef3bab, (v_9e86fd) => v_de86c2(v_9e86fd.endCoordinates.height));
-    const v_2f19d2 = v_0e1f26.addListener(v_ffd7d0, () => v_de86c2(0));
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const show = Keyboard.addListener(showEvent, (e) => setKeyboardHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
     return () => {
-      v_fdffe1.remove();
-      v_2f19d2.remove();
+      show.remove();
+      hide.remove();
     };
-  }, [v_b67b40, v_3a64df]);
+  }, [countryModalVisible, regionModalVisible]);
 
-  const v_585b02 = async () => {
-    if (!v_1833e7.trim()) {
-      v_889fad(
-        v_8d41d7("common.notice"),
-        v_8d41d7("auth.signup.nameRequired", { defaultValue: "이름을 입력해주세요." }),
-        [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: v_8fb688(v_237bb3) }],
+  const handleSubmit = async () => {
+    if (!name.trim()) {
+      showAlert(
+        t("common.notice"),
+        t("auth.signup.nameRequired", { defaultValue: "이름을 입력해주세요." }),
+        [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: focusAfterAlert(nameRef) }],
       );
       return;
     }
-    if (!v_e0c7e8.trim()) {
-      v_889fad(
-        v_8d41d7("common.notice"),
-        v_8d41d7("auth.signup.emailRequired", { defaultValue: "이메일을 입력해주세요." }),
-        [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: v_8fb688(v_776c12) }],
+    if (!email.trim()) {
+      showAlert(
+        t("common.notice"),
+        t("auth.signup.emailRequired", { defaultValue: "이메일을 입력해주세요." }),
+        [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: focusAfterAlert(emailRef) }],
       );
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v_e0c7e8)) {
-      v_889fad(
-        v_8d41d7("common.notice"),
-        v_8d41d7("auth.signup.emailInvalid"),
-        [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: v_8fb688(v_776c12) }],
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showAlert(
+        t("common.notice"),
+        t("auth.signup.emailInvalid"),
+        [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: focusAfterAlert(emailRef) }],
       );
       return;
     }
-    if (!v_adc076) {
-      v_889fad(
-        v_8d41d7("common.notice"),
-        v_8d41d7("auth.signup.passwordRequired", { defaultValue: "비밀번호를 입력해주세요." }),
-        [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: v_8fb688(v_15e85c) }],
+    if (!password) {
+      showAlert(
+        t("common.notice"),
+        t("auth.signup.passwordRequired", { defaultValue: "비밀번호를 입력해주세요." }),
+        [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: focusAfterAlert(passwordRef) }],
       );
       return;
     }
-    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/.test(v_adc076)) {
-      v_889fad(
-        v_8d41d7("common.notice"),
-        v_8d41d7("auth.signup.passwordTooShort"),
-        [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: v_8fb688(v_15e85c) }],
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/.test(password)) {
+      showAlert(
+        t("common.notice"),
+        t("auth.signup.passwordTooShort"),
+        [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: focusAfterAlert(passwordRef) }],
       );
       return;
     }
-    if (!v_0b3ebe) {
-      v_889fad(
-        v_8d41d7("common.notice"),
-        v_8d41d7("auth.signup.passwordConfirmRequired", { defaultValue: "비밀번호 확인을 입력해주세요." }),
-        [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: v_8fb688(v_68cd31) }],
+    if (!confirmPassword) {
+      showAlert(
+        t("common.notice"),
+        t("auth.signup.passwordConfirmRequired", { defaultValue: "비밀번호 확인을 입력해주세요." }),
+        [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: focusAfterAlert(confirmPasswordRef) }],
       );
       return;
     }
-    if (v_adc076 !== v_0b3ebe) {
-      v_889fad(
-        v_8d41d7("common.notice"),
-        v_8d41d7("auth.signup.passwordsNotMatch"),
-        [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: v_8fb688(v_68cd31) }],
+    if (password !== confirmPassword) {
+      showAlert(
+        t("common.notice"),
+        t("auth.signup.passwordsNotMatch"),
+        [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: focusAfterAlert(confirmPasswordRef) }],
       );
-      return;
-    }
-
-    if (v_d74a81.trim() && v_d74a81.length < 4) {
-      v_889fad(
-        v_8d41d7("common.notice"),
-        v_8d41d7("auth.signup.phoneTooShort"),
-        [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }), onPress: v_8fb688(v_11ccfc) }],
-      );
-      return;
-    }
-    if (!v_5c764d) {
-      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.termsAccept"));
       return;
     }
 
-    const v_f4fe8e = v_f83808 != null ? v_56f818(v_f83808) : undefined;
+    if (phone.trim() && phone.length < 4) {
+      showAlert(
+        t("common.notice"),
+        t("auth.signup.phoneTooShort"),
+        [{ text: t("common.confirm", { defaultValue: "확인" }), onPress: focusAfterAlert(phoneRef) }],
+      );
+      return;
+    }
+    if (!agreeRequired) {
+      showAlert(t("common.notice"), t("auth.signup.termsAccept"));
+      return;
+    }
 
-    v_ee9ec1(true);
+    const ageNum = ageRange != null ? ageRangeToAge(ageRange) : undefined;
+
+    setSubmitting(true);
     try {
-      const v_a4d981 = v_b9bbbd ? v_b9bbbd.iso2.toUpperCase() : undefined;
-      const v_6c3a47 = v_b9bbbd
-        ? (v_b9bbbd.countryCode ?? (Number(v_b9bbbd.dialCode.replace(/[^\d]/g, "")) || 0))
+      const countryCode = country ? country.iso2.toUpperCase() : undefined;
+      const mobileCode = country
+        ? (country.countryCode ?? (Number(country.dialCode.replace(/[^\d]/g, "")) || 0))
         : undefined;
-      const v_222917 = v_a6c30b != null ? String(v_a6c30b) : undefined;
+      const regionCode = region != null ? String(region) : undefined;
 
-      if (v_a8d185) {
-        const v_931bf0 = {
-          email: v_e0c7e8,
-          password: v_adc076,
-          name: v_1833e7,
-          phone: v_d74a81.trim() || undefined,
-          gender: v_c3eac4 || undefined,
-          age: v_f4fe8e,
-          country: v_a4d981,
-          mobileCode: v_6c3a47,
-          region: v_222917,
-          marketingConsent: v_8c98c4,
-          deviceId: v_929b58 ?? undefined,
-          pushToken: v_1a29d0 ?? undefined,
-          platform: v_ea920b ?? undefined,
-          googleIdToken: v_a8d185.idToken,
+      if (google) {
+        const payload = {
+          email,
+          password,
+          name,
+          phone: phone.trim() || undefined,
+          gender: gender || undefined,
+          age: ageNum,
+          country: countryCode,
+          mobileCode,
+          region: regionCode,
+          marketingConsent: agreeMarketing,
+          deviceId: deviceId ?? undefined,
+          pushToken: pushToken ?? undefined,
+          platform: pushPlatform ?? undefined,
+          googleIdToken: google.idToken,
         };
-        console.log("[AUTH/google.signup] payload:", JSON.stringify(v_931bf0, null, 2));
-        const v_8f00b9 = await v_35200c(v_931bf0);
-        if (v_7f128f) {
+        console.log("[AUTH/google.signup] payload:", JSON.stringify(payload, null, 2));
+        const res = await signup(payload);
+        if (agreeCallLearning) {
           try {
-            await v_7f847d(v_8f00b9.accessToken, "granted", { channel: "signup" });
-          } catch (v_49263d) {
-            console.warn("[AUTH/signup] saveCallLearningConsent (google) failed:", v_49263d);
+            await saveCallLearningConsent(res.accessToken, "granted", { channel: "signup" });
+          } catch (err) {
+            console.warn("[AUTH/signup] saveCallLearningConsent (google) failed:", err);
           }
         }
         try {
-          await v_421733(
-            v_8f00b9.accessToken,
-            v_d2929b(v_a03498),
+          await saveFaceBiometricConsent(
+            res.accessToken,
+            faceBiometricSignupState(agreeFaceBiometric),
             { termsVersion: "v1", channel: "signup" },
           );
-        } catch (v_49263d) {
-          console.warn("[AUTH/signup] saveFaceBiometricConsent (google) failed:", v_49263d);
+        } catch (err) {
+          console.warn("[AUTH/signup] saveFaceBiometricConsent (google) failed:", err);
         }
-        if (v_540cd3) {
+        if (agreeLocation) {
           try {
-            await v_2d09bf(v_8f00b9.accessToken, "granted", { channel: "signup" });
-          } catch (v_49263d) {
-            console.warn("[AUTH/signup] saveLocationConsent (google) failed:", v_49263d);
+            await saveLocationConsent(res.accessToken, "granted", { channel: "signup" });
+          } catch (err) {
+            console.warn("[AUTH/signup] saveLocationConsent (google) failed:", err);
           }
         }
-        void v_fa872d(v_8f00b9.accessToken);
-        void v_c65c18({
-          accessToken: v_8f00b9.accessToken,
-          refreshToken: v_8f00b9.refreshToken ?? null,
+        void markSsoReconsentDone(res.accessToken);
+        void activateAuthSession({
+          accessToken: res.accessToken,
+          refreshToken: res.refreshToken ?? null,
           persist: true,
           registrationMethod: "google",
         });
@@ -658,137 +658,138 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       }
 
       try {
-        const v_de130a = await v_2efafe(v_e0c7e8);
-        if (v_de130a.afterlifeExists || v_de130a.xrunExists) {
-          v_ee9ec1(false);
-          v_889fad(
-            v_8d41d7("auth.signup.xrunFoundTitle", { defaultValue: "XRUN 계정 발견" }),
-            v_8d41d7("auth.signup.xrunFoundDesc", {
+        const check = await checkEmailXrun(email);
+        if (check.afterlifeExists || check.xrunExists) {
+          setSubmitting(false);
+          showAlert(
+            t("auth.signup.xrunFoundTitle", { defaultValue: "XRUN 계정 발견" }),
+            t("auth.signup.xrunFoundDesc", {
               defaultValue:
                 "등록된 XRUN 계정이 존재합니다.\n\nXRUN 계정 정보로 로그인하면 Afterlife도 함께 이용하실 수 있습니다.",
             }),
             [
-              { text: v_8d41d7("common.cancel", { defaultValue: "취소" }), style: "cancel" },
+              { text: t("common.cancel", { defaultValue: "취소" }), style: "cancel" },
               {
-                text: v_8d41d7("auth.login.loginBtn", { defaultValue: "로그인" }),
-                onPress: () => v_c65f5d.navigate("Login" as never),
+                text: t("auth.login.loginBtn", { defaultValue: "로그인" }),
+                onPress: () => navigation.navigate("Login" as never),
               },
             ],
           );
           return;
         }
-      } catch (v_49263d) {
-        console.warn("[AUTH/signup] checkEmailXrun failed:", (v_49263d as Error).message);
+      } catch (err) {
+        console.warn("[AUTH/signup] checkEmailXrun failed:", (err as Error).message);
       }
 
-      await v_97ea8d(v_e0c7e8);
-      v_c65f5d.navigate("EmailVerify", {
-        email: v_e0c7e8,
-        password: v_adc076,
-        name: v_1833e7,
-        phone: v_d74a81.trim() || undefined,
-        gender: v_c3eac4 || undefined,
-        age: v_f4fe8e,
-        country: v_a4d981,
-        mobileCode: v_6c3a47,
-        region: v_222917,
-        marketingConsent: v_8c98c4,
-        agreeCallLearning: v_7f128f,
-        agreeFaceBiometric: v_a03498,
-        agreeLocation: v_540cd3,
-        pushToken: v_1a29d0 ?? undefined,
-        platform: v_ea920b ?? undefined,
-        deviceId: v_929b58 ?? undefined,
+      await requestEmailCode(email);
+      navigation.navigate("EmailVerify", {
+        email,
+        password,
+        name,
+        phone: phone.trim() || undefined,
+        gender: gender || undefined,
+        age: ageNum,
+        country: countryCode,
+        mobileCode,
+        region: regionCode,
+        marketingConsent: agreeMarketing,
+        agreeCallLearning,
+        agreeFaceBiometric,
+        agreeLocation,
+        pushToken: pushToken ?? undefined,
+        platform: pushPlatform ?? undefined,
+        deviceId: deviceId ?? undefined,
       });
-    } catch (v_49263d) {
-      let v_badeaf = v_8d41d7("auth.signup.sendCodeFailed");
-      if (v_49263d instanceof v_84a859) {
-        if (v_49263d.code === "OTP_COOLDOWN") {
-          v_badeaf = v_8d41d7("auth.signup.rateLimit");
+    } catch (err) {
+      let msg: string = t("auth.signup.sendCodeFailed");
+      if (err instanceof AuthApiError) {
+        if (err.code === "OTP_COOLDOWN") {
+          msg = t("auth.signup.rateLimit");
         } else {
-          v_badeaf = v_49263d.message;
-          if (v_49263d.code === "VALIDATION_FAILED" && v_49263d.details) {
+          msg = err.message;
+          if (err.code === "VALIDATION_FAILED" && err.details) {
             console.warn(
               "[AUTH/signup] VALIDATION_FAILED details:",
-              JSON.stringify(v_49263d.details, null, 2),
+              JSON.stringify(err.details, null, 2),
             );
-            const v_f8a42c = v_49263d.details as Array<{ path?: string[]; message?: string }>;
-            if (Array.isArray(v_f8a42c) && v_f8a42c.length > 0) {
-              const v_a52412 = v_f8a42c
-                .map((v_ebec57) => `• ${(v_ebec57.path ?? []).join(".")}: ${v_ebec57.message ?? "?"}`)
+            const issues = err.details as Array<{ path?: string[]; message?: string }>;
+            if (Array.isArray(issues) && issues.length > 0) {
+              const lines = issues
+                .map((i) => `• ${(i.path ?? []).join(".")}: ${i.message ?? "?"}`)
                 .join("\n");
-              v_badeaf = `${v_49263d.message}\n\n${v_a52412}`;
+              msg = `${err.message}\n\n${lines}`;
             }
           }
         }
       }
-      v_889fad(v_8d41d7("common.error"), v_badeaf);
+      showAlert(t("common.error"), msg);
     } finally {
-      v_ee9ec1(false);
+      setSubmitting(false);
     }
   };
 
-  const v_8a9788 = v_867937; 
+  const ageOptions = XRUN_AGES_OPTIONS; 
 
   return (
-    <SafeView backgroundColor={v_1bfbd0.white}>
+    {}
+    <SafeView backgroundColor={XRUN.pageBg}>
       <PageHeader
-        title={v_a8d185 ? v_8d41d7("auth.signup.googleTitle", { defaultValue: "Google 회원가입" }) : v_8d41d7("auth.signup.title")}
+        title={google ? t("auth.signup.googleTitle", { defaultValue: "Google 회원가입" }) : t("auth.signup.title")}
         showBackButton
-        onBackPress={() => v_c65f5d.goBack()}
+        onBackPress={() => navigation.goBack()}
       />
 
       <SafeScrollView
-        contentContainerStyle={v_d81136.scrollContent}
+        contentContainerStyle={styles.scrollContent}
         autoAdjustKeyboardPadding
         showBottomBackground={false}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={v_d81136.formFieldContainer}>
+        <View style={styles.formFieldContainer}>
           {}
           <FormField
-            ref={v_237bb3}
-            label={v_8d41d7("auth.signup.name", { defaultValue: "이름" })}
-            placeholder={v_8d41d7("auth.signup.name", { defaultValue: "이름" })}
-            value={v_1833e7}
-            onChangeText={v_318f24}
+            ref={nameRef}
+            label={t("auth.signup.name", { defaultValue: "이름" })}
+            placeholder={t("auth.signup.name", { defaultValue: "이름" })}
+            value={name}
+            onChangeText={setName}
             autoCapitalize="none"
           />
 
           {}
           <FormField
-            ref={v_776c12}
-            label={v_8d41d7("auth.signup.email", { defaultValue: "이메일" })}
-            placeholder={v_8d41d7("auth.signup.email", { defaultValue: "이메일" })}
-            value={v_e0c7e8}
-            onChangeText={v_a8d185 ? undefined : v_fedf34}
+            ref={emailRef}
+            label={t("auth.signup.email", { defaultValue: "이메일" })}
+            placeholder={t("auth.signup.email", { defaultValue: "이메일" })}
+            value={email}
+            onChangeText={google ? undefined : setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
-            editable={!v_a8d185}
+            editable={!google}
             rightAccessory={
-              v_a8d185 ? <Feather name="lock" size={16} color={v_1bfbd0.zinc400} /> : undefined
+              google ? <Feather name="lock" size={16} color={COLORS.zinc400} /> : undefined
             }
           />
           {}
 
           {}
           <FormField
-            ref={v_15e85c}
-            label={v_8d41d7("auth.signup.password", { defaultValue: "비밀번호" })}
-            placeholder={v_8d41d7("auth.signup.password", { defaultValue: "비밀번호" })}
-            value={v_adc076}
-            onChangeText={v_52b279}
-            secureTextEntry={!v_b5ab16}
+            ref={passwordRef}
+            label={t("auth.signup.password", { defaultValue: "비밀번호" })}
+            placeholder={t("auth.signup.password", { defaultValue: "비밀번호" })}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
             autoCapitalize="none"
             rightAccessory={
               <TouchableOpacity
-                onPress={() => v_b7733b((v_81e2ef) => !v_81e2ef)}
+                onPress={() => setShowPassword((v) => !v)}
                 hitSlop={8}
-                style={v_d81136.eyeButton}
+                style={styles.eyeButton}
               >
                 <Ionicons
-                  name={v_b5ab16 ? "eye-outline" : "eye-off-outline"}
+                  name={showPassword ? "eye-outline" : "eye-off-outline"}
                   size={20}
                   color="#666666"
                 />
@@ -799,118 +800,118 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
           {}
           <FormField
-            ref={v_68cd31}
-            label={v_8d41d7("auth.signup.passwordConfirm", { defaultValue: "비밀번호 확인" })}
-            placeholder={v_8d41d7("auth.signup.passwordConfirm", { defaultValue: "비밀번호 확인" })}
-            value={v_0b3ebe}
-            onChangeText={v_241a35}
-            secureTextEntry={!v_0b85b1}
+            ref={confirmPasswordRef}
+            label={t("auth.signup.passwordConfirm", { defaultValue: "비밀번호 확인" })}
+            placeholder={t("auth.signup.passwordConfirm", { defaultValue: "비밀번호 확인" })}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry={!showConfirmPassword}
             autoCapitalize="none"
             rightAccessory={
               <TouchableOpacity
-                onPress={() => v_3c4c2d((v_81e2ef) => !v_81e2ef)}
+                onPress={() => setShowConfirmPassword((v) => !v)}
                 hitSlop={8}
-                style={v_d81136.eyeButton}
+                style={styles.eyeButton}
               >
                 <Ionicons
-                  name={v_0b85b1 ? "eye-outline" : "eye-off-outline"}
+                  name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
                   size={20}
                   color="#666666"
                 />
               </TouchableOpacity>
             }
             errorText={
-              v_0b3ebe.length > 0 && v_0b3ebe !== v_adc076
-                ? v_8d41d7("auth.signup.passwordsNotMatch")
+              confirmPassword.length > 0 && confirmPassword !== password
+                ? t("auth.signup.passwordsNotMatch")
                 : undefined
             }
           />
 
           {}
           <FormField
-            ref={v_11ccfc}
-            label={`${v_8d41d7("auth.signup.phone", { defaultValue: "전화번호" })} (${v_8d41d7(
+            ref={phoneRef}
+            label={`${t("auth.signup.phone", { defaultValue: "전화번호" })} (${t(
               "auth.signup.optional",
               { defaultValue: "선택사항" },
             )})`}
             placeholder="01012345678"
-            value={v_d74a81}
-            onChangeText={(v_81e2ef) => v_fcce73(v_81e2ef.replace(/[^0-9]/g, "").slice(0, 11))}
+            value={phone}
+            onChangeText={(v) => setPhone(v.replace(/[^0-9]/g, "").slice(0, 11))}
             keyboardType="phone-pad"
             maxLength={11}
             leftAccessory={
               <TouchableOpacity
-                style={v_d81136.phonePrefix}
-                onPress={() => v_a259be(true)}
+                style={styles.phonePrefix}
+                onPress={() => setCountryModalVisible(true)}
                 activeOpacity={0.7}
               >
-                <Text style={v_d81136.flagEmoji}>{v_b9bbbd.flagEmoji}</Text>
-                <Text style={v_d81136.countryCode}>{v_b9bbbd.dialCode}</Text>
+                <Text style={styles.flagEmoji}>{country.flagEmoji}</Text>
+                <Text style={styles.countryCode}>{country.dialCode}</Text>
               </TouchableOpacity>
             }
           />
 
           {}
-          {v_afb146.length > 0 ? (
+          {regionOptions.length > 0 ? (
             <FormField
-              label={`${v_8d41d7("auth.signup.region", { defaultValue: "지역" })} (${v_8d41d7(
+              label={`${t("auth.signup.region", { defaultValue: "지역" })} (${t(
                 "auth.signup.optional",
                 { defaultValue: "선택사항" },
               )})`}
-              placeholder={v_8d41d7("auth.signup.regionPlaceholder", { defaultValue: "지역 선택" })}
-              value={v_a6c30b != null ? v_56743f : ""}
+              placeholder={t("auth.signup.regionPlaceholder", { defaultValue: "지역 선택" })}
+              value={region != null ? regionDisplayValue : ""}
               editable={false}
-              onPress={() => v_c73419(true)}
+              onPress={() => setRegionModalVisible(true)}
             />
           ) : null}
 
           {}
-          <View style={v_d81136.fieldContainer}>
-            <Text style={v_d81136.sectionLabel}>
-              {v_8d41d7("auth.signup.gender", { defaultValue: "성별" })} ({v_8d41d7("auth.signup.optional", { defaultValue: "선택사항" })})
+          <View style={styles.fieldContainer}>
+            <Text style={styles.sectionLabel}>
+              {t("auth.signup.gender", { defaultValue: "성별" })} ({t("auth.signup.optional", { defaultValue: "선택사항" })})
             </Text>
-            <View style={v_d81136.inlineOptions}>
+            <View style={styles.inlineOptions}>
               <OptionButton
-                label={v_8d41d7("auth.signup.genderSelect", { defaultValue: "선택" })}
-                selected={v_c3eac4 === ""}
-                onPress={() => v_bdc43c("")}
+                label={t("auth.signup.genderSelect", { defaultValue: "선택" })}
+                selected={gender === ""}
+                onPress={() => setGender("")}
               />
               <OptionButton
-                label={v_8d41d7("auth.signup.male", { defaultValue: "남성" })}
-                selected={v_c3eac4 === "male"}
-                onPress={() => v_bdc43c("male")}
+                label={t("auth.signup.male", { defaultValue: "남성" })}
+                selected={gender === "male"}
+                onPress={() => setGender("male")}
               />
               <OptionButton
-                label={v_8d41d7("auth.signup.female", { defaultValue: "여성" })}
-                selected={v_c3eac4 === "female"}
-                onPress={() => v_bdc43c("female")}
+                label={t("auth.signup.female", { defaultValue: "여성" })}
+                selected={gender === "female"}
+                onPress={() => setGender("female")}
               />
             </View>
           </View>
 
           {}
-          <View style={v_d81136.fieldContainer}>
-            <Text style={v_d81136.sectionLabel}>
-              {v_8d41d7("auth.signup.ageRange", { defaultValue: "연령대" })} ({v_8d41d7("auth.signup.optional", { defaultValue: "선택사항" })})
+          <View style={styles.fieldContainer}>
+            <Text style={styles.sectionLabel}>
+              {t("auth.signup.ageRange", { defaultValue: "연령대" })} ({t("auth.signup.optional", { defaultValue: "선택사항" })})
             </Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={v_d81136.ageScrollContent}
+              contentContainerStyle={styles.ageScrollContent}
             >
               <OptionButton
-                label={v_8d41d7("auth.signup.ageSelect", { defaultValue: "선택" })}
-                selected={v_f83808 == null}
-                onPress={() => v_64a312(null)}
-                style={v_d81136.ageOption}
+                label={t("auth.signup.ageSelect", { defaultValue: "선택" })}
+                selected={ageRange == null}
+                onPress={() => setAgeRange(null)}
+                style={styles.ageOption}
               />
-              {v_8a9788.map((v_68b2be) => (
+              {ageOptions.map((opt) => (
                 <OptionButton
-                  key={v_68b2be.value}
-                  label={v_8d41d7(`auth.signup.ageRange${v_68b2be.value}`, { defaultValue: v_68b2be.label })}
-                  selected={v_f83808 === v_68b2be.value}
-                  onPress={() => v_64a312(v_68b2be.value)}
-                  style={v_d81136.ageOption}
+                  key={opt.value}
+                  label={t(`auth.signup.ageRange${opt.value}`, { defaultValue: opt.label })}
+                  selected={ageRange === opt.value}
+                  onPress={() => setAgeRange(opt.value)}
+                  style={styles.ageOption}
                 />
               ))}
             </ScrollView>
@@ -918,115 +919,115 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
           {}
           {}
-          <View style={[v_d81136.termsRow, v_d81136.termsRowAll]}>
-            <SquareCheckbox checked={v_33f2ba} onToggle={v_0217e6} />
-            <Text style={[v_d81136.termsText, v_d81136.termsTextAll]}>
-              {v_8d41d7("auth.signup.termsAgreeAll", { defaultValue: "전체 동의" })}
+          <View style={[styles.termsRow, styles.termsRowAll]}>
+            <SquareCheckbox checked={agreeAll} onToggle={toggleAll} />
+            <Text style={[styles.termsText, styles.termsTextAll]}>
+              {t("auth.signup.termsAgreeAll", { defaultValue: "전체 동의" })}
             </Text>
           </View>
-          <View style={v_d81136.termsDivider} />
+          <View style={styles.termsDivider} />
 
           {}
-          <View style={v_d81136.termsRow}>
+          <View style={styles.termsRow}>
             <SquareCheckbox
-              checked={v_51b53b}
-              onToggle={() => v_c8f346((v_81e2ef) => !v_81e2ef)}
+              checked={agreeService}
+              onToggle={() => setAgreeService((v) => !v)}
             />
-            <Text style={v_d81136.termsText}>
-              <Text style={v_d81136.termsHighlight} onPress={() => v_fe0d62(1)}>
-                {v_8d41d7("auth.signup.termsService", { defaultValue: "[필수] SSO 통합 서비스 이용약관" })}
+            <Text style={styles.termsText}>
+              <Text style={styles.termsHighlight} onPress={() => setTermsModalType(1)}>
+                {t("auth.signup.termsService", { defaultValue: "[필수] SSO 통합 서비스 이용약관" })}
               </Text>{" "}
-              {v_8d41d7("auth.signup.termsAgree", { defaultValue: "동의" })}
+              {t("auth.signup.termsAgree", { defaultValue: "동의" })}
             </Text>
           </View>
 
           {}
-          <View style={v_d81136.termsRow}>
+          <View style={styles.termsRow}>
             <SquareCheckbox
-              checked={v_09b7fa}
-              onToggle={() => v_1d4807((v_81e2ef) => !v_81e2ef)}
+              checked={agreePrivacy}
+              onToggle={() => setAgreePrivacy((v) => !v)}
             />
-            <Text style={v_d81136.termsText}>
-              <Text style={v_d81136.termsHighlight} onPress={() => v_fe0d62(3)}>
-                {v_8d41d7("auth.signup.termsPrivacy", { defaultValue: "[필수] SSO 통합 개인정보 처리방침" })}
+            <Text style={styles.termsText}>
+              <Text style={styles.termsHighlight} onPress={() => setTermsModalType(3)}>
+                {t("auth.signup.termsPrivacy", { defaultValue: "[필수] SSO 통합 개인정보 처리방침" })}
               </Text>{" "}
-              {v_8d41d7("auth.signup.termsAgree", { defaultValue: "동의" })}
+              {t("auth.signup.termsAgree", { defaultValue: "동의" })}
             </Text>
           </View>
 
           {}
-          <View style={v_d81136.termsRow}>
+          <View style={styles.termsRow}>
             <SquareCheckbox
-              checked={v_540cd3}
-              onToggle={() => void v_26e7c7()}
+              checked={agreeLocation}
+              onToggle={() => void toggleLocationConsent()}
             />
-            <Text style={v_d81136.termsText}>
-              <Text style={v_d81136.termsHighlight} onPress={() => v_fe0d62(2)}>
-                {v_8d41d7("auth.signup.locationConsent", { defaultValue: "[필수] 위치기반서비스 이용약관" })}
+            <Text style={styles.termsText}>
+              <Text style={styles.termsHighlight} onPress={() => setTermsModalType(2)}>
+                {t("auth.signup.locationConsent", { defaultValue: "[필수] 위치기반서비스 이용약관" })}
               </Text>{" "}
-              {v_8d41d7("auth.signup.termsAgree", { defaultValue: "동의" })}
+              {t("auth.signup.termsAgree", { defaultValue: "동의" })}
             </Text>
           </View>
 
           {}
-          <View style={v_d81136.termsRow}>
+          <View style={styles.termsRow}>
             <SquareCheckbox
-              checked={v_7f128f}
-              onToggle={() => v_06ec09((v_81e2ef) => !v_81e2ef)}
+              checked={agreeCallLearning}
+              onToggle={() => setAgreeCallLearning((v) => !v)}
             />
-            <Text style={v_d81136.termsText}>
-              <Text style={v_d81136.termsHighlight} onPress={() => v_fe0d62(5)}>
-                {v_8d41d7("auth.signup.callLearningConsent", { defaultValue: "[필수] AI 데이터 활용 및 생성 동의" })}
+            <Text style={styles.termsText}>
+              <Text style={styles.termsHighlight} onPress={() => setTermsModalType(5)}>
+                {t("auth.signup.callLearningConsent", { defaultValue: "[필수] AI 데이터 활용 및 생성 동의" })}
               </Text>{" "}
-              {v_8d41d7("auth.signup.termsAgree", { defaultValue: "동의" })}
+              {t("auth.signup.termsAgree", { defaultValue: "동의" })}
             </Text>
           </View>
 
           {}
-          <View style={v_d81136.termsRow}>
+          <View style={styles.termsRow}>
             <SquareCheckbox
-              checked={v_8c98c4}
-              onToggle={v_349606}
+              checked={agreeMarketing}
+              onToggle={toggleMarketing}
             />
-            <Text style={v_d81136.termsText}>
-              <Text style={v_d81136.termsHighlight}>
-                {v_8d41d7("auth.signup.marketingConsent", { defaultValue: "[선택] 마케팅 정보 수집 및 활용 동의" })}
+            <Text style={styles.termsText}>
+              <Text style={styles.termsHighlight}>
+                {t("auth.signup.marketingConsent", { defaultValue: "[선택] 마케팅 정보 수집 및 활용 동의" })}
               </Text>
-              {v_8d0e18 ? ` (${v_8d41d7("auth.signup.verifying", { defaultValue: "확인 중" })})` : ""}
+              {requestingPush ? ` (${t("auth.signup.verifying", { defaultValue: "확인 중" })})` : ""}
             </Text>
           </View>
 
           {}
-          <View style={v_d81136.termsRow}>
+          <View style={styles.termsRow}>
             <SquareCheckbox
-              checked={v_a03498}
-              onToggle={() => v_d34fc9((v_81e2ef) => !v_81e2ef)}
+              checked={agreeFaceBiometric}
+              onToggle={() => setAgreeFaceBiometric((v) => !v)}
             />
-            <Text style={v_d81136.termsText}>
-              <Text style={v_d81136.termsHighlight} onPress={() => v_fe0d62(4)}>
-                {v_8d41d7("auth.signup.faceBiometricConsent", { defaultValue: "[선택] 얼굴 생체정보 처리 동의" })}
+            <Text style={styles.termsText}>
+              <Text style={styles.termsHighlight} onPress={() => setTermsModalType(4)}>
+                {t("auth.signup.faceBiometricConsent", { defaultValue: "[선택] 얼굴 생체정보 처리 동의" })}
               </Text>{" "}
-              {v_8d41d7("auth.signup.termsAgree", { defaultValue: "동의" })}
+              {t("auth.signup.termsAgree", { defaultValue: "동의" })}
             </Text>
           </View>
 
           {}
-          <View style={v_d81136.buttonWrapper}>
+          <View style={styles.buttonWrapper}>
             <TouchableOpacity
-              style={[v_d81136.primaryButton, v_cb66b4 && v_d81136.primaryButtonDisabled]}
-              onPress={v_585b02}
-              disabled={v_cb66b4}
+              style={[styles.primaryButton, submitting && styles.primaryButtonDisabled]}
+              onPress={handleSubmit}
+              disabled={submitting}
               activeOpacity={0.85}
             >
-              <Text style={v_d81136.primaryButtonText}>
-                {v_cb66b4
-                  ? v_8d41d7("auth.signup.signingUp", { defaultValue: "가입 중..." })
-                  : v_8d41d7("auth.signup.signupBtn", { defaultValue: "회원가입" })}
+              <Text style={styles.primaryButtonText}>
+                {submitting
+                  ? t("auth.signup.signingUp", { defaultValue: "가입 중..." })
+                  : t("auth.signup.signupBtn", { defaultValue: "회원가입" })}
               </Text>
             </TouchableOpacity>
-            {v_cb66b4 ? (
-              <View style={v_d81136.loadingContainer}>
-                <ActivityIndicator size="small" color={v_cafb6f.primary} />
+            {submitting ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={XRUN.primary} />
               </View>
             ) : null}
           </View>
@@ -1037,77 +1038,77 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       <Modal
         animationType="slide"
         transparent
-        visible={v_b67b40}
-        onRequestClose={() => v_a259be(false)}
+        visible={countryModalVisible}
+        onRequestClose={() => setCountryModalVisible(false)}
       >
-        <View style={v_d81136.modalOverlay}>
+        <View style={styles.modalOverlay}>
           <TouchableOpacity
-            style={v_d81136.modalBackdrop}
+            style={styles.modalBackdrop}
             activeOpacity={1}
             onPress={() => {
-              v_a259be(false);
-              v_e03dd9("");
+              setCountryModalVisible(false);
+              setCountrySearchQuery("");
             }}
           />
-          <View style={[v_d81136.modalContent, v_7e4acc > 0 && { paddingBottom: v_7e4acc }]}>
-            <View style={v_d81136.modalHeader}>
-              <Text style={v_d81136.modalTitle}>
-                {v_8d41d7("auth.signup.countryPlaceholder", { defaultValue: "국가 선택" })}
+          <View style={[styles.modalContent, keyboardHeight > 0 && { paddingBottom: keyboardHeight }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {t("auth.signup.countryPlaceholder", { defaultValue: "국가 선택" })}
               </Text>
               <TouchableOpacity
                 onPress={() => {
-                  v_a259be(false);
-                  v_e03dd9("");
+                  setCountryModalVisible(false);
+                  setCountrySearchQuery("");
                 }}
               >
-                <Text style={v_d81136.modalCloseButton}>✕</Text>
+                <Text style={styles.modalCloseButton}>✕</Text>
               </TouchableOpacity>
             </View>
-            <View style={v_d81136.modalSearchBox}>
+            <View style={styles.modalSearchBox}>
               <Ionicons name="search" size={18} color="#9ca3af" />
               <TextInput
-                style={v_d81136.modalSearchInput}
-                value={v_bd30a1}
-                onChangeText={v_e03dd9}
-                placeholder={v_8d41d7("auth.signup.countrySearch", { defaultValue: "국가 검색" })}
+                style={styles.modalSearchInput}
+                value={countrySearchQuery}
+                onChangeText={setCountrySearchQuery}
+                placeholder={t("auth.signup.countrySearch", { defaultValue: "국가 검색" })}
                 placeholderTextColor="#c4c7d1"
                 autoCorrect={false}
               />
             </View>
             <FlatList
-              data={v_daa71c}
-              keyExtractor={(v_8c0b26) => `${v_8c0b26.iso2}-${v_8c0b26.dialCode}`}
-              renderItem={({ item: v_8c0b26 }) => {
-                const v_587413 =
-                  v_8c0b26.iso2.toLowerCase() === v_b9bbbd.iso2.toLowerCase() &&
-                  v_8c0b26.dialCode === v_b9bbbd.dialCode;
-                const v_2869c1 = v_8d41d7(`countries:${v_8c0b26.iso2.toUpperCase()}`, {
-                  defaultValue: v_8c0b26.name,
+              data={filteredCountries}
+              keyExtractor={(item) => `${item.iso2}-${item.dialCode}`}
+              renderItem={({ item }) => {
+                const selected =
+                  item.iso2.toLowerCase() === country.iso2.toLowerCase() &&
+                  item.dialCode === country.dialCode;
+                const label = t(`countries:${item.iso2.toUpperCase()}`, {
+                  defaultValue: item.name,
                 });
                 return (
                   <TouchableOpacity
-                    style={[v_d81136.modalListItem, v_587413 && v_d81136.modalListItemSelected]}
-                    onPress={() => v_de5bf5(v_8c0b26)}
+                    style={[styles.modalListItem, selected && styles.modalListItemSelected]}
+                    onPress={() => handleSelectCountry(item)}
                     activeOpacity={0.7}
                   >
                     {}
-                    <View style={v_d81136.modalListFlagBadge}>
-                      <Text style={v_d81136.modalListFlag}>{v_8c0b26.flagEmoji}</Text>
+                    <View style={styles.modalListFlagBadge}>
+                      <Text style={styles.modalListFlag}>{item.flagEmoji}</Text>
                     </View>
-                    <View style={v_d81136.modalListInfo}>
-                      <Text style={v_d81136.modalListLabel}>{v_2869c1}</Text>
-                      <Text style={v_d81136.modalListIso}>{v_8c0b26.iso2.toUpperCase()}</Text>
+                    <View style={styles.modalListInfo}>
+                      <Text style={styles.modalListLabel}>{label}</Text>
+                      <Text style={styles.modalListIso}>{item.iso2.toUpperCase()}</Text>
                     </View>
-                    <Text style={v_d81136.modalListMeta}>{v_8c0b26.dialCode}</Text>
+                    <Text style={styles.modalListMeta}>{item.dialCode}</Text>
                   </TouchableOpacity>
                 );
               }}
-              contentContainerStyle={v_d81136.modalListContent}
+              contentContainerStyle={styles.modalListContent}
               keyboardShouldPersistTaps="handled"
               ListEmptyComponent={
-                <View style={v_d81136.modalEmptyState}>
-                  <Text style={v_d81136.modalEmptyText}>
-                    {v_8d41d7("auth.signup.noResults", { defaultValue: "검색 결과가 없습니다." })}
+                <View style={styles.modalEmptyState}>
+                  <Text style={styles.modalEmptyText}>
+                    {t("auth.signup.noResults", { defaultValue: "검색 결과가 없습니다." })}
                   </Text>
                 </View>
               }
@@ -1120,70 +1121,70 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       <Modal
         animationType="slide"
         transparent
-        visible={v_3a64df}
-        onRequestClose={() => v_c73419(false)}
+        visible={regionModalVisible}
+        onRequestClose={() => setRegionModalVisible(false)}
       >
-        <View style={v_d81136.modalOverlay}>
+        <View style={styles.modalOverlay}>
           <TouchableOpacity
-            style={v_d81136.modalBackdrop}
+            style={styles.modalBackdrop}
             activeOpacity={1}
             onPress={() => {
-              v_c73419(false);
-              v_6a0bf8("");
+              setRegionModalVisible(false);
+              setRegionSearchQuery("");
             }}
           />
-          <View style={[v_d81136.modalContent, v_7e4acc > 0 && { paddingBottom: v_7e4acc }]}>
-            <View style={v_d81136.modalHeader}>
-              <Text style={v_d81136.modalTitle}>
-                {v_8d41d7("auth.signup.regionPlaceholder", { defaultValue: "지역 선택" })}
+          <View style={[styles.modalContent, keyboardHeight > 0 && { paddingBottom: keyboardHeight }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {t("auth.signup.regionPlaceholder", { defaultValue: "지역 선택" })}
               </Text>
               <TouchableOpacity
                 onPress={() => {
-                  v_c73419(false);
-                  v_6a0bf8("");
+                  setRegionModalVisible(false);
+                  setRegionSearchQuery("");
                 }}
               >
-                <Text style={v_d81136.modalCloseButton}>✕</Text>
+                <Text style={styles.modalCloseButton}>✕</Text>
               </TouchableOpacity>
             </View>
-            <View style={v_d81136.modalSearchBox}>
+            <View style={styles.modalSearchBox}>
               <Ionicons name="search" size={18} color="#9ca3af" />
               <TextInput
-                style={v_d81136.modalSearchInput}
-                value={v_7962f1}
-                onChangeText={v_6a0bf8}
-                placeholder={v_8d41d7("auth.signup.regionSearch", { defaultValue: "지역 검색" })}
+                style={styles.modalSearchInput}
+                value={regionSearchQuery}
+                onChangeText={setRegionSearchQuery}
+                placeholder={t("auth.signup.regionSearch", { defaultValue: "지역 검색" })}
                 placeholderTextColor="#c4c7d1"
                 autoCorrect={false}
               />
             </View>
             <FlatList
-              data={v_4e187d as Array<{ value: number; label: string }>}
-              keyExtractor={(v_8c0b26) => String(v_8c0b26.value)}
-              renderItem={({ item: v_8c0b26 }) => {
-                const v_587413 = v_a6c30b === v_8c0b26.value;
+              data={filteredRegions as Array<{ value: number; label: string }>}
+              keyExtractor={(item) => String(item.value)}
+              renderItem={({ item }) => {
+                const selected = region === item.value;
                 return (
                   <TouchableOpacity
-                    style={[v_d81136.modalListItem, v_587413 && v_d81136.modalListItemSelected]}
-                    onPress={() => v_477add(v_8c0b26)}
+                    style={[styles.modalListItem, selected && styles.modalListItemSelected]}
+                    onPress={() => handleSelectRegion(item)}
                     activeOpacity={0.7}
                   >
                     {}
-                    <View style={v_d81136.modalListInfo}>
-                      <Text style={v_d81136.modalListLabel}>{v_8c0b26.label}</Text>
+                    <View style={styles.modalListInfo}>
+                      <Text style={styles.modalListLabel}>{item.label}</Text>
                     </View>
-                    {v_587413 ? (
-                      <Feather name="check" size={18} color={v_cafb6f.primary} />
+                    {selected ? (
+                      <Feather name="check" size={18} color={XRUN.primary} />
                     ) : null}
                   </TouchableOpacity>
                 );
               }}
-              contentContainerStyle={v_d81136.modalListContent}
+              contentContainerStyle={styles.modalListContent}
               keyboardShouldPersistTaps="handled"
               ListEmptyComponent={
-                <View style={v_d81136.modalEmptyState}>
-                  <Text style={v_d81136.modalEmptyText}>
-                    {v_8d41d7("auth.signup.noResults", { defaultValue: "검색 결과가 없습니다." })}
+                <View style={styles.modalEmptyState}>
+                  <Text style={styles.modalEmptyText}>
+                    {t("auth.signup.noResults", { defaultValue: "검색 결과가 없습니다." })}
                   </Text>
                 </View>
               }
@@ -1194,29 +1195,29 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
       {}
       <TermsModal
-        visible={v_d39271 !== null}
-        type={v_d39271}
-        onClose={() => v_fe0d62(null)}
+        visible={termsModalType !== null}
+        type={termsModalType}
+        onClose={() => setTermsModalType(null)}
         onAgree={() => {
-          const v_357868 = v_d39271;
-          v_fe0d62(null);
-          if (v_357868 === 1) v_c8f346(true);
-          else if (v_357868 === 2) void v_26e7c7();
-          else if (v_357868 === 3) v_1d4807(true);
-          else if (v_357868 === 4) v_d34fc9(true);
-          else if (v_357868 === 5) v_06ec09(true);
+          const tp = termsModalType;
+          setTermsModalType(null);
+          if (tp === 1) setAgreeService(true);
+          else if (tp === 2) void toggleLocationConsent();
+          else if (tp === 3) setAgreePrivacy(true);
+          else if (tp === 4) setAgreeFaceBiometric(true);
+          else if (tp === 5) setAgreeCallLearning(true);
         }}
       />
     </SafeView>
   );
 }
 
-const v_d81136 = v_472849.create({
+const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     alignItems: "center",
-    paddingHorizontal: v_9b1a04.large,
-    paddingVertical: v_9b1a04.xlarge,
+    paddingHorizontal: SIZES.large,
+    paddingVertical: SIZES.xlarge,
   },
   formFieldContainer: {
     width: "100%",
@@ -1228,7 +1229,7 @@ const v_d81136 = v_472849.create({
   },
   sectionLabel: {
     fontSize: 13,
-    color: v_cafb6f.mutedText,
+    color: XRUN.mutedText,
     marginBottom: 10,
     fontWeight: "500",
   },
@@ -1238,7 +1239,7 @@ const v_d81136 = v_472849.create({
     paddingRight: 12,
     paddingVertical: 4,
     borderRightWidth: 1,
-    borderRightColor: v_cafb6f.fieldBorder,
+    borderRightColor: XRUN.fieldBorder,
     gap: 6,
   },
   flagEmoji: {
@@ -1263,7 +1264,7 @@ const v_d81136 = v_472849.create({
     paddingRight: 4,
   },
   ageOption: {
-    minWidth: v_936fd7,
+    minWidth: AGE_PILL_MIN_WIDTH,
     paddingHorizontal: 16,
   },
   eyeButton: {
@@ -1287,23 +1288,23 @@ const v_d81136 = v_472849.create({
     flex: 1,
     fontSize: 13,
     lineHeight: 15, 
-    color: v_cafb6f.mutedText,
+    color: XRUN.mutedText,
     alignSelf: "center",
-    fontFamily: v_843035.regular,
+    fontFamily: FONTS.regular,
   },
   termsTextAll: {
     fontSize: 14,
-    fontFamily: v_843035.bold,
-    color: v_cafb6f.headingText,
+    fontFamily: FONTS.bold,
+    color: XRUN.headingText,
   },
   termsHighlight: {
 
-    fontFamily: v_843035.semi,
-    color: v_cafb6f.headingText,
+    fontFamily: FONTS.semi,
+    color: XRUN.headingText,
   },
   termsDivider: {
     height: 1,
-    backgroundColor: v_cafb6f.divider,
+    backgroundColor: XRUN.divider,
     marginVertical: 4,
     width: "100%",
     maxWidth: 780,
@@ -1317,7 +1318,7 @@ const v_d81136 = v_472849.create({
 
     height: 56,
     borderRadius: 16,
-    backgroundColor: v_cafb6f.primary,
+    backgroundColor: XRUN.primary,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1328,7 +1329,7 @@ const v_d81136 = v_472849.create({
     color: "#ffffff",
     fontSize: 16,
     lineHeight: 24,
-    fontFamily: v_843035.medium, 
+    fontFamily: FONTS.medium, 
   },
   loadingContainer: {
     marginTop: 12,
@@ -1347,10 +1348,10 @@ const v_d81136 = v_472849.create({
     backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    height: v_700696.get("window").height * 0.8,
-    minHeight: v_700696.get("window").height * 0.6,
-    maxHeight: v_700696.get("window").height * 0.8,
-    paddingBottom: v_326be8.OS === "ios" ? 34 : 20,
+    height: Dimensions.get("window").height * 0.8,
+    minHeight: Dimensions.get("window").height * 0.6,
+    maxHeight: Dimensions.get("window").height * 0.8,
+    paddingBottom: Platform.OS === "ios" ? 34 : 20,
   },
   modalHeader: {
     flexDirection: "row",
@@ -1359,22 +1360,22 @@ const v_d81136 = v_472849.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: v_cafb6f.divider,
+    borderBottomColor: XRUN.divider,
   },
   modalTitle: {
     fontSize: 18,
-    fontFamily: v_843035.bold,
-    color: v_cafb6f.headingText,
+    fontFamily: FONTS.bold,
+    color: XRUN.headingText,
   },
   modalCloseButton: {
     fontSize: 24,
-    color: v_cafb6f.mutedText,
+    color: XRUN.mutedText,
     lineHeight: 24,
   },
   modalSearchBox: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: v_cafb6f.pageBg,
+    backgroundColor: XRUN.pageBg,
     borderRadius: 12,
     paddingHorizontal: 16,
     marginHorizontal: 20,
@@ -1386,8 +1387,8 @@ const v_d81136 = v_472849.create({
     flex: 1,
     marginLeft: 8,
     fontSize: 15,
-    color: v_cafb6f.headingText,
-    fontFamily: v_843035.regular,
+    color: XRUN.headingText,
+    fontFamily: FONTS.regular,
   },
   modalListContent: {
     paddingHorizontal: 20,
@@ -1406,14 +1407,14 @@ const v_d81136 = v_472849.create({
     borderColor: "#f0f0f0",
   },
   modalListItemSelected: {
-    borderColor: v_cafb6f.primary,
+    borderColor: XRUN.primary,
   },
 
   modalListFlagBadge: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: v_cafb6f.pageBg,
+    backgroundColor: XRUN.pageBg,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -1428,22 +1429,22 @@ const v_d81136 = v_472849.create({
   },
   modalListLabel: {
     fontSize: 15,
-    color: v_cafb6f.headingText,
-    fontFamily: v_843035.medium,
+    color: XRUN.headingText,
+    fontFamily: FONTS.medium,
   },
   modalListIso: {
 
     fontSize: 12,
-    color: v_cafb6f.mutedText,
+    color: XRUN.mutedText,
     textTransform: "uppercase",
-    fontFamily: v_843035.regular,
+    fontFamily: FONTS.regular,
     marginTop: 2,
   },
   modalListMeta: {
 
     fontSize: 15,
     color: "#1f2933",
-    fontFamily: v_843035.bold,
+    fontFamily: FONTS.bold,
   },
   modalEmptyState: {
     paddingVertical: 40,
@@ -1451,6 +1452,6 @@ const v_d81136 = v_472849.create({
   },
   modalEmptyText: {
     fontSize: 14,
-    color: v_cafb6f.mutedText,
+    color: XRUN.mutedText,
   },
 });
