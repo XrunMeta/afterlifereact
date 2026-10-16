@@ -1090,12 +1090,15 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                     onPress={() => v_de5bf5(v_8c0b26)}
                     activeOpacity={0.7}
                   >
-                    <Text style={v_d81136.modalListFlag}>{v_8c0b26.flagEmoji}</Text>
-                    <Text style={v_d81136.modalListLabel}>{v_2869c1}</Text>
+                    {}
+                    <View style={v_d81136.modalListFlagBadge}>
+                      <Text style={v_d81136.modalListFlag}>{v_8c0b26.flagEmoji}</Text>
+                    </View>
+                    <View style={v_d81136.modalListInfo}>
+                      <Text style={v_d81136.modalListLabel}>{v_2869c1}</Text>
+                      <Text style={v_d81136.modalListIso}>{v_8c0b26.iso2.toUpperCase()}</Text>
+                    </View>
                     <Text style={v_d81136.modalListMeta}>{v_8c0b26.dialCode}</Text>
-                    {v_587413 ? (
-                      <Feather name="check" size={16} color={v_cafb6f.primary} style={{ marginLeft: 6 }} />
-                    ) : null}
                   </TouchableOpacity>
                 );
               }}
@@ -1165,9 +1168,12 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                     onPress={() => v_477add(v_8c0b26)}
                     activeOpacity={0.7}
                   >
-                    <Text style={v_d81136.modalListLabel}>{v_8c0b26.label}</Text>
+                    {}
+                    <View style={v_d81136.modalListInfo}>
+                      <Text style={v_d81136.modalListLabel}>{v_8c0b26.label}</Text>
+                    </View>
                     {v_587413 ? (
-                      <Feather name="check" size={16} color={v_cafb6f.primary} style={{ marginLeft: 6 }} />
+                      <Feather name="check" size={18} color={v_cafb6f.primary} />
                     ) : null}
                   </TouchableOpacity>
                 );
@@ -1387,29 +1393,57 @@ const v_d81136 = v_472849.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
+
   modalListItem: {
     flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: 16,
     paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: v_cafb6f.divider,
-    gap: 10,
+    borderRadius: 16,
+    backgroundColor: "#fff",
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#f0f0f0",
   },
   modalListItemSelected: {
+    borderColor: v_cafb6f.primary,
+  },
 
+  modalListFlagBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: v_cafb6f.pageBg,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+    overflow: "hidden",
   },
   modalListFlag: {
-    fontSize: 20,
+    fontSize: 24,
+    textAlign: "center",
+  },
+  modalListInfo: {
+    flex: 1,
   },
   modalListLabel: {
-    flex: 1,
     fontSize: 15,
     color: v_cafb6f.headingText,
     fontFamily: v_843035.medium,
   },
-  modalListMeta: {
-    fontSize: 13,
+  modalListIso: {
+
+    fontSize: 12,
     color: v_cafb6f.mutedText,
+    textTransform: "uppercase",
+    fontFamily: v_843035.regular,
+    marginTop: 2,
+  },
+  modalListMeta: {
+
+    fontSize: 15,
+    color: "#1f2933",
+    fontFamily: v_843035.bold,
   },
   modalEmptyState: {
     paddingVertical: 40,
