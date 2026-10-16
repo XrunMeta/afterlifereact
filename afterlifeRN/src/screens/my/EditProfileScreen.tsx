@@ -142,8 +142,8 @@ export default function v_e2b396() {
 
   v_c4deb2(() => {
     if (!v_786737) return;
-    const v_32d8c3 = v_786737.firstname?.trim();
-    const v_f8874f = v_786737.mobile?.trim();
+    const v_32d8c3 = v_786737.firstname ?? "";
+    const v_f8874f = v_786737.mobile ?? "";
     const v_3b9456 = v_048a83(v_786737.gender);
     const v_46d803 = v_786737.age;
     console.log("[EditProfile] prefill from xrun:", JSON.stringify({
@@ -153,11 +153,17 @@ export default function v_e2b396() {
       age: v_46d803,
       rawGender: v_786737.gender,
     }));
-    if (v_32d8c3) v_318f24(v_32d8c3);
-    if (v_f8874f) v_fcce73(v_f8874f);
-    if (v_3b9456) v_bdc43c(v_3b9456);
+    v_318f24(v_32d8c3);
+    v_fcce73(v_f8874f);
+    v_bdc43c(v_3b9456);
     if (typeof v_46d803 === "number" && Number.isFinite(v_46d803)) {
       v_64a312(v_a09cf3(v_46d803));
+    } else {
+      v_64a312("");
+    }
+
+    if (v_32d8c3 && v_32d8c3 !== v_b113dd?.name) {
+      v_21f395({ name: v_32d8c3 });
     }
   }, [v_786737]);
 
