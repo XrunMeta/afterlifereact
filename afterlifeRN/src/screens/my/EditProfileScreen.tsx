@@ -21,21 +21,22 @@ import { v_889fad } from "../../stores/dialogStore";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
 import {
-  v_976b89,
   v_2c296e,
   v_ad7aba,
   v_84a859,
-  type v_fd8a01,
   type v_fa06b2,
   type v_cc333b,
 } from "../../api/auth";
 import type { v_da1883 } from "../../types/country";
 import { v_202d44 } from "../../constants/countryDialCodes";
-import { v_369014 } from "../../constants/regions";
+import {
+  v_7b2d46,
+  v_a2df5a,
+  v_867937,
+  v_6491a7,
+} from "../../constants/xrunCodes";
 import type { v_8ad91b } from "../../navigation/types";
 
-const v_7b2d46 = 2110;
-const v_a2df5a = 2111;
 const v_d97109 = (v_206b88): number | null => {
   if (v_206b88 === "male") return v_7b2d46;
   if (v_206b88 === "female") return v_a2df5a;
@@ -66,34 +67,14 @@ export default function v_e2b396() {
   );
 
   const v_ac0935 = v_df9f57(
-    () => [
-      { value: "10", label: v_8d41d7("auth.signup.ageRange10", { defaultValue: "10대" }) },
-      { value: "20", label: v_8d41d7("auth.signup.ageRange20", { defaultValue: "20대" }) },
-      { value: "30", label: v_8d41d7("auth.signup.ageRange30", { defaultValue: "30대" }) },
-      { value: "40", label: v_8d41d7("auth.signup.ageRange40", { defaultValue: "40대" }) },
-      { value: "50+", label: v_8d41d7("auth.signup.ageRange50Plus", { defaultValue: "50대 이상" }) },
-    ],
+    () =>
+      v_867937.map((v_68b2be) => ({
+        value: v_68b2be.value,
+
+        label: v_8d41d7(`auth.signup.ageRange${v_68b2be.value}`, { defaultValue: v_68b2be.label }),
+      })),
     [v_8d41d7],
   );
-  const v_56f818 = (v_cb35cb): number | null => {
-    switch (v_cb35cb) {
-      case "10": return 15;
-      case "20": return 25;
-      case "30": return 35;
-      case "40": return 45;
-      case "50+": return 55;
-      default: return null;
-    }
-  };
-
-  const v_a09cf3 = (v_779914): string => {
-    if (v_779914 == null || !Number.isFinite(v_779914)) return "";
-    if (v_779914 < 20) return "10";
-    if (v_779914 < 30) return "20";
-    if (v_779914 < 40) return "30";
-    if (v_779914 < 50) return "40";
-    return "50+";
-  };
 
   const [v_786737, v_9ed797] = v_5ab095<v_fa06b2 | null>(null);
   const [v_6361b5, v_824d29] = v_5ab095<boolean>(!!v_2ca7e0);
@@ -138,79 +119,69 @@ export default function v_e2b396() {
       : "",
   );
 
-  const [v_f83808, v_64a312] = v_5ab095<string>(v_a09cf3(v_b113dd?.age));
+  const [v_f83808, v_64a312] = v_5ab095<number | null>(null);
 
   v_c4deb2(() => {
     if (!v_786737) return;
-    const v_32d8c3 = v_786737.firstname?.trim();
-    const v_f8874f = v_786737.mobile?.trim();
+    const v_32d8c3 = v_786737.firstname ?? "";
+    const v_f8874f = v_786737.mobile ?? "";
     const v_3b9456 = v_048a83(v_786737.gender);
-    const v_46d803 = v_786737.age;
     console.log("[EditProfile] prefill from xrun:", JSON.stringify({
       name: v_32d8c3,
       phone: v_f8874f,
       gender: v_3b9456,
-      age: v_46d803,
-      rawGender: v_786737.gender,
+      ages: v_786737.ages,
+      country: v_786737.country,
+      region: v_786737.region,
     }));
-    if (v_32d8c3) v_318f24(v_32d8c3);
-    if (v_f8874f) v_fcce73(v_f8874f);
-    if (v_3b9456) v_bdc43c(v_3b9456);
-    if (typeof v_46d803 === "number" && Number.isFinite(v_46d803)) {
-      v_64a312(v_a09cf3(v_46d803));
+    v_318f24(v_32d8c3);
+    v_fcce73(v_f8874f);
+    v_bdc43c(v_3b9456);
+    v_64a312(v_786737.ages ?? null);
+    if (v_32d8c3 && v_32d8c3 !== v_b113dd?.name) {
+      v_21f395({ name: v_32d8c3 });
     }
   }, [v_786737]);
 
-  const v_686096 = v_df9f57<v_da1883 | null>(() => {
-    if (!v_b113dd?.country) return null;
-    return (
-      v_202d44.find(
-        (v_3f4e2e) => v_3f4e2e.iso2.toUpperCase() === v_b113dd.country!.toUpperCase(),
-      ) ?? null
-    );
-  }, [v_b113dd]);
-  const [v_b9bbbd, v_b7066f] = v_5ab095<v_da1883 | null>(v_686096);
-
-  const v_2a5c62 = v_df9f57<v_da1883 | null>(() => {
-    if (!v_b113dd?.country || !v_b113dd.region) return null;
-    const v_e94fdf = v_369014(v_b113dd.country.toLowerCase());
-    const v_ea6dff = v_e94fdf.find((v_cb35cb) => v_cb35cb.dialCode === v_b113dd.region);
-    if (v_ea6dff) return v_ea6dff;
-
-    return {
-      iso2: `fallback_${v_b113dd.region}`,
-      name: `지역 ${v_b113dd.region}`,
-      dialCode: v_b113dd.region,
-      flagEmoji: '📍',
-      countryCode: 0,
-    };
-  }, [v_b113dd]);
-  const [v_a6c30b, v_c030e3] = v_5ab095<v_da1883 | null>(v_2a5c62);
+  const [v_b9bbbd, v_b7066f] = v_5ab095<v_da1883 | null>(null);
+  const [v_a6c30b, v_c030e3] = v_5ab095<number | null>(null);
   const [v_9d56c4, v_7168a2] = v_5ab095(false);
 
-  const [v_855cdc, v_6bf177] = v_5ab095(false);
+  v_c4deb2(() => {
+    if (!v_786737) return;
+    if (v_786737.country) {
+      const v_4b037d = v_202d44.find(
+        (v_3f4e2e) => v_3f4e2e.countryCode === v_786737.country,
+      );
+      v_b7066f(v_4b037d ?? null);
+    }
+    v_c030e3(v_786737.region ?? null);
+  }, [v_786737]);
+
+  const v_afb146 = v_df9f57(
+    () =>
+      v_b9bbbd ? v_6491a7(v_b9bbbd.countryCode).map((v_cb35cb) => ({ value: v_cb35cb.value, label: v_cb35cb.label })) : [],
+    [v_b9bbbd],
+  );
 
   const [v_35bf26, v_04e389] = v_5ab095(false);
 
   const v_12b1d1 = v_df9f57(() => {
-    const v_f4fe8e = v_56f818(v_f83808);
     return (
-      v_1833e7.trim() !== (v_b113dd?.name ?? "") ||
-      v_d74a81.trim() !== (v_b113dd?.phone ?? "") ||
-      v_c3eac4 !== ((v_b113dd?.gender as Gender) ?? "") ||
-      v_f4fe8e !== (v_b113dd?.age ?? null) ||
-      (v_b9bbbd?.iso2 ?? null) !== (v_b113dd?.country?.toLowerCase() ?? null) ||
-      (v_a6c30b && v_a6c30b.iso2 !== "global" ? v_a6c30b.dialCode : null) !==
-        (v_b113dd?.region ?? null)
+      v_1833e7.trim() !== (v_786737?.firstname ?? "") ||
+      v_d74a81.trim() !== (v_786737?.mobile ?? "") ||
+      v_c3eac4 !== v_048a83(v_786737?.gender) ||
+      v_f83808 !== (v_786737?.ages ?? null) ||
+      (v_b9bbbd?.countryCode ?? null) !== (v_786737?.country ?? null) ||
+      v_a6c30b !== (v_786737?.region ?? null)
     );
-  }, [v_1833e7, v_d74a81, v_c3eac4, v_f83808, v_b9bbbd, v_a6c30b, v_b113dd]);
+  }, [v_1833e7, v_d74a81, v_c3eac4, v_f83808, v_b9bbbd, v_a6c30b, v_786737]);
 
   const v_1b8283 = async () => {
     if (!v_2ca7e0 || !v_b113dd || v_35bf26 || !v_12b1d1) return;
 
     const v_affc3e = v_1833e7.trim();
     const v_d1d8b2 = v_d74a81.trim();
-    const v_f4fe8e = v_56f818(v_f83808);
 
     if (v_affc3e.length === 0) {
       v_889fad(
@@ -221,7 +192,7 @@ export default function v_e2b396() {
       );
       return;
     }
-    if (v_f4fe8e == null) {
+    if (v_f83808 == null) {
       v_889fad(
         v_8d41d7("common.notice", { defaultValue: "알림" }),
         v_8d41d7("auth.signup.ageRangeRequired", {
@@ -240,57 +211,40 @@ export default function v_e2b396() {
       return;
     }
 
-    const patch: v_fd8a01 = {};
-    if (v_affc3e !== (v_b113dd.name ?? "")) v_17dc8a.name = v_affc3e;
-    if (v_d1d8b2 !== (v_b113dd.phone ?? ""))
-      v_17dc8a.phone = v_d1d8b2 || null;
-    if (v_c3eac4 !== ((v_b113dd.gender as Gender) ?? ""))
-      v_17dc8a.gender = v_c3eac4 || null;
-    if (v_f4fe8e !== (v_b113dd.age ?? null)) v_17dc8a.age = v_f4fe8e;
+    const xrunPatch: v_cc333b = {};
+    if (v_affc3e !== (v_786737?.firstname ?? "")) v_588fa6.firstname = v_affc3e;
+    if (v_d1d8b2 !== (v_786737?.mobile ?? "")) v_588fa6.mobile = v_d1d8b2 || null;
+    const v_7ac969 = v_d97109(v_c3eac4);
+    if (v_7ac969 !== (v_786737?.gender ?? null)) v_588fa6.gender = v_7ac969;
+    if (v_f83808 !== (v_786737?.ages ?? null)) v_588fa6.age = v_f83808;
     if (v_b9bbbd) {
-      const v_6fc191 = v_b9bbbd.iso2.toUpperCase();
-      if (v_6fc191 !== (v_b113dd.country?.toUpperCase() ?? null)) v_17dc8a.country = v_6fc191;
-      const v_15594c =
-        v_b9bbbd.countryCode ??
-        (Number(v_b9bbbd.dialCode.replace(/[^\d]/g, "")) || null);
-      if (v_15594c !== (v_b113dd.mobileCode ?? null))
-        v_17dc8a.mobileCode = v_15594c;
+      if (v_b9bbbd.countryCode !== (v_786737?.country ?? null)) {
+        v_588fa6.country = v_b9bbbd.countryCode;
+      }
+      const v_6f9eff = v_b9bbbd.iso2.toLowerCase();
+      if (v_6f9eff !== (v_786737?.countrycode?.toLowerCase() ?? null)) {
+        v_588fa6.countrycode = v_6f9eff;
+      }
+      v_588fa6.mobilecode = String(v_b9bbbd.countryCode);
     }
-    if (v_a6c30b && v_a6c30b.iso2 !== "global") {
-      if (v_a6c30b.dialCode !== (v_b113dd.region ?? null))
-        v_17dc8a.region = v_a6c30b.dialCode;
+    if (v_a6c30b !== (v_786737?.region ?? null)) {
+      v_588fa6.region = v_a6c30b;
     }
 
     v_04e389(true);
     try {
-
-      const xrunPatch: v_cc333b = {};
-      if (v_17dc8a.name !== undefined) v_588fa6.firstname = v_17dc8a.name;
-      if (v_17dc8a.phone !== undefined) v_588fa6.mobile = v_17dc8a.phone;
-      if (v_17dc8a.gender !== undefined) {
-        v_588fa6.gender = v_d97109(v_17dc8a.gender ?? "");
+      console.log("[EditProfile] save start — xrun patch:", JSON.stringify(v_588fa6));
+      if (Object.keys(v_588fa6).length === 0) {
+        v_04e389(false);
+        v_c65f5d.goBack();
+        return;
       }
-      if (v_17dc8a.age !== undefined) v_588fa6.age = v_17dc8a.age;
+      const v_43c42e = await v_ad7aba(v_2ca7e0, v_588fa6);
+      console.log("[EditProfile] patchXrunProfile ok:", JSON.stringify(v_43c42e));
+      if (v_43c42e.profile) v_9ed797(v_43c42e.profile);
 
-      console.log("[EditProfile] save start — afterlife patch:", JSON.stringify(v_17dc8a), "xrun patch:", JSON.stringify(v_588fa6));
-      if (Object.keys(v_588fa6).length > 0) {
-        try {
-          const v_43c42e = await v_ad7aba(v_2ca7e0, v_588fa6);
-          console.log("[EditProfile] patchXrunProfile ok:", JSON.stringify(v_43c42e));
-          if (v_43c42e.profile) v_9ed797(v_43c42e.profile);
-        } catch (v_49263d) {
-
-          console.warn(
-            "[EditProfile] patchXrunProfile failed:",
-            (v_49263d as Error)?.message ?? v_49263d,
-          );
-        }
-      }
-
-      if (Object.keys(v_17dc8a).length > 0) {
-        await v_976b89(v_2ca7e0, v_17dc8a);
-        v_21f395(v_17dc8a);
-        console.log("[EditProfile] patchMe ok");
+      if (v_588fa6.firstname) {
+        v_21f395({ name: v_588fa6.firstname });
       }
       v_889fad(
         v_8d41d7("settings.editProfile.savedTitle", { defaultValue: "저장됨" }),
@@ -395,10 +349,10 @@ export default function v_e2b396() {
           <View style={v_fd5f43.fieldRowStack}>
             <Text style={v_fd5f43.fieldLabelStack}>{v_8d41d7("settings.editProfile.fields.age")}</Text>
             <View style={v_fd5f43.selectWrap}>
-              <SelectField<string>
+              <SelectField<number>
                 options={v_ac0935}
-                value={v_f83808}
-                onChange={v_64a312}
+                value={v_f83808 ?? undefined}
+                onChange={(v_81e2ef) => v_64a312(v_81e2ef ?? null)}
                 placeholder={v_8d41d7("auth.signup.ageRangePlaceholder", { defaultValue: "연령대" })}
               />
             </View>
@@ -436,49 +390,35 @@ export default function v_e2b396() {
           </View>
           <View style={v_fd5f43.divider} />
 
-          {}
+          {
+}
           <View style={v_fd5f43.fieldRowStack}>
             <Text style={v_fd5f43.fieldLabelStack}>
               {v_8d41d7("settings.editProfile.fields.region", { defaultValue: "지역" })}
             </Text>
-            <TouchableOpacity
-              style={v_fd5f43.pickerField}
-              onPress={() => {
-                if (!v_b9bbbd) {
-                  v_889fad(
-                    v_8d41d7("common.notice", { defaultValue: "알림" }),
-                    v_8d41d7("settings.editProfile.regionAfterCountry", {
-                      defaultValue: "먼저 국가를 선택해주세요",
-                    }),
-                  );
-                  return;
-                }
-                v_6bf177(true);
-              }}
-              activeOpacity={0.7}
-            >
-              <Feather name="map-pin" size={18} color={v_1bfbd0.zinc500} />
-              <View style={{ flex: 1 }}>
-                {v_a6c30b && v_a6c30b.iso2 !== "global" ? (
-                  <Text style={v_fd5f43.pickerValue} numberOfLines={1}>
-                    {v_8d41d7(`regions:${v_a6c30b.countryCode}_${v_a6c30b.dialCode}`, {
-                      defaultValue: v_a6c30b.name,
-                    })}
-                  </Text>
-                ) : (
-                  <Text style={v_fd5f43.pickerPlaceholder}>
+            <View style={v_fd5f43.selectWrap}>
+              {v_afb146.length > 0 ? (
+                <SelectField<number>
+                  options={v_afb146.map((v_b6c474) => ({ value: v_b6c474.value, label: v_b6c474.label }))}
+                  value={v_a6c30b ?? undefined}
+                  onChange={(v_81e2ef) => v_c030e3(v_81e2ef ?? null)}
+                  placeholder={v_8d41d7("auth.signup.regionPlaceholder", { defaultValue: "지역을 선택해주세요" })}
+                />
+              ) : (
+                <View style={v_fd5f43.pickerField}>
+                  <Feather name="map-pin" size={18} color={v_1bfbd0.zinc500} />
+                  <Text style={[v_fd5f43.pickerPlaceholder, { flex: 1 }]}>
                     {v_b9bbbd
-                      ? v_8d41d7("auth.signup.regionPlaceholder", {
-                          defaultValue: "지역을 선택해주세요",
+                      ? v_8d41d7("settings.editProfile.regionUnsupported", {
+                          defaultValue: "선택한 국가의 지역은 아직 지원하지 않아요",
                         })
                       : v_8d41d7("settings.editProfile.regionAfterCountry", {
                           defaultValue: "먼저 국가를 선택해주세요",
                         })}
                   </Text>
-                )}
-              </View>
-              <Feather name="chevron-down" size={18} color={v_1bfbd0.zinc500} />
-            </TouchableOpacity>
+                </View>
+              )}
+            </View>
           </View>
           <View style={v_fd5f43.divider} />
 
@@ -533,27 +473,17 @@ export default function v_e2b396() {
         </TouchableOpacity>
       </View>
 
+      {}
       <CountryRegionPicker
         visible={v_9d56c4}
         selectedCountry={v_b9bbbd}
-        selectedRegion={v_a6c30b}
+        selectedRegion={null}
         onClose={() => v_7168a2(false)}
-        onSelect={(c: v_da1883, r: v_da1883 | null) => {
+        onSelect={(c: v_da1883, _r: v_da1883 | null) => {
           v_b7066f(v_3f4e2e);
-          v_c030e3(v_cb35cb);
-        }}
-      />
-      {}
-      <CountryRegionPicker
-        visible={v_855cdc}
-        selectedCountry={v_b9bbbd}
-        selectedRegion={v_a6c30b}
-        onClose={() => v_6bf177(false)}
-        onSelect={(_c: v_da1883, r: v_da1883 | null) => {
 
-          v_c030e3(v_cb35cb);
+          v_c030e3(null);
         }}
-        initialMode="region"
       />
     </SafeScrollView>
   );
