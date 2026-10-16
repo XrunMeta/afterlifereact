@@ -752,10 +752,10 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         onClose={() => v_7168a2(false)}
         selectedCountry={v_b9bbbd}
         selectedRegion={null}
+        countryOnly
         onSelect={(v_3f4e2e, v_50eb64) => {
           v_b7066f(v_3f4e2e);
           v_c030e3(null); 
-          v_7168a2(false); 
         }}
       />
 
