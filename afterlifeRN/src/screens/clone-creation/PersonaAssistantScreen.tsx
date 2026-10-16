@@ -112,6 +112,17 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
   const [v_fa56e0, v_41d55d] = v_5ab095<ChatMessage[]>([]);
   const [v_6bae32, v_a0f9c4] = v_5ab095(false);
   const [v_bbda62, v_c31db7] = v_5ab095('');
+
+  const [v_7e4acc, v_de86c2] = v_5ab095(0);
+  v_c4deb2(() => {
+    const v_399925 = v_326be8.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const v_206f77 = v_326be8.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const v_53f5d7 = v_0e1f26.addListener(v_399925, (v_9e86fd) => {
+      v_de86c2(v_9e86fd?.endCoordinates?.height ?? 0);
+    });
+    const v_52528b = v_0e1f26.addListener(v_206f77, () => v_de86c2(0));
+    return () => { v_53f5d7.remove(); v_52528b.remove(); };
+  }, []);
   const v_5ca6b8 = v_e662ae<v_122070>(null);
 
   const [v_ab4803, v_ae4844] = v_5ab095<string>('init');
@@ -606,7 +617,8 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
 
-        behavior={v_326be8.OS === 'ios' ? 'padding' : undefined}
+        behavior={v_326be8.OS === 'ios' ? 'padding' : 'height'}
+        enabled={v_326be8.OS === 'ios' ? true : v_7e4acc > 0}
       >
         {}
         <ScrollView
