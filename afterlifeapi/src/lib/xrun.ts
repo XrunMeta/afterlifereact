@@ -193,8 +193,43 @@ export async function v_6e4cc8(
   return {
     status: "failed",
 
-    reason: v_7ecfd1?.message ?? `xrun ${v_8f00b9.status} unknown`,
+    reason: v_aa45ed(v_7ecfd1?.message, v_7ecfd1?.code, v_8f00b9.status),
   };
+}
+
+function v_aa45ed(
+  v_44854f,
+  v_c99bd2,
+  v_aa33d7,
+): string {
+  const v_badeaf = (v_44854f ?? "").trim();
+
+  const v_b24339 = v_badeaf.toLowerCase();
+  const v_cb9428 = {
+    "email already exists": "이미 가입된 이메일입니다.",
+    "email is required": "이메일을 입력해주세요.",
+    "pin is required": "비밀번호를 입력해주세요.",
+    "email otp verification required": "이메일 인증이 필요합니다.",
+    "xrksec not configured": "서버 설정 오류입니다. 잠시 후 다시 시도해주세요.",
+    "token isn't valid": "인증이 만료되었습니다. 다시 시도해주세요.",
+    "token is require": "인증이 필요합니다.",
+    "user not found": "회원 정보를 찾을 수 없습니다.",
+    "member not found": "회원 정보를 찾을 수 없습니다.",
+    "login failed": "로그인에 실패했습니다.",
+    "account is permanently restricted": "영구 제한된 계정입니다.",
+    "invalid or expired authentication code": "인증 코드가 만료되었거나 잘못되었습니다.",
+    "invalid email format": "이메일 형식이 올바르지 않습니다.",
+  };
+  if (v_cb9428[v_b24339]) return v_cb9428[v_b24339];
+
+  if (v_b24339.includes("already exists")) return "이미 가입된 이메일입니다.";
+  if (v_b24339.includes("duplicate")) return "이미 사용 중인 정보입니다.";
+  if (v_b24339.includes("validation")) return "입력값이 올바르지 않습니다.";
+  if (v_b24339.includes("otp")) return "이메일 인증이 필요합니다.";
+  if (v_b24339.includes("rate limit") || v_b24339.includes("too many")) return "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.";
+
+  if (v_badeaf) return v_badeaf;
+  return `서버 오류 (${v_c99bd2 ?? v_aa33d7})`;
 }
 
 async function v_36f334(
