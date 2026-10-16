@@ -155,9 +155,14 @@ export default function v_e2b396() {
       `[EditProfile] country prefill — xrun country=${v_786737.country} (target=${v_7ebb7c})`,
     );
     if (Number.isFinite(v_7ebb7c) && v_7ebb7c > 0) {
-      const v_4b037d = v_202d44.find(
-        (v_3f4e2e) => Number(v_3f4e2e.countryCode) === v_7ebb7c,
-      );
+
+      const v_4b037d = v_202d44.find((v_3f4e2e) => {
+        const v_c99bd2 =
+          typeof v_3f4e2e.countryCode === "number"
+            ? v_3f4e2e.countryCode
+            : Number(v_3f4e2e.dialCode?.replace(/^\+/, "") ?? "");
+        return Number.isFinite(v_c99bd2) && v_c99bd2 === v_7ebb7c;
+      });
       console.log(
         `[EditProfile] matched country:`,
         v_4b037d ? `${v_4b037d.iso2}/${v_4b037d.name}` : "null",
@@ -174,10 +179,18 @@ export default function v_e2b396() {
   }, [v_786737]);
 
   const v_afb146 = v_df9f57(
-    () =>
-      v_b9bbbd
-        ? v_51973b(v_b9bbbd.countryCode, v_b9bbbd.iso2).map((v_cb35cb) => ({ value: v_cb35cb.value, label: v_cb35cb.label }))
-        : [],
+    () => {
+      if (!v_b9bbbd) return [];
+      const v_f6907d =
+        typeof v_b9bbbd.countryCode === "number"
+          ? v_b9bbbd.countryCode
+          : Number(v_b9bbbd.dialCode?.replace(/^\+/, "") ?? "");
+      if (!Number.isFinite(v_f6907d) || v_f6907d <= 0) return [];
+      return v_51973b(v_f6907d, v_b9bbbd.iso2).map((v_cb35cb) => ({
+        value: v_cb35cb.value,
+        label: v_cb35cb.label,
+      }));
+    },
     [v_b9bbbd],
   );
 
@@ -235,14 +248,21 @@ export default function v_e2b396() {
     if (v_7ac969 !== (v_786737?.gender ?? null)) v_588fa6.gender = v_7ac969;
     if (v_f83808 !== (v_786737?.ages ?? null)) v_588fa6.age = v_f83808;
     if (v_b9bbbd) {
-      if (v_b9bbbd.countryCode !== (v_786737?.country ?? null)) {
-        v_588fa6.country = v_b9bbbd.countryCode;
+
+      const v_f6907d =
+        typeof v_b9bbbd.countryCode === "number"
+          ? v_b9bbbd.countryCode
+          : Number(v_b9bbbd.dialCode?.replace(/^\+/, "") ?? "");
+      if (Number.isFinite(v_f6907d) && v_f6907d > 0) {
+        if (v_f6907d !== (v_786737?.country ?? null)) {
+          v_588fa6.country = v_f6907d;
+        }
+        v_588fa6.mobilecode = String(v_f6907d);
       }
       const v_6f9eff = v_b9bbbd.iso2.toLowerCase();
       if (v_6f9eff !== (v_786737?.countrycode?.toLowerCase() ?? null)) {
         v_588fa6.countrycode = v_6f9eff;
       }
-      v_588fa6.mobilecode = String(v_b9bbbd.countryCode);
     }
     if (v_a6c30b !== (v_786737?.region ?? null)) {
       v_588fa6.region = v_a6c30b;
