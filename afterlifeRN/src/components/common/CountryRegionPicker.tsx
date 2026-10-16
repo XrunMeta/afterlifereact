@@ -34,6 +34,8 @@ type Props = {
   onSelect: (country: v_da1883, region: v_da1883 | null) => void;
 
   initialMode?: Mode;
+
+  countryOnly?: boolean;
 };
 
 export default function v_57037e({
@@ -43,6 +45,7 @@ export default function v_57037e({
   selectedRegion: v_2f03bc,
   onSelect: v_3ac615,
   initialMode: v_2ba26d = "country",
+  countryOnly: v_759e0a = false,
 }: Props) {
   const { t: v_8d41d7 } = v_772971();
   const [v_34e5bb, v_038d7f] = v_5ab095<Mode>(v_2ba26d);
@@ -102,6 +105,12 @@ export default function v_57037e({
 
   const v_6121dc = (item: v_da1883) => {
     if (v_34e5bb === "country") {
+
+      if (v_759e0a) {
+        v_3ac615(v_8c0b26, null);
+        v_0890f8();
+        return;
+      }
       const v_56e55a = v_369014(v_8c0b26.iso2);
       const v_5f1e0e =
         v_56e55a.length > 1 ||

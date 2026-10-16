@@ -517,11 +517,11 @@ export default function v_e2b396() {
         visible={v_9d56c4}
         selectedCountry={v_b9bbbd}
         selectedRegion={null}
+        countryOnly
         onClose={() => v_7168a2(false)}
         onSelect={(c: v_da1883, _r: v_da1883 | null) => {
           v_b7066f(v_3f4e2e);
           v_c030e3(null); 
-          v_7168a2(false); 
         }}
       />
     </SafeScrollView>
