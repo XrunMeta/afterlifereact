@@ -16,6 +16,7 @@ import { v_2f0299, v_386d00, v_f500c0 } from "../lib/conversationMemory";
 import { v_74c502, v_7a9d93, v_5d4a51, v_09d461 } from "../lib/cloneAccess";
 import { v_e86502, v_fda4d7, v_3821c0 } from "../lib/memoryStore";
 import { v_dd9d7c, v_721d54, v_cf0463 } from "../lib/interactions";
+import { v_15ea73 } from "../lib/sqliteTs";
 
 export const v_19e2a3 = new v_b7c41b<v_de0a25>();
 export const v_fa56e0 = new v_b7c41b<v_de0a25>();
@@ -165,8 +166,14 @@ v_19e2a3.post(
 
     return v_3f4e2e.json({
       sessionId: v_c5607b,
-      userMessage: { id: v_43f890.id, content: v_4d33b2.content, createdAt: v_43f890.created_at },
-      cloneReply: { id: v_56871e.id, content: v_b4c4d3, tokens: 0, createdAt: v_56871e.created_at },
+      userMessage: {
+        id: v_43f890.id, content: v_4d33b2.content,
+        at: v_15ea73(v_43f890.created_at), createdAt: v_43f890.created_at,
+      },
+      cloneReply: {
+        id: v_56871e.id, content: v_b4c4d3, tokens: 0,
+        at: v_15ea73(v_56871e.created_at), createdAt: v_56871e.created_at,
+      },
 
       billing: { credits: 0, tokens: 0 },
     });
