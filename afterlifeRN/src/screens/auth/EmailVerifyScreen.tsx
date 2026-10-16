@@ -236,7 +236,6 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
       console.error("[AUTH/signup] FAIL:", v_badeaf, v_49263d);
       v_889fad(v_8d41d7("common.error"), v_badeaf);
-      v_03e392.alert(v_8d41d7("common.error") as string, v_badeaf);
     } finally {
       v_ee9ec1(false);
     }
