@@ -560,7 +560,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             <Feather name="chevron-right" size={18} color={v_1bfbd0.zinc400} />
           </TouchableOpacity>
 
-          {}
+          {
+}
           {(() => {
             const v_f6907d =
               typeof v_b9bbbd?.countryCode === "number"
@@ -575,19 +576,26 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                     label: v_cb35cb.label,
                   }))
                 : [];
-            if (!v_b9bbbd) {
-              return null; 
-            }
-            if (v_1b4f92.length === 0) {
-              return null; 
-            }
-            return (
+            return v_1b4f92.length > 0 ? (
               <SelectField<number>
                 options={v_1b4f92}
                 value={v_a6c30b ?? undefined}
                 onChange={(v_81e2ef) => v_c030e3(v_81e2ef ?? null)}
                 placeholder={v_8d41d7("auth.signup.regionPlaceholder", { defaultValue: "지역을 선택해주세요" })}
               />
+            ) : (
+              <View style={v_d81136.pickerField}>
+                <Feather name="map-pin" size={18} color={v_1bfbd0.zinc500} />
+                <Text style={[v_d81136.pickerPlaceholder, { flex: 1, marginLeft: 10 }]}>
+                  {v_b9bbbd
+                    ? v_8d41d7("settings.editProfile.regionUnsupported", {
+                        defaultValue: "선택한 국가의 지역은 아직 지원하지 않아요",
+                      })
+                    : v_8d41d7("settings.editProfile.regionAfterCountry", {
+                        defaultValue: "먼저 국가를 선택해주세요",
+                      })}
+                </Text>
+              </View>
             );
           })()}
 
