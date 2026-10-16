@@ -42,7 +42,7 @@ export function v_36f8a3(): boolean {
   const v_8b5cd8 = process.env.EXPO_PUBLIC_AD_STUB;
   if (v_8b5cd8 === "1") return true;
   if (v_8b5cd8 === "0") return false;
-  return false;
+  return typeof __DEV__ !== "undefined" && __DEV__ === true;
 }
 
 function v_9fd782(): number {
