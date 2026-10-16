@@ -192,7 +192,8 @@ export async function v_6e4cc8(
 
   return {
     status: "failed",
-    reason: `xrun ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}`,
+
+    reason: v_7ecfd1?.message ?? `xrun ${v_8f00b9.status} unknown`,
   };
 }
 
