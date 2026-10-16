@@ -326,11 +326,29 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_b37c6e, v_11c6c1] = v_5ab095<EmailStatus>("idle");
 
   type PasswordStatus = "idle" | "invalid" | "ok";
+  const v_2d9119 = /[a-z]/.test(v_adc076);
+  const v_a25735 = /[A-Z]/.test(v_adc076);
+  const v_9b89a6 = /\d/.test(v_adc076);
+  const v_8a4e12 = v_adc076.length >= 7;
+  const v_78c4a6 = v_2d9119 && v_a25735 && v_9b89a6 && v_8a4e12;
   const v_eb6846 = !v_adc076
-    ? "idle"
-    : /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/.test(v_adc076)
+    ? "idle" 
+    : v_78c4a6
       ? "ok"
       : "invalid";
+
+  const v_79f04d = v_78c4a6
+    ? ""
+    : [
+        !v_2d9119 ? (v_8d41d7("auth.signup.pwNeedLower", { defaultValue: "영문 소문자" }) as string) : null,
+        !v_a25735 ? (v_8d41d7("auth.signup.pwNeedUpper", { defaultValue: "영문 대문자" }) as string) : null,
+        !v_9b89a6 ? (v_8d41d7("auth.signup.pwNeedDigit", { defaultValue: "숫자" }) as string) : null,
+        !v_8a4e12 ? (v_8d41d7("auth.signup.pwNeedLen", { defaultValue: "7자 이상" }) as string) : null,
+      ]
+        .filter(Boolean)
+        .join(" · ") +
+      " " +
+      (v_8d41d7("auth.signup.pwNeedSuffix", { defaultValue: "입력해주세요" }) as string);
   type ConfirmStatus = "idle" | "mismatch" | "ok";
   const v_a41c7b = !v_0b3ebe
     ? "idle"
@@ -931,11 +949,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
               </View>
             }
             errorText={
-              v_eb6846 === "invalid"
-                ? (v_8d41d7("auth.signup.passwordTooShort", {
-                    defaultValue: "7자 이상, 영문 대/소문자 + 숫자 포함",
-                  }) as string)
-                : undefined
+
+              v_eb6846 !== "ok" ? v_79f04d : undefined
             }
           />
 
