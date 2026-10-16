@@ -298,7 +298,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         id: v_8f00b9.userMessage.id,
         role: "user",
         content: v_8f00b9.userMessage.content,
-        at: v_5c2f9f,
+        at: v_8f00b9.userMessage.at ?? v_5c2f9f,
         sessionId: v_8f00b9.sessionId,
       };
       const cloneItem: v_f19942 = {
@@ -306,7 +306,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         id: v_8f00b9.cloneReply.id,
         role: "clone",
         content: v_8f00b9.cloneReply.content,
-        at: v_5c2f9f + 1,
+        at: v_8f00b9.cloneReply.at ?? v_5c2f9f + 1,
         sessionId: v_8f00b9.sessionId,
       };
 
@@ -528,25 +528,39 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                 );
               }
               if (v_23805a.type === "chat") {
+
+                const v_a448ad = v_e86ad8 + 1 < v_907715.length ? v_907715[v_e86ad8 + 1] : null;
+                const v_d2b3ec = !(
+                  v_a448ad && !v_c8c890(v_a448ad) && v_a448ad.type === "chat" &&
+                  v_a448ad.role === v_23805a.role && v_691d4e(v_a448ad.at, v_23805a.at)
+                );
+                const v_ca7346 = v_23805a.role === "user";
                 return (
                   <React.Fragment key={`api-chat-${v_23805a.id}`}>
                     {v_6583df}
-                    <TouchableOpacity
-                      activeOpacity={0.85}
-                      onLongPress={() => v_00fc5a(v_23805a)}
-                      delayLongPress={350}
-                      style={v_23805a.role === "user" ? v_d81136.userBubble : v_d81136.personaOutsideBubble}
-                    >
-                      <Text
-                        style={
-                          v_23805a.role === "user"
-                            ? v_d81136.userBubbleText
-                            : v_d81136.personaOutsideBubbleText
-                        }
+                    <View style={v_ca7346 ? v_d81136.userBubbleRow : v_d81136.personaBubbleRow}>
+                      {v_ca7346 && v_d2b3ec && (
+                        <Text style={v_d81136.bubbleTimeText}>{v_54a55d(v_23805a.at)}</Text>
+                      )}
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        onLongPress={() => v_00fc5a(v_23805a)}
+                        delayLongPress={350}
+                        style={[
+                          v_ca7346 ? v_d81136.userBubble : v_d81136.personaOutsideBubble,
+                          v_d81136.bubbleInRow,
+                        ]}
                       >
-                        {v_23805a.content}
-                      </Text>
-                    </TouchableOpacity>
+                        <Text
+                          style={v_ca7346 ? v_d81136.userBubbleText : v_d81136.personaOutsideBubbleText}
+                        >
+                          {v_23805a.content}
+                        </Text>
+                      </TouchableOpacity>
+                      {!v_ca7346 && v_d2b3ec && (
+                        <Text style={v_d81136.bubbleTimeText}>{v_54a55d(v_23805a.at)}</Text>
+                      )}
+                    </View>
                   </React.Fragment>
                 );
               }
@@ -748,11 +762,7 @@ function v_c1c940(v_d799e2): string {
 }
 
 function v_f5aeb2(it: v_18a302): string {
-  const v_d5dda0 = new Date(v_23805a.startedAt);
-  const v_df8a54 = `${v_d5dda0.getHours().toString().padStart(2, "0")}:${v_d5dda0
-    .getMinutes()
-    .toString()
-    .padStart(2, "0")}`;
+  const v_df8a54 = v_54a55d(v_23805a.startedAt);
   if (v_23805a.durationSec && v_23805a.durationSec > 0) {
     const v_b3dc28 = Math.floor(v_23805a.durationSec);
     const v_35f85c = Math.floor(v_b3dc28 / 60);
@@ -773,6 +783,15 @@ function v_65604f(v_23805a): number {
   if (v_c8c890(v_23805a)) return v_23805a.oldestAt;
   if (v_23805a.type === "chat") return v_23805a.at;
   return v_23805a.startedAt;
+}
+
+function v_54a55d(v_d799e2): string {
+  const v_d5dda0 = new Date(v_d799e2);
+  return `${v_d5dda0.getHours().toString().padStart(2, "0")}:${v_d5dda0.getMinutes().toString().padStart(2, "0")}`;
+}
+
+function v_691d4e(v_779914, v_148ff6): boolean {
+  return Math.floor(v_779914 / 60000) === Math.floor(v_148ff6 / 60000);
 }
 
 function v_2f64a9(v_779914, v_148ff6): boolean {
@@ -922,6 +941,25 @@ const v_d81136 = v_472849.create({
     marginBottom: 8,
   },
   personaOutsideBubbleText: { color: v_1bfbd0.zinc800, fontSize: 13, lineHeight: 19 },
+
+  userBubbleRow: {
+    alignSelf: "flex-end",
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 4,
+    maxWidth: "80%",
+    marginBottom: 8,
+  },
+  personaBubbleRow: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 4,
+    maxWidth: "80%",
+    marginBottom: 8,
+  },
+  bubbleInRow: { maxWidth: undefined, flexShrink: 1, marginBottom: 0 },
+  bubbleTimeText: { color: v_1bfbd0.zinc500, fontSize: 10, marginBottom: 2 },
 
   typingBubble: {
     width: undefined,
