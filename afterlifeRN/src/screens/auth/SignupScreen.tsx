@@ -518,7 +518,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       v_11c6c1("idle");
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v_2f361a)) {
+
+    if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(v_2f361a)) {
       v_11c6c1("invalid");
       return;
     }
@@ -574,7 +575,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       );
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v_e0c7e8)) {
+
+    if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(v_e0c7e8)) {
       v_889fad(
         v_8d41d7("common.notice"),
         v_8d41d7("auth.signup.emailInvalid", { defaultValue: "이메일 형식이 올바르지 않아요" }),
