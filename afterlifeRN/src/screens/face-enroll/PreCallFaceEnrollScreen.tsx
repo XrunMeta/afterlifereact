@@ -423,7 +423,16 @@ export default function v_8640b9() {
         { text: v_8d41d7("faceEnroll.skipConfirm.cancel", { defaultValue: "취소" }), style: "cancel" },
         {
           text: v_8d41d7("faceEnroll.skipConfirm.continue", { defaultValue: "그대로 진행" }),
-          onPress: v_e9b971,
+          onPress: async () => {
+
+            try {
+              const v_e84827 = (await import("bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv")).default;
+              await v_e84827.setItem("face_enroll_later_at", String(Date.now()));
+            } catch (v_49263d) {
+              console.warn("[PreCallFaceEnroll] skip persist fail:", v_49263d);
+            }
+            v_e9b971();
+          },
         },
       ],
     );
