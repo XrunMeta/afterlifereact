@@ -510,7 +510,8 @@ export default function v_e2b396() {
         </TouchableOpacity>
       </View>
 
-      {}
+      {
+}
       <CountryRegionPicker
         visible={v_9d56c4}
         selectedCountry={v_b9bbbd}
@@ -518,8 +519,8 @@ export default function v_e2b396() {
         onClose={() => v_7168a2(false)}
         onSelect={(c: v_da1883, _r: v_da1883 | null) => {
           v_b7066f(v_3f4e2e);
-
-          v_c030e3(null);
+          v_c030e3(null); 
+          v_7168a2(false); 
         }}
       />
     </SafeScrollView>
