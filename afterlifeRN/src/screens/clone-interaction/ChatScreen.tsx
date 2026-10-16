@@ -684,11 +684,12 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         animationType="slide"
         onRequestClose={() => v_fb20c7(null)}
       >
-        <Pressable style={v_d81136.sheetOverlay} onPress={() => v_fb20c7(null)}>
-          <View
-            style={[v_d81136.actionSheet, v_d81136.turnsSheet, { paddingBottom: v_2b650d }]}
-            onStartShouldSetResponder={() => true}
-          >
+        {
+
+}
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" }}>
+          <Pressable style={v_472849.absoluteFill} onPress={() => v_fb20c7(null)} />
+          <View style={[v_d81136.actionSheet, v_d81136.turnsSheet, { paddingBottom: v_2b650d }]}>
             <View style={v_d81136.sheetHandle} />
             <Text style={v_d81136.sheetTitle}>{v_8d41d7("chat.callTranscriptTitle")}</Text>
             <ScrollView
@@ -733,7 +734,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
               )}
             </ScrollView>
           </View>
-        </Pressable>
+        </View>
       </Modal>
     </View>
     </KeyboardAvoidingView>
