@@ -14,8 +14,12 @@ import {
   v_9cabcb,
   v_79c4f2,
   v_0e1f26,
+  type v_bd64bf,
+  type v_da479e,
+  type v_e99fe0,
 } from "rcmrninabrnb";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
+import { v_5ade23 } from "xbfwaaanosqvazmrqoah";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
@@ -75,7 +79,8 @@ const v_cafb6f = {
   pageBg: "#f9fafc",
   fieldBorder: "#ededed",
   divider: "#f0f0f0",
-  primary: "#343A5A", 
+
+  primary: v_1bfbd0.primary,
   danger: "#ff6b6b",
 };
 
@@ -361,6 +366,19 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_d74a81, v_fcce73] = v_5ab095("");
   const [v_c3eac4, v_bdc43c] = v_5ab095<"male" | "female" | "">("");
   const [v_f83808, v_64a312] = v_5ab095<number | null>(null);
+
+  const [v_1ddc1c, v_02b737] = v_5ab095(true);
+  const v_8781da = v_e662ae(0);
+  const v_8ffe3e = v_e662ae(0);
+  const v_17db1f = (v_cbddfc = 0) => {
+    const v_65a8ff = v_8781da.current;
+    const v_708a6a = v_8ffe3e.current;
+    if (v_65a8ff <= 0 || v_708a6a <= 0) {
+      v_02b737(true);
+      return;
+    }
+    v_02b737(v_cbddfc + v_65a8ff < v_708a6a - 8);
+  };
 
   const [v_b9bbbd, v_b7066f] = v_5ab095<v_da1883>(v_1bd8ad[0]);
   const [v_a6c30b, v_c030e3] = v_5ab095<number | null>(null);
@@ -1067,127 +1085,158 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             </View>
           </View>
 
-          {}
+          {
+}
           <View style={v_d81136.fieldContainer}>
             <Text style={v_d81136.sectionLabel}>
               {v_8d41d7("auth.signup.ageRange", { defaultValue: "연령대" })}
               {v_326be8.OS !== "android" && ` (${v_8d41d7("auth.signup.optional", { defaultValue: "선택사항" })})`}
             </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={v_d81136.ageScrollContent}
-            >
-              <OptionButton
-                label={v_8d41d7("auth.signup.ageSelect", { defaultValue: "선택" })}
-                selected={v_f83808 == null}
-                onPress={() => v_64a312(null)}
-                style={v_d81136.ageOption}
-              />
-              {v_8a9788.map((v_68b2be) => (
+            <View style={v_d81136.ageScrollWrap}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={v_d81136.ageScrollContent}
+                onLayout={(e: v_e99fe0) => {
+                  v_8781da.current = v_9e86fd.nativeEvent.layout.width;
+                  v_17db1f(0);
+                }}
+                onContentSizeChange={(v_32f7b8) => {
+                  v_8ffe3e.current = v_32f7b8;
+                  v_17db1f(0);
+                }}
+                onScroll={(e: v_bd64bf<v_da479e>) => {
+                  v_17db1f(v_9e86fd.nativeEvent.contentOffset.x);
+                }}
+                scrollEventThrottle={16}
+              >
                 <OptionButton
-                  key={v_68b2be.value}
-                  label={v_8d41d7(`auth.signup.ageRange${v_68b2be.value}`, { defaultValue: v_68b2be.label })}
-                  selected={v_f83808 === v_68b2be.value}
-                  onPress={() => v_64a312(v_68b2be.value)}
+                  label={v_8d41d7("auth.signup.ageSelect", { defaultValue: "선택" })}
+                  selected={v_f83808 == null}
+                  onPress={() => v_64a312(null)}
                   style={v_d81136.ageOption}
                 />
-              ))}
-            </ScrollView>
+                {v_8a9788.map((v_68b2be) => (
+                  <OptionButton
+                    key={v_68b2be.value}
+                    label={v_8d41d7(`auth.signup.ageRange${v_68b2be.value}`, { defaultValue: v_68b2be.label })}
+                    selected={v_f83808 === v_68b2be.value}
+                    onPress={() => v_64a312(v_68b2be.value)}
+                    style={v_d81136.ageOption}
+                  />
+                ))}
+              </ScrollView>
+              {v_1ddc1c ? (
+                <View style={v_d81136.ageScrollHint} pointerEvents="none">
+                  <LinearGradient
+                    colors={["rgba(249,250,252,0)", v_cafb6f.pageBg]}
+                    start={{ x: 0, y: 0.5 }}
+                    end={{ x: 1, y: 0.5 }}
+                    style={v_d81136.ageScrollFade}
+                  />
+                  <View style={v_d81136.ageScrollChevron}>
+                    <Feather name="chevron-right" size={18} color={v_1bfbd0.zinc500} />
+                  </View>
+                </View>
+              ) : null}
+            </View>
           </View>
 
           {}
-          {}
-          <View style={[v_d81136.termsRow, v_d81136.termsRowAll]}>
-            <SquareCheckbox checked={v_33f2ba} onToggle={v_0217e6} />
-            <Text style={[v_d81136.termsText, v_d81136.termsTextAll]}>
-              {v_8d41d7("auth.signup.termsAgreeAll", { defaultValue: "전체 동의" })}
-            </Text>
-          </View>
-          <View style={v_d81136.termsDivider} />
-
-          {}
-          <View style={v_d81136.termsRow}>
-            <SquareCheckbox
-              checked={v_51b53b}
-              onToggle={() => v_c8f346((v_81e2ef) => !v_81e2ef)}
-            />
-            <Text style={v_d81136.termsText}>
-              <Text style={v_d81136.termsHighlight} onPress={() => v_fe0d62(1)}>
-                {v_8d41d7("auth.signup.termsService", { defaultValue: "[필수] SSO 통합 서비스 이용약관" })}
-              </Text>{" "}
-              {v_8d41d7("auth.signup.termsAgree", { defaultValue: "동의" })}
-            </Text>
-          </View>
-
-          {}
-          <View style={v_d81136.termsRow}>
-            <SquareCheckbox
-              checked={v_09b7fa}
-              onToggle={() => v_1d4807((v_81e2ef) => !v_81e2ef)}
-            />
-            <Text style={v_d81136.termsText}>
-              <Text style={v_d81136.termsHighlight} onPress={() => v_fe0d62(3)}>
-                {v_8d41d7("auth.signup.termsPrivacy", { defaultValue: "[필수] SSO 통합 개인정보 처리방침" })}
-              </Text>{" "}
-              {v_8d41d7("auth.signup.termsAgree", { defaultValue: "동의" })}
-            </Text>
-          </View>
-
-          {}
-          <View style={v_d81136.termsRow}>
-            <SquareCheckbox
-              checked={v_540cd3}
-              onToggle={() => void v_26e7c7()}
-            />
-            <Text style={v_d81136.termsText}>
-              <Text style={v_d81136.termsHighlight} onPress={() => v_fe0d62(2)}>
-                {v_8d41d7("auth.signup.locationConsent", { defaultValue: "[필수] 위치기반서비스 이용약관" })}
-              </Text>{" "}
-              {v_8d41d7("auth.signup.termsAgree", { defaultValue: "동의" })}
-            </Text>
-          </View>
-
-          {}
-          <View style={v_d81136.termsRow}>
-            <SquareCheckbox
-              checked={v_7f128f}
-              onToggle={() => v_06ec09((v_81e2ef) => !v_81e2ef)}
-            />
-            <Text style={v_d81136.termsText}>
-              <Text style={v_d81136.termsHighlight} onPress={() => v_fe0d62(5)}>
-                {v_8d41d7("auth.signup.callLearningConsent", { defaultValue: "[필수] AI 데이터 활용 및 생성 동의" })}
-              </Text>{" "}
-              {v_8d41d7("auth.signup.termsAgree", { defaultValue: "동의" })}
-            </Text>
-          </View>
-
-          {}
-          <View style={v_d81136.termsRow}>
-            <SquareCheckbox
-              checked={v_8c98c4}
-              onToggle={v_349606}
-            />
-            <Text style={v_d81136.termsText}>
-              <Text style={v_d81136.termsHighlight}>
-                {v_8d41d7("auth.signup.marketingConsent", { defaultValue: "[선택] 마케팅 정보 수집 및 활용 동의" })}
+          <View style={v_d81136.termsSection}>
+            {}
+            <View style={v_d81136.termsRow}>
+              <SquareCheckbox
+                checked={v_51b53b}
+                onToggle={() => v_c8f346((v_81e2ef) => !v_81e2ef)}
+              />
+              <Text style={v_d81136.termsText}>
+                <Text style={v_d81136.termsHighlight} onPress={() => v_fe0d62(1)}>
+                  {v_8d41d7("auth.signup.termsService", { defaultValue: "[필수] SSO 통합 서비스 이용약관" })}
+                </Text>{" "}
+                {v_8d41d7("auth.signup.termsAgree", { defaultValue: "동의" })}
               </Text>
-              {v_8d0e18 ? ` (${v_8d41d7("auth.signup.verifying", { defaultValue: "확인 중" })})` : ""}
-            </Text>
-          </View>
+            </View>
 
-          {}
-          <View style={v_d81136.termsRow}>
-            <SquareCheckbox
-              checked={v_a03498}
-              onToggle={() => v_d34fc9((v_81e2ef) => !v_81e2ef)}
-            />
-            <Text style={v_d81136.termsText}>
-              <Text style={v_d81136.termsHighlight} onPress={() => v_fe0d62(4)}>
-                {v_8d41d7("auth.signup.faceBiometricConsent", { defaultValue: "[선택] 얼굴 생체정보 처리 동의" })}
-              </Text>{" "}
-              {v_8d41d7("auth.signup.termsAgree", { defaultValue: "동의" })}
-            </Text>
+            {}
+            <View style={v_d81136.termsRow}>
+              <SquareCheckbox
+                checked={v_09b7fa}
+                onToggle={() => v_1d4807((v_81e2ef) => !v_81e2ef)}
+              />
+              <Text style={v_d81136.termsText}>
+                <Text style={v_d81136.termsHighlight} onPress={() => v_fe0d62(3)}>
+                  {v_8d41d7("auth.signup.termsPrivacy", { defaultValue: "[필수] SSO 통합 개인정보 처리방침" })}
+                </Text>{" "}
+                {v_8d41d7("auth.signup.termsAgree", { defaultValue: "동의" })}
+              </Text>
+            </View>
+
+            {}
+            <View style={v_d81136.termsRow}>
+              <SquareCheckbox
+                checked={v_540cd3}
+                onToggle={() => void v_26e7c7()}
+              />
+              <Text style={v_d81136.termsText}>
+                <Text style={v_d81136.termsHighlight} onPress={() => v_fe0d62(2)}>
+                  {v_8d41d7("auth.signup.locationConsent", { defaultValue: "[필수] 위치기반서비스 이용약관" })}
+                </Text>{" "}
+                {v_8d41d7("auth.signup.termsAgree", { defaultValue: "동의" })}
+              </Text>
+            </View>
+
+            {}
+            <View style={v_d81136.termsRow}>
+              <SquareCheckbox
+                checked={v_7f128f}
+                onToggle={() => v_06ec09((v_81e2ef) => !v_81e2ef)}
+              />
+              <Text style={v_d81136.termsText}>
+                <Text style={v_d81136.termsHighlight} onPress={() => v_fe0d62(5)}>
+                  {v_8d41d7("auth.signup.callLearningConsent", { defaultValue: "[필수] AI 데이터 활용 및 생성 동의" })}
+                </Text>{" "}
+                {v_8d41d7("auth.signup.termsAgree", { defaultValue: "동의" })}
+              </Text>
+            </View>
+
+            {}
+            <View style={v_d81136.termsRow}>
+              <SquareCheckbox
+                checked={v_8c98c4}
+                onToggle={v_349606}
+              />
+              <Text style={v_d81136.termsText}>
+                <Text style={v_d81136.termsHighlight}>
+                  {v_8d41d7("auth.signup.marketingConsent", { defaultValue: "[선택] 마케팅 정보 수집 및 활용 동의" })}
+                </Text>
+                {v_8d0e18 ? ` (${v_8d41d7("auth.signup.verifying", { defaultValue: "확인 중" })})` : ""}
+              </Text>
+            </View>
+
+            {}
+            <View style={v_d81136.termsRow}>
+              <SquareCheckbox
+                checked={v_a03498}
+                onToggle={() => v_d34fc9((v_81e2ef) => !v_81e2ef)}
+              />
+              <Text style={v_d81136.termsText}>
+                <Text style={v_d81136.termsHighlight} onPress={() => v_fe0d62(4)}>
+                  {v_8d41d7("auth.signup.faceBiometricConsent", { defaultValue: "[선택] 얼굴 생체정보 처리 동의" })}
+                </Text>{" "}
+                {v_8d41d7("auth.signup.termsAgree", { defaultValue: "동의" })}
+              </Text>
+            </View>
+
+            <View style={v_d81136.termsDivider} />
+
+            {}
+            <View style={[v_d81136.termsRow, v_d81136.termsRowAll]}>
+              <SquareCheckbox checked={v_33f2ba} onToggle={v_0217e6} />
+              <Text style={[v_d81136.termsText, v_d81136.termsTextAll]}>
+                {v_8d41d7("auth.signup.termsAgreeAll", { defaultValue: "전체 동의" })}
+              </Text>
+            </View>
           </View>
 
           {}
@@ -1401,16 +1450,18 @@ const v_d81136 = v_472849.create({
   formFieldContainer: {
     width: "100%",
     maxWidth: 780,
-    gap: 18,
+
+    gap: 20,
   },
   fieldContainer: {
     width: "100%",
   },
   sectionLabel: {
-    fontSize: 13,
-    color: v_cafb6f.mutedText,
+
+    fontSize: 15,
+    color: "#2a2727",
     marginBottom: 10,
-    fontWeight: "500",
+    fontFamily: v_843035.medium,
   },
   phonePrefix: {
     flexDirection: "row",
@@ -1436,21 +1487,53 @@ const v_d81136 = v_472849.create({
     gap: 8,
     width: "100%",
   },
+  ageScrollWrap: {
+    width: "100%",
+    position: "relative",
+  },
   ageScrollContent: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingRight: 4,
+
+    paddingRight: 28,
   },
   ageOption: {
     minWidth: v_936fd7,
     paddingHorizontal: 16,
+  },
+  ageScrollHint: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 40,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+  },
+  ageScrollFade: {
+    ...v_472849.absoluteFillObject,
+  },
+  ageScrollChevron: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "rgba(255,255,255,0.92)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 2,
   },
   eyeButton: {
     height: 24,
     width: 24,
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  termsSection: {
+    width: "100%",
+    gap: 10,
   },
   termsRow: {
     flexDirection: "row",
@@ -1497,7 +1580,7 @@ const v_d81136 = v_472849.create({
 
     height: 56,
     borderRadius: 16,
-    backgroundColor: v_cafb6f.primary,
+    backgroundColor: v_1bfbd0.primary,
     alignItems: "center",
     justifyContent: "center",
   },
