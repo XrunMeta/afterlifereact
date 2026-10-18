@@ -1,5 +1,5 @@
 import v_a3453e from "bapkr";
-import { v_3094a2, v_19b633, v_4623af, v_472849 } from "rcmrninabrnb";
+import { v_3094a2, v_19b633, v_4623af, v_472849, type v_5e8657 } from "rcmrninabrnb";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_1bfbd0, v_9b1a04 } from "../constants";
@@ -12,6 +12,10 @@ interface PageHeaderProps {
   stepInfo?: { current: number; total: number };
   rightAction?: v_a3453e.ReactNode;
   transparent?: boolean;
+
+  titleStyle?: v_5e8657;
+
+  hideBorder?: boolean;
 }
 
 const PageHeader: v_a3453e.FC<PageHeaderProps> = ({
@@ -22,6 +26,8 @@ const PageHeader: v_a3453e.FC<PageHeaderProps> = ({
   stepInfo: v_69583e,
   rightAction: v_4af61b,
   transparent: v_8d6034 = false,
+  titleStyle: v_672cf3,
+  hideBorder: v_66d80d = false,
 }) => {
   const v_033e14 = v_e0068c();
 
@@ -32,6 +38,7 @@ const PageHeader: v_a3453e.FC<PageHeaderProps> = ({
 
         { paddingTop: v_033e14.top },
         v_8d6034 && v_d81136.transparent,
+        v_66d80d && v_d81136.hideBorder,
       ]}
     >
       <View style={v_d81136.row}>
@@ -56,7 +63,7 @@ const PageHeader: v_a3453e.FC<PageHeaderProps> = ({
           )}
           {v_9f1622 && (
             <Text
-              style={[v_d81136.title, v_8d6034 && v_d81136.whiteText]}
+              style={[v_d81136.title, v_8d6034 && v_d81136.whiteText, v_672cf3]}
               numberOfLines={1}
             >
               {v_9f1622}
@@ -88,6 +95,9 @@ const v_d81136 = v_472849.create({
   },
   transparent: {
     backgroundColor: "transparent",
+    borderBottomWidth: 0,
+  },
+  hideBorder: {
     borderBottomWidth: 0,
   },
   row: {

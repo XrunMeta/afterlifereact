@@ -17,6 +17,12 @@ export const v_f9dce7 = {
   violet500: "#8b5cf6",
   violet600: "#7c3aed",
 
+  secondary: "#5B7CFF",
+
+  secondaryLight: "#EEF0F8",
+
+  accent: "#7B96FF",
+
   primary: "#030213",
   telegram: "#0088cc",
 

@@ -864,7 +864,7 @@ const v_fd5f43 = v_472849.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: v_1bfbd0.violet600,
+    backgroundColor: v_1bfbd0.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },

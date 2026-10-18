@@ -56,7 +56,7 @@ export default function v_5778ce({ children: v_21f619, style: v_7fa4e4, tagStyle
         v_267ca3.type === "tag" ? (
           <Text
             key={v_ebec57}
-            style={[{ color: v_1bfbd0.violet600, fontWeight: "600" }, v_0edacb]}
+            style={[{ color: v_1bfbd0.accent, fontWeight: "600" }, v_0edacb]}
             onPress={() => v_6eb948(v_267ca3.value)}
 
             suppressHighlighting

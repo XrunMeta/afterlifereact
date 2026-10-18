@@ -32,6 +32,12 @@ export const v_1bfbd0 = {
   violet100: "#ede9fe",
   violet200: "#ddd6fe",
 
+  secondary: "#5B7CFF",
+
+  secondaryLight: "#EEF0F8",
+
+  accent: "#7B96FF",
+
   amber50: "#fffbeb",
   amber700: "#b45309",
   amber800: "#92400e",
