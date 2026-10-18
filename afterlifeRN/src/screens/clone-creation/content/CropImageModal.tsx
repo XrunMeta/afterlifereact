@@ -264,9 +264,20 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
           {}
           <View style={[v_fd5f43.frame, { top: (v_bd274b - v_fc2e4f) / 2, left: (v_df48e9 - v_e0560a) / 2, width: v_e0560a, height: v_fc2e4f }]} />
           {}
-          {}
-          <View style={[v_fd5f43.guide, { top: (v_bd274b - v_fc2e4f) / 2, left: (v_df48e9 - v_e0560a) / 2, width: v_e0560a, height: v_fc2e4f }]}>
-            <UpperBodyGuide width={v_e0560a * v_7b377a} />
+          <View
+            style={[v_fd5f43.guide, { top: (v_bd274b - v_fc2e4f) / 2, left: (v_df48e9 - v_e0560a) / 2, width: v_e0560a, height: v_fc2e4f }]}
+            pointerEvents="none"
+          >
+            {__DEV__ && v_6036cc() ? (
+              <UpperBodyGuide width={v_e0560a * v_7b377a} />
+            ) : (
+              <>
+                <View style={[v_fd5f43.gridLine, v_fd5f43.gridLineV, { left: "33.33%" }]} />
+                <View style={[v_fd5f43.gridLine, v_fd5f43.gridLineV, { left: "66.66%" }]} />
+                <View style={[v_fd5f43.gridLine, v_fd5f43.gridLineH, { top: "33.33%" }]} />
+                <View style={[v_fd5f43.gridLine, v_fd5f43.gridLineH, { top: "66.66%" }]} />
+              </>
+            )}
           </View>
           {__DEV__ && v_6036cc() ? (
             <View style={v_fd5f43.devBadge} pointerEvents="none">
@@ -298,6 +309,9 @@ const v_fd5f43 = v_472849.create({
   dim: { position: "absolute", backgroundColor: "rgba(0,0,0,0.6)" },
   frame: { position: "absolute", borderWidth: 2, borderColor: "rgba(255,255,255,0.9)" },
   guide: { position: "absolute", alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  gridLine: { position: "absolute", backgroundColor: "rgba(255,255,255,0.6)" },
+  gridLineV: { top: 0, bottom: 0, width: 1 },
+  gridLineH: { left: 0, right: 0, height: 1 },
   devBadge: {
     position: "absolute",
     top: 48,
