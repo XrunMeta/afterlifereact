@@ -139,7 +139,7 @@ const v_d81136 = v_472849.create({
   confirm: {
     paddingVertical: 12,
     borderRadius: v_8b0c90.md,
-    backgroundColor: v_1bfbd0.violet600,
+    backgroundColor: v_1bfbd0.primary,
     alignItems: "center",
   },
   confirmText: { color: v_1bfbd0.white, fontSize: 15, fontWeight: "700" },

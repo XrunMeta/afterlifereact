@@ -811,7 +811,7 @@ const v_fd5f43 = v_472849.create({
     gap: 6,
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: v_1bfbd0.violet600,
+    backgroundColor: v_1bfbd0.primary,
   },
   chargeGoText: {
     fontSize: 14,
@@ -856,7 +856,7 @@ const v_fd5f43 = v_472849.create({
     borderTopWidth: 1,
     borderTopColor: v_1bfbd0.zinc100,
   },
-  viewAllText: { fontSize: 14, fontWeight: "500", color: v_1bfbd0.violet500 },
+  viewAllText: { fontSize: 14, fontWeight: "500", color: v_1bfbd0.zinc900 },
 
   balanceCard: {
     flexDirection: "row",
@@ -867,13 +867,13 @@ const v_fd5f43 = v_472849.create({
     marginBottom: 16,
   },
   balanceLabel: { fontSize: 12, color: v_1bfbd0.zinc600, marginBottom: 4 },
-  balanceTotal: { fontSize: 24, fontWeight: "700", color: v_1bfbd0.violet700 },
+  balanceTotal: { fontSize: 24, fontWeight: "700", color: v_1bfbd0.accent },
   balanceBreakdown: { fontSize: 12, color: v_1bfbd0.zinc600, marginTop: 4 },
   balanceEmpty: { fontSize: 13, color: v_1bfbd0.zinc500, marginTop: 6 },
   balanceCta: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: v_1bfbd0.violet600,
+    backgroundColor: v_1bfbd0.primary,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,

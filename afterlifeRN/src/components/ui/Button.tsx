@@ -134,7 +134,7 @@ const variantStyles: Record<ButtonVariant, v_7e4944> = {
     borderColor: v_1bfbd0.zinc200,
   },
   accent: {
-    backgroundColor: v_1bfbd0.violet500,
+    backgroundColor: v_1bfbd0.primary,
   },
   ghost: {
     backgroundColor: v_1bfbd0.zinc100,

@@ -465,7 +465,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       {}
       <View style={v_d81136.promoBanner}>
         <View style={v_d81136.promoIcon}>
-          <Feather name="message-circle" size={16} color={v_1bfbd0.white} />
+          <Feather name="message-circle" size={16} color={v_1bfbd0.zinc600} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={v_d81136.promoTitle} numberOfLines={1}>
@@ -516,7 +516,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                     {v_6583df}
                     <View style={v_d81136.callBlock}>
                       <View style={v_d81136.callHeader}>
-                        <View style={v_d81136.callIconWrap}>
+                        <View style={[v_d81136.callIconWrap, v_d81136.callIconWrapMissed]}>
                           <Feather name="phone-missed" size={14} color={v_1bfbd0.white} />
                         </View>
                         <Text style={v_d81136.callDurationText}>
@@ -542,21 +542,25 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                       {v_ca7346 && v_d2b3ec && (
                         <Text style={v_d81136.bubbleTimeText}>{v_54a55d(v_23805a.at)}</Text>
                       )}
-                      <TouchableOpacity
-                        activeOpacity={0.85}
-                        onLongPress={() => v_00fc5a(v_23805a)}
-                        delayLongPress={350}
-                        style={[
-                          v_ca7346 ? v_d81136.userBubble : v_d81136.personaOutsideBubble,
-                          v_d81136.bubbleInRow,
-                        ]}
-                      >
-                        <Text
-                          style={v_ca7346 ? v_d81136.userBubbleText : v_d81136.personaOutsideBubbleText}
+                      {v_ca7346 ? (
+                        <TouchableOpacity
+                          activeOpacity={0.85}
+                          onLongPress={() => v_00fc5a(v_23805a)}
+                          delayLongPress={350}
+                          style={[v_d81136.userBubble, v_d81136.bubbleInRow]}
                         >
-                          {v_23805a.content}
-                        </Text>
-                      </TouchableOpacity>
+                          <Text style={v_d81136.userBubbleText}>{v_23805a.content}</Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity
+                          activeOpacity={0.85}
+                          onLongPress={() => v_00fc5a(v_23805a)}
+                          delayLongPress={350}
+                          style={[v_d81136.personaOutsideBubble, v_d81136.bubbleInRow]}
+                        >
+                          <Text style={v_d81136.personaOutsideBubbleText}>{v_23805a.content}</Text>
+                        </TouchableOpacity>
+                      )}
                       {!v_ca7346 && v_d2b3ec && (
                         <Text style={v_d81136.bubbleTimeText}>{v_54a55d(v_23805a.at)}</Text>
                       )}
@@ -570,7 +574,14 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                   {v_6583df}
                   <View style={v_d81136.callBlock}>
                     <View style={v_d81136.callHeader}>
-                      <View style={v_d81136.callIconWrap}>
+                      <View
+                        style={[
+                          v_d81136.callIconWrap,
+                          v_23805a.turnCount > 0
+                            ? v_d81136.callIconWrapVoice
+                            : v_d81136.callIconWrapMissed,
+                        ]}
+                      >
                         <Feather
                           name={v_23805a.turnCount > 0 ? "phone" : "phone-missed"}
                           size={14}
@@ -586,8 +597,11 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                         style={v_d81136.transcriptBtn}
                         hitSlop={6}
                         onPress={() => v_bbd0f3(v_23805a.callId)}
+                        activeOpacity={0.85}
                       >
+                        <Feather name="file-text" size={14} color={v_1bfbd0.primary} />
                         <Text style={v_d81136.transcriptBtnText}>{v_8d41d7("chat.callTranscriptBtn")}</Text>
+                        <Feather name="chevron-right" size={16} color={v_1bfbd0.primary} />
                       </TouchableOpacity>
                     ) : (
                       <Text style={v_d81136.callEmptyText}>{v_8d41d7("chat.missedCall")}</Text>
@@ -724,23 +738,25 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                   key={`turn-${v_db205d.callId}-${v_8d41d7.seq}`}
                   style={v_8d41d7.role === "user" ? v_d81136.turnUserRow : v_d81136.turnPersonaRow}
                 >
-                  <View
-                    style={
-                      v_8d41d7.role === "user"
-                        ? [v_d81136.userBubble, { maxWidth: "80%" }]
-                        : [v_d81136.personaOutsideBubble, v_d81136.turnPersonaBubble, { maxWidth: "80%" }]
-                    }
-                  >
-                    <Text
-                      style={
-                        v_8d41d7.role === "user"
-                          ? v_d81136.userBubbleText
-                          : [v_d81136.personaOutsideBubbleText, v_d81136.turnPersonaText]
-                      }
+                  {v_8d41d7.role === "user" ? (
+                    <View style={[v_d81136.userBubble, { maxWidth: "80%" }]}>
+                      <Text style={v_d81136.userBubbleText}>{v_8d41d7.text}</Text>
+                    </View>
+                  ) : (
+                    <View
+                      style={[
+                        v_d81136.personaOutsideBubble,
+                        v_d81136.turnPersonaBubble,
+                        { maxWidth: "80%" },
+                      ]}
                     >
-                      {v_8d41d7.text}
-                    </Text>
-                  </View>
+                      <Text
+                        style={[v_d81136.personaOutsideBubbleText, v_d81136.turnPersonaText]}
+                      >
+                        {v_8d41d7.text}
+                      </Text>
+                    </View>
+                  )}
                 </View>
               ))}
               {v_db205d?.loading && v_db205d.turns.length > 0 && (
@@ -805,7 +821,7 @@ function v_2f64a9(v_779914, v_148ff6): boolean {
 }
 
 const v_d81136 = v_472849.create({
-  root: { flex: 1, backgroundColor: v_1bfbd0.violet100 },
+  root: { flex: 1, backgroundColor: v_1bfbd0.white },
 
   header: {
     flexDirection: "row",
@@ -827,9 +843,9 @@ const v_d81136 = v_472849.create({
     width: 36, height: 36, borderRadius: 18, backgroundColor: v_1bfbd0.zinc200,
   },
   headerAvatarFallback: {
-    backgroundColor: v_1bfbd0.violet200, alignItems: "center", justifyContent: "center",
+    backgroundColor: v_1bfbd0.zinc100, alignItems: "center", justifyContent: "center",
   },
-  headerAvatarInitial: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.violet700 },
+  headerAvatarInitial: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.secondary },
   headerName: { flex: 1, fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
   headerRight: { flexDirection: "row", gap: 6 },
   headerActionBtn: {
@@ -842,70 +858,79 @@ const v_d81136 = v_472849.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: v_1bfbd0.violet600,
+    backgroundColor: v_1bfbd0.zinc300,
     marginHorizontal: 14,
-    borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 12,
   },
   promoIcon: {
     width: 32, height: 32, borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: v_1bfbd0.zinc200,
     alignItems: "center", justifyContent: "center",
   },
-  promoTitle: { color: v_1bfbd0.white, fontSize: 13, fontWeight: "600", marginBottom: 4 },
+  promoTitle: { color: v_1bfbd0.zinc700, fontSize: 13, fontWeight: "600", marginBottom: 4 },
   promoCta: {
-    color: v_1bfbd0.white, fontSize: 13, fontWeight: "700",
+    color: v_1bfbd0.zinc700, fontSize: 13, fontWeight: "700",
     textDecorationLine: "underline",
   },
 
   scrollArea: { flex: 1 },
   scrollContent: { paddingHorizontal: 14, paddingBottom: 20 },
 
-  personaIntroRow: { marginBottom: 20 },
+  personaIntroRow: { marginBottom: 8 },
   personaIntroName: { fontSize: 12, color: v_1bfbd0.zinc600, marginBottom: 6, marginLeft: 4 },
   personaIntroBubble: {
-    backgroundColor: v_1bfbd0.white,
-    borderRadius: 14,
+    backgroundColor: v_1bfbd0.zinc100,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 10,
     alignSelf: "flex-start",
     maxWidth: "70%",
   },
-  personaIntroText: { fontSize: 14, color: v_1bfbd0.zinc800, lineHeight: 20 },
+  personaIntroText: { fontSize: 14, color: v_1bfbd0.zinc900, lineHeight: 20 },
 
-  callGroup: { marginBottom: 14 },
+  callGroup: { marginBottom: 8 },
 
   callBlock: {
-    backgroundColor: v_1bfbd0.violet600,
-    borderRadius: 18,
+    backgroundColor: v_1bfbd0.primary,
+    borderRadius: 16,
     padding: 14,
     alignSelf: "flex-end",
-    width: "70%",
+    width: "78%",
     marginBottom: 8,
   },
   callHeader: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    marginBottom: 10,
+    flexDirection: "row", alignItems: "center", gap: 10,
+    marginBottom: 12,
   },
   callIconWrap: {
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    width: 34, height: 34, borderRadius: 10,
     alignItems: "center", justifyContent: "center",
   },
-  callDurationText: { color: v_1bfbd0.white, fontSize: 13, fontWeight: "600" },
+
+  callIconWrapVoice: {
+    backgroundColor: v_1bfbd0.secondary,
+  },
+
+  callIconWrapMissed: {
+    backgroundColor: v_1bfbd0.rose500,
+  },
+  callDurationText: { flex: 1, color: v_1bfbd0.white, fontSize: 13, fontWeight: "600" },
 
   dateDividerWrap: {
     alignSelf: "center",
-    marginVertical: 12,
+    marginTop: 16,
+    marginBottom: 16,
     paddingHorizontal: 14,
     paddingVertical: 5,
     borderRadius: 999,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    backgroundColor: v_1bfbd0.zinc200,
   },
   dateDividerText: {
-    color: v_1bfbd0.white,
+    color: v_1bfbd0.zinc600,
     fontSize: 12,
     fontWeight: "500",
   },
@@ -921,45 +946,44 @@ const v_d81136 = v_472849.create({
 
   userBubble: {
     alignSelf: "flex-end",
-
-    maxWidth: "70%",
-    backgroundColor: v_1bfbd0.violet600,
-    borderRadius: 14,
-    paddingHorizontal: 12,
+    maxWidth: "100%",
+    borderRadius: 18,
+    backgroundColor: v_1bfbd0.primary,
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    marginBottom: 8,
   },
-  userBubbleText: { color: v_1bfbd0.white, fontSize: 13, lineHeight: 19 },
+  userBubbleText: { color: v_1bfbd0.white, fontSize: 15, lineHeight: 21 },
 
   personaOutsideBubble: {
     alignSelf: "flex-start",
-    maxWidth: "70%",
-    backgroundColor: v_1bfbd0.white,
-    borderRadius: 14,
-    paddingHorizontal: 12,
+    maxWidth: "100%",
+    backgroundColor: v_1bfbd0.zinc100,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    borderRadius: 18,
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    marginBottom: 8,
   },
-  personaOutsideBubbleText: { color: v_1bfbd0.zinc800, fontSize: 13, lineHeight: 19 },
+  personaOutsideBubbleText: { color: v_1bfbd0.zinc900, fontSize: 15, lineHeight: 21 },
 
   userBubbleRow: {
     alignSelf: "flex-end",
     flexDirection: "row",
     alignItems: "flex-end",
-    gap: 4,
-    maxWidth: "80%",
+    gap: 6,
+    maxWidth: "82%",
     marginBottom: 8,
   },
   personaBubbleRow: {
     alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "flex-end",
-    gap: 4,
-    maxWidth: "80%",
+    gap: 6,
+    maxWidth: "82%",
     marginBottom: 8,
   },
-  bubbleInRow: { maxWidth: undefined, flexShrink: 1, marginBottom: 0 },
-  bubbleTimeText: { color: v_1bfbd0.zinc500, fontSize: 10, marginBottom: 2 },
+  bubbleInRow: { flexShrink: 1 },
+  bubbleTimeText: { color: v_1bfbd0.zinc400, fontSize: 11, marginBottom: 2 },
 
   typingBubble: {
     width: undefined,
@@ -1000,11 +1024,11 @@ const v_d81136 = v_472849.create({
   },
   turnUserRow: {
     alignItems: "flex-end",
-    marginBottom: 6,
+    marginBottom: 8,
   },
   turnPersonaRow: {
     alignItems: "flex-start",
-    marginBottom: 6,
+    marginBottom: 8,
   },
 
   turnPersonaBubble: {
@@ -1015,15 +1039,22 @@ const v_d81136 = v_472849.create({
   },
 
   transcriptBtn: {
-    alignSelf: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginTop: 6,
+    alignSelf: "stretch",
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 12,
   },
   transcriptBtnText: {
-    color: "rgba(255,255,255,0.9)",
+    color: v_1bfbd0.primary,
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "700",
+    flexShrink: 1,
   },
 
   inputBar: {
@@ -1040,7 +1071,7 @@ const v_d81136 = v_472849.create({
     flex: 1,
     minHeight: 40,
     maxHeight: 120,
-    backgroundColor: v_1bfbd0.violet100,
+    backgroundColor: v_1bfbd0.zinc100,
     borderRadius: v_8b0c90.lg,
     paddingHorizontal: 14,
     paddingTop: 10,
@@ -1054,7 +1085,7 @@ const v_d81136 = v_472849.create({
   },
   sendBtn: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: v_1bfbd0.violet600,
+    backgroundColor: v_1bfbd0.primary,
     alignItems: "center", justifyContent: "center",
   },
   sendBtnDisabled: { backgroundColor: v_1bfbd0.zinc300 },
@@ -1098,7 +1129,7 @@ const v_d81136 = v_472849.create({
     marginTop: 10,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: v_1bfbd0.violet100,
+    backgroundColor: v_1bfbd0.zinc100,
     alignItems: "center",
   },
 });

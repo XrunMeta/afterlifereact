@@ -124,7 +124,7 @@ const v_d81136 = v_472849.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: v_1bfbd0.violet600,
+    backgroundColor: v_1bfbd0.primary,
     padding: 14,
     borderRadius: v_8b0c90.md,
   },

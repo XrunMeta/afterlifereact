@@ -783,7 +783,7 @@ export default function v_14b43e() {
         {}
         <View style={v_fd5f43.msgBody}>
           <Text style={v_fd5f43.msgName} numberOfLines={1}>{v_1833e7}</Text>
-          <Text style={v_fd5f43.msgSub} numberOfLines={1}>{v_cf0109}</Text>
+          <Text style={v_fd5f43.msgSub} numberOfLines={2}>{v_cf0109}</Text>
         </View>
 
         {}
@@ -801,7 +801,7 @@ export default function v_14b43e() {
               hitSlop={8}
               accessibilityLabel="video-call"
             >
-              <Feather name="video" size={16} color={v_1bfbd0.white} />
+              <Feather name="video" size={16} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         </View>
@@ -897,7 +897,7 @@ export default function v_14b43e() {
                     onPress={() => void v_a87aaa(v_8c0b26.persona.id)}
                     style={{ ...v_fd5f43.overlayBtn, ...v_fd5f43.overlayBtnGhost }}
                     textColor={v_1bfbd0.white}
-                    backgroundColor={v_10387a ? "rgba(255,255,255,0.2)" : v_1bfbd0.violet600}
+                    backgroundColor={v_10387a ? "rgba(255,255,255,0.2)" : v_1bfbd0.primary}
                   />
                 );
               })()}
@@ -910,9 +910,11 @@ export default function v_14b43e() {
   };
 
   return (
-    <SafeView backgroundColor={v_1bfbd0.violet100} showBottomBackground={false}>
+    <SafeView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       <PageHeader
-        title="Message"
+        title="Messages"
+        hideBorder
+        titleStyle={{ fontSize: 28, fontWeight: "800", color: "#1A253D" }}
         rightAction={<NotificationBell />}
       />
 
@@ -930,8 +932,8 @@ export default function v_14b43e() {
           <RefreshControl
             refreshing={v_612e9f}
             onRefresh={v_0cde43}
-            tintColor={v_1bfbd0.violet600}
-            colors={[v_1bfbd0.violet600]}
+            tintColor={v_1bfbd0.secondary}
+            colors={[v_1bfbd0.secondary]}
           />
         }
         ListHeaderComponent={
@@ -1307,7 +1309,7 @@ export default function v_14b43e() {
                   {v_904373[v_34e5bb]}
                 </Text>
                 {v_5e8330 === v_34e5bb && (
-                  <Feather name="check" size={18} color={v_1bfbd0.violet600} />
+                  <Feather name="check" size={18} color={v_1bfbd0.accent} />
                 )}
               </TouchableOpacity>
             ))}
@@ -1331,10 +1333,9 @@ const v_fd5f43 = v_472849.create({
   postWrap: { marginBottom: 8 },
 
   msgListContent: {
-    paddingHorizontal: 16,
-
+    paddingHorizontal: 20,
     paddingBottom: 0,
-    backgroundColor: v_1bfbd0.violet100,
+    backgroundColor: v_1bfbd0.white,
   },
   subSearchBar: {
     flexDirection: "row",
@@ -1342,32 +1343,32 @@ const v_fd5f43 = v_472849.create({
     gap: 8,
     paddingHorizontal: 14,
     height: 44,
-    backgroundColor: v_1bfbd0.white,
+    backgroundColor: v_1bfbd0.zinc100,
     borderRadius: 22,
-    marginTop: 8,
-    marginBottom: 10,
+    marginTop: 4,
+    marginBottom: 12,
   },
   subSearchInput: {
     flex: 1, fontSize: 14, color: v_1bfbd0.zinc900, padding: 0,
   },
   subAdBanner: {
     height: 60,
-    backgroundColor: v_1bfbd0.violet600,
-    borderRadius: 14,
+    backgroundColor: v_1bfbd0.zinc300,
     paddingHorizontal: 20,
     justifyContent: "center",
-    marginBottom: 14,
+    marginBottom: 8,
   },
-  subAdBannerText: { color: v_1bfbd0.white, fontSize: 15, fontWeight: "600" },
+  subAdBannerText: { color: v_1bfbd0.zinc700, fontSize: 15, fontWeight: "600" },
   subSectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 4,
-    marginBottom: 10,
+    paddingHorizontal: 2,
+    marginTop: 4,
+    marginBottom: 4,
   },
-  subSectionCount: { fontSize: 13, color: v_1bfbd0.zinc700, fontWeight: "500" },
-  subSectionSort: { fontSize: 13, color: v_1bfbd0.zinc600 },
+  subSectionCount: { fontSize: 13, color: v_1bfbd0.zinc500, fontWeight: "500" },
+  subSectionSort: { fontSize: 13, color: v_1bfbd0.zinc500 },
 
   sortSheet: {
     backgroundColor: v_1bfbd0.white,
@@ -1390,51 +1391,49 @@ const v_fd5f43 = v_472849.create({
     paddingVertical: 14, borderTopWidth: 1, borderTopColor: v_1bfbd0.zinc100,
   },
   sortOptionText: { fontSize: 15, color: v_1bfbd0.zinc700 },
-  sortOptionActive: { color: v_1bfbd0.violet600, fontWeight: "700" },
+  sortOptionActive: { color: v_1bfbd0.accent, fontWeight: "700" },
 
   msgRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 14,
     backgroundColor: v_1bfbd0.white,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 10,
+    paddingHorizontal: 2,
+    paddingVertical: 14,
   },
-  msgAvatarWrap: { width: 48, height: 48, position: "relative" },
-  msgAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: v_1bfbd0.zinc200 },
+  msgAvatarWrap: { width: 56, height: 56, position: "relative" },
+  msgAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: v_1bfbd0.zinc200 },
   msgAvatarFallback: {
-    backgroundColor: v_1bfbd0.violet200,
+    backgroundColor: v_1bfbd0.zinc100,
     alignItems: "center",
     justifyContent: "center",
   },
-  msgAvatarInitial: { fontSize: 20, fontWeight: "700", color: v_1bfbd0.violet700 },
+  msgAvatarInitial: { fontSize: 22, fontWeight: "700", color: v_1bfbd0.secondary },
 
   msgOnlineDot: {
     position: "absolute",
-    right: 0, bottom: 0,
+    right: 1, bottom: 1,
     width: 12, height: 12, borderRadius: 6,
     backgroundColor: "#22c55e",
     borderWidth: 2, borderColor: v_1bfbd0.white,
   },
-  msgBody: { flex: 1, minWidth: 0 },
-  msgName: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900, marginBottom: 3 },
-  msgSub: { fontSize: 13, color: v_1bfbd0.zinc500 },
-  msgRight: { alignItems: "flex-end", gap: 6 },
-  msgTime: { fontSize: 12, color: v_1bfbd0.zinc400 },
-  msgRightBottomRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  msgBody: { flex: 1, minWidth: 0, paddingRight: 4 },
+  msgName: { fontSize: 16, fontWeight: "700", color: "#1A253D", marginBottom: 4 },
+  msgSub: { fontSize: 13, color: "#9BA3AF", lineHeight: 18 },
+  msgRight: { alignItems: "flex-end", gap: 8, minWidth: 48 },
+  msgTime: { fontSize: 12, color: "#B0B7C3", fontWeight: "500" },
+  msgRightBottomRow: { flexDirection: "row", alignItems: "center", gap: 10 },
 
   msgUnreadBadge: {
-    minWidth: 20, height: 20, borderRadius: 10,
-    backgroundColor: v_1bfbd0.rose500,
+    minWidth: 22, height: 22, borderRadius: 11,
+    backgroundColor: v_1bfbd0.secondary,
     alignItems: "center", justifyContent: "center",
     paddingHorizontal: 6,
   },
   msgUnreadText: { fontSize: 11, fontWeight: "700", color: v_1bfbd0.white },
   msgCallBtn: {
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: v_1bfbd0.violet600,
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: v_1bfbd0.primary,
     alignItems: "center", justifyContent: "center",
   },
 

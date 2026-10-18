@@ -606,8 +606,8 @@ const v_d81136 = v_472849.create({
     justifyContent: "center",
   },
   checkboxChecked: {
-    backgroundColor: v_1bfbd0.violet500,
-    borderColor: v_1bfbd0.violet500,
+    backgroundColor: v_1bfbd0.primary,
+    borderColor: v_1bfbd0.primary,
   },
   checkboxLabel: {
     color: v_1bfbd0.zinc600,
