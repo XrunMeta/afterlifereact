@@ -160,7 +160,7 @@ const v_d81136 = v_472849.create({
     paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: v_1bfbd0.zinc900,
   },
   addBtn: {
-    paddingHorizontal: 16, paddingVertical: 10, backgroundColor: v_1bfbd0.violet600, borderRadius: v_8b0c90.sm,
+    paddingHorizontal: 16, paddingVertical: 10, backgroundColor: v_1bfbd0.primary, borderRadius: v_8b0c90.sm,
   },
   addBtnText: { color: v_1bfbd0.white, fontSize: 14, fontWeight: '600' },
   customTag: {

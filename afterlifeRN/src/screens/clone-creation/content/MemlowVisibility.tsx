@@ -132,7 +132,7 @@ const v_d81136 = v_472849.create({
   inputRow: { flexDirection: 'row', gap: 8 },
   input: { flex: 1, borderWidth: 1, borderColor: v_1bfbd0.zinc200,
     borderRadius: v_8b0c90.sm, paddingHorizontal: 12, paddingVertical: 10 },
-  addBtn: { backgroundColor: v_1bfbd0.violet600, width: 44,
+  addBtn: { backgroundColor: v_1bfbd0.primary, width: 44,
     alignItems: 'center', justifyContent: 'center', borderRadius: v_8b0c90.sm },
   inviteRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     padding: 10, borderRadius: v_8b0c90.sm, borderWidth: 1, borderColor: v_1bfbd0.zinc200 },

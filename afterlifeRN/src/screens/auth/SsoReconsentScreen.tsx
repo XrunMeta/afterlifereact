@@ -348,8 +348,8 @@ const v_d81136 = v_472849.create({
     height: 24,
   },
   checkboxChecked: {
-    backgroundColor: v_1bfbd0.violet600,
-    borderColor: v_1bfbd0.violet600,
+    backgroundColor: v_1bfbd0.primary,
+    borderColor: v_1bfbd0.primary,
   },
   footer: {
     paddingHorizontal: 24,
@@ -361,7 +361,7 @@ const v_d81136 = v_472849.create({
   continueBtn: {
     paddingVertical: 16,
     borderRadius: 12,
-    backgroundColor: v_1bfbd0.violet600,
+    backgroundColor: v_1bfbd0.primary,
     alignItems: "center",
   },
   continueBtnDisabled: {
