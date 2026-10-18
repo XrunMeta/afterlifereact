@@ -24,13 +24,8 @@ import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
-import v_11c5c8 from "../../../components/clone/UpperBodyGuide";
 import { v_1bfbd0 } from "../../../components/constants";
 import type { v_73b64e } from "../../../lib/imagePicker";
-import {
-  v_069313,
-  v_d43608,
-} from "../../../lib/t208SilhouetteScale";
 import { v_889fad } from "../../../stores/dialogStore";
 import { v_9dd2d6 } from "../../../lib/centerCoverCrop1to2";
 import { v_b83839 } from "../../../hooks/useFaceDetection";
@@ -59,9 +54,6 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
   const { width: v_df48e9, height: v_bd274b } = v_700696.get("window");
   const v_e0560a = Math.min(v_df48e9 * 0.86, (v_bd274b * 0.7) / 2);
   const v_fc2e4f = v_e0560a * 2;
-
-  const [v_7b377a, v_3bbf8c] = v_5ab095(v_069313);
-  v_c4deb2(() => v_d43608(() => v_3bbf8c(v_069313())), []);
 
   const [v_663b67, v_220cc9] = v_5ab095<"front" | "back">("front");
   const v_ac8c13 = v_db5a6b(v_663b67);
@@ -277,9 +269,12 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
               <ActivityIndicator color={v_1bfbd0.white} />
             </View>
           )}
-          <View style={v_fd5f43.guideOverlay} pointerEvents="none">
-            {}
-            <UpperBodyGuide width={v_e0560a * v_7b377a} />
+          {}
+          <View style={v_fd5f43.gridOverlay} pointerEvents="none">
+            <View style={[v_fd5f43.gridLine, v_fd5f43.gridLineV, { left: "33.33%" }]} />
+            <View style={[v_fd5f43.gridLine, v_fd5f43.gridLineV, { left: "66.66%" }]} />
+            <View style={[v_fd5f43.gridLine, v_fd5f43.gridLineH, { top: "33.33%" }]} />
+            <View style={[v_fd5f43.gridLine, v_fd5f43.gridLineH, { top: "66.66%" }]} />
           </View>
           <View style={v_fd5f43.frameBorder} pointerEvents="none" />
           {v_b1717e && v_405d38 ? (
@@ -332,11 +327,15 @@ const v_fd5f43 = v_472849.create({
     overflow: "hidden",
     backgroundColor: "#111",
   },
-  guideOverlay: {
+  gridOverlay: {
     ...v_472849.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
   },
+  gridLine: {
+    position: "absolute",
+    backgroundColor: "rgba(255,255,255,0.6)",
+  },
+  gridLineV: { top: 0, bottom: 0, width: 1 },
+  gridLineH: { left: 0, right: 0, height: 1 },
   frameBorder: {
     ...v_472849.absoluteFillObject,
     borderWidth: 2,
