@@ -604,7 +604,7 @@ const v_fd5f43 = v_472849.create({
     marginTop: 24,
     paddingVertical: 16,
     borderRadius: v_8b0c90.lg,
-    backgroundColor: v_1bfbd0.violet600,
+    backgroundColor: v_1bfbd0.primary,
     alignItems: "center",
   },
   saveBtnDisabled: { backgroundColor: v_1bfbd0.zinc300 },

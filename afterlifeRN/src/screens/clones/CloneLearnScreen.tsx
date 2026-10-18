@@ -808,7 +808,7 @@ const v_d81136 = v_472849.create({
     justifyContent: "center",
   },
   confirmBtnYes: {
-    backgroundColor: v_1bfbd0.violet500,
+    backgroundColor: v_1bfbd0.primary,
   },
   confirmBtnYesText: {
     color: v_1bfbd0.white,
@@ -848,7 +848,7 @@ const v_d81136 = v_472849.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: v_1bfbd0.violet500,
+    backgroundColor: v_1bfbd0.primary,
     justifyContent: "center",
     alignItems: "center",
   },

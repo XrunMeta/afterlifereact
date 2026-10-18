@@ -3486,7 +3486,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   sideBtnActive: {
-    backgroundColor: COLORS.violet500,
+    backgroundColor: COLORS.primary,
   },
 
   floatingEmoji: {

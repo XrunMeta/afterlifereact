@@ -486,7 +486,7 @@ const v_fd5f43 = v_472849.create({
 
   },
   saveBtn: {
-    backgroundColor: v_1bfbd0.violet700,
+    backgroundColor: v_1bfbd0.primary,
     padding: 16,
     borderRadius: v_8b0c90.md,
     alignItems: "center",
@@ -511,7 +511,7 @@ const v_fd5f43 = v_472849.create({
   modalTitle: { fontSize: 16, fontWeight: "600", color: v_1bfbd0.zinc900, textAlign: "center" },
   modalButtons: { gap: 10 },
   modalBtn: { padding: 14, borderRadius: v_8b0c90.md, alignItems: "center" },
-  modalBtnPrimary: { backgroundColor: v_1bfbd0.violet700 },
+  modalBtnPrimary: { backgroundColor: v_1bfbd0.primary },
   modalBtnPrimaryText: { color: v_1bfbd0.white, fontSize: 15, fontWeight: "600" },
   modalBtnGhost: { backgroundColor: v_1bfbd0.zinc100 },
   modalBtnGhostText: { color: v_1bfbd0.zinc900, fontSize: 15, fontWeight: "500" },
