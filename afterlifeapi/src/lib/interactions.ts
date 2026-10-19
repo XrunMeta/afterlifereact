@@ -110,6 +110,12 @@ export async function v_721d54(
     }
     const v_cdef5f = Math.min(v_740dd8, v_179598);
 
+    const v_3362ed = await v_c9c489.DB
+      .prepare(`SELECT intimacy_score FROM user_clone_interactions WHERE user_id = ? AND clone_id = ?`)
+      .bind(v_43e90c, v_6e0fd3)
+      .first<{ intimacy_score: number }>();
+    const v_3f1d50 = v_3362ed?.intimacy_score ?? 0;
+
     await v_c9c489.DB
       .prepare(
         `INSERT INTO user_clone_interactions (user_id, clone_id, intimacy_score)
@@ -138,6 +144,22 @@ export async function v_721d54(
         `[interactions] event log failed:`,
         (v_4e67d8 as Error).message,
       );
+    }
+
+    const v_af5c00 = Math.min(v_b27eeb, v_3f1d50 + v_cdef5f);
+    const v_c5110a = Math.floor(v_af5c00 / 10) * 10;
+    if (v_c5110a >= 10 && v_c5110a > Math.floor(v_3f1d50 / 10) * 10) {
+      try {
+        await v_c9c489.DB
+          .prepare(
+            `INSERT INTO conversation_events (user_id, clone_id, kind, payload, created_at)
+             VALUES (?, ?, 'intimacy_milestone', ?, ?)`,
+          )
+          .bind(v_43e90c, v_6e0fd3, JSON.stringify({ score: v_c5110a }), Date.now())
+          .run();
+      } catch (v_645696) {
+        console.warn(`[interactions] milestone event failed:`, (v_645696 as Error).message);
+      }
     }
 
     await v_33d48f(v_c9c489, {
