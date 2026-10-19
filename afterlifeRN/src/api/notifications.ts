@@ -68,6 +68,8 @@ export interface NotificationPrefs {
   reactions: boolean;
   intimacy: boolean;
   moderation: boolean;
+
+  messages: boolean;
   promotions: boolean;
 }
 
