@@ -259,6 +259,15 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
         />
         {}
         <ConsentRow
+          checked={v_8c98c4}
+          onCheck={() => void v_349606()}
+          onReadMore={() => void v_349606()}
+          label={`${v_8d41d7("auth.signup.marketingConsent", {
+            defaultValue: "[선택] 마케팅 정보 수집 및 활용 동의",
+          })}${v_8d0e18 ? ` (${v_8d41d7("auth.signup.verifying", { defaultValue: "확인 중" })})` : ""}`}
+        />
+        {}
+        <ConsentRow
           checked={v_a03498}
           onCheck={() => v_d34fc9(!v_a03498)}
           onReadMore={() => v_fe0d62(4)}
@@ -274,15 +283,6 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
           label={v_8d41d7("auth.signup.cloneFaceConsent", {
             defaultValue: "[선택] 클론별 얼굴 인식 동의",
           })}
-        />
-        {}
-        <ConsentRow
-          checked={v_8c98c4}
-          onCheck={() => void v_349606()}
-          onReadMore={() => void v_349606()}
-          label={`${v_8d41d7("auth.signup.marketingConsent", {
-            defaultValue: "[선택] 마케팅 정보 수집 및 활용 동의",
-          })}${v_8d0e18 ? ` (${v_8d41d7("auth.signup.verifying", { defaultValue: "확인 중" })})` : ""}`}
         />
       </ScrollView>
 
