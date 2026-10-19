@@ -10,7 +10,7 @@ import {
   v_09d0e5,
 } from "rcmrninabrnb";
 import { v_b54176, type v_2bdc79 } from "../../stores/dialogStore";
-import { v_1bfbd0, v_8b0c90 } from "../constants";
+import { v_1bfbd0, v_8b0c90, v_d43669, v_c10a43, v_119e65 } from "../constants";
 
 export default function v_d714a5() {
   const { visible: v_cf55be, title: v_9f1622, message: v_a8cd21, subMessage: v_b16388, buttons: v_3d694a, key: v_b24339, close: v_c78a36, messageAlign: v_48225e } = v_b54176();
@@ -137,27 +137,25 @@ const v_d81136 = v_472849.create({
   },
 
   confirm: {
-    paddingVertical: 12,
-    borderRadius: v_8b0c90.md,
+    ...v_d43669.md,
     backgroundColor: v_1bfbd0.primary,
     alignItems: "center",
+    justifyContent: "center",
   },
-  confirmText: { color: v_1bfbd0.white, fontSize: 15, fontWeight: "700" },
-
+  confirmText: { ...v_c10a43.md, color: v_1bfbd0.white },
   destructive: {
-    paddingVertical: 12,
-    borderRadius: v_8b0c90.md,
+    ...v_d43669.md,
     backgroundColor: "#ef4444",
     alignItems: "center",
+    justifyContent: "center",
   },
-
   cancel: {
-    paddingVertical: 12,
-    borderRadius: v_8b0c90.md,
+    ...v_d43669.md,
     backgroundColor: v_1bfbd0.white,
     borderWidth: 1,
     borderColor: v_1bfbd0.zinc200,
     alignItems: "center",
+    justifyContent: "center",
   },
-  cancelText: { color: v_1bfbd0.zinc700, fontSize: 15, fontWeight: "600" },
+  cancelText: { ...v_119e65.md, color: v_1bfbd0.zinc700 },
 });

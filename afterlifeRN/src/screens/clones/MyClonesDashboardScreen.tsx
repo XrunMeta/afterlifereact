@@ -53,7 +53,7 @@ import { v_84a859, v_976b89 } from "../../api/auth";
 import { v_48981e, type v_2b70d7 } from "../../api/credits";
 
 import { v_7d2692 } from "../../api/files";
-import { v_1bfbd0, v_9b1a04, v_8b0c90, v_a9d3e9 } from "../../components/constants";
+import { v_1bfbd0, v_9b1a04, v_8b0c90, v_a9d3e9, v_d43669, v_c10a43, v_119e65 } from "../../components/constants";
 import type { v_affcc0, v_b0b271 } from "../../types/clone";
 import type { v_2d88fc } from "../../navigation/types";
 import type { v_8ad91b } from "../../navigation/types";
@@ -108,6 +108,13 @@ export default function v_def15b() {
   const [v_b1118a, v_6edbbc] = v_5ab095(v_ebad5a);
   const [v_489044, v_9500c7] = v_5ab095(0);
   const [v_cfa43b, v_ed9bd4] = v_5ab095(0);
+  const v_deb5c7 = v_df9f57(
+    () =>
+      v_c9ba75
+        .filter((v_206b88) => v_206b88.kind === "sent")
+        .reduce((v_f4e98d, v_206b88) => v_f4e98d + (v_206b88.count || 1), 0),
+    [v_c9ba75],
+  );
 
   const v_8e46f5 = v_de06a3(async (v_cc88f5 = false) => {
     if (!v_2ca7e0) {
@@ -912,53 +919,69 @@ export default function v_def15b() {
             {
 }
 
-            {
-}
-            <View style={v_fd5f43.giftLogSection}>
-              <View style={v_fd5f43.giftLogCardRow}>
-                <TouchableOpacity
-                  style={v_fd5f43.giftLogCard}
-                  activeOpacity={0.75}
-                  onPress={() => {
-                    v_6edbbc(v_ebad5a);
-                    v_15fd53(true);
-                  }}
-                >
-                  <View style={v_fd5f43.giftLogCardIcon}>
-                    <Feather name="gift" size={18} color={v_1bfbd0.white} />
-                  </View>
-                  <View style={v_fd5f43.giftLogCardBody}>
-                    <Text style={v_fd5f43.giftLogCardLabel}>
-                      {v_8d41d7("dashboard.giftInventoryTitle", { defaultValue: "내선물" })}
-                    </Text>
-                    <Text style={v_fd5f43.giftLogCardCount} numberOfLines={1}>
-                      {v_c9ba75.length === 0
-                        ? v_8d41d7("dashboard.emptyGift", { defaultValue: "아직 받은 선물이 없어요" })
-                        : (
-                          <>
-                            {v_8d41d7("dashboard.giftTotalReceivedBefore", {
-                              defaultValue: "총 받은 선물 ",
-                            })}
-                            <Text style={v_fd5f43.giftLogCardCountNum}>{v_489044}</Text>
-                            {v_8d41d7("dashboard.giftTotalReceivedAfter", { defaultValue: "개" })}
-                          </>
-                        )}
+            {}
+            <View style={v_fd5f43.giftDashSection}>
+              <View style={v_fd5f43.giftDashCard}>
+                <View style={v_fd5f43.giftDashHeader}>
+                  <View style={v_fd5f43.giftDashTitleRow}>
+                    <Feather name="gift" size={18} color={v_1bfbd0.primary} />
+                    <Text style={v_fd5f43.giftDashTitle}>
+                      {v_8d41d7("giftBox.title", { defaultValue: "선물함" })}
                     </Text>
                   </View>
-                  <Feather name="chevron-right" size={20} color={v_1bfbd0.zinc400} />
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={v_fd5f43.giftDashViewAllBtn}
+                    onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "received" })}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={v_fd5f43.giftDashViewAll}>
+                      {v_8d41d7("giftBox.viewAll", { defaultValue: "전체보기" })}
+                    </Text>
+                    <Feather name="chevron-right" size={16} color={v_1bfbd0.zinc400} />
+                  </TouchableOpacity>
+                </View>
+                <View style={v_fd5f43.giftDashMetrics}>
+                  <TouchableOpacity
+                    style={v_fd5f43.giftDashMetric}
+                    activeOpacity={0.8}
+                    onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "received" })}
+                  >
+                    <Text style={v_fd5f43.giftDashMetricLabel}>
+                      {v_8d41d7("giftBox.tabReceived", { defaultValue: "받은 선물" })}
+                    </Text>
+                    <Text style={v_fd5f43.giftDashMetricValue}>{v_489044}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={v_fd5f43.giftDashMetric}
+                    activeOpacity={0.8}
+                    onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "sent" })}
+                  >
+                    <Text style={v_fd5f43.giftDashMetricLabel}>
+                      {v_8d41d7("giftBox.tabSent", { defaultValue: "보낸 선물" })}
+                    </Text>
+                    <Text style={v_fd5f43.giftDashMetricValue}>{v_deb5c7}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[v_fd5f43.giftDashMetric, v_fd5f43.giftDashMetricAccent]}
+                    activeOpacity={0.8}
+                    onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "exchange" })}
+                  >
+                    <Text style={[v_fd5f43.giftDashMetricLabel, v_fd5f43.giftDashMetricLabelAccent]}>
+                      {v_8d41d7("giftBox.exchangeable", { defaultValue: "교환 가능" })}
+                    </Text>
+                    <Text style={[v_fd5f43.giftDashMetricValue, v_fd5f43.giftDashMetricValueAccent]}>
+                      {v_cfa43b}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
                 <TouchableOpacity
-                  style={v_fd5f43.giftLogExchangeBtn}
-                  onPress={() => {
-                    const v_131f0d = v_b113dd?.email ?? v_f38ee5?.email ?? null;
-                    console.log("[giftExchangeHeaderBtn] tap myEmail=", v_131f0d);
-                    void v_623a74(v_131f0d, v_8d41d7);
-                  }}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={v_fd5f43.giftDashExchangeBtn}
+                  activeOpacity={0.85}
+                  onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "exchange" })}
                 >
-                  <Text style={v_fd5f43.giftLogExchangeText}>
-                    {v_8d41d7("dashboard.giftExchange", { defaultValue: "교환" })}
+                  <Text style={v_fd5f43.giftDashExchangeBtnText}>
+                    {v_8d41d7("giftBox.exchangeAction", { defaultValue: "교환하기" })}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -1588,7 +1611,7 @@ const v_fd5f43 = v_472849.create({
     borderRadius: v_8b0c90.lg,
     backgroundColor: v_1bfbd0.zinc900,
   },
-  dashEmptyBtnText: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.white },
+  dashEmptyBtnText: { ...v_c10a43.md, color: v_1bfbd0.white },
 
   listContent: {
     paddingHorizontal: v_9b1a04.medium,
@@ -1676,7 +1699,7 @@ const v_fd5f43 = v_472849.create({
     paddingVertical: 8,
     borderRadius: 999,
   },
-  balanceCtaText: { fontSize: 13, fontWeight: "700", color: "#fff" },
+  balanceCtaText: { ...v_c10a43.sm, color: "#fff" },
 
   coinRow: {
     flexDirection: "row",
@@ -1750,7 +1773,7 @@ const v_fd5f43 = v_472849.create({
     borderColor: v_1bfbd0.zinc300,
     alignItems: "center",
   },
-  chargeCancelText: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc700 },
+  chargeCancelText: { ...v_119e65.md, color: v_1bfbd0.zinc700 },
   chargeGoBtn: {
     flex: 1,
     flexDirection: "row",
@@ -1761,7 +1784,7 @@ const v_fd5f43 = v_472849.create({
     borderRadius: v_8b0c90.md,
     backgroundColor: v_1bfbd0.primary,
   },
-  chargeGoText: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.white },
+  chargeGoText: { ...v_c10a43.md, color: v_1bfbd0.white },
 
   statsOverview: {
     flexDirection: "row",
@@ -1931,15 +1954,14 @@ const v_fd5f43 = v_472849.create({
   actionsRow: { flexDirection: "row", gap: 10 },
   actionBtn: {
     flex: 1,
-    height: 40,
-    borderRadius: v_8b0c90.lg,
+    ...v_d43669.sm,
     backgroundColor: v_1bfbd0.zinc100,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
   },
-  actionText: { fontSize: 12, fontWeight: "500", color: v_1bfbd0.zinc700 },
+  actionText: { ...v_119e65.sm, color: v_1bfbd0.zinc700 },
 
   loadMore: {
     height: 48,
@@ -1997,8 +2019,7 @@ const v_fd5f43 = v_472849.create({
 
   visibilityOptions: { gap: 8, width: "100%" },
   visibilityOption: {
-    height: 48,
-    borderRadius: v_8b0c90.lg,
+    ...v_d43669.md,
     backgroundColor: v_1bfbd0.zinc100,
     flexDirection: "row",
     alignItems: "center",
@@ -2009,8 +2030,7 @@ const v_fd5f43 = v_472849.create({
     backgroundColor: v_1bfbd0.zinc900,
   },
   visibilityOptionText: {
-    fontSize: 14,
-    fontWeight: "500",
+    ...v_119e65.md,
     color: v_1bfbd0.zinc700,
   },
 
@@ -2155,7 +2175,7 @@ const v_fd5f43 = v_472849.create({
   inviteBtnSent: {
     backgroundColor: v_1bfbd0.zinc100,
   },
-  inviteBtnText: { fontSize: 13, fontWeight: "600", color: v_1bfbd0.white },
+  inviteBtnText: { ...v_c10a43.sm, color: v_1bfbd0.white },
   inviteBtnTextSent: { color: v_1bfbd0.success },
 
   intimacySummary: {
@@ -2271,6 +2291,49 @@ const v_fd5f43 = v_472849.create({
   intimacyInfoOkBtn: { marginTop: 16, paddingVertical: 12, borderRadius: v_8b0c90.full, backgroundColor: v_1bfbd0.primary, alignItems: "center" },
   intimacyInfoOkText: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.white },
 
+  giftDashSection: { marginTop: 16, marginBottom: 16, paddingHorizontal: 4 },
+  giftDashCard: {
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    padding: 16,
+  },
+  giftDashHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 14,
+  },
+  giftDashTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  giftDashTitle: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  giftDashViewAllBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  giftDashViewAll: { fontSize: 13, color: v_1bfbd0.zinc500 },
+  giftDashMetrics: { flexDirection: "row", gap: 8, marginBottom: 14 },
+  giftDashMetric: {
+    flex: 1,
+    backgroundColor: v_1bfbd0.zinc100,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+  },
+  giftDashMetricAccent: { backgroundColor: "#eff6ff" },
+  giftDashMetricLabel: { fontSize: 11, color: v_1bfbd0.zinc500, marginBottom: 6 },
+  giftDashMetricLabelAccent: { color: v_1bfbd0.primary },
+  giftDashMetricValue: { fontSize: 22, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  giftDashMetricValueAccent: { color: v_1bfbd0.primary },
+  giftDashExchangeBtn: {
+    ...v_d43669.md,
+    backgroundColor: v_1bfbd0.zinc900,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  giftDashExchangeBtnText: { ...v_c10a43.md, color: v_1bfbd0.white },
+
   giftLogSection: { marginTop: 16, marginBottom: 16, paddingHorizontal: 4 },
   giftLogCardRow: {
     flexDirection: "row",
@@ -2336,7 +2399,7 @@ const v_fd5f43 = v_472849.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  giftLogExchangeText: { fontSize: 13, fontWeight: "700", color: v_1bfbd0.white },
+  giftLogExchangeText: { ...v_c10a43.md, color: v_1bfbd0.white },
   giftLogModalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -2397,13 +2460,13 @@ const v_fd5f43 = v_472849.create({
     borderRadius: 999,
     backgroundColor: v_1bfbd0.primary,
   },
-  giftLogSwapText: { fontSize: 13, fontWeight: "700", color: v_1bfbd0.white },
+  giftLogSwapText: { ...v_c10a43.sm, color: v_1bfbd0.white },
   giftLogMoreBtn: {
     paddingVertical: 10,
     alignItems: "center",
     marginTop: 4,
   },
-  giftLogMoreText: { fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc900 },
+  giftLogMoreText: { ...v_119e65.sm, color: v_1bfbd0.zinc900 },
 });
 
 async function v_623a74(v_78547c, v_8d41d7) {
