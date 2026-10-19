@@ -15,6 +15,7 @@ import {
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_51e8dd, v_85b8ef } from "tgjb";
 import { v_f095b0 } from "../../lib/pangle";
+import { v_8827ec } from "../../lib/errorReporting/report";
 import { v_1bfbd0 } from "../constants";
 
 type Props = {
@@ -73,11 +74,24 @@ console.log(
   `[PangleBannerAd][module] platform=${v_326be8.OS} nativeAvailable=${v_355b08}`,
 );
 
+const v_a8eee1 = new Set(["sdk-not-init", "load-error", "loaded-attached", "loaded-null-view", "shown"]);
+const v_cc28d6 = new Set<string>();
+function v_887273(v_9e86fd): void {
+  if (__DEV__) return;
+  const v_2ae4e7 = typeof v_9e86fd?.stage === "string" ? v_9e86fd.stage : "";
+  if (!v_a8eee1.has(v_2ae4e7)) return;
+  const v_b24339 = `${v_2ae4e7}:${String(v_9e86fd?.unit ?? "")}`;
+  if (v_cc28d6.has(v_b24339)) return;
+  v_cc28d6.add(v_b24339);
+  v_8827ec(new Error(`[pangle-banner] ${v_2ae4e7}`), { extra: { ...v_9e86fd, platform: v_326be8.OS } });
+}
+
 const v_35934d = globalThis as typeof globalThis & { __pangleBannerDebugSub?: boolean };
 if (v_326be8.OS === "android" && !v_35934d.__pangleBannerDebugSub) {
   v_35934d.__pangleBannerDebugSub = true;
   v_18ba07.addListener("PangleBannerDebug", (v_9e86fd) => {
     console.log("[PangleBannerAd][native]", JSON.stringify(v_9e86fd));
+    v_887273(v_9e86fd);
   });
 }
 
@@ -129,6 +143,7 @@ export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4 }: Props)
       if (v_2008a4) return;
       if (v_3ed4c3) v_7ab0cc(true);
       else if (v_f4e98d < 3) v_cb36b1 = setTimeout(() => void v_bc21cd(v_f4e98d + 1), 3000);
+      else v_887273({ stage: "sdk-not-init", unit: v_61418d, source: "js-init-failed" });
     };
     void v_bc21cd(1);
     return () => {
@@ -137,13 +152,25 @@ export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4 }: Props)
     };
   }, [v_61418d]);
 
+  const [v_189dcf, v_2e039c] = v_5ab095(0);
+  v_c4deb2(() => {
+    if (v_326be8.OS !== "android" || !v_61418d) return;
+    const v_1ae212 = v_18ba07.addListener("PangleBannerDebug", (v_9e86fd) => {
+      if (v_9e86fd?.stage === "loaded-attached" && v_9e86fd?.unit === v_61418d) v_2e039c((v_f4e98d) => v_f4e98d + 1);
+    });
+    return () => v_1ae212.remove();
+  }, [v_61418d]);
+  const v_942edc = v_472849.flatten(v_7fa4e4)?.height;
+  const v_ca9189 =
+    v_189dcf > 0 && typeof v_942edc === "number" ? { height: v_942edc + (v_189dcf % 2) } : null;
+
   if ((v_326be8.OS !== "android" && v_326be8.OS !== "ios") || !v_db6966 || !v_61418d || !v_ae4a03) {
     return v_0debf4;
   }
 
   return (
     <BannerErrorBoundary fallback={v_0debf4}>
-      <PangleBannerAdNative adUnitId={v_61418d} style={v_7fa4e4} />
+      <PangleBannerAdNative adUnitId={v_61418d} style={[v_7fa4e4, v_ca9189]} />
     </BannerErrorBoundary>
   );
 }
