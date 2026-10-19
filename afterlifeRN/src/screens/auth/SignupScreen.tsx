@@ -45,7 +45,8 @@ import {
 } from "../../api/consent";
 import { v_fa872d } from "../../hooks/useSsoReconsentGate";
 import { v_d2929b } from "./faceBiometricSignupFlag";
-import { v_704bef } from "../../lib/pushNotifications";
+import * as v_8a44cb from "zryrlwvgokjhz";
+import { v_6d7a3d, v_704bef } from "../../lib/pushNotifications";
 import { v_ea1c99 } from "../../lib/deviceId";
 import type { v_384e19 } from "../../navigation/types";
 import type { v_da1883 } from "../../types/country";
@@ -407,6 +408,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_929b58, v_94f796] = v_5ab095<string | null>(null);
   const [v_8d0e18, v_3bb4d3] = v_5ab095(false);
 
+  const [v_60cad9, v_f1fd7a] = v_5ab095(false);
+
   const v_237bb3 = v_e662ae<v_79c4f2>(null);
   const v_776c12 = v_e662ae<v_79c4f2>(null);
   const v_15e85c = v_e662ae<v_79c4f2>(null);
@@ -438,11 +441,16 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       return;
     }
     try {
-      const v_8a44cb = await import("zryrlwvgokjhz");
+
       const v_fc6010 = await v_8a44cb.getForegroundPermissionsAsync();
-      const v_d60769 = v_fc6010.granted
-        ? v_fc6010
-        : await v_8a44cb.requestForegroundPermissionsAsync();
+      if (v_fc6010.granted) {
+        v_a67880(true);
+        return;
+      }
+      v_f1fd7a(true);
+      const v_d60769 = await v_8a44cb.requestForegroundPermissionsAsync().finally(() =>
+        v_f1fd7a(false),
+      );
       if (!v_d60769.granted) {
         v_889fad(
           v_8d41d7("auth.signup.locationPermTitle", { defaultValue: "위치 권한 필요" }),
@@ -472,6 +480,25 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       v_73f064(null);
       v_94f796(null);
       return;
+    }
+
+    try {
+      if (await v_6d7a3d()) {
+        v_e378a4(true);
+        void (async () => {
+          try {
+            const [v_e43fa5, v_de2b1c] = await Promise.all([v_704bef(), v_ea1c99()]);
+            v_704175(v_e43fa5.token ?? null);
+            v_73f064(v_e43fa5.platform);
+            v_94f796(v_de2b1c);
+          } catch (v_49263d) {
+            console.warn("[SignupScreen] background push token failed:", v_49263d);
+          }
+        })();
+        return;
+      }
+    } catch {
+
     }
     v_3bb4d3(true);
     try {
@@ -514,8 +541,15 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     v_06ec09(true);
     v_d34fc9(true);
     v_9537cd(true);
-    if (!v_540cd3) await v_26e7c7();
-    if (!v_8c98c4) await v_349606();
+
+    const [v_2de974, v_c4bf69] = await Promise.all([
+      v_8a44cb.getForegroundPermissionsAsync().then((v_e2a85c) => v_e2a85c.granted).catch(() => false),
+      v_6d7a3d().catch(() => false),
+    ]);
+    if (!v_540cd3 && v_2de974) v_a67880(true);
+    if (!v_8c98c4 && v_c4bf69) void v_349606();
+    if (!v_540cd3 && !v_2de974) await v_26e7c7();
+    if (!v_8c98c4 && !v_c4bf69) await v_349606();
   };
 
   const v_daa71c = v_df9f57(() => {
@@ -1198,6 +1232,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                   {v_8d41d7("auth.signup.locationConsent", { defaultValue: "[필수] 위치기반서비스 이용약관" })}
                 </Text>{" "}
                 {v_8d41d7("auth.signup.termsAgree", { defaultValue: "동의" })}
+                {v_60cad9 ? ` (${v_8d41d7("auth.signup.verifying", { defaultValue: "확인 중" })})` : ""}
               </Text>
             </View>
 
