@@ -16,7 +16,7 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
-import { v_1bfbd0, v_8b0c90 } from "../constants";
+import { v_1bfbd0, v_8b0c90, v_8f28b1 } from "../constants";
 
 interface Props {
   visible: boolean;
@@ -190,11 +190,14 @@ const v_d81136 = v_472849.create({
     minHeight: 100,
     borderWidth: 1,
     borderColor: v_1bfbd0.zinc200,
-    borderRadius: v_8b0c90.md,
-    padding: 12,
-    fontSize: 14,
+    borderRadius: v_8f28b1.borderRadius,
+    paddingHorizontal: v_8f28b1.paddingHorizontal,
+    paddingVertical: v_8f28b1.multilinePaddingVertical,
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
     color: v_1bfbd0.zinc900,
     backgroundColor: v_1bfbd0.zinc50 ?? v_1bfbd0.zinc100,
+    textAlignVertical: "top",
   },
   counter: {
     alignSelf: "flex-end",

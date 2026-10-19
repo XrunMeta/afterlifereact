@@ -20,7 +20,7 @@ import { v_772971 } from "jmpfvteuuztnp";
 import type { v_2d88fc } from "../../navigation/types";
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
-import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../../components/constants";
+import { v_1bfbd0, v_8b0c90, v_9b1a04, v_0da505 } from "../../components/constants";
 import { v_889fad } from "../../stores/dialogStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import {
@@ -625,6 +625,7 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                     }
                     placeholderTextColor={v_1bfbd0.zinc400}
                     multiline
+                    textAlignVertical="center"
                     style={v_d81136.input}
                     editable={!v_35bf26}
                     onFocus={() => {
@@ -827,22 +828,18 @@ const v_d81136 = v_472849.create({
   },
   inputRow: {
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
     gap: 8,
   },
   input: {
     flex: 1,
-    minHeight: 40,
     maxHeight: 120,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 20,
     borderWidth: 1,
-    borderColor: v_1bfbd0.zinc300,
-    fontSize: 14,
+    borderColor: v_1bfbd0.zinc200,
     color: v_1bfbd0.zinc900,
-    backgroundColor: v_1bfbd0.white,
-    textAlignVertical: "center",
+    ...v_0da505,
+
+    backgroundColor: v_1bfbd0.zinc100,
   },
   sendBtn: {
     width: 40,

@@ -11,9 +11,9 @@ import {
   v_122070,
 } from "rcmrninabrnb";
 import { v_772971 } from "jmpfvteuuztnp";
-import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_2d88fc } from "../../navigation/types";
+import v_556baf from "../../components/ui/SafeView";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_e775af from "../../components/ui/TextField";
 import v_1a40c4 from "../../components/ui/Button";
@@ -39,7 +39,6 @@ type Props = v_432191<v_2d88fc, "CloneEdit">;
 
 export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
   const { t: v_8d41d7 } = v_772971();
-  const v_033e14 = v_e0068c();
   const { cloneId: v_6e0fd3 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
   const v_941cd7 = v_194498((v_fd5f43) => v_fd5f43.updateLocalClone);
@@ -180,12 +179,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   void v_2cf16e;
 
   return (
-    <SafeScrollView
-      backgroundColor={v_1bfbd0.white}
-      autoAdjustKeyboardPadding
-      additionalBottomPadding={80}
-      showBottomBackground={false}
-    >
+    <SafeView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       {}
       <PageHeader
         title={v_8d41d7("edit.title")}
@@ -193,7 +187,15 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         onBackPress={() => v_c65f5d.goBack()}
       />
 
-      <View style={v_fd5f43.content}>
+      <SafeScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={v_fd5f43.content}
+        autoAdjustKeyboardPadding
+        showBottomBackground={false}
+        disableBottomPadding
+
+        additionalBottomPadding={24}
+      >
         {}
         <TextField
           testID={v_5401ae.cloneEdit.nameInput}
@@ -286,10 +288,9 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
         {
 }
-      </View>
+      </SafeScrollView>
 
-      {}
-      <View style={[v_fd5f43.bottomBar, { paddingBottom: 16 + Math.max(v_033e14.bottom, 0) }]}>
+      <View style={v_fd5f43.bottomBar}>
         <Button
           testID={v_5401ae.cloneEdit.save}
           title={v_35bf26 ? v_8d41d7("common.loading") : v_8d41d7("edit.save")}
@@ -299,7 +300,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           style={v_fd5f43.saveBtn}
         />
       </View>
-    </SafeScrollView>
+    </SafeView>
   );
 }
 
@@ -309,7 +310,6 @@ const v_fd5f43 = v_472849.create({
   content: {
     paddingHorizontal: v_9b1a04.large,
     paddingTop: 24,
-    paddingBottom: 32,
   },
 
   descCounter: {
@@ -319,10 +319,9 @@ const v_fd5f43 = v_472849.create({
     color: v_1bfbd0.zinc400,
   },
   bottomBar: {
-    paddingHorizontal: v_9b1a04.large,
-    paddingTop: 12,
+    padding: v_9b1a04.large,
     borderTopWidth: 1,
-    borderTopColor: v_1bfbd0.zinc500,
+    borderTopColor: v_1bfbd0.zinc100,
     backgroundColor: v_1bfbd0.white,
   },
   saveBtn: { width: "100%", alignSelf: "stretch" },

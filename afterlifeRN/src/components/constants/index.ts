@@ -79,6 +79,45 @@ export const v_8b0c90 = {
   full: 9999,
 } as const;
 
+export const v_8f28b1 = {
+  height: 52,
+  borderRadius: v_8b0c90.md,
+  fontSize: 16,
+  lineHeight: 22,
+  paddingHorizontal: 16,
+
+  paddingVertical: 0,
+  textAlignVertical: "center" as const,
+
+  includeFontPadding: false,
+
+  multilinePaddingVertical: 15,
+} as const;
+
+export const v_7c5e29 = {
+  height: v_8f28b1.height,
+  borderRadius: v_8f28b1.borderRadius,
+  paddingHorizontal: v_8f28b1.paddingHorizontal,
+  paddingVertical: v_8f28b1.paddingVertical,
+  fontSize: v_8f28b1.fontSize,
+  lineHeight: v_8f28b1.lineHeight,
+  textAlignVertical: v_8f28b1.textAlignVertical,
+  includeFontPadding: v_8f28b1.includeFontPadding,
+} as const;
+
+export const v_0da505 = {
+  minHeight: v_8f28b1.height,
+  borderRadius: v_8f28b1.borderRadius,
+  paddingHorizontal: v_8f28b1.paddingHorizontal,
+  paddingTop: v_8f28b1.multilinePaddingVertical,
+  paddingBottom: v_8f28b1.multilinePaddingVertical,
+  fontSize: v_8f28b1.fontSize,
+  lineHeight: v_8f28b1.lineHeight,
+
+  textAlignVertical: v_8f28b1.textAlignVertical,
+  includeFontPadding: v_8f28b1.includeFontPadding,
+} as const;
+
 export const v_963c2c = {
   background: "#fafafa",
   bottomBackground: "#fafafa",

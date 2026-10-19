@@ -1281,13 +1281,14 @@
         },
         "reactions": {
           "label": "Reactions",
-          "desc": "When your clone gets likes, comments, or reports"
+          "desc": "When your clone gets likes, comments, subscriptions or gifts"
         },
         "promotions": {
           "label": "Promotions",
           "desc": "Personalized benefits and event announcements"
         }
-      }
+      },
+      "saveFailed": "Could not save the setting. Please try again."
     },
     "agreements": {
       "title": "Consent"

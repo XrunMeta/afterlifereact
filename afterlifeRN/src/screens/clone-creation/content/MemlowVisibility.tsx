@@ -4,7 +4,7 @@ import { v_3094a2, v_19b633, v_4623af, v_79c4f2, v_472849, v_03e392, v_39a996 } 
 import { v_dec439 } from 'zvyjokvuouwvifyzks';
 import { v_772971 } from 'jmpfvteuuztnp';
 import type { v_c2a674 } from '../../../types/clone';
-import { v_1bfbd0, v_8b0c90, v_a9d3e9, v_e3d001 } from '../../../components/constants';
+import { v_1bfbd0, v_8b0c90, v_a9d3e9, v_e3d001, v_8f28b1 } from '../../../components/constants';
 import { v_1ed7d9 } from '../../../stores/authStore';
 import { v_a41961 } from '../../../api/auth';
 
@@ -136,10 +136,26 @@ const v_d81136 = v_472849.create({
   label: { fontSize: 13, fontWeight: '600', color: v_1bfbd0.zinc700, marginTop: 12 },
   hint: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: -8 },
   inputRow: { flexDirection: 'row', gap: 8 },
-  input: { flex: 1, borderWidth: 1, borderColor: v_1bfbd0.zinc200,
-    borderRadius: v_8b0c90.sm, paddingHorizontal: 12, paddingVertical: 10 },
-  addBtn: { backgroundColor: v_1bfbd0.primary, width: 44,
-    alignItems: 'center', justifyContent: 'center', borderRadius: v_8b0c90.sm },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    borderRadius: v_8f28b1.borderRadius,
+    height: v_8f28b1.height,
+    paddingHorizontal: v_8f28b1.paddingHorizontal,
+    paddingVertical: 0,
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
+    textAlignVertical: v_8f28b1.textAlignVertical,
+  },
+  addBtn: {
+    backgroundColor: v_1bfbd0.primary,
+    width: v_8f28b1.height,
+    height: v_8f28b1.height,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: v_8f28b1.borderRadius,
+  },
   inviteRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     padding: 10, borderRadius: v_8b0c90.sm, borderWidth: 1, borderColor: v_1bfbd0.zinc200 },
   inviteRowBad: { borderColor: v_1bfbd0.rose500 },
