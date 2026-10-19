@@ -246,13 +246,18 @@ v_1172ea.get("/:id/calls/:callId/turns", v_6690d9, async (v_3f4e2e) => {
 v_1172ea.post("/:id/mark-read", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = v_31113b(v_3f4e2e.req.param("id"));
   const { userId: v_43e90c } = await v_916232(v_3f4e2e, v_6e0fd3);
+
+  const v_148ff6 = (await v_3f4e2e.req.json().catch(() => ({}))) as { at?: unknown };
+  const v_5c2f9f = Date.now();
+  const v_963980 = typeof v_148ff6.at === "number" && v_148ff6.at <= v_5c2f9f && v_148ff6.at >= v_5c2f9f - 120_000 ? v_148ff6.at : v_5c2f9f;
   await v_3f4e2e.env.DB
     .prepare(
       `INSERT INTO conversation_read_markers (user_id, clone_id, last_read_at)
-         VALUES (?, ?, CURRENT_TIMESTAMP)
-         ON CONFLICT(user_id, clone_id) DO UPDATE SET last_read_at = excluded.last_read_at`,
+         VALUES (?, ?, datetime(?, 'unixepoch'))
+         ON CONFLICT(user_id, clone_id) DO UPDATE SET
+           last_read_at = MAX(conversation_read_markers.last_read_at, excluded.last_read_at)`,
     )
-    .bind(v_43e90c, v_6e0fd3)
+    .bind(v_43e90c, v_6e0fd3, Math.floor(v_963980 / 1000))
     .run();
   return v_3f4e2e.json({ ok: true });
 });

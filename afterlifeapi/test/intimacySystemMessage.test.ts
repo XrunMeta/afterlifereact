@@ -100,6 +100,39 @@ v_469bf2("intimacy system message", () => {
     v_4d37e3(v_f4e98d?.n).toBe(0);
   });
 
+  v_23805a("mark-read: at(본 시각) 반영 · 마커는 뒤로 가지 않음 · 그 뒤 답장은 안 읽음", async () => {
+    const v_257b90 = await v_bfb240("owner4");
+    const v_debed8 = await v_bfb240("viewer4");
+    const v_6e0fd3 = await v_4d24a9(v_257b90, "바다");
+    await v_a1651b().prepare(`INSERT INTO clone_follows (user_id, clone_id) VALUES (?, ?)`).bind(v_debed8, v_6e0fd3).run();
+    const v_5e9523 = async (v_83d291) => {
+      const v_8f00b9 = await v_1df298.fetch(`https://x/oth-path${v_6e0fd3}/mark-read`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${await v_21cc31(v_debed8)}`, "Content-Type": "application/json" },
+        body: JSON.stringify(v_83d291 === undefined ? {} : { at: v_83d291 }),
+      });
+      v_4d37e3(v_8f00b9.status).toBe(200);
+      return (await v_a1651b()
+        .prepare(`SELECT last_read_at FROM conversation_read_markers WHERE user_id = ? AND clone_id = ?`)
+        .bind(v_debed8, v_6e0fd3)
+        .first<{ last_read_at: string }>())!.last_read_at;
+    };
+    const v_a0bb1f = Date.now() - 30_000;
+    const v_6b5493 = await v_5e9523(v_a0bb1f);
+    v_4d37e3(v_6b5493).toBe(new Date(Math.floor(v_a0bb1f / 1000) * 1000).toISOString().slice(0, 19).replace("T", " "));
+
+    v_4d37e3(await v_5e9523(v_a0bb1f - 10_000)).toBe(v_6b5493);
+
+    const v_812cf3 = new Date(v_a0bb1f + 5_000).toISOString().slice(0, 19).replace("T", " ");
+    v_4d37e3(
+      await v_a00a76(
+        v_c9c489 as unknown as v_273a0c,
+        { userId: v_debed8, cloneId: v_6e0fd3, cloneName: "바다", replyCreatedAt: v_812cf3, replyText: "응!" },
+        0,
+      ),
+    ).toBe(true);
+  });
+
   v_23805a("통화만 한 페르소나도 메세지 목록에 포함", async () => {
     const v_257b90 = await v_bfb240("owner2");
     const v_debed8 = await v_bfb240("viewer2");

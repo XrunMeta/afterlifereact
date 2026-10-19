@@ -746,6 +746,9 @@ export default function v_14b43e() {
 
     const v_6629cb = () => {
 
+      v_ff797f((v_ba2215) =>
+        v_ba2215 ? v_ba2215.map((v_3f4e2e) => (v_3f4e2e.clone.id === v_8c0b26.persona.id ? { ...v_3f4e2e, unreadCount: 0 } : v_3f4e2e)) : v_ba2215,
+      );
       v_f4c991.navigate("Chat", {
         cloneId: v_8c0b26.persona.id,
         name: v_8c0b26.persona.name,
