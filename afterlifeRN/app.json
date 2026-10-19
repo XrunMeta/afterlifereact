@@ -30,7 +30,16 @@
         ],
         "NSSpeechRecognitionUsageDescription": "통화 중 회원님의 음성을 텍스트로 변환해 클론과 대화하기 위해 음성 인식을 사용합니다.",
         "ITSAppUsesNonExemptEncryption": false,
-        "NSLocationWhenInUseUsageDescription": "통화 시 클론이 지역 관련 대화를 나눌 수 있도록 현재 위치를 사용합니다. (선택 · 설정에서 언제든 끌 수 있어요)"
+        "NSLocationWhenInUseUsageDescription": "통화 시 클론이 지역 관련 대화를 나눌 수 있도록 현재 위치를 사용합니다. (선택 · 설정에서 언제든 끌 수 있어요)",
+        "PangleAppId": "8874758",
+        "SKAdNetworkItems": [
+          {
+            "SKAdNetworkIdentifier": "238da6jt44.skadnetwork"
+          },
+          {
+            "SKAdNetworkIdentifier": "22mmun2rn5.skadnetwork"
+          }
+        ]
       },
       "appleTeamId": "677WG96CUJ",
       "buildNumber": "100",
