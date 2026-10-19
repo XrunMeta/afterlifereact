@@ -23,6 +23,7 @@ import {
   v_9bedf5,
 } from "../../lib/pushNotifications";
 import { v_1ed7d9 } from "../../stores/authStore";
+import { v_67d473, v_ba1376 } from "../../api/notifications";
 
 type PrefKey =
   | "newFollower"
@@ -108,6 +109,20 @@ export default function v_4036d1() {
       } finally {
         v_844010(true);
       }
+
+      if (v_2ca7e0) {
+        try {
+          const v_88781f = await v_67d473(v_2ca7e0);
+          v_950221(v_88781f);
+          await Promise.all(
+            v_a5887f.map((v_23805a) =>
+              v_e84827.setItem(v_5c002e + v_23805a.key, v_88781f[v_23805a.key] ? "1" : "0"),
+            ),
+          );
+        } catch (v_49263d) {
+          console.warn("[notifications] server prefs load failed:", v_49263d);
+        }
+      }
     })();
 
   }, []);
@@ -175,11 +190,23 @@ export default function v_4036d1() {
   };
 
   const v_2ee23e = async (v_b24339, v_a448ad) => {
+    const v_ba2215 = v_207650[v_b24339];
     v_950221((v_e2a85c) => ({ ...v_e2a85c, [v_b24339]: v_a448ad }));
     try {
+      if (v_2ca7e0) {
+        const v_88781f = await v_ba1376(v_2ca7e0, { [v_b24339]: v_a448ad });
+        v_950221(v_88781f);
+      }
       await v_e84827.setItem(v_5c002e + v_b24339, v_a448ad ? "1" : "0");
+
+      if (v_b24339 === "promotions" && v_a448ad && v_2ca7e0) void v_9bedf5(v_2ca7e0);
     } catch (v_49263d) {
       console.warn("[notifications] save pref failed:", v_49263d);
+      v_950221((v_e2a85c) => ({ ...v_e2a85c, [v_b24339]: v_ba2215 }));
+      v_889fad(
+        v_8d41d7("common.error"),
+        v_8d41d7("settings.notifications.saveFailed", { defaultValue: "설정을 저장하지 못했습니다. 다시 시도해 주세요." }),
+      );
     }
   };
 
