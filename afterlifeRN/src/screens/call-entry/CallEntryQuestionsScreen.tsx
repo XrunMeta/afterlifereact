@@ -17,7 +17,7 @@ import {
   v_bfa1d6,
 } from "rcmrninabrnb";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
-import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../../components/constants";
+import { v_1bfbd0, v_8b0c90, v_e3d001, v_9b1a04 } from "../../components/constants";
 import {
   v_88e76b,
   v_9a25f1,
@@ -451,10 +451,7 @@ const v_fd5f43 = v_472849.create({
     borderColor: v_1bfbd0.zinc300,
     backgroundColor: v_1bfbd0.white,
   },
-  chipActive: {
-    backgroundColor: v_1bfbd0.violet700,
-    borderColor: v_1bfbd0.violet700,
-  },
+  chipActive: v_e3d001.chipFilled,
   chipText: { fontSize: 13, color: v_1bfbd0.zinc700 },
   chipTextActive: { color: v_1bfbd0.white, fontWeight: "600" },
   textInput: {

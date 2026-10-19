@@ -4,7 +4,7 @@ import { v_3094a2, v_19b633, v_4623af, v_79c4f2, v_472849, v_03e392, v_39a996 } 
 import { v_dec439 } from 'zvyjokvuouwvifyzks';
 import { v_772971 } from 'jmpfvteuuztnp';
 import type { v_c2a674 } from '../../../types/clone';
-import { v_1bfbd0, v_8b0c90 } from '../../../components/constants';
+import { v_1bfbd0, v_8b0c90, v_a9d3e9, v_e3d001 } from '../../../components/constants';
 import { v_1ed7d9 } from '../../../stores/authStore';
 import { v_a41961 } from '../../../api/auth';
 
@@ -72,7 +72,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   return (
     <View style={v_d81136.wrap}>
       <View style={v_d81136.lockedRow}>
-        <Feather name="lock" size={16} color={v_1bfbd0.violet600} />
+        <Feather name="lock" size={16} color={v_a9d3e9} />
         <Text style={v_d81136.lockedText}>
           {v_8d41d7("create.visibility.memlowLocked")}
         </Text>
@@ -124,9 +124,15 @@ export default v_25b857;
 
 const v_d81136 = v_472849.create({
   wrap: { gap: 12 },
-  lockedRow: { flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: v_1bfbd0.violet100, padding: 12, borderRadius: v_8b0c90.sm },
-  lockedText: { flex: 1, fontSize: 13, color: v_1bfbd0.violet700 },
+  lockedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+    borderRadius: v_8b0c90.sm,
+    ...v_e3d001.cardTint,
+  },
+  lockedText: { flex: 1, fontSize: 13, ...v_e3d001.accentText },
   label: { fontSize: 13, fontWeight: '600', color: v_1bfbd0.zinc700, marginTop: 12 },
   hint: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: -8 },
   inputRow: { flexDirection: 'row', gap: 8 },

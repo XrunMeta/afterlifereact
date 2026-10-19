@@ -13,7 +13,7 @@ import {
 import { v_dec439 } from 'zvyjokvuouwvifyzks';
 import { v_772971 } from 'jmpfvteuuztnp';
 import type { v_c2a674 } from '../../../types/clone';
-import { v_1bfbd0, v_8b0c90, v_9b1a04 } from '../../../components/constants';
+import { v_1bfbd0, v_8b0c90, v_a9d3e9, v_e3d001, v_9b1a04 } from '../../../components/constants';
 import { v_1ed7d9 } from '../../../stores/authStore';
 import { v_5959d8, type v_7428e9 } from '../../../api/users';
 import { v_889fad } from '../../../stores/dialogStore';
@@ -163,7 +163,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
             <Feather
               name={v_68b2be.icon as any}
               size={18}
-              color={v_f8b770 ? v_1bfbd0.violet600 : v_1bfbd0.zinc500}
+              color={v_f8b770 ? v_a9d3e9 : v_1bfbd0.zinc500}
             />
             <View style={{ flex: 1 }}>
               <Text style={v_d81136.title}>{v_68b2be.title}</Text>
@@ -293,7 +293,7 @@ const v_d81136 = v_472849.create({
     borderWidth: 1,
     borderColor: v_1bfbd0.zinc200,
   },
-  rowActive: { borderColor: v_1bfbd0.violet600, backgroundColor: v_1bfbd0.violet100 },
+  rowActive: v_e3d001.cardTint,
   title: { fontSize: 14, fontWeight: '600', color: v_1bfbd0.zinc800 },
   desc: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
   radio: {
@@ -303,8 +303,8 @@ const v_d81136 = v_472849.create({
     borderWidth: 2,
     borderColor: v_1bfbd0.zinc300,
   },
-  radioActive: { borderColor: v_1bfbd0.violet600 },
-  radioDot: { flex: 1, margin: 3, borderRadius: 4, backgroundColor: v_1bfbd0.violet600 },
+  radioActive: v_e3d001.radioActive,
+  radioDot: { flex: 1, margin: 3, borderRadius: 4, ...v_e3d001.radioDot },
 
   overlay: {
     flex: 1,
@@ -350,6 +350,6 @@ const v_d81136 = v_472849.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkOn: { backgroundColor: v_1bfbd0.violet600, borderColor: v_1bfbd0.violet600 },
+  checkOn: v_e3d001.checkOn,
   actions: { flexDirection: 'row', gap: 8, marginTop: 12 },
 });

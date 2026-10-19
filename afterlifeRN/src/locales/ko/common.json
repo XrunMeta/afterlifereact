@@ -578,6 +578,8 @@
     "giftHeaderCount": "갯수",
     "giftHeaderSender": "보낸사람",
     "emptyGift": "아직 받은 선물이 없습니다",
+    "giftTotalReceivedBefore": "총 받은 선물 ",
+    "giftTotalReceivedAfter": "개",
     "reportReceived": "신고가 접수됐습니다",
     "uploadAvatarFailed": "이미지 업로드에 실패했습니다"
   },
