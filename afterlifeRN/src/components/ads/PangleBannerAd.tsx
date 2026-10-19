@@ -13,6 +13,7 @@ import {
   v_961e77,
 } from "rcmrninabrnb";
 import { v_772971 } from "jmpfvteuuztnp";
+import { v_51e8dd, v_85b8ef } from "tgjb";
 import { v_f095b0 } from "../../lib/pangle";
 import { v_1bfbd0 } from "../constants";
 
@@ -29,6 +30,14 @@ type NativeProps = {
 const v_ec44be = "PangleBannerAdView";
 
 function v_eadb63(): boolean {
+
+  if (v_326be8.OS === "ios") {
+    try {
+      return v_51e8dd("PangleModule") != null;
+    } catch {
+      return false;
+    }
+  }
   if (v_326be8.OS !== "android") return false;
   try {
     const v_89b3da = v_bfa1d6 as typeof v_bfa1d6 & {
@@ -49,9 +58,11 @@ function v_eadb63(): boolean {
 
 const v_355b08 = v_eadb63();
 
-const v_db6966 = v_355b08
-  ? v_027028<NativeProps>(v_ec44be)
-  : null;
+const v_db6966 = !v_355b08
+  ? null
+  : v_326be8.OS === "ios"
+    ? (v_85b8ef("PangleModule") as v_a3453e.ComponentType<NativeProps>)
+    : v_027028<NativeProps>(v_ec44be);
 
 console.log(
   `[PangleBannerAd][module] platform=${v_326be8.OS} nativeAvailable=${v_355b08}`,
@@ -98,7 +109,7 @@ export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4 }: Props)
 
   const [v_ae4a03, v_7ab0cc] = v_5ab095(false);
   v_c4deb2(() => {
-    if (v_326be8.OS !== "android") return;
+    if (v_326be8.OS !== "android" && v_326be8.OS !== "ios") return;
     if (!v_61418d) return;
     if (!v_355b08) return;
     let v_2008a4 = false;
@@ -119,7 +130,7 @@ export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4 }: Props)
     };
   }, [v_61418d]);
 
-  if (v_326be8.OS !== "android" || !v_db6966 || !v_61418d || !v_ae4a03) {
+  if ((v_326be8.OS !== "android" && v_326be8.OS !== "ios") || !v_db6966 || !v_61418d || !v_ae4a03) {
     return v_0debf4;
   }
 
