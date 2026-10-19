@@ -172,11 +172,12 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
 
     const v_81161e = await v_a1651b
       .prepare(
-        `INSERT INTO users (name, email, password_hash, avatar_url, sso_consent_version, sso_consent_at)
-         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+
+        `INSERT INTO users (name, email, password_hash, avatar_url)
+         VALUES (?, ?, ?, ?)
          RETURNING id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until, deleted_at`,
       )
-      .bind(v_ef7664, v_931bf0.email, v_df7439, v_931bf0.picture ?? null, v_31fb59)
+      .bind(v_ef7664, v_931bf0.email, v_df7439, v_931bf0.picture ?? null)
       .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null; deleted_at: string | null }>();
     if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user.");
     v_d1b635 = v_81161e;
@@ -207,8 +208,6 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
           .bind(v_9816e7, v_3ac92c, v_0cd34d, v_81161e.id)
           .run();
 
-        void v_3326b4(v_3f4e2e.env, v_9816e7, { service: true, location: true, privacy: true })
-          .then((v_cb35cb) => { if (!v_cb35cb.ok) console.warn(`[auth.google.signup] syncTermsToXrun failed: ${v_cb35cb.reason}`); });
       } else {
 
         console.warn(`[auth.google.signup] xrun register failed user_id=${v_81161e.id}: ${v_6bd187.status} ${v_6bd187.reason ?? ""}`);
@@ -360,11 +359,12 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
       "user";
     const v_81161e = await v_a1651b
       .prepare(
-        `INSERT INTO users (name, email, password_hash, avatar_url, sso_consent_version, sso_consent_at)
-         VALUES (?, ?, ?, NULL, ?, CURRENT_TIMESTAMP)
+
+        `INSERT INTO users (name, email, password_hash, avatar_url)
+         VALUES (?, ?, ?, NULL)
          RETURNING id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until, deleted_at`,
       )
-      .bind(v_ef7664, v_931bf0.email, v_df7439, v_31fb59)
+      .bind(v_ef7664, v_931bf0.email, v_df7439)
       .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null; deleted_at: string | null }>();
     if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user.");
     v_d1b635 = v_81161e;
@@ -395,8 +395,6 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
           .bind(v_9816e7, v_3ac92c, v_0cd34d, v_81161e.id)
           .run();
 
-        void v_3326b4(v_3f4e2e.env, v_9816e7, { service: true, location: true, privacy: true })
-          .then((v_cb35cb) => { if (!v_cb35cb.ok) console.warn(`[auth.apple.signup] syncTermsToXrun failed: ${v_cb35cb.reason}`); });
       } else {
 
         console.warn(`[auth.apple.signup] xrun register failed user_id=${v_81161e.id}: ${v_6bd187.status} ${v_6bd187.reason ?? ""}`);

@@ -27,10 +27,14 @@ import {
   v_0f8436,
   v_2d09bf,
   v_74fdb6,
+  v_9d82d6,
+  v_d74a4c,
   type v_6a3f07,
   type v_f8228d,
   type v_a4ab1b,
+  type v_550b56,
 } from "../../api/consent";
+import { v_704bef, v_9bedf5 } from "../../lib/pushNotifications";
 
 export default function v_c78d4f() {
   const v_c65f5d = v_ada615<v_390fcc<v_e57140>>();
@@ -49,6 +53,10 @@ export default function v_c78d4f() {
   const [v_a55f0b, v_0326b2] = v_5ab095<v_a4ab1b>("none");
   const [v_ac7590, v_e7566a] = v_5ab095(true);
   const [v_039b0a, v_67f419] = v_5ab095(false);
+
+  const [v_18d480, v_f4bccd] = v_5ab095<v_550b56>("none");
+  const [v_b47b36, v_eb1edc] = v_5ab095(true);
+  const [v_dbf473, v_c1d709] = v_5ab095(false);
 
   const v_fbea7d = v_de06a3(async () => {
     if (!v_2ca7e0) {
@@ -101,18 +109,37 @@ export default function v_c78d4f() {
     }
   }, [v_2ca7e0]);
 
+  const v_89c402 = v_de06a3(async () => {
+    if (!v_2ca7e0) {
+      v_f4bccd("none");
+      v_eb1edc(false);
+      return;
+    }
+    v_eb1edc(true);
+    try {
+      const v_b6e533 = await v_d74a4c(v_2ca7e0);
+      v_f4bccd(v_b6e533);
+    } catch (v_49263d) {
+      console.warn("[Agreements] getMarketingConsent failed:", v_49263d);
+    } finally {
+      v_eb1edc(false);
+    }
+  }, [v_2ca7e0]);
+
   v_c4deb2(() => {
     v_fbea7d();
     v_ffac69();
     v_d56263();
-  }, [v_fbea7d, v_ffac69, v_d56263]);
+    v_89c402();
+  }, [v_fbea7d, v_ffac69, v_d56263, v_89c402]);
 
   v_cf763b(
     v_a3453e.useCallback(() => {
       v_fbea7d();
       v_ffac69();
       v_d56263();
-    }, [v_fbea7d, v_ffac69, v_d56263]),
+      v_89c402();
+    }, [v_fbea7d, v_ffac69, v_d56263, v_89c402]),
   );
 
   const v_da6541 = async (v_3b402b) => {
@@ -205,6 +232,33 @@ export default function v_c78d4f() {
     }
   };
 
+  const v_6ad98c = async (v_3b402b) => {
+    if (!v_2ca7e0 || v_dbf473) return;
+    const v_ba2215 = v_18d480;
+    v_c1d709(true);
+    try {
+      if (v_3b402b) {
+        const v_e43fa5 = await v_704bef();
+        if (!v_e43fa5.granted) {
+          v_889fad(v_8d41d7("auth.signup.pushPermTitle"), v_8d41d7("auth.signup.pushPermDesc"));
+          return;
+        }
+      }
+      v_f4bccd(v_3b402b ? "granted" : "none");
+      const v_cb35cb = await v_9d82d6(v_2ca7e0, v_3b402b ? "granted" : "revoked", {
+        channel: "settings",
+      });
+      v_f4bccd(v_cb35cb.state === "granted" ? "granted" : "none");
+      if (v_3b402b) void v_9bedf5(v_2ca7e0);
+    } catch (v_49263d) {
+      v_f4bccd(v_ba2215);
+      const v_badeaf = v_49263d instanceof Error ? v_49263d.message : String(v_49263d);
+      v_889fad(v_8d41d7("common.error"), v_badeaf);
+    } finally {
+      v_c1d709(false);
+    }
+  };
+
   const v_e334fb = (v_3b402b) => {
     if (!v_2ca7e0 || v_09250c) return;
     if (!v_3b402b) {
@@ -263,6 +317,15 @@ export default function v_c78d4f() {
         loading={v_ac7590}
         saving={v_039b0a}
         onToggle={v_157703}
+        t={v_8d41d7}
+      />
+
+      {}
+      <MarketingConsentSection
+        state={v_18d480}
+        loading={v_b47b36}
+        saving={v_dbf473}
+        onToggle={(v_81e2ef) => void v_6ad98c(v_81e2ef)}
         t={v_8d41d7}
       />
 
@@ -436,7 +499,7 @@ function v_4764e7({
             </Text>
             <Text style={v_fd5f43.rowSub}>
               {v_8d41d7("settings.privacy.location.description", {
-                defaultValue: "통화 시 현재 지역을 페르소나에게 힌트로 전달합니다. (선택)",
+                defaultValue: "통화 시 현재 지역을 페르소나에게 힌트로 전달합니다. (필수)",
               })}
             </Text>
           </View>
@@ -445,6 +508,59 @@ function v_4764e7({
           ) : (
             <Switch
               testID="location-consent-toggle"
+              value={v_b6e533 === "granted"}
+              onValueChange={v_0a2cea}
+              disabled={v_35bf26}
+              trackColor={{ false: v_1bfbd0.zinc200, true: v_1bfbd0.violet600 }}
+              thumbColor={v_1bfbd0.white}
+            />
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function v_479d1e({
+  state: v_b6e533,
+  loading: v_683210,
+  saving: v_35bf26,
+  onToggle: v_0a2cea,
+  t: v_8d41d7,
+}: {
+  state: v_550b56;
+  loading: boolean;
+  saving: boolean;
+  onToggle: (value: boolean) => void;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}) {
+  return (
+    <View
+      testID="marketing-consent-section"
+      style={[v_fd5f43.content, { paddingTop: 0, paddingBottom: 32 }]}
+    >
+      <Text style={v_fd5f43.sectionTitle}>
+        {v_8d41d7("settings.privacy.marketing.sectionTitle", { defaultValue: "마케팅 정보 수신" })}
+      </Text>
+      <View style={v_fd5f43.card}>
+        <View style={v_fd5f43.row}>
+          <View style={{ flex: 1 }}>
+            <Text style={v_fd5f43.rowName}>
+              {v_8d41d7("settings.privacy.marketing.toggleLabel", {
+                defaultValue: "마케팅 정보 수집 및 활용 동의",
+              })}
+            </Text>
+            <Text style={v_fd5f43.rowSub}>
+              {v_8d41d7("settings.privacy.marketing.description", {
+                defaultValue: "이벤트·혜택 등 마케팅 알림을 받습니다. (선택)",
+              })}
+            </Text>
+          </View>
+          {v_683210 ? (
+            <ActivityIndicator color={v_1bfbd0.zinc500} />
+          ) : (
+            <Switch
+              testID="marketing-consent-toggle"
               value={v_b6e533 === "granted"}
               onValueChange={v_0a2cea}
               disabled={v_35bf26}

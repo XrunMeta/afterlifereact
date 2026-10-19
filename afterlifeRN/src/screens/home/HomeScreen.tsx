@@ -29,7 +29,6 @@ import { v_cf763b, v_ada615, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 
-import { v_68a7fe } from "../../face/useFaceBiometricRetroPrompt";
 import v_9706a6 from "../../components/ui/FeedCard";
 import v_06b8c0 from "../../components/clone/IntimacyEventsSheet";
 
@@ -233,8 +232,6 @@ export default function v_c316d8() {
   const [v_ecfc0f, v_04f2fc] = v_5ab095<v_52af9d[]>([]);
   const [v_465030, v_856daf] = v_5ab095(false);
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
-
-  v_68a7fe(v_2ca7e0);
   const v_f5f393 = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.id ?? v_fd5f43.user?.id ?? null);
 
   const [v_90b93a, v_f1ad38] = v_5ab095<{ commentId: number; userName: string } | null>(null);
