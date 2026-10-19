@@ -54,6 +54,7 @@ import {
 } from "../../api/clones";
 import { v_bfd883 } from "../../lib/relativeTime";
 import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
+import { v_08bca5 } from "../../lib/useChatLiveRefresh";
 import type { v_4b85a1, v_bc3df4 } from "../../types/domain";
 import v_5778ce from "../../components/common/HashtagText";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
@@ -150,6 +151,13 @@ export default function v_14b43e() {
     }
   };
 
+  v_08bca5(() => {
+    if (!v_7aa778 || !v_2ca7e0) return;
+    void v_e36429(v_2ca7e0).then((v_8f00b9) => {
+      if (v_8f00b9) v_ff797f(v_8f00b9.items);
+    });
+  });
+
   v_c4deb2(() => {
     if (!v_7aa778 || !v_2ca7e0) {
       v_ff797f(null);
@@ -169,12 +177,16 @@ export default function v_14b43e() {
     v_de06a3(() => {
       if (!v_7aa778 || !v_2ca7e0) return;
       let v_2008a4 = false;
-      (async () => {
+      const v_f6f5de = async () => {
         const v_8f00b9 = await v_e36429(v_2ca7e0);
         if (!v_2008a4) v_ff797f(v_8f00b9?.items ?? []);
-      })();
+      };
+      void v_f6f5de();
+
+      const v_826279 = setTimeout(() => void v_f6f5de(), 1200);
       return () => {
         v_2008a4 = true;
+        clearTimeout(v_826279);
       };
     }, [v_7aa778, v_2ca7e0]),
   );
