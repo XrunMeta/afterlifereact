@@ -212,6 +212,14 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   v_c4deb2(() => {
     if (!v_2ca7e0) return;
     void v_9cb700(v_6e0fd3, v_2ca7e0);
+    const v_1ae212 = v_6b5698.addEventListener("change", (v_fd5f43) => {
+      if (v_fd5f43 === "active") void v_9cb700(v_6e0fd3, v_2ca7e0);
+    });
+    return () => {
+      v_1ae212.remove();
+
+      void v_9cb700(v_6e0fd3, v_2ca7e0, Date.now() - 1000);
+    };
   }, [v_2ca7e0, v_6e0fd3]);
 
   const v_00fc5a = (msg: v_f19942) => {
