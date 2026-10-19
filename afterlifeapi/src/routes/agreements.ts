@@ -11,8 +11,9 @@ const v_ceda34 = {
   1: 1, 
   2: 3, 
   3: 2, 
-
-  6: 8,
+  4: 6, 
+  5: 4, 
+  6: 8, 
 };
 
 interface AgreementRow {
