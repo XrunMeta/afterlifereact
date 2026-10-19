@@ -865,7 +865,9 @@
       "xrunFoundDesc": "등록된 XRUN 계정이 존재합니다.\n\nXRUN 계정 정보로 로그인하면 Afterlife도 함께 이용하실 수 있습니다.",
       "cloneFaceConsent": "[선택] 클론별 얼굴 인식 동의",
       "termsCloneFaceTitle": "클론별 얼굴 인식 동의",
-      "termsLocationTitle": "위치기반서비스 이용약관"
+      "termsLocationTitle": "위치기반서비스 이용약관",
+      "termsMarketingTitle": "마케팅 정보 수집 및 활용 동의",
+      "termsMarketingFallback": "마케팅 정보 수신에 대한 안내\n\n동의하시면 이벤트·혜택 등 광고성 정보를 앱 푸시로 받아보실 수 있습니다. 이 동의는 선택 사항이며, 설정 > 동의에서 언제든지 철회할 수 있습니다."
     },
     "emailVerify": {
       "title": "이메일 인증",

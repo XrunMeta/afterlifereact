@@ -868,7 +868,9 @@
       "xrunFoundDesc": "A registered XRUN account exists.\n\nSign in with your XRUN credentials to use Afterlife as well.",
       "cloneFaceConsent": "[Optional] Per-clone face recognition consent",
       "termsCloneFaceTitle": "Per-clone face recognition consent",
-      "termsLocationTitle": "Location-Based Service Terms"
+      "termsLocationTitle": "Location-Based Service Terms",
+      "termsMarketingTitle": "Marketing Information Consent",
+      "termsMarketingFallback": "About marketing messages\n\nIf you agree, you will receive promotional information such as events and benefits via app push notifications. This consent is optional and can be withdrawn anytime in Settings > Consents."
     },
     "emailVerify": {
       "title": "Verify Email",
