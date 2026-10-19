@@ -100,7 +100,9 @@ export async function v_4dc423(
     throw new v_3ebe58("UPSTREAM_FAILURE", "채팅 답장을 만들지 못했어요.");
   }
   if (!v_eb792a.ok) {
-    console.warn(`[CHAT_REPLY_HTTP] clone=${v_4317d1.cloneId} status=${v_eb792a.status}`);
+
+    const v_3cfdfc = (await v_eb792a.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 300);
+    console.warn(`[CHAT_REPLY_HTTP] clone=${v_4317d1.cloneId} status=${v_eb792a.status} body=${v_3cfdfc}`);
     throw new v_3ebe58("UPSTREAM_FAILURE", "채팅 답장을 만들지 못했어요.");
   }
   const v_4d33b2 = (await v_eb792a.json().catch(() => ({}))) as { reply?: unknown };
