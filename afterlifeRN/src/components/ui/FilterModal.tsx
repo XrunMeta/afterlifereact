@@ -204,7 +204,7 @@ const v_d81136 = v_472849.create({
   applyButton: {
     flex: 1,
     height: 48,
-    backgroundColor: v_1bfbd0.violet500,
+    backgroundColor: v_1bfbd0.primary,
     borderRadius: v_8b0c90.lg,
     alignItems: "center",
     justifyContent: "center",

@@ -368,7 +368,12 @@
     "giftOwnedCount": "{{count}} dimiliki",
     "exiting": "Mengakhiri…",
     "adPlaying": "Iklan sedang diputar…",
-    "adStubNote": "(Stub pengembangan · pengganti iklan asli)"
+    "adStubNote": "(Stub pengembangan · pengganti iklan asli)",
+    "faceConsentPrompt": {
+      "title": "Persetujuan pengenalan wajah",
+      "desc": "Untuk mengenali siapa yang berbicara selama panggilan, diperlukan persetujuan berikut. (opsional)",
+      "agree": "Setuju"
+    }
   },
   "greeting": {
     "default": "Halo"
@@ -829,7 +834,7 @@
       "termsPrivacy": "[Wajib] Kebijakan Privasi Terintegrasi SSO",
       "termsBiometricTitle": "Persetujuan Pemrosesan Informasi Biometrik (Wajah)",
       "termsBiometricFallback": "Panduan Penggunaan Informasi Pengenalan Wajah\n\nUntuk identifikasi pembicara selama panggilan, kamera depan hanya mendeteksi posisi wajah, dan data wajah (gambar·informasi biometrik) tidak disimpan. Jika persetujuan dicabut, akan segera dihentikan.",
-      "termsCallLearningTitle": "Persetujuan Pembelajaran Percakapan Panggilan",
+      "termsCallLearningTitle": "Persetujuan Penggunaan dan Pembuatan Data AI",
       "termsCallLearningFallback": "Panduan Pembelajaran Percakapan Panggilan\n\nJika Anda setuju, klon akan mempelajari isi percakapan selama panggilan untuk memberikan percakapan yang lebih alami dan personal. Persetujuan ini bersifat opsional dan dapat dicabut kapan saja di layar pengaturan. Jika dicabut, hanya percakapan panggilan setelahnya yang dikecualikan dari pembelajaran, sedangkan konten yang sudah dipelajari akan tetap disimpan tanpa dihapus. (Penghapusan data pembelajaran diproses bersama saat berhenti dari keanggotaan atau penghapusan lengkap informasi pribadi.)",
       "marketingConsent": "[Opsional] Persetujuan Pengumpulan & Penggunaan Informasi Pemasaran",
       "callLearningConsent": "[Wajib] Persetujuan Penggunaan dan Pembuatan Data AI",
@@ -858,7 +863,10 @@
       "rateLimit": "Silakan coba lagi nanti. (Cooldown 1 menit)",
       "sendCodeFailed": "Gagal mengirim kode. Silakan periksa jaringan Anda.",
       "xrunFoundTitle": "Akun XRUN ditemukan",
-      "xrunFoundDesc": "Akun XRUN terdaftar sudah ada.\n\nMasuk dengan kredensial XRUN Anda untuk menggunakan Afterlife juga."
+      "xrunFoundDesc": "Akun XRUN terdaftar sudah ada.\n\nMasuk dengan kredensial XRUN Anda untuk menggunakan Afterlife juga.",
+      "cloneFaceConsent": "[Opsional] Persetujuan pengenalan wajah per klon",
+      "termsCloneFaceTitle": "Persetujuan pengenalan wajah per klon",
+      "termsLocationTitle": "Ketentuan Layanan Berbasis Lokasi"
     },
     "emailVerify": {
       "title": "Verifikasi Email",
@@ -1306,7 +1314,7 @@
         "cloneLabel": "Klon #{{cloneId}}"
       },
       "callLearning": {
-        "sectionTitle": "Pembelajaran Percakapan Panggilan",
+        "sectionTitle": "Penggunaan dan Pembuatan Data AI",
         "description": "Izinkan klon belajar berdasarkan isi panggilan agar dapat berbicara lebih alami. Anda dapat mematikan atau menyalakannya kapan saja. Jika dimatikan, hanya percakapan panggilan setelahnya yang dikecualikan dari pembelajaran, sedangkan konten yang sudah dipelajari akan tetap disimpan tanpa dihapus. (Penghapusan data pembelajaran diproses bersama saat berhenti dari keanggotaan atau penghapusan lengkap informasi pribadi.)",
         "toggleLabel": "Izinkan pembelajaran percakapan panggilan",
         "viewTerms": "Lihat Ketentuan",
@@ -1323,6 +1331,10 @@
         "retroPromptMessage": "Jika Anda setuju, wajah baru selama panggilan akan diingat secara diam-diam tanpa konfirmasi terpisah sehingga dapat dikenali lebih alami pada panggilan berikutnya. Anda dapat mengubahnya kapan saja di pengaturan.",
         "retroPromptAgree": "Setuju",
         "retroPromptDecline": "Tolak"
+      },
+      "required": {
+        "sectionTitle": "Persetujuan wajib",
+        "agreed": "Wajib · Disetujui"
       }
     },
     "saved": {
@@ -1368,7 +1380,7 @@
     "desc": "Kami memerlukan izin kamera dan mikrofon untuk panggilan video",
     "cameraLabel": "Kamera",
     "micLabel": "Mikrofon",
-    "locationLabel": "Lokasi (opsional)",
+    "locationLabel": "Lokasi (wajib)",
     "statusGranted": "Diizinkan",
     "statusDenied": "Ditolak",
     "statusUndetermined": "Perlu izin",

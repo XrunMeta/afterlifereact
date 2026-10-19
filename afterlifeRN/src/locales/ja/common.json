@@ -368,7 +368,12 @@
     "giftOwnedCount": "{{count}}個所持",
     "exiting": "終了中…",
     "adPlaying": "広告再生中…",
-    "adStubNote": "(開発用スタブ · 実広告の代替)"
+    "adStubNote": "(開発用スタブ · 実広告の代替)",
+    "faceConsentPrompt": {
+      "title": "顔認識への同意",
+      "desc": "通話中に誰が話しているかを認識するには、以下の同意が必要です。（任意）",
+      "agree": "同意"
+    }
   },
   "greeting": {
     "default": "こんにちは"
@@ -829,7 +834,7 @@
       "termsPrivacy": "[必須] SSO統合プライバシーポリシー",
       "termsBiometricTitle": "生体情報(顔)処理同意",
       "termsBiometricFallback": "顔認識情報の使用に関するご案内\n\n通話中の話者識別のため、フロントカメラで顔の位置のみを検出し、顔データ(画像・生体情報)は保存されません。同意を撤回するとすぐに停止されます。",
-      "termsCallLearningTitle": "通話会話学習同意",
+      "termsCallLearningTitle": "AIデータ活用および生成同意",
       "termsCallLearningFallback": "通話会話学習に関するご案内\n\n同意された場合、クローンが通話中に交わした会話内容を学習し、より自然でパーソナライズされた会話を提供します。この同意は任意で、設定画面からいつでも撤回できます。撤回すると以降の通話会話のみが学習から除外され、既に学習された内容は削除されず維持されます。(学習データの削除は会員退会または個人情報の完全削除時に一緒に処理されます。)",
       "marketingConsent": "[任意] マーケティング情報の収集・利用に同意",
       "callLearningConsent": "[必須] AIデータ活用および生成同意",
@@ -858,7 +863,10 @@
       "rateLimit": "しばらくしてから再度お試しください。(1分クールダウン)",
       "sendCodeFailed": "コードの送信に失敗しました。ネットワークをご確認ください。",
       "xrunFoundTitle": "XRUNアカウントを検出",
-      "xrunFoundDesc": "登録済みのXRUNアカウントが存在します。\n\nXRUNのアカウント情報でログインすれば、Afterlifeも併せてご利用いただけます。"
+      "xrunFoundDesc": "登録済みのXRUNアカウントが存在します。\n\nXRUNのアカウント情報でログインすれば、Afterlifeも併せてご利用いただけます。",
+      "cloneFaceConsent": "[任意] クローン別の顔認識への同意",
+      "termsCloneFaceTitle": "クローン別の顔認識への同意",
+      "termsLocationTitle": "位置情報サービス利用規約"
     },
     "emailVerify": {
       "title": "メール認証",
@@ -1311,7 +1319,7 @@
         "cloneLabel": "クローン #{{cloneId}}"
       },
       "callLearning": {
-        "sectionTitle": "通話会話学習",
+        "sectionTitle": "AIデータ活用および生成",
         "description": "クローンが通話内容をもとに学び、より自然に会話できるように許可します。いつでもオン/オフを切り替えできます。オフにすると以降の通話会話のみ学習から除外され、既に学習された内容は削除されず維持されます。(学習データの削除は会員退会または個人情報の完全削除時に一緒に処理されます。)",
         "toggleLabel": "通話会話学習を許可",
         "viewTerms": "規約を見る",
@@ -1328,6 +1336,10 @@
         "retroPromptMessage": "同意されると通話中に初めて見る顔を別途の確認なしに静かに記憶し、次の通話からより自然に認識します。設定でいつでも変更できます。",
         "retroPromptAgree": "同意",
         "retroPromptDecline": "拒否"
+      },
+      "required": {
+        "sectionTitle": "必須同意",
+        "agreed": "必須 · 同意済み"
       }
     },
     "saved": {
@@ -1373,7 +1385,7 @@
     "desc": "ビデオ通話のためにカメラとマイクの権限が必要です",
     "cameraLabel": "カメラ",
     "micLabel": "マイク",
-    "locationLabel": "位置情報 (任意)",
+    "locationLabel": "位置情報 (必須)",
     "statusGranted": "許可済み",
     "statusDenied": "拒否",
     "statusUndetermined": "権限が必要",

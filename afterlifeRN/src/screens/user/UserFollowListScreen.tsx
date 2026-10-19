@@ -189,7 +189,7 @@ const v_fd5f43 = v_472849.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: v_8b0c90.full,
-    backgroundColor: v_1bfbd0.violet600,
+    backgroundColor: v_1bfbd0.primary,
     minWidth: 70,
     alignItems: "center",
   },

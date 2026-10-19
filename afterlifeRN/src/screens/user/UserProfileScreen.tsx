@@ -547,7 +547,7 @@ const v_fd5f43 = v_472849.create({
     marginTop: 16,
     paddingVertical: 10,
     borderRadius: v_8b0c90.md,
-    backgroundColor: v_1bfbd0.violet600,
+    backgroundColor: v_1bfbd0.primary,
     alignItems: "center",
     justifyContent: "center",
   },

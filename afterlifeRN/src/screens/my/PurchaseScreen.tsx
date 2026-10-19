@@ -732,7 +732,7 @@ const v_fd5f43 = v_472849.create({
   planCta: {
     paddingHorizontal: 22,
     paddingVertical: 10,
-    backgroundColor: v_1bfbd0.violet600,
+    backgroundColor: v_1bfbd0.primary,
     borderRadius: 999,
     minWidth: 96,
     alignItems: "center",
@@ -762,7 +762,7 @@ const v_fd5f43 = v_472849.create({
   },
   emptyHint: { fontSize: 12, color: v_1bfbd0.zinc400, textAlign: "center", marginBottom: 12, lineHeight: 18 },
   retryBtn: {
-    backgroundColor: v_1bfbd0.violet600,
+    backgroundColor: v_1bfbd0.primary,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 999,
@@ -801,7 +801,7 @@ const v_fd5f43 = v_472849.create({
   swapBtn: {
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: v_1bfbd0.violet600,
+    backgroundColor: v_1bfbd0.primary,
     borderRadius: 8,
     minWidth: 60,
     alignItems: "center",

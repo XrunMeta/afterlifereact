@@ -16,7 +16,7 @@ import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../constants";
 import { v_cc9198 } from "../../config/apiBase";
 
-export type AgreementType = 1 | 2 | 3 | 4 | 5;
+export type AgreementType = 1 | 2 | 3 | 4 | 5 | 6;
 
 type Props = {
   visible: boolean;
@@ -31,6 +31,7 @@ const v_b7b41f = {
   3: 2,
   4: 4,
   5: 5,
+  6: 6, 
 };
 
 async function v_33650f(
@@ -64,6 +65,7 @@ const v_259ade = {
   3: "auth.signup.termsPrivacyTitle",
   4: "auth.signup.termsBiometricTitle",
   5: "auth.signup.termsCallLearningTitle",
+  6: "auth.signup.termsCloneFaceTitle",
 };
 
 const v_9fab8c = {
@@ -72,6 +74,7 @@ const v_9fab8c = {
   3: "개인정보 약관",
   4: "생체정보(얼굴) 처리 동의",
   5: "통화 대화 학습 동의",
+  6: "클론별 얼굴 인식 동의",
 };
 
 export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v_0890f8, onAgree: v_5cccfe }: Props) {
@@ -142,9 +145,9 @@ export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v
   });
   const v_c6145f =
     v_3b27d9 === 5 ? v_f42243 :
-    v_3b27d9 === 4 ? v_aae497 : v_ccca83;
+    v_3b27d9 === 4 || v_3b27d9 === 6 ? v_aae497 : v_ccca83;
   const v_f50219 =
-    (v_3b27d9 === 2 || v_3b27d9 === 4 || v_3b27d9 === 5) && !v_683210 && (!!v_5e9bfe || !v_b43b74.trim());
+    (v_3b27d9 === 2 || v_3b27d9 === 4 || v_3b27d9 === 5 || v_3b27d9 === 6) && !v_683210 && (!!v_5e9bfe || !v_b43b74.trim());
 
   return (
     <Modal

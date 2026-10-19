@@ -11,6 +11,9 @@ const v_ceda34 = {
   1: 1, 
   2: 3, 
   3: 2, 
+  4: 6, 
+  5: 4, 
+  6: 8, 
 };
 
 interface AgreementRow {
@@ -21,7 +24,7 @@ interface AgreementRow {
   updated_by: string | null;
 }
 
-const v_8ae0bc = new Set([1, 2, 3, 4, 5]);
+const v_8ae0bc = new Set([1, 2, 3, 4, 5, 6]);
 
 function v_97036c(v_479f05): string {
   const v_81e2ef = (v_479f05 ?? "ko").toLowerCase();

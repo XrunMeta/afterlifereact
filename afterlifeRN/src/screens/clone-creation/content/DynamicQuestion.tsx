@@ -5,7 +5,7 @@ import { v_3094a2, v_19b633, v_4623af, v_472849 } from 'rcmrninabrnb';
 import { v_772971 } from 'jmpfvteuuztnp';
 import v_e775af from '../../../components/ui/TextField';
 import type { v_c8af29 } from '../../../types/clone';
-import { v_1bfbd0, v_8b0c90 } from '../../../components/constants';
+import { v_1bfbd0, v_8b0c90, v_e3d001 } from '../../../components/constants';
 
 import { v_c28b95, v_41534e } from '../../../lib/questionI18n';
 
@@ -63,15 +63,16 @@ export default function v_734250({ question: v_180423, candidates: v_6f7c85, val
 const v_d81136 = v_472849.create({
   wrap: { gap: 8, marginBottom: 16 },
   label: { fontSize: 14, fontWeight: '600', color: v_1bfbd0.zinc700 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: v_8b0c90.full,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: v_1bfbd0.zinc200,
+    backgroundColor: v_1bfbd0.white,
   },
-  chipActive: { backgroundColor: v_1bfbd0.violet600, borderColor: v_1bfbd0.violet600 },
+  chipActive: v_e3d001.chipOutlineActive,
   chipText: { color: v_1bfbd0.zinc700, fontSize: 13 },
-  chipActiveText: { color: v_1bfbd0.white, fontSize: 13 },
+  chipActiveText: { ...v_e3d001.chipOutlineActiveText, fontSize: 13 },
 });

@@ -1,5 +1,5 @@
 import v_a3453e, { v_5ab095 } from 'bapkr';
-import { v_3094a2, v_19b633, v_4623af, v_cf9c33, v_472849 } from 'rcmrninabrnb';
+import { v_3094a2, v_19b633, v_4623af, v_cf9c33, v_472849, v_700696 } from 'rcmrninabrnb';
 import { v_dec439 } from 'zvyjokvuouwvifyzks';
 import { v_772971 } from 'jmpfvteuuztnp';
 import type { v_c2a674 } from '../../../types/clone';
@@ -7,18 +7,24 @@ import { v_1bfbd0, v_8b0c90 } from '../../../components/constants';
 import { v_e0c5af } from './pickImageSource';
 import v_100dc2 from './CropImageModal';
 import v_e0961f from './CaptureWithGuideModal';
-import { v_aae248 } from './t208ImagePick';
+import v_c7021f from './ImageSourceSheet';
+import { v_cf3fbd } from './t208ImagePick';
 
 interface Props {
   draft: v_c2a674;
   onChange: (patch: Partial<v_c2a674>) => void;
 }
 
+const { width: v_e9b8fb, height: v_dc9e8c } = v_700696.get('window');
+const v_227667 = Math.min(v_dc9e8c * 0.38, (v_e9b8fb - 48) * 2);
+const v_77054d = v_227667 / 2;
+
 function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const { t: v_8d41d7 } = v_772971();
   const [v_04e790, v_43f854] = v_5ab095<{ uri: string; width: number; height: number } | null>(null);
   const [v_30246f, v_9bce1c] = v_5ab095(false);
   const [v_4b3863, v_902cfc] = v_5ab095(true);
+  const [v_cf89e5, v_a5c9cf] = v_5ab095(false);
   const v_d32efd = v_f04727.rightsAcknowledged ?? false;
 
   const v_e1c60b = async () => {
@@ -27,26 +33,20 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   };
 
   const v_62ae11 = () => {
-    v_aae248({
-      title: v_8d41d7('create.image.sourceTitle'),
-      cameraLabel: v_8d41d7('create.image.sourceCamera'),
-      libraryLabel: v_8d41d7('create.image.sourceLibrary'),
-      cancelLabel: v_8d41d7('common.cancel'),
-      onCamera: () => v_9bce1c(true),
-      onLibrary: () => {
-        void v_e1c60b();
-      },
-      onApplyT208Crop: (v_cd1446) => v_b187d9({ imageFile: v_cd1446, rightsAcknowledged: false }),
-    });
+    v_a5c9cf(true);
   };
 
   return (
     <View style={v_d81136.wrap}>
       <Text style={v_d81136.note}>{v_8d41d7('create.image.memlowNote')}</Text>
-      <TouchableOpacity style={v_d81136.preview} onPress={v_62ae11} activeOpacity={0.9}>
+      <TouchableOpacity
+        style={[v_d81136.preview, v_f04727.imageFile ? v_d81136.previewBordered : null]}
+        onPress={v_62ae11}
+        activeOpacity={0.9}
+      >
         {v_f04727.imageFile ? (
           <>
-            <Image source={{ uri: v_f04727.imageFile }} style={v_d81136.img} />
+            <Image source={{ uri: v_f04727.imageFile }} style={v_d81136.img} resizeMode="cover" />
             <View style={v_d81136.gridOverlay} pointerEvents="none">
               <View style={[v_d81136.gridLine, v_d81136.gridLineV, { left: '33.33%' }]} />
               <View style={[v_d81136.gridLine, v_d81136.gridLineV, { left: '66.66%' }]} />
@@ -57,7 +57,14 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
         ) : (
           <View style={v_d81136.emptyInner}>
             <Feather name="image" size={32} color={v_1bfbd0.zinc400} />
-            <Text style={v_d81136.hint}>{v_8d41d7('create.image.memlowSelectHint')}</Text>
+            <Text
+              style={v_d81136.hint}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+            >
+              {v_8d41d7('create.image.memlowSelectHint', { defaultValue: '사진을 선택해 주십시오' })}
+            </Text>
           </View>
         )}
       </TouchableOpacity>
@@ -141,6 +148,20 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
         </>
       )}
 
+      <ImageSourceSheet
+        visible={v_cf89e5}
+        title={v_8d41d7('create.image.sourceTitle')}
+        cameraLabel={v_8d41d7('create.image.sourceCamera')}
+        libraryLabel={v_8d41d7('create.image.sourceLibrary')}
+        cancelLabel={v_8d41d7('common.cancel')}
+        onCamera={() => v_9bce1c(true)}
+        onLibrary={() => { void v_e1c60b(); }}
+        onClose={() => v_a5c9cf(false)}
+        extraActions={v_cf3fbd({
+          cancelLabel: v_8d41d7('common.cancel'),
+          onApplyT208Crop: (v_cd1446) => v_b187d9({ imageFile: v_cd1446, rightsAcknowledged: false }),
+        })}
+      />
       <CaptureWithGuideModal
         visible={v_30246f}
         onCancel={() => v_9bce1c(false)}
@@ -174,16 +195,31 @@ const v_d81136 = v_472849.create({
   wrap: { gap: 16 },
   note: { fontSize: 13, color: v_1bfbd0.zinc600 },
   preview: {
-    aspectRatio: 1,
+    width: v_77054d,
+    height: v_227667,
+    alignSelf: 'center',
     borderRadius: v_8b0c90.lg,
-    borderWidth: 1,
-    borderColor: v_1bfbd0.zinc200,
     backgroundColor: v_1bfbd0.zinc50,
     overflow: 'hidden',
   },
+  previewBordered: {
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+  },
   img: { width: '100%', height: '100%' },
-  emptyInner: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  hint: { marginTop: 8, color: v_1bfbd0.zinc500, textAlign: 'center', paddingHorizontal: 12 },
+  emptyInner: {
+    ...v_472849.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  hint: {
+    marginTop: 8,
+    width: '100%',
+    color: v_1bfbd0.zinc500,
+    fontSize: 13,
+    textAlign: 'center',
+  },
   gridOverlay: { ...v_472849.absoluteFillObject },
   gridLine: { position: 'absolute', backgroundColor: 'rgba(255,255,255,0.6)' },
   gridLineV: { top: 0, bottom: 0, width: 1 },

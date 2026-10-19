@@ -94,8 +94,6 @@ import {
 } from "../../realtime/speakerHandoff";
 import { isFaceConsentEnforced } from "../../config/faceConsent";
 import {
-  createPerson,
-  saveFaceConsent,
   listPersons,
   deletePerson,
   updatePersonName,
@@ -105,16 +103,11 @@ import {
   type Person,
 } from "../../api/persons";
 import { AuthApiError } from "../../api/auth";
-import {
-  getCallLearningConsent,
-  getFaceBiometricConsent,
-  type CallLearningState,
-  type FaceBiometricState,
-} from "../../api/consent";
-import ConsentPromptModal from "../../components/consent/ConsentPromptModal";
+import { getFaceBiometricConsent } from "../../api/consent";
+import { useCallFaceConsentGate } from "../../hooks/useCallFaceConsentGate";
+import CallFaceConsentModal from "../../components/consent/CallFaceConsentModal";
 import { decideEnrollSuggestAction, decideOrphanCleanupBeforeSilent } from "../../face/autoEnrollGuard";
 import { FACE_DIAG_ENABLED, formatFaceHud, type FaceDiag } from "../../config/faceDiag";
-import TermsModal from "../../components/common/TermsModal";
 import { useAvatarCall } from "../../realtime/useAvatarCall";
 import { submitDevText } from "../../realtime/devCallText";
 import { CALL_ROUTE } from "../../config/callRoute";
@@ -256,9 +249,8 @@ export default function CallScreen(props: Props) {
 
   const [preCallGate, setPreCallGate] = React.useState<"checking" | "skip">("checking");
 
-  const [consentGate, setConsentGate] = React.useState<"checking" | "need" | "ok">("checking");
-  const [faceConsentState, setFaceConsentState] = React.useState<FaceBiometricState | null>(null);
-  const [callConsentState, setCallConsentState] = React.useState<CallLearningState | null>(null);
+  const faceConsent = useCallFaceConsentGate(wrapperAccessToken);
+  const faceConsentGate = faceConsent.gate; 
 
   const [prefetchedPipeline, setPrefetchedPipeline] = React.useState<string | null | undefined>(undefined);
   React.useEffect(() => {
@@ -305,7 +297,7 @@ export default function CallScreen(props: Props) {
       return;
     }
 
-    if (consentGate !== "ok") {
+    if (faceConsentGate !== "ok") {
       return;
     }
     let cancelled = false;
@@ -370,63 +362,20 @@ export default function CallScreen(props: Props) {
       clearTimeout(timer);
     };
 
-  }, [wrapperAccessToken, cloneId, consentGate]);
-
-  React.useEffect(() => {
-    if (!wrapperAccessToken) {
-      setConsentGate("ok");
-      return;
-    }
-    let cancelled = false;
-    const timer = setTimeout(() => {
-      if (!cancelled) {
-        console.warn("[Call][consentGate] timeout → ok");
-        setConsentGate("ok");
-      }
-    }, 2000);
-    (async () => {
-      try {
-        const [face, call] = await Promise.all([
-          getFaceBiometricConsent(wrapperAccessToken).catch(() => null),
-          getCallLearningConsent(wrapperAccessToken).catch(() => null),
-        ]);
-        if (cancelled) return;
-        clearTimeout(timer);
-        const faceOk = face == null || face.state === "granted";
-        const callOk = call == null || call === "granted";
-        setFaceConsentState(face?.state ?? null);
-        setCallConsentState(call);
-        const needed = !faceOk || !callOk;
-        console.log(
-          `[Call][consentGate] face=${face?.state ?? "none"} · call=${call ?? "none"} · need=${needed}`,
-        );
-        setConsentGate(needed ? "need" : "ok");
-      } catch (err) {
-        if (cancelled) return;
-        clearTimeout(timer);
-        console.warn("[Call][consentGate] error, ok:", err);
-        setConsentGate("ok");
-      }
-    })();
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-
-  }, [wrapperAccessToken]);
+  }, [wrapperAccessToken, cloneId, faceConsentGate]);
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.zinc950 }}>
       {
 
 }
-      {consentGate === "need" ? null : callEntryOpen !== false || !heavyReady || preCallGate === "checking" || prefetchedPipeline === undefined || consentGate !== "ok" ? (
+      {callEntryOpen !== false || !heavyReady || preCallGate === "checking" || prefetchedPipeline === undefined || faceConsentGate !== "ok" ? (
         <DialingScreen
           liveState="idle"
           personaName={paramName ?? ""}
           personaImage={placeholderImage}
 
-          silent={callEntryOpen !== false || preCallGate === "checking" || prefetchedPipeline === undefined || consentGate !== "ok"}
+          silent={callEntryOpen !== false || preCallGate === "checking" || prefetchedPipeline === undefined || faceConsentGate !== "ok"}
           onConnected={() => {}}
           onCancel={() => props.navigation.goBack()}
           onRetry={() => {}}
@@ -478,22 +427,12 @@ export default function CallScreen(props: Props) {
         }}
       />
 
-      {
-}
-      <ConsentPromptModal
-        visible={consentGate === "need"}
-        accessToken={wrapperAccessToken}
-        faceState={faceConsentState}
-        callState={callConsentState}
-        onComplete={(next) => {
-          setFaceConsentState(next.face);
-          setCallConsentState(next.call);
-          setConsentGate("ok");
-        }}
-        onCancel={() => {
-          setConsentGate("ok"); 
-          props.navigation.goBack();
-        }}
+      <CallFaceConsentModal
+        visible={faceConsent.gate === "prompt"}
+        needFace={faceConsent.needFace}
+        needCloneFace={faceConsent.needCloneFace}
+        onAgree={faceConsent.agree}
+        onCancel={() => void faceConsent.cancel()}
       />
     </View>
   );
@@ -573,9 +512,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   );
 
   const [consentGranted, setConsentGranted] = useState(false);
-  const [termsModalVisible, setTermsModalVisible] = useState(false);
-
-  const [consentLoading, setConsentLoading] = useState(false);
 
   const [faceDiag, setFaceDiag] = useState<FaceDiag | null>(null);
   const [gtPersonId, setGtPersonId] = useState<number | null>(null);
@@ -2893,49 +2829,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       )}
 
       {
-
 }
-      {!consentGranted && !isVideoOff && (
-        <TouchableOpacity
-          style={[s.faceConsentBtn, { top: insets.top + 8 + 140 + 6 }]}
-          disabled={consentLoading}
-          onPress={() => {
-            if (!accessToken) return;
-
-            setTermsModalVisible(true);
-          }}
-        >
-          <Text style={s.faceConsentText}>{t("call.faceConsentHint")}</Text>
-        </TouchableOpacity>
-      )}
-
-      <TermsModal
-        visible={termsModalVisible}
-        type={4}
-        onClose={() => {
-
-          setTermsModalVisible(false);
-        }}
-        onAgree={async () => {
-
-          if (!accessToken) { setTermsModalVisible(false); return; }
-          setConsentLoading(true);
-          setTermsModalVisible(false);
-          try {
-            const { id } = await createPerson(accessToken, { cloneId });
-            console.log(`[Call][face] createPerson ok personId=${id}`);
-            await saveFaceConsent(accessToken, id, "granted", { termsVersion: "biometric-v1" });
-            setConsentGranted(true);
-            console.log(`[Call][face] consent granted personId=${id}`);
-          } catch (err) {
-            console.warn("[Call][face] createPerson/saveFaceConsent failed:", err);
-
-            setToastMessage(t("call.faceConsentError"));
-          } finally {
-            setConsentLoading(false);
-          }
-        }}
-      />
 
       {}
 
@@ -3418,20 +3312,6 @@ const s = StyleSheet.create({
     backgroundColor: COLORS.zinc500, 
   },
 
-  faceConsentBtn: {
-    position: "absolute",
-    left: 16,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    borderRadius: 6,
-    zIndex: 11,
-  },
-  faceConsentText: {
-    fontSize: 10,
-    color: COLORS.zinc200,
-  },
-
   pipOff: {
     width: "100%",
     height: "100%",
@@ -3486,7 +3366,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   sideBtnActive: {
-    backgroundColor: COLORS.violet500,
+    backgroundColor: COLORS.primary,
   },
 
   floatingEmoji: {
