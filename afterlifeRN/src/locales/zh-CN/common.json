@@ -755,7 +755,10 @@
       "tabAccount": "账户登录",
       "tabOtp": "邮箱 OTP 登录",
       "requestOtp": "获取验证码",
-      "sendingOtp": "发送中..."
+      "sendingOtp": "发送中...",
+      "accountNotFoundTitle": "账号不存在",
+      "accountNotFoundMessage": "该邮箱未注册账号。\n请先注册。",
+      "goSignup": "注册"
     },
     "forgot": {
       "title": "重置密码",

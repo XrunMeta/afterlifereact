@@ -761,6 +761,13 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
   const v_735a1e = !v_625c74 || v_625c74.deletion_state !== "active";
   if (v_735a1e) {
     const v_dd506d = await v_937e23(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.password);
+
+    if (!v_dd506d.found && !v_625c74) {
+      const v_534695 = await v_a0ec33(v_3f4e2e.env, v_4d33b2.email);
+      if (!v_534695.found && !v_534695.reason) {
+        throw new v_3ebe58("NOT_FOUND", "가입된 계정이 없습니다.");
+      }
+    }
     if (v_dd506d.found && v_dd506d.member) {
 
       if (!v_4d33b2.verificationCode) {
