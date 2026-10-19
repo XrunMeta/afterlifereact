@@ -77,7 +77,10 @@ export async function v_704bef(): Promise<PushRegistration> {
   }
 }
 
-export async function v_9bedf5(v_2ca7e0): Promise<void> {
+export async function v_9bedf5(
+  v_2ca7e0,
+  v_328259 = {},
+): Promise<void> {
 
   console.log(`[push] register start — platform=${v_326be8.OS} isDevice=${v_a06ea0.isDevice} hasToken=${!!v_2ca7e0}`);
   if (!v_2ca7e0) { console.log("[push] SKIP: no accessToken"); return; }
@@ -86,7 +89,19 @@ export async function v_9bedf5(v_2ca7e0): Promise<void> {
   try {
     const v_3c8572 = await v_2b7a17.getPermissionsAsync();
     console.log(`[push] permission status=${v_3c8572.status} granted=${v_3c8572.granted} canAskAgain=${v_3c8572.canAskAgain}`);
-    if (v_3c8572.status !== "granted") { console.log("[push] SKIP: permission not granted"); return; }
+    let v_d308b5 = v_3c8572.status;
+    if (v_d308b5 !== "granted" && v_328259.ask && v_3c8572.canAskAgain) {
+      if (v_326be8.OS === "android") {
+
+        await v_2b7a17.setNotificationChannelAsync("default", {
+          name: "default",
+          importance: v_2b7a17.AndroidImportance.DEFAULT,
+        });
+      }
+      v_d308b5 = (await v_2b7a17.requestPermissionsAsync()).status;
+      console.log(`[push] permission requested → ${v_d308b5}`);
+    }
+    if (v_d308b5 !== "granted") { console.log("[push] SKIP: permission not granted"); return; }
 
     if (v_326be8.OS === "android") {
       await v_2b7a17.setNotificationChannelAsync("default", {
