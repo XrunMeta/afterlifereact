@@ -137,13 +137,25 @@ export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4 }: Props)
     };
   }, [v_61418d]);
 
+  const [v_189dcf, v_2e039c] = v_5ab095(0);
+  v_c4deb2(() => {
+    if (v_326be8.OS !== "android" || !v_61418d) return;
+    const v_1ae212 = v_18ba07.addListener("PangleBannerDebug", (v_9e86fd) => {
+      if (v_9e86fd?.stage === "loaded-attached" && v_9e86fd?.unit === v_61418d) v_2e039c((v_f4e98d) => v_f4e98d + 1);
+    });
+    return () => v_1ae212.remove();
+  }, [v_61418d]);
+  const v_942edc = v_472849.flatten(v_7fa4e4)?.height;
+  const v_ca9189 =
+    v_189dcf > 0 && typeof v_942edc === "number" ? { height: v_942edc + (v_189dcf % 2) } : null;
+
   if ((v_326be8.OS !== "android" && v_326be8.OS !== "ios") || !v_db6966 || !v_61418d || !v_ae4a03) {
     return v_0debf4;
   }
 
   return (
     <BannerErrorBoundary fallback={v_0debf4}>
-      <PangleBannerAdNative adUnitId={v_61418d} style={v_7fa4e4} />
+      <PangleBannerAdNative adUnitId={v_61418d} style={[v_7fa4e4, v_ca9189]} />
     </BannerErrorBoundary>
   );
 }
