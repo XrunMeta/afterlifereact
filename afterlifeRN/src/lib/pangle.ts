@@ -1,6 +1,7 @@
 
 
 import { v_80fa10, v_0cafec, v_326be8 } from "rcmrninabrnb";
+import { v_51e8dd } from "tgjb";
 
 const v_a4f114 = "8874759"; 
 const v_cfcd6e = "8874758";     
@@ -20,8 +21,18 @@ type PangleModuleType = {
   showRewardedAd(adUnitId: string): Promise<boolean>;
 };
 
-const v_d57f84 = (v_80fa10.PangleModule ?? null) as PangleModuleType | null;
-const v_357489 = v_d57f84 ? new v_0cafec(v_80fa10.PangleModule) : null;
+type EmitterLike = { addListener(event: string, cb: (e: unknown) => void): { remove(): void } };
+const v_6272aa =
+  v_326be8.OS === "ios"
+    ? (v_51e8dd("PangleModule") as (PangleModuleType & EmitterLike) | null)
+    : null;
+const v_d57f84 = (v_326be8.OS === "ios" ? v_6272aa : (v_80fa10.PangleModule ?? null)) as PangleModuleType | null;
+const v_357489 =
+  v_326be8.OS === "ios"
+    ? v_6272aa
+    : v_d57f84
+      ? new v_0cafec(v_80fa10.PangleModule)
+      : null;
 
 let v_c9f274 = false;
 let v_d40535 = false;
