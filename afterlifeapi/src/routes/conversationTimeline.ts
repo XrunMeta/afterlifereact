@@ -20,12 +20,40 @@ type ChatItem = { type: "chat"; id: number; role: string; content: string; at: n
 
 type CallItem = { type: "call"; callId: string; startedAt: number; durationSec: number | null; turnCount: number };
 
-type SortKey = { at: number; kind: 0 | 1; id: string };
+type SortKey = { at: number; kind: 0 | 1 | 2; id: string };
+
+type SystemItem = { type: "system"; id: number; kind: string; text: string; at: number; data: Record<string, unknown> };
 
 function v_2c3bd9(v_8c0b26): SortKey {
+  if (v_8c0b26.type === "system") return { at: v_8c0b26.at, kind: 2, id: String(v_8c0b26.id).padStart(12, "0") };
   return v_8c0b26.type === "chat"
     ? { at: v_8c0b26.at, kind: 1, id: String(v_8c0b26.id).padStart(12, "0") }
     : { at: v_8c0b26.startedAt, kind: 0, id: v_8c0b26.callId };
+}
+
+const v_2a15a0 = ["k", "c", "s"] as const;
+
+function v_33a486(v_1833e7): string {
+  const v_10a17d = v_1833e7.charCodeAt(v_1833e7.length - 1);
+  if (v_10a17d >= 0xac00 && v_10a17d <= 0xd7a3) return `${v_1833e7}${(v_10a17d - 0xac00) % 28 === 0 ? "와" : "과"}`;
+  return `${v_1833e7}와`;
+}
+
+export function v_b09c2e(v_94302c, v_931bf0, v_f2ff36): string | null {
+  if (v_94302c === "intimacy_milestone" && typeof v_931bf0.score === "number") {
+    return `${v_33a486(v_f2ff36)}의 온도가 ${v_931bf0.score}°C가 됐어요`;
+  }
+  return null;
+}
+
+function v_d1d076(v_479f05): Record<string, unknown> {
+  if (!v_479f05) return {};
+  try {
+    const v_81e2ef = JSON.parse(v_479f05) as unknown;
+    return v_81e2ef && typeof v_81e2ef === "object" ? (v_81e2ef as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
 }
 
 function v_2d012c(v_779914, v_148ff6): number {
@@ -35,13 +63,13 @@ function v_2d012c(v_779914, v_148ff6): number {
 }
 
 function v_c9de8c(v_0eb677): string {
-  return `${v_0eb677.at}_${v_0eb677.kind === 1 ? "c" : "k"}_${v_0eb677.id}`;
+  return `${v_0eb677.at}_${v_2a15a0[v_0eb677.kind]}_${v_0eb677.id}`;
 }
 
 function v_e9da89(v_479f05): SortKey {
-  const v_35f85c = /^(\d{1,15})_([ck])_(.{1,128})$/.exec(v_479f05);
+  const v_35f85c = /^(\d{1,15})_([cks])_(.{1,128})$/.exec(v_479f05);
   if (!v_35f85c) throw new v_3ebe58("VALIDATION_FAILED", "Invalid cursor.");
-  return { at: Number(v_35f85c[1]), kind: v_35f85c[2] === "c" ? 1 : 0, id: v_35f85c[3]! };
+  return { at: Number(v_35f85c[1]), kind: v_35f85c[2] === "s" ? 2 : v_35f85c[2] === "c" ? 1 : 0, id: v_35f85c[3]! };
 }
 
 function v_15ea73(v_3a5fef): number {
@@ -87,9 +115,16 @@ v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
   const v_5b31c3 = v_75cbf4 ? Math.floor(v_75cbf4.at / 1000) : 253402300799; 
 
   const { key: v_b24339, provider: v_e38ca2 } = await v_386d00(v_3f4e2e.env, v_43e90c, v_6e0fd3);
-  if (v_b24339.kind === "shredded") return v_3f4e2e.json({ clone: v_7d767c(v_eb25ce), items: [], nextCursor: null });
 
-  const [v_7e4351, v_20e160] = await Promise.all([
+  const v_a07d34 = await v_3f4e2e.env.DB
+    .prepare(`SELECT intimacy_score FROM user_clone_interactions WHERE user_id = ? AND clone_id = ?`)
+    .bind(v_43e90c, v_6e0fd3)
+    .first<{ intimacy_score: number }>();
+  const v_b74b9c = Math.min(100, v_a07d34?.intimacy_score ?? 0);
+
+  if (v_b24339.kind === "shredded") return v_3f4e2e.json({ clone: v_7d767c(v_eb25ce), intimacy: v_b74b9c, items: [], nextCursor: null });
+
+  const [v_7e4351, v_20e160, v_bf9904] = await Promise.all([
     v_3f4e2e.env.DB.prepare(
       `SELECT id, session_id, role, content, created_at FROM messages
         WHERE user_id = ? AND clone_id = ?
@@ -108,12 +143,27 @@ v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
         LIMIT ?`,
     ).bind(v_43e90c, v_6e0fd3, v_7a9a34, v_02be30 + v_de3072)
       .all<{ call_id: string; started_at: number; duration_sec: number | null; turn_count: number }>(),
+    v_3f4e2e.env.DB.prepare(
+      `SELECT id, kind, payload, created_at FROM conversation_events
+        WHERE user_id = ? AND clone_id = ? AND created_at <= ?
+        ORDER BY created_at DESC, id DESC
+        LIMIT ?`,
+    ).bind(v_43e90c, v_6e0fd3, v_7a9a34, v_02be30 + v_de3072)
+      .all<{ id: number; kind: string; payload: string | null; created_at: number }>(),
   ]);
 
   type Pending =
     | { k: SortKey; chat: { id: number; session_id: string; role: string; content: string; at: number } }
-    | { k: SortKey; call: CallItem };
+    | { k: SortKey; call: CallItem }
+    | { k: SortKey; system: SystemItem };
   const v_483de2 = [];
+  for (const v_cb35cb of v_bf9904.results ?? []) {
+    const v_9390e8 = v_d1d076(v_cb35cb.payload);
+    const v_9b6134 = v_b09c2e(v_cb35cb.kind, v_9390e8, v_eb25ce.name);
+    if (v_9b6134 === null) continue;
+    const v_15c2da = { type: "system", id: v_cb35cb.id, kind: v_cb35cb.kind, text: v_9b6134, at: v_cb35cb.created_at, data: v_9390e8 };
+    v_483de2.push({ k: v_2c3bd9(v_15c2da), system: v_15c2da });
+  }
   for (const v_cb35cb of v_7e4351.results ?? []) {
     const v_83d291 = v_15ea73(v_cb35cb.created_at);
     v_483de2.push({ k: { at: v_83d291, kind: 1, id: String(v_cb35cb.id).padStart(12, "0") }, chat: { ...v_cb35cb, at: v_83d291 } });
@@ -133,6 +183,10 @@ v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
   const v_66ed66 = v_a8614b(v_3f4e2e.env.ALE_KEK);
   const v_4622b9 = [];
   for (const v_e2a85c of v_2365e9) {
+    if ("system" in v_e2a85c) {
+      v_4622b9.push(v_e2a85c.system);
+      continue;
+    }
     if ("call" in v_e2a85c) {
       v_4622b9.push(v_e2a85c.call);
       continue;
@@ -147,6 +201,7 @@ v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
 
   return v_3f4e2e.json({
     clone: v_7d767c(v_eb25ce),
+    intimacy: v_b74b9c,
     items: v_4622b9,
     nextCursor: v_6bbe19 && v_2365e9.length ? v_c9de8c(v_2365e9[v_2365e9.length - 1]!.k) : null,
   });
@@ -228,7 +283,7 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_a1651b = v_3f4e2e.env.DB;
 
-  const [v_2461e1, v_7e4351, v_20e160, v_7fe886] = await Promise.all([
+  const [v_2461e1, v_7e4351, v_20e160, v_7fe886, v_bf9904] = await Promise.all([
     v_a1651b.prepare(
       `SELECT id, created_at FROM clones WHERE owner_id = ? AND deleted_at IS NULL AND deletion_state = 'active'`,
     ).bind(v_43e90c).all<{ id: number; created_at: string }>(),
@@ -257,13 +312,28 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
     v_a1651b.prepare(
       `SELECT clone_id, last_read_at FROM conversation_read_markers WHERE user_id = ?`,
     ).bind(v_43e90c).all<{ clone_id: number; last_read_at: string }>(),
+
+    v_a1651b.prepare(
+      `SELECT clone_id, kind, payload, created_at FROM (
+         SELECT clone_id, kind, payload, created_at,
+                ROW_NUMBER() OVER (PARTITION BY clone_id ORDER BY created_at DESC, id DESC) AS rn
+           FROM conversation_events WHERE user_id = ?
+       ) WHERE rn = 1`,
+    ).bind(v_43e90c).all<{ clone_id: number; kind: string; payload: string | null; created_at: number }>(),
   ]);
   const v_2a4227 = new Map<number, number>();
   for (const v_cb35cb of v_7fe886.results ?? []) {
     v_2a4227.set(v_cb35cb.clone_id, v_15ea73(v_cb35cb.last_read_at));
   }
 
-  type Last = { type: "chat" | "call"; role: string | null; blob: string | null; at: number; callId?: string };
+  type Last = {
+    type: "chat" | "call" | "system";
+    role: string | null;
+    blob: string | null;
+    at: number;
+    callId?: string;
+    event?: { kind: string; payload: Record<string, unknown> };
+  };
   const v_02fbf1 = new Map<number, Last>();
   for (const v_cb35cb of v_7e4351.results ?? []) {
     v_02fbf1.set(v_cb35cb.clone_id, { type: "chat", role: v_cb35cb.role, blob: v_cb35cb.content, at: v_15ea73(v_cb35cb.created_at) });
@@ -274,6 +344,17 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
       v_02fbf1.set(v_cb35cb.clone_id, { type: "call", role: v_cb35cb.role, blob: v_cb35cb.text, at: v_cb35cb.started_at, callId: v_cb35cb.call_id });
     }
   }
+  for (const v_cb35cb of v_bf9904.results ?? []) {
+    const v_ba2215 = v_02fbf1.get(v_cb35cb.clone_id);
+    if (!v_ba2215 || v_cb35cb.created_at > v_ba2215.at) {
+      v_02fbf1.set(v_cb35cb.clone_id, {
+        type: "system", role: null, blob: null, at: v_cb35cb.created_at,
+        event: { kind: v_cb35cb.kind, payload: v_d1d076(v_cb35cb.payload) },
+      });
+    }
+  }
+
+  const v_e907d9 = new Set<number>((v_20e160.results ?? []).map((v_cb35cb) => v_cb35cb.clone_id));
   const v_45c785 = new Map((v_2461e1.results ?? []).map((v_cb35cb) => [v_cb35cb.id, v_15ea73(v_cb35cb.created_at)]));
 
   const v_10387a = await v_a1651b
@@ -287,7 +368,7 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
     (v_10387a.results ?? []).map((v_cb35cb) => [v_cb35cb.clone_id, v_15ea73(v_cb35cb.created_at)]),
   );
   const v_52e08b = new Set<number>([
-    ...[...v_02fbf1.keys()].filter((v_062ae9) => v_559298.has(v_062ae9) || v_45c785.has(v_062ae9)),
+    ...[...v_02fbf1.keys()].filter((v_062ae9) => v_559298.has(v_062ae9) || v_45c785.has(v_062ae9) || v_e907d9.has(v_062ae9)),
     ...v_45c785.keys(),
     ...v_559298, 
   ]);
@@ -304,7 +385,9 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
       const { key: v_b24339 } = await v_386d00(v_3f4e2e.env, v_43e90c, v_389afb, v_e38ca2);
       if (v_b24339.kind === "shredded") return null;
       let v_9b6134 = null;
-      if (v_506e86.blob) {
+      if (v_506e86.event) {
+        v_9b6134 = v_b09c2e(v_506e86.event.kind, v_506e86.event.payload, v_eb25ce.name);
+      } else if (v_506e86.blob) {
         v_9b6134 = v_506e86.type === "chat"
           ? await v_c56968(v_3f4e2e.env, v_b24339, v_e38ca2, v_66ed66, v_389afb, v_506e86.role ?? "", v_506e86.blob)
           : v_cca3b3(v_b24339, v_506e86.blob, v_bee6d6(v_506e86.callId!, v_506e86.role ?? ""));
@@ -316,7 +399,7 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
     const v_f1909a = v_2a4227.get(v_389afb);
     if (v_f1909a !== undefined) {
       const v_5fc92f = Math.floor(v_f1909a / 1000);
-      const [v_9630aa, v_628c75] = await Promise.all([
+      const [v_9630aa, v_628c75, v_f1150e] = await Promise.all([
         v_a1651b.prepare(
           `SELECT COUNT(*) AS n FROM messages
              WHERE user_id = ? AND clone_id = ? AND role = 'clone'
@@ -327,8 +410,12 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
           `SELECT COUNT(*) AS n FROM call_sessions
              WHERE user_id = ? AND clone_id = ? AND started_at > ?`,
         ).bind(v_43e90c, v_389afb, v_f1909a).first<{ n: number }>(),
+        v_a1651b.prepare(
+          `SELECT COUNT(*) AS n FROM conversation_events
+             WHERE user_id = ? AND clone_id = ? AND created_at > ?`,
+        ).bind(v_43e90c, v_389afb, v_f1909a).first<{ n: number }>(),
       ]);
-      v_8a6db3 = Number(v_9630aa?.n ?? 0) + Number(v_628c75?.n ?? 0);
+      v_8a6db3 = Number(v_9630aa?.n ?? 0) + Number(v_628c75?.n ?? 0) + Number(v_f1150e?.n ?? 0);
     }
     return {
       clone: v_7d767c(v_eb25ce),
