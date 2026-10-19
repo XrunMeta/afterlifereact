@@ -25,7 +25,7 @@ import {
   v_7e714c,
 } from "../../api/auth";
 
-const v_57ffc4 = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+.[A-Za-z]{2,}$/;
+const v_57ffc4 = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 type EmailStatus = "idle" | "checking" | "invalid" | "notFound" | "ok";
 
 type Step = "email" | "otp" | "password";
@@ -77,7 +77,7 @@ export default function v_040c8f() {
 
   const v_2d9119 = /[a-z]/.test(v_adc076);
   const v_a25735 = /[A-Z]/.test(v_adc076);
-  const v_9b89a6 = /d/.test(v_adc076);
+  const v_9b89a6 = /\d/.test(v_adc076);
   const v_8a4e12 = v_adc076.length >= 7;
   const v_78c4a6 = v_2d9119 && v_a25735 && v_9b89a6 && v_8a4e12;
   const v_79f04d = v_78c4a6
