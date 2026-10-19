@@ -13,6 +13,7 @@ import {
   v_386d00,
   v_bee6d6,
 } from "../lib/conversationMemory";
+import { v_b09c2e } from "../lib/conversationEvents";
 
 export const v_1172ea = new v_b7c41b<v_de0a25>();
 
@@ -32,19 +33,6 @@ function v_2c3bd9(v_8c0b26): SortKey {
 }
 
 const v_2a15a0 = ["k", "c", "s"] as const;
-
-function v_33a486(v_1833e7): string {
-  const v_10a17d = v_1833e7.charCodeAt(v_1833e7.length - 1);
-  if (v_10a17d >= 0xac00 && v_10a17d <= 0xd7a3) return `${v_1833e7}${(v_10a17d - 0xac00) % 28 === 0 ? "와" : "과"}`;
-  return `${v_1833e7}와`;
-}
-
-export function v_b09c2e(v_94302c, v_931bf0, v_f2ff36): string | null {
-  if (v_94302c === "intimacy_milestone" && typeof v_931bf0.score === "number") {
-    return `${v_33a486(v_f2ff36)}의 온도가 ${v_931bf0.score}°C가 됐어요`;
-  }
-  return null;
-}
 
 function v_d1d076(v_479f05): Record<string, unknown> {
   if (!v_479f05) return {};

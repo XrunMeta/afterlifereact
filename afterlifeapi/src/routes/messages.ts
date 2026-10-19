@@ -16,6 +16,9 @@ import { v_2f0299, v_386d00, v_f500c0 } from "../lib/conversationMemory";
 import { v_74c502, v_7a9d93, v_5d4a51, v_09d461 } from "../lib/cloneAccess";
 import { v_e86502, v_fda4d7, v_3821c0 } from "../lib/memoryStore";
 import { v_dd9d7c, v_721d54, v_cf0463 } from "../lib/interactions";
+import { v_a00a76 } from "../lib/conversationEvents";
+
+const v_92f378 = 10_000;
 import { v_15ea73 } from "../lib/sqliteTs";
 
 export const v_19e2a3 = new v_b7c41b<v_de0a25>();
@@ -134,6 +137,14 @@ async function v_c5d920(
   await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "chat");
 
   await v_721d54(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_cf0463.chat, "chat");
+
+  v_3f4e2e.executionCtx.waitUntil(
+    v_a00a76(
+      v_3f4e2e.env,
+      { userId: v_43e90c, cloneId: v_6e0fd3, cloneName: v_eb25ce.name, replyCreatedAt: v_56871e.created_at, replyText: v_b4c4d3 },
+      Number(v_3f4e2e.env.CHAT_UNREAD_PUSH_DELAY_MS ?? v_92f378) || 0,
+    ).catch((v_49263d) => console.warn(`[chat.unreadPush] ${v_49263d.message}`)),
+  );
 
   v_3f4e2e.executionCtx.waitUntil(v_123140(v_3f4e2e.env, v_6e0fd3, v_43e90c, v_4d33b2.content, v_b4c4d3));
 

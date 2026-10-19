@@ -14,6 +14,7 @@ import {
   v_326be8,
   v_0e1f26,
   v_e767d1,
+  v_6b5698,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -200,6 +201,14 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     };
   }, [v_2ca7e0, v_6e0fd3]);
 
+  const v_d6f043 = v_e662ae(true);
+  v_c4deb2(() => {
+    v_d6f043.current = true;
+    return () => {
+      v_d6f043.current = false;
+    };
+  }, []);
+
   v_c4deb2(() => {
     if (!v_2ca7e0) return;
     void v_9cb700(v_6e0fd3, v_2ca7e0);
@@ -331,6 +340,10 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         );
         return [v_e44122, v_8338f4, ...v_694b25];
       });
+
+      if (v_d6f043.current && v_6b5698.currentState === "active") {
+        void v_9cb700(v_6e0fd3, v_2ca7e0);
+      }
       void v_e6ff86();
     } catch (v_49263d) {
       console.warn("[Chat] send failed:", (v_49263d as Error)?.message ?? v_49263d);

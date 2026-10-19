@@ -1,6 +1,7 @@
 import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
 import { v_721d54 } from "../src/lib/interactions";
+import { v_a00a76 } from "../src/lib/conversationEvents";
 import type { v_273a0c } from "../src/lib/env";
 
 function v_a1651b(): D1Database {
@@ -71,6 +72,32 @@ v_469bf2("intimacy system message", () => {
     const v_1a85dc = v_fcb4e5.items.filter((v_ebec57) => v_ebec57.type === "system");
     v_4d37e3(v_1a85dc).toHaveLength(1);
     v_4d37e3(v_1a85dc[0]!.text).toBe("민지와의 온도가 10°C가 됐어요");
+  });
+
+  v_23805a("답장 미확인 푸시: 읽었으면 X, 안 읽었으면 O, 채팅방 알림 끄기면 X / 인앱 목록엔 안 남음", async () => {
+    const v_257b90 = await v_bfb240("owner3");
+    const v_debed8 = await v_bfb240("viewer3");
+    const v_6e0fd3 = await v_4d24a9(v_257b90, "하늘");
+    const v_9e86fd = v_c9c489 as unknown as v_273a0c;
+    const v_4317d1 = { userId: v_debed8, cloneId: v_6e0fd3, cloneName: "하늘", replyCreatedAt: "2026-10-19 12:00:00", replyText: "안녕!" };
+
+    v_4d37e3(await v_a00a76(v_9e86fd, v_4317d1, 0)).toBe(true);
+
+    await v_a1651b()
+      .prepare(`INSERT INTO conversation_read_markers (user_id, clone_id, last_read_at) VALUES (?, ?, '2026-10-19 12:00:05')`)
+      .bind(v_debed8, v_6e0fd3)
+      .run();
+    v_4d37e3(await v_a00a76(v_9e86fd, v_4317d1, 0)).toBe(false);
+
+    const v_b3355e = { ...v_4317d1, replyCreatedAt: "2026-10-19 12:10:00" };
+    await v_a1651b().prepare(`INSERT INTO clone_notification_mutes (user_id, clone_id) VALUES (?, ?)`).bind(v_debed8, v_6e0fd3).run();
+    v_4d37e3(await v_a00a76(v_9e86fd, v_b3355e, 0)).toBe(false);
+
+    const v_f4e98d = await v_a1651b()
+      .prepare(`SELECT COUNT(*) AS n FROM notifications WHERE user_id = ?`)
+      .bind(v_debed8)
+      .first<{ n: number }>();
+    v_4d37e3(v_f4e98d?.n).toBe(0);
   });
 
   v_23805a("통화만 한 페르소나도 메세지 목록에 포함", async () => {

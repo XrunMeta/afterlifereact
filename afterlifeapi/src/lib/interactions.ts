@@ -2,6 +2,7 @@
 
 import type { v_273a0c } from "./env";
 import { v_33d48f } from "./notify";
+import { v_f1d400, v_b09c2e } from "./conversationEvents";
 
 type InteractionKind = "chat" | "call" | "learn" | "feed";
 
@@ -157,6 +158,15 @@ export async function v_721d54(
           )
           .bind(v_43e90c, v_6e0fd3, JSON.stringify({ score: v_c5110a }), Date.now())
           .run();
+
+        const v_966588 = await v_c9c489.DB
+          .prepare(`SELECT name FROM clones WHERE id = ?`)
+          .bind(v_6e0fd3)
+          .first<{ name: string }>();
+        const v_9b6134 = v_966588 ? v_b09c2e("intimacy_milestone", { score: v_c5110a }, v_966588.name) : null;
+        if (v_966588 && v_9b6134) {
+          await v_f1d400(v_c9c489, { userId: v_43e90c, cloneId: v_6e0fd3, type: "intimacy_score", title: v_966588.name, body: `🌡 ${v_9b6134}` });
+        }
       } catch (v_645696) {
         console.warn(`[interactions] milestone event failed:`, (v_645696 as Error).message);
       }

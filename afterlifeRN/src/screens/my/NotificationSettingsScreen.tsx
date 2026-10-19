@@ -26,6 +26,7 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_67d473, v_ba1376 } from "../../api/notifications";
 
 type PrefKey =
+  | "messages"
   | "newFollower"
   | "followingActivity"
   | "reactions"
@@ -36,6 +37,13 @@ type PrefKey =
 const v_5c002e = "@notif_pref:";
 
 const v_a5887f = [
+  {
+    key: "messages",
+    labelKey: "settings.notifications.prefs.messages.label",
+    labelDefault: "메세지",
+    descKey: "settings.notifications.prefs.messages.desc",
+    descDefault: "페르소나 답장을 확인하지 못했을 때",
+  },
   {
     key: "newFollower",
     labelKey: "settings.notifications.prefs.newFollower.label",
@@ -89,6 +97,7 @@ export default function v_4036d1() {
   const [v_683210, v_34a50a] = v_5ab095(true);
 
   const [v_207650, v_950221] = v_5ab095<Record<PrefKey, boolean>>({
+    messages: true,
     newFollower: true,
     followingActivity: true,
     reactions: true,
