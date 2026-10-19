@@ -214,11 +214,17 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
 
 v_de7ba7.post("/me/sso-reconsent", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
+
+  const v_4d33b2 = (await v_3f4e2e.req.json().catch(() => ({}))) as { marketingConsent?: unknown };
+  const v_18d480 =
+    typeof v_4d33b2.marketingConsent === "boolean" ? (v_4d33b2.marketingConsent ? 1 : 0) : null;
   await v_3f4e2e.env.DB
     .prepare(
-      `UPDATE users SET sso_consent_version = ?, sso_consent_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      `UPDATE users SET sso_consent_version = ?, sso_consent_at = CURRENT_TIMESTAMP,
+              marketing_consent = COALESCE(?, marketing_consent)
+       WHERE id = ?`,
     )
-    .bind(v_31fb59, v_43e90c)
+    .bind(v_31fb59, v_18d480, v_43e90c)
     .run();
   const v_38066f = await v_3f4e2e.env.DB
     .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)

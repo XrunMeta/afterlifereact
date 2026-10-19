@@ -368,7 +368,12 @@
     "giftOwnedCount": "{{count}} dimiliki",
     "exiting": "Mengakhiri…",
     "adPlaying": "Iklan sedang diputar…",
-    "adStubNote": "(Stub pengembangan · pengganti iklan asli)"
+    "adStubNote": "(Stub pengembangan · pengganti iklan asli)",
+    "faceConsentPrompt": {
+      "title": "Persetujuan pengenalan wajah",
+      "desc": "Untuk mengenali siapa yang berbicara selama panggilan, diperlukan persetujuan berikut. (opsional)",
+      "agree": "Setuju"
+    }
   },
   "greeting": {
     "default": "Halo"
@@ -858,7 +863,9 @@
       "rateLimit": "Silakan coba lagi nanti. (Cooldown 1 menit)",
       "sendCodeFailed": "Gagal mengirim kode. Silakan periksa jaringan Anda.",
       "xrunFoundTitle": "Akun XRUN ditemukan",
-      "xrunFoundDesc": "Akun XRUN terdaftar sudah ada.\n\nMasuk dengan kredensial XRUN Anda untuk menggunakan Afterlife juga."
+      "xrunFoundDesc": "Akun XRUN terdaftar sudah ada.\n\nMasuk dengan kredensial XRUN Anda untuk menggunakan Afterlife juga.",
+      "cloneFaceConsent": "[Opsional] Persetujuan pengenalan wajah per klon",
+      "termsCloneFaceTitle": "Persetujuan pengenalan wajah per klon"
     },
     "emailVerify": {
       "title": "Verifikasi Email",
@@ -1368,7 +1375,7 @@
     "desc": "Kami memerlukan izin kamera dan mikrofon untuk panggilan video",
     "cameraLabel": "Kamera",
     "micLabel": "Mikrofon",
-    "locationLabel": "Lokasi (opsional)",
+    "locationLabel": "Lokasi (wajib)",
     "statusGranted": "Diizinkan",
     "statusDenied": "Ditolak",
     "statusUndetermined": "Perlu izin",
