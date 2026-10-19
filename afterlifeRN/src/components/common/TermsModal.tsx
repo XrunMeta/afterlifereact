@@ -16,7 +16,7 @@ import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../constants";
 import { v_cc9198 } from "../../config/apiBase";
 
-export type AgreementType = 1 | 2 | 3 | 4 | 5 | 6;
+export type AgreementType = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 type Props = {
   visible: boolean;
@@ -32,6 +32,7 @@ const v_b7b41f = {
   4: 4,
   5: 5,
   6: 6, 
+  7: 7, 
 };
 
 async function v_33650f(
@@ -66,6 +67,7 @@ const v_259ade = {
   4: "auth.signup.termsBiometricTitle",
   5: "auth.signup.termsCallLearningTitle",
   6: "auth.signup.termsCloneFaceTitle",
+  7: "auth.signup.termsMarketingTitle",
 };
 
 const v_9fab8c = {
@@ -75,6 +77,7 @@ const v_9fab8c = {
   4: "생체정보(얼굴) 처리 동의",
   5: "통화 대화 학습 동의",
   6: "클론별 얼굴 인식 동의",
+  7: "마케팅 정보 수집 및 활용 동의",
 };
 
 export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v_0890f8, onAgree: v_5cccfe }: Props) {
@@ -143,11 +146,17 @@ export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v
     defaultValue:
       "통화 대화 학습에 대한 안내\n\n동의하시면 클론이 통화 중 나눈 대화 내용을 학습해 더 자연스럽고 개인화된 대화를 제공합니다. 이 동의는 선택 사항이며, 설정 화면에서 언제든지 철회할 수 있습니다. 철회하면 이후 통화 대화만 학습에서 제외되며, 이미 학습된 내용은 삭제되지 않고 유지됩니다. (학습 데이터 삭제는 회원 탈퇴 또는 개인정보 완전 삭제 시 함께 처리됩니다.)",
   });
+
+  const v_802871 = v_8d41d7("auth.signup.termsMarketingFallback", {
+    defaultValue:
+      "마케팅 정보 수신에 대한 안내\n\n동의하시면 이벤트·혜택 등 광고성 정보를 앱 푸시로 받아보실 수 있습니다. 이 동의는 선택 사항이며, 설정 > 동의에서 언제든지 철회할 수 있습니다.",
+  });
   const v_c6145f =
+    v_3b27d9 === 7 ? v_802871 :
     v_3b27d9 === 5 ? v_f42243 :
     v_3b27d9 === 4 || v_3b27d9 === 6 ? v_aae497 : v_ccca83;
   const v_f50219 =
-    (v_3b27d9 === 2 || v_3b27d9 === 4 || v_3b27d9 === 5 || v_3b27d9 === 6) && !v_683210 && (!!v_5e9bfe || !v_b43b74.trim());
+    (v_3b27d9 === 2 || v_3b27d9 === 4 || v_3b27d9 === 5 || v_3b27d9 === 6 || v_3b27d9 === 7) && !v_683210 && (!!v_5e9bfe || !v_b43b74.trim());
 
   return (
     <Modal

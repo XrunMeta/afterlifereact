@@ -156,6 +156,23 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
         return;
       }
 
+      if (v_49263d instanceof v_84a859 && v_49263d.code === "NOT_FOUND") {
+        v_889fad(
+          v_8d41d7("auth.login.accountNotFoundTitle", { defaultValue: "계정 없음" }),
+          v_8d41d7("auth.login.accountNotFoundMessage", {
+            defaultValue: "가입된 계정이 없습니다.\n회원가입을 해주세요.",
+          }),
+          [
+            { text: v_8d41d7("common.cancel", { defaultValue: "취소" }), style: "cancel" },
+            {
+              text: v_8d41d7("auth.login.goSignup", { defaultValue: "회원가입" }),
+              onPress: () => v_c65f5d.navigate("Signup", {}),
+            },
+          ],
+        );
+        return;
+      }
+
       if (v_49263d instanceof v_84a859 && v_49263d.code === "ACCOUNT_SUSPENDED") {
         v_889fad(
           v_8d41d7("auth.login.accountSuspendedTitle"),

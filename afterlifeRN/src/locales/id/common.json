@@ -755,7 +755,10 @@
       "tabAccount": "Login Akun",
       "tabOtp": "Login OTP Email",
       "requestOtp": "Terima Kode Verifikasi",
-      "sendingOtp": "Mengirim..."
+      "sendingOtp": "Mengirim...",
+      "accountNotFoundTitle": "Akun tidak ditemukan",
+      "accountNotFoundMessage": "Tidak ada akun yang terdaftar dengan email ini.\nSilakan daftar.",
+      "goSignup": "Daftar"
     },
     "forgot": {
       "title": "Setel Ulang Kata Sandi",
@@ -783,7 +786,9 @@
       "resetFailed": "Perubahan gagal. Silakan coba lagi nanti.",
       "cooldown": "Silakan coba lagi dalam {{secs}} detik.",
       "togglePasswordLabel": "Alihkan tampilan kata sandi",
-      "toggleConfirmLabel": "Alihkan tampilan konfirmasi kata sandi"
+      "toggleConfirmLabel": "Alihkan tampilan konfirmasi kata sandi",
+      "emailNotFoundTitle": "Email belum terdaftar",
+      "emailNotFoundMessage": "Tidak ada akun yang terdaftar dengan email ini.\nPeriksa kembali email Anda atau daftar terlebih dahulu."
     },
     "signup": {
       "title": "Daftar",
@@ -866,7 +871,9 @@
       "xrunFoundDesc": "Akun XRUN terdaftar sudah ada.\n\nMasuk dengan kredensial XRUN Anda untuk menggunakan Afterlife juga.",
       "cloneFaceConsent": "[Opsional] Persetujuan pengenalan wajah per klon",
       "termsCloneFaceTitle": "Persetujuan pengenalan wajah per klon",
-      "termsLocationTitle": "Ketentuan Layanan Berbasis Lokasi"
+      "termsLocationTitle": "Ketentuan Layanan Berbasis Lokasi",
+      "termsMarketingTitle": "Persetujuan Informasi Pemasaran",
+      "termsMarketingFallback": "Tentang informasi pemasaran\n\nJika Anda setuju, Anda akan menerima informasi promosi seperti acara dan keuntungan melalui notifikasi push aplikasi. Persetujuan ini opsional dan dapat ditarik kapan saja di Pengaturan > Persetujuan."
     },
     "emailVerify": {
       "title": "Verifikasi Email",
@@ -1699,7 +1706,8 @@
     "usernameEmpty": "Silakan masukkan nama pengguna.",
     "usernameTooShort": "Nama pengguna harus minimal 3 karakter.",
     "usernameTooLong": "Nama pengguna maksimal 30 karakter.",
-    "usernameFormat": "Nama pengguna hanya boleh menggunakan huruf kecil, angka, dan garis bawah (_). (Tidak boleh huruf besar, karakter non-ASCII, atau spasi.)"
+    "usernameFormat": "Nama pengguna hanya boleh menggunakan huruf kecil, angka, dan garis bawah (_). (Tidak boleh huruf besar, karakter non-ASCII, atau spasi.)",
+    "passwordPolicy": "Kata sandi minimal 7 karakter dan harus berisi huruf besar, huruf kecil, dan angka."
   },
   "question": {
     "label": {
