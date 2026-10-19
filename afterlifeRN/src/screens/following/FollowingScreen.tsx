@@ -30,7 +30,7 @@ import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
 import v_0e981f from "../../components/common/NotificationBell";
 import { v_772971 } from "jmpfvteuuztnp";
-import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
+import { v_1bfbd0, v_9b1a04, v_8b0c90, v_8f28b1, v_7c5e29 } from "../../components/constants";
 import type { v_8ad91b, v_97a9a8 } from "../../navigation/types";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_84d546 } from "../../lib/callGuard";
@@ -987,8 +987,15 @@ export default function v_14b43e() {
 }
 
       {}
-      <Modal visible={!!v_821fc1} transparent animationType="slide">
-        <Pressable style={v_fd5f43.bottomOverlay} onPress={() => v_5da0f8(null)}>
+      <Modal
+        visible={!!v_821fc1}
+        transparent
+        animationType="slide"
+        onRequestClose={() => v_5da0f8(null)}
+      >
+        {}
+        <View style={v_fd5f43.bottomOverlay}>
+          <Pressable style={v_472849.absoluteFill} onPress={() => v_5da0f8(null)} />
           <SwipeDownSheet
             onClose={() => v_5da0f8(null)}
             style={[v_fd5f43.eventsSheet, { paddingBottom: 32 + v_2b650d }]}
@@ -1068,7 +1075,7 @@ export default function v_14b43e() {
               )}
             </ScrollView>
           </SwipeDownSheet>
-        </Pressable>
+        </View>
       </Modal>
 
       {}
@@ -1341,15 +1348,20 @@ const v_fd5f43 = v_472849.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingHorizontal: 14,
-    height: 44,
+    height: v_8f28b1.height,
+    paddingHorizontal: v_8f28b1.paddingHorizontal,
     backgroundColor: v_1bfbd0.zinc100,
-    borderRadius: 22,
+    borderRadius: v_8f28b1.borderRadius,
     marginTop: 4,
     marginBottom: 12,
   },
   subSearchInput: {
-    flex: 1, fontSize: 14, color: v_1bfbd0.zinc900, padding: 0,
+    flex: 1,
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
+    paddingVertical: 0,
+    textAlignVertical: v_8f28b1.textAlignVertical,
+    color: v_1bfbd0.zinc900,
   },
   subAdBanner: {
     height: 60,
@@ -1503,13 +1515,34 @@ const v_fd5f43 = v_472849.create({
   emptyText: { fontSize: 14, color: v_1bfbd0.zinc400, marginTop: 8 },
   emptySubText: { fontSize: 12, color: v_1bfbd0.zinc400, marginTop: 2 },
   commentInputRow: { flexDirection: "row", alignItems: "center", gap: 12, borderTopWidth: 1, borderTopColor: v_1bfbd0.zinc200, paddingTop: 12 },
-  commentInput: { flex: 1, height: 40, backgroundColor: v_1bfbd0.zinc100, borderRadius: v_8b0c90.full, paddingHorizontal: 16, fontSize: 14, color: v_1bfbd0.zinc900 },
+  commentInput: {
+    flex: 1,
+    backgroundColor: v_1bfbd0.zinc100,
+    color: v_1bfbd0.zinc900,
+    ...v_7c5e29,
+  },
 
   callSheet: { backgroundColor: v_1bfbd0.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "70%" },
   callSheetHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   callSheetTitle: { fontSize: 18, fontWeight: "700", color: v_1bfbd0.zinc900 },
-  callSearchWrap: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: v_1bfbd0.zinc100, borderRadius: v_8b0c90.full, paddingHorizontal: 16, height: 44, marginBottom: 16 },
-  callSearchInput: { flex: 1, fontSize: 14, color: v_1bfbd0.zinc900 },
+  callSearchWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: v_1bfbd0.zinc100,
+    borderRadius: v_8f28b1.borderRadius,
+    paddingHorizontal: v_8f28b1.paddingHorizontal,
+    height: v_8f28b1.height,
+    marginBottom: 16,
+  },
+  callSearchInput: {
+    flex: 1,
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
+    paddingVertical: 0,
+    textAlignVertical: v_8f28b1.textAlignVertical,
+    color: v_1bfbd0.zinc900,
+  },
   callScroll: { flex: 1 },
   callSectionBordered: { marginBottom: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc200 },
   callSection: { marginBottom: 20 },
@@ -1554,7 +1587,7 @@ const v_fd5f43 = v_472849.create({
   eventsBreakdownItem: { fontSize: 12, color: v_1bfbd0.zinc500 },
   eventsBreakdownVal: { color: v_1bfbd0.zinc900, fontWeight: "600" },
 
-  eventsScrollArea: { flexShrink: 1 },
+  eventsScrollArea: { flex: 1, minHeight: 0 },
   eventRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc100 },
   eventIcon: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   eventLabel: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900 },

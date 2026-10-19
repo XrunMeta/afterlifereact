@@ -30,7 +30,7 @@ import v_556baf from "../../components/ui/SafeView";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
 import v_c0caa9, { type v_3ac6ea } from "../../components/common/TermsModal";
-import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
+import { v_1bfbd0, v_9b1a04, v_8b0c90, v_8f28b1 } from "../../components/constants";
 import {
   v_97ea8d,
   v_35200c,
@@ -295,12 +295,12 @@ const v_eff3be = v_472849.create({
 
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 52,
+    height: v_8f28b1.height,
     borderWidth: 1,
     borderColor: "#dedede",
-    borderRadius: 10,
+    borderRadius: v_8f28b1.borderRadius,
     backgroundColor: "#fefefe",
-    paddingHorizontal: 16,
+    paddingHorizontal: v_8f28b1.paddingHorizontal,
     gap: 8,
   },
   inputWrapDisabled: {
@@ -309,10 +309,12 @@ const v_eff3be = v_472849.create({
   },
   input: {
     flex: 1,
-    fontSize: 15,
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
     color: "#2a2727",
     paddingVertical: 0,
-    fontFamily: v_843035.medium, 
+    textAlignVertical: v_8f28b1.textAlignVertical,
+    fontFamily: v_843035.medium,
   },
   errorText: {
     marginTop: 4,
@@ -1679,17 +1681,20 @@ const v_d81136 = v_472849.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: v_cafb6f.pageBg,
-    borderRadius: 12,
+    borderRadius: v_8f28b1.borderRadius,
     paddingHorizontal: 16,
     marginHorizontal: 20,
     marginTop: 16,
     marginBottom: 12,
-    height: 48,
+    height: v_8f28b1.height,
   },
   modalSearchInput: {
     flex: 1,
     marginLeft: 8,
-    fontSize: 15,
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
+    paddingVertical: 0,
+    textAlignVertical: v_8f28b1.textAlignVertical,
     color: v_cafb6f.headingText,
     fontFamily: v_843035.regular,
   },

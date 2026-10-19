@@ -50,11 +50,43 @@ export interface NotifyResult {
   emailSent: boolean;
 }
 
+export type NotificationPrefCategory = "new_follower" | "following_activity" | "reactions";
+
+const v_e6c9c1 = {
+  user_follow: "new_follower",
+  followee_new_clone: "following_activity",
+  clone_like: "reactions",
+  clone_comment: "reactions",
+  clone_follow: "reactions",
+  clone_gift: "reactions",
+};
+
+export async function v_5f5ee2(
+  env: v_273a0c,
+  v_43e90c,
+  v_3b27d9,
+): Promise<boolean> {
+  const v_8b9cd4 = v_e6c9c1[v_3b27d9];
+  if (!v_8b9cd4) return true;
+  try {
+    const v_3ac7e7 = await v_c9c489.DB
+      .prepare(`SELECT ${v_8b9cd4} AS v FROM user_notification_prefs WHERE user_id = ?`)
+      .bind(v_43e90c)
+      .first<{ v: number }>();
+    return v_3ac7e7 ? v_3ac7e7.v === 1 : true;
+  } catch (v_49263d) {
+    console.warn("[notify] prefs lookup failed:", (v_49263d as Error).message);
+    return true;
+  }
+}
+
 export async function v_c226a5(env: v_273a0c, v_328259): Promise<NotifyResult> {
   let v_81161e = false;
   let v_871c5a = 0;
   let v_49ca22 = 0;
   let v_c5c953 = false;
+
+  const v_762d02 = v_328259.userId ? await v_5f5ee2(v_c9c489, v_328259.userId, v_328259.type) : true;
 
   if (v_328259.userId) {
     try {
@@ -77,7 +109,7 @@ export async function v_c226a5(env: v_273a0c, v_328259): Promise<NotifyResult> {
     }
   }
 
-  if (v_328259.userId) {
+  if (v_328259.userId && v_762d02) {
     try {
       const v_cb35cb = await v_51b1f7(v_c9c489, v_328259.userId, {
         title: v_328259.title,
@@ -91,8 +123,8 @@ export async function v_c226a5(env: v_273a0c, v_328259): Promise<NotifyResult> {
     }
   }
 
-  let v_db9acb = v_328259.skipEmail ? undefined : v_328259.email;
-  if (!v_db9acb && v_328259.userId && !v_328259.skipEmail) {
+  let v_db9acb = v_328259.skipEmail || !v_762d02 ? undefined : v_328259.email;
+  if (!v_db9acb && v_328259.userId && !v_328259.skipEmail && v_762d02) {
     try {
       const v_3ac7e7 = await v_c9c489.DB
         .prepare(`SELECT email FROM users WHERE id = ?`)

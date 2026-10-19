@@ -5,7 +5,7 @@ import { v_772971 } from "jmpfvteuuztnp";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
 import v_1a40c4 from "../../components/ui/Button";
-import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../../components/constants";
+import { v_1bfbd0, v_8b0c90, v_9b1a04, v_8f28b1 } from "../../components/constants";
 
 export default function v_89f5f5() {
   const { t: v_8d41d7 } = v_772971();
@@ -81,8 +81,12 @@ const v_fd5f43 = v_472849.create({
   input: {
     borderWidth: 1,
     borderColor: v_1bfbd0.zinc300,
-    borderRadius: v_8b0c90.md,
-    padding: 12,
-    fontSize: 15,
+    borderRadius: v_8f28b1.borderRadius,
+    height: v_8f28b1.height,
+    paddingHorizontal: v_8f28b1.paddingHorizontal,
+    paddingVertical: 0,
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
+    textAlignVertical: v_8f28b1.textAlignVertical,
   },
 });
