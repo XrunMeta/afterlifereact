@@ -28,10 +28,21 @@ export interface TimelineCallItem {
   durationSec: number | null;
   turnCount: number;
 }
-export type TimelineItem = TimelineChatItem | TimelineCallItem;
+
+export interface TimelineSystemItem {
+  type: "system";
+  id: number;
+  kind: string;       
+  text: string;
+  at: number;         
+  data: Record<string, unknown>;
+}
+export type TimelineItem = TimelineChatItem | TimelineCallItem | TimelineSystemItem;
 
 export interface TimelineResponse {
   clone: ChatCloneSummary;
+
+  intimacy?: number;
   items: TimelineItem[];
   nextCursor: string | null;
 }
@@ -53,7 +64,7 @@ export interface ConversationListItem {
   clone: ChatCloneSummary;
   isMine: boolean;
   last:
-    | { type: "chat" | "call"; role: "user" | "clone" | null; text: string | null; at: number }
+    | { type: "chat" | "call" | "system"; role: "user" | "clone" | null; text: string | null; at: number }
     | null;
 
   unreadCount: number;
