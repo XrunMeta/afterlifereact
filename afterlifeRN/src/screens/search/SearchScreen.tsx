@@ -34,7 +34,7 @@ import { v_a41961, type v_3a673b } from "../../api/auth";
 
 import { v_a78ecc, type v_268e9e } from "../../api/recommendedKeywords";
 import { v_cbe7de } from "../../lib/similarity";
-import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
+import { v_1bfbd0, v_8b0c90, v_8f28b1 } from "../../components/constants";
 import type { v_97a9a8, v_8ad91b } from "../../navigation/types";
 
 type TabNav = v_34614d<
@@ -658,12 +658,20 @@ const v_fd5f43 = v_472849.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingHorizontal: 14,
-    height: 40,
+    height: v_8f28b1.height,
+    paddingHorizontal: v_8f28b1.paddingHorizontal,
     backgroundColor: v_1bfbd0.zinc100,
-    borderRadius: v_8b0c90.lg,
+    borderRadius: v_8f28b1.borderRadius,
   },
-  searchInput: { flex: 1, fontSize: 14, color: v_1bfbd0.zinc900, padding: 0 },
+  searchInput: {
+    flex: 1,
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
+    paddingVertical: 0,
+    textAlignVertical: v_8f28b1.textAlignVertical,
+    includeFontPadding: v_8f28b1.includeFontPadding,
+    color: v_1bfbd0.zinc900,
+  },
 
   kwScroll: { marginTop: 10 },
   kwScrollContent: { paddingRight: 16, gap: 8 },

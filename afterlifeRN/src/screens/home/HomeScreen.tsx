@@ -62,7 +62,7 @@ import {
 import { v_bfd883 } from "../../lib/relativeTime";
 import { v_84d546 } from "../../lib/callGuard";
 import { v_ab98d4 } from "../../hooks/useReportAcceptedGate";
-import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
+import { v_1bfbd0, v_8b0c90, v_7c5e29 } from "../../components/constants";
 import type { v_19b433 } from "../../types/feed";
 import type { v_8ad91b } from "../../navigation/types";
 
@@ -1449,7 +1449,12 @@ const v_d81136 = v_472849.create({
   emptyCommentGray: { fontSize: 14, color: v_1bfbd0.zinc400 },
   emptyText: { fontSize: 14, color: v_1bfbd0.zinc400, marginTop: 8 },
   commentInputRow: { flexDirection: "row", alignItems: "center", gap: 12, borderTopWidth: 1, borderTopColor: v_1bfbd0.zinc100, paddingTop: 12 },
-  commentInput: { flex: 1, height: 40, backgroundColor: v_1bfbd0.zinc50 ?? v_1bfbd0.zinc100, borderRadius: 20, paddingHorizontal: 16, fontSize: 14, color: v_1bfbd0.zinc900 },
+  commentInput: {
+    flex: 1,
+    backgroundColor: v_1bfbd0.zinc50 ?? v_1bfbd0.zinc100,
+    color: v_1bfbd0.zinc900,
+    ...v_7c5e29,
+  },
 
   replyActions: { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 6 },
   replyActionText: { fontSize: 12, fontWeight: "600", color: v_1bfbd0.zinc500 },

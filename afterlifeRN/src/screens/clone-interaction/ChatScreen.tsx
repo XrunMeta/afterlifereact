@@ -14,7 +14,6 @@ import {
   v_326be8,
   v_0e1f26,
   v_e767d1,
-  type v_5b67a3,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -27,7 +26,8 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_84d546 } from "../../lib/callGuard";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
-import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
+import v_556baf from "../../components/ui/SafeView";
+import { v_1bfbd0, v_8b0c90, v_9b1a04, v_0da505 } from "../../components/constants";
 import {
   v_8a85e2,
   v_22ca9b,
@@ -76,7 +76,21 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     (typeof v_c1e151 === "string" && v_c1e151) || v_eb25ce?.imageUrl || null;
 
   const [v_bbda62, v_c31db7] = v_5ab095("");
+
   const [v_7e4acc, v_de86c2] = v_5ab095(0);
+  v_c4deb2(() => {
+    const v_399925 = v_326be8.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const v_206f77 = v_326be8.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const v_53f5d7 = v_0e1f26.addListener(v_399925, (v_9e86fd) => {
+      v_de86c2(v_9e86fd?.endCoordinates?.height ?? 0);
+      setTimeout(() => v_5ca6b8.current?.scrollToEnd({ animated: true }), 50);
+    });
+    const v_52528b = v_0e1f26.addListener(v_206f77, () => v_de86c2(0));
+    return () => {
+      v_53f5d7.remove();
+      v_52528b.remove();
+    };
+  }, []);
 
   const [v_842b8b, v_0f6477] = v_5ab095(true);
   const [v_f61bef, v_ceec45] = v_5ab095(false);
@@ -242,26 +256,6 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     );
   };
 
-  v_c4deb2(() => {
-    const v_399925 = v_326be8.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const v_206f77 = v_326be8.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-    const v_53f5d7 = v_0e1f26.addListener(v_399925, (e: v_5b67a3) => {
-      const v_65a2cd = v_9e86fd.endCoordinates?.height ?? 0;
-      console.log("[Chat] keyboardShow height=", v_65a2cd, "evt=", v_399925);
-      v_de86c2(v_65a2cd);
-
-      setTimeout(() => v_5ca6b8.current?.scrollToEnd({ animated: true }), 50);
-    });
-    const v_52528b = v_0e1f26.addListener(v_206f77, () => {
-      console.log("[Chat] keyboardHide");
-      v_de86c2(0);
-    });
-    return () => {
-      v_53f5d7.remove();
-      v_52528b.remove();
-    };
-  }, []);
-
   const v_465869 = async () => {
     const v_2f361a = v_bbda62.trim();
     if (!v_2f361a || v_5e23ec) return;
@@ -393,30 +387,17 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
   const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
 
-  const v_7d3ee3 = v_e662ae<number | null>(null);
-  if (v_7d3ee3.current === null) {
-
-    const v_cba2d5 = Math.max(v_033e14.bottom, v_f9771e, 10);
-    v_7d3ee3.current = v_cba2d5;
-  }
-  const v_53dd92 = v_7e4acc > 0 ? 10 : (v_7d3ee3.current ?? 10);
-
   return (
-
-   <Modal
-     visible={true}
-     transparent={false}
-     animationType="none"
-     statusBarTranslucent={true}
-     onRequestClose={() => v_c65f5d.goBack()}
-   >
-    {
-
-}
+    <SafeView
+      showBottomBackground
+      backgroundColor={v_1bfbd0.white}
+      bottomBackgroundColor={v_1bfbd0.white}
+    >
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={v_326be8.OS === "ios" ? "padding" : "height"}
       enabled={v_326be8.OS === "ios" ? true : v_7e4acc > 0}
+      keyboardVerticalOffset={0}
     >
     <View style={[v_d81136.root, { paddingTop: v_033e14.top }]}>
       {}
@@ -633,9 +614,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         )}
       </ScrollView>
 
-      {
-}
-      <View style={[v_d81136.inputBar, { paddingBottom: v_53dd92 || 10 }]}>
+      {}
+      <View style={v_d81136.inputBar}>
         <TextInput
           style={v_d81136.inputField}
           value={v_bbda62}
@@ -643,13 +623,13 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           placeholder={`${v_dfb220}(으)로 채팅 중`}
           placeholderTextColor={v_1bfbd0.zinc400}
           multiline
+          textAlignVertical="center"
           maxLength={500}
           returnKeyType="send"
           onSubmitEditing={v_465869}
           blurOnSubmit
-
           onFocus={() => {
-            setTimeout(() => v_5ca6b8.current?.scrollToEnd({ animated: true }), 100);
+            setTimeout(() => v_5ca6b8.current?.scrollToEnd({ animated: true }), 150);
           }}
         />
         <TouchableOpacity
@@ -657,7 +637,11 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           onPress={v_465869}
           disabled={!v_bbda62.trim()}
         >
-          <Feather name="send" size={18} color={v_1bfbd0.white} />
+          <Feather
+            name="send"
+            size={18}
+            color={!v_bbda62.trim() ? v_1bfbd0.zinc400 : v_1bfbd0.white}
+          />
         </TouchableOpacity>
       </View>
 
@@ -768,7 +752,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       </Modal>
     </View>
     </KeyboardAvoidingView>
-    </Modal>
+    </SafeView>
   );
 }
 
@@ -1062,36 +1046,33 @@ const v_d81136 = v_472849.create({
 
   inputBar: {
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
     gap: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: v_9b1a04.large,
     paddingTop: 8,
+    paddingBottom: 12,
     backgroundColor: v_1bfbd0.white,
     borderTopWidth: 1,
-    borderTopColor: v_1bfbd0.zinc100,
+    borderTopColor: v_1bfbd0.zinc200,
   },
   inputField: {
     flex: 1,
-    minHeight: 40,
     maxHeight: 120,
-    backgroundColor: v_1bfbd0.zinc100,
-    borderRadius: v_8b0c90.lg,
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 10,
-    fontSize: 14,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
     color: v_1bfbd0.zinc900,
-
-    textAlign: "left",
-    textAlignVertical: "top",
-    writingDirection: "ltr",
+    backgroundColor: v_1bfbd0.zinc100,
+    ...v_0da505,
   },
   sendBtn: {
-    width: 40, height: 40, borderRadius: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: v_1bfbd0.primary,
-    alignItems: "center", justifyContent: "center",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  sendBtnDisabled: { backgroundColor: v_1bfbd0.zinc300 },
+  sendBtnDisabled: { backgroundColor: v_1bfbd0.zinc200 },
 
   sheetOverlay: {
     flex: 1,

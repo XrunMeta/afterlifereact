@@ -20,7 +20,7 @@ import type { v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_2d88fc } from "../../navigation/types";
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
-import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../../components/constants";
+import { v_1bfbd0, v_8b0c90, v_9b1a04, v_8f28b1 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_194498 } from "../../stores/cloneStore";
 import {
@@ -338,12 +338,15 @@ const v_fd5f43 = v_472849.create({
   inviteRow: { flexDirection: "row", gap: 8, alignItems: "center" },
   emailInput: {
     flex: 1,
-    fontSize: 14,
     color: v_1bfbd0.zinc900,
     backgroundColor: v_1bfbd0.zinc50,
-    borderRadius: v_8b0c90.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: v_8f28b1.borderRadius,
+    height: v_8f28b1.height,
+    paddingHorizontal: v_8f28b1.paddingHorizontal,
+    paddingVertical: 0,
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
+    textAlignVertical: v_8f28b1.textAlignVertical,
   },
   sendBtn: {
     paddingHorizontal: 16,

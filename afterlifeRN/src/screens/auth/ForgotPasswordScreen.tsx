@@ -17,7 +17,7 @@ import { v_dec439 } from "zvyjokvuouwvifyzks";
 import v_556baf from "../../components/ui/SafeView";
 import v_92f073 from "../../components/auth/OtpVerifyView";
 import v_258c1c from "../../components/common/PageHeader";
-import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
+import { v_1bfbd0, v_8b0c90, v_8f28b1 } from "../../components/constants";
 import {
   v_84a859,
   v_2efafe,
@@ -376,17 +376,20 @@ const v_fd5f43 = v_472849.create({
     backgroundColor: v_1bfbd0.zinc50,
     borderWidth: 1,
     borderColor: v_1bfbd0.zinc200,
-    borderRadius: v_8b0c90.md,
-    paddingHorizontal: 14,
+    borderRadius: v_8f28b1.borderRadius,
+    paddingHorizontal: v_8f28b1.paddingHorizontal,
+    height: v_8f28b1.height,
   },
   inputIcon: { marginRight: 10 },
   errorText: { marginTop: -8, fontSize: 12, color: v_1bfbd0.error },
   toggleBtn: { paddingHorizontal: 6, paddingVertical: 8 },
   input: {
     flex: 1,
-    height: 48,
-    fontSize: 14,
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
     color: v_1bfbd0.zinc900,
+    paddingVertical: 0,
+    textAlignVertical: v_8f28b1.textAlignVertical,
   },
   primaryBtn: {
     height: 50,
