@@ -1661,11 +1661,23 @@ v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
               soft_deleted_at AS softDeletedAt,
               suspended_until AS suspendedUntil,
               banned_until AS bannedUntil,
+              -- 2026-10-19: 컬럼명 정정 (face_biometric_consent_at 은 존재하지 않음 → 쿼리 전체 실패하던 버그).
+              --   *At 은 모두 unixepoch ms. 마케팅/클론별 얼굴 시각은 user_consent_log 최신 행.
               face_biometric_consent AS faceBiometricConsent,
-              face_biometric_consent_at AS faceBiometricConsentAt,
+              face_consent_at AS faceBiometricConsentAt,
               call_learning_consent AS callLearningConsent,
               call_learning_consent_at AS callLearningConsentAt,
+              location_consent AS locationConsent,
+              location_consent_at AS locationConsentAt,
               marketing_consent AS marketingConsent,
+              (SELECT MAX(changed_at) FROM user_consent_log l
+                WHERE l.user_id = users.id AND l.consent_type = 'marketing' AND l.state = 'granted') AS marketingConsentAt,
+              (SELECT CASE WHEN l.state = 'granted' THEN 1 ELSE 0 END FROM user_consent_log l
+                WHERE l.user_id = users.id AND l.consent_type = 'clone_face'
+                ORDER BY l.changed_at DESC, l.id DESC LIMIT 1) AS cloneFaceConsent,
+              (SELECT l.changed_at FROM user_consent_log l
+                WHERE l.user_id = users.id AND l.consent_type = 'clone_face'
+                ORDER BY l.changed_at DESC, l.id DESC LIMIT 1) AS cloneFaceConsentAt,
               sso_consent_version AS ssoConsentVersion,
               sso_consent_at AS ssoConsentAt
          FROM users
@@ -1687,7 +1699,12 @@ v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
       faceBiometricConsentAt: number | null;
       callLearningConsent: number | null;
       callLearningConsentAt: number | null;
+      locationConsent: number | null;
+      locationConsentAt: number | null;
       marketingConsent: number | null;
+      marketingConsentAt: number | null;
+      cloneFaceConsent: number | null;
+      cloneFaceConsentAt: number | null;
       ssoConsentVersion: string | null;
       ssoConsentAt: string | null;
     }>();

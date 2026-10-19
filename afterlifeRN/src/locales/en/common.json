@@ -368,7 +368,12 @@
     "giftOwnedCount": "{{count}} owned",
     "exiting": "Ending…",
     "adPlaying": "Ad playing…",
-    "adStubNote": "(Dev stub · replaces real ad)"
+    "adStubNote": "(Dev stub · replaces real ad)",
+    "faceConsentPrompt": {
+      "title": "Face recognition consent",
+      "desc": "To recognize who is speaking during calls, the consents below are needed. (optional)",
+      "agree": "Agree"
+    }
   },
   "greeting": {
     "default": "Hello"
@@ -860,7 +865,9 @@
       "rateLimit": "Please try again later. (1-minute cooldown)",
       "sendCodeFailed": "Failed to send code. Please check your network.",
       "xrunFoundTitle": "XRUN account found",
-      "xrunFoundDesc": "A registered XRUN account exists.\n\nSign in with your XRUN credentials to use Afterlife as well."
+      "xrunFoundDesc": "A registered XRUN account exists.\n\nSign in with your XRUN credentials to use Afterlife as well.",
+      "cloneFaceConsent": "[Optional] Per-clone face recognition consent",
+      "termsCloneFaceTitle": "Per-clone face recognition consent"
     },
     "emailVerify": {
       "title": "Verify Email",
@@ -1375,7 +1382,7 @@
     "desc": "We need camera and microphone access for video calls",
     "cameraLabel": "Camera",
     "micLabel": "Microphone",
-    "locationLabel": "Location (optional)",
+    "locationLabel": "Location (required)",
     "statusGranted": "Allowed",
     "statusDenied": "Denied",
     "statusUndetermined": "Needs permission",

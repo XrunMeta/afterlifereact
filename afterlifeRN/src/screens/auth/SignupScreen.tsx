@@ -39,6 +39,7 @@ import {
 } from "../../api/auth";
 import {
   v_7f847d,
+  v_505b50,
   v_421733,
   v_2d09bf,
 } from "../../api/consent";
@@ -392,6 +393,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_8c98c4, v_e378a4] = v_5ab095(false);
   const [v_a03498, v_d34fc9] = v_5ab095(false);
 
+  const [v_4513fd, v_9537cd] = v_5ab095(false);
+
   const [v_d39271, v_fe0d62] = v_5ab095<v_3ac6ea | null>(null);
   const [v_b67b40, v_a259be] = v_5ab095(false);
   const [v_3a64df, v_c73419] = v_5ab095(false);
@@ -427,7 +430,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const v_5c764d =
     v_51b53b && v_09b7fa && v_540cd3 && v_7f128f;
   const v_33f2ba =
-    v_5c764d && v_8c98c4 && v_a03498;
+    v_5c764d && v_8c98c4 && v_a03498 && v_4513fd;
 
   const v_26e7c7 = async () => {
     if (v_540cd3) {
@@ -500,6 +503,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       v_06ec09(false);
       v_e378a4(false);
       v_d34fc9(false);
+      v_9537cd(false);
       v_704175(null);
       v_73f064(null);
       v_94f796(null);
@@ -509,6 +513,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     v_1d4807(true);
     v_06ec09(true);
     v_d34fc9(true);
+    v_9537cd(true);
     if (!v_540cd3) await v_26e7c7();
     if (!v_8c98c4) await v_349606();
   };
@@ -788,6 +793,15 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         } catch (v_49263d) {
           console.warn("[AUTH/signup] saveFaceBiometricConsent (google) failed:", v_49263d);
         }
+
+        try {
+          await v_505b50(v_8f00b9.accessToken, v_4513fd ? "granted" : "revoked", {
+            termsVersion: "v1",
+            channel: "signup",
+          });
+        } catch (v_49263d) {
+          console.warn("[AUTH/signup] saveCloneFaceConsent (google) failed:", v_49263d);
+        }
         if (v_540cd3) {
           try {
             await v_2d09bf(v_8f00b9.accessToken, "granted", { channel: "signup" });
@@ -843,6 +857,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         marketingConsent: v_8c98c4,
         agreeCallLearning: v_7f128f,
         agreeFaceBiometric: v_a03498,
+        agreeCloneFace: v_4513fd,
         agreeLocation: v_540cd3,
         pushToken: v_1a29d0 ?? undefined,
         platform: v_ea920b ?? undefined,
@@ -1228,6 +1243,20 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
               </Text>
             </View>
 
+            {}
+            <View style={v_d81136.termsRow}>
+              <SquareCheckbox
+                checked={v_4513fd}
+                onToggle={() => v_9537cd((v_81e2ef) => !v_81e2ef)}
+              />
+              <Text style={v_d81136.termsText}>
+                <Text style={v_d81136.termsHighlight} onPress={() => v_fe0d62(6)}>
+                  {v_8d41d7("auth.signup.cloneFaceConsent", { defaultValue: "[선택] 클론별 얼굴 인식 동의" })}
+                </Text>{" "}
+                {v_8d41d7("auth.signup.termsAgree", { defaultValue: "동의" })}
+              </Text>
+            </View>
+
             <View style={v_d81136.termsDivider} />
 
             {}
@@ -1434,6 +1463,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           else if (v_357868 === 3) v_1d4807(true);
           else if (v_357868 === 4) v_d34fc9(true);
           else if (v_357868 === 5) v_06ec09(true);
+          else if (v_357868 === 6) v_9537cd(true);
         }}
       />
     </SafeView>

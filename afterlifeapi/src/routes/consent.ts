@@ -99,17 +99,69 @@ v_74e200.post("/consent/location", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true, state: v_b6e533 });
 });
 
+v_74e200.post("/consent/marketing", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = await v_3f4e2e.req.json<{ state?: string; termsVersion?: string; channel?: string }>()
+    .catch(() => ({} as { state?: string; termsVersion?: string; channel?: string }));
+  const v_b6e533 = v_4d33b2.state;
+  if (v_b6e533 !== "granted" && v_b6e533 !== "revoked") {
+    throw new v_3ebe58("VALIDATION_FAILED", "state must be 'granted' or 'revoked'.");
+  }
+  const v_5c2f9f = Date.now();
+  const v_5ba503 = v_4d33b2.termsVersion ?? null;
+  const v_8e9fad = v_4d33b2.channel ?? "settings";
+
+  await v_3f4e2e.env.DB.batch([
+    v_3f4e2e.env.DB.prepare(
+      "UPDATE users SET marketing_consent = ? WHERE id = ?",
+    ).bind(v_b6e533 === "granted" ? 1 : 0, v_43e90c),
+    v_3f4e2e.env.DB.prepare(
+      `INSERT INTO user_consent_log (user_id, consent_type, state, terms_version, channel, changed_at)
+       VALUES (?, 'marketing', ?, ?, ?, ?)`,
+    ).bind(v_43e90c, v_b6e533, v_5ba503, v_8e9fad, v_5c2f9f),
+  ]);
+
+  return v_3f4e2e.json({ ok: true, state: v_b6e533 });
+});
+
+v_74e200.post("/consent/clone-face", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = await v_3f4e2e.req.json<{ state?: string; termsVersion?: string; channel?: string }>()
+    .catch(() => ({} as { state?: string; termsVersion?: string; channel?: string }));
+  const v_b6e533 = v_4d33b2.state;
+  if (v_b6e533 !== "granted" && v_b6e533 !== "revoked") {
+    throw new v_3ebe58("VALIDATION_FAILED", "state must be 'granted' or 'revoked'.");
+  }
+
+  await v_3f4e2e.env.DB.prepare(
+    `INSERT INTO user_consent_log (user_id, consent_type, state, terms_version, channel, changed_at)
+     VALUES (?, 'clone_face', ?, ?, ?, ?)`,
+  ).bind(v_43e90c, v_b6e533, v_4d33b2.termsVersion ?? null, v_4d33b2.channel ?? "settings", Date.now()).run();
+
+  return v_3f4e2e.json({ ok: true, state: v_b6e533 });
+});
+
 v_74e200.get("/consent", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_3ac7e7 = await v_3f4e2e.env.DB.prepare(
     `SELECT call_learning_consent AS c, call_learning_consent_at AS at,
             face_biometric_consent AS fbc, face_consent_at AS fbAt, face_consent_version AS fbVer,
-            location_consent AS lc, location_consent_at AS lcAt
+            location_consent AS lc, location_consent_at AS lcAt,
+            marketing_consent AS mc,
+            (SELECT MAX(changed_at) FROM user_consent_log
+              WHERE user_id = users.id AND consent_type = 'marketing') AS mcAt,
+            (SELECT state FROM user_consent_log
+              WHERE user_id = users.id AND consent_type = 'clone_face'
+              ORDER BY changed_at DESC, id DESC LIMIT 1) AS cfState,
+            (SELECT MAX(changed_at) FROM user_consent_log
+              WHERE user_id = users.id AND consent_type = 'clone_face') AS cfAt
      FROM users WHERE id = ?`,
   ).bind(v_43e90c).first<{
     c: number; at: number | null;
     fbc: number; fbAt: number | null; fbVer: string | null;
     lc: number; lcAt: number | null;
+    mc: number; mcAt: number | null;
+    cfState: string | null; cfAt: number | null;
   }>();
   return v_3f4e2e.json({
     call_learning: { state: v_3ac7e7?.c === 1 ? "granted" : "none", at: v_3ac7e7?.at ?? null },
@@ -120,6 +172,12 @@ v_74e200.get("/consent", v_6690d9, async (v_3f4e2e) => {
       version: v_3ac7e7?.fbVer ?? null,
     },
     location: { state: v_3ac7e7?.lc === 1 ? "granted" : "none", at: v_3ac7e7?.lcAt ?? null },
+    marketing: { state: v_3ac7e7?.mc === 1 ? "granted" : "none", at: v_3ac7e7?.mcAt ?? null },
+
+    clone_face: {
+      state: v_3ac7e7?.cfState === "granted" ? "granted" : v_3ac7e7?.cfState === "revoked" ? "revoked" : "none",
+      at: v_3ac7e7?.cfAt ?? null,
+    },
   });
 });
 

@@ -61,13 +61,13 @@ export default function v_3b950c() {
 
   const v_8a15d2 = v_042a8b && (v_decd98 || !v_403b73.pass);
 
+  if (v_042a8b && !v_65e1e2.loading && v_65e1e2.needs) {
+    return <SsoReconsentScreen onDone={v_65e1e2.refresh} />;
+  }
+
   if (v_8a15d2) {
 
     return <PermissionGateScreen />;
-  }
-
-  if (v_042a8b && !v_65e1e2.loading && v_65e1e2.needs) {
-    return <SsoReconsentScreen onDone={v_65e1e2.refresh} />;
   }
 
   return (

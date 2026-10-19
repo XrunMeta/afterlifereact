@@ -368,7 +368,12 @@
     "giftOwnedCount": "{{count}}個所持",
     "exiting": "終了中…",
     "adPlaying": "広告再生中…",
-    "adStubNote": "(開発用スタブ · 実広告の代替)"
+    "adStubNote": "(開発用スタブ · 実広告の代替)",
+    "faceConsentPrompt": {
+      "title": "顔認識への同意",
+      "desc": "通話中に誰が話しているかを認識するには、以下の同意が必要です。（任意）",
+      "agree": "同意"
+    }
   },
   "greeting": {
     "default": "こんにちは"
@@ -858,7 +863,9 @@
       "rateLimit": "しばらくしてから再度お試しください。(1分クールダウン)",
       "sendCodeFailed": "コードの送信に失敗しました。ネットワークをご確認ください。",
       "xrunFoundTitle": "XRUNアカウントを検出",
-      "xrunFoundDesc": "登録済みのXRUNアカウントが存在します。\n\nXRUNのアカウント情報でログインすれば、Afterlifeも併せてご利用いただけます。"
+      "xrunFoundDesc": "登録済みのXRUNアカウントが存在します。\n\nXRUNのアカウント情報でログインすれば、Afterlifeも併せてご利用いただけます。",
+      "cloneFaceConsent": "[任意] クローン別の顔認識への同意",
+      "termsCloneFaceTitle": "クローン別の顔認識への同意"
     },
     "emailVerify": {
       "title": "メール認証",
@@ -1373,7 +1380,7 @@
     "desc": "ビデオ通話のためにカメラとマイクの権限が必要です",
     "cameraLabel": "カメラ",
     "micLabel": "マイク",
-    "locationLabel": "位置情報 (任意)",
+    "locationLabel": "位置情報 (必須)",
     "statusGranted": "許可済み",
     "statusDenied": "拒否",
     "statusUndetermined": "権限が必要",
