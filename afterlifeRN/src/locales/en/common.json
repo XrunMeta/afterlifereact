@@ -578,6 +578,8 @@
     "giftHeaderCount": "Count",
     "giftHeaderSender": "Sender",
     "emptyGift": "No gifts received yet",
+    "giftTotalReceivedBefore": "Total gifts received ",
+    "giftTotalReceivedAfter": "",
     "reportReceived": "Report received",
     "uploadAvatarFailed": "Failed to upload image"
   },

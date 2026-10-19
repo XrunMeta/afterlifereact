@@ -56,7 +56,12 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
         ) : (
           <View style={v_d81136.emptyInner}>
             <Feather name="image" size={32} color={v_1bfbd0.zinc400} />
-            <Text style={v_d81136.hint}>
+            <Text
+              style={v_d81136.hint}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+            >
               {v_8d41d7('create.image.selectHint', { defaultValue: '사진을 선택해 주십시오' })}
             </Text>
           </View>
@@ -189,10 +194,11 @@ const v_d81136 = v_472849.create({
     ...v_472849.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
   },
   hint: {
     marginTop: 8,
+    width: '100%',
     color: v_1bfbd0.zinc500,
     fontSize: 13,
     textAlign: 'center',
