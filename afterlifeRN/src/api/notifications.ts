@@ -61,3 +61,24 @@ export interface TestPushResult {
 export async function v_7bc674(v_2ca7e0): Promise<TestPushResult> {
   return v_593ce7(`/oth-path`, v_2ca7e0, { method: "POST" });
 }
+
+export interface NotificationPrefs {
+  newFollower: boolean;
+  followingActivity: boolean;
+  reactions: boolean;
+  promotions: boolean;
+}
+
+export async function v_67d473(v_2ca7e0): Promise<NotificationPrefs> {
+  return v_04b58a<NotificationPrefs>("/oth-path", v_2ca7e0, { method: "GET" });
+}
+
+export async function v_ba1376(
+  v_2ca7e0,
+  v_17dc8a,
+): Promise<NotificationPrefs> {
+  return v_04b58a<NotificationPrefs>("/oth-path", v_2ca7e0, {
+    method: "PUT",
+    body: JSON.stringify(v_17dc8a),
+  });
+}

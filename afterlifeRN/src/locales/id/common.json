@@ -1274,13 +1274,14 @@
         },
         "reactions": {
           "label": "Reaksi",
-          "desc": "Ketika klon Anda mendapat suka, komentar, atau laporan"
+          "desc": "Saat klon Anda mendapat suka, komentar, langganan, atau hadiah"
         },
         "promotions": {
           "label": "Promosi",
           "desc": "Penawaran yang dipersonalisasi dan pengumuman acara"
         }
-      }
+      },
+      "saveFailed": "Gagal menyimpan pengaturan. Silakan coba lagi."
     },
     "agreements": {
       "title": "Persetujuan"
