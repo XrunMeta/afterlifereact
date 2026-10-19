@@ -8,13 +8,22 @@ import { v_cc9198 } from "../config/apiBase";
 export const v_f1ed69 = "2026-10-16-v1";
 const v_d9b84e = "sso_reconsent_done_at";
 
-export async function v_fa872d(v_2ca7e0): Promise<void> {
+export async function v_fa872d(
+  v_2ca7e0,
+  v_328259,
+): Promise<void> {
 
   if (v_2ca7e0) {
     try {
       const v_8f00b9 = await fetch(`${v_cc9198}/oth-path`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${v_2ca7e0}` },
+        headers: {
+          Authorization: `Bearer ${v_2ca7e0}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(
+          v_328259?.marketingConsent !== undefined ? { marketingConsent: v_328259.marketingConsent } : {},
+        ),
       });
       if (!v_8f00b9.ok) {
         console.warn(`[sso-reconsent] server mark failed: ${v_8f00b9.status}`);

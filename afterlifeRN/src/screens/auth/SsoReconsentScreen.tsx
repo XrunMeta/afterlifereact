@@ -21,10 +21,13 @@ import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 
 import {
   v_7f847d,
+  v_505b50,
   v_421733,
   v_2d09bf,
 } from "../../api/consent";
 import { v_d2929b } from "./faceBiometricSignupFlag";
+import { v_704bef, v_9bedf5 } from "../../lib/pushNotifications";
+import { v_889fad } from "../../stores/dialogStore";
 
 type Props = {
   onDone: () => void;
@@ -45,18 +48,80 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
   const [v_ae0efb, v_f2d945] = v_5ab095(false);
 
   const [v_a03498, v_d34fc9] = v_5ab095(false);
+
+  const [v_8c98c4, v_e378a4] = v_5ab095(false);
+
+  const [v_4513fd, v_9537cd] = v_5ab095(false);
+  const [v_8d0e18, v_3bb4d3] = v_5ab095(false);
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
+  const v_9b51bc = v_1ed7d9((v_fd5f43) => v_fd5f43.apiLogout);
 
   const v_8c2724 = v_51b53b && v_09b7fa && v_540cd3 && v_ae0efb;
+  const v_33f2ba = v_8c2724 && v_a03498 && v_8c98c4 && v_4513fd;
 
-  const v_0217e6 = () => {
-    const v_a448ad = !v_8c2724;
+  const v_8d4692 = async () => {
+    if (v_540cd3) {
+      v_a67880(false);
+      return;
+    }
+    try {
+      const v_8a44cb = await import("zryrlwvgokjhz");
+      const v_fc6010 = await v_8a44cb.getForegroundPermissionsAsync();
+      const v_d60769 = v_fc6010.granted ? v_fc6010 : await v_8a44cb.requestForegroundPermissionsAsync();
+      if (!v_d60769.granted) {
+        v_889fad(
+          v_8d41d7("auth.signup.locationPermTitle", { defaultValue: "위치 권한 필요" }),
+          v_8d41d7("auth.signup.locationPermDesc", {
+            defaultValue:
+              "통화 시 지역 기반 대화를 하려면 위치 권한이 필요합니다.\n기기 설정 → 위치 → AfterLife 에서 허용해 주십시오.",
+          }),
+        );
+        return;
+      }
+      v_a67880(true);
+    } catch (v_49263d) {
+      console.warn("[SsoReconsent] location permission request failed:", v_49263d);
+      v_889fad(
+        v_8d41d7("common.error"),
+        v_8d41d7("auth.signup.locationPermError", { defaultValue: "위치 권한 요청 중 문제가 발생했습니다." }),
+      );
+    }
+  };
+
+  const v_349606 = async () => {
+    if (v_8c98c4) {
+      v_e378a4(false);
+      return;
+    }
+    v_3bb4d3(true);
+    try {
+      const v_e43fa5 = await v_704bef();
+      if (!v_e43fa5.granted) {
+        v_889fad(v_8d41d7("auth.signup.pushPermTitle"), v_8d41d7("auth.signup.pushPermDesc"));
+        return;
+      }
+      v_e378a4(true);
+    } catch {
+      v_889fad(v_8d41d7("common.error"), v_8d41d7("auth.signup.pushPermError"));
+    } finally {
+      v_3bb4d3(false);
+    }
+  };
+
+  const v_0217e6 = async () => {
+    const v_a448ad = !v_33f2ba;
     v_c8f346(v_a448ad);
     v_1d4807(v_a448ad);
-    v_a67880(v_a448ad);
     v_f2d945(v_a448ad);
-
     v_d34fc9(v_a448ad);
+    v_9537cd(v_a448ad);
+    if (!v_a448ad) {
+      v_a67880(false);
+      v_e378a4(false);
+      return;
+    }
+    if (!v_540cd3) await v_8d4692();
+    if (!v_8c98c4) await v_349606();
   };
 
   const v_0577ff = async () => {
@@ -89,8 +154,18 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
         } catch (v_49263d) {
           console.warn("[SsoReconsent] saveFaceBiometricConsent failed:", v_49263d);
         }
+
+        try {
+          await v_505b50(v_2ca7e0, v_4513fd ? "granted" : "revoked", {
+            termsVersion: "v1",
+            channel: "settings",
+          });
+        } catch (v_49263d) {
+          console.warn("[SsoReconsent] saveCloneFaceConsent failed:", v_49263d);
+        }
       }
-      await v_fa872d(v_2ca7e0);
+      await v_fa872d(v_2ca7e0, { marketingConsent: v_8c98c4 });
+      if (v_8c98c4) void v_9bedf5(v_2ca7e0);
       await v_1ed7d9.getState().refreshApiUser?.();
       v_7b5712();
     } finally {
@@ -129,22 +204,22 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
         <Pressable
           style={({ pressed: v_aba1d2 }) => [
             v_d81136.rowAll,
-            v_8c2724 && v_d81136.rowAllActive,
+            v_33f2ba && v_d81136.rowAllActive,
             v_aba1d2 && { opacity: 0.9 },
           ]}
-          onPress={v_0217e6}
+          onPress={() => void v_0217e6()}
         >
           <View
             style={[
               v_d81136.checkbox,
               v_d81136.checkboxLarge,
-              v_8c2724 && v_d81136.checkboxChecked,
+              v_33f2ba && v_d81136.checkboxChecked,
             ]}
           >
-            {v_8c2724 && <Feather name="check" size={16} color={v_1bfbd0.white} />}
+            {v_33f2ba && <Feather name="check" size={16} color={v_1bfbd0.white} />}
           </View>
-          <Text style={[v_d81136.rowAllText, v_8c2724 && v_d81136.rowAllTextActive]}>
-            {v_8d41d7("sso.reconsent.agreeAll", { defaultValue: "4개 필수 약관 모두 동의" })}
+          <Text style={[v_d81136.rowAllText, v_33f2ba && v_d81136.rowAllTextActive]}>
+            {v_8d41d7("auth.signup.termsAgreeAll", { defaultValue: "전체 동의" })}
           </Text>
         </Pressable>
 
@@ -168,7 +243,7 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
         />
         <ConsentRow
           checked={v_540cd3}
-          onCheck={() => v_a67880(!v_540cd3)}
+          onCheck={() => void v_8d4692()}
           onReadMore={() => v_fe0d62(2)}
           label={v_8d41d7("auth.signup.locationConsent", {
             defaultValue: "[필수] 위치기반서비스 이용약관",
@@ -184,11 +259,29 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
         />
         {}
         <ConsentRow
+          checked={v_8c98c4}
+          onCheck={() => void v_349606()}
+          onReadMore={() => void v_349606()}
+          label={`${v_8d41d7("auth.signup.marketingConsent", {
+            defaultValue: "[선택] 마케팅 정보 수집 및 활용 동의",
+          })}${v_8d0e18 ? ` (${v_8d41d7("auth.signup.verifying", { defaultValue: "확인 중" })})` : ""}`}
+        />
+        {}
+        <ConsentRow
           checked={v_a03498}
           onCheck={() => v_d34fc9(!v_a03498)}
           onReadMore={() => v_fe0d62(4)}
           label={v_8d41d7("auth.signup.faceBiometricConsent", {
             defaultValue: "[선택] 얼굴 생체정보 처리 동의",
+          })}
+        />
+        {}
+        <ConsentRow
+          checked={v_4513fd}
+          onCheck={() => v_9537cd(!v_4513fd)}
+          onReadMore={() => v_fe0d62(6)}
+          label={v_8d41d7("auth.signup.cloneFaceConsent", {
+            defaultValue: "[선택] 클론별 얼굴 인식 동의",
           })}
         />
       </ScrollView>
@@ -209,6 +302,12 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
               : v_8d41d7("sso.reconsent.continue", { defaultValue: "동의하고 계속" })}
           </Text>
         </Pressable>
+        {}
+        <Pressable onPress={() => void v_9b51bc()} style={v_d81136.logoutLink} hitSlop={8}>
+          <Text style={v_d81136.logoutLinkText}>
+            {v_8d41d7("permissionGate.logout", { defaultValue: "로그아웃" })}
+          </Text>
+        </Pressable>
       </View>
 
       <TermsModal
@@ -220,10 +319,12 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
           const v_357868 = v_d39271;
           v_fe0d62(null);
           if (v_357868 === 1) v_c8f346(true);
-          else if (v_357868 === 2) v_a67880(true);
+
+          else if (v_357868 === 2) { if (!v_540cd3) void v_8d4692(); }
           else if (v_357868 === 3) v_1d4807(true);
           else if (v_357868 === 4) v_d34fc9(true);
           else if (v_357868 === 5) v_f2d945(true);
+          else if (v_357868 === 6) v_9537cd(true);
         }}
       />
     </View>
@@ -299,7 +400,7 @@ const v_d81136 = v_472849.create({
     paddingVertical: 16,
     paddingHorizontal: 16,
     backgroundColor: v_1bfbd0.zinc50 ?? "#fafafa",
-    borderRadius: v_8b0c90.small,
+    borderRadius: v_8b0c90.sm,
   },
   rowAllActive: {
     backgroundColor: v_1bfbd0.violet100 ?? "#f3f0ff",
@@ -348,8 +449,8 @@ const v_d81136 = v_472849.create({
     height: 24,
   },
   checkboxChecked: {
-    backgroundColor: v_1bfbd0.violet600,
-    borderColor: v_1bfbd0.violet600,
+    backgroundColor: v_1bfbd0.primary,
+    borderColor: v_1bfbd0.primary,
   },
   footer: {
     paddingHorizontal: 24,
@@ -361,11 +462,20 @@ const v_d81136 = v_472849.create({
   continueBtn: {
     paddingVertical: 16,
     borderRadius: 12,
-    backgroundColor: v_1bfbd0.violet600,
+    backgroundColor: v_1bfbd0.primary,
     alignItems: "center",
   },
   continueBtnDisabled: {
     backgroundColor: v_1bfbd0.zinc300,
+  },
+  logoutLink: {
+    alignItems: "center",
+    paddingTop: 12,
+  },
+  logoutLinkText: {
+    fontSize: 13,
+    color: v_1bfbd0.zinc400,
+    textDecorationLine: "underline",
   },
   continueBtnText: {
     fontSize: 16,

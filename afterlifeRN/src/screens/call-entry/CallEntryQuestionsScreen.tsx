@@ -17,7 +17,7 @@ import {
   v_bfa1d6,
 } from "rcmrninabrnb";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
-import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../../components/constants";
+import { v_1bfbd0, v_8b0c90, v_e3d001, v_9b1a04 } from "../../components/constants";
 import {
   v_88e76b,
   v_9a25f1,
@@ -451,10 +451,7 @@ const v_fd5f43 = v_472849.create({
     borderColor: v_1bfbd0.zinc300,
     backgroundColor: v_1bfbd0.white,
   },
-  chipActive: {
-    backgroundColor: v_1bfbd0.violet700,
-    borderColor: v_1bfbd0.violet700,
-  },
+  chipActive: v_e3d001.chipFilled,
   chipText: { fontSize: 13, color: v_1bfbd0.zinc700 },
   chipTextActive: { color: v_1bfbd0.white, fontWeight: "600" },
   textInput: {
@@ -486,7 +483,7 @@ const v_fd5f43 = v_472849.create({
 
   },
   saveBtn: {
-    backgroundColor: v_1bfbd0.violet700,
+    backgroundColor: v_1bfbd0.primary,
     padding: 16,
     borderRadius: v_8b0c90.md,
     alignItems: "center",
@@ -511,7 +508,7 @@ const v_fd5f43 = v_472849.create({
   modalTitle: { fontSize: 16, fontWeight: "600", color: v_1bfbd0.zinc900, textAlign: "center" },
   modalButtons: { gap: 10 },
   modalBtn: { padding: 14, borderRadius: v_8b0c90.md, alignItems: "center" },
-  modalBtnPrimary: { backgroundColor: v_1bfbd0.violet700 },
+  modalBtnPrimary: { backgroundColor: v_1bfbd0.primary },
   modalBtnPrimaryText: { color: v_1bfbd0.white, fontSize: 15, fontWeight: "600" },
   modalBtnGhost: { backgroundColor: v_1bfbd0.zinc100 },
   modalBtnGhostText: { color: v_1bfbd0.zinc900, fontSize: 15, fontWeight: "500" },

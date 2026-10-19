@@ -214,19 +214,38 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
 
 v_de7ba7.post("/me/sso-reconsent", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
+
+  const v_4d33b2 = (await v_3f4e2e.req.json().catch(() => ({}))) as { marketingConsent?: unknown };
+  const v_18d480 =
+    typeof v_4d33b2.marketingConsent === "boolean" ? (v_4d33b2.marketingConsent ? 1 : 0) : null;
   await v_3f4e2e.env.DB
     .prepare(
-      `UPDATE users SET sso_consent_version = ?, sso_consent_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      `UPDATE users SET sso_consent_version = ?, sso_consent_at = CURRENT_TIMESTAMP,
+              marketing_consent = COALESCE(?, marketing_consent)
+       WHERE id = ?`,
     )
-    .bind(v_31fb59, v_43e90c)
+    .bind(v_31fb59, v_18d480, v_43e90c)
     .run();
+
+  if (v_18d480 !== null) {
+    await v_3f4e2e.env.DB
+      .prepare(
+        `INSERT INTO user_consent_log (user_id, consent_type, state, terms_version, channel, changed_at)
+         VALUES (?, 'marketing', ?, ?, 'sso_reconsent', ?)`,
+      )
+      .bind(v_43e90c, v_18d480 === 1 ? "granted" : "revoked", v_31fb59, Date.now())
+      .run();
+  }
   const v_38066f = await v_3f4e2e.env.DB
     .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
     .bind(v_43e90c)
     .first<{ xrun_member_id: number | null }>();
   if (v_38066f?.xrun_member_id) {
-    void v_3326b4(v_3f4e2e.env, v_38066f.xrun_member_id, { service: true, location: true, privacy: true })
-      .then((v_cb35cb) => { if (!v_cb35cb.ok) console.warn(`[sso-reconsent] syncTermsToXrun failed: ${v_cb35cb.reason}`); });
+
+    v_3f4e2e.executionCtx.waitUntil(
+      v_3326b4(v_3f4e2e.env, v_38066f.xrun_member_id, { service: true, location: true, privacy: true })
+        .then((v_cb35cb) => { if (!v_cb35cb.ok) console.warn(`[sso-reconsent] syncTermsToXrun failed: ${v_cb35cb.reason}`); }),
+    );
   }
   return v_3f4e2e.json({ ok: true, version: v_31fb59 });
 });

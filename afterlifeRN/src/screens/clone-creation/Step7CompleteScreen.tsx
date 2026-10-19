@@ -26,7 +26,7 @@ import v_258c1c from "../../components/common/PageHeader";
 
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
-import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
+import { v_1bfbd0, v_9b1a04, v_8b0c90, v_a9d3e9 } from "../../components/constants";
 import type { v_affcc0 } from "../../types/clone";
 import { v_39eaf5, v_b55477, v_96d757, v_6c3f29, v_5e388b, v_b4f9f6, v_b20cba, v_ab4719, type v_e5d62a } from "../../api/clones";
 import { v_8b11b8 } from "../../lib/experimentalPipelineFlag";
@@ -806,7 +806,7 @@ const v_d81136 = v_472849.create({
   composerContent: {
     flexGrow: 1,
     paddingHorizontal: 16,
-    paddingTop: 56,
+    paddingTop: 12,
     paddingBottom: 40,
   },
 
@@ -854,10 +854,11 @@ const v_d81136 = v_472849.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: v_1bfbd0.violet600,
+    backgroundColor: v_a9d3e9,
   },
   videoBadgePending: {
-    backgroundColor: "rgba(124,58,237,0.85)",
+
+    backgroundColor: `${v_a9d3e9}D9`,
   },
   videoBadgeFailed: {
     backgroundColor: "rgba(239,68,68,0.9)",

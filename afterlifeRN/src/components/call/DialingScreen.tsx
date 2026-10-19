@@ -207,5 +207,5 @@ const v_d81136 = v_472849.create({
   actions: { position: 'absolute', bottom: '14%', flexDirection: 'row', gap: 32 },
   btn: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
   end: { backgroundColor: v_1bfbd0.error },
-  retry: { backgroundColor: v_1bfbd0.violet500 },
+  retry: { backgroundColor: v_1bfbd0.primary },
 });
