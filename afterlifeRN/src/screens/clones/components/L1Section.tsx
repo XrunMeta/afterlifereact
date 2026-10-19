@@ -2,6 +2,7 @@ import v_a3453e from 'bapkr';
 import { v_3094a2, v_19b633, v_79c4f2, v_472849 } from 'rcmrninabrnb';
 import { v_772971 } from 'jmpfvteuuztnp';
 import type { v_eceede } from '../../../types/domain';
+import { v_8f28b1 } from '../../../components/constants';
 
 const v_0d620a = ['tone', 'hobby', 'style', 'catchphrase'] as const;
 
@@ -46,7 +47,17 @@ const v_d81136 = v_472849.create({
   title: { fontSize: 15, fontWeight: '700' },
   field: { marginVertical: 4 },
   label: { fontSize: 12, color: '#6b7280', marginBottom: 2 },
-  input: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 6, padding: 8 },
-  notes: { minHeight: 72, textAlignVertical: 'top' },
+  input: {
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: v_8f28b1.borderRadius,
+    minHeight: v_8f28b1.height,
+    paddingHorizontal: v_8f28b1.paddingHorizontal,
+    paddingVertical: v_8f28b1.multilinePaddingVertical,
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
+    textAlignVertical: v_8f28b1.textAlignVertical,
+  },
+  notes: { minHeight: 72, textAlignVertical: 'top' as const },
   readonly: { backgroundColor: '#f9fafb' },
 });

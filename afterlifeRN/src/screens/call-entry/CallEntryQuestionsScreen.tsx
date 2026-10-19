@@ -17,7 +17,7 @@ import {
   v_bfa1d6,
 } from "rcmrninabrnb";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
-import { v_1bfbd0, v_8b0c90, v_e3d001, v_9b1a04 } from "../../components/constants";
+import { v_1bfbd0, v_8b0c90, v_e3d001, v_9b1a04, v_8f28b1 } from "../../components/constants";
 import {
   v_88e76b,
   v_9a25f1,
@@ -454,26 +454,31 @@ const v_fd5f43 = v_472849.create({
   chipActive: v_e3d001.chipFilled,
   chipText: { fontSize: 13, color: v_1bfbd0.zinc700 },
   chipTextActive: { color: v_1bfbd0.white, fontWeight: "600" },
+  textInputShort: {
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc300,
+    borderRadius: v_8f28b1.borderRadius,
+    height: v_8f28b1.height,
+    paddingHorizontal: v_8f28b1.paddingHorizontal,
+    paddingVertical: 0,
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
+    textAlignVertical: v_8f28b1.textAlignVertical,
+    color: v_1bfbd0.zinc900,
+    marginTop: 10,
+  },
   textInput: {
     borderWidth: 1,
     borderColor: v_1bfbd0.zinc300,
-    borderRadius: v_8b0c90.md,
-    padding: 14,
-    fontSize: 14,
+    borderRadius: v_8f28b1.borderRadius,
+    paddingHorizontal: v_8f28b1.paddingHorizontal,
+    paddingVertical: v_8f28b1.multilinePaddingVertical,
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
     color: v_1bfbd0.zinc900,
     minHeight: 96,
     textAlignVertical: "top",
     marginTop: 4,
-  },
-  textInputShort: {
-    borderWidth: 1,
-    borderColor: v_1bfbd0.zinc300,
-    borderRadius: v_8b0c90.md,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: v_1bfbd0.zinc900,
-    marginTop: 10,
   },
   footer: {
     borderTopWidth: 1,

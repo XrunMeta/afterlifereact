@@ -8,7 +8,7 @@ import {
   v_3094a2,
   v_7e4944,
 } from 'rcmrninabrnb';
-import { v_1bfbd0, v_843035, v_9b1a04 } from '../constants';
+import { v_1bfbd0, v_843035, v_8f28b1, v_9b1a04 } from "../constants";
 
 export interface TextFieldProps extends v_b60ea2 {
   label?: string;
@@ -29,7 +29,7 @@ const v_e775af = v_a3453e.forwardRef<v_79c4f2, TextFieldProps>(
       inputWrapperStyle: v_2ba125,
       leftIcon: v_86ef18,
       rightIcon: v_ca3ded,
-      rounded: v_f52086 = 10,
+      rounded: v_f52086 = v_8f28b1.borderRadius,
       placeholderTextColor: v_46ec3b = v_1bfbd0.placeholder,
       style: v_7fa4e4,
       onFocus: v_cd3cee,
@@ -70,7 +70,9 @@ const v_e775af = v_a3453e.forwardRef<v_79c4f2, TextFieldProps>(
             onFocus={v_086489}
             multiline={v_577bb3}
             textAlignVertical={
-              v_577bb3 ? "top" : v_bba290
+              v_577bb3
+                ? "top"
+                : (v_bba290 ?? v_8f28b1.textAlignVertical)
             }
             {...v_83bbcd}
           />
@@ -97,33 +99,38 @@ const v_d81136 = v_472849.create({
     borderWidth: 1,
     borderColor: v_1bfbd0.border,
     backgroundColor: v_1bfbd0.white,
-    paddingHorizontal: v_9b1a04.medium,
+    paddingHorizontal: v_8f28b1.paddingHorizontal,
   },
   inputWrapperSingle: {
     alignItems: "center",
-    paddingVertical: v_9b1a04.small,
-    height: 52,
+    height: v_8f28b1.height,
+    paddingVertical: 0,
   },
   inputWrapperMultiline: {
     alignItems: "flex-start",
-    paddingTop: v_9b1a04.medium,
-    paddingBottom: v_9b1a04.medium,
+    paddingTop: v_8f28b1.multilinePaddingVertical,
+    paddingBottom: v_8f28b1.multilinePaddingVertical,
     minHeight: 120,
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
     color: v_1bfbd0.text,
     fontFamily: v_843035.regular,
+    paddingVertical: 0,
+    includeFontPadding: v_8f28b1.includeFontPadding,
   },
   inputSingle: {
-    minHeight: 48,
+    height: "100%" as const,
+    textAlignVertical: v_8f28b1.textAlignVertical,
   },
   inputMultiline: {
     minHeight: 96,
     paddingTop: 0,
     paddingBottom: 0,
-    lineHeight: 22,
+    lineHeight: v_8f28b1.lineHeight,
+    textAlignVertical: "top",
   },
   leftIcon: {
     marginRight: v_9b1a04.small,
