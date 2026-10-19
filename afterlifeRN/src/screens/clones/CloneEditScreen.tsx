@@ -83,6 +83,22 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     v_8dfbff(v_eb25ce.voicePresetId ?? null);
   }, [v_eb25ce]);
 
+  const v_ae2f12 = () => {
+    const v_e2a85c = v_b53f6c.current;
+    v_b53f6c.current = null;
+    if (!v_e2a85c) return;
+    try {
+      v_e2a85c.pause();
+    } catch {
+
+    }
+    try {
+      v_e2a85c.remove();
+    } catch {
+
+    }
+  };
+
   v_c4deb2(() => {
     const v_2ca7e0 = v_1ed7d9.getState().accessToken;
     if (!v_2ca7e0) return;
@@ -92,15 +108,16 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       .catch((v_49263d) => console.warn("[CloneEdit] getVoices failed:", v_49263d))
       .finally(() => v_9ae340(false));
     return () => {
-      v_b53f6c.current?.remove();
+      v_ae2f12();
     };
+
   }, []);
 
   const v_1bf8db = (v: v_d80981) => {
 
-    v_b53f6c.current?.remove();
-    v_b53f6c.current = null;
-    if (v_aa617a === v_81e2ef.id) {
+    const v_1b5fb6 = v_aa617a === v_81e2ef.id;
+    v_ae2f12();
+    if (v_1b5fb6) {
       v_b76e01(null);
       return;
     }
@@ -112,6 +129,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       v_86394a.play();
     } catch (v_49263d) {
       console.warn("[CloneEdit] preview failed:", v_49263d);
+      v_b76e01(null);
     }
   };
 
@@ -239,20 +257,25 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                     onPress={() => v_8dfbff(v_81e2ef.id)}
                     activeOpacity={0.7}
                   >
-                    <Text style={[v_fd5f43.voiceName, v_599a41 && v_fd5f43.voiceNameSelected]}>
+                    <Text
+                      style={[v_fd5f43.voiceName, v_599a41 && v_fd5f43.voiceNameSelected]}
+                      numberOfLines={2}
+                    >
                       {v_81e2ef.name}
                     </Text>
-                    {(v_81e2ef.gender || v_81e2ef.ageRange) && (
-                      <Text style={v_fd5f43.voiceMeta}>
-                        {[v_81e2ef.gender, v_81e2ef.ageRange].filter(Boolean).join(" · ")}
-                      </Text>
-                    )}
+                    <Text style={v_fd5f43.voiceMeta} numberOfLines={1}>
+                      {[v_81e2ef.gender, v_81e2ef.ageRange].filter(Boolean).join(" · ") || " "}
+                    </Text>
                     <TouchableOpacity
                       style={v_fd5f43.previewBtn}
                       onPress={() => v_1bf8db(v_81e2ef)}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                      <Text style={v_fd5f43.previewBtnText}>{v_087c92 ? v_8d41d7("edit.voiceStop", { defaultValue: "■ 정지" }) : v_8d41d7("edit.voicePreview", { defaultValue: "▶ 미리듣기" })}</Text>
+                      <Text style={v_fd5f43.previewBtnText}>
+                        {v_087c92
+                          ? v_8d41d7("edit.voiceStop", { defaultValue: "■ 정지" })
+                          : v_8d41d7("edit.voicePreview", { defaultValue: "▶ 미리듣기" })}
+                      </Text>
                     </TouchableOpacity>
                   </TouchableOpacity>
                 );
@@ -302,7 +325,7 @@ const v_fd5f43 = v_472849.create({
     borderTopColor: v_1bfbd0.zinc500,
     backgroundColor: v_1bfbd0.white,
   },
-  saveBtn: { width: "500%" },
+  saveBtn: { width: "100%", alignSelf: "stretch" },
 
   voiceSection: {
     marginTop: 24,
@@ -344,42 +367,55 @@ const v_fd5f43 = v_472849.create({
     gap: 10,
     paddingRight: v_9b1a04.large,
   },
+
   voiceCard: {
-    width: 130,
-    padding: 12,
+    width: 140,
+    height: 128,
+    paddingTop: 12,
+    paddingHorizontal: 12,
+    paddingBottom: 44,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: v_1bfbd0.zinc300,
     backgroundColor: v_1bfbd0.white,
+    overflow: "hidden",
   },
   voiceCardSelected: {
-    borderColor: v_1bfbd0.violet500,
+    borderColor: v_1bfbd0.secondary,
     borderWidth: 2,
-    backgroundColor: "#f5f3ff",
+    backgroundColor: v_1bfbd0.secondaryLight,
   },
   voiceName: {
     fontSize: 14,
     fontWeight: "600",
     color: v_1bfbd0.zinc900,
+    height: 36,
+    lineHeight: 18,
   },
   voiceNameSelected: {
-    color: v_1bfbd0.violet500,
+    color: v_1bfbd0.secondary,
   },
   voiceMeta: {
     fontSize: 11,
     color: v_1bfbd0.zinc500,
     marginTop: 4,
+    height: 14,
+    lineHeight: 14,
   },
   previewBtn: {
-    marginTop: 8,
-    paddingVertical: 4,
+    position: "absolute",
+    left: 12,
+    right: 12,
+    bottom: 12,
+    paddingVertical: 6,
     paddingHorizontal: 8,
     backgroundColor: v_1bfbd0.zinc100,
     borderRadius: 6,
-    alignSelf: "flex-start",
+    alignItems: "center",
   },
   previewBtnText: {
     fontSize: 11,
     color: v_1bfbd0.zinc700,
+    fontWeight: "600",
   },
 });
