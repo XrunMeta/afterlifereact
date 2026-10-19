@@ -755,7 +755,10 @@
       "tabAccount": "アカウントログイン",
       "tabOtp": "メール OTP ログイン",
       "requestOtp": "認証コードを受け取る",
-      "sendingOtp": "送信中..."
+      "sendingOtp": "送信中...",
+      "accountNotFoundTitle": "アカウントがありません",
+      "accountNotFoundMessage": "登録されたアカウントがありません。\n会員登録をしてください。",
+      "goSignup": "会員登録"
     },
     "forgot": {
       "title": "パスワード再設定",
