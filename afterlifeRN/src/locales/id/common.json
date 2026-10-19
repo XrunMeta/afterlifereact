@@ -1699,7 +1699,8 @@
     "usernameEmpty": "Silakan masukkan nama pengguna.",
     "usernameTooShort": "Nama pengguna harus minimal 3 karakter.",
     "usernameTooLong": "Nama pengguna maksimal 30 karakter.",
-    "usernameFormat": "Nama pengguna hanya boleh menggunakan huruf kecil, angka, dan garis bawah (_). (Tidak boleh huruf besar, karakter non-ASCII, atau spasi.)"
+    "usernameFormat": "Nama pengguna hanya boleh menggunakan huruf kecil, angka, dan garis bawah (_). (Tidak boleh huruf besar, karakter non-ASCII, atau spasi.)",
+    "passwordPolicy": "Kata sandi minimal 7 karakter dan harus berisi huruf besar, huruf kecil, dan angka."
   },
   "question": {
     "label": {
