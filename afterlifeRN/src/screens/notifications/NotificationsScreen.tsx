@@ -199,10 +199,7 @@ export default function v_18ad36() {
           ? v_d5dda0.cloneId
           : Number(v_f71b56.match(/clone\/(\d+)/)?.[1] ?? 0);
       if (v_6e0fd3 > 0) {
-        v_c65f5d.navigate("Main", {
-          screen: "ShortsTab",
-          params: { openIntimacyCloneId: v_6e0fd3 },
-        });
+        v_c65f5d.navigate("Chat", { cloneId: v_6e0fd3 });
       }
     } else if ((v_35f85c = v_f71b56.match(/^afterlife:\/\/clone\/(\d+)/))) {
 

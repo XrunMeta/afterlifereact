@@ -2,6 +2,7 @@
 
 import type { v_273a0c } from "./env";
 import { v_33d48f } from "./notify";
+import { v_f1d400, v_b09c2e } from "./conversationEvents";
 
 type InteractionKind = "chat" | "call" | "learn" | "feed";
 
@@ -110,6 +111,12 @@ export async function v_721d54(
     }
     const v_cdef5f = Math.min(v_740dd8, v_179598);
 
+    const v_3362ed = await v_c9c489.DB
+      .prepare(`SELECT intimacy_score FROM user_clone_interactions WHERE user_id = ? AND clone_id = ?`)
+      .bind(v_43e90c, v_6e0fd3)
+      .first<{ intimacy_score: number }>();
+    const v_3f1d50 = v_3362ed?.intimacy_score ?? 0;
+
     await v_c9c489.DB
       .prepare(
         `INSERT INTO user_clone_interactions (user_id, clone_id, intimacy_score)
@@ -138,6 +145,31 @@ export async function v_721d54(
         `[interactions] event log failed:`,
         (v_4e67d8 as Error).message,
       );
+    }
+
+    const v_af5c00 = Math.min(v_b27eeb, v_3f1d50 + v_cdef5f);
+    const v_c5110a = Math.floor(v_af5c00 / 10) * 10;
+    if (v_c5110a >= 10 && v_c5110a > Math.floor(v_3f1d50 / 10) * 10) {
+      try {
+        await v_c9c489.DB
+          .prepare(
+            `INSERT INTO conversation_events (user_id, clone_id, kind, payload, created_at)
+             VALUES (?, ?, 'intimacy_milestone', ?, ?)`,
+          )
+          .bind(v_43e90c, v_6e0fd3, JSON.stringify({ score: v_c5110a }), Date.now())
+          .run();
+
+        const v_966588 = await v_c9c489.DB
+          .prepare(`SELECT name FROM clones WHERE id = ?`)
+          .bind(v_6e0fd3)
+          .first<{ name: string }>();
+        const v_9b6134 = v_966588 ? v_b09c2e("intimacy_milestone", { score: v_c5110a }, v_966588.name) : null;
+        if (v_966588 && v_9b6134) {
+          await v_f1d400(v_c9c489, { userId: v_43e90c, cloneId: v_6e0fd3, type: "intimacy_score", title: v_966588.name, body: `🌡 ${v_9b6134}` });
+        }
+      } catch (v_645696) {
+        console.warn(`[interactions] milestone event failed:`, (v_645696 as Error).message);
+      }
     }
 
     await v_33d48f(v_c9c489, {

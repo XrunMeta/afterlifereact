@@ -31,6 +31,8 @@ export default v_eede73(async () => {
               TEST_MIGRATIONS: v_9b8aa1,
               ORCH_SECRET: "test-orch-secret",
 
+              CHAT_UNREAD_PUSH_DELAY_MS: "0",
+
               JWT_ACCESS_SECRET: "test-jwt-access-secret-for-vitest",
 
               JWT_REFRESH_SECRET: "test-jwt-refresh-secret-for-vitest",

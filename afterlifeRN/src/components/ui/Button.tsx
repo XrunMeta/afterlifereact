@@ -7,10 +7,10 @@ import {
   v_7e4944,
   v_5e8657,
 } from "rcmrninabrnb";
-import { v_1bfbd0, v_8b0c90 } from "../constants";
+import { v_7fd157, v_1bfbd0, type v_8075d2 } from "../constants";
 
 type ButtonVariant = "primary" | "secondary" | "accent" | "ghost" | "danger";
-type ButtonSize = "sm" | "md" | "lg";
+type ButtonSize = v_8075d2;
 
 interface ButtonProps {
   title: string;
@@ -49,18 +49,29 @@ const Button: v_a3453e.FC<ButtonProps> = ({
   textColor: v_7fd696,
   testID: v_681472,
 }) => {
+  const v_44ebbb = v_7fd157[v_05b441];
   const v_4affe9 = [
     v_d81136.base,
-    v_fdfd00[v_05b441],
+    {
+      height: v_44ebbb.height,
+      borderRadius: v_44ebbb.borderRadius,
+      paddingHorizontal: v_44ebbb.paddingHorizontal,
+    },
     v_1dec38[v_46e192],
     v_4a6533 && v_d81136.disabled,
     v_f7b9fb ? { backgroundColor: v_f7b9fb } : undefined,
     v_7fa4e4,
   ];
 
+  const v_3b856e = v_46e192 === "secondary" || v_46e192 === "ghost";
   const v_5ddb12 = [
     v_d81136.text,
-    v_5b20e4[v_05b441],
+    {
+      fontSize: v_44ebbb.fontSize,
+      fontWeight: v_3b856e
+        ? v_44ebbb.fontWeightSecondary
+        : v_44ebbb.fontWeight,
+    },
     v_7c03ff[v_46e192],
     v_4a6533 && v_d81136.disabledText,
     v_7fd696 ? { color: v_7fd696 } : undefined,
@@ -98,11 +109,8 @@ const v_d81136 = v_472849.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    borderRadius: v_8b0c90.lg,
   },
-  text: {
-    fontWeight: "bold",
-  },
+  text: {},
   disabled: {
     backgroundColor: v_1bfbd0.zinc300,
     borderColor: v_1bfbd0.zinc300,
@@ -111,18 +119,6 @@ const v_d81136 = v_472849.create({
     color: v_1bfbd0.zinc500,
   },
 });
-
-const sizeStyles: Record<ButtonSize, v_7e4944> = {
-  sm: { height: 40, paddingHorizontal: 16 },
-  md: { height: 48, paddingHorizontal: 20 },
-  lg: { height: 56, paddingHorizontal: 24 },
-};
-
-const sizeTextStyles: Record<ButtonSize, v_5e8657> = {
-  sm: { fontSize: 13 },
-  md: { fontSize: 14 },
-  lg: { fontSize: 16 },
-};
 
 const variantStyles: Record<ButtonVariant, v_7e4944> = {
   primary: {
@@ -146,9 +142,9 @@ const variantStyles: Record<ButtonVariant, v_7e4944> = {
 
 const variantTextStyles: Record<ButtonVariant, v_5e8657> = {
   primary: { color: v_1bfbd0.white },
-  secondary: { color: v_1bfbd0.zinc900, fontWeight: "500" },
+  secondary: { color: v_1bfbd0.zinc900 },
   accent: { color: v_1bfbd0.white },
-  ghost: { color: v_1bfbd0.zinc700, fontWeight: "600" },
+  ghost: { color: v_1bfbd0.zinc700 },
   danger: { color: v_1bfbd0.white },
 };
 

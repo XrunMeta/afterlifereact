@@ -1287,6 +1287,10 @@
         "moderation": {
           "label": "Hasil laporan",
           "desc": "Hasil laporan terhadap akun atau persona Anda (peringatan, penangguhan, dll.)"
+        },
+        "messages": {
+          "label": "Pesan",
+          "desc": "Saat kamu melewatkan balasan dari persona"
         }
       },
       "saveFailed": "Gagal menyimpan pengaturan. Silakan coba lagi."

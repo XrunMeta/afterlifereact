@@ -14,6 +14,7 @@ import {
   v_326be8,
   v_0e1f26,
   v_e767d1,
+  v_6b5698,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -27,7 +28,9 @@ import { v_b4902e } from "../../stores/followStore";
 import { v_84d546 } from "../../lib/callGuard";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import v_556baf from "../../components/ui/SafeView";
-import { v_1bfbd0, v_8b0c90, v_9b1a04, v_0da505 } from "../../components/constants";
+import v_06b8c0 from "../../components/clone/IntimacyEventsSheet";
+import { v_08bca5 } from "../../lib/useChatLiveRefresh";
+import { v_1bfbd0, v_8b0c90, v_9b1a04, v_0da505, v_94abbe } from "../../components/constants";
 import {
   v_8a85e2,
   v_22ca9b,
@@ -107,6 +110,11 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_dec728, v_a7c3b5] = v_5ab095(false);
   const [v_c5607b, v_1e756c] = v_5ab095<string | null>(null);
   const [v_5e23ec, v_10837f] = v_5ab095(false);
+  const v_c157ce = v_e662ae(false);
+  v_c157ce.current = v_5e23ec;
+
+  const [v_b74b9c, v_b31b79] = v_5ab095<number | null>(null);
+  const [v_9a58d3, v_74f358] = v_5ab095(false);
 
   const [v_db205d, v_fb20c7] = v_5ab095<{
     callId: string;
@@ -160,12 +168,33 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       if (v_8f00b9) {
         v_7f73ef(v_8f00b9.items);
         v_94405c(v_8f00b9.nextCursor);
+        if (typeof v_8f00b9.intimacy === "number") v_b31b79(v_8f00b9.intimacy);
       }
     })();
     return () => {
       v_2008a4 = true;
     };
   }, [v_e721a8, v_2ca7e0, v_6e0fd3]);
+
+  const v_e6ff86 = async (v_02be30 = 10) => {
+    if (!v_2ca7e0) return;
+    const v_8f00b9 = await v_22ca9b(v_6e0fd3, v_2ca7e0, { limit: v_02be30 });
+    if (!v_8f00b9) return;
+    if (typeof v_8f00b9.intimacy === "number") v_b31b79(v_8f00b9.intimacy);
+    v_7f73ef((v_ba2215) => {
+      const v_694b25 = v_ba2215 ?? [];
+      const v_d81543 = new Set(v_694b25.map(v_e51457));
+      const v_90fa09 = v_8f00b9.items.filter((v_23805a) => !v_d81543.has(v_e51457(v_23805a)));
+      if (v_90fa09.length === 0) return v_ba2215;
+      return [...v_90fa09, ...v_694b25].sort((v_779914, v_148ff6) => v_65604f(v_148ff6) - v_65604f(v_779914));
+    });
+  };
+
+  v_08bca5(() => {
+    if (!v_e721a8 || v_c157ce.current) return;
+    void v_e6ff86(30);
+    if (v_2ca7e0 && v_6b5698.currentState === "active") void v_9cb700(v_6e0fd3, v_2ca7e0);
+  }, v_6e0fd3);
 
   v_c4deb2(() => {
     if (!v_2ca7e0) return;
@@ -179,9 +208,25 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     };
   }, [v_2ca7e0, v_6e0fd3]);
 
+  const v_d6f043 = v_e662ae(true);
+  v_c4deb2(() => {
+    v_d6f043.current = true;
+    return () => {
+      v_d6f043.current = false;
+    };
+  }, []);
+
   v_c4deb2(() => {
     if (!v_2ca7e0) return;
     void v_9cb700(v_6e0fd3, v_2ca7e0);
+    const v_1ae212 = v_6b5698.addEventListener("change", (v_fd5f43) => {
+      if (v_fd5f43 === "active") void v_9cb700(v_6e0fd3, v_2ca7e0);
+    });
+    return () => {
+      v_1ae212.remove();
+
+      void v_9cb700(v_6e0fd3, v_2ca7e0, Date.now() - 1000);
+    };
   }, [v_2ca7e0, v_6e0fd3]);
 
   const v_00fc5a = (msg: v_f19942) => {
@@ -310,6 +355,11 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         );
         return [v_e44122, v_8338f4, ...v_694b25];
       });
+
+      if (v_d6f043.current && v_6b5698.currentState === "active") {
+        void v_9cb700(v_6e0fd3, v_2ca7e0);
+      }
+      void v_e6ff86();
     } catch (v_49263d) {
       console.warn("[Chat] send failed:", (v_49263d as Error)?.message ?? v_49263d);
 
@@ -427,6 +477,18 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           <Text style={v_d81136.headerName} numberOfLines={1}>
             {v_dfb220}
           </Text>
+          {}
+          {v_b74b9c !== null && (
+            <TouchableOpacity
+              style={v_d81136.headerTemp}
+              onPress={() => v_74f358(true)}
+              hitSlop={8}
+              accessibilityLabel="intimacy"
+            >
+              <Feather name="thermometer" size={13} color="#fb923c" />
+              <Text style={v_d81136.headerTempText}>{v_b74b9c}°C</Text>
+            </TouchableOpacity>
+          )}
         </TouchableOpacity>
         <View style={v_d81136.headerRight}>
           {
@@ -505,6 +567,22 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                         </Text>
                       </View>
                     </View>
+                  </React.Fragment>
+                );
+              }
+              if (v_23805a.type === "system") {
+
+                return (
+                  <React.Fragment key={`api-sys-${v_23805a.id}`}>
+                    {v_6583df}
+                    <TouchableOpacity
+                      style={v_d81136.systemChip}
+                      activeOpacity={0.7}
+                      disabled={v_23805a.kind !== "intimacy_milestone"}
+                      onPress={() => v_74f358(true)}
+                    >
+                      <Text style={v_d81136.systemChipText}>🌡 {v_23805a.text}</Text>
+                    </TouchableOpacity>
                   </React.Fragment>
                 );
               }
@@ -645,6 +723,14 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         </TouchableOpacity>
       </View>
 
+      {}
+      <IntimacyEventsSheet
+        visible={v_9a58d3}
+        cloneId={v_9a58d3 ? v_6e0fd3 : null}
+        cloneName={v_dfb220}
+        onClose={() => v_74f358(false)}
+      />
+
       {
 
 }
@@ -779,9 +865,14 @@ function v_873982(v_d799e2): string {
   return `${v_d5dda0.getFullYear()}년 ${v_d5dda0.getMonth() + 1}월 ${v_d5dda0.getDate()}일 ${v_c3f248[v_d5dda0.getDay()]}`;
 }
 
+function v_e51457(it: v_29686e): string {
+  if (v_23805a.type === "call") return `call-${v_23805a.callId}`;
+  return `${v_23805a.type}-${v_23805a.id}`;
+}
+
 function v_65604f(v_23805a): number {
   if (v_c8c890(v_23805a)) return v_23805a.oldestAt;
-  if (v_23805a.type === "chat") return v_23805a.at;
+  if (v_23805a.type === "chat" || v_23805a.type === "system") return v_23805a.at;
   return v_23805a.startedAt;
 }
 
@@ -830,7 +921,28 @@ const v_d81136 = v_472849.create({
     backgroundColor: v_1bfbd0.zinc100, alignItems: "center", justifyContent: "center",
   },
   headerAvatarInitial: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.secondary },
-  headerName: { flex: 1, fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  headerName: { flexShrink: 1, fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  headerTemp: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    flexShrink: 0,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: "rgba(251,146,60,0.12)",
+  },
+  headerTempText: { fontSize: 12, fontWeight: "700", color: "#ea580c" },
+  systemChip: {
+    alignSelf: "center",
+    marginVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: v_1bfbd0.zinc200,
+    maxWidth: "85%",
+  },
+  systemChipText: { color: v_1bfbd0.zinc700, fontSize: 12, fontWeight: "500", textAlign: "center" },
   headerRight: { flexDirection: "row", gap: 6 },
   headerActionBtn: {
     width: 36, height: 36, borderRadius: 18,
@@ -1065,9 +1177,7 @@ const v_d81136 = v_472849.create({
     ...v_0da505,
   },
   sendBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    ...v_94abbe,
     backgroundColor: v_1bfbd0.primary,
     justifyContent: "center",
     alignItems: "center",

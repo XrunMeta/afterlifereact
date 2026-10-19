@@ -21,7 +21,9 @@ export type NotificationType =
 
   | "intimacy_score"
 
-  | "moderation";
+  | "moderation"
+
+  | "clone_message";
 
 export interface NotifyOptions {
 
@@ -41,6 +43,8 @@ export interface NotifyOptions {
   emailSubject?: string;
 
   skipEmail?: boolean;
+
+  skipInApp?: boolean;
 }
 
 export interface NotifyResult {
@@ -55,9 +59,12 @@ export type NotificationPrefCategory =
   | "following_activity"
   | "reactions"
   | "intimacy"
-  | "moderation";
+  | "moderation"
+  | "messages";
 
 const v_e6c9c1 = {
+
+  clone_message: "messages",
   user_follow: "new_follower",
   followee_new_clone: "following_activity",
   clone_like: "reactions",
@@ -96,7 +103,7 @@ export async function v_c226a5(env: v_273a0c, v_328259): Promise<NotifyResult> {
 
   const v_762d02 = v_328259.userId ? await v_5f5ee2(v_c9c489, v_328259.userId, v_328259.type) : true;
 
-  if (v_328259.userId) {
+  if (v_328259.userId && !v_328259.skipInApp) {
     try {
       await v_c9c489.DB
         .prepare(
@@ -265,16 +272,6 @@ export async function v_33d48f(
     };
     const v_f71b56 = `afterlife://clone/${v_4317d1.cloneId}/intimacy`;
     const v_9f1622 = `🌡️ +${v_4317d1.score}°C 온도 상승`;
-
-    await v_c226a5(v_c9c489, {
-      userId: v_4317d1.actorId,
-      type: "intimacy_score",
-      title: v_9f1622,
-      body: `${v_eb25ce.name} 과의 친밀도가 ${v_2869c1} 활동으로 ${v_4317d1.score}°C 올랐어요`,
-      url: v_f71b56,
-      data: v_9390e8,
-      skipEmail: true,
-    });
 
     if (v_eb25ce.owner_id !== v_4317d1.actorId) {
       await v_c226a5(v_c9c489, {
