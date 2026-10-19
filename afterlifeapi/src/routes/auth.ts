@@ -584,6 +584,27 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
     }
   }
   if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user.");
+  const v_d44ae3 = Date.now();
+  const v_b8fcdd = (v_81161e as { id: number }).id;
+
+  const v_d94bcc = async () => {
+    await v_a1651b
+      .prepare(`DELETE FROM user_consent_log WHERE user_id = ? AND changed_at >= ?`)
+      .bind(v_b8fcdd, v_d44ae3)
+      .run();
+    if (v_d47623) {
+      await v_a1651b
+        .prepare(
+          `UPDATE users SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP,
+                  marketing_consent = 0, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?`,
+        )
+        .bind(v_b8fcdd)
+        .run();
+    } else {
+      await v_a1651b.prepare(`DELETE FROM users WHERE id = ?`).bind(v_b8fcdd).run();
+    }
+  };
 
   if (v_4d33b2.marketingConsent) {
     await v_a1651b
@@ -632,7 +653,7 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
     }
     if (v_3e6264.length) await v_a1651b.batch(v_3e6264);
   } catch (v_49263d) {
-    await v_a1651b.prepare(`DELETE FROM users WHERE id = ?`).bind(v_81161e.id).run();
+    await v_d94bcc();
     throw v_49263d;
   }
 
@@ -680,14 +701,14 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
 
       const v_b052de = v_6bd187.reason ?? "알 수 없는 오류";
       console.warn(`[auth.signup] xrun register failed user_id=${v_81161e.id}: ${v_6bd187.status}: ${v_b052de}`);
-      await v_3f4e2e.env.DB.prepare(`DELETE FROM users WHERE id = ?`).bind(v_81161e.id).run();
+      await v_d94bcc();
       throw new v_3ebe58("XRUN_REGISTRATION_FAILED", v_b052de);
     }
   } catch (v_49263d) {
     if (v_49263d instanceof v_3ebe58) throw v_49263d;
     const v_badeaf = (v_49263d as Error).message;
     console.warn(`[auth.signup] xrun register error user_id=${v_81161e.id}:`, v_badeaf);
-    await v_3f4e2e.env.DB.prepare(`DELETE FROM users WHERE id = ?`).bind(v_81161e.id).run();
+    await v_d94bcc();
     throw new v_3ebe58("XRUN_REGISTRATION_FAILED", v_badeaf);
   }
 
