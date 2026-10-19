@@ -788,7 +788,8 @@
       "togglePasswordLabel": "パスワード表示切替",
       "toggleConfirmLabel": "パスワード確認表示切替",
       "emailNotFoundTitle": "未登録のメールアドレス",
-      "emailNotFoundMessage": "入力されたメールアドレスで登録されたアカウントがありません。\nメールアドレスを確認するか、会員登録をしてください。"
+      "emailNotFoundMessage": "入力されたメールアドレスで登録されたアカウントがありません。\nメールアドレスを確認するか、会員登録をしてください。",
+      "emailNotRegisteredHint": "登録されていないメールアドレスです"
     },
     "signup": {
       "title": "会員登録",

@@ -790,7 +790,8 @@
       "togglePasswordLabel": "Toggle password visibility",
       "toggleConfirmLabel": "Toggle confirm password visibility",
       "emailNotFoundTitle": "Email not registered",
-      "emailNotFoundMessage": "No account is registered with this email.\nPlease check the email or sign up."
+      "emailNotFoundMessage": "No account is registered with this email.\nPlease check the email or sign up.",
+      "emailNotRegisteredHint": "This email is not registered"
     },
     "signup": {
       "title": "Sign Up",
