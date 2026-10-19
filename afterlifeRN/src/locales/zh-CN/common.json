@@ -834,7 +834,7 @@
       "termsPrivacy": "[必需] SSO 整合隐私政策",
       "termsBiometricTitle": "生物识别信息（面部）处理同意",
       "termsBiometricFallback": "关于面部识别信息使用的说明\n\n通话中为识别说话人，前置摄像头仅检测面部位置，面部数据（图像·生物识别信息）不会被保存。撤回同意后将立即停止。",
-      "termsCallLearningTitle": "通话对话学习同意",
+      "termsCallLearningTitle": "AI 数据使用及生成同意",
       "termsCallLearningFallback": "关于通话对话学习的说明\n\n同意后，克隆将学习通话中的对话内容，以提供更自然、更个性化的对话体验。此同意为可选项，您可在设置中随时撤回。撤回后仅之后的通话对话不再纳入学习，已学习的内容将保留不删除。（学习数据的删除随会员注销或个人信息完全删除时一并处理。）",
       "marketingConsent": "[可选] 营销信息收集及使用同意",
       "callLearningConsent": "[必需] AI 数据使用及生成同意",
@@ -865,7 +865,8 @@
       "xrunFoundTitle": "发现 XRUN 账户",
       "xrunFoundDesc": "已存在注册的 XRUN 账户。\n\n使用 XRUN 账户信息登录即可同时使用 Afterlife。",
       "cloneFaceConsent": "[可选] 按克隆的人脸识别同意",
-      "termsCloneFaceTitle": "按克隆的人脸识别同意"
+      "termsCloneFaceTitle": "按克隆的人脸识别同意",
+      "termsLocationTitle": "位置服务使用条款"
     },
     "emailVerify": {
       "title": "邮箱验证",
@@ -1300,7 +1301,7 @@
         "cloneLabel": "克隆 #{{cloneId}}"
       },
       "callLearning": {
-        "sectionTitle": "通话对话学习",
+        "sectionTitle": "AI 数据使用及生成",
         "description": "允许克隆基于通话内容进行学习，让对话更自然。可随时开关。关闭后仅之后的通话对话不再纳入学习，已学习的内容将保留不删除。（学习数据的删除随会员注销或个人信息完全删除时一并处理。）",
         "toggleLabel": "允许通话对话学习",
         "viewTerms": "查看条款",
@@ -1330,7 +1331,11 @@
       "unblockConfirmTitle": "解除拉黑",
       "unblockConfirmDesc": "要解除对 {{name}} 的拉黑吗？",
       "unblockConfirmOk": "解除",
-      "unblockFailed": "解除失败。"
+      "unblockFailed": "解除失败。",
+      "required": {
+        "sectionTitle": "必需同意",
+        "agreed": "必需 · 已同意"
+      }
     },
     "saved": {
       "title": "已保存",
