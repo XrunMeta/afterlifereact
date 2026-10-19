@@ -1699,7 +1699,8 @@
     "usernameEmpty": "请输入用户名。",
     "usernameTooShort": "用户名至少需要 3 个字符。",
     "usernameTooLong": "用户名不能超过 30 个字符。",
-    "usernameFormat": "用户名只能使用小写字母、数字和下划线 (_)。（不允许大写字母、非 ASCII 字符或空格。）"
+    "usernameFormat": "用户名只能使用小写字母、数字和下划线 (_)。（不允许大写字母、非 ASCII 字符或空格。）",
+    "passwordPolicy": "密码需至少 7 位，并包含大写字母、小写字母和数字。"
   },
   "question": {
     "label": {
