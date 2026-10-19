@@ -987,8 +987,15 @@ export default function v_14b43e() {
 }
 
       {}
-      <Modal visible={!!v_821fc1} transparent animationType="slide">
-        <Pressable style={v_fd5f43.bottomOverlay} onPress={() => v_5da0f8(null)}>
+      <Modal
+        visible={!!v_821fc1}
+        transparent
+        animationType="slide"
+        onRequestClose={() => v_5da0f8(null)}
+      >
+        {}
+        <View style={v_fd5f43.bottomOverlay}>
+          <Pressable style={v_472849.absoluteFill} onPress={() => v_5da0f8(null)} />
           <SwipeDownSheet
             onClose={() => v_5da0f8(null)}
             style={[v_fd5f43.eventsSheet, { paddingBottom: 32 + v_2b650d }]}
@@ -1068,7 +1075,7 @@ export default function v_14b43e() {
               )}
             </ScrollView>
           </SwipeDownSheet>
-        </Pressable>
+        </View>
       </Modal>
 
       {}
@@ -1580,7 +1587,7 @@ const v_fd5f43 = v_472849.create({
   eventsBreakdownItem: { fontSize: 12, color: v_1bfbd0.zinc500 },
   eventsBreakdownVal: { color: v_1bfbd0.zinc900, fontWeight: "600" },
 
-  eventsScrollArea: { flexShrink: 1 },
+  eventsScrollArea: { flex: 1, minHeight: 0 },
   eventRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc100 },
   eventIcon: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   eventLabel: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900 },
