@@ -866,7 +866,9 @@
       "xrunFoundDesc": "已存在注册的 XRUN 账户。\n\n使用 XRUN 账户信息登录即可同时使用 Afterlife。",
       "cloneFaceConsent": "[可选] 按克隆的人脸识别同意",
       "termsCloneFaceTitle": "按克隆的人脸识别同意",
-      "termsLocationTitle": "位置服务使用条款"
+      "termsLocationTitle": "位置服务使用条款",
+      "termsMarketingTitle": "营销信息收集及使用同意",
+      "termsMarketingFallback": "关于营销信息接收\n\n同意后，您将通过应用推送接收活动、优惠等广告信息。此同意为可选项，可随时在 设置 > 同意 中撤回。"
     },
     "emailVerify": {
       "title": "邮箱验证",

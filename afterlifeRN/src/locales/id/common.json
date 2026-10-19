@@ -866,7 +866,9 @@
       "xrunFoundDesc": "Akun XRUN terdaftar sudah ada.\n\nMasuk dengan kredensial XRUN Anda untuk menggunakan Afterlife juga.",
       "cloneFaceConsent": "[Opsional] Persetujuan pengenalan wajah per klon",
       "termsCloneFaceTitle": "Persetujuan pengenalan wajah per klon",
-      "termsLocationTitle": "Ketentuan Layanan Berbasis Lokasi"
+      "termsLocationTitle": "Ketentuan Layanan Berbasis Lokasi",
+      "termsMarketingTitle": "Persetujuan Informasi Pemasaran",
+      "termsMarketingFallback": "Tentang informasi pemasaran\n\nJika Anda setuju, Anda akan menerima informasi promosi seperti acara dan keuntungan melalui notifikasi push aplikasi. Persetujuan ini opsional dan dapat ditarik kapan saja di Pengaturan > Persetujuan."
     },
     "emailVerify": {
       "title": "Verifikasi Email",

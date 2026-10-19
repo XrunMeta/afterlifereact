@@ -866,7 +866,9 @@
       "xrunFoundDesc": "登録済みのXRUNアカウントが存在します。\n\nXRUNのアカウント情報でログインすれば、Afterlifeも併せてご利用いただけます。",
       "cloneFaceConsent": "[任意] クローン別の顔認識への同意",
       "termsCloneFaceTitle": "クローン別の顔認識への同意",
-      "termsLocationTitle": "位置情報サービス利用規約"
+      "termsLocationTitle": "位置情報サービス利用規約",
+      "termsMarketingTitle": "マーケティング情報の収集・活用への同意",
+      "termsMarketingFallback": "マーケティング情報の受信について\n\n同意すると、イベントや特典などの広告情報をアプリのプッシュ通知で受け取れます。この同意は任意であり、設定 > 同意からいつでも撤回できます。"
     },
     "emailVerify": {
       "title": "メール認証",
