@@ -59,8 +59,6 @@ export type AuthStackParamList = {
 
     agreeFaceBiometric?: boolean;
 
-    agreeCloneFace?: boolean;
-
     agreeLocation?: boolean;
 
     pushToken?: string;
