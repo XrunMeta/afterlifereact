@@ -99,10 +99,8 @@ function v_6be210(v_9390e8): void {
   if (v_3b27d9 === "intimacy_score" || /^afterlife:\/\/clone\/\d+\/intimacy/.test(v_f71b56)) {
     const v_062ae9 = v_6e0fd3 > 0 ? v_6e0fd3 : Number(v_f71b56.match(/clone\/(\d+)/)?.[1] ?? 0);
     if (v_062ae9 > 0) {
-      v_3c9f12.navigate("Main", {
-        screen: "ShortsTab",
-        params: { openIntimacyCloneId: v_062ae9 },
-      });
+
+      v_3c9f12.navigate("Chat", { cloneId: v_062ae9 });
       return;
     }
   }
