@@ -788,7 +788,8 @@
       "togglePasswordLabel": "Alihkan tampilan kata sandi",
       "toggleConfirmLabel": "Alihkan tampilan konfirmasi kata sandi",
       "emailNotFoundTitle": "Email belum terdaftar",
-      "emailNotFoundMessage": "Tidak ada akun yang terdaftar dengan email ini.\nPeriksa kembali email Anda atau daftar terlebih dahulu."
+      "emailNotFoundMessage": "Tidak ada akun yang terdaftar dengan email ini.\nPeriksa kembali email Anda atau daftar terlebih dahulu.",
+      "emailNotRegisteredHint": "Email ini belum terdaftar"
     },
     "signup": {
       "title": "Daftar",
