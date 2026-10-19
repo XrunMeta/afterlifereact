@@ -13,7 +13,7 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
-import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../constants";
+import { v_1bfbd0, v_8b0c90, v_9b1a04, v_8f28b1 } from "../constants";
 import {
   v_202d44,
   v_52495e,
@@ -264,12 +264,19 @@ const v_fd5f43 = v_472849.create({
     alignItems: "center",
     gap: 8,
     margin: v_9b1a04.medium,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: v_8b0c90.md,
+    paddingHorizontal: v_8f28b1.paddingHorizontal,
+    height: v_8f28b1.height,
+    borderRadius: v_8f28b1.borderRadius,
     backgroundColor: v_1bfbd0.zinc100,
   },
-  searchInput: { flex: 1, fontSize: 14, color: v_1bfbd0.zinc900, padding: 0 },
+  searchInput: {
+    flex: 1,
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
+    paddingVertical: 0,
+    textAlignVertical: v_8f28b1.textAlignVertical,
+    color: v_1bfbd0.zinc900,
+  },
   row: {
     flexDirection: "row",
     alignItems: "center",

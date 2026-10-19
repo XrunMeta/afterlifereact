@@ -37,7 +37,7 @@ import { v_a64bce } from "../../face/l2normalize";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_4e7b87, v_4585d1, v_a94a1b, v_6ffcc5, v_865d38 } from "../../api/persons";
 import { v_889fad } from "../../stores/dialogStore";
-import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
+import { v_1bfbd0, v_8b0c90, v_8f28b1 } from "../../components/constants";
 import v_258c1c from "../../components/common/PageHeader";
 import type { v_8ad91b } from "../../navigation/types";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -829,10 +829,13 @@ const v_fd5f43 = v_472849.create({
     alignSelf: "stretch",
     backgroundColor: v_1bfbd0.zinc900,
     color: v_1bfbd0.white,
-    borderRadius: v_8b0c90.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
+    borderRadius: v_8f28b1.borderRadius,
+    height: v_8f28b1.height,
+    paddingHorizontal: v_8f28b1.paddingHorizontal,
+    paddingVertical: 0,
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
+    textAlignVertical: v_8f28b1.textAlignVertical,
   },
   formError: { color: "#f87171", fontSize: 12, marginTop: 10, alignSelf: "flex-start" },
   chipSection: { alignSelf: "stretch", marginTop: 12, marginBottom: 4 },

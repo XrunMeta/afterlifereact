@@ -55,7 +55,7 @@ import type { v_d79d7f, v_b0b271 } from "../../api/clones";
 import v_4d58d7 from "../../components/common/ReportReasonModal";
 import v_5778ce from "../../components/common/HashtagText";
 import { v_bfd883 } from "../../lib/relativeTime";
-import { v_1bfbd0 } from "../../components/constants";
+import { v_1bfbd0, v_7c5e29 } from "../../components/constants";
 
 type Props = v_432191<v_8ad91b, "CloneFeed">;
 
@@ -1045,12 +1045,9 @@ const v_d81136 = v_472849.create({
   },
   commentInput: {
     flex: 1,
-    height: 40,
     backgroundColor: v_1bfbd0.zinc50 ?? v_1bfbd0.zinc100,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    fontSize: 14,
     color: v_1bfbd0.zinc900,
+    ...v_7c5e29,
   },
   replyActions: { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 6 },
   replyActionText: { fontSize: 12, fontWeight: "600", color: v_1bfbd0.zinc500 },

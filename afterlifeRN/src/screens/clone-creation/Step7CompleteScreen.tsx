@@ -26,7 +26,7 @@ import v_258c1c from "../../components/common/PageHeader";
 
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
-import { v_1bfbd0, v_9b1a04, v_8b0c90, v_a9d3e9 } from "../../components/constants";
+import { v_1bfbd0, v_9b1a04, v_8b0c90, v_a9d3e9, v_8f28b1 } from "../../components/constants";
 import type { v_affcc0 } from "../../types/clone";
 import { v_39eaf5, v_b55477, v_96d757, v_6c3f29, v_5e388b, v_b4f9f6, v_b20cba, v_ab4719, type v_e5d62a } from "../../api/clones";
 import { v_8b11b8 } from "../../lib/experimentalPipelineFlag";
@@ -871,14 +871,15 @@ const v_d81136 = v_472849.create({
 
   captionInput: {
     minHeight: 100,
-    fontSize: 14,
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
     color: v_1bfbd0.zinc900,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: v_8f28b1.paddingHorizontal,
+    paddingVertical: v_8f28b1.multilinePaddingVertical,
     textAlignVertical: "top",
     borderWidth: 1,
     borderColor: v_1bfbd0.zinc200,
-    borderRadius: v_8b0c90.md,
+    borderRadius: v_8f28b1.borderRadius,
     backgroundColor: v_1bfbd0.zinc50,
   },
 

@@ -18,7 +18,7 @@ import v_258c1c from "../../components/common/PageHeader";
 import v_d56c0a from "../../components/ui/SelectField";
 import v_57037e from "../../components/common/CountryRegionPicker";
 import { v_889fad } from "../../stores/dialogStore";
-import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
+import { v_1bfbd0, v_8b0c90, v_8f28b1 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
 import {
   v_2c296e,
@@ -592,14 +592,14 @@ const v_fd5f43 = v_472849.create({
     gap: 10,
     borderWidth: 1,
     borderColor: v_1bfbd0.zinc200,
-    borderRadius: v_8b0c90.md,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    borderRadius: v_8f28b1.borderRadius,
+    paddingHorizontal: v_8f28b1.paddingHorizontal,
+    height: v_8f28b1.height,
     backgroundColor: v_1bfbd0.white,
   },
-  pickerValue: { fontSize: 14, color: v_1bfbd0.zinc900 },
+  pickerValue: { fontSize: v_8f28b1.fontSize, lineHeight: v_8f28b1.lineHeight, color: v_1bfbd0.zinc900 },
   pickerRegion: { fontSize: 12, color: v_1bfbd0.zinc500 },
-  pickerPlaceholder: { fontSize: 14, color: v_1bfbd0.zinc400 },
+  pickerPlaceholder: { fontSize: v_8f28b1.fontSize, lineHeight: v_8f28b1.lineHeight, color: v_1bfbd0.zinc400 },
   saveBtn: {
     marginTop: 24,
     paddingVertical: 16,

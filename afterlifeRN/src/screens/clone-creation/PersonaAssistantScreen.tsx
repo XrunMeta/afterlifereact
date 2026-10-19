@@ -28,7 +28,7 @@ import type { v_390fcc } from 'xpfgrcdafpntkgxfmgxpxnedjkvmtc';
 import type { v_2b51a5 } from '../../navigation/types';
 
 import v_556baf from '../../components/ui/SafeView';
-import { v_1bfbd0, v_9b1a04, v_8b0c90, v_e3d001 } from '../../components/constants';
+import { v_1bfbd0, v_9b1a04, v_8b0c90, v_e3d001, v_7c5e29, v_0da505 } from '../../components/constants';
 import { v_194498 } from '../../stores/cloneStore';
 import { v_1ed7d9 } from '../../stores/authStore';
 import {
@@ -700,7 +700,7 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
           <View style={v_fd5f43.inputWrap}>
             <View style={v_fd5f43.inputBar}>
               <TextInput
-                style={[v_fd5f43.input, v_f05841 && v_fd5f43.inputMultiline]}
+                style={[v_fd5f43.input, v_f05841 ? v_fd5f43.inputMultiline : v_fd5f43.inputSingle]}
                 value={v_bbda62}
                 onChangeText={(v_81e2ef) => {
                   if (v_ab4803 === 'sys:username') {
@@ -712,6 +712,7 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
                 placeholder={v_064334}
                 placeholderTextColor={v_1bfbd0.zinc400}
                 multiline={v_f05841}
+                textAlignVertical="center"
                 maxLength={v_f05841 ? 500 : 40}
 
                 autoCapitalize={v_ab4803 === 'sys:username' ? 'none' : 'sentences'}
@@ -839,7 +840,7 @@ const v_fd5f43 = v_472849.create({
   },
   inputBar: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     gap: 8,
     paddingHorizontal: 12,
     paddingTop: 8,
@@ -848,18 +849,19 @@ const v_fd5f43 = v_472849.create({
   },
   input: {
     flex: 1,
-    minHeight: 40,
-    maxHeight: 120,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
     borderWidth: 1,
     borderColor: v_1bfbd0.zinc200,
-    borderRadius: 20,
-    backgroundColor: v_1bfbd0.secondaryLight,
-    fontSize: 14,
     color: v_1bfbd0.zinc900,
   },
-  inputMultiline: { paddingTop: 10 },
+  inputSingle: {
+    ...v_7c5e29,
+    backgroundColor: v_1bfbd0.zinc100,
+  },
+  inputMultiline: {
+    maxHeight: 120,
+    ...v_0da505,
+    backgroundColor: v_1bfbd0.zinc100,
+  },
   sendBtn: {
     width: 40,
     height: 40,
