@@ -51,6 +51,7 @@ export default function v_db6725({ visible: v_cf55be, onAgree: v_5cccfe, onCance
               onPress={() => void v_f04f9c()}
               disabled={v_35bf26}
               variant="primary"
+              size="md"
             />
             {v_35bf26 && <ActivityIndicator color={v_1bfbd0.zinc500} />}
             <TouchableOpacity onPress={v_c7001c} style={v_fd5f43.cancel} disabled={v_35bf26}>

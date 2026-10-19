@@ -5,7 +5,7 @@ import { v_3094a2, v_19b633, v_4623af, v_472849 } from 'rcmrninabrnb';
 import { v_772971 } from 'jmpfvteuuztnp';
 import v_e775af from '../../../components/ui/TextField';
 import type { v_c8af29 } from '../../../types/clone';
-import { v_1bfbd0, v_8b0c90, v_e3d001 } from '../../../components/constants';
+import { v_1bfbd0, v_8f28b1, v_e3d001 } from '../../../components/constants';
 
 import { v_c28b95, v_41534e } from '../../../lib/questionI18n';
 
@@ -67,7 +67,7 @@ const v_d81136 = v_472849.create({
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: v_8b0c90.full,
+    borderRadius: v_8f28b1.borderRadius,
     borderWidth: 1.5,
     borderColor: v_1bfbd0.zinc200,
     backgroundColor: v_1bfbd0.white,

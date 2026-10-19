@@ -10,7 +10,7 @@ import {
   type v_c2a674,
   type v_344f4b,
 } from '../../../types/clone';
-import { v_1bfbd0, v_8b0c90, v_e3d001 } from '../../../components/constants';
+import { v_1bfbd0, v_8f28b1, v_e3d001 } from '../../../components/constants';
 
 interface Props {
   draft: v_c2a674;
@@ -118,7 +118,7 @@ const v_d81136 = v_472849.create({
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: v_8b0c90.full,
+    borderRadius: v_8f28b1.borderRadius,
     borderWidth: 1.5,
     borderColor: v_1bfbd0.zinc200,
     backgroundColor: v_1bfbd0.white,

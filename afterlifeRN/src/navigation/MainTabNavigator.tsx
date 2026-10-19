@@ -13,6 +13,7 @@ import { v_1ed7d9 } from "../stores/authStore";
 
 import v_c316d8 from "../screens/home/HomeScreen";
 import v_def15b from "../screens/clones/MyClonesDashboardScreen";
+import v_8869a8 from "../screens/clones/GiftBoxScreen";
 import v_51ae06 from "../screens/clones/CloneDetailScreen";
 import v_541fbd from "../screens/clones/CloneEditScreen";
 import v_78da96 from "../screens/clones/CloneLearnScreen";
@@ -66,6 +67,7 @@ function v_aedede() {
       <ClonesStack.Screen name="CloneLearn" component={v_78da96} />
       <ClonesStack.Screen name="CloneInvite" component={v_07335f} />
       <ClonesStack.Screen name="InviteStatus" component={v_14fa9c} />
+      <ClonesStack.Screen name="GiftBox" component={v_8869a8} />
     </ClonesStack.Navigator>
   );
 }

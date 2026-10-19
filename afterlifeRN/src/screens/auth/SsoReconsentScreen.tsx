@@ -17,7 +17,7 @@ import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import v_c0caa9, { type v_3ac6ea } from "../../components/common/TermsModal";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_fa872d } from "../../hooks/useSsoReconsentGate";
-import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
+import { v_1bfbd0, v_8b0c90, v_d43669, v_c10a43 } from "../../components/constants";
 
 import {
   v_7f847d,
@@ -469,10 +469,10 @@ const v_d81136 = v_472849.create({
     backgroundColor: v_1bfbd0.white,
   },
   continueBtn: {
-    paddingVertical: 16,
-    borderRadius: 12,
+    ...v_d43669.lg,
     backgroundColor: v_1bfbd0.primary,
     alignItems: "center",
+    justifyContent: "center",
   },
   continueBtnDisabled: {
     backgroundColor: v_1bfbd0.zinc300,
@@ -486,9 +486,5 @@ const v_d81136 = v_472849.create({
     color: v_1bfbd0.zinc400,
     textDecorationLine: "underline",
   },
-  continueBtnText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: v_1bfbd0.white,
-  },
+  continueBtnText: { ...v_c10a43.lg, color: v_1bfbd0.white },
 });

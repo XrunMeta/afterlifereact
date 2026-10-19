@@ -20,7 +20,7 @@ import { v_772971 } from "jmpfvteuuztnp";
 import type { v_2d88fc } from "../../navigation/types";
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
-import { v_1bfbd0, v_8b0c90, v_9b1a04, v_0da505 } from "../../components/constants";
+import { v_1bfbd0, v_8b0c90, v_9b1a04, v_8f28b1, v_0da505, v_d43669, v_c10a43, v_119e65, v_94abbe } from "../../components/constants";
 import { v_889fad } from "../../stores/dialogStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import {
@@ -769,7 +769,7 @@ const v_d81136 = v_472849.create({
   suggestionBtn: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 999,
+    borderRadius: v_8f28b1.borderRadius,
     borderWidth: 1,
     borderColor: v_1bfbd0.zinc300,
     backgroundColor: v_1bfbd0.white,
@@ -803,8 +803,7 @@ const v_d81136 = v_472849.create({
   },
   confirmBtn: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: v_8b0c90.md,
+    ...v_d43669.md,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -812,9 +811,8 @@ const v_d81136 = v_472849.create({
     backgroundColor: v_1bfbd0.primary,
   },
   confirmBtnYesText: {
+    ...v_c10a43.md,
     color: v_1bfbd0.white,
-    fontSize: 15,
-    fontWeight: "700",
   },
   confirmBtnNo: {
     backgroundColor: v_1bfbd0.white,
@@ -822,9 +820,8 @@ const v_d81136 = v_472849.create({
     borderColor: v_1bfbd0.zinc300,
   },
   confirmBtnNoText: {
+    ...v_119e65.md,
     color: v_1bfbd0.zinc700,
-    fontSize: 15,
-    fontWeight: "600",
   },
   inputRow: {
     flexDirection: "row",
@@ -842,9 +839,7 @@ const v_d81136 = v_472849.create({
     backgroundColor: v_1bfbd0.zinc100,
   },
   sendBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    ...v_94abbe,
     backgroundColor: v_1bfbd0.primary,
     justifyContent: "center",
     alignItems: "center",

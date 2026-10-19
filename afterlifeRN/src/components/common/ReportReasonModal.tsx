@@ -16,7 +16,7 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
-import { v_1bfbd0, v_8b0c90, v_8f28b1 } from "../constants";
+import { v_1bfbd0, v_8b0c90, v_8f28b1, v_d43669, v_c10a43, v_119e65 } from "../constants";
 
 interface Props {
   visible: boolean;
@@ -209,18 +209,18 @@ const v_d81136 = v_472849.create({
   btns: { flexDirection: "row", gap: 8, width: "100%" },
   cancel: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: v_8b0c90.md,
+    ...v_d43669.md,
     backgroundColor: v_1bfbd0.zinc100,
     alignItems: "center",
+    justifyContent: "center",
   },
-  cancelText: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc700 },
+  cancelText: { ...v_119e65.md, color: v_1bfbd0.zinc700 },
   confirm: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: v_8b0c90.md,
+    ...v_d43669.md,
     backgroundColor: "#ef4444",
     alignItems: "center",
+    justifyContent: "center",
   },
-  confirmText: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.white },
+  confirmText: { ...v_c10a43.md, color: v_1bfbd0.white },
 });
