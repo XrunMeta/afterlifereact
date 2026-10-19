@@ -29,6 +29,7 @@ import { v_84d546 } from "../../lib/callGuard";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import v_556baf from "../../components/ui/SafeView";
 import v_06b8c0 from "../../components/clone/IntimacyEventsSheet";
+import { v_08bca5 } from "../../lib/useChatLiveRefresh";
 import { v_1bfbd0, v_8b0c90, v_9b1a04, v_0da505, v_94abbe } from "../../components/constants";
 import {
   v_8a85e2,
@@ -109,6 +110,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_dec728, v_a7c3b5] = v_5ab095(false);
   const [v_c5607b, v_1e756c] = v_5ab095<string | null>(null);
   const [v_5e23ec, v_10837f] = v_5ab095(false);
+  const v_c157ce = v_e662ae(false);
+  v_c157ce.current = v_5e23ec;
 
   const [v_b74b9c, v_b31b79] = v_5ab095<number | null>(null);
   const [v_9a58d3, v_74f358] = v_5ab095(false);
@@ -173,21 +176,25 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     };
   }, [v_e721a8, v_2ca7e0, v_6e0fd3]);
 
-  const v_e6ff86 = async () => {
+  const v_e6ff86 = async (v_02be30 = 10) => {
     if (!v_2ca7e0) return;
-    const v_8f00b9 = await v_22ca9b(v_6e0fd3, v_2ca7e0, { limit: 10 });
+    const v_8f00b9 = await v_22ca9b(v_6e0fd3, v_2ca7e0, { limit: v_02be30 });
     if (!v_8f00b9) return;
     if (typeof v_8f00b9.intimacy === "number") v_b31b79(v_8f00b9.intimacy);
-    const v_3871e2 = v_8f00b9.items.filter((v_23805a) => v_23805a.type === "system");
-    if (v_3871e2.length === 0) return;
     v_7f73ef((v_ba2215) => {
       const v_694b25 = v_ba2215 ?? [];
-      const v_d81543 = new Set(v_694b25.filter((v_23805a) => v_23805a.type === "system").map((v_23805a) => (v_23805a as { id: number }).id));
-      const v_90fa09 = v_3871e2.filter((v_23805a) => !v_d81543.has((v_23805a as { id: number }).id));
+      const v_d81543 = new Set(v_694b25.map(v_e51457));
+      const v_90fa09 = v_8f00b9.items.filter((v_23805a) => !v_d81543.has(v_e51457(v_23805a)));
       if (v_90fa09.length === 0) return v_ba2215;
       return [...v_90fa09, ...v_694b25].sort((v_779914, v_148ff6) => v_65604f(v_148ff6) - v_65604f(v_779914));
     });
   };
+
+  v_08bca5(() => {
+    if (!v_e721a8 || v_c157ce.current) return;
+    void v_e6ff86(30);
+    if (v_2ca7e0 && v_6b5698.currentState === "active") void v_9cb700(v_6e0fd3, v_2ca7e0);
+  }, v_6e0fd3);
 
   v_c4deb2(() => {
     if (!v_2ca7e0) return;
@@ -856,6 +863,11 @@ const v_c3f248 = ["일요일", "월요일", "화요일", "수요일", "목요일
 function v_873982(v_d799e2): string {
   const v_d5dda0 = new Date(v_d799e2);
   return `${v_d5dda0.getFullYear()}년 ${v_d5dda0.getMonth() + 1}월 ${v_d5dda0.getDate()}일 ${v_c3f248[v_d5dda0.getDay()]}`;
+}
+
+function v_e51457(it: v_29686e): string {
+  if (v_23805a.type === "call") return `call-${v_23805a.callId}`;
+  return `${v_23805a.type}-${v_23805a.id}`;
 }
 
 function v_65604f(v_23805a): number {
