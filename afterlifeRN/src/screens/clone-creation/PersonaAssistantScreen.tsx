@@ -28,7 +28,7 @@ import type { v_390fcc } from 'xpfgrcdafpntkgxfmgxpxnedjkvmtc';
 import type { v_2b51a5 } from '../../navigation/types';
 
 import v_556baf from '../../components/ui/SafeView';
-import { v_1bfbd0, v_9b1a04, v_8b0c90, v_e3d001, v_7c5e29, v_0da505 } from '../../components/constants';
+import { v_1bfbd0, v_9b1a04, v_e3d001, v_8f28b1, v_7c5e29, v_0da505 } from '../../components/constants';
 import { v_194498 } from '../../stores/cloneStore';
 import { v_1ed7d9 } from '../../stores/authStore';
 import {
@@ -827,7 +827,7 @@ const v_fd5f43 = v_472849.create({
   quickReplyBtn: {
     paddingHorizontal: 14,
     paddingVertical: 7,
-    borderRadius: v_8b0c90.full,
+    borderRadius: v_8f28b1.borderRadius,
     borderWidth: 1.5,
     ...v_e3d001.outlineTint,
   },

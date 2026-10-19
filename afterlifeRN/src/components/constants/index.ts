@@ -118,6 +118,89 @@ export const v_0da505 = {
   includeFontPadding: v_8f28b1.includeFontPadding,
 } as const;
 
+export const v_7fd157 = {
+  sm: {
+    height: 40,
+    borderRadius: v_8b0c90.sm,
+    paddingHorizontal: 16,
+    fontSize: 13,
+    fontWeight: "700" as const,
+    fontWeightSecondary: "600" as const,
+  },
+  md: {
+    height: 48,
+    borderRadius: v_8b0c90.md,
+    paddingHorizontal: 20,
+    fontSize: 14,
+    fontWeight: "700" as const,
+    fontWeightSecondary: "600" as const,
+  },
+  lg: {
+    height: 56,
+    borderRadius: v_8b0c90.lg,
+    paddingHorizontal: 24,
+    fontSize: 16,
+    fontWeight: "700" as const,
+    fontWeightSecondary: "600" as const,
+  },
+} as const;
+
+export type ButtonSizeToken = keyof typeof v_7fd157;
+
+export const v_d43669 = {
+  sm: {
+    height: v_7fd157.sm.height,
+    borderRadius: v_7fd157.sm.borderRadius,
+    paddingHorizontal: v_7fd157.sm.paddingHorizontal,
+  },
+  md: {
+    height: v_7fd157.md.height,
+    borderRadius: v_7fd157.md.borderRadius,
+    paddingHorizontal: v_7fd157.md.paddingHorizontal,
+  },
+  lg: {
+    height: v_7fd157.lg.height,
+    borderRadius: v_7fd157.lg.borderRadius,
+    paddingHorizontal: v_7fd157.lg.paddingHorizontal,
+  },
+} as const;
+
+export const v_c10a43 = {
+  sm: {
+    fontSize: v_7fd157.sm.fontSize,
+    fontWeight: v_7fd157.sm.fontWeight,
+  },
+  md: {
+    fontSize: v_7fd157.md.fontSize,
+    fontWeight: v_7fd157.md.fontWeight,
+  },
+  lg: {
+    fontSize: v_7fd157.lg.fontSize,
+    fontWeight: v_7fd157.lg.fontWeight,
+  },
+} as const;
+
+export const v_119e65 = {
+  sm: {
+    fontSize: v_7fd157.sm.fontSize,
+    fontWeight: v_7fd157.sm.fontWeightSecondary,
+  },
+  md: {
+    fontSize: v_7fd157.md.fontSize,
+    fontWeight: v_7fd157.md.fontWeightSecondary,
+  },
+  lg: {
+    fontSize: v_7fd157.lg.fontSize,
+    fontWeight: v_7fd157.lg.fontWeightSecondary,
+  },
+} as const;
+
+export const v_94abbe = {
+  width: 40,
+  height: 40,
+  borderRadius: 20,
+} as const;
+
 export const v_963c2c = {
   background: "#fafafa",
   bottomBackground: "#fafafa",

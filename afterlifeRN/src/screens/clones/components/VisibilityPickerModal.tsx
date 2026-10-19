@@ -4,7 +4,7 @@ import v_a3453e from "bapkr";
 import { v_aa7413, v_09d0e5, v_472849, v_19b633, v_4623af, v_3094a2 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
-import { v_1bfbd0, v_8b0c90 } from "../../../components/constants";
+import { v_1bfbd0, v_8b0c90, v_d43669, v_119e65 } from "../../../components/constants";
 import v_1a40c4 from "../../../components/ui/Button";
 import type { v_b0b271 } from "../../../types/clone";
 
@@ -117,8 +117,7 @@ const v_fd5f43 = v_472849.create({
   },
   options: { gap: 8, width: "100%" },
   option: {
-    height: 48,
-    borderRadius: v_8b0c90.lg,
+    ...v_d43669.md,
     backgroundColor: v_1bfbd0.zinc100,
     flexDirection: "row",
     alignItems: "center",
@@ -126,5 +125,5 @@ const v_fd5f43 = v_472849.create({
     gap: 8,
   },
   optionSelected: { backgroundColor: v_1bfbd0.zinc900 },
-  optionText: { fontSize: 14, fontWeight: "500", color: v_1bfbd0.zinc700 },
+  optionText: { ...v_119e65.md, color: v_1bfbd0.zinc700 },
 });

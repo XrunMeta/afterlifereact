@@ -4,7 +4,7 @@ import { v_772971 } from 'jmpfvteuuztnp';
 import v_e775af from '../../../components/ui/TextField';
 import { v_0a40d6 } from '../../../mocks/cloneTypeCatalog';
 import type { v_c2a674 } from '../../../types/clone';
-import { v_1bfbd0, v_8b0c90, v_e3d001 } from '../../../components/constants';
+import { v_1bfbd0, v_8f28b1, v_e3d001 } from '../../../components/constants';
 import v_78abf7 from './PersonaSection';
 import v_805cd1, { v_af8c0b } from './CloneUsernameField';
 
@@ -69,7 +69,7 @@ const v_d81136 = v_472849.create({
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: v_8b0c90.full,
+    borderRadius: v_8f28b1.borderRadius,
     borderWidth: 1.5,
     borderColor: v_1bfbd0.zinc200,
     backgroundColor: v_1bfbd0.white,
