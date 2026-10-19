@@ -12,7 +12,7 @@ import { v_0b44ec, v_02d529 } from "../lib/personaQuestions";
 import { v_70b594, v_4db5dd } from "../lib/knowledgeQuestions";
 import { v_cba618, v_1809f7 } from "../lib/knowledgeBlacklist";
 import { v_038cdc } from "../lib/knowledgeStore";
-import { v_c226a5 } from "../lib/notify";
+import { v_c226a5, v_5f5ee2, type v_dbf3ef } from "../lib/notify";
 import {
   v_916830,
   v_5d3436,
@@ -1573,6 +1573,92 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
     }
   }
   return v_3f4e2e.json({ userId: v_43e90c, count: v_db0487.length, results: v_a7f568 });
+});
+
+v_b7f2b4.get("/notify-test/target", v_c0a297, async (v_3f4e2e) => {
+  const v_ab6401 = (v_3f4e2e.req.query("q") ?? "").trim();
+  if (!v_ab6401) throw new v_3ebe58("VALIDATION_FAILED", "q 가 필요합니다 (이메일 / 애프터라이프 ID / xrun 회원번호).");
+  type U = { id: number; email: string; name: string | null; deletionState: string; xrunMemberId: number | null; marketingConsent: number };
+  const v_f2d7a9 = `SELECT id, email, name, deletion_state AS deletionState, xrun_member_id AS xrunMemberId,
+                      marketing_consent AS marketingConsent FROM users`;
+  let v_625c74 = null;
+  if (v_ab6401.includes("@")) {
+    v_625c74 = await v_3f4e2e.env.DB.prepare(`${v_f2d7a9} WHERE LOWER(email) = LOWER(?) LIMIT 1`).bind(v_ab6401).first<U>();
+  } else if (/^x\d+$/i.test(v_ab6401)) {
+    v_625c74 = await v_3f4e2e.env.DB.prepare(`${v_f2d7a9} WHERE xrun_member_id = ? ORDER BY id DESC LIMIT 1`).bind(Number(v_ab6401.slice(1))).first<U>();
+  } else if (/^\d+$/.test(v_ab6401)) {
+    v_625c74 =
+      (await v_3f4e2e.env.DB.prepare(`${v_f2d7a9} WHERE id = ?`).bind(Number(v_ab6401)).first<U>()) ??
+      (await v_3f4e2e.env.DB.prepare(`${v_f2d7a9} WHERE xrun_member_id = ? ORDER BY id DESC LIMIT 1`).bind(Number(v_ab6401)).first<U>());
+  }
+  if (!v_625c74) throw new v_3ebe58("NOT_FOUND", "해당 회원을 찾을 수 없습니다.");
+
+  const [v_1ba7e1, v_207650, v_eb25ce] = await Promise.all([
+    v_3f4e2e.env.DB
+      .prepare(
+        `SELECT device_id AS deviceId, platform, SUBSTR(push_token, 1, 30) AS pushTokenPrefix,
+                is_active AS isActive, last_active_at AS lastActiveAt
+           FROM user_devices WHERE user_id = ? ORDER BY last_active_at DESC`,
+      )
+      .bind(v_625c74.id)
+      .all(),
+    v_3f4e2e.env.DB
+      .prepare(`SELECT new_follower AS newFollower, following_activity AS followingActivity, reactions FROM user_notification_prefs WHERE user_id = ?`)
+      .bind(v_625c74.id)
+      .first<{ newFollower: number; followingActivity: number; reactions: number }>(),
+    v_3f4e2e.env.DB
+      .prepare(`SELECT id, name FROM clones WHERE owner_id = ? AND deletion_state = 'active' ORDER BY id DESC LIMIT 1`)
+      .bind(v_625c74.id)
+      .first<{ id: number; name: string }>(),
+  ]);
+  return v_3f4e2e.json({
+    user: v_625c74,
+    devices: v_1ba7e1.results ?? [],
+    prefs: {
+      newFollower: v_207650 ? v_207650.newFollower === 1 : true,
+      followingActivity: v_207650 ? v_207650.followingActivity === 1 : true,
+      reactions: v_207650 ? v_207650.reactions === 1 : true,
+      promotions: v_625c74.marketingConsent === 1,
+    },
+    sampleClone: v_eb25ce ?? null,
+  });
+});
+
+const v_eef71e = {
+  user_follow: { title: "✨ 새 팔로워 (테스트)", body: "테스트 사용자가 나를 팔로우했어요" },
+  followee_new_clone: { title: "🌟 새 페르소나 (테스트)", body: "팔로우한 사용자가 새 페르소나를 만들었어요" },
+  clone_like: { title: "❤️ 좋아요 (테스트)", body: "테스트 사용자가 내 페르소나에 좋아요를 눌렀어요" },
+  clone_comment: { title: "💬 댓글 (테스트)", body: "테스트 사용자가 내 페르소나에 댓글을 남겼어요" },
+  clone_follow: { title: "➕ 구독 (테스트)", body: "테스트 사용자가 내 페르소나를 구독했어요" },
+  clone_gift: { title: "🎁 선물 (테스트)", body: "테스트 사용자가 내 페르소나에 선물을 보냈어요" },
+  intimacy_score: { title: "🌡️ 온도 상승 (테스트)", body: "페르소나와의 친밀도가 올랐어요" },
+  moderation: { title: "⚠️ 신고 처리 (테스트)", body: "테스트 제재 안내입니다" },
+};
+v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_43e90c = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_43e90c) || v_43e90c <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid user id.");
+  const v_4d33b2 = (await v_3f4e2e.req.json().catch(() => ({}))) as { type?: unknown; title?: unknown; body?: unknown };
+  const v_3b27d9 = typeof v_4d33b2.type === "string" ? v_4d33b2.type : "";
+  const v_f1a0c2 = v_eef71e[v_3b27d9];
+  if (!v_f1a0c2) throw new v_3ebe58("VALIDATION_FAILED", `지원하지 않는 type: ${v_3b27d9}`);
+  const v_eb25ce = await v_3f4e2e.env.DB
+    .prepare(`SELECT id FROM clones WHERE owner_id = ? AND deletion_state = 'active' ORDER BY id DESC LIMIT 1`)
+    .bind(v_43e90c)
+    .first<{ id: number }>();
+  const v_9390e8 = { test: true };
+  if (v_eb25ce && (v_3b27d9.startsWith("clone_") || v_3b27d9 === "intimacy_score" || v_3b27d9 === "followee_new_clone")) {
+    v_9390e8.cloneId = v_eb25ce.id;
+  }
+  const v_762d02 = await v_5f5ee2(v_3f4e2e.env, v_43e90c, v_3b27d9);
+  const v_cb35cb = await v_c226a5(v_3f4e2e.env, {
+    userId: v_43e90c,
+    type: v_3b27d9 as v_dbf3ef,
+    title: typeof v_4d33b2.title === "string" && v_4d33b2.title ? v_4d33b2.title : v_f1a0c2.title,
+    body: typeof v_4d33b2.body === "string" && v_4d33b2.body ? v_4d33b2.body : v_f1a0c2.body,
+    data: v_9390e8,
+    skipEmail: true,
+  });
+  return v_3f4e2e.json({ type: v_3b27d9, pushAllowed: v_762d02, cloneId: v_9390e8.cloneId ?? null, ...v_cb35cb });
 });
 
 v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
