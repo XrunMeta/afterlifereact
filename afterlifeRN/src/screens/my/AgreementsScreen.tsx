@@ -21,19 +21,14 @@ import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import type { v_e57140 } from "../../navigation/types";
 import { v_1ed7d9 } from "../../stores/authStore";
 import {
-  v_7f847d,
-  v_b14b3b,
   v_421733,
   v_0f8436,
-  v_2d09bf,
-  v_74fdb6,
   v_9d82d6,
   v_d74a4c,
-  type v_6a3f07,
   type v_f8228d,
-  type v_a4ab1b,
   type v_550b56,
 } from "../../api/consent";
+import type { v_3ac6ea } from "../../components/common/TermsModal";
 import { v_704bef, v_9bedf5 } from "../../lib/pushNotifications";
 
 export default function v_c78d4f() {
@@ -41,39 +36,15 @@ export default function v_c78d4f() {
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const { t: v_8d41d7 } = v_772971();
 
-  const [v_ede652, v_721e61] = v_5ab095<v_6a3f07>("none");
-  const [v_53569b, v_147f73] = v_5ab095(true);
-  const [v_1dead4, v_578637] = v_5ab095(false);
-  const [v_312a6a, v_344e2f] = v_5ab095(false);
+  const [v_adcd4f, v_41be10] = v_5ab095<v_3ac6ea | null>(null);
 
   const [v_ef3473, v_a782b8] = v_5ab095<v_f8228d>("none");
   const [v_2fe581, v_5d7683] = v_5ab095(true);
   const [v_09250c, v_07c9fd] = v_5ab095(false);
 
-  const [v_a55f0b, v_0326b2] = v_5ab095<v_a4ab1b>("none");
-  const [v_ac7590, v_e7566a] = v_5ab095(true);
-  const [v_039b0a, v_67f419] = v_5ab095(false);
-
   const [v_18d480, v_f4bccd] = v_5ab095<v_550b56>("none");
   const [v_b47b36, v_eb1edc] = v_5ab095(true);
   const [v_dbf473, v_c1d709] = v_5ab095(false);
-
-  const v_fbea7d = v_de06a3(async () => {
-    if (!v_2ca7e0) {
-      v_721e61("none");
-      v_147f73(false);
-      return;
-    }
-    v_147f73(true);
-    try {
-      const v_b6e533 = await v_b14b3b(v_2ca7e0);
-      v_721e61(v_b6e533);
-    } catch (v_49263d) {
-      console.warn("[Agreements] getCallLearningConsent failed:", v_49263d);
-    } finally {
-      v_147f73(false);
-    }
-  }, [v_2ca7e0]);
 
   const v_ffac69 = v_de06a3(async () => {
     if (!v_2ca7e0) {
@@ -89,23 +60,6 @@ export default function v_c78d4f() {
       console.warn("[Agreements] getFaceBiometricConsent failed:", v_49263d);
     } finally {
       v_5d7683(false);
-    }
-  }, [v_2ca7e0]);
-
-  const v_d56263 = v_de06a3(async () => {
-    if (!v_2ca7e0) {
-      v_0326b2("none");
-      v_e7566a(false);
-      return;
-    }
-    v_e7566a(true);
-    try {
-      const v_b6e533 = await v_74fdb6(v_2ca7e0);
-      v_0326b2(v_b6e533);
-    } catch (v_49263d) {
-      console.warn("[Agreements] getLocationConsent failed:", v_49263d);
-    } finally {
-      v_e7566a(false);
     }
   }, [v_2ca7e0]);
 
@@ -127,42 +81,16 @@ export default function v_c78d4f() {
   }, [v_2ca7e0]);
 
   v_c4deb2(() => {
-    v_fbea7d();
     v_ffac69();
-    v_d56263();
     v_89c402();
-  }, [v_fbea7d, v_ffac69, v_d56263, v_89c402]);
+  }, [v_ffac69, v_89c402]);
 
   v_cf763b(
     v_a3453e.useCallback(() => {
-      v_fbea7d();
-      v_ffac69();
-      v_d56263();
-      v_89c402();
-    }, [v_fbea7d, v_ffac69, v_d56263, v_89c402]),
+        v_ffac69();
+        v_89c402();
+    }, [v_ffac69, v_89c402]),
   );
-
-  const v_da6541 = async (v_3b402b) => {
-    if (!v_2ca7e0 || v_1dead4) return;
-    const v_ba2215 = v_ede652;
-    v_578637(true);
-    v_721e61(v_3b402b ? "granted" : "none");
-    try {
-      const v_cb35cb = await v_7f847d(
-        v_2ca7e0,
-        v_3b402b ? "granted" : "revoked",
-        { channel: "settings" },
-      );
-      v_721e61(v_cb35cb.state === "granted" ? "granted" : "none");
-    } catch (v_49263d) {
-      v_721e61(v_ba2215);
-      const v_badeaf =
-        v_49263d instanceof Error ? v_49263d.message : v_8d41d7("settings.privacy.callLearning.saveError");
-      v_889fad(v_8d41d7("common.error"), v_badeaf);
-    } finally {
-      v_578637(false);
-    }
-  };
 
   const v_0e6e60 = async (v_3b402b) => {
     if (!v_2ca7e0) return;
@@ -182,53 +110,6 @@ export default function v_c78d4f() {
       v_889fad(v_8d41d7("common.error"), v_badeaf);
     } finally {
       v_07c9fd(false);
-    }
-  };
-
-  const v_157703 = async (v_3b402b) => {
-    if (!v_2ca7e0 || v_039b0a) return;
-    if (v_3b402b) {
-      v_67f419(true);
-      try {
-        const v_0e45c5 = await import("zryrlwvgokjhz");
-        const v_fc6010 = await v_0e45c5.getForegroundPermissionsAsync();
-        const v_d60769 = v_fc6010.granted
-          ? v_fc6010
-          : await v_0e45c5.requestForegroundPermissionsAsync();
-        if (!v_d60769.granted) {
-          v_889fad(
-            v_8d41d7("auth.signup.locationPermTitle", { defaultValue: "위치 권한 필요" }),
-            v_8d41d7("auth.signup.locationPermDesc", {
-              defaultValue:
-                "통화 시 지역 기반 대화를 하려면 위치 권한이 필요합니다.\n기기 설정 → 위치 → AfterLife 에서 허용해 주십시오.",
-            }),
-          );
-          v_67f419(false);
-          return;
-        }
-        const v_cb35cb = await v_2d09bf(v_2ca7e0, "granted", { channel: "settings" });
-        v_0326b2(v_cb35cb.state === "granted" ? "granted" : "none");
-      } catch (v_49263d) {
-        const v_badeaf = v_49263d instanceof Error ? v_49263d.message : String(v_49263d);
-        v_889fad(v_8d41d7("common.error"), v_badeaf);
-      } finally {
-        v_67f419(false);
-      }
-      return;
-    }
-
-    const v_ba2215 = v_a55f0b;
-    v_67f419(true);
-    v_0326b2("none");
-    try {
-      const v_cb35cb = await v_2d09bf(v_2ca7e0, "revoked", { channel: "settings" });
-      v_0326b2(v_cb35cb.state === "granted" ? "granted" : "none");
-    } catch (v_49263d) {
-      v_0326b2(v_ba2215);
-      const v_badeaf = v_49263d instanceof Error ? v_49263d.message : String(v_49263d);
-      v_889fad(v_8d41d7("common.error"), v_badeaf);
-    } finally {
-      v_67f419(false);
     }
   };
 
@@ -293,14 +174,7 @@ export default function v_c78d4f() {
       <FaceConsentSection t={v_8d41d7} />
 
       {}
-      <CallLearningConsentSection
-        state={v_ede652}
-        loading={v_53569b}
-        saving={v_1dead4}
-        onToggle={v_da6541}
-        onViewTerms={() => v_344e2f(true)}
-        t={v_8d41d7}
-      />
+      <RequiredConsentSection onViewTerms={v_41be10} t={v_8d41d7} />
 
       {}
       <FaceBiometricConsentSection
@@ -308,15 +182,6 @@ export default function v_c78d4f() {
         loading={v_2fe581}
         saving={v_09250c}
         onToggle={v_e334fb}
-        t={v_8d41d7}
-      />
-
-      {}
-      <LocationConsentSection
-        state={v_a55f0b}
-        loading={v_ac7590}
-        saving={v_039b0a}
-        onToggle={v_157703}
         t={v_8d41d7}
       />
 
@@ -330,10 +195,10 @@ export default function v_c78d4f() {
       />
 
       <TermsModal
-        visible={v_312a6a}
-        type={5}
-        onClose={() => v_344e2f(false)}
-        onAgree={() => v_344e2f(false)}
+        visible={v_adcd4f !== null}
+        type={v_adcd4f}
+        onClose={() => v_41be10(null)}
+        onAgree={() => v_41be10(null)}
       />
     </SafeScrollView>
   );
@@ -370,53 +235,38 @@ function v_afe1c9({ t: v_8d41d7 }: FaceConsentSectionProps) {
   );
 }
 
-interface CallLearningConsentSectionProps {
-  state: v_6a3f07;
-  loading: boolean;
-  saving: boolean;
-  onToggle: (value: boolean) => void;
-  onViewTerms: () => void;
-  t: (key: string, opts?: Record<string, unknown>) => string;
-}
-
-function v_efb928({
-  state: v_b6e533,
-  loading: v_683210,
-  saving: v_35bf26,
-  onToggle: v_0a2cea,
+function v_9f0cf3({
   onViewTerms: v_6c57c3,
   t: v_8d41d7,
-}: CallLearningConsentSectionProps) {
+}: {
+  onViewTerms: (type: v_3ac6ea) => void;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}) {
+  const items: Array<{ type: v_3ac6ea; label: string }> = [
+    { type: 5, label: v_8d41d7("auth.signup.termsCallLearningTitle", { defaultValue: "AI 데이터 활용 및 생성 동의" }) },
+    { type: 2, label: v_8d41d7("auth.signup.termsLocationTitle", { defaultValue: "위치기반서비스 이용약관" }) },
+  ];
   return (
-    <View
-      testID="call-learning-consent-section"
-      style={[v_fd5f43.content, { paddingTop: 0, paddingBottom: 32 }]}
-    >
-      <Text style={v_fd5f43.sectionTitle}>{v_8d41d7("settings.privacy.callLearning.sectionTitle")}</Text>
+    <View testID="required-consent-section" style={[v_fd5f43.content, { paddingTop: 0, paddingBottom: 32 }]}>
+      <Text style={v_fd5f43.sectionTitle}>
+        {v_8d41d7("settings.privacy.required.sectionTitle", { defaultValue: "필수 동의" })}
+      </Text>
       <View style={v_fd5f43.card}>
-        <View style={v_fd5f43.row}>
-          <View style={{ flex: 1 }}>
-            <Text style={v_fd5f43.rowName}>{v_8d41d7("settings.privacy.callLearning.toggleLabel")}</Text>
-            <Text style={v_fd5f43.rowSub}>{v_8d41d7("settings.privacy.callLearning.description")}</Text>
-            <TouchableOpacity onPress={v_6c57c3} hitSlop={8}>
-              <Text style={[v_fd5f43.rowSub, v_fd5f43.callLearningTermsLink]}>
-                {v_8d41d7("settings.privacy.callLearning.viewTerms")}
-              </Text>
-            </TouchableOpacity>
+        {v_4622b9.map((v_23805a, v_ebec57) => (
+          <View key={v_23805a.type} style={[v_fd5f43.row, v_ebec57 > 0 && v_fd5f43.rowDivider]}>
+            <View style={{ flex: 1 }}>
+              <Text style={v_fd5f43.rowName}>{v_23805a.label}</Text>
+              <TouchableOpacity onPress={() => v_6c57c3(v_23805a.type)} hitSlop={8}>
+                <Text style={[v_fd5f43.rowSub, v_fd5f43.callLearningTermsLink]}>
+                  {v_8d41d7("settings.privacy.callLearning.viewTerms", { defaultValue: "약관 보기" })}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={v_fd5f43.requiredBadge}>
+              {v_8d41d7("settings.privacy.required.agreed", { defaultValue: "필수 · 동의함" })}
+            </Text>
           </View>
-          {v_683210 ? (
-            <ActivityIndicator color={v_1bfbd0.zinc500} />
-          ) : (
-            <Switch
-              testID="call-learning-consent-toggle"
-              value={v_b6e533 === "granted"}
-              onValueChange={v_0a2cea}
-              disabled={v_35bf26}
-              trackColor={{ false: v_1bfbd0.zinc200, true: v_1bfbd0.violet600 }}
-              thumbColor={v_1bfbd0.white}
-            />
-          )}
-        </View>
+        ))}
       </View>
     </View>
   );
@@ -456,59 +306,6 @@ function v_b8358a({
               testID="face-biometric-consent-toggle"
 
               value={v_b6e533 !== "revoked"}
-              onValueChange={v_0a2cea}
-              disabled={v_35bf26}
-              trackColor={{ false: v_1bfbd0.zinc200, true: v_1bfbd0.violet600 }}
-              thumbColor={v_1bfbd0.white}
-            />
-          )}
-        </View>
-      </View>
-    </View>
-  );
-}
-
-interface LocationConsentSectionProps {
-  state: v_a4ab1b;
-  loading: boolean;
-  saving: boolean;
-  onToggle: (value: boolean) => void;
-  t: (key: string, opts?: Record<string, unknown>) => string;
-}
-
-function v_4764e7({
-  state: v_b6e533,
-  loading: v_683210,
-  saving: v_35bf26,
-  onToggle: v_0a2cea,
-  t: v_8d41d7,
-}: LocationConsentSectionProps) {
-  return (
-    <View
-      testID="location-consent-section"
-      style={[v_fd5f43.content, { paddingTop: 0, paddingBottom: 32 }]}
-    >
-      <Text style={v_fd5f43.sectionTitle}>
-        {v_8d41d7("settings.privacy.location.sectionTitle", { defaultValue: "위치기반 서비스" })}
-      </Text>
-      <View style={v_fd5f43.card}>
-        <View style={v_fd5f43.row}>
-          <View style={{ flex: 1 }}>
-            <Text style={v_fd5f43.rowName}>
-              {v_8d41d7("settings.privacy.location.toggleLabel", { defaultValue: "위치 정보 사용" })}
-            </Text>
-            <Text style={v_fd5f43.rowSub}>
-              {v_8d41d7("settings.privacy.location.description", {
-                defaultValue: "통화 시 현재 지역을 페르소나에게 힌트로 전달합니다. (필수)",
-              })}
-            </Text>
-          </View>
-          {v_683210 ? (
-            <ActivityIndicator color={v_1bfbd0.zinc500} />
-          ) : (
-            <Switch
-              testID="location-consent-toggle"
-              value={v_b6e533 === "granted"}
               onValueChange={v_0a2cea}
               disabled={v_35bf26}
               trackColor={{ false: v_1bfbd0.zinc200, true: v_1bfbd0.violet600 }}
@@ -616,6 +413,11 @@ const v_fd5f43 = v_472849.create({
     borderTopColor: v_1bfbd0.zinc100,
   },
   viewAllText: { fontSize: 13, color: v_1bfbd0.zinc700, fontWeight: "600" },
+  rowDivider: {
+    borderTopWidth: v_472849.hairlineWidth,
+    borderTopColor: v_1bfbd0.zinc100,
+  },
+  requiredBadge: { fontSize: 12, fontWeight: "600", color: v_1bfbd0.zinc500 },
   callLearningTermsLink: {
     color: v_1bfbd0.zinc700,
     textDecorationLine: "underline",
