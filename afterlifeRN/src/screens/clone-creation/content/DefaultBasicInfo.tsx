@@ -5,7 +5,7 @@ import v_e775af from '../../../components/ui/TextField';
 import v_84e2fc from '../../../components/ui/InterestChip';
 import { v_6e79a1, v_a3360a } from '../../../mocks/interestHelpers';
 import type { v_c2a674 } from '../../../types/clone';
-import { v_1bfbd0, v_8b0c90 } from '../../../components/constants';
+import { v_1bfbd0, v_8b0c90, v_e3d001 } from '../../../components/constants';
 import v_78abf7 from './PersonaSection';
 import v_805cd1, { v_af8c0b } from './CloneUsernameField';
 
@@ -152,7 +152,7 @@ const v_d81136 = v_472849.create({
   label: { fontSize: 13, fontWeight: '600', color: v_1bfbd0.zinc700, marginTop: 12 },
   catRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   cat: { padding: 10, borderRadius: v_8b0c90.sm, borderWidth: 1, borderColor: v_1bfbd0.zinc200 },
-  catActive: { backgroundColor: v_1bfbd0.violet100, borderColor: v_1bfbd0.violet600 },
+  catActive: v_e3d001.cardTint,
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   customInputRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   customTextInput: {
@@ -164,10 +164,10 @@ const v_d81136 = v_472849.create({
   },
   addBtnText: { color: v_1bfbd0.white, fontSize: 14, fontWeight: '600' },
   customTag: {
-    paddingHorizontal: 12, paddingVertical: 6, backgroundColor: v_1bfbd0.violet100,
-    borderRadius: v_8b0c90.full, borderWidth: 1, borderColor: v_1bfbd0.violet600,
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: v_8b0c90.full, borderWidth: 1,
+    ...v_e3d001.outlineTint,
   },
-  customTagText: { fontSize: 13, color: v_1bfbd0.violet600 },
+  customTagText: { fontSize: 13, ...v_e3d001.accentText },
   etcChip: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: v_8b0c90.full,
     borderWidth: 1, borderColor: v_1bfbd0.zinc300, borderStyle: 'dashed',
