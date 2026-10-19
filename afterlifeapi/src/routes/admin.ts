@@ -1603,9 +1603,13 @@ v_b7f2b4.get("/notify-test/target", v_c0a297, async (v_3f4e2e) => {
       .bind(v_625c74.id)
       .all(),
     v_3f4e2e.env.DB
-      .prepare(`SELECT new_follower AS newFollower, following_activity AS followingActivity, reactions FROM user_notification_prefs WHERE user_id = ?`)
+      .prepare(
+        `SELECT new_follower AS newFollower, following_activity AS followingActivity, reactions,
+                intimacy, moderation
+           FROM user_notification_prefs WHERE user_id = ?`,
+      )
       .bind(v_625c74.id)
-      .first<{ newFollower: number; followingActivity: number; reactions: number }>(),
+      .first<{ newFollower: number; followingActivity: number; reactions: number; intimacy: number; moderation: number }>(),
     v_3f4e2e.env.DB
       .prepare(`SELECT id, name FROM clones WHERE owner_id = ? AND deletion_state = 'active' ORDER BY id DESC LIMIT 1`)
       .bind(v_625c74.id)
@@ -1618,6 +1622,8 @@ v_b7f2b4.get("/notify-test/target", v_c0a297, async (v_3f4e2e) => {
       newFollower: v_207650 ? v_207650.newFollower === 1 : true,
       followingActivity: v_207650 ? v_207650.followingActivity === 1 : true,
       reactions: v_207650 ? v_207650.reactions === 1 : true,
+      intimacy: v_207650 ? v_207650.intimacy === 1 : true,
+      moderation: v_207650 ? v_207650.moderation === 1 : true,
       promotions: v_625c74.marketingConsent === 1,
     },
     sampleClone: v_eb25ce ?? null,
