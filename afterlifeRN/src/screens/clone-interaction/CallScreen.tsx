@@ -429,8 +429,6 @@ export default function CallScreen(props: Props) {
 
       <CallFaceConsentModal
         visible={faceConsent.gate === "prompt"}
-        needFace={faceConsent.needFace}
-        needCloneFace={faceConsent.needCloneFace}
         onAgree={faceConsent.agree}
         onCancel={() => void faceConsent.cancel()}
       />
