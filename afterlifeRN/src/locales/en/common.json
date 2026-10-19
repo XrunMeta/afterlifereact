@@ -788,7 +788,9 @@
       "resetFailed": "Reset failed. Please try again later.",
       "cooldown": "Please try again in {{secs}}s.",
       "togglePasswordLabel": "Toggle password visibility",
-      "toggleConfirmLabel": "Toggle confirm password visibility"
+      "toggleConfirmLabel": "Toggle confirm password visibility",
+      "emailNotFoundTitle": "Email not registered",
+      "emailNotFoundMessage": "No account is registered with this email.\nPlease check the email or sign up."
     },
     "signup": {
       "title": "Sign Up",

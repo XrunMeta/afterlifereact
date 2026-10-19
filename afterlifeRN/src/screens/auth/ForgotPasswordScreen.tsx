@@ -57,6 +57,23 @@ export default function v_040c8f() {
       v_889fad(v_8d41d7("auth.forgot.title"), v_8d41d7("auth.forgot.codeSent"));
       v_fd7d1f("otp");
     } catch (v_49263d) {
+
+      if (v_49263d instanceof v_84a859 && v_49263d.code === "NOT_FOUND") {
+        v_889fad(
+          v_8d41d7("auth.forgot.emailNotFoundTitle", { defaultValue: "가입되지 않은 이메일" }),
+          v_8d41d7("auth.forgot.emailNotFoundMessage", {
+            defaultValue: "입력하신 이메일로 가입된 계정이 없습니다.\n이메일을 다시 확인하거나 회원가입을 해주세요.",
+          }),
+          [
+            { text: v_8d41d7("common.confirm", { defaultValue: "확인" }), style: "cancel" },
+            {
+              text: v_8d41d7("auth.login.goSignup", { defaultValue: "회원가입" }),
+              onPress: () => (v_c65f5d as unknown as { navigate: (name: string, params?: object) => void }).navigate("Signup", {}),
+            },
+          ],
+        );
+        return;
+      }
       let v_badeaf = v_8d41d7("auth.forgot.resetFailed");
       if (v_49263d instanceof v_84a859 && v_49263d.code === "OTP_COOLDOWN") {
 
