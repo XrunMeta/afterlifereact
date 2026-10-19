@@ -79,8 +79,9 @@ const v_0666ec = v_1f4ea7.object({ email: v_1f4ea7.email().max(200) });
 v_68f0aa.post("/email/check-xrun", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_0666ec);
   const [v_ed2073, v_76be17] = await Promise.all([
+
     v_3f4e2e.env.DB
-      .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`)
+      .prepare(`SELECT id FROM users WHERE email = ? AND deletion_state = 'active' AND deleted_at IS NULL LIMIT 1`)
       .bind(v_4d33b2.email)
       .first<{ id: number }>(),
     v_a0ec33(v_3f4e2e.env, v_4d33b2.email),
