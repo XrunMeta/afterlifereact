@@ -786,7 +786,9 @@
       "resetFailed": "変更に失敗しました。しばらくしてから再度お試しください。",
       "cooldown": "{{secs}}秒後に再度お試しください。",
       "togglePasswordLabel": "パスワード表示切替",
-      "toggleConfirmLabel": "パスワード確認表示切替"
+      "toggleConfirmLabel": "パスワード確認表示切替",
+      "emailNotFoundTitle": "未登録のメールアドレス",
+      "emailNotFoundMessage": "入力されたメールアドレスで登録されたアカウントがありません。\nメールアドレスを確認するか、会員登録をしてください。"
     },
     "signup": {
       "title": "会員登録",

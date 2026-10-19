@@ -786,7 +786,9 @@
       "resetFailed": "Perubahan gagal. Silakan coba lagi nanti.",
       "cooldown": "Silakan coba lagi dalam {{secs}} detik.",
       "togglePasswordLabel": "Alihkan tampilan kata sandi",
-      "toggleConfirmLabel": "Alihkan tampilan konfirmasi kata sandi"
+      "toggleConfirmLabel": "Alihkan tampilan konfirmasi kata sandi",
+      "emailNotFoundTitle": "Email belum terdaftar",
+      "emailNotFoundMessage": "Tidak ada akun yang terdaftar dengan email ini.\nPeriksa kembali email Anda atau daftar terlebih dahulu."
     },
     "signup": {
       "title": "Daftar",
