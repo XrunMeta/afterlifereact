@@ -55,6 +55,8 @@ export interface Bindings {
   CONVERSATION_INCLUDE_CHAT?: string;
 
   CHAT_REPLY_SOURCE?: string;
+
+  CHAT_UNREAD_PUSH_DELAY_MS?: string;
   CHAT_REPLY_SECRET?: string;   
   CHAT_DAILY_LIMIT?: string;    
 

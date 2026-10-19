@@ -21,7 +21,9 @@ export type NotificationType =
 
   | "intimacy_score"
 
-  | "moderation";
+  | "moderation"
+
+  | "clone_message";
 
 export interface NotifyOptions {
 
@@ -41,6 +43,8 @@ export interface NotifyOptions {
   emailSubject?: string;
 
   skipEmail?: boolean;
+
+  skipInApp?: boolean;
 }
 
 export interface NotifyResult {
@@ -55,9 +59,12 @@ export type NotificationPrefCategory =
   | "following_activity"
   | "reactions"
   | "intimacy"
-  | "moderation";
+  | "moderation"
+  | "messages";
 
 const v_e6c9c1 = {
+
+  clone_message: "messages",
   user_follow: "new_follower",
   followee_new_clone: "following_activity",
   clone_like: "reactions",
@@ -96,7 +103,7 @@ export async function v_c226a5(env: v_273a0c, v_328259): Promise<NotifyResult> {
 
   const v_762d02 = v_328259.userId ? await v_5f5ee2(v_c9c489, v_328259.userId, v_328259.type) : true;
 
-  if (v_328259.userId) {
+  if (v_328259.userId && !v_328259.skipInApp) {
     try {
       await v_c9c489.DB
         .prepare(
