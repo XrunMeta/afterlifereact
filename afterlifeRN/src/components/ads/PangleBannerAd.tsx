@@ -1,6 +1,6 @@
 
 
-import v_a3453e, { v_b0de9c, v_c4deb2, type v_4a8ba2 } from "bapkr";
+import v_a3453e, { v_b0de9c, v_c4deb2, v_5ab095, type v_4a8ba2 } from "bapkr";
 import {
   v_18ba07,
   v_326be8,
@@ -96,16 +96,30 @@ export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4 }: Props)
   const v_4281e6 = v_8d41d7("chat.adBannerFallback");
   const v_0debf4 = <FallbackBanner style={v_7fa4e4} label={v_4281e6} />;
 
+  const [v_ae4a03, v_7ab0cc] = v_5ab095(false);
   v_c4deb2(() => {
     if (v_326be8.OS !== "android") return;
     if (!v_61418d) return;
     if (!v_355b08) return;
-    void v_f095b0().catch((v_49263d) => {
-      console.warn("[PangleBannerAd] init 실패:", (v_49263d as Error)?.message ?? v_49263d);
-    });
+    let v_2008a4 = false;
+    let v_cb36b1 = null;
+    const v_bc21cd = async (v_f4e98d) => {
+      const v_3ed4c3 = await v_f095b0().catch((v_49263d) => {
+        console.warn("[PangleBannerAd] init 실패:", (v_49263d as Error)?.message ?? v_49263d);
+        return false;
+      });
+      if (v_2008a4) return;
+      if (v_3ed4c3) v_7ab0cc(true);
+      else if (v_f4e98d < 3) v_cb36b1 = setTimeout(() => void v_bc21cd(v_f4e98d + 1), 3000);
+    };
+    void v_bc21cd(1);
+    return () => {
+      v_2008a4 = true;
+      if (v_cb36b1) clearTimeout(v_cb36b1);
+    };
   }, [v_61418d]);
 
-  if (v_326be8.OS !== "android" || !v_db6966 || !v_61418d) {
+  if (v_326be8.OS !== "android" || !v_db6966 || !v_61418d || !v_ae4a03) {
     return v_0debf4;
   }
 
