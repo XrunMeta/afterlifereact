@@ -254,6 +254,8 @@ type NotificationPrefsBody = {
   newFollower?: boolean;
   followingActivity?: boolean;
   reactions?: boolean;
+  intimacy?: boolean;
+  moderation?: boolean;
   promotions?: boolean;
 };
 
@@ -261,16 +263,26 @@ async function v_7169c4(v_a1651b, v_43e90c) {
   const v_3ac7e7 = await v_a1651b
     .prepare(
       `SELECT u.marketing_consent AS promotions,
-              p.new_follower AS newFollower, p.following_activity AS followingActivity, p.reactions AS reactions
+              p.new_follower AS newFollower, p.following_activity AS followingActivity, p.reactions AS reactions,
+              p.intimacy AS intimacy, p.moderation AS moderation
          FROM users u LEFT JOIN user_notification_prefs p ON p.user_id = u.id
         WHERE u.id = ?`,
     )
     .bind(v_43e90c)
-    .first<{ promotions: number | null; newFollower: number | null; followingActivity: number | null; reactions: number | null }>();
+    .first<{
+      promotions: number | null;
+      newFollower: number | null;
+      followingActivity: number | null;
+      reactions: number | null;
+      intimacy: number | null;
+      moderation: number | null;
+    }>();
   return {
     newFollower: v_3ac7e7?.newFollower !== 0,
     followingActivity: v_3ac7e7?.followingActivity !== 0,
     reactions: v_3ac7e7?.reactions !== 0,
+    intimacy: v_3ac7e7?.intimacy !== 0,
+    moderation: v_3ac7e7?.moderation !== 0,
     promotions: v_3ac7e7?.promotions === 1,
   };
 }
@@ -289,18 +301,32 @@ v_de7ba7.put("/me/notification-prefs", v_6690d9, async (v_3f4e2e) => {
     newFollower: v_ff792b(v_4d33b2.newFollower, v_c3bc75.newFollower),
     followingActivity: v_ff792b(v_4d33b2.followingActivity, v_c3bc75.followingActivity),
     reactions: v_ff792b(v_4d33b2.reactions, v_c3bc75.reactions),
+    intimacy: v_ff792b(v_4d33b2.intimacy, v_c3bc75.intimacy),
+    moderation: v_ff792b(v_4d33b2.moderation, v_c3bc75.moderation),
   };
+  const v_148ff6 = (v_81e2ef) => (v_81e2ef ? 1 : 0);
   await v_3f4e2e.env.DB
     .prepare(
-      `INSERT INTO user_notification_prefs (user_id, new_follower, following_activity, reactions, updated_at)
-       VALUES (?, ?, ?, ?, ?)
+      `INSERT INTO user_notification_prefs
+         (user_id, new_follower, following_activity, reactions, intimacy, moderation, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(user_id) DO UPDATE SET
          new_follower = excluded.new_follower,
          following_activity = excluded.following_activity,
          reactions = excluded.reactions,
+         intimacy = excluded.intimacy,
+         moderation = excluded.moderation,
          updated_at = excluded.updated_at`,
     )
-    .bind(v_43e90c, v_a448ad.newFollower ? 1 : 0, v_a448ad.followingActivity ? 1 : 0, v_a448ad.reactions ? 1 : 0, Date.now())
+    .bind(
+      v_43e90c,
+      v_148ff6(v_a448ad.newFollower),
+      v_148ff6(v_a448ad.followingActivity),
+      v_148ff6(v_a448ad.reactions),
+      v_148ff6(v_a448ad.intimacy),
+      v_148ff6(v_a448ad.moderation),
+      Date.now(),
+    )
     .run();
 
   if (typeof v_4d33b2.promotions === "boolean" && v_4d33b2.promotions !== v_c3bc75.promotions) {

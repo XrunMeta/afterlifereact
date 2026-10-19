@@ -1279,6 +1279,14 @@
         "promotions": {
           "label": "Promosi",
           "desc": "Penawaran yang dipersonalisasi dan pengumuman acara"
+        },
+        "intimacy": {
+          "label": "Kenaikan keakraban",
+          "desc": "Saat suhu keakraban dengan persona naik"
+        },
+        "moderation": {
+          "label": "Hasil laporan",
+          "desc": "Hasil laporan terhadap akun atau persona Anda (peringatan, penangguhan, dll.)"
         }
       },
       "saveFailed": "Gagal menyimpan pengaturan. Silakan coba lagi."
