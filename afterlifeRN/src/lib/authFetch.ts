@@ -59,7 +59,9 @@ export async function v_4dd1c9(): Promise<string | null> {
 
       if (!v_5451e8) return null;
 
-      await v_b6e533.setApiTokens(v_5451e8, v_ca30ed, { persist: true });
+      await v_b6e533.setApiTokens(v_5451e8, v_ca30ed, {
+        persist: v_1ed7d9.getState().sessionPersisted,
+      });
 
       console.log("[authFetch] token refreshed OK");
       return v_5451e8;

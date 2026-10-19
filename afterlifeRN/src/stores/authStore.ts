@@ -25,6 +25,8 @@ interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   apiUser: v_7289ef | null;
+
+  sessionPersisted: boolean;
   loginWithApi: (payload: v_a93c97, opts?: { persist?: boolean }) => Promise<v_7289ef>;
   setApiAuth: (
     token: string,
@@ -45,6 +47,7 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
   accessToken: null,
   refreshToken: null,
   apiUser: null,
+  sessionPersisted: false,
 
   hydrate: async () => {
 
@@ -65,7 +68,7 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
       v_2474a1 = await v_e84827.getItem(v_a19d89);
       if (v_21cc31) {
 
-        v_bb8024({ accessToken: v_21cc31, refreshToken: v_2474a1 });
+        v_bb8024({ accessToken: v_21cc31, refreshToken: v_2474a1, sessionPersisted: true });
         try {
           const v_8f00b9 = await v_7ef860(v_21cc31);
           v_b113dd = v_8f00b9.user;
@@ -148,7 +151,7 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
       await v_e84827.removeItem(v_a19d89);
       await v_e84827.removeItem(v_474220);
     }
-    v_bb8024({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, apiUser: v_625c74, isLoggedIn: true });
+    v_bb8024({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, apiUser: v_625c74, isLoggedIn: true, sessionPersisted: v_3c038e });
     return v_625c74;
   },
 
@@ -172,6 +175,7 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
       refreshToken: v_dfaee3 ?? v_fd5f43.refreshToken,
       apiUser: v_625c74,
       isLoggedIn: true,
+      sessionPersisted: v_3c038e,
     }));
 
     v_9ff0b2(v_625c74.id);
@@ -209,7 +213,7 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
     await v_e84827.removeItem(v_1278db);
     await v_e84827.removeItem(v_a19d89);
     await v_e84827.removeItem(v_474220);
-    v_bb8024({ accessToken: null, refreshToken: null, apiUser: null, isLoggedIn: false });
+    v_bb8024({ accessToken: null, refreshToken: null, apiUser: null, isLoggedIn: false, sessionPersisted: false });
     try {
       const { useFeedStore: v_37977a } = await import("./feedStore");
       const { useFollowStore: v_b4902e } = await import("./followStore");
