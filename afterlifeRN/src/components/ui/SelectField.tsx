@@ -14,7 +14,7 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
-import { v_1bfbd0, v_843035, v_9b1a04, v_8b0c90 } from "../constants";
+import { v_1bfbd0, v_843035, v_9b1a04, v_8b0c90, v_8f28b1 } from "../constants";
 
 export interface SelectOption<T extends string = string> {
   value: T;
@@ -44,7 +44,7 @@ export default function v_d56c0a<T extends string = string>({
   errorText: v_74dc8b,
   leftIcon: v_86ef18,
   containerStyle: v_4affe9,
-  rounded: v_f52086 = 10,
+  rounded: v_f52086 = v_8f28b1.borderRadius,
   dropdownMaxHeight: v_79040b = 400,
 }: SelectFieldProps<T>) {
   const { t: v_8d41d7 } = v_772971();
@@ -129,16 +129,17 @@ const v_d81136 = v_472849.create({
   selectBox: {
     flexDirection: "row",
     alignItems: "center",
-    height: 52,
+    height: v_8f28b1.height,
     borderWidth: 1,
     borderColor: v_1bfbd0.border,
     backgroundColor: v_1bfbd0.white,
-    paddingHorizontal: v_9b1a04.medium,
+    paddingHorizontal: v_8f28b1.paddingHorizontal,
   },
   leftIcon: { marginRight: v_9b1a04.small },
   selectText: {
     flex: 1,
-    fontSize: 16,
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
     color: v_1bfbd0.text,
     fontFamily: v_843035.regular,
   },

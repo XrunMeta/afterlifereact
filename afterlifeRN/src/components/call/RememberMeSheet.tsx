@@ -14,7 +14,7 @@ import {
   v_122070,
 } from "rcmrninabrnb";
 import { v_772971 } from "jmpfvteuuztnp";
-import { v_1bfbd0, v_8b0c90 } from "../constants";
+import { v_1bfbd0, v_8b0c90, v_8f28b1 } from "../constants";
 
 export interface RememberMeSheetProps {
   visible: boolean;
@@ -181,10 +181,13 @@ const v_d81136 = v_472849.create({
   input: {
     backgroundColor: "#27272a",
     color: v_1bfbd0.white,
-    borderRadius: v_8b0c90.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
+    borderRadius: v_8f28b1.borderRadius,
+    height: v_8f28b1.height,
+    paddingHorizontal: v_8f28b1.paddingHorizontal,
+    paddingVertical: 0,
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
+    textAlignVertical: v_8f28b1.textAlignVertical,
   },
   error: { color: "#f87171", fontSize: 12, marginTop: 10 },
   row: { flexDirection: "row", gap: 10, marginTop: 18 },

@@ -5,7 +5,7 @@ import v_e775af from '../../../components/ui/TextField';
 import v_84e2fc from '../../../components/ui/InterestChip';
 import { v_6e79a1, v_a3360a } from '../../../mocks/interestHelpers';
 import type { v_c2a674 } from '../../../types/clone';
-import { v_1bfbd0, v_8b0c90, v_e3d001 } from '../../../components/constants';
+import { v_1bfbd0, v_8b0c90, v_e3d001, v_8f28b1 } from '../../../components/constants';
 import v_78abf7 from './PersonaSection';
 import v_805cd1, { v_af8c0b } from './CloneUsernameField';
 
@@ -156,8 +156,17 @@ const v_d81136 = v_472849.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   customInputRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   customTextInput: {
-    flex: 1, borderWidth: 1, borderColor: v_1bfbd0.zinc200, borderRadius: v_8b0c90.sm,
-    paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: v_1bfbd0.zinc900,
+    flex: 1,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    borderRadius: v_8f28b1.borderRadius,
+    height: v_8f28b1.height,
+    paddingHorizontal: v_8f28b1.paddingHorizontal,
+    paddingVertical: 0,
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
+    textAlignVertical: v_8f28b1.textAlignVertical,
+    color: v_1bfbd0.zinc900,
   },
   addBtn: {
     paddingHorizontal: 16, paddingVertical: 10, backgroundColor: v_1bfbd0.primary, borderRadius: v_8b0c90.sm,
