@@ -755,7 +755,10 @@
       "tabAccount": "アカウントログイン",
       "tabOtp": "メール OTP ログイン",
       "requestOtp": "認証コードを受け取る",
-      "sendingOtp": "送信中..."
+      "sendingOtp": "送信中...",
+      "accountNotFoundTitle": "アカウントがありません",
+      "accountNotFoundMessage": "登録されたアカウントがありません。\n会員登録をしてください。",
+      "goSignup": "会員登録"
     },
     "forgot": {
       "title": "パスワード再設定",
@@ -783,7 +786,9 @@
       "resetFailed": "変更に失敗しました。しばらくしてから再度お試しください。",
       "cooldown": "{{secs}}秒後に再度お試しください。",
       "togglePasswordLabel": "パスワード表示切替",
-      "toggleConfirmLabel": "パスワード確認表示切替"
+      "toggleConfirmLabel": "パスワード確認表示切替",
+      "emailNotFoundTitle": "未登録のメールアドレス",
+      "emailNotFoundMessage": "入力されたメールアドレスで登録されたアカウントがありません。\nメールアドレスを確認するか、会員登録をしてください。"
     },
     "signup": {
       "title": "会員登録",
@@ -866,7 +871,9 @@
       "xrunFoundDesc": "登録済みのXRUNアカウントが存在します。\n\nXRUNのアカウント情報でログインすれば、Afterlifeも併せてご利用いただけます。",
       "cloneFaceConsent": "[任意] クローン別の顔認識への同意",
       "termsCloneFaceTitle": "クローン別の顔認識への同意",
-      "termsLocationTitle": "位置情報サービス利用規約"
+      "termsLocationTitle": "位置情報サービス利用規約",
+      "termsMarketingTitle": "マーケティング情報の収集・活用への同意",
+      "termsMarketingFallback": "マーケティング情報の受信について\n\n同意すると、イベントや特典などの広告情報をアプリのプッシュ通知で受け取れます。この同意は任意であり、設定 > 同意からいつでも撤回できます。"
     },
     "emailVerify": {
       "title": "メール認証",
@@ -1704,7 +1711,8 @@
     "usernameEmpty": "ユーザー名を入力してください。",
     "usernameTooShort": "ユーザー名は3文字以上にしてください。",
     "usernameTooLong": "ユーザー名は30文字以下にしてください。",
-    "usernameFormat": "ユーザー名は英小文字・数字・アンダースコア (_) のみ使用できます（大文字・非ASCII・空白は不可）。"
+    "usernameFormat": "ユーザー名は英小文字・数字・アンダースコア (_) のみ使用できます（大文字・非ASCII・空白は不可）。",
+    "passwordPolicy": "パスワードは英大文字・小文字・数字を含む7文字以上で入力してください。"
   },
   "question": {
     "label": {

@@ -48,6 +48,8 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_77cdad, v_13dcee] = v_5ab095(false);
   const v_32f473 = v_e662ae<v_79c4f2>(null);
 
+  const v_e5c3f6 = v_e662ae<{ accessToken: string; refreshToken: string | null } | null>(null);
+
   const v_f6037c = (v_2ca7e0, v_dfaee3) => {
     void v_fa872d(v_2ca7e0);
     void v_c65c18({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, persist: true, registrationMethod: "email" });
@@ -159,11 +161,16 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   };
 
   const v_83b05b = async () => {
+    if (v_e5c3f6.current) {
+      v_f6037c(v_e5c3f6.current.accessToken, v_e5c3f6.current.refreshToken);
+      return;
+    }
     if (v_c99bd2.length !== 6) {
       v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.emailVerify.codePlaceholder"));
       return;
     }
     v_ee9ec1(true);
+    let v_a21cba = false;
     try {
 
       const v_8f00b9 = await v_35200c({
@@ -183,6 +190,8 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         pushToken: v_24baff.pushToken,
         platform: v_24baff.platform,
       });
+      v_e5c3f6.current = { accessToken: v_8f00b9.accessToken, refreshToken: v_8f00b9.refreshToken ?? null };
+      v_a21cba = true;
 
       if (v_24baff.agreeCallLearning) {
         try {
@@ -251,7 +260,8 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       console.error("[AUTH/signup] FAIL:", v_badeaf, v_49263d);
       v_889fad(v_8d41d7("common.error"), v_badeaf);
     } finally {
-      v_ee9ec1(false);
+
+      if (!v_a21cba) v_ee9ec1(false);
     }
   };
 

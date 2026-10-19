@@ -79,8 +79,9 @@ const v_0666ec = v_1f4ea7.object({ email: v_1f4ea7.email().max(200) });
 v_68f0aa.post("/email/check-xrun", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_0666ec);
   const [v_ed2073, v_76be17] = await Promise.all([
+
     v_3f4e2e.env.DB
-      .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`)
+      .prepare(`SELECT id FROM users WHERE email = ? AND deletion_state = 'active' AND deleted_at IS NULL LIMIT 1`)
       .bind(v_4d33b2.email)
       .first<{ id: number }>(),
     v_a0ec33(v_3f4e2e.env, v_4d33b2.email),
@@ -761,6 +762,13 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
   const v_735a1e = !v_625c74 || v_625c74.deletion_state !== "active";
   if (v_735a1e) {
     const v_dd506d = await v_937e23(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.password);
+
+    if (!v_dd506d.found && !v_625c74) {
+      const v_534695 = await v_a0ec33(v_3f4e2e.env, v_4d33b2.email);
+      if (!v_534695.found && !v_534695.reason) {
+        throw new v_3ebe58("NOT_FOUND", "가입된 계정이 없습니다.");
+      }
+    }
     if (v_dd506d.found && v_dd506d.member) {
 
       if (!v_4d33b2.verificationCode) {
@@ -1006,6 +1014,7 @@ v_68f0aa.post("/logout", v_6690d9, async (v_3f4e2e) => {
 v_68f0aa.post("/password/request-reset", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_192e7b);
   const v_e0c7e8 = v_4d33b2.email.trim().toLowerCase();
+  let v_e2f7d0 = false;
   try {
     const v_8f00b9 = await fetch(`${v_3f4e2e.env.XRUN_API_URL}/oth-path`, {
       method: "POST",
@@ -1017,9 +1026,12 @@ v_68f0aa.post("/password/request-reset", async (v_3f4e2e) => {
     });
     const v_7ecfd1 = (await v_8f00b9.json().catch(() => ({}))) as { code?: number; message?: string };
     console.log(`[auth.password.request-reset] xrun code=${v_7ecfd1.code ?? v_8f00b9.status}`);
-
+    v_e2f7d0 = v_7ecfd1.code === 404 || v_8f00b9.status === 404;
   } catch (v_49263d) {
     console.warn("[auth.password.request-reset] xrun fetch failed:", (v_49263d as Error).message);
+  }
+  if (v_e2f7d0) {
+    throw new v_3ebe58("NOT_FOUND", "가입된 이메일이 아닙니다.");
   }
   return v_3f4e2e.json({ ok: true, expiresInSec: 600 });
 });

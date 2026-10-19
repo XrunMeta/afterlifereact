@@ -757,7 +757,10 @@
       "tabAccount": "Account sign-in",
       "tabOtp": "Email OTP sign-in",
       "requestOtp": "Get verification code",
-      "sendingOtp": "Sending..."
+      "sendingOtp": "Sending...",
+      "accountNotFoundTitle": "Account not found",
+      "accountNotFoundMessage": "No account is registered with this email.\nPlease sign up.",
+      "goSignup": "Sign up"
     },
     "forgot": {
       "title": "Reset Password",
@@ -785,7 +788,9 @@
       "resetFailed": "Reset failed. Please try again later.",
       "cooldown": "Please try again in {{secs}}s.",
       "togglePasswordLabel": "Toggle password visibility",
-      "toggleConfirmLabel": "Toggle confirm password visibility"
+      "toggleConfirmLabel": "Toggle confirm password visibility",
+      "emailNotFoundTitle": "Email not registered",
+      "emailNotFoundMessage": "No account is registered with this email.\nPlease check the email or sign up."
     },
     "signup": {
       "title": "Sign Up",
@@ -868,7 +873,9 @@
       "xrunFoundDesc": "A registered XRUN account exists.\n\nSign in with your XRUN credentials to use Afterlife as well.",
       "cloneFaceConsent": "[Optional] Per-clone face recognition consent",
       "termsCloneFaceTitle": "Per-clone face recognition consent",
-      "termsLocationTitle": "Location-Based Service Terms"
+      "termsLocationTitle": "Location-Based Service Terms",
+      "termsMarketingTitle": "Marketing Information Consent",
+      "termsMarketingFallback": "About marketing messages\n\nIf you agree, you will receive promotional information such as events and benefits via app push notifications. This consent is optional and can be withdrawn anytime in Settings > Consents."
     },
     "emailVerify": {
       "title": "Verify Email",
@@ -1706,7 +1713,8 @@
     "usernameEmpty": "Please enter a username.",
     "usernameTooShort": "Username must be at least 3 characters.",
     "usernameTooLong": "Username must be 30 characters or fewer.",
-    "usernameFormat": "Username can only use lowercase letters, numbers, and underscores (_). (No uppercase, non-ASCII, or spaces.)"
+    "usernameFormat": "Username can only use lowercase letters, numbers, and underscores (_). (No uppercase, non-ASCII, or spaces.)",
+    "passwordPolicy": "Password must be at least 7 characters and include uppercase, lowercase, and a number."
   },
   "question": {
     "label": {
