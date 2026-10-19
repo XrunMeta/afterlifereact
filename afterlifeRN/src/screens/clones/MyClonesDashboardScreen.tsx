@@ -53,7 +53,7 @@ import { v_84a859, v_976b89 } from "../../api/auth";
 import { v_48981e, type v_2b70d7 } from "../../api/credits";
 
 import { v_7d2692 } from "../../api/files";
-import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
+import { v_1bfbd0, v_9b1a04, v_8b0c90, v_a9d3e9 } from "../../components/constants";
 import type { v_affcc0, v_b0b271 } from "../../types/clone";
 import type { v_2d88fc } from "../../navigation/types";
 import type { v_8ad91b } from "../../navigation/types";
@@ -934,10 +934,15 @@ export default function v_def15b() {
                     <Text style={v_fd5f43.giftLogCardCount} numberOfLines={1}>
                       {v_c9ba75.length === 0
                         ? v_8d41d7("dashboard.emptyGift", { defaultValue: "아직 받은 선물이 없어요" })
-                        : v_8d41d7("dashboard.giftTotalReceived", {
-                            defaultValue: "총 받은 선물 {{n}}개",
-                            n: v_489044,
-                          })}
+                        : (
+                          <>
+                            {v_8d41d7("dashboard.giftTotalReceivedBefore", {
+                              defaultValue: "총 받은 선물 ",
+                            })}
+                            <Text style={v_fd5f43.giftLogCardCountNum}>{v_489044}</Text>
+                            {v_8d41d7("dashboard.giftTotalReceivedAfter", { defaultValue: "개" })}
+                          </>
+                        )}
                     </Text>
                   </View>
                   <Feather name="chevron-right" size={20} color={v_1bfbd0.zinc400} />
@@ -1174,11 +1179,12 @@ export default function v_def15b() {
             <Text style={v_fd5f43.statsSheetTitle}>
               {v_8d41d7("dashboard.giftInventoryTitle", { defaultValue: "내선물" })}
             </Text>
-            <Text style={v_fd5f43.statsSheetSub}>
-              {v_8d41d7("dashboard.giftTotalReceived", {
-                defaultValue: "총 받은 선물 {{n}}개",
-                n: v_489044,
+            <Text style={v_fd5f43.giftLogSheetSub}>
+              {v_8d41d7("dashboard.giftTotalReceivedBefore", {
+                defaultValue: "총 받은 선물 ",
               })}
+              <Text style={v_fd5f43.giftLogCardCountNum}>{v_489044}</Text>
+              {v_8d41d7("dashboard.giftTotalReceivedAfter", { defaultValue: "개" })}
             </Text>
             <ScrollView
               style={v_fd5f43.giftLogSheetScroll}
@@ -2302,7 +2308,18 @@ const v_fd5f43 = v_472849.create({
   giftLogCardCount: {
     fontSize: 14,
     fontWeight: "700",
-    color: v_1bfbd0.accent,
+    color: v_1bfbd0.zinc900,
+  },
+  giftLogCardCountNum: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: v_a9d3e9,
+  },
+  giftLogSheetSub: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: v_1bfbd0.zinc900,
+    marginBottom: 16,
   },
   giftLogEmptyText: {
     fontSize: 13,

@@ -17,7 +17,7 @@ import {
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_c2a674 } from "../../../types/clone";
-import { v_1bfbd0, v_8b0c90 } from "../../../components/constants";
+import { v_1bfbd0, v_8b0c90, v_a9d3e9, v_e3d001 } from "../../../components/constants";
 import { v_3ee8c0, v_ab4719, v_8aa90d, type v_d80981 } from "../../../api/clones";
 import { v_17fa33, v_7218f6, v_d76390 } from "./analyzeReason";
 import { v_7d2692 } from "../../../api/files";
@@ -581,7 +581,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
           )}
           {v_11c383 && (
             <View style={v_d81136.recordedRow}>
-              <ActivityIndicator size="small" color={v_1bfbd0.violet600} />
+              <ActivityIndicator size="small" color={v_a9d3e9} />
               <Text style={v_d81136.recordedText}>
                 {v_8d41d7("create.voice.presetPreparing", { defaultValue: "음성 준비 중…" })}
               </Text>
@@ -609,7 +609,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
                       <Feather
                         name={v_087c92 ? "pause" : "play"}
                         size={14}
-                        color={v_f8b770 ? v_1bfbd0.violet600 : v_1bfbd0.zinc500}
+                        color={v_f8b770 ? v_a9d3e9 : v_1bfbd0.zinc500}
                       />
                     </TouchableOpacity>
                   </View>
@@ -660,7 +660,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
 
           {v_11c383 && (
             <View style={v_d81136.recordedRow}>
-              <ActivityIndicator size="small" color={v_1bfbd0.violet600} />
+              <ActivityIndicator size="small" color={v_a9d3e9} />
               <Text style={v_d81136.recordedText}>
                 {v_19d839
                   ? v_8d41d7(v_d76390, { defaultValue: "음성 분석 중..." })
@@ -670,7 +670,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
           )}
           {!v_11c383 && v_614d75 && v_f04727.voiceCloneJobId && (
             <View style={v_d81136.recordedRow}>
-              <Feather name="check-circle" size={16} color={v_1bfbd0.violet600} />
+              <Feather name="check-circle" size={16} color={v_a9d3e9} />
               <Text style={v_d81136.recordedText}>
                 {v_8d41d7("create.voice.cloneJobRegistered", { defaultValue: "클로닝 잡 등록됨" })}
               </Text>
@@ -710,9 +710,9 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
             disabled={v_11c383}
           >
             {v_11c383 ? (
-              <ActivityIndicator size="small" color={v_1bfbd0.violet600} />
+              <ActivityIndicator size="small" color={v_a9d3e9} />
             ) : (
-              <Feather name="upload" size={18} color={v_1bfbd0.violet600} />
+              <Feather name="upload" size={18} color={v_a9d3e9} />
             )}
             <Text style={v_d81136.uploadText}>
               {v_11c383
@@ -726,7 +726,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
           </TouchableOpacity>
           {!v_11c383 && v_f04727.voiceFile && v_f04727.voiceCloneJobId && (
             <View style={v_d81136.recordedRow}>
-              <Feather name="check-circle" size={16} color={v_1bfbd0.violet600} />
+              <Feather name="check-circle" size={16} color={v_a9d3e9} />
               <Text style={v_d81136.recordedText}>
                 {v_8d41d7("create.voice.cloneJobRegistered", { defaultValue: "클로닝 잡 등록됨" })}
               </Text>
@@ -795,10 +795,10 @@ const v_d81136 = v_472849.create({
     borderWidth: 1,
     borderColor: v_1bfbd0.zinc200,
   },
-  cardActive: { borderColor: v_1bfbd0.violet600, backgroundColor: v_1bfbd0.violet100 },
+  cardActive: v_e3d001.cardTint,
   cardRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   cardName: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc800 },
-  cardNameActive: { color: v_1bfbd0.violet700 },
+  cardNameActive: v_e3d001.accentText,
   cardDesc: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
   playBtn: { padding: 4 },
 
@@ -810,7 +810,7 @@ const v_d81136 = v_472849.create({
     borderColor: v_1bfbd0.zinc200,
     backgroundColor: v_1bfbd0.white,
   },
-  scriptCardActive: { borderColor: v_1bfbd0.violet600, backgroundColor: v_1bfbd0.violet100 },
+  scriptCardActive: v_e3d001.cardTint,
   scriptTitle: { fontSize: 13, fontWeight: "700", color: v_1bfbd0.zinc900, marginBottom: 6 },
   scriptText: { fontSize: 14, lineHeight: 22, color: v_1bfbd0.zinc700 },
   recordBtn: {
@@ -834,7 +834,7 @@ const v_d81136 = v_472849.create({
     gap: 8,
     paddingHorizontal: 4,
   },
-  recordedText: { fontSize: 13, color: v_1bfbd0.violet700, fontWeight: "500" },
+  recordedText: { fontSize: 13, fontWeight: "500", ...v_e3d001.accentText },
 
   retryBtn: {
     flexDirection: "row",
@@ -862,7 +862,7 @@ const v_d81136 = v_472849.create({
     padding: 16,
     borderRadius: v_8b0c90.md,
     borderWidth: 1,
-    borderColor: v_1bfbd0.violet200,
+    ...v_e3d001.accentBorder,
   },
-  uploadText: { color: v_1bfbd0.violet700 },
+  uploadText: { color: v_1bfbd0.zinc900 },
 });

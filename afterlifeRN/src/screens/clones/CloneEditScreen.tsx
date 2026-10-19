@@ -30,7 +30,7 @@ import { v_84a859 } from "../../api/auth";
 import { v_a8d790 } from "../../lib/adaptMyClone";
 import { v_5401ae } from "../../testIDs";
 import type { v_4b85a1 as v_affcc0 } from "../../types/domain";
-import { v_1bfbd0, v_9b1a04 } from "../../components/constants";
+import { v_1bfbd0, v_e3d001, v_9b1a04 } from "../../components/constants";
 import { v_e82960, type v_0eab75 } from "qmmwyqbwrg";
 
 type Visibility = "public" | "private" | "followers";
@@ -381,9 +381,8 @@ const v_fd5f43 = v_472849.create({
     overflow: "hidden",
   },
   voiceCardSelected: {
-    borderColor: v_1bfbd0.secondary,
     borderWidth: 2,
-    backgroundColor: v_1bfbd0.secondaryLight,
+    ...v_e3d001.cardTint,
   },
   voiceName: {
     fontSize: 14,
@@ -392,9 +391,7 @@ const v_fd5f43 = v_472849.create({
     height: 36,
     lineHeight: 18,
   },
-  voiceNameSelected: {
-    color: v_1bfbd0.secondary,
-  },
+  voiceNameSelected: v_e3d001.accentText,
   voiceMeta: {
     fontSize: 11,
     color: v_1bfbd0.zinc500,

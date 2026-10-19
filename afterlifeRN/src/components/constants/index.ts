@@ -1,5 +1,7 @@
 
 
+import { v_f9dce7 as v_3328ab } from "../../theme/colors";
+
 export const v_1bfbd0 = {
 
   white: "#ffffff",
@@ -32,11 +34,11 @@ export const v_1bfbd0 = {
   violet100: "#ede9fe",
   violet200: "#ddd6fe",
 
-  secondary: "#5B7CFF",
+  secondary: v_3328ab.secondary,
 
-  secondaryLight: "#EEF0F8",
+  secondaryLight: v_3328ab.secondaryLight,
 
-  accent: "#7B96FF",
+  accent: v_3328ab.accent,
 
   amber50: "#fffbeb",
   amber700: "#b45309",
@@ -108,3 +110,54 @@ export const v_a61db3 = {
     paddingTop: v_9b1a04.medium,
   },
 } as const;
+
+export const v_e3d001 = {
+
+  chipFilled: {
+    backgroundColor: v_1bfbd0.secondary,
+    borderColor: v_1bfbd0.secondary,
+  },
+  chipFilledText: {
+    color: v_1bfbd0.white,
+  },
+
+  chipOutlineActive: {
+    backgroundColor: v_1bfbd0.white,
+    borderColor: v_1bfbd0.secondary,
+  },
+  chipOutlineActiveText: {
+    color: v_1bfbd0.secondary,
+    fontWeight: "600" as const,
+  },
+
+  cardTint: {
+    borderColor: v_1bfbd0.secondary,
+    backgroundColor: v_1bfbd0.secondaryLight,
+  },
+
+  outlineTint: {
+    borderColor: v_1bfbd0.secondary,
+    backgroundColor: v_1bfbd0.white,
+  },
+  accentText: {
+    color: v_1bfbd0.secondary,
+  },
+  accentBorder: {
+    borderColor: v_1bfbd0.secondary,
+  },
+
+  radioActive: {
+    borderColor: v_1bfbd0.secondary,
+  },
+
+  radioDot: {
+    backgroundColor: v_1bfbd0.secondary,
+  },
+
+  checkOn: {
+    backgroundColor: v_1bfbd0.secondary,
+    borderColor: v_1bfbd0.secondary,
+  },
+} as const;
+
+export const v_a9d3e9 = v_1bfbd0.secondary;

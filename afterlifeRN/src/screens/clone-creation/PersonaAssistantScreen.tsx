@@ -28,7 +28,7 @@ import type { v_390fcc } from 'xpfgrcdafpntkgxfmgxpxnedjkvmtc';
 import type { v_2b51a5 } from '../../navigation/types';
 
 import v_556baf from '../../components/ui/SafeView';
-import { v_1bfbd0, v_9b1a04, v_8b0c90 } from '../../components/constants';
+import { v_1bfbd0, v_9b1a04, v_8b0c90, v_e3d001 } from '../../components/constants';
 import { v_194498 } from '../../stores/cloneStore';
 import { v_1ed7d9 } from '../../stores/authStore';
 import {
@@ -774,7 +774,7 @@ const v_fd5f43 = v_472849.create({
   headerAvatarImg: { width: 22, height: 22 },
   headerName: { fontSize: 15, fontWeight: '700', color: v_1bfbd0.zinc900 },
 
-  chatScroll: { flex: 1, backgroundColor: '#f1f5f9' },
+  chatScroll: { flex: 1, backgroundColor: v_1bfbd0.white },
   chatContent: { paddingVertical: 16, paddingHorizontal: 12, gap: 8 },
 
   row: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, maxWidth: '100%' },
@@ -805,8 +805,9 @@ const v_fd5f43 = v_472849.create({
     borderWidth: 1,
     borderColor: v_1bfbd0.zinc200,
   },
+
   bubbleUser: {
-    backgroundColor: v_1bfbd0.violet600,
+    backgroundColor: v_1bfbd0.primary,
     borderTopRightRadius: 4,
     marginLeft: 8,
   },
@@ -826,11 +827,10 @@ const v_fd5f43 = v_472849.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: v_8b0c90.full,
-    borderWidth: 1,
-    borderColor: v_1bfbd0.violet200,
-    backgroundColor: v_1bfbd0.white,
+    borderWidth: 1.5,
+    ...v_e3d001.outlineTint,
   },
-  quickReplyText: { fontSize: 13, color: v_1bfbd0.violet600, fontWeight: '500' },
+  quickReplyText: { fontSize: 13, fontWeight: '600', ...v_e3d001.accentText },
 
   inputWrap: {
     backgroundColor: v_1bfbd0.white,
@@ -855,7 +855,7 @@ const v_fd5f43 = v_472849.create({
     borderWidth: 1,
     borderColor: v_1bfbd0.zinc200,
     borderRadius: 20,
-    backgroundColor: v_1bfbd0.zinc50,
+    backgroundColor: v_1bfbd0.secondaryLight,
     fontSize: 14,
     color: v_1bfbd0.zinc900,
   },

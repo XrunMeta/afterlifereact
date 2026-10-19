@@ -6,7 +6,7 @@ import * as v_c95b2c from 'gketqwckyalygtuqsawm';
 import { v_772971 } from 'jmpfvteuuztnp';
 import { v_37549e } from '../../../mocks/cloneTypeCatalog';
 import type { v_c2a674 } from '../../../types/clone';
-import { v_1bfbd0, v_8b0c90 } from '../../../components/constants';
+import { v_1bfbd0, v_8b0c90, v_a9d3e9, v_e3d001 } from '../../../components/constants';
 
 interface Props {
   draft: v_c2a674;
@@ -89,7 +89,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
         style={v_d81136.upload}
         onPress={() => v_467998(v_b187d9, v_8d41d7("common.error"), v_8d41d7("create.voice.fileError"))}
       >
-        <Feather name="upload" size={20} color={v_1bfbd0.violet600} />
+        <Feather name="upload" size={20} color={v_a9d3e9} />
         <Text style={v_d81136.uploadText}>
           {v_f04727.voiceFile ? v_8d41d7("create.voice.uploadedFile") : v_8d41d7("create.voice.uploadFileMemlow")}
         </Text>
@@ -116,7 +116,7 @@ const v_d81136 = v_472849.create({
     borderWidth: 1,
     borderColor: v_1bfbd0.zinc200,
   },
-  scriptCardActive: { borderColor: v_1bfbd0.violet600, backgroundColor: v_1bfbd0.violet100 },
+  scriptCardActive: v_e3d001.cardTint,
   scriptTitle: { fontSize: 13, fontWeight: '600', color: v_1bfbd0.zinc800 },
   scriptText: { fontSize: 12, color: v_1bfbd0.zinc600, marginTop: 4 },
   rec: {
@@ -137,7 +137,7 @@ const v_d81136 = v_472849.create({
     padding: 12,
     borderRadius: v_8b0c90.sm,
     borderWidth: 1,
-    borderColor: v_1bfbd0.violet200,
+    ...v_e3d001.accentBorder,
   },
-  uploadText: { color: v_1bfbd0.violet700 },
+  uploadText: { color: v_1bfbd0.zinc900 },
 });

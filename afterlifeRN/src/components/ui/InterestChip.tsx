@@ -1,6 +1,6 @@
 import v_a3453e from "bapkr";
 import { v_4623af, v_19b633, v_472849 } from "rcmrninabrnb";
-import { v_1bfbd0, v_8b0c90 } from "../constants";
+import { v_1bfbd0, v_8b0c90, v_e3d001 } from "../constants";
 
 interface InterestChipProps {
   label: string;
@@ -67,7 +67,7 @@ const v_d81136 = v_472849.create({
     backgroundColor: v_1bfbd0.zinc100,
   },
   filterChipSelected: {
-    backgroundColor: v_1bfbd0.violet500,
+    backgroundColor: v_e3d001.chipFilled.backgroundColor,
   },
   filterText: {
     fontSize: 14,
