@@ -84,6 +84,16 @@ const linking: v_4c916c<v_8ad91b> = {
 export default function v_6540c3() {
   const [v_b1717e, v_0189ac] = v_5ab095(false);
 
+  const v_00b91e = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const v_90980f = v_e662ae<string | null>(null);
+  v_c4deb2(() => {
+    if (!v_b1717e || !v_00b91e || v_90980f.current === v_00b91e) return;
+
+    const v_e03232 = v_90980f.current === null;
+    v_90980f.current = v_00b91e;
+    void v_9bedf5(v_00b91e, { ask: v_e03232 });
+  }, [v_b1717e, v_00b91e]);
+
   v_c9d088();
 
   v_c4deb2(() => {
@@ -153,7 +163,6 @@ export default function v_6540c3() {
 
       const v_21cc31 = v_1ed7d9.getState().accessToken;
       if (v_21cc31) {
-        v_9bedf5(v_21cc31);
 
         v_9ff0b2(v_1ed7d9.getState().apiUser?.id);
 
