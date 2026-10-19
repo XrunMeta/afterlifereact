@@ -2007,5 +2007,9 @@
   },
   "gift": {
     "receivedNotice": "送出了 {{gift}} 礼物"
+  },
+  "firstLoginConsent": {
+    "title": "AfterLife 使用同意",
+    "desc": "以下为 AfterLife 使用的可选项目。\n不同意也可以使用服务。"
   }
 }

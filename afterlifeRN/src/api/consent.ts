@@ -46,7 +46,7 @@ export interface FaceBiometricConsent {
 
 export interface SaveFaceBiometricConsentOptions {
   termsVersion?: string;
-  channel?: 'signup' | 'settings' | 'retro_prompt' | 'call_prompt';
+  channel?: 'signup' | 'settings' | 'retro_prompt' | 'call_prompt' | 'first_login';
 }
 
 export async function v_421733(
