@@ -368,7 +368,12 @@
     "giftOwnedCount": "{{count}}개 보유",
     "exiting": "종료 중...",
     "adPlaying": "광고 재생 중…",
-    "adStubNote": "(개발 스텁 · 실광고 대체)"
+    "adStubNote": "(개발 스텁 · 실광고 대체)",
+    "faceConsentPrompt": {
+      "title": "얼굴 인식 동의",
+      "desc": "통화 중 누가 말하는지 알아보려면 아래 동의가 필요합니다. (선택)",
+      "agree": "동의"
+    }
   },
   "greeting": {
     "default": "안녕하세요"
@@ -857,7 +862,9 @@
       "rateLimit": "잠시 후 다시 시도해 주십시오. (1분 쿨다운)",
       "sendCodeFailed": "코드 발송에 실패했습니다. 네트워크를 확인해 주십시오.",
       "xrunFoundTitle": "XRUN 계정 발견",
-      "xrunFoundDesc": "등록된 XRUN 계정이 존재합니다.\n\nXRUN 계정 정보로 로그인하면 Afterlife도 함께 이용하실 수 있습니다."
+      "xrunFoundDesc": "등록된 XRUN 계정이 존재합니다.\n\nXRUN 계정 정보로 로그인하면 Afterlife도 함께 이용하실 수 있습니다.",
+      "cloneFaceConsent": "[선택] 클론별 얼굴 인식 동의",
+      "termsCloneFaceTitle": "클론별 얼굴 인식 동의"
     },
     "emailVerify": {
       "title": "이메일 인증",
@@ -1369,7 +1376,7 @@
     "desc": "영상통화를 위해 카메라와 마이크 권한이 필요합니다",
     "cameraLabel": "카메라",
     "micLabel": "마이크",
-    "locationLabel": "위치 (선택)",
+    "locationLabel": "위치 (필수)",
     "statusGranted": "허용됨",
     "statusDenied": "거부됨",
     "statusUndetermined": "권한 필요",

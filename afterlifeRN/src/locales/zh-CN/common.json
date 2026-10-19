@@ -368,7 +368,12 @@
     "giftOwnedCount": "拥有 {{count}} 个",
     "exiting": "正在结束…",
     "adPlaying": "广告播放中…",
-    "adStubNote": "(开发桩 · 替代真实广告)"
+    "adStubNote": "(开发桩 · 替代真实广告)",
+    "faceConsentPrompt": {
+      "title": "人脸识别同意",
+      "desc": "为在通话中识别说话人，需要以下同意。（可选）",
+      "agree": "同意"
+    }
   },
   "greeting": {
     "default": "你好"
@@ -858,7 +863,9 @@
       "rateLimit": "请稍后重试。（1 分钟冷却）",
       "sendCodeFailed": "验证码发送失败，请检查网络。",
       "xrunFoundTitle": "发现 XRUN 账户",
-      "xrunFoundDesc": "已存在注册的 XRUN 账户。\n\n使用 XRUN 账户信息登录即可同时使用 Afterlife。"
+      "xrunFoundDesc": "已存在注册的 XRUN 账户。\n\n使用 XRUN 账户信息登录即可同时使用 Afterlife。",
+      "cloneFaceConsent": "[可选] 按克隆的人脸识别同意",
+      "termsCloneFaceTitle": "按克隆的人脸识别同意"
     },
     "emailVerify": {
       "title": "邮箱验证",
@@ -1368,7 +1375,7 @@
     "desc": "视频通话需要摄像头和麦克风权限",
     "cameraLabel": "摄像头",
     "micLabel": "麦克风",
-    "locationLabel": "位置 (可选)",
+    "locationLabel": "位置 (必填)",
     "statusGranted": "已允许",
     "statusDenied": "已拒绝",
     "statusUndetermined": "需要授权",
