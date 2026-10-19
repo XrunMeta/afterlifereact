@@ -29,6 +29,8 @@ import { v_84d546 } from "../../lib/callGuard";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import v_556baf from "../../components/ui/SafeView";
 import v_06b8c0 from "../../components/clone/IntimacyEventsSheet";
+import v_fb73af from "../../components/ads/PangleBannerAd";
+import { v_60086b } from "../../lib/pangle";
 import { v_08bca5 } from "../../lib/useChatLiveRefresh";
 import { v_1bfbd0, v_8b0c90, v_9b1a04, v_0da505, v_94abbe } from "../../components/constants";
 import {
@@ -506,16 +508,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       </View>
 
       {}
-      <View style={v_d81136.promoBanner}>
-        <View style={v_d81136.promoIcon}>
-          <Feather name="message-circle" size={16} color={v_1bfbd0.zinc600} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={v_d81136.promoTitle} numberOfLines={1}>
-            Pangle 배너 광고
-          </Text>
-        </View>
-      </View>
+      <PangleBannerAd adUnitId={v_60086b()} style={v_d81136.chatAdBanner} />
 
       {
 }
@@ -950,6 +943,12 @@ const v_d81136 = v_472849.create({
     alignItems: "center", justifyContent: "center",
   },
 
+  chatAdBanner: {
+    height: 60,
+    backgroundColor: v_1bfbd0.zinc300,
+    paddingHorizontal: 20,
+    justifyContent: "center",
+  },
   promoBanner: {
     flexDirection: "row",
     alignItems: "center",
