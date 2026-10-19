@@ -56,7 +56,8 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
   const [v_e0c7e8, v_fedf34] = v_5ab095("");
   const [v_adc076, v_52b279] = v_5ab095("");
   const [v_b5ab16, v_b7733b] = v_5ab095(false);
-  const [v_f53eaa, v_36bbbe] = v_5ab095(false);
+
+  const [v_f53eaa, v_36bbbe] = v_5ab095(true);
 
   const v_232d52 = v_1ed7d9((v_fd5f43) => v_fd5f43.hydrate);
   const [v_a5d73f, v_7ba4a6] = v_5ab095(false);
@@ -77,7 +78,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
       await v_e84827.setItem(v_101856, "1");
       await v_e84827.setItem(v_6a7868, v_f4fb5e);
     } else {
-      await v_e84827.removeItem(v_101856);
+      await v_e84827.setItem(v_101856, "0"); 
       await v_e84827.removeItem(v_6a7868);
     }
     await v_232d52();
@@ -91,6 +92,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           v_e84827.getItem(v_6a7868),
         ]);
         if (v_6e1e74 === "1") v_36bbbe(true);
+        else if (v_6e1e74 === "0") v_36bbbe(false);
         if (v_60fc43) v_fedf34(v_60fc43);
       } catch (v_49263d) {
         console.warn("[AUTH/login] restore prefs failed:", v_49263d);
@@ -266,7 +268,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
             await v_e84827.setItem(v_101856, "1");
             await v_e84827.setItem(v_6a7868, v_9ec4c0.user.email);
           } else {
-            await v_e84827.removeItem(v_101856);
+            await v_e84827.setItem(v_101856, "0"); 
             await v_e84827.removeItem(v_6a7868);
           }
           console.log("[AUTH/google] user:", v_9ec4c0.user);
@@ -327,7 +329,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           await v_e84827.setItem(v_101856, "1");
           await v_e84827.setItem(v_6a7868, v_9ec4c0.user.email);
         } else {
-          await v_e84827.removeItem(v_101856);
+          await v_e84827.setItem(v_101856, "0"); 
           await v_e84827.removeItem(v_6a7868);
         }
         console.log("[AUTH/apple] user:", v_9ec4c0.user);
