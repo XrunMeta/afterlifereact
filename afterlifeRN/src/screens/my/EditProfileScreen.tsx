@@ -18,7 +18,7 @@ import v_258c1c from "../../components/common/PageHeader";
 import v_d56c0a from "../../components/ui/SelectField";
 import v_57037e from "../../components/common/CountryRegionPicker";
 import { v_889fad } from "../../stores/dialogStore";
-import { v_1bfbd0, v_8b0c90, v_8f28b1 } from "../../components/constants";
+import { v_1bfbd0, v_8b0c90, v_8f28b1, v_d43669, v_c10a43 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
 import {
   v_2c296e,
@@ -602,11 +602,11 @@ const v_fd5f43 = v_472849.create({
   pickerPlaceholder: { fontSize: v_8f28b1.fontSize, lineHeight: v_8f28b1.lineHeight, color: v_1bfbd0.zinc400 },
   saveBtn: {
     marginTop: 24,
-    paddingVertical: 16,
-    borderRadius: v_8b0c90.lg,
+    ...v_d43669.lg,
     backgroundColor: v_1bfbd0.primary,
     alignItems: "center",
+    justifyContent: "center",
   },
   saveBtnDisabled: { backgroundColor: v_1bfbd0.zinc300 },
-  saveBtnText: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.white },
+  saveBtnText: { ...v_c10a43.lg, color: v_1bfbd0.white },
 });

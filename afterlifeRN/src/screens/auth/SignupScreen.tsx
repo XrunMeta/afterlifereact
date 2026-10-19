@@ -30,7 +30,7 @@ import v_556baf from "../../components/ui/SafeView";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
 import v_c0caa9, { type v_3ac6ea } from "../../components/common/TermsModal";
-import { v_1bfbd0, v_9b1a04, v_8b0c90, v_8f28b1 } from "../../components/constants";
+import { v_1bfbd0, v_9b1a04, v_8b0c90, v_8f28b1, v_7fd157, v_d43669, v_c10a43 } from "../../components/constants";
 import {
   v_97ea8d,
   v_35200c,
@@ -131,9 +131,7 @@ function v_89c10a({
 const v_3da94c = v_472849.create({
 
   base: {
-    height: 40,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    ...v_d43669.sm,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
@@ -147,7 +145,7 @@ const v_3da94c = v_472849.create({
     borderColor: "#e3e9ed", 
   },
   label: {
-    fontSize: 14,
+    ...v_c10a43.sm,
     fontFamily: v_843035.medium, 
   },
 
@@ -1621,8 +1619,7 @@ const v_d81136 = v_472849.create({
   },
   primaryButton: {
 
-    height: 56,
-    borderRadius: 16,
+    ...v_d43669.lg,
     backgroundColor: v_1bfbd0.primary,
     alignItems: "center",
     justifyContent: "center",
@@ -1631,8 +1628,8 @@ const v_d81136 = v_472849.create({
     opacity: 0.5, 
   },
   primaryButtonText: {
+    ...v_c10a43.lg,
     color: "#ffffff",
-    fontSize: 16,
     lineHeight: 24,
     fontFamily: v_843035.medium, 
   },

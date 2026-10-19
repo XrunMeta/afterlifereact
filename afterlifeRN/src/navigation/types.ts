@@ -97,6 +97,8 @@ export type ClonesStackParamList = {
   CloneInvite: { cloneId: number };
   CloneLearn: { cloneId: number };
   InviteStatus: undefined;
+
+  GiftBox: { initialTab?: "received" | "sent" | "exchange" } | undefined;
 };
 
 export type ShareStackParamList = {

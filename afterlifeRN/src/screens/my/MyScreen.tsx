@@ -30,7 +30,7 @@ import { v_48981e, type v_2b70d7 } from "../../api/credits";
 import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 
 import v_0e3f52 from "../../components/my/AppVersionFooter";
-import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
+import { v_1bfbd0, v_9b1a04, v_8b0c90, v_c10a43, v_119e65 } from "../../components/constants";
 import type { v_e57140 } from "../../navigation/types";
 
 const v_b9d568 = 1;
@@ -737,7 +737,7 @@ const v_fd5f43 = v_472849.create({
     backgroundColor: v_1bfbd0.zinc900,
     borderRadius: v_8b0c90.full,
   },
-  chargeBtnText: { fontSize: 13, fontWeight: "700", color: v_1bfbd0.white },
+  chargeBtnText: { ...v_c10a43.sm, color: v_1bfbd0.white },
 
   chargeOverlay: {
     flex: 1,
@@ -798,11 +798,7 @@ const v_fd5f43 = v_472849.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  chargeCancelText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: v_1bfbd0.zinc600,
-  },
+  chargeCancelText: { ...v_119e65.md, color: v_1bfbd0.zinc600 },
   chargeGoBtn: {
     flex: 1,
     flexDirection: "row",
@@ -813,11 +809,7 @@ const v_fd5f43 = v_472849.create({
     borderRadius: 10,
     backgroundColor: v_1bfbd0.primary,
   },
-  chargeGoText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: v_1bfbd0.white,
-  },
+  chargeGoText: { ...v_c10a43.md, color: v_1bfbd0.white },
   coinAmount: { fontSize: 32, fontWeight: "700", color: v_1bfbd0.zinc900 },
   coinWon: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 4 },
 
@@ -879,7 +871,7 @@ const v_fd5f43 = v_472849.create({
     borderRadius: 999,
     gap: 2,
   },
-  balanceCtaText: { fontSize: 13, fontWeight: "700", color: "#fff" },
+  balanceCtaText: { ...v_c10a43.sm, color: "#fff" },
 
   settingsCard: {
     backgroundColor: v_1bfbd0.white,
@@ -927,7 +919,7 @@ const v_fd5f43 = v_472849.create({
     borderRadius: v_8b0c90.lg,
     marginTop: 4,
   },
-  logoutBigText: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.white },
+  logoutBigText: { ...v_c10a43.lg, color: v_1bfbd0.white },
 
   statsOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   statsSheet: {
