@@ -2012,5 +2012,9 @@
   },
   "gift": {
     "receivedNotice": "さんが {{gift}} をプレゼントしました"
+  },
+  "firstLoginConsent": {
+    "title": "AfterLife 利用同意",
+    "desc": "AfterLife で使用する任意項目です。\n同意しなくてもサービスをご利用いただけます。"
   }
 }

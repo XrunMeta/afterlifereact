@@ -46,7 +46,7 @@ export interface FaceBiometricConsent {
 
 export interface SaveFaceBiometricConsentOptions {
   termsVersion?: string;
-  channel?: 'signup' | 'settings' | 'retro_prompt' | 'call_prompt';
+  channel?: 'signup' | 'settings' | 'retro_prompt' | 'call_prompt' | 'first_login';
 }
 
 export async function v_421733(
@@ -108,35 +108,6 @@ export async function v_74fdb6(
     { method: 'GET' },
   );
   return v_43c42e.location.state;
-}
-
-export type CloneFaceConsentState = 'granted' | 'none' | 'revoked';
-
-export async function v_505b50(
-  v_2ca7e0,
-  v_b6e533,
-  v_328259,
-): Promise<{ ok: boolean; state: string }> {
-  const v_4d33b2 = { state: v_b6e533 };
-  if (v_328259?.termsVersion !== undefined) v_4d33b2.termsVersion = v_328259.termsVersion;
-  if (v_328259?.channel !== undefined) v_4d33b2.channel = v_328259.channel;
-
-  return v_04b58a<{ ok: boolean; state: string }>(
-    '/oth-path',
-    v_2ca7e0,
-    { method: 'POST', body: JSON.stringify(v_4d33b2) },
-  );
-}
-
-export async function v_71ae8a(
-  v_2ca7e0,
-): Promise<CloneFaceConsentState> {
-  const v_43c42e = await v_04b58a<{ clone_face?: { state: CloneFaceConsentState } }>(
-    '/oth-path',
-    v_2ca7e0,
-    { method: 'GET' },
-  );
-  return v_43c42e.clone_face?.state ?? 'none';
 }
 
 export type MarketingConsentState = 'granted' | 'none';
