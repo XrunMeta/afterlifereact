@@ -1706,7 +1706,8 @@
     "usernameEmpty": "Please enter a username.",
     "usernameTooShort": "Username must be at least 3 characters.",
     "usernameTooLong": "Username must be 30 characters or fewer.",
-    "usernameFormat": "Username can only use lowercase letters, numbers, and underscores (_). (No uppercase, non-ASCII, or spaces.)"
+    "usernameFormat": "Username can only use lowercase letters, numbers, and underscores (_). (No uppercase, non-ASCII, or spaces.)",
+    "passwordPolicy": "Password must be at least 7 characters and include uppercase, lowercase, and a number."
   },
   "question": {
     "label": {

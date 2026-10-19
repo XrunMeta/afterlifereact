@@ -16,6 +16,9 @@ const v_bdafcd = {
   "ACCOUNT_LOCKED::Account locked.": "errors.accountLocked",
   "UNAUTHENTICATED::Invalid credentials.": "errors.invalidCredentials",
   "CONFLICT::Email already registered.": "errors.emailAlreadyRegistered",
+
+  "VALIDATION_FAILED::Password must be 7+ chars with lowercase, uppercase, and digit.":
+    "errors.passwordPolicy",
   "NOT_FOUND::가입된 이메일이 아닙니다.": "errors.emailNotRegistered",
   "FORBIDDEN::신고 누적으로 계정이 일시 비활성화되어 페르소나를 생성할 수 없어요.":
     "errors.accountSuspendedForPersona",
