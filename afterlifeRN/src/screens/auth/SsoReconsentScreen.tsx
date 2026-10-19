@@ -261,7 +261,7 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
         <ConsentRow
           checked={v_8c98c4}
           onCheck={() => void v_349606()}
-          onReadMore={() => void v_349606()}
+          onReadMore={() => v_fe0d62(7)}
           label={`${v_8d41d7("auth.signup.marketingConsent", {
             defaultValue: "[선택] 마케팅 정보 수집 및 활용 동의",
           })}${v_8d0e18 ? ` (${v_8d41d7("auth.signup.verifying", { defaultValue: "확인 중" })})` : ""}`}
@@ -325,6 +325,8 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
           else if (v_357868 === 4) v_d34fc9(true);
           else if (v_357868 === 5) v_f2d945(true);
           else if (v_357868 === 6) v_9537cd(true);
+
+          else if (v_357868 === 7) { if (!v_8c98c4) void v_349606(); }
         }}
       />
     </View>
