@@ -8,6 +8,8 @@ import v_6d377c from "../permissions/PermissionGateScreen";
 import { v_2f5414 } from "../hooks/useSsoReconsentGate";
 import v_ac767f from "../screens/auth/SsoReconsentScreen";
 
+import v_bfe02f from "../components/consent/FirstLoginConsentModal";
+
 import { v_54ca39 } from "../lib/iap";
 
 import v_f4f851 from "../screens/auth/LoginScreen";
@@ -71,6 +73,8 @@ export default function v_3b950c() {
   }
 
   return (
+    <>
+    {v_042a8b ? <FirstLoginConsentModal /> : null}
     <RootStack.Navigator screenOptions={{ headerShown: false }}>
       {!v_042a8b ? (
         <>
@@ -122,5 +126,6 @@ export default function v_3b950c() {
         </>
       )}
     </RootStack.Navigator>
+    </>
   );
 }

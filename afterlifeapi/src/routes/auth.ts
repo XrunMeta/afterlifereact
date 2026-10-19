@@ -792,15 +792,6 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
     }
     if (v_dd506d.found && v_dd506d.member) {
 
-      if (!v_4d33b2.verificationCode) {
-        await v_b78f7e(v_3f4e2e.env, v_4d33b2.email);
-        return v_3f4e2e.json({
-          requiresEmailVerification: true,
-          email: v_4d33b2.email,
-          expiresInSec: 300,
-        });
-      }
-      await v_656e8b(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.verificationCode);
       if (v_625c74) {
 
         const v_3fc173 = await v_54846c(v_4d33b2.password);
@@ -878,6 +869,23 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
         }
         await v_74defc(v_3f4e2e, { userId: v_81161e.id, action: "auth.login.xrun_link" });
       }
+    }
+  }
+
+  if (v_1329db && v_625c74) {
+    await v_a1651b
+      .prepare(`UPDATE users SET sso_consent_version = ?, sso_consent_at = CURRENT_TIMESTAMP WHERE id = ?`)
+      .bind(v_31fb59, v_625c74.id)
+      .run();
+    const v_d1a248 = await v_a1651b
+      .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
+      .bind(v_625c74.id)
+      .first<{ xrun_member_id: number | null }>();
+    if (v_d1a248?.xrun_member_id) {
+      v_3f4e2e.executionCtx.waitUntil(
+        v_3326b4(v_3f4e2e.env, v_d1a248.xrun_member_id, { service: true, location: true, privacy: true })
+          .then((v_cb35cb) => { if (!v_cb35cb.ok) console.warn(`[auth.login.xrun] syncTermsToXrun failed: ${v_cb35cb.reason}`); }),
+      );
     }
   }
 
