@@ -17,7 +17,7 @@ import { v_dec439 } from "zvyjokvuouwvifyzks";
 import v_556baf from "../../components/ui/SafeView";
 import v_92f073 from "../../components/auth/OtpVerifyView";
 import v_258c1c from "../../components/common/PageHeader";
-import { v_1bfbd0, v_8b0c90, v_8f28b1 } from "../../components/constants";
+import { v_1bfbd0, v_8b0c90, v_8f28b1, v_d43669, v_c10a43 } from "../../components/constants";
 import {
   v_84a859,
   v_2efafe,
@@ -392,14 +392,13 @@ const v_fd5f43 = v_472849.create({
     textAlignVertical: v_8f28b1.textAlignVertical,
   },
   primaryBtn: {
-    height: 50,
-    borderRadius: v_8b0c90.md,
+    ...v_d43669.lg,
     backgroundColor: v_1bfbd0.zinc900,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 4,
   },
-  primaryBtnText: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.white },
+  primaryBtnText: { ...v_c10a43.lg, color: v_1bfbd0.white },
   btnDisabled: { backgroundColor: v_1bfbd0.zinc300 },
   secondaryBtn: {
     paddingVertical: 12,

@@ -27,7 +27,7 @@ import { v_b4902e } from "../../stores/followStore";
 import { v_84d546 } from "../../lib/callGuard";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import v_556baf from "../../components/ui/SafeView";
-import { v_1bfbd0, v_8b0c90, v_9b1a04, v_0da505 } from "../../components/constants";
+import { v_1bfbd0, v_8b0c90, v_9b1a04, v_0da505, v_94abbe } from "../../components/constants";
 import {
   v_8a85e2,
   v_22ca9b,
@@ -1065,9 +1065,7 @@ const v_d81136 = v_472849.create({
     ...v_0da505,
   },
   sendBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    ...v_94abbe,
     backgroundColor: v_1bfbd0.primary,
     justifyContent: "center",
     alignItems: "center",

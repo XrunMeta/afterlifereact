@@ -14,7 +14,7 @@ import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
 import v_84e2fc from "./InterestChip";
-import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../constants";
+import { v_1bfbd0, v_9b1a04, v_8b0c90, v_d43669, v_c10a43, v_119e65 } from "../constants";
 import { v_bf4124 } from "../../mocks/interestHelpers";
 
 const v_bbe45f = v_bf4124;
@@ -190,28 +190,24 @@ const v_d81136 = v_472849.create({
   },
   resetButton: {
     flex: 1,
-    height: 48,
+    ...v_d43669.md,
     backgroundColor: v_1bfbd0.zinc100,
-    borderRadius: v_8b0c90.lg,
     alignItems: "center",
     justifyContent: "center",
   },
   resetText: {
-    fontSize: 15,
-    fontWeight: "bold",
+    ...v_119e65.md,
     color: v_1bfbd0.zinc700,
   },
   applyButton: {
     flex: 1,
-    height: 48,
+    ...v_d43669.md,
     backgroundColor: v_1bfbd0.primary,
-    borderRadius: v_8b0c90.lg,
     alignItems: "center",
     justifyContent: "center",
   },
   applyText: {
-    fontSize: 15,
-    fontWeight: "bold",
+    ...v_c10a43.md,
     color: v_1bfbd0.white,
   },
 });

@@ -13,7 +13,7 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
-import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../constants";
+import { v_1bfbd0, v_8b0c90, v_9b1a04, v_d43669, v_c10a43, v_119e65 } from "../constants";
 import { v_cc9198 } from "../../config/apiBase";
 
 export type AgreementType = 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -298,20 +298,20 @@ const v_fd5f43 = v_472849.create({
   },
   btnSecondary: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: v_8b0c90.md,
+    ...v_d43669.md,
     borderWidth: 1,
     borderColor: v_1bfbd0.zinc300,
     alignItems: "center",
+    justifyContent: "center",
   },
-  btnSecondaryText: { fontSize: 14, color: v_1bfbd0.zinc700, fontWeight: "600" },
+  btnSecondaryText: { ...v_119e65.md, color: v_1bfbd0.zinc700 },
   btnPrimary: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: v_8b0c90.md,
+    ...v_d43669.md,
     backgroundColor: v_1bfbd0.zinc900,
     alignItems: "center",
+    justifyContent: "center",
   },
-  btnPrimaryText: { fontSize: 14, color: v_1bfbd0.white, fontWeight: "700" },
+  btnPrimaryText: { ...v_c10a43.md, color: v_1bfbd0.white },
   btnDisabled: { opacity: 0.5 },
 });

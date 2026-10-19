@@ -162,6 +162,7 @@ export default function v_bfe02f() {
               onPress={() => void v_03cae9()}
               disabled={v_35bf26}
               variant="primary"
+              size="md"
             />
             {v_35bf26 && <ActivityIndicator color={v_1bfbd0.zinc500} />}
           </View>
