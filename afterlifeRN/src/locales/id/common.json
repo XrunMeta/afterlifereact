@@ -2007,5 +2007,9 @@
   },
   "gift": {
     "receivedNotice": "mengirim hadiah {{gift}}"
+  },
+  "firstLoginConsent": {
+    "title": "Persetujuan AfterLife",
+    "desc": "Ini adalah item opsional yang digunakan AfterLife.\nAnda tetap dapat menggunakan layanan tanpa menyetujuinya."
   }
 }

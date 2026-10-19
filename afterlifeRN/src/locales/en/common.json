@@ -2014,5 +2014,9 @@
   },
   "gift": {
     "receivedNotice": "sent a {{gift}} gift"
+  },
+  "firstLoginConsent": {
+    "title": "AfterLife consents",
+    "desc": "These are optional items used by AfterLife.\nYou can use the service without agreeing."
   }
 }
