@@ -250,6 +250,72 @@ v_de7ba7.post("/me/sso-reconsent", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true, version: v_31fb59 });
 });
 
+type NotificationPrefsBody = {
+  newFollower?: boolean;
+  followingActivity?: boolean;
+  reactions?: boolean;
+  promotions?: boolean;
+};
+
+async function v_7169c4(v_a1651b, v_43e90c) {
+  const v_3ac7e7 = await v_a1651b
+    .prepare(
+      `SELECT u.marketing_consent AS promotions,
+              p.new_follower AS newFollower, p.following_activity AS followingActivity, p.reactions AS reactions
+         FROM users u LEFT JOIN user_notification_prefs p ON p.user_id = u.id
+        WHERE u.id = ?`,
+    )
+    .bind(v_43e90c)
+    .first<{ promotions: number | null; newFollower: number | null; followingActivity: number | null; reactions: number | null }>();
+  return {
+    newFollower: v_3ac7e7?.newFollower !== 0,
+    followingActivity: v_3ac7e7?.followingActivity !== 0,
+    reactions: v_3ac7e7?.reactions !== 0,
+    promotions: v_3ac7e7?.promotions === 1,
+  };
+}
+
+v_de7ba7.get("/me/notification-prefs", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  return v_3f4e2e.json(await v_7169c4(v_3f4e2e.env.DB, v_43e90c));
+});
+
+v_de7ba7.put("/me/notification-prefs", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = (await v_3f4e2e.req.json().catch(() => ({}))) as NotificationPrefsBody;
+  const v_c3bc75 = await v_7169c4(v_3f4e2e.env.DB, v_43e90c);
+  const v_ff792b = (v_81e2ef, v_0debf4) => (typeof v_81e2ef === "boolean" ? v_81e2ef : v_0debf4);
+  const v_a448ad = {
+    newFollower: v_ff792b(v_4d33b2.newFollower, v_c3bc75.newFollower),
+    followingActivity: v_ff792b(v_4d33b2.followingActivity, v_c3bc75.followingActivity),
+    reactions: v_ff792b(v_4d33b2.reactions, v_c3bc75.reactions),
+  };
+  await v_3f4e2e.env.DB
+    .prepare(
+      `INSERT INTO user_notification_prefs (user_id, new_follower, following_activity, reactions, updated_at)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(user_id) DO UPDATE SET
+         new_follower = excluded.new_follower,
+         following_activity = excluded.following_activity,
+         reactions = excluded.reactions,
+         updated_at = excluded.updated_at`,
+    )
+    .bind(v_43e90c, v_a448ad.newFollower ? 1 : 0, v_a448ad.followingActivity ? 1 : 0, v_a448ad.reactions ? 1 : 0, Date.now())
+    .run();
+
+  if (typeof v_4d33b2.promotions === "boolean" && v_4d33b2.promotions !== v_c3bc75.promotions) {
+    await v_3f4e2e.env.DB.batch([
+      v_3f4e2e.env.DB.prepare(`UPDATE users SET marketing_consent = ? WHERE id = ?`)
+        .bind(v_4d33b2.promotions ? 1 : 0, v_43e90c),
+      v_3f4e2e.env.DB.prepare(
+        `INSERT INTO user_consent_log (user_id, consent_type, state, terms_version, channel, changed_at)
+         VALUES (?, 'marketing', ?, NULL, 'notification_settings', ?)`,
+      ).bind(v_43e90c, v_4d33b2.promotions ? "granted" : "revoked", Date.now()),
+    ]);
+  }
+  return v_3f4e2e.json(await v_7169c4(v_3f4e2e.env.DB, v_43e90c));
+});
+
 v_de7ba7.get("/me/xrun-profile", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_38066f = await v_3f4e2e.env.DB

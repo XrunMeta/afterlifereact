@@ -1274,13 +1274,14 @@
         },
         "reactions": {
           "label": "互动",
-          "desc": "你的克隆收到点赞、评论或举报时"
+          "desc": "当你的克隆收到点赞、评论、订阅或礼物时"
         },
         "promotions": {
           "label": "优惠信息",
           "desc": "个性化优惠和活动通知"
         }
-      }
+      },
+      "saveFailed": "无法保存设置，请重试。"
     },
     "agreements": {
       "title": "同意事项"
