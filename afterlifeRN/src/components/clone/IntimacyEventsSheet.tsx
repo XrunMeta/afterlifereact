@@ -77,8 +77,11 @@ export default function v_06b8c0({ visible: v_cf55be, cloneId: v_6e0fd3, cloneNa
 
   return (
     <>
-      <Modal visible={v_cf55be} transparent animationType="slide">
-        <Pressable style={v_fd5f43.bottomOverlay} onPress={v_0890f8}>
+      <Modal visible={v_cf55be} transparent animationType="slide" onRequestClose={v_0890f8}>
+        {
+}
+        <View style={v_fd5f43.bottomOverlay}>
+          <Pressable style={v_472849.absoluteFill} onPress={v_0890f8} />
           <SwipeDownSheet
             onClose={v_0890f8}
             style={[v_fd5f43.eventsSheet, { paddingBottom: 32 + v_53dd92 }]}
@@ -157,7 +160,7 @@ export default function v_06b8c0({ visible: v_cf55be, cloneId: v_6e0fd3, cloneNa
               )}
             </ScrollView>
           </SwipeDownSheet>
-        </Pressable>
+        </View>
       </Modal>
 
       <Modal visible={v_c04d0d} transparent animationType="fade">
