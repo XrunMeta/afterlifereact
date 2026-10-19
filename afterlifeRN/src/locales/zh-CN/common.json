@@ -788,7 +788,8 @@
       "togglePasswordLabel": "切换密码显示",
       "toggleConfirmLabel": "切换确认密码显示",
       "emailNotFoundTitle": "邮箱未注册",
-      "emailNotFoundMessage": "该邮箱未注册账号。\n请确认邮箱或先注册。"
+      "emailNotFoundMessage": "该邮箱未注册账号。\n请确认邮箱或先注册。",
+      "emailNotRegisteredHint": "该邮箱未注册"
     },
     "signup": {
       "title": "注册",
