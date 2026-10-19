@@ -29,6 +29,8 @@ type PrefKey =
   | "newFollower"
   | "followingActivity"
   | "reactions"
+  | "intimacy"
+  | "moderation"
   | "promotions";
 
 const v_5c002e = "@notif_pref:";
@@ -53,7 +55,22 @@ const v_a5887f = [
     labelKey: "settings.notifications.prefs.reactions.label",
     labelDefault: "반응",
     descKey: "settings.notifications.prefs.reactions.desc",
-    descDefault: "내 클론에 좋아요·댓글·신고가 발생할 때",
+    descDefault: "내 클론에 좋아요·댓글·구독·선물이 발생할 때",
+  },
+
+  {
+    key: "intimacy",
+    labelKey: "settings.notifications.prefs.intimacy.label",
+    labelDefault: "친밀도 상승",
+    descKey: "settings.notifications.prefs.intimacy.desc",
+    descDefault: "페르소나와의 친밀도 온도가 올랐을 때",
+  },
+  {
+    key: "moderation",
+    labelKey: "settings.notifications.prefs.moderation.label",
+    labelDefault: "신고 처리 결과",
+    descKey: "settings.notifications.prefs.moderation.desc",
+    descDefault: "내 계정·페르소나에 대한 신고 처리 결과(경고·정지 등)",
   },
   {
     key: "promotions",
@@ -75,6 +92,8 @@ export default function v_4036d1() {
     newFollower: true,
     followingActivity: true,
     reactions: true,
+    intimacy: true,
+    moderation: true,
     promotions: true,
   });
   const [v_389da6, v_844010] = v_5ab095(false);

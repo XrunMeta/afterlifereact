@@ -13,6 +13,7 @@ import { v_70b594, v_4db5dd } from "../lib/knowledgeQuestions";
 import { v_cba618, v_1809f7 } from "../lib/knowledgeBlacklist";
 import { v_038cdc } from "../lib/knowledgeStore";
 import { v_c226a5, v_5f5ee2, type v_dbf3ef } from "../lib/notify";
+import { v_c43f8d, v_c1f9bb, v_342698, v_fd26b4 } from "../lib/adminBroadcast";
 import {
   v_916830,
   v_5d3436,
@@ -1603,9 +1604,13 @@ v_b7f2b4.get("/notify-test/target", v_c0a297, async (v_3f4e2e) => {
       .bind(v_625c74.id)
       .all(),
     v_3f4e2e.env.DB
-      .prepare(`SELECT new_follower AS newFollower, following_activity AS followingActivity, reactions FROM user_notification_prefs WHERE user_id = ?`)
+      .prepare(
+        `SELECT new_follower AS newFollower, following_activity AS followingActivity, reactions,
+                intimacy, moderation
+           FROM user_notification_prefs WHERE user_id = ?`,
+      )
       .bind(v_625c74.id)
-      .first<{ newFollower: number; followingActivity: number; reactions: number }>(),
+      .first<{ newFollower: number; followingActivity: number; reactions: number; intimacy: number; moderation: number }>(),
     v_3f4e2e.env.DB
       .prepare(`SELECT id, name FROM clones WHERE owner_id = ? AND deletion_state = 'active' ORDER BY id DESC LIMIT 1`)
       .bind(v_625c74.id)
@@ -1618,6 +1623,8 @@ v_b7f2b4.get("/notify-test/target", v_c0a297, async (v_3f4e2e) => {
       newFollower: v_207650 ? v_207650.newFollower === 1 : true,
       followingActivity: v_207650 ? v_207650.followingActivity === 1 : true,
       reactions: v_207650 ? v_207650.reactions === 1 : true,
+      intimacy: v_207650 ? v_207650.intimacy === 1 : true,
+      moderation: v_207650 ? v_207650.moderation === 1 : true,
       promotions: v_625c74.marketingConsent === 1,
     },
     sampleClone: v_eb25ce ?? null,
@@ -1659,6 +1666,59 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
     skipEmail: true,
   });
   return v_3f4e2e.json({ type: v_3b27d9, pushAllowed: v_762d02, cloneId: v_9390e8.cloneId ?? null, ...v_cb35cb });
+});
+
+v_b7f2b4.post("/push/broadcast", v_c0a297, async (v_3f4e2e) => {
+  const v_148ff6 = (await v_3f4e2e.req.json().catch(() => ({}))) as {
+    title?: unknown;
+    body?: unknown;
+    isAd?: unknown;
+    xrunMemberIds?: unknown;
+    all?: unknown;
+  };
+  const v_79213b = typeof v_148ff6.title === "string" ? v_148ff6.title.trim() : "";
+  if (!v_79213b) throw new v_3ebe58("VALIDATION_FAILED", "제목을 입력해 주세요.");
+  const v_6bd78e = v_148ff6.isAd === true;
+  if (v_6bd78e && v_fd26b4()) {
+    throw new v_3ebe58("VALIDATION_FAILED", "광고성 알림은 21시~08시(한국 시간)에 보낼 수 없습니다.");
+  }
+  let v_27ecba;
+  if (v_148ff6.all === true) v_27ecba = null;
+  else if (Array.isArray(v_148ff6.xrunMemberIds)) {
+    v_27ecba = v_148ff6.xrunMemberIds.map(Number).filter((v_f4e98d) => Number.isInteger(v_f4e98d) && v_f4e98d > 0);
+    if (v_27ecba.length === 0) throw new v_3ebe58("VALIDATION_FAILED", "대상 회원이 없습니다.");
+  } else {
+    throw new v_3ebe58("VALIDATION_FAILED", "xrunMemberIds 또는 all 이 필요합니다.");
+  }
+  const v_43c42e = await v_342698(v_3f4e2e.env, {
+    title: v_c1f9bb(v_79213b, v_6bd78e),
+    body: v_c43f8d(typeof v_148ff6.body === "string" ? v_148ff6.body : "", v_6bd78e),
+    isAd: v_6bd78e,
+    xrunMemberIds: v_27ecba,
+  });
+  console.log(`[admin.push.broadcast] isAd=${v_6bd78e} scope=${v_27ecba === null ? "all" : v_27ecba.length} result=${JSON.stringify(v_43c42e)}`);
+  return v_3f4e2e.json(v_43c42e);
+});
+
+v_b7f2b4.post("/push/marketing-consented", v_c0a297, async (v_3f4e2e) => {
+  const v_148ff6 = (await v_3f4e2e.req.json().catch(() => ({}))) as { xrunMemberIds?: unknown };
+  const v_52e08b = Array.isArray(v_148ff6.xrunMemberIds)
+    ? v_148ff6.xrunMemberIds.map(Number).filter((v_f4e98d) => Number.isInteger(v_f4e98d) && v_f4e98d > 0)
+    : [];
+  const v_8d4337 = [];
+  for (let v_ebec57 = 0; v_ebec57 < v_52e08b.length; v_ebec57 += 90) {
+    const v_334f63 = v_52e08b.slice(v_ebec57, v_ebec57 + 90);
+    const v_315151 = await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT DISTINCT xrun_member_id FROM users
+          WHERE marketing_consent = 1 AND deletion_state = 'active' AND deleted_at IS NULL
+            AND xrun_member_id IN (${v_334f63.map(() => "?").join(",")})`,
+      )
+      .bind(...v_334f63)
+      .all<{ xrun_member_id: number }>();
+    for (const v_cb35cb of v_315151.results ?? []) v_8d4337.push(v_cb35cb.xrun_member_id);
+  }
+  return v_3f4e2e.json({ xrunMemberIds: v_8d4337 });
 });
 
 v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {

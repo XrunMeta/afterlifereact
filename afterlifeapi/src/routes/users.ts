@@ -11,7 +11,6 @@ import { v_344b9e } from "../lib/memoryStore";
 import { v_c226a5 } from "../lib/notify";
 import { v_e0041f, v_cfdcb0 } from "../lib/similarity";
 import {
-  v_fb09c6,
   v_3326b4,
   v_3e801c,
   v_c0f252,
@@ -254,6 +253,8 @@ type NotificationPrefsBody = {
   newFollower?: boolean;
   followingActivity?: boolean;
   reactions?: boolean;
+  intimacy?: boolean;
+  moderation?: boolean;
   promotions?: boolean;
 };
 
@@ -261,16 +262,26 @@ async function v_7169c4(v_a1651b, v_43e90c) {
   const v_3ac7e7 = await v_a1651b
     .prepare(
       `SELECT u.marketing_consent AS promotions,
-              p.new_follower AS newFollower, p.following_activity AS followingActivity, p.reactions AS reactions
+              p.new_follower AS newFollower, p.following_activity AS followingActivity, p.reactions AS reactions,
+              p.intimacy AS intimacy, p.moderation AS moderation
          FROM users u LEFT JOIN user_notification_prefs p ON p.user_id = u.id
         WHERE u.id = ?`,
     )
     .bind(v_43e90c)
-    .first<{ promotions: number | null; newFollower: number | null; followingActivity: number | null; reactions: number | null }>();
+    .first<{
+      promotions: number | null;
+      newFollower: number | null;
+      followingActivity: number | null;
+      reactions: number | null;
+      intimacy: number | null;
+      moderation: number | null;
+    }>();
   return {
     newFollower: v_3ac7e7?.newFollower !== 0,
     followingActivity: v_3ac7e7?.followingActivity !== 0,
     reactions: v_3ac7e7?.reactions !== 0,
+    intimacy: v_3ac7e7?.intimacy !== 0,
+    moderation: v_3ac7e7?.moderation !== 0,
     promotions: v_3ac7e7?.promotions === 1,
   };
 }
@@ -289,18 +300,32 @@ v_de7ba7.put("/me/notification-prefs", v_6690d9, async (v_3f4e2e) => {
     newFollower: v_ff792b(v_4d33b2.newFollower, v_c3bc75.newFollower),
     followingActivity: v_ff792b(v_4d33b2.followingActivity, v_c3bc75.followingActivity),
     reactions: v_ff792b(v_4d33b2.reactions, v_c3bc75.reactions),
+    intimacy: v_ff792b(v_4d33b2.intimacy, v_c3bc75.intimacy),
+    moderation: v_ff792b(v_4d33b2.moderation, v_c3bc75.moderation),
   };
+  const v_148ff6 = (v_81e2ef) => (v_81e2ef ? 1 : 0);
   await v_3f4e2e.env.DB
     .prepare(
-      `INSERT INTO user_notification_prefs (user_id, new_follower, following_activity, reactions, updated_at)
-       VALUES (?, ?, ?, ?, ?)
+      `INSERT INTO user_notification_prefs
+         (user_id, new_follower, following_activity, reactions, intimacy, moderation, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(user_id) DO UPDATE SET
          new_follower = excluded.new_follower,
          following_activity = excluded.following_activity,
          reactions = excluded.reactions,
+         intimacy = excluded.intimacy,
+         moderation = excluded.moderation,
          updated_at = excluded.updated_at`,
     )
-    .bind(v_43e90c, v_a448ad.newFollower ? 1 : 0, v_a448ad.followingActivity ? 1 : 0, v_a448ad.reactions ? 1 : 0, Date.now())
+    .bind(
+      v_43e90c,
+      v_148ff6(v_a448ad.newFollower),
+      v_148ff6(v_a448ad.followingActivity),
+      v_148ff6(v_a448ad.reactions),
+      v_148ff6(v_a448ad.intimacy),
+      v_148ff6(v_a448ad.moderation),
+      Date.now(),
+    )
     .run();
 
   if (typeof v_4d33b2.promotions === "boolean" && v_4d33b2.promotions !== v_c3bc75.promotions) {
@@ -589,22 +614,6 @@ v_de7ba7.post("/me/devices", v_6690d9, async (v_3f4e2e) => {
     )
     .bind(v_43e90c, v_4d33b2.deviceId, v_4d33b2.pushToken, v_4d33b2.platform)
     .run();
-
-  try {
-    const v_38066f = await v_3f4e2e.env.DB
-      .prepare(`SELECT xrun_member_id FROM users WHERE id = ? LIMIT 1`)
-      .bind(v_43e90c)
-      .first<{ xrun_member_id: number | null }>();
-    const v_e2be75 = v_38066f?.xrun_member_id ?? null;
-    if (v_e2be75) {
-      const v_cb35cb = await v_fb09c6(v_3f4e2e.env, v_e2be75, v_4d33b2.pushToken);
-      if (!v_cb35cb.ok) {
-        console.warn(`[users/devices] xrun push sync failed member=${v_e2be75} reason=${v_cb35cb.reason}`);
-      }
-    }
-  } catch (v_49263d) {
-    console.warn("[users/devices] xrun push sync error:", (v_49263d as Error).message);
-  }
 
   return v_3f4e2e.json({ ok: true });
 });

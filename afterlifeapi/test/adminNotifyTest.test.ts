@@ -32,7 +32,7 @@ v_469bf2("admin notify-test", () => {
       v_4d37e3(v_8f00b9.status).toBe(200);
       const v_b75e36 = await v_8f00b9.json<{ user: { id: number }; prefs: Record<string, boolean> }>();
       v_4d37e3(v_b75e36.user.id).toBe(v_ceb55a.id);
-      v_4d37e3(v_b75e36.prefs).toEqual({ newFollower: true, followingActivity: true, reactions: true, promotions: false });
+      v_4d37e3(v_b75e36.prefs).toEqual({ newFollower: true, followingActivity: true, reactions: true, intimacy: true, moderation: true, promotions: false });
     }
   });
 
