@@ -66,6 +66,8 @@ export interface NotificationPrefs {
   newFollower: boolean;
   followingActivity: boolean;
   reactions: boolean;
+  intimacy: boolean;
+  moderation: boolean;
   promotions: boolean;
 }
 
