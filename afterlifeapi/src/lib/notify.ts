@@ -50,7 +50,12 @@ export interface NotifyResult {
   emailSent: boolean;
 }
 
-export type NotificationPrefCategory = "new_follower" | "following_activity" | "reactions";
+export type NotificationPrefCategory =
+  | "new_follower"
+  | "following_activity"
+  | "reactions"
+  | "intimacy"
+  | "moderation";
 
 const v_e6c9c1 = {
   user_follow: "new_follower",
@@ -59,6 +64,9 @@ const v_e6c9c1 = {
   clone_comment: "reactions",
   clone_follow: "reactions",
   clone_gift: "reactions",
+
+  intimacy_score: "intimacy",
+  moderation: "moderation",
 };
 
 export async function v_5f5ee2(

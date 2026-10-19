@@ -1286,6 +1286,14 @@
         "promotions": {
           "label": "Promotions",
           "desc": "Personalized benefits and event announcements"
+        },
+        "intimacy": {
+          "label": "Intimacy increase",
+          "desc": "When your intimacy temperature with a persona rises"
+        },
+        "moderation": {
+          "label": "Report results",
+          "desc": "Results of reports on your account or persona (warnings, suspensions, etc.)"
         }
       },
       "saveFailed": "Could not save the setting. Please try again."
