@@ -90,7 +90,7 @@ export default function v_415807({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         await v_e84827.setItem(v_101856, "1");
         await v_e84827.setItem(v_6a7868, v_e0c7e8);
       } else {
-        await v_e84827.removeItem(v_101856);
+        await v_e84827.setItem(v_101856, "0"); 
         await v_e84827.removeItem(v_6a7868);
       }
       await v_232d52();
