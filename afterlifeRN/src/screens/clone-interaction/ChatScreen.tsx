@@ -881,10 +881,11 @@ const v_d81136 = v_472849.create({
   personaIntroRow: { marginBottom: 8 },
   personaIntroName: { fontSize: 12, color: v_1bfbd0.zinc600, marginBottom: 6, marginLeft: 4 },
   personaIntroBubble: {
-    backgroundColor: v_1bfbd0.zinc100,
+    backgroundColor: v_1bfbd0.white,
     borderWidth: 1,
     borderColor: v_1bfbd0.zinc200,
     borderRadius: 18,
+    borderTopLeftRadius: 4,
     paddingHorizontal: 14,
     paddingVertical: 10,
     alignSelf: "flex-start",
@@ -898,13 +899,13 @@ const v_d81136 = v_472849.create({
     backgroundColor: v_1bfbd0.primary,
     borderRadius: 16,
     padding: 14,
+    gap: 12,
     alignSelf: "flex-end",
     width: "78%",
     marginBottom: 8,
   },
   callHeader: {
     flexDirection: "row", alignItems: "center", gap: 10,
-    marginBottom: 12,
   },
   callIconWrap: {
     width: 34, height: 34, borderRadius: 10,
@@ -948,6 +949,7 @@ const v_d81136 = v_472849.create({
     alignSelf: "flex-end",
     maxWidth: "100%",
     borderRadius: 18,
+    borderTopRightRadius: 4,
     backgroundColor: v_1bfbd0.primary,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -957,10 +959,11 @@ const v_d81136 = v_472849.create({
   personaOutsideBubble: {
     alignSelf: "flex-start",
     maxWidth: "100%",
-    backgroundColor: v_1bfbd0.zinc100,
+    backgroundColor: v_1bfbd0.white,
     borderWidth: 1,
     borderColor: v_1bfbd0.zinc200,
     borderRadius: 18,
+    borderTopLeftRadius: 4,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
@@ -1015,7 +1018,6 @@ const v_d81136 = v_472849.create({
     color: "rgba(255,255,255,0.85)",
     fontSize: 12,
     textAlign: "center",
-    marginTop: 6,
   },
 
   turnsSheet: {
@@ -1033,6 +1035,7 @@ const v_d81136 = v_472849.create({
 
   turnPersonaBubble: {
     backgroundColor: v_1bfbd0.zinc200,
+    borderTopLeftRadius: 4,
   },
   turnPersonaText: {
     color: v_1bfbd0.zinc900,
