@@ -58,17 +58,24 @@ function v_eadb63(): boolean {
 
 const v_355b08 = v_eadb63();
 
-const v_db6966 = !v_355b08
-  ? null
-  : v_326be8.OS === "ios"
-    ? (v_85b8ef("PangleModule") as v_a3453e.ComponentType<NativeProps>)
-    : v_027028<NativeProps>(v_ec44be);
+type NativeBanner = v_a3453e.ComponentType<NativeProps>;
+const v_2e931d = globalThis as typeof globalThis & { __pangleBannerNative?: NativeBanner | null };
+if (v_2e931d.__pangleBannerNative === undefined) {
+  v_2e931d.__pangleBannerNative = !v_355b08
+    ? null
+    : v_326be8.OS === "ios"
+      ? (v_85b8ef("PangleModule") as NativeBanner)
+      : (v_027028<NativeProps>(v_ec44be) as unknown as NativeBanner);
+}
+const v_db6966 = v_2e931d.__pangleBannerNative;
 
 console.log(
   `[PangleBannerAd][module] platform=${v_326be8.OS} nativeAvailable=${v_355b08}`,
 );
 
-if (v_326be8.OS === "android") {
+const v_35934d = globalThis as typeof globalThis & { __pangleBannerDebugSub?: boolean };
+if (v_326be8.OS === "android" && !v_35934d.__pangleBannerDebugSub) {
+  v_35934d.__pangleBannerDebugSub = true;
   v_18ba07.addListener("PangleBannerDebug", (v_9e86fd) => {
     console.log("[PangleBannerAd][native]", JSON.stringify(v_9e86fd));
   });
