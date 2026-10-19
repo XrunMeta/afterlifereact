@@ -21,7 +21,6 @@ import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 
 import {
   v_7f847d,
-  v_505b50,
   v_421733,
   v_2d09bf,
 } from "../../api/consent";
@@ -55,8 +54,6 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
   const [v_a03498, v_d34fc9] = v_5ab095(false);
 
   const [v_8c98c4, v_e378a4] = v_5ab095(false);
-
-  const [v_4513fd, v_9537cd] = v_5ab095(false);
   const [v_8d0e18, v_3bb4d3] = v_5ab095(false);
 
   const [v_60cad9, v_f1fd7a] = v_5ab095(false);
@@ -64,7 +61,7 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
   const v_9b51bc = v_1ed7d9((v_fd5f43) => v_fd5f43.apiLogout);
 
   const v_8c2724 = v_51b53b && v_09b7fa && v_540cd3 && v_ae0efb;
-  const v_33f2ba = v_8c2724 && v_a03498 && v_8c98c4 && v_4513fd;
+  const v_33f2ba = v_8c2724 && v_a03498 && v_8c98c4;
 
   const v_8d4692 = async () => {
     if (v_540cd3) {
@@ -137,7 +134,6 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
     v_1d4807(v_a448ad);
     v_f2d945(v_a448ad);
     v_d34fc9(v_a448ad);
-    v_9537cd(v_a448ad);
     if (!v_a448ad) {
       v_a67880(false);
       v_e378a4(false);
@@ -183,15 +179,6 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
           );
         } catch (v_49263d) {
           console.warn("[SsoReconsent] saveFaceBiometricConsent failed:", v_49263d);
-        }
-
-        try {
-          await v_505b50(v_2ca7e0, v_4513fd ? "granted" : "revoked", {
-            termsVersion: "v1",
-            channel: "settings",
-          });
-        } catch (v_49263d) {
-          console.warn("[SsoReconsent] saveCloneFaceConsent failed:", v_49263d);
         }
       }
       await v_fa872d(v_2ca7e0, { marketingConsent: v_8c98c4 });
@@ -305,15 +292,6 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
             defaultValue: "[선택] 얼굴 생체정보 처리 동의",
           })}
         />
-        {}
-        <ConsentRow
-          checked={v_4513fd}
-          onCheck={() => v_9537cd(!v_4513fd)}
-          onReadMore={() => v_fe0d62(6)}
-          label={v_8d41d7("auth.signup.cloneFaceConsent", {
-            defaultValue: "[선택] 클론별 얼굴 인식 동의",
-          })}
-        />
       </ScrollView>
 
       <View style={[v_d81136.footer, { paddingBottom: 16 + v_53dd92 }]}>
@@ -354,7 +332,6 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
           else if (v_357868 === 3) v_1d4807(true);
           else if (v_357868 === 4) v_d34fc9(true);
           else if (v_357868 === 5) v_f2d945(true);
-          else if (v_357868 === 6) v_9537cd(true);
 
           else if (v_357868 === 7) { if (!v_8c98c4) void v_349606(); }
         }}
