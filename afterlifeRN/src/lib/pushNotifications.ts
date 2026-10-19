@@ -33,6 +33,12 @@ function v_2e9678(): string | undefined {
   return v_3e8cd8?.extra?.eas?.projectId ?? v_292e7d?.projectId;
 }
 
+export async function v_6d7a3d(): Promise<boolean> {
+  if (!v_a06ea0.isDevice) return false;
+  const v_3c8572 = await v_2b7a17.getPermissionsAsync();
+  return v_3c8572.status === "granted";
+}
+
 export async function v_704bef(): Promise<PushRegistration> {
   const v_81a27a =
     v_326be8.OS === "ios" ? "ios" : v_326be8.OS === "android" ? "android" : "web";

@@ -26,7 +26,12 @@ import {
   v_2d09bf,
 } from "../../api/consent";
 import { v_d2929b } from "./faceBiometricSignupFlag";
-import { v_704bef, v_9bedf5 } from "../../lib/pushNotifications";
+import * as v_8a44cb from "zryrlwvgokjhz";
+import {
+  v_6d7a3d,
+  v_704bef,
+  v_9bedf5,
+} from "../../lib/pushNotifications";
 import { v_889fad } from "../../stores/dialogStore";
 
 type Props = {
@@ -53,6 +58,8 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
 
   const [v_4513fd, v_9537cd] = v_5ab095(false);
   const [v_8d0e18, v_3bb4d3] = v_5ab095(false);
+
+  const [v_60cad9, v_f1fd7a] = v_5ab095(false);
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
   const v_9b51bc = v_1ed7d9((v_fd5f43) => v_fd5f43.apiLogout);
 
@@ -65,9 +72,16 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
       return;
     }
     try {
-      const v_8a44cb = await import("zryrlwvgokjhz");
+
       const v_fc6010 = await v_8a44cb.getForegroundPermissionsAsync();
-      const v_d60769 = v_fc6010.granted ? v_fc6010 : await v_8a44cb.requestForegroundPermissionsAsync();
+      if (v_fc6010.granted) {
+        v_a67880(true);
+        return;
+      }
+      v_f1fd7a(true);
+      const v_d60769 = await v_8a44cb.requestForegroundPermissionsAsync().finally(() =>
+        v_f1fd7a(false),
+      );
       if (!v_d60769.granted) {
         v_889fad(
           v_8d41d7("auth.signup.locationPermTitle", { defaultValue: "위치 권한 필요" }),
@@ -92,6 +106,15 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
     if (v_8c98c4) {
       v_e378a4(false);
       return;
+    }
+
+    try {
+      if (await v_6d7a3d()) {
+        v_e378a4(true);
+        return;
+      }
+    } catch {
+
     }
     v_3bb4d3(true);
     try {
@@ -120,8 +143,15 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
       v_e378a4(false);
       return;
     }
-    if (!v_540cd3) await v_8d4692();
-    if (!v_8c98c4) await v_349606();
+
+    const [v_2de974, v_c4bf69] = await Promise.all([
+      v_8a44cb.getForegroundPermissionsAsync().then((v_e2a85c) => v_e2a85c.granted).catch(() => false),
+      v_6d7a3d().catch(() => false),
+    ]);
+    if (!v_540cd3 && v_2de974) v_a67880(true);
+    if (!v_8c98c4 && v_c4bf69) v_e378a4(true);
+    if (!v_540cd3 && !v_2de974) await v_8d4692();
+    if (!v_8c98c4 && !v_c4bf69) await v_349606();
   };
 
   const v_0577ff = async () => {
@@ -245,9 +275,9 @@ export default function v_ac767f({ onDone: v_7b5712 }: Props) {
           checked={v_540cd3}
           onCheck={() => void v_8d4692()}
           onReadMore={() => v_fe0d62(2)}
-          label={v_8d41d7("auth.signup.locationConsent", {
+          label={`${v_8d41d7("auth.signup.locationConsent", {
             defaultValue: "[필수] 위치기반서비스 이용약관",
-          })}
+          })}${v_60cad9 ? ` (${v_8d41d7("auth.signup.verifying", { defaultValue: "확인 중" })})` : ""}`}
         />
         <ConsentRow
           checked={v_ae0efb}
