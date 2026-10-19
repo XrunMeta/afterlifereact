@@ -757,7 +757,10 @@
       "tabAccount": "Account sign-in",
       "tabOtp": "Email OTP sign-in",
       "requestOtp": "Get verification code",
-      "sendingOtp": "Sending..."
+      "sendingOtp": "Sending...",
+      "accountNotFoundTitle": "Account not found",
+      "accountNotFoundMessage": "No account is registered with this email.\nPlease sign up.",
+      "goSignup": "Sign up"
     },
     "forgot": {
       "title": "Reset Password",

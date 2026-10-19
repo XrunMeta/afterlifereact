@@ -755,7 +755,10 @@
       "tabAccount": "Login Akun",
       "tabOtp": "Login OTP Email",
       "requestOtp": "Terima Kode Verifikasi",
-      "sendingOtp": "Mengirim..."
+      "sendingOtp": "Mengirim...",
+      "accountNotFoundTitle": "Akun tidak ditemukan",
+      "accountNotFoundMessage": "Tidak ada akun yang terdaftar dengan email ini.\nSilakan daftar.",
+      "goSignup": "Daftar"
     },
     "forgot": {
       "title": "Setel Ulang Kata Sandi",
