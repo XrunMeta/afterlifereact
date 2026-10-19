@@ -49,6 +49,15 @@ function v_6be210(v_9390e8): void {
   const v_6e0fd3 = v_1e3ec7(v_9390e8.cloneId);
   const v_baf950 = v_1e3ec7(v_9390e8.followerId);
 
+  const v_d97a4e = v_f71b56.match(/^afterlife:\/\/chat\/(\d+)/);
+  if (v_3b27d9 === "clone_message" || v_d97a4e) {
+    const v_062ae9 = v_6e0fd3 > 0 ? v_6e0fd3 : Number(v_d97a4e?.[1] ?? 0);
+    if (v_062ae9 > 0) {
+      v_3c9f12.navigate("Chat", { cloneId: v_062ae9 });
+      return;
+    }
+  }
+
   if (v_3b27d9 === "clone_gift") {
     v_3c9f12.navigate("Main", {
       screen: "MyTab",

@@ -1294,6 +1294,10 @@
         "moderation": {
           "label": "Report results",
           "desc": "Results of reports on your account or persona (warnings, suspensions, etc.)"
+        },
+        "messages": {
+          "label": "Messages",
+          "desc": "When you miss a reply from a persona"
         }
       },
       "saveFailed": "Could not save the setting. Please try again."

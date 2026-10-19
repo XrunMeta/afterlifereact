@@ -35,14 +35,14 @@ v_469bf2("notification prefs", () => {
     const v_9edd60 = await v_21cc31(await v_bfb240());
     const v_cb35cb = await v_51c3d2("GET", v_9edd60);
     v_4d37e3(v_cb35cb.status).toBe(200);
-    v_4d37e3(v_cb35cb.json).toEqual({ newFollower: true, followingActivity: true, reactions: true, intimacy: true, moderation: true, promotions: false });
+    v_4d37e3(v_cb35cb.json).toEqual({ newFollower: true, followingActivity: true, reactions: true, intimacy: true, moderation: true, messages: true, promotions: false });
   });
 
   v_23805a("PUT 부분 갱신 + 혜택 ON 은 marketing_consent 와 동의 이력에 반영", async () => {
     const v_43e90c = await v_bfb240();
     const v_9edd60 = await v_21cc31(v_43e90c);
     const v_cb35cb = await v_51c3d2("PUT", v_9edd60, { reactions: false, promotions: true });
-    v_4d37e3(v_cb35cb.json).toEqual({ newFollower: true, followingActivity: true, reactions: false, intimacy: true, moderation: true, promotions: true });
+    v_4d37e3(v_cb35cb.json).toEqual({ newFollower: true, followingActivity: true, reactions: false, intimacy: true, moderation: true, messages: true, promotions: true });
     const v_ceb55a = await v_a1651b().prepare("SELECT marketing_consent AS m FROM users WHERE id = ?").bind(v_43e90c).first<{ m: number }>();
     v_4d37e3(v_ceb55a?.m).toBe(1);
     const v_3e58a1 = await v_a1651b()
