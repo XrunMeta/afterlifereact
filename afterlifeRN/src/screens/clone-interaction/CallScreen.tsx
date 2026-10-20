@@ -1927,6 +1927,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       }
 
       if (afl971ConnectingAdFiredRef.current) return;
+      let afl971AdTimedOut = false;
       afl971ConnectingAdFiredRef.current = true;
       setAfl971AdInProgress(true);
 
@@ -1939,11 +1940,22 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         const { loadAndShowRewardedAd } = await import("../../lib/pangle");
         afl971MuteCallAudio();
         setAfl971AdShowingUI(true);
+        let adResult: "closed" | "timeout" = "closed";
         try {
-          await loadAndShowRewardedAd();
+          adResult = await loadAndShowRewardedAd();
         } finally {
-          setAfl971AdShowingUI(false);
-          afl971UnmuteCallAudio();
+
+          if (adResult === "closed") {
+            setAfl971AdShowingUI(false);
+            afl971UnmuteCallAudio();
+          }
+        }
+
+        if (adResult === "timeout") {
+          afl971AdTimedOut = true;
+          console.log("[Call][afl971] 연결중 광고 5분 무반응 — 대화 시작 없이 통화 종료");
+          idleHangupTriggerRef.current();
+          return;
         }
 
         console.log("[Call][afl971] 연결중 광고 닫힘");
@@ -1952,7 +1964,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       } finally {
         setAfl971AdInProgress(false);
 
-        if (!micOnRef.current && !isMuted) {
+        if (!afl971AdTimedOut && !micOnRef.current && !isMuted) {
           console.log("[Call][afl971] 연결중 광고 종료 — mic 복원");
           toggleMicRef.current();
         }
@@ -1966,6 +1978,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     setAfl971AdInProgress(true);
     afl971AdInProgressRef.current = true; 
     let micWasOnBeforeAd = false;
+    let adTimedOut = false;
     (async () => {
       try {
         console.log(`[Call][afl971] round ${round} — mic off + 광고`);
@@ -1981,12 +1994,20 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           sendAdPrepareReturn();
           console.log(`[Call][afl971] round ${round} 광고 시작 — 복귀 미리 준비 신호(ad_prepare_return)`);
         }
+        let adResult: "closed" | "timeout";
         try {
-          await loadAndShowRewardedAd();
+          adResult = await loadAndShowRewardedAd();
         } catch (adErr) {
           setAfl971AdShowingUI(false);
           afl971UnmuteCallAudio();
           throw adErr;
+        }
+
+        if (adResult === "timeout") {
+          adTimedOut = true;
+          console.log(`[Call][afl971] round ${round} 광고 5분 무반응 — 통화 종료`);
+          idleHangupTriggerRef.current();
+          return;
         }
 
         setAfl971AdShowingUI(false);
@@ -2051,14 +2072,16 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         setAfl971AdInProgress(false);
         afl971AdInProgressRef.current = false;
 
-        setAfl971AdShowingUI(false);
-        afl971UnmuteCallAudio();
+        if (!adTimedOut) {
+          setAfl971AdShowingUI(false);
+          afl971UnmuteCallAudio();
+        }
 
         const restoreNow = afl971CallInteractive({
           appActive: AppState.currentState === "active",
           live: liveStateRef.current === "live",
         });
-        if (micWasOnBeforeAd && !micOnRef.current && !isMuted) {
+        if (!adTimedOut && micWasOnBeforeAd && !micOnRef.current && !isMuted) {
           if (restoreNow) {
             console.log(`[Call][afl971] round ${round} 종료 — mic 복원`);
             micOnRef.current = true;

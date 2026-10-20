@@ -108,7 +108,9 @@ export function v_8dbaf4(): string {
   return v_326be8.OS === "ios" ? v_cfcd6e : v_a4f114;
 }
 
-export async function v_18f201(v_61418d): Promise<void> {
+export type RewardedAdResult = "closed" | "timeout";
+
+export async function v_18f201(v_61418d): Promise<RewardedAdResult> {
   const v_b66f2c = Date.now();
   const v_a48992 = () => `+${Date.now() - v_b66f2c}ms`;
   v_4b0422(`loadAndShowRewardedAd() 호출 · nativeModule=${!!v_d57f84} emitter=${!!v_357489} platform=${v_326be8.OS} stub=${v_36f8a3()}`);
@@ -117,7 +119,7 @@ export async function v_18f201(v_61418d): Promise<void> {
     v_4b0422(`STUB MODE on — 실광고 대신 시뮬레이션(${v_9fd782()}ms)`);
     await v_cdacfb((v_9e86fd) => v_4b0422(`[stub] event ${v_9e86fd} (${v_a48992()})`));
     v_4b0422(`STUB MODE 완료 — close 상당 지점 resolve (${v_a48992()})`);
-    return;
+    return "closed";
   }
 
   if (!v_d57f84 || !v_357489) {
@@ -130,7 +132,7 @@ export async function v_18f201(v_61418d): Promise<void> {
   const v_80cae9 = v_61418d ?? v_3dc1fd();
   v_4b0422(`adUnit=${v_80cae9}`);
 
-  return new Promise<void>((v_6f7712, v_bad6f3) => {
+  return new Promise<RewardedAdResult>((v_6f7712, v_bad6f3) => {
     let v_35db80 = false;
     const v_a983d4 = () => {
       v_8d364c.remove();
@@ -142,7 +144,7 @@ export async function v_18f201(v_61418d): Promise<void> {
       if (v_35db80) return;
       v_35db80 = true;
       v_a983d4();
-      v_6f7712();
+      v_6f7712("closed");
     });
     const v_ac7dac = v_357489.addListener("onRewardedAdLoadError", (v_9e86fd) => {
 
@@ -179,9 +181,9 @@ export async function v_18f201(v_61418d): Promise<void> {
       if (v_35db80) return;
       v_35db80 = true;
       v_a983d4();
-      v_4b0422(`rewarded 타임아웃 — 5분 무반응 (${v_a48992()}) 강제 resolve`);
+      v_4b0422(`rewarded 타임아웃 — 5분 무반응 (${v_a48992()}) → timeout`);
       console.warn("[pangle] rewarded 타임아웃 — 5분 무반응");
-      v_6f7712();
+      v_6f7712("timeout");
     }, 5 * 60 * 1000);
   });
 }
