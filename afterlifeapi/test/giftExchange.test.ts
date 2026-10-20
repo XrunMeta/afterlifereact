@@ -110,6 +110,26 @@ v_469bf2("gift → XRUN exchange", () => {
     v_4d37e3(v_33b04f.json.items[0].rewardStatus).toBe("claimed");
   });
 
+  v_23805a("교환 내역: XRUN 에서 받았으면 수령 완료로 맞춘다", async () => {
+    const v_ceb55a = await v_bfb240(5005);
+    await v_8b0655(v_ceb55a, "gift-rose", [[0.1, 11]]);
+    v_8fd90d
+      .get(v_cafb6f)
+      .intercept({ path: "/oth-path", method: "POST" })
+      .reply(200, { status: "success", data: { rewardId: 91 } });
+    const v_3e36b0 = await v_51c3d2(v_ceb55a, "POST", "/oth-path", { giftId: "gift-rose", qty: 10, rateVersion: 1 }, "key-ex-0301");
+    v_4d37e3(v_3e36b0.status).toBe(200);
+    v_8fd90d
+      .get(v_cafb6f)
+      .intercept({ path: (v_e2a85c) => v_e2a85c.startsWith("/oth-path"), method: "GET" })
+      .reply(200, {
+        status: "success",
+        data: { items: [{ refId: `afterlife-exchange:${v_3e36b0.json.exchangeId}`, status: "claimed", claimedAt: "2026-10-20 03:00:00" }] },
+      });
+    const v_65a2cd = await v_51c3d2(v_ceb55a, "GET", "/oth-path");
+    v_4d37e3(v_65a2cd.json.items[0]).toMatchObject({ exchangeId: v_3e36b0.json.exchangeId, rewardStatus: "claimed" });
+  });
+
   v_23805a("검증: 최소 미달·보유 부족·조건 변경·점검·키 없음", async () => {
     const v_ceb55a = await v_bfb240(5003);
     await v_8b0655(v_ceb55a, "gift-rose", [[0.1, 10]]);
