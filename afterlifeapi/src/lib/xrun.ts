@@ -953,3 +953,39 @@ export async function v_f748f8(
     );
   }
 }
+
+export interface AfterlifeRewardCreateResult {
+  status: "ok" | "restricted" | "missing" | "error";
+  rewardId?: number;
+  reason?: string;
+}
+
+export async function v_9bded0(
+  env: v_273a0c,
+  v_4317d1,
+): Promise<AfterlifeRewardCreateResult> {
+  if (!v_c9c489.XRUN_API_URL || !v_c9c489.XRUN_INTERNAL_SECRET) {
+    return { status: "error", reason: "missing XRUN_API_URL/XRUN_INTERNAL_SECRET" };
+  }
+  try {
+    const v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: v_9765c6(v_c9c489),
+      body: JSON.stringify(v_4317d1),
+    });
+    const v_7ecfd1 = (await v_8f00b9.json().catch(() => ({}))) as {
+      status?: string;
+      code?: string;
+      message?: string;
+      data?: { rewardId?: number };
+    };
+    if (v_8f00b9.ok && v_7ecfd1.status === "success" && v_7ecfd1.data?.rewardId) {
+      return { status: "ok", rewardId: v_7ecfd1.data.rewardId };
+    }
+    if (v_7ecfd1.code === "ACCOUNT_RESTRICTED") return { status: "restricted", reason: v_7ecfd1.message };
+    if (v_7ecfd1.code === "MEMBER_NOT_FOUND") return { status: "missing", reason: v_7ecfd1.message };
+    return { status: "error", reason: `xrun ${v_8f00b9.status} ${v_7ecfd1.message ?? ""}`.trim() };
+  } catch (v_49263d) {
+    return { status: "error", reason: `network: ${(v_49263d as Error).message}` };
+  }
+}

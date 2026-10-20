@@ -133,6 +133,10 @@ const v_597473 = v_1f4ea7.object({
 });
 
 v_62a1b6.post("/redeem-with-ad", async (v_3f4e2e) => {
+
+  if (v_3f4e2e.env.XRUN_BRIDGE_REDEEM_ENABLED !== "1") {
+    throw new v_3ebe58("FORBIDDEN", "교환은 애프터라이프 앱 선물함에서 할 수 있어요");
+  }
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_597473);
   const v_625c74 = await v_ce5ee9(v_3f4e2e.env.DB, v_4d33b2.email);
   if (!v_625c74) throw new v_3ebe58("NOT_FOUND", "회원 매칭 실패 (이메일)");
@@ -278,4 +282,16 @@ v_62a1b6.post("/redeem-with-ad", async (v_3f4e2e) => {
     perFlowerXrun: v_e57e5c,
     grant: v_96c1fe,
   });
+});
+
+v_62a1b6.post("/exchange-claimed", async (v_3f4e2e) => {
+  const v_4d33b2 = (await v_3f4e2e.req.json().catch(() => ({}))) as { refId?: unknown; claimedAt?: unknown };
+  const v_35f85c = typeof v_4d33b2.refId === "string" ? /^afterlife-exchange:(\d+)$/.exec(v_4d33b2.refId) : null;
+  if (!v_35f85c) throw new v_3ebe58("VALIDATION_FAILED", "refId 형식이 맞지 않아요.");
+  const v_4f8ce8 = Number(v_4d33b2.claimedAt) > 0 ? Number(v_4d33b2.claimedAt) : Date.now();
+  const v_cb35cb = await v_3f4e2e.env.DB
+    .prepare(`UPDATE gift_exchanges SET status = 'claimed', claimed_at = ? WHERE id = ? AND status = 'pending_claim'`)
+    .bind(v_4f8ce8, Number(v_35f85c[1]))
+    .run();
+  return v_3f4e2e.json({ ok: true, updated: Number(v_cb35cb.meta?.changes ?? 0) });
 });
