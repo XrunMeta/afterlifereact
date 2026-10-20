@@ -33,6 +33,9 @@ export default v_eede73(async () => {
 
               CHAT_UNREAD_PUSH_DELAY_MS: "0",
 
+              XRUN_INTERNAL_SECRET: "test-xrun-internal-secret",
+              XRUN_BRIDGE_SECRET: "test-xrun-bridge-secret",
+
               JWT_ACCESS_SECRET: "test-jwt-access-secret-for-vitest",
 
               JWT_REFRESH_SECRET: "test-jwt-refresh-secret-for-vitest",

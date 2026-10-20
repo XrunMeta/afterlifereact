@@ -437,3 +437,93 @@ export async function v_b7471b(env: v_273a0c, v_17dc8a): Promise<AdCadence> {
     .run();
   return v_a448ad;
 }
+
+const v_566753 = "gift.exchange";
+export interface GiftExchangeMaintenance {
+  from: number; 
+  to: number; 
+  message?: string;
+}
+export interface GiftExchangeConfig {
+  enabled: boolean;
+  minQty: number;
+  feeQty: number;
+  maintenance: GiftExchangeMaintenance | null;
+  version: number;
+}
+export const v_6ebdd1 = {
+  enabled: true,
+  minQty: 10,
+  feeQty: 1,
+  maintenance: null,
+  version: 1,
+};
+
+function v_a7a965(v_e2a85c): GiftExchangeConfig {
+  const v_9c6813 = Number(v_e2a85c?.minQty);
+  const v_3cda59 = Number(v_e2a85c?.feeQty);
+  const v_0e1851 = Number(v_e2a85c?.version);
+  const v_35f85c = v_e2a85c?.maintenance;
+  const v_ffbee4 =
+    v_35f85c && Number.isFinite(Number(v_35f85c.from)) && Number.isFinite(Number(v_35f85c.to)) && Number(v_35f85c.to) > Number(v_35f85c.from)
+      ? {
+          from: Number(v_35f85c.from),
+          to: Number(v_35f85c.to),
+          ...(typeof v_35f85c.message === "string" && v_35f85c.message.trim() ? { message: v_35f85c.message.trim().slice(0, 200) } : {}),
+        }
+      : null;
+  return {
+    enabled: typeof v_e2a85c?.enabled === "boolean" ? v_e2a85c.enabled : v_6ebdd1.enabled,
+    minQty: Number.isInteger(v_9c6813) && v_9c6813 >= 1 && v_9c6813 <= 10000 ? v_9c6813 : v_6ebdd1.minQty,
+    feeQty: Number.isInteger(v_3cda59) && v_3cda59 >= 0 && v_3cda59 <= 1000 ? v_3cda59 : v_6ebdd1.feeQty,
+    maintenance: v_ffbee4,
+    version: Number.isInteger(v_0e1851) && v_0e1851 >= 1 ? v_0e1851 : v_6ebdd1.version,
+  };
+}
+
+export async function v_705aa5(env: v_273a0c): Promise<GiftExchangeConfig> {
+  try {
+    const v_3ac7e7 = await v_c9c489.DB
+      .prepare(`SELECT value FROM app_config WHERE key = ? LIMIT 1`)
+      .bind(v_566753)
+      .first<{ value: string }>();
+    if (!v_3ac7e7) return v_6ebdd1;
+    const v_8decf8 = JSON.parse(v_3ac7e7.value) as unknown;
+    if (!v_8decf8 || typeof v_8decf8 !== "object") return v_6ebdd1;
+    return v_a7a965(v_8decf8 as Partial<GiftExchangeConfig>);
+  } catch {
+    return v_6ebdd1;
+  }
+}
+
+export async function v_1e6592(
+  env: v_273a0c,
+  v_17dc8a,
+): Promise<GiftExchangeConfig> {
+  const v_275ccd = await v_705aa5(v_c9c489);
+  const v_f04727 = v_a7a965({
+    enabled: v_17dc8a.enabled ?? v_275ccd.enabled,
+    minQty: v_17dc8a.minQty ?? v_275ccd.minQty,
+    feeQty: v_17dc8a.feeQty ?? v_275ccd.feeQty,
+    maintenance: v_17dc8a.maintenance === undefined ? v_275ccd.maintenance : v_17dc8a.maintenance,
+    version: v_275ccd.version,
+  });
+
+  if (v_f04727.minQty !== v_275ccd.minQty || v_f04727.feeQty !== v_275ccd.feeQty) v_f04727.version = v_275ccd.version + 1;
+  await v_c9c489.DB
+    .prepare(
+      `INSERT INTO app_config (key, value, updated_at) VALUES (?, ?, unixepoch())
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = unixepoch()`,
+    )
+    .bind(v_566753, JSON.stringify(v_f04727))
+    .run();
+  return v_f04727;
+}
+
+export function v_2e4a1b(
+  v_01dcf5,
+  v_5c2f9f = Date.now(),
+): GiftExchangeMaintenance | null {
+  const v_35f85c = v_01dcf5.maintenance;
+  return v_35f85c && v_5c2f9f >= v_35f85c.from && v_5c2f9f < v_35f85c.to ? v_35f85c : null;
+}
