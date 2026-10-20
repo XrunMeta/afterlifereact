@@ -30,6 +30,7 @@ import {
   AFL971_CADENCE_DEFAULT,
   type AdCadence,
 } from "./afl971Ad";
+import { reportCallAdDiag } from "../../lib/pangle";
 import * as ScreenCapture from "expo-screen-capture";
 import ViewShot, { captureRef } from "react-native-view-shot";
 import * as MediaLibrary from "expo-media-library";
@@ -1241,6 +1242,15 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       );
 
       afl971AdCommittedRoundRef.current = adNext ? willBeRound : null;
+
+      if (afl971ShouldShowAd(willBeRound, afl971CadenceRef.current)) {
+        reportCallAdDiag(adNext ? "round-due" : "round-skip", {
+          round: willBeRound,
+          isFirstCall: afl971IsFirstCallRef.current,
+          faceBusy,
+          cadence: `${afl971CadenceRef.current.firstRound}/${afl971CadenceRef.current.interval}`,
+        });
+      }
       return adNext ? say(text, { adNotice: "pre" }) : say(text);
     },
     [say, debugEmail],
