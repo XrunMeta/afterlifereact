@@ -27,6 +27,7 @@ import {
   v_9c3304,
   v_541c70,
   v_c55c0b,
+  v_6f0728,
   type v_407a6d,
   type v_ccbfb2,
   type v_02ed3c,
@@ -179,8 +180,9 @@ export default function v_8869a8() {
     if (v_eddb49 <= v_ae840d.minQty) {
       v_cba33f(
         v_8d41d7("giftBox.toastBelowMin", {
-          defaultValue: `${v_ae840d.minQty}송이부터 교환할 수 있어요 (수수료 ${v_ae840d.feeQty}송이 별도)`,
+          defaultValue: `${v_ae840d.minQty}송이부터 교환할 수 있어요 (수수료 ${v_ae840d.feeUnit}송이당 ${v_ae840d.feeQty}송이 별도)`,
           min: v_ae840d.minQty,
+          unit: v_ae840d.feeUnit,
           fee: v_ae840d.feeQty,
         }),
       );
@@ -193,7 +195,8 @@ export default function v_8869a8() {
     if (v_eddb49 >= v_ae840d.exchangeableQty) {
       v_cba33f(
         v_8d41d7("giftBox.toastOverMax", {
-          defaultValue: `수수료 ${v_ae840d.feeQty}송이를 빼고 최대 ${v_ae840d.exchangeableQty}송이까지 교환할 수 있어요`,
+          defaultValue: `수수료(${v_ae840d.feeUnit}송이당 ${v_ae840d.feeQty}송이)를 빼고 최대 ${v_ae840d.exchangeableQty}송이까지 교환할 수 있어요`,
+          unit: v_ae840d.feeUnit,
           fee: v_ae840d.feeQty,
           max: v_ae840d.exchangeableQty,
         }),
@@ -255,8 +258,8 @@ export default function v_8869a8() {
         v_cba33f(v_9e86fd.message ?? "");
       } else if (v_9e86fd.code === "RATE_CHANGED") {
         const v_3871e2 = await v_308dd7();
-        const v_2d815e = Number(v_d5dda0.feeQty ?? v_3871e2?.feeQty ?? v_c3bc75.feeQty);
         const v_ab6401 = Math.max(Number(v_d5dda0.minQty ?? v_3871e2?.minQty ?? v_d016c9), v_d016c9);
+        const v_2d815e = v_6f0728(v_3871e2 ?? v_c3bc75, v_ab6401);
         const v_36c043 = v_3871e2 ? v_c55c0b(v_3871e2.priceSegments, v_ab6401) : 0;
         v_889fad(
           v_8d41d7("giftBox.p9Title", { defaultValue: "교환 조건이 바뀌었어요" }),
@@ -308,7 +311,7 @@ export default function v_8869a8() {
   };
 
   const v_609f35 = (cur: v_02ed3c, v_d016c9) => {
-    const v_2d815e = v_c3bc75.feeQty;
+    const v_2d815e = v_6f0728(v_c3bc75, v_d016c9);
     const v_36c043 = v_c55c0b(v_c3bc75.priceSegments, v_d016c9);
     v_889fad(
       v_8d41d7("giftBox.p1Title", { defaultValue: `${v_c3bc75.giftName} ${v_d016c9}송이를 교환할까요?`, name: v_c3bc75.giftName, qty: v_d016c9 }),
@@ -341,7 +344,7 @@ export default function v_8869a8() {
     const v_c3bc75 = v_3871e2 ?? v_ae840d;
     if (v_c3bc75.maintenance || !v_c3bc75.enabled) return v_b5de70(v_c3bc75.maintenance);
     if (v_eddb49 < v_c3bc75.minQty) {
-      v_cba33f(v_8d41d7("giftBox.toastBelowMin", { defaultValue: `${v_c3bc75.minQty}송이부터 교환할 수 있어요 (수수료 ${v_c3bc75.feeQty}송이 별도)`, min: v_c3bc75.minQty, fee: v_c3bc75.feeQty }));
+      v_cba33f(v_8d41d7("giftBox.toastBelowMin", { defaultValue: `${v_c3bc75.minQty}송이부터 교환할 수 있어요 (수수료 ${v_c3bc75.feeUnit}송이당 ${v_c3bc75.feeQty}송이 별도)`, min: v_c3bc75.minQty, unit: v_c3bc75.feeUnit, fee: v_c3bc75.feeQty }));
       return;
     }
     if (v_eddb49 > v_c3bc75.exchangeableQty) {
@@ -884,15 +887,11 @@ function v_1bc5d1({
   }
 
   const v_80cae9 = v_8d41d7("giftBox.flowerUnit", { defaultValue: "송이" });
-  const v_ab3ba5 = Array.from(new Set(v_ae840d.priceSegments.map((v_fd5f43) => v_fd5f43.price)));
-  const v_5b0162 =
-    v_ab3ba5.length <= 1
-      ? `1${v_80cae9} = ${v_ab3ba5[0] ?? "0"} XRUN`
-      : v_8d41d7("giftBox.priceByReceived", { defaultValue: "받은 시점 가격 기준" });
-  const v_097586 = v_ae840d.minQty + v_ae840d.feeQty;
+  const v_097586 = v_ae840d.minQty + v_6f0728(v_ae840d, v_ae840d.minQty);
   const v_4f2dac = v_ae840d.exchangeableQty >= v_ae840d.minQty && !v_ae840d.maintenance && v_ae840d.enabled;
   const v_36c043 = v_4f2dac ? v_c55c0b(v_ae840d.priceSegments, v_d016c9) : 0;
-  const v_6b9a9b = v_d016c9 + v_ae840d.feeQty;
+  const v_2d815e = v_6f0728(v_ae840d, v_d016c9);
+  const v_6b9a9b = v_d016c9 + v_2d815e;
 
   return (
     <View>
@@ -906,13 +905,6 @@ function v_1bc5d1({
           </View>
           <View style={{ flex: 1 }}>
             <Text style={v_d81136.sentTitle}>{v_ae840d.giftName}</Text>
-            <Text style={v_d81136.meta}>
-              {v_8d41d7("giftBox.ownedPrefix", { defaultValue: "보유 " })}
-              {v_ae840d.ownedQty}
-              {v_80cae9}
-              {" · "}
-              {v_5b0162}
-            </Text>
           </View>
         </View>
         {v_4f2dac ? (
@@ -957,7 +949,7 @@ function v_1bc5d1({
           <View style={v_d81136.calcRow}>
             <Text style={v_d81136.calcLabel}>{v_8d41d7("giftBox.fee", { defaultValue: "수수료" })}</Text>
             <Text style={v_d81136.calcValue}>
-              {v_ae840d.feeQty}
+              {v_2d815e}
               {v_80cae9}
             </Text>
           </View>
@@ -976,9 +968,9 @@ function v_1bc5d1({
       {v_4f2dac ? (
         <Text style={v_d81136.exchangeSummary}>
           {v_8d41d7("giftBox.exchangeSummary", {
-            defaultValue: `총 ${v_6b9a9b}송이 차감 (수수료 ${v_ae840d.feeQty}송이 포함) · 받는 보상 ${v_35c0e0(v_36c043)} XRUN`,
+            defaultValue: `총 ${v_6b9a9b}송이 차감 (수수료 ${v_2d815e}송이 포함) · 받는 보상 ${v_35c0e0(v_36c043)} XRUN`,
             deducted: v_6b9a9b,
-            fee: v_ae840d.feeQty,
+            fee: v_2d815e,
             reward: v_35c0e0(v_36c043),
           })}
         </Text>
