@@ -2032,9 +2032,16 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
 v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
-  const v_4d33b2 = await v_3f4e2e.req
-    .json<{ action?: string; suspendDays?: number | null; reason?: string; reportId?: number | null; reporterMessage?: string }>()
-    .catch(() => ({}) as { action?: string; suspendDays?: number | null; reason?: string; reportId?: number | null; reporterMessage?: string });
+  type PenaltyBody = {
+    action?: string;
+    suspendDays?: number | null;
+    reason?: string;
+    reportId?: number | null;
+
+    reportType?: "clone" | "user" | "comment" | null;
+    reporterMessage?: string;
+  };
+  const v_4d33b2 = await v_3f4e2e.req.json<PenaltyBody>().catch(() => ({}) as PenaltyBody);
   const v_da0605 = [
     "warn",
     "clone_deactivate",
@@ -2063,6 +2070,24 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_db9be1 = v_3f4e2e.get("adminUserId") ?? 0;
   let v_c8eee3 = "";
 
+  const v_99000e = Number.isInteger(v_4d33b2.reportId) && (v_4d33b2.reportId as number) > 0 ? (v_4d33b2.reportId as number) : 0;
+  let v_6e5b24 = null;
+  if (v_4d33b2.reportType === "clone" && v_99000e) {
+    const v_5cfb2c = await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT cr.clone_id AS cloneId, cl.owner_id AS ownerId, cl.name AS name
+           FROM clone_reports cr JOIN clones cl ON cl.id = cr.clone_id WHERE cr.id = ?`,
+      )
+      .bind(v_99000e)
+      .first<{ cloneId: number; ownerId: number; name: string | null }>();
+    if (!v_5cfb2c) throw new v_3ebe58("NOT_FOUND", "Report not found.");
+    if (v_5cfb2c.ownerId !== v_389afb) throw new v_3ebe58("VALIDATION_FAILED", "Report target is not owned by this user.");
+    v_6e5b24 = { cloneId: v_5cfb2c.cloneId, name: v_5cfb2c.name };
+  }
+  const v_2f0e2b = v_6e5b24 ? `id = ? AND owner_id = ?` : `owner_id = ?`;
+  const v_e17df0 = v_6e5b24 ? [v_6e5b24.cloneId, v_389afb] : [v_389afb];
+  const v_24c1e9 = v_6e5b24 ? `신고된 페르소나${v_6e5b24.name ? ` '${v_6e5b24.name}'` : ""}가` : "보유 페르소나가";
+
   switch (v_9b064f) {
     case "warn":
       await v_3f4e2e.env.DB
@@ -2081,12 +2106,12 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
       break;
     case "clone_deactivate":
 
-      await v_3f4e2e.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = NULL, deleted_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'active'`).bind(v_389afb).run();
-      v_c8eee3 = "보유 페르소나가 비활성화되었습니다.";
+      await v_3f4e2e.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = NULL, deleted_at = CURRENT_TIMESTAMP WHERE ${v_2f0e2b} AND deletion_state = 'active'`).bind(...v_e17df0).run();
+      v_c8eee3 = `${v_24c1e9} 비활성화되었습니다.`;
       break;
     case "clone_delete":
-      await v_3f4e2e.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, deleted_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'active'`).bind(v_389afb).run();
-      v_c8eee3 = "보유 페르소나가 삭제되었습니다.";
+      await v_3f4e2e.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, deleted_at = CURRENT_TIMESTAMP WHERE ${v_2f0e2b} AND deletion_state = 'active'`).bind(...v_e17df0).run();
+      v_c8eee3 = `${v_24c1e9} 삭제되었습니다.`;
       break;
     case "account_withdraw":
 
@@ -2193,20 +2218,34 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_3a9783 =
     v_4d33b2.reporterMessage?.trim() ||
     `회원님의 신고가 수락되었습니다. 적용된 조치: ${v_5ea0fe}.`;
-  if (v_4d33b2.reportId && Number.isInteger(v_4d33b2.reportId) && (v_4d33b2.reportId as number) > 0) {
 
-    const v_f10744 = await v_3f4e2e.env.DB
-      .prepare(
-        `UPDATE user_reports
-            SET status = 'actioned',
-                reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP),
-                reviewer_admin_id = COALESCE(reviewer_admin_id, ?),
-                admin_message = ?
-          WHERE id = ? AND status IN ('open','reviewed')
-          RETURNING reporter_id AS reporterId`,
-      )
-      .bind(v_db9be1, v_3a9783, v_4d33b2.reportId)
-      .first<{ reporterId: number }>();
+  if (v_99000e && v_4d33b2.reportType !== "comment") {
+
+    const v_f10744 = v_6e5b24
+      ? await v_3f4e2e.env.DB
+          .prepare(
+            `UPDATE clone_reports
+                SET status = 'reviewed',
+                    reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP),
+                    reviewer_admin_id = COALESCE(reviewer_admin_id, ?),
+                    admin_message = ?, reporter_message = ?, target_message = ?
+              WHERE id = ? AND status = 'open'
+              RETURNING user_id AS reporterId`,
+          )
+          .bind(v_db9be1, v_cc755a, v_3a9783, v_cc755a, v_99000e)
+          .first<{ reporterId: number }>()
+      : await v_3f4e2e.env.DB
+          .prepare(
+            `UPDATE user_reports
+                SET status = 'actioned',
+                    reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP),
+                    reviewer_admin_id = COALESCE(reviewer_admin_id, ?),
+                    admin_message = ?
+              WHERE id = ? AND status IN ('open','reviewed')
+              RETURNING reporter_id AS reporterId`,
+          )
+          .bind(v_db9be1, v_3a9783, v_99000e)
+          .first<{ reporterId: number }>();
     if (v_f10744?.reporterId) {
 
       await v_c226a5(v_3f4e2e.env, {

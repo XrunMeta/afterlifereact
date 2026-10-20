@@ -940,6 +940,8 @@ export default function v_14b43e() {
         keyExtractor={(v_8c0b26) => String(v_8c0b26.persona.id)}
         renderItem={v_4a5736}
         contentContainerStyle={v_fd5f43.msgListContent}
+
+        removeClippedSubviews={false}
         showsVerticalScrollIndicator={false}
         onScroll={v_023642}
         scrollEventThrottle={16}
