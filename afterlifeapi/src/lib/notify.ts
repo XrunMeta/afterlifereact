@@ -273,7 +273,13 @@ export async function v_33d48f(
     const v_f71b56 = `afterlife://clone/${v_4317d1.cloneId}/intimacy`;
     const v_9f1622 = `🌡️ +${v_4317d1.score}°C 온도 상승`;
 
-    if (v_eb25ce.owner_id !== v_4317d1.actorId) {
+    const v_5c6af4 =
+      v_eb25ce.owner_id !== v_4317d1.actorId &&
+      !!(await v_c9c489.DB
+        .prepare(`SELECT 1 FROM clone_notification_mutes WHERE user_id = ? AND clone_id = ? LIMIT 1`)
+        .bind(v_eb25ce.owner_id, v_4317d1.cloneId)
+        .first());
+    if (v_eb25ce.owner_id !== v_4317d1.actorId && !v_5c6af4) {
       await v_c226a5(v_c9c489, {
         userId: v_eb25ce.owner_id,
         type: "intimacy_score",

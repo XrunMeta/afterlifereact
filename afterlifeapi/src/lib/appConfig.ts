@@ -447,7 +447,9 @@ export interface GiftExchangeMaintenance {
 export interface GiftExchangeConfig {
   enabled: boolean;
   minQty: number;
+
   feeQty: number;
+  feeUnit: number;
   maintenance: GiftExchangeMaintenance | null;
   version: number;
 }
@@ -455,6 +457,7 @@ export const v_6ebdd1 = {
   enabled: true,
   minQty: 10,
   feeQty: 1,
+  feeUnit: 10,
   maintenance: null,
   version: 1,
 };
@@ -462,6 +465,7 @@ export const v_6ebdd1 = {
 function v_a7a965(v_e2a85c): GiftExchangeConfig {
   const v_9c6813 = Number(v_e2a85c?.minQty);
   const v_3cda59 = Number(v_e2a85c?.feeQty);
+  const v_25946a = Number(v_e2a85c?.feeUnit);
   const v_0e1851 = Number(v_e2a85c?.version);
   const v_35f85c = v_e2a85c?.maintenance;
   const v_ffbee4 =
@@ -476,6 +480,7 @@ function v_a7a965(v_e2a85c): GiftExchangeConfig {
     enabled: typeof v_e2a85c?.enabled === "boolean" ? v_e2a85c.enabled : v_6ebdd1.enabled,
     minQty: Number.isInteger(v_9c6813) && v_9c6813 >= 1 && v_9c6813 <= 10000 ? v_9c6813 : v_6ebdd1.minQty,
     feeQty: Number.isInteger(v_3cda59) && v_3cda59 >= 0 && v_3cda59 <= 1000 ? v_3cda59 : v_6ebdd1.feeQty,
+    feeUnit: Number.isInteger(v_25946a) && v_25946a >= 1 && v_25946a <= 10000 ? v_25946a : v_6ebdd1.feeUnit,
     maintenance: v_ffbee4,
     version: Number.isInteger(v_0e1851) && v_0e1851 >= 1 ? v_0e1851 : v_6ebdd1.version,
   };
@@ -505,11 +510,14 @@ export async function v_1e6592(
     enabled: v_17dc8a.enabled ?? v_275ccd.enabled,
     minQty: v_17dc8a.minQty ?? v_275ccd.minQty,
     feeQty: v_17dc8a.feeQty ?? v_275ccd.feeQty,
+    feeUnit: v_17dc8a.feeUnit ?? v_275ccd.feeUnit,
     maintenance: v_17dc8a.maintenance === undefined ? v_275ccd.maintenance : v_17dc8a.maintenance,
     version: v_275ccd.version,
   });
 
-  if (v_f04727.minQty !== v_275ccd.minQty || v_f04727.feeQty !== v_275ccd.feeQty) v_f04727.version = v_275ccd.version + 1;
+  if (v_f04727.minQty !== v_275ccd.minQty || v_f04727.feeQty !== v_275ccd.feeQty || v_f04727.feeUnit !== v_275ccd.feeUnit) {
+    v_f04727.version = v_275ccd.version + 1;
+  }
   await v_c9c489.DB
     .prepare(
       `INSERT INTO app_config (key, value, updated_at) VALUES (?, ?, unixepoch())
@@ -518,6 +526,16 @@ export async function v_1e6592(
     .bind(v_566753, JSON.stringify(v_f04727))
     .run();
   return v_f04727;
+}
+
+export function v_e4ea0f(v_01dcf5, v_d016c9): number {
+  return v_d016c9 > 0 ? Math.ceil(v_d016c9 / v_01dcf5.feeUnit) * v_01dcf5.feeQty : 0;
+}
+
+export function v_c47972(v_01dcf5, v_2461e1): number {
+  let v_ab6401 = Math.max(0, v_2461e1);
+  while (v_ab6401 > 0 && v_ab6401 + v_e4ea0f(v_01dcf5, v_ab6401) > v_2461e1) v_ab6401--;
+  return v_ab6401;
 }
 
 export function v_2e4a1b(

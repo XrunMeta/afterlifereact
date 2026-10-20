@@ -176,12 +176,14 @@ v_b7f2b4.patch("/config/gift-exchange", v_c0a297, async (v_3f4e2e) => {
     enabled?: unknown;
     minQty?: unknown;
     feeQty?: unknown;
+    feeUnit?: unknown;
     maintenance?: unknown;
   };
   const patch: Parameters<typeof v_1e6592>[1] = {};
   if (typeof v_148ff6.enabled === "boolean") v_17dc8a.enabled = v_148ff6.enabled;
   if (v_148ff6.minQty !== undefined) v_17dc8a.minQty = Number(v_148ff6.minQty);
   if (v_148ff6.feeQty !== undefined) v_17dc8a.feeQty = Number(v_148ff6.feeQty);
+  if (v_148ff6.feeUnit !== undefined) v_17dc8a.feeUnit = Number(v_148ff6.feeUnit);
   if (v_148ff6.maintenance === null) v_17dc8a.maintenance = null;
   else if (v_148ff6.maintenance && typeof v_148ff6.maintenance === "object") {
     const v_35f85c = v_148ff6.maintenance as { from?: unknown; to?: unknown; message?: unknown };
