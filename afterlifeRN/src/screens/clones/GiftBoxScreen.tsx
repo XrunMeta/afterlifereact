@@ -234,7 +234,7 @@ export default function v_8869a8() {
         }),
         [
           { text: v_8d41d7("common.close", { defaultValue: "닫기" }), style: "cancel" },
-          { text: v_8d41d7("giftBox.p4Receive", { defaultValue: "XRUN에서 받기" }), onPress: () => void v_77a9ad() },
+          { text: v_8d41d7("giftBox.p4Receive", { defaultValue: "XRUN에서 받기" }), onPress: () => void v_77a9ad(v_1ed7d9.getState().apiUser?.xrunMemberId) },
         ],
       );
     } catch (v_49263d) {
