@@ -21,3 +21,23 @@ export function v_0168a1(v_8b0dd9): () => void {
     v_9fde29.delete(v_8b0dd9);
   };
 }
+
+export type PressedClone = {
+  cloneId: number;
+  name?: string;
+  source: string;
+  index?: number;
+  currentIndex?: number;
+};
+
+let v_d0304c = null;
+
+export function v_38f9da(v_e2a85c): void {
+  v_d0304c = { ...v_e2a85c, at: Date.now() };
+}
+
+export function v_d6552e(): (PressedClone & { at: number }) | null {
+  const v_e2a85c = v_d0304c;
+  v_d0304c = null;
+  return v_e2a85c;
+}
