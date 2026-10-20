@@ -259,7 +259,7 @@ async function v_36f334(
   };
   const v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
     method: "POST",
-    headers: v_4d1f4f(v_c9c489),
+    headers: v_30e8dd(v_c9c489),
     body: JSON.stringify(v_4d33b2),
   });
   if (!v_8f00b9.ok) {
@@ -351,6 +351,10 @@ function v_4d1f4f(env: v_273a0c): Record<string, string> {
     "Content-Type": "application/json",
     Authorization: `Bearer ${v_c9c489.XRUN_GATEWAY_TOKEN ?? ""}`,
   };
+}
+
+function v_30e8dd(env: v_273a0c): Record<string, string> {
+  return { ...v_4d1f4f(v_c9c489), "X-Internal-Secret": v_c9c489.XRUN_INTERNAL_SECRET ?? "" };
 }
 
 function v_9765c6(env: v_273a0c): Record<string, string> {
@@ -450,7 +454,7 @@ export async function v_a23589(
   try {
     const v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
       method: "POST",
-      headers: v_4d1f4f(v_c9c489),
+      headers: v_30e8dd(v_c9c489),
       body: JSON.stringify({ member: v_660822 }),
     });
     if (!v_8f00b9.ok) {
@@ -478,7 +482,7 @@ export async function v_d19f98(
   try {
     v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
       method: "POST",
-      headers: v_4d1f4f(v_c9c489),
+      headers: v_30e8dd(v_c9c489),
       body: JSON.stringify({ member: v_660822 }),
     });
   } catch (v_49263d) {
@@ -798,7 +802,7 @@ export async function v_3e801c(
   try {
     v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
       method: "POST",
-      headers: v_4d1f4f(v_c9c489),
+      headers: v_30e8dd(v_c9c489),
       body: JSON.stringify({ member: v_660822 }),
     });
   } catch (v_49263d) {
@@ -871,7 +875,7 @@ export async function v_c0f252(
   try {
     v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
       method: "POST",
-      headers: v_4d1f4f(v_c9c489),
+      headers: v_30e8dd(v_c9c489),
       body: JSON.stringify({ email: v_e0c7e8, ...v_17dc8a }),
     });
   } catch (v_49263d) {
