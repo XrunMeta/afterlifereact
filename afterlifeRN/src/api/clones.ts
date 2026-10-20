@@ -772,11 +772,16 @@ export async function v_fca2f4(
 export async function v_c0681d(
   v_2ca7e0,
   v_6e0fd3,
+
   v_b36f96,
 ): Promise<{ ok: true }> {
   return v_04b58a(`/oth-path${v_6e0fd3}/call-event`, v_2ca7e0, {
     method: "POST",
-    body: JSON.stringify(v_b36f96?.durationSeconds ? { durationSeconds: v_b36f96.durationSeconds } : {}),
+    body: JSON.stringify(
+      v_b36f96?.durationSeconds !== undefined
+        ? { durationSeconds: v_b36f96.durationSeconds, adSeconds: v_b36f96.adSeconds, callId: v_b36f96.callId }
+        : {},
+    ),
   });
 }
 

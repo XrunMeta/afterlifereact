@@ -23,7 +23,6 @@ import {
 
 import {
   afl971ShouldShowAd,
-  isAfl971AdTestAccount,
   afl971CanFireAd,
   afl971CallInteractive,
   afl971NormalizeCadence,
@@ -169,6 +168,8 @@ import {
 } from "../../realtime/rememberMeReducer";
 import ExpertBadge from "../../components/ui/ExpertBadge";
 import { logAppsFlyerCallVideoStart } from "../../lib/appsFlyer";
+import { setCallActive, takePressedClone } from "../../lib/callActivity";
+import { reportError } from "../../lib/errorReporting/report";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
 
@@ -1237,8 +1238,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         `[Call][afl971] 예고판정 willBeRound=${willBeRound} adNext=${adNext} ` +
         `isFirstCall=${afl971IsFirstCallRef.current} faceBusy=${faceBusy} ` +
         `promptRegister=${rmStateRef.current.promptRegister} naming=${shStateRef.current.naming} ` +
-        `cadence=${afl971CadenceRef.current.firstRound}/${afl971CadenceRef.current.interval} ` +
-        `testAcct=${isAfl971AdTestAccount(debugEmail)}`,
+        `cadence=${afl971CadenceRef.current.firstRound}/${afl971CadenceRef.current.interval}`,
       );
 
       afl971AdCommittedRoundRef.current = adNext ? willBeRound : null;
@@ -1253,7 +1253,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       }
       return adNext ? say(text, { adNotice: "pre" }) : say(text);
     },
-    [say, debugEmail],
+    [say],
   );
 
   const sttEndpointMs = useTimingConfigStore((s) => s.sttEndpointMs);
@@ -1819,13 +1819,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     if (emoteTimerRef.current) clearTimeout(emoteTimerRef.current);
   }, []);
 
-  const [callSeconds, setCallSeconds] = useState(0);
-  useEffect(() => {
-    if (liveState !== "live") return;
-    const id = setInterval(() => setCallSeconds((s) => s + 1), 1000);
-    return () => clearInterval(id);
-  }, [liveState]);
-
   const remoteStreamRef = useRef(remoteStream);
   remoteStreamRef.current = remoteStream;
   const isMutedRef = useRef(isMuted);
@@ -1907,6 +1900,22 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const afl971AdInProgressRef = useRef<boolean>(false);
 
   const [afl971AdShowingUI, setAfl971AdShowingUI] = useState(false);
+
+  const [callSeconds, setCallSeconds] = useState(0);
+  useEffect(() => {
+    if (liveState !== "live" || afl971AdShowingUI) return;
+    const id = setInterval(() => setCallSeconds((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [liveState, afl971AdShowingUI]);
+
+  const afl971AdTotalMsRef = useRef(0);
+  useEffect(() => {
+    if (!afl971AdShowingUI) return;
+    const shownAt = Date.now();
+    return () => {
+      afl971AdTotalMsRef.current += Date.now() - shownAt;
+    };
+  }, [afl971AdShowingUI]);
   useEffect(() => {
     afl971AdInProgressRef.current = afl971AdInProgress;
   }, [afl971AdInProgress]);
@@ -1937,6 +1946,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       }
 
       if (afl971ConnectingAdFiredRef.current) return;
+      let afl971AdTimedOut = false;
       afl971ConnectingAdFiredRef.current = true;
       setAfl971AdInProgress(true);
 
@@ -1949,11 +1959,22 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         const { loadAndShowRewardedAd } = await import("../../lib/pangle");
         afl971MuteCallAudio();
         setAfl971AdShowingUI(true);
+        let adResult: "closed" | "timeout" = "closed";
         try {
-          await loadAndShowRewardedAd();
+          adResult = await loadAndShowRewardedAd();
         } finally {
-          setAfl971AdShowingUI(false);
-          afl971UnmuteCallAudio();
+
+          if (adResult === "closed") {
+            setAfl971AdShowingUI(false);
+            afl971UnmuteCallAudio();
+          }
+        }
+
+        if (adResult === "timeout") {
+          afl971AdTimedOut = true;
+          console.log("[Call][afl971] 연결중 광고 5분 무반응 — 대화 시작 없이 통화 종료");
+          idleHangupTriggerRef.current();
+          return;
         }
 
         console.log("[Call][afl971] 연결중 광고 닫힘");
@@ -1962,7 +1983,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       } finally {
         setAfl971AdInProgress(false);
 
-        if (!micOnRef.current && !isMuted) {
+        if (!afl971AdTimedOut && !micOnRef.current && !isMuted) {
           console.log("[Call][afl971] 연결중 광고 종료 — mic 복원");
           toggleMicRef.current();
         }
@@ -1976,6 +1997,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     setAfl971AdInProgress(true);
     afl971AdInProgressRef.current = true; 
     let micWasOnBeforeAd = false;
+    let adTimedOut = false;
     (async () => {
       try {
         console.log(`[Call][afl971] round ${round} — mic off + 광고`);
@@ -1991,12 +2013,20 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           sendAdPrepareReturn();
           console.log(`[Call][afl971] round ${round} 광고 시작 — 복귀 미리 준비 신호(ad_prepare_return)`);
         }
+        let adResult: "closed" | "timeout";
         try {
-          await loadAndShowRewardedAd();
+          adResult = await loadAndShowRewardedAd();
         } catch (adErr) {
           setAfl971AdShowingUI(false);
           afl971UnmuteCallAudio();
           throw adErr;
+        }
+
+        if (adResult === "timeout") {
+          adTimedOut = true;
+          console.log(`[Call][afl971] round ${round} 광고 5분 무반응 — 통화 종료`);
+          idleHangupTriggerRef.current();
+          return;
         }
 
         setAfl971AdShowingUI(false);
@@ -2061,14 +2091,16 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         setAfl971AdInProgress(false);
         afl971AdInProgressRef.current = false;
 
-        setAfl971AdShowingUI(false);
-        afl971UnmuteCallAudio();
+        if (!adTimedOut) {
+          setAfl971AdShowingUI(false);
+          afl971UnmuteCallAudio();
+        }
 
         const restoreNow = afl971CallInteractive({
           appActive: AppState.currentState === "active",
           live: liveStateRef.current === "live",
         });
-        if (micWasOnBeforeAd && !micOnRef.current && !isMuted) {
+        if (!adTimedOut && micWasOnBeforeAd && !micOnRef.current && !isMuted) {
           if (restoreNow) {
             console.log(`[Call][afl971] round ${round} 종료 — mic 복원`);
             micOnRef.current = true;
@@ -2381,6 +2413,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   }, [stopLive, exitToMain]);
 
   const callStartRef = useRef<number>(Date.now());
+
+  const statsCallIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (liveState === "live") statsCallIdRef.current = getCallId?.() ?? statsCallIdRef.current;
+  }, [liveState, getCallId]);
   const tokenRef = useRef(accessToken);
   const cloneIdRef = useRef(cloneId);
   useEffect(() => {
@@ -2396,15 +2433,48 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         console.warn(`[Call] call-event 전송 SKIP (token=${!!token} cid=${cid})`);
         return;
       }
-      const durationSeconds = Math.floor((Date.now() - callStartRef.current) / 1000);
-      console.log(`[Call] POST /oth-path${cid}/call-event { durationSeconds: ${durationSeconds} }`);
 
-      postCloneCallEvent(token, cid, { durationSeconds })
+      const durationSeconds = Math.max(
+        0,
+        Math.floor((Date.now() - callStartRef.current - afl971AdTotalMsRef.current) / 1000),
+      );
+      const adSeconds = Math.floor(afl971AdTotalMsRef.current / 1000);
+      const callId = statsCallIdRef.current ?? undefined;
+      console.log(`[Call] POST /oth-path${cid}/call-event { durationSeconds: ${durationSeconds}, adSeconds: ${adSeconds}, callId: ${callId ?? "-"} }`);
+
+      postCloneCallEvent(token, cid, { durationSeconds, adSeconds, callId })
         .then((res) =>
           console.log(`[Call] call-event ← ok scoreApplied=${(res as { scoreApplied?: number }).scoreApplied ?? 0}°C (duration=${durationSeconds}s, >=1200 이면 +15°C)`),
         )
         .catch((err) => console.warn("[Call] postCloneCallEvent failed:", err));
     };
+  }, []);
+
+  useEffect(() => {
+    setCallActive(true);
+
+    const pressed = takePressedClone();
+    const mismatch = !!pressed && pressed.cloneId !== cloneId;
+    if (mismatch) {
+      console.warn(`[Call][entry] 누른 클론 ${pressed?.cloneId}(${pressed?.name}) ≠ 연 클론 ${cloneId}(${paramName})`);
+    }
+    if (!__DEV__) {
+      reportError(new Error(`[call-entry] ${mismatch ? "clone-mismatch" : "entry"}`), {
+        extra: {
+          cloneId,
+          paramName: paramName ?? null,
+          pressedCloneId: pressed?.cloneId ?? null,
+          pressedName: pressed?.name ?? null,
+          source: pressed?.source ?? null,
+          index: pressed?.index ?? null,
+          currentIndex: pressed?.currentIndex ?? null,
+          pressedAgoMs: pressed ? Date.now() - pressed.at : null,
+          platform: Platform.OS,
+        },
+      });
+    }
+    return () => setCallActive(false);
+
   }, []);
 
   useEffect(() => {

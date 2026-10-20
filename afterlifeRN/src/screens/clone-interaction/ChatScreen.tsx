@@ -26,6 +26,7 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_84d546 } from "../../lib/callGuard";
+import { v_38f9da } from "../../lib/callActivity";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import v_06b8c0 from "../../components/clone/IntimacyEventsSheet";
 import v_fb73af from "../../components/ads/PangleBannerAd";
@@ -378,6 +379,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_21be1f = async () => {
     const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {});
     if (!v_3ed4c3) return;
+    v_38f9da({ cloneId: v_6e0fd3, name: v_dfb220, source: "chat" });
     v_c65f5d.navigate("Call", {
       cloneId: v_6e0fd3,
       name: v_dfb220,

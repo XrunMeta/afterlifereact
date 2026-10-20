@@ -36,6 +36,7 @@ import v_92380d from "./components/VisibilityPickerModal";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_84d546 } from "../../lib/callGuard";
+import { v_38f9da } from "../../lib/callActivity";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
 import { v_d60cdf, v_81d12f, v_f373d8, v_20d793, v_776874, v_914311, v_8ce643, v_d24912, type v_a9d96d, type v_d83ffc, type v_52af9d, type v_ceccc3, type v_6349d0, type v_1d741a } from "../../api/clones";
@@ -704,6 +705,7 @@ export default function v_def15b() {
                 );
               });
               if (!v_3ed4c3) return;
+              v_38f9da({ cloneId: v_eb25ce.id, source: "my-clones" });
               v_f4c991.navigate("Call", { cloneId: v_eb25ce.id });
             }}
           >
@@ -1016,6 +1018,7 @@ export default function v_def15b() {
                           );
                         });
                         if (!v_3ed4c3) return;
+                        v_38f9da({ cloneId: v_69bba6.id, name: v_69bba6.name, source: "my-clones-shared" });
                         v_f4c991.navigate("Call", { cloneId: v_69bba6.id, name: v_69bba6.name });
                       }}
                     >
