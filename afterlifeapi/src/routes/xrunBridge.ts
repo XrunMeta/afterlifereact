@@ -41,6 +41,10 @@ function v_c19d94(v_8c0b26): number {
 }
 
 v_62a1b6.get("/received-gifts", async (v_3f4e2e) => {
+
+  if (v_3f4e2e.env.XRUN_BRIDGE_REDEEM_ENABLED !== "1") {
+    throw new v_3ebe58("FORBIDDEN", "교환은 애프터라이프 앱 선물함에서 할 수 있어요");
+  }
   const v_e0c7e8 = v_3f4e2e.req.query("email") ?? "";
   const v_625c74 = await v_ce5ee9(v_3f4e2e.env.DB, v_e0c7e8);
   if (!v_625c74) {
