@@ -61,6 +61,7 @@ import {
 } from "../../api/clones";
 import { v_bfd883 } from "../../lib/relativeTime";
 import { v_84d546 } from "../../lib/callGuard";
+import { v_38f9da } from "../../lib/callActivity";
 import { v_ab98d4 } from "../../hooks/useReportAcceptedGate";
 import { v_1bfbd0, v_8b0c90, v_7c5e29 } from "../../components/constants";
 import type { v_19b433 } from "../../types/feed";
@@ -474,6 +475,7 @@ export default function v_c316d8() {
                 .catch((v_49263d) => console.warn(`[Call][flow] Image.prefetch failed:`, v_49263d));
             }
             console.log(`[Call][flow] +${Date.now()} navigation.navigate("Call") (Δ${Date.now() - v_b66f2c}ms since click)`);
+            v_38f9da({ cloneId: v_8c0b26.cloneId, name: v_8c0b26.author, source: "home-feed", index: v_a56041, currentIndex: v_2bcb8f });
             v_f4c991.navigate("Call", { cloneId: v_8c0b26.cloneId, name: v_8c0b26.author, image: v_8c0b26.image });
 
             void v_84d546(v_2ca7e0, () => {}).then((v_3ed4c3) => {
