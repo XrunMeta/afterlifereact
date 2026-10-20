@@ -8,6 +8,8 @@ import {
   v_2e4a1b,
   v_0edc13,
   v_705aa5,
+  v_e4ea0f,
+  v_c47972,
   type v_83f27d,
 } from "../lib/appConfig";
 import { v_9bded0, v_cd69e7 } from "../lib/xrun";
@@ -120,9 +122,10 @@ v_7de069.get("/eligibility", v_6690d9, async (v_3f4e2e) => {
       return { ...v_206b88, name: v_ab4c96?.name ?? v_206b88.giftId, emoji: v_ab4c96?.emoji ?? "🎁", imageUrl: v_ab4c96?.imageUrl ?? null };
     }),
     ownedQty: v_2461e1,
-    exchangeableQty: Math.max(0, v_2461e1 - v_01dcf5.feeQty),
+    exchangeableQty: v_c47972(v_01dcf5, v_2461e1),
     minQty: v_01dcf5.minQty,
     feeQty: v_01dcf5.feeQty,
+    feeUnit: v_01dcf5.feeUnit,
     rateVersion: v_01dcf5.version,
 
     priceSegments: v_8443fd(v_e7458e),
@@ -236,13 +239,15 @@ v_7de069.post("/", v_6690d9, async (v_3f4e2e) => {
     throw new v_3ebe58("RATE_CHANGED", "교환 조건이 바뀌었어요", {
       minQty: v_01dcf5.minQty,
       feeQty: v_01dcf5.feeQty,
+      feeUnit: v_01dcf5.feeUnit,
       rateVersion: v_01dcf5.version,
     });
   }
   if (v_d016c9 < v_01dcf5.minQty) {
-    throw new v_3ebe58("BELOW_MIN_QTY", `${v_01dcf5.minQty}송이부터 교환할 수 있어요 (수수료 ${v_01dcf5.feeQty}송이 별도)`, {
+    throw new v_3ebe58("BELOW_MIN_QTY", `${v_01dcf5.minQty}송이부터 교환할 수 있어요 (수수료 ${v_01dcf5.feeUnit}송이당 ${v_01dcf5.feeQty}송이 별도)`, {
       minQty: v_01dcf5.minQty,
       feeQty: v_01dcf5.feeQty,
+      feeUnit: v_01dcf5.feeUnit,
     });
   }
   const v_625c74 = await v_a1651b
@@ -263,7 +268,7 @@ v_7de069.post("/", v_6690d9, async (v_3f4e2e) => {
        ON CONFLICT(user_id, idempotency_key) DO NOTHING
        RETURNING id`,
     )
-    .bind(v_43e90c, v_96f93d, v_dcbe7a, v_d016c9, v_01dcf5.feeQty, v_62c866, v_625c74.xrun_member_id, v_5c2f9f)
+    .bind(v_43e90c, v_96f93d, v_dcbe7a, v_d016c9, v_e4ea0f(v_01dcf5, v_d016c9), v_62c866, v_625c74.xrun_member_id, v_5c2f9f)
     .first<{ id: number }>();
   if (!v_43af15) {
     const v_ba2215 = await v_a1651b
@@ -289,11 +294,12 @@ v_7de069.post("/", v_6690d9, async (v_3f4e2e) => {
       .run();
   };
 
-  const v_565b1e = v_d016c9 + v_01dcf5.feeQty;
+  const v_2d815e = v_e4ea0f(v_01dcf5, v_d016c9);
+  const v_565b1e = v_d016c9 + v_2d815e;
   const { owned: v_2461e1, units: v_e7458e } = await v_16a6c1(v_a1651b, v_43e90c, v_96f93d, v_26ec3c(v_8c0b26));
   if (v_2461e1 < v_565b1e) {
     await v_d5bb0f(`insufficient owned=${v_2461e1} need=${v_565b1e}`);
-    throw new v_3ebe58("INSUFFICIENT_QTY", "보유 수량이 바뀌었어요", { ownedQty: v_2461e1, exchangeableQty: Math.max(0, v_2461e1 - v_01dcf5.feeQty) });
+    throw new v_3ebe58("INSUFFICIENT_QTY", "보유 수량이 바뀌었어요", { ownedQty: v_2461e1, exchangeableQty: v_c47972(v_01dcf5, v_2461e1) });
   }
 
   const v_e68f9f = v_e7458e.slice(0, v_565b1e);
@@ -333,7 +339,7 @@ v_7de069.post("/", v_6690d9, async (v_3f4e2e) => {
       .bind(v_43e90c, v_96f93d)
       .first<{ count: number }>();
     const v_57fae8 = Number(v_c3bc75?.count ?? 0);
-    throw new v_3ebe58("INSUFFICIENT_QTY", "보유 수량이 바뀌었어요", { ownedQty: v_57fae8, exchangeableQty: Math.max(0, v_57fae8 - v_01dcf5.feeQty) });
+    throw new v_3ebe58("INSUFFICIENT_QTY", "보유 수량이 바뀌었어요", { ownedQty: v_57fae8, exchangeableQty: v_c47972(v_01dcf5, v_57fae8) });
   }
   const v_136d64 = v_864b3a.filter((v_37eab7, v_ebec57) => Number((v_8f00b9[v_ebec57]?.meta as { changes?: number } | undefined)?.changes ?? 0) > 0);
 
@@ -372,7 +378,7 @@ v_7de069.post("/", v_6690d9, async (v_3f4e2e) => {
   await v_74defc(v_3f4e2e, {
     userId: v_43e90c,
     action: "gift.exchange",
-    details: { exchangeId: v_faf761, giftId: v_96f93d, qty: v_d016c9, feeQty: v_01dcf5.feeQty, reward: v_36c043, rewardId: v_28eeb6.rewardId },
+    details: { exchangeId: v_faf761, giftId: v_96f93d, qty: v_d016c9, feeQty: v_2d815e, reward: v_36c043, rewardId: v_28eeb6.rewardId },
   });
   return v_3f4e2e.json({
     exchangeId: v_faf761,
@@ -380,7 +386,7 @@ v_7de069.post("/", v_6690d9, async (v_3f4e2e) => {
     giftId: v_96f93d,
     giftName: v_dcbe7a,
     qty: v_d016c9,
-    feeQty: v_01dcf5.feeQty,
+    feeQty: v_2d815e,
     deductedQty: v_565b1e,
     reward: v_36c043,
     rewardStatus: "pending_claim",

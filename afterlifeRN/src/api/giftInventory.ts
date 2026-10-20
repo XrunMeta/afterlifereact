@@ -105,7 +105,9 @@ export interface GiftExchangeEligibility {
 
   exchangeableQty: number;
   minQty: number;
+
   feeQty: number;
+  feeUnit?: number;
   rateVersion: number;
 
   priceSegments: Array<{ price: string; count: number }>;
@@ -153,6 +155,11 @@ export async function v_9c3304(
   v_2ca7e0,
 ): Promise<{ items: GiftExchangeResult[] }> {
   return v_04b58a<{ items: GiftExchangeResult[] }>("/oth-path", v_2ca7e0, { method: "GET" });
+}
+
+export function v_6f0728(v_9e86fd, v_d016c9): number {
+  if (v_d016c9 <= 0) return 0;
+  return v_9e86fd.feeUnit && v_9e86fd.feeUnit > 0 ? Math.ceil(v_d016c9 / v_9e86fd.feeUnit) * v_9e86fd.feeQty : v_9e86fd.feeQty;
 }
 
 export function v_c55c0b(v_665404, v_d016c9): number {
