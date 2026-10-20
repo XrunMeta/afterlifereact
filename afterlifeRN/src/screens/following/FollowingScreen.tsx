@@ -1380,7 +1380,8 @@ const v_fd5f43 = v_472849.create({
   },
   subAdBanner: {
     height: 60,
-    backgroundColor: v_1bfbd0.zinc300,
+
+    backgroundColor: "transparent",
     paddingHorizontal: 20,
     justifyContent: "center",
     marginBottom: 8,

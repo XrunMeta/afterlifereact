@@ -126,7 +126,8 @@ function v_ef0f29({ style: v_7fa4e4, label: v_2869c1 }: { style?: v_961e77<v_7e4
 export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4 }: Props) {
   const { t: v_8d41d7 } = v_772971();
   const v_4281e6 = v_8d41d7("chat.adBannerFallback");
-  const v_0debf4 = <FallbackBanner style={v_7fa4e4} label={v_4281e6} />;
+  const v_0debf4 = <FallbackBanner style={v_7fa4e4} />;
+  void v_4281e6;
 
   const [v_ae4a03, v_7ab0cc] = v_5ab095(false);
   v_c4deb2(() => {
@@ -177,7 +178,8 @@ export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4 }: Props)
 
 const v_d81136 = v_472849.create({
   fallback: {
-    backgroundColor: v_1bfbd0.zinc300,
+
+    backgroundColor: "transparent",
     alignItems: "flex-start",
     justifyContent: "center",
     paddingHorizontal: 20,

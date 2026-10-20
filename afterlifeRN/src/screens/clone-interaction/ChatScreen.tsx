@@ -945,7 +945,8 @@ const v_d81136 = v_472849.create({
 
   chatAdBanner: {
     height: 60,
-    backgroundColor: v_1bfbd0.zinc300,
+
+    backgroundColor: "transparent",
     paddingHorizontal: 20,
     justifyContent: "center",
   },
