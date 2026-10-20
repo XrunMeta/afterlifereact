@@ -2,7 +2,7 @@
 
 import type { v_de0a25 } from "../lib/env";
 
-export const v_764919 = 24 * 60 * 60 * 1000;
+export const v_60d58e = 5 * 60 * 1000;
 const v_20961c = 500;
 const v_d110f5 = 100;
 
@@ -24,11 +24,11 @@ export async function v_4d538f(
          FROM call_sessions s
          LEFT JOIN (SELECT call_id, MAX(created_at) AS last_turn_at, COUNT(*) AS turns
                       FROM call_turns GROUP BY call_id) t ON t.call_id = s.call_id
-        WHERE s.ended_at IS NULL AND s.started_at < ?
+        WHERE s.ended_at IS NULL AND COALESCE(t.last_turn_at, s.started_at) < ?
         ORDER BY s.started_at
         LIMIT ?`,
     )
-      .bind(v_5c2f9f - v_764919, v_20961c)
+      .bind(v_5c2f9f - v_60d58e, v_20961c)
       .all<{
         call_id: string;
         user_id: number;

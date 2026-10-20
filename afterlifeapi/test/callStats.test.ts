@@ -1,7 +1,7 @@
 
 import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
-import { v_4d538f, v_764919 } from "../src/scheduled/staleCalls";
+import { v_4d538f, v_60d58e } from "../src/scheduled/staleCalls";
 
 const v_a1651b = () => v_c9c489.DB as unknown as D1Database;
 const v_a5302d = () => v_c9c489 as unknown as Parameters<typeof v_4d538f>[0];
@@ -88,7 +88,7 @@ v_469bf2("closeStaleCalls — 미종료 통화 정리", () => {
     const v_0c8987 = await v_bfb240();
     const v_062ae9 = await v_4d24a9(v_0c8987);
     const v_5c2f9f = Date.now();
-    const v_4c6dd7 = v_5c2f9f - v_764919 - 60_000;
+    const v_4c6dd7 = v_5c2f9f - v_60d58e - 60_000;
     const v_be62d3 = v_9aead9();
     await v_65cdd1(v_be62d3, v_0c8987, v_062ae9, v_4c6dd7);
     await v_a1651b().prepare(
@@ -106,23 +106,36 @@ v_469bf2("closeStaleCalls — 미종료 통화 정리", () => {
     const v_0c8987 = await v_bfb240();
     const v_062ae9 = await v_4d24a9(v_0c8987);
     const v_5c2f9f = Date.now();
-    const v_4c6dd7 = v_5c2f9f - v_764919 - 1;
+    const v_4c6dd7 = v_5c2f9f - v_60d58e - 1;
     const v_be62d3 = v_9aead9();
     await v_65cdd1(v_be62d3, v_0c8987, v_062ae9, v_4c6dd7);
     await v_4d538f(v_a5302d(), v_5c2f9f);
     v_4d37e3(await v_741013(v_be62d3)).toMatchObject({ ended_at: v_4c6dd7, duration_sec: 0, end_reason: "stale_cleanup" });
   });
 
-  v_23805a("진행 중(6시간 이내)·이미 종료된 통화는 건드리지 않는다", async () => {
+  v_23805a("오래 전에 시작했어도 마지막 발화가 5분 이내면(긴 통화 진행 중) 건드리지 않는다", async () => {
+    const v_0c8987 = await v_bfb240();
+    const v_062ae9 = await v_4d24a9(v_0c8987);
+    const v_5c2f9f = Date.now();
+    const v_be62d3 = v_9aead9();
+    await v_65cdd1(v_be62d3, v_0c8987, v_062ae9, v_5c2f9f - 6 * 60 * 60 * 1000);
+    await v_a1651b().prepare(
+      `INSERT INTO call_turns (call_id, seq, role, text, created_at) VALUES (?, 1, 'user', 'x', ?)`,
+    ).bind(v_be62d3, v_5c2f9f - 2 * 60 * 1000).run();
+    await v_4d538f(v_a5302d(), v_5c2f9f);
+    v_4d37e3(await v_741013(v_be62d3)).toMatchObject({ ended_at: null, end_reason: null });
+  });
+
+  v_23805a("진행 중(5분 이내)·이미 종료된 통화는 건드리지 않는다", async () => {
     const v_0c8987 = await v_bfb240();
     const v_062ae9 = await v_4d24a9(v_0c8987);
     const v_5c2f9f = Date.now();
     const v_bb280b = v_9aead9();
     await v_65cdd1(v_bb280b, v_0c8987, v_062ae9, v_5c2f9f - 60_000);
     const v_eb62d7 = v_9aead9();
-    await v_65cdd1(v_eb62d7, v_0c8987, v_062ae9, v_5c2f9f - v_764919 - 60_000);
+    await v_65cdd1(v_eb62d7, v_0c8987, v_062ae9, v_5c2f9f - v_60d58e - 60_000);
     await v_a1651b().prepare(`UPDATE call_sessions SET ended_at = ?, duration_sec = 30 WHERE call_id = ?`)
-      .bind(v_5c2f9f - v_764919, v_eb62d7).run();
+      .bind(v_5c2f9f - v_60d58e, v_eb62d7).run();
 
     await v_4d538f(v_a5302d(), v_5c2f9f);
 
