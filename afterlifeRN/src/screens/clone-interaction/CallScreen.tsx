@@ -23,7 +23,6 @@ import {
 
 import {
   afl971ShouldShowAd,
-  isAfl971AdTestAccount,
   afl971CanFireAd,
   afl971CallInteractive,
   afl971NormalizeCadence,
@@ -1239,8 +1238,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         `[Call][afl971] 예고판정 willBeRound=${willBeRound} adNext=${adNext} ` +
         `isFirstCall=${afl971IsFirstCallRef.current} faceBusy=${faceBusy} ` +
         `promptRegister=${rmStateRef.current.promptRegister} naming=${shStateRef.current.naming} ` +
-        `cadence=${afl971CadenceRef.current.firstRound}/${afl971CadenceRef.current.interval} ` +
-        `testAcct=${isAfl971AdTestAccount(debugEmail)}`,
+        `cadence=${afl971CadenceRef.current.firstRound}/${afl971CadenceRef.current.interval}`,
       );
 
       afl971AdCommittedRoundRef.current = adNext ? willBeRound : null;
@@ -1255,7 +1253,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       }
       return adNext ? say(text, { adNotice: "pre" }) : say(text);
     },
-    [say, debugEmail],
+    [say],
   );
 
   const sttEndpointMs = useTimingConfigStore((s) => s.sttEndpointMs);
