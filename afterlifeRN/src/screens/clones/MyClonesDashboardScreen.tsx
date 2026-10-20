@@ -1242,7 +1242,8 @@ export default function v_def15b() {
                     >
                       <Text style={v_fd5f43.giftLogMoreText}>
                         {v_8d41d7("dashboard.giftLogMore", {
-                          defaultValue: `더보기 (${v_c9ba75.length - v_b1118a})`,
+                          n: v_c9ba75.length - v_b1118a,
+                          defaultValue: "더보기 ({{n}})",
                         })}
                       </Text>
                     </TouchableOpacity>

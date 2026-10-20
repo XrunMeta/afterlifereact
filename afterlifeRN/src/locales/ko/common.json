@@ -31,7 +31,9 @@
     "durationMin": "{{m}}분",
     "durationMinSec": "{{m}}분 {{s}}초",
     "expertBadge": "전문가",
-    "pressBackToExit": "한 번 더 누르면 종료됩니다"
+    "pressBackToExit": "한 번 더 누르면 종료됩니다",
+    "agoWeeks": "{{n}}주 전",
+    "exitPrompt": "한 번 더 누르면 종료됩니다"
   },
   "tabs": {
     "home": "홈",
@@ -73,12 +75,15 @@
       "reportFailed": "신고에 실패했습니다",
       "reportSuccessBlocked": "신고가 접수됐습니다. 이 클론은 차단됐습니다",
       "userBlocked": "차단되었습니다",
-      "blockUserFailed": "차단에 실패했습니다"
+      "blockUserFailed": "차단에 실패했습니다",
+      "visibilityUpdated": "공개 범위가 변경됐어요",
+      "visibilityFailed": "공개 범위 변경에 실패했어요"
     },
     "actions": {
       "block": "차단",
       "report": "신고"
-    }
+    },
+    "commentSending": "전송 중..."
   },
   "notifications": {
     "title": "알림",
@@ -287,7 +292,24 @@
     "callTranscriptTitle": "통화 내용",
     "missedCall": "부재중 통화",
     "sort": "정렬",
-    "adBannerFallback": "배너광고"
+    "adBannerFallback": "배너광고",
+    "personaNameFallback": "페르소나",
+    "deleteMessageTitle": "메시지 삭제",
+    "menuCall": "통화",
+    "menuMute": "알림 끄기",
+    "menuUnmute": "알림 켜기",
+    "menuUnsubscribe": "구독 취소",
+    "missedCallGroup": "부재중 통화 {{count}}건 · {{date}}",
+    "inputPlaceholderWith": "{{name}}(으)로 채팅 중",
+    "voiceCall": "음성 통화",
+    "voiceCallAt": "음성 통화 · {{time}}",
+    "voiceCallWithDuration": "음성 통화 · {{duration}} · {{time}}",
+    "durationMinSec": "{{m}}분 {{s}}초",
+    "durationSec": "{{s}}초",
+    "intimacyMilestone": "{{nameWithWa}}의 온도가 {{score}}°C가 됐어요",
+    "sortRecent": "최근 대화순",
+    "sortIntimacy": "친밀도 높은 순",
+    "sortName": "이름순"
   },
   "call": {
     "calling": "연결 중...",
@@ -455,7 +477,13 @@
     "summaryLabelChat": "채팅",
     "summaryLabelCall": "통화",
     "summaryLabelLearn": "탐색",
-    "summaryLabelFeed": "피드"
+    "summaryLabelFeed": "피드",
+    "giftReceiptsTitle": "받은 선물",
+    "giftReceiptsTotal": "총 {{n}}개",
+    "giftReceiptsEmpty": "아직 받은 선물이 없어요",
+    "followers": "구독자",
+    "likes": "좋아요",
+    "createdAt": "생성일"
   },
   "detail": {
     "notFound": "클론을 찾을 수 없습니다.",
@@ -512,7 +540,9 @@
     "currentVoiceCatalog": "🎵 카탈로그 목소리",
     "currentVoiceHint": "아래 목록에서 다른 목소리를 선택하면 통화 시 그 목소리로 재생됩니다.",
     "voiceStop": "■ 정지",
-    "voicePreview": "▶ 미리듣기"
+    "voicePreview": "▶ 미리듣기",
+    "voiceLabel": "목소리",
+    "voiceEmpty": "등록된 목소리가 없습니다."
   },
   "dashboard": {
     "title": "My Page",
@@ -586,7 +616,14 @@
     "giftTotalReceivedBefore": "총 받은 선물 ",
     "giftTotalReceivedAfter": "개",
     "reportReceived": "신고가 접수됐습니다",
-    "uploadAvatarFailed": "이미지 업로드에 실패했습니다"
+    "uploadAvatarFailed": "이미지 업로드에 실패했습니다",
+    "giftInventoryTitle": "내선물",
+    "giftLogMore": "더보기 ({{n}})",
+    "giftLogOpenFailTitle": "열 수 없어요",
+    "giftLogOpenFailDesc": "XRUN 앱을 설치해 주세요.",
+    "giftKindReceived": "받음",
+    "giftKindSent": "보냄",
+    "giftKindExchanged": "교환"
   },
   "learn": {
     "title": "학습하기",
@@ -873,7 +910,10 @@
       "termsCloneFaceTitle": "클론별 얼굴 인식 동의",
       "termsLocationTitle": "위치기반서비스 이용약관",
       "termsMarketingTitle": "마케팅 정보 수집 및 활용 동의",
-      "termsMarketingFallback": "마케팅 정보 수신에 대한 안내\n\n동의하시면 이벤트·혜택 등 광고성 정보를 앱 푸시로 받아보실 수 있습니다. 이 동의는 선택 사항이며, 설정 > 동의에서 언제든지 철회할 수 있습니다."
+      "termsMarketingFallback": "마케팅 정보 수신에 대한 안내\n\n동의하시면 이벤트·혜택 등 광고성 정보를 앱 푸시로 받아보실 수 있습니다. 이 동의는 선택 사항이며, 설정 > 동의에서 언제든지 철회할 수 있습니다.",
+      "locationPermTitle": "위치 권한 필요",
+      "locationPermDesc": "통화 시 지역 기반 대화를 하려면 위치 권한이 필요합니다.\n기기 설정 → 위치 → AfterLife 에서 허용해 주십시오.",
+      "locationPermError": "위치 권한 요청 중 문제가 발생했습니다."
     },
     "emailVerify": {
       "title": "이메일 인증",
@@ -1005,7 +1045,10 @@
       "validateMultipleFaces": "여러 사람이 함께 나왔어요. 혼자 나온 사진으로 다시 시도해 주세요.",
       "validateNotFrontal": "얼굴이 옆이나 위아래로 돌아가 있어요. 정면을 바라본 사진으로 다시 시도해 주세요.",
       "validateEyesClosed": "눈을 감은 것 같아요. 눈을 뜬 사진으로 다시 시도해 주세요. 선글라스도 벗어 주세요.",
-      "validateMouthOpen": "입이 벌어져 있어요. 입을 다문 표정으로 다시 시도해 주세요."
+      "validateMouthOpen": "입이 벌어져 있어요. 입을 다문 표정으로 다시 시도해 주세요.",
+      "guideBody": "비율을 적절히 유지하려면 양쪽 어깨가 프레임에 완전히 들어오는 정면, 어깨 위쪽을 향한 세로 방향 사진을 사용하십시오. 1024×1024 이상의 이미지가 가장 적합합니다.",
+      "exampleGood": "명확하고, 전면에 배치된",
+      "exampleBad": "너무 클로즈업됨"
     },
     "voice": {
       "presets": "기본 음성 프리셋",
@@ -1081,7 +1124,16 @@
         "s2Text": "요즘 가장 좋아하는 음식이 뭐예요? 저는 김치찌개를 정말 좋아합니다. 매운 맛이 진하고 따끈한 국물을 한 숟갈 떠먹으면 하루의 피로가 싹 풀리는 기분이거든요. 특히 비 오는 날에 먹으면 더 맛있습니다.",
         "s3Title": "추억 회상",
         "s3Text": "어릴 적 추억 중에 가장 기억에 남는 건 가족과 함께 갔던 바다 여행입니다. 파도 소리와 짭조름한 바람, 그리고 모래사장에서 뛰놀던 그 순간들이 아직도 생생합니다. 그때 행복했던 기분이 다시 떠오릅니다."
-      }
+      },
+      "warnTooShortTitle": "파일이 너무 짧아요",
+      "warnTooShortMsg": "선택한 파일이 아주 짧아요. 클론 목소리 학습에는 30초~1분 분량의 조용한 녹음이 필요해요. 다른 파일을 골라 다시 올려 주세요.",
+      "warnTooLargeTitle": "파일이 너무 커요",
+      "warnTooLargeMsg": "선택한 파일이 너무 길어요. 30초~1분 분량으로 잘라서 다시 올려 주세요.",
+      "toastSilence": "너무 조용해요. 좀 더 크게 말씀해 주세요.",
+      "toastNoise": "주변이 시끄러워요. 조용한 곳에서 녹음해 주세요.",
+      "recordQualityTitle": "녹음 품질 확인",
+      "recordQualitySilenceMsg": "녹음에 무음 구간이 많아요. 조용한 곳에서 문장 전체를 또렷하게 다시 녹음해 주세요.",
+      "recordQualityNoiseMsg": "녹음에 주변 소음이 섞였어요. 조용한 곳에서 다시 녹음해 주시면 클론 목소리가 훨씬 자연스러워집니다."
     },
     "visibility": {
       "memlowLocked": "추모 클론은 비공개로 고정됩니다. 공동관리자만 볼 수 있습니다.",
@@ -1094,7 +1146,11 @@
       "selectedTitle": "특정 친구만",
       "selectedDesc": "생성 후 대시보드에서 친구를 지정합니다",
       "privateTitle": "비공개",
-      "privateDesc": "본인만 볼 수 있습니다"
+      "privateDesc": "본인만 볼 수 있습니다",
+      "selectedDescCount": "친구 {{count}}명 선택됨 — 다시 눌러 변경",
+      "friendPickerNoAuth": "로그인 후 다시 시도하세요.",
+      "friendPickerEmptyTitle": "친구가 없어요",
+      "friendPickerEmptyMessage": "아직 팔로우 중인 사람이 없습니다. 다른 공개 범위를 선택하거나, 다른 사람을 팔로우한 후 다시 시도하세요."
     },
     "creating": {
       "title": "클론 생성 중...",
@@ -1212,12 +1268,14 @@
       "usernameReservedMsg": "예약된 아이디입니다. 다른 아이디를 입력해주세요.",
       "usernameTakenMsg": "이미 사용중인 아이디예요. 이전 단계에서 다른 아이디로 바꿔주세요.",
       "cloneCreateFailed": "클론 생성에 실패했어요. (cloneId 누락)",
-      "videoPendingDelayed": "영상 준비 중 · 먼저 게시해도 몇 분 뒤 적용돼요"
+      "videoPendingDelayed": "영상 준비 중 · 먼저 게시해도 몇 분 뒤 적용돼요",
+      "usernameInvalidTitle": "아이디 형식 오류"
     },
     "step8": {
       "title": "클론이 완성되었습니다",
       "subtitle": "이제 클론과 대화하거나\n새 게시물을 올릴 수 있습니다.",
-      "toDashboard": "대시보드로"
+      "toDashboard": "대시보드로",
+      "confirm": "확인"
     },
     "username": {
       "taken": "이미 사용중인 아이디예요. 다른 아이디를 입력해주세요.",
@@ -1294,7 +1352,11 @@
           "desc": "페르소나 답장을 확인하지 못했을 때"
         }
       },
-      "saveFailed": "설정을 저장하지 못했습니다. 다시 시도해 주세요."
+      "saveFailed": "설정을 저장하지 못했습니다. 다시 시도해 주세요.",
+      "permTitle": "권한 필요",
+      "offTitle": "알림 끄기",
+      "offHint": "알림을 끄려면 OS 설정에서 변경해주세요.",
+      "alarm": "알림"
     },
     "agreements": {
       "title": "동의"
@@ -1495,7 +1557,11 @@
     "reportFail": "신고에 실패했습니다.",
     "followListLoadFailed": "불러오지 못했습니다.",
     "followListEmptyFollowers": "아직 팔로워가 없습니다",
-    "followListEmptyFollowing": "아직 팔로잉이 없습니다"
+    "followListEmptyFollowing": "아직 팔로잉이 없습니다",
+    "cloneListLoadFailed": "불러오지 못했어요.",
+    "subscribingBtn": "구독중",
+    "subscribeBtn": "구독",
+    "cloneListEmpty": "아직 만든 클론이 없어요"
   },
   "friendPicker": {
     "title": "특정 친구에게만 공개",
@@ -2025,5 +2091,78 @@
   "firstLoginConsent": {
     "title": "애프터라이프 이용 동의",
     "desc": "애프터라이프에서 사용하는 선택 항목입니다.\n동의하지 않아도 서비스를 이용할 수 있습니다."
+  },
+  "giftBox": {
+    "title": "선물함",
+    "tabReceived": "받은 선물",
+    "tabSent": "보낸 선물",
+    "tabExchange": "교환",
+    "exchangeable": "교환 가능",
+    "viewAll": "전체보기",
+    "exchangeAction": "교환하기",
+    "exchangeCta": "{{n}}송이 교환하기",
+    "flowerUnit": "송이",
+    "flowerCount": "{{n}}송이",
+    "peopleUnit": "명",
+    "peopleCount": "{{n}}명",
+    "ownedSummary": "{{name}} {{n}}송이",
+    "toastBelowMin": "{{min}}송이부터 교환할 수 있어요 (수수료 {{unit}}송이당 {{fee}}송이 별도)",
+    "toastOverMax": "수수료({{unit}}송이당 {{fee}}송이)를 빼고 최대 {{max}}송이까지 교환할 수 있어요",
+    "toastDuplicate": "이미 교환을 처리하고 있어요",
+    "toastEmptyQty": "교환할 수량을 입력해주세요",
+    "p1Title": "{{name}} {{qty}}송이를 교환할까요?",
+    "p1Body": "수수료 {{fee}}송이를 포함해 {{total}}송이가 차감되고, {{reward}} XRUN을 받을 수 있어요. 교환 후에는 취소할 수 없어요.",
+    "p4Title": "교환이 완료되었어요",
+    "p4Body": "{{name}} {{qty}}송이가 {{reward}} XRUN으로 교환되었어요. XRUN 지갑 > 에프터라이프에서 보상을 받아가세요.",
+    "p4Receive": "XRUN에서 받기",
+    "p6Title": "교환하지 못했어요",
+    "p6Body": "잠시 후 다시 시도해주세요. 선물은 차감되지 않았어요.",
+    "p6BodyWithNo": "잠시 후 다시 시도해주세요. 선물은 차감되지 않았어요. (교환번호 {{no}})",
+    "p6NetTitle": "교환 결과를 확인하고 있어요",
+    "p6NetBody": "네트워크가 불안정해요. 잠시 후 교환 내역에서 결과를 확인해주세요.",
+    "p7Title": "보유 수량이 바뀌었어요",
+    "p7Body": "지금 보유한 {{name}}는 {{owned}}송이예요. 수량을 다시 입력해주세요.",
+    "p8Title": "교환 서비스 점검 중이에요",
+    "p8Body": "잠시 후 다시 시도해주세요.",
+    "p8BodyRange": "{{range}} 동안은 교환할 수 없어요.",
+    "p9Title": "교환 조건이 바뀌었어요",
+    "p9Body": "바뀐 조건으로 다시 확인해주세요. {{qty}}송이 → {{reward}} XRUN, 수수료 {{fee}}송이",
+    "p9Retry": "다시 확인",
+    "p10Title": "교환할 수 없는 계정이에요",
+    "p10Body": "XRUN 계정 상태를 확인해주세요. 궁금한 점은 고객센터로 문의해주세요.",
+    "today": "오늘",
+    "adRewardSender": "광고 보상",
+    "anonymous": "익명",
+    "ownedLabel": "보유 중",
+    "ownedEmpty": "보유 중인 선물이 없어요",
+    "filterAll": "전체",
+    "filterAnon": "익명만",
+    "loadMore": "더보기 ({{n}})",
+    "receivedTitle": "{{name}}님이 {{gift}}를 보냈어요",
+    "toClone": "{{name}} 클론에게",
+    "toUnknownClone": "클론에게",
+    "sentThisMonth": "이번 달 보낸 선물",
+    "sentPeople": "받은 사람",
+    "emptySent": "아직 보낸 선물이 없어요",
+    "someone": "상대",
+    "sentTo": "{{name}}님에게 {{gift}}",
+    "delivered": "전달 완료",
+    "browseHint": "마음에 드는 클론에게 선물을 보내보세요",
+    "browseClones": "클론 둘러보기",
+    "emptyExchange": "교환할 선물이 없어요",
+    "exchangeTarget": "교환할 선물",
+    "selectAll": "전부 선택",
+    "exchangeMaintenance": "교환 서비스 점검 중이에요",
+    "exchangeMinNotice": "수수료 포함 {{min}}송이부터 교환할 수 있어요 (지금 {{owned}}송이)",
+    "exchangeQty": "교환 수량",
+    "fee": "수수료",
+    "reward": "받게 될 보상",
+    "exchangeSummary": "총 {{deducted}}송이 차감 (수수료 {{fee}}송이 포함) · 받는 보상 {{reward}} XRUN",
+    "statusClaimed": "수령 완료",
+    "statusFailed": "실패 (선물 반환됨)",
+    "statusPending": "수령 대기",
+    "recentExchange": "최근 교환 내역",
+    "emptyExchangeHistory": "최근 교환 내역이 없어요",
+    "historyTitle": "{{name}} {{n}}송이 → {{reward}} XRUN"
   }
 }

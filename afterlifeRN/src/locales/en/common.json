@@ -31,7 +31,9 @@
     "durationMin": "{{m}}m",
     "durationMinSec": "{{m}}m {{s}}s",
     "expertBadge": "Expert",
-    "pressBackToExit": "Press back again to exit"
+    "pressBackToExit": "Press back again to exit",
+    "agoWeeks": "{{n}} wk ago",
+    "exitPrompt": "Press back again to exit"
   },
   "tabs": {
     "home": "Home",
@@ -73,12 +75,15 @@
       "reportFailed": "Report failed.",
       "reportSuccessBlocked": "Report received. This clone has been blocked.",
       "userBlocked": "User blocked",
-      "blockUserFailed": "Failed to block user"
+      "blockUserFailed": "Failed to block user",
+      "visibilityUpdated": "Visibility updated",
+      "visibilityFailed": "Couldn't change visibility"
     },
     "actions": {
       "block": "Block",
       "report": "Report"
-    }
+    },
+    "commentSending": "Sending..."
   },
   "notifications": {
     "title": "Notifications",
@@ -287,7 +292,24 @@
     "callTranscriptTitle": "Call transcript",
     "missedCall": "Missed call",
     "sort": "Sort",
-    "adBannerFallback": "Ad banner"
+    "adBannerFallback": "Ad banner",
+    "personaNameFallback": "Persona",
+    "deleteMessageTitle": "Delete message",
+    "menuCall": "Call",
+    "menuMute": "Mute notifications",
+    "menuUnmute": "Turn on notifications",
+    "menuUnsubscribe": "Unfollow",
+    "missedCallGroup": "Missed calls ({{count}}) · {{date}}",
+    "inputPlaceholderWith": "Chatting with {{name}}",
+    "voiceCall": "Voice call",
+    "voiceCallAt": "Voice call · {{time}}",
+    "voiceCallWithDuration": "Voice call · {{duration}} · {{time}}",
+    "durationMinSec": "{{m}}m {{s}}s",
+    "durationSec": "{{s}}s",
+    "intimacyMilestone": "Your temperature with {{name}} reached {{score}}°C",
+    "sortRecent": "Most recent",
+    "sortIntimacy": "Highest intimacy",
+    "sortName": "Name"
   },
   "call": {
     "calling": "Connecting...",
@@ -455,7 +477,13 @@
     "summaryLabelChat": "Chat",
     "summaryLabelCall": "Call",
     "summaryLabelLearn": "Explore",
-    "summaryLabelFeed": "Feed"
+    "summaryLabelFeed": "Feed",
+    "giftReceiptsTitle": "Gifts received",
+    "giftReceiptsTotal": "{{n}} total",
+    "giftReceiptsEmpty": "No gifts received yet",
+    "followers": "Followers",
+    "likes": "Likes",
+    "createdAt": "Created"
   },
   "detail": {
     "notFound": "Clone not found.",
@@ -512,7 +540,9 @@
     "currentVoiceCatalog": "🎵 Catalog voice",
     "currentVoiceHint": "Pick a different voice below and calls will play with that voice.",
     "voiceStop": "■ Stop",
-    "voicePreview": "▶ Preview"
+    "voicePreview": "▶ Preview",
+    "voiceLabel": "Voice",
+    "voiceEmpty": "No voices available."
   },
   "dashboard": {
     "title": "My Page",
@@ -586,7 +616,14 @@
     "giftTotalReceivedBefore": "Total gifts received ",
     "giftTotalReceivedAfter": "",
     "reportReceived": "Report received",
-    "uploadAvatarFailed": "Failed to upload image"
+    "uploadAvatarFailed": "Failed to upload image",
+    "giftInventoryTitle": "My gifts",
+    "giftLogMore": "Show more ({{n}})",
+    "giftLogOpenFailTitle": "Can't open",
+    "giftLogOpenFailDesc": "Please install the XRUN app.",
+    "giftKindReceived": "Received",
+    "giftKindSent": "Sent",
+    "giftKindExchanged": "Exchanged"
   },
   "learn": {
     "title": "Learn",
@@ -1008,7 +1045,10 @@
       "validateMultipleFaces": "More than one person is in the photo. Please try a photo of just one person.",
       "validateNotFrontal": "The face is turned away. Please try a photo facing straight ahead.",
       "validateEyesClosed": "The eyes look closed. Please try a photo with eyes open, without sunglasses.",
-      "validateMouthOpen": "The mouth is open. Please try a photo with the mouth closed."
+      "validateMouthOpen": "The mouth is open. Please try a photo with the mouth closed.",
+      "guideBody": "To keep the proportions right, use a front-facing portrait photo from the shoulders up, with both shoulders fully inside the frame. Images of 1024×1024 or larger work best.",
+      "exampleGood": "Clear and front-facing",
+      "exampleBad": "Too close-up"
     },
     "voice": {
       "presets": "Default voice presets",
@@ -1084,7 +1124,16 @@
         "s2Text": "What's your favorite food these days? I really love kimchi jjigae. That deep spicy flavor and a hot spoonful of broth wash away the day's fatigue. It tastes even better on a rainy day.",
         "s3Title": "Recalling memories",
         "s3Text": "The most memorable moment from my childhood is a beach trip with my family. The sound of the waves, the salty breeze, and running around on the sand — all of it is still vivid. That happy feeling comes back to me again."
-      }
+      },
+      "warnTooShortTitle": "File is too short",
+      "warnTooShortMsg": "The selected file is very short. Training a clone voice needs a quiet recording of 30 seconds to 1 minute. Please choose another file and upload again.",
+      "warnTooLargeTitle": "File is too large",
+      "warnTooLargeMsg": "The selected file is too long. Please trim it to 30 seconds–1 minute and upload again.",
+      "toastSilence": "It's too quiet. Please speak a little louder.",
+      "toastNoise": "It's noisy around you. Please record in a quiet place.",
+      "recordQualityTitle": "Check recording quality",
+      "recordQualitySilenceMsg": "Your recording has a lot of silence. Please re-record the whole passage clearly in a quiet place.",
+      "recordQualityNoiseMsg": "Background noise was picked up in your recording. Re-recording in a quiet place will make your clone's voice sound much more natural."
     },
     "visibility": {
       "memlowLocked": "Memorial clones are private only. Visible only to co-admins.",
@@ -1097,7 +1146,11 @@
       "selectedTitle": "Selected friends",
       "selectedDesc": "Pick friends after creation on the dashboard",
       "privateTitle": "Private",
-      "privateDesc": "Only you"
+      "privateDesc": "Only you",
+      "selectedDescCount": "{{count}} friend(s) selected — tap again to change",
+      "friendPickerNoAuth": "Please sign in and try again.",
+      "friendPickerEmptyTitle": "No friends yet",
+      "friendPickerEmptyMessage": "You aren't following anyone yet. Choose a different visibility option, or follow someone and try again."
     },
     "creating": {
       "title": "Creating clone...",
@@ -1215,12 +1268,14 @@
       "usernameReservedMsg": "This username is reserved. Please choose a different one.",
       "usernameTakenMsg": "This username is already taken. Please go back and choose a different one.",
       "cloneCreateFailed": "Failed to create the clone. (cloneId missing)",
-      "videoPendingDelayed": "Preparing video — you can post now; it will appear in a few minutes"
+      "videoPendingDelayed": "Preparing video — you can post now; it will appear in a few minutes",
+      "usernameInvalidTitle": "Invalid username"
     },
     "step8": {
       "title": "Your clone is ready",
       "subtitle": "You can now chat with your clone\nor share a new post.",
-      "toDashboard": "To dashboard"
+      "toDashboard": "To dashboard",
+      "confirm": "OK"
     },
     "username": {
       "taken": "This username is already taken. Please choose another one.",
@@ -1300,7 +1355,11 @@
           "desc": "When you miss a reply from a persona"
         }
       },
-      "saveFailed": "Could not save the setting. Please try again."
+      "saveFailed": "Could not save the setting. Please try again.",
+      "permTitle": "Permission required",
+      "offTitle": "Turn off notifications",
+      "offHint": "To turn off notifications, change it in your system settings.",
+      "alarm": "Notifications"
     },
     "agreements": {
       "title": "Consent"
@@ -1501,7 +1560,11 @@
     "reportFail": "Report failed.",
     "followListLoadFailed": "Couldn't load the list.",
     "followListEmptyFollowers": "No followers yet",
-    "followListEmptyFollowing": "Not following anyone yet"
+    "followListEmptyFollowing": "Not following anyone yet",
+    "cloneListLoadFailed": "Couldn't load.",
+    "subscribingBtn": "Following",
+    "subscribeBtn": "Follow",
+    "cloneListEmpty": "No clones created yet"
   },
   "friendPicker": {
     "title": "Share with selected friends only",
@@ -2031,5 +2094,78 @@
   "firstLoginConsent": {
     "title": "AfterLife consents",
     "desc": "These are optional items used by AfterLife.\nYou can use the service without agreeing."
+  },
+  "giftBox": {
+    "title": "Gift Box",
+    "tabReceived": "Received",
+    "tabSent": "Sent",
+    "tabExchange": "Exchange",
+    "exchangeable": "Exchangeable",
+    "viewAll": "View all",
+    "exchangeAction": "Exchange",
+    "exchangeCta": "Exchange {{n}} flowers",
+    "flowerUnit": "flowers",
+    "flowerCount": "{{n}} flowers",
+    "peopleUnit": "people",
+    "peopleCount": "{{n}} people",
+    "ownedSummary": "{{name}} × {{n}}",
+    "toastBelowMin": "You can exchange from {{min}} flowers (plus a fee of {{fee}} per {{unit}} flowers)",
+    "toastOverMax": "After the fee ({{fee}} per {{unit}} flowers), you can exchange up to {{max}} flowers",
+    "toastDuplicate": "Your exchange is already being processed",
+    "toastEmptyQty": "Please enter a quantity to exchange",
+    "p1Title": "Exchange {{name}} × {{qty}}?",
+    "p1Body": "{{total}} flowers (including a {{fee}}-flower fee) will be deducted, and you'll receive {{reward}} XRUN. Exchanges can't be canceled.",
+    "p4Title": "Exchange complete",
+    "p4Body": "{{name}} × {{qty}} was exchanged for {{reward}} XRUN. Claim your reward in XRUN Wallet > AfterLife.",
+    "p4Receive": "Claim in XRUN",
+    "p6Title": "Exchange failed",
+    "p6Body": "Please try again later. Your gifts were not deducted.",
+    "p6BodyWithNo": "Please try again later. Your gifts were not deducted. (Exchange no. {{no}})",
+    "p6NetTitle": "Checking the exchange result",
+    "p6NetBody": "Your network is unstable. Please check the result in your exchange history shortly.",
+    "p7Title": "Your quantity has changed",
+    "p7Body": "You now have {{owned}} {{name}}. Please enter the quantity again.",
+    "p8Title": "Exchange is under maintenance",
+    "p8Body": "Please try again later.",
+    "p8BodyRange": "Exchange is unavailable during {{range}}.",
+    "p9Title": "The exchange terms have changed",
+    "p9Body": "Please review the new terms. {{qty}} flowers → {{reward}} XRUN, fee {{fee}} flowers",
+    "p9Retry": "Review again",
+    "p10Title": "This account can't make exchanges",
+    "p10Body": "Please check your XRUN account status. Contact customer support if you have any questions.",
+    "today": "Today",
+    "adRewardSender": "Ad reward",
+    "anonymous": "Anonymous",
+    "ownedLabel": "Owned",
+    "ownedEmpty": "You don't have any gifts",
+    "filterAll": "All",
+    "filterAnon": "Anonymous only",
+    "loadMore": "Show more ({{n}})",
+    "receivedTitle": "{{name}} sent {{gift}}",
+    "toClone": "To clone {{name}}",
+    "toUnknownClone": "To a clone",
+    "sentThisMonth": "Sent this month",
+    "sentPeople": "Recipients",
+    "emptySent": "You haven't sent any gifts yet",
+    "someone": "Someone",
+    "sentTo": "{{gift}} to {{name}}",
+    "delivered": "Delivered",
+    "browseHint": "Send a gift to a clone you like",
+    "browseClones": "Browse clones",
+    "emptyExchange": "No gifts to exchange",
+    "exchangeTarget": "Gift to exchange",
+    "selectAll": "Select all",
+    "exchangeMaintenance": "Exchange is under maintenance",
+    "exchangeMinNotice": "You can exchange from {{min}} flowers including the fee (you have {{owned}})",
+    "exchangeQty": "Quantity",
+    "fee": "Fee",
+    "reward": "You'll receive",
+    "exchangeSummary": "{{deducted}} flowers deducted (incl. {{fee}} fee) · Reward {{reward}} XRUN",
+    "statusClaimed": "Claimed",
+    "statusFailed": "Failed (gifts returned)",
+    "statusPending": "Pending claim",
+    "recentExchange": "Recent exchanges",
+    "emptyExchangeHistory": "No recent exchanges",
+    "historyTitle": "{{name}} × {{n}} → {{reward}} XRUN"
   }
 }

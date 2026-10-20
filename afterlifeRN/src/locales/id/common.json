@@ -31,7 +31,9 @@
     "durationMin": "{{m}} menit",
     "durationMinSec": "{{m}} menit {{s}} detik",
     "expertBadge": "Ahli",
-    "pressBackToExit": "Tekan kembali lagi untuk keluar"
+    "pressBackToExit": "Tekan kembali lagi untuk keluar",
+    "agoWeeks": "{{n}} minggu yang lalu",
+    "exitPrompt": "Tekan sekali lagi untuk keluar"
   },
   "tabs": {
     "home": "Beranda",
@@ -73,12 +75,15 @@
       "reportFailed": "Gagal melaporkan",
       "reportSuccessBlocked": "Laporan telah diterima. Klon ini telah diblokir",
       "userBlocked": "Pengguna diblokir",
-      "blockUserFailed": "Gagal memblokir pengguna"
+      "blockUserFailed": "Gagal memblokir pengguna",
+      "visibilityUpdated": "Visibilitas diperbarui",
+      "visibilityFailed": "Gagal mengubah visibilitas"
     },
     "actions": {
       "block": "Blokir",
       "report": "Laporkan"
-    }
+    },
+    "commentSending": "Mengirim..."
   },
   "notifications": {
     "title": "Notifikasi",
@@ -287,7 +292,24 @@
     "callTranscriptTitle": "Transkrip panggilan",
     "missedCall": "Panggilan tak terjawab",
     "sort": "Urutkan",
-    "adBannerFallback": "Spanduk iklan"
+    "adBannerFallback": "Spanduk iklan",
+    "personaNameFallback": "Persona",
+    "deleteMessageTitle": "Hapus pesan",
+    "menuCall": "Panggilan",
+    "menuMute": "Matikan notifikasi",
+    "menuUnmute": "Nyalakan notifikasi",
+    "menuUnsubscribe": "Berhenti Mengikuti",
+    "missedCallGroup": "Panggilan tak terjawab ({{count}}) · {{date}}",
+    "inputPlaceholderWith": "Mengobrol dengan {{name}}",
+    "voiceCall": "Panggilan suara",
+    "voiceCallAt": "Panggilan suara · {{time}}",
+    "voiceCallWithDuration": "Panggilan suara · {{duration}} · {{time}}",
+    "durationMinSec": "{{m}}m {{s}}d",
+    "durationSec": "{{s}}d",
+    "intimacyMilestone": "Suhu Anda dengan {{name}} mencapai {{score}}°C",
+    "sortRecent": "Terbaru",
+    "sortIntimacy": "Keakraban tertinggi",
+    "sortName": "Nama"
   },
   "call": {
     "calling": "Menghubungkan...",
@@ -455,7 +477,13 @@
     "summaryLabelChat": "Obrolan",
     "summaryLabelCall": "Panggilan",
     "summaryLabelLearn": "Jelajahi",
-    "summaryLabelFeed": "Feed"
+    "summaryLabelFeed": "Feed",
+    "giftReceiptsTitle": "Hadiah diterima",
+    "giftReceiptsTotal": "Total {{n}}",
+    "giftReceiptsEmpty": "Belum ada hadiah yang diterima",
+    "followers": "Pengikut",
+    "likes": "Suka",
+    "createdAt": "Dibuat"
   },
   "detail": {
     "notFound": "Klon tidak ditemukan.",
@@ -512,7 +540,9 @@
     "currentVoiceCatalog": "🎵 Suara katalog",
     "currentVoiceHint": "Pilih suara lain di bawah dan panggilan akan diputar dengan suara itu.",
     "voiceStop": "■ Berhenti",
-    "voicePreview": "▶ Pratinjau"
+    "voicePreview": "▶ Pratinjau",
+    "voiceLabel": "Suara",
+    "voiceEmpty": "Belum ada suara yang terdaftar."
   },
   "dashboard": {
     "title": "My Page",
@@ -584,7 +614,16 @@
     "giftHeaderSender": "Pengirim",
     "emptyGift": "Belum ada hadiah yang diterima",
     "reportReceived": "Laporan telah diterima",
-    "uploadAvatarFailed": "Gagal mengunggah gambar"
+    "uploadAvatarFailed": "Gagal mengunggah gambar",
+    "giftInventoryTitle": "Hadiah saya",
+    "giftTotalReceivedBefore": "Total hadiah diterima ",
+    "giftTotalReceivedAfter": "",
+    "giftLogMore": "Lihat lainnya ({{n}})",
+    "giftLogOpenFailTitle": "Tidak dapat dibuka",
+    "giftLogOpenFailDesc": "Silakan instal aplikasi XRUN.",
+    "giftKindReceived": "Diterima",
+    "giftKindSent": "Dikirim",
+    "giftKindExchanged": "Ditukar"
   },
   "learn": {
     "title": "Latih",
@@ -1006,7 +1045,10 @@
       "validateMultipleFaces": "Ada lebih dari satu orang di foto. Silakan coba foto satu orang saja.",
       "validateNotFrontal": "Wajah menoleh ke samping atau atas/bawah. Silakan coba foto yang menghadap ke depan.",
       "validateEyesClosed": "Mata tampak tertutup. Silakan coba foto dengan mata terbuka, tanpa kacamata hitam.",
-      "validateMouthOpen": "Mulut terbuka. Silakan coba foto dengan mulut tertutup."
+      "validateMouthOpen": "Mulut terbuka. Silakan coba foto dengan mulut tertutup.",
+      "guideBody": "Agar proporsinya tepat, gunakan foto potret menghadap depan dari bahu ke atas dengan kedua bahu sepenuhnya berada di dalam bingkai. Gambar 1024×1024 atau lebih besar paling cocok.",
+      "exampleGood": "Jelas dan menghadap depan",
+      "exampleBad": "Terlalu dekat"
     },
     "voice": {
       "presets": "Preset Suara Dasar",
@@ -1082,7 +1124,16 @@
         "s2Text": "Makanan favorit Anda saat ini apa? Saya sangat suka sup kimchi. Rasanya pedas yang kuat, dan menyendok kuah hangatnya membuat semua lelah hari itu hilang. Apalagi jika dimakan saat hujan, lebih lezat lagi.",
         "s3Title": "Kenangan Masa Kecil",
         "s3Text": "Kenangan masa kecil yang paling berkesan bagi saya adalah liburan ke pantai bersama keluarga. Suara ombak, angin asin, dan momen bermain di pasir masih terasa hidup hingga sekarang. Perasaan bahagia saat itu kembali muncul."
-      }
+      },
+      "warnTooShortTitle": "File terlalu pendek",
+      "warnTooShortMsg": "File yang dipilih sangat pendek. Pelatihan suara klon memerlukan rekaman tenang berdurasi 30 detik hingga 1 menit. Silakan pilih file lain dan unggah ulang.",
+      "warnTooLargeTitle": "File terlalu besar",
+      "warnTooLargeMsg": "File yang dipilih terlalu panjang. Silakan potong menjadi 30 detik–1 menit lalu unggah ulang.",
+      "toastSilence": "Terlalu pelan. Silakan bicara sedikit lebih keras.",
+      "toastNoise": "Sekitar Anda bising. Silakan merekam di tempat yang tenang.",
+      "recordQualityTitle": "Periksa kualitas rekaman",
+      "recordQualitySilenceMsg": "Rekaman Anda memiliki banyak bagian hening. Silakan rekam ulang seluruh kalimat dengan jelas di tempat yang tenang.",
+      "recordQualityNoiseMsg": "Rekaman Anda tercampur suara bising di sekitar. Merekam ulang di tempat yang tenang akan membuat suara klon jauh lebih alami."
     },
     "visibility": {
       "memlowLocked": "Klon Kenangan diatur sebagai pribadi. Hanya ko-admin yang dapat melihat.",
@@ -1093,7 +1144,13 @@
       "followersTitle": "Terbuka untuk Pengikut",
       "followersDesc": "Hanya pengikut yang dapat melihat",
       "privateTitle": "Pribadi",
-      "privateDesc": "Hanya Anda yang dapat melihat"
+      "privateDesc": "Hanya Anda yang dapat melihat",
+      "selectedTitle": "Teman tertentu",
+      "selectedDesc": "Ketuk untuk memilih teman",
+      "selectedDescCount": "{{count}} teman dipilih — ketuk lagi untuk mengubah",
+      "friendPickerNoAuth": "Silakan masuk dan coba lagi.",
+      "friendPickerEmptyTitle": "Belum ada teman",
+      "friendPickerEmptyMessage": "Anda belum mengikuti siapa pun. Pilih opsi visibilitas lain, atau ikuti seseorang lalu coba lagi."
     },
     "creating": {
       "title": "Sedang membuat klon...",
@@ -1211,12 +1268,14 @@
       "usernameReservedMsg": "Nama pengguna ini sudah dicadangkan. Silakan pilih yang lain.",
       "usernameTakenMsg": "Nama pengguna ini sudah dipakai. Silakan kembali dan pilih yang lain.",
       "cloneCreateFailed": "Gagal membuat klon. (cloneId tidak ditemukan)",
-      "videoPendingDelayed": "Video sedang disiapkan — kamu bisa langsung memposting; akan muncul beberapa menit kemudian"
+      "videoPendingDelayed": "Video sedang disiapkan — kamu bisa langsung memposting; akan muncul beberapa menit kemudian",
+      "usernameInvalidTitle": "Format nama pengguna tidak valid"
     },
     "step8": {
       "title": "Klon telah selesai dibuat",
       "subtitle": "Sekarang Anda dapat mengobrol dengan klon\natau memposting kiriman baru.",
-      "toDashboard": "Ke Dashboard"
+      "toDashboard": "Ke Dashboard",
+      "confirm": "OK"
     },
     "username": {
       "taken": "Nama pengguna ini sudah dipakai. Silakan pilih yang lain.",
@@ -1293,7 +1352,11 @@
           "desc": "Saat kamu melewatkan balasan dari persona"
         }
       },
-      "saveFailed": "Gagal menyimpan pengaturan. Silakan coba lagi."
+      "saveFailed": "Gagal menyimpan pengaturan. Silakan coba lagi.",
+      "permTitle": "Izin diperlukan",
+      "offTitle": "Matikan notifikasi",
+      "offHint": "Untuk mematikan notifikasi, ubah di pengaturan sistem.",
+      "alarm": "Notifikasi"
     },
     "agreements": {
       "title": "Persetujuan"
@@ -1494,7 +1557,11 @@
     "reportFail": "Gagal melaporkan.",
     "followListLoadFailed": "Gagal memuat.",
     "followListEmptyFollowers": "Belum ada pengikut",
-    "followListEmptyFollowing": "Belum ada yang diikuti"
+    "followListEmptyFollowing": "Belum ada yang diikuti",
+    "cloneListLoadFailed": "Gagal memuat.",
+    "subscribingBtn": "Diikuti",
+    "subscribeBtn": "Ikuti",
+    "cloneListEmpty": "Belum ada klon yang dibuat"
   },
   "friendPicker": {
     "title": "Hanya Terbuka untuk Teman Tertentu",
@@ -2024,5 +2091,78 @@
   "firstLoginConsent": {
     "title": "Persetujuan AfterLife",
     "desc": "Ini adalah item opsional yang digunakan AfterLife.\nAnda tetap dapat menggunakan layanan tanpa menyetujuinya."
+  },
+  "giftBox": {
+    "title": "Kotak Hadiah",
+    "tabReceived": "Diterima",
+    "tabSent": "Terkirim",
+    "tabExchange": "Tukar",
+    "exchangeable": "Dapat ditukar",
+    "viewAll": "Lihat semua",
+    "exchangeAction": "Tukar",
+    "exchangeCta": "Tukar {{n}} tangkai",
+    "flowerUnit": "tangkai",
+    "flowerCount": "{{n}} tangkai",
+    "peopleUnit": "orang",
+    "peopleCount": "{{n}} orang",
+    "ownedSummary": "{{name}} {{n}} tangkai",
+    "toastBelowMin": "Penukaran mulai dari {{min}} tangkai (biaya {{fee}} tangkai per {{unit}} tangkai, terpisah)",
+    "toastOverMax": "Setelah dipotong biaya ({{fee}} tangkai per {{unit}} tangkai), Anda dapat menukar hingga {{max}} tangkai",
+    "toastDuplicate": "Penukaran Anda sedang diproses",
+    "toastEmptyQty": "Silakan masukkan jumlah yang akan ditukar",
+    "p1Title": "Tukar {{qty}} tangkai {{name}}?",
+    "p1Body": "{{total}} tangkai (termasuk biaya {{fee}} tangkai) akan dipotong dan Anda akan menerima {{reward}} XRUN. Penukaran tidak dapat dibatalkan.",
+    "p4Title": "Penukaran selesai",
+    "p4Body": "{{qty}} tangkai {{name}} telah ditukar dengan {{reward}} XRUN. Klaim hadiah Anda di Dompet XRUN > AfterLife.",
+    "p4Receive": "Klaim di XRUN",
+    "p6Title": "Penukaran gagal",
+    "p6Body": "Silakan coba lagi nanti. Hadiah Anda tidak dipotong.",
+    "p6BodyWithNo": "Silakan coba lagi nanti. Hadiah Anda tidak dipotong. (No. penukaran {{no}})",
+    "p6NetTitle": "Sedang memeriksa hasil penukaran",
+    "p6NetBody": "Jaringan tidak stabil. Silakan periksa hasilnya di riwayat penukaran nanti.",
+    "p7Title": "Jumlah yang Anda miliki telah berubah",
+    "p7Body": "Saat ini Anda memiliki {{owned}} tangkai {{name}}. Silakan masukkan jumlah lagi.",
+    "p8Title": "Layanan penukaran sedang dalam pemeliharaan",
+    "p8Body": "Silakan coba lagi nanti.",
+    "p8BodyRange": "Penukaran tidak tersedia selama {{range}}.",
+    "p9Title": "Ketentuan penukaran telah berubah",
+    "p9Body": "Silakan periksa ketentuan baru. {{qty}} tangkai → {{reward}} XRUN, biaya {{fee}} tangkai",
+    "p9Retry": "Periksa lagi",
+    "p10Title": "Akun ini tidak dapat melakukan penukaran",
+    "p10Body": "Silakan periksa status akun XRUN Anda. Hubungi layanan pelanggan jika ada pertanyaan.",
+    "today": "Hari ini",
+    "adRewardSender": "Hadiah iklan",
+    "anonymous": "Anonim",
+    "ownedLabel": "Dimiliki",
+    "ownedEmpty": "Anda tidak memiliki hadiah",
+    "filterAll": "Semua",
+    "filterAnon": "Hanya anonim",
+    "loadMore": "Lihat lainnya ({{n}})",
+    "receivedTitle": "{{name}} mengirim {{gift}}",
+    "toClone": "Untuk klon {{name}}",
+    "toUnknownClone": "Untuk klon",
+    "sentThisMonth": "Terkirim bulan ini",
+    "sentPeople": "Penerima",
+    "emptySent": "Anda belum mengirim hadiah",
+    "someone": "Seseorang",
+    "sentTo": "{{gift}} untuk {{name}}",
+    "delivered": "Terkirim",
+    "browseHint": "Kirim hadiah ke klon yang Anda sukai",
+    "browseClones": "Jelajahi klon",
+    "emptyExchange": "Tidak ada hadiah untuk ditukar",
+    "exchangeTarget": "Hadiah yang akan ditukar",
+    "selectAll": "Pilih semua",
+    "exchangeMaintenance": "Layanan penukaran sedang dalam pemeliharaan",
+    "exchangeMinNotice": "Penukaran mulai dari {{min}} tangkai termasuk biaya (saat ini {{owned}} tangkai)",
+    "exchangeQty": "Jumlah penukaran",
+    "fee": "Biaya",
+    "reward": "Hadiah yang akan diterima",
+    "exchangeSummary": "Total {{deducted}} tangkai dipotong (termasuk biaya {{fee}} tangkai) · Hadiah {{reward}} XRUN",
+    "statusClaimed": "Sudah diklaim",
+    "statusFailed": "Gagal (hadiah dikembalikan)",
+    "statusPending": "Menunggu klaim",
+    "recentExchange": "Penukaran terbaru",
+    "emptyExchangeHistory": "Tidak ada penukaran terbaru",
+    "historyTitle": "{{name}} {{n}} tangkai → {{reward}} XRUN"
   }
 }

@@ -36,6 +36,7 @@ import {
 import { v_889fad } from "../../stores/dialogStore";
 import { v_77a9ad } from "../../utils/openXrunApp";
 import type { v_2d88fc, v_8ad91b } from "../../navigation/types";
+import { v_2a6381, v_c1e44a, v_7c1572, v_c70797 } from "../../lib/localeDate";
 
 type TabKey = "received" | "sent" | "exchange";
 type Route = v_ee3714<v_2d88fc, "GiftBox">;
@@ -50,21 +51,18 @@ function v_a18e68(v_94302c) {
   return v_94302c === "exchanged" || v_94302c === "swapped";
 }
 
-function v_3f3aa6(v_6fc191): string {
+type TFn = (k: string, o?: Record<string, unknown>) => string;
+
+function v_73e535(v_6fc191): string {
   const v_d5dda0 = new Date(v_6fc191);
   if (Number.isNaN(v_d5dda0.getTime())) return "";
-  const v_f86223 = ["일", "월", "화", "수", "목", "금", "토"][v_d5dda0.getDay()];
-  return `${v_d5dda0.getMonth() + 1}월 ${v_d5dda0.getDate()}일 (${v_f86223})`;
+  return v_c1e44a(v_d5dda0.getTime());
 }
 
-function v_3380b3(v_6fc191): string {
+function v_412d1c(v_6fc191): string {
   const v_d5dda0 = new Date(v_6fc191);
   if (Number.isNaN(v_d5dda0.getTime())) return "";
-  const v_65a2cd = v_d5dda0.getHours();
-  const v_35f85c = v_d5dda0.getMinutes();
-  const v_5e39a0 = v_65a2cd < 12 ? "오전" : "오후";
-  const v_02de88 = v_65a2cd % 12 === 0 ? 12 : v_65a2cd % 12;
-  return `${v_5e39a0} ${v_02de88}:${String(v_35f85c).padStart(2, "0")}`;
+  return v_7c1572(v_d5dda0.getTime());
 }
 
 function v_aaa53b(v_6fc191, v_5c2f9f = new Date()): boolean {
@@ -184,7 +182,7 @@ export default function v_8869a8() {
     if (v_eddb49 - v_2900f3 < v_ae840d.minQty) {
       v_cba33f(
         v_8d41d7("giftBox.toastBelowMin", {
-          defaultValue: `${v_ae840d.minQty}송이부터 교환할 수 있어요 (수수료 ${v_ae840d.feeUnit}송이당 ${v_ae840d.feeQty}송이 별도)`,
+          defaultValue: "{{min}}송이부터 교환할 수 있어요 (수수료 {{unit}}송이당 {{fee}}송이 별도)",
           min: v_ae840d.minQty,
           unit: v_ae840d.feeUnit,
           fee: v_ae840d.feeQty,
@@ -199,7 +197,7 @@ export default function v_8869a8() {
     if (v_eddb49 + v_2900f3 > v_ea7b1e) {
       v_cba33f(
         v_8d41d7("giftBox.toastOverMax", {
-          defaultValue: `수수료(${v_ae840d.feeUnit}송이당 ${v_ae840d.feeQty}송이)를 빼고 최대 ${v_ea7b1e}송이까지 교환할 수 있어요`,
+          defaultValue: "수수료({{unit}}송이당 {{fee}}송이)를 빼고 최대 {{max}}송이까지 교환할 수 있어요",
           unit: v_ae840d.feeUnit,
           fee: v_ae840d.feeQty,
           max: v_ea7b1e,
@@ -211,14 +209,13 @@ export default function v_8869a8() {
   };
 
   const v_b5de70 = (v_35f85c) => {
-    const v_85cf93 = (v_d799e2) => {
-      const v_d5dda0 = new Date(v_d799e2);
-      return `${v_d5dda0.getMonth() + 1}월 ${v_d5dda0.getDate()}일 ${String(v_d5dda0.getHours()).padStart(2, "0")}:${String(v_d5dda0.getMinutes()).padStart(2, "0")}`;
-    };
-    const v_4f2c9c = v_35f85c && v_35f85c.from > 0 && v_35f85c.to > v_35f85c.from ? `${v_85cf93(v_35f85c.from)}~${v_85cf93(v_35f85c.to).split(" ").pop()}` : "";
+    const v_4f2c9c = v_35f85c && v_35f85c.from > 0 && v_35f85c.to > v_35f85c.from ? `${v_2a6381(v_35f85c.from)}~${v_c70797(v_35f85c.to)}` : "";
     v_889fad(
       v_8d41d7("giftBox.p8Title", { defaultValue: "교환 서비스 점검 중이에요" }),
-      v_35f85c?.message ?? (v_4f2c9c ? `${v_4f2c9c} 동안은 교환할 수 없어요.` : "잠시 후 다시 시도해주세요."),
+      v_35f85c?.message ??
+        (v_4f2c9c
+          ? v_8d41d7("giftBox.p8BodyRange", { range: v_4f2c9c, defaultValue: "{{range}} 동안은 교환할 수 없어요." })
+          : v_8d41d7("giftBox.p8Body", { defaultValue: "잠시 후 다시 시도해주세요." })),
       [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }) }],
     );
   };
@@ -234,7 +231,7 @@ export default function v_8869a8() {
       v_889fad(
         v_8d41d7("giftBox.p4Title", { defaultValue: "교환이 완료되었어요" }),
         v_8d41d7("giftBox.p4Body", {
-          defaultValue: `${v_8f00b9.giftName} ${v_8f00b9.qty}송이가 ${v_8f00b9.reward} XRUN으로 교환되었어요. XRUN 지갑 > 에프터라이프에서 보상을 받아가세요.`,
+          defaultValue: "{{name}} {{qty}}송이가 {{reward}} XRUN으로 교환되었어요. XRUN 지갑 > 에프터라이프에서 보상을 받아가세요.",
           name: v_8f00b9.giftName,
           qty: v_8f00b9.qty,
           reward: v_8f00b9.reward,
@@ -251,7 +248,7 @@ export default function v_8869a8() {
         v_889fad(
           v_8d41d7("giftBox.p7Title", { defaultValue: "보유 수량이 바뀌었어요" }),
           v_8d41d7("giftBox.p7Body", {
-            defaultValue: `지금 보유한 ${v_c3bc75.giftName}는 ${v_d5dda0.ownedQty ?? 0}송이예요. 수량을 다시 입력해주세요.`,
+            defaultValue: "지금 보유한 {{name}}는 {{owned}}송이예요. 수량을 다시 입력해주세요.",
             name: v_c3bc75.giftName,
             owned: v_d5dda0.ownedQty ?? 0,
           }),
@@ -268,7 +265,7 @@ export default function v_8869a8() {
         v_889fad(
           v_8d41d7("giftBox.p9Title", { defaultValue: "교환 조건이 바뀌었어요" }),
           v_8d41d7("giftBox.p9Body", {
-            defaultValue: `바뀐 조건으로 다시 확인해주세요. ${v_ab6401}송이 → ${v_36c043} XRUN, 수수료 ${v_2d815e}송이`,
+            defaultValue: "바뀐 조건으로 다시 확인해주세요. {{qty}}송이 → {{reward}} XRUN, 수수료 {{fee}}송이",
             qty: v_ab6401,
             reward: v_36c043,
             fee: v_2d815e,
@@ -293,10 +290,14 @@ export default function v_8869a8() {
 
         v_889fad(
           v_8d41d7("giftBox.p6Title", { defaultValue: "교환하지 못했어요" }),
-          v_8d41d7("giftBox.p6Body", {
-            defaultValue: `잠시 후 다시 시도해주세요. 선물은 차감되지 않았어요.${v_d5dda0.exchangeNo ? ` (교환번호 ${v_d5dda0.exchangeNo})` : ""}`,
-            no: v_d5dda0.exchangeNo ?? "",
-          }),
+          v_d5dda0.exchangeNo
+            ? v_8d41d7("giftBox.p6BodyWithNo", {
+                defaultValue: "잠시 후 다시 시도해주세요. 선물은 차감되지 않았어요. (교환번호 {{no}})",
+                no: v_d5dda0.exchangeNo,
+              })
+            : v_8d41d7("giftBox.p6Body", {
+                defaultValue: "잠시 후 다시 시도해주세요. 선물은 차감되지 않았어요.",
+              }),
           [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }) }],
         );
         void v_92fdf2(true);
@@ -318,9 +319,9 @@ export default function v_8869a8() {
     const v_2d815e = v_6f0728(v_c3bc75, v_d016c9);
     const v_36c043 = v_c55c0b(v_c3bc75.priceSegments, v_d016c9);
     v_889fad(
-      v_8d41d7("giftBox.p1Title", { defaultValue: `${v_c3bc75.giftName} ${v_d016c9}송이를 교환할까요?`, name: v_c3bc75.giftName, qty: v_d016c9 }),
+      v_8d41d7("giftBox.p1Title", { defaultValue: "{{name}} {{qty}}송이를 교환할까요?", name: v_c3bc75.giftName, qty: v_d016c9 }),
       v_8d41d7("giftBox.p1Body", {
-        defaultValue: `수수료 ${v_2d815e}송이를 포함해 ${v_d016c9 + v_2d815e}송이가 차감되고, ${v_36c043} XRUN을 받을 수 있어요. 교환 후에는 취소할 수 없어요.`,
+        defaultValue: "수수료 {{fee}}송이를 포함해 {{total}}송이가 차감되고, {{reward}} XRUN을 받을 수 있어요. 교환 후에는 취소할 수 없어요.",
         fee: v_2d815e,
         total: v_d016c9 + v_2d815e,
         reward: v_36c043,
@@ -348,14 +349,14 @@ export default function v_8869a8() {
     const v_c3bc75 = v_3871e2 ?? v_ae840d;
     if (v_c3bc75.maintenance || !v_c3bc75.enabled) return v_b5de70(v_c3bc75.maintenance);
     if (v_eddb49 < v_c3bc75.minQty) {
-      v_cba33f(v_8d41d7("giftBox.toastBelowMin", { defaultValue: `${v_c3bc75.minQty}송이부터 교환할 수 있어요 (수수료 ${v_c3bc75.feeUnit}송이당 ${v_c3bc75.feeQty}송이 별도)`, min: v_c3bc75.minQty, unit: v_c3bc75.feeUnit, fee: v_c3bc75.feeQty }));
+      v_cba33f(v_8d41d7("giftBox.toastBelowMin", { defaultValue: "{{min}}송이부터 교환할 수 있어요 (수수료 {{unit}}송이당 {{fee}}송이 별도)", min: v_c3bc75.minQty, unit: v_c3bc75.feeUnit, fee: v_c3bc75.feeQty }));
       return;
     }
     if (v_eddb49 > v_c3bc75.exchangeableQty) {
       v_889fad(
         v_8d41d7("giftBox.p7Title", { defaultValue: "보유 수량이 바뀌었어요" }),
         v_8d41d7("giftBox.p7Body", {
-          defaultValue: `지금 보유한 ${v_c3bc75.giftName}는 ${v_c3bc75.ownedQty}송이예요. 수량을 다시 입력해주세요.`,
+          defaultValue: "지금 보유한 {{name}}는 {{owned}}송이예요. 수량을 다시 입력해주세요.",
           name: v_c3bc75.giftName,
           owned: v_c3bc75.ownedQty,
         }),
@@ -383,7 +384,7 @@ export default function v_8869a8() {
   const v_bc3259 = v_df9f57(() => {
     const v_8dcb51 = new Map<string, v_407a6d[]>();
     for (const v_8c0b26 of v_ccaf2e) {
-      const v_b24339 = v_3f3aa6(v_8c0b26.createdAt) || "—";
+      const v_b24339 = v_73e535(v_8c0b26.createdAt) || "—";
       const v_d0c056 = v_8dcb51.get(v_b24339) ?? [];
       v_d0c056.push(v_8c0b26);
       v_8dcb51.set(v_b24339, v_d0c056);
@@ -512,7 +513,7 @@ function v_8e47b4(v_6fc191, v_8d41d7): string {
   ) {
     return v_8d41d7("giftBox.today", { defaultValue: "오늘" });
   }
-  return v_3f3aa6(v_6fc191);
+  return v_73e535(v_6fc191);
 }
 
 function v_0f11bb(item: v_407a6d): boolean {
@@ -551,7 +552,7 @@ function v_6da59e({
 }: {
   items: v_407a6d[];
   ownedGift: v_ccbfb2 | null;
-  t: (k: string, o?: { defaultValue: string }) => string;
+  t: TFn;
   onExchange: () => void;
 }) {
   const [v_f21110, v_d217e7] = v_5ab095<string>(v_526d27);
@@ -607,7 +608,11 @@ function v_6da59e({
             </Text>
             <Text style={v_d81136.ownedTitle} numberOfLines={1}>
               {v_9eb4d1
-                ? `${v_9eb4d1.name} ${v_9eb4d1.count}${v_8d41d7("giftBox.flowerUnit", { defaultValue: "송이" })}`
+                ? v_8d41d7("giftBox.ownedSummary", {
+                    name: v_9eb4d1.name,
+                    n: v_9eb4d1.count,
+                    defaultValue: "{{name}} {{n}}송이",
+                  })
                 : v_8d41d7("giftBox.ownedEmpty", { defaultValue: "보유 중인 선물이 없어요" })}
             </Text>
           </View>
@@ -699,7 +704,8 @@ function v_6da59e({
             >
               <Text style={v_d81136.moreBtnText}>
                 {v_8d41d7("giftBox.loadMore", {
-                  defaultValue: `더보기 (${v_e4cf17.length - v_64bcd4})`,
+                  n: v_e4cf17.length - v_64bcd4,
+                  defaultValue: "더보기 ({{n}})",
                 })}
               </Text>
             </TouchableOpacity>
@@ -716,22 +722,22 @@ function v_223c52({
   showBorder: v_ff995c,
 }: {
   item: v_407a6d;
-  t: (k: string, o?: { defaultValue: string }) => string;
+  t: TFn;
   showBorder: boolean;
 }) {
   const v_1833e7 = v_44c2cb(v_8c0b26, v_8d41d7);
   const v_9f1622 = v_8d41d7("giftBox.receivedTitle", {
     name: v_1833e7,
     gift: v_8c0b26.giftName,
-    defaultValue: `${v_1833e7}님이 ${v_8c0b26.giftName}를 보냈어요`,
+    defaultValue: "{{name}}님이 {{gift}}를 보냈어요",
   });
   const v_609005 = v_8c0b26.cloneName
     ? v_8d41d7("giftBox.toClone", {
         name: v_8c0b26.cloneName,
-        defaultValue: `${v_8c0b26.cloneName} 클론에게`,
+        defaultValue: "{{name}} 클론에게",
       })
     : v_8d41d7("giftBox.toUnknownClone", { defaultValue: "클론에게" });
-  const v_ab4c96 = `${v_609005} · ${v_3380b3(v_8c0b26.createdAt)}`;
+  const v_ab4c96 = `${v_609005} · ${v_412d1c(v_8c0b26.createdAt)}`;
   const v_085ccc = v_8345ff(v_1833e7);
 
   return (
@@ -766,7 +772,7 @@ function v_950e4a({
 }: {
   grouped: [string, v_407a6d[]][];
   monthStats: { flowerSum: number; people: number };
-  t: (k: string, o?: { defaultValue: string }) => string;
+  t: TFn;
   onBrowseClones: () => void;
 }) {
   return (
@@ -777,8 +783,7 @@ function v_950e4a({
             {v_8d41d7("giftBox.sentThisMonth", { defaultValue: "이번 달 보낸 선물" })}
           </Text>
           <Text style={v_d81136.metricValue}>
-            {v_cfb8ec.flowerSum}
-            {v_8d41d7("giftBox.flowerUnit", { defaultValue: "송이" })}
+            {v_8d41d7("giftBox.flowerCount", { n: v_cfb8ec.flowerSum, defaultValue: "{{n}}송이" })}
           </Text>
         </View>
         <View style={v_d81136.summaryCol}>
@@ -786,8 +791,7 @@ function v_950e4a({
             {v_8d41d7("giftBox.sentPeople", { defaultValue: "받은 사람" })}
           </Text>
           <Text style={v_d81136.metricValue}>
-            {v_cfb8ec.people}
-            {v_8d41d7("giftBox.peopleUnit", { defaultValue: "명" })}
+            {v_8d41d7("giftBox.peopleCount", { n: v_cfb8ec.people, defaultValue: "{{n}}명" })}
           </Text>
         </View>
       </View>
@@ -820,12 +824,14 @@ function v_950e4a({
                   </View>
                   <View style={v_d81136.logBody}>
                     <Text style={v_d81136.sentTitle} numberOfLines={2}>
-                      {v_97d2e9}
-                      {v_8d41d7("giftBox.sentToSuffix", { defaultValue: "님에게 " })}
-                      {v_8c0b26.giftName}
+                      {v_8d41d7("giftBox.sentTo", {
+                        name: v_97d2e9,
+                        gift: v_8c0b26.giftName,
+                        defaultValue: "{{name}}님에게 {{gift}}",
+                      })}
                     </Text>
                     <Text style={v_d81136.meta}>
-                      {v_3380b3(v_8c0b26.createdAt)}
+                      {v_412d1c(v_8c0b26.createdAt)}
                       {" · "}
                       {v_8d41d7("giftBox.delivered", { defaultValue: "전달 완료" })}
                     </Text>
@@ -868,7 +874,7 @@ function v_1bc5d1({
   history: v_867a79[];
   qty: number;
   submitting: boolean;
-  t: (k: string, o?: Record<string, unknown>) => string;
+  t: TFn;
   onDec: () => void;
   onInc: () => void;
   onSelectAll: () => void;
@@ -893,7 +899,7 @@ function v_1bc5d1({
     );
   }
 
-  const v_80cae9 = v_8d41d7("giftBox.flowerUnit", { defaultValue: "송이" });
+  const v_46ad6c = (v_f4e98d) => v_8d41d7("giftBox.flowerCount", { n: v_f4e98d, defaultValue: "{{n}}송이" });
   const v_097586 = v_ae840d.minQty + v_6f0728(v_ae840d, v_ae840d.minQty);
   const v_4f2dac = v_ae840d.exchangeableQty >= v_ae840d.minQty && !v_ae840d.maintenance && v_ae840d.enabled;
   const v_36c043 = v_4f2dac ? v_c55c0b(v_ae840d.priceSegments, v_d016c9) : 0;
@@ -936,7 +942,7 @@ function v_1bc5d1({
             {v_ae840d.maintenance
               ? v_8d41d7("giftBox.exchangeMaintenance", { defaultValue: "교환 서비스 점검 중이에요" })
               : v_8d41d7("giftBox.exchangeMinNotice", {
-                  defaultValue: `수수료 포함 ${v_097586}송이부터 교환할 수 있어요 (지금 ${v_ae840d.ownedQty}송이)`,
+                  defaultValue: "수수료 포함 {{min}}송이부터 교환할 수 있어요 (지금 {{owned}}송이)",
                   min: v_097586,
                   owned: v_ae840d.ownedQty,
                 })}
@@ -948,17 +954,11 @@ function v_1bc5d1({
         <View style={v_d81136.calcCard}>
           <View style={v_d81136.calcRow}>
             <Text style={v_d81136.calcLabel}>{v_8d41d7("giftBox.exchangeQty", { defaultValue: "교환 수량" })}</Text>
-            <Text style={v_d81136.calcValue}>
-              {v_d016c9}
-              {v_80cae9}
-            </Text>
+            <Text style={v_d81136.calcValue}>{v_46ad6c(v_d016c9)}</Text>
           </View>
           <View style={v_d81136.calcRow}>
             <Text style={v_d81136.calcLabel}>{v_8d41d7("giftBox.fee", { defaultValue: "수수료" })}</Text>
-            <Text style={v_d81136.calcValue}>
-              {v_2d815e}
-              {v_80cae9}
-            </Text>
+            <Text style={v_d81136.calcValue}>{v_46ad6c(v_2d815e)}</Text>
           </View>
           <View style={v_d81136.calcDivider} />
           <View style={v_d81136.calcRow}>
@@ -975,7 +975,7 @@ function v_1bc5d1({
       {v_4f2dac ? (
         <Text style={v_d81136.exchangeSummary}>
           {v_8d41d7("giftBox.exchangeSummary", {
-            defaultValue: `총 ${v_6b9a9b}송이 차감 (수수료 ${v_2d815e}송이 포함) · 받는 보상 ${v_35c0e0(v_36c043)} XRUN`,
+            defaultValue: "총 {{deducted}}송이 차감 (수수료 {{fee}}송이 포함) · 받는 보상 {{reward}} XRUN",
             deducted: v_6b9a9b,
             fee: v_2d815e,
             reward: v_35c0e0(v_36c043),
@@ -992,8 +992,10 @@ function v_1bc5d1({
           <ActivityIndicator color={v_1bfbd0.white} />
         ) : (
           <Text style={v_d81136.exchangeCtaText}>
-            {v_4f2dac ? v_d016c9 : v_097586}
-            {v_80cae9} {v_8d41d7("giftBox.exchangeAction", { defaultValue: "교환하기" })}
+            {v_8d41d7("giftBox.exchangeCta", {
+              n: v_4f2dac ? v_d016c9 : v_097586,
+              defaultValue: "{{n}}송이 교환하기",
+            })}
           </Text>
         )}
       </TouchableOpacity>
@@ -1010,11 +1012,10 @@ function v_36c8d0({
   history: v_867a79[];
   expanded: boolean;
   onExpand: () => void;
-  t: (k: string, o?: Record<string, unknown>) => string;
+  t: TFn;
 }) {
   const v_986caa = 3;
   const v_d1b432 = v_10740d.slice(0, v_ebda8f ? v_10740d.length : v_986caa);
-  const v_80cae9 = v_8d41d7("giftBox.flowerUnit", { defaultValue: "송이" });
   const v_c4180e = (s: v_867a79["rewardStatus"]) =>
     v_fd5f43 === "claimed"
       ? v_8d41d7("giftBox.statusClaimed", { defaultValue: "수령 완료" })
@@ -1048,11 +1049,15 @@ function v_36c8d0({
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={v_d81136.sentTitle} numberOfLines={1}>
-                    {v_8c0b26.giftName} {v_8c0b26.qty}
-                    {v_80cae9} → {v_8c0b26.reward} XRUN
+                    {v_8d41d7("giftBox.historyTitle", {
+                      name: v_8c0b26.giftName,
+                      n: v_8c0b26.qty,
+                      reward: v_8c0b26.reward,
+                      defaultValue: "{{name}} {{n}}송이 → {{reward}} XRUN",
+                    })}
                   </Text>
                   <Text style={v_d81136.meta}>
-                    {v_3f3aa6(v_6fc191)} · {v_3380b3(v_6fc191)} · {v_8c0b26.exchangeNo}
+                    {v_73e535(v_6fc191)} · {v_412d1c(v_6fc191)} · {v_8c0b26.exchangeNo}
                   </Text>
                 </View>
                 <Text
