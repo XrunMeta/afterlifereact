@@ -11,6 +11,7 @@ import {
   v_027028,
   v_7e4944,
   v_961e77,
+  type v_e99fe0,
 } from "rcmrninabrnb";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_51e8dd, v_85b8ef } from "tgjb";
@@ -126,8 +127,20 @@ function v_ef0f29({ style: v_7fa4e4, label: v_2869c1 }: { style?: v_961e77<v_7e4
 export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4 }: Props) {
   const { t: v_8d41d7 } = v_772971();
   const v_4281e6 = v_8d41d7("chat.adBannerFallback");
-  const v_0debf4 = <FallbackBanner style={v_7fa4e4} />;
   void v_4281e6;
+
+  const [v_47efbd, v_76fc2e] = v_5ab095(0);
+  const v_a37637 = v_47efbd > 0 ? v_47efbd / v_a5419f : 1;
+  const boxStyle: v_961e77<v_7e4944> = [
+    v_7fa4e4,
+    v_d81136.box,
+    v_47efbd > 0 ? { height: Math.round(v_5ac224 * v_a37637) } : null,
+  ];
+  const v_a2d934 = (e: v_e99fe0) => {
+    const v_32f7b8 = Math.round(v_9e86fd.nativeEvent.layout.width);
+    if (v_32f7b8 > 0 && v_32f7b8 !== v_47efbd) v_76fc2e(v_32f7b8);
+  };
+  const v_0debf4 = <View style={v_79930a} onLayout={v_a2d934} />;
 
   const [v_ae4a03, v_7ab0cc] = v_5ab095(false);
   v_c4deb2(() => {
@@ -161,9 +174,11 @@ export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4 }: Props)
     });
     return () => v_1ae212.remove();
   }, [v_61418d]);
-  const v_942edc = v_472849.flatten(v_7fa4e4)?.height;
-  const v_ca9189 =
-    v_189dcf > 0 && typeof v_942edc === "number" ? { height: v_942edc + (v_189dcf % 2) } : null;
+  const nativeStyle: v_7e4944 = {
+    width: v_a5419f,
+    height: v_5ac224 + (v_189dcf > 0 ? v_189dcf % 2 : 0),
+    transform: [{ scale: v_a37637 }],
+  };
 
   if ((v_326be8.OS !== "android" && v_326be8.OS !== "ios") || !v_db6966 || !v_61418d || !v_ae4a03) {
     return v_0debf4;
@@ -171,12 +186,26 @@ export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4 }: Props)
 
   return (
     <BannerErrorBoundary fallback={v_0debf4}>
-      <PangleBannerAdNative adUnitId={v_61418d} style={[v_7fa4e4, v_ca9189]} />
+      <View style={v_79930a} onLayout={v_a2d934}>
+        <PangleBannerAdNative adUnitId={v_61418d} style={v_d696d1} />
+      </View>
     </BannerErrorBoundary>
   );
 }
 
+const v_a5419f = 320;
+const v_5ac224 = 50;
+
 const v_d81136 = v_472849.create({
+  box: {
+    width: "100%",
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    backgroundColor: "transparent",
+  },
   fallback: {
 
     backgroundColor: "transparent",
