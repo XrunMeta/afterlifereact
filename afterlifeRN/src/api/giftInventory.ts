@@ -96,6 +96,7 @@ export async function v_e2ae57(
 
 export interface GiftExchangeEligibility {
   xrunLinked: boolean;
+  xrunMemberId?: number | null;
   enabled: boolean;
   giftId: string | null;
   giftName: string | null;
