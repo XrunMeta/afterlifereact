@@ -2,6 +2,12 @@
 
 import { v_80fa10, v_0cafec, v_326be8 } from "rcmrninabrnb";
 import { v_51e8dd } from "tgjb";
+import { v_8827ec } from "./errorReporting/report";
+
+export function v_1507f7(v_2ae4e7, v_f91f33 = {}): void {
+  if (__DEV__) return;
+  v_8827ec(new Error(`[call-ad] ${v_2ae4e7}`), { extra: { ...v_f91f33, stage: v_2ae4e7, platform: v_326be8.OS } });
+}
 
 const v_a4f114 = "8874759"; 
 const v_cfcd6e = "8874758";     
@@ -149,6 +155,7 @@ export async function v_18f201(v_61418d): Promise<void> {
       const v_94d701 = (v_9e86fd as { errorCode?: unknown } | null)?.errorCode;
       const v_131f0d = (v_9e86fd as { errorMsg?: unknown } | null)?.errorMsg;
       v_4b0422(`event onRewardedAdLoadError (${v_a48992()}) errorCode=${String(v_94d701)} errorMsg=${String(v_131f0d)}`, v_9e86fd);
+      v_1507f7("load-error", { code: v_94d701 ?? null, msg: v_131f0d ?? null, unit: v_80cae9 });
       if (v_35db80) return;
       v_35db80 = true;
       v_a983d4();
@@ -166,8 +173,10 @@ export async function v_18f201(v_61418d): Promise<void> {
         v_4b0422(`loadRewardedAd 성공 (${v_a48992()}) → showRewardedAd 시작`);
         await v_d57f84.showRewardedAd(v_80cae9);
         v_4b0422(`showRewardedAd 성공 (${v_a48992()}) — 광고 표시됨, close 대기`);
+        v_1507f7("shown", { unit: v_80cae9 });
       } catch (v_49263d) {
         v_4b0422(`load/show 예외 (${v_a48992()}): ${(v_49263d as Error)?.message ?? String(v_49263d)}`);
+        v_1507f7("load-show-exception", { unit: v_80cae9, msg: (v_49263d as Error)?.message ?? String(v_49263d) });
         if (v_35db80) return;
         v_35db80 = true;
         v_a983d4();
