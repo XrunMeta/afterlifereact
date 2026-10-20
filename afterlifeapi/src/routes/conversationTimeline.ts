@@ -346,8 +346,6 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
       });
     }
   }
-
-  const v_e907d9 = new Set<number>((v_20e160.results ?? []).map((v_cb35cb) => v_cb35cb.clone_id));
   const v_45c785 = new Map((v_2461e1.results ?? []).map((v_cb35cb) => [v_cb35cb.id, v_15ea73(v_cb35cb.created_at)]));
 
   const v_10387a = await v_a1651b
@@ -360,8 +358,9 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
   const v_b482e3 = new Map<number, number>(
     (v_10387a.results ?? []).map((v_cb35cb) => [v_cb35cb.clone_id, v_15ea73(v_cb35cb.created_at)]),
   );
+
   const v_52e08b = new Set<number>([
-    ...[...v_02fbf1.keys()].filter((v_062ae9) => v_559298.has(v_062ae9) || v_45c785.has(v_062ae9) || v_e907d9.has(v_062ae9)),
+    ...v_02fbf1.keys(),
     ...v_45c785.keys(),
     ...v_559298, 
   ]);
