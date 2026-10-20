@@ -4,6 +4,7 @@ import type { v_273a0c } from "./env";
 import { v_a71d8b } from "./gmail";
 import { v_51b1f7 } from "./expoPush";
 import { v_74c502 } from "./cloneAccess";
+import { v_b8a9e5, v_6fcc82, type v_f32241 } from "./notificationTemplates";
 
 export type NotificationType =
   | "invite_received"
@@ -31,8 +32,14 @@ export interface NotifyOptions {
 
   email?: string;
   type: NotificationType;
+
   title: string;
+
   body: string;
+
+  templateKey?: string;
+
+  vars?: v_f32241;
 
   url?: string;
 
@@ -103,6 +110,13 @@ export async function v_c226a5(env: v_273a0c, v_328259): Promise<NotifyResult> {
 
   const v_762d02 = v_328259.userId ? await v_5f5ee2(v_c9c489, v_328259.userId, v_328259.type) : true;
 
+  const { title: v_9f1622, body: v_4d33b2 } = await v_b8a9e5(v_c9c489, {
+    userId: v_328259.userId,
+    templateKey: v_328259.templateKey,
+    vars: v_328259.vars,
+    fallback: { title: v_328259.title, body: v_328259.body },
+  });
+
   if (v_328259.userId && !v_328259.skipInApp) {
     try {
       await v_c9c489.DB
@@ -113,8 +127,8 @@ export async function v_c226a5(env: v_273a0c, v_328259): Promise<NotifyResult> {
         .bind(
           v_328259.userId,
           v_328259.type,
-          v_328259.title,
-          v_328259.body,
+          v_9f1622,
+          v_4d33b2,
           JSON.stringify({ url: v_328259.url ?? null, ...(v_328259.data ?? {}) }),
         )
         .run();
@@ -127,8 +141,8 @@ export async function v_c226a5(env: v_273a0c, v_328259): Promise<NotifyResult> {
   if (v_328259.userId && v_762d02) {
     try {
       const v_cb35cb = await v_51b1f7(v_c9c489, v_328259.userId, {
-        title: v_328259.title,
-        body: v_328259.body,
+        title: v_9f1622,
+        body: v_4d33b2,
         data: { url: v_328259.url, type: v_328259.type, ...(v_328259.data ?? {}) },
       });
       v_871c5a = v_cb35cb.attempted;
@@ -155,13 +169,13 @@ export async function v_c226a5(env: v_273a0c, v_328259): Promise<NotifyResult> {
       const v_d91d98 =
         v_328259.emailHtml ??
         `<div style="font-family:system-ui,-apple-system,sans-serif;line-height:1.6">
-           <h2 style="margin:0 0 12px">${v_8fd199(v_328259.title)}</h2>
-           <p>${v_8fd199(v_328259.body)}</p>
+           <h2 style="margin:0 0 12px">${v_8fd199(v_9f1622)}</h2>
+           <p>${v_8fd199(v_4d33b2)}</p>
            ${v_328259.url ? `<p><a href="${v_328259.url}" style="display:inline-block;padding:10px 16px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px">열기</a></p>` : ""}
          </div>`;
       await v_a71d8b(v_c9c489, {
         to: v_db9acb,
-        subject: v_328259.emailSubject ?? v_328259.title,
+        subject: v_328259.emailSubject ?? v_9f1622,
         html: v_d91d98,
       });
       v_c5c953 = true;
@@ -198,23 +212,34 @@ export async function v_80a022(
       .prepare(`SELECT name, email FROM users WHERE id = ?`)
       .bind(v_4317d1.actorId)
       .first<{ name: string | null; email: string | null }>();
-    const v_6dd0ab = v_380fb2?.name || v_380fb2?.email?.split("@")[0] || "누군가";
+    const v_80716d = v_380fb2?.name || v_380fb2?.email?.split("@")[0] || null;
+    const v_6dd0ab = v_80716d || "누군가";
+    const vars: v_f32241 = { actorName: v_6fcc82(v_80716d), cloneName: v_eb25ce.name };
 
     let v_9f1622 = "";
     let v_4d33b2 = "";
+    let v_10d610 = "";
     switch (v_3b27d9) {
       case "clone_like":
+        v_10d610 = "clone.like";
         v_9f1622 = "❤️ 좋아요";
         v_4d33b2 = `${v_6dd0ab} 님이 ${v_eb25ce.name} 에게 좋아요를 눌렀어요`;
         break;
       case "clone_comment":
         v_9f1622 = "💬 새 댓글";
-        v_4d33b2 = v_4317d1.extraBody
-          ? `${v_6dd0ab} 님: ${v_4317d1.extraBody.slice(0, 60)}`
-          : `${v_6dd0ab} 님이 ${v_eb25ce.name} 에게 댓글을 남겼어요`;
+        if (v_4317d1.extraBody) {
+          const v_61b01a = v_4317d1.extraBody.slice(0, 60);
+          v_10d610 = "clone.comment";
+          v_217372.comment = v_61b01a;
+          v_4d33b2 = `${v_6dd0ab} 님: ${v_61b01a}`;
+        } else {
+          v_10d610 = "clone.comment_generic";
+          v_4d33b2 = `${v_6dd0ab} 님이 ${v_eb25ce.name} 에게 댓글을 남겼어요`;
+        }
         break;
       case "clone_follow":
 
+        v_10d610 = "clone.follow";
         v_9f1622 = "✨ 새 구독";
         v_4d33b2 = `${v_6dd0ab} 님이 ${v_eb25ce.name} 을(를) 구독했어요`;
         break;
@@ -223,6 +248,13 @@ export async function v_80a022(
         v_4d33b2 = v_4317d1.extraBody
           ? `${v_6dd0ab} 님이 ${v_4317d1.extraBody}`
           : `${v_6dd0ab} 님이 ${v_eb25ce.name} 에게 선물을 보냈어요`;
+        if (v_4317d1.giftName != null && v_4317d1.giftAmount != null) {
+          v_10d610 = "clone.gift";
+          v_217372.giftName = v_4317d1.giftName;
+          v_217372.amount = v_4317d1.giftAmount;
+        } else if (!v_4317d1.extraBody) {
+          v_10d610 = "clone.gift_generic";
+        }
         break;
     }
 
@@ -231,6 +263,8 @@ export async function v_80a022(
       type: v_3b27d9,
       title: v_9f1622,
       body: v_4d33b2,
+      templateKey: v_10d610 || undefined,
+      vars: v_217372,
       url: `afterlife://clone/${v_4317d1.cloneId}`,
 
       data: {
@@ -285,6 +319,8 @@ export async function v_33d48f(
         type: "intimacy_score",
         title: v_9f1622,
         body: `${v_eb25ce.name} 의 친밀도가 ${v_2869c1} 활동으로 ${v_4317d1.score}°C 올랐어요`,
+        templateKey: `intimacy.score_${v_4317d1.action}`,
+        vars: { cloneName: v_eb25ce.name, score: v_4317d1.score },
         url: v_f71b56,
         data: v_9390e8,
         skipEmail: true,

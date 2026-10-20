@@ -9,6 +9,7 @@ import { v_e44d97 } from "../lib/kekProvider";
 import { v_74defc } from "../lib/logger";
 import { v_344b9e } from "../lib/memoryStore";
 import { v_c226a5 } from "../lib/notify";
+import { v_6fcc82, v_e54513, v_5cb21e } from "../lib/notificationTemplates";
 import { v_e0041f, v_cfdcb0 } from "../lib/similarity";
 import {
   v_3326b4,
@@ -288,6 +289,17 @@ async function v_7169c4(v_a1651b, v_43e90c) {
     promotions: v_3ac7e7?.promotions === 1,
   };
 }
+
+v_de7ba7.put("/me/locale", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = (await v_3f4e2e.req.json().catch(() => ({}))) as { locale?: unknown };
+  const v_6f298b = v_e54513(v_4d33b2.locale);
+  if (!v_6f298b) {
+    throw new v_3ebe58("VALIDATION_FAILED", `locale must be one of: ${v_5cb21e.join(", ")}`);
+  }
+  await v_3f4e2e.env.DB.prepare(`UPDATE users SET locale = ? WHERE id = ?`).bind(v_6f298b, v_43e90c).run();
+  return v_3f4e2e.json({ ok: true, locale: v_6f298b });
+});
 
 v_de7ba7.get("/me/notification-prefs", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
@@ -1428,6 +1440,8 @@ v_de7ba7.post("/:id/follow", v_6690d9, async (v_3f4e2e) => {
         type: "user_follow",
         title: "✨ 새 팔로워",
         body: `${v_6dd0ab} 님이 회원님을 팔로우했어요`,
+        templateKey: "user.follow",
+        vars: { actorName: v_6fcc82(v_380fb2?.name || v_380fb2?.email?.split("@")[0]) },
         url: `afterlife://oth-path${v_43e90c}`,
         data: { followerId: v_43e90c },
         skipEmail: true,

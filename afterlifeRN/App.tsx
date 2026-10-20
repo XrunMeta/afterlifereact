@@ -17,6 +17,7 @@ import { v_0b10a6 } from "./src/stores/configStore";
 import { v_5b540b } from "./src/stores/callConfigStore";
 import { v_688424 } from "./src/stores/authConfigStore";
 import { v_9bedf5 } from "./src/lib/pushNotifications";
+import { v_4d2e36 } from "./src/lib/localeSync";
 import * as v_2b7a17 from "bpebbcghaffswkrsep";
 import {
   v_798ed3,
@@ -181,6 +182,8 @@ export default function v_6540c3() {
       __DEV__ ? v_434962.getState().hydrate() : Promise.resolve(),
     ]).then(() => {
       v_0189ac(true);
+
+      v_4d2e36();
 
       const v_21cc31 = v_1ed7d9.getState().accessToken;
       if (v_21cc31) {

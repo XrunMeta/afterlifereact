@@ -13,6 +13,7 @@ import { v_70b594, v_4db5dd } from "../lib/knowledgeQuestions";
 import { v_cba618, v_1809f7 } from "../lib/knowledgeBlacklist";
 import { v_038cdc } from "../lib/knowledgeStore";
 import { v_c226a5, v_5f5ee2, type v_dbf3ef } from "../lib/notify";
+import { v_de8979, v_9722c0, type v_f32241 } from "../lib/notificationTemplates";
 import { v_c43f8d, v_c1f9bb, v_342698, v_fd26b4 } from "../lib/adminBroadcast";
 import {
   v_916830,
@@ -2005,11 +2006,20 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
       break;
   }
 
+  const v_790928 = {
+    clone_create_ban_lift: "moderation.lift_clone_create_ban",
+    account_ban_lift: "moderation.lift_account_ban",
+    clone_restore: "moderation.lift_clone_restore",
+    account_restore: "moderation.lift_account_restore",
+    warnings_clear: "moderation.lift_warnings_clear",
+  };
+  const v_d35987 = v_4d33b2.reason?.trim();
   await v_c226a5(v_3f4e2e.env, {
     userId: v_389afb,
     type: "moderation",
     title: "제재 해제 안내",
-    body: v_4d33b2.reason?.trim() || v_badeaf,
+    body: v_d35987 || v_badeaf,
+    templateKey: v_d35987 ? undefined : v_790928[v_9b064f],
     url: "afterlife://reports/received",
     data: { action: v_9b064f, manual: true, kind: "lift" },
     skipEmail: true,
@@ -2176,18 +2186,52 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
     return `${v_d5dda0.getUTCFullYear()}년 ${v_d5dda0.getUTCMonth() + 1}월 ${v_d5dda0.getUTCDate()}일`;
   };
 
+  let penaltyTemplate: { key: string; vars?: v_f32241 } | null = null;
+  switch (v_9b064f) {
+    case "warn":
+      v_c64398 = { key: "moderation.warn_issued" };
+      break;
+    case "clone_deactivate":
+    case "clone_delete": {
+      const v_d05b10 = v_9b064f === "clone_deactivate" ? "deactivated" : "deleted";
+      if (!v_6e5b24) v_c64398 = { key: `moderation.clone_${v_d05b10}` };
+      else if (v_6e5b24.name) {
+        v_c64398 = { key: `moderation.reported_clone_${v_d05b10}`, vars: { cloneName: v_6e5b24.name } };
+      }
+      break;
+    }
+    case "account_withdraw":
+      v_c64398 = { key: "moderation.account_withdrawn" };
+      break;
+    case "force_logout":
+      v_c64398 = { key: "moderation.force_logout" };
+      break;
+  }
+
   if (v_9b064f === "account_ban") {
     const v_604a0d = v_fc6e45(v_3ac7e7?.bannedUntil ?? null);
-    if (v_604a0d) v_c8eee3 = `${v_604a0d}까지 계정 사용이 정지됩니다. (신고 누적)`;
+    if (v_604a0d) {
+      v_c8eee3 = `${v_604a0d}까지 계정 사용이 정지됩니다. (신고 누적)`;
+      v_c64398 = { key: "moderation.account_ban_until", vars: { date: v_de8979(v_3ac7e7!.bannedUntil!) } };
+    }
   } else if (v_9b064f === "clone_create_ban") {
     const v_604a0d = v_fc6e45(v_3ac7e7?.suspendedUntil ?? null);
-    if (v_604a0d) v_c8eee3 = `${v_604a0d}까지 페르소나 생성이 제한됩니다. (신고 누적)`;
+    if (v_604a0d) {
+      v_c8eee3 = `${v_604a0d}까지 페르소나 생성이 제한됩니다. (신고 누적)`;
+      v_c64398 = { key: "moderation.clone_create_ban_until", vars: { date: v_de8979(v_3ac7e7!.suspendedUntil!) } };
+    }
   } else if (v_9b064f === "comment_ban") {
     const v_604a0d = v_fc6e45(v_3ac7e7?.commentBanUntil ?? null);
-    if (v_604a0d) v_c8eee3 = `${v_604a0d}까지 댓글 작성이 제한됩니다. (신고 누적)`;
+    if (v_604a0d) {
+      v_c8eee3 = `${v_604a0d}까지 댓글 작성이 제한됩니다. (신고 누적)`;
+      v_c64398 = { key: "moderation.comment_ban_until", vars: { date: v_de8979(v_3ac7e7!.commentBanUntil!) } };
+    }
   } else if (v_9b064f === "interaction_ban") {
     const v_604a0d = v_fc6e45(v_3ac7e7?.interactionBanUntil ?? null);
-    if (v_604a0d) v_c8eee3 = `${v_604a0d}까지 좋아요·팔로우가 제한됩니다. (신고 누적)`;
+    if (v_604a0d) {
+      v_c8eee3 = `${v_604a0d}까지 좋아요·팔로우가 제한됩니다. (신고 누적)`;
+      v_c64398 = { key: "moderation.interaction_ban_until", vars: { date: v_de8979(v_3ac7e7!.interactionBanUntil!) } };
+    }
   }
 
   const v_b6b0b7 =
@@ -2201,6 +2245,10 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
     type: "moderation",
     title: v_9b064f === "warn" ? "신고 처리 안내" : "활동 제재 안내",
     body: v_cc755a,
+
+    ...(v_c64398 && v_c8eee3 && v_cc755a === v_c8eee3
+      ? { templateKey: v_c64398.key, vars: v_c64398.vars }
+      : {}),
     url: "afterlife://reports/received",
     data: { action: v_9b064f, manual: true, bannedUntil: v_3ac7e7?.bannedUntil ?? null, suspendedUntil: v_3ac7e7?.suspendedUntil ?? null },
     skipEmail: true,
@@ -2253,6 +2301,9 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
         type: "moderation",
         title: "신고 처리 완료",
         body: v_3a9783,
+        ...(v_4d33b2.reporterMessage?.trim()
+          ? {}
+          : { templateKey: "moderation.report_actioned", vars: { action: v_9722c0(v_9b064f) } }),
         url: "afterlife://reports/made",
         data: { action: v_9b064f, reportId: v_4d33b2.reportId, kind: "user_report_actioned" },
         skipEmail: true,
@@ -2466,6 +2517,9 @@ async function v_d1a2ff(
     type: "moderation",
     title: "내 신고 처리 안내",
     body: v_4d33b2,
+    templateKey: v_2bd5e3?.trim()
+      ? undefined
+      : `moderation.report_outcome_${v_d308b5 === "reviewed" || v_d308b5 === "dismissed" || v_d308b5 === "actioned" ? v_d308b5 : "processed"}`,
 
     url: "afterlife://reports/made",
     data: { reportType: v_7bef43, status: v_d308b5 },
@@ -2508,6 +2562,7 @@ async function v_19a475(
     type: "moderation",
     title: "신고 처리 안내",
     body: v_7e89c9 || "회원님에 대한 신고가 처리되었습니다.",
+    templateKey: v_7e89c9 ? undefined : "moderation.report_warning",
     url: "afterlife://reports/received",
     data: { warningCount: v_e87618 },
     skipEmail: true,

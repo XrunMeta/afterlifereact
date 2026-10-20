@@ -2,8 +2,9 @@
 
 import type { v_273a0c } from "./env";
 import { v_c226a5, type v_dbf3ef } from "./notify";
+import type { v_f32241 } from "./notificationTemplates";
 
-function v_33a486(v_1833e7): string {
+export function v_33a486(v_1833e7): string {
   const v_10a17d = v_1833e7.charCodeAt(v_1833e7.length - 1);
   if (v_10a17d >= 0xac00 && v_10a17d <= 0xd7a3) return `${v_1833e7}${(v_10a17d - 0xac00) % 28 === 0 ? "와" : "과"}`;
   return `${v_1833e7}와`;
@@ -42,7 +43,16 @@ export async function v_a00a76(
 
 export async function v_f1d400(
   env: v_273a0c,
-  args: { userId: number; cloneId: number; type: v_dbf3ef; title: string; body: string },
+  args: {
+    userId: number;
+    cloneId: number;
+    type: v_dbf3ef;
+    title: string;
+    body: string;
+
+    templateKey?: string;
+    vars?: v_f32241;
+  },
 ): Promise<boolean> {
   try {
     const v_9c58a3 = await v_c9c489.DB
@@ -55,6 +65,8 @@ export async function v_f1d400(
       type: v_4317d1.type,
       title: v_4317d1.title,
       body: v_4317d1.body,
+      templateKey: v_4317d1.templateKey,
+      vars: v_4317d1.vars,
       url: `afterlife://chat/${v_4317d1.cloneId}`,
       data: { cloneId: v_4317d1.cloneId, chat: true },
       skipEmail: true,
