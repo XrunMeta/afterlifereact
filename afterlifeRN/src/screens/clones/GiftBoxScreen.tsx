@@ -164,20 +164,24 @@ export default function v_8869a8() {
     return null;
   }, [v_2ca7e0]);
 
+  const v_2900f3 = Math.max(1, v_ae840d?.feeUnit ?? 10);
+  const v_ea7b1e = v_ae840d
+    ? Math.max(v_ae840d.minQty, Math.floor(v_ae840d.exchangeableQty / v_2900f3) * v_2900f3)
+    : 0;
+
   v_a3453e.useEffect(() => {
     if (!v_ae840d) return;
     v_839e4f((v_ab6401) => {
-      if (v_ae840d.exchangeableQty < v_ae840d.minQty) return v_ae840d.minQty;
-      if (v_ab6401 < v_ae840d.minQty) return v_ae840d.minQty;
-      return Math.min(v_ab6401, v_ae840d.exchangeableQty);
+      if (v_ae840d.exchangeableQty < v_ae840d.minQty || v_ab6401 < v_ae840d.minQty) return v_ae840d.minQty;
+      return Math.max(v_ae840d.minQty, Math.min(Math.floor(v_ab6401 / v_2900f3) * v_2900f3, v_ea7b1e));
     });
-  }, [v_ae840d]);
+  }, [v_ae840d, v_2900f3, v_ea7b1e]);
 
   const v_77fd21 = v_8d41d7("giftBox.flowerUnit", { defaultValue: "송이" });
 
   const v_b54070 = () => {
     if (!v_ae840d) return;
-    if (v_eddb49 <= v_ae840d.minQty) {
+    if (v_eddb49 - v_2900f3 < v_ae840d.minQty) {
       v_cba33f(
         v_8d41d7("giftBox.toastBelowMin", {
           defaultValue: `${v_ae840d.minQty}송이부터 교환할 수 있어요 (수수료 ${v_ae840d.feeUnit}송이당 ${v_ae840d.feeQty}송이 별도)`,
@@ -188,22 +192,22 @@ export default function v_8869a8() {
       );
       return;
     }
-    v_839e4f((v_ab6401) => v_ab6401 - 1);
+    v_839e4f((v_ab6401) => v_ab6401 - v_2900f3);
   };
   const v_869bef = () => {
     if (!v_ae840d) return;
-    if (v_eddb49 >= v_ae840d.exchangeableQty) {
+    if (v_eddb49 + v_2900f3 > v_ea7b1e) {
       v_cba33f(
         v_8d41d7("giftBox.toastOverMax", {
-          defaultValue: `수수료(${v_ae840d.feeUnit}송이당 ${v_ae840d.feeQty}송이)를 빼고 최대 ${v_ae840d.exchangeableQty}송이까지 교환할 수 있어요`,
+          defaultValue: `수수료(${v_ae840d.feeUnit}송이당 ${v_ae840d.feeQty}송이)를 빼고 최대 ${v_ea7b1e}송이까지 교환할 수 있어요`,
           unit: v_ae840d.feeUnit,
           fee: v_ae840d.feeQty,
-          max: v_ae840d.exchangeableQty,
+          max: v_ea7b1e,
         }),
       );
       return;
     }
-    v_839e4f((v_ab6401) => v_ab6401 + 1);
+    v_839e4f((v_ab6401) => v_ab6401 + v_2900f3);
   };
 
   const v_b5de70 = (v_35f85c) => {
@@ -477,7 +481,8 @@ export default function v_8869a8() {
               t={v_8d41d7}
               onDec={v_b54070}
               onInc={v_869bef}
-              onSelectAll={() => v_ae840d && v_839e4f(Math.max(v_ae840d.minQty, v_ae840d.exchangeableQty))}
+              onSelectAll={() => v_ae840d && v_839e4f(v_ea7b1e)}
+              maxQty={v_ea7b1e}
               onSubmit={() => void v_d037c4()}
             />
           )}
@@ -856,6 +861,7 @@ function v_1bc5d1({
   onDec: v_529659,
   onInc: v_187937,
   onSelectAll: v_e3f4f2,
+  maxQty: v_063b5f,
   onSubmit: v_3bfe4c,
 }: {
   elig: v_02ed3c | null;
@@ -866,6 +872,7 @@ function v_1bc5d1({
   onDec: () => void;
   onInc: () => void;
   onSelectAll: () => void;
+  maxQty: number;
   onSubmit: () => void;
 }) {
   const [v_71921b, v_7ca8ec] = v_5ab095(false);
@@ -915,7 +922,7 @@ function v_1bc5d1({
               </TouchableOpacity>
               <Text style={v_d81136.stepQty}>{v_d016c9}</Text>
               <TouchableOpacity style={v_d81136.stepBtn} onPress={v_187937}>
-                <Feather name="plus" size={16} color={v_d016c9 >= v_ae840d.exchangeableQty ? v_1bfbd0.zinc300 : v_1bfbd0.zinc900} />
+                <Feather name="plus" size={16} color={v_d016c9 >= v_063b5f ? v_1bfbd0.zinc300 : v_1bfbd0.zinc900} />
               </TouchableOpacity>
             </View>
             <TouchableOpacity style={v_d81136.selectAllBtn} onPress={v_e3f4f2} activeOpacity={0.8}>
