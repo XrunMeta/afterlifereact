@@ -10,7 +10,7 @@ import {
   v_705aa5,
   type v_83f27d,
 } from "../lib/appConfig";
-import { v_9bded0 } from "../lib/xrun";
+import { v_9bded0, v_cd69e7 } from "../lib/xrun";
 import { v_74defc } from "../lib/logger";
 
 export const v_7de069 = new v_b7c41b<v_de0a25>();
@@ -175,6 +175,22 @@ v_7de069.get("/history", v_6690d9, async (v_3f4e2e) => {
         .bind(v_43e90c)
         .all<ExchangeRow>()
     ).results ?? [];
+
+  const v_483de2 = v_18b8bf.filter((v_cb35cb) => v_cb35cb.status === "pending_claim");
+  if (v_483de2.length) {
+    const v_72c7a6 = await v_cd69e7(v_3f4e2e.env, v_483de2.map((v_cb35cb) => `afterlife-exchange:${v_cb35cb.id}`));
+    for (const v_cb35cb of v_483de2) {
+      const v_fd5f43 = v_72c7a6.get(`afterlife-exchange:${v_cb35cb.id}`);
+      if (v_fd5f43?.status !== "claimed") continue;
+      const v_83d291 = v_fd5f43.claimedAt ? Date.parse(`${v_fd5f43.claimedAt.replace(" ", "T")}Z`) || Date.now() : Date.now();
+      await v_3f4e2e.env.DB
+        .prepare(`UPDATE gift_exchanges SET status = 'claimed', claimed_at = ? WHERE id = ? AND status = 'pending_claim'`)
+        .bind(v_83d291, v_cb35cb.id)
+        .run();
+      v_cb35cb.status = "claimed";
+      v_cb35cb.claimed_at = v_83d291;
+    }
+  }
   return v_3f4e2e.json({ items: v_18b8bf.map(v_c8c448) });
 });
 
