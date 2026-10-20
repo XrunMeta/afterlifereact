@@ -21,6 +21,8 @@ import {
   v_6e82f0,
   v_0edc13,
   v_9459da,
+  v_705aa5,
+  v_1e6592,
   v_52acfb,
   v_b61290,
   v_dc0a0b,
@@ -165,6 +167,33 @@ v_b7f2b4.patch("/config/knowledge-rules", v_c0a297, async (v_3f4e2e) => {
 });
 
 const v_8295db = 200;
+
+v_b7f2b4.get("/config/gift-exchange", v_c0a297, async (v_3f4e2e) => {
+  return v_3f4e2e.json(await v_705aa5(v_3f4e2e.env));
+});
+v_b7f2b4.patch("/config/gift-exchange", v_c0a297, async (v_3f4e2e) => {
+  const v_148ff6 = (await v_3f4e2e.req.json().catch(() => ({}))) as {
+    enabled?: unknown;
+    minQty?: unknown;
+    feeQty?: unknown;
+    maintenance?: unknown;
+  };
+  const patch: Parameters<typeof v_1e6592>[1] = {};
+  if (typeof v_148ff6.enabled === "boolean") v_17dc8a.enabled = v_148ff6.enabled;
+  if (v_148ff6.minQty !== undefined) v_17dc8a.minQty = Number(v_148ff6.minQty);
+  if (v_148ff6.feeQty !== undefined) v_17dc8a.feeQty = Number(v_148ff6.feeQty);
+  if (v_148ff6.maintenance === null) v_17dc8a.maintenance = null;
+  else if (v_148ff6.maintenance && typeof v_148ff6.maintenance === "object") {
+    const v_35f85c = v_148ff6.maintenance as { from?: unknown; to?: unknown; message?: unknown };
+    v_17dc8a.maintenance = {
+      from: Number(v_35f85c.from),
+      to: Number(v_35f85c.to),
+      ...(typeof v_35f85c.message === "string" ? { message: v_35f85c.message } : {}),
+    };
+  }
+  return v_3f4e2e.json(await v_1e6592(v_3f4e2e.env, v_17dc8a));
+});
+
 v_b7f2b4.get("/config/gift-catalog", v_c0a297, async (v_3f4e2e) => {
   const v_4622b9 = await v_0edc13(v_3f4e2e.env);
   return v_3f4e2e.json({ items: v_4622b9 });
