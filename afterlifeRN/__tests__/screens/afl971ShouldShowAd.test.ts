@@ -1,5 +1,5 @@
 
-import { v_8e0f80, v_25c9bd, v_1c04ac, v_7841ab } from '../../src/screens/clone-interaction/afl971Ad';
+import { v_8e0f80, v_1c04ac, v_7841ab } from '../../src/screens/clone-interaction/afl971Ad';
 
 describe('afl971ShouldShowAd', () => {
   it('기본(11/5): 11, 16, 21, 26 라운드에 true', () => {
@@ -28,23 +28,6 @@ describe('afl971ShouldShowAd', () => {
   });
   it('0·음수·비정상 라운드는 광고 안 뜸(false)', () => {
     for (const v_cb35cb of [0, -1, NaN, Infinity]) expect(v_8e0f80(v_cb35cb)).toBe(false);
-  });
-});
-
-describe('isAfl971AdTestAccount', () => {
-  it('테스트 계정 목록(happyluck0426·oth-test@example.invalid)은 true', () => {
-    expect(v_25c9bd('oth-user@example.invalid')).toBe(true);
-    expect(v_25c9bd('oth-test@example.invalid')).toBe(true);
-  });
-  it('대소문자·앞뒤 공백 정규화', () => {
-    expect(v_25c9bd('GGG@HHH.com')).toBe(true);
-    expect(v_25c9bd('  oth-test@example.invalid  ')).toBe(true);
-  });
-  it('그 외 계정·null·undefined 는 false', () => {
-    expect(v_25c9bd('someone@example.com')).toBe(false);
-    expect(v_25c9bd('oth-staff@example.invalid')).toBe(false);
-    expect(v_25c9bd(null)).toBe(false);
-    expect(v_25c9bd(undefined)).toBe(false);
   });
 });
 

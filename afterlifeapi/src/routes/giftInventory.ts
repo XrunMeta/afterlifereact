@@ -8,6 +8,7 @@ import { v_a04a51 } from "../middleware/idempotency";
 import { v_3ebe58 } from "../lib/errors";
 import { v_20a4f4, v_696c65 } from "../lib/credits";
 import { v_0edc13 } from "../lib/appConfig";
+import { v_2d8130 } from "../lib/giftLots";
 import { v_74defc } from "../lib/logger";
 
 export const v_0bc486 = new v_b7c41b<v_de0a25>();
@@ -63,6 +64,8 @@ v_0bc486.post(
     if ((v_eef514.meta?.changes ?? 0) === 0) {
       throw new v_3ebe58("INSUFFICIENT_CREDITS", "선물 재고가 없어요.");
     }
+
+    await v_2d8130(v_3f4e2e.env.DB, v_f7e120, v_4d33b2.giftId, 1);
 
     if (v_4d33b2.cloneId) {
       try {
@@ -368,6 +371,8 @@ v_0bc486.post(
         .run();
       throw v_49263d;
     }
+
+    await v_2d8130(v_3f4e2e.env.DB, v_43e90c, v_4d33b2.giftId, v_4d33b2.count);
 
     await v_3f4e2e.env.DB
       .prepare(
