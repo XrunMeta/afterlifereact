@@ -26,15 +26,6 @@ export function v_1fb900(v_479f05): AdCadence {
   };
 }
 
-const v_9474af = new Set<string>([
-  "oth-user@example.invalid",
-  "oth-test@example.invalid",
-]);
-export function v_25c9bd(v_e0c7e8): boolean {
-  if (!v_e0c7e8) return false;
-  return v_9474af.has(v_e0c7e8.trim().toLowerCase());
-}
-
 export function v_1c04ac(v_328259): boolean {
   if (v_328259.pendingRound === null || v_328259.pendingRound === undefined) return false;
   if (v_328259.faceBusy) return false;
