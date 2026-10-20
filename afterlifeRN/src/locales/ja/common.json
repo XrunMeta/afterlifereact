@@ -31,7 +31,9 @@
     "durationMin": "{{m}}分",
     "durationMinSec": "{{m}}分{{s}}秒",
     "expertBadge": "エキスパート",
-    "pressBackToExit": "もう一度戻ると終了します"
+    "pressBackToExit": "もう一度戻ると終了します",
+    "agoWeeks": "{{n}}週間前",
+    "exitPrompt": "もう一度押すと終了します"
   },
   "tabs": {
     "home": "ホーム",
@@ -73,12 +75,15 @@
       "reportFailed": "通報に失敗しました",
       "reportSuccessBlocked": "通報を受け付けました。このクローンをブロックしました",
       "userBlocked": "ブロックしました",
-      "blockUserFailed": "ブロックに失敗しました"
+      "blockUserFailed": "ブロックに失敗しました",
+      "visibilityUpdated": "公開範囲を変更しました",
+      "visibilityFailed": "公開範囲の変更に失敗しました"
     },
     "actions": {
       "block": "ブロック",
       "report": "通報"
-    }
+    },
+    "commentSending": "送信中..."
   },
   "notifications": {
     "title": "お知らせ",
@@ -287,7 +292,24 @@
     "callTranscriptTitle": "通話内容",
     "missedCall": "不在着信",
     "sort": "並び替え",
-    "adBannerFallback": "バナー広告"
+    "adBannerFallback": "バナー広告",
+    "personaNameFallback": "ペルソナ",
+    "deleteMessageTitle": "メッセージを削除",
+    "menuCall": "通話",
+    "menuMute": "通知をオフ",
+    "menuUnmute": "通知をオン",
+    "menuUnsubscribe": "フォロー解除",
+    "missedCallGroup": "不在着信 {{count}}件 · {{date}}",
+    "inputPlaceholderWith": "{{name}}とチャット中",
+    "voiceCall": "音声通話",
+    "voiceCallAt": "音声通話 · {{time}}",
+    "voiceCallWithDuration": "音声通話 · {{duration}} · {{time}}",
+    "durationMinSec": "{{m}}分{{s}}秒",
+    "durationSec": "{{s}}秒",
+    "intimacyMilestone": "{{name}}との温度が{{score}}°Cになりました",
+    "sortRecent": "最近の会話順",
+    "sortIntimacy": "親密度の高い順",
+    "sortName": "名前順"
   },
   "call": {
     "calling": "接続中...",
@@ -455,7 +477,13 @@
     "summaryLabelChat": "チャット",
     "summaryLabelCall": "通話",
     "summaryLabelLearn": "探索",
-    "summaryLabelFeed": "フィード"
+    "summaryLabelFeed": "フィード",
+    "giftReceiptsTitle": "受け取ったギフト",
+    "giftReceiptsTotal": "合計{{n}}個",
+    "giftReceiptsEmpty": "まだ受け取ったギフトはありません",
+    "followers": "フォロワー",
+    "likes": "いいね",
+    "createdAt": "作成日"
   },
   "detail": {
     "notFound": "クローンが見つかりません。",
@@ -512,7 +540,9 @@
     "currentVoiceCatalog": "🎵 カタログ音声",
     "currentVoiceHint": "下のリストから別の声を選ぶと、通話時にその声で再生されます。",
     "voiceStop": "■ 停止",
-    "voicePreview": "▶ プレビュー"
+    "voicePreview": "▶ プレビュー",
+    "voiceLabel": "声",
+    "voiceEmpty": "登録された声がありません。"
   },
   "dashboard": {
     "title": "My Page",
@@ -584,7 +614,16 @@
     "giftHeaderSender": "送信者",
     "emptyGift": "まだ受け取ったギフトがありません",
     "reportReceived": "通報を受け付けました",
-    "uploadAvatarFailed": "画像のアップロードに失敗しました"
+    "uploadAvatarFailed": "画像のアップロードに失敗しました",
+    "giftInventoryTitle": "マイギフト",
+    "giftTotalReceivedBefore": "受け取ったギフト合計 ",
+    "giftTotalReceivedAfter": "個",
+    "giftLogMore": "もっと見る ({{n}})",
+    "giftLogOpenFailTitle": "開けません",
+    "giftLogOpenFailDesc": "XRUNアプリをインストールしてください。",
+    "giftKindReceived": "受取",
+    "giftKindSent": "送信",
+    "giftKindExchanged": "交換"
   },
   "learn": {
     "title": "学習する",
@@ -1006,7 +1045,10 @@
       "validateMultipleFaces": "複数の人が写っています。一人で写っている写真でもう一度お試しください。",
       "validateNotFrontal": "顔が横や上下を向いています。正面を向いた写真でもう一度お試しください。",
       "validateEyesClosed": "目を閉じているようです。目を開けた写真でもう一度お試しください。サングラスも外してください。",
-      "validateMouthOpen": "口が開いています。口を閉じた表情でもう一度お試しください。"
+      "validateMouthOpen": "口が開いています。口を閉じた表情でもう一度お試しください。",
+      "guideBody": "比率を適切に保つため、両肩がフレームに完全に収まる正面向きの、肩から上の縦向き写真を使用してください。1024×1024以上の画像が最適です。",
+      "exampleGood": "鮮明で正面向き",
+      "exampleBad": "近すぎる"
     },
     "voice": {
       "presets": "基本音声プリセット",
@@ -1082,7 +1124,16 @@
         "s2Text": "最近いちばん好きな食べ物は何ですか?私はキムチチゲが大好きです。辛みが濃くて、熱々のスープを一口すすると、一日の疲れがすっと解けるような気がします。特に雨の日に食べるともっとおいしいんです。",
         "s3Title": "思い出の回想",
         "s3Text": "子どもの頃の思い出でいちばん心に残っているのは、家族と一緒に行った海への旅行です。波の音、しょっぱい風、そして砂浜で駆け回ったあの瞬間が今でも鮮やかです。あの時の幸せな気分がまたよみがえります。"
-      }
+      },
+      "warnTooShortTitle": "ファイルが短すぎます",
+      "warnTooShortMsg": "選択したファイルがとても短いです。クローンの声の学習には、30秒〜1分程度の静かな録音が必要です。別のファイルを選んでもう一度アップロードしてください。",
+      "warnTooLargeTitle": "ファイルが大きすぎます",
+      "warnTooLargeMsg": "選択したファイルが長すぎます。30秒〜1分程度に切り取ってもう一度アップロードしてください。",
+      "toastSilence": "声が小さすぎます。もう少し大きな声で話してください。",
+      "toastNoise": "周囲がうるさいです。静かな場所で録音してください。",
+      "recordQualityTitle": "録音品質の確認",
+      "recordQualitySilenceMsg": "録音に無音の部分が多くあります。静かな場所で文章全体をはっきりと録音し直してください。",
+      "recordQualityNoiseMsg": "録音に周囲の雑音が入っています。静かな場所で録音し直すと、クローンの声がずっと自然になります。"
     },
     "visibility": {
       "memlowLocked": "追悼クローンは非公開に固定されます。共同管理者のみ閲覧できます。",
@@ -1095,7 +1146,11 @@
       "selectedTitle": "特定の友達のみ",
       "selectedDesc": "作成後にダッシュボードで友達を指定します",
       "privateTitle": "非公開",
-      "privateDesc": "ご本人のみ閲覧できます"
+      "privateDesc": "ご本人のみ閲覧できます",
+      "selectedDescCount": "友達{{count}}人を選択中 — もう一度タップして変更",
+      "friendPickerNoAuth": "ログインしてからもう一度お試しください。",
+      "friendPickerEmptyTitle": "友達がいません",
+      "friendPickerEmptyMessage": "まだフォローしている人がいません。別の公開範囲を選択するか、誰かをフォローしてからもう一度お試しください。"
     },
     "creating": {
       "title": "クローン作成中...",
@@ -1213,12 +1268,14 @@
       "usernameReservedMsg": "このIDは予約されています。別のIDを入力してください。",
       "usernameTakenMsg": "このIDはすでに使われています。前のステップに戻って別のIDに変更してください。",
       "cloneCreateFailed": "クローンの作成に失敗しました。(cloneIdが見つかりません)",
-      "videoPendingDelayed": "動画を準備中 · 先に投稿しても数分後に反映されます"
+      "videoPendingDelayed": "動画を準備中 · 先に投稿しても数分後に反映されます",
+      "usernameInvalidTitle": "IDの形式エラー"
     },
     "step8": {
       "title": "クローンが完成しました",
       "subtitle": "これからクローンと会話したり\n新しい投稿を上げたりできます。",
-      "toDashboard": "ダッシュボードへ"
+      "toDashboard": "ダッシュボードへ",
+      "confirm": "確認"
     },
     "username": {
       "taken": "このIDはすでに使われています。別のIDを入力してください。",
@@ -1298,7 +1355,11 @@
           "desc": "ペルソナからの返信を見逃したとき"
         }
       },
-      "saveFailed": "設定を保存できませんでした。もう一度お試しください。"
+      "saveFailed": "設定を保存できませんでした。もう一度お試しください。",
+      "permTitle": "権限が必要です",
+      "offTitle": "通知をオフにする",
+      "offHint": "通知をオフにするには、端末の設定で変更してください。",
+      "alarm": "通知"
     },
     "agreements": {
       "title": "同意"
@@ -1499,7 +1560,11 @@
     "reportFail": "通報に失敗しました。",
     "followListLoadFailed": "読み込めませんでした。",
     "followListEmptyFollowers": "まだフォロワーがいません",
-    "followListEmptyFollowing": "まだフォロー中の人がいません"
+    "followListEmptyFollowing": "まだフォロー中の人がいません",
+    "cloneListLoadFailed": "読み込めませんでした。",
+    "subscribingBtn": "フォロー中",
+    "subscribeBtn": "フォロー",
+    "cloneListEmpty": "まだ作成したクローンはありません"
   },
   "friendPicker": {
     "title": "特定の友達にのみ公開",
@@ -2029,5 +2094,78 @@
   "firstLoginConsent": {
     "title": "AfterLife 利用同意",
     "desc": "AfterLife で使用する任意項目です。\n同意しなくてもサービスをご利用いただけます。"
+  },
+  "giftBox": {
+    "title": "ギフトボックス",
+    "tabReceived": "受け取ったギフト",
+    "tabSent": "贈ったギフト",
+    "tabExchange": "交換",
+    "exchangeable": "交換可能",
+    "viewAll": "すべて見る",
+    "exchangeAction": "交換する",
+    "exchangeCta": "{{n}}本を交換する",
+    "flowerUnit": "本",
+    "flowerCount": "{{n}}本",
+    "peopleUnit": "人",
+    "peopleCount": "{{n}}人",
+    "ownedSummary": "{{name}} {{n}}本",
+    "toastBelowMin": "{{min}}本から交換できます(手数料は{{unit}}本につき{{fee}}本、別途)",
+    "toastOverMax": "手数料({{unit}}本につき{{fee}}本)を除いて、最大{{max}}本まで交換できます",
+    "toastDuplicate": "すでに交換を処理しています",
+    "toastEmptyQty": "交換する数量を入力してください",
+    "p1Title": "{{name}} {{qty}}本を交換しますか?",
+    "p1Body": "手数料{{fee}}本を含む{{total}}本が差し引かれ、{{reward}} XRUNを受け取れます。交換後はキャンセルできません。",
+    "p4Title": "交換が完了しました",
+    "p4Body": "{{name}} {{qty}}本が{{reward}} XRUNに交換されました。XRUNウォレット > AfterLifeで報酬を受け取ってください。",
+    "p4Receive": "XRUNで受け取る",
+    "p6Title": "交換できませんでした",
+    "p6Body": "しばらくしてからもう一度お試しください。ギフトは差し引かれていません。",
+    "p6BodyWithNo": "しばらくしてからもう一度お試しください。ギフトは差し引かれていません。(交換番号 {{no}})",
+    "p6NetTitle": "交換結果を確認しています",
+    "p6NetBody": "ネットワークが不安定です。しばらくしてから交換履歴で結果をご確認ください。",
+    "p7Title": "保有数が変わりました",
+    "p7Body": "現在の{{name}}の保有数は{{owned}}本です。数量をもう一度入力してください。",
+    "p8Title": "交換サービスはメンテナンス中です",
+    "p8Body": "しばらくしてからもう一度お試しください。",
+    "p8BodyRange": "{{range}}の間は交換できません。",
+    "p9Title": "交換条件が変わりました",
+    "p9Body": "新しい条件をご確認ください。{{qty}}本 → {{reward}} XRUN、手数料 {{fee}}本",
+    "p9Retry": "再確認",
+    "p10Title": "このアカウントは交換できません",
+    "p10Body": "XRUNアカウントの状態をご確認ください。ご不明な点はカスタマーセンターまでお問い合わせください。",
+    "today": "今日",
+    "adRewardSender": "広告報酬",
+    "anonymous": "匿名",
+    "ownedLabel": "保有中",
+    "ownedEmpty": "保有中のギフトはありません",
+    "filterAll": "すべて",
+    "filterAnon": "匿名のみ",
+    "loadMore": "もっと見る ({{n}})",
+    "receivedTitle": "{{name}}さんが{{gift}}を贈りました",
+    "toClone": "クローン{{name}}へ",
+    "toUnknownClone": "クローンへ",
+    "sentThisMonth": "今月贈ったギフト",
+    "sentPeople": "受け取った人",
+    "emptySent": "まだ贈ったギフトはありません",
+    "someone": "相手",
+    "sentTo": "{{name}}さんへ{{gift}}",
+    "delivered": "お届け済み",
+    "browseHint": "お気に入りのクローンにギフトを贈ってみましょう",
+    "browseClones": "クローンを見てみる",
+    "emptyExchange": "交換できるギフトはありません",
+    "exchangeTarget": "交換するギフト",
+    "selectAll": "すべて選択",
+    "exchangeMaintenance": "交換サービスはメンテナンス中です",
+    "exchangeMinNotice": "手数料込みで{{min}}本から交換できます(現在{{owned}}本)",
+    "exchangeQty": "交換数量",
+    "fee": "手数料",
+    "reward": "受け取る報酬",
+    "exchangeSummary": "合計{{deducted}}本差し引き(手数料{{fee}}本含む)· 報酬 {{reward}} XRUN",
+    "statusClaimed": "受取済み",
+    "statusFailed": "失敗(ギフト返却済み)",
+    "statusPending": "受取待ち",
+    "recentExchange": "最近の交換履歴",
+    "emptyExchangeHistory": "最近の交換履歴はありません",
+    "historyTitle": "{{name}} {{n}}本 → {{reward}} XRUN"
   }
 }

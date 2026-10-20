@@ -31,7 +31,9 @@
     "durationMin": "{{m}}分钟",
     "durationMinSec": "{{m}}分{{s}}秒",
     "expertBadge": "专家",
-    "pressBackToExit": "再按一次返回键退出"
+    "pressBackToExit": "再按一次返回键退出",
+    "agoWeeks": "{{n}}周前",
+    "exitPrompt": "再按一次退出"
   },
   "tabs": {
     "home": "首页",
@@ -73,12 +75,15 @@
       "reportFailed": "举报失败",
       "reportSuccessBlocked": "举报已受理。该克隆已被拉黑",
       "userBlocked": "已屏蔽",
-      "blockUserFailed": "屏蔽失败"
+      "blockUserFailed": "屏蔽失败",
+      "visibilityUpdated": "公开范围已更改",
+      "visibilityFailed": "公开范围更改失败"
     },
     "actions": {
       "block": "屏蔽",
       "report": "举报"
-    }
+    },
+    "commentSending": "发送中..."
   },
   "notifications": {
     "title": "通知",
@@ -287,7 +292,24 @@
     "callTranscriptTitle": "通话内容",
     "missedCall": "未接来电",
     "sort": "排序",
-    "adBannerFallback": "横幅广告"
+    "adBannerFallback": "横幅广告",
+    "personaNameFallback": "角色",
+    "deleteMessageTitle": "删除消息",
+    "menuCall": "通话",
+    "menuMute": "关闭通知",
+    "menuUnmute": "开启通知",
+    "menuUnsubscribe": "取消订阅",
+    "missedCallGroup": "未接来电 {{count}} 个 · {{date}}",
+    "inputPlaceholderWith": "正在与{{name}}聊天",
+    "voiceCall": "语音通话",
+    "voiceCallAt": "语音通话 · {{time}}",
+    "voiceCallWithDuration": "语音通话 · {{duration}} · {{time}}",
+    "durationMinSec": "{{m}}分{{s}}秒",
+    "durationSec": "{{s}}秒",
+    "intimacyMilestone": "你与{{name}}的温度达到了{{score}}°C",
+    "sortRecent": "最近对话",
+    "sortIntimacy": "亲密度从高到低",
+    "sortName": "按名称"
   },
   "call": {
     "calling": "连接中...",
@@ -455,7 +477,13 @@
     "summaryLabelCall": "通话",
     "summaryLabelChat": "聊天",
     "summaryLabelFeed": "动态",
-    "summaryLabelLearn": "探索"
+    "summaryLabelLearn": "探索",
+    "giftReceiptsTitle": "收到的礼物",
+    "giftReceiptsTotal": "共{{n}}个",
+    "giftReceiptsEmpty": "还没有收到礼物",
+    "followers": "订阅者",
+    "likes": "点赞",
+    "createdAt": "创建日期"
   },
   "detail": {
     "notFound": "找不到克隆。",
@@ -512,7 +540,9 @@
     "currentVoiceCatalog": "🎵 目录声音",
     "currentVoiceHint": "在下方列表中选择其他声音后,通话时将使用该声音。",
     "voiceStop": "■ 停止",
-    "voicePreview": "▶ 预览"
+    "voicePreview": "▶ 预览",
+    "voiceLabel": "声音",
+    "voiceEmpty": "没有已注册的声音。"
   },
   "dashboard": {
     "title": "My Page",
@@ -584,7 +614,16 @@
     "giftHeaderSender": "赠送者",
     "emptyGift": "还没有收到礼物",
     "reportReceived": "举报已受理",
-    "uploadAvatarFailed": "图片上传失败"
+    "uploadAvatarFailed": "图片上传失败",
+    "giftInventoryTitle": "我的礼物",
+    "giftTotalReceivedBefore": "共收到礼物 ",
+    "giftTotalReceivedAfter": "个",
+    "giftLogMore": "查看更多 ({{n}})",
+    "giftLogOpenFailTitle": "无法打开",
+    "giftLogOpenFailDesc": "请安装 XRUN 应用。",
+    "giftKindReceived": "收到",
+    "giftKindSent": "送出",
+    "giftKindExchanged": "兑换"
   },
   "learn": {
     "title": "学习",
@@ -1006,7 +1045,10 @@
       "validateMultipleFaces": "照片中有多个人。请使用只有一人的照片重试。",
       "validateNotFrontal": "脸部朝向侧面或上下。请使用正面照片重试。",
       "validateEyesClosed": "眼睛似乎是闭着的。请使用睁眼的照片重试，并摘下墨镜。",
-      "validateMouthOpen": "嘴巴是张开的。请使用闭嘴的表情重试。"
+      "validateMouthOpen": "嘴巴是张开的。请使用闭嘴的表情重试。",
+      "guideBody": "为保持合适的比例,请使用正面朝向、双肩完整位于画面内的肩部以上竖版照片。1024×1024 及以上的图片效果最佳。",
+      "exampleGood": "清晰、正面",
+      "exampleBad": "距离太近"
     },
     "voice": {
       "presets": "默认音色预设",
@@ -1082,7 +1124,16 @@
         "s2Text": "您最近最喜欢吃什么？我特别喜欢泡菜汤。浓郁的辣味加上热腾腾的汤，一口下去仿佛一整天的疲惫都消散了。尤其是下雨天喝，更加美味。",
         "s3Title": "回忆往昔",
         "s3Text": "童年回忆里最让我难忘的，是和家人一起去的那次海边旅行。海浪声、带着咸味的海风，还有在沙滩上奔跑玩耍的瞬间，至今仍历历在目。那时的幸福感又浮现出来了。"
-      }
+      },
+      "warnTooShortTitle": "文件太短",
+      "warnTooShortMsg": "所选文件太短。克隆声音训练需要 30 秒到 1 分钟的安静录音。请选择其他文件重新上传。",
+      "warnTooLargeTitle": "文件太大",
+      "warnTooLargeMsg": "所选文件太长。请剪辑为 30 秒到 1 分钟后重新上传。",
+      "toastSilence": "声音太小了。请大声一点说话。",
+      "toastNoise": "周围太吵了。请在安静的地方录音。",
+      "recordQualityTitle": "检查录音质量",
+      "recordQualitySilenceMsg": "录音中静音部分较多。请在安静的地方清晰地重新录制整段文字。",
+      "recordQualityNoiseMsg": "录音中混入了环境噪音。在安静的地方重新录制,克隆声音会自然得多。"
     },
     "visibility": {
       "memlowLocked": "追思克隆固定为不公开。仅共同管理员可见。",
@@ -1093,7 +1144,13 @@
       "followersTitle": "订阅者可见",
       "followersDesc": "仅订阅者可以查看",
       "privateTitle": "不公开",
-      "privateDesc": "仅本人可以查看"
+      "privateDesc": "仅本人可以查看",
+      "selectedTitle": "指定好友",
+      "selectedDesc": "点击选择好友",
+      "selectedDescCount": "已选择{{count}}位好友 — 再次点击可更改",
+      "friendPickerNoAuth": "请登录后重试。",
+      "friendPickerEmptyTitle": "还没有好友",
+      "friendPickerEmptyMessage": "你还没有关注任何人。请选择其他公开范围,或关注他人后重试。"
     },
     "creating": {
       "title": "克隆生成中...",
@@ -1211,12 +1268,14 @@
       "usernameReservedMsg": "该用户名已被保留,请使用其他名称。",
       "usernameTakenMsg": "该用户名已被使用。请返回上一步并更换其他名称。",
       "cloneCreateFailed": "克隆创建失败。(缺少 cloneId)",
-      "videoPendingDelayed": "视频准备中 · 可以先发布,几分钟后生效"
+      "videoPendingDelayed": "视频准备中 · 可以先发布,几分钟后生效",
+      "usernameInvalidTitle": "用户名格式错误"
     },
     "step8": {
       "title": "克隆已完成",
       "subtitle": "现在可以与克隆对话\n或发布新的内容了。",
-      "toDashboard": "前往仪表板"
+      "toDashboard": "前往仪表板",
+      "confirm": "确认"
     },
     "username": {
       "taken": "该用户名已被使用,请换一个。",
@@ -1287,9 +1346,17 @@
         "moderation": {
           "label": "举报处理结果",
           "desc": "关于你的账号或角色的举报处理结果（警告、停用等）"
+        },
+        "messages": {
+          "label": "消息",
+          "desc": "未查看角色的回复时"
         }
       },
-      "saveFailed": "无法保存设置，请重试。"
+      "saveFailed": "无法保存设置，请重试。",
+      "permTitle": "需要权限",
+      "offTitle": "关闭通知",
+      "offHint": "如需关闭通知,请在系统设置中更改。",
+      "alarm": "通知"
     },
     "agreements": {
       "title": "同意事项"
@@ -1490,7 +1557,11 @@
     "reportFail": "举报失败。",
     "followListLoadFailed": "无法加载。",
     "followListEmptyFollowers": "还没有粉丝",
-    "followListEmptyFollowing": "还没有关注"
+    "followListEmptyFollowing": "还没有关注",
+    "cloneListLoadFailed": "加载失败。",
+    "subscribingBtn": "已订阅",
+    "subscribeBtn": "订阅",
+    "cloneListEmpty": "还没有创建克隆"
   },
   "friendPicker": {
     "title": "仅向特定好友公开",
@@ -2020,5 +2091,78 @@
   "firstLoginConsent": {
     "title": "AfterLife 使用同意",
     "desc": "以下为 AfterLife 使用的可选项目。\n不同意也可以使用服务。"
+  },
+  "giftBox": {
+    "title": "礼物箱",
+    "tabReceived": "收到的礼物",
+    "tabSent": "送出的礼物",
+    "tabExchange": "兑换",
+    "exchangeable": "可兑换",
+    "viewAll": "查看全部",
+    "exchangeAction": "兑换",
+    "exchangeCta": "兑换{{n}}朵",
+    "flowerUnit": "朵",
+    "flowerCount": "{{n}}朵",
+    "peopleUnit": "人",
+    "peopleCount": "{{n}}人",
+    "ownedSummary": "{{name}} {{n}}朵",
+    "toastBelowMin": "{{min}}朵起可兑换(手续费每{{unit}}朵另收{{fee}}朵)",
+    "toastOverMax": "扣除手续费(每{{unit}}朵{{fee}}朵)后,最多可兑换{{max}}朵",
+    "toastDuplicate": "兑换正在处理中",
+    "toastEmptyQty": "请输入兑换数量",
+    "p1Title": "要兑换{{name}} {{qty}}朵吗?",
+    "p1Body": "将扣除含手续费{{fee}}朵在内的{{total}}朵,您将获得{{reward}} XRUN。兑换后无法取消。",
+    "p4Title": "兑换完成",
+    "p4Body": "{{name}} {{qty}}朵已兑换为{{reward}} XRUN。请前往 XRUN 钱包 > AfterLife 领取奖励。",
+    "p4Receive": "在 XRUN 领取",
+    "p6Title": "兑换失败",
+    "p6Body": "请稍后再试。礼物未被扣除。",
+    "p6BodyWithNo": "请稍后再试。礼物未被扣除。(兑换编号 {{no}})",
+    "p6NetTitle": "正在确认兑换结果",
+    "p6NetBody": "网络不稳定。请稍后在兑换记录中确认结果。",
+    "p7Title": "持有数量已变更",
+    "p7Body": "您当前持有{{name}} {{owned}}朵。请重新输入数量。",
+    "p8Title": "兑换服务维护中",
+    "p8Body": "请稍后再试。",
+    "p8BodyRange": "{{range}}期间无法兑换。",
+    "p9Title": "兑换条件已变更",
+    "p9Body": "请确认新的条件。{{qty}}朵 → {{reward}} XRUN,手续费 {{fee}}朵",
+    "p9Retry": "重新确认",
+    "p10Title": "该账户无法兑换",
+    "p10Body": "请检查您的 XRUN 账户状态。如有疑问,请联系客服中心。",
+    "today": "今天",
+    "adRewardSender": "广告奖励",
+    "anonymous": "匿名",
+    "ownedLabel": "持有中",
+    "ownedEmpty": "没有持有的礼物",
+    "filterAll": "全部",
+    "filterAnon": "仅匿名",
+    "loadMore": "查看更多 ({{n}})",
+    "receivedTitle": "{{name}}送了{{gift}}",
+    "toClone": "给克隆{{name}}",
+    "toUnknownClone": "给克隆",
+    "sentThisMonth": "本月送出的礼物",
+    "sentPeople": "收礼人",
+    "emptySent": "还没有送出礼物",
+    "someone": "对方",
+    "sentTo": "送给{{name}}的{{gift}}",
+    "delivered": "已送达",
+    "browseHint": "给喜欢的克隆送份礼物吧",
+    "browseClones": "浏览克隆",
+    "emptyExchange": "没有可兑换的礼物",
+    "exchangeTarget": "要兑换的礼物",
+    "selectAll": "全选",
+    "exchangeMaintenance": "兑换服务维护中",
+    "exchangeMinNotice": "含手续费满{{min}}朵即可兑换(当前{{owned}}朵)",
+    "exchangeQty": "兑换数量",
+    "fee": "手续费",
+    "reward": "将获得的奖励",
+    "exchangeSummary": "共扣除{{deducted}}朵(含手续费{{fee}}朵)· 奖励 {{reward}} XRUN",
+    "statusClaimed": "已领取",
+    "statusFailed": "失败(礼物已退回)",
+    "statusPending": "待领取",
+    "recentExchange": "最近兑换记录",
+    "emptyExchangeHistory": "没有最近的兑换记录",
+    "historyTitle": "{{name}} {{n}}朵 → {{reward}} XRUN"
   }
 }

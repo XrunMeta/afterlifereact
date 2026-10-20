@@ -356,9 +356,9 @@ export default function v_14b43e() {
   const [v_5e8330, v_1db134] = v_5ab095<SortMode>("recent");
   const [v_557d00, v_538ca9] = v_5ab095(false);
   const v_904373 = {
-    recent: "최근 대화순",
-    intimacy: "친밀도 높은 순",
-    name: "이름순",
+    recent: v_8d41d7("chat.sortRecent", { defaultValue: "최근 대화순" }),
+    intimacy: v_8d41d7("chat.sortIntimacy", { defaultValue: "친밀도 높은 순" }),
+    name: v_8d41d7("chat.sortName", { defaultValue: "이름순" }),
   };
 
   const [v_c591dc, v_6f4b5a] = v_5ab095<Set<number>>(new Set());
@@ -516,7 +516,7 @@ export default function v_14b43e() {
                 cloneId: v_23805a.clone.id,
                 content:
                   v_23805a.last.text ??
-                  (v_23805a.last.type === "call" ? "음성 통화" : ""),
+                  (v_23805a.last.type === "call" ? v_8d41d7("chat.voiceCall", { defaultValue: "음성 통화" }) : ""),
                 mediaUrl: v_23805a.clone.avatarUrl ?? undefined,
                 mediaType: null,
                 likesCount: 0,
@@ -577,6 +577,7 @@ export default function v_14b43e() {
     v_632473,
     v_9e799c,
     v_5e8330,
+    v_8d41d7,
   ]);
 
   const v_94f30e = v_df9f57(() => {
