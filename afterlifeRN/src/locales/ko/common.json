@@ -362,7 +362,7 @@
     "endCallA11yReady": "통화 종료 (지금 말할 수 있음)",
     "endCallA11y": "통화 종료",
     "endCallA11yHint": "지금 말해도 됩니다. 이 버튼을 누르면 통화가 종료됩니다.",
-    "giftEmptyTitle": "보유 꽃이 없어요",
+    "giftEmptyTitle": "보유한 꽃이 없어요",
     "giftEmptyBody": "꽃을 구매하러 이동할까요?",
     "giftEmptyBuy": "구매하기",
     "giftOwnedCount": "{{count}}개 보유",

@@ -156,6 +156,23 @@ v_469bf2("intimacy system message", () => {
     v_4d37e3(v_ef8ab1.items.map((v_ebec57) => v_ebec57.clone.id)).not.toContain(v_6e0fd3);
   });
 
+  v_23805a("주인이 페르소나 알림을 끄면 온도 상승 알림도 안 간다", async () => {
+    const v_257b90 = await v_bfb240("owner6");
+    const v_debed8 = await v_bfb240("viewer6");
+    const v_6e0fd3 = await v_4d24a9(v_257b90, "별");
+    const v_9e86fd = v_c9c489 as unknown as v_273a0c;
+    const v_290da6 = async () =>
+      (await v_a1651b()
+        .prepare(`SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND type = 'intimacy_score'`)
+        .bind(v_257b90)
+        .first<{ n: number }>())!.n;
+    await v_721d54(v_9e86fd, v_debed8, v_6e0fd3, 1, "chat");
+    v_4d37e3(await v_290da6()).toBe(1);
+    await v_a1651b().prepare(`INSERT INTO clone_notification_mutes (user_id, clone_id) VALUES (?, ?)`).bind(v_257b90, v_6e0fd3).run();
+    await v_721d54(v_9e86fd, v_debed8, v_6e0fd3, 1, "chat");
+    v_4d37e3(await v_290da6()).toBe(1);
+  });
+
   v_23805a("통화만 한 페르소나도 메세지 목록에 포함", async () => {
     const v_257b90 = await v_bfb240("owner2");
     const v_debed8 = await v_bfb240("viewer2");

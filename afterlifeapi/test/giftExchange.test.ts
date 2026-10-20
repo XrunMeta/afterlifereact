@@ -66,9 +66,10 @@ v_469bf2("gift → XRUN exchange", () => {
       xrunLinked: true,
       giftId: "gift-rose",
       ownedQty: 13,
-      exchangeableQty: 12,
+      exchangeableQty: 11, 
       minQty: 10,
       feeQty: 1,
+      feeUnit: 10,
       rateVersion: 1,
       priceSegments: [{ price: "0.01", count: 3 }, { price: "0.1", count: 10 }],
     });
@@ -128,6 +129,19 @@ v_469bf2("gift → XRUN exchange", () => {
       });
     const v_65a2cd = await v_51c3d2(v_ceb55a, "GET", "/oth-path");
     v_4d37e3(v_65a2cd.json.items[0]).toMatchObject({ exchangeId: v_3e36b0.json.exchangeId, rewardStatus: "claimed" });
+  });
+
+  v_23805a("수수료는 10송이당 1송이: 12송이 보유면 최대 10송이, 21송이면 19송이", async () => {
+    const { giftExchangeFee: v_e4ea0f, giftExchangeMaxQty: v_c47972, GIFT_EXCHANGE_DEFAULT: v_6ebdd1 } = await import("../src/lib/appConfig");
+    const v_01dcf5 = v_6ebdd1;
+    v_4d37e3(v_e4ea0f(v_01dcf5, 10)).toBe(1);
+    v_4d37e3(v_e4ea0f(v_01dcf5, 11)).toBe(2);
+    v_4d37e3(v_e4ea0f(v_01dcf5, 20)).toBe(2);
+    v_4d37e3(v_c47972(v_01dcf5, 11)).toBe(10);
+    v_4d37e3(v_c47972(v_01dcf5, 12)).toBe(10);
+    v_4d37e3(v_c47972(v_01dcf5, 13)).toBe(11);
+    v_4d37e3(v_c47972(v_01dcf5, 21)).toBe(19);
+    v_4d37e3(v_c47972(v_01dcf5, 22)).toBe(20);
   });
 
   v_23805a("검증: 최소 미달·보유 부족·조건 변경·점검·키 없음", async () => {

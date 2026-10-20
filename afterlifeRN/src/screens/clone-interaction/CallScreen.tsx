@@ -3107,21 +3107,9 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
                     if (giftOwnedCount <= 0) {
                       showAlert(
-                        t("call.giftEmptyTitle", { defaultValue: "보유 꽃이 없어요" }),
-                        t("call.giftEmptyBody", { defaultValue: "꽃을 구매하러 이동할까요?" }),
-                        [
-                          { text: t("common.cancel", { defaultValue: "취소" }), style: "cancel" },
-                          {
-                            text: t("call.giftEmptyBuy", { defaultValue: "구매하기" }),
-                            onPress: () => {
-                              setShowGifts(false);
-
-                              navigation.getParent()?.dispatch(
-                                CommonActions.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
-                              );
-                            },
-                          },
-                        ],
+                        t("call.giftEmptyTitle", { defaultValue: "보유한 꽃이 없어요" }),
+                        undefined,
+                        [{ text: t("common.confirm", { defaultValue: "확인" }) }],
                       );
                       return;
                     }
