@@ -2127,6 +2127,9 @@ v_f891e6.post("/:id/report", v_6690d9, async (v_3f4e2e) => {
 
 const v_1e23ae = v_1f4ea7.object({
   durationSeconds: v_1f4ea7.number().int().min(0).max(86400).optional(),
+
+  callId: v_1f4ea7.string().max(64).optional(), 
+  adSeconds: v_1f4ea7.number().int().min(0).max(86400).optional(),
 });
 v_f891e6.post("/:id/call-event", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
@@ -2134,11 +2137,21 @@ v_f891e6.post("/:id/call-event", v_6690d9, async (v_3f4e2e) => {
     throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const v_43e90c = v_3f4e2e.get("userId")!;
-  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_1e23ae).catch(() => ({ durationSeconds: undefined }));
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_1e23ae).catch(() => ({}) as v_1f4ea7.infer<typeof v_1e23ae>);
   await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "call");
 
   const v_a712cf = v_4d33b2.durationSeconds ?? 0;
   const v_b72a1c = await v_70d294(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_a712cf);
+  if (v_4d33b2.callId && /^[0-9a-f]{12}$/.test(v_4d33b2.callId) && v_4d33b2.durationSeconds !== undefined) {
+
+    try {
+      await v_3f4e2e.env.DB.prepare(
+        `UPDATE call_sessions SET talk_sec = ?, ad_sec = ? WHERE call_id = ? AND user_id = ? AND clone_id = ?`,
+      ).bind(v_4d33b2.durationSeconds, v_4d33b2.adSeconds ?? null, v_4d33b2.callId, v_43e90c, v_6e0fd3).run();
+    } catch (v_49263d) {
+      console.warn(`[call-event] talk_sec 기록 실패 call=${v_4d33b2.callId}: ${(v_49263d as Error).message}`);
+    }
+  }
   const v_27e8db = v_b72a1c.scoreApplied;
   await v_74defc(v_3f4e2e, {
     userId: v_43e90c,

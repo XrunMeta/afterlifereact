@@ -4,6 +4,7 @@ import { v_f1bdb6 } from "jwyginyjztgsuhdvvop";
 
 import type { v_de0a25 } from "./lib/env";
 import { v_09b071 } from "./scheduled/cleanup";
+import { v_4d538f } from "./scheduled/staleCalls";
 import { v_c6eab8, v_ca800d } from "./middleware/error";
 import { v_353f26 } from "./middleware/rateLimit";
 
@@ -205,6 +206,12 @@ export default {
           ),
         )
         .catch((v_49263d) => console.error(`[CRON_FAIL] ${(v_49263d as Error).message}`)),
+    );
+
+    v_16e2dd.waitUntil(
+      v_4d538f(v_c9c489)
+        .then((v_cb35cb) => console.log(`[CRON] stale-calls done found=${v_cb35cb.found} closed=${v_cb35cb.closed}`))
+        .catch((v_49263d) => console.error(`[CRON_FAIL] stale-calls ${(v_49263d as Error).message}`)),
     );
 
     v_16e2dd.waitUntil(
