@@ -27,7 +27,6 @@ import { v_772971 } from 'jmpfvteuuztnp';
 import type { v_390fcc } from 'xpfgrcdafpntkgxfmgxpxnedjkvmtc';
 import type { v_2b51a5 } from '../../navigation/types';
 
-import v_556baf from '../../components/ui/SafeView';
 import { v_1bfbd0, v_9b1a04, v_e3d001, v_8f28b1, v_7c5e29, v_0da505 } from '../../components/constants';
 import { v_194498 } from '../../stores/cloneStore';
 import { v_1ed7d9 } from '../../stores/authStore';
@@ -119,6 +118,7 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
     const v_206f77 = v_326be8.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
     const v_53f5d7 = v_0e1f26.addListener(v_399925, (v_9e86fd) => {
       v_de86c2(v_9e86fd?.endCoordinates?.height ?? 0);
+      setTimeout(() => v_5ca6b8.current?.scrollToEnd({ animated: true }), 50);
     });
     const v_52528b = v_0e1f26.addListener(v_206f77, () => v_de86c2(0));
     return () => { v_53f5d7.remove(); v_52528b.remove(); };
@@ -583,8 +583,10 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
     v_c65f5d.goBack();
   };
 
+  const v_130b3e = v_7e4acc > 0 ? v_7e4acc : v_033e14.bottom;
+
   return (
-    <SafeView backgroundColor={v_1bfbd0.white}>
+    <View style={[v_fd5f43.shell, { paddingBottom: v_130b3e }]}>
       {}
       <View style={[v_fd5f43.header, { paddingTop: v_033e14.top + 6 }]}>
         <TouchableOpacity onPress={v_c7ac57} hitSlop={12} style={v_fd5f43.backBtn}>
@@ -617,8 +619,8 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
 
-        behavior={v_326be8.OS === 'ios' ? 'padding' : 'height'}
-        enabled={v_326be8.OS === 'ios' ? true : v_7e4acc > 0}
+        behavior={v_326be8.OS === 'android' ? 'height' : undefined}
+        enabled={v_326be8.OS === 'android' && v_7e4acc > 0}
       >
         {}
         <ScrollView
@@ -741,11 +743,12 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
           </View>
         )}
       </KeyboardAvoidingView>
-    </SafeView>
+    </View>
   );
 }
 
 const v_fd5f43 = v_472849.create({
+  shell: { flex: 1, backgroundColor: v_1bfbd0.white },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

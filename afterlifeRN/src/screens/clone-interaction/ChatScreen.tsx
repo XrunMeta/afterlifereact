@@ -27,7 +27,6 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_84d546 } from "../../lib/callGuard";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
-import v_556baf from "../../components/ui/SafeView";
 import v_06b8c0 from "../../components/clone/IntimacyEventsSheet";
 import v_fb73af from "../../components/ads/PangleBannerAd";
 import { v_60086b } from "../../lib/pangle";
@@ -439,17 +438,15 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
   const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
 
+  const v_130b3e =
+    v_7e4acc > 0 ? v_7e4acc : v_033e14.bottom;
+
   return (
-    <SafeView
-      showBottomBackground
-      backgroundColor={v_1bfbd0.white}
-      bottomBackgroundColor={v_1bfbd0.white}
-    >
+    <View style={[v_d81136.shell, { paddingBottom: v_130b3e }]}>
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={v_326be8.OS === "ios" ? "padding" : "height"}
-      enabled={v_326be8.OS === "ios" ? true : v_7e4acc > 0}
-      keyboardVerticalOffset={0}
+      behavior={v_326be8.OS === "android" ? "height" : undefined}
+      enabled={v_326be8.OS === "android" && v_7e4acc > 0}
     >
     <View style={[v_d81136.root, { paddingTop: v_033e14.top }]}>
       {}
@@ -831,7 +828,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       </Modal>
     </View>
     </KeyboardAvoidingView>
-    </SafeView>
+    </View>
   );
 }
 
@@ -889,6 +886,7 @@ function v_2f64a9(v_779914, v_148ff6): boolean {
 }
 
 const v_d81136 = v_472849.create({
+  shell: { flex: 1, backgroundColor: v_1bfbd0.white },
   root: { flex: 1, backgroundColor: v_1bfbd0.white },
 
   header: {
