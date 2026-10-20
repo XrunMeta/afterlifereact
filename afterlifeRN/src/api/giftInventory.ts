@@ -93,3 +93,76 @@ export async function v_e2ae57(
     v_6f448e,
   );
 }
+
+export interface GiftExchangeEligibility {
+  xrunLinked: boolean;
+  enabled: boolean;
+  giftId: string | null;
+  giftName: string | null;
+  giftEmoji: string;
+  giftImageUrl: string | null;
+  ownedQty: number;
+
+  exchangeableQty: number;
+  minQty: number;
+  feeQty: number;
+  rateVersion: number;
+
+  priceSegments: Array<{ price: string; count: number }>;
+  currency: "XRUN";
+  maintenance: { from: number; to: number; message?: string } | null;
+}
+
+export interface GiftExchangeResult {
+  exchangeId: number;
+  exchangeNo: string;
+  giftId: string;
+  giftName: string;
+  qty: number;
+  feeQty: number;
+  deductedQty: number;
+
+  reward: string;
+  rewardStatus: "pending_claim" | "claimed" | "failed";
+  createdAt: number;
+  claimedAt: number | null;
+}
+
+export async function v_a56ba0(
+  v_2ca7e0,
+  v_96f93d,
+): Promise<GiftExchangeEligibility> {
+  const v_ab6401 = v_96f93d ? `?giftId=${encodeURIComponent(v_96f93d)}` : "";
+  return v_04b58a<GiftExchangeEligibility>(`/oth-path${v_ab6401}`, v_2ca7e0, { method: "GET" });
+}
+
+export async function v_541c70(
+  v_2ca7e0,
+  v_931bf0,
+  v_6f448e,
+): Promise<GiftExchangeResult> {
+  return v_04b58a<GiftExchangeResult>(
+    "/oth-path",
+    v_2ca7e0,
+    { method: "POST", body: JSON.stringify(v_931bf0) },
+    v_6f448e,
+  );
+}
+
+export async function v_9c3304(
+  v_2ca7e0,
+): Promise<{ items: GiftExchangeResult[] }> {
+  return v_04b58a<{ items: GiftExchangeResult[] }>("/oth-path", v_2ca7e0, { method: "GET" });
+}
+
+export function v_c55c0b(v_665404, v_d016c9): number {
+  let v_dbaa7f = Math.max(0, v_d016c9);
+  let v_dce0a8 = 0;
+  for (const v_fd5f43 of v_665404) {
+    if (v_dbaa7f <= 0) break;
+    const v_f4e98d = Math.min(v_dbaa7f, v_fd5f43.count);
+    v_dce0a8 += v_f4e98d * Number(v_fd5f43.price);
+    v_dbaa7f -= v_f4e98d;
+  }
+  return Math.round(v_dce0a8 * 1e8) / 1e8;
+}
