@@ -106,6 +106,8 @@ export interface Bindings {
 
   XRUN_BRIDGE_SECRET?: string;
 
+  XRUN_BRIDGE_REDEEM_ENABLED?: string;
+
   VISEME_RENDER_URL?: string;
   VISEME_RENDER_SECRET?: string;  
 }

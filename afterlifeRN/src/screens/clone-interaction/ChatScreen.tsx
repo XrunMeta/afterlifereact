@@ -30,7 +30,7 @@ import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import v_06b8c0 from "../../components/clone/IntimacyEventsSheet";
 import v_fb73af from "../../components/ads/PangleBannerAd";
 import { v_60086b } from "../../lib/pangle";
-import { v_08bca5 } from "../../lib/useChatLiveRefresh";
+import { v_08bca5, v_12f485 } from "../../lib/useChatLiveRefresh";
 import { v_1bfbd0, v_8b0c90, v_9b1a04, v_0da505, v_94abbe } from "../../components/constants";
 import {
   v_8a85e2,
@@ -356,6 +356,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         );
         return [v_e44122, v_8338f4, ...v_694b25];
       });
+
+      v_12f485(v_6e0fd3);
 
       if (v_d6f043.current && v_6b5698.currentState === "active") {
         void v_9cb700(v_6e0fd3, v_2ca7e0);
