@@ -29,6 +29,7 @@ import {
 } from "../lib/interactions";
 import { v_7a6fc0 } from "../lib/xrun";
 import { v_c226a5, v_80a022 } from "../lib/notify";
+import { v_6fcc82 } from "../lib/notificationTemplates";
 import { v_0b44ec } from "../lib/personaQuestions";
 import { v_70b594 } from "../lib/knowledgeQuestions";
 import { v_038cdc } from "../lib/knowledgeStore";
@@ -567,6 +568,8 @@ v_f891e6.post(
             type: "followee_new_clone",
             title: "🌟 새 페르소나",
             body: `${v_6dd0ab} 님이 새 페르소나 '${v_4d33b2.name}' 을(를) 만들었어요`,
+            templateKey: "followee.new_clone",
+            vars: { actorName: v_6fcc82(v_380fb2?.name || v_380fb2?.email?.split("@")[0]), cloneName: String(v_4d33b2.name ?? "") },
             url: `afterlife://clone/${v_6e0fd3}`,
             data: { cloneId: v_6e0fd3, ownerId: v_43e90c },
             skipEmail: true,
@@ -2020,6 +2023,8 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
     actorId: v_f7e120,
     cloneId: v_6e0fd3,
     extraBody: `${v_4d33b2.giftName} 선물 (+${v_1d6a30} XRUN)`,
+    giftName: v_4d33b2.giftName,
+    giftAmount: v_1d6a30,
   });
 
   try {
