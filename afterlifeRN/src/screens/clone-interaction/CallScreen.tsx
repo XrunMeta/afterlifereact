@@ -2413,6 +2413,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   }, [stopLive, exitToMain]);
 
   const callStartRef = useRef<number>(Date.now());
+
+  const statsCallIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (liveState === "live") statsCallIdRef.current = getCallId?.() ?? statsCallIdRef.current;
+  }, [liveState, getCallId]);
   const tokenRef = useRef(accessToken);
   const cloneIdRef = useRef(cloneId);
   useEffect(() => {
@@ -2433,9 +2438,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         0,
         Math.floor((Date.now() - callStartRef.current - afl971AdTotalMsRef.current) / 1000),
       );
-      console.log(`[Call] POST /oth-path${cid}/call-event { durationSeconds: ${durationSeconds} }`);
+      const adSeconds = Math.floor(afl971AdTotalMsRef.current / 1000);
+      const callId = statsCallIdRef.current ?? undefined;
+      console.log(`[Call] POST /oth-path${cid}/call-event { durationSeconds: ${durationSeconds}, adSeconds: ${adSeconds}, callId: ${callId ?? "-"} }`);
 
-      postCloneCallEvent(token, cid, { durationSeconds })
+      postCloneCallEvent(token, cid, { durationSeconds, adSeconds, callId })
         .then((res) =>
           console.log(`[Call] call-event ← ok scoreApplied=${(res as { scoreApplied?: number }).scoreApplied ?? 0}°C (duration=${durationSeconds}s, >=1200 이면 +15°C)`),
         )
