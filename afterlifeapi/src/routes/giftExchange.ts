@@ -112,6 +112,8 @@ v_7de069.get("/eligibility", v_6690d9, async (v_3f4e2e) => {
     .first<{ xrun_member_id: number | null }>();
   return v_3f4e2e.json({
     xrunLinked: !!v_38066f?.xrun_member_id,
+
+    xrunMemberId: v_38066f?.xrun_member_id ?? null,
     enabled: v_01dcf5.enabled,
     giftId: v_96f93d,
     giftName: v_8c0b26?.name ?? v_96f93d,
