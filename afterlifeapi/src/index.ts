@@ -210,7 +210,7 @@ export default {
 
     v_16e2dd.waitUntil(
       v_4d538f(v_c9c489)
-        .then((v_cb35cb) => console.log(`[CRON] stale-calls done found=${v_cb35cb.found} closed=${v_cb35cb.closed}`))
+        .then((v_cb35cb) => console.log(`[CRON] stale-calls done found=${v_cb35cb.found} closed=${v_cb35cb.closed} closedGreeted=${v_cb35cb.closedGreeted}`))
         .catch((v_49263d) => console.error(`[CRON_FAIL] stale-calls ${(v_49263d as Error).message}`)),
     );
 
