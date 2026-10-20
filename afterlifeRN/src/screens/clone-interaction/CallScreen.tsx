@@ -169,6 +169,7 @@ import {
 } from "../../realtime/rememberMeReducer";
 import ExpertBadge from "../../components/ui/ExpertBadge";
 import { logAppsFlyerCallVideoStart } from "../../lib/appsFlyer";
+import { setCallActive } from "../../lib/callActivity";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
 
@@ -2405,6 +2406,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         )
         .catch((err) => console.warn("[Call] postCloneCallEvent failed:", err));
     };
+  }, []);
+
+  useEffect(() => {
+    setCallActive(true);
+    return () => setCallActive(false);
   }, []);
 
   useEffect(() => {
