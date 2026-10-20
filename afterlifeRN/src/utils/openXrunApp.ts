@@ -33,7 +33,12 @@ const v_b0adfa = "market://details?id=run.xrun.xrunapp";
 const v_04606d = "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
 
 export async function v_77a9ad(v_9816e7, v_e0c7e8): Promise<boolean> {
-  const v_f71b56 = v_9816e7 ? `${v_182162}?m=${v_9816e7}` : v_182162;
+
+  const v_24baff = [
+    v_9816e7 ? `m=${v_9816e7}` : "",
+    v_e0c7e8 ? `e=${encodeURIComponent(v_e0c7e8)}` : "",
+  ].filter(Boolean);
+  const v_f71b56 = v_24baff.length ? `${v_182162}?${v_24baff.join("&")}` : v_182162;
   try {
     await v_f2c756.openURL(v_f71b56);
     return true;
