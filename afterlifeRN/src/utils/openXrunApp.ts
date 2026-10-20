@@ -31,9 +31,10 @@ const v_024b5e = "https://apps.apple.com/kr/app/xrun-go/id6502924173";
 const v_b0adfa = "market://details?id=run.xrun.xrunapp";
 const v_04606d = "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
 
-export async function v_77a9ad(): Promise<boolean> {
+export async function v_77a9ad(v_9816e7): Promise<boolean> {
+  const v_f71b56 = v_9816e7 ? `${v_182162}?m=${v_9816e7}` : v_182162;
   try {
-    await v_f2c756.openURL(v_182162);
+    await v_f2c756.openURL(v_f71b56);
     return true;
   } catch {
     try {
