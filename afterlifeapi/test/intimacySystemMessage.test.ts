@@ -133,6 +133,29 @@ v_469bf2("intimacy system message", () => {
     ).toBe(true);
   });
 
+  v_23805a("구독 취소해도 채팅한 대화방은 유지, 페르소나 삭제 시에만 사라짐", async () => {
+    const v_257b90 = await v_bfb240("owner5");
+    const v_debed8 = await v_bfb240("viewer5");
+    const v_6e0fd3 = await v_4d24a9(v_257b90, "구름");
+
+    await v_a1651b()
+      .prepare(
+        `INSERT INTO messages (clone_id, user_id, session_id, role, content, status, reconciliation_status)
+         VALUES (?, ?, 's1', 'user', 'x', 'active', 'pending')`,
+      )
+      .bind(v_6e0fd3, v_debed8)
+      .run();
+    let v_ef8ab1 = await v_38715b<{ items: Array<{ clone: { id: number } }> }>(v_debed8, `/oth-path`);
+    v_4d37e3(v_ef8ab1.items.map((v_ebec57) => v_ebec57.clone.id)).toContain(v_6e0fd3);
+
+    await v_a1651b()
+      .prepare(`UPDATE clones SET deleted_at = CURRENT_TIMESTAMP, deletion_state = 'soft_deleted' WHERE id = ?`)
+      .bind(v_6e0fd3)
+      .run();
+    v_ef8ab1 = await v_38715b<{ items: Array<{ clone: { id: number } }> }>(v_debed8, `/oth-path`);
+    v_4d37e3(v_ef8ab1.items.map((v_ebec57) => v_ebec57.clone.id)).not.toContain(v_6e0fd3);
+  });
+
   v_23805a("통화만 한 페르소나도 메세지 목록에 포함", async () => {
     const v_257b90 = await v_bfb240("owner2");
     const v_debed8 = await v_bfb240("viewer2");
