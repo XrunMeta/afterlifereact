@@ -1819,13 +1819,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     if (emoteTimerRef.current) clearTimeout(emoteTimerRef.current);
   }, []);
 
-  const [callSeconds, setCallSeconds] = useState(0);
-  useEffect(() => {
-    if (liveState !== "live") return;
-    const id = setInterval(() => setCallSeconds((s) => s + 1), 1000);
-    return () => clearInterval(id);
-  }, [liveState]);
-
   const remoteStreamRef = useRef(remoteStream);
   remoteStreamRef.current = remoteStream;
   const isMutedRef = useRef(isMuted);
@@ -1907,6 +1900,22 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const afl971AdInProgressRef = useRef<boolean>(false);
 
   const [afl971AdShowingUI, setAfl971AdShowingUI] = useState(false);
+
+  const [callSeconds, setCallSeconds] = useState(0);
+  useEffect(() => {
+    if (liveState !== "live" || afl971AdShowingUI) return;
+    const id = setInterval(() => setCallSeconds((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [liveState, afl971AdShowingUI]);
+
+  const afl971AdTotalMsRef = useRef(0);
+  useEffect(() => {
+    if (!afl971AdShowingUI) return;
+    const shownAt = Date.now();
+    return () => {
+      afl971AdTotalMsRef.current += Date.now() - shownAt;
+    };
+  }, [afl971AdShowingUI]);
   useEffect(() => {
     afl971AdInProgressRef.current = afl971AdInProgress;
   }, [afl971AdInProgress]);
@@ -2419,7 +2428,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         console.warn(`[Call] call-event 전송 SKIP (token=${!!token} cid=${cid})`);
         return;
       }
-      const durationSeconds = Math.floor((Date.now() - callStartRef.current) / 1000);
+
+      const durationSeconds = Math.max(
+        0,
+        Math.floor((Date.now() - callStartRef.current - afl971AdTotalMsRef.current) / 1000),
+      );
       console.log(`[Call] POST /oth-path${cid}/call-event { durationSeconds: ${durationSeconds} }`);
 
       postCloneCallEvent(token, cid, { durationSeconds })
