@@ -39,6 +39,7 @@ import { v_82d3c2 } from "./src/lib/t208MeasureStore";
 import { v_434962 } from "./src/stores/devOverlayStore";
 
 import { v_875d65 } from "./src/lib/callForegroundService";
+import { v_3f9105, v_0168a1 } from "./src/lib/callActivity";
 v_875d65();
 
 import { v_7cb644, v_9ff0b2 } from "./src/lib/appsFlyer";
@@ -103,11 +104,14 @@ export default function v_6540c3() {
     let v_28cdec = 0;
     let v_ca94a2 = null;
 
+    let v_66046c = false;
+    let v_1cea7d = null;
+
     const v_86fb97 = 5 * 60 * 1000; 
     const v_bc0557 = 500;          
 
     const v_405bdd = async (v_2869c1) => {
-      if (v_2008a4 || v_8d779a) return;
+      if (v_2008a4 || v_8d779a || v_66046c) return;
       v_8d779a = true;
       try {
         const v_087631 = require("iokyqncutdfy");
@@ -116,6 +120,22 @@ export default function v_6540c3() {
         console.log(`[OTA] (${v_2869c1}) 새 업데이트 감지 → fetch`);
         await v_087631.fetchUpdateAsync();
         if (v_2008a4) return;
+        if (v_3f9105()) {
+          if (!v_66046c) {
+            v_66046c = true;
+            console.log(`[OTA] (${v_2869c1}) fetch 완료 — 통화 중이라 reload 보류(통화 종료 후 적용)`);
+            v_1cea7d = v_0168a1((v_f8b770) => {
+              if (v_f8b770 || v_2008a4) return;
+              v_1cea7d?.();
+              v_1cea7d = null;
+              console.log("[OTA] 통화 종료 → 보류했던 reload 적용");
+              void v_087631.reloadAsync().catch((v_9e86fd) =>
+                console.warn("[OTA] 보류 reload 실패:", v_9e86fd instanceof Error ? v_9e86fd.message : String(v_9e86fd)),
+              );
+            });
+          }
+          return;
+        }
         console.log(`[OTA] (${v_2869c1}) fetch 완료 → reload`);
         await v_087631.reloadAsync();
       } catch (v_49263d) {
@@ -146,6 +166,7 @@ export default function v_6540c3() {
       clearTimeout(v_7c7016);
       if (v_ca94a2) clearInterval(v_ca94a2);
       v_1ae212.remove();
+      v_1cea7d?.();
     };
   }, []);
 

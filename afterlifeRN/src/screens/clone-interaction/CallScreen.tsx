@@ -169,6 +169,8 @@ import {
 } from "../../realtime/rememberMeReducer";
 import ExpertBadge from "../../components/ui/ExpertBadge";
 import { logAppsFlyerCallVideoStart } from "../../lib/appsFlyer";
+import { setCallActive, takePressedClone } from "../../lib/callActivity";
+import { reportError } from "../../lib/errorReporting/report";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
 
@@ -2448,6 +2450,33 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         )
         .catch((err) => console.warn("[Call] postCloneCallEvent failed:", err));
     };
+  }, []);
+
+  useEffect(() => {
+    setCallActive(true);
+
+    const pressed = takePressedClone();
+    const mismatch = !!pressed && pressed.cloneId !== cloneId;
+    if (mismatch) {
+      console.warn(`[Call][entry] 누른 클론 ${pressed?.cloneId}(${pressed?.name}) ≠ 연 클론 ${cloneId}(${paramName})`);
+    }
+    if (!__DEV__) {
+      reportError(new Error(`[call-entry] ${mismatch ? "clone-mismatch" : "entry"}`), {
+        extra: {
+          cloneId,
+          paramName: paramName ?? null,
+          pressedCloneId: pressed?.cloneId ?? null,
+          pressedName: pressed?.name ?? null,
+          source: pressed?.source ?? null,
+          index: pressed?.index ?? null,
+          currentIndex: pressed?.currentIndex ?? null,
+          pressedAgoMs: pressed ? Date.now() - pressed.at : null,
+          platform: Platform.OS,
+        },
+      });
+    }
+    return () => setCallActive(false);
+
   }, []);
 
   useEffect(() => {
