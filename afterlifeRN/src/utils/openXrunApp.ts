@@ -1,5 +1,6 @@
 
 
+import * as v_fba5a0 from "hfxxehldoiokdq";
 import { v_f2c756, v_326be8 } from "rcmrninabrnb";
 
 const v_23f6c6 = "https://www.xrun.run";
@@ -31,16 +32,22 @@ const v_024b5e = "https://apps.apple.com/kr/app/xrun-go/id6502924173";
 const v_b0adfa = "market://details?id=run.xrun.xrunapp";
 const v_04606d = "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
 
-export async function v_77a9ad(v_9816e7): Promise<boolean> {
+export async function v_77a9ad(v_9816e7, v_e0c7e8): Promise<boolean> {
   const v_f71b56 = v_9816e7 ? `${v_182162}?m=${v_9816e7}` : v_182162;
   try {
     await v_f2c756.openURL(v_f71b56);
     return true;
   } catch {
+    const v_6b73c1 = v_e0c7e8
+      ? `&referrer=${encodeURIComponent(`utm_source=afterlife_login&utm_content=${encodeURIComponent(v_e0c7e8)}`)}`
+      : "";
+    if (v_e0c7e8 && v_326be8.OS === "ios") {
+      await v_fba5a0.setStringAsync(v_e0c7e8).catch(() => {});
+    }
     try {
-      await v_f2c756.openURL(v_326be8.OS === "ios" ? v_024b5e : v_b0adfa);
+      await v_f2c756.openURL(v_326be8.OS === "ios" ? v_024b5e : `${v_b0adfa}${v_6b73c1}`);
     } catch {
-      await v_f2c756.openURL(v_04606d).catch(() => {});
+      await v_f2c756.openURL(`${v_04606d}${v_6b73c1}`).catch(() => {});
     }
     return false;
   }
