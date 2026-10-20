@@ -48,11 +48,22 @@ function v_d598fa(v_74a79c) {
 function v_b19813(v_74a79c) {
   return v_d619cb(v_74a79c, (v_01dcf5) => {
     const v_5e3dbb = "com.pangle.global:pag-sdk";
-    if (v_01dcf5.modResults.contents.includes(v_5e3dbb)) return v_01dcf5;
+    if (v_01dcf5.modResults.contents.includes(v_5e3dbb)) {
+
+      const v_36e78d = "play-services-ads-identifier";
+      if (!v_01dcf5.modResults.contents.includes(v_36e78d)) {
+        v_01dcf5.modResults.contents = v_01dcf5.modResults.contents.replace(
+          /(implementation 'com\.pangle\.global:pag-sdk:[^']+')/,
+          `$1\n    implementation 'com.google.android.gms:play-services-ads-identifier:18.2.0'`,
+        );
+      }
+      return v_01dcf5;
+    }
 
     v_01dcf5.modResults.contents = v_01dcf5.modResults.contents.replace(
       /(dependencies\s*\{[\s\S]*?)(\n\})/m,
-      `$1\n    // T-421 Pangle Rewarded Video SDK (통화 10분 인터럽트)\n    implementation 'com.pangle.global:pag-sdk:${v_ac2df6}'\n$2`,
+
+      `$1\n    // T-421 Pangle Rewarded Video SDK (통화 10분 인터럽트)\n    implementation 'com.pangle.global:pag-sdk:${v_ac2df6}'\n    implementation 'com.google.android.gms:play-services-ads-identifier:18.2.0'\n$2`,
     );
     return v_01dcf5;
   });
