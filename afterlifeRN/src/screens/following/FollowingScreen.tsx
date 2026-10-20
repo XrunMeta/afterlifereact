@@ -34,6 +34,7 @@ import { v_1bfbd0, v_9b1a04, v_8b0c90, v_8f28b1, v_7c5e29 } from "../../componen
 import type { v_8ad91b, v_97a9a8 } from "../../navigation/types";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_84d546 } from "../../lib/callGuard";
+import { v_38f9da } from "../../lib/callActivity";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
 import {
@@ -771,6 +772,7 @@ export default function v_14b43e() {
 
       const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {});
       if (!v_3ed4c3) return;
+      v_38f9da({ cloneId: v_8c0b26.persona.id, name: v_8c0b26.persona.name, source: "following" });
       v_f4c991.navigate("Call", {
         cloneId: v_8c0b26.persona.id,
         name: v_8c0b26.persona.name,
@@ -883,6 +885,7 @@ export default function v_14b43e() {
 
                   const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {});
                   if (!v_3ed4c3) return;
+                  v_38f9da({ cloneId: v_8c0b26.persona.id, name: v_8c0b26.persona.name, source: "following-card" });
                   v_f4c991.navigate("Call", {
                     cloneId: v_8c0b26.persona.id,
                     name: v_8c0b26.persona.name,
@@ -1290,6 +1293,7 @@ export default function v_14b43e() {
                         const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {});
                         if (!v_3ed4c3) return;
                         v_22a5cb(false);
+                        v_38f9da({ cloneId: v_e2a85c.id, name: v_e2a85c.name, source: "following-call-modal" });
                         v_f4c991.navigate("Call", { cloneId: v_e2a85c.id, name: v_e2a85c.name, image: v_e2a85c.avatar });
                       }}
                     >

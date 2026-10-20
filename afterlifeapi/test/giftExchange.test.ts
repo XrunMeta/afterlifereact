@@ -199,3 +199,21 @@ v_469bf2("gift → XRUN exchange", () => {
     v_4d37e3(v_8f00b9.status).toBe(403);
   });
 });
+
+v_469bf2("gift send → lots FIFO", () => {
+  v_23805a("1송이 보내면 보낸 사람의 가장 오래된 묶음이 1 줄고, 교환 가격 구간도 그만큼 줄어든다", async () => {
+    const v_a13c2e = await v_bfb240(5101);
+    const v_257132 = await v_bfb240(5102);
+    await v_8b0655(v_a13c2e, "gift-bouquet", [[0.01, 3], [0.1, 10]]);
+    const v_cb35cb = await v_51c3d2(v_a13c2e, "POST", "/oth-path", { giftId: "gift-bouquet", toUserId: v_257132 }, `send-${Date.now()}`);
+    v_4d37e3(v_cb35cb.status).toBe(200);
+    v_4d37e3(await v_2461e1(v_a13c2e, "gift-bouquet")).toBe(12);
+    const v_9fdb66 = await v_a1651b()
+      .prepare(`SELECT SUM(count_remaining) AS n FROM user_gift_lots WHERE user_id = ? AND gift_id = ?`)
+      .bind(v_a13c2e, "gift-bouquet")
+      .first<{ n: number }>();
+    v_4d37e3(Number(v_9fdb66?.n)).toBe(12);
+    const v_9e86fd = await v_51c3d2(v_a13c2e, "GET", "/oth-path");
+    v_4d37e3(v_9e86fd.json.priceSegments).toEqual([{ price: "0.01", count: 2 }, { price: "0.1", count: 10 }]);
+  });
+});
