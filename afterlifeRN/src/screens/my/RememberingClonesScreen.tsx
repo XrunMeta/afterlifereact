@@ -69,6 +69,7 @@ export default function v_e6afa3() {
       v_889fad(
         v_8d41d7("settings.rememberingClones.deleteConfirmTitle", { defaultValue: "기억을 지울까요?" }),
         v_8d41d7("settings.rememberingClones.deleteConfirmMessage", {
+          name: v_eb25ce.name,
           defaultValue: `${v_eb25ce.name} 이(가) 나를 기억하는 내용과 얼굴 정보가 모두 삭제돼요. 되돌릴 수 없어요.`,
         }),
         [

@@ -566,8 +566,11 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       typeof v_b9bbbd.countryCode === "number"
         ? v_b9bbbd.countryCode
         : Number(v_b9bbbd.dialCode.replace(/^\+/, "")) || 0;
-    return v_51973b(v_0ad8c5, v_b9bbbd.iso2);
-  }, [v_b9bbbd]);
+    return v_51973b(v_0ad8c5, v_b9bbbd.iso2).map((v_cb35cb) => ({
+      value: v_cb35cb.value,
+      label: v_8d41d7(`regions:${v_0ad8c5}_${v_cb35cb.value}`, { defaultValue: v_cb35cb.label }),
+    }));
+  }, [v_b9bbbd, v_8d41d7]);
 
   const v_4e187d = v_df9f57(() => {
     const v_ab6401 = v_7962f1.trim().toLowerCase();
