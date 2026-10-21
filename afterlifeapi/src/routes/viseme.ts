@@ -157,12 +157,14 @@ v_5c0bb5.post("/chat", v_6690d9, async (v_3f4e2e) => {
   }
 
   let v_076306 = undefined;
+  let v_673d96 = undefined; 
   if (v_c6a7ad !== undefined && v_6e0fd3 !== undefined) {
     const v_8e8b02 = await v_3f4e2e.env.DB.prepare(
-      "SELECT display_name FROM persons WHERE id = ? AND clone_id = ? LIMIT 1"
+      "SELECT display_name FROM persons WHERE id = ? AND clone_id = ? AND user_id = ? LIMIT 1"
     )
-      .bind(v_c6a7ad, v_6e0fd3)
+      .bind(v_c6a7ad, v_6e0fd3, v_43e90c)
       .first<{ display_name: string | null }>();
+    if (v_8e8b02) v_673d96 = v_c6a7ad;
     const v_3d529f = (v_8e8b02?.display_name ?? "").trim();
     if (v_3d529f) v_076306 = v_3d529f.slice(0, 80);
   }
@@ -182,7 +184,7 @@ v_5c0bb5.post("/chat", v_6690d9, async (v_3f4e2e) => {
         clone_id: v_6e0fd3,
         clone_name: v_f2ff36,
         user_name: v_f08a5e,
-        active_person_id: v_c6a7ad,
+        active_person_id: v_673d96,
         user_location: v_146d3d,
 
         persona_description: v_102587,

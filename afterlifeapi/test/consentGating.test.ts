@@ -61,7 +61,7 @@ v_469bf2("l2p/learn 동의 게이트", () => {
     ).bind(6301, 8303, 9303).run();
     const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
       method: "POST", headers: { Authorization: `Bearer ${v_7169b4}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ personId: 6301, extracted: { relation: "이웃" }, source: "call" }),
+      body: JSON.stringify({ personId: 6301, userId: 8303, extracted: { relation: "이웃" }, source: "call" }),
     });
     v_4d37e3(v_8f00b9.status).toBe(200);
     const v_7ecfd1 = await v_8f00b9.json<{ skipped: boolean; reason?: string }>();

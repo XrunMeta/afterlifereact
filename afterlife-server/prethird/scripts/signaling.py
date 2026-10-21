@@ -445,10 +445,10 @@ async def _maybe_swap_l2p(sess, pid: int, name, epoch: int | None = None) -> Non
 
         clone_id = getattr(sess, "clone_id", None)
         l2p_data = None
-        if clone_id is not None and pid is not None:
+        if clone_id is not None and pid is not None and getattr(sess, "user_id", None):
             from l2p_client import fetch_l2p
             try:
-                l2p_data = await fetch_l2p(clone_id, pid)
+                l2p_data = await fetch_l2p(clone_id, pid, getattr(sess, "user_id", None))
             except Exception as e:
                 log.warning("session %s fetch_l2p failed person=%s: %s",
                             getattr(sess, "session_id", "?"), pid, e)
@@ -825,6 +825,59 @@ def face_event_clone_matches(session_clone_id, event_clone_id) -> bool:
         return False
 
 
+_scope_off_warned = False
+
+
+def _face_scope_verify_enabled() -> bool:
+    """AFL-1030: face_event personId 소속 검증 게이트(기본 on). off 는 롤백용."""
+    # 기본 켜짐. 명시적으로 0/false/off 일 때만 끈다(오타·"true"·"on"·"1 " 가 보안 게이트를 끄지 않게).
+    v = os.environ.get("PRETHIRD_FACE_SCOPE_VERIFY", "1").strip().lower()
+    on = v not in ("0", "false", "off")
+    global _scope_off_warned
+    if not on and not _scope_off_warned:
+        _scope_off_warned = True
+        log.warning("PRETHIRD_FACE_SCOPE_VERIFY 꺼짐 - face_event personId 소속 검증 비활성(보안 게이트 OFF)")
+    return on
+
+
+async def _verify_person_then_replay(sess, data: dict, pid_int: int, ticket: int) -> None:
+    """AFL-1030: personId 가 이 통화의 user x clone 소속인지 API 로 확인 후에만 이벤트를 재처리한다.
+
+    성공 -> sess.verified_person_ids 에 기록하고 같은 이벤트를 다시 _handle_face_event 에 태운다
+    (그 사이 더 새로운 face_event 가 왔으면 낡은 확정이므로 재처리하지 않는다).
+    실패(불일치·네트워크·env 미설정) -> fail-closed: 화자를 채택하지 않고 unknown 처리,
+    WARNING 한 줄. 실패 pid 는 세션 동안 기억해 같은 이벤트 반복이 API 를 두드리지 않게 한다.
+    """
+    sid = getattr(sess, "session_id", "?")
+    try:
+        from l2p_client import verify_person_scope
+        result = await verify_person_scope(
+            getattr(sess, "clone_id", None), getattr(sess, "user_id", None), pid_int)
+    except Exception as e:
+        log.warning("session %s face_event person 검증 예외(fail-closed): %s", sid, e)
+        result = "error"
+    finally:
+        getattr(sess, "scope_pending_ids", set()).discard(pid_int)
+    ok = result == "ok"
+    if ok:
+        if not hasattr(sess, "verified_person_ids"):
+            sess.verified_person_ids = set()
+        sess.verified_person_ids.add(pid_int)
+        if getattr(sess, "face_event_ticket", 0) == ticket:
+            _handle_face_event(sess, data)
+        return
+    log.warning(
+        "session %s face_event personId=%s 가 user=%s clone=%s 소속 아님/검증 실패 - 화자 미채택(unknown 처리)",
+        sid, pid_int, getattr(sess, "user_id", None), getattr(sess, "clone_id", None))
+    if result == "denied":
+        # 확정 거부(404)만 캐시. 일시 오류(5xx·네트워크)는 캐시하지 않아 다음 이벤트에서 재검증한다.
+        if not hasattr(sess, "rejected_person_ids"):
+            sess.rejected_person_ids = set()
+        sess.rejected_person_ids.add(pid_int)
+    if getattr(sess, "face_event_ticket", 0) == ticket and _speaker_identity_enabled():
+        _clear_current_speaker(sess, "unknown_face")
+
+
 def _handle_face_event(sess, data: dict) -> None:
     """[T-067/T-135] datachannel face_event 메시지 처리.
 
@@ -893,6 +946,38 @@ def _handle_face_event(sess, data: dict) -> None:
                 "session %s face_event personId 형식 오류(무시, 쿨다운 미기록): %r",
                 getattr(sess, "session_id", "?"), pid,
             )
+            return
+
+    # [AFL-1030] 앱이 보낸 personId 는 신뢰 불가 입력 — 이 통화의 user x clone 소속으로
+    # API 검증된 pid 만 화자로 채택한다. 미검증이면 비동기 검증을 걸고 이번 이벤트는 보류
+    # (성공 시 재처리). 이미 거부된 pid 는 unknown 처리.
+    # 같은 pid 의 검증이 이미 진행 중이면 ticket 을 올리지 않는다 — 진행 중 검증 결과가
+    # 이 더 새로운 같은 pid 확정에도 그대로 적용된다(채택 누락 방지). 다른 이벤트는 올려서 낡은 확정을 버린다.
+    _dup_pending = (event == "speaker_confirmed"
+                    and pid_int in getattr(sess, "scope_pending_ids", ()))
+    if not _dup_pending:
+        sess.face_event_ticket = getattr(sess, "face_event_ticket", 0) + 1
+    if event == "speaker_confirmed" and _face_scope_verify_enabled():
+        if not hasattr(sess, "verified_person_ids"):
+            sess.verified_person_ids = set()
+        if pid_int not in sess.verified_person_ids:
+            if pid_int in getattr(sess, "rejected_person_ids", ()):
+                if identity_on:
+                    _clear_current_speaker(sess, "unknown_face")
+                return
+            if not getattr(sess, "user_id", None):
+                log.warning("session %s face_event: user_id 없음 - person 검증 불가, 화자 미채택",
+                            getattr(sess, "session_id", "?"))
+                if identity_on:
+                    _clear_current_speaker(sess, "unknown_face")
+                return
+            pending = getattr(sess, "scope_pending_ids", None)
+            if pending is None:
+                pending = sess.scope_pending_ids = set()
+            if pid_int not in pending:
+                pending.add(pid_int)
+                asyncio.ensure_future(
+                    _verify_person_then_replay(sess, data, pid_int, sess.face_event_ticket))
             return
 
     # [T-135] identity/L2' 주입 — SPEAKER_IDENTITY 게이트 단독, react 게이트/쿨다운과 무관.

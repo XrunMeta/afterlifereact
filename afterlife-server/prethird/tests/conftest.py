@@ -16,3 +16,10 @@ def _clear_ref_gate_env(monkeypatch):
     """ref 품질 임계도 같은 이유로 격리 — 운영 drop-in 값이 새면 판정 기대치가 흔들린다.
     임계를 명시하는 테스트는 monkeypatch.setenv 로 이 가드 뒤에 덮어쓰므로 영향 없음."""
     monkeypatch.delenv("PREBUILD_REF_MIN_CHAR_PER_SEC", raising=False)
+
+
+@pytest.fixture(autouse=True)
+def _face_scope_verify_off_by_default(monkeypatch):
+    """AFL-1030: 기존 face_event 테스트는 동기 채택을 전제하므로 소속 검증 게이트를 끈다.
+    검증 동작 자체는 test_face_event_scope.py 가 게이트를 켜고 검증한다."""
+    monkeypatch.setenv("PRETHIRD_FACE_SCOPE_VERIFY", "0")
