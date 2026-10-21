@@ -175,6 +175,7 @@ export default function v_c316d8() {
   } | null>(null);
 
   const [v_480a32, v_4ccd21] = v_5ab095<number | null>(null);
+  const [v_e8d94c, v_c837fe] = v_5ab095<number[]>([]);
 
   const [v_f18195, v_fdd7c1] = v_5ab095<{
     cloneId: number;
@@ -1317,6 +1318,13 @@ export default function v_c316d8() {
           v_ddfad5(null);
           if (!v_5f5d6d) return;
           if (v_81e2ef === "selected") {
+
+            v_c837fe([]);
+            const v_21cc31 = v_1ed7d9.getState().accessToken;
+            if (v_21cc31) {
+              const { getAllowedViewerIds: v_69a8d3 } = await import("../../api/clones");
+              v_c837fe(await v_69a8d3(v_5f5d6d.cloneId, v_21cc31));
+            }
             v_4ccd21(v_5f5d6d.cloneId);
             return;
           }
@@ -1353,6 +1361,7 @@ export default function v_c316d8() {
       {}
       <FriendPickerModal
         visible={v_480a32 != null}
+        initialSelected={v_e8d94c}
         onClose={() => v_4ccd21(null)}
         onConfirm={async (v_9b3001) => {
           const v_6e0fd3 = v_480a32;
