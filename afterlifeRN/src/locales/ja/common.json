@@ -526,7 +526,10 @@
     "summaryLabelChat": "チャット",
     "summaryLabelCall": "通話",
     "summaryLabelLearn": "探索",
-    "summaryLabelFeed": "フィード"
+    "summaryLabelFeed": "フィード",
+    "giftReceiptsTitle": "受け取ったギフト",
+    "giftReceiptsEmpty": "まだ受け取ったギフトはありません",
+    "giftReceiptsTotal": "合計 {{n}}個"
   },
   "detail": {
     "notFound": "クローンが見つかりません。",

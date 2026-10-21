@@ -526,7 +526,10 @@
     "summaryLabelChat": "Obrolan",
     "summaryLabelCall": "Panggilan",
     "summaryLabelLearn": "Jelajahi",
-    "summaryLabelFeed": "Feed"
+    "summaryLabelFeed": "Feed",
+    "giftReceiptsTitle": "Hadiah diterima",
+    "giftReceiptsEmpty": "Belum ada hadiah yang diterima",
+    "giftReceiptsTotal": "Total {{n}}"
   },
   "detail": {
     "notFound": "Klon tidak ditemukan.",

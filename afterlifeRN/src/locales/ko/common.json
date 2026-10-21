@@ -526,7 +526,10 @@
     "summaryLabelChat": "채팅",
     "summaryLabelCall": "통화",
     "summaryLabelLearn": "탐색",
-    "summaryLabelFeed": "피드"
+    "summaryLabelFeed": "피드",
+    "giftReceiptsTitle": "받은 선물",
+    "giftReceiptsEmpty": "아직 받은 선물이 없어요",
+    "giftReceiptsTotal": "총 {{n}}개"
   },
   "detail": {
     "notFound": "클론을 찾을 수 없습니다.",
