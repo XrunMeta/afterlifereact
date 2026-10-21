@@ -99,15 +99,6 @@ v_469bf2("POST /oth-path — 클론 스코프", () => {
     v_4d37e3(v_28ec91.status).toBe(200);
     await v_a09be7(v_43e90c, v_c521ce, v_306a28.id, v_46ff7a(1));
 
-    const v_67e77e = Date.now();
-    await v_a1651b()
-      .prepare(
-        `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at)
-         VALUES (?, ?, 'dummy-b', 'granted', ?, 'card', ?)`,
-      )
-      .bind(v_43e90c, v_65cfbc, v_67e77e, v_67e77e)
-      .run();
-
     const v_4f4e78 = await v_1df298.fetch("https://x/oth-path", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${v_21cc31}` },
@@ -127,6 +118,11 @@ v_469bf2("POST /oth-path — 클론 스코프", () => {
     const v_90d74f = await v_7ba086.json<{ best: unknown | null; matches: unknown[] }>();
     v_4d37e3(v_90d74f.best).toBeNull();
     v_4d37e3(v_90d74f.matches).toHaveLength(0);
+
+    const v_c05df3 = await v_a1651b().prepare("SELECT COUNT(*) AS n FROM persons WHERE user_id = ? AND clone_id = ?").bind(v_43e90c, v_65cfbc).first<{ n: number }>();
+    v_4d37e3(v_c05df3?.n).toBe(0);
+    const v_90e63e = await v_a1651b().prepare("SELECT COUNT(*) AS n FROM clone_person_faces WHERE clone_id = ?").bind(v_65cfbc).first<{ n: number }>();
+    v_4d37e3(v_90e63e?.n).toBe(0);
   });
 
   v_23805a("타 사용자 소유 공개 클론이어도 접근 가능(비소유자 매칭)", async () => {
@@ -357,15 +353,6 @@ v_469bf2("unknown → L2′ 생성 왕복", () => {
       headers: { "content-type": "application/json", authorization: `Bearer ${v_21cc31}` },
       body: JSON.stringify({ state: "granted" }),
     });
-
-    const v_67e77e = Date.now();
-    await v_a1651b()
-      .prepare(
-        `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at)
-         VALUES (?, ?, 'dummy-b', 'granted', ?, 'card', ?)`,
-      )
-      .bind(v_43e90c, v_65cfbc, v_67e77e, v_67e77e)
-      .run();
 
     const v_f8758e = crypto.randomUUID();
     await v_a8d2cc(v_c9c489 as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string }).insert([
