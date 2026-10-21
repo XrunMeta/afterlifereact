@@ -23,7 +23,7 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_694b7f } from "../../api/source";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 
-import { v_599b97, type v_83f27d } from "../../api/gifts";
+import { v_599b97, v_561bb6, type v_83f27d } from "../../api/gifts";
 
 import { v_003cf2 } from "../../api/clones";
 import type { v_affcc0 } from "../../types/clone";
@@ -135,7 +135,7 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           <Text style={v_fd5f43.giftEmoji}>{v_8c0b26.emoji}</Text>
         )}
       </View>
-      <Text style={v_fd5f43.giftName}>{v_8c0b26.name}</Text>
+      <Text style={v_fd5f43.giftName}>{v_561bb6(v_8c0b26.name, v_8c0b26.id)}</Text>
     </TouchableOpacity>
   );
 

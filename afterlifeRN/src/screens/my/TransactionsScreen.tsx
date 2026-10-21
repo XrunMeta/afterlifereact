@@ -1,5 +1,6 @@
 
 
+import { v_561bb6 } from "../../api/gifts";
 import v_a3453e, { v_de06a3, v_c4deb2, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
@@ -88,8 +89,8 @@ export default function v_9e01f7() {
               const v_f2ff36 = v_2f6fcc.cloneName ?? v_8d41d7("transactions.cloneFallback", { defaultValue: "클론" });
               const v_2869c1 =
                 v_2f6fcc.type === "gift_sent"
-                  ? v_8d41d7("transactions.giftSentLabel", { clone: v_f2ff36, gift: v_2f6fcc.giftName, defaultValue: "{{clone}}에게 {{gift}} 선물" })
-                  : v_8d41d7("transactions.giftReceivedLabel", { clone: v_f2ff36, gift: v_2f6fcc.giftName, defaultValue: "{{clone}}으로부터 {{gift}} 선물 수익" });
+                  ? v_8d41d7("transactions.giftSentLabel", { clone: v_f2ff36, gift: v_561bb6(v_2f6fcc.giftName), defaultValue: "{{clone}}에게 {{gift}} 선물" })
+                  : v_8d41d7("transactions.giftReceivedLabel", { clone: v_f2ff36, gift: v_561bb6(v_2f6fcc.giftName), defaultValue: "{{clone}}으로부터 {{gift}} 선물 수익" });
               const v_d39e5b = v_2f6fcc.amount > 0;
               return (
                 <View
