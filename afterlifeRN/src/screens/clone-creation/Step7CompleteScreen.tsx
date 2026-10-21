@@ -25,6 +25,7 @@ import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
 
 import { v_194498 } from "../../stores/cloneStore";
+import { v_37977a } from "../../stores/feedStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90, v_a9d3e9, v_8f28b1 } from "../../components/constants";
 import type { v_affcc0 } from "../../types/clone";
@@ -612,6 +613,8 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     if (v_2a460b === "private") {
       v_c65f5d.replace("Step8", { cloneId: v_80a1e3 });
     } else {
+
+      v_37977a.getState().requestHomeScrollTop();
       v_c65f5d.getParent()?.dispatch(
         v_650cfa.navigate({ name: "HomeTab" }),
       );
