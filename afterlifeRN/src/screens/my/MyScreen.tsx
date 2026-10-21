@@ -13,7 +13,7 @@ import {
   v_122070,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
-import { v_ada615, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
+import { v_ada615, v_650cfa, v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_75de9d } from "zqqvxke";
@@ -27,7 +27,8 @@ import { v_694b7f } from "../../api/source";
 import { v_55fc7c, v_84a859 } from "../../api/auth";
 import { v_d60cdf, v_7281a5, type v_c33ae3, type v_fa0201 } from "../../api/clones";
 import { v_48981e, type v_2b70d7 } from "../../api/credits";
-import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
+import { v_8372de } from "../../hooks/useHardwareBack";
+import { v_94c936 } from "../../navigation/navigationRef";
 
 import v_0e3f52 from "../../components/my/AppVersionFooter";
 import { v_1bfbd0, v_9b1a04, v_8b0c90, v_c10a43, v_119e65 } from "../../components/constants";
@@ -80,6 +81,44 @@ export default function v_ed02a5() {
 
   const [v_c88e9b, v_de20d8] = v_5ab095<v_2b70d7 | null>(null);
   const [v_747a87, v_3e37d1] = v_5ab095(false);
+
+  const v_a789e3 = v_de06a3(() => {
+    if (v_94c936.isReady()) {
+      v_94c936.dispatch(
+        v_650cfa.navigate({
+          name: "Main",
+          params: {
+            screen: "ClonesTab",
+            params: { screen: "Dashboard" },
+          },
+        }),
+      );
+      return;
+    }
+    v_c65f5d.getParent()?.dispatch(
+      v_650cfa.navigate({
+        name: "ClonesTab",
+        params: { screen: "Dashboard" },
+      }),
+    );
+  }, [v_c65f5d]);
+
+  v_8372de(
+    v_de06a3(() => {
+      if (v_8bb912 !== null) {
+        v_d5cd7b(null);
+        return true;
+      }
+
+      const v_ba22ae = v_c65f5d.getState()?.index ?? 0;
+      if (v_ba22ae > 0) {
+        v_c65f5d.goBack();
+        return true;
+      }
+      v_a789e3();
+      return true;
+    }, [v_c65f5d, v_8bb912, v_a789e3]),
+  );
 
   v_cf763b(
     v_a3453e.useCallback(() => {
@@ -402,15 +441,7 @@ export default function v_ed02a5() {
       <PageHeader
         title={v_8d41d7("my.headerTitle", { defaultValue: "설정" })}
         showBackButton
-        onBackPress={() => {
-
-          v_c65f5d.getParent()?.dispatch(
-            v_650cfa.navigate({
-              name: "ClonesTab",
-              params: { screen: "Dashboard" },
-            }),
-          );
-        }}
+        onBackPress={v_a789e3}
       />
 
       <View style={v_fd5f43.content}>
@@ -473,7 +504,12 @@ export default function v_ed02a5() {
       {}
 
       {}
-      <Modal visible={v_8bb912 !== null} transparent animationType="slide">
+      <Modal
+        visible={v_8bb912 !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => v_d5cd7b(null)}
+      >
         <Pressable style={v_fd5f43.statsOverlay} onPress={() => v_d5cd7b(null)}>
           <Pressable style={v_fd5f43.statsSheet} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
             <View style={v_fd5f43.sheetHandle} />

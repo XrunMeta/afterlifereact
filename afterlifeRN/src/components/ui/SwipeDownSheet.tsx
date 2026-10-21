@@ -47,9 +47,11 @@ export default function v_8e7ad4({
             toValue: 600,
             duration: 200,
             useNativeDriver: true,
-          }).start(() => {
-            v_5aac04.setValue(0);
+          }).start(({ finished: v_cc0753 }) => {
+            if (!v_cc0753) return;
             v_0890f8();
+
+            setTimeout(() => v_5aac04.setValue(0), 50);
           });
         } else {
 

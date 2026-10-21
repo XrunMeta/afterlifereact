@@ -229,7 +229,12 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       </LinearGradient>
 
       {}
-      <Modal visible={v_a7e879} transparent animationType="slide">
+      <Modal
+        visible={v_a7e879}
+        transparent
+        animationType="slide"
+        onRequestClose={() => v_88d896(false)}
+      >
         <Pressable style={v_fd5f43.giftOverlay} onPress={() => v_88d896(false)}>
           <Pressable
             style={[v_fd5f43.giftSheet, { paddingBottom: 32 + v_2b650d }]}

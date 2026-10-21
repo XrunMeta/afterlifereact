@@ -618,17 +618,31 @@ export default function v_c316d8() {
 
       {
 }
-      <Modal visible={!!v_ed660d} transparent animationType="slide">
+      <Modal
+        visible={!!v_ed660d}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          v_0e1f26.dismiss();
+          v_b07dd3(null);
+          v_905ec3(false);
+        }}
+      >
         {
 }
-        <Pressable style={v_d81136.commentOverlay} onPress={(v_9e86fd) => {
-          if (v_9e86fd.target !== v_9e86fd.currentTarget) return;
-          if (v_16a078 && v_507993) {
-            v_0e1f26.dismiss();
-          } else {
-            v_0e1f26.dismiss(); v_b07dd3(null); v_905ec3(false);
-          }
-        }}>
+        <View style={v_d81136.commentOverlay}>
+          <Pressable
+            style={v_472849.absoluteFillObject}
+            onPress={() => {
+              if (v_16a078 && v_507993) {
+                v_0e1f26.dismiss();
+              } else {
+                v_0e1f26.dismiss();
+                v_b07dd3(null);
+                v_905ec3(false);
+              }
+            }}
+          />
           <SwipeDownSheet
             onClose={() => { v_0e1f26.dismiss(); v_b07dd3(null); v_905ec3(false); }}
             keyboardOffset={v_7e4acc}
@@ -970,15 +984,24 @@ export default function v_c316d8() {
               </TouchableOpacity>
             </View>
           </SwipeDownSheet>
-        </Pressable>
+        </View>
       </Modal>
 
       {}
 
       {
 }
-      <Modal visible={!!v_12fa22} transparent animationType="fade">
-        <Pressable style={v_d81136.moreOverlay} onPress={() => v_949e66(null)}>
+      <Modal
+        visible={!!v_12fa22}
+        transparent
+        animationType="fade"
+        onRequestClose={() => v_949e66(null)}
+      >
+        <View style={v_d81136.moreOverlay}>
+          <Pressable
+            style={v_472849.absoluteFillObject}
+            onPress={() => v_949e66(null)}
+          />
           <SwipeDownSheet
             onClose={() => v_949e66(null)}
             style={[v_d81136.moreSheet, { paddingBottom: 24 + v_2b650d }]}
@@ -1143,7 +1166,7 @@ export default function v_c316d8() {
             )}
             {}
           </SwipeDownSheet>
-        </Pressable>
+        </View>
       </Modal>
 
       {}
