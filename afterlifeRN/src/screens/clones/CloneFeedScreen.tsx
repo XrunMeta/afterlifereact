@@ -557,15 +557,25 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
       </TouchableOpacity>
 
       {}
-      <Modal visible={v_1126f9} transparent animationType="slide">
-        <Pressable
-          style={v_d81136.commentOverlay}
-          onPress={() => {
-            v_0e1f26.dismiss();
-            v_0c9768(false);
-            v_905ec3(false);
-          }}
-        >
+      <Modal
+        visible={v_1126f9}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          v_0e1f26.dismiss();
+          v_0c9768(false);
+          v_905ec3(false);
+        }}
+      >
+        <View style={v_d81136.commentOverlay}>
+          <Pressable
+            style={v_472849.absoluteFillObject}
+            onPress={() => {
+              v_0e1f26.dismiss();
+              v_0c9768(false);
+              v_905ec3(false);
+            }}
+          />
           <SwipeDownSheet
             onClose={() => {
               v_0e1f26.dismiss();
@@ -856,12 +866,21 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
               </TouchableOpacity>
             </View>
           </SwipeDownSheet>
-        </Pressable>
+        </View>
       </Modal>
 
       {}
-      <Modal visible={v_3e9618} transparent animationType="fade">
-        <Pressable style={v_d81136.moreOverlay} onPress={() => v_eda097(false)}>
+      <Modal
+        visible={v_3e9618}
+        transparent
+        animationType="fade"
+        onRequestClose={() => v_eda097(false)}
+      >
+        <View style={v_d81136.moreOverlay}>
+          <Pressable
+            style={v_472849.absoluteFillObject}
+            onPress={() => v_eda097(false)}
+          />
           <SwipeDownSheet
             onClose={() => v_eda097(false)}
             style={[v_d81136.moreSheet, { paddingBottom: 24 + v_2b650d }]}
@@ -916,7 +935,7 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
               </>
             )}
           </SwipeDownSheet>
-        </Pressable>
+        </View>
       </Modal>
 
       {}

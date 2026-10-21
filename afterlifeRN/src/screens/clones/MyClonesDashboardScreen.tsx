@@ -58,7 +58,6 @@ import { v_1bfbd0, v_9b1a04, v_8b0c90, v_a9d3e9, v_d43669, v_c10a43, v_119e65 } 
 import type { v_affcc0, v_b0b271 } from "../../types/clone";
 import type { v_2d88fc } from "../../navigation/types";
 import type { v_8ad91b } from "../../navigation/types";
-import { v_1a7803 } from "../../hooks/useHardwareBack";
 
 type ClonesNav = v_390fcc<v_2d88fc>;
 
@@ -75,9 +74,6 @@ export default function v_def15b() {
   const v_f4c991 = v_ada615<v_390fcc<v_8ad91b>>();
   const { t: v_8d41d7 } = v_772971();
 
-  v_1a7803(
-    v_8d41d7("common.exitPrompt", { defaultValue: "한 번 더 누르면 종료됩니다" }),
-  );
   const v_033e14 = v_e0068c();
 
   const v_f9771e = v_c18c22(0);
@@ -759,8 +755,11 @@ export default function v_def15b() {
             onPress={() =>
               v_f4c991.dispatch(
                 v_650cfa.navigate({
-                  name: "MyTab",
-                  params: { screen: "MyHome" },
+                  name: "Main",
+                  params: {
+                    screen: "MyTab",
+                    params: { screen: "MyHome" },
+                  },
                 }),
               )
             }
@@ -949,7 +948,7 @@ export default function v_def15b() {
                     activeOpacity={0.8}
                     onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "received" })}
                   >
-                    <Text style={v_fd5f43.giftDashMetricLabel}>
+                    <Text style={v_fd5f43.giftDashMetricLabel} numberOfLines={2}>
                       {v_8d41d7("giftBox.tabReceived", { defaultValue: "받은 선물" })}
                     </Text>
                     <Text style={v_fd5f43.giftDashMetricValue}>{v_489044}</Text>
@@ -959,7 +958,7 @@ export default function v_def15b() {
                     activeOpacity={0.8}
                     onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "sent" })}
                   >
-                    <Text style={v_fd5f43.giftDashMetricLabel}>
+                    <Text style={v_fd5f43.giftDashMetricLabel} numberOfLines={2}>
                       {v_8d41d7("giftBox.tabSent", { defaultValue: "보낸 선물" })}
                     </Text>
                     <Text style={v_fd5f43.giftDashMetricValue}>{v_deb5c7}</Text>
@@ -969,7 +968,7 @@ export default function v_def15b() {
                     activeOpacity={0.8}
                     onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "exchange" })}
                   >
-                    <Text style={[v_fd5f43.giftDashMetricLabel, v_fd5f43.giftDashMetricLabelAccent]}>
+                    <Text style={[v_fd5f43.giftDashMetricLabel, v_fd5f43.giftDashMetricLabelAccent]} numberOfLines={2}>
                       {v_8d41d7("giftBox.exchangeable", { defaultValue: "교환 가능" })}
                     </Text>
                     <Text style={[v_fd5f43.giftDashMetricValue, v_fd5f43.giftDashMetricValueAccent]}>
@@ -1035,7 +1034,12 @@ export default function v_def15b() {
       )}
 
       {}
-      <Modal visible={!!v_ce3af0} transparent animationType="fade">
+      <Modal
+        visible={!!v_ce3af0}
+        transparent
+        animationType="fade"
+        onRequestClose={() => v_8d2d61(null)}
+      >
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_8d2d61(null)}>
           <Pressable style={v_fd5f43.menuBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
             <Text style={v_fd5f43.menuTitle}>{v_8d41d7("dashboard.manage")}</Text>
@@ -1072,7 +1076,12 @@ export default function v_def15b() {
       </Modal>
 
       {}
-      <Modal visible={!!v_16ef58} transparent animationType="fade">
+      <Modal
+        visible={!!v_16ef58}
+        transparent
+        animationType="fade"
+        onRequestClose={() => v_3e0da5(null)}
+      >
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_3e0da5(null)}>
           <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
             <Text style={v_fd5f43.modalTitle}>
@@ -1138,7 +1147,12 @@ export default function v_def15b() {
       />
 
       {}
-      <Modal visible={!!v_c9d3fa} transparent animationType="fade">
+      <Modal
+        visible={!!v_c9d3fa}
+        transparent
+        animationType="fade"
+        onRequestClose={() => v_f32c49(null)}
+      >
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_f32c49(null)}>
           <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
             <Text style={v_fd5f43.modalTitle}>{v_8d41d7("dashboard.deleteTitle")}</Text>
@@ -1167,7 +1181,12 @@ export default function v_def15b() {
       </Modal>
 
       {}
-      <Modal visible={!!v_b10b7b} transparent animationType="fade">
+      <Modal
+        visible={!!v_b10b7b}
+        transparent
+        animationType="fade"
+        onRequestClose={() => v_b816d4(null)}
+      >
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_b816d4(null)}>
           <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
             <Text style={v_fd5f43.modalTitle}>{v_8d41d7("common.notice")}</Text>
@@ -1190,7 +1209,12 @@ export default function v_def15b() {
 
       {
 }
-      <Modal visible={v_9834f8} transparent animationType="slide">
+      <Modal
+        visible={v_9834f8}
+        transparent
+        animationType="none"
+        onRequestClose={() => v_15fd53(false)}
+      >
         <View style={v_fd5f43.giftLogModalOverlay}>
           <Pressable
             style={v_472849.absoluteFillObject}
@@ -1241,8 +1265,9 @@ export default function v_def15b() {
                       activeOpacity={0.7}
                     >
                       <Text style={v_fd5f43.giftLogMoreText}>
-                        {v_8d41d7("dashboard.giftLogMore", {
-                          defaultValue: `더보기 (${v_c9ba75.length - v_b1118a})`,
+                        {v_8d41d7("giftBox.loadMore", {
+                          defaultValue: "더보기 ({{n}})",
+                          n: v_c9ba75.length - v_b1118a,
                         })}
                       </Text>
                     </TouchableOpacity>
@@ -1255,8 +1280,17 @@ export default function v_def15b() {
       </Modal>
 
       {}
-      <Modal visible={!!v_8bb912} transparent animationType="slide">
-        <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_d5cd7b(null)}>
+      <Modal
+        visible={!!v_8bb912}
+        transparent
+        animationType="none"
+        onRequestClose={() => v_d5cd7b(null)}
+      >
+        <View style={v_fd5f43.modalOverlay}>
+          <Pressable
+            style={v_472849.absoluteFillObject}
+            onPress={() => v_d5cd7b(null)}
+          />
           <SwipeDownSheet
             onClose={() => v_d5cd7b(null)}
             style={[v_fd5f43.statsSheet, { paddingBottom: 32 + v_2b650d }]}
@@ -1384,13 +1418,22 @@ export default function v_def15b() {
               )}
             </ScrollView>
           </SwipeDownSheet>
-        </Pressable>
+        </View>
       </Modal>
 
       {
 }
-      <Modal visible={!!v_d3a183} transparent animationType="slide">
-        <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_598141(null)}>
+      <Modal
+        visible={!!v_d3a183}
+        transparent
+        animationType="none"
+        onRequestClose={() => v_598141(null)}
+      >
+        <View style={v_fd5f43.modalOverlay}>
+          <Pressable
+            style={v_472849.absoluteFillObject}
+            onPress={() => v_598141(null)}
+          />
           <SwipeDownSheet
             onClose={() => v_598141(null)}
             style={[v_fd5f43.statsSheet, { paddingBottom: 32 + v_2b650d }]}
@@ -1446,11 +1489,16 @@ export default function v_def15b() {
               )}
             </ScrollView>
           </SwipeDownSheet>
-        </Pressable>
+        </View>
       </Modal>
 
       {}
-      <Modal visible={v_eaf85e} transparent animationType="fade">
+      <Modal
+        visible={v_eaf85e}
+        transparent
+        animationType="fade"
+        onRequestClose={() => v_aff30f(false)}
+      >
         <Pressable
           style={v_fd5f43.intimacyInfoOverlay}
           onPress={() => v_aff30f(false)}
@@ -2316,18 +2364,21 @@ const v_fd5f43 = v_472849.create({
     gap: 2,
   },
   giftDashViewAll: { fontSize: 13, color: v_1bfbd0.zinc500 },
-  giftDashMetrics: { flexDirection: "row", gap: 8, marginBottom: 14 },
+  giftDashMetrics: { flexDirection: "row", alignItems: "stretch", gap: 8, marginBottom: 14 },
   giftDashMetric: {
     flex: 1,
     backgroundColor: v_1bfbd0.zinc100,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 10,
+
+    justifyContent: "space-between",
+    minHeight: 72,
   },
   giftDashMetricAccent: { backgroundColor: "#eff6ff" },
-  giftDashMetricLabel: { fontSize: 11, color: v_1bfbd0.zinc500, marginBottom: 6 },
+  giftDashMetricLabel: { fontSize: 11, lineHeight: 15, color: v_1bfbd0.zinc500 },
   giftDashMetricLabelAccent: { color: v_1bfbd0.primary },
-  giftDashMetricValue: { fontSize: 22, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  giftDashMetricValue: { fontSize: 22, fontWeight: "700", color: v_1bfbd0.zinc900, marginTop: 6 },
   giftDashMetricValueAccent: { color: v_1bfbd0.primary },
   giftDashExchangeBtn: {
     ...v_d43669.md,

@@ -26,12 +26,19 @@
     "agoMinutes": "{{n}} menit yang lalu",
     "agoHours": "{{n}} jam yang lalu",
     "agoDays": "{{n}} hari yang lalu",
+    "agoWeeks": "{{n}} minggu yang lalu",
     "sec": "detik",
     "durationSec": "{{s}} detik",
     "durationMin": "{{m}} menit",
     "durationMinSec": "{{m}} menit {{s}} detik",
     "expertBadge": "Ahli",
-    "pressBackToExit": "Tekan kembali lagi untuk keluar"
+    "pressBackToExit": "Tekan kembali lagi untuk keluar",
+    "saving": "Menyimpan…",
+    "emergencyStop": {
+      "title": "Pemberitahuan darurat",
+      "viewDetails": "Lihat detail"
+    },
+    "unknown": "Tanpa nama"
   },
   "tabs": {
     "home": "Beranda",
@@ -73,17 +80,67 @@
       "reportFailed": "Gagal melaporkan",
       "reportSuccessBlocked": "Laporan telah diterima. Klon ini telah diblokir",
       "userBlocked": "Pengguna diblokir",
-      "blockUserFailed": "Gagal memblokir pengguna"
+      "blockUserFailed": "Gagal memblokir pengguna",
+      "visibilityUpdated": "Visibilitas diperbarui",
+      "visibilityFailed": "Gagal mengubah visibilitas"
     },
     "actions": {
       "block": "Blokir",
       "report": "Laporkan"
-    }
+    },
+    "commentSending": "Mengirim..."
   },
   "notifications": {
     "title": "Notifikasi",
     "empty": "Tidak ada notifikasi yang diterima.",
-    "markAllRead": "Tandai semua telah dibaca"
+    "markAllRead": "Tandai semua telah dibaca",
+    "types": {
+      "user_follow": {
+        "title": "✨ Pengikut baru"
+      },
+      "followee_new_clone": {
+        "title": "🌟 Persona baru"
+      },
+      "clone_like": {
+        "title": "❤️ Suka"
+      },
+      "clone_comment": {
+        "title": "💬 Komentar baru"
+      },
+      "clone_follow": {
+        "title": "✨ Pelanggan baru"
+      },
+      "clone_gift": {
+        "title": "🎁 Hadiah diterima"
+      },
+      "intimacy_score": {
+        "title": "🌡️ +{{score}}°C suhu naik"
+      },
+      "moderation": {
+        "title": "Pembaruan laporan",
+        "reporterTitle": "Laporan Anda diproses",
+        "penaltyTitle": "Pemberitahuan pembatasan akun",
+        "liftedTitle": "Pembatasan dicabut",
+        "defaultBody": "Laporan tentang Anda telah diproses.",
+        "penaltyBody": "Pembatasan telah diterapkan pada akun Anda."
+      },
+      "reported": {
+        "title": "Dilaporkan",
+        "bodyProfile": "Anda dilaporkan oleh pengguna profil"
+      },
+      "invite_received": {
+        "title": "📨 Undangan diterima"
+      },
+      "invite_accepted": {
+        "title": "Undangan diterima"
+      },
+      "share_kicked": {
+        "title": "Dihapus sebagai co-admin"
+      },
+      "ownership_transferred": {
+        "title": "Kepemilikan dialihkan"
+      }
+    }
   },
   "invite": {
     "title": "Ko-Admin",
@@ -267,7 +324,8 @@
     "rechargeDesc30": "Top up 30 menit · berlaku 5 tahun",
     "rechargeDesc60": "Top up 60 menit · berlaku 5 tahun",
     "rechargeDesc150": "Top up 150 menit · berlaku 5 tahun",
-    "rechargeDesc300": "Top up 300 menit · berlaku 5 tahun"
+    "rechargeDesc300": "Top up 300 menit · berlaku 5 tahun",
+    "termsFooterIos": "Langganan perpanjangan otomatis ditagih setiap periode hingga dibatalkan.\nBatalkan: Pengaturan → Apple ID → Langganan → afterlife"
   },
   "chat": {
     "personaFallback": "Klon",
@@ -287,7 +345,30 @@
     "callTranscriptTitle": "Transkrip panggilan",
     "missedCall": "Panggilan tak terjawab",
     "sort": "Urutkan",
-    "adBannerFallback": "Spanduk iklan"
+    "sortRecent": "Obrolan terbaru",
+    "sortIntimacy": "Keintiman tertinggi",
+    "sortName": "Nama",
+    "adBannerFallback": "Spanduk iklan",
+    "deleteMessageTitle": "Hapus pesan",
+    "notifyOff": "Matikan notifikasi",
+    "notifyOn": "Nyalakan notifikasi",
+    "callAction": "Panggil",
+    "unfollowAction": "Berhenti berlangganan",
+    "inputPlaceholder": "Mengobrol dengan {{name}}",
+    "missedCallCount": "{{count}} panggilan tak terjawab · {{date}}",
+    "voiceCallWithDuration": "Panggilan suara · {{duration}} · {{time}}",
+    "voiceCallSimple": "Panggilan suara · {{time}}",
+    "dateLabel": "{{weekday}}, {{d}}/{{m}}/{{y}}",
+    "monthDay": "{{d}}/{{m}}",
+    "weekdaySun": "Minggu",
+    "weekdayMon": "Senin",
+    "weekdayTue": "Selasa",
+    "weekdayWed": "Rabu",
+    "weekdayThu": "Kamis",
+    "weekdayFri": "Jumat",
+    "weekdaySat": "Sabtu",
+    "intimacyMilestone": "Suhu dengan {{name}} menjadi {{score}}°C",
+    "lastCallPreview": "Panggilan suara"
   },
   "call": {
     "calling": "Menghubungkan...",
@@ -373,7 +454,11 @@
       "title": "Persetujuan pengenalan wajah",
       "desc": "Untuk mengenali siapa yang berbicara selama panggilan, diperlukan persetujuan berikut. (opsional)",
       "agree": "Setuju"
-    }
+    },
+    "poorConnection": "Koneksi panggilan buruk\nSilakan telepon lagi",
+    "giftInsufficientTitle": "XRUN tidak cukup",
+    "giftFailTitle": "Gagal mengirim hadiah",
+    "giftInsufficientDesc": "XRUN Anda tidak cukup. Isi ulang kredit lalu coba lagi."
   },
   "greeting": {
     "default": "Halo"
@@ -455,7 +540,13 @@
     "summaryLabelChat": "Obrolan",
     "summaryLabelCall": "Panggilan",
     "summaryLabelLearn": "Jelajahi",
-    "summaryLabelFeed": "Feed"
+    "summaryLabelFeed": "Feed",
+    "giftReceiptsTitle": "Hadiah diterima",
+    "giftReceiptsEmpty": "Belum ada hadiah yang diterima",
+    "giftReceiptsTotal": "Total {{n}}",
+    "followers": "Pelanggan",
+    "likes": "Suka",
+    "createdAt": "Dibuat"
   },
   "detail": {
     "notFound": "Klon tidak ditemukan.",
@@ -512,7 +603,9 @@
     "currentVoiceCatalog": "🎵 Suara katalog",
     "currentVoiceHint": "Pilih suara lain di bawah dan panggilan akan diputar dengan suara itu.",
     "voiceStop": "■ Berhenti",
-    "voicePreview": "▶ Pratinjau"
+    "voicePreview": "▶ Pratinjau",
+    "voiceLabel": "Suara",
+    "voiceEmpty": "Belum ada suara."
   },
   "dashboard": {
     "title": "My Page",
@@ -584,7 +677,15 @@
     "giftHeaderSender": "Pengirim",
     "emptyGift": "Belum ada hadiah yang diterima",
     "reportReceived": "Laporan telah diterima",
-    "uploadAvatarFailed": "Gagal mengunggah gambar"
+    "uploadAvatarFailed": "Gagal mengunggah gambar",
+    "giftInventoryTitle": "Hadiah saya",
+    "giftTotalReceivedBefore": "Total hadiah diterima ",
+    "giftTotalReceivedAfter": "",
+    "giftLogOpenFailTitle": "Tidak dapat dibuka",
+    "giftLogOpenFailDesc": "Silakan pasang aplikasi XRUN.",
+    "giftKindReceived": "Diterima",
+    "giftKindSent": "Dikirim",
+    "giftKindExchanged": "Ditukar"
   },
   "learn": {
     "title": "Latih",
@@ -807,10 +908,19 @@
       "phone": "Nomor Telepon",
       "phonePlaceholder": "081-0000-0000",
       "gender": "Jenis Kelamin",
+      "genderSelect": "Pilih",
       "male": "Laki-laki",
       "female": "Perempuan",
       "other": "Lainnya",
       "age": "Usia",
+      "ageSelect": "Pilih",
+      "optional": "Opsional",
+      "pwNeedLower": "huruf kecil",
+      "pwNeedUpper": "huruf besar",
+      "pwNeedDigit": "angka",
+      "pwNeedLen": "minimal 7 karakter",
+      "pwNeedSuffix": "diperlukan",
+      "termsAgree": "Setuju",
       "birthYearPlaceholder": "Tahun Lahir",
       "birthYearLabel": "Kelahiran tahun {{year}}",
       "ageRange10": "Usia 10-an",
@@ -874,7 +984,17 @@
       "termsCloneFaceTitle": "Persetujuan pengenalan wajah per klon",
       "termsLocationTitle": "Ketentuan Layanan Berbasis Lokasi",
       "termsMarketingTitle": "Persetujuan Informasi Pemasaran",
-      "termsMarketingFallback": "Tentang informasi pemasaran\n\nJika Anda setuju, Anda akan menerima informasi promosi seperti acara dan keuntungan melalui notifikasi push aplikasi. Persetujuan ini opsional dan dapat ditarik kapan saja di Pengaturan > Persetujuan."
+      "termsMarketingFallback": "Tentang informasi pemasaran\n\nJika Anda setuju, Anda akan menerima informasi promosi seperti acara dan keuntungan melalui notifikasi push aplikasi. Persetujuan ini opsional dan dapat ditarik kapan saja di Pengaturan > Persetujuan.",
+      "termsLoadFailed": "Gagal memuat ketentuan.",
+      "termsLocationFallback": "Tentang informasi lokasi\n\nSaat ini aplikasi ini tidak mengumpulkan atau menggunakan informasi lokasi. Jika fitur berbasis lokasi ditambahkan nanti, kami akan meminta persetujuan Anda secara terpisah.",
+      "emailDomainNotAllowed": "Domain email ini tidak didukung. Gunakan domain umum seperti gmail.com / naver.com / kakao.com.",
+      "emailChecking": "Sedang memeriksa email. Mohon tunggu sebentar.",
+      "emailDuplicateHint": "Email ini sudah terdaftar",
+      "validationFailed": "Isian tidak valid",
+      "googleTitle": "Daftar dengan Google",
+      "ageRange": "Kelompok usia",
+      "countrySearch": "Cari negara",
+      "regionSearch": "Cari wilayah"
     },
     "emailVerify": {
       "title": "Verifikasi Email",
@@ -976,7 +1096,10 @@
       "rightsAck": "Saya telah memahami",
       "selectHint": "Silakan pilih foto",
       "loadFailed": "Tidak dapat memuat foto.",
-      "guideTitle": "Panduan",
+      "guideTitle": "Panduan foto",
+      "guideBody": "Untuk menjaga rasio yang tepat, gunakan foto potret menghadap ke depan dengan kedua bahu sepenuhnya masuk bingkai, dari bahu ke atas. Gambar 1024×1024 atau lebih besar paling cocok.",
+      "exampleGood": "Jelas dan menghadap depan",
+      "exampleBad": "Terlalu close-up",
       "guide1": "Silakan gunakan foto yang menghadap ke depan",
       "guide2": "Foto dengan wajah yang jelas terlihat lebih baik",
       "guide3": "Latar belakang yang sederhana memberikan hasil yang lebih baik",
@@ -1032,6 +1155,27 @@
         "Luna": "Emosional",
         "Stella": "Anggun dan halus"
       },
+      "presetNames": {
+        "씩씩한 여학생": "Siswi yang bersemangat",
+        "차분한 성인 여성": "Wanita dewasa yang tenang",
+        "조용한 남학생": "Siswa laki-laki yang pendiam",
+        "차분한 청년남성": "Pria muda yang tenang",
+        "차분한 청년 남성": "Pria muda yang tenang",
+        "따뜻한 중년 남성": "Pria paruh baya yang hangat",
+        "밝은 청년 여성": "Wanita muda yang cerah",
+        "차분한 노년 여성": "Wanita lanjut usia yang tenang",
+        "낮은 톤 청년 남성": "Pria muda bersuara dalam",
+        "영지": "Yeongji",
+        "미주": "Miju",
+        "연화스님": "Bhikkhuni Yeonhwa",
+        "상준": "Sangjun",
+        "철수": "Cheolsu",
+        "호철": "Hocheol",
+        "원미": "Wonmi",
+        "청이": "Cheongi",
+        "금이": "Geumi",
+        "고민주": "Minju"
+      },
       "modePreset": "Pilih Warna Suara",
       "modeRecord": "Rekam Sendiri",
       "modeUpload": "Unggah File",
@@ -1082,7 +1226,16 @@
         "s2Text": "Makanan favorit Anda saat ini apa? Saya sangat suka sup kimchi. Rasanya pedas yang kuat, dan menyendok kuah hangatnya membuat semua lelah hari itu hilang. Apalagi jika dimakan saat hujan, lebih lezat lagi.",
         "s3Title": "Kenangan Masa Kecil",
         "s3Text": "Kenangan masa kecil yang paling berkesan bagi saya adalah liburan ke pantai bersama keluarga. Suara ombak, angin asin, dan momen bermain di pasir masih terasa hidup hingga sekarang. Perasaan bahagia saat itu kembali muncul."
-      }
+      },
+      "warnTooShortTitle": "File terlalu pendek",
+      "warnTooShortMsg": "File yang dipilih sangat pendek. Pelatihan suara memerlukan rekaman tenang berdurasi 30 detik hingga 1 menit. Pilih file lain dan unggah lagi.",
+      "warnTooLargeTitle": "File terlalu besar",
+      "warnTooLargeMsg": "File yang dipilih terlalu panjang. Potong menjadi 30 detik hingga 1 menit lalu unggah lagi.",
+      "toastSilence": "Terlalu pelan. Mohon bicara sedikit lebih keras.",
+      "toastNoise": "Sekitar Anda bising. Mohon rekam di tempat yang tenang.",
+      "recordQualityTitle": "Periksa kualitas rekaman",
+      "recordQualitySilenceMsg": "Rekaman memiliki banyak bagian hening. Mohon rekam ulang seluruh kalimat dengan jelas di tempat yang tenang.",
+      "recordQualityNoiseMsg": "Rekaman tercampur suara bising. Merekam ulang di tempat yang tenang akan membuat suara jauh lebih alami."
     },
     "visibility": {
       "memlowLocked": "Klon Kenangan diatur sebagai pribadi. Hanya ko-admin yang dapat melihat.",
@@ -1093,7 +1246,13 @@
       "followersTitle": "Terbuka untuk Pengikut",
       "followersDesc": "Hanya pengikut yang dapat melihat",
       "privateTitle": "Pribadi",
-      "privateDesc": "Hanya Anda yang dapat melihat"
+      "privateDesc": "Hanya Anda yang dapat melihat",
+      "selectedTitle": "Hanya teman tertentu",
+      "selectedDescCount": "{{count}} teman dipilih — ketuk lagi untuk mengubah",
+      "selectedDesc": "Pilih teman di dasbor setelah dibuat",
+      "friendPickerNoAuth": "Silakan masuk lalu coba lagi.",
+      "friendPickerEmptyTitle": "Belum ada teman",
+      "friendPickerEmptyMessage": "Anda belum mengikuti siapa pun. Pilih visibilitas lain, atau ikuti seseorang lalu coba lagi."
     },
     "creating": {
       "title": "Sedang membuat klon...",
@@ -1146,7 +1305,29 @@
       "typeShort": "Kepribadian",
       "mbtiLabel": "MBTI",
       "notesLabel": "Deskripsi Klon",
-      "notesPlaceholder": "Silakan tulis dengan bebas gaya bicara·kebiasaan·latar belakang klon ini (opsional)"
+      "notesPlaceholder": "Silakan tulis dengan bebas gaya bicara·kebiasaan·latar belakang klon ini (opsional)",
+      "ageOptions": {
+        "a10": "Remaja",
+        "a20": "20-an",
+        "a30": "30-an",
+        "a40": "40-an",
+        "a50": "50-an",
+        "a60plus": "60+"
+      },
+      "genderOptions": {
+        "male": "Pria",
+        "female": "Wanita"
+      },
+      "typeOptions": {
+        "extrovert": "Ekstrover",
+        "introvert": "Introver",
+        "logical": "Logis",
+        "emotional": "Emosional",
+        "free": "Bebas",
+        "organized": "Teratur",
+        "passionate": "Bersemangat",
+        "calm": "Tenang"
+      }
     },
     "submitting": "Sebentar...",
     "assistant": {
@@ -1211,12 +1392,14 @@
       "usernameReservedMsg": "Nama pengguna ini sudah dicadangkan. Silakan pilih yang lain.",
       "usernameTakenMsg": "Nama pengguna ini sudah dipakai. Silakan kembali dan pilih yang lain.",
       "cloneCreateFailed": "Gagal membuat klon. (cloneId tidak ditemukan)",
-      "videoPendingDelayed": "Video sedang disiapkan — kamu bisa langsung memposting; akan muncul beberapa menit kemudian"
+      "videoPendingDelayed": "Video sedang disiapkan — kamu bisa langsung memposting; akan muncul beberapa menit kemudian",
+      "usernameInvalidTitle": "Format ID tidak valid"
     },
     "step8": {
       "title": "Klon telah selesai dibuat",
       "subtitle": "Sekarang Anda dapat mengobrol dengan klon\natau memposting kiriman baru.",
-      "toDashboard": "Ke Dashboard"
+      "toDashboard": "Ke Dashboard",
+      "confirm": "OK"
     },
     "username": {
       "taken": "Nama pengguna ini sudah dipakai. Silakan pilih yang lain.",
@@ -1248,7 +1431,8 @@
       "saveFailedTitle": "Gagal Menyimpan",
       "saveFailedMsg": "Terjadi kesalahan saat menyimpan.",
       "noEmailTitle": "Tidak Ada Email",
-      "noEmailMsg": "Tidak ada email akun. Silakan keluar lalu lanjutkan melalui [Lupa Kata Sandi?]."
+      "noEmailMsg": "Tidak ada email akun. Silakan keluar lalu lanjutkan melalui [Lupa Kata Sandi?].",
+      "regionUnsupported": "Wilayah untuk negara yang dipilih belum didukung"
     },
     "notifications": {
       "title": "Pengaturan Notifikasi",
@@ -1293,7 +1477,11 @@
           "desc": "Saat kamu melewatkan balasan dari persona"
         }
       },
-      "saveFailed": "Gagal menyimpan pengaturan. Silakan coba lagi."
+      "saveFailed": "Gagal menyimpan pengaturan. Silakan coba lagi.",
+      "alarm": "Notifikasi",
+      "offTitle": "Matikan notifikasi",
+      "offHint": "Untuk mematikan notifikasi, ubah di pengaturan sistem.",
+      "permTitle": "Izin diperlukan"
     },
     "agreements": {
       "title": "Persetujuan"
@@ -1356,6 +1544,11 @@
       "required": {
         "sectionTitle": "Persetujuan wajib",
         "agreed": "Wajib · Disetujui"
+      },
+      "marketing": {
+        "sectionTitle": "Komunikasi pemasaran",
+        "toggleLabel": "Persetujuan pengumpulan dan penggunaan info pemasaran",
+        "description": "Terima notifikasi acara dan penawaran. (Opsional)"
       }
     },
     "saved": {
@@ -1393,7 +1586,26 @@
       "xrunNotInstalled": "Aplikasi xrun belum terpasang."
     },
     "rememberingCloneDetail": {
-      "deleteFailed": "Gagal menghapus."
+      "deleteFailed": "Gagal menghapus.",
+      "revokeTitle": "Tarik persetujuan?",
+      "revokeMessage": "Semua {{count}} data wajah milik {{name}} akan dihapus. Tindakan ini tidak bisa dibatalkan.",
+      "title": "Orang yang dikenali",
+      "desc": "Ini adalah orang-orang yang wajahnya dikenali dan disimpan oleh persona ini. Menarik persetujuan akan menghapus semua data wajah orang tersebut.",
+      "empty": "Belum ada yang terdaftar.",
+      "count": "{{count}} orang",
+      "faceCount": "{{count}} data wajah",
+      "revoke": "Tarik persetujuan"
+    },
+    "rememberingClones": {
+      "title": "Klon yang mengingat saya",
+      "entry": "Klon yang mengingat saya",
+      "empty": "Belum ada klon yang mengingat Anda.",
+      "count": "{{count}}",
+      "deleteButton": "Hapus",
+      "deleteConfirmTitle": "Hapus ingatan ini?",
+      "deleteConfirmMessage": "{{name}} akan melupakan Anda dan menghapus data wajah Anda. Tidak dapat dibatalkan.",
+      "deleteError": "Gagal menghapus.",
+      "deleteErrorTitle": "Gagal menghapus"
     }
   },
   "permissionGate": {
@@ -1494,7 +1706,11 @@
     "reportFail": "Gagal melaporkan.",
     "followListLoadFailed": "Gagal memuat.",
     "followListEmptyFollowers": "Belum ada pengikut",
-    "followListEmptyFollowing": "Belum ada yang diikuti"
+    "followListEmptyFollowing": "Belum ada yang diikuti",
+    "cloneListLoadFailed": "Gagal memuat.",
+    "subscribingBtn": "Berlangganan",
+    "subscribeBtn": "Langganan",
+    "cloneListEmpty": "Belum ada klon"
   },
   "friendPicker": {
     "title": "Hanya Terbuka untuk Teman Tertentu",
@@ -1569,7 +1785,11 @@
     "suspendedUntil": "Sedang ditangguhkan (~{{date}}) — pembuatan clone dibatasi",
     "notSuspended": "Tidak ada penangguhan",
     "receivedAt": "Diterima {{date}}",
-    "actionedAt": "Ditindaklanjuti {{date}}"
+    "actionedAt": "Ditindaklanjuti {{date}}",
+    "adminMessages": {
+      "reported": "Dilaporkan",
+      "reportedByProfile": "Anda dilaporkan oleh pengguna profil"
+    }
   },
   "search": {
     "placeholder": "Cari tag atau nama pengguna",
@@ -2024,5 +2244,93 @@
   "firstLoginConsent": {
     "title": "Persetujuan AfterLife",
     "desc": "Ini adalah item opsional yang digunakan AfterLife.\nAnda tetap dapat menggunakan layanan tanpa menyetujuinya."
+  },
+  "giftBox": {
+    "title": "Kotak hadiah",
+    "viewAll": "Lihat semua",
+    "tabReceived": "Diterima",
+    "tabSent": "Dikirim",
+    "tabExchange": "Tukar",
+    "exchangeable": "Bisa ditukar",
+    "exchangeAction": "Tukar",
+    "flowerUnit": "",
+    "peopleUnit": "",
+    "ownedLabel": "Dimiliki",
+    "ownedEmpty": "Belum ada hadiah yang dimiliki",
+    "filterAll": "Semua",
+    "filterAnon": "Hanya anonim",
+    "loadMore": "Muat lebih ({{n}})",
+    "receivedTitle": "{{name}} mengirim {{gift}}",
+    "toClone": "Ke klon {{name}}",
+    "toUnknownClone": "Ke klon",
+    "adRewardSender": "Hadiah iklan",
+    "anonymous": "Anonim",
+    "someone": "Seseorang",
+    "sentThisMonth": "Hadiah dikirim bulan ini",
+    "sentPeople": "Penerima",
+    "emptySent": "Belum ada hadiah terkirim",
+    "sentToSuffix": " · ",
+    "delivered": "Terkirim",
+    "browseHint": "Kirim hadiah ke klon yang Anda suka",
+    "browseClones": "Jelajahi klon",
+    "emptyExchange": "Tidak ada hadiah untuk ditukar",
+    "emptyExchangeHistory": "Belum ada riwayat tukar",
+    "exchangeTarget": "Hadiah untuk ditukar",
+    "selectAll": "Pilih semua",
+    "exchangeMaintenance": "Layanan tukar sedang pemeliharaan",
+    "exchangeMinNotice": "Bisa ditukar dari {{min}} termasuk biaya (Anda punya {{owned}})",
+    "exchangeQty": "Jumlah",
+    "fee": "Biaya",
+    "reward": "Hadiah yang diterima",
+    "exchangeSummary": "Total {{deducted}} dipotong (biaya {{fee}}) · hadiah {{reward}} XRUN",
+    "recentExchange": "Riwayat tukar terbaru",
+    "statusClaimed": "Sudah diambil",
+    "statusFailed": "Gagal (hadiah dikembalikan)",
+    "statusPending": "Menunggu pengambilan",
+    "today": "Hari ini",
+    "am": "AM",
+    "pm": "PM",
+    "toastBelowMin": "Bisa ditukar dari {{min}} (biaya {{fee}} per {{unit}} terpisah)",
+    "toastOverMax": "Setelah biaya ({{fee}} per {{unit}}), maks. {{max}}",
+    "toastDuplicate": "Penukaran sedang diproses",
+    "toastEmptyQty": "Masukkan jumlah untuk ditukar",
+    "p1Title": "Tukar {{qty}} {{name}}?",
+    "p1Body": "{{total}} akan dipotong termasuk biaya {{fee}}, dan Anda mendapat {{reward}} XRUN. Tidak bisa dibatalkan.",
+    "p4Title": "Penukaran selesai",
+    "p4Body": "{{name}} ×{{qty}} ditukar menjadi {{reward}} XRUN. Ambil di Dompet XRUN > AfterLife.",
+    "p4Receive": "Buka di XRUN",
+    "p6Title": "Gagal menukar",
+    "p6Body": "Coba lagi nanti. Hadiah tidak dipotong.",
+    "p6BodyWithNo": "Coba lagi nanti. Hadiah tidak dipotong. (No. {{no}})",
+    "p6NetTitle": "Memeriksa hasil penukaran",
+    "p6NetBody": "Jaringan tidak stabil. Periksa riwayat tukar sebentar lagi.",
+    "p7Title": "Jumlah kepemilikan berubah",
+    "p7Body": "Anda sekarang punya {{owned}} {{name}}. Masukkan jumlah lagi.",
+    "p8Title": "Layanan tukar sedang pemeliharaan",
+    "p8BodySoon": "Coba lagi nanti.",
+    "p8BodyRange": "Tidak bisa tukar selama {{range}}.",
+    "p9Title": "Syarat tukar berubah",
+    "p9Body": "Konfirmasi lagi. {{qty}} → {{reward}} XRUN, biaya {{fee}}",
+    "p9Retry": "Konfirmasi lagi",
+    "p10Title": "Akun ini tidak bisa menukar",
+    "p10Body": "Periksa status akun XRUN. Hubungi dukungan jika perlu.",
+    "monthDay": "{{d}}/{{m}}",
+    "monthDayTime": "{{d}}/{{m}} {{hh}}:{{mm}}",
+    "monthDayWeek": "{{w}}, {{d}}/{{m}}",
+    "weekdayShortSun": "Min",
+    "weekdayShortMon": "Sen",
+    "weekdayShortTue": "Sel",
+    "weekdayShortWed": "Rab",
+    "weekdayShortThu": "Kam",
+    "weekdayShortFri": "Jum",
+    "weekdayShortSat": "Sab"
+  },
+  "sso": {
+    "reconsent": {
+      "title": "Beralih ke akun SSO terpadu",
+      "subtitle": "Ketentuan telah diperbarui untuk integrasi layanan.\nSilakan setujui kembali ketentuan wajib di bawah ini.",
+      "saving": "Memproses...",
+      "continue": "Setuju dan lanjutkan"
+    }
   }
 }

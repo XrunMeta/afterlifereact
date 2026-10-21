@@ -26,12 +26,19 @@
     "agoMinutes": "{{n}} min ago",
     "agoHours": "{{n}} hr ago",
     "agoDays": "{{n}} d ago",
+    "agoWeeks": "{{n}} wk ago",
     "sec": "sec",
     "durationSec": "{{s}}s",
     "durationMin": "{{m}}m",
     "durationMinSec": "{{m}}m {{s}}s",
     "expertBadge": "Expert",
-    "pressBackToExit": "Press back again to exit"
+    "pressBackToExit": "Press back again to exit",
+    "saving": "Saving…",
+    "emergencyStop": {
+      "title": "Urgent notice",
+      "viewDetails": "View details"
+    },
+    "unknown": "No name"
   },
   "tabs": {
     "home": "Home",
@@ -73,17 +80,67 @@
       "reportFailed": "Report failed.",
       "reportSuccessBlocked": "Report received. This clone has been blocked.",
       "userBlocked": "User blocked",
-      "blockUserFailed": "Failed to block user"
+      "blockUserFailed": "Failed to block user",
+      "visibilityUpdated": "Visibility updated",
+      "visibilityFailed": "Couldn't change visibility"
     },
     "actions": {
       "block": "Block",
       "report": "Report"
-    }
+    },
+    "commentSending": "Sending..."
   },
   "notifications": {
     "title": "Notifications",
     "empty": "You have no notifications.",
-    "markAllRead": "Mark all read"
+    "markAllRead": "Mark all read",
+    "types": {
+      "user_follow": {
+        "title": "✨ New follower"
+      },
+      "followee_new_clone": {
+        "title": "🌟 New persona"
+      },
+      "clone_like": {
+        "title": "❤️ Like"
+      },
+      "clone_comment": {
+        "title": "💬 New comment"
+      },
+      "clone_follow": {
+        "title": "✨ New subscriber"
+      },
+      "clone_gift": {
+        "title": "🎁 Gift received"
+      },
+      "intimacy_score": {
+        "title": "🌡️ +{{score}}°C temperature up"
+      },
+      "moderation": {
+        "title": "Report update",
+        "reporterTitle": "Your report was processed",
+        "penaltyTitle": "Account restriction notice",
+        "liftedTitle": "Restriction lifted",
+        "defaultBody": "A report about you has been processed.",
+        "penaltyBody": "A restriction has been applied to your account."
+      },
+      "reported": {
+        "title": "Reported",
+        "bodyProfile": "You were reported by a profile user"
+      },
+      "invite_received": {
+        "title": "📨 Invite received"
+      },
+      "invite_accepted": {
+        "title": "Invite accepted"
+      },
+      "share_kicked": {
+        "title": "Removed as co-admin"
+      },
+      "ownership_transferred": {
+        "title": "Ownership transferred"
+      }
+    }
   },
   "invite": {
     "title": "Co-admins",
@@ -267,7 +324,8 @@
     "rechargeDesc30": "30 min top-up · valid 5 years",
     "rechargeDesc60": "60 min top-up · valid 5 years",
     "rechargeDesc150": "150 min top-up · valid 5 years",
-    "rechargeDesc300": "300 min top-up · valid 5 years"
+    "rechargeDesc300": "300 min top-up · valid 5 years",
+    "termsFooterIos": "Auto-renewing subscriptions are charged every period until cancelled.\nTo cancel: Settings → Apple ID → Subscriptions → afterlife"
   },
   "chat": {
     "personaFallback": "Clone",
@@ -287,7 +345,30 @@
     "callTranscriptTitle": "Call transcript",
     "missedCall": "Missed call",
     "sort": "Sort",
-    "adBannerFallback": "Ad banner"
+    "sortRecent": "Recent chats",
+    "sortIntimacy": "Highest intimacy",
+    "sortName": "Name",
+    "adBannerFallback": "Ad banner",
+    "deleteMessageTitle": "Delete message",
+    "notifyOff": "Mute notifications",
+    "notifyOn": "Unmute notifications",
+    "callAction": "Call",
+    "unfollowAction": "Unsubscribe",
+    "inputPlaceholder": "Chatting with {{name}}",
+    "missedCallCount": "{{count}} missed calls · {{date}}",
+    "voiceCallWithDuration": "Voice call · {{duration}} · {{time}}",
+    "voiceCallSimple": "Voice call · {{time}}",
+    "dateLabel": "{{weekday}}, {{m}}/{{d}}/{{y}}",
+    "monthDay": "{{m}}/{{d}}",
+    "weekdaySun": "Sunday",
+    "weekdayMon": "Monday",
+    "weekdayTue": "Tuesday",
+    "weekdayWed": "Wednesday",
+    "weekdayThu": "Thursday",
+    "weekdayFri": "Friday",
+    "weekdaySat": "Saturday",
+    "intimacyMilestone": "Temperature with {{name}} reached {{score}}°C",
+    "lastCallPreview": "Voice call"
   },
   "call": {
     "calling": "Connecting...",
@@ -373,7 +454,11 @@
       "title": "Face recognition consent",
       "desc": "To recognize who is speaking during calls, the consents below are needed. (optional)",
       "agree": "Agree"
-    }
+    },
+    "poorConnection": "The connection is poor.\nPlease call again.",
+    "giftInsufficientTitle": "Not enough XRUN",
+    "giftFailTitle": "Gift failed",
+    "giftInsufficientDesc": "You don't have enough XRUN. Please top up credits and try again."
   },
   "greeting": {
     "default": "Hello"
@@ -455,7 +540,13 @@
     "summaryLabelChat": "Chat",
     "summaryLabelCall": "Call",
     "summaryLabelLearn": "Explore",
-    "summaryLabelFeed": "Feed"
+    "summaryLabelFeed": "Feed",
+    "giftReceiptsTitle": "Received Gifts",
+    "giftReceiptsEmpty": "No gifts received yet",
+    "giftReceiptsTotal": "{{n}} total",
+    "followers": "Subscribers",
+    "likes": "Likes",
+    "createdAt": "Created"
   },
   "detail": {
     "notFound": "Clone not found.",
@@ -512,7 +603,9 @@
     "currentVoiceCatalog": "🎵 Catalog voice",
     "currentVoiceHint": "Pick a different voice below and calls will play with that voice.",
     "voiceStop": "■ Stop",
-    "voicePreview": "▶ Preview"
+    "voicePreview": "▶ Preview",
+    "voiceLabel": "Voice",
+    "voiceEmpty": "No voices available."
   },
   "dashboard": {
     "title": "My Page",
@@ -586,7 +679,13 @@
     "giftTotalReceivedBefore": "Total gifts received ",
     "giftTotalReceivedAfter": "",
     "reportReceived": "Report received",
-    "uploadAvatarFailed": "Failed to upload image"
+    "uploadAvatarFailed": "Failed to upload image",
+    "giftInventoryTitle": "My gifts",
+    "giftLogOpenFailTitle": "Can't open",
+    "giftLogOpenFailDesc": "Please install the XRUN app.",
+    "giftKindReceived": "Received",
+    "giftKindSent": "Sent",
+    "giftKindExchanged": "Exchanged"
   },
   "learn": {
     "title": "Learn",
@@ -809,10 +908,19 @@
       "phone": "Phone",
       "phonePlaceholder": "010-0000-0000",
       "gender": "Gender",
+      "genderSelect": "Select",
       "male": "Male",
       "female": "Female",
       "other": "Other",
       "age": "Age",
+      "ageSelect": "Select",
+      "optional": "Optional",
+      "pwNeedLower": "lowercase letter",
+      "pwNeedUpper": "uppercase letter",
+      "pwNeedDigit": "number",
+      "pwNeedLen": "7+ characters",
+      "pwNeedSuffix": "required",
+      "termsAgree": "Agree",
       "birthYearPlaceholder": "Birth Year",
       "birthYearLabel": "Born {{year}}",
       "ageRange10": "Teens",
@@ -876,7 +984,17 @@
       "termsCloneFaceTitle": "Per-clone face recognition consent",
       "termsLocationTitle": "Location-Based Service Terms",
       "termsMarketingTitle": "Marketing Information Consent",
-      "termsMarketingFallback": "About marketing messages\n\nIf you agree, you will receive promotional information such as events and benefits via app push notifications. This consent is optional and can be withdrawn anytime in Settings > Consents."
+      "termsMarketingFallback": "About marketing messages\n\nIf you agree, you will receive promotional information such as events and benefits via app push notifications. This consent is optional and can be withdrawn anytime in Settings > Consents.",
+      "termsLoadFailed": "Couldn't load the terms.",
+      "termsLocationFallback": "About location information\n\nThis app currently does not collect or use location information. If location-based features are added later, we will ask for your consent separately.",
+      "emailDomainNotAllowed": "This email domain isn't supported. Please use a common domain such as gmail.com, naver.com or kakao.com.",
+      "emailChecking": "Checking your email. Please wait a moment.",
+      "emailDuplicateHint": "This email is already registered",
+      "validationFailed": "Some entries are invalid",
+      "googleTitle": "Sign up with Google",
+      "ageRange": "Age group",
+      "countrySearch": "Search country",
+      "regionSearch": "Search region"
     },
     "emailVerify": {
       "title": "Verify Email",
@@ -978,7 +1096,10 @@
       "rightsAck": "Acknowledged",
       "selectHint": "Tap to choose a photo",
       "loadFailed": "Couldn't load the photo.",
-      "guideTitle": "Guidelines",
+      "guideTitle": "Photo guidelines",
+      "guideBody": "To keep a good aspect ratio, use a portrait photo facing forward with both shoulders fully in the frame, framed from the shoulders up. Images of 1024×1024 or larger work best.",
+      "exampleGood": "Clear and front-facing",
+      "exampleBad": "Too close-up",
       "guide1": "Use a photo facing forward",
       "guide2": "A clear face shot works best",
       "guide3": "Simple backgrounds give better results",
@@ -1034,6 +1155,27 @@
         "Luna": "Emotional",
         "Stella": "Elegant and delicate"
       },
+      "presetNames": {
+        "씩씩한 여학생": "Energetic schoolgirl",
+        "차분한 성인 여성": "Calm adult woman",
+        "조용한 남학생": "Quiet schoolboy",
+        "차분한 청년남성": "Calm young man",
+        "차분한 청년 남성": "Calm young man",
+        "따뜻한 중년 남성": "Warm middle-aged man",
+        "밝은 청년 여성": "Bright young woman",
+        "차분한 노년 여성": "Calm elderly woman",
+        "낮은 톤 청년 남성": "Deep-voiced young man",
+        "영지": "Yeongji",
+        "미주": "Miju",
+        "연화스님": "Ven. Yeonhwa",
+        "상준": "Sangjun",
+        "철수": "Cheolsu",
+        "호철": "Hocheol",
+        "원미": "Wonmi",
+        "청이": "Cheongi",
+        "금이": "Geumi",
+        "고민주": "Minju"
+      },
       "modePreset": "Voice preset",
       "modeRecord": "Record",
       "modeUpload": "Upload file",
@@ -1084,7 +1226,16 @@
         "s2Text": "What's your favorite food these days? I really love kimchi jjigae. That deep spicy flavor and a hot spoonful of broth wash away the day's fatigue. It tastes even better on a rainy day.",
         "s3Title": "Recalling memories",
         "s3Text": "The most memorable moment from my childhood is a beach trip with my family. The sound of the waves, the salty breeze, and running around on the sand — all of it is still vivid. That happy feeling comes back to me again."
-      }
+      },
+      "warnTooShortTitle": "File is too short",
+      "warnTooShortMsg": "The selected file is very short. Voice training needs a quiet 30-second to 1-minute recording. Please pick another file and upload again.",
+      "warnTooLargeTitle": "File is too large",
+      "warnTooLargeMsg": "The selected file is too long. Please trim it to 30 seconds to 1 minute and upload again.",
+      "toastSilence": "It's too quiet. Please speak a little louder.",
+      "toastNoise": "It's noisy around you. Please record in a quiet place.",
+      "recordQualityTitle": "Recording quality",
+      "recordQualitySilenceMsg": "The recording has a lot of silence. Please re-record the whole sentence clearly in a quiet place.",
+      "recordQualityNoiseMsg": "Background noise got into the recording. Re-recording in a quiet place will make the voice sound much more natural."
     },
     "visibility": {
       "memlowLocked": "Memorial clones are private only. Visible only to co-admins.",
@@ -1097,7 +1248,11 @@
       "selectedTitle": "Selected friends",
       "selectedDesc": "Pick friends after creation on the dashboard",
       "privateTitle": "Private",
-      "privateDesc": "Only you"
+      "privateDesc": "Only you",
+      "selectedDescCount": "{{count}} friends selected — tap again to change",
+      "friendPickerNoAuth": "Please log in and try again.",
+      "friendPickerEmptyTitle": "No friends yet",
+      "friendPickerEmptyMessage": "You aren't following anyone yet. Choose a different visibility, or follow someone and try again."
     },
     "creating": {
       "title": "Creating clone...",
@@ -1150,7 +1305,29 @@
       "typeShort": "Personality",
       "mbtiLabel": "MBTI",
       "notesLabel": "Clone Description",
-      "notesPlaceholder": "Tone, habits, background — anything (optional)"
+      "notesPlaceholder": "Tone, habits, background — anything (optional)",
+      "ageOptions": {
+        "a10": "Teens",
+        "a20": "20s",
+        "a30": "30s",
+        "a40": "40s",
+        "a50": "50s",
+        "a60plus": "60s+"
+      },
+      "genderOptions": {
+        "male": "Male",
+        "female": "Female"
+      },
+      "typeOptions": {
+        "extrovert": "Outgoing",
+        "introvert": "Introverted",
+        "logical": "Logical",
+        "emotional": "Emotional",
+        "free": "Free-spirited",
+        "organized": "Organized",
+        "passionate": "Passionate",
+        "calm": "Calm"
+      }
     },
     "submitting": "One moment...",
     "assistant": {
@@ -1215,12 +1392,14 @@
       "usernameReservedMsg": "This username is reserved. Please choose a different one.",
       "usernameTakenMsg": "This username is already taken. Please go back and choose a different one.",
       "cloneCreateFailed": "Failed to create the clone. (cloneId missing)",
-      "videoPendingDelayed": "Preparing video — you can post now; it will appear in a few minutes"
+      "videoPendingDelayed": "Preparing video — you can post now; it will appear in a few minutes",
+      "usernameInvalidTitle": "Invalid ID format"
     },
     "step8": {
       "title": "Your clone is ready",
       "subtitle": "You can now chat with your clone\nor share a new post.",
-      "toDashboard": "To dashboard"
+      "toDashboard": "To dashboard",
+      "confirm": "OK"
     },
     "username": {
       "taken": "This username is already taken. Please choose another one.",
@@ -1252,7 +1431,8 @@
       "saveFailedTitle": "Save failed",
       "saveFailedMsg": "Something went wrong while saving.",
       "noEmailTitle": "No email",
-      "noEmailMsg": "There's no email on your account. Please sign out and use [Forgot password?] to continue."
+      "noEmailMsg": "There's no email on your account. Please sign out and use [Forgot password?] to continue.",
+      "regionUnsupported": "Regions for the selected country are not supported yet"
     },
     "notifications": {
       "title": "Notification Settings",
@@ -1300,7 +1480,11 @@
           "desc": "When you miss a reply from a persona"
         }
       },
-      "saveFailed": "Could not save the setting. Please try again."
+      "saveFailed": "Could not save the setting. Please try again.",
+      "alarm": "Notifications",
+      "offTitle": "Turn off notifications",
+      "offHint": "To turn off notifications, change them in your system settings.",
+      "permTitle": "Permission required"
     },
     "agreements": {
       "title": "Consent"
@@ -1381,6 +1565,11 @@
       "required": {
         "sectionTitle": "Required consents",
         "agreed": "Required · Agreed"
+      },
+      "marketing": {
+        "sectionTitle": "Marketing communications",
+        "toggleLabel": "Consent to collect and use marketing information",
+        "description": "Receive event and offer notifications. (Optional)"
       }
     },
     "saved": {
@@ -1400,7 +1589,26 @@
       "id": "Bahasa Indonesia"
     },
     "rememberingCloneDetail": {
-      "deleteFailed": "Failed to delete."
+      "deleteFailed": "Failed to delete.",
+      "revokeTitle": "Withdraw consent?",
+      "revokeMessage": "All {{count}} face data of {{name}} will be deleted. This can't be undone.",
+      "title": "Recognized people",
+      "desc": "These are the people whose faces this persona recognized and saved. Withdrawing consent deletes all of that person's face data.",
+      "empty": "No one registered yet.",
+      "count": "{{count}} people",
+      "faceCount": "{{count}} face data",
+      "revoke": "Withdraw consent"
+    },
+    "rememberingClones": {
+      "title": "Clones that remember me",
+      "entry": "Clones that remember me",
+      "empty": "No clones remember you yet.",
+      "count": "{{count}}",
+      "deleteButton": "Remove",
+      "deleteConfirmTitle": "Clear this memory?",
+      "deleteConfirmMessage": "{{name}} will forget you and delete your face data. This cannot be undone.",
+      "deleteError": "Could not delete.",
+      "deleteErrorTitle": "Delete failed"
     }
   },
   "permissionGate": {
@@ -1501,7 +1709,11 @@
     "reportFail": "Report failed.",
     "followListLoadFailed": "Couldn't load the list.",
     "followListEmptyFollowers": "No followers yet",
-    "followListEmptyFollowing": "Not following anyone yet"
+    "followListEmptyFollowing": "Not following anyone yet",
+    "cloneListLoadFailed": "Couldn't load.",
+    "subscribingBtn": "Subscribed",
+    "subscribeBtn": "Subscribe",
+    "cloneListEmpty": "No clones yet"
   },
   "friendPicker": {
     "title": "Share with selected friends only",
@@ -1576,7 +1788,11 @@
     "suspendedUntil": "Suspended (~{{date}}) — clone creation is restricted",
     "notSuspended": "No active suspension",
     "receivedAt": "Received {{date}}",
-    "actionedAt": "Actioned {{date}}"
+    "actionedAt": "Actioned {{date}}",
+    "adminMessages": {
+      "reported": "Reported",
+      "reportedByProfile": "You were reported by a profile user"
+    }
   },
   "search": {
     "placeholder": "Search tags or usernames",
@@ -2031,5 +2247,93 @@
   "firstLoginConsent": {
     "title": "AfterLife consents",
     "desc": "These are optional items used by AfterLife.\nYou can use the service without agreeing."
+  },
+  "giftBox": {
+    "title": "Gift box",
+    "viewAll": "View all",
+    "tabReceived": "Received",
+    "tabSent": "Sent",
+    "tabExchange": "Exchange",
+    "exchangeable": "Exchangeable",
+    "exchangeAction": "Exchange",
+    "flowerUnit": "",
+    "peopleUnit": "",
+    "ownedLabel": "Owned",
+    "ownedEmpty": "You don't have any gifts yet",
+    "filterAll": "All",
+    "filterAnon": "Anonymous only",
+    "loadMore": "Load more ({{n}})",
+    "receivedTitle": "{{name}} sent you {{gift}}",
+    "toClone": "To {{name}}",
+    "toUnknownClone": "To a clone",
+    "adRewardSender": "Ad reward",
+    "anonymous": "Anonymous",
+    "someone": "Someone",
+    "sentThisMonth": "Gifts sent this month",
+    "sentPeople": "Recipients",
+    "emptySent": "No gifts sent yet",
+    "sentToSuffix": " · ",
+    "delivered": "Delivered",
+    "browseHint": "Send a gift to a clone you like",
+    "browseClones": "Browse clones",
+    "emptyExchange": "No gifts to exchange",
+    "emptyExchangeHistory": "No recent exchanges",
+    "exchangeTarget": "Gift to exchange",
+    "selectAll": "Select all",
+    "exchangeMaintenance": "Exchange is under maintenance",
+    "exchangeMinNotice": "You can exchange from {{min}} incl. fee (you have {{owned}})",
+    "exchangeQty": "Quantity",
+    "fee": "Fee",
+    "reward": "Reward",
+    "exchangeSummary": "Total {{deducted}} deducted (fee {{fee}}) · reward {{reward}} XRUN",
+    "recentExchange": "Recent exchanges",
+    "statusClaimed": "Claimed",
+    "statusFailed": "Failed (gift returned)",
+    "statusPending": "Pending claim",
+    "today": "Today",
+    "am": "AM",
+    "pm": "PM",
+    "toastBelowMin": "You can exchange from {{min}} (fee {{fee}} per {{unit}} extra)",
+    "toastOverMax": "After fee ({{fee}} per {{unit}}), max exchangeable is {{max}}",
+    "toastDuplicate": "An exchange is already in progress",
+    "toastEmptyQty": "Enter a quantity to exchange",
+    "p1Title": "Exchange {{qty}} {{name}}?",
+    "p1Body": "{{total}} will be deducted including a fee of {{fee}}, and you'll get {{reward}} XRUN. This can't be undone.",
+    "p4Title": "Exchange complete",
+    "p4Body": "{{name}} ×{{qty}} was exchanged for {{reward}} XRUN. Claim it in XRUN Wallet > AfterLife.",
+    "p4Receive": "Open in XRUN",
+    "p6Title": "Couldn't exchange",
+    "p6Body": "Please try again later. Your gifts were not deducted.",
+    "p6BodyWithNo": "Please try again later. Your gifts were not deducted. (No. {{no}})",
+    "p6NetTitle": "Checking exchange result",
+    "p6NetBody": "Network is unstable. Check the exchange history shortly.",
+    "p7Title": "Owned quantity changed",
+    "p7Body": "You now have {{owned}} of {{name}}. Please enter the quantity again.",
+    "p8Title": "Exchange under maintenance",
+    "p8BodySoon": "Please try again later.",
+    "p8BodyRange": "Exchange unavailable during {{range}}.",
+    "p9Title": "Exchange terms changed",
+    "p9Body": "Please confirm again. {{qty}} → {{reward}} XRUN, fee {{fee}}",
+    "p9Retry": "Confirm again",
+    "p10Title": "This account can't exchange",
+    "p10Body": "Check your XRUN account status. Contact support if you need help.",
+    "monthDay": "{{m}}/{{d}}",
+    "monthDayTime": "{{m}}/{{d}} {{hh}}:{{mm}}",
+    "monthDayWeek": "{{w}}, {{m}}/{{d}}",
+    "weekdayShortSun": "Sun",
+    "weekdayShortMon": "Mon",
+    "weekdayShortTue": "Tue",
+    "weekdayShortWed": "Wed",
+    "weekdayShortThu": "Thu",
+    "weekdayShortFri": "Fri",
+    "weekdayShortSat": "Sat"
+  },
+  "sso": {
+    "reconsent": {
+      "title": "Switch to unified SSO account",
+      "subtitle": "Our terms have been updated for the service integration.\nPlease agree to the required terms below again.",
+      "saving": "Processing...",
+      "continue": "Agree and continue"
+    }
   }
 }

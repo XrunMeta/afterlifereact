@@ -26,12 +26,19 @@
     "agoMinutes": "{{n}}分钟前",
     "agoHours": "{{n}}小时前",
     "agoDays": "{{n}}天前",
+    "agoWeeks": "{{n}}周前",
     "sec": "秒",
     "durationSec": "{{s}}秒",
     "durationMin": "{{m}}分钟",
     "durationMinSec": "{{m}}分{{s}}秒",
     "expertBadge": "专家",
-    "pressBackToExit": "再按一次返回键退出"
+    "pressBackToExit": "再按一次返回键退出",
+    "saving": "保存中…",
+    "emergencyStop": {
+      "title": "紧急公告",
+      "viewDetails": "查看详情"
+    },
+    "unknown": "未命名"
   },
   "tabs": {
     "home": "首页",
@@ -73,17 +80,67 @@
       "reportFailed": "举报失败",
       "reportSuccessBlocked": "举报已受理。该克隆已被拉黑",
       "userBlocked": "已屏蔽",
-      "blockUserFailed": "屏蔽失败"
+      "blockUserFailed": "屏蔽失败",
+      "visibilityUpdated": "公开范围已更改",
+      "visibilityFailed": "更改公开范围失败"
     },
     "actions": {
       "block": "屏蔽",
       "report": "举报"
-    }
+    },
+    "commentSending": "发送中..."
   },
   "notifications": {
     "title": "通知",
     "empty": "暂无收到的通知。",
-    "markAllRead": "全部已读"
+    "markAllRead": "全部已读",
+    "types": {
+      "user_follow": {
+        "title": "✨ 新关注者"
+      },
+      "followee_new_clone": {
+        "title": "🌟 新人格"
+      },
+      "clone_like": {
+        "title": "❤️ 点赞"
+      },
+      "clone_comment": {
+        "title": "💬 新评论"
+      },
+      "clone_follow": {
+        "title": "✨ 新订阅"
+      },
+      "clone_gift": {
+        "title": "🎁 收到礼物"
+      },
+      "intimacy_score": {
+        "title": "🌡️ +{{score}}°C 温度上升"
+      },
+      "moderation": {
+        "title": "举报处理通知",
+        "reporterTitle": "举报已处理",
+        "penaltyTitle": "活动限制通知",
+        "liftedTitle": "限制已解除",
+        "defaultBody": "与您相关的举报已处理。",
+        "penaltyBody": "您的账号已受到限制。"
+      },
+      "reported": {
+        "title": "被举报",
+        "bodyProfile": "您被个人资料用户举报了"
+      },
+      "invite_received": {
+        "title": "📨 收到邀请"
+      },
+      "invite_accepted": {
+        "title": "邀请已接受"
+      },
+      "share_kicked": {
+        "title": "已移出共同管理"
+      },
+      "ownership_transferred": {
+        "title": "所有权已转移"
+      }
+    }
   },
   "invite": {
     "title": "共同管理员",
@@ -267,7 +324,8 @@
     "rechargeDesc30": "充值30分钟 · 有效期5年",
     "rechargeDesc60": "充值60分钟 · 有效期5年",
     "rechargeDesc150": "充值150分钟 · 有效期5年",
-    "rechargeDesc300": "充值300分钟 · 有效期5年"
+    "rechargeDesc300": "充值300分钟 · 有效期5年",
+    "termsFooterIos": "自动续订订阅在取消前每个周期都会扣费。\n取消方法：设置 → Apple ID → 订阅 → afterlife"
   },
   "chat": {
     "personaFallback": "克隆",
@@ -287,7 +345,30 @@
     "callTranscriptTitle": "通话内容",
     "missedCall": "未接来电",
     "sort": "排序",
-    "adBannerFallback": "横幅广告"
+    "sortRecent": "最近对话",
+    "sortIntimacy": "亲密度从高到低",
+    "sortName": "按名称",
+    "adBannerFallback": "横幅广告",
+    "deleteMessageTitle": "删除消息",
+    "notifyOff": "关闭通知",
+    "notifyOn": "开启通知",
+    "callAction": "通话",
+    "unfollowAction": "取消订阅",
+    "inputPlaceholder": "正在与{{name}}聊天",
+    "missedCallCount": "{{count}}通未接来电 · {{date}}",
+    "voiceCallWithDuration": "语音通话 · {{duration}} · {{time}}",
+    "voiceCallSimple": "语音通话 · {{time}}",
+    "dateLabel": "{{y}}年{{m}}月{{d}}日 {{weekday}}",
+    "monthDay": "{{m}}月{{d}}日",
+    "weekdaySun": "星期日",
+    "weekdayMon": "星期一",
+    "weekdayTue": "星期二",
+    "weekdayWed": "星期三",
+    "weekdayThu": "星期四",
+    "weekdayFri": "星期五",
+    "weekdaySat": "星期六",
+    "intimacyMilestone": "与{{name}}的温度达到了{{score}}°C",
+    "lastCallPreview": "语音通话"
   },
   "call": {
     "calling": "连接中...",
@@ -373,7 +454,11 @@
       "title": "人脸识别同意",
       "desc": "为在通话中识别说话人，需要以下同意。（可选）",
       "agree": "同意"
-    }
+    },
+    "poorConnection": "通话信号不佳\n请重新拨打",
+    "giftInsufficientTitle": "XRUN 不足",
+    "giftFailTitle": "送礼失败",
+    "giftInsufficientDesc": "XRUN 不足。请充值后重试。"
   },
   "greeting": {
     "default": "你好"
@@ -455,7 +540,13 @@
     "summaryLabelCall": "通话",
     "summaryLabelChat": "聊天",
     "summaryLabelFeed": "动态",
-    "summaryLabelLearn": "探索"
+    "summaryLabelLearn": "探索",
+    "giftReceiptsTitle": "收到的礼物",
+    "giftReceiptsEmpty": "还没有收到礼物",
+    "giftReceiptsTotal": "共 {{n}}个",
+    "followers": "订阅者",
+    "likes": "点赞",
+    "createdAt": "创建日期"
   },
   "detail": {
     "notFound": "找不到克隆。",
@@ -512,7 +603,9 @@
     "currentVoiceCatalog": "🎵 目录声音",
     "currentVoiceHint": "在下方列表中选择其他声音后,通话时将使用该声音。",
     "voiceStop": "■ 停止",
-    "voicePreview": "▶ 预览"
+    "voicePreview": "▶ 预览",
+    "voiceLabel": "声音",
+    "voiceEmpty": "暂无可用的声音。"
   },
   "dashboard": {
     "title": "My Page",
@@ -584,7 +677,15 @@
     "giftHeaderSender": "赠送者",
     "emptyGift": "还没有收到礼物",
     "reportReceived": "举报已受理",
-    "uploadAvatarFailed": "图片上传失败"
+    "uploadAvatarFailed": "图片上传失败",
+    "giftInventoryTitle": "我的礼物",
+    "giftTotalReceivedBefore": "共收到礼物 ",
+    "giftTotalReceivedAfter": "个",
+    "giftLogOpenFailTitle": "无法打开",
+    "giftLogOpenFailDesc": "请安装 XRUN 应用。",
+    "giftKindReceived": "收到",
+    "giftKindSent": "送出",
+    "giftKindExchanged": "兑换"
   },
   "learn": {
     "title": "学习",
@@ -807,10 +908,19 @@
       "phone": "电话号码",
       "phonePlaceholder": "010-0000-0000",
       "gender": "性别",
+      "genderSelect": "选择",
       "male": "男",
       "female": "女",
       "other": "其他",
       "age": "年龄",
+      "ageSelect": "选择",
+      "optional": "可选",
+      "pwNeedLower": "小写英文字母",
+      "pwNeedUpper": "大写英文字母",
+      "pwNeedDigit": "数字",
+      "pwNeedLen": "至少 7 位",
+      "pwNeedSuffix": "请输入",
+      "termsAgree": "同意",
       "birthYearPlaceholder": "出生年份",
       "birthYearLabel": "{{year}} 年出生",
       "ageRange10": "10 多岁",
@@ -874,7 +984,17 @@
       "termsCloneFaceTitle": "按克隆的人脸识别同意",
       "termsLocationTitle": "位置服务使用条款",
       "termsMarketingTitle": "营销信息收集及使用同意",
-      "termsMarketingFallback": "关于营销信息接收\n\n同意后，您将通过应用推送接收活动、优惠等广告信息。此同意为可选项，可随时在 设置 > 同意 中撤回。"
+      "termsMarketingFallback": "关于营销信息接收\n\n同意后，您将通过应用推送接收活动、优惠等广告信息。此同意为可选项，可随时在 设置 > 同意 中撤回。",
+      "termsLoadFailed": "无法加载条款。",
+      "termsLocationFallback": "关于位置信息的说明\n\n本应用目前不收集或使用位置信息。今后如增加基于位置的功能，将另行征得您的同意。",
+      "emailDomainNotAllowed": "不支持该邮箱域名。请使用 gmail.com / naver.com / kakao.com 等常用域名。",
+      "emailChecking": "正在确认邮箱，请稍候。",
+      "emailDuplicateHint": "该邮箱已注册",
+      "validationFailed": "输入内容有误",
+      "googleTitle": "使用 Google 注册",
+      "ageRange": "年龄段",
+      "countrySearch": "搜索国家",
+      "regionSearch": "搜索地区"
     },
     "emailVerify": {
       "title": "邮箱验证",
@@ -976,7 +1096,10 @@
       "rightsAck": "我已确认",
       "selectHint": "请选择照片",
       "loadFailed": "无法加载照片。",
-      "guideTitle": "指南",
+      "guideTitle": "照片指南",
+      "guideBody": "为保持合适比例，请使用双肩完整入镜、面向镜头、从肩部以上取景的竖向照片。1024×1024 及以上的图片效果最佳。",
+      "exampleGood": "清晰且正面入镜",
+      "exampleBad": "过度特写",
       "guide1": "请使用正面照片",
       "guide2": "面部清晰可见的照片更佳",
       "guide3": "背景越简单效果越好",
@@ -1032,6 +1155,27 @@
         "Luna": "感性细腻",
         "Stella": "优雅精致"
       },
+      "presetNames": {
+        "씩씩한 여학생": "开朗的女学生",
+        "차분한 성인 여성": "沉稳的成年女性",
+        "조용한 남학생": "安静的男学生",
+        "차분한 청년남성": "沉稳的青年男性",
+        "차분한 청년 남성": "沉稳的青年男性",
+        "따뜻한 중년 남성": "温和的中年男性",
+        "밝은 청년 여성": "明亮的青年女性",
+        "차분한 노년 여성": "沉稳的老年女性",
+        "낮은 톤 청년 남성": "低沉嗓音的青年男性",
+        "영지": "永智",
+        "미주": "美珠",
+        "연화스님": "莲花法师",
+        "상준": "尚俊",
+        "철수": "哲秀",
+        "호철": "浩哲",
+        "원미": "媛美",
+        "청이": "清儿",
+        "금이": "金儿",
+        "고민주": "敏珠"
+      },
       "modePreset": "选择音色",
       "modeRecord": "自行录音",
       "modeUpload": "上传文件",
@@ -1082,7 +1226,16 @@
         "s2Text": "您最近最喜欢吃什么？我特别喜欢泡菜汤。浓郁的辣味加上热腾腾的汤，一口下去仿佛一整天的疲惫都消散了。尤其是下雨天喝，更加美味。",
         "s3Title": "回忆往昔",
         "s3Text": "童年回忆里最让我难忘的，是和家人一起去的那次海边旅行。海浪声、带着咸味的海风，还有在沙滩上奔跑玩耍的瞬间，至今仍历历在目。那时的幸福感又浮现出来了。"
-      }
+      },
+      "warnTooShortTitle": "文件太短",
+      "warnTooShortMsg": "所选文件太短。声音训练需要 30 秒至 1 分钟的安静录音。请选择其他文件重新上传。",
+      "warnTooLargeTitle": "文件太大",
+      "warnTooLargeMsg": "所选文件太长。请剪辑为 30 秒至 1 分钟后重新上传。",
+      "toastSilence": "声音太小，请大声一点。",
+      "toastNoise": "周围太吵，请在安静的地方录音。",
+      "recordQualityTitle": "录音质量检查",
+      "recordQualitySilenceMsg": "录音中静音部分较多。请在安静的地方清晰地重新录制整句话。",
+      "recordQualityNoiseMsg": "录音中混入了环境噪音。在安静的地方重新录制，声音会自然得多。"
     },
     "visibility": {
       "memlowLocked": "追思克隆固定为不公开。仅共同管理员可见。",
@@ -1093,7 +1246,13 @@
       "followersTitle": "订阅者可见",
       "followersDesc": "仅订阅者可以查看",
       "privateTitle": "不公开",
-      "privateDesc": "仅本人可以查看"
+      "privateDesc": "仅本人可以查看",
+      "selectedTitle": "仅限特定好友",
+      "selectedDescCount": "已选择 {{count}} 位好友 — 再次点击可更改",
+      "selectedDesc": "创建后在仪表板中指定好友",
+      "friendPickerNoAuth": "请登录后重试。",
+      "friendPickerEmptyTitle": "还没有好友",
+      "friendPickerEmptyMessage": "你还没有关注任何人。请选择其他公开范围，或关注他人后再试。"
     },
     "creating": {
       "title": "克隆生成中...",
@@ -1146,7 +1305,29 @@
       "typeShort": "性格",
       "mbtiLabel": "MBTI",
       "notesLabel": "克隆描述",
-      "notesPlaceholder": "请自由描述该克隆的语气·习惯·背景等（可选）"
+      "notesPlaceholder": "请自由描述该克隆的语气·习惯·背景等（可选）",
+      "ageOptions": {
+        "a10": "10多岁",
+        "a20": "20多岁",
+        "a30": "30多岁",
+        "a40": "40多岁",
+        "a50": "50多岁",
+        "a60plus": "60岁以上"
+      },
+      "genderOptions": {
+        "male": "男性",
+        "female": "女性"
+      },
+      "typeOptions": {
+        "extrovert": "外向",
+        "introvert": "内向",
+        "logical": "理性",
+        "emotional": "感性",
+        "free": "自由",
+        "organized": "有条理",
+        "passionate": "热情",
+        "calm": "平和"
+      }
     },
     "submitting": "请稍等...",
     "assistant": {
@@ -1211,12 +1392,14 @@
       "usernameReservedMsg": "该用户名已被保留,请使用其他名称。",
       "usernameTakenMsg": "该用户名已被使用。请返回上一步并更换其他名称。",
       "cloneCreateFailed": "克隆创建失败。(缺少 cloneId)",
-      "videoPendingDelayed": "视频准备中 · 可以先发布,几分钟后生效"
+      "videoPendingDelayed": "视频准备中 · 可以先发布,几分钟后生效",
+      "usernameInvalidTitle": "ID 格式错误"
     },
     "step8": {
       "title": "克隆已完成",
       "subtitle": "现在可以与克隆对话\n或发布新的内容了。",
-      "toDashboard": "前往仪表板"
+      "toDashboard": "前往仪表板",
+      "confirm": "确定"
     },
     "username": {
       "taken": "该用户名已被使用,请换一个。",
@@ -1248,7 +1431,8 @@
       "saveFailedTitle": "保存失败",
       "saveFailedMsg": "保存时发生错误。",
       "noEmailTitle": "无邮箱",
-      "noEmailMsg": "账户没有邮箱。请退出登录后从 [忘记密码？] 进行操作。"
+      "noEmailMsg": "账户没有邮箱。请退出登录后从 [忘记密码？] 进行操作。",
+      "regionUnsupported": "所选国家的地区暂不支持"
     },
     "notifications": {
       "title": "通知设置",
@@ -1289,7 +1473,11 @@
           "desc": "关于你的账号或角色的举报处理结果（警告、停用等）"
         }
       },
-      "saveFailed": "无法保存设置，请重试。"
+      "saveFailed": "无法保存设置，请重试。",
+      "alarm": "通知",
+      "offTitle": "关闭通知",
+      "offHint": "如需关闭通知，请在系统设置中更改。",
+      "permTitle": "需要权限"
     },
     "agreements": {
       "title": "同意事项"
@@ -1352,6 +1540,11 @@
       "required": {
         "sectionTitle": "必需同意",
         "agreed": "必需 · 已同意"
+      },
+      "marketing": {
+        "sectionTitle": "营销信息接收",
+        "toggleLabel": "同意收集并使用营销信息",
+        "description": "接收活动与优惠等营销通知。（可选）"
       }
     },
     "saved": {
@@ -1389,7 +1582,26 @@
       "xrunNotInstalled": "尚未安装 xrun 应用。"
     },
     "rememberingCloneDetail": {
-      "deleteFailed": "删除失败。"
+      "deleteFailed": "删除失败。",
+      "revokeTitle": "要撤回同意吗？",
+      "revokeMessage": "{{name}} 的 {{count}} 条面部数据将全部删除，且无法恢复。",
+      "title": "已识别面部的人",
+      "desc": "这些是该角色识别并保存了面部的人。撤回同意将删除该人的全部面部数据。",
+      "empty": "还没有登记的人。",
+      "count": "{{count}} 人",
+      "faceCount": "{{count}} 条面部数据",
+      "revoke": "撤回同意"
+    },
+    "rememberingClones": {
+      "title": "记得我的克隆",
+      "entry": "记得我的克隆",
+      "empty": "还没有克隆记得你。",
+      "count": "{{count}}个",
+      "deleteButton": "清除",
+      "deleteConfirmTitle": "清除这段记忆？",
+      "deleteConfirmMessage": "{{name}} 对你的记忆和面部信息将被全部删除，无法恢复。",
+      "deleteError": "删除失败。",
+      "deleteErrorTitle": "删除失败"
     }
   },
   "permissionGate": {
@@ -1490,7 +1702,11 @@
     "reportFail": "举报失败。",
     "followListLoadFailed": "无法加载。",
     "followListEmptyFollowers": "还没有粉丝",
-    "followListEmptyFollowing": "还没有关注"
+    "followListEmptyFollowing": "还没有关注",
+    "cloneListLoadFailed": "加载失败。",
+    "subscribingBtn": "已订阅",
+    "subscribeBtn": "订阅",
+    "cloneListEmpty": "还没有创建克隆"
   },
   "friendPicker": {
     "title": "仅向特定好友公开",
@@ -1565,7 +1781,11 @@
     "suspendedUntil": "活动暂停中 (~{{date}}) — 克隆创建受限",
     "notSuspended": "无活动暂停",
     "receivedAt": "受理 {{date}}",
-    "actionedAt": "处理 {{date}}"
+    "actionedAt": "处理 {{date}}",
+    "adminMessages": {
+      "reported": "被举报",
+      "reportedByProfile": "您被个人资料用户举报了"
+    }
   },
   "search": {
     "placeholder": "搜索标签或昵称",
@@ -2020,5 +2240,93 @@
   "firstLoginConsent": {
     "title": "AfterLife 使用同意",
     "desc": "以下为 AfterLife 使用的可选项目。\n不同意也可以使用服务。"
+  },
+  "giftBox": {
+    "title": "礼物盒",
+    "viewAll": "查看全部",
+    "tabReceived": "收到的礼物",
+    "tabSent": "送出的礼物",
+    "tabExchange": "兑换",
+    "exchangeable": "可兑换",
+    "exchangeAction": "兑换",
+    "flowerUnit": "朵",
+    "peopleUnit": "人",
+    "ownedLabel": "持有中",
+    "ownedEmpty": "暂无持有的礼物",
+    "filterAll": "全部",
+    "filterAnon": "仅匿名",
+    "loadMore": "加载更多 ({{n}})",
+    "receivedTitle": "{{name}}送了{{gift}}",
+    "toClone": "送给{{name}}克隆",
+    "toUnknownClone": "送给克隆",
+    "adRewardSender": "广告奖励",
+    "anonymous": "匿名",
+    "someone": "对方",
+    "sentThisMonth": "本月送出的礼物",
+    "sentPeople": "接收人数",
+    "emptySent": "还没有送出礼物",
+    "sentToSuffix": " ",
+    "delivered": "已送达",
+    "browseHint": "给喜欢的克隆送一份礼物吧",
+    "browseClones": "浏览克隆",
+    "emptyExchange": "没有可兑换的礼物",
+    "emptyExchangeHistory": "暂无最近兑换记录",
+    "exchangeTarget": "要兑换的礼物",
+    "selectAll": "全部选择",
+    "exchangeMaintenance": "兑换服务维护中",
+    "exchangeMinNotice": "含手续费从{{min}}朵起可兑换（当前{{owned}}朵）",
+    "exchangeQty": "兑换数量",
+    "fee": "手续费",
+    "reward": "可获得奖励",
+    "exchangeSummary": "共扣除{{deducted}}朵（含手续费{{fee}}朵）·奖励{{reward}} XRUN",
+    "recentExchange": "最近兑换记录",
+    "statusClaimed": "已领取",
+    "statusFailed": "失败（礼物已退回）",
+    "statusPending": "待领取",
+    "today": "今天",
+    "am": "上午",
+    "pm": "下午",
+    "toastBelowMin": "从{{min}}朵起可兑换（手续费每{{unit}}朵另加{{fee}}朵）",
+    "toastOverMax": "扣除手续费（每{{unit}}朵{{fee}}朵）后最多可兑换{{max}}朵",
+    "toastDuplicate": "已有兑换正在处理中",
+    "toastEmptyQty": "请输入要兑换的数量",
+    "p1Title": "要兑换{{name}} {{qty}}朵吗？",
+    "p1Body": "将扣除含手续费{{fee}}朵在内的共{{total}}朵，并可获得{{reward}} XRUN。兑换后无法取消。",
+    "p4Title": "兑换完成",
+    "p4Body": "{{name}} {{qty}}朵已兑换为{{reward}} XRUN。请到 XRUN 钱包 > AfterLife 领取奖励。",
+    "p4Receive": "在 XRUN 领取",
+    "p6Title": "兑换失败",
+    "p6Body": "请稍后再试。礼物未被扣除。",
+    "p6BodyWithNo": "请稍后再试。礼物未被扣除。（兑换编号 {{no}}）",
+    "p6NetTitle": "正在确认兑换结果",
+    "p6NetBody": "网络不稳定。请稍后在兑换记录中查看结果。",
+    "p7Title": "持有数量已变更",
+    "p7Body": "当前持有的{{name}}为{{owned}}朵。请重新输入数量。",
+    "p8Title": "兑换服务维护中",
+    "p8BodySoon": "请稍后再试。",
+    "p8BodyRange": "{{range}}期间无法兑换。",
+    "p9Title": "兑换条件已变更",
+    "p9Body": "请按新条件再次确认。{{qty}}朵 → {{reward}} XRUN，手续费{{fee}}朵",
+    "p9Retry": "再次确认",
+    "p10Title": "该账号无法兑换",
+    "p10Body": "请检查 XRUN 账号状态。如有疑问请联系客服。",
+    "monthDay": "{{m}}月{{d}}日",
+    "monthDayTime": "{{m}}月{{d}}日 {{hh}}:{{mm}}",
+    "monthDayWeek": "{{m}}月{{d}}日 ({{w}})",
+    "weekdayShortSun": "日",
+    "weekdayShortMon": "一",
+    "weekdayShortTue": "二",
+    "weekdayShortWed": "三",
+    "weekdayShortThu": "四",
+    "weekdayShortFri": "五",
+    "weekdayShortSat": "六"
+  },
+  "sso": {
+    "reconsent": {
+      "title": "切换为 SSO 统一账号",
+      "subtitle": "为整合服务，条款已修订。\n请重新同意以下必选条款。",
+      "saving": "处理中...",
+      "continue": "同意并继续"
+    }
   }
 }

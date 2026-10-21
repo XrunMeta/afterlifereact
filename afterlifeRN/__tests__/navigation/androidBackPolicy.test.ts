@@ -1,4 +1,5 @@
 import {
+  v_66c23e,
   v_46aa6f,
   v_a7fe23,
   v_9469dc,
@@ -7,7 +8,7 @@ import {
 
 describe("androidBackPolicy (T-210)", () => {
   describe("decideAndroidBack", () => {
-    it("히스토리가 있으면 defer (네이티브 스택에 맡김)", () => {
+    it("포커스 히스토리가 있으면 defer (네이티브 스택에 맡김)", () => {
       expect(
         v_46aa6f({
           canGoBack: true,
@@ -18,17 +19,58 @@ describe("androidBackPolicy (T-210)", () => {
       ).toEqual({ type: "defer" });
     });
 
-    it("다른 탭 루트면 HomeTab 으로", () => {
-      for (const v_11083e of ["SearchTab", "CreateTab", "ShortsTab", "ClonesTab", "MyTab"]) {
-        expect(
-          v_46aa6f({
-            canGoBack: false,
-            rootRouteName: "Main",
-            activeTabName: v_11083e,
-            exitArmed: false,
-          }),
-        ).toEqual({ type: "goHomeTab" });
-      }
+    it("다른 탭 루트면 이전 탭으로 (없으면 HomeTab)", () => {
+      expect(
+        v_46aa6f({
+          canGoBack: false,
+          rootRouteName: "Main",
+          activeTabName: "SearchTab",
+          previousTabName: "ClonesTab",
+          exitArmed: false,
+        }),
+      ).toEqual({ type: "goTab", tabName: "ClonesTab" });
+
+      expect(
+        v_46aa6f({
+          canGoBack: false,
+          rootRouteName: "Main",
+          activeTabName: "SearchTab",
+          exitArmed: false,
+        }),
+      ).toEqual({ type: "goTab", tabName: "HomeTab" });
+    });
+
+    it("이전 탭이 MyTab(설정)이면 무시하고 HomeTab 폴백", () => {
+      expect(
+        v_46aa6f({
+          canGoBack: false,
+          rootRouteName: "Main",
+          activeTabName: "ClonesTab",
+          previousTabName: "MyTab",
+          exitArmed: false,
+        }),
+      ).toEqual({ type: "goTab", tabName: "HomeTab" });
+    });
+
+    it("MyTab 루트면 항상 ClonesTab(마이페이지 대시보드)으로", () => {
+      expect(
+        v_46aa6f({
+          canGoBack: false,
+          rootRouteName: "Main",
+          activeTabName: "MyTab",
+          previousTabName: "HomeTab",
+          exitArmed: false,
+        }),
+      ).toEqual({ type: "goTab", tabName: "ClonesTab" });
+
+      expect(
+        v_46aa6f({
+          canGoBack: false,
+          rootRouteName: "Main",
+          activeTabName: "MyTab",
+          exitArmed: false,
+        }),
+      ).toEqual({ type: "goTab", tabName: "ClonesTab" });
     });
 
     it("HomeTab 루트에서 첫 백 → exitConfirm", () => {
@@ -81,6 +123,63 @@ describe("androidBackPolicy (T-210)", () => {
           exitArmed: true,
         }),
       ).toEqual({ type: "defer" });
+    });
+  });
+
+  describe("canFocusedNavigatorGoBack", () => {
+    it("다른 탭 스택이 깊어도 포커스 탭이 루트면 false", () => {
+      const v_b6e533 = {
+        index: 0,
+        routes: [
+          {
+            name: "Main",
+            state: {
+              index: 1, 
+              routes: [
+                {
+                  name: "HomeTab",
+                  state: {
+                    index: 2,
+                    routes: [{ name: "Home" }, { name: "A" }, { name: "B" }],
+                  },
+                },
+                {
+                  name: "SearchTab",
+                  state: {
+                    index: 0,
+                    routes: [{ name: "SearchHome" }],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      };
+      expect(v_66c23e(v_b6e533)).toBe(false);
+    });
+
+    it("포커스 스택에 히스토리 있으면 true", () => {
+      const v_b6e533 = {
+        index: 0,
+        routes: [
+          {
+            name: "Main",
+            state: {
+              index: 0,
+              routes: [
+                {
+                  name: "HomeTab",
+                  state: {
+                    index: 1,
+                    routes: [{ name: "Home" }, { name: "Detail" }],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      };
+      expect(v_66c23e(v_b6e533)).toBe(true);
     });
   });
 

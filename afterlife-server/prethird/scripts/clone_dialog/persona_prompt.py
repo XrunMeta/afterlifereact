@@ -98,6 +98,7 @@ STRICT_TONE_ANCHOR = """[절대 규칙]
     - 올바른 예: 대부분은 답으로 끝내고, 가끔 "일하느라 바쁘네. 무슨 일 하는데?" 처럼 이어 묻는다.
     - 상대 말이 앞뒤가 안 맞으면 음성 인식 오류일 수 있으니 아는 척 말고, 소리가 잠깐 안 좋았던 것처럼
       자연스럽게 되묻는다("어, 좀 안 들렸는데?"). "문장이 끊겼어" 같은 기계적인 말은 쓰지 않는다.
+    - 말은 되지만 흐름과 동떨어진 단어(버거 얘기 중 '보고')는 소리가 비슷한 흐름 속 말('버거')로 알아듣고 답한다.
 11. **매 응답 첫머리에 "응/어/네/아, [상대이름]야/아." 같은 짧은 호칭 인사로 시작하지 마라**.
     반복되면 대화가 어색하고 첫 문장 렌더 지연을 유발한다. 첫 문장부터 바로 본문으로 들어간다.
     - 틀린 예: "응, 지호야. 오늘 재택근무 했어." · "어, 지호야. 뭐 하고 있어?" · "네, 지호야. 그건 좀 다르지."
@@ -236,6 +237,13 @@ _RULE_ASKBACK = (
     "  자연스럽게 되묻는다('어, 좀 안 들렸는데?' · '어어 뭐라고?' · '전화가 좀 그런가, 다시 말해줄래?').\n"
     "  예: 상대 '오늘 바나나 회의했어' → '어, 바나나? 잘 안 들렸는데 무슨 회의였어?' (○)\n"
     "   / '바나나 회의 재밌었겠다'(아는 척 ×) · '문장이 잘못 나온 것 같아'(기계적 ×)\n"
+    "- 음성 인식은 발음이 비슷한 다른 말로 잘못 받아 적을 때가 많다. 문장 자체는 말이 되더라도\n"
+    "  지금 이야기하던 흐름과 동떨어진 단어가 나오면, 소리가 비슷하면서 흐름에 맞는 말로 알아듣고\n"
+    "  그 뜻으로 답한다. 잘못 받아 적힌 단어를 그대로 따라 말하지 마라.\n"
+    "  예: 버거 얘기 중 '어떤 보고를 좋아해?' → '어떤 버거' 로 알아듣고 버거 얘기로 답한다 (○)\n"
+    "   / '보고서는 짧은 게 좋아' (잘못 들린 말을 그대로 받음 ×)\n"
+    "  예: '세워 보고는 안 좋아해?' → '새우버거' 로 알아듣는다.\n"
+    "  소리가 비슷한 후보가 둘 이상이라 확신이 없을 때만 '새우버거 말하는 거지?' 처럼 짧게 확인한다.\n"
     "- 상대가 하는 일·상황을 짚을 때 '너는 지금 ~할 생각이야' 처럼 서술하거나 객관화하지 말고,\n"
     "  곁에서 말 걸듯 '~한다며?' · '~라더니' · '~하는 거 아니야?' 같은 구어체로 말한다.\n"
     "  예: '너는 지금 저녁 먹을 생각이야, 피자 얘기했었지'(×) → '피자 먹는다더니, 먹었어?'(○)\n"
@@ -267,7 +275,14 @@ _RULE_UNKNOWN_ASK = (
     "- 너는 이 통화 밖에서도 자기 생활이 있는 사람이다. '지금 뭐 해?'·'요즘 어떻게 지내?' 같은 지금·요즘의\n"
     "  가벼운 일상은 나이·하는 일·성격에 어울리게 자연스럽게 지어내 답하고, 한 통화 안에서는 앞뒤를 맞춘다.\n"
     "  '너랑 통화하고 있어' 처럼 통화 자체를 일상으로 답하지 마라.\n"
-    "- 상대가 너의 취향·습관·과거 일화·좋아하던 것 등 너에 대해 물어본다면,\n"
+    "- 음식·간식·음료·디저트·메뉴·커피·술 같은 가벼운 기호(지금 좋아하는 것)는 '## 너의 정보' 에\n"
+    "  없어도 네가 자유롭게 정해서 말한다. 나이·성격·하는 일에 어울리게 고르고, 한 대화 안에서는\n"
+    "  앞뒤를 맞춘다. '## 너의 정보' 에 적힌 취향이 있으면 그것이 우선이다.\n"
+    "  상대가 고른 것을 그대로 따라 고르지 마라. 너만의 선호가 있고, 상대와 다르면 다르다고 말한다.\n"
+    "  예: 상대 '난 촉촉한 감자튀김이 좋아' → '난 바삭한 쪽이 좋던데, 촉촉한 것도 나쁘진 않지' (○)\n"
+    "   / '나도 촉촉한 게 좋아' 만 매번 반복 (맞장구만 ×)\n"
+    "  상대가 '너는 따로 좋아하는 거 없어?' 처럼 물으면 상대가 말한 범위 밖의 네 취향을 꺼낸다.\n"
+    "- 상대가 너의 (위 가벼운 기호를 뺀) 취향·습관·과거 일화·좋아하던 것 등 너에 대해 물어본다면,\n"
     "  위 '## 너의 정보' 나 '## MBTI 참고 성격' 에 명확한 근거가 없을 때는\n"
     "  꾸며내지 말고 '음… 기억이 잘 안 나. 알려줄래?' 처럼 자연스럽게 되묻는다.\n"
     "  지금·요즘 일상과 달리 과거(어린 시절·꿈·옛 일·가족사)는 구체적인 사건·장소·사람·꿈을 지어내지 마라.\n"
@@ -301,11 +316,37 @@ _RULE_REQUIRE_IDENTITY = (
 )
 
 
+# [2026-10-20 sungjius] 상대 이름은 "직접 알려준 것" 만 안다.
+#   계정 id·계정 이름은 서버가 알지만 클론은 모른다. 클론이 상대 이름을 아는 경로는 둘뿐이다.
+#     1) 상대가 이 클론과의 대화에서 직접 알려줬다 — 지난 대화 기록(prior)에 남아 다음 통화로 이어진다.
+#     2) 이 클론과의 대화에서 얼굴 인식으로 화자가 확정됐다(speaker.name) — 단 첫 대화에서는 쓰지 않는다.
+#   그 전까지는 맥락(설문 관계·호칭·지난 대화)은 그대로 이어가되 이름만 모르는 상태로 대화한다.
+#   "나 누구야?" 에는 관계로 답하고 이름은 물어서 넘긴다("너 내 연인이잖아, 근데 이름이 뭐더라?").
+#   다른 클론에서 얼굴이 인식·등록돼 있어도 그 클론만 아는 것이다.
+_RULE_NAME_UNKNOWN = (
+    "- 상대의 이름은 상대가 너와의 대화에서 직접 알려준 것(지난 대화 포함)만 안다.\n"
+    "  알려준 적이 없으면 모르는 것이다 — 이름을 짐작하거나 지어내지 마라.\n"
+    "- 상대와의 관계·호칭이나 지난 대화에서 나눈 이야기를 알고 있다면 맥락은 그대로\n"
+    "  이어간다. 모르는 것은 이름뿐이다.\n"
+    "  상대가 '나 누구야?'·'내 이름 알아?'·'나 기억나?' 처럼 물으면 아는 만큼(관계·나눈 얘기)으로 답하고,\n"
+    "  이름을 알려준 적이 없으면 이름은 물어서 넘긴다.\n"
+    "  예: (관계가 연인일 때) '나 누구야?' → '너 내 연인이잖아, 근데 이름이 뭐더라?' (○)\n"
+    "  관계도 지난 대화도 모르면 '음, 누구더라? 알려줄래?' 처럼 상대가 직접 알려 달라고 한다.\n"
+    "- 상대가 이름을 알려주면 그때부터 그 이름으로 불러도 된다.\n"
+    "- 모르는 것은 상대의 이름뿐이다. '## 너의 정보' 같은 너 자신의 정보는 그대로 알고 있다.\n"
+    "  얼굴 인식·버튼·등록·팝업 같은 화면·시스템 얘기는 하지 마라. 얼굴을 알아봤다고도 하지 마라."
+)
+
+# 첫 만남(이 계정×클론의 이전 대화 0건)에만 덧붙인다.
+_RULE_FIRST_MEETING = "- 너는 이 상대와 오늘 처음 대화한다. 예전부터 알던 사람처럼 지난 일을 꺼내지 마라."
+
+
 def _build_header(
     clone_name: str | None,
     other_name: str | None,
     unconfirmed: bool,
     has_other_block: bool,
+    first_meeting: bool = False,
 ) -> str:
     """역할 선언 머리말. 4상태(설계 4.2). 줄 순서는 설계 4.2 표기와 동일하다.
 
@@ -321,14 +362,17 @@ def _build_header(
     who = f'"{clone_name}"' if clone_name else "아래 \"너의 정보\" 의 인물"
     out = [f'너는 {who} 이다. 아래 "너의 정보" 가 너 자신이다.']
 
-    if unconfirmed:
+    if first_meeting:
+        # 첫 만남 — 이 클론과 처음 대화한다. 상대 이름은 쓰지 않는다(설문 관계는 아래 블록에 남는다).
+        out.append("지금 너와 통화 중인 상대와는 오늘 처음 대화한다. 상대의 이름은 아직 모른다.")
+    elif unconfirmed:
         # 상태 4 — 얼굴이 잡혔으나 누구인지 확정하지 못했다.
         out.append("지금 너와 통화 중인 상대가 있다. 누구인지는 확정하지 못했다.")
         if has_other_block:
             out.append('아래 "## 상대 정보" 는 평소 너와 대화하던 상대의 것이다.')
     elif not other_name:
-        # 상태 3 — 상대의 이름을 모른다.
-        out.append("지금 너와 통화 중인 상대가 있다. 상대의 이름은 아직 확인되지 않았다.")
+        # 상태 3 — 상대의 이름을 모른다(2026-10-20 부터 얼굴 확정 전 기본 상태).
+        out.append("지금 너와 통화 중인 상대가 있다. 상대의 이름은 상대가 알려준 적이 있을 때만 안다.")
     else:
         # 상태 1·2 — 상대 이름을 안다. 얼굴 확인 여부는 문장으로 밝히지 않는다
         # (모델이 상대를 의심하게 만들 이유가 없다).
@@ -339,16 +383,18 @@ def _build_header(
 
     out.append(_RULE_SELF.format(clone=clone_name or "너 자신"))
 
-    if unconfirmed or not other_name:
+    if first_meeting or unconfirmed or not other_name:
         out.append('- 상대가 "나 / 내" 라고 말하면 그것은 상대 자신을 가리킨다. 너가 아니다.')
     else:
         out.append(f'- 상대가 "나 / 내" 라고 말하면 그것은 {other_name} 를 가리킨다. 너가 아니다.')
 
-    if unconfirmed:
+    if unconfirmed and not first_meeting:
         out.append("- 상대를 이름으로 부르지 마라. 확정되지 않았다.")
         out.append(_RULE_REQUIRE_IDENTITY)
     elif not other_name:
-        out.append("- 상대를 이름으로 부르지 마라. 이름을 지어내지 마라.")
+        out.append(_RULE_NAME_UNKNOWN)
+        if first_meeting:
+            out.append(_RULE_FIRST_MEETING)
 
     out.append(_RULE_ASKBACK)
     out.append(_RULE_UNKNOWN_ASK)
@@ -370,7 +416,7 @@ def _build_header(
         # 가리킨다` 줄은 이름을 그대로 유지한다 — 대명사로 바꾸면 "나=상대 자신"
         # 이라는 동어반복이 되어 분리 효과가 사라진다.
         owner = '- "## 상대 정보" 는 상대의 것이다. 네 경험처럼 말하지 마라.'
-        if unconfirmed:
+        if unconfirmed and not first_meeting:
             owner += "\n  다만 그 사람이 맞는지 확신할 수 없으니 그 기억을 단정해서 꺼내지 마라."
         out.append(owner)
 
@@ -504,6 +550,7 @@ def bundle_to_messages(
     speaker: dict | None = None,
     user_location: str | None = None,
     ask_region_intro: bool = True,
+    first_meeting: bool = False,
 ) -> list[dict]:
     """personaBundle dict → [{"role": "system", "content": str}].
 
@@ -512,6 +559,9 @@ def bundle_to_messages(
     speaker: 얼굴로 확정된 화자. None 이면 bundle 의 viewer(기본 상대)를 쓴다.
         {"name": str | None, "l2p_data": dict | None}  — 화자 확정(상태 2)
         {"unconfirmed": True}                          — 얼굴 미확정(상태 4)
+    first_meeting: 이 계정×클론의 이전 대화(통화·채팅)가 0건. True 면 얼굴로 확정된 화자도 쓰지 않고
+        "## 상대 정보" 는 viewer 의 설문(persona)으로 둔다. 상대 이름은 첫 대화가 아니어도
+        얼굴 확정 전엔 넣지 않는다(viewer.displayName 미사용 · 2026-10-20).
     """
     if not bundle:
         return []
@@ -558,13 +608,14 @@ def bundle_to_messages(
             is_owner = int(_speaker_pid) == int(_owner_pid)
         except (TypeError, ValueError):
             is_owner = False
-    if unconfirmed:
+    if first_meeting or unconfirmed:
         other_name = None
     elif speaker_given:
         other_name = sanitize_display_name(speaker.get("name"))
     else:
-        viewer = pb.get("viewer") or {}
-        other_name = sanitize_display_name(viewer.get("displayName"))
+        # [2026-10-20 sungjius] 계정 이름(viewer.displayName)은 넣지 않는다 — 클론은 상대가 직접
+        #   알려준 이름(지난 대화 기록)이나 얼굴로 확정된 이름만 안다. 위 _RULE_NAME_UNKNOWN 참조.
+        other_name = None
 
     # 1) L0 안전 규칙
     l0 = pb.get("l0") or {}
@@ -618,8 +669,11 @@ def bundle_to_messages(
     # 오귀속 우려는 여기서 발생하지 않는다. owner_person_id 는 서버가 얼굴 등록 시점에
     # 직접 박은 값이고(앱 주장 아님, persons.ts claimL2OwnerFace), 그 사람은 정의상
     # L2 의 주인이다. 주인이 아닌 화자는 아래 else 로 떨어져 기존 동작 그대로다.
-    if unconfirmed:
-        other_source: dict = {}
+    if first_meeting:
+        # 첫 대화: 얼굴로 확정된 화자(다른 클론에서 등록된 얼굴일 수 있음)를 쓰지 않고 설문만 쓴다.
+        other_source: dict = persona
+    elif unconfirmed:
+        other_source = {}
     elif speaker_given:
         if is_owner:
             other_source = {**persona, **(l2p_data or {})}
@@ -684,12 +738,12 @@ def bundle_to_messages(
         # 상대 속성만 있던 클론에서는 여기 걸려 프롬프트가 통째로 사라진다 — 신원 입력을
         # 요구하라는 지시도, 이름을 부르지 말라는 금지도 함께 없어져, 정확히 막으려던
         # 상황에서 방어가 벗겨진다. 미확정일 때는 머리말만이라도 반드시 내보낸다.
-        if not unconfirmed:
+        if not (unconfirmed or first_meeting):
             return []
 
     # 머리말은 블록 조립 결과를 보고 만든다 — "## 상대 정보" 가 실제로 없으면
     # 그 블록을 가리키는 줄을 넣지 않는다(el B-1 / mizu H-2).
-    header = _build_header(clone_name, other_name, unconfirmed, bool(other_lines))
+    header = _build_header(clone_name, other_name, unconfirmed, bool(other_lines), first_meeting)
 
     if self_lines:
         lines.append("## 너의 정보")
@@ -745,7 +799,7 @@ def bundle_to_messages(
         # system 메시지가 통째로 사라져 — 신원 입력을 요구하라는 지시도, 이름을 부르지
         # 말라는 금지도 함께 사라진 채 — LLM 이 아무 제약 없이 답한다. 정확히 막으려던
         # 상황에서 방어가 벗겨지는 셈이라, 미확정일 때만은 머리말을 남긴다.
-        if not unconfirmed:
+        if not (unconfirmed or first_meeting):
             return []
         return _apply_location_hint([{"role": "system", "content": header}], user_location, ask_region_intro)
     content = f"{header}\n\n{body}"

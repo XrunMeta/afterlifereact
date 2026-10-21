@@ -39,17 +39,26 @@ def _max_turns() -> int:
 
 async def fetch_prior_turns(user_id, clone_id, exclude_call_id: str | None = None) -> list[dict]:
     """[{callId, role, text, at}, ...] 시간순. 꺼져 있거나 실패하면 []."""
+    return (await fetch_prior(user_id, clone_id, exclude_call_id)) or []
+
+
+async def fetch_prior(user_id, clone_id, exclude_call_id: str | None = None) -> list[dict] | None:
+    """fetch_prior_turns 와 같되 "모름" 을 구분한다 — 꺼져 있거나 실패하면 None, 진짜 0건이면 [].
+
+    [2026-10-20 sungjius] 첫 대화(이 계정×클론 이전 대화 0건) 판정용. 실패를 0건으로 읽으면
+    아는 상대에게 "오늘 처음 대화한다" 고 말하게 되므로 None 은 첫 대화로 보지 않는다.
+    """
     try:
         if not enabled():
-            return []
+            return None
         secret = os.environ.get("ORCH_SECRET")
         api_base = os.environ.get("PRETHIRD_API_BASE")
         if not secret or not api_base:
             log.warning("prior: ORCH_SECRET/PRETHIRD_API_BASE 미설정 — 이전 대화 생략")
-            return []
+            return None
         uid, cid = int(user_id), int(clone_id)
         if uid <= 0 or cid <= 0:
-            return []
+            return None
         params = {"maxTurns": str(_max_turns())}
         if exclude_call_id and _CALL_ID_RE.fullmatch(exclude_call_id):
             params["excludeCallId"] = exclude_call_id
@@ -60,14 +69,14 @@ async def fetch_prior_turns(user_id, clone_id, exclude_call_id: str | None = Non
                                 headers={"Authorization": f"Bearer {secret}"}) as resp:
                 if resp.status != 200:
                     log.warning("prior: http %s user=%s clone=%s", resp.status, uid, cid)
-                    return []
+                    return None
                 body = await resp.json()
         turns = body.get("turns") if isinstance(body, dict) else None
         if not isinstance(turns, list):
-            return []
+            return None
         log.info("prior: user=%s clone=%s turns=%d resetAt=%s",
                  uid, cid, len(turns), body.get("resetAt"))
         return turns
     except Exception as exc:  # noqa: BLE001 — 어떤 실패도 통화로 새지 않는다
         log.warning("prior: fetch 실패 user=%s clone=%s: %s", user_id, clone_id, exc)
-        return []
+        return None
