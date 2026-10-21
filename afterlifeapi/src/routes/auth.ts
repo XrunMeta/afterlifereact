@@ -2,7 +2,7 @@ import { v_b7c41b } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
-import { v_54846c, v_96aa7f } from "../lib/password";
+import { v_54846c, v_1000e8, v_96aa7f } from "../lib/password";
 import { v_85de88, v_a8614b } from "../lib/ale";
 import { v_2ffe8e } from "../lib/hibp";
 import {
@@ -164,7 +164,7 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
   if (!v_d1b635) {
 
     const v_c4820c = crypto.randomUUID() + crypto.randomUUID();
-    const v_df7439 = await v_54846c(v_c4820c);
+    const v_df7439 = await v_1000e8(v_c4820c);
     const v_ef7664 =
       v_931bf0.name ||
       [v_931bf0.given_name, v_931bf0.family_name].filter(Boolean).join(" ") ||
@@ -353,7 +353,7 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
   if (!v_d1b635) {
 
     const v_c4820c = crypto.randomUUID() + crypto.randomUUID();
-    const v_df7439 = await v_54846c(v_c4820c);
+    const v_df7439 = await v_1000e8(v_c4820c);
     const v_ef7664 =
       [v_4d33b2.fullName?.givenName, v_4d33b2.fullName?.familyName].filter(Boolean).join(" ") ||
       (v_931bf0.is_private_email ? "Apple User" : v_931bf0.email.split("@")[0]) ||
@@ -794,7 +794,7 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
 
       if (v_625c74) {
 
-        const v_3fc173 = await v_54846c(v_4d33b2.password);
+        const v_3fc173 = await v_1000e8(v_4d33b2.password);
         const v_bc285e = await v_a1651b
           .prepare(
             `UPDATE users
@@ -834,7 +834,7 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
         await v_74defc(v_3f4e2e, { userId: v_625c74.id, action: "auth.login.xrun_revive" });
       } else {
 
-        const v_3fc173 = await v_54846c(v_4d33b2.password);
+        const v_3fc173 = await v_1000e8(v_4d33b2.password);
         const v_ef7664 = v_4d33b2.email.split("@")[0] || "user";
         const v_81161e = await v_a1651b
           .prepare(
@@ -889,7 +889,7 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
     }
   }
 
-  const v_2d56e5 = v_625c74?.password_hash ?? (await v_54846c("dummy-nonmatch-0000"));
+  const v_2d56e5 = v_625c74?.password_hash ?? (await v_1000e8("dummy-nonmatch-0000"));
 
   let v_9ef4e1 = false;
   if (v_625c74?.locked_until) {
