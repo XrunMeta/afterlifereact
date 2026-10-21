@@ -74,7 +74,7 @@ v_469bf2("GET /oth-path — cloneId 필터", () => {
     v_4d37e3(v_77b1ac).toEqual(["다른형", "형", "전역이"].sort());
   });
 
-  v_23805a("filters by cloneId including global", async () => {
+  v_23805a("cloneId 지정 시 그 클론 소속만 (전역·다른 클론 제외)", async () => {
     const v_cb35cb = await v_1df298.fetch(`https://x/oth-path?cloneId=${v_6e0fd3}`, {
       headers: { Authorization: `Bearer ${v_21cc31}` },
     });
@@ -82,7 +82,7 @@ v_469bf2("GET /oth-path — cloneId 필터", () => {
     const v_4d33b2 = await v_cb35cb.json<{ data: Array<{ displayName: string | null; cloneId: number | null }> }>();
     const v_77b1ac = v_4d33b2.data.map((v_e2a85c) => v_e2a85c.displayName).sort();
 
-    v_4d37e3(v_77b1ac).toEqual(["형", "전역이"].sort());
+    v_4d37e3(v_77b1ac).toEqual(["형"]);
   });
 
   v_23805a("invalid cloneId → VALIDATION_FAILED(422)", async () => {
