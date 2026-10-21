@@ -250,7 +250,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
 
         const v_de130a = await v_5c746e(v_b50834);
 
-        if (v_de130a.afterlifeExists) {
+        if (v_de130a.afterlifeExists || v_de130a.xrunExists) {
 
           const v_929b58 = await v_ea1c99();
           const v_8f00b9 = await v_dd2158({

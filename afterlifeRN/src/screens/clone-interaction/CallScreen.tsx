@@ -317,7 +317,7 @@ export default function CallScreen(props: Props) {
 
         const [consentR, personsR] = await Promise.all([
           getFaceBiometricConsent(wrapperAccessToken).catch(() => null),
-          listPersons(wrapperAccessToken).catch(() => null),
+          listPersons(wrapperAccessToken, cloneId).catch(() => null),
         ]);
         if (cancelled) return;
         clearTimeout(timer);
@@ -336,7 +336,7 @@ export default function CallScreen(props: Props) {
         } catch {  }
         const shouldRedirect = granted && personCount === 0 && !skippedRecently;
         console.log(
-          `[Call][preCallGate] granted=${granted} · personCount=${personCount} (user-wide) · redirect=${shouldRedirect}`,
+          `[Call][preCallGate] granted=${granted} · personCount=${personCount} (clone-scope) · redirect=${shouldRedirect}`,
         );
         if (shouldRedirect) {
 
