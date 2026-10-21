@@ -1,5 +1,5 @@
 from __future__ import annotations
-import asyncio, os, time
+import asyncio, os, threading, time
 from fractions import Fraction
 from typing import Optional
 import numpy as np
@@ -129,20 +129,27 @@ class AvatarVideoTrack(VideoStreamTrack):
         seq = self._idle_rec_seq
         clone = self._idle_rec_clone
         sess = self._idle_rec_sess
-        try:
-            import imageio
-            root = os.environ.get("PRETHIRD_RECORDS_ROOT", "/data/records")
-            dest_dir = os.path.join(root, clone)
-            os.makedirs(dest_dir, exist_ok=True)
-            path = os.path.join(dest_dir, f"{sess}-idle-{seq:03d}.mp4")
-            imageio.mimwrite(path, frames, fps=25, codec="libx264", quality=8)
+
+        # 2026-10-21: recv() 안에서 동기로 인코딩하면 이벤트 루프가 dump 마다 약 1.1초 멈췄다
+        #   (실측 19:57:00.33→01.46). 그동안 모든 통화의 영상·오디오 송출이 함께 멈춘다.
+        #   인코딩은 별도 스레드에서 한다(imageio-ffmpeg 는 서브프로세스 파이프라 GIL 을 오래 쥐지 않는다).
+        def _write() -> None:
             try:
-                os.chmod(path, 0o600)
-            except OSError:
-                pass
-            log.info("[idle-rec] dump seq=%d frames=%d → %s", seq, len(frames), path)
-        except Exception as e:
-            log.warning("[idle-rec] dump 실패 seq=%d: %s", seq, e)
+                import imageio
+                root = os.environ.get("PRETHIRD_RECORDS_ROOT", "/data/records")
+                dest_dir = os.path.join(root, clone)
+                os.makedirs(dest_dir, exist_ok=True)
+                path = os.path.join(dest_dir, f"{sess}-idle-{seq:03d}.mp4")
+                imageio.mimwrite(path, frames, fps=25, codec="libx264", quality=8)
+                try:
+                    os.chmod(path, 0o600)
+                except OSError:
+                    pass
+                log.info("[idle-rec] dump seq=%d frames=%d → %s", seq, len(frames), path)
+            except Exception as e:
+                log.warning("[idle-rec] dump 실패 seq=%d: %s", seq, e)
+
+        threading.Thread(target=_write, name=f"idle-rec-{seq}", daemon=True).start()
 
     def set_mode(self, mode: str) -> None:
         if mode not in ("dummy", "queue"):
