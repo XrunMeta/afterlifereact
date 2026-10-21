@@ -75,7 +75,12 @@ export default function v_4d58d7({
   };
 
   return (
-    <Modal visible={v_cf55be} transparent animationType="fade">
+    <Modal
+      visible={v_cf55be}
+      transparent
+      animationType="fade"
+      onRequestClose={v_c7001c}
+    >
       <KeyboardAvoidingView
         behavior={v_326be8.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}

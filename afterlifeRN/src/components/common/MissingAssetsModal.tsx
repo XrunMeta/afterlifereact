@@ -13,7 +13,12 @@ interface Props {
 export default function v_f81454({ visible: v_cf55be, onAddNow: v_4a7b62, onLater: v_c77d15 }: Props) {
   const { t: v_8d41d7 } = v_772971();
   return (
-    <Modal transparent animationType="fade" visible={v_cf55be}>
+    <Modal
+      transparent
+      animationType="fade"
+      visible={v_cf55be}
+      onRequestClose={v_c77d15}
+    >
       <View style={v_d81136.backdrop}>
         <View style={v_d81136.card}>
           <Text style={v_d81136.title}>{v_8d41d7('assetsHint.title')}</Text>
