@@ -1,4 +1,4 @@
-import { v_b7c41b } from "zmui";
+import { v_b7c41b, type v_437670 } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
@@ -116,6 +116,17 @@ v_68f0aa.post("/google/check", async (v_3f4e2e) => {
   });
 });
 
+async function v_8ec467(c: v_437670<v_de0a25>, v_43e90c, v_9816e7): Promise<void> {
+  await v_3f4e2e.env.DB
+    .prepare(`UPDATE users SET sso_consent_version = ?, sso_consent_at = CURRENT_TIMESTAMP WHERE id = ?`)
+    .bind(v_31fb59, v_43e90c)
+    .run();
+  v_3f4e2e.executionCtx.waitUntil(
+    v_3326b4(v_3f4e2e.env, v_9816e7, { service: true, location: true, privacy: true })
+      .then((v_cb35cb) => { if (!v_cb35cb.ok) console.warn(`[auth.social.xrun] syncTermsToXrun failed: ${v_cb35cb.reason}`); }),
+  );
+}
+
 const v_79d3b6 = v_1f4ea7.object({
   idToken: v_1f4ea7.string().min(20),
   deviceId: v_1f4ea7.string().min(1).max(200).optional(),
@@ -209,6 +220,7 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
           .bind(v_9816e7, v_3ac92c, v_0cd34d, v_81161e.id)
           .run();
 
+        if (v_6bd187.status === "duplicate") await v_8ec467(v_3f4e2e, v_81161e.id, v_9816e7);
       } else {
 
         console.warn(`[auth.google.signup] xrun register failed user_id=${v_81161e.id}: ${v_6bd187.status} ${v_6bd187.reason ?? ""}`);
@@ -396,6 +408,7 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
           .bind(v_9816e7, v_3ac92c, v_0cd34d, v_81161e.id)
           .run();
 
+        if (v_6bd187.status === "duplicate") await v_8ec467(v_3f4e2e, v_81161e.id, v_9816e7);
       } else {
 
         console.warn(`[auth.apple.signup] xrun register failed user_id=${v_81161e.id}: ${v_6bd187.status} ${v_6bd187.reason ?? ""}`);
