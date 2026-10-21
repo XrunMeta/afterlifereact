@@ -362,6 +362,8 @@ class DialoguePipeline:
         # AFL-926: 앱이 Bridge 클립을 트는 통화인지(offer "bridge"). None = 모름(구 앱) → 기존처럼 대기.
         self.uses_bridge: bool | None = None
         self._prior_task: asyncio.Future | None = None
+        # [2026-10-20 sungjius] 이 계정×클론 이전 대화 0건(load_prior 가 판정). 프롬프트 첫 대화 규칙용.
+        self.first_meeting = False
         self._prerender_task: asyncio.Future | None = None
 
     # ------------------------------------------------------------------
@@ -408,11 +410,16 @@ class DialoguePipeline:
     # ------------------------------------------------------------------
 
     async def load_prior(self, user_id, clone_id, call_id: str | None = None) -> None:
-        """이 계정×클론의 이전 통화 턴을 받아 히스토리에 심는다. 실패해도 조용히 빈 채로."""
-        from prior_conversation import fetch_prior_turns
-        turns = await fetch_prior_turns(user_id, clone_id, exclude_call_id=call_id)
+        """이 계정×클론의 이전 통화 턴을 받아 히스토리에 심는다. 실패해도 조용히 빈 채로.
+
+        조회가 성공했는데 0건이면 first_meeting=True(첫 대화). 꺼져 있거나 실패하면 False 그대로.
+        """
+        from prior_conversation import fetch_prior
+        turns = await fetch_prior(user_id, clone_id, exclude_call_id=call_id)
         if turns:
             self._history.seed_prior(turns)
+        elif turns is not None:
+            self.first_meeting = True
 
     async def _await_prior(self, timeout: float = 2.5) -> None:
         """이전 대화 로딩이 진행 중이면 잠깐 기다린다. 넘기면 없는 채로 진행(통화 우선)."""

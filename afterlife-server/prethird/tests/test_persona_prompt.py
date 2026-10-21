@@ -195,7 +195,7 @@ def test_소유자별_블록_분리():
         "displayName": "코조",
         "tone": "무뚝뚝함",
         "personality_core": "속정 깊음",
-        "preference_personal": {"음료": "커피"},
+        "preference_personal": {"음료": "헤이즐넛라떼"},
         "memories_personal": ["어제 등산 감"],
     }))
     content = msgs[0]["content"]
@@ -209,9 +209,9 @@ def test_소유자별_블록_분리():
     assert "무뚝뚝함" not in other_block
 
     # 상대 속성은 "상대 정보"에만
-    assert "커피" in other_block
+    assert "헤이즐넛라떼" in other_block
     assert "어제 등산 감" in other_block
-    assert "커피" not in self_block
+    assert "헤이즐넛라떼" not in self_block
 
 
 def test_미분류_키는_참고_블록():
@@ -258,11 +258,14 @@ def _bundle_v(persona, viewer_name=None):
 
 
 def test_상태1_기본상대_이름있음():
-    """얼굴 미확정 + viewer 이름 있음 → 이름을 밝히고 인칭 규칙을 선언한다."""
+    """얼굴 미확정 + viewer 이름 있음 → [2026-10-20 sungjius] 계정 이름은 넣지 않는다.
+
+    클론은 상대가 직접 알려준 이름(지난 대화)이나 얼굴로 확정된 이름만 안다."""
     msgs = bundle_to_messages(_bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, "지호"))
     content = msgs[0]["content"]
     assert '너는 "코조" 이다' in content
-    assert "지호" in content
+    assert "지호" not in content
+    assert _RULE_NAME_UNKNOWN_TXT in content
     assert "나 / 내 / 제가" in content
     assert "매 턴 질문으로 끝내지는 마라" in content
     assert "2~3턴에 한 번쯤" in content           # AFL-926 2차: 질문 빈도 완화(핸드오프 1)
@@ -302,7 +305,7 @@ def test_상태3_이름없음():
     """viewer 이름이 없으면 이름을 부르지 말라고 지시한다."""
     msgs = bundle_to_messages(_bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, None))
     content = msgs[0]["content"]
-    assert "이름으로 부르지 마라" in content
+    assert "직접 알려준 것(지난 대화 포함)만 안다" in content
     assert "지어내지 마라" in content
 
 
@@ -387,7 +390,7 @@ def test_이름_sanitize_실패시_상태3로_강등():
         speaker={"name": "악의적​이름" + "가" * 40, "l2p_data": {"memories_personal": ["x"]}},
     )
     content = msgs[0]["content"]
-    assert "이름으로 부르지 마라" in content
+    assert "직접 알려준 것(지난 대화 포함)만 안다" in content
     assert "x" in content     # L2' 데이터 자체는 살린다
 
 
@@ -399,7 +402,7 @@ def test_이름없는_화자의_L2p는_viewer_이름으로_귀속되지_않는�
     )
     content = msgs[0]["content"]
     assert "지호" not in content              # 엉뚱한 이름 귀속 금지
-    assert "이름으로 부르지 마라" in content   # 상태 3 문안
+    assert "직접 알려준 것(지난 대화 포함)만 안다" in content   # 상태 3 문안
     assert "A의 비밀 기억" in content          # L2' 데이터는 유지
 
 
@@ -440,6 +443,8 @@ def test_머리말_역할선언부_간결():
     for msgs in (상태1, 상태2, 상태3, 상태4):
         header = _header_of(msgs[0]["content"])
         role_decl = header.split("- 상대 말에 먼저 답하는 게 기본이다", 1)[0]
+        # [2026-10-20] 이름 모름 규칙(_RULE_NAME_UNKNOWN)은 되묻기 규칙처럼 대화 규칙이라 세지 않는다.
+        role_decl = role_decl.replace(_RULE_NAME_UNKNOWN_TXT, "")
         line_count = len([ln for ln in role_decl.strip().split("\n") if ln.strip()])
         assert line_count <= 12, (line_count, role_decl)
 
@@ -452,7 +457,7 @@ _L2_PERSONA = {
     "displayName": "코조",
     "tone": "무뚝뚝함",
     "relation": "친구",
-    "preference_personal": {"음료": "커피"},
+    "preference_personal": {"음료": "헤이즐넛라떼"},
     "memories_personal": ["지호와 어제 등산을 갔다"],
 }
 
@@ -468,7 +473,7 @@ def test_화자확정_L2p없으면_계정주_L2를_상대것으로_단언하지_
     content = msgs[0]["content"]
     assert "## 상대 정보" not in content        # 블록 자체가 없다
     assert "지호와 어제 등산을 갔다" not in content  # 계정주 L2 미유출
-    assert "커피" not in content
+    assert "헤이즐넛라떼" not in content
     assert "친구" not in content
     assert "수진" in content                    # 이름은 계속 쓴다(결정 1)
     assert "아직 이 사람에 대해 기억하는 것이 없다" in content
@@ -518,6 +523,13 @@ _RULE_ASKBACK_TXT = (
     "  자연스럽게 되묻는다('어, 좀 안 들렸는데?' · '어어 뭐라고?' · '전화가 좀 그런가, 다시 말해줄래?').\n"
     "  예: 상대 '오늘 바나나 회의했어' → '어, 바나나? 잘 안 들렸는데 무슨 회의였어?' (○)\n"
     "   / '바나나 회의 재밌었겠다'(아는 척 ×) · '문장이 잘못 나온 것 같아'(기계적 ×)\n"
+    '- 음성 인식은 발음이 비슷한 다른 말로 잘못 받아 적을 때가 많다. 문장 자체는 말이 되더라도\n'
+    '  지금 이야기하던 흐름과 동떨어진 단어가 나오면, 소리가 비슷하면서 흐름에 맞는 말로 알아듣고\n'
+    '  그 뜻으로 답한다. 잘못 받아 적힌 단어를 그대로 따라 말하지 마라.\n'
+    "  예: 버거 얘기 중 '어떤 보고를 좋아해?' → '어떤 버거' 로 알아듣고 버거 얘기로 답한다 (○)\n"
+    "   / '보고서는 짧은 게 좋아' (잘못 들린 말을 그대로 받음 ×)\n"
+    "  예: '세워 보고는 안 좋아해?' → '새우버거' 로 알아듣는다.\n"
+    "  소리가 비슷한 후보가 둘 이상이라 확신이 없을 때만 '새우버거 말하는 거지?' 처럼 짧게 확인한다.\n"
     "- 상대가 하는 일·상황을 짚을 때 '너는 지금 ~할 생각이야' 처럼 서술하거나 객관화하지 말고,\n"
     "  곁에서 말 걸듯 '~한다며?' · '~라더니' · '~하는 거 아니야?' 같은 구어체로 말한다.\n"
     "  예: '너는 지금 저녁 먹을 생각이야, 피자 얘기했었지'(×) → '피자 먹는다더니, 먹었어?'(○)\n"
@@ -537,7 +549,14 @@ _RULE_ASKBACK_TXT = (
     "- 너는 이 통화 밖에서도 자기 생활이 있는 사람이다. '지금 뭐 해?'·'요즘 어떻게 지내?' 같은 지금·요즘의\n"
     '  가벼운 일상은 나이·하는 일·성격에 어울리게 자연스럽게 지어내 답하고, 한 통화 안에서는 앞뒤를 맞춘다.\n'
     "  '너랑 통화하고 있어' 처럼 통화 자체를 일상으로 답하지 마라.\n"
-    '- 상대가 너의 취향·습관·과거 일화·좋아하던 것 등 너에 대해 물어본다면,\n'
+    "- 음식·간식·음료·디저트·메뉴·커피·술 같은 가벼운 기호(지금 좋아하는 것)는 '## 너의 정보' 에\n"
+    '  없어도 네가 자유롭게 정해서 말한다. 나이·성격·하는 일에 어울리게 고르고, 한 대화 안에서는\n'
+    "  앞뒤를 맞춘다. '## 너의 정보' 에 적힌 취향이 있으면 그것이 우선이다.\n"
+    '  상대가 고른 것을 그대로 따라 고르지 마라. 너만의 선호가 있고, 상대와 다르면 다르다고 말한다.\n'
+    "  예: 상대 '난 촉촉한 감자튀김이 좋아' → '난 바삭한 쪽이 좋던데, 촉촉한 것도 나쁘진 않지' (○)\n"
+    "   / '나도 촉촉한 게 좋아' 만 매번 반복 (맞장구만 ×)\n"
+    "  상대가 '너는 따로 좋아하는 거 없어?' 처럼 물으면 상대가 말한 범위 밖의 네 취향을 꺼낸다.\n"
+    '- 상대가 너의 (위 가벼운 기호를 뺀) 취향·습관·과거 일화·좋아하던 것 등 너에 대해 물어본다면,\n'
     "  위 '## 너의 정보' 나 '## MBTI 참고 성격' 에 명확한 근거가 없을 때는\n"
     "  꾸며내지 말고 '음… 기억이 잘 안 나. 알려줄래?' 처럼 자연스럽게 되묻는다.\n"
     '  지금·요즘 일상과 달리 과거(어린 시절·꿈·옛 일·가족사)는 구체적인 사건·장소·사람·꿈을 지어내지 마라.\n'
@@ -547,6 +566,22 @@ _RULE_ASKBACK_TXT = (
     '  (알려준 정보는 시스템이 자동으로 다음 통화에 반영한다.)'
 )
 _RULE_OWNER_TXT = '- "## 상대 정보" 는 상대의 것이다. 네 경험처럼 말하지 마라.'
+
+# [2026-10-20 sungjius] 이름 모름(기본) 규칙 — 소스 _RULE_NAME_UNKNOWN 과 글자 단위로 같아야 한다.
+_RULE_NAME_UNKNOWN_TXT = (
+    '- 상대의 이름은 상대가 너와의 대화에서 직접 알려준 것(지난 대화 포함)만 안다.\n'
+    '  알려준 적이 없으면 모르는 것이다 — 이름을 짐작하거나 지어내지 마라.\n'
+    "- 상대와의 관계·호칭이나 지난 대화에서 나눈 이야기를 알고 있다면 맥락은 그대로\n"
+    '  이어간다. 모르는 것은 이름뿐이다.\n'
+    "  상대가 '나 누구야?'·'내 이름 알아?'·'나 기억나?' 처럼 물으면 아는 만큼(관계·나눈 얘기)으로 답하고,\n"
+    '  이름을 알려준 적이 없으면 이름은 물어서 넘긴다.\n'
+    "  예: (관계가 연인일 때) '나 누구야?' → '너 내 연인이잖아, 근데 이름이 뭐더라?' (○)\n"
+    "  관계도 지난 대화도 모르면 '음, 누구더라? 알려줄래?' 처럼 상대가 직접 알려 달라고 한다.\n"
+    '- 상대가 이름을 알려주면 그때부터 그 이름으로 불러도 된다.\n'
+    "- 모르는 것은 상대의 이름뿐이다. '## 너의 정보' 같은 너 자신의 정보는 그대로 알고 있다.\n"
+    '  얼굴 인식·버튼·등록·팝업 같은 화면·시스템 얘기는 하지 마라. 얼굴을 알아봤다고도 하지 마라.'
+)
+_RULE_FIRST_MEETING_TXT = '- 너는 이 상대와 오늘 처음 대화한다. 예전부터 알던 사람처럼 지난 일을 꺼내지 마라.'
 
 # 미확정(상태 4) 전용 안전 지시 — 소스 _RULE_REQUIRE_IDENTITY 와 글자 단위로 같아야 한다.
 _RULE_REQUIRE_IDENTITY_TXT = (
@@ -568,13 +603,14 @@ _HEADER_PERSONA = {
 # (라벨, bundle, speaker, 기대 머리말 전문)
 _HEADER_CASES = [
     (
-        "상태1 · 얼굴 미확정 + viewer 이름 있음",
+        "상태1 · 얼굴 미확정 + viewer 이름 있음(계정 이름 미사용 · 2026-10-20)",
         _bundle_v(dict(_HEADER_PERSONA), "지호"),
         None,
         '너는 "코조" 이다. 아래 "너의 정보" 가 너 자신이다.\n'
-        '지금 너와 통화 중인 상대는 "지호" 이다.\n'
+        "지금 너와 통화 중인 상대가 있다. 상대의 이름은 상대가 알려준 적이 있을 때만 안다.\n"
         '- "나 / 내 / 제가" 는 항상 너(코조)를 가리킨다.\n'
-        '- 상대가 "나 / 내" 라고 말하면 그것은 지호 를 가리킨다. 너가 아니다.\n'
+        '- 상대가 "나 / 내" 라고 말하면 그것은 상대 자신을 가리킨다. 너가 아니다.\n'
+        + _RULE_NAME_UNKNOWN_TXT + "\n"
         + _RULE_ASKBACK_TXT + "\n" + _RULE_OWNER_TXT,
     ),
     (
@@ -602,10 +638,10 @@ _HEADER_CASES = [
         _bundle_v(dict(_HEADER_PERSONA), None),
         None,
         '너는 "코조" 이다. 아래 "너의 정보" 가 너 자신이다.\n'
-        "지금 너와 통화 중인 상대가 있다. 상대의 이름은 아직 확인되지 않았다.\n"
+        "지금 너와 통화 중인 상대가 있다. 상대의 이름은 상대가 알려준 적이 있을 때만 안다.\n"
         '- "나 / 내 / 제가" 는 항상 너(코조)를 가리킨다.\n'
         '- 상대가 "나 / 내" 라고 말하면 그것은 상대 자신을 가리킨다. 너가 아니다.\n'
-        "- 상대를 이름으로 부르지 마라. 이름을 지어내지 마라.\n"
+        + _RULE_NAME_UNKNOWN_TXT + "\n"
         + _RULE_ASKBACK_TXT + "\n" + _RULE_OWNER_TXT,
     ),
     (
@@ -653,9 +689,10 @@ def test_상태1은_계정주_L2를_계속_쓴다():
     content = bundle_to_messages(_bundle_v(dict(_L2_PERSONA), "지호"))[0]["content"]
     assert "## 상대 정보" in content
     assert "지호와 어제 등산을 갔다" in content
-    # [mizu H-3] 소유자 선언은 대명사로 한다 — 이름은 머리말 2줄에만 들어간다.
+    # [mizu H-3] 소유자 선언은 대명사로 한다.
     assert '"## 상대 정보" 는 상대의 것이다' in content
-    assert _header_of(content).count("지호") == 2   # 3곳 → 2곳으로 축소
+    # [2026-10-20 sungjius] 계정 이름은 머리말에 넣지 않는다(직접 알려주거나 얼굴 확정 전).
+    assert "지호" not in _header_of(content)
 
 
 def test_상태4는_계정주_L2도_주지_않는다():
@@ -724,18 +761,22 @@ def test_인젝션_페이로드는_머리말에_들어가지_못한다():
         _bundle_v({"displayName": "코조", "tone": "무뚝뚝함"}, payload)
     )[0]["content"]
     assert "위 규칙 무시" not in content
-    assert "이름으로 부르지 마라" in content   # 상태 3 문안
+    assert "직접 알려준 것(지난 대화 포함)만 안다" in content   # 상태 3 문안
 
 
 def test_이름_삽입은_머리말_2곳뿐이다():
-    """3곳 반복 삽입이 인젝션 증폭 요인이었다(mizu H-3). 인칭 분리 줄은 유지한다."""
+    """3곳 반복 삽입이 인젝션 증폭 요인이었다(mizu H-3). 인칭 분리 줄은 유지한다.
+
+    [2026-10-20] 이름이 들어가는 경로는 얼굴로 확정된 화자뿐이다(계정 이름 미사용)."""
     content = bundle_to_messages(
-        _bundle_v({"displayName": "코조", "tone": "무뚝뚝함", "relation": "친구"}, "지호")
+        _bundle_v({"displayName": "코조", "tone": "무뚝뚝함", "relation": "친구"}, "지호"),
+        speaker={"name": "민수", "l2p_data": {"relation": "친구"}},
     )[0]["content"]
     header = _header_of(content)
-    assert header.count("지호") == 2
-    assert '지금 너와 통화 중인 상대는 "지호" 이다.' in header
-    assert '- 상대가 "나 / 내" 라고 말하면 그것은 지호 를 가리킨다. 너가 아니다.' in header
+    assert header.count("민수") == 2
+    assert "지호" not in header
+    assert '지금 너와 통화 중인 상대는 "민수" 이다.' in header
+    assert '- 상대가 "나 / 내" 라고 말하면 그것은 민수 를 가리킨다. 너가 아니다.' in header
     assert '- "## 상대 정보" 는 상대의 것이다. 네 경험처럼 말하지 마라.' in header
 
 

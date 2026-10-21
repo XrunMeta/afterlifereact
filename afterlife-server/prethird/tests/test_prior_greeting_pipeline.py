@@ -53,7 +53,7 @@ def prior_on(monkeypatch):
     async def _fetch(user_id, clone_id, exclude_call_id=None):
         return PRIOR
     import prior_conversation
-    monkeypatch.setattr(prior_conversation, "fetch_prior_turns", _fetch)
+    monkeypatch.setattr(prior_conversation, "fetch_prior", _fetch)
     monkeypatch.setenv("PRETHIRD_GREETING_ENABLED", "1")
 
 
