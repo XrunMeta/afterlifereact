@@ -125,6 +125,11 @@ export default function v_def15b() {
       v_d42991(v_a15a8b);
 
       v_7a98d1(v_a15a8b);
+
+      const v_1badb6 = v_1ed7d9.getState().apiUser?.id;
+      if (v_1badb6 != null) {
+        v_194498.getState().pruneOwnedLocalClones(v_1badb6, new Set(v_a15a8b.map((v_3f4e2e) => v_3f4e2e.id)));
+      }
     } catch (v_49263d) {
       console.warn("[Dashboard] listMyClones failed:", v_49263d);
 
@@ -179,8 +184,10 @@ export default function v_def15b() {
     if (v_8a7926 != null) {
 
       const v_15e521 = new Set(v_8a7926.map((v_3f4e2e) => v_3f4e2e.id));
+
+      const v_ca52ce = v_194498.getState().addedAt;
       const v_88106c = v_06f32b.filter(
-        (v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987 && !v_15e521.has(v_3f4e2e.id),
+        (v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987 && !v_15e521.has(v_3f4e2e.id) && Date.now() - (v_ca52ce[v_3f4e2e.id] ?? 0) < 2 * 60 * 1000,
       );
       return [...v_8a7926, ...v_88106c];
     }
