@@ -1060,6 +1060,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
               sendFaceEvent?.({ event: "multi_face" });
 
               dispatchRm({ type: "MULTI_FACE_SENT" });
+
+              resetSpeakerRecognition();
             }
           }
 
@@ -1072,7 +1074,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         },
       ),
 
-    [onFaceEmbedding, sendFaceEvent, dispatchRm],
+    [onFaceEmbedding, sendFaceEvent, dispatchRm, resetSpeakerRecognition],
   );
 
   const faceFrameProcessor = useFrameProcessor(
