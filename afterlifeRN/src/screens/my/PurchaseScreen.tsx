@@ -2,6 +2,7 @@
 
 const v_1e3d67 = true;
 
+import { v_561bb6 } from "../../api/gifts";
 import v_a3453e, { v_de06a3, v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
@@ -252,7 +253,7 @@ export default function v_0035e1() {
       v_889fad(
         v_8d41d7("purchase.swapConfirmTitle", { defaultValue: "교환 확인" }),
         v_8d41d7("purchase.swapConfirmDesc", {
-          name: v_8c0b26.name,
+          name: v_561bb6(v_8c0b26.name, v_8c0b26.giftId),
           count: v_8c0b26.count,
           amount: v_f63e09,
           defaultValue: `${v_8c0b26.name} ${v_8c0b26.count}개를 ${v_f63e09}으로 교환할까요?`,

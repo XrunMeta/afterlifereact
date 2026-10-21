@@ -39,6 +39,7 @@ def _make_musetalk(video_path: str):
     from musetalk_inproc import MuseTalkInproc
     mt = MuseTalkInproc(video_path)
     mt.load()
+    mt.warm_in_background()
     log.info("musetalk in-process loaded (ref=%s)", video_path)
     return mt
 

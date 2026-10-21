@@ -34,6 +34,38 @@ from musetalk.utils.utils import get_file_type, get_video_fps, datagen, load_all
 from musetalk.utils.preprocessing import get_landmark_and_bbox, read_imgs, coord_placeholder
 
 
+from unet_bucket import bucket_size, bucket_sizes
+
+# 이 프로세스에서 튜닝을 마친 배치 크기. cudnn 캐시가 프로세스 단위라 모듈 전역으로 둔다.
+_WARMED_SIZES: set = set()
+
+
+def _pad_to(t, size):
+    """배치 차원을 마지막 원소 반복으로 size 까지 채운다. 결과는 앞 n 개만 쓴다."""
+    n = t.shape[0]
+    if n >= size:
+        return t
+    return torch.cat([t, t[-1:].expand(size - n, *t.shape[1:])], dim=0)
+
+
+def _warm_bucket_sizes(pe, unet, vae, timesteps, whisper_batch, latent_batch, batch_size):
+    """아직 튜닝 안 한 버킷 크기를 실제 배치 모양으로 한 번씩 돌려 cudnn 튜닝을 끝내 둔다.
+
+    통화 시작 프리웜(T-825)이 프로세스 첫 렌더라 보통 그때 한 번만 걸린다.
+    """
+    todo = [s for s in bucket_sizes(batch_size) if s not in _WARMED_SIZES]
+    if not todo:
+        return
+    t0 = time.time()
+    for size in todo:
+        w = _pad_to(whisper_batch[:1], size)
+        l = _pad_to(latent_batch[:1], size).to(dtype=unet.model.dtype)
+        pred = unet.model(l, timesteps, encoder_hidden_states=pe(w)).sample
+        vae.decode_latents(pred)
+        _WARMED_SIZES.add(size)
+    print(f"[unet-bucket] warmed sizes={todo} in {(time.time() - t0) * 1000:.0f}ms", flush=True)
+
+
 def fast_check_ffmpeg():
     try:
         subprocess.run(["ffmpeg", "-version"], capture_output=True, check=True)
@@ -312,12 +344,19 @@ def run_inference(args, models, frame_callback=None, timing_out=None, batch_emit
             # 029-D-3c-latency: UNet inference loop timing
             _t_unet_s = time.time()
             for i, (whisper_batch, latent_batch) in enumerate(tqdm(gen, total=total)):
+                # 2026-10-21: 프로세스 첫 렌더에서 나올 수 있는 배치 크기를 전부 튜닝해 둔다(unet_bucket.py).
+                _warm_bucket_sizes(pe, unet, vae, timesteps, whisper_batch, latent_batch, batch_size)
+                n_real = latent_batch.shape[0]
+                n_pad = bucket_size(n_real, batch_size)
+                if n_pad != n_real:
+                    whisper_batch = _pad_to(whisper_batch, n_pad)
+                    latent_batch = _pad_to(latent_batch, n_pad)
                 audio_feature_batch = pe(whisper_batch)
                 latent_batch = latent_batch.to(dtype=unet.model.dtype)
 
                 pred_latents = unet.model(latent_batch, timesteps, encoder_hidden_states=audio_feature_batch).sample
                 recon = vae.decode_latents(pred_latents)
-                for res_frame in recon:
+                for res_frame in recon[:n_real]:
                     res_frame_list.append(res_frame)
             _t_unet = time.time() - _t_unet_s
             print(f"[029-D-3c-latency] unet_inference_loop={_t_unet*1000:.0f}ms frames={len(res_frame_list)} batches={total} batch_size={batch_size}", flush=True)

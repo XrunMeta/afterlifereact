@@ -20,6 +20,7 @@ import {
   v_399bbb,
   v_6e82f0,
   v_0edc13,
+  v_8d6dec,
   v_9459da,
   v_705aa5,
   v_1e6592,
@@ -258,6 +259,9 @@ v_b7f2b4.patch("/config/gift-catalog", v_c0a297, async (v_3f4e2e) => {
         v_bd030e.svgaUrl = v_2f361a;
       }
     }
+
+    const v_77b1ac = v_8d6dec(v_23805a.names);
+    if (v_77b1ac) v_bd030e.names = v_77b1ac;
     v_76a373.push(v_bd030e);
   }
   await v_9459da(v_3f4e2e.env, v_76a373);

@@ -1,5 +1,6 @@
 
 
+import { v_561bb6 } from "../../api/gifts";
 import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
 import {
   v_aa7413,
@@ -122,7 +123,7 @@ export default function v_03e207({ visible: v_cf55be, cloneId: v_6e0fd3, cloneNa
                     <Feather name="gift" size={16} color="#a78bfa" />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={v_fd5f43.giftName}>{v_23805a.giftName}</Text>
+                    <Text style={v_fd5f43.giftName}>{v_561bb6(v_23805a.giftName, v_23805a.giftId)}</Text>
                     <Text style={v_fd5f43.sender}>{v_23805a.sender}</Text>
                   </View>
                   <Text style={v_fd5f43.count}>×{v_23805a.count}</Text>
