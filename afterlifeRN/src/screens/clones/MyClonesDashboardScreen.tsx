@@ -1,3 +1,4 @@
+import { v_561bb6 } from "../../api/gifts";
 import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_c4deb2, v_df9f57, v_5ab095, v_de06a3, v_e662ae } from "bapkr";
 import {
@@ -1490,7 +1491,7 @@ export default function v_def15b() {
                     <View key={`${v_8c0b26.giftId}-${v_8c0b26.sender}-${v_e86ad8}`} style={v_fd5f43.giftTableRow}>
                       <View style={[{ flex: 2, flexDirection: "row", alignItems: "center", gap: 6 }]}>
                         <Text style={{ fontSize: 18 }}>{v_03a50c}</Text>
-                        <Text style={v_fd5f43.giftTableCell}>{v_8c0b26.giftName}</Text>
+                        <Text style={v_fd5f43.giftTableCell}>{v_561bb6(v_8c0b26.giftName, v_8c0b26.giftId)}</Text>
                       </View>
                       <Text style={[v_fd5f43.giftTableCell, { flex: 1, textAlign: "center" }]}>
                         {v_8c0b26.count}
@@ -2608,7 +2609,7 @@ function v_3582ab({ item: v_8c0b26 }: { item: v_407a6d }) {
           <Text style={[v_fd5f43.giftLogKindIcon, { color: v_90e7ec.color }]}>{v_90e7ec.icon}</Text>
           <Text style={[v_fd5f43.giftLogKindLabel, { color: v_90e7ec.color }]}>{v_90e7ec.label}</Text>
           <Text style={v_fd5f43.giftLogGiftIcon}>{v_8c0b26.giftEmoji}</Text>
-          <Text style={v_fd5f43.giftLogSenderName} numberOfLines={1}>{v_8c0b26.giftName}</Text>
+          <Text style={v_fd5f43.giftLogSenderName} numberOfLines={1}>{v_561bb6(v_8c0b26.giftName)}</Text>
         </View>
         <Text style={v_fd5f43.giftLogMeta} numberOfLines={1}>{v_33a948}</Text>
       </View>
