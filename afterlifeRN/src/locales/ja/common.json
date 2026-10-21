@@ -32,7 +32,13 @@
     "durationMin": "{{m}}分",
     "durationMinSec": "{{m}}分{{s}}秒",
     "expertBadge": "エキスパート",
-    "pressBackToExit": "もう一度戻ると終了します"
+    "pressBackToExit": "もう一度戻ると終了します",
+    "saving": "保存中…",
+    "emergencyStop": {
+      "title": "緊急のお知らせ",
+      "viewDetails": "詳しく見る"
+    },
+    "unknown": "名前なし"
   },
   "tabs": {
     "home": "ホーム",
@@ -74,12 +80,15 @@
       "reportFailed": "通報に失敗しました",
       "reportSuccessBlocked": "通報を受け付けました。このクローンをブロックしました",
       "userBlocked": "ブロックしました",
-      "blockUserFailed": "ブロックに失敗しました"
+      "blockUserFailed": "ブロックに失敗しました",
+      "visibilityUpdated": "公開範囲を変更しました",
+      "visibilityFailed": "公開範囲の変更に失敗しました"
     },
     "actions": {
       "block": "ブロック",
       "report": "通報"
-    }
+    },
+    "commentSending": "送信中..."
   },
   "notifications": {
     "title": "お知らせ",
@@ -315,7 +324,8 @@
     "rechargeDesc30": "30分チャージ · 5年有効",
     "rechargeDesc60": "60分チャージ · 5年有効",
     "rechargeDesc150": "150分チャージ · 5年有効",
-    "rechargeDesc300": "300分チャージ · 5年有効"
+    "rechargeDesc300": "300分チャージ · 5年有効",
+    "termsFooterIos": "自動更新サブスクリプションは解約するまで毎期間請求されます。\n解約：設定 → Apple ID → サブスクリプション → afterlife"
   },
   "chat": {
     "personaFallback": "クローン",
@@ -444,7 +454,11 @@
       "title": "顔認識への同意",
       "desc": "通話中に誰が話しているかを認識するには、以下の同意が必要です。（任意）",
       "agree": "同意"
-    }
+    },
+    "poorConnection": "通話状態がよくありません\nもう一度おかけください",
+    "giftInsufficientTitle": "XRUN不足",
+    "giftFailTitle": "ギフトに失敗しました",
+    "giftInsufficientDesc": "XRUNが足りません。クレジットをチャージしてから再度お試しください。"
   },
   "greeting": {
     "default": "こんにちは"
@@ -529,7 +543,10 @@
     "summaryLabelFeed": "フィード",
     "giftReceiptsTitle": "受け取ったギフト",
     "giftReceiptsEmpty": "まだ受け取ったギフトはありません",
-    "giftReceiptsTotal": "合計 {{n}}個"
+    "giftReceiptsTotal": "合計 {{n}}個",
+    "followers": "購読者",
+    "likes": "いいね",
+    "createdAt": "作成日"
   },
   "detail": {
     "notFound": "クローンが見つかりません。",
@@ -586,7 +603,9 @@
     "currentVoiceCatalog": "🎵 カタログ音声",
     "currentVoiceHint": "下のリストから別の声を選ぶと、通話時にその声で再生されます。",
     "voiceStop": "■ 停止",
-    "voicePreview": "▶ プレビュー"
+    "voicePreview": "▶ プレビュー",
+    "voiceLabel": "声",
+    "voiceEmpty": "登録された声がありません。"
   },
   "dashboard": {
     "title": "My Page",
@@ -659,7 +678,14 @@
     "emptyGift": "まだ受け取ったギフトがありません",
     "reportReceived": "通報を受け付けました",
     "uploadAvatarFailed": "画像のアップロードに失敗しました",
-    "giftInventoryTitle": "マイギフト"
+    "giftInventoryTitle": "マイギフト",
+    "giftTotalReceivedBefore": "受け取ったギフト 合計 ",
+    "giftTotalReceivedAfter": "個",
+    "giftLogOpenFailTitle": "開けません",
+    "giftLogOpenFailDesc": "XRUNアプリをインストールしてください。",
+    "giftKindReceived": "受け取り",
+    "giftKindSent": "送信",
+    "giftKindExchanged": "交換"
   },
   "learn": {
     "title": "学習する",
@@ -958,7 +984,17 @@
       "termsCloneFaceTitle": "クローン別の顔認識への同意",
       "termsLocationTitle": "位置情報サービス利用規約",
       "termsMarketingTitle": "マーケティング情報の収集・活用への同意",
-      "termsMarketingFallback": "マーケティング情報の受信について\n\n同意すると、イベントや特典などの広告情報をアプリのプッシュ通知で受け取れます。この同意は任意であり、設定 > 同意からいつでも撤回できます。"
+      "termsMarketingFallback": "マーケティング情報の受信について\n\n同意すると、イベントや特典などの広告情報をアプリのプッシュ通知で受け取れます。この同意は任意であり、設定 > 同意からいつでも撤回できます。",
+      "termsLoadFailed": "規約を読み込めませんでした。",
+      "termsLocationFallback": "位置情報の利用について\n\n現在、本アプリは位置情報を収集・利用していません。今後位置情報を使う機能が追加される場合は、別途同意をいただきます。",
+      "emailDomainNotAllowed": "対応していないメールドメインです。gmail.com / naver.com / kakao.com などの一般的なドメインをご利用ください。",
+      "emailChecking": "メールアドレスを確認しています。少々お待ちください。",
+      "emailDuplicateHint": "すでに登録済みのメールアドレスです",
+      "validationFailed": "入力内容が正しくありません",
+      "googleTitle": "Googleで新規登録",
+      "ageRange": "年代",
+      "countrySearch": "国を検索",
+      "regionSearch": "地域を検索"
     },
     "emailVerify": {
       "title": "メール認証",
@@ -1190,7 +1226,16 @@
         "s2Text": "最近いちばん好きな食べ物は何ですか?私はキムチチゲが大好きです。辛みが濃くて、熱々のスープを一口すすると、一日の疲れがすっと解けるような気がします。特に雨の日に食べるともっとおいしいんです。",
         "s3Title": "思い出の回想",
         "s3Text": "子どもの頃の思い出でいちばん心に残っているのは、家族と一緒に行った海への旅行です。波の音、しょっぱい風、そして砂浜で駆け回ったあの瞬間が今でも鮮やかです。あの時の幸せな気分がまたよみがえります。"
-      }
+      },
+      "warnTooShortTitle": "ファイルが短すぎます",
+      "warnTooShortMsg": "選択したファイルがとても短いです。声の学習には30秒〜1分の静かな録音が必要です。別のファイルを選んで再度アップロードしてください。",
+      "warnTooLargeTitle": "ファイルが大きすぎます",
+      "warnTooLargeMsg": "選択したファイルが長すぎます。30秒〜1分に切り取って再度アップロードしてください。",
+      "toastSilence": "声が小さすぎます。もう少し大きな声で話してください。",
+      "toastNoise": "周りがうるさいです。静かな場所で録音してください。",
+      "recordQualityTitle": "録音品質の確認",
+      "recordQualitySilenceMsg": "録音に無音部分が多くあります。静かな場所で文全体をはっきりと録り直してください。",
+      "recordQualityNoiseMsg": "録音に周囲の雑音が入っています。静かな場所で録り直すと、声がずっと自然になります。"
     },
     "visibility": {
       "memlowLocked": "追悼クローンは非公開に固定されます。共同管理者のみ閲覧できます。",
@@ -1203,7 +1248,11 @@
       "selectedTitle": "特定の友達のみ",
       "selectedDesc": "作成後にダッシュボードで友達を指定します",
       "privateTitle": "非公開",
-      "privateDesc": "ご本人のみ閲覧できます"
+      "privateDesc": "ご本人のみ閲覧できます",
+      "selectedDescCount": "友達{{count}}人を選択済み — もう一度タップで変更",
+      "friendPickerNoAuth": "ログインしてから再度お試しください。",
+      "friendPickerEmptyTitle": "友達がいません",
+      "friendPickerEmptyMessage": "まだフォローしている人がいません。別の公開範囲を選ぶか、誰かをフォローしてから再度お試しください。"
     },
     "creating": {
       "title": "クローン作成中...",
@@ -1256,7 +1305,29 @@
       "typeShort": "性格",
       "mbtiLabel": "MBTI",
       "notesLabel": "クローン説明",
-      "notesPlaceholder": "このクローンの話し方・習慣・背景などを自由にご記入ください(任意)"
+      "notesPlaceholder": "このクローンの話し方・習慣・背景などを自由にご記入ください(任意)",
+      "ageOptions": {
+        "a10": "10代",
+        "a20": "20代",
+        "a30": "30代",
+        "a40": "40代",
+        "a50": "50代",
+        "a60plus": "60代以上"
+      },
+      "genderOptions": {
+        "male": "男性",
+        "female": "女性"
+      },
+      "typeOptions": {
+        "extrovert": "外向的",
+        "introvert": "内向的",
+        "logical": "論理的",
+        "emotional": "感情的",
+        "free": "自由な",
+        "organized": "几帳面",
+        "passionate": "情熱的",
+        "calm": "穏やか"
+      }
     },
     "submitting": "少々お待ちください...",
     "assistant": {
@@ -1321,12 +1392,14 @@
       "usernameReservedMsg": "このIDは予約されています。別のIDを入力してください。",
       "usernameTakenMsg": "このIDはすでに使われています。前のステップに戻って別のIDに変更してください。",
       "cloneCreateFailed": "クローンの作成に失敗しました。(cloneIdが見つかりません)",
-      "videoPendingDelayed": "動画を準備中 · 先に投稿しても数分後に反映されます"
+      "videoPendingDelayed": "動画を準備中 · 先に投稿しても数分後に反映されます",
+      "usernameInvalidTitle": "IDの形式が正しくありません"
     },
     "step8": {
       "title": "クローンが完成しました",
       "subtitle": "これからクローンと会話したり\n新しい投稿を上げたりできます。",
-      "toDashboard": "ダッシュボードへ"
+      "toDashboard": "ダッシュボードへ",
+      "confirm": "確認"
     },
     "username": {
       "taken": "このIDはすでに使われています。別のIDを入力してください。",
@@ -1410,7 +1483,8 @@
       "saveFailed": "設定を保存できませんでした。もう一度お試しください。",
       "alarm": "通知",
       "offTitle": "通知をオフにする",
-      "offHint": "通知をオフにするには、端末の設定から変更してください。"
+      "offHint": "通知をオフにするには、端末の設定から変更してください。",
+      "permTitle": "権限が必要です"
     },
     "agreements": {
       "title": "同意"
@@ -1515,7 +1589,15 @@
       "xrunNotInstalled": "xrun アプリがインストールされていません。"
     },
     "rememberingCloneDetail": {
-      "deleteFailed": "削除に失敗しました。"
+      "deleteFailed": "削除に失敗しました。",
+      "revokeTitle": "同意を撤回しますか？",
+      "revokeMessage": "{{name}} の顔データ {{count}}件がすべて削除されます。元に戻せません。",
+      "title": "顔認識された人",
+      "desc": "このペルソナが顔を認識して保存した人たちです。同意を撤回すると、その人の顔データがすべて削除されます。",
+      "empty": "まだ登録された人がいません。",
+      "count": "{{count}}人",
+      "faceCount": "顔データ {{count}}件",
+      "revoke": "同意を撤回"
     },
     "rememberingClones": {
       "title": "私を覚えているクローン",
@@ -1627,7 +1709,11 @@
     "reportFail": "通報に失敗しました。",
     "followListLoadFailed": "読み込めませんでした。",
     "followListEmptyFollowers": "まだフォロワーがいません",
-    "followListEmptyFollowing": "まだフォロー中の人がいません"
+    "followListEmptyFollowing": "まだフォロー中の人がいません",
+    "cloneListLoadFailed": "読み込めませんでした。",
+    "subscribingBtn": "購読中",
+    "subscribeBtn": "購読",
+    "cloneListEmpty": "まだ作成したクローンがありません"
   },
   "friendPicker": {
     "title": "特定の友達にのみ公開",
@@ -2241,5 +2327,13 @@
     "weekdayShortThu": "木",
     "weekdayShortFri": "金",
     "weekdayShortSat": "土"
+  },
+  "sso": {
+    "reconsent": {
+      "title": "SSO統合アカウントへの切り替え",
+      "subtitle": "サービス統合のため規約が改定されました。\n以下の必須規約に改めて同意してください。",
+      "saving": "処理中...",
+      "continue": "同意して続ける"
+    }
   }
 }
