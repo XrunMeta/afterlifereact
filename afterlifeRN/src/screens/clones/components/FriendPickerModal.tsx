@@ -83,6 +83,7 @@ export default function v_4c2648({
       transparent
       animationType="slide"
       statusBarTranslucent
+      onRequestClose={v_0890f8}
     >
       <Pressable style={v_fd5f43.overlay} onPress={v_0890f8}>
         <SwipeDownSheet

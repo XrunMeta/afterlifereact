@@ -70,8 +70,15 @@ export default function v_03e207({ visible: v_cf55be, cloneId: v_6e0fd3, cloneNa
   const v_c83285 = v_4622b9?.reduce((v_dce0a8, v_23805a) => v_dce0a8 + v_23805a.count, 0) ?? 0;
 
   return (
-    <Modal visible={v_cf55be} transparent animationType="slide">
-      <Pressable style={v_fd5f43.bottomOverlay} onPress={v_0890f8}>
+    <Modal
+      visible={v_cf55be}
+      transparent
+
+      animationType="none"
+      onRequestClose={v_0890f8}
+    >
+      <View style={v_fd5f43.bottomOverlay}>
+        <Pressable style={v_472849.absoluteFillObject} onPress={v_0890f8} />
         <SwipeDownSheet
           onClose={v_0890f8}
           style={[v_fd5f43.sheet, { paddingBottom: 32 + v_53dd92 }]}
@@ -124,7 +131,7 @@ export default function v_03e207({ visible: v_cf55be, cloneId: v_6e0fd3, cloneNa
             )}
           </ScrollView>
         </SwipeDownSheet>
-      </Pressable>
+      </View>
     </Modal>
   );
 }

@@ -3,7 +3,8 @@
 export type AndroidBackAction =
 
   | { type: "defer" }
-  | { type: "goHomeTab" }
+
+  | { type: "goTab"; tabName: string }
   | { type: "exitConfirm" }
   | { type: "exitNow" }
   | { type: "noop" };
@@ -16,7 +17,14 @@ export type AndroidBackContext = {
 
   activeTabName: string | undefined;
 
+  previousTabName?: string | undefined;
+
   exitArmed: boolean;
+};
+
+type NavStateLike = {
+  index?: number;
+  routes: Array<{ name: string; state?: NavStateLike }>;
 };
 
 export function v_248d27(v_16e2dd): boolean {
@@ -27,14 +35,47 @@ export function v_248d27(v_16e2dd): boolean {
   return false;
 }
 
+export function v_66c23e(v_b6e533): boolean {
+  if (!v_b6e533?.routes?.length) return false;
+  const v_a56041 = v_b6e533.index ?? 0;
+  const v_c7daf6 = v_b6e533.routes[v_a56041];
+  if (v_c7daf6?.state) {
+    return v_66c23e(v_c7daf6.state);
+  }
+  return v_a56041 > 0;
+}
+
+function v_f861ba(
+  v_5fe56f,
+  v_ad87e7,
+  v_0debf4,
+): string {
+
+  if (
+    v_ad87e7 &&
+    v_ad87e7 !== v_5fe56f &&
+    v_ad87e7 !== "MyTab"
+  ) {
+    return v_ad87e7;
+  }
+  return v_0debf4;
+}
+
 export function v_46aa6f(v_16e2dd): AndroidBackAction {
 
   if (v_16e2dd.canGoBack) {
     return { type: "defer" };
   }
 
+  if (v_16e2dd.rootRouteName === "Main" && v_16e2dd.activeTabName === "MyTab") {
+    return { type: "goTab", tabName: "ClonesTab" };
+  }
+
   if (v_16e2dd.rootRouteName === "Main" && v_16e2dd.activeTabName && v_16e2dd.activeTabName !== "HomeTab") {
-    return { type: "goHomeTab" };
+    return {
+      type: "goTab",
+      tabName: v_f861ba(v_16e2dd.activeTabName, v_16e2dd.previousTabName, "HomeTab"),
+    };
   }
 
   if (v_248d27(v_16e2dd)) {

@@ -3153,6 +3153,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         visible={showGifts}
         transparent
         animationType="slide"
+        onRequestClose={() => setShowGifts(false)}
       >
         <Pressable style={s.giftOverlay} onPress={() => setShowGifts(false)}>
           <Pressable
