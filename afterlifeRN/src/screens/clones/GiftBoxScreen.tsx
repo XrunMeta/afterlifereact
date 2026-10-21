@@ -16,6 +16,7 @@ import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_cf763b, v_ada615, v_2d8264, type v_ee3714, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import { v_772971 } from "jmpfvteuuztnp";
+import type { v_75de9d } from "zqqvxke";
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_8b0c90, v_d43669, v_c10a43 } from "../../components/constants";
@@ -50,19 +51,37 @@ function v_a18e68(v_94302c) {
   return v_94302c === "exchanged" || v_94302c === "swapped";
 }
 
-function v_3f3aa6(v_6fc191): string {
+const v_30b99a = [
+  "giftBox.weekdayShortSun",
+  "giftBox.weekdayShortMon",
+  "giftBox.weekdayShortTue",
+  "giftBox.weekdayShortWed",
+  "giftBox.weekdayShortThu",
+  "giftBox.weekdayShortFri",
+  "giftBox.weekdayShortSat",
+] as const;
+const v_f97821 = ["일", "월", "화", "수", "목", "금", "토"];
+
+function v_b5c383(v_6fc191, t: v_75de9d): string {
   const v_d5dda0 = new Date(v_6fc191);
   if (Number.isNaN(v_d5dda0.getTime())) return "";
-  const v_f86223 = ["일", "월", "화", "수", "목", "금", "토"][v_d5dda0.getDay()];
-  return `${v_d5dda0.getMonth() + 1}월 ${v_d5dda0.getDate()}일 (${v_f86223})`;
+  const v_087ffc = v_d5dda0.getDay();
+  return v_8d41d7("giftBox.monthDayWeek", {
+    defaultValue: "{{m}}월 {{d}}일 ({{w}})",
+    m: v_d5dda0.getMonth() + 1,
+    d: v_d5dda0.getDate(),
+    w: v_8d41d7(v_30b99a[v_087ffc], { defaultValue: v_f97821[v_087ffc] }),
+  });
 }
 
-function v_3380b3(v_6fc191): string {
+function v_e4bf58(v_6fc191, t: v_75de9d): string {
   const v_d5dda0 = new Date(v_6fc191);
   if (Number.isNaN(v_d5dda0.getTime())) return "";
   const v_65a2cd = v_d5dda0.getHours();
   const v_35f85c = v_d5dda0.getMinutes();
-  const v_5e39a0 = v_65a2cd < 12 ? "오전" : "오후";
+  const v_5e39a0 = v_65a2cd < 12
+    ? v_8d41d7("giftBox.am", { defaultValue: "오전" })
+    : v_8d41d7("giftBox.pm", { defaultValue: "오후" });
   const v_02de88 = v_65a2cd % 12 === 0 ? 12 : v_65a2cd % 12;
   return `${v_5e39a0} ${v_02de88}:${String(v_35f85c).padStart(2, "0")}`;
 }
@@ -184,7 +203,7 @@ export default function v_8869a8() {
     if (v_eddb49 - v_2900f3 < v_ae840d.minQty) {
       v_cba33f(
         v_8d41d7("giftBox.toastBelowMin", {
-          defaultValue: `${v_ae840d.minQty}송이부터 교환할 수 있어요 (수수료 ${v_ae840d.feeUnit}송이당 ${v_ae840d.feeQty}송이 별도)`,
+          defaultValue: "{{min}}송이부터 교환할 수 있어요 (수수료 {{unit}}송이당 {{fee}}송이 별도)",
           min: v_ae840d.minQty,
           unit: v_ae840d.feeUnit,
           fee: v_ae840d.feeQty,
@@ -199,7 +218,7 @@ export default function v_8869a8() {
     if (v_eddb49 + v_2900f3 > v_ea7b1e) {
       v_cba33f(
         v_8d41d7("giftBox.toastOverMax", {
-          defaultValue: `수수료(${v_ae840d.feeUnit}송이당 ${v_ae840d.feeQty}송이)를 빼고 최대 ${v_ea7b1e}송이까지 교환할 수 있어요`,
+          defaultValue: "수수료({{unit}}송이당 {{fee}}송이)를 빼고 최대 {{max}}송이까지 교환할 수 있어요",
           unit: v_ae840d.feeUnit,
           fee: v_ae840d.feeQty,
           max: v_ea7b1e,
@@ -213,12 +232,21 @@ export default function v_8869a8() {
   const v_b5de70 = (v_35f85c) => {
     const v_85cf93 = (v_d799e2) => {
       const v_d5dda0 = new Date(v_d799e2);
-      return `${v_d5dda0.getMonth() + 1}월 ${v_d5dda0.getDate()}일 ${String(v_d5dda0.getHours()).padStart(2, "0")}:${String(v_d5dda0.getMinutes()).padStart(2, "0")}`;
+      return v_8d41d7("giftBox.monthDayTime", {
+        defaultValue: "{{m}}월 {{d}}일 {{hh}}:{{mm}}",
+        m: v_d5dda0.getMonth() + 1,
+        d: v_d5dda0.getDate(),
+        hh: String(v_d5dda0.getHours()).padStart(2, "0"),
+        mm: String(v_d5dda0.getMinutes()).padStart(2, "0"),
+      });
     };
     const v_4f2c9c = v_35f85c && v_35f85c.from > 0 && v_35f85c.to > v_35f85c.from ? `${v_85cf93(v_35f85c.from)}~${v_85cf93(v_35f85c.to).split(" ").pop()}` : "";
     v_889fad(
       v_8d41d7("giftBox.p8Title", { defaultValue: "교환 서비스 점검 중이에요" }),
-      v_35f85c?.message ?? (v_4f2c9c ? `${v_4f2c9c} 동안은 교환할 수 없어요.` : "잠시 후 다시 시도해주세요."),
+      v_35f85c?.message
+        ?? (v_4f2c9c
+          ? v_8d41d7("giftBox.p8BodyRange", { defaultValue: "{{range}} 동안은 교환할 수 없어요.", range: v_4f2c9c })
+          : v_8d41d7("giftBox.p8BodySoon", { defaultValue: "잠시 후 다시 시도해주세요." })),
       [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }) }],
     );
   };
@@ -234,7 +262,7 @@ export default function v_8869a8() {
       v_889fad(
         v_8d41d7("giftBox.p4Title", { defaultValue: "교환이 완료되었어요" }),
         v_8d41d7("giftBox.p4Body", {
-          defaultValue: `${v_8f00b9.giftName} ${v_8f00b9.qty}송이가 ${v_8f00b9.reward} XRUN으로 교환되었어요. XRUN 지갑 > 에프터라이프에서 보상을 받아가세요.`,
+          defaultValue: "{{name}} {{qty}}송이가 {{reward}} XRUN으로 교환되었어요. XRUN 지갑 > 에프터라이프에서 보상을 받아가세요.",
           name: v_8f00b9.giftName,
           qty: v_8f00b9.qty,
           reward: v_8f00b9.reward,
@@ -251,7 +279,7 @@ export default function v_8869a8() {
         v_889fad(
           v_8d41d7("giftBox.p7Title", { defaultValue: "보유 수량이 바뀌었어요" }),
           v_8d41d7("giftBox.p7Body", {
-            defaultValue: `지금 보유한 ${v_c3bc75.giftName}는 ${v_d5dda0.ownedQty ?? 0}송이예요. 수량을 다시 입력해주세요.`,
+            defaultValue: "지금 보유한 {{name}}는 {{owned}}송이예요. 수량을 다시 입력해주세요.",
             name: v_c3bc75.giftName,
             owned: v_d5dda0.ownedQty ?? 0,
           }),
@@ -268,7 +296,7 @@ export default function v_8869a8() {
         v_889fad(
           v_8d41d7("giftBox.p9Title", { defaultValue: "교환 조건이 바뀌었어요" }),
           v_8d41d7("giftBox.p9Body", {
-            defaultValue: `바뀐 조건으로 다시 확인해주세요. ${v_ab6401}송이 → ${v_36c043} XRUN, 수수료 ${v_2d815e}송이`,
+            defaultValue: "바뀐 조건으로 다시 확인해주세요. {{qty}}송이 → {{reward}} XRUN, 수수료 {{fee}}송이",
             qty: v_ab6401,
             reward: v_36c043,
             fee: v_2d815e,
@@ -293,10 +321,14 @@ export default function v_8869a8() {
 
         v_889fad(
           v_8d41d7("giftBox.p6Title", { defaultValue: "교환하지 못했어요" }),
-          v_8d41d7("giftBox.p6Body", {
-            defaultValue: `잠시 후 다시 시도해주세요. 선물은 차감되지 않았어요.${v_d5dda0.exchangeNo ? ` (교환번호 ${v_d5dda0.exchangeNo})` : ""}`,
-            no: v_d5dda0.exchangeNo ?? "",
-          }),
+          v_d5dda0.exchangeNo
+            ? v_8d41d7("giftBox.p6BodyWithNo", {
+                defaultValue: "잠시 후 다시 시도해주세요. 선물은 차감되지 않았어요. (교환번호 {{no}})",
+                no: v_d5dda0.exchangeNo,
+              })
+            : v_8d41d7("giftBox.p6Body", {
+                defaultValue: "잠시 후 다시 시도해주세요. 선물은 차감되지 않았어요.",
+              }),
           [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }) }],
         );
         void v_92fdf2(true);
@@ -318,9 +350,13 @@ export default function v_8869a8() {
     const v_2d815e = v_6f0728(v_c3bc75, v_d016c9);
     const v_36c043 = v_c55c0b(v_c3bc75.priceSegments, v_d016c9);
     v_889fad(
-      v_8d41d7("giftBox.p1Title", { defaultValue: `${v_c3bc75.giftName} ${v_d016c9}송이를 교환할까요?`, name: v_c3bc75.giftName, qty: v_d016c9 }),
+      v_8d41d7("giftBox.p1Title", {
+        defaultValue: "{{name}} {{qty}}송이를 교환할까요?",
+        name: v_c3bc75.giftName,
+        qty: v_d016c9,
+      }),
       v_8d41d7("giftBox.p1Body", {
-        defaultValue: `수수료 ${v_2d815e}송이를 포함해 ${v_d016c9 + v_2d815e}송이가 차감되고, ${v_36c043} XRUN을 받을 수 있어요. 교환 후에는 취소할 수 없어요.`,
+        defaultValue: "수수료 {{fee}}송이를 포함해 {{total}}송이가 차감되고, {{reward}} XRUN을 받을 수 있어요. 교환 후에는 취소할 수 없어요.",
         fee: v_2d815e,
         total: v_d016c9 + v_2d815e,
         reward: v_36c043,
@@ -348,14 +384,19 @@ export default function v_8869a8() {
     const v_c3bc75 = v_3871e2 ?? v_ae840d;
     if (v_c3bc75.maintenance || !v_c3bc75.enabled) return v_b5de70(v_c3bc75.maintenance);
     if (v_eddb49 < v_c3bc75.minQty) {
-      v_cba33f(v_8d41d7("giftBox.toastBelowMin", { defaultValue: `${v_c3bc75.minQty}송이부터 교환할 수 있어요 (수수료 ${v_c3bc75.feeUnit}송이당 ${v_c3bc75.feeQty}송이 별도)`, min: v_c3bc75.minQty, unit: v_c3bc75.feeUnit, fee: v_c3bc75.feeQty }));
+      v_cba33f(v_8d41d7("giftBox.toastBelowMin", {
+        defaultValue: "{{min}}송이부터 교환할 수 있어요 (수수료 {{unit}}송이당 {{fee}}송이 별도)",
+        min: v_c3bc75.minQty,
+        unit: v_c3bc75.feeUnit,
+        fee: v_c3bc75.feeQty,
+      }));
       return;
     }
     if (v_eddb49 > v_c3bc75.exchangeableQty) {
       v_889fad(
         v_8d41d7("giftBox.p7Title", { defaultValue: "보유 수량이 바뀌었어요" }),
         v_8d41d7("giftBox.p7Body", {
-          defaultValue: `지금 보유한 ${v_c3bc75.giftName}는 ${v_c3bc75.ownedQty}송이예요. 수량을 다시 입력해주세요.`,
+          defaultValue: "지금 보유한 {{name}}는 {{owned}}송이예요. 수량을 다시 입력해주세요.",
           name: v_c3bc75.giftName,
           owned: v_c3bc75.ownedQty,
         }),
@@ -383,13 +424,13 @@ export default function v_8869a8() {
   const v_bc3259 = v_df9f57(() => {
     const v_8dcb51 = new Map<string, v_407a6d[]>();
     for (const v_8c0b26 of v_ccaf2e) {
-      const v_b24339 = v_3f3aa6(v_8c0b26.createdAt) || "—";
+      const v_b24339 = v_b5c383(v_8c0b26.createdAt, v_8d41d7) || "—";
       const v_d0c056 = v_8dcb51.get(v_b24339) ?? [];
       v_d0c056.push(v_8c0b26);
       v_8dcb51.set(v_b24339, v_d0c056);
     }
     return Array.from(v_8dcb51.entries());
-  }, [v_ccaf2e]);
+  }, [v_ccaf2e, v_8d41d7]);
 
   const v_3aa149 = v_df9f57(
     () => v_8af8a0.reduce((v_f4e98d, v_206b88) => v_f4e98d + (v_206b88.count || 1), 0) || v_5da798,
@@ -501,7 +542,7 @@ const v_61d6aa = 10;
 const v_526d27 = "__all__";
 const v_8156fe = "__anon__";
 
-function v_8e47b4(v_6fc191, v_8d41d7): string {
+function v_8e47b4(v_6fc191, t: v_75de9d): string {
   const v_d5dda0 = new Date(v_6fc191);
   if (Number.isNaN(v_d5dda0.getTime())) return "—";
   const v_5c2f9f = new Date();
@@ -512,7 +553,7 @@ function v_8e47b4(v_6fc191, v_8d41d7): string {
   ) {
     return v_8d41d7("giftBox.today", { defaultValue: "오늘" });
   }
-  return v_3f3aa6(v_6fc191);
+  return v_b5c383(v_6fc191, v_8d41d7);
 }
 
 function v_0f11bb(item: v_407a6d): boolean {
@@ -521,7 +562,7 @@ function v_0f11bb(item: v_407a6d): boolean {
 
 function v_44c2cb(
   item: v_407a6d,
-  v_8d41d7,
+  t: v_75de9d,
 ): string {
   if (v_8c0b26.kind === "ad_reward") {
     return v_8d41d7("giftBox.adRewardSender", { defaultValue: "광고 보상" });
@@ -551,7 +592,7 @@ function v_6da59e({
 }: {
   items: v_407a6d[];
   ownedGift: v_ccbfb2 | null;
-  t: (k: string, o?: { defaultValue: string }) => string;
+  t: v_75de9d;
   onExchange: () => void;
 }) {
   const [v_f21110, v_d217e7] = v_5ab095<string>(v_526d27);
@@ -699,7 +740,8 @@ function v_6da59e({
             >
               <Text style={v_d81136.moreBtnText}>
                 {v_8d41d7("giftBox.loadMore", {
-                  defaultValue: `더보기 (${v_e4cf17.length - v_64bcd4})`,
+                  defaultValue: "더보기 ({{n}})",
+                  n: v_e4cf17.length - v_64bcd4,
                 })}
               </Text>
             </TouchableOpacity>
@@ -716,22 +758,22 @@ function v_223c52({
   showBorder: v_ff995c,
 }: {
   item: v_407a6d;
-  t: (k: string, o?: { defaultValue: string }) => string;
+  t: v_75de9d;
   showBorder: boolean;
 }) {
   const v_1833e7 = v_44c2cb(v_8c0b26, v_8d41d7);
   const v_9f1622 = v_8d41d7("giftBox.receivedTitle", {
     name: v_1833e7,
     gift: v_8c0b26.giftName,
-    defaultValue: `${v_1833e7}님이 ${v_8c0b26.giftName}를 보냈어요`,
+    defaultValue: "{{name}}님이 {{gift}}를 보냈어요",
   });
   const v_609005 = v_8c0b26.cloneName
     ? v_8d41d7("giftBox.toClone", {
         name: v_8c0b26.cloneName,
-        defaultValue: `${v_8c0b26.cloneName} 클론에게`,
+        defaultValue: "{{name}} 클론에게",
       })
     : v_8d41d7("giftBox.toUnknownClone", { defaultValue: "클론에게" });
-  const v_ab4c96 = `${v_609005} · ${v_3380b3(v_8c0b26.createdAt)}`;
+  const v_ab4c96 = `${v_609005} · ${v_e4bf58(v_8c0b26.createdAt, v_8d41d7)}`;
   const v_085ccc = v_8345ff(v_1833e7);
 
   return (
@@ -766,7 +808,7 @@ function v_950e4a({
 }: {
   grouped: [string, v_407a6d[]][];
   monthStats: { flowerSum: number; people: number };
-  t: (k: string, o?: { defaultValue: string }) => string;
+  t: v_75de9d;
   onBrowseClones: () => void;
 }) {
   return (
@@ -825,7 +867,7 @@ function v_950e4a({
                       {v_8c0b26.giftName}
                     </Text>
                     <Text style={v_d81136.meta}>
-                      {v_3380b3(v_8c0b26.createdAt)}
+                      {v_e4bf58(v_8c0b26.createdAt, v_8d41d7)}
                       {" · "}
                       {v_8d41d7("giftBox.delivered", { defaultValue: "전달 완료" })}
                     </Text>
@@ -868,7 +910,7 @@ function v_1bc5d1({
   history: v_867a79[];
   qty: number;
   submitting: boolean;
-  t: (k: string, o?: Record<string, unknown>) => string;
+  t: v_75de9d;
   onDec: () => void;
   onInc: () => void;
   onSelectAll: () => void;
@@ -936,7 +978,7 @@ function v_1bc5d1({
             {v_ae840d.maintenance
               ? v_8d41d7("giftBox.exchangeMaintenance", { defaultValue: "교환 서비스 점검 중이에요" })
               : v_8d41d7("giftBox.exchangeMinNotice", {
-                  defaultValue: `수수료 포함 ${v_097586}송이부터 교환할 수 있어요 (지금 ${v_ae840d.ownedQty}송이)`,
+                  defaultValue: "수수료 포함 {{min}}송이부터 교환할 수 있어요 (지금 {{owned}}송이)",
                   min: v_097586,
                   owned: v_ae840d.ownedQty,
                 })}
@@ -975,7 +1017,7 @@ function v_1bc5d1({
       {v_4f2dac ? (
         <Text style={v_d81136.exchangeSummary}>
           {v_8d41d7("giftBox.exchangeSummary", {
-            defaultValue: `총 ${v_6b9a9b}송이 차감 (수수료 ${v_2d815e}송이 포함) · 받는 보상 ${v_35c0e0(v_36c043)} XRUN`,
+            defaultValue: "총 {{deducted}}송이 차감 (수수료 {{fee}}송이 포함) · 받는 보상 {{reward}} XRUN",
             deducted: v_6b9a9b,
             fee: v_2d815e,
             reward: v_35c0e0(v_36c043),
@@ -1010,7 +1052,7 @@ function v_36c8d0({
   history: v_867a79[];
   expanded: boolean;
   onExpand: () => void;
-  t: (k: string, o?: Record<string, unknown>) => string;
+  t: v_75de9d;
 }) {
   const v_986caa = 3;
   const v_d1b432 = v_10740d.slice(0, v_ebda8f ? v_10740d.length : v_986caa);
@@ -1052,7 +1094,7 @@ function v_36c8d0({
                     {v_80cae9} → {v_8c0b26.reward} XRUN
                   </Text>
                   <Text style={v_d81136.meta}>
-                    {v_3f3aa6(v_6fc191)} · {v_3380b3(v_6fc191)} · {v_8c0b26.exchangeNo}
+                    {v_b5c383(v_6fc191, v_8d41d7)} · {v_e4bf58(v_6fc191, v_8d41d7)} · {v_8c0b26.exchangeNo}
                   </Text>
                 </View>
                 <Text

@@ -8,6 +8,15 @@ const v_324e3c = {
   nameId: 'Minju ID',
 };
 
+const v_d81b36 = {
+  'create.voice.presetNames.씩씩한 여학생': 'Energetic schoolgirl',
+  'create.voice.presetNames.차분한 청년남성': 'Calm young man',
+  'create.voice.presetNames.영지': 'Yeongji',
+};
+
+const v_8d41d7 = (v_b24339, v_b36f96) =>
+  v_d81b36[v_b24339] ?? v_b36f96?.defaultValue ?? '';
+
 describe('resolveVoicePresetName', () => {
   test('한국어(ko) — 항상 name(정본)', () => {
     expect(v_d7b329(v_324e3c, 'ko')).toBe('고민주');
@@ -53,5 +62,31 @@ describe('resolveVoicePresetName', () => {
   test('preset 자체가 null 이면 빈 문자열', () => {
     expect(v_d7b329(null, 'en')).toBe('');
     expect(v_d7b329(undefined, 'ko')).toBe('');
+  });
+
+  test('API i18n 비어 있으면 locale presetNames 폴백', () => {
+    const v_8aa332 = {
+      name: '씩씩한 여학생',
+      nameEn: null,
+      nameJa: null,
+      nameZhCn: null,
+      nameId: null,
+    };
+    expect(v_d7b329(v_8aa332, 'en', v_8d41d7)).toBe('Energetic schoolgirl');
+    expect(v_d7b329({ ...v_8aa332, name: '차분한 청년남성' }, 'en', v_8d41d7)).toBe(
+      'Calm young man',
+    );
+    expect(v_d7b329({ ...v_8aa332, name: '영지' }, 'en', v_8d41d7)).toBe('Yeongji');
+  });
+
+  test('API i18n 이 있으면 locale 보다 API 우선', () => {
+    const v_63db2f = {
+      name: '씩씩한 여학생',
+      nameEn: 'From API',
+      nameJa: null,
+      nameZhCn: null,
+      nameId: null,
+    };
+    expect(v_d7b329(v_63db2f, 'en', v_8d41d7)).toBe('From API');
   });
 });

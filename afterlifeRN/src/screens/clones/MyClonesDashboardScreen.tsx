@@ -949,7 +949,7 @@ export default function v_def15b() {
                     activeOpacity={0.8}
                     onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "received" })}
                   >
-                    <Text style={v_fd5f43.giftDashMetricLabel}>
+                    <Text style={v_fd5f43.giftDashMetricLabel} numberOfLines={2}>
                       {v_8d41d7("giftBox.tabReceived", { defaultValue: "받은 선물" })}
                     </Text>
                     <Text style={v_fd5f43.giftDashMetricValue}>{v_489044}</Text>
@@ -959,7 +959,7 @@ export default function v_def15b() {
                     activeOpacity={0.8}
                     onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "sent" })}
                   >
-                    <Text style={v_fd5f43.giftDashMetricLabel}>
+                    <Text style={v_fd5f43.giftDashMetricLabel} numberOfLines={2}>
                       {v_8d41d7("giftBox.tabSent", { defaultValue: "보낸 선물" })}
                     </Text>
                     <Text style={v_fd5f43.giftDashMetricValue}>{v_deb5c7}</Text>
@@ -969,7 +969,7 @@ export default function v_def15b() {
                     activeOpacity={0.8}
                     onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "exchange" })}
                   >
-                    <Text style={[v_fd5f43.giftDashMetricLabel, v_fd5f43.giftDashMetricLabelAccent]}>
+                    <Text style={[v_fd5f43.giftDashMetricLabel, v_fd5f43.giftDashMetricLabelAccent]} numberOfLines={2}>
                       {v_8d41d7("giftBox.exchangeable", { defaultValue: "교환 가능" })}
                     </Text>
                     <Text style={[v_fd5f43.giftDashMetricValue, v_fd5f43.giftDashMetricValueAccent]}>
@@ -1241,8 +1241,9 @@ export default function v_def15b() {
                       activeOpacity={0.7}
                     >
                       <Text style={v_fd5f43.giftLogMoreText}>
-                        {v_8d41d7("dashboard.giftLogMore", {
-                          defaultValue: `더보기 (${v_c9ba75.length - v_b1118a})`,
+                        {v_8d41d7("giftBox.loadMore", {
+                          defaultValue: "더보기 ({{n}})",
+                          n: v_c9ba75.length - v_b1118a,
                         })}
                       </Text>
                     </TouchableOpacity>
@@ -2316,18 +2317,21 @@ const v_fd5f43 = v_472849.create({
     gap: 2,
   },
   giftDashViewAll: { fontSize: 13, color: v_1bfbd0.zinc500 },
-  giftDashMetrics: { flexDirection: "row", gap: 8, marginBottom: 14 },
+  giftDashMetrics: { flexDirection: "row", alignItems: "stretch", gap: 8, marginBottom: 14 },
   giftDashMetric: {
     flex: 1,
     backgroundColor: v_1bfbd0.zinc100,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 10,
+
+    justifyContent: "space-between",
+    minHeight: 72,
   },
   giftDashMetricAccent: { backgroundColor: "#eff6ff" },
-  giftDashMetricLabel: { fontSize: 11, color: v_1bfbd0.zinc500, marginBottom: 6 },
+  giftDashMetricLabel: { fontSize: 11, lineHeight: 15, color: v_1bfbd0.zinc500 },
   giftDashMetricLabelAccent: { color: v_1bfbd0.primary },
-  giftDashMetricValue: { fontSize: 22, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  giftDashMetricValue: { fontSize: 22, fontWeight: "700", color: v_1bfbd0.zinc900, marginTop: 6 },
   giftDashMetricValueAccent: { color: v_1bfbd0.primary },
   giftDashExchangeBtn: {
     ...v_d43669.md,

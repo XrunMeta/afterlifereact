@@ -384,7 +384,16 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
           ? await v_c56968(v_3f4e2e.env, v_b24339, v_e38ca2, v_66ed66, v_389afb, v_506e86.role ?? "", v_506e86.blob)
           : v_cca3b3(v_b24339, v_506e86.blob, v_bee6d6(v_506e86.callId!, v_506e86.role ?? ""));
       }
-      v_2f7952 = { type: v_506e86.type, role: v_506e86.blob ? v_506e86.role : null, text: v_e54222(v_9b6134 || null), at: v_506e86.at };
+      v_2f7952 = {
+        type: v_506e86.type,
+        role: v_506e86.blob ? v_506e86.role : null,
+        text: v_e54222(v_9b6134 || null),
+        at: v_506e86.at,
+
+        ...(v_506e86.event
+          ? { kind: v_506e86.event.kind, data: v_506e86.event.payload }
+          : {}),
+      };
     }
 
     let v_8a6db3 = 0;
