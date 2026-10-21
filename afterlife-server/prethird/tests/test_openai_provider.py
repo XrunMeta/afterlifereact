@@ -57,6 +57,20 @@ def test_payload_reasoning_model_drops_temperature(monkeypatch):
     assert "reasoning_effort" not in body2
 
 
+def test_payload_effort_none_becomes_minimal_for_original_gpt5(monkeypatch):
+    # AFL-1031 (2026-10-22 실측): 관리자가 채팅 모델을 gpt-5-nano 로 바꾸자 env 의 "none" 을
+    # 400 unsupported_value 로 거절 → 매번 ollama 폴백. 초기 gpt-5 계열(gpt-5·-mini·-nano)은
+    # none 이 없고 minimal 이 가장 낮다. 점 버전(gpt-5.1+)은 none 을 그대로 받는다.
+    monkeypatch.setenv("OPENAI_REASONING_EFFORT", "none")
+    for m in ("gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-5-nano-2025-08-07"):
+        assert oai._payload(MSGS, m, None, None, stream=False)["reasoning_effort"] == "minimal", m
+    for m in ("gpt-5.4-mini", "gpt-5.1", "gpt-6-luna"):
+        assert oai._payload(MSGS, m, None, None, stream=False)["reasoning_effort"] == "none", m
+    # none 이 아닌 값은 손대지 않는다
+    monkeypatch.setenv("OPENAI_REASONING_EFFORT", "low")
+    assert oai._payload(MSGS, "gpt-5-nano", None, None, stream=False)["reasoning_effort"] == "low"
+
+
 def test_payload_default_model_from_env(monkeypatch):
     monkeypatch.setenv("OPENAI_MODEL", "gpt-4.1-nano")
     assert oai._payload(MSGS, None, None, None, stream=False)["model"] == "gpt-4.1-nano"
@@ -69,98 +83,155 @@ def test_missing_key_raises_config_error(monkeypatch):
 
 
 # ---------------------------------------------------------------- fallback
+# AFL-1031 (2026-10-22 sungjius): 원격 실패 시 폴백은 ollama 가 아니라 OpenAI gpt-5-mini 1회.
 
-def _fake_ollama_stream(tokens, calls):
-    async def _ollama(messages, model=None, temperature=None, num_predict=None):
+def _fake_openai_stream(fail_models, tokens, calls):
+    """fail_models 에 든 모델이면 첫 토큰 전에 죽고, 아니면 tokens 를 낸다."""
+    async def _openai(messages, model=None, temperature=None, max_tokens=None):
         calls.append(model)
+        if model in fail_models:
+            raise RuntimeError(f"{model} down")
         for t in tokens:
             yield t
-    return _ollama
+    return _openai
+
+
+def _no_ollama(monkeypatch):
+    async def _boom_stream(*a, **kw):
+        raise AssertionError("ollama 를 부르면 안 된다")
+        yield  # pragma: no cover
+
+    async def _boom_once(*a, **kw):
+        raise AssertionError("ollama 를 부르면 안 된다")
+
+    monkeypatch.setattr(llm, "_ollama_stream", _boom_stream)
+    monkeypatch.setattr(llm, "_ollama_once", _boom_once)
 
 
 @pytest.mark.asyncio
-async def test_stream_falls_back_to_ollama_before_first_token(monkeypatch):
+async def test_stream_falls_back_to_gpt5_mini_before_first_token(monkeypatch):
     monkeypatch.setenv("PRETHIRD_LLM_PROVIDER", "openai")
     monkeypatch.delenv("PRETHIRD_LLM_FALLBACK", raising=False)
-
-    async def _boom(*a, **kw):
-        raise RuntimeError("openai down")
-        yield  # pragma: no cover  (async generator 로 만들기 위함)
-
+    _no_ollama(monkeypatch)
     calls = []
-    monkeypatch.setattr(llm, "chat_stream_openai", _boom)
-    monkeypatch.setattr(llm, "_ollama_stream", _fake_ollama_stream(["안", "녕"], calls))
-    assert await _drain(llm.chat_stream(MSGS, model="openai:gpt-4.1-mini")) == ["안", "녕"]
-    # 폴백은 openai 모델명을 ollama 에 넘기지 않는다(기본 모델 사용)
-    assert calls == [None]
+    monkeypatch.setattr(llm, "chat_stream_openai",
+                        _fake_openai_stream({"gpt-5-nano"}, ["안", "녕"], calls))
+    assert await _drain(llm.chat_stream(MSGS, model="openai:gpt-5-nano")) == ["안", "녕"]
+    assert calls == ["gpt-5-nano", "gpt-5-mini"]
 
 
 @pytest.mark.asyncio
 async def test_stream_first_token_timeout_falls_back(monkeypatch):
     monkeypatch.setenv("PRETHIRD_LLM_PROVIDER", "openai")
     monkeypatch.setenv("PRETHIRD_LLM_FIRST_TOKEN_TIMEOUT_S", "0.05")
-
-    async def _slow(*a, **kw):
-        await asyncio.sleep(1)
-        yield "늦음"
-
+    _no_ollama(monkeypatch)
     calls = []
-    monkeypatch.setattr(llm, "chat_stream_openai", _slow)
-    monkeypatch.setattr(llm, "_ollama_stream", _fake_ollama_stream(["빠름"], calls))
+
+    async def _openai(messages, model=None, temperature=None, max_tokens=None):
+        calls.append(model)
+        if model != "gpt-5-mini":
+            await asyncio.sleep(1)
+        yield "빠름" if model == "gpt-5-mini" else "늦음"
+
+    monkeypatch.setattr(llm, "chat_stream_openai", _openai)
     assert await _drain(llm.chat_stream(MSGS)) == ["빠름"]
+    assert calls == [None, "gpt-5-mini"]
 
 
 @pytest.mark.asyncio
 async def test_stream_no_fallback_after_tokens_sent(monkeypatch):
-    """이미 말을 내보낸 뒤 끊기면 ollama 로 이어 붙이지 않는다 — 문장이 두 목소리로 섞인다."""
+    """이미 말을 내보낸 뒤 끊기면 다른 모델로 이어 붙이지 않는다 — 문장이 두 목소리로 섞인다."""
     monkeypatch.setenv("PRETHIRD_LLM_PROVIDER", "openai")
+    _no_ollama(monkeypatch)
+    calls = []
 
-    async def _half(*a, **kw):
+    async def _half(messages, model=None, temperature=None, max_tokens=None):
+        calls.append(model)
         yield "반쪽"
         raise RuntimeError("mid-stream")
 
-    calls = []
     monkeypatch.setattr(llm, "chat_stream_openai", _half)
-    monkeypatch.setattr(llm, "_ollama_stream", _fake_ollama_stream(["x"], calls))
     out = []
     with pytest.raises(RuntimeError):
         async for t in llm.chat_stream(MSGS):
             out.append(t)
-    assert out == ["반쪽"] and calls == []
+    assert out == ["반쪽"] and calls == [None]
 
 
 @pytest.mark.asyncio
 async def test_stream_fallback_disabled(monkeypatch):
     monkeypatch.setenv("PRETHIRD_LLM_PROVIDER", "openai")
     monkeypatch.setenv("PRETHIRD_LLM_FALLBACK", "none")
-
-    async def _boom(*a, **kw):
-        raise RuntimeError("openai down")
-        yield  # pragma: no cover
-
-    monkeypatch.setattr(llm, "chat_stream_openai", _boom)
+    _no_ollama(monkeypatch)
+    calls = []
+    monkeypatch.setattr(llm, "chat_stream_openai", _fake_openai_stream({None}, ["x"], calls))
     with pytest.raises(RuntimeError):
         await _drain(llm.chat_stream(MSGS))
+    assert calls == [None]
 
 
 @pytest.mark.asyncio
-async def test_once_falls_back_to_ollama(monkeypatch):
+async def test_stream_legacy_ollama_env_still_uses_gpt5_mini(monkeypatch):
+    """예전 env 값 PRETHIRD_LLM_FALLBACK=ollama 가 남아 있어도 ollama 로 가지 않는다."""
+    monkeypatch.setenv("PRETHIRD_LLM_PROVIDER", "openai")
+    monkeypatch.setenv("PRETHIRD_LLM_FALLBACK", "ollama")
+    _no_ollama(monkeypatch)
+    calls = []
+    monkeypatch.setattr(llm, "chat_stream_openai", _fake_openai_stream({None}, ["ok"], calls))
+    assert await _drain(llm.chat_stream(MSGS)) == ["ok"]
+    assert calls == [None, "gpt-5-mini"]
+
+
+@pytest.mark.asyncio
+async def test_once_falls_back_to_gpt5_mini(monkeypatch):
     monkeypatch.setenv("PRETHIRD_LLM_PROVIDER", "openai")
     monkeypatch.delenv("PRETHIRD_LLM_FALLBACK", raising=False)
+    _no_ollama(monkeypatch)
+    seen = []
 
-    async def _boom(*a, **kw):
-        raise RuntimeError("openai down")
-
-    seen = {}
-
-    async def _ollama_once(messages, model=None, temperature=None, fmt=None, num_predict=None):
-        seen.update(model=model, fmt=fmt)
+    async def _openai_once(messages, model=None, temperature=None, fmt=None, max_tokens=None):
+        seen.append((model, fmt))
+        if model != "gpt-5-mini":
+            raise RuntimeError("openai 400")
         return '{"ok": 1}'
 
-    monkeypatch.setattr(llm, "chat_once_openai", _boom)
-    monkeypatch.setattr(llm, "_ollama_once", _ollama_once)
-    assert await llm.chat_once(MSGS, fmt="json") == '{"ok": 1}'
-    assert seen == {"model": None, "fmt": "json"}
+    monkeypatch.setattr(llm, "chat_once_openai", _openai_once)
+    assert await llm.chat_once(MSGS, model="gpt-5-nano", fmt="json") == '{"ok": 1}'
+    assert seen == [("gpt-5-nano", "json"), ("gpt-5-mini", "json")]
+
+
+@pytest.mark.asyncio
+async def test_once_no_retry_when_gpt5_mini_itself_failed(monkeypatch):
+    monkeypatch.setenv("PRETHIRD_LLM_PROVIDER", "openai")
+    _no_ollama(monkeypatch)
+    seen = []
+
+    async def _openai_once(messages, model=None, temperature=None, fmt=None, max_tokens=None):
+        seen.append(model)
+        raise RuntimeError("openai down")
+
+    monkeypatch.setattr(llm, "chat_once_openai", _openai_once)
+    with pytest.raises(RuntimeError):
+        await llm.chat_once(MSGS, model="gpt-5-mini")
+    assert seen == ["gpt-5-mini"]
+
+
+@pytest.mark.asyncio
+async def test_once_fallback_model_from_env(monkeypatch):
+    monkeypatch.setenv("PRETHIRD_LLM_PROVIDER", "openai")
+    monkeypatch.setenv("PRETHIRD_LLM_FALLBACK_MODEL", "gpt-4o-mini")
+    _no_ollama(monkeypatch)
+    seen = []
+
+    async def _openai_once(messages, model=None, temperature=None, fmt=None, max_tokens=None):
+        seen.append(model)
+        if model != "gpt-4o-mini":
+            raise RuntimeError("x")
+        return "ok"
+
+    monkeypatch.setattr(llm, "chat_once_openai", _openai_once)
+    assert await llm.chat_once(MSGS) == "ok"
+    assert seen == [None, "gpt-4o-mini"]
 
 
 @pytest.mark.asyncio
@@ -191,15 +262,17 @@ def test_error_summary_masks_key_and_drops_body():
 
 @pytest.mark.asyncio
 async def test_empty_remote_stream_falls_back(monkeypatch):
-    """(el) 토큰 0개로 끝난 원격 응답 → 무음 대신 ollama 폴백."""
+    """(el) 토큰 0개로 끝난 원격 응답 → 무음 대신 gpt-5-mini 폴백."""
     monkeypatch.setenv("PRETHIRD_LLM_PROVIDER", "openai")
     monkeypatch.delenv("PRETHIRD_LLM_FALLBACK", raising=False)
-
-    async def _empty(*a, **kw):
-        return
-        yield  # pragma: no cover
-
+    _no_ollama(monkeypatch)
     calls = []
-    monkeypatch.setattr(llm, "chat_stream_openai", _empty)
-    monkeypatch.setattr(llm, "_ollama_stream", _fake_ollama_stream(["대체"], calls))
+
+    async def _openai(messages, model=None, temperature=None, max_tokens=None):
+        calls.append(model)
+        if model == "gpt-5-mini":
+            yield "대체"
+
+    monkeypatch.setattr(llm, "chat_stream_openai", _openai)
     assert await _drain(llm.chat_stream(MSGS)) == ["대체"]
+    assert calls == [None, "gpt-5-mini"]

@@ -18,14 +18,16 @@ MODEL = os.environ.get("PRETHIRD_OLLAMA_MODEL", "gemma3:27b")
 # 그대로 타이핑할 수 있어 UI 수정 없이 A/B 가 된다.
 #   "gemma3:27b"        → ollama (기존 경로, 회귀 0)
 #   "cfai:@cf/meta/..." → Cloudflare Workers AI
-#   "openai:gpt-4.1-mini" → OpenAI (AFL-926 · 실패 시 ollama 1회 폴백)
+#   "openai:gpt-4.1-mini" → OpenAI (AFL-926 · 실패 시 gpt-5-mini 1회 폴백)
 #   "ollama:gemma3:27b" → env 로 전역 cfai/openai 를 켰어도 이 호출만 ollama 강제
 _PROVIDERS = ("ollama", "cfai", "openai")
 _ENV_PROVIDER = "PRETHIRD_LLM_PROVIDER"
 
-# AFL-926 폴백. 원격 provider(openai·cfai)가 **첫 토큰 전에** 실패·지연되면 ollama 로
-# 1회 다시 부른다. 토큰이 이미 나간 뒤에는 넘어가지 않는다(한 문장이 두 모델로 섞임).
-#   PRETHIRD_LLM_FALLBACK              : "ollama"(기본) | "none"
+# AFL-926 폴백. 원격 provider(openai·cfai)가 **첫 토큰 전에** 실패·지연되면 1회 다시 부른다.
+# 토큰이 이미 나간 뒤에는 넘어가지 않는다(한 문장이 두 모델로 섞임).
+# AFL-1031 (2026-10-22 sungjius): 폴백 대상은 ollama 가 아니라 OpenAI gpt-5-mini. ollama 로는 폴백하지 않는다.
+#   PRETHIRD_LLM_FALLBACK              : "none" 이면 폴백 끔. 그 밖의 값(예전 "ollama" 포함)은 gpt-5-mini 폴백
+#   PRETHIRD_LLM_FALLBACK_MODEL        : 폴백 OpenAI 모델(기본 gpt-5-mini)
 #   PRETHIRD_LLM_FIRST_TOKEN_TIMEOUT_S : 스트림 첫 토큰 대기 상한(기본 6초)
 #   PRETHIRD_LLM_ONCE_TIMEOUT_S        : chat_once 전체 상한(기본 30초)
 _REMOTE_STREAM = {"cfai": "chat_stream_cf", "openai": "chat_stream_openai"}
@@ -40,8 +42,17 @@ def _env_float(name: str, default: float) -> float:
         return default
 
 
-def _fallback_enabled() -> bool:
-    return os.environ.get("PRETHIRD_LLM_FALLBACK", "ollama").strip().lower() == "ollama"
+def _fallback_model(provider: str, failed_model: str | None) -> str | None:
+    """폴백할 OpenAI 모델. 끔이거나 방금 실패한 게 바로 그 모델이면 None(같은 호출 반복 안 함)."""
+    if os.environ.get("PRETHIRD_LLM_FALLBACK", "").strip().lower() == "none":
+        return None
+    fb = (os.environ.get("PRETHIRD_LLM_FALLBACK_MODEL") or "gpt-5-mini").strip()
+    if provider == "openai":
+        from .openai_client import _DEFAULT_MODEL as _oai_default
+        tried = failed_model or os.environ.get("OPENAI_MODEL") or _oai_default
+        if tried == fb:
+            return None
+    return fb
 
 
 def default_model_label() -> str:
@@ -90,7 +101,7 @@ async def chat_stream(
     num_predict: ollama 응답 최대 토큰 (미지정 시 서버 기본). JSON 완성 필요 시 명시.
 
     model 에 "cfai:"/"openai:" 접두어를 붙이거나 env PRETHIRD_LLM_PROVIDER 로 기본을
-    바꾸면 원격으로 나간다. 원격이 첫 토큰 전에 죽으면 ollama 로 1회 폴백(위 주석).
+    바꾸면 원격으로 나간다. 원격이 첫 토큰 전에 죽으면 gpt-5-mini 로 1회 폴백(위 주석).
     접두어·env 가 없으면 ollama 경로 그대로 — 회귀 0.
     """
     provider, real_model = split_provider(model)
@@ -100,6 +111,7 @@ async def chat_stream(
         remote = globals()[_REMOTE_STREAM[provider]](
             messages, model=real_model, temperature=temperature, max_tokens=num_predict)
         sent = False
+        fb = _fallback_model(provider, real_model)
         try:
             first = await asyncio.wait_for(
                 remote.__anext__(), _env_float("PRETHIRD_LLM_FIRST_TOKEN_TIMEOUT_S", 6.0))
@@ -110,24 +122,36 @@ async def chat_stream(
             return
         except StopAsyncIteration:
             # (el) 토큰 0개로 끝난 원격 응답도 "첫 토큰 전 실패" 로 본다 — 무음 턴 방지.
-            if not _fallback_enabled():
+            if not fb:
                 return
-            log.error("llm: %s 빈 응답 → ollama 폴백", provider)
+            log.error("llm: %s 빈 응답 → %s 폴백", provider, fb)
         except Exception as e:  # noqa: BLE001
-            if sent or not _fallback_enabled():
+            if sent or not fb:
                 raise
-            log.error("llm: %s 실패(첫 토큰 전) → ollama 폴백: %s: %s",
-                      provider, type(e).__name__, e)
+            log.error("llm: %s 실패(첫 토큰 전) → %s 폴백: %s: %s",
+                      provider, fb, type(e).__name__, e)
         finally:
             await remote.aclose()
-        async for tok in _ollama_stream(messages, temperature=temperature,
-                                        num_predict=num_predict):
+        async for tok in chat_stream_openai_fallback(messages, fb, temperature, num_predict):
             yield tok
         return
 
     async for tok in _ollama_stream(messages, model=real_model, temperature=temperature,
                                     num_predict=num_predict):
         yield tok
+
+
+async def chat_stream_openai_fallback(
+    messages: list[dict], model: str, temperature: float | None, num_predict: int | None,
+) -> AsyncGenerator[str, None]:
+    """폴백 스트림 — OpenAI 를 지정 모델로 1회. 함수는 모듈 전역에서 꺼낸다(테스트 monkeypatch)."""
+    remote = globals()["chat_stream_openai"](
+        messages, model=model, temperature=temperature, max_tokens=num_predict)
+    try:
+        async for tok in remote:
+            yield tok
+    finally:
+        await remote.aclose()
 
 
 async def _ollama_stream(
@@ -185,12 +209,15 @@ async def chat_once(
                     fmt=fmt, max_tokens=num_predict),
                 _env_float("PRETHIRD_LLM_ONCE_TIMEOUT_S", 30.0))
         except Exception as e:  # noqa: BLE001
-            if not _fallback_enabled():
+            fb = _fallback_model(provider, real_model)
+            if not fb:
                 raise
-            log.error("llm: %s once 실패 → ollama 폴백: %s: %s",
-                      provider, type(e).__name__, e)
-        return await _ollama_once(messages, temperature=temperature, fmt=fmt,
-                                  num_predict=num_predict)
+            log.error("llm: %s once 실패 → %s 폴백: %s: %s",
+                      provider, fb, type(e).__name__, e)
+        return await asyncio.wait_for(
+            globals()["chat_once_openai"](
+                messages, model=fb, temperature=temperature, fmt=fmt, max_tokens=num_predict),
+            _env_float("PRETHIRD_LLM_ONCE_TIMEOUT_S", 30.0))
 
     return await _ollama_once(messages, model=real_model, temperature=temperature,
                               fmt=fmt, num_predict=num_predict)
