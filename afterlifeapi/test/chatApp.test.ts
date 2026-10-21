@@ -386,6 +386,30 @@ v_469bf2("채팅 답장 맥락·요청", () => {
     });
   });
 
+  v_23805a("채팅 모델 — 미설정이면 기본 gpt-5.4-mini, 관리자 설정값이 있으면 그 모델", async () => {
+    const v_f7210b = [];
+    for (let v_ebec57 = 0; v_ebec57 < 2; v_ebec57++) {
+      v_8fd90d
+        .get("http://prethird.test")
+        .intercept({ path: "/prethird/chat/reply", method: "POST" })
+        .reply((v_328259) => {
+          v_f7210b.push(JSON.parse(String(v_328259.body)));
+          return { statusCode: 200, data: { reply: "응" } };
+        });
+    }
+    const v_9e86fd = { ...(v_c9c489 as unknown as v_273a0c), CHAT_REPLY_SECRET: "isec" };
+    const v_4317d1 = { cloneId: 7, userToken: "UT", text: "안녕", prior: [], recent: [] };
+    await v_c9c489.DB.prepare("DELETE FROM app_config WHERE key = 'chat.model_config'").run();
+    await v_4dc423(v_9e86fd, v_4317d1);
+    await v_c9c489.DB
+      .prepare("INSERT OR REPLACE INTO app_config (key, value) VALUES ('chat.model_config', ?)")
+      .bind(JSON.stringify({ model: "gpt-5-nano", models: ["gpt-5.4-mini", "gpt-5-nano"] }))
+      .run();
+    await v_4dc423(v_9e86fd, v_4317d1);
+    await v_c9c489.DB.prepare("DELETE FROM app_config WHERE key = 'chat.model_config'").run();
+    v_4d37e3(v_f7210b.map((v_148ff6) => v_148ff6.model)).toEqual(["gpt-5.4-mini", "gpt-5-nano"]);
+  });
+
   v_23805a("prethird 가 실패하면 UPSTREAM_FAILURE 로 던진다", async () => {
     v_8fd90d
       .get("http://prethird.test")
