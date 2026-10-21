@@ -4,7 +4,8 @@
 - 페르소나: 통화처럼 사용자 토큰으로 /oth-path 을 받아 bundle_to_messages.
 - 이전 대화(통화+채팅): Worker 가 조립해 `prior` 로 넘긴다(통화의 seed_prior 와 같은 형식).
 - 지금 채팅의 최근 주고받은 말: `recent` 를 user/assistant 로 이어 붙인다.
-- LLM: chat_once 기본 모델(통화 chat_fn 과 같은 PRETHIRD_LLM_PROVIDER·OPENAI_MODEL).
+- LLM: Worker 가 넘긴 `model`(관리자 설정 · AFL-1031). 없거나 이상하면 chat_once 기본 모델
+  (통화 chat_fn 과 같은 PRETHIRD_LLM_PROVIDER·OPENAI_MODEL).
 
 인증: X-Internal-Secret == PRETHIRD_CHAT_SECRET(채팅 전용 · interpret 의 PRETHIRD_INTERNAL_SECRET 과
 나눈다). 미설정이면 닫는다 — 사용자 토큰과 대화 내용을 넘겨받는 엔드포인트라 열어 두지 않는다.
@@ -14,6 +15,7 @@ from __future__ import annotations
 import hmac
 import logging
 import os
+import re
 
 from aiohttp import web
 
@@ -30,6 +32,8 @@ _MAX_RECENT = 40
 _MAX_PRIOR = 2000
 _MAX_REPLY_CHARS = 2000
 _MAX_ITEM_CHARS = 2000
+# AFL-1031: 모델명은 영문·숫자·. _ : - 만(provider 접두어 "openai:" 허용).
+_MODEL_RE = re.compile(r"^[A-Za-z0-9._:-]{1,100}$")
 
 CHAT_MODE_NOTE = (
     "(지금은 전화가 아니라 앱 채팅으로 글을 주고받는 중이다. 말투와 성격은 통화 때와 똑같이 하고, "
@@ -93,6 +97,11 @@ async def chat_reply(req: web.Request) -> web.Response:
         return web.json_response({"error": "bad_input"}, status=400)
     prior = body.get("prior") if isinstance(body.get("prior"), list) else []
     recent = body.get("recent") if isinstance(body.get("recent"), list) else []
+    model = body.get("model")
+    if not (isinstance(model, str) and _MODEL_RE.match(model)):
+        if model not in (None, ""):
+            log.warning("chat reply clone=%s 모델명 무시 → 기본 모델", clone_id)
+        model = None
 
     bundle = await fetch_bundle(os.environ.get("PRETHIRD_API_BASE"), clone_id, token)
     if not bundle:
@@ -106,15 +115,15 @@ async def chat_reply(req: web.Request) -> web.Response:
         persona, prior[-_MAX_PRIOR:], recent[-_MAX_RECENT:], text, _max_chars(),
     )
     try:
-        raw = await chat_once(messages)
+        raw = await chat_once(messages, model=model)
     except Exception as e:  # noqa: BLE001
         log.exception("chat reply LLM 실패 clone=%s: %s", clone_id, e)
         return web.json_response({"error": "llm_failed"}, status=502)
     reply = (raw or "").strip()[:_MAX_REPLY_CHARS]
     if not reply:
         return web.json_response({"error": "empty_reply"}, status=502)
-    log.info("chat reply clone=%s prior=%d recent=%d chars=%d",
-             clone_id, len(prior), len(recent), len(reply))
+    log.info("chat reply clone=%s model=%s prior=%d recent=%d chars=%d",
+             clone_id, model or "default", len(prior), len(recent), len(reply))
     return web.json_response({"reply": reply})
 
 

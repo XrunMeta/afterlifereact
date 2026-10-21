@@ -35,6 +35,8 @@ import {
   v_b7471b,
   v_e00c46,
   v_bcea4f,
+  v_882bd5,
+  v_8bd547,
   type v_83f27d,
   type v_f56907,
   type v_eb1456,
@@ -174,6 +176,19 @@ v_b7f2b4.patch("/config/vision", v_c0a297, async (v_3f4e2e) => {
       detail: v_4d33b2.detail,
       models: v_4d33b2.models,
     });
+    return v_3f4e2e.json({ ok: true, ...v_01dcf5 });
+  } catch (v_49263d) {
+    throw new v_3ebe58("VALIDATION_FAILED", (v_49263d as Error)?.message ?? "invalid");
+  }
+});
+
+v_b7f2b4.get("/config/chat-model", v_c0a297, async (v_3f4e2e) => {
+  return v_3f4e2e.json(await v_882bd5(v_3f4e2e.env));
+});
+v_b7f2b4.patch("/config/chat-model", v_c0a297, async (v_3f4e2e) => {
+  const v_4d33b2 = (await v_3f4e2e.req.json().catch(() => ({}))) as { model?: unknown; models?: unknown };
+  try {
+    const v_01dcf5 = await v_8bd547(v_3f4e2e.env, { model: v_4d33b2.model, models: v_4d33b2.models });
     return v_3f4e2e.json({ ok: true, ...v_01dcf5 });
   } catch (v_49263d) {
     throw new v_3ebe58("VALIDATION_FAILED", (v_49263d as Error)?.message ?? "invalid");
