@@ -16,6 +16,7 @@ import {
   v_c0f252,
 } from "../lib/xrun";
 import { v_74c502 } from "../lib/cloneAccess";
+import { v_991113 } from "../lib/conversationLeave";
 
 export const v_de7ba7 = new v_b7c41b<v_de0a25>();
 
@@ -737,6 +738,8 @@ v_de7ba7.get("/me/clones/:cloneId/intimacy-events", v_6690d9, async (v_3f4e2e) =
   if (!v_2aec08) {
     v_abcc8d.push("user_id = ?");
     v_925171.push(v_43e90c);
+
+    v_abcc8d.push(`1 = 1 ${v_991113("intimacy_events")}`);
   }
   if (v_75cbf4 && Number.isInteger(v_75cbf4) && v_75cbf4 > 0) {
     v_abcc8d.push("id < ?");
@@ -765,7 +768,9 @@ v_de7ba7.get("/me/clones/:cloneId/intimacy-events", v_6690d9, async (v_3f4e2e) =
   const v_4622b9 = v_6bbe19 ? v_18b8bf.slice(0, v_02be30) : v_18b8bf;
   const v_64f859 = v_6bbe19 && v_4622b9.length > 0 ? v_4622b9[v_4622b9.length - 1]!.id : null;
 
-  const v_87014f = v_2aec08 ? "clone_id = ?" : "clone_id = ? AND user_id = ?";
+  const v_87014f = v_2aec08
+    ? "clone_id = ?"
+    : `clone_id = ? AND user_id = ? ${v_991113("intimacy_events")}`;
   const v_74e89c = v_2aec08 ? [v_6e0fd3] : [v_6e0fd3, v_43e90c];
   const v_218436 = await v_3f4e2e.env.DB
     .prepare(
@@ -1003,7 +1008,7 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
                 -- 친밀도 °C — 친밀도 활동 내역 모달(intimacy_events 합계)과 동일 소스로 통일.
                 --   (uci.intimacy_score 가 이벤트와 어긋나 0 으로 뜨던 문제 → 이벤트 SUM 으로 직접 계산, 100 상한)
                 COALESCE((SELECT MIN(100, SUM(ie.score)) FROM intimacy_events ie
-                           WHERE ie.user_id = ? AND ie.clone_id = c.id), 0) AS my_intimacy,
+                           WHERE ie.user_id = ? AND ie.clone_id = c.id ${v_991113("ie")}), 0) AS my_intimacy,
                 -- 본인 페르소나 여부 — 클라이언트가 '팔로우' 버튼 숨김 처리.
                 (c.owner_id = ?) AS is_own
            FROM clones c
