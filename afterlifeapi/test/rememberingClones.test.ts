@@ -225,3 +225,55 @@ v_469bf2("나를 기억하는 클론", () => {
     v_4d37e3(v_4d33b2.deletedPersons).toBe(0);
   });
 });
+
+v_469bf2("페르소나 삭제 → 얼굴 기억 삭제", () => {
+  v_ff107d(() => {
+    v_dbed3e();
+  });
+
+  v_23805a("주인이 페르소나를 지우면 다른 사용자의 기억도 지워지고 목록에서 사라진다", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_1badb6 = await v_bfb240("t1021-owner@x.com");
+    const v_013af2 = await v_bfb240("t1021-viewer@x.com");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "t1021-clone");
+    await v_f86d7a(v_013af2, v_6e0fd3, "뷰어");
+    await v_f86d7a(v_1badb6, v_6e0fd3, "주인");
+
+    const v_5294e1 = await v_182fdb("t1021-owner@x.com");
+    const v_d0ca5b = await v_1df298.fetch(`https://x/oth-path${v_6e0fd3}`, {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${v_5294e1}` },
+    });
+    v_4d37e3(v_d0ca5b.status).toBe(200);
+
+    const v_dbaa7f = await v_a1651b.prepare("SELECT COUNT(*) AS n FROM persons WHERE clone_id = ?").bind(v_6e0fd3).first<{ n: number }>();
+    v_4d37e3(v_dbaa7f?.n).toBe(0);
+    const v_d94e57 = await v_a1651b.prepare("SELECT COUNT(*) AS n FROM clone_ont_person WHERE clone_id = ?").bind(v_6e0fd3).first<{ n: number }>();
+    v_4d37e3(v_d94e57?.n).toBe(0);
+
+    const v_7d0764 = await v_182fdb("t1021-viewer@x.com");
+    const v_8f00b9 = await v_1df298.fetch("https://x/oth-path", {
+      headers: { authorization: `Bearer ${v_7d0764}` },
+    });
+    const v_b75e36 = await v_8f00b9.json<{ clones: Array<{ cloneId: number }> }>();
+    v_4d37e3(v_b75e36.clones.find((v_3f4e2e) => v_3f4e2e.cloneId === v_6e0fd3)).toBeUndefined();
+  });
+
+  v_23805a("이미 삭제된 페르소나에 남은 기억도 목록에 나오지 않는다", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_1badb6 = await v_bfb240("t1021b-owner@x.com");
+    const v_013af2 = await v_bfb240("t1021b-viewer@x.com");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "t1021b-clone");
+    await v_f86d7a(v_013af2, v_6e0fd3, "뷰어");
+    await v_a1651b
+      .prepare("UPDATE clones SET deletion_state = 'soft_deleted', deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+      .bind(v_6e0fd3)
+      .run();
+    const v_7d0764 = await v_182fdb("t1021b-viewer@x.com");
+    const v_8f00b9 = await v_1df298.fetch("https://x/oth-path", {
+      headers: { authorization: `Bearer ${v_7d0764}` },
+    });
+    const v_b75e36 = await v_8f00b9.json<{ clones: Array<{ cloneId: number }> }>();
+    v_4d37e3(v_b75e36.clones.find((v_3f4e2e) => v_3f4e2e.cloneId === v_6e0fd3)).toBeUndefined();
+  });
+});
