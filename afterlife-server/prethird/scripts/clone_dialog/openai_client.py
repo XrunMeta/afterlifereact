@@ -20,6 +20,11 @@ _DEFAULT_MODEL = "gpt-4.1-mini"
 _REASONING_RE = re.compile(r"^(o\d|gpt-5|gpt-6)", re.IGNORECASE)
 
 
+# 초기 gpt-5 계열(gpt-5·gpt-5-mini·gpt-5-nano, 날짜 접미 포함)은 reasoning_effort "none" 을
+# 400 으로 거절한다 — 가장 낮은 값이 "minimal". 점 버전(gpt-5.1+)은 none 을 받는다. (AFL-1031)
+_NO_NONE_EFFORT_RE = re.compile(r"^gpt-5(-mini|-nano)?(-\d{4}-\d{2}-\d{2})?$", re.IGNORECASE)
+
+
 _KEY_RE = re.compile(r"sk-[A-Za-z0-9_-]+")
 
 
@@ -64,6 +69,8 @@ def _payload(messages, model, temperature, max_tokens, *, stream: bool) -> dict:
     body: dict = {"model": resolved, "messages": messages, "stream": stream}
     if _is_reasoning(resolved):
         effort = os.environ.get("OPENAI_REASONING_EFFORT")
+        if effort == "none" and _NO_NONE_EFFORT_RE.match(resolved):
+            effort = "minimal"
         if effort:
             body["reasoning_effort"] = effort
     elif temperature is not None:
