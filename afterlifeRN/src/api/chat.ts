@@ -95,6 +95,25 @@ export async function v_7c2cb7(
   return v_04b58a<ConversationListResponse>("/oth-path", v_2ca7e0);
 }
 
+export type LeaveKind = "subscribed" | "called" | "owned";
+export async function v_8be472(
+  v_6e0fd3,
+  v_2ca7e0,
+): Promise<{ ok: boolean; kind: LeaveKind; unsubscribed: boolean }> {
+  return v_04b58a(`/oth-path${v_6e0fd3}/leave`, v_2ca7e0, { method: "POST" });
+}
+
+export function v_9d1db1(
+  v_8d41d7,
+  v_893b61,
+): string {
+  return v_893b61
+    ? v_8d41d7("chat.leaveConfirmSubscribed", {
+        defaultValue: "해당 클론과의 대화가 사라지고 구독취소됩니다. 계속하시겠습니까?",
+      })
+    : v_8d41d7("chat.leaveConfirm", { defaultValue: "해당 클론과의 대화가 사라집니다. 계속하시겠습니까?" });
+}
+
 export async function v_17fd6f(
   v_6e0fd3,
   v_2ca7e0,
