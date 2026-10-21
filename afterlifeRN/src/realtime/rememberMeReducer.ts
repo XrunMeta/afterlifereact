@@ -32,6 +32,8 @@ export interface RememberMeState {
   unknownStreak: number;
 
   differentPersonStreak: number;
+
+  serverSpeakerCleared: boolean;
 }
 
 export const v_575cf8 = 60_000;
@@ -44,7 +46,7 @@ export const v_0e9727 = 5;
 
 export const v_a4afab = 0.7;
 
-export const v_a5c955 = 60_000;
+export const v_a5c955 = 120_000;
 
 export const v_059bf8 = 60_000;
 
@@ -70,6 +72,8 @@ export type RememberMeEvent =
     }
 
   | { type: "ACTIVITY" }
+
+  | { type: "MULTI_FACE_SENT" }
 
   | { type: "CLONE_SPEECH_END" }
 
@@ -127,6 +131,7 @@ export function v_178dfb(): RememberMeState {
     dismissedPromptInCall: false,
     unknownStreak: 0,
     differentPersonStreak: 0,
+    serverSpeakerCleared: false,
   };
 }
 
@@ -189,6 +194,8 @@ function v_9638ca(
     unknownStreak: 0,
 
     differentPersonStreak: 0,
+
+    serverSpeakerCleared: false,
     lastConfirmedPerson: v_dca8b5,
   };
 }
@@ -243,6 +250,20 @@ function v_a448ad(
                 displayName: v_d48baf.displayName,
                 rejoin: false,
                 mentionName: true,
+              },
+            ],
+          };
+        }
+
+        if (v_b6e533.serverSpeakerCleared) {
+          return {
+            state: { ...v_b6e533, recentlySeen: v_3d04cc, serverSpeakerCleared: false },
+            actions: [
+              {
+                type: "NOTIFY_CONFIRMED",
+                personId: v_d48baf.personId,
+                displayName: v_d48baf.displayName,
+                rejoin: false,
               },
             ],
           };
@@ -451,6 +472,11 @@ function v_a448ad(
         actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
       };
     }
+
+    case "MULTI_FACE_SENT":
+
+      if (v_b6e533.personId === null || v_b6e533.mode === "pending") return { state: v_b6e533, actions: [] };
+      return { state: { ...v_b6e533, serverSpeakerCleared: true }, actions: [] };
 
     case "CLONE_SPEECH_END": {
       const v_714e04 = v_b6e533.pendingSwitch;

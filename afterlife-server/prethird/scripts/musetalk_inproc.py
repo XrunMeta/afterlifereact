@@ -173,9 +173,15 @@ class MuseTalkInproc:
             sys.path.insert(0, str(SOURCE_DIR / "scripts"))
 
         # prethird scripts/ 디렉토리의 inference_lib.py (복제본) 를 우선 사용
+        # 2026-10-21: server.py 를 scripts/ 에서 실행하면 이 경로가 이미 sys.path[0] 이라
+        #   "없을 때만 앞에 넣기" 가 아무 일도 안 했고, 위에서 넣은 SOURCE_DIR/scripts 가 앞서
+        #   musetalk 원본의 inference_lib.py(2026-05-26, git 밖)가 로드됐다. 그래서 이 복제본의
+        #   무음 입 다물기·턴별 시작 프레임 회전·배치 버킷이 라이브에서 한 번도 돌지 않았다.
+        #   있든 없든 맨 앞으로 옮긴다.
         _scripts_dir = str(Path(__file__).parent)
-        if _scripts_dir not in sys.path:
-            sys.path.insert(0, _scripts_dir)
+        while _scripts_dir in sys.path:
+            sys.path.remove(_scripts_dir)
+        sys.path.insert(0, _scripts_dir)
 
         import inference_lib  # type: ignore  # noqa: PLC0415
 
@@ -192,6 +198,43 @@ class MuseTalkInproc:
         self._loaded = True
         elapsed_ms = int((time.time() - t0) * 1000)
         print(f"[MuseTalkInproc] load_models done in {elapsed_ms} ms", flush=True)
+
+    def warm_in_background(self) -> None:
+        """2026-10-21: 기동 직후 배치 버킷 크기 cudnn 튜닝(실측 약 17초)을 백그라운드로 끝낸다.
+
+        안 하면 재시작 뒤 첫 통화의 첫 렌더가 이 튜닝을 떠안는다(unet_bucket.py). 1초 무음으로
+        한 번 렌더하면 inference_lib 가 버킷 크기를 전부 튜닝한다. 그 사이 통화가 오면 렌더는
+        _infer_lock 에서 기다린다. 실패해도 첫 렌더에서 다시 튜닝하므로 서비스엔 영향 없다.
+        """
+        from unet_bucket import PAD_BUCKET  # noqa: PLC0415
+
+        if PAD_BUCKET <= 0:
+            return
+
+        def _run() -> None:
+            import tempfile  # noqa: PLC0415
+            import wave  # noqa: PLC0415
+
+            fd, path = tempfile.mkstemp(suffix=".wav")
+            os.close(fd)
+            try:
+                with wave.open(path, "wb") as w:
+                    w.setnchannels(1)
+                    w.setsampwidth(2)
+                    w.setframerate(16000)
+                    w.writeframes(b"\x00\x00" * 16000)
+                t0 = time.time()
+                n = self.infer(path, on_frame=lambda *_: None)
+                print(f"[unet-bucket] 기동 프리웜 완료 frames={n} {int((time.time() - t0) * 1000)}ms", flush=True)
+            except Exception as e:
+                print(f"[unet-bucket] 기동 프리웜 실패(첫 렌더에서 다시 튜닝): {e}", flush=True)
+            finally:
+                try:
+                    os.unlink(path)
+                except OSError:
+                    pass
+
+        threading.Thread(target=_run, name="unet-bucket-warm", daemon=True).start()
 
     # ------------------------------------------------------------------
     # infer()
