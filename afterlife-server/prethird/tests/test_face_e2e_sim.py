@@ -123,7 +123,7 @@ def test_full_flow_unknown_to_enrolled(monkeypatch):
     monkeypatch.setattr(name_extract, "extract_name", _fake_extract_name)
 
     l2p_calls = []
-    async def _fake_fetch_l2p(clone_id, person_id):
+    async def _fake_fetch_l2p(clone_id, person_id, user_id=None):
         l2p_calls.append((clone_id, person_id))
         return {"relation": "손녀"}
     monkeypatch.setattr(l2p_client, "fetch_l2p", _fake_fetch_l2p)
@@ -236,7 +236,7 @@ def test_face_diag_log_emitted(monkeypatch, caplog):
     monkeypatch.setenv("FACE_DIAG_LOG", "1")
 
     l2p_calls = []
-    async def _fake_fetch_l2p(clone_id, person_id):
+    async def _fake_fetch_l2p(clone_id, person_id, user_id=None):
         l2p_calls.append((clone_id, person_id))
         return {"relation": "손녀"}
     monkeypatch.setattr(l2p_client, "fetch_l2p", _fake_fetch_l2p)

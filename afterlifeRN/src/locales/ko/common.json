@@ -38,7 +38,8 @@
       "title": "긴급 공지",
       "viewDetails": "자세히 보기"
     },
-    "unknown": "이름 없음"
+    "unknown": "이름 없음",
+    "retryLater": "잠시 후 다시 시도해 주세요."
   },
   "tabs": {
     "home": "홈",
@@ -368,7 +369,12 @@
     "weekdayFri": "금요일",
     "weekdaySat": "토요일",
     "intimacyMilestone": "{{name}}의 온도가 {{score}}°C가 됐어요",
-    "lastCallPreview": "음성 통화"
+    "lastCallPreview": "음성 통화",
+    "leaveAction": "나가기",
+    "leaveTitle": "대화방 나가기",
+    "leaveConfirm": "해당 클론과의 대화가 사라집니다. 계속하시겠습니까?",
+    "leaveConfirmSubscribed": "해당 클론과의 대화가 사라지고 구독취소됩니다. 계속하시겠습니까?",
+    "leaveFailTitle": "나가지 못했어요"
   },
   "call": {
     "calling": "연결 중...",
@@ -2172,7 +2178,9 @@
       "title": "등록 완료",
       "midCall": "얼굴 등록 완료! 통화를 다시 시작합니다.",
       "first": "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.",
-      "start": "통화 시작"
+      "start": "통화 시작",
+      "midCallResume": "얼굴 등록 완료! 통화로 돌아갑니다.",
+      "backToCall": "통화로 돌아가기"
     },
     "defaultSelfName": "나",
     "step": {

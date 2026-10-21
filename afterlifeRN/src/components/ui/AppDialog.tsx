@@ -8,9 +8,12 @@ import {
   v_4623af,
   v_472849,
   v_09d0e5,
+  v_326be8,
 } from "rcmrninabrnb";
 import { v_b54176, type v_2bdc79 } from "../../stores/dialogStore";
 import { v_1bfbd0, v_8b0c90, v_d43669, v_c10a43, v_119e65 } from "../constants";
+
+const v_11c329 = 350;
 
 export default function v_d714a5() {
   const { visible: v_cf55be, title: v_9f1622, message: v_a8cd21, subMessage: v_b16388, buttons: v_3d694a, key: v_b24339, close: v_c78a36, messageAlign: v_48225e } = v_b54176();
@@ -24,7 +27,7 @@ export default function v_d714a5() {
       } catch (v_49263d) {
         console.warn("[AppDialog] onPress threw:", v_49263d);
       }
-    }, 0);
+    }, v_326be8.OS === "android" ? v_11c329 : 0);
   };
 
   const v_954b83 = v_3d694a.length >= 3;

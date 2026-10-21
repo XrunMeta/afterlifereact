@@ -38,7 +38,8 @@
       "title": "Pemberitahuan darurat",
       "viewDetails": "Lihat detail"
     },
-    "unknown": "Tanpa nama"
+    "unknown": "Tanpa nama",
+    "retryLater": "Silakan coba lagi nanti."
   },
   "tabs": {
     "home": "Beranda",
@@ -368,7 +369,12 @@
     "weekdayFri": "Jumat",
     "weekdaySat": "Sabtu",
     "intimacyMilestone": "Suhu dengan {{name}} menjadi {{score}}°C",
-    "lastCallPreview": "Panggilan suara"
+    "lastCallPreview": "Panggilan suara",
+    "leaveAction": "Keluar",
+    "leaveTitle": "Keluar dari obrolan",
+    "leaveConfirm": "Percakapan dengan klon ini akan dihapus. Lanjutkan?",
+    "leaveConfirmSubscribed": "Percakapan dengan klon ini akan dihapus dan langganan dibatalkan. Lanjutkan?",
+    "leaveFailTitle": "Gagal keluar"
   },
   "call": {
     "calling": "Menghubungkan...",
@@ -2172,7 +2178,9 @@
       "title": "Pendaftaran selesai",
       "midCall": "Wajah terdaftar! Melanjutkan panggilan.",
       "first": "Pengenalan wajah siap. Memulai panggilan.",
-      "start": "Mulai panggilan"
+      "start": "Mulai panggilan",
+      "midCallResume": "Wajah terdaftar! Kembali ke panggilan.",
+      "backToCall": "Kembali ke panggilan"
     },
     "defaultSelfName": "Saya",
     "step": {

@@ -38,7 +38,8 @@
       "title": "紧急公告",
       "viewDetails": "查看详情"
     },
-    "unknown": "未命名"
+    "unknown": "未命名",
+    "retryLater": "请稍后再试。"
   },
   "tabs": {
     "home": "首页",
@@ -368,7 +369,12 @@
     "weekdayFri": "星期五",
     "weekdaySat": "星期六",
     "intimacyMilestone": "与{{name}}的温度达到了{{score}}°C",
-    "lastCallPreview": "语音通话"
+    "lastCallPreview": "语音通话",
+    "leaveAction": "退出",
+    "leaveTitle": "退出聊天",
+    "leaveConfirm": "与该克隆的对话将被清除。是否继续？",
+    "leaveConfirmSubscribed": "与该克隆的对话将被清除，并取消订阅。是否继续？",
+    "leaveFailTitle": "退出失败"
   },
   "call": {
     "calling": "连接中...",
@@ -2168,7 +2174,9 @@
       "title": "登记完成",
       "midCall": "面部登记完成! 恢复通话。",
       "first": "面部识别准备就绪。开始通话。",
-      "start": "开始通话"
+      "start": "开始通话",
+      "midCallResume": "面部登记完成！正在返回通话。",
+      "backToCall": "返回通话"
     },
     "defaultSelfName": "我",
     "step": {

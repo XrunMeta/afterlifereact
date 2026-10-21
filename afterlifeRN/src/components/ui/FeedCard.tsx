@@ -138,9 +138,8 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
       {v_26dce6 && (v_8c0b26.ownerName || v_8c0b26.ownerAvatarUrl || v_27b331) ? (
         <View style={[
           v_d81136.ownerHeader,
-          v_3b0493
-            ? { top: (v_ca9d56 || v_43c476.length === 0 ? 56 : 100) + v_3b0493 }
-            : null,
+
+          { top: (v_ca9d56 || v_43c476.length === 0 ? 56 : 100) + (v_3b0493 ?? 0) },
         ]}>
           <TouchableOpacity
             style={v_d81136.ownerInfo}

@@ -8,6 +8,7 @@ import { v_6690d9 } from "../middleware/auth";
 import { v_80a022 } from "../lib/notify";
 import { v_dd9d7c, v_6f97bc, v_cf0463 } from "../lib/interactions";
 import { v_f45eef, v_5bb199 } from "../lib/penaltyGate";
+import { v_991113 } from "../lib/conversationLeave";
 import {
   v_74c502,
   v_a9ae28,
@@ -194,7 +195,7 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
 
   const v_dd2234 = v_013af2
     ? `COALESCE((SELECT MIN(100, SUM(ie.score)) FROM intimacy_events ie
-                  WHERE ie.user_id = ? AND ie.clone_id = c.id), 0) AS myIntimacy`
+                  WHERE ie.user_id = ? AND ie.clone_id = c.id ${v_991113("ie")}), 0) AS myIntimacy`
     : `0 AS myIntimacy`;
   const v_9434a4 = v_013af2 ? [v_013af2] : [];
 

@@ -190,6 +190,8 @@ v_74e200.get("/remembering-clones", v_6690d9, async (v_3f4e2e) => {
        JOIN persons p ON p.id = cop.person_id
       WHERE p.user_id = ?
         AND cop.person_id IS NOT c.self_person_id
+        -- 2026-10-21: 삭제된 페르소나는 목록에서 제외 (지운 페르소나가 계속 보이던 문제).
+        AND c.deletion_state = 'active' AND c.deleted_at IS NULL
       GROUP BY c.id
       ORDER BY updatedAt DESC`,
   )

@@ -10,10 +10,10 @@ import {
   v_39a996,
   v_a2349e,
   v_d49152,
-  v_e767d1,
   v_326be8,
   v_0e1f26,
   v_1ed974,
+  v_122070,
 } from "rcmrninabrnb";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import v_f595b9, { v_bf60de } from "vpztcxjmsfanunln";
@@ -168,6 +168,20 @@ export default function v_8640b9() {
 
   const [v_f9f059, v_7c7b9c] = v_5ab095<boolean | null>(null);
   const [v_729796, v_fd7d1f] = v_5ab095(0);
+
+  const [v_7e4acc, v_de86c2] = v_5ab095(0);
+  v_c4deb2(() => {
+    const v_399925 = v_326be8.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const v_206f77 = v_326be8.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const v_53f5d7 = v_0e1f26.addListener(v_399925, (v_9e86fd) => {
+      v_de86c2(v_9e86fd?.endCoordinates?.height ?? 0);
+    });
+    const v_52528b = v_0e1f26.addListener(v_206f77, () => v_de86c2(0));
+    return () => {
+      v_53f5d7.remove();
+      v_52528b.remove();
+    };
+  }, []);
   const [v_74e259, v_49cc35] = v_5ab095<number[][]>([]);
 
   const [v_f9508a, v_9abbbd] = v_5ab095<(v_90e668 | null)[]>([]);
@@ -372,17 +386,26 @@ export default function v_8640b9() {
   );
 
   const v_e9b971 = v_de06a3(() => {
+
+    if (v_c414dc && v_3c9f12.canGoBack()) {
+      v_3c9f12.goBack();
+      return;
+    }
     v_3c9f12.dispatch(
       v_650cfa.reset({
         index: 0,
         routes: [{ name: "Call", params: { cloneId: v_6e0fd3, name: v_dfb220, image: v_0e38ad } }],
       }),
     );
-  }, [v_3c9f12, v_6e0fd3, v_dfb220, v_0e38ad]);
+  }, [v_3c9f12, v_6e0fd3, v_dfb220, v_0e38ad, v_c414dc]);
 
   const v_6ca26b = v_de06a3(() => {
     if (v_c414dc) {
 
+      if (v_3c9f12.canGoBack()) {
+        v_3c9f12.goBack();
+        return true;
+      }
       v_3c9f12.dispatch(
         v_650cfa.reset({
           index: 0,
@@ -505,8 +528,8 @@ export default function v_8640b9() {
           }
           v_d794c4 = null;
           const v_a8cd21 = v_c414dc
-            ? v_8d41d7("faceEnroll.complete.midCall", {
-                defaultValue: "얼굴 등록 완료! 통화를 다시 시작합니다.",
+            ? v_8d41d7("faceEnroll.complete.midCallResume", {
+                defaultValue: "얼굴 등록 완료! 통화로 돌아갑니다.",
               })
             : v_8d41d7("faceEnroll.complete.first", {
                 defaultValue: "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.",
@@ -516,7 +539,9 @@ export default function v_8640b9() {
             v_a8cd21,
             [
               {
-                text: v_8d41d7("faceEnroll.complete.start", { defaultValue: "통화 시작" }),
+                text: v_c414dc
+                  ? v_8d41d7("faceEnroll.complete.backToCall", { defaultValue: "통화로 돌아가기" })
+                  : v_8d41d7("faceEnroll.complete.start", { defaultValue: "통화 시작" }),
                 onPress: v_e9b971,
               },
             ],
@@ -584,14 +609,55 @@ export default function v_8640b9() {
   const v_91943c = v_77ce37[Math.min(v_729796, v_77ce37.length - 1)];
   const v_2fb8cc = v_729796 >= v_77ce37.length;
 
+  const v_24af10 = v_2fb8cc && !!v_c414dc;
+
+  const v_130b3e =
+    v_24af10 && v_7e4acc > 0 ? v_7e4acc : v_033e14.bottom;
+
+  const v_04a97f = (
+    <View style={v_fd5f43.bottomBlock}>
+      {v_2fb8cc ? (
+        <TouchableOpacity
+          onPress={v_3bfe4c}
+          style={[v_fd5f43.captureBtn, v_cb66b4 && v_fd5f43.captureBtnDisabled]}
+          disabled={v_cb66b4 || !v_595acb.trim()}
+        >
+          {v_cb66b4 ? (
+            <ActivityIndicator color={v_1bfbd0.zinc900} />
+          ) : (
+            <Text style={v_fd5f43.captureBtnText}>
+              {v_8d41d7("faceEnroll.register", { defaultValue: "등록" })}
+            </Text>
+          )}
+        </TouchableOpacity>
+      ) : null}
+
+      <TouchableOpacity onPress={v_bcff1c} style={v_fd5f43.skipBtn} disabled={v_cb66b4}>
+        <Text style={v_fd5f43.skipBtnText}>
+          {v_c414dc
+            ? v_8d41d7("faceEnroll.skipMidCall", { defaultValue: "등록 없이 통화 재개" })
+            : v_8d41d7("faceEnroll.skipFirst", { defaultValue: "나중에 하기 (지금 통화)" })}
+        </Text>
+      </TouchableOpacity>
+
+      {}
+      <Text style={v_fd5f43.privacyNote}>
+        {v_8d41d7("faceEnroll.privacyNote", {
+          defaultValue:
+            "촬영한 사진은 서버에 저장되지 않아요. 얼굴을 알아보기 위한 숫자 특징(벡터)만 안전하게 담아둡니다.",
+        })}
+      </Text>
+    </View>
+  );
+
   return (
-    <View style={[v_fd5f43.container, { paddingBottom: v_033e14.bottom }]}>
+    <View style={[v_fd5f43.container, { paddingBottom: v_130b3e }]}>
       {}
       <PageHeader showBackButton onBackPress={v_6ca26b} transparent />
 
       {
 }
-      {!(v_2fb8cc && v_c414dc) && (
+      {!v_24af10 && (
         <View style={v_fd5f43.header}>
           <Text style={v_fd5f43.title}>{v_8d41d7("faceEnroll.title", { defaultValue: "얼굴 등록" })}</Text>
           <Text style={v_fd5f43.subtitle}>
@@ -610,185 +676,160 @@ export default function v_8640b9() {
       )}
 
       {}
-      {v_2fb8cc && v_c414dc ? (
-        <KeyboardAvoidingView
-          style={v_fd5f43.centerBlock}
+      {v_24af10 ? (
 
-          behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+        <ScrollView
+          style={{ flex: 1 }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          contentContainerStyle={v_fd5f43.formScrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={v_fd5f43.formTitle}>
-            {v_8d41d7("faceEnroll.form.title", { defaultValue: "이 분은 누구신가요?" })}
-          </Text>
-          <Text style={v_fd5f43.formDesc}>
-            {v_8d41d7("faceEnroll.form.desc", {
-              defaultValue: "이름과 관계를 알려주시면 다음 통화부터 알아볼 수 있어요.",
-            })}
-          </Text>
-          {v_e59ef2.length > 0 && (
-            <View style={v_fd5f43.chipSection}>
-              <Text style={v_fd5f43.chipSectionLabel}>
-                {v_8d41d7("faceEnroll.form.existingLabel", {
-                  defaultValue: "이미 등록된 사람 (이 중에서 선택하면 학습만 추가돼요)",
-                })}
-              </Text>
-              <View style={v_fd5f43.chipRow}>
-                {v_e59ef2.map((v_e2a85c) => {
-                  const v_f8b770 = v_595acb.trim() === (v_e2a85c.displayName ?? "").trim();
-                  return (
-                    <TouchableOpacity
-                      key={v_e2a85c.id}
-                      onPress={() => v_9ad9a9(v_e2a85c.displayName ?? "")}
-                      style={[v_fd5f43.personChip, v_f8b770 && v_fd5f43.personChipActive]}
-                      disabled={v_cb66b4}
-                    >
-                      <Text style={[v_fd5f43.personChipText, v_f8b770 && v_fd5f43.personChipTextActive]}>
-                        {v_e2a85c.displayName}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+            <Text style={v_fd5f43.formTitle}>
+              {v_8d41d7("faceEnroll.form.title", { defaultValue: "이 분은 누구신가요?" })}
+            </Text>
+            <Text style={v_fd5f43.formDesc}>
+              {v_8d41d7("faceEnroll.form.desc", {
+                defaultValue: "이름과 관계를 알려주시면 다음 통화부터 알아볼 수 있어요.",
+              })}
+            </Text>
+            {v_e59ef2.length > 0 && (
+              <View style={v_fd5f43.chipSection}>
+                <Text style={v_fd5f43.chipSectionLabel}>
+                  {v_8d41d7("faceEnroll.form.existingLabel", {
+                    defaultValue: "이미 등록된 사람 (이 중에서 선택하면 학습만 추가돼요)",
+                  })}
+                </Text>
+                <View style={v_fd5f43.chipRow}>
+                  {v_e59ef2.map((v_e2a85c) => {
+                    const v_f8b770 = v_595acb.trim() === (v_e2a85c.displayName ?? "").trim();
+                    return (
+                      <TouchableOpacity
+                        key={v_e2a85c.id}
+                        onPress={() => v_9ad9a9(v_e2a85c.displayName ?? "")}
+                        style={[v_fd5f43.personChip, v_f8b770 && v_fd5f43.personChipActive]}
+                        disabled={v_cb66b4}
+                      >
+                        <Text style={[v_fd5f43.personChipText, v_f8b770 && v_fd5f43.personChipTextActive]}>
+                          {v_e2a85c.displayName}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                <Text style={v_fd5f43.chipHint}>
+                  {v_8d41d7("faceEnroll.form.existingHint", {
+                    defaultValue: "새로운 사람이면 아래에 이름을 직접 입력하세요",
+                  })}
+                </Text>
               </View>
-              <Text style={v_fd5f43.chipHint}>
-                {v_8d41d7("faceEnroll.form.existingHint", {
-                  defaultValue: "새로운 사람이면 아래에 이름을 직접 입력하세요",
-                })}
+            )}
+            <Text style={v_fd5f43.formLabel}>
+              {v_8d41d7("faceEnroll.form.nameLabel", { defaultValue: "이름" })}
+            </Text>
+            <TextInput
+              style={v_fd5f43.formInput}
+              value={v_595acb}
+              onChangeText={v_9ad9a9}
+              placeholder={v_8d41d7("faceEnroll.form.namePlaceholder", { defaultValue: "예: 지호" })}
+              placeholderTextColor={v_1bfbd0.zinc500}
+              autoFocus
+              returnKeyType="next"
+              editable={!v_cb66b4}
+            />
+            <Text style={v_fd5f43.formLabel}>
+              {v_8d41d7("faceEnroll.form.relationLabel", { defaultValue: "관계 (선택)" })}
+            </Text>
+            <TextInput
+              style={v_fd5f43.formInput}
+              value={v_d7d38d}
+              onChangeText={v_23c9e5}
+              placeholder={v_8d41d7("faceEnroll.form.relationPlaceholder", {
+                defaultValue: "예: 손주, 오랜 친구",
+              })}
+              placeholderTextColor={v_1bfbd0.zinc500}
+              returnKeyType="done"
+              editable={!v_cb66b4}
+              onSubmitEditing={v_3bfe4c}
+            />
+            {v_056b4f ? <Text style={v_fd5f43.formError}>{v_056b4f}</Text> : null}
+            {v_04a97f}
+        </ScrollView>
+      ) : (
+        <>
+          {v_2fb8cc && !v_c414dc ? (
+
+            <View style={v_fd5f43.centerBlock}>
+              <ActivityIndicator size="large" color={v_1bfbd0.white} />
+              <Text style={v_fd5f43.hint}>
+                {v_8d41d7("faceEnroll.processing", { defaultValue: "얼굴 등록 중..." })}
               </Text>
             </View>
-          )}
-          <Text style={v_fd5f43.formLabel}>
-            {v_8d41d7("faceEnroll.form.nameLabel", { defaultValue: "이름" })}
-          </Text>
-          <TextInput
-            style={v_fd5f43.formInput}
-            value={v_595acb}
-            onChangeText={v_9ad9a9}
-            placeholder={v_8d41d7("faceEnroll.form.namePlaceholder", { defaultValue: "예: 지호" })}
-            placeholderTextColor={v_1bfbd0.zinc500}
-            autoFocus
-            returnKeyType="next"
-            editable={!v_cb66b4}
-          />
-          <Text style={v_fd5f43.formLabel}>
-            {v_8d41d7("faceEnroll.form.relationLabel", { defaultValue: "관계 (선택)" })}
-          </Text>
-          <TextInput
-            style={v_fd5f43.formInput}
-            value={v_d7d38d}
-            onChangeText={v_23c9e5}
-            placeholder={v_8d41d7("faceEnroll.form.relationPlaceholder", {
-              defaultValue: "예: 손주, 오랜 친구",
-            })}
-            placeholderTextColor={v_1bfbd0.zinc500}
-            returnKeyType="done"
-            editable={!v_cb66b4}
-            onSubmitEditing={v_3bfe4c}
-          />
-          {v_056b4f ? <Text style={v_fd5f43.formError}>{v_056b4f}</Text> : null}
-        </KeyboardAvoidingView>
-      ) : v_2fb8cc && !v_c414dc ? (
-
-        <View style={v_fd5f43.centerBlock}>
-          <ActivityIndicator size="large" color={v_1bfbd0.white} />
-          <Text style={v_fd5f43.hint}>
-            {v_8d41d7("faceEnroll.processing", { defaultValue: "얼굴 등록 중..." })}
-          </Text>
-        </View>
-      ) : (
-        <View style={v_fd5f43.centerBlock}>
-          <View style={v_fd5f43.cameraBox}>
-            <VisionCamera
-              style={v_472849.absoluteFill}
-              device={v_ac8c13}
-              isActive={!v_cb66b4}
-              frameProcessor={v_23f1a4 ? v_a61ebf : undefined}
-              pixelFormat="yuv"
-            />
-            {
+          ) : (
+            <View style={v_fd5f43.centerBlock}>
+              <View style={v_fd5f43.cameraBox}>
+                <VisionCamera
+                  style={v_472849.absoluteFill}
+                  device={v_ac8c13}
+                  isActive={!v_cb66b4}
+                  frameProcessor={v_23f1a4 ? v_a61ebf : undefined}
+                  pixelFormat="yuv"
+                />
+                {
 }
-            <Svg
-              width={v_fdd448}
-              height={v_fdd448}
-              style={v_472849.absoluteFill}
-              pointerEvents="none"
-            >
-              {}
-              <Circle
-                cx={v_fdd448 / 2}
-                cy={v_fdd448 / 2}
-                r={v_20d9ab}
-                stroke="rgba(255,255,255,0.25)"
-                strokeWidth={v_9edd6c}
-                fill="none"
-              />
-              {}
-              <Circle
-                cx={v_fdd448 / 2}
-                cy={v_fdd448 / 2}
-                r={v_20d9ab}
-                stroke="#22c55e"
-                strokeWidth={v_9edd6c}
-                fill="none"
-                strokeLinecap="round"
-                strokeDasharray={v_981f64}
-                strokeDashoffset={v_981f64 * (1 - Math.min(1, v_729796 / v_77ce37.length))}
-                transform={`rotate(-90 ${v_fdd448 / 2} ${v_fdd448 / 2})`}
-              />
-            </Svg>
-          </View>
+                <Svg
+                  width={v_fdd448}
+                  height={v_fdd448}
+                  style={v_472849.absoluteFill}
+                  pointerEvents="none"
+                >
+                  {}
+                  <Circle
+                    cx={v_fdd448 / 2}
+                    cy={v_fdd448 / 2}
+                    r={v_20d9ab}
+                    stroke="rgba(255,255,255,0.25)"
+                    strokeWidth={v_9edd6c}
+                    fill="none"
+                  />
+                  {}
+                  <Circle
+                    cx={v_fdd448 / 2}
+                    cy={v_fdd448 / 2}
+                    r={v_20d9ab}
+                    stroke="#22c55e"
+                    strokeWidth={v_9edd6c}
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeDasharray={v_981f64}
+                    strokeDashoffset={v_981f64 * (1 - Math.min(1, v_729796 / v_77ce37.length))}
+                    transform={`rotate(-90 ${v_fdd448 / 2} ${v_fdd448 / 2})`}
+                  />
+                </Svg>
+              </View>
 
-          <View style={v_fd5f43.stepBox}>
-            <Text style={v_fd5f43.stepLabel}>
-              {v_8d41d7(v_91943c.labelKey, { defaultValue: v_91943c.label })}
-            </Text>
-            <Text style={v_fd5f43.stepHint}>
-              {v_8d41d7(v_91943c.hintKey, { defaultValue: v_91943c.hint })}
-            </Text>
-            {}
-            <Text style={[v_fd5f43.stepHint, { marginTop: 4, opacity: 0.7 }]}>
-              {v_26803c
-                ? v_91943c.guide(v_8d41d7, v_26803c.yaw, v_26803c.pitch)
-                : v_8d41d7("faceEnroll.hintStart", {
-                    defaultValue: "얼굴이 카메라에 잘 보이도록 해주세요",
-                  })}
-            </Text>
-          </View>
-        </View>
+              <View style={v_fd5f43.stepBox}>
+                <Text style={v_fd5f43.stepLabel}>
+                  {v_8d41d7(v_91943c.labelKey, { defaultValue: v_91943c.label })}
+                </Text>
+                <Text style={v_fd5f43.stepHint}>
+                  {v_8d41d7(v_91943c.hintKey, { defaultValue: v_91943c.hint })}
+                </Text>
+                {}
+                <Text style={[v_fd5f43.stepHint, { marginTop: 4, opacity: 0.7 }]}>
+                  {v_26803c
+                    ? v_91943c.guide(v_8d41d7, v_26803c.yaw, v_26803c.pitch)
+                    : v_8d41d7("faceEnroll.hintStart", {
+                        defaultValue: "얼굴이 카메라에 잘 보이도록 해주세요",
+                      })}
+                </Text>
+              </View>
+            </View>
+          )}
+          {}
+          {v_04a97f}
+        </>
       )}
-
-      {}
-      <View style={v_fd5f43.bottomBlock}>
-        {v_2fb8cc ? (
-          <TouchableOpacity
-            onPress={v_3bfe4c}
-            style={[v_fd5f43.captureBtn, v_cb66b4 && v_fd5f43.captureBtnDisabled]}
-            disabled={v_cb66b4 || !v_595acb.trim()}
-          >
-            {v_cb66b4 ? (
-              <ActivityIndicator color={v_1bfbd0.zinc900} />
-            ) : (
-              <Text style={v_fd5f43.captureBtnText}>
-                {v_8d41d7("faceEnroll.register", { defaultValue: "등록" })}
-              </Text>
-            )}
-          </TouchableOpacity>
-        ) : null}
-
-        <TouchableOpacity onPress={v_bcff1c} style={v_fd5f43.skipBtn} disabled={v_cb66b4}>
-          <Text style={v_fd5f43.skipBtnText}>
-            {v_c414dc
-              ? v_8d41d7("faceEnroll.skipMidCall", { defaultValue: "등록 없이 통화 재개" })
-              : v_8d41d7("faceEnroll.skipFirst", { defaultValue: "나중에 하기 (지금 통화)" })}
-          </Text>
-        </TouchableOpacity>
-
-        {}
-        <Text style={v_fd5f43.privacyNote}>
-          {v_8d41d7("faceEnroll.privacyNote", {
-            defaultValue:
-              "촬영한 사진은 서버에 저장되지 않아요. 얼굴을 알아보기 위한 숫자 특징(벡터)만 안전하게 담아둡니다.",
-          })}
-        </Text>
-      </View>
 
       {}
       <Animated.View
@@ -811,7 +852,16 @@ const v_fd5f43 = v_472849.create({
   header: { alignItems: "center", gap: 6, marginBottom: 8 },
   centerBlock: { flex: 1, justifyContent: "center", alignItems: "center", gap: 16 },
 
-  bottomBlock: { gap: 0 },
+  formScrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: 8,
+    paddingBottom: 12,
+    gap: 4,
+  },
+
+  bottomBlock: { gap: 0, alignSelf: "stretch", marginTop: 16 },
   privacyNote: {
     color: v_1bfbd0.zinc400,
     fontSize: 12,

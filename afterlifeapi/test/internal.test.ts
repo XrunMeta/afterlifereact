@@ -175,6 +175,23 @@ v_469bf2("internal turn 콜백", () => {
       v_4d37e3(v_3ac7e7?.s).toBeNull();
     });
 
+    v_23805a("AFL-1030 같은 클론이지만 다른 계정 소속 person → NULL (턴은 저장)", async () => {
+      const { mine: v_1c1268 } = await v_bdb39e("spk-otheruser", 7010);
+      const v_e20ecd = await v_c9c489.DB.prepare(
+        "INSERT INTO persons (user_id, clone_id, display_name, created_at) VALUES (?,?,?,?) RETURNING id"
+      ).bind(2, 7010, "타계정", Date.now()).first<{ id: number }>();
+      const v_8f00b9 = await v_4f438a("spk-otheruser", { role: "user", text: "타계정 화자", speakerPersonId: v_e20ecd!.id });
+      v_4d37e3(v_8f00b9.status).toBe(200);
+      const v_3ac7e7 = await v_c9c489.DB.prepare(
+        "SELECT text, speaker_person_id AS s FROM call_turns WHERE call_id=?"
+      ).bind("spk-otheruser").first<{ text: string; s: number | null }>();
+      v_4d37e3(v_3ac7e7?.text).toBe("타계정 화자");
+      v_4d37e3(v_3ac7e7?.s).toBeNull();
+
+      await v_4f438a("spk-otheruser", { role: "user", text: "내 화자", speakerPersonId: v_1c1268 });
+      v_4d37e3((await v_bc84d9("spk-otheruser", 2))?.s).toBe(v_1c1268);
+    });
+
     v_23805a("미전달/비정수 → NULL (기존 호출자 회귀 0)", async () => {
       await v_bdb39e("spk-none", 7005);
       v_4d37e3((await v_4f438a("spk-none", { role: "user", text: "없음" })).status).toBe(200);

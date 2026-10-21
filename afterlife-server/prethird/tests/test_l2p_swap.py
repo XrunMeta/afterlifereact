@@ -144,7 +144,7 @@ def test_speaker_confirmed_swaps_persona_with_l2p(monkeypatch):
 
     l2p_data = {"relation": "손녀", "preference_personal": {"음식": "매운맛"}, "memories_personal": ["생일 5월"]}
     called = {}
-    async def _fake_fetch(clone_id, person_id):
+    async def _fake_fetch(clone_id, person_id, user_id=None):
         called["args"] = (clone_id, person_id)
         return l2p_data
 
@@ -180,7 +180,7 @@ def test_speaker_confirmed_no_l2p_hint_only(monkeypatch):
     monkeypatch.setenv("PRETHIRD_API_BASE", "http://x")
 
     import l2p_client
-    async def _fake_fetch(clone_id, person_id):
+    async def _fake_fetch(clone_id, person_id, user_id=None):
         return None
     monkeypatch.setattr(l2p_client, "fetch_l2p", _fake_fetch)
 
@@ -213,7 +213,7 @@ def test_fetch_l2p_exception_does_not_break_react(monkeypatch):
     monkeypatch.setenv("PRETHIRD_API_BASE", "http://x")
 
     import l2p_client
-    async def _boom(clone_id, person_id):
+    async def _boom(clone_id, person_id, user_id=None):
         raise RuntimeError("network down")
     monkeypatch.setattr(l2p_client, "fetch_l2p", _boom)
 
@@ -253,7 +253,7 @@ def test_maybe_swap_l2p_skips_update_when_bundle_none(monkeypatch):
     update_persona([])를 호출하면 클론이 페르소나(안전 규칙·성격·기억)를 통째로
     잃는다. update_persona가 단 한 번도 불리지 않아야 한다."""
     import l2p_client
-    async def _fake_fetch(clone_id, person_id):
+    async def _fake_fetch(clone_id, person_id, user_id=None):
         return {"relation": "친구"}
     monkeypatch.setattr(l2p_client, "fetch_l2p", _fake_fetch)
     monkeypatch.setenv("LEARN_SECRET", "s")
@@ -275,7 +275,7 @@ def test_maybe_swap_l2p_skips_update_when_bundle_empty_dict(monkeypatch):
     """[sion A / T-252 회귀] sess.bundle == {} (빈 dict)도 None과 동일하게 차단돼야
     한다 — `if not bundle` 가드는 falsy 전반(None·{}·[])을 잡는다."""
     import l2p_client
-    async def _fake_fetch(clone_id, person_id):
+    async def _fake_fetch(clone_id, person_id, user_id=None):
         return {"relation": "친구"}
     monkeypatch.setattr(l2p_client, "fetch_l2p", _fake_fetch)
     monkeypatch.setenv("LEARN_SECRET", "s")
@@ -321,7 +321,7 @@ def test_전소_가드_출력이_비면_update_persona를_부르지_않는다_sw
     bundle_to_messages 반환이 [] 다. update_persona([]) 는 안전 규칙·성격·기억
     전소이므로 기존 프롬프트를 유지해야 한다."""
     import l2p_client
-    async def _fake_fetch(clone_id, person_id):
+    async def _fake_fetch(clone_id, person_id, user_id=None):
         return {"relation": ""}   # truthy dict 지만 렌더되는 줄이 0개
     monkeypatch.setattr(l2p_client, "fetch_l2p", _fake_fetch)
 
@@ -368,7 +368,7 @@ def test_상태4_강등은_빈_persona에서도_수행된다_clear():
 def test_maybe_swap_l2p_drops_when_stale(monkeypatch):
     """적용 직전 sess.current_speaker[0] != pid(전달받은 값) → stale 드랍(최신 스왑 안 덮음)."""
     import l2p_client
-    async def _fake_fetch(clone_id, person_id):
+    async def _fake_fetch(clone_id, person_id, user_id=None):
         return None
     monkeypatch.setattr(l2p_client, "fetch_l2p", _fake_fetch)
     monkeypatch.setenv("LEARN_SECRET", "s")
@@ -393,11 +393,11 @@ def test_세대가_다른_in_flight_스왑은_pid가_같아도_드랍된다(monk
     sess = _Sess()
     gate = asyncio.Event()
 
-    async def _slow(clone_id, person_id):
+    async def _slow(clone_id, person_id, user_id=None):
         await gate.wait()
         return {"memories_personal": ["낡은 L2'"]}
 
-    async def _fast(clone_id, person_id):
+    async def _fast(clone_id, person_id, user_id=None):
         return None
 
     async def _scenario():
@@ -438,7 +438,7 @@ def test_react_not_blocked_by_slow_l2p_fetch(monkeypatch):
 
     gate = asyncio.Event()
     import l2p_client
-    async def _slow_fetch(clone_id, person_id):
+    async def _slow_fetch(clone_id, person_id, user_id=None):
         await gate.wait()  # react가 끝나기 전엔 절대 풀리지 않음(테스트가 직접 통제)
         return None
     monkeypatch.setattr(l2p_client, "fetch_l2p", _slow_fetch)
@@ -486,7 +486,7 @@ async def test_learn_writeback_routes_to_person(monkeypatch):
 
     async def _fake_extract(*a, **k):
         return {"relation": "친구"}
-    async def _fake_post_person(clone_id, person_id, session_id, extracted):
+    async def _fake_post_person(clone_id, person_id, user_id, session_id, extracted):
         posted_person["n"] += 1
         posted_person["args"] = (clone_id, person_id, session_id, extracted)
     async def _fake_post_user(*a, **k):
@@ -496,7 +496,12 @@ async def test_learn_writeback_routes_to_person(monkeypatch):
     monkeypatch.setattr(lw, "post_learn_person", _fake_post_person)
     monkeypatch.setattr(lw, "_post_learn", _fake_post_user)
 
+    await lw.learn_writeback(9201, 8201, "sid", "안녕", "응답", person_id=3)
+    # AFL-1030: user_id 없으면 person 경로도 호출하지 않는다(fail-closed)
+    posted_person["n"] = 0
     await lw.learn_writeback(9201, None, "sid", "안녕", "응답", person_id=3)
+    assert posted_person["n"] == 0
+    await lw.learn_writeback(9201, 8201, "sid", "안녕", "응답", person_id=3)
     assert posted_person["n"] == 1
     assert posted_user["n"] == 0
     assert posted_person["args"] == (9201, 3, "sid", {"relation": "친구"})
@@ -532,7 +537,7 @@ async def test_post_learn_person_skips_without_env(monkeypatch):
     monkeypatch.delenv("LEARN_SECRET", raising=False)
     monkeypatch.delenv("PRETHIRD_API_BASE", raising=False)
     # 예외 없이 조용히 반환(네트워크 호출 없음)
-    await lw.post_learn_person(9201, 3, "sid", {"relation": "친구"})
+    await lw.post_learn_person(9201, 3, 8201, "sid", {"relation": "친구"})
 
 
 def test_say_turn_learn_routes_person_id(monkeypatch):
@@ -572,7 +577,7 @@ def test_speaker_swap_no_nesting(monkeypatch):
     monkeypatch.setenv("PRETHIRD_API_BASE", "http://x")
 
     import l2p_client
-    async def _fake_fetch(clone_id, person_id):
+    async def _fake_fetch(clone_id, person_id, user_id=None):
         return None
     monkeypatch.setattr(l2p_client, "fetch_l2p", _fake_fetch)
 
@@ -605,7 +610,7 @@ def test_returning_speaker_reswaps_but_react_cooldown_holds(monkeypatch):
     monkeypatch.setenv("PRETHIRD_API_BASE", "http://x")
 
     import l2p_client
-    async def _fake_fetch(clone_id, person_id):
+    async def _fake_fetch(clone_id, person_id, user_id=None):
         return None
     monkeypatch.setattr(l2p_client, "fetch_l2p", _fake_fetch)
 

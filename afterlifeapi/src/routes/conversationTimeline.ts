@@ -14,6 +14,8 @@ import {
   v_bee6d6,
 } from "../lib/conversationMemory";
 import { v_b09c2e } from "../lib/conversationEvents";
+import { v_19b1f0, v_3205df, v_8be472, type v_1b5c7a } from "../lib/conversationLeave";
+import { v_74defc } from "../lib/logger";
 
 export const v_1172ea = new v_b7c41b<v_de0a25>();
 
@@ -112,31 +114,35 @@ v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
 
   if (v_b24339.kind === "shredded") return v_3f4e2e.json({ clone: v_7d767c(v_eb25ce), intimacy: v_b74b9c, items: [], nextCursor: null });
 
+  const v_76520b = await v_19b1f0(v_3f4e2e.env.DB, v_43e90c, v_6e0fd3);
+  const v_17e322 = Math.floor(v_76520b / 1000);
+
   const [v_7e4351, v_20e160, v_bf9904] = await Promise.all([
     v_3f4e2e.env.DB.prepare(
       `SELECT id, session_id, role, content, created_at FROM messages
         WHERE user_id = ? AND clone_id = ?
           AND status = 'active' AND deletion_state = 'active' AND content IS NOT NULL
           AND datetime(created_at) <= datetime(?, 'unixepoch')
+          AND datetime(created_at) > datetime(?, 'unixepoch')
         ORDER BY datetime(created_at) DESC, id DESC
         LIMIT ?`,
-    ).bind(v_43e90c, v_6e0fd3, v_5b31c3, v_02be30 + v_de3072)
+    ).bind(v_43e90c, v_6e0fd3, v_5b31c3, v_17e322, v_02be30 + v_de3072)
       .all<{ id: number; session_id: string; role: string; content: string; created_at: string }>(),
     v_3f4e2e.env.DB.prepare(
       `SELECT s.call_id, s.started_at, s.duration_sec,
               (SELECT COUNT(*) FROM call_turns t WHERE t.call_id = s.call_id) AS turn_count
          FROM call_sessions s
-        WHERE s.user_id = ? AND s.clone_id = ? AND s.started_at <= ?
+        WHERE s.user_id = ? AND s.clone_id = ? AND s.started_at <= ? AND s.started_at > ?
         ORDER BY s.started_at DESC, s.call_id DESC
         LIMIT ?`,
-    ).bind(v_43e90c, v_6e0fd3, v_7a9a34, v_02be30 + v_de3072)
+    ).bind(v_43e90c, v_6e0fd3, v_7a9a34, v_76520b, v_02be30 + v_de3072)
       .all<{ call_id: string; started_at: number; duration_sec: number | null; turn_count: number }>(),
     v_3f4e2e.env.DB.prepare(
       `SELECT id, kind, payload, created_at FROM conversation_events
-        WHERE user_id = ? AND clone_id = ? AND created_at <= ?
+        WHERE user_id = ? AND clone_id = ? AND created_at <= ? AND created_at > ?
         ORDER BY created_at DESC, id DESC
         LIMIT ?`,
-    ).bind(v_43e90c, v_6e0fd3, v_7a9a34, v_02be30 + v_de3072)
+    ).bind(v_43e90c, v_6e0fd3, v_7a9a34, v_76520b, v_02be30 + v_de3072)
       .all<{ id: number; kind: string; payload: string | null; created_at: number }>(),
   ]);
 
@@ -346,14 +352,28 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
       });
     }
   }
-  const v_45c785 = new Map((v_2461e1.results ?? []).map((v_cb35cb) => [v_cb35cb.id, v_15ea73(v_cb35cb.created_at)]));
+
+  const v_705cde = await v_3205df(v_a1651b, v_43e90c);
+  for (const [v_062ae9, v_506e86] of [...v_02fbf1.entries()]) {
+    const v_dbaa7f = v_705cde.get(v_062ae9);
+    if (v_dbaa7f !== undefined && v_506e86.at <= v_dbaa7f) v_02fbf1.delete(v_062ae9);
+  }
+  const v_45c785 = new Map(
+    (v_2461e1.results ?? [])
+
+      .filter((v_cb35cb) => !v_705cde.has(v_cb35cb.id) || v_02fbf1.has(v_cb35cb.id))
+      .map((v_cb35cb) => [v_cb35cb.id, v_15ea73(v_cb35cb.created_at)]),
+  );
 
   const v_10387a = await v_a1651b
     .prepare(`SELECT clone_id, created_at FROM clone_follows WHERE user_id = ?`)
     .bind(v_43e90c)
     .all<{ clone_id: number; created_at: string }>();
   const v_559298 = new Set<number>(
-    (v_10387a.results ?? []).map((v_cb35cb) => v_cb35cb.clone_id),
+    (v_10387a.results ?? [])
+
+      .filter((v_cb35cb) => !v_705cde.has(v_cb35cb.clone_id) || v_15ea73(v_cb35cb.created_at) > v_705cde.get(v_cb35cb.clone_id)!)
+      .map((v_cb35cb) => v_cb35cb.clone_id),
   );
   const v_b482e3 = new Map<number, number>(
     (v_10387a.results ?? []).map((v_cb35cb) => [v_cb35cb.clone_id, v_15ea73(v_cb35cb.created_at)]),
@@ -434,4 +454,26 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
     v_779914.sortAt !== null && v_148ff6.sortAt !== null ? v_148ff6.sortAt - v_779914.sortAt
       : v_779914.sortAt !== null ? -1 : v_148ff6.sortAt !== null ? 1 : v_148ff6.createdAt - v_779914.createdAt);
   return v_3f4e2e.json({ items: v_4622b9.map(({ sortAt: v_21a792, createdAt: v_837cf5, ...v_83bbcd }) => v_83bbcd) });
+});
+
+v_72aaee.post("/:cloneId/leave", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_6e0fd3 = v_31113b(v_3f4e2e.req.param("cloneId"));
+  const v_a1651b = v_3f4e2e.env.DB;
+  const v_eb25ce = await v_5d4a51(v_a1651b, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+
+  const v_ba3f04 = await v_a1651b
+    .prepare(`SELECT 1 AS hit FROM clone_follows WHERE user_id = ? AND clone_id = ? LIMIT 1`)
+    .bind(v_43e90c, v_6e0fd3)
+    .first<{ hit: number }>();
+  const kind: v_1b5c7a = v_eb25ce.owner_id === v_43e90c ? "owned" : v_ba3f04 ? "subscribed" : "called";
+
+  const v_cb35cb = await v_8be472(v_a1651b, { userId: v_43e90c, cloneId: v_6e0fd3, kind: v_94302c });
+  await v_74defc(v_3f4e2e, {
+    userId: v_43e90c,
+    action: "conversation.leave",
+    details: { cloneId: v_6e0fd3, kind: v_94302c, leaveId: v_cb35cb.leaveId, unsubscribed: v_cb35cb.unsubscribed },
+  });
+  return v_3f4e2e.json({ ok: true, kind: v_94302c, unsubscribed: v_cb35cb.unsubscribed, leftAt: v_cb35cb.leftAt });
 });
