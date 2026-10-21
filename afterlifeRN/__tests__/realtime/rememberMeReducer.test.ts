@@ -472,3 +472,34 @@ describe("rememberMeReducer — T-559 프로액티브 sheet (score gate)", () =>
     expect(v_b6e533.sheetOpen).toBe(false);
   });
 });
+
+describe("rememberMeReducer — multi_face 뒤 재확정", () => {
+  it("multi_face 뒤 같은 사람이 잡히면 인사 없이 다시 알린다(1회)", () => {
+    const v_3f6eae = v_729796(v_30b0d4(), { type: "MULTI_FACE_SENT" }).state;
+    expect(v_3f6eae.serverSpeakerCleared).toBe(true);
+
+    const v_cb35cb = v_729796(v_3f6eae, v_d81543(58), 1000);
+    expect(v_cb35cb.actions).toEqual([
+      { type: "NOTIFY_CONFIRMED", personId: 58, displayName: "도기", rejoin: false },
+    ]);
+    expect(v_cb35cb.state.serverSpeakerCleared).toBe(false);
+
+    expect(v_729796(v_cb35cb.state, v_d81543(58), 2000).actions).toEqual([]);
+  });
+
+  it("multi_face 가 없으면 같은 사람 매칭은 조용하다(기존 동작)", () => {
+    expect(v_729796(v_30b0d4(), v_d81543(58), 1000).actions).toEqual([]);
+  });
+
+  it("확정된 사람이 없으면 multi_face 는 상태를 바꾸지 않는다", () => {
+    const v_ca01e0 = v_178dfb();
+    expect(v_729796(v_ca01e0, { type: "MULTI_FACE_SENT" }).state).toBe(v_ca01e0);
+  });
+
+  it("다른 사람으로 갈아타면 그 통보로 서버가 다시 알게 되므로 표시를 내린다", () => {
+    const v_3f6eae = v_729796(v_30b0d4(), { type: "MULTI_FACE_SENT" }).state;
+    const v_cb35cb = v_729796(v_3f6eae, v_d81543(77, { name: "민경" }), 1000);
+    expect(v_cb35cb.actions.some((v_779914) => v_779914.type === "NOTIFY_CONFIRMED")).toBe(true);
+    expect(v_cb35cb.state.serverSpeakerCleared).toBe(false);
+  });
+});
