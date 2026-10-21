@@ -2175,7 +2175,9 @@
       "title": "登録完了",
       "midCall": "顔登録完了! 通話を再開します。",
       "first": "顔認識の準備が完了しました。通話を開始します。",
-      "start": "通話開始"
+      "start": "通話開始",
+      "midCallResume": "顔の登録が完了しました！通話に戻ります。",
+      "backToCall": "通話に戻る"
     },
     "defaultSelfName": "私",
     "step": {

@@ -2172,7 +2172,9 @@
       "title": "Pendaftaran selesai",
       "midCall": "Wajah terdaftar! Melanjutkan panggilan.",
       "first": "Pengenalan wajah siap. Memulai panggilan.",
-      "start": "Mulai panggilan"
+      "start": "Mulai panggilan",
+      "midCallResume": "Wajah terdaftar! Kembali ke panggilan.",
+      "backToCall": "Kembali ke panggilan"
     },
     "defaultSelfName": "Saya",
     "step": {
