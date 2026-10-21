@@ -128,7 +128,7 @@ async def test_chat_no_hint_without_person(monkeypatch):
         assert resp.status == 200
         text = await resp.text()
         content = _final_system_content(text)
-    assert "상대의 이름은 아직 확인되지 않았다" in content
+    assert "상대의 이름은 상대가 알려준 적이 있을 때만 안다" in content
     assert "형" not in text                        # person_id 없음 → L2' 미조회
     # speaker=None 이면 상대 정보는 계정주 L2 다(상태 1·3 폴백은 옳다).
     assert "계정주와 작년에 이사 옴" in content
@@ -152,7 +152,7 @@ async def test_chat_no_hint_when_l2p_lookup_fails(monkeypatch):
             json={"clone_id": 9055, "messages": [{"role": "user", "content": "안녕"}], "person_id": 3})
         assert resp.status == 200
         content = _final_system_content(await resp.text())
-    assert "상대의 이름은 아직 확인되지 않았다" in content
+    assert "상대의 이름은 상대가 알려준 적이 있을 때만 안다" in content
     # [fix round 2] 핵심 단언은 "계정주 L2 가 확정 화자 것으로 새지 않는다" 다 —
     # `"형" not in`(조회가 {} 라 애초에 출처가 없다)은 공허하므로 이걸로 대체한다.
     assert "\n## 상대 정보\n" not in content
@@ -205,7 +205,7 @@ async def test_chat_숫자_person_id는_이름으로_주입되지_않는다(monk
         assert resp.status == 200
         content = _final_system_content(await resp.text())
     assert '"7"' not in content
-    assert "상대의 이름은 아직 확인되지 않았다" in content   # 상태 3 강등
+    assert "상대의 이름은 상대가 알려준 적이 있을 때만 안다" in content   # 상태 3 강등
     assert "너와의 관계: 친구" in content                    # L2' 데이터는 살린다
 
 
