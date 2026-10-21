@@ -32,13 +32,14 @@ import { v_5401ae } from "../../testIDs";
 import type { v_4b85a1 as v_affcc0 } from "../../types/domain";
 import { v_1bfbd0, v_e3d001, v_9b1a04 } from "../../components/constants";
 import { v_e82960, type v_0eab75 } from "qmmwyqbwrg";
+import { v_d7b329 } from "../../lib/voicePresetName";
 
 type Visibility = "public" | "private" | "followers";
 
 type Props = v_432191<v_2d88fc, "CloneEdit">;
 
 export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
-  const { t: v_8d41d7 } = v_772971();
+  const { t: v_8d41d7, i18n: v_9c213b } = v_772971();
   const { cloneId: v_6e0fd3 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
   const v_941cd7 = v_194498((v_fd5f43) => v_fd5f43.updateLocalClone);
@@ -263,7 +264,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                       style={[v_fd5f43.voiceName, v_599a41 && v_fd5f43.voiceNameSelected]}
                       numberOfLines={2}
                     >
-                      {v_81e2ef.name}
+                      {v_d7b329(v_81e2ef, v_9c213b.language, v_8d41d7)}
                     </Text>
                     <Text style={v_fd5f43.voiceMeta} numberOfLines={1}>
                       {[v_81e2ef.gender, v_81e2ef.ageRange].filter(Boolean).join(" · ") || " "}

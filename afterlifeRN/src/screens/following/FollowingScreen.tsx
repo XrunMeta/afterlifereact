@@ -30,6 +30,7 @@ import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
 import v_0e981f from "../../components/common/NotificationBell";
 import { v_772971 } from "jmpfvteuuztnp";
+import { v_c64cf7 } from "../../lib/chatSystemText";
 import { v_1bfbd0, v_9b1a04, v_8b0c90, v_8f28b1, v_7c5e29 } from "../../components/constants";
 import type { v_8ad91b, v_97a9a8 } from "../../navigation/types";
 import { v_1ed7d9 } from "../../stores/authStore";
@@ -117,7 +118,7 @@ const v_986943 = (clone: v_4b85a1, v_edb3e7): FollowedPersona => ({
 const v_cae9dc = (v_f4e98d) => (v_f4e98d >= 1000 ? `${(v_f4e98d / 1000).toFixed(1)}k` : String(v_f4e98d));
 
 export default function v_14b43e() {
-  const { t: v_8d41d7 } = v_772971();
+  const { t: v_8d41d7, i18n: v_9c213b } = v_772971();
   const v_033e14 = v_e0068c();
 
   const v_f9771e = v_c18c22(0);
@@ -356,9 +357,9 @@ export default function v_14b43e() {
   const [v_5e8330, v_1db134] = v_5ab095<SortMode>("recent");
   const [v_557d00, v_538ca9] = v_5ab095(false);
   const v_904373 = {
-    recent: "최근 대화순",
-    intimacy: "친밀도 높은 순",
-    name: "이름순",
+    recent: v_8d41d7("chat.sortRecent", { defaultValue: "최근 대화순" }),
+    intimacy: v_8d41d7("chat.sortIntimacy", { defaultValue: "친밀도 높은 순" }),
+    name: v_8d41d7("chat.sortName", { defaultValue: "이름순" }),
   };
 
   const [v_c591dc, v_6f4b5a] = v_5ab095<Set<number>>(new Set());
@@ -510,13 +511,26 @@ export default function v_14b43e() {
             interactions: 0,
             isOwn: v_23805a.isMine,
           };
+          const v_65e8ff =
+            v_23805a.last?.type === "system" && v_23805a.last.kind
+              ? v_c64cf7(
+                  v_23805a.last.kind,
+                  v_23805a.last.data,
+                  v_23805a.clone.name,
+                  v_8d41d7,
+                  v_9c213b.language,
+                )
+              : null;
           const feed: v_bc3df4 | null = v_23805a.last
             ? ({
                 id: -v_23805a.clone.id,
                 cloneId: v_23805a.clone.id,
                 content:
+                  v_65e8ff ??
                   v_23805a.last.text ??
-                  (v_23805a.last.type === "call" ? "음성 통화" : ""),
+                  (v_23805a.last.type === "call"
+                    ? v_8d41d7("chat.lastCallPreview", { defaultValue: "음성 통화" })
+                    : ""),
                 mediaUrl: v_23805a.clone.avatarUrl ?? undefined,
                 mediaType: null,
                 likesCount: 0,
@@ -577,6 +591,8 @@ export default function v_14b43e() {
     v_632473,
     v_9e799c,
     v_5e8330,
+    v_8d41d7,
+    v_9c213b.language,
   ]);
 
   const v_94f30e = v_df9f57(() => {

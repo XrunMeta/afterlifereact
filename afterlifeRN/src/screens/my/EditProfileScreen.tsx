@@ -188,10 +188,10 @@ export default function v_e2b396() {
       if (!Number.isFinite(v_f6907d) || v_f6907d <= 0) return [];
       return v_51973b(v_f6907d, v_b9bbbd.iso2).map((v_cb35cb) => ({
         value: v_cb35cb.value,
-        label: v_cb35cb.label,
+        label: v_8d41d7(`regions:${v_f6907d}_${v_cb35cb.value}`, { defaultValue: v_cb35cb.label }),
       }));
     },
-    [v_b9bbbd],
+    [v_b9bbbd, v_8d41d7],
   );
 
   const [v_35bf26, v_04e389] = v_5ab095(false);
