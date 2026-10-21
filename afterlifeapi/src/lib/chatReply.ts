@@ -3,6 +3,7 @@
 import type { v_273a0c } from "./env";
 import { v_3ebe58 } from "./errors";
 import { v_a8614b } from "./ale";
+import { v_882bd5 } from "./appConfig";
 import {
   v_60df93,
   v_c56968,
@@ -79,6 +80,8 @@ export async function v_4dc423(
   }
   const v_3f4675 = { "Content-Type": "application/json", "X-Internal-Secret": v_43fd42 };
 
+  const { model: v_768389 } = await v_882bd5(v_c9c489);
+
   let v_eb792a;
   try {
     v_eb792a = await fetch(`${v_694b25}/prethird/chat/reply`, {
@@ -88,6 +91,7 @@ export async function v_4dc423(
         clone_id: v_4317d1.cloneId,
         user_token: v_4317d1.userToken,
         text: v_4317d1.text,
+        model: v_768389,
         prior: v_4317d1.prior.map(({ callId: v_be62d3, role: v_22da99, text: v_9b6134, at: v_83d291 }) => ({
           callId: v_be62d3, role: v_22da99, text: v_9b6134.slice(0, v_bb0956), at: v_83d291,
         })),
