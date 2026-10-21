@@ -2029,6 +2029,19 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true });
 });
 
+async function v_a24a38(env: v_de0a25["Bindings"], v_8b86f5): Promise<void> {
+  if (!v_8b86f5.length) return;
+  const { purgeCloneFaceMemory: v_19963e } = await import("../lib/personDelete");
+  for (const v_389afb of v_8b86f5) {
+    try {
+      const v_cb35cb = await v_19963e(v_c9c489, v_389afb);
+      console.log(`[admin.penalty] face memory purged clone=${v_389afb}: persons=${v_cb35cb.deletedPersons} vectors=${v_cb35cb.deletedVectors}`);
+    } catch (v_49263d) {
+      console.error(`[admin.penalty] face memory purge FAILED clone=${v_389afb}: ${(v_49263d as Error).message}`);
+    }
+  }
+}
+
 v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
@@ -2109,14 +2122,21 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
       await v_3f4e2e.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = NULL, deleted_at = CURRENT_TIMESTAMP WHERE ${v_2f0e2b} AND deletion_state = 'active'`).bind(...v_e17df0).run();
       v_c8eee3 = `${v_24c1e9} 비활성화되었습니다.`;
       break;
-    case "clone_delete":
+    case "clone_delete": {
+      const v_f425f6 = await v_3f4e2e.env.DB.prepare(`SELECT id FROM clones WHERE ${v_2f0e2b} AND deletion_state = 'active'`).bind(...v_e17df0).all<{ id: number }>();
       await v_3f4e2e.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, deleted_at = CURRENT_TIMESTAMP WHERE ${v_2f0e2b} AND deletion_state = 'active'`).bind(...v_e17df0).run();
+      await v_a24a38(v_3f4e2e.env, (v_f425f6.results ?? []).map((v_cb35cb) => v_cb35cb.id));
       v_c8eee3 = `${v_24c1e9} 삭제되었습니다.`;
       break;
+    }
     case "account_withdraw":
 
       await v_3f4e2e.env.DB.prepare(`UPDATE users SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, deleted_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(v_389afb).run();
-      await v_3f4e2e.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, deleted_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'active'`).bind(v_389afb).run();
+      {
+        const v_f425f6 = await v_3f4e2e.env.DB.prepare(`SELECT id FROM clones WHERE owner_id = ? AND deletion_state = 'active'`).bind(v_389afb).all<{ id: number }>();
+        await v_3f4e2e.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, deleted_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'active'`).bind(v_389afb).run();
+        await v_a24a38(v_3f4e2e.env, (v_f425f6.results ?? []).map((v_cb35cb) => v_cb35cb.id));
+      }
       v_c8eee3 = "관리자에 의해 계정이 강제 탈퇴 처리되었습니다.";
       break;
 
