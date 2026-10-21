@@ -63,9 +63,10 @@ v_dcd415.post("/oth-path", async (v_3f4e2e) => {
      SELECT ?, COALESCE(MAX(seq),0)+1, ?, ?, ?,
             (SELECT p.id FROM persons p
               WHERE p.id = ?
-                AND p.clone_id = (SELECT clone_id FROM call_sessions WHERE call_id = ?))
+                AND p.clone_id = (SELECT clone_id FROM call_sessions WHERE call_id = ?)
+                AND p.user_id = (SELECT user_id FROM call_sessions WHERE call_id = ?))
      FROM call_turns WHERE call_id = ?`
-  ).bind(v_be62d3, v_22da99, v_5885b8, Date.now(), v_b73ff1, v_be62d3, v_be62d3).run();
+  ).bind(v_be62d3, v_22da99, v_5885b8, Date.now(), v_b73ff1, v_be62d3, v_be62d3, v_be62d3).run();
   return v_3f4e2e.json({ ok: true });
 });
 
@@ -1048,12 +1049,15 @@ v_dcd415.post("/dev/clones/:id/guide-job", async (v_3f4e2e) => {
   return v_3f4e2e.json({ guideJobId: v_43c42e.guideJobId }, 201);
 });
 
-async function v_a30df4(v_a1651b, v_ca1ec5, v_6e0fd3): Promise<boolean> {
+async function v_a30df4(
+  v_a1651b, v_ca1ec5, v_6e0fd3, v_43e90c,
+): Promise<boolean> {
   const v_3ac7e7 = await v_a1651b.prepare(
     `SELECT 1 FROM persons p
      JOIN call_sessions cs ON cs.user_id = p.user_id
-     WHERE p.id = ? AND cs.clone_id = ? LIMIT 1`,
-  ).bind(v_ca1ec5, v_6e0fd3).first();
+     WHERE p.id = ? AND p.clone_id = ? AND cs.clone_id = ?
+       ${v_43e90c !== undefined ? "AND p.user_id = ?" : ""} LIMIT 1`,
+  ).bind(...(v_43e90c !== undefined ? [v_ca1ec5, v_6e0fd3, v_6e0fd3, v_43e90c] : [v_ca1ec5, v_6e0fd3, v_6e0fd3])).first();
   return !!v_3ac7e7;
 }
 
@@ -1072,7 +1076,9 @@ v_dcd415.get("/oth-path", async (v_3f4e2e) => {
     return v_3f4e2e.json({ error: "bad_person_id" }, 400);
   }
 
-  const v_bcc292 = await v_a30df4(v_3f4e2e.env.DB, v_ca1ec5, v_6e0fd3);
+  const v_e016c3 = v_d740ff(v_3f4e2e.req.query("userId") ?? "");
+  if (v_e016c3 === null) return v_3f4e2e.json({ error: "bad_user_id" }, 400);
+  const v_bcc292 = await v_a30df4(v_3f4e2e.env.DB, v_ca1ec5, v_6e0fd3, v_e016c3);
   if (!v_bcc292) return v_3f4e2e.json({ error: "not_found" }, 404);
 
   const v_479f05 = await v_0761b1(v_3f4e2e.env, v_6e0fd3, v_ca1ec5);
@@ -1096,6 +1102,8 @@ v_dcd415.get("/oth-path", async (v_3f4e2e) => {
 
 const v_3147b5 = v_1f4ea7.object({
   personId: v_1f4ea7.number().int().positive(),
+
+  userId: v_1f4ea7.number().int().positive(),
   extracted: v_1f4ea7.object({
     preference_personal: v_1f4ea7
       .record(v_1f4ea7.string().max(100), v_1f4ea7.union([v_1f4ea7.string().max(200), v_1f4ea7.number(), v_1f4ea7.boolean()]))
@@ -1121,12 +1129,12 @@ v_dcd415.post("/oth-path", async (v_3f4e2e) => {
   if (!v_8decf8.success) {
     return v_3f4e2e.json({ error: "bad_body", issues: v_8decf8.error.issues }, 400);
   }
-  const { personId: v_ca1ec5, extracted: v_631e71, source: v_04e790 } = v_8decf8.data;
+  const { personId: v_ca1ec5, userId: v_77d610, extracted: v_631e71, source: v_04e790 } = v_8decf8.data;
 
   const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
   if (!v_eb25ce) return v_3f4e2e.json({ error: "clone_not_found" }, 404);
 
-  const v_eaefcf = await v_a30df4(v_3f4e2e.env.DB, v_ca1ec5, v_6e0fd3);
+  const v_eaefcf = await v_a30df4(v_3f4e2e.env.DB, v_ca1ec5, v_6e0fd3, v_77d610);
   if (!v_eaefcf) return v_3f4e2e.json({ error: "no_interaction" }, 403);
 
   if (!(await v_900412(v_3f4e2e.env, v_ca1ec5))) {
