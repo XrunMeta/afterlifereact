@@ -189,6 +189,8 @@ const SHOW_VOICE_BALL = false;
 
 const SPEAK_OK_COLOR = "#2fbf6b";
 
+const NEW_FACE_PROMPT_GRACE_AFTER_ENROLL_MS = 15_000;
+
 const FACE_DETECTOR_OPTIONS = {
   performanceMode: "fast",
   trackingEnabled: true,
@@ -759,6 +761,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const notifyFaceInterruptRef = useRef<(text: string, faceKey: string) => void>(() => {});
 
   const micOnRef = useRef(false);
+
+  const isFocused = useIsFocused();
+  const faceEnrollAwayRef = useRef(false);
+  const micWasOnBeforeEnrollRef = useRef(false);
+  const suppressNewFacePromptUntilRef = useRef(0);
+  const [newFacePromptRecheck, setNewFacePromptRecheck] = useState(0);
 
   const namingSessionIdRef = useRef(0);
 
@@ -1432,6 +1440,13 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     if (afl971PromptAlertShownRef.current) return;      
 
     if (phase === "speaking" || afl971AdInProgressRef.current) return;
+
+    if (!isFocused || faceEnrollAwayRef.current) return;
+    const graceLeft = suppressNewFacePromptUntilRef.current - Date.now();
+    if (graceLeft > 0) {
+      const id = setTimeout(() => setNewFacePromptRecheck((n) => n + 1), graceLeft + 50);
+      return () => clearTimeout(id);
+    }
     afl971PromptAlertShownRef.current = true;
 
     showAlert(
@@ -1476,7 +1491,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       ],
     );
 
-  }, [rmState.promptRegister, phase]);
+  }, [rmState.promptRegister, phase, isFocused, newFacePromptRecheck]);
 
   useEffect(() => {
     micOnRef.current = micOn;
@@ -2321,9 +2336,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     return () => sub.remove();
   }, [liveState, t, isMuted, afl971UnmuteCallAudio]);
 
-  const isFocused = useIsFocused();
-  const faceEnrollAwayRef = useRef(false);
-  const micWasOnBeforeEnrollRef = useRef(false);
   useEffect(() => {
     if (!isFocused) {
       if (liveStateRef.current !== "live" || faceEnrollAwayRef.current) return;
@@ -2342,6 +2354,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       toggleMicRef.current();
     }
     console.log("[Call][face] 통화로 복귀 — 목소리/마이크 원복");
+
+    suppressNewFacePromptUntilRef.current = Date.now() + NEW_FACE_PROMPT_GRACE_AFTER_ENROLL_MS;
     if (accessToken) {
       listPersons(accessToken, cloneId)
         .then(({ items }) => setPersons(items))
