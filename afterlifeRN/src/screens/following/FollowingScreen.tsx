@@ -1115,7 +1115,12 @@ export default function v_14b43e() {
       </Modal>
 
       {}
-      <Modal visible={v_cde897} transparent animationType="fade">
+      <Modal
+        visible={v_cde897}
+        transparent
+        animationType="fade"
+        onRequestClose={() => v_8d30d7(false)}
+      >
         <Pressable
           style={v_fd5f43.centerOverlay}
           onPress={() => v_8d30d7(false)}
@@ -1164,12 +1169,20 @@ export default function v_14b43e() {
       </Modal>
 
       {}
-      <Modal visible={!!v_5c83d5} transparent animationType="slide">
-        <Pressable style={v_fd5f43.bottomOverlay} onPress={() => v_880166(null)}>
+      <Modal
+        visible={!!v_5c83d5}
+        transparent
+        animationType="slide"
+        onRequestClose={() => v_880166(null)}
+      >
+        <View style={v_fd5f43.bottomOverlay}>
+          <Pressable
+            style={v_472849.absoluteFillObject}
+            onPress={() => v_880166(null)}
+          />
           <View
 
             style={[v_fd5f43.commentSheet, { paddingBottom: 8 + v_2b650d }]}
-            onStartShouldSetResponder={() => true}
           >
             <View style={v_fd5f43.sheetHandle} />
             <View style={v_fd5f43.commentHeaderRow}>
@@ -1237,11 +1250,16 @@ export default function v_14b43e() {
               </TouchableOpacity>
             </View>
           </View>
-        </Pressable>
+        </View>
       </Modal>
 
       {}
-      <Modal visible={!!v_7babe8} transparent animationType="fade">
+      <Modal
+        visible={!!v_7babe8}
+        transparent
+        animationType="fade"
+        onRequestClose={() => v_cdeef7(null)}
+      >
         <Pressable style={v_fd5f43.centerOverlay} onPress={() => v_cdeef7(null)}>
           <Pressable style={v_fd5f43.confirmBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
             <Text style={v_fd5f43.confirmTitle}>{v_8d41d7("feed.unfollowTitle")}</Text>
@@ -1257,7 +1275,12 @@ export default function v_14b43e() {
       </Modal>
 
       {}
-      <Modal visible={v_af84de} transparent animationType="slide">
+      <Modal
+        visible={v_af84de}
+        transparent
+        animationType="slide"
+        onRequestClose={() => v_22a5cb(false)}
+      >
         <Pressable style={v_fd5f43.bottomOverlay} onPress={() => v_22a5cb(false)}>
           <View
             style={[v_fd5f43.callSheet, { paddingBottom: 24 + v_2b650d }]}
@@ -1331,7 +1354,12 @@ export default function v_14b43e() {
 
       {
 }
-      <Modal visible={v_557d00} transparent animationType="slide">
+      <Modal
+        visible={v_557d00}
+        transparent
+        animationType="slide"
+        onRequestClose={() => v_538ca9(false)}
+      >
         <Pressable style={v_fd5f43.bottomOverlay} onPress={() => v_538ca9(false)}>
           <Pressable
             style={[v_fd5f43.sortSheet, { paddingBottom: 24 + v_2b650d }]}

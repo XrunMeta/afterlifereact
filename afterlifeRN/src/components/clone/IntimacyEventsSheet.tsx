@@ -77,7 +77,7 @@ export default function v_06b8c0({ visible: v_cf55be, cloneId: v_6e0fd3, cloneNa
 
   return (
     <>
-      <Modal visible={v_cf55be} transparent animationType="slide" onRequestClose={v_0890f8}>
+      <Modal visible={v_cf55be} transparent animationType="none" onRequestClose={v_0890f8}>
         {
 }
         <View style={v_fd5f43.bottomOverlay}>
@@ -163,7 +163,12 @@ export default function v_06b8c0({ visible: v_cf55be, cloneId: v_6e0fd3, cloneNa
         </View>
       </Modal>
 
-      <Modal visible={v_c04d0d} transparent animationType="fade">
+      <Modal
+        visible={v_c04d0d}
+        transparent
+        animationType="fade"
+        onRequestClose={() => v_2dc045(false)}
+      >
         <Pressable style={v_fd5f43.centerOverlay} onPress={() => v_2dc045(false)}>
           <Pressable style={v_fd5f43.infoBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
             <View style={v_fd5f43.infoHeader}>
