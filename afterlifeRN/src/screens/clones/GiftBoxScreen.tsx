@@ -1,5 +1,6 @@
 
 
+import { v_561bb6 } from "../../api/gifts";
 import v_a3453e, { v_de06a3, v_df9f57, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
@@ -648,7 +649,7 @@ function v_6da59e({
             </Text>
             <Text style={v_d81136.ownedTitle} numberOfLines={1}>
               {v_9eb4d1
-                ? `${v_9eb4d1.name} ${v_9eb4d1.count}${v_8d41d7("giftBox.flowerUnit", { defaultValue: "송이" })}`
+                ? `${v_561bb6(v_9eb4d1.name)} ${v_9eb4d1.count}${v_8d41d7("giftBox.flowerUnit", { defaultValue: "송이" })}`
                 : v_8d41d7("giftBox.ownedEmpty", { defaultValue: "보유 중인 선물이 없어요" })}
             </Text>
           </View>
@@ -764,7 +765,7 @@ function v_223c52({
   const v_1833e7 = v_44c2cb(v_8c0b26, v_8d41d7);
   const v_9f1622 = v_8d41d7("giftBox.receivedTitle", {
     name: v_1833e7,
-    gift: v_8c0b26.giftName,
+    gift: v_561bb6(v_8c0b26.giftName),
     defaultValue: "{{name}}님이 {{gift}}를 보냈어요",
   });
   const v_609005 = v_8c0b26.cloneName
@@ -864,7 +865,7 @@ function v_950e4a({
                     <Text style={v_d81136.sentTitle} numberOfLines={2}>
                       {v_97d2e9}
                       {v_8d41d7("giftBox.sentToSuffix", { defaultValue: "님에게 " })}
-                      {v_8c0b26.giftName}
+                      {v_561bb6(v_8c0b26.giftName)}
                     </Text>
                     <Text style={v_d81136.meta}>
                       {v_e4bf58(v_8c0b26.createdAt, v_8d41d7)}
@@ -953,7 +954,7 @@ function v_1bc5d1({
             <Text style={{ fontSize: 22 }}>{v_ae840d.giftEmoji}</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={v_d81136.sentTitle}>{v_ae840d.giftName}</Text>
+            <Text style={v_d81136.sentTitle}>{v_561bb6(v_ae840d.giftName, v_ae840d.giftId)}</Text>
           </View>
         </View>
         {v_4f2dac ? (
@@ -1090,7 +1091,7 @@ function v_36c8d0({
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={v_d81136.sentTitle} numberOfLines={1}>
-                    {v_8c0b26.giftName} {v_8c0b26.qty}
+                    {v_561bb6(v_8c0b26.giftName)} {v_8c0b26.qty}
                     {v_80cae9} → {v_8c0b26.reward} XRUN
                   </Text>
                   <Text style={v_d81136.meta}>

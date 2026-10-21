@@ -103,6 +103,21 @@ export interface GiftCatalogItem {
   xrunPrice?: number;
 
   svgaUrl?: string;
+
+  names?: Partial<Record<GiftNameLang, string>>;
+}
+
+export const v_4cb9e1 = ["en", "ja", "zh-CN", "id"] as const;
+export type GiftNameLang = (typeof v_4cb9e1)[number];
+
+export function v_8d6dec(v_479f05): GiftCatalogItem["names"] {
+  if (!v_479f05 || typeof v_479f05 !== "object") return undefined;
+  const v_8d4337 = {};
+  for (const v_5254bf of v_4cb9e1) {
+    const v_81e2ef = (v_479f05 as Record<string, unknown>)[v_5254bf];
+    if (typeof v_81e2ef === "string" && v_81e2ef.trim() && v_81e2ef.trim().length <= 80) v_8d4337[v_5254bf] = v_81e2ef.trim();
+  }
+  return Object.keys(v_8d4337).length > 0 ? v_8d4337 : undefined;
 }
 
 export async function v_0edc13(env: v_273a0c): Promise<GiftCatalogItem[]> {
@@ -141,6 +156,8 @@ export async function v_0edc13(env: v_273a0c): Promise<GiftCatalogItem[]> {
         if (typeof v_479f05.svgaUrl === "string" && v_479f05.svgaUrl.length > 0 && v_479f05.svgaUrl.length <= 500) {
           v_8c0b26.svgaUrl = v_479f05.svgaUrl;
         }
+        const v_77b1ac = v_8d6dec(v_479f05.names);
+        if (v_77b1ac) v_8c0b26.names = v_77b1ac;
         v_4622b9.push(v_8c0b26);
       }
     }

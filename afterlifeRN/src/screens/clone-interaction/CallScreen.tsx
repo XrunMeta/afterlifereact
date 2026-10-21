@@ -143,7 +143,7 @@ import { useAuthStore } from "../../stores/authStore";
 import { getCloneL2 } from "../../api/clones";
 import { COLORS, RADIUS } from "../../components/constants";
 
-import { fetchGiftCatalog, type GiftCatalogItem } from "../../api/gifts";
+import { fetchGiftCatalog, localizeGiftName, type GiftCatalogItem } from "../../api/gifts";
 import {
   getCloneLikeStatus,
   likeClone,
@@ -2536,7 +2536,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       );
 
       if (gift.svgaUrl) {
-        setSvgaSender({ name: myName, avatarUrl: myAvatarUrl, giftName: gift.name });
+        setSvgaSender({ name: myName, avatarUrl: myAvatarUrl, giftName: localizeGiftName(gift.name, gift.id) });
         setSvgaOverlayUrl(gift.svgaUrl);
       } else {
         playGiftAnimation(gift);
@@ -3188,7 +3188,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
                       <Text style={s.giftEmoji}>{item.emoji || "🎁"}</Text>
                     )}
                   </View>
-                  <Text style={s.giftName} numberOfLines={1}>{item.name}</Text>
+                  <Text style={s.giftName} numberOfLines={1}>{localizeGiftName(item.name, item.id)}</Text>
                   {}
                   <Text style={[s.giftPrice, giftOwnedCount === 0 && { color: COLORS.zinc400 }]}>
                     {t("call.giftOwnedCount", { count: giftOwnedCount, defaultValue: "{{count}}개 보유" })}
