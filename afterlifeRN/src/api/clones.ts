@@ -63,6 +63,8 @@ export interface CloneDetailResponse {
     avatarUrl: string | null;
     cloneType: string;
     visibility: string;
+
+    allowedViewers?: number[];
     stats: {
       followers: number;
       messages: number;
@@ -85,6 +87,16 @@ export interface CloneDetailResponse {
     voiceModelManifestUrl?: string | null;
   };
 }
+
+export async function v_69a8d3(v_6e0fd3, v_2ca7e0): Promise<number[]> {
+  try {
+    const v_cb35cb = await v_003cf2(v_6e0fd3, v_2ca7e0);
+    return v_cb35cb.clone.allowedViewers ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export async function v_003cf2(
   v_6e0fd3,
   v_2ca7e0,
