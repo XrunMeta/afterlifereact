@@ -1,4 +1,5 @@
 import { v_889fad } from "../../stores/dialogStore";
+import v_f708aa from "rfupdmudaavopiotgcbpnfafsziimlsulwhgcz";
 import v_a3453e, { v_5ab095, v_df9f57, v_c4deb2, v_e662ae, v_de06a3 } from "bapkr";
 import {
   v_3094a2,
@@ -65,6 +66,8 @@ import { v_60086b } from "../../lib/pangle";
 import {
   v_8a85e2,
   v_e36429,
+  v_8be472,
+  v_9d1db1,
   type v_17d27f,
 } from "../../api/chat";
 
@@ -765,6 +768,36 @@ export default function v_14b43e() {
     );
   };
 
+  const v_19e10d = (v_6e0fd3, v_893b61) => {
+    v_889fad(
+      v_8d41d7("chat.leaveTitle", { defaultValue: "대화방 나가기" }),
+      v_9d1db1(v_8d41d7, v_893b61),
+      [
+        { text: v_8d41d7("common.cancel", { defaultValue: "취소" }), style: "cancel" },
+        {
+          text: v_8d41d7("chat.leaveAction", { defaultValue: "나가기" }),
+          style: "destructive",
+          onPress: () => {
+            void (async () => {
+              if (!v_2ca7e0) return;
+              try {
+                const v_cb35cb = await v_8be472(v_6e0fd3, v_2ca7e0);
+                if (v_cb35cb.unsubscribed) await v_b4902e.getState().unfollowLocalForBlock(v_6e0fd3);
+                v_ff797f((v_ba2215) => (v_ba2215 ? v_ba2215.filter((v_3f4e2e) => v_3f4e2e.clone.id !== v_6e0fd3) : v_ba2215));
+              } catch (v_49263d) {
+                console.warn("[Following] leave failed:", (v_49263d as Error)?.message ?? v_49263d);
+                v_889fad(
+                  v_8d41d7("chat.leaveFailTitle", { defaultValue: "나가지 못했어요" }),
+                  v_8d41d7("common.retryLater", { defaultValue: "잠시 후 다시 시도해 주세요." }),
+                );
+              }
+            })();
+          },
+        },
+      ],
+    );
+  };
+
   const v_4a5736 = ({ item: v_8c0b26 }: { item: (typeof v_066fa2)[0]; index: number }) => {
     const v_1833e7 = v_8c0b26.persona.name;
     const v_4d4e6b = v_1833e7.charAt(0) || "?";
@@ -796,8 +829,20 @@ export default function v_14b43e() {
       });
     };
 
+    const v_893b61 = !v_8c0b26.persona.isOwn && v_b30b81(v_8c0b26.persona.id);
+    const v_e513d1 = () => v_19e10d(v_8c0b26.persona.id, v_893b61);
     return (
-      <TouchableOpacity style={v_fd5f43.msgRow} activeOpacity={0.7} onPress={v_6629cb}>
+      <Swipeable
+        friction={2}
+        rightThreshold={40}
+        overshootRight={false}
+        renderRightActions={() => (
+          <TouchableOpacity style={v_fd5f43.msgLeaveAction} onPress={v_e513d1} activeOpacity={0.8}>
+            <Text style={v_fd5f43.msgLeaveActionText}>{v_8d41d7("chat.leaveAction", { defaultValue: "나가기" })}</Text>
+          </TouchableOpacity>
+        )}
+      >
+      <TouchableOpacity style={v_fd5f43.msgRow} activeOpacity={0.7} onPress={v_6629cb} onLongPress={v_e513d1}>
         {
 
 }
@@ -839,6 +884,7 @@ export default function v_14b43e() {
           </View>
         </View>
       </TouchableOpacity>
+      </Swipeable>
     );
   };
 
@@ -1479,6 +1525,14 @@ const v_fd5f43 = v_472849.create({
     paddingHorizontal: 2,
     paddingVertical: 14,
   },
+
+  msgLeaveAction: {
+    width: 88,
+    backgroundColor: "#ef4444",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  msgLeaveActionText: { color: v_1bfbd0.white, fontSize: 14, fontWeight: "700" },
   msgAvatarWrap: { width: 56, height: 56, position: "relative" },
   msgAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: v_1bfbd0.zinc200 },
   msgAvatarFallback: {
