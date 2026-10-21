@@ -526,7 +526,10 @@
     "summaryLabelChat": "Chat",
     "summaryLabelCall": "Call",
     "summaryLabelLearn": "Explore",
-    "summaryLabelFeed": "Feed"
+    "summaryLabelFeed": "Feed",
+    "giftReceiptsTitle": "Received Gifts",
+    "giftReceiptsEmpty": "No gifts received yet",
+    "giftReceiptsTotal": "{{n}} total"
   },
   "detail": {
     "notFound": "Clone not found.",
