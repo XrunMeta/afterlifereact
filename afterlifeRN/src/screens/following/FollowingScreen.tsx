@@ -1070,7 +1070,7 @@ export default function v_14b43e() {
             </View>
             {
 }
-            <PangleBannerAd adUnitId={v_60086b()} style={v_fd5f43.subAdBanner} />
+            <PangleBannerAd adUnitId={v_60086b("messages")} style={v_fd5f43.subAdBanner} />
             {}
             <View style={v_fd5f43.subSectionHeader}>
               <Text style={v_fd5f43.subSectionCount}>

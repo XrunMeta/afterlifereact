@@ -536,7 +536,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       </View>
 
       {}
-      <PangleBannerAd adUnitId={v_60086b()} style={v_d81136.chatAdBanner} />
+      <PangleBannerAd adUnitId={v_60086b("chat")} style={v_d81136.chatAdBanner} />
 
       {
 }
