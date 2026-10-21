@@ -8,6 +8,7 @@ import { v_b2c639 } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_b5df25 } from "ernurodqvmtspux";
 import { v_6b5698, v_472849, v_3094a2 } from "rcmrninabrnb";
 import v_3b950c from "./src/navigation/RootNavigator";
+import { v_ad2ddc } from "./src/api/gifts";
 import v_d714a5 from "./src/components/ui/AppDialog";
 import v_479450 from "./src/components/EmergencyBanner";
 import { v_1ed7d9 } from "./src/stores/authStore";
@@ -94,6 +95,10 @@ export default function v_6540c3() {
     v_90980f.current = v_00b91e;
     void v_9bedf5(v_00b91e, { ask: v_e03232 });
   }, [v_b1717e, v_00b91e]);
+
+  v_c4deb2(() => {
+    void v_ad2ddc();
+  }, []);
 
   v_c9d088();
 
