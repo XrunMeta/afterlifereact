@@ -60,7 +60,9 @@ export default function v_2b785f() {
       v_889fad(
         v_8d41d7("settings.rememberingCloneDetail.revokeTitle", { defaultValue: "동의를 철회할까요?" }),
         v_8d41d7("settings.rememberingCloneDetail.revokeMessage", {
-          defaultValue: `${v_8a1355} 의 얼굴 데이터 ${v_306a28.faceCount ?? 0}개가 모두 삭제돼요. 되돌릴 수 없어요.`,
+          name: v_8a1355,
+          count: v_306a28.faceCount ?? 0,
+          defaultValue: "{{name}} 의 얼굴 데이터 {{count}}개가 모두 삭제돼요. 되돌릴 수 없어요.",
         }),
         [
           { text: v_8d41d7("common.cancel", { defaultValue: "취소" }), style: "cancel" },
@@ -117,7 +119,7 @@ export default function v_2b785f() {
         ) : (
           <>
             <Text style={v_fd5f43.countLabel}>
-              {v_8d41d7("settings.rememberingCloneDetail.count", { count: v_4622b9.length, defaultValue: `${v_4622b9.length}명` })}
+              {v_8d41d7("settings.rememberingCloneDetail.count", { count: v_4622b9.length, defaultValue: "{{count}}명" })}
             </Text>
             <View style={v_fd5f43.card}>
               {v_4622b9.map((v_306a28, v_ebec57) => (
@@ -133,7 +135,7 @@ export default function v_2b785f() {
                       <Text style={v_fd5f43.rowSub} numberOfLines={1}>
                         {v_8d41d7("settings.rememberingCloneDetail.faceCount", {
                           count: v_306a28.faceCount ?? 0,
-                          defaultValue: `얼굴 데이터 ${v_306a28.faceCount ?? 0}개`,
+                          defaultValue: "얼굴 데이터 {{count}}개",
                         })}
                       </Text>
                     </View>
