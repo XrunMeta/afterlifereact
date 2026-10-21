@@ -49,16 +49,16 @@ async def _post_learn(clone_id: int, user_id: int, session_id: str | None, extra
                 log.warning("l2 learn writeback http %s clone=%s", r.status, clone_id)
 
 
-async def post_learn_person(clone_id: int, person_id: int, session_id: str | None, extracted: dict) -> None:
+async def post_learn_person(clone_id: int, person_id: int, user_id: int, session_id: str | None, extracted: dict) -> None:
     """T-067 Task 12: 화자(person)별 L2' 자동학습 writeback.
     `/oth-path` POST — _post_learn과 동일 HTTP 관례."""
     secret = os.environ.get("LEARN_SECRET")
     api_base = os.environ.get("PRETHIRD_API_BASE")
-    if not secret or not api_base:
-        return
+    if not secret or not api_base or not user_id:
+        return  # AFL-1030: user_id 없으면 API 가 400 — 호출 자체를 하지 않는다(fail-closed)
     url = f"{api_base}/oth-path"
     body = json.dumps({
-        "personId": person_id, "extracted": extracted, "source": "call", "session_id": session_id,
+        "personId": person_id, "userId": user_id, "extracted": extracted, "source": "call", "session_id": session_id,
     }).encode("utf-8")
     timeout = aiohttp.ClientTimeout(total=_TIMEOUT_S)
     async with aiohttp.ClientSession(timeout=timeout) as s:
@@ -83,13 +83,13 @@ async def learn_writeback(
     try:
         if os.environ.get("PRETHIRD_LEARN_ENABLED") != "1":
             return
-        if person_id is None and not user_id:
-            return
+        if not user_id:
+            return  # AFL-1030: person 경로도 user_id 필수(소속 검증용)
         extracted = await extract_l2(user_text, clone_reply)
         if not extracted:
             return
         if person_id is not None:
-            await post_learn_person(clone_id, person_id, session_id, extracted)
+            await post_learn_person(clone_id, person_id, user_id, session_id, extracted)
         else:
             await _post_learn(clone_id, user_id, session_id, extracted)
     except Exception as e:

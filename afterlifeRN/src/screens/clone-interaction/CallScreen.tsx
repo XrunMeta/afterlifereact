@@ -154,7 +154,7 @@ import {
 import { getCreditBalance } from "../../api/credits";
 import { sendGiftOffchain, getGiftInventory, type GiftInventoryItem } from "../../api/giftInventory";
 import { showAlert } from "../../stores/dialogStore";
-import { CommonActions } from "@react-navigation/native";
+import { CommonActions, useIsFocused } from "@react-navigation/native";
 
 import { updatePersonRelation } from "../../api/persons";
 import { shouldAutoEnrollOwner, ownerEnrollName } from "../../face/ownerAutoEnroll";
@@ -188,6 +188,8 @@ const SHOW_USER_TRANSCRIPT = __DEV__;
 const SHOW_VOICE_BALL = false;
 
 const SPEAK_OK_COLOR = "#2fbf6b";
+
+const NEW_FACE_PROMPT_GRACE_AFTER_ENROLL_MS = 15_000;
 
 const FACE_DETECTOR_OPTIONS = {
   performanceMode: "fast",
@@ -759,6 +761,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const notifyFaceInterruptRef = useRef<(text: string, faceKey: string) => void>(() => {});
 
   const micOnRef = useRef(false);
+
+  const isFocused = useIsFocused();
+  const faceEnrollAwayRef = useRef(false);
+  const micWasOnBeforeEnrollRef = useRef(false);
+  const suppressNewFacePromptUntilRef = useRef(0);
+  const [newFacePromptRecheck, setNewFacePromptRecheck] = useState(0);
 
   const namingSessionIdRef = useRef(0);
 
@@ -1416,6 +1424,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     const id = setInterval(() => {
 
       if (chatReplyStartAt.current !== null) dispatchRm({ type: "ACTIVITY" });
+
+      if (faceEnrollAwayRef.current) {
+        dispatchRm({ type: "ACTIVITY" });
+        return;
+      }
       dispatchRm({ type: "TICK" });
     }, 5_000);
     return () => clearInterval(id);
@@ -1427,6 +1440,13 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     if (afl971PromptAlertShownRef.current) return;      
 
     if (phase === "speaking" || afl971AdInProgressRef.current) return;
+
+    if (!isFocused || faceEnrollAwayRef.current) return;
+    const graceLeft = suppressNewFacePromptUntilRef.current - Date.now();
+    if (graceLeft > 0) {
+      const id = setTimeout(() => setNewFacePromptRecheck((n) => n + 1), graceLeft + 50);
+      return () => clearTimeout(id);
+    }
     afl971PromptAlertShownRef.current = true;
 
     showAlert(
@@ -1461,26 +1481,17 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           text: t("call.newFaceEnroll", { defaultValue: "등록" }),
           onPress: () => {
             dispatchRm({ type: "CONFIRM_PROMPT" });
-            navigation.dispatch(
-              CommonActions.reset({
-                index: 0,
-                routes: [{
-                  name: "PreCallFaceEnroll",
-                  params: {
-                    cloneId,
-                    name: paramName,
-                    image: paramImage,
-                    midCall: true,
-                  },
-                }],
-              }),
+
+            (navigation as unknown as { navigate: (name: string, params: object) => void }).navigate(
+              "PreCallFaceEnroll",
+              { cloneId, name: paramName, image: paramImage, midCall: true },
             );
           },
         },
       ],
     );
 
-  }, [rmState.promptRegister, phase]);
+  }, [rmState.promptRegister, phase, isFocused, newFacePromptRecheck]);
 
   useEffect(() => {
     micOnRef.current = micOn;
@@ -2118,6 +2129,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
     if (liveStateRef.current !== "live") return;
     if (phaseRef.current === "speaking") return;
+    if (faceEnrollAwayRef.current) return; 
     const pending = afl971PendingAdRoundRef.current;
 
     const faceBusy = rmStateRef.current.promptRegister;
@@ -2323,6 +2335,34 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     });
     return () => sub.remove();
   }, [liveState, t, isMuted, afl971UnmuteCallAudio]);
+
+  useEffect(() => {
+    if (!isFocused) {
+      if (liveStateRef.current !== "live" || faceEnrollAwayRef.current) return;
+      faceEnrollAwayRef.current = true;
+      micWasOnBeforeEnrollRef.current = !!micOnRef.current;
+      if (micOnRef.current) toggleMicRef.current(); 
+      afl971MuteCallAudio();
+      console.log("[Call][face] 등록 화면으로 — 통화 유지 · 목소리/마이크 끔");
+      return;
+    }
+    if (!faceEnrollAwayRef.current) return;
+    faceEnrollAwayRef.current = false;
+    afl971UnmuteCallAudio();
+    if (micWasOnBeforeEnrollRef.current && !micOnRef.current && !isMutedRef.current) {
+      micOnRef.current = true;
+      toggleMicRef.current();
+    }
+    console.log("[Call][face] 통화로 복귀 — 목소리/마이크 원복");
+
+    suppressNewFacePromptUntilRef.current = Date.now() + NEW_FACE_PROMPT_GRACE_AFTER_ENROLL_MS;
+    if (accessToken) {
+      listPersons(accessToken, cloneId)
+        .then(({ items }) => setPersons(items))
+        .catch((err) => console.warn("[Call][face] 복귀 후 listPersons 실패:", err));
+    }
+
+  }, [isFocused]);
 
   const confirmProgress = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -2886,7 +2926,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           ref={pipCameraRef}
           style={s.pipCamera}
           device={vcDevice}
-          isActive={!isVideoOff}
+          isActive={!isVideoOff && isFocused}
           androidPreviewViewType="texture-view"
           frameProcessor={consentGranted && !faceProcOff && !isTerminating ? faceFrameProcessor : undefined}
           onError={(e) =>

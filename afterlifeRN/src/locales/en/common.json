@@ -38,7 +38,8 @@
       "title": "Urgent notice",
       "viewDetails": "View details"
     },
-    "unknown": "No name"
+    "unknown": "No name",
+    "retryLater": "Please try again later."
   },
   "tabs": {
     "home": "Home",
@@ -368,7 +369,12 @@
     "weekdayFri": "Friday",
     "weekdaySat": "Saturday",
     "intimacyMilestone": "Temperature with {{name}} reached {{score}}°C",
-    "lastCallPreview": "Voice call"
+    "lastCallPreview": "Voice call",
+    "leaveAction": "Leave",
+    "leaveTitle": "Leave chat",
+    "leaveConfirm": "Your conversation with this clone will be removed. Continue?",
+    "leaveConfirmSubscribed": "Your conversation with this clone will be removed and you'll be unsubscribed. Continue?",
+    "leaveFailTitle": "Couldn't leave"
   },
   "call": {
     "calling": "Connecting...",
@@ -2175,7 +2181,9 @@
       "title": "Enrollment complete",
       "midCall": "Face enrolled! Restarting the call.",
       "first": "Face recognition is ready. Starting the call.",
-      "start": "Start call"
+      "start": "Start call",
+      "midCallResume": "Face registered! Returning to your call.",
+      "backToCall": "Back to call"
     },
     "defaultSelfName": "Me",
     "step": {

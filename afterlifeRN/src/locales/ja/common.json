@@ -38,7 +38,8 @@
       "title": "緊急のお知らせ",
       "viewDetails": "詳しく見る"
     },
-    "unknown": "名前なし"
+    "unknown": "名前なし",
+    "retryLater": "しばらくしてからもう一度お試しください。"
   },
   "tabs": {
     "home": "ホーム",
@@ -368,7 +369,12 @@
     "weekdayFri": "金曜日",
     "weekdaySat": "土曜日",
     "intimacyMilestone": "{{name}}との温度が{{score}}°Cになりました",
-    "lastCallPreview": "音声通話"
+    "lastCallPreview": "音声通話",
+    "leaveAction": "退出",
+    "leaveTitle": "チャットを退出",
+    "leaveConfirm": "このクローンとの会話が消えます。続けますか？",
+    "leaveConfirmSubscribed": "このクローンとの会話が消え、購読も解除されます。続けますか？",
+    "leaveFailTitle": "退出できませんでした"
   },
   "call": {
     "calling": "接続中...",
@@ -2175,7 +2181,9 @@
       "title": "登録完了",
       "midCall": "顔登録完了! 通話を再開します。",
       "first": "顔認識の準備が完了しました。通話を開始します。",
-      "start": "通話開始"
+      "start": "通話開始",
+      "midCallResume": "顔の登録が完了しました！通話に戻ります。",
+      "backToCall": "通話に戻る"
     },
     "defaultSelfName": "私",
     "step": {

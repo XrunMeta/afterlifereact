@@ -29,6 +29,10 @@ interface FeedState {
   getFilteredFeeds: () => v_bc3df4[];
   loadDiscover: () => Promise<void>;
   resetForLogout: () => void;
+
+  homeScrollTopPending: boolean;
+  requestHomeScrollTop: () => void;
+  consumeHomeScrollTop: () => boolean;
 }
 
 function v_5b0abe(c: v_4b85a1, v_493eec): boolean {
@@ -107,6 +111,13 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
   feeds: v_694b7f.feeds(),
   apiFeeds: null,
   apiLoading: false,
+  homeScrollTopPending: false,
+  requestHomeScrollTop: () => v_bb8024({ homeScrollTopPending: true }),
+  consumeHomeScrollTop: () => {
+    if (!v_38715b().homeScrollTopPending) return false;
+    v_bb8024({ homeScrollTopPending: false });
+    return true;
+  },
   likedIds: [],
   bookmarkedIds: [],
   selectedInterests: [],

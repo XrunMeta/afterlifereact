@@ -339,6 +339,14 @@ v_dda4b9.delete("/oth-path", v_6690d9, async (v_3f4e2e) => {
         `[deletion.clone] CRITICAL: R2 purge FAILED clone=${v_6e0fd3}: ${(v_49263d as Error).message}`,
       );
     }
+
+    try {
+      const { purgeCloneFaceMemory: v_19963e } = await import("../lib/personDelete");
+      const v_cb35cb = await v_19963e(v_3f4e2e.env, v_6e0fd3);
+      console.log(`[deletion.clone] face memory purged clone=${v_6e0fd3}: persons=${v_cb35cb.deletedPersons} vectors=${v_cb35cb.deletedVectors}`);
+    } catch (v_49263d) {
+      console.error(`[deletion.clone] face memory purge FAILED clone=${v_6e0fd3}: ${(v_49263d as Error).message}`);
+    }
     return v_3f4e2e.json({ ok: true, state: "soft_deleted", transferred: null });
   }
 

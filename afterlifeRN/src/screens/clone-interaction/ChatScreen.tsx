@@ -1,4 +1,4 @@
-
+import { v_889fad } from "../../stores/dialogStore";
 
 import v_a3453e, { v_5ab095, v_e662ae, v_c4deb2, v_df9f57 } from "bapkr";
 import {
@@ -44,6 +44,8 @@ import {
   v_9adabd,
   v_1c758d,
   v_9cb700,
+  v_8be472,
+  v_9d1db1,
   type v_29686e,
   type v_f19942,
   type v_18a302,
@@ -405,6 +407,21 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     }
   };
 
+  const v_8888af = async () => {
+    if (!v_2ca7e0) return;
+    try {
+      const v_cb35cb = await v_8be472(v_6e0fd3, v_2ca7e0);
+      if (v_cb35cb.unsubscribed) await v_b4902e.getState().unfollowLocalForBlock(v_6e0fd3);
+      v_c65f5d.goBack();
+    } catch (v_49263d) {
+      console.warn("[Chat] leave failed:", (v_49263d as Error)?.message ?? v_49263d);
+      v_889fad(
+        v_8d41d7("chat.leaveFailTitle", { defaultValue: "나가지 못했어요" }),
+        v_8d41d7("common.retryLater", { defaultValue: "잠시 후 다시 시도해 주세요." }),
+      );
+    }
+  };
+
   const v_98409d = () => {
     const v_f1620a = v_1ed7d9.getState().apiUser?.id ?? null;
     const v_e009da = v_eb25ce?.ownerId != null && v_f1620a != null && v_eb25ce.ownerId === v_f1620a;
@@ -421,20 +438,26 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         onPress: () => void v_4f52b6(),
       },
     ];
-    if (!v_e009da) {
-      v_dd943a.push({
-        label: v_8d41d7("chat.unfollowAction", { defaultValue: "구독 취소" }),
-        destructive: true,
-        onPress: () => {
 
-          const v_b30b81 = v_b4902e.getState().isFollowing(v_6e0fd3);
-          if (v_b30b81) {
-            void v_b4902e.getState().toggleFollow(v_6e0fd3);
-          }
-          v_c65f5d.goBack();
-        },
-      });
-    }
+    v_dd943a.push({
+      label: v_8d41d7("chat.leaveAction", { defaultValue: "나가기" }),
+      destructive: true,
+      onPress: () => {
+        const v_893b61 = !v_e009da && v_b4902e.getState().isFollowing(v_6e0fd3);
+        v_889fad(
+          v_8d41d7("chat.leaveTitle", { defaultValue: "대화방 나가기" }),
+          v_9d1db1(v_8d41d7, v_893b61),
+          [
+            { text: v_8d41d7("common.cancel", { defaultValue: "취소" }), style: "cancel" },
+            {
+              text: v_8d41d7("chat.leaveAction", { defaultValue: "나가기" }),
+              style: "destructive",
+              onPress: () => void v_8888af(),
+            },
+          ],
+        );
+      },
+    });
     v_cafc04(v_dfb220, v_dd943a);
   };
 
