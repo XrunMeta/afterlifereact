@@ -499,3 +499,30 @@ describe('AFL-1003 adNotice / sendAdReturned', () => {
     expect(typeof v_f966e3.seq).toBe('number');
   });
 });
+
+describe('lastSignal 연속 수신', () => {
+  it('같은 틱에 온 신호도 하나씩 순서대로 소비자에게 전달된다', async () => {
+    v_897bd0();
+    const v_32dc97 = v_9051ce();
+    const v_12cd99 = v_e6273b(v_32dc97);
+    const v_d5dda0 = v_84b93d(v_12cd99);
+    const v_110a8b = [];
+    const { useEffect: v_c4deb2 } = require('bapkr');
+    const { result: v_43c42e } = v_0da18b(() => {
+      const v_cb35cb = v_3d8d48({ cloneId: 7, accessToken: 't', deps: v_d5dda0 as never });
+      v_c4deb2(() => {
+        if (v_cb35cb.lastSignal) v_110a8b.push(v_cb35cb.lastSignal.type === 'speech_text' ? `text:${v_cb35cb.lastSignal.text}` : v_cb35cb.lastSignal.type);
+      }, [v_cb35cb.lastSignal]);
+      return v_cb35cb;
+    });
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+
+    v_be73a0(() => {
+      v_32dc97.emitMessage(JSON.stringify({ type: 'speech_text', seq: 1, text: '첫 문장' }));
+      v_32dc97.emitMessage(JSON.stringify({ type: 'speech_start', seq: 1 }));
+      v_32dc97.emitMessage(JSON.stringify({ type: 'speech_text', seq: 1, text: '둘째 문장' }));
+    });
+
+    await v_81e49f(() => expect(v_110a8b).toEqual(['text:첫 문장', 'speech_start', 'text:둘째 문장']));
+  });
+});
