@@ -120,3 +120,28 @@ def test_build_messages_caps_each_item_length():
     long = "가" * 5000
     msgs = cr.build_chat_messages([], [], [{"role": "user", "text": long}], "응", max_chars=0)
     assert len(msgs[0]["content"]) == cr._MAX_ITEM_CHARS
+
+
+# AFL-1031 (2026-10-22): Worker 가 관리자 설정 채팅 모델을 `model` 로 넘기면 그 모델로 답한다.
+@pytest.mark.asyncio
+async def test_reply_uses_model_from_worker(monkeypatch):
+    monkeypatch.setattr(cr, "_CHAT_SECRET", "S")
+    seen = []
+
+    async def fake_fetch_bundle(api_base, clone_id, token):
+        return {"personaBundle": {"cloneId": str(clone_id), "persona": {"displayName": "할배"}}}
+
+    async def fake_chat_once(messages, model=None, temperature=None, fmt=None, num_predict=None):
+        seen.append(model)
+        return "응"
+
+    monkeypatch.setattr(cr, "fetch_bundle", fake_fetch_bundle)
+    monkeypatch.setattr(cr, "chat_once", fake_chat_once)
+    async with TestClient(TestServer(_app())) as client:
+        for model in ("gpt-5-nano", "openai:gpt-4o-mini", "bad model!", "x" * 101, 5, ""):
+            resp = await client.post(
+                "/chat/reply", headers={"X-Internal-Secret": "S"},
+                json={"clone_id": 1, "user_token": "T", "text": "hi", "model": model})
+            assert resp.status == 200, model
+    # 이상한 값(공백·특수문자·너무 김·문자열 아님·빈 값)은 무시하고 기본 모델(None)로 답한다.
+    assert seen == ["gpt-5-nano", "openai:gpt-4o-mini", None, None, None, None]
