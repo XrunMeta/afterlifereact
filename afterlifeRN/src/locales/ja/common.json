@@ -1203,7 +1203,29 @@
       "typeShort": "性格",
       "mbtiLabel": "MBTI",
       "notesLabel": "クローン説明",
-      "notesPlaceholder": "このクローンの話し方・習慣・背景などを自由にご記入ください(任意)"
+      "notesPlaceholder": "このクローンの話し方・習慣・背景などを自由にご記入ください(任意)",
+      "ageOptions": {
+        "a10": "10代",
+        "a20": "20代",
+        "a30": "30代",
+        "a40": "40代",
+        "a50": "50代",
+        "a60plus": "60代以上"
+      },
+      "genderOptions": {
+        "male": "男性",
+        "female": "女性"
+      },
+      "typeOptions": {
+        "extrovert": "外向的",
+        "introvert": "内向的",
+        "logical": "論理的",
+        "emotional": "感情的",
+        "free": "自由な",
+        "organized": "几帳面",
+        "passionate": "情熱的",
+        "calm": "穏やか"
+      }
     },
     "submitting": "少々お待ちください...",
     "assistant": {

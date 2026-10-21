@@ -1203,7 +1203,29 @@
       "typeShort": "性格",
       "mbtiLabel": "MBTI",
       "notesLabel": "克隆描述",
-      "notesPlaceholder": "请自由描述该克隆的语气·习惯·背景等（可选）"
+      "notesPlaceholder": "请自由描述该克隆的语气·习惯·背景等（可选）",
+      "ageOptions": {
+        "a10": "10多岁",
+        "a20": "20多岁",
+        "a30": "30多岁",
+        "a40": "40多岁",
+        "a50": "50多岁",
+        "a60plus": "60岁以上"
+      },
+      "genderOptions": {
+        "male": "男性",
+        "female": "女性"
+      },
+      "typeOptions": {
+        "extrovert": "外向",
+        "introvert": "内向",
+        "logical": "理性",
+        "emotional": "感性",
+        "free": "自由",
+        "organized": "有条理",
+        "passionate": "热情",
+        "calm": "平和"
+      }
     },
     "submitting": "请稍等...",
     "assistant": {

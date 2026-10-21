@@ -1203,7 +1203,29 @@
       "typeShort": "Personality",
       "mbtiLabel": "MBTI",
       "notesLabel": "Clone Description",
-      "notesPlaceholder": "Tone, habits, background — anything (optional)"
+      "notesPlaceholder": "Tone, habits, background — anything (optional)",
+      "ageOptions": {
+        "a10": "Teens",
+        "a20": "20s",
+        "a30": "30s",
+        "a40": "40s",
+        "a50": "50s",
+        "a60plus": "60s+"
+      },
+      "genderOptions": {
+        "male": "Male",
+        "female": "Female"
+      },
+      "typeOptions": {
+        "extrovert": "Outgoing",
+        "introvert": "Introverted",
+        "logical": "Logical",
+        "emotional": "Emotional",
+        "free": "Free-spirited",
+        "organized": "Organized",
+        "passionate": "Passionate",
+        "calm": "Calm"
+      }
     },
     "submitting": "One moment...",
     "assistant": {
