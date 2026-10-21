@@ -32,7 +32,13 @@
     "durationMin": "{{m}} menit",
     "durationMinSec": "{{m}} menit {{s}} detik",
     "expertBadge": "Ahli",
-    "pressBackToExit": "Tekan kembali lagi untuk keluar"
+    "pressBackToExit": "Tekan kembali lagi untuk keluar",
+    "saving": "Menyimpan…",
+    "emergencyStop": {
+      "title": "Pemberitahuan darurat",
+      "viewDetails": "Lihat detail"
+    },
+    "unknown": "Tanpa nama"
   },
   "tabs": {
     "home": "Beranda",
@@ -74,12 +80,15 @@
       "reportFailed": "Gagal melaporkan",
       "reportSuccessBlocked": "Laporan telah diterima. Klon ini telah diblokir",
       "userBlocked": "Pengguna diblokir",
-      "blockUserFailed": "Gagal memblokir pengguna"
+      "blockUserFailed": "Gagal memblokir pengguna",
+      "visibilityUpdated": "Visibilitas diperbarui",
+      "visibilityFailed": "Gagal mengubah visibilitas"
     },
     "actions": {
       "block": "Blokir",
       "report": "Laporkan"
-    }
+    },
+    "commentSending": "Mengirim..."
   },
   "notifications": {
     "title": "Notifikasi",
@@ -315,7 +324,8 @@
     "rechargeDesc30": "Top up 30 menit · berlaku 5 tahun",
     "rechargeDesc60": "Top up 60 menit · berlaku 5 tahun",
     "rechargeDesc150": "Top up 150 menit · berlaku 5 tahun",
-    "rechargeDesc300": "Top up 300 menit · berlaku 5 tahun"
+    "rechargeDesc300": "Top up 300 menit · berlaku 5 tahun",
+    "termsFooterIos": "Langganan perpanjangan otomatis ditagih setiap periode hingga dibatalkan.\nBatalkan: Pengaturan → Apple ID → Langganan → afterlife"
   },
   "chat": {
     "personaFallback": "Klon",
@@ -444,7 +454,11 @@
       "title": "Persetujuan pengenalan wajah",
       "desc": "Untuk mengenali siapa yang berbicara selama panggilan, diperlukan persetujuan berikut. (opsional)",
       "agree": "Setuju"
-    }
+    },
+    "poorConnection": "Koneksi panggilan buruk\nSilakan telepon lagi",
+    "giftInsufficientTitle": "XRUN tidak cukup",
+    "giftFailTitle": "Gagal mengirim hadiah",
+    "giftInsufficientDesc": "XRUN Anda tidak cukup. Isi ulang kredit lalu coba lagi."
   },
   "greeting": {
     "default": "Halo"
@@ -529,7 +543,10 @@
     "summaryLabelFeed": "Feed",
     "giftReceiptsTitle": "Hadiah diterima",
     "giftReceiptsEmpty": "Belum ada hadiah yang diterima",
-    "giftReceiptsTotal": "Total {{n}}"
+    "giftReceiptsTotal": "Total {{n}}",
+    "followers": "Pelanggan",
+    "likes": "Suka",
+    "createdAt": "Dibuat"
   },
   "detail": {
     "notFound": "Klon tidak ditemukan.",
@@ -586,7 +603,9 @@
     "currentVoiceCatalog": "🎵 Suara katalog",
     "currentVoiceHint": "Pilih suara lain di bawah dan panggilan akan diputar dengan suara itu.",
     "voiceStop": "■ Berhenti",
-    "voicePreview": "▶ Pratinjau"
+    "voicePreview": "▶ Pratinjau",
+    "voiceLabel": "Suara",
+    "voiceEmpty": "Belum ada suara."
   },
   "dashboard": {
     "title": "My Page",
@@ -659,7 +678,14 @@
     "emptyGift": "Belum ada hadiah yang diterima",
     "reportReceived": "Laporan telah diterima",
     "uploadAvatarFailed": "Gagal mengunggah gambar",
-    "giftInventoryTitle": "Hadiah saya"
+    "giftInventoryTitle": "Hadiah saya",
+    "giftTotalReceivedBefore": "Total hadiah diterima ",
+    "giftTotalReceivedAfter": "",
+    "giftLogOpenFailTitle": "Tidak dapat dibuka",
+    "giftLogOpenFailDesc": "Silakan pasang aplikasi XRUN.",
+    "giftKindReceived": "Diterima",
+    "giftKindSent": "Dikirim",
+    "giftKindExchanged": "Ditukar"
   },
   "learn": {
     "title": "Latih",
@@ -958,7 +984,17 @@
       "termsCloneFaceTitle": "Persetujuan pengenalan wajah per klon",
       "termsLocationTitle": "Ketentuan Layanan Berbasis Lokasi",
       "termsMarketingTitle": "Persetujuan Informasi Pemasaran",
-      "termsMarketingFallback": "Tentang informasi pemasaran\n\nJika Anda setuju, Anda akan menerima informasi promosi seperti acara dan keuntungan melalui notifikasi push aplikasi. Persetujuan ini opsional dan dapat ditarik kapan saja di Pengaturan > Persetujuan."
+      "termsMarketingFallback": "Tentang informasi pemasaran\n\nJika Anda setuju, Anda akan menerima informasi promosi seperti acara dan keuntungan melalui notifikasi push aplikasi. Persetujuan ini opsional dan dapat ditarik kapan saja di Pengaturan > Persetujuan.",
+      "termsLoadFailed": "Gagal memuat ketentuan.",
+      "termsLocationFallback": "Tentang informasi lokasi\n\nSaat ini aplikasi ini tidak mengumpulkan atau menggunakan informasi lokasi. Jika fitur berbasis lokasi ditambahkan nanti, kami akan meminta persetujuan Anda secara terpisah.",
+      "emailDomainNotAllowed": "Domain email ini tidak didukung. Gunakan domain umum seperti gmail.com / naver.com / kakao.com.",
+      "emailChecking": "Sedang memeriksa email. Mohon tunggu sebentar.",
+      "emailDuplicateHint": "Email ini sudah terdaftar",
+      "validationFailed": "Isian tidak valid",
+      "googleTitle": "Daftar dengan Google",
+      "ageRange": "Kelompok usia",
+      "countrySearch": "Cari negara",
+      "regionSearch": "Cari wilayah"
     },
     "emailVerify": {
       "title": "Verifikasi Email",
@@ -1190,7 +1226,16 @@
         "s2Text": "Makanan favorit Anda saat ini apa? Saya sangat suka sup kimchi. Rasanya pedas yang kuat, dan menyendok kuah hangatnya membuat semua lelah hari itu hilang. Apalagi jika dimakan saat hujan, lebih lezat lagi.",
         "s3Title": "Kenangan Masa Kecil",
         "s3Text": "Kenangan masa kecil yang paling berkesan bagi saya adalah liburan ke pantai bersama keluarga. Suara ombak, angin asin, dan momen bermain di pasir masih terasa hidup hingga sekarang. Perasaan bahagia saat itu kembali muncul."
-      }
+      },
+      "warnTooShortTitle": "File terlalu pendek",
+      "warnTooShortMsg": "File yang dipilih sangat pendek. Pelatihan suara memerlukan rekaman tenang berdurasi 30 detik hingga 1 menit. Pilih file lain dan unggah lagi.",
+      "warnTooLargeTitle": "File terlalu besar",
+      "warnTooLargeMsg": "File yang dipilih terlalu panjang. Potong menjadi 30 detik hingga 1 menit lalu unggah lagi.",
+      "toastSilence": "Terlalu pelan. Mohon bicara sedikit lebih keras.",
+      "toastNoise": "Sekitar Anda bising. Mohon rekam di tempat yang tenang.",
+      "recordQualityTitle": "Periksa kualitas rekaman",
+      "recordQualitySilenceMsg": "Rekaman memiliki banyak bagian hening. Mohon rekam ulang seluruh kalimat dengan jelas di tempat yang tenang.",
+      "recordQualityNoiseMsg": "Rekaman tercampur suara bising. Merekam ulang di tempat yang tenang akan membuat suara jauh lebih alami."
     },
     "visibility": {
       "memlowLocked": "Klon Kenangan diatur sebagai pribadi. Hanya ko-admin yang dapat melihat.",
@@ -1201,7 +1246,13 @@
       "followersTitle": "Terbuka untuk Pengikut",
       "followersDesc": "Hanya pengikut yang dapat melihat",
       "privateTitle": "Pribadi",
-      "privateDesc": "Hanya Anda yang dapat melihat"
+      "privateDesc": "Hanya Anda yang dapat melihat",
+      "selectedTitle": "Hanya teman tertentu",
+      "selectedDescCount": "{{count}} teman dipilih — ketuk lagi untuk mengubah",
+      "selectedDesc": "Pilih teman di dasbor setelah dibuat",
+      "friendPickerNoAuth": "Silakan masuk lalu coba lagi.",
+      "friendPickerEmptyTitle": "Belum ada teman",
+      "friendPickerEmptyMessage": "Anda belum mengikuti siapa pun. Pilih visibilitas lain, atau ikuti seseorang lalu coba lagi."
     },
     "creating": {
       "title": "Sedang membuat klon...",
@@ -1254,7 +1305,29 @@
       "typeShort": "Kepribadian",
       "mbtiLabel": "MBTI",
       "notesLabel": "Deskripsi Klon",
-      "notesPlaceholder": "Silakan tulis dengan bebas gaya bicara·kebiasaan·latar belakang klon ini (opsional)"
+      "notesPlaceholder": "Silakan tulis dengan bebas gaya bicara·kebiasaan·latar belakang klon ini (opsional)",
+      "ageOptions": {
+        "a10": "Remaja",
+        "a20": "20-an",
+        "a30": "30-an",
+        "a40": "40-an",
+        "a50": "50-an",
+        "a60plus": "60+"
+      },
+      "genderOptions": {
+        "male": "Pria",
+        "female": "Wanita"
+      },
+      "typeOptions": {
+        "extrovert": "Ekstrover",
+        "introvert": "Introver",
+        "logical": "Logis",
+        "emotional": "Emosional",
+        "free": "Bebas",
+        "organized": "Teratur",
+        "passionate": "Bersemangat",
+        "calm": "Tenang"
+      }
     },
     "submitting": "Sebentar...",
     "assistant": {
@@ -1319,12 +1392,14 @@
       "usernameReservedMsg": "Nama pengguna ini sudah dicadangkan. Silakan pilih yang lain.",
       "usernameTakenMsg": "Nama pengguna ini sudah dipakai. Silakan kembali dan pilih yang lain.",
       "cloneCreateFailed": "Gagal membuat klon. (cloneId tidak ditemukan)",
-      "videoPendingDelayed": "Video sedang disiapkan — kamu bisa langsung memposting; akan muncul beberapa menit kemudian"
+      "videoPendingDelayed": "Video sedang disiapkan — kamu bisa langsung memposting; akan muncul beberapa menit kemudian",
+      "usernameInvalidTitle": "Format ID tidak valid"
     },
     "step8": {
       "title": "Klon telah selesai dibuat",
       "subtitle": "Sekarang Anda dapat mengobrol dengan klon\natau memposting kiriman baru.",
-      "toDashboard": "Ke Dashboard"
+      "toDashboard": "Ke Dashboard",
+      "confirm": "OK"
     },
     "username": {
       "taken": "Nama pengguna ini sudah dipakai. Silakan pilih yang lain.",
@@ -1405,7 +1480,8 @@
       "saveFailed": "Gagal menyimpan pengaturan. Silakan coba lagi.",
       "alarm": "Notifikasi",
       "offTitle": "Matikan notifikasi",
-      "offHint": "Untuk mematikan notifikasi, ubah di pengaturan sistem."
+      "offHint": "Untuk mematikan notifikasi, ubah di pengaturan sistem.",
+      "permTitle": "Izin diperlukan"
     },
     "agreements": {
       "title": "Persetujuan"
@@ -1510,7 +1586,15 @@
       "xrunNotInstalled": "Aplikasi xrun belum terpasang."
     },
     "rememberingCloneDetail": {
-      "deleteFailed": "Gagal menghapus."
+      "deleteFailed": "Gagal menghapus.",
+      "revokeTitle": "Tarik persetujuan?",
+      "revokeMessage": "Semua {{count}} data wajah milik {{name}} akan dihapus. Tindakan ini tidak bisa dibatalkan.",
+      "title": "Orang yang dikenali",
+      "desc": "Ini adalah orang-orang yang wajahnya dikenali dan disimpan oleh persona ini. Menarik persetujuan akan menghapus semua data wajah orang tersebut.",
+      "empty": "Belum ada yang terdaftar.",
+      "count": "{{count}} orang",
+      "faceCount": "{{count}} data wajah",
+      "revoke": "Tarik persetujuan"
     },
     "rememberingClones": {
       "title": "Klon yang mengingat saya",
@@ -1622,7 +1706,11 @@
     "reportFail": "Gagal melaporkan.",
     "followListLoadFailed": "Gagal memuat.",
     "followListEmptyFollowers": "Belum ada pengikut",
-    "followListEmptyFollowing": "Belum ada yang diikuti"
+    "followListEmptyFollowing": "Belum ada yang diikuti",
+    "cloneListLoadFailed": "Gagal memuat.",
+    "subscribingBtn": "Berlangganan",
+    "subscribeBtn": "Langganan",
+    "cloneListEmpty": "Belum ada klon"
   },
   "friendPicker": {
     "title": "Hanya Terbuka untuk Teman Tertentu",
@@ -2236,5 +2324,13 @@
     "weekdayShortThu": "Kam",
     "weekdayShortFri": "Jum",
     "weekdayShortSat": "Sab"
+  },
+  "sso": {
+    "reconsent": {
+      "title": "Beralih ke akun SSO terpadu",
+      "subtitle": "Ketentuan telah diperbarui untuk integrasi layanan.\nSilakan setujui kembali ketentuan wajib di bawah ini.",
+      "saving": "Memproses...",
+      "continue": "Setuju dan lanjutkan"
+    }
   }
 }

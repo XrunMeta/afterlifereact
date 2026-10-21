@@ -19,6 +19,19 @@ interface Props {
 
 const v_16d682 = 4;
 
+const v_6df9e1 = {
+  '10대': 'create.persona.ageOptions.a10',
+  '20대': 'create.persona.ageOptions.a20',
+  '30대': 'create.persona.ageOptions.a30',
+  '40대': 'create.persona.ageOptions.a40',
+  '50대': 'create.persona.ageOptions.a50',
+  '60대 이상': 'create.persona.ageOptions.a60plus',
+};
+const v_a5a408 = {
+  '남성': 'create.persona.genderOptions.male',
+  '여성': 'create.persona.genderOptions.female',
+};
+
 export default function v_78abf7({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const { t: v_8d41d7 } = v_772971();
   const v_db0487 = v_f04727.personaTypes ?? [];
@@ -44,7 +57,9 @@ export default function v_78abf7({ draft: v_f04727, onChange: v_b187d9 }: Props)
               style={[v_d81136.chip, v_f8b770 && v_d81136.chipActive]}
               onPress={() => v_b187d9({ personaAge: v_2694bd })}
             >
-              <Text style={v_f8b770 ? v_d81136.chipActiveText : v_d81136.chipText}>{v_2694bd}</Text>
+              <Text style={v_f8b770 ? v_d81136.chipActiveText : v_d81136.chipText}>
+                {v_6df9e1[v_2694bd] ? v_8d41d7(v_6df9e1[v_2694bd], { defaultValue: v_2694bd }) : v_2694bd}
+              </Text>
             </TouchableOpacity>
           );
         })}
@@ -60,7 +75,9 @@ export default function v_78abf7({ draft: v_f04727, onChange: v_b187d9 }: Props)
               style={[v_d81136.chip, v_f8b770 && v_d81136.chipActive]}
               onPress={() => v_b187d9({ personaGender: v_206b88 })}
             >
-              <Text style={v_f8b770 ? v_d81136.chipActiveText : v_d81136.chipText}>{v_206b88}</Text>
+              <Text style={v_f8b770 ? v_d81136.chipActiveText : v_d81136.chipText}>
+                {v_a5a408[v_206b88] ? v_8d41d7(v_a5a408[v_206b88], { defaultValue: v_206b88 }) : v_206b88}
+              </Text>
             </TouchableOpacity>
           );
         })}
@@ -76,7 +93,9 @@ export default function v_78abf7({ draft: v_f04727, onChange: v_b187d9 }: Props)
               style={[v_d81136.chip, v_f8b770 && v_d81136.chipActive]}
               onPress={() => v_c8bd6a(v_e2a85c.id)}
             >
-              <Text style={v_f8b770 ? v_d81136.chipActiveText : v_d81136.chipText}>{v_e2a85c.label}</Text>
+              <Text style={v_f8b770 ? v_d81136.chipActiveText : v_d81136.chipText}>
+                {v_8d41d7(`create.persona.typeOptions.${v_e2a85c.id}`, { defaultValue: v_e2a85c.label })}
+              </Text>
             </TouchableOpacity>
           );
         })}
