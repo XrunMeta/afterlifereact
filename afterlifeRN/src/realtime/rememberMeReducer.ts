@@ -44,7 +44,7 @@ export const v_0e9727 = 5;
 
 export const v_a4afab = 0.7;
 
-export const v_a5c955 = 60_000;
+export const v_a5c955 = 120_000;
 
 export const v_059bf8 = 60_000;
 
