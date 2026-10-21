@@ -31,6 +31,10 @@ export async function v_54846c(v_adc076): Promise<string> {
       "Password must be 7+ chars with lowercase, uppercase, and digit.",
     );
   }
+  return v_1000e8(v_adc076);
+}
+
+export async function v_1000e8(v_adc076): Promise<string> {
   const v_83f336 = v_5f30e2(16);
   const v_bff627 = v_38446f(new TextEncoder().encode(v_adc076), v_83f336, { N: v_f791ed, r: v_cb35cb, p: v_e2a85c, dkLen: v_18af92 });
   return `$scrypt$N=${v_f791ed},r=${v_cb35cb},p=${v_e2a85c}$${v_8a9589(v_83f336)}$${v_8a9589(v_bff627)}`;
