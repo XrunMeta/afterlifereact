@@ -125,6 +125,11 @@ export default function v_def15b() {
       v_d42991(v_a15a8b);
 
       v_7a98d1(v_a15a8b);
+
+      const v_1badb6 = v_1ed7d9.getState().apiUser?.id;
+      if (v_1badb6 != null) {
+        v_194498.getState().pruneOwnedLocalClones(v_1badb6, new Set(v_a15a8b.map((v_3f4e2e) => v_3f4e2e.id)));
+      }
     } catch (v_49263d) {
       console.warn("[Dashboard] listMyClones failed:", v_49263d);
 
@@ -179,8 +184,10 @@ export default function v_def15b() {
     if (v_8a7926 != null) {
 
       const v_15e521 = new Set(v_8a7926.map((v_3f4e2e) => v_3f4e2e.id));
+
+      const v_ca52ce = v_194498.getState().addedAt;
       const v_88106c = v_06f32b.filter(
-        (v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987 && !v_15e521.has(v_3f4e2e.id),
+        (v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987 && !v_15e521.has(v_3f4e2e.id) && Date.now() - (v_ca52ce[v_3f4e2e.id] ?? 0) < 2 * 60 * 1000,
       );
       return [...v_8a7926, ...v_88106c];
     }
@@ -449,6 +456,7 @@ export default function v_def15b() {
   };
 
   const [v_480a32, v_4ccd21] = v_5ab095<number | null>(null);
+  const [v_e8d94c, v_c837fe] = v_5ab095<number[]>([]);
 
   const v_c9f992 = async (v: v_b0b271) => {
     if (!v_7462ec) return;
@@ -456,6 +464,12 @@ export default function v_def15b() {
     v_2dbd8f(null);
 
     if (v_81e2ef === "selected") {
+
+      v_c837fe([]);
+      if (v_2ca7e0) {
+        const { getAllowedViewerIds: v_69a8d3 } = await import("../../api/clones");
+        v_c837fe(await v_69a8d3(v_6e0fd3, v_2ca7e0));
+      }
       v_4ccd21(v_6e0fd3);
       return;
     }
@@ -1123,6 +1137,7 @@ export default function v_def15b() {
       {}
       <FriendPickerModal
         visible={v_480a32 != null}
+        initialSelected={v_e8d94c}
         onClose={() => v_4ccd21(null)}
         onConfirm={async (v_9b3001) => {
           const v_6e0fd3 = v_480a32;
