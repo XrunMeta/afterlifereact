@@ -75,6 +75,8 @@ type RootNav = v_390fcc<v_8ad91b>;
 const { width: v_437248 } = v_700696.get("window");
 const v_b9d568 = 1;
 
+const v_658217 = 88;
+
 type FollowedPersona = {
   id: number;
   name: string;
@@ -768,6 +770,7 @@ export default function v_14b43e() {
     );
   };
 
+  const v_003a57 = v_e662ae<v_f708aa | null>(null);
   const v_19e10d = (v_6e0fd3, v_893b61) => {
     v_889fad(
       v_8d41d7("chat.leaveTitle", { defaultValue: "대화방 나가기" }),
@@ -830,17 +833,43 @@ export default function v_14b43e() {
     };
 
     const v_893b61 = !v_8c0b26.persona.isOwn && v_b30b81(v_8c0b26.persona.id);
-    const v_e513d1 = () => v_19e10d(v_8c0b26.persona.id, v_893b61);
+    let rowSwipe: v_f708aa | null = null;
+    const v_e513d1 = () => {
+      v_11a32e?.close();
+      v_19e10d(v_8c0b26.persona.id, v_893b61);
+    };
     return (
       <Swipeable
-        friction={2}
-        rightThreshold={40}
+        ref={(v_cb35cb) => { v_11a32e = v_cb35cb; }}
+        friction={1.6}
+        rightThreshold={36}
         overshootRight={false}
-        renderRightActions={() => (
-          <TouchableOpacity style={v_fd5f43.msgLeaveAction} onPress={v_e513d1} activeOpacity={0.8}>
-            <Text style={v_fd5f43.msgLeaveActionText}>{v_8d41d7("chat.leaveAction", { defaultValue: "나가기" })}</Text>
-          </TouchableOpacity>
-        )}
+
+        onSwipeableWillOpen={() => {
+          if (v_003a57.current && v_003a57.current !== v_11a32e) v_003a57.current.close();
+          v_003a57.current = v_11a32e;
+        }}
+        renderRightActions={(v_4bbc2f, v_29031c) => {
+
+          const v_a37637 = v_29031c.interpolate({ inputRange: [-v_658217, -24, 0], outputRange: [1, 0.7, 0.5], extrapolate: "clamp" });
+          const v_df9f11 = v_29031c.interpolate({ inputRange: [-v_658217, -24, 0], outputRange: [1, 0.5, 0], extrapolate: "clamp" });
+          return (
+            <View style={v_fd5f43.msgLeaveWrap}>
+              <Animated.View style={{ transform: [{ scale: v_a37637 }], opacity: v_df9f11 }}>
+                <TouchableOpacity
+                  style={v_fd5f43.msgLeaveBtn}
+                  onPress={v_e513d1}
+                  activeOpacity={0.75}
+                  accessibilityRole="button"
+                  accessibilityLabel={v_8d41d7("chat.leaveAction", { defaultValue: "나가기" })}
+                >
+                  <Feather name="log-out" size={20} color="#FFFFFF" />
+                  <Text style={v_fd5f43.msgLeaveBtnText}>{v_8d41d7("chat.leaveAction", { defaultValue: "나가기" })}</Text>
+                </TouchableOpacity>
+              </Animated.View>
+            </View>
+          );
+        }}
       >
       <TouchableOpacity style={v_fd5f43.msgRow} activeOpacity={0.7} onPress={v_6629cb} onLongPress={v_e513d1}>
         {
@@ -1526,13 +1555,26 @@ const v_fd5f43 = v_472849.create({
     paddingVertical: 14,
   },
 
-  msgLeaveAction: {
-    width: 88,
-    backgroundColor: "#ef4444",
+  msgLeaveWrap: {
+    width: v_658217,
     alignItems: "center",
     justifyContent: "center",
   },
-  msgLeaveActionText: { color: v_1bfbd0.white, fontSize: 14, fontWeight: "700" },
+  msgLeaveBtn: {
+    width: 64,
+    height: 64,
+    borderRadius: 18,
+    backgroundColor: "#F04452",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    shadowColor: "#F04452",
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  msgLeaveBtnText: { color: v_1bfbd0.white, fontSize: 12, fontWeight: "700" },
   msgAvatarWrap: { width: 56, height: 56, position: "relative" },
   msgAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: v_1bfbd0.zinc200 },
   msgAvatarFallback: {
