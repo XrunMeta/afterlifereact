@@ -20,6 +20,7 @@ import {
   type v_2a77a6,
   type v_2d86f0,
 } from "../../api/reports";
+import { v_feb78c } from "../../lib/notificationI18n";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 
 const v_b0e85c = {
@@ -93,7 +94,9 @@ export default function v_7e6637() {
           </Text>
           {v_8c0b26.adminMessage ? (
             <Text style={v_fd5f43.adminMsg} numberOfLines={3}>
-              {v_8d41d7("reports.adminPrefix", { message: v_8c0b26.adminMessage })}
+              {v_8d41d7("reports.adminPrefix", {
+                message: v_feb78c(v_8c0b26.adminMessage, v_8d41d7),
+              })}
             </Text>
           ) : null}
           <Text style={v_fd5f43.date}>{v_85cf93(v_8c0b26.createdAt)}</Text>
@@ -126,7 +129,12 @@ export default function v_7e6637() {
         ) : null}
         {v_8c0b26.adminMessage || v_8c0b26.warningReason ? (
           <Text style={v_fd5f43.adminMsg} numberOfLines={3}>
-            {v_8d41d7("reports.adminPrefix", { message: v_8c0b26.adminMessage || v_8c0b26.warningReason })}
+            {v_8d41d7("reports.adminPrefix", {
+              message: v_feb78c(
+                v_8c0b26.adminMessage || v_8c0b26.warningReason,
+                v_8d41d7,
+              ),
+            })}
           </Text>
         ) : null}
         <Text style={v_fd5f43.date}>

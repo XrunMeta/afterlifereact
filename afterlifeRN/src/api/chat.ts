@@ -64,7 +64,15 @@ export interface ConversationListItem {
   clone: ChatCloneSummary;
   isMine: boolean;
   last:
-    | { type: "chat" | "call" | "system"; role: "user" | "clone" | null; text: string | null; at: number }
+    | {
+        type: "chat" | "call" | "system";
+        role: "user" | "clone" | null;
+        text: string | null;
+        at: number;
+
+        kind?: string;
+        data?: Record<string, unknown>;
+      }
     | null;
 
   unreadCount: number;

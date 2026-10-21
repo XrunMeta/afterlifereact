@@ -24,6 +24,7 @@ import {
   type v_d9bc70,
 } from "../../api/notifications";
 import { v_003cf2 } from "../../api/clones";
+import { v_1e31b6 } from "../../lib/notificationI18n";
 import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../../components/constants";
 import type { v_8ad91b } from "../../navigation/types";
 
@@ -228,6 +229,7 @@ export default function v_18ad36() {
   const v_20d05d = v_4622b9.some((v_23805a) => !v_23805a.isRead);
 
   const v_fcf6ec = ({ item: v_8c0b26 }: { item: v_d9bc70 }) => {
+    const { title: v_9f1622, body: v_4d33b2 } = v_1e31b6(v_8c0b26, v_8d41d7);
     return (
       <TouchableOpacity
         style={[v_fd5f43.row, !v_8c0b26.isRead && v_fd5f43.rowUnread]}
@@ -235,10 +237,10 @@ export default function v_18ad36() {
         activeOpacity={0.6}
       >
         <View style={v_fd5f43.body}>
-          {v_8c0b26.title ? <Text style={v_fd5f43.title}>{v_8c0b26.title}</Text> : null}
-          {v_8c0b26.body ? (
+          {v_9f1622 ? <Text style={v_fd5f43.title}>{v_9f1622}</Text> : null}
+          {v_4d33b2 ? (
             <Text style={v_fd5f43.text} numberOfLines={2}>
-              {v_8c0b26.body}
+              {v_4d33b2}
             </Text>
           ) : null}
           <Text style={v_fd5f43.time}>{v_afaf91(v_8c0b26.createdAt, v_8d41d7)}</Text>

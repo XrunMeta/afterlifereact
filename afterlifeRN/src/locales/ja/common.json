@@ -26,6 +26,7 @@
     "agoMinutes": "{{n}}分前",
     "agoHours": "{{n}}時間前",
     "agoDays": "{{n}}日前",
+    "agoWeeks": "{{n}}週間前",
     "sec": "秒",
     "durationSec": "{{s}}秒",
     "durationMin": "{{m}}分",
@@ -83,7 +84,54 @@
   "notifications": {
     "title": "お知らせ",
     "empty": "受信した通知はありません。",
-    "markAllRead": "すべて既読にする"
+    "markAllRead": "すべて既読にする",
+    "types": {
+      "user_follow": {
+        "title": "✨ 新しいフォロワー"
+      },
+      "followee_new_clone": {
+        "title": "🌟 新しいペルソナ"
+      },
+      "clone_like": {
+        "title": "❤️ いいね"
+      },
+      "clone_comment": {
+        "title": "💬 新しいコメント"
+      },
+      "clone_follow": {
+        "title": "✨ 新しい購読"
+      },
+      "clone_gift": {
+        "title": "🎁 ギフトが届きました"
+      },
+      "intimacy_score": {
+        "title": "🌡️ +{{score}}°C 温度上昇"
+      },
+      "moderation": {
+        "title": "通報処理のお知らせ",
+        "reporterTitle": "通報処理完了",
+        "penaltyTitle": "活動制限のお知らせ",
+        "liftedTitle": "制限解除のお知らせ",
+        "defaultBody": "あなたに関する通報が処理されました。",
+        "penaltyBody": "アカウントに制限が適用されました。"
+      },
+      "reported": {
+        "title": "通報されました",
+        "bodyProfile": "プロフィールユーザーから通報されました"
+      },
+      "invite_received": {
+        "title": "📨 招待が届きました"
+      },
+      "invite_accepted": {
+        "title": "招待が承認されました"
+      },
+      "share_kicked": {
+        "title": "共同管理者から削除"
+      },
+      "ownership_transferred": {
+        "title": "所有権が移転されました"
+      }
+    }
   },
   "invite": {
     "title": "共同管理者",
@@ -287,7 +335,30 @@
     "callTranscriptTitle": "通話内容",
     "missedCall": "不在着信",
     "sort": "並び替え",
-    "adBannerFallback": "バナー広告"
+    "sortRecent": "最近の会話順",
+    "sortIntimacy": "親密度が高い順",
+    "sortName": "名前順",
+    "adBannerFallback": "バナー広告",
+    "deleteMessageTitle": "メッセージを削除",
+    "notifyOff": "通知をオフ",
+    "notifyOn": "通知をオン",
+    "callAction": "通話",
+    "unfollowAction": "購読解除",
+    "inputPlaceholder": "{{name}}とチャット中",
+    "missedCallCount": "不在着信 {{count}}件 · {{date}}",
+    "voiceCallWithDuration": "音声通話 · {{duration}} · {{time}}",
+    "voiceCallSimple": "音声通話 · {{time}}",
+    "dateLabel": "{{y}}年{{m}}月{{d}}日 {{weekday}}",
+    "monthDay": "{{m}}月{{d}}日",
+    "weekdaySun": "日曜日",
+    "weekdayMon": "月曜日",
+    "weekdayTue": "火曜日",
+    "weekdayWed": "水曜日",
+    "weekdayThu": "木曜日",
+    "weekdayFri": "金曜日",
+    "weekdaySat": "土曜日",
+    "intimacyMilestone": "{{name}}との温度が{{score}}°Cになりました",
+    "lastCallPreview": "音声通話"
   },
   "call": {
     "calling": "接続中...",
@@ -584,7 +655,8 @@
     "giftHeaderSender": "送信者",
     "emptyGift": "まだ受け取ったギフトがありません",
     "reportReceived": "通報を受け付けました",
-    "uploadAvatarFailed": "画像のアップロードに失敗しました"
+    "uploadAvatarFailed": "画像のアップロードに失敗しました",
+    "giftInventoryTitle": "マイギフト"
   },
   "learn": {
     "title": "学習する",
@@ -807,10 +879,19 @@
       "phone": "電話番号",
       "phonePlaceholder": "010-0000-0000",
       "gender": "性別",
+      "genderSelect": "選択",
       "male": "男性",
       "female": "女性",
       "other": "その他",
       "age": "年齢",
+      "ageSelect": "選択",
+      "optional": "任意",
+      "pwNeedLower": "英小文字",
+      "pwNeedUpper": "英大文字",
+      "pwNeedDigit": "数字",
+      "pwNeedLen": "7文字以上",
+      "pwNeedSuffix": "を入力してください",
+      "termsAgree": "同意",
       "birthYearPlaceholder": "生年",
       "birthYearLabel": "{{year}}年生まれ",
       "ageRange10": "10代",
@@ -976,7 +1057,10 @@
       "rightsAck": "確認しました",
       "selectHint": "写真を選択してください",
       "loadFailed": "写真を読み込めません。",
-      "guideTitle": "ガイド",
+      "guideTitle": "写真ガイドライン",
+      "guideBody": "適切な比率を保つには、両肩がフレームにしっかり入る正面・肩から上の縦向き写真をご使用ください。1024×1024以上の画像が最適です。",
+      "exampleGood": "はっきりして正面に配置",
+      "exampleBad": "寄りすぎ",
       "guide1": "正面を向いた写真をご使用ください",
       "guide2": "顔がはっきり見える写真が望ましいです",
       "guide3": "背景がシンプルなほど良い結果が得られます",
@@ -1031,6 +1115,27 @@
         "Orion": "信頼感のある",
         "Luna": "感性的な",
         "Stella": "優雅で繊細な"
+      },
+      "presetNames": {
+        "씩씩한 여학생": "元気な女子生徒",
+        "차분한 성인 여성": "落ち着いた成人女性",
+        "조용한 남학생": "静かな男子生徒",
+        "차분한 청년남성": "落ち着いた青年男性",
+        "차분한 청년 남성": "落ち着いた青年男性",
+        "따뜻한 중년 남성": "温かい中年男性",
+        "밝은 청년 여성": "明るい青年女性",
+        "차분한 노년 여성": "落ち着いた高齢女性",
+        "낮은 톤 청년 남성": "低めの声の青年男性",
+        "영지": "ヨンジ",
+        "미주": "ミジュ",
+        "연화스님": "ヨンファ和尚",
+        "상준": "サンジュン",
+        "철수": "チョルス",
+        "호철": "ホチョル",
+        "원미": "ウォンミ",
+        "청이": "チョンイ",
+        "금이": "クミ",
+        "고민주": "ミンジュ"
       },
       "modePreset": "音色を選択",
       "modeRecord": "直接録音",
@@ -1250,7 +1355,8 @@
       "saveFailedTitle": "保存失敗",
       "saveFailedMsg": "保存中にエラーが発生しました。",
       "noEmailTitle": "メールアドレスなし",
-      "noEmailMsg": "アカウントのメールアドレスがありません。ログアウトして「パスワードをお忘れですか?」から進めてください。"
+      "noEmailMsg": "アカウントのメールアドレスがありません。ログアウトして「パスワードをお忘れですか?」から進めてください。",
+      "regionUnsupported": "選択した国の地域はまだ対応していません"
     },
     "notifications": {
       "title": "通知設定",
@@ -1298,7 +1404,10 @@
           "desc": "ペルソナからの返信を見逃したとき"
         }
       },
-      "saveFailed": "設定を保存できませんでした。もう一度お試しください。"
+      "saveFailed": "設定を保存できませんでした。もう一度お試しください。",
+      "alarm": "通知",
+      "offTitle": "通知をオフにする",
+      "offHint": "通知をオフにするには、端末の設定から変更してください。"
     },
     "agreements": {
       "title": "同意"
@@ -1361,6 +1470,11 @@
       "required": {
         "sectionTitle": "必須同意",
         "agreed": "必須 · 同意済み"
+      },
+      "marketing": {
+        "sectionTitle": "マーケティング情報の受信",
+        "toggleLabel": "マーケティング情報の収集・利用への同意",
+        "description": "イベント・特典などのマーケティング通知を受け取ります。（任意）"
       }
     },
     "saved": {
@@ -1399,6 +1513,17 @@
     },
     "rememberingCloneDetail": {
       "deleteFailed": "削除に失敗しました。"
+    },
+    "rememberingClones": {
+      "title": "私を覚えているクローン",
+      "entry": "私を覚えているクローン",
+      "empty": "まだあなたを覚えているクローンはありません。",
+      "count": "{{count}}件",
+      "deleteButton": "削除",
+      "deleteConfirmTitle": "記憶を消しますか？",
+      "deleteConfirmMessage": "{{name}} があなたを覚えている内容と顔情報がすべて削除されます。元に戻せません。",
+      "deleteError": "削除に失敗しました。",
+      "deleteErrorTitle": "削除失敗"
     }
   },
   "permissionGate": {
@@ -1574,7 +1699,11 @@
     "suspendedUntil": "活動停止中(〜{{date}}) — クローンの作成が制限されます",
     "notSuspended": "活動停止なし",
     "receivedAt": "受付 {{date}}",
-    "actionedAt": "対応 {{date}}"
+    "actionedAt": "対応 {{date}}",
+    "adminMessages": {
+      "reported": "通報されました",
+      "reportedByProfile": "プロフィールユーザーから通報されました"
+    }
   },
   "search": {
     "placeholder": "タグやニックネームを検索",
@@ -2029,5 +2158,85 @@
   "firstLoginConsent": {
     "title": "AfterLife 利用同意",
     "desc": "AfterLife で使用する任意項目です。\n同意しなくてもサービスをご利用いただけます。"
+  },
+  "giftBox": {
+    "title": "ギフトボックス",
+    "viewAll": "すべて見る",
+    "tabReceived": "受け取ったギフト",
+    "tabSent": "送ったギフト",
+    "tabExchange": "交換",
+    "exchangeable": "交換可能",
+    "exchangeAction": "交換する",
+    "flowerUnit": "輪",
+    "peopleUnit": "人",
+    "ownedLabel": "所持中",
+    "ownedEmpty": "所持中のギフトがありません",
+    "filterAll": "すべて",
+    "filterAnon": "匿名のみ",
+    "loadMore": "もっと見る ({{n}})",
+    "receivedTitle": "{{name}}さんが{{gift}}を送りました",
+    "toClone": "{{name}}クローンへ",
+    "toUnknownClone": "クローンへ",
+    "adRewardSender": "広告リワード",
+    "anonymous": "匿名",
+    "someone": "相手",
+    "sentThisMonth": "今月送ったギフト",
+    "sentPeople": "受け取った人",
+    "emptySent": "まだ送ったギフトがありません",
+    "sentToSuffix": "さんへ ",
+    "delivered": "配達完了",
+    "browseHint": "気になるクローンにギフトを送ってみましょう",
+    "browseClones": "クローンを見る",
+    "emptyExchange": "交換できるギフトがありません",
+    "emptyExchangeHistory": "最近の交換履歴がありません",
+    "exchangeTarget": "交換するギフト",
+    "selectAll": "すべて選択",
+    "exchangeMaintenance": "交換サービスはメンテナンス中です",
+    "exchangeMinNotice": "手数料込み{{min}}輪から交換できます（現在{{owned}}輪）",
+    "exchangeQty": "交換数量",
+    "fee": "手数料",
+    "reward": "受け取れる報酬",
+    "exchangeSummary": "合計{{deducted}}輪差し引き（手数料{{fee}}輪含む）·報酬{{reward}} XRUN",
+    "recentExchange": "最近の交換履歴",
+    "statusClaimed": "受取完了",
+    "statusFailed": "失敗（ギフト返却）",
+    "statusPending": "受取待ち",
+    "today": "今日",
+    "am": "午前",
+    "pm": "午後",
+    "toastBelowMin": "{{min}}輪から交換できます（手数料{{unit}}輪あたり{{fee}}輪別途）",
+    "toastOverMax": "手数料（{{unit}}輪あたり{{fee}}輪）を除き最大{{max}}輪まで交換できます",
+    "toastDuplicate": "すでに交換を処理中です",
+    "toastEmptyQty": "交換する数量を入力してください",
+    "p1Title": "{{name}} {{qty}}輪を交換しますか？",
+    "p1Body": "手数料{{fee}}輪を含め{{total}}輪が差し引かれ、{{reward}} XRUNを受け取れます。交換後は取り消せません。",
+    "p4Title": "交換が完了しました",
+    "p4Body": "{{name}} {{qty}}輪が{{reward}} XRUNに交換されました。XRUNウォレット > アフターライフで受け取ってください。",
+    "p4Receive": "XRUNで受け取る",
+    "p6Title": "交換できませんでした",
+    "p6Body": "しばらくしてから再度お試しください。ギフトは差し引かれていません。",
+    "p6BodyWithNo": "しばらくしてから再度お試しください。ギフトは差し引かれていません。（交換番号 {{no}}）",
+    "p6NetTitle": "交換結果を確認しています",
+    "p6NetBody": "ネットワークが不安定です。しばらくして交換履歴で結果を確認してください。",
+    "p7Title": "所持数量が変わりました",
+    "p7Body": "現在所持している{{name}}は{{owned}}輪です。数量を再入力してください。",
+    "p8Title": "交換サービスはメンテナンス中です",
+    "p8BodySoon": "しばらくしてから再度お試しください。",
+    "p8BodyRange": "{{range}}の間は交換できません。",
+    "p9Title": "交換条件が変わりました",
+    "p9Body": "変更後の条件でもう一度確認してください。{{qty}}輪 → {{reward}} XRUN、手数料{{fee}}輪",
+    "p9Retry": "再確認",
+    "p10Title": "交換できないアカウントです",
+    "p10Body": "XRUNアカウントの状態を確認してください。ご不明点はカスタマーサポートへお問い合わせください。",
+    "monthDay": "{{m}}月{{d}}日",
+    "monthDayTime": "{{m}}月{{d}}日 {{hh}}:{{mm}}",
+    "monthDayWeek": "{{m}}月{{d}}日 ({{w}})",
+    "weekdayShortSun": "日",
+    "weekdayShortMon": "月",
+    "weekdayShortTue": "火",
+    "weekdayShortWed": "水",
+    "weekdayShortThu": "木",
+    "weekdayShortFri": "金",
+    "weekdayShortSat": "土"
   }
 }

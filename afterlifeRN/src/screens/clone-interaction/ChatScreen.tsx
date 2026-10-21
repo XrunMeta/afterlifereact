@@ -18,6 +18,8 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
+import type { v_75de9d } from "zqqvxke";
+import { v_c64cf7 } from "../../lib/chatSystemText";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
@@ -70,13 +72,13 @@ const v_c8c890 = (v_23805a): v_23805a is MissedCallGroup =>
 type Props = v_432191<v_8ad91b, "Chat">;
 
 export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
-  const { t: v_8d41d7 } = v_772971();
+  const { t: v_8d41d7, i18n: v_9c213b } = v_772971();
   const { cloneId: v_6e0fd3, name: v_a4744c, image: v_c1e151 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
   const v_033e14 = v_e0068c();
   const v_5ca6b8 = v_e662ae<v_122070>(null);
 
-  const v_dfb220 = v_a4744c ?? v_eb25ce?.displayName ?? "페르소나";
+  const v_dfb220 = v_a4744c ?? v_eb25ce?.displayName ?? v_8d41d7("chat.personaFallback", { defaultValue: "클론" });
   const v_e7274c =
     (typeof v_c1e151 === "string" && v_c1e151) || v_eb25ce?.imageUrl || null;
 
@@ -232,9 +234,9 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   }, [v_2ca7e0, v_6e0fd3]);
 
   const v_00fc5a = (msg: v_f19942) => {
-    v_cafc04("메시지 삭제", [
+    v_cafc04(v_8d41d7("chat.deleteMessageTitle", { defaultValue: "메시지 삭제" }), [
       {
-        label: "삭제",
+        label: v_8d41d7("common.delete", { defaultValue: "삭제" }),
         destructive: true,
         onPress: async () => {
           if (!v_2ca7e0) return;
@@ -408,18 +410,20 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     const v_e009da = v_eb25ce?.ownerId != null && v_f1620a != null && v_eb25ce.ownerId === v_f1620a;
     const v_dd943a = [
       {
-        label: "통화",
+        label: v_8d41d7("chat.callAction", { defaultValue: "통화" }),
         onPress: () => void v_21be1f(),
       },
       {
-        label: v_842b8b ? "알림 끄기" : "알림 켜기",
+        label: v_842b8b
+          ? v_8d41d7("chat.notifyOff", { defaultValue: "알림 끄기" })
+          : v_8d41d7("chat.notifyOn", { defaultValue: "알림 켜기" }),
         disabled: v_f61bef,
         onPress: () => void v_4f52b6(),
       },
     ];
     if (!v_e009da) {
       v_dd943a.push({
-        label: "구독 취소",
+        label: v_8d41d7("chat.unfollowAction", { defaultValue: "구독 취소" }),
         destructive: true,
         onPress: () => {
 
@@ -544,7 +548,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
               const v_57e6ee = !v_ba2215 || !v_2f64a9(v_65604f(v_ba2215), v_db51a9);
               const v_6583df = v_57e6ee ? (
                 <View key={`date-${v_db51a9}`} style={v_d81136.dateDividerWrap}>
-                  <Text style={v_d81136.dateDividerText}>{v_873982(v_db51a9)}</Text>
+                  <Text style={v_d81136.dateDividerText}>{v_873982(v_db51a9, v_8d41d7)}</Text>
                 </View>
               ) : null;
               if (v_c8c890(v_23805a)) {
@@ -557,7 +561,11 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                           <Feather name="phone-missed" size={14} color={v_1bfbd0.white} />
                         </View>
                         <Text style={v_d81136.callDurationText}>
-                          부재중 통화 {v_23805a.count}건 · {v_c1c940(v_23805a.latestAt)}
+                          {v_8d41d7("chat.missedCallCount", {
+                            defaultValue: "부재중 통화 {{count}}건 · {{date}}",
+                            count: v_23805a.count,
+                            date: v_c1c940(v_23805a.latestAt, v_8d41d7),
+                          })}
                         </Text>
                       </View>
                     </View>
@@ -566,6 +574,9 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
               }
               if (v_23805a.type === "system") {
 
+                const v_c9d8de =
+                  v_c64cf7(v_23805a.kind, v_23805a.data, v_dfb220, v_8d41d7, v_9c213b.language) ??
+                  v_23805a.text;
                 return (
                   <React.Fragment key={`api-sys-${v_23805a.id}`}>
                     {v_6583df}
@@ -575,7 +586,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                       disabled={v_23805a.kind !== "intimacy_milestone"}
                       onPress={() => v_74f358(true)}
                     >
-                      <Text style={v_d81136.systemChipText}>🌡 {v_23805a.text}</Text>
+                      <Text style={v_d81136.systemChipText}>🌡 {v_c9d8de}</Text>
                     </TouchableOpacity>
                   </React.Fragment>
                 );
@@ -642,7 +653,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                         />
                       </View>
                       <Text style={v_d81136.callDurationText}>
-                        {v_f5aeb2(v_23805a)}
+                        {v_f5aeb2(v_23805a, v_8d41d7)}
                       </Text>
                     </View>
                     {v_23805a.turnCount > 0 ? (
@@ -692,7 +703,10 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           style={v_d81136.inputField}
           value={v_bbda62}
           onChangeText={v_c31db7}
-          placeholder={`${v_dfb220}(으)로 채팅 중`}
+          placeholder={v_8d41d7("chat.inputPlaceholder", {
+            defaultValue: "{{name}}(으)로 채팅 중",
+            name: v_dfb220,
+          })}
           placeholderTextColor={v_1bfbd0.zinc400}
           multiline
           textAlignVertical="center"
@@ -836,27 +850,57 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   );
 }
 
-function v_c1c940(v_d799e2): string {
+function v_c1c940(v_d799e2, t: v_75de9d): string {
   const v_d5dda0 = new Date(v_d799e2);
-  return `${v_d5dda0.getMonth() + 1}월 ${v_d5dda0.getDate()}일`;
+  return v_8d41d7("chat.monthDay", {
+    defaultValue: "{{m}}월 {{d}}일",
+    m: v_d5dda0.getMonth() + 1,
+    d: v_d5dda0.getDate(),
+  });
 }
 
-function v_f5aeb2(it: v_18a302): string {
+function v_f5aeb2(it: v_18a302, t: v_75de9d): string {
   const v_df8a54 = v_54a55d(v_23805a.startedAt);
   if (v_23805a.durationSec && v_23805a.durationSec > 0) {
     const v_b3dc28 = Math.floor(v_23805a.durationSec);
     const v_35f85c = Math.floor(v_b3dc28 / 60);
     const v_fd5f43 = v_b3dc28 % 60;
-    const v_7dc4bb = v_35f85c > 0 ? `${v_35f85c}분 ${v_fd5f43}초` : `${v_fd5f43}초`;
-    return `음성 통화 · ${v_7dc4bb} · ${v_df8a54}`;
+    const v_7dc4bb =
+      v_35f85c > 0
+        ? v_8d41d7("common.durationMinSec", { defaultValue: "{{m}}분 {{s}}초", m: v_35f85c, s: v_fd5f43 })
+        : v_8d41d7("common.durationSec", { defaultValue: "{{s}}초", s: v_fd5f43 });
+    return v_8d41d7("chat.voiceCallWithDuration", {
+      defaultValue: "음성 통화 · {{duration}} · {{time}}",
+      duration: v_7dc4bb,
+      time: v_df8a54,
+    });
   }
-  return `음성 통화 · ${v_df8a54}`;
+  return v_8d41d7("chat.voiceCallSimple", {
+    defaultValue: "음성 통화 · {{time}}",
+    time: v_df8a54,
+  });
 }
 
-const v_c3f248 = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
-function v_873982(v_d799e2): string {
+const v_857bbc = [
+  "chat.weekdaySun",
+  "chat.weekdayMon",
+  "chat.weekdayTue",
+  "chat.weekdayWed",
+  "chat.weekdayThu",
+  "chat.weekdayFri",
+  "chat.weekdaySat",
+] as const;
+const v_18e715 = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
+function v_873982(v_d799e2, t: v_75de9d): string {
   const v_d5dda0 = new Date(v_d799e2);
-  return `${v_d5dda0.getFullYear()}년 ${v_d5dda0.getMonth() + 1}월 ${v_d5dda0.getDate()}일 ${v_c3f248[v_d5dda0.getDay()]}`;
+  const v_087ffc = v_d5dda0.getDay();
+  return v_8d41d7("chat.dateLabel", {
+    defaultValue: "{{y}}년 {{m}}월 {{d}}일 {{weekday}}",
+    y: v_d5dda0.getFullYear(),
+    m: v_d5dda0.getMonth() + 1,
+    d: v_d5dda0.getDate(),
+    weekday: v_8d41d7(v_857bbc[v_087ffc], { defaultValue: v_18e715[v_087ffc] }),
+  });
 }
 
 function v_e51457(it: v_29686e): string {
