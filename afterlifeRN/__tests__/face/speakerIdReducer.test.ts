@@ -137,3 +137,19 @@ it("순수 함수 — 입력 상태를 변형하지 않는다", () => {
   v_be2f9f(v_ca01e0, v_bef4d7, 3000);
   expect(JSON.stringify(v_ca01e0)).toBe(v_5392c4);
 });
+
+describe("speakerIdReducer — RESET 뒤 같은 사람 재확정", () => {
+  it("같은 사람 연속 매칭은 첫 번째만 speaker_confirmed", () => {
+    const v_2d1eeb = v_be2f9f(v_22f27b, v_c6b64b, v_ca573c);
+    const v_b96973 = v_be2f9f(v_2d1eeb.state, v_c6b64b, v_ca573c + 1500);
+    expect(v_2d1eeb.event?.type).toBe("speaker_confirmed");
+    expect(v_b96973.event).toBeNull();
+  });
+
+  it("RESET_RECOGNITION 뒤 같은 사람이 잡히면 speaker_confirmed 를 다시 낸다", () => {
+    const v_2d1eeb = v_be2f9f(v_22f27b, v_c6b64b, v_ca573c);
+    const v_487a25 = v_be2f9f(v_2d1eeb.state, { type: "RESET_RECOGNITION" }, v_ca573c + 1000);
+    const v_b96973 = v_be2f9f(v_487a25.state, v_c6b64b, v_ca573c + 1500);
+    expect(v_b96973.event).toEqual({ type: "speaker_confirmed", personId: 58, displayName: "도기" });
+  });
+});
