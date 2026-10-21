@@ -86,6 +86,23 @@ export function v_3d8d48(v_328259): v_b01667 {
   const [v_5e9bfe, v_3a7d09] = v_5ab095<Error | null>(null);
   const [v_ab4803, v_ae4844] = v_5ab095<v_b190e4>('idle');
   const [v_88c591, v_8c8005] = v_5ab095<v_9d43cd | null>(null);
+
+  const v_25f0b3 = v_e662ae<v_9d43cd[]>([]);
+  const v_7a9e1d = v_e662ae(false);
+  const v_f35bd6 = v_de06a3((s: v_9d43cd) => {
+    if (v_7a9e1d.current) {
+      v_25f0b3.current.push(v_fd5f43);
+      return;
+    }
+    v_7a9e1d.current = true;
+    v_8c8005(v_fd5f43);
+  }, []);
+  v_c4deb2(() => {
+
+    const v_a448ad = v_25f0b3.current.shift();
+    if (v_a448ad) v_8c8005(v_a448ad);
+    else v_7a9e1d.current = false;
+  }, [v_88c591]);
   const v_2d5539 = v_e662ae(0);
   const v_f98743 = v_e662ae<PrethirdPeerConnection | null>(null);
   const v_fa9144 = v_e662ae<any>(null);
@@ -249,6 +266,8 @@ export function v_3d8d48(v_328259): v_b01667 {
     const v_759436 = () => v_bba900.current === v_775074;
     v_3a7d09(null);
     v_1fa668('requesting');
+    v_25f0b3.current = [];  
+    v_7a9e1d.current = false;  
     v_8c8005(null);   
     v_2d5539.current = 0;    
 
@@ -292,12 +311,12 @@ export function v_3d8d48(v_328259): v_b01667 {
             v_35f85c.type === 'speech_end' && typeof v_35f85c.remaining_ms === 'number' && v_35f85c.remaining_ms >= 0
               ? Math.min(v_35f85c.remaining_ms, v_6e8ef7)
               : undefined;
-          v_8c8005({ type: v_35f85c.type, seq: v_35f85c.seq, ts: v_67e77e(), remainingMs: v_2d99a5 });
+          v_f35bd6({ type: v_35f85c.type, seq: v_35f85c.seq, ts: v_67e77e(), remainingMs: v_2d99a5 });
           if (v_35f85c.type === 'speech_end') v_811f30();
         } else if (v_35f85c.type === 'speech_text') {
 
           if (typeof v_35f85c.text === 'string' && v_35f85c.text) {
-            v_8c8005({ type: 'speech_text', seq: v_35f85c.seq, ts: v_67e77e(), text: v_35f85c.text });
+            v_f35bd6({ type: 'speech_text', seq: v_35f85c.seq, ts: v_67e77e(), text: v_35f85c.text });
           }
         } else if (v_35f85c.type === 'enroll_suggest') {
 
