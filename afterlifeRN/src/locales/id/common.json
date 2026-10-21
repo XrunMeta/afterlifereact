@@ -1203,7 +1203,29 @@
       "typeShort": "Kepribadian",
       "mbtiLabel": "MBTI",
       "notesLabel": "Deskripsi Klon",
-      "notesPlaceholder": "Silakan tulis dengan bebas gaya bicara·kebiasaan·latar belakang klon ini (opsional)"
+      "notesPlaceholder": "Silakan tulis dengan bebas gaya bicara·kebiasaan·latar belakang klon ini (opsional)",
+      "ageOptions": {
+        "a10": "Remaja",
+        "a20": "20-an",
+        "a30": "30-an",
+        "a40": "40-an",
+        "a50": "50-an",
+        "a60plus": "60+"
+      },
+      "genderOptions": {
+        "male": "Pria",
+        "female": "Wanita"
+      },
+      "typeOptions": {
+        "extrovert": "Ekstrover",
+        "introvert": "Introver",
+        "logical": "Logis",
+        "emotional": "Emosional",
+        "free": "Bebas",
+        "organized": "Teratur",
+        "passionate": "Bersemangat",
+        "calm": "Tenang"
+      }
     },
     "submitting": "Sebentar...",
     "assistant": {

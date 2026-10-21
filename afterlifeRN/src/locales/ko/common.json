@@ -1203,7 +1203,29 @@
       "typeShort": "성격",
       "mbtiLabel": "MBTI",
       "notesLabel": "클론 설명",
-      "notesPlaceholder": "이 클론의 말투·습관·배경 등을 자유롭게 적어주십시오 (선택)"
+      "notesPlaceholder": "이 클론의 말투·습관·배경 등을 자유롭게 적어주십시오 (선택)",
+      "ageOptions": {
+        "a10": "10대",
+        "a20": "20대",
+        "a30": "30대",
+        "a40": "40대",
+        "a50": "50대",
+        "a60plus": "60대 이상"
+      },
+      "genderOptions": {
+        "male": "남성",
+        "female": "여성"
+      },
+      "typeOptions": {
+        "extrovert": "외향적인",
+        "introvert": "내향적인",
+        "logical": "논리적인",
+        "emotional": "감정적인",
+        "free": "자유로운",
+        "organized": "체계적인",
+        "passionate": "열정적인",
+        "calm": "평온한"
+      }
     },
     "submitting": "잠시만요...",
     "assistant": {
