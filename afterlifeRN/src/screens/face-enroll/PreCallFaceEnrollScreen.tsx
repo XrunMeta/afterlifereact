@@ -46,6 +46,7 @@ type Nav = v_390fcc<v_8ad91b, "PreCallFaceEnroll">;
 type Rt = v_ee3714<v_8ad91b, "PreCallFaceEnroll">;
 
 import type { v_75de9d } from "zqqvxke";
+import { v_ff0340 } from "../../face/midCallEnrollHandoff";
 interface Step {
   key: string;
   labelKey: string;
@@ -527,6 +528,8 @@ export default function v_8640b9() {
             }
           }
           v_d794c4 = null;
+
+          if (v_c414dc) v_ff0340({ cloneId: v_6e0fd3, personId: v_ca1ec5, displayName: v_affc3e });
           const v_a8cd21 = v_c414dc
             ? v_8d41d7("faceEnroll.complete.midCallResume", {
                 defaultValue: "얼굴 등록 완료! 통화로 돌아갑니다.",

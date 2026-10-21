@@ -170,6 +170,7 @@ import ExpertBadge from "../../components/ui/ExpertBadge";
 import { logAppsFlyerCallVideoStart } from "../../lib/appsFlyer";
 import { setCallActive, takePressedClone } from "../../lib/callActivity";
 import { reportError } from "../../lib/errorReporting/report";
+import { takeMidCallEnrollResult } from "../../face/midCallEnrollHandoff";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
 
@@ -2286,6 +2287,18 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       listPersons(accessToken, cloneId)
         .then(({ items }) => setPersons(items))
         .catch((err) => console.warn("[Call][face] 복귀 후 listPersons 실패:", err));
+    }
+
+    const enrolled = takeMidCallEnrollResult(cloneId);
+    if (enrolled) {
+      dispatchRm({ type: "ENROLLED" });
+      console.log(`[Call][face] 통화 중 등록 완료 → silent speaker_confirmed(${enrolled.personId})`);
+      sendFaceEvent?.({
+        event: "speaker_confirmed",
+        personId: enrolled.personId,
+        displayName: enrolled.displayName,
+        silent: true,
+      });
     }
 
   }, [isFocused]);
