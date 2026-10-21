@@ -33,6 +33,8 @@ import {
   v_824b75,
   v_4bc1db,
   v_b7471b,
+  v_e00c46,
+  v_bcea4f,
   type v_83f27d,
   type v_f56907,
   type v_eb1456,
@@ -152,6 +154,27 @@ v_b7f2b4.patch("/config/ad-messages", v_c0a297, async (v_3f4e2e) => {
         ? await v_b7471b(v_3f4e2e.env, v_6563a0)
         : await v_4bc1db(v_3f4e2e.env);
     return v_3f4e2e.json({ ok: true, messages: v_fa56e0, cadence: v_303197 });
+  } catch (v_49263d) {
+    throw new v_3ebe58("VALIDATION_FAILED", (v_49263d as Error)?.message ?? "invalid");
+  }
+});
+
+v_b7f2b4.get("/config/vision", v_c0a297, async (v_3f4e2e) => {
+  return v_3f4e2e.json(await v_e00c46(v_3f4e2e.env));
+});
+v_b7f2b4.patch("/config/vision", v_c0a297, async (v_3f4e2e) => {
+  const v_4d33b2 = (await v_3f4e2e.req.json().catch(() => ({}))) as {
+    model?: unknown;
+    detail?: unknown;
+    models?: unknown;
+  };
+  try {
+    const v_01dcf5 = await v_bcea4f(v_3f4e2e.env, {
+      model: v_4d33b2.model,
+      detail: v_4d33b2.detail,
+      models: v_4d33b2.models,
+    });
+    return v_3f4e2e.json({ ok: true, ...v_01dcf5 });
   } catch (v_49263d) {
     throw new v_3ebe58("VALIDATION_FAILED", (v_49263d as Error)?.message ?? "invalid");
   }
