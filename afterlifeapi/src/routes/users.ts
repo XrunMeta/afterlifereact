@@ -399,6 +399,14 @@ v_de7ba7.patch("/me/xrun-profile", v_6690d9, async (v_3f4e2e) => {
     });
   }
 
+  const v_6ccf9e = v_4d33b2.firstname?.trim();
+  if (v_6ccf9e) {
+    await v_3f4e2e.env.DB
+      .prepare(`UPDATE users SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+      .bind(v_6ccf9e, v_43e90c)
+      .run();
+  }
+
   const v_1300ee = await v_3e801c(v_3f4e2e.env, v_38066f.xrun_member_id);
   return v_3f4e2e.json({
     ok: true,
