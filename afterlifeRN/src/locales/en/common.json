@@ -2175,7 +2175,9 @@
       "title": "Enrollment complete",
       "midCall": "Face enrolled! Restarting the call.",
       "first": "Face recognition is ready. Starting the call.",
-      "start": "Start call"
+      "start": "Start call",
+      "midCallResume": "Face registered! Returning to your call.",
+      "backToCall": "Back to call"
     },
     "defaultSelfName": "Me",
     "step": {

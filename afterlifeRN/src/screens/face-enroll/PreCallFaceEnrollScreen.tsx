@@ -372,17 +372,26 @@ export default function v_8640b9() {
   );
 
   const v_e9b971 = v_de06a3(() => {
+
+    if (v_c414dc && v_3c9f12.canGoBack()) {
+      v_3c9f12.goBack();
+      return;
+    }
     v_3c9f12.dispatch(
       v_650cfa.reset({
         index: 0,
         routes: [{ name: "Call", params: { cloneId: v_6e0fd3, name: v_dfb220, image: v_0e38ad } }],
       }),
     );
-  }, [v_3c9f12, v_6e0fd3, v_dfb220, v_0e38ad]);
+  }, [v_3c9f12, v_6e0fd3, v_dfb220, v_0e38ad, v_c414dc]);
 
   const v_6ca26b = v_de06a3(() => {
     if (v_c414dc) {
 
+      if (v_3c9f12.canGoBack()) {
+        v_3c9f12.goBack();
+        return true;
+      }
       v_3c9f12.dispatch(
         v_650cfa.reset({
           index: 0,
@@ -505,8 +514,8 @@ export default function v_8640b9() {
           }
           v_d794c4 = null;
           const v_a8cd21 = v_c414dc
-            ? v_8d41d7("faceEnroll.complete.midCall", {
-                defaultValue: "얼굴 등록 완료! 통화를 다시 시작합니다.",
+            ? v_8d41d7("faceEnroll.complete.midCallResume", {
+                defaultValue: "얼굴 등록 완료! 통화로 돌아갑니다.",
               })
             : v_8d41d7("faceEnroll.complete.first", {
                 defaultValue: "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.",
@@ -516,7 +525,9 @@ export default function v_8640b9() {
             v_a8cd21,
             [
               {
-                text: v_8d41d7("faceEnroll.complete.start", { defaultValue: "통화 시작" }),
+                text: v_c414dc
+                  ? v_8d41d7("faceEnroll.complete.backToCall", { defaultValue: "통화로 돌아가기" })
+                  : v_8d41d7("faceEnroll.complete.start", { defaultValue: "통화 시작" }),
                 onPress: v_e9b971,
               },
             ],

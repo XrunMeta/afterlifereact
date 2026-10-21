@@ -2168,7 +2168,9 @@
       "title": "登记完成",
       "midCall": "面部登记完成! 恢复通话。",
       "first": "面部识别准备就绪。开始通话。",
-      "start": "开始通话"
+      "start": "开始通话",
+      "midCallResume": "面部登记完成！正在返回通话。",
+      "backToCall": "返回通话"
     },
     "defaultSelfName": "我",
     "step": {
