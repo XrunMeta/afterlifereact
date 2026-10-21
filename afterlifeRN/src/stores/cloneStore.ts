@@ -20,12 +20,32 @@ interface CloneState {
   upsertClones: (clones: v_affcc0[]) => void;
 
   updateLocalClone: (id: number, patch: Partial<v_affcc0>) => void;
+
+  pruneOwnedLocalClones: (ownerId: number, keepIds: Set<number>) => void;
+
+  addedAt: Record<number, number>;
 }
+
+const v_cf3bd3 = 2 * 60 * 1000;
 
 export const v_194498 = v_a7c0d4<CloneState>((v_bb8024, v_38715b) => ({
   localClones: [],
   currentClone: null,
   creationDraft: { ...v_6f599b },
+  addedAt: {},
+
+  pruneOwnedLocalClones: (v_1badb6, v_ca4b5e) =>
+    v_bb8024((v_b6e533) => {
+      const v_5c2f9f = Date.now();
+      return {
+        localClones: v_b6e533.localClones.filter(
+          (v_3f4e2e) =>
+            v_3f4e2e.ownerId !== v_1badb6 ||
+            v_ca4b5e.has(v_3f4e2e.id) ||
+            v_5c2f9f - (v_b6e533.addedAt[v_3f4e2e.id] ?? 0) < v_cf3bd3,
+        ),
+      };
+    }),
 
   setCurrentClone: (v_eb25ce) => v_bb8024({ currentClone: v_eb25ce }),
 
@@ -45,6 +65,7 @@ export const v_194498 = v_a7c0d4<CloneState>((v_bb8024, v_38715b) => ({
   addClone: (v_eb25ce) =>
     v_bb8024((v_b6e533) => ({
       localClones: [...v_b6e533.localClones, v_eb25ce],
+      addedAt: { ...v_b6e533.addedAt, [v_eb25ce.id]: Date.now() },
     })),
 
   upsertClones: (v_f891e6) =>
