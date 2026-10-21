@@ -526,7 +526,10 @@
     "summaryLabelCall": "通话",
     "summaryLabelChat": "聊天",
     "summaryLabelFeed": "动态",
-    "summaryLabelLearn": "探索"
+    "summaryLabelLearn": "探索",
+    "giftReceiptsTitle": "收到的礼物",
+    "giftReceiptsEmpty": "还没有收到礼物",
+    "giftReceiptsTotal": "共 {{n}}个"
   },
   "detail": {
     "notFound": "找不到克隆。",
