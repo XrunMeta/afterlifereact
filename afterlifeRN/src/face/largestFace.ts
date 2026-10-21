@@ -19,3 +19,16 @@ export function v_e74bab<T extends FaceBoundsLike>(v_a51d09): T | null {
   }
   return v_643757;
 }
+
+export const v_9ac5ee = 0.5;
+
+export function v_9ad8b5<T extends FaceBoundsLike>(v_a51d09, v_127e92): T[] {
+  'worklet';
+  if (v_127e92 == null) return [];
+  const v_3f82af = v_127e92.bounds.width * v_9ac5ee;
+  const v_8d4337 = [];
+  for (let v_ebec57 = 0; v_ebec57 < v_a51d09.length; v_ebec57++) {
+    if (v_a51d09[v_ebec57] === v_127e92 || v_a51d09[v_ebec57].bounds.width >= v_3f82af) v_8d4337.push(v_a51d09[v_ebec57]);
+  }
+  return v_8d4337;
+}

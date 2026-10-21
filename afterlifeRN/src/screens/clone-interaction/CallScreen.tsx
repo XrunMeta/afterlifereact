@@ -69,7 +69,7 @@ import { useTensorflowModel } from "react-native-fast-tflite";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 import { useSharedValue } from "react-native-worklets-core";
 import { useFaceDetection } from "../../hooks/useFaceDetection";
-import { largestFace } from "../../face/largestFace";
+import { largestFace, significantFaces } from "../../face/largestFace";
 import { computeAlignedCrop } from "../../face/faceAlignCrop";
 import { computeLandmarkRatios, type LandmarkRatios } from "../../face/faceLandmarkRatios";
 import { shouldRunEmbedding } from "../../face/embeddingThrottle";
@@ -1056,7 +1056,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
             const { newIds, seen } = detectNewFaces(seenFaceIdsRef.current, trackingIds);
             seenFaceIdsRef.current = seen;
             if (newIds.length > 0) {
+              console.log(`[Call][face] multi_face 송신 faces=${faceCount} newIds=${newIds.join(",")}`);
               sendFaceEvent?.({ event: "multi_face" });
+
+              dispatchRm({ type: "MULTI_FACE_SENT" });
             }
           }
 
@@ -1069,7 +1072,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         },
       ),
 
-    [onFaceEmbedding, sendFaceEvent],
+    [onFaceEmbedding, sendFaceEvent, dispatchRm],
   );
 
   const faceFrameProcessor = useFrameProcessor(
@@ -1080,7 +1083,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
       const nowMs = normalizeFrameTimestampMs(frame.timestamp, isAndroidFrame);
 
-      const curFaceCount = faces.length;
+      const sigFaces = significantFaces(faces, largestFace(faces));
+      const curFaceCount = sigFaces.length;
       if (lastFaceCount.value !== -1 && curFaceCount !== lastFaceCount.value) {
         lastEmbedTs.value = 0;
       }
@@ -1125,13 +1129,13 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
             normalized[i] = resized[i] * 2 - 1;
           }
           const out = faceEmbedModel.runSync([normalized])[0] as Float32Array;
-          const trackingIds = faces
+          const trackingIds = sigFaces
             .map((f) => f.trackingId)
             .filter((id): id is number => typeof id === "number");
 
           const rtRatios = computeLandmarkRatios(primary as unknown as { bounds: { x: number; y: number; width: number; height: number }; landmarks?: Record<string, { x: number; y: number }> | null });
           const rtRatiosJson: string | null = rtRatios ? JSON.stringify(rtRatios) : null;
-          handleEmbeddingOnJS(Array.from(out), faces.length, trackingIds, rtRatiosJson);
+          handleEmbeddingOnJS(Array.from(out), sigFaces.length, trackingIds, rtRatiosJson);
         }
       }
     },

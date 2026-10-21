@@ -865,6 +865,13 @@ async def _verify_person_then_replay(sess, data: dict, pid_int: int, ticket: int
         sess.verified_person_ids.add(pid_int)
         if getattr(sess, "face_event_ticket", 0) == ticket:
             _handle_face_event(sess, data)
+        elif _face_diag_on():
+            # 2026-10-21: 검증 중 더 새로운 face_event(multi_face 등)가 와서 이 확정을 버렸다.
+            #   로그가 없어 "speaker_confirmed 를 받았는데 화자가 안 바뀜" 원인을 못 찾았다.
+            log.info(
+                "face_diag verify_stale session=%s person=%s ticket=%s now=%s — 확정 버림",
+                sid, pid_int, ticket, getattr(sess, "face_event_ticket", 0),
+            )
         return
     log.warning(
         "session %s face_event personId=%s 가 user=%s clone=%s 소속 아님/검증 실패 - 화자 미채택(unknown 처리)",
