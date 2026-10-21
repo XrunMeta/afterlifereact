@@ -119,7 +119,14 @@ export default function v_c316d8() {
 
   v_cf763b(
     v_de06a3(() => {
-      void v_c600ef().finally(() => v_f0e470(true));
+      void v_c600ef().finally(() => {
+        v_f0e470(true);
+
+        if (v_37977a.getState().consumeHomeScrollTop()) {
+          v_ddecc4(0);
+          requestAnimationFrame(() => v_ebdf9a.current?.scrollToOffset({ offset: 0, animated: false }));
+        }
+      });
     }, [v_c600ef]),
   );
 
