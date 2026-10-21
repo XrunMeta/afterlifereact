@@ -352,6 +352,39 @@ def _diag_summarize_l2p(l2p_data) -> dict:
 _sanitize_display_name = _persona_sanitize_display_name
 
 
+
+async def _load_prior_and_mark(sess) -> None:
+    """이전 대화를 받아 두고, 첫 대화(이전 대화 0건)면 프롬프트를 첫 대화용으로 다시 만든다.
+
+    [2026-10-20 sungjius] 첫 대화에서는 상대를 처음 보는 사람으로 대한다 — 얼굴로 확정된 화자
+    (다른 클론에서 등록된 얼굴일 수 있음)도 쓰지 않는다. 그래서 화자 상태와 무관하게 결과가
+    같고, 이후 화자 교대 재조립도 sess.first_meeting 을 넘겨 같은 프롬프트를 유지한다.
+    발화 경로는 이 태스크를 기다린 뒤 메시지를 조립하므로 첫 턴부터 반영된다.
+    """
+    pipeline = sess.pipeline
+    await pipeline.load_prior(sess.user_id, sess.clone_id, sess.session_id)
+    if not getattr(pipeline, "first_meeting", False):
+        return
+    sess.first_meeting = True
+    bundle = getattr(sess, "bundle", None)
+    if not bundle:
+        return
+    msgs = bundle_to_messages(
+        bundle,
+        user_location=getattr(sess, "user_location", None),
+        ask_region_intro=getattr(sess, "ask_region_intro", True),
+        first_meeting=True,
+    )
+    if not msgs:
+        return
+    sess.persona_messages = msgs
+    update = getattr(pipeline, "update_persona", None)
+    if callable(update):
+        update(msgs)
+    log.info("session %s [first-meeting] 이전 대화 0건 — 첫 대화 프롬프트로 교체",
+             getattr(sess, "session_id", "?"))
+
+
 def _bump_speaker_epoch(sess) -> int:
     """[T-252 fix / el I-2] 화자 상태 세대를 1 올리고 새 값을 돌려준다.
 
@@ -446,6 +479,7 @@ async def _maybe_swap_l2p(sess, pid: int, name, epoch: int | None = None) -> Non
             speaker={"name": name, "l2p_data": l2p_data, "person_id": pid},
             user_location=sess.user_location,
             ask_region_intro=getattr(sess, "ask_region_intro", True),
+            first_meeting=getattr(sess, "first_meeting", False),
         )
         if not new_messages:
             # [T-252 fix / el I-1] 입력(bundle) 가드만으로는 부족하다 — truthy bundle
@@ -580,6 +614,7 @@ def _unconfirmed_timeout(sess) -> None:
             bundle,
             user_location=sess.user_location,
             ask_region_intro=getattr(sess, "ask_region_intro", True),
+            first_meeting=getattr(sess, "first_meeting", False),
         )
         if not new_messages:
             log.warning(
@@ -714,6 +749,7 @@ def _clear_current_speaker(sess, event: str) -> None:
             speaker={"unconfirmed": True},
             user_location=sess.user_location,
             ask_region_intro=getattr(sess, "ask_region_intro", True),
+            first_meeting=getattr(sess, "first_meeting", False),
         )
         if not new_messages:
             # [T-252 fix / el I-1] 입력(bundle) 가드만으로는 부족하다 — truthy bundle
@@ -1589,8 +1625,7 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                 #   발화 경로는 메시지 조립 전에 이 태스크를 잠깐(2.5s) 기다린다.
                 if (getattr(sess, "user_id", None)
                         and asyncio.iscoroutinefunction(getattr(sess.pipeline, "load_prior", None))):
-                    sess.pipeline._prior_task = asyncio.ensure_future(
-                        sess.pipeline.load_prior(sess.user_id, sess.clone_id, sess.session_id))
+                    sess.pipeline._prior_task = asyncio.ensure_future(_load_prior_and_mark(sess))
 
                 # T-820 (2026-09-28): dialing 중 인사말 pre-render (백그라운드).
                 #   목적: 사용자 대기 시간 22s → 0s (첫 say() 즉시 응답).
