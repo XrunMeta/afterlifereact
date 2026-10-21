@@ -562,3 +562,145 @@ export function v_2e4a1b(
   const v_35f85c = v_01dcf5.maintenance;
   return v_35f85c && v_5c2f9f >= v_35f85c.from && v_5c2f9f < v_35f85c.to ? v_35f85c : null;
 }
+
+const v_7978ec = "vision.config";
+const v_9a83ae = 20;
+const v_df19aa = 100;
+export type VisionDetail = "low" | "high";
+export interface VisionConfig {
+  model: string;
+  detail: VisionDetail;
+  models: string[];
+}
+export const v_4a6b0a = {
+  model: "gpt-4o-mini",
+  detail: "high",
+
+  models: ["gpt-4o-mini", "gpt-5.4-mini", "gpt-5-nano", "gpt-6-luna"],
+};
+
+function v_818f22(v_81e2ef): v_81e2ef is VisionDetail {
+  return v_81e2ef === "low" || v_81e2ef === "high";
+}
+
+function v_ca976d(v_81e2ef): string[] | null {
+  if (!Array.isArray(v_81e2ef) || v_81e2ef.length === 0 || v_81e2ef.length > v_9a83ae) return null;
+  const v_8d4337 = [];
+  for (const v_479f05 of v_81e2ef) {
+    if (typeof v_479f05 !== "string") return null;
+    const v_35f85c = v_479f05.trim();
+    if (!v_35f85c || v_35f85c.length > v_df19aa) return null;
+    if (!v_8d4337.includes(v_35f85c)) v_8d4337.push(v_35f85c);
+  }
+  return v_8d4337;
+}
+
+export async function v_e00c46(env: v_273a0c): Promise<VisionConfig> {
+  try {
+    const v_3ac7e7 = await v_c9c489.DB
+      .prepare(`SELECT value FROM app_config WHERE key = ? LIMIT 1`)
+      .bind(v_7978ec)
+      .first<{ value: string }>();
+    if (!v_3ac7e7) return v_4a6b0a;
+    const v_e2a85c = JSON.parse(v_3ac7e7.value) as Partial<VisionConfig> | null;
+    if (!v_e2a85c || typeof v_e2a85c !== "object") return v_4a6b0a;
+    const v_70641e = v_ca976d(v_e2a85c.models) ?? v_4a6b0a.models;
+    return {
+      model: typeof v_e2a85c.model === "string" && v_70641e.includes(v_e2a85c.model) ? v_e2a85c.model : (v_70641e[0] ?? v_4a6b0a.model),
+      detail: v_818f22(v_e2a85c.detail) ? v_e2a85c.detail : v_4a6b0a.detail,
+      models: v_70641e,
+    };
+  } catch {
+    return v_4a6b0a;
+  }
+}
+
+export async function v_bcea4f(
+  env: v_273a0c,
+  v_17dc8a,
+): Promise<VisionConfig> {
+  const v_275ccd = await v_e00c46(v_c9c489);
+  let v_70641e = v_275ccd.models;
+  if (v_17dc8a.models !== undefined) {
+    const v_738e47 = v_ca976d(v_17dc8a.models);
+    if (!v_738e47) {
+      throw new Error(`models must be 1~${v_9a83ae} non-empty strings.`);
+    }
+    v_70641e = v_738e47;
+  }
+  const v_768389 = v_17dc8a.model !== undefined ? v_17dc8a.model : v_275ccd.model;
+  if (typeof v_768389 !== "string" || !v_70641e.includes(v_768389)) {
+    throw new Error("model must be one of models.");
+  }
+  const v_3cfdfc = v_17dc8a.detail !== undefined ? v_17dc8a.detail : v_275ccd.detail;
+  if (!v_818f22(v_3cfdfc)) throw new Error("detail must be low or high.");
+  const v_a448ad = { model: v_768389, detail: v_3cfdfc, models: v_70641e };
+  await v_c9c489.DB
+    .prepare(
+      `INSERT INTO app_config (key, value, updated_at) VALUES (?, ?, unixepoch())
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = unixepoch()`,
+    )
+    .bind(v_7978ec, JSON.stringify(v_a448ad))
+    .run();
+  return v_a448ad;
+}
+
+const v_928050 = "chat.model_config";
+export interface ChatModelConfig {
+  model: string;
+  models: string[];
+}
+export const v_f91665 = {
+  model: "gpt-5.4-mini",
+  models: ["gpt-5.4-mini", "gpt-4o-mini", "gpt-5-nano", "gpt-6-luna"],
+};
+
+export async function v_882bd5(env: v_273a0c): Promise<ChatModelConfig> {
+  try {
+    const v_3ac7e7 = await v_c9c489.DB
+      .prepare(`SELECT value FROM app_config WHERE key = ? LIMIT 1`)
+      .bind(v_928050)
+      .first<{ value: string }>();
+    if (!v_3ac7e7) return v_f91665;
+    const v_e2a85c = JSON.parse(v_3ac7e7.value) as Partial<ChatModelConfig> | null;
+    if (!v_e2a85c || typeof v_e2a85c !== "object") return v_f91665;
+    const v_70641e = v_ca976d(v_e2a85c.models) ?? v_f91665.models;
+    return {
+      model:
+        typeof v_e2a85c.model === "string" && v_70641e.includes(v_e2a85c.model)
+          ? v_e2a85c.model
+          : (v_70641e[0] ?? v_f91665.model),
+      models: v_70641e,
+    };
+  } catch {
+    return v_f91665;
+  }
+}
+
+export async function v_8bd547(
+  env: v_273a0c,
+  v_17dc8a,
+): Promise<ChatModelConfig> {
+  const v_275ccd = await v_882bd5(v_c9c489);
+  let v_70641e = v_275ccd.models;
+  if (v_17dc8a.models !== undefined) {
+    const v_738e47 = v_ca976d(v_17dc8a.models);
+    if (!v_738e47) {
+      throw new Error(`models must be 1~${v_9a83ae} non-empty strings.`);
+    }
+    v_70641e = v_738e47;
+  }
+  const v_768389 = v_17dc8a.model !== undefined ? v_17dc8a.model : v_275ccd.model;
+  if (typeof v_768389 !== "string" || !v_70641e.includes(v_768389)) {
+    throw new Error("model must be one of models.");
+  }
+  const v_a448ad = { model: v_768389, models: v_70641e };
+  await v_c9c489.DB
+    .prepare(
+      `INSERT INTO app_config (key, value, updated_at) VALUES (?, ?, unixepoch())
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = unixepoch()`,
+    )
+    .bind(v_928050, JSON.stringify(v_a448ad))
+    .run();
+  return v_a448ad;
+}

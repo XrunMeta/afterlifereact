@@ -135,6 +135,48 @@ def strip_leading_filler(text: str) -> str:
         return text
     return stripped
 
+
+# _tts_stage_multi 와 같은 문장 경계 — 렌더 단위로 나눌 때도 같은 규칙을 쓴다.
+_TTS_SENT_SPLIT_RE = re.compile(r'(?<=[.!?…])\s+|\n+')
+
+
+def split_segment_for_render(text: str, min_chars: int) -> list[str]:
+    """(2026-10-21) 세그먼트를 렌더 단위 문장으로 나눈다.
+
+    sentence_buffer 가 짧은 문장을 한 세그먼트로 묶으면 _tts_stage_multi 가 문장별 TTS 를
+    전부 끝낸 뒤 한꺼번에 렌더해 첫 소리가 둘째 문장 TTS 만큼 늦었다. 문장마다 렌더 큐에
+    넣으면 첫 문장이 재생되는 동안 다음 문장 TTS 가 돈다.
+    min_chars(기본 6자) 미만 조각("응."·"그래."·"그렇구나." 등)은 다음 조각에 붙인다(마지막이면 앞 조각에) — 너무 짧은
+    렌더 조각이 생기지 않게. 붙인 조각은 _tts_stage_multi 가 다시 문장별 TTS 후 concat 한다.
+    """
+    parts = [p.strip() for p in _TTS_SENT_SPLIT_RE.split(text) if p.strip()]
+    if len(parts) <= 1:
+        return [text]
+    out: list[str] = []
+    carry = ""
+    for p in parts:
+        cur = f"{carry} {p}" if carry else p
+        if len(cur) < min_chars:
+            carry = cur
+            continue
+        out.append(cur)
+        carry = ""
+    if carry:
+        if out:
+            out[-1] = f"{out[-1]} {carry}"
+        else:
+            out.append(carry)
+    return out
+
+
+def _split_render_enabled() -> bool:
+    """PRETHIRD_TTS_SPLIT_RENDER=0 이면 기존(세그먼트 통째 concat 후 렌더)."""
+    return os.environ.get("PRETHIRD_TTS_SPLIT_RENDER", "1") == "1"
+
+
+def _split_min_chars() -> int:
+    return int(os.environ.get("PRETHIRD_TTS_SPLIT_MIN_CHARS", "6"))
+
 log = logging.getLogger("prethird.pipeline")
 
 # [T-120 e2e] 계측 로그(`[seg]`/`[turn]`)를 /data 영구 파일로 tee (additive).
@@ -942,7 +984,7 @@ class DialoguePipeline:
     # 내부: 문장 1개 처리 (스테이지 분리)
     # ------------------------------------------------------------------
 
-    async def _tts_stage(self, sentence: str):
+    async def _tts_stage(self, sentence: str, strip_lead: bool = True):
         """문장 → TTS wav bytes + 48kHz int16 PCM. (GPU0: qwen3 TTS)
 
         T-497: 이모지 strip. LLM 이 프롬프트 규칙 어기고 이모지 뱉어도 여기서
@@ -961,7 +1003,9 @@ class DialoguePipeline:
         """
         clean = strip_emojis_for_tts(sentence)
         # T-829 (2026-09-29): 첫머리 감정 도입/추임새 제거.
-        clean = strip_leading_filler(clean)
+        #   strip_lead=False: 세그먼트를 문장별로 나눠 렌더할 때 둘째 문장부터(2026-10-21).
+        if strip_lead:
+            clean = strip_leading_filler(clean)
         # T-828 (2026-09-29): 종결 부호 없는 짧은 문장 (예: "고마워") 에 마침표 자동 추가.
         #   CosyVoice2/Qwen3-TTS 는 마침표 있으면 종결 하강 억양 유도 · 없으면 애매 종결.
         #   실통화 실측: "고마워" 끝음 상승 · "고마워." 끝음 하강. env 로 off 가능.
@@ -978,7 +1022,7 @@ class DialoguePipeline:
         pcm48 = self._resample(pcm, sr, 48000)
         return wav_bytes, pcm48
 
-    async def _tts_stage_multi(self, full_text: str):
+    async def _tts_stage_multi(self, full_text: str, strip_lead: bool = True):
         """다중 문장 → 각 문장별 _tts_stage → pcm concat → 통합 wav + pcm48 반환.
 
         T-806 후속 (2026-09-22): Batch mode 로 답변 통째 TTS 하면 Qwen3-TTS 가
@@ -991,7 +1035,7 @@ class DialoguePipeline:
         """
         sentences = [s.strip() for s in re.split(r'(?<=[.!?…])\s+|\n+', full_text) if s.strip()]
         if len(sentences) <= 1:
-            return await self._tts_stage(full_text)
+            return await self._tts_stage(full_text, strip_lead=strip_lead)
         pcm_native_parts: list[np.ndarray] = []
         pcm_48k_parts: list[np.ndarray] = []
         sr_native: int | None = None
@@ -1003,7 +1047,7 @@ class DialoguePipeline:
         _auto_period = os.environ.get("PRETHIRD_TTS_AUTO_PERIOD", "1") == "1"
         for _idx, sent in enumerate(sentences):
             clean = strip_emojis_for_tts(sent)
-            if _idx == 0:
+            if _idx == 0 and strip_lead:
                 clean = strip_leading_filler(clean)
             if _auto_period and clean and not clean.rstrip().endswith(('.', '!', '?', '…', '。', '！', '？')):
                 clean = clean.rstrip() + '.'
@@ -1352,14 +1396,23 @@ class DialoguePipeline:
                 #   _tts_stage_multi 내부에서 [.!?] 로 문장 split 후
                 #   각 문장별 TTS + 200ms padding concat.
                 #   단일 문장이면 _tts_stage 로 위임 (회귀 0).
-                wav_bytes, pcm48 = await self._tts_stage_multi(s)
-                turn.append_wav(wav_bytes)
-                _m["n_seg"] += 1
-                # [T-151 라운드2] on_sentence는 여기서 더 이상 발신하지 않는다
-                # (dequeue 직후 = TTS/렌더 수 초 전, 실기 피드백: 자막이 너무
-                # 일찍 뜬다). 문장 텍스트를 wav_q 에 동승시켜 infer_worker의
-                # push 직전 훅(_infer_stage on_before_push)에서 발신한다.
-                await wav_q.put((s, wav_bytes, pcm48))
+                # 2026-10-21: 세그먼트 안 문장을 하나씩 렌더 큐로 보낸다(split_segment_for_render).
+                #   concat 은 둘째 문장 TTS 가 끝나야 첫 문장 렌더가 시작돼 첫 소리가 늦었다
+                #   (실측 21:08 턴 두 문장 TTS 6.2s 뒤 렌더 → 첫 소리 10.6s). 문장마다 렌더하면
+                #   첫 문장이 재생되는 동안 둘째 문장 TTS 가 돈다. 문장별 TTS 호출·padding 은 동일.
+                _parts = (
+                    split_segment_for_render(s, _split_min_chars()) if _split_render_enabled() else [s]
+                )
+                for _pi, part in enumerate(_parts):
+                    # 첫머리 추임새 제거는 세그먼트 첫 문장에만(_tts_stage_multi 와 같은 규칙).
+                    wav_bytes, pcm48 = await self._tts_stage_multi(part, strip_lead=(_pi == 0))
+                    turn.append_wav(wav_bytes)
+                    _m["n_seg"] += 1
+                    # [T-151 라운드2] on_sentence는 여기서 더 이상 발신하지 않는다
+                    # (dequeue 직후 = TTS/렌더 수 초 전, 실기 피드백: 자막이 너무
+                    # 일찍 뜬다). 문장 텍스트를 wav_q 에 동승시켜 infer_worker의
+                    # push 직전 훅(_infer_stage on_before_push)에서 발신한다.
+                    await wav_q.put((part, wav_bytes, pcm48))
 
         async def infer_worker():
             _first_infer = True
