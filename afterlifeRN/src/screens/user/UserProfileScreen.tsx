@@ -457,8 +457,17 @@ export default function v_c501aa() {
       )}
 
       {}
-      <Modal visible={v_3e9618} transparent animationType="fade">
-        <Pressable style={v_fd5f43.moreOverlay} onPress={() => v_eda097(false)}>
+      <Modal
+        visible={v_3e9618}
+        transparent
+        animationType="fade"
+        onRequestClose={() => v_eda097(false)}
+      >
+        <View style={v_fd5f43.moreOverlay}>
+          <Pressable
+            style={v_472849.absoluteFillObject}
+            onPress={() => v_eda097(false)}
+          />
           <SwipeDownSheet
             onClose={() => v_eda097(false)}
             style={[v_fd5f43.moreSheet, { paddingBottom: 24 + v_2b650d }]}
@@ -493,7 +502,7 @@ export default function v_c501aa() {
               </Text>
             </TouchableOpacity>
           </SwipeDownSheet>
-        </Pressable>
+        </View>
       </Modal>
 
       {}

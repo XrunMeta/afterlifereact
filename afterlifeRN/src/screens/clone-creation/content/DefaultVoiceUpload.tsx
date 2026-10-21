@@ -599,7 +599,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
                 >
                   <View style={v_d81136.cardRow}>
                     <Text style={[v_d81136.cardName, v_f8b770 && v_d81136.cardNameActive]}>
-                      {v_d7b329(v_81e2ef, v_9c213b.language)}
+                      {v_d7b329(v_81e2ef, v_9c213b.language, v_8d41d7)}
                     </Text>
                     <TouchableOpacity
                       style={v_d81136.playBtn}

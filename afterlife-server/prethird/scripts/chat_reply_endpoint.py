@@ -98,7 +98,10 @@ async def chat_reply(req: web.Request) -> web.Response:
     if not bundle:
         return web.json_response({"error": "bundle_unavailable"}, status=502)
 
-    persona = bundle_to_messages(bundle) + [{"role": "system", "content": CHAT_MODE_NOTE}]
+    # [2026-10-20 sungjius] 이 계정×클론의 지난 대화도, 이번 채팅의 앞 메시지도 없으면 첫 대화다.
+    first_meeting = not prior and not recent
+    persona = bundle_to_messages(bundle, first_meeting=first_meeting) + [
+        {"role": "system", "content": CHAT_MODE_NOTE}]
     messages = build_chat_messages(
         persona, prior[-_MAX_PRIOR:], recent[-_MAX_RECENT:], text, _max_chars(),
     )
