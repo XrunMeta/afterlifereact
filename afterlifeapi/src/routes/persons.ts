@@ -8,7 +8,14 @@ import { v_a8d2cc } from "../lib/faceVectors";
 import { v_430d2b } from "../lib/personDelete";
 import { v_d0fd96 } from "../lib/displayName";
 import { v_0b07b9 } from "../lib/cloneAccess";
-import { v_929ead, v_97be02, v_003ee1 } from "../lib/cloneFaceScope";
+import {
+  v_929ead,
+  v_97be02,
+  v_003ee1,
+  v_1bffe3,
+  v_e7a6ec,
+  v_a4a855,
+} from "../lib/cloneFaceScope";
 import { v_a752e9 } from "../lib/personaBundle";
 import { v_74defc } from "../lib/logger";
 
@@ -23,6 +30,15 @@ function v_5c8583(v_3f4e2e): number {
 
 export function v_565c6d(v_c9c489): boolean {
   return v_c9c489.FACE_CONSENT_ENFORCED === "true";
+}
+
+async function v_5996cb(env: v_de0a25["Bindings"], v_43e90c): Promise<void> {
+  if (!v_565c6d(v_c9c489)) return;
+  const v_625c74 = await v_c9c489.DB.prepare(`SELECT face_biometric_consent FROM users WHERE id = ?`)
+    .bind(v_43e90c)
+    .first<{ face_biometric_consent: number }>();
+  if (!v_625c74 || v_625c74.face_biometric_consent !== 1)
+    throw new v_3ebe58("FORBIDDEN", "얼굴정보 저장 동의(consent granted)가 필요합니다");
 }
 
 v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
@@ -102,14 +118,25 @@ v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
 
 const v_0eeb45 = 0.6;
 
+function v_91e67b(v_81e2ef): number[] {
+  if (!Array.isArray(v_81e2ef) || v_81e2ef.length !== 512 || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214)))
+    throw new v_3ebe58("VALIDATION_FAILED", "vector: 512차원 수치 배열이어야 합니다");
+  return v_81e2ef as number[];
+}
+
+async function v_4e929c(v_a1651b): Promise<number> {
+  const v_01dcf5 = await v_a1651b.prepare("SELECT value FROM app_config WHERE key = 'face.match_threshold'").first<{
+    value: string;
+  }>();
+  return v_01dcf5?.value !== undefined && Number.isFinite(Number(v_01dcf5.value)) ? Number(v_01dcf5.value) : v_0eeb45;
+}
+
 v_fded81.post("/match", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_4d33b2 = await v_3f4e2e.req
     .json<{ vector?: number[]; cloneId?: number }>()
     .catch(() => ({}) as { vector?: number[]; cloneId?: number });
-  const v_81e2ef = v_4d33b2.vector;
-  if (!Array.isArray(v_81e2ef) || v_81e2ef.length !== 512 || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214)))
-    throw new v_3ebe58("VALIDATION_FAILED", "vector: 512차원 수치 배열이어야 합니다");
+  const v_81e2ef = v_91e67b(v_4d33b2.vector);
 
   const v_6e0fd3 = v_4d33b2.cloneId;
   if (typeof v_6e0fd3 !== "number" || !Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
@@ -118,10 +145,7 @@ v_fded81.post("/match", v_6690d9, async (v_3f4e2e) => {
   const v_eb25ce = await v_0b07b9(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c);
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "클론을 찾을 수 없습니다.");
 
-  const v_01dcf5 = await v_3f4e2e.env.DB.prepare("SELECT value FROM app_config WHERE key = 'face.match_threshold'").first<{
-    value: string;
-  }>();
-  const v_d361d7 = v_01dcf5?.value !== undefined && Number.isFinite(Number(v_01dcf5.value)) ? Number(v_01dcf5.value) : v_0eeb45;
+  const v_d361d7 = await v_4e929c(v_3f4e2e.env.DB);
 
   const v_495447 = await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef });
   const v_52e08b = v_495447.map((v_35f85c) => v_35f85c.personId);
@@ -152,7 +176,108 @@ v_fded81.post("/match", v_6690d9, async (v_3f4e2e) => {
 
   const v_643757 = v_a49907[0] && v_a49907[0].score >= v_d361d7 ? v_a49907[0] : null;
 
-  return v_3f4e2e.json({ matches: v_a49907, best: v_643757, threshold: v_d361d7 });
+  let v_a74d7a = false;
+  if (!v_643757) {
+    v_a74d7a = await v_e7a6ec(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef, threshold: v_d361d7 }).catch((v_9e86fd) => {
+      console.error(`[match] self-match check failed: ${(v_9e86fd as Error).message}`);
+      return false;
+    });
+  }
+
+  return v_3f4e2e.json({ matches: v_a49907, best: v_643757, threshold: v_d361d7, selfMatch: v_a74d7a });
+});
+
+v_fded81.get("/self-face", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_b1d852 = await v_1bffe3(v_3f4e2e.env, v_43e90c);
+  return v_3f4e2e.json({ hasSelfFace: v_b1d852 !== null });
+});
+
+v_fded81.post("/from-account-self", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ cloneId?: number; displayName?: string; vector?: number[] }>()
+    .catch(() => ({}) as { cloneId?: number; displayName?: string; vector?: number[] });
+
+  const v_f9a45c = v_91e67b(v_4d33b2.vector);
+  const v_6e0fd3 = v_4d33b2.cloneId;
+  if (typeof v_6e0fd3 !== "number" || !Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
+    throw new v_3ebe58("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+  const v_8a1355 = v_d0fd96(v_4d33b2.displayName);
+
+  const v_eb25ce = await v_0b07b9(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "클론을 찾을 수 없습니다.");
+
+  await v_5996cb(v_3f4e2e.env, v_43e90c);
+
+  const v_b1d852 = await v_1bffe3(v_3f4e2e.env, v_43e90c);
+  if (!v_b1d852) throw new v_3ebe58("NOT_FOUND", "등록된 본인 얼굴이 없습니다.", { code: "NO_SELF_FACE" });
+  if (v_b1d852.cloneId === v_6e0fd3)
+    throw new v_3ebe58("VALIDATION_FAILED", "본인 얼굴이 이미 이 클론에 등록되어 있습니다.");
+
+  const v_d361d7 = await v_4e929c(v_3f4e2e.env.DB);
+  const v_688abd = await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_b1d852.cloneId, vector: v_f9a45c });
+  const v_715950 = v_688abd.find((v_65a2cd) => v_65a2cd.personId === v_b1d852.personId);
+  if (!v_715950 || v_715950.score < v_d361d7)
+    throw new v_3ebe58("VALIDATION_FAILED", "본인 얼굴과 일치하지 않습니다.", { code: "SELF_FACE_MISMATCH" });
+
+  const v_28fa96 = (v_3ac7e7) =>
+    new v_3ebe58("CONFLICT", "이미 이 클론에 등록된 얼굴입니다.", {
+      code: "ALREADY_REGISTERED",
+      personId: v_3ac7e7.id,
+      displayName: v_3ac7e7.display_name,
+    });
+  const v_b38746 = await v_3f4e2e.env.DB.prepare(
+    `SELECT id, display_name FROM persons WHERE user_id = ? AND clone_id = ? AND source_person_id = ? ORDER BY id LIMIT 1`,
+  )
+    .bind(v_43e90c, v_6e0fd3, v_b1d852.personId)
+    .first<{ id: number; display_name: string | null }>();
+  if (v_b38746) throw v_28fa96(v_b38746);
+  const v_d81543 = (await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_f9a45c })).find((v_65a2cd) => v_65a2cd.score >= v_d361d7);
+  if (v_d81543) {
+    const v_3ac7e7 = await v_3f4e2e.env.DB.prepare(`SELECT id, display_name FROM persons WHERE id = ? AND user_id = ? AND clone_id = ?`)
+      .bind(v_d81543.personId, v_43e90c, v_6e0fd3)
+      .first<{ id: number; display_name: string | null }>();
+    if (v_3ac7e7) throw v_28fa96(v_3ac7e7);
+  }
+
+  const v_292c43 = await v_3f4e2e.env.DB.prepare(`SELECT id FROM persons WHERE user_id = ? AND clone_id = ? AND display_name = ?`)
+    .bind(v_43e90c, v_6e0fd3, v_8a1355)
+    .first<{ id: number }>();
+  if (v_292c43) throw new v_3ebe58("VALIDATION_FAILED", "이미 등록된 이름입니다.");
+
+  let v_43c42e;
+  try {
+
+    const v_5c2f9f = Date.now();
+    v_43c42e = await v_3f4e2e.env.DB.prepare(
+      `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at, source_person_id)
+       SELECT user_id, ?, ?, 'granted', ?, enrolled_via, ?, id FROM persons WHERE id = ? AND user_id = ?`,
+    )
+      .bind(v_6e0fd3, v_8a1355, v_5c2f9f, v_5c2f9f, v_b1d852.personId, v_43e90c)
+      .run();
+  } catch (v_49263d) {
+    if (/UNIQUE constraint failed/i.test((v_49263d as Error).message ?? "")) {
+      throw new v_3ebe58("VALIDATION_FAILED", "이미 등록된 이름입니다.");
+    }
+    throw v_49263d;
+  }
+  const v_389afb = v_43c42e.meta.last_row_id as number;
+
+  v_3f4e2e.executionCtx.waitUntil(
+    (async () => {
+      const v_a72ab3 = await v_a4a855(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, copyPersonId: v_389afb, self: v_b1d852 });
+
+      if (v_a72ab3 > 0) {
+        const v_0a2cd1 = await v_a752e9(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c, v_389afb).catch(() => false);
+        if (v_0a2cd1) console.log(JSON.stringify({ event: "l2.owner_face.claim", cloneId: v_6e0fd3, personId: v_389afb, via: "account-self" }));
+      }
+    })().catch((v_9e86fd) => {
+      console.error(`[from-account-self] seed failed user=${v_43e90c} clone=${v_6e0fd3}: ${(v_9e86fd as Error).message}`);
+    }),
+  );
+
+  return v_3f4e2e.json({ id: v_389afb, displayName: v_8a1355 }, 201);
 });
 
 export function v_70df81(v_c9c489): boolean {
@@ -392,6 +517,27 @@ v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
   } catch (v_9e86fd) {
     throw new v_3ebe58("UPSTREAM_FAILURE", `얼굴 벡터 인덱스 저장 실패: ${(v_9e86fd as Error).message}`);
   }
+});
+
+v_fded81.post("/:id/account-self", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_ca1ec5 = v_5c8583(v_3f4e2e);
+
+  const v_306a28 = await v_3f4e2e.env.DB.prepare("SELECT id, clone_id, consent_state FROM persons WHERE id = ? AND user_id = ?")
+    .bind(v_ca1ec5, v_43e90c)
+    .first<{ id: number; clone_id: number | null; consent_state: string }>();
+  if (!v_306a28) throw new v_3ebe58("NOT_FOUND", "person이 존재하지 않습니다.");
+  if (v_306a28.consent_state !== "granted")
+    throw new v_3ebe58("FORBIDDEN", "얼굴정보 저장 동의(consent granted)가 필요합니다"); 
+  await v_5996cb(v_3f4e2e.env, v_43e90c);
+
+  const v_7d769d = await v_3f4e2e.env.DB.prepare("SELECT 1 AS ok FROM clone_person_faces WHERE person_id = ? AND clone_id = ? LIMIT 1")
+    .bind(v_ca1ec5, v_306a28.clone_id)
+    .first<{ ok: number }>();
+  if (!v_7d769d) throw new v_3ebe58("VALIDATION_FAILED", "얼굴이 등록되지 않은 person 입니다.");
+
+  await v_3f4e2e.env.DB.prepare("UPDATE users SET self_face_person_id = ? WHERE id = ?").bind(v_ca1ec5, v_43e90c).run();
+  return v_3f4e2e.json({ ok: true });
 });
 
 v_fded81.delete("/:id", v_6690d9, async (v_3f4e2e) => {

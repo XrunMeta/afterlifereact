@@ -701,6 +701,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const unknownFaceSnapshotRef = useRef<number[][] | null>(null);
 
+  const accountSelfMatchRef = useRef(false);
+
   const calibrateOpt = useMemo(
     () => (FACE_DIAG_ENABLED ? { accessToken: accessToken ?? "", groundTruthPersonId: gtPersonId } : null),
     [accessToken, gtPersonId],
@@ -725,6 +727,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     onDiag: setFaceDiag,
     calibrate: calibrateOpt,
     onCollected: angleCollector.observe,
+    onSelfMatch: (v: boolean) => { accountSelfMatchRef.current = v; },
 
     getCurrentLandmark: useCallback(() => currentLandmarkRef.current, []),
   });
@@ -1384,6 +1387,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     }
     afl971PromptAlertShownRef.current = true;
 
+    const lastPerson = rmState.lastConfirmedPerson;
+    const lastPersonName = lastPerson?.displayName?.trim() || null;
     showAlert(
       t("call.newFaceTitle", { defaultValue: "새 얼굴이 보여요" }),
       t("call.newFaceBody", { defaultValue: "얼굴을 등록할까요?" }),
@@ -1393,8 +1398,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           style: "cancel",
           onPress: () => dispatchRm({ type: "DISMISS_LATER" }),
         },
-        {
-          text: t("call.newFaceSelf", { defaultValue: "본인" }),
+        ...(lastPerson != null ? [{
+          text: lastPersonName
+            ? t("call.newFaceSelfNamed", { name: lastPersonName, defaultValue: `${lastPersonName}이에요` })
+            : t("call.newFaceSelf", { defaultValue: "본인" }),
           onPress: () => {
 
             const snapshot = unknownFaceSnapshotRef.current;
@@ -1411,7 +1418,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
             }
             dispatchRm({ type: "CONFIRM_SAME_PERSON" });
           },
-        },
+        }] : []),
         {
           text: t("call.newFaceEnroll", { defaultValue: "등록" }),
           onPress: () => {
@@ -1419,7 +1426,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
             (navigation as unknown as { navigate: (name: string, params: object) => void }).navigate(
               "PreCallFaceEnroll",
-              { cloneId, name: paramName, image: paramImage, midCall: true },
+              { cloneId, name: paramName, image: paramImage, midCall: true, accountSelfMatch: accountSelfMatchRef.current },
             );
           },
         },
