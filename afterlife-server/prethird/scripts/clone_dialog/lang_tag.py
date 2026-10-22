@@ -12,9 +12,9 @@ import re
 DEFAULT_LANG = "ko"
 
 # 맨 앞 태그(앞 공백 허용). 코드는 영문 2~3자 + 선택 지역(zh-CN → zh 로 줄임).
-_HEAD_RE = re.compile(r"^\s*<\s*lang\s*=\s*([A-Za-z]{2,3})(?:[-_][A-Za-z]{2,4})?\s*>\s*")
+_HEAD_RE = re.compile(r"^\s*<\s*lang\s*=\s*([A-Za-z]{2,3})(?:[-_][A-Za-z]{2,4})?\s*>\s*", re.I)
 # 본문 어디든 남은 태그(깨진 것 포함 `<lang=>`·`<lang=xx`) — 사용자에게 보이지 않게 지운다.
-_ANY_RE = re.compile(r"<\s*lang\s*=\s*[A-Za-z_-]{0,10}\s*>?")
+_ANY_RE = re.compile(r"<\s*lang\s*=\s*[A-Za-z_-]{0,10}\s*>?", re.I)
 
 # ISO 639-1 두 글자만 인정(오탈자·임의 문자열 차단). 필요한 언어가 늘면 여기에 더한다.
 KNOWN_LANGS = frozenset({
