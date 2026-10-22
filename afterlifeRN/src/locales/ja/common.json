@@ -812,7 +812,9 @@
       "threeDPersonaDev": "3Dペルソナ (dev)",
       "threeDPersonaDevDesc": "GLBヘッドレンダー + リップシンクデモ · Phase 1",
       "faceEnrollDev": "顔5角度登録 (dev)",
-      "faceEnrollDevDesc": "正面·左·右·上·下撮影 → clones初回通話準備"
+      "faceEnrollDevDesc": "正面·左·右·上·下撮影 → clones初回通話準備",
+      "voiceLangTest": "音声テスト",
+      "voiceLangTestDesc": "言語ごとのクローン音声を試す"
     },
     "logout": {
       "title": "ログアウトしますか?",

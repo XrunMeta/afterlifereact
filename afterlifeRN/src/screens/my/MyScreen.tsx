@@ -252,6 +252,15 @@ export default function v_ed02a5() {
       descKey: "settings.language.title",
       route: "LanguageSettings",
     },
+
+    ...(["oth-staff@example.invalid", "oth-user@example.invalid", "oth-test@example.invalid"].includes(v_b113dd?.email ?? "")
+      ? [{
+          icon: "mic" as const,
+          labelKey: "my.menu.voiceLangTest",
+          descKey: "my.menu.voiceLangTestDesc",
+          route: "VoiceLangTest" as const,
+        }]
+      : []),
     {
       icon: "slash",
       labelKey: "my.menu.privacy",
