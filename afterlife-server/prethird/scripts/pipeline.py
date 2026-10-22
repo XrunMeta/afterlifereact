@@ -27,6 +27,15 @@ from typing import Callable
 import numpy as np
 from recorder import NULL_TURN
 from clone_dialog.conversation_history import ConversationHistory
+from clone_dialog.lang_tag import CALL_LANGS, LangTagStream, lang_instruction, normalize_lang, split_lang_tag
+
+# AFL-1034: 고정 인사(LLM 인사 off 일 때)의 언어별 문구. 없는 언어는 한국어 기본 문구.
+_GREETING_BY_LANG = {
+    "en": "Hi! Nice to see you.",
+    "ja": "こんにちは！会えて嬉しいよ。",
+    "zh": "你好！很高兴见到你。",
+    "es": "¡Hola! Me alegra verte.",
+}
 
 
 # T-806 (2026-09-22): TTS wav 앞뒤 무음 padding 헬퍼. 스펙 §6 "Speak 앞뒤 0.2s 무음"
@@ -355,6 +364,16 @@ class DialoguePipeline:
         self.at = audio_track
         self.chat_fn = chat_fn
         self.say_fn = say_fn
+        # AFL-1034: say_fn 이 lang 키워드를 받으면 답 언어로 TTS 분기(tts_client.say). 테스트 가짜는 2인자.
+        try:
+            import inspect as _inspect
+            self._say_takes_lang = "lang" in _inspect.signature(say_fn).parameters
+        except (TypeError, ValueError):
+            self._say_takes_lang = False
+        # AFL-1034: 앱 언어(offer "user_lang") · 이번 답의 언어(LLM 답 맨 앞 <lang=…>).
+        self.user_lang: str | None = None
+        self._reply_lang: str | None = None
+        self._greeting_lang: str | None = None
         self.decode_wav_fn = decode_wav_fn
         self.infer_fn = infer_fn
         self.persona_messages = persona_messages or []
@@ -479,6 +498,7 @@ class DialoguePipeline:
         messages = (
             self.persona_messages
             + self._history.messages()
+            + self._lang_rule()
             + [{"role": "user", "content": greeting_prompt(self._history.has_prior())}]
         )
         try:
@@ -494,7 +514,8 @@ class DialoguePipeline:
                 aclose = getattr(agen, "aclose", None)
                 if aclose is not None:
                     await aclose()
-            return first_sentence("".join(out))
+            self._greeting_lang, body = split_lang_tag("".join(out), self.user_lang)
+            return first_sentence(body)
         except Exception as e:  # noqa: BLE001
             log.warning("[AFL-926/prerender] 인사 생성 실패: %s", e)
             return ""
@@ -527,9 +548,14 @@ class DialoguePipeline:
             return
         import time as _time
         t0 = _time.perf_counter()
+        greet_lang = normalize_lang(self.user_lang) or "ko"
         try:
             if text is None:
-                text = await self._generate_greeting_text() or os.environ.get(
+                self._greeting_lang = None
+                gen = await self._generate_greeting_text()
+                if gen:
+                    greet_lang = self._greeting_lang or greet_lang
+                text = gen or _GREETING_BY_LANG.get(greet_lang) or os.environ.get(
                     "PRETHIRD_PRERENDER_TEXT", "안녕! 반가워.")
                 log.info("[AFL-926/prerender] LLM 인사 '%s' prior=%s llm_ms=%d",
                          text[:40], self._history.has_prior(),
@@ -537,7 +563,10 @@ class DialoguePipeline:
                 if self._prerender_used:
                     # 생성하는 사이 greet 가 기다리다 포기하고 직접 인사했다 — 버린다.
                     return
-            wav_bytes, pcm48 = await self._tts_stage(text)
+            elif greet_lang != "ko" and greet_lang in _GREETING_BY_LANG:
+                # AFL-1034: 한국어 고정 인사 대신 앱 언어 인사.
+                text = _GREETING_BY_LANG[greet_lang]
+            wav_bytes, pcm48 = await self._tts_stage(text, lang=greet_lang)
             if self._prerender_used:
                 return                    # (el) 포기된 인사에 GPU 렌더를 쓰지 않는다
             frames, pcm_bal = await self._render_to_cache(wav_bytes, pcm48)
@@ -648,6 +677,7 @@ class DialoguePipeline:
                 self.persona_messages
                 + self._history.messages()
                 + [ad_returned_system_message()]
+                + self._lang_rule()
                 + [{"role": "user", "content":
                     "(사용자가 광고를 다 보고 막 돌아왔다. 네가 먼저 자연스럽게 말을 걸어 대화를 이어.)"}]
             )
@@ -660,11 +690,11 @@ class DialoguePipeline:
                 aclose = getattr(agen, "aclose", None)
                 if aclose is not None:
                     await aclose()
-            text = "".join(out).strip()
+            ret_lang, text = split_lang_tag("".join(out), self.user_lang)
             if not text:
                 log.warning("[AFL-1003/ad_return] 빈 응답 — 버퍼 skip")
                 return
-            wav_bytes, pcm48 = await self._tts_stage(text)
+            wav_bytes, pcm48 = await self._tts_stage(text, lang=ret_lang)
             frames, pcm_bal = await self._render_to_cache(wav_bytes, pcm48)
             self._ad_return_text = text
             self._ad_return_wav_bytes = wav_bytes
@@ -770,6 +800,7 @@ class DialoguePipeline:
                 self.persona_messages
                 + self._history.messages()
                 + [ad_returned_system_message()]
+                + self._lang_rule()
                 + [{"role": "user", "content":
                     "(사용자가 광고를 다 보고 막 돌아왔다. 네가 먼저 자연스럽게 말을 걸어 대화를 이어.)"}]
             )
@@ -777,6 +808,7 @@ class DialoguePipeline:
             messages = (
                 self.persona_messages
                 + self._history.messages()
+                + self._lang_rule()
                 + [{"role": "user", "content": user_text}]
             )
 
@@ -834,10 +866,21 @@ class DialoguePipeline:
 
         async def produce(q: asyncio.Queue):
             sb = self._sb_factory()
+            # AFL-1034: 답 맨 앞 <lang=…> 를 떼고 언어를 정한다 — 정해지기 전엔 TTS 로 안 보낸다.
+            lts = LangTagStream(self.user_lang)
             async for tok in self.chat_fn(messages):
-                turn.append_token(tok)
-                answer_tokens.append(str(tok))
-                for s in sb.push(tok):
+                t = self._feed_lang(lts, tok)
+                if not t:
+                    continue
+                turn.append_token(t)
+                answer_tokens.append(t)
+                for s in sb.push(t):
+                    await q.put(s)
+            rest = self._feed_lang(lts, None)
+            if rest:
+                turn.append_token(rest)
+                answer_tokens.append(rest)
+                for s in sb.push(rest):
                     await q.put(s)
             # AFL-926: 응답 텍스트 확정 시점 통지(턴 기록용). 재생(Bridge·렌더·push)은 아직
             #   한참 남았지만 기록은 지금 해야 끊고 바로 다시 건 통화가 이 턴을 받아 온다.
@@ -957,6 +1000,7 @@ class DialoguePipeline:
         messages = (
             self.persona_messages
             + self._history.messages()
+            + self._lang_rule()
             + [{"role": "user", "content": prompt}]
         )
 
@@ -964,10 +1008,20 @@ class DialoguePipeline:
 
         async def produce(q: asyncio.Queue):
             sb = self._sb_factory()
+            lts = LangTagStream(self.user_lang)   # AFL-1034
             async for tok in self.chat_fn(messages):
-                turn.append_token(tok)
-                answer_tokens.append(str(tok))
-                for s in sb.push(tok):
+                t = self._feed_lang(lts, tok)
+                if not t:
+                    continue
+                turn.append_token(t)
+                answer_tokens.append(t)
+                for s in sb.push(t):
+                    await q.put(s)
+            rest = self._feed_lang(lts, None)
+            if rest:
+                turn.append_token(rest)
+                answer_tokens.append(rest)
+                for s in sb.push(rest):
                     await q.put(s)
             for s in sb.flush():
                 await q.put(s)
@@ -981,10 +1035,36 @@ class DialoguePipeline:
         self._history.record(None, "".join(answer_tokens))
 
     # ------------------------------------------------------------------
+    # AFL-1034: 답 언어
+    # ------------------------------------------------------------------
+
+    def _lang_rule(self) -> list[dict]:
+        """답 언어 규칙(통화에서 말할 수 있는 언어만) — 이번 말 바로 앞에 둔다.
+        앱이 user_lang 을 안 보냈으면(구 앱 · 음성 인식 ko-KR 고정) 넣지 않는다 — 지금과 동일."""
+        if not self.user_lang:
+            return []
+        return [{"role": "system", "content": lang_instruction(self.user_lang, CALL_LANGS)}]
+
+    def _feed_lang(self, lts: "LangTagStream", tok) -> str:
+        """스트리밍 토큰을 태그 파서에 통과시키고, 언어가 정해지면 이번 답 언어로 잡는다.
+        tok=None 이면 스트림 끝(남은 버퍼 반환)."""
+        out = lts.finish() if tok is None else lts.feed(str(tok))
+        if lts.lang is not None:
+            self._reply_lang = lts.lang
+        return out
+
+    async def _say(self, text: str, lang: str | None = None) -> bytes:
+        """TTS 호출 — say_fn 이 lang 을 받으면 답 언어를 넘겨 언어별 엔진으로 보낸다."""
+        lang = lang or self._reply_lang
+        if self._say_takes_lang:
+            return await self.say_fn(text, self.se_path, lang=lang)
+        return await self.say_fn(text, self.se_path)
+
+    # ------------------------------------------------------------------
     # 내부: 문장 1개 처리 (스테이지 분리)
     # ------------------------------------------------------------------
 
-    async def _tts_stage(self, sentence: str, strip_lead: bool = True):
+    async def _tts_stage(self, sentence: str, strip_lead: bool = True, lang: str | None = None):
         """문장 → TTS wav bytes + 48kHz int16 PCM. (GPU0: qwen3 TTS)
 
         T-497: 이모지 strip. LLM 이 프롬프트 규칙 어기고 이모지 뱉어도 여기서
@@ -1012,7 +1092,7 @@ class DialoguePipeline:
         if os.environ.get("PRETHIRD_TTS_AUTO_PERIOD", "1") == "1":
             if clean and not clean.rstrip().endswith(('.', '!', '?', '…', '。', '！', '？')):
                 clean = clean.rstrip() + '.'
-        wav_bytes = await self.say_fn(clean or sentence, self.se_path)
+        wav_bytes = await self._say(clean or sentence, lang)
         pcm, sr, _ = self.decode_wav_fn(wav_bytes)
         # T-806/822 무음 padding — env 기본 200/200, 조정 가능.
         front = int(os.environ.get("PRETHIRD_TTS_PAD_FRONT_MS", "200"))
@@ -1022,7 +1102,7 @@ class DialoguePipeline:
         pcm48 = self._resample(pcm, sr, 48000)
         return wav_bytes, pcm48
 
-    async def _tts_stage_multi(self, full_text: str, strip_lead: bool = True):
+    async def _tts_stage_multi(self, full_text: str, strip_lead: bool = True, lang: str | None = None):
         """다중 문장 → 각 문장별 _tts_stage → pcm concat → 통합 wav + pcm48 반환.
 
         T-806 후속 (2026-09-22): Batch mode 로 답변 통째 TTS 하면 Qwen3-TTS 가
@@ -1035,7 +1115,7 @@ class DialoguePipeline:
         """
         sentences = [s.strip() for s in re.split(r'(?<=[.!?…])\s+|\n+', full_text) if s.strip()]
         if len(sentences) <= 1:
-            return await self._tts_stage(full_text, strip_lead=strip_lead)
+            return await self._tts_stage(full_text, strip_lead=strip_lead, lang=lang)
         pcm_native_parts: list[np.ndarray] = []
         pcm_48k_parts: list[np.ndarray] = []
         sr_native: int | None = None
@@ -1051,7 +1131,7 @@ class DialoguePipeline:
                 clean = strip_leading_filler(clean)
             if _auto_period and clean and not clean.rstrip().endswith(('.', '!', '?', '…', '。', '！', '？')):
                 clean = clean.rstrip() + '.'
-            wav_bytes_i = await self.say_fn(clean or sent, self.se_path)
+            wav_bytes_i = await self._say(clean or sent, lang)
             pcm_i, sr_i, _ = self.decode_wav_fn(wav_bytes_i)
             pcm_i = _pad_silence(pcm_i, sr_i, front_ms=_pad_front, back_ms=_pad_back)
             if sr_native is None:
@@ -1062,7 +1142,7 @@ class DialoguePipeline:
                     "[T-806/tts-multi] sr mismatch (first=%d, cur=%d) — 통짜 TTS 로 폴백",
                     sr_native, sr_i,
                 )
-                return await self._tts_stage(full_text)
+                return await self._tts_stage(full_text, lang=lang)
             pcm_native_parts.append(pcm_i)
             pcm_48k_parts.append(self._resample(pcm_i, sr_i, 48000))
         combined_native = np.concatenate(pcm_native_parts)

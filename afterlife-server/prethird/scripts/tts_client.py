@@ -15,9 +15,21 @@ def _timeout_s() -> float:
         return _DEFAULT_TIMEOUT_S
     return v if v > 0 else _DEFAULT_TIMEOUT_S
 
-async def say(text: str, se_path: str | None = None) -> bytes:
+def tts_url_for(lang: str | None) -> str:
+    """AFL-1034: 답 언어별 TTS 엔진. env PRETHIRD_TTS_URL_<LANG>(예: PRETHIRD_TTS_URL_ES) 가 있으면
+    그 언어만 그쪽으로, 없으면 기본 PRETHIRD_TTS_URL(CosyVoice2). 매 호출 읽어 env 변경을 바로 반영."""
+    if lang:
+        url = os.environ.get(f"PRETHIRD_TTS_URL_{lang.upper()}", "").strip()
+        if url:
+            return url
+    return TTS_URL
+
+async def say(text: str, se_path: str | None = None, lang: str | None = None) -> bytes:
     """text → TTS wav bytes. MeloTTS(KR) base → OpenVoice ToneColorConverter(se_path).
-    testbed/lib/tts.js 와 동일 계약(/tts/kr, speed/sdp_ratio/noise_scale/noise_scale_w)."""
+    testbed/lib/tts.js 와 동일 계약(/tts/kr, speed/sdp_ratio/noise_scale/noise_scale_w).
+
+    AFL-1034: lang = 답 언어(ko·en·ja·zh·es). 엔진 선택(tts_url_for) + 본문에 실어 보낸다
+    (CosyVoice 어댑터가 숫자 한글 수사 변환을 ko 에만 건다). 옛 어댑터는 lang 을 무시한다."""
     body = {
         "text": text,
         "speed": float(os.environ.get("PRETHIRD_TTS_SPEED", "1.0")),
@@ -28,8 +40,10 @@ async def say(text: str, se_path: str | None = None) -> bytes:
     se = se_path or DEFAULT_SE_PATH
     if se:
         body["se_path"] = se
+    if lang:
+        body["lang"] = lang
     timeout = aiohttp.ClientTimeout(total=_timeout_s())
     async with aiohttp.ClientSession(timeout=timeout) as sess:
-        async with sess.post(f"{TTS_URL}{TTS_PATH}", json=body) as resp:
+        async with sess.post(f"{tts_url_for(lang)}{TTS_PATH}", json=body) as resp:
             resp.raise_for_status()
             return await resp.read()

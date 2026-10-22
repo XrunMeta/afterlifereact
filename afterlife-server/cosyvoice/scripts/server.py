@@ -54,6 +54,8 @@ class SynthReq(BaseModel):
     # 클론 지정: ① clone_id(우선) → ② se_path(하위호환).
     clone_id: str | None = None
     se_path: str | None = None
+    # AFL-1034: 답 언어(ko·en·ja·zh·es). 숫자 한글 수사 변환은 ko(또는 미지정 = 옛 호출)에만.
+    lang: str | None = None
 
 
 @app.post("/tts/kr")
@@ -62,7 +64,10 @@ def synth(req: SynthReq):
     if eng is None:
         raise HTTPException(503, "engine not loaded")
     # 아라비아 숫자는 한글 읽기로 — wetext 정규화가 한국어 속 숫자에서 죽어 500 이 났다.
-    txt = spell_numbers(req.text.strip())
+    # AFL-1034: 외국어 문장에는 한글 수사를 쓰지 않는다(sungjius 결정). v3 는 숫자를 스스로 읽는다.
+    txt = req.text.strip()
+    if not config.IS_V3 and (req.lang or "ko").lower().startswith("ko"):
+        txt = spell_numbers(txt)
     if not txt:
         raise HTTPException(400, "empty text")
     if len(txt) > 1500:
@@ -106,7 +111,7 @@ def synth(req: SynthReq):
             "X-Wav-Bytes": str(len(wav)),
             "X-Clone-Id": clone_id,
             "X-Icl-Mode": "true" if ref_text is not None else "false",
-            "X-Engine": "cosyvoice2",
+            "X-Engine": config.ENGINE_NAME,
         },
     )
 
