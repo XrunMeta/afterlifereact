@@ -21,6 +21,7 @@ from aiohttp import web
 
 from clone_dialog.bundle_client import fetch_bundle
 from clone_dialog.conversation_history import ConversationHistory
+from clone_dialog.lang_tag import lang_instruction, normalize_lang, split_lang_tag
 from clone_dialog.llm_client import chat_once
 from clone_dialog.persona_prompt import bundle_to_messages
 
@@ -47,8 +48,12 @@ def build_chat_messages(
     recent: list,
     text: str,
     max_chars: int,
+    user_lang: str | None = None,
 ) -> list[dict]:
-    """persona + [이전 대화 system] + 최근 채팅(user/assistant) + 이번 말."""
+    """persona + [이전 대화 system] + 최근 채팅(user/assistant) + [답 언어 규칙] + 이번 말.
+
+    AFL-1033: 지난 대화·기억이 한국어라 끌려가지 않도록 답 언어 규칙을 이번 말 바로 앞에 둔다.
+    """
     hist = ConversationHistory(1, max_chars)
     hist.seed_prior([
         {**t, "text": t["text"][:_MAX_ITEM_CHARS]}
@@ -67,7 +72,8 @@ def build_chat_messages(
         role = "user" if m.get("role") == "user" else "assistant" if m.get("role") == "clone" else None
         if role:
             convo.append({"role": role, "content": t})
-    return list(persona_messages) + prior_msgs + convo + [{"role": "user", "content": text}]
+    lang_rule = [{"role": "system", "content": lang_instruction(user_lang)}]
+    return list(persona_messages) + prior_msgs + convo + lang_rule + [{"role": "user", "content": text}]
 
 
 def _max_chars() -> int:
@@ -102,6 +108,8 @@ async def chat_reply(req: web.Request) -> web.Response:
         if model not in (None, ""):
             log.warning("chat reply clone=%s 모델명 무시 → 기본 모델", clone_id)
         model = None
+    # AFL-1033: 앱 언어(사용자 언어). 이번 메시지 언어가 불분명할 때 답 언어 · 태그 폴백.
+    user_lang = normalize_lang(body.get("user_lang"))
 
     bundle = await fetch_bundle(os.environ.get("PRETHIRD_API_BASE"), clone_id, token)
     if not bundle:
@@ -112,19 +120,20 @@ async def chat_reply(req: web.Request) -> web.Response:
     persona = bundle_to_messages(bundle, first_meeting=first_meeting) + [
         {"role": "system", "content": CHAT_MODE_NOTE}]
     messages = build_chat_messages(
-        persona, prior[-_MAX_PRIOR:], recent[-_MAX_RECENT:], text, _max_chars(),
+        persona, prior[-_MAX_PRIOR:], recent[-_MAX_RECENT:], text, _max_chars(), user_lang,
     )
     try:
         raw = await chat_once(messages, model=model)
     except Exception as e:  # noqa: BLE001
         log.exception("chat reply LLM 실패 clone=%s: %s", clone_id, e)
         return web.json_response({"error": "llm_failed"}, status=502)
-    reply = (raw or "").strip()[:_MAX_REPLY_CHARS]
+    lang, reply = split_lang_tag(raw or "", user_lang)
+    reply = reply[:_MAX_REPLY_CHARS]
     if not reply:
         return web.json_response({"error": "empty_reply"}, status=502)
-    log.info("chat reply clone=%s model=%s prior=%d recent=%d chars=%d",
-             clone_id, model or "default", len(prior), len(recent), len(reply))
-    return web.json_response({"reply": reply})
+    log.info("chat reply clone=%s model=%s prior=%d recent=%d chars=%d lang=%s user_lang=%s",
+             clone_id, model or "default", len(prior), len(recent), len(reply), lang, user_lang or "-")
+    return web.json_response({"reply": reply, "lang": lang})
 
 
 def register_chat_reply_routes(app: web.Application) -> None:
