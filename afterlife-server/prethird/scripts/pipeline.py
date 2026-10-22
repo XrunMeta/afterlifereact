@@ -28,7 +28,7 @@ import numpy as np
 from recorder import NULL_TURN
 from clone_dialog.conversation_history import ConversationHistory
 from clone_dialog.lang_tag import CALL_LANGS, LangTagStream, lang_instruction, normalize_lang, split_lang_tag
-from clone_dialog.whoami import turn_face_instruction
+from clone_dialog.whoami import turn_face_instruction, turn_face_names_allowed
 
 # AFL-1034: 고정 인사(LLM 인사 off 일 때)의 언어별 문구. 없는 언어는 한국어 기본 문구.
 _GREETING_BY_LANG = {
@@ -827,6 +827,12 @@ class DialoguePipeline:
         # signaling.py 의 _maybe_swap_l2p 성공 시(speaker_confirmed) 세팅, _clear_current_speaker
         # 시 None. 얼굴 인식 결과가 프롬프트 재조립 이외의 실시간 사실로 매 응답 반영된다.
         _speaker_now = getattr(self, "current_speaker_name", None)
+        # [AFL-1039] 이번 턴 얼굴이 미확인(unknown·insufficient)이거나 서버가 그 사람으로 아직
+        #   확정·스왑을 못 마쳤으면 이번 턴에는 이름을 어디에도 넣지 않는다(T-566 힌트·이름 부르기
+        #   힌트·확인 말투 전부). current_speaker·persona(L2') 는 그대로 둔다 — 이번 턴 프롬프트만.
+        _tf_now = time.monotonic()
+        if not turn_face_names_allowed(turn_face, _tf_now):
+            _speaker_now = None
         if _speaker_now:
             messages = messages + [{
                 "role": "system",
@@ -846,11 +852,15 @@ class DialoguePipeline:
 
         # [AFL-1039] 말하는 순간 얼굴 대조 결과 → 이번 턴 지시 1줄(위 화자 힌트 뒤). 이름은
         #   서버가 확정한 current_speaker_name 에서만 — 미확인이면 이름 없이 카메라 안내 + <ask=who>.
-        _tf_rule = turn_face_instruction(turn_face, _speaker_now, time.monotonic())
+        _tf_rule = turn_face_instruction(turn_face, _speaker_now, _tf_now)
         if _tf_rule:
             messages = messages + [{"role": "system", "content": _tf_rule}]
 
         _hint = getattr(self, "name_mention_hint", None)
+        if _hint and not turn_face_names_allowed(turn_face, _tf_now):
+            # 미확인 턴 — 이름 부르기 힌트는 쓰지 않고 버린다(다음 턴에 다른 사람에게 새지 않게).
+            self.name_mention_hint = None
+            _hint = None
         if _hint:
             self.name_mention_hint = None
             messages = messages + [{
