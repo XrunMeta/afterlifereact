@@ -32,6 +32,7 @@ import {
   v_84a859,
   v_dd2158,
   v_c93bd8,
+  v_3dcd72,
   v_5c746e,
   v_7ef860,
   v_1d5b64,
@@ -308,6 +309,16 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
         });
         if (!v_68e4c4.identityToken) {
           v_889fad(v_8d41d7("common.error"), v_8d41d7("auth.login.appleNoToken"));
+          return;
+        }
+
+        const v_de130a = await v_3dcd72(v_68e4c4.identityToken);
+        if (!v_de130a.afterlifeExists && !v_de130a.xrunExists && v_de130a.signupToken) {
+          const v_05b02f = [v_68e4c4.fullName?.givenName, v_68e4c4.fullName?.familyName]
+            .filter(Boolean).join(" ");
+          v_c65f5d.navigate("Signup", {
+            apple: { signupToken: v_de130a.signupToken, email: v_de130a.email, name: v_05b02f || null },
+          });
           return;
         }
         const v_929b58 = await v_ea1c99();

@@ -10,6 +10,8 @@ export interface SignupPayload {
   name: string;
   verificationCode?: string;
   googleIdToken?: string;
+
+  appleSignupToken?: string;
   phone?: string;
   gender?: "male" | "female" | "other";
   age?: number;
@@ -223,6 +225,17 @@ export interface AppleSignInPayload {
 }
 export async function v_c93bd8(v_931bf0): Promise<LoginSuccessResponse> {
   return v_c34e2f("/oth-path", v_931bf0);
+}
+
+export interface AppleCheckResponse {
+  afterlifeExists: boolean;
+  xrunExists: boolean;
+  email: string;
+  isPrivateEmail: boolean;
+  signupToken: string | null;
+}
+export async function v_3dcd72(v_55f908): Promise<AppleCheckResponse> {
+  return v_c34e2f("/oth-path", { identityToken: v_55f908 });
 }
 
 export async function v_7ef860(v_2ca7e0): Promise<{ user: AuthUser; interests: string[] }> {

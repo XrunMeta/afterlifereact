@@ -20,6 +20,7 @@ import { v_b78f7e, v_656e8b } from "../lib/otp";
 
 import { v_a32f1d } from "../lib/googleAuth";
 import { v_bb3c56 } from "../lib/appleAuth";
+import { v_b2eae5, v_2703c5 } from "../lib/jwt";
 import { v_4960d7 } from "../lib/credits";
 import {
   v_6e4cc8,
@@ -51,6 +52,8 @@ const v_7b8b17 = v_1f4ea7.object({
 
   verificationCode: v_1f4ea7.string().regex(/^\d{6}$/, "6-digit code required").optional(),
   googleIdToken: v_1f4ea7.string().min(20).optional(),
+
+  appleSignupToken: v_1f4ea7.string().min(20).optional(),
   phone: v_1f4ea7.string().min(4).max(40).optional(),
   gender: v_1f4ea7.enum(["male", "female", "other"]).optional(),
   age: v_1f4ea7.number().int().min(13).max(120).optional(),
@@ -113,6 +116,36 @@ v_68f0aa.post("/google/check", async (v_3f4e2e) => {
     email: v_931bf0.email,
     name: v_931bf0.name ?? null,
     picture: v_931bf0.picture ?? null,
+  });
+});
+
+const v_305350 = "apple_signup";
+const v_b2e2f2 = 60 * 60;
+const v_f92670 = v_1f4ea7.object({ identityToken: v_1f4ea7.string().min(20) });
+v_68f0aa.post("/apple/check", async (v_3f4e2e) => {
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_f92670);
+  const v_931bf0 = await v_bb3c56(v_3f4e2e.env, v_4d33b2.identityToken);
+
+  const [v_ed2073, v_76be17] = await Promise.all([
+    v_3f4e2e.env.DB
+      .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`)
+      .bind(v_931bf0.email)
+      .first<{ id: number }>(),
+    v_a0ec33(v_3f4e2e.env, v_931bf0.email),
+  ]);
+  const v_85278c = !!v_ed2073;
+  const v_5c805d = !!v_76be17.found;
+  const v_274c08 = v_85278c || v_5c805d
+    ? null
+    : await v_b2eae5({ sub: v_931bf0.email, kind: v_305350, email: v_931bf0.email, appleSub: v_931bf0.sub },
+        v_3f4e2e.env.JWT_ACCESS_SECRET, v_b2e2f2);
+
+  return v_3f4e2e.json({
+    afterlifeExists: v_85278c,
+    xrunExists: v_5c805d,
+    email: v_931bf0.email,
+    isPrivateEmail: v_931bf0.is_private_email,
+    signupToken: v_274c08,
   });
 });
 
@@ -509,6 +542,13 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
     const v_931bf0 = await v_a32f1d(v_3f4e2e.env, v_4d33b2.googleIdToken);
     if (v_931bf0.email !== v_4d33b2.email) {
       throw new v_3ebe58("VALIDATION_FAILED", "Email does not match Google ID token.");
+    }
+  } else if (v_4d33b2.appleSignupToken) {
+    const v_c9c6be = await v_2703c5<{ sub: string; kind?: string; email?: string }>(
+      v_4d33b2.appleSignupToken, v_3f4e2e.env.JWT_ACCESS_SECRET,
+    );
+    if (v_c9c6be.kind !== v_305350 || v_c9c6be.email !== v_4d33b2.email) {
+      throw new v_3ebe58("VALIDATION_FAILED", "Email does not match Apple sign-in.");
     }
   } else {
     if (!v_4d33b2.verificationCode) {

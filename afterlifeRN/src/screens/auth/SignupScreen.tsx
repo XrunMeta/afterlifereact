@@ -324,7 +324,9 @@ const v_eff3be = v_472849.create({
 export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Props) {
   const { t: v_8d41d7 } = v_772971();
 
-  const v_a8d185 = v_c7daf6.params?.google;
+  const v_3c6b25 = v_c7daf6.params?.apple;
+  const v_a8d185 = v_c7daf6.params?.google
+    ?? (v_3c6b25 ? { idToken: "", email: v_3c6b25.email, name: v_3c6b25.name ?? null } : undefined);
 
   const [v_1833e7, v_318f24] = v_5ab095(v_a8d185?.name ?? "");
   const [v_e0c7e8, v_fedf34] = v_5ab095(v_a8d185?.email ?? "");
@@ -806,7 +808,9 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           deviceId: v_929b58 ?? undefined,
           pushToken: v_1a29d0 ?? undefined,
           platform: v_ea920b ?? undefined,
-          googleIdToken: v_a8d185.idToken,
+          ...(v_3c6b25
+            ? { appleSignupToken: v_3c6b25.signupToken }
+            : { googleIdToken: v_a8d185.idToken }),
         };
         console.log("[AUTH/google.signup] payload:", JSON.stringify(v_931bf0, null, 2));
         const v_8f00b9 = await v_35200c(v_931bf0);
@@ -838,7 +842,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           accessToken: v_8f00b9.accessToken,
           refreshToken: v_8f00b9.refreshToken ?? null,
           persist: true,
-          registrationMethod: "google",
+          registrationMethod: v_3c6b25 ? "apple" : "google",
         });
         return;
       }
@@ -921,7 +925,9 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   return (
     <SafeView backgroundColor={v_cafb6f.pageBg}>
       <PageHeader
-        title={v_a8d185 ? v_8d41d7("auth.signup.googleTitle", { defaultValue: "Google 회원가입" }) : v_8d41d7("auth.signup.title")}
+        title={v_3c6b25
+          ? v_8d41d7("auth.signup.appleTitle", { defaultValue: "Apple 회원가입" })
+          : v_a8d185 ? v_8d41d7("auth.signup.googleTitle", { defaultValue: "Google 회원가입" }) : v_8d41d7("auth.signup.title")}
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
       />

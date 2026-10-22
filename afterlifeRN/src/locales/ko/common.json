@@ -1010,6 +1010,7 @@
       "emailDuplicateHint": "이미 가입된 이메일입니다",
       "validationFailed": "입력값이 올바르지 않습니다",
       "googleTitle": "Google 회원가입",
+      "appleTitle": "Apple 회원가입",
       "ageRange": "연령대",
       "countrySearch": "국가 검색",
       "regionSearch": "지역 검색"

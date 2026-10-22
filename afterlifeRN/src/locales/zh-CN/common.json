@@ -1010,6 +1010,7 @@
       "emailDuplicateHint": "该邮箱已注册",
       "validationFailed": "输入内容有误",
       "googleTitle": "使用 Google 注册",
+      "appleTitle": "Apple 注册",
       "ageRange": "年龄段",
       "countrySearch": "搜索国家",
       "regionSearch": "搜索地区"

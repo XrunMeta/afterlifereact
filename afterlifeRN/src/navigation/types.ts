@@ -42,7 +42,11 @@ export type RootStackParamList = {
 
 export type AuthStackParamList = {
   Login: undefined;
-  Signup: { google?: { idToken: string; email: string; name?: string | null } } | undefined;
+  Signup: {
+    google?: { idToken: string; email: string; name?: string | null };
+
+    apple?: { signupToken: string; email: string; name?: string | null };
+  } | undefined;
   EmailVerify: {
     email: string;
     password: string;
