@@ -2148,6 +2148,7 @@
     "other": "기타"
   },
   "faceEnroll": {
+    "rescanNotice": "얼굴을 다시 확인할게요.",
     "permissionRequired": "카메라 권한이 필요합니다.",
     "permissionSkip": "등록 건너뛰고 통화",
     "cameraLoading": "카메라 준비 중...",
@@ -2160,6 +2161,8 @@
       "desc": "이름과 관계를 알려주시면 다음 통화부터 알아볼 수 있어요.",
       "existingLabel": "이미 등록된 사람 (이 중에서 선택하면 학습만 추가돼요)",
       "markSelf": "이 얼굴은 나예요",
+      "alreadyRegistered": "이미 등록된 {{name}}님이에요",
+      "updateName": "이름 업데이트",
       "existingHint": "새로운 사람이면 아래에 이름을 직접 입력하세요",
       "nameLabel": "이름",
       "namePlaceholder": "예: 지호",

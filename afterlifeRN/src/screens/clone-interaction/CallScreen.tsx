@@ -170,7 +170,7 @@ import ExpertBadge from "../../components/ui/ExpertBadge";
 import { logAppsFlyerCallVideoStart } from "../../lib/appsFlyer";
 import { setCallActive, takePressedClone } from "../../lib/callActivity";
 import { reportError } from "../../lib/errorReporting/report";
-import { takeMidCallEnrollResult } from "../../face/midCallEnrollHandoff";
+import { takeMidCallEnrollResult, setMidCallSelfVector } from "../../face/midCallEnrollHandoff";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
 
@@ -1424,9 +1424,13 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           onPress: () => {
             dispatchRm({ type: "CONFIRM_PROMPT" });
 
+            const selfVec =
+              unknownFaceSnapshotRef.current?.at(-1) ?? getFaceEmbeddingBuffer().latest(1)[0] ?? null;
+            const useAccountSelf = accountSelfMatchRef.current && selfVec != null && selfVec.length === 512;
+            if (useAccountSelf && selfVec) setMidCallSelfVector(cloneId, selfVec);
             (navigation as unknown as { navigate: (name: string, params: object) => void }).navigate(
               "PreCallFaceEnroll",
-              { cloneId, name: paramName, image: paramImage, midCall: true, accountSelfMatch: accountSelfMatchRef.current },
+              { cloneId, name: paramName, image: paramImage, midCall: true, accountSelfMatch: useAccountSelf },
             );
           },
         },

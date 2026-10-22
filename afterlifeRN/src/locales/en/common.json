@@ -2151,6 +2151,7 @@
     "other": "Other"
   },
   "faceEnroll": {
+    "rescanNotice": "Let's check your face again.",
     "permissionRequired": "Camera permission is required.",
     "permissionSkip": "Skip enroll and start call",
     "cameraLoading": "Preparing camera...",
@@ -2163,6 +2164,8 @@
       "desc": "Tell us a name and relationship so we can recognize them next call.",
       "existingLabel": "Already registered (pick one to just add more learning)",
       "markSelf": "This face is me",
+      "alreadyRegistered": "{{name}} is already registered",
+      "updateName": "Update name",
       "existingHint": "If this is someone new, type their name below",
       "nameLabel": "Name",
       "namePlaceholder": "e.g. Jiho",
