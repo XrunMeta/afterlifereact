@@ -318,3 +318,56 @@ v_469bf2("confirmSelf() enroll 실패 → 고아 person 없음 + 재시도 성�
     v_4d37e3(v_8f00b9.status).toBe(200);
   });
 });
+
+v_469bf2("self-confirm — 이미 등록된 같은 얼굴 재사용", () => {
+  v_ff107d(() => {
+    v_dbed3e();
+  });
+
+  async function v_73029f(v_43e90c, v_6e0fd3, v_1833e7, v_bdb39e): Promise<number> {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_43af15 = await v_a1651b
+      .prepare(
+        `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at)
+         VALUES (?, ?, ?, 'granted', 0, 'auto_biometric', 0)`,
+      )
+      .bind(v_43e90c, v_6e0fd3, v_1833e7)
+      .run();
+    const v_d4923e = v_43af15.meta.last_row_id as number;
+    const { enrollCloneScopeFaces: v_003ee1 } = await import("../src/lib/cloneFaceScope");
+    await v_003ee1(v_c9c489 as unknown as v_273a0c, { userId: v_43e90c, cloneId: v_6e0fd3, personId: v_d4923e, vectors: [v_46ff7a(v_bdb39e)] });
+    return v_d4923e;
+  }
+
+  v_23805a("같은 얼굴이 있으면 새 person 없이 그 사람이 self", async () => {
+    const v_43e90c = await v_bfb240("t257r1@x.com");
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "t257r1-clone");
+    const v_d4923e = await v_73029f(v_43e90c, v_6e0fd3, "Guao", 9);
+    const v_cb35cb = await v_4c5429(v_c9c489 as unknown as v_273a0c, { userId: v_43e90c, cloneId: v_6e0fd3, vectors: [v_46ff7a(9), v_46ff7a(9), v_46ff7a(9)] });
+    v_4d37e3(v_cb35cb).toEqual({ personId: v_d4923e, selfPersonId: v_d4923e, reused: true });
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_f4e98d = await v_a1651b.prepare("SELECT COUNT(*) AS n FROM persons WHERE user_id = ? AND clone_id = ?").bind(v_43e90c, v_6e0fd3).first<{ n: number }>();
+    v_4d37e3(v_f4e98d?.n).toBe(1);
+    const v_3f4e2e = await v_a1651b.prepare("SELECT self_person_id FROM clones WHERE id = ?").bind(v_6e0fd3).first<{ self_person_id: number }>();
+    v_4d37e3(v_3f4e2e?.self_person_id).toBe(v_d4923e);
+  });
+
+  v_23805a("다른 얼굴만 있으면 기존대로 새 person 을 만든다", async () => {
+    const v_43e90c = await v_bfb240("t257r2@x.com");
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "t257r2-clone");
+    const v_d4923e = await v_73029f(v_43e90c, v_6e0fd3, "엄마", 9);
+    const v_cb35cb = await v_4c5429(v_c9c489 as unknown as v_273a0c, { userId: v_43e90c, cloneId: v_6e0fd3, vectors: [v_46ff7a(10), v_46ff7a(10), v_46ff7a(10)] });
+    v_4d37e3(v_cb35cb.reused).toBeUndefined();
+    v_4d37e3(v_cb35cb.personId).not.toBe(v_d4923e);
+  });
+
+  v_23805a("다른 계정이 같은 클론에 등록한 같은 얼굴은 재사용하지 않는다", async () => {
+    const v_257b90 = await v_bfb240("t257r3@x.com");
+    const v_a9cbf1 = await v_bfb240("t257r3b@x.com");
+    const v_6e0fd3 = await v_4d24a9(v_257b90, "t257r3-clone");
+    const v_0028f5 = await v_73029f(v_a9cbf1, v_6e0fd3, "남", 11);
+    const v_cb35cb = await v_4c5429(v_c9c489 as unknown as v_273a0c, { userId: v_257b90, cloneId: v_6e0fd3, vectors: [v_46ff7a(11), v_46ff7a(11), v_46ff7a(11)] });
+    v_4d37e3(v_cb35cb.reused).toBeUndefined();
+    v_4d37e3(v_cb35cb.personId).not.toBe(v_0028f5);
+  });
+});
