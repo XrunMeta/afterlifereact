@@ -1,0 +1,81 @@
+import { v_6fea6b, v_3f2d5d, type v_537043 } from "../../src/face/faceTurnJudge";
+import type { v_13de12 } from "../../src/face/faceQuality";
+
+const v_fd5f43 = (v_ca1ec5, v_740dd8 = 0.7, quality: v_13de12 = "ok", v_963980 = 0): v_537043 => ({
+  personId: v_ca1ec5,
+  score: v_740dd8,
+  quality: v_c6feb4,
+  atMs: v_963980,
+});
+
+describe("judgeTurn", () => {
+  test("TURN_SAMPLES 는 3", () => expect(v_3f2d5d).toBe(3));
+
+  test("3 unknown → unknown", () =>
+    expect(v_6fea6b([v_fd5f43(null, 0.3), v_fd5f43(null, 0.2), v_fd5f43(null, 0.4)], 7).kind).toBe("unknown"));
+
+  test("unknown 은 score 가 3개 중 최대", () =>
+    expect(v_6fea6b([v_fd5f43(null, 0.3), v_fd5f43(null, 0.2), v_fd5f43(null, 0.4)], 7)).toMatchObject({
+      kind: "unknown",
+      personId: null,
+      score: 0.4,
+    }));
+
+  test("3 same other → switch", () =>
+    expect(v_6fea6b([v_fd5f43(9), v_fd5f43(9), v_fd5f43(9, 0.62)], 7)).toMatchObject({ kind: "switch", personId: 9, score: 0.7 }));
+
+  test("3 same current → known", () => expect(v_6fea6b([v_fd5f43(7), v_fd5f43(7), v_fd5f43(7)], 7).kind).toBe("known"));
+
+  test("mixed two known people → keep current", () =>
+    expect(v_6fea6b([v_fd5f43(9), v_fd5f43(7), v_fd5f43(9)], 7)).toMatchObject({ kind: "known", personId: 7 }));
+
+  test("unknown mixed with current → keep", () =>
+    expect(v_6fea6b([v_fd5f43(null), v_fd5f43(7), v_fd5f43(null)], 7).kind).toBe("known"));
+
+  test("only last 3 count", () =>
+    expect(v_6fea6b([v_fd5f43(7), v_fd5f43(null), v_fd5f43(null), v_fd5f43(null)], 7).kind).toBe("unknown"));
+
+  test("2 samples → insufficient", () =>
+    expect(v_6fea6b([v_fd5f43(null), v_fd5f43(null)], 7).kind).toBe("insufficient"));
+
+  test("no face samples → insufficient none", () =>
+    expect(v_6fea6b([v_fd5f43(null, 0, "none"), v_fd5f43(null, 0, "none"), v_fd5f43(null, 0, "none")], 7)).toMatchObject({
+      kind: "insufficient",
+      quality: "none",
+    }));
+
+  test("no current + mixed → insufficient", () =>
+    expect(v_6fea6b([v_fd5f43(9), v_fd5f43(null), v_fd5f43(9)], null).kind).toBe("insufficient"));
+
+  test("all null 이지만 none 이 하나라도 섞이면 insufficient (quality=마지막)", () =>
+    expect(v_6fea6b([v_fd5f43(null, 0.3, "ok"), v_fd5f43(null, 0, "none"), v_fd5f43(null, 0.4, "dark")], 7)).toMatchObject({
+      kind: "insufficient",
+      personId: null,
+      score: null,
+      quality: "dark",
+    }));
+
+  test("known 의 score 는 현재 화자 표본 중 최대", () =>
+    expect(v_6fea6b([v_fd5f43(7, 0.55), v_fd5f43(9, 0.9), v_fd5f43(7, 0.8)], 7)).toMatchObject({
+      kind: "known",
+      personId: 7,
+      score: 0.8,
+    }));
+
+  test("known 이지만 현재 화자 표본이 없으면 score null", () =>
+    expect(v_6fea6b([v_fd5f43(9, 0.9), v_fd5f43(null, 0.1), v_fd5f43(9, 0.9)], 7)).toMatchObject({
+      kind: "known",
+      personId: 7,
+      score: null,
+    }));
+
+  test("verdict quality 는 마지막 표본 기준", () =>
+    expect(v_6fea6b([v_fd5f43(7, 0.7, "dark"), v_fd5f43(7, 0.7, "ok"), v_fd5f43(7, 0.7, "turned")], 7).quality).toBe("turned"));
+
+  test("입력 배열을 변경하지 않는다 (chronological 순서 유지)", () => {
+    const v_bbda62 = [v_fd5f43(9, 0.7, "ok", 300), v_fd5f43(9, 0.7, "ok", 100), v_fd5f43(9, 0.7, "ok", 200)];
+    const v_5392c4 = v_bbda62.map((v_62c214) => ({ ...v_62c214 }));
+    v_6fea6b(v_bbda62, 7);
+    expect(v_bbda62).toEqual(v_5392c4);
+  });
+});
