@@ -140,13 +140,16 @@ describe("rememberMeReducer — 대조 1회로는 화자를 놓거나 바꾸지 
 
 describe("rememberMeReducer — 턴 판정 (TURN_VERDICT)", () => {
   it("TURN_VERDICT unknown opens register prompt", () => {
+
     const { state: v_b6e533, actions: v_dd943a } = v_729796(v_30b0d4(), v_1b0e1d("unknown", null, 3000), 3000);
     expect(v_b6e533.promptRegister).toBe(true);
+    expect(v_b6e533.mode).toBe("pending");
+    expect(v_b6e533.personId).toBeNull();
     expect(v_b94941(v_b6e533)).toBe(true);
-    expect(v_dd943a).toEqual([{ type: "MIC_OFF" }]);
+    expect(v_dd943a).toEqual([{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }]);
 
-    expect(v_b6e533.personId).toBe(58);
     expect(v_b6e533.lastConfirmedPerson).toEqual({ personId: 58, displayName: "도기" });
+    expect(v_b6e533.lastNotifyUnknownMs).toBe(3000);
   });
 
   it("TURN_VERDICT unknown after DISMISS_LATER does not reopen", () => {
@@ -155,19 +158,59 @@ describe("rememberMeReducer — 턴 판정 (TURN_VERDICT)", () => {
     expect(v_fd5f43.dismissedPromptInCall).toBe(true);
     const v_cb35cb = v_729796(v_fd5f43, v_1b0e1d("unknown", null, 9000), 9000);
     expect(v_cb35cb.state.promptRegister).toBe(false);
+
     expect(v_cb35cb.actions).toEqual([]);
   });
 
-  it("TURN_VERDICT unknown 은 이미 팝업·시트가 떠 있으면 중복으로 열지 않는다", () => {
+  it("TURN_VERDICT unknown — '나중에' 억제 중이면 팝업·마이크 대기 없이 화자만 내려놓고 서버에 알린다", () => {
+
+    const v_fd5f43 = { ...v_30b0d4(), dismissedPromptInCall: true };
+    const v_cb35cb = v_729796(v_fd5f43, v_1b0e1d("unknown", null, 9000), 9000);
+    expect(v_cb35cb.state.personId).toBeNull();
+    expect(v_cb35cb.state.promptRegister).toBe(false);
+    expect(v_cb35cb.actions).toEqual([{ type: "NOTIFY_UNKNOWN" }]);
+
+    expect(v_b94941(v_cb35cb.state)).toBe(false);
+    expect(v_cb35cb.state.lastConfirmedPerson).toEqual({ personId: 58, displayName: "도기" });
+  });
+
+  it("TURN_VERDICT unknown — 등록 유예 중이면 아무것도 하지 않는다(방금 등록한 사람 신원 유지)", () => {
+    const v_fd5f43 = v_729796(v_178dfb(), { type: "ENROLLED", personId: 167, displayName: "하루" }, 1000).state;
+    const v_cb35cb = v_729796(v_fd5f43, v_1b0e1d("unknown", null, 31_000), 31_000);
+    expect(v_cb35cb.state).toBe(v_fd5f43);
+    expect(v_cb35cb.actions).toEqual([]);
+  });
+
+  it("통화 중 등록(personId 있음) 유예는 그 사람이 처음 실제로 매칭되면 풀린다", () => {
+    let v_fd5f43 = v_729796(v_178dfb(), { type: "ENROLLED", personId: 167, displayName: "하루" }, 1000).state;
+    expect(v_fd5f43.enrollGraceUntilMs).toBe(1000 + v_a5c955);
+    v_fd5f43 = v_729796(v_fd5f43, v_d81543(167, { name: "하루" }), 40_000).state;
+    expect(v_fd5f43.enrollGraceUntilMs).toBeNull();
+    const v_cb35cb = v_729796(v_fd5f43, v_1b0e1d("unknown", null, 45_000), 45_000);
+    expect(v_cb35cb.state.mode).toBe("pending");
+    expect(v_cb35cb.actions).toEqual([{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }]);
+  });
+
+  it("TURN_VERDICT unknown — 이미 대기 중이면 NOTIFY_UNKNOWN 을 다시 내지 않는다(진입 1회당 1번)", () => {
     const v_a274a9 = v_729796(v_30b0d4(), v_1b0e1d("unknown", null, 3000), 3000).state;
     const v_826279 = v_729796(v_a274a9, v_1b0e1d("unknown", null, 5000), 5000);
     expect(v_826279.state).toBe(v_a274a9);
     expect(v_826279.actions).toEqual([]);
 
+    const v_313dc7 = v_729796(v_a274a9, { type: "CONFIRM_PROMPT" }, 6000).state;
+    const v_cb35cb = v_729796(v_313dc7, v_1b0e1d("unknown", null, 7000), 7000);
+    expect(v_cb35cb.state.promptRegister).toBe(true);
+    expect(v_cb35cb.actions).toEqual([]);
+  });
+
+  it("TURN_VERDICT unknown — 시트가 떠 있으면 팝업은 열지 않되 대기 진입·알림은 한다", () => {
     const v_fd08c6 = v_729796(v_30b0d4(), { type: "OPEN_SHEET" }).state;
     const v_cb35cb = v_729796(v_fd08c6, v_1b0e1d("unknown", null, 5000), 5000);
     expect(v_cb35cb.state.promptRegister).toBe(false);
-    expect(v_cb35cb.actions).toEqual([]);
+    expect(v_cb35cb.state.sheetOpen).toBe(true);
+    expect(v_cb35cb.state.mode).toBe("pending");
+
+    expect(v_cb35cb.actions).toEqual([{ type: "NOTIFY_UNKNOWN" }]);
   });
 
   it("TURN_VERDICT switch identifies new person and notifies", () => {
@@ -240,14 +283,22 @@ describe("rememberMeReducer — '나 누구야?' 재대조 (WHO_RETRY_RESULT)", 
     expect(v_fd5f43.dismissedPromptInCall).toBe(true);
     const v_cb35cb = v_729796(v_fd5f43, v_192ddf(null, 9000), 9000);
     expect(v_cb35cb.state.promptRegister).toBe(true);
-    expect(v_cb35cb.actions).toEqual([{ type: "MIC_OFF" }]);
+    expect(v_cb35cb.state.mode).toBe("pending");
+    expect(v_cb35cb.actions).toEqual([{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }]);
   });
 
-  it("WHO_RETRY_RESULT selfMatch 는 팝업만 연다(본인 처리는 화면 몫)", () => {
+  it("WHO_RETRY_RESULT selfMatch 는 팝업 + 대기로 간다(본인 등록 처리는 화면 몫)", () => {
     const v_cb35cb = v_729796(v_30b0d4(), v_192ddf(null, 9000, { selfMatch: true }), 9000);
     expect(v_cb35cb.state.promptRegister).toBe(true);
-    expect(v_cb35cb.state.personId).toBe(58);
-    expect(v_cb35cb.actions).toEqual([{ type: "MIC_OFF" }]);
+    expect(v_cb35cb.state.mode).toBe("pending");
+    expect(v_cb35cb.state.personId).toBeNull();
+    expect(v_cb35cb.actions).toEqual([{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }]);
+  });
+
+  it("WHO_RETRY_RESULT selfMatch 는 personId 가 있어도 확정하지 않고 팝업을 연다", () => {
+    const v_cb35cb = v_729796(v_30b0d4(), v_192ddf(70, 9000, { selfMatch: true }), 9000);
+    expect(v_cb35cb.state.personId).toBeNull();
+    expect(v_cb35cb.state.promptRegister).toBe(true);
   });
 
   it("WHO_RETRY_RESULT null 도 이미 팝업이 떠 있으면 중복 액션이 없다", () => {
@@ -458,6 +509,14 @@ describe("rememberMeReducer — 새 얼굴 팝업 응답 (T-562)", () => {
   const v_4bf43e = () => v_729796(v_30b0d4(500), v_1b0e1d("unknown", null, 1000), 1000).state;
 
   const v_f3ae42 = () => v_729796(v_178dfb(), v_1b0e1d("unknown", null, 1000), 1000).state;
+
+  it("턴 판정으로 들어간 대기도 재통보 주기는 진입 시각부터 센다", () => {
+    const v_fd5f43 = v_4bf43e(); 
+    expect(v_729796(v_fd5f43, { type: "MATCH_UNKNOWN" }, 1000 + v_059bf8 - 1).actions).toEqual([]);
+    expect(v_729796(v_fd5f43, { type: "MATCH_UNKNOWN" }, 1000 + v_059bf8).actions).toEqual([
+      { type: "NOTIFY_UNKNOWN" },
+    ]);
+  });
 
   it("T-562 · CONFIRM_PROMPT — 팝업만 닫는다", () => {
     const v_fd5f43 = v_4bf43e();

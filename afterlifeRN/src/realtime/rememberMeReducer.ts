@@ -222,14 +222,55 @@ function v_333cc2(
   };
 }
 
-function v_2b075c(
+function v_60164c(v_fd5f43, v_67e77e, v_b1b8d0): RememberMeState {
+  return {
+    ...v_fd5f43,
+    mode: "pending",
+    personId: null,
+    promptRegister: v_b1b8d0,
+    graceSinceMs: null,
+    graceHadActivity: false,
+    mentionName: false,
+    lastNotifyUnknownMs: v_67e77e,
+    pendingSwitch: null,
+  };
+}
+
+function v_192740(
   v_b6e533,
+  v_67e77e,
 ): { state: RememberMeState; actions: RememberMeAction[] } {
-  if (v_b6e533.promptRegister || v_b6e533.sheetOpen) return { state: v_b6e533, actions: [] };
+  const v_b1b8d0 = v_b6e533.promptRegister || !v_b6e533.sheetOpen;
+  if (v_b6e533.mode === "pending" && v_b6e533.personId === null) {
+    if (v_b1b8d0 === v_b6e533.promptRegister) return { state: v_b6e533, actions: [] };
+
+    return { state: { ...v_b6e533, promptRegister: v_b1b8d0 }, actions: [] };
+  }
   const v_18128c = !v_b94941(v_b6e533);
   return {
-    state: { ...v_b6e533, promptRegister: true },
-    actions: v_18128c ? [{ type: "MIC_OFF" }] : [],
+    state: v_60164c(v_b6e533, v_67e77e, v_b1b8d0),
+    actions: [
+      ...(v_18128c ? [{ type: "MIC_OFF" } as RememberMeAction] : []),
+      { type: "NOTIFY_UNKNOWN" },
+    ],
+  };
+}
+
+function v_d44fba(
+  v_b6e533,
+  v_67e77e,
+): { state: RememberMeState; actions: RememberMeAction[] } {
+  if (v_b6e533.personId === null) return { state: v_b6e533, actions: [] };
+  return {
+    state: {
+      ...v_b6e533,
+      mode: "identified",
+      personId: null,
+      mentionName: false,
+      lastNotifyUnknownMs: v_67e77e,
+      pendingSwitch: null,
+    },
+    actions: [{ type: "NOTIFY_UNKNOWN" }],
   };
 }
 
@@ -258,7 +299,12 @@ function v_a448ad(
 
         if (v_b6e533.serverSpeakerCleared) {
           return {
-            state: { ...v_b6e533, recentlySeen: v_3d04cc, serverSpeakerCleared: false },
+            state: {
+              ...v_b6e533,
+              recentlySeen: v_3d04cc,
+              serverSpeakerCleared: false,
+              enrollGraceUntilMs: null,
+            },
             actions: [
               {
                 type: "NOTIFY_CONFIRMED",
@@ -270,7 +316,10 @@ function v_a448ad(
           };
         }
 
-        return { state: { ...v_b6e533, recentlySeen: v_3d04cc }, actions: [] };
+        return {
+          state: { ...v_b6e533, recentlySeen: v_3d04cc, enrollGraceUntilMs: null },
+          actions: [],
+        };
       }
 
       if (v_b6e533.personId !== null) return { state: v_b6e533, actions: [] };
@@ -312,8 +361,8 @@ function v_a448ad(
 
         if (v_865ed9) return { state: v_b6e533, actions: [] };
 
-        if (v_b6e533.dismissedPromptInCall) return { state: v_b6e533, actions: [] };
-        return v_2b075c(v_b6e533);
+        if (v_b6e533.dismissedPromptInCall) return v_d44fba(v_b6e533, v_67e77e);
+        return v_192740(v_b6e533, v_67e77e);
       }
       if (v_81e2ef.kind === "switch") {
 
@@ -331,7 +380,7 @@ function v_a448ad(
       }
 
       if (v_865ed9) return { state: v_b6e533, actions: [] };
-      return v_2b075c(v_b6e533);
+      return v_192740(v_b6e533, v_67e77e);
     }
 
     case "FACE_PRESENCE": {
@@ -398,6 +447,8 @@ function v_a448ad(
           ? {
               ...v_9638ca(v_694b25, v_d48baf.personId, v_d48baf.displayName ?? null),
               recentlySeen: { [v_d48baf.personId]: v_67e77e },
+
+              enrollGraceUntilMs: v_694b25.enrollGraceUntilMs,
             }
           : v_694b25;
       return {
