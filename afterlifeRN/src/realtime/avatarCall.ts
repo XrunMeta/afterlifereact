@@ -3,6 +3,7 @@
 import type { v_802da4 } from 'rthlnescfffbyxfmhgq';
 
 import type { v_2a0baf } from '../components/viseme/VisemePlayer';
+import type { v_516d40 } from '../face/faceTurnJudge';
 
 export type LiveAvatarState =
   | 'idle' | 'requesting' | 'connecting' | 'live' | 'error' | 'ended';
@@ -31,6 +32,8 @@ export interface FaceEvent {
   mentionName?: boolean;
 }
 
+export type TurnFaceReport = v_516d40 & { retry: boolean };
+
 export interface AvatarCall {
   state: LiveAvatarState;
   remoteStream: v_802da4 | null;
@@ -49,6 +52,8 @@ export interface AvatarCall {
 
   sendFaceEvent?: (evt: FaceEvent) => void;
 
+  sendTurnFace?: (v: TurnFaceReport) => void;
+
   sendAudioReady?: () => void;
 
   sendAdPrepareReturn?: () => void;
@@ -66,6 +71,8 @@ export type UseAvatarCall = (opts: {
   onEnrollSuggest?: (name: string, personId?: number) => void;
 
   onRememberMe?: () => void;
+
+  onWhoAsked?: () => void;
 
   pipeline?: string | null;
 

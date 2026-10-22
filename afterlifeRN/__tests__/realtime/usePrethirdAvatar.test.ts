@@ -387,6 +387,64 @@ describe('sendFaceEvent', () => {
   });
 });
 
+describe('AFL-1039 sendTurnFace / who_asked', () => {
+  beforeEach(() => { v_897bd0(); });
+
+  it('sendTurnFace → {type:"turn_face", verdict, quality, personId, score, retry} 전송(이름 필드 없음)', async () => {
+    const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    v_be73a0(() => {
+      v_43c42e.current.sendTurnFace!({ kind: 'switch', personId: 4, score: 0.71, quality: 'ok', retry: false });
+    });
+    const v_f966e3 = v_32dc97.sent.map((v_fd5f43) => JSON.parse(v_fd5f43));
+    expect(v_f966e3[0]).toEqual({ type: 'turn_face', verdict: 'switch', quality: 'ok', personId: 4, score: 0.71, retry: false });
+  });
+
+  it('sendTurnFace — personId/score null 도 그대로, retry:true', async () => {
+    const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    v_be73a0(() => {
+      v_43c42e.current.sendTurnFace!({ kind: 'insufficient', personId: null, score: null, quality: 'none', retry: true });
+    });
+    const v_f966e3 = v_32dc97.sent.map((v_fd5f43) => JSON.parse(v_fd5f43));
+    expect(v_f966e3[0]).toEqual({ type: 'turn_face', verdict: 'insufficient', quality: 'none', personId: null, score: null, retry: true });
+  });
+
+  it('sendTurnFace — dc 미오픈이면 조용히 스킵', async () => {
+    const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    v_32dc97.readyState = 'connecting';
+    v_be73a0(() => {
+      v_43c42e.current.sendTurnFace!({ kind: 'known', personId: 1, score: 0.9, quality: 'ok', retry: false });
+    });
+    expect(v_32dc97.send).not.toHaveBeenCalled();
+  });
+
+  it('datachannel {type:"who_asked"} 수신 → onWhoAsked() 호출', async () => {
+    const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
+    const v_5c23f9 = jest.fn();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never, onWhoAsked: v_5c23f9 }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    v_be73a0(() => { v_32dc97.emitMessage(JSON.stringify({ type: 'who_asked' })); });
+    expect(v_5c23f9).toHaveBeenCalledTimes(1);
+  });
+
+  it('onWhoAsked 미제공이어도 크래시 없음', async () => {
+    const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    expect(() => v_32dc97.emitMessage(JSON.stringify({ type: 'who_asked' }))).not.toThrow();
+  });
+});
+
 describe('enroll_suggest 수신 → onEnrollSuggest 콜백', () => {
   beforeEach(() => { v_897bd0(); });
 
