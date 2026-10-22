@@ -237,6 +237,11 @@ function emoteVideoUri(cloneId: number, key: EmoteKey): string | null {
   return `${EMOTE_BASE_URL}/${cloneId}/${key}.mp4`;
 }
 
+function koCopula(name: string): string {
+  const code = name.charCodeAt(name.length - 1) - 0xac00;
+  return code >= 0 && code <= 11171 && code % 28 !== 0 ? "이에요" : "예요";
+}
+
 export default function CallScreen(props: Props) {
   const [heavyReady, setHeavyReady] = React.useState(false);
   React.useEffect(() => {
@@ -727,7 +732,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     onDiag: setFaceDiag,
     calibrate: calibrateOpt,
     onCollected: angleCollector.observe,
-    onSelfMatch: (v: boolean) => { accountSelfMatchRef.current = v; },
+
+    onSelfMatch: (v: boolean) => { if (v) accountSelfMatchRef.current = true; },
 
     getCurrentLandmark: useCallback(() => currentLandmarkRef.current, []),
   });
@@ -1396,11 +1402,18 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         {
           text: t("call.newFaceLater", { defaultValue: "나중에" }),
           style: "cancel",
-          onPress: () => dispatchRm({ type: "DISMISS_LATER" }),
+          onPress: () => {
+            accountSelfMatchRef.current = false;
+            dispatchRm({ type: "DISMISS_LATER" });
+          },
         },
         ...(lastPerson != null ? [{
           text: lastPersonName
-            ? t("call.newFaceSelfNamed", { name: lastPersonName, defaultValue: `${lastPersonName}이에요` })
+            ? t("call.newFaceSelfNamed", {
+                name: lastPersonName,
+                copula: koCopula(lastPersonName),
+                defaultValue: `${lastPersonName}${koCopula(lastPersonName)}`,
+              })
             : t("call.newFaceSelf", { defaultValue: "본인" }),
           onPress: () => {
 
@@ -1416,6 +1429,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
                 });
               unknownFaceSnapshotRef.current = null;
             }
+            accountSelfMatchRef.current = false;
             dispatchRm({ type: "CONFIRM_SAME_PERSON" });
           },
         }] : []),
@@ -1427,6 +1441,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
             const selfVec =
               unknownFaceSnapshotRef.current?.at(-1) ?? getFaceEmbeddingBuffer().latest(1)[0] ?? null;
             const useAccountSelf = accountSelfMatchRef.current && selfVec != null && selfVec.length === 512;
+            console.log(
+              `[Call][face] 등록 → accountSelfMatch=${accountSelfMatchRef.current} vector=${selfVec?.length ?? 0} → ${useAccountSelf ? "스캔 생략" : "스캔"}`,
+            );
+            accountSelfMatchRef.current = false;
             if (useAccountSelf && selfVec) setMidCallSelfVector(cloneId, selfVec);
             (navigation as unknown as { navigate: (name: string, params: object) => void }).navigate(
               "PreCallFaceEnroll",
