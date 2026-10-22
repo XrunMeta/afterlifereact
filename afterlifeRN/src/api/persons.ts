@@ -29,8 +29,6 @@ export interface CreatePersonPayload {
   displayName?: string;
 
   enrolledVia?: 'card' | 'auto_biometric';
-
-  userSelf?: boolean;
 }
 
 export interface CreatePersonResponse {
@@ -50,7 +48,6 @@ export async function v_4e7b87(
   const v_4d33b2 = { cloneId: v_931bf0.cloneId };
   if (v_931bf0.displayName !== undefined) v_4d33b2.displayName = v_931bf0.displayName;
   if (v_931bf0.enrolledVia !== undefined) v_4d33b2.enrolledVia = v_931bf0.enrolledVia;
-  if (v_931bf0.userSelf) v_4d33b2.userSelf = true;
   return v_04b58a<CreatePersonResponse>('/oth-path', v_2ca7e0, {
     method: 'POST',
     body: JSON.stringify(v_4d33b2),
@@ -86,16 +83,6 @@ export async function v_865d38(
     { method: 'GET' },
   );
   return { items: v_8f00b9?.data ?? [] };
-}
-
-export async function v_6eed80(
-  v_2ca7e0,
-): Promise<{ hasSelfFace: boolean; cloneId: number | null }> {
-  return v_04b58a<{ hasSelfFace: boolean; cloneId: number | null }>(
-    '/oth-path',
-    v_2ca7e0,
-    { method: 'GET' },
-  );
 }
 
 export interface MatchCandidate {
