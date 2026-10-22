@@ -14,7 +14,10 @@ DEFAULT_LANG = "ko"
 # 맨 앞 태그(앞 공백 허용). 코드는 영문 2~3자 + 선택 지역(zh-CN → zh 로 줄임).
 _HEAD_RE = re.compile(r"^\s*<\s*lang\s*=\s*([A-Za-z]{2,3})(?:[-_][A-Za-z]{2,4})?\s*>\s*", re.I)
 # 본문 어디든 남은 태그(깨진 것 포함 `<lang=>`·`<lang=xx`) — 사용자에게 보이지 않게 지운다.
-_ANY_RE = re.compile(r"<\s*lang\s*=\s*[A-Za-z_-]{0,10}\s*>?", re.I)
+_ANY_RE = re.compile(r"<\s*lang\s*=\s*[A-Za-z_-]{0,10}\s*>?|<\s*ask\s*=\s*[^>\s<]{0,24}\s*>?", re.I)
+# AFL-1039: `<lang=xx>` 바로 뒤의 `<ask=who>` 만 플래그로 인정. 그 밖의 값(이름 등)은 플래그 없이 지운다.
+_ASK_RE = re.compile(r"^\s*<\s*ask\s*=\s*(who)\s*>\s*", re.I)
+ASK_VALUES = frozenset({"who"})
 
 # ISO 639-1 두 글자만 인정(오탈자·임의 문자열 차단). 필요한 언어가 늘면 여기에 더한다.
 KNOWN_LANGS = frozenset({
@@ -31,17 +34,29 @@ def normalize_lang(code: str | None) -> str | None:
     return base if base in KNOWN_LANGS else None
 
 
-def split_lang_tag(text: str, fallback: str | None = None) -> tuple[str, str]:
-    """완성된 답에서 (lang, 태그를 뗀 본문). fallback = 사용자 언어(없으면 ko)."""
+def split_head_tags(text: str, fallback: str | None = None) -> tuple[str, str | None, str]:
+    """완성된 답에서 (lang, ask, 태그를 뗀 본문). ask 는 lang 태그 바로 뒤 `<ask=who>` 일 때만 "who"."""
     fb = normalize_lang(fallback) or DEFAULT_LANG
     s = text or ""
     lang = None
+    ask = None
     m = _HEAD_RE.match(s)
     if m:
         lang = normalize_lang(m.group(1))
         s = s[m.end():]
+        am = _ASK_RE.match(s)
+        if am:
+            v = am.group(1).lower()
+            ask = v if v in ASK_VALUES else None
+            s = s[am.end():]
     s = _ANY_RE.sub("", s).strip()
-    return (lang or fb), s
+    return (lang or fb), ask, s
+
+
+def split_lang_tag(text: str, fallback: str | None = None) -> tuple[str, str]:
+    """완성된 답에서 (lang, 태그를 뗀 본문). fallback = 사용자 언어(없으면 ko)."""
+    lang, _ask, body = split_head_tags(text, fallback)
+    return lang, body
 
 
 class LangTagStream:
@@ -49,6 +64,7 @@ class LangTagStream:
 
     feed(chunk) → 지금 내보낼 본문(아직 태그 판정 중이면 "").
     lang       → 정해진 언어(판정 전이면 None). finish() 후엔 항상 값이 있다.
+    ask        → lang 태그 바로 뒤 `<ask=who>` 가 있으면 "who", 아니면 None (finish() 후 확정).
     """
 
     # 태그가 이 길이 안에 안 끝나면 태그 없는 답으로 본다.
@@ -58,9 +74,29 @@ class LangTagStream:
         self._fb = normalize_lang(fallback) or DEFAULT_LANG
         self._buf = ""
         self.lang: str | None = None
+        self.ask: str | None = None
+        # lang 확정 직후 `<ask=…>` 가 올 수 있는 구간 — 판정 전까지 본문을 붙잡는다.
+        self._ask_pending = False
+
+    def _feed_ask(self, chunk: str) -> str:
+        self._buf += chunk or ""
+        am = _ASK_RE.match(self._buf)
+        if am:
+            self.ask = am.group(1).lower()
+            rest, self._buf, self._ask_pending = self._buf[am.end():], "", False
+            return _ANY_RE.sub("", rest)
+        head = self._buf.lstrip()
+        if not head:
+            return ""
+        if head.startswith("<") and ">" not in head and len(head) < self._MAX_HEAD:
+            return ""
+        rest, self._buf, self._ask_pending = self._buf, "", False
+        return _ANY_RE.sub("", rest)
 
     def feed(self, chunk: str) -> str:
         if self.lang is not None:
+            if self._ask_pending:
+                return self._feed_ask(chunk)
             return _ANY_RE.sub("", chunk or "")
         self._buf += chunk or ""
         head = self._buf.lstrip()
@@ -70,7 +106,8 @@ class LangTagStream:
         if m:
             self.lang = normalize_lang(m.group(1)) or self._fb
             rest, self._buf = self._buf[m.end():], ""
-            return _ANY_RE.sub("", rest)
+            self._ask_pending = True
+            return self._feed_ask(rest)
         # '<' 로 시작했는데 아직 '>' 가 안 왔으면 태그가 만들어지는 중 — 더 기다린다.
         if head.startswith("<") and ">" not in head and len(head) < self._MAX_HEAD:
             return ""
@@ -81,9 +118,16 @@ class LangTagStream:
     def finish(self) -> str:
         """스트림 끝 — 남은 버퍼를 내보내고 언어를 확정한다."""
         if self.lang is None:
-            lang, rest = split_lang_tag(self._buf, self._fb)
-            self.lang, self._buf = lang, ""
+            lang, ask, rest = split_head_tags(self._buf, self._fb)
+            self.lang, self.ask, self._buf = lang, ask, ""
             return rest
+        if self._ask_pending:
+            # ask 판정 중에 스트림이 끝남 — 남은 버퍼를 같은 규칙으로 정리.
+            _l, self.ask, rest = split_head_tags("<lang=xx>" + self._buf, self._fb)
+            tail = self._buf.strip().lower().replace(" ", "")
+            self._buf, self._ask_pending = "", False
+            # 끊긴 `<as` 같은 태그 앞부분은 사용자에게 내보내지 않는다.
+            return "" if tail and "<ask=who>".startswith(tail) else rest
         return ""
 
 
