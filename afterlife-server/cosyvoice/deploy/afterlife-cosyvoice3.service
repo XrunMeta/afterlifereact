@@ -1,0 +1,28 @@
+# AFL-1034: Fun-CosyVoice3 어댑터 (가비아, GPU1) — 통화 답이 스페인어(es)일 때만 쓴다.
+#   같은 코드(cosyvoice/scripts)를 COSYVOICE_VARIANT=v3 로 띄운다. v2(:8203)는 그대로.
+#   :8204 는 tts-finetune serve_voices.py 가 쓰고 있어 :8205.
+#   prethird 연결: env PRETHIRD_TTS_URL_ES=http://127.0.0.1:8205
+# 설치: sudo cp afterlife-cosyvoice3.service /etc/systemd/system/ && sudo systemctl daemon-reload
+#       sudo systemctl enable --now afterlife-cosyvoice3
+[Unit]
+Description=afterlife CosyVoice3 TTS adapter (:8205, es)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=afterlife
+WorkingDirectory=/home/afterlife/afterlife-server/cosyvoice/scripts
+Environment=CUDA_VISIBLE_DEVICES=1
+Environment=COSYVOICE_VARIANT=v3
+Environment=COSYVOICE_PORT=8205
+# 폭주 가드: 0.28 s/자는 한글 기준 — 스페인어(약 0.07 s/자)에선 폭주를 못 잡는다(AFL-1033 6-2 프랑스어 폭주 실측).
+Environment=COSYVOICE_RAMBLE_PER_CHAR_SEC=0.12
+Environment=PYTHONPATH=/home/afterlife/cosyvoice-poc/repo:/home/afterlife/cosyvoice-poc/repo/third_party/Matcha-TTS
+ExecStart=/home/afterlife/miniconda3/envs/cosyvoice-poc/bin/uvicorn server:app --host 127.0.0.1 --port 8205 --app-dir /home/afterlife/afterlife-server/cosyvoice/scripts
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target

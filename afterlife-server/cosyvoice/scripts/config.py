@@ -4,10 +4,21 @@ import os
 PORT = int(os.environ.get("COSYVOICE_PORT", "8203"))          # 8200 OpenVoice·8201 qwen3·8202 STT → 8203
 BIND = os.environ.get("COSYVOICE_BIND", "127.0.0.1")
 
-# CosyVoice2-0.5B 로컬 가중치 디렉터리(HF snapshot). CUDA_VISIBLE_DEVICES=1 로 GPU1 매핑.
+# AFL-1034: 같은 어댑터로 CosyVoice2(v2, :8203 · 기본) / Fun-CosyVoice3(v3, :8205 · 스페인어) 를 띄운다.
+VARIANT = os.environ.get("COSYVOICE_VARIANT", "v2").strip().lower()
+IS_V3 = VARIANT == "v3"
+ENGINE_NAME = "cosyvoice3" if IS_V3 else "cosyvoice2"
+# v3 는 프롬프트 텍스트 앞에 이 접두어를 붙인다(공식 예제 · AFL-1033 README 8절).
+PROMPT_TEXT_PREFIX = os.environ.get(
+    "COSYVOICE_PROMPT_TEXT_PREFIX",
+    "You are a helpful assistant.<|endofprompt|>" if IS_V3 else "",
+)
+
+# 로컬 가중치 디렉터리(HF snapshot). CUDA_VISIBLE_DEVICES=1 로 GPU1 매핑.
 MODEL_DIR = os.environ.get(
     "COSYVOICE_MODEL_DIR",
-    "/home/afterlife/cosyvoice-poc/pretrained_models/CosyVoice2-0.5B",
+    "/home/afterlife/cosyvoice-poc/pretrained_models/"
+    + ("Fun-CosyVoice3-0.5B" if IS_V3 else "CosyVoice2-0.5B"),
 )
 FP16 = os.environ.get("COSYVOICE_FP16", "0") == "1"           # 0.5B는 fp32도 여유(GPU1 40GB)
 
@@ -19,7 +30,10 @@ REF_ROOT = os.environ.get(
 REF_CLIP_MAX_SEC = float(os.environ.get("COSYVOICE_REF_CLIP_MAX_SEC", "10.0"))  # ref_text.meta duration=10 정합
 
 # 클론별 프롬프트 캐시(트림 10s wav 저장 → add_zero_shot_spk). 재기동 시 재생성.
-PROMPT_CACHE_DIR = os.environ.get("COSYVOICE_PROMPT_CACHE", "/home/afterlife/cosyvoice-poc/prompt_cache")
+PROMPT_CACHE_DIR = os.environ.get(
+    "COSYVOICE_PROMPT_CACHE",
+    "/home/afterlife/cosyvoice-poc/prompt_cache" + ("_v3" if IS_V3 else ""),
+)
 
 # warmup 전용 클론(cold 흡수). 합성 경로에서는 사용 안 함. 없으면 skip.
 WARMUP_CLONE = os.environ.get("COSYVOICE_WARMUP_CLONE", "9075")
