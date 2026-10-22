@@ -152,13 +152,45 @@ export async function v_003ee1(
 export interface SelfConfirmResult {
   personId: number;
   selfPersonId: number;
+
+  reused?: boolean;
 }
+
+const v_ed9ca3 = 0.5;
 
 export async function v_4c5429(
   env: v_273a0c,
   v_328259,
 ): Promise<SelfConfirmResult> {
   const { userId: v_43e90c, cloneId: v_6e0fd3, vectors: v_f94e64, displayName: v_8a1355 = null } = v_328259;
+
+  const v_01dcf5 = await v_c9c489.DB.prepare("SELECT value FROM app_config WHERE key = 'face.match_threshold'").first<{
+    value: string;
+  }>();
+  const v_26e652 = v_01dcf5 && Number.isFinite(Number(v_01dcf5.value)) ? Number(v_01dcf5.value) : 0.6;
+  const v_fb4670 = Math.min(v_26e652, v_ed9ca3);
+  let v_459e1f = null;
+  for (const v_81e2ef of v_f94e64) {
+    const v_fbc0a4 = (await v_97be02(v_c9c489, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef }))[0];
+    if (v_fbc0a4 && v_fbc0a4.score >= v_fb4670 && (!v_459e1f || v_fbc0a4.score > v_459e1f.score)) v_459e1f = v_fbc0a4;
+  }
+  if (v_459e1f) {
+    const v_2461e1 = await v_c9c489.DB.prepare("SELECT 1 AS ok FROM persons WHERE id = ? AND user_id = ? AND clone_id = ?")
+      .bind(v_459e1f.personId, v_43e90c, v_6e0fd3)
+      .first<{ ok: number }>();
+    if (v_2461e1) {
+      const v_b1eff4 = await v_c9c489.DB.prepare("UPDATE clones SET self_person_id = ? WHERE id = ? AND self_person_id IS NULL")
+        .bind(v_459e1f.personId, v_6e0fd3)
+        .run();
+      if (v_b1eff4.meta.changes === 0) throw new v_3ebe58("CONFLICT", "이미 self가 확정된 클론입니다.");
+
+      await v_003ee1(v_c9c489, { userId: v_43e90c, cloneId: v_6e0fd3, personId: v_459e1f.personId, vectors: v_f94e64, source: "self" }).catch(
+        (v_9e86fd) => console.error(`[self-confirm] reuse enroll failed clone=${v_6e0fd3}: ${(v_9e86fd as Error).message}`),
+      );
+      console.log(`[self-confirm] reuse clone=${v_6e0fd3} person=${v_459e1f.personId} score=${v_459e1f.score.toFixed(3)}`);
+      return { personId: v_459e1f.personId, selfPersonId: v_459e1f.personId, reused: true };
+    }
+  }
 
   const v_5c2f9f = Date.now();
   const v_43af15 = await v_c9c489.DB.prepare(
