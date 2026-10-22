@@ -524,7 +524,9 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   useEffect(() => {
 
-    void VisionCamera.requestCameraPermission();
+    if (VisionCamera.getCameraPermissionStatus() !== "granted") {
+      void VisionCamera.requestCameraPermission();
+    }
 
     if (!accessToken) return;
     let cancelled = false;
@@ -2305,8 +2307,20 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   }, []);
 
   const lastBgWarnRef = useRef<number>(0);
+
+  const bgWarnIdRef = useRef<Promise<string | null> | null>(null);
+  const dismissBgWarn = useCallback(() => {
+    const pending = bgWarnIdRef.current;
+    if (!pending) return;
+    bgWarnIdRef.current = null;
+    pending
+      .then((id) => (id ? Notifications.dismissNotificationAsync(id) : undefined))
+      .catch((err) => console.warn("[Call] bg warn dismiss failed:", err?.message));
+  }, []);
+  useEffect(() => dismissBgWarn, [dismissBgWarn]);
   useEffect(() => {
     const sub = AppState.addEventListener("change", (next: AppStateStatus) => {
+      if (next === "active") dismissBgWarn();
 
       if (next === "active" && liveState === "live") {
         afl971UnmuteCallAudio();
@@ -2331,7 +2345,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       const now = Date.now();
       if (now - lastBgWarnRef.current < 30_000) return;
       lastBgWarnRef.current = now;
-      Notifications.scheduleNotificationAsync({
+      bgWarnIdRef.current = Notifications.scheduleNotificationAsync({
         content: {
           title: t("call.bgWarnTitle", { defaultValue: "📞 통화가 유지되지 않을 수 있어요" }),
           body: t("call.bgWarnBody", {
@@ -2340,10 +2354,13 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           priority: Notifications.AndroidNotificationPriority.MAX,
         },
         trigger: null,
-      }).catch((err) => console.warn("[Call] bg warn schedule failed:", err?.message));
+      }).catch((err) => {
+        console.warn("[Call] bg warn schedule failed:", err?.message);
+        return null;
+      });
     });
     return () => sub.remove();
-  }, [liveState, t, isMuted, afl971UnmuteCallAudio]);
+  }, [liveState, t, isMuted, afl971UnmuteCallAudio, dismissBgWarn]);
 
   useEffect(() => {
     if (!isFocused) {
@@ -2540,6 +2557,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   useEffect(() => {
     console.log(`[Call][flow] +${Date.now()} CallScreen mount cloneId=${cloneId} name=${paramName ?? "?"} hasImage=${!!paramImage}`);
+
+  }, []);
+
+  useEffect(() => {
     if (!accessToken) return;
     let cancelled = false;
     getCloneLikeStatus(accessToken, cloneId)
