@@ -158,7 +158,7 @@ export default function v_8640b9() {
   const v_6e0fd3 = Number(v_79a64b);
   const { name: v_dfb220, image: v_0e38ad, midCall: v_c414dc } = v_c7daf6.params;
 
-  const v_5d7bbf = v_e662ae<number[] | null | undefined>(undefined);
+  const v_5d7bbf = v_e662ae<number[][] | null | undefined>(undefined);
   if (v_5d7bbf.current === undefined) {
     v_5d7bbf.current =
       v_c414dc && v_c7daf6.params.accountSelfMatch === true ? v_790867(v_6e0fd3) : null;

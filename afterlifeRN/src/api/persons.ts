@@ -286,11 +286,11 @@ export async function v_ce5a56(
   v_2ca7e0,
   v_6e0fd3,
   v_8a1355,
-  v_f9a45c,
+  v_f94e64,
 ): Promise<{ id: number; displayName: string }> {
   return v_04b58a<{ id: number; displayName: string }>(
     '/oth-path',
     v_2ca7e0,
-    { method: 'POST', body: JSON.stringify({ cloneId: v_6e0fd3, displayName: v_8a1355, vector: v_f9a45c }) },
+    { method: 'POST', body: JSON.stringify({ cloneId: v_6e0fd3, displayName: v_8a1355, vectors: v_f94e64 }) },
   );
 }

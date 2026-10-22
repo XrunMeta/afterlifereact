@@ -202,10 +202,13 @@ v_fded81.get("/self-face", v_6690d9, async (v_3f4e2e) => {
 v_fded81.post("/from-account-self", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_4d33b2 = await v_3f4e2e.req
-    .json<{ cloneId?: number; displayName?: string; vector?: number[] }>()
-    .catch(() => ({}) as { cloneId?: number; displayName?: string; vector?: number[] });
+    .json<{ cloneId?: number; displayName?: string; vector?: number[]; vectors?: number[][] }>()
+    .catch(() => ({}) as { cloneId?: number; displayName?: string; vector?: number[]; vectors?: number[][] });
 
-  const v_f9a45c = v_91e67b(v_4d33b2.vector);
+  const v_76cd2a = Array.isArray(v_4d33b2.vectors) ? v_4d33b2.vectors : [v_4d33b2.vector];
+  if (v_76cd2a.length < 1 || v_76cd2a.length > 5)
+    throw new v_3ebe58("VALIDATION_FAILED", "vectors: 1~5개여야 합니다");
+  const v_f94e64 = v_76cd2a.map(v_91e67b);
   const v_6e0fd3 = v_4d33b2.cloneId;
   if (typeof v_6e0fd3 !== "number" || !Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
     throw new v_3ebe58("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
@@ -222,9 +225,15 @@ v_fded81.post("/from-account-self", v_6690d9, async (v_3f4e2e) => {
     throw new v_3ebe58("VALIDATION_FAILED", "본인 얼굴이 이미 이 클론에 등록되어 있습니다.");
 
   const v_d361d7 = Math.min(await v_4e929c(v_3f4e2e.env.DB), v_8294e8);
-  const v_688abd = await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_b1d852.cloneId, vector: v_f9a45c });
-  const v_715950 = v_688abd.find((v_65a2cd) => v_65a2cd.personId === v_b1d852.personId);
-  if (!v_715950 || v_715950.score < v_d361d7)
+  let v_9e1f58 = 0;
+  for (const v_81e2ef of v_f94e64) {
+    const v_715950 = (await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_b1d852.cloneId, vector: v_81e2ef })).find(
+      (v_65a2cd) => v_65a2cd.personId === v_b1d852.personId,
+    );
+    if (v_715950 && v_715950.score > v_9e1f58) v_9e1f58 = v_715950.score;
+  }
+  console.log(`[from-account-self] user=${v_43e90c} clone=${v_6e0fd3} vectors=${v_f94e64.length} best=${v_9e1f58.toFixed(3)} min=${v_d361d7}`);
+  if (v_9e1f58 < v_d361d7)
     throw new v_3ebe58("VALIDATION_FAILED", "본인 얼굴과 일치하지 않습니다.", { code: "SELF_FACE_MISMATCH" });
 
   const v_28fa96 = (v_3ac7e7) =>
@@ -239,7 +248,12 @@ v_fded81.post("/from-account-self", v_6690d9, async (v_3f4e2e) => {
     .bind(v_43e90c, v_6e0fd3, v_b1d852.personId)
     .first<{ id: number; display_name: string | null }>();
   if (v_b38746) throw v_28fa96(v_b38746);
-  const v_d81543 = (await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_f9a45c })).find((v_65a2cd) => v_65a2cd.score >= v_d361d7);
+
+  let v_d81543;
+  for (const v_81e2ef of v_f94e64) {
+    v_d81543 = (await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef })).find((v_65a2cd) => v_65a2cd.score >= v_d361d7);
+    if (v_d81543) break;
+  }
   if (v_d81543) {
     const v_3ac7e7 = await v_3f4e2e.env.DB.prepare(`SELECT id, display_name FROM persons WHERE id = ? AND user_id = ? AND clone_id = ?`)
       .bind(v_d81543.personId, v_43e90c, v_6e0fd3)

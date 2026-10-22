@@ -1234,6 +1234,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
     enabled: liveState === "live",
 
+    idleWatchdogPaused: !isFocused,
+
     say: sayForHandsFree,
     getStatsReport,
     notifySpeechEnd,
@@ -1442,14 +1444,16 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           onPress: () => {
             dispatchRm({ type: "CONFIRM_PROMPT" });
 
-            const selfVec =
-              unknownFaceSnapshotRef.current?.at(-1) ?? getFaceEmbeddingBuffer().latest(1)[0] ?? null;
-            const useAccountSelf = accountSelfMatchRef.current && selfVec != null && selfVec.length === 512;
+            const snap = unknownFaceSnapshotRef.current;
+            const selfVecs = (snap && snap.length > 0 ? snap : getFaceEmbeddingBuffer().latest(5))
+              .slice(-5)
+              .filter((v) => v.length === 512);
+            const useAccountSelf = accountSelfMatchRef.current && selfVecs.length > 0;
             console.log(
-              `[Call][face] 등록 → accountSelfMatch=${accountSelfMatchRef.current} vector=${selfVec?.length ?? 0} → ${useAccountSelf ? "스캔 생략" : "스캔"}`,
+              `[Call][face] 등록 → accountSelfMatch=${accountSelfMatchRef.current} vectors=${selfVecs.length} → ${useAccountSelf ? "스캔 생략" : "스캔"}`,
             );
             accountSelfMatchRef.current = false;
-            if (useAccountSelf && selfVec) setMidCallSelfVector(cloneId, selfVec);
+            if (useAccountSelf) setMidCallSelfVector(cloneId, selfVecs);
             (navigation as unknown as { navigate: (name: string, params: object) => void }).navigate(
               "PreCallFaceEnroll",
               { cloneId, name: paramName, image: paramImage, midCall: true, accountSelfMatch: useAccountSelf },
@@ -2375,22 +2379,33 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const cancelInFlightRef = useRef(false);
 
   const retryLockUntilRef = useRef(0);
+  const exitStartedAtRef = useRef(0);
+  const isFocusedRef = useRef(isFocused);
+  isFocusedRef.current = isFocused;
   const exitToMain = useCallback(() => {
+    const toMain = () =>
+      navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: "Main" }] }));
     if (exitInFlightRef.current) {
+
+      if (Date.now() - exitStartedAtRef.current > 3000) {
+        console.log("[Call][exit] 종료가 3초 넘게 안 끝남 — 메인으로 강제 이동");
+        toMain();
+        return;
+      }
       console.log("[Call][exit] 이미 진행 중 — 재요청 무시");
       return;
     }
     exitInFlightRef.current = true;
+    exitStartedAtRef.current = Date.now();
     console.log("[Call][exit] setIsTerminating=true (200ms 후 navigation)");
     setIsTerminating(true);
     setTimeout(() => {
       console.log("[Call][exit] navigation 실행");
-      if (navigation.canGoBack()) {
+
+      if (navigation.canGoBack() && isFocusedRef.current) {
         navigation.goBack();
       } else {
-        navigation.dispatch(
-          CommonActions.reset({ index: 0, routes: [{ name: "Main" }] }),
-        );
+        toMain();
       }
     }, 200);
   }, [navigation]);
