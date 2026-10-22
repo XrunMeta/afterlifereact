@@ -20,6 +20,10 @@ export interface TimelineChatItem {
   content: string;
   at: number;         
   sessionId: string;
+
+  kind?: "image" | "text";
+
+  caption?: string | null;
 }
 export interface TimelineCallItem {
   type: "call";
@@ -84,7 +88,14 @@ export interface ConversationListResponse {
 export interface PostMessageResponse {
   sessionId: string;
 
-  userMessage: { id: number; content: string; at?: number; createdAt: string };
+  userMessage: {
+    id: number;
+    content: string;
+    at?: number;
+    createdAt: string;
+    kind?: "image" | "text";
+    caption?: string | null;
+  };
   cloneReply: { id: number; content: string; tokens: number; at?: number; createdAt: string };
   billing: { credits: number; tokens: number };
 }
@@ -156,6 +167,32 @@ export async function v_dd96e7(
     v_2ca7e0,
     { method: "POST", body: JSON.stringify(v_4d33b2) },
     v_6f448e,
+  );
+}
+
+export async function v_15b915(
+  v_6e0fd3,
+  v_ee89db,
+  v_2ca7e0,
+  v_328259 = {},
+): Promise<PostMessageResponse> {
+  const v_6f448e = `chat-img-${v_6e0fd3}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const v_ebd523 = new FormData();
+  v_ebd523.append(
+    "image",
+    {
+      uri: v_ee89db,
+      name: v_328259.fileName ?? "chat.jpg",
+      type: v_328259.mimeType ?? "image/jpeg",
+    } as unknown as Blob,
+  );
+  if (v_328259.sessionId) v_ebd523.append("session_id", v_328259.sessionId);
+  return v_04b58a<PostMessageResponse>(
+    `/oth-path${v_6e0fd3}/messages/image`,
+    v_2ca7e0,
+    { method: "POST", body: v_ebd523 },
+    v_6f448e,
+    { multipart: true },
   );
 }
 

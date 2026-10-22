@@ -374,7 +374,17 @@
     "leaveTitle": "退出聊天",
     "leaveConfirm": "与该克隆的对话将被清除。是否继续？",
     "leaveConfirmSubscribed": "与该克隆的对话将被清除，并取消订阅。是否继续？",
-    "leaveFailTitle": "退出失败"
+    "leaveFailTitle": "退出失败",
+    "imageButtonA11y": "发送照片",
+    "imagePickTitle": "发送照片",
+    "imagePickCamera": "相机",
+    "imagePickAlbum": "相册",
+    "imagePlaceholder": "[照片]",
+    "imageUnavailableTitle": "发送照片",
+    "imageLoginRequired": "登录后才能发送照片。",
+    "imageSendFailTitle": "照片发送失败",
+    "imageSendFailBody": "请检查网络后重试。",
+    "imageApiUnavailable": "照片发送功能准备中，请稍后再试。"
   },
   "call": {
     "calling": "连接中...",
