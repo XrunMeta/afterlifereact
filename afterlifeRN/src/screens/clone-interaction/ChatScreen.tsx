@@ -34,12 +34,13 @@ import v_06b8c0 from "../../components/clone/IntimacyEventsSheet";
 import v_fb73af from "../../components/ads/PangleBannerAd";
 import { v_60086b } from "../../lib/pangle";
 import { v_08bca5, v_12f485 } from "../../lib/useChatLiveRefresh";
-import { v_1bfbd0, v_8b0c90, v_9b1a04, v_0da505, v_94abbe } from "../../components/constants";
+import { v_1bfbd0 } from "../../components/constants";
 import {
   v_8a85e2,
   v_22ca9b,
   v_40068b,
   v_dd96e7,
+  v_15b915,
   v_3ce9ef,
   v_9adabd,
   v_1c758d,
@@ -51,6 +52,15 @@ import {
   type v_18a302,
   type v_109480,
 } from "../../api/chat";
+import { v_e0c5af } from "../clone-creation/content/pickImageSource";
+import v_c7021f from "../clone-creation/content/ImageSourceSheet";
+import {
+  v_c905f8,
+  v_49c1e3,
+  v_73c438,
+  v_daaf83,
+} from "../../lib/chatLocalImages";
+import * as v_3c288d from "bxoplsnixpmvnirxbbkstg";
 
 type ActionItem = {
   label: string;
@@ -107,6 +117,11 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_fd08c6, v_2c320e] = v_5ab095<{ title?: string; actions: ActionItem[] } | null>(null);
   const v_cafc04 = (v_9f1622, v_dd943a) =>
     v_2c320e({ title: v_9f1622, actions: v_dd943a });
+
+  const [v_25cd2f, v_9e2d74] = v_5ab095(false);
+
+  const [v_123da1, v_21f75d] = v_5ab095(0);
+  const v_2ed4c7 = () => v_21f75d((v_f4e98d) => v_f4e98d + 1);
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_f4fb5e = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? null);
 
@@ -380,6 +395,139 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     }
   };
 
+  const v_f4f163 = async (v_cd1446) => {
+    if (v_5e23ec) return;
+    if (!v_e721a8 || !v_2ca7e0) {
+      v_889fad(
+        v_8d41d7("chat.imageUnavailableTitle", { defaultValue: "사진 보내기" }),
+        v_8d41d7("chat.imageLoginRequired", { defaultValue: "로그인 후 사진을 보낼 수 있어요." }),
+      );
+      return;
+    }
+    v_0e1f26.dismiss();
+
+    let v_4a0670 = v_cd1446;
+    try {
+
+      const v_2d3c27 = await v_3c288d.manipulateAsync(
+        v_cd1446,
+        [{ resize: { width: 1280 } }],
+        { compress: 0.8, format: v_3c288d.SaveFormat.JPEG },
+      );
+      if (v_2d3c27?.uri) v_4a0670 = v_2d3c27.uri;
+    } catch (v_49263d) {
+      console.warn("[Chat] image resize failed — original uri 사용:", v_49263d);
+    }
+
+    const v_2413d4 = -Date.now();
+    const v_5c2f9f = Date.now();
+    const optimisticUser: v_f19942 = {
+      type: "chat",
+      id: v_2413d4,
+      role: "user",
+      content: v_8d41d7("chat.imagePlaceholder", { defaultValue: "[사진]" }),
+      at: v_5c2f9f,
+      sessionId: v_c5607b ?? "pending",
+      kind: "image",
+      caption: null,
+    };
+    v_c905f8(v_2413d4, v_4a0670);
+    v_2ed4c7();
+    v_7f73ef((v_ba2215) => [v_fa1cce, ...(v_ba2215 ?? [])]);
+    v_10837f(true);
+
+    try {
+      const v_8f00b9 = await v_15b915(v_6e0fd3, v_4a0670, v_2ca7e0, {
+        sessionId: v_c5607b ?? undefined,
+      });
+      if (!v_c5607b) v_1e756c(v_8f00b9.sessionId);
+
+      const v_6044a8 =
+        v_8f00b9.userMessage.caption ??
+        (v_8f00b9.userMessage.kind === "image" ? v_8f00b9.userMessage.content : null);
+      const realUser: v_f19942 = {
+        type: "chat",
+        id: v_8f00b9.userMessage.id,
+        role: "user",
+        content: v_8f00b9.userMessage.content || v_8d41d7("chat.imagePlaceholder", { defaultValue: "[사진]" }),
+        at: v_8f00b9.userMessage.at ?? v_5c2f9f,
+        sessionId: v_8f00b9.sessionId,
+        kind: "image",
+        caption: v_6044a8,
+      };
+      v_73c438(v_2413d4, v_8f00b9.userMessage.id);
+      v_2ed4c7();
+
+      v_7f73ef((v_ba2215) => {
+        const v_694b25 = (v_ba2215 ?? []).filter((v_23805a) => !(v_23805a.type === "chat" && v_23805a.id === v_2413d4));
+        return [v_8338f4, ...v_694b25];
+      });
+
+      try {
+        const { loadAndShowRewardedAd: v_18f201 } = await import("../../lib/pangle");
+        await v_18f201();
+      } catch (v_663f77) {
+
+        console.warn("[Chat] image rewarded ad failed — show reply anyway:", v_663f77);
+      }
+
+      if (!v_d6f043.current) return;
+
+      const cloneItem: v_f19942 = {
+        type: "chat",
+        id: v_8f00b9.cloneReply.id,
+        role: "clone",
+        content: v_8f00b9.cloneReply.content,
+        at: v_8f00b9.cloneReply.at ?? Date.now(),
+        sessionId: v_8f00b9.sessionId,
+      };
+      v_7f73ef((v_ba2215) => {
+        const v_694b25 = v_ba2215 ?? [];
+
+        if (v_694b25.some((v_23805a) => v_23805a.type === "chat" && v_23805a.id === v_e44122.id)) return v_694b25;
+        return [v_e44122, ...v_694b25];
+      });
+
+      v_12f485(v_6e0fd3);
+      if (v_6b5698.currentState === "active") {
+        void v_9cb700(v_6e0fd3, v_2ca7e0);
+      }
+      void v_e6ff86();
+    } catch (v_49263d) {
+      console.warn("[Chat] send image failed:", (v_49263d as Error)?.message ?? v_49263d);
+      v_daaf83(v_2413d4);
+      v_2ed4c7();
+      v_7f73ef((v_ba2215) =>
+        v_ba2215 ? v_ba2215.filter((v_23805a) => !(v_23805a.type === "chat" && v_23805a.id === v_2413d4)) : v_ba2215,
+      );
+      const v_d308b5 = (v_49263d as { status?: number })?.status;
+      v_889fad(
+        v_8d41d7("chat.imageSendFailTitle", { defaultValue: "사진을 보내지 못했어요" }),
+        v_d308b5 === 404 || v_d308b5 === 501
+          ? v_8d41d7("chat.imageApiUnavailable", {
+              defaultValue: "사진 보내기 준비 중이에요. 잠시 후 다시 시도해 주세요.",
+            })
+          : v_8d41d7("chat.imageSendFailBody", {
+              defaultValue: "네트워크 상태를 확인한 뒤 다시 시도해 주세요.",
+            }),
+      );
+    } finally {
+      v_10837f(false);
+    }
+  };
+
+  const v_4b9c9b = () => {
+    if (v_5e23ec) return;
+    v_0e1f26.dismiss();
+    v_9e2d74(true);
+  };
+
+  const v_1f5414 = async (v_520fa9) => {
+    const v_07fb2e = await v_e0c5af(v_520fa9, v_8d41d7);
+    if (!v_07fb2e?.uri) return;
+    await v_f4f163(v_07fb2e.uri);
+  };
+
   const v_21be1f = async () => {
     const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {});
     if (!v_3ed4c3) return;
@@ -622,6 +770,61 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                   v_a448ad.role === v_23805a.role && v_691d4e(v_a448ad.at, v_23805a.at)
                 );
                 const v_ca7346 = v_23805a.role === "user";
+
+                void v_123da1;
+                const v_cbe4b7 = v_49c1e3(v_23805a.id);
+
+                const v_27e1a6 = v_23805a.kind === "image" || !!v_cbe4b7;
+                const v_a9330b =
+                  (v_23805a.caption && v_23805a.caption.trim()) ||
+                  (v_23805a.content && v_23805a.content !== "[사진]" ? v_23805a.content.trim() : "");
+                const v_782a23 = v_27e1a6 ? (
+                  v_cbe4b7 ? (
+                    <Image
+                      source={{ uri: v_cbe4b7 }}
+                      style={v_d81136.chatImageThumb}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={v_d81136.chatImageFallback}>
+                      <Feather
+                        name="image"
+                        size={22}
+                        color={v_ca7346 ? v_1bfbd0.white : v_1bfbd0.zinc500}
+                      />
+                      <Text
+                        style={
+                          v_ca7346
+                            ? v_d81136.userBubbleText
+                            : v_d81136.personaOutsideBubbleText
+                        }
+                      >
+                        {v_8d41d7("chat.imagePlaceholder", { defaultValue: "[사진]" })}
+                      </Text>
+                      {!!v_a9330b && (
+                        <Text
+                          style={[
+                            v_ca7346
+                              ? v_d81136.userBubbleText
+                              : v_d81136.personaOutsideBubbleText,
+                            v_d81136.chatImageCaption,
+                          ]}
+                          numberOfLines={3}
+                        >
+                          {v_a9330b}
+                        </Text>
+                      )}
+                    </View>
+                  )
+                ) : (
+                  <Text
+                    style={
+                      v_ca7346 ? v_d81136.userBubbleText : v_d81136.personaOutsideBubbleText
+                    }
+                  >
+                    {v_23805a.content}
+                  </Text>
+                );
                 return (
                   <React.Fragment key={`api-chat-${v_23805a.id}`}>
                     {v_6583df}
@@ -634,18 +837,26 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                           activeOpacity={0.85}
                           onLongPress={() => v_00fc5a(v_23805a)}
                           delayLongPress={350}
-                          style={[v_d81136.userBubble, v_d81136.bubbleInRow]}
+                          style={[
+                            v_d81136.userBubble,
+                            v_d81136.bubbleInRow,
+                            v_27e1a6 && v_d81136.userImageBubble,
+                          ]}
                         >
-                          <Text style={v_d81136.userBubbleText}>{v_23805a.content}</Text>
+                          {v_782a23}
                         </TouchableOpacity>
                       ) : (
                         <TouchableOpacity
                           activeOpacity={0.85}
                           onLongPress={() => v_00fc5a(v_23805a)}
                           delayLongPress={350}
-                          style={[v_d81136.personaOutsideBubble, v_d81136.bubbleInRow]}
+                          style={[
+                            v_d81136.personaOutsideBubble,
+                            v_d81136.bubbleInRow,
+                            v_27e1a6 && v_d81136.personaImageBubble,
+                          ]}
                         >
-                          <Text style={v_d81136.personaOutsideBubbleText}>{v_23805a.content}</Text>
+                          {v_782a23}
                         </TouchableOpacity>
                       )}
                       {!v_ca7346 && v_d2b3ec && (
@@ -722,37 +933,64 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
       {}
       <View style={v_d81136.inputBar}>
-        <TextInput
-          style={v_d81136.inputField}
-          value={v_bbda62}
-          onChangeText={v_c31db7}
-          placeholder={v_8d41d7("chat.inputPlaceholder", {
-            defaultValue: "{{name}}(으)로 채팅 중",
-            name: v_dfb220,
-          })}
-          placeholderTextColor={v_1bfbd0.zinc400}
-          multiline
-          textAlignVertical="center"
-          maxLength={500}
-          returnKeyType="send"
-          onSubmitEditing={v_465869}
-          blurOnSubmit
-          onFocus={() => {
-            setTimeout(() => v_5ca6b8.current?.scrollToEnd({ animated: true }), 150);
-          }}
-        />
-        <TouchableOpacity
-          style={[v_d81136.sendBtn, !v_bbda62.trim() && v_d81136.sendBtnDisabled]}
-          onPress={v_465869}
-          disabled={!v_bbda62.trim()}
-        >
-          <Feather
-            name="send"
-            size={18}
-            color={!v_bbda62.trim() ? v_1bfbd0.zinc400 : v_1bfbd0.white}
+        <View style={v_d81136.inputPill}>
+          <TouchableOpacity
+            style={[v_d81136.imageBtn, v_5e23ec && v_d81136.imageBtnDisabled]}
+            onPress={v_4b9c9b}
+            disabled={v_5e23ec}
+            hitSlop={6}
+            accessibilityLabel={v_8d41d7("chat.imageButtonA11y", { defaultValue: "사진 보내기" })}
+          >
+            <Feather
+              name="image"
+              size={16}
+              color={v_5e23ec ? v_1bfbd0.zinc400 : v_1bfbd0.zinc700}
+            />
+          </TouchableOpacity>
+          <TextInput
+            style={v_d81136.inputField}
+            value={v_bbda62}
+            onChangeText={v_c31db7}
+            placeholder={v_8d41d7("chat.inputPlaceholder", {
+              defaultValue: "{{name}}(으)로 채팅 중",
+              name: v_dfb220,
+            })}
+            placeholderTextColor={v_1bfbd0.zinc400}
+            multiline
+            textAlignVertical="center"
+            maxLength={500}
+            returnKeyType="send"
+            onSubmitEditing={v_465869}
+            blurOnSubmit
+            onFocus={() => {
+              setTimeout(() => v_5ca6b8.current?.scrollToEnd({ animated: true }), 150);
+            }}
           />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[v_d81136.sendBtn, (!v_bbda62.trim() || v_5e23ec) && v_d81136.sendBtnDisabled]}
+            onPress={v_465869}
+            disabled={!v_bbda62.trim() || v_5e23ec}
+            accessibilityLabel={v_8d41d7("chat.sendA11y", { defaultValue: "보내기" })}
+          >
+            <Feather
+              name="send"
+              size={16}
+              color={!v_bbda62.trim() || v_5e23ec ? v_1bfbd0.zinc500 : v_1bfbd0.white}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
+
+      <ImageSourceSheet
+        visible={v_25cd2f}
+        title={v_8d41d7("chat.imagePickTitle", { defaultValue: "사진 보내기" })}
+        cameraLabel={v_8d41d7("chat.imagePickCamera", { defaultValue: "카메라" })}
+        libraryLabel={v_8d41d7("chat.imagePickAlbum", { defaultValue: "앨범" })}
+        cancelLabel={v_8d41d7("common.cancel", { defaultValue: "취소" })}
+        onCamera={() => void v_1f5414(true)}
+        onLibrary={() => void v_1f5414(false)}
+        onClose={() => v_9e2d74(false)}
+      />
 
       {}
       <IntimacyEventsSheet
@@ -1226,32 +1464,86 @@ const v_d81136 = v_472849.create({
   },
 
   inputBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: v_9b1a04.large,
+    paddingHorizontal: 12,
     paddingTop: 8,
-    paddingBottom: 12,
-    backgroundColor: v_1bfbd0.white,
-    borderTopWidth: 1,
+    paddingBottom: 10,
+    backgroundColor: v_1bfbd0.zinc100,
+    borderTopWidth: v_472849.hairlineWidth,
     borderTopColor: v_1bfbd0.zinc200,
+  },
+  inputPill: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 4,
+    minHeight: 48,
+    paddingLeft: 6,
+    paddingRight: 6,
+    paddingVertical: 4,
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 999,
+    borderWidth: v_472849.hairlineWidth,
+    borderColor: v_1bfbd0.zinc200,
   },
   inputField: {
     flex: 1,
     maxHeight: 120,
-    borderWidth: 1,
-    borderColor: v_1bfbd0.zinc200,
+    minHeight: 40,
+    paddingHorizontal: 6,
+    paddingTop: v_326be8.OS === "ios" ? 10 : 8,
+    paddingBottom: v_326be8.OS === "ios" ? 10 : 8,
+    margin: 0,
+    borderWidth: 0,
     color: v_1bfbd0.zinc900,
-    backgroundColor: v_1bfbd0.zinc100,
-    ...v_0da505,
+    backgroundColor: "transparent",
+    fontSize: 15,
+    lineHeight: 20,
   },
   sendBtn: {
-    ...v_94abbe,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginBottom: 2,
     backgroundColor: v_1bfbd0.primary,
     justifyContent: "center",
     alignItems: "center",
   },
   sendBtnDisabled: { backgroundColor: v_1bfbd0.zinc200 },
+
+  imageBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginBottom: 2,
+    backgroundColor: v_1bfbd0.zinc100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  imageBtnDisabled: { opacity: 0.45 },
+  chatImageThumb: {
+    width: 180,
+    height: 180,
+    borderRadius: 12,
+    backgroundColor: v_1bfbd0.zinc800,
+  },
+  chatImageFallback: {
+    minWidth: 120,
+    maxWidth: 200,
+    alignItems: "flex-start",
+    gap: 6,
+  },
+  chatImageCaption: {
+    opacity: 0.9,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  userImageBubble: {
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+  },
+  personaImageBubble: {
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+  },
 
   sheetOverlay: {
     flex: 1,
