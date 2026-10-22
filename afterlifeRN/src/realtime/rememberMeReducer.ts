@@ -144,7 +144,7 @@ export function v_4f0ecc(v_fd5f43): boolean {
 }
 
 export function v_b94941(v_fd5f43): boolean {
-  return v_fd5f43.mode === "pending" || v_fd5f43.sheetOpen;
+  return v_fd5f43.mode === "pending" || v_fd5f43.sheetOpen || v_fd5f43.promptRegister;
 }
 
 function v_60164c(
@@ -225,7 +225,8 @@ function v_a448ad(
         return {
           state: { ...v_9638ca(v_b6e533, v_d48baf.personId, v_d48baf.displayName), recentlySeen: v_3d04cc },
           actions: [
-            { type: "MIC_ON" },
+
+            ...(v_b6e533.promptRegister ? [] : [{ type: "MIC_ON" } as RememberMeAction]),
             {
               type: "NOTIFY_CONFIRMED",
               personId: v_d48baf.personId,
@@ -556,6 +557,13 @@ function v_a448ad(
     case "DISMISS_LATER":
 
       if (!v_b6e533.promptRegister) return { state: v_b6e533, actions: [] };
+
+      if (v_b6e533.mode === "identified" && v_b6e533.personId !== null) {
+        return {
+          state: { ...v_b6e533, promptRegister: false, dismissedPromptInCall: true },
+          actions: [{ type: "MIC_ON" }],
+        };
+      }
       return {
         state: {
           ...v_b6e533,
