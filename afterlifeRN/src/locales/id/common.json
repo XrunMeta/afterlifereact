@@ -385,7 +385,9 @@
     "imageSendFailTitle": "Gagal mengirim foto",
     "imageSendFailBody": "Periksa koneksi lalu coba lagi.",
     "imageApiUnavailable": "Fitur kirim foto belum siap. Coba lagi sebentar.",
-    "typingA11y": "Sedang mengetik"
+    "typingA11y": "Sedang mengetik",
+    "listTitle": "Daftar chat",
+    "listCount": "Daftar chat {{count}}"
   },
   "call": {
     "calling": "Menghubungkan...",
