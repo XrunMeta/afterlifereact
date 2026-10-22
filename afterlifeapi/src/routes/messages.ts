@@ -17,6 +17,7 @@ import { v_74c502, v_7a9d93, v_5d4a51, v_09d461 } from "../lib/cloneAccess";
 import { v_e86502, v_fda4d7, v_3821c0 } from "../lib/memoryStore";
 import { v_dd9d7c, v_721d54, v_cf0463 } from "../lib/interactions";
 import { v_a00a76 } from "../lib/conversationEvents";
+import { v_026a6e, v_97036c } from "../lib/langTag";
 import {
   v_e68875,
   v_a52bdd,
@@ -72,6 +73,8 @@ function v_2ab119(v_3f4e2e): number {
 const v_7c582e = v_1f4ea7.object({
   session_id: v_1f4ea7.string().min(1).max(64).optional(),
   content: v_1f4ea7.string().min(1).max(4000),
+
+  locale: v_1f4ea7.string().min(2).max(16).optional(),
 });
 
 async function v_c5d920(
@@ -101,13 +104,18 @@ async function v_c5d920(
 
   const v_c5607b = v_4d33b2.session_id ?? crypto.randomUUID();
 
+  const v_5f37ae = v_97036c(v_4d33b2.locale ?? v_3f4e2e.req.header("X-App-Locale"));
+
   let v_b4c4d3;
+  let v_b29561 = v_5f37ae ?? v_026a6e;
   if (v_3f4e2e.env.CHAT_REPLY_SOURCE === "prethird") {
     const v_16e2dd = await v_663c07(v_3f4e2e.env, v_43e90c, v_6e0fd3);
     const v_4eca64 = (v_3f4e2e.req.header("Authorization") ?? "").replace(/^Bearer\s+/i, "");
-    v_b4c4d3 = await v_4dc423(v_3f4e2e.env, {
-      cloneId: v_6e0fd3, userToken: v_4eca64, text: v_e5af65 ?? v_4d33b2.content, prior: v_16e2dd.prior, recent: v_16e2dd.recent,
+    const v_cb35cb = await v_4dc423(v_3f4e2e.env, {
+      cloneId: v_6e0fd3, userToken: v_4eca64, text: v_e5af65 ?? v_4d33b2.content, prior: v_16e2dd.prior, recent: v_16e2dd.recent, userLang: v_5f37ae,
     });
+    v_b4c4d3 = v_cb35cb.reply;
+    v_b29561 = v_cb35cb.lang;
   } else {
     const [v_19fdaa, v_1405be, v_ee6431] = await Promise.all([
       v_e86502(v_3f4e2e.env, v_6e0fd3),
@@ -130,18 +138,18 @@ async function v_c5d920(
     throw new v_3ebe58("FORBIDDEN", "This conversation is no longer available.");
   }
 
-  const v_d70f86 = (v_cb35cb, v_b43b74) =>
+  const v_d70f86 = (v_cb35cb, v_b43b74, v_5254bf) =>
     v_a1651b
       .prepare(
-        `INSERT INTO messages (clone_id, user_id, session_id, role, content, status, reconciliation_status)
-         VALUES (?, ?, ?, ?, ?, 'active', 'pending')
+        `INSERT INTO messages (clone_id, user_id, session_id, role, content, status, reconciliation_status, lang)
+         VALUES (?, ?, ?, ?, ?, 'active', 'pending', ?)
          RETURNING id, created_at`,
       )
-      .bind(v_6e0fd3, v_43e90c, v_c5607b, v_cb35cb, v_b43b74)
+      .bind(v_6e0fd3, v_43e90c, v_c5607b, v_cb35cb, v_b43b74, v_5254bf)
       .first<{ id: number; created_at: string }>();
-  const v_43f890 = await v_d70f86("user", v_369293);
+  const v_43f890 = await v_d70f86("user", v_369293, null);
   if (!v_43f890) throw new v_3ebe58("INTERNAL_ERROR", "Failed to persist user message.");
-  const v_56871e = await v_d70f86("clone", v_09f707);
+  const v_56871e = await v_d70f86("clone", v_09f707, v_b29561);
   if (!v_56871e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to persist clone reply.");
 
   await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "chat");
@@ -167,7 +175,7 @@ async function v_c5d920(
     .run()
     .catch((v_49263d) => console.error(`[STATS_UPDATE_FAIL] clone=${v_6e0fd3} ${v_49263d.message}`));
 
-  return { sessionId: v_c5607b, userMsg: v_43f890, cloneMsg: v_56871e, replyText: v_b4c4d3 };
+  return { sessionId: v_c5607b, userMsg: v_43f890, cloneMsg: v_56871e, replyText: v_b4c4d3, replyLang: v_b29561 };
 }
 
 v_19e2a3.post(
@@ -177,7 +185,7 @@ v_19e2a3.post(
   async (v_3f4e2e) => {
     const v_6e0fd3 = v_31113b(v_3f4e2e);
     const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_7c582e);
-    const { sessionId: v_c5607b, userMsg: v_43f890, cloneMsg: v_56871e, replyText: v_b4c4d3 } = await v_c5d920(v_3f4e2e, v_6e0fd3, v_4d33b2);
+    const { sessionId: v_c5607b, userMsg: v_43f890, cloneMsg: v_56871e, replyText: v_b4c4d3, replyLang: v_b29561 } = await v_c5d920(v_3f4e2e, v_6e0fd3, v_4d33b2);
 
     await v_74defc(v_3f4e2e, {
       userId: v_3f4e2e.get("userId")!,
@@ -192,7 +200,7 @@ v_19e2a3.post(
         at: v_15ea73(v_43f890.created_at), createdAt: v_43f890.created_at,
       },
       cloneReply: {
-        id: v_56871e.id, content: v_b4c4d3, tokens: 0,
+        id: v_56871e.id, content: v_b4c4d3, tokens: 0, lang: v_b29561,
         at: v_15ea73(v_56871e.created_at), createdAt: v_56871e.created_at,
       },
 
@@ -237,8 +245,10 @@ v_19e2a3.post(
       type: v_3b27d9,
     });
     const v_b43b74 = v_56bce4(v_6856a9);
-    const { sessionId: v_c5607b, userMsg: v_43f890, cloneMsg: v_56871e, replyText: v_b4c4d3 } = await v_c5d920(
-      v_3f4e2e, v_6e0fd3, { session_id: v_acee3a, content: v_b43b74 }, v_741d36(v_6856a9),
+    const v_103b3d = v_ebd523?.get("locale");
+    const v_6f298b = typeof v_103b3d === "string" && v_103b3d.length <= 16 ? v_103b3d : undefined;
+    const { sessionId: v_c5607b, userMsg: v_43f890, cloneMsg: v_56871e, replyText: v_b4c4d3, replyLang: v_b29561 } = await v_c5d920(
+      v_3f4e2e, v_6e0fd3, { session_id: v_acee3a, content: v_b43b74, locale: v_6f298b }, v_741d36(v_6856a9),
     );
 
     await v_74defc(v_3f4e2e, {
@@ -254,7 +264,7 @@ v_19e2a3.post(
         at: v_15ea73(v_43f890.created_at), createdAt: v_43f890.created_at,
       },
       cloneReply: {
-        id: v_56871e.id, content: v_b4c4d3, tokens: 0,
+        id: v_56871e.id, content: v_b4c4d3, tokens: 0, lang: v_b29561,
         at: v_15ea73(v_56871e.created_at), createdAt: v_56871e.created_at,
       },
       billing: { credits: 0, tokens: 0 },
@@ -269,7 +279,7 @@ v_19e2a3.post(
   async (v_3f4e2e) => {
     const v_6e0fd3 = v_31113b(v_3f4e2e);
     const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_7c582e);
-    const { sessionId: v_c5607b, userMsg: v_43f890, cloneMsg: v_56871e, replyText: v_b4c4d3 } = await v_c5d920(v_3f4e2e, v_6e0fd3, v_4d33b2);
+    const { sessionId: v_c5607b, userMsg: v_43f890, cloneMsg: v_56871e, replyText: v_b4c4d3, replyLang: v_b29561 } = await v_c5d920(v_3f4e2e, v_6e0fd3, v_4d33b2);
 
     await v_74defc(v_3f4e2e, {
       userId: v_3f4e2e.get("userId")!,
@@ -295,6 +305,7 @@ v_19e2a3.post(
             tokens: 0,
             credits: 0,
             createdAt: v_56871e.created_at,
+            lang: v_b29561,
           }),
         });
       } catch (v_49263d) {

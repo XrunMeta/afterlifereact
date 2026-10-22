@@ -2,6 +2,7 @@
 
 import { v_cc9198 } from "../config/apiBase";
 import { v_04b58a } from "../lib/authFetch";
+import v_9c213b from "../i18n";
 
 export function v_8a85e2(v_e0c7e8): boolean {
   return !!v_e0c7e8 && v_e0c7e8.trim().length > 0;
@@ -24,6 +25,8 @@ export interface TimelineChatItem {
   kind?: "image" | "text";
 
   caption?: string | null;
+
+  lang?: string;
 }
 export interface TimelineCallItem {
   type: "call";
@@ -96,7 +99,8 @@ export interface PostMessageResponse {
     kind?: "image" | "text";
     caption?: string | null;
   };
-  cloneReply: { id: number; content: string; tokens: number; at?: number; createdAt: string };
+
+  cloneReply: { id: number; content: string; tokens: number; at?: number; createdAt: string; lang?: string };
   billing: { credits: number; tokens: number };
 }
 
@@ -160,7 +164,8 @@ export async function v_dd96e7(
 ): Promise<PostMessageResponse> {
 
   const v_6f448e = `chat-${v_6e0fd3}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-  const v_4d33b2 = { content: v_b43b74 };
+
+  const v_4d33b2 = { content: v_b43b74, locale: v_9c213b.language };
   if (v_328259.sessionId) v_4d33b2.session_id = v_328259.sessionId;
   return v_04b58a<PostMessageResponse>(
     `/oth-path${v_6e0fd3}/messages`,
@@ -187,6 +192,7 @@ export async function v_15b915(
     } as unknown as Blob,
   );
   if (v_328259.sessionId) v_ebd523.append("session_id", v_328259.sessionId);
+  if (v_9c213b.language) v_ebd523.append("locale", v_9c213b.language);
   return v_04b58a<PostMessageResponse>(
     `/oth-path${v_6e0fd3}/messages/image`,
     v_2ca7e0,
