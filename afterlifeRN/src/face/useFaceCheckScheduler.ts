@@ -9,6 +9,8 @@ export const v_0a9c92 = 300;
 
 type Timer = ReturnType<typeof setTimeout>;
 
+export type FaceCheckTrigger = "user_speech" | "clone_tail" | "who_retry" | "burst";
+
 export interface FaceCheckScheduler {
   onUserSpeechStart(): void;
   onCloneSpeechEnd(remainingMs: number | null | undefined): void;
@@ -29,7 +31,7 @@ export function v_33d47b(v_328259): FaceCheckScheduler {
   const v_bfa20e = v_e662ae<Timer | null>(null);
   const v_960fe2 = v_e662ae<Timer[]>([]);
 
-  const v_0100e1 = v_de06a3(() => v_45ffc8.current(), []);
+  const v_0100e1 = v_de06a3((v_4412ae) => v_45ffc8.current(v_4412ae), []);
 
   const v_65da2c = v_de06a3(() => {
     if (v_3ac63b.current != null) {
@@ -64,14 +66,14 @@ export function v_33d47b(v_328259): FaceCheckScheduler {
 
   const v_26db44 = v_de06a3(() => {
     if (v_3ac63b.current != null) return; 
-    v_0100e1();
+    v_0100e1("user_speech");
     v_3ac63b.current = setInterval(() => {
 
       if (!v_c622fb.current) {
         v_65da2c();
         return;
       }
-      v_0100e1();
+      v_0100e1("user_speech");
     }, v_6495b8);
   }, [v_0100e1, v_65da2c]);
 
@@ -82,7 +84,7 @@ export function v_33d47b(v_328259): FaceCheckScheduler {
       const v_4b24d2 = Math.max(0, v_3300b9 - v_e86a72);
       v_eb1d75.current = setTimeout(() => {
         v_eb1d75.current = null;
-        v_0100e1();
+        v_0100e1("clone_tail");
       }, v_4b24d2);
     },
     [v_0100e1],
@@ -92,17 +94,18 @@ export function v_33d47b(v_328259): FaceCheckScheduler {
     if (v_bfa20e.current != null) clearTimeout(v_bfa20e.current);
     v_bfa20e.current = setTimeout(() => {
       v_bfa20e.current = null;
-      v_0100e1();
+      v_0100e1("who_retry");
     }, v_9cd1f6);
   }, [v_0100e1]);
 
   const v_b1b543 = v_de06a3(
     (v_9e8c70) => {
       v_0df5d4();
-      if (!(v_9e8c70 > 0)) return;
+
+      if (!Number.isFinite(v_9e8c70) || !(v_9e8c70 > 0)) return;
       const v_f4e98d = Math.floor(v_9e8c70);
       for (let v_ebec57 = 0; v_ebec57 < v_f4e98d; v_ebec57++) {
-        v_960fe2.current.push(setTimeout(v_0100e1, v_ebec57 * v_0a9c92));
+        v_960fe2.current.push(setTimeout(() => v_0100e1("burst"), v_ebec57 * v_0a9c92));
       }
     },
     [v_0100e1, v_0df5d4],

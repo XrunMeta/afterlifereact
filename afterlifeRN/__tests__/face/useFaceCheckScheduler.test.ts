@@ -154,4 +154,26 @@ describe("useFaceCheckScheduler", () => {
     expect(v_ea719c).toHaveBeenCalledTimes(1);
     expect(v_486a80).toHaveBeenCalledTimes(1);
   });
+  test("burst with non-finite count does nothing (no infinite loop)", () => {
+    const { request: v_576f5a, hook: v_ae701f } = v_9a4ebd();
+    v_be73a0(() => v_ae701f.result.current.burst(Infinity));
+    v_be73a0(() => v_ae701f.result.current.burst(NaN));
+    v_660ac0(3000);
+    expect(v_576f5a).not.toHaveBeenCalled();
+  });
+
+  test("request receives the trigger reason", () => {
+    const { request: v_576f5a, hook: v_ae701f } = v_9a4ebd();
+    v_be73a0(() => v_ae701f.result.current.onUserSpeechStart());
+    expect(v_576f5a).toHaveBeenLastCalledWith("user_speech");
+    v_be73a0(() => v_ae701f.result.current.onCloneSpeechEnd(0));
+    v_660ac0(0);
+    expect(v_576f5a).toHaveBeenLastCalledWith("clone_tail");
+    v_be73a0(() => v_ae701f.result.current.burst(1));
+    v_660ac0(0);
+    expect(v_576f5a).toHaveBeenLastCalledWith("burst");
+    v_be73a0(() => v_ae701f.result.current.onWhoAsked());
+    v_660ac0(2000);
+    expect(v_576f5a).toHaveBeenLastCalledWith("who_retry");
+  });
 });
