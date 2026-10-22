@@ -423,3 +423,43 @@ v_469bf2("계정 본인 얼굴 — 판정 하한 0.5", () => {
     v_4d37e3(v_cb35cb.status).toBe(201);
   });
 });
+
+v_469bf2("계정 본인 얼굴 — 여러 장 중 최고 점수로 판정", () => {
+  v_ff107d(() => v_dbed3e());
+
+  v_23805a("한 장은 0.45 여도 다른 한 장이 0.55 면 201", async () => {
+    const v_0c8987 = await v_bfb240("mv1@t.com");
+    const v_779914 = await v_4d24a9(v_0c8987, "mv1_a");
+    const v_148ff6 = await v_4d24a9(v_0c8987, "mv1_b");
+    const v_9edd60 = await v_21cc31(v_0c8987);
+    const v_d4923e = await v_9ef1c2(v_0c8987, v_779914, v_9edd60, "나", 41);
+    v_4d37e3((await v_51c3d2(`/oth-path${v_d4923e}/account-self`, v_9edd60, {})).status).toBe(200);
+    const v_cb35cb = await v_51c3d2("/oth-path", v_9edd60, {
+      cloneId: v_148ff6, displayName: "나", vectors: [v_64368f(41, 42, 0.45), v_64368f(41, 43, 0.55)],
+    });
+    v_4d37e3(v_cb35cb.status).toBe(201);
+  });
+
+  v_23805a("모든 장이 0.5 미만이면 422 SELF_FACE_MISMATCH", async () => {
+    const v_0c8987 = await v_bfb240("mv2@t.com");
+    const v_779914 = await v_4d24a9(v_0c8987, "mv2_a");
+    const v_148ff6 = await v_4d24a9(v_0c8987, "mv2_b");
+    const v_9edd60 = await v_21cc31(v_0c8987);
+    const v_d4923e = await v_9ef1c2(v_0c8987, v_779914, v_9edd60, "나", 51);
+    v_4d37e3((await v_51c3d2(`/oth-path${v_d4923e}/account-self`, v_9edd60, {})).status).toBe(200);
+    const v_cb35cb = await v_51c3d2("/oth-path", v_9edd60, {
+      cloneId: v_148ff6, displayName: "나", vectors: [v_64368f(51, 52, 0.4), v_64368f(51, 53, 0.45)],
+    });
+    v_4d37e3(v_cb35cb.status).toBe(422);
+  });
+
+  v_23805a("vectors 6장 이상은 422", async () => {
+    const v_0c8987 = await v_bfb240("mv3@t.com");
+    const v_148ff6 = await v_4d24a9(v_0c8987, "mv3_b");
+    const v_9edd60 = await v_21cc31(v_0c8987);
+    const v_cb35cb = await v_51c3d2("/oth-path", v_9edd60, {
+      cloneId: v_148ff6, displayName: "나", vectors: [1, 2, 3, 4, 5, 6].map((v_f4e98d) => v_46ff7a(v_f4e98d)),
+    });
+    v_4d37e3(v_cb35cb.status).toBe(422);
+  });
+});
