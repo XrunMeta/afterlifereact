@@ -495,6 +495,8 @@ export default function v_8640b9() {
               cloneId: v_6e0fd3,
               displayName: v_affc3e,
               enrolledVia: "auto_biometric",
+
+              userSelf: !v_c414dc,
             });
             v_ca1ec5 = v_306a28.id;
             v_d794c4 = v_306a28.id;
