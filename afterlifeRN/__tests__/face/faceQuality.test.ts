@@ -1,5 +1,7 @@
 import {
   v_47bc73,
+  v_ad3760,
+  v_5a3048,
   v_6722de,
   v_7e6cd4,
   v_300430,
@@ -61,4 +63,44 @@ describe("meanLuma — 0..1 RGB 인터리브 배열의 평균 휘도", () => {
 
   test("순수 파랑 한 픽셀은 0.114", () =>
     expect(v_6722de(new Float32Array([0, 0, 1]))).toBeCloseTo(0.114));
+});
+
+describe("faceYawRatio — landmark 로 본 옆모습 정도", () => {
+  test("정면(코가 두 눈 중점)이면 0", () =>
+    expect(
+      v_5a3048({ LEFT_EYE: { x: 40, y: 50 }, RIGHT_EYE: { x: 80, y: 50 }, NOSE_BASE: { x: 60, y: 70 } }),
+    ).toBeCloseTo(0));
+
+  test("|코 x − 눈 중점 x| / 두 눈 거리", () =>
+    expect(
+      v_5a3048({ LEFT_EYE: { x: 40, y: 50 }, RIGHT_EYE: { x: 80, y: 50 }, NOSE_BASE: { x: 76, y: 70 } }),
+    ).toBeCloseTo(0.4));
+
+  test("landmark 없으면 null", () => {
+    expect(v_5a3048(null)).toBeNull();
+    expect(v_5a3048(undefined)).toBeNull();
+    expect(v_5a3048({ LEFT_EYE: { x: 40, y: 50 }, RIGHT_EYE: { x: 80, y: 50 } })).toBeNull();
+  });
+
+  test("두 눈이 겹치면(거리 0) null", () =>
+    expect(
+      v_5a3048({ LEFT_EYE: { x: 40, y: 50 }, RIGHT_EYE: { x: 40, y: 50 }, NOSE_BASE: { x: 60, y: 70 } }),
+    ).toBeNull());
+});
+
+describe("classifyFaceQualityGuarded — 숫자가 아닌 입력은 그 판정만 건너뛴다", () => {
+  test("NaN luma → 밝기 판정 생략(ok)", () =>
+    expect(v_ad3760({ luma: NaN, faceWidthRatio: 0.3, yawRatio: 0 })).toBe("ok"));
+
+  test("NaN luma 여도 작은 얼굴은 small", () =>
+    expect(v_ad3760({ luma: NaN, faceWidthRatio: 0.05, yawRatio: 0 })).toBe("small"));
+
+  test("Infinity 폭 비율 → 크기 판정 생략", () =>
+    expect(v_ad3760({ luma: 0.5, faceWidthRatio: Infinity, yawRatio: 0 })).toBe("ok"));
+
+  test("NaN yaw → 옆모습 판정 생략", () =>
+    expect(v_ad3760({ luma: 0.5, faceWidthRatio: 0.3, yawRatio: NaN })).toBe("ok"));
+
+  test("정상 입력은 classifyFaceQuality 와 같다", () =>
+    expect(v_ad3760({ luma: 0.1, faceWidthRatio: 0.3, yawRatio: 0 })).toBe("dark"));
 });
