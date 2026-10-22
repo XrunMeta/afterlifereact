@@ -1,5 +1,6 @@
 
 
+import v_9c213b from '../i18n';
 import { v_de06a3, v_c4deb2, v_e662ae, v_5ab095 } from 'bapkr';
 import { v_c1a793, v_d904b7, v_802da4 } from 'rthlnescfffbyxfmhgq';
 import { v_e0051d } from '../config/apiBase';
@@ -360,6 +361,8 @@ export function v_3d8d48(v_328259): v_b01667 {
       }
 
       if (typeof v_5fa2a5.current === 'boolean') v_7524b9.bridge = v_5fa2a5.current;
+
+      if (v_9c213b.language) v_7524b9.user_lang = v_9c213b.language;
       const v_cb35cb = await fetch(v_f71b56, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
