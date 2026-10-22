@@ -16,10 +16,14 @@ import {
 import { v_b09c2e } from "../lib/conversationEvents";
 import { v_19b1f0, v_3205df, v_8be472, type v_1b5c7a } from "../lib/conversationLeave";
 import { v_74defc } from "../lib/logger";
+import { v_a52bdd, v_d4d906 } from "../lib/chatImage";
 
 export const v_1172ea = new v_b7c41b<v_de0a25>();
 
-type ChatItem = { type: "chat"; id: number; role: string; content: string; at: number; sessionId: string };
+type ChatItem = {
+  type: "chat"; id: number; role: string; content: string; at: number; sessionId: string;
+  kind?: "image"; caption?: string;
+};
 
 type CallItem = { type: "call"; callId: string; startedAt: number; durationSec: number | null; turnCount: number };
 
@@ -187,9 +191,12 @@ v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
     }
     const v_9b6134 = await v_c56968(v_3f4e2e.env, v_b24339, v_e38ca2, v_66ed66, v_6e0fd3, v_e2a85c.chat.role, v_e2a85c.chat.content);
     if (v_9b6134 === null) continue;
+    const v_a9330b = v_e2a85c.chat.role === "user" ? v_d4d906(v_9b6134) : null;
     v_4622b9.push({
-      type: "chat", id: v_e2a85c.chat.id, role: v_e2a85c.chat.role, content: v_9b6134, at: v_e2a85c.chat.at,
-      sessionId: v_e2a85c.chat.session_id,
+      type: "chat", id: v_e2a85c.chat.id, role: v_e2a85c.chat.role, at: v_e2a85c.chat.at, sessionId: v_e2a85c.chat.session_id,
+      ...(v_a9330b !== null
+        ? { content: v_a52bdd, kind: "image" as const, caption: v_a9330b }
+        : { content: v_9b6134 }),
     });
   }
 
