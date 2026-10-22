@@ -100,6 +100,7 @@ import {
   selfConfirm,
   fetchFacePolicy,
   enrollFaces,
+  getSelfFaceStatus,
   type Person,
 } from "../../api/persons";
 import { AuthApiError } from "../../api/auth";
@@ -252,6 +253,8 @@ export default function CallScreen(props: Props) {
 
   const [callEntryOpen, setCallEntryOpen] = React.useState<boolean | null>(false);
 
+  const [preCallGate, setPreCallGate] = React.useState<"checking" | "skip">("checking");
+
   const faceConsent = useCallFaceConsentGate(wrapperAccessToken);
   const faceConsentGate = faceConsent.gate; 
 
@@ -294,19 +297,92 @@ export default function CallScreen(props: Props) {
     };
 
   }, [wrapperAccessToken, cloneId]);
+  React.useEffect(() => {
+    if (!wrapperAccessToken) {
+      setPreCallGate("skip");
+      return;
+    }
+
+    if (faceConsentGate !== "ok") {
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+
+      if (!cancelled) {
+        console.warn("[Call][preCallGate] timeout → skip");
+        setPreCallGate("skip");
+      }
+    }, 2000);
+    (async () => {
+      try {
+
+        const [consentR, selfR] = await Promise.all([
+          getFaceBiometricConsent(wrapperAccessToken).catch(() => null),
+          getSelfFaceStatus(wrapperAccessToken).catch(() => null),
+        ]);
+        if (cancelled) return;
+        clearTimeout(timer);
+        const granted = consentR?.state === "granted";
+
+        const needsSelfFace = selfR?.hasSelfFace === false;
+
+        let skippedRecently = false;
+        try {
+          const AsyncStorage = (await import("@react-native-async-storage/async-storage")).default;
+          const atStr = await AsyncStorage.getItem("face_enroll_later_at");
+          if (atStr) {
+            const atMs = Number(atStr);
+            const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+            skippedRecently = Number.isFinite(atMs) && Date.now() - atMs < SEVEN_DAYS;
+          }
+        } catch {  }
+        const shouldRedirect = granted && needsSelfFace && !skippedRecently;
+        console.log(
+          `[Call][preCallGate] granted=${granted} · hasSelfFace=${selfR?.hasSelfFace ?? "?"} · redirect=${shouldRedirect}`,
+        );
+        if (shouldRedirect) {
+
+          props.navigation.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [
+                {
+                  name: "PreCallFaceEnroll",
+                  params: { cloneId, name: paramName, image: paramImage },
+                },
+              ],
+            }),
+          );
+          return;
+        }
+        setPreCallGate("skip");
+      } catch (err) {
+        if (cancelled) return;
+        clearTimeout(timer);
+        console.warn("[Call][preCallGate] error, skip:", err);
+        setPreCallGate("skip");
+      }
+    })();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+
+  }, [wrapperAccessToken, cloneId, faceConsentGate]);
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.zinc950 }}>
       {
 
 }
-      {callEntryOpen !== false || !heavyReady || prefetchedPipeline === undefined || faceConsentGate !== "ok" ? (
+      {callEntryOpen !== false || !heavyReady || preCallGate === "checking" || prefetchedPipeline === undefined || faceConsentGate !== "ok" ? (
         <DialingScreen
           liveState="idle"
           personaName={paramName ?? ""}
           personaImage={placeholderImage}
 
-          silent={callEntryOpen !== false || prefetchedPipeline === undefined || faceConsentGate !== "ok"}
+          silent={callEntryOpen !== false || preCallGate === "checking" || prefetchedPipeline === undefined || faceConsentGate !== "ok"}
           onConnected={() => {}}
           onCancel={() => props.navigation.goBack()}
           onRetry={() => {}}
