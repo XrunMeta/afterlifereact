@@ -1712,6 +1712,14 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                     sess.pipeline.uses_bridge = _bridge
                     log.info("session %s bridge=%s", sess.session_id, _bridge)
 
+                # AFL-1034: 앱 언어(offer "user_lang"). 발화 언어가 불분명할 때 답 언어 · 인사 언어.
+                #   없으면(구 앱) None → 답 언어 규칙의 폴백은 ko.
+                from clone_dialog.lang_tag import normalize_lang as _norm_lang
+                _ul = _norm_lang(params.get("user_lang"))
+                if _ul is not None and hasattr(sess.pipeline, "user_lang"):
+                    sess.pipeline.user_lang = _ul
+                    log.info("session %s user_lang=%s", sess.session_id, _ul)
+
                 # AFL-926: 이 계정×클론의 이전 대화를 다이얼링 중에 받아 둔다(백그라운드).
                 #   env PRETHIRD_PRIOR_CONVERSATION=1 일 때만 실제 조회(prior_conversation.py).
                 #   발화 경로는 메시지 조립 전에 이 태스크를 잠깐(2.5s) 기다린다.
@@ -1871,5 +1879,8 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     # AFL-1018 앱 채팅 답장 — Worker 전용. PRETHIRD_CHAT_SECRET 미설정이면 503(닫힘).
     from chat_reply_endpoint import register_chat_reply_routes
     register_chat_reply_routes(app)
+    # AFL-1034 앱 설정 › 목소리 테스트 — 언어별 합성(es=CosyVoice3). 통화 경로와 무관.
+    from voice_lang_preview_endpoint import register_voice_lang_preview_routes
+    register_voice_lang_preview_routes(app)
 
     return app

@@ -384,7 +384,8 @@
     "imageLoginRequired": "登录后才能发送照片。",
     "imageSendFailTitle": "照片发送失败",
     "imageSendFailBody": "请检查网络后重试。",
-    "imageApiUnavailable": "照片发送功能准备中，请稍后再试。"
+    "imageApiUnavailable": "照片发送功能准备中，请稍后再试。",
+    "typingA11y": "对方正在输入"
   },
   "call": {
     "calling": "连接中...",
@@ -447,6 +448,7 @@
     "newFaceBody": "要注册这张面孔吗?",
     "newFaceLater": "稍后",
     "newFaceSelf": "是我本人",
+    "newFaceSelfNamed": "我是{{name}}",
     "newFaceEnroll": "注册",
     "afl971PreMessage": "{userName},我去给你摘些花!看着视频等我,马上回来",
     "afl971PostMessage": "谢谢你的等待!送你一束花",
@@ -810,7 +812,9 @@
       "threeDPersonaDev": "3D角色 (dev)",
       "threeDPersonaDevDesc": "GLB头部渲染 + 唇形同步演示 · Phase 1",
       "faceEnrollDev": "面部5角度登记 (dev)",
-      "faceEnrollDevDesc": "正面·左·右·上·下拍摄 → 克隆首次通话准备"
+      "faceEnrollDevDesc": "正面·左·右·上·下拍摄 → 克隆首次通话准备",
+      "voiceLangTest": "声音测试",
+      "voiceLangTestDesc": "试听各语言的克隆声音"
     },
     "logout": {
       "title": "要退出登录吗?",
@@ -2142,6 +2146,7 @@
     "other": "其他"
   },
   "faceEnroll": {
+    "rescanNotice": "我们再确认一下面孔。",
     "permissionRequired": "需要摄像头权限。",
     "permissionSkip": "跳过登记直接通话",
     "cameraLoading": "准备摄像头中...",
@@ -2153,6 +2158,9 @@
       "title": "这位是谁?",
       "desc": "告诉我们姓名和关系,下次通话时就能认出来。",
       "existingLabel": "已登记的人 (从中选择会追加学习)",
+      "markSelf": "这张脸是我",
+      "alreadyRegistered": "{{name}}已经登记过了",
+      "updateName": "更新名字",
       "existingHint": "如果是新的人,请在下方直接输入姓名",
       "nameLabel": "姓名",
       "namePlaceholder": "例: 智浩",

@@ -35,6 +35,7 @@ import v_fb73af from "../../components/ads/PangleBannerAd";
 import { v_60086b } from "../../lib/pangle";
 import { v_08bca5, v_12f485 } from "../../lib/useChatLiveRefresh";
 import { v_1bfbd0 } from "../../components/constants";
+import v_992d42 from "../../components/chat/ChatTypingDots";
 import {
   v_8a85e2,
   v_22ca9b,
@@ -909,8 +910,14 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
               );
             })}
             {v_5e23ec && (
-              <View style={[v_d81136.personaOutsideBubble, v_d81136.typingBubble]}>
-                <Text style={v_d81136.typingText}>…</Text>
+              <View
+                style={[v_d81136.personaOutsideBubble, v_d81136.typingBubble]}
+                accessibilityRole="text"
+                accessibilityLabel={v_8d41d7("chat.typingA11y", {
+                  defaultValue: "상대가 입력 중",
+                })}
+              >
+                <ChatTypingDots />
               </View>
             )}
           </>
@@ -1393,13 +1400,10 @@ const v_d81136 = v_472849.create({
 
   typingBubble: {
     width: undefined,
-    minWidth: 60,
-  },
-  typingText: {
-    fontSize: 18,
-    color: v_1bfbd0.zinc500,
-    letterSpacing: 2,
-    lineHeight: 18,
+    minWidth: 56,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    alignSelf: "flex-start",
   },
 
   loadingText: {

@@ -35,6 +35,19 @@ describe("deriveVerdict", () => {
 });
 
 describe("runIdentifyCycle (순수 로직)", () => {
+  it("selfMatch: best 없이 서버 selfMatch=true 면 true, best 가 있으면 false, 필드 없으면 false", async () => {
+    const v_d9b231 = (v_eb792a) =>
+      v_f644ce(v_48b3dc, v_87d4f2, "tok", 999, 1000, {
+        matchFaceFn: jest.fn().mockResolvedValue(v_eb792a),
+      });
+    expect((await v_d9b231({ matches: [], best: null, threshold: 0.6, selfMatch: true })).selfMatch).toBe(true);
+    expect(
+      (await v_d9b231({ matches: [], best: { personId: 3, displayName: "철수", score: 0.9 }, threshold: 0.6, selfMatch: true }))
+        .selfMatch,
+    ).toBe(false);
+    expect((await v_d9b231({ matches: [], best: null, threshold: 0.6 })).selfMatch).toBe(false);
+  });
+
   it("matchFace 가 personId 를 반환하면 **1회에** speaker_confirmed", async () => {
     const v_a97841 = jest.fn().mockResolvedValue({
       matches: [],

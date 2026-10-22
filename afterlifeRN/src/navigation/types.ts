@@ -12,6 +12,8 @@ export type RootStackParamList = {
     image?: string | number;
 
     midCall?: boolean;
+
+    accountSelfMatch?: boolean;
   };
   EmergencyContacts: undefined;
   InheritanceAccept: { token?: string };
@@ -141,6 +143,8 @@ export type MyStackParamList = {
   ThreeDPersona: undefined;
 
   TtsVits: undefined;
+
+  VoiceLangTest: undefined;
 };
 
 declare global {

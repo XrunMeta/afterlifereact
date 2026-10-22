@@ -384,7 +384,8 @@
     "imageLoginRequired": "ログイン後に写真を送れます。",
     "imageSendFailTitle": "写真を送れませんでした",
     "imageSendFailBody": "ネットワークを確認して、もう一度お試しください。",
-    "imageApiUnavailable": "写真送信の準備中です。しばらくしてからお試しください。"
+    "imageApiUnavailable": "写真送信の準備中です。しばらくしてからお試しください。",
+    "typingA11y": "入力中"
   },
   "call": {
     "calling": "接続中...",
@@ -447,6 +448,7 @@
     "newFaceBody": "この顔を登録しますか?",
     "newFaceLater": "後で",
     "newFaceSelf": "本人です",
+    "newFaceSelfNamed": "{{name}}です",
     "newFaceEnroll": "登録",
     "afl971PreMessage": "{userName}さんにあげるお花を摘んでくるね!動画を見て待ってて、すぐ戻るから",
     "afl971PostMessage": "待っててくれてありがとう!お花のプレゼントだよ、じゃーん",
@@ -810,7 +812,9 @@
       "threeDPersonaDev": "3Dペルソナ (dev)",
       "threeDPersonaDevDesc": "GLBヘッドレンダー + リップシンクデモ · Phase 1",
       "faceEnrollDev": "顔5角度登録 (dev)",
-      "faceEnrollDevDesc": "正面·左·右·上·下撮影 → clones初回通話準備"
+      "faceEnrollDevDesc": "正面·左·右·上·下撮影 → clones初回通話準備",
+      "voiceLangTest": "音声テスト",
+      "voiceLangTestDesc": "言語ごとのクローン音声を試す"
     },
     "logout": {
       "title": "ログアウトしますか?",
@@ -2149,6 +2153,7 @@
     "other": "その他"
   },
   "faceEnroll": {
+    "rescanNotice": "顔をもう一度確認します。",
     "permissionRequired": "カメラの権限が必要です。",
     "permissionSkip": "登録をスキップして通話",
     "cameraLoading": "カメラ準備中...",
@@ -2160,6 +2165,9 @@
       "title": "この方はどなたですか?",
       "desc": "名前と関係を教えていただくと、次回の通話から認識できます。",
       "existingLabel": "すでに登録済みの人 (選択すると学習だけ追加されます)",
+      "markSelf": "この顔は私です",
+      "alreadyRegistered": "{{name}}さんはすでに登録されています",
+      "updateName": "名前を更新",
       "existingHint": "新しい人の場合は、下に名前を直接入力してください",
       "nameLabel": "名前",
       "namePlaceholder": "例: 太郎",
