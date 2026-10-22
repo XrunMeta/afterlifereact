@@ -10,6 +10,7 @@ import {
   v_386d00,
   type v_324976,
 } from "./conversationMemory";
+import { v_97036c, v_5c6e27 } from "./langTag";
 
 export interface RecentChat {
   role: "user" | "clone";
@@ -70,8 +71,12 @@ export async function v_663c07(
 
 export async function v_4dc423(
   env: v_273a0c,
-  args: { cloneId: number; userToken: string; text: string; prior: v_324976[]; recent: RecentChat[] },
-): Promise<string> {
+  args: {
+    cloneId: number; userToken: string; text: string; prior: v_324976[]; recent: RecentChat[];
+
+    userLang?: string | null;
+  },
+): Promise<{ reply: string; lang: string }> {
   const v_694b25 = v_c9c489.PRETHIRD_PUBLIC_BASE;
   const v_43fd42 = v_c9c489.CHAT_REPLY_SECRET;
   if (!v_694b25 || !v_43fd42) {
@@ -92,6 +97,7 @@ export async function v_4dc423(
         user_token: v_4317d1.userToken,
         text: v_4317d1.text,
         model: v_768389,
+        user_lang: v_97036c(v_4317d1.userLang) ?? undefined,
         prior: v_4317d1.prior.map(({ callId: v_be62d3, role: v_22da99, text: v_9b6134, at: v_83d291 }) => ({
           callId: v_be62d3, role: v_22da99, text: v_9b6134.slice(0, v_bb0956), at: v_83d291,
         })),
@@ -109,11 +115,14 @@ export async function v_4dc423(
     console.warn(`[CHAT_REPLY_HTTP] clone=${v_4317d1.cloneId} status=${v_eb792a.status} body=${v_3cfdfc}`);
     throw new v_3ebe58("UPSTREAM_FAILURE", "채팅 답장을 만들지 못했어요.");
   }
-  const v_4d33b2 = (await v_eb792a.json().catch(() => ({}))) as { reply?: unknown };
+  const v_4d33b2 = (await v_eb792a.json().catch(() => ({}))) as { reply?: unknown; lang?: unknown };
   if (typeof v_4d33b2.reply !== "string" || !v_4d33b2.reply.trim()) {
     throw new v_3ebe58("UPSTREAM_FAILURE", "채팅 답장이 비어 있어요.");
   }
-  return v_4d33b2.reply;
+
+  const v_e5ac9e = v_5c6e27(v_4d33b2.reply, v_97036c(v_4d33b2.lang) ?? v_4317d1.userLang);
+  if (!v_e5ac9e.text) throw new v_3ebe58("UPSTREAM_FAILURE", "채팅 답장이 비어 있어요.");
+  return { reply: v_e5ac9e.text, lang: v_97036c(v_4d33b2.lang) ?? v_e5ac9e.lang };
 }
 
 export async function v_70ddfa(env: v_273a0c, v_43e90c): Promise<void> {

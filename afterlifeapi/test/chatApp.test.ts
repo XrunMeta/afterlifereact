@@ -377,7 +377,8 @@ v_469bf2("채팅 답장 맥락·요청", () => {
       prior: [{ callId: "c", role: "user", text: "옛말", at: 1, source: "call" }],
       recent: [{ role: "clone", text: "왔니", at: 2 }],
     });
-    v_4d37e3(v_677216).toBe("오냐");
+
+    v_4d37e3(v_677216).toEqual({ reply: "오냐", lang: "ko" });
     v_4d37e3(v_df0713!.secret).toBe("isec");
     v_4d37e3(v_df0713!.body).toMatchObject({
       clone_id: 7, user_token: "UT", text: "안녕",
@@ -408,6 +409,30 @@ v_469bf2("채팅 답장 맥락·요청", () => {
     await v_4dc423(v_9e86fd, v_4317d1);
     await v_c9c489.DB.prepare("DELETE FROM app_config WHERE key = 'chat.model_config'").run();
     v_4d37e3(v_f7210b.map((v_148ff6) => v_148ff6.model)).toEqual(["gpt-5.4-mini", "gpt-5-nano"]);
+  });
+
+  v_23805a("답 언어 — user_lang 전달 · prethird lang 우선 · 남은 <lang=> 태그 제거 · 폴백은 사용자 언어", async () => {
+    const v_f7210b = [];
+    const v_271e2a = [
+      { reply: "こんにちは", lang: "ja" },      
+      { reply: "<lang=en>Hello!" },             
+      { reply: "응" },                          
+    ];
+    for (const v_9390e8 of v_271e2a) {
+      v_8fd90d
+        .get("http://prethird.test")
+        .intercept({ path: "/prethird/chat/reply", method: "POST" })
+        .reply((v_328259) => {
+          v_f7210b.push(JSON.parse(String(v_328259.body)));
+          return { statusCode: 200, data: v_9390e8 };
+        });
+    }
+    const v_9e86fd = { ...(v_c9c489 as unknown as v_273a0c), CHAT_REPLY_SECRET: "isec" };
+    const v_694b25 = { cloneId: 7, userToken: "UT", text: "안녕", prior: [], recent: [] };
+    v_4d37e3(await v_4dc423(v_9e86fd, { ...v_694b25, userLang: "ja-JP" })).toEqual({ reply: "こんにちは", lang: "ja" });
+    v_4d37e3(await v_4dc423(v_9e86fd, { ...v_694b25, userLang: "ko" })).toEqual({ reply: "Hello!", lang: "en" });
+    v_4d37e3(await v_4dc423(v_9e86fd, { ...v_694b25, userLang: "zh-CN" })).toEqual({ reply: "응", lang: "zh" });
+    v_4d37e3(v_f7210b.map((v_148ff6) => v_148ff6.user_lang)).toEqual(["ja", "ko", "zh"]);
   });
 
   v_23805a("prethird 가 실패하면 UPSTREAM_FAILURE 로 던진다", async () => {

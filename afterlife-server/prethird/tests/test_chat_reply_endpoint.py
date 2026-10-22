@@ -27,19 +27,20 @@ def test_build_messages_order_persona_prior_recent_user():
     msgs = cr.build_chat_messages(persona, prior, recent, "뭐 먹었어?", max_chars=16000)
     assert msgs[0] == persona[0]
     assert msgs[1]["role"] == "system" and "고추 땄어" in msgs[1]["content"]
-    assert msgs[2:] == [
+    assert msgs[2:4] == [
         {"role": "user", "content": "밥 먹었어?"},
         {"role": "assistant", "content": "먹었다"},
-        {"role": "user", "content": "뭐 먹었어?"},
     ]
+    # AFL-1033: 답 언어 규칙이 이번 말 바로 앞에 온다.
+    assert msgs[4]["role"] == "system" and "<lang=" in msgs[4]["content"]
+    assert msgs[5] == {"role": "user", "content": "뭐 먹었어?"}
 
 
 def test_build_messages_recent_starting_with_clone_and_empty_prior():
     msgs = cr.build_chat_messages([], [], [{"role": "clone", "text": "왔니"}], "응", max_chars=0)
-    assert msgs == [
-        {"role": "assistant", "content": "왔니"},
-        {"role": "user", "content": "응"},
-    ]
+    assert msgs[0] == {"role": "assistant", "content": "왔니"}
+    assert msgs[1]["role"] == "system" and "`ko`" in msgs[1]["content"]
+    assert msgs[2] == {"role": "user", "content": "응"}
 
 
 @pytest.mark.asyncio
@@ -83,7 +84,7 @@ async def test_reply_uses_bundle_persona_and_default_llm(monkeypatch):
                   "prior": [], "recent": []},
         )
         assert resp.status == 200
-        assert (await resp.json()) == {"reply": "오냐, 잘 왔다"}
+        assert (await resp.json()) == {"reply": "오냐, 잘 왔다", "lang": "ko"}
     assert seen["bundle"] == (9043, "T")
     assert seen["model"] is None          # 통화와 같은 기본 모델
     assert seen["messages"][-1] == {"role": "user", "content": "할아버지"}
@@ -114,6 +115,32 @@ async def test_bad_input_400(monkeypatch):
                      {"clone_id": 1, "user_token": "T", "text": "a" * 4001}):
             resp = await client.post("/chat/reply", headers={"X-Internal-Secret": "S"}, json=body)
             assert resp.status == 400, body
+
+
+@pytest.mark.asyncio
+async def test_reply_strips_lang_tag_and_uses_user_lang(monkeypatch):
+    """AFL-1033: 답 맨 앞 <lang=…> 를 떼어 lang 으로 · 사용자 언어는 규칙 문구에 들어간다."""
+    monkeypatch.setattr(cr, "_CHAT_SECRET", "S")
+    seen = {}
+
+    async def fake_fetch_bundle(api_base, clone_id, token):
+        return {"personaBundle": {"cloneId": str(clone_id), "persona": {"displayName": "할배"}}}
+
+    async def fake_chat_once(messages, model=None, temperature=None, fmt=None, num_predict=None):
+        seen["messages"] = messages
+        return "<lang=ja>こんにちは！"
+
+    monkeypatch.setattr(cr, "fetch_bundle", fake_fetch_bundle)
+    monkeypatch.setattr(cr, "chat_once", fake_chat_once)
+    async with TestClient(TestServer(_app())) as client:
+        resp = await client.post(
+            "/chat/reply",
+            headers={"X-Internal-Secret": "S"},
+            json={"clone_id": 1, "user_token": "T", "text": "こんにちは", "user_lang": "ja-JP"},
+        )
+        assert resp.status == 200
+        assert (await resp.json()) == {"reply": "こんにちは！", "lang": "ja"}
+    assert "`ja`" in seen["messages"][-2]["content"]
 
 
 def test_build_messages_caps_each_item_length():
