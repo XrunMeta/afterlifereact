@@ -1,5 +1,7 @@
 
 
+import v_9c213b from '../i18n';
+import { v_a96e49 } from '../i18n/sttLocale';
 import { v_de06a3, v_c4deb2, v_e662ae, v_5ab095 } from 'bapkr';
 import { v_fee12d, type v_be7277 } from './useSpeechInput';
 import { v_724dd4 } from './useCloneSilenceDetector';
@@ -108,6 +110,8 @@ export function v_7df8a4(opts: {
 
     silenceMs: v_328259.silenceMs ?? 1500,
     contextualStrings: v_328259.contextualStrings,
+
+    lang: v_a96e49(v_9c213b.language),
     onUnrecoverable: (v_58ca36) => v_328259.onSttUnrecoverable?.(v_58ca36),
     onFinalResult: (v_9b6134) => {
 
