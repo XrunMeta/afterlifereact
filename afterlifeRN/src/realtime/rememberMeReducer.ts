@@ -1,5 +1,7 @@
 
 
+import type { v_516d40 } from "../face/faceTurnJudge";
+
 export type RememberMeMode = "identified" | "grace" | "pending";
 
 export interface RememberMeState {
@@ -14,6 +16,12 @@ export interface RememberMeState {
   graceSinceMs: number | null;
 
   graceHadActivity: boolean;
+
+  absentSinceMs: number | null;
+
+  lastActivityMs: number | null;
+
+  awayEndCallSent: boolean;
 
   mentionName: boolean;
 
@@ -38,13 +46,9 @@ export interface RememberMeState {
 
 export const v_575cf8 = 60_000;
 
+export const v_6d5c2a = 60_000;
+
 export const v_e6be56 = 90_000;
-
-export const v_fb3fee = 5;
-
-export const v_0e9727 = 5;
-
-export const v_a4afab = 0.7;
 
 export const v_a5c955 = 120_000;
 
@@ -65,13 +69,23 @@ export type RememberMeEvent =
       type: "MATCH_UNKNOWN";
       score?: number;
       topPersonId?: number | null;
-
       landmarkVsRef?: number | null;
-
       hasFace?: boolean;
     }
 
   | { type: "ACTIVITY" }
+
+  | { type: "TURN_VERDICT"; verdict: v_516d40; displayName: string | null; nowMs: number }
+
+  | {
+      type: "WHO_RETRY_RESULT";
+      personId: number | null;
+      displayName: string | null;
+      selfMatch: boolean;
+      nowMs: number;
+    }
+
+  | { type: "FACE_PRESENCE"; present: boolean; nowMs: number }
 
   | { type: "MULTI_FACE_SENT" }
 
@@ -132,6 +146,9 @@ export function v_178dfb(): RememberMeState {
     unknownStreak: 0,
     differentPersonStreak: 0,
     serverSpeakerCleared: false,
+    absentSinceMs: null,
+    lastActivityMs: null,
+    awayEndCallSent: false,
   };
 }
 
@@ -145,26 +162,6 @@ export function v_4f0ecc(v_fd5f43): boolean {
 
 export function v_b94941(v_fd5f43): boolean {
   return v_fd5f43.mode === "pending" || v_fd5f43.sheetOpen || v_fd5f43.promptRegister;
-}
-
-function v_60164c(
-  v_fd5f43,
-  v_67e77e,
-
-  v_8e790d = false,
-): RememberMeState {
-  return {
-    ...v_fd5f43,
-    mode: "pending",
-    personId: null,
-    sheetOpen: false, 
-    promptRegister: v_8e790d,
-    graceSinceMs: null,
-    graceHadActivity: false,
-    mentionName: false,
-    lastNotifyUnknownMs: v_67e77e,
-    pendingSwitch: null,
-  };
 }
 
 function v_9638ca(
@@ -191,12 +188,48 @@ function v_9638ca(
     lastNotifyUnknownMs: null,
     pendingSwitch: null,
 
-    unknownStreak: 0,
-
-    differentPersonStreak: 0,
-
     serverSpeakerCleared: false,
     lastConfirmedPerson: v_dca8b5,
+  };
+}
+
+function v_333cc2(
+  v_b6e533,
+  v_ca1ec5,
+  v_8a1355,
+  v_67e77e,
+): { state: RememberMeState; actions: RememberMeAction[] } {
+  const v_ebdcca = v_b6e533.recentlySeen[v_ca1ec5];
+  const v_c29192 = v_ebdcca != null && v_67e77e - v_ebdcca < v_e6be56;
+  const v_f1ed8d = v_ebdcca == null;
+  const v_612414 = {
+    ...v_9638ca(v_b6e533, v_ca1ec5, v_8a1355),
+    recentlySeen: { ...v_b6e533.recentlySeen, [v_ca1ec5]: v_67e77e },
+  };
+  const v_1065f7 = v_b94941(v_b6e533) && !v_b94941(v_612414);
+  return {
+    state: v_612414,
+    actions: [
+      ...(v_1065f7 ? [{ type: "MIC_ON" } as RememberMeAction] : []),
+      {
+        type: "NOTIFY_CONFIRMED",
+        personId: v_ca1ec5,
+        displayName: v_8a1355,
+        rejoin: !v_c29192 && !v_f1ed8d,
+        mentionName: v_c29192,
+      },
+    ],
+  };
+}
+
+function v_2b075c(
+  v_b6e533,
+): { state: RememberMeState; actions: RememberMeAction[] } {
+  if (v_b6e533.promptRegister || v_b6e533.sheetOpen) return { state: v_b6e533, actions: [] };
+  const v_18128c = !v_b94941(v_b6e533);
+  return {
+    state: { ...v_b6e533, promptRegister: true },
+    actions: v_18128c ? [{ type: "MIC_OFF" }] : [],
   };
 }
 
@@ -218,43 +251,10 @@ function v_a448ad(
       const v_3d04cc = { ...v_b6e533.recentlySeen, [v_d48baf.personId]: v_67e77e };
 
       if (v_b6e533.mode === "pending") {
-
-        const v_ebdcca = v_b6e533.recentlySeen[v_d48baf.personId];
-        const v_c29192 = v_ebdcca != null && v_67e77e - v_ebdcca < v_e6be56;
-        const v_f1ed8d = v_ebdcca == null;
-        return {
-          state: { ...v_9638ca(v_b6e533, v_d48baf.personId, v_d48baf.displayName), recentlySeen: v_3d04cc },
-          actions: [
-
-            ...(v_b6e533.promptRegister ? [] : [{ type: "MIC_ON" } as RememberMeAction]),
-            {
-              type: "NOTIFY_CONFIRMED",
-              personId: v_d48baf.personId,
-              displayName: v_d48baf.displayName,
-
-              rejoin: !v_c29192 && !v_f1ed8d,
-              mentionName: v_c29192, 
-            },
-          ],
-        };
+        return v_333cc2(v_b6e533, v_d48baf.personId, v_d48baf.displayName, v_67e77e);
       }
 
       if (v_9bb925) {
-        if (v_b6e533.mode === "grace") {
-
-          return {
-            state: { ...v_9638ca(v_b6e533, v_d48baf.personId, v_d48baf.displayName), recentlySeen: v_3d04cc },
-            actions: [
-              {
-                type: "NOTIFY_CONFIRMED",
-                personId: v_d48baf.personId,
-                displayName: v_d48baf.displayName,
-                rejoin: false,
-                mentionName: true,
-              },
-            ],
-          };
-        }
 
         if (v_b6e533.serverSpeakerCleared) {
           return {
@@ -273,17 +273,16 @@ function v_a448ad(
         return { state: { ...v_b6e533, recentlySeen: v_3d04cc }, actions: [] };
       }
 
+      if (v_b6e533.personId !== null) return { state: v_b6e533, actions: [] };
+
       return {
         state: { ...v_9638ca(v_b6e533, v_d48baf.personId, v_d48baf.displayName), recentlySeen: v_3d04cc },
         actions: [
-
-          ...(v_d48baf.cloneSpeaking && v_b6e533.personId !== null ? [{ type: "INTERRUPT_TTS" } as RememberMeAction] : []),
           {
             type: "NOTIFY_CONFIRMED",
             personId: v_d48baf.personId,
             displayName: v_d48baf.displayName,
-
-            rejoin: v_b6e533.personId !== null && v_b6e533.personId !== v_d48baf.personId,
+            rejoin: false,
           },
         ],
       };
@@ -293,185 +292,68 @@ function v_a448ad(
 
       if (v_865ed9) return { state: v_b6e533, actions: [] };
 
-      const v_6da077 = 0.55;
-      if (!v_d48baf.score || v_d48baf.score < v_6da077 || v_d48baf.topPersonId == null) {
+      if (v_b6e533.mode !== "pending") return { state: v_b6e533, actions: [] };
 
-        const v_1210b5 = v_b6e533.unknownStreak + 1;
-        const v_f340bd = 3;
-        const v_aa5f6b = v_b6e533.personId !== null;
-        const v_793d69 = (v_d48baf.hasFace ?? false) === true; 
-        const v_8cd7d6 =
-          (v_aa5f6b || v_793d69) &&
-          v_1210b5 >= v_f340bd &&
-          !v_b6e533.dismissedPromptInCall &&
-          !v_b6e533.promptRegister; 
-        if (v_8cd7d6) {
-
-          const v_7e8d96 = v_b6e533.lastConfirmedPerson !== null || v_793d69;
-          return {
-            state: {
-              ...v_60164c(v_b6e533, v_67e77e, v_7e8d96),
-              unknownStreak: v_1210b5,
-              differentPersonStreak: 0,
-            },
-            actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
-          };
-        }
-        return {
-          state: { ...v_b6e533, unknownStreak: v_1210b5, differentPersonStreak: 0 },
-          actions: [],
-        };
-      }
-      const v_00d284 = v_b6e533.personId ?? v_b6e533.lastConfirmedPerson?.personId ?? null;
-
-      const v_78d181 =
-        v_00d284 != null && v_d48baf.topPersonId !== v_00d284;
-
-      const v_913e36 =
-        typeof v_d48baf.landmarkVsRef === "number" && v_d48baf.landmarkVsRef >= v_a4afab;
-      if (v_78d181 && v_913e36) {
-        return {
-          state: {
-            ...v_b6e533,
-            unknownStreak: v_b6e533.unknownStreak + 1,
-            differentPersonStreak: 0, 
-          },
-          actions: [],
-        };
-      }
-
-      const v_46793e = v_78d181
-        ? v_b6e533.differentPersonStreak + 1
-        : 0;
-      const v_950bbe = v_b6e533.unknownStreak + 1;
-      const v_29bced =
-        v_78d181 &&
-        v_46793e >= v_0e9727 &&
-        !v_b6e533.dismissedPromptInCall;
-
-      if (v_b6e533.mode === "pending") {
-        const v_3459a5 =
-          !v_b6e533.promptRegister && v_29bced
-            ? { promptRegister: true }
-            : {};
-        if (
-          v_b6e533.lastNotifyUnknownMs !== null &&
-          v_67e77e - v_b6e533.lastNotifyUnknownMs < v_059bf8
-        ) {
-          return {
-            state: {
-              ...v_b6e533,
-              unknownStreak: v_950bbe,
-              differentPersonStreak: v_46793e,
-              ...v_3459a5,
-            },
-            actions: [],
-          };
-        }
-        return {
-          state: {
-            ...v_b6e533,
-            unknownStreak: v_950bbe,
-            differentPersonStreak: v_46793e,
-            lastNotifyUnknownMs: v_67e77e,
-            ...v_3459a5,
-          },
-          actions: [{ type: "NOTIFY_UNKNOWN" }],
-        };
-      }
-
-      if (v_b6e533.mode === "grace") {
-        if (v_29bced) {
-          const v_7e8d96 = v_b6e533.lastConfirmedPerson !== null;
-          return {
-            state: {
-              ...v_60164c(v_b6e533, v_67e77e, v_7e8d96),
-              unknownStreak: v_950bbe,
-              differentPersonStreak: v_46793e,
-            },
-            actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
-          };
-        }
-        return {
-          state: {
-            ...v_b6e533,
-            unknownStreak: v_950bbe,
-            differentPersonStreak: v_46793e,
-          },
-          actions: [],
-        };
-      }
-
-      const v_27f93f = !v_b6e533.dismissedPromptInCall;
-      if (v_b6e533.personId === null) {
-        if (v_29bced) {
-          return {
-            state: {
-              ...v_60164c(v_b6e533, v_67e77e, v_27f93f),
-              unknownStreak: v_950bbe,
-              differentPersonStreak: v_46793e,
-            },
-            actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
-          };
-        }
-
-        return {
-          state: {
-            ...v_b6e533,
-            unknownStreak: v_950bbe,
-            differentPersonStreak: v_46793e,
-          },
-          actions: [],
-        };
-      }
-
-      if (v_29bced) {
-        const v_7e8d96 = v_b6e533.lastConfirmedPerson !== null;
-        return {
-          state: {
-            ...v_60164c(v_b6e533, v_67e77e, v_7e8d96),
-            unknownStreak: v_950bbe,
-            differentPersonStreak: v_46793e,
-          },
-          actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
-        };
-      }
-      return {
-        state: {
-          ...v_b6e533,
-          unknownStreak: v_950bbe,
-          differentPersonStreak: v_46793e,
-          mode: "grace",
-          graceSinceMs: v_67e77e,
-          graceHadActivity: false,
-          pendingSwitch: null,
-        },
-        actions: [],
-      };
-    }
-
-    case "ACTIVITY": {
-      if (v_b6e533.mode !== "grace" || v_b6e533.graceHadActivity) return { state: v_b6e533, actions: [] };
-      return { state: { ...v_b6e533, graceHadActivity: true }, actions: [] };
-    }
-
-    case "TICK": {
-      if (v_b6e533.mode !== "grace" || v_b6e533.graceSinceMs === null) {
+      if (
+        v_b6e533.lastNotifyUnknownMs !== null &&
+        v_67e77e - v_b6e533.lastNotifyUnknownMs < v_059bf8
+      ) {
         return { state: v_b6e533, actions: [] };
       }
-      if (v_67e77e - v_b6e533.graceSinceMs < v_575cf8) return { state: v_b6e533, actions: [] };
+      return {
+        state: { ...v_b6e533, lastNotifyUnknownMs: v_67e77e },
+        actions: [{ type: "NOTIFY_UNKNOWN" }],
+      };
+    }
 
-      if (!v_b6e533.graceHadActivity) {
+    case "TURN_VERDICT": {
+      const v_81e2ef = v_d48baf.verdict;
+      if (v_81e2ef.kind === "unknown") {
 
-        return { state: v_b6e533, actions: [{ type: "END_CALL" }] };
+        if (v_865ed9) return { state: v_b6e533, actions: [] };
+
+        if (v_b6e533.dismissedPromptInCall) return { state: v_b6e533, actions: [] };
+        return v_2b075c(v_b6e533);
+      }
+      if (v_81e2ef.kind === "switch") {
+
+        if (v_81e2ef.personId == null || v_81e2ef.personId === v_b6e533.personId) return { state: v_b6e533, actions: [] };
+        return v_333cc2(v_b6e533, v_81e2ef.personId, v_d48baf.displayName, v_67e77e);
       }
 
-      const v_ba5475 =
-        v_b6e533.lastConfirmedPerson !== null && !v_b6e533.dismissedPromptInCall;
-      return {
-        state: v_60164c(v_b6e533, v_67e77e, v_ba5475),
-        actions: [{ type: "MIC_OFF" }, { type: "NOTIFY_UNKNOWN" }],
-      };
+      return { state: v_b6e533, actions: [] };
+    }
+
+    case "WHO_RETRY_RESULT": {
+
+      if (v_d48baf.personId != null && !v_d48baf.selfMatch) {
+        return v_333cc2(v_b6e533, v_d48baf.personId, v_d48baf.displayName, v_67e77e);
+      }
+
+      if (v_865ed9) return { state: v_b6e533, actions: [] };
+      return v_2b075c(v_b6e533);
+    }
+
+    case "FACE_PRESENCE": {
+      if (v_d48baf.present) {
+        if (v_b6e533.absentSinceMs === null && !v_b6e533.awayEndCallSent) return { state: v_b6e533, actions: [] };
+        return { state: { ...v_b6e533, absentSinceMs: null, awayEndCallSent: false }, actions: [] };
+      }
+
+      if (v_b6e533.absentSinceMs !== null) return { state: v_b6e533, actions: [] };
+      return { state: { ...v_b6e533, absentSinceMs: v_67e77e }, actions: [] };
+    }
+
+    case "ACTIVITY":
+      return { state: { ...v_b6e533, lastActivityMs: v_67e77e }, actions: [] };
+
+    case "TICK": {
+      if (v_b6e533.absentSinceMs === null || v_b6e533.awayEndCallSent) return { state: v_b6e533, actions: [] };
+
+      const v_8738be = Math.max(v_b6e533.absentSinceMs, v_b6e533.lastActivityMs ?? 0);
+      if (v_67e77e - v_8738be < v_6d5c2a) return { state: v_b6e533, actions: [] };
+
+      return { state: { ...v_b6e533, awayEndCallSent: true }, actions: [{ type: "END_CALL" }] };
     }
 
     case "MULTI_FACE_SENT":
