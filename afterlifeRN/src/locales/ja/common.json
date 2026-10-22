@@ -374,7 +374,17 @@
     "leaveTitle": "チャットを退出",
     "leaveConfirm": "このクローンとの会話が消えます。続けますか？",
     "leaveConfirmSubscribed": "このクローンとの会話が消え、購読も解除されます。続けますか？",
-    "leaveFailTitle": "退出できませんでした"
+    "leaveFailTitle": "退出できませんでした",
+    "imageButtonA11y": "写真を送る",
+    "imagePickTitle": "写真を送る",
+    "imagePickCamera": "カメラ",
+    "imagePickAlbum": "アルバム",
+    "imagePlaceholder": "[写真]",
+    "imageUnavailableTitle": "写真を送る",
+    "imageLoginRequired": "ログイン後に写真を送れます。",
+    "imageSendFailTitle": "写真を送れませんでした",
+    "imageSendFailBody": "ネットワークを確認して、もう一度お試しください。",
+    "imageApiUnavailable": "写真送信の準備中です。しばらくしてからお試しください。"
   },
   "call": {
     "calling": "接続中...",
