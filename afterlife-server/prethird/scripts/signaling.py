@@ -1879,5 +1879,8 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     # AFL-1018 앱 채팅 답장 — Worker 전용. PRETHIRD_CHAT_SECRET 미설정이면 503(닫힘).
     from chat_reply_endpoint import register_chat_reply_routes
     register_chat_reply_routes(app)
+    # AFL-1034 앱 설정 › 목소리 테스트 — 언어별 합성(es=CosyVoice3). 통화 경로와 무관.
+    from voice_lang_preview_endpoint import register_voice_lang_preview_routes
+    register_voice_lang_preview_routes(app)
 
     return app

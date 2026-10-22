@@ -812,7 +812,9 @@
       "threeDPersonaDev": "3D persona (dev)",
       "threeDPersonaDevDesc": "GLB head render + lip-sync demo · Phase 1",
       "faceEnrollDev": "Face 5-angle enroll (dev)",
-      "faceEnrollDevDesc": "Front · left · right · up · down shots → first clone call prep"
+      "faceEnrollDevDesc": "Front · left · right · up · down shots → first clone call prep",
+      "voiceLangTest": "Voice test",
+      "voiceLangTestDesc": "Hear the clone voice in each language"
     },
     "logout": {
       "title": "Log out?",

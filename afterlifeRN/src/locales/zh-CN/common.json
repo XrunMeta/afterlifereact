@@ -812,7 +812,9 @@
       "threeDPersonaDev": "3D角色 (dev)",
       "threeDPersonaDevDesc": "GLB头部渲染 + 唇形同步演示 · Phase 1",
       "faceEnrollDev": "面部5角度登记 (dev)",
-      "faceEnrollDevDesc": "正面·左·右·上·下拍摄 → 克隆首次通话准备"
+      "faceEnrollDevDesc": "正面·左·右·上·下拍摄 → 克隆首次通话准备",
+      "voiceLangTest": "声音测试",
+      "voiceLangTestDesc": "试听各语言的克隆声音"
     },
     "logout": {
       "title": "要退出登录吗?",
