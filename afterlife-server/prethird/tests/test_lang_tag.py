@@ -4,7 +4,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
-from clone_dialog.lang_tag import LangTagStream, lang_instruction, normalize_lang, split_lang_tag  # noqa: E402
+from clone_dialog.lang_tag import LangTagStream, lang_instruction, normalize_lang, split_head_tags, split_lang_tag  # noqa: E402
 
 
 def test_정상_태그():
@@ -73,3 +73,36 @@ def test_스트림_짧은_답_finish():
 def test_지시문에_사용자언어_폴백():
     assert "`ja`" in lang_instruction("ja-JP")
     assert "`ko`" in lang_instruction(None)
+
+
+# AFL-1039 <ask=who>
+def test_ask_who_after_lang():
+    assert split_head_tags("<lang=ko><ask=who>잠깐 카메라 봐줄래?") == ("ko", "who", "잠깐 카메라 봐줄래?")
+
+
+def test_ask_tag_midbody_stripped_not_flag():
+    assert split_head_tags("<lang=ko>안녕 <ask=who>") == ("ko", None, "안녕")
+
+
+def test_unknown_ask_value_ignored():
+    assert split_head_tags("<lang=ko><ask=name:지호>안녕")[1] is None   # 이름 실어 나르기 차단
+    assert split_head_tags("<lang=ko><ask=name:지호>안녕")[2] == "안녕"
+
+
+def test_ask_without_lang_tag_ignored_and_stripped():
+    assert split_head_tags("<ask=who>안녕", "en") == ("en", None, "안녕")
+
+
+def test_stream_ask_split_across_chunks():
+    s = LangTagStream("ko"); out = s.feed("<lang=ko><as") + s.feed("k=who>카메라") + s.finish()
+    assert (s.lang, s.ask, out) == ("ko", "who", "카메라")
+
+
+def test_stream_without_ask_unchanged():
+    s = LangTagStream("ko"); out = s.feed("<lang=ja>こんにちは") + s.finish()
+    assert (s.lang, s.ask, out) == ("ja", None, "こんにちは")
+
+
+def test_stream_ask_pending_flushed_on_finish():
+    s = LangTagStream("ko"); out = s.feed("<lang=ko><as") + s.finish()
+    assert (s.ask, out) == (None, "")
