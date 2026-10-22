@@ -54,6 +54,9 @@ export default v_eede73(async () => {
               FACE_CONSENT_ENFORCED: "true",
 
               PRETHIRD_PUBLIC_BASE: "http://prethird.test",
+
+              OPENAI_API_KEY: "test-openai-key",
+              OPENAI_BASE_URL: "http://openai.test/v1",
               PREBUILD_SECRET: "test-secret",
             },
           },

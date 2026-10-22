@@ -17,6 +17,14 @@ import { v_74c502, v_7a9d93, v_5d4a51, v_09d461 } from "../lib/cloneAccess";
 import { v_e86502, v_fda4d7, v_3821c0 } from "../lib/memoryStore";
 import { v_dd9d7c, v_721d54, v_cf0463 } from "../lib/interactions";
 import { v_a00a76 } from "../lib/conversationEvents";
+import {
+  v_e68875,
+  v_a52bdd,
+  v_3f052d,
+  v_56bce4,
+  v_741d36,
+  v_931a4e,
+} from "../lib/chatImage";
 
 const v_92f378 = 10_000;
 import { v_15ea73 } from "../lib/sqliteTs";
@@ -70,6 +78,8 @@ async function v_c5d920(
   c: v_437670<v_de0a25>,
   v_6e0fd3,
   v_4d33b2,
+
+  v_e5af65,
 ) {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_a1651b = v_3f4e2e.env.DB;
@@ -96,7 +106,7 @@ async function v_c5d920(
     const v_16e2dd = await v_663c07(v_3f4e2e.env, v_43e90c, v_6e0fd3);
     const v_4eca64 = (v_3f4e2e.req.header("Authorization") ?? "").replace(/^Bearer\s+/i, "");
     v_b4c4d3 = await v_4dc423(v_3f4e2e.env, {
-      cloneId: v_6e0fd3, userToken: v_4eca64, text: v_4d33b2.content, prior: v_16e2dd.prior, recent: v_16e2dd.recent,
+      cloneId: v_6e0fd3, userToken: v_4eca64, text: v_e5af65 ?? v_4d33b2.content, prior: v_16e2dd.prior, recent: v_16e2dd.recent,
     });
   } else {
     const [v_19fdaa, v_1405be, v_ee6431] = await Promise.all([
@@ -104,7 +114,7 @@ async function v_c5d920(
       v_fda4d7(v_3f4e2e.env, v_6e0fd3),
       v_3821c0(v_3f4e2e.env, v_6e0fd3, v_43e90c),
     ]);
-    const v_677216 = await v_295cc5(v_4d33b2.content, {
+    const v_677216 = await v_295cc5(v_e5af65 ?? v_4d33b2.content, {
       cloneName: v_eb25ce.name,
       cloneType: v_eb25ce.clone_type,
       persona: (v_991acb(v_19fdaa)?.persona as Record<string, unknown>) ?? {},
@@ -186,6 +196,67 @@ v_19e2a3.post(
         at: v_15ea73(v_56871e.created_at), createdAt: v_56871e.created_at,
       },
 
+      billing: { credits: 0, tokens: 0 },
+    });
+  },
+);
+
+v_19e2a3.post(
+  "/:id/messages/image",
+  v_6690d9,
+  v_a04a51("messages.image"),
+  async (v_3f4e2e) => {
+    const v_6e0fd3 = v_31113b(v_3f4e2e);
+    const v_ebd523 = await v_3f4e2e.req.formData().catch(() => null);
+
+    const v_479f05 = v_ebd523?.get("image");
+    if (!v_479f05 || typeof v_479f05 !== "object" || typeof (v_479f05 as { arrayBuffer?: unknown }).arrayBuffer !== "function") {
+      throw new v_3ebe58("VALIDATION_FAILED", "image file is required.");
+    }
+    const v_4de33e = v_479f05 as { type: string; size: number; arrayBuffer: () => Promise<ArrayBuffer> };
+    const v_3b27d9 = (v_4de33e.type || "").toLowerCase();
+    if (!(v_3f052d as readonly string[]).includes(v_3b27d9)) {
+      throw new v_3ebe58("VALIDATION_FAILED", "Unsupported image type.");
+    }
+    if (v_4de33e.size <= 0 || v_4de33e.size > v_e68875) {
+      throw new v_3ebe58("VALIDATION_FAILED", "Image is too large.");
+    }
+    const v_5c0540 = v_ebd523?.get("session_id");
+    const v_acee3a =
+      typeof v_5c0540 === "string" && v_5c0540.length >= 1 && v_5c0540.length <= 64 ? v_5c0540 : undefined;
+
+    const v_43e90c = v_3f4e2e.get("userId")!;
+    const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
+    if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+    const v_22da99 = await v_09d461(v_3f4e2e, v_eb25ce, v_43e90c);
+    if (!v_22da99 || v_7a9d93(v_eb25ce, v_22da99)) throw new v_3ebe58("FORBIDDEN", "No access to this clone.");
+    await v_70ddfa(v_3f4e2e.env, v_43e90c);
+
+    const v_6856a9 = await v_931a4e(v_3f4e2e.env, {
+      bytes: new Uint8Array(await v_4de33e.arrayBuffer()),
+      type: v_3b27d9,
+    });
+    const v_b43b74 = v_56bce4(v_6856a9);
+    const { sessionId: v_c5607b, userMsg: v_43f890, cloneMsg: v_56871e, replyText: v_b4c4d3 } = await v_c5d920(
+      v_3f4e2e, v_6e0fd3, { session_id: v_acee3a, content: v_b43b74 }, v_741d36(v_6856a9),
+    );
+
+    await v_74defc(v_3f4e2e, {
+      userId: v_43e90c,
+      action: "message.image",
+      details: { cloneId: v_6e0fd3, sessionId: v_c5607b, userMsgId: v_43f890.id, cloneMsgId: v_56871e.id },
+    });
+
+    return v_3f4e2e.json({
+      sessionId: v_c5607b,
+      userMessage: {
+        id: v_43f890.id, content: v_a52bdd, kind: "image", caption: v_6856a9,
+        at: v_15ea73(v_43f890.created_at), createdAt: v_43f890.created_at,
+      },
+      cloneReply: {
+        id: v_56871e.id, content: v_b4c4d3, tokens: 0,
+        at: v_15ea73(v_56871e.created_at), createdAt: v_56871e.created_at,
+      },
       billing: { credits: 0, tokens: 0 },
     });
   },
