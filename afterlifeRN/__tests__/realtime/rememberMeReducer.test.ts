@@ -503,3 +503,45 @@ describe("rememberMeReducer — multi_face 뒤 재확정", () => {
     expect(v_cb35cb.state.serverSpeakerCleared).toBe(false);
   });
 });
+
+describe("새 얼굴 팝업이 떠 있는 동안 마이크 대기", () => {
+
+  const v_e170e6 = (): v_8118fb => ({
+    ...v_30b0d4(),
+    mode: "pending",
+    personId: null,
+    promptRegister: true,
+    lastNotifyUnknownMs: 1000,
+  });
+
+  it("팝업 중 아는 얼굴이 돌아와도 MIC_ON 을 내지 않고 마이크를 계속 보류한다", () => {
+    const v_cb35cb = v_729796(v_e170e6(), v_d81543(58), 40_000);
+    expect(v_cb35cb.state.mode).toBe("identified");
+    expect(v_cb35cb.state.promptRegister).toBe(true);
+    expect(v_cb35cb.actions.some((v_779914) => v_779914.type === "MIC_ON")).toBe(false);
+    expect(v_cb35cb.actions.some((v_779914) => v_779914.type === "NOTIFY_CONFIRMED")).toBe(true);
+    expect(v_b94941(v_cb35cb.state)).toBe(true);
+  });
+
+  it("그 뒤 '나중에' 로 닫으면 마이크가 열리고, 돌아온 신원은 지우지 않는다", () => {
+    const v_fd5f43 = v_729796(v_e170e6(), v_d81543(58), 40_000).state;
+    const v_cb35cb = v_729796(v_fd5f43, { type: "DISMISS_LATER" }, 41_000);
+    expect(v_cb35cb.state.promptRegister).toBe(false);
+    expect(v_cb35cb.state.personId).toBe(58);
+    expect(v_cb35cb.actions).toContainEqual({ type: "MIC_ON" });
+    expect(v_b94941(v_cb35cb.state)).toBe(false);
+  });
+
+  it("그 뒤 '본인' 으로 닫아도 마이크가 열린다", () => {
+    const v_fd5f43 = v_729796(v_e170e6(), v_d81543(58), 40_000).state;
+    const v_cb35cb = v_729796(v_fd5f43, { type: "CONFIRM_SAME_PERSON" }, 41_000);
+    expect(v_cb35cb.state.personId).toBe(58);
+    expect(v_b94941(v_cb35cb.state)).toBe(false);
+  });
+
+  it("팝업이 없을 때 pending 에서 아는 얼굴 복귀는 기존처럼 MIC_ON", () => {
+    const v_cb35cb = v_729796({ ...v_e170e6(), promptRegister: false }, v_d81543(58), 40_000);
+    expect(v_cb35cb.actions).toContainEqual({ type: "MIC_ON" });
+    expect(v_b94941(v_cb35cb.state)).toBe(false);
+  });
+});
