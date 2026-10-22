@@ -448,6 +448,7 @@
     "newFaceBody": "Daftarkan wajah ini?",
     "newFaceLater": "Nanti",
     "newFaceSelf": "Ini saya",
+    "newFaceSelfNamed": "Saya {{name}}",
     "newFaceEnroll": "Daftar",
     "afl971PreMessage": "{userName}, aku pergi memetik bunga dulu! Tonton videonya, aku segera kembali",
     "afl971PostMessage": "Terima kasih sudah menunggu! Ini hadiah bunganya",
@@ -2147,6 +2148,7 @@
     "other": "Lainnya"
   },
   "faceEnroll": {
+    "rescanNotice": "Kita periksa wajah sekali lagi.",
     "permissionRequired": "Izin kamera dibutuhkan.",
     "permissionSkip": "Lewati pendaftaran dan telepon",
     "cameraLoading": "Menyiapkan kamera...",
@@ -2158,6 +2160,9 @@
       "title": "Siapa orang ini?",
       "desc": "Beritahu nama dan hubungan agar kami bisa mengenalinya pada panggilan berikutnya.",
       "existingLabel": "Sudah terdaftar (pilih untuk menambah pembelajaran saja)",
+      "markSelf": "Wajah ini adalah saya",
+      "alreadyRegistered": "{{name}} sudah terdaftar",
+      "updateName": "Perbarui nama",
       "existingHint": "Jika ini orang baru, ketik namanya di bawah",
       "nameLabel": "Nama",
       "namePlaceholder": "mis. Jiho",

@@ -97,6 +97,8 @@ export interface MatchResult {
   matches: MatchCandidate[];
   best: MatchCandidate | null;
   threshold: number;
+
+  selfMatch?: boolean;
 }
 
 export async function v_afc2e6(
@@ -262,5 +264,33 @@ export async function v_6ffcc5(
     `/oth-path${v_ca1ec5}/relation`,
     v_2ca7e0,
     { method: 'PATCH', body: JSON.stringify({ relation: v_dd8af0 }) },
+  );
+}
+
+export async function v_6eed80(v_2ca7e0): Promise<{ hasSelfFace: boolean }> {
+  return v_04b58a<{ hasSelfFace: boolean }>('/oth-path', v_2ca7e0, {
+    method: 'GET',
+  });
+}
+
+export async function v_458ffb(
+  v_2ca7e0,
+  v_ca1ec5,
+): Promise<{ ok: true }> {
+  return v_04b58a<{ ok: true }>(`/oth-path${v_ca1ec5}/account-self`, v_2ca7e0, {
+    method: 'POST',
+  });
+}
+
+export async function v_ce5a56(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_8a1355,
+  v_f9a45c,
+): Promise<{ id: number; displayName: string }> {
+  return v_04b58a<{ id: number; displayName: string }>(
+    '/oth-path',
+    v_2ca7e0,
+    { method: 'POST', body: JSON.stringify({ cloneId: v_6e0fd3, displayName: v_8a1355, vector: v_f9a45c }) },
   );
 }

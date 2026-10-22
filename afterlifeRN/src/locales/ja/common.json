@@ -448,6 +448,7 @@
     "newFaceBody": "この顔を登録しますか?",
     "newFaceLater": "後で",
     "newFaceSelf": "本人です",
+    "newFaceSelfNamed": "{{name}}です",
     "newFaceEnroll": "登録",
     "afl971PreMessage": "{userName}さんにあげるお花を摘んでくるね!動画を見て待ってて、すぐ戻るから",
     "afl971PostMessage": "待っててくれてありがとう!お花のプレゼントだよ、じゃーん",
@@ -2150,6 +2151,7 @@
     "other": "その他"
   },
   "faceEnroll": {
+    "rescanNotice": "顔をもう一度確認します。",
     "permissionRequired": "カメラの権限が必要です。",
     "permissionSkip": "登録をスキップして通話",
     "cameraLoading": "カメラ準備中...",
@@ -2161,6 +2163,9 @@
       "title": "この方はどなたですか?",
       "desc": "名前と関係を教えていただくと、次回の通話から認識できます。",
       "existingLabel": "すでに登録済みの人 (選択すると学習だけ追加されます)",
+      "markSelf": "この顔は私です",
+      "alreadyRegistered": "{{name}}さんはすでに登録されています",
+      "updateName": "名前を更新",
       "existingHint": "新しい人の場合は、下に名前を直接入力してください",
       "nameLabel": "名前",
       "namePlaceholder": "例: 太郎",
